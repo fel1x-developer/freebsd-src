@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_core.h>
 
@@ -48,8 +49,8 @@
  *
  * Copies the bus id from drm_device::unique into user space.
  */
-int drm_getunique(struct drm_device *dev, void *data,
-		  struct drm_file *file_priv)
+int
+drm_getunique(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_unique *u = data;
 	struct drm_master *master = file_priv->master;
@@ -64,8 +65,7 @@ int drm_getunique(struct drm_device *dev, void *data,
 }
 
 static void
-drm_unset_busid(struct drm_device *dev,
-		struct drm_master *master)
+drm_unset_busid(struct drm_device *dev, struct drm_master *master)
 {
 
 	free(master->unique, DRM_MEM_DRIVER);
@@ -88,8 +88,8 @@ drm_unset_busid(struct drm_device *dev,
  * in interface version 1.1 and will return EBUSY when setversion has requested
  * version 1.1 or greater.
  */
-int drm_setunique(struct drm_device *dev, void *data,
-		  struct drm_file *file_priv)
+int
+drm_setunique(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_unique *u = data;
 	struct drm_master *master = file_priv->master;
@@ -115,7 +115,8 @@ err:
 	return ret;
 }
 
-static int drm_set_busid(struct drm_device *dev, struct drm_file *file_priv)
+static int
+drm_set_busid(struct drm_device *dev, struct drm_file *file_priv)
 {
 	struct drm_master *master = file_priv->master;
 	int ret;
@@ -145,8 +146,8 @@ err:
  * Searches for the mapping with the specified offset and copies its information
  * into userspace
  */
-int drm_getmap(struct drm_device *dev, void *data,
-	       struct drm_file *file_priv)
+int
+drm_getmap(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_map *map = data;
 	struct drm_map_list *r_list = NULL;
@@ -160,7 +161,8 @@ int drm_getmap(struct drm_device *dev, void *data,
 
 	i = 0;
 	DRM_LOCK(dev);
-	list_for_each(list, &dev->maplist) {
+	list_for_each(list, &dev->maplist)
+	{
 		if (i == idx) {
 			r_list = list_entry(list, struct drm_map_list, head);
 			break;
@@ -176,7 +178,7 @@ int drm_getmap(struct drm_device *dev, void *data,
 	map->size = r_list->map->size;
 	map->type = r_list->map->type;
 	map->flags = r_list->map->flags;
-	map->handle = (void *)(unsigned long) r_list->user_token;
+	map->handle = (void *)(unsigned long)r_list->user_token;
 	map->mtrr = r_list->map->mtrr;
 	DRM_UNLOCK(dev);
 
@@ -196,8 +198,8 @@ int drm_getmap(struct drm_device *dev, void *data,
  * Searches for the client with the specified index and copies its information
  * into userspace
  */
-int drm_getclient(struct drm_device *dev, void *data,
-		  struct drm_file *file_priv)
+int
+drm_getclient(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_client *client = data;
 	struct drm_file *pt;
@@ -208,7 +210,8 @@ int drm_getclient(struct drm_device *dev, void *data,
 	i = 0;
 
 	DRM_LOCK(dev);
-	list_for_each_entry(pt, &dev->filelist, lhead) {
+	list_for_each_entry(pt, &dev->filelist, lhead)
+	{
 		if (i++ >= idx) {
 			client->auth = pt->authenticated;
 			client->pid = pt->pid;
@@ -235,8 +238,8 @@ int drm_getclient(struct drm_device *dev, void *data,
  *
  * \return zero on success or a negative number on failure.
  */
-int drm_getstats(struct drm_device *dev, void *data,
-		 struct drm_file *file_priv)
+int
+drm_getstats(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_stats *stats = data;
 	int i;
@@ -246,7 +249,9 @@ int drm_getstats(struct drm_device *dev, void *data,
 	for (i = 0; i < dev->counters; i++) {
 		if (dev->types[i] == _DRM_STAT_LOCK)
 			stats->data[i].value =
-			    (file_priv->master->lock.hw_lock ? file_priv->master->lock.hw_lock->lock : 0);
+			    (file_priv->master->lock.hw_lock ?
+				    file_priv->master->lock.hw_lock->lock :
+				    0);
 		else
 			stats->data[i].value = atomic_read(&dev->counts[i]);
 		stats->data[i].type = dev->types[i];
@@ -260,7 +265,8 @@ int drm_getstats(struct drm_device *dev, void *data,
 /**
  * Get device/driver capabilities
  */
-int drm_getcap(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int
+drm_getcap(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_get_cap *req = data;
 
@@ -280,8 +286,14 @@ int drm_getcap(struct drm_device *dev, void *data, struct drm_file *file_priv)
 		req->value = dev->mode_config.prefer_shadow;
 		break;
 	case DRM_CAP_PRIME:
-		req->value |= false /* XXXKIB dev->driver->prime_fd_to_handle */ ? DRM_PRIME_CAP_IMPORT : 0;
-		req->value |= false /* XXXKIB dev->driver->prime_handle_to_fd */ ? DRM_PRIME_CAP_EXPORT : 0;
+		req->value |=
+		    false /* XXXKIB dev->driver->prime_fd_to_handle */ ?
+		    DRM_PRIME_CAP_IMPORT :
+		    0;
+		req->value |=
+		    false /* XXXKIB dev->driver->prime_handle_to_fd */ ?
+		    DRM_PRIME_CAP_EXPORT :
+		    0;
 		break;
 	case DRM_CAP_TIMESTAMP_MONOTONIC:
 		req->value = drm_timestamp_monotonic;
@@ -303,19 +315,19 @@ int drm_getcap(struct drm_device *dev, void *data, struct drm_file *file_priv)
  *
  * Sets the requested interface version
  */
-int drm_setversion(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int
+drm_setversion(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_set_version *sv = data;
 	int if_version, retcode = 0;
 
 	if (sv->drm_di_major != -1) {
-		if (sv->drm_di_major != DRM_IF_MAJOR ||
-		    sv->drm_di_minor < 0 || sv->drm_di_minor > DRM_IF_MINOR) {
+		if (sv->drm_di_major != DRM_IF_MAJOR || sv->drm_di_minor < 0 ||
+		    sv->drm_di_minor > DRM_IF_MINOR) {
 			retcode = -EINVAL;
 			goto done;
 		}
-		if_version = DRM_IF_VERSION(sv->drm_di_major,
-					    sv->drm_di_minor);
+		if_version = DRM_IF_VERSION(sv->drm_di_major, sv->drm_di_minor);
 		dev->if_version = max(if_version, dev->if_version);
 		if (sv->drm_di_minor >= 1) {
 			/*
@@ -330,8 +342,8 @@ int drm_setversion(struct drm_device *dev, void *data, struct drm_file *file_pri
 
 	if (sv->drm_dd_major != -1) {
 		if (sv->drm_dd_major != dev->driver->major ||
-		    sv->drm_dd_minor < 0 || sv->drm_dd_minor >
-		    dev->driver->minor) {
+		    sv->drm_dd_minor < 0 ||
+		    sv->drm_dd_minor > dev->driver->minor) {
 			retcode = -EINVAL;
 			goto done;
 		}
@@ -350,8 +362,8 @@ done:
 }
 
 /** No-op ioctl. */
-int drm_noop(struct drm_device *dev, void *data,
-	     struct drm_file *file_priv)
+int
+drm_noop(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	DRM_DEBUG("\n");
 	return 0;

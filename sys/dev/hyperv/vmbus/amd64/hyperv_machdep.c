@@ -25,68 +25,66 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 #include <sys/timetc.h>
 #include <sys/vdso.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_extern.h>
 
 #include <machine/cpufunc.h>
 #include <machine/cputypes.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#include <vm/vm.h>
-#include <vm/vm_extern.h>
-#include <vm/pmap.h>
-
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/hyperv_busdma.h>
+#include <dev/hyperv/vmbus/hyperv_common_reg.h>
+#include <dev/hyperv/vmbus/hyperv_var.h>
 #include <dev/hyperv/vmbus/x86/hyperv_machdep.h>
 #include <dev/hyperv/vmbus/x86/hyperv_reg.h>
-#include <dev/hyperv/vmbus/hyperv_var.h>
-#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 
 struct hyperv_reftsc_ctx {
-	struct hyperv_reftsc	*tsc_ref;
+	struct hyperv_reftsc *tsc_ref;
 };
 
-static uint32_t			hyperv_tsc_vdso_timehands(
-				    struct vdso_timehands *,
-				    struct timecounter *);
+static uint32_t hyperv_tsc_vdso_timehands(struct vdso_timehands *,
+    struct timecounter *);
 
-static d_open_t			hyperv_tsc_open;
-static d_mmap_t			hyperv_tsc_mmap;
+static d_open_t hyperv_tsc_open;
+static d_mmap_t hyperv_tsc_mmap;
 
-static struct timecounter	hyperv_tsc_timecounter = {
-	.tc_get_timecount	= NULL,	/* based on CPU vendor. */
-	.tc_counter_mask	= 0xffffffff,
-	.tc_frequency		= HYPERV_TIMER_FREQ,
-	.tc_name		= "Hyper-V-TSC",
-	.tc_quality		= 3000,
+static struct timecounter hyperv_tsc_timecounter = {
+	.tc_get_timecount = NULL, /* based on CPU vendor. */
+	.tc_counter_mask = 0xffffffff,
+	.tc_frequency = HYPERV_TIMER_FREQ,
+	.tc_name = "Hyper-V-TSC",
+	.tc_quality = 3000,
 	.tc_fill_vdso_timehands = hyperv_tsc_vdso_timehands,
 };
 
-static struct cdevsw		hyperv_tsc_cdevsw = {
-	.d_version		= D_VERSION,
-	.d_open			= hyperv_tsc_open,
-	.d_mmap			= hyperv_tsc_mmap,
-	.d_name			= HYPERV_REFTSC_DEVNAME
-};
+static struct cdevsw hyperv_tsc_cdevsw = { .d_version = D_VERSION,
+	.d_open = hyperv_tsc_open,
+	.d_mmap = hyperv_tsc_mmap,
+	.d_name = HYPERV_REFTSC_DEVNAME };
 
-static struct hyperv_reftsc_ctx	hyperv_ref_tsc;
+static struct hyperv_reftsc_ctx hyperv_ref_tsc;
 
 uint64_t
-hypercall_md(volatile void *hc_addr, uint64_t in_val,
-    uint64_t in_paddr, uint64_t out_paddr)
+hypercall_md(volatile void *hc_addr, uint64_t in_val, uint64_t in_paddr,
+    uint64_t out_paddr)
 {
 	uint64_t status;
 
-	__asm__ __volatile__ ("mov %0, %%r8" : : "r" (out_paddr): "r8");
-	__asm__ __volatile__ ("call *%3" : "=a" (status) :
-	    "c" (in_val), "d" (in_paddr), "m" (hc_addr));
+	__asm__ __volatile__("mov %0, %%r8" : : "r"(out_paddr) : "r8");
+	__asm__ __volatile__("call *%3"
+			     : "=a"(status)
+			     : "c"(in_val), "d"(in_paddr), "m"(hc_addr));
 	return (status);
 }
 
@@ -134,44 +132,43 @@ hyperv_tsc_vdso_timehands(struct vdso_timehands *vdso_th,
 	return (1);
 }
 
-#define HYPERV_TSC_TIMECOUNT(fence)					\
-static uint64_t								\
-hyperv_tc64_tsc_##fence(void)						\
-{									\
-	struct hyperv_reftsc *tsc_ref = hyperv_ref_tsc.tsc_ref;		\
-	uint32_t seq;							\
-									\
-	while ((seq = atomic_load_acq_int(&tsc_ref->tsc_seq)) != 0) {	\
-		uint64_t disc, ret, tsc;				\
-		uint64_t scale = tsc_ref->tsc_scale;			\
-		int64_t ofs = tsc_ref->tsc_ofs;				\
-									\
-		fence();						\
-		tsc = rdtsc();						\
-									\
-		/* ret = ((tsc * scale) >> 64) + ofs */			\
-		__asm__ __volatile__ ("mulq %3" :			\
-		    "=d" (ret), "=a" (disc) :				\
-		    "a" (tsc), "r" (scale));				\
-		ret += ofs;						\
-									\
-		atomic_thread_fence_acq();				\
-		if (tsc_ref->tsc_seq == seq)				\
-			return (ret);					\
-									\
-		/* Sequence changed; re-sync. */			\
-	}								\
-	/* Fallback to the generic timecounter, i.e. rdmsr. */		\
-	return (rdmsr(MSR_HV_TIME_REF_COUNT));				\
-}									\
-									\
-static u_int								\
-hyperv_tsc_timecount_##fence(struct timecounter *tc __unused)		\
-{									\
-									\
-	return (hyperv_tc64_tsc_##fence());				\
-}									\
-struct __hack
+#define HYPERV_TSC_TIMECOUNT(fence)                                           \
+	static uint64_t hyperv_tc64_tsc_##fence(void)                         \
+	{                                                                     \
+		struct hyperv_reftsc *tsc_ref = hyperv_ref_tsc.tsc_ref;       \
+		uint32_t seq;                                                 \
+                                                                              \
+		while ((seq = atomic_load_acq_int(&tsc_ref->tsc_seq)) != 0) { \
+			uint64_t disc, ret, tsc;                              \
+			uint64_t scale = tsc_ref->tsc_scale;                  \
+			int64_t ofs = tsc_ref->tsc_ofs;                       \
+                                                                              \
+			fence();                                              \
+			tsc = rdtsc();                                        \
+                                                                              \
+			/* ret = ((tsc * scale) >> 64) + ofs */               \
+			__asm__ __volatile__("mulq %3"                        \
+					     : "=d"(ret), "=a"(disc)          \
+					     : "a"(tsc), "r"(scale));         \
+			ret += ofs;                                           \
+                                                                              \
+			atomic_thread_fence_acq();                            \
+			if (tsc_ref->tsc_seq == seq)                          \
+				return (ret);                                 \
+                                                                              \
+			/* Sequence changed; re-sync. */                      \
+		}                                                             \
+		/* Fallback to the generic timecounter, i.e. rdmsr. */        \
+		return (rdmsr(MSR_HV_TIME_REF_COUNT));                        \
+	}                                                                     \
+                                                                              \
+	static u_int hyperv_tsc_timecount_##fence(                            \
+	    struct timecounter *tc __unused)                                  \
+	{                                                                     \
+                                                                              \
+		return (hyperv_tc64_tsc_##fence());                           \
+	}                                                                     \
+	struct __hack
 
 HYPERV_TSC_TIMECOUNT(lfence);
 HYPERV_TSC_TIMECOUNT(mfence);
@@ -183,9 +180,9 @@ hyperv_tsc_tcinit(void *dummy __unused)
 	uint64_t val, orig;
 
 	if ((hyperv_features &
-	     (CPUID_HV_MSR_TIME_REFCNT | CPUID_HV_MSR_REFERENCE_TSC)) !=
-	    (CPUID_HV_MSR_TIME_REFCNT | CPUID_HV_MSR_REFERENCE_TSC) ||
-	    (cpu_feature & CPUID_SSE2) == 0)	/* SSE2 for mfence/lfence */
+		(CPUID_HV_MSR_TIME_REFCNT | CPUID_HV_MSR_REFERENCE_TSC)) !=
+		(CPUID_HV_MSR_TIME_REFCNT | CPUID_HV_MSR_REFERENCE_TSC) ||
+	    (cpu_feature & CPUID_SSE2) == 0) /* SSE2 for mfence/lfence */
 		return;
 
 	switch (cpu_vendor_id) {
@@ -215,8 +212,8 @@ hyperv_tsc_tcinit(void *dummy __unused)
 	}
 
 	orig = rdmsr(MSR_HV_REFERENCE_TSC);
-	val = (pmap_kextract((vm_offset_t)hyperv_ref_tsc.tsc_ref) >>
-	    PAGE_SHIFT) << MSR_HV_REFTSC_PGSHIFT;
+	val = (pmap_kextract((vm_offset_t)hyperv_ref_tsc.tsc_ref) >> PAGE_SHIFT)
+	    << MSR_HV_REFTSC_PGSHIFT;
 	val |= MSR_HV_REFTSC_ENABLE | (orig & MSR_HV_REFTSC_RSVD_MASK);
 	wrmsr(MSR_HV_REFERENCE_TSC, val);
 

@@ -32,8 +32,9 @@
  * $Id: bthidd.c,v 1.8 2006/09/07 21:06:53 max Exp $
  */
 
-#include <sys/time.h>
 #include <sys/queue.h>
+#include <sys/time.h>
+
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
@@ -46,29 +47,30 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidd.h"
 
-static int32_t	write_pid_file	(char const *file);
-static int32_t	remove_pid_file	(char const *file);
-static int32_t	elapsed		(int32_t tval);
-static void	sighandler	(int32_t s);
-static void	usage		(void);
+static int32_t write_pid_file(char const *file);
+static int32_t remove_pid_file(char const *file);
+static int32_t elapsed(int32_t tval);
+static void sighandler(int32_t s);
+static void usage(void);
 
 /*
  * bthidd
  */
 
-static int32_t	done = 0; /* are we done? */
+static int32_t done = 0; /* are we done? */
 
 int32_t
 main(int32_t argc, char *argv[])
 {
-	struct bthid_server	 srv;
-	struct sigaction	 sa;
-	char const		*pid_file = BTHIDD_PIDFILE;
-	char			*ep;
-	int32_t			 opt, detach, tval, uinput;
+	struct bthid_server srv;
+	struct sigaction sa;
+	char const *pid_file = BTHIDD_PIDFILE;
+	char *ep;
+	int32_t opt, detach, tval, uinput;
 
 	memset(&srv, 0, sizeof(srv));
 	memset(&srv.bdaddr, 0, sizeof(srv.bdaddr));
@@ -80,15 +82,17 @@ main(int32_t argc, char *argv[])
 		switch (opt) {
 		case 'a': /* BDADDR */
 			if (!bt_aton(optarg, &srv.bdaddr)) {
-				struct hostent  *he;
+				struct hostent *he;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
-				memcpy(&srv.bdaddr, he->h_addr, sizeof(srv.bdaddr));
+				memcpy(&srv.bdaddr, he->h_addr,
+				    sizeof(srv.bdaddr));
 			}
 			break;
-			
+
 		case 'c': /* config file */
 			config_file = optarg;
 			break;
@@ -106,7 +110,7 @@ main(int32_t argc, char *argv[])
 			break;
 
 		case 't': /* rescan interval */
-			tval = strtol(optarg, (char **) &ep, 10);
+			tval = strtol(optarg, (char **)&ep, 10);
 			if (*ep != '\0' || tval <= 0)
 				usage();
 			break;
@@ -122,12 +126,12 @@ main(int32_t argc, char *argv[])
 		}
 	}
 
-	openlog(BTHIDD_IDENT, LOG_PID|LOG_PERROR|LOG_NDELAY, LOG_USER);
+	openlog(BTHIDD_IDENT, LOG_PID | LOG_PERROR | LOG_NDELAY, LOG_USER);
 
 	/* Become daemon if required */
 	if (detach && daemon(0, 0) < 0) {
 		syslog(LOG_CRIT, "Could not become daemon. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		exit(1);
 	}
 
@@ -139,22 +143,22 @@ main(int32_t argc, char *argv[])
 	    sigaction(SIGHUP, &sa, NULL) < 0 ||
 	    sigaction(SIGINT, &sa, NULL) < 0) {
 		syslog(LOG_CRIT, "Could not install signal handlers. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		exit(1);
 	}
 
 	sa.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &sa, NULL) < 0) {
 		syslog(LOG_CRIT, "Could not install signal handlers. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		exit(1);
 	}
 
 	sa.sa_handler = SIG_IGN;
-	sa.sa_flags = SA_NOCLDSTOP|SA_NOCLDWAIT;
+	sa.sa_flags = SA_NOCLDSTOP | SA_NOCLDWAIT;
 	if (sigaction(SIGCHLD, &sa, NULL) < 0) {
 		syslog(LOG_CRIT, "Could not install signal handlers. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		exit(1);
 	}
 
@@ -164,7 +168,7 @@ main(int32_t argc, char *argv[])
 
 	srv.uinput = uinput;
 
-	for (done = 0; !done; ) {
+	for (done = 0; !done;) {
 		if (elapsed(tval))
 			client_rescan(&srv);
 
@@ -187,13 +191,13 @@ main(int32_t argc, char *argv[])
 static int32_t
 write_pid_file(char const *file)
 {
-	FILE	*pid;
+	FILE *pid;
 
 	assert(file != NULL);
 
 	if ((pid = fopen(file, "w")) == NULL) {
-		syslog(LOG_ERR, "Could not open file %s. %s (%d)",
-			file, strerror(errno), errno);
+		syslog(LOG_ERR, "Could not open file %s. %s (%d)", file,
+		    strerror(errno), errno);
 		return (-1);
 	}
 
@@ -213,8 +217,8 @@ remove_pid_file(char const *file)
 	assert(file != NULL);
 
 	if (unlink(file) < 0) {
-		syslog(LOG_ERR, "Could not unlink file %s. %s (%d)",
-			file, strerror(errno), errno);
+		syslog(LOG_ERR, "Could not unlink file %s. %s (%d)", file,
+		    strerror(errno), errno);
 		return (-1);
 	}
 
@@ -228,8 +232,8 @@ remove_pid_file(char const *file)
 static int32_t
 elapsed(int32_t tval)
 {
-	static struct timeval	last = { 0, 0 };
-	struct timeval		now;
+	static struct timeval last = { 0, 0 };
+	struct timeval now;
 
 	gettimeofday(&now, NULL);
 
@@ -248,8 +252,8 @@ elapsed(int32_t tval)
 static void
 sighandler(int32_t s)
 {
-	syslog(LOG_NOTICE, "Got signal %d, total number of signals %d",
-		s, ++ done);
+	syslog(LOG_NOTICE, "Got signal %d, total number of signals %d", s,
+	    ++done);
 }
 
 /*
@@ -260,17 +264,17 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"Usage: %s [options]\n" \
-"Where options are:\n" \
-"	-a address	specify address to listen on (default ANY)\n" \
-"	-c file		specify config file name\n" \
-"	-d		run in foreground\n" \
-"	-H file		specify known HIDs file name\n" \
-"	-h		display this message\n" \
-"	-p file		specify PID file name\n" \
-"	-t tval		specify client rescan interval (sec)\n" \
-"	-u		enable evdev protocol support\n" \
-"", BTHIDD_IDENT);
+	    "Usage: %s [options]\n"
+	    "Where options are:\n"
+	    "	-a address	specify address to listen on (default ANY)\n"
+	    "	-c file		specify config file name\n"
+	    "	-d		run in foreground\n"
+	    "	-H file		specify known HIDs file name\n"
+	    "	-h		display this message\n"
+	    "	-p file		specify PID file name\n"
+	    "	-t tval		specify client rescan interval (sec)\n"
+	    "	-u		enable evdev protocol support\n"
+	    "",
+	    BTHIDD_IDENT);
 	exit(255);
 }
-

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-
 #include <sys/param.h>
-#include <sys/sysctl.h>
+#include <sys/queue.h>
 #include <sys/resource.h>
+#include <sys/sysctl.h>
 
 #include <devstat.h>
 #include <err.h>
@@ -17,32 +17,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/queue.h>
-#include <sys/sysctl.h>
-
-#include "systat.h"
-#include "extern.h"
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
 #define CAM_BASE "kern.cam"
 #define LATENCY ".latencies"
 #define CAM_IOSCHED_BASE "kern.cam.iosched.bucket_base_us"
 
-#define DEV_NAMSIZE	32
-#define OP_NAMSIZE	16
-#define MAX_LATS	32
+#define DEV_NAMSIZE 32
+#define OP_NAMSIZE 16
+#define MAX_LATS 32
 
 static double high_thresh = 500;
 static double med_thresh = 300;
 static bool docolor = true;
 
 static int ndevs;
-static SLIST_HEAD(, iosched_stat)	curlist;
+static SLIST_HEAD(, iosched_stat) curlist;
 
 struct iosched_op_stat {
-	int		nlats;
-	uint64_t	lats[MAX_LATS];
-	uint64_t	prev_lats[MAX_LATS];
+	int nlats;
+	uint64_t lats[MAX_LATS];
+	uint64_t prev_lats[MAX_LATS];
 };
 
 enum { OP_READ = 0, OP_WRITE, OP_TRIM, NUM_OPS };
@@ -54,14 +51,14 @@ static const char *ops[NUM_OPS] = { "read", "write", "trim" };
 static uint32_t flags = OP_READ_MASK | OP_WRITE_MASK | OP_TRIM_MASK;
 
 struct iosched_stat {
-	SLIST_ENTRY(iosched_stat)	 link;
-	char		dev_name[DEV_NAMSIZE];
-	int		unit;
+	SLIST_ENTRY(iosched_stat) link;
+	char dev_name[DEV_NAMSIZE];
+	int unit;
 	struct iosched_op_stat op_stats[NUM_OPS];
 };
 
-static int	name2oid(const char *, int *);
-static int	walk_sysctl(int *, size_t);
+static int name2oid(const char *, int *);
+static int walk_sysctl(int *, size_t);
 
 static int
 name2oid(const char *name, int *oidp)
@@ -102,7 +99,7 @@ oid2name(int *oid, size_t nlen, char *name, size_t namlen)
 static int
 oidfmt(int *oid, int len, u_int *kind)
 {
-	int qoid[CTL_MAXNAME+2];
+	int qoid[CTL_MAXNAME + 2];
 	u_char buf[BUFSIZ];
 	int i;
 	size_t j;
@@ -151,13 +148,15 @@ pest(int permill, uint64_t *lats, int nlat)
 		return nanf("");
 	samp = tot * permill / 1000;
 	if (samp < lats[0])
-		return baselat * (float)samp / lats[0]; /* linear interpolation 0 and baselat */
+		return baselat * (float)samp /
+		    lats[0]; /* linear interpolation 0 and baselat */
 	for (tot = 0, i = 0; samp >= tot && i < nlat; i++)
 		tot += lats[i];
 	i--;
 	b1 = baselat * (1 << (i - 1));
 	b2 = baselat * (1 << i);
-	/* Should expoentially interpolate between buckets -- doing linear instead */
+	/* Should expoentially interpolate between buckets -- doing linear
+	 * instead */
 	return b1 + (b2 - b1) * (float)(lats[i] - (tot - samp)) / lats[i];
 }
 
@@ -176,7 +175,7 @@ find_dev(const char *dev, int unit, int op)
 	struct iosched_stat *isp;
 	struct iosched_op_stat *iosp;
 
-	SLIST_FOREACH(isp, &curlist, link) {
+	SLIST_FOREACH (isp, &curlist, link) {
 		if (strcmp(isp->dev_name, dev) != 0 || isp->unit != unit)
 			continue;
 		iosp = &isp->op_stats[op];
@@ -216,9 +215,10 @@ update_dev(const char *dev, int unit, int op, uint64_t *lats, int nlat)
 	iosp->nlats = nlat;
 	memcpy(iosp->prev_lats, iosp->lats, iosp->nlats * sizeof(uint64_t));
 	memcpy(iosp->lats, lats, iosp->nlats * sizeof(uint64_t));
-//	printf("%s%d: %-6s %.3f %.3f %.3f %.3f\r\n",
-//	    dev, unit, operation, E3 * pest(500, lats, nlat), E3 * pest(900, lats, nlat),
-//	    E3 * pest(990, lats, nlat), E3 * pest(999, lats, nlat));
+	//	printf("%s%d: %-6s %.3f %.3f %.3f %.3f\r\n",
+	//	    dev, unit, operation, E3 * pest(500, lats, nlat), E3 *
+	//pest(900, lats, nlat), 	    E3 * pest(990, lats, nlat), E3 * pest(999,
+	//lats, nlat));
 }
 
 static int
@@ -254,8 +254,7 @@ walk_sysctl(int *base_oid, size_t len)
 		 * Bail if we're seeing OIDs that don't have the
 		 * same prefix or can't have the same prefix.
 		 */
-		if (l2 < len ||
-		    memcmp(oid, base_oid, len * sizeof(int)) != 0)
+		if (l2 < len || memcmp(oid, base_oid, len * sizeof(int)) != 0)
 			return (0);
 
 		/*
@@ -272,7 +271,8 @@ walk_sysctl(int *base_oid, size_t len)
 			int unit, op;
 
 			l1 = oid2name(oid, l2, name, sizeof(name));
-			if (strcmp(name + l1 - strlen(LATENCY) - 1, LATENCY) != 0)
+			if (strcmp(name + l1 - strlen(LATENCY) - 1, LATENCY) !=
+			    0)
 				break;
 			if (oidfmt(oid, l2, &kind) != 0)
 				err(1, "oidfmt");
@@ -319,9 +319,9 @@ doublecmd(const char *cmd, double *v)
 
 	p = strchr(cmd, '=');
 	if (p == NULL)
-		return;	/* XXX Tell the user something? */
+		return; /* XXX Tell the user something? */
 	if (sscanf(p + 1, "%lf", &tv) != 1)
-		return;	/* XXX Tell the user something? */
+		return; /* XXX Tell the user something? */
 	*v = tv;
 }
 
@@ -358,9 +358,9 @@ initiolat(void)
 
 	SLIST_INIT(&curlist);
 
-	baselat = 1e-3;		/* old default */
+	baselat = 1e-3; /* old default */
 	if (sysctlbyname(CAM_IOSCHED_BASE, &sbt_base, &len, NULL, 0) == 0)
-		baselat = sbt_base * 1e-6;	/* Convert to microseconds */
+		baselat = sbt_base * 1e-6; /* Convert to microseconds */
 
 	name2oid(CAM_BASE, cam);
 	walk_sysctl(cam, 2);
@@ -376,7 +376,7 @@ fetchiolat(void)
 	walk_sysctl(cam, 2);
 }
 
-#define	INSET	10
+#define INSET 10
 
 void
 labeliolat(void)
@@ -385,8 +385,8 @@ labeliolat(void)
 	int regions __unused;
 	struct iosched_stat *isp;
 	char tmpstr[32];
-#define COLWIDTH	29
-#define DRIVESPERLINE	((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
+#define COLWIDTH 29
+#define DRIVESPERLINE ((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
 	ndrives = ndevs; // XXX FILTER XXX
 	regions = howmany(ndrives, DRIVESPERLINE);
 	lpr = 2; /* for headers */
@@ -403,7 +403,7 @@ labeliolat(void)
 		mvwaddstr(wnd, row + j++, 1, "write");
 	if (flags & OP_TRIM_MASK)
 		mvwaddstr(wnd, row + j++, 1, "trim");
-	SLIST_FOREACH(isp, &curlist, link) {
+	SLIST_FOREACH (isp, &curlist, link) {
 		if (_col + COLWIDTH >= getmaxx(wnd) - 1 - INSET) {
 			_col = INSET;
 			row += lpr + 1;
@@ -417,8 +417,10 @@ labeliolat(void)
 			if (flags & OP_TRIM_MASK)
 				mvwaddstr(wnd, row + j++, 1, "trim");
 		}
-		snprintf(tmpstr, sizeof(tmpstr), "%s%d", isp->dev_name, isp->unit);
-		mvwaddstr(wnd, row, _col + (COLWIDTH - strlen(tmpstr)) / 2, tmpstr);
+		snprintf(tmpstr, sizeof(tmpstr), "%s%d", isp->dev_name,
+		    isp->unit);
+		mvwaddstr(wnd, row, _col + (COLWIDTH - strlen(tmpstr)) / 2,
+		    tmpstr);
 		mvwaddstr(wnd, row + 1, _col, "   p50    p90    p99  p99.9");
 		_col += COLWIDTH;
 	}
@@ -427,7 +429,7 @@ labeliolat(void)
 WINDOW *
 openiolat(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 static void
@@ -474,8 +476,8 @@ showiolat(void)
 	int regions __unused;
 	struct iosched_stat *isp;
 	struct iosched_op_stat *iosp;
-#define COLWIDTH	29
-#define DRIVESPERLINE	((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
+#define COLWIDTH 29
+#define DRIVESPERLINE ((getmaxx(wnd) - 1 - INSET) / COLWIDTH)
 	ndrives = ndevs; // XXX FILTER XXX
 	regions = howmany(ndrives, DRIVESPERLINE);
 	lpr = 2; /* XXX */
@@ -485,7 +487,7 @@ showiolat(void)
 	}
 	row = 0;
 	_col = INSET;
-	SLIST_FOREACH(isp, &curlist, link) {
+	SLIST_FOREACH (isp, &curlist, link) {
 		if (_col + COLWIDTH >= getmaxx(wnd) - 1 - INSET) {
 			_col = INSET;
 			row += lpr + 1;

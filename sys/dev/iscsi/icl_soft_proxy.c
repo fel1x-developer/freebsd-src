@@ -65,37 +65,37 @@
 #ifdef ICL_KERNEL_PROXY
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 #include <dev/iscsi/icl.h>
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
 struct icl_listen_sock {
-	TAILQ_ENTRY(icl_listen_sock)	ils_next;
-	struct icl_listen		*ils_listen;
-	struct socket			*ils_socket;
-	bool				ils_running;
-	int				ils_id;
+	TAILQ_ENTRY(icl_listen_sock) ils_next;
+	struct icl_listen *ils_listen;
+	struct socket *ils_socket;
+	bool ils_running;
+	int ils_id;
 };
 
-struct icl_listen	{
-	TAILQ_HEAD(, icl_listen_sock)	il_sockets;
-	struct sx			il_lock;
-	void				(*il_accept)(struct socket *,
-					    struct sockaddr *, int);
+struct icl_listen {
+	TAILQ_HEAD(, icl_listen_sock) il_sockets;
+	struct sx il_lock;
+	void (*il_accept)(struct socket *, struct sockaddr *, int);
 };
 
 static MALLOC_DEFINE(M_ICL_PROXY, "ICL_PROXY", "iSCSI common layer proxy");
@@ -107,8 +107,8 @@ icl_soft_proxy_connect(struct icl_conn *ic, int domain, int socktype,
 	struct socket *so;
 	int error;
 
-	error = socreate(domain, &so, socktype, protocol,
-	    curthread->td_ucred, curthread);
+	error = socreate(domain, &so, socktype, protocol, curthread->td_ucred,
+	    curthread);
 	if (error != 0)
 		return (error);
 
@@ -252,8 +252,8 @@ icl_listen_add_tcp(struct icl_listen *il, int domain, int socktype,
 	struct sockopt sopt;
 	int error, one = 1;
 
-	error = socreate(domain, &so, socktype, protocol,
-	    curthread->td_ucred, curthread);
+	error = socreate(domain, &so, socktype, protocol, curthread->td_ucred,
+	    curthread);
 	if (error != 0) {
 		ICL_WARN("socreate failed with error %d", error);
 		return (error);
@@ -317,8 +317,8 @@ icl_listen_add(struct icl_listen *il, bool rdma, int domain, int socktype,
 		return (EOPNOTSUPP);
 	}
 
-	return (icl_listen_add_tcp(il, domain, socktype, protocol, sa,
-	    portal_id));
+	return (
+	    icl_listen_add_tcp(il, domain, socktype, protocol, sa, portal_id));
 }
 
 int

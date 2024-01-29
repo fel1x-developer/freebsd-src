@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/endian.h>
 #include <sys/ioccom.h>
 
 #include <ctype.h>
@@ -37,33 +38,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/endian.h>
 
 #include "nvmecontrol.h"
 
-struct samsung_log_extended_smart
-{
-	uint8_t		kv[256];/* Key-Value pair */
-	uint32_t	lwaf;	/* Lifetime Write Amplification */
-	uint32_t	thwaf;	/* Trailing Hour Write Amplification Factor */
-	uint64_t	luw[2];	/* Lifetime User Writes */
-	uint64_t	lnw[2];	/* Lifetime NAND Writes */
-	uint64_t	lur[2];	/* Lifetime User Reads */
-	uint32_t	lrbc;	/* Lifetime Retired Block Count */
-	uint16_t	ct;	/* Current Temperature */
-	uint16_t	ch;	/* Capacitor Health */
-	uint32_t	luurb;	/* Lifetime Unused Reserved Block */
-	uint64_t	rrc;	/* Read Reclaim Count */
-	uint64_t	lueccc;	/* Lifetime Uncorrectable ECC count */
-	uint32_t	lurb;	/* Lifetime Used Reserved Block */
-	uint64_t	poh[2];	/* Power on Hours */
-	uint64_t	npoc[2];/* Normal Power Off Count */
-	uint64_t	spoc[2];/* Sudden Power Off Count */
-	uint32_t	pi;	/* Performance Indicator */
+struct samsung_log_extended_smart {
+	uint8_t kv[256];  /* Key-Value pair */
+	uint32_t lwaf;	  /* Lifetime Write Amplification */
+	uint32_t thwaf;	  /* Trailing Hour Write Amplification Factor */
+	uint64_t luw[2];  /* Lifetime User Writes */
+	uint64_t lnw[2];  /* Lifetime NAND Writes */
+	uint64_t lur[2];  /* Lifetime User Reads */
+	uint32_t lrbc;	  /* Lifetime Retired Block Count */
+	uint16_t ct;	  /* Current Temperature */
+	uint16_t ch;	  /* Capacitor Health */
+	uint32_t luurb;	  /* Lifetime Unused Reserved Block */
+	uint64_t rrc;	  /* Read Reclaim Count */
+	uint64_t lueccc;  /* Lifetime Uncorrectable ECC count */
+	uint32_t lurb;	  /* Lifetime Used Reserved Block */
+	uint64_t poh[2];  /* Power on Hours */
+	uint64_t npoc[2]; /* Normal Power Off Count */
+	uint64_t spoc[2]; /* Sudden Power Off Count */
+	uint32_t pi;	  /* Performance Indicator */
 } __packed;
 
 static void
-print_samsung_extended_smart(const struct nvme_controller_data *cdata __unused, void *buf, uint32_t size __unused)
+print_samsung_extended_smart(const struct nvme_controller_data *cdata __unused,
+    void *buf, uint32_t size __unused)
 {
 	struct samsung_log_extended_smart *temp = buf;
 	char cbuf[UINT128_DIG + 1];
@@ -73,8 +73,7 @@ print_samsung_extended_smart(const struct nvme_controller_data *cdata __unused, 
 	uint64_t raw;
 	uint8_t normalized;
 
-	static struct kv_name kv[] =
-	{
+	static struct kv_name kv[] = {
 		{ 0xab, "Lifetime Program Fail Count" },
 		{ 0xac, "Lifetime Erase Fail Count" },
 		{ 0xad, "Lifetime Wear Leveling Count" },
@@ -103,60 +102,67 @@ print_samsung_extended_smart(const struct nvme_controller_data *cdata __unused, 
 		name = kv_lookup(kv, nitems(kv), *walker);
 		normalized = walker[3];
 		raw = le48dec(walker + 5);
-		switch (*walker){
+		switch (*walker) {
 		case 0:
 			break;
 		case 0xad:
 			printf("%2X %-41s: %3d min: %u max: %u ave: %u\n",
 			    le16dec(walker), name, normalized,
-			    le16dec(walker + 5), le16dec(walker + 7), le16dec(walker + 9));
+			    le16dec(walker + 5), le16dec(walker + 7),
+			    le16dec(walker + 9));
 			break;
 		case 0xe2:
-			printf("%2X %-41s: %3d %.3f%%\n",
-			    le16dec(walker), name, normalized,
-			    raw / 1024.0);
+			printf("%2X %-41s: %3d %.3f%%\n", le16dec(walker), name,
+			    normalized, raw / 1024.0);
 			break;
 		case 0xea:
 			printf("%2X %-41s: %3d %d%% %d times\n",
-			    le16dec(walker), name, normalized,
-			    walker[5], le32dec(walker+6));
+			    le16dec(walker), name, normalized, walker[5],
+			    le32dec(walker + 6));
 			break;
 		default:
-			printf("%2X %-41s: %3d %ju\n",
-			    le16dec(walker), name, normalized,
-			    (uintmax_t)raw);
+			printf("%2X %-41s: %3d %ju\n", le16dec(walker), name,
+			    normalized, (uintmax_t)raw);
 			break;
 		}
 		walker += 12;
 	}
 
-	printf("   Lifetime Write Amplification Factor      : %u\n", le32dec(&temp->lwaf));
-	printf("   Trailing Hour Write Amplification Factor : %u\n", le32dec(&temp->thwaf));
+	printf("   Lifetime Write Amplification Factor      : %u\n",
+	    le32dec(&temp->lwaf));
+	printf("   Trailing Hour Write Amplification Factor : %u\n",
+	    le32dec(&temp->thwaf));
 	printf("   Lifetime User Writes                     : %s\n",
 	    uint128_to_str(to128(temp->luw), cbuf, sizeof(cbuf)));
 	printf("   Lifetime NAND Writes                     : %s\n",
 	    uint128_to_str(to128(temp->lnw), cbuf, sizeof(cbuf)));
 	printf("   Lifetime User Reads                      : %s\n",
 	    uint128_to_str(to128(temp->lur), cbuf, sizeof(cbuf)));
-	printf("   Lifetime Retired Block Count             : %u\n", le32dec(&temp->lrbc));
+	printf("   Lifetime Retired Block Count             : %u\n",
+	    le32dec(&temp->lrbc));
 	printf("   Current Temperature                      : ");
 	print_temp_K(le16dec(&temp->ct));
-	printf("   Capacitor Health                         : %u\n", le16dec(&temp->ch));
-	printf("   Reserved Erase Block Count               : %u\n", le32dec(&temp->luurb));
-	printf("   Read Reclaim Count                       : %ju\n", (uintmax_t) le64dec(&temp->rrc));
-	printf("   Lifetime Uncorrectable ECC Count         : %ju\n", (uintmax_t) le64dec(&temp->lueccc));
-	printf("   Reallocated Block Count                  : %u\n", le32dec(&temp->lurb));
+	printf("   Capacitor Health                         : %u\n",
+	    le16dec(&temp->ch));
+	printf("   Reserved Erase Block Count               : %u\n",
+	    le32dec(&temp->luurb));
+	printf("   Read Reclaim Count                       : %ju\n",
+	    (uintmax_t)le64dec(&temp->rrc));
+	printf("   Lifetime Uncorrectable ECC Count         : %ju\n",
+	    (uintmax_t)le64dec(&temp->lueccc));
+	printf("   Reallocated Block Count                  : %u\n",
+	    le32dec(&temp->lurb));
 	printf("   Power on Hours                           : %s\n",
 	    uint128_to_str(to128(temp->poh), cbuf, sizeof(cbuf)));
 	printf("   Normal Power Off Count                   : %s\n",
 	    uint128_to_str(to128(temp->npoc), cbuf, sizeof(cbuf)));
 	printf("   Sudden Power Off Count                   : %s\n",
 	    uint128_to_str(to128(temp->spoc), cbuf, sizeof(cbuf)));
-	printf("   Performance Indicator                    : %u\n", le32dec(&temp->pi));
+	printf("   Performance Indicator                    : %u\n",
+	    le32dec(&temp->pi));
 }
 
 #define SAMSUNG_LOG_EXTEND_SMART 0xca
 
-NVME_LOGPAGE(samsung_extended_smart,
-    SAMSUNG_LOG_EXTEND_SMART,		"samsung", "Extended SMART Information",
-    print_samsung_extended_smart,	DEFAULT_SIZE);
+NVME_LOGPAGE(samsung_extended_smart, SAMSUNG_LOG_EXTEND_SMART, "samsung",
+    "Extended SMART Information", print_samsung_extended_smart, DEFAULT_SIZE);

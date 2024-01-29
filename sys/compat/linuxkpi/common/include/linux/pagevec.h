@@ -1,7 +1,7 @@
 /* Public domain. */
 
-#ifndef	_LINUXKPI_LINUX_PAGEVEC_H_
-#define	_LINUXKPI_LINUX_PAGEVEC_H_
+#ifndef _LINUXKPI_LINUX_PAGEVEC_H_
+#define _LINUXKPI_LINUX_PAGEVEC_H_
 
 #include <sys/types.h>
 #include <sys/systm.h>
@@ -12,7 +12,7 @@
 #define PAGEVEC_SIZE 15
 
 struct pagevec {
-	uint8_t	nr;
+	uint8_t nr;
 	struct page *pages[PAGEVEC_SIZE];
 };
 
@@ -66,4 +66,4 @@ check_move_unevictable_pages(struct pagevec *pvec)
 {
 }
 
-#endif	/* _LINUXKPI_LINUX_PAGEVEC_H_ */
+#endif /* _LINUXKPI_LINUX_PAGEVEC_H_ */

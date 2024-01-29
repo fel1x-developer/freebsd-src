@@ -34,39 +34,39 @@
  */
 
 #ifndef _DEV_MII_NSGPHYREG_H_
-#define	_DEV_MII_NSGPHYREG_H_
+#define _DEV_MII_NSGPHYREG_H_
 
 /*
  * NatSemi DP83891 registers
  */
 
-#define NSGPHY_MII_STRAPOPT	0x10	/* Strap options */
-#define NSGPHY_STRAPOPT_PHYADDR	0xF800	/* PHY address */
-#define NSGPHY_STRAPOPT_COMPAT	0x0400	/* Broadcom compat mode */
-#define NSGPHY_STRAPOPT_MMSE	0x0200	/* Manual master/slave enable */
-#define NSGPHY_STRAPOPT_ANEG	0x0100	/* Autoneg enable */
-#define NSGPHY_STRAPOPT_MMSV	0x0080	/* Manual master/slave setting */
-#define NSGPHY_STRAPOPT_1000HDX	0x0010	/* Advertise 1000 half-duplex */
-#define NSGPHY_STRAPOPT_1000FDX	0x0008	/* Advertise 1000 full-duplex */
-#define NSGPHY_STRAPOPT_100_ADV	0x0004	/* Advertise 100 full/half-duplex */
-#define NSGPHY_STRAPOPT_SPEED1	0x0002	/* speed selection */
-#define NSGPHY_STRAPOPT_SPEED0	0x0001	/* speed selection */
-#define NSGPHY_STRAPOPT_SPDSEL  (NSGPHY_STRAPOPT_SPEED1|NSGPHY_STRAPOPT_SPEED0)
+#define NSGPHY_MII_STRAPOPT 0x10       /* Strap options */
+#define NSGPHY_STRAPOPT_PHYADDR 0xF800 /* PHY address */
+#define NSGPHY_STRAPOPT_COMPAT 0x0400  /* Broadcom compat mode */
+#define NSGPHY_STRAPOPT_MMSE 0x0200    /* Manual master/slave enable */
+#define NSGPHY_STRAPOPT_ANEG 0x0100    /* Autoneg enable */
+#define NSGPHY_STRAPOPT_MMSV 0x0080    /* Manual master/slave setting */
+#define NSGPHY_STRAPOPT_1000HDX 0x0010 /* Advertise 1000 half-duplex */
+#define NSGPHY_STRAPOPT_1000FDX 0x0008 /* Advertise 1000 full-duplex */
+#define NSGPHY_STRAPOPT_100_ADV 0x0004 /* Advertise 100 full/half-duplex */
+#define NSGPHY_STRAPOPT_SPEED1 0x0002  /* speed selection */
+#define NSGPHY_STRAPOPT_SPEED0 0x0001  /* speed selection */
+#define NSGPHY_STRAPOPT_SPDSEL (NSGPHY_STRAPOPT_SPEED1 | NSGPHY_STRAPOPT_SPEED0)
 
-#define NSGPHY_MII_PHYSUP	0x11	/* PHY support/current status */
-#define PHY_SUP_SPEED1		0x0010  /* speed bit 1 */
-#define PHY_SUP_SPEED0		0x0008  /* speed bit 1 */
-#define NSGPHY_PHYSUP_SPEED1	0x0010	/* speed status */
-#define NSGPHY_PHYSUP_SPEED0	0x0008	/* speed status */
-#define NSGPHY_PHYSUP_SPDSTS	(NSGPHY_PHYSUP_SPEED1|NSGPHY_PHYSUP_SPEED0)
-#define NSGPHY_PHYSUP_LNKSTS	0x0004	/* link status */
-#define PHY_SUP_LINK		0x0004	/* link status */
-#define PHY_SUP_DUPLEX		0x0002	/* 1 == full-duplex */
-#define NSGPHY_PHYSUP_DUPSTS	0x0002	/* duplex status 1 == full */
-#define NSGPHY_PHYSUP_10BT	0x0001	/* 10baseT resolved */
+#define NSGPHY_MII_PHYSUP 0x11	    /* PHY support/current status */
+#define PHY_SUP_SPEED1 0x0010	    /* speed bit 1 */
+#define PHY_SUP_SPEED0 0x0008	    /* speed bit 1 */
+#define NSGPHY_PHYSUP_SPEED1 0x0010 /* speed status */
+#define NSGPHY_PHYSUP_SPEED0 0x0008 /* speed status */
+#define NSGPHY_PHYSUP_SPDSTS (NSGPHY_PHYSUP_SPEED1 | NSGPHY_PHYSUP_SPEED0)
+#define NSGPHY_PHYSUP_LNKSTS 0x0004 /* link status */
+#define PHY_SUP_LINK 0x0004	    /* link status */
+#define PHY_SUP_DUPLEX 0x0002	    /* 1 == full-duplex */
+#define NSGPHY_PHYSUP_DUPSTS 0x0002 /* duplex status 1 == full */
+#define NSGPHY_PHYSUP_10BT 0x0001   /* 10baseT resolved */
 
-#define NSGPHY_SPDSTS_1000	0x0010
-#define NSGPHY_SPDSTS_100	0x0008
-#define NSGPHY_SPDSTS_10	0x0000
+#define NSGPHY_SPDSTS_1000 0x0010
+#define NSGPHY_SPDSTS_100 0x0008
+#define NSGPHY_SPDSTS_10 0x0000
 
 #endif /* _DEV_NSGPHY_MIIREG_H_ */

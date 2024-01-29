@@ -49,7 +49,7 @@
  */
 #define LAC_CIPHER_CCM_B0_SIZE 16
 #define LAC_CIPHER_CCM_ENCODED_AAD_LEN_SIZE 2
-#define LAC_CIPHER_CCM_AAD_OFFSET                                              \
+#define LAC_CIPHER_CCM_AAD_OFFSET \
 	(LAC_CIPHER_CCM_B0_SIZE + LAC_CIPHER_CCM_ENCODED_AAD_LEN_SIZE)
 
 #define LAC_SYM_SNOW3G_CIPHER_CONFIG_FOR_HASH_SZ 40
@@ -99,32 +99,32 @@
 #define LAC_CIPHER_NULL_BLOCK_LEN_BYTES 8
 
 /* Macro to check if the Algorithm is SM4 */
-#define LAC_CIPHER_IS_SM4(algo)                                                \
-	((algo == CPA_CY_SYM_CIPHER_SM4_ECB) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_SM4_CBC) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_SM4_CTR))
+#define LAC_CIPHER_IS_SM4(algo)                    \
+	((algo == CPA_CY_SYM_CIPHER_SM4_ECB) ||    \
+	    (algo == CPA_CY_SYM_CIPHER_SM4_CBC) || \
+	    (algo == CPA_CY_SYM_CIPHER_SM4_CTR))
 
 /* Macro to check if the Algorithm is CHACHA */
 #define LAC_CIPHER_IS_CHACHA(algo) (algo == CPA_CY_SYM_CIPHER_CHACHA)
 /* Macro to check if the Algorithm is AES */
-#define LAC_CIPHER_IS_AES(algo)                                                \
-	((algo == CPA_CY_SYM_CIPHER_AES_ECB) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_AES_CBC) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_AES_CTR) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_AES_CCM) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_AES_GCM) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_AES_XTS))
+#define LAC_CIPHER_IS_AES(algo)                    \
+	((algo == CPA_CY_SYM_CIPHER_AES_ECB) ||    \
+	    (algo == CPA_CY_SYM_CIPHER_AES_CBC) || \
+	    (algo == CPA_CY_SYM_CIPHER_AES_CTR) || \
+	    (algo == CPA_CY_SYM_CIPHER_AES_CCM) || \
+	    (algo == CPA_CY_SYM_CIPHER_AES_GCM) || \
+	    (algo == CPA_CY_SYM_CIPHER_AES_XTS))
 
 /* Macro to check if the Algorithm is DES */
-#define LAC_CIPHER_IS_DES(algo)                                                \
-	((algo == CPA_CY_SYM_CIPHER_DES_ECB) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_DES_CBC))
+#define LAC_CIPHER_IS_DES(algo)                 \
+	((algo == CPA_CY_SYM_CIPHER_DES_ECB) || \
+	    (algo == CPA_CY_SYM_CIPHER_DES_CBC))
 
 /* Macro to check if the Algorithm is Triple DES */
-#define LAC_CIPHER_IS_TRIPLE_DES(algo)                                         \
-	((algo == CPA_CY_SYM_CIPHER_3DES_ECB) ||                               \
-	 (algo == CPA_CY_SYM_CIPHER_3DES_CBC) ||                               \
-	 (algo == CPA_CY_SYM_CIPHER_3DES_CTR))
+#define LAC_CIPHER_IS_TRIPLE_DES(algo)              \
+	((algo == CPA_CY_SYM_CIPHER_3DES_ECB) ||    \
+	    (algo == CPA_CY_SYM_CIPHER_3DES_CBC) || \
+	    (algo == CPA_CY_SYM_CIPHER_3DES_CTR))
 
 /* Macro to check if the Algorithm is Kasumi */
 #define LAC_CIPHER_IS_KASUMI(algo) (algo == CPA_CY_SYM_CIPHER_KASUMI_F8)
@@ -142,32 +142,33 @@
 #define LAC_CIPHER_IS_NULL(algo) (algo == CPA_CY_SYM_CIPHER_NULL)
 
 /* Macro to check if the Mode is CTR */
-#define LAC_CIPHER_IS_CTR_MODE(algo)                                           \
-	((algo == CPA_CY_SYM_CIPHER_AES_CTR) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_3DES_CTR) || (LAC_CIPHER_IS_CCM(algo)) ||  \
-	 (LAC_CIPHER_IS_GCM(algo)) || (LAC_CIPHER_IS_CHACHA(algo)) ||          \
-	 (algo == CPA_CY_SYM_CIPHER_SM4_CTR))
+#define LAC_CIPHER_IS_CTR_MODE(algo)                                  \
+	((algo == CPA_CY_SYM_CIPHER_AES_CTR) ||                       \
+	    (algo == CPA_CY_SYM_CIPHER_3DES_CTR) ||                   \
+	    (LAC_CIPHER_IS_CCM(algo)) || (LAC_CIPHER_IS_GCM(algo)) || \
+	    (LAC_CIPHER_IS_CHACHA(algo)) ||                           \
+	    (algo == CPA_CY_SYM_CIPHER_SM4_CTR))
 
 /* Macro to check if the Algorithm is ECB */
-#define LAC_CIPHER_IS_ECB_MODE(algo)                                           \
-	((algo == CPA_CY_SYM_CIPHER_AES_ECB) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_DES_ECB) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_3DES_ECB) ||                               \
-	 (algo == CPA_CY_SYM_CIPHER_NULL) ||                                   \
-	 (algo == CPA_CY_SYM_CIPHER_SNOW3G_UEA2) ||                            \
-	 (algo == CPA_CY_SYM_CIPHER_SM4_ECB))
+#define LAC_CIPHER_IS_ECB_MODE(algo)                   \
+	((algo == CPA_CY_SYM_CIPHER_AES_ECB) ||        \
+	    (algo == CPA_CY_SYM_CIPHER_DES_ECB) ||     \
+	    (algo == CPA_CY_SYM_CIPHER_3DES_ECB) ||    \
+	    (algo == CPA_CY_SYM_CIPHER_NULL) ||        \
+	    (algo == CPA_CY_SYM_CIPHER_SNOW3G_UEA2) || \
+	    (algo == CPA_CY_SYM_CIPHER_SM4_ECB))
 
 /* Macro to check if the Algorithm Mode is F8 */
-#define LAC_CIPHER_IS_F8_MODE(algo)                                            \
-	((algo == CPA_CY_SYM_CIPHER_KASUMI_F8) ||                              \
-	 (algo == CPA_CY_SYM_CIPHER_AES_F8))
+#define LAC_CIPHER_IS_F8_MODE(algo)               \
+	((algo == CPA_CY_SYM_CIPHER_KASUMI_F8) || \
+	    (algo == CPA_CY_SYM_CIPHER_AES_F8))
 
 /* Macro to check if the Algorithm is CBC */
-#define LAC_CIPHER_IS_CBC_MODE(algo)                                           \
-	((algo == CPA_CY_SYM_CIPHER_AES_CBC) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_DES_CBC) ||                                \
-	 (algo == CPA_CY_SYM_CIPHER_3DES_CBC) ||                               \
-	 (algo == CPA_CY_SYM_CIPHER_SM4_CBC))
+#define LAC_CIPHER_IS_CBC_MODE(algo)                \
+	((algo == CPA_CY_SYM_CIPHER_AES_CBC) ||     \
+	    (algo == CPA_CY_SYM_CIPHER_DES_CBC) ||  \
+	    (algo == CPA_CY_SYM_CIPHER_3DES_CBC) || \
+	    (algo == CPA_CY_SYM_CIPHER_SM4_CBC))
 
 /* Macro to check if the Algorithm is CCM */
 #define LAC_CIPHER_IS_CCM(algo) (algo == CPA_CY_SYM_CIPHER_AES_CCM)
@@ -182,16 +183,17 @@
 #define LAC_CIPHER_IS_XTS_MODE(algo) (algo == CPA_CY_SYM_CIPHER_AES_XTS)
 
 /* Macro to check if the accelerator has AES V2 capability */
-#define LAC_CIPHER_AES_V2(mask) ((mask)&ICP_ACCEL_CAPABILITIES_AES_V2)
+#define LAC_CIPHER_AES_V2(mask) ((mask) & ICP_ACCEL_CAPABILITIES_AES_V2)
 
 /* Macro to check if the Algorithm is single pass */
-#define LAC_CIPHER_IS_SPC(cipher, hash, mask)                                  \
-	(((mask)&ICP_ACCEL_CAPABILITIES_CHACHA_POLY &&                         \
-	  LAC_CIPHER_IS_CHACHA(cipher) && (CPA_CY_SYM_HASH_POLY == hash)) ||   \
-	 (((mask)&ICP_ACCEL_CAPABILITIES_AESGCM_SPC) &&                        \
-	  LAC_CIPHER_IS_GCM(cipher) &&                                         \
-	  ((CPA_CY_SYM_HASH_AES_GCM == hash) ||                                \
-	   (CPA_CY_SYM_HASH_AES_GMAC == hash))) ||                             \
-	 (LAC_CIPHER_IS_CCM(cipher) && LAC_CIPHER_AES_V2(mask)))
+#define LAC_CIPHER_IS_SPC(cipher, hash, mask)                \
+	(((mask) & ICP_ACCEL_CAPABILITIES_CHACHA_POLY &&     \
+	     LAC_CIPHER_IS_CHACHA(cipher) &&                 \
+	     (CPA_CY_SYM_HASH_POLY == hash)) ||              \
+	    (((mask) & ICP_ACCEL_CAPABILITIES_AESGCM_SPC) && \
+		LAC_CIPHER_IS_GCM(cipher) &&                 \
+		((CPA_CY_SYM_HASH_AES_GCM == hash) ||        \
+		    (CPA_CY_SYM_HASH_AES_GMAC == hash))) ||  \
+	    (LAC_CIPHER_IS_CCM(cipher) && LAC_CIPHER_AES_V2(mask)))
 
 #endif /* LAC_CIPHER_DEFS_H */

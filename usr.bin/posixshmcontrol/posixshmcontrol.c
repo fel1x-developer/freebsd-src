@@ -33,6 +33,7 @@
 #include <sys/syscall.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <grp.h>
@@ -49,7 +50,8 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "Usage:\n"
+	fprintf(stderr,
+	    "Usage:\n"
 	    "posixshmcontrol create [-m <mode>] [-l <largepage>] <path> ...\n"
 	    "posixshmcontrol rm <path> ...\n"
 	    "posixshmcontrol ls [-h] [-n] [-j jail]\n"
@@ -120,12 +122,12 @@ create_shm(int argc, char **argv)
 			}
 			if (idx == pn) {
 				fprintf(stderr,
-    "pagesize should be superpagesize, supported sizes:");
+				    "pagesize should be superpagesize, supported sizes:");
 				printed = false;
 				for (i = 0; i < pn; i++) {
 					if (pagesizes[i] == 0 ||
-					    pagesizes[i] == (size_t)
-					    getpagesize())
+					    pagesizes[i] ==
+						(size_t)getpagesize())
 						continue;
 					printed = true;
 					fprintf(stderr, " %zu", pagesizes[i]);
@@ -250,9 +252,10 @@ list_shm(int argc, char **argv)
 			}
 			if (jailed) {
 				if (jail_getv(0, jailparam, optarg, "path",
-				    jailpath, NULL) < 0) {
+					jailpath, NULL) < 0) {
 					if (errno == ENOENT)
-						warnx("no such jail: %s", optarg);
+						warnx("no such jail: %s",
+						    optarg);
 					else
 						warnx("%s", jail_errmsg);
 					return (1);
@@ -429,8 +432,8 @@ stat_one_shm(const char *path, bool hsize, bool uname)
 			printf("gid\t%d\n", st.st_gid);
 		}
 		if (hsize) {
-			humanize_number(sizebuf, sizeof(sizebuf),
-			    st.st_size, "", HN_AUTOSCALE, HN_NOSPACE);
+			humanize_number(sizebuf, sizeof(sizebuf), st.st_size,
+			    "", HN_AUTOSCALE, HN_NOSPACE);
 			printf("size\t%s\n", sizebuf);
 		} else {
 			printf("size\t%jd\n", (uintmax_t)st.st_size);
@@ -446,8 +449,9 @@ stat_one_shm(const char *path, bool hsize, bool uname)
 		error = ioctl(fd, FIOGSHMLPGCNF, &conf_dummy);
 		largepage = error == 0;
 		if (st.st_blocks != 0 && largepage)
-			printf("pagesz\t%jd\n", roundup((uintmax_t)st.st_size,
-			    PAGE_SIZE) / st.st_blocks);
+			printf("pagesz\t%jd\n",
+			    roundup((uintmax_t)st.st_size, PAGE_SIZE) /
+				st.st_blocks);
 		else
 			printf("pages\t%jd\n", st.st_blocks);
 	}
@@ -555,13 +559,25 @@ struct opmode {
 };
 
 static const struct opmode opmodes[] = {
-	{ .cmd = "create",	.impl = create_shm},
-	{ .cmd = "rm",		.impl = delete_shm, },
-	{ .cmd = "list",	.impl = list_shm },
-	{ .cmd = "ls",		.impl = list_shm },
-	{ .cmd = "dump",	.impl = read_shm, },
-	{ .cmd = "stat",	.impl = stat_shm, },
-	{ .cmd = "truncate",	.impl = truncate_shm, },
+	{ .cmd = "create", .impl = create_shm },
+	{
+	    .cmd = "rm",
+	    .impl = delete_shm,
+	},
+	{ .cmd = "list", .impl = list_shm },
+	{ .cmd = "ls", .impl = list_shm },
+	{
+	    .cmd = "dump",
+	    .impl = read_shm,
+	},
+	{
+	    .cmd = "stat",
+	    .impl = stat_shm,
+	},
+	{
+	    .cmd = "truncate",
+	    .impl = truncate_shm,
+	},
 };
 
 int

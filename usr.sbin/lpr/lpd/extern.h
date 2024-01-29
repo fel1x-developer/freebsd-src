@@ -29,17 +29,17 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 
-extern char scnkey[][HEIGHT];	/* in lpdchar.c */
-extern int lflag;		/* in lpd.c */
+extern char scnkey[][HEIGHT]; /* in lpdchar.c */
+extern int lflag;	      /* in lpd.c */
 
-struct	printer;
+struct printer;
 struct termios;
 
 __BEGIN_DECLS
-void	 printjob(struct printer *_pp);
-void	 startprinting(const char *_printer);
-void	 recvjob(const char *_printer);
-int	 msearch(char *_str, struct termios *_ip);
+void printjob(struct printer *_pp);
+void startprinting(const char *_printer);
+void recvjob(const char *_printer);
+int msearch(char *_str, struct termios *_ip);
 __END_DECLS

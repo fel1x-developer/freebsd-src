@@ -28,25 +28,25 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_LNA_DIV_H__
-#define	__IF_ATH_LNA_DIV_H__
+#ifndef __IF_ATH_LNA_DIV_H__
+#define __IF_ATH_LNA_DIV_H__
 
-#define	ATH_ANT_RX_CURRENT_SHIFT		4
-#define	ATH_ANT_RX_MAIN_SHIFT			2
-#define	ATH_ANT_RX_MASK				0x3
+#define ATH_ANT_RX_CURRENT_SHIFT 4
+#define ATH_ANT_RX_MAIN_SHIFT 2
+#define ATH_ANT_RX_MASK 0x3
 
-#define	ATH_ANT_DIV_COMB_SHORT_SCAN_INTR	50
-#define	ATH_ANT_DIV_COMB_SHORT_SCAN_PKTCOUNT	0x100
-#define	ATH_ANT_DIV_COMB_MAX_PKTCOUNT		0x200
-#define	ATH_ANT_DIV_COMB_INIT_COUNT		95
-#define	ATH_ANT_DIV_COMB_MAX_COUNT		100
-#define	ATH_ANT_DIV_COMB_ALT_ANT_RATIO		30
-#define	ATH_ANT_DIV_COMB_ALT_ANT_RATIO2		20
+#define ATH_ANT_DIV_COMB_SHORT_SCAN_INTR 50
+#define ATH_ANT_DIV_COMB_SHORT_SCAN_PKTCOUNT 0x100
+#define ATH_ANT_DIV_COMB_MAX_PKTCOUNT 0x200
+#define ATH_ANT_DIV_COMB_INIT_COUNT 95
+#define ATH_ANT_DIV_COMB_MAX_COUNT 100
+#define ATH_ANT_DIV_COMB_ALT_ANT_RATIO 30
+#define ATH_ANT_DIV_COMB_ALT_ANT_RATIO2 20
 
-#define	ATH_ANT_DIV_COMB_LNA1_LNA2_SWITCH_DELTA	-1
-#define	ATH_ANT_DIV_COMB_LNA1_DELTA_HI		-4
-#define	ATH_ANT_DIV_COMB_LNA1_DELTA_MID		-2
-#define	ATH_ANT_DIV_COMB_LNA1_DELTA_LOW		2
+#define ATH_ANT_DIV_COMB_LNA1_LNA2_SWITCH_DELTA -1
+#define ATH_ANT_DIV_COMB_LNA1_DELTA_HI -4
+#define ATH_ANT_DIV_COMB_LNA1_DELTA_MID -2
+#define ATH_ANT_DIV_COMB_LNA1_DELTA_LOW 2
 
 struct if_ath_ant_comb_state {
 	uint16_t count;
@@ -77,13 +77,13 @@ struct if_ath_ant_comb_state {
 	int lna1_lna2_delta;
 };
 
-extern	int ath_lna_div_attach(struct ath_softc *sc);
-extern	int ath_lna_div_detach(struct ath_softc *sc);
-extern	int ath_lna_div_ioctl(struct ath_softc *sc, struct ath_diag *ad);
-extern	int ath_lna_div_enable(struct ath_softc *sc,
-	    const struct ieee80211_channel *ch);
+extern int ath_lna_div_attach(struct ath_softc *sc);
+extern int ath_lna_div_detach(struct ath_softc *sc);
+extern int ath_lna_div_ioctl(struct ath_softc *sc, struct ath_diag *ad);
+extern int ath_lna_div_enable(struct ath_softc *sc,
+    const struct ieee80211_channel *ch);
 
-extern	void ath_lna_rx_comb_scan(struct ath_softc *sc,
-	    struct ath_rx_status *rs, unsigned long ticks, int hz);
+extern void ath_lna_rx_comb_scan(struct ath_softc *sc, struct ath_rx_status *rs,
+    unsigned long ticks, int hz);
 
-#endif	/* __IF_ATH_LNA_DIV_H__ */
+#endif /* __IF_ATH_LNA_DIV_H__ */

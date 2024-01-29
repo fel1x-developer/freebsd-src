@@ -38,22 +38,18 @@
 
 #include <err.h>
 #include <pwd.h>
+#include <security/openpam.h>
+#include <security/pam_appl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
 
-#include <security/pam_appl.h>
-#include <security/openpam.h>
-
 static pam_handle_t *pamh;
-static struct pam_conv pamc = {
-	openpam_ttyconv,
-	NULL
-};
+static struct pam_conv pamc = { openpam_ttyconv, NULL };
 
-static char	*yp_domain;
-static char	*yp_host;
+static char *yp_domain;
+static char *yp_host;
 
 static void
 usage(void)
@@ -115,25 +111,27 @@ main(int argc, char *argv[])
 		    pwd->pw_name);
 		break;
 	case _PWF_NIS:
-		fprintf(stderr, "Changing NIS password for %s\n",
-		    pwd->pw_name);
+		fprintf(stderr, "Changing NIS password for %s\n", pwd->pw_name);
 		break;
 	default:
 		/* XXX: Green men ought to be supported via PAM. */
-		errx(1, 
-	  "Sorry, `passwd' can only change passwords for local or NIS users.");
+		errx(1,
+		    "Sorry, `passwd' can only change passwords for local or NIS users.");
 	}
 
-#define pam_check(func) do { \
-	if (pam_err != PAM_SUCCESS) { \
-		if (pam_err == PAM_AUTH_ERR || pam_err == PAM_PERM_DENIED || \
-		    pam_err == PAM_AUTHTOK_RECOVERY_ERR) \
-			warnx("sorry"); \
-		else \
-			warnx("%s(): %s", func, pam_strerror(pamh, pam_err)); \
-		goto end; \
-	} \
-} while (0)
+#define pam_check(func)                                           \
+	do {                                                      \
+		if (pam_err != PAM_SUCCESS) {                     \
+			if (pam_err == PAM_AUTH_ERR ||            \
+			    pam_err == PAM_PERM_DENIED ||         \
+			    pam_err == PAM_AUTHTOK_RECOVERY_ERR)  \
+				warnx("sorry");                   \
+			else                                      \
+				warnx("%s(): %s", func,           \
+				    pam_strerror(pamh, pam_err)); \
+			goto end;                                 \
+		}                                                 \
+	} while (0)
 
 	/* initialize PAM */
 	pam_err = pam_start("passwd", pwd->pw_name, &pamc, &pamh);
@@ -157,7 +155,7 @@ main(int argc, char *argv[])
 	pam_err = pam_chauthtok(pamh, 0);
 	pam_check("pam_chauthtok");
 
- end:
+end:
 	pam_end(pamh, pam_err);
 	exit(pam_err == PAM_SUCCESS ? 0 : 1);
 }

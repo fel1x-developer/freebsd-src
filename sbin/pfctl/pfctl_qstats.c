@@ -23,77 +23,74 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
+#include <net/altq/altq.h>
+#include <net/altq/altq_cbq.h>
+#include <net/altq/altq_codel.h>
+#include <net/altq/altq_fairq.h>
+#include <net/altq/altq_hfsc.h>
+#include <net/altq/altq_priq.h>
 #include <net/if.h>
-#include <netinet/in.h>
 #include <net/pfvar.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <net/altq/altq.h>
-#include <net/altq/altq_cbq.h>
-#include <net/altq/altq_codel.h>
-#include <net/altq/altq_priq.h>
-#include <net/altq/altq_hfsc.h>
-#include <net/altq/altq_fairq.h>
-
 #include "pfctl.h"
 #include "pfctl_parser.h"
 
 union class_stats {
-	class_stats_t		cbq_stats;
-	struct priq_classstats	priq_stats;
-	struct hfsc_classstats	hfsc_stats;
+	class_stats_t cbq_stats;
+	struct priq_classstats priq_stats;
+	struct hfsc_classstats hfsc_stats;
 	struct fairq_classstats fairq_stats;
-	struct codel_ifstats	codel_stats;
+	struct codel_ifstats codel_stats;
 };
 
-#define AVGN_MAX	8
-#define STAT_INTERVAL	5
+#define AVGN_MAX 8
+#define STAT_INTERVAL 5
 
 struct queue_stats {
-	union class_stats	 data;
-	int			 avgn;
-	double			 avg_bytes;
-	double			 avg_packets;
-	u_int64_t		 prev_bytes;
-	u_int64_t		 prev_packets;
+	union class_stats data;
+	int avgn;
+	double avg_bytes;
+	double avg_packets;
+	u_int64_t prev_bytes;
+	u_int64_t prev_packets;
 };
 
 struct pf_altq_node {
-	struct pf_altq		 altq;
-	struct pf_altq_node	*next;
-	struct pf_altq_node	*children;
-	struct queue_stats	 qstats;
+	struct pf_altq altq;
+	struct pf_altq_node *next;
+	struct pf_altq_node *children;
+	struct queue_stats qstats;
 };
 
-int			 pfctl_update_qstats(int, struct pf_altq_node **);
-void			 pfctl_insert_altq_node(struct pf_altq_node **,
-			    const struct pf_altq, const struct queue_stats);
-struct pf_altq_node	*pfctl_find_altq_node(struct pf_altq_node *,
-			    const char *, const char *);
-void			 pfctl_print_altq_node(int, const struct pf_altq_node *,
-			    unsigned, int);
-void			 print_cbqstats(struct queue_stats);
-void			 print_codelstats(struct queue_stats);
-void			 print_priqstats(struct queue_stats);
-void			 print_hfscstats(struct queue_stats);
-void			 print_fairqstats(struct queue_stats);
-void			 pfctl_free_altq_node(struct pf_altq_node *);
-void			 pfctl_print_altq_nodestat(int,
-			    const struct pf_altq_node *);
+int pfctl_update_qstats(int, struct pf_altq_node **);
+void pfctl_insert_altq_node(struct pf_altq_node **, const struct pf_altq,
+    const struct queue_stats);
+struct pf_altq_node *pfctl_find_altq_node(struct pf_altq_node *, const char *,
+    const char *);
+void pfctl_print_altq_node(int, const struct pf_altq_node *, unsigned, int);
+void print_cbqstats(struct queue_stats);
+void print_codelstats(struct queue_stats);
+void print_priqstats(struct queue_stats);
+void print_hfscstats(struct queue_stats);
+void print_fairqstats(struct queue_stats);
+void pfctl_free_altq_node(struct pf_altq_node *);
+void pfctl_print_altq_nodestat(int, const struct pf_altq_node *);
 
-void			 update_avg(struct pf_altq_node *);
+void update_avg(struct pf_altq_node *);
 
 int
 pfctl_show_altq(int dev, const char *iface, int opts, int verbose2)
 {
-	struct pf_altq_node	*root = NULL, *node;
-	int			 nodes, dotitle = (opts & PF_OPT_SHOWALL);
+	struct pf_altq_node *root = NULL, *node;
+	int nodes, dotitle = (opts & PF_OPT_SHOWALL);
 
 #ifdef __FreeBSD__
 	if (!altqsupport)
@@ -138,12 +135,12 @@ pfctl_show_altq(int dev, const char *iface, int opts, int verbose2)
 int
 pfctl_update_qstats(int dev, struct pf_altq_node **root)
 {
-	struct pf_altq_node	*node;
-	struct pfioc_altq	 pa;
-	struct pfioc_qstats	 pq;
-	u_int32_t		 mnr, nr;
-	struct queue_stats	 qstats;
-	static	u_int32_t	 last_ticket;
+	struct pf_altq_node *node;
+	struct pfioc_altq pa;
+	struct pfioc_qstats pq;
+	u_int32_t mnr, nr;
+	struct queue_stats qstats;
+	static u_int32_t last_ticket;
 
 	memset(&pa, 0, sizeof(pa));
 	memset(&pq, 0, sizeof(pq));
@@ -184,7 +181,7 @@ pfctl_update_qstats(int dev, struct pf_altq_node **root)
 				return (-1);
 			}
 			if ((node = pfctl_find_altq_node(*root, pa.altq.qname,
-			    pa.altq.ifname)) != NULL) {
+				 pa.altq.ifname)) != NULL) {
 				memcpy(&node->qstats.data, &qstats.data,
 				    sizeof(qstats.data));
 				update_avg(node);
@@ -196,7 +193,7 @@ pfctl_update_qstats(int dev, struct pf_altq_node **root)
 		else if (pa.altq.local_flags & PFALTQ_FLAG_IF_REMOVED) {
 			memset(&qstats.data, 0, sizeof(qstats.data));
 			if ((node = pfctl_find_altq_node(*root, pa.altq.qname,
-			    pa.altq.ifname)) != NULL) {
+				 pa.altq.ifname)) != NULL) {
 				memcpy(&node->qstats.data, &qstats.data,
 				    sizeof(qstats.data));
 				update_avg(node);
@@ -210,10 +207,10 @@ pfctl_update_qstats(int dev, struct pf_altq_node **root)
 }
 
 void
-pfctl_insert_altq_node(struct pf_altq_node **root,
-    const struct pf_altq altq, const struct queue_stats qstats)
+pfctl_insert_altq_node(struct pf_altq_node **root, const struct pf_altq altq,
+    const struct queue_stats qstats)
 {
-	struct pf_altq_node	*node;
+	struct pf_altq_node *node;
 
 	node = calloc(1, sizeof(struct pf_altq_node));
 	if (node == NULL)
@@ -225,13 +222,13 @@ pfctl_insert_altq_node(struct pf_altq_node **root,
 	if (*root == NULL)
 		*root = node;
 	else if (!altq.parent[0]) {
-		struct pf_altq_node	*prev = *root;
+		struct pf_altq_node *prev = *root;
 
 		while (prev->next != NULL)
 			prev = prev->next;
 		prev->next = node;
 	} else {
-		struct pf_altq_node	*parent;
+		struct pf_altq_node *parent;
 
 		parent = pfctl_find_altq_node(*root, altq.parent, altq.ifname);
 		if (parent == NULL)
@@ -253,11 +250,11 @@ struct pf_altq_node *
 pfctl_find_altq_node(struct pf_altq_node *root, const char *qname,
     const char *ifname)
 {
-	struct pf_altq_node	*node, *child;
+	struct pf_altq_node *node, *child;
 
 	for (node = root; node != NULL; node = node->next) {
-		if (!strcmp(node->altq.qname, qname)
-		    && !(strcmp(node->altq.ifname, ifname)))
+		if (!strcmp(node->altq.qname, qname) &&
+		    !(strcmp(node->altq.ifname, ifname)))
 			return (node);
 		if (node->children != NULL) {
 			child = pfctl_find_altq_node(node->children, qname,
@@ -273,7 +270,7 @@ void
 pfctl_print_altq_node(int dev, const struct pf_altq_node *node,
     unsigned int level, int opts)
 {
-	const struct pf_altq_node	*child;
+	const struct pf_altq_node *child;
 
 	if (node == NULL)
 		return;
@@ -283,7 +280,7 @@ pfctl_print_altq_node(int dev, const struct pf_altq_node *node,
 	if (node->children != NULL) {
 		printf("{");
 		for (child = node->children; child != NULL;
-		    child = child->next) {
+		     child = child->next) {
 			printf("%s", child->altq.qname);
 			if (child->next != NULL)
 				printf(", ");
@@ -300,8 +297,7 @@ pfctl_print_altq_node(int dev, const struct pf_altq_node *node,
 		    node->altq.qid, node->altq.ifname,
 		    rate2str((double)(node->altq.ifbandwidth)));
 
-	for (child = node->children; child != NULL;
-	    child = child->next)
+	for (child = node->children; child != NULL; child = child->next)
 		pfctl_print_altq_node(dev, child, level + 1, opts);
 }
 
@@ -338,7 +334,7 @@ void
 print_cbqstats(struct queue_stats cur)
 {
 	printf("  [ pkts: %10llu  bytes: %10llu  "
-	    "dropped pkts: %6llu bytes: %6llu ]\n",
+	       "dropped pkts: %6llu bytes: %6llu ]\n",
 	    (unsigned long long)cur.data.cbq_stats.xmit_cnt.packets,
 	    (unsigned long long)cur.data.cbq_stats.xmit_cnt.bytes,
 	    (unsigned long long)cur.data.cbq_stats.drop_cnt.packets,
@@ -359,15 +355,15 @@ void
 print_codelstats(struct queue_stats cur)
 {
 	printf("  [ pkts: %10llu  bytes: %10llu  "
-	    "dropped pkts: %6llu bytes: %6llu ]\n",
+	       "dropped pkts: %6llu bytes: %6llu ]\n",
 	    (unsigned long long)cur.data.codel_stats.cl_xmitcnt.packets,
 	    (unsigned long long)cur.data.codel_stats.cl_xmitcnt.bytes,
 	    (unsigned long long)cur.data.codel_stats.cl_dropcnt.packets +
-	    cur.data.codel_stats.stats.drop_cnt.packets,
+		cur.data.codel_stats.stats.drop_cnt.packets,
 	    (unsigned long long)cur.data.codel_stats.cl_dropcnt.bytes +
-	    cur.data.codel_stats.stats.drop_cnt.bytes);
-	printf("  [ qlength: %3d/%3d ]\n",
-	    cur.data.codel_stats.qlength, cur.data.codel_stats.qlimit);
+		cur.data.codel_stats.stats.drop_cnt.bytes);
+	printf("  [ qlength: %3d/%3d ]\n", cur.data.codel_stats.qlength,
+	    cur.data.codel_stats.qlimit);
 
 	if (cur.avgn < 2)
 		return;
@@ -381,13 +377,13 @@ void
 print_priqstats(struct queue_stats cur)
 {
 	printf("  [ pkts: %10llu  bytes: %10llu  "
-	    "dropped pkts: %6llu bytes: %6llu ]\n",
+	       "dropped pkts: %6llu bytes: %6llu ]\n",
 	    (unsigned long long)cur.data.priq_stats.xmitcnt.packets,
 	    (unsigned long long)cur.data.priq_stats.xmitcnt.bytes,
 	    (unsigned long long)cur.data.priq_stats.dropcnt.packets,
 	    (unsigned long long)cur.data.priq_stats.dropcnt.bytes);
-	printf("  [ qlength: %3d/%3d ]\n",
-	    cur.data.priq_stats.qlength, cur.data.priq_stats.qlimit);
+	printf("  [ qlength: %3d/%3d ]\n", cur.data.priq_stats.qlength,
+	    cur.data.priq_stats.qlimit);
 
 	if (cur.avgn < 2)
 		return;
@@ -401,13 +397,13 @@ void
 print_hfscstats(struct queue_stats cur)
 {
 	printf("  [ pkts: %10llu  bytes: %10llu  "
-	    "dropped pkts: %6llu bytes: %6llu ]\n",
+	       "dropped pkts: %6llu bytes: %6llu ]\n",
 	    (unsigned long long)cur.data.hfsc_stats.xmit_cnt.packets,
 	    (unsigned long long)cur.data.hfsc_stats.xmit_cnt.bytes,
 	    (unsigned long long)cur.data.hfsc_stats.drop_cnt.packets,
 	    (unsigned long long)cur.data.hfsc_stats.drop_cnt.bytes);
-	printf("  [ qlength: %3d/%3d ]\n",
-	    cur.data.hfsc_stats.qlength, cur.data.hfsc_stats.qlimit);
+	printf("  [ qlength: %3d/%3d ]\n", cur.data.hfsc_stats.qlength,
+	    cur.data.hfsc_stats.qlimit);
 
 	if (cur.avgn < 2)
 		return;
@@ -421,13 +417,13 @@ void
 print_fairqstats(struct queue_stats cur)
 {
 	printf("  [ pkts: %10llu  bytes: %10llu  "
-	    "dropped pkts: %6llu bytes: %6llu ]\n",
+	       "dropped pkts: %6llu bytes: %6llu ]\n",
 	    (unsigned long long)cur.data.fairq_stats.xmit_cnt.packets,
 	    (unsigned long long)cur.data.fairq_stats.xmit_cnt.bytes,
 	    (unsigned long long)cur.data.fairq_stats.drop_cnt.packets,
 	    (unsigned long long)cur.data.fairq_stats.drop_cnt.bytes);
-	printf("  [ qlength: %3d/%3d ]\n",
-	    cur.data.fairq_stats.qlength, cur.data.fairq_stats.qlimit);
+	printf("  [ qlength: %3d/%3d ]\n", cur.data.fairq_stats.qlength,
+	    cur.data.fairq_stats.qlimit);
 
 	if (cur.avgn < 2)
 		return;
@@ -441,7 +437,7 @@ void
 pfctl_free_altq_node(struct pf_altq_node *node)
 {
 	while (node != NULL) {
-		struct pf_altq_node	*prev;
+		struct pf_altq_node *prev;
 
 		if (node->children != NULL)
 			pfctl_free_altq_node(node->children);
@@ -454,9 +450,9 @@ pfctl_free_altq_node(struct pf_altq_node *node)
 void
 update_avg(struct pf_altq_node *a)
 {
-	struct queue_stats	*qs;
-	u_int64_t		 b, p;
-	int			 n;
+	struct queue_stats *qs;
+	u_int64_t b, p;
+	int n;
 
 	if (a->altq.qid == 0 && a->altq.scheduler != ALTQT_CODEL)
 		return;
@@ -500,11 +496,13 @@ update_avg(struct pf_altq_node *a)
 
 	if (b >= qs->prev_bytes)
 		qs->avg_bytes = ((qs->avg_bytes * (n - 1)) +
-		    (b - qs->prev_bytes)) / n;
+				    (b - qs->prev_bytes)) /
+		    n;
 
 	if (p >= qs->prev_packets)
 		qs->avg_packets = ((qs->avg_packets * (n - 1)) +
-		    (p - qs->prev_packets)) / n;
+				      (p - qs->prev_packets)) /
+		    n;
 
 	qs->prev_bytes = b;
 	qs->prev_packets = p;

@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -38,7 +39,7 @@ void
 __log_msg(int level, const char *sender, const char *message, ...)
 {
 	va_list ap;
-	char	*fmessage;
+	char *fmessage;
 
 	fmessage = NULL;
 	va_start(ap, message);
@@ -50,7 +51,7 @@ __log_msg(int level, const char *sender, const char *message, ...)
 #ifndef NO_SYSLOG
 	if (level == 0)
 		syslog(LOG_INFO, "nscd message (from %s): %s", sender,
-		fmessage);
+		    fmessage);
 #endif
 	free(fmessage);
 }
@@ -59,7 +60,7 @@ void
 __log_err(int level, const char *sender, const char *error, ...)
 {
 	va_list ap;
-	char	*ferror;
+	char *ferror;
 
 	ferror = NULL;
 	va_start(ap, error);

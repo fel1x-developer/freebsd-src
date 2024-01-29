@@ -36,12 +36,12 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 
@@ -50,37 +50,37 @@
 
 #include <dev/pci/pcivar.h>
 
-#include "pcib_if.h"
-#include "pci_if.h"
-
+#include "dpaa2_cmd_if.h"
 #include "dpaa2_mc.h"
-#include "dpaa2_ni.h"
 #include "dpaa2_mcp.h"
+#include "dpaa2_ni.h"
 #include "dpaa2_swp.h"
 #include "dpaa2_swp_if.h"
-#include "dpaa2_cmd_if.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 /* Index of the only DPMAC IRQ. */
-#define DPMAC_IRQ_INDEX		0
+#define DPMAC_IRQ_INDEX 0
 
 /* DPMAC IRQ statuses. */
-#define DPMAC_IRQ_LINK_CFG_REQ	0x00000001 /* change in requested link config. */
-#define DPMAC_IRQ_LINK_CHANGED	0x00000002 /* link state changed */
-#define DPMAC_IRQ_LINK_UP_REQ	0x00000004 /* link up request */
-#define DPMAC_IRQ_LINK_DOWN_REQ	0x00000008 /* link down request */
-#define DPMAC_IRQ_EP_CHANGED	0x00000010 /* DPAA2 endpoint dis/connected */
+#define DPMAC_IRQ_LINK_CFG_REQ 0x00000001  /* change in requested link config. \
+					    */
+#define DPMAC_IRQ_LINK_CHANGED 0x00000002  /* link state changed */
+#define DPMAC_IRQ_LINK_UP_REQ 0x00000004   /* link up request */
+#define DPMAC_IRQ_LINK_DOWN_REQ 0x00000008 /* link down request */
+#define DPMAC_IRQ_EP_CHANGED 0x00000010	   /* DPAA2 endpoint dis/connected */
 
 /* DPAA2 MAC resource specification. */
 struct resource_spec dpaa2_mac_spec[] = {
-	/*
-	 * DPMCP resources.
-	 *
-	 * NOTE: MC command portals (MCPs) are used to send commands to, and
-	 *	 receive responses from, the MC firmware. One portal per DPMAC.
-	 */
-#define MCP_RES_NUM	(1u)
-#define MCP_RID_OFF	(0u)
-#define MCP_RID(rid)	((rid) + MCP_RID_OFF)
+/*
+ * DPMCP resources.
+ *
+ * NOTE: MC command portals (MCPs) are used to send commands to, and
+ *	 receive responses from, the MC firmware. One portal per DPMAC.
+ */
+#define MCP_RES_NUM (1u)
+#define MCP_RID_OFF (0u)
+#define MCP_RID(rid) ((rid) + MCP_RID_OFF)
 	/* --- */
 	{ DPAA2_DEV_MCP, MCP_RID(0), RF_ACTIVE | RF_SHAREABLE | RF_OPTIONAL },
 	/* --- */
@@ -126,13 +126,15 @@ dpaa2_mac_attach(device_t dev)
 
 	error = bus_alloc_resources(sc->dev, dpaa2_mac_spec, sc->res);
 	if (error) {
-		device_printf(dev, "%s: failed to allocate resources: "
-		    "error=%d\n", __func__, error);
+		device_printf(dev,
+		    "%s: failed to allocate resources: "
+		    "error=%d\n",
+		    __func__, error);
 		goto err_exit;
 	}
 
 	/* Obtain MC portal. */
-	mcp_dev = (device_t) rman_get_start(sc->res[MCP_RID(0)]);
+	mcp_dev = (device_t)rman_get_start(sc->res[MCP_RID(0)]);
 	mcp_dinfo = device_get_ivars(mcp_dev);
 	dinfo->portal = mcp_dinfo->portal;
 
@@ -146,28 +148,32 @@ dpaa2_mac_attach(device_t dev)
 	}
 	error = DPAA2_CMD_MAC_OPEN(dev, child, &cmd, dinfo->id, &mac_token);
 	if (error) {
-		device_printf(dev, "%s: failed to open DPMAC: id=%d, error=%d\n",
-		    __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to open DPMAC: id=%d, error=%d\n", __func__,
+		    dinfo->id, error);
 		goto close_rc;
 	}
 
 	error = DPAA2_CMD_MAC_GET_ATTRIBUTES(dev, child, &cmd, &sc->attr);
 	if (error) {
-		device_printf(dev, "%s: failed to get DPMAC attributes: id=%d, "
-		    "error=%d\n", __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to get DPMAC attributes: id=%d, "
+		    "error=%d\n",
+		    __func__, dinfo->id, error);
 		goto close_mac;
 	}
 	error = DPAA2_CMD_MAC_GET_ADDR(dev, child, &cmd, sc->addr);
 	if (error) {
-		device_printf(dev, "%s: failed to get physical address: "
-		    "error=%d\n", __func__, error);
+		device_printf(dev,
+		    "%s: failed to get physical address: "
+		    "error=%d\n",
+		    __func__, error);
 	}
 
 	if (bootverbose) {
 		device_printf(dev, "ether %6D\n", sc->addr, ":");
 		device_printf(dev, "max_rate=%d, eth_if=%s, link_type=%s\n",
-		    sc->attr.max_rate,
-		    dpaa2_mac_ethif_to_str(sc->attr.eth_if),
+		    sc->attr.max_rate, dpaa2_mac_ethif_to_str(sc->attr.eth_if),
 		    dpaa2_mac_link_type_to_str(sc->attr.link_type));
 	}
 
@@ -219,14 +225,14 @@ dpaa2_mac_setup_irq(device_t dev)
 		goto err_exit;
 	}
 	if ((sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &sc->irq_rid[0], RF_ACTIVE | RF_SHAREABLE)) == NULL) {
+		 &sc->irq_rid[0], RF_ACTIVE | RF_SHAREABLE)) == NULL) {
 		device_printf(dev, "%s: failed to allocate IRQ resource\n",
 		    __func__);
 		error = ENXIO;
 		goto err_exit;
 	}
-	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_NET | INTR_MPSAFE,
-	    NULL, dpaa2_mac_intr, sc, &sc->intr)) {
+	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+		dpaa2_mac_intr, sc, &sc->intr)) {
 		device_printf(dev, "%s: failed to setup IRQ resource\n",
 		    __func__);
 		error = ENXIO;
@@ -243,16 +249,14 @@ dpaa2_mac_setup_irq(device_t dev)
 	}
 	error = DPAA2_CMD_MAC_OPEN(dev, child, &cmd, dinfo->id, &mac_token);
 	if (error) {
-		device_printf(dev, "%s: failed to open DPMAC: id=%d, error=%d\n",
-		    __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to open DPMAC: id=%d, error=%d\n", __func__,
+		    dinfo->id, error);
 		goto close_rc;
 	}
 
-	irq_mask =
-	    DPMAC_IRQ_LINK_CFG_REQ |
-	    DPMAC_IRQ_LINK_CHANGED |
-	    DPMAC_IRQ_LINK_UP_REQ |
-	    DPMAC_IRQ_LINK_DOWN_REQ |
+	irq_mask = DPMAC_IRQ_LINK_CFG_REQ | DPMAC_IRQ_LINK_CHANGED |
+	    DPMAC_IRQ_LINK_UP_REQ | DPMAC_IRQ_LINK_DOWN_REQ |
 	    DPMAC_IRQ_EP_CHANGED;
 	error = DPAA2_CMD_MAC_SET_IRQ_MASK(dev, child, &cmd, DPMAC_IRQ_INDEX,
 	    irq_mask);
@@ -305,7 +309,7 @@ dpaa2_mac_setup_msi(struct dpaa2_mac_softc *sc)
 static void
 dpaa2_mac_intr(void *arg)
 {
-	struct dpaa2_mac_softc *sc = (struct dpaa2_mac_softc *) arg;
+	struct dpaa2_mac_softc *sc = (struct dpaa2_mac_softc *)arg;
 	device_t pdev = device_get_parent(sc->dev);
 	device_t dev = sc->dev;
 	device_t child = dev;
@@ -326,15 +330,18 @@ dpaa2_mac_intr(void *arg)
 	}
 	error = DPAA2_CMD_MAC_OPEN(dev, child, &cmd, dinfo->id, &mac_token);
 	if (error) {
-		device_printf(dev, "%s: failed to open DPMAC: id=%d, error=%d\n",
-		    __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to open DPMAC: id=%d, error=%d\n", __func__,
+		    dinfo->id, error);
 		goto close_rc;
 	}
 	error = DPAA2_CMD_MAC_GET_IRQ_STATUS(dev, child, &cmd, DPMAC_IRQ_INDEX,
 	    &status);
 	if (error) {
-		device_printf(sc->dev, "%s: failed to obtain IRQ status: "
-		    "error=%d\n", __func__, error);
+		device_printf(sc->dev,
+		    "%s: failed to obtain IRQ status: "
+		    "error=%d\n",
+		    __func__, error);
 	}
 
 	(void)DPAA2_CMD_MAC_CLOSE(dev, child, DPAA2_CMD_TK(&cmd, mac_token));
@@ -396,9 +403,9 @@ dpaa2_mac_link_type_to_str(enum dpaa2_mac_link_type link_type)
 
 static device_method_t dpaa2_mac_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mac_probe),
-	DEVMETHOD(device_attach,	dpaa2_mac_attach),
-	DEVMETHOD(device_detach,	dpaa2_mac_detach),
+	DEVMETHOD(device_probe, dpaa2_mac_probe),
+	DEVMETHOD(device_attach, dpaa2_mac_attach),
+	DEVMETHOD(device_detach, dpaa2_mac_detach),
 
 	DEVMETHOD_END
 };

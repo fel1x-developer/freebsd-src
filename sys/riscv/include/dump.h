@@ -26,17 +26,17 @@
  */
 
 #ifndef _MACHINE_DUMP_H_
-#define	_MACHINE_DUMP_H_
+#define _MACHINE_DUMP_H_
 
-#define	KERNELDUMP_ARCH_VERSION	KERNELDUMP_RISCV_VERSION
-#define	EM_VALUE		EM_RISCV
+#define KERNELDUMP_ARCH_VERSION KERNELDUMP_RISCV_VERSION
+#define EM_VALUE EM_RISCV
 
 /* 20 phys_avail entry pairs correspond to 10 pa's */
-#define	DUMPSYS_MD_PA_NPAIRS	10
-#define	DUMPSYS_NUM_AUX_HDRS	0
+#define DUMPSYS_MD_PA_NPAIRS 10
+#define DUMPSYS_NUM_AUX_HDRS 0
 
 /* How often to check the dump progress bar? */
-#define	DUMPSYS_PB_CHECK_BITS	22	/* Every 4MB */
+#define DUMPSYS_PB_CHECK_BITS 22 /* Every 4MB */
 
 static inline void
 dumpsys_pa_init(void)
@@ -80,4 +80,4 @@ dumpsys(struct dumperinfo *di)
 	return (dumpsys_generic(di));
 }
 
-#endif  /* !_MACHINE_DUMP_H_ */
+#endif /* !_MACHINE_DUMP_H_ */

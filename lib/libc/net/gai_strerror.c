@@ -29,14 +29,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <netdb.h>
+
+#include "namespace.h"
 #if defined(NLS)
-#include <nl_types.h>
 #include <errno.h>
 #include <limits.h>
+#include <nl_types.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "reentrant.h"
 #endif
 #include "un-namespace.h"
@@ -46,28 +48,28 @@
  * but are or may be used as extensions or in old code.
  */
 static const char *ai_errlist[] = {
-	"Success",					/* 0 */
-	"Address family for hostname not supported",	/* EAI_ADDRFAMILY */
-	"Name could not be resolved at this time",	/* EAI_AGAIN */
-	"Flags parameter had an invalid value",		/* EAI_BADFLAGS */
-	"Non-recoverable failure in name resolution",	/* EAI_FAIL */
-	"Address family not recognized",		/* EAI_FAMILY */
-	"Memory allocation failure", 			/* EAI_MEMORY */
-	"No address associated with hostname",		/* EAI_NODATA*/
-	"Name does not resolve",			/* EAI_NONAME */
-	"Service was not recognized for socket type",	/* EAI_SERVICE */
-	"Intended socket type was not recognized",	/* EAI_SOCKTYPE */
-	"System error returned in errno", 		/* EAI_SYSTEM */
-	"Invalid value for hints",			/* EAI_BADHINTS */
-	"Resolved protocol is unknown",			/* EAI_PROTOCOL */
-	"Argument buffer overflow"			/* EAI_OVERFLOW */
+	"Success",				      /* 0 */
+	"Address family for hostname not supported",  /* EAI_ADDRFAMILY */
+	"Name could not be resolved at this time",    /* EAI_AGAIN */
+	"Flags parameter had an invalid value",	      /* EAI_BADFLAGS */
+	"Non-recoverable failure in name resolution", /* EAI_FAIL */
+	"Address family not recognized",	      /* EAI_FAMILY */
+	"Memory allocation failure",		      /* EAI_MEMORY */
+	"No address associated with hostname",	      /* EAI_NODATA*/
+	"Name does not resolve",		      /* EAI_NONAME */
+	"Service was not recognized for socket type", /* EAI_SERVICE */
+	"Intended socket type was not recognized",    /* EAI_SOCKTYPE */
+	"System error returned in errno",	      /* EAI_SYSTEM */
+	"Invalid value for hints",		      /* EAI_BADHINTS */
+	"Resolved protocol is unknown",		      /* EAI_PROTOCOL */
+	"Argument buffer overflow"		      /* EAI_OVERFLOW */
 };
 
 #if defined(NLS)
-static char		gai_buf[NL_TEXTMAX];
-static once_t		gai_init_once = ONCE_INITIALIZER;
-static thread_key_t	gai_key;
-static int		gai_keycreated = 0;
+static char gai_buf[NL_TEXTMAX];
+static once_t gai_init_once = ONCE_INITIALIZER;
+static thread_key_t gai_key;
+static int gai_keycreated = 0;
 
 static void
 gai_keycreate(void)

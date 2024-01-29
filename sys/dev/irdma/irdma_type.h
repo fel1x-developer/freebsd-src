@@ -35,39 +35,38 @@
 #ifndef IRDMA_TYPE_H
 #define IRDMA_TYPE_H
 
-#include "osdep.h"
-
 #include "irdma.h"
-#include "irdma_user.h"
 #include "irdma_hmc.h"
 #include "irdma_uda.h"
+#include "irdma_user.h"
 #include "irdma_ws.h"
+#include "osdep.h"
 enum irdma_debug_flag {
-	IRDMA_DEBUG_NONE	= 0x00000000,
-	IRDMA_DEBUG_ERR		= 0x00000001,
-	IRDMA_DEBUG_INIT	= 0x00000002,
-	IRDMA_DEBUG_DEV		= 0x00000004,
-	IRDMA_DEBUG_CM		= 0x00000008,
-	IRDMA_DEBUG_VERBS	= 0x00000010,
-	IRDMA_DEBUG_PUDA	= 0x00000020,
-	IRDMA_DEBUG_ILQ		= 0x00000040,
-	IRDMA_DEBUG_IEQ		= 0x00000080,
-	IRDMA_DEBUG_QP		= 0x00000100,
-	IRDMA_DEBUG_CQ		= 0x00000200,
-	IRDMA_DEBUG_MR		= 0x00000400,
-	IRDMA_DEBUG_PBLE	= 0x00000800,
-	IRDMA_DEBUG_WQE		= 0x00001000,
-	IRDMA_DEBUG_AEQ		= 0x00002000,
-	IRDMA_DEBUG_CQP		= 0x00004000,
-	IRDMA_DEBUG_HMC		= 0x00008000,
-	IRDMA_DEBUG_USER	= 0x00010000,
-	IRDMA_DEBUG_VIRT	= 0x00020000,
-	IRDMA_DEBUG_DCB		= 0x00040000,
-	IRDMA_DEBUG_CQE		= 0x00800000,
-	IRDMA_DEBUG_CLNT	= 0x01000000,
-	IRDMA_DEBUG_WS		= 0x02000000,
-	IRDMA_DEBUG_STATS	= 0x04000000,
-	IRDMA_DEBUG_ALL		= 0xFFFFFFFF,
+	IRDMA_DEBUG_NONE = 0x00000000,
+	IRDMA_DEBUG_ERR = 0x00000001,
+	IRDMA_DEBUG_INIT = 0x00000002,
+	IRDMA_DEBUG_DEV = 0x00000004,
+	IRDMA_DEBUG_CM = 0x00000008,
+	IRDMA_DEBUG_VERBS = 0x00000010,
+	IRDMA_DEBUG_PUDA = 0x00000020,
+	IRDMA_DEBUG_ILQ = 0x00000040,
+	IRDMA_DEBUG_IEQ = 0x00000080,
+	IRDMA_DEBUG_QP = 0x00000100,
+	IRDMA_DEBUG_CQ = 0x00000200,
+	IRDMA_DEBUG_MR = 0x00000400,
+	IRDMA_DEBUG_PBLE = 0x00000800,
+	IRDMA_DEBUG_WQE = 0x00001000,
+	IRDMA_DEBUG_AEQ = 0x00002000,
+	IRDMA_DEBUG_CQP = 0x00004000,
+	IRDMA_DEBUG_HMC = 0x00008000,
+	IRDMA_DEBUG_USER = 0x00010000,
+	IRDMA_DEBUG_VIRT = 0x00020000,
+	IRDMA_DEBUG_DCB = 0x00040000,
+	IRDMA_DEBUG_CQE = 0x00800000,
+	IRDMA_DEBUG_CLNT = 0x01000000,
+	IRDMA_DEBUG_WS = 0x02000000,
+	IRDMA_DEBUG_STATS = 0x04000000,
+	IRDMA_DEBUG_ALL = 0xFFFFFFFF,
 };
 
 enum irdma_page_size {
@@ -77,117 +76,118 @@ enum irdma_page_size {
 };
 
 enum irdma_hdrct_flags {
-	DDP_LEN_FLAG  = 0x80,
-	DDP_HDR_FLAG  = 0x40,
+	DDP_LEN_FLAG = 0x80,
+	DDP_HDR_FLAG = 0x40,
 	RDMA_HDR_FLAG = 0x20,
 };
 
 enum irdma_term_layers {
 	LAYER_RDMA = 0,
-	LAYER_DDP  = 1,
-	LAYER_MPA  = 2,
+	LAYER_DDP = 1,
+	LAYER_MPA = 2,
 };
 
 enum irdma_term_error_types {
 	RDMAP_REMOTE_PROT = 1,
-	RDMAP_REMOTE_OP   = 2,
-	DDP_CATASTROPHIC  = 0,
-	DDP_TAGGED_BUF    = 1,
-	DDP_UNTAGGED_BUF  = 2,
-	DDP_LLP		  = 3,
+	RDMAP_REMOTE_OP = 2,
+	DDP_CATASTROPHIC = 0,
+	DDP_TAGGED_BUF = 1,
+	DDP_UNTAGGED_BUF = 2,
+	DDP_LLP = 3,
 };
 
 enum irdma_term_rdma_errors {
-	RDMAP_INV_STAG		  = 0x00,
-	RDMAP_INV_BOUNDS	  = 0x01,
-	RDMAP_ACCESS		  = 0x02,
-	RDMAP_UNASSOC_STAG	  = 0x03,
-	RDMAP_TO_WRAP		  = 0x04,
-	RDMAP_INV_RDMAP_VER       = 0x05,
-	RDMAP_UNEXPECTED_OP       = 0x06,
-	RDMAP_CATASTROPHIC_LOCAL  = 0x07,
+	RDMAP_INV_STAG = 0x00,
+	RDMAP_INV_BOUNDS = 0x01,
+	RDMAP_ACCESS = 0x02,
+	RDMAP_UNASSOC_STAG = 0x03,
+	RDMAP_TO_WRAP = 0x04,
+	RDMAP_INV_RDMAP_VER = 0x05,
+	RDMAP_UNEXPECTED_OP = 0x06,
+	RDMAP_CATASTROPHIC_LOCAL = 0x07,
 	RDMAP_CATASTROPHIC_GLOBAL = 0x08,
-	RDMAP_CANT_INV_STAG       = 0x09,
-	RDMAP_UNSPECIFIED	  = 0xff,
+	RDMAP_CANT_INV_STAG = 0x09,
+	RDMAP_UNSPECIFIED = 0xff,
 };
 
 enum irdma_term_ddp_errors {
-	DDP_CATASTROPHIC_LOCAL      = 0x00,
-	DDP_TAGGED_INV_STAG	    = 0x00,
-	DDP_TAGGED_BOUNDS	    = 0x01,
-	DDP_TAGGED_UNASSOC_STAG     = 0x02,
-	DDP_TAGGED_TO_WRAP	    = 0x03,
-	DDP_TAGGED_INV_DDP_VER      = 0x04,
-	DDP_UNTAGGED_INV_QN	    = 0x01,
+	DDP_CATASTROPHIC_LOCAL = 0x00,
+	DDP_TAGGED_INV_STAG = 0x00,
+	DDP_TAGGED_BOUNDS = 0x01,
+	DDP_TAGGED_UNASSOC_STAG = 0x02,
+	DDP_TAGGED_TO_WRAP = 0x03,
+	DDP_TAGGED_INV_DDP_VER = 0x04,
+	DDP_UNTAGGED_INV_QN = 0x01,
 	DDP_UNTAGGED_INV_MSN_NO_BUF = 0x02,
-	DDP_UNTAGGED_INV_MSN_RANGE  = 0x03,
-	DDP_UNTAGGED_INV_MO	    = 0x04,
-	DDP_UNTAGGED_INV_TOO_LONG   = 0x05,
-	DDP_UNTAGGED_INV_DDP_VER    = 0x06,
+	DDP_UNTAGGED_INV_MSN_RANGE = 0x03,
+	DDP_UNTAGGED_INV_MO = 0x04,
+	DDP_UNTAGGED_INV_TOO_LONG = 0x05,
+	DDP_UNTAGGED_INV_DDP_VER = 0x06,
 };
 
 enum irdma_term_mpa_errors {
-	MPA_CLOSED  = 0x01,
-	MPA_CRC     = 0x02,
-	MPA_MARKER  = 0x03,
+	MPA_CLOSED = 0x01,
+	MPA_CRC = 0x02,
+	MPA_MARKER = 0x03,
 	MPA_REQ_RSP = 0x04,
 };
 
 enum irdma_hw_stats_index {
 	/* gen1 - 32-bit */
-	IRDMA_HW_STAT_INDEX_IP4RXDISCARD	= 0,
-	IRDMA_HW_STAT_INDEX_IP4RXTRUNC		= 1,
-	IRDMA_HW_STAT_INDEX_IP4TXNOROUTE	= 2,
-	IRDMA_HW_STAT_INDEX_IP6RXDISCARD	= 3,
-	IRDMA_HW_STAT_INDEX_IP6RXTRUNC		= 4,
-	IRDMA_HW_STAT_INDEX_IP6TXNOROUTE	= 5,
-	IRDMA_HW_STAT_INDEX_TCPRTXSEG		= 6,
-	IRDMA_HW_STAT_INDEX_TCPRXOPTERR		= 7,
-	IRDMA_HW_STAT_INDEX_TCPRXPROTOERR	= 8,
-	IRDMA_HW_STAT_INDEX_RXVLANERR		= 9,
+	IRDMA_HW_STAT_INDEX_IP4RXDISCARD = 0,
+	IRDMA_HW_STAT_INDEX_IP4RXTRUNC = 1,
+	IRDMA_HW_STAT_INDEX_IP4TXNOROUTE = 2,
+	IRDMA_HW_STAT_INDEX_IP6RXDISCARD = 3,
+	IRDMA_HW_STAT_INDEX_IP6RXTRUNC = 4,
+	IRDMA_HW_STAT_INDEX_IP6TXNOROUTE = 5,
+	IRDMA_HW_STAT_INDEX_TCPRTXSEG = 6,
+	IRDMA_HW_STAT_INDEX_TCPRXOPTERR = 7,
+	IRDMA_HW_STAT_INDEX_TCPRXPROTOERR = 8,
+	IRDMA_HW_STAT_INDEX_RXVLANERR = 9,
 	/* gen1 - 64-bit */
-	IRDMA_HW_STAT_INDEX_IP4RXOCTS		= 10,
-	IRDMA_HW_STAT_INDEX_IP4RXPKTS		= 11,
-	IRDMA_HW_STAT_INDEX_IP4RXFRAGS		= 12,
-	IRDMA_HW_STAT_INDEX_IP4RXMCPKTS		= 13,
-	IRDMA_HW_STAT_INDEX_IP4TXOCTS		= 14,
-	IRDMA_HW_STAT_INDEX_IP4TXPKTS		= 15,
-	IRDMA_HW_STAT_INDEX_IP4TXFRAGS		= 16,
-	IRDMA_HW_STAT_INDEX_IP4TXMCPKTS		= 17,
-	IRDMA_HW_STAT_INDEX_IP6RXOCTS		= 18,
-	IRDMA_HW_STAT_INDEX_IP6RXPKTS		= 19,
-	IRDMA_HW_STAT_INDEX_IP6RXFRAGS		= 20,
-	IRDMA_HW_STAT_INDEX_IP6RXMCPKTS		= 21,
-	IRDMA_HW_STAT_INDEX_IP6TXOCTS		= 22,
-	IRDMA_HW_STAT_INDEX_IP6TXPKTS		= 23,
-	IRDMA_HW_STAT_INDEX_IP6TXFRAGS		= 24,
-	IRDMA_HW_STAT_INDEX_IP6TXMCPKTS		= 25,
-	IRDMA_HW_STAT_INDEX_TCPRXSEGS		= 26,
-	IRDMA_HW_STAT_INDEX_TCPTXSEG		= 27,
-	IRDMA_HW_STAT_INDEX_RDMARXRDS		= 28,
-	IRDMA_HW_STAT_INDEX_RDMARXSNDS		= 29,
-	IRDMA_HW_STAT_INDEX_RDMARXWRS		= 30,
-	IRDMA_HW_STAT_INDEX_RDMATXRDS		= 31,
-	IRDMA_HW_STAT_INDEX_RDMATXSNDS		= 32,
-	IRDMA_HW_STAT_INDEX_RDMATXWRS		= 33,
-	IRDMA_HW_STAT_INDEX_RDMAVBND		= 34,
-	IRDMA_HW_STAT_INDEX_RDMAVINV		= 35,
-	IRDMA_HW_STAT_INDEX_IP4RXMCOCTS		= 36,
-	IRDMA_HW_STAT_INDEX_IP4TXMCOCTS		= 37,
-	IRDMA_HW_STAT_INDEX_IP6RXMCOCTS		= 38,
-	IRDMA_HW_STAT_INDEX_IP6TXMCOCTS		= 39,
-	IRDMA_HW_STAT_INDEX_UDPRXPKTS		= 40,
-	IRDMA_HW_STAT_INDEX_UDPTXPKTS		= 41,
-	IRDMA_HW_STAT_INDEX_MAX_GEN_1		= 42, /* Must be same value as next entry */
+	IRDMA_HW_STAT_INDEX_IP4RXOCTS = 10,
+	IRDMA_HW_STAT_INDEX_IP4RXPKTS = 11,
+	IRDMA_HW_STAT_INDEX_IP4RXFRAGS = 12,
+	IRDMA_HW_STAT_INDEX_IP4RXMCPKTS = 13,
+	IRDMA_HW_STAT_INDEX_IP4TXOCTS = 14,
+	IRDMA_HW_STAT_INDEX_IP4TXPKTS = 15,
+	IRDMA_HW_STAT_INDEX_IP4TXFRAGS = 16,
+	IRDMA_HW_STAT_INDEX_IP4TXMCPKTS = 17,
+	IRDMA_HW_STAT_INDEX_IP6RXOCTS = 18,
+	IRDMA_HW_STAT_INDEX_IP6RXPKTS = 19,
+	IRDMA_HW_STAT_INDEX_IP6RXFRAGS = 20,
+	IRDMA_HW_STAT_INDEX_IP6RXMCPKTS = 21,
+	IRDMA_HW_STAT_INDEX_IP6TXOCTS = 22,
+	IRDMA_HW_STAT_INDEX_IP6TXPKTS = 23,
+	IRDMA_HW_STAT_INDEX_IP6TXFRAGS = 24,
+	IRDMA_HW_STAT_INDEX_IP6TXMCPKTS = 25,
+	IRDMA_HW_STAT_INDEX_TCPRXSEGS = 26,
+	IRDMA_HW_STAT_INDEX_TCPTXSEG = 27,
+	IRDMA_HW_STAT_INDEX_RDMARXRDS = 28,
+	IRDMA_HW_STAT_INDEX_RDMARXSNDS = 29,
+	IRDMA_HW_STAT_INDEX_RDMARXWRS = 30,
+	IRDMA_HW_STAT_INDEX_RDMATXRDS = 31,
+	IRDMA_HW_STAT_INDEX_RDMATXSNDS = 32,
+	IRDMA_HW_STAT_INDEX_RDMATXWRS = 33,
+	IRDMA_HW_STAT_INDEX_RDMAVBND = 34,
+	IRDMA_HW_STAT_INDEX_RDMAVINV = 35,
+	IRDMA_HW_STAT_INDEX_IP4RXMCOCTS = 36,
+	IRDMA_HW_STAT_INDEX_IP4TXMCOCTS = 37,
+	IRDMA_HW_STAT_INDEX_IP6RXMCOCTS = 38,
+	IRDMA_HW_STAT_INDEX_IP6TXMCOCTS = 39,
+	IRDMA_HW_STAT_INDEX_UDPRXPKTS = 40,
+	IRDMA_HW_STAT_INDEX_UDPTXPKTS = 41,
+	IRDMA_HW_STAT_INDEX_MAX_GEN_1 =
+	    42, /* Must be same value as next entry */
 
 	/* gen2 - 64-bit */
-	IRDMA_HW_STAT_INDEX_RXNPECNMARKEDPKTS	= 42,
+	IRDMA_HW_STAT_INDEX_RXNPECNMARKEDPKTS = 42,
 
 	/* gen2 - 32-bit */
-	IRDMA_HW_STAT_INDEX_RXRPCNPHANDLED	= 43,
-	IRDMA_HW_STAT_INDEX_RXRPCNPIGNORED	= 44,
-	IRDMA_HW_STAT_INDEX_TXNPCNPSENT		= 45,
-	IRDMA_HW_STAT_INDEX_MAX_GEN_2		= 46,
+	IRDMA_HW_STAT_INDEX_RXRPCNPHANDLED = 43,
+	IRDMA_HW_STAT_INDEX_RXRPCNPIGNORED = 44,
+	IRDMA_HW_STAT_INDEX_TXNPCNPSENT = 45,
+	IRDMA_HW_STAT_INDEX_MAX_GEN_2 = 46,
 };
 
 #define IRDMA_MIN_FEATURES 2
@@ -195,13 +195,13 @@ enum irdma_hw_stats_index {
 enum irdma_feature_type {
 	IRDMA_FEATURE_FW_INFO = 0,
 	IRDMA_HW_VERSION_INFO = 1,
-	IRDMA_QSETS_MAX       = 26,
+	IRDMA_QSETS_MAX = 26,
 	IRDMA_MAX_FEATURES, /* Must be last entry */
 };
 
 enum irdma_sched_prio_type {
-	IRDMA_PRIO_WEIGHTED_RR     = 1,
-	IRDMA_PRIO_STRICT	   = 2,
+	IRDMA_PRIO_WEIGHTED_RR = 1,
+	IRDMA_PRIO_STRICT = 2,
 	IRDMA_PRIO_WEIGHTED_STRICT = 3,
 };
 
@@ -212,9 +212,9 @@ enum irdma_vm_vf_type {
 };
 
 enum irdma_cqp_hmc_profile {
-	IRDMA_HMC_PROFILE_DEFAULT  = 1,
+	IRDMA_HMC_PROFILE_DEFAULT = 1,
 	IRDMA_HMC_PROFILE_FAVOR_VF = 2,
-	IRDMA_HMC_PROFILE_EQUAL    = 3,
+	IRDMA_HMC_PROFILE_EQUAL = 3,
 };
 
 enum irdma_quad_entry_type {
@@ -275,10 +275,10 @@ struct irdma_cqp_init_info {
 	u8 hmc_profile;
 	u8 ena_vf_count;
 	u8 ceqs_per_vf;
-	bool en_datacenter_tcp:1;
-	bool disable_packed:1;
-	bool rocev2_rto_policy:1;
-	bool en_rem_endpoint_trk:1;
+	bool en_datacenter_tcp : 1;
+	bool disable_packed : 1;
+	bool rocev2_rto_policy : 1;
+	bool en_rem_endpoint_trk : 1;
 	enum irdma_protocol_used protocol_used;
 };
 
@@ -324,8 +324,8 @@ struct irdma_hw_stat_map {
 };
 
 struct irdma_stats_gather_info {
-	bool use_hmc_fcn_index:1;
-	bool use_stats_inst:1;
+	bool use_hmc_fcn_index : 1;
+	bool use_stats_inst : 1;
 	u16 hmc_fcn_index;
 	u16 stats_inst_index;
 	struct irdma_dma_mem stats_buff_mem;
@@ -356,9 +356,9 @@ struct irdma_pfpdu {
 	u32 max_fpdu_data;
 	u32 nextseqnum;
 	u32 rcv_start_seq;
-	bool mode:1;
-	bool mpa_crc_err:1;
-	u8  marker_len;
+	bool mode : 1;
+	bool mpa_crc_err : 1;
+	u8 marker_len;
 	u64 total_ieq_bufs;
 	u64 fpdu_processed;
 	u64 bad_seq_num;
@@ -390,7 +390,7 @@ struct irdma_sc_cqp {
 	void *back_cqp;
 	struct irdma_sc_dev *dev;
 	int (*process_cqp_sds)(struct irdma_sc_dev *dev,
-			       struct irdma_update_sds_info *info);
+	    struct irdma_update_sds_info *info);
 	struct irdma_dma_mem sdbuf;
 	struct irdma_ring sq_ring;
 	struct irdma_cqp_quanta *sq_base;
@@ -410,10 +410,10 @@ struct irdma_sc_cqp {
 	u8 ena_vf_count;
 	u8 timeout_count;
 	u8 ceqs_per_vf;
-	bool en_datacenter_tcp:1;
-	bool disable_packed:1;
-	bool rocev2_rto_policy:1;
-	bool en_rem_endpoint_trk:1;
+	bool en_datacenter_tcp : 1;
+	bool disable_packed : 1;
+	bool rocev2_rto_policy : 1;
+	bool en_rem_endpoint_trk : 1;
 	enum irdma_protocol_used protocol_used;
 };
 
@@ -429,7 +429,7 @@ struct irdma_sc_aeq {
 	u32 first_pm_pbl_idx;
 	u32 msix_idx;
 	u8 polarity;
-	bool virtual_map:1;
+	bool virtual_map : 1;
 };
 
 struct irdma_sc_ceq {
@@ -449,9 +449,9 @@ struct irdma_sc_ceq {
 	struct irdma_sc_cq **reg_cq;
 	u32 reg_cq_size;
 	spinlock_t req_cq_lock; /* protect access to reg_cq array */
-	bool virtual_map:1;
-	bool tph_en:1;
-	bool itr_no_expire:1;
+	bool virtual_map : 1;
+	bool tph_en : 1;
+	bool itr_no_expire : 1;
 };
 
 struct irdma_sc_cq {
@@ -468,10 +468,10 @@ struct irdma_sc_cq {
 	u8 cq_type;
 	u8 tph_val;
 	u32 first_pm_pbl_idx;
-	bool ceqe_mask:1;
-	bool virtual_map:1;
-	bool check_overflow:1;
-	bool ceq_id_valid:1;
+	bool ceqe_mask : 1;
+	bool virtual_map : 1;
+	bool check_overflow : 1;
+	bool ceq_id_valid : 1;
 	bool tph_en;
 };
 
@@ -501,17 +501,17 @@ struct irdma_sc_qp {
 	u8 hw_sq_size;
 	u8 hw_rq_size;
 	u8 src_mac_addr_idx;
-	bool on_qoslist:1;
-	bool ieq_pass_thru:1;
-	bool sq_tph_en:1;
-	bool rq_tph_en:1;
-	bool rcv_tph_en:1;
-	bool xmit_tph_en:1;
-	bool virtual_map:1;
-	bool flush_sq:1;
-	bool flush_rq:1;
-	bool sq_flush_code:1;
-	bool rq_flush_code:1;
+	bool on_qoslist : 1;
+	bool ieq_pass_thru : 1;
+	bool sq_tph_en : 1;
+	bool rq_tph_en : 1;
+	bool rcv_tph_en : 1;
+	bool xmit_tph_en : 1;
+	bool virtual_map : 1;
+	bool flush_sq : 1;
+	bool flush_rq : 1;
+	bool sq_flush_code : 1;
+	bool rq_flush_code : 1;
 	enum irdma_flush_opcode flush_code;
 	enum irdma_qp_event_type event_type;
 	u8 term_flags;
@@ -529,20 +529,20 @@ struct irdma_up_info {
 	u8 map[8];
 	u8 cnp_up_override;
 	u16 hmc_fcn_idx;
-	bool use_vlan:1;
-	bool use_cnp_up_override:1;
+	bool use_vlan : 1;
+	bool use_cnp_up_override : 1;
 };
 
-#define IRDMA_MAX_WS_NODES      0x3FF
-#define IRDMA_WS_NODE_INVALID	0xFFFF
+#define IRDMA_MAX_WS_NODES 0x3FF
+#define IRDMA_WS_NODE_INVALID 0xFFFF
 
 struct irdma_ws_node_info {
 	u16 id;
 	u16 vsi;
 	u16 parent_id;
 	u16 qs_handle;
-	bool type_leaf:1;
-	bool enable:1;
+	bool type_leaf : 1;
+	bool enable : 1;
 	u8 prio_type;
 	u8 tc;
 	u8 weight;
@@ -559,8 +559,8 @@ struct irdma_hmc_fpm_misc {
 	u32 ooiscf_block_size;
 };
 
-#define IRDMA_LEAF_DEFAULT_REL_BW		64
-#define IRDMA_PARENT_DEFAULT_REL_BW		1
+#define IRDMA_LEAF_DEFAULT_REL_BW 64
+#define IRDMA_PARENT_DEFAULT_REL_BW 1
 
 struct irdma_qos {
 	struct list_head qplist;
@@ -574,9 +574,9 @@ struct irdma_qos {
 };
 
 struct irdma_config_check {
-	bool config_ok:1;
-	bool lfc_set:1;
-	bool pfc_set:1;
+	bool config_ok : 1;
+	bool lfc_set : 1;
+	bool pfc_set : 1;
 	u8 traffic_class;
 	u16 qs_handle;
 };
@@ -595,15 +595,15 @@ struct irdma_sc_vsi {
 	u32 exception_lan_q;
 	u16 mtu;
 	enum irdma_vm_vf_type vm_vf_type;
-	bool stats_inst_alloc:1;
-	bool tc_change_pending:1;
-	bool mtu_change_pending:1;
+	bool stats_inst_alloc : 1;
+	bool tc_change_pending : 1;
+	bool mtu_change_pending : 1;
 	struct irdma_vsi_pestat *pestat;
 	atomic_t qp_suspend_reqs;
 	int (*register_qset)(struct irdma_sc_vsi *vsi,
-			     struct irdma_ws_node *tc_node);
+	    struct irdma_ws_node *tc_node);
 	void (*unregister_qset)(struct irdma_sc_vsi *vsi,
-				struct irdma_ws_node *tc_node);
+	    struct irdma_ws_node *tc_node);
 	struct irdma_config_check cfg_check[IRDMA_MAX_USER_PRIORITY];
 	bool tc_print_warning[IRDMA_MAX_TRAFFIC_CLASS];
 	u8 qos_rel_bw;
@@ -611,12 +611,12 @@ struct irdma_sc_vsi {
 	u16 stats_idx;
 	u8 dscp_map[IRDMA_DSCP_NUM_VAL];
 	struct irdma_qos qos[IRDMA_MAX_USER_PRIORITY];
-	bool dscp_mode:1;
+	bool dscp_mode : 1;
 };
 
 struct irdma_sc_dev {
 	struct list_head cqp_cmd_head; /* head of the CQP command list */
-	spinlock_t cqp_lock; /* protect CQP list access */
+	spinlock_t cqp_lock;	       /* protect CQP list access */
 	struct irdma_dma_mem vf_fpm_query_buf[IRDMA_MAX_PE_ENA_VF_COUNT];
 	u64 fpm_query_buf_pa;
 	u64 fpm_commit_buf_pa;
@@ -630,7 +630,8 @@ struct irdma_sc_dev {
 	u32 IOMEM *cqp_db;
 	u32 IOMEM *cq_ack_db;
 	u32 IOMEM *hw_regs[IRDMA_MAX_REGS];
-	u32 ceq_itr;   /* Interrupt throttle, usecs between interrupts: 0 disabled. 2 - 8160 */
+	u32 ceq_itr; /* Interrupt throttle, usecs between interrupts: 0
+			disabled. 2 - 8160 */
 	u64 hw_masks[IRDMA_MAX_MASKS];
 	u8 hw_shifts[IRDMA_MAX_SHIFTS];
 	const struct irdma_hw_stat_map *hw_stats_map;
@@ -650,8 +651,8 @@ struct irdma_sc_dev {
 	u16 num_vfs;
 	u16 hmc_fn_id;
 	u8 vf_id;
-	bool vchnl_up:1;
-	bool ceq_valid:1;
+	bool vchnl_up : 1;
+	bool ceq_valid : 1;
 	u8 pci_rev;
 	int (*ws_add)(struct irdma_sc_vsi *vsi, u8 user_pri);
 	void (*ws_remove)(struct irdma_sc_vsi *vsi, u8 user_pri);
@@ -665,17 +666,17 @@ struct irdma_modify_cq_info {
 	u32 shadow_read_threshold;
 	u8 pbl_chunk_size;
 	u32 first_pm_pbl_idx;
-	bool virtual_map:1;
+	bool virtual_map : 1;
 	bool check_overflow;
-	bool cq_resize:1;
+	bool cq_resize : 1;
 };
 
 struct irdma_create_qp_info {
-	bool ord_valid:1;
-	bool tcp_ctx_valid:1;
-	bool cq_num_valid:1;
-	bool arp_cache_idx_valid:1;
-	bool mac_valid:1;
+	bool ord_valid : 1;
+	bool tcp_ctx_valid : 1;
+	bool cq_num_valid : 1;
+	bool arp_cache_idx_valid : 1;
+	bool mac_valid : 1;
 	bool force_lpb;
 	u8 next_iwarp_state;
 };
@@ -687,19 +688,19 @@ struct irdma_modify_qp_info {
 	u8 next_iwarp_state;
 	u8 curr_iwarp_state;
 	u8 termlen;
-	bool ord_valid:1;
-	bool tcp_ctx_valid:1;
-	bool udp_ctx_valid:1;
-	bool cq_num_valid:1;
-	bool arp_cache_idx_valid:1;
-	bool reset_tcp_conn:1;
-	bool remove_hash_idx:1;
-	bool dont_send_term:1;
-	bool dont_send_fin:1;
-	bool cached_var_valid:1;
-	bool mss_change:1;
-	bool force_lpb:1;
-	bool mac_valid:1;
+	bool ord_valid : 1;
+	bool tcp_ctx_valid : 1;
+	bool udp_ctx_valid : 1;
+	bool cq_num_valid : 1;
+	bool arp_cache_idx_valid : 1;
+	bool reset_tcp_conn : 1;
+	bool remove_hash_idx : 1;
+	bool dont_send_term : 1;
+	bool dont_send_fin : 1;
+	bool cached_var_valid : 1;
+	bool mss_change : 1;
+	bool force_lpb : 1;
+	bool mac_valid : 1;
 };
 
 struct irdma_ccq_cqe_info {
@@ -730,9 +731,9 @@ struct irdma_l2params {
 	u8 num_tc;
 	u8 vsi_rel_bw;
 	u8 vsi_prio_type;
-	bool mtu_changed:1;
-	bool tc_changed:1;
-	bool dscp_mode:1;
+	bool mtu_changed : 1;
+	bool tc_changed : 1;
+	bool dscp_mode : 1;
 };
 
 struct irdma_vsi_init_info {
@@ -743,9 +744,9 @@ struct irdma_vsi_init_info {
 	u16 pf_data_vsi_num;
 	enum irdma_vm_vf_type vm_vf_type;
 	int (*register_qset)(struct irdma_sc_vsi *vsi,
-			     struct irdma_ws_node *tc_node);
+	    struct irdma_ws_node *tc_node);
 	void (*unregister_qset)(struct irdma_sc_vsi *vsi,
-				struct irdma_ws_node *tc_node);
+	    struct irdma_ws_node *tc_node);
 };
 
 struct irdma_vsi_stats_info {
@@ -773,9 +774,9 @@ struct irdma_ceq_init_info {
 	void *pbl_list;
 	u32 elem_cnt;
 	u32 ceq_id;
-	bool virtual_map:1;
-	bool tph_en:1;
-	bool itr_no_expire:1;
+	bool virtual_map : 1;
+	bool tph_en : 1;
+	bool itr_no_expire : 1;
 	u8 pbl_chunk_size;
 	u8 tph_val;
 	u32 first_pm_pbl_idx;
@@ -805,11 +806,11 @@ struct irdma_ccq_init_info {
 	u32 num_elem;
 	u32 ceq_id;
 	u32 shadow_read_threshold;
-	bool ceqe_mask:1;
-	bool ceq_id_valid:1;
-	bool avoid_mem_cflct:1;
-	bool virtual_map:1;
-	bool tph_en:1;
+	bool ceqe_mask : 1;
+	bool ceq_id_valid : 1;
+	bool avoid_mem_cflct : 1;
+	bool virtual_map : 1;
+	bool tph_en : 1;
 	u8 tph_val;
 	u8 pbl_chunk_size;
 	u32 first_pm_pbl_idx;
@@ -817,8 +818,8 @@ struct irdma_ccq_init_info {
 };
 
 struct irdma_udp_offload_info {
-	bool ipv4:1;
-	bool insert_vlan_tag:1;
+	bool ipv4 : 1;
+	bool insert_vlan_tag : 1;
 	u8 ttl;
 	u8 tos;
 	u16 src_port;
@@ -851,19 +852,19 @@ struct irdma_roce_offload_info {
 	u32 pd_id;
 	u16 ord_size;
 	u16 ird_size;
-	bool is_qp1:1;
-	bool udprivcq_en:1;
-	bool dcqcn_en:1;
-	bool rcv_no_icrc:1;
-	bool wr_rdresp_en:1;
-	bool bind_en:1;
-	bool fast_reg_en:1;
-	bool priv_mode_en:1;
-	bool rd_en:1;
-	bool timely_en:1;
-	bool dctcp_en:1;
-	bool fw_cc_enable:1;
-	bool use_stats_inst:1;
+	bool is_qp1 : 1;
+	bool udprivcq_en : 1;
+	bool dcqcn_en : 1;
+	bool rcv_no_icrc : 1;
+	bool wr_rdresp_en : 1;
+	bool bind_en : 1;
+	bool fast_reg_en : 1;
+	bool priv_mode_en : 1;
+	bool rd_en : 1;
+	bool timely_en : 1;
+	bool dctcp_en : 1;
+	bool fw_cc_enable : 1;
+	bool use_stats_inst : 1;
 	u16 t_high;
 	u16 t_low;
 	u8 last_byte_sent;
@@ -881,21 +882,21 @@ struct irdma_iwarp_offload_info {
 	u32 pd_id;
 	u16 ord_size;
 	u16 ird_size;
-	bool ib_rd_en:1;
-	bool align_hdrs:1;
-	bool rcv_no_mpa_crc:1;
-	bool err_rq_idx_valid:1;
-	bool snd_mark_en:1;
-	bool rcv_mark_en:1;
-	bool wr_rdresp_en:1;
-	bool bind_en:1;
-	bool fast_reg_en:1;
-	bool priv_mode_en:1;
-	bool rd_en:1;
-	bool timely_en:1;
-	bool use_stats_inst:1;
-	bool ecn_en:1;
-	bool dctcp_en:1;
+	bool ib_rd_en : 1;
+	bool align_hdrs : 1;
+	bool rcv_no_mpa_crc : 1;
+	bool err_rq_idx_valid : 1;
+	bool snd_mark_en : 1;
+	bool rcv_mark_en : 1;
+	bool wr_rdresp_en : 1;
+	bool bind_en : 1;
+	bool fast_reg_en : 1;
+	bool priv_mode_en : 1;
+	bool rd_en : 1;
+	bool timely_en : 1;
+	bool use_stats_inst : 1;
+	bool ecn_en : 1;
+	bool dctcp_en : 1;
 	u16 t_high;
 	u16 t_low;
 	u8 last_byte_sent;
@@ -904,15 +905,15 @@ struct irdma_iwarp_offload_info {
 };
 
 struct irdma_tcp_offload_info {
-	bool ipv4:1;
-	bool no_nagle:1;
-	bool insert_vlan_tag:1;
-	bool time_stamp:1;
-	bool drop_ooo_seg:1;
-	bool avoid_stretch_ack:1;
-	bool wscale:1;
-	bool ignore_tcp_opt:1;
-	bool ignore_tcp_uns_opt:1;
+	bool ipv4 : 1;
+	bool no_nagle : 1;
+	bool insert_vlan_tag : 1;
+	bool time_stamp : 1;
+	bool drop_ooo_seg : 1;
+	bool avoid_stretch_ack : 1;
+	bool wscale : 1;
+	bool ignore_tcp_opt : 1;
+	bool ignore_tcp_uns_opt : 1;
 	u8 cwnd_inc_limit;
 	u8 dup_ack_thresh;
 	u8 ttl;
@@ -921,10 +922,10 @@ struct irdma_tcp_offload_info {
 	u16 src_port;
 	u16 dst_port;
 	u32 dest_ip_addr[4];
-	//u32 dest_ip_addr0;
-	//u32 dest_ip_addr1;
-	//u32 dest_ip_addr2;
-	//u32 dest_ip_addr3;
+	// u32 dest_ip_addr0;
+	// u32 dest_ip_addr1;
+	// u32 dest_ip_addr2;
+	// u32 dest_ip_addr3;
 	u32 snd_mss;
 	u16 syn_rst_handling;
 	u16 vlan_tag;
@@ -966,9 +967,9 @@ struct irdma_qp_host_ctx_info {
 	u32 rcv_cq_num;
 	u32 rem_endpoint_idx;
 	u16 stats_idx;
-	bool tcp_info_valid:1;
-	bool iwarp_info_valid:1;
-	bool stats_idx_valid:1;
+	bool tcp_info_valid : 1;
+	bool iwarp_info_valid : 1;
+	bool stats_idx_valid : 1;
 	u8 user_pri;
 };
 
@@ -979,18 +980,19 @@ struct irdma_aeqe_info {
 	u16 ae_id;
 	u8 tcp_state;
 	u8 iwarp_state;
-	bool qp:1;
-	bool cq:1;
-	bool sq:1;
-	bool rq:1;
-	bool in_rdrsp_wr:1;
-	bool out_rdrsp:1;
-	bool aeqe_overflow:1;
+	bool qp : 1;
+	bool cq : 1;
+	bool sq : 1;
+	bool rq : 1;
+	bool in_rdrsp_wr : 1;
+	bool out_rdrsp : 1;
+	bool aeqe_overflow : 1;
 	/* This flag is used to determine if we should pass the rq tail
-	 * in the QP context for FW/HW. It is set when ae_src is rq for GEN1/GEN2
-	 * And additionally set for inbound atomic, read and write for GEN3
+	 * in the QP context for FW/HW. It is set when ae_src is rq for
+	 * GEN1/GEN2 And additionally set for inbound atomic, read and write for
+	 * GEN3
 	 */
-	bool err_rq_idx_valid:1;
+	bool err_rq_idx_valid : 1;
 	u8 q2_data_written;
 	u8 ae_src;
 };
@@ -1003,10 +1005,10 @@ struct irdma_allocate_stag_info {
 	u32 page_size;
 	u32 pd_id;
 	u16 access_rights;
-	bool remote_access:1;
-	bool use_hmc_fcn_index:1;
-	bool use_pf_rid:1;
-	bool all_memory:1;
+	bool remote_access : 1;
+	bool use_hmc_fcn_index : 1;
+	bool use_pf_rid : 1;
+	bool all_memory : 1;
 	u16 hmc_fcn_index;
 };
 
@@ -1014,9 +1016,9 @@ struct irdma_mw_alloc_info {
 	u32 mw_stag_index;
 	u32 page_size;
 	u32 pd_id;
-	bool remote_access:1;
-	bool mw_wide:1;
-	bool mw1_bind_dont_vldt_key:1;
+	bool remote_access : 1;
+	bool mw_wide : 1;
+	bool mw1_bind_dont_vldt_key : 1;
 };
 
 struct irdma_reg_ns_stag_info {
@@ -1031,10 +1033,10 @@ struct irdma_reg_ns_stag_info {
 	u16 access_rights;
 	u32 pd_id;
 	irdma_stag_key stag_key;
-	bool use_hmc_fcn_index:1;
+	bool use_hmc_fcn_index : 1;
 	u16 hmc_fcn_index;
-	bool use_pf_rid:1;
-	bool all_memory:1;
+	bool use_pf_rid : 1;
+	bool all_memory : 1;
 };
 
 struct irdma_fast_reg_stag_info {
@@ -1051,21 +1053,21 @@ struct irdma_fast_reg_stag_info {
 	u16 access_rights;
 	u32 pd_id;
 	irdma_stag_key stag_key;
-	bool local_fence:1;
-	bool read_fence:1;
-	bool signaled:1;
-	bool push_wqe:1;
-	bool use_hmc_fcn_index:1;
+	bool local_fence : 1;
+	bool read_fence : 1;
+	bool signaled : 1;
+	bool push_wqe : 1;
+	bool use_hmc_fcn_index : 1;
 	u16 hmc_fcn_index;
-	bool use_pf_rid:1;
-	bool defer_flag:1;
+	bool use_pf_rid : 1;
+	bool defer_flag : 1;
 };
 
 struct irdma_dealloc_stag_info {
 	u32 stag_idx;
 	u32 pd_id;
-	bool mr:1;
-	bool dealloc_pbl:1;
+	bool mr : 1;
+	bool dealloc_pbl : 1;
 };
 
 struct irdma_register_shared_stag {
@@ -1092,11 +1094,11 @@ struct irdma_qp_init_info {
 	u64 shadow_area_pa;
 	u8 sq_tph_val;
 	u8 rq_tph_val;
-	bool sq_tph_en:1;
-	bool rq_tph_en:1;
-	bool rcv_tph_en:1;
-	bool xmit_tph_en:1;
-	bool virtual_map:1;
+	bool sq_tph_en : 1;
+	bool rq_tph_en : 1;
+	bool rcv_tph_en : 1;
+	bool xmit_tph_en : 1;
+	bool virtual_map : 1;
 };
 
 struct irdma_cq_init_info {
@@ -1107,10 +1109,10 @@ struct irdma_cq_init_info {
 	u32 shadow_read_threshold;
 	u8 pbl_chunk_size;
 	u32 first_pm_pbl_idx;
-	bool virtual_map:1;
-	bool ceqe_mask:1;
-	bool ceq_id_valid:1;
-	bool tph_en:1;
+	bool virtual_map : 1;
+	bool ceqe_mask : 1;
+	bool ceq_id_valid : 1;
+	bool tph_en : 1;
 	u8 tph_val;
 	u8 type;
 	struct irdma_cq_uk_init_info cq_uk_init_info;
@@ -1121,8 +1123,8 @@ struct irdma_upload_context_info {
 	u64 buf_pa;
 	u32 qp_id;
 	u8 qp_type;
-	bool freeze_qp:1;
-	bool raw_format:1;
+	bool freeze_qp : 1;
+	bool raw_format : 1;
 };
 
 struct irdma_local_mac_entry_info {
@@ -1146,8 +1148,8 @@ struct irdma_qhash_table_info {
 	struct irdma_sc_vsi *vsi;
 	enum irdma_quad_hash_manage_type manage;
 	enum irdma_quad_entry_type entry_type;
-	bool vlan_valid:1;
-	bool ipv4_valid:1;
+	bool vlan_valid : 1;
+	bool ipv4_valid : 1;
 	u8 mac_addr[ETHER_ADDR_LEN];
 	u16 vlan_id;
 	u8 user_pri;
@@ -1172,10 +1174,10 @@ struct irdma_qp_flush_info {
 	u16 rq_major_code;
 	u16 ae_code;
 	u8 ae_src;
-	bool sq:1;
-	bool rq:1;
-	bool userflushcode:1;
-	bool generate_ae:1;
+	bool sq : 1;
+	bool rq : 1;
+	bool userflushcode : 1;
+	bool generate_ae : 1;
 };
 
 struct irdma_gen_ae_info {
@@ -1191,73 +1193,70 @@ struct irdma_cqp_timeout {
 struct irdma_irq_ops {
 	void (*irdma_cfg_aeq)(struct irdma_sc_dev *dev, u32 idx, bool enable);
 	void (*irdma_cfg_ceq)(struct irdma_sc_dev *dev, u32 ceq_id, u32 idx,
-			      bool enable);
+	    bool enable);
 	void (*irdma_dis_irq)(struct irdma_sc_dev *dev, u32 idx);
 	void (*irdma_en_irq)(struct irdma_sc_dev *dev, u32 idx);
 };
 
 void irdma_sc_ccq_arm(struct irdma_sc_cq *ccq);
 int irdma_sc_ccq_create(struct irdma_sc_cq *ccq, u64 scratch,
-			bool check_overflow, bool post_sq);
+    bool check_overflow, bool post_sq);
 int irdma_sc_ccq_destroy(struct irdma_sc_cq *ccq, u64 scratch, bool post_sq);
 int irdma_sc_ccq_get_cqe_info(struct irdma_sc_cq *ccq,
-			      struct irdma_ccq_cqe_info *info);
+    struct irdma_ccq_cqe_info *info);
 int irdma_sc_ccq_init(struct irdma_sc_cq *ccq,
-		      struct irdma_ccq_init_info *info);
+    struct irdma_ccq_init_info *info);
 
 int irdma_sc_cceq_create(struct irdma_sc_ceq *ceq, u64 scratch);
 int irdma_sc_cceq_destroy_done(struct irdma_sc_ceq *ceq);
 
 int irdma_sc_ceq_destroy(struct irdma_sc_ceq *ceq, u64 scratch, bool post_sq);
 int irdma_sc_ceq_init(struct irdma_sc_ceq *ceq,
-		      struct irdma_ceq_init_info *info);
+    struct irdma_ceq_init_info *info);
 void irdma_sc_cleanup_ceqes(struct irdma_sc_cq *cq, struct irdma_sc_ceq *ceq);
 void *irdma_sc_process_ceq(struct irdma_sc_dev *dev, struct irdma_sc_ceq *ceq);
 
 int irdma_sc_aeq_init(struct irdma_sc_aeq *aeq,
-		      struct irdma_aeq_init_info *info);
+    struct irdma_aeq_init_info *info);
 int irdma_sc_get_next_aeqe(struct irdma_sc_aeq *aeq,
-			   struct irdma_aeqe_info *info);
+    struct irdma_aeqe_info *info);
 void irdma_sc_repost_aeq_entries(struct irdma_sc_dev *dev, u32 count);
 
-void irdma_sc_pd_init(struct irdma_sc_dev *dev, struct irdma_sc_pd *pd, u32 pd_id,
-		      int abi_ver);
+void irdma_sc_pd_init(struct irdma_sc_dev *dev, struct irdma_sc_pd *pd,
+    u32 pd_id, int abi_ver);
 void irdma_cfg_aeq(struct irdma_sc_dev *dev, u32 idx, bool enable);
 void irdma_check_cqp_progress(struct irdma_cqp_timeout *cqp_timeout,
-			      struct irdma_sc_dev *dev);
+    struct irdma_sc_dev *dev);
 int irdma_sc_cqp_create(struct irdma_sc_cqp *cqp, u16 *maj_err, u16 *min_err);
 int irdma_sc_cqp_destroy(struct irdma_sc_cqp *cqp, bool free_hwcqp);
 int irdma_sc_cqp_init(struct irdma_sc_cqp *cqp,
-		      struct irdma_cqp_init_info *info);
+    struct irdma_cqp_init_info *info);
 void irdma_sc_cqp_post_sq(struct irdma_sc_cqp *cqp);
 int irdma_sc_poll_for_cqp_op_done(struct irdma_sc_cqp *cqp, u8 opcode,
-				  struct irdma_ccq_cqe_info *cmpl_info);
+    struct irdma_ccq_cqe_info *cmpl_info);
 int irdma_sc_qp_create(struct irdma_sc_qp *qp,
-		       struct irdma_create_qp_info *info, u64 scratch,
-		       bool post_sq);
+    struct irdma_create_qp_info *info, u64 scratch, bool post_sq);
 int irdma_sc_qp_destroy(struct irdma_sc_qp *qp, u64 scratch,
-			bool remove_hash_idx, bool ignore_mw_bnd, bool post_sq);
+    bool remove_hash_idx, bool ignore_mw_bnd, bool post_sq);
 int irdma_sc_qp_flush_wqes(struct irdma_sc_qp *qp,
-			   struct irdma_qp_flush_info *info, u64 scratch,
-			   bool post_sq);
+    struct irdma_qp_flush_info *info, u64 scratch, bool post_sq);
 int irdma_sc_qp_init(struct irdma_sc_qp *qp, struct irdma_qp_init_info *info);
 int irdma_sc_qp_modify(struct irdma_sc_qp *qp,
-		       struct irdma_modify_qp_info *info, u64 scratch,
-		       bool post_sq);
+    struct irdma_modify_qp_info *info, u64 scratch, bool post_sq);
 void irdma_sc_send_lsmm(struct irdma_sc_qp *qp, void *lsmm_buf, u32 size,
-			irdma_stag stag);
+    irdma_stag stag);
 void irdma_sc_send_rtt(struct irdma_sc_qp *qp, bool read);
 void irdma_sc_qp_setctx(struct irdma_sc_qp *qp, __le64 *qp_ctx,
-			struct irdma_qp_host_ctx_info *info);
+    struct irdma_qp_host_ctx_info *info);
 void irdma_sc_qp_setctx_roce(struct irdma_sc_qp *qp, __le64 *qp_ctx,
-			     struct irdma_qp_host_ctx_info *info);
+    struct irdma_qp_host_ctx_info *info);
 int irdma_sc_cq_destroy(struct irdma_sc_cq *cq, u64 scratch, bool post_sq);
 int irdma_sc_cq_init(struct irdma_sc_cq *cq, struct irdma_cq_init_info *info);
-void irdma_sc_cq_resize(struct irdma_sc_cq *cq, struct irdma_modify_cq_info *info);
+void irdma_sc_cq_resize(struct irdma_sc_cq *cq,
+    struct irdma_modify_cq_info *info);
 int irdma_sc_aeq_destroy(struct irdma_sc_aeq *aeq, u64 scratch, bool post_sq);
 int irdma_sc_static_hmc_pages_allocated(struct irdma_sc_cqp *cqp, u64 scratch,
-					u16 hmc_fn_id, bool post_sq,
-					bool poll_registers);
+    u16 hmc_fn_id, bool post_sq, bool poll_registers);
 
 void sc_vsi_update_stats(struct irdma_sc_vsi *vsi);
 struct cqp_info {
@@ -1511,15 +1510,16 @@ struct cqp_cmds_info {
 	struct cqp_info in;
 };
 
-__le64 *irdma_sc_cqp_get_next_send_wqe_idx(struct irdma_sc_cqp *cqp, u64 scratch,
-					   u32 *wqe_idx);
+__le64 *irdma_sc_cqp_get_next_send_wqe_idx(struct irdma_sc_cqp *cqp,
+    u64 scratch, u32 *wqe_idx);
 
 /**
  * irdma_sc_cqp_get_next_send_wqe - get next wqe on cqp sq
  * @cqp: struct for cqp hw
  * @scratch: private data for CQP WQE
  */
-static inline __le64 *irdma_sc_cqp_get_next_send_wqe(struct irdma_sc_cqp *cqp, u64 scratch)
+static inline __le64 *
+irdma_sc_cqp_get_next_send_wqe(struct irdma_sc_cqp *cqp, u64 scratch)
 {
 	u32 wqe_idx;
 

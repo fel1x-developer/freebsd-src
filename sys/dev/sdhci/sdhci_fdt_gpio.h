@@ -32,8 +32,8 @@
  * detach functions.
  */
 
-#ifndef	_SDHCI_FDT_GPIO_H_
-#define	_SDHCI_FDT_GPIO_H_
+#ifndef _SDHCI_FDT_GPIO_H_
+#define _SDHCI_FDT_GPIO_H_
 
 struct sdhci_slot;
 struct sdhci_fdt_gpio;
@@ -52,7 +52,8 @@ struct sdhci_fdt_gpio;
  * up the get_present() accessor to always return true.  Likewise the
  * get_readonly() accessor always returns false if its pin can't be accessed.
  */
-struct sdhci_fdt_gpio *sdhci_fdt_gpio_setup(device_t dev, struct sdhci_slot *slot);
+struct sdhci_fdt_gpio *sdhci_fdt_gpio_setup(device_t dev,
+    struct sdhci_slot *slot);
 void sdhci_fdt_gpio_teardown(struct sdhci_fdt_gpio *gpio);
 
 /*
@@ -62,6 +63,6 @@ void sdhci_fdt_gpio_teardown(struct sdhci_fdt_gpio *gpio);
  * Gpio pin state accessor functions.
  */
 bool sdhci_fdt_gpio_get_present(struct sdhci_fdt_gpio *gpio);
-int  sdhci_fdt_gpio_get_readonly(struct sdhci_fdt_gpio *gpio);
+int sdhci_fdt_gpio_get_readonly(struct sdhci_fdt_gpio *gpio);
 
 #endif

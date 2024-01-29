@@ -27,13 +27,14 @@
 
 #include <sys/param.h>
 
-#include "lua.h"
-#include "lauxlib.h"
-#include "lstd.h"
-#include "lutils.h"
-#include "bootstrap.h"
 #include <gfx_fb.h>
 #include <pnglite.h>
+
+#include "bootstrap.h"
+#include "lauxlib.h"
+#include "lstd.h"
+#include "lua.h"
+#include "lutils.h"
 
 /*
  * Like loader.perform, except args are passed already parsed
@@ -42,10 +43,10 @@
 static int
 lua_command(lua_State *L)
 {
-	int	i;
-	int	res = 1;
-	int 	argc = lua_gettop(L);
-	char	**argv;
+	int i;
+	int res = 1;
+	int argc = lua_gettop(L);
+	char **argv;
 
 	argv = malloc(sizeof(char *) * (argc + 1));
 	if (argv == NULL)
@@ -63,7 +64,7 @@ lua_command(lua_State *L)
 static int
 lua_has_command(lua_State *L)
 {
-	const char	*cmd;
+	const char *cmd;
 
 	if (lua_gettop(L) != 1) {
 		lua_pushnil(L);
@@ -78,7 +79,7 @@ lua_has_command(lua_State *L)
 static int
 lua_has_feature(lua_State *L)
 {
-	const char	*feature;
+	const char *feature;
 	char *msg;
 
 	feature = luaL_checkstring(L, 1);
@@ -93,13 +94,12 @@ lua_has_feature(lua_State *L)
 	return 2;
 }
 
-
 static int
 lua_perform(lua_State *L)
 {
-	int	argc;
-	char	**argv;
-	int	res = 1;
+	int argc;
+	char **argv;
+	int res = 1;
 
 	if (parse(&argc, &argv, luaL_checkstring(L, 1)) == 0) {
 		res = interp_builtin_cmd(argc, argv);
@@ -125,7 +125,7 @@ lua_command_error(lua_State *L)
 static int
 lua_interpret(lua_State *L)
 {
-	const char	*interp_string;
+	const char *interp_string;
 
 	if (lua_gettop(L) != 1) {
 		lua_pushnil(L);
@@ -140,8 +140,8 @@ lua_interpret(lua_State *L)
 static int
 lua_parse(lua_State *L)
 {
-	int	argc, nargc;
-	char	**argv;
+	int argc, nargc;
+	char **argv;
 
 	if (parse(&argc, &argv, luaL_checkstring(L, 1)) == 0) {
 		for (nargc = 0; nargc < argc; ++nargc) {
@@ -174,7 +174,7 @@ lua_ischar(lua_State *L)
 static int
 lua_gets(lua_State *L)
 {
-	char	buf[129];
+	char buf[129];
 
 	ngets(buf, 128);
 	lua_pushstring(L, buf);
@@ -220,7 +220,7 @@ lua_setenv(lua_State *L)
 static int
 lua_unsetenv(lua_State *L)
 {
-	const char	*ev;
+	const char *ev;
 
 	ev = luaL_checkstring(L, 1);
 	lua_pushinteger(L, unsetenv(ev));
@@ -243,8 +243,8 @@ lua_printc(lua_State *L)
 static int
 lua_openfile(lua_State *L)
 {
-	const char	*mode, *str;
-	int	nargs;
+	const char *mode, *str;
+	int nargs;
 
 	nargs = lua_gettop(L);
 	if (nargs < 1 || nargs > 2) {
@@ -260,9 +260,9 @@ lua_openfile(lua_State *L)
 			return 1;
 		}
 	}
-	FILE * f = fopen(str, mode);
+	FILE *f = fopen(str, mode);
 	if (f != NULL) {
-		FILE ** ptr = (FILE**)lua_newuserdata(L, sizeof(FILE**));
+		FILE **ptr = (FILE **)lua_newuserdata(L, sizeof(FILE **));
 		*ptr = f;
 	} else
 		lua_pushnil(L);
@@ -272,13 +272,13 @@ lua_openfile(lua_State *L)
 static int
 lua_closefile(lua_State *L)
 {
-	FILE ** f;
+	FILE **f;
 	if (lua_gettop(L) != 1) {
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 
-	f = (FILE**)lua_touserdata(L, 1);
+	f = (FILE **)lua_touserdata(L, 1);
 	if (f != NULL && *f != NULL) {
 		lua_pushboolean(L, fclose(*f) == 0 ? 1 : 0);
 		*f = NULL;
@@ -291,9 +291,9 @@ lua_closefile(lua_State *L)
 static int
 lua_readfile(lua_State *L)
 {
-	FILE	**f;
-	size_t	size, r;
-	char * buf;
+	FILE **f;
+	size_t size, r;
+	char *buf;
 
 	if (lua_gettop(L) < 1 || lua_gettop(L) > 2) {
 		lua_pushnil(L);
@@ -301,7 +301,7 @@ lua_readfile(lua_State *L)
 		return 2;
 	}
 
-	f = (FILE**)lua_touserdata(L, 1);
+	f = (FILE **)lua_touserdata(L, 1);
 
 	if (f == NULL || *f == NULL) {
 		lua_pushnil(L);
@@ -314,8 +314,7 @@ lua_readfile(lua_State *L)
 	else
 		size = (*f)->size;
 
-
-	buf = (char*)malloc(size);
+	buf = (char *)malloc(size);
 	r = fread(buf, 1, size, *f);
 	lua_pushlstring(L, buf, r);
 	free(buf);
@@ -333,10 +332,10 @@ lua_readfile(lua_State *L)
 static int
 lua_writefile(lua_State *L)
 {
-	FILE	**f;
-	const char	*buf;
-	int	i, nargs;
-	size_t	bufsz, w, wrsz;
+	FILE **f;
+	const char *buf;
+	int i, nargs;
+	size_t bufsz, w, wrsz;
 
 	buf = NULL;
 	bufsz = 0;
@@ -348,7 +347,7 @@ lua_writefile(lua_State *L)
 		return luaL_fileresult(L, 0, NULL);
 	}
 
-	f = (FILE**)lua_touserdata(L, 1);
+	f = (FILE **)lua_touserdata(L, 1);
 
 	if (f == NULL || *f == NULL) {
 		errno = EINVAL;
@@ -420,7 +419,7 @@ lua_term_putimage(lua_State *L)
 	} else {
 		if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
 			ret = 1;
-		(void) png_close(&png);
+		(void)png_close(&png);
 	}
 	lua_pushboolean(L, ret);
 	return 1;
@@ -453,7 +452,7 @@ lua_fb_putimage(lua_State *L)
 	} else {
 		if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
 			ret = 1;
-		(void) png_close(&png);
+		(void)png_close(&png);
 	}
 	lua_pushboolean(L, ret);
 	return 1;
@@ -473,7 +472,7 @@ lua_fb_setpixel(lua_State *L)
 
 	x = luaL_checknumber(L, 1);
 	y = luaL_checknumber(L, 2);
-        gfx_fb_setpixel(x, y);
+	gfx_fb_setpixel(x, y);
 	return 0;
 }
 
@@ -494,7 +493,7 @@ lua_fb_line(lua_State *L)
 	x1 = luaL_checknumber(L, 3);
 	y1 = luaL_checknumber(L, 4);
 	wd = luaL_checknumber(L, 5);
-        gfx_fb_line(x0, y0, x1, y1, wd);
+	gfx_fb_line(x0, y0, x1, y1, wd);
 	return 0;
 }
 
@@ -517,7 +516,7 @@ lua_fb_bezier(lua_State *L)
 	x2 = luaL_checknumber(L, 5);
 	y2 = luaL_checknumber(L, 6);
 	width = luaL_checknumber(L, 7);
-        gfx_fb_bezier(x0, y0, x1, y1, x2, y2, width);
+	gfx_fb_bezier(x0, y0, x1, y1, x2, y2, width);
 	return 0;
 }
 
@@ -538,7 +537,7 @@ lua_fb_drawrect(lua_State *L)
 	x1 = luaL_checknumber(L, 3);
 	y1 = luaL_checknumber(L, 4);
 	fill = luaL_checknumber(L, 5);
-        gfx_fb_drawrect(x0, y0, x1, y1, fill);
+	gfx_fb_drawrect(x0, y0, x1, y1, fill);
 	return 0;
 }
 
@@ -558,11 +557,14 @@ lua_term_drawrect(lua_State *L)
 	y0 = luaL_checknumber(L, 2);
 	x1 = luaL_checknumber(L, 3);
 	y1 = luaL_checknumber(L, 4);
-        gfx_term_drawrect(x0, y0, x1, y1);
+	gfx_term_drawrect(x0, y0, x1, y1);
 	return 0;
 }
 
-#define REG_SIMPLE(n)	{ #n, lua_ ## n }
+#define REG_SIMPLE(n)       \
+	{                   \
+		#n, lua_##n \
+	}
 static const struct luaL_Reg loaderlib[] = {
 	REG_SIMPLE(delay),
 	REG_SIMPLE(command_error),
@@ -573,7 +575,7 @@ static const struct luaL_Reg loaderlib[] = {
 	REG_SIMPLE(has_command),
 	REG_SIMPLE(has_feature),
 	REG_SIMPLE(perform),
-	REG_SIMPLE(printc),	/* Also registered as the global 'printc' */
+	REG_SIMPLE(printc), /* Also registered as the global 'printc' */
 	REG_SIMPLE(setenv),
 	REG_SIMPLE(time),
 	REG_SIMPLE(unsetenv),

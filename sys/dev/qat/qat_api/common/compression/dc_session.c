@@ -18,7 +18,6 @@
  */
 #include "cpa.h"
 #include "cpa_dc.h"
-
 #include "icp_qat_fw.h"
 #include "icp_qat_fw_comp.h"
 #include "icp_qat_hw.h"
@@ -29,14 +28,14 @@
  * Include private header files
  *******************************************************************************
  */
-#include "dc_session.h"
 #include "dc_datapath.h"
-#include "lac_mem_pools.h"
-#include "sal_types_compression.h"
+#include "dc_session.h"
 #include "lac_buffer_desc.h"
-#include "sal_service_state.h"
-#include "sal_qat_cmn_msg.h"
+#include "lac_mem_pools.h"
 #include "sal_hw_gen.h"
+#include "sal_qat_cmn_msg.h"
+#include "sal_service_state.h"
+#include "sal_types_compression.h"
 
 /**
  *****************************************************************************
@@ -57,7 +56,7 @@
  *****************************************************************************/
 CpaStatus
 dcCheckSessionData(const CpaDcSessionSetupData *pSessionData,
-		   CpaInstanceHandle dcInstance)
+    CpaInstanceHandle dcInstance)
 {
 	CpaDcInstanceCapabilities instanceCapabilities = { 0 };
 
@@ -124,9 +123,8 @@ dcCheckSessionData(const CpaDcSessionSetupData *pSessionData,
  *****************************************************************************/
 static void
 dcCompHwBlockPopulate(sal_compression_service_t *pService,
-		      dc_session_desc_t *pSessionDesc,
-		      icp_qat_hw_compression_config_t *pCompConfig,
-		      dc_request_dir_t compDecomp)
+    dc_session_desc_t *pSessionDesc,
+    icp_qat_hw_compression_config_t *pCompConfig, dc_request_dir_t compDecomp)
 {
 	icp_qat_hw_compression_direction_t dir =
 	    ICP_QAT_HW_COMPRESSION_DIR_COMPRESS;
@@ -185,8 +183,8 @@ dcCompHwBlockPopulate(sal_compression_service_t *pService,
 	 * modes will be used in the future for precompiled huffman trees */
 	filetype = ICP_QAT_HW_COMPRESSION_FILE_TYPE_0;
 
-	pCompConfig->lower_val = ICP_QAT_HW_COMPRESSION_CONFIG_BUILD(
-	    dir, dmm, algo, depth, filetype);
+	pCompConfig->lower_val = ICP_QAT_HW_COMPRESSION_CONFIG_BUILD(dir, dmm,
+	    algo, depth, filetype);
 
 	/* Upper 32-bits of the configuration word do not need to be
 	 * configured with legacy devices.
@@ -196,9 +194,8 @@ dcCompHwBlockPopulate(sal_compression_service_t *pService,
 
 static void
 dcCompHwBlockPopulateGen4(sal_compression_service_t *pService,
-			  dc_session_desc_t *pSessionDesc,
-			  icp_qat_hw_compression_config_t *pCompConfig,
-			  dc_request_dir_t compDecomp)
+    dc_session_desc_t *pSessionDesc,
+    icp_qat_hw_compression_config_t *pCompConfig, dc_request_dir_t compDecomp)
 {
 	/* Compression related */
 	if (DC_COMPRESSION_REQUEST == compDecomp) {
@@ -266,7 +263,7 @@ dcCompHwBlockPopulateGen4(sal_compression_service_t *pService,
 			hw_comp_lower_csr.sd = pService->comp_device_data
 						   .highestHwCompressionDepth;
 			if ((CPA_DC_HT_FULL_DYNAMIC ==
-			     pSessionDesc->huffType) &&
+				pSessionDesc->huffType) &&
 			    (CPA_DC_DEFLATE == pSessionDesc->compType)) {
 				/* Enable Literal + Length Limit Block Drop
 				 * with dynamic deflate compression when
@@ -292,11 +289,11 @@ dcCompHwBlockPopulateGen4(sal_compression_service_t *pService,
 		hw_comp_upper_csr.lazy =
 		    ICP_QAT_HW_COMP_20_CONFIG_CSR_LAZY_PARAM_DEFAULT_VAL;
 
-		pCompConfig->upper_val =
-		    ICP_QAT_FW_COMP_20_BUILD_CONFIG_UPPER(hw_comp_upper_csr);
+		pCompConfig->upper_val = ICP_QAT_FW_COMP_20_BUILD_CONFIG_UPPER(
+		    hw_comp_upper_csr);
 
-		pCompConfig->lower_val =
-		    ICP_QAT_FW_COMP_20_BUILD_CONFIG_LOWER(hw_comp_lower_csr);
+		pCompConfig->lower_val = ICP_QAT_FW_COMP_20_BUILD_CONFIG_LOWER(
+		    hw_comp_lower_csr);
 	} else /* Decompress */
 	{
 		icp_qat_hw_decomp_20_config_csr_lower_t hw_decomp_lower_csr;
@@ -337,11 +334,9 @@ dcCompHwBlockPopulateGen4(sal_compression_service_t *pService,
  *****************************************************************************/
 static void
 dcCompContentDescPopulate(sal_compression_service_t *pService,
-			  dc_session_desc_t *pSessionDesc,
-			  CpaPhysicalAddr contextBufferAddrPhys,
-			  icp_qat_fw_comp_req_t *pMsg,
-			  icp_qat_fw_slice_t nextSlice,
-			  dc_request_dir_t compDecomp)
+    dc_session_desc_t *pSessionDesc, CpaPhysicalAddr contextBufferAddrPhys,
+    icp_qat_fw_comp_req_t *pMsg, icp_qat_fw_slice_t nextSlice,
+    dc_request_dir_t compDecomp)
 {
 
 	icp_qat_fw_comp_cd_hdr_t *pCompControlBlock = NULL;
@@ -349,9 +344,8 @@ dcCompContentDescPopulate(sal_compression_service_t *pService,
 	CpaBoolean bankEnabled = CPA_FALSE;
 
 	pCompControlBlock = (icp_qat_fw_comp_cd_hdr_t *)&(pMsg->comp_cd_ctrl);
-	pCompConfig =
-	    (icp_qat_hw_compression_config_t *)(pMsg->cd_pars.sl
-						    .comp_slice_cfg_word);
+	pCompConfig = (icp_qat_hw_compression_config_t
+		*)(pMsg->cd_pars.sl.comp_slice_cfg_word);
 
 	ICP_QAT_FW_COMN_NEXT_ID_SET(pCompControlBlock, nextSlice);
 	ICP_QAT_FW_COMN_CURR_ID_SET(pCompControlBlock, ICP_QAT_FW_SLICE_COMP);
@@ -378,14 +372,14 @@ dcCompContentDescPopulate(sal_compression_service_t *pService,
 		/* Disable all banks */
 		pCompControlBlock->ram_bank_flags =
 		    ICP_QAT_FW_COMP_RAM_FLAGS_BUILD(
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank I */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank H */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank G */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank F */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank E */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank D */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank C */
-			ICP_QAT_FW_COMP_BANK_DISABLED,  /* Bank B */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank I */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank H */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank G */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank F */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank E */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank D */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank C */
+			ICP_QAT_FW_COMP_BANK_DISABLED,	/* Bank B */
 			ICP_QAT_FW_COMP_BANK_DISABLED); /* Bank A */
 	}
 
@@ -411,15 +405,11 @@ dcCompContentDescPopulate(sal_compression_service_t *pService,
 
 	/* Populate Compression Hardware Setup Block */
 	if (isDcGen4x(pService)) {
-		dcCompHwBlockPopulateGen4(pService,
-					  pSessionDesc,
-					  pCompConfig,
-					  compDecomp);
+		dcCompHwBlockPopulateGen4(pService, pSessionDesc, pCompConfig,
+		    compDecomp);
 	} else if (isDcGen2x(pService)) {
-		dcCompHwBlockPopulate(pService,
-				      pSessionDesc,
-				      pCompConfig,
-				      compDecomp);
+		dcCompHwBlockPopulate(pService, pSessionDesc, pCompConfig,
+		    compDecomp);
 	} else {
 		QAT_UTILS_LOG("Invalid QAT generation value\n");
 	}
@@ -439,7 +429,7 @@ dcCompContentDescPopulate(sal_compression_service_t *pService,
  *****************************************************************************/
 void
 dcTransContentDescPopulate(icp_qat_fw_comp_req_t *pMsg,
-			   icp_qat_fw_slice_t nextSlice)
+    icp_qat_fw_slice_t nextSlice)
 {
 
 	icp_qat_fw_xlt_cd_hdr_t *pTransControlBlock = NULL;
@@ -475,8 +465,7 @@ dcTransContentDescPopulate(icp_qat_fw_comp_req_t *pMsg,
  *****************************************************************************/
 static CpaStatus
 dcGetContextSize(CpaInstanceHandle dcInstance,
-		 CpaDcSessionSetupData *pSessionData,
-		 Cpa32U *pContextSize)
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pContextSize)
 {
 	sal_compression_service_t *pCompService = NULL;
 
@@ -500,8 +489,7 @@ dcGetContextSize(CpaInstanceHandle dcInstance,
 
 CpaStatus
 dcGetCompressCommandId(sal_compression_service_t *pService,
-		       CpaDcSessionSetupData *pSessionData,
-		       Cpa8U *pDcCmdId)
+    CpaDcSessionSetupData *pSessionData, Cpa8U *pDcCmdId)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	LAC_CHECK_NULL_PARAM(pService);
@@ -526,8 +514,7 @@ dcGetCompressCommandId(sal_compression_service_t *pService,
 
 CpaStatus
 dcGetDecompressCommandId(sal_compression_service_t *pService,
-			 CpaDcSessionSetupData *pSessionData,
-			 Cpa8U *pDcCmdId)
+    CpaDcSessionSetupData *pSessionData, Cpa8U *pDcCmdId)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	LAC_CHECK_NULL_PARAM(pService);
@@ -549,11 +536,9 @@ dcGetDecompressCommandId(sal_compression_service_t *pService,
 }
 
 CpaStatus
-dcInitSession(CpaInstanceHandle dcInstance,
-	      CpaDcSessionHandle pSessionHandle,
-	      CpaDcSessionSetupData *pSessionData,
-	      CpaBufferList *pContextBuffer,
-	      CpaDcCallbackFn callbackFn)
+dcInitSession(CpaInstanceHandle dcInstance, CpaDcSessionHandle pSessionHandle,
+    CpaDcSessionSetupData *pSessionData, CpaBufferList *pContextBuffer,
+    CpaDcCallbackFn callbackFn)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	sal_compression_service_t *pService = NULL;
@@ -571,14 +556,13 @@ dcInitSession(CpaInstanceHandle dcInstance,
 	Cpa8U enhancedAutoSelectBest = ICP_QAT_FW_COMP_NOT_ENH_AUTO_SELECT_BEST;
 	Cpa8U disableType0EnhancedAutoSelectBest =
 	    ICP_QAT_FW_COMP_NOT_DISABLE_TYPE0_ENH_AUTO_SELECT_BEST;
-	icp_qat_fw_la_cmd_id_t dcCmdId =
-	    (icp_qat_fw_la_cmd_id_t)ICP_QAT_FW_COMP_CMD_STATIC;
+	icp_qat_fw_la_cmd_id_t dcCmdId = (icp_qat_fw_la_cmd_id_t)
+	    ICP_QAT_FW_COMP_CMD_STATIC;
 	icp_qat_fw_comn_flags cmnRequestFlags = 0;
 	dc_integrity_crc_fw_t *pDataIntegrityCrcs = NULL;
 
-	cmnRequestFlags =
-	    ICP_QAT_FW_COMN_FLAGS_BUILD(DC_DEFAULT_QAT_PTR_TYPE,
-					QAT_COMN_CD_FLD_TYPE_16BYTE_DATA);
+	cmnRequestFlags = ICP_QAT_FW_COMN_FLAGS_BUILD(DC_DEFAULT_QAT_PTR_TYPE,
+	    QAT_COMN_CD_FLD_TYPE_16BYTE_DATA);
 
 	pService = (sal_compression_service_t *)dcInstance;
 
@@ -604,7 +588,7 @@ dcInitSession(CpaInstanceHandle dcInstance,
 	/* Check for Gen4 and stateful, return error if both exist */
 	if ((isDcGen4x(pService)) &&
 	    (CPA_DC_STATEFUL == pSessionData->sessState &&
-	     CPA_DC_DIR_DECOMPRESS != pSessionData->sessDirection)) {
+		CPA_DC_DIR_DECOMPRESS != pSessionData->sessDirection)) {
 		QAT_UTILS_LOG("Stateful sessions are not supported for "
 			      "compression direction");
 		return CPA_STATUS_UNSUPPORTED;
@@ -631,8 +615,8 @@ dcInitSession(CpaInstanceHandle dcInstance,
 	if ((CPA_DC_STATEFUL == pSessionData->sessState) &&
 	    (CPA_DC_DEFLATE == pSessionData->compType)) {
 		/* Get the size of the context buffer */
-		status =
-		    dcGetContextSize(dcInstance, pSessionData, &minContextSize);
+		status = dcGetContextSize(dcInstance, pSessionData,
+		    &minContextSize);
 
 		if (CPA_STATUS_SUCCESS != status) {
 			QAT_UTILS_LOG(
@@ -648,8 +632,7 @@ dcInitSession(CpaInstanceHandle dcInstance,
 
 			LAC_CHECK_NULL_PARAM(pContextBuffer);
 
-			if (LacBuffDesc_BufferListVerify(
-				pContextBuffer,
+			if (LacBuffDesc_BufferListVerify(pContextBuffer,
 				&contextBuffSize,
 				LAC_NO_ALIGNMENT_SHIFT) != CPA_STATUS_SUCCESS) {
 				return CPA_STATUS_INVALID_PARAM;
@@ -670,8 +653,7 @@ dcInitSession(CpaInstanceHandle dcInstance,
 	/* Re-align the session structure to 64 byte alignment */
 	physAddress =
 	    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService->generic_service_info,
-					 (Cpa8U *)pSessionHandle +
-					     sizeof(void *));
+		(Cpa8U *)pSessionHandle + sizeof(void *));
 
 	if (physAddress == 0) {
 		QAT_UTILS_LOG(
@@ -679,15 +661,14 @@ dcInitSession(CpaInstanceHandle dcInstance,
 		return CPA_STATUS_FAIL;
 	}
 
-	physAddressAligned =
-	    (CpaPhysicalAddr)LAC_ALIGN_POW2_ROUNDUP(physAddress,
-						    LAC_64BYTE_ALIGNMENT);
+	physAddressAligned = (CpaPhysicalAddr)
+	    LAC_ALIGN_POW2_ROUNDUP(physAddress, LAC_64BYTE_ALIGNMENT);
 
 	pSessionDesc = (dc_session_desc_t *)
 	    /* Move the session pointer by the physical offset
 	    between aligned and unaligned memory */
 	    ((Cpa8U *)pSessionHandle + sizeof(void *) +
-	     (physAddressAligned - physAddress));
+		(physAddressAligned - physAddress));
 
 	/* Save the aligned pointer in the first bytes (size of LAC_ARCH_UINT)
 	 * of the session memory */
@@ -698,10 +679,8 @@ dcInitSession(CpaInstanceHandle dcInstance,
 
 	/* Write the buffer descriptor for context/history */
 	if (0 != minContextSize) {
-		status = LacBuffDesc_BufferListDescWrite(
-		    pContextBuffer,
-		    &contextAddrPhys,
-		    CPA_FALSE,
+		status = LacBuffDesc_BufferListDescWrite(pContextBuffer,
+		    &contextAddrPhys, CPA_FALSE,
 		    &(pService->generic_service_info));
 
 		if (status != CPA_STATUS_SUCCESS) {
@@ -763,12 +742,9 @@ dcInitSession(CpaInstanceHandle dcInstance,
 		    CPA_DC_HT_FULL_DYNAMIC == pSessionData->huffType) {
 			/* Populate the compression section of the content
 			 * descriptor */
-			dcCompContentDescPopulate(pService,
-						  pSessionDesc,
-						  contextAddrPhys,
-						  &(pSessionDesc->reqCacheComp),
-						  ICP_QAT_FW_SLICE_XLAT,
-						  DC_COMPRESSION_REQUEST);
+			dcCompContentDescPopulate(pService, pSessionDesc,
+			    contextAddrPhys, &(pSessionDesc->reqCacheComp),
+			    ICP_QAT_FW_SLICE_XLAT, DC_COMPRESSION_REQUEST);
 
 			/* Populate the translator section of the content
 			 * descriptor */
@@ -783,40 +759,34 @@ dcInitSession(CpaInstanceHandle dcInstance,
 				    pService->pInterBuffPtrsArrayPhyAddr;
 			}
 		} else {
-			dcCompContentDescPopulate(pService,
-						  pSessionDesc,
-						  contextAddrPhys,
-						  &(pSessionDesc->reqCacheComp),
-						  ICP_QAT_FW_SLICE_DRAM_WR,
-						  DC_COMPRESSION_REQUEST);
+			dcCompContentDescPopulate(pService, pSessionDesc,
+			    contextAddrPhys, &(pSessionDesc->reqCacheComp),
+			    ICP_QAT_FW_SLICE_DRAM_WR, DC_COMPRESSION_REQUEST);
 		}
 	}
 
 	/* Populate the compression section of the content descriptor for
 	 * the decompression case or combined */
 	if (CPA_DC_DIR_COMPRESS != pSessionData->sessDirection) {
-		dcCompContentDescPopulate(pService,
-					  pSessionDesc,
-					  contextAddrPhys,
-					  &(pSessionDesc->reqCacheDecomp),
-					  ICP_QAT_FW_SLICE_DRAM_WR,
-					  DC_DECOMPRESSION_REQUEST);
+		dcCompContentDescPopulate(pService, pSessionDesc,
+		    contextAddrPhys, &(pSessionDesc->reqCacheDecomp),
+		    ICP_QAT_FW_SLICE_DRAM_WR, DC_DECOMPRESSION_REQUEST);
 	}
 
 	if (CPA_DC_STATEFUL == pSessionData->sessState) {
 		sessType = ICP_QAT_FW_COMP_STATEFUL_SESSION;
 
 		LAC_OS_BZERO(&pSessionDesc->stateRegistersComp,
-			     sizeof(pSessionDesc->stateRegistersComp));
+		    sizeof(pSessionDesc->stateRegistersComp));
 
 		LAC_OS_BZERO(&pSessionDesc->stateRegistersDecomp,
-			     sizeof(pSessionDesc->stateRegistersDecomp));
+		    sizeof(pSessionDesc->stateRegistersDecomp));
 	}
 
 	/* Get physical address of E2E CRC buffer */
 	pSessionDesc->physDataIntegrityCrcs = (icp_qat_addr_width_t)
 	    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService->generic_service_info,
-					 &pSessionDesc->dataIntegrityCrcs);
+		&pSessionDesc->dataIntegrityCrcs);
 	if (0 == pSessionDesc->physDataIntegrityCrcs) {
 		QAT_UTILS_LOG(
 		    "Unable to get the physical address of Data Integrity buffer.\n");
@@ -878,26 +848,18 @@ dcInitSession(CpaInstanceHandle dcInstance,
 		break;
 	}
 
-	rpCmdFlags = ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(
-	    ICP_QAT_FW_COMP_SOP,
-	    ICP_QAT_FW_COMP_EOP,
-	    ICP_QAT_FW_COMP_BFINAL,
-	    ICP_QAT_FW_COMP_NO_CNV,
-	    ICP_QAT_FW_COMP_NO_CNV_RECOVERY,
-	    ICP_QAT_FW_COMP_NO_CNV_DFX,
+	rpCmdFlags = ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(ICP_QAT_FW_COMP_SOP,
+	    ICP_QAT_FW_COMP_EOP, ICP_QAT_FW_COMP_BFINAL, ICP_QAT_FW_COMP_NO_CNV,
+	    ICP_QAT_FW_COMP_NO_CNV_RECOVERY, ICP_QAT_FW_COMP_NO_CNV_DFX,
 	    ICP_QAT_FW_COMP_CRC_MODE_LEGACY);
 
-	cmdFlags =
-	    ICP_QAT_FW_COMP_FLAGS_BUILD(sessType,
-					autoSelectBest,
-					enhancedAutoSelectBest,
-					disableType0EnhancedAutoSelectBest,
-					secureRam);
+	cmdFlags = ICP_QAT_FW_COMP_FLAGS_BUILD(sessType, autoSelectBest,
+	    enhancedAutoSelectBest, disableType0EnhancedAutoSelectBest,
+	    secureRam);
 
 	if (CPA_DC_DIR_DECOMPRESS != pSessionData->sessDirection) {
-		status = dcGetCompressCommandId(pService,
-						pSessionData,
-						(Cpa8U *)&dcCmdId);
+		status = dcGetCompressCommandId(pService, pSessionData,
+		    (Cpa8U *)&dcCmdId);
 		if (CPA_STATUS_SUCCESS != status) {
 			QAT_UTILS_LOG(
 			    "Couldn't get compress command ID for current "
@@ -912,16 +874,13 @@ dcInitSession(CpaInstanceHandle dcInstance,
 
 		/* Populate header of the common request message */
 		SalQatMsg_CmnHdrWrite((icp_qat_fw_comn_req_t *)pReqCache,
-				      ICP_QAT_FW_COMN_REQ_CPM_FW_COMP,
-				      (uint8_t)dcCmdId,
-				      cmnRequestFlags,
-				      cmdFlags);
+		    ICP_QAT_FW_COMN_REQ_CPM_FW_COMP, (uint8_t)dcCmdId,
+		    cmnRequestFlags, cmdFlags);
 	}
 
 	if (CPA_DC_DIR_COMPRESS != pSessionData->sessDirection) {
-		status = dcGetDecompressCommandId(pService,
-						  pSessionData,
-						  (Cpa8U *)&dcCmdId);
+		status = dcGetDecompressCommandId(pService, pSessionData,
+		    (Cpa8U *)&dcCmdId);
 		if (CPA_STATUS_SUCCESS != status) {
 			QAT_UTILS_LOG(
 			    "Couldn't get decompress command ID for current "
@@ -936,10 +895,8 @@ dcInitSession(CpaInstanceHandle dcInstance,
 
 		/* Populate header of the common request message */
 		SalQatMsg_CmnHdrWrite((icp_qat_fw_comn_req_t *)pReqCache,
-				      ICP_QAT_FW_COMN_REQ_CPM_FW_COMP,
-				      (uint8_t)dcCmdId,
-				      cmnRequestFlags,
-				      cmdFlags);
+		    ICP_QAT_FW_COMN_REQ_CPM_FW_COMP, (uint8_t)dcCmdId,
+		    cmnRequestFlags, cmdFlags);
 	}
 
 	return status;
@@ -947,10 +904,8 @@ dcInitSession(CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcInitSession(CpaInstanceHandle dcInstance,
-		 CpaDcSessionHandle pSessionHandle,
-		 CpaDcSessionSetupData *pSessionData,
-		 CpaBufferList *pContextBuffer,
-		 CpaDcCallbackFn callbackFn)
+    CpaDcSessionHandle pSessionHandle, CpaDcSessionSetupData *pSessionData,
+    CpaBufferList *pContextBuffer, CpaDcCallbackFn callbackFn)
 {
 	CpaInstanceHandle insHandle = NULL;
 	sal_compression_service_t *pService = NULL;
@@ -969,16 +924,13 @@ cpaDcInitSession(CpaInstanceHandle dcInstance,
 	/* Check if SAL is initialised otherwise return an error */
 	SAL_RUNNING_CHECK(pService);
 
-	return dcInitSession(insHandle,
-			     pSessionHandle,
-			     pSessionData,
-			     pContextBuffer,
-			     callbackFn);
+	return dcInitSession(insHandle, pSessionHandle, pSessionData,
+	    pContextBuffer, callbackFn);
 }
 
 CpaStatus
 cpaDcResetSession(const CpaInstanceHandle dcInstance,
-		  CpaDcSessionHandle pSessionHandle)
+    CpaDcSessionHandle pSessionHandle)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaInstanceHandle insHandle = NULL;
@@ -1027,10 +979,10 @@ cpaDcResetSession(const CpaInstanceHandle dcInstance,
 			return CPA_STATUS_RETRY;
 		}
 	} else {
-		numPendingStateless =
-		    qatUtilsAtomicGet(&(pSessionDesc->pendingStatelessCbCount));
-		numPendingStateful =
-		    qatUtilsAtomicGet(&(pSessionDesc->pendingStatefulCbCount));
+		numPendingStateless = qatUtilsAtomicGet(
+		    &(pSessionDesc->pendingStatelessCbCount));
+		numPendingStateful = qatUtilsAtomicGet(
+		    &(pSessionDesc->pendingStatefulCbCount));
 		/* Check if there are stateless pending requests */
 		if (0 != numPendingStateless) {
 			QAT_UTILS_LOG(
@@ -1086,31 +1038,31 @@ cpaDcResetSession(const CpaInstanceHandle dcInstance,
 	pSessionDesc->pendingDpStatelessCbCount = 0;
 	if (CPA_DC_STATEFUL == pSessionDesc->sessState) {
 		LAC_OS_BZERO(&pSessionDesc->stateRegistersComp,
-			     sizeof(pSessionDesc->stateRegistersComp));
+		    sizeof(pSessionDesc->stateRegistersComp));
 		LAC_OS_BZERO(&pSessionDesc->stateRegistersDecomp,
-			     sizeof(pSessionDesc->stateRegistersDecomp));
+		    sizeof(pSessionDesc->stateRegistersDecomp));
 	}
 	return status;
 }
 
 CpaStatus
 cpaDcResetXXHashState(const CpaInstanceHandle dcInstance,
-		      CpaDcSessionHandle pSessionHandle)
+    CpaDcSessionHandle pSessionHandle)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
 cpaDcUpdateSession(const CpaInstanceHandle dcInstance,
-		   CpaDcSessionHandle pSessionHandle,
-		   CpaDcSessionUpdateData *pUpdateSessionData)
+    CpaDcSessionHandle pSessionHandle,
+    CpaDcSessionUpdateData *pUpdateSessionData)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
 cpaDcRemoveSession(const CpaInstanceHandle dcInstance,
-		   CpaDcSessionHandle pSessionHandle)
+    CpaDcSessionHandle pSessionHandle)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaInstanceHandle insHandle = NULL;
@@ -1160,10 +1112,10 @@ cpaDcRemoveSession(const CpaInstanceHandle dcInstance,
 			return CPA_STATUS_RETRY;
 		}
 	} else {
-		numPendingStateless =
-		    qatUtilsAtomicGet(&(pSessionDesc->pendingStatelessCbCount));
-		numPendingStateful =
-		    qatUtilsAtomicGet(&(pSessionDesc->pendingStatefulCbCount));
+		numPendingStateless = qatUtilsAtomicGet(
+		    &(pSessionDesc->pendingStatelessCbCount));
+		numPendingStateful = qatUtilsAtomicGet(
+		    &(pSessionDesc->pendingStatefulCbCount));
 
 		/* Check if there are stateless pending requests */
 		if (0 != numPendingStateless) {
@@ -1191,9 +1143,8 @@ cpaDcRemoveSession(const CpaInstanceHandle dcInstance,
 
 CpaStatus
 dcGetSessionSize(CpaInstanceHandle dcInstance,
-		 CpaDcSessionSetupData *pSessionData,
-		 Cpa32U *pSessionSize,
-		 Cpa32U *pContextSize)
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pSessionSize,
+    Cpa32U *pContextSize)
 {
 
 	CpaStatus status = CPA_STATUS_SUCCESS;
@@ -1219,8 +1170,8 @@ dcGetSessionSize(CpaInstanceHandle dcInstance,
 	    sizeof(LAC_ARCH_UINT);
 
 	if (NULL != pContextSize) {
-		status =
-		    dcGetContextSize(insHandle, pSessionData, pContextSize);
+		status = dcGetContextSize(insHandle, pSessionData,
+		    pContextSize);
 
 		if (CPA_STATUS_SUCCESS != status) {
 			QAT_UTILS_LOG(
@@ -1234,17 +1185,14 @@ dcGetSessionSize(CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcGetSessionSize(CpaInstanceHandle dcInstance,
-		    CpaDcSessionSetupData *pSessionData,
-		    Cpa32U *pSessionSize,
-		    Cpa32U *pContextSize)
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pSessionSize,
+    Cpa32U *pContextSize)
 {
 
 	LAC_CHECK_NULL_PARAM(pContextSize);
 
-	return dcGetSessionSize(dcInstance,
-				pSessionData,
-				pSessionSize,
-				pContextSize);
+	return dcGetSessionSize(dcInstance, pSessionData, pSessionSize,
+	    pContextSize);
 }
 
 CpaStatus

@@ -27,46 +27,106 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 
-#include <netipsec/ipsec.h>
 #include <netipsec/ah_var.h>
 #include <netipsec/esp_var.h>
+#include <netipsec/ipsec.h>
 
 #include <err.h>
 #include <stdint.h>
 #include <stdio.h>
 
 struct alg {
-	int		a;
-	const char	*name;
+	int a;
+	const char *name;
 };
 static const struct alg aalgs[] = {
-	{ SADB_AALG_NONE,	"none", },
-	{ SADB_AALG_MD5HMAC,	"hmac-md5", },
-	{ SADB_AALG_SHA1HMAC,	"hmac-sha1", },
-	{ SADB_X_AALG_MD5,	"md5", },
-	{ SADB_X_AALG_SHA,	"sha", },
-	{ SADB_X_AALG_NULL,	"null", },
-	{ SADB_X_AALG_SHA2_256,	"hmac-sha2-256", },
-	{ SADB_X_AALG_SHA2_384,	"hmac-sha2-384", },
-	{ SADB_X_AALG_SHA2_512,	"hmac-sha2-512", },
+	{
+	    SADB_AALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_AALG_MD5HMAC,
+	    "hmac-md5",
+	},
+	{
+	    SADB_AALG_SHA1HMAC,
+	    "hmac-sha1",
+	},
+	{
+	    SADB_X_AALG_MD5,
+	    "md5",
+	},
+	{
+	    SADB_X_AALG_SHA,
+	    "sha",
+	},
+	{
+	    SADB_X_AALG_NULL,
+	    "null",
+	},
+	{
+	    SADB_X_AALG_SHA2_256,
+	    "hmac-sha2-256",
+	},
+	{
+	    SADB_X_AALG_SHA2_384,
+	    "hmac-sha2-384",
+	},
+	{
+	    SADB_X_AALG_SHA2_512,
+	    "hmac-sha2-512",
+	},
 };
 static const struct alg espalgs[] = {
-	{ SADB_EALG_NONE,	"none", },
-	{ SADB_EALG_DESCBC,	"des-cbc", },
-	{ SADB_EALG_3DESCBC,	"3des-cbc", },
-	{ SADB_EALG_NULL,	"null", },
-	{ SADB_X_EALG_CAST128CBC, "cast128-cbc", },
-	{ SADB_X_EALG_BLOWFISHCBC, "blowfish-cbc", },
-	{ SADB_X_EALG_RIJNDAELCBC, "rijndael-cbc", },
+	{
+	    SADB_EALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_EALG_DESCBC,
+	    "des-cbc",
+	},
+	{
+	    SADB_EALG_3DESCBC,
+	    "3des-cbc",
+	},
+	{
+	    SADB_EALG_NULL,
+	    "null",
+	},
+	{
+	    SADB_X_EALG_CAST128CBC,
+	    "cast128-cbc",
+	},
+	{
+	    SADB_X_EALG_BLOWFISHCBC,
+	    "blowfish-cbc",
+	},
+	{
+	    SADB_X_EALG_RIJNDAELCBC,
+	    "rijndael-cbc",
+	},
 };
 static const struct alg ipcompalgs[] = {
-	{ SADB_X_CALG_NONE,	"none", },
-	{ SADB_X_CALG_OUI,	"oui", },
-	{ SADB_X_CALG_DEFLATE,	"deflate", },
-	{ SADB_X_CALG_LZS,	"lzs", },
+	{
+	    SADB_X_CALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_X_CALG_OUI,
+	    "oui",
+	},
+	{
+	    SADB_X_CALG_DEFLATE,
+	    "deflate",
+	},
+	{
+	    SADB_X_CALG_LZS,
+	    "lzs",
+	},
 };
 
-static const char*
+static const char *
 algname(int a, const struct alg algs[], int nalgs)
 {
 	static char buf[80];
@@ -85,24 +145,28 @@ algname(int a, const struct alg algs[], int nalgs)
 int
 main(int argc, char *argv[])
 {
-#define	STAT(x,fmt)	if (x) printf(fmt "\n", (uintmax_t)x)
+#define STAT(x, fmt) \
+	if (x)       \
+	printf(fmt "\n", (uintmax_t)x)
 	struct ipsecstat ips;
 	struct ahstat ahs;
 	struct espstat esps;
 	size_t slen;
 	int i;
 
-	slen = sizeof (ips);
+	slen = sizeof(ips);
 	if (sysctlbyname("net.inet.ipsec.ipsecstats", &ips, &slen, NULL, 0) < 0)
 		err(1, "net.inet.ipsec.ipsecstats");
-	slen = sizeof (ahs);
+	slen = sizeof(ahs);
 	if (sysctlbyname("net.inet.ah.stats", &ahs, &slen, NULL, 0) < 0)
 		err(1, "net.inet.ah.stats");
-	slen = sizeof (esps);
+	slen = sizeof(esps);
 	if (sysctlbyname("net.inet.esp.stats", &esps, &slen, NULL, 0) < 0)
 		err(1, "net.inet.esp.stats");
 
-#define	AHSTAT(x,fmt)	if (x) printf("ah " fmt ": %ju\n", (uintmax_t)x)
+#define AHSTAT(x, fmt) \
+	if (x)         \
+	printf("ah " fmt ": %ju\n", (uintmax_t)x)
 	AHSTAT(ahs.ahs_input, "input packets processed");
 	AHSTAT(ahs.ahs_output, "output packets processed");
 	AHSTAT(ahs.ahs_hdrops, "headers too short");
@@ -114,7 +178,8 @@ main(int argc, char *argv[])
 	AHSTAT(ahs.ahs_qfull, "packets dropped packet 'cuz queue full");
 	AHSTAT(ahs.ahs_wrap, "packets dropped for replace counter wrap");
 	AHSTAT(ahs.ahs_replay, "packets dropped for possible replay");
-	AHSTAT(ahs.ahs_badauthl, "packets dropped for bad authenticator length");
+	AHSTAT(ahs.ahs_badauthl,
+	    "packets dropped for bad authenticator length");
 	AHSTAT(ahs.ahs_invalid, "packets with an invalid SA");
 	AHSTAT(ahs.ahs_toobig, "packets too big");
 	AHSTAT(ahs.ahs_pdrops, "packets dropped due to policy");
@@ -122,15 +187,16 @@ main(int argc, char *argv[])
 	AHSTAT(ahs.ahs_tunnel, "tunnel sanity check failures");
 	for (i = 0; i < AH_ALG_MAX; i++)
 		if (ahs.ahs_hist[i])
-			printf("ah packets with %s: %ju\n"
-				, algname(i, aalgs, nitems(aalgs))
-				, (uintmax_t)ahs.ahs_hist[i]
-			);
+			printf("ah packets with %s: %ju\n",
+			    algname(i, aalgs, nitems(aalgs)),
+			    (uintmax_t)ahs.ahs_hist[i]);
 	AHSTAT(ahs.ahs_ibytes, "bytes received");
 	AHSTAT(ahs.ahs_obytes, "bytes transmitted");
 #undef AHSTAT
 
-#define	ESPSTAT(x,fmt)	if (x) printf("esp " fmt ": %ju\n", (uintmax_t)x)
+#define ESPSTAT(x, fmt) \
+	if (x)          \
+	printf("esp " fmt ": %ju\n", (uintmax_t)x)
 	ESPSTAT(esps.esps_input, "input packets processed");
 	ESPSTAT(esps.esps_output, "output packets processed");
 	ESPSTAT(esps.esps_hdrops, "headers too short");
@@ -151,16 +217,15 @@ main(int argc, char *argv[])
 	ESPSTAT(esps.esps_tunnel, "tunnel sanity check failures");
 	for (i = 0; i < ESP_ALG_MAX; i++)
 		if (esps.esps_hist[i])
-			printf("esp packets with %s: %ju\n"
-				, algname(i, espalgs, nitems(espalgs))
-				, (uintmax_t)esps.esps_hist[i]
-			);
+			printf("esp packets with %s: %ju\n",
+			    algname(i, espalgs, nitems(espalgs)),
+			    (uintmax_t)esps.esps_hist[i]);
 	ESPSTAT(esps.esps_ibytes, "bytes received");
 	ESPSTAT(esps.esps_obytes, "bytes transmitted");
 #undef ESPSTAT
 
 	printf("\n");
-	if (ips.ips_in_polvio+ips.ips_out_polvio)
+	if (ips.ips_in_polvio + ips.ips_out_polvio)
 		printf("policy violations: input %ju output %ju\n",
 		    (uintmax_t)ips.ips_in_polvio,
 		    (uintmax_t)ips.ips_out_polvio);

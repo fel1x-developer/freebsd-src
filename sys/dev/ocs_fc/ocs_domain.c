@@ -39,33 +39,37 @@
 */
 
 #include "ocs.h"
-
-#include "ocs_fabric.h"
 #include "ocs_device.h"
+#include "ocs_fabric.h"
 
-#define domain_sm_trace(domain)  \
-	do { \
-		if (OCS_LOG_ENABLE_DOMAIN_SM_TRACE(domain->ocs)) \
-			ocs_log_info(domain->ocs, "[domain] %-20s %-20s\n", __func__, ocs_sm_event_name(evt)); \
+#define domain_sm_trace(domain)                                             \
+	do {                                                                \
+		if (OCS_LOG_ENABLE_DOMAIN_SM_TRACE(domain->ocs))            \
+			ocs_log_info(domain->ocs, "[domain] %-20s %-20s\n", \
+			    __func__, ocs_sm_event_name(evt));              \
 	} while (0)
 
-#define domain_trace(domain, fmt, ...) \
-	do { \
-		if (OCS_LOG_ENABLE_DOMAIN_SM_TRACE(domain ? domain->ocs : NULL)) \
-			ocs_log_info(domain ? domain->ocs : NULL, fmt, ##__VA_ARGS__); \
+#define domain_trace(domain, fmt, ...)                                 \
+	do {                                                           \
+		if (OCS_LOG_ENABLE_DOMAIN_SM_TRACE(                    \
+			domain ? domain->ocs : NULL))                  \
+			ocs_log_info(domain ? domain->ocs : NULL, fmt, \
+			    ##__VA_ARGS__);                            \
 	} while (0)
 
-#define domain_printf(domain, fmt, ...) \
-	do { \
+#define domain_printf(domain, fmt, ...)                                        \
+	do {                                                                   \
 		ocs_log_info(domain ? domain->ocs : NULL, fmt, ##__VA_ARGS__); \
 	} while (0)
 
 void ocs_mgmt_domain_list(ocs_textbuf_t *textbuf, void *domain);
 void ocs_mgmt_domain_get_all(ocs_textbuf_t *textbuf, void *domain);
-int ocs_mgmt_domain_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *domain);
+int ocs_mgmt_domain_get(ocs_textbuf_t *textbuf, char *parent, char *name,
+    void *domain);
 int ocs_mgmt_domain_set(char *parent, char *name, char *value, void *domain);
-int ocs_mgmt_domain_exec(char *parent, char *action, void *arg_in, uint32_t arg_in_length,
-		void *arg_out, uint32_t arg_out_length, void *domain);
+int ocs_mgmt_domain_exec(char *parent, char *action, void *arg_in,
+    uint32_t arg_in_length, void *arg_out, uint32_t arg_out_length,
+    void *domain);
 
 static ocs_mgmt_functions_t domain_mgmt_functions = {
 	.get_list_handler = ocs_mgmt_domain_list,
@@ -108,9 +112,10 @@ ocs_domain_cb(void *arg, ocs_hw_domain_event_e event, void *data)
 		ocs_assert(drec, -1);
 
 		/* extract the fcf_wwn */
-		fcf_wwn = ocs_be64toh(*((uint64_t*)drec->wwn));
+		fcf_wwn = ocs_be64toh(*((uint64_t *)drec->wwn));
 
-		/* lookup domain, or allocate a new one if one doesn't exist already */
+		/* lookup domain, or allocate a new one if one doesn't exist
+		 * already */
 		domain = ocs_domain_find(ocs, fcf_wwn);
 		if (domain == NULL) {
 			domain = ocs_domain_alloc(ocs, fcf_wwn);
@@ -119,7 +124,8 @@ ocs_domain_cb(void *arg, ocs_hw_domain_event_e event, void *data)
 				rc = -1;
 				break;
 			}
-			ocs_sm_transition(&domain->drvsm, __ocs_domain_init, NULL);
+			ocs_sm_transition(&domain->drvsm, __ocs_domain_init,
+			    NULL);
 		}
 		ocs_domain_post_event(domain, OCS_EVT_DOMAIN_FOUND, drec);
 		break;
@@ -189,11 +195,12 @@ ocs_domain_find(ocs_t *ocs, uint64_t fcf_wwn)
 
 	/* Check to see if this domain is already allocated */
 	ocs_device_lock(ocs);
-		ocs_list_foreach(&ocs->domain_list, domain) {
-			if (fcf_wwn == domain->fcf_wwn) {
-				break;
-			}
+	ocs_list_foreach(&ocs->domain_list, domain)
+	{
+		if (fcf_wwn == domain->fcf_wwn) {
+			break;
 		}
+	}
 	ocs_device_unlock(ocs);
 	return domain;
 }
@@ -224,7 +231,8 @@ ocs_domain_alloc(ocs_t *ocs, uint64_t fcf_wwn)
 		domain->instance_index = ocs->domain_instance_count++;
 		domain->drvsm.app = domain;
 		ocs_domain_lock_init(domain);
-		ocs_lock_init(ocs, &domain->lookup_lock, "Domain lookup[%d]", domain->instance_index);
+		ocs_lock_init(ocs, &domain->lookup_lock, "Domain lookup[%d]",
+		    domain->instance_index);
 
 		/* Allocate a sparse vector for sport FC_ID's */
 		domain->lookup = spv_new(ocs);
@@ -236,15 +244,18 @@ ocs_domain_alloc(ocs_t *ocs, uint64_t fcf_wwn)
 
 		ocs_list_init(&domain->sport_list, ocs_sport_t, link);
 		domain->fcf_wwn = fcf_wwn;
-		ocs_log_debug(ocs, "Domain allocated: wwn %016" PRIX64 "\n", domain->fcf_wwn);
-		domain->femul_enable = (ocs->ctrlmask & OCS_CTRLMASK_ENABLE_FABRIC_EMULATION) != 0;
+		ocs_log_debug(ocs, "Domain allocated: wwn %016" PRIX64 "\n",
+		    domain->fcf_wwn);
+		domain->femul_enable =
+		    (ocs->ctrlmask & OCS_CTRLMASK_ENABLE_FABRIC_EMULATION) != 0;
 
 		ocs_device_lock(ocs);
-			/* if this is the first domain, then assign it as the "root" domain */
-			if (ocs_list_empty(&ocs->domain_list)) {
-				ocs->domain = domain;
-			}
-			ocs_list_add_tail(&ocs->domain_list, domain);
+		/* if this is the first domain, then assign it as the "root"
+		 * domain */
+		if (ocs_list_empty(&ocs->domain_list)) {
+			ocs->domain = domain;
+		}
+		ocs_list_add_tail(&ocs->domain_list, domain);
 		ocs_device_unlock(ocs);
 
 		domain->mgmt_functions = &domain_mgmt_functions;
@@ -279,25 +290,28 @@ ocs_domain_free(ocs_domain_t *domain)
 
 	ocs = domain->ocs;
 
-	ocs_log_debug(ocs, "Domain free: wwn %016" PRIX64 "\n", domain->fcf_wwn);
+	ocs_log_debug(ocs, "Domain free: wwn %016" PRIX64 "\n",
+	    domain->fcf_wwn);
 
 	spv_del(domain->lookup);
 	domain->lookup = NULL;
 
 	ocs_device_lock(ocs);
-		ocs_list_remove(&ocs->domain_list, domain);
-		if (domain == ocs->domain) {
-			/* set global domain to the new head */
-			ocs->domain = ocs_list_get_head(&ocs->domain_list);
-			if (ocs->domain) {
-				ocs_log_debug(ocs, "setting new domain, old=%p new=%p\n",
-						domain, ocs->domain);
-			}
+	ocs_list_remove(&ocs->domain_list, domain);
+	if (domain == ocs->domain) {
+		/* set global domain to the new head */
+		ocs->domain = ocs_list_get_head(&ocs->domain_list);
+		if (ocs->domain) {
+			ocs_log_debug(ocs,
+			    "setting new domain, old=%p new=%p\n", domain,
+			    ocs->domain);
 		}
+	}
 
-		if (ocs_list_empty(&ocs->domain_list) && ocs->domain_list_empty_cb ) {
-			(*ocs->domain_list_empty_cb)(ocs, ocs->domain_list_empty_cb_arg);
-		}
+	if (ocs_list_empty(&ocs->domain_list) && ocs->domain_list_empty_cb) {
+		(*ocs->domain_list_empty_cb)(ocs,
+		    ocs->domain_list_empty_cb_arg);
+	}
 	ocs_device_unlock(ocs);
 
 	ocs_lock_free(&domain->lookup_lock);
@@ -328,9 +342,10 @@ ocs_domain_force_free(ocs_domain_t *domain)
 	ocs_scsi_notify_domain_force_free(domain);
 
 	ocs_domain_lock(domain);
-		ocs_list_foreach_safe(&domain->sport_list, sport, next) {
-			ocs_sport_force_free(sport);
-		}
+	ocs_list_foreach_safe(&domain->sport_list, sport, next)
+	{
+		ocs_sport_force_free(sport);
+	}
 	ocs_domain_unlock(domain);
 	ocs_hw_domain_force_free(&domain->ocs->hw, domain);
 	ocs_domain_free(domain);
@@ -350,14 +365,15 @@ ocs_domain_force_free(ocs_domain_t *domain)
  */
 
 void
-ocs_register_domain_list_empty_cb(ocs_t *ocs, void (*callback)(ocs_t *ocs, void *arg), void *arg)
+ocs_register_domain_list_empty_cb(ocs_t *ocs,
+    void (*callback)(ocs_t *ocs, void *arg), void *arg)
 {
 	ocs_device_lock(ocs);
-		ocs->domain_list_empty_cb = callback;
-		ocs->domain_list_empty_cb_arg = arg;
-		if (ocs_list_empty(&ocs->domain_list) && callback) {
-			(*callback)(ocs, arg);
-		}
+	ocs->domain_list_empty_cb = callback;
+	ocs->domain_list_empty_cb_arg = arg;
+	if (ocs_list_empty(&ocs->domain_list) && callback) {
+		(*callback)(ocs, arg);
+	}
 	ocs_device_unlock(ocs);
 }
 
@@ -383,11 +399,12 @@ ocs_domain_get_instance(ocs_t *ocs, uint32_t index)
 		return NULL;
 	}
 	ocs_device_lock(ocs);
-		ocs_list_foreach(&ocs->domain_list, domain) {
-			if (domain->instance_index == index) {
-				break;
-			}
+	ocs_list_foreach(&ocs->domain_list, domain)
+	{
+		if (domain->instance_index == index) {
+			break;
 		}
+	}
 	ocs_device_unlock(ocs);
 	return domain;
 }
@@ -408,19 +425,22 @@ ocs_domain_get_instance(ocs_t *ocs, uint32_t index)
  */
 
 static void *
-__ocs_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
+__ocs_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
+    void *arg)
 {
 	ocs_domain_t *domain = ctx->app;
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
 	case OCS_EVT_REENTER:
 	case OCS_EVT_EXIT:
 	case OCS_EVT_ALL_CHILD_NODES_FREE:
-		/* this can arise if an FLOGI fails on the SPORT, and the SPORT is shutdown */
+		/* this can arise if an FLOGI fails on the SPORT, and the SPORT
+		 * is shutdown */
 		break;
 	default:
-		ocs_log_warn(domain->ocs, "%-20s %-20s not handled\n", funcname, ocs_sm_event_name(evt));
+		ocs_log_warn(domain->ocs, "%-20s %-20s not handled\n", funcname,
+		    ocs_sm_event_name(evt));
 		break;
 	}
 
@@ -443,11 +463,12 @@ __ocs_domain_common(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt,
  */
 
 static void *
-__ocs_domain_common_shutdown(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
+__ocs_domain_common_shutdown(const char *funcname, ocs_sm_ctx_t *ctx,
+    ocs_sm_event_t evt, void *arg)
 {
 	ocs_domain_t *domain = ctx->app;
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
 	case OCS_EVT_REENTER:
 	case OCS_EVT_EXIT:
@@ -455,32 +476,34 @@ __ocs_domain_common_shutdown(const char *funcname, ocs_sm_ctx_t *ctx, ocs_sm_eve
 	case OCS_EVT_DOMAIN_FOUND:
 		ocs_assert(arg, NULL);
 		/* sm: / save drec, mark domain_found_pending */
-		ocs_memcpy(&domain->pending_drec, arg, sizeof(domain->pending_drec));
+		ocs_memcpy(&domain->pending_drec, arg,
+		    sizeof(domain->pending_drec));
 		domain->domain_found_pending = TRUE;
 		break;
-	case OCS_EVT_DOMAIN_LOST: 
+	case OCS_EVT_DOMAIN_LOST:
 		/* clear drec available
 		 * sm: unmark domain_found_pending */
 		domain->domain_found_pending = FALSE;
 		break;
 
 	default:
-		ocs_log_warn(domain->ocs, "%-20s %-20s not handled\n", funcname, ocs_sm_event_name(evt));
+		ocs_log_warn(domain->ocs, "%-20s %-20s not handled\n", funcname,
+		    ocs_sm_event_name(evt));
 		break;
 	}
 
 	return NULL;
 }
 
-#define std_domain_state_decl(...) \
-	ocs_domain_t *domain = NULL; \
-	ocs_t *ocs = NULL; \
-	\
-	ocs_assert(ctx, NULL); \
-	ocs_assert(ctx->app, NULL); \
-	domain = ctx->app; \
+#define std_domain_state_decl(...)     \
+	ocs_domain_t *domain = NULL;   \
+	ocs_t *ocs = NULL;             \
+                                       \
+	ocs_assert(ctx, NULL);         \
+	ocs_assert(ctx->app, NULL);    \
+	domain = ctx->app;             \
 	ocs_assert(domain->ocs, NULL); \
-	ocs = domain->ocs; \
+	ocs = domain->ocs;             \
 	ocs_assert(ocs->xport, NULL);
 
 /**
@@ -505,36 +528,41 @@ __ocs_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER:
 		domain->attached = 0;
 		break;
 
 	case OCS_EVT_DOMAIN_FOUND: {
-		int32_t		vlan = 0;
-		uint32_t	i;
+		int32_t vlan = 0;
+		uint32_t i;
 		ocs_domain_record_t *drec = arg;
 		ocs_sport_t *sport;
 
-		uint64_t	my_wwnn = ocs->xport->req_wwnn;
-		uint64_t	my_wwpn = ocs->xport->req_wwpn;
-		uint64_t	be_wwpn;
+		uint64_t my_wwnn = ocs->xport->req_wwnn;
+		uint64_t my_wwpn = ocs->xport->req_wwpn;
+		uint64_t be_wwpn;
 
-		/* For now, user must specify both port name and node name, or we let firmware
-		 * pick both (same as for vports).
-		 * TODO: do we want to allow setting only port name or only node name?
+		/* For now, user must specify both port name and node name, or
+		 * we let firmware pick both (same as for vports).
+		 * TODO: do we want to allow setting only port name or only node
+		 * name?
 		 */
 		if ((my_wwpn == 0) || (my_wwnn == 0)) {
-			ocs_log_debug(ocs, "using default hardware WWN configuration \n");
+			ocs_log_debug(ocs,
+			    "using default hardware WWN configuration \n");
 			my_wwpn = ocs_get_wwn(&ocs->hw, OCS_HW_WWN_PORT);
 			my_wwnn = ocs_get_wwn(&ocs->hw, OCS_HW_WWN_NODE);
 		}
 
-		ocs_log_debug(ocs, "Creating base sport using WWPN %016" PRIx64 " WWNN %016" PRIx64 "\n",
-			my_wwpn, my_wwnn);
+		ocs_log_debug(ocs,
+		    "Creating base sport using WWPN %016" PRIx64
+		    " WWNN %016" PRIx64 "\n",
+		    my_wwpn, my_wwnn);
 
 		/* Allocate a sport and transition to __ocs_sport_allocated */
-		sport = ocs_sport_alloc(domain, my_wwpn, my_wwnn, UINT32_MAX, ocs->enable_ini, ocs->enable_tgt);
+		sport = ocs_sport_alloc(domain, my_wwpn, my_wwnn, UINT32_MAX,
+		    ocs->enable_ini, ocs->enable_tgt);
 
 		if (sport == NULL) {
 			ocs_log_err(ocs, "ocs_sport_alloc() failed\n");
@@ -544,10 +572,12 @@ __ocs_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 		/* If domain is ethernet, then fetch the vlan id value */
 		if (drec->is_ethernet) {
-			vlan = ocs_bitmap_search((void *)drec->map.vlan, TRUE, 512 * 8);
+			vlan = ocs_bitmap_search((void *)drec->map.vlan, TRUE,
+			    512 * 8);
 			if (vlan < 0) {
-				ocs_log_err(ocs, "no VLAN id available (FCF=%d)\n",
-						drec->index);
+				ocs_log_err(ocs,
+				    "no VLAN id available (FCF=%d)\n",
+				    drec->index);
 				break;
 			}
 		}
@@ -557,7 +587,8 @@ __ocs_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		/* allocate ocs_sli_port_t object for local port
 		 * Note: drec->fc_id is ALPA from read_topology only if loop
 		 */
-		if (ocs_hw_port_alloc(&ocs->hw, sport, NULL, (uint8_t *)&be_wwpn)) {
+		if (ocs_hw_port_alloc(&ocs->hw, sport, NULL,
+			(uint8_t *)&be_wwpn)) {
 			ocs_log_err(ocs, "Can't allocate port\n");
 			ocs_sport_free(sport);
 			break;
@@ -568,36 +599,46 @@ __ocs_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		domain->is_fc = drec->is_fc;
 
 		/*
-		 * If the loop position map includes ALPA == 0, then we are in a public loop (NL_PORT)
-		 * Note that the first element of the loopmap[] contains the count of elements, and if
-		 * ALPA == 0 is present, it will occupy the first location after the count.
+		 * If the loop position map includes ALPA == 0, then we are in a
+		 * public loop (NL_PORT) Note that the first element of the
+		 * loopmap[] contains the count of elements, and if ALPA == 0 is
+		 * present, it will occupy the first location after the count.
 		 */
 		domain->is_nlport = drec->map.loop[1] == 0x00;
 
 		if (domain->is_loop) {
 			ocs_log_debug(ocs, "%s fc_id=%#x speed=%d\n",
-					drec->is_loop ? (domain->is_nlport ? "public-loop" : "loop") : "other",
-					drec->fc_id, drec->speed);
+			    drec->is_loop ?
+				(domain->is_nlport ? "public-loop" : "loop") :
+				"other",
+			    drec->fc_id, drec->speed);
 
 			sport->fc_id = drec->fc_id;
 			sport->topology = OCS_SPORT_TOPOLOGY_LOOP;
-			ocs_snprintf(sport->display_name, sizeof(sport->display_name), "s%06x", drec->fc_id);
+			ocs_snprintf(sport->display_name,
+			    sizeof(sport->display_name), "s%06x", drec->fc_id);
 
 			if (ocs->enable_ini) {
 				uint32_t count = drec->map.loop[0];
-				ocs_log_debug(ocs, "%d position map entries\n", count);
+				ocs_log_debug(ocs, "%d position map entries\n",
+				    count);
 				for (i = 1; i <= count; i++) {
 					if (drec->map.loop[i] != drec->fc_id) {
 						ocs_node_t *node;
 
-						ocs_log_debug(ocs, "%#x -> %#x\n",
-								drec->fc_id, drec->map.loop[i]);
-						node = ocs_node_alloc(sport, drec->map.loop[i], FALSE, TRUE);
+						ocs_log_debug(ocs,
+						    "%#x -> %#x\n", drec->fc_id,
+						    drec->map.loop[i]);
+						node = ocs_node_alloc(sport,
+						    drec->map.loop[i], FALSE,
+						    TRUE);
 						if (node == NULL) {
-							ocs_log_err(ocs, "ocs_node_alloc() failed\n");
+							ocs_log_err(ocs,
+							    "ocs_node_alloc() failed\n");
 							break;
 						}
-						ocs_node_transition(node, __ocs_d_wait_loop, NULL);
+						ocs_node_transition(node,
+						    __ocs_d_wait_loop, NULL);
 					}
 				}
 			}
@@ -605,7 +646,8 @@ __ocs_domain_init(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 		/* Initiate HW domain alloc */
 		if (ocs_hw_domain_alloc(&ocs->hw, domain, drec->index, vlan)) {
-			ocs_log_err(ocs, "Failed to initiate HW domain allocation\n");
+			ocs_log_err(ocs,
+			    "Failed to initiate HW domain allocation\n");
 			break;
 		}
 		ocs_sm_transition(ctx, __ocs_domain_wait_alloc, arg);
@@ -643,52 +685,69 @@ __ocs_domain_wait_alloc(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_DOMAIN_ALLOC_OK: {
 		char prop_buf[32];
 		uint64_t wwn_bump = 0;
 		fc_plogi_payload_t *sp;
 
-		if (ocs_get_property("wwn_bump", prop_buf, sizeof(prop_buf)) == 0) {
+		if (ocs_get_property("wwn_bump", prop_buf, sizeof(prop_buf)) ==
+		    0) {
 			wwn_bump = ocs_strtoull(prop_buf, 0, 0);
 		}
 
 		sport = domain->sport;
 		ocs_assert(sport, NULL);
-		sp = (fc_plogi_payload_t*) sport->service_params;
+		sp = (fc_plogi_payload_t *)sport->service_params;
 
 		/* Save the domain service parameters */
-		ocs_memcpy(domain->service_params + 4, domain->dma.virt, sizeof(fc_plogi_payload_t) - 4);
-		ocs_memcpy(sport->service_params + 4, domain->dma.virt, sizeof(fc_plogi_payload_t) - 4);
+		ocs_memcpy(domain->service_params + 4, domain->dma.virt,
+		    sizeof(fc_plogi_payload_t) - 4);
+		ocs_memcpy(sport->service_params + 4, domain->dma.virt,
+		    sizeof(fc_plogi_payload_t) - 4);
 
-		/* If we're in fabric emulation mode, the flogi service parameters have not been setup yet,
-		 * so we need some reasonable BB credit value
+		/* If we're in fabric emulation mode, the flogi service
+		 * parameters have not been setup yet, so we need some
+		 * reasonable BB credit value
 		 */
 		if (domain->femul_enable) {
-			ocs_memcpy(domain->flogi_service_params + 4, domain->service_params + 4, sizeof(fc_plogi_payload_t) - 4);
+			ocs_memcpy(domain->flogi_service_params + 4,
+			    domain->service_params + 4,
+			    sizeof(fc_plogi_payload_t) - 4);
 		}
 
-		/* Update the sport's service parameters, user might have specified non-default names */
-		sp->port_name_hi = ocs_htobe32((uint32_t) (sport->wwpn >> 32ll));
-		sp->port_name_lo = ocs_htobe32((uint32_t) sport->wwpn);
-		sp->node_name_hi = ocs_htobe32((uint32_t) (sport->wwnn >> 32ll));
-		sp->node_name_lo = ocs_htobe32((uint32_t) sport->wwnn);
+		/* Update the sport's service parameters, user might have
+		 * specified non-default names */
+		sp->port_name_hi = ocs_htobe32((uint32_t)(sport->wwpn >> 32ll));
+		sp->port_name_lo = ocs_htobe32((uint32_t)sport->wwpn);
+		sp->node_name_hi = ocs_htobe32((uint32_t)(sport->wwnn >> 32ll));
+		sp->node_name_lo = ocs_htobe32((uint32_t)sport->wwnn);
 
 		if (wwn_bump) {
-			sp->port_name_lo = ocs_htobe32(ocs_be32toh(sp->port_name_lo) ^ ((uint32_t)(wwn_bump)));
-			sp->port_name_hi = ocs_htobe32(ocs_be32toh(sp->port_name_hi) ^ ((uint32_t)(wwn_bump >> 32)));
-			sp->node_name_lo = ocs_htobe32(ocs_be32toh(sp->node_name_lo) ^ ((uint32_t)(wwn_bump)));
-			sp->node_name_hi = ocs_htobe32(ocs_be32toh(sp->node_name_hi) ^ ((uint32_t)(wwn_bump >> 32)));
+			sp->port_name_lo = ocs_htobe32(
+			    ocs_be32toh(sp->port_name_lo) ^
+			    ((uint32_t)(wwn_bump)));
+			sp->port_name_hi = ocs_htobe32(
+			    ocs_be32toh(sp->port_name_hi) ^
+			    ((uint32_t)(wwn_bump >> 32)));
+			sp->node_name_lo = ocs_htobe32(
+			    ocs_be32toh(sp->node_name_lo) ^
+			    ((uint32_t)(wwn_bump)));
+			sp->node_name_hi = ocs_htobe32(
+			    ocs_be32toh(sp->node_name_hi) ^
+			    ((uint32_t)(wwn_bump >> 32)));
 			ocs_log_info(ocs, "Overriding WWN\n");
 		}
 
-		/* Take the loop topology path, unless we are an NL_PORT (public loop) */
+		/* Take the loop topology path, unless we are an NL_PORT (public
+		 * loop) */
 		if (domain->is_loop && !domain->is_nlport) {
 			/*
-			 * For loop, we already have our FC ID and don't need fabric login.
-			 * Transition to the allocated state and post an event to attach to
-			 * the domain. Note that this breaks the normal action/transition
-			 * pattern here to avoid a race with the domain attach callback.
+			 * For loop, we already have our FC ID and don't need
+			 * fabric login. Transition to the allocated state and
+			 * post an event to attach to the domain. Note that this
+			 * breaks the normal action/transition pattern here to
+			 * avoid a race with the domain attach callback.
 			 */
 			/* sm: is_loop / domain_attach */
 			ocs_sm_transition(ctx, __ocs_domain_allocated, NULL);
@@ -700,17 +759,22 @@ __ocs_domain_wait_alloc(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 			/* alloc fabric node, send FLOGI */
 			node = ocs_node_find(sport, FC_ADDR_FABRIC);
 			if (node) {
-				ocs_log_err(ocs, "Hmmmm ... Fabric Controller node already exists\n");
+				ocs_log_err(ocs,
+				    "Hmmmm ... Fabric Controller node already exists\n");
 				break;
 			}
-			node = ocs_node_alloc(sport, FC_ADDR_FABRIC, FALSE, FALSE);
+			node = ocs_node_alloc(sport, FC_ADDR_FABRIC, FALSE,
+			    FALSE);
 			if (!node) {
-				ocs_log_err(ocs, "Error: ocs_node_alloc() failed\n");
+				ocs_log_err(ocs,
+				    "Error: ocs_node_alloc() failed\n");
 			} else {
-				if (ocs->nodedb_mask & OCS_NODEDB_PAUSE_FABRIC_LOGIN) {
+				if (ocs->nodedb_mask &
+				    OCS_NODEDB_PAUSE_FABRIC_LOGIN) {
 					ocs_node_pause(node, __ocs_fabric_init);
 				} else {
-					ocs_node_transition(node, __ocs_fabric_init, NULL);
+					ocs_node_transition(node,
+					    __ocs_fabric_init, NULL);
 				}
 			}
 			/* Accept frames */
@@ -723,8 +787,9 @@ __ocs_domain_wait_alloc(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	case OCS_EVT_DOMAIN_ALLOC_FAIL:
 		/* TODO: hw/device reset */
-		ocs_log_err(ocs, "%s recv'd waiting for DOMAIN_ALLOC_OK; shutting down domain\n",
-			ocs_sm_event_name(evt));
+		ocs_log_err(ocs,
+		    "%s recv'd waiting for DOMAIN_ALLOC_OK; shutting down domain\n",
+		    ocs_sm_event_name(evt));
 		domain->req_domain_free = 1;
 		break;
 
@@ -734,7 +799,9 @@ __ocs_domain_wait_alloc(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		break;
 
 	case OCS_EVT_DOMAIN_LOST:
-		ocs_log_debug(ocs, "%s received while waiting for ocs_hw_domain_alloc() to complete\n", ocs_sm_event_name(evt));
+		ocs_log_debug(ocs,
+		    "%s received while waiting for ocs_hw_domain_alloc() to complete\n",
+		    ocs_sm_event_name(evt));
 		ocs_sm_transition(ctx, __ocs_domain_wait_domain_lost, NULL);
 		break;
 
@@ -751,9 +818,9 @@ __ocs_domain_wait_alloc(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
  * @brief Domain state machine: Wait for the domain attach request.
  *
  * <h3 class="desc">Description</h3>
- * In this state, the domain has been allocated and is waiting for a domain attach request.
- * The attach request comes from a node instance completing the fabric login,
- * or from a point-to-point negotiation and login.
+ * In this state, the domain has been allocated and is waiting for a domain
+ * attach request. The attach request comes from a node instance completing the
+ * fabric login, or from a point-to-point negotiation and login.
  *
  * @param ctx Remote node state machine context.
  * @param evt Event to process.
@@ -770,26 +837,29 @@ __ocs_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_DOMAIN_REQ_ATTACH: {
 		uint32_t fc_id;
 
 		ocs_assert(arg, NULL);
 
-		fc_id = *((uint32_t*)arg);
-		ocs_log_debug(ocs, "Requesting hw domain attach fc_id x%x\n", fc_id);
+		fc_id = *((uint32_t *)arg);
+		ocs_log_debug(ocs, "Requesting hw domain attach fc_id x%x\n",
+		    fc_id);
 		/* Update sport lookup */
 		ocs_lock(&domain->lookup_lock);
-			spv_set(domain->lookup, fc_id, domain->sport);
+		spv_set(domain->lookup, fc_id, domain->sport);
 		ocs_unlock(&domain->lookup_lock);
 
 		/* Update display name for the sport */
-		ocs_node_fcid_display(fc_id, domain->sport->display_name, sizeof(domain->sport->display_name));
+		ocs_node_fcid_display(fc_id, domain->sport->display_name,
+		    sizeof(domain->sport->display_name));
 
 		/* Issue domain attach call */
 		rc = ocs_hw_domain_attach(&ocs->hw, domain, fc_id);
 		if (rc) {
-			ocs_log_err(ocs, "ocs_hw_domain_attach failed: %d\n", rc);
+			ocs_log_err(ocs, "ocs_hw_domain_attach failed: %d\n",
+			    rc);
 			return NULL;
 		}
 		/* sm: / domain_attach */
@@ -804,26 +874,33 @@ __ocs_domain_allocated(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	case OCS_EVT_DOMAIN_LOST: {
 		int32_t rc;
-		ocs_log_debug(ocs, "%s received while waiting for OCS_EVT_DOMAIN_REQ_ATTACH\n",
-			ocs_sm_event_name(evt));
+		ocs_log_debug(ocs,
+		    "%s received while waiting for OCS_EVT_DOMAIN_REQ_ATTACH\n",
+		    ocs_sm_event_name(evt));
 		ocs_domain_lock(domain);
 		if (!ocs_list_empty(&domain->sport_list)) {
 			/* if there are sports, transition to wait state and
 			 * send shutdown to each sport */
-			ocs_sport_t	*sport = NULL;
-			ocs_sport_t	*sport_next = NULL;
-			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free, NULL);
-			ocs_list_foreach_safe(&domain->sport_list, sport, sport_next) {
-				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN, NULL);
+			ocs_sport_t *sport = NULL;
+			ocs_sport_t *sport_next = NULL;
+			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free,
+			    NULL);
+			ocs_list_foreach_safe(&domain->sport_list, sport,
+			    sport_next)
+			{
+				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN,
+				    NULL);
 			}
 			ocs_domain_unlock(domain);
 		} else {
 			ocs_domain_unlock(domain);
 			/* no sports exist, free domain */
-			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown, NULL);
+			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown,
+			    NULL);
 			rc = ocs_hw_domain_free(&ocs->hw, domain);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_hw_domain_free() failed: %d\n", rc);
+				ocs_log_err(ocs,
+				    "ocs_hw_domain_free() failed: %d\n", rc);
 				/* TODO: hw/device reset needed */
 			}
 		}
@@ -861,7 +938,7 @@ __ocs_domain_wait_attach(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_DOMAIN_ATTACH_OK: {
 		ocs_node_t *node = NULL;
 		ocs_node_t *next_node = NULL;
@@ -883,28 +960,35 @@ __ocs_domain_wait_attach(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 		/* We have an FCFI, so we can accept frames */
 		domain->req_accept_frames = 1;
-		/* Set domain notify pending state to avoid duplicate domain event post */
+		/* Set domain notify pending state to avoid duplicate domain
+		 * event post */
 		domain->domain_notify_pend = 1;
 
 		/* Notify all nodes that the domain attach request has completed
-		 * Note: sport will have already received notification of sport attached
-		 * as a result of the HW's port attach.
+		 * Note: sport will have already received notification of sport
+		 * attached as a result of the HW's port attach.
 		 */
 		ocs_domain_lock(domain);
-			ocs_list_foreach_safe(&domain->sport_list, sport, next_sport) {
-				ocs_sport_lock(sport);
-					ocs_list_foreach_safe(&sport->node_list, node, next_node) {
-						ocs_node_post_event(node, OCS_EVT_DOMAIN_ATTACH_OK, NULL);
-					}
-				ocs_sport_unlock(sport);
+		ocs_list_foreach_safe(&domain->sport_list, sport, next_sport)
+		{
+			ocs_sport_lock(sport);
+			ocs_list_foreach_safe(&sport->node_list, node,
+			    next_node)
+			{
+				ocs_node_post_event(node,
+				    OCS_EVT_DOMAIN_ATTACH_OK, NULL);
 			}
+			ocs_sport_unlock(sport);
+		}
 		ocs_domain_unlock(domain);
 		domain->domain_notify_pend = 0;
 		break;
 	}
 
 	case OCS_EVT_DOMAIN_ATTACH_FAIL:
-		ocs_log_debug(ocs, "%s received while waiting for hw attach to complete\n", ocs_sm_event_name(evt));
+		ocs_log_debug(ocs,
+		    "%s received while waiting for hw attach to complete\n",
+		    ocs_sm_event_name(evt));
 		/* TODO: hw/device reset */
 		break;
 
@@ -914,14 +998,16 @@ __ocs_domain_wait_attach(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		break;
 
 	case OCS_EVT_DOMAIN_LOST:
-		/* Domain lost while waiting for an attach to complete, go to a state that waits for
-		 * the domain attach to complete, then handle domain lost
+		/* Domain lost while waiting for an attach to complete, go to a
+		 * state that waits for the domain attach to complete, then
+		 * handle domain lost
 		 */
 		ocs_sm_transition(ctx, __ocs_domain_wait_domain_lost, NULL);
 		break;
 
 	case OCS_EVT_DOMAIN_REQ_ATTACH:
-		/* In P2P we can get an attach request from the other FLOGI path, so drop this one */
+		/* In P2P we can get an attach request from the other FLOGI
+		 * path, so drop this one */
 		break;
 
 	default:
@@ -937,7 +1023,8 @@ __ocs_domain_wait_attach(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
  * @brief Domain state machine: Ready state.
  *
  * <h3 class="desc">Description</h3>
- * This is a domain ready state. It waits for a domain-lost event, and initiates shutdown.
+ * This is a domain ready state. It waits for a domain-lost event, and initiates
+ * shutdown.
  *
  * @param ctx Remote node state machine context.
  * @param evt Event to process.
@@ -953,11 +1040,12 @@ __ocs_domain_ready(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ENTER: {
 		/* start any pending vports */
 		if (ocs_vport_start(domain)) {
-			ocs_log_debug(domain->ocs, "ocs_vport_start() did not start all vports\n");
+			ocs_log_debug(domain->ocs,
+			    "ocs_vport_start() did not start all vports\n");
 		}
 		break;
 	}
@@ -965,22 +1053,28 @@ __ocs_domain_ready(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		int32_t rc;
 		ocs_domain_lock(domain);
 		if (!ocs_list_empty(&domain->sport_list)) {
-			/* if there are sports, transition to wait state and send
-			* shutdown to each sport */
-			ocs_sport_t	*sport = NULL;
-			ocs_sport_t	*sport_next = NULL;
-			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free, NULL);
-			ocs_list_foreach_safe(&domain->sport_list, sport, sport_next) {
-				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN, NULL);
+			/* if there are sports, transition to wait state and
+			 * send shutdown to each sport */
+			ocs_sport_t *sport = NULL;
+			ocs_sport_t *sport_next = NULL;
+			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free,
+			    NULL);
+			ocs_list_foreach_safe(&domain->sport_list, sport,
+			    sport_next)
+			{
+				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN,
+				    NULL);
 			}
 			ocs_domain_unlock(domain);
 		} else {
 			ocs_domain_unlock(domain);
 			/* no sports exist, free domain */
-			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown, NULL);
+			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown,
+			    NULL);
 			rc = ocs_hw_domain_free(&ocs->hw, domain);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_hw_domain_free() failed: %d\n", rc);
+				ocs_log_err(ocs,
+				    "ocs_hw_domain_free() failed: %d\n", rc);
 				/* TODO: hw/device reset needed */
 			}
 		}
@@ -997,12 +1091,13 @@ __ocs_domain_ready(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		uint32_t fc_id;
 
 		ocs_assert(arg, NULL);
-		fc_id = *((uint32_t*)arg);
+		fc_id = *((uint32_t *)arg);
 
 		/* Assume that the domain is attached */
 		ocs_assert(domain->attached, NULL);
 
-		/* Verify that the requested FC_ID is the same as the one we're working with */
+		/* Verify that the requested FC_ID is the same as the one we're
+		 * working with */
 		ocs_assert(domain->sport->fc_id == fc_id, NULL);
 		break;
 	}
@@ -1017,7 +1112,8 @@ __ocs_domain_ready(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 /**
  * @ingroup domain_sm
- * @brief Domain state machine: Wait for nodes to free prior to the domain shutdown.
+ * @brief Domain state machine: Wait for nodes to free prior to the domain
+ * shutdown.
  *
  * <h3 class="desc">Description</h3>
  * All nodes are freed, and ready for a domain shutdown.
@@ -1036,7 +1132,7 @@ __ocs_domain_wait_sports_free(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_ALL_CHILD_NODES_FREE: {
 		int32_t rc;
 
@@ -1046,7 +1142,8 @@ __ocs_domain_wait_sports_free(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 		/* Request ocs_hw_domain_free and wait for completion */
 		rc = ocs_hw_domain_free(&ocs->hw, domain);
 		if (rc) {
-			ocs_log_err(ocs, "ocs_hw_domain_free() failed: %d\n", rc);
+			ocs_log_err(ocs, "ocs_hw_domain_free() failed: %d\n",
+			    rc);
 		}
 		break;
 	}
@@ -1079,7 +1176,7 @@ __ocs_domain_wait_shutdown(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_DOMAIN_FREE_OK: {
 		if (ocs->enable_ini)
 			ocs_scsi_ini_del_domain(domain);
@@ -1088,9 +1185,10 @@ __ocs_domain_wait_shutdown(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 		/* sm: domain_free */
 		if (domain->domain_found_pending) {
-			/* save fcf_wwn and drec from this domain, free current domain and allocate
-			 * a new one with the same fcf_wwn
-			 * TODO: could use a SLI-4 "re-register VPI" operation here
+			/* save fcf_wwn and drec from this domain, free current
+			 * domain and allocate a new one with the same fcf_wwn
+			 * TODO: could use a SLI-4 "re-register VPI" operation
+			 * here
 			 */
 			uint64_t fcf_wwn = domain->fcf_wwn;
 			ocs_domain_record_t drec = domain->pending_drec;
@@ -1105,12 +1203,14 @@ __ocs_domain_wait_shutdown(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 				return NULL;
 			}
 			/*
-			 * got a new domain; at this point, there are at least two domains
-			 * once the req_domain_free flag is processed, the associated domain
-			 * will be removed.
+			 * got a new domain; at this point, there are at least
+			 * two domains once the req_domain_free flag is
+			 * processed, the associated domain will be removed.
 			 */
-			ocs_sm_transition(&domain->drvsm, __ocs_domain_init, NULL);
-			ocs_sm_post_event(&domain->drvsm, OCS_EVT_DOMAIN_FOUND, &drec);
+			ocs_sm_transition(&domain->drvsm, __ocs_domain_init,
+			    NULL);
+			ocs_sm_post_event(&domain->drvsm, OCS_EVT_DOMAIN_FOUND,
+			    &drec);
 		} else {
 			domain->req_domain_free = 1;
 		}
@@ -1131,8 +1231,8 @@ __ocs_domain_wait_shutdown(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
  * after receiving a domain lost.
  *
  * <h3 class="desc">Description</h3>
- * This state is entered when receiving a domain lost while waiting for a domain alloc
- * or a domain attach to complete.
+ * This state is entered when receiving a domain lost while waiting for a domain
+ * alloc or a domain attach to complete.
  *
  * @param ctx Remote node state machine context.
  * @param evt Event to process.
@@ -1148,28 +1248,34 @@ __ocs_domain_wait_domain_lost(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 
 	domain_sm_trace(domain);
 
-	switch(evt) {
+	switch (evt) {
 	case OCS_EVT_DOMAIN_ALLOC_OK:
 	case OCS_EVT_DOMAIN_ATTACH_OK: {
 		int32_t rc;
 		ocs_domain_lock(domain);
 		if (!ocs_list_empty(&domain->sport_list)) {
-			/* if there are sports, transition to wait state and send
-			* shutdown to each sport */
-			ocs_sport_t	*sport = NULL;
-			ocs_sport_t	*sport_next = NULL;
-			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free, NULL);
-			ocs_list_foreach_safe(&domain->sport_list, sport, sport_next) {
-				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN, NULL);
+			/* if there are sports, transition to wait state and
+			 * send shutdown to each sport */
+			ocs_sport_t *sport = NULL;
+			ocs_sport_t *sport_next = NULL;
+			ocs_sm_transition(ctx, __ocs_domain_wait_sports_free,
+			    NULL);
+			ocs_list_foreach_safe(&domain->sport_list, sport,
+			    sport_next)
+			{
+				ocs_sm_post_event(&sport->sm, OCS_EVT_SHUTDOWN,
+				    NULL);
 			}
 			ocs_domain_unlock(domain);
 		} else {
 			ocs_domain_unlock(domain);
 			/* no sports exist, free domain */
-			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown, NULL);
+			ocs_sm_transition(ctx, __ocs_domain_wait_shutdown,
+			    NULL);
 			rc = ocs_hw_domain_free(&ocs->hw, domain);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_hw_domain_free() failed: %d\n", rc);
+				ocs_log_err(ocs,
+				    "ocs_hw_domain_free() failed: %d\n", rc);
 				/* TODO: hw/device reset needed */
 			}
 		}
@@ -1177,7 +1283,8 @@ __ocs_domain_wait_domain_lost(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 	}
 	case OCS_EVT_DOMAIN_ALLOC_FAIL:
 	case OCS_EVT_DOMAIN_ATTACH_FAIL:
-		ocs_log_err(ocs, "[domain] %-20s: failed\n", ocs_sm_event_name(evt));
+		ocs_log_err(ocs, "[domain] %-20s: failed\n",
+		    ocs_sm_event_name(evt));
 		/* TODO: hw/device reset needed */
 		break;
 
@@ -1205,7 +1312,8 @@ __ocs_domain_wait_domain_lost(ocs_sm_ctx_t *ctx, ocs_sm_event_t evt, void *arg)
 void
 ocs_domain_save_sparms(ocs_domain_t *domain, void *payload)
 {
-	ocs_memcpy(domain->flogi_service_params, payload, sizeof (fc_plogi_payload_t));
+	ocs_memcpy(domain->flogi_service_params, payload,
+	    sizeof(fc_plogi_payload_t));
 }
 /**
  * @brief Initiator domain attach. (internal call only)
@@ -1224,8 +1332,11 @@ ocs_domain_save_sparms(ocs_domain_t *domain, void *payload)
 void
 __ocs_domain_attach_internal(ocs_domain_t *domain, uint32_t s_id)
 {
-	ocs_memcpy(domain->dma.virt, ((uint8_t*)domain->flogi_service_params)+4, sizeof (fc_plogi_payload_t) - 4);
-	(void)ocs_sm_post_event(&domain->drvsm, OCS_EVT_DOMAIN_REQ_ATTACH, &s_id);
+	ocs_memcpy(domain->dma.virt,
+	    ((uint8_t *)domain->flogi_service_params) + 4,
+	    sizeof(fc_plogi_payload_t) - 4);
+	(void)ocs_sm_post_event(&domain->drvsm, OCS_EVT_DOMAIN_REQ_ATTACH,
+	    &s_id);
 }
 
 /**
@@ -1332,21 +1443,23 @@ ocs_ddump_domain(ocs_textbuf_t *textbuf, ocs_domain_t *domain)
 	ocs_scsi_ini_ddump(textbuf, OCS_SCSI_DDUMP_DOMAIN, domain);
 	ocs_scsi_tgt_ddump(textbuf, OCS_SCSI_DDUMP_DOMAIN, domain);
 
-	ocs_display_sparams(NULL, "domain_sparms", 1, textbuf, domain->dma.virt);
+	ocs_display_sparams(NULL, "domain_sparms", 1, textbuf,
+	    domain->dma.virt);
 
 	if (ocs_domain_lock_try(domain) != TRUE) {
 		/* Didn't get the lock */
 		return -1;
 	}
-		ocs_list_foreach(&domain->sport_list, sport) {
-			retval = ocs_ddump_sport(textbuf, sport);
-			if (retval != 0) {
-				break;
-			}
+	ocs_list_foreach(&domain->sport_list, sport)
+	{
+		retval = ocs_ddump_sport(textbuf, sport);
+		if (retval != 0) {
+			break;
 		}
+	}
 
 #if defined(ENABLE_FABRIC_EMULATION)
-		ocs_ddump_ns(textbuf, domain->ocs_ns);
+	ocs_ddump_ns(textbuf, domain->ocs_ns);
 #endif
 
 	ocs_domain_unlock(domain);
@@ -1379,9 +1492,12 @@ ocs_mgmt_domain_list(ocs_textbuf_t *textbuf, void *object)
 
 	if (ocs_domain_lock_try(domain) == TRUE) {
 		/* If we get here, then we are holding the domain lock */
-		ocs_list_foreach(&domain->sport_list, sport) {
-			if ((sport->mgmt_functions) && (sport->mgmt_functions->get_list_handler)) {
-				sport->mgmt_functions->get_list_handler(textbuf, sport);
+		ocs_list_foreach(&domain->sport_list, sport)
+		{
+			if ((sport->mgmt_functions) &&
+			    (sport->mgmt_functions->get_list_handler)) {
+				sport->mgmt_functions->get_list_handler(textbuf,
+				    sport);
 			}
 		}
 		ocs_domain_unlock(domain);
@@ -1391,7 +1507,8 @@ ocs_mgmt_domain_list(ocs_textbuf_t *textbuf, void *object)
 }
 
 int
-ocs_mgmt_domain_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *object)
+ocs_mgmt_domain_get(ocs_textbuf_t *textbuf, char *parent, char *name,
+    void *object)
 {
 	ocs_sport_t *sport;
 	ocs_domain_t *domain = (ocs_domain_t *)object;
@@ -1400,55 +1517,74 @@ ocs_mgmt_domain_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *obje
 
 	ocs_mgmt_start_section(textbuf, "domain", domain->instance_index);
 
-	snprintf(qualifier, sizeof(qualifier), "%s/domain[%d]", parent, domain->instance_index);
+	snprintf(qualifier, sizeof(qualifier), "%s/domain[%d]", parent,
+	    domain->instance_index);
 
-	/* If it doesn't start with my qualifier I don't know what to do with it */
+	/* If it doesn't start with my qualifier I don't know what to do with it
+	 */
 	if (ocs_strncmp(name, qualifier, strlen(qualifier)) == 0) {
-		char *unqualified_name = name + strlen(qualifier) +1;
+		char *unqualified_name = name + strlen(qualifier) + 1;
 
 		/* See if it's a value I can supply */
 		if (ocs_strcmp(unqualified_name, "display_name") == 0) {
-			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name", domain->display_name);
+			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD,
+			    "display_name", domain->display_name);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "fcf") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf", "%#x", domain->fcf);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf", "%#x",
+			    domain->fcf);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "fcf_indicator") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf_indicator", "%#x", domain->fcf_indicator);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD,
+			    "fcf_indicator", "%#x", domain->fcf_indicator);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "vlan_id") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "vlan_id", "%#x", domain->vlan_id);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "vlan_id",
+			    "%#x", domain->vlan_id);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "indicator") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "indicator", "%#x", domain->indicator);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "indicator",
+			    "%#x", domain->indicator);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "attached") == 0) {
-			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "attached", domain->attached);
+			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "attached",
+			    domain->attached);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "is_loop") == 0) {
-			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_loop",  domain->is_loop);
+			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_loop",
+			    domain->is_loop);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "is_nlport") == 0) {
-			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_nlport",  domain->is_nlport);
+			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD,
+			    "is_nlport", domain->is_nlport);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "display_name") == 0) {
-			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name", domain->display_name);
+			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD,
+			    "display_name", domain->display_name);
 			retval = 0;
 #if defined(ENABLE_FABRIC_EMULATION)
 		} else if (ocs_strcmp(unqualified_name, "femul_enable") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RW, "femul_enable", "%d", domain->femul_enable);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RW, "femul_enable",
+			    "%d", domain->femul_enable);
 			retval = 0;
 #endif
 		} else if (ocs_strcmp(unqualified_name, "num_sports") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "num_sports", "%d", domain->sport_instance_count);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "num_sports",
+			    "%d", domain->sport_instance_count);
 			retval = 0;
 		} else {
-			/* If I didn't know the value of this status pass the request to each of my children */
+			/* If I didn't know the value of this status pass the
+			 * request to each of my children */
 
 			ocs_domain_lock(domain);
-			ocs_list_foreach(&domain->sport_list, sport) {
-				if ((sport->mgmt_functions) && (sport->mgmt_functions->get_handler)) {
-					retval = sport->mgmt_functions->get_handler(textbuf, qualifier, name, sport);
+			ocs_list_foreach(&domain->sport_list, sport)
+			{
+				if ((sport->mgmt_functions) &&
+				    (sport->mgmt_functions->get_handler)) {
+					retval = sport->mgmt_functions
+						     ->get_handler(textbuf,
+							 qualifier, name,
+							 sport);
 				}
 
 				if (retval == 0) {
@@ -1471,29 +1607,39 @@ ocs_mgmt_domain_get_all(ocs_textbuf_t *textbuf, void *object)
 
 	ocs_mgmt_start_section(textbuf, "domain", domain->instance_index);
 
-	ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name", domain->display_name);
+	ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name",
+	    domain->display_name);
 	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf", "%#x", domain->fcf);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf_indicator", "%#x", domain->fcf_indicator);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "vlan_id", "%#x", domain->vlan_id);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "indicator", "%#x", domain->indicator);
-	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "attached", domain->attached);
-	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_loop",  domain->is_loop);
-	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_nlport",  domain->is_nlport);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "fcf_indicator", "%#x",
+	    domain->fcf_indicator);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "vlan_id", "%#x",
+	    domain->vlan_id);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "indicator", "%#x",
+	    domain->indicator);
+	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "attached",
+	    domain->attached);
+	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_loop",
+	    domain->is_loop);
+	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "is_nlport",
+	    domain->is_nlport);
 #if defined(ENABLE_FABRIC_EMULATION)
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RW, "femul_enable", "%d", domain->femul_enable);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RW, "femul_enable", "%d",
+	    domain->femul_enable);
 #endif
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "num_sports",  "%d", domain->sport_instance_count);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "num_sports", "%d",
+	    domain->sport_instance_count);
 
 	ocs_domain_lock(domain);
-	ocs_list_foreach(&domain->sport_list, sport) {
-		if ((sport->mgmt_functions) && (sport->mgmt_functions->get_all_handler)) {
+	ocs_list_foreach(&domain->sport_list, sport)
+	{
+		if ((sport->mgmt_functions) &&
+		    (sport->mgmt_functions->get_all_handler)) {
 			sport->mgmt_functions->get_all_handler(textbuf, sport);
 		}
 	}
 	ocs_domain_unlock(domain);
 
 	ocs_mgmt_end_unnumbered_section(textbuf, "domain");
-
 }
 
 int
@@ -1504,20 +1650,27 @@ ocs_mgmt_domain_set(char *parent, char *name, char *value, void *object)
 	char qualifier[80];
 	int retval = -1;
 
-	snprintf(qualifier, sizeof(qualifier), "%s/domain[%d]", parent, domain->instance_index);
+	snprintf(qualifier, sizeof(qualifier), "%s/domain[%d]", parent,
+	    domain->instance_index);
 
-	/* If it doesn't start with my qualifier I don't know what to do with it */
+	/* If it doesn't start with my qualifier I don't know what to do with it
+	 */
 	if (ocs_strncmp(name, qualifier, strlen(qualifier)) == 0) {
 		/* See if it's a value I can supply */
 
 		/* if (ocs_strcmp(unqualified_name, "display_name") == 0) {
 		} else */
 		{
-			/* If I didn't know the value of this status pass the request to each of my children */
+			/* If I didn't know the value of this status pass the
+			 * request to each of my children */
 			ocs_domain_lock(domain);
-			ocs_list_foreach(&domain->sport_list, sport) {
-				if ((sport->mgmt_functions) && (sport->mgmt_functions->set_handler)) {
-					retval = sport->mgmt_functions->set_handler(qualifier, name, value, sport);
+			ocs_list_foreach(&domain->sport_list, sport)
+			{
+				if ((sport->mgmt_functions) &&
+				    (sport->mgmt_functions->set_handler)) {
+					retval = sport->mgmt_functions
+						     ->set_handler(qualifier,
+							 name, value, sport);
 				}
 
 				if (retval == 0) {
@@ -1532,24 +1685,34 @@ ocs_mgmt_domain_set(char *parent, char *name, char *value, void *object)
 }
 
 int
-ocs_mgmt_domain_exec(char *parent, char *action, void *arg_in, uint32_t arg_in_length,
-			void *arg_out, uint32_t arg_out_length, void *object)
+ocs_mgmt_domain_exec(char *parent, char *action, void *arg_in,
+    uint32_t arg_in_length, void *arg_out, uint32_t arg_out_length,
+    void *object)
 {
 	ocs_sport_t *sport;
 	ocs_domain_t *domain = (ocs_domain_t *)object;
 	char qualifier[80];
 	int retval = -1;
 
-	snprintf(qualifier, sizeof(qualifier), "%s.domain%d", parent, domain->instance_index);
+	snprintf(qualifier, sizeof(qualifier), "%s.domain%d", parent,
+	    domain->instance_index);
 
-	/* If it doesn't start with my qualifier I don't know what to do with it */
+	/* If it doesn't start with my qualifier I don't know what to do with it
+	 */
 	if (ocs_strncmp(action, qualifier, strlen(qualifier)) == 0) {
 		{
-			/* If I didn't know how to do this action pass the request to each of my children */
+			/* If I didn't know how to do this action pass the
+			 * request to each of my children */
 			ocs_domain_lock(domain);
-			ocs_list_foreach(&domain->sport_list, sport) {
-				if ((sport->mgmt_functions) && (sport->mgmt_functions->exec_handler)) {
-					retval = sport->mgmt_functions->exec_handler(qualifier, action, arg_in, arg_in_length, arg_out, arg_out_length, sport);
+			ocs_list_foreach(&domain->sport_list, sport)
+			{
+				if ((sport->mgmt_functions) &&
+				    (sport->mgmt_functions->exec_handler)) {
+					retval = sport->mgmt_functions
+						     ->exec_handler(qualifier,
+							 action, arg_in,
+							 arg_in_length, arg_out,
+							 arg_out_length, sport);
 				}
 
 				if (retval == 0) {

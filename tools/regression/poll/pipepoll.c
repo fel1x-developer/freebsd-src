@@ -10,11 +10,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	FIFONAME	"fifo.tmp"
-#define	FT_END		3
-#define	FT_FIFO		2
-#define	FT_PIPE		0
-#define	FT_SOCKETPAIR	1
+#define FIFONAME "fifo.tmp"
+#define FT_END 3
+#define FT_FIFO 2
+#define FT_PIPE 0
+#define FT_SOCKETPAIR 1
 
 static int filetype;
 
@@ -47,8 +47,9 @@ report_state(const char *state)
 {
 
 	printf(" %s state %s: ",
-	    filetype == FT_PIPE ? "Pipe" :
-	    filetype == FT_SOCKETPAIR ? "Sock" : "FIFO",
+	    filetype == FT_PIPE		  ? "Pipe" :
+		filetype == FT_SOCKETPAIR ? "Sock" :
+					    "FIFO",
 	    state);
 }
 
@@ -60,8 +61,7 @@ report(int num, const char *state, int expected, int got, int res,
 	if (res != res_expected) {
 		printf("not ok %-2d", num);
 		report_state(state);
-		printf("poll result %d expected %d. ",
-		    res, res_expected);
+		printf("poll result %d expected %d. ", res, res_expected);
 	} else {
 		if (expected == got)
 			printf("ok %-2d    ", num);
@@ -78,8 +78,7 @@ static pid_t cpid;
 static pid_t ppid;
 static volatile sig_atomic_t state;
 
-static void
-catch(int sig __unused)
+static void catch (int sig __unused)
 {
 
 	state++;
@@ -291,8 +290,8 @@ main(void)
 			fd[1] = -1;
 			break;
 		case FT_SOCKETPAIR:
-			if (socketpair(AF_UNIX, SOCK_STREAM, AF_UNSPEC,
-			    fd) != 0)
+			if (socketpair(AF_UNIX, SOCK_STREAM, AF_UNSPEC, fd) !=
+			    0)
 				err(1, "socketpair");
 			break;
 		case FT_PIPE:

@@ -33,12 +33,14 @@
  * cxgbei implementation of iSCSI Common Layer kobj(9) interface.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
+
 #ifdef TCP_OFFLOAD
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/capsicum.h>
 #include <sys/condvar.h>
@@ -49,61 +51,62 @@
 #include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <machine/bus.h>
+
 #include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/pmap.h>
+#include <vm/vm_page.h>
+
+#include <machine/bus.h>
+
+#include <dev/iscsi/icl.h>
+#include <dev/iscsi/iscsi_proto.h>
+
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_var.h>
 #include <netinet/toecore.h>
 
-#include <dev/iscsi/icl.h>
-#include <dev/iscsi/iscsi_proto.h>
-#include <icl_conn_if.h>
-
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_backend.h>
-#include <cam/ctl/ctl_error.h>
-#include <cam/ctl/ctl_frontend.h>
-#include <cam/ctl/ctl_debug.h>
-#include <cam/ctl/ctl_ha.h>
-#include <cam/ctl/ctl_ioctl.h>
-
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
-#include <cam/cam_xpt.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_sim.h>
-#include <cam/cam_xpt_sim.h>
-#include <cam/cam_xpt_periph.h>
-#include <cam/cam_periph.h>
 #include <cam/cam_compat.h>
+#include <cam/cam_debug.h>
+#include <cam/cam_periph.h>
+#include <cam/cam_sim.h>
+#include <cam/cam_xpt.h>
+#include <cam/cam_xpt_periph.h>
+#include <cam/cam_xpt_sim.h>
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_debug.h>
+#include <cam/ctl/ctl_error.h>
+#include <cam/ctl/ctl_frontend.h>
+#include <cam/ctl/ctl_ha.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_da.h>
 #include <cam/scsi/scsi_message.h>
+#include <icl_conn_if.h>
 
 #include "common/common.h"
 #include "common/t4_regs.h"
 #include "common/t4_tcb.h"
-#include "tom/t4_tom.h"
 #include "cxgbei.h"
+#include "tom/t4_tom.h"
 
 /*
  * Use the page pod tag for the TT hash.
  */
-#define	TT_HASH(icc, tt)	(G_PPOD_TAG(tt) & (icc)->cmp_hash_mask)
+#define TT_HASH(icc, tt) (G_PPOD_TAG(tt) & (icc)->cmp_hash_mask)
 
 struct cxgbei_ddp_state {
 	struct ppod_reservation prsv;
@@ -121,33 +124,33 @@ static int max_burst_length = 2 * 1024 * 1024;
 SYSCTL_INT(_kern_icl_cxgbei, OID_AUTO, max_burst_length, CTLFLAG_RWTUN,
     &max_burst_length, 0, "Maximum burst length");
 static int sendspace = 1048576;
-SYSCTL_INT(_kern_icl_cxgbei, OID_AUTO, sendspace, CTLFLAG_RWTUN,
-    &sendspace, 0, "Default send socket buffer size");
+SYSCTL_INT(_kern_icl_cxgbei, OID_AUTO, sendspace, CTLFLAG_RWTUN, &sendspace, 0,
+    "Default send socket buffer size");
 static int recvspace = 1048576;
-SYSCTL_INT(_kern_icl_cxgbei, OID_AUTO, recvspace, CTLFLAG_RWTUN,
-    &recvspace, 0, "Default receive socket buffer size");
+SYSCTL_INT(_kern_icl_cxgbei, OID_AUTO, recvspace, CTLFLAG_RWTUN, &recvspace, 0,
+    "Default receive socket buffer size");
 
 static volatile u_int icl_cxgbei_ncons;
 
-static icl_conn_new_pdu_t	icl_cxgbei_conn_new_pdu;
+static icl_conn_new_pdu_t icl_cxgbei_conn_new_pdu;
 static icl_conn_pdu_data_segment_length_t
-				    icl_cxgbei_conn_pdu_data_segment_length;
-static icl_conn_pdu_append_bio_t	icl_cxgbei_conn_pdu_append_bio;
-static icl_conn_pdu_append_data_t	icl_cxgbei_conn_pdu_append_data;
-static icl_conn_pdu_get_bio_t	icl_cxgbei_conn_pdu_get_bio;
-static icl_conn_pdu_get_data_t	icl_cxgbei_conn_pdu_get_data;
-static icl_conn_pdu_queue_t	icl_cxgbei_conn_pdu_queue;
-static icl_conn_pdu_queue_cb_t	icl_cxgbei_conn_pdu_queue_cb;
-static icl_conn_handoff_t	icl_cxgbei_conn_handoff;
-static icl_conn_free_t		icl_cxgbei_conn_free;
-static icl_conn_close_t		icl_cxgbei_conn_close;
-static icl_conn_task_setup_t	icl_cxgbei_conn_task_setup;
-static icl_conn_task_done_t	icl_cxgbei_conn_task_done;
-static icl_conn_transfer_setup_t	icl_cxgbei_conn_transfer_setup;
-static icl_conn_transfer_done_t	icl_cxgbei_conn_transfer_done;
+    icl_cxgbei_conn_pdu_data_segment_length;
+static icl_conn_pdu_append_bio_t icl_cxgbei_conn_pdu_append_bio;
+static icl_conn_pdu_append_data_t icl_cxgbei_conn_pdu_append_data;
+static icl_conn_pdu_get_bio_t icl_cxgbei_conn_pdu_get_bio;
+static icl_conn_pdu_get_data_t icl_cxgbei_conn_pdu_get_data;
+static icl_conn_pdu_queue_t icl_cxgbei_conn_pdu_queue;
+static icl_conn_pdu_queue_cb_t icl_cxgbei_conn_pdu_queue_cb;
+static icl_conn_handoff_t icl_cxgbei_conn_handoff;
+static icl_conn_free_t icl_cxgbei_conn_free;
+static icl_conn_close_t icl_cxgbei_conn_close;
+static icl_conn_task_setup_t icl_cxgbei_conn_task_setup;
+static icl_conn_task_done_t icl_cxgbei_conn_task_done;
+static icl_conn_transfer_setup_t icl_cxgbei_conn_transfer_setup;
+static icl_conn_transfer_done_t icl_cxgbei_conn_transfer_done;
 
-static kobj_method_t icl_cxgbei_methods[] = {
-	KOBJMETHOD(icl_conn_new_pdu, icl_cxgbei_conn_new_pdu),
+static kobj_method_t icl_cxgbei_methods[] = { KOBJMETHOD(icl_conn_new_pdu,
+						  icl_cxgbei_conn_new_pdu),
 	KOBJMETHOD(icl_conn_pdu_free, icl_cxgbei_conn_pdu_free),
 	KOBJMETHOD(icl_conn_pdu_data_segment_length,
 	    icl_cxgbei_conn_pdu_data_segment_length),
@@ -164,8 +167,7 @@ static kobj_method_t icl_cxgbei_methods[] = {
 	KOBJMETHOD(icl_conn_task_done, icl_cxgbei_conn_task_done),
 	KOBJMETHOD(icl_conn_transfer_setup, icl_cxgbei_conn_transfer_setup),
 	KOBJMETHOD(icl_conn_transfer_done, icl_cxgbei_conn_transfer_done),
-	{ 0, 0 }
-};
+	{ 0, 0 } };
 
 DEFINE_CLASS(icl_cxgbei, icl_cxgbei_methods, sizeof(struct icl_cxgbei_conn));
 
@@ -240,7 +242,8 @@ static void
 icl_cxgbei_mbuf_done(struct mbuf *mb)
 {
 
-	struct icl_cxgbei_pdu *icp = (struct icl_cxgbei_pdu *)mb->m_ext.ext_arg1;
+	struct icl_cxgbei_pdu *icp = (struct icl_cxgbei_pdu *)
+					 mb->m_ext.ext_arg1;
 
 	/*
 	 * NB: mb_free_mext() might leave ref_cnt as 1 without
@@ -374,8 +377,9 @@ finalize_pdu(struct icl_cxgbei_conn *icc, struct icl_cxgbei_pdu *icp)
 		struct iscsi_bhs_data_in *bhsdi;
 		int flags;
 
-		KASSERT(padding == 0, ("%s: ISO with padding %d for icp %p",
-		    __func__, padding, icp));
+		KASSERT(padding == 0,
+		    ("%s: ISO with padding %d for icp %p", __func__, padding,
+			icp));
 		switch (bhs->bhs_opcode) {
 		case ISCSI_BHS_OPCODE_SCSI_DATA_OUT:
 			flags = 1;
@@ -661,8 +665,8 @@ icl_cxgbei_conn_pdu_append_bio(struct icl_conn *ic, struct icl_pdu *ip,
 
 			todo = MIN(len, PAGE_SIZE - page_offset);
 
-			m->m_epg_pa[m->m_epg_npgs] =
-			    VM_PAGE_TO_PHYS(bp->bio_ma[i]);
+			m->m_epg_pa[m->m_epg_npgs] = VM_PAGE_TO_PHYS(
+			    bp->bio_ma[i]);
 			m->m_epg_npgs++;
 			m->m_epg_last_len = todo;
 			m->m_len += todo;
@@ -714,8 +718,8 @@ icl_cxgbei_conn_pdu_append_bio(struct icl_conn *ic, struct icl_pdu *ip,
 
 		do {
 			mtodo = min(todo, M_SIZE(m) - m->m_len);
-			memcpy(mtod(m, char *) + m->m_len, (char *)vaddr +
-			    page_offset, mtodo);
+			memcpy(mtod(m, char *) + m->m_len,
+			    (char *)vaddr + page_offset, mtodo);
 			m->m_len += mtodo;
 			if (m->m_len == M_SIZE(m))
 				m = m->m_next;
@@ -732,8 +736,8 @@ icl_cxgbei_conn_pdu_append_bio(struct icl_conn *ic, struct icl_pdu *ip,
 		i++;
 	}
 
-	MPASS(ip->ip_data_len <= max(ic->ic_max_send_data_segment_length,
-	    ic->ic_hw_isomax));
+	MPASS(ip->ip_data_len <=
+	    max(ic->ic_max_send_data_segment_length, ic->ic_hw_isomax));
 
 	return (0);
 }
@@ -798,8 +802,8 @@ icl_cxgbei_conn_pdu_append_data(struct icl_conn *ic, struct icl_pdu *ip,
 	}
 	MPASS(len == 0);
 
-	MPASS(ip->ip_data_len <= max(ic->ic_max_send_data_segment_length,
-	    ic->ic_hw_isomax));
+	MPASS(ip->ip_data_len <=
+	    max(ic->ic_max_send_data_segment_length, ic->ic_hw_isomax));
 
 	return (0);
 }
@@ -833,8 +837,8 @@ icl_cxgbei_conn_pdu_get_bio(struct icl_conn *ic, struct icl_pdu *ip,
 
 		mapped = pmap_map_io_transient(bp->bio_ma + i, &vaddr, 1,
 		    false);
-		m_copydata(ip->ip_data_mbuf, pdu_off, todo, (char *)vaddr +
-		    page_offset);
+		m_copydata(ip->ip_data_mbuf, pdu_off, todo,
+		    (char *)vaddr + page_offset);
 		if (__predict_false(mapped))
 			pmap_unmap_io_transient(bp->bio_ma + 1, &vaddr, 1,
 			    false);
@@ -865,7 +869,7 @@ icl_cxgbei_conn_pdu_queue(struct icl_conn *ic, struct icl_pdu *ip)
 
 void
 icl_cxgbei_conn_pdu_queue_cb(struct icl_conn *ic, struct icl_pdu *ip,
-			     icl_pdu_cb cb)
+    icl_pdu_cb cb)
 {
 	struct icl_cxgbei_conn *icc = ic_to_icc(ic);
 	struct icl_cxgbei_pdu *icp = ip_to_icp(ip);
@@ -981,7 +985,7 @@ icl_cxgbei_setsockopt(struct icl_conn *ic, struct socket *so, int sspace,
  */
 struct find_ofld_adapter_rr {
 	struct socket *so;
-	struct adapter *sc;	/* result */
+	struct adapter *sc; /* result */
 };
 
 static void
@@ -997,17 +1001,17 @@ find_offload_adapter(struct adapter *sc, void *arg)
 	MPASS(so->so_proto->pr_protocol == IPPROTO_TCP);
 
 	if (fa->sc != NULL)
-		return;	/* Found already. */
+		return; /* Found already. */
 
 	if (td == NULL)
-		return;	/* TOE not enabled on this adapter. */
+		return; /* TOE not enabled on this adapter. */
 
 	inp = sotoinpcb(so);
 	INP_WLOCK(inp);
 	if ((inp->inp_flags & INP_DROPPED) == 0) {
 		tp = intotcpcb(inp);
 		if (tp->t_flags & TF_TOE && tp->tod == &td->tod)
-			fa->sc = sc;	/* Found. */
+			fa->sc = sc; /* Found. */
 	}
 	INP_WUNLOCK(inp);
 }
@@ -1045,10 +1049,10 @@ send_iscsi_flowc_wr(struct adapter *sc, struct toepcb *toep, int maxlen)
 	flowc = wrtod(wr);
 	memset(flowc, 0, wr->wr_len);
 
-	flowc->op_to_nparams = htobe32(V_FW_WR_OP(FW_FLOWC_WR) |
-	    V_FW_FLOWC_WR_NPARAMS(nparams));
-	flowc->flowid_len16 = htonl(V_FW_WR_LEN16(howmany(flowclen, 16)) |
-	    V_FW_WR_FLOWID(toep->tid));
+	flowc->op_to_nparams = htobe32(
+	    V_FW_WR_OP(FW_FLOWC_WR) | V_FW_FLOWC_WR_NPARAMS(nparams));
+	flowc->flowid_len16 = htonl(
+	    V_FW_WR_LEN16(howmany(flowclen, 16)) | V_FW_WR_FLOWID(toep->tid));
 
 	flowc->mnemval[0].mnemonic = FW_FLOWC_MNEM_TXDATAPLEN_MAX;
 	flowc->mnemval[0].val = htobe32(maxlen);
@@ -1070,8 +1074,8 @@ set_ulp_mode_iscsi(struct adapter *sc, struct toepcb *toep, u_int ulp_submode)
 {
 	uint64_t val;
 
-	CTR3(KTR_CXGBE, "%s: tid %u, ULP_MODE_ISCSI, submode=%#x",
-	    __func__, toep->tid, ulp_submode);
+	CTR3(KTR_CXGBE, "%s: tid %u, ULP_MODE_ISCSI, submode=%#x", __func__,
+	    toep->tid, ulp_submode);
 
 	val = V_TCB_ULP_TYPE(ULP_MODE_ISCSI) | V_TCB_ULP_RAW(ulp_submode);
 	t4_set_tcb_field(sc, toep->ctrlq, toep, W_TCB_ULP_TYPE,
@@ -1251,7 +1255,7 @@ icl_cxgbei_conn_close(struct icl_conn *ic)
 #ifdef DIAGNOSTIC
 	KASSERT(ic->ic_outstanding_pdus == 0,
 	    ("destroying session with %d outstanding PDUs",
-	     ic->ic_outstanding_pdus));
+		ic->ic_outstanding_pdus));
 #endif
 
 	CTR3(KTR_CXGBE, "%s: tid %d, icc %p", __func__, toep ? toep->tid : -1,
@@ -1299,7 +1303,7 @@ icl_cxgbei_conn_close(struct icl_conn *ic)
 	SOCKBUF_UNLOCK(sb);
 
 	INP_WLOCK(inp);
-	if (toep != NULL) {	/* NULL if connection was never offloaded. */
+	if (toep != NULL) { /* NULL if connection was never offloaded. */
 		toep->ulpcb = NULL;
 
 		/* Discard mbufs queued for TX. */
@@ -1360,7 +1364,7 @@ cxgbei_insert_cmp(struct icl_cxgbei_conn *icc, struct cxgbei_cmp *cmp,
 
 	mtx_lock(&icc->cmp_lock);
 #ifdef INVARIANTS
-	LIST_FOREACH(cmp2, &icc->cmp_table[TT_HASH(icc, tt)], link) {
+	LIST_FOREACH (cmp2, &icc->cmp_table[TT_HASH(icc, tt)], link) {
 		KASSERT(cmp2->tt != tt, ("%s: duplicate cmp", __func__));
 	}
 #endif
@@ -1374,7 +1378,7 @@ cxgbei_find_cmp(struct icl_cxgbei_conn *icc, uint32_t tt)
 	struct cxgbei_cmp *cmp;
 
 	mtx_lock(&icc->cmp_lock);
-	LIST_FOREACH(cmp, &icc->cmp_table[TT_HASH(icc, tt)], link) {
+	LIST_FOREACH (cmp, &icc->cmp_table[TT_HASH(icc, tt)], link) {
 		if (cmp->tt == tt)
 			break;
 	}
@@ -1392,7 +1396,7 @@ cxgbei_rm_cmp(struct icl_cxgbei_conn *icc, struct cxgbei_cmp *cmp)
 	mtx_lock(&icc->cmp_lock);
 
 #ifdef INVARIANTS
-	LIST_FOREACH(cmp2, &icc->cmp_table[TT_HASH(icc, cmp->tt)], link) {
+	LIST_FOREACH (cmp2, &icc->cmp_table[TT_HASH(icc, cmp->tt)], link) {
 		if (cmp2 == cmp)
 			goto found;
 	}
@@ -1428,7 +1432,7 @@ icl_cxgbei_conn_task_setup(struct icl_conn *ic, struct icl_pdu *ip,
 	if ((csio->ccb_h.flags & CAM_DIR_MASK) != CAM_DIR_IN ||
 	    csio->dxfer_len < ci->ddp_threshold || ic->ic_disconnecting ||
 	    ic->ic_socket == NULL) {
-no_ddp:
+	no_ddp:
 		/*
 		 * No DDP for this I/O.	 Allocate an ITT (based on the one
 		 * passed in) that cannot be a valid hardware DDP tag in the
@@ -1437,7 +1441,7 @@ no_ddp:
 		itt = *ittp & M_PPOD_TAG;
 		itt = V_PPOD_TAG(itt) | pr->pr_invalid_bit;
 		*ittp = htobe32(itt);
-		MPASS(*arg == NULL);	/* State is maintained for DDP only. */
+		MPASS(*arg == NULL); /* State is maintained for DDP only. */
 		if (rc != 0)
 			counter_u64_add(
 			    toep->ofld_rxq->rx_iscsi_ddp_setup_error, 1);
@@ -1610,7 +1614,7 @@ icl_cxgbei_conn_transfer_setup(struct icl_conn *ic, struct icl_pdu *ip,
 		xferlen = ctsio->kern_data_len;
 		if (xferlen < first_burst ||
 		    xferlen - first_burst < ci->ddp_threshold) {
-no_ddp:
+		no_ddp:
 			/*
 			 * No DDP for this transfer.  Allocate a TTT (based on
 			 * the one passed in) that cannot be a valid hardware
@@ -1622,7 +1626,8 @@ no_ddp:
 			MPASS(io_to_ddp_state(io) == NULL);
 			if (rc != 0)
 				counter_u64_add(
-				    toep->ofld_rxq->rx_iscsi_ddp_setup_error, 1);
+				    toep->ofld_rxq->rx_iscsi_ddp_setup_error,
+				    1);
 			return (0);
 		}
 
@@ -1758,7 +1763,6 @@ cxgbei_limits(struct adapter *sc, void *arg)
 	if (uld_active(sc, ULD_ISCSI)) {
 		ci = sc->iscsi_ulp_softc;
 		MPASS(ci != NULL);
-
 
 		max_dsl = ci->max_rx_data_len;
 		if (idl->idl_max_recv_data_segment_length > max_dsl)

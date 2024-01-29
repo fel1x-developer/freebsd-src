@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
@@ -39,8 +37,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 int
 kvm_ckread(void *a, void *b, int l)
@@ -49,8 +47,7 @@ kvm_ckread(void *a, void *b, int l)
 		if (verbose)
 			error("error reading kmem at %p", a);
 		return (0);
-	}
-	else
+	} else
 		return (1);
 }
 
@@ -60,8 +57,7 @@ getsysctl(const char *name, void *ptr, size_t len)
 	size_t nlen = len;
 
 	if (sysctlbyname(name, ptr, &nlen, NULL, 0) != 0) {
-		error("sysctl(%s...) failed: %s", name,
-		    strerror(errno));
+		error("sysctl(%s...) failed: %s", name, strerror(errno));
 	}
 	if (nlen != len) {
 		error("sysctl(%s...) expected %zu, got %zu", name, len, nlen);
@@ -79,22 +75,22 @@ getsysctl(const char *name, void *ptr, size_t len)
  */
 
 /* Some defines: Number of tries. */
-#define SD_NTRIES  10
+#define SD_NTRIES 10
 /* Percent of over-allocation (initial) */
-#define SD_MARGIN  10
+#define SD_MARGIN 10
 /*
  * Factor for over-allocation in percent (the margin is increased by this on
  * any failed try).
  */
-#define SD_FACTOR  50
+#define SD_FACTOR 50
 /* Maximum supported MIB depth */
-#define SD_MAXMIB  16
+#define SD_MAXMIB 16
 
 char *
 sysctl_dynread(const char *n, size_t *szp)
 {
-	char   *rv = NULL;
-	int    mib[SD_MAXMIB];
+	char *rv = NULL;
+	int mib[SD_MAXMIB];
 	size_t mibsz = SD_MAXMIB;
 	size_t mrg = SD_MARGIN;
 	size_t sz;

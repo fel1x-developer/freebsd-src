@@ -3,17 +3,17 @@
 
 #include <db.h>
 
-#define	YPOP_CHANGE 1			/* change, do not add */
-#define	YPOP_INSERT 2			/* add, do not change */
-#define	YPOP_DELETE 3			/* delete this entry */
-#define	YPOP_STORE  4			/* add, or change */
+#define YPOP_CHANGE 1 /* change, do not add */
+#define YPOP_INSERT 2 /* add, do not change */
+#define YPOP_DELETE 3 /* delete this entry */
+#define YPOP_STORE 4  /* add, or change */
 
-#define	ERR_ACCESS	1
-#define	ERR_MALLOC	2
-#define	ERR_READ	3
-#define	ERR_WRITE	4
-#define	ERR_DBASE	5
-#define	ERR_KEY		6
+#define ERR_ACCESS 1
+#define ERR_MALLOC 2
+#define ERR_READ 3
+#define ERR_WRITE 4
+#define ERR_DBASE 5
+#define ERR_KEY 6
 
 #ifndef YPLIBDIR
 #define YPLIBDIR "/usr/libexec/"

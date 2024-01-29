@@ -83,4 +83,4 @@ int audio_playback(struct audio *aud, const uint8_t *buf, size_t count);
  */
 int audio_record(struct audio *aud, uint8_t *buf, size_t count);
 
-#endif  /* _AUDIO_EMUL_H_ */
+#endif /* _AUDIO_EMUL_H_ */

@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -35,19 +35,17 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
+#include <dev/acpica/acpivar.h>
+#include <dev/usb/controller/xhci.h>
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usbdi.h>
 
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/xhci.h>
-
 #include <contrib/dev/acpica/include/acpi.h>
-#include <dev/acpica/acpivar.h>
 
 #include "generic_xhci.h"
 

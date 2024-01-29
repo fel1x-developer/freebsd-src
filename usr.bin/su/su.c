@@ -60,13 +60,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 
 #ifdef USE_BSM_AUDIT
-#include <bsm/libbsm.h>
 #include <bsm/audit_uevents.h>
+#include <bsm/libbsm.h>
 #endif
 
 #include <err.h>
@@ -75,88 +75,88 @@
 #include <login_cap.h>
 #include <paths.h>
 #include <pwd.h>
+#include <security/openpam.h>
+#include <security/pam_appl.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <stdarg.h>
 
-#include <security/pam_appl.h>
-#include <security/openpam.h>
+#define PAM_END()                                                           \
+	do {                                                                \
+		int local_ret;                                              \
+		if (pamh != NULL) {                                         \
+			local_ret = pam_setcred(pamh, PAM_DELETE_CRED);     \
+			if (local_ret != PAM_SUCCESS)                       \
+				syslog(LOG_ERR, "pam_setcred: %s",          \
+				    pam_strerror(pamh, local_ret));         \
+			if (asthem) {                                       \
+				local_ret = pam_close_session(pamh, 0);     \
+				if (local_ret != PAM_SUCCESS)               \
+					syslog(LOG_ERR,                     \
+					    "pam_close_session: %s",        \
+					    pam_strerror(pamh, local_ret)); \
+			}                                                   \
+			local_ret = pam_end(pamh, local_ret);               \
+			if (local_ret != PAM_SUCCESS)                       \
+				syslog(LOG_ERR, "pam_end: %s",              \
+				    pam_strerror(pamh, local_ret));         \
+		}                                                           \
+	} while (0)
 
-#define PAM_END() do {							\
-	int local_ret;							\
-	if (pamh != NULL) {						\
-		local_ret = pam_setcred(pamh, PAM_DELETE_CRED);		\
-		if (local_ret != PAM_SUCCESS)				\
-			syslog(LOG_ERR, "pam_setcred: %s",		\
-				pam_strerror(pamh, local_ret));		\
-		if (asthem) {						\
-			local_ret = pam_close_session(pamh, 0);		\
-			if (local_ret != PAM_SUCCESS)			\
-				syslog(LOG_ERR, "pam_close_session: %s",\
-					pam_strerror(pamh, local_ret));	\
-		}							\
-		local_ret = pam_end(pamh, local_ret);			\
-		if (local_ret != PAM_SUCCESS)				\
-			syslog(LOG_ERR, "pam_end: %s",			\
-				pam_strerror(pamh, local_ret));		\
-	}								\
-} while (0)
-
-
-#define PAM_SET_ITEM(what, item) do {					\
-	int local_ret;							\
-	local_ret = pam_set_item(pamh, what, item);			\
-	if (local_ret != PAM_SUCCESS) {					\
-		syslog(LOG_ERR, "pam_set_item(" #what "): %s",		\
-			pam_strerror(pamh, local_ret));			\
-		errx(1, "pam_set_item(" #what "): %s",			\
-			pam_strerror(pamh, local_ret));			\
-		/* NOTREACHED */					\
-	}								\
-} while (0)
+#define PAM_SET_ITEM(what, item)                                       \
+	do {                                                           \
+		int local_ret;                                         \
+		local_ret = pam_set_item(pamh, what, item);            \
+		if (local_ret != PAM_SUCCESS) {                        \
+			syslog(LOG_ERR, "pam_set_item(" #what "): %s", \
+			    pam_strerror(pamh, local_ret));            \
+			errx(1, "pam_set_item(" #what "): %s",         \
+			    pam_strerror(pamh, local_ret));            \
+			/* NOTREACHED */                               \
+		}                                                      \
+	} while (0)
 
 enum tristate { UNSET, YES, NO };
 
 static pam_handle_t *pamh = NULL;
-static char	**environ_pam;
+static char **environ_pam;
 
-static char	*ontty(void);
-static int	chshell(const char *);
-static void	usage(void) __dead2;
-static void	export_pam_environment(void);
-static int	ok_to_export(const char *);
+static char *ontty(void);
+static int chshell(const char *);
+static void usage(void) __dead2;
+static void export_pam_environment(void);
+static int ok_to_export(const char *);
 
-extern char	**environ;
+extern char **environ;
 
 int
 main(int argc, char *argv[])
 {
-	static char	*cleanenv;
-	struct passwd	*pwd = NULL;
-	struct pam_conv	conv = { openpam_ttyconv, NULL };
-	enum tristate	iscsh;
-	login_cap_t	*lc;
+	static char *cleanenv;
+	struct passwd *pwd = NULL;
+	struct pam_conv conv = { openpam_ttyconv, NULL };
+	enum tristate iscsh;
+	login_cap_t *lc;
 	union {
-		const char	**a;
-		char		* const *b;
-	}		np;
-	uid_t		ruid;
-	pid_t		child_pid, child_pgrp, pid;
-	int		asme, ch, asthem, fastlogin, prio, i, retcode,
-			statusp, setmaclabel;
-	u_int		setwhat;
-	char		*username, *class, shellbuf[MAXPATHLEN];
-	const char	*p, *user, *shell, *mytty, **nargv;
-	const void	*v;
+		const char **a;
+		char *const *b;
+	} np;
+	uid_t ruid;
+	pid_t child_pid, child_pgrp, pid;
+	int asme, ch, asthem, fastlogin, prio, i, retcode, statusp, setmaclabel;
+	u_int setwhat;
+	char *username, *class, shellbuf[MAXPATHLEN];
+	const char *p, *user, *shell, *mytty, **nargv;
+	const void *v;
 	struct sigaction sa, sa_int, sa_quit, sa_pipe;
 	int temp, fds[2];
 #ifdef USE_BSM_AUDIT
-	const char	*aerr;
-	au_id_t		 auid;
+	const char *aerr;
+	au_id_t auid;
 #endif
 
 	p = shell = class = cleanenv = NULL;
@@ -188,7 +188,7 @@ main(int argc, char *argv[])
 		case '?':
 		default:
 			usage();
-		/* NOTREACHED */
+			/* NOTREACHED */
 		}
 
 	if (optind < argc)
@@ -213,8 +213,8 @@ main(int argc, char *argv[])
 #endif
 	if (strlen(user) > MAXLOGNAME - 1) {
 #ifdef USE_BSM_AUDIT
-		if (audit_submit(AUE_su, auid,
-		    EPERM, 1, "username too long: '%s'", user))
+		if (audit_submit(AUE_su, auid, EPERM, 1,
+			"username too long: '%s'", user))
 			errx(1, "Permission denied");
 #endif
 		errx(1, "username too long");
@@ -249,7 +249,7 @@ main(int argc, char *argv[])
 	if (pwd == NULL) {
 #ifdef USE_BSM_AUDIT
 		if (audit_submit(AUE_su, auid, EPERM, 1,
-		    "unable to determine invoking subject: '%s'", username))
+			"unable to determine invoking subject: '%s'", username))
 			errx(1, "Permission denied");
 #endif
 		errx(1, "who are you?");
@@ -262,11 +262,9 @@ main(int argc, char *argv[])
 	if (asme) {
 		if (pwd->pw_shell != NULL && *pwd->pw_shell != '\0') {
 			/* must copy - pwd memory is recycled */
-			strlcpy(shellbuf, pwd->pw_shell,
-			    sizeof(shellbuf));
+			strlcpy(shellbuf, pwd->pw_shell, sizeof(shellbuf));
 			shell = shellbuf;
-		}
-		else {
+		} else {
 			shell = _PATH_BSHELL;
 			iscsh = NO;
 		}
@@ -289,11 +287,11 @@ main(int argc, char *argv[])
 	retcode = pam_authenticate(pamh, 0);
 	if (retcode != PAM_SUCCESS) {
 #ifdef USE_BSM_AUDIT
-		if (audit_submit(AUE_su, auid, EPERM, 1, "bad su %s to %s on %s",
-		    username, user, mytty))
+		if (audit_submit(AUE_su, auid, EPERM, 1,
+			"bad su %s to %s on %s", username, user, mytty))
 			errx(1, "Permission denied");
 #endif
-		syslog(LOG_AUTH|LOG_WARNING, "BAD SU %s to %s on %s",
+		syslog(LOG_AUTH | LOG_WARNING, "BAD SU %s to %s on %s",
 		    username, user, mytty);
 		errx(1, "Sorry");
 	}
@@ -310,8 +308,8 @@ main(int argc, char *argv[])
 	pwd = getpwnam(user);
 	if (pwd == NULL) {
 #ifdef USE_BSM_AUDIT
-		if (audit_submit(AUE_su, auid, EPERM, 1,
-		    "unknown subject: %s", user))
+		if (audit_submit(AUE_su, auid, EPERM, 1, "unknown subject: %s",
+			user))
 			errx(1, "Permission denied");
 #endif
 		errx(1, "unknown login: %s", user);
@@ -319,15 +317,14 @@ main(int argc, char *argv[])
 
 	retcode = pam_acct_mgmt(pamh, 0);
 	if (retcode == PAM_NEW_AUTHTOK_REQD) {
-		retcode = pam_chauthtok(pamh,
-			PAM_CHANGE_EXPIRED_AUTHTOK);
+		retcode = pam_chauthtok(pamh, PAM_CHANGE_EXPIRED_AUTHTOK);
 		if (retcode != PAM_SUCCESS) {
 #ifdef USE_BSM_AUDIT
 			aerr = pam_strerror(pamh, retcode);
 			if (aerr == NULL)
 				aerr = "Unknown PAM error";
 			if (audit_submit(AUE_su, auid, EPERM, 1,
-			    "pam_chauthtok: %s", aerr))
+				"pam_chauthtok: %s", aerr))
 				errx(1, "Permission denied");
 #endif
 			syslog(LOG_ERR, "pam_chauthtok: %s",
@@ -338,11 +335,11 @@ main(int argc, char *argv[])
 	if (retcode != PAM_SUCCESS) {
 #ifdef USE_BSM_AUDIT
 		if (audit_submit(AUE_su, auid, EPERM, 1, "pam_acct_mgmt: %s",
-		    pam_strerror(pamh, retcode)))
+			pam_strerror(pamh, retcode)))
 			errx(1, "Permission denied");
 #endif
 		syslog(LOG_ERR, "pam_acct_mgmt: %s",
-			pam_strerror(pamh, retcode));
+		    pam_strerror(pamh, retcode));
 		errx(1, "Sorry");
 	}
 
@@ -353,7 +350,7 @@ main(int argc, char *argv[])
 		if (ruid != 0) {
 #ifdef USE_BSM_AUDIT
 			if (audit_submit(AUE_su, auid, EPERM, 1,
-			    "only root may use -c"))
+				"only root may use -c"))
 				errx(1, "Permission denied");
 #endif
 			errx(1, "only root may use -c");
@@ -369,12 +366,10 @@ main(int argc, char *argv[])
 	if (asme) {
 		if (ruid != 0 && !chshell(pwd->pw_shell))
 			errx(1, "permission denied (shell)");
-	}
-	else if (pwd->pw_shell && *pwd->pw_shell) {
+	} else if (pwd->pw_shell && *pwd->pw_shell) {
 		shell = pwd->pw_shell;
 		iscsh = UNSET;
-	}
-	else {
+	} else {
 		shell = _PATH_BSHELL;
 		iscsh = NO;
 	}
@@ -399,8 +394,7 @@ main(int argc, char *argv[])
 
 	retcode = pam_setcred(pamh, PAM_ESTABLISH_CRED);
 	if (retcode != PAM_SUCCESS) {
-		syslog(LOG_ERR, "pam_setcred: %s",
-		    pam_strerror(pamh, retcode));
+		syslog(LOG_ERR, "pam_setcred: %s", pam_strerror(pamh, retcode));
 		errx(1, "failed to establish credentials.");
 	}
 	if (asthem) {
@@ -476,9 +470,9 @@ main(int argc, char *argv[])
 		 * Set all user context except for: Environmental variables
 		 * Umask Login records (wtmp, etc) Path
 		 */
-		setwhat = LOGIN_SETALL & ~(LOGIN_SETENV | LOGIN_SETUMASK |
-			   LOGIN_SETLOGIN | LOGIN_SETPATH | LOGIN_SETGROUP |
-			   LOGIN_SETMAC);
+		setwhat = LOGIN_SETALL &
+		    ~(LOGIN_SETENV | LOGIN_SETUMASK | LOGIN_SETLOGIN |
+			LOGIN_SETPATH | LOGIN_SETGROUP | LOGIN_SETMAC);
 		/*
 		 * If -s is present, also set the MAC label.
 		 */
@@ -515,7 +509,7 @@ main(int argc, char *argv[])
 
 				/* set the su'd user's environment & umask */
 				setusercontext(lc, pwd, pwd->pw_uid,
-					LOGIN_SETPATH | LOGIN_SETUMASK |
+				    LOGIN_SETPATH | LOGIN_SETUMASK |
 					LOGIN_SETENV);
 				if (p)
 					setenv("TERM", p, 1);
@@ -548,8 +542,8 @@ main(int argc, char *argv[])
 static void
 export_pam_environment(void)
 {
-	char	**pp;
-	char	*p;
+	char **pp;
+	char *p;
 
 	for (pp = environ_pam; *pp != NULL; pp++) {
 		if (ok_to_export(*pp)) {
@@ -573,10 +567,8 @@ export_pam_environment(void)
 static int
 ok_to_export(const char *s)
 {
-	static const char *noexport[] = {
-		"SHELL", /* "HOME", */ "LOGNAME", "MAIL", "CDPATH",
-		"IFS", "PATH", NULL
-	};
+	static const char *noexport[] = { "SHELL", /* "HOME", */ "LOGNAME",
+		"MAIL", "CDPATH", "IFS", "PATH", NULL };
 	const char **pp;
 	size_t n;
 
@@ -610,7 +602,7 @@ chshell(const char *sh)
 	r = 0;
 	setusershell();
 	while ((cp = getusershell()) != NULL && !r)
-	    r = (strcmp(cp, sh) == 0);
+		r = (strcmp(cp, sh) == 0);
 	endusershell();
 	return r;
 }

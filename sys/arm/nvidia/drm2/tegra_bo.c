@@ -29,6 +29,10 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/vmem.h>
+
+#include <vm/vm.h>
+#include <vm/vm_pageout.h>
 
 #include <machine/bus.h>
 
@@ -38,11 +42,6 @@
 #include <dev/drm2/drm_fb_helper.h>
 
 #include <arm/nvidia/drm2/tegra_drm.h>
-
-#include <sys/vmem.h>
-#include <sys/vmem.h>
-#include <vm/vm.h>
-#include <vm/vm_pageout.h>
 
 static void
 tegra_bo_destruct(struct tegra_bo *bo)
@@ -262,7 +261,7 @@ tegra_bo_dumb_create(struct drm_file *file, struct drm_device *drm_dev,
 
 	drm = container_of(drm_dev, struct tegra_drm, drm_dev);
 
-	args->pitch= (args->width * args->bpp + 7) / 8;
+	args->pitch = (args->width * args->bpp + 7) / 8;
 	args->pitch = roundup(args->pitch, drm->pitch_align);
 	args->size = args->pitch * args->height;
 	rv = tegra_bo_create_with_handle(file, drm_dev, args->size,
@@ -272,8 +271,8 @@ tegra_bo_dumb_create(struct drm_file *file, struct drm_device *drm_dev,
 }
 
 static int
-tegra_bo_dumb_map_offset(struct drm_file *file_priv,
-    struct drm_device *drm_dev, uint32_t handle, uint64_t *offset)
+tegra_bo_dumb_map_offset(struct drm_file *file_priv, struct drm_device *drm_dev,
+    uint32_t handle, uint64_t *offset)
 {
 	struct drm_gem_object *gem_obj;
 	int rv;
@@ -321,11 +320,10 @@ tegra_gem_pager_fault(vm_object_t vm_obj, vm_ooffset_t offset, int prot,
 {
 
 #ifdef DRM_PAGER_DEBUG
-	DRM_DEBUG("object %p offset %jd prot %d mres %p\n",
-	    vm_obj, (intmax_t)offset, prot, mres);
+	DRM_DEBUG("object %p offset %jd prot %d mres %p\n", vm_obj,
+	    (intmax_t)offset, prot, mres);
 #endif
 	return (VM_PAGER_FAIL);
-
 }
 
 static int
@@ -341,13 +339,12 @@ tegra_gem_pager_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
 static void
 tegra_gem_pager_dtor(void *handle)
 {
-
 }
 
 static struct cdev_pager_ops tegra_gem_pager_ops = {
 	.cdev_pg_fault = tegra_gem_pager_fault,
-	.cdev_pg_ctor  = tegra_gem_pager_ctor,
-	.cdev_pg_dtor  = tegra_gem_pager_dtor
+	.cdev_pg_ctor = tegra_gem_pager_ctor,
+	.cdev_pg_dtor = tegra_gem_pager_dtor
 };
 
 /* Fill up relevant fields in drm_driver ops */

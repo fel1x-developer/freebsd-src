@@ -33,8 +33,8 @@
 #define _NETSTAT_COMMON_H_
 
 struct bits {
-	u_long	b_mask;
-	char	b_val;
+	u_long b_mask;
+	char b_val;
 	const char *b_name;
 };
 extern struct bits rt_bits[];
@@ -71,20 +71,19 @@ extern const uint32_t rt_default_weight;
 
 struct rt_msghdr;
 struct nhops_map {
-	uint32_t		idx;
-	struct rt_msghdr	*rtm;
+	uint32_t idx;
+	struct rt_msghdr *rtm;
 };
 
 struct nhops_dump {
-	void 		*nh_buf;
+	void *nh_buf;
 	struct nhops_map *nh_map;
-	size_t		nh_count;
+	size_t nh_count;
 };
 
 void dump_nhops_sysctl(int fibnum, int af, struct nhops_dump *nd);
 struct nhop_map;
-void nhop_map_update(struct nhop_map *map, uint32_t idx, char *gw, char *ifname);
-
+void nhop_map_update(struct nhop_map *map, uint32_t idx, char *gw,
+    char *ifname);
 
 #endif
-

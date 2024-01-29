@@ -26,44 +26,47 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "bootstrap.h"
 
 #define lua_c
 
-#include "lstd.h"
-
-#include <lua.h>
-#include <ldebug.h>
 #include <lauxlib.h>
-#include <lualib.h>
-
+#include <ldebug.h>
 #include <lerrno.h>
 #include <lfs.h>
+#include <lua.h>
+#include <lualib.h>
 #include <lutils.h>
 
+#include "lstd.h"
+
 struct interp_lua_softc {
-	lua_State	*luap;
+	lua_State *luap;
 };
 
 static struct interp_lua_softc lua_softc;
 
 #ifdef LUA_DEBUG
-#define	LDBG(...)	do {			\
-	printf("%s(%d): ", __func__, __LINE__);	\
-	printf(__VA_ARGS__);			\
-	printf("\n");				\
-} while (0)
+#define LDBG(...)                                       \
+	do {                                            \
+		printf("%s(%d): ", __func__, __LINE__); \
+		printf(__VA_ARGS__);                    \
+		printf("\n");                           \
+	} while (0)
 #else
-#define	LDBG(...)
+#define LDBG(...)
 #endif
 
-#define	LOADER_LUA	LUA_PATH "/loader.lua"
+#define LOADER_LUA LUA_PATH "/loader.lua"
 
 INTERP_DEFINE("lua");
 
 static void *
-interp_lua_realloc(void *ud __unused, void *ptr, size_t osize __unused, size_t nsize)
+interp_lua_realloc(void *ud __unused, void *ptr, size_t osize __unused,
+    size_t nsize)
 {
 
 	if (nsize == 0) {
@@ -78,30 +81,25 @@ interp_lua_realloc(void *ud __unused, void *ptr, size_t osize __unused, size_t n
  * support from libsa, or they are unlikely to be useful
  * in the bootloader, so have been commented out.
  */
-static const luaL_Reg loadedlibs[] = {
-  {"_G", luaopen_base},
-  {LUA_LOADLIBNAME, luaopen_package},
-//  {LUA_COLIBNAME, luaopen_coroutine},
-//  {LUA_TABLIBNAME, luaopen_table},
-  {LUA_STRLIBNAME, luaopen_string},
-//  {LUA_IOLIBNAME, luaopen_io},
-//  {LUA_OSLIBNAME, luaopen_os},
-//  {LUA_MATHLIBNAME, luaopen_math},
-//  {LUA_UTF8LIBNAME, luaopen_utf8},
-//  {LUA_DBLIBNAME, luaopen_debug},
-  {"errno", luaopen_errno},
-  {"io", luaopen_io},
-  {"lfs", luaopen_lfs},
-  {"loader", luaopen_loader},
-  {"pager", luaopen_pager},
-  {NULL, NULL}
-};
+static const luaL_Reg loadedlibs[] = { { "_G", luaopen_base },
+	{ LUA_LOADLIBNAME, luaopen_package },
+	//  {LUA_COLIBNAME, luaopen_coroutine},
+	//  {LUA_TABLIBNAME, luaopen_table},
+	{ LUA_STRLIBNAME, luaopen_string },
+	//  {LUA_IOLIBNAME, luaopen_io},
+	//  {LUA_OSLIBNAME, luaopen_os},
+	//  {LUA_MATHLIBNAME, luaopen_math},
+	//  {LUA_UTF8LIBNAME, luaopen_utf8},
+	//  {LUA_DBLIBNAME, luaopen_debug},
+	{ "errno", luaopen_errno }, { "io", luaopen_io },
+	{ "lfs", luaopen_lfs }, { "loader", luaopen_loader },
+	{ "pager", luaopen_pager }, { NULL, NULL } };
 
 void
 interp_init(void)
 {
 	lua_State *luap;
-	struct interp_lua_softc	*softc = &lua_softc;
+	struct interp_lua_softc *softc = &lua_softc;
 	const char *filename;
 	const luaL_Reg *lib;
 
@@ -117,10 +115,11 @@ interp_init(void)
 	}
 	softc->luap = luap;
 
-	/* "require" functions from 'loadedlibs' and set results to global table */
+	/* "require" functions from 'loadedlibs' and set results to global table
+	 */
 	for (lib = loadedlibs; lib->func; lib++) {
 		luaL_requiref(luap, lib->name, lib->func, 1);
-		lua_pop(luap, 1);  /* remove lib */
+		lua_pop(luap, 1); /* remove lib */
 	}
 
 	filename = LOADER_LUA;
@@ -138,10 +137,10 @@ interp_init(void)
 int
 interp_run(const char *line)
 {
-	int	argc, nargc;
-	char	**argv;
+	int argc, nargc;
+	char **argv;
 	lua_State *luap;
-	struct interp_lua_softc	*softc = &lua_softc;
+	struct interp_lua_softc *softc = &lua_softc;
 	int status, ret;
 
 	TSENTER();
@@ -196,7 +195,7 @@ interp_run(const char *line)
 int
 interp_include(const char *filename)
 {
-	struct interp_lua_softc	*softc = &lua_softc;
+	struct interp_lua_softc *softc = &lua_softc;
 
 	LDBG("loading file %s", filename);
 

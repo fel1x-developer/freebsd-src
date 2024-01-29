@@ -29,6 +29,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -39,58 +40,53 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
 
 #include <dev/etherswitch/etherswitch.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 MALLOC_DECLARE(M_UKSWITCH);
 MALLOC_DEFINE(M_UKSWITCH, "ukswitch", "ukswitch data structures");
 
 struct ukswitch_softc {
-	struct mtx	sc_mtx;		/* serialize access to softc */
-	device_t	sc_dev;
-	int		media;		/* cpu port media */
-	int		cpuport;	/* which PHY is connected to the CPU */
-	int		phymask;	/* PHYs we manage */
-	int		phyoffset;	/* PHYs register offset */
-	int		numports;	/* number of ports */
-	int		ifpport[MII_NPHY];
-	int		*portphy;
-	char		**ifname;
-	device_t	**miibus;
+	struct mtx sc_mtx; /* serialize access to softc */
+	device_t sc_dev;
+	int media;     /* cpu port media */
+	int cpuport;   /* which PHY is connected to the CPU */
+	int phymask;   /* PHYs we manage */
+	int phyoffset; /* PHYs register offset */
+	int numports;  /* number of ports */
+	int ifpport[MII_NPHY];
+	int *portphy;
+	char **ifname;
+	device_t **miibus;
 	if_t *ifp;
-	struct callout	callout_tick;
-	etherswitch_info_t	info;
+	struct callout callout_tick;
+	etherswitch_info_t info;
 };
 
-#define UKSWITCH_LOCK(_sc)			\
-	    mtx_lock(&(_sc)->sc_mtx)
-#define UKSWITCH_UNLOCK(_sc)			\
-	    mtx_unlock(&(_sc)->sc_mtx)
-#define UKSWITCH_LOCK_ASSERT(_sc, _what)	\
-	    mtx_assert(&(_sc)->sc_mtx, (_what))
-#define UKSWITCH_TRYLOCK(_sc)			\
-	    mtx_trylock(&(_sc)->sc_mtx)
+#define UKSWITCH_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define UKSWITCH_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define UKSWITCH_LOCK_ASSERT(_sc, _what) mtx_assert(&(_sc)->sc_mtx, (_what))
+#define UKSWITCH_TRYLOCK(_sc) mtx_trylock(&(_sc)->sc_mtx)
 
 #if defined(DEBUG)
-#define	DPRINTF(dev, args...) device_printf(dev, args)
+#define DPRINTF(dev, args...) device_printf(dev, args)
 #else
-#define	DPRINTF(dev, args...)
+#define DPRINTF(dev, args...)
 #endif
 
 static inline int ukswitch_portforphy(struct ukswitch_softc *, int);
@@ -125,28 +121,29 @@ ukswitch_attach_phys(struct ukswitch_softc *sc)
 		sc->portphy[port] = phy;
 		sc->ifp[port] = if_alloc(IFT_ETHER);
 		if (sc->ifp[port] == NULL) {
-			device_printf(sc->sc_dev, "couldn't allocate ifnet structure\n");
+			device_printf(sc->sc_dev,
+			    "couldn't allocate ifnet structure\n");
 			err = ENOMEM;
 			break;
 		}
 
 		if_setsoftc(sc->ifp[port], sc);
-		if_setflags(sc->ifp[port], IFF_UP | IFF_BROADCAST |
-		    IFF_DRV_RUNNING | IFF_SIMPLEX);
-		sc->ifname[port] = malloc(strlen(name)+1, M_UKSWITCH, M_WAITOK);
-		bcopy(name, sc->ifname[port], strlen(name)+1);
+		if_setflags(sc->ifp[port],
+		    IFF_UP | IFF_BROADCAST | IFF_DRV_RUNNING | IFF_SIMPLEX);
+		sc->ifname[port] = malloc(strlen(name) + 1, M_UKSWITCH,
+		    M_WAITOK);
+		bcopy(name, sc->ifname[port], strlen(name) + 1);
 		if_initname(sc->ifp[port], sc->ifname[port], port);
 		sc->miibus[port] = malloc(sizeof(device_t), M_UKSWITCH,
 		    M_WAITOK | M_ZERO);
 		err = mii_attach(sc->sc_dev, sc->miibus[port], sc->ifp[port],
-		    ukswitch_ifmedia_upd, ukswitch_ifmedia_sts, \
-		    BMSR_DEFCAPMASK, phy + sc->phyoffset, MII_OFFSET_ANY, 0);
+		    ukswitch_ifmedia_upd, ukswitch_ifmedia_sts, BMSR_DEFCAPMASK,
+		    phy + sc->phyoffset, MII_OFFSET_ANY, 0);
 		DPRINTF(sc->sc_dev, "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(*sc->miibus[port]),
 		    if_name(sc->ifp[port]));
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			break;
 		}
@@ -177,15 +174,15 @@ ukswitch_attach(device_t dev)
 	sc->cpuport = -1;
 	sc->media = 100;
 
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "numports", &sc->numports);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "phymask", &sc->phymask);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "phyoffset", &sc->phyoffset);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "cpuport", &sc->cpuport);
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "media", &sc->media);
 
 	/* Support only fast and giga ethernet. */
@@ -220,11 +217,11 @@ ukswitch_attach(device_t dev)
 	err = bus_generic_attach(dev);
 	if (err != 0)
 		return (err);
-	
+
 	callout_init(&sc->callout_tick, 0);
 
 	ukswitch_tick(sc);
-	
+
 	return (err);
 }
 
@@ -236,7 +233,7 @@ ukswitch_detach(device_t dev)
 
 	callout_drain(&sc->callout_tick);
 
-	for (i=0; i < MII_NPHY; i++) {
+	for (i = 0; i < MII_NPHY; i++) {
 		if (((1 << i) & sc->phymask) == 0)
 			continue;
 		port = ukswitch_portforphy(sc, i);
@@ -278,7 +275,7 @@ ukswitch_miiforport(struct ukswitch_softc *sc, int port)
 	return (device_get_softc(*sc->miibus[port]));
 }
 
-static inline if_t 
+static inline if_t
 ukswitch_ifpforport(struct ukswitch_softc *sc, int port)
 {
 
@@ -306,7 +303,7 @@ ukswitch_miipollstat(struct ukswitch_softc *sc)
 		if ((*sc->miibus[port]) == NULL)
 			continue;
 		mii = device_get_softc(*sc->miibus[port]);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -347,7 +344,7 @@ static etherswitch_info_t *
 ukswitch_getinfo(device_t dev)
 {
 	struct ukswitch_softc *sc = device_get_softc(dev);
-	
+
 	return (&sc->info);
 }
 
@@ -370,16 +367,16 @@ ukswitch_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr->ifm_count = 0;
 		if (sc->media == 100)
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_100_TX | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_100_TX | IFM_FDX;
 		else
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_1000_T | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_1000_T | IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else if (mii != NULL) {
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	} else {
@@ -537,34 +534,34 @@ ukswitch_writereg(device_t dev, int addr, int value)
 
 static device_method_t ukswitch_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ukswitch_probe),
-	DEVMETHOD(device_attach,	ukswitch_attach),
-	DEVMETHOD(device_detach,	ukswitch_detach),
-	
+	DEVMETHOD(device_probe, ukswitch_probe),
+	DEVMETHOD(device_attach, ukswitch_attach),
+	DEVMETHOD(device_detach, ukswitch_detach),
+
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	device_add_child_ordered),
-	
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	ukswitch_readphy),
-	DEVMETHOD(miibus_writereg,	ukswitch_writephy),
-	DEVMETHOD(miibus_statchg,	ukswitch_statchg),
+	DEVMETHOD(miibus_readreg, ukswitch_readphy),
+	DEVMETHOD(miibus_writereg, ukswitch_writephy),
+	DEVMETHOD(miibus_statchg, ukswitch_statchg),
 
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,		ukswitch_readphy),
-	DEVMETHOD(mdio_writereg,	ukswitch_writephy),
+	DEVMETHOD(mdio_readreg, ukswitch_readphy),
+	DEVMETHOD(mdio_writereg, ukswitch_writephy),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,	ukswitch_lock),
-	DEVMETHOD(etherswitch_unlock,	ukswitch_unlock),
-	DEVMETHOD(etherswitch_getinfo,	ukswitch_getinfo),
-	DEVMETHOD(etherswitch_readreg,	ukswitch_readreg),
-	DEVMETHOD(etherswitch_writereg,	ukswitch_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	ukswitch_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	ukswitch_writephy),
-	DEVMETHOD(etherswitch_getport,	ukswitch_getport),
-	DEVMETHOD(etherswitch_setport,	ukswitch_setport),
-	DEVMETHOD(etherswitch_getvgroup,	ukswitch_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	ukswitch_setvgroup),
+	DEVMETHOD(etherswitch_lock, ukswitch_lock),
+	DEVMETHOD(etherswitch_unlock, ukswitch_unlock),
+	DEVMETHOD(etherswitch_getinfo, ukswitch_getinfo),
+	DEVMETHOD(etherswitch_readreg, ukswitch_readreg),
+	DEVMETHOD(etherswitch_writereg, ukswitch_writereg),
+	DEVMETHOD(etherswitch_readphyreg, ukswitch_readphy),
+	DEVMETHOD(etherswitch_writephyreg, ukswitch_writephy),
+	DEVMETHOD(etherswitch_getport, ukswitch_getport),
+	DEVMETHOD(etherswitch_setport, ukswitch_setport),
+	DEVMETHOD(etherswitch_getvgroup, ukswitch_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, ukswitch_setvgroup),
 
 	DEVMETHOD_END
 };
@@ -577,5 +574,5 @@ DRIVER_MODULE(miibus, ukswitch, miibus_driver, 0, 0);
 DRIVER_MODULE(mdio, ukswitch, mdio_driver, 0, 0);
 DRIVER_MODULE(etherswitch, ukswitch, etherswitch_driver, 0, 0);
 MODULE_VERSION(ukswitch, 1);
-MODULE_DEPEND(ukswitch, miibus, 1, 1, 1); /* XXX which versions? */
+MODULE_DEPEND(ukswitch, miibus, 1, 1, 1);      /* XXX which versions? */
 MODULE_DEPEND(ukswitch, etherswitch, 1, 1, 1); /* XXX which versions? */

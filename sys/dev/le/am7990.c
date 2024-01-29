@@ -72,6 +72,13 @@
 #include <sys/mutex.h>
 #include <sys/socket.h>
 
+#include <machine/bus.h>
+
+#include <dev/le/am7990reg.h>
+#include <dev/le/am7990var.h>
+#include <dev/le/lancereg.h>
+#include <dev/le/lancevar.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
@@ -80,25 +87,18 @@
 #include <net/if_media.h>
 #include <net/if_var.h>
 
-#include <machine/bus.h>
-
-#include <dev/le/lancereg.h>
-#include <dev/le/lancevar.h>
-#include <dev/le/am7990reg.h>
-#include <dev/le/am7990var.h>
-
-static void	am7990_meminit(struct lance_softc *);
-static void	am7990_rint(struct lance_softc *);
-static void	am7990_tint(struct lance_softc *);
-static void	am7990_start_locked(struct lance_softc *sc);
+static void am7990_meminit(struct lance_softc *);
+static void am7990_rint(struct lance_softc *);
+static void am7990_tint(struct lance_softc *);
+static void am7990_start_locked(struct lance_softc *sc);
 
 #ifdef LEDEBUG
-static void	am7990_recv_print(struct lance_softc *, int);
-static void	am7990_xmit_print(struct lance_softc *, int);
+static void am7990_recv_print(struct lance_softc *, int);
+static void am7990_xmit_print(struct lance_softc *, int);
 #endif
 
 int
-am7990_config(struct am7990_softc *sc, const char* name, int unit)
+am7990_config(struct am7990_softc *sc, const char *name, int unit)
 {
 	int error, mem;
 
@@ -240,9 +240,8 @@ am7990_rint(struct lance_softc *sc)
 							if_printf(ifp,
 							    "crc mismatch\n");
 					}
-				} else
-					if (rmd.rmd1_bits & LE_R1_OFLO)
-						if_printf(ifp, "overflow\n");
+				} else if (rmd.rmd1_bits & LE_R1_OFLO)
+					if_printf(ifp, "overflow\n");
 #endif
 				if (rmd.rmd1_bits & LE_R1_BUFF)
 					if_printf(ifp,
@@ -317,11 +316,12 @@ am7990_tint(struct lance_softc *sc)
 
 #ifdef LEDEBUG
 		if (sc->sc_flags & LE_DEBUG)
-			if_printf(ifp, "trans tmd: "
+			if_printf(ifp,
+			    "trans tmd: "
 			    "ladr %04x, hadr %02x, flags %02x, "
 			    "bcnt %04x, mcnt %04x\n",
-			    tmd.tmd0, tmd.tmd1_hadr, tmd.tmd1_bits,
-			    tmd.tmd2, tmd.tmd3);
+			    tmd.tmd0, tmd.tmd1_hadr, tmd.tmd1_bits, tmd.tmd2,
+			    tmd.tmd3);
 #endif
 
 		if (tmd.tmd1_bits & LE_T1_OWN)
@@ -415,8 +415,10 @@ am7990_intr(void *arg)
 	 * the interrupt enable bit in order to keep receiving them
 	 * (some chips work without this, some don't).
 	 */
-	(*sc->sc_wrcsr)(sc, LE_CSR0, isr & ~(LE_C0_INEA | LE_C0_TDMD |
-	    LE_C0_STOP | LE_C0_STRT | LE_C0_INIT));
+	(*sc->sc_wrcsr)(sc, LE_CSR0,
+	    isr &
+		~(LE_C0_INEA | LE_C0_TDMD | LE_C0_STOP | LE_C0_STRT |
+		    LE_C0_INIT));
 
 	if (isr & LE_C0_ERR) {
 		if (isr & LE_C0_BABL) {
@@ -503,8 +505,7 @@ am7990_start_locked(struct lance_softc *sc)
 	bix = sc->sc_last_td;
 	enq = 0;
 
-	for (; sc->sc_no_td < sc->sc_ntbuf &&
-	    !if_sendq_empty(ifp);) {
+	for (; sc->sc_no_td < sc->sc_ntbuf && !if_sendq_empty(ifp);) {
 		rp = LE_TMDADDR(sc, bix);
 		(*sc->sc_copyfromdesc)(sc, &tmd, rp, sizeof(tmd));
 

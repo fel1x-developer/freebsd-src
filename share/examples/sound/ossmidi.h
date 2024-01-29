@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define CMD_MASK 0xF0
 #define NOTE_ON 0x90
@@ -49,8 +49,8 @@ typedef struct midi_event {
 } midi_event_t;
 
 typedef struct midi_config {
-	char   *device;
-	int	fd;
+	char *device;
+	int fd;
 } midi_config_t;
 
 void

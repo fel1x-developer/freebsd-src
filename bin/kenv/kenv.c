@@ -25,6 +25,7 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <err.h>
 #include <errno.h>
 #include <kenv.h>
@@ -33,11 +34,11 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	usage(void);
-static int	kdumpenv(int dump_type);
-static int	kgetenv(const char *);
-static int	ksetenv(const char *, char *);
-static int	kunsetenv(const char *);
+static void usage(void);
+static int kdumpenv(int dump_type);
+static int kgetenv(const char *);
+static int ksetenv(const char *, char *);
+static int kunsetenv(const char *);
 
 static int hflag = 0;
 static int lflag = 0;
@@ -50,8 +51,7 @@ static int vflag = 0;
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "%s\n%s\n%s\n",
-	    "usage: kenv [-l|-s] [-hNq]",
+	(void)fprintf(stderr, "%s\n%s\n%s\n", "usage: kenv [-l|-s] [-hNq]",
 	    "       kenv [-qv] variable[=value]",
 	    "       kenv [-q] -u variable");
 	exit(1);

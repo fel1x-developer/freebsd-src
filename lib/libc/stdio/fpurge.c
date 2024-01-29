@@ -32,13 +32,14 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * fpurge: like fflush, but without writing anything: leave the
@@ -57,7 +58,8 @@ fpurge(FILE *fp)
 			FREEUB(fp);
 		fp->_p = fp->_bf._base;
 		fp->_r = 0;
-		fp->_w = fp->_flags & (__SLBF|__SNBF|__SRD) ? 0 : fp->_bf._size;
+		fp->_w = fp->_flags & (__SLBF | __SNBF | __SRD) ? 0 :
+								  fp->_bf._size;
 		retval = 0;
 	}
 	FUNLOCKFILE(fp);

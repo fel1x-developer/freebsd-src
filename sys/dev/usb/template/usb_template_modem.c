@@ -37,34 +37,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	MODEM_LANG_INDEX,
@@ -75,28 +74,28 @@ enum {
 	MODEM_MAX_INDEX,
 };
 
-#define	MODEM_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	MODEM_DEFAULT_PRODUCT_ID	0x27dd
-#define	MODEM_DEFAULT_INTERFACE		"Virtual serial port"
-#define	MODEM_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	MODEM_DEFAULT_PRODUCT		"Virtual serial port"
+#define MODEM_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define MODEM_DEFAULT_PRODUCT_ID 0x27dd
+#define MODEM_DEFAULT_INTERFACE "Virtual serial port"
+#define MODEM_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define MODEM_DEFAULT_PRODUCT "Virtual serial port"
 /*
  * The reason for this being called like this is that OSX
  * derives the device node name from it, resulting in a somewhat
  * user-friendly "/dev/cu.usbmodemFreeBSD1".  And yes, the "1"
  * needs to be there, otherwise OSX will mangle it.
  */
-#define	MODEM_DEFAULT_SERIAL_NUMBER	"FreeBSD1"
+#define MODEM_DEFAULT_SERIAL_NUMBER "FreeBSD1"
 
-static struct usb_string_descriptor	modem_interface;
-static struct usb_string_descriptor	modem_manufacturer;
-static struct usb_string_descriptor	modem_product;
-static struct usb_string_descriptor	modem_serial_number;
+static struct usb_string_descriptor modem_interface;
+static struct usb_string_descriptor modem_manufacturer;
+static struct usb_string_descriptor modem_product;
+static struct usb_string_descriptor modem_serial_number;
 
-static struct sysctl_ctx_list		modem_ctx_list;
+static struct sysctl_ctx_list modem_ctx_list;
 
-#define	MODEM_IFACE_0 0
-#define	MODEM_IFACE_1 1
+#define MODEM_IFACE_0 0
+#define MODEM_IFACE_1 1
 
 /* prototypes */
 
@@ -114,8 +113,8 @@ static const struct usb_temp_packet_size modem_intr_mps = {
 
 static const struct usb_temp_interval modem_intr_interval = {
 	.bInterval[USB_SPEED_LOW] = 8,	/* 8ms */
-	.bInterval[USB_SPEED_FULL] = 8,	/* 8ms */
-	.bInterval[USB_SPEED_HIGH] = 7,	/* 8ms */
+	.bInterval[USB_SPEED_FULL] = 8, /* 8ms */
+	.bInterval[USB_SPEED_HIGH] = 7, /* 8ms */
 };
 
 static const struct usb_temp_endpoint_desc modem_ep_0 = {
@@ -148,21 +147,15 @@ static const struct usb_temp_endpoint_desc *modem_iface_1_ep[] = {
 	NULL,
 };
 
-static const uint8_t modem_raw_desc_0[] = {
-	0x05, 0x24, 0x00, 0x10, 0x01
-};
+static const uint8_t modem_raw_desc_0[] = { 0x05, 0x24, 0x00, 0x10, 0x01 };
 
-static const uint8_t modem_raw_desc_1[] = {
-	0x05, 0x24, 0x06, MODEM_IFACE_0, MODEM_IFACE_1
-};
+static const uint8_t modem_raw_desc_1[] = { 0x05, 0x24, 0x06, MODEM_IFACE_0,
+	MODEM_IFACE_1 };
 
-static const uint8_t modem_raw_desc_2[] = {
-	0x05, 0x24, 0x01, 0x03, MODEM_IFACE_1
-};
+static const uint8_t modem_raw_desc_2[] = { 0x05, 0x24, 0x01, 0x03,
+	MODEM_IFACE_1 };
 
-static const uint8_t modem_raw_desc_3[] = {
-	0x04, 0x24, 0x02, 0x07
-};
+static const uint8_t modem_raw_desc_3[] = { 0x04, 0x24, 0x02, 0x07 };
 
 static const void *modem_iface_0_desc[] = {
 	&modem_raw_desc_0,
@@ -287,15 +280,15 @@ modem_init(void *arg __unused)
 	sysctl_ctx_init(&modem_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&modem_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "Virtual serial port device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
+	    "Virtual serial port device side template");
 	SYSCTL_ADD_U16(&modem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_modem.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_modem.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&modem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_modem.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_modem.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&modem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "keyboard", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -308,8 +301,8 @@ modem_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&modem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &modem_product, sizeof(modem_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &modem_product, sizeof(modem_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&modem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &modem_serial_number, sizeof(modem_serial_number), usb_temp_sysctl,

@@ -31,16 +31,17 @@
  *
  */
 
+#include <dev/mlx4/qp.h>
+
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
-#include <dev/mlx4/qp.h>
 
 #include "en.h"
 
-
-void mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
-			     int is_tx, int rss, int qpn, int cqn,
-			     int user_prio, struct mlx4_qp_context *context)
+void
+mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
+    int is_tx, int rss, int qpn, int cqn, int user_prio,
+    struct mlx4_qp_context *context)
 {
 	struct mlx4_en_dev *mdev = priv->mdev;
 	if_t dev = priv->dev;
@@ -50,9 +51,11 @@ void mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
 	context->pd = cpu_to_be32(mdev->priv_pdn);
 	context->mtu_msgmax = 0xff;
 	if (!is_tx && !rss)
-		context->rq_size_stride = ilog2(size) << 3 | (ilog2(stride) - 4);
+		context->rq_size_stride = ilog2(size) << 3 |
+		    (ilog2(stride) - 4);
 	if (is_tx)
-		context->sq_size_stride = ilog2(size) << 3 | (ilog2(stride) - 4);
+		context->sq_size_stride = ilog2(size) << 3 |
+		    (ilog2(stride) - 4);
 	else
 		context->sq_size_stride = ilog2(TXBB_SIZE) - 4;
 	context->usr_page = cpu_to_be32(mdev->priv_uar.index);
@@ -64,13 +67,12 @@ void mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
 		context->pri_path.feup = 1 << 6;
 	}
 	context->pri_path.counter_index = (u8)(priv->counter_index);
-	if (!rss &&
-	    (mdev->dev->caps.flags2 & MLX4_DEV_CAP_FLAG2_LB_SRC_CHK) &&
+	if (!rss && (mdev->dev->caps.flags2 & MLX4_DEV_CAP_FLAG2_LB_SRC_CHK) &&
 	    context->pri_path.counter_index != 0xFF) {
 		/* disable multicast loopback to qp with same counter */
 		context->pri_path.fl |= MLX4_FL_ETH_SRC_CHECK_MC_LB;
 		context->pri_path.vlan_control |=
-			MLX4_CTRL_ETH_SRC_CHECK_IF_COUNTER;
+		    MLX4_CTRL_ETH_SRC_CHECK_IF_COUNTER;
 	}
 
 	context->cqn_send = cpu_to_be32(cqn);
@@ -80,14 +82,15 @@ void mlx4_en_fill_qp_context(struct mlx4_en_priv *priv, int size, int stride,
 		context->param3 |= cpu_to_be32(1 << 30);
 }
 
-
-int mlx4_en_map_buffer(struct mlx4_buf *buf)
+int
+mlx4_en_map_buffer(struct mlx4_buf *buf)
 {
 	struct page **pages;
 	int i;
 
-        // if nbufs == 1 - there is no need to vmap 
-        // if buf->direct.buf is not NULL it means that vmap was already done by mlx4_alloc_buff
+	// if nbufs == 1 - there is no need to vmap
+	// if buf->direct.buf is not NULL it means that vmap was already done by
+	// mlx4_alloc_buff
 	if (buf->direct.buf != NULL || buf->nbufs == 1)
 		return 0;
 
@@ -106,7 +109,8 @@ int mlx4_en_map_buffer(struct mlx4_buf *buf)
 	return 0;
 }
 
-void mlx4_en_unmap_buffer(struct mlx4_buf *buf)
+void
+mlx4_en_unmap_buffer(struct mlx4_buf *buf)
 {
 	if (BITS_PER_LONG == 64 || buf->nbufs == 1)
 		return;
@@ -114,8 +118,8 @@ void mlx4_en_unmap_buffer(struct mlx4_buf *buf)
 	vunmap(buf->direct.buf);
 }
 
-void mlx4_en_sqp_event(struct mlx4_qp *qp, enum mlx4_event event)
+void
+mlx4_en_sqp_event(struct mlx4_qp *qp, enum mlx4_event event)
 {
-    return;
+	return;
 }
-

@@ -47,8 +47,8 @@ dtrace_vtime_enable(void)
 			/*NOTREACHED*/
 		}
 
-	} while	(dtrace_cas32((uint32_t *)&dtrace_vtime_active,
-	    state, nstate) != state);
+	} while (dtrace_cas32((uint32_t *)&dtrace_vtime_active, state,
+		     nstate) != state);
 }
 
 void
@@ -74,8 +74,8 @@ dtrace_vtime_disable(void)
 			/*NOTREACHED*/
 		}
 
-	} while	(dtrace_cas32((uint32_t *)&dtrace_vtime_active,
-	    state, nstate) != state);
+	} while (dtrace_cas32((uint32_t *)&dtrace_vtime_active, state,
+		     nstate) != state);
 }
 
 void

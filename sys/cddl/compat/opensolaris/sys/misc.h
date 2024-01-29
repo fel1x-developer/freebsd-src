@@ -25,34 +25,34 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_MISC_H_
-#define	_OPENSOLARIS_SYS_MISC_H_
+#define _OPENSOLARIS_SYS_MISC_H_
 
 #include <sys/limits.h>
 
-#define	MAXUID	UID_MAX
+#define MAXUID UID_MAX
 
-#define	SPEC_MAXOFFSET_T	OFF_MAX
+#define SPEC_MAXOFFSET_T OFF_MAX
 
-#define	_ACL_ACLENT_ENABLED	0x1
-#define	_ACL_ACE_ENABLED	0x2
+#define _ACL_ACLENT_ENABLED 0x1
+#define _ACL_ACE_ENABLED 0x2
 
-#define	_FIOFFS		(INT_MIN)
-#define	_FIOGDIO	(INT_MIN+1)
-#define	_FIOSDIO	(INT_MIN+2)
+#define _FIOFFS (INT_MIN)
+#define _FIOGDIO (INT_MIN + 1)
+#define _FIOSDIO (INT_MIN + 2)
 
-#define	_FIO_SEEK_DATA	FIOSEEKDATA
-#define	_FIO_SEEK_HOLE	FIOSEEKHOLE
+#define _FIO_SEEK_DATA FIOSEEKDATA
+#define _FIO_SEEK_HOLE FIOSEEKHOLE
 
 #ifdef _KERNEL
 struct opensolaris_utsname {
-	char	*sysname;
-	char	*nodename;
-	char	*release;
-	char	version[32];
-	char	*machine;
+	char *sysname;
+	char *nodename;
+	char *release;
+	char version[32];
+	char *machine;
 };
 
 extern char hw_serial[11];
 #endif
 
-#endif	/* _OPENSOLARIS_SYS_MISC_H_ */
+#endif /* _OPENSOLARIS_SYS_MISC_H_ */

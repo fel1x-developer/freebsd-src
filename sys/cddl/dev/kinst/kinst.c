@@ -11,63 +11,64 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
+#include <sys/dtrace.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/module.h>
-
-#include <sys/dtrace.h>
 
 #include "kinst.h"
 
 MALLOC_DEFINE(M_KINST, "kinst", "Kernel Instruction Tracing");
 
-static d_open_t		kinst_open;
-static d_close_t	kinst_close;
-static d_ioctl_t	kinst_ioctl;
+static d_open_t kinst_open;
+static d_close_t kinst_close;
+static d_ioctl_t kinst_ioctl;
 
-static void	kinst_provide_module(void *, modctl_t *);
-static void	kinst_getargdesc(void *, dtrace_id_t, void *,
-		    dtrace_argdesc_t *);
-static void	kinst_destroy(void *, dtrace_id_t, void *);
-static void	kinst_enable(void *, dtrace_id_t, void *);
-static void	kinst_disable(void *, dtrace_id_t, void *);
-static int	kinst_load(void *);
-static int	kinst_unload(void *);
-static int	kinst_modevent(module_t, int, void *);
+static void kinst_provide_module(void *, modctl_t *);
+static void kinst_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
+static void kinst_destroy(void *, dtrace_id_t, void *);
+static void kinst_enable(void *, dtrace_id_t, void *);
+static void kinst_disable(void *, dtrace_id_t, void *);
+static int kinst_load(void *);
+static int kinst_unload(void *);
+static int kinst_modevent(module_t, int, void *);
 
 static dtrace_pattr_t kinst_attr = {
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
 };
 
-static const dtrace_pops_t kinst_pops = {
-	.dtps_provide		= NULL,
-	.dtps_provide_module	= kinst_provide_module,
-	.dtps_enable		= kinst_enable,
-	.dtps_disable		= kinst_disable,
-	.dtps_suspend		= NULL,
-	.dtps_resume		= NULL,
-	.dtps_getargdesc	= kinst_getargdesc,
-	.dtps_getargval		= NULL,
-	.dtps_usermode		= NULL,
-	.dtps_destroy		= kinst_destroy
-};
+static const dtrace_pops_t kinst_pops = { .dtps_provide = NULL,
+	.dtps_provide_module = kinst_provide_module,
+	.dtps_enable = kinst_enable,
+	.dtps_disable = kinst_disable,
+	.dtps_suspend = NULL,
+	.dtps_resume = NULL,
+	.dtps_getargdesc = kinst_getargdesc,
+	.dtps_getargval = NULL,
+	.dtps_usermode = NULL,
+	.dtps_destroy = kinst_destroy };
 
 static struct cdevsw kinst_cdevsw = {
-	.d_name			= "kinst",
-	.d_version		= D_VERSION,
-	.d_flags		= D_TRACKCLOSE,
-	.d_open			= kinst_open,
-	.d_close		= kinst_close,
-	.d_ioctl		= kinst_ioctl,
+	.d_name = "kinst",
+	.d_version = D_VERSION,
+	.d_flags = D_TRACKCLOSE,
+	.d_open = kinst_open,
+	.d_close = kinst_close,
+	.d_ioctl = kinst_ioctl,
 };
 
-static dtrace_provider_id_t	kinst_id;
-struct kinst_probe_list	*kinst_probetab;
-static struct cdev	*kinst_cdev;
+static dtrace_provider_id_t kinst_id;
+struct kinst_probe_list *kinst_probetab;
+static struct cdev *kinst_cdev;
 
 /*
  * Tracing memcpy() will crash the kernel when kinst tries to trace an instance
@@ -126,16 +127,14 @@ kinst_excluded(const char *name)
 	/*
 	 * Lock owner methods may be called from probe context.
 	 */
-	if (strcmp(name, "owner_mtx") == 0 ||
-	    strcmp(name, "owner_rm") == 0 ||
-	    strcmp(name, "owner_rw") == 0 ||
-	    strcmp(name, "owner_sx") == 0)
+	if (strcmp(name, "owner_mtx") == 0 || strcmp(name, "owner_rm") == 0 ||
+	    strcmp(name, "owner_rw") == 0 || strcmp(name, "owner_sx") == 0)
 		return (true);
 
-	/*
-	 * When DTrace is built into the kernel we need to exclude the kinst
-	 * functions from instrumentation.
-	 */
+		/*
+		 * When DTrace is built into the kernel we need to exclude the
+		 * kinst functions from instrumentation.
+		 */
 #ifndef _KLD_MODULE
 	if (strncmp(name, "kinst_", strlen("kinst_")) == 0)
 		return (true);
@@ -150,8 +149,8 @@ kinst_excluded(const char *name)
 void
 kinst_probe_create(struct kinst_probe *kp, linker_file_t lf)
 {
-	kp->kp_id = dtrace_probe_create(kinst_id, lf->filename,
-	    kp->kp_func, kp->kp_name, 3, kp);
+	kp->kp_id = dtrace_probe_create(kinst_id, lf->filename, kp->kp_func,
+	    kp->kp_name, 3, kp);
 
 	LIST_INSERT_HEAD(KINST_GETPROBE(kp->kp_patchpoint), kp, kp_hashnext);
 }
@@ -279,7 +278,8 @@ kinst_load(void *dummy)
 		return (error);
 	}
 	kinst_probetab = malloc(KINST_PROBETAB_MAX *
-	    sizeof(struct kinst_probe_list), M_KINST, M_WAITOK | M_ZERO);
+		sizeof(struct kinst_probe_list),
+	    M_KINST, M_WAITOK | M_ZERO);
 	for (int i = 0; i < KINST_PROBETAB_MAX; i++)
 		LIST_INIT(&kinst_probetab[i]);
 	kinst_cdev = make_dev(&kinst_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,

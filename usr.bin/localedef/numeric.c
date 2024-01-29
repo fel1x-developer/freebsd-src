@@ -32,22 +32,24 @@
  * LC_NUMERIC database generation routines for localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "lnumeric.h"
 #include "localedef.h"
 #include "parser.h"
-#include "lnumeric.h"
 
 static struct lc_numeric_T numeric;
 
 void
 init_numeric(void)
 {
-	(void) memset(&numeric, 0, sizeof (numeric));
+	(void)memset(&numeric, 0, sizeof(numeric));
 }
 
 void
@@ -88,9 +90,9 @@ add_numeric_group(int n)
 	char *s;
 
 	if (numeric.grouping == NULL) {
-		(void) asprintf(&s, "%d", n);
+		(void)asprintf(&s, "%d", n);
 	} else {
-		(void) asprintf(&s, "%s;%d", numeric.grouping, n);
+		(void)asprintf(&s, "%s;%d", numeric.grouping, n);
 	}
 	if (s == NULL)
 		fprintf(stderr, "out of memory\n");

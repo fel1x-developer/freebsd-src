@@ -31,14 +31,13 @@
 #include <math.h>
 
 #include "fpmath.h"
-#include "math_private.h"
 #include "k_expl.h"
+#include "math_private.h"
 
 /* XXX cexpl() should be converted to use bits likeo src/s_cexp.c. */
 
-static const long double
-cexp_ovfl = 2.27892930024498818830197576893019292e+04L,
-exp_ovfl = 1.13565234062941439494919310779707649e+04L;
+static const long double cexp_ovfl = 2.27892930024498818830197576893019292e+04L,
+			 exp_ovfl = 1.13565234062941439494919310779707649e+04L;
 
 long double complex
 cexpl(long double complex z)

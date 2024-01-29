@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/smp.h>
 
@@ -39,22 +39,22 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_subr.h>
 
-#include "qman.h"
 #include "portals.h"
+#include "qman.h"
 
-#define	FQMAN_DEVSTR	"Freescale Queue Manager"
+#define FQMAN_DEVSTR "Freescale Queue Manager"
 
 static int qman_fdt_probe(device_t);
 
 static device_method_t qman_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		qman_fdt_probe),
-	DEVMETHOD(device_attach,	qman_attach),
-	DEVMETHOD(device_detach,	qman_detach),
+	DEVMETHOD(device_probe, qman_fdt_probe),
+	DEVMETHOD(device_attach, qman_attach),
+	DEVMETHOD(device_detach, qman_detach),
 
-	DEVMETHOD(device_suspend,	qman_suspend),
-	DEVMETHOD(device_resume,	qman_resume),
-	DEVMETHOD(device_shutdown,	qman_shutdown),
+	DEVMETHOD(device_suspend, qman_suspend),
+	DEVMETHOD(device_resume, qman_resume),
+	DEVMETHOD(device_shutdown, qman_shutdown),
 
 	{ 0, 0 }
 };
@@ -82,16 +82,16 @@ qman_fdt_probe(device_t dev)
 /*
  * QMAN Portals
  */
-#define	QMAN_PORT_DEVSTR	"Freescale Queue Manager - Portals"
+#define QMAN_PORT_DEVSTR "Freescale Queue Manager - Portals"
 
 static device_probe_t qman_portals_fdt_probe;
 static device_attach_t qman_portals_fdt_attach;
 
 static device_method_t qm_portals_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		qman_portals_fdt_probe),
-	DEVMETHOD(device_attach,	qman_portals_fdt_attach),
-	DEVMETHOD(device_detach,	qman_portals_detach),
+	DEVMETHOD(device_probe, qman_portals_fdt_probe),
+	DEVMETHOD(device_attach, qman_portals_fdt_attach),
+	DEVMETHOD(device_detach, qman_portals_detach),
 
 	{ 0, 0 }
 };
@@ -181,8 +181,8 @@ qman_portals_fdt_attach(device_t dev)
 	get_addr_props(ofw_bus_get_node(device_get_parent(dev)), &paddr, &size);
 	get_addr_props(node, &addr, &size);
 
-	nrange = OF_getencprop_alloc_multi(node, "ranges",
-	    sizeof(*range), (void **)&range);
+	nrange = OF_getencprop_alloc_multi(node, "ranges", sizeof(*range),
+	    (void **)&range);
 	if (nrange < addr + paddr + size)
 		return (ENXIO);
 	portal_pa = portal_par_pa = 0;
@@ -213,14 +213,15 @@ qman_portals_fdt_attach(device_t dev)
 		}
 		/* Checkout related cpu */
 		if (OF_getprop(child, "cpu-handle", (void *)&cpu,
-		    sizeof(cpu)) <= 0) {
+			sizeof(cpu)) <= 0) {
 			cpu = qman_portal_find_cpu(cpus);
 			if (cpu <= 0)
 				continue;
 		}
 		/* Acquire cpu number */
 		cpu_node = OF_instance_to_package(cpu);
-		if (OF_getencprop(cpu_node, "reg", &cpu_num, sizeof(cpu_num)) <= 0) {
+		if (OF_getencprop(cpu_node, "reg", &cpu_num, sizeof(cpu_num)) <=
+		    0) {
 			device_printf(dev, "Could not retrieve CPU number.\n");
 			return (ENXIO);
 		}
@@ -234,14 +235,18 @@ qman_portals_fdt_attach(device_t dev)
 
 		resource_list_init(&di.di_res);
 		if (ofw_bus_reg_to_rl(dev, child, addr, size, &di.di_res)) {
-			device_printf(dev, "%s: could not process 'reg' "
-			    "property\n", ofw_di.obd_name);
+			device_printf(dev,
+			    "%s: could not process 'reg' "
+			    "property\n",
+			    ofw_di.obd_name);
 			ofw_bus_gen_destroy_devinfo(&ofw_di);
 			continue;
 		}
 		if (ofw_bus_intr_to_rl(dev, child, &di.di_res, &intr_rid)) {
-			device_printf(dev, "%s: could not process "
-			    "'interrupts' property\n", ofw_di.obd_name);
+			device_printf(dev,
+			    "%s: could not process "
+			    "'interrupts' property\n",
+			    ofw_di.obd_name);
 			resource_list_free(&di.di_res);
 			ofw_bus_gen_destroy_devinfo(&ofw_di);
 			continue;

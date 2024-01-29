@@ -39,40 +39,40 @@
 
 #include <machine/stdarg.h>
 
-#define	dprintf(fmt, ...)						\
-	do {								\
-		if (dotrace_debugging)					\
-			printf(fmt, ##__VA_ARGS__);			\
+#define dprintf(fmt, ...)                           \
+	do {                                        \
+		if (dotrace_debugging)              \
+			printf(fmt, ##__VA_ARGS__); \
 	} while (0);
 
 static MALLOC_DEFINE(M_BOOTTRACE, "boottrace", "memory for boot tracing");
 
-#define	BT_TABLE_DEFSIZE	3000
-#define	BT_TABLE_RUNSIZE	2000
-#define	BT_TABLE_SHTSIZE	1000
-#define	BT_TABLE_MINSIZE	500
+#define BT_TABLE_DEFSIZE 3000
+#define BT_TABLE_RUNSIZE 2000
+#define BT_TABLE_SHTSIZE 1000
+#define BT_TABLE_MINSIZE 500
 
 /*
  * Boot-time & shutdown-time event.
  */
 struct bt_event {
-	uint64_t tsc;			/* Timestamp */
-	uint64_t tick;			/* Kernel tick */
-	uint64_t cputime;		/* Microseconds of process CPU time */
-	uint32_t cpuid;			/* CPU on which the event ran */
-	uint32_t inblock;		/* # of blocks in */
-	uint32_t oublock;		/* # of blocks out */
-	pid_t pid;			/* Current PID */
-	char name[BT_EVENT_NAMELEN];	/* Event name */
+	uint64_t tsc;			 /* Timestamp */
+	uint64_t tick;			 /* Kernel tick */
+	uint64_t cputime;		 /* Microseconds of process CPU time */
+	uint32_t cpuid;			 /* CPU on which the event ran */
+	uint32_t inblock;		 /* # of blocks in */
+	uint32_t oublock;		 /* # of blocks out */
+	pid_t pid;			 /* Current PID */
+	char name[BT_EVENT_NAMELEN];	 /* Event name */
 	char tdname[BT_EVENT_TDNAMELEN]; /* Thread name */
 };
 
 struct bt_table {
-	uint32_t size;			/* Trace table size */
-	uint32_t curr;			/* Trace entry to use */
-	uint32_t wrap;			/* Wrap-around, instead of dropping */
-	uint32_t drops_early;		/* Trace entries dropped before init */
-	uint32_t drops_full;		/* Trace entries dropped after full */
+	uint32_t size;	      /* Trace table size */
+	uint32_t curr;	      /* Trace entry to use */
+	uint32_t wrap;	      /* Wrap-around, instead of dropping */
+	uint32_t drops_early; /* Trace entries dropped before init */
+	uint32_t drops_full;  /* Trace entries dropped after full */
 	struct bt_event *table;
 };
 
@@ -113,41 +113,34 @@ SYSCTL_NODE(_kern, OID_AUTO, boottrace, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "boottrace statistics");
 
 SYSCTL_PROC(_kern_boottrace, OID_AUTO, log,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_SKIP,
-    0, 0, sysctl_log, "A",
-    "Print a log of the boottrace trace data");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE | CTLFLAG_SKIP, 0, 0,
+    sysctl_log, "A", "Print a log of the boottrace trace data");
 SYSCTL_PROC(_kern_boottrace, OID_AUTO, boottrace,
-    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE,
-    0, 0, sysctl_boottrace, "A",
+    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE, 0, 0, sysctl_boottrace, "A",
     "Capture a boot-time trace event");
 SYSCTL_PROC(_kern_boottrace, OID_AUTO, runtrace,
-    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE,
-    0, 0, sysctl_runtrace, "A",
+    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE, 0, 0, sysctl_runtrace, "A",
     "Capture a run-time trace event");
 SYSCTL_PROC(_kern_boottrace, OID_AUTO, shuttrace,
-    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE,
-    0, 0, sysctl_shuttrace, "A",
+    CTLTYPE_STRING | CTLFLAG_WR | CTLFLAG_MPSAFE, 0, 0, sysctl_shuttrace, "A",
     "Capture a shutdown-time trace event");
 SYSCTL_PROC(_kern_boottrace, OID_AUTO, reset,
-    CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_MPSAFE,
-    0, 0, sysctl_boottrace_reset, "A",
-    "Reset run-time tracing table");
+    CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_MPSAFE, 0, 0, sysctl_boottrace_reset,
+    "A", "Reset run-time tracing table");
 
 /*
  * Global enable.
  */
 bool __read_mostly boottrace_enabled = false;
 SYSCTL_BOOL(_kern_boottrace, OID_AUTO, enabled, CTLFLAG_RDTUN,
-    &boottrace_enabled, 0,
-    "Boot-time and shutdown-time tracing enabled");
+    &boottrace_enabled, 0, "Boot-time and shutdown-time tracing enabled");
 
 /*
  * Enable dumping of the shutdown trace entries to console.
  */
 bool shutdown_trace = false;
 SYSCTL_BOOL(_kern_boottrace, OID_AUTO, shutdown_trace, CTLFLAG_RWTUN,
-   &shutdown_trace, 0,
-   "Enable kernel shutdown tracing to the console");
+    &shutdown_trace, 0, "Enable kernel shutdown tracing to the console");
 
 /*
  * Set the delta threshold (ms) below which events are ignored, used in
@@ -155,8 +148,8 @@ SYSCTL_BOOL(_kern_boottrace, OID_AUTO, shutdown_trace, CTLFLAG_RWTUN,
  */
 static int shutdown_trace_threshold;
 SYSCTL_INT(_kern_boottrace, OID_AUTO, shutdown_trace_threshold, CTLFLAG_RWTUN,
-   &shutdown_trace_threshold, 0,
-   "Tracing threshold (ms) below which tracing is ignored");
+    &shutdown_trace_threshold, 0,
+    "Tracing threshold (ms) below which tracing is ignored");
 
 SYSCTL_UINT(_kern_boottrace, OID_AUTO, table_size,
     CTLFLAG_RDTUN | CTLFLAG_NOFETCH, &bt.size, 0,
@@ -175,36 +168,38 @@ SYSCTL_UINT(_kern_boottrace, OID_AUTO, table_size,
  *  11 1228262715          0 init                     shutdown pre sync begin
  *   3 1228265622       2907 init                     shutdown pre sync complete
  *   3 1228265623          0 init                     shutdown turned swap off
- *  18 1228266466        843 init                     shutdown unmounted all filesystems
+ *  18 1228266466        843 init                     shutdown unmounted all
+ * filesystems
  *
  * How to interpret:
  *
- * delta column represents the time in milliseconds between this event and the previous.
- * Usually that means you can take the previous event, current event, match them
- * up in the code, and whatever lies between is the culprit taking time.
+ * delta column represents the time in milliseconds between this event and the
+ * previous. Usually that means you can take the previous event, current event,
+ * match them up in the code, and whatever lies between is the culprit taking
+ * time.
  *
- * For example, above: Pre-Sync is taking 2907ms, and something between swap and unmount
- * filesystems is taking 843 milliseconds.
+ * For example, above: Pre-Sync is taking 2907ms, and something between swap and
+ * unmount filesystems is taking 843 milliseconds.
  *
- * An event with a delta of 0 are 'landmark' events that simply exist in the output
- * for the developer to know where the time measurement begins. The 0 is an arbitrary
- * number that can effectively be ignored.
+ * An event with a delta of 0 are 'landmark' events that simply exist in the
+ * output for the developer to know where the time measurement begins. The 0 is
+ * an arbitrary number that can effectively be ignored.
  */
-#define BTC_DELTA_PRINT(bte, msecs, delta) do {				\
-	if (sbp) {							\
-		sbuf_printf(sbp, fmt, (bte)->cpuid, msecs, delta,	\
-		    (bte)->tdname, (bte)->name, (bte)->pid,		\
-		    (bte)->cputime / 1000000,				\
-		    ((bte)->cputime % 1000000) / 10000,			\
-		    (bte)->inblock, (bte)->oublock);			\
-	} else {							\
-		printf(fmt, (bte)->cpuid, msecs, delta,			\
-		    (bte)->tdname, (bte)->name, (bte)->pid,		\
-		    (bte)->cputime / 1000000,				\
-		    ((bte)->cputime % 1000000) / 10000,			\
-		    (bte)->inblock, (bte)->oublock);			\
-	}								\
-} while (0)
+#define BTC_DELTA_PRINT(bte, msecs, delta)                                     \
+	do {                                                                   \
+		if (sbp) {                                                     \
+			sbuf_printf(sbp, fmt, (bte)->cpuid, msecs, delta,      \
+			    (bte)->tdname, (bte)->name, (bte)->pid,            \
+			    (bte)->cputime / 1000000,                          \
+			    ((bte)->cputime % 1000000) / 10000,                \
+			    (bte)->inblock, (bte)->oublock);                   \
+		} else {                                                       \
+			printf(fmt, (bte)->cpuid, msecs, delta, (bte)->tdname, \
+			    (bte)->name, (bte)->pid, (bte)->cputime / 1000000, \
+			    ((bte)->cputime % 1000000) / 10000,                \
+			    (bte)->inblock, (bte)->oublock);                   \
+		}                                                              \
+	} while (0)
 
 /*
  * Print the trace entries to the message buffer, or to an sbuf, if provided.
@@ -224,20 +219,19 @@ boottrace_display(struct sbuf *sbp, struct bt_table *btp, uint64_t dthres)
 	uint64_t total_dmsecs;
 	uint32_t i;
 	uint32_t curr;
-	const char *fmt     = "%3u %10llu %10llu %-24s %-40s %5d %4d.%02d %5u %5u\n";
+	const char *fmt =
+	    "%3u %10llu %10llu %-24s %-40s %5d %4d.%02d %5u %5u\n";
 	const char *hdr_fmt = "\n\n%3s %10s %10s %-24s %-40s %5s %6s %5s %5s\n";
 	bool printed;
 	bool last_printed;
 
 	/* Print the header */
 	if (sbp != NULL)
-		sbuf_printf(sbp, hdr_fmt,
-		    "CPU", "msecs", "delta", "process",
+		sbuf_printf(sbp, hdr_fmt, "CPU", "msecs", "delta", "process",
 		    "event", "PID", "CPUtime", "IBlks", "OBlks");
 	else
-		printf(hdr_fmt,
-		    "CPU", "msecs", "delta", "process",
-		    "event", "PID", "CPUtime", "IBlks", "OBlks");
+		printf(hdr_fmt, "CPU", "msecs", "delta", "process", "event",
+		    "PID", "CPUtime", "IBlks", "OBlks");
 
 	first_msecs = 0;
 	last_evtp = NULL;
@@ -253,7 +247,8 @@ boottrace_display(struct sbuf *sbp, struct bt_table *btp, uint64_t dthres)
 
 		msecs = cputick2usec(evtp->tick) / 1000;
 		dmsecs = (last_msecs != 0 && msecs > last_msecs) ?
-		    msecs - last_msecs : 0;
+		    msecs - last_msecs :
+		    0;
 		printed = false;
 
 		/*
@@ -281,12 +276,12 @@ boottrace_display(struct sbuf *sbp, struct bt_table *btp, uint64_t dthres)
 		last_dmsecs = dmsecs;
 		last_printed = printed;
 		maybe_yield();
-next:
+	next:
 		i = (i + 1) % btp->size;
 	} while (i != curr);
 
-	total_dmsecs = last_msecs > first_msecs ?
-	    (last_msecs - first_msecs) : 0;
+	total_dmsecs = last_msecs > first_msecs ? (last_msecs - first_msecs) :
+						  0;
 	if (sbp != NULL)
 		sbuf_printf(sbp, "Total measured time: %ju msecs\n",
 		    (uintmax_t)total_dmsecs);
@@ -326,8 +321,8 @@ dotrace(struct bt_table *btp, const char *eventname, const char *tdname)
 
 	MPASS(boottrace_enabled);
 	if (tdname == NULL)
-		tdname = (curproc->p_flag & P_SYSTEM) ?
-		    curthread->td_name : curproc->p_comm;
+		tdname = (curproc->p_flag & P_SYSTEM) ? curthread->td_name :
+							curproc->p_comm;
 
 	dprintf("dotrace[");
 	dprintf("cpu=%u, pid=%d, tsc=%ju, tick=%d, td='%s', event='%s'",
@@ -365,8 +360,8 @@ dotrace(struct bt_table *btp, const char *eventname, const char *tdname)
 		btp->table[idx].oublock = 0;
 	} else {
 		kern_getrusage(curthread, RUSAGE_CHILDREN, &usage);
-		btp->table[idx].cputime =
-		    (uint64_t)(usage.ru_utime.tv_sec * 1000000 +
+		btp->table[idx].cputime = (uint64_t)(usage.ru_utime.tv_sec *
+			1000000 +
 		    usage.ru_utime.tv_usec + usage.ru_stime.tv_sec * 1000000 +
 		    usage.ru_stime.tv_usec);
 		btp->table[idx].inblock = (uint32_t)usage.ru_inblock;
@@ -391,7 +386,7 @@ boottrace(const char *tdname, const char *fmt, ...)
 	va_list ap;
 
 	if (!dotrace_kernel)
-		 return (ENXIO);
+		return (ENXIO);
 
 	va_start(ap, fmt);
 	vsnprintf(eventname, sizeof(eventname), fmt, ap);
@@ -450,7 +445,7 @@ _boottrace_sysctl(struct bt_table *btp, struct sysctl_oid *oidp,
 	int error;
 
 	if (!dotrace_user)
-	       return (ENXIO);
+		return (ENXIO);
 
 	message[0] = '\0';
 	error = sysctl_handle_string(oidp, message, sizeof(message), req);

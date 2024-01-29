@@ -43,15 +43,15 @@
 #include <machine/metadata.h>
 #include <machine/pc/bios.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/nvdimm/nvdimm_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 struct nvdimm_e820_bus {
 	SLIST_HEAD(, SPA_mapping) spas;
 };
 
-#define	NVDIMM_E820	"nvdimm_e820"
+#define NVDIMM_E820 "nvdimm_e820"
 
 static MALLOC_DEFINE(M_NVDIMM_E820, NVDIMM_E820, "NVDIMM e820 bus memory");
 
@@ -77,8 +77,10 @@ nvdimm_e820_dump_prams(device_t dev, const char *func, int hintunit)
 	if (hintunit < 0)
 		sbuf_cat(&sb, "Found BIOS PRAM regions: ");
 	else
-		sbuf_printf(&sb, "Remaining unallocated PRAM regions after "
-		    "hint %d: ", hintunit);
+		sbuf_printf(&sb,
+		    "Remaining unallocated PRAM regions after "
+		    "hint %d: ",
+		    hintunit);
 
 	for (i = 0; i < pram_nreg; i++) {
 		if (pram_segments[i].size == 0)
@@ -89,8 +91,8 @@ nvdimm_e820_dump_prams(device_t dev, const char *func, int hintunit)
 			printed = true;
 		sbuf_printf(&sb, "0x%jx-0x%jx",
 		    (uintmax_t)pram_segments[i].start,
-		    (uintmax_t)pram_segments[i].start + pram_segments[i].size
-		    - 1);
+		    (uintmax_t)pram_segments[i].start + pram_segments[i].size -
+			1);
 	}
 
 	if (!printed)
@@ -124,10 +126,10 @@ nvdimm_e820_create_spas(device_t dev)
 		nvdimm_e820_dump_prams(dev, __func__, -1);
 
 	for (i = 0;
-	    resource_long_value("nvdimm_spa", i, "maddr", &hintaddrl) == 0;
-	    i++) {
-		if (resource_long_value("nvdimm_spa", i, "msize", &hintsizel)
-		    != 0) {
+	     resource_long_value("nvdimm_spa", i, "maddr", &hintaddrl) == 0;
+	     i++) {
+		if (resource_long_value("nvdimm_spa", i, "msize", &hintsizel) !=
+		    0) {
 			device_printf(dev, "hint.nvdimm_spa.%u missing msize\n",
 			    i);
 			continue;
@@ -137,35 +139,42 @@ nvdimm_e820_create_spas(device_t dev)
 		hintsize = (vm_size_t)hintsizel;
 		if ((hintaddr & PAGE_MASK) != 0 ||
 		    ((hintsize & PAGE_MASK) != 0 && hintsize != HINT_ALL)) {
-			device_printf(dev, "hint.nvdimm_spa.%u addr or size "
-			    "not page aligned\n", i);
+			device_printf(dev,
+			    "hint.nvdimm_spa.%u addr or size "
+			    "not page aligned\n",
+			    i);
 			continue;
 		}
 
-		if (resource_string_value("nvdimm_spa", i, "type", &hinttype)
-		    != 0) {
+		if (resource_string_value("nvdimm_spa", i, "type", &hinttype) !=
+		    0) {
 			device_printf(dev, "hint.nvdimm_spa.%u missing type\n",
 			    i);
 			continue;
 		}
 		spa_type = nvdimm_spa_type_from_name(hinttype);
 		if (spa_type == SPA_TYPE_UNKNOWN) {
-			device_printf(dev, "hint.nvdimm_spa%u.type does not "
-			    "match any known SPA types\n", i);
+			device_printf(dev,
+			    "hint.nvdimm_spa%u.type does not "
+			    "match any known SPA types\n",
+			    i);
 			continue;
 		}
 
 		for (j = 0; j < pram_nreg; j++) {
 			if (pram_segments[j].start <= hintaddr &&
 			    (hintsize == HINT_ALL ||
-			    (pram_segments[j].start + pram_segments[j].size) >=
-			    (hintaddr + hintsize)))
+				(pram_segments[j].start +
+				    pram_segments[j].size) >=
+				    (hintaddr + hintsize)))
 				break;
 		}
 
 		if (j == pram_nreg) {
-			device_printf(dev, "hint.nvdimm_spa%u hint does not "
-			    "match any region\n", i);
+			device_printf(dev,
+			    "hint.nvdimm_spa%u hint does not "
+			    "match any region\n",
+			    i);
 			continue;
 		}
 
@@ -179,7 +188,7 @@ nvdimm_e820_create_spas(device_t dev)
 			/* We might leave an empty segment; who cares. */
 		} else if (hintsize == HINT_ALL ||
 		    (pram_segments[j].start + pram_segments[j].size) ==
-		    (hintaddr + hintsize)) {
+			(hintaddr + hintsize)) {
 			/* 2nd easy case: end of segment. */
 			if (hintsize == HINT_ALL)
 				hintsize = pram_segments[j].size -
@@ -199,13 +208,13 @@ nvdimm_e820_create_spas(device_t dev)
 				memmove(&pram_segments[j + 2],
 				    &pram_segments[j + 1],
 				    (pram_nreg - 1 - j) *
-				    sizeof(pram_segments[0]));
+					sizeof(pram_segments[0]));
 			}
 			pram_nreg++;
 
 			pram_segments[j + 1].start = hintaddr + hintsize;
-			pram_segments[j + 1].size =
-			    (pram_segments[j].start + pram_segments[j].size) -
+			pram_segments[j + 1].size = (pram_segments[j].start +
+							pram_segments[j].size) -
 			    (hintaddr + hintsize);
 			pram_segments[j].size = hintaddr -
 			    pram_segments[j].start;
@@ -245,7 +254,7 @@ nvdimm_e820_remove_spas(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	SLIST_FOREACH_SAFE(spa, &sc->spas, link, next) {
+	SLIST_FOREACH_SAFE (spa, &sc->spas, link, next) {
 		nvdimm_spa_fini(spa);
 		SLIST_REMOVE_HEAD(&sc->spas, link);
 		free(spa, M_NVDIMM_E820);
@@ -339,15 +348,13 @@ nvdimm_e820_detach(device_t dev)
 	return (error);
 }
 
-static device_method_t nvdimm_e820_methods[] = {
-	DEVMETHOD(device_identify, nvdimm_e820_identify),
+static device_method_t nvdimm_e820_methods[] = { DEVMETHOD(device_identify,
+						     nvdimm_e820_identify),
 	DEVMETHOD(device_probe, nvdimm_e820_probe),
 	DEVMETHOD(device_attach, nvdimm_e820_attach),
-	DEVMETHOD(device_detach, nvdimm_e820_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, nvdimm_e820_detach), DEVMETHOD_END };
 
-static driver_t	nvdimm_e820_driver = {
+static driver_t nvdimm_e820_driver = {
 	NVDIMM_E820,
 	nvdimm_e820_methods,
 	sizeof(struct nvdimm_e820_bus),
@@ -385,5 +392,5 @@ nvdimm_e820_chainevh(struct module *m, int e, void *arg __unused)
 	return (0);
 }
 
-DRIVER_MODULE(nvdimm_e820, nexus, nvdimm_e820_driver,
-    nvdimm_e820_chainevh, NULL);
+DRIVER_MODULE(nvdimm_e820, nexus, nvdimm_e820_driver, nvdimm_e820_chainevh,
+    NULL);

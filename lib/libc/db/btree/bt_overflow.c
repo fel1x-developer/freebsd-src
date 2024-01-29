@@ -34,11 +34,11 @@
 
 #include <sys/param.h>
 
+#include <db.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <db.h>
 #include "btree.h"
 
 /*
@@ -139,7 +139,7 @@ __ovfl_put(BTREE *t, const DBT *dbt, pgno_t *pg)
 	 */
 	plen = t->bt_psize - BTDATAOFF;
 	for (last = NULL, p = dbt->data, sz = dbt->size;;
-	    p = (char *)p + plen, last = h) {
+	     p = (char *)p + plen, last = h) {
 		if ((h = __bt_new(t, &npg)) == NULL)
 			return (RET_ERROR);
 

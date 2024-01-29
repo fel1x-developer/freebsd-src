@@ -28,22 +28,21 @@
  */
 
 #ifndef _DEV_HWPMC_RISCV_H_
-#define	_DEV_HWPMC_RISCV_H_
+#define _DEV_HWPMC_RISCV_H_
 
-#define	RISCV_PMC_CAPS		(PMC_CAP_INTERRUPT | PMC_CAP_USER |	\
-				 PMC_CAP_SYSTEM | PMC_CAP_EDGE |	\
-				 PMC_CAP_THRESHOLD | PMC_CAP_READ |	\
-				 PMC_CAP_WRITE | PMC_CAP_INVERT |	\
-				 PMC_CAP_QUALIFIER)
+#define RISCV_PMC_CAPS                                                      \
+	(PMC_CAP_INTERRUPT | PMC_CAP_USER | PMC_CAP_SYSTEM | PMC_CAP_EDGE | \
+	    PMC_CAP_THRESHOLD | PMC_CAP_READ | PMC_CAP_WRITE |              \
+	    PMC_CAP_INVERT | PMC_CAP_QUALIFIER)
 
-#define	RISCV_RELOAD_COUNT_TO_PERFCTR_VALUE(R)	(-(R))
-#define	RISCV_PERFCTR_VALUE_TO_RELOAD_COUNT(P)	(-(P))
-#define	EVENT_ID_MASK	0xFF
+#define RISCV_RELOAD_COUNT_TO_PERFCTR_VALUE(R) (-(R))
+#define RISCV_PERFCTR_VALUE_TO_RELOAD_COUNT(P) (-(P))
+#define EVENT_ID_MASK 0xFF
 
 #ifdef _KERNEL
 /* MD extension for 'struct pmc' */
 struct pmc_md_riscv_pmc {
-	uint32_t	pm_riscv_evsel;
+	uint32_t pm_riscv_evsel;
 };
 #endif /* _KERNEL */
 #endif /* _DEV_HWPMC_RISCV_H_ */

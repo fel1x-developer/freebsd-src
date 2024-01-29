@@ -26,16 +26,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/fail.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sdt.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 #include <machine/stdarg.h>
@@ -43,18 +43,17 @@
 #define CHACHA_EMBED
 #define KEYSTREAM_ONLY
 #define CHACHA_NONCE0_CTR128
-#include <crypto/chacha20/chacha.h>
-#include <crypto/rijndael/rijndael-api-fst.h>
-#include <crypto/sha2/sha256.h>
-
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-#include <dev/random/uint128.h>
-
 #include <dev/random/fenestrasX/fx_hash.h>
 #include <dev/random/fenestrasX/fx_priv.h>
 #include <dev/random/fenestrasX/fx_rng.h>
+#include <dev/random/hash.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
+#include <dev/random/uint128.h>
+
+#include <crypto/chacha20/chacha.h>
+#include <crypto/rijndael/rijndael-api-fst.h>
+#include <crypto/sha2/sha256.h>
 
 _Static_assert(FX_CHACHA20_KEYSIZE == RANDOM_KEYSIZE, "");
 
@@ -83,7 +82,7 @@ fxrng_rng_keystream_internal(struct chacha_ctx *prf, void *buf, size_t nbytes)
 static void
 fxrng_chacha_nonce_add64(struct chacha_ctx *ctx, uint64_t addend)
 {
-	uint128_t ctr;	/* Native-endian. */
+	uint128_t ctr; /* Native-endian. */
 #if BYTE_ORDER == BIG_ENDIAN
 	uint128_t lectr;
 

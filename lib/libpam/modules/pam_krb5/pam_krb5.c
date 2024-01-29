@@ -49,7 +49,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <com_err.h>
 #include <errno.h>
+#include <krb5.h>
 #include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -58,57 +61,54 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <krb5.h>
-#include <com_err.h>
+#define PAM_SM_AUTH
+#define PAM_SM_ACCOUNT
+#define PAM_SM_PASSWORD
 
-#define	PAM_SM_AUTH
-#define	PAM_SM_ACCOUNT
-#define	PAM_SM_PASSWORD
-
-#include <security/pam_appl.h>
-#include <security/pam_modules.h>
-#include <security/pam_mod_misc.h>
 #include <security/openpam.h>
+#include <security/pam_appl.h>
+#include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define	COMPAT_HEIMDAL
+#define COMPAT_HEIMDAL
 /* #define	COMPAT_MIT */
 
-static int	verify_krb_v5_tgt_begin(krb5_context, char *, int,
-    const char **, krb5_principal *, char[static BUFSIZ]);
-static int	verify_krb_v5_tgt(krb5_context, krb5_ccache, char *, int,
+static int verify_krb_v5_tgt_begin(krb5_context, char *, int, const char **,
+    krb5_principal *, char[static BUFSIZ]);
+static int verify_krb_v5_tgt(krb5_context, krb5_ccache, char *, int,
     const char *, krb5_principal, char[static BUFSIZ]);
-static void	verify_krb_v5_tgt_cleanup(krb5_context, int,
-    const char *, krb5_principal, char[static BUFSIZ]);
-static void	cleanup_cache(pam_handle_t *, void *, int);
-static const	char *compat_princ_component(krb5_context, krb5_principal, int);
-static void	compat_free_data_contents(krb5_context, krb5_data *);
+static void verify_krb_v5_tgt_cleanup(krb5_context, int, const char *,
+    krb5_principal, char[static BUFSIZ]);
+static void cleanup_cache(pam_handle_t *, void *, int);
+static const char *compat_princ_component(krb5_context, krb5_principal, int);
+static void compat_free_data_contents(krb5_context, krb5_data *);
 
-#define USER_PROMPT		"Username: "
-#define PASSWORD_PROMPT		"Password:"
-#define NEW_PASSWORD_PROMPT	"New Password:"
+#define USER_PROMPT "Username: "
+#define PASSWORD_PROMPT "Password:"
+#define NEW_PASSWORD_PROMPT "New Password:"
 
-#define PAM_OPT_CCACHE		"ccache"
-#define PAM_OPT_DEBUG		"debug"
-#define PAM_OPT_FORWARDABLE	"forwardable"
-#define PAM_OPT_NO_CCACHE	"no_ccache"
-#define PAM_OPT_NO_USER_CHECK	"no_user_check"
-#define PAM_OPT_REUSE_CCACHE	"reuse_ccache"
-#define PAM_OPT_NO_USER_CHECK	"no_user_check"
-#define PAM_OPT_ALLOW_KDC_SPOOF	"allow_kdc_spoof"
+#define PAM_OPT_CCACHE "ccache"
+#define PAM_OPT_DEBUG "debug"
+#define PAM_OPT_FORWARDABLE "forwardable"
+#define PAM_OPT_NO_CCACHE "no_ccache"
+#define PAM_OPT_NO_USER_CHECK "no_user_check"
+#define PAM_OPT_REUSE_CCACHE "reuse_ccache"
+#define PAM_OPT_NO_USER_CHECK "no_user_check"
+#define PAM_OPT_ALLOW_KDC_SPOOF "allow_kdc_spoof"
 
-#define	PAM_LOG_KRB5_ERR(ctx, rv, fmt, ...)				\
-	do {								\
-		const char *krb5msg = krb5_get_error_message(ctx, rv);	\
-		PAM_LOG(fmt ": %s", ##__VA_ARGS__, krb5msg);		\
-		krb5_free_error_message(ctx, krb5msg);			\
+#define PAM_LOG_KRB5_ERR(ctx, rv, fmt, ...)                            \
+	do {                                                           \
+		const char *krb5msg = krb5_get_error_message(ctx, rv); \
+		PAM_LOG(fmt ": %s", ##__VA_ARGS__, krb5msg);           \
+		krb5_free_error_message(ctx, krb5msg);                 \
 	} while (0)
 
 /*
  * authentication management
  */
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	krb5_error_code krbret;
 	krb5_context krbctx;
@@ -161,9 +161,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 	PAM_LOG("Context initialised");
 
 	debug = openpam_get_option(pamh, PAM_OPT_DEBUG) ? 1 : 0;
-	krbret = verify_krb_v5_tgt_begin(krbctx, srvdup, debug,
-	    &auth_service, &auth_princ, auth_phost);
-	if (krbret != 0) {      /* failed to find key */
+	krbret = verify_krb_v5_tgt_begin(krbctx, srvdup, debug, &auth_service,
+	    &auth_princ, auth_phost);
+	if (krbret != 0) { /* failed to find key */
 		/* Keytab or service key does not exist */
 		/*
 		 * Give up now because we can't authenticate the KDC
@@ -209,8 +209,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 	princ_name = NULL;
 	krbret = krb5_unparse_name(krbctx, princ, &princ_name);
 	if (krbret != 0) {
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_unparse_name()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_unparse_name()");
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
 		retval = PAM_SERVICE_ERR;
 		goto cleanup2;
@@ -269,8 +268,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 		retval = PAM_SERVICE_ERR;
 		goto cleanup2;
 	}
-	krb5_get_init_creds_opt_set_default_flags(krbctx,
-	    service, NULL, opts);
+	krb5_get_init_creds_opt_set_default_flags(krbctx, service, NULL, opts);
 
 	if (openpam_get_option(pamh, PAM_OPT_FORWARDABLE))
 		krb5_get_init_creds_opt_set_forwardable(opts, 1);
@@ -279,8 +277,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 
 	/* Get a TGT */
 	memset(&creds, 0, sizeof(krb5_creds));
-	krbret = krb5_get_init_creds_password(krbctx, &creds, princ,
-	    pass, NULL, pamh, 0, NULL, opts);
+	krbret = krb5_get_init_creds_password(krbctx, &creds, princ, pass, NULL,
+	    pamh, 0, NULL, opts);
 	krb5_get_init_creds_opt_free(krbctx, opts);
 	if (krbret != 0) {
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
@@ -296,24 +294,21 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 	krbret = krb5_cc_new_unique(krbctx, krb5_cc_type_memory, NULL, &ccache);
 	if (krbret != 0) {
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_cc_new_unique()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_cc_new_unique()");
 		retval = PAM_SERVICE_ERR;
 		goto cleanup;
 	}
 	krbret = krb5_cc_initialize(krbctx, ccache, princ);
 	if (krbret != 0) {
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_cc_initialize()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_cc_initialize()");
 		retval = PAM_SERVICE_ERR;
 		goto cleanup;
 	}
 	krbret = krb5_cc_store_cred(krbctx, ccache, &creds);
 	if (krbret != 0) {
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_cc_store_cred()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_cc_store_cred()");
 		krb5_cc_destroy(krbctx, ccache);
 		retval = PAM_SERVICE_ERR;
 		goto cleanup;
@@ -322,9 +317,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 	PAM_LOG("Credentials stashed");
 
 	/* Verify them */
-	krbret = verify_krb_v5_tgt(krbctx, ccache, srvdup,
-	    debug,
-	    auth_service, auth_princ, auth_phost);
+	krbret = verify_krb_v5_tgt(krbctx, ccache, srvdup, debug, auth_service,
+	    auth_princ, auth_phost);
 	free(srvdup);
 	srvdup = NULL;
 	if (krbret == -1) {
@@ -346,8 +340,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 
 	PAM_LOG("Credentials stash not pre-existing");
 
-	asprintf(&ccache_name, "%s:%s", krb5_cc_get_type(krbctx,
-		ccache), krb5_cc_get_name(krbctx, ccache));
+	asprintf(&ccache_name, "%s:%s", krb5_cc_get_type(krbctx, ccache),
+	    krb5_cc_get_name(krbctx, ccache));
 	if (ccache_name == NULL) {
 		PAM_VERBOSE_ERROR("Kerberos 5 error");
 		retval = PAM_BUF_ERR;
@@ -378,8 +372,8 @@ cleanup3:
 	PAM_LOG("Done cleanup3");
 
 cleanup4:
-	verify_krb_v5_tgt_cleanup(krbctx, debug,
-	    auth_service, auth_princ, auth_phost);
+	verify_krb_v5_tgt_cleanup(krbctx, debug, auth_service, auth_princ,
+	    auth_phost);
 	PAM_LOG("Done cleanup4");
 
 cleanup5:
@@ -396,8 +390,8 @@ cleanup6:
 }
 
 PAM_EXTERN int
-pam_sm_setcred(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_setcred(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 #ifdef _FREEFALL_CONFIG
 	return (PAM_SUCCESS);
@@ -433,7 +427,7 @@ pam_sm_setcred(pam_handle_t *pamh, int flags,
 
 	/* If a persistent cache isn't desired, stop now. */
 	if (openpam_get_option(pamh, PAM_OPT_NO_CCACHE) ||
-		openpam_get_option(pamh, PAM_OPT_NO_USER_CHECK))
+	    openpam_get_option(pamh, PAM_OPT_NO_USER_CHECK))
 		return (PAM_SUCCESS);
 
 	PAM_LOG("Establishing credentials");
@@ -453,7 +447,7 @@ pam_sm_setcred(pam_handle_t *pamh, int flags,
 
 	PAM_LOG("Context initialised");
 
-	euid = geteuid();	/* Usually 0 */
+	euid = geteuid(); /* Usually 0 */
 	egid = getegid();
 
 	PAM_LOG("Got euid, egid: %d %d", euid, egid);
@@ -517,19 +511,16 @@ pam_sm_setcred(pam_handle_t *pamh, int flags,
 			if (*q == 'u') {
 				sprintf(p, "%d", pwd->pw_uid);
 				p += strlen(p);
-			}
-			else if (*q == 'p') {
+			} else if (*q == 'p') {
 				sprintf(p, "%d", getpid());
 				p += strlen(p);
-			}
-			else {
+			} else {
 				/* Not a special token */
 				*p++ = '%';
 				q--;
 			}
 			q++;
-		}
-		else {
+		} else {
 			*p++ = *q++;
 		}
 	}
@@ -552,8 +543,7 @@ pam_sm_setcred(pam_handle_t *pamh, int flags,
 	}
 	krbret = krb5_cc_initialize(krbctx, ccache_perm, princ);
 	if (krbret != 0) {
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_cc_initialize()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_cc_initialize()");
 		retval = PAM_SERVICE_ERR;
 		goto cleanup2;
 	}
@@ -645,8 +635,8 @@ cleanup3:
  * account management
  */
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	krb5_error_code krbret;
 	krb5_context krbctx;
@@ -686,7 +676,6 @@ pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
 
 	PAM_LOG("Got ccache %s", (const char *)ccache_name);
 
-
 	krbret = krb5_cc_get_principal(krbctx, ccache, &princ);
 	if (krbret != 0) {
 		PAM_LOG_KRB5_ERR(krbctx, krbret,
@@ -710,15 +699,14 @@ cleanup:
 	PAM_LOG("Done cleanup");
 
 	return (retval);
-
 }
 
 /*
  * password management
  */
 PAM_EXTERN int
-pam_sm_chauthtok(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 	krb5_error_code krbret;
 	krb5_context krbctx;
@@ -751,8 +739,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 	/* Get principal name */
 	krbret = krb5_parse_name(krbctx, (const char *)user, &princ);
 	if (krbret != 0) {
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_parse_name()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_parse_name()");
 		retval = PAM_USER_UNKNOWN;
 		goto cleanup3;
 	}
@@ -761,8 +748,7 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 	princ_name = NULL;
 	krbret = krb5_unparse_name(krbctx, princ, &princ_name);
 	if (krbret != 0) {
-		PAM_LOG_KRB5_ERR(krbctx, krbret,
-		    "Error krb5_unparse_name()");
+		PAM_LOG_KRB5_ERR(krbctx, krbret, "Error krb5_unparse_name()");
 		retval = PAM_SERVICE_ERR;
 		goto cleanup2;
 	}
@@ -789,8 +775,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 	PAM_LOG("Credentials options initialised");
 
 	memset(&creds, 0, sizeof(krb5_creds));
-	krbret = krb5_get_init_creds_password(krbctx, &creds, princ,
-	    pass, NULL, pamh, 0, "kadmin/changepw", opts);
+	krbret = krb5_get_init_creds_password(krbctx, &creds, princ, pass, NULL,
+	    pamh, 0, "kadmin/changepw", opts);
 	krb5_get_init_creds_opt_free(krbctx, opts);
 	if (krbret != 0) {
 		PAM_LOG_KRB5_ERR(krbctx, krbret,
@@ -803,8 +789,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 
 	/* Now get the new password */
 	for (;;) {
-		retval = pam_get_authtok(pamh,
-		    PAM_AUTHTOK, &pass, NEW_PASSWORD_PROMPT);
+		retval = pam_get_authtok(pamh, PAM_AUTHTOK, &pass,
+		    NEW_PASSWORD_PROMPT);
 		if (retval != PAM_TRY_AGAIN)
 			break;
 		pam_error(pamh, "Mismatch; try again, EOF to quit.");
@@ -819,8 +805,8 @@ pam_sm_chauthtok(pam_handle_t *pamh, int flags,
 		retval = PAM_BUF_ERR;
 		goto cleanup;
 	}
-	krbret = krb5_set_password(krbctx, &creds, passdup, NULL,
-	    &result_code, &result_code_string, &result_string);
+	krbret = krb5_set_password(krbctx, &creds, passdup, NULL, &result_code,
+	    &result_code_string, &result_string);
 	free(passdup);
 	if (krbret != 0) {
 		PAM_LOG_KRB5_ERR(krbctx, krbret,
@@ -877,7 +863,8 @@ PAM_MODULE_ENTRY("pam_krb5");
 /* ARGSUSED */
 static int
 verify_krb_v5_tgt_begin(krb5_context context, char *pam_service, int debug,
-    const char **servicep, krb5_principal *princp __unused, char phost[static BUFSIZ])
+    const char **servicep, krb5_principal *princp __unused,
+    char phost[static BUFSIZ])
 {
 	krb5_error_code retval;
 	krb5_principal princ;
@@ -908,8 +895,8 @@ verify_krb_v5_tgt_begin(krb5_context context, char *pam_service, int debug,
 		    KRB5_NT_SRV_HST, &princ);
 		if (retval != 0) {
 			if (debug) {
-				const char *msg = krb5_get_error_message(
-				    context, retval);
+				const char *msg =
+				    krb5_get_error_message(context, retval);
 				syslog(LOG_DEBUG,
 				    "pam_krb5: verify_krb_v5_tgt(): %s: %s",
 				    "krb5_sname_to_principal()", msg);
@@ -942,25 +929,25 @@ verify_krb_v5_tgt_begin(krb5_context context, char *pam_service, int debug,
 
 static int
 verify_krb_v5_tgt(krb5_context context, krb5_ccache ccache,
-    char *pam_service __unused, int debug,
-    const char *service, krb5_principal princ, char phost[static BUFSIZ])
+    char *pam_service __unused, int debug, const char *service,
+    krb5_principal princ, char phost[static BUFSIZ])
 {
 	krb5_error_code retval;
 	krb5_auth_context auth_context = NULL;
 	krb5_data packet;
 
 	if (service == NULL)
-		return (0);	/* uncertain, can't authenticate KDC */
+		return (0); /* uncertain, can't authenticate KDC */
 
 	packet.data = 0;
 
 	/* Talk to the kdc and construct the ticket. */
 	auth_context = NULL;
-	retval = krb5_mk_req(context, &auth_context, 0, service, phost,
-		NULL, ccache, &packet);
+	retval = krb5_mk_req(context, &auth_context, 0, service, phost, NULL,
+	    ccache, &packet);
 	if (auth_context) {
 		krb5_auth_con_free(context, auth_context);
-		auth_context = NULL;	/* setup for rd_req */
+		auth_context = NULL; /* setup for rd_req */
 	}
 	if (retval) {
 		if (debug) {
@@ -976,8 +963,8 @@ verify_krb_v5_tgt(krb5_context context, krb5_ccache ccache,
 	}
 
 	/* Try to use the ticket. */
-	retval = krb5_rd_req(context, &auth_context, &packet, princ, NULL,
-	    NULL, NULL);
+	retval = krb5_rd_req(context, &auth_context, &packet, princ, NULL, NULL,
+	    NULL);
 	if (retval) {
 		if (debug) {
 			const char *msg = krb5_get_error_message(context,
@@ -988,8 +975,7 @@ verify_krb_v5_tgt(krb5_context context, krb5_ccache ccache,
 			krb5_free_error_message(context, msg);
 		}
 		retval = -1;
-	}
-	else
+	} else
 		retval = 1;
 
 cleanup:
@@ -999,21 +985,21 @@ cleanup:
 }
 
 static void
-verify_krb_v5_tgt_cleanup(krb5_context context, int debug,
-    const char *service, krb5_principal princ, char phost[static BUFSIZ] __unused)
+verify_krb_v5_tgt_cleanup(krb5_context context, int debug, const char *service,
+    krb5_principal princ, char phost[static BUFSIZ] __unused)
 {
 
 	if (service)
 		krb5_free_principal(context, princ);
 	if (debug)
 		closelog();
-
 }
 
 /* Free the memory for cache_name. Called by pam_end() */
 /* ARGSUSED */
 static void
-cleanup_cache(pam_handle_t *pamh __unused, void *data, int pam_end_status __unused)
+cleanup_cache(pam_handle_t *pamh __unused, void *data,
+    int pam_end_status __unused)
 {
 	krb5_context krbctx;
 	krb5_ccache ccache;
@@ -1044,14 +1030,15 @@ cleanup_cache(pam_handle_t *pamh __unused, void *data, int pam_end_status __unus
 #ifdef COMPAT_HEIMDAL
 /* ARGSUSED */
 static const char *
-compat_princ_component(krb5_context context __unused, krb5_principal princ, int n)
+compat_princ_component(krb5_context context __unused, krb5_principal princ,
+    int n)
 {
 	return princ->name.name_string.val[n];
 }
 
 /* ARGSUSED */
 static void
-compat_free_data_contents(krb5_context context __unused, krb5_data * data)
+compat_free_data_contents(krb5_context context __unused, krb5_data *data)
 {
 	krb5_xfree(data->data);
 }
@@ -1065,7 +1052,7 @@ compat_princ_component(krb5_context context, krb5_principal princ, int n)
 }
 
 static void
-compat_free_data_contents(krb5_context context, krb5_data * data)
+compat_free_data_contents(krb5_context context, krb5_data *data)
 {
 	krb5_free_data_contents(context, data);
 }

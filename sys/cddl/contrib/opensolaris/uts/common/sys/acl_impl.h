@@ -24,11 +24,11 @@
  */
 
 #ifndef _SYS_ACL_IMPL_H
-#define	_SYS_ACL_IMPL_H
+#define _SYS_ACL_IMPL_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -38,23 +38,20 @@ extern "C" {
  * ACL_AUTO_INHERIT, ACL_PROTECTED and ACL_DEFAULTED
  * flags can also be stored in this field.
  */
-#define	ACL_IS_TRIVIAL	0x10000
-#define	ACL_IS_DIR	0x20000
+#define ACL_IS_TRIVIAL 0x10000
+#define ACL_IS_DIR 0x20000
 
-typedef enum acl_type {
-	ACLENT_T = 0,
-	ACE_T = 1
-} zfs_acl_type_t;
+typedef enum acl_type { ACLENT_T = 0, ACE_T = 1 } zfs_acl_type_t;
 
 struct acl_info {
-	zfs_acl_type_t acl_type;	/* style of acl */
-	int acl_cnt;			/* number of acl entries */
-	int acl_entry_size;		/* sizeof acl entry */
-	int acl_flags;			/* special flags about acl */
-	void *acl_aclp;			/* the acl */
+	zfs_acl_type_t acl_type; /* style of acl */
+	int acl_cnt;		 /* number of acl entries */
+	int acl_entry_size;	 /* sizeof acl entry */
+	int acl_flags;		 /* special flags about acl */
+	void *acl_aclp;		 /* the acl */
 };
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

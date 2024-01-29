@@ -30,33 +30,33 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/clock.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/clock.h>
-#include <sys/time.h>
-#include <sys/bus.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
+#include <sys/time.h>
 
 #include <dev/iicbus/iiconf.h>
 
-#include "iicbus_if.h"
 #include "clock_if.h"
+#include "iicbus_if.h"
 
-#define	IIC_M_WR	0	/* write operation */
+#define IIC_M_WR 0 /* write operation */
 
-#define	DS1672_ADDR	0xd0	/* slave address */
+#define DS1672_ADDR 0xd0 /* slave address */
 
-#define	DS1672_COUNTER	0	/* counter (bytes 0-3) */
-#define	DS1672_CTRL	4	/* control (1 byte) */
-#define	DS1672_TRICKLE	5	/* trickle charger (1 byte) */
+#define DS1672_COUNTER 0 /* counter (bytes 0-3) */
+#define DS1672_CTRL 4	 /* control (1 byte) */
+#define DS1672_TRICKLE 5 /* trickle charger (1 byte) */
 
-#define	DS1672_CTRL_EOSC	(1 << 7)	/* Stop/start flag. */
+#define DS1672_CTRL_EOSC (1 << 7) /* Stop/start flag. */
 
-#define	MAX_IIC_DATA_SIZE	4
+#define MAX_IIC_DATA_SIZE 4
 
 struct ds1672_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 };
 
 static int
@@ -70,10 +70,8 @@ ds1672_probe(device_t dev)
 static int
 ds1672_read(device_t dev, uint8_t addr, uint8_t *data, uint8_t size)
 {
-	struct iic_msg msgs[2] = {
-	     { DS1672_ADDR, IIC_M_WR, 1, &addr },
-	     { DS1672_ADDR, IIC_M_RD, size, data }
-	};
+	struct iic_msg msgs[2] = { { DS1672_ADDR, IIC_M_WR, 1, &addr },
+		{ DS1672_ADDR, IIC_M_RD, size, data } };
 
 	return (iicbus_transfer(dev, msgs, 2));
 }
@@ -83,9 +81,9 @@ ds1672_write(device_t dev, uint8_t addr, uint8_t *data, uint8_t size)
 {
 	uint8_t buffer[MAX_IIC_DATA_SIZE + 1];
 	struct iic_msg msgs[1] = {
-	     { DS1672_ADDR, IIC_M_WR, size + 1, buffer },
+		{ DS1672_ADDR, IIC_M_WR, size + 1, buffer },
 	};
-	
+
 	if (size > MAX_IIC_DATA_SIZE)
 		return (ENOMEM);
 	/* NB: register pointer precedes actual data */
@@ -108,9 +106,10 @@ ds1672_init(device_t dev)
 	 * Check if oscialltor is not runned.
 	 */
 	if (ctrl & DS1672_CTRL_EOSC) {
-		device_printf(dev, "RTC oscillator was stopped. Check system"
+		device_printf(dev,
+		    "RTC oscillator was stopped. Check system"
 		    " time and RTC battery.\n");
-		ctrl &= ~DS1672_CTRL_EOSC;	/* Start oscillator. */
+		ctrl &= ~DS1672_CTRL_EOSC; /* Start oscillator. */
 		error = ds1672_write(dev, DS1672_CTRL, &ctrl, 1);
 	}
 	return (error);
@@ -120,8 +119,8 @@ static int
 ds1672_detach(device_t dev)
 {
 
-    clock_unregister(dev);
-    return (0);
+	clock_unregister(dev);
+	return (0);
 }
 
 static int
@@ -147,11 +146,11 @@ ds1672_gettime(device_t dev, struct timespec *ts)
 	error = ds1672_read(dev, DS1672_COUNTER, secs, 4);
 	if (error == 0) {
 		/* counter has seconds since epoch */
-		ts->tv_sec = (secs[3] << 24) | (secs[2] << 16)
-			   | (secs[1] <<  8) | (secs[0] <<  0);
+		ts->tv_sec = (secs[3] << 24) | (secs[2] << 16) |
+		    (secs[1] << 8) | (secs[0] << 0);
 		ts->tv_nsec = 0;
 	}
-	clock_dbgprint_ts(dev, CLOCK_DBG_READ, ts); 
+	clock_dbgprint_ts(dev, CLOCK_DBG_READ, ts);
 	return (error);
 }
 
@@ -170,16 +169,15 @@ ds1672_settime(device_t dev, struct timespec *ts)
 	return (ds1672_write(dev, DS1672_COUNTER, data, 4));
 }
 
-static device_method_t ds1672_methods[] = {
-	DEVMETHOD(device_probe,		ds1672_probe),
-	DEVMETHOD(device_attach,	ds1672_attach),
-	DEVMETHOD(device_detach,	ds1672_detach),
+static device_method_t ds1672_methods[] = { DEVMETHOD(device_probe,
+						ds1672_probe),
+	DEVMETHOD(device_attach, ds1672_attach),
+	DEVMETHOD(device_detach, ds1672_detach),
 
-	DEVMETHOD(clock_gettime,	ds1672_gettime),
-	DEVMETHOD(clock_settime,	ds1672_settime),
+	DEVMETHOD(clock_gettime, ds1672_gettime),
+	DEVMETHOD(clock_settime, ds1672_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ds1672_driver = {
 	"ds1672_rtc",

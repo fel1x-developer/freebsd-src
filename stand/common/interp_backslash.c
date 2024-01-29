@@ -15,11 +15,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
+
 #include "bootstrap.h"
 
-#define	DIGIT(x) (isdigit(x) ? (x) - '0' : islower(x) ? (x) + 10 - 'a' : (x) + 10 - 'A')
+#define DIGIT(x) \
+	(isdigit(x) ? (x) - '0' : islower(x) ? (x) + 10 - 'a' : (x) + 10 - 'A')
 
 /*
  * backslash: Return malloc'd copy of str with all standard "backslash
@@ -99,20 +102,29 @@ backslash(const char *str)
 				str++;
 				break;
 
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9': {
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9': {
 				char val;
 
 				/* Three digit octal constant? */
-				if (*str >= '0' && *str <= '3' && 
+				if (*str >= '0' && *str <= '3' &&
 				    *(str + 1) >= '0' && *(str + 1) <= '7' &&
 				    *(str + 2) >= '0' && *(str + 2) <= '7') {
 
-					val = (DIGIT(*str) << 6) + (DIGIT(*(str + 1)) << 3) + 
+					val = (DIGIT(*str) << 6) +
+					    (DIGIT(*(str + 1)) << 3) +
 					    DIGIT(*(str + 2));
 
-					/* Allow null value if user really wants to shoot
-					   at feet, but beware! */
+					/* Allow null value if user really wants
+					   to shoot at feet, but beware! */
 					new_str[i++] = val;
 					str += 3;
 					break;
@@ -120,43 +132,42 @@ backslash(const char *str)
 
 				/* One or two digit hex constant?
 				 * If two are there they will both be taken.
-				 * Use \z to split them up if this is not wanted.
+				 * Use \z to split them up if this is not
+				 * wanted.
 				 */
 				if (*str == '0' &&
 				    (*(str + 1) == 'x' || *(str + 1) == 'X') &&
 				    isxdigit(*(str + 2))) {
 					val = DIGIT(*(str + 2));
 					if (isxdigit(*(str + 3))) {
-						val = (val << 4) + DIGIT(*(str + 3));
+						val = (val << 4) +
+						    DIGIT(*(str + 3));
 						str += 4;
-					}
-					else
+					} else
 						str += 3;
 					/* Yep, allow null value here too */
 					new_str[i++] = val;
 					break;
 				}
-			}
-				break;
+			} break;
 
 			default:
 				new_str[i++] = *str++;
 				break;
 			}
-		}
-		else {
+		} else {
 			if (*str == '\\') {
 				seenbs = 1;
 				str++;
-			}
-			else
+			} else
 				new_str[i++] = *str++;
 		}
 	}
 
 	if (seenbs) {
 		/*
-		 * The final character was a '\'. Put it in as a single backslash.
+		 * The final character was a '\'. Put it in as a single
+		 * backslash.
 		 */
 		new_str[i++] = '\\';
 	}

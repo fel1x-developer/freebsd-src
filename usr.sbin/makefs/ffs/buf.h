@@ -38,7 +38,7 @@
  */
 
 #ifndef _FFS_BUF_H
-#define	_FFS_BUF_H
+#define _FFS_BUF_H
 
 #include <sys/param.h>
 #include <sys/queue.h>
@@ -53,24 +53,23 @@ struct m_vnode {
 };
 
 struct m_buf {
-	char *		b_data;
-	long		b_bufsize;
-	long		b_bcount;
-	daddr_t		b_blkno;
-	daddr_t		b_lblkno;
+	char *b_data;
+	long b_bufsize;
+	long b_bcount;
+	daddr_t b_blkno;
+	daddr_t b_lblkno;
 	struct makefs_fsinfo *b_fs;
 
-	TAILQ_ENTRY(m_buf)	b_tailq;
+	TAILQ_ENTRY(m_buf) b_tailq;
 };
 
-void		bcleanup(void);
-int		bread(struct m_vnode *, daddr_t, int, struct ucred *,
-    struct m_buf **);
-void		brelse(struct m_buf *);
-int		bwrite(struct m_buf *);
-struct m_buf *	getblk(struct m_vnode *, daddr_t, int, int, int, int);
+void bcleanup(void);
+int bread(struct m_vnode *, daddr_t, int, struct ucred *, struct m_buf **);
+void brelse(struct m_buf *);
+int bwrite(struct m_buf *);
+struct m_buf *getblk(struct m_vnode *, daddr_t, int, int, int, int);
 
-#define	bdwrite(bp)	bwrite(bp)
-#define	clrbuf(bp)	memset((bp)->b_data, 0, (u_int)(bp)->b_bcount)
+#define bdwrite(bp) bwrite(bp)
+#define clrbuf(bp) memset((bp)->b_data, 0, (u_int)(bp)->b_bcount)
 
-#endif	/* _FFS_BUF_H */
+#endif /* _FFS_BUF_H */

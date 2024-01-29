@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 /*
@@ -37,7 +36,7 @@ pqisrc_submit_cmnd(pqisrc_softstate_t *softs, ib_queue_t *ib_q, void *req)
 	uint32_t offset;
 	iu_header_t *hdr = (iu_header_t *)req;
 	/*TODO : Can be fixed a size copying of IU ? */
-	uint32_t iu_len = hdr->iu_length + 4 ; /* header size */
+	uint32_t iu_len = hdr->iu_length + 4; /* header size */
 	int i = 0;
 	DBG_FUNC("IN\n");
 
@@ -49,7 +48,7 @@ pqisrc_submit_cmnd(pqisrc_softstate_t *softs, ib_queue_t *ib_q, void *req)
 	/* Check queue full */
 	if ((ib_q->pi_local + 1) % ib_q->num_elem == *(ib_q->ci_virt_addr)) {
 		DBG_WARN("OUT Q full\n");
-	PQI_UNLOCK(&ib_q->lock);
+		PQI_UNLOCK(&ib_q->lock);
 		return PQI_STATUS_QFULL;
 	}
 
@@ -60,18 +59,18 @@ pqisrc_submit_cmnd(pqisrc_softstate_t *softs, ib_queue_t *ib_q, void *req)
 	/* Copy the IU */
 	memcpy(slot, req, iu_len);
 	DBG_IO("IU : \n");
-	for(i = 0; i< iu_len; i++)
+	for (i = 0; i < iu_len; i++)
 		DBG_IO(" IU [ %d ] : %x\n", i, *((unsigned char *)(slot + i)));
 
 	/* Update the local PI */
 	ib_q->pi_local = (ib_q->pi_local + 1) % ib_q->num_elem;
-	DBG_IO("ib_q->pi_local : %x IU size : %d\n",
-			 ib_q->pi_local, hdr->iu_length);
-	DBG_IO("*ib_q->ci_virt_addr: %x\n",
-				*(ib_q->ci_virt_addr));
+	DBG_IO("ib_q->pi_local : %x IU size : %d\n", ib_q->pi_local,
+	    hdr->iu_length);
+	DBG_IO("*ib_q->ci_virt_addr: %x\n", *(ib_q->ci_virt_addr));
 
 	/* Inform the fw about the new IU */
-	PCI_MEM_PUT32(softs, ib_q->pi_register_abs, ib_q->pi_register_offset, ib_q->pi_local);
+	PCI_MEM_PUT32(softs, ib_q->pi_register_abs, ib_q->pi_register_offset,
+	    ib_q->pi_local);
 	PQI_UNLOCK(&ib_q->lock);
 	DBG_FUNC("OUT\n");
 	return PQI_STATUS_SUCCESS;

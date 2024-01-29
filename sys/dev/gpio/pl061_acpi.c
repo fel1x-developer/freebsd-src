@@ -32,17 +32,17 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 
 #include <machine/intr.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
 #include <dev/gpio/gpiobusvar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "pl061.h"
 
@@ -84,8 +84,8 @@ pl061_acpi_attach(device_t dev)
 
 static device_method_t pl061_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pl061_acpi_probe),
-	DEVMETHOD(device_attach,	pl061_acpi_attach),
+	DEVMETHOD(device_probe, pl061_acpi_probe),
+	DEVMETHOD(device_attach, pl061_acpi_attach),
 
 	DEVMETHOD_END
 };

@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -36,12 +36,11 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdbool.h>
-
 #include <vmmapi.h>
 
 #include "bhyverun.h"
@@ -49,7 +48,7 @@
 #include "debug.h"
 #include "mem.h"
 
-#define	BOOTROM_SIZE	(16 * 1024 * 1024)	/* 16 MB */
+#define BOOTROM_SIZE (16 * 1024 * 1024) /* 16 MB */
 
 /*
  * ROM region is 16 MB at the top of 4GB ("low") memory.
@@ -60,21 +59,21 @@
  * It is allocated in page-multiple blocks on a first-come first-serve basis,
  * from high to low, during initialization, and does not change at runtime.
  */
-static char *romptr;	/* Pointer to userspace-mapped bootrom region. */
-static vm_paddr_t gpa_base;	/* GPA of low end of region. */
-static vm_paddr_t gpa_allocbot;	/* Low GPA of free region. */
-static vm_paddr_t gpa_alloctop;	/* High GPA, minus 1, of free region. */
+static char *romptr;	    /* Pointer to userspace-mapped bootrom region. */
+static vm_paddr_t gpa_base; /* GPA of low end of region. */
+static vm_paddr_t gpa_allocbot; /* Low GPA of free region. */
+static vm_paddr_t gpa_alloctop; /* High GPA, minus 1, of free region. */
 
-#define CFI_BCS_WRITE_BYTE      0x10
-#define CFI_BCS_CLEAR_STATUS    0x50
-#define CFI_BCS_READ_STATUS     0x70
-#define CFI_BCS_READ_ARRAY      0xff
+#define CFI_BCS_WRITE_BYTE 0x10
+#define CFI_BCS_CLEAR_STATUS 0x50
+#define CFI_BCS_READ_STATUS 0x70
+#define CFI_BCS_READ_ARRAY 0xff
 
 static struct bootrom_var_state {
-	uint8_t		*mmap;
-	uint64_t	gpa;
-	off_t		size;
-	uint8_t		cmd;
+	uint8_t *mmap;
+	uint64_t gpa;
+	off_t size;
+	uint8_t cmd;
 } var = { NULL, 0, 0, CFI_BCS_READ_ARRAY };
 
 /*
@@ -151,8 +150,7 @@ bootrom_alloc(struct vmctx *ctx, size_t len, int prot, int flags,
 		return (EINVAL);
 	}
 	if (len & PAGE_MASK) {
-		warnx("ROM size %zu is not a multiple of the page size",
-		    len);
+		warnx("ROM size %zu is not a multiple of the page size", len);
 		return (EINVAL);
 	}
 
@@ -219,8 +217,8 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 
 	fd = open(romfile, O_RDONLY);
 	if (fd < 0) {
-		EPRINTLN("Error opening bootrom \"%s\": %s",
-		    romfile, strerror(errno));
+		EPRINTLN("Error opening bootrom \"%s\": %s", romfile,
+		    strerror(errno));
 		goto done;
 	}
 
@@ -238,7 +236,8 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 		varfd = open(varfile, O_RDWR);
 		if (varfd < 0) {
 			EPRINTLN("Error opening bootrom variable file "
-			    "\"%s\": %s", varfile, strerror(errno));
+				 "\"%s\": %s",
+			    varfile, strerror(errno));
 			goto done;
 		}
 
@@ -254,8 +253,7 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 
 	if (var_size > BOOTROM_SIZE ||
 	    (var_size != 0 && var_size < PAGE_SIZE)) {
-		EPRINTLN("Invalid bootrom variable size %ld",
-		    var_size);
+		EPRINTLN("Invalid bootrom variable size %ld", var_size);
 		goto done;
 	}
 
@@ -269,7 +267,7 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 
 	/* Map the bootrom into the guest address space */
 	if (bootrom_alloc(ctx, rom_size, PROT_READ | PROT_EXEC,
-	    BOOTROM_ALLOC_TOP, &ptr, NULL) != 0) {
+		BOOTROM_ALLOC_TOP, &ptr, NULL) != 0) {
 		goto done;
 	}
 
@@ -278,7 +276,8 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 		rlen = read(fd, ptr + i * PAGE_SIZE, PAGE_SIZE);
 		if (rlen != PAGE_SIZE) {
 			EPRINTLN("Incomplete read of page %d of bootrom "
-			    "file %s: %ld bytes", i, romfile, rlen);
+				 "file %s: %ld bytes",
+			    i, romfile, rlen);
 			goto done;
 		}
 	}
@@ -291,7 +290,7 @@ bootrom_loadrom(struct vmctx *ctx, const nvlist_t *nvl)
 		var.size = var_size;
 		var.gpa = (gpa_alloctop - var_size) + 1;
 		gpa_alloctop = var.gpa - 1;
-		rv = register_mem(&(struct mem_range){
+		rv = register_mem(&(struct mem_range) {
 		    .name = "bootrom variable",
 		    .flags = MEM_F_RW,
 		    .handler = bootrom_var_mem_handler,

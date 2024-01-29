@@ -34,10 +34,12 @@
  */
 
 #ifndef _COLLATE_H_
-#define	_COLLATE_H_
+#define _COLLATE_H_
 
 #include <sys/types.h>
+
 #include <limits.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -49,21 +51,21 @@
 #define COLL_WEIGHTS_MAX 10
 #endif
 
-#define	COLLATE_STR_LEN		24		/* should be 64-bit multiple */
+#define COLLATE_STR_LEN 24 /* should be 64-bit multiple */
 
-#define	COLLATE_FMT_VERSION_LEN	12
-#define	COLLATE_FMT_VERSION	"BSD 1.0\n"
+#define COLLATE_FMT_VERSION_LEN 12
+#define COLLATE_FMT_VERSION "BSD 1.0\n"
 
-#define	COLLATE_MAX_PRIORITY	(0x7fffffff)	/* max signed value */
-#define	COLLATE_SUBST_PRIORITY	(0x40000000)	/* bit indicates subst table */
+#define COLLATE_MAX_PRIORITY (0x7fffffff)   /* max signed value */
+#define COLLATE_SUBST_PRIORITY (0x40000000) /* bit indicates subst table */
 
-#define	DIRECTIVE_UNDEF		0x00
-#define	DIRECTIVE_FORWARD	0x01
-#define	DIRECTIVE_BACKWARD	0x02
-#define	DIRECTIVE_POSITION	0x04
-#define	DIRECTIVE_UNDEFINED	0x08	/* special last weight for UNDEFINED */
+#define DIRECTIVE_UNDEF 0x00
+#define DIRECTIVE_FORWARD 0x01
+#define DIRECTIVE_BACKWARD 0x02
+#define DIRECTIVE_POSITION 0x04
+#define DIRECTIVE_UNDEFINED 0x08 /* special last weight for UNDEFINED */
 
-#define	DIRECTIVE_DIRECTION_MASK (DIRECTIVE_FORWARD | DIRECTIVE_BACKWARD)
+#define DIRECTIVE_DIRECTION_MASK (DIRECTIVE_FORWARD | DIRECTIVE_BACKWARD)
 
 /*
  * The collate file format is as follows:
@@ -115,27 +117,27 @@ typedef struct collate_subst {
 struct xlocale_collate {
 	struct xlocale_component header;
 	int __collate_load_error;
-	char * map;
+	char *map;
 	size_t maplen;
 
-	collate_info_t	*info;
-	collate_char_t	*char_pri_table;
-	collate_large_t	*large_pri_table;
-	collate_chain_t	*chain_pri_table;
-	collate_subst_t	*subst_table[COLL_WEIGHTS_MAX];
+	collate_info_t *info;
+	collate_char_t *char_pri_table;
+	collate_large_t *large_pri_table;
+	collate_chain_t *chain_pri_table;
+	collate_subst_t *subst_table[COLL_WEIGHTS_MAX];
 };
 
 __BEGIN_DECLS
-int	__collate_load_tables(const char *);
-int	__collate_equiv_value(locale_t, const wchar_t *, size_t);
-void	_collate_lookup(struct xlocale_collate *,const wchar_t *, int *, int *,
-	int, const int **);
-int	__collate_range_cmp(char, char);
-int	__wcollate_range_cmp(wchar_t, wchar_t);
-size_t	_collate_wxfrm(struct xlocale_collate *, const wchar_t *, wchar_t *,
-	size_t);
-size_t	_collate_sxfrm(struct xlocale_collate *, const wchar_t *, char *,
-	size_t);
+int __collate_load_tables(const char *);
+int __collate_equiv_value(locale_t, const wchar_t *, size_t);
+void _collate_lookup(struct xlocale_collate *, const wchar_t *, int *, int *,
+    int, const int **);
+int __collate_range_cmp(char, char);
+int __wcollate_range_cmp(wchar_t, wchar_t);
+size_t _collate_wxfrm(struct xlocale_collate *, const wchar_t *, wchar_t *,
+    size_t);
+size_t _collate_sxfrm(struct xlocale_collate *, const wchar_t *, char *,
+    size_t);
 __END_DECLS
 
 #endif /* !_COLLATE_H_ */

@@ -28,4 +28,4 @@
 
 extern int __stub_N8TwezWFyocUB;
 
-int __stub_N8TwezWFyocUB;		/* 42 */
+int __stub_N8TwezWFyocUB; /* 42 */

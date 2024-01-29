@@ -90,8 +90,8 @@ kcsan_md_unwind(void)
 		sym = db_search_symbol((vm_offset_t)frame.pc, DB_STGY_PROC,
 		    &offset);
 		db_symbol_values(sym, &symname, NULL);
-		printf("#%d %p in %s+%#lx\n", nsym, (void *)frame.pc,
-		    symname, offset);
+		printf("#%d %p in %s+%#lx\n", nsym, (void *)frame.pc, symname,
+		    offset);
 #else
 		printf("#%d %p\n", nsym, (void *)frame.pc);
 #endif

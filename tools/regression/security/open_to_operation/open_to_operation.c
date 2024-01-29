@@ -69,7 +69,7 @@
  * sendfile(2)                    O_RDONLY or O_RDWR on file  yes
  * write(2)                       O_WRONLY or O_RDWR          yes
  * writev(2)                      O_WRONLY or O_RDWR          yes
- * 
+ *
  * These checks do not verify that original permissions would allow the
  * operation or that open is properly impacted by permissions, just that once
  * a file descriptor is held, open-time limitations are implemented.
@@ -108,14 +108,14 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	PERM_FILE	0644		/* Allow read, write.  Someday exec? */
-#define	PERM_DIR	0755		/* Allow read, write, exec. */
+#define PERM_FILE 0644 /* Allow read, write.  Someday exec? */
+#define PERM_DIR 0755  /* Allow read, write, exec. */
 
 /*
  * Modes to try all tests with.
  */
 static const int file_modes[] = { O_RDONLY, O_WRONLY, O_RDWR,
-    O_RDONLY | O_TRUNC, O_WRONLY | O_TRUNC, O_RDWR | O_TRUNC };
+	O_RDONLY | O_TRUNC, O_WRONLY | O_TRUNC, O_RDWR | O_TRUNC };
 static const int file_modes_count = nitems(file_modes);
 
 static const int dir_modes[] = { O_RDONLY };
@@ -132,8 +132,8 @@ ok_mode(const char *testname, const char *comment, int mode)
 	if (comment == NULL)
 		printf("ok %d - %s # mode 0x%x\n", testnum, testname, mode);
 	else
-		printf("ok %d - %s # mode 0x%x - %s\n", testnum, testname,
-		    mode, comment);
+		printf("ok %d - %s # mode 0x%x - %s\n", testnum, testname, mode,
+		    comment);
 }
 
 static void
@@ -142,8 +142,7 @@ notok_mode(const char *testname, const char *comment, int mode)
 
 	testnum++;
 	if (comment == NULL)
-		printf("not ok %d - %s # mode 0x%x\n", testnum, testname,
-		    mode);
+		printf("not ok %d - %s # mode 0x%x\n", testnum, testname, mode);
 	else
 		printf("not ok %d - %s # mode 0x%x - %s\n", testnum, testname,
 		    mode, comment);
@@ -153,8 +152,8 @@ notok_mode(const char *testname, const char *comment, int mode)
  * Before we get started, confirm that we can't open directories writable.
  */
 static void
-try_directory_open(const char *testname, const char *directory,
-    int mode, int expected_errno)
+try_directory_open(const char *testname, const char *directory, int mode,
+    int expected_errno)
 {
 	int dfd;
 
@@ -191,8 +190,7 @@ check_directory_open_modes(const char *directory, const int *modes,
 			expected_errno = 0;
 		else
 			expected_errno = EISDIR;
-		try_directory_open(__func__, directory, mode,
-		    expected_errno);
+		try_directory_open(__func__, directory, mode, expected_errno);
 	}
 }
 
@@ -238,7 +236,7 @@ check_dup2(const char *testname, const char *path, const int *modes,
 			notok_mode(testname, "open", mode);
 			continue;
 		}
-		dfd = dup2(fd, 500);	/* Arbitrary but high number. */
+		dfd = dup2(fd, 500); /* Arbitrary but high number. */
 		if (dfd >= 0) {
 			ok_mode(testname, NULL, mode);
 			close(dfd);
@@ -506,27 +504,21 @@ check_ftruncate(const char *testname, const char *path, const int *modes,
 		if (ftruncate(fd, sb.st_size + 1) == 0) {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR))
-				ok_mode(testname, "truncate1 succeeded",
-				    mode);
+				ok_mode(testname, "truncate1 succeeded", mode);
 			else {
 				notok_mode(testname, "truncate1 succeeded",
 				    mode);
-				notok_mode(testname, "truncate2 skipped",
-				    mode);
-				notok_mode(testname, "truncate3 skipped",
-				    mode);
+				notok_mode(testname, "truncate2 skipped", mode);
+				notok_mode(testname, "truncate3 skipped", mode);
 				close(fd);
 				continue;
 			}
 		} else {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR)) {
-				notok_mode(testname, "truncate1 failed",
-				    mode);
-				notok_mode(testname, "truncate2 skipped",
-				    mode);
-				notok_mode(testname, "truncate3 skipped",
-				    mode);
+				notok_mode(testname, "truncate1 failed", mode);
+				notok_mode(testname, "truncate2 skipped", mode);
+				notok_mode(testname, "truncate3 skipped", mode);
 				close(fd);
 				continue;
 			} else
@@ -537,23 +529,19 @@ check_ftruncate(const char *testname, const char *path, const int *modes,
 		if (ftruncate(fd, sb.st_size + 1) == 0) {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR))
-				ok_mode(testname, "truncate2 succeeded",
-				    mode);
+				ok_mode(testname, "truncate2 succeeded", mode);
 			else {
 				notok_mode(testname, "truncate2 succeeded",
 				    mode);
-				notok_mode(testname, "truncate3 skipped",
-				    mode);
+				notok_mode(testname, "truncate3 skipped", mode);
 				close(fd);
 				continue;
 			}
 		} else {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR)) {
-				notok_mode(testname, "truncate2 failed",
-				    mode);
-				notok_mode(testname, "truncate3 skipped",
-				    mode);
+				notok_mode(testname, "truncate2 failed", mode);
+				notok_mode(testname, "truncate3 skipped", mode);
 				close(fd);
 				continue;
 			} else
@@ -564,16 +552,14 @@ check_ftruncate(const char *testname, const char *path, const int *modes,
 		if (ftruncate(fd, sb.st_size) == 0) {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR))
-				ok_mode(testname, "truncate3 succeeded",
-				    mode);
+				ok_mode(testname, "truncate3 succeeded", mode);
 			else
 				notok_mode(testname, "truncate3 succeeded",
 				    mode);
 		} else {
 			if (((mode & O_ACCMODE) == O_WRONLY) ||
 			    ((mode & O_ACCMODE) == O_RDWR))
-				notok_mode(testname, "truncate3 failed",
-				    mode);
+				notok_mode(testname, "truncate3 failed", mode);
 			else
 				ok_mode(testname, "truncate3 failed", mode);
 		}
@@ -649,8 +635,7 @@ check_getdents(const char *testname, const char *path, int isdir,
 		}
 		if (getdents(fd, buf, sizeof(buf)) >= 0) {
 			if (isdir && ((mode & O_ACCMODE) == O_RDONLY))
-				ok_mode(testname, "directory succeeded",
-				    mode);
+				ok_mode(testname, "directory succeeded", mode);
 			else if (isdir)
 				notok_mode(testname, "directory succeeded",
 				    mode);
@@ -658,8 +643,7 @@ check_getdents(const char *testname, const char *path, int isdir,
 				notok_mode(testname, "file succeeded", mode);
 		} else {
 			if (isdir && ((mode & O_ACCMODE) == O_RDONLY))
-				notok_mode(testname, "directory failed",
-				    mode);
+				notok_mode(testname, "directory failed", mode);
 			else if (isdir)
 				ok_mode(testname, "directory failed", mode);
 			else
@@ -793,7 +777,7 @@ check_write(const char *testname, write_fn fn, const char *path,
 				ok_mode(testname, "write failed", mode);
 		} else {
 			if (!((mode & O_ACCMODE) == O_WRONLY ||
-			    (mode & O_ACCMODE) == O_RDWR))
+				(mode & O_ACCMODE) == O_RDWR))
 				notok_mode(testname, "write succeeded", mode);
 			else
 				ok_mode(testname, "write succeeded", mode);
@@ -852,8 +836,8 @@ aio_read_wrapper(int d, void *buf, size_t nbytes)
 }
 
 static void
-check_read(const char *testname, read_fn fn, const char *path,
-    const int *modes, int modes_count)
+check_read(const char *testname, read_fn fn, const char *path, const int *modes,
+    int modes_count)
 {
 	int fd, i, mode;
 	char ch;
@@ -877,7 +861,7 @@ check_read(const char *testname, read_fn fn, const char *path,
 				ok_mode(testname, "read failed", mode);
 		} else {
 			if (!((mode & O_ACCMODE) == O_RDONLY ||
-			    (mode & O_ACCMODE) == O_RDWR))
+				(mode & O_ACCMODE) == O_RDWR))
 				notok_mode(testname, "read succeeded", mode);
 			else
 				ok_mode(testname, "read succeeded", mode);
@@ -904,15 +888,13 @@ check_mmap_read(const char *testname, const char *path, int isdir,
 			notok_mode(testname, "open", mode);
 			continue;
 		}
-		addr = mmap(NULL, getpagesize(), PROT_READ, MAP_SHARED, fd,
-		    0);
+		addr = mmap(NULL, getpagesize(), PROT_READ, MAP_SHARED, fd, 0);
 		if (addr == MAP_FAILED) {
 			if (isdir)
 				ok_mode(testname, "mmap dir failed", mode);
 			else if ((mode & O_ACCMODE) == O_RDONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				notok_mode(testname, "mmap file failed",
-				    mode);
+				notok_mode(testname, "mmap file failed", mode);
 			else
 				ok_mode(testname, "mmap file failed", mode);
 		} else {
@@ -921,8 +903,7 @@ check_mmap_read(const char *testname, const char *path, int isdir,
 				    mode);
 			else if ((mode & O_ACCMODE) == O_RDONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				ok_mode(testname, "mmap file succeeded",
-				    mode);
+				ok_mode(testname, "mmap file succeeded", mode);
 			else
 				notok_mode(testname, "mmap file succeeded",
 				    mode);
@@ -952,20 +933,17 @@ check_mmap_write(const char *testname, const char *path, const int *modes,
 			notok_mode(testname, "open", mode);
 			continue;
 		}
-		addr = mmap(NULL, getpagesize(), PROT_WRITE, MAP_SHARED, fd,
-		    0);
+		addr = mmap(NULL, getpagesize(), PROT_WRITE, MAP_SHARED, fd, 0);
 		if (addr == MAP_FAILED) {
 			if ((mode & O_ACCMODE) == O_WRONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				notok_mode(testname, "mmap failed",
-				    mode);
+				notok_mode(testname, "mmap failed", mode);
 			else
 				ok_mode(testname, "mmap failed", mode);
 		} else {
 			if ((mode & O_ACCMODE) == O_WRONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				ok_mode(testname, "mmap succeeded",
-				    mode);
+				ok_mode(testname, "mmap succeeded", mode);
 			else
 				notok_mode(testname, "mmap succeeded", mode);
 			(void)munmap(addr, getpagesize());
@@ -992,15 +970,13 @@ check_mmap_exec(const char *testname, const char *path, int isdir,
 			notok_mode(testname, "open", mode);
 			continue;
 		}
-		addr = mmap(NULL, getpagesize(), PROT_EXEC, MAP_SHARED, fd,
-		    0);
+		addr = mmap(NULL, getpagesize(), PROT_EXEC, MAP_SHARED, fd, 0);
 		if (addr == MAP_FAILED) {
 			if (isdir)
 				ok_mode(testname, "mmap dir failed", mode);
 			else if ((mode & O_ACCMODE) == O_RDONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				notok_mode(testname, "mmap file failed",
-				    mode);
+				notok_mode(testname, "mmap file failed", mode);
 			else
 				ok_mode(testname, "mmap file failed", mode);
 		} else {
@@ -1008,8 +984,7 @@ check_mmap_exec(const char *testname, const char *path, int isdir,
 				notok_mode(testname, "mmap dir succeeded",
 				    mode);
 			else
-				ok_mode(testname, "mmap file succeeded",
-				    mode);
+				ok_mode(testname, "mmap file succeeded", mode);
 			(void)munmap(addr, getpagesize());
 		}
 		close(fd);
@@ -1041,8 +1016,7 @@ check_mmap_write_private(const char *testname, const char *path, int isdir,
 				ok_mode(testname, "mmap dir failed", mode);
 			else if ((mode & O_ACCMODE) == O_RDONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				notok_mode(testname, "mmap file failed",
-				    mode);
+				notok_mode(testname, "mmap file failed", mode);
 			else
 				ok_mode(testname, "mmap file failed", mode);
 		} else {
@@ -1051,8 +1025,7 @@ check_mmap_write_private(const char *testname, const char *path, int isdir,
 				    mode);
 			else if ((mode & O_ACCMODE) == O_RDONLY ||
 			    (mode & O_ACCMODE) == O_RDWR)
-				ok_mode(testname, "mmap file succeeded",
-				    mode);
+				ok_mode(testname, "mmap file succeeded", mode);
 			else
 				notok_mode(testname, "mmap file succeeded",
 				    mode);
@@ -1104,8 +1077,7 @@ main(void)
 	check_dup("check_dup_file", file_path, file_modes, file_modes_count);
 
 	check_dup2("check_dup2_dir", dir_path, dir_modes, dir_modes_count);
-	check_dup2("check_dup2_file", file_path, file_modes,
-	    file_modes_count);
+	check_dup2("check_dup2_file", file_path, file_modes, file_modes_count);
 
 	check_fchdir("check_fchdir", dir_path, dir_modes, dir_modes_count);
 
@@ -1119,8 +1091,7 @@ main(void)
 	check_fchmod("check_fchmod_file", file_path, PERM_FILE, file_modes,
 	    file_modes_count);
 
-	check_fchown("check_fchown_dir", dir_path, dir_modes,
-	    dir_modes_count);
+	check_fchown("check_fchown_dir", dir_path, dir_modes, dir_modes_count);
 	check_fchown("check_fchown_file", file_path, file_modes,
 	    file_modes_count);
 
@@ -1177,22 +1148,22 @@ main(void)
 
 	check_write("check_writev_dir", writev_wrapper, dir_path, dir_modes,
 	    dir_modes_count);
-	check_write("check_writev_file", writev_wrapper, file_path,
-	    file_modes, file_modes_count);
+	check_write("check_writev_file", writev_wrapper, file_path, file_modes,
+	    file_modes_count);
 
 	check_write("check_pwrite_dir", pwrite_wrapper, dir_path, dir_modes,
 	    dir_modes_count);
-	check_write("check_pwrite_file", pwrite_wrapper, file_path,
-	    file_modes, file_modes_count);
+	check_write("check_pwrite_file", pwrite_wrapper, file_path, file_modes,
+	    file_modes_count);
 
-	check_write("check_pwritev_dir", pwritev_wrapper, dir_path,
-	    dir_modes, dir_modes_count);
+	check_write("check_pwritev_dir", pwritev_wrapper, dir_path, dir_modes,
+	    dir_modes_count);
 	check_write("check_pwritev_file", pwritev_wrapper, file_path,
 	    file_modes, file_modes_count);
 
 	if (aio_present) {
-		check_write("check_aio_write_dir", aio_write_wrapper,
-		    dir_path, dir_modes, dir_modes_count);
+		check_write("check_aio_write_dir", aio_write_wrapper, dir_path,
+		    dir_modes, dir_modes_count);
 		check_write("check_aio_write_file", aio_write_wrapper,
 		    file_path, file_modes, file_modes_count);
 	}
@@ -1204,24 +1175,24 @@ main(void)
 
 	check_read("check_readv_dir", readv_wrapper, dir_path, dir_modes,
 	    dir_modes_count);
-	check_read("check_readv_file", readv_wrapper, file_path,
-	    file_modes, file_modes_count);
+	check_read("check_readv_file", readv_wrapper, file_path, file_modes,
+	    file_modes_count);
 
 	check_read("check_pread_dir", pread_wrapper, dir_path, dir_modes,
 	    dir_modes_count);
-	check_read("check_pread_file", pread_wrapper, file_path,
-	    file_modes, file_modes_count);
+	check_read("check_pread_file", pread_wrapper, file_path, file_modes,
+	    file_modes_count);
 
-	check_read("check_preadv_dir", preadv_wrapper, dir_path,
-	    dir_modes, dir_modes_count);
-	check_read("check_preadv_file", preadv_wrapper, file_path,
-	    file_modes, file_modes_count);
+	check_read("check_preadv_dir", preadv_wrapper, dir_path, dir_modes,
+	    dir_modes_count);
+	check_read("check_preadv_file", preadv_wrapper, file_path, file_modes,
+	    file_modes_count);
 
 	if (aio_present) {
 		check_read("check_aio_read_dir", aio_read_wrapper, dir_path,
 		    dir_modes, dir_modes_count);
-		check_read("check_aio_read_file", aio_read_wrapper,
-		    file_path, file_modes, file_modes_count);
+		check_read("check_aio_read_file", aio_read_wrapper, file_path,
+		    file_modes, file_modes_count);
 	}
 
 	check_mmap_read("check_mmap_read_dir", dir_path, 1, dir_modes,
@@ -1241,8 +1212,8 @@ main(void)
 
 	check_mmap_write_private("check_mmap_write_private_dir", dir_path, 1,
 	    dir_modes, dir_modes_count);
-	check_mmap_write_private("check_mmap_write_private_file", file_path,
-	    0, file_modes, file_modes_count);
+	check_mmap_write_private("check_mmap_write_private_file", file_path, 0,
+	    file_modes, file_modes_count);
 
 	(void)unlink(file_path);
 	(void)rmdir(dir_path);

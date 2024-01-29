@@ -26,26 +26,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
+
+#include <dev/acpica/acpivar.h>
+#include <dev/smc/if_smcvar.h>
 
 #include <net/if.h>
 
-#include <dev/smc/if_smcvar.h>
-
 #include <contrib/dev/acpica/include/acpi.h>
-#include <dev/acpica/acpivar.h>
 
-static int		smc_acpi_probe(device_t);
+static int smc_acpi_probe(device_t);
 
 static int
 smc_acpi_probe(device_t dev)
 {
-	struct	smc_softc *sc;
+	struct smc_softc *sc;
 	ACPI_HANDLE h;
 
 	if ((h = acpi_get_handle(dev)) == NULL)
@@ -62,12 +62,11 @@ smc_acpi_probe(device_t dev)
 
 static device_method_t smc_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		smc_acpi_probe),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, smc_acpi_probe), { 0, 0 }
 };
 
-DEFINE_CLASS_1(smc, smc_acpi_driver, smc_acpi_methods,
-    sizeof(struct smc_softc), smc_driver);
+DEFINE_CLASS_1(smc, smc_acpi_driver, smc_acpi_methods, sizeof(struct smc_softc),
+    smc_driver);
 
 DRIVER_MODULE(smc, acpi, smc_acpi_driver, 0, 0);
 MODULE_DEPEND(smc, acpi, 1, 1, 1);

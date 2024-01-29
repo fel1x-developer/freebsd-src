@@ -86,9 +86,10 @@ __elfN(powerpc_copyout_auxargs)(struct image_params *imgp, uintptr_t base)
 		AUXARGS_ENTRY(pos, AT_OLD_TIMEKEEP,
 		    vmspace->vm_shp_base + imgp->sysent->sv_timekeep_offset);
 	}
-	AUXARGS_ENTRY(pos, AT_OLD_STACKPROT, imgp->sysent->sv_shared_page_obj
-	    != NULL && imgp->stack_prot != 0 ? imgp->stack_prot :
-	    imgp->sysent->sv_stackprot);
+	AUXARGS_ENTRY(pos, AT_OLD_STACKPROT,
+	    imgp->sysent->sv_shared_page_obj != NULL && imgp->stack_prot != 0 ?
+		imgp->stack_prot :
+		imgp->sysent->sv_stackprot);
 	if (imgp->sysent->sv_hwcap != NULL)
 		AUXARGS_ENTRY(pos, AT_OLD_HWCAP, *imgp->sysent->sv_hwcap);
 	if (imgp->sysent->sv_hwcap2 != NULL)
@@ -99,7 +100,8 @@ __elfN(powerpc_copyout_auxargs)(struct image_params *imgp, uintptr_t base)
 	imgp->auxargs = NULL;
 	KASSERT(pos - argarray <= AT_OLD_COUNT, ("Too many auxargs"));
 
-	error = copyout(argarray, (void *)base, sizeof(*argarray) * AT_OLD_COUNT);
+	error = copyout(argarray, (void *)base,
+	    sizeof(*argarray) * AT_OLD_COUNT);
 	free(argarray, M_TEMP);
 	return (error);
 }

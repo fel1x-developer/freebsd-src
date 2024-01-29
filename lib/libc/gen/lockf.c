@@ -30,12 +30,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 lockf(int filedes, int function, off_t size)
@@ -62,12 +63,12 @@ lockf(int filedes, int function, off_t size)
 		break;
 	case F_TEST:
 		fl.l_type = F_WRLCK;
-		if (((int (*)(int, int, ...))
-		    __libc_interposing[INTERPOS_fcntl])(filedes, F_GETLK, &fl)
-		    == -1)
+		if (((int (*)(int, int,
+			...))__libc_interposing[INTERPOS_fcntl])(filedes,
+			F_GETLK, &fl) == -1)
 			return (-1);
-		if (fl.l_type == F_UNLCK || (fl.l_sysid == 0 &&
-		    fl.l_pid == getpid()))
+		if (fl.l_type == F_UNLCK ||
+		    (fl.l_sysid == 0 && fl.l_pid == getpid()))
 			return (0);
 		errno = EAGAIN;
 		return (-1);
@@ -78,6 +79,6 @@ lockf(int filedes, int function, off_t size)
 		/* NOTREACHED */
 	}
 
-	return (((int (*)(int, int, ...))
-	    __libc_interposing[INTERPOS_fcntl])(filedes, cmd, &fl));
+	return (((int (*)(int, int,
+	    ...))__libc_interposing[INTERPOS_fcntl])(filedes, cmd, &fl));
 }

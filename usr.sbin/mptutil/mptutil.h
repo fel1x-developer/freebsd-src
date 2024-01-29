@@ -31,33 +31,33 @@
  */
 
 #ifndef __MPTUTIL_H__
-#define	__MPTUTIL_H__
+#define __MPTUTIL_H__
 
 #include <sys/cdefs.h>
 #include <sys/linker_set.h>
 
-#include <dev/mpt/mpilib/mpi_type.h>
 #include <dev/mpt/mpilib/mpi.h>
 #include <dev/mpt/mpilib/mpi_cnfg.h>
 #include <dev/mpt/mpilib/mpi_raid.h>
+#include <dev/mpt/mpilib/mpi_type.h>
 
-#define	IOC_STATUS_SUCCESS(status)					\
+#define IOC_STATUS_SUCCESS(status) \
 	(((status) & MPI_IOCSTATUS_MASK) == MPI_IOCSTATUS_SUCCESS)
 
 struct mpt_query_disk {
-	char	devname[SPECNAMELEN + 1];
+	char devname[SPECNAMELEN + 1];
 };
 
 struct mpt_standalone_disk {
 	uint64_t maxlba;
-	char	inqstring[64];
-	char	devname[SPECNAMELEN + 1];
-	u_int	bus;
-	u_int	target;
+	char inqstring[64];
+	char devname[SPECNAMELEN + 1];
+	u_int bus;
+	u_int target;
 };
 
 struct mpt_drive_list {
-	int	ndrives;
+	int ndrives;
 	CONFIG_PAGE_RAID_PHYS_DISK_0 *drives[0];
 };
 
@@ -66,67 +66,64 @@ struct mptutil_command {
 	int (*handler)(int ac, char **av);
 };
 
-#define	MPT_DATASET(name)	mptutil_ ## name ## _table
+#define MPT_DATASET(name) mptutil_##name##_table
 
-#define	MPT_COMMAND(set, name, function)				\
-	static struct mptutil_command function ## _mptutil_command =	\
-	{ #name, function };						\
-	DATA_SET(MPT_DATASET(set), function ## _mptutil_command)
+#define MPT_COMMAND(set, name, function)                                    \
+	static struct mptutil_command function##_mptutil_command = { #name, \
+		function };                                                 \
+	DATA_SET(MPT_DATASET(set), function##_mptutil_command)
 
-#define	MPT_TABLE(set, name)						\
-	SET_DECLARE(MPT_DATASET(name), struct mptutil_command);		\
-									\
-	static int							\
-	mptutil_ ## name ## _table_handler(int ac, char **av)		\
-	{								\
+#define MPT_TABLE(set, name)                                            \
+	SET_DECLARE(MPT_DATASET(name), struct mptutil_command);         \
+                                                                        \
+	static int mptutil_##name##_table_handler(int ac, char **av)    \
+	{                                                               \
 		return (mpt_table_handler(SET_BEGIN(MPT_DATASET(name)), \
-		    SET_LIMIT(MPT_DATASET(name)), ac, av));		\
-	}								\
-	MPT_COMMAND(set, name, mptutil_ ## name ## _table_handler)
+		    SET_LIMIT(MPT_DATASET(name)), ac, av));             \
+	}                                                               \
+	MPT_COMMAND(set, name, mptutil_##name##_table_handler)
 
 extern int mpt_unit;
 
 #ifdef DEBUG
-void	hexdump(const void *ptr, int length, const char *hdr, int flags);
-#define	HD_COLUMN_MASK	0xff
-#define	HD_DELIM_MASK	0xff00
-#define	HD_OMIT_COUNT	(1 << 16)
-#define	HD_OMIT_HEX	(1 << 17)
-#define	HD_OMIT_CHARS	(1 << 18)
+void hexdump(const void *ptr, int length, const char *hdr, int flags);
+#define HD_COLUMN_MASK 0xff
+#define HD_DELIM_MASK 0xff00
+#define HD_OMIT_COUNT (1 << 16)
+#define HD_OMIT_HEX (1 << 17)
+#define HD_OMIT_CHARS (1 << 18)
 #endif
 
-int	mpt_table_handler(struct mptutil_command **start,
+int mpt_table_handler(struct mptutil_command **start,
     struct mptutil_command **end, int ac, char **av);
-int	mpt_read_config_page_header(int fd, U8 PageType, U8 PageNumber,
+int mpt_read_config_page_header(int fd, U8 PageType, U8 PageNumber,
     U32 PageAddress, CONFIG_PAGE_HEADER *header, U16 *IOCStatus);
-void	*mpt_read_config_page(int fd, U8 PageType, U8 PageNumber,
-    U32 PageAddress, U16 *IOCStatus);
-void	*mpt_read_extended_config_page(int fd, U8 ExtPageType, U8 PageVersion,
+void *mpt_read_config_page(int fd, U8 PageType, U8 PageNumber, U32 PageAddress,
+    U16 *IOCStatus);
+void *mpt_read_extended_config_page(int fd, U8 ExtPageType, U8 PageVersion,
     U8 PageNumber, U32 PageAddress, U16 *IOCStatus);
-int	mpt_write_config_page(int fd, void *buf, U16 *IOCStatus);
+int mpt_write_config_page(int fd, void *buf, U16 *IOCStatus);
 const char *mpt_ioc_status(U16 IOCStatus);
-int	mpt_raid_action(int fd, U8 Action, U8 VolumeBus, U8 VolumeID,
+int mpt_raid_action(int fd, U8 Action, U8 VolumeBus, U8 VolumeID,
     U8 PhysDiskNum, U32 ActionDataWord, void *buf, int len,
     RAID_VOL0_STATUS *VolumeStatus, U32 *ActionData, int datalen,
     U16 *IOCStatus, U16 *ActionStatus, int write);
 const char *mpt_raid_status(U16 ActionStatus);
-int	mpt_open(int unit);
+int mpt_open(int unit);
 const char *mpt_raid_level(U8 VolumeType);
 const char *mpt_volstate(U8 State);
 const char *mpt_pdstate(CONFIG_PAGE_RAID_PHYS_DISK_0 *info);
 const char *mpt_pd_inq_string(CONFIG_PAGE_RAID_PHYS_DISK_0 *pd_info);
 struct mpt_drive_list *mpt_pd_list(int fd);
-void	mpt_free_pd_list(struct mpt_drive_list *list);
-int	mpt_query_disk(U8 VolumeBus, U8 VolumeID, struct mpt_query_disk *qd);
+void mpt_free_pd_list(struct mpt_drive_list *list);
+int mpt_query_disk(U8 VolumeBus, U8 VolumeID, struct mpt_query_disk *qd);
 const char *mpt_volume_name(U8 VolumeBus, U8 VolumeID);
-int	mpt_fetch_disks(int fd, int *ndisks,
-    struct mpt_standalone_disk **disksp);
-int	mpt_lock_volume(U8 VolumeBus, U8 VolumeID);
-int	mpt_lookup_drive(struct mpt_drive_list *list, const char *drive,
+int mpt_fetch_disks(int fd, int *ndisks, struct mpt_standalone_disk **disksp);
+int mpt_lock_volume(U8 VolumeBus, U8 VolumeID);
+int mpt_lookup_drive(struct mpt_drive_list *list, const char *drive,
     U8 *PhysDiskNum);
-int	mpt_lookup_volume(int fd, const char *name, U8 *VolumeBus,
-    U8 *VolumeID);
-int	mpt_rescan_bus(int bus, int id);
+int mpt_lookup_volume(int fd, const char *name, U8 *VolumeBus, U8 *VolumeID);
+int mpt_rescan_bus(int bus, int id);
 
 static __inline void *
 mpt_read_man_page(int fd, U8 PageNumber, U16 *IOCStatus)
@@ -140,8 +137,8 @@ static __inline void *
 mpt_read_ioc_page(int fd, U8 PageNumber, U16 *IOCStatus)
 {
 
-	return (mpt_read_config_page(fd, MPI_CONFIG_PAGETYPE_IOC, PageNumber,
-	    0, IOCStatus));
+	return (mpt_read_config_page(fd, MPI_CONFIG_PAGETYPE_IOC, PageNumber, 0,
+	    IOCStatus));
 }
 
 static __inline U32

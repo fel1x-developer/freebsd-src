@@ -59,4 +59,4 @@ refcnt_release(refcnt_t *count)
 	return (old - 1);
 }
 
-#endif	/* ! __REFCNT_H__ */
+#endif /* ! __REFCNT_H__ */

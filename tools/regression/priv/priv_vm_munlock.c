@@ -64,9 +64,7 @@ priv_vm_munlock(int asroot, int injail, struct test *test)
 		expect("priv_vm_munlock(!asroot, !injail", error, -1, EPERM);
 }
 
-
 void
 priv_vm_munlock_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

@@ -53,9 +53,9 @@
 #include <poll.h>
 #include <pthread.h>
 #include <pthread_np.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
@@ -68,7 +68,7 @@
 #include "net_backends_priv.h"
 #include "pci_emul.h"
 
-#define	NET_BE_SIZE(be)		(sizeof(*be) + (be)->priv_size)
+#define NET_BE_SIZE(be) (sizeof(*be) + (be)->priv_size)
 
 void
 tap_cleanup(struct net_backend *be)
@@ -85,8 +85,8 @@ tap_cleanup(struct net_backend *be)
 }
 
 static int
-tap_init(struct net_backend *be, const char *devname,
-    nvlist_t *nvl __unused, net_be_rxeof_t cb, void *param)
+tap_init(struct net_backend *be, const char *devname, nvlist_t *nvl __unused,
+    net_be_rxeof_t cb, void *param)
 {
 	struct tap_priv *priv = NET_BE_PRIV(be);
 	char tbuf[80];
@@ -196,8 +196,7 @@ tap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt)
 		 * A packet is available in the bounce buffer, so
 		 * we read it from there.
 		 */
-		ret = buf_to_iov(priv->bbuf, priv->bbuflen,
-		    iov, iovcnt, 0);
+		ret = buf_to_iov(priv->bbuf, priv->bbuflen, iov, iovcnt, 0);
 
 		/* Mark the bounce buffer as empty. */
 		priv->bbuflen = 0;
@@ -334,9 +333,10 @@ netbe_init(struct net_backend **ret, nvlist_t *nvl, net_be_rxeof_t cb,
 	 * Find the network backend that matches the user-provided
 	 * device name. net_backend_set is built using a linker set.
 	 */
-	SET_FOREACH(pbe, net_backend_set) {
-		if (strncmp(type, (*pbe)->prefix,
-		    strlen((*pbe)->prefix)) == 0) {
+	SET_FOREACH(pbe, net_backend_set)
+	{
+		if (strncmp(type, (*pbe)->prefix, strlen((*pbe)->prefix)) ==
+		    0) {
 			tbe = *pbe;
 			assert(tbe->init != NULL);
 			assert(tbe->cleanup != NULL);
@@ -355,7 +355,7 @@ netbe_init(struct net_backend **ret, nvlist_t *nvl, net_be_rxeof_t cb,
 	}
 
 	nbe = calloc(1, NET_BE_SIZE(tbe));
-	*nbe = *tbe;	/* copy the template */
+	*nbe = *tbe; /* copy the template */
 	nbe->fd = -1;
 	nbe->sc = param;
 	nbe->be_vnet_hdr_len = 0;
@@ -394,23 +394,22 @@ netbe_get_cap(struct net_backend *be)
 }
 
 int
-netbe_set_cap(struct net_backend *be, uint64_t features,
-	      unsigned vnet_hdr_len)
+netbe_set_cap(struct net_backend *be, uint64_t features, unsigned vnet_hdr_len)
 {
 	int ret;
 
 	assert(be != NULL);
 
 	/* There are only three valid lengths, i.e., 0, 10 and 12. */
-	if (vnet_hdr_len && vnet_hdr_len != VNET_HDR_LEN
-		&& vnet_hdr_len != (VNET_HDR_LEN - sizeof(uint16_t)))
+	if (vnet_hdr_len && vnet_hdr_len != VNET_HDR_LEN &&
+	    vnet_hdr_len != (VNET_HDR_LEN - sizeof(uint16_t)))
 		return (-1);
 
 	be->fe_vnet_hdr_len = vnet_hdr_len;
 
 	ret = be->set_cap(be, features, vnet_hdr_len);
 	assert(be->be_vnet_hdr_len == 0 ||
-	       be->be_vnet_hdr_len == be->fe_vnet_hdr_len);
+	    be->be_vnet_hdr_len == be->fe_vnet_hdr_len);
 
 	return (ret);
 }

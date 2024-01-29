@@ -70,7 +70,7 @@ proc_continue(struct proc_handle *phdl)
 	else
 		pending = 0;
 	if (ptrace(PT_CONTINUE, proc_getpid(phdl), (caddr_t)(uintptr_t)1,
-	    pending) != 0)
+		pending) != 0)
 		return (-1);
 
 	phdl->status = PS_RUN;
@@ -213,14 +213,14 @@ proc_getlwpstatus(struct proc_handle *phdl)
 	if (phdl == NULL)
 		return (NULL);
 	if (ptrace(PT_LWPINFO, proc_getpid(phdl), (caddr_t)&lwpinfo,
-	    sizeof(lwpinfo)) < 0)
+		sizeof(lwpinfo)) < 0)
 		return (NULL);
 	siginfo = &lwpinfo.pl_siginfo;
 	if (lwpinfo.pl_event == PL_EVENT_SIGNAL &&
 	    (lwpinfo.pl_flags & PL_FLAG_SI) != 0) {
 		if (siginfo->si_signo == SIGTRAP &&
 		    (siginfo->si_code == TRAP_BRKPT ||
-		    siginfo->si_code == TRAP_TRACE)) {
+			siginfo->si_code == TRAP_TRACE)) {
 			psp->pr_why = PR_FAULTED;
 			psp->pr_what = FLTBPT;
 		} else {

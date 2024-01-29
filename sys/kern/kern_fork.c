@@ -34,21 +34,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_ktrace.h"
 #include "opt_kstack_pages.h"
+#include "opt_ktrace.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/acct.h>
 #include <sys/bitstring.h>
-#include <sys/sysproto.h>
 #include <sys/eventhandler.h>
 #include <sys/fcntl.h>
 #include <sys/filedesc.h>
 #include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/sysctl.h>
+#include <sys/ktr.h>
+#include <sys/ktrace.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/msan.h>
@@ -60,30 +61,29 @@
 #include <sys/racct.h>
 #include <sys/resourcevar.h>
 #include <sys/sched.h>
+#include <sys/sdt.h>
+#include <sys/signalvar.h>
+#include <sys/sx.h>
 #include <sys/syscall.h>
+#include <sys/sysctl.h>
+#include <sys/sysent.h>
+#include <sys/sysproto.h>
+#include <sys/unistd.h>
 #include <sys/vmmeter.h>
 #include <sys/vnode.h>
-#include <sys/acct.h>
-#include <sys/ktr.h>
-#include <sys/ktrace.h>
-#include <sys/unistd.h>
-#include <sys/sdt.h>
-#include <sys/sx.h>
-#include <sys/sysent.h>
-#include <sys/signalvar.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/uma.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_map.h>
 
 #include <security/audit/audit.h>
 #include <security/mac/mac_framework.h>
 
-#include <vm/vm.h>
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
-#include <vm/vm_extern.h>
-#include <vm/uma.h>
-
 #ifdef KDTRACE_HOOKS
 #include <sys/dtrace_bsd.h>
-dtrace_fork_func_t	dtrace_fasttrap_fork;
+dtrace_fork_func_t dtrace_fasttrap_fork;
 #endif
 
 SDT_PROVIDER_DECLARE(proc);
@@ -91,7 +91,7 @@ SDT_PROBE_DEFINE3(proc, , , create, "struct proc *", "struct proc *", "int");
 
 #ifndef _SYS_SYSPROTO_H_
 struct fork_args {
-	int     dummy;
+	int dummy;
 };
 #endif
 
@@ -188,10 +188,9 @@ sys_rfork(struct thread *td, struct rfork_args *uap)
 	return (error);
 }
 
-int __exclusive_cache_line	nprocs = 1;		/* process 0 */
-int	lastpid = 0;
-SYSCTL_INT(_kern, OID_AUTO, lastpid, CTLFLAG_RD, &lastpid, 0,
-    "Last used PID");
+int __exclusive_cache_line nprocs = 1; /* process 0 */
+int lastpid = 0;
+SYSCTL_INT(_kern, OID_AUTO, lastpid, CTLFLAG_RD, &lastpid, 0, "Last used PID");
 
 /*
  * Random component to lastpid generation.  We mix in a random factor to make
@@ -210,7 +209,7 @@ sysctl_kern_randompid(SYSCTL_HANDLER_ARGS)
 
 	error = sysctl_wire_old_buffer(req, sizeof(int));
 	if (error != 0)
-		return(error);
+		return (error);
 	sx_xlock(&allproc_lock);
 	pid = randompid;
 	error = sysctl_handle_int(oidp, &pid, 0, req);
@@ -234,8 +233,7 @@ sysctl_kern_randompid(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_kern, OID_AUTO, randompid,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0,
-    sysctl_kern_randompid, "I",
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0, sysctl_kern_randompid, "I",
     "Random PID modulus. Special values: 0: disable, 1: choose random value");
 
 extern bitstr_t proc_id_pidmap;
@@ -363,8 +361,8 @@ fail:
 }
 
 static void
-do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *td2,
-    struct vmspace *vm2, struct file *fp_procdesc)
+do_fork(struct thread *td, struct fork_req *fr, struct proc *p2,
+    struct thread *td2, struct vmspace *vm2, struct file *fp_procdesc)
 {
 	struct proc *p1, *pptr;
 	struct filedesc *fd;
@@ -380,13 +378,12 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 	pargs_hold(p2->p_args);
 	PROC_UNLOCK(p1);
 
-	bzero(&p2->p_startzero,
-	    __rangeof(struct proc, p_startzero, p_endzero));
+	bzero(&p2->p_startzero, __rangeof(struct proc, p_startzero, p_endzero));
 
 	/* Tell the prison that we exist. */
 	prison_proc_hold(p2->p_ucred->cr_prison);
 
-	p2->p_state = PRS_NEW;		/* protect against others */
+	p2->p_state = PRS_NEW; /* protect against others */
 	p2->p_pid = fork_findpid(fr->fr_flags);
 	AUDIT_ARG_PID(p2->p_pid);
 	TSFORK(p2->p_pid, p1->p_pid);
@@ -445,8 +442,8 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 			 * Shared file descriptor table, and different
 			 * process leaders.
 			 */
-			fdtol = filedesc_to_leader_alloc(p1->p_fdtol,
-			    p1->p_fd, p2);
+			fdtol = filedesc_to_leader_alloc(p1->p_fdtol, p1->p_fd,
+			    p2);
 		}
 	}
 	/*
@@ -492,11 +489,11 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 	 * Increase reference counts on shared objects.
 	 */
 	p2->p_flag = P_INMEM;
-	p2->p_flag2 = p1->p_flag2 & (P2_ASLR_DISABLE | P2_ASLR_ENABLE |
-	    P2_ASLR_IGNSTART | P2_NOTRACE | P2_NOTRACE_EXEC |
-	    P2_PROTMAX_ENABLE | P2_PROTMAX_DISABLE | P2_TRAPCAP |
-	    P2_STKGAP_DISABLE | P2_STKGAP_DISABLE_EXEC | P2_NO_NEW_PRIVS |
-	    P2_WXORX_DISABLE | P2_WXORX_ENABLE_EXEC);
+	p2->p_flag2 = p1->p_flag2 &
+	    (P2_ASLR_DISABLE | P2_ASLR_ENABLE | P2_ASLR_IGNSTART | P2_NOTRACE |
+		P2_NOTRACE_EXEC | P2_PROTMAX_ENABLE | P2_PROTMAX_DISABLE |
+		P2_TRAPCAP | P2_STKGAP_DISABLE | P2_STKGAP_DISABLE_EXEC |
+		P2_NO_NEW_PRIVS | P2_WXORX_DISABLE | P2_WXORX_ENABLE_EXEC);
 	p2->p_swtick = ticks;
 	if (p1->p_flag & P_PROFIL)
 		startprofclock(p2);
@@ -517,11 +514,11 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 	}
 
 	if (fr->fr_flags & RFTSIGZMB)
-	        p2->p_sigparent = RFTSIGNUM(fr->fr_flags);
+		p2->p_sigparent = RFTSIGNUM(fr->fr_flags);
 	else if (fr->fr_flags & RFLINUXTHPN)
-	        p2->p_sigparent = SIGUSR1;
+		p2->p_sigparent = SIGUSR1;
 	else
-	        p2->p_sigparent = SIGCHLD;
+		p2->p_sigparent = SIGCHLD;
 
 	if ((fr->fr_flags2 & FR2_KPROC) != 0) {
 		p2->p_flag |= P_SYSTEM | P_KPROC;
@@ -560,7 +557,7 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 	if (p2->p_textdvp != NULL)
 		vrefact(p2->p_textdvp);
 	p2->p_binname = p1->p_binname == NULL ? NULL :
-	    strdup(p1->p_binname, M_PARGS);
+						strdup(p1->p_binname, M_PARGS);
 
 	/*
 	 * Set up linkage for kernel based threading.
@@ -642,7 +639,8 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 		p2->p_reaper = pptr;
 	} else {
 		p2->p_reaper = (p1->p_treeflag & P_TREE_REAPER) != 0 ?
-		    p1 : p1->p_reaper;
+		    p1 :
+		    p1->p_reaper;
 		pptr = p1;
 	}
 	p2->p_pptr = pptr;
@@ -672,20 +670,20 @@ do_fork(struct thread *td, struct fork_req *fr, struct proc *p2, struct thread *
 
 	if (fr->fr_flags == (RFFDG | RFPROC)) {
 		VM_CNT_INC(v_forks);
-		VM_CNT_ADD(v_forkpages, p2->p_vmspace->vm_dsize +
-		    p2->p_vmspace->vm_ssize);
+		VM_CNT_ADD(v_forkpages,
+		    p2->p_vmspace->vm_dsize + p2->p_vmspace->vm_ssize);
 	} else if (fr->fr_flags == (RFFDG | RFPROC | RFPPWAIT | RFMEM)) {
 		VM_CNT_INC(v_vforks);
-		VM_CNT_ADD(v_vforkpages, p2->p_vmspace->vm_dsize +
-		    p2->p_vmspace->vm_ssize);
+		VM_CNT_ADD(v_vforkpages,
+		    p2->p_vmspace->vm_dsize + p2->p_vmspace->vm_ssize);
 	} else if (p1 == &proc0) {
 		VM_CNT_INC(v_kthreads);
-		VM_CNT_ADD(v_kthreadpages, p2->p_vmspace->vm_dsize +
-		    p2->p_vmspace->vm_ssize);
+		VM_CNT_ADD(v_kthreadpages,
+		    p2->p_vmspace->vm_dsize + p2->p_vmspace->vm_ssize);
 	} else {
 		VM_CNT_INC(v_rforks);
-		VM_CNT_ADD(v_rforkpages, p2->p_vmspace->vm_dsize +
-		    p2->p_vmspace->vm_ssize);
+		VM_CNT_ADD(v_rforkpages,
+		    p2->p_vmspace->vm_dsize + p2->p_vmspace->vm_ssize);
 	}
 
 	/*
@@ -876,7 +874,7 @@ fork1(struct thread *td, struct fork_req *fr)
 		return (EINVAL);
 
 	/* Can't copy and clear. */
-	if ((flags & (RFFDG|RFCFDG)) == (RFFDG|RFCFDG))
+	if ((flags & (RFFDG | RFCFDG)) == (RFFDG | RFCFDG))
 		return (EINVAL);
 
 	/* Check the validity of the signal number. */
@@ -936,8 +934,8 @@ fork1(struct thread *td, struct fork_req *fr)
 			sx_xlock(&allproc_lock);
 			if (ppsratecheck(&lastfail, &curfail, 1)) {
 				printf("maxproc limit exceeded by uid %u "
-				    "(pid %d); see tuning(7) and "
-				    "login.conf(5)\n",
+				       "(pid %d); see tuning(7) and "
+				       "login.conf(5)\n",
 				    td->td_ucred->cr_ruid, p1->p_pid);
 			}
 			sx_xunlock(&allproc_lock);
@@ -1132,8 +1130,8 @@ fork_exit(void (*callout)(void *, struct trapframe *), void *arg,
 	p = td->td_proc;
 	KASSERT(p->p_state == PRS_NORMAL, ("executing process is still new"));
 
-	CTR4(KTR_PROC, "fork_exit: new thread %p (td_sched %p, pid %d, %s)",
-	    td, td_get_sched(td), p->p_pid, td->td_name);
+	CTR4(KTR_PROC, "fork_exit: new thread %p (td_sched %p, pid %d, %s)", td,
+	    td_get_sched(td), p->p_pid, td->td_name);
 
 	sched_fork_exit(td);
 
@@ -1206,7 +1204,7 @@ fork_return(struct thread *td, struct trapframe *frame)
 		}
 		PROC_UNLOCK(p);
 	} else if (p->p_flag & P_TRACED) {
- 		/*
+		/*
 		 * This is the start of a new thread in a traced
 		 * process.  Report a system call exit event.
 		 */

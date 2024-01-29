@@ -37,6 +37,7 @@
 #define _BHYVE_SNAPSHOT_
 
 #include <machine/vmm_snapshot.h>
+
 #include <libxo/xo.h>
 #include <ucl.h>
 
@@ -64,19 +65,19 @@ struct checkpoint_thread_info {
 };
 
 typedef int (*vm_snapshot_dev_cb)(struct vm_snapshot_meta *);
-typedef int (*vm_pause_dev_cb) (const char *);
-typedef int (*vm_resume_dev_cb) (const char *);
+typedef int (*vm_pause_dev_cb)(const char *);
+typedef int (*vm_resume_dev_cb)(const char *);
 
 struct vm_snapshot_dev_info {
 	const char *dev_name;		/* device name */
-	vm_snapshot_dev_cb snapshot_cb;	/* callback for device snapshot */
+	vm_snapshot_dev_cb snapshot_cb; /* callback for device snapshot */
 	vm_pause_dev_cb pause_cb;	/* callback for device pause */
 	vm_resume_dev_cb resume_cb;	/* callback for device resume */
 };
 
 struct vm_snapshot_kern_info {
-	const char *struct_name;	/* kernel structure name*/
-	enum snapshot_req req;		/* request type */
+	const char *struct_name; /* kernel structure name*/
+	enum snapshot_req req;	 /* request type */
 };
 
 void destroy_restore_state(struct restore_state *rstate);
@@ -112,15 +113,17 @@ int vm_snapshot_guest2host_addr(struct vmctx *ctx, void **addrp, size_t len,
  * When RNULL != 0, do not enforce invalid address checks; instead, make the
  * pointer NULL at restore time.
  */
-#define	SNAPSHOT_GUEST2HOST_ADDR_OR_LEAVE(CTX, ADDR, LEN, RNULL, META, RES, LABEL) \
-do {										\
-	(RES) = vm_snapshot_guest2host_addr((CTX), (void **)&(ADDR), (LEN),	\
-	    (RNULL), (META));							\
-	if ((RES) != 0) {							\
-		if ((RES) == EFAULT)						\
-			EPRINTLN("%s: invalid address: %s", __func__, #ADDR);	\
-		goto LABEL;							\
-	}									\
-} while (0)
+#define SNAPSHOT_GUEST2HOST_ADDR_OR_LEAVE(CTX, ADDR, LEN, RNULL, META, RES,   \
+    LABEL)                                                                    \
+	do {                                                                  \
+		(RES) = vm_snapshot_guest2host_addr((CTX), (void **)&(ADDR),  \
+		    (LEN), (RNULL), (META));                                  \
+		if ((RES) != 0) {                                             \
+			if ((RES) == EFAULT)                                  \
+				EPRINTLN("%s: invalid address: %s", __func__, \
+				    #ADDR);                                   \
+			goto LABEL;                                           \
+		}                                                             \
+	} while (0)
 
 #endif

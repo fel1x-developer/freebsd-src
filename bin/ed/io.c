@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "ed.h"
 
 /* read_file: read a named file/pipe into the buffer; return line count */
@@ -46,7 +47,7 @@ read_file(char *fn, long n)
 		fprintf(stderr, "%s: %s\n", fn, strerror(errno));
 		errmsg = "error reading input file";
 	}
-	if ((cs = (*fn == '!') ?  pclose(fp) : fclose(fp)) < 0) {
+	if ((cs = (*fn == '!') ? pclose(fp) : fclose(fp)) < 0) {
 		fprintf(stderr, "%s: %s\n", fn, strerror(errno));
 		errmsg = "cannot close input file";
 	}
@@ -57,9 +58,9 @@ read_file(char *fn, long n)
 	return current_addr - n;
 }
 
-static char *sbuf;		/* file i/o buffer */
-static int sbufsz;		/* file i/o buffer size */
-int newline_added;		/* if set, newline appended to input file */
+static char *sbuf; /* file i/o buffer */
+static int sbufsz; /* file i/o buffer size */
+int newline_added; /* if set, newline appended to input file */
 
 /* read_stream: read a stream into the editor buffer; return status */
 long
@@ -84,7 +85,7 @@ read_stream(FILE *fp, long n)
 		if (up)
 			up->t = lp;
 		else if ((up = push_undo_stack(UADD, current_addr,
-		    current_addr)) == NULL) {
+			      current_addr)) == NULL) {
 			SPL0();
 			return ERR;
 		}
@@ -97,14 +98,13 @@ read_stream(FILE *fp, long n)
 	else if (newline_added && (!appended || (!isbinary && !o_isbinary)))
 		fputs("newline appended\n", stderr);
 	if (isbinary && newline_added && !appended)
-	    	size += 1;
+		size += 1;
 	if (!size)
 		newline_added = 1;
 	newline_added = appended ? newline_added : o_newline_added;
 	isbinary = isbinary | o_isbinary;
 	return size;
 }
-
 
 /* get_stream_line: read a line of text from a stream; return line length */
 int
@@ -134,7 +134,6 @@ get_stream_line(FILE *fp)
 	return (isbinary && newline_added && i) ? --i : i;
 }
 
-
 /* write_file: write a range of lines to a named file/pipe; return line count */
 long
 write_file(char *fn, const char *mode, long n, long m)
@@ -143,7 +142,7 @@ write_file(char *fn, const char *mode, long n, long m)
 	long size;
 	int cs;
 
-	fp = (*fn == '!') ? popen(fn+1, "w") : fopen(strip_escapes(fn), mode);
+	fp = (*fn == '!') ? popen(fn + 1, "w") : fopen(strip_escapes(fn), mode);
 	if (fp == NULL) {
 		fprintf(stderr, "%s: %s\n", fn, strerror(errno));
 		errmsg = "cannot open output file";
@@ -153,7 +152,7 @@ write_file(char *fn, const char *mode, long n, long m)
 		fprintf(stderr, "%s: %s\n", fn, strerror(errno));
 		errmsg = "error writing output file";
 	}
-	if ((cs = (*fn == '!') ?  pclose(fp) : fclose(fp)) < 0) {
+	if ((cs = (*fn == '!') ? pclose(fp) : fclose(fp)) < 0) {
 		fprintf(stderr, "%s: %s\n", fn, strerror(errno));
 		errmsg = "cannot close output file";
 	}
@@ -163,7 +162,6 @@ write_file(char *fn, const char *mode, long n, long m)
 		fprintf(stdout, "%lu\n", size);
 	return n ? m - n + 1 : 0;
 }
-
 
 /* write_stream: write a range of lines to a stream; return status */
 long
@@ -187,7 +185,6 @@ write_stream(FILE *fp, long n, long m)
 	return size;
 }
 
-
 /* put_stream_line: write a line of text to a stream; return status */
 int
 put_stream_line(FILE *fp, const char *s, int len)
@@ -205,8 +202,8 @@ put_stream_line(FILE *fp, const char *s, int len)
 char *
 get_extended_line(int *sizep, int nonl)
 {
-	static char *cvbuf = NULL;		/* buffer */
-	static int cvbufsz = 0;			/* buffer size */
+	static char *cvbuf = NULL; /* buffer */
+	static int cvbufsz = 0;	   /* buffer size */
 
 	int l, n;
 	char *t = ibufp;
@@ -220,8 +217,9 @@ get_extended_line(int *sizep, int nonl)
 	*sizep = -1;
 	REALLOC(cvbuf, cvbufsz, l, NULL);
 	memcpy(cvbuf, ibufp, l);
-	*(cvbuf + --l - 1) = '\n'; 	/* strip trailing esc */
-	if (nonl) l--; 			/* strip newline */
+	*(cvbuf + --l - 1) = '\n'; /* strip trailing esc */
+	if (nonl)
+		l--; /* strip newline */
 	for (;;) {
 		if ((n = get_tty_line()) < 0)
 			return NULL;
@@ -234,15 +232,15 @@ get_extended_line(int *sizep, int nonl)
 		l += n;
 		if (n < 2 || !has_trailing_escape(cvbuf, cvbuf + l - 1))
 			break;
-		*(cvbuf + --l - 1) = '\n'; 	/* strip trailing esc */
-		if (nonl) l--; 			/* strip newline */
+		*(cvbuf + --l - 1) = '\n'; /* strip trailing esc */
+		if (nonl)
+			l--; /* strip newline */
 	}
 	REALLOC(cvbuf, cvbufsz, l + 1, NULL);
 	cvbuf[l] = '\0';
 	*sizep = l;
 	return cvbuf;
 }
-
 
 /* get_tty_line: read a line of text from stdin; return line length */
 int
@@ -257,7 +255,8 @@ get_tty_line(void)
 		default:
 			oi = 0;
 			REALLOC(ibuf, ibufsz, i + 2, ERR);
-			if (!(ibuf[i++] = c)) isbinary = 1;
+			if (!(ibuf[i++] = c))
+				isbinary = 1;
 			if (c != '\n')
 				continue;
 			lineno++;
@@ -283,8 +282,6 @@ get_tty_line(void)
 			}
 		}
 }
-
-
 
 #define ESCAPES "\a\b\f\n\r\t\v\\"
 #define ESCCHARS "abfnrtv\\"
@@ -324,9 +321,13 @@ put_tty_line(const char *s, int l, long n, int gflag)
 				if (*s && (cp = strchr(ESCAPES, *s)) != NULL)
 					putchar(ESCCHARS[cp - ESCAPES]);
 				else {
-					putchar((((unsigned char) *s & 0300) >> 6) + '0');
-					putchar((((unsigned char) *s & 070) >> 3) + '0');
-					putchar(((unsigned char) *s & 07) + '0');
+					putchar(
+					    (((unsigned char)*s & 0300) >> 6) +
+					    '0');
+					putchar(
+					    (((unsigned char)*s & 070) >> 3) +
+					    '0');
+					putchar(((unsigned char)*s & 07) + '0');
 					col += 2;
 				}
 			}

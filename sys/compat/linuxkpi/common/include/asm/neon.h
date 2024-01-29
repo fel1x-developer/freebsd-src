@@ -25,14 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_ASM_NEON_H_
-#define	_LINUXKPI_ASM_NEON_H_
+#ifndef _LINUXKPI_ASM_NEON_H_
+#define _LINUXKPI_ASM_NEON_H_
 
-#define	kernel_neon_begin() \
-   lkpi_kernel_fpu_begin()
+#define kernel_neon_begin() lkpi_kernel_fpu_begin()
 
-#define	kernel_neon_end() \
-   lkpi_kernel_fpu_end()
+#define kernel_neon_end() lkpi_kernel_fpu_end()
 
 extern void lkpi_kernel_fpu_begin(void);
 extern void lkpi_kernel_fpu_end(void);

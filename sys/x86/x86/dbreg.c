@@ -27,24 +27,24 @@
 #include "opt_ddb.h"
 
 #include <sys/types.h>
+#include <sys/systm.h>
 #include <sys/kdb.h>
 #include <sys/pcpu.h>
 #include <sys/reg.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 
 #include <machine/frame.h>
 #include <machine/kdb.h>
 #include <machine/md_var.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 
-#define NDBREGS		4
+#define NDBREGS 4
 #ifdef __amd64__
-#define	MAXWATCHSIZE	8
+#define MAXWATCHSIZE 8
 #else
-#define	MAXWATCHSIZE	4
+#define MAXWATCHSIZE 4
 #endif
 
 /*
@@ -119,7 +119,7 @@ dbreg_sync(struct dbreg *dp)
 	int cpu, c;
 
 	cpu = PCPU_GET(cpuid);
-	CPU_FOREACH(c) {
+	CPU_FOREACH (c) {
 		if (c == cpu)
 			continue;
 		pc = pcpu_find(c);
@@ -246,8 +246,8 @@ dbreg_list_watchpoints(void)
 		if (DBREG_DR7_ENABLED(d.dr[7], i)) {
 			type = DBREG_DR7_ACCESS(d.dr[7], i);
 			len = DBREG_DR7_LEN(d.dr[7], i);
-			db_printf("  %-5d  %-8s  %10s  %3d  ",
-			    i, "enabled", watchtype_str(type), len + 1);
+			db_printf("  %-5d  %-8s  %10s  %3d  ", i, "enabled",
+			    watchtype_str(type), len + 1);
 			db_printsym((db_addr_t)DBREG_DRX(&d, i), DB_STGY_ANY);
 			db_printf("\n");
 		} else {

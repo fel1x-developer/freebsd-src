@@ -38,18 +38,18 @@
  */
 
 #include <sys/types.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <sys/errno.h>
-#include <stdarg.h>
-#include <fcntl.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/scsi/scsi_message.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "camlib.h"
 
 /*
@@ -68,7 +68,8 @@
  *       ;
  *
  * seek_value : DECIMAL_NUMBER
- *       | 'v'				// For indirect seek, i.e., value from the arg list
+ *       | 'v'				// For indirect seek, i.e., value from
+ * the arg list
  *       ;
  *
  * field_specifier : type_specifier field_width
@@ -82,7 +83,8 @@
  *       | 'b'				// Bits
  *       | 't'				// Bits
  *       | 'c'				// Character arrays
- *       | 'z'				// Character arrays with zeroed trailing spaces
+ *       | 'z'				// Character arrays with zeroed trailing
+ * spaces
  *       ;
  *
  * Notes:
@@ -101,8 +103,8 @@
 
 static int
 do_buff_decode(uint8_t *buff, size_t len,
-	       void (*arg_put)(void *, int , void *, int, char *),
-	       void *puthook, const char *fmt, va_list *ap)
+    void (*arg_put)(void *, int, void *, int, char *), void *puthook,
+    const char *fmt, va_list *ap)
 {
 	int ind = 0;
 	int assigned = 0;
@@ -110,36 +112,36 @@ do_buff_decode(uint8_t *buff, size_t len,
 	int suppress;
 	int plus;
 	int done = 0;
-	static u_char mask[] = {0, 0x01, 0x03, 0x07, 0x0f,
-				   0x1f, 0x3f, 0x7f, 0xff};
+	static u_char mask[] = { 0, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f,
+		0xff };
 	int value;
 	char *intendp;
 	char letter;
 	char field_name[80];
 
-#define ARG_PUT(ARG) \
-	do { \
-		if (!suppress) { \
-			if (arg_put) \
-				(*arg_put)(puthook, (letter == 't' ? 'b' : \
-				    letter), (void *)((long)(ARG)), width, \
-				    field_name); \
-			else \
-				*(va_arg(*ap, int *)) = (ARG); \
-			assigned++; \
-		} \
-		field_name[0] = '\0'; \
-		suppress = 0; \
+#define ARG_PUT(ARG)                                                           \
+	do {                                                                   \
+		if (!suppress) {                                               \
+			if (arg_put)                                           \
+				(*arg_put)(puthook,                            \
+				    (letter == 't' ? 'b' : letter),            \
+				    (void *)((long)(ARG)), width, field_name); \
+			else                                                   \
+				*(va_arg(*ap, int *)) = (ARG);                 \
+			assigned++;                                            \
+		}                                                              \
+		field_name[0] = '\0';                                          \
+		suppress = 0;                                                  \
 	} while (0)
 
-	u_char bits = 0;	/* For bit fields */
-	int shift = 0;		/* Bits already shifted out */
+	u_char bits = 0; /* For bit fields */
+	int shift = 0;	 /* Bits already shifted out */
 	suppress = 0;
 	field_name[0] = '\0';
 
 	while (!done) {
-		switch(letter = *fmt) {
-		case ' ':	/* White space */
+		switch (letter = *fmt) {
+		case ' ': /* White space */
 		case '\t':
 		case '\r':
 		case '\n':
@@ -147,22 +149,22 @@ do_buff_decode(uint8_t *buff, size_t len,
 			fmt++;
 			break;
 
-		case '#':	/* Comment */
+		case '#': /* Comment */
 			while (*fmt && (*fmt != '\n'))
 				fmt++;
 			if (fmt)
-				fmt++;	/* Skip '\n' */
+				fmt++; /* Skip '\n' */
 			break;
 
-		case '*':	/* Suppress assignment */
+		case '*': /* Suppress assignment */
 			fmt++;
 			suppress = 1;
 			break;
 
-		case '{':	/* Field Name */
+		case '{': /* Field Name */
 		{
 			int i = 0;
-			fmt++;	/* Skip '{' */
+			fmt++; /* Skip '{' */
 			while (*fmt && (*fmt != '}')) {
 				if (i < sizeof(field_name))
 					field_name[i++] = *fmt;
@@ -170,13 +172,13 @@ do_buff_decode(uint8_t *buff, size_t len,
 				fmt++;
 			}
 			if (*fmt != '\0')
-				fmt++;	/* Skip '}' */
+				fmt++; /* Skip '}' */
 			field_name[i] = '\0';
 			break;
 		}
 
-		case 't':	/* Bit (field) */
-		case 'b':	/* Bits */
+		case 't': /* Bit (field) */
+		case 'b': /* Bits */
 			fmt++;
 			width = strtol(fmt, &intendp, 10);
 			fmt = intendp;
@@ -191,8 +193,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 					bits = buff[ind++];
 					shift = 8;
 				}
-				value = (bits >> (shift - width)) &
-					 mask[width];
+				value = (bits >> (shift - width)) & mask[width];
 
 #if 0
 				printf("shift %2d bits %02x value %02x width %2d mask %02x\n",
@@ -205,7 +206,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 			}
 			break;
 
-		case 'i':	/* Integral values */
+		case 'i': /* Integral values */
 			shift = 0;
 			fmt++;
 			width = strtol(fmt, &intendp, 10);
@@ -214,7 +215,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 				done = 1;
 				break;
 			}
-			switch(width) {
+			switch (width) {
 			case 1:
 				ARG_PUT(buff[ind]);
 				ind++;
@@ -226,14 +227,14 @@ do_buff_decode(uint8_t *buff, size_t len,
 				break;
 
 			case 3:
-				ARG_PUT(buff[ind] << 16 |
-					buff[ind + 1] << 8 | buff[ind + 2]);
+				ARG_PUT(buff[ind] << 16 | buff[ind + 1] << 8 |
+				    buff[ind + 2]);
 				ind += 3;
 				break;
 
 			case 4:
 				ARG_PUT(buff[ind] << 24 | buff[ind + 1] << 16 |
-					buff[ind + 2] << 8 | buff[ind + 3]);
+				    buff[ind + 2] << 8 | buff[ind + 3]);
 				ind += 4;
 				break;
 
@@ -244,8 +245,8 @@ do_buff_decode(uint8_t *buff, size_t len,
 
 			break;
 
-		case 'c':	/* Characters (i.e., not swapped) */
-		case 'z':	/* Characters with zeroed trailing spaces */
+		case 'c': /* Characters (i.e., not swapped) */
+		case 'z': /* Characters with zeroed trailing spaces */
 			shift = 0;
 			fmt++;
 			width = strtol(fmt, &intendp, 10);
@@ -266,8 +267,8 @@ do_buff_decode(uint8_t *buff, size_t len,
 					if (letter == 'z') {
 						char *p;
 						for (p = dest + width - 1;
-						    p >= dest && *p == ' ';
-						    p--)
+						     p >= dest && *p == ' ';
+						     p--)
 							*p = '\0';
 					}
 				}
@@ -278,7 +279,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 			suppress = 0;
 			break;
 
-		case 's':	/* Seek */
+		case 's': /* Seek */
 			shift = 0;
 			fmt++;
 			if (*fmt == '+') {
@@ -301,9 +302,9 @@ do_buff_decode(uint8_t *buff, size_t len,
 			}
 
 			if (plus)
-				ind += width;	/* Relative seek */
+				ind += width; /* Relative seek */
 			else
-				ind = width;	/* Absolute seek */
+				ind = width; /* Absolute seek */
 
 			break;
 
@@ -313,7 +314,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 
 		default:
 			fprintf(stderr, "Unknown letter in format: %c\n",
-				letter);
+			    letter);
 			fmt++;
 			break;
 		}
@@ -356,7 +357,7 @@ do_buff_decode(uint8_t *buff, size_t len,
 
 static int
 next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
-	   int n_name, int *error_p, int *suppress_p)
+    int n_name, int *error_p, int *suppress_p)
 {
 	const char *p = *pp;
 	char *intendp;
@@ -371,21 +372,21 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 	} state;
 
 	int value = 0;
-	int field_size;		/* Default to byte field type... */
-	int field_width;	/* 1 byte wide */
+	int field_size;	 /* Default to byte field type... */
+	int field_width; /* 1 byte wide */
 	int is_error = 0;
 	int suppress = 0;
 
-	field_size = 8;		/* Default to byte field type... */
+	field_size = 8; /* Default to byte field type... */
 	*fmt = 'i';
-	field_width = 1;	/* 1 byte wide */
+	field_width = 1; /* 1 byte wide */
 	if (name != NULL)
 		*name = '\0';
 
 	state = BETWEEN_FIELDS;
 
 	while (state != DONE) {
-		switch(state) {
+		switch (state) {
 		case BETWEEN_FIELDS:
 			if (*p == '\0')
 				state = DONE;
@@ -402,14 +403,14 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 				p++;
 
 				while (*p && *p != '}') {
-					if(name && i < n_name) {
+					if (name && i < n_name) {
 						name[i] = *p;
 						i++;
 					}
 					p++;
 				}
 
-				if(name && i < n_name)
+				if (name && i < n_name)
 					name[i] = '\0';
 
 				if (*p == '}')
@@ -471,8 +472,10 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 				}
 				state = DONE;
 			} else {
-				fprintf(stderr, "Invalid starting "
-					"character: %c\n", *p);
+				fprintf(stderr,
+				    "Invalid starting "
+				    "character: %c\n",
+				    *p);
 				is_error = 1;
 				state = DONE;
 			}
@@ -481,8 +484,8 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 		case START_FIELD:
 			if (*p == ':') {
 				p++;
-				field_size = 1;		/* Default to bits
-							   when specified */
+				field_size = 1; /* Default to bits
+						   when specified */
 				state = GET_FIELD;
 			} else
 				state = DONE;
@@ -516,8 +519,10 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 				p = intendp;
 				state = DONE;
 			} else {
-				fprintf(stderr, "Invalid startfield %c "
-					"(%02x)\n", *p, *p);
+				fprintf(stderr,
+				    "Invalid startfield %c "
+				    "(%02x)\n",
+				    *p, *p);
 				is_error = 1;
 				state = DONE;
 			}
@@ -544,8 +549,7 @@ next_field(const char **pp, char *fmt, int *width_p, int *value_p, char *name,
 
 static int
 do_encode(u_char *buff, size_t vec_max, size_t *used,
-	  int (*arg_get)(void *, char *), void *gethook, const char *fmt,
-	  va_list *ap)
+    int (*arg_get)(void *, char *), void *gethook, const char *fmt, va_list *ap)
 {
 	int ind;
 	int shift;
@@ -560,8 +564,8 @@ do_encode(u_char *buff, size_t vec_max, size_t *used,
 	shift = 0;
 	val = 0;
 
- 	while ((ret = next_field(&fmt, &c, &width, &value, field_name,
-				 sizeof(field_name), &error, &suppress))) {
+	while ((ret = next_field(&fmt, &c, &width, &value, field_name,
+		    sizeof(field_name), &error, &suppress))) {
 		encoded++;
 
 		if (ret == 2) {
@@ -569,8 +573,8 @@ do_encode(u_char *buff, size_t vec_max, size_t *used,
 				value = 0;
 			else
 				value = arg_get != NULL ?
-					(*arg_get)(gethook, field_name) :
-					va_arg(*ap, int);
+				    (*arg_get)(gethook, field_name) :
+				    va_arg(*ap, int);
 		}
 
 #if 0
@@ -610,20 +614,20 @@ do_encode(u_char *buff, size_t vec_max, size_t *used,
 				}
 				shift = 0;
 			}
-			switch(width) {
-			case 8:		/* 1 byte integer */
+			switch (width) {
+			case 8: /* 1 byte integer */
 				if (ind < vec_max)
 					buff[ind++] = value;
 				break;
 
-			case 16:	/* 2 byte integer */
+			case 16: /* 2 byte integer */
 				if (ind < vec_max - 2 + 1) {
 					buff[ind++] = value >> 8;
 					buff[ind++] = value;
 				}
 				break;
 
-			case 24:	/* 3 byte integer */
+			case 24: /* 3 byte integer */
 				if (ind < vec_max - 3 + 1) {
 					buff[ind++] = value >> 16;
 					buff[ind++] = value >> 8;
@@ -631,7 +635,7 @@ do_encode(u_char *buff, size_t vec_max, size_t *used,
 				}
 				break;
 
-			case 32:	/* 4 byte integer */
+			case 32: /* 4 byte integer */
 				if (ind < vec_max - 4 + 1) {
 					buff[ind++] = value >> 24;
 					buff[ind++] = value >> 16;
@@ -654,7 +658,6 @@ do_encode(u_char *buff, size_t vec_max, size_t *used,
 		val = 0;
 	}
 
-
 	if (used)
 		*used = ind;
 
@@ -672,8 +675,8 @@ csio_decode(struct ccb_scsiio *csio, const char *fmt, ...)
 
 	va_start(ap, fmt);
 
-	retval = do_buff_decode(csio->data_ptr, (size_t)csio->dxfer_len,
-	    NULL, NULL, fmt, &ap);
+	retval = do_buff_decode(csio->data_ptr, (size_t)csio->dxfer_len, NULL,
+	    NULL, fmt, &ap);
 
 	va_end(ap);
 
@@ -682,8 +685,7 @@ csio_decode(struct ccb_scsiio *csio, const char *fmt, ...)
 
 int
 csio_decode_visit(struct ccb_scsiio *csio, const char *fmt,
-		  void (*arg_put)(void *, int, void *, int, char *),
-		  void *puthook)
+    void (*arg_put)(void *, int, void *, int, char *), void *puthook)
 {
 
 	/*
@@ -693,8 +695,8 @@ csio_decode_visit(struct ccb_scsiio *csio, const char *fmt,
 	if (arg_put == NULL)
 		return (-1);
 
-	return (do_buff_decode(csio->data_ptr, (size_t)csio->dxfer_len,
-		    arg_put, puthook, fmt, NULL));
+	return (do_buff_decode(csio->data_ptr, (size_t)csio->dxfer_len, arg_put,
+	    puthook, fmt, NULL));
 }
 
 int
@@ -714,8 +716,7 @@ buff_decode(uint8_t *buff, size_t len, const char *fmt, ...)
 
 int
 buff_decode_visit(uint8_t *buff, size_t len, const char *fmt,
-		  void (*arg_put)(void *, int, void *, int, char *),
-		  void *puthook)
+    void (*arg_put)(void *, int, void *, int, char *), void *puthook)
 {
 
 	/*
@@ -730,12 +731,11 @@ buff_decode_visit(uint8_t *buff, size_t len, const char *fmt,
 
 /*
  * Build a SCSI CCB, given the command and data pointers and a format
- * string describing the 
+ * string describing the
  */
 int
 csio_build(struct ccb_scsiio *csio, uint8_t *data_ptr, uint32_t dxfer_len,
-	   uint32_t flags, int retry_count, int timeout, const char *cmd_spec,
-	   ...)
+    uint32_t flags, int retry_count, int timeout, const char *cmd_spec, ...)
 {
 	size_t cmdlen;
 	int retval;
@@ -749,19 +749,19 @@ csio_build(struct ccb_scsiio *csio, uint8_t *data_ptr, uint32_t dxfer_len,
 	va_start(ap, cmd_spec);
 
 	if ((retval = do_encode(csio->cdb_io.cdb_bytes, SCSI_MAX_CDBLEN,
-				&cmdlen, NULL, NULL, cmd_spec, &ap)) == -1)
+		 &cmdlen, NULL, NULL, cmd_spec, &ap)) == -1)
 		goto done;
 
 	cam_fill_csio(csio,
-		      /* retries */ retry_count,
-		      /* cbfcnp */ NULL,
-		      /* flags */ flags,
-		      /* tag_action */ MSG_SIMPLE_Q_TAG,
-		      /* data_ptr */ data_ptr,
-		      /* dxfer_len */ dxfer_len,
-		      /* sense_len */ SSD_FULL_SIZE,
-		      /* cdb_len */ cmdlen,
-		      /* timeout */ timeout ? timeout : 5000);
+	    /* retries */ retry_count,
+	    /* cbfcnp */ NULL,
+	    /* flags */ flags,
+	    /* tag_action */ MSG_SIMPLE_Q_TAG,
+	    /* data_ptr */ data_ptr,
+	    /* dxfer_len */ dxfer_len,
+	    /* sense_len */ SSD_FULL_SIZE,
+	    /* cdb_len */ cmdlen,
+	    /* timeout */ timeout ? timeout : 5000);
 
 done:
 	va_end(ap);
@@ -770,10 +770,9 @@ done:
 }
 
 int
-csio_build_visit(struct ccb_scsiio *csio, uint8_t *data_ptr,
-		 uint32_t dxfer_len, uint32_t flags, int retry_count,
-		 int timeout, const char *cmd_spec,
-		 int (*arg_get)(void *hook, char *field_name), void *gethook)
+csio_build_visit(struct ccb_scsiio *csio, uint8_t *data_ptr, uint32_t dxfer_len,
+    uint32_t flags, int retry_count, int timeout, const char *cmd_spec,
+    int (*arg_get)(void *hook, char *field_name), void *gethook)
 {
 	size_t cmdlen;
 	int retval;
@@ -791,19 +790,19 @@ csio_build_visit(struct ccb_scsiio *csio, uint8_t *data_ptr,
 	bzero(csio, sizeof(struct ccb_scsiio));
 
 	if ((retval = do_encode(csio->cdb_io.cdb_bytes, SCSI_MAX_CDBLEN,
-				&cmdlen, arg_get, gethook, cmd_spec, NULL)) == -1)
+		 &cmdlen, arg_get, gethook, cmd_spec, NULL)) == -1)
 		return (retval);
 
 	cam_fill_csio(csio,
-		      /* retries */ retry_count,
-		      /* cbfcnp */ NULL,
-		      /* flags */ flags,
-		      /* tag_action */ MSG_SIMPLE_Q_TAG,
-		      /* data_ptr */ data_ptr,
-		      /* dxfer_len */ dxfer_len,
-		      /* sense_len */ SSD_FULL_SIZE,
-		      /* cdb_len */ cmdlen,
-		      /* timeout */ timeout ? timeout : 5000);
+	    /* retries */ retry_count,
+	    /* cbfcnp */ NULL,
+	    /* flags */ flags,
+	    /* tag_action */ MSG_SIMPLE_Q_TAG,
+	    /* data_ptr */ data_ptr,
+	    /* dxfer_len */ dxfer_len,
+	    /* sense_len */ SSD_FULL_SIZE,
+	    /* cdb_len */ cmdlen,
+	    /* timeout */ timeout ? timeout : 5000);
 
 	return (retval);
 }
@@ -829,7 +828,7 @@ csio_encode(struct ccb_scsiio *csio, const char *fmt, ...)
 
 int
 buff_encode_visit(uint8_t *buff, size_t len, const char *fmt,
-		  int (*arg_get)(void *hook, char *field_name), void *gethook)
+    int (*arg_get)(void *hook, char *field_name), void *gethook)
 {
 
 	/*
@@ -844,7 +843,7 @@ buff_encode_visit(uint8_t *buff, size_t len, const char *fmt,
 
 int
 csio_encode_visit(struct ccb_scsiio *csio, const char *fmt,
-		  int (*arg_get)(void *hook, char *field_name), void *gethook)
+    int (*arg_get)(void *hook, char *field_name), void *gethook)
 {
 
 	/*
@@ -855,5 +854,5 @@ csio_encode_visit(struct ccb_scsiio *csio, const char *fmt,
 		return (-1);
 
 	return (do_encode(csio->data_ptr, csio->dxfer_len, NULL, arg_get,
-			 gethook, fmt, NULL));
+	    gethook, fmt, NULL));
 }

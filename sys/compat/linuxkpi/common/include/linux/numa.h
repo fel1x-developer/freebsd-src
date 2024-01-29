@@ -27,8 +27,8 @@
  */
 
 #ifndef _LINUXKPI_LINUX_NUMA_H_
-#define	_LINUXKPI_LINUX_NUMA_H_
+#define _LINUXKPI_LINUX_NUMA_H_
 
-#define	NUMA_NO_NODE	-1
+#define NUMA_NO_NODE -1
 
 #endif /* _LINUXKPI_LINUX_NUMA_H_ */

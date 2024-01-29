@@ -33,20 +33,19 @@
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/pwm/ofw_pwm.h>
 
 int
-pwm_get_by_ofw_propidx(device_t consumer, phandle_t node,
-    const char *prop_name, int idx, pwm_channel_t *out_channel)
+pwm_get_by_ofw_propidx(device_t consumer, phandle_t node, const char *prop_name,
+    int idx, pwm_channel_t *out_channel)
 {
 	phandle_t xref;
 	pcell_t *cells;
 	struct pwm_channel channel;
 	int ncells, rv;
 
-	rv = ofw_bus_parse_xref_list_alloc(node, prop_name, "#pwm-cells",
-	  idx, &xref, &ncells, &cells);
+	rv = ofw_bus_parse_xref_list_alloc(node, prop_name, "#pwm-cells", idx,
+	    &xref, &ncells, &cells);
 	if (rv != 0)
 		return (rv);
 
@@ -62,7 +61,8 @@ pwm_get_by_ofw_propidx(device_t consumer, phandle_t node,
 	if (ncells >= 3)
 		channel.flags = cells[2];
 
-	*out_channel = malloc(sizeof(struct pwm_channel), M_DEVBUF, M_WAITOK | M_ZERO);
+	*out_channel = malloc(sizeof(struct pwm_channel), M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 	**out_channel = channel;
 	return (0);
 }
@@ -72,7 +72,8 @@ pwm_get_by_ofw_idx(device_t consumer, phandle_t node, int idx,
     pwm_channel_t *out_channel)
 {
 
-	return (pwm_get_by_ofw_propidx(consumer, node, "pwms", idx, out_channel));
+	return (
+	    pwm_get_by_ofw_propidx(consumer, node, "pwms", idx, out_channel));
 }
 
 int
@@ -80,7 +81,8 @@ pwm_get_by_ofw_property(device_t consumer, phandle_t node,
     const char *prop_name, pwm_channel_t *out_channel)
 {
 
-	return (pwm_get_by_ofw_propidx(consumer, node, prop_name, 0, out_channel));
+	return (
+	    pwm_get_by_ofw_propidx(consumer, node, prop_name, 0, out_channel));
 }
 
 int

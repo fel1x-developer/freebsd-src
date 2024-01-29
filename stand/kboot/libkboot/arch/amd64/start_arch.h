@@ -16,19 +16,20 @@
  * genreated code, but leaves enough breadcrumbs to keep gdb happy).
  */
 
-__asm__(
-".text\n"			/* ENTRY(_start) */
-".p2align 4,0x90\n"
-".global _start\n"
-".type _start, @function\n"
-"_start:\n"
-".cfi_startproc\n"
-"	xor	%rbp, %rbp\n"		/* Clear out the stack frame pointer */
-"	mov	%rsp, %rdi\n"		/* Pass pointer to current stack with argc, argv and envp on it */
-"	xor	%rsi, %rsi\n"		/* No dynamic pointer for us, to keep it simple */
-"	andq	$-16, %rsp\n"		/* Align stack to 16-byte boundary */
-"	call	_start_c\n"		/* Our MI code takes it from here and won't return */
-/* NORETURN */
-".size _start, . - _start\n"	/* END(_start) */
-".cfi_endproc"
-);
+__asm__(".text\n" /* ENTRY(_start) */
+	".p2align 4,0x90\n"
+	".global _start\n"
+	".type _start, @function\n"
+	"_start:\n"
+	".cfi_startproc\n"
+	"	xor	%rbp, %rbp\n" /* Clear out the stack frame pointer */
+	"	mov	%rsp, %rdi\n" /* Pass pointer to current stack with
+					 argc, argv and envp on it */
+	"	xor	%rsi, %rsi\n" /* No dynamic pointer for us, to keep it
+					 simple */
+	"	andq	$-16, %rsp\n" /* Align stack to 16-byte boundary */
+	"	call	_start_c\n" /* Our MI code takes it from here and won't
+				       return */
+	/* NORETURN */
+	".size _start, . - _start\n" /* END(_start) */
+	".cfi_endproc");

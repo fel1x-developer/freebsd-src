@@ -24,7 +24,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -35,16 +34,15 @@
 #include <sys/reboot.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 
-#include <dev/gpio/gpiobusvar.h>
-
 struct gpiopower_softc {
-	gpio_pin_t	sc_pin;
-	int		sc_rbmask;
-	int		sc_hi_period;
-	int		sc_lo_period;
-	int		sc_timeout;
+	gpio_pin_t sc_pin;
+	int sc_rbmask;
+	int sc_hi_period;
+	int sc_lo_period;
+	int sc_timeout;
 };
 
 static void gpiopower_assert(device_t dev, int howto);
@@ -111,7 +109,7 @@ gpiopower_assert(device_t dev, int howto)
 
 	sc = device_get_softc(dev);
 	do_assert = sc->sc_rbmask ? (sc->sc_rbmask & howto) :
-	    ((howto & RB_HALT) == 0);
+				    ((howto & RB_HALT) == 0);
 
 	if (!do_assert)
 		return;
@@ -137,17 +135,14 @@ gpiopower_assert(device_t dev, int howto)
 
 static device_method_t gpiopower_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpiopower_probe),
-	DEVMETHOD(device_attach,	gpiopower_attach),
+	DEVMETHOD(device_probe, gpiopower_probe),
+	DEVMETHOD(device_attach, gpiopower_attach),
 
 	DEVMETHOD_END
 };
 
-static driver_t gpiopower_driver = {
-	"gpiopower",
-	gpiopower_methods,
-	sizeof(struct gpiopower_softc)
-};
+static driver_t gpiopower_driver = { "gpiopower", gpiopower_methods,
+	sizeof(struct gpiopower_softc) };
 
 DRIVER_MODULE(gpiopower, simplebus, gpiopower_driver, 0, 0);
 MODULE_DEPEND(gpiopower, gpiobus, 1, 1, 1);

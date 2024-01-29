@@ -38,6 +38,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -46,36 +47,36 @@
 #include <sys/refcount.h>
 #include <sys/stdint.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
-#include "usbdevs.h"
-#include "usb_if.h"
 
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/ctl/ctl_io.h>
 #include <cam/ctl/ctl.h>
 #include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_debug.h>
 #include <cam/ctl/ctl_error.h>
 #include <cam/ctl/ctl_frontend.h>
-#include <cam/ctl/ctl_debug.h>
 #include <cam/ctl/ctl_ha.h>
+#include <cam/ctl/ctl_io.h>
 #include <cam/ctl/ctl_ioctl.h>
 #include <cam/ctl/ctl_private.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_da.h>
+
+#include "usb_if.h"
+#include "usbdevs.h"
 
 SYSCTL_NODE(_hw_usb, OID_AUTO, cfumass, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "CAM Target Layer USB Mass Storage Frontend");
 static int debug = 1;
-SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &debug, 1, "Enable debug messages");
+SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, debug, CTLFLAG_RWTUN, &debug, 1,
+    "Enable debug messages");
 static int max_lun = 0;
-SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, max_lun, CTLFLAG_RWTUN,
-    &max_lun, 1, "Maximum advertised LUN number");
+SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, max_lun, CTLFLAG_RWTUN, &max_lun, 1,
+    "Maximum advertised LUN number");
 static int ignore_stop = 1;
-SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, ignore_stop, CTLFLAG_RWTUN,
-    &ignore_stop, 1, "Ignore START STOP UNIT with START and LOEJ bits cleared");
+SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, ignore_stop, CTLFLAG_RWTUN, &ignore_stop,
+    1, "Ignore START STOP UNIT with START and LOEJ bits cleared");
 
 /*
  * The driver uses a single, global CTL port.  It could create its ports
@@ -83,77 +84,77 @@ SYSCTL_INT(_hw_usb_cfumass, OID_AUTO, ignore_stop, CTLFLAG_RWTUN,
  * "port cfumass0" in ctl.conf(5), as the port generally wouldn't exist
  * at the time ctld(8) gets run.
  */
-struct ctl_port	cfumass_port;
-bool		cfumass_port_online;
-volatile u_int	cfumass_refcount;
+struct ctl_port cfumass_port;
+bool cfumass_port_online;
+volatile u_int cfumass_refcount;
 
-#ifndef CFUMASS_BULK_SIZE 
-#define	CFUMASS_BULK_SIZE	(1U << 17)	/* bytes */
+#ifndef CFUMASS_BULK_SIZE
+#define CFUMASS_BULK_SIZE (1U << 17) /* bytes */
 #endif
 
 /*
  * USB transfer definitions.
  */
-#define	CFUMASS_T_COMMAND	0
-#define	CFUMASS_T_DATA_OUT	1
-#define	CFUMASS_T_DATA_IN	2
-#define	CFUMASS_T_STATUS	3
-#define	CFUMASS_T_MAX		4
+#define CFUMASS_T_COMMAND 0
+#define CFUMASS_T_DATA_OUT 1
+#define CFUMASS_T_DATA_IN 2
+#define CFUMASS_T_STATUS 3
+#define CFUMASS_T_MAX 4
 
 /*
  * USB interface specific control requests.
  */
-#define	UR_RESET	0xff	/* Bulk-Only Mass Storage Reset */
-#define	UR_GET_MAX_LUN	0xfe	/* Get Max LUN */
+#define UR_RESET 0xff	    /* Bulk-Only Mass Storage Reset */
+#define UR_GET_MAX_LUN 0xfe /* Get Max LUN */
 
 /*
  * Command Block Wrapper.
  */
 struct cfumass_cbw_t {
-	uDWord	dCBWSignature;
-#define	CBWSIGNATURE		0x43425355 /* "USBC" */
-	uDWord	dCBWTag;
-	uDWord	dCBWDataTransferLength;
-	uByte	bCBWFlags;
-#define	CBWFLAGS_OUT		0x00
-#define	CBWFLAGS_IN		0x80
-	uByte	bCBWLUN;
-	uByte	bCDBLength;
-#define	CBWCBLENGTH		16
-	uByte	CBWCB[CBWCBLENGTH];
+	uDWord dCBWSignature;
+#define CBWSIGNATURE 0x43425355 /* "USBC" */
+	uDWord dCBWTag;
+	uDWord dCBWDataTransferLength;
+	uByte bCBWFlags;
+#define CBWFLAGS_OUT 0x00
+#define CBWFLAGS_IN 0x80
+	uByte bCBWLUN;
+	uByte bCDBLength;
+#define CBWCBLENGTH 16
+	uByte CBWCB[CBWCBLENGTH];
 } __packed;
 
-#define	CFUMASS_CBW_SIZE	31
+#define CFUMASS_CBW_SIZE 31
 CTASSERT(sizeof(struct cfumass_cbw_t) == CFUMASS_CBW_SIZE);
 
 /*
  * Command Status Wrapper.
  */
 struct cfumass_csw_t {
-	uDWord	dCSWSignature;
-#define	CSWSIGNATURE		0x53425355 /* "USBS" */
-	uDWord	dCSWTag;
-	uDWord	dCSWDataResidue;
-	uByte	bCSWStatus;
-#define	CSWSTATUS_GOOD		0x0
-#define	CSWSTATUS_FAILED	0x1
-#define	CSWSTATUS_PHASE		0x2
+	uDWord dCSWSignature;
+#define CSWSIGNATURE 0x53425355 /* "USBS" */
+	uDWord dCSWTag;
+	uDWord dCSWDataResidue;
+	uByte bCSWStatus;
+#define CSWSTATUS_GOOD 0x0
+#define CSWSTATUS_FAILED 0x1
+#define CSWSTATUS_PHASE 0x2
 } __packed;
 
-#define	CFUMASS_CSW_SIZE	13
+#define CFUMASS_CSW_SIZE 13
 CTASSERT(sizeof(struct cfumass_csw_t) == CFUMASS_CSW_SIZE);
 
 struct cfumass_softc {
-	device_t		sc_dev;
-	struct usb_device	*sc_udev;
-	struct usb_xfer		*sc_xfer[CFUMASS_T_MAX];
+	device_t sc_dev;
+	struct usb_device *sc_udev;
+	struct usb_xfer *sc_xfer[CFUMASS_T_MAX];
 
 	struct cfumass_cbw_t *sc_cbw;
 	struct cfumass_csw_t *sc_csw;
 
-	struct mtx	sc_mtx;
-	int		sc_online;
-	int		sc_ctl_initid;
+	struct mtx sc_mtx;
+	int sc_online;
+	int sc_ctl_initid;
 
 	/*
 	 * This is used to communicate between CTL callbacks
@@ -161,45 +162,45 @@ struct cfumass_softc {
 	 * for the current command ("the" command, since there
 	 * is no queueing in USB Mass Storage).
 	 */
-	bool		sc_current_stalled;
+	bool sc_current_stalled;
 
 	/*
 	 * The following are set upon receiving a SCSI command.
 	 */
-	int		sc_current_tag;
-	int		sc_current_transfer_length;
-	int		sc_current_flags;
+	int sc_current_tag;
+	int sc_current_transfer_length;
+	int sc_current_flags;
 
 	/*
 	 * The following are set in ctl_datamove().
 	 */
-	int		sc_current_residue;
-	union ctl_io	*sc_ctl_io;
+	int sc_current_residue;
+	union ctl_io *sc_ctl_io;
 
 	/*
 	 * The following is set in cfumass_done().
 	 */
-	int		sc_current_status;
+	int sc_current_status;
 
 	/*
 	 * Number of requests queued to CTL.
 	 */
-	volatile u_int	sc_queued;
+	volatile u_int sc_queued;
 };
 
 /*
  * USB interface.
  */
-static device_probe_t		cfumass_probe;
-static device_attach_t		cfumass_attach;
-static device_detach_t		cfumass_detach;
-static device_suspend_t		cfumass_suspend;
-static device_resume_t		cfumass_resume;
-static usb_handle_request_t	cfumass_handle_request;
+static device_probe_t cfumass_probe;
+static device_attach_t cfumass_attach;
+static device_detach_t cfumass_detach;
+static device_suspend_t cfumass_suspend;
+static device_resume_t cfumass_resume;
+static usb_handle_request_t cfumass_handle_request;
 
-static usb_callback_t		cfumass_t_command_callback;
-static usb_callback_t		cfumass_t_data_callback;
-static usb_callback_t		cfumass_t_status_callback;
+static usb_callback_t cfumass_t_command_callback;
+static usb_callback_t cfumass_t_data_callback;
+static usb_callback_t cfumass_t_status_callback;
 
 static device_method_t cfumass_methods[] = {
 	/* USB interface. */
@@ -272,12 +273,12 @@ static struct usb_config cfumass_config[CFUMASS_T_MAX] = {
 /*
  * CTL frontend interface.
  */
-static int	cfumass_init(void);
-static int	cfumass_shutdown(void);
-static void	cfumass_online(void *arg);
-static void	cfumass_offline(void *arg);
-static void	cfumass_datamove(union ctl_io *io);
-static void	cfumass_done(union ctl_io *io);
+static int cfumass_init(void);
+static int cfumass_shutdown(void);
+static void cfumass_online(void *arg);
+static void cfumass_offline(void *arg);
+static void cfumass_datamove(union ctl_io *io);
+static void cfumass_done(union ctl_io *io);
 
 static struct ctl_frontend cfumass_frontend = {
 	.name = "umass",
@@ -286,28 +287,28 @@ static struct ctl_frontend cfumass_frontend = {
 };
 CTL_FRONTEND_DECLARE(ctlcfumass, cfumass_frontend);
 
-#define	CFUMASS_DEBUG(S, X, ...)					\
-	do {								\
-		if (debug > 1) {					\
-			device_printf(S->sc_dev, "%s: " X "\n",		\
-			    __func__, ## __VA_ARGS__);			\
-		}							\
+#define CFUMASS_DEBUG(S, X, ...)                                          \
+	do {                                                              \
+		if (debug > 1) {                                          \
+			device_printf(S->sc_dev, "%s: " X "\n", __func__, \
+			    ##__VA_ARGS__);                               \
+		}                                                         \
 	} while (0)
 
-#define	CFUMASS_WARN(S, X, ...)						\
-	do {								\
-		if (debug > 0) {					\
-			device_printf(S->sc_dev, "WARNING: %s: " X "\n",\
-			    __func__, ## __VA_ARGS__);			\
-		}							\
+#define CFUMASS_WARN(S, X, ...)                                          \
+	do {                                                             \
+		if (debug > 0) {                                         \
+			device_printf(S->sc_dev, "WARNING: %s: " X "\n", \
+			    __func__, ##__VA_ARGS__);                    \
+		}                                                        \
 	} while (0)
 
-#define CFUMASS_LOCK(X)		mtx_lock(&X->sc_mtx)
-#define CFUMASS_UNLOCK(X)	mtx_unlock(&X->sc_mtx)
+#define CFUMASS_LOCK(X) mtx_lock(&X->sc_mtx)
+#define CFUMASS_UNLOCK(X) mtx_unlock(&X->sc_mtx)
 
-static void	cfumass_transfer_start(struct cfumass_softc *sc,
-		    uint8_t xfer_index);
-static void	cfumass_terminate(struct cfumass_softc *sc);
+static void cfumass_transfer_start(struct cfumass_softc *sc,
+    uint8_t xfer_index);
+static void cfumass_terminate(struct cfumass_softc *sc);
 
 static int
 cfumass_probe(device_t dev)
@@ -324,8 +325,7 @@ cfumass_probe(device_t dev)
 	 * Check for a compliant device.
 	 */
 	id = usbd_get_interface_descriptor(uaa->iface);
-	if ((id == NULL) ||
-	    (id->bInterfaceClass != UICLASS_MASS) ||
+	if ((id == NULL) || (id->bInterfaceClass != UICLASS_MASS) ||
 	    (id->bInterfaceSubClass != UISUBCLASS_SCSI) ||
 	    (id->bInterfaceProtocol != UIPROTO_MASS_BBB)) {
 		return (ENXIO);
@@ -355,9 +355,8 @@ cfumass_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, "cfumass", NULL, MTX_DEF);
 	refcount_acquire(&cfumass_refcount);
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, cfumass_config,
-	    CFUMASS_T_MAX, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, cfumass_config, CFUMASS_T_MAX, sc, &sc->sc_mtx);
 	if (error != 0) {
 		CFUMASS_WARN(sc, "usbd_transfer_setup() failed: %s",
 		    usbd_errstr(error));
@@ -365,10 +364,10 @@ cfumass_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	sc->sc_cbw =
-	    usbd_xfer_get_frame_buffer(sc->sc_xfer[CFUMASS_T_COMMAND], 0);
-	sc->sc_csw =
-	    usbd_xfer_get_frame_buffer(sc->sc_xfer[CFUMASS_T_STATUS], 0);
+	sc->sc_cbw = usbd_xfer_get_frame_buffer(sc->sc_xfer[CFUMASS_T_COMMAND],
+	    0);
+	sc->sc_csw = usbd_xfer_get_frame_buffer(sc->sc_xfer[CFUMASS_T_STATUS],
+	    0);
 
 	sc->sc_ctl_initid = ctl_add_initiator(&cfumass_port, -1, 0, NULL);
 	if (sc->sc_ctl_initid < 0) {
@@ -406,8 +405,10 @@ cfumass_detach(device_t dev)
 	if (sc->sc_ctl_initid != -1) {
 		error = ctl_remove_initiator(&cfumass_port, sc->sc_ctl_initid);
 		if (error != 0) {
-			CFUMASS_WARN(sc, "ctl_remove_initiator() failed "
-			    "with error %d", error);
+			CFUMASS_WARN(sc,
+			    "ctl_remove_initiator() failed "
+			    "with error %d",
+			    error);
 		}
 		sc->sc_ctl_initid = -1;
 	}
@@ -482,15 +483,14 @@ cfumass_terminate(struct cfumass_softc *sc)
 			break;
 
 		CFUMASS_DEBUG(sc, "%d CTL tasks pending", sc->sc_queued);
-		msleep(__DEVOLATILE(void *, &sc->sc_queued), &sc->sc_mtx,
-		    0, "cfumass_reset", hz / 100);
+		msleep(__DEVOLATILE(void *, &sc->sc_queued), &sc->sc_mtx, 0,
+		    "cfumass_reset", hz / 100);
 	}
 }
 
 static int
-cfumass_handle_request(device_t dev,
-    const void *preq, void **pptr, uint16_t *plen,
-    uint16_t offset, uint8_t *pstate)
+cfumass_handle_request(device_t dev, const void *preq, void **pptr,
+    uint16_t *plen, uint16_t offset, uint8_t *pstate)
 {
 	static uint8_t max_lun_tmp;
 	struct cfumass_softc *sc;
@@ -565,7 +565,8 @@ cfumass_quirk(struct cfumass_softc *sc, unsigned char *cdb, int cdb_len)
 		 */
 
 		if (cdb_len < sizeof(*sssu)) {
-			CFUMASS_DEBUG(sc, "received START STOP UNIT with "
+			CFUMASS_DEBUG(sc,
+			    "received START STOP UNIT with "
 			    "bCDBLength %d, should be %zd",
 			    cdb_len, sizeof(*sssu));
 			break;
@@ -580,7 +581,7 @@ cfumass_quirk(struct cfumass_softc *sc, unsigned char *cdb, int cdb_len)
 
 		if ((sssu->how & SSS_LOEJ) != 0)
 			break;
-		
+
 		if (ignore_stop == 0) {
 			break;
 		} else if (ignore_stop == 1) {
@@ -619,14 +620,17 @@ cfumass_t_command_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 
 		signature = UGETDW(sc->sc_cbw->dCBWSignature);
 		if (signature != CBWSIGNATURE) {
-			CFUMASS_WARN(sc, "wrong dCBWSignature 0x%08x, "
-			    "should be 0x%08x", signature, CBWSIGNATURE);
+			CFUMASS_WARN(sc,
+			    "wrong dCBWSignature 0x%08x, "
+			    "should be 0x%08x",
+			    signature, CBWSIGNATURE);
 			break;
 		}
 
 		if (sc->sc_cbw->bCDBLength <= 0 ||
 		    sc->sc_cbw->bCDBLength > sizeof(sc->sc_cbw->CBWCB)) {
-			CFUMASS_WARN(sc, "invalid bCDBLength %d, should be <= %zd",
+			CFUMASS_WARN(sc,
+			    "invalid bCDBLength %d, should be <= %zd",
 			    sc->sc_cbw->bCDBLength, sizeof(sc->sc_cbw->CBWCB));
 			break;
 		}
@@ -634,8 +638,8 @@ cfumass_t_command_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		sc->sc_current_stalled = false;
 		sc->sc_current_status = 0;
 		sc->sc_current_tag = UGETDW(sc->sc_cbw->dCBWTag);
-		sc->sc_current_transfer_length =
-		    UGETDW(sc->sc_cbw->dCBWDataTransferLength);
+		sc->sc_current_transfer_length = UGETDW(
+		    sc->sc_cbw->dCBWDataTransferLength);
 		sc->sc_current_flags = sc->sc_cbw->bCBWFlags;
 
 		/*
@@ -644,8 +648,8 @@ cfumass_t_command_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		 */
 		sc->sc_current_residue = sc->sc_current_transfer_length;
 
-		if (cfumass_quirk(sc,
-		    sc->sc_cbw->CBWCB, sc->sc_cbw->bCDBLength) != 0)
+		if (cfumass_quirk(sc, sc->sc_cbw->CBWCB,
+			sc->sc_cbw->bCDBLength) != 0)
 			break;
 
 		if (!cfumass_port_online) {
@@ -668,7 +672,8 @@ cfumass_t_command_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		io->scsiio.tag_num = UGETDW(sc->sc_cbw->dCBWTag);
 		io->scsiio.tag_type = CTL_TAG_UNTAGGED;
 		io->scsiio.cdb_len = sc->sc_cbw->bCDBLength;
-		memcpy(io->scsiio.cdb, sc->sc_cbw->CBWCB, sc->sc_cbw->bCDBLength);
+		memcpy(io->scsiio.cdb, sc->sc_cbw->CBWCB,
+		    sc->sc_cbw->bCDBLength);
 		refcount_acquire(&sc->sc_queued);
 		error = ctl_queue(io);
 		if (error != CTL_RETVAL_COMPLETE) {
@@ -685,7 +690,7 @@ cfumass_t_command_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		CFUMASS_DEBUG(sc, "USB_ST_SETUP");
 
 		usbd_xfer_set_frame_len(xfer, 0, sizeof(*sc->sc_cbw));
@@ -721,8 +726,7 @@ cfumass_t_data_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		sc->sc_current_residue -= actlen;
 		io->scsiio.ext_data_filled += actlen;
 		io->scsiio.kern_data_resid -= actlen;
-		if (actlen < sumlen ||
-		    sc->sc_current_residue == 0 ||
+		if (actlen < sumlen || sc->sc_current_residue == 0 ||
 		    io->scsiio.kern_data_resid == 0) {
 			sc->sc_ctl_io = NULL;
 			ctl_datamove_done(io, false);
@@ -731,11 +735,12 @@ cfumass_t_data_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		/* FALLTHROUGH */
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		CFUMASS_DEBUG(sc, "USB_ST_SETUP");
 
 		if (io->scsiio.kern_sg_entries > 0) {
-			sglist = (struct ctl_sg_entry *)io->scsiio.kern_data_ptr;
+			sglist = (struct ctl_sg_entry *)
+				     io->scsiio.kern_data_ptr;
 			sg_count = io->scsiio.kern_sg_entries;
 		} else {
 			sglist = &sg_entry;
@@ -755,9 +760,11 @@ tr_setup:
 
 		max_bulk = usbd_xfer_max_len(xfer);
 		actlen = min(sglist->len - sumlen, max_bulk);
-		actlen = min(actlen, sc->sc_current_transfer_length -
-		    io->scsiio.ext_data_filled);
-		CFUMASS_DEBUG(sc, "requested %d, done %d, max_bulk %d, "
+		actlen = min(actlen,
+		    sc->sc_current_transfer_length -
+			io->scsiio.ext_data_filled);
+		CFUMASS_DEBUG(sc,
+		    "requested %d, done %d, max_bulk %d, "
 		    "segment %zd => transfer %d",
 		    sc->sc_current_transfer_length, io->scsiio.ext_data_filled,
 		    max_bulk, sglist->len - sumlen, actlen);
@@ -795,7 +802,7 @@ cfumass_t_status_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 		break;
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		CFUMASS_DEBUG(sc, "USB_ST_SETUP");
 
 		if (sc->sc_current_residue > 0 && !sc->sc_current_stalled) {
@@ -819,8 +826,7 @@ tr_setup:
 			break;
 		}
 
-		CFUMASS_DEBUG(sc, "USB_ST_ERROR: %s",
-		    usbd_errstr(usb_error));
+		CFUMASS_DEBUG(sc, "USB_ST_ERROR: %s", usbd_errstr(usb_error));
 
 		goto tr_setup;
 	}
@@ -914,7 +920,7 @@ cfumass_done(union ctl_io *io)
 	 * There are exceptions, but none supported by CTL yet.
 	 */
 	if (((io->io_hdr.flags & CTL_FLAG_ABORT) &&
-	     (io->io_hdr.flags & CTL_FLAG_ABORT_STATUS) == 0) ||
+		(io->io_hdr.flags & CTL_FLAG_ABORT_STATUS) == 0) ||
 	    (io->io_hdr.flags & CTL_FLAG_STATUS_SENT)) {
 		ctl_free_io(io);
 		return;
@@ -960,7 +966,8 @@ cfumass_init(void)
 	error = ctl_port_register(&cfumass_port);
 	if (error != 0) {
 		printf("%s: ctl_port_register() failed "
-		    "with error %d", __func__, error);
+		       "with error %d",
+		    __func__, error);
 	}
 
 	cfumass_port_online = true;
@@ -977,7 +984,8 @@ cfumass_shutdown(void)
 	if (cfumass_refcount > 0) {
 		if (debug > 1) {
 			printf("%s: still have %u attachments; "
-			    "returning EBUSY\n", __func__, cfumass_refcount);
+			       "returning EBUSY\n",
+			    __func__, cfumass_refcount);
 		}
 		return (EBUSY);
 	}
@@ -985,7 +993,8 @@ cfumass_shutdown(void)
 	error = ctl_port_deregister(&cfumass_port);
 	if (error != 0) {
 		printf("%s: ctl_port_deregister() failed "
-		    "with error %d\n", __func__, error);
+		       "with error %d\n",
+		    __func__, error);
 	}
 
 	return (error);

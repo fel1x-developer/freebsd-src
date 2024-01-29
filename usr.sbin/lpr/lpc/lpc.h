@@ -32,18 +32,18 @@
 /*
  * Line Printer Control (lpc) program.
  */
-struct	printer;
+struct printer;
 
-#define LPC_PRIVCMD	0x0001		/* a privileged command */
-#define LPC_MSGOPT	0x0002		/* command recognizes -msg option */
+#define LPC_PRIVCMD 0x0001 /* a privileged command */
+#define LPC_MSGOPT 0x0002  /* command recognizes -msg option */
 
-struct	cmd {
-	const char	*c_name;	/* command name */
-	const char	*c_help;	/* help message */
-	const int	 c_opts;	/* flags (eg: privileged command) */
-		/* routine to do all the work for plain cmds, or
-		 * initialization work for generic-printer cmds: */
-	void	(*c_handler)(int, char *[]);
-		/* routine to do the work for generic-printer cmds: */
-	void	(*c_generic)(struct printer *);
+struct cmd {
+	const char *c_name; /* command name */
+	const char *c_help; /* help message */
+	const int c_opts;   /* flags (eg: privileged command) */
+			    /* routine to do all the work for plain cmds, or
+			     * initialization work for generic-printer cmds: */
+	void (*c_handler)(int, char *[]);
+	/* routine to do the work for generic-printer cmds: */
+	void (*c_generic)(struct printer *);
 };

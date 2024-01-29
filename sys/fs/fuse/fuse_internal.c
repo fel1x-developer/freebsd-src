@@ -62,32 +62,32 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/counter.h>
-#include <sys/module.h>
-#include <sys/errno.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/sdt.h>
-#include <sys/sx.h>
-#include <sys/proc.h>
-#include <sys/mount.h>
-#include <sys/vnode.h>
-#include <sys/namei.h>
-#include <sys/stat.h>
-#include <sys/unistd.h>
-#include <sys/filedesc.h>
-#include <sys/file.h>
-#include <sys/fcntl.h>
-#include <sys/dirent.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/sysctl.h>
+#include <sys/conf.h>
+#include <sys/counter.h>
+#include <sys/dirent.h>
+#include <sys/errno.h>
+#include <sys/fcntl.h>
+#include <sys/file.h>
+#include <sys/filedesc.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
 #include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sdt.h>
+#include <sys/stat.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/unistd.h>
+#include <sys/vnode.h>
 
 #include "fuse.h"
 #include "fuse_file.h"
@@ -95,10 +95,9 @@
 #include "fuse_io.h"
 #include "fuse_ipc.h"
 #include "fuse_node.h"
-#include "fuse_file.h"
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -120,8 +119,8 @@ SYSCTL_COUNTER_U64(_vfs_fusefs_stats, OID_AUTO, lookup_cache_misses, CTLFLAG_RD,
     &fuse_lookup_cache_misses, "number of cache misses in lookup");
 
 int
-fuse_internal_get_cached_vnode(struct mount* mp, ino_t ino, int flags,
-	struct vnode **vpp)
+fuse_internal_get_cached_vnode(struct mount *mp, ino_t ino, int flags,
+    struct vnode **vpp)
 {
 	struct bintime now;
 	struct thread *td = curthread;
@@ -141,7 +140,8 @@ fuse_internal_get_cached_vnode(struct mount* mp, ino_t ino, int flags,
 	 */
 	if (*vpp != NULL) {
 		getbinuptime(&now);
-		if (bintime_cmp(&(VTOFUD(*vpp)->entry_cache_timeout), &now, >)){
+		if (bintime_cmp(&(VTOFUD(*vpp)->entry_cache_timeout), &now,
+			>)) {
 			counter_u64_add(fuse_lookup_cache_hits, 1);
 			return 0;
 		} else {
@@ -158,9 +158,7 @@ fuse_internal_get_cached_vnode(struct mount* mp, ino_t ino, int flags,
 SDT_PROBE_DEFINE0(fusefs, , internal, access_vadmin);
 /* Synchronously send a FUSE_ACCESS operation */
 int
-fuse_internal_access(struct vnode *vp,
-    accmode_t mode,
-    struct thread *td,
+fuse_internal_access(struct vnode *vp, accmode_t mode, struct thread *td,
     struct ucred *cred)
 {
 	int err = 0;
@@ -202,8 +200,8 @@ fuse_internal_access(struct vnode *vp,
 		struct vattr va;
 
 		fuse_internal_getattr(vp, &va, cred, td);
-		return vaccess(vp->v_type, va.va_mode, va.va_uid,
-		    va.va_gid, mode, cred);
+		return vaccess(vp->v_type, va.va_mode, va.va_uid, va.va_gid,
+		    mode, cred);
 	}
 
 	if (mode & VADMIN) {
@@ -250,8 +248,8 @@ fuse_internal_access(struct vnode *vp,
  */
 void
 fuse_internal_cache_attrs(struct vnode *vp, struct fuse_attr *attr,
-	uint64_t attr_valid, uint32_t attr_valid_nsec, struct vattr *vap,
-	bool from_server)
+    uint64_t attr_valid, uint32_t attr_valid_nsec, struct vattr *vap,
+    bool from_server)
 {
 	struct mount *mp;
 	struct fuse_vnode_data *fvdat;
@@ -265,15 +263,12 @@ fuse_internal_cache_attrs(struct vnode *vp, struct fuse_attr *attr,
 	ASSERT_VOP_ELOCKED(vp, "fuse_internal_cache_attrs");
 
 	fuse_validity_2_bintime(attr_valid, attr_valid_nsec,
-		&fvdat->attr_cache_timeout);
+	    &fvdat->attr_cache_timeout);
 
-	if (vnode_isreg(vp) &&
-	    fvdat->cached_attrs.va_size != VNOVAL &&
-	    attr->size != fvdat->cached_attrs.va_size)
-	{
-		if ( data->cache_mode == FUSE_CACHE_WB &&
-		    fvdat->flag & FN_SIZECHANGE)
-		{
+	if (vnode_isreg(vp) && fvdat->cached_attrs.va_size != VNOVAL &&
+	    attr->size != fvdat->cached_attrs.va_size) {
+		if (data->cache_mode == FUSE_CACHE_WB &&
+		    fvdat->flag & FN_SIZECHANGE) {
 			const char *msg;
 
 			/*
@@ -283,20 +278,19 @@ fuse_internal_cache_attrs(struct vnode *vp, struct fuse_attr *attr,
 			 */
 			if (fuse_libabi_geq(data, 7, 23)) {
 				msg = "writeback cache incoherent!."
-				    "To prevent data corruption, disable "
-				    "the writeback cache according to your "
-				    "FUSE server's documentation.";
+				      "To prevent data corruption, disable "
+				      "the writeback cache according to your "
+				      "FUSE server's documentation.";
 			} else {
 				msg = "writeback cache incoherent!."
-				    "To prevent data corruption, disable "
-				    "the writeback cache by setting "
-				    "vfs.fusefs.data_cache_mode to 0 or 1.";
+				      "To prevent data corruption, disable "
+				      "the writeback cache by setting "
+				      "vfs.fusefs.data_cache_mode to 0 or 1.";
 			}
 			fuse_warn(data, FSESS_WARN_WB_CACHE_INCOHERENT, msg);
 		}
 		if (fuse_vnode_attr_cache_valid(vp) &&
-		    data->cache_mode != FUSE_CACHE_UC)
-		{
+		    data->cache_mode != FUSE_CACHE_UC) {
 			/*
 			 * The server changed the file's size even though we
 			 * have it cached and our cache has not yet expired.
@@ -329,17 +323,17 @@ fuse_internal_cache_attrs(struct vnode *vp, struct fuse_attr *attr,
 	vp_cache_at->va_fsid = mp->mnt_stat.f_fsid.val[0];
 	vp_cache_at->va_fileid = attr->ino;
 	vp_cache_at->va_mode = attr->mode & ~S_IFMT;
-	vp_cache_at->va_nlink     = attr->nlink;
-	vp_cache_at->va_uid       = attr->uid;
-	vp_cache_at->va_gid       = attr->gid;
-	vp_cache_at->va_rdev      = attr->rdev;
-	vp_cache_at->va_size      = attr->size;
+	vp_cache_at->va_nlink = attr->nlink;
+	vp_cache_at->va_uid = attr->uid;
+	vp_cache_at->va_gid = attr->gid;
+	vp_cache_at->va_rdev = attr->rdev;
+	vp_cache_at->va_size = attr->size;
 	/* XXX on i386, seconds are truncated to 32 bits */
-	vp_cache_at->va_atime.tv_sec  = attr->atime;
+	vp_cache_at->va_atime.tv_sec = attr->atime;
 	vp_cache_at->va_atime.tv_nsec = attr->atimensec;
-	vp_cache_at->va_mtime.tv_sec  = attr->mtime;
+	vp_cache_at->va_mtime.tv_sec = attr->mtime;
 	vp_cache_at->va_mtime.tv_nsec = attr->mtimensec;
-	vp_cache_at->va_ctime.tv_sec  = attr->ctime;
+	vp_cache_at->va_ctime.tv_sec = attr->ctime;
 	vp_cache_at->va_ctime.tv_nsec = attr->ctimensec;
 	if (fuse_libabi_geq(data, 7, 9) && attr->blksize > 0)
 		vp_cache_at->va_blocksize = attr->blksize;
@@ -365,9 +359,7 @@ fuse_internal_fsync_callback(struct fuse_ticket *tick, struct uio *uio)
 }
 
 int
-fuse_internal_fsync(struct vnode *vp,
-    struct thread *td,
-    int waitfor,
+fuse_internal_fsync(struct vnode *vp, struct thread *td, int waitfor,
     bool datasync)
 {
 	struct fuse_fsync_in *ffsi = NULL;
@@ -379,7 +371,7 @@ fuse_internal_fsync(struct vnode *vp,
 	int err = 0;
 
 	if (fsess_not_impl(vnode_mount(vp),
-	    (vnode_vtype(vp) == VDIR ? FUSE_FSYNCDIR : FUSE_FSYNC))) {
+		(vnode_vtype(vp) == VDIR ? FUSE_FSYNCDIR : FUSE_FSYNC))) {
 		return 0;
 	}
 	if (vnode_isdir(vp))
@@ -393,7 +385,7 @@ fuse_internal_fsync(struct vnode *vp,
 	 * fsync every open file handle for this file, because we can't be sure
 	 * which file handle the caller is really referring to.
 	 */
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
 		fdi.iosize = sizeof(*ffsi);
 		if (ffsi == NULL)
 			fdisp_make_vp(&fdi, op, vp, td, NULL);
@@ -410,7 +402,7 @@ fuse_internal_fsync(struct vnode *vp,
 			err = fdisp_wait_answ(&fdi);
 		} else {
 			fuse_insert_callback(fdi.tick,
-				fuse_internal_fsync_callback);
+			    fuse_internal_fsync_callback);
 			fuse_insert_message(fdi.tick, false);
 		}
 		if (err == ENOSYS) {
@@ -426,8 +418,8 @@ fuse_internal_fsync(struct vnode *vp,
 }
 
 /* Asynchronous invalidation */
-SDT_PROBE_DEFINE3(fusefs, , internal, invalidate_entry,
-	"struct vnode*", "struct fuse_notify_inval_entry_out*", "char*");
+SDT_PROBE_DEFINE3(fusefs, , internal, invalidate_entry, "struct vnode*",
+    "struct fuse_notify_inval_entry_out*", "char*");
 int
 fuse_internal_invalidate_entry(struct mount *mp, struct uio *uio)
 {
@@ -454,10 +446,10 @@ fuse_internal_invalidate_entry(struct mount *mp, struct uio *uio)
 	if (fnieo.parent == FUSE_ROOT_ID)
 		err = VFS_ROOT(mp, LK_SHARED, &dvp);
 	else
-		err = fuse_internal_get_cached_vnode( mp, fnieo.parent,
-			LK_SHARED, &dvp);
+		err = fuse_internal_get_cached_vnode(mp, fnieo.parent,
+		    LK_SHARED, &dvp);
 	SDT_PROBE3(fusefs, , internal, invalidate_entry, dvp, &fnieo, name);
-	/* 
+	/*
 	 * If dvp is not in the cache, then it must've been reclaimed.  And
 	 * since fuse_vnop_reclaim does a cache_purge, name's entry must've
 	 * been invalidated already.  So we can safely return if dvp == NULL
@@ -471,7 +463,7 @@ fuse_internal_invalidate_entry(struct mount *mp, struct uio *uio)
 	 */
 
 	cn.cn_nameiop = LOOKUP;
-	cn.cn_flags = 0;	/* !MAKEENTRY means free cached entry */
+	cn.cn_flags = 0; /* !MAKEENTRY means free cached entry */
 	cn.cn_cred = curthread->td_ucred;
 	cn.cn_lkflags = LK_SHARED;
 	cn.cn_pnbuf = NULL;
@@ -484,8 +476,8 @@ fuse_internal_invalidate_entry(struct mount *mp, struct uio *uio)
 	return (0);
 }
 
-SDT_PROBE_DEFINE2(fusefs, , internal, invalidate_inode,
-	"struct vnode*", "struct fuse_notify_inval_inode_out *");
+SDT_PROBE_DEFINE2(fusefs, , internal, invalidate_inode, "struct vnode*",
+    "struct fuse_notify_inval_inode_out *");
 int
 fuse_internal_invalidate_inode(struct mount *mp, struct uio *uio)
 {
@@ -500,7 +492,7 @@ fuse_internal_invalidate_inode(struct mount *mp, struct uio *uio)
 		err = VFS_ROOT(mp, LK_EXCLUSIVE, &vp);
 	else
 		err = fuse_internal_get_cached_vnode(mp, fniio.ino, LK_SHARED,
-			&vp);
+		    &vp);
 	SDT_PROBE2(fusefs, , internal, invalidate_inode, vp, &fniio);
 	if (err != 0 || vp == NULL)
 		return (err);
@@ -510,7 +502,7 @@ fuse_internal_invalidate_inode(struct mount *mp, struct uio *uio)
 	 * an inode that didn't need to be invalidated.
 	 */
 
-	/* 
+	/*
 	 * Flush and invalidate buffers if off >= 0.  Technically we only need
 	 * to flush and invalidate the range of offsets [off, off + len), but
 	 * for simplicity's sake we do everything.
@@ -525,7 +517,7 @@ fuse_internal_invalidate_inode(struct mount *mp, struct uio *uio)
 /* mknod */
 int
 fuse_internal_mknod(struct vnode *dvp, struct vnode **vpp,
-	struct componentname *cnp, struct vattr *vap)
+    struct componentname *cnp, struct vattr *vap)
 {
 	struct fuse_data *data;
 	struct fuse_mknod_in fmni;
@@ -542,18 +534,15 @@ fuse_internal_mknod(struct vnode *dvp, struct vnode **vpp,
 	} else {
 		insize = FUSE_COMPAT_MKNOD_IN_SIZE;
 	}
-	return (fuse_internal_newentry(dvp, vpp, cnp, FUSE_MKNOD, &fmni,
-	    insize, vap->va_type));
+	return (fuse_internal_newentry(dvp, vpp, cnp, FUSE_MKNOD, &fmni, insize,
+	    vap->va_type));
 }
 
 /* readdir */
 
 int
-fuse_internal_readdir(struct vnode *vp,
-    struct uio *uio,
-    struct fuse_filehandle *fufh,
-    struct fuse_iov *cookediov,
-    int *ncookies,
+fuse_internal_readdir(struct vnode *vp, struct uio *uio,
+    struct fuse_filehandle *fufh, struct fuse_iov *cookediov, int *ncookies,
     uint64_t *cookies)
 {
 	int err = 0;
@@ -580,7 +569,7 @@ fuse_internal_readdir(struct vnode *vp,
 		if ((err = fdisp_wait_answ(&fdi)))
 			break;
 		if ((err = fuse_internal_readdir_processdata(uio, fri->size,
-			fdi.answ, fdi.iosize, cookediov, ncookies, &cookies)))
+			 fdi.answ, fdi.iosize, cookediov, ncookies, &cookies)))
 			break;
 	}
 
@@ -594,12 +583,8 @@ fuse_internal_readdir(struct vnode *vp,
  * and greater than 0 for a failure.
  */
 int
-fuse_internal_readdir_processdata(struct uio *uio,
-    size_t reqsize,
-    void *buf,
-    size_t bufsize,
-    struct fuse_iov *cookediov,
-    int *ncookies,
+fuse_internal_readdir_processdata(struct uio *uio, size_t reqsize, void *buf,
+    size_t bufsize, struct fuse_iov *cookediov, int *ncookies,
     uint64_t **cookiesp)
 {
 	int err = 0;
@@ -640,8 +625,8 @@ fuse_internal_readdir_processdata(struct uio *uio,
 			err = EINVAL;
 			break;
 		}
-		oreclen = GENERIC_DIRSIZ((struct pseudo_dirent *)
-					    &fudge->namelen);
+		oreclen = GENERIC_DIRSIZ(
+		    (struct pseudo_dirent *)&fudge->namelen);
 
 		if (oreclen > uio_resid(uio)) {
 			/* Out of space for the dir so we are done. */
@@ -658,8 +643,8 @@ fuse_internal_readdir_processdata(struct uio *uio,
 		de->d_type = fudge->type;
 		de->d_namlen = fudge->namelen;
 		memcpy((char *)cookediov->base + sizeof(struct dirent) -
-		       MAXNAMLEN - 1,
-		       (char *)buf + FUSE_NAME_OFFSET, fudge->namelen);
+			MAXNAMLEN - 1,
+		    (char *)buf + FUSE_NAME_OFFSET, fudge->namelen);
 		dirent_terminate(de);
 
 		err = uiomove(cookediov->base, cookediov->len, uio);
@@ -686,10 +671,8 @@ fuse_internal_readdir_processdata(struct uio *uio,
 /* remove */
 
 int
-fuse_internal_remove(struct vnode *dvp,
-    struct vnode *vp,
-    struct componentname *cnp,
-    enum fuse_opcode op)
+fuse_internal_remove(struct vnode *dvp, struct vnode *vp,
+    struct componentname *cnp, enum fuse_opcode op)
 {
 	struct fuse_dispatcher fdi;
 	nlink_t nlink;
@@ -707,7 +690,7 @@ fuse_internal_remove(struct vnode *dvp,
 	if (err)
 		return (err);
 
-	/* 
+	/*
 	 * Access the cached nlink even if the attr cached has expired.  If
 	 * it's inaccurate, the worst that will happen is:
 	 * 1) We'll recycle the vnode even though the file has another link we
@@ -718,7 +701,7 @@ fuse_internal_remove(struct vnode *dvp,
 	 */
 	nlink = VTOFUD(vp)->cached_attrs.va_nlink--;
 
-	/* 
+	/*
 	 * Purge the parent's attribute cache because the daemon
 	 * should've updated its mtime and ctime.
 	 */
@@ -738,16 +721,15 @@ fuse_internal_remove(struct vnode *dvp,
 /* rename */
 
 int
-fuse_internal_rename(struct vnode *fdvp,
-    struct componentname *fcnp,
-    struct vnode *tdvp,
-    struct componentname *tcnp)
+fuse_internal_rename(struct vnode *fdvp, struct componentname *fcnp,
+    struct vnode *tdvp, struct componentname *tcnp)
 {
 	struct fuse_dispatcher fdi;
 	struct fuse_rename_in *fri;
 	int err = 0;
 
-	fdisp_init(&fdi, sizeof(*fri) + fcnp->cn_namelen + tcnp->cn_namelen + 2);
+	fdisp_init(&fdi,
+	    sizeof(*fri) + fcnp->cn_namelen + tcnp->cn_namelen + 2);
 	fdisp_make_vp(&fdi, FUSE_RENAME, fdvp, curthread, tcnp->cn_cred);
 
 	fri = fdi.indata;
@@ -770,27 +752,22 @@ fuse_internal_rename(struct vnode *fdvp,
 /* entity creation */
 
 void
-fuse_internal_newentry_makerequest(struct mount *mp,
-    uint64_t dnid,
-    struct componentname *cnp,
-    enum fuse_opcode op,
-    void *buf,
-    size_t bufsize,
+fuse_internal_newentry_makerequest(struct mount *mp, uint64_t dnid,
+    struct componentname *cnp, enum fuse_opcode op, void *buf, size_t bufsize,
     struct fuse_dispatcher *fdip)
 {
 	fdip->iosize = bufsize + cnp->cn_namelen + 1;
 
 	fdisp_make(fdip, op, mp, dnid, curthread, cnp->cn_cred);
 	memcpy(fdip->indata, buf, bufsize);
-	memcpy((char *)fdip->indata + bufsize, cnp->cn_nameptr, cnp->cn_namelen);
+	memcpy((char *)fdip->indata + bufsize, cnp->cn_nameptr,
+	    cnp->cn_namelen);
 	((char *)fdip->indata)[bufsize + cnp->cn_namelen] = '\0';
 }
 
 int
-fuse_internal_newentry_core(struct vnode *dvp,
-    struct vnode **vpp,
-    struct componentname *cnp,
-    __enum_uint8(vtype) vtyp,
+fuse_internal_newentry_core(struct vnode *dvp, struct vnode **vpp,
+    struct componentname *cnp, __enum_uint8(vtype) vtyp,
     struct fuse_dispatcher *fdip)
 {
 	int err = 0;
@@ -812,25 +789,21 @@ fuse_internal_newentry_core(struct vnode *dvp,
 		return err;
 	}
 
-	/* 
+	/*
 	 * Purge the parent's attribute cache because the daemon should've
 	 * updated its mtime and ctime
 	 */
 	fuse_vnode_clear_attr_cache(dvp);
 
 	fuse_internal_cache_attrs(*vpp, &feo->attr, feo->attr_valid,
-		feo->attr_valid_nsec, NULL, true);
+	    feo->attr_valid_nsec, NULL, true);
 
 	return err;
 }
 
 int
-fuse_internal_newentry(struct vnode *dvp,
-    struct vnode **vpp,
-    struct componentname *cnp,
-    enum fuse_opcode op,
-    void *buf,
-    size_t bufsize,
+fuse_internal_newentry(struct vnode *dvp, struct vnode **vpp,
+    struct componentname *cnp, enum fuse_opcode op, void *buf, size_t bufsize,
     __enum_uint8(vtype) vtype)
 {
 	int err;
@@ -838,8 +811,8 @@ fuse_internal_newentry(struct vnode *dvp,
 	struct mount *mp = vnode_mount(dvp);
 
 	fdisp_init(&fdi, 0);
-	fuse_internal_newentry_makerequest(mp, VTOI(dvp), cnp, op, buf,
-	    bufsize, &fdi);
+	fuse_internal_newentry_makerequest(mp, VTOI(dvp), cnp, op, buf, bufsize,
+	    &fdi);
 	err = fuse_internal_newentry_core(dvp, vpp, cnp, vtype, &fdi);
 	fdisp_destroy(&fdi);
 
@@ -858,20 +831,17 @@ fuse_internal_forget_callback(struct fuse_ticket *ftick, struct uio *uio)
 }
 
 void
-fuse_internal_forget_send(struct mount *mp,
-    struct thread *td,
-    struct ucred *cred,
-    uint64_t nodeid,
-    uint64_t nlookup)
+fuse_internal_forget_send(struct mount *mp, struct thread *td,
+    struct ucred *cred, uint64_t nodeid, uint64_t nlookup)
 {
 
 	struct fuse_dispatcher fdi;
 	struct fuse_forget_in *ffi;
 
 	/*
-         * KASSERT(nlookup > 0, ("zero-times forget for vp #%llu",
-         *         (long long unsigned) nodeid));
-         */
+	 * KASSERT(nlookup > 0, ("zero-times forget for vp #%llu",
+	 *         (long long unsigned) nodeid));
+	 */
 
 	fdisp_init(&fdi, sizeof(*ffi));
 	fdisp_make(&fdi, FUSE_FORGET, mp, nodeid, td, cred);
@@ -886,7 +856,7 @@ fuse_internal_forget_send(struct mount *mp,
 /* Fetch the vnode's attributes from the daemon*/
 int
 fuse_internal_do_getattr(struct vnode *vp, struct vattr *vap,
-	struct ucred *cred, struct thread *td)
+    struct ucred *cred, struct thread *td)
 {
 	struct fuse_dispatcher fdi;
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
@@ -904,7 +874,7 @@ fuse_internal_do_getattr(struct vnode *vp, struct vattr *vap,
 	fdisp_init(&fdi, sizeof(*fgai));
 	fdisp_make_vp(&fdi, FUSE_GETATTR, vp, td, cred);
 	fgai = fdi.indata;
-	/* 
+	/*
 	 * We could look up a file handle and set it in fgai->fh, but that
 	 * involves extra runtime work and I'm unaware of any file systems that
 	 * care.
@@ -933,7 +903,7 @@ fuse_internal_do_getattr(struct vnode *vp, struct vattr *vap,
 		fao->attr.mtimensec = old_mtime.tv_nsec;
 	}
 	fuse_internal_cache_attrs(vp, &fao->attr, fao->attr_valid,
-		fao->attr_valid_nsec, vap, true);
+	    fao->attr_valid_nsec, vap, true);
 	if (vtyp != vnode_vtype(vp)) {
 		fuse_internal_vnode_disappear(vp);
 		err = ENOENT;
@@ -947,12 +917,12 @@ out:
 /* Read a vnode's attributes from cache or fetch them from the fuse daemon */
 int
 fuse_internal_getattr(struct vnode *vp, struct vattr *vap, struct ucred *cred,
-	struct thread *td)
+    struct thread *td)
 {
 	struct vattr *attrs;
 
 	if ((attrs = VTOVA(vp)) != NULL) {
-		*vap = *attrs;	/* struct copy */
+		*vap = *attrs; /* struct copy */
 		return 0;
 	}
 
@@ -971,8 +941,8 @@ fuse_internal_vnode_disappear(struct vnode *vp)
 
 /* fuse start/stop */
 
-SDT_PROBE_DEFINE2(fusefs, , internal, init_done,
-	"struct fuse_data*", "struct fuse_init_out*");
+SDT_PROBE_DEFINE2(fusefs, , internal, init_done, "struct fuse_data*",
+    "struct fuse_init_out*");
 int
 fuse_internal_init_callback(struct fuse_ticket *tick, struct uio *uio)
 {
@@ -991,12 +961,12 @@ fuse_internal_init_callback(struct fuse_ticket *tick, struct uio *uio)
 	data->fuse_libabi_major = fiio->major;
 	data->fuse_libabi_minor = fiio->minor;
 	if (!fuse_libabi_geq(data, 7, 4)) {
-		/* 
+		/*
 		 * With a little work we could support servers as old as 7.1.
 		 * But there would be little payoff.
 		 */
 		SDT_PROBE2(fusefs, , internal, trace, 1,
-			"userspace version too low");
+		    "userspace version too low");
 		err = EPROTONOSUPPORT;
 		goto out;
 	}
@@ -1015,11 +985,11 @@ fuse_internal_init_callback(struct fuse_ticket *tick, struct uio *uio)
 				data->dataflags |= FSESS_NO_OPEN_SUPPORT;
 			if (fiio->flags & FUSE_NO_OPENDIR_SUPPORT)
 				data->dataflags |= FSESS_NO_OPENDIR_SUPPORT;
-			/* 
+			/*
 			 * Don't bother to check FUSE_BIG_WRITES, because it's
 			 * redundant with max_write
 			 */
-			/* 
+			/*
 			 * max_background and congestion_threshold are not
 			 * implemented
 			 */
@@ -1089,7 +1059,7 @@ fuse_internal_send_init(struct fuse_data *data, struct thread *td)
 	fiii = fdi.indata;
 	fiii->major = FUSE_KERNEL_VERSION;
 	fiii->minor = FUSE_KERNEL_MINOR_VERSION;
-	/* 
+	/*
 	 * fusefs currently reads ahead no more than one cache block at a time.
 	 * See fuse_read_biobackend
 	 */
@@ -1115,21 +1085,22 @@ fuse_internal_send_init(struct fuse_data *data, struct thread *td)
 	 * FUSE_CACHE_SYMLINKS: not yet implemented
 	 * FUSE_MAX_PAGES: not yet implemented
 	 */
-	fiii->flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_EXPORT_SUPPORT
-		| FUSE_BIG_WRITES | FUSE_WRITEBACK_CACHE
-		| FUSE_NO_OPEN_SUPPORT | FUSE_NO_OPENDIR_SUPPORT;
+	fiii->flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_EXPORT_SUPPORT |
+	    FUSE_BIG_WRITES | FUSE_WRITEBACK_CACHE | FUSE_NO_OPEN_SUPPORT |
+	    FUSE_NO_OPENDIR_SUPPORT;
 
 	fuse_insert_callback(fdi.tick, fuse_internal_init_callback);
 	fuse_insert_message(fdi.tick, false);
 	fdisp_destroy(&fdi);
 }
 
-/* 
+/*
  * Send a FUSE_SETATTR operation with no permissions checks.  If cred is NULL,
  * send the request with root credentials
  */
-int fuse_internal_setattr(struct vnode *vp, struct vattr *vap,
-	struct thread *td, struct ucred *cred)
+int
+fuse_internal_setattr(struct vnode *vp, struct vattr *vap, struct thread *td,
+    struct ucred *cred)
 {
 	struct fuse_vnode_data *fvdat;
 	struct fuse_dispatcher fdi;
@@ -1218,12 +1189,13 @@ int fuse_internal_setattr(struct vnode *vp, struct vattr *vap,
 
 	if (vnode_vtype(vp) != vtyp) {
 		if (vnode_vtype(vp) == VNON && vtyp != VNON) {
-			SDT_PROBE2(fusefs, , internal, trace, 1, "FUSE: Dang! "
-				"vnode_vtype is VNON and vtype isn't.");
+			SDT_PROBE2(fusefs, , internal, trace, 1,
+			    "FUSE: Dang! "
+			    "vnode_vtype is VNON and vtype isn't.");
 		} else {
 			/*
-	                 * STALE vnode, ditch
-	                 *
+			 * STALE vnode, ditch
+			 *
 			 * The vnode has changed its type "behind our back".
 			 * This probably means that the file got deleted and
 			 * recreated on the server, with the same inode.
@@ -1231,16 +1203,16 @@ int fuse_internal_setattr(struct vnode *vp, struct vattr *vap,
 			 * return ENOENT.  After all, the entry must not have
 			 * existed in the recent past.  If the user tries
 			 * again, it will work.
-	                 */
+			 */
 			fuse_internal_vnode_disappear(vp);
 			err = ENOENT;
 		}
 	}
 	if (err == 0) {
-		struct fuse_attr_out *fao = (struct fuse_attr_out*)fdi.answ;
+		struct fuse_attr_out *fao = (struct fuse_attr_out *)fdi.answ;
 		fuse_vnode_undirty_cached_timestamps(vp, true);
 		fuse_internal_cache_attrs(vp, &fao->attr, fao->attr_valid,
-			fao->attr_valid_nsec, NULL, false);
+		    fao->attr_valid_nsec, NULL, false);
 		getnanouptime(&fvdat->last_local_modify);
 	}
 
@@ -1254,7 +1226,7 @@ out:
  */
 void
 fuse_internal_clear_suid_on_write(struct vnode *vp, struct ucred *cred,
-	struct thread *td)
+    struct thread *td)
 {
 	struct fuse_data *data;
 	struct mount *mp;

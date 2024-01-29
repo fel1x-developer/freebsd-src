@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <stdio.h>
 #include <unistd.h>
 
-#include "probe.h"
-#include "log.h"
 #include "id.h"
+#include "log.h"
+#include "probe.h"
 
 struct probe probe;
 
@@ -42,37 +42,37 @@ struct probe probe;
 static int
 select_changes_time(void)
 {
-  struct timeval t;
+	struct timeval t;
 
-  t.tv_sec = 0;
-  t.tv_usec = 100000;
-  select(0, NULL, NULL, NULL, &t);
-  return t.tv_usec != 100000;
+	t.tv_sec = 0;
+	t.tv_usec = 100000;
+	select(0, NULL, NULL, NULL, &t);
+	return t.tv_usec != 100000;
 }
 
 #ifndef NOINET6
 static int
 ipv6_available(void)
 {
-  int s;
+	int s;
 
-  if ((s = ID0socket(PF_INET6, SOCK_DGRAM, 0)) == -1)
-    return 0;
+	if ((s = ID0socket(PF_INET6, SOCK_DGRAM, 0)) == -1)
+		return 0;
 
-  close(s);
-  return 1;
+	close(s);
+	return 1;
 }
 #endif
 
 void
 probe_Init(void)
 {
-  probe.select_changes_time = select_changes_time() ? 1 : 0;
-  log_Printf(LogDEBUG, "Select changes time: %s\n",
-             probe.select_changes_time ? "yes" : "no");
+	probe.select_changes_time = select_changes_time() ? 1 : 0;
+	log_Printf(LogDEBUG, "Select changes time: %s\n",
+	    probe.select_changes_time ? "yes" : "no");
 #ifndef NOINET6
-  probe.ipv6_available = ipv6_available() ? 1 : 0;
-  log_Printf(LogDEBUG, "IPv6 available: %s\n",
-             probe.ipv6_available ? "yes" : "no");
+	probe.ipv6_available = ipv6_available() ? 1 : 0;
+	log_Printf(LogDEBUG, "IPv6 available: %s\n",
+	    probe.ipv6_available ? "yes" : "no");
 #endif
 }

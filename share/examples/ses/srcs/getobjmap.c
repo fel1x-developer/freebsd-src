@@ -25,21 +25,22 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_ses.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "eltsub.h"
 
@@ -55,25 +56,25 @@ main(int a, char **v)
 			perror(*v);
 			continue;
 		}
-		if (ioctl(fd, SESIOC_GETNOBJ, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, SESIOC_GETNOBJ, (caddr_t)&nobj) < 0) {
 			perror("SESIOC_GETNOBJ");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
 		fprintf(stdout, "%s: %d objects\n", *v, nobj);
 		if (nobj == 0) {
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
-		objp = calloc(nobj, sizeof (ses_object));
+		objp = calloc(nobj, sizeof(ses_object));
 		if (objp == NULL) {
 			perror("calloc");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
-		if (ioctl(fd, SESIOC_GETOBJMAP, (caddr_t) objp) < 0) {
+		if (ioctl(fd, SESIOC_GETOBJMAP, (caddr_t)objp) < 0) {
 			perror("SESIOC_GETOBJMAP");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
 		for (i = 0; i < nobj; i++) {
@@ -81,7 +82,7 @@ main(int a, char **v)
 			    objp[i].obj_id, geteltnm((int)objp[i].object_type));
 		}
 		free(objp);
-		(void) close(fd);
+		(void)close(fd);
 	}
 	return (0);
 }

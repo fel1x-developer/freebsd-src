@@ -26,11 +26,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/event.h>
 #include <sys/filio.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <string.h>
@@ -65,7 +67,7 @@ main()
 		err(1, "setsockopt");
 
 	if (kevent(kq, ev, 2, NULL, 0, NULL) == -1)
-	    err(1, "kevent");
+		err(1, "kevent");
 
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 		err(1, "setsockopt");
@@ -100,7 +102,7 @@ main()
 		if (nev < 1)
 			err(1, "kevent");
 		for (int i = 0; i < nev; ++i) {
-			if (ev[i].ident == (uintptr_t )sock) {
+			if (ev[i].ident == (uintptr_t)sock) {
 				fd = accept(ev[i].ident,
 				    (struct sockaddr *)&addr, &socklen);
 				if (fd == -1)

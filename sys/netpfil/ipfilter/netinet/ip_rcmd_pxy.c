@@ -10,12 +10,12 @@
  * code.
  */
 
-#define	IPF_RCMD_PROXY
+#define IPF_RCMD_PROXY
 
 typedef struct rcmdinfo {
-	u_32_t	rcmd_port;	/* Port number seen */
-	u_32_t	rcmd_portseq;	/* Sequence number where port is first seen */
-	ipnat_t	*rcmd_rule;	/* Template rule for back connection */
+	u_32_t rcmd_port;    /* Port number seen */
+	u_32_t rcmd_portseq; /* Sequence number where port is first seen */
+	ipnat_t *rcmd_rule;  /* Template rule for back connection */
 } rcmdinfo_t;
 
 void ipf_p_rcmd_main_load(void);
@@ -30,10 +30,9 @@ int ipf_p_rcmd_in(void *, fr_info_t *, ap_session_t *, nat_t *);
 u_short ipf_rcmd_atoi(char *);
 int ipf_p_rcmd_portmsg(fr_info_t *, ap_session_t *, nat_t *);
 
-static	frentry_t	rcmdfr;
+static frentry_t rcmdfr;
 
-static	int		rcmd_proxy_init = 0;
-
+static int rcmd_proxy_init = 0;
 
 /*
  * RCMD application proxy initialization.
@@ -43,11 +42,10 @@ ipf_p_rcmd_main_load(void)
 {
 	bzero((char *)&rcmdfr, sizeof(rcmdfr));
 	rcmdfr.fr_ref = 1;
-	rcmdfr.fr_flags = FR_INQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	rcmdfr.fr_flags = FR_INQUE | FR_PASS | FR_QUICK | FR_KEEPSTATE;
 	MUTEX_INIT(&rcmdfr.fr_lock, "RCMD proxy rule lock");
 	rcmd_proxy_init = 1;
 }
-
 
 void
 ipf_p_rcmd_main_unload(void)
@@ -57,7 +55,6 @@ ipf_p_rcmd_main_unload(void)
 		rcmd_proxy_init = 0;
 	}
 }
-
 
 /*
  * Setup for a new RCMD proxy.
@@ -71,7 +68,7 @@ ipf_p_rcmd_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	ipnat_t *np;
 	int size;
 
-	fin = fin;	/* LINT */
+	fin = fin; /* LINT */
 
 	np = nat->nat_ptr;
 	size = np->in_size;
@@ -100,7 +97,6 @@ ipf_p_rcmd_new(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 void
 ipf_p_rcmd_del(ipf_main_softc_t *softc, ap_session_t *aps)
 {
@@ -112,7 +108,6 @@ ipf_p_rcmd_del(ipf_main_softc_t *softc, ap_session_t *aps)
 		ipf_nat_rule_deref(softc, &rci->rcmd_rule);
 	}
 }
-
 
 /*
  * ipf_rcmd_atoi - implement a simple version of atoi
@@ -129,7 +124,6 @@ ipf_rcmd_atoi(char *ptr)
 	}
 	return (i);
 }
-
 
 int
 ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
@@ -168,8 +162,7 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		return (0);
 
 	rc = (rcmdinfo_t *)aps->aps_data;
-	if ((rc->rcmd_portseq != 0) &&
-	    (tcp->th_seq != rc->rcmd_portseq))
+	if ((rc->rcmd_portseq != 0) && (tcp->th_seq != rc->rcmd_portseq))
 		return (0);
 
 	bzero(portbuf, sizeof(portbuf));
@@ -180,16 +173,16 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	sp = ipf_rcmd_atoi(s);
 	if (sp == 0) {
 #ifdef IP_RCMD_PROXY_DEBUG
-		printf("ipf_p_rcmd_portmsg:sp == 0 dlen %d [%s]\n",
-		       dlen, portbuf);
+		printf("ipf_p_rcmd_portmsg:sp == 0 dlen %d [%s]\n", dlen,
+		    portbuf);
 #endif
 		return (0);
 	}
 
 	if (rc->rcmd_port != 0 && sp != rc->rcmd_port) {
 #ifdef IP_RCMD_PROXY_DEBUG
-		printf("ipf_p_rcmd_portmsg:sp(%d) != rcmd_port(%d)\n",
-		       sp, rc->rcmd_port);
+		printf("ipf_p_rcmd_portmsg:sp(%d) != rcmd_port(%d)\n", sp,
+		    rc->rcmd_port);
 #endif
 		return (0);
 	}
@@ -212,30 +205,24 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	if (nat->nat_v[0] == 6) {
 #ifdef USE_INET6
 		if (nat->nat_dir == NAT_OUTBOUND) {
-			nat2 = ipf_nat6_outlookup(&fi, NAT_SEARCH|IPN_TCP,
-						  nat->nat_pr[1],
-						  &nat->nat_osrc6.in6,
-						  &nat->nat_odst6.in6);
+			nat2 = ipf_nat6_outlookup(&fi, NAT_SEARCH | IPN_TCP,
+			    nat->nat_pr[1], &nat->nat_osrc6.in6,
+			    &nat->nat_odst6.in6);
 		} else {
-			nat2 = ipf_nat6_inlookup(&fi, NAT_SEARCH|IPN_TCP,
-						 nat->nat_pr[0],
-						 &nat->nat_osrc6.in6,
-						 &nat->nat_odst6.in6);
+			nat2 = ipf_nat6_inlookup(&fi, NAT_SEARCH | IPN_TCP,
+			    nat->nat_pr[0], &nat->nat_osrc6.in6,
+			    &nat->nat_odst6.in6);
 		}
 #else
 		nat2 = (void *)-1;
 #endif
 	} else {
 		if (nat->nat_dir == NAT_OUTBOUND) {
-			nat2 = ipf_nat_outlookup(&fi, NAT_SEARCH|IPN_TCP,
-						 nat->nat_pr[1],
-						 nat->nat_osrcip,
-						 nat->nat_odstip);
+			nat2 = ipf_nat_outlookup(&fi, NAT_SEARCH | IPN_TCP,
+			    nat->nat_pr[1], nat->nat_osrcip, nat->nat_odstip);
 		} else {
-			nat2 = ipf_nat_inlookup(&fi, NAT_SEARCH|IPN_TCP,
-						nat->nat_pr[0],
-						nat->nat_osrcip,
-						nat->nat_odstip);
+			nat2 = ipf_nat_inlookup(&fi, NAT_SEARCH | IPN_TCP,
+			    nat->nat_pr[0], nat->nat_osrcip, nat->nat_odstip);
 		}
 	}
 	if (nat2 != NULL)
@@ -269,7 +256,7 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	fi.fin_fr = &rcmdfr;
 	fi.fin_dlen = sizeof(*tcp2);
 	fi.fin_plen = fi.fin_hlen + sizeof(*tcp2);
-	fi.fin_flx &= FI_LOWTTL|FI_FRAG|FI_TCPUDP|FI_OPTIONS|FI_IGNORE;
+	fi.fin_flx &= FI_LOWTTL | FI_FRAG | FI_TCPUDP | FI_OPTIONS | FI_IGNORE;
 
 	if (nat->nat_dir == NAT_OUTBOUND) {
 		fi.fin_out = 0;
@@ -278,28 +265,27 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		fi.fin_out = 1;
 		direction = NAT_OUTBOUND;
 	}
-	nflags = SI_W_SPORT|NAT_SLAVE|IPN_TCP;
+	nflags = SI_W_SPORT | NAT_SLAVE | IPN_TCP;
 
 	MUTEX_ENTER(&softn->ipf_nat_new);
 	if (fin->fin_v == 4)
-		nat2 = ipf_nat_add(&fi, rc->rcmd_rule, NULL, nflags,
-				   direction);
+		nat2 = ipf_nat_add(&fi, rc->rcmd_rule, NULL, nflags, direction);
 #ifdef USE_INET6
 	else
 		nat2 = ipf_nat6_add(&fi, rc->rcmd_rule, NULL, nflags,
-				    direction);
+		    direction);
 #endif
 	MUTEX_EXIT(&softn->ipf_nat_new);
 
 	if (nat2 != NULL) {
-		(void) ipf_nat_proto(&fi, nat2, IPN_TCP);
+		(void)ipf_nat_proto(&fi, nat2, IPN_TCP);
 		MUTEX_ENTER(&nat2->nat_lock);
 		ipf_nat_update(&fi, nat2);
 		MUTEX_EXIT(&nat2->nat_lock);
 		fi.fin_ifp = NULL;
 		if (nat2->nat_dir == NAT_INBOUND)
 			fi.fin_dst6 = nat->nat_osrc6;
-		(void) ipf_state_add(softc, &fi, NULL, SI_W_SPORT);
+		(void)ipf_state_add(softc, &fi, NULL, SI_W_SPORT);
 	}
 	if (nat->nat_v[0] == 6) {
 #ifdef USE_INET6
@@ -313,7 +299,6 @@ ipf_p_rcmd_portmsg(fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	return (0);
 }
 
-
 int
 ipf_p_rcmd_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
@@ -321,7 +306,6 @@ ipf_p_rcmd_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 		return (ipf_p_rcmd_portmsg(fin, aps, nat));
 	return (0);
 }
-
 
 int
 ipf_p_rcmd_in(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)

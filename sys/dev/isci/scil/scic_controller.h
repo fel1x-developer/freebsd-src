@@ -65,9 +65,9 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/sci_controller.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/scic_config_parameters.h>
 
 /**
@@ -85,10 +85,9 @@ extern "C" {
  * assigned. A PORT_PHY mask that assigns just a single PHY to a port and no
  * other PHYs being assigned is sufficient to declare manual PORT configuration.
  */
-enum SCIC_PORT_CONFIGURATION_MODE
-{
-   SCIC_PORT_MANUAL_CONFIGURATION_MODE,
-   SCIC_PORT_AUTOMATIC_CONFIGURATION_MODE
+enum SCIC_PORT_CONFIGURATION_MODE {
+	SCIC_PORT_MANUAL_CONFIGURATION_MODE,
+	SCIC_PORT_AUTOMATIC_CONFIGURATION_MODE
 };
 
 /**
@@ -97,15 +96,14 @@ enum SCIC_PORT_CONFIGURATION_MODE
  * @brief This enumeration depicts the various types of interrupts that
  *        are potentially supported by a SCI Core implementation.
  */
-typedef enum _SCIC_INTERRUPT_TYPE
-{
-   SCIC_LEGACY_LINE_INTERRUPT_TYPE,
-   SCIC_MSIX_INTERRUPT_TYPE,
+typedef enum _SCIC_INTERRUPT_TYPE {
+	SCIC_LEGACY_LINE_INTERRUPT_TYPE,
+	SCIC_MSIX_INTERRUPT_TYPE,
 
-   /**
-    * This enumeration value indicates the use of polling.
-    */
-   SCIC_NO_INTERRUPTS
+	/**
+	 * This enumeration value indicates the use of polling.
+	 */
+	SCIC_NO_INTERRUPTS
 
 } SCIC_INTERRUPT_TYPE;
 
@@ -122,8 +120,7 @@ typedef enum _SCIC_INTERRUPT_TYPE
  *
  */
 typedef BOOL (*SCIC_CONTROLLER_INTERRUPT_HANDLER)(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method is called by the SCI user to process completions
@@ -138,8 +135,7 @@ typedef BOOL (*SCIC_CONTROLLER_INTERRUPT_HANDLER)(
  *
  */
 typedef void (*SCIC_CONTROLLER_COMPLETION_HANDLER)(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @struct SCIC_CONTROLLER_HANDLER_METHODS
@@ -147,10 +143,9 @@ typedef void (*SCIC_CONTROLLER_COMPLETION_HANDLER)(
  * @brief This structure contains an interrupt handler and completion
  *        handler function pointers.
  */
-typedef struct SCIC_CONTROLLER_HANDLER_METHODS
-{
-   SCIC_CONTROLLER_INTERRUPT_HANDLER  interrupt_handler;
-   SCIC_CONTROLLER_COMPLETION_HANDLER completion_handler;
+typedef struct SCIC_CONTROLLER_HANDLER_METHODS {
+	SCIC_CONTROLLER_INTERRUPT_HANDLER interrupt_handler;
+	SCIC_CONTROLLER_COMPLETION_HANDLER completion_handler;
 
 } SCIC_CONTROLLER_HANDLER_METHODS_T;
 
@@ -179,11 +174,8 @@ typedef struct SCIC_CONTROLLER_HANDLER_METHODS
  *         if the controller does not support the supplied initialization
  *         data version.
  */
-SCI_STATUS scic_controller_construct(
-   SCI_LIBRARY_HANDLE_T      library,
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void *                    user_object
-);
+SCI_STATUS scic_controller_construct(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T controller, void *user_object);
 
 /**
  * @brief This method will enable all controller interrupts.
@@ -193,9 +185,7 @@ SCI_STATUS scic_controller_construct(
  *
  * @return none
  */
-void scic_controller_enable_interrupts(
-   SCI_CONTROLLER_HANDLE_T      controller
-);
+void scic_controller_enable_interrupts(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method will disable all controller interrupts.
@@ -205,9 +195,7 @@ void scic_controller_enable_interrupts(
  *
  * @return none
  */
-void scic_controller_disable_interrupts(
-   SCI_CONTROLLER_HANDLE_T      controller
-);
+void scic_controller_disable_interrupts(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method will return provide function pointers for the
@@ -251,11 +239,9 @@ void scic_controller_disable_interrupts(
  *         if the user supplied an unsupported number of MSI-X messages.
  *         For legacy line interrupts the only valid value is 0.
  */
-SCI_STATUS scic_controller_get_handler_methods(
-   SCIC_INTERRUPT_TYPE                  interrupt_type,
-   U16                                  message_count,
-   SCIC_CONTROLLER_HANDLER_METHODS_T *  handler_methods
-);
+SCI_STATUS
+scic_controller_get_handler_methods(SCIC_INTERRUPT_TYPE interrupt_type,
+    U16 message_count, SCIC_CONTROLLER_HANDLER_METHODS_T *handler_methods);
 
 /**
  * @brief This method will initialize the controller hardware managed by
@@ -276,9 +262,7 @@ SCI_STATUS scic_controller_get_handler_methods(
  * @retval SCI_SUCCESS This value is returned if the controller hardware
  *         was successfully initialized.
  */
-SCI_STATUS scic_controller_initialize(
-   SCI_CONTROLLER_HANDLE_T   controller
-);
+SCI_STATUS scic_controller_initialize(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method returns the suggested scic_controller_start()
@@ -294,8 +278,7 @@ SCI_STATUS scic_controller_initialize(
  *          suggested start operation timeout.
  */
 U32 scic_controller_get_suggested_start_timeout(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method will start the supplied core controller.  This method
@@ -328,10 +311,8 @@ U32 scic_controller_get_suggested_start_timeout(
  *         inconsistent or invalid values in the supplied
  *         SCI_PHYSICAL_MEMORY_DESCRIPTOR array.
  */
-SCI_STATUS scic_controller_start(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   U32                      timeout
-);
+SCI_STATUS scic_controller_start(SCI_CONTROLLER_HANDLE_T controller,
+    U32 timeout);
 
 /**
  * @brief This method will stop an individual controller object.This method
@@ -356,10 +337,8 @@ SCI_STATUS scic_controller_start(
  * @retval SCI_FAILURE_INVALID_STATE if the controller is not either in
  *         the STARTED or STOPPED states.
  */
-SCI_STATUS scic_controller_stop(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   U32                      timeout
-);
+SCI_STATUS scic_controller_stop(SCI_CONTROLLER_HANDLE_T controller,
+    U32 timeout);
 
 /**
  * @brief This method will reset the supplied core controller regardless of
@@ -377,9 +356,7 @@ SCI_STATUS scic_controller_stop(
  * @retval SCI_FATAL_ERROR if the controller reset operation is unable to
  *         complete.
  */
-SCI_STATUS scic_controller_reset(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+SCI_STATUS scic_controller_reset(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method is called by the SCI user to send/start an IO request.
@@ -417,12 +394,9 @@ SCI_STATUS scic_controller_reset(
  *
  * @todo Determine the failure situations and return values.
  */
-SCI_IO_STATUS scic_controller_start_io(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     io_request,
-   U16                         io_tag
-);
+SCI_IO_STATUS scic_controller_start_io(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_IO_REQUEST_HANDLE_T io_request, U16 io_tag);
 
 #if !defined(DISABLE_TASK_MANAGEMENT)
 
@@ -462,12 +436,9 @@ SCI_IO_STATUS scic_controller_start_io(
  *         there is/are task(s) outstanding that require termination or
  *         completion before this request can succeed.
  */
-SCI_TASK_STATUS scic_controller_start_task(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_TASK_REQUEST_HANDLE_T   task_request,
-   U16                         io_tag
-);
+SCI_TASK_STATUS scic_controller_start_task(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_TASK_REQUEST_HANDLE_T task_request, U16 io_tag);
 
 /**
  * @brief This method will perform core specific completion operations for
@@ -486,11 +457,9 @@ SCI_TASK_STATUS scic_controller_start_task(
  *         management request.
  * @retval SCI_SUCCESS if the completion process was successful.
  */
-SCI_STATUS scic_controller_complete_task(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_TASK_REQUEST_HANDLE_T   task_request
-);
+SCI_STATUS scic_controller_complete_task(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_TASK_REQUEST_HANDLE_T task_request);
 
 #else // !defined(DISABLE_TASK_MANAGEMENT)
 
@@ -519,11 +488,8 @@ SCI_STATUS scic_controller_complete_task(
  *
  * @todo Determine the failure situations and return values.
  */
-SCI_STATUS scic_controller_terminate_request(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     request
-);
+SCI_STATUS scic_controller_terminate_request(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device, SCI_IO_REQUEST_HANDLE_T request);
 
 /**
  * @brief This method will perform core specific completion operations for
@@ -553,12 +519,9 @@ SCI_STATUS scic_controller_terminate_request(
  * @return Indicate if the controller successfully completed the IO request.
  * @retval SCI_SUCCESS if the completion process was successful.
  */
-SCI_STATUS scic_controller_complete_io(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     io_request
-);
-
+SCI_STATUS scic_controller_complete_io(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_IO_REQUEST_HANDLE_T io_request);
 
 /**
  * @brief This method simply provides the user with a unique handle for a
@@ -578,11 +541,8 @@ SCI_STATUS scic_controller_complete_io(
  * @retval SCI_FAILURE_INVALID_PORT This value is returned if the supplied
  *         port id is not in the supported range.
  */
-SCI_STATUS scic_controller_get_port_handle(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U8                        port_index,
-   SCI_PORT_HANDLE_T       * port_handle
-);
+SCI_STATUS scic_controller_get_port_handle(SCI_CONTROLLER_HANDLE_T controller,
+    U8 port_index, SCI_PORT_HANDLE_T *port_handle);
 
 /**
  * @brief This method simply provides the user with a unique handle for a
@@ -602,11 +562,8 @@ SCI_STATUS scic_controller_get_port_handle(
  * @retval SCI_FAILURE_INVALID_PHY This value is returned if the supplied phy
  *         id is not in the supported range.
  */
-SCI_STATUS scic_controller_get_phy_handle(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U8                        phy_index,
-   SCI_PHY_HANDLE_T        * phy_handle
-);
+SCI_STATUS scic_controller_get_phy_handle(SCI_CONTROLLER_HANDLE_T controller,
+    U8 phy_index, SCI_PHY_HANDLE_T *phy_handle);
 
 /**
  * @brief This method will allocate a tag from the pool of free IO tags.
@@ -635,9 +592,7 @@ SCI_STATUS scic_controller_get_phy_handle(
  *         are no currently available tags to be allocated.
  * @retval All return other values indicate a legitimate tag.
  */
-U16 scic_controller_allocate_io_tag(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+U16 scic_controller_allocate_io_tag(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method will free an IO tag to the pool of free IO tags.
@@ -671,19 +626,15 @@ U16 scic_controller_allocate_io_tag(
  * @retval SCI_FAILURE_INVALID_IO_TAG This value is returned if the supplied
  *         tag is not a valid IO tag value.
  */
-SCI_STATUS scic_controller_free_io_tag(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   U16                      io_tag
-);
+SCI_STATUS scic_controller_free_io_tag(SCI_CONTROLLER_HANDLE_T controller,
+    U16 io_tag);
 
 /**
  * @brief This method returns the size of the core's scratch RAM.
  *
  * @return Size of the scratch RAM in dwords.
  */
-U32 scic_controller_get_scratch_ram_size(
-   SCI_CONTROLLER_HANDLE_T   controller
-);
+U32 scic_controller_get_scratch_ram_size(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method allows the user to read a U32 from the core's
@@ -700,11 +651,9 @@ U32 scic_controller_get_scratch_ram_size(
  * @retval SCI_FAILURE_INVALID_PARAMETER_VALUE The user specified an
  *          invalid offset.
  */
-SCI_STATUS scic_controller_read_scratch_ram_dword(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U32                       offset,
-   U32                     * value
-);
+SCI_STATUS
+scic_controller_read_scratch_ram_dword(SCI_CONTROLLER_HANDLE_T controller,
+    U32 offset, U32 *value);
 
 /**
  * @brief This method allows the user to write a U32 to the core's
@@ -721,11 +670,9 @@ SCI_STATUS scic_controller_read_scratch_ram_dword(
  * @retval SCI_FAILURE_INVALID_PARAMETER_VALUE The user specified an
  *          invalid offset.
  */
-SCI_STATUS scic_controller_write_scratch_ram_dword(
-    SCI_CONTROLLER_HANDLE_T   controller,
-    U32                       offset,
-    U32                       value
-);
+SCI_STATUS
+scic_controller_write_scratch_ram_dword(SCI_CONTROLLER_HANDLE_T controller,
+    U32 offset, U32 value);
 
 /**
  * @brief This method allows the user to configure the SCI core into
@@ -741,11 +688,8 @@ SCI_STATUS scic_controller_write_scratch_ram_dword(
  *         of the controller.
  * @retval SCI_SUCCESS The user successfully updated the mode.
  */
-SCI_STATUS scic_controller_set_mode(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_CONTROLLER_MODE       mode
-);
-
+SCI_STATUS scic_controller_set_mode(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_CONTROLLER_MODE mode);
 
 #if !defined(DISABLE_INTERRUPTS)
 /**
@@ -764,15 +708,15 @@ SCI_STATUS scic_controller_set_mode(
  *                of the input is [0, 2700000] . A setting of 0 is allowed and
  *                results in no interrupt coalescing timeout.
  *
- * @return Indicate if the user successfully set the interrupt coalesce parameters.
+ * @return Indicate if the user successfully set the interrupt coalesce
+ * parameters.
  * @retval SCI_SUCCESS The user successfully updated the interrupt coalescence.
- * @retval SCI_FAILURE_INVALID_PARAMETER_VALUE The user input value is out of range.
+ * @retval SCI_FAILURE_INVALID_PARAMETER_VALUE The user input value is out of
+ * range.
  */
-SCI_STATUS scic_controller_set_interrupt_coalescence(
-   SCI_CONTROLLER_HANDLE_T controller,
-   U32                     coalesce_number,
-   U32                     coalesce_timeout
-);
+SCI_STATUS
+scic_controller_set_interrupt_coalescence(SCI_CONTROLLER_HANDLE_T controller,
+    U32 coalesce_number, U32 coalesce_timeout);
 
 /**
  * @brief This method retrieves the interrupt coalescing values
@@ -780,77 +724,66 @@ SCI_STATUS scic_controller_set_interrupt_coalescence(
  * @param[in] controller This parameter specifies the controller for
  *            which its interrupt coalescing number is read.
  *
- * @param[out] coalesce_number, interrupt coalescing number read from controller.
+ * @param[out] coalesce_number, interrupt coalescing number read from
+ * controller.
  *
  * @param[out] coalesce_timeout, timeout value in microseconds.
  *
  * @return None
  */
-void scic_controller_get_interrupt_coalescence(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U32                     * coalesce_number,
-   U32                     * coalesce_timeout
-);
+void
+scic_controller_get_interrupt_coalescence(SCI_CONTROLLER_HANDLE_T controller,
+    U32 *coalesce_number, U32 *coalesce_timeout);
 #else // !defined(DISABLE_INTERRUPTS)
 #define scic_controller_set_interrupt_coalescence(controller, num, timeout) \
-        SCI_FAILURE
+	SCI_FAILURE
 #define scic_controller_get_interrupt_coalescence(controller, num, timeout)
 #endif // !defined(DISABLE_INTERRUPTS)
-
 
 /**
  * @brief This method suspend the controller, reinitialize RAMs, then resume
  *           the controller.
  *
- * @param[in] controller This parameter specifies the controller which is transitioning.
+ * @param[in] controller This parameter specifies the controller which is
+ * transitioning.
  *
- * @param[in] restrict_completions This parameter specifies whether the controller should
- *               ignore completion processing for non-fastpath events.  This will cause
- *               the completions to be thrown away.
+ * @param[in] restrict_completions This parameter specifies whether the
+ * controller should ignore completion processing for non-fastpath events.  This
+ * will cause the completions to be thrown away.
  *
  * @return SCI_STATUS The status of controller transition.
  */
-SCI_STATUS scic_controller_transition(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   BOOL                      restrict_completions
-);
-
+SCI_STATUS scic_controller_transition(SCI_CONTROLLER_HANDLE_T controller,
+    BOOL restrict_completions);
 
 /**
  * @brief This method suspends the controller.
  *
- * @param[in] controller This parameter specifies the controller which is to be suspended.
+ * @param[in] controller This parameter specifies the controller which is to be
+ * suspended.
  *
  * @return SCI_STATUS The status of controller suspend.
  */
-SCI_STATUS scic_controller_suspend(
-   SCI_CONTROLLER_HANDLE_T   controller
-);
+SCI_STATUS scic_controller_suspend(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method resumes the controller.
  *
- * @param[in] controller This parameter specifies the controller which is to be resumed.
+ * @param[in] controller This parameter specifies the controller which is to be
+ * resumed.
  *
  * @return SCI_STATUS The status of controller resume.
  */
-SCI_STATUS scic_controller_resume(
-   SCI_CONTROLLER_HANDLE_T   controller
-);
+SCI_STATUS scic_controller_resume(SCI_CONTROLLER_HANDLE_T controller);
 
-SCI_STATUS scic_controller_get_max_ports(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U8                      * count
-);
+SCI_STATUS scic_controller_get_max_ports(SCI_CONTROLLER_HANDLE_T controller,
+    U8 *count);
 
-SCI_STATUS scic_controller_get_max_phys(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U8                      * count
-);
+SCI_STATUS scic_controller_get_max_phys(SCI_CONTROLLER_HANDLE_T controller,
+    U8 *count);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_CONTROLLER_H_
-

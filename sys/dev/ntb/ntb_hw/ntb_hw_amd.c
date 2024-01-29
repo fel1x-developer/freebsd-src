@@ -53,9 +53,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
@@ -72,63 +72,64 @@
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include "ntb_hw_amd.h"
 #include "dev/ntb/ntb.h"
+#include "ntb_hw_amd.h"
 
 MALLOC_DEFINE(M_AMD_NTB, "amd_ntb_hw", "amd_ntb_hw driver memory allocations");
 
 static const struct amd_ntb_hw_info amd_ntb_hw_info_list[] = {
 	{ .vendor_id = NTB_HW_AMD_VENDOR_ID,
-	  .device_id = NTB_HW_AMD_DEVICE_ID1,
-	  .mw_count = 3,
-	  .bar_start_idx = 1,
-	  .spad_count = 16,
-	  .db_count = 16,
-	  .msix_vector_count = 24,
-	  .quirks = QUIRK_MW0_32BIT,
-	  .desc = "AMD Non-Transparent Bridge"},
+	    .device_id = NTB_HW_AMD_DEVICE_ID1,
+	    .mw_count = 3,
+	    .bar_start_idx = 1,
+	    .spad_count = 16,
+	    .db_count = 16,
+	    .msix_vector_count = 24,
+	    .quirks = QUIRK_MW0_32BIT,
+	    .desc = "AMD Non-Transparent Bridge" },
 
 	{ .vendor_id = NTB_HW_AMD_VENDOR_ID,
-	  .device_id = NTB_HW_AMD_DEVICE_ID2,
-	  .mw_count = 2,
-	  .bar_start_idx = 2,
-	  .spad_count = 16,
-	  .db_count = 16,
-	  .msix_vector_count = 24,
-	  .quirks = 0,
-	  .desc = "AMD Non-Transparent Bridge"},
+	    .device_id = NTB_HW_AMD_DEVICE_ID2,
+	    .mw_count = 2,
+	    .bar_start_idx = 2,
+	    .spad_count = 16,
+	    .db_count = 16,
+	    .msix_vector_count = 24,
+	    .quirks = 0,
+	    .desc = "AMD Non-Transparent Bridge" },
 
 	{ .vendor_id = NTB_HW_HYGON_VENDOR_ID,
-	  .device_id = NTB_HW_HYGON_DEVICE_ID1,
-	  .mw_count = 3,
-	  .bar_start_idx = 1,
-	  .spad_count = 16,
-	  .db_count = 16,
-	  .msix_vector_count = 24,
-	  .quirks = QUIRK_MW0_32BIT,
-	  .desc = "Hygon Non-Transparent Bridge"},
+	    .device_id = NTB_HW_HYGON_DEVICE_ID1,
+	    .mw_count = 3,
+	    .bar_start_idx = 1,
+	    .spad_count = 16,
+	    .db_count = 16,
+	    .msix_vector_count = 24,
+	    .quirks = QUIRK_MW0_32BIT,
+	    .desc = "Hygon Non-Transparent Bridge" },
 };
 
 static const struct pci_device_table amd_ntb_devs[] = {
 	{ PCI_DEV(NTB_HW_AMD_VENDOR_ID, NTB_HW_AMD_DEVICE_ID1),
-	  .driver_data = (uintptr_t)&amd_ntb_hw_info_list[0],
-	  PCI_DESCR("AMD Non-Transparent Bridge") },
+	    .driver_data = (uintptr_t)&amd_ntb_hw_info_list[0],
+	    PCI_DESCR("AMD Non-Transparent Bridge") },
 	{ PCI_DEV(NTB_HW_AMD_VENDOR_ID, NTB_HW_AMD_DEVICE_ID2),
-	  .driver_data = (uintptr_t)&amd_ntb_hw_info_list[1],
-	  PCI_DESCR("AMD Non-Transparent Bridge") },
+	    .driver_data = (uintptr_t)&amd_ntb_hw_info_list[1],
+	    PCI_DESCR("AMD Non-Transparent Bridge") },
 	{ PCI_DEV(NTB_HW_HYGON_VENDOR_ID, NTB_HW_HYGON_DEVICE_ID1),
-	  .driver_data = (uintptr_t)&amd_ntb_hw_info_list[0],
-	  PCI_DESCR("Hygon Non-Transparent Bridge") }
+	    .driver_data = (uintptr_t)&amd_ntb_hw_info_list[0],
+	    PCI_DESCR("Hygon Non-Transparent Bridge") }
 };
 
 static unsigned g_amd_ntb_hw_debug_level;
 SYSCTL_UINT(_hw_ntb, OID_AUTO, debug_level, CTLFLAG_RWTUN,
     &g_amd_ntb_hw_debug_level, 0, "amd_ntb_hw log level -- higher is verbose");
 
-#define amd_ntb_printf(lvl, ...) do {				\
-        if (lvl <= g_amd_ntb_hw_debug_level)			\
-                device_printf(ntb->device, __VA_ARGS__);	\
-} while (0)
+#define amd_ntb_printf(lvl, ...)                                 \
+	do {                                                     \
+		if (lvl <= g_amd_ntb_hw_debug_level)             \
+			device_printf(ntb->device, __VA_ARGS__); \
+	} while (0)
 
 #ifdef __i386__
 static __inline uint64_t
@@ -186,8 +187,8 @@ amd_ntb_peer_port_number(device_t dev, int pidx)
 {
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 
-	amd_ntb_printf(1, "%s: pidx %d conn type %d\n",
-	    __func__, pidx, ntb->conn_type);
+	amd_ntb_printf(1, "%s: pidx %d conn type %d\n", __func__, pidx,
+	    ntb->conn_type);
 
 	if (pidx != NTB_DEF_PEER_IDX)
 		return (-EINVAL);
@@ -212,8 +213,8 @@ amd_ntb_peer_port_idx(device_t dev, int port)
 
 	peer_port = amd_ntb_peer_port_number(dev, NTB_DEF_PEER_IDX);
 
-	amd_ntb_printf(1, "%s: port %d peer_port %d\n",
-	    __func__, port, peer_port);
+	amd_ntb_printf(1, "%s: port %d peer_port %d\n", __func__, port,
+	    peer_port);
 
 	if (peer_port == -EINVAL || port != peer_port)
 		return (-EINVAL);
@@ -228,8 +229,8 @@ static inline int
 amd_link_is_up(struct amd_ntb_softc *ntb)
 {
 
-	amd_ntb_printf(2, "%s: peer_sta 0x%x cntl_sta 0x%x\n",
-	    __func__, ntb->peer_sta, ntb->cntl_sta);
+	amd_ntb_printf(2, "%s: peer_sta 0x%x cntl_sta 0x%x\n", __func__,
+	    ntb->peer_sta, ntb->cntl_sta);
 
 	if (!ntb->peer_sta)
 		return (NTB_LNK_STA_ACTIVE(ntb->cntl_sta));
@@ -277,8 +278,8 @@ amd_ntb_link_enable(device_t dev, enum ntb_speed max_speed,
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 	uint32_t ntb_ctl;
 
-	amd_ntb_printf(1, "%s: int_mask 0x%x conn_type %d\n",
-	    __func__, ntb->int_mask, ntb->conn_type);
+	amd_ntb_printf(1, "%s: int_mask 0x%x conn_type %d\n", __func__,
+	    ntb->int_mask, ntb->conn_type);
 
 	amd_init_side_info(ntb);
 
@@ -305,8 +306,8 @@ amd_ntb_link_disable(device_t dev)
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 	uint32_t ntb_ctl;
 
-	amd_ntb_printf(1, "%s: int_mask 0x%x conn_type %d\n",
-	    __func__, ntb->int_mask, ntb->conn_type);
+	amd_ntb_printf(1, "%s: int_mask 0x%x conn_type %d\n", __func__,
+	    ntb->int_mask, ntb->conn_type);
 
 	amd_deinit_side_info(ntb);
 
@@ -382,7 +383,8 @@ amd_ntb_mw_get_range(device_t dev, unsigned mw_idx, vm_paddr_t *base,
 }
 
 static int
-amd_ntb_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr, size_t size)
+amd_ntb_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr,
+    size_t size)
 {
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 	struct amd_ntb_pci_bar_info *bar_info;
@@ -400,8 +402,8 @@ amd_ntb_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr, size_t size
 	}
 
 	amd_ntb_printf(1, "%s: mw %d mw_size 0x%jx size 0x%jx base %p\n",
-	    __func__, mw_idx, (uintmax_t)bar_info->size,
-	    (uintmax_t)size, (void *)bar_info->pci_bus_handle);
+	    __func__, mw_idx, (uintmax_t)bar_info->size, (uintmax_t)size,
+	    (void *)bar_info->pci_bus_handle);
 
 	/*
 	 * AMD NTB XLAT and Limit registers needs to be written only after
@@ -423,14 +425,16 @@ amd_ntb_mw_set_trans(device_t dev, unsigned mw_idx, bus_addr_t addr, size_t size
 	 */
 	if ((mw_idx == 0) && (ntb->hw_info->quirks & QUIRK_MW0_32BIT)) {
 		amd_ntb_reg_write(4, bar_info->limit_off, (uint32_t)size);
-		amd_ntb_printf(1, "%s: limit_off 0x%x cur_val 0x%x limit 0x%x\n",
-		    __func__, bar_info->limit_off,
+		amd_ntb_printf(1,
+		    "%s: limit_off 0x%x cur_val 0x%x limit 0x%x\n", __func__,
+		    bar_info->limit_off,
 		    amd_ntb_peer_reg_read(4, bar_info->limit_off),
 		    (uint32_t)size);
 	} else {
 		amd_ntb_reg_write(8, bar_info->limit_off, (uint64_t)size);
-		amd_ntb_printf(1, "%s: limit_off 0x%x cur_val 0x%jx limit 0x%jx\n",
-		    __func__, bar_info->limit_off,
+		amd_ntb_printf(1,
+		    "%s: limit_off 0x%x cur_val 0x%jx limit 0x%jx\n", __func__,
+		    bar_info->limit_off,
 		    amd_ntb_peer_reg_read(8, bar_info->limit_off),
 		    (uintmax_t)size);
 	}
@@ -465,7 +469,8 @@ amd_ntb_mw_set_wc(device_t dev, unsigned int mw_idx, vm_memattr_t mode)
 	if (mode == bar_info->map_mode)
 		return (0);
 
-	rc = pmap_change_attr((vm_offset_t)bar_info->vbase, bar_info->size, mode);
+	rc = pmap_change_attr((vm_offset_t)bar_info->vbase, bar_info->size,
+	    mode);
 	if (rc == 0)
 		bar_info->map_mode = mode;
 
@@ -508,8 +513,8 @@ amd_ntb_db_valid_mask(device_t dev)
 {
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 
-	amd_ntb_printf(1, "%s: db_valid_mask 0x%x\n",
-	    __func__, ntb->db_valid_mask);
+	amd_ntb_printf(1, "%s: db_valid_mask 0x%x\n", __func__,
+	    ntb->db_valid_mask);
 
 	return (ntb->db_valid_mask);
 }
@@ -556,8 +561,8 @@ amd_ntb_db_set_mask(device_t dev, uint64_t db_bits)
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 
 	DB_MASK_LOCK(ntb);
-	amd_ntb_printf(1, "%s: db_mask 0x%x db_bits 0x%jx\n",
-	    __func__, ntb->db_mask, db_bits);
+	amd_ntb_printf(1, "%s: db_mask 0x%x db_bits 0x%jx\n", __func__,
+	    ntb->db_mask, db_bits);
 
 	ntb->db_mask |= db_bits;
 	amd_ntb_reg_write(2, AMD_DBMASK_OFFSET, ntb->db_mask);
@@ -570,8 +575,8 @@ amd_ntb_db_clear_mask(device_t dev, uint64_t db_bits)
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 
 	DB_MASK_LOCK(ntb);
-	amd_ntb_printf(1, "%s: db_mask 0x%x db_bits 0x%jx\n",
-	    __func__, ntb->db_mask, db_bits);
+	amd_ntb_printf(1, "%s: db_mask 0x%x db_bits 0x%jx\n", __func__,
+	    ntb->db_mask, db_bits);
 
 	ntb->db_mask &= ~db_bits;
 	amd_ntb_reg_write(2, AMD_DBMASK_OFFSET, ntb->db_mask);
@@ -595,8 +600,7 @@ amd_ntb_spad_count(device_t dev)
 {
 	struct amd_ntb_softc *ntb = device_get_softc(dev);
 
-	amd_ntb_printf(1, "%s: spad_count 0x%x\n", __func__,
-	    ntb->spad_count);
+	amd_ntb_printf(1, "%s: spad_count 0x%x\n", __func__, ntb->spad_count);
 
 	return (ntb->spad_count);
 }
@@ -688,7 +692,7 @@ amd_ntb_peer_spad_write(device_t dev, unsigned int idx, uint32_t val)
 static int
 amd_ntb_hw_info_handler(SYSCTL_HANDLER_ARGS)
 {
-	struct amd_ntb_softc* ntb = arg1;
+	struct amd_ntb_softc *ntb = arg1;
 	struct sbuf *sb;
 	int rc = 0;
 
@@ -698,7 +702,7 @@ amd_ntb_hw_info_handler(SYSCTL_HANDLER_ARGS)
 
 	sbuf_printf(sb, "NTB AMD Hardware info:\n\n");
 	sbuf_printf(sb, "AMD NTB side: %s\n",
-	    (ntb->conn_type == NTB_CONN_PRI)? "PRIMARY" : "SECONDARY");
+	    (ntb->conn_type == NTB_CONN_PRI) ? "PRIMARY" : "SECONDARY");
 	sbuf_printf(sb, "AMD LNK STA: 0x%#06x\n", ntb->lnk_sta);
 
 	if (!amd_link_is_up(ntb))
@@ -713,14 +717,10 @@ amd_ntb_hw_info_handler(SYSCTL_HANDLER_ARGS)
 
 	sbuf_printf(sb, "AMD Memory window count: %d\n",
 	    ntb->hw_info->mw_count);
-	sbuf_printf(sb, "AMD Spad count: %d\n",
-	    ntb->spad_count);
-	sbuf_printf(sb, "AMD Doorbell count: %d\n",
-	    ntb->hw_info->db_count);
-	sbuf_printf(sb, "AMD MSI-X vec count: %d\n\n",
-	    ntb->msix_vec_count);
-	sbuf_printf(sb, "AMD Doorbell valid mask: 0x%x\n",
-	    ntb->db_valid_mask);
+	sbuf_printf(sb, "AMD Spad count: %d\n", ntb->spad_count);
+	sbuf_printf(sb, "AMD Doorbell count: %d\n", ntb->hw_info->db_count);
+	sbuf_printf(sb, "AMD MSI-X vec count: %d\n\n", ntb->msix_vec_count);
+	sbuf_printf(sb, "AMD Doorbell valid mask: 0x%x\n", ntb->db_valid_mask);
 	sbuf_printf(sb, "AMD Doorbell Mask: 0x%x\n",
 	    amd_ntb_reg_read(4, AMD_DBMASK_OFFSET));
 	sbuf_printf(sb, "AMD Doorbell: 0x%x\n",
@@ -796,8 +796,8 @@ amd_link_hb(void *arg)
 		ntb_link_event(ntb->device);
 
 	if (!amd_link_is_up(ntb)) {
-		callout_reset(&ntb->hb_timer, AMD_LINK_HB_TIMEOUT,
-		    amd_link_hb, ntb);
+		callout_reset(&ntb->hb_timer, AMD_LINK_HB_TIMEOUT, amd_link_hb,
+		    ntb);
 	} else {
 		callout_reset(&ntb->hb_timer, (AMD_LINK_HB_TIMEOUT * 10),
 		    amd_link_hb, ntb);
@@ -985,7 +985,8 @@ err_msix_enable:
 		num_vectors = 1;
 		rc = pci_alloc_msi(ntb->device, &num_vectors);
 		if (rc != 0) {
-			amd_ntb_printf(0, "Error allocating msix vectors: %d\n", rc);
+			amd_ntb_printf(0, "Error allocating msix vectors: %d\n",
+			    rc);
 			msi = false;
 			intx = true;
 		}
@@ -999,8 +1000,8 @@ err_msix_enable:
 		ntb->msix_vec_count = 0;
 	}
 
-	amd_ntb_printf(0, "%s: db %d msix %d msi %d intx %d\n",
-	    __func__, ntb->hw_info->db_count, ntb->msix_vec_count, (int)msi, (int)intx);
+	amd_ntb_printf(0, "%s: db %d msix %d msi %d intx %d\n", __func__,
+	    ntb->hw_info->db_count, ntb->msix_vec_count, (int)msi, (int)intx);
 
 	rc = amd_ntb_setup_isr(ntb, num_vectors, msi, intx);
 	if (rc != 0) {
@@ -1051,7 +1052,7 @@ amd_ntb_get_topo(struct amd_ntb_softc *ntb)
 static int
 amd_ntb_init_dev(struct amd_ntb_softc *ntb)
 {
-	ntb->db_valid_mask	 = (1ull << ntb->hw_info->db_count) - 1;
+	ntb->db_valid_mask = (1ull << ntb->hw_info->db_count) - 1;
 	mtx_init(&ntb->db_mask_lock, "amd ntb db bits", NULL, MTX_SPIN);
 
 	switch (ntb->conn_type) {
@@ -1068,8 +1069,8 @@ amd_ntb_init_dev(struct amd_ntb_softc *ntb)
 		}
 
 		callout_init(&ntb->hb_timer, 1);
-		callout_reset(&ntb->hb_timer, AMD_LINK_HB_TIMEOUT,
-		    amd_link_hb, ntb);
+		callout_reset(&ntb->hb_timer, AMD_LINK_HB_TIMEOUT, amd_link_hb,
+		    ntb);
 
 		break;
 
@@ -1092,7 +1093,7 @@ amd_ntb_init(struct amd_ntb_softc *ntb)
 
 	ntb->conn_type = amd_ntb_get_topo(ntb);
 	amd_ntb_printf(0, "AMD NTB Side: %s\n",
-	    (ntb->conn_type == NTB_CONN_PRI)? "PRIMARY" : "SECONDARY");
+	    (ntb->conn_type == NTB_CONN_PRI) ? "PRIMARY" : "SECONDARY");
 
 	rc = amd_ntb_init_dev(ntb);
 	if (rc != 0)
@@ -1109,10 +1110,12 @@ static void
 print_map_success(struct amd_ntb_softc *ntb, struct amd_ntb_pci_bar_info *bar,
     const char *kind)
 {
-	amd_ntb_printf(0, "Mapped BAR%d v:[%p-%p] p:[0x%jx-0x%jx] (0x%jx bytes) (%s)\n",
+	amd_ntb_printf(0,
+	    "Mapped BAR%d v:[%p-%p] p:[0x%jx-0x%jx] (0x%jx bytes) (%s)\n",
 	    PCI_RID2BAR(bar->pci_resource_id), bar->vbase,
 	    (char *)bar->vbase + bar->size - 1, (uintmax_t)bar->pbase,
-	    (uintmax_t)(bar->pbase + bar->size - 1), (uintmax_t)bar->size, kind);
+	    (uintmax_t)(bar->pbase + bar->size - 1), (uintmax_t)bar->size,
+	    kind);
 }
 
 static void
@@ -1227,7 +1230,7 @@ amd_ntb_attach(device_t device)
 	error = amd_ntb_map_pci_bars(ntb);
 	if (error)
 		goto out;
-		
+
 	error = amd_ntb_init(ntb);
 	if (error)
 		goto out;
@@ -1266,43 +1269,42 @@ amd_ntb_detach(device_t device)
 
 static device_method_t ntb_amd_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		amd_ntb_probe),
-	DEVMETHOD(device_attach,	amd_ntb_attach),
-	DEVMETHOD(device_detach,	amd_ntb_detach),
+	DEVMETHOD(device_probe, amd_ntb_probe),
+	DEVMETHOD(device_attach, amd_ntb_attach),
+	DEVMETHOD(device_detach, amd_ntb_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_location,	ntb_child_location),
-	DEVMETHOD(bus_print_child,	ntb_print_child),
-	DEVMETHOD(bus_get_dma_tag,	ntb_get_dma_tag),
+	DEVMETHOD(bus_child_location, ntb_child_location),
+	DEVMETHOD(bus_print_child, ntb_print_child),
+	DEVMETHOD(bus_get_dma_tag, ntb_get_dma_tag),
 
 	/* NTB interface */
-	DEVMETHOD(ntb_port_number,	amd_ntb_port_number),
-	DEVMETHOD(ntb_peer_port_count,	amd_ntb_peer_port_count),
-	DEVMETHOD(ntb_peer_port_number,	amd_ntb_peer_port_number),
-	DEVMETHOD(ntb_peer_port_idx, 	amd_ntb_peer_port_idx),
-	DEVMETHOD(ntb_link_is_up,	amd_ntb_link_is_up),
-	DEVMETHOD(ntb_link_enable,	amd_ntb_link_enable),
-	DEVMETHOD(ntb_link_disable,	amd_ntb_link_disable),
-	DEVMETHOD(ntb_mw_count,		amd_ntb_mw_count),
-	DEVMETHOD(ntb_mw_get_range,	amd_ntb_mw_get_range),
-	DEVMETHOD(ntb_mw_set_trans,	amd_ntb_mw_set_trans),
-	DEVMETHOD(ntb_mw_clear_trans,	amd_ntb_mw_clear_trans),
-	DEVMETHOD(ntb_mw_set_wc,	amd_ntb_mw_set_wc),
-	DEVMETHOD(ntb_mw_get_wc,	amd_ntb_mw_get_wc),
-	DEVMETHOD(ntb_db_valid_mask,	amd_ntb_db_valid_mask),
-	DEVMETHOD(ntb_db_vector_count,	amd_ntb_db_vector_count),
-	DEVMETHOD(ntb_db_vector_mask,	amd_ntb_db_vector_mask),
-	DEVMETHOD(ntb_db_read,		amd_ntb_db_read),
-	DEVMETHOD(ntb_db_clear,		amd_ntb_db_clear),
-	DEVMETHOD(ntb_db_set_mask,	amd_ntb_db_set_mask),
-	DEVMETHOD(ntb_db_clear_mask,	amd_ntb_db_clear_mask),
-	DEVMETHOD(ntb_peer_db_set,	amd_ntb_peer_db_set),
-	DEVMETHOD(ntb_spad_count,	amd_ntb_spad_count),
-	DEVMETHOD(ntb_spad_read,	amd_ntb_spad_read),
-	DEVMETHOD(ntb_spad_write,	amd_ntb_spad_write),
-	DEVMETHOD(ntb_peer_spad_read,	amd_ntb_peer_spad_read),
-	DEVMETHOD(ntb_peer_spad_write,	amd_ntb_peer_spad_write),
-	DEVMETHOD_END
+	DEVMETHOD(ntb_port_number, amd_ntb_port_number),
+	DEVMETHOD(ntb_peer_port_count, amd_ntb_peer_port_count),
+	DEVMETHOD(ntb_peer_port_number, amd_ntb_peer_port_number),
+	DEVMETHOD(ntb_peer_port_idx, amd_ntb_peer_port_idx),
+	DEVMETHOD(ntb_link_is_up, amd_ntb_link_is_up),
+	DEVMETHOD(ntb_link_enable, amd_ntb_link_enable),
+	DEVMETHOD(ntb_link_disable, amd_ntb_link_disable),
+	DEVMETHOD(ntb_mw_count, amd_ntb_mw_count),
+	DEVMETHOD(ntb_mw_get_range, amd_ntb_mw_get_range),
+	DEVMETHOD(ntb_mw_set_trans, amd_ntb_mw_set_trans),
+	DEVMETHOD(ntb_mw_clear_trans, amd_ntb_mw_clear_trans),
+	DEVMETHOD(ntb_mw_set_wc, amd_ntb_mw_set_wc),
+	DEVMETHOD(ntb_mw_get_wc, amd_ntb_mw_get_wc),
+	DEVMETHOD(ntb_db_valid_mask, amd_ntb_db_valid_mask),
+	DEVMETHOD(ntb_db_vector_count, amd_ntb_db_vector_count),
+	DEVMETHOD(ntb_db_vector_mask, amd_ntb_db_vector_mask),
+	DEVMETHOD(ntb_db_read, amd_ntb_db_read),
+	DEVMETHOD(ntb_db_clear, amd_ntb_db_clear),
+	DEVMETHOD(ntb_db_set_mask, amd_ntb_db_set_mask),
+	DEVMETHOD(ntb_db_clear_mask, amd_ntb_db_clear_mask),
+	DEVMETHOD(ntb_peer_db_set, amd_ntb_peer_db_set),
+	DEVMETHOD(ntb_spad_count, amd_ntb_spad_count),
+	DEVMETHOD(ntb_spad_read, amd_ntb_spad_read),
+	DEVMETHOD(ntb_spad_write, amd_ntb_spad_write),
+	DEVMETHOD(ntb_peer_spad_read, amd_ntb_peer_spad_read),
+	DEVMETHOD(ntb_peer_spad_write, amd_ntb_peer_spad_write), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ntb_hw, ntb_amd_driver, ntb_amd_methods,

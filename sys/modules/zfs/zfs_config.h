@@ -271,7 +271,7 @@
 /* #undef HAVE_CURRENT_TIME */
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
-   */
+ */
 /* #undef HAVE_DCGETTEXT */
 
 /* DECLARE_EVENT_CLASS() is available */

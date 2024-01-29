@@ -21,8 +21,8 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "aldap.h"
@@ -32,27 +32,35 @@
 #endif
 #define VERSION 3
 
-static struct ber_element	*ldap_parse_search_filter(struct ber_element *,
-				    char *);
-static struct ber_element	*ldap_do_parse_search_filter(
-				    struct ber_element *, char **);
-char				**aldap_get_stringset(struct ber_element *);
-char				*utoa(char *);
-static int			 isu8cont(unsigned char);
-char				*parseval(char *, size_t);
-int				aldap_create_page_control(struct ber_element *,
-				    int, struct aldap_page_control *);
+static struct ber_element *ldap_parse_search_filter(struct ber_element *,
+    char *);
+static struct ber_element *ldap_do_parse_search_filter(struct ber_element *,
+    char **);
+char **aldap_get_stringset(struct ber_element *);
+char *utoa(char *);
+static int isu8cont(unsigned char);
+char *parseval(char *, size_t);
+int aldap_create_page_control(struct ber_element *, int,
+    struct aldap_page_control *);
 
 #ifdef DEBUG
-void			 ldap_debug_elements(struct ber_element *);
+void ldap_debug_elements(struct ber_element *);
 #endif
 
 #ifdef DEBUG
-#define DPRINTF(x...)	printf(x)
-#define LDAP_DEBUG(x, y)	do { fprintf(stderr, "*** " x "\n"); ldap_debug_elements(y); } while (0)
+#define DPRINTF(x...) printf(x)
+#define LDAP_DEBUG(x, y)                        \
+	do {                                    \
+		fprintf(stderr, "*** " x "\n"); \
+		ldap_debug_elements(y);         \
+	} while (0)
 #else
-#define DPRINTF(x...)	do { } while (0)
-#define LDAP_DEBUG(x, y)	do { } while (0)
+#define DPRINTF(x...) \
+	do {          \
+	} while (0)
+#define LDAP_DEBUG(x, y) \
+	do {             \
+	} while (0)
 #endif
 
 int
@@ -159,16 +167,15 @@ aldap_search(struct aldap *ldap, char *basedn, enum scope scope, char *filter,
 		goto fail;
 
 	ber = ber_printf_elements(root, "d{t", ++ldap->msgid, BER_CLASS_APP,
-	    (unsigned long) LDAP_REQ_SEARCH);
+	    (unsigned long)LDAP_REQ_SEARCH);
 	if (ber == NULL) {
 		ldap->err = ALDAP_ERR_OPERATION_FAILED;
 		goto fail;
 	}
 
-	c = ber;	
+	c = ber;
 	ber = ber_printf_elements(ber, "sEEddb", basedn, (long long)scope,
-	                         (long long)LDAP_DEREF_NEVER, sizelimit, 
-				 timelimit, typesonly);
+	    (long long)LDAP_DEREF_NEVER, sizelimit, timelimit, typesonly);
 	if (ber == NULL) {
 		ldap->err = ALDAP_ERR_OPERATION_FAILED;
 		goto fail;
@@ -226,14 +233,14 @@ aldap_create_page_control(struct ber_element *elm, int size,
 			goto fail;
 	} else {
 		if (ber_printf_elements(ber, "dx", 50, page->cookie,
-			    page->cookie_len) == NULL)
+			page->cookie_len) == NULL)
 			goto fail;
 	}
 
 	if ((len = ber_write_elements(&c, ber)) < 1)
 		goto fail;
-	if (ber_printf_elements(elm, "{t{sx", 2, 0, LDAP_PAGED_OID,
-		                c.br_wbuf, (size_t)len) == NULL)
+	if (ber_printf_elements(elm, "{t{sx", 2, 0, LDAP_PAGED_OID, c.br_wbuf,
+		(size_t)len) == NULL)
 		goto fail;
 
 	ber_free_elements(ber);
@@ -242,7 +249,7 @@ aldap_create_page_control(struct ber_element *elm, int size,
 fail:
 	if (ber != NULL)
 		ber_free_elements(ber);
-	ber_free(&c);	
+	ber_free(&c);
 
 	return (-1);
 }
@@ -250,11 +257,11 @@ fail:
 struct aldap_message *
 aldap_parse(struct aldap *ldap)
 {
-	int			 class;
-	unsigned long		 type;
-	long long		 msgid = 0;
-	struct aldap_message	*m;
-	struct ber_element	*a = NULL, *ep;
+	int class;
+	unsigned long type;
+	long long msgid = 0;
+	struct aldap_message *m;
+	struct ber_element *a = NULL, *ep;
 
 	if ((m = calloc(1, sizeof(struct aldap_message))) == NULL)
 		return NULL;
@@ -279,16 +286,19 @@ aldap_parse(struct aldap *ldap)
 	case LDAP_RES_COMPARE:
 	case LDAP_RES_SEARCH_RESULT:
 		if (ber_scanf_elements(m->protocol_op, "{EeSeSe",
-		    &m->body.res.rescode, &m->dn, &m->body.res.diagmsg, &a) != 0)
+			&m->body.res.rescode, &m->dn, &m->body.res.diagmsg,
+			&a) != 0)
 			goto parsefail;
 		if (m->body.res.rescode == LDAP_REFERRAL)
 			if (ber_scanf_elements(a, "{e", &m->references) != 0)
 				goto parsefail;
 		if (m->msg->be_sub) {
-			for (ep = m->msg->be_sub; ep != NULL; ep = ep->be_next) {
+			for (ep = m->msg->be_sub; ep != NULL;
+			     ep = ep->be_next) {
 				ber_scanf_elements(ep, "t", &class, &type);
 				if (class == 2 && type == 0)
-					m->page = aldap_parse_page_control(ep->be_sub->be_sub,
+					m->page = aldap_parse_page_control(
+					    ep->be_sub->be_sub,
 					    ep->be_sub->be_sub->be_len);
 			}
 		} else
@@ -296,11 +306,12 @@ aldap_parse(struct aldap *ldap)
 		break;
 	case LDAP_RES_SEARCH_ENTRY:
 		if (ber_scanf_elements(m->protocol_op, "{eS{e", &m->dn,
-		    &m->body.search.attrs) != 0)
+			&m->body.search.attrs) != 0)
 			goto parsefail;
 		break;
 	case LDAP_RES_SEARCH_REFERENCE:
-		if (ber_scanf_elements(m->protocol_op, "{e", &m->references) != 0)
+		if (ber_scanf_elements(m->protocol_op, "{e", &m->references) !=
+		    0)
 			goto parsefail;
 		break;
 	}
@@ -313,7 +324,7 @@ parsefail:
 }
 
 struct aldap_page_control *
-aldap_parse_page_control(struct ber_element *control, size_t len) 
+aldap_parse_page_control(struct ber_element *control, size_t len)
 {
 	char *oid, *s;
 	char *encoded;
@@ -432,8 +443,7 @@ aldap_count_attrs(struct aldap_message *msg)
 		return (-1);
 
 	for (i = 0, a = msg->body.search.attrs;
-	    a != NULL && ber_get_eoc(a) != 0;
-	    i++, a = a->be_next)
+	     a != NULL && ber_get_eoc(a) != 0; i++, a = a->be_next)
 		;
 
 	return i;
@@ -449,8 +459,8 @@ aldap_first_attr(struct aldap_message *msg, char **outkey, char ***outvalues)
 	if (msg->body.search.attrs == NULL)
 		goto fail;
 
-	if (ber_scanf_elements(msg->body.search.attrs, "{s(e)}e",
-	    &key, &b, &c) != 0)
+	if (ber_scanf_elements(msg->body.search.attrs, "{s(e)}e", &key, &b,
+		&c) != 0)
 		goto fail;
 
 	msg->body.search.iter = msg->body.search.attrs->be_next;
@@ -483,8 +493,8 @@ aldap_next_attr(struct aldap_message *msg, char **outkey, char ***outvalues)
 	if (ber_get_eoc(msg->body.search.iter) == 0)
 		goto notfound;
 
-	if (ber_scanf_elements(msg->body.search.iter, "{s(e)}e", &key, &a, &b)
-	    != 0)
+	if (ber_scanf_elements(msg->body.search.iter, "{s(e)}e", &key, &a,
+		&b) != 0)
 		goto fail;
 
 	msg->body.search.iter = msg->body.search.iter->be_next;
@@ -705,8 +715,9 @@ aldap_get_stringset(struct ber_element *elm)
 	if (elm->be_type != BER_TYPE_OCTETSTRING)
 		return NULL;
 
-	for (a = elm, i = 1; i > 0 && a != NULL && a->be_type ==
-	    BER_TYPE_OCTETSTRING; a = a->be_next, i++)
+	for (a = elm, i = 1;
+	     i > 0 && a != NULL && a->be_type == BER_TYPE_OCTETSTRING;
+	     a = a->be_next, i++)
 		;
 	if (i == 1)
 		return NULL;
@@ -715,13 +726,12 @@ aldap_get_stringset(struct ber_element *elm)
 		return NULL;
 
 	for (a = elm, i = 0; a != NULL && a->be_type == BER_TYPE_OCTETSTRING;
-	    a = a->be_next) {
+	     a = a->be_next) {
 
 		ber_get_string(a, &s);
 		ret[i] = utoa(s);
 		if (ret[i] != NULL)
 			i++;
-		
 	}
 	if (i == 0) {
 		free(ret);
@@ -797,8 +807,8 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 		goto syntaxfail;
 
 	switch (*++cp) {
-	case '&':		/* AND */
-	case '|':		/* OR */
+	case '&': /* AND */
+	case '|': /* OR */
 		if (*cp == '&')
 			type = LDAP_FILT_AND;
 		else
@@ -809,33 +819,33 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 		root = elm;
 		ber_set_header(elm, BER_CLASS_CONTEXT, type);
 
-		if (*++cp != '(')		/* opening `(` of filter */
+		if (*++cp != '(') /* opening `(` of filter */
 			goto syntaxfail;
 
 		while (*cp == '(') {
-			if ((elm =
-			    ldap_do_parse_search_filter(elm, &cp)) == NULL)
+			if ((elm = ldap_do_parse_search_filter(elm, &cp)) ==
+			    NULL)
 				goto bad;
 		}
 
-		if (*cp != ')')			/* trailing `)` of filter */
+		if (*cp != ')') /* trailing `)` of filter */
 			goto syntaxfail;
 		break;
 
-	case '!':		/* NOT */
+	case '!': /* NOT */
 		if ((root = ber_add_sequence(prev)) == NULL)
 			goto callfail;
 		ber_set_header(root, BER_CLASS_CONTEXT, LDAP_FILT_NOT);
 
-		cp++;				/* now points to sub-filter */
+		cp++; /* now points to sub-filter */
 		if ((elm = ldap_do_parse_search_filter(root, &cp)) == NULL)
 			goto bad;
 
-		if (*cp != ')')			/* trailing `)` of filter */
+		if (*cp != ')') /* trailing `)` of filter */
 			goto syntaxfail;
 		break;
 
-	default:	/* SIMPLE || PRESENCE */
+	default: /* SIMPLE || PRESENCE */
 		attr_desc = cp;
 
 		len = strcspn(cp, "()<>~=");
@@ -854,7 +864,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 			cp++;
 			break;
 		case '=':
-			type = LDAP_FILT_EQ;	/* assume EQ until disproven */
+			type = LDAP_FILT_EQ; /* assume EQ until disproven */
 			break;
 		case '(':
 		case ')':
@@ -865,9 +875,9 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 
 		/* presence filter */
 		if (strncmp(attr_val, "*)", 2) == 0) {
-			cp++;			/* point to trailing `)` */
-			if ((root =
-			    ber_add_nstring(prev, attr_desc, len)) == NULL)
+			cp++; /* point to trailing `)` */
+			if ((root = ber_add_nstring(prev, attr_desc, len)) ==
+			    NULL)
 				goto bad;
 
 			ber_set_header(root, BER_CLASS_CONTEXT, LDAP_FILT_PRES);
@@ -888,7 +898,7 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 		if (*cp == '\0')
 			goto syntaxfail;
 
-		if (*cp == '*') {	/* substring filter */
+		if (*cp == '*') { /* substring filter */
 			int initial;
 
 			cp = attr_val;
@@ -943,12 +953,12 @@ ldap_do_parse_search_filter(struct ber_element *prev, char **cpp)
 		break;
 	}
 
-	cp++;		/* now points one char beyond the trailing `)` */
+	cp++; /* now points one char beyond the trailing `)` */
 
 	*cpp = cp;
 	return (root);
 
-syntaxfail:		/* XXX -- error reporting */
+syntaxfail: /* XXX -- error reporting */
 callfail:
 bad:
 	if (root != NULL)
@@ -965,14 +975,14 @@ bad:
 void
 ldap_debug_elements(struct ber_element *root)
 {
-	static int	 indent = 0;
-	long long	 v;
-	int		 d;
-	char		*buf;
-	size_t		 len;
-	u_int		 i;
-	int		 constructed;
-	struct ber_oid	 o;
+	static int indent = 0;
+	long long v;
+	int d;
+	char *buf;
+	size_t len;
+	u_int i;
+	int constructed;
+	struct ber_oid o;
 
 	/* calculate lengths */
 	ber_calc_len(root);
@@ -1025,8 +1035,8 @@ ldap_debug_elements(struct ber_element *root)
 		}
 		break;
 	case BER_CLASS_APPLICATION:
-		fprintf(stderr, "class: application(%u) type: ",
-		    root->be_class);
+		fprintf(stderr,
+		    "class: application(%u) type: ", root->be_class);
 		switch (root->be_type) {
 		case LDAP_REQ_BIND:
 			fprintf(stderr, "bind");
@@ -1087,7 +1097,7 @@ ldap_debug_elements(struct ber_element *root)
 	case BER_CLASS_CONTEXT:
 		/* XXX: this is not correct */
 		fprintf(stderr, "class: context(%u) type: ", root->be_class);
-		switch(root->be_type) {
+		switch (root->be_type) {
 		case LDAP_AUTH_SIMPLE:
 			fprintf(stderr, "auth simple");
 			break;
@@ -1097,8 +1107,8 @@ ldap_debug_elements(struct ber_element *root)
 		fprintf(stderr, "class: <INVALID>(%u) type: ", root->be_class);
 		break;
 	}
-	fprintf(stderr, "(%lu) encoding %lu ",
-	    root->be_type, root->be_encoding);
+	fprintf(stderr, "(%lu) encoding %lu ", root->be_type,
+	    root->be_encoding);
 
 	if (constructed)
 		root->be_encoding = constructed;
@@ -1147,9 +1157,9 @@ ldap_debug_elements(struct ber_element *root)
 			fprintf(stderr, "<INVALID>\n");
 			break;
 		}
-		fprintf(stderr, "string \"%.*s\"\n",  len, buf);
+		fprintf(stderr, "string \"%.*s\"\n", len, buf);
 		break;
-	case BER_TYPE_NULL:	/* no payload */
+	case BER_TYPE_NULL: /* no payload */
 	case BER_TYPE_EOC:
 	case BER_TYPE_SEQUENCE:
 	case BER_TYPE_SET:
@@ -1177,8 +1187,8 @@ ldap_debug_elements(struct ber_element *root)
 char *
 utoa(char *u)
 {
-	int	 len, i, j;
-	char	*str;
+	int len, i, j;
+	char *str;
 
 	/* calculate the length to allocate */
 	for (len = 0, i = 0; u[i] != '\0'; i++)
@@ -1210,9 +1220,9 @@ isu8cont(unsigned char c)
 char *
 parseval(char *p, size_t len)
 {
-	char	 hex[3];
-	char	*buffer;
-	size_t	 i, j;
+	char hex[3];
+	char *buffer;
+	size_t i, j;
 
 	if ((buffer = calloc(1, len + 1)) == NULL)
 		return NULL;
@@ -1253,4 +1263,3 @@ aldap_get_errno(struct aldap *a, const char **estr)
 	}
 	return (a->err);
 }
-

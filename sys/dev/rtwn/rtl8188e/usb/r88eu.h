@@ -25,18 +25,18 @@
 /*
  * Global definitions.
  */
-#define R88EU_PUBQ_NPAGES	142
-#define R88EU_TX_PAGE_COUNT	169
+#define R88EU_PUBQ_NPAGES 142
+#define R88EU_TX_PAGE_COUNT 169
 
 /*
  * Function declarations.
  */
 /* r88eu_init.c */
-void	r88eu_init_bb(struct rtwn_softc *);
-int	r88eu_power_on(struct rtwn_softc *);
-void	r88eu_power_off(struct rtwn_softc *);
-void	r88eu_init_intr(struct rtwn_softc *);
-void	r88eu_init_rx_agg(struct rtwn_softc *);
-void	r88eu_post_init(struct rtwn_softc *);
+void r88eu_init_bb(struct rtwn_softc *);
+int r88eu_power_on(struct rtwn_softc *);
+void r88eu_power_off(struct rtwn_softc *);
+void r88eu_init_intr(struct rtwn_softc *);
+void r88eu_init_rx_agg(struct rtwn_softc *);
+void r88eu_post_init(struct rtwn_softc *);
 
-#endif	/* RTL8188EU_H */
+#endif /* RTL8188EU_H */

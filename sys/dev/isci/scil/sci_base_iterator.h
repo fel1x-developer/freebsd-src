@@ -72,8 +72,8 @@ extern "C" {
 //*
 //******************************************************************************
 
-#include <dev/isci/scil/sci_iterator.h>
 #include <dev/isci/scil/sci_abstract_list.h>
+#include <dev/isci/scil/sci_iterator.h>
 
 //******************************************************************************
 //*
@@ -93,18 +93,17 @@ extern "C" {
  * @brief This object represents an iterator of an abstract list.
  *
  */
-typedef struct SCI_BASE_ITERATOR
-{
-   /**
-    * This field points to the list iterated by this iterator.
-    */
-   SCI_ABSTRACT_LIST_T * list;
+typedef struct SCI_BASE_ITERATOR {
+	/**
+	 * This field points to the list iterated by this iterator.
+	 */
+	SCI_ABSTRACT_LIST_T *list;
 
-   /**
-    * This field points to the list element currently referenced by this
-    *  iterator.
-    */
-   SCI_ABSTRACT_ELEMENT_T * current;
+	/**
+	 * This field points to the list element currently referenced by this
+	 *  iterator.
+	 */
+	SCI_ABSTRACT_ELEMENT_T *current;
 
 } SCI_BASE_ITERATOR_T;
 
@@ -116,10 +115,8 @@ typedef struct SCI_BASE_ITERATOR
 
 #if !defined(DISABLE_SCI_ITERATORS)
 
-void sci_base_iterator_construct(
-   SCI_ITERATOR_HANDLE_T   iterator,
-   SCI_ABSTRACT_LIST_T   * list
-);
+void sci_base_iterator_construct(SCI_ITERATOR_HANDLE_T iterator,
+    SCI_ABSTRACT_LIST_T *list);
 
 #else // !defined(DISABLE_SCI_ITERATORS)
 

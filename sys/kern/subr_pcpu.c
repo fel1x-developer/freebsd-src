@@ -47,26 +47,28 @@
  *    sole CPU as 0.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
+
 #include <vm/uma.h>
+
 #include <ddb/ddb.h>
 
 static MALLOC_DEFINE(M_PCPU, "Per-cpu", "Per-cpu resource accouting.");
 
 struct dpcpu_free {
-	uintptr_t	df_start;
-	int		df_len;
+	uintptr_t df_start;
+	int df_len;
 	TAILQ_ENTRY(dpcpu_free) df_link;
 };
 
@@ -143,16 +145,16 @@ static void
 pcpu_zones_startup(void)
 {
 
-	pcpu_zone_4 = uma_zcreate("pcpu-4", 4,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_PCPU);
-	pcpu_zone_8 = uma_zcreate("pcpu-8", 8,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_PCPU);
-	pcpu_zone_16 = uma_zcreate("pcpu-16", 16,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_PCPU);
-	pcpu_zone_32 = uma_zcreate("pcpu-32", 32,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_PCPU);
-	pcpu_zone_64 = uma_zcreate("pcpu-64", 64,
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_PCPU);
+	pcpu_zone_4 = uma_zcreate("pcpu-4", 4, NULL, NULL, NULL, NULL,
+	    UMA_ALIGN_PTR, UMA_ZONE_PCPU);
+	pcpu_zone_8 = uma_zcreate("pcpu-8", 8, NULL, NULL, NULL, NULL,
+	    UMA_ALIGN_PTR, UMA_ZONE_PCPU);
+	pcpu_zone_16 = uma_zcreate("pcpu-16", 16, NULL, NULL, NULL, NULL,
+	    UMA_ALIGN_PTR, UMA_ZONE_PCPU);
+	pcpu_zone_32 = uma_zcreate("pcpu-32", 32, NULL, NULL, NULL, NULL,
+	    UMA_ALIGN_PTR, UMA_ZONE_PCPU);
+	pcpu_zone_64 = uma_zcreate("pcpu-64", 64, NULL, NULL, NULL, NULL,
+	    UMA_ALIGN_PTR, UMA_ZONE_PCPU);
 }
 SYSINIT(pcpu_zones, SI_SUB_COUNTER, SI_ORDER_FIRST, pcpu_zones_startup, NULL);
 
@@ -170,7 +172,7 @@ dpcpu_alloc(int size)
 	s = NULL;
 	size = roundup2(size, sizeof(void *));
 	sx_xlock(&dpcpu_lock);
-	TAILQ_FOREACH(df, &dpcpu_head, df_link) {
+	TAILQ_FOREACH (df, &dpcpu_head, df_link) {
 		if (df->df_len < size)
 			continue;
 		if (df->df_len == size) {
@@ -190,7 +192,7 @@ dpcpu_alloc(int size)
 }
 
 /*
- * Free dynamic per-cpu space at module unload time. 
+ * Free dynamic per-cpu space at module unload time.
  */
 void
 dpcpu_free(void *s, int size)
@@ -208,7 +210,7 @@ dpcpu_free(void *s, int size)
 	 * possible.  Keeping the list sorted simplifies this operation.
 	 */
 	sx_xlock(&dpcpu_lock);
-	TAILQ_FOREACH(df, &dpcpu_head, df_link) {
+	TAILQ_FOREACH (df, &dpcpu_head, df_link) {
 		if (df->df_start > end)
 			break;
 		/*
@@ -253,7 +255,7 @@ dpcpu_copy(void *s, int size)
 	uintptr_t dpcpu;
 	int i;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		dpcpu = dpcpu_off[i];
 		if (dpcpu == 0)
 			continue;
@@ -294,7 +296,7 @@ sysctl_dpcpu_quad(SYSCTL_HANDLER_ARGS)
 	int i;
 
 	count = 0;
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		dpcpu = dpcpu_off[i];
 		if (dpcpu == 0)
 			continue;
@@ -311,7 +313,7 @@ sysctl_dpcpu_long(SYSCTL_HANDLER_ARGS)
 	int i;
 
 	count = 0;
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		dpcpu = dpcpu_off[i];
 		if (dpcpu == 0)
 			continue;
@@ -328,7 +330,7 @@ sysctl_dpcpu_int(SYSCTL_HANDLER_ARGS)
 	int i;
 
 	count = 0;
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		dpcpu = dpcpu_off[i];
 		if (dpcpu == 0)
 			continue;
@@ -342,9 +344,9 @@ DB_SHOW_COMMAND_FLAGS(dpcpu_off, db_show_dpcpu_off, DB_CMD_MEMSAFE)
 {
 	int id;
 
-	CPU_FOREACH(id) {
-		db_printf("dpcpu_off[%2d] = 0x%jx (+ DPCPU_START = %p)\n",
-		    id, (uintmax_t)dpcpu_off[id],
+	CPU_FOREACH (id) {
+		db_printf("dpcpu_off[%2d] = 0x%jx (+ DPCPU_START = %p)\n", id,
+		    (uintmax_t)dpcpu_off[id],
 		    (void *)(uintptr_t)(dpcpu_off[id] + DPCPU_START));
 	}
 }
@@ -413,7 +415,7 @@ DB_SHOW_ALL_COMMAND(pcpu, db_show_cpu_all)
 	int id;
 
 	db_printf("Current CPU: %d\n\n", PCPU_GET(cpuid));
-	CPU_FOREACH(id) {
+	CPU_FOREACH (id) {
 		pc = pcpu_find(id);
 		if (pc != NULL) {
 			show_pcpu(pc);

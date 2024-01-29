@@ -7,19 +7,12 @@ static int execute_send(void *, ipmon_msg_t *);
 static void execute_print(void *);
 
 typedef struct execute_opts_s {
-	char	*path;
+	char *path;
 } execute_opts_t;
 
-ipmon_saver_t executesaver = {
-	"execute",
-	execute_destroy,
-	NULL,			/* dup */
-	NULL,			/* match */
-	execute_parse,
-	execute_print,
-	execute_send
-};
-
+ipmon_saver_t executesaver = { "execute", execute_destroy, NULL, /* dup */
+	NULL,							 /* match */
+	execute_parse, execute_print, execute_send };
 
 static void *
 execute_parse(char **strings)
@@ -39,7 +32,6 @@ execute_parse(char **strings)
 	return (ctx);
 }
 
-
 static void
 execute_print(void *ctx)
 {
@@ -47,7 +39,6 @@ execute_print(void *ctx)
 
 	printf("%s", exe->path);
 }
-
 
 static void
 execute_destroy(void *ctx)
@@ -58,7 +49,6 @@ execute_destroy(void *ctx)
 		free(exe->path);
 	free(exe);
 }
-
 
 static int
 execute_send(void *ctx, ipmon_msg_t *msg)
@@ -73,4 +63,3 @@ execute_send(void *ctx, ipmon_msg_t *msg)
 	}
 	return (0);
 }
-

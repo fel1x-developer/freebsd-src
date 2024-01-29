@@ -42,12 +42,12 @@
 #define OCS_MGMT_MAX_NAME 128
 #define OCS_MGMT_MAX_VALUE 128
 
-#define MGMT_MODE_RD	4
-#define MGMT_MODE_WR	2
-#define MGMT_MODE_EX	1
-#define MGMT_MODE_RW	(MGMT_MODE_RD | MGMT_MODE_WR)
+#define MGMT_MODE_RD 4
+#define MGMT_MODE_WR 2
+#define MGMT_MODE_EX 1
+#define MGMT_MODE_RW (MGMT_MODE_RD | MGMT_MODE_WR)
 
-#define FW_WRITE_BUFSIZE 64*1024
+#define FW_WRITE_BUFSIZE 64 * 1024
 
 typedef struct ocs_mgmt_fw_write_result {
 	ocs_sem_t semaphore;
@@ -59,9 +59,10 @@ typedef struct ocs_mgmt_fw_write_result {
 /*
  * This structure is used in constructing a table of internal handler functions.
  */
-typedef void (*ocs_mgmt_get_func)(ocs_t *, char *, ocs_textbuf_t*);
+typedef void (*ocs_mgmt_get_func)(ocs_t *, char *, ocs_textbuf_t *);
 typedef int (*ocs_mgmt_set_func)(ocs_t *, char *, char *);
-typedef int (*ocs_mgmt_action_func)(ocs_t *, char *, void *, uint32_t, void *, uint32_t);
+typedef int (
+    *ocs_mgmt_action_func)(ocs_t *, char *, void *, uint32_t, void *, uint32_t);
 typedef struct ocs_mgmt_table_entry_s {
 	char *name;
 	ocs_mgmt_get_func get_handler;
@@ -73,31 +74,42 @@ typedef struct ocs_mgmt_table_entry_s {
  * This structure is used when defining the top level management handlers for
  * different types of objects (sport, node, domain, etc)
  */
-typedef void (*ocs_mgmt_get_list_handler)(ocs_textbuf_t *textbuf, void* object);
-typedef void (*ocs_mgmt_get_all_handler)(ocs_textbuf_t *textbuf, void* object);
-typedef int (*ocs_mgmt_get_handler)(ocs_textbuf_t *, char *parent, char *name, void *object);
-typedef int (*ocs_mgmt_set_handler)(char *parent, char *name, char *value, void *object);
-typedef int (*ocs_mgmt_exec_handler)(char *parent, char *action, void *arg_in, uint32_t arg_in_length,
-				      void *arg_out, uint32_t arg_out_length, void *object);
+typedef void (*ocs_mgmt_get_list_handler)(ocs_textbuf_t *textbuf, void *object);
+typedef void (*ocs_mgmt_get_all_handler)(ocs_textbuf_t *textbuf, void *object);
+typedef int (*ocs_mgmt_get_handler)(ocs_textbuf_t *, char *parent, char *name,
+    void *object);
+typedef int (
+    *ocs_mgmt_set_handler)(char *parent, char *name, char *value, void *object);
+typedef int (*ocs_mgmt_exec_handler)(char *parent, char *action, void *arg_in,
+    uint32_t arg_in_length, void *arg_out, uint32_t arg_out_length,
+    void *object);
 
 typedef struct ocs_mgmt_functions_s {
-	ocs_mgmt_get_list_handler	get_list_handler;
-	ocs_mgmt_get_handler		get_handler;
-	ocs_mgmt_get_all_handler	get_all_handler;
-	ocs_mgmt_set_handler		set_handler;
-	ocs_mgmt_exec_handler		exec_handler;
+	ocs_mgmt_get_list_handler get_list_handler;
+	ocs_mgmt_get_handler get_handler;
+	ocs_mgmt_get_all_handler get_all_handler;
+	ocs_mgmt_set_handler set_handler;
+	ocs_mgmt_exec_handler exec_handler;
 } ocs_mgmt_functions_t;
 
 /* Helper functions */
-extern void ocs_mgmt_start_section(ocs_textbuf_t *textbuf, const char *name, int index);
-extern void ocs_mgmt_start_unnumbered_section(ocs_textbuf_t *textbuf, const char *name);
-extern void ocs_mgmt_end_section(ocs_textbuf_t *textbuf, const char *name, int index);
-extern void ocs_mgmt_end_unnumbered_section(ocs_textbuf_t *textbuf, const char *name);
-extern void ocs_mgmt_emit_property_name(ocs_textbuf_t *textbuf, int access, const char *name);
-extern void ocs_mgmt_emit_string(ocs_textbuf_t *textbuf, int access, const char *name, const char *value);
-__attribute__((format(printf,4,5)))
-extern void ocs_mgmt_emit_int(ocs_textbuf_t *textbuf, int access, const char *name, const char *fmt, ...);
-extern void ocs_mgmt_emit_boolean(ocs_textbuf_t *textbuf, int access, const char *name, const int value);
+extern void ocs_mgmt_start_section(ocs_textbuf_t *textbuf, const char *name,
+    int index);
+extern void ocs_mgmt_start_unnumbered_section(ocs_textbuf_t *textbuf,
+    const char *name);
+extern void ocs_mgmt_end_section(ocs_textbuf_t *textbuf, const char *name,
+    int index);
+extern void ocs_mgmt_end_unnumbered_section(ocs_textbuf_t *textbuf,
+    const char *name);
+extern void ocs_mgmt_emit_property_name(ocs_textbuf_t *textbuf, int access,
+    const char *name);
+extern void ocs_mgmt_emit_string(ocs_textbuf_t *textbuf, int access,
+    const char *name, const char *value);
+__attribute__((format(printf, 4, 5))) extern void
+ocs_mgmt_emit_int(ocs_textbuf_t *textbuf, int access, const char *name,
+    const char *fmt, ...);
+extern void ocs_mgmt_emit_boolean(ocs_textbuf_t *textbuf, int access,
+    const char *name, const int value);
 extern int parse_wwn(char *wwn_in, uint64_t *wwn_out);
 
 /* Top level management functions - called by the ioctl */
@@ -105,12 +117,12 @@ extern void ocs_mgmt_get_list(ocs_t *ocs, ocs_textbuf_t *textbuf);
 extern void ocs_mgmt_get_all(ocs_t *ocs, ocs_textbuf_t *textbuf);
 extern int ocs_mgmt_get(ocs_t *ocs, char *name, ocs_textbuf_t *textbuf);
 extern int ocs_mgmt_set(ocs_t *ocs, char *name, char *value);
-extern int ocs_mgmt_exec(ocs_t *ocs, char *action, void *arg_in, uint32_t arg_in_length,
-		void *arg_out, uint32_t arg_out_length);
+extern int ocs_mgmt_exec(ocs_t *ocs, char *action, void *arg_in,
+    uint32_t arg_in_length, void *arg_out, uint32_t arg_out_length);
 
-extern int set_req_wwnn(ocs_t*, char*, char*);
-extern int set_req_wwpn(ocs_t*, char*, char*);
-extern int set_configured_speed(ocs_t*, char*, char*);
-extern int set_configured_topology(ocs_t*, char*, char*);
+extern int set_req_wwnn(ocs_t *, char *, char *);
+extern int set_req_wwpn(ocs_t *, char *, char *);
+extern int set_configured_speed(ocs_t *, char *, char *);
+extern int set_configured_topology(ocs_t *, char *, char *);
 
 #endif

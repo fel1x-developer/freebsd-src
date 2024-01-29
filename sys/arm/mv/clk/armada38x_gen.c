@@ -36,20 +36,18 @@
 
 #include "clkdev_if.h"
 
-#define SAR_A38X_TCLK_FREQ_SHIFT	15
-#define SAR_A38X_TCLK_FREQ_MASK		0x00008000
+#define SAR_A38X_TCLK_FREQ_SHIFT 15
+#define SAR_A38X_TCLK_FREQ_MASK 0x00008000
 
-#define TCLK_250MHZ					250 * 1000 * 1000
-#define TCLK_200MHZ					200 * 1000 * 1000
+#define TCLK_250MHZ 250 * 1000 * 1000
+#define TCLK_200MHZ 200 * 1000 * 1000
 
-#define	WR4(_clk, offset, val)					\
+#define WR4(_clk, offset, val) \
 	CLKDEV_WRITE_4(clknode_get_device(_clk), offset, val)
-#define	RD4(_clk, offset, val)					\
+#define RD4(_clk, offset, val) \
 	CLKDEV_READ_4(clknode_get_device(_clk), offset, val)
-#define	DEVICE_LOCK(_clk)					\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)					\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int
 armada38x_gen_recalc(struct clknode *clk, uint64_t *freq)
@@ -74,8 +72,8 @@ armada38x_gen_init(struct clknode *clk, device_t dev)
 
 static clknode_method_t armada38x_gen_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		armada38x_gen_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	armada38x_gen_recalc),
+	CLKNODEMETHOD(clknode_init, armada38x_gen_init),
+	CLKNODEMETHOD(clknode_recalc_freq, armada38x_gen_recalc),
 	CLKNODEMETHOD_END
 };
 
@@ -83,15 +81,17 @@ DEFINE_CLASS_1(armada38x_gen_clknode, armada38x_gen_clknode_class,
     armada38x_gen_clknode_methods, 0, clknode_class);
 
 int
-armada38x_gen_register(struct clkdom *clkdom, const struct armada38x_gen_clknode_def *clkdef)
+armada38x_gen_register(struct clkdom *clkdom,
+    const struct armada38x_gen_clknode_def *clkdef)
 {
 	struct clknode *clk;
 
-	clk = clknode_create(clkdom, &armada38x_gen_clknode_class, &clkdef->def);
+	clk = clknode_create(clkdom, &armada38x_gen_clknode_class,
+	    &clkdef->def);
 	if (clk == NULL)
 		return (1);
 
 	clknode_register(clkdom, clk);
 
-	return(0);
+	return (0);
 }

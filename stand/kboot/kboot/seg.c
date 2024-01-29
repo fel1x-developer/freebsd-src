@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "stand.h"
-#include "kboot.h"
-
 #include <sys/param.h>
+
+#include "kboot.h"
+#include "stand.h"
 
 static struct memory_segments *segs;
 static int nr_seg = 0;
@@ -54,8 +54,7 @@ add_avail(uint64_t start, uint64_t end, uint64_t type)
 	 * This range is contiguous with the previous range, and is
 	 * the same type: we can collapse the two.
 	 */
-	if (nr_seg >= 1 &&
-	    segs[nr_seg - 1].end + 1 == start &&
+	if (nr_seg >= 1 && segs[nr_seg - 1].end + 1 == start &&
 	    segs[nr_seg - 1].type == type) {
 		segs[nr_seg - 1].end = end;
 		return;
@@ -87,8 +86,7 @@ remove_avail(uint64_t start, uint64_t end, uint64_t type)
 	 */
 	if (nr_seg >= 2) {
 		s = &segs[nr_seg - 2];
-		if (s->end + 1 == start &&
-		    s->type == type) {
+		if (s->end + 1 == start && s->type == type) {
 			s->end = end;
 			/* Now adjust the ending element */
 			s++;
@@ -105,19 +103,21 @@ remove_avail(uint64_t start, uint64_t end, uint64_t type)
 
 	/*
 	 * OK, we have four cases:
-	 * (1) The new chunk is at the start of the free space, but didn't catch the above
-	 *     folding for whatever reason (different type, start of space). In this case,
-	 *     we allocate 1 additional item. The current end is copied to the new end. The
-	 *     current end is set to <start, end, type> and the new end's start is set to end + 1.
-	 * (2) The new chunk is in the middle of the free space. In this case we allocate 2
-	 *     additional items. We copy the current end to the new end, set the new end's start
-	 *     to end + 1, the old end's end to start - 1 and the new item is <start, end, type>
-	 * (3) The new chunk is at the end of the current end. In this case we allocate 1 more
-	 *     and adjust the current end's end to start - 1 and set the new end to <start, end, type>.
-	 * (4) The new chunk is exactly the current end, except for type. In this case, we just adjust
-	 *     the type.
-	 * We can assume we always have at least one chunk since that's created with new_avail() above
-	 * necessarily before we are called to subset it.
+	 * (1) The new chunk is at the start of the free space, but didn't catch
+	 * the above folding for whatever reason (different type, start of
+	 * space). In this case, we allocate 1 additional item. The current end
+	 * is copied to the new end. The current end is set to <start, end,
+	 * type> and the new end's start is set to end + 1. (2) The new chunk is
+	 * in the middle of the free space. In this case we allocate 2
+	 *     additional items. We copy the current end to the new end, set the
+	 * new end's start to end + 1, the old end's end to start - 1 and the
+	 * new item is <start, end, type> (3) The new chunk is at the end of the
+	 * current end. In this case we allocate 1 more and adjust the current
+	 * end's end to start - 1 and set the new end to <start, end, type>. (4)
+	 * The new chunk is exactly the current end, except for type. In this
+	 * case, we just adjust the type. We can assume we always have at least
+	 * one chunk since that's created with new_avail() above necessarily
+	 * before we are called to subset it.
 	 */
 	s = &segs[nr_seg - 1];
 	if (s->start == start) {
@@ -127,7 +127,7 @@ remove_avail(uint64_t start, uint64_t end, uint64_t type)
 		}
 		/* chunk at start of old chunk -> (1) */
 		need_avail(nr_seg + 1);
-		s = &segs[nr_seg - 1];	/* Realloc may change pointers */
+		s = &segs[nr_seg - 1]; /* Realloc may change pointers */
 		s[1] = s[0];
 		s->start = start;
 		s->end = end;
@@ -136,9 +136,9 @@ remove_avail(uint64_t start, uint64_t end, uint64_t type)
 		nr_seg++;
 		return;
 	}
-	if (s->end == end) {	/* At end of old chunk (3) */
+	if (s->end == end) { /* At end of old chunk (3) */
 		need_avail(nr_seg + 1);
-		s = &segs[nr_seg - 1];	/* Realloc may change pointers */
+		s = &segs[nr_seg - 1]; /* Realloc may change pointers */
 		s[1] = s[0];
 		s->end = start - 1;
 		s[1].start = start;
@@ -148,7 +148,7 @@ remove_avail(uint64_t start, uint64_t end, uint64_t type)
 	}
 	/* In the middle, need to split things up (2) */
 	need_avail(nr_seg + 2);
-	s = &segs[nr_seg - 1];	/* Realloc may change pointers */
+	s = &segs[nr_seg - 1]; /* Realloc may change pointers */
 	s[2] = s[1] = s[0];
 	s->end = start - 1;
 	s[1].start = start;
@@ -164,10 +164,8 @@ print_avail(void)
 	printf("Found %d RAM segments:\n", nr_seg);
 
 	for (int i = 0; i < nr_seg; i++) {
-		printf("%#jx-%#jx type %lu\n",
-		    (uintmax_t)segs[i].start,
-		    (uintmax_t)segs[i].end,
-		    (u_long)segs[i].type);
+		printf("%#jx-%#jx type %lu\n", (uintmax_t)segs[i].start,
+		    (uintmax_t)segs[i].end, (u_long)segs[i].type);
 	}
 }
 
@@ -177,17 +175,16 @@ first_avail(uint64_t align, uint64_t min_size, uint64_t memtype)
 	uint64_t s, len;
 
 	for (int i = 0; i < nr_seg; i++) {
-		if (segs[i].type != memtype)	/* Not candidate */
+		if (segs[i].type != memtype) /* Not candidate */
 			continue;
 		s = roundup(segs[i].start, align);
-		if (s >= segs[i].end)		/* roundup past end */
+		if (s >= segs[i].end) /* roundup past end */
 			continue;
 		len = segs[i].end - s + 1;
 		if (len >= min_size) {
-			printf("Found a big enough hole at in seg %d at %#jx (%#jx-%#jx)\n",
-			    i,
-			    (uintmax_t)s,
-			    (uintmax_t)segs[i].start,
+			printf(
+			    "Found a big enough hole at in seg %d at %#jx (%#jx-%#jx)\n",
+			    i, (uintmax_t)s, (uintmax_t)segs[i].start,
 			    (uintmax_t)segs[i].end);
 			return (s);
 		}
@@ -205,17 +202,16 @@ enum types {
 	unknown,
 };
 
-static struct kv
-{
-	uint64_t	type;
-	char *		name;
-	int		flags;
+static struct kv {
+	uint64_t type;
+	char *name;
+	int flags;
 #define KV_KEEPER 1
 } str2type_kv[] = {
-	{ linux_code,		"Kernel code", KV_KEEPER },
-	{ linux_data,		"Kernel data", KV_KEEPER },
-	{ linux_bss,		"Kernel bss", KV_KEEPER },
-	{ firmware_reserved,	"reserved" },
+	{ linux_code, "Kernel code", KV_KEEPER },
+	{ linux_data, "Kernel data", KV_KEEPER },
+	{ linux_bss, "Kernel bss", KV_KEEPER },
+	{ firmware_reserved, "reserved" },
 	{ 0, NULL },
 };
 
@@ -293,7 +289,7 @@ populate_avail_from_iomem(void)
 	}
 
 	if (fgetstr(buf, sizeof(buf), fd) < 0)
-		goto out;	/* Nothing to do ???? */
+		goto out; /* Nothing to do ???? */
 	init_avail();
 	chop(buf);
 	while (true) {
@@ -302,20 +298,21 @@ populate_avail_from_iomem(void)
 		 * a continuation, since we don't care here. If we care, we'll
 		 * consume them all when we recognize that top level item.
 		 */
-		if (buf[0] == ' ')	/* Continuation lines? Ignore */
+		if (buf[0] == ' ') /* Continuation lines? Ignore */
 			goto next_line;
 		str = parse_line(buf, &start, &end);
-		if (str == NULL)	/* Malformed -> ignore */
+		if (str == NULL) /* Malformed -> ignore */
 			goto next_line;
 		/*
 		 * All we care about is System RAM
 		 */
-		if (strncmp(str, SYSTEM_RAM_STR, sizeof(SYSTEM_RAM_STR) - 1) == 0)
+		if (strncmp(str, SYSTEM_RAM_STR, sizeof(SYSTEM_RAM_STR) - 1) ==
+		    0)
 			add_avail(start, end, system_ram);
 		else if (strncmp(str, RESERVED, sizeof(RESERVED) - 1) == 0)
 			add_avail(start, end, firmware_reserved);
 		else
-			goto next_line;	/* Ignore hardware */
+			goto next_line; /* Ignore hardware */
 		while (fgetstr(buf, sizeof(buf), fd) >= 0 && buf[0] == ' ') {
 			chop(buf);
 			str = parse_line(buf, &start, &end);
@@ -338,7 +335,7 @@ populate_avail_from_iomem(void)
 			break;
 		chop(buf);
 		continue; /* buf has next top level line to parse */
-next_line:
+	next_line:
 		if (fgetstr(buf, sizeof(buf), fd) < 0)
 			break;
 	}

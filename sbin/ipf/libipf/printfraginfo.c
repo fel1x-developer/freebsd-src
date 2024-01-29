@@ -9,7 +9,6 @@
 #include "ipf.h"
 #include "kmem.h"
 
-
 void
 printfraginfo(char *prefix, struct ipfr *ifr)
 {
@@ -26,7 +25,7 @@ printfraginfo(char *prefix, struct ipfr *ifr)
 
 	PRINTF(" %s -> ", hostname(family, &ifr->ipfr_src));
 	PRINTF("%s id %x ttl %lu pr %d pkts %u bytes %u seen0 %d ref %d\n",
-		hostname(family, &ifr->ipfr_dst), ifr->ipfr_id,
-		ifr->ipfr_ttl, ifr->ipfr_p, ifr->ipfr_pkts, ifr->ipfr_bytes,
-		ifr->ipfr_seen0, ifr->ipfr_ref);
+	    hostname(family, &ifr->ipfr_dst), ifr->ipfr_id, ifr->ipfr_ttl,
+	    ifr->ipfr_p, ifr->ipfr_pkts, ifr->ipfr_bytes, ifr->ipfr_seen0,
+	    ifr->ipfr_ref);
 }

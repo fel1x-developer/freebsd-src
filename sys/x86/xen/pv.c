@@ -29,57 +29,56 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_kstack_pages.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/reboot.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/boot.h>
+#include <sys/bus.h>
+#include <sys/ctype.h>
+#include <sys/efi.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
-#include <sys/boot.h>
-#include <sys/ctype.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/reboot.h>
+#include <sys/rwlock.h>
 #include <sys/smp.h>
-#include <sys/efi.h>
 #include <sys/tslog.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vm_pager.h>
 #include <vm/vm_param.h>
 
 #include <machine/_inttypes.h>
-#include <machine/intr_machdep.h>
-#include <x86/apicvar.h>
-#include <x86/init.h>
-#include <machine/pc/bios.h>
-#include <machine/smp.h>
+#include <machine/cpu.h>
 #include <machine/intr_machdep.h>
 #include <machine/md_var.h>
 #include <machine/metadata.h>
-#include <machine/cpu.h>
+#include <machine/pc/bios.h>
+#include <machine/smp.h>
 
-#include <xen/xen-os.h>
+#include <x86/apicvar.h>
+#include <x86/init.h>
 #include <xen/hvm.h>
 #include <xen/hypervisor.h>
-#include <xen/xenstore/xenstorevar.h>
+#include <xen/xen-os.h>
 #include <xen/xen_pv.h>
+#include <xen/xenstore/xenstorevar.h>
+
+#include <dev/xen/timer/timer.h>
 
 #include <contrib/xen/arch-x86/cpuid.h>
 #include <contrib/xen/arch-x86/hvm/start_info.h>
 #include <contrib/xen/vcpu.h>
-
-#include <dev/xen/timer/timer.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -90,7 +89,7 @@ extern u_int64_t hammer_time(u_int64_t, u_int64_t);
 /* Xen initial function */
 uint64_t hammer_time_xen(vm_paddr_t);
 
-#define MAX_E820_ENTRIES	128
+#define MAX_E820_ENTRIES 128
 
 /*--------------------------- Forward Declarations ---------------------------*/
 static caddr_t xen_pvh_parse_preload_data(uint64_t);
@@ -105,10 +104,10 @@ extern uint32_t end;
 
 /*-------------------------------- Global Data -------------------------------*/
 struct init_ops xen_pvh_init_ops = {
-	.parse_preload_data		= xen_pvh_parse_preload_data,
-	.early_clock_source_init	= xen_clock_init,
-	.early_delay			= xen_delay,
-	.parse_memmap			= pvh_parse_memmap,
+	.parse_preload_data = xen_pvh_parse_preload_data,
+	.early_clock_source_init = xen_clock_init,
+	.early_delay = xen_delay,
+	.parse_memmap = pvh_parse_memmap,
 };
 
 static struct bios_smap xen_smap[MAX_E820_ENTRIES];
@@ -146,14 +145,15 @@ isxen(void)
 	return (xen);
 }
 
-#define CRASH(...) do {					\
-	if (isxen()) {					\
-		xc_printf(__VA_ARGS__);			\
-		HYPERVISOR_shutdown(SHUTDOWN_crash);	\
-	} else {					\
-		halt();					\
-	}						\
-} while (0)
+#define CRASH(...)                                           \
+	do {                                                 \
+		if (isxen()) {                               \
+			xc_printf(__VA_ARGS__);              \
+			HYPERVISOR_shutdown(SHUTDOWN_crash); \
+		} else {                                     \
+			halt();                              \
+		}                                            \
+	} while (0)
 
 uint64_t
 hammer_time_xen(vm_paddr_t start_info_paddr)
@@ -168,7 +168,8 @@ hammer_time_xen(vm_paddr_t start_info_paddr)
 		vm_guest = VM_GUEST_XEN;
 		rc = xen_hvm_init_hypercall_stubs(XEN_HVM_INIT_EARLY);
 		if (rc) {
-			xc_printf("ERROR: failed to initialize hypercall page: %d\n",
+			xc_printf(
+			    "ERROR: failed to initialize hypercall page: %d\n",
 			    rc);
 			HYPERVISOR_shutdown(SHUTDOWN_crash);
 		}
@@ -193,8 +194,10 @@ hammer_time_xen(vm_paddr_t start_info_paddr)
 
 	if (start_info->memmap_paddr != 0)
 		physfree = MAX(roundup2(start_info->memmap_paddr +
-		    start_info->memmap_entries *
-		    sizeof(struct hvm_memmap_table_entry), PAGE_SIZE),
+				       start_info->memmap_entries *
+					   sizeof(
+					       struct hvm_memmap_table_entry),
+				   PAGE_SIZE),
 		    physfree);
 
 	if (start_info->modlist_paddr != 0) {
@@ -204,11 +207,12 @@ hammer_time_xen(vm_paddr_t start_info_paddr)
 			CRASH(
 			    "ERROR: modlist_paddr != 0 but nr_modules == 0\n");
 		}
-		mod = (struct hvm_modlist_entry *)
-		    (start_info->modlist_paddr + KERNBASE);
+		mod = (struct hvm_modlist_entry *)(start_info->modlist_paddr +
+		    KERNBASE);
 		for (i = 0; i < start_info->nr_modules; i++)
 			physfree = MAX(roundup2(mod[i].paddr + mod[i].size,
-			    PAGE_SIZE), physfree);
+					   PAGE_SIZE),
+			    physfree);
 	}
 
 	if (isxen()) {
@@ -250,7 +254,8 @@ hammer_time_xen(vm_paddr_t start_info_paddr)
  * removed from kenv if present, and a new acpi.rsdp is added to kenv that
  * points to the address of the Xen crafted RSDP.
  */
-static bool reject_option(const char *option)
+static bool
+reject_option(const char *option)
 {
 	static const char *reject[] = {
 		"acpi.rsdp",
@@ -305,10 +310,10 @@ xen_pvh_parse_symtab(void)
 
 	ehdr = (Elf_Ehdr *)(&end + 1);
 	if (memcmp(ehdr->e_ident, ELFMAG, SELFMAG) ||
-	    ehdr->e_ident[EI_CLASS] != ELF_TARG_CLASS ||
-	    ehdr->e_version > 1) {
+	    ehdr->e_ident[EI_CLASS] != ELF_TARG_CLASS || ehdr->e_version > 1) {
 		if (isxen())
-			xc_printf("Unable to load ELF symtab: invalid symbol table\n");
+			xc_printf(
+			    "Unable to load ELF symtab: invalid symbol table\n");
 		return;
 	}
 
@@ -330,7 +335,7 @@ xen_pvh_parse_symtab(void)
 
 	if ((ksymtab == 0 || kstrtab == 0) && isxen())
 		xc_printf(
-    "Unable to load ELF symtab: could not find symtab or strtab\n");
+		    "Unable to load ELF symtab: could not find symtab or strtab\n");
 }
 #endif
 
@@ -355,7 +360,7 @@ fixup_console(caddr_t kmdp)
 
 	switch (console->video_type) {
 	case XEN_VGATYPE_VESA_LFB:
-		fb = (__typeof__ (fb))preload_search_info(kmdp,
+		fb = (__typeof__(fb))preload_search_info(kmdp,
 		    MODINFO_METADATA | MODINFOMD_VBE_FB);
 
 		if (fb == NULL) {
@@ -364,14 +369,14 @@ fixup_console(caddr_t kmdp)
 		}
 
 		_Static_assert(offsetof(struct vbe_fb, fb_bpp) ==
-		    offsetof(struct efi_fb, fb_mask_reserved) +
-		    sizeof(fb->efi.fb_mask_reserved),
+			offsetof(struct efi_fb, fb_mask_reserved) +
+			    sizeof(fb->efi.fb_mask_reserved),
 		    "Bad structure overlay\n");
 		fb->vbe.fb_bpp = console->u.vesa_lfb.bits_per_pixel;
 		/* FALLTHROUGH */
 	case XEN_VGATYPE_EFI_LFB:
 		if (fb == NULL) {
-			fb = (__typeof__ (fb))preload_search_info(kmdp,
+			fb = (__typeof__(fb))preload_search_info(kmdp,
 			    MODINFO_METADATA | MODINFOMD_EFI_FB);
 			if (fb == NULL) {
 				xc_printf("No EFI FB in kernel metadata\n");
@@ -389,10 +394,10 @@ fixup_console(caddr_t kmdp)
 		fb->efi.fb_width = console->u.vesa_lfb.width;
 		fb->efi.fb_stride = (console->u.vesa_lfb.bytes_per_line << 3) /
 		    console->u.vesa_lfb.bits_per_pixel;
-#define FBMASK(c) \
-    ((~0u << console->u.vesa_lfb.c ## _pos) & \
-    (~0u >> (32 - console->u.vesa_lfb.c ## _pos - \
-    console->u.vesa_lfb.c ## _size)))
+#define FBMASK(c)                                       \
+	((~0u << console->u.vesa_lfb.c##_pos) &         \
+	    (~0u >> (32 - console->u.vesa_lfb.c##_pos - \
+			console->u.vesa_lfb.c##_size)))
 		fb->efi.fb_mask_red = FBMASK(red);
 		fb->efi.fb_mask_green = FBMASK(green);
 		fb->efi.fb_mask_blue = FBMASK(blue);
@@ -420,10 +425,11 @@ xen_pvh_parse_preload_data(uint64_t modulep)
 		struct hvm_modlist_entry *mod;
 		const char *cmdline;
 
-		mod = (struct hvm_modlist_entry *)
-		    (start_info->modlist_paddr + KERNBASE);
+		mod = (struct hvm_modlist_entry *)(start_info->modlist_paddr +
+		    KERNBASE);
 		cmdline = mod[0].cmdline_paddr ?
-		    (const char *)(mod[0].cmdline_paddr + KERNBASE) : NULL;
+		    (const char *)(mod[0].cmdline_paddr + KERNBASE) :
+		    NULL;
 
 		if (strcmp(cmdline, "header") == 0) {
 			struct xen_header *header;
@@ -469,7 +475,8 @@ xen_pvh_parse_preload_data(uint64_t modulep)
 				HYPERVISOR_shutdown(SHUTDOWN_crash);
 			}
 
-			metadata = MD_FETCH(kmdp, MODINFOMD_MODULEP, vm_paddr_t);
+			metadata = MD_FETCH(kmdp, MODINFOMD_MODULEP,
+			    vm_paddr_t);
 			off = mod[0].paddr + KERNBASE - metadata;
 		}
 
@@ -482,9 +489,9 @@ xen_pvh_parse_preload_data(uint64_t modulep)
 		xen_pvh_set_env(envp, reject_option);
 
 		if (MD_FETCH(kmdp, MODINFOMD_EFI_MAP, void *) != NULL)
-		    strlcpy(bootmethod, "UEFI", sizeof(bootmethod));
+			strlcpy(bootmethod, "UEFI", sizeof(bootmethod));
 		else
-		    strlcpy(bootmethod, "BIOS", sizeof(bootmethod));
+			strlcpy(bootmethod, "BIOS", sizeof(bootmethod));
 
 		fixup_console(kmdp);
 	} else {
@@ -511,15 +518,15 @@ xen_pvh_parse_preload_data(uint64_t modulep)
 }
 
 static void
-pvh_parse_memmap_start_info(caddr_t kmdp, vm_paddr_t *physmap,
-    int *physmap_idx)
+pvh_parse_memmap_start_info(caddr_t kmdp, vm_paddr_t *physmap, int *physmap_idx)
 {
-	const struct hvm_memmap_table_entry * entries;
+	const struct hvm_memmap_table_entry *entries;
 	size_t nentries;
 	size_t i;
 
 	/* Extract from HVM start_info. */
-	entries = (struct hvm_memmap_table_entry *)(start_info->memmap_paddr + KERNBASE);
+	entries = (struct hvm_memmap_table_entry *)(start_info->memmap_paddr +
+	    KERNBASE);
 	nentries = start_info->memmap_entries;
 
 	/* Convert into E820 format and handle one by one. */

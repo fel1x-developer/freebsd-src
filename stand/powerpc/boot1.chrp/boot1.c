@@ -18,22 +18,24 @@
 #include <sys/param.h>
 #include <sys/dirent.h>
 #include <sys/endian.h>
+
 #include <machine/elf.h>
-#include <machine/stdarg.h>
 #include <machine/md_var.h>
+#include <machine/stdarg.h>
+
 #include <ufs/ffs/fs.h>
 
 #include "paths.h"
 
-#define BSIZEMAX	16384
+#define BSIZEMAX 16384
 
 typedef int putc_func_t(char c, void *arg);
 typedef int32_t ofwh_t;
 
 struct sp_data {
-	char	*sp_buf;
-	u_int	sp_len;
-	u_int	sp_size;
+	char *sp_buf;
+	u_int sp_len;
+	u_int sp_size;
 };
 
 static const char digits[] = "0123456789abcdef";
@@ -78,10 +80,10 @@ static char *__ultoa(char *buf, u_long val, int base);
 /*
  * Open Firmware interface functions
  */
-typedef uint32_t	ofwcell_t;
-typedef uint32_t	u_ofwh_t;
+typedef uint32_t ofwcell_t;
+typedef uint32_t u_ofwh_t;
 typedef int (*ofwfp_t)(ofwcell_t *);
-ofwfp_t ofw;			/* the prom Open Firmware entry */
+ofwfp_t ofw; /* the prom Open Firmware entry */
 ofwh_t chosenh;
 
 void ofw_init(void *, int, ofwfp_t, char *, int);
@@ -136,7 +138,8 @@ ofwfp_t realofw;
 __attribute__((naked)) int
 ofwtramp(void *buf, ofwfp_t cb)
 {
-__asm("									\n\
+	__asm(
+	    "									\n\
 	mflr	%r0							\n\
 	stw	%r0, 4(%r1)						\n\
 	stwu	%r1, -16(%r1)						\n\
@@ -182,7 +185,7 @@ __asm("									\n\
  * This means instance handles will be byteswapped as well.
  */
 int
-call_ofw(ofwcell_t* buf)
+call_ofw(ofwcell_t *buf)
 {
 	int ret, i, ncells;
 
@@ -253,13 +256,8 @@ ofw_init(void *vpd, int res, ofwfp_t openfirm, char *arg, int argl)
 static ofwh_t
 ofw_finddevice(const char *name)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"finddevice",
-		1,
-		1,
-		(ofwcell_t)name,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "finddevice", 1, 1, (ofwcell_t)name,
+		0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_finddevice: name=\"%s\"\n", name);
@@ -271,20 +269,12 @@ ofw_finddevice(const char *name)
 static int
 ofw_getprop(ofwh_t ofwh, const char *name, void *buf, size_t len)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"getprop",
-		4,
-		1,
-		(u_ofwh_t)ofwh,
-		(ofwcell_t)name,
-		(ofwcell_t)buf,
-		len,
-	0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "getprop", 4, 1, (u_ofwh_t)ofwh,
+		(ofwcell_t)name, (ofwcell_t)buf, len, 0 };
 
 	if ((*ofw)(args)) {
-		printf("ofw_getprop: ofwh=0x%x buf=%p len=%u\n",
-			ofwh, buf, len);
+		printf("ofw_getprop: ofwh=0x%x buf=%p len=%u\n", ofwh, buf,
+		    len);
 		return (1);
 	}
 	return (0);
@@ -293,20 +283,12 @@ ofw_getprop(ofwh_t ofwh, const char *name, void *buf, size_t len)
 static int
 ofw_setprop(ofwh_t ofwh, const char *name, void *buf, size_t len)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"setprop",
-		4,
-		1,
-		(u_ofwh_t)ofwh,
-		(ofwcell_t)name,
-		(ofwcell_t)buf,
-		len,
-	0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "setprop", 4, 1, (u_ofwh_t)ofwh,
+		(ofwcell_t)name, (ofwcell_t)buf, len, 0 };
 
 	if ((*ofw)(args)) {
-		printf("ofw_setprop: ofwh=0x%x buf=%p len=%u\n",
-			ofwh, buf, len);
+		printf("ofw_setprop: ofwh=0x%x buf=%p len=%u\n", ofwh, buf,
+		    len);
 		return (1);
 	}
 	return (0);
@@ -315,13 +297,7 @@ ofw_setprop(ofwh_t ofwh, const char *name, void *buf, size_t len)
 static ofwh_t
 ofw_open(const char *path)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"open",
-		1,
-		1,
-		(ofwcell_t)path,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "open", 1, 1, (ofwcell_t)path, 0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_open: path=\"%s\"\n", path);
@@ -333,12 +309,7 @@ ofw_open(const char *path)
 static int
 ofw_close(ofwh_t devh)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"close",
-		1,
-		0,
-		(u_ofwh_t)devh
-	};
+	ofwcell_t args[] = { (ofwcell_t) "close", 1, 0, (u_ofwh_t)devh };
 
 	if ((*ofw)(args)) {
 		printf("ofw_close: devh=0x%x\n", devh);
@@ -350,16 +321,8 @@ ofw_close(ofwh_t devh)
 static int
 ofw_claim(void *virt, size_t len, u_int align)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"claim",
-		3,
-		1,
-		(ofwcell_t)virt,
-		len,
-		align,
-		0,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "claim", 3, 1, (ofwcell_t)virt, len,
+		align, 0, 0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_claim: virt=%p len=%u\n", virt, len);
@@ -372,15 +335,8 @@ ofw_claim(void *virt, size_t len, u_int align)
 static int
 ofw_read(ofwh_t devh, void *buf, size_t len)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"read",
-		3,
-		1,
-		(u_ofwh_t)devh,
-		(ofwcell_t)buf,
-		len,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "read", 3, 1, (u_ofwh_t)devh,
+		(ofwcell_t)buf, len, 0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_read: devh=0x%x buf=%p len=%u\n", devh, buf, len);
@@ -392,15 +348,8 @@ ofw_read(ofwh_t devh, void *buf, size_t len)
 static int
 ofw_write(ofwh_t devh, const void *buf, size_t len)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"write",
-		3,
-		1,
-		(u_ofwh_t)devh,
-		(ofwcell_t)buf,
-		len,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "write", 3, 1, (u_ofwh_t)devh,
+		(ofwcell_t)buf, len, 0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_write: devh=0x%x buf=%p len=%u\n", devh, buf, len);
@@ -412,15 +361,8 @@ ofw_write(ofwh_t devh, const void *buf, size_t len)
 static int
 ofw_seek(ofwh_t devh, uint64_t off)
 {
-	ofwcell_t args[] = {
-		(ofwcell_t)"seek",
-		3,
-		1,
-		(u_ofwh_t)devh,
-		off >> 32,
-		off,
-		0
-	};
+	ofwcell_t args[] = { (ofwcell_t) "seek", 3, 1, (u_ofwh_t)devh,
+		off >> 32, off, 0 };
 
 	if ((*ofw)(args)) {
 		printf("ofw_seek: devh=0x%x off=0x%lx\n", devh, off);
@@ -434,7 +376,7 @@ ofw_exit(void)
 {
 	ofwcell_t args[3];
 
-	args[0] = (ofwcell_t)"exit";
+	args[0] = (ofwcell_t) "exit";
 	args[1] = 0;
 	args[2] = 0;
 
@@ -500,17 +442,19 @@ main(int ac, char **av)
 	}
 
 	printf(" \n>> FreeBSD/powerpc Open Firmware boot block\n"
-	"   Boot path:   %s\n"
-	"   Boot loader: %s\n", bootpath, path);
+	       "   Boot path:   %s\n"
+	       "   Boot loader: %s\n",
+	    bootpath, path);
 
 	len = 0;
-	while (bootpath[len] != '\0') len++;
+	while (bootpath[len] != '\0')
+		len++;
 
-	memcpy(bootpath_full,bootpath,len+1);
+	memcpy(bootpath_full, bootpath, len + 1);
 
-	if (bootpath_full[len-1] != ':') {
+	if (bootpath_full[len - 1] != ':') {
 		/* First try full volume */
-		if (domount(bootpath_full,1) == 0)
+		if (domount(bootpath_full, 1) == 0)
 			goto out;
 
 		/* Add a : so that we try partitions if that fails */
@@ -524,14 +468,14 @@ main(int ac, char **av)
 	for (i = 0; i < 16; i++) {
 		if (i < 10) {
 			bootpath_full[len] = i + '0';
-			bootpath_full[len+1] = '\0';
+			bootpath_full[len + 1] = '\0';
 		} else {
 			bootpath_full[len] = '1';
-			bootpath_full[len+1] = i - 10 + '0';
-			bootpath_full[len+2] = '\0';
+			bootpath_full[len + 1] = i - 10 + '0';
+			bootpath_full[len + 2] = '\0';
 		}
-			
-		if (domount(bootpath_full,1) >= 0)
+
+		if (domount(bootpath_full, 1) >= 0)
 			break;
 
 		if (bootdev > 0)
@@ -542,8 +486,8 @@ main(int ac, char **av)
 		panic("domount");
 
 out:
-	printf("   Boot volume:   %s\n",bootpath_full);
-	ofw_setprop(chosenh, "bootargs", bootpath_full, len+2);
+	printf("   Boot volume:   %s\n", bootpath_full);
+	ofw_setprop(chosenh, "bootargs", bootpath_full, len + 2);
 	load(path);
 	return (1);
 }
@@ -613,8 +557,8 @@ load(const char *fname)
 			continue;
 		fs_off = ph.p_offset;
 		p = (caddr_t)ph.p_vaddr;
-		ofw_claim(p,(ph.p_filesz > ph.p_memsz) ? 
-		    ph.p_filesz : ph.p_memsz,0);
+		ofw_claim(p,
+		    (ph.p_filesz > ph.p_memsz) ? ph.p_filesz : ph.p_memsz, 0);
 		if (fsread(ino, p, ph.p_filesz) != ph.p_filesz) {
 			printf("Can't read content of section %d\n", i);
 			return;
@@ -727,7 +671,8 @@ __printf(const char *fmt, putc_func_t *putc, void *arg, va_list ap)
 		lflag = 0;
 		sflag = 0;
 		pad = 0;
-reswitch:	c = *fmt++;
+	reswitch:
+		c = *fmt++;
 		switch (c) {
 		case '#':
 			sflag = 1;
@@ -802,8 +747,16 @@ reswitch:	c = *fmt++;
 				ret += __puts("0x", putc, arg);
 			ret += __puts(s, putc, arg);
 			break;
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			pad = pad * 10 + c - '0';
 			goto reswitch;
 		default:

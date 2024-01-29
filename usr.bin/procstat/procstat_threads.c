@@ -53,8 +53,7 @@ procstat_threads(struct procstat *procstat, struct kinfo_proc *kipp)
 		    "TID", "COMM", "TDNAME", "CPU", "PRI", "STATE", "WCHAN");
 
 	xo_emit("{ek:process_id/%d}", kipp->ki_pid);
-	xo_emit("{e:command/%s}", strlen(kipp->ki_comm) ?
-		    kipp->ki_comm : "-");
+	xo_emit("{e:command/%s}", strlen(kipp->ki_comm) ? kipp->ki_comm : "-");
 	xo_open_container("threads");
 
 	kip = procstat_getprocs(procstat, KERN_PROC_PID | KERN_PROC_INC_THREAD,
@@ -66,13 +65,14 @@ procstat_threads(struct procstat *procstat, struct kinfo_proc *kipp)
 		kipp = &kip[i];
 		asprintf(&threadid, "%d", kipp->ki_tid);
 		if (threadid == NULL)
-			xo_errc(1, ENOMEM, "Failed to allocate memory in "
+			xo_errc(1, ENOMEM,
+			    "Failed to allocate memory in "
 			    "procstat_threads()");
 		xo_open_container(threadid);
 		xo_emit("{dk:process_id/%5d/%d} ", kipp->ki_pid);
 		xo_emit("{:thread_id/%6d/%d} ", kipp->ki_tid);
-		xo_emit("{d:command/%-19s/%s} ", strlen(kipp->ki_comm) ?
-		    kipp->ki_comm : "-");
+		xo_emit("{d:command/%-19s/%s} ",
+		    strlen(kipp->ki_comm) ? kipp->ki_comm : "-");
 		xo_emit("{:thread_name/%-19s/%s} ",
 		    kinfo_proc_thread_name(kipp));
 		if (kipp->ki_oncpu != 255)
@@ -118,8 +118,8 @@ procstat_threads(struct procstat *procstat, struct kinfo_proc *kipp)
 		xo_emit("{:run_state/%-7s/%s} ", str);
 		if (kipp->ki_kiflag & KI_LOCKBLOCK) {
 			xo_emit("{:lock_name/*%-8s/%s} ",
-			    strlen(kipp->ki_lockname) ?
-			    kipp->ki_lockname : "-");
+			    strlen(kipp->ki_lockname) ? kipp->ki_lockname :
+							"-");
 		} else {
 			xo_emit("{:wait_channel/%-9s/%s} ",
 			    strlen(kipp->ki_wmesg) ? kipp->ki_wmesg : "-");

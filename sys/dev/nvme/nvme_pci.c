@@ -31,6 +31,7 @@
 #include <sys/conf.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
+
 #include <vm/vm.h>
 
 #include <dev/pci/pcireg.h>
@@ -38,23 +39,22 @@
 
 #include "nvme_private.h"
 
-static int    nvme_pci_probe(device_t);
-static int    nvme_pci_attach(device_t);
-static int    nvme_pci_detach(device_t);
-static int    nvme_pci_suspend(device_t);
-static int    nvme_pci_resume(device_t);
+static int nvme_pci_probe(device_t);
+static int nvme_pci_attach(device_t);
+static int nvme_pci_detach(device_t);
+static int nvme_pci_suspend(device_t);
+static int nvme_pci_resume(device_t);
 
 static int nvme_ctrlr_setup_interrupts(struct nvme_controller *ctrlr);
 
 static device_method_t nvme_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     nvme_pci_probe),
-	DEVMETHOD(device_attach,    nvme_pci_attach),
-	DEVMETHOD(device_detach,    nvme_pci_detach),
-	DEVMETHOD(device_suspend,   nvme_pci_suspend),
-	DEVMETHOD(device_resume,    nvme_pci_resume),
-	DEVMETHOD(device_shutdown,  nvme_shutdown),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, nvme_pci_probe),
+	DEVMETHOD(device_attach, nvme_pci_attach),
+	DEVMETHOD(device_detach, nvme_pci_detach),
+	DEVMETHOD(device_suspend, nvme_pci_suspend),
+	DEVMETHOD(device_resume, nvme_pci_resume),
+	DEVMETHOD(device_shutdown, nvme_shutdown), { 0, 0 }
 };
 
 static driver_t nvme_pci_driver = {
@@ -65,36 +65,33 @@ static driver_t nvme_pci_driver = {
 
 DRIVER_MODULE(nvme, pci, nvme_pci_driver, NULL, NULL);
 
-static struct _pcsid
-{
-	uint32_t	devid;
-	int		match_subdevice;
-	uint16_t	subdevice;
-	const char	*desc;
-	uint32_t	quirks;
-} pci_ids[] = {
-	{ 0x01118086,		0, 0, "NVMe Controller"  },
-	{ IDT32_PCI_ID,		0, 0, "IDT NVMe Controller (32 channel)"  },
-	{ IDT8_PCI_ID,		0, 0, "IDT NVMe Controller (8 channel)" },
-	{ 0x09538086,		1, 0x3702, "DC P3700 SSD" },
-	{ 0x09538086,		1, 0x3703, "DC P3700 SSD [2.5\" SFF]" },
-	{ 0x09538086,		1, 0x3704, "DC P3500 SSD [Add-in Card]" },
-	{ 0x09538086,		1, 0x3705, "DC P3500 SSD [2.5\" SFF]" },
-	{ 0x09538086,		1, 0x3709, "DC P3600 SSD [Add-in Card]" },
-	{ 0x09538086,		1, 0x370a, "DC P3600 SSD [2.5\" SFF]" },
-	{ 0x09538086,		0, 0, "Intel DC PC3500", QUIRK_INTEL_ALIGNMENT },
-	{ 0x0a538086,		0, 0, "Intel DC PC3520", QUIRK_INTEL_ALIGNMENT },
-	{ 0x0a548086,		0, 0, "Intel DC PC4500", QUIRK_INTEL_ALIGNMENT },
-	{ 0x0a558086,		0, 0, "Dell Intel P4600", QUIRK_INTEL_ALIGNMENT },
-	{ 0x00031c58,		0, 0, "HGST SN100",	QUIRK_DELAY_B4_CHK_RDY },
-	{ 0x00231c58,		0, 0, "WDC SN200",	QUIRK_DELAY_B4_CHK_RDY },
-	{ 0x05401c5f,		0, 0, "Memblaze Pblaze4", QUIRK_DELAY_B4_CHK_RDY },
-	{ 0xa821144d,		0, 0, "Samsung PM1725", QUIRK_DELAY_B4_CHK_RDY },
-	{ 0xa822144d,		0, 0, "Samsung PM1725a", QUIRK_DELAY_B4_CHK_RDY },
-	{ 0x07f015ad,		0, 0, "VMware NVMe Controller" },
-	{ 0x2003106b,		0, 0, "Apple S3X NVMe Controller" },
-	{ 0x00000000,		0, 0, NULL  }
-};
+static struct _pcsid {
+	uint32_t devid;
+	int match_subdevice;
+	uint16_t subdevice;
+	const char *desc;
+	uint32_t quirks;
+} pci_ids[] = { { 0x01118086, 0, 0, "NVMe Controller" },
+	{ IDT32_PCI_ID, 0, 0, "IDT NVMe Controller (32 channel)" },
+	{ IDT8_PCI_ID, 0, 0, "IDT NVMe Controller (8 channel)" },
+	{ 0x09538086, 1, 0x3702, "DC P3700 SSD" },
+	{ 0x09538086, 1, 0x3703, "DC P3700 SSD [2.5\" SFF]" },
+	{ 0x09538086, 1, 0x3704, "DC P3500 SSD [Add-in Card]" },
+	{ 0x09538086, 1, 0x3705, "DC P3500 SSD [2.5\" SFF]" },
+	{ 0x09538086, 1, 0x3709, "DC P3600 SSD [Add-in Card]" },
+	{ 0x09538086, 1, 0x370a, "DC P3600 SSD [2.5\" SFF]" },
+	{ 0x09538086, 0, 0, "Intel DC PC3500", QUIRK_INTEL_ALIGNMENT },
+	{ 0x0a538086, 0, 0, "Intel DC PC3520", QUIRK_INTEL_ALIGNMENT },
+	{ 0x0a548086, 0, 0, "Intel DC PC4500", QUIRK_INTEL_ALIGNMENT },
+	{ 0x0a558086, 0, 0, "Dell Intel P4600", QUIRK_INTEL_ALIGNMENT },
+	{ 0x00031c58, 0, 0, "HGST SN100", QUIRK_DELAY_B4_CHK_RDY },
+	{ 0x00231c58, 0, 0, "WDC SN200", QUIRK_DELAY_B4_CHK_RDY },
+	{ 0x05401c5f, 0, 0, "Memblaze Pblaze4", QUIRK_DELAY_B4_CHK_RDY },
+	{ 0xa821144d, 0, 0, "Samsung PM1725", QUIRK_DELAY_B4_CHK_RDY },
+	{ 0xa822144d, 0, 0, "Samsung PM1725a", QUIRK_DELAY_B4_CHK_RDY },
+	{ 0x07f015ad, 0, 0, "VMware NVMe Controller" },
+	{ 0x2003106b, 0, 0, "Apple S3X NVMe Controller" },
+	{ 0x00000000, 0, 0, NULL } };
 
 static int
 nvme_match(uint32_t devid, uint16_t subdevice, struct _pcsid *ep)
@@ -112,12 +109,12 @@ nvme_match(uint32_t devid, uint16_t subdevice, struct _pcsid *ep)
 }
 
 static int
-nvme_pci_probe (device_t device)
+nvme_pci_probe(device_t device)
 {
 	struct nvme_controller *ctrlr = DEVICE2SOFTC(device);
-	struct _pcsid	*ep;
-	uint32_t	devid;
-	uint16_t	subdevice;
+	struct _pcsid *ep;
+	uint32_t devid;
+	uint16_t subdevice;
 
 	devid = pci_get_devid(device);
 	subdevice = pci_get_subdevice(device);
@@ -137,9 +134,9 @@ nvme_pci_probe (device_t device)
 	}
 
 #if defined(PCIS_STORAGE_NVM)
-	if (pci_get_class(device)    == PCIC_STORAGE &&
+	if (pci_get_class(device) == PCIC_STORAGE &&
 	    pci_get_subclass(device) == PCIS_STORAGE_NVM &&
-	    pci_get_progif(device)   == PCIP_STORAGE_NVM_ENTERPRISE_NVMHCI_1_0) {
+	    pci_get_progif(device) == PCIP_STORAGE_NVM_ENTERPRISE_NVMHCI_1_0) {
 		device_set_desc(device, "Generic NVMe Device");
 		return (BUS_PROBE_GENERIC);
 	}
@@ -157,7 +154,7 @@ nvme_ctrlr_allocate_bar(struct nvme_controller *ctrlr)
 	ctrlr->resource = bus_alloc_resource_any(ctrlr->dev, SYS_RES_MEMORY,
 	    &ctrlr->resource_id, RF_ACTIVE);
 
-	if(ctrlr->resource == NULL) {
+	if (ctrlr->resource == NULL) {
 		nvme_printf(ctrlr, "unable to allocate pci resource\n");
 		return (ENOMEM);
 	}
@@ -174,8 +171,8 @@ nvme_ctrlr_allocate_bar(struct nvme_controller *ctrlr)
 	 *  bus_alloc_resource() will just return NULL which is OK.
 	 */
 	ctrlr->bar4_resource_id = PCIR_BAR(4);
-	ctrlr->bar4_resource = bus_alloc_resource_any(ctrlr->dev, SYS_RES_MEMORY,
-	    &ctrlr->bar4_resource_id, RF_ACTIVE);
+	ctrlr->bar4_resource = bus_alloc_resource_any(ctrlr->dev,
+	    SYS_RES_MEMORY, &ctrlr->bar4_resource_id, RF_ACTIVE);
 
 	return (0);
 }
@@ -183,7 +180,7 @@ nvme_ctrlr_allocate_bar(struct nvme_controller *ctrlr)
 static int
 nvme_pci_attach(device_t dev)
 {
-	struct nvme_controller*ctrlr = DEVICE2SOFTC(dev);
+	struct nvme_controller *ctrlr = DEVICE2SOFTC(dev);
 	int status;
 
 	ctrlr->dev = dev;
@@ -197,8 +194,8 @@ nvme_pci_attach(device_t dev)
 	return nvme_attach(dev);
 bad:
 	if (ctrlr->resource != NULL) {
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    ctrlr->resource_id, ctrlr->resource);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctrlr->resource_id,
+		    ctrlr->resource);
 	}
 
 	if (ctrlr->bar4_resource != NULL) {
@@ -210,8 +207,8 @@ bad:
 		bus_teardown_intr(dev, ctrlr->res, ctrlr->tag);
 
 	if (ctrlr->res)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    rman_get_rid(ctrlr->res), ctrlr->res);
+		bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(ctrlr->res),
+		    ctrlr->res);
 
 	if (ctrlr->msi_count > 0)
 		pci_release_msi(dev);
@@ -222,7 +219,7 @@ bad:
 static int
 nvme_pci_detach(device_t dev)
 {
-	struct nvme_controller*ctrlr = DEVICE2SOFTC(dev);
+	struct nvme_controller *ctrlr = DEVICE2SOFTC(dev);
 	int rv;
 
 	rv = nvme_detach(dev);
@@ -260,10 +257,10 @@ nvme_ctrlr_setup_shared(struct nvme_controller *ctrlr, int rid)
 static int
 nvme_ctrlr_setup_interrupts(struct nvme_controller *ctrlr)
 {
-	device_t	dev;
-	int		force_intx, num_io_queues, per_cpu_io_queues;
-	int		min_cpus_per_ioq;
-	int		num_vectors_requested;
+	device_t dev;
+	int force_intx, num_io_queues, per_cpu_io_queues;
+	int min_cpus_per_ioq;
+	int num_vectors_requested;
 
 	dev = ctrlr->dev;
 
@@ -341,7 +338,7 @@ msi:
 static int
 nvme_pci_suspend(device_t dev)
 {
-	struct nvme_controller	*ctrlr;
+	struct nvme_controller *ctrlr;
 
 	ctrlr = DEVICE2SOFTC(dev);
 	return (nvme_ctrlr_suspend(ctrlr));
@@ -350,7 +347,7 @@ nvme_pci_suspend(device_t dev)
 static int
 nvme_pci_resume(device_t dev)
 {
-	struct nvme_controller	*ctrlr;
+	struct nvme_controller *ctrlr;
 
 	ctrlr = DEVICE2SOFTC(dev);
 	return (nvme_ctrlr_resume(ctrlr));

@@ -25,15 +25,15 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/cnv.h>
 #include <sys/nv.h>
-#include <sys/types.h>
 
 #include <atf-c++.hpp>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 
-#define	fd_is_valid(fd)	(fcntl((fd), F_GETFL) != -1 || errno != EBADF)
+#define fd_is_valid(fd) (fcntl((fd), F_GETFL) != -1 || errno != EBADF)
 
 /* ATF cnvlist_get tests. */
 
@@ -105,7 +105,6 @@ ATF_TEST_CASE_BODY(cnvlist_get_number)
 	nvlist_destroy(nvl);
 }
 
-
 ATF_TEST_CASE_WITHOUT_HEAD(cnvlist_get_string);
 ATF_TEST_CASE_BODY(cnvlist_get_string)
 {
@@ -172,7 +171,7 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist)
 	ATF_REQUIRE(nvlist_exists(value, subkey));
 	ATF_REQUIRE(nvlist_exists_null(value, subkey));
 	ATF_REQUIRE_EQ(nvlist_next(value, &type, &cookie),
-		       static_cast<const char *>(NULL));
+	    static_cast<const char *>(NULL));
 
 	/* Add 'value' nvlist. */
 	cookie = NULL;
@@ -192,7 +191,7 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist)
 	ATF_REQUIRE_EQ(result, nvlist_get_nvlist(nvl, key));
 	ATF_REQUIRE(result != value);
 	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &cookie),
-		       static_cast<const char *>(NULL));
+	    static_cast<const char *>(NULL));
 
 	/* Validate data inside nvlist. */
 	cookie = NULL;
@@ -203,7 +202,7 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist)
 	ATF_REQUIRE(nvlist_exists(result, subkey));
 	ATF_REQUIRE(nvlist_exists_null(result, subkey));
 	ATF_REQUIRE_EQ(nvlist_next(result, &type, &cookie),
-		       static_cast<const char *>(NULL));
+	    static_cast<const char *>(NULL));
 
 	nvlist_destroy(nvl);
 	nvlist_destroy(value);
@@ -373,8 +372,8 @@ ATF_TEST_CASE_WITHOUT_HEAD(cnvlist_get_string_array);
 ATF_TEST_CASE_BODY(cnvlist_get_string_array)
 {
 	nvlist_t *nvl;
-	const char *in_array[4] = {"inequality", "sucks", ".", ""};
-	const char * const *out_array;
+	const char *in_array[4] = { "inequality", "sucks", ".", "" };
+	const char *const *out_array;
 	const char *key;
 	void *cookie;
 	int type, i;
@@ -415,8 +414,8 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist_array)
 {
 	nvlist_t *nvl;
 	nvlist_t *in_array[6];
-	const nvlist_t * const *out_array;
-	const nvlist_t * const *out_result;
+	const nvlist_t *const *out_array;
+	const nvlist_t *const *out_result;
 	void *cookie;
 	const char *key;
 	const char *subkeys;
@@ -437,14 +436,15 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist_array)
 
 		cookie = NULL;
 
-		nvlist_add_null(in_array[i], subkeys+i);
-		ATF_REQUIRE_EQ(strcmp(subkeys+i, nvlist_next(in_array[i],
-		    &type, &cookie)),0);
+		nvlist_add_null(in_array[i], subkeys + i);
+		ATF_REQUIRE_EQ(strcmp(subkeys + i,
+				   nvlist_next(in_array[i], &type, &cookie)),
+		    0);
 		ATF_REQUIRE_EQ(nvlist_error(in_array[i]), 0);
 		ATF_REQUIRE_EQ(type, NV_TYPE_NULL);
 		ATF_REQUIRE(!nvlist_empty(in_array[i]));
-		ATF_REQUIRE(nvlist_exists(in_array[i], subkeys+i));
-		ATF_REQUIRE(nvlist_exists_null(in_array[i], subkeys+i));
+		ATF_REQUIRE(nvlist_exists(in_array[i], subkeys + i));
+		ATF_REQUIRE(nvlist_exists_null(in_array[i], subkeys + i));
 		ATF_REQUIRE_EQ(nvlist_next(in_array[i], &type, &cookie),
 		    static_cast<const char *>(NULL));
 	}
@@ -479,13 +479,14 @@ ATF_TEST_CASE_BODY(cnvlist_get_nvlist_array)
 
 		/* Validate data inside nvlist. */
 		cookie = NULL;
-		ATF_REQUIRE_EQ(strcmp(subkeys+i, nvlist_next(out_array[i],
-		    &type, &cookie)), 0);
+		ATF_REQUIRE_EQ(strcmp(subkeys + i,
+				   nvlist_next(out_array[i], &type, &cookie)),
+		    0);
 		ATF_REQUIRE_EQ(nvlist_error(out_array[i]), 0);
 		ATF_REQUIRE_EQ(type, NV_TYPE_NULL);
 		ATF_REQUIRE(!nvlist_empty(out_array[i]));
-		ATF_REQUIRE(nvlist_exists(out_array[i], subkeys+i));
-		ATF_REQUIRE(nvlist_exists_null(out_array[i], subkeys+i));
+		ATF_REQUIRE(nvlist_exists(out_array[i], subkeys + i));
+		ATF_REQUIRE(nvlist_exists_null(out_array[i], subkeys + i));
 		ATF_REQUIRE_EQ(nvlist_next(out_array[i], &type, &cookie),
 		    static_cast<const char *>(NULL));
 	}
@@ -512,7 +513,7 @@ ATF_TEST_CASE_BODY(cnvlist_get_descriptor_array)
 	key = "name";
 	count = 50;
 
-	in_array = static_cast<int *>(malloc(sizeof(*in_array)*count));
+	in_array = static_cast<int *>(malloc(sizeof(*in_array) * count));
 	ATF_REQUIRE(in_array != NULL);
 	for (i = 0; i < count; i++) {
 		in_array[i] = dup(STDERR_FILENO);
@@ -794,7 +795,6 @@ ATF_TEST_CASE_BODY(cnvlist_take_bool_array)
 	ATF_REQUIRE_EQ(nvlist_next(nvl, &type, &cookie),
 	    static_cast<const char *>(NULL));
 
-
 	nvlist_destroy(nvl);
 }
 
@@ -854,7 +854,7 @@ ATF_TEST_CASE_WITHOUT_HEAD(cnvlist_take_string_array);
 ATF_TEST_CASE_BODY(cnvlist_take_string_array)
 {
 	nvlist_t *nvl;
-	const char *in_array[4] = {"inequality", "sks", ".", ""};
+	const char *in_array[4] = { "inequality", "sks", ".", "" };
 	char **out_array;
 	const char *key;
 	void *cookie;
@@ -922,8 +922,9 @@ ATF_TEST_CASE_BODY(cnvlist_take_nvlist_array)
 		nvlist_add_string(testnvl[i], "nvl/string", somestr[i]);
 
 		cookie = NULL;
-		ATF_REQUIRE_EQ(strcmp("nvl/string", nvlist_next(testnvl[i],
-		    &type, &cookie)), 0);
+		ATF_REQUIRE_EQ(strcmp("nvl/string",
+				   nvlist_next(testnvl[i], &type, &cookie)),
+		    0);
 		ATF_REQUIRE_EQ(nvlist_error(testnvl[i]), 0);
 		ATF_REQUIRE_EQ(type, NV_TYPE_STRING);
 		ATF_REQUIRE(!nvlist_empty(testnvl[i]));
@@ -941,7 +942,7 @@ ATF_TEST_CASE_BODY(cnvlist_take_nvlist_array)
 	key = "nvl/nvlist";
 	cookie = NULL;
 
-	nvlist_add_nvlist_array(nvl, key, (const nvlist_t * const *)testnvl, 8);
+	nvlist_add_nvlist_array(nvl, key, (const nvlist_t *const *)testnvl, 8);
 	ATF_REQUIRE_EQ(strcmp(key, nvlist_next(nvl, &type, &cookie)), 0);
 	ATF_REQUIRE_EQ(nvlist_error(nvl), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NVLIST_ARRAY);
@@ -1367,7 +1368,7 @@ ATF_TEST_CASE_WITHOUT_HEAD(cnvlist_free_string_array);
 ATF_TEST_CASE_BODY(cnvlist_free_string_array)
 {
 	nvlist_t *nvl;
-	const char *in_array[4] = {"inequality", "sucks", ".", ""};
+	const char *in_array[4] = { "inequality", "sucks", ".", "" };
 	const char *key;
 	void *cookie;
 	int type;
@@ -1424,8 +1425,9 @@ ATF_TEST_CASE_BODY(cnvlist_free_nvlist_array)
 		nvlist_add_string(testnvl[i], "nvl/string", somestr[i]);
 
 		cookie = NULL;
-		ATF_REQUIRE_EQ(strcmp("nvl/string", nvlist_next(testnvl[i],
-		    &type, &cookie)), 0);
+		ATF_REQUIRE_EQ(strcmp("nvl/string",
+				   nvlist_next(testnvl[i], &type, &cookie)),
+		    0);
 		ATF_REQUIRE_EQ(nvlist_error(testnvl[i]), 0);
 		ATF_REQUIRE_EQ(type, NV_TYPE_STRING);
 		ATF_REQUIRE(!nvlist_empty(testnvl[i]));
@@ -1443,7 +1445,7 @@ ATF_TEST_CASE_BODY(cnvlist_free_nvlist_array)
 	key = "nvl/nvlist";
 	cookie = NULL;
 
-	nvlist_add_nvlist_array(nvl, key, (const nvlist_t * const *)testnvl, 8);
+	nvlist_add_nvlist_array(nvl, key, (const nvlist_t *const *)testnvl, 8);
 	ATF_REQUIRE_EQ(strcmp(key, nvlist_next(nvl, &type, &cookie)), 0);
 	ATF_REQUIRE_EQ(nvlist_error(nvl), 0);
 	ATF_REQUIRE_EQ(type, NV_TYPE_NVLIST_ARRAY);

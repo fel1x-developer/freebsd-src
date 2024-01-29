@@ -27,8 +27,9 @@
  */
 
 #include <sys/param.h>
-#include <stand.h>
+
 #include <fdt_platform.h>
+#include <stand.h>
 
 #include "glue.h"
 
@@ -52,14 +53,15 @@ fdt_platform_load_from_ubenv(const char *var)
 
 	if (fdt_load_dtb_addr(hdr) == 0) {
 		printf("Using DTB provided by U-Boot at "
-		    "address %p.\n", hdr);
+		       "address %p.\n",
+		    hdr);
 		return (0);
 	}
 
 	return (1);
 }
 
-#define	FDT_DTB_PADSZ	1024
+#define FDT_DTB_PADSZ 1024
 
 int
 fdt_platform_load_dtb(void)
@@ -85,7 +87,8 @@ fdt_platform_load_dtb(void)
 	rv = 1;
 
 	/*
-	 * Try to get FDT filename first from loader env and then from u-boot env
+	 * Try to get FDT filename first from loader env and then from u-boot
+	 * env
 	 */
 	s = getenv("fdt_file");
 	if (s == NULL)

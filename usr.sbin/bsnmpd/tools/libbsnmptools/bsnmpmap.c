@@ -31,6 +31,8 @@
 #include <sys/queue.h>
 #include <sys/uio.h>
 
+#include <bsnmp/asn1.h>
+#include <bsnmp/snmp.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -40,12 +42,12 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <bsnmp/asn1.h>
-#include <bsnmp/snmp.h>
 #include "bsnmptc.h"
 #include "bsnmptools.h"
 
-#define	DEBUG	if (_bsnmptools_debug) fprintf
+#define DEBUG                  \
+	if (_bsnmptools_debug) \
+	fprintf
 
 /* Allocate memory and initialize list. */
 struct snmp_mappings *
@@ -61,18 +63,18 @@ snmp_mapping_init(void)
 	return (m);
 }
 
-#define		snmp_nodelist	mappings->nodelist
-#define		snmp_intlist	mappings->intlist
-#define		snmp_octlist	mappings->octlist
-#define		snmp_oidlist	mappings->oidlist
-#define		snmp_iplist	mappings->iplist
-#define		snmp_ticklist	mappings->ticklist
-#define		snmp_cntlist	mappings->cntlist
-#define		snmp_gaugelist	mappings->gaugelist
-#define		snmp_cnt64list	mappings->cnt64list
-#define		snmp_enumlist	mappings->enumlist
-#define		snmp_tablelist	mappings->tablelist
-#define		snmp_tclist	mappings->tclist
+#define snmp_nodelist mappings->nodelist
+#define snmp_intlist mappings->intlist
+#define snmp_octlist mappings->octlist
+#define snmp_oidlist mappings->oidlist
+#define snmp_iplist mappings->iplist
+#define snmp_ticklist mappings->ticklist
+#define snmp_cntlist mappings->cntlist
+#define snmp_gaugelist mappings->gaugelist
+#define snmp_cnt64list mappings->cnt64list
+#define snmp_enumlist mappings->enumlist
+#define snmp_tablelist mappings->tablelist
+#define snmp_tclist mappings->tclist
 
 void
 enum_pairs_free(struct enum_pairs *headp)
@@ -201,12 +203,12 @@ snmp_dump_enumpairs(struct enum_pairs *headp)
 	if (headp == NULL)
 		return;
 
-	fprintf(stderr,"enums: ");
-	STAILQ_FOREACH(entry, headp, link)
-		fprintf(stderr,"%d - %s, ", entry->enum_val,
-		    (entry->enum_str == NULL)?"NULL":entry->enum_str);
+	fprintf(stderr, "enums: ");
+	STAILQ_FOREACH (entry, headp, link)
+		fprintf(stderr, "%d - %s, ", entry->enum_val,
+		    (entry->enum_str == NULL) ? "NULL" : entry->enum_str);
 
-	fprintf(stderr,"; ");
+	fprintf(stderr, "; ");
 }
 
 void
@@ -220,8 +222,9 @@ snmp_dump_oid2str(struct snmp_oid2str *entry)
 		DEBUG(stderr, "%s - %s - %d - %d - %d", buf, entry->string,
 		    entry->syntax, entry->access, entry->strlen);
 		snmp_dump_enumpairs(entry->snmp_enum);
-		DEBUG(stderr,"%s \n", (entry->table_idx == NULL)?"No table":
-		    entry->table_idx->string);
+		DEBUG(stderr, "%s \n",
+		    (entry->table_idx == NULL) ? "No table" :
+						 entry->table_idx->string);
 	}
 }
 
@@ -233,12 +236,12 @@ snmp_dump_indexlist(struct snmp_idxlist *headp)
 	if (headp == NULL)
 		return;
 
-	STAILQ_FOREACH(entry, headp, link) {
-		fprintf(stderr,"%d, ", entry->syntax);
+	STAILQ_FOREACH (entry, headp, link) {
+		fprintf(stderr, "%d, ", entry->syntax);
 		snmp_dump_enumpairs(entry->snmp_enum);
 	}
 
-	fprintf(stderr,"\n");
+	fprintf(stderr, "\n");
 }
 
 /* Initialize the enum pairs list of a oid2str entry. */
@@ -280,13 +283,12 @@ enum_pair_insert(struct enum_pairs *headp, int32_t enum_val, char *enum_str)
 	STAILQ_INSERT_TAIL(headp, e_new, link);
 
 	return (1);
-
 }
 
 /*
  * Insert an entry in a list - entries are lexicographicaly order by asn_oid.
- * Returns 1 on success, -1 if list is not initialized, 0 if a matching oid already
- * exists. Error checking is left to calling function.
+ * Returns 1 on success, -1 if list is not initialized, 0 if a matching oid
+ * already exists. Error checking is left to calling function.
  */
 static int
 snmp_mapping_insert(struct snmp_mapping *headp, struct snmp_oid2str *entry)
@@ -295,16 +297,16 @@ snmp_mapping_insert(struct snmp_mapping *headp, struct snmp_oid2str *entry)
 	struct snmp_oid2str *temp, *prev;
 
 	if (entry == NULL)
-		return(-1);
+		return (-1);
 
 	if ((prev = SLIST_FIRST(headp)) == NULL ||
 	    asn_compare_oid(&(entry->var), &(prev->var)) < 0) {
 		SLIST_INSERT_HEAD(headp, entry, link);
 		return (1);
 	} else
-		rc = -1;	/* Make the compiler happy. */
+		rc = -1; /* Make the compiler happy. */
 
-	SLIST_FOREACH(temp, headp, link) {
+	SLIST_FOREACH (temp, headp, link) {
 		if ((rc = asn_compare_oid(&(entry->var), &(temp->var))) <= 0)
 			break;
 		prev = temp;
@@ -312,12 +314,13 @@ snmp_mapping_insert(struct snmp_mapping *headp, struct snmp_oid2str *entry)
 	}
 
 	switch (rc) {
-	    case 0:
+	case 0:
 		/* Ops, matching OIDs - hope the rest info also matches. */
 		if (strncmp(temp->string, entry->string, entry->strlen)) {
-			syslog(LOG_INFO, "Matching OIDs with different string "
-			    "mappings: old - %s, new - %s", temp->string,
-			    entry->string);
+			syslog(LOG_INFO,
+			    "Matching OIDs with different string "
+			    "mappings: old - %s, new - %s",
+			    temp->string, entry->string);
 			return (-1);
 		}
 		/*
@@ -326,15 +329,15 @@ snmp_mapping_insert(struct snmp_mapping *headp, struct snmp_oid2str *entry)
 		 */
 		return (0);
 
-	    case 1:
+	case 1:
 		SLIST_INSERT_AFTER(temp, entry, link);
 		break;
 
-	    case -1:
+	case -1:
 		SLIST_INSERT_AFTER(prev, entry, link);
 		break;
 
-	    default:
+	default:
 		/* NOTREACHED */
 		return (-1);
 	}
@@ -346,7 +349,8 @@ int32_t
 snmp_node_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_nodelist,entry));
+		return (
+		    snmp_mapping_insert(&snmptoolctx->snmp_nodelist, entry));
 
 	return (-1);
 }
@@ -355,7 +359,7 @@ static int32_t
 snmp_int_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_intlist,entry));
+		return (snmp_mapping_insert(&snmptoolctx->snmp_intlist, entry));
 
 	return (-1);
 }
@@ -364,7 +368,7 @@ static int32_t
 snmp_oct_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_octlist,entry));
+		return (snmp_mapping_insert(&snmptoolctx->snmp_octlist, entry));
 
 	return (-1);
 }
@@ -373,7 +377,7 @@ static int32_t
 snmp_oid_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_oidlist,entry));
+		return (snmp_mapping_insert(&snmptoolctx->snmp_oidlist, entry));
 
 	return (-1);
 }
@@ -382,7 +386,7 @@ static int32_t
 snmp_ip_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_iplist,entry));
+		return (snmp_mapping_insert(&snmptoolctx->snmp_iplist, entry));
 
 	return (-1);
 }
@@ -391,7 +395,8 @@ static int32_t
 snmp_tick_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_ticklist,entry));
+		return (
+		    snmp_mapping_insert(&snmptoolctx->snmp_ticklist, entry));
 
 	return (-1);
 }
@@ -400,7 +405,7 @@ static int32_t
 snmp_cnt_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_cntlist,entry));
+		return (snmp_mapping_insert(&snmptoolctx->snmp_cntlist, entry));
 
 	return (-1);
 }
@@ -409,7 +414,8 @@ static int32_t
 snmp_gauge_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_gaugelist,entry));
+		return (
+		    snmp_mapping_insert(&snmptoolctx->snmp_gaugelist, entry));
 
 	return (-1);
 }
@@ -418,7 +424,8 @@ static int32_t
 snmp_cnt64_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_cnt64list,entry));
+		return (
+		    snmp_mapping_insert(&snmptoolctx->snmp_cnt64list, entry));
 
 	return (-1);
 }
@@ -427,7 +434,8 @@ int32_t
 snmp_enum_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	if (snmptoolctx != NULL && snmptoolctx->mappings)
-		return (snmp_mapping_insert(&snmptoolctx->snmp_enumlist,entry));
+		return (
+		    snmp_mapping_insert(&snmptoolctx->snmp_enumlist, entry));
 
 	return (-1);
 }
@@ -436,24 +444,24 @@ int32_t
 snmp_leaf_insert(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *entry)
 {
 	switch (entry->syntax) {
-		case SNMP_SYNTAX_INTEGER:
-			return (snmp_int_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_OCTETSTRING:
-			return (snmp_oct_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_OID:
-			return (snmp_oid_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_IPADDRESS:
-			return (snmp_ip_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_COUNTER:
-			return (snmp_cnt_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_GAUGE:
-			return (snmp_gauge_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_TIMETICKS:
-			return (snmp_tick_insert(snmptoolctx, entry));
-		case SNMP_SYNTAX_COUNTER64:
-			return (snmp_cnt64_insert(snmptoolctx, entry));
-		default:
-			break;
+	case SNMP_SYNTAX_INTEGER:
+		return (snmp_int_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_OCTETSTRING:
+		return (snmp_oct_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_OID:
+		return (snmp_oid_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_IPADDRESS:
+		return (snmp_ip_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_COUNTER:
+		return (snmp_cnt_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_GAUGE:
+		return (snmp_gauge_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_TIMETICKS:
+		return (snmp_tick_insert(snmptoolctx, entry));
+	case SNMP_SYNTAX_COUNTER64:
+		return (snmp_cnt64_insert(snmptoolctx, entry));
+	default:
+		break;
 	}
 
 	return (-1);
@@ -501,16 +509,16 @@ snmp_table_insert(struct snmp_toolinfo *snmptoolctx,
 
 	if (snmptoolctx == NULL || snmptoolctx->mappings == NULL ||
 	    entry == NULL)
-		return(-1);
+		return (-1);
 
 	if ((prev = SLIST_FIRST(&snmptoolctx->snmp_tablelist)) == NULL ||
 	    asn_compare_oid(&(entry->var), &(prev->var)) < 0) {
 		SLIST_INSERT_HEAD(&snmptoolctx->snmp_tablelist, entry, link);
 		return (1);
 	} else
-		rc = -1;	/* Make the compiler happy. */
+		rc = -1; /* Make the compiler happy. */
 
-	SLIST_FOREACH(temp, &snmptoolctx->snmp_tablelist, link) {
+	SLIST_FOREACH (temp, &snmptoolctx->snmp_tablelist, link) {
 		if ((rc = asn_compare_oid(&(entry->var), &(temp->var))) <= 0)
 			break;
 		prev = temp;
@@ -518,25 +526,26 @@ snmp_table_insert(struct snmp_toolinfo *snmptoolctx,
 	}
 
 	switch (rc) {
-	    case 0:
+	case 0:
 		/* Ops, matching OIDs - hope the rest info also matches. */
 		if (strncmp(temp->string, entry->string, entry->strlen)) {
-			syslog(LOG_INFO, "Matching OIDs with different string "
-			    "mapping - old - %s, new - %s", temp->string,
-			    entry->string);
+			syslog(LOG_INFO,
+			    "Matching OIDs with different string "
+			    "mapping - old - %s, new - %s",
+			    temp->string, entry->string);
 			return (-1);
 		}
-		return(0);
+		return (0);
 
-	    case 1:
+	case 1:
 		SLIST_INSERT_AFTER(temp, entry, link);
 		break;
 
-	    case -1:
+	case -1:
 		SLIST_INSERT_AFTER(prev, entry, link);
 		break;
 
-	    default:
+	default:
 		/* NOTREACHED */
 		return (-1);
 	}
@@ -577,7 +586,7 @@ void
 snmp_enumtc_insert(struct snmp_toolinfo *snmptoolctx, struct enum_type *entry)
 {
 	if (snmptoolctx == NULL || snmptoolctx->mappings == NULL)
-		return;	/* XXX no error handling? */
+		return; /* XXX no error handling? */
 
 	SLIST_INSERT_HEAD(&snmptoolctx->snmp_tclist, entry, link);
 }
@@ -590,7 +599,7 @@ snmp_enumtc_lookup(struct snmp_toolinfo *snmptoolctx, char *name)
 	if (snmptoolctx == NULL || snmptoolctx->mappings == NULL)
 		return (NULL);
 
-	SLIST_FOREACH(temp, &snmptoolctx->snmp_tclist, link) {
+	SLIST_FOREACH (temp, &snmptoolctx->snmp_tclist, link) {
 		if (strcmp(temp->name, name) == 0)
 			return (temp);
 	}
@@ -606,13 +615,14 @@ snmp_mapping_dumplist(struct snmp_mapping *headp)
 	if (headp == NULL)
 		return;
 
-	SLIST_FOREACH(entry,headp,link) {
+	SLIST_FOREACH (entry, headp, link) {
 		memset(buf, 0, sizeof(buf));
 		asn_oid2str_r(&(entry->var), buf);
 		fprintf(stderr, "%s - %s - %d - %d - %d", buf, entry->string,
-		    entry->syntax, entry->access ,entry->strlen);
-		fprintf(stderr," - %s \n", (entry->table_idx == NULL)?
-		    "No table":entry->table_idx->string);
+		    entry->syntax, entry->access, entry->strlen);
+		fprintf(stderr, " - %s \n",
+		    (entry->table_idx == NULL) ? "No table" :
+						 entry->table_idx->string);
 	}
 }
 
@@ -625,10 +635,10 @@ snmp_mapping_dumptable(struct snmp_table_index *headp)
 	if (headp == NULL)
 		return;
 
-	SLIST_FOREACH(entry, headp, link) {
+	SLIST_FOREACH (entry, headp, link) {
 		memset(buf, 0, sizeof(buf));
 		asn_oid2str_r(&(entry->var), buf);
-		fprintf(stderr,"%s - %s - %d - ", buf, entry->string,
+		fprintf(stderr, "%s - %s - %d - ", buf, entry->string,
 		    entry->strlen);
 		snmp_dump_indexlist(&(entry->index_list));
 	}
@@ -641,46 +651,46 @@ snmp_mapping_dump(struct snmp_toolinfo *snmptoolctx /* int bits */)
 		return;
 
 	if (snmptoolctx == NULL) {
-		fprintf(stderr,"No snmptool context!\n");
+		fprintf(stderr, "No snmptool context!\n");
 		return;
 	}
 
 	if (snmptoolctx->mappings == NULL) {
-		fprintf(stderr,"No mappings!\n");
+		fprintf(stderr, "No mappings!\n");
 		return;
 	}
 
-	fprintf(stderr,"snmp_nodelist:\n");
+	fprintf(stderr, "snmp_nodelist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_nodelist);
 
-	fprintf(stderr,"snmp_intlist:\n");
+	fprintf(stderr, "snmp_intlist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_intlist);
 
-	fprintf(stderr,"snmp_octlist:\n");
+	fprintf(stderr, "snmp_octlist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_octlist);
 
-	fprintf(stderr,"snmp_oidlist:\n");
+	fprintf(stderr, "snmp_oidlist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_oidlist);
 
-	fprintf(stderr,"snmp_iplist:\n");
+	fprintf(stderr, "snmp_iplist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_iplist);
 
-	fprintf(stderr,"snmp_ticklist:\n");
+	fprintf(stderr, "snmp_ticklist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_ticklist);
 
-	fprintf(stderr,"snmp_cntlist:\n");
+	fprintf(stderr, "snmp_cntlist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_cntlist);
 
-	fprintf(stderr,"snmp_gaugelist:\n");
+	fprintf(stderr, "snmp_gaugelist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_gaugelist);
 
-	fprintf(stderr,"snmp_cnt64list:\n");
+	fprintf(stderr, "snmp_cnt64list:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_cnt64list);
 
-	fprintf(stderr,"snmp_enumlist:\n");
+	fprintf(stderr, "snmp_enumlist:\n");
 	snmp_mapping_dumplist(&snmptoolctx->snmp_enumlist);
 
-	fprintf(stderr,"snmp_tablelist:\n");
+	fprintf(stderr, "snmp_tablelist:\n");
 	snmp_mapping_dumptable(&snmptoolctx->snmp_tablelist);
 }
 
@@ -692,7 +702,7 @@ enum_string_lookup(struct enum_pairs *headp, int32_t enum_val)
 	if (headp == NULL)
 		return (NULL);
 
-	STAILQ_FOREACH(temp, headp, link) {
+	STAILQ_FOREACH (temp, headp, link) {
 		if (temp->enum_val == enum_val)
 			return (temp->enum_str);
 	}
@@ -708,7 +718,7 @@ enum_number_lookup(struct enum_pairs *headp, char *e_str)
 	if (headp == NULL)
 		return (-1);
 
-	STAILQ_FOREACH(tmp, headp, link)
+	STAILQ_FOREACH (tmp, headp, link)
 		if (strncmp(tmp->enum_str, e_str, strlen(tmp->enum_str)) == 0)
 			return (tmp->enum_val);
 
@@ -723,7 +733,7 @@ snmp_lookuplist_string(struct snmp_mapping *headp, struct snmp_object *s)
 	if (headp == NULL)
 		return (-1);
 
-	SLIST_FOREACH(temp, headp, link)
+	SLIST_FOREACH (temp, headp, link)
 		if (asn_compare_oid(&(temp->var), &(s->val.var)) == 0)
 			break;
 
@@ -742,7 +752,7 @@ snmp_lookup_leaf(struct snmp_mapping *headp, struct snmp_object *s)
 	if (headp == NULL)
 		return (-1);
 
-	SLIST_FOREACH(temp,headp,link) {
+	SLIST_FOREACH (temp, headp, link) {
 		if ((asn_compare_oid(&(temp->var), &(s->val.var)) == 0) ||
 		    (asn_is_suboid(&(temp->var), &(s->val.var)))) {
 			s->info = temp;
@@ -760,34 +770,31 @@ snmp_lookup_leafstring(struct snmp_toolinfo *snmptoolctx, struct snmp_object *s)
 		return (-1);
 
 	switch (s->val.syntax) {
-		case SNMP_SYNTAX_INTEGER:
-			return (snmp_lookup_leaf(&snmptoolctx->snmp_intlist, s));
-		case SNMP_SYNTAX_OCTETSTRING:
-			return (snmp_lookup_leaf(&snmptoolctx->snmp_octlist, s));
-		case SNMP_SYNTAX_OID:
-			return (snmp_lookup_leaf(&snmptoolctx->snmp_oidlist, s));
-		case SNMP_SYNTAX_IPADDRESS:
-			return (snmp_lookup_leaf(&snmptoolctx->snmp_iplist, s));
-		case SNMP_SYNTAX_COUNTER:
-			return (snmp_lookup_leaf(&snmptoolctx->snmp_cntlist, s));
-		case SNMP_SYNTAX_GAUGE:
-			return (snmp_lookup_leaf(
-			    &snmptoolctx->snmp_gaugelist, s));
-		case SNMP_SYNTAX_TIMETICKS:
-			return (snmp_lookup_leaf(
-			    &snmptoolctx->snmp_ticklist, s));
-		case SNMP_SYNTAX_COUNTER64:
-			return (snmp_lookup_leaf(
-			    &snmptoolctx->snmp_cnt64list, s));
-		case SNMP_SYNTAX_NOSUCHOBJECT:
-			/* FALLTHROUGH */
-		case SNMP_SYNTAX_NOSUCHINSTANCE:
-			/* FALLTHROUGH */
-		case SNMP_SYNTAX_ENDOFMIBVIEW:
-			return (snmp_lookup_allstring(snmptoolctx, s));
-		default:
-			warnx("Unknown syntax - %d", s->val.syntax);
-			break;
+	case SNMP_SYNTAX_INTEGER:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_intlist, s));
+	case SNMP_SYNTAX_OCTETSTRING:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_octlist, s));
+	case SNMP_SYNTAX_OID:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_oidlist, s));
+	case SNMP_SYNTAX_IPADDRESS:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_iplist, s));
+	case SNMP_SYNTAX_COUNTER:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_cntlist, s));
+	case SNMP_SYNTAX_GAUGE:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_gaugelist, s));
+	case SNMP_SYNTAX_TIMETICKS:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_ticklist, s));
+	case SNMP_SYNTAX_COUNTER64:
+		return (snmp_lookup_leaf(&snmptoolctx->snmp_cnt64list, s));
+	case SNMP_SYNTAX_NOSUCHOBJECT:
+		/* FALLTHROUGH */
+	case SNMP_SYNTAX_NOSUCHINSTANCE:
+		/* FALLTHROUGH */
+	case SNMP_SYNTAX_ENDOFMIBVIEW:
+		return (snmp_lookup_allstring(snmptoolctx, s));
+	default:
+		warnx("Unknown syntax - %d", s->val.syntax);
+		break;
 	}
 
 	return (-1);
@@ -873,7 +880,7 @@ snmp_lookup_oidlist(struct snmp_mapping *hp, struct snmp_object *s, char *oid)
 	if (hp == NULL)
 		return (-1);
 
-	SLIST_FOREACH(temp, hp, link) {
+	SLIST_FOREACH (temp, hp, link) {
 		if (temp->strlen != strlen(oid))
 			continue;
 
@@ -898,7 +905,7 @@ snmp_lookup_tablelist(struct snmp_toolinfo *snmptoolctx,
 	if (snmptoolctx == NULL || headp == NULL)
 		return (-1);
 
-	SLIST_FOREACH(temp, headp, link) {
+	SLIST_FOREACH (temp, headp, link) {
 		if (temp->strlen != strlen(oid))
 			continue;
 
@@ -946,8 +953,8 @@ snmp_lookup_oidall(struct snmp_toolinfo *snmptoolctx, struct snmp_object *s,
 		return (1);
 	if (snmp_lookup_oidlist(&snmptoolctx->snmp_nodelist, s, oid) > 0)
 		return (1);
-	if (snmp_lookup_tablelist(snmptoolctx, &snmptoolctx->snmp_tablelist,
-	    s, oid) > 0)
+	if (snmp_lookup_tablelist(snmptoolctx, &snmptoolctx->snmp_tablelist, s,
+		oid) > 0)
 		return (1);
 
 	return (-1);
@@ -971,36 +978,35 @@ snmp_lookup_oid(struct snmp_toolinfo *snmptoolctx, struct snmp_object *s,
 		return (-1);
 
 	switch (s->val.syntax) {
-		case SNMP_SYNTAX_INTEGER:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_intlist,
-			    s, oid));
-		case SNMP_SYNTAX_OCTETSTRING:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_octlist,
-			    s, oid));
-		case SNMP_SYNTAX_OID:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_oidlist,
-			    s, oid));
-		case SNMP_SYNTAX_IPADDRESS:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_iplist,
-			    s, oid));
-		case SNMP_SYNTAX_COUNTER:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_cntlist,
-			    s, oid));
-		case SNMP_SYNTAX_GAUGE:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_gaugelist,
-			    s, oid));
-		case SNMP_SYNTAX_TIMETICKS:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_ticklist,
-			    s, oid));
-		case SNMP_SYNTAX_COUNTER64:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_cnt64list,
-			    s, oid));
-		case SNMP_SYNTAX_NULL:
-			return (snmp_lookup_oidlist(&snmptoolctx->snmp_nodelist,
-			    s, oid));
-		default:
-			warnx("Unknown syntax - %d", s->val.syntax);
-			break;
+	case SNMP_SYNTAX_INTEGER:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_intlist, s, oid));
+	case SNMP_SYNTAX_OCTETSTRING:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_octlist, s, oid));
+	case SNMP_SYNTAX_OID:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_oidlist, s, oid));
+	case SNMP_SYNTAX_IPADDRESS:
+		return (snmp_lookup_oidlist(&snmptoolctx->snmp_iplist, s, oid));
+	case SNMP_SYNTAX_COUNTER:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_cntlist, s, oid));
+	case SNMP_SYNTAX_GAUGE:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_gaugelist, s, oid));
+	case SNMP_SYNTAX_TIMETICKS:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_ticklist, s, oid));
+	case SNMP_SYNTAX_COUNTER64:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_cnt64list, s, oid));
+	case SNMP_SYNTAX_NULL:
+		return (
+		    snmp_lookup_oidlist(&snmptoolctx->snmp_nodelist, s, oid));
+	default:
+		warnx("Unknown syntax - %d", s->val.syntax);
+		break;
 	}
 
 	return (-1);

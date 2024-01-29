@@ -38,7 +38,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_BYTEORDER_H_
-#define	_OPENSOLARIS_SYS_BYTEORDER_H_
+#define _OPENSOLARIS_SYS_BYTEORDER_H_
 
 /* for htonl() */
 #ifndef _KERNEL
@@ -48,47 +48,47 @@
 /*
  * Macros to reverse byte order
  */
-#define	BSWAP_8(x)	((x) & 0xff)
-#define	BSWAP_16(x)	((BSWAP_8(x) << 8) | BSWAP_8((x) >> 8))
-#define	BSWAP_32(x)	((BSWAP_16(x) << 16) | BSWAP_16((x) >> 16))
-#define	BSWAP_64(x)	((BSWAP_32(x) << 32) | BSWAP_32((x) >> 32))
+#define BSWAP_8(x) ((x) & 0xff)
+#define BSWAP_16(x) ((BSWAP_8(x) << 8) | BSWAP_8((x) >> 8))
+#define BSWAP_32(x) ((BSWAP_16(x) << 16) | BSWAP_16((x) >> 16))
+#define BSWAP_64(x) ((BSWAP_32(x) << 32) | BSWAP_32((x) >> 32))
 
-#define	BMASK_8(x)	((x) & 0xff)
-#define	BMASK_16(x)	((x) & 0xffff)
-#define	BMASK_32(x)	((x) & 0xffffffff)
-#define	BMASK_64(x)	(x)
+#define BMASK_8(x) ((x) & 0xff)
+#define BMASK_16(x) ((x) & 0xffff)
+#define BMASK_32(x) ((x) & 0xffffffff)
+#define BMASK_64(x) (x)
 
 /*
  * Macros to convert from a specific byte order to/from native byte order
  */
 #if _BYTE_ORDER == _BIG_ENDIAN
-#define	BE_8(x)		BMASK_8(x)
-#define	BE_16(x)	BMASK_16(x)
-#define	BE_32(x)	BMASK_32(x)
-#define	BE_64(x)	BMASK_64(x)
-#define	LE_8(x)		BSWAP_8(x)
-#define	LE_16(x)	BSWAP_16(x)
-#define	LE_32(x)	BSWAP_32(x)
-#define	LE_64(x)	BSWAP_64(x)
+#define BE_8(x) BMASK_8(x)
+#define BE_16(x) BMASK_16(x)
+#define BE_32(x) BMASK_32(x)
+#define BE_64(x) BMASK_64(x)
+#define LE_8(x) BSWAP_8(x)
+#define LE_16(x) BSWAP_16(x)
+#define LE_32(x) BSWAP_32(x)
+#define LE_64(x) BSWAP_64(x)
 #else
-#define	LE_8(x)		BMASK_8(x)
-#define	LE_16(x)	BMASK_16(x)
-#define	LE_32(x)	BMASK_32(x)
-#define	LE_64(x)	BMASK_64(x)
-#define	BE_8(x)		BSWAP_8(x)
-#define	BE_16(x)	BSWAP_16(x)
-#define	BE_32(x)	BSWAP_32(x)
-#define	BE_64(x)	BSWAP_64(x)
+#define LE_8(x) BMASK_8(x)
+#define LE_16(x) BMASK_16(x)
+#define LE_32(x) BMASK_32(x)
+#define LE_64(x) BMASK_64(x)
+#define BE_8(x) BSWAP_8(x)
+#define BE_16(x) BSWAP_16(x)
+#define BE_32(x) BSWAP_32(x)
+#define BE_64(x) BSWAP_64(x)
 #endif
 
 #if _BYTE_ORDER == _BIG_ENDIAN
-#define	htonll(x)	BMASK_64(x)
-#define	ntohll(x)	BMASK_64(x)
+#define htonll(x) BMASK_64(x)
+#define ntohll(x) BMASK_64(x)
 #else
-#define	htonll(x)	BSWAP_64(x)
-#define	ntohll(x)	BSWAP_64(x)
+#define htonll(x) BSWAP_64(x)
+#define ntohll(x) BSWAP_64(x)
 #endif
 
-#define BE_IN32(xa)	htonl(*((uint32_t *)(void *)(xa)))
+#define BE_IN32(xa) htonl(*((uint32_t *)(void *)(xa)))
 
 #endif /* _OPENSOLARIS_SYS_BYTEORDER_H_ */

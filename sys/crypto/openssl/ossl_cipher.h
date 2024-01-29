@@ -29,28 +29,29 @@
 #define __OSSL_CIPHER_H__
 
 #include <sys/types.h>
+
 #include <crypto/rijndael/rijndael.h>
 
 struct ossl_session_cipher;
 struct cryptop;
 struct crypto_session_params;
 
-typedef int (ossl_cipher_setkey_t)(const unsigned char*, int, void*);
-typedef int (ossl_cipher_process_t)(struct ossl_session_cipher*, struct cryptop*,
-    const struct crypto_session_params*);
-typedef void (ossl_cipher_encrypt_t)(const unsigned char*, unsigned char*, size_t,
-    const void*, unsigned char*, int);
+typedef int(ossl_cipher_setkey_t)(const unsigned char *, int, void *);
+typedef int(ossl_cipher_process_t)(struct ossl_session_cipher *,
+    struct cryptop *, const struct crypto_session_params *);
+typedef void(ossl_cipher_encrypt_t)(const unsigned char *, unsigned char *,
+    size_t, const void *, unsigned char *, int);
 
 ossl_cipher_encrypt_t ossl_aes_cbc_encrypt;
 
 struct ossl_cipher {
-	int			type;
-	uint16_t		blocksize;
-	uint16_t		ivsize;
+	int type;
+	uint16_t blocksize;
+	uint16_t ivsize;
 
-	ossl_cipher_setkey_t	*set_encrypt_key;
-	ossl_cipher_setkey_t	*set_decrypt_key;
-	ossl_cipher_process_t	*process;
+	ossl_cipher_setkey_t *set_encrypt_key;
+	ossl_cipher_setkey_t *set_decrypt_key;
+	ossl_cipher_process_t *process;
 };
 
 struct ossl_aes_keysched {

@@ -35,83 +35,87 @@
 #define __LIO_BSD_H__
 
 #include <sys/param.h>
-#include <sys/gsb_crc32.h>
-#include <sys/eventhandler.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sockio.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/bpf.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp_lro.h>
-
 #include <sys/bus.h>
-#include <machine/bus.h>
+#include <sys/eventhandler.h>
+#include <sys/firmware.h>
+#include <sys/gsb_crc32.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/module.h>
 #include <sys/rman.h>
-#include <vm/vm.h>
-#include <vm/pmap.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <sys/smp.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/smp.h>
-#include <sys/kthread.h>
-#include <sys/firmware.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 
+#include <machine/bus.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <netinet/in.h>
+#include <netinet/tcp_lro.h>
+
 #ifndef PCI_VENDOR_ID_CAVIUM
-#define PCI_VENDOR_ID_CAVIUM	0x177D
+#define PCI_VENDOR_ID_CAVIUM 0x177D
 #endif
 
-#define BIT(nr)		(1UL << (nr))
+#define BIT(nr) (1UL << (nr))
 
-#define lio_check_timeout(a, b)  ((int)((b) - (a)) < 0)
+#define lio_check_timeout(a, b) ((int)((b) - (a)) < 0)
 
-#define lio_ms_to_ticks(x)				\
-	((hz > 1000) ? ((x) * (hz/1000)) : ((x) / (1000/hz)))
+#define lio_ms_to_ticks(x) \
+	((hz > 1000) ? ((x) * (hz / 1000)) : ((x) / (1000 / hz)))
 
-#define lio_mdelay(x) do {				\
-	if (cold)					\
-		DELAY(1000 * (x));			\
-	else						\
-		pause("Wait", lio_ms_to_ticks(x));	\
-} while(0)
+#define lio_mdelay(x)                                      \
+	do {                                               \
+		if (cold)                                  \
+			DELAY(1000 * (x));                 \
+		else                                       \
+			pause("Wait", lio_ms_to_ticks(x)); \
+	} while (0)
 
-#define lio_sleep_timeout(timeout)	lio_mdelay((timeout))
+#define lio_sleep_timeout(timeout) lio_mdelay((timeout))
 
 typedef uint32_t __be32;
 typedef uint64_t __be64;
 
-#define lio_dev_info(oct, format, args...)		\
+#define lio_dev_info(oct, format, args...) \
 	device_printf(oct->device, "Info: " format, ##args)
-#define lio_dev_warn(oct, format, args...)		\
+#define lio_dev_warn(oct, format, args...) \
 	device_printf(oct->device, "Warn: " format, ##args)
-#define lio_dev_err(oct, format, args...)		\
+#define lio_dev_err(oct, format, args...) \
 	device_printf(oct->device, "Error: " format, ##args)
 
 #ifdef LIO_DEBUG
-#define lio_dev_dbg(oct, format, args...)		\
+#define lio_dev_dbg(oct, format, args...) \
 	device_printf(oct->device, "Debug: " format, ##args)
 #else
-#define lio_dev_dbg(oct, format, args...)	{do { } while (0); }
+#define lio_dev_dbg(oct, format, args...) \
+	{                                 \
+		do {                      \
+		} while (0);              \
+	}
 #endif
 
 struct lio_stailq_node {
-	STAILQ_ENTRY (lio_stailq_node) entries;
+	STAILQ_ENTRY(lio_stailq_node) entries;
 };
-STAILQ_HEAD (lio_stailq_head, lio_stailq_node);
+STAILQ_HEAD(lio_stailq_head, lio_stailq_node);
 
 static inline struct lio_stailq_node *
 lio_delete_first_node(struct lio_stailq_head *root)
@@ -129,4 +133,4 @@ lio_delete_first_node(struct lio_stailq_head *root)
 	return (node);
 }
 
-#endif	/* __LIO_BSD_H__ */
+#endif /* __LIO_BSD_H__ */

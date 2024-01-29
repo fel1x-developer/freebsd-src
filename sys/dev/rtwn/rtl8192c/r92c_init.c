@@ -18,38 +18,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_debug.h>
-
 #include <dev/rtwn/rtl8192c/r92c.h>
 #include <dev/rtwn/rtl8192c/r92c_priv.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
 #include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r92c_check_condition(struct rtwn_softc *sc, const uint8_t cond[])
@@ -62,8 +60,8 @@ r92c_check_condition(struct rtwn_softc *sc, const uint8_t cond[])
 		return (1);
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-	    "%s: condition byte 0: %02X; chip %02X, board %02X\n",
-	    __func__, cond[0], rs->chip, rs->board_type);
+	    "%s: condition byte 0: %02X; chip %02X, board %02X\n", __func__,
+	    cond[0], rs->chip, rs->board_type);
 
 	if (!(rs->chip & R92C_CHIP_92C)) {
 		if (rs->board_type == R92C_BOARD_TYPE_HIGHPA)
@@ -115,8 +113,9 @@ r92c_llt_init(struct rtwn_softc *sc)
 int
 r92c_set_page_size(struct rtwn_softc *sc)
 {
-	return (rtwn_write_1(sc, R92C_PBP, SM(R92C_PBP_PSRX, R92C_PBP_128) |
-	    SM(R92C_PBP_PSTX, R92C_PBP_128)) == 0);
+	return (rtwn_write_1(sc, R92C_PBP,
+		    SM(R92C_PBP_PSRX, R92C_PBP_128) |
+			SM(R92C_PBP_PSTX, R92C_PBP_128)) == 0);
 }
 
 void
@@ -131,15 +130,15 @@ r92c_init_bb_common(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, bb_prog->cond)) {
 			KASSERT(bb_prog->next != NULL,
-			    ("%s: wrong condition value (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (i %d)\n", __func__,
+				i));
 			bb_prog = bb_prog->next;
 		}
 
 		for (j = 0; j < bb_prog->count; j++) {
 			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "BB: reg 0x%03x, val 0x%08x\n",
-			    bb_prog->reg[j], bb_prog->val[j]);
+			    "BB: reg 0x%03x, val 0x%08x\n", bb_prog->reg[j],
+			    bb_prog->val[j]);
 
 			rtwn_bb_write(sc, bb_prog->reg[j], bb_prog->val[j]);
 			rtwn_delay(sc, 1);
@@ -168,14 +167,14 @@ r92c_init_bb_common(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, agc_prog->cond)) {
 			KASSERT(agc_prog->next != NULL,
-			    ("%s: wrong condition value (2) (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (2) (i %d)\n", __func__,
+				i));
 			agc_prog = agc_prog->next;
 		}
 
 		for (j = 0; j < agc_prog->count; j++) {
-			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "AGC: val 0x%08x\n", agc_prog->val[j]);
+			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "AGC: val 0x%08x\n",
+			    agc_prog->val[j]);
 
 			rtwn_bb_write(sc, R92C_OFDM0_AGCRSSITABLE,
 			    agc_prog->val[j]);
@@ -188,28 +187,27 @@ r92c_init_bb_common(struct rtwn_softc *sc)
 }
 
 int
-r92c_init_rf_chain(struct rtwn_softc *sc,
-    const struct rtwn_rf_prog *rf_prog, int chain)
+r92c_init_rf_chain(struct rtwn_softc *sc, const struct rtwn_rf_prog *rf_prog,
+    int chain)
 {
 	int i, j;
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "%s: chain %d\n",
-	    __func__, chain);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "%s: chain %d\n", __func__, chain);
 
 	for (i = 0; rf_prog[i].reg != NULL; i++) {
 		const struct rtwn_rf_prog *prog = &rf_prog[i];
 
 		while (!rtwn_check_condition(sc, prog->cond)) {
 			KASSERT(prog->next != NULL,
-			    ("%s: wrong condition value (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (i %d)\n", __func__,
+				i));
 			prog = prog->next;
 		}
 
 		for (j = 0; j < prog->count; j++) {
 			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "RF: reg 0x%02x, val 0x%05x\n",
-			    prog->reg[j], prog->val[j]);
+			    "RF: reg 0x%02x, val 0x%05x\n", prog->reg[j],
+			    prog->val[j]);
 
 			/*
 			 * These are fake RF registers offsets that
@@ -244,12 +242,10 @@ r92c_init_rf(struct rtwn_softc *sc)
 		type = (reg >> off) & 0x10;
 
 		/* Set RF_ENV enable. */
-		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain),
-		    0, 0x100000);
+		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain), 0, 0x100000);
 		rtwn_delay(sc, 1);
 		/* Set RF_ENV output high. */
-		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain),
-		    0, 0x10);
+		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACEOE(chain), 0, 0x10);
 		rtwn_delay(sc, 1);
 		/* Set address and data lengths of RF registers. */
 		rtwn_bb_setbits(sc, R92C_HSSI_PARAM2(chain),
@@ -263,12 +259,11 @@ r92c_init_rf(struct rtwn_softc *sc)
 		i += r92c_init_rf_chain(sc, &sc->rf_prog[i], chain);
 
 		/* Restore RF_ENV control type. */
-		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACESW(idx),
-		    0x10 << off, type << off);
+		rtwn_bb_setbits(sc, R92C_FPGA0_RFIFACESW(idx), 0x10 << off,
+		    type << off);
 
 		/* Cache RF register CHNLBW. */
-		rs->rf_chnlbw[chain] = rtwn_rf_read(sc, chain,
-		    R92C_RF_CHNLBW);
+		rs->rf_chnlbw[chain] = rtwn_rf_read(sc, chain, R92C_RF_CHNLBW);
 	}
 
 	if ((rs->chip & (R92C_CHIP_UMC_A_CUT | R92C_CHIP_92C)) ==
@@ -302,7 +297,7 @@ r92c_init_ampdu(struct rtwn_softc *sc)
 {
 
 	/* Setup AMPDU aggregation. */
-	rtwn_write_4(sc, R92C_AGGLEN_LMT, 0x99997631);	/* MCS7~0 */
+	rtwn_write_4(sc, R92C_AGGLEN_LMT, 0x99997631); /* MCS7~0 */
 	rtwn_write_1(sc, R92C_AGGR_BREAK_TIME, 0x16);
 	rtwn_write_2(sc, R92C_MAX_AGGR_NUM, 0x0708);
 }
@@ -318,7 +313,7 @@ r92c_init_antsel(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_LEDCFG2, 0, 0x80);
 	rtwn_bb_setbits(sc, R92C_FPGA0_RFPARAM(0), 0, 0x2000);
 	reg = rtwn_bb_read(sc, R92C_FPGA0_RFIFACEOE(0));
-	sc->sc_ant = MS(reg, R92C_FPGA0_RFIFACEOE0_ANT);	/* XXX */
+	sc->sc_ant = MS(reg, R92C_FPGA0_RFIFACEOE0_ANT); /* XXX */
 	rtwn_setbits_1(sc, R92C_LEDCFG2, 0x80, 0);
 }
 

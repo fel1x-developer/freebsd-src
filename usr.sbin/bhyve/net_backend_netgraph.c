@@ -48,8 +48,8 @@
 #define NG_SBUF_MAX_SIZE (4 * 1024 * 1024)
 
 static int
-ng_init(struct net_backend *be, const char *devname __unused,
-	 nvlist_t *nvl, net_be_rxeof_t cb, void *param)
+ng_init(struct net_backend *be, const char *devname __unused, nvlist_t *nvl,
+    net_be_rxeof_t cb, void *param)
 {
 	struct tap_priv *p = NET_BE_PRIV(be);
 	struct ngm_connect ngc;
@@ -92,15 +92,13 @@ ng_init(struct net_backend *be, const char *devname __unused,
 	strncpy(ngc.peerhook, value, NG_HOOKSIZ - 1);
 
 	nodename = get_config_value_node(nvl, "socket");
-	if (NgMkSockNode(nodename,
-		&ctrl_sock, &be->fd) < 0) {
+	if (NgMkSockNode(nodename, &ctrl_sock, &be->fd) < 0) {
 		EPRINTLN("can't get Netgraph sockets");
 		return (-1);
 	}
 
-	if (NgSendMsg(ctrl_sock, ".",
-		NGM_GENERIC_COOKIE,
-		NGM_CONNECT, &ngc, sizeof(ngc)) < 0) {
+	if (NgSendMsg(ctrl_sock, ".", NGM_GENERIC_COOKIE, NGM_CONNECT, &ngc,
+		sizeof(ngc)) < 0) {
 		EPRINTLN("can't connect to node");
 		close(ctrl_sock);
 		goto error;
@@ -126,8 +124,8 @@ ng_init(struct net_backend *be, const char *devname __unused,
 	 * and kern.ipc.maxsockbuf.
 	 */
 	msbsz = sizeof(maxsbsz);
-	if (sysctlbyname("kern.ipc.maxsockbuf", &maxsbsz, &msbsz,
-		NULL, 0) < 0) {
+	if (sysctlbyname("kern.ipc.maxsockbuf", &maxsbsz, &msbsz, NULL, 0) <
+	    0) {
 		EPRINTLN("can't get 'kern.ipc.maxsockbuf' value");
 		goto error;
 	}
@@ -140,14 +138,14 @@ ng_init(struct net_backend *be, const char *devname __unused,
 
 	sbsz = MIN(NG_SBUF_MAX_SIZE, maxsbsz);
 
-	if (setsockopt(be->fd, SOL_SOCKET, SO_SNDBUF, &sbsz,
-		sizeof(sbsz)) < 0) {
+	if (setsockopt(be->fd, SOL_SOCKET, SO_SNDBUF, &sbsz, sizeof(sbsz)) <
+	    0) {
 		EPRINTLN("can't set TX buffer size");
 		goto error;
 	}
 
-	if (setsockopt(be->fd, SOL_SOCKET, SO_RCVBUF, &sbsz,
-		sizeof(sbsz)) < 0) {
+	if (setsockopt(be->fd, SOL_SOCKET, SO_RCVBUF, &sbsz, sizeof(sbsz)) <
+	    0) {
 		EPRINTLN("can't set RX buffer size");
 		goto error;
 	}

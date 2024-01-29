@@ -31,16 +31,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <limits.h>
 #include <libgen.h>
+#include <limits.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -50,72 +50,75 @@
 
 #include "grep.h"
 
-const char	*errstr[] = {
+const char *errstr[] = {
 	"",
-/* 1*/	"(standard input)",
-/* 2*/	"unknown %s option",
-/* 3*/	"usage: %s [-abcDEFGHhIiLlmnOopqRSsUVvwxz] [-A num] [-B num] [-C num]\n",
-/* 4*/	"\t[-e pattern] [-f file] [--binary-files=value] [--color=when]\n",
-/* 5*/	"\t[--context=num] [--directories=action] [--label] [--line-buffered]\n",
-/* 6*/	"\t[--null] [pattern] [file ...]\n",
-/* 7*/	"Binary file %s matches\n",
-/* 8*/	"%s (BSD grep, GNU compatible) %s\n",
+	/* 1*/ "(standard input)",
+	/* 2*/ "unknown %s option",
+	/* 3*/
+	"usage: %s [-abcDEFGHhIiLlmnOopqRSsUVvwxz] [-A num] [-B num] [-C num]\n",
+	/* 4*/
+	"\t[-e pattern] [-f file] [--binary-files=value] [--color=when]\n",
+	/* 5*/
+	"\t[--context=num] [--directories=action] [--label] [--line-buffered]\n",
+	/* 6*/ "\t[--null] [pattern] [file ...]\n",
+	/* 7*/ "Binary file %s matches\n",
+	/* 8*/ "%s (BSD grep, GNU compatible) %s\n",
 };
 
 /* Flags passed to regcomp() and regexec() */
-int		 cflags = REG_NOSUB | REG_NEWLINE;
-int		 eflags = REG_STARTEND;
+int cflags = REG_NOSUB | REG_NEWLINE;
+int eflags = REG_STARTEND;
 
-bool		 matchall;
+bool matchall;
 
 /* Searching patterns */
-unsigned int	 patterns;
+unsigned int patterns;
 static unsigned int pattern_sz;
-struct pat	*pattern;
-regex_t		*r_pattern;
+struct pat *pattern;
+regex_t *r_pattern;
 
 /* Filename exclusion/inclusion patterns */
-unsigned int	fpatterns, dpatterns;
+unsigned int fpatterns, dpatterns;
 static unsigned int fpattern_sz, dpattern_sz;
-struct epat	*dpattern, *fpattern;
+struct epat *dpattern, *fpattern;
 
 /* For regex errors  */
-char	 re_error[RE_ERROR_BUF + 1];
+char re_error[RE_ERROR_BUF + 1];
 
 /* Command-line flags */
-long long Aflag;	/* -A x: print x lines trailing each match */
-long long Bflag;	/* -B x: print x lines leading each match */
-bool	 Hflag;		/* -H: always print file name */
-bool	 Lflag;		/* -L: only show names of files with no matches */
-bool	 bflag;		/* -b: show block numbers for each match */
-bool	 cflag;		/* -c: only show a count of matching lines */
-bool	 hflag;		/* -h: don't print filename headers */
-bool	 iflag;		/* -i: ignore case */
-bool	 lflag;		/* -l: only show names of files with matches */
-bool	 mflag;		/* -m x: stop reading the files after x matches */
-long long mcount;	/* count for -m */
-long long mlimit;	/* requested value for -m */
-char	 fileeol;	/* indicator for eol */
-bool	 nflag;		/* -n: show line numbers in front of matching lines */
-bool	 oflag;		/* -o: print only matching part */
-bool	 qflag;		/* -q: quiet mode (don't output anything) */
-bool	 sflag;		/* -s: silent mode (ignore errors) */
-bool	 vflag;		/* -v: only show non-matching lines */
-bool	 wflag;		/* -w: pattern must start and end on word boundaries */
-bool	 xflag;		/* -x: pattern must match entire line */
-bool	 lbflag;	/* --line-buffered */
-bool	 nullflag;	/* --null */
-char	*label;		/* --label */
-const char *color;	/* --color */
-int	 grepbehave = GREP_BASIC;	/* -EFG: type of the regex */
-int	 binbehave = BINFILE_BIN;	/* -aIU: handling of binary files */
-int	 filebehave = FILE_STDIO;
-int	 devbehave = DEV_READ;		/* -D: handling of devices */
-int	 dirbehave = DIR_READ;		/* -dRr: handling of directories */
-int	 linkbehave = LINK_READ;	/* -OpS: handling of symlinks */
+long long Aflag;   /* -A x: print x lines trailing each match */
+long long Bflag;   /* -B x: print x lines leading each match */
+bool Hflag;	   /* -H: always print file name */
+bool Lflag;	   /* -L: only show names of files with no matches */
+bool bflag;	   /* -b: show block numbers for each match */
+bool cflag;	   /* -c: only show a count of matching lines */
+bool hflag;	   /* -h: don't print filename headers */
+bool iflag;	   /* -i: ignore case */
+bool lflag;	   /* -l: only show names of files with matches */
+bool mflag;	   /* -m x: stop reading the files after x matches */
+long long mcount;  /* count for -m */
+long long mlimit;  /* requested value for -m */
+char fileeol;	   /* indicator for eol */
+bool nflag;	   /* -n: show line numbers in front of matching lines */
+bool oflag;	   /* -o: print only matching part */
+bool qflag;	   /* -q: quiet mode (don't output anything) */
+bool sflag;	   /* -s: silent mode (ignore errors) */
+bool vflag;	   /* -v: only show non-matching lines */
+bool wflag;	   /* -w: pattern must start and end on word boundaries */
+bool xflag;	   /* -x: pattern must match entire line */
+bool lbflag;	   /* --line-buffered */
+bool nullflag;	   /* --null */
+char *label;	   /* --label */
+const char *color; /* --color */
+int grepbehave = GREP_BASIC; /* -EFG: type of the regex */
+int binbehave = BINFILE_BIN; /* -aIU: handling of binary files */
+int filebehave = FILE_STDIO;
+int devbehave = DEV_READ;   /* -D: handling of devices */
+int dirbehave = DIR_READ;   /* -dRr: handling of directories */
+int linkbehave = LINK_READ; /* -OpS: handling of symlinks */
 
-bool	 dexclude, dinclude;	/* --exclude-dir and --include-dir */
-bool	 fexclude, finclude;	/* --exclude and --include */
+bool dexclude, dinclude; /* --exclude-dir and --include-dir */
+bool fexclude, finclude; /* --exclude and --include */
 
 enum {
 	BIN_OPT = CHAR_MAX + 1,
@@ -131,10 +134,10 @@ enum {
 	R_DINCLUDE_OPT
 };
 
-static inline const char	*init_color(const char *);
+static inline const char *init_color(const char *);
 
 /* Housekeeping */
-bool	 file_err;	/* file reading error */
+bool file_err; /* file reading error */
 
 /*
  * Prints usage information and returns 2.
@@ -149,55 +152,54 @@ usage(void)
 	exit(2);
 }
 
-static const char	*optstr = "0123456789A:B:C:D:EFGHILOSRUVabcd:e:f:hilm:nopqrsuvwxyz";
+static const char *optstr =
+    "0123456789A:B:C:D:EFGHILOSRUVabcd:e:f:hilm:nopqrsuvwxyz";
 
-static const struct option long_options[] =
-{
-	{"binary-files",	required_argument,	NULL, BIN_OPT},
-	{"help",		no_argument,		NULL, HELP_OPT},
-	{"mmap",		no_argument,		NULL, MMAP_OPT},
-	{"line-buffered",	no_argument,		NULL, LINEBUF_OPT},
-	{"label",		required_argument,	NULL, LABEL_OPT},
-	{"null",		no_argument,		NULL, NULL_OPT},
-	{"color",		optional_argument,	NULL, COLOR_OPT},
-	{"colour",		optional_argument,	NULL, COLOR_OPT},
-	{"exclude",		required_argument,	NULL, R_EXCLUDE_OPT},
-	{"include",		required_argument,	NULL, R_INCLUDE_OPT},
-	{"exclude-dir",		required_argument,	NULL, R_DEXCLUDE_OPT},
-	{"include-dir",		required_argument,	NULL, R_DINCLUDE_OPT},
-	{"after-context",	required_argument,	NULL, 'A'},
-	{"text",		no_argument,		NULL, 'a'},
-	{"before-context",	required_argument,	NULL, 'B'},
-	{"byte-offset",		no_argument,		NULL, 'b'},
-	{"context",		optional_argument,	NULL, 'C'},
-	{"count",		no_argument,		NULL, 'c'},
-	{"devices",		required_argument,	NULL, 'D'},
-        {"directories",		required_argument,	NULL, 'd'},
-	{"extended-regexp",	no_argument,		NULL, 'E'},
-	{"regexp",		required_argument,	NULL, 'e'},
-	{"fixed-strings",	no_argument,		NULL, 'F'},
-	{"file",		required_argument,	NULL, 'f'},
-	{"basic-regexp",	no_argument,		NULL, 'G'},
-	{"no-filename",		no_argument,		NULL, 'h'},
-	{"with-filename",	no_argument,		NULL, 'H'},
-	{"ignore-case",		no_argument,		NULL, 'i'},
-	{"files-with-matches",	no_argument,		NULL, 'l'},
-	{"files-without-match", no_argument,            NULL, 'L'},
-	{"max-count",		required_argument,	NULL, 'm'},
-	{"line-number",		no_argument,		NULL, 'n'},
-	{"only-matching",	no_argument,		NULL, 'o'},
-	{"quiet",		no_argument,		NULL, 'q'},
-	{"silent",		no_argument,		NULL, 'q'},
-	{"recursive",		no_argument,		NULL, 'r'},
-	{"no-messages",		no_argument,		NULL, 's'},
-	{"binary",		no_argument,		NULL, 'U'},
-	{"unix-byte-offsets",	no_argument,		NULL, 'u'},
-	{"invert-match",	no_argument,		NULL, 'v'},
-	{"version",		no_argument,		NULL, 'V'},
-	{"word-regexp",		no_argument,		NULL, 'w'},
-	{"line-regexp",		no_argument,		NULL, 'x'},
-	{"null-data",		no_argument,		NULL, 'z'},
-	{NULL,			no_argument,		NULL, 0}
+static const struct option long_options[] = {
+	{ "binary-files", required_argument, NULL, BIN_OPT },
+	{ "help", no_argument, NULL, HELP_OPT },
+	{ "mmap", no_argument, NULL, MMAP_OPT },
+	{ "line-buffered", no_argument, NULL, LINEBUF_OPT },
+	{ "label", required_argument, NULL, LABEL_OPT },
+	{ "null", no_argument, NULL, NULL_OPT },
+	{ "color", optional_argument, NULL, COLOR_OPT },
+	{ "colour", optional_argument, NULL, COLOR_OPT },
+	{ "exclude", required_argument, NULL, R_EXCLUDE_OPT },
+	{ "include", required_argument, NULL, R_INCLUDE_OPT },
+	{ "exclude-dir", required_argument, NULL, R_DEXCLUDE_OPT },
+	{ "include-dir", required_argument, NULL, R_DINCLUDE_OPT },
+	{ "after-context", required_argument, NULL, 'A' },
+	{ "text", no_argument, NULL, 'a' },
+	{ "before-context", required_argument, NULL, 'B' },
+	{ "byte-offset", no_argument, NULL, 'b' },
+	{ "context", optional_argument, NULL, 'C' },
+	{ "count", no_argument, NULL, 'c' },
+	{ "devices", required_argument, NULL, 'D' },
+	{ "directories", required_argument, NULL, 'd' },
+	{ "extended-regexp", no_argument, NULL, 'E' },
+	{ "regexp", required_argument, NULL, 'e' },
+	{ "fixed-strings", no_argument, NULL, 'F' },
+	{ "file", required_argument, NULL, 'f' },
+	{ "basic-regexp", no_argument, NULL, 'G' },
+	{ "no-filename", no_argument, NULL, 'h' },
+	{ "with-filename", no_argument, NULL, 'H' },
+	{ "ignore-case", no_argument, NULL, 'i' },
+	{ "files-with-matches", no_argument, NULL, 'l' },
+	{ "files-without-match", no_argument, NULL, 'L' },
+	{ "max-count", required_argument, NULL, 'm' },
+	{ "line-number", no_argument, NULL, 'n' },
+	{ "only-matching", no_argument, NULL, 'o' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "silent", no_argument, NULL, 'q' },
+	{ "recursive", no_argument, NULL, 'r' },
+	{ "no-messages", no_argument, NULL, 's' },
+	{ "binary", no_argument, NULL, 'U' },
+	{ "unix-byte-offsets", no_argument, NULL, 'u' },
+	{ "invert-match", no_argument, NULL, 'v' },
+	{ "version", no_argument, NULL, 'V' },
+	{ "word-regexp", no_argument, NULL, 'w' },
+	{ "line-regexp", no_argument, NULL, 'x' },
+	{ "null-data", no_argument, NULL, 'z' }, { NULL, no_argument, NULL, 0 }
 };
 
 /*
@@ -215,8 +217,8 @@ add_pattern(char *pat, size_t len)
 	/* Increase size if necessary */
 	if (patterns == pattern_sz) {
 		pattern_sz *= 2;
-		pattern = grep_realloc(pattern, ++pattern_sz *
-		    sizeof(struct pat));
+		pattern = grep_realloc(pattern,
+		    ++pattern_sz * sizeof(struct pat));
 	}
 	if (len > 0 && pat[len - 1] == '\n')
 		--len;
@@ -238,8 +240,8 @@ add_fpattern(const char *pat, int mode)
 	/* Increase size if necessary */
 	if (fpatterns == fpattern_sz) {
 		fpattern_sz *= 2;
-		fpattern = grep_realloc(fpattern, ++fpattern_sz *
-		    sizeof(struct epat));
+		fpattern = grep_realloc(fpattern,
+		    ++fpattern_sz * sizeof(struct epat));
 	}
 	fpattern[fpatterns].pat = grep_strdup(pat);
 	fpattern[fpatterns].mode = mode;
@@ -256,8 +258,8 @@ add_dpattern(const char *pat, int mode)
 	/* Increase size if necessary */
 	if (dpatterns == dpattern_sz) {
 		dpattern_sz *= 2;
-		dpattern = grep_realloc(dpattern, ++dpattern_sz *
-		    sizeof(struct epat));
+		dpattern = grep_realloc(dpattern,
+		    ++dpattern_sz * sizeof(struct epat));
 	}
 	dpattern[dpatterns].pat = grep_strdup(pat);
 	dpattern[dpatterns].mode = mode;
@@ -366,8 +368,7 @@ main(int argc, char *argv[])
 			if (str[0] != '\0')
 				eargv[eargc++] = grep_strdup(str);
 
-		aargv = (char **)grep_calloc(eargc + argc + 1,
-		    sizeof(char *));
+		aargv = (char **)grep_calloc(eargc + argc + 1, sizeof(char *));
 
 		aargv[0] = argv[0];
 		for (i = 0; i < eargc; i++)
@@ -384,8 +385,16 @@ main(int argc, char *argv[])
 	while (((c = getopt_long(aargc, aargv, optstr, long_options, NULL)) !=
 	    -1)) {
 		switch (c) {
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			if (newarg || !isdigit(lastc))
 				Aflag = 0;
 			else if (Aflag > LLONG_MAX / 10 - 1) {
@@ -454,14 +463,13 @@ main(int argc, char *argv[])
 		case 'E':
 			grepbehave = GREP_EXTENDED;
 			break;
-		case 'e':
-			{
-				char *token;
-				char *string = optarg;
+		case 'e': {
+			char *token;
+			char *string = optarg;
 
-				while ((token = strsep(&string, "\n")) != NULL)
-					add_pattern(token, strlen(token));
-			}
+			while ((token = strsep(&string, "\n")) != NULL)
+				add_pattern(token, strlen(token));
+		}
 			needpattern = 0;
 			break;
 		case 'F':
@@ -486,7 +494,7 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 		case 'y':
-			iflag =  true;
+			iflag = true;
 			cflags |= REG_ICASE;
 			break;
 		case 'L':
@@ -652,13 +660,14 @@ main(int argc, char *argv[])
 		break;
 	case GREP_FIXED:
 		/*
-		 * regex(3) implementations that support fixed-string searches generally
-		 * define either REG_NOSPEC or REG_LITERAL. Set the appropriate flag
-		 * here. If neither are defined, GREP_FIXED later implies that the
-		 * internal literal matcher should be used. Other cflags that have
-		 * the same interpretation as REG_NOSPEC and REG_LITERAL should be
-		 * similarly added here, and grep.h should be amended to take this into
-		 * consideration when defining WITH_INTERNAL_NOSPEC.
+		 * regex(3) implementations that support fixed-string searches
+		 * generally define either REG_NOSPEC or REG_LITERAL. Set the
+		 * appropriate flag here. If neither are defined, GREP_FIXED
+		 * later implies that the internal literal matcher should be
+		 * used. Other cflags that have the same interpretation as
+		 * REG_NOSPEC and REG_LITERAL should be similarly added here,
+		 * and grep.h should be amended to take this into consideration
+		 * when defining WITH_INTERNAL_NOSPEC.
 		 */
 #if defined(REG_NOSPEC)
 		cflags |= REG_NOSPEC;

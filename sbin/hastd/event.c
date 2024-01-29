@@ -27,8 +27,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <errno.h>
 
+#include "event.h"
 #include "hast.h"
 #include "hast_proto.h"
 #include "hooks.h"
@@ -36,8 +38,6 @@
 #include "pjdlog.h"
 #include "proto.h"
 #include "subr.h"
-
-#include "event.h"
 
 void
 event_send(const struct hast_resource *res, int event)
@@ -128,8 +128,8 @@ event_recv(const struct hast_resource *res)
 		evstr = "split-brain";
 		break;
 	default:
-		pjdlog_error("Event header contain invalid event number (%hhu).",
-		    event);
+		pjdlog_error(
+		    "Event header contain invalid event number (%hhu).", event);
 		goto fail;
 	}
 

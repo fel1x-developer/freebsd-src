@@ -2,30 +2,30 @@
 
   Copyright (c) 2013-2018, Intel Corporation
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
+
+  Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
-  
-   1. Redistributions of source code must retain the above copyright notice, 
+
+   1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-  
-   2. Redistributions in binary form must reproduce the above copyright 
-      notice, this list of conditions and the following disclaimer in the 
+
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-  
-   3. Neither the name of the Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+   3. Neither the name of the Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 
@@ -50,41 +50,29 @@
 #endif
 
 /* Local Prototypes */
-static u8	ixl_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype);
+static u8 ixl_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype);
 
-static int	ixl_isc_txd_encap(void *arg, if_pkt_info_t pi);
-static void	ixl_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
-static int	ixl_isc_txd_credits_update_hwb(void *arg, uint16_t txqid, bool clear);
-static int	ixl_isc_txd_credits_update_dwb(void *arg, uint16_t txqid, bool clear);
+static int ixl_isc_txd_encap(void *arg, if_pkt_info_t pi);
+static void ixl_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
+static int ixl_isc_txd_credits_update_hwb(void *arg, uint16_t txqid,
+    bool clear);
+static int ixl_isc_txd_credits_update_dwb(void *arg, uint16_t txqid,
+    bool clear);
 
-static void	ixl_isc_rxd_refill(void *arg, if_rxd_update_t iru);
-static void	ixl_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
-				  qidx_t pidx);
-static int	ixl_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx,
-				      qidx_t budget);
-static int	ixl_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
+static void ixl_isc_rxd_refill(void *arg, if_rxd_update_t iru);
+static void ixl_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
+    qidx_t pidx);
+static int ixl_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx,
+    qidx_t budget);
+static int ixl_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 
-struct if_txrx ixl_txrx_hwb = {
-	ixl_isc_txd_encap,
-	ixl_isc_txd_flush,
-	ixl_isc_txd_credits_update_hwb,
-	ixl_isc_rxd_available,
-	ixl_isc_rxd_pkt_get,
-	ixl_isc_rxd_refill,
-	ixl_isc_rxd_flush,
-	NULL
-};
+struct if_txrx ixl_txrx_hwb = { ixl_isc_txd_encap, ixl_isc_txd_flush,
+	ixl_isc_txd_credits_update_hwb, ixl_isc_rxd_available,
+	ixl_isc_rxd_pkt_get, ixl_isc_rxd_refill, ixl_isc_rxd_flush, NULL };
 
-struct if_txrx ixl_txrx_dwb = {
-	ixl_isc_txd_encap,
-	ixl_isc_txd_flush,
-	ixl_isc_txd_credits_update_dwb,
-	ixl_isc_rxd_available,
-	ixl_isc_rxd_pkt_get,
-	ixl_isc_rxd_refill,
-	ixl_isc_rxd_flush,
-	NULL
-};
+struct if_txrx ixl_txrx_dwb = { ixl_isc_txd_encap, ixl_isc_txd_flush,
+	ixl_isc_txd_credits_update_dwb, ixl_isc_rxd_available,
+	ixl_isc_rxd_pkt_get, ixl_isc_rxd_refill, ixl_isc_rxd_flush, NULL };
 
 /*
  * @key key is saved into this parameter
@@ -94,11 +82,9 @@ ixl_get_default_rss_key(u32 *key)
 {
 	MPASS(key != NULL);
 
-	u32 rss_seed[IXL_RSS_KEY_SIZE_REG] = {0x41b01687,
-	    0x183cfd8c, 0xce880440, 0x580cbc3c,
-	    0x35897377, 0x328b25e1, 0x4fa98922,
-	    0xb7d90c14, 0xd5bad70d, 0xcd15a2c1,
-	    0x0, 0x0, 0x0};
+	u32 rss_seed[IXL_RSS_KEY_SIZE_REG] = { 0x41b01687, 0x183cfd8c,
+		0xce880440, 0x580cbc3c, 0x35897377, 0x328b25e1, 0x4fa98922,
+		0xb7d90c14, 0xd5bad70d, 0xcd15a2c1, 0x0, 0x0, 0x0 };
 
 	bcopy(rss_seed, key, IXL_RSS_KEY_SIZE);
 }
@@ -148,16 +134,17 @@ ixl_debug_core(device_t dev, u32 enabled_mask, u32 mask, char *fmt, ...)
 static bool
 ixl_is_tx_desc_done(struct tx_ring *txr, int idx)
 {
-	return (((txr->tx_base[idx].cmd_type_offset_bsz >> I40E_TXD_QW1_DTYPE_SHIFT)
-	    & I40E_TXD_QW1_DTYPE_MASK) == I40E_TX_DESC_DTYPE_DESC_DONE);
+	return (((txr->tx_base[idx].cmd_type_offset_bsz >>
+		     I40E_TXD_QW1_DTYPE_SHIFT) &
+		    I40E_TXD_QW1_DTYPE_MASK) == I40E_TX_DESC_DTYPE_DESC_DONE);
 }
 
 static int
 ixl_tso_detect_sparse(bus_dma_segment_t *segs, int nsegs, if_pkt_info_t pi)
 {
-	int	count, curseg, i, hlen, segsz, seglen, tsolen;
+	int count, curseg, i, hlen, segsz, seglen, tsolen;
 
-	if (nsegs <= IXL_MAX_TX_SEGS-2)
+	if (nsegs <= IXL_MAX_TX_SEGS - 2)
 		return (0);
 	segsz = pi->ipi_tso_segsz;
 	curseg = count = 0;
@@ -208,66 +195,66 @@ ixl_tso_detect_sparse(bus_dma_segment_t *segs, int nsegs, if_pkt_info_t pi)
 		count = 0;
 	}
 
- 	return (0);
+	return (0);
 }
 
 /*********************************************************************
  *
- *  Setup descriptor for hw offloads 
+ *  Setup descriptor for hw offloads
  *
  **********************************************************************/
 
 static void
-ixl_tx_setup_offload(struct ixl_tx_queue *que,
-    if_pkt_info_t pi, u32 *cmd, u32 *off)
+ixl_tx_setup_offload(struct ixl_tx_queue *que, if_pkt_info_t pi, u32 *cmd,
+    u32 *off)
 {
 	switch (pi->ipi_etype) {
 #ifdef INET
-		case ETHERTYPE_IP:
-			if (pi->ipi_csum_flags & IXL_CSUM_IPV4)
-				*cmd |= I40E_TX_DESC_CMD_IIPT_IPV4_CSUM;
-			else
-				*cmd |= I40E_TX_DESC_CMD_IIPT_IPV4;
-			break;
+	case ETHERTYPE_IP:
+		if (pi->ipi_csum_flags & IXL_CSUM_IPV4)
+			*cmd |= I40E_TX_DESC_CMD_IIPT_IPV4_CSUM;
+		else
+			*cmd |= I40E_TX_DESC_CMD_IIPT_IPV4;
+		break;
 #endif
 #ifdef INET6
-		case ETHERTYPE_IPV6:
-			*cmd |= I40E_TX_DESC_CMD_IIPT_IPV6;
-			break;
+	case ETHERTYPE_IPV6:
+		*cmd |= I40E_TX_DESC_CMD_IIPT_IPV6;
+		break;
 #endif
-		default:
-			break;
+	default:
+		break;
 	}
 
 	*off |= (pi->ipi_ehdrlen >> 1) << I40E_TX_DESC_LENGTH_MACLEN_SHIFT;
 	*off |= (pi->ipi_ip_hlen >> 2) << I40E_TX_DESC_LENGTH_IPLEN_SHIFT;
 
 	switch (pi->ipi_ipproto) {
-		case IPPROTO_TCP:
-			if (pi->ipi_csum_flags & IXL_CSUM_TCP) {
-				*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_TCP;
-				*off |= (pi->ipi_tcp_hlen >> 2) <<
-				    I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-				/* Check for NO_HEAD MDD event */
-				MPASS(pi->ipi_tcp_hlen != 0);
-			}
-			break;
-		case IPPROTO_UDP:
-			if (pi->ipi_csum_flags & IXL_CSUM_UDP) {
-				*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_UDP;
-				*off |= (sizeof(struct udphdr) >> 2) <<
-				    I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-			}
-			break;
-		case IPPROTO_SCTP:
-			if (pi->ipi_csum_flags & IXL_CSUM_SCTP) {
-				*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_SCTP;
-				*off |= (sizeof(struct sctphdr) >> 2) <<
-				    I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-			}
-			/* Fall Thru */
-		default:
-			break;
+	case IPPROTO_TCP:
+		if (pi->ipi_csum_flags & IXL_CSUM_TCP) {
+			*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_TCP;
+			*off |= (pi->ipi_tcp_hlen >> 2)
+			    << I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+			/* Check for NO_HEAD MDD event */
+			MPASS(pi->ipi_tcp_hlen != 0);
+		}
+		break;
+	case IPPROTO_UDP:
+		if (pi->ipi_csum_flags & IXL_CSUM_UDP) {
+			*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_UDP;
+			*off |= (sizeof(struct udphdr) >> 2)
+			    << I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+		}
+		break;
+	case IPPROTO_SCTP:
+		if (pi->ipi_csum_flags & IXL_CSUM_SCTP) {
+			*cmd |= I40E_TX_DESC_CMD_L4T_EOFT_SCTP;
+			*off |= (sizeof(struct sctphdr) >> 2)
+			    << I40E_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+		}
+		/* Fall Thru */
+	default:
+		break;
 	}
 }
 
@@ -279,14 +266,14 @@ ixl_tx_setup_offload(struct ixl_tx_queue *que,
 static int
 ixl_tso_setup(struct tx_ring *txr, if_pkt_info_t pi)
 {
-	if_softc_ctx_t			scctx;
-	struct i40e_tx_context_desc	*TXD;
-	u32				cmd, mss, type, tsolen;
-	int				idx, total_hdr_len;
-	u64				type_cmd_tso_mss;
+	if_softc_ctx_t scctx;
+	struct i40e_tx_context_desc *TXD;
+	u32 cmd, mss, type, tsolen;
+	int idx, total_hdr_len;
+	u64 type_cmd_tso_mss;
 
 	idx = pi->ipi_pidx;
-	TXD = (struct i40e_tx_context_desc *) &txr->tx_base[idx];
+	TXD = (struct i40e_tx_context_desc *)&txr->tx_base[idx];
 	total_hdr_len = pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen;
 	tsolen = pi->ipi_len - total_hdr_len;
 	scctx = txr->que->vsi->shared;
@@ -322,30 +309,30 @@ ixl_tso_setup(struct tx_ring *txr, if_pkt_info_t pi)
 	TXD->tunneling_params = htole32(0);
 	txr->que->tso++;
 
-	return ((idx + 1) & (scctx->isc_ntxd[0]-1));
+	return ((idx + 1) & (scctx->isc_ntxd[0] - 1));
 }
 
 /*********************************************************************
-  *
+ *
  *  This routine maps the mbufs to tx descriptors, allowing the
- *  TX engine to transmit the packets. 
+ *  TX engine to transmit the packets.
  *  	- return 0 on success, positive on failure
-  *
-  **********************************************************************/
+ *
+ **********************************************************************/
 #define IXL_TXD_CMD (I40E_TX_DESC_CMD_EOP | I40E_TX_DESC_CMD_RS)
 
 static int
 ixl_isc_txd_encap(void *arg, if_pkt_info_t pi)
 {
-	struct ixl_vsi		*vsi = arg;
-	if_softc_ctx_t		scctx = vsi->shared;
-	struct ixl_tx_queue	*que = &vsi->tx_queues[pi->ipi_qsidx];
- 	struct tx_ring		*txr = &que->txr;
-	int			nsegs = pi->ipi_nsegs;
+	struct ixl_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct ixl_tx_queue *que = &vsi->tx_queues[pi->ipi_qsidx];
+	struct tx_ring *txr = &que->txr;
+	int nsegs = pi->ipi_nsegs;
 	bus_dma_segment_t *segs = pi->ipi_segs;
-	struct i40e_tx_desc	*txd = NULL;
-	int             	i, j, mask, pidx_last;
-	u32			cmd, off, tx_intr;
+	struct i40e_tx_desc *txd = NULL;
+	int i, j, mask, pidx_last;
+	u32 cmd, off, tx_intr;
 
 	cmd = off = 0;
 	i = pi->ipi_pidx;
@@ -384,26 +371,25 @@ ixl_isc_txd_encap(void *arg, if_pkt_info_t pi)
 		MPASS(seglen != 0);
 
 		txd->buffer_addr = htole64(segs[j].ds_addr);
-		txd->cmd_type_offset_bsz =
-		    htole64(I40E_TX_DESC_DTYPE_DATA
-		    | ((u64)cmd  << I40E_TXD_QW1_CMD_SHIFT)
-		    | ((u64)off << I40E_TXD_QW1_OFFSET_SHIFT)
-		    | ((u64)seglen  << I40E_TXD_QW1_TX_BUF_SZ_SHIFT)
-	            | ((u64)htole16(pi->ipi_vtag) << I40E_TXD_QW1_L2TAG1_SHIFT));
+		txd->cmd_type_offset_bsz = htole64(I40E_TX_DESC_DTYPE_DATA |
+		    ((u64)cmd << I40E_TXD_QW1_CMD_SHIFT) |
+		    ((u64)off << I40E_TXD_QW1_OFFSET_SHIFT) |
+		    ((u64)seglen << I40E_TXD_QW1_TX_BUF_SZ_SHIFT) |
+		    ((u64)htole16(pi->ipi_vtag) << I40E_TXD_QW1_L2TAG1_SHIFT));
 
 		txr->tx_bytes += seglen;
 		pidx_last = i;
-		i = (i+1) & mask;
+		i = (i + 1) & mask;
 	}
 	/* Set the last descriptor for report */
-	txd->cmd_type_offset_bsz |=
-	    htole64(((u64)IXL_TXD_CMD << I40E_TXD_QW1_CMD_SHIFT));
+	txd->cmd_type_offset_bsz |= htole64(
+	    ((u64)IXL_TXD_CMD << I40E_TXD_QW1_CMD_SHIFT));
 	/* Add to report status array (if using TX interrupts) */
 	if (!vsi->enable_head_writeback && tx_intr) {
 		txr->tx_rsq[txr->tx_rs_pidx] = pidx_last;
-		txr->tx_rs_pidx = (txr->tx_rs_pidx+1) & mask;
+		txr->tx_rs_pidx = (txr->tx_rs_pidx + 1) & mask;
 		MPASS(txr->tx_rs_pidx != txr->tx_rs_cidx);
- 	}
+	}
 	pi->ipi_new_pidx = i;
 
 	++txr->tx_packets;
@@ -416,15 +402,14 @@ ixl_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx)
 	struct ixl_vsi *vsi = arg;
 	struct tx_ring *txr = &vsi->tx_queues[txqid].txr;
 
- 	/*
+	/*
 	 * Advance the Transmit Descriptor Tail (Tdt), this tells the
 	 * hardware that this frame is available to transmit.
- 	 */
+	 */
 	/* Check for ENDLESS_TX MDD event */
 	MPASS(pidx < vsi->shared->isc_ntxd[0]);
 	wr32(vsi->hw, txr->tail, pidx);
 }
-
 
 /*********************************************************************
  *
@@ -438,8 +423,9 @@ ixl_init_tx_ring(struct ixl_vsi *vsi, struct ixl_tx_queue *que)
 
 	/* Clear the old ring contents */
 	bzero((void *)txr->tx_base,
-	      (sizeof(struct i40e_tx_desc)) *
-	      (vsi->shared->isc_ntxd[0] + (vsi->enable_head_writeback ? 1 : 0)));
+	    (sizeof(struct i40e_tx_desc)) *
+		(vsi->shared->isc_ntxd[0] +
+		    (vsi->enable_head_writeback ? 1 : 0)));
 
 	wr32(vsi->hw, txr->tail, 0);
 }
@@ -451,8 +437,8 @@ ixl_init_tx_ring(struct ixl_vsi *vsi, struct ixl_tx_queue *que)
 static inline u32
 ixl_get_tx_head(struct ixl_tx_queue *que)
 {
-	if_softc_ctx_t          scctx = que->vsi->shared;
-	struct tx_ring  *txr = &que->txr;
+	if_softc_ctx_t scctx = que->vsi->shared;
+	struct tx_ring *txr = &que->txr;
 	void *head = &txr->tx_base[scctx->isc_ntxd[0]];
 
 	return LE32_TO_CPU(*(volatile __le32 *)head);
@@ -461,11 +447,11 @@ ixl_get_tx_head(struct ixl_tx_queue *que)
 static int
 ixl_isc_txd_credits_update_hwb(void *arg, uint16_t qid, bool clear)
 {
-	struct ixl_vsi          *vsi = arg;
-	if_softc_ctx_t          scctx = vsi->shared;
-	struct ixl_tx_queue     *que = &vsi->tx_queues[qid];
-	struct tx_ring		*txr = &que->txr;
-	int			 head, credits;
+	struct ixl_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct ixl_tx_queue *que = &vsi->tx_queues[qid];
+	struct tx_ring *txr = &que->txr;
+	int head, credits;
 
 	/* Get the Head WB value */
 	head = ixl_get_tx_head(que);
@@ -526,7 +512,7 @@ ixl_isc_txd_credits_update_dwb(void *arg, uint16_t txqid, bool clear)
 #endif
 		processed += delta;
 		prev = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
 		if (rs_cidx == txr->tx_rs_pidx)
 			break;
 		cur = txr->tx_rsq[rs_cidx];
@@ -562,14 +548,14 @@ ixl_isc_rxd_refill(void *arg, if_rxd_update_t iru)
 		rxr->rx_base[next_pidx].read.pkt_addr = htole64(paddrs[i]);
 		if (++next_pidx == scctx->isc_nrxd[0])
 			next_pidx = 0;
- 	}
+	}
 }
 
 static void
-ixl_isc_rxd_flush(void * arg, uint16_t rxqid, uint8_t flid __unused, qidx_t pidx)
+ixl_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused, qidx_t pidx)
 {
-	struct ixl_vsi		*vsi = arg;
-	struct rx_ring		*rxr = &vsi->rx_queues[rxqid].rxr;
+	struct ixl_vsi *vsi = arg;
+	struct rx_ring *rxr = &vsi->rx_queues[rxqid].rxr;
 
 	wr32(vsi->hw, rxr->tail, pidx);
 }
@@ -589,8 +575,8 @@ ixl_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx, qidx_t budget)
 	for (cnt = 0, i = idx; cnt < nrxd - 1 && cnt <= budget;) {
 		rxd = &rxr->rx_base[i];
 		qword = le64toh(rxd->wb.qword1.status_error_len);
-		status = (qword & I40E_RXD_QW1_STATUS_MASK)
-			>> I40E_RXD_QW1_STATUS_SHIFT;
+		status = (qword & I40E_RXD_QW1_STATUS_MASK) >>
+		    I40E_RXD_QW1_STATUS_SHIFT;
 
 		if ((status & (1 << I40E_RX_DESC_STATUS_DD_SHIFT)) == 0)
 			break;
@@ -610,7 +596,7 @@ ixl_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx, qidx_t budget)
 static inline int
 ixl_ptype_to_hash(u8 ptype)
 {
-        struct i40e_rx_ptype_decoded	decoded;
+	struct i40e_rx_ptype_decoded decoded;
 
 	decoded = decode_rx_desc_ptype(ptype);
 
@@ -621,7 +607,7 @@ ixl_ptype_to_hash(u8 ptype)
 		return M_HASHTYPE_OPAQUE;
 
 	/* Note: anything that gets to this point is IP */
-        if (decoded.outer_ip_ver == I40E_RX_PTYPE_OUTER_IPV6) {
+	if (decoded.outer_ip_ver == I40E_RX_PTYPE_OUTER_IPV6) {
 		switch (decoded.inner_prot) {
 		case I40E_RX_PTYPE_INNER_PROT_TCP:
 			return M_HASHTYPE_RSS_TCP_IPV6;
@@ -631,7 +617,7 @@ ixl_ptype_to_hash(u8 ptype)
 			return M_HASHTYPE_RSS_IPV6;
 		}
 	}
-        if (decoded.outer_ip_ver == I40E_RX_PTYPE_OUTER_IPV4) {
+	if (decoded.outer_ip_ver == I40E_RX_PTYPE_OUTER_IPV4) {
 		switch (decoded.inner_prot) {
 		case I40E_RX_PTYPE_INNER_PROT_TCP:
 			return M_HASHTYPE_RSS_TCP_IPV4;
@@ -656,16 +642,16 @@ ixl_ptype_to_hash(u8 ptype)
 static int
 ixl_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 {
-	struct ixl_vsi		*vsi = arg;
-	if_softc_ctx_t		scctx = vsi->shared;
-	struct ixl_rx_queue	*que = &vsi->rx_queues[ri->iri_qsidx];
-	struct rx_ring		*rxr = &que->rxr;
-	union i40e_rx_desc	*cur;
-	u32		status, error;
-	u16		plen;
-	u64		qword;
-	u8		ptype;
-	bool		eop;
+	struct ixl_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct ixl_rx_queue *que = &vsi->rx_queues[ri->iri_qsidx];
+	struct rx_ring *rxr = &que->rxr;
+	union i40e_rx_desc *cur;
+	u32 status, error;
+	u16 plen;
+	u64 qword;
+	u8 ptype;
+	bool eop;
 	int i, cidx;
 
 	cidx = ri->iri_cidx;
@@ -676,14 +662,14 @@ ixl_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 
 		cur = &rxr->rx_base[cidx];
 		qword = le64toh(cur->wb.qword1.status_error_len);
-		status = (qword & I40E_RXD_QW1_STATUS_MASK)
-		    >> I40E_RXD_QW1_STATUS_SHIFT;
-		error = (qword & I40E_RXD_QW1_ERROR_MASK)
-		    >> I40E_RXD_QW1_ERROR_SHIFT;
-		plen = (qword & I40E_RXD_QW1_LENGTH_PBUF_MASK)
-		    >> I40E_RXD_QW1_LENGTH_PBUF_SHIFT;
-		ptype = (qword & I40E_RXD_QW1_PTYPE_MASK)
-		    >> I40E_RXD_QW1_PTYPE_SHIFT;
+		status = (qword & I40E_RXD_QW1_STATUS_MASK) >>
+		    I40E_RXD_QW1_STATUS_SHIFT;
+		error = (qword & I40E_RXD_QW1_ERROR_MASK) >>
+		    I40E_RXD_QW1_ERROR_SHIFT;
+		plen = (qword & I40E_RXD_QW1_LENGTH_PBUF_MASK) >>
+		    I40E_RXD_QW1_LENGTH_PBUF_SHIFT;
+		ptype = (qword & I40E_RXD_QW1_PTYPE_MASK) >>
+		    I40E_RXD_QW1_PTYPE_SHIFT;
 
 		/* we should never be called without a valid descriptor */
 		MPASS((status & (1 << I40E_RX_DESC_STATUS_DD_SHIFT)) != 0);
@@ -750,8 +736,7 @@ ixl_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype)
 	/* IPv6 with extension headers likely have bad csum */
 	if (decoded.outer_ip == I40E_RX_PTYPE_OUTER_IP &&
 	    decoded.outer_ip_ver == I40E_RX_PTYPE_OUTER_IPV6) {
-		if (status &
-		    (1 << I40E_RX_DESC_STATUS_IPV6EXADD_SHIFT)) {
+		if (status & (1 << I40E_RX_DESC_STATUS_IPV6EXADD_SHIFT)) {
 			ri->iri_csum_flags = 0;
 			return (1);
 		}
@@ -784,7 +769,8 @@ ixl_init_tx_rsqs(struct ixl_vsi *vsi)
 	struct ixl_tx_queue *tx_que;
 	int i, j;
 
-	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues; i++, tx_que++) {
+	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues;
+	     i++, tx_que++) {
 		struct tx_ring *txr = &tx_que->txr;
 
 		txr->tx_rs_cidx = txr->tx_rs_pidx;
@@ -807,8 +793,9 @@ ixl_init_tx_cidx(struct ixl_vsi *vsi)
 	if_softc_ctx_t scctx = vsi->shared;
 	struct ixl_tx_queue *tx_que;
 	int i;
-	
-	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues; i++, tx_que++) {
+
+	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues;
+	     i++, tx_que++) {
 		struct tx_ring *txr = &tx_que->txr;
 
 		txr->tx_cidx_processed = scctx->isc_ntxd[0] - 1;
@@ -857,35 +844,34 @@ ixl_add_vsi_sysctls(device_t dev, struct ixl_vsi *vsi,
 
 void
 ixl_add_sysctls_eth_stats(struct sysctl_ctx_list *ctx,
-	struct sysctl_oid_list *child,
-	struct i40e_eth_stats *eth_stats)
+    struct sysctl_oid_list *child, struct i40e_eth_stats *eth_stats)
 {
-	struct ixl_sysctl_info ctls[] =
-	{
-		{&eth_stats->rx_bytes, "good_octets_rcvd", "Good Octets Received"},
-		{&eth_stats->rx_unicast, "ucast_pkts_rcvd",
-			"Unicast Packets Received"},
-		{&eth_stats->rx_multicast, "mcast_pkts_rcvd",
-			"Multicast Packets Received"},
-		{&eth_stats->rx_broadcast, "bcast_pkts_rcvd",
-			"Broadcast Packets Received"},
-		{&eth_stats->rx_discards, "rx_discards", "Discarded RX packets"},
-		{&eth_stats->tx_bytes, "good_octets_txd", "Good Octets Transmitted"},
-		{&eth_stats->tx_unicast, "ucast_pkts_txd", "Unicast Packets Transmitted"},
-		{&eth_stats->tx_multicast, "mcast_pkts_txd",
-			"Multicast Packets Transmitted"},
-		{&eth_stats->tx_broadcast, "bcast_pkts_txd",
-			"Broadcast Packets Transmitted"},
+	struct ixl_sysctl_info ctls[] = { { &eth_stats->rx_bytes,
+					      "good_octets_rcvd",
+					      "Good Octets Received" },
+		{ &eth_stats->rx_unicast, "ucast_pkts_rcvd",
+		    "Unicast Packets Received" },
+		{ &eth_stats->rx_multicast, "mcast_pkts_rcvd",
+		    "Multicast Packets Received" },
+		{ &eth_stats->rx_broadcast, "bcast_pkts_rcvd",
+		    "Broadcast Packets Received" },
+		{ &eth_stats->rx_discards, "rx_discards",
+		    "Discarded RX packets" },
+		{ &eth_stats->tx_bytes, "good_octets_txd",
+		    "Good Octets Transmitted" },
+		{ &eth_stats->tx_unicast, "ucast_pkts_txd",
+		    "Unicast Packets Transmitted" },
+		{ &eth_stats->tx_multicast, "mcast_pkts_txd",
+		    "Multicast Packets Transmitted" },
+		{ &eth_stats->tx_broadcast, "bcast_pkts_txd",
+		    "Broadcast Packets Transmitted" },
 		// end
-		{0,0,0}
-	};
+		{ 0, 0, 0 } };
 
 	struct ixl_sysctl_info *entry = ctls;
-	while (entry->stat != 0)
-	{
-		SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, entry->name,
-				CTLFLAG_RD, entry->stat,
-				entry->description);
+	while (entry->stat != 0) {
+		SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, entry->name, CTLFLAG_RD,
+		    entry->stat, entry->description);
 		entry++;
 	}
 }
@@ -908,56 +894,49 @@ ixl_vsi_add_queues_stats(struct ixl_vsi *vsi, struct sysctl_ctx_list *ctx)
 	for (int q = 0; q < vsi->num_rx_queues; q++) {
 		bzero(queue_namebuf, sizeof(queue_namebuf));
 		snprintf(queue_namebuf, sizeof(queue_namebuf), "rxq%02d", q);
-		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list,
-		    OID_AUTO, queue_namebuf, CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    NULL, "RX Queue #");
+		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list, OID_AUTO,
+		    queue_namebuf, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
+		    "RX Queue #");
 		queue_list = SYSCTL_CHILDREN(queue_node);
 
 		rx_que = &(vsi->rx_queues[q]);
 		rxr = &(rx_que->rxr);
 
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "irqs",
-				CTLFLAG_RD, &(rx_que->irqs),
-				"irqs on this queue (both Tx and Rx)");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "irqs", CTLFLAG_RD,
+		    &(rx_que->irqs), "irqs on this queue (both Tx and Rx)");
 
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "packets",
-				CTLFLAG_RD, &(rxr->rx_packets),
-				"Queue Packets Received");
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes",
-				CTLFLAG_RD, &(rxr->rx_bytes),
-				"Queue Bytes Received");
+		    CTLFLAG_RD, &(rxr->rx_packets), "Queue Packets Received");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes", CTLFLAG_RD,
+		    &(rxr->rx_bytes), "Queue Bytes Received");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "desc_err",
-				CTLFLAG_RD, &(rxr->desc_errs),
-				"Queue Rx Descriptor Errors");
-		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr",
-				CTLFLAG_RD, &(rxr->itr), 0,
-				"Queue Rx ITR Interval");
+		    CTLFLAG_RD, &(rxr->desc_errs),
+		    "Queue Rx Descriptor Errors");
+		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr", CTLFLAG_RD,
+		    &(rxr->itr), 0, "Queue Rx ITR Interval");
 	}
 	for (int q = 0; q < vsi->num_tx_queues; q++) {
 		bzero(queue_namebuf, sizeof(queue_namebuf));
 		snprintf(queue_namebuf, sizeof(queue_namebuf), "txq%02d", q);
-		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list,
-		    OID_AUTO, queue_namebuf, CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    NULL, "TX Queue #");
+		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list, OID_AUTO,
+		    queue_namebuf, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
+		    "TX Queue #");
 		queue_list = SYSCTL_CHILDREN(queue_node);
 
 		tx_que = &(vsi->tx_queues[q]);
 		txr = &(tx_que->txr);
 
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "tso",
-				CTLFLAG_RD, &(tx_que->tso),
-				"TSO");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "tso", CTLFLAG_RD,
+		    &(tx_que->tso), "TSO");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "mss_too_small",
-				CTLFLAG_RD, &(txr->mss_too_small),
-				"TSO sends with an MSS less than 64");
+		    CTLFLAG_RD, &(txr->mss_too_small),
+		    "TSO sends with an MSS less than 64");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "packets",
-				CTLFLAG_RD, &(txr->tx_packets),
-				"Queue Packets Transmitted");
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes",
-				CTLFLAG_RD, &(txr->tx_bytes),
-				"Queue Bytes Transmitted");
-		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr",
-				CTLFLAG_RD, &(txr->itr), 0,
-				"Queue Tx ITR Interval");
+		    CTLFLAG_RD, &(txr->tx_packets),
+		    "Queue Packets Transmitted");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes", CTLFLAG_RD,
+		    &(txr->tx_bytes), "Queue Bytes Transmitted");
+		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr", CTLFLAG_RD,
+		    &(txr->itr), 0, "Queue Tx ITR Interval");
 	}
 }

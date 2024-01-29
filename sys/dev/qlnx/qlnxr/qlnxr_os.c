@@ -29,6 +29,7 @@
  * File: qlnxr_os.c
  */
 #include <sys/cdefs.h>
+
 #include "qlnxr_def.h"
 
 SYSCTL_NODE(_dev, OID_AUTO, qnxr, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -36,71 +37,66 @@ SYSCTL_NODE(_dev, OID_AUTO, qnxr, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 
 uint32_t delayed_ack = 0;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, delayed_ack, CTLFLAG_RW, &delayed_ack, 1,
-	"iWARP: Delayed Ack: 0 - Disabled 1 - Enabled. Default: Disabled");
+    "iWARP: Delayed Ack: 0 - Disabled 1 - Enabled. Default: Disabled");
 
 uint32_t timestamp = 1;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, timestamp, CTLFLAG_RW, &timestamp, 1,
-	"iWARP: Timestamp: 0 - Disabled 1 - Enabled. Default:Enabled");
+    "iWARP: Timestamp: 0 - Disabled 1 - Enabled. Default:Enabled");
 
 uint32_t rcv_wnd_size = 0;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, rcv_wnd_size, CTLFLAG_RW, &rcv_wnd_size, 1,
-	"iWARP: Receive Window Size in K. Default 1M");
+    "iWARP: Receive Window Size in K. Default 1M");
 
 uint32_t crc_needed = 1;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, crc_needed, CTLFLAG_RW, &crc_needed, 1,
-	"iWARP: CRC needed 0 - Disabled 1 - Enabled. Default:Enabled");
+    "iWARP: CRC needed 0 - Disabled 1 - Enabled. Default:Enabled");
 
 uint32_t peer2peer = 1;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, peer2peer, CTLFLAG_RW, &peer2peer, 1,
-	"iWARP: Support peer2peer ULPs 0 - Disabled 1 - Enabled. Default:Enabled");
+    "iWARP: Support peer2peer ULPs 0 - Disabled 1 - Enabled. Default:Enabled");
 
 uint32_t mpa_enhanced = 1;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, mpa_enhanced, CTLFLAG_RW, &mpa_enhanced, 1,
-	"iWARP: MPA Enhanced mode. Default:1");
+    "iWARP: MPA Enhanced mode. Default:1");
 
 uint32_t rtr_type = 7;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, rtr_type, CTLFLAG_RW, &rtr_type, 1,
-	"iWARP: RDMAP opcode to use for the RTR message: BITMAP 1: RDMA_SEND 2: RDMA_WRITE 4: RDMA_READ. Default: 7");
+    "iWARP: RDMAP opcode to use for the RTR message: BITMAP 1: RDMA_SEND 2: RDMA_WRITE 4: RDMA_READ. Default: 7");
 
-#define QNXR_WQ_MULTIPLIER_MIN  (1)
-#define QNXR_WQ_MULTIPLIER_MAX  (7)
-#define QNXR_WQ_MULTIPLIER_DFT  (3)
+#define QNXR_WQ_MULTIPLIER_MIN (1)
+#define QNXR_WQ_MULTIPLIER_MAX (7)
+#define QNXR_WQ_MULTIPLIER_DFT (3)
 
-uint32_t wq_multiplier= QNXR_WQ_MULTIPLIER_DFT;
+uint32_t wq_multiplier = QNXR_WQ_MULTIPLIER_DFT;
 SYSCTL_UINT(_dev_qnxr, OID_AUTO, wq_multiplier, CTLFLAG_RW, &wq_multiplier, 1,
-	" When creating a WQ the actual number of WQE created will"
-	" be multiplied by this number (default is 3).");
+    " When creating a WQ the actual number of WQE created will"
+    " be multiplied by this number (default is 3).");
 static ssize_t
-show_rev(struct device *device, struct device_attribute *attr,
-	char *buf)
-{
-        struct qlnxr_dev *dev = dev_get_drvdata(device);
-
-        return sprintf(buf, "0x%x\n", dev->cdev->vendor_id);
-}
-
-static ssize_t
-show_hca_type(struct device *device,
-	struct device_attribute *attr, char *buf)
+show_rev(struct device *device, struct device_attribute *attr, char *buf)
 {
 	struct qlnxr_dev *dev = dev_get_drvdata(device);
-        return sprintf(buf, "QLogic0x%x\n", dev->cdev->device_id);
+
+	return sprintf(buf, "0x%x\n", dev->cdev->vendor_id);
 }
 
 static ssize_t
-show_fw_ver(struct device *device,
-	struct device_attribute *attr, char *buf)
+show_hca_type(struct device *device, struct device_attribute *attr, char *buf)
 {
 	struct qlnxr_dev *dev = dev_get_drvdata(device);
-	uint32_t fw_ver = (uint32_t) dev->attr.fw_ver;
+	return sprintf(buf, "QLogic0x%x\n", dev->cdev->device_id);
+}
 
-	return sprintf(buf, "%d.%d.%d\n",
-		       (fw_ver >> 24) & 0xff, (fw_ver >> 16) & 0xff,
-		       (fw_ver >> 8) & 0xff);
+static ssize_t
+show_fw_ver(struct device *device, struct device_attribute *attr, char *buf)
+{
+	struct qlnxr_dev *dev = dev_get_drvdata(device);
+	uint32_t fw_ver = (uint32_t)dev->attr.fw_ver;
+
+	return sprintf(buf, "%d.%d.%d\n", (fw_ver >> 24) & 0xff,
+	    (fw_ver >> 16) & 0xff, (fw_ver >> 8) & 0xff);
 }
 static ssize_t
-show_board(struct device *device,
-	struct device_attribute *attr, char *buf)
+show_board(struct device *device, struct device_attribute *attr, char *buf)
 {
 	struct qlnxr_dev *dev = dev_get_drvdata(device);
 	return sprintf(buf, "%x\n", dev->cdev->device_id);
@@ -111,26 +107,22 @@ static DEVICE_ATTR(hca_type, S_IRUGO, show_hca_type, NULL);
 static DEVICE_ATTR(fw_ver, S_IRUGO, show_fw_ver, NULL);
 static DEVICE_ATTR(board_id, S_IRUGO, show_board, NULL);
 
-static struct device_attribute *qlnxr_class_attributes[] = {
-	&dev_attr_hw_rev,
-	&dev_attr_hca_type,
-	&dev_attr_fw_ver,
-	&dev_attr_board_id
-};
+static struct device_attribute *qlnxr_class_attributes[] = { &dev_attr_hw_rev,
+	&dev_attr_hca_type, &dev_attr_fw_ver, &dev_attr_board_id };
 
 static void
 qlnxr_ib_dispatch_event(qlnxr_dev_t *dev, uint8_t port_num,
-	enum ib_event_type type)
+    enum ib_event_type type)
 {
-        struct ib_event ibev;
+	struct ib_event ibev;
 
 	QL_DPRINT12(dev->ha, "enter\n");
 
-        ibev.device = &dev->ibdev;
-        ibev.element.port_num = port_num;
-        ibev.event = type;
+	ibev.device = &dev->ibdev;
+	ibev.element.port_num = port_num;
+	ibev.event = type;
 
-        ib_dispatch_event(&ibev);
+	ib_dispatch_event(&ibev);
 
 	QL_DPRINT12(dev->ha, "exit\n");
 }
@@ -172,188 +164,191 @@ qlnxr_register_device(qlnxr_dev_t *dev)
 	ibdev->uverbs_abi_ver = 7;
 	ibdev->local_dma_lkey = 0;
 
-	ibdev->uverbs_cmd_mask =
-		(1ull << IB_USER_VERBS_CMD_GET_CONTEXT) |
-		(1ull << IB_USER_VERBS_CMD_QUERY_DEVICE) |
-		(1ull << IB_USER_VERBS_CMD_QUERY_PORT) |
-		(1ull << IB_USER_VERBS_CMD_ALLOC_PD) |
-		(1ull << IB_USER_VERBS_CMD_DEALLOC_PD) |
-		(1ull << IB_USER_VERBS_CMD_REG_MR) |
-		(1ull << IB_USER_VERBS_CMD_DEREG_MR) |
-		(1ull << IB_USER_VERBS_CMD_CREATE_COMP_CHANNEL) |
-		(1ull << IB_USER_VERBS_CMD_CREATE_CQ) |
-		(1ull << IB_USER_VERBS_CMD_DESTROY_CQ) |
-		(1ull << IB_USER_VERBS_CMD_REQ_NOTIFY_CQ) |
-		(1ull << IB_USER_VERBS_CMD_CREATE_QP) |
-		(1ull << IB_USER_VERBS_CMD_MODIFY_QP) |
-		(1ull << IB_USER_VERBS_CMD_QUERY_QP) |
-		(1ull << IB_USER_VERBS_CMD_DESTROY_QP) |
-		(1ull << IB_USER_VERBS_CMD_POLL_CQ) |
-		(1ull << IB_USER_VERBS_CMD_POST_SEND) |
-		(1ull << IB_USER_VERBS_CMD_POST_RECV);
+	ibdev->uverbs_cmd_mask = (1ull << IB_USER_VERBS_CMD_GET_CONTEXT) |
+	    (1ull << IB_USER_VERBS_CMD_QUERY_DEVICE) |
+	    (1ull << IB_USER_VERBS_CMD_QUERY_PORT) |
+	    (1ull << IB_USER_VERBS_CMD_ALLOC_PD) |
+	    (1ull << IB_USER_VERBS_CMD_DEALLOC_PD) |
+	    (1ull << IB_USER_VERBS_CMD_REG_MR) |
+	    (1ull << IB_USER_VERBS_CMD_DEREG_MR) |
+	    (1ull << IB_USER_VERBS_CMD_CREATE_COMP_CHANNEL) |
+	    (1ull << IB_USER_VERBS_CMD_CREATE_CQ) |
+	    (1ull << IB_USER_VERBS_CMD_DESTROY_CQ) |
+	    (1ull << IB_USER_VERBS_CMD_REQ_NOTIFY_CQ) |
+	    (1ull << IB_USER_VERBS_CMD_CREATE_QP) |
+	    (1ull << IB_USER_VERBS_CMD_MODIFY_QP) |
+	    (1ull << IB_USER_VERBS_CMD_QUERY_QP) |
+	    (1ull << IB_USER_VERBS_CMD_DESTROY_QP) |
+	    (1ull << IB_USER_VERBS_CMD_POLL_CQ) |
+	    (1ull << IB_USER_VERBS_CMD_POST_SEND) |
+	    (1ull << IB_USER_VERBS_CMD_POST_RECV);
 
-        if (QLNX_IS_IWARP(dev)) {
-                ibdev->node_type = RDMA_NODE_RNIC;
-                ibdev->query_gid = qlnxr_iw_query_gid;
-        } else {
-                ibdev->node_type = RDMA_NODE_IB_CA;
-                ibdev->query_gid = qlnxr_query_gid;
-                ibdev->uverbs_cmd_mask |=
-			(1ull << IB_USER_VERBS_CMD_CREATE_SRQ) |
-			(1ull << IB_USER_VERBS_CMD_DESTROY_SRQ) |
-			(1ull << IB_USER_VERBS_CMD_QUERY_SRQ) |
-			(1ull << IB_USER_VERBS_CMD_MODIFY_SRQ) |
-			(1ull << IB_USER_VERBS_CMD_POST_SRQ_RECV);
-                ibdev->create_srq = qlnxr_create_srq;
-                ibdev->destroy_srq = qlnxr_destroy_srq;
-                ibdev->modify_srq = qlnxr_modify_srq;
-                ibdev->query_srq = qlnxr_query_srq;
-                ibdev->post_srq_recv = qlnxr_post_srq_recv;
-        }
+	if (QLNX_IS_IWARP(dev)) {
+		ibdev->node_type = RDMA_NODE_RNIC;
+		ibdev->query_gid = qlnxr_iw_query_gid;
+	} else {
+		ibdev->node_type = RDMA_NODE_IB_CA;
+		ibdev->query_gid = qlnxr_query_gid;
+		ibdev->uverbs_cmd_mask |= (1ull
+					      << IB_USER_VERBS_CMD_CREATE_SRQ) |
+		    (1ull << IB_USER_VERBS_CMD_DESTROY_SRQ) |
+		    (1ull << IB_USER_VERBS_CMD_QUERY_SRQ) |
+		    (1ull << IB_USER_VERBS_CMD_MODIFY_SRQ) |
+		    (1ull << IB_USER_VERBS_CMD_POST_SRQ_RECV);
+		ibdev->create_srq = qlnxr_create_srq;
+		ibdev->destroy_srq = qlnxr_destroy_srq;
+		ibdev->modify_srq = qlnxr_modify_srq;
+		ibdev->query_srq = qlnxr_query_srq;
+		ibdev->post_srq_recv = qlnxr_post_srq_recv;
+	}
 
 	ibdev->phys_port_cnt = 1;
 	ibdev->num_comp_vectors = dev->num_cnq;
 
-        /* mandatory verbs. */
-        ibdev->query_device = qlnxr_query_device;
-        ibdev->query_port = qlnxr_query_port;
-        ibdev->modify_port = qlnxr_modify_port;
-        
+	/* mandatory verbs. */
+	ibdev->query_device = qlnxr_query_device;
+	ibdev->query_port = qlnxr_query_port;
+	ibdev->modify_port = qlnxr_modify_port;
+
 	ibdev->alloc_ucontext = qlnxr_alloc_ucontext;
 	ibdev->dealloc_ucontext = qlnxr_dealloc_ucontext;
-        /* mandatory to support user space verbs consumer. */
-        ibdev->mmap = qlnxr_mmap;
+	/* mandatory to support user space verbs consumer. */
+	ibdev->mmap = qlnxr_mmap;
 
-        ibdev->alloc_pd = qlnxr_alloc_pd;
-        ibdev->dealloc_pd = qlnxr_dealloc_pd;
+	ibdev->alloc_pd = qlnxr_alloc_pd;
+	ibdev->dealloc_pd = qlnxr_dealloc_pd;
 
-        ibdev->create_cq = qlnxr_create_cq;
-        ibdev->destroy_cq = qlnxr_destroy_cq;
-        ibdev->resize_cq = qlnxr_resize_cq;
-        ibdev->req_notify_cq = qlnxr_arm_cq;
+	ibdev->create_cq = qlnxr_create_cq;
+	ibdev->destroy_cq = qlnxr_destroy_cq;
+	ibdev->resize_cq = qlnxr_resize_cq;
+	ibdev->req_notify_cq = qlnxr_arm_cq;
 
-        ibdev->create_qp = qlnxr_create_qp;
-        ibdev->modify_qp = qlnxr_modify_qp;
-        ibdev->query_qp = qlnxr_query_qp;
-        ibdev->destroy_qp = qlnxr_destroy_qp;
+	ibdev->create_qp = qlnxr_create_qp;
+	ibdev->modify_qp = qlnxr_modify_qp;
+	ibdev->query_qp = qlnxr_query_qp;
+	ibdev->destroy_qp = qlnxr_destroy_qp;
 
-        ibdev->query_pkey = qlnxr_query_pkey;
-        ibdev->create_ah = qlnxr_create_ah;
-        ibdev->destroy_ah = qlnxr_destroy_ah;
-        ibdev->query_ah = qlnxr_query_ah;
-        ibdev->modify_ah = qlnxr_modify_ah;
-        ibdev->get_dma_mr = qlnxr_get_dma_mr;
-        ibdev->dereg_mr = qlnxr_dereg_mr;
-        ibdev->reg_user_mr = qlnxr_reg_user_mr;
-        
+	ibdev->query_pkey = qlnxr_query_pkey;
+	ibdev->create_ah = qlnxr_create_ah;
+	ibdev->destroy_ah = qlnxr_destroy_ah;
+	ibdev->query_ah = qlnxr_query_ah;
+	ibdev->modify_ah = qlnxr_modify_ah;
+	ibdev->get_dma_mr = qlnxr_get_dma_mr;
+	ibdev->dereg_mr = qlnxr_dereg_mr;
+	ibdev->reg_user_mr = qlnxr_reg_user_mr;
+
 	ibdev->alloc_mr = qlnxr_alloc_mr;
 	ibdev->map_mr_sg = qlnxr_map_mr_sg;
 	ibdev->get_port_immutable = qlnxr_get_port_immutable;
 
-        ibdev->poll_cq = qlnxr_poll_cq;
-        ibdev->post_send = qlnxr_post_send;
-        ibdev->post_recv = qlnxr_post_recv;
+	ibdev->poll_cq = qlnxr_poll_cq;
+	ibdev->post_send = qlnxr_post_send;
+	ibdev->post_recv = qlnxr_post_recv;
 	ibdev->process_mad = qlnxr_process_mad;
 
 	ibdev->dma_device = &dev->pdev.dev;
 
 	ibdev->get_link_layer = qlnxr_link_layer;
-        
+
 	if (QLNX_IS_IWARP(dev)) {
-                iwcm = kmalloc(sizeof(*iwcm), GFP_KERNEL);
+		iwcm = kmalloc(sizeof(*iwcm), GFP_KERNEL);
 
 		device_printf(dev->ha->pci_dev, "device is IWARP\n");
 		if (iwcm == NULL)
 			return (-ENOMEM);
 
-                ibdev->iwcm = iwcm;
+		ibdev->iwcm = iwcm;
 
-                iwcm->connect = qlnxr_iw_connect;
-                iwcm->accept = qlnxr_iw_accept;
-                iwcm->reject = qlnxr_iw_reject;
+		iwcm->connect = qlnxr_iw_connect;
+		iwcm->accept = qlnxr_iw_accept;
+		iwcm->reject = qlnxr_iw_reject;
 
-                iwcm->create_listen = qlnxr_iw_create_listen;
-                iwcm->destroy_listen = __qlnxr_iw_destroy_listen;
+		iwcm->create_listen = qlnxr_iw_create_listen;
+		iwcm->destroy_listen = __qlnxr_iw_destroy_listen;
 
-                iwcm->add_ref = qlnxr_iw_qp_add_ref;
-                iwcm->rem_ref = qlnxr_iw_qp_rem_ref;
-                iwcm->get_qp = qlnxr_iw_get_qp;
-        }
+		iwcm->add_ref = qlnxr_iw_qp_add_ref;
+		iwcm->rem_ref = qlnxr_iw_qp_rem_ref;
+		iwcm->get_qp = qlnxr_iw_get_qp;
+	}
 
-        ret = ib_register_device(ibdev, NULL);
+	ret = ib_register_device(ibdev, NULL);
 	if (ret) {
 		kfree(iwcm);
 	}
 
 	QL_DPRINT12(dev->ha, "exit\n");
-        return ret;
+	return ret;
 }
 
-#define HILO_U64(hi, lo)                ((((u64)(hi)) << 32) + (lo))
+#define HILO_U64(hi, lo) ((((u64)(hi)) << 32) + (lo))
 
 static void
 qlnxr_intr(void *handle)
 {
-        struct qlnxr_cnq *cnq = handle;
-        struct qlnxr_cq *cq;
-        struct regpair *cq_handle;
-        u16 hw_comp_cons, sw_comp_cons;
+	struct qlnxr_cnq *cnq = handle;
+	struct qlnxr_cq *cq;
+	struct regpair *cq_handle;
+	u16 hw_comp_cons, sw_comp_cons;
 	qlnx_host_t *ha;
 
 	ha = cnq->dev->ha;
 
 	QL_DPRINT12(ha, "enter cnq = %p\n", handle);
 
-        ecore_sb_ack(cnq->sb, IGU_INT_DISABLE, 0 /*do not update*/);
+	ecore_sb_ack(cnq->sb, IGU_INT_DISABLE, 0 /*do not update*/);
 
-        ecore_sb_update_sb_idx(cnq->sb);
+	ecore_sb_update_sb_idx(cnq->sb);
 
-        hw_comp_cons = le16_to_cpu(*cnq->hw_cons_ptr);
-        sw_comp_cons = ecore_chain_get_cons_idx(&cnq->pbl);
+	hw_comp_cons = le16_to_cpu(*cnq->hw_cons_ptr);
+	sw_comp_cons = ecore_chain_get_cons_idx(&cnq->pbl);
 
-        rmb();
+	rmb();
 
-	QL_DPRINT12(ha, "enter cnq = %p hw_comp_cons = 0x%x sw_comp_cons = 0x%x\n",
-		handle, hw_comp_cons, sw_comp_cons);
+	QL_DPRINT12(ha,
+	    "enter cnq = %p hw_comp_cons = 0x%x sw_comp_cons = 0x%x\n", handle,
+	    hw_comp_cons, sw_comp_cons);
 
-        while (sw_comp_cons != hw_comp_cons) {
-                cq_handle = (struct regpair *)ecore_chain_consume(&cnq->pbl);
-                cq = (struct qlnxr_cq *)(uintptr_t)HILO_U64(cq_handle->hi,
-                                cq_handle->lo);
+	while (sw_comp_cons != hw_comp_cons) {
+		cq_handle = (struct regpair *)ecore_chain_consume(&cnq->pbl);
+		cq = (struct qlnxr_cq *)(uintptr_t)HILO_U64(cq_handle->hi,
+		    cq_handle->lo);
 
-                if (cq == NULL) {
+		if (cq == NULL) {
 			QL_DPRINT11(ha, "cq == NULL\n");
-                        break;
-                }
+			break;
+		}
 
-                if (cq->sig != QLNXR_CQ_MAGIC_NUMBER) {
+		if (cq->sig != QLNXR_CQ_MAGIC_NUMBER) {
 			QL_DPRINT11(ha,
-				"cq->sig = 0x%x QLNXR_CQ_MAGIC_NUMBER = 0x%x\n",
-				cq->sig, QLNXR_CQ_MAGIC_NUMBER);
-                        break;
-                }
-                cq->arm_flags = 0;
+			    "cq->sig = 0x%x QLNXR_CQ_MAGIC_NUMBER = 0x%x\n",
+			    cq->sig, QLNXR_CQ_MAGIC_NUMBER);
+			break;
+		}
+		cq->arm_flags = 0;
 
-                if (!cq->destroyed && cq->ibcq.comp_handler) {
-			QL_DPRINT11(ha, "calling comp_handler = %p "
-				"ibcq = %p cq_context = 0x%x\n",
-				&cq->ibcq, cq->ibcq.cq_context);
+		if (!cq->destroyed && cq->ibcq.comp_handler) {
+			QL_DPRINT11(ha,
+			    "calling comp_handler = %p "
+			    "ibcq = %p cq_context = 0x%x\n",
+			    &cq->ibcq, cq->ibcq.cq_context);
 
-                        (*cq->ibcq.comp_handler) (&cq->ibcq, cq->ibcq.cq_context);
-                }
+			(*cq->ibcq.comp_handler)(&cq->ibcq,
+			    cq->ibcq.cq_context);
+		}
 		cq->cnq_notif++;
 
-                sw_comp_cons = ecore_chain_get_cons_idx(&cnq->pbl);
+		sw_comp_cons = ecore_chain_get_cons_idx(&cnq->pbl);
 
-                cnq->n_comp++;
-        }
+		cnq->n_comp++;
+	}
 
-        ecore_rdma_cnq_prod_update(cnq->dev->rdma_ctx, cnq->index, sw_comp_cons);
+	ecore_rdma_cnq_prod_update(cnq->dev->rdma_ctx, cnq->index,
+	    sw_comp_cons);
 
-        ecore_sb_ack(cnq->sb, IGU_INT_ENABLE, 1 /*update*/);
+	ecore_sb_ack(cnq->sb, IGU_INT_ENABLE, 1 /*update*/);
 
 	QL_DPRINT12(ha, "exit cnq = %p\n", handle);
-        return;
+	return;
 }
 
 static void
@@ -366,17 +361,16 @@ qlnxr_release_irqs(struct qlnxr_dev *dev)
 
 	QL_DPRINT12(ha, "enter\n");
 
-        for (i = 0; i < dev->num_cnq; i++) {
-                if (dev->cnq_array[i].irq_handle)
-                        (void)bus_teardown_intr(dev->ha->pci_dev,
-				dev->cnq_array[i].irq,
-                                dev->cnq_array[i].irq_handle);
+	for (i = 0; i < dev->num_cnq; i++) {
+		if (dev->cnq_array[i].irq_handle)
+			(void)bus_teardown_intr(dev->ha->pci_dev,
+			    dev->cnq_array[i].irq,
+			    dev->cnq_array[i].irq_handle);
 
-                if (dev->cnq_array[i].irq)
-                        (void) bus_release_resource(dev->ha->pci_dev,
-				SYS_RES_IRQ,
-                                dev->cnq_array[i].irq_rid,
-				dev->cnq_array[i].irq);
+		if (dev->cnq_array[i].irq)
+			(void)bus_release_resource(dev->ha->pci_dev,
+			    SYS_RES_IRQ, dev->cnq_array[i].irq_rid,
+			    dev->cnq_array[i].irq);
 	}
 	QL_DPRINT12(ha, "exit\n");
 	return;
@@ -394,35 +388,32 @@ qlnxr_setup_irqs(struct qlnxr_dev *dev)
 	start_irq_rid = dev->sb_start + 2;
 
 	QL_DPRINT12(ha, "enter start_irq_rid = %d num_rss = %d\n",
-		start_irq_rid, dev->ha->num_rss);
+	    start_irq_rid, dev->ha->num_rss);
 
-        for (i = 0; i < dev->num_cnq; i++) {
+	for (i = 0; i < dev->num_cnq; i++) {
 		dev->cnq_array[i].irq_rid = start_irq_rid + i;
 
 		dev->cnq_array[i].irq = bus_alloc_resource_any(dev->ha->pci_dev,
-						SYS_RES_IRQ,
-						&dev->cnq_array[i].irq_rid,
-						(RF_ACTIVE | RF_SHAREABLE));
+		    SYS_RES_IRQ, &dev->cnq_array[i].irq_rid,
+		    (RF_ACTIVE | RF_SHAREABLE));
 
 		if (dev->cnq_array[i].irq == NULL) {
 			QL_DPRINT11(ha,
-				"bus_alloc_resource_any failed irq_rid = %d\n",
-				dev->cnq_array[i].irq_rid);
+			    "bus_alloc_resource_any failed irq_rid = %d\n",
+			    dev->cnq_array[i].irq_rid);
 
 			goto qlnxr_setup_irqs_err;
 		}
-			
-                if (bus_setup_intr(dev->ha->pci_dev,
-                                dev->cnq_array[i].irq,
-                                (INTR_TYPE_NET | INTR_MPSAFE),
-                                NULL, qlnxr_intr, &dev->cnq_array[i],
-				&dev->cnq_array[i].irq_handle)) {
+
+		if (bus_setup_intr(dev->ha->pci_dev, dev->cnq_array[i].irq,
+			(INTR_TYPE_NET | INTR_MPSAFE), NULL, qlnxr_intr,
+			&dev->cnq_array[i], &dev->cnq_array[i].irq_handle)) {
 			QL_DPRINT11(ha, "bus_setup_intr failed\n");
 			goto qlnxr_setup_irqs_err;
-                }
+		}
 		QL_DPRINT12(ha, "irq_rid = %d irq = %p irq_handle = %p\n",
-			dev->cnq_array[i].irq_rid, dev->cnq_array[i].irq,
-			dev->cnq_array[i].irq_handle);
+		    dev->cnq_array[i].irq_rid, dev->cnq_array[i].irq,
+		    dev->cnq_array[i].irq_handle);
 	}
 
 	QL_DPRINT12(ha, "exit\n");
@@ -438,7 +429,7 @@ qlnxr_setup_irqs_err:
 static void
 qlnxr_free_resources(struct qlnxr_dev *dev)
 {
-        int i;
+	int i;
 	qlnx_host_t *ha;
 
 	ha = dev->ha;
@@ -450,10 +441,10 @@ qlnxr_free_resources(struct qlnxr_dev *dev)
 			destroy_workqueue(dev->iwarp_wq);
 	}
 
-        for (i = 0; i < dev->num_cnq; i++) {
-                qlnx_free_mem_sb(dev->ha, &dev->sb_array[i]);
-                ecore_chain_free(&dev->ha->cdev, &dev->cnq_array[i].pbl);
-        }
+	for (i = 0; i < dev->num_cnq; i++) {
+		qlnx_free_mem_sb(dev->ha, &dev->sb_array[i]);
+		ecore_chain_free(&dev->ha->cdev, &dev->cnq_array[i].pbl);
+	}
 
 	bzero(dev->cnq_array, (sizeof(struct qlnxr_cnq) * QLNXR_MAX_MSIX));
 	bzero(dev->sb_array, (sizeof(struct ecore_sb_info) * QLNXR_MAX_MSIX));
@@ -478,85 +469,83 @@ qlnxr_alloc_resources(struct qlnxr_dev *dev)
 
 	ha = dev->ha;
 
-        QL_DPRINT12(ha, "enter\n");
+	QL_DPRINT12(ha, "enter\n");
 
-        bzero(dev->sgid_tbl, (sizeof (union ib_gid) * QLNXR_MAX_SGID));
+	bzero(dev->sgid_tbl, (sizeof(union ib_gid) * QLNXR_MAX_SGID));
 
-        mtx_init(&dev->idr_lock, "idr_lock", NULL, MTX_DEF);
-        mtx_init(&dev->sgid_lock, "sgid_lock", NULL, MTX_DEF);
+	mtx_init(&dev->idr_lock, "idr_lock", NULL, MTX_DEF);
+	mtx_init(&dev->sgid_lock, "sgid_lock", NULL, MTX_DEF);
 
-        idr_init(&dev->qpidr);
+	idr_init(&dev->qpidr);
 
-        bzero(dev->sb_array, (sizeof (struct ecore_sb_info) * QLNXR_MAX_MSIX));
-        bzero(dev->cnq_array, (sizeof (struct qlnxr_cnq) * QLNXR_MAX_MSIX));
+	bzero(dev->sb_array, (sizeof(struct ecore_sb_info) * QLNXR_MAX_MSIX));
+	bzero(dev->cnq_array, (sizeof(struct qlnxr_cnq) * QLNXR_MAX_MSIX));
 
-        dev->sb_start = ecore_rdma_get_sb_id(dev->rdma_ctx, 0);
+	dev->sb_start = ecore_rdma_get_sb_id(dev->rdma_ctx, 0);
 
-        QL_DPRINT12(ha, "dev->sb_start = 0x%x\n", dev->sb_start);
+	QL_DPRINT12(ha, "dev->sb_start = 0x%x\n", dev->sb_start);
 
-        /* Allocate CNQ PBLs */
+	/* Allocate CNQ PBLs */
 
-        n_entries = min_t(u32, ECORE_RDMA_MAX_CNQ_SIZE, QLNXR_ROCE_MAX_CNQ_SIZE);
+	n_entries = min_t(u32, ECORE_RDMA_MAX_CNQ_SIZE,
+	    QLNXR_ROCE_MAX_CNQ_SIZE);
 
-        for (i = 0; i < dev->num_cnq; i++) {
-                rc = qlnx_alloc_mem_sb(dev->ha, &dev->sb_array[i],
-                                       dev->sb_start + i);
-                if (rc)
-                        goto qlnxr_alloc_resources_exit;
+	for (i = 0; i < dev->num_cnq; i++) {
+		rc = qlnx_alloc_mem_sb(dev->ha, &dev->sb_array[i],
+		    dev->sb_start + i);
+		if (rc)
+			goto qlnxr_alloc_resources_exit;
 
-                rc = ecore_chain_alloc(&dev->ha->cdev,
-                                ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-                                ECORE_CHAIN_MODE_PBL,
-                                ECORE_CHAIN_CNT_TYPE_U16,
-                                n_entries,
-                                sizeof(struct regpair *),
-                                &dev->cnq_array[i].pbl,
-                                NULL);
+		rc = ecore_chain_alloc(&dev->ha->cdev,
+		    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_PBL,
+		    ECORE_CHAIN_CNT_TYPE_U16, n_entries,
+		    sizeof(struct regpair *), &dev->cnq_array[i].pbl, NULL);
 
-                /* configure cnq, except name since ibdev.name is still NULL */
-                dev->cnq_array[i].dev = dev;
-                dev->cnq_array[i].sb = &dev->sb_array[i];
-                dev->cnq_array[i].hw_cons_ptr =
-                        &(dev->sb_array[i].sb_virt->pi_array[ECORE_ROCE_PROTOCOL_INDEX]);
-                dev->cnq_array[i].index = i;
-                sprintf(dev->cnq_array[i].name, "qlnxr%d@pci:%d",
-                        i, (dev->ha->pci_func));
-        }
+		/* configure cnq, except name since ibdev.name is still NULL */
+		dev->cnq_array[i].dev = dev;
+		dev->cnq_array[i].sb = &dev->sb_array[i];
+		dev->cnq_array[i].hw_cons_ptr = &(
+		    dev->sb_array[i]
+			.sb_virt->pi_array[ECORE_ROCE_PROTOCOL_INDEX]);
+		dev->cnq_array[i].index = i;
+		sprintf(dev->cnq_array[i].name, "qlnxr%d@pci:%d", i,
+		    (dev->ha->pci_func));
+	}
 
 	QL_DPRINT12(ha, "exit\n");
-        return 0;
+	return 0;
 
 qlnxr_alloc_resources_exit:
 
 	qlnxr_free_resources(dev);
 
 	QL_DPRINT12(ha, "exit -ENOMEM\n");
-        return -ENOMEM;
+	return -ENOMEM;
 }
 
 void
 qlnxr_affiliated_event(void *context, u8 e_code, void *fw_handle)
 {
-#define EVENT_TYPE_NOT_DEFINED  0
-#define EVENT_TYPE_CQ           1
-#define EVENT_TYPE_QP           2
-#define EVENT_TYPE_GENERAL      3
+#define EVENT_TYPE_NOT_DEFINED 0
+#define EVENT_TYPE_CQ 1
+#define EVENT_TYPE_QP 2
+#define EVENT_TYPE_GENERAL 3
 
-        struct qlnxr_dev *dev = (struct qlnxr_dev *)context;
-        struct regpair *async_handle = (struct regpair *)fw_handle;
-        u64 roceHandle64 = ((u64)async_handle->hi << 32) + async_handle->lo;
-        struct qlnxr_cq *cq =  (struct qlnxr_cq *)(uintptr_t)roceHandle64;
-        struct qlnxr_qp *qp =  (struct qlnxr_qp *)(uintptr_t)roceHandle64;
-        u8 event_type = EVENT_TYPE_NOT_DEFINED;
-        struct ib_event event;
+	struct qlnxr_dev *dev = (struct qlnxr_dev *)context;
+	struct regpair *async_handle = (struct regpair *)fw_handle;
+	u64 roceHandle64 = ((u64)async_handle->hi << 32) + async_handle->lo;
+	struct qlnxr_cq *cq = (struct qlnxr_cq *)(uintptr_t)roceHandle64;
+	struct qlnxr_qp *qp = (struct qlnxr_qp *)(uintptr_t)roceHandle64;
+	u8 event_type = EVENT_TYPE_NOT_DEFINED;
+	struct ib_event event;
 	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter context = %p e_code = 0x%x fw_handle = %p\n",
-		context, e_code, fw_handle);
+	    context, e_code, fw_handle);
 
-        if (QLNX_IS_IWARP(dev)) {
+	if (QLNX_IS_IWARP(dev)) {
 		switch (e_code) {
 		case ECORE_IWARP_EVENT_CQ_OVERFLOW:
 			event.event = IB_EVENT_CQ_ERR;
@@ -564,12 +553,11 @@ qlnxr_affiliated_event(void *context, u8 e_code, void *fw_handle)
 			break;
 
 		default:
-			QL_DPRINT12(ha,
-				"unsupported event %d on handle=%llx\n",
-				e_code, roceHandle64);
+			QL_DPRINT12(ha, "unsupported event %d on handle=%llx\n",
+			    e_code, roceHandle64);
 			break;
 		}
-        } else {
+	} else {
 		switch (e_code) {
 		case ROCE_ASYNC_EVENT_CQ_OVERFLOW_ERR:
 			event.event = IB_EVENT_CQ_ERR;
@@ -607,55 +595,55 @@ qlnxr_affiliated_event(void *context, u8 e_code, void *fw_handle)
 		 */
 		default:
 			QL_DPRINT12(ha,
-				"unsupported event 0x%x on fw_handle = %p\n",
-				e_code, fw_handle);
+			    "unsupported event 0x%x on fw_handle = %p\n",
+			    e_code, fw_handle);
 			break;
 		}
 	}
 
-        switch (event_type) {
-        case EVENT_TYPE_CQ:
-                if (cq && cq->sig == QLNXR_CQ_MAGIC_NUMBER) {
-                        struct ib_cq *ibcq = &cq->ibcq;
+	switch (event_type) {
+	case EVENT_TYPE_CQ:
+		if (cq && cq->sig == QLNXR_CQ_MAGIC_NUMBER) {
+			struct ib_cq *ibcq = &cq->ibcq;
 
-                        if (ibcq->event_handler) {
-                                event.device     = ibcq->device;
-                                event.element.cq = ibcq;
-                                ibcq->event_handler(&event, ibcq->cq_context);
-                        }
-                } else {
+			if (ibcq->event_handler) {
+				event.device = ibcq->device;
+				event.element.cq = ibcq;
+				ibcq->event_handler(&event, ibcq->cq_context);
+			}
+		} else {
 			QL_DPRINT11(ha,
-				"CQ event with invalid CQ pointer"
-				" Handle = %llx\n", roceHandle64);
-                }
-		QL_DPRINT12(ha,
-			"CQ event 0x%x on handle = %p\n", e_code, cq);
-                break;
+			    "CQ event with invalid CQ pointer"
+			    " Handle = %llx\n",
+			    roceHandle64);
+		}
+		QL_DPRINT12(ha, "CQ event 0x%x on handle = %p\n", e_code, cq);
+		break;
 
-        case EVENT_TYPE_QP:
-                if (qp && qp->sig == QLNXR_QP_MAGIC_NUMBER) {
-                        struct ib_qp *ibqp = &qp->ibqp;
+	case EVENT_TYPE_QP:
+		if (qp && qp->sig == QLNXR_QP_MAGIC_NUMBER) {
+			struct ib_qp *ibqp = &qp->ibqp;
 
-                        if (ibqp->event_handler) {
-                                event.device     = ibqp->device;
-                                event.element.qp = ibqp;
-                                ibqp->event_handler(&event, ibqp->qp_context);
-                        }
-                } else {
+			if (ibqp->event_handler) {
+				event.device = ibqp->device;
+				event.element.qp = ibqp;
+				ibqp->event_handler(&event, ibqp->qp_context);
+			}
+		} else {
 			QL_DPRINT11(ha,
-				"QP event 0x%x with invalid QP pointer"
-				" qp handle = %p\n",
-				e_code, roceHandle64);
-                }
-		QL_DPRINT12(ha, "QP event 0x%x on qp handle = %p\n",
-			e_code, qp);
-                break;
+			    "QP event 0x%x with invalid QP pointer"
+			    " qp handle = %p\n",
+			    e_code, roceHandle64);
+		}
+		QL_DPRINT12(ha, "QP event 0x%x on qp handle = %p\n", e_code,
+		    qp);
+		break;
 
-        case EVENT_TYPE_GENERAL:
-                break;
+	case EVENT_TYPE_GENERAL:
+		break;
 
-        default:
-                break;
+	default:
+		break;
 	}
 
 	QL_DPRINT12(ha, "exit\n");
@@ -666,7 +654,7 @@ qlnxr_affiliated_event(void *context, u8 e_code, void *fw_handle)
 void
 qlnxr_unaffiliated_event(void *context, u8 e_code)
 {
-        struct qlnxr_dev *dev = (struct qlnxr_dev *)context;
+	struct qlnxr_dev *dev = (struct qlnxr_dev *)context;
 	qlnx_host_t *ha;
 
 	ha = dev->ha;
@@ -685,157 +673,160 @@ qlnxr_set_device_attr(struct qlnxr_dev *dev)
 	ecore_attr = ecore_rdma_query_device(dev->rdma_ctx);
 
 	page_size = ~dev->attr.page_size_caps + 1;
-	if(page_size > PAGE_SIZE) {
-		QL_DPRINT12(dev->ha, "Kernel page size : %ld is smaller than"
+	if (page_size > PAGE_SIZE) {
+		QL_DPRINT12(dev->ha,
+		    "Kernel page size : %ld is smaller than"
 		    " minimum page size : %ld required by qlnxr\n",
 		    PAGE_SIZE, page_size);
 		return -ENODEV;
 	}
 	attr = &dev->attr;
-        attr->vendor_id = ecore_attr->vendor_id;
-        attr->vendor_part_id = ecore_attr->vendor_part_id;
+	attr->vendor_id = ecore_attr->vendor_id;
+	attr->vendor_part_id = ecore_attr->vendor_part_id;
 
-        QL_DPRINT12(dev->ha, "in qlnxr_set_device_attr, vendor : %x device : %x\n",
-		attr->vendor_id, attr->vendor_part_id);
+	QL_DPRINT12(dev->ha,
+	    "in qlnxr_set_device_attr, vendor : %x device : %x\n",
+	    attr->vendor_id, attr->vendor_part_id);
 
 	attr->hw_ver = ecore_attr->hw_ver;
-        attr->fw_ver = ecore_attr->fw_ver;
-        attr->node_guid = ecore_attr->node_guid;
-        attr->sys_image_guid = ecore_attr->sys_image_guid;
-        attr->max_cnq = ecore_attr->max_cnq;
-        attr->max_sge = ecore_attr->max_sge;
-        attr->max_inline = ecore_attr->max_inline;
-        attr->max_sqe = min_t(u32, ecore_attr->max_wqe, QLNXR_MAX_SQE);
-        attr->max_rqe = min_t(u32, ecore_attr->max_wqe, QLNXR_MAX_RQE);
-        attr->max_qp_resp_rd_atomic_resc = ecore_attr->max_qp_resp_rd_atomic_resc;
-        attr->max_qp_req_rd_atomic_resc = ecore_attr->max_qp_req_rd_atomic_resc;
-        attr->max_dev_resp_rd_atomic_resc =
-            ecore_attr->max_dev_resp_rd_atomic_resc;
-        attr->max_cq = ecore_attr->max_cq;
-        attr->max_qp = ecore_attr->max_qp;
-        attr->max_mr = ecore_attr->max_mr;
+	attr->fw_ver = ecore_attr->fw_ver;
+	attr->node_guid = ecore_attr->node_guid;
+	attr->sys_image_guid = ecore_attr->sys_image_guid;
+	attr->max_cnq = ecore_attr->max_cnq;
+	attr->max_sge = ecore_attr->max_sge;
+	attr->max_inline = ecore_attr->max_inline;
+	attr->max_sqe = min_t(u32, ecore_attr->max_wqe, QLNXR_MAX_SQE);
+	attr->max_rqe = min_t(u32, ecore_attr->max_wqe, QLNXR_MAX_RQE);
+	attr->max_qp_resp_rd_atomic_resc =
+	    ecore_attr->max_qp_resp_rd_atomic_resc;
+	attr->max_qp_req_rd_atomic_resc = ecore_attr->max_qp_req_rd_atomic_resc;
+	attr->max_dev_resp_rd_atomic_resc =
+	    ecore_attr->max_dev_resp_rd_atomic_resc;
+	attr->max_cq = ecore_attr->max_cq;
+	attr->max_qp = ecore_attr->max_qp;
+	attr->max_mr = ecore_attr->max_mr;
 	attr->max_mr_size = ecore_attr->max_mr_size;
-        attr->max_cqe = min_t(u64, ecore_attr->max_cqe, QLNXR_MAX_CQES);
-        attr->max_mw = ecore_attr->max_mw;
-        attr->max_fmr = ecore_attr->max_fmr;
-        attr->max_mr_mw_fmr_pbl = ecore_attr->max_mr_mw_fmr_pbl;
-        attr->max_mr_mw_fmr_size = ecore_attr->max_mr_mw_fmr_size;
-        attr->max_pd = ecore_attr->max_pd;
-        attr->max_ah = ecore_attr->max_ah;
-        attr->max_pkey = ecore_attr->max_pkey;
-        attr->max_srq = ecore_attr->max_srq;
-        attr->max_srq_wr = ecore_attr->max_srq_wr;
-        //attr->dev_caps = ecore_attr->dev_caps;
-        attr->page_size_caps = ecore_attr->page_size_caps;
-        attr->dev_ack_delay = ecore_attr->dev_ack_delay;
-        attr->reserved_lkey = ecore_attr->reserved_lkey;
-        attr->bad_pkey_counter = ecore_attr->bad_pkey_counter;
-        attr->max_stats_queues = ecore_attr->max_stats_queues;
+	attr->max_cqe = min_t(u64, ecore_attr->max_cqe, QLNXR_MAX_CQES);
+	attr->max_mw = ecore_attr->max_mw;
+	attr->max_fmr = ecore_attr->max_fmr;
+	attr->max_mr_mw_fmr_pbl = ecore_attr->max_mr_mw_fmr_pbl;
+	attr->max_mr_mw_fmr_size = ecore_attr->max_mr_mw_fmr_size;
+	attr->max_pd = ecore_attr->max_pd;
+	attr->max_ah = ecore_attr->max_ah;
+	attr->max_pkey = ecore_attr->max_pkey;
+	attr->max_srq = ecore_attr->max_srq;
+	attr->max_srq_wr = ecore_attr->max_srq_wr;
+	// attr->dev_caps = ecore_attr->dev_caps;
+	attr->page_size_caps = ecore_attr->page_size_caps;
+	attr->dev_ack_delay = ecore_attr->dev_ack_delay;
+	attr->reserved_lkey = ecore_attr->reserved_lkey;
+	attr->bad_pkey_counter = ecore_attr->bad_pkey_counter;
+	attr->max_stats_queues = ecore_attr->max_stats_queues;
 
-        return 0;
+	return 0;
 }
 
 static int
 qlnxr_init_hw(struct qlnxr_dev *dev)
 {
-        struct ecore_rdma_events events;
-        struct ecore_rdma_add_user_out_params out_params;
-        struct ecore_rdma_cnq_params *cur_pbl;
-        struct ecore_rdma_start_in_params *in_params;
-        dma_addr_t p_phys_table;
-        u32 page_cnt;
-        int rc = 0;
-        int i;
+	struct ecore_rdma_events events;
+	struct ecore_rdma_add_user_out_params out_params;
+	struct ecore_rdma_cnq_params *cur_pbl;
+	struct ecore_rdma_start_in_params *in_params;
+	dma_addr_t p_phys_table;
+	u32 page_cnt;
+	int rc = 0;
+	int i;
 	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
-        in_params = kzalloc(sizeof(*in_params), GFP_KERNEL);
-        if (!in_params) {
-                rc = -ENOMEM;
-                goto out;
-        }
+	in_params = kzalloc(sizeof(*in_params), GFP_KERNEL);
+	if (!in_params) {
+		rc = -ENOMEM;
+		goto out;
+	}
 
 	bzero(&out_params, sizeof(struct ecore_rdma_add_user_out_params));
 	bzero(&events, sizeof(struct ecore_rdma_events));
 
-        in_params->desired_cnq = dev->num_cnq;
+	in_params->desired_cnq = dev->num_cnq;
 
-        for (i = 0; i < dev->num_cnq; i++) {
-                cur_pbl = &in_params->cnq_pbl_list[i];
+	for (i = 0; i < dev->num_cnq; i++) {
+		cur_pbl = &in_params->cnq_pbl_list[i];
 
-                page_cnt = ecore_chain_get_page_cnt(&dev->cnq_array[i].pbl);
-                cur_pbl->num_pbl_pages = page_cnt;
+		page_cnt = ecore_chain_get_page_cnt(&dev->cnq_array[i].pbl);
+		cur_pbl->num_pbl_pages = page_cnt;
 
-                p_phys_table = ecore_chain_get_pbl_phys(&dev->cnq_array[i].pbl);
-                cur_pbl->pbl_ptr = (u64)p_phys_table;
-        }
-
-        events.affiliated_event = qlnxr_affiliated_event;
-        events.unaffiliated_event = qlnxr_unaffiliated_event;
-        events.context = dev;
-
-        in_params->events = &events;
-        in_params->roce.cq_mode = ECORE_RDMA_CQ_MODE_32_BITS;
-        in_params->max_mtu = dev->ha->max_frame_size;
-
-	if (QLNX_IS_IWARP(dev)) {
-	        if (delayed_ack)
-        	        in_params->iwarp.flags |= ECORE_IWARP_DA_EN;
-
-	        if (timestamp)
-        	        in_params->iwarp.flags |= ECORE_IWARP_TS_EN;
-
-	        in_params->iwarp.rcv_wnd_size = rcv_wnd_size*1024;
-	        in_params->iwarp.crc_needed = crc_needed;
-	        in_params->iwarp.ooo_num_rx_bufs =
-        	        (MAX_RXMIT_CONNS * in_params->iwarp.rcv_wnd_size) /
-	                in_params->max_mtu;
-
-	        in_params->iwarp.mpa_peer2peer = peer2peer;
-	        in_params->iwarp.mpa_rev =
-			mpa_enhanced ? ECORE_MPA_REV2 : ECORE_MPA_REV1;
-	        in_params->iwarp.mpa_rtr = rtr_type;
+		p_phys_table = ecore_chain_get_pbl_phys(&dev->cnq_array[i].pbl);
+		cur_pbl->pbl_ptr = (u64)p_phys_table;
 	}
 
-        memcpy(&in_params->mac_addr[0], dev->ha->primary_mac, ETH_ALEN);
+	events.affiliated_event = qlnxr_affiliated_event;
+	events.unaffiliated_event = qlnxr_unaffiliated_event;
+	events.context = dev;
 
-        rc = ecore_rdma_start(dev->rdma_ctx, in_params);
-        if (rc)
-                goto out;
+	in_params->events = &events;
+	in_params->roce.cq_mode = ECORE_RDMA_CQ_MODE_32_BITS;
+	in_params->max_mtu = dev->ha->max_frame_size;
 
-        rc = ecore_rdma_add_user(dev->rdma_ctx, &out_params);
-        if (rc)
-                goto out;
+	if (QLNX_IS_IWARP(dev)) {
+		if (delayed_ack)
+			in_params->iwarp.flags |= ECORE_IWARP_DA_EN;
 
-        dev->db_addr = (void *)(uintptr_t)out_params.dpi_addr;
-        dev->db_phys_addr = out_params.dpi_phys_addr;
-        dev->db_size = out_params.dpi_size;
-        dev->dpi = out_params.dpi;
+		if (timestamp)
+			in_params->iwarp.flags |= ECORE_IWARP_TS_EN;
+
+		in_params->iwarp.rcv_wnd_size = rcv_wnd_size * 1024;
+		in_params->iwarp.crc_needed = crc_needed;
+		in_params->iwarp.ooo_num_rx_bufs =
+		    (MAX_RXMIT_CONNS * in_params->iwarp.rcv_wnd_size) /
+		    in_params->max_mtu;
+
+		in_params->iwarp.mpa_peer2peer = peer2peer;
+		in_params->iwarp.mpa_rev = mpa_enhanced ? ECORE_MPA_REV2 :
+							  ECORE_MPA_REV1;
+		in_params->iwarp.mpa_rtr = rtr_type;
+	}
+
+	memcpy(&in_params->mac_addr[0], dev->ha->primary_mac, ETH_ALEN);
+
+	rc = ecore_rdma_start(dev->rdma_ctx, in_params);
+	if (rc)
+		goto out;
+
+	rc = ecore_rdma_add_user(dev->rdma_ctx, &out_params);
+	if (rc)
+		goto out;
+
+	dev->db_addr = (void *)(uintptr_t)out_params.dpi_addr;
+	dev->db_phys_addr = out_params.dpi_phys_addr;
+	dev->db_size = out_params.dpi_size;
+	dev->dpi = out_params.dpi;
 
 	qlnxr_set_device_attr(dev);
 
 	QL_DPRINT12(ha,
-		"cdev->doorbells = %p, db_phys_addr = %p db_size = 0x%x\n",
-		(void *)ha->cdev.doorbells,
-		(void *)ha->cdev.db_phys_addr, ha->cdev.db_size);
+	    "cdev->doorbells = %p, db_phys_addr = %p db_size = 0x%x\n",
+	    (void *)ha->cdev.doorbells, (void *)ha->cdev.db_phys_addr,
+	    ha->cdev.db_size);
 
 	QL_DPRINT12(ha,
-		"db_addr = %p db_phys_addr = %p db_size = 0x%x dpi = 0x%x\n",
-		(void *)dev->db_addr, (void *)dev->db_phys_addr,
-		dev->db_size, dev->dpi);
+	    "db_addr = %p db_phys_addr = %p db_size = 0x%x dpi = 0x%x\n",
+	    (void *)dev->db_addr, (void *)dev->db_phys_addr, dev->db_size,
+	    dev->dpi);
 out:
-        kfree(in_params);
+	kfree(in_params);
 
 	QL_DPRINT12(ha, "exit\n");
-        return rc;
+	return rc;
 }
 
 static void
-qlnxr_build_sgid_mac(union ib_gid *sgid, unsigned char *mac_addr,
-	bool is_vlan, u16 vlan_id)
+qlnxr_build_sgid_mac(union ib_gid *sgid, unsigned char *mac_addr, bool is_vlan,
+    u16 vlan_id)
 {
 	sgid->global.subnet_prefix = OSAL_CPU_TO_BE64(0xfe80000000000000LL);
 	sgid->raw[8] = mac_addr[0] ^ 2;
@@ -852,8 +843,7 @@ qlnxr_build_sgid_mac(union ib_gid *sgid, unsigned char *mac_addr,
 	sgid->raw[14] = mac_addr[4];
 	sgid->raw[15] = mac_addr[5];
 }
-static bool
-qlnxr_add_sgid(struct qlnxr_dev *dev, union ib_gid *new_sgid);
+static bool qlnxr_add_sgid(struct qlnxr_dev *dev, union ib_gid *new_sgid);
 
 struct qlnx_cb_s {
 	struct qlnxr_dev *dev;
@@ -865,10 +855,11 @@ qlnxr_add_ip_based_gid_cb(void *arg, struct ifaddr *ifa, u_int count)
 {
 	struct qlnx_cb_s *cba = arg;
 
-	QL_DPRINT12(cba->dev->ha, "IP address : %x\n", ((struct sockaddr_in *) ifa->ifa_addr)->sin_addr.s_addr);
+	QL_DPRINT12(cba->dev->ha, "IP address : %x\n",
+	    ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr);
 	ipv6_addr_set_v4mapped(
-		((struct sockaddr_in *) ifa->ifa_addr)->sin_addr.s_addr,
-		(struct in6_addr *)&cba->gid);
+	    ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr,
+	    (struct in6_addr *)&cba->gid);
 	QL_DPRINT12(cba->dev->ha, "gid generated : %llx\n", cba->gid);
 
 	qlnxr_add_sgid(cba->dev, &cba->gid);
@@ -891,44 +882,45 @@ qlnxr_add_sgid(struct qlnxr_dev *dev, union ib_gid *new_sgid)
 {
 	union ib_gid zero_sgid = { { 0 } };
 	int i;
-	//unsigned long flags;
+	// unsigned long flags;
 	mtx_lock(&dev->sgid_lock);
 	for (i = 0; i < QLNXR_MAX_SGID; i++) {
 		if (!memcmp(&dev->sgid_tbl[i], &zero_sgid,
-				sizeof(union ib_gid))) {
+			sizeof(union ib_gid))) {
 			/* found free entry */
 			memcpy(&dev->sgid_tbl[i], new_sgid,
-				sizeof(union ib_gid));
+			    sizeof(union ib_gid));
 			QL_DPRINT12(dev->ha, "copying sgid : %llx\n",
-					*new_sgid);
+			    *new_sgid);
 			mtx_unlock(&dev->sgid_lock);
-			//TODO ib_dispatch event here?
+			// TODO ib_dispatch event here?
 			return true;
 		} else if (!memcmp(&dev->sgid_tbl[i], new_sgid,
-				sizeof(union ib_gid))) {
+			       sizeof(union ib_gid))) {
 			/* entry already present, no addition required */
 			mtx_unlock(&dev->sgid_lock);
 			QL_DPRINT12(dev->ha, "sgid present : %llx\n",
-					*new_sgid);
+			    *new_sgid);
 			return false;
 		}
-	}	
+	}
 	if (i == QLNXR_MAX_SGID) {
-		QL_DPRINT12(dev->ha, "didn't find an empty entry in sgid_tbl\n");
+		QL_DPRINT12(dev->ha,
+		    "didn't find an empty entry in sgid_tbl\n");
 	}
 	mtx_unlock(&dev->sgid_lock);
 	return false;
 }
 
-static bool qlnxr_del_sgid(struct qlnxr_dev *dev, union ib_gid *gid)
+static bool
+qlnxr_del_sgid(struct qlnxr_dev *dev, union ib_gid *gid)
 {
 	int found = false;
 	int i;
-	//unsigned long flags;
+	// unsigned long flags;
 
 	QL_DPRINT12(dev->ha, "removing gid %llx %llx\n",
-			gid->global.interface_id,
-			gid->global.subnet_prefix);
+	    gid->global.interface_id, gid->global.subnet_prefix);
 	mtx_lock(&dev->sgid_lock);
 	/* first is the default sgid which cannot be deleted */
 	for (i = 1; i < QLNXR_MAX_SGID; i++) {
@@ -955,7 +947,7 @@ qlnxr_add_sgids(struct qlnxr_dev *dev)
 	qlnxr_add_ip_based_gid(dev, ha->ifp);
 	/* MAC/VLAN base GIDs */
 	is_vlan = is_vlan_dev(ha->ifp);
-       	vlan_id = (is_vlan) ? vlan_dev_vlan_id(ha->ifp) : 0;
+	vlan_id = (is_vlan) ? vlan_dev_vlan_id(ha->ifp) : 0;
 	qlnxr_build_sgid_mac(&vgid, ha->primary_mac, is_vlan, vlan_id);
 	qlnxr_add_sgid(dev, &vgid);
 }
@@ -965,31 +957,31 @@ qlnxr_add_default_sgid(struct qlnxr_dev *dev)
 {
 	/* GID Index 0 - Invariant manufacturer-assigned EUI-64 */
 	union ib_gid *sgid = &dev->sgid_tbl[0];
-	struct ecore_rdma_device        *qattr;
+	struct ecore_rdma_device *qattr;
 	qlnx_host_t *ha;
 	ha = dev->ha;
 
-	qattr =	ecore_rdma_query_device(dev->rdma_ctx);
-	if(sgid == NULL)
+	qattr = ecore_rdma_query_device(dev->rdma_ctx);
+	if (sgid == NULL)
 		QL_DPRINT12(ha, "sgid = NULL?\n");
 
 	sgid->global.subnet_prefix = OSAL_CPU_TO_BE64(0xfe80000000000000LL);
 	QL_DPRINT12(ha, "node_guid = %llx", dev->attr.node_guid);
-	memcpy(&sgid->raw[8], &qattr->node_guid,
-		sizeof(qattr->node_guid));
-	//memcpy(&sgid->raw[8], &dev->attr.node_guid,
+	memcpy(&sgid->raw[8], &qattr->node_guid, sizeof(qattr->node_guid));
+	// memcpy(&sgid->raw[8], &dev->attr.node_guid,
 	//	sizeof(dev->attr.node_guid));
-	QL_DPRINT12(ha, "DEFAULT sgid=[%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x]\n",
-                   sgid->raw[0], sgid->raw[1], sgid->raw[2], sgid->raw[3], sgid->raw[4], sgid->raw[5],
-                   sgid->raw[6], sgid->raw[7], sgid->raw[8], sgid->raw[9], sgid->raw[10], sgid->raw[11],
-                   sgid->raw[12], sgid->raw[13], sgid->raw[14], sgid->raw[15]);
+	QL_DPRINT12(ha,
+	    "DEFAULT sgid=[%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x][%x]\n",
+	    sgid->raw[0], sgid->raw[1], sgid->raw[2], sgid->raw[3],
+	    sgid->raw[4], sgid->raw[5], sgid->raw[6], sgid->raw[7],
+	    sgid->raw[8], sgid->raw[9], sgid->raw[10], sgid->raw[11],
+	    sgid->raw[12], sgid->raw[13], sgid->raw[14], sgid->raw[15]);
 	return 0;
 }
 
-static int qlnxr_addr_event (struct qlnxr_dev *dev,
-				unsigned long event,
-				if_t ifp,
-				union ib_gid *gid)
+static int
+qlnxr_addr_event(struct qlnxr_dev *dev, unsigned long event, if_t ifp,
+    union ib_gid *gid)
 {
 	bool is_vlan = false;
 	union ib_gid vgid;
@@ -1000,37 +992,41 @@ static int qlnxr_addr_event (struct qlnxr_dev *dev,
 	vlan_id = (is_vlan) ? vlan_dev_vlan_id(dev->ha->ifp) : 0;
 
 	switch (event) {
-	case NETDEV_UP :
+	case NETDEV_UP:
 		qlnxr_add_sgid(dev, gid);
 		if (is_vlan) {
-			qlnxr_build_sgid_mac(&vgid, dev->ha->primary_mac, is_vlan, vlan_id);
+			qlnxr_build_sgid_mac(&vgid, dev->ha->primary_mac,
+			    is_vlan, vlan_id);
 			qlnxr_add_sgid(dev, &vgid);
 		}
 		break;
-	case NETDEV_DOWN :
+	case NETDEV_DOWN:
 		qlnxr_del_sgid(dev, gid);
 		if (is_vlan) {
-			qlnxr_build_sgid_mac(&vgid, dev->ha->primary_mac, is_vlan, vlan_id);
+			qlnxr_build_sgid_mac(&vgid, dev->ha->primary_mac,
+			    is_vlan, vlan_id);
 			qlnxr_del_sgid(dev, &vgid);
 		}
 		break;
-	default :
+	default:
 		break;
 	}
 	return 1;
 }
 
-static int qlnxr_inetaddr_event(struct notifier_block *notifier,
-				unsigned long event, void *ptr)
+static int
+qlnxr_inetaddr_event(struct notifier_block *notifier, unsigned long event,
+    void *ptr)
 {
 	struct ifaddr *ifa = ptr;
 	union ib_gid gid;
-	struct qlnxr_dev *dev = container_of(notifier, struct qlnxr_dev, nb_inet);
+	struct qlnxr_dev *dev = container_of(notifier, struct qlnxr_dev,
+	    nb_inet);
 	qlnx_host_t *ha = dev->ha;
 
 	ipv6_addr_set_v4mapped(
-			((struct sockaddr_in *) ifa->ifa_addr)->sin_addr.s_addr,
-			(struct in6_addr *)&gid);
+	    ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr,
+	    (struct in6_addr *)&gid);
 	return qlnxr_addr_event(dev, event, ha->ifp, &gid);
 }
 
@@ -1044,8 +1040,8 @@ qlnxr_register_inet(struct qlnxr_dev *dev)
 		QL_DPRINT12(dev->ha, "Failed to register inetaddr\n");
 		return ret;
 	}
-	/* TODO : add for CONFIG_IPV6) */	
-	return 0;	
+	/* TODO : add for CONFIG_IPV6) */
+	return 0;
 }
 
 static int
@@ -1063,7 +1059,7 @@ qlnxr_add(void *eth_dev)
 {
 	struct qlnxr_dev *dev;
 	int ret;
-	//device_t pci_dev;
+	// device_t pci_dev;
 	qlnx_host_t *ha;
 
 	ha = eth_dev;
@@ -1084,12 +1080,9 @@ qlnxr_add(void *eth_dev)
 	dev->wq_multiplier = wq_multiplier;
 	dev->num_cnq = QLNX_NUM_CNQ;
 
-	QL_DPRINT12(ha,
-		"ha = %p dev = %p ha->cdev = %p\n",
-		ha, dev, &ha->cdev);
-	QL_DPRINT12(ha,
-		"dev->cdev = %p dev->rdma_ctx = %p\n",
-		dev->cdev, dev->rdma_ctx);
+	QL_DPRINT12(ha, "ha = %p dev = %p ha->cdev = %p\n", ha, dev, &ha->cdev);
+	QL_DPRINT12(ha, "dev->cdev = %p dev->rdma_ctx = %p\n", dev->cdev,
+	    dev->rdma_ctx);
 
 	ret = qlnxr_alloc_resources(dev);
 
@@ -1113,16 +1106,16 @@ qlnxr_add(void *eth_dev)
 
 	qlnxr_register_device(dev);
 	for (int i = 0; i < ARRAY_SIZE(qlnxr_class_attributes); ++i) {
-		if (device_create_file(&dev->ibdev.dev, qlnxr_class_attributes[i]))
+		if (device_create_file(&dev->ibdev.dev,
+			qlnxr_class_attributes[i]))
 			goto sysfs_err;
 	}
 	qlnxr_build_sgid_tbl(dev);
-	//ret = qlnxr_register_inet(dev);
+	// ret = qlnxr_register_inet(dev);
 	QL_DPRINT12(ha, "exit\n");
 	if (!test_and_set_bit(QLNXR_ENET_STATE_BIT, &dev->enet_state)) {
 		QL_DPRINT12(ha, "dispatching IB_PORT_ACITVE event\n");
-		qlnxr_ib_dispatch_event(dev, QLNXR_PORT,
-			IB_EVENT_PORT_ACTIVE);
+		qlnxr_ib_dispatch_event(dev, QLNXR_PORT, IB_EVENT_PORT_ACTIVE);
 	}
 
 	return (dev);
@@ -1159,11 +1152,10 @@ qlnxr_remove(void *eth_dev, void *qlnx_rdma_dev)
 	if ((ha == NULL) || (dev == NULL))
 		return (0);
 
-	QL_DPRINT12(ha, "enter ha = %p qlnx_rdma_dev = %p pd_count = %d\n",
-		ha, qlnx_rdma_dev, dev->pd_count);
+	QL_DPRINT12(ha, "enter ha = %p qlnx_rdma_dev = %p pd_count = %d\n", ha,
+	    qlnx_rdma_dev, dev->pd_count);
 
-	qlnxr_ib_dispatch_event(dev, QLNXR_PORT,
-		IB_EVENT_PORT_ERR);
+	qlnxr_ib_dispatch_event(dev, QLNXR_PORT, IB_EVENT_PORT_ERR);
 
 	if (QLNX_IS_IWARP(dev)) {
 		if (dev->pd_count)
@@ -1195,23 +1187,24 @@ qlnxr_remove(void *eth_dev, void *qlnx_rdma_dev)
 
 int
 qlnx_rdma_ll2_set_mac_filter(void *rdma_ctx, uint8_t *old_mac_address,
-	uint8_t *new_mac_address)
+    uint8_t *new_mac_address)
 {
-        struct ecore_hwfn *p_hwfn = rdma_ctx;
-        struct qlnx_host *ha;
-        int ret = 0;
+	struct ecore_hwfn *p_hwfn = rdma_ctx;
+	struct qlnx_host *ha;
+	int ret = 0;
 
-        ha = (struct qlnx_host *)(p_hwfn->p_dev);
-        QL_DPRINT2(ha, "enter rdma_ctx (%p)\n", rdma_ctx);
+	ha = (struct qlnx_host *)(p_hwfn->p_dev);
+	QL_DPRINT2(ha, "enter rdma_ctx (%p)\n", rdma_ctx);
 
-        if (old_mac_address)
-                ecore_llh_remove_mac_filter(p_hwfn->p_dev, 0, old_mac_address);
+	if (old_mac_address)
+		ecore_llh_remove_mac_filter(p_hwfn->p_dev, 0, old_mac_address);
 
-        if (new_mac_address)
-                ret = ecore_llh_add_mac_filter(p_hwfn->p_dev, 0, new_mac_address);
+	if (new_mac_address)
+		ret = ecore_llh_add_mac_filter(p_hwfn->p_dev, 0,
+		    new_mac_address);
 
-        QL_DPRINT2(ha, "exit rdma_ctx (%p)\n", rdma_ctx);
-        return (ret);
+	QL_DPRINT2(ha, "exit rdma_ctx (%p)\n", rdma_ctx);
+	return (ret);
 }
 
 static void
@@ -1241,23 +1234,23 @@ qlnxr_notify(void *eth_dev, void *qlnx_rdma_dev, enum qlnx_rdma_event event)
 
 	QL_DPRINT12(ha, "enter (%p, %d)\n", qlnx_rdma_dev, event);
 
-        switch (event) {
-        case QLNX_ETHDEV_UP:
+	switch (event) {
+	case QLNX_ETHDEV_UP:
 		if (!test_and_set_bit(QLNXR_ENET_STATE_BIT, &dev->enet_state))
 			qlnxr_ib_dispatch_event(dev, QLNXR_PORT,
-				IB_EVENT_PORT_ACTIVE);
-                break;
+			    IB_EVENT_PORT_ACTIVE);
+		break;
 
-        case QLNX_ETHDEV_CHANGE_ADDR:
-                qlnxr_mac_address_change(dev);
-                break;
+	case QLNX_ETHDEV_CHANGE_ADDR:
+		qlnxr_mac_address_change(dev);
+		break;
 
-        case QLNX_ETHDEV_DOWN:
+	case QLNX_ETHDEV_DOWN:
 		if (test_and_set_bit(QLNXR_ENET_STATE_BIT, &dev->enet_state))
 			qlnxr_ib_dispatch_event(dev, QLNXR_PORT,
-				IB_EVENT_PORT_ERR);
-                break;
-        }
+			    IB_EVENT_PORT_ERR);
+		break;
+	}
 
 	QL_DPRINT12(ha, "exit (%p, %d)\n", qlnx_rdma_dev, event);
 	return;
@@ -1305,7 +1298,7 @@ qlnxr_event_handler(module_t mod, int event, void *arg)
 		break;
 	}
 
-        return (ret);
+	return (ret);
 }
 
 static moduledata_t qlnxr_mod_info = {

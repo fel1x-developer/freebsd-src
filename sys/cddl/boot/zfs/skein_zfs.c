@@ -33,13 +33,13 @@ static void
 zio_checksum_skein_native(const void *buf, uint64_t size,
     const void *ctx_template, zio_cksum_t *zcp)
 {
-	Skein_512_Ctxt_t	ctx;
+	Skein_512_Ctxt_t ctx;
 
 	ASSERT(ctx_template != NULL);
-	bcopy(ctx_template, &ctx, sizeof (ctx));
-	(void) Skein_512_Update(&ctx, buf, size);
-	(void) Skein_512_Final(&ctx, (uint8_t *)zcp);
-	bzero(&ctx, sizeof (ctx));
+	bcopy(ctx_template, &ctx, sizeof(ctx));
+	(void)Skein_512_Update(&ctx, buf, size);
+	(void)Skein_512_Final(&ctx, (uint8_t *)zcp);
+	bzero(&ctx, sizeof(ctx));
 }
 
 /*
@@ -51,7 +51,7 @@ static void
 zio_checksum_skein_byteswap(const void *buf, uint64_t size,
     const void *ctx_template, zio_cksum_t *zcp)
 {
-	zio_cksum_t	tmp;
+	zio_cksum_t tmp;
 
 	zio_checksum_skein_native(buf, size, ctx_template, &tmp);
 	zcp->zc_word[0] = BSWAP_64(tmp.zc_word[0]);
@@ -67,12 +67,12 @@ zio_checksum_skein_byteswap(const void *buf, uint64_t size,
 static void *
 zio_checksum_skein_tmpl_init(const zio_cksum_salt_t *salt)
 {
-	Skein_512_Ctxt_t	*ctx;
+	Skein_512_Ctxt_t *ctx;
 
-	ctx = malloc(sizeof (*ctx));
-	bzero(ctx, sizeof (*ctx));
-	(void) Skein_512_InitExt(ctx, sizeof (zio_cksum_t) * 8, 0,
-	    salt->zcs_bytes, sizeof (salt->zcs_bytes));
+	ctx = malloc(sizeof(*ctx));
+	bzero(ctx, sizeof(*ctx));
+	(void)Skein_512_InitExt(ctx, sizeof(zio_cksum_t) * 8, 0,
+	    salt->zcs_bytes, sizeof(salt->zcs_bytes));
 	return (ctx);
 }
 
@@ -83,8 +83,8 @@ zio_checksum_skein_tmpl_init(const zio_cksum_salt_t *salt)
 static void
 zio_checksum_skein_tmpl_free(void *ctx_template)
 {
-	Skein_512_Ctxt_t	*ctx = ctx_template;
+	Skein_512_Ctxt_t *ctx = ctx_template;
 
-	bzero(ctx, sizeof (*ctx));
+	bzero(ctx, sizeof(*ctx));
 	free(ctx);
 }

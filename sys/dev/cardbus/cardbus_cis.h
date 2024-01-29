@@ -29,16 +29,16 @@
 /*
  * Cardbus CIS definitions
  */
-int	cardbus_do_cis(device_t, device_t);
+int cardbus_do_cis(device_t, device_t);
 
 struct cis_tupleinfo;
 
-#define	MAXTUPLESIZE		0x400
+#define MAXTUPLESIZE 0x400
 
 /* BAR */
-#define	TPL_BAR_REG_ASI_MASK			0x07
-#define	TPL_BAR_REG_AS				0x10
-#define	TPL_BAR_REG_PREFETCHABLE_ONLY		0x20
-#define	TPL_BAR_REG_PREFETCHABLE_CACHEABLE	0x40
-#define	TPL_BAR_REG_PREFETCHABLE		0x60
-#define	TPL_BAR_REG_BELOW1MB			0x80
+#define TPL_BAR_REG_ASI_MASK 0x07
+#define TPL_BAR_REG_AS 0x10
+#define TPL_BAR_REG_PREFETCHABLE_ONLY 0x20
+#define TPL_BAR_REG_PREFETCHABLE_CACHEABLE 0x40
+#define TPL_BAR_REG_PREFETCHABLE 0x60
+#define TPL_BAR_REG_BELOW1MB 0x80

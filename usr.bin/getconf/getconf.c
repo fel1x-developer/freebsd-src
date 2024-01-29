@@ -39,19 +39,19 @@
 
 #include "getconf.h"
 
-static void	do_allsys(void);
-static void	do_allpath(const char *path);
-static void	do_confstr(const char *name, int key);
-static void	do_sysconf(const char *name, int key);
-static void	do_pathconf(const char *name, int key, const char *path);
+static void do_allsys(void);
+static void do_allpath(const char *path);
+static void do_confstr(const char *name, int key);
+static void do_sysconf(const char *name, int key);
+static void do_pathconf(const char *name, int key, const char *path);
 
 static void
 usage(void)
 {
 	fprintf(stderr,
-"usage: getconf -a [pathname]\n"
-"       getconf [-v prog_env] system_var\n"
-"       getconf [-v prog_env] path_var pathname\n");
+	    "usage: getconf -a [pathname]\n"
+	    "       getconf [-v prog_env] system_var\n"
+	    "       getconf [-v prog_env] path_var pathname\n");
 	exit(EX_USAGE);
 }
 
@@ -96,20 +96,20 @@ main(int argc, char **argv)
 	if (vflag != NULL) {
 		if ((valid = find_progenv(vflag, &alt_path)) == 0)
 			errx(EX_USAGE, "invalid programming environment %s",
-			     vflag);
+			    vflag);
 		if (valid > 0 && alt_path != NULL) {
 			if (argv[optind + 1] == NULL)
 				execl(alt_path, "getconf", argv[optind],
-				      (char *)NULL);
+				    (char *)NULL);
 			else
 				execl(alt_path, "getconf", argv[optind],
-				      argv[optind + 1], (char *)NULL);
+				    argv[optind + 1], (char *)NULL);
 
 			err(EX_OSERR, "execl: %s", alt_path);
 		}
 		if (valid < 0)
 			errx(EX_UNAVAILABLE, "environment %s is not available",
-			     vflag);
+			    vflag);
 	}
 
 	if (argv[optind + 1] == NULL) { /* confstr or sysconf */
@@ -141,8 +141,8 @@ main(int argc, char **argv)
 				printf("undefined\n");
 			} else
 				errx(EX_USAGE,
-				     "no such configuration parameter `%s'",
-				     name);
+				    "no such configuration parameter `%s'",
+				    name);
 		}
 	} else {
 		valid = find_pathconf(name, &key);
@@ -153,8 +153,7 @@ main(int argc, char **argv)
 				printf("undefined\n");
 		} else
 			errx(EX_USAGE,
-			     "no such path configuration parameter `%s'",
-			     name);
+			    "no such path configuration parameter `%s'", name);
 	}
 	return 0;
 }
@@ -282,4 +281,3 @@ do_pathconf(const char *name, int key, const char *path)
 	else
 		printf("%ld\n", value);
 }
-

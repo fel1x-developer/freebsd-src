@@ -27,37 +27,32 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+
 #include <assert.h>
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_pass.h>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
-#include <ctype.h>
 
-#include <cam/cam.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/cam_ccb.h>
-#include <cam/scsi/scsi_pass.h>
 #include "camlib.h"
 
-
-static const char *nonrewind_devs[] = {
-	"sa"
-};
+static const char *nonrewind_devs[] = { "sa" };
 
 char cam_errbuf[CAM_ERRBUF_SIZE];
 
 static struct cam_device *cam_real_open_device(const char *path, int flags,
-					       struct cam_device *device,
-					       const char *given_path,
-					       const char *given_dev_name,
-					       int given_unit_number);
+    struct cam_device *device, const char *given_path,
+    const char *given_dev_name, int given_unit_number);
 static struct cam_device *cam_lookup_pass(const char *dev_name, int unit,
-					  int flags, const char *given_path,
-					  struct cam_device *device);
+    int flags, const char *given_path, struct cam_device *device);
 
 /*
  * Send a ccb to a passthrough device.
@@ -65,7 +60,7 @@ static struct cam_device *cam_lookup_pass(const char *dev_name, int unit,
 int
 cam_send_ccb(struct cam_device *device, union ccb *ccb)
 {
-	return(ioctl(device->fd, CAMIOCOMMAND, ccb));
+	return (ioctl(device->fd, CAMIOCOMMAND, ccb));
 }
 
 /*
@@ -83,7 +78,7 @@ cam_getccb(struct cam_device *dev)
 		ccb->ccb_h.target_lun = dev->target_lun;
 	}
 
-	return(ccb);
+	return (ccb);
 }
 
 /*
@@ -121,7 +116,7 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	if (path == NULL) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: device pathname was NULL", __func__);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -152,7 +147,7 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: no text after slash", __func__);
 		free(newpath);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -160,7 +155,7 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	 * device.
 	 */
 	if (*tmpstr == 'n' || *tmpstr == 'e') {
-		for (i = 0; i < sizeof(nonrewind_devs)/sizeof(char *); i++) {
+		for (i = 0; i < sizeof(nonrewind_devs) / sizeof(char *); i++) {
 			int len = strlen(nonrewind_devs[i]);
 			if (strncmp(tmpstr + 1, nonrewind_devs[i], len) == 0) {
 				if (isdigit(tmpstr[len + 1])) {
@@ -178,10 +173,9 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	 */
 	if (strlen(tmpstr) < 2) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
-		    "%s: must have both device name and unit number",
-		    __func__);
+		    "%s: must have both device name and unit number", __func__);
 		free(newpath);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -190,10 +184,9 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	 */
 	if (isdigit(*tmpstr)) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
-		    "%s: device name cannot begin with a number",
-		    __func__);
+		    "%s: device name cannot begin with a number", __func__);
 		free(newpath);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -205,7 +198,7 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: unable to find device unit number", __func__);
 		free(newpath);
-		return(-1);
+		return (-1);
 	}
 
 	/*
@@ -218,9 +211,10 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	 * Therefore it is okay to decrement unit_offset -- it won't cause
 	 * us to go past the end of the character array.
 	 */
-	for (unit_offset = 1;
-	    (unit_offset < (strlen(tmpstr)))
-	    && (isdigit(tmpstr[strlen(tmpstr) - unit_offset])); unit_offset++);
+	for (unit_offset = 1; (unit_offset < (strlen(tmpstr))) &&
+	     (isdigit(tmpstr[strlen(tmpstr) - unit_offset]));
+	     unit_offset++)
+		;
 
 	unit_offset--;
 
@@ -240,8 +234,7 @@ cam_get_device(const char *path, char *dev_name, int devnamelen, int *unit)
 	/* Clean up allocated memory */
 	free(newpath);
 
-	return(0);
-
+	return (0);
 }
 
 /*
@@ -260,9 +253,9 @@ cam_open_device(const char *path, int flags)
 	 * so we don't need to.
 	 */
 	if (cam_get_device(path, dev_name, sizeof(dev_name), &unit) == -1)
-		return(NULL);
+		return (NULL);
 
-	return(cam_lookup_pass(dev_name, unit, flags, path, NULL));
+	return (cam_lookup_pass(dev_name, unit, flags, path, NULL));
 }
 
 /*
@@ -271,7 +264,7 @@ cam_open_device(const char *path, int flags)
  */
 struct cam_device *
 cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
-	     int flags, struct cam_device *device)
+    int flags, struct cam_device *device)
 {
 	union ccb ccb;
 	struct periph_match_pattern *match_pat;
@@ -281,7 +274,7 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: couldn't open %s\n%s: %s", __func__, XPT_DEVICE,
 		    __func__, strerror(errno));
-		return(NULL);
+		return (NULL);
 	}
 
 	bzero(&ccb, sizeof(union ccb));
@@ -298,7 +291,7 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: couldn't malloc match buffer", __func__);
 		close(fd);
-		return(NULL);
+		return (NULL);
 	}
 	ccb.cdm.num_matches = 0;
 
@@ -306,14 +299,14 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 	ccb.cdm.num_patterns = 1;
 	ccb.cdm.pattern_buf_len = sizeof(struct dev_match_pattern);
 	ccb.cdm.patterns = (struct dev_match_pattern *)malloc(
-		sizeof(struct dev_match_pattern));
+	    sizeof(struct dev_match_pattern));
 	if (ccb.cdm.patterns == NULL) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: couldn't malloc pattern buffer", __func__);
 		free(ccb.cdm.matches);
 		ccb.cdm.matches = NULL;
 		close(fd);
-		return(NULL);
+		return (NULL);
 	}
 	ccb.cdm.patterns[0].type = DEV_MATCH_PERIPH;
 	match_pat = &ccb.cdm.patterns[0].pattern.periph_pattern;
@@ -328,25 +321,26 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 	match_pat->target_lun = target_lun;
 	/* Now set the flags to indicate what we're looking for. */
 	match_pat->flags = PERIPH_MATCH_PATH | PERIPH_MATCH_TARGET |
-			   PERIPH_MATCH_LUN | PERIPH_MATCH_NAME;
+	    PERIPH_MATCH_LUN | PERIPH_MATCH_NAME;
 
 	if (ioctl(fd, CAMIOCOMMAND, &ccb) == -1) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: CAMIOCOMMAND ioctl failed\n"
-		    "%s: %s", __func__, __func__, strerror(errno));
+		    "%s: %s",
+		    __func__, __func__, strerror(errno));
 		goto btl_bailout;
 	}
 
 	/*
 	 * Check for an outright error.
 	 */
-	if ((ccb.ccb_h.status != CAM_REQ_CMP)
-	 || ((ccb.cdm.status != CAM_DEV_MATCH_LAST)
-	   && (ccb.cdm.status != CAM_DEV_MATCH_MORE))) {
+	if ((ccb.ccb_h.status != CAM_REQ_CMP) ||
+	    ((ccb.cdm.status != CAM_DEV_MATCH_LAST) &&
+		(ccb.cdm.status != CAM_DEV_MATCH_MORE))) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: CAM error %#x, CDM error %d "
-		    "returned from XPT_DEV_MATCH ccb", __func__,
-		    ccb.ccb_h.status, ccb.cdm.status);
+		    "returned from XPT_DEV_MATCH ccb",
+		    __func__, ccb.ccb_h.status, ccb.cdm.status);
 		goto btl_bailout;
 	}
 
@@ -361,12 +355,12 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 	if (ccb.cdm.num_matches == 0) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: no passthrough device found at"
-		    " %d:%d:%jx", __func__, path_id, target_id,
-		    (uintmax_t)target_lun);
+		    " %d:%d:%jx",
+		    __func__, path_id, target_id, (uintmax_t)target_lun);
 		goto btl_bailout;
 	}
 
-	switch(ccb.cdm.matches[0].type) {
+	switch (ccb.cdm.matches[0].type) {
 	case DEV_MATCH_PERIPH: {
 		int pass_unit;
 		char dev_path[256];
@@ -380,14 +374,15 @@ cam_open_btl(path_id_t path_id, target_id_t target_id, lun_id_t target_lun,
 		ccb.cdm.patterns = NULL;
 		close(fd);
 		sprintf(dev_path, "/dev/pass%d", pass_unit);
-		return(cam_real_open_device(dev_path, flags, device, NULL,
-					    NULL, 0));
+		return (cam_real_open_device(dev_path, flags, device, NULL,
+		    NULL, 0));
 		break; /* NOTREACHED */
 	}
 	default:
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: asked for a peripheral match, but"
-		    " got a bus or device match", __func__);
+		    " got a bus or device match",
+		    __func__);
 		goto btl_bailout;
 		break; /* NOTREACHED */
 	}
@@ -398,25 +393,25 @@ btl_bailout:
 	free(ccb.cdm.patterns);
 	ccb.cdm.patterns = NULL;
 	close(fd);
-	return(NULL);
+	return (NULL);
 }
 
 struct cam_device *
 cam_open_spec_device(const char *dev_name, int unit, int flags,
-		     struct cam_device *device)
+    struct cam_device *device)
 {
-	return(cam_lookup_pass(dev_name, unit, flags, NULL, device));
+	return (cam_lookup_pass(dev_name, unit, flags, NULL, device));
 }
 
 struct cam_device *
 cam_open_pass(const char *path, int flags, struct cam_device *device)
 {
-	return(cam_real_open_device(path, flags, device, path, NULL, 0));
+	return (cam_real_open_device(path, flags, device, path, NULL, 0));
 }
 
 static struct cam_device *
 cam_lookup_pass(const char *dev_name, int unit, int flags,
-		const char *given_path, struct cam_device *device)
+    const char *given_path, struct cam_device *device)
 {
 	int fd;
 	union ccb ccb;
@@ -431,7 +426,7 @@ cam_lookup_pass(const char *dev_name, int unit, int flags,
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: couldn't open %s\n%s: %s", __func__, XPT_DEVICE,
 		    __func__, strerror(errno));
-		return(NULL);
+		return (NULL);
 	}
 
 	/* This isn't strictly necessary for the GETPASSTHRU ioctl. */
@@ -457,17 +452,18 @@ cam_lookup_pass(const char *dev_name, int unit, int flags,
 		 */
 		if (errno == ENOENT) {
 			snprintf(tmpstr, sizeof(tmpstr),
-				 "\n%s: either the pass driver isn't in "
-				 "your kernel\n%s: or %s%d doesn't exist",
-				 __func__, __func__, dev_name, unit);
+			    "\n%s: either the pass driver isn't in "
+			    "your kernel\n%s: or %s%d doesn't exist",
+			    __func__, __func__, dev_name, unit);
 		}
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: CAMGETPASSTHRU ioctl failed\n"
-		    "%s: %s%s", __func__, __func__, strerror(errno),
+		    "%s: %s%s",
+		    __func__, __func__, strerror(errno),
 		    (errno == ENOENT) ? tmpstr : "");
 
 		close(fd);
-		return(NULL);
+		return (NULL);
 	}
 
 	close(fd);
@@ -480,16 +476,16 @@ cam_lookup_pass(const char *dev_name, int unit, int flags,
 	 */
 	if (ccb.cgdl.status == CAM_GDEVLIST_ERROR) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
-		    "%s: device %s%d does not exist!",
-		    __func__, dev_name, unit);
-		return(NULL);
+		    "%s: device %s%d does not exist!", __func__, dev_name,
+		    unit);
+		return (NULL);
 	}
 
 	sprintf(dev_path, "/dev/%s%d", ccb.cgdl.periph_name,
-		ccb.cgdl.unit_number);
+	    ccb.cgdl.unit_number);
 
-	return(cam_real_open_device(dev_path, flags, device, NULL,
-				    dev_name, unit));
+	return (cam_real_open_device(dev_path, flags, device, NULL, dev_name,
+	    unit));
 }
 
 /*
@@ -498,8 +494,7 @@ cam_lookup_pass(const char *dev_name, int unit, int flags,
  */
 static struct cam_device *
 cam_real_open_device(const char *path, int flags, struct cam_device *device,
-		     const char *given_path, const char *given_dev_name,
-		     int given_unit_number)
+    const char *given_path, const char *given_dev_name, int given_unit_number)
 {
 	union ccb ccb;
 	int fd = -1, malloced_device = 0;
@@ -509,12 +504,12 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	 */
 	if (device == NULL) {
 		if ((device = (struct cam_device *)malloc(
-		     sizeof(struct cam_device))) == NULL) {
+			 sizeof(struct cam_device))) == NULL) {
 			snprintf(cam_errbuf, nitems(cam_errbuf),
 			    "%s: device structure malloc"
-			    " failed\n%s: %s", __func__, __func__,
-			    strerror(errno));
-			return(NULL);
+			    " failed\n%s: %s",
+			    __func__, __func__, strerror(errno));
+			return (NULL);
 		}
 		device->fd = -1;
 		malloced_device = 1;
@@ -525,7 +520,7 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	 */
 	if (given_path != NULL)
 		strlcpy(device->device_path, given_path,
-			sizeof(device->device_path));
+		    sizeof(device->device_path));
 	else
 		device->device_path[0] = '\0';
 
@@ -535,7 +530,7 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	 */
 	if (given_dev_name != NULL)
 		strlcpy(device->given_dev_name, given_dev_name,
-			sizeof(device->given_dev_name));
+		    sizeof(device->given_dev_name));
 	else
 		device->given_dev_name[0] = '\0';
 	device->given_unit_number = given_unit_number;
@@ -543,8 +538,8 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	if ((fd = open(path, flags)) < 0) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: couldn't open passthrough device %s\n"
-		    "%s: %s", __func__, path, __func__,
-		    strerror(errno));
+		    "%s: %s",
+		    __func__, path, __func__, strerror(errno));
 		goto crod_bailout;
 	}
 
@@ -571,7 +566,8 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 		 */
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: CAMGETPASSTHRU ioctl failed\n"
-		    "%s: %s", __func__, __func__, strerror(errno));
+		    "%s: %s",
+		    __func__, __func__, strerror(errno));
 		goto crod_bailout;
 	}
 
@@ -589,7 +585,7 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 
 	device->dev_unit_num = ccb.cgdl.unit_number;
 	strlcpy(device->device_name, ccb.cgdl.periph_name,
-		sizeof(device->device_name));
+	    sizeof(device->device_name));
 	device->path_id = ccb.ccb_h.path_id;
 	device->target_id = ccb.ccb_h.target_id;
 	device->target_lun = ccb.ccb_h.target_lun;
@@ -598,7 +594,8 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	if (ioctl(fd, CAMIOCOMMAND, &ccb) == -1) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: Path Inquiry CCB failed\n"
-		    "%s: %s", __func__, __func__, strerror(errno));
+		    "%s: %s",
+		    __func__, __func__, strerror(errno));
 		goto crod_bailout;
 	}
 	strlcpy(device->sim_name, ccb.cpi.dev_name, sizeof(device->sim_name));
@@ -613,12 +610,13 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	if (ioctl(fd, CAMIOCOMMAND, &ccb) == -1) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: Get Device Type CCB failed\n"
-		    "%s: %s", __func__, __func__, strerror(errno));
+		    "%s: %s",
+		    __func__, __func__, strerror(errno));
 		goto crod_bailout;
 	}
 	device->pd_type = SID_TYPE(&ccb.cgd.inq_data);
 	bcopy(&ccb.cgd.inq_data, &device->inq_data,
-	      sizeof(struct scsi_inquiry_data));
+	    sizeof(struct scsi_inquiry_data));
 	device->serial_num_len = ccb.cgd.serial_num_len;
 	bcopy(&ccb.cgd.serial_num, &device->serial_num, device->serial_num_len);
 
@@ -637,7 +635,8 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 	if (ioctl(fd, CAMIOCOMMAND, &ccb) == -1) {
 		snprintf(cam_errbuf, nitems(cam_errbuf),
 		    "%s: Get Transfer Settings CCB failed\n"
-		    "%s: %s", __func__, __func__, strerror(errno));
+		    "%s: %s",
+		    __func__, __func__, strerror(errno));
 		goto crod_bailout;
 	}
 	if (ccb.cts.transport == XPORT_SPI) {
@@ -652,7 +651,7 @@ cam_real_open_device(const char *path, int flags, struct cam_device *device,
 		device->bus_width = 0;
 	}
 
-	return(device);
+	return (device);
 
 crod_bailout:
 
@@ -662,7 +661,7 @@ crod_bailout:
 	if (malloced_device)
 		free(device);
 
-	return(NULL);
+	return (NULL);
 }
 
 void
@@ -693,19 +692,17 @@ cam_path_string(struct cam_device *dev, char *str, int len)
 {
 	if (dev == NULL) {
 		snprintf(str, len, "No path");
-		return(str);
+		return (str);
 	}
 
 	snprintf(str, len, "(%s%d:%s%d:%d:%d:%jx): ",
-		 (dev->device_name[0] != '\0') ? dev->device_name : "pass",
-		 dev->dev_unit_num,
-		 (dev->sim_name[0] != '\0') ? dev->sim_name : "unknown",
-		 dev->sim_unit_number,
-		 dev->bus_id,
-		 dev->target_id,
-		 (uintmax_t)dev->target_lun);
+	    (dev->device_name[0] != '\0') ? dev->device_name : "pass",
+	    dev->dev_unit_num,
+	    (dev->sim_name[0] != '\0') ? dev->sim_name : "unknown",
+	    dev->sim_unit_number, dev->bus_id, dev->target_id,
+	    (uintmax_t)dev->target_lun);
 
-	return(str);
+	return (str);
 }
 
 /*
@@ -717,8 +714,8 @@ cam_device_dup(struct cam_device *device)
 	struct cam_device *newdev;
 
 	if (device == NULL) {
-		snprintf(cam_errbuf, nitems(cam_errbuf),
-		    "%s: device is NULL", __func__);
+		snprintf(cam_errbuf, nitems(cam_errbuf), "%s: device is NULL",
+		    __func__);
 		return (NULL);
 	}
 
@@ -731,7 +728,7 @@ cam_device_dup(struct cam_device *device)
 
 	bcopy(device, newdev, sizeof(struct cam_device));
 
-	return(newdev);
+	return (newdev);
 }
 
 /*
@@ -754,5 +751,4 @@ cam_device_copy(struct cam_device *src, struct cam_device *dst)
 	}
 
 	bcopy(src, dst, sizeof(struct cam_device));
-
 }

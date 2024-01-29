@@ -31,36 +31,33 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <atf-c.h>
-#include <errno.h>
-#include <stdio.h>
-
 #include <net/ethernet.h>
+#include <netgraph/ng_bridge.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 
+#include <atf-c.h>
+#include <errno.h>
+#include <stdio.h>
+
 #include "util.h"
-#include <netgraph/ng_bridge.h>
 
-static void	get_tablesize(char const *source, struct ng_mesg *msg, void *ctx);
-struct gettable
-{
-	u_int32_t	tok;
-	int		cnt;
+static void get_tablesize(char const *source, struct ng_mesg *msg, void *ctx);
+struct gettable {
+	u_int32_t tok;
+	int cnt;
 };
 
-struct frame4
-{
+struct frame4 {
 	struct ether_header eh;
-	struct ip	ip;
-	char		data[64];
+	struct ip ip;
+	char data[64];
 };
-struct frame6
-{
+struct frame6 {
 	struct ether_header eh;
-	struct ip6_hdr	ip;
-	char		data[64];
+	struct ip6_hdr ip;
+	char data[64];
 };
 
 static struct frame4 msg4 = {
@@ -68,14 +65,13 @@ static struct frame4 msg4 = {
 	.ip.ip_hl = 5,
 	.ip.ip_ttl = 1,
 	.ip.ip_p = 254,
-	.ip.ip_src = {htonl(0x0a00dead)},
-	.ip.ip_dst = {htonl(0x0a00beef)},
+	.ip.ip_src = { htonl(0x0a00dead) },
+	.ip.ip_dst = { htonl(0x0a00beef) },
 	.ip.ip_len = 32,
 	.eh.ether_type = ETHERTYPE_IP,
-	.eh.ether_shost = {2, 4, 6},
-	.eh.ether_dhost = {2, 4, 6},
+	.eh.ether_shost = { 2, 4, 6 },
+	.eh.ether_dhost = { 2, 4, 6 },
 };
-
 
 ATF_TC(basic);
 ATF_TC_HEAD(basic, conf)
@@ -85,8 +81,8 @@ ATF_TC_HEAD(basic, conf)
 
 ATF_TC_BODY(basic, dummy)
 {
-	ng_counter_t	r;
-	struct gettable	rm;
+	ng_counter_t r;
+	struct gettable rm;
 
 	ng_init();
 	ng_errors(PASS);
@@ -191,8 +187,8 @@ ATF_TC_HEAD(loop, conf)
 
 ATF_TC_BODY(loop, dummy)
 {
-	ng_counter_t	r;
-	int		i;
+	ng_counter_t r;
+	int i;
 
 	ng_init();
 	ng_errors(PASS);
@@ -236,9 +232,9 @@ ATF_TC_BODY(loop, dummy)
 	msg4.eh.ether_shost[5] = 1;
 	ng_errors(PASS);
 	ng_send_data("a", &msg4, sizeof(msg4));
-	ATF_CHECK_ERRNO(ELOOP, errno != 0);	/* loop might be detected */
+	ATF_CHECK_ERRNO(ELOOP, errno != 0); /* loop might be detected */
 	ng_errors(FAIL);
-	for (i = 0; i < 10; i++)	/* don't run forever */
+	for (i = 0; i < 10; i++) /* don't run forever */
 		if (!ng_handle_event(50, &r))
 			break;
 	ATF_CHECK(r[0] == 0 && r[1] == 1);
@@ -255,10 +251,10 @@ ATF_TC_HEAD(many_unicasts, conf)
 
 ATF_TC_BODY(many_unicasts, dummy)
 {
-	ng_counter_t	r;
-	int		i;
-	const int	HOOKS = 1000;
-	struct gettable	rm;
+	ng_counter_t r;
+	int i;
+	const int HOOKS = 1000;
+	struct gettable rm;
 
 	ng_init();
 	ng_errors(PASS);
@@ -282,9 +278,8 @@ ATF_TC_BODY(many_unicasts, dummy)
 
 	/* now send */
 	ng_counter_clear(r);
-	for (i = 1; i <= HOOKS; i++)
-	{
-		char		hook[20];
+	for (i = 1; i <= HOOKS; i++) {
+		char hook[20];
 
 		snprintf(hook, sizeof(hook), "link%d", i);
 		ng_connect(".", hook, "bridge:", hook);
@@ -307,8 +302,7 @@ ATF_TC_BODY(many_unicasts, dummy)
 	ng_errors(PASS);
 	rm.tok = ng_send_msg("bridge:", "gettable");
 	ng_errors(FAIL);
-	if (rm.tok == (u_int32_t)-1)
-	{
+	if (rm.tok == (u_int32_t)-1) {
 		ATF_CHECK_ERRNO(ENOBUFS, 1);
 		atf_tc_expect_fail("response too large");
 	}
@@ -327,9 +321,9 @@ ATF_TC_HEAD(many_broadcasts, conf)
 
 ATF_TC_BODY(many_broadcasts, dummy)
 {
-	ng_counter_t	r;
-	int		i;
-	const int	HOOKS = 1000;
+	ng_counter_t r;
+	int i;
+	const int HOOKS = 1000;
 
 	ng_init();
 	ng_errors(PASS);
@@ -353,9 +347,8 @@ ATF_TC_BODY(many_broadcasts, dummy)
 
 	/* now send */
 	ng_counter_clear(r);
-	for (i = 1; i <= HOOKS; i++)
-	{
-		char		hook[20];
+	for (i = 1; i <= HOOKS; i++) {
+		char hook[20];
 
 		snprintf(hook, sizeof(hook), "link%d", i);
 		ng_connect(".", hook, "bridge:", hook);
@@ -387,8 +380,8 @@ ATF_TC_HEAD(uplink_private, conf)
 
 ATF_TC_BODY(uplink_private, dummy)
 {
-	ng_counter_t	r;
-	struct gettable	rm;
+	ng_counter_t r;
+	struct gettable rm;
 
 	ng_init();
 	ng_errors(PASS);
@@ -501,8 +494,8 @@ ATF_TC_HEAD(uplink_classic, conf)
 
 ATF_TC_BODY(uplink_classic, dummy)
 {
-	ng_counter_t	r;
-	struct gettable	rm;
+	ng_counter_t r;
+	struct gettable rm;
 
 	ng_init();
 	ng_errors(PASS);
@@ -626,7 +619,8 @@ get_tablesize(char const *source, struct ng_mesg *msg, void *ctx)
 	struct gettable *rm = ctx;
 	struct ng_bridge_host_ary *gt = (void *)msg->data;
 
-	fprintf(stderr, "Response from %s to query %d\n", source, msg->header.token);
+	fprintf(stderr, "Response from %s to query %d\n", source,
+	    msg->header.token);
 	if (rm->tok == msg->header.token)
 		rm->cnt = gt->numHosts;
 }

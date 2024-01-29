@@ -28,25 +28,23 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disk.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <errno.h>
 #include <fcntl.h>
+#include <libufs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
-
-#include <libufs.h>
 
 ssize_t
 bread(struct uufsd *disk, ufs2_daddr_t blockno, void *data, size_t size)
@@ -79,7 +77,8 @@ bread(struct uufsd *disk, ufs2_daddr_t blockno, void *data, size_t size)
 		free(p2);
 	}
 	return (cnt);
-fail:	memset(data, 0, size);
+fail:
+	memset(data, 0, size);
 	if (p2 != data) {
 		free(p2);
 	}
@@ -149,7 +148,7 @@ berase_helper(struct uufsd *disk, ufs2_daddr_t blockno, ufs2_daddr_t size)
 		ERROR(disk, "failed to allocate memory");
 		return (-1);
 	}
-	while (size > 0) { 
+	while (size > 0) {
 		pwrite_size = size;
 		if (pwrite_size > zero_chunk_size)
 			pwrite_size = zero_chunk_size;
@@ -177,7 +176,7 @@ berase(struct uufsd *disk, ufs2_daddr_t blockno, ufs2_daddr_t size)
 	rv = ufs_disk_write(disk);
 	if (rv == -1) {
 		ERROR(disk, "failed to open disk for writing");
-		return(rv);
+		return (rv);
 	}
 	return (berase_helper(disk, blockno, size));
 }

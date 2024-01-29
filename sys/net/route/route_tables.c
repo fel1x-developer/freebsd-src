@@ -33,28 +33,28 @@
  * Which is the new name for an in kernel routing (next hop) table.	*
  ***********************************************************************/
 
-#include <sys/cdefs.h>
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/domain.h>
 #include <sys/jail.h>
-#include <sys/osd.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/syslog.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/osd.h>
+#include <sys/proc.h>
+#include <sys/socket.h>
 #include <sys/sx.h>
-#include <sys/domain.h>
+#include <sys/sysctl.h>
+#include <sys/syslog.h>
 #include <sys/sysproto.h>
 
-#include <net/vnet.h>
 #include <net/route.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
+#include <net/vnet.h>
 
 /* Kernel config default option. */
 #ifdef ROUTETABLES
@@ -64,24 +64,24 @@
 #if ROUTETABLES > RT_MAXFIBS
 #error "ROUTETABLES defined too big"
 #endif
-#define	RT_NUMFIBS	ROUTETABLES
+#define RT_NUMFIBS ROUTETABLES
 #endif /* ROUTETABLES */
 /* Initialize to default if not otherwise set. */
-#ifndef	RT_NUMFIBS
-#define	RT_NUMFIBS	1
+#ifndef RT_NUMFIBS
+#define RT_NUMFIBS 1
 #endif
 
 static void grow_rtables(uint32_t num_fibs);
 
 VNET_DEFINE_STATIC(struct sx, rtables_lock);
-#define	V_rtables_lock		VNET(rtables_lock)
-#define	RTABLES_LOCK()		sx_xlock(&V_rtables_lock)
-#define	RTABLES_UNLOCK()	sx_xunlock(&V_rtables_lock)
-#define	RTABLES_LOCK_INIT()	sx_init(&V_rtables_lock, "rtables lock")
-#define	RTABLES_LOCK_ASSERT()	sx_assert(&V_rtables_lock, SA_LOCKED)
+#define V_rtables_lock VNET(rtables_lock)
+#define RTABLES_LOCK() sx_xlock(&V_rtables_lock)
+#define RTABLES_UNLOCK() sx_xunlock(&V_rtables_lock)
+#define RTABLES_LOCK_INIT() sx_init(&V_rtables_lock, "rtables lock")
+#define RTABLES_LOCK_ASSERT() sx_assert(&V_rtables_lock, SA_LOCKED)
 
 VNET_DEFINE_STATIC(struct rib_head **, rt_tables);
-#define	V_rt_tables	VNET(rt_tables)
+#define V_rt_tables VNET(rt_tables)
 
 VNET_DEFINE(uint32_t, _rt_numfibs) = RT_NUMFIBS;
 
@@ -92,16 +92,15 @@ VNET_DEFINE(uint32_t, _rt_numfibs) = RT_NUMFIBS;
 static int
 sysctl_my_fibnum(SYSCTL_HANDLER_ARGS)
 {
-        int fibnum;
-        int error;
+	int fibnum;
+	int error;
 
-        fibnum = curthread->td_proc->p_fibnum;
-        error = sysctl_handle_int(oidp, &fibnum, 0, req);
-        return (error);
+	fibnum = curthread->td_proc->p_fibnum;
+	error = sysctl_handle_int(oidp, &fibnum, 0, req);
+	return (error);
 }
 SYSCTL_PROC(_net, OID_AUTO, my_fibnum,
-    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    &sysctl_my_fibnum, "I",
+    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, &sysctl_my_fibnum, "I",
     "default FIB of caller");
 
 static uint32_t
@@ -141,9 +140,9 @@ sysctl_fibs(SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 SYSCTL_PROC(_net, OID_AUTO, fibs,
-    CTLFLAG_VNET | CTLTYPE_U32 | CTLFLAG_RWTUN | CTLFLAG_NOFETCH | CTLFLAG_MPSAFE,
-    NULL, 0, &sysctl_fibs, "IU",
-    "set number of fibs");
+    CTLFLAG_VNET | CTLTYPE_U32 | CTLFLAG_RWTUN | CTLFLAG_NOFETCH |
+	CTLFLAG_MPSAFE,
+    NULL, 0, &sysctl_fibs, "IU", "set number of fibs");
 
 /*
  * Sets fib of a current process.
@@ -189,12 +188,11 @@ static void
 rtables_init(void)
 {
 	osd_method_t methods[PR_MAXMETHOD] = {
-	    [PR_METHOD_ATTACH] =	rtables_check_proc_fib,
+		[PR_METHOD_ATTACH] = rtables_check_proc_fib,
 	};
 	osd_jail_register(rtables_prison_destructor, methods);
 }
 SYSINIT(rtables_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_THIRD, rtables_init, NULL);
-
 
 /*
  * If required, copy interface routes from existing tables to the
@@ -204,7 +202,8 @@ static void
 populate_kernel_routes(struct rib_head **new_rt_tables, struct rib_head *rh)
 {
 	for (int i = 0; i < V_rt_numfibs; i++) {
-		struct rib_head *rh_src = new_rt_tables[i * (AF_MAX + 1) + rh->rib_family];
+		struct rib_head *rh_src =
+		    new_rt_tables[i * (AF_MAX + 1) + rh->rib_family];
 		if ((rh_src != NULL) && (rh_src != rh))
 			rib_copy_kernel_routes(rh_src, rh);
 	}
@@ -225,16 +224,17 @@ grow_rtables(uint32_t num_tables)
 
 	RTABLES_LOCK_ASSERT();
 
-	KASSERT(num_tables >= V_rt_numfibs, ("num_tables(%u) < rt_numfibs(%u)\n",
-				num_tables, V_rt_numfibs));
+	KASSERT(num_tables >= V_rt_numfibs,
+	    ("num_tables(%u) < rt_numfibs(%u)\n", num_tables, V_rt_numfibs));
 
 	new_rt_tables = mallocarray(num_tables * (AF_MAX + 1), sizeof(void *),
 	    M_RTABLE, M_WAITOK | M_ZERO);
 
 	if ((num_tables > 1) && (V_rt_add_addr_allfibs == 0))
-		printf("WARNING: Adding ifaddrs to all fibs has been turned off "
-			"by default. Consider tuning %s if needed\n",
-			"net.add_addr_allfibs");
+		printf(
+		    "WARNING: Adding ifaddrs to all fibs has been turned off "
+		    "by default. Consider tuning %s if needed\n",
+		    "net.add_addr_allfibs");
 
 #ifdef FIB_ALGO
 	fib_grow_rtables(num_tables);
@@ -250,7 +250,7 @@ grow_rtables(uint32_t num_tables)
 		    V_rt_numfibs * (AF_MAX + 1) * sizeof(void *));
 
 	/* Populate the remainders */
-	SLIST_FOREACH(dom, &domains, dom_next) {
+	SLIST_FOREACH (dom, &domains, dom_next) {
 		if (dom->dom_rtattach == NULL)
 			continue;
 		family = dom->dom_family;
@@ -260,7 +260,8 @@ grow_rtables(uint32_t num_tables)
 				continue;
 			rh = dom->dom_rtattach(i);
 			if (rh == NULL)
-				log(LOG_ERR, "unable to create routing table for %d.%d\n",
+				log(LOG_ERR,
+				    "unable to create routing table for %d.%d\n",
 				    dom->dom_family, i);
 			else
 				populate_kernel_routes(new_rt_tables, rh);
@@ -286,7 +287,7 @@ grow_rtables(uint32_t num_tables)
 
 #ifdef FIB_ALGO
 	/* Attach fib algo to the new rtables */
-	SLIST_FOREACH(dom, &domains, dom_next) {
+	SLIST_FOREACH (dom, &domains, dom_next) {
 		if (dom->dom_rtattach != NULL)
 			fib_setup_family(dom->dom_family, num_tables);
 	}
@@ -330,7 +331,7 @@ rtables_destroy(const void *unused __unused)
 	int family;
 
 	RTABLES_LOCK();
-	SLIST_FOREACH(dom, &domains, dom_next) {
+	SLIST_FOREACH (dom, &domains, dom_next) {
 		if (dom->dom_rtdetach == NULL)
 			continue;
 		family = dom->dom_family;
@@ -368,7 +369,7 @@ rt_tables_get_rnh_ptr(uint32_t table, sa_family_t family)
 
 	KASSERT(table < V_rt_numfibs,
 	    ("%s: table out of bounds (%d < %d)", __func__, table,
-	     V_rt_numfibs));
+		V_rt_numfibs));
 	KASSERT(family < (AF_MAX + 1),
 	    ("%s: fam out of bounds (%d < %d)", __func__, family, AF_MAX + 1));
 
@@ -403,7 +404,8 @@ rt_tables_get_gen(uint32_t table, sa_family_t family)
 	struct rib_head *rnh;
 
 	rnh = rt_tables_get_rnh_ptr(table, family);
-	KASSERT(rnh != NULL, ("%s: NULL rib_head pointer table %d family %d",
-	    __func__, table, family));
+	KASSERT(rnh != NULL,
+	    ("%s: NULL rib_head pointer table %d family %d", __func__, table,
+		family));
 	return (rnh->rnh_gen);
 }

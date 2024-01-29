@@ -39,6 +39,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "hexdump.h"
 
 void
@@ -60,7 +61,7 @@ conv_c(PR *pr, u_char *p, size_t bufsize)
 		goto strpr;
 	}
 
-	switch(*p) {
+	switch (*p) {
 	case '\0':
 		str = "\\0";
 		goto strpr;
@@ -97,12 +98,12 @@ conv_c(PR *pr, u_char *p, size_t bufsize)
 	converr = 0;
 	if (odmode && MB_CUR_MAX > 1) {
 		oclen = 0;
-retry:
+	retry:
 		clen = mbrtowc(&wc, p, bufsize, &pr->mbstate);
 		if (clen == 0)
 			clen = 1;
-		else if (clen == (size_t)-1 || (clen == (size_t)-2 &&
-		    p == peekbuf)) {
+		else if (clen == (size_t)-1 ||
+		    (clen == (size_t)-2 && p == peekbuf)) {
 			memset(&pr->mbstate, 0, sizeof(pr->mbstate));
 			if (p == peekbuf) {
 				/*
@@ -149,7 +150,8 @@ retry:
 	} else {
 		(void)sprintf(buf, "%03o", (int)*p);
 		str = buf;
-strpr:		*pr->cchar = 's';
+	strpr:
+		*pr->cchar = 's';
 		(void)printf(pr->fmt, str);
 	}
 }
@@ -157,14 +159,42 @@ strpr:		*pr->cchar = 's';
 void
 conv_u(PR *pr, u_char *p)
 {
-	static char const * list[] = {
-		"nul", "soh", "stx", "etx", "eot", "enq", "ack", "bel",
-		 "bs",  "ht",  "lf",  "vt",  "ff",  "cr",  "so",  "si",
-		"dle", "dc1", "dc2", "dc3", "dc4", "nak", "syn", "etb",
-		"can",  "em", "sub", "esc",  "fs",  "gs",  "rs",  "us",
+	static char const *list[] = {
+		"nul",
+		"soh",
+		"stx",
+		"etx",
+		"eot",
+		"enq",
+		"ack",
+		"bel",
+		"bs",
+		"ht",
+		"lf",
+		"vt",
+		"ff",
+		"cr",
+		"so",
+		"si",
+		"dle",
+		"dc1",
+		"dc2",
+		"dc3",
+		"dc4",
+		"nak",
+		"syn",
+		"etb",
+		"can",
+		"em",
+		"sub",
+		"esc",
+		"fs",
+		"gs",
+		"rs",
+		"us",
 	};
 
-						/* od used nl, not lf */
+	/* od used nl, not lf */
 	if (*p <= 0x1f) {
 		*pr->cchar = 's';
 		if (odmode && *p == 0x0a)
@@ -174,7 +204,7 @@ conv_u(PR *pr, u_char *p)
 	} else if (*p == 0x7f) {
 		*pr->cchar = 's';
 		(void)printf(pr->fmt, "del");
-	} else if (odmode && *p == 0x20) {	/* od replaced space with sp */
+	} else if (odmode && *p == 0x20) { /* od replaced space with sp */
 		*pr->cchar = 's';
 		(void)printf(pr->fmt, " sp");
 	} else if (isprint(*p)) {

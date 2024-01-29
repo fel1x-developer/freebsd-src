@@ -36,6 +36,5 @@
  * advised of the possibility of such damage.
  */
 
-
-#define	GVINUMMOD	"g_vinum"
-#define	GVINUMKLD	"geom_vinum"
+#define GVINUMMOD "g_vinum"
+#define GVINUMKLD "geom_vinum"

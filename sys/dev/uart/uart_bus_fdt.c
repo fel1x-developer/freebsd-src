@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -51,10 +51,9 @@ static int uart_fdt_probe(device_t);
 
 static device_method_t uart_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		uart_fdt_probe),
-	DEVMETHOD(device_attach,	uart_bus_attach),
-	DEVMETHOD(device_detach,	uart_bus_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, uart_fdt_probe),
+	DEVMETHOD(device_attach, uart_bus_attach),
+	DEVMETHOD(device_detach, uart_bus_detach), { 0, 0 }
 };
 
 static driver_t uart_fdt_driver = {
@@ -68,12 +67,12 @@ uart_fdt_get_clock(phandle_t node, pcell_t *cell)
 {
 
 	/* clock-frequency is a FreeBSD-only extension. */
-	if ((OF_getencprop(node, "clock-frequency", cell,
-	    sizeof(*cell))) <= 0) {
+	if ((OF_getencprop(node, "clock-frequency", cell, sizeof(*cell))) <=
+	    0) {
 		/* Try to retrieve parent 'bus-frequency' */
 		/* XXX this should go to simple-bus fixup or so */
 		if ((OF_getencprop(OF_parent(node), "bus-frequency", cell,
-		    sizeof(*cell))) <= 0)
+			sizeof(*cell))) <= 0)
 			*cell = 0;
 	}
 
@@ -104,7 +103,8 @@ uart_fdt_find_device(device_t dev)
 	struct ofw_compat_data **cd;
 	const struct ofw_compat_data *ocd;
 
-	SET_FOREACH(cd, uart_fdt_class_and_device_set) {
+	SET_FOREACH(cd, uart_fdt_class_and_device_set)
+	{
 		ocd = ofw_bus_search_compatible(dev, *cd);
 		if (ocd->ocd_data != 0)
 			return (ocd->ocd_data);
@@ -153,13 +153,15 @@ uart_fdt_find_by_node(phandle_t node, int class_list)
 	const struct ofw_compat_data *ocd;
 
 	if (class_list) {
-		SET_FOREACH(cd, uart_fdt_class_set) {
+		SET_FOREACH(cd, uart_fdt_class_set)
+		{
 			ocd = uart_fdt_find_compatible(node, *cd);
 			if ((ocd != NULL) && (ocd->ocd_data != 0))
 				return (ocd->ocd_data);
 		}
 	} else {
-		SET_FOREACH(cd, uart_fdt_class_and_device_set) {
+		SET_FOREACH(cd, uart_fdt_class_and_device_set)
+		{
 			ocd = uart_fdt_find_compatible(node, *cd);
 			if ((ocd != NULL) && (ocd->ocd_data != 0))
 				return (ocd->ocd_data);
@@ -174,9 +176,9 @@ uart_cpu_fdt_probe(struct uart_class **classp, bus_space_tag_t *bst,
     bus_space_handle_t *bsh, int *baud, u_int *rclk, u_int *shiftp,
     u_int *iowidthp, const int devtype)
 {
-	const char *propnames[] = {"stdout-path", "linux,stdout-path", "stdout",
-	    "stdin-path", "stdin", NULL};
-	const char *propnames_dbgport[] = {"freebsd,debug-path", NULL};
+	const char *propnames[] = { "stdout-path", "linux,stdout-path",
+		"stdout", "stdin-path", "stdin", NULL };
+	const char *propnames_dbgport[] = { "freebsd,debug-path", NULL };
 	const char **name;
 	struct uart_class *class;
 	phandle_t node, chosen;
@@ -206,7 +208,7 @@ uart_cpu_fdt_probe(struct uart_class **classp, bus_space_tag_t *bst,
 		if ((chosen = OF_finddevice("/chosen")) != -1) {
 			for (; *name != NULL; name++) {
 				if (phandle_chosen_propdev(chosen, *name,
-				    &node) == 0)
+					&node) == 0)
 					break;
 			}
 		}
@@ -230,8 +232,7 @@ uart_cpu_fdt_probe(struct uart_class **classp, bus_space_tag_t *bst,
 			return (err);
 	} else {
 		/* Check class only linker set */
-		class =
-		    (struct uart_class *)uart_fdt_find_by_node(node, 1);
+		class = (struct uart_class *)uart_fdt_find_by_node(node, 1);
 		if (class == NULL)
 			return (ENXIO);
 		clk = 0;
@@ -288,7 +289,8 @@ uart_fdt_probe(device_t dev)
 	if (uart_fdt_get_io_width(node, &iowidth) != 0)
 		iowidth = uart_getregiowidth(sc->sc_class);
 
-	return (uart_bus_probe(dev, (int)shift, (int)iowidth, (int)clock, 0, 0, 0));
+	return (
+	    uart_bus_probe(dev, (int)shift, (int)iowidth, (int)clock, 0, 0, 0));
 }
 
 DRIVER_MODULE(uart, simplebus, uart_fdt_driver, 0, 0);

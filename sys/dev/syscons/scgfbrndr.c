@@ -28,17 +28,18 @@
  * Copyright (c) 2000 Andrew Miklic
  */
 
-#include <sys/cdefs.h>
 #include "opt_syscons.h"
+
+#include <sys/cdefs.h>
 #ifdef __powerpc__
 #include "opt_ofwfb.h"
 #endif
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/fbio.h>
 #include <sys/consio.h>
+#include <sys/fbio.h>
+#include <sys/kernel.h>
 
 #include <machine/bus.h>
 
@@ -46,28 +47,28 @@
 #include <dev/syscons/syscons.h>
 
 #ifndef SC_RENDER_DEBUG
-#define SC_RENDER_DEBUG		0
+#define SC_RENDER_DEBUG 0
 #endif
 
-static vr_clear_t		gfb_clear;
-static vr_draw_border_t		gfb_border;
-static vr_draw_t		gfb_draw;
-static vr_set_cursor_t		gfb_cursor_shape;
-static vr_draw_cursor_t		gfb_cursor;
-static vr_blink_cursor_t	gfb_blink;
+static vr_clear_t gfb_clear;
+static vr_draw_border_t gfb_border;
+static vr_draw_t gfb_draw;
+static vr_set_cursor_t gfb_cursor_shape;
+static vr_draw_cursor_t gfb_cursor;
+static vr_blink_cursor_t gfb_blink;
 #ifndef SC_NO_CUTPASTE
-static vr_draw_mouse_t		gfb_mouse;
+static vr_draw_mouse_t gfb_mouse;
 #else
-#define gfb_mouse		(vr_draw_mouse_t *)gfb_nop
+#define gfb_mouse (vr_draw_mouse_t *)gfb_nop
 #endif
 
-static void			gfb_nop(scr_stat *scp);
+static void gfb_nop(scr_stat *scp);
 
 sc_rndr_sw_t txtrndrsw = {
 	(vr_init_t *)gfb_nop,
 	gfb_clear,
 	gfb_border,
-	gfb_draw,	
+	gfb_draw,
 	gfb_cursor_shape,
 	gfb_cursor,
 	gfb_blink,
@@ -104,10 +105,8 @@ sc_rndr_sw_t grrndrsw = {
 #endif /* SC_NO_MODE_CHANGE */
 
 #ifndef SC_NO_CUTPASTE
-static u_char mouse_pointer[16] = {
-	0x00, 0x40, 0x60, 0x70, 0x78, 0x7c, 0x7e, 0x68,
-	0x0c, 0x0c, 0x06, 0x06, 0x00, 0x00, 0x00, 0x00
-};
+static u_char mouse_pointer[16] = { 0x00, 0x40, 0x60, 0x70, 0x78, 0x7c, 0x7e,
+	0x68, 0x0c, 0x0c, 0x06, 0x06, 0x00, 0x00, 0x00, 0x00 };
 #endif
 
 static void
@@ -143,7 +142,7 @@ gfb_draw(scr_stat *scp, int from, int count, int flip)
 	   Determine if we need to scroll based on the offset
 	   and the number of characters to be displayed...
 	 */
-	if (from + count > scp->xsize*scp->ysize) {
+	if (from + count > scp->xsize * scp->ysize) {
 		/*
 		   Calculate the number of characters past the end of the
 		   visible screen...
@@ -193,12 +192,13 @@ gfb_draw(scr_stat *scp, int from, int count, int flip)
 	}
 }
 
-static void 
+static void
 gfb_cursor_shape(scr_stat *scp, int base, int height, int blink)
 {
 	if (base < 0 || base >= scp->font_size)
 		return;
-	/* the caller may set height <= 0 in order to disable the cursor */
+		/* the caller may set height <= 0 in order to disable the cursor
+		 */
 #if 0
 	scp->cursor_base = base;
 	scp->cursor_height = height;
@@ -216,15 +216,16 @@ gfb_cursor(scr_stat *scp, int at, int blink, int on, int flip)
 	video_adapter_t *adp;
 	int a, c;
 
-	if (scp->curs_attr.height <= 0)	/* the text cursor is disabled */
+	if (scp->curs_attr.height <= 0) /* the text cursor is disabled */
 		return;
 
 	adp = scp->sc->adp;
-	if(blink) {
+	if (blink) {
 		scp->status |= VR_CURSOR_BLINK;
 		if (on) {
 			scp->status |= VR_CURSOR_ON;
-			vidd_set_hw_cursor(adp, at%scp->xsize, at/scp->xsize);
+			vidd_set_hw_cursor(adp, at % scp->xsize,
+			    at / scp->xsize);
 		} else {
 			if (scp->status & VR_CURSOR_ON)
 				vidd_set_hw_cursor(adp, -1, -1);
@@ -232,7 +233,7 @@ gfb_cursor(scr_stat *scp, int at, int blink, int on, int flip)
 		}
 	} else {
 		scp->status &= ~VR_CURSOR_BLINK;
-		if(on) {
+		if (on) {
 			scp->status |= VR_CURSOR_ON;
 			vidd_putc(scp->sc->adp, scp->cursor_oldpos,
 			    sc_vtb_getc(&scp->vtb, scp->cursor_oldpos),
@@ -251,32 +252,34 @@ gfb_cursor(scr_stat *scp, int at, int blink, int on, int flip)
 	}
 }
 #else
-static void 
+static void
 gfb_cursor(scr_stat *scp, int at, int blink, int on, int flip)
 {
 	video_adapter_t *adp;
 
 	adp = scp->sc->adp;
-	if (scp->curs_attr.height <= 0) 
+	if (scp->curs_attr.height <= 0)
 		/* the text cursor is disabled */
 		return;
 
 	if (on) {
 		if (!blink) {
 			scp->status |= VR_CURSOR_ON;
-			vidd_set_hw_cursor(adp, at%scp->xsize, at/scp->xsize);
+			vidd_set_hw_cursor(adp, at % scp->xsize,
+			    at / scp->xsize);
 		} else if (++pxlblinkrate & 4) {
 			pxlblinkrate = 0;
 			scp->status ^= VR_CURSOR_ON;
-			if(scp->status & VR_CURSOR_ON)
-				vidd_set_hw_cursor(adp, at%scp->xsize,
-				    at/scp->xsize);
+			if (scp->status & VR_CURSOR_ON)
+				vidd_set_hw_cursor(adp, at % scp->xsize,
+				    at / scp->xsize);
 			else
 				vidd_set_hw_cursor(adp, -1, -1);
 		}
 	} else {
 		if (scp->status & VR_CURSOR_ON)
-			vidd_set_hw_cursor(adp, at%scp->xsize, at/scp->xsize);
+			vidd_set_hw_cursor(adp, at % scp->xsize,
+			    at / scp->xsize);
 		scp->status &= ~VR_CURSOR_ON;
 	}
 	if (blink)
@@ -301,12 +304,11 @@ gfb_blink(scr_stat *scp, int at, int flip)
 
 #ifndef SC_NO_CUTPASTE
 
-static void 
+static void
 gfb_mouse(scr_stat *scp, int x, int y, int on)
 {
 	if (on) {
-		vidd_putm(scp->sc->adp, x, y, mouse_pointer,
-		    0xffffffff, 16, 8);
+		vidd_putm(scp->sc->adp, x, y, mouse_pointer, 0xffffffff, 16, 8);
 	} else {
 		/* XXX: removal is incomplete for h/w cursors and borders. */
 	}

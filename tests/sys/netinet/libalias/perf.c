@@ -31,39 +31,45 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#include <sys/time.h>
+
+#include <alias.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <sys/time.h>
+
 #include "util.h"
-#include <alias.h>
 
 static void usage(void) __dead2;
 
-#define	timevalcmp(tv, uv, cmp)			\
-	(((tv).tv_sec == (uv).tv_sec)		\
-	 ? ((tv).tv_usec cmp (uv).tv_usec)	\
-	 : ((tv).tv_sec cmp (uv).tv_sec))
+#define timevalcmp(tv, uv, cmp)                                          \
+	(((tv).tv_sec == (uv).tv_sec) ? ((tv).tv_usec cmp(uv).tv_usec) : \
+					((tv).tv_sec cmp(uv).tv_sec))
 
-#define timevaldiff(n, o) (float)		\
-	(((n).tv_sec - (o).tv_sec)*1000000l +	\
-	 ((n).tv_usec - (o).tv_usec))
+#define timevaldiff(n, o)                              \
+	(float)(((n).tv_sec - (o).tv_sec) * 1000000l + \
+	    ((n).tv_usec - (o).tv_usec))
 
-#define check_timeout()	do {				\
-	if (check_timeout_cnt++ > 1000) {		\
-		check_timeout_cnt = 0;			\
-		gettimeofday(&now, NULL);		\
-		if (timevalcmp(now, timeout, >=))	\
-		    goto out;				\
-	} } while(0)
+#define check_timeout()                                   \
+	do {                                              \
+		if (check_timeout_cnt++ > 1000) {         \
+			check_timeout_cnt = 0;            \
+			gettimeofday(&now, NULL);         \
+			if (timevalcmp(now, timeout, >=)) \
+				goto out;                 \
+		}                                         \
+	} while (0)
 
 static void
-usage(void) {
-	printf("Usage: perf [max_seconds [batch_size [random_size [attack_size [redir_size]]]]]\n");
+usage(void)
+{
+	printf(
+	    "Usage: perf [max_seconds [batch_size [random_size [attack_size [redir_size]]]]]\n");
 	exit(1);
 }
 
-int main(int argc, char ** argv)
+int
+main(int argc, char **argv)
 {
 	struct libalias *la;
 	struct timeval timeout, now, start;
@@ -77,28 +83,35 @@ int main(int argc, char ** argv)
 		unsigned long ok, fail;
 	} nat, usenat, unnat, random, attack;
 	int i, round, check_timeout_cnt = 0;
-	int max_seconds = 90, batch_size = 2000,
-	    random_size = 1000, attack_size = 1000,
-	    redir_size = 2000;
+	int max_seconds = 90, batch_size = 2000, random_size = 1000,
+	    attack_size = 1000, redir_size = 2000;
 
 	if (argc >= 2) {
-		char * end;
+		char *end;
 
 		max_seconds = strtol(argv[1], &end, 10);
 		if (max_seconds < 2 || end[0] != '\0')
 			usage();
 	}
-	if (argc > 2 && (batch_size  = atoi(argv[2])) < 0)	usage();
-	if (argc > 3 && (random_size = atoi(argv[3])) < 0)	usage();
-	if (argc > 4 && (attack_size = atoi(argv[4])) < 0)	usage();
-	if (argc > 5 && (redir_size  = atoi(argv[5])) < 0)	usage();
+	if (argc > 2 && (batch_size = atoi(argv[2])) < 0)
+		usage();
+	if (argc > 3 && (random_size = atoi(argv[3])) < 0)
+		usage();
+	if (argc > 4 && (attack_size = atoi(argv[4])) < 0)
+		usage();
+	if (argc > 5 && (redir_size = atoi(argv[5])) < 0)
+		usage();
 
 	printf("Running perfomance test with parameters:\n");
 	printf("  Maximum Runtime (max_seconds) = %d\n", max_seconds);
 	printf("  Amount of valid connections (batch_size) = %d\n", batch_size);
-	printf("  Amount of random, incoming packets (batch_size) = %d\n", random_size);
-	printf("  Repeat count of a random, incoming packet (attack_size) = %d\n", attack_size);
-	printf("  Amount of open port forwardings (redir_size) = %d\n", redir_size);
+	printf("  Amount of random, incoming packets (batch_size) = %d\n",
+	    random_size);
+	printf(
+	    "  Repeat count of a random, incoming packet (attack_size) = %d\n",
+	    attack_size);
+	printf("  Amount of open port forwardings (redir_size) = %d\n",
+	    redir_size);
 	printf("\n");
 
 	if (NULL == (la = LibAliasInit(NULL))) {
@@ -124,7 +137,8 @@ int main(int argc, char ** argv)
 
 		prv2.s_addr &= htonl(0xffff0000);
 		prv2.s_addr |= rand_range(0, 0xffff);
-		LibAliasRedirectPort(la, prv2, sport, ANY_ADDR, 0, masq, aport, IPPROTO_UDP);
+		LibAliasRedirectPort(la, prv2, sport, ANY_ADDR, 0, masq, aport,
+		    IPPROTO_UDP);
 	}
 
 	p = ip_packet(0, 64);
@@ -139,16 +153,19 @@ int main(int argc, char ** argv)
 	timeout.tv_sec += max_seconds;
 
 	printf("RND SECOND newNAT RANDOM ATTACK useNAT\n");
-	for (round = 0; ; round++) {
+	for (round = 0;; round++) {
 		int res, cnt;
 
-		printf("%3d ", round+1);
+		printf("%3d ", round + 1);
 
 		gettimeofday(&start, NULL);
-		printf("%6.1f ", max_seconds - timevaldiff(timeout, start)/1000000.0f);
+		printf("%6.1f ",
+		    max_seconds - timevaldiff(timeout, start) / 1000000.0f);
 		for (cnt = i = 0; i < batch_size; i++, cnt++) {
-			batch[i].src.s_addr = prv1.s_addr | htonl(rand_range(0, 0xffff));
-			batch[i].dst.s_addr = ext.s_addr | htonl(rand_range(0, 0xffff));
+			batch[i].src.s_addr = prv1.s_addr |
+			    htonl(rand_range(0, 0xffff));
+			batch[i].dst.s_addr = ext.s_addr |
+			    htonl(rand_range(0, 0xffff));
 			batch[i].sport = rand_range(1000, 60000);
 			batch[i].dport = rand_range(1000, 60000);
 
@@ -180,7 +197,8 @@ int main(int argc, char ** argv)
 			p->ip_src.s_addr = ext.s_addr & htonl(0xfff00000);
 			p->ip_src.s_addr |= htonl(rand_range(0, 0xffff));
 			p->ip_dst = masq;
-			u = set_udp(p, rand_range(1, 0xffff), rand_range(1, 0xffff));
+			u = set_udp(p, rand_range(1, 0xffff),
+			    rand_range(1, 0xffff));
 
 			res = LibAliasIn(la, p, 64);
 
@@ -225,7 +243,7 @@ int main(int argc, char ** argv)
 			int j;
 
 			/* random communication length */
-			for(j = rand_range(1, 150); j-- > 0; cnt++) {
+			for (j = rand_range(1, 150); j-- > 0; cnt++) {
 				int k;
 
 				/* a random flow out of rolling window */
@@ -237,12 +255,15 @@ int main(int argc, char ** argv)
 				if (rand_range(0, 100) > 10) {
 					p->ip_src = batch[k].dst;
 					p->ip_dst = masq;
-					u = set_udp(p, batch[k].dport, batch[k].aport);
+					u = set_udp(p, batch[k].dport,
+					    batch[k].aport);
 
 					res = LibAliasIn(la, p, 64);
 					if (res == PKT_ALIAS_OK &&
-					    u->uh_sport == htons(batch[k].dport) &&
-					    u->uh_dport == htons(batch[k].sport) &&
+					    u->uh_sport ==
+						htons(batch[k].dport) &&
+					    u->uh_dport ==
+						htons(batch[k].sport) &&
 					    addr_eq(p->ip_dst, batch[k].src) &&
 					    addr_eq(p->ip_src, batch[k].dst))
 						unnat.ok++;
@@ -251,12 +272,15 @@ int main(int argc, char ** argv)
 				} else {
 					p->ip_src = batch[k].src;
 					p->ip_dst = batch[k].dst;
-					u = set_udp(p, batch[k].sport, batch[k].dport);
+					u = set_udp(p, batch[k].sport,
+					    batch[k].dport);
 
 					res = LibAliasOut(la, p, 64);
 					if (res == PKT_ALIAS_OK &&
-					    u->uh_sport == htons(batch[k].aport) &&
-					    u->uh_dport == htons(batch[k].dport) &&
+					    u->uh_sport ==
+						htons(batch[k].aport) &&
+					    u->uh_dport ==
+						htons(batch[k].dport) &&
 					    addr_eq(p->ip_dst, batch[k].dst) &&
 					    addr_eq(p->ip_src, masq))
 						usenat.ok++;
@@ -293,16 +317,14 @@ out:
 	printf("ATTACK fail: %9lu\n", attack.fail);
 	printf("             ---------\n");
 	printf("      Total: %9lu\n",
-	       nat.ok + nat.fail +
-	       unnat.ok + unnat.fail +
-	       usenat.ok + usenat.fail +
-	       random.ok + random.fail +
-	       attack.ok + attack.fail);
+	    nat.ok + nat.fail + unnat.ok + unnat.fail + usenat.ok +
+		usenat.fail + random.ok + random.fail + attack.ok +
+		attack.fail);
 
 	gettimeofday(&start, NULL);
 	printf("\n  Cleanup  : ");
 	LibAliasUninit(la);
 	gettimeofday(&now, NULL);
-	printf("%.2fs\n", timevaldiff(now, start)/1000000l);
+	printf("%.2fs\n", timevaldiff(now, start) / 1000000l);
 	return (0);
 }

@@ -31,15 +31,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/bio.h>
 #include <sys/disk.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
+#include <activemap.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgeom.h>
+#include <nv.h>
+#include <pjdlog.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
@@ -47,10 +50,6 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <activemap.h>
-#include <nv.h>
-#include <pjdlog.h>
 
 #include "control.h"
 #include "event.h"
@@ -64,13 +63,13 @@
 #include "synch.h"
 
 struct hio {
-	uint64_t	 hio_seq;
-	int		 hio_error;
-	void		*hio_data;
-	uint8_t		 hio_cmd;
-	uint64_t	 hio_offset;
-	uint64_t	 hio_length;
-	bool		 hio_memsync;
+	uint64_t hio_seq;
+	int hio_error;
+	void *hio_data;
+	uint8_t hio_cmd;
+	uint64_t hio_offset;
+	uint64_t hio_length;
+	bool hio_memsync;
 	TAILQ_ENTRY(hio) hio_next;
 };
 
@@ -102,31 +101,33 @@ static pthread_cond_t hio_send_list_cond;
 /*
  * Maximum number of outstanding I/O requests.
  */
-#define	HAST_HIO_MAX	256
+#define HAST_HIO_MAX 256
 
 static void *recv_thread(void *arg);
 static void *disk_thread(void *arg);
 static void *send_thread(void *arg);
 
-#define	QUEUE_INSERT(name, hio)	do {					\
-	mtx_lock(&hio_##name##_list_lock);				\
-	if (TAILQ_EMPTY(&hio_##name##_list))				\
-		cv_broadcast(&hio_##name##_list_cond);			\
-	TAILQ_INSERT_TAIL(&hio_##name##_list, (hio), hio_next);		\
-	hio_##name##_list_size++;					\
-	mtx_unlock(&hio_##name##_list_lock);				\
-} while (0)
-#define	QUEUE_TAKE(name, hio)	do {					\
-	mtx_lock(&hio_##name##_list_lock);				\
-	while (((hio) = TAILQ_FIRST(&hio_##name##_list)) == NULL) {	\
-		cv_wait(&hio_##name##_list_cond,			\
-		    &hio_##name##_list_lock);				\
-	}								\
-	PJDLOG_ASSERT(hio_##name##_list_size != 0);			\
-	hio_##name##_list_size--;					\
-	TAILQ_REMOVE(&hio_##name##_list, (hio), hio_next);		\
-	mtx_unlock(&hio_##name##_list_lock);				\
-} while (0)
+#define QUEUE_INSERT(name, hio)                                         \
+	do {                                                            \
+		mtx_lock(&hio_##name##_list_lock);                      \
+		if (TAILQ_EMPTY(&hio_##name##_list))                    \
+			cv_broadcast(&hio_##name##_list_cond);          \
+		TAILQ_INSERT_TAIL(&hio_##name##_list, (hio), hio_next); \
+		hio_##name##_list_size++;                               \
+		mtx_unlock(&hio_##name##_list_lock);                    \
+	} while (0)
+#define QUEUE_TAKE(name, hio)                                               \
+	do {                                                                \
+		mtx_lock(&hio_##name##_list_lock);                          \
+		while (((hio) = TAILQ_FIRST(&hio_##name##_list)) == NULL) { \
+			cv_wait(&hio_##name##_list_cond,                    \
+			    &hio_##name##_list_lock);                       \
+		}                                                           \
+		PJDLOG_ASSERT(hio_##name##_list_size != 0);                 \
+		hio_##name##_list_size--;                                   \
+		TAILQ_REMOVE(&hio_##name##_list, (hio), hio_next);          \
+		mtx_unlock(&hio_##name##_list_lock);                        \
+	} while (0)
 
 static void
 output_status_aux(struct nv *nvout)
@@ -236,7 +237,8 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 	nv_add_uint64(nvout, res->hr_secondary_localcnt, "localcnt");
 	nv_add_uint64(nvout, res->hr_secondary_remotecnt, "remotecnt");
 	mapsize = activemap_calc_ondisk_size(res->hr_local_mediasize -
-	    METADATA_SIZE, res->hr_extentsize, res->hr_local_sectorsize);
+		METADATA_SIZE,
+	    res->hr_extentsize, res->hr_local_sectorsize);
 	map = malloc(mapsize);
 	if (map == NULL) {
 		pjdlog_exitx(EX_TEMPFAIL,
@@ -310,8 +312,8 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 		    (uintmax_t)resuid, (uintmax_t)res->hr_resuid);
 		pjdlog_error("%s", errmsg);
 		nv_add_string(nvout, errmsg, "errmsg");
-		if (hast_proto_send(res, res->hr_remotein, nvout,
-		    NULL, 0) == -1) {
+		if (hast_proto_send(res, res->hr_remotein, nvout, NULL, 0) ==
+		    -1) {
 			pjdlog_exit(EX_TEMPFAIL,
 			    "Unable to send response to %s",
 			    res->hr_remoteaddr);
@@ -321,13 +323,13 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 	} else if (
 	    /* Is primary out-of-date? */
 	    (res->hr_secondary_localcnt > res->hr_primary_remotecnt &&
-	     res->hr_secondary_remotecnt == res->hr_primary_localcnt) ||
+		res->hr_secondary_remotecnt == res->hr_primary_localcnt) ||
 	    /* Are the nodes more or less in sync? */
 	    (res->hr_secondary_localcnt == res->hr_primary_remotecnt &&
-	     res->hr_secondary_remotecnt == res->hr_primary_localcnt) ||
+		res->hr_secondary_remotecnt == res->hr_primary_localcnt) ||
 	    /* Is secondary out-of-date? */
 	    (res->hr_secondary_localcnt == res->hr_primary_remotecnt &&
-	     res->hr_secondary_remotecnt < res->hr_primary_localcnt)) {
+		res->hr_secondary_remotecnt < res->hr_primary_localcnt)) {
 		/*
 		 * Nodes are more or less in sync or one of the nodes is
 		 * out-of-date.
@@ -339,7 +341,7 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 			pjdlog_exit(LOG_ERR, "Unable to read activemap");
 		}
 		if (res->hr_secondary_localcnt > res->hr_primary_remotecnt &&
-		     res->hr_secondary_remotecnt == res->hr_primary_localcnt) {
+		    res->hr_secondary_remotecnt == res->hr_primary_localcnt) {
 			/* Primary is out-of-date, sync from secondary. */
 			nv_add_uint8(nvout, HAST_SYNCSRC_SECONDARY, "syncsrc");
 		} else {
@@ -350,15 +352,15 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 			nv_add_uint8(nvout, HAST_SYNCSRC_PRIMARY, "syncsrc");
 		}
 	} else if (res->hr_secondary_localcnt > res->hr_primary_remotecnt &&
-	     res->hr_primary_localcnt > res->hr_secondary_remotecnt) {
+	    res->hr_primary_localcnt > res->hr_secondary_remotecnt) {
 		/*
 		 * Not good, we have split-brain condition.
 		 */
 		free(map);
 		pjdlog_error("Split-brain detected, exiting.");
 		nv_add_string(nvout, "Split-brain condition!", "errmsg");
-		if (hast_proto_send(res, res->hr_remotein, nvout,
-		    NULL, 0) == -1) {
+		if (hast_proto_send(res, res->hr_remotein, nvout, NULL, 0) ==
+		    -1) {
 			pjdlog_exit(EX_TEMPFAIL,
 			    "Unable to send response to %s",
 			    res->hr_remoteaddr);
@@ -368,16 +370,18 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 		event_send(res, EVENT_SPLITBRAIN);
 		exit(EX_CONFIG);
 	} else /* if (res->hr_secondary_localcnt < res->hr_primary_remotecnt ||
-	    res->hr_primary_localcnt < res->hr_secondary_remotecnt) */ {
+	    res->hr_primary_localcnt < res->hr_secondary_remotecnt) */
+	{
 		/*
 		 * This should never happen in practise, but we will perform
 		 * full synchronization.
 		 */
-		PJDLOG_ASSERT(res->hr_secondary_localcnt < res->hr_primary_remotecnt ||
+		PJDLOG_ASSERT(
+		    res->hr_secondary_localcnt < res->hr_primary_remotecnt ||
 		    res->hr_primary_localcnt < res->hr_secondary_remotecnt);
 		mapsize = activemap_calc_ondisk_size(res->hr_local_mediasize -
-		    METADATA_SIZE, res->hr_extentsize,
-		    res->hr_local_sectorsize);
+			METADATA_SIZE,
+		    res->hr_extentsize, res->hr_local_sectorsize);
 		memset(map, 0xff, mapsize);
 		if (res->hr_secondary_localcnt > res->hr_primary_remotecnt) {
 			/* In this one of five cases sync from secondary. */
@@ -386,7 +390,8 @@ init_remote(struct hast_resource *res, struct nv *nvin)
 			/* For the rest four cases sync from primary. */
 			nv_add_uint8(nvout, HAST_SYNCSRC_PRIMARY, "syncsrc");
 		}
-		pjdlog_warning("This should never happen, asking for full synchronization (primary(local=%ju, remote=%ju), secondary(local=%ju, remote=%ju)).",
+		pjdlog_warning(
+		    "This should never happen, asking for full synchronization (primary(local=%ju, remote=%ju), secondary(local=%ju, remote=%ju)).",
 		    (uintmax_t)res->hr_primary_localcnt,
 		    (uintmax_t)res->hr_primary_remotecnt,
 		    (uintmax_t)res->hr_secondary_localcnt,
@@ -539,7 +544,8 @@ reqlog(int loglevel, int debuglevel, int error, struct hio *hio,
 			    (uintmax_t)hio->hio_length);
 			break;
 		case HIO_KEEPALIVE:
-			(void)snprintf(msg + len, sizeof(msg) - len, "KEEPALIVE.");
+			(void)snprintf(msg + len, sizeof(msg) - len,
+			    "KEEPALIVE.");
 			break;
 		default:
 			(void)snprintf(msg + len, sizeof(msg) - len,
@@ -601,13 +607,15 @@ requnpack(struct hast_resource *res, struct hio *hio, struct nv *nv)
 			goto end;
 		}
 		if ((hio->hio_offset % res->hr_local_sectorsize) != 0) {
-			pjdlog_error("Offset %ju is not multiple of sector size.",
+			pjdlog_error(
+			    "Offset %ju is not multiple of sector size.",
 			    (uintmax_t)hio->hio_offset);
 			hio->hio_error = EINVAL;
 			goto end;
 		}
 		if ((hio->hio_length % res->hr_local_sectorsize) != 0) {
-			pjdlog_error("Length %ju is not multiple of sector size.",
+			pjdlog_error(
+			    "Length %ju is not multiple of sector size.",
 			    (uintmax_t)hio->hio_length);
 			hio->hio_error = EINVAL;
 			goto end;
@@ -702,7 +710,7 @@ recv_thread(void *arg)
 			continue;
 		} else if (hio->hio_cmd == HIO_WRITE) {
 			if (hast_proto_recv_data(res, res->hr_remotein, nv,
-			    hio->hio_data, MAXPHYS) == -1) {
+				hio->hio_data, MAXPHYS) == -1) {
 				secondary_exit(EX_TEMPFAIL,
 				    "Unable to receive request data");
 			}
@@ -763,17 +771,17 @@ disk_thread(void *arg)
 			 * already received our activemap, merged it and stored
 			 * locally. We can now safely clear our activemap.
 			 */
-			mapsize =
-			    activemap_calc_ondisk_size(res->hr_local_mediasize -
-			    METADATA_SIZE, res->hr_extentsize,
-			    res->hr_local_sectorsize);
+			mapsize = activemap_calc_ondisk_size(
+			    res->hr_local_mediasize - METADATA_SIZE,
+			    res->hr_extentsize, res->hr_local_sectorsize);
 			map = calloc(1, mapsize);
 			if (map == NULL) {
-				pjdlog_warning("Unable to allocate memory to clear local activemap.");
+				pjdlog_warning(
+				    "Unable to allocate memory to clear local activemap.");
 				break;
 			}
 			if (pwrite(res->hr_localfd, map, mapsize,
-			    METADATA_SIZE) != (ssize_t)mapsize) {
+				METADATA_SIZE) != (ssize_t)mapsize) {
 				pjdlog_errno(LOG_WARNING,
 				    "Unable to store cleared activemap");
 				free(map);
@@ -914,7 +922,7 @@ send_thread(void *arg)
 			nv_add_int16(nvout, hio->hio_error, "error");
 		}
 		if (hast_proto_send(res, res->hr_remoteout, nvout, data,
-		    length) == -1) {
+			length) == -1) {
 			secondary_exit(EX_TEMPFAIL, "Unable to send reply");
 		}
 		nv_free(nvout);

@@ -1,8 +1,8 @@
 
 #include <sys/cdefs.h>
-#include <dev/drm2/drmP.h>
 
 #include <dev/agp/agpreg.h>
+#include <dev/drm2/drmP.h>
 #include <dev/pci/pcireg.h>
 
 MALLOC_DEFINE(DRM_MEM_DMA, "drm_dma", "DRM DMA Data Structures");
@@ -31,20 +31,20 @@ MALLOC_DEFINE(DRM_MEM_VBLANK, "drm_vblank", "DRM VBLANK Handling Data");
 
 const char *fb_mode_option = NULL;
 
-#define NSEC_PER_USEC	1000L
-#define NSEC_PER_SEC	1000000000L
+#define NSEC_PER_USEC 1000L
+#define NSEC_PER_SEC 1000000000L
 
 int64_t
 timeval_to_ns(const struct timeval *tv)
 {
 	return ((int64_t)tv->tv_sec * NSEC_PER_SEC) +
-		tv->tv_usec * NSEC_PER_USEC;
+	    tv->tv_usec * NSEC_PER_USEC;
 }
 
 struct timeval
 ns_to_timeval(const int64_t nsec)
 {
-        struct timeval tv;
+	struct timeval tv;
 	long rem;
 
 	if (nsec == 0) {
@@ -53,14 +53,14 @@ ns_to_timeval(const int64_t nsec)
 		return (tv);
 	}
 
-        tv.tv_sec = nsec / NSEC_PER_SEC;
+	tv.tv_sec = nsec / NSEC_PER_SEC;
 	rem = nsec % NSEC_PER_SEC;
-        if (rem < 0) {
-                tv.tv_sec--;
-                rem += NSEC_PER_SEC;
-        }
+	if (rem < 0) {
+		tv.tv_sec--;
+		rem += NSEC_PER_SEC;
+	}
 	tv.tv_usec = rem / 1000;
-        return (tv);
+	return (tv);
 }
 
 /* Copied from OFED. */
@@ -70,17 +70,18 @@ static void
 drm_linux_timer_init(void *arg)
 {
 
-        /*
-         * Compute an internal HZ value which can divide 2**32 to
-         * avoid timer rounding problems when the tick value wraps
-         * around 2**32:
-         */
-        drm_linux_timer_hz_mask = 1;
-        while (drm_linux_timer_hz_mask < (unsigned long)hz)
-                drm_linux_timer_hz_mask *= 2;
-        drm_linux_timer_hz_mask--;
+	/*
+	 * Compute an internal HZ value which can divide 2**32 to
+	 * avoid timer rounding problems when the tick value wraps
+	 * around 2**32:
+	 */
+	drm_linux_timer_hz_mask = 1;
+	while (drm_linux_timer_hz_mask < (unsigned long)hz)
+		drm_linux_timer_hz_mask *= 2;
+	drm_linux_timer_hz_mask--;
 }
-SYSINIT(drm_linux_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, drm_linux_timer_init, NULL);
+SYSINIT(drm_linux_timer, SI_SUB_DRIVERS, SI_ORDER_FIRST, drm_linux_timer_init,
+    NULL);
 
 static const drm_pci_id_list_t *
 drm_find_description(int vendor, int device, const drm_pci_id_list_t *idlist)
@@ -89,8 +90,7 @@ drm_find_description(int vendor, int device, const drm_pci_id_list_t *idlist)
 
 	for (i = 0; idlist[i].vendor != 0; i++) {
 		if ((idlist[i].vendor == vendor) &&
-		    ((idlist[i].device == device) ||
-		    (idlist[i].device == 0))) {
+		    ((idlist[i].device == device) || (idlist[i].device == 0))) {
 			return (&idlist[i]);
 		}
 	}
@@ -112,14 +112,14 @@ drm_probe_helper(device_t kdev, const drm_pci_id_list_t *idlist)
 
 	if (pci_get_class(kdev) != PCIC_DISPLAY ||
 	    (pci_get_subclass(kdev) != PCIS_DISPLAY_VGA &&
-	     pci_get_subclass(kdev) != PCIS_DISPLAY_OTHER))
+		pci_get_subclass(kdev) != PCIS_DISPLAY_OTHER))
 		return (-ENXIO);
 
 	id_entry = drm_find_description(vendor, device, idlist);
 	if (id_entry != NULL) {
 		if (device_get_desc(kdev) == NULL) {
-			DRM_DEBUG("%s desc: %s\n",
-			    device_get_nameunit(kdev), id_entry->name);
+			DRM_DEBUG("%s desc: %s\n", device_get_nameunit(kdev),
+			    id_entry->name);
 			device_set_desc(kdev, id_entry->name);
 		}
 #if !defined(__arm__)
@@ -221,8 +221,8 @@ drm_generic_detach(device_t kdev)
 	for (i = 0; i < DRM_MAX_PCI_RESOURCE; i++) {
 		if (dev->pcir[i] == NULL)
 			continue;
-		bus_release_resource(dev->dev, SYS_RES_MEMORY,
-		    dev->pcirid[i], dev->pcir[i]);
+		bus_release_resource(dev->dev, SYS_RES_MEMORY, dev->pcirid[i],
+		    dev->pcir[i]);
 		dev->pcir[i] = NULL;
 	}
 
@@ -239,15 +239,15 @@ drm_add_busid_modesetting(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 	struct sysctl_oid *oid;
 
 	snprintf(dev->busid_str, sizeof(dev->busid_str),
-	     "pci:%04x:%02x:%02x.%d", dev->pci_domain, dev->pci_bus,
-	     dev->pci_slot, dev->pci_func);
+	    "pci:%04x:%02x:%02x.%d", dev->pci_domain, dev->pci_bus,
+	    dev->pci_slot, dev->pci_func);
 	oid = SYSCTL_ADD_STRING(ctx, SYSCTL_CHILDREN(top), OID_AUTO, "busid",
 	    CTLFLAG_RD, dev->busid_str, 0, NULL);
 	if (oid == NULL)
 		return (-ENOMEM);
 	dev->modesetting = (dev->driver->driver_features & DRIVER_MODESET) != 0;
-	oid = SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(top), OID_AUTO,
-	    "modesetting", CTLFLAG_RD, &dev->modesetting, 0, NULL);
+	oid = SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(top), OID_AUTO, "modesetting",
+	    CTLFLAG_RD, &dev->modesetting, 0, NULL);
 	if (oid == NULL)
 		return (-ENOMEM);
 
@@ -336,7 +336,7 @@ dmi_check_system(const struct dmi_system_id *sysid)
 	const struct dmi_system_id *dsi;
 	bool res;
 
-	for (res = false, dsi = sysid; dsi->matches[0].slot != 0 ; dsi++) {
+	for (res = false, dsi = sysid; dsi->matches[0].slot != 0; dsi++) {
 		if (dmi_found(dsi)) {
 			res = true;
 			if (dsi->callback != NULL && dsi->callback(dsi))
@@ -396,7 +396,8 @@ drm_clflush_virt_range(char *addr, unsigned long length)
 	pmap_force_invalidate_cache_range((vm_offset_t)addr,
 	    (vm_offset_t)addr + length);
 #else
-	DRM_ERROR("drm_clflush_virt_range not implemented on this architecture");
+	DRM_ERROR(
+	    "drm_clflush_virt_range not implemented on this architecture");
 #endif
 }
 
@@ -442,19 +443,19 @@ hex_dump_to_buffer(const void *buf, size_t len, int rowsize, int groupsize,
 
 MODULE_DEPEND(DRIVER_NAME, linux, 1, 1, 1);
 
-#define LINUX_IOCTL_DRM_MIN		0x6400
-#define LINUX_IOCTL_DRM_MAX		0x64ff
+#define LINUX_IOCTL_DRM_MIN 0x6400
+#define LINUX_IOCTL_DRM_MAX 0x64ff
 
 static linux_ioctl_function_t drm_linux_ioctl;
-static struct linux_ioctl_handler drm_handler = {drm_linux_ioctl,
-    LINUX_IOCTL_DRM_MIN, LINUX_IOCTL_DRM_MAX};
+static struct linux_ioctl_handler drm_handler = { drm_linux_ioctl,
+	LINUX_IOCTL_DRM_MIN, LINUX_IOCTL_DRM_MAX };
 
 /* The bits for in/out are switched on Linux */
-#define LINUX_IOC_IN	IOC_OUT
-#define LINUX_IOC_OUT	IOC_IN
+#define LINUX_IOC_IN IOC_OUT
+#define LINUX_IOC_OUT IOC_IN
 
 static int
-drm_linux_ioctl(DRM_STRUCTPROC *p, struct linux_ioctl_args* args)
+drm_linux_ioctl(DRM_STRUCTPROC *p, struct linux_ioctl_args *args)
 {
 	int error;
 	int cmd = args->cmd;
@@ -484,11 +485,7 @@ drm_modevent(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t drm_mod = {
-	"drmn",
-	drm_modevent,
-	0
-};
+static moduledata_t drm_mod = { "drmn", drm_modevent, 0 };
 
 DECLARE_MODULE(drmn, drm_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(drmn, 1);

@@ -334,7 +334,7 @@
 #define HAVE_ALLOCA 1
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
+ */
 /* #undef HAVE_ALLOCA_H */
 
 /* Define to 1 if you have the `arc4random_buf' function. */
@@ -389,7 +389,7 @@
 #define HAVE_DECL_STRERROR_R 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-   */
+ */
 #define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
@@ -954,7 +954,7 @@
 /* #undef HAVE_SYS_CLOCKCTL_H */
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/file.h> header file. */
@@ -985,7 +985,7 @@
 /* #undef HAVE_SYS_MODEM_H */
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
@@ -1249,15 +1249,12 @@
 /* defined if C compiler supports __attribute__((...)) */
 #define HAVE___ATTRIBUTE__ /**/
 
-
-	/* define away __attribute__() if unsupported */
-	#ifndef HAVE___ATTRIBUTE__
-	# define __attribute__(x) /* empty */
-	#endif
-	#define ISC_PLATFORM_NORETURN_PRE
-	#define ISC_PLATFORM_NORETURN_POST __attribute__((__noreturn__))
-    
-
+/* define away __attribute__() if unsupported */
+#ifndef HAVE___ATTRIBUTE__
+#define __attribute__(x) /* empty */
+#endif
+#define ISC_PLATFORM_NORETURN_PRE
+#define ISC_PLATFORM_NORETURN_POST __attribute__((__noreturn__))
 
 /* Define to 1 if you have the `__ntp_gettime' function. */
 /* #undef HAVE___NTP_GETTIME */
@@ -1268,13 +1265,10 @@
 /* Does struct sockaddr_storage have __ss_family? */
 /* #undef HAVE___SS_FAMILY_IN_SS */
 
-
-	    /* Handle sockaddr_storage.__ss_family */
-	    #ifdef HAVE___SS_FAMILY_IN_SS
-	    # define ss_family __ss_family
-	    #endif /* HAVE___SS_FAMILY_IN_SS */
-	
-    
+/* Handle sockaddr_storage.__ss_family */
+#ifdef HAVE___SS_FAMILY_IN_SS
+#define ss_family __ss_family
+#endif /* HAVE___SS_FAMILY_IN_SS */
 
 /* Define to provide `rpl_snprintf' function. */
 /* #undef HW_WANT_RPL_SNPRINTF */
@@ -1488,10 +1482,10 @@
 /* #undef PPS_SYNC */
 
 /* Preset a value for 'tick'? */
-#define PRESET_TICK 1000000L/hz
+#define PRESET_TICK 1000000L / hz
 
 /* Preset a value for 'tickadj'? */
-#define PRESET_TICKADJ 500/hz
+#define PRESET_TICKADJ 500 / hz
 
 /* Should we not IGNPAR (Linux)? */
 /* #undef RAWDCF_NO_IGNPAR */
@@ -1621,7 +1615,7 @@
 
 /* Provide a typedef for uintptr_t? */
 #ifndef HAVE_UINTPTR_T
-typedef unsigned int	uintptr_t;
+typedef unsigned int uintptr_t;
 #define HAVE_UINTPTR_T 1
 #endif
 
@@ -1700,25 +1694,24 @@ typedef unsigned int	uintptr_t;
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
-# define _ALL_SOURCE 1
+#define _ALL_SOURCE 1
 #endif
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
+#define _GNU_SOURCE 1
 #endif
 /* Enable threading extensions on Solaris.  */
 #ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
+#define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE
-# define _TANDEM_SOURCE 1
+#define _TANDEM_SOURCE 1
 #endif
 /* Enable general extensions on Solaris.  */
 #ifndef __EXTENSIONS__
-# define __EXTENSIONS__ 1
+#define __EXTENSIONS__ 1
 #endif
-
 
 /* deviant */
 /* #undef adjtimex */
@@ -1754,15 +1747,13 @@ typedef unsigned int	uintptr_t;
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
 
-	
-	    #if !defined(_KERNEL) && !defined(PARSESTREAM)
-	    /*
-	     * stdio.h must be included after _GNU_SOURCE is defined
-	     * but before #define snprintf rpl_snprintf
-	     */
-	    # include <stdio.h>	
-	    #endif
-	
+#if !defined(_KERNEL) && !defined(PARSESTREAM)
+/*
+ * stdio.h must be included after _GNU_SOURCE is defined
+ * but before #define snprintf rpl_snprintf
+ */
+#include <stdio.h>
+#endif
 
 /* Define to rpl_snprintf if the replacement function should be used. */
 /* #undef snprintf */
@@ -1788,41 +1779,38 @@ typedef unsigned int	uintptr_t;
 /* Define to rpl_vsnprintf if the replacement function should be used. */
 /* #undef vsnprintf */
 
-
 #ifndef MPINFOU_PREDECLARED
-# define MPINFOU_PREDECLARED
+#define MPINFOU_PREDECLARED
 typedef union mpinfou {
 	struct pdk_mpinfo *pdkptr;
 	struct mpinfo *pikptr;
 } mpinfou_t;
 #endif
 
+#if !defined(_KERNEL) && !defined(PARSESTREAM)
+#if defined(HW_WANT_RPL_VSNPRINTF)
+#if defined(__cplusplus)
+extern "C" {
+#endif
+#include <stdarg.h>
+int rpl_vsnprintf(char *, size_t, const char *, va_list);
+#if defined(__cplusplus)
+}
+#endif
+#endif
+#if defined(HW_WANT_RPL_SNPRINTF)
+#if defined(__cplusplus)
+extern "C" {
+#endif
+int rpl_snprintf(char *, size_t, const char *, ...);
+#if defined(__cplusplus)
+}
+#endif
+#endif
+#endif /* !defined(_KERNEL) && !defined(PARSESTREAM) */
 
-
-	#if !defined(_KERNEL) && !defined(PARSESTREAM)
-	# if defined(HW_WANT_RPL_VSNPRINTF)
-	#  if defined(__cplusplus)
-	extern "C" {
-	# endif
-	# include <stdarg.h>
-	int rpl_vsnprintf(char *, size_t, const char *, va_list);
-	# if defined(__cplusplus)
-	}
-	#  endif
-	# endif
-	# if defined(HW_WANT_RPL_SNPRINTF)
-	#  if defined(__cplusplus)
-	extern "C" {
-	#  endif
-	int rpl_snprintf(char *, size_t, const char *, ...);
-	#  if defined(__cplusplus)
-	}
-	#  endif
-	# endif
-	#endif	/* !defined(_KERNEL) && !defined(PARSESTREAM) */
-	
 /*
  * FreeBSD specific: Explicitly specify date/time for reproducible build.
  */
-#define	MKREPRO_DATE "Aug 19 2018"
-#define	MKREPRO_TIME "01:24:29"
+#define MKREPRO_DATE "Aug 19 2018"
+#define MKREPRO_TIME "01:24:29"

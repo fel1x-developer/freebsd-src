@@ -37,14 +37,14 @@
 #include <sys/param.h>
 
 #include <err.h>
+#include <libutil.h>
 #include <paths.h>
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <libutil.h>
+#include <string.h>
 #include <sysexits.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "pathnames.h"
 
@@ -127,7 +127,7 @@ main(int argc, char *argv[], char *envp[])
 			err(EX_CONFIG, "cannot parse line %lu", (u_long)lineno);
 		}
 
-#define	WS	" \t\n"
+#define WS " \t\n"
 		cp = line;
 
 		cp += strspn(cp, WS);
@@ -149,7 +149,7 @@ main(int argc, char *argv[], char *envp[])
 			for (ap = strsep(&cp, WS); ap != NULL;
 			     ap = strsep(&cp, WS)) {
 				if (*ap)
-				    addarg(&al, ap);
+					addarg(&al, ap);
 			}
 			break;
 		}
@@ -167,7 +167,7 @@ main(int argc, char *argv[], char *envp[])
 	err(EX_OSERR, "cannot exec %s", to);
 	/*NOTREACHED*/
 parse_error:
-	errx(EX_CONFIG, "parse error in %s at line %lu",
-	    mailerconf, (u_long)lineno);
+	errx(EX_CONFIG, "parse error in %s at line %lu", mailerconf,
+	    (u_long)lineno);
 	/*NOTREACHED*/
 }

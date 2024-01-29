@@ -66,16 +66,14 @@ static int igb_determine_rsstype(uint16_t pkt_info);
 extern void igb_if_enable_intr(if_ctx_t ctx);
 extern int em_intr(void *arg);
 
-struct if_txrx igb_txrx = {
-	.ift_txd_encap = igb_isc_txd_encap,
+struct if_txrx igb_txrx = { .ift_txd_encap = igb_isc_txd_encap,
 	.ift_txd_flush = igb_isc_txd_flush,
 	.ift_txd_credits_update = igb_isc_txd_credits_update,
 	.ift_rxd_available = igb_isc_rxd_available,
 	.ift_rxd_pkt_get = igb_isc_rxd_pkt_get,
 	.ift_rxd_refill = igb_isc_rxd_refill,
 	.ift_rxd_flush = igb_isc_rxd_flush,
-	.ift_legacy_intr = em_intr
-};
+	.ift_legacy_intr = em_intr };
 
 /**********************************************************************
  *
@@ -93,7 +91,7 @@ igb_tso_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	uint32_t mss_l4len_idx = 0;
 	uint32_t paylen;
 
-	switch(pi->ipi_etype) {
+	switch (pi->ipi_etype) {
 	case ETHERTYPE_IPV6:
 		type_tucmd_mlhl |= E1000_ADVTXD_TUCMD_IPV6;
 		break;
@@ -104,14 +102,15 @@ igb_tso_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 		break;
 	default:
 		panic("%s: CSUM_TSO but no supported IP version (0x%04x)",
-		      __func__, ntohs(pi->ipi_etype));
+		    __func__, ntohs(pi->ipi_etype));
 		break;
 	}
 
-	TXD = (struct e1000_adv_tx_context_desc *) &txr->tx_base[pi->ipi_pidx];
+	TXD = (struct e1000_adv_tx_context_desc *)&txr->tx_base[pi->ipi_pidx];
 
 	/* This is used in the transmit desc in encap */
-	paylen = pi->ipi_len - pi->ipi_ehdrlen - pi->ipi_ip_hlen - pi->ipi_tcp_hlen;
+	paylen = pi->ipi_len - pi->ipi_ehdrlen - pi->ipi_ip_hlen -
+	    pi->ipi_tcp_hlen;
 
 	/* VLAN MACLEN IPLEN */
 	if (pi->ipi_mflags & M_VLANTAG) {
@@ -166,7 +165,7 @@ igb_tx_ctx_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	*olinfo_status |= pi->ipi_len << E1000_ADVTXD_PAYLEN_SHIFT;
 
 	/* Now ready a context descriptor */
-	TXD = (struct e1000_adv_tx_context_desc *) &txr->tx_base[pi->ipi_pidx];
+	TXD = (struct e1000_adv_tx_context_desc *)&txr->tx_base[pi->ipi_pidx];
 
 	/*
 	** In advanced descriptors the vlan tag must
@@ -182,7 +181,7 @@ igb_tx_ctx_setup(struct tx_ring *txr, if_pkt_info_t pi, uint32_t *cmd_type_len,
 	/* Set the ether header length */
 	vlan_macip_lens |= pi->ipi_ehdrlen << E1000_ADVTXD_MACLEN_SHIFT;
 
-	switch(pi->ipi_etype) {
+	switch (pi->ipi_etype) {
 	case ETHERTYPE_IP:
 		type_tucmd_mlhl |= E1000_ADVTXD_TUCMD_IPV4;
 		break;
@@ -248,8 +247,8 @@ igb_isc_txd_encap(void *arg, if_pkt_info_t pi)
 
 	pidx_last = olinfo_status = 0;
 	/* Basic descriptor defines */
-	cmd_type_len = (E1000_ADVTXD_DTYP_DATA |
-			E1000_ADVTXD_DCMD_IFCS | E1000_ADVTXD_DCMD_DEXT);
+	cmd_type_len = (E1000_ADVTXD_DTYP_DATA | E1000_ADVTXD_DCMD_IFCS |
+	    E1000_ADVTXD_DCMD_DEXT);
 
 	if (pi->ipi_mflags & M_VLANTAG)
 		cmd_type_len |= E1000_ADVTXD_DCMD_VLE;
@@ -275,8 +274,8 @@ igb_isc_txd_encap(void *arg, if_pkt_info_t pi)
 		segaddr = htole64(segs[j].ds_addr);
 
 		txd->read.buffer_addr = segaddr;
-		txd->read.cmd_type_len = htole32(E1000_TXD_CMD_IFCS |
-		    cmd_type_len | seglen);
+		txd->read.cmd_type_len = htole32(
+		    E1000_TXD_CMD_IFCS | cmd_type_len | seglen);
 		txd->read.olinfo_status = htole32(olinfo_status);
 		pidx_last = i;
 		if (++i == scctx->isc_ntxd[0]) {
@@ -285,7 +284,7 @@ igb_isc_txd_encap(void *arg, if_pkt_info_t pi)
 	}
 	if (txd_flags) {
 		txr->tx_rsq[txr->tx_rs_pidx] = pidx_last;
-		txr->tx_rs_pidx = (txr->tx_rs_pidx+1) & (ntxd-1);
+		txr->tx_rs_pidx = (txr->tx_rs_pidx + 1) & (ntxd - 1);
 		MPASS(txr->tx_rs_pidx != txr->tx_rs_cidx);
 	}
 
@@ -298,9 +297,9 @@ igb_isc_txd_encap(void *arg, if_pkt_info_t pi)
 static void
 igb_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx)
 {
-	struct e1000_softc *sc	= arg;
-	struct em_tx_queue *que	= &sc->tx_queues[txqid];
-	struct tx_ring *txr	= &que->txr;
+	struct e1000_softc *sc = arg;
+	struct em_tx_queue *que = &sc->tx_queues[txqid];
+	struct tx_ring *txr = &que->txr;
 
 	E1000_WRITE_REG(&sc->hw, E1000_TDT(txr->me), pidx);
 }
@@ -344,12 +343,13 @@ igb_isc_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 		MPASS(delta > 0);
 
 		processed += delta;
-		prev  = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
-		if (rs_cidx  == txr->tx_rs_pidx)
+		prev = cur;
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
+		if (rs_cidx == txr->tx_rs_pidx)
 			break;
 		cur = txr->tx_rsq[rs_cidx];
-		status = ((union e1000_adv_tx_desc *)&txr->tx_base[cur])->wb.status;
+		status =
+		    ((union e1000_adv_tx_desc *)&txr->tx_base[cur])->wb.status;
 	} while ((status & E1000_TXD_STAT_DD));
 
 	txr->tx_rs_cidx = rs_cidx;
@@ -421,7 +421,7 @@ igb_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx, qidx_t budget)
 
 /****************************************************************
  * Routine sends data which has been dma'ed into host memory
- * to upper layer. Initialize ri structure. 
+ * to upper layer. Initialize ri structure.
  *
  * Returns 0 upon success, errno on failure
  ***************************************************************/
@@ -448,10 +448,10 @@ igb_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		staterr = le32toh(rxd->wb.upper.status_error);
 		pkt_info = le16toh(rxd->wb.lower.lo_dword.hs_rss.pkt_info);
 
-		MPASS ((staterr & E1000_RXD_STAT_DD) != 0);
+		MPASS((staterr & E1000_RXD_STAT_DD) != 0);
 
 		len = le16toh(rxd->wb.upper.length);
-		ptype = le32toh(rxd->wb.lower.lo_dword.data) &  IGB_PKTTYPE_MASK;
+		ptype = le32toh(rxd->wb.lower.lo_dword.data) & IGB_PKTTYPE_MASK;
 
 		ri->iri_len += len;
 		rxr->rx_bytes += ri->iri_len;
@@ -489,7 +489,7 @@ igb_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 
 	if (staterr & E1000_RXD_STAT_VP) {
 		if (((sc->hw.mac.type == e1000_i350) ||
-		    (sc->hw.mac.type == e1000_i354)) &&
+			(sc->hw.mac.type == e1000_i354)) &&
 		    (staterr & E1000_RXDEXT_STATERR_LB))
 			ri->iri_vtag = be16toh(rxd->wb.upper.vlan);
 		else
@@ -497,8 +497,7 @@ igb_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 		ri->iri_flags |= M_VLANTAG;
 	}
 
-	ri->iri_flowid =
-		le32toh(rxd->wb.lower.hi_dword.rss);
+	ri->iri_flowid = le32toh(rxd->wb.lower.hi_dword.rss);
 	ri->iri_rsstype = igb_determine_rsstype(pkt_info);
 	ri->iri_nfrags = i;
 
@@ -530,11 +529,11 @@ igb_rx_checksum(uint32_t staterr, if_rxd_info_t ri, uint32_t ptype)
 		ri->iri_csum_flags = (CSUM_IP_CHECKED | CSUM_IP_VALID);
 
 	/* Valid L4E checksum */
-	if (__predict_true(status &
-	    (E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS))) {
+	if (__predict_true(
+		status & (E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS))) {
 		/* SCTP header present */
 		if (__predict_false((ptype & E1000_RXDADV_PKTTYPE_ETQF) == 0 &&
-		    (ptype & E1000_RXDADV_PKTTYPE_SCTP) != 0)) {
+			(ptype & E1000_RXDADV_PKTTYPE_SCTP) != 0)) {
 			ri->iri_csum_flags |= CSUM_SCTP_VALID;
 		} else {
 			ri->iri_csum_flags |= CSUM_DATA_VALID | CSUM_PSEUDO_HDR;

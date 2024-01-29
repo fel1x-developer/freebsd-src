@@ -27,11 +27,13 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mpsutil.h"
 
 static int set_ncq(int ac, char **av);
@@ -58,15 +60,16 @@ set_ncq(int ac, char **av)
 		return (error);
 	}
 
-	error = mps_read_config_page_header(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1, 0,
-		&header, NULL);
+	error = mps_read_config_page_header(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1,
+	    0, &header, NULL);
 	if (error) {
-			error = errno;
-			warn("Failed to get IOUNIT page 1 header");
-			return (error);
+		error = errno;
+		warn("Failed to get IOUNIT page 1 header");
+		return (error);
 	}
 
-	iounit1 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1, 0, NULL);
+	iounit1 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1, 0,
+	    NULL);
 	if (iounit1 == NULL) {
 		error = errno;
 		warn("Failed to get IOUNIT page 1 info");
@@ -76,13 +79,18 @@ set_ncq(int ac, char **av)
 	if (ac == 1) {
 		/* just show current setting */
 		printf("SATA Native Command Queueing is currently: %s\n",
-			((iounit1->Flags & MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE) == 0) ?
-			"ENABLED" : "DISABLED");
+		    ((iounit1->Flags &
+			 MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE) == 0) ?
+			"ENABLED" :
+			"DISABLED");
 	} else if (ac == 2) {
 		if (!strcasecmp(av[1], "enable") || !strcmp(av[1], "1")) {
-			iounit1->Flags &= ~MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE;
-		} else if (!strcasecmp(av[1], "disable") || !strcmp(av[1], "0")) {
-			iounit1->Flags |= MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE;
+			iounit1->Flags &=
+			    ~MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE;
+		} else if (!strcasecmp(av[1], "disable") ||
+		    !strcmp(av[1], "0")) {
+			iounit1->Flags |=
+			    MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE;
 		} else {
 			free(iounit1);
 			error = EINVAL;
@@ -95,12 +103,14 @@ set_ncq(int ac, char **av)
 		req.ExtPageType = 0;
 		req.Header = header;
 		req.PageAddress = 0;
-		if (mps_pass_command(fd, &req, sizeof(req) - sizeof(req.PageBufferSGE), &reply, sizeof(reply),
-			NULL, 0, iounit1, sizeof(iounit1), 30) != 0) {
-				free(iounit1);
-				error = errno;
-				warn("Failed to update config page");
-		                return (error);
+		if (mps_pass_command(fd, &req,
+			sizeof(req) - sizeof(req.PageBufferSGE), &reply,
+			sizeof(reply), NULL, 0, iounit1, sizeof(iounit1),
+			30) != 0) {
+			free(iounit1);
+			error = errno;
+			warn("Failed to update config page");
+			return (error);
 		}
 		if (!IOC_STATUS_SUCCESS(reply.IOCStatus)) {
 			free(iounit1);
@@ -108,7 +118,8 @@ set_ncq(int ac, char **av)
 			warn("%s", mps_ioc_status(reply.IOCStatus));
 			return (error);
 		}
-		printf("NCQ setting accepted.  It may not take effect until the controller is reset.\n");
+		printf(
+		    "NCQ setting accepted.  It may not take effect until the controller is reset.\n");
 	} else {
 		free(iounit1);
 		errno = EINVAL;
@@ -122,4 +133,3 @@ set_ncq(int ac, char **av)
 }
 
 MPS_COMMAND(set, ncq, set_ncq, "[enable|disable]", "set SATA NCQ function")
-

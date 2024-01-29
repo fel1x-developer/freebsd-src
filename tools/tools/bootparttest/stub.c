@@ -25,10 +25,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
-#include <stdio.h>
 
-void*
+#include <stdio.h>
+#include <stdlib.h>
+
+void *
 Malloc(size_t size, const char *file, int line)
 {
 

@@ -33,16 +33,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/file.h>
 #include <sys/dirent.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <sys/file.h>
+
 #include <errno.h>
-#include "tip.h"
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "pathnames.h"
+#include "tip.h"
 
 /*
  * uucp style locking routines
@@ -59,7 +61,7 @@ uu_lock(char *ttyname)
 	pid_t pid;
 
 	(void)snprintf(tbuf, sizeof tbuf, _PATH_LOCKDIRNAME, ttyname);
-	fd = open(tbuf, O_RDWR|O_CREAT|O_EXCL, 0660);
+	fd = open(tbuf, O_RDWR | O_CREAT | O_EXCL, 0660);
 	if (fd < 0) {
 		/*
 		 * file is already locked
@@ -69,33 +71,33 @@ uu_lock(char *ttyname)
 		if (fd < 0) {
 			perror(tbuf);
 			fprintf(stderr, "Can't open lock file.\n");
-			return(-1);
+			return (-1);
 		}
-		len = read(fd, text_pid, sizeof(text_pid)-1);
-		if (len<=0) {
+		len = read(fd, text_pid, sizeof(text_pid) - 1);
+		if (len <= 0) {
 			perror(tbuf);
 			(void)close(fd);
 			fprintf(stderr, "Can't read lock file.\n");
-			return(-1);
+			return (-1);
 		}
 		text_pid[len] = 0;
 		pid = atol(text_pid);
 
 		if (kill(pid, 0) == 0 || errno != ESRCH) {
-			(void)close(fd);	/* process is still running */
-			return(-1);
+			(void)close(fd); /* process is still running */
+			return (-1);
 		}
 		/*
 		 * The process that locked the file isn't running, so
 		 * we'll lock it ourselves
 		 */
 		fprintf(stderr, "Stale lock on %s PID=%ld... overriding.\n",
-			ttyname, (long)pid);
+		    ttyname, (long)pid);
 		if (lseek(fd, (off_t)0, SEEK_SET) < 0) {
 			perror(tbuf);
 			(void)close(fd);
 			fprintf(stderr, "Can't seek lock file.\n");
-			return(-1);
+			return (-1);
 		}
 		/* fall out and finish the locking process */
 	}
@@ -106,10 +108,10 @@ uu_lock(char *ttyname)
 		(void)close(fd);
 		(void)unlink(tbuf);
 		perror("lock write");
-		return(-1);
+		return (-1);
 	}
 	(void)close(fd);
-	return(0);
+	return (0);
 }
 
 int
@@ -119,5 +121,5 @@ uu_unlock(char *ttyname)
 
 	(void)snprintf(tbuf, sizeof tbuf, _PATH_LOCKDIRNAME, ttyname);
 	unexcl();
-	return(unlink(tbuf));
+	return (unlink(tbuf));
 }

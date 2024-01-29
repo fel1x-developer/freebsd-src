@@ -48,9 +48,9 @@ procstat_advlocks(struct procstat *prstat, struct kinfo_proc *kipp __unused)
 	static const char advisory_lock_item[] = "advisory_lock";
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
-		xo_emit("{T:/%2s %5s %5s %5s %18s %18s %8s %9s %9s %s}\n",
-		    "RW", "TYPE", "PID", "SYSID", "FSID", "RDEV", "INO",
-		    "START", "LEN", "PATH");
+		xo_emit("{T:/%2s %5s %5s %5s %18s %18s %8s %9s %9s %s}\n", "RW",
+		    "TYPE", "PID", "SYSID", "FSID", "RDEV", "INO", "START",
+		    "LEN", "PATH");
 
 	xo_open_list(advisory_lock_item);
 	advl = procstat_getadvlock(prstat);
@@ -59,7 +59,7 @@ procstat_advlocks(struct procstat *prstat, struct kinfo_proc *kipp __unused)
 		return;
 	}
 
-	STAILQ_FOREACH(a, advl, next) {
+	STAILQ_FOREACH (a, advl, next) {
 		xo_open_instance(advisory_lock_item);
 		switch (a->rw) {
 		case PS_ADVLOCK_RO:

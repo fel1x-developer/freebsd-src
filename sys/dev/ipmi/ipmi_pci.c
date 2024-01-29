@@ -30,12 +30,12 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
-#include <sys/efi.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
@@ -49,15 +49,12 @@
 static int ipmi_pci_probe(device_t dev);
 static int ipmi_pci_attach(device_t dev);
 
-static struct ipmi_ident
-{
-	u_int16_t	vendor;
-	u_int16_t	device;
-	char		*desc;
-} ipmi_identifiers[] = {
-	{0x1028, 0x000d, "Dell PE2650 SMIC interface"},
-	{0, 0, 0}
-};
+static struct ipmi_ident {
+	u_int16_t vendor;
+	u_int16_t device;
+	char *desc;
+} ipmi_identifiers[] = { { 0x1028, 0x000d, "Dell PE2650 SMIC interface" },
+	{ 0, 0, 0 } };
 
 const char *
 ipmi_pci_match(uint16_t vendor, uint16_t device)
@@ -117,17 +114,16 @@ ipmi_pci_attach(device_t dev)
 	}
 
 	device_printf(dev, "%s mode found at %s 0x%jx alignment 0x%x on %s\n",
-	    mode, info.io_mode ? "io" : "mem",
-	    (uintmax_t)info.address, info.offset,
-	    device_get_name(device_get_parent(dev)));
+	    mode, info.io_mode ? "io" : "mem", (uintmax_t)info.address,
+	    info.offset, device_get_name(device_get_parent(dev)));
 	if (info.io_mode)
 		type = SYS_RES_IOPORT;
 	else
 		type = SYS_RES_MEMORY;
 
 	sc->ipmi_io_rid = PCIR_BAR(0);
-	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type,
-	    &sc->ipmi_io_rid, RF_ACTIVE);
+	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type, &sc->ipmi_io_rid,
+	    RF_ACTIVE);
 	sc->ipmi_io_type = type;
 	sc->ipmi_io_spacing = info.offset;
 
@@ -166,17 +162,13 @@ bad:
 
 static device_method_t ipmi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     ipmi_pci_probe),
-	DEVMETHOD(device_attach,    ipmi_pci_attach),
-	DEVMETHOD(device_detach,    ipmi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, ipmi_pci_probe),
+	DEVMETHOD(device_attach, ipmi_pci_attach),
+	DEVMETHOD(device_detach, ipmi_detach), { 0, 0 }
 };
 
-static driver_t ipmi_pci_driver = {
-	"ipmi",
-	ipmi_methods,
-	sizeof(struct ipmi_softc)
-};
+static driver_t ipmi_pci_driver = { "ipmi", ipmi_methods,
+	sizeof(struct ipmi_softc) };
 
 DRIVER_MODULE(ipmi_pci, pci, ipmi_pci_driver, 0, 0);
 
@@ -229,8 +221,8 @@ ipmi2_pci_attach(device_t dev)
 		type = SYS_RES_MEMORY;
 	sc->ipmi_io_type = type;
 	sc->ipmi_io_spacing = 1;
-	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type,
-	    &sc->ipmi_io_rid, RF_ACTIVE);
+	sc->ipmi_io_res[0] = bus_alloc_resource_any(dev, type, &sc->ipmi_io_rid,
+	    RF_ACTIVE);
 	if (sc->ipmi_io_res[0] == NULL) {
 		device_printf(dev, "couldn't map ports/memory\n");
 		return (ENXIO);
@@ -281,17 +273,13 @@ bad:
 
 static device_method_t ipmi2_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     ipmi2_pci_probe),
-	DEVMETHOD(device_attach,    ipmi2_pci_attach),
-	DEVMETHOD(device_detach,    ipmi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, ipmi2_pci_probe),
+	DEVMETHOD(device_attach, ipmi2_pci_attach),
+	DEVMETHOD(device_detach, ipmi_detach), { 0, 0 }
 };
 
-static driver_t ipmi2_pci_driver = {
-	"ipmi",
-	ipmi2_methods,
-	sizeof(struct ipmi_softc)
-};
+static driver_t ipmi2_pci_driver = { "ipmi", ipmi2_methods,
+	sizeof(struct ipmi_softc) };
 
 DRIVER_MODULE(ipmi2_pci, pci, ipmi2_pci_driver, 0, 0);
 #ifdef ARCH_MAY_USE_EFI

@@ -27,18 +27,18 @@
 
 #include <sys/param.h>
 #include <sys/mount.h>
+
+#include <be.h>
 #include <errno.h>
 #include <libutil.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <be.h>
 
 #include "bectl.h"
 
@@ -62,7 +62,7 @@ usage(bool explicit)
 {
 	FILE *fp;
 
-	fp =  explicit ? stdout : stderr;
+	fp = explicit ? stdout : stderr;
 	fprintf(fp, "%s",
 	    "Usage:\tbectl {-h | -? | subcommand [args...]}\n"
 #if SOON
@@ -87,7 +87,6 @@ usage(bool explicit)
 	return (explicit ? 0 : EX_USAGE);
 }
 
-
 /*
  * Represents a relationship between the command name and the parser action
  * that handles it.
@@ -99,23 +98,22 @@ struct command_map_entry {
 	bool silent;
 };
 
-static struct command_map_entry command_map[] =
-{
-	{ "activate", bectl_cmd_activate,false   },
-	{ "create",   bectl_cmd_create,  false   },
-	{ "destroy",  bectl_cmd_destroy, false   },
-	{ "export",   bectl_cmd_export,  false   },
-	{ "import",   bectl_cmd_import,  false   },
+static struct command_map_entry command_map[] = {
+	{ "activate", bectl_cmd_activate, false },
+	{ "create", bectl_cmd_create, false },
+	{ "destroy", bectl_cmd_destroy, false },
+	{ "export", bectl_cmd_export, false },
+	{ "import", bectl_cmd_import, false },
 #if SOON
-	{ "add",      bectl_cmd_add,     false   },
+	{ "add", bectl_cmd_add, false },
 #endif
-	{ "jail",     bectl_cmd_jail,    false   },
-	{ "list",     bectl_cmd_list,    false   },
-	{ "mount",    bectl_cmd_mount,   false   },
-	{ "rename",   bectl_cmd_rename,  false   },
-	{ "unjail",   bectl_cmd_unjail,  false   },
-	{ "unmount",  bectl_cmd_unmount, false   },
-	{ "check",    bectl_cmd_check,   true    },
+	{ "jail", bectl_cmd_jail, false },
+	{ "list", bectl_cmd_list, false },
+	{ "mount", bectl_cmd_mount, false },
+	{ "rename", bectl_cmd_rename, false },
+	{ "unjail", bectl_cmd_unjail, false },
+	{ "unmount", bectl_cmd_unmount, false },
+	{ "check", bectl_cmd_check, true },
 };
 
 static struct command_map_entry *
@@ -152,8 +150,8 @@ bectl_cmd_activate(int argc, char *argv[])
 			reset = true;
 			break;
 		default:
-			fprintf(stderr, "bectl activate: unknown option '-%c'\n",
-			    optopt);
+			fprintf(stderr,
+			    "bectl activate: unknown option '-%c'\n", optopt);
 			return (usage(false));
 		}
 	}
@@ -187,7 +185,6 @@ bectl_cmd_activate(int argc, char *argv[])
 
 	return (err);
 }
-
 
 /*
  * TODO: when only one arg is given, and it contains an "@" the this should
@@ -251,7 +248,7 @@ bectl_cmd_create(int argc, char *argv[])
 
 		if (err == BE_ERR_SUCCESS)
 			err = be_create_depth(be, bootenv, snapshot,
-					      recursive == true ? -1 : 0);
+			    recursive == true ? -1 : 0);
 	}
 
 	switch (err) {
@@ -264,11 +261,11 @@ bectl_cmd_create(int argc, char *argv[])
 	default:
 		if (atpos != NULL)
 			fprintf(stderr,
-			    "Failed to create a snapshot '%s' of '%s'\n",
-			    atpos, bootenv);
+			    "Failed to create a snapshot '%s' of '%s'\n", atpos,
+			    bootenv);
 		else if (snapname == NULL)
-			fprintf(stderr,
-			    "Failed to create bootenv %s\n", bootenv);
+			fprintf(stderr, "Failed to create bootenv %s\n",
+			    bootenv);
 		else
 			fprintf(stderr,
 			    "Failed to create bootenv %s from snapshot %s\n",
@@ -278,14 +275,14 @@ bectl_cmd_create(int argc, char *argv[])
 	return (err);
 }
 
-
 static int
 bectl_cmd_export(int argc, char *argv[])
 {
 	char *bootenv;
 
 	if (argc == 1) {
-		fprintf(stderr, "bectl export: missing boot environment name\n");
+		fprintf(stderr,
+		    "bectl export: missing boot environment name\n");
 		return (usage(false));
 	}
 
@@ -306,7 +303,6 @@ bectl_cmd_export(int argc, char *argv[])
 	return (0);
 }
 
-
 static int
 bectl_cmd_import(int argc, char *argv[])
 {
@@ -314,7 +310,8 @@ bectl_cmd_import(int argc, char *argv[])
 	int err;
 
 	if (argc == 1) {
-		fprintf(stderr, "bectl import: missing boot environment name\n");
+		fprintf(stderr,
+		    "bectl import: missing boot environment name\n");
 		return (usage(false));
 	}
 
@@ -326,7 +323,8 @@ bectl_cmd_import(int argc, char *argv[])
 	bootenv = argv[1];
 
 	if (isatty(STDIN_FILENO)) {
-		fprintf(stderr, "bectl import: input can not be from terminal\n");
+		fprintf(stderr,
+		    "bectl import: input can not be from terminal\n");
 		return (EX_USAGE);
 	}
 
@@ -402,7 +400,8 @@ bectl_cmd_destroy(int argc, char *argv[])
 		}
 		if (nvlist_lookup_string(props, "origin", &origin) == 0 &&
 		    !be_is_auto_snapshot_name(be, origin))
-			fprintf(stderr, "bectl destroy: leaving origin '%s' intact\n",
+			fprintf(stderr,
+			    "bectl destroy: leaving origin '%s' intact\n",
 			    origin);
 		be_prop_list_free(props);
 	}
@@ -443,14 +442,14 @@ bectl_cmd_mount(int argc, char *argv[])
 		break;
 	default:
 		fprintf(stderr,
-		    (argc == 3) ? "Failed to mount bootenv %s at %s\n" :
-		    "Failed to mount bootenv %s at temporary path %s\n",
+		    (argc == 3) ?
+			"Failed to mount bootenv %s at %s\n" :
+			"Failed to mount bootenv %s at temporary path %s\n",
 		    bootenv, mountpoint);
 	}
 
 	return (err);
 }
-
 
 static int
 bectl_cmd_rename(int argc, char *argv[])
@@ -476,8 +475,8 @@ bectl_cmd_rename(int argc, char *argv[])
 	case BE_ERR_SUCCESS:
 		break;
 	default:
-		fprintf(stderr, "Failed to rename bootenv %s to %s\n",
-		    src, dest);
+		fprintf(stderr, "Failed to rename bootenv %s to %s\n", src,
+		    dest);
 	}
 
 	return (err);
@@ -499,8 +498,8 @@ bectl_cmd_unmount(int argc, char *argv[])
 			flags |= BE_MNT_FORCE;
 			break;
 		default:
-			fprintf(stderr, "bectl %s: unknown option '-%c'\n",
-			    cmd, optopt);
+			fprintf(stderr, "bectl %s: unknown option '-%c'\n", cmd,
+			    optopt);
 			return (usage(false));
 		}
 	}

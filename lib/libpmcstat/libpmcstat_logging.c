@@ -25,11 +25,11 @@
  */
 
 #include <sys/types.h>
-#include <sys/cpuset.h>
 #include <sys/param.h>
+#include <sys/cpuset.h>
+#include <sys/pmc.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/pmc.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -58,7 +58,7 @@ pmcstat_lookup_pmcid(pmc_id_t pmcid, int pmcstat_mergepmc)
 {
 	struct pmcstat_pmcrecord *pr;
 
-	LIST_FOREACH(pr, &pmcstat_pmcs, pr_next) {
+	LIST_FOREACH (pr, &pmcstat_pmcs, pr_next) {
 		if (pr->pr_pmcid == pmcid) {
 			if (pmcstat_mergepmc)
 				return pr->pr_merge;
@@ -75,14 +75,13 @@ pmcstat_lookup_pmcid(pmc_id_t pmcid, int pmcstat_mergepmc)
 
 static void
 pmcstat_pmcid_add(pmc_id_t pmcid, pmcstat_interned_string ps,
-    struct pmcstat_args *args, struct pmc_plugins *plugins,
-    int *pmcstat_npmcs)
+    struct pmcstat_args *args, struct pmc_plugins *plugins, int *pmcstat_npmcs)
 {
 	struct pmcstat_pmcrecord *pr, *prm;
 
 	/* Replace an existing name for the PMC. */
 	prm = NULL;
-	LIST_FOREACH(pr, &pmcstat_pmcs, pr_next)
+	LIST_FOREACH (pr, &pmcstat_pmcs, pr_next)
 		if (pr->pr_pmcid == pmcid) {
 			pr->pr_pmcname = ps;
 			return;
@@ -135,7 +134,7 @@ pmcstat_image_unmap(struct pmcstat_process *pp, uintfptr_t start,
 	 * - we could have either 'start' or 'end' falling in the
 	 *   middle of a pcmap; in this case shorten the entry.
 	 */
-	TAILQ_FOREACH_SAFE(pcm, &pp->pp_map, ppm_next, pcmtmp) {
+	TAILQ_FOREACH_SAFE (pcm, &pp->pp_map, ppm_next, pcmtmp) {
 		assert(pcm->ppm_lowpc < pcm->ppm_highpc);
 		if (pcm->ppm_highpc <= start)
 			continue;
@@ -183,13 +182,10 @@ pmcstat_image_unmap(struct pmcstat_process *pp, uintfptr_t start,
  * files usable by gprof(1) are created if FLAG_DO_GPROF is set.
  */
 int
-pmcstat_analyze_log(struct pmcstat_args *args,
-    struct pmc_plugins *plugins,
+pmcstat_analyze_log(struct pmcstat_args *args, struct pmc_plugins *plugins,
     struct pmcstat_stats *pmcstat_stats,
-    struct pmcstat_process *pmcstat_kernproc,
-    int pmcstat_mergepmc,
-    int *pmcstat_npmcs,
-    int *ps_samples_period)
+    struct pmcstat_process *pmcstat_kernproc, int pmcstat_mergepmc,
+    int *pmcstat_npmcs, int *ps_samples_period)
 {
 	uint32_t cpu, cpuflags;
 	pid_t pid;
@@ -211,9 +207,10 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 		switch (ev.pl_type) {
 		case PMCLOG_TYPE_INITIALIZE:
 			if ((ev.pl_u.pl_i.pl_version & 0xFF000000) !=
-			    PMC_VERSION_MAJOR << 24 && args->pa_verbosity > 0)
+				PMC_VERSION_MAJOR << 24 &&
+			    args->pa_verbosity > 0)
 				warnx(
-"WARNING: Log version 0x%x does not match compiled version 0x%x.",
+				    "WARNING: Log version 0x%x does not match compiled version 0x%x.",
 				    ev.pl_u.pl_i.pl_version, PMC_VERSION_MAJOR);
 			break;
 
@@ -236,8 +233,8 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 
 			assert(pp != NULL);
 
-			image_path = pmcstat_string_intern(ev.pl_u.pl_mi.
-			    pl_pathname);
+			image_path = pmcstat_string_intern(
+			    ev.pl_u.pl_mi.pl_pathname);
 			image = pmcstat_image_from_path(image_path, pid == -1,
 			    args, plugins);
 			if (image->pi_type == PMCSTAT_IMAGE_UNKNOWN)
@@ -257,7 +254,7 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			else
 				pp = pmcstat_process_lookup(pid, 0);
 
-			if (pp == NULL)	/* unknown process */
+			if (pp == NULL) /* unknown process */
 				break;
 
 			pmcstat_image_unmap(pp, ev.pl_u.pl_mo.pl_start,
@@ -272,7 +269,7 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			cpu = PMC_CALLCHAIN_CPUFLAGS_TO_CPU(cpuflags);
 
 			if ((args->pa_flags & FLAG_FILTER_THREAD_ID) &&
-				args->pa_tid != ev.pl_u.pl_cc.pl_tid) {
+			    args->pa_tid != ev.pl_u.pl_cc.pl_tid) {
 				pmcstat_stats->ps_samples_skipped++;
 				break;
 			}
@@ -286,7 +283,8 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			    PMCSTAT_ALLOCATE);
 
 			/* Get PMC record. */
-			pmcr = pmcstat_lookup_pmcid(ev.pl_u.pl_cc.pl_pmcid, pmcstat_mergepmc);
+			pmcr = pmcstat_lookup_pmcid(ev.pl_u.pl_cc.pl_pmcid,
+			    pmcstat_mergepmc);
 			assert(pmcr != NULL);
 			pmcr->pr_samples++;
 
@@ -295,18 +293,14 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			 */
 
 			if (plugins[args->pa_pplugin].pl_process != NULL)
-				plugins[args->pa_pplugin].pl_process(
-				    pp, pmcr,
-				    ev.pl_u.pl_cc.pl_npc,
-				    ev.pl_u.pl_cc.pl_pc,
-				    PMC_CALLCHAIN_CPUFLAGS_TO_USERMODE(cpuflags),
+				plugins[args->pa_pplugin].pl_process(pp, pmcr,
+				    ev.pl_u.pl_cc.pl_npc, ev.pl_u.pl_cc.pl_pc,
+				    PMC_CALLCHAIN_CPUFLAGS_TO_USERMODE(
+					cpuflags),
 				    cpu);
-			plugins[args->pa_plugin].pl_process(
-			    pp, pmcr,
-			    ev.pl_u.pl_cc.pl_npc,
-			    ev.pl_u.pl_cc.pl_pc,
-			    PMC_CALLCHAIN_CPUFLAGS_TO_USERMODE(cpuflags),
-			    cpu);
+			plugins[args->pa_plugin].pl_process(pp, pmcr,
+			    ev.pl_u.pl_cc.pl_npc, ev.pl_u.pl_cc.pl_pc,
+			    PMC_CALLCHAIN_CPUFLAGS_TO_USERMODE(cpuflags), cpu);
 			break;
 
 		case PMCLOG_TYPE_PMCALLOCATE:
@@ -315,8 +309,8 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			 * PMC and its name.
 			 */
 			pmcstat_pmcid_add(ev.pl_u.pl_a.pl_pmcid,
-			    pmcstat_string_intern(ev.pl_u.pl_a.pl_evname),
-			    args, plugins, pmcstat_npmcs);
+			    pmcstat_string_intern(ev.pl_u.pl_a.pl_evname), args,
+			    plugins, pmcstat_npmcs);
 			break;
 
 		case PMCLOG_TYPE_PMCALLOCATEDYN:
@@ -338,7 +332,8 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			    PMCSTAT_ALLOCATE);
 
 			/* delete the current process map */
-			TAILQ_FOREACH_SAFE(ppm, &pp->pp_map, ppm_next, ppmtmp) {
+			TAILQ_FOREACH_SAFE (ppm, &pp->pp_map, ppm_next,
+			    ppmtmp) {
 				TAILQ_REMOVE(&pp->pp_map, ppm, ppm_next);
 				free(ppm);
 			}
@@ -347,7 +342,7 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			 * Associate this process image.
 			 */
 			image_path = pmcstat_string_intern(
-				ev.pl_u.pl_x.pl_pathname);
+			    ev.pl_u.pl_x.pl_pathname);
 			assert(image_path != NULL);
 			pmcstat_process_exec(pp, image_path,
 			    ev.pl_u.pl_x.pl_baseaddr, ev.pl_u.pl_x.pl_dynaddr,
@@ -368,14 +363,14 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			pp = pmcstat_process_lookup(ev.pl_u.pl_e.pl_pid, 0);
 			if (pp == NULL)
 				break;
-			pp->pp_isactive = 0;	/* mark as a zombie */
+			pp->pp_isactive = 0; /* mark as a zombie */
 			break;
 
 		case PMCLOG_TYPE_SYSEXIT:
 			pp = pmcstat_process_lookup(ev.pl_u.pl_se.pl_pid, 0);
 			if (pp == NULL)
 				break;
-			pp->pp_isactive = 0;	/* make a zombie */
+			pp->pp_isactive = 0; /* make a zombie */
 			break;
 
 		case PMCLOG_TYPE_PROCFORK:
@@ -384,9 +379,8 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			 * Allocate a process descriptor for the new
 			 * (child) process.
 			 */
-			ppnew =
-			    pmcstat_process_lookup(ev.pl_u.pl_f.pl_newpid,
-				PMCSTAT_ALLOCATE);
+			ppnew = pmcstat_process_lookup(ev.pl_u.pl_f.pl_newpid,
+			    PMCSTAT_ALLOCATE);
 
 			/*
 			 * If we had been tracking the parent, clone
@@ -395,12 +389,12 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 			pp = pmcstat_process_lookup(ev.pl_u.pl_f.pl_oldpid, 0);
 			if (pp == NULL)
 				break;
-			TAILQ_FOREACH(ppm, &pp->pp_map, ppm_next)
-			    pmcstat_image_link(ppnew, ppm->ppm_image,
-				ppm->ppm_lowpc);
+			TAILQ_FOREACH (ppm, &pp->pp_map, ppm_next)
+				pmcstat_image_link(ppnew, ppm->ppm_image,
+				    ppm->ppm_lowpc);
 			break;
 
-		default:	/* other types of entries are not relevant */
+		default: /* other types of entries are not relevant */
 			break;
 		}
 	}
@@ -412,7 +406,7 @@ pmcstat_analyze_log(struct pmcstat_args *args,
 
 	err(EX_DATAERR,
 	    "ERROR: event parsing failed state: %d type: %d (record %jd, offset 0x%jx)",
-	    ev.pl_state, ev.pl_type, (uintmax_t) ev.pl_count + 1, ev.pl_offset);
+	    ev.pl_state, ev.pl_type, (uintmax_t)ev.pl_count + 1, ev.pl_offset);
 }
 
 /*
@@ -446,8 +440,8 @@ pmcstat_open_log(const char *path, int mode)
 	 */
 	if (path[0] == '-' && path[1] == '\0')
 		fd = (mode == PMCSTAT_OPEN_FOR_READ) ? 0 : 1;
-	else if (path[0] != '/' &&
-	    path[0] != '.' && strchr(path, ':') != NULL) {
+	else if (path[0] != '/' && path[0] != '.' &&
+	    strchr(path, ':') != NULL) {
 
 		p = strrchr(path, ':');
 		hlen = p - path;
@@ -457,13 +451,14 @@ pmcstat_open_log(const char *path, int mode)
 		}
 
 		assert(hlen < sizeof(hostname));
-		(void) strncpy(hostname, path, hlen);
+		(void)strncpy(hostname, path, hlen);
 		hostname[hlen] = '\0';
 
-		(void) memset(&hints, 0, sizeof(hints));
+		(void)memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
-		if ((error = getaddrinfo(hostname, p+1, &hints, &res0)) != 0) {
+		if ((error = getaddrinfo(hostname, p + 1, &hints, &res0)) !=
+		    0) {
 			errstr = gai_strerror(error);
 			goto done;
 		}
@@ -471,20 +466,21 @@ pmcstat_open_log(const char *path, int mode)
 		fd = -1;
 		for (res = res0; res; res = res->ai_next) {
 			if ((fd = socket(res->ai_family, res->ai_socktype,
-			    res->ai_protocol)) < 0) {
+				 res->ai_protocol)) < 0) {
 				errstr = strerror(errno);
 				continue;
 			}
 			if (mode == PMCSTAT_OPEN_FOR_READ) {
-				if (bind(fd, res->ai_addr, res->ai_addrlen) < 0) {
+				if (bind(fd, res->ai_addr, res->ai_addrlen) <
+				    0) {
 					errstr = strerror(errno);
-					(void) close(fd);
+					(void)close(fd);
 					fd = -1;
 					continue;
 				}
 				listen(fd, 1);
 				cfd = accept(fd, NULL, NULL);
-				(void) close(fd);
+				(void)close(fd);
 				if (cfd < 0) {
 					errstr = strerror(errno);
 					fd = -1;
@@ -492,9 +488,10 @@ pmcstat_open_log(const char *path, int mode)
 				}
 				fd = cfd;
 			} else {
-				if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
+				if (connect(fd, res->ai_addr, res->ai_addrlen) <
+				    0) {
 					errstr = strerror(errno);
-					(void) close(fd);
+					(void)close(fd);
 					fd = -1;
 					continue;
 				}
@@ -504,12 +501,14 @@ pmcstat_open_log(const char *path, int mode)
 		}
 		freeaddrinfo(res0);
 
-	} else if ((fd = open(path, mode == PMCSTAT_OPEN_FOR_READ ?
-		    O_RDONLY : (O_WRONLY|O_CREAT|O_TRUNC),
-		    S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) < 0)
-			errstr = strerror(errno);
+	} else if ((fd = open(path,
+			mode == PMCSTAT_OPEN_FOR_READ ?
+			    O_RDONLY :
+			    (O_WRONLY | O_CREAT | O_TRUNC),
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0)
+		errstr = strerror(errno);
 
-  done:
+done:
 	if (errstr)
 		errx(EX_OSERR, "ERROR: Cannot open \"%s\" for %s: %s.", path,
 		    (mode == PMCSTAT_OPEN_FOR_READ ? "reading" : "writing"),
@@ -535,7 +534,7 @@ pmcstat_close_log(struct pmcstat_args *args)
 	}
 
 	return (args->pa_flags & FLAG_HAS_PIPE ? PMCSTAT_EXITING :
-	    PMCSTAT_FINISHED);
+						 PMCSTAT_FINISHED);
 }
 
 /*
@@ -544,14 +543,14 @@ pmcstat_close_log(struct pmcstat_args *args)
 
 void
 pmcstat_initialize_logging(struct pmcstat_process **pmcstat_kernproc,
-    struct pmcstat_args *args, struct pmc_plugins *plugins,
-    int *pmcstat_npmcs, int *pmcstat_mergepmc)
+    struct pmcstat_args *args, struct pmc_plugins *plugins, int *pmcstat_npmcs,
+    int *pmcstat_mergepmc)
 {
 	struct pmcstat_process *pmcstat_kp;
 	int i;
 
 	/* use a convenient format for 'ldd' output */
-	if (setenv("LD_TRACE_LOADED_OBJECTS_FMT1","%o \"%p\" %x\n",1) != 0)
+	if (setenv("LD_TRACE_LOADED_OBJECTS_FMT1", "%o \"%p\" %x\n", 1) != 0)
 		err(EX_OSERR, "ERROR: Cannot setenv");
 
 	/* Initialize hash tables */
@@ -566,8 +565,8 @@ pmcstat_initialize_logging(struct pmcstat_process **pmcstat_kernproc,
 	 * hwpmc(4) will subsequently inform us about where the kernel
 	 * and any loaded kernel modules are mapped.
 	 */
-	if ((pmcstat_kp = pmcstat_process_lookup((pid_t) -1,
-	    PMCSTAT_ALLOCATE)) == NULL)
+	if ((pmcstat_kp = pmcstat_process_lookup((pid_t)-1,
+		 PMCSTAT_ALLOCATE)) == NULL)
 		err(EX_OSERR, "ERROR: Cannot initialize logging");
 
 	*pmcstat_kernproc = pmcstat_kp;
@@ -593,8 +592,7 @@ pmcstat_initialize_logging(struct pmcstat_process **pmcstat_kernproc,
  */
 
 void
-pmcstat_shutdown_logging(struct pmcstat_args *args,
-    struct pmc_plugins *plugins,
+pmcstat_shutdown_logging(struct pmcstat_args *args, struct pmc_plugins *plugins,
     struct pmcstat_stats *pmcstat_stats)
 {
 	struct pmcstat_image *pi, *pitmp;
@@ -607,14 +605,15 @@ pmcstat_shutdown_logging(struct pmcstat_args *args,
 	mf = NULL;
 	if (args->pa_mapfilename != NULL)
 		mf = (strcmp(args->pa_mapfilename, "-") == 0) ?
-		    args->pa_printfile : fopen(args->pa_mapfilename, "w");
+		    args->pa_printfile :
+		    fopen(args->pa_mapfilename, "w");
 
 	if (mf == NULL && args->pa_flags & FLAG_DO_GPROF &&
 	    args->pa_verbosity >= 2)
 		mf = args->pa_printfile;
 
 	if (mf)
-		(void) fprintf(mf, "MAP:\n");
+		(void)fprintf(mf, "MAP:\n");
 
 	/*
 	 * Shutdown the plugins
@@ -626,8 +625,7 @@ pmcstat_shutdown_logging(struct pmcstat_args *args,
 		plugins[args->pa_pplugin].pl_shutdown(mf);
 
 	for (i = 0; i < PMCSTAT_NHASH; i++) {
-		LIST_FOREACH_SAFE(pi, &pmcstat_image_hash[i], pi_next,
-		    pitmp) {
+		LIST_FOREACH_SAFE (pi, &pmcstat_image_hash[i], pi_next, pitmp) {
 			if (plugins[args->pa_plugin].pl_shutdownimage != NULL)
 				plugins[args->pa_plugin].pl_shutdownimage(pi);
 			if (plugins[args->pa_pplugin].pl_shutdownimage != NULL)
@@ -640,9 +638,10 @@ pmcstat_shutdown_logging(struct pmcstat_args *args,
 			free(pi);
 		}
 
-		LIST_FOREACH_SAFE(pp, &pmcstat_process_hash[i], pp_next,
+		LIST_FOREACH_SAFE (pp, &pmcstat_process_hash[i], pp_next,
 		    pptmp) {
-			TAILQ_FOREACH_SAFE(ppm, &pp->pp_map, ppm_next, ppmtmp) {
+			TAILQ_FOREACH_SAFE (ppm, &pp->pp_map, ppm_next,
+			    ppmtmp) {
 				TAILQ_REMOVE(&pp->pp_map, ppm, ppm_next);
 				free(ppm);
 			}
@@ -657,14 +656,15 @@ pmcstat_shutdown_logging(struct pmcstat_args *args,
 	 * Print errors unless -q was specified.  Print all statistics
 	 * if verbosity > 1.
 	 */
-#define	PRINT(N,V) do {							\
-		if (pmcstat_stats->ps_##V || args->pa_verbosity >= 2)	\
-			(void) fprintf(args->pa_printfile, " %-40s %d\n",\
-			    N, pmcstat_stats->ps_##V);			\
+#define PRINT(N, V)                                                         \
+	do {                                                                \
+		if (pmcstat_stats->ps_##V || args->pa_verbosity >= 2)       \
+			(void)fprintf(args->pa_printfile, " %-40s %d\n", N, \
+			    pmcstat_stats->ps_##V);                         \
 	} while (0)
 
 	if (args->pa_verbosity >= 1 && (args->pa_flags & FLAG_DO_ANALYSIS)) {
-		(void) fprintf(args->pa_printfile, "CONVERSION STATISTICS:\n");
+		(void)fprintf(args->pa_printfile, "CONVERSION STATISTICS:\n");
 		PRINT("#exec/a.out", exec_aout);
 		PRINT("#exec/elf", exec_elf);
 		PRINT("#exec/unknown", exec_indeterminable);
@@ -677,5 +677,5 @@ pmcstat_shutdown_logging(struct pmcstat_args *args,
 	}
 
 	if (mf)
-		(void) fclose(mf);
+		(void)fclose(mf);
 }

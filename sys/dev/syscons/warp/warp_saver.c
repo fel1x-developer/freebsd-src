@@ -30,35 +30,33 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/syslog.h>
-#include <sys/consio.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define SAVER_NAME	 "warp_saver"
-#define SPP		 15
-#define STARS		 (SPP * (1 + 2 + 4 + 8))
+#define SAVER_NAME "warp_saver"
+#define SPP 15
+#define STARS (SPP * (1 + 2 + 4 + 8))
 
-#define SET_ORIGIN(adp, o) do {				\
-	int oo = o;					\
-	if (oo != last_origin)				\
-	    vidd_set_win_org(adp, last_origin = oo);		\
+#define SET_ORIGIN(adp, o)                                       \
+	do {                                                     \
+		int oo = o;                                      \
+		if (oo != last_origin)                           \
+			vidd_set_win_org(adp, last_origin = oo); \
 	} while (0)
 
-static u_char		*vid;
-static int		 banksize, scrmode, bpsl, scrw, scrh;
-static int		 blanked;
-static int		 star[STARS];
-static u_char		 warp_pal[768] = {
-	0x00, 0x00, 0x00,
-	0x66, 0x66, 0x66,
-	0x99, 0x99, 0x99,
-	0xcc, 0xcc, 0xcc,
+static u_char *vid;
+static int banksize, scrmode, bpsl, scrw, scrh;
+static int blanked;
+static int star[STARS];
+static u_char warp_pal[768] = {
+	0x00, 0x00, 0x00, 0x66, 0x66, 0x66, 0x99, 0x99, 0x99, 0xcc, 0xcc, 0xcc,
 	0xff, 0xff, 0xff
 	/* the rest is zero-filled by the compiler */
 };
@@ -69,9 +67,9 @@ warp_update(video_adapter_t *adp)
 	int i, j, k, n, o, p;
 	int last_origin = -1;
 
-	for (i = 1, k = 0, n = SPP*8; i < 5; i++, n /= 2) {
+	for (i = 1, k = 0, n = SPP * 8; i < 5; i++, n /= 2) {
 		for (j = 0; j < n; j++, k++) {
-			p = (star[k] / scrw) *  bpsl + (star[k] % scrw);
+			p = (star[k] / scrw) * bpsl + (star[k] % scrw);
 			o = 0;
 			while (p > banksize) {
 				p -= banksize;
@@ -80,9 +78,9 @@ warp_update(video_adapter_t *adp)
 			SET_ORIGIN(adp, o);
 			vid[p] = 0;
 			star[k] += i;
-			if (star[k] > scrw*scrh)
-				star[k] -= scrw*scrh;
-			p = (star[k] / scrw) *  bpsl + (star[k] % scrw);
+			if (star[k] > scrw * scrh)
+				star[k] -= scrw * scrh;
+			p = (star[k] / scrw) * bpsl + (star[k] % scrw);
 			o = 0;
 			while (p > banksize) {
 				p -= banksize;
@@ -152,12 +150,7 @@ warp_term(video_adapter_t *adp)
 	return (0);
 }
 
-static scrn_saver_t warp_module = {
-	SAVER_NAME,
-	warp_init,
-	warp_term,
-	warp_saver,
-	NULL
-};
+static scrn_saver_t warp_module = { SAVER_NAME, warp_init, warp_term,
+	warp_saver, NULL };
 
 SAVER_MODULE(warp_saver, warp_module);

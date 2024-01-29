@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_iconv_std.h,v 1.1 2003/06/25 09:51:44 tshiozak Exp $	*/
+/*	$NetBSD: citrus_iconv_std.h,v 1.1 2003/06/25 09:51:44 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause

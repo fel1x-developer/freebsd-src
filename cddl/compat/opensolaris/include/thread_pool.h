@@ -27,51 +27,51 @@
 /*
  */
 
-#ifndef	_THREAD_POOL_H_
-#define	_THREAD_POOL_H_
+#ifndef _THREAD_POOL_H_
+#define _THREAD_POOL_H_
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #include <sys/types.h>
-#include <thread.h>
-#include <pthread.h>
 
-#ifdef	__cplusplus
+#include <pthread.h>
+#include <thread.h>
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef	struct tpool tpool_t;	/* opaque thread pool descriptor */
+typedef struct tpool tpool_t; /* opaque thread pool descriptor */
 
 #if defined(__STDC__)
 
-extern	tpool_t	*tpool_create(uint_t min_threads, uint_t max_threads,
-			uint_t linger, pthread_attr_t *attr);
-extern	int	tpool_dispatch(tpool_t *tpool,
-			void (*func)(void *), void *arg);
-extern	void	tpool_destroy(tpool_t *tpool);
-extern	void	tpool_abandon(tpool_t *tpool);
-extern	void	tpool_wait(tpool_t *tpool);
-extern	void	tpool_suspend(tpool_t *tpool);
-extern	int	tpool_suspended(tpool_t *tpool);
-extern	void	tpool_resume(tpool_t *tpool);
-extern	int	tpool_member(tpool_t *tpool);
+extern tpool_t *tpool_create(uint_t min_threads, uint_t max_threads,
+    uint_t linger, pthread_attr_t *attr);
+extern int tpool_dispatch(tpool_t *tpool, void (*func)(void *), void *arg);
+extern void tpool_destroy(tpool_t *tpool);
+extern void tpool_abandon(tpool_t *tpool);
+extern void tpool_wait(tpool_t *tpool);
+extern void tpool_suspend(tpool_t *tpool);
+extern int tpool_suspended(tpool_t *tpool);
+extern void tpool_resume(tpool_t *tpool);
+extern int tpool_member(tpool_t *tpool);
 
-#else	/* Non ANSI */
+#else /* Non ANSI */
 
-extern	tpool_t	*tpool_create();
-extern	int	tpool_dispatch();
-extern	void	tpool_destroy();
-extern	void	tpool_abandon();
-extern	void	tpool_wait();
-extern	void	tpool_suspend();
-extern	int	tpool_suspended();
-extern	void	tpool_resume();
-extern	int	tpool_member();
+extern tpool_t *tpool_create();
+extern int tpool_dispatch();
+extern void tpool_destroy();
+extern void tpool_abandon();
+extern void tpool_wait();
+extern void tpool_suspend();
+extern int tpool_suspended();
+extern void tpool_resume();
+extern int tpool_member();
 
-#endif	/* __STDC__ */
+#endif /* __STDC__ */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _THREAD_POOL_H_ */
+#endif /* _THREAD_POOL_H_ */

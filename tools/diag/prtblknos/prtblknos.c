@@ -25,12 +25,12 @@
  */
 
 #include <sys/param.h>
-#include <ufs/ffs/fs.h>
 
 #include <err.h>
+#include <libufs.h>
 #include <stdio.h>
 #include <string.h>
-#include <libufs.h>
+#include <ufs/ffs/fs.h>
 
 #ifdef PRTBLKNOS
 union dinode {
@@ -46,9 +46,9 @@ static struct bufarea *bp;
 void prtblknos(struct fs *fs, union dinode *dp);
 
 static const char *distance(struct fs *, ufs2_daddr_t, ufs2_daddr_t);
-static void  printblk(struct fs *, ufs_lbn_t, ufs2_daddr_t, int, ufs_lbn_t);
-static void  indirprt(struct fs *, int, ufs_lbn_t, ufs_lbn_t, ufs2_daddr_t,
-		ufs_lbn_t);
+static void printblk(struct fs *, ufs_lbn_t, ufs2_daddr_t, int, ufs_lbn_t);
+static void indirprt(struct fs *, int, ufs_lbn_t, ufs_lbn_t, ufs2_daddr_t,
+    ufs_lbn_t);
 
 void
 prtblknos(struct fs *fs, union dinode *dp)
@@ -95,8 +95,8 @@ prtblknos(struct fs *fs, union dinode *dp)
 		if (size < fs->fs_maxsymlinklen) {
 			printf("symbolic link referencing %s\n",
 			    (fs->fs_magic == FS_UFS1_MAGIC) ?
-			    dp->dp1.di_shortlink :
-			    dp->dp2.di_shortlink);
+				dp->dp1.di_shortlink :
+				dp->dp2.di_shortlink);
 			return;
 		}
 		printf("symbolic link\n");
@@ -123,7 +123,7 @@ prtblknos(struct fs *fs, union dinode *dp)
 			frags = fs->fs_frag;
 		else
 			frags = howmany(size - (lastlbn - 1) * fs->fs_bsize,
-					  fs->fs_fsize);
+			    fs->fs_fsize);
 		if (fs->fs_magic == FS_UFS1_MAGIC)
 			blkno = dp->dp1.di_db[i];
 		else
@@ -151,7 +151,7 @@ prtblknos(struct fs *fs, union dinode *dp)
 
 static void
 indirprt(struct fs *fs, int level, ufs_lbn_t blksperindir, ufs_lbn_t lbn,
-	ufs2_daddr_t blkno, ufs_lbn_t lastlbn)
+    ufs2_daddr_t blkno, ufs_lbn_t lastlbn)
 {
 	char indir[MAXBSIZE];
 	ufs_lbn_t i, last;
@@ -173,12 +173,13 @@ indirprt(struct fs *fs, int level, ufs_lbn_t blksperindir, ufs_lbn_t lbn,
 #endif
 		warn("Read of indirect block %jd failed", (intmax_t)blkno);
 		/* List the unreadable part as a hole */
-		printblk(fs, lbn, 0,
-		    blksperindir * NINDIR(fs) * fs->fs_frag, lastlbn);
+		printblk(fs, lbn, 0, blksperindir * NINDIR(fs) * fs->fs_frag,
+		    lastlbn);
 		return;
 	}
 	last = howmany(lastlbn - lbn, blksperindir) < NINDIR(fs) ?
-	    howmany(lastlbn - lbn, blksperindir) : NINDIR(fs);
+	    howmany(lastlbn - lbn, blksperindir) :
+	    NINDIR(fs);
 	if (blksperindir == 1) {
 		for (i = 0; i < last; i++) {
 			if (fs->fs_magic == FS_UFS1_MAGIC)
@@ -215,18 +216,17 @@ distance(struct fs *fs, ufs2_daddr_t lastblk, ufs2_daddr_t firstblk)
 		snprintf(buf, 100, " distance %jd", (intmax_t)delta);
 		return (&buf[0]);
 	}
-	snprintf(buf, 100, " cg %d blk %jd to cg %d blk %jd",
-	    lastcg, (intmax_t)dtogd(fs, lastblk), firstcg,
+	snprintf(buf, 100, " cg %d blk %jd to cg %d blk %jd", lastcg,
+	    (intmax_t)dtogd(fs, lastblk), firstcg,
 	    (intmax_t)dtogd(fs, firstblk));
 	return (&buf[0]);
 }
-	
 
 static const char *indirname[UFS_NIADDR] = { "First", "Second", "Third" };
 
 static void
 printblk(struct fs *fs, ufs_lbn_t lbn, ufs2_daddr_t blkno, int numfrags,
-	ufs_lbn_t lastlbn)
+    ufs_lbn_t lastlbn)
 {
 	static int seq;
 	static ufs2_daddr_t totfrags, lastindirblk, lastblk, firstblk;
@@ -247,10 +247,11 @@ printblk(struct fs *fs, ufs_lbn_t lbn, ufs2_daddr_t blkno, int numfrags,
 		lastindirblk = 0;
 		return;
 	}
-	if (lbn < lastlbn && ((firstblk == 0 && blkno == 0) ||
-	    (firstblk == BLK_NOCOPY && blkno == BLK_NOCOPY) ||
-	    (firstblk == BLK_SNAP && blkno == BLK_SNAP) ||
-	    blkno == firstblk + seq * fs->fs_frag)) {
+	if (lbn < lastlbn &&
+	    ((firstblk == 0 && blkno == 0) ||
+		(firstblk == BLK_NOCOPY && blkno == BLK_NOCOPY) ||
+		(firstblk == BLK_SNAP && blkno == BLK_SNAP) ||
+		blkno == firstblk + seq * fs->fs_frag)) {
 		seq += howmany(numfrags, fs->fs_frag);
 		totfrags += numfrags;
 		return;
@@ -261,19 +262,20 @@ flush:
 	if (firstblk <= BLK_SNAP) {
 		if (seq == 1)
 			printf("\tlbn %jd %s\n", (intmax_t)(lbn - seq),
-			    firstblk == 0 ? "hole" :
-			    firstblk == BLK_NOCOPY ? "nocopy" :
-			    "snapblk");
+			    firstblk == 0	       ? "hole" :
+				firstblk == BLK_NOCOPY ? "nocopy" :
+							 "snapblk");
 		else
-			printf("\tlbn %jd-%jd %s\n",
-			    (intmax_t)lbn - seq, (intmax_t)lbn - 1,
-			    firstblk == 0 ? "hole" :
-			    firstblk == BLK_NOCOPY ? "nocopy" :
-			    "snapblk");
+			printf("\tlbn %jd-%jd %s\n", (intmax_t)lbn - seq,
+			    (intmax_t)lbn - 1,
+			    firstblk == 0	       ? "hole" :
+				firstblk == BLK_NOCOPY ? "nocopy" :
+							 "snapblk");
 	} else if (seq == 1) {
 		if (totfrags == 1)
 			printf("\tlbn %jd blkno %jd%s\n", (intmax_t)(lbn - seq),
-			   (intmax_t)firstblk, distance(fs, lastblk, firstblk));
+			    (intmax_t)firstblk,
+			    distance(fs, lastblk, firstblk));
 		else
 			printf("\tlbn %jd blkno %jd-%jd%s\n",
 			    (intmax_t)(lbn - seq), (intmax_t)firstblk,

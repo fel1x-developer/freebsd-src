@@ -32,7 +32,9 @@
 
 #include <sys/queue.h>
 #include <sys/uio.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
@@ -40,6 +42,7 @@
 #include <errno.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
@@ -51,14 +54,14 @@
 int32_t
 server_prepare_service_register_response(server_p srv, int32_t fd)
 {
-	uint8_t const	*req = srv->req + sizeof(sdp_pdu_t);
-	uint8_t const	*req_end = req + ((sdp_pdu_p)(srv->req))->len;
-	uint8_t		*rsp = srv->fdidx[fd].rsp;
+	uint8_t const *req = srv->req + sizeof(sdp_pdu_t);
+	uint8_t const *req_end = req + ((sdp_pdu_p)(srv->req))->len;
+	uint8_t *rsp = srv->fdidx[fd].rsp;
 
-	profile_t	*profile = NULL;
-	provider_t	*provider = NULL;
-	bdaddr_t	*bdaddr = NULL;
-	int32_t		 uuid;
+	profile_t *profile = NULL;
+	provider_t *provider = NULL;
+	bdaddr_t *bdaddr = NULL;
+	int32_t uuid;
 
 	/*
 	 * Minimal Service Register Request
@@ -67,15 +70,15 @@ server_prepare_service_register_response(server_p srv, int32_t fd)
 	 * bdaddr	- BD_ADDR 6 bytes
 	 */
 
-	if (!srv->fdidx[fd].control ||
-	    !srv->fdidx[fd].priv || req_end - req < 8)
+	if (!srv->fdidx[fd].control || !srv->fdidx[fd].priv ||
+	    req_end - req < 8)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 	/* Get ServiceClass UUID */
 	SDP_GET16(uuid, req);
 
 	/* Get BD_ADDR */
-	bdaddr = (bdaddr_p) req;
+	bdaddr = (bdaddr_p)req;
 	req += sizeof(*bdaddr);
 
 	/* Lookup profile descriptror */
@@ -84,8 +87,7 @@ server_prepare_service_register_response(server_p srv, int32_t fd)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 	/* Validate user data */
-	if (req_end - req < profile->dsize ||
-	    profile->valid == NULL ||
+	if (req_end - req < profile->dsize || profile->valid == NULL ||
 	    (profile->valid)(req, req_end - req) == 0)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
@@ -96,7 +98,7 @@ server_prepare_service_register_response(server_p srv, int32_t fd)
 
 	SDP_PUT16(0, rsp);
 	SDP_PUT32(provider->handle, rsp);
-	
+
 	/* Set reply size */
 	srv->fdidx[fd].rsp_limit = srv->fdidx[fd].omtu - sizeof(sdp_pdu_t);
 	srv->fdidx[fd].rsp_size = rsp - srv->fdidx[fd].rsp;
@@ -112,9 +114,9 @@ server_prepare_service_register_response(server_p srv, int32_t fd)
 int32_t
 server_send_service_register_response(server_p srv, int32_t fd)
 {
-	struct iovec	iov[2];
-	sdp_pdu_t	pdu;
-	int32_t		size;
+	struct iovec iov[2];
+	sdp_pdu_t pdu;
+	int32_t size;
 
 	assert(srv->fdidx[fd].rsp_size < srv->fdidx[fd].rsp_limit);
 
@@ -129,13 +131,13 @@ server_send_service_register_response(server_p srv, int32_t fd)
 	iov[1].iov_len = srv->fdidx[fd].rsp_size;
 
 	do {
-		size = writev(fd, (struct iovec const *) &iov, sizeof(iov)/sizeof(iov[0]));
+		size = writev(fd, (struct iovec const *)&iov,
+		    sizeof(iov) / sizeof(iov[0]));
 	} while (size < 0 && errno == EINTR);
 
 	srv->fdidx[fd].rsp_cs = 0;
 	srv->fdidx[fd].rsp_size = 0;
 	srv->fdidx[fd].rsp_limit = 0;
 
-	return ((size < 0)? errno : 0);
+	return ((size < 0) ? errno : 0);
 }
-

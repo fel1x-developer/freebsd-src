@@ -18,43 +18,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/linker.h>
 #include <sys/firmware.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_fw.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 #ifndef RTWN_WITHOUT_UCODE
 static int
-rtwn_fw_loadpage(struct rtwn_softc *sc, int page, const uint8_t *buf,
-    int len)
+rtwn_fw_loadpage(struct rtwn_softc *sc, int page, const uint8_t *buf, int len)
 {
 	uint32_t reg;
 	uint16_t off;
@@ -123,8 +119,8 @@ rtwn_load_firmware(struct rtwn_softc *sc)
 	fw = firmware_get(sc->fwname);
 	RTWN_LOCK(sc);
 	if (fw == NULL) {
-		device_printf(sc->sc_dev,
-		    "failed loadfirmware of file %s\n", sc->fwname);
+		device_printf(sc->sc_dev, "failed loadfirmware of file %s\n",
+		    sc->fwname);
 		return (ENOENT);
 	}
 
@@ -141,9 +137,9 @@ rtwn_load_firmware(struct rtwn_softc *sc)
 		sc->fwver = le16toh(hdr->version);
 
 		RTWN_DPRINTF(sc, RTWN_DEBUG_FIRMWARE,
-		    "FW V%u.%u %02u-%02u %02u:%02u\n",
-		    le16toh(hdr->version), le16toh(hdr->subversion),
-		    hdr->month, hdr->date, hdr->hour, hdr->minute);
+		    "FW V%u.%u %02u-%02u %02u:%02u\n", le16toh(hdr->version),
+		    le16toh(hdr->subversion), hdr->month, hdr->date, hdr->hour,
+		    hdr->minute);
 		ptr += sizeof(*hdr);
 		len -= sizeof(*hdr);
 	}
@@ -156,7 +152,7 @@ rtwn_load_firmware(struct rtwn_softc *sc)
 	/* Enable firmware download. */
 	rtwn_fw_download_enable(sc, 1);
 
-	error = 0;	/* compiler warning */
+	error = 0; /* compiler warning */
 	for (ntries = 0; ntries < 3; ntries++) {
 		const u_char *curr_ptr = ptr;
 		const int maxpages = len / R92C_FW_PAGE_SIZE;
@@ -189,8 +185,8 @@ rtwn_load_firmware(struct rtwn_softc *sc)
 	}
 	if (ntries == 3) {
 		device_printf(sc->sc_dev,
-		    "%s: failed to upload firmware %s (error %d)\n",
-		    __func__, sc->fwname, error);
+		    "%s: failed to upload firmware %s (error %d)\n", __func__,
+		    sc->fwname, error);
 		goto fail;
 	}
 

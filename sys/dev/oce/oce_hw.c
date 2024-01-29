@@ -38,7 +38,6 @@
  * Costa Mesa, CA 92626
  */
 
-
 #include "oce_if.h"
 
 static int oce_POST(POCE_SOFTC sc);
@@ -59,7 +58,8 @@ oce_POST(POCE_SOFTC sc)
 	/* if host is ready then wait for fw ready else send POST */
 	if (post_status.bits.stage <= POST_STAGE_AWAITING_HOST_RDY) {
 		post_status.bits.stage = POST_STAGE_CHIP_RESET;
-		OCE_WRITE_CSR_MPU(sc, csr, MPU_EP_SEMAPHORE(sc), post_status.dw0);
+		OCE_WRITE_CSR_MPU(sc, csr, MPU_EP_SEMAPHORE(sc),
+		    post_status.dw0);
 	}
 
 	/* wait for FW ready */
@@ -69,10 +69,11 @@ oce_POST(POCE_SOFTC sc)
 
 		DELAY(1000);
 
-		post_status.dw0 = OCE_READ_CSR_MPU(sc, csr, MPU_EP_SEMAPHORE(sc));
+		post_status.dw0 = OCE_READ_CSR_MPU(sc, csr,
+		    MPU_EP_SEMAPHORE(sc));
 		if (post_status.bits.error) {
-			device_printf(sc->dev,
-				  "POST failed: %x\n", post_status.dw0);
+			device_printf(sc->dev, "POST failed: %x\n",
+			    post_status.dw0);
 			return ENXIO;
 		}
 		if (post_status.bits.stage == POST_STAGE_ARMFW_READY)
@@ -107,7 +108,6 @@ oce_hw_init(POCE_SOFTC sc)
 	rc = oce_reset_fun(sc);
 	if (rc)
 		goto error;
-		
 
 	rc = oce_mbox_init(sc);
 	if (rc)
@@ -123,7 +123,7 @@ oce_hw_init(POCE_SOFTC sc)
 
 	sc->macaddr.size_of_struct = 6;
 	rc = oce_read_mac_addr(sc, 0, 1, MAC_ADDRESS_TYPE_NETWORK,
-					&sc->macaddr);
+	    &sc->macaddr);
 	if (rc)
 		goto error;
 
@@ -157,19 +157,17 @@ oce_hw_pci_free(POCE_SOFTC sc)
 		pci_cfg_barnum = OCE_DEV_CFG_BAR;
 
 	if (sc->devcfg_res != NULL) {
-		bus_release_resource(sc->dev,
-				     SYS_RES_MEMORY,
-				     PCIR_BAR(pci_cfg_barnum), sc->devcfg_res);
+		bus_release_resource(sc->dev, SYS_RES_MEMORY,
+		    PCIR_BAR(pci_cfg_barnum), sc->devcfg_res);
 		sc->devcfg_res = (struct resource *)NULL;
-		sc->devcfg_btag = (bus_space_tag_t) 0;
+		sc->devcfg_btag = (bus_space_tag_t)0;
 		sc->devcfg_bhandle = (bus_space_handle_t)0;
 		sc->devcfg_vhandle = (void *)NULL;
 	}
 
 	if (sc->csr_res != NULL) {
-		bus_release_resource(sc->dev,
-				     SYS_RES_MEMORY,
-				     PCIR_BAR(OCE_PCI_CSR_BAR), sc->csr_res);
+		bus_release_resource(sc->dev, SYS_RES_MEMORY,
+		    PCIR_BAR(OCE_PCI_CSR_BAR), sc->csr_res);
 		sc->csr_res = (struct resource *)NULL;
 		sc->csr_btag = (bus_space_tag_t)0;
 		sc->csr_bhandle = (bus_space_handle_t)0;
@@ -177,9 +175,8 @@ oce_hw_pci_free(POCE_SOFTC sc)
 	}
 
 	if (sc->db_res != NULL) {
-		bus_release_resource(sc->dev,
-				     SYS_RES_MEMORY,
-				     PCIR_BAR(OCE_PCI_DB_BAR), sc->db_res);
+		bus_release_resource(sc->dev, SYS_RES_MEMORY,
+		    PCIR_BAR(OCE_PCI_DB_BAR), sc->db_res);
 		sc->db_res = (struct resource *)NULL;
 		sc->db_btag = (bus_space_tag_t)0;
 		sc->db_bhandle = (bus_space_handle_t)0;
@@ -191,20 +188,20 @@ oce_hw_pci_free(POCE_SOFTC sc)
  * @brief 		Function to get the PCI capabilities
  * @param sc		software handle to the device
  */
-static
-void oce_get_pci_capabilities(POCE_SOFTC sc)
+static void
+oce_get_pci_capabilities(POCE_SOFTC sc)
 {
 	uint32_t val;
 
 	if (pci_find_cap(sc->dev, PCIY_PCIX, &val) == 0) {
-		if (val != 0) 
+		if (val != 0)
 			sc->flags |= OCE_FLAGS_PCIX;
 	}
 
 	if (pci_find_cap(sc->dev, PCIY_EXPRESS, &val) == 0) {
 		if (val != 0) {
-			uint16_t link_status =
-			    pci_read_config(sc->dev, val + 0x12, 2);
+			uint16_t link_status = pci_read_config(sc->dev,
+			    val + 0x12, 2);
 
 			sc->flags |= OCE_FLAGS_PCIE;
 			sc->pcie_link_speed = link_status & 0xf;
@@ -248,17 +245,15 @@ oce_hw_pci_alloc(POCE_SOFTC sc)
 		pci_cfg_barnum = OCE_DEV_BE2_CFG_BAR;
 	else
 		pci_cfg_barnum = OCE_DEV_CFG_BAR;
-		
+
 	rr = PCIR_BAR(pci_cfg_barnum);
 
-	if (IS_BE(sc) || IS_SH(sc)) 
-		sc->devcfg_res = bus_alloc_resource_any(sc->dev,
-				SYS_RES_MEMORY, &rr,
-				RF_ACTIVE|RF_SHAREABLE);
+	if (IS_BE(sc) || IS_SH(sc))
+		sc->devcfg_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
+		    &rr, RF_ACTIVE | RF_SHAREABLE);
 	else
 		sc->devcfg_res = bus_alloc_resource_anywhere(sc->dev,
-				SYS_RES_MEMORY, &rr, 32768,
-				RF_ACTIVE|RF_SHAREABLE);
+		    SYS_RES_MEMORY, &rr, 32768, RF_ACTIVE | RF_SHAREABLE);
 
 	if (!sc->devcfg_res)
 		goto error;
@@ -270,7 +265,7 @@ oce_hw_pci_alloc(POCE_SOFTC sc)
 	/* Read the SLI_INTF register and determine whether we
 	 * can use this port and its features
 	 */
-	intf.dw0 = pci_read_config((sc)->dev,OCE_INTF_REG_OFFSET,4);
+	intf.dw0 = pci_read_config((sc)->dev, OCE_INTF_REG_OFFSET, 4);
 
 	if (intf.bits.sli_valid != OCE_INTF_VALID_SIG)
 		goto error;
@@ -293,18 +288,18 @@ oce_hw_pci_alloc(POCE_SOFTC sc)
 	if (IS_BE(sc) || IS_SH(sc)) {
 		/* set up CSR region */
 		rr = PCIR_BAR(OCE_PCI_CSR_BAR);
-		sc->csr_res = bus_alloc_resource_any(sc->dev,
-				SYS_RES_MEMORY, &rr, RF_ACTIVE|RF_SHAREABLE);
+		sc->csr_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
+		    &rr, RF_ACTIVE | RF_SHAREABLE);
 		if (!sc->csr_res)
 			goto error;
 		sc->csr_btag = rman_get_bustag(sc->csr_res);
 		sc->csr_bhandle = rman_get_bushandle(sc->csr_res);
 		sc->csr_vhandle = rman_get_virtual(sc->csr_res);
-		
+
 		/* set up DB doorbell region */
 		rr = PCIR_BAR(OCE_PCI_DB_BAR);
-		sc->db_res = bus_alloc_resource_any(sc->dev,
-				SYS_RES_MEMORY, &rr, RF_ACTIVE|RF_SHAREABLE);
+		sc->db_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
+		    &rr, RF_ACTIVE | RF_SHAREABLE);
 		if (!sc->db_res)
 			goto error;
 		sc->db_btag = rman_get_bustag(sc->db_res);
@@ -314,7 +309,7 @@ oce_hw_pci_alloc(POCE_SOFTC sc)
 
 	return 0;
 
-error:	
+error:
 	oce_hw_pci_free(sc);
 	return ENXIO;
 }
@@ -379,10 +374,10 @@ oce_create_nw_interface(POCE_SOFTC sc)
 	if (IS_SH(sc) || IS_XE201(sc))
 		capab_flags |= MBX_RX_IFACE_FLAGS_MULTICAST;
 
-        if (sc->enable_hwlro) {
-                capab_flags |= MBX_RX_IFACE_FLAGS_LRO;
-                capab_en_flags |= MBX_RX_IFACE_FLAGS_LRO;
-        }
+	if (sc->enable_hwlro) {
+		capab_flags |= MBX_RX_IFACE_FLAGS_LRO;
+		capab_en_flags |= MBX_RX_IFACE_FLAGS_LRO;
+	}
 
 	/* enable capabilities controlled via driver startup parameters */
 	if (is_rss_enabled(sc))
@@ -392,10 +387,8 @@ oce_create_nw_interface(POCE_SOFTC sc)
 		capab_flags &= ~MBX_RX_IFACE_FLAGS_RSS;
 	}
 
-	rc = oce_if_create(sc,
-			   capab_flags,
-			   capab_en_flags,
-			   0, &sc->macaddr.mac_addr[0], &sc->if_id);
+	rc = oce_if_create(sc, capab_flags, capab_en_flags, 0,
+	    &sc->macaddr.mac_addr[0], &sc->if_id);
 	if (rc)
 		return rc;
 
@@ -417,7 +410,6 @@ oce_create_nw_interface(POCE_SOFTC sc)
 error:
 	oce_delete_nw_interface(sc);
 	return rc;
-
 }
 
 /**
@@ -449,7 +441,7 @@ oce_pci_soft_reset(POCE_SOFTC sc)
 	ctrl.bits.cpu_reset = 1;
 	OCE_WRITE_CSR_MPU(sc, csr, MPU_EP_CONTROL, ctrl.dw0);
 	DELAY(50);
-	rc=oce_POST(sc);
+	rc = oce_POST(sc);
 
 	return rc;
 }
@@ -466,7 +458,7 @@ oce_hw_start(POCE_SOFTC sc)
 	int rc = 0;
 
 	rc = oce_get_link_status(sc, &link);
-	if (rc) 
+	if (rc)
 		return 1;
 
 	if (link.logical_link_status == NTWK_LOGICAL_LINK_UP) {
@@ -478,12 +470,12 @@ oce_hw_start(POCE_SOFTC sc)
 	}
 
 	sc->link_speed = link.phys_port_speed;
-	sc->qos_link_speed = (uint32_t )link.qos_link_speed * 10;
+	sc->qos_link_speed = (uint32_t)link.qos_link_speed * 10;
 
 	rc = oce_start_mq(sc->mq);
 
 	/* we need to get MCC aync events. So enable intrs and arm
-	   first EQ, Other EQs will be armed after interface is UP 
+	   first EQ, Other EQs will be armed after interface is UP
 	*/
 	oce_hw_intr_enable(sc);
 	oce_arm_eq(sc, sc->eq[0]->eq_id, 0, TRUE, FALSE);
@@ -508,7 +500,6 @@ oce_hw_intr_enable(POCE_SOFTC sc)
 	reg = OCE_READ_REG32(sc, devcfg, PCICFG_INTR_CTRL);
 	reg |= HOSTINTR_MASK;
 	OCE_WRITE_REG32(sc, devcfg, PCICFG_INTR_CTRL, reg);
-
 }
 
 /**
@@ -553,7 +544,7 @@ oce_hw_update_multicast(POCE_SOFTC sc)
 
 	/* Allocate DMA mem*/
 	if (oce_dma_alloc(sc, sizeof(struct mbx_set_common_iface_multicast),
-							&dma, 0))
+		&dma, 0))
 		return ENOMEM;
 
 	req = OCE_DMAPTR(&dma, struct mbx_set_common_iface_multicast);

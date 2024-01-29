@@ -1,33 +1,35 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include <linux/atomic.h>
-#include <linux/compiler.h>
 #include <adf_accel_devices.h>
-#include <adf_common_drv.h>
-#include <adf_pfvf_msg.h>
-#include <adf_dev_err.h>
 #include <adf_cfg.h>
+#include <adf_common_drv.h>
+#include <adf_dev_err.h>
 #include <adf_fw_counters.h>
 #include <adf_gen2_hw_data.h>
 #include <adf_gen2_pfvf.h>
+#include <adf_pfvf_msg.h>
+#include <linux/atomic.h>
+#include <linux/compiler.h>
+
 #include "adf_c4xxx_hw_data.h"
-#include "adf_c4xxx_reset.h"
 #include "adf_c4xxx_inline.h"
-#include "adf_c4xxx_ras.h"
 #include "adf_c4xxx_misc_error_stats.h"
 #include "adf_c4xxx_pke_replay_stats.h"
+#include "adf_c4xxx_ras.h"
+#include "adf_c4xxx_reset.h"
 #include "adf_heartbeat.h"
 #include "icp_qat_fw_init_admin.h"
 #include "icp_qat_hw.h"
 
 /* accel unit information */
-static struct adf_accel_unit adf_c4xxx_au_32_ae[] =
-    { { 0x1, 0x3, 0x3F, 0x1B, 6, ADF_ACCEL_SERVICE_NULL },
-      { 0x2, 0xC, 0xFC0, 0x6C0, 6, ADF_ACCEL_SERVICE_NULL },
-      { 0x4, 0x30, 0xF000, 0xF000, 4, ADF_ACCEL_SERVICE_NULL },
-      { 0x8, 0xC0, 0x3F0000, 0x1B0000, 6, ADF_ACCEL_SERVICE_NULL },
-      { 0x10, 0x300, 0xFC00000, 0x6C00000, 6, ADF_ACCEL_SERVICE_NULL },
-      { 0x20, 0xC00, 0xF0000000, 0xF0000000, 4, ADF_ACCEL_SERVICE_NULL } };
+static struct adf_accel_unit adf_c4xxx_au_32_ae[] = {
+	{ 0x1, 0x3, 0x3F, 0x1B, 6, ADF_ACCEL_SERVICE_NULL },
+	{ 0x2, 0xC, 0xFC0, 0x6C0, 6, ADF_ACCEL_SERVICE_NULL },
+	{ 0x4, 0x30, 0xF000, 0xF000, 4, ADF_ACCEL_SERVICE_NULL },
+	{ 0x8, 0xC0, 0x3F0000, 0x1B0000, 6, ADF_ACCEL_SERVICE_NULL },
+	{ 0x10, 0x300, 0xFC00000, 0x6C00000, 6, ADF_ACCEL_SERVICE_NULL },
+	{ 0x20, 0xC00, 0xF0000000, 0xF0000000, 4, ADF_ACCEL_SERVICE_NULL }
+};
 
 static struct adf_accel_unit adf_c4xxx_au_24_ae[] = {
 	{ 0x1, 0x3, 0x3F, 0x1B, 6, ADF_ACCEL_SERVICE_NULL },
@@ -41,73 +43,71 @@ static struct adf_accel_unit adf_c4xxx_au_12_ae[] = {
 	{ 0x8, 0xC0, 0x3F0000, 0x1B0000, 6, ADF_ACCEL_SERVICE_NULL },
 };
 
-static struct adf_accel_unit adf_c4xxx_au_emulation[] =
-    { { 0x1, 0x3, 0x3F, 0x1B, 6, ADF_ACCEL_SERVICE_NULL },
-      { 0x2, 0xC, 0xC0, 0xC0, 2, ADF_ACCEL_SERVICE_NULL } };
+static struct adf_accel_unit adf_c4xxx_au_emulation[] = {
+	{ 0x1, 0x3, 0x3F, 0x1B, 6, ADF_ACCEL_SERVICE_NULL },
+	{ 0x2, 0xC, 0xC0, 0xC0, 2, ADF_ACCEL_SERVICE_NULL }
+};
 
 /* Accel engine threads for each of the following services
  * <num_asym_thd> , <num_sym_thd> , <num_dc_thd>,
  */
 
 /* Thread mapping for SKU capable of symmetric cryptography */
-static const struct adf_ae_info adf_c4xxx_32_ae_sym[] =
-    { { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
-      { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 },
-      { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 2, 6, 3 } };
+static const struct adf_ae_info adf_c4xxx_32_ae_sym[] = { { 2, 6, 3 },
+	{ 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 },
+	{ 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
+	{ 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 2, 6, 3 } };
 
-static const struct adf_ae_info adf_c4xxx_24_ae_sym[] =
-    { { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
-      { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 },
-      { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 } };
+static const struct adf_ae_info adf_c4xxx_24_ae_sym[] = { { 2, 6, 3 },
+	{ 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 },
+	{ 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
+	{ 2, 6, 3 }, { 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 } };
 
-static const struct adf_ae_info adf_c4xxx_12_ae_sym[] =
-    { { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
-      { 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 },
-      { 2, 6, 3 }, { 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 } };
+static const struct adf_ae_info adf_c4xxx_12_ae_sym[] = { { 2, 6, 3 },
+	{ 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 2, 6, 3 }, { 2, 6, 3 }, { 1, 7, 0 }, { 2, 6, 3 }, { 2, 6, 3 },
+	{ 1, 7, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 } };
 
 /* Thread mapping for SKU capable of asymmetric and symmetric cryptography */
-static const struct adf_ae_info adf_c4xxx_32_ae[] =
-    { { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
-      { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
-      { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 2, 5, 3 } };
+static const struct adf_ae_info adf_c4xxx_32_ae[] = { { 2, 5, 3 }, { 2, 5, 3 },
+	{ 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
+	{ 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
+	{ 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 },
+	{ 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
+	{ 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
+	{ 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 }, { 2, 5, 3 } };
 
-static const struct adf_ae_info adf_c4xxx_24_ae[] =
-    { { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
-      { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 1, 6, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
-      { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 } };
+static const struct adf_ae_info adf_c4xxx_24_ae[] = { { 2, 5, 3 }, { 2, 5, 3 },
+	{ 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
+	{ 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 2, 5, 3 },
+	{ 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
+	{ 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
+	{ 1, 6, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
 
-static const struct adf_ae_info adf_c4xxx_12_ae[] =
-    { { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 },
-      { 1, 6, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 },
-      { 2, 5, 3 }, { 1, 6, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
-      { 0, 0, 0 }, { 0, 0, 0 } };
+static const struct adf_ae_info adf_c4xxx_12_ae[] = { { 2, 5, 3 }, { 2, 5, 3 },
+	{ 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 2, 5, 3 },
+	{ 2, 5, 3 }, { 1, 6, 0 }, { 2, 5, 3 }, { 2, 5, 3 }, { 1, 6, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+	{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
 
-static struct adf_hw_device_class c4xxx_class = {.name = ADF_C4XXX_DEVICE_NAME,
-						 .type = DEV_C4XXX,
-						 .instances = 0 };
+static struct adf_hw_device_class c4xxx_class = { .name = ADF_C4XXX_DEVICE_NAME,
+	.type = DEV_C4XXX,
+	.instances = 0 };
 
 struct icp_qat_fw_init_c4xxx_admin_hb_stats {
 	struct icp_qat_fw_init_admin_hb_cnt stats[ADF_NUM_THREADS_PER_AE];
@@ -134,8 +134,8 @@ get_accel_mask(struct adf_accel_dev *accel_dev)
 	u32 softstrappull0;
 
 	fusectl0 = pci_read_config(pdev, ADF_C4XXX_FUSECTL0_OFFSET, 4);
-	softstrappull0 =
-	    pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL0_OFFSET, 4);
+	softstrappull0 = pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL0_OFFSET,
+	    4);
 
 	return (~(fusectl0 | softstrappull0)) & ADF_C4XXX_ACCELERATORS_MASK;
 }
@@ -148,8 +148,8 @@ get_ae_mask(struct adf_accel_dev *accel_dev)
 	u32 softstrappull1;
 
 	fusectl1 = pci_read_config(pdev, ADF_C4XXX_FUSECTL1_OFFSET, 4);
-	softstrappull1 =
-	    pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL1_OFFSET, 4);
+	softstrappull1 = pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL1_OFFSET,
+	    4);
 
 	/* Assume that AE and AU disable masks are consistent, so no
 	 * checks against the AU mask are performed
@@ -204,8 +204,8 @@ static int
 c4xxx_set_ssm_wdtimer(struct adf_accel_dev *accel_dev)
 {
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
-	struct adf_bar *misc_bar =
-	    &GET_BARS(accel_dev)[hw_device->get_misc_bar_id(hw_device)];
+	struct adf_bar *misc_bar = &GET_BARS(
+	    accel_dev)[hw_device->get_misc_bar_id(hw_device)];
 	struct resource *csr = misc_bar->virt_addr;
 	unsigned long accel_mask = hw_device->accel_mask;
 	u32 accel = 0;
@@ -218,21 +218,18 @@ c4xxx_set_ssm_wdtimer(struct adf_accel_dev *accel_dev)
 	 * mmio write to 32bit CSRs.
 	 */
 	c4xxx_unpack_ssm_wdtimer(timer_val, &ssm_wdt_high, &ssm_wdt_low);
-	c4xxx_unpack_ssm_wdtimer(timer_val_pke,
-				 &ssm_wdt_pke_high,
-				 &ssm_wdt_pke_low);
+	c4xxx_unpack_ssm_wdtimer(timer_val_pke, &ssm_wdt_pke_high,
+	    &ssm_wdt_pke_low);
 
 	/* Configures Slice Hang watchdogs */
 	for_each_set_bit(accel, &accel_mask, ADF_C4XXX_MAX_ACCELERATORS)
 	{
 		ADF_CSR_WR(csr, ADF_C4XXX_SSMWDTL_OFFSET(accel), ssm_wdt_low);
 		ADF_CSR_WR(csr, ADF_C4XXX_SSMWDTH_OFFSET(accel), ssm_wdt_high);
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_SSMWDTPKEL_OFFSET(accel),
-			   ssm_wdt_pke_low);
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_SSMWDTPKEH_OFFSET(accel),
-			   ssm_wdt_pke_high);
+		ADF_CSR_WR(csr, ADF_C4XXX_SSMWDTPKEL_OFFSET(accel),
+		    ssm_wdt_pke_low);
+		ADF_CSR_WR(csr, ADF_C4XXX_SSMWDTPKEH_OFFSET(accel),
+		    ssm_wdt_pke_high);
 	}
 
 	return 0;
@@ -247,8 +244,8 @@ static bool
 c4xxx_check_slice_hang(struct adf_accel_dev *accel_dev)
 {
 	struct adf_hw_device_data *hw_device = accel_dev->hw_device;
-	struct adf_bar *misc_bar =
-	    &GET_BARS(accel_dev)[hw_device->get_misc_bar_id(hw_device)];
+	struct adf_bar *misc_bar = &GET_BARS(
+	    accel_dev)[hw_device->get_misc_bar_id(hw_device)];
 	struct resource *csr = misc_bar->virt_addr;
 	u32 slice_hang_offset;
 	u32 ia_slice_hang_offset;
@@ -267,45 +264,40 @@ c4xxx_check_slice_hang(struct adf_accel_dev *accel_dev)
 			continue;
 
 		fw_irq_source = ADF_CSR_RD(csr, ADF_INTSTATSSM(accel_num));
-		ia_irq_source =
-		    ADF_CSR_RD(csr, ADF_C4XXX_IAINTSTATSSM(accel_num));
-		ia_slice_hang_offset =
-		    ADF_C4XXX_IASLICEHANGSTATUS_OFFSET(accel_num);
+		ia_irq_source = ADF_CSR_RD(csr,
+		    ADF_C4XXX_IAINTSTATSSM(accel_num));
+		ia_slice_hang_offset = ADF_C4XXX_IASLICEHANGSTATUS_OFFSET(
+		    accel_num);
 
 		/* FW did not clear SliceHang error, IA logs and clears
 		 * the error
 		 */
 		if ((fw_irq_source & ADF_INTSTATSSM_SHANGERR) &&
 		    (ia_irq_source & ADF_INTSTATSSM_SHANGERR)) {
-			slice_hang_offset =
-			    ADF_C4XXX_SLICEHANGSTATUS_OFFSET(accel_num);
+			slice_hang_offset = ADF_C4XXX_SLICEHANGSTATUS_OFFSET(
+			    accel_num);
 
 			/* Bring hung slice out of reset */
 			adf_csr_fetch_and_and(csr, slice_hang_offset, ~0);
 
 			/* Log SliceHang error and clear an interrupt */
-			handled = adf_handle_slice_hang(accel_dev,
-							accel_num,
-							csr,
-							ia_slice_hang_offset);
+			handled = adf_handle_slice_hang(accel_dev, accel_num,
+			    csr, ia_slice_hang_offset);
 			atomic_inc(&accel_dev->ras_counters[ADF_RAS_UNCORR]);
 		}
 		/* FW cleared SliceHang, IA only logs an error */
 		else if (!(fw_irq_source & ADF_INTSTATSSM_SHANGERR) &&
-			 (ia_irq_source & ADF_INTSTATSSM_SHANGERR)) {
+		    (ia_irq_source & ADF_INTSTATSSM_SHANGERR)) {
 			/* Log SliceHang error and clear an interrupt */
-			handled = adf_handle_slice_hang(accel_dev,
-							accel_num,
-							csr,
-							ia_slice_hang_offset);
+			handled = adf_handle_slice_hang(accel_dev, accel_num,
+			    csr, ia_slice_hang_offset);
 
 			atomic_inc(&accel_dev->ras_counters[ADF_RAS_UNCORR]);
 		}
 
 		/* Clear the associated IA interrupt */
-		adf_csr_fetch_and_and(csr,
-				      ADF_C4XXX_IAINTSTATSSM(accel_num),
-				      ~BIT(13));
+		adf_csr_fetch_and_and(csr, ADF_C4XXX_IAINTSTATSSM(accel_num),
+		    ~BIT(13));
 	}
 
 	return handled;
@@ -335,8 +327,7 @@ get_eth_doorbell_msg(struct adf_accel_dev *accel_dev)
 			if (doorbell_int & BIT(i)) {
 				data_reg = ADF_C4XXX_ETH_DOORBELL(i);
 				eth_doorbell_reg[i] = ADF_CSR_RD(csr, data_reg);
-				device_printf(
-				    GET_DEV(accel_dev),
+				device_printf(GET_DEV(accel_dev),
 				    "Receives Doorbell message(0x%08x)\n",
 				    eth_doorbell_reg[i]);
 			}
@@ -344,13 +335,12 @@ get_eth_doorbell_msg(struct adf_accel_dev *accel_dev)
 		/* Only need to check PF0 */
 		if (eth_doorbell_reg[0] == ADF_C4XXX_IOSFSB_RESET_ACK) {
 			device_printf(GET_DEV(accel_dev),
-				      "Receives pending reset ACK\n");
+			    "Receives pending reset ACK\n");
 			hw_device->reset_ack = true;
 		}
 		/* Clear the interrupt source */
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_ETH_DOORBELL_INT,
-			   ADF_C4XXX_ETH_DOORBELL_MASK);
+		ADF_CSR_WR(csr, ADF_C4XXX_ETH_DOORBELL_INT,
+		    ADF_C4XXX_ETH_DOORBELL_MASK);
 		handled = true;
 	}
 
@@ -432,9 +422,8 @@ adf_enable_slice_hang_detection(struct adf_accel_dev *accel_dev)
 	for_each_set_bit(accel, &accel_mask, ADF_C4XXX_MAX_ACCELERATORS)
 	{
 		/* Unmasks Slice Hang interrupts so they can be seen by IA. */
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_SHINTMASKSSM_OFFSET(accel),
-			   ADF_C4XXX_SHINTMASKSSM_VAL);
+		ADF_CSR_WR(csr, ADF_C4XXX_SHINTMASKSSM_OFFSET(accel),
+		    ADF_C4XXX_SHINTMASKSSM_VAL);
 	}
 }
 
@@ -451,9 +440,8 @@ adf_enable_ras(struct adf_accel_dev *accel_dev)
 
 	for_each_set_bit(accel, &accel_mask, ADF_C4XXX_MAX_ACCELERATORS)
 	{
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_GET_SSMFEATREN_OFFSET(accel),
-			   ADF_C4XXX_SSMFEATREN_VAL);
+		ADF_CSR_WR(csr, ADF_C4XXX_GET_SSMFEATREN_OFFSET(accel),
+		    ADF_C4XXX_SSMFEATREN_VAL);
 	}
 }
 
@@ -488,8 +476,8 @@ adf_enable_error_interrupts(struct adf_accel_dev *accel_dev)
 
 		/* Enable ssm soft parity errors on given accel */
 		ADF_CSR_WR(csr,
-			   ADF_C4XXX_GET_SSMSOFTERRORPARITY_MASK_OFFSET(accel),
-			   ADF_C4XXX_SSMSOFTERRORPARITY_MASK_VAL);
+		    ADF_C4XXX_GET_SSMSOFTERRORPARITY_MASK_OFFSET(accel),
+		    ADF_C4XXX_SSMSOFTERRORPARITY_MASK_VAL);
 	}
 
 	/* Enable interrupts for VFtoPF0_127. */
@@ -500,35 +488,29 @@ adf_enable_error_interrupts(struct adf_accel_dev *accel_dev)
 
 	/* Enable interrupts signaling ECC correctable errors for all AEs */
 	ADF_CSR_WR(csr, ADF_C4XXX_ERRMSK8, ADF_C4XXX_ERRMSK8_COERR);
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_HI_ME_COR_ERRLOG_ENABLE,
-		   ADF_C4XXX_HI_ME_COR_ERRLOG_ENABLE_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_HI_ME_COR_ERRLOG_ENABLE,
+	    ADF_C4XXX_HI_ME_COR_ERRLOG_ENABLE_MASK);
 
 	/* Enable error interrupts reported by ERRSOU9 */
 	ADF_CSR_WR(csr, ADF_C4XXX_ERRMSK9, ADF_C4XXX_ERRMSK9_IRQ_MASK);
 
 	/* Enable uncorrectable errors on all the AE */
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_HI_ME_UNCERR_LOG_ENABLE,
-		   ADF_C4XXX_HI_ME_UNCERR_LOG_ENABLE_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_HI_ME_UNCERR_LOG_ENABLE,
+	    ADF_C4XXX_HI_ME_UNCERR_LOG_ENABLE_MASK);
 
 	/* Enable CPP Agent to report command parity errors */
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_HI_CPP_AGENT_CMD_PAR_ERR_LOG_ENABLE,
-		   ADF_C4XXX_HI_CPP_AGENT_CMD_PAR_ERR_LOG_ENABLE_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_HI_CPP_AGENT_CMD_PAR_ERR_LOG_ENABLE,
+	    ADF_C4XXX_HI_CPP_AGENT_CMD_PAR_ERR_LOG_ENABLE_MASK);
 
 	/* Enable reporting of RI memory parity errors */
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_RI_MEM_PAR_ERR_EN0,
-		   ADF_C4XXX_RI_MEM_PAR_ERR_EN0_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_RI_MEM_PAR_ERR_EN0,
+	    ADF_C4XXX_RI_MEM_PAR_ERR_EN0_MASK);
 
 	/* Enable reporting of TI memory parity errors */
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_TI_MEM_PAR_ERR_EN0,
-		   ADF_C4XXX_TI_MEM_PAR_ERR_EN0_MASK);
-	ADF_CSR_WR(csr,
-		   ADF_C4XXX_TI_MEM_PAR_ERR_EN1,
-		   ADF_C4XXX_TI_MEM_PAR_ERR_EN1_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_TI_MEM_PAR_ERR_EN0,
+	    ADF_C4XXX_TI_MEM_PAR_ERR_EN0_MASK);
+	ADF_CSR_WR(csr, ADF_C4XXX_TI_MEM_PAR_ERR_EN1,
+	    ADF_C4XXX_TI_MEM_PAR_ERR_EN1_MASK);
 
 	/* Enable SSM errors */
 	ADF_CSR_WR(csr, ADF_C4XXX_ERRMSK10, ADF_C4XXX_ERRMSK10_SSM_ERR);
@@ -557,7 +539,7 @@ adf_enable_error_interrupts(struct adf_accel_dev *accel_dev)
 
 static void
 adf_enable_mmp_error_correction(struct resource *csr,
-				struct adf_hw_device_data *hw_data)
+    struct adf_hw_device_data *hw_data)
 {
 	unsigned int accel = 0, mmp;
 	unsigned long uerrssmmmp_mask, cerrssmmmp_mask;
@@ -584,27 +566,19 @@ adf_enable_mmp_error_correction(struct resource *csr,
 	for_each_set_bit(accel, &accel_mask, ADF_C4XXX_MAX_ACCELERATORS)
 	{
 		/* Set power-up */
-		adf_csr_fetch_and_and(csr,
-				      ADF_C4XXX_SLICEPWRDOWN(accel),
-				      ~ADF_C4XXX_MMP_PWR_UP_MSK);
+		adf_csr_fetch_and_and(csr, ADF_C4XXX_SLICEPWRDOWN(accel),
+		    ~ADF_C4XXX_MMP_PWR_UP_MSK);
 
 		for (mmp = 0; mmp < ADF_C4XXX_MAX_MMP; ++mmp) {
-			adf_csr_fetch_and_update(op,
-						 csr,
-						 ADF_C4XXX_UERRSSMMMP(accel,
-								      mmp),
-						 uerrssmmmp_mask);
-			adf_csr_fetch_and_update(op,
-						 csr,
-						 ADF_C4XXX_CERRSSMMMP(accel,
-								      mmp),
-						 cerrssmmmp_mask);
+			adf_csr_fetch_and_update(op, csr,
+			    ADF_C4XXX_UERRSSMMMP(accel, mmp), uerrssmmmp_mask);
+			adf_csr_fetch_and_update(op, csr,
+			    ADF_C4XXX_CERRSSMMMP(accel, mmp), cerrssmmmp_mask);
 		}
 
 		/* Restore power-down value */
-		adf_csr_fetch_and_or(csr,
-				     ADF_C4XXX_SLICEPWRDOWN(accel),
-				     ADF_C4XXX_MMP_PWR_UP_MSK);
+		adf_csr_fetch_and_or(csr, ADF_C4XXX_SLICEPWRDOWN(accel),
+		    ADF_C4XXX_MMP_PWR_UP_MSK);
 	}
 }
 
@@ -701,10 +675,8 @@ measure_clock(struct adf_accel_dev *accel_dev)
 	u32 frequency;
 	int ret = 0;
 
-	ret = adf_dev_measure_clock(accel_dev,
-				    &frequency,
-				    ADF_C4XXX_MIN_AE_FREQ,
-				    ADF_C4XXX_MAX_AE_FREQ);
+	ret = adf_dev_measure_clock(accel_dev, &frequency,
+	    ADF_C4XXX_MIN_AE_FREQ, ADF_C4XXX_MAX_AE_FREQ);
 	if (ret)
 		return ret;
 
@@ -742,8 +714,7 @@ c4xxx_get_hw_cap(struct adf_accel_dev *accel_dev)
 	    ICP_ACCEL_CAPABILITIES_HKDF | ICP_ACCEL_CAPABILITIES_SHA3_EXT |
 	    ICP_ACCEL_CAPABILITIES_SM3 | ICP_ACCEL_CAPABILITIES_SM4 |
 	    ICP_ACCEL_CAPABILITIES_CHACHA_POLY |
-	    ICP_ACCEL_CAPABILITIES_AESGCM_SPC |
-	    ICP_ACCEL_CAPABILITIES_ECEDMONT;
+	    ICP_ACCEL_CAPABILITIES_AESGCM_SPC | ICP_ACCEL_CAPABILITIES_ECEDMONT;
 
 	if (legfuses & ICP_ACCEL_MASK_CIPHER_SLICE) {
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC;
@@ -753,7 +724,7 @@ c4xxx_get_hw_cap(struct adf_accel_dev *accel_dev)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_AUTHENTICATION;
 	if (legfuses & ICP_ACCEL_MASK_PKE_SLICE)
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC |
-				  ICP_ACCEL_CAPABILITIES_ECEDMONT);
+		    ICP_ACCEL_CAPABILITIES_ECEDMONT);
 	if (legfuses & ICP_ACCEL_MASK_COMPRESS_SLICE) {
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_COMPRESSION;
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY;
@@ -768,8 +739,8 @@ c4xxx_get_hw_cap(struct adf_accel_dev *accel_dev)
 	/* Read fusectl0 & softstrappull0 registers to ensure inline
 	 * acceleration is not disabled
 	 */
-	softstrappull0 =
-	    pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL0_OFFSET, 4);
+	softstrappull0 = pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL0_OFFSET,
+	    4);
 	fusectl0 = pci_read_config(pdev, ADF_C4XXX_FUSECTL0_OFFSET, 4);
 	if ((fusectl0 | softstrappull0) & ADF_C4XXX_FUSE_DISABLE_INLINE_MASK)
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_INLINE;
@@ -777,15 +748,15 @@ c4xxx_get_hw_cap(struct adf_accel_dev *accel_dev)
 	/* Read fusectl2 & softstrappull2 registers to check out if
 	 * PKE/DC are enabled/disabled
 	 */
-	softstrappull2 =
-	    pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL2_OFFSET, 4);
+	softstrappull2 = pci_read_config(pdev, ADF_C4XXX_SOFTSTRAPPULL2_OFFSET,
+	    4);
 	fusectl2 = pci_read_config(pdev, ADF_C4XXX_FUSECTL2_OFFSET, 4);
 	/* Disable PKE/DC cap if there are no PKE/DC-enabled AUs. */
 	if (!(~fusectl2 & ~softstrappull2 & ADF_C4XXX_FUSE_PKE_MASK))
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC;
 	if (!(~fusectl2 & ~softstrappull2 & ADF_C4XXX_FUSE_COMP_MASK))
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_COMPRESSION |
-				  ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY);
+		    ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY);
 
 	return capabilities;
 }
@@ -814,33 +785,32 @@ c4xxx_configure_accel_units(struct adf_accel_dev *accel_dev)
 
 	val = sku_dc_au[sku];
 	if (val) {
-		strncat(val_str,
-			ADF_SERVICES_SEPARATOR ADF_SERVICE_DC,
-			ADF_CFG_MAX_VAL_LEN_IN_BYTES -
-			    strnlen(val_str, sizeof(val_str)) -
-			    ADF_CFG_NULL_TERM_SIZE);
+		strncat(val_str, ADF_SERVICES_SEPARATOR ADF_SERVICE_DC,
+		    ADF_CFG_MAX_VAL_LEN_IN_BYTES -
+			strnlen(val_str, sizeof(val_str)) -
+			ADF_CFG_NULL_TERM_SIZE);
 	}
 
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)val_str, ADF_STR))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)val_str, ADF_STR))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_NUM_CY_ACCEL_UNITS);
 	val = sku_cy_au[sku];
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_NUM_DC_ACCEL_UNITS);
 	val = sku_dc_au[sku];
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_NUM_INLINE_ACCEL_UNITS);
 	val = sku_inline_au[sku];
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	return 0;
@@ -877,8 +847,8 @@ update_hw_capability(struct adf_accel_dev *accel_dev)
 	if (!au_info->inline_ingress_msk && !au_info->inline_egress_msk)
 		disabled_caps |= ICP_ACCEL_CAPABILITIES_INLINE;
 
-	hw_device->accel_capabilities_mask =
-	    c4xxx_get_hw_cap(accel_dev) & ~disabled_caps;
+	hw_device->accel_capabilities_mask = c4xxx_get_hw_cap(accel_dev) &
+	    ~disabled_caps;
 }
 
 static void
@@ -891,27 +861,24 @@ c4xxx_set_sadb_size(struct adf_accel_dev *accel_dev)
 	if (accel_dev->au_info->num_inline_au) {
 		/* REG_SA_DB_CTRL register initialisation */
 		sadb_reg_value = ADF_C4XXX_SADB_REG_VALUE(accel_dev);
-		ADF_CSR_WR(aram_csr_base,
-			   ADF_C4XXX_REG_SA_DB_CTRL,
-			   sadb_reg_value);
+		ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_DB_CTRL,
+		    sadb_reg_value);
 	} else {
 		/* Zero the SADB size when inline is disabled. */
-		adf_csr_fetch_and_and(aram_csr_base,
-				      ADF_C4XXX_REG_SA_DB_CTRL,
-				      ADF_C4XXX_SADB_SIZE_BIT);
+		adf_csr_fetch_and_and(aram_csr_base, ADF_C4XXX_REG_SA_DB_CTRL,
+		    ADF_C4XXX_SADB_SIZE_BIT);
 	}
 	/* REG_SA_CTRL_LOCK register initialisation. We set the lock
 	 * bit in order to prevent the REG_SA_DB_CTRL to be
 	 * overwritten
 	 */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_REG_SA_CTRL_LOCK,
-		   ADF_C4XXX_DEFAULT_SA_CTRL_LOCKOUT);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_CTRL_LOCK,
+	    ADF_C4XXX_DEFAULT_SA_CTRL_LOCKOUT);
 }
 
 static void
 c4xxx_init_error_notification_configuration(struct adf_accel_dev *accel_dev,
-					    u32 offset)
+    u32 offset)
 {
 	struct resource *aram_csr_base;
 
@@ -919,77 +886,57 @@ c4xxx_init_error_notification_configuration(struct adf_accel_dev *accel_dev,
 
 	/* configure error notification configuration registers */
 	/* Set CD Parity error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_RF_PARITY_ERR_0 + offset,
-		   ADF_C4XXX_CD_RF_PARITY_ERR_0_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_RF_PARITY_ERR_1 + offset,
-		   ADF_C4XXX_CD_RF_PARITY_ERR_1_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_RF_PARITY_ERR_2 + offset,
-		   ADF_C4XXX_CD_RF_PARITY_ERR_2_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_RF_PARITY_ERR_3 + offset,
-		   ADF_C4XXX_CD_RF_PARITY_ERR_3_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_RF_PARITY_ERR_0 + offset,
+	    ADF_C4XXX_CD_RF_PARITY_ERR_0_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_RF_PARITY_ERR_1 + offset,
+	    ADF_C4XXX_CD_RF_PARITY_ERR_1_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_RF_PARITY_ERR_2 + offset,
+	    ADF_C4XXX_CD_RF_PARITY_ERR_2_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_RF_PARITY_ERR_3 + offset,
+	    ADF_C4XXX_CD_RF_PARITY_ERR_3_VAL);
 	/* Set CD RAM ECC Correctable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_CERR + offset,
-		   ADF_C4XXX_CD_CERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_CERR + offset,
+	    ADF_C4XXX_CD_CERR_VAL);
 	/* Set CD RAM ECC UnCorrectable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CD_UERR + offset,
-		   ADF_C4XXX_CD_UERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CD_UERR + offset,
+	    ADF_C4XXX_CD_UERR_VAL);
 	/* Set Inline (excl cmd_dis) Parity Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_0 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_0_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_1 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_1_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_2 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_2_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_3 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_3_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_4 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_4_VAL);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_INLN_RF_PARITY_ERR_5 + offset,
-		   ADF_C4XXX_INLN_RF_PARITY_ERR_5_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_0 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_0_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_1 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_1_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_2 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_2_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_3 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_3_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_4 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_4_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_INLN_RF_PARITY_ERR_5 + offset,
+	    ADF_C4XXX_INLN_RF_PARITY_ERR_5_VAL);
 	/* Set Parser RAM ECC Correctable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSER_CERR + offset,
-		   ADF_C4XXX_PARSER_CERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSER_CERR + offset,
+	    ADF_C4XXX_PARSER_CERR_VAL);
 	/* Set Parser RAM ECC UnCorrectable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSER_UERR + offset,
-		   ADF_C4XXX_PARSER_UERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSER_UERR + offset,
+	    ADF_C4XXX_PARSER_UERR_VAL);
 	/* Set CTPB RAM ECC Correctable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CTPB_CERR + offset,
-		   ADF_C4XXX_CTPB_CERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CTPB_CERR + offset,
+	    ADF_C4XXX_CTPB_CERR_VAL);
 	/* Set CTPB RAM ECC UnCorrectable Error */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CTPB_UERR + offset,
-		   ADF_C4XXX_CTPB_UERR_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CTPB_UERR + offset,
+	    ADF_C4XXX_CTPB_UERR_VAL);
 	/* Set CPP Interface Status */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CPPM_ERR_STAT + offset,
-		   ADF_C4XXX_CPPM_ERR_STAT_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CPPM_ERR_STAT + offset,
+	    ADF_C4XXX_CPPM_ERR_STAT_VAL);
 	/* Set CGST_MGMT_INT */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CONGESTION_MGMT_INT + offset,
-		   ADF_C4XXX_CONGESTION_MGMT_INI_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CONGESTION_MGMT_INT + offset,
+	    ADF_C4XXX_CONGESTION_MGMT_INI_VAL);
 	/* CPP Interface Status */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_CPPT_ERR_STAT + offset,
-		   ADF_C4XXX_CPPT_ERR_STAT_VAL);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_CPPT_ERR_STAT + offset,
+	    ADF_C4XXX_CPPT_ERR_STAT_VAL);
 	/* MAC Interrupt Mask */
-	ADF_CSR_WR64(aram_csr_base,
-		     ADF_C4XXX_IC_MAC_IM + offset,
-		     ADF_C4XXX_MAC_IM_VAL);
+	ADF_CSR_WR64(aram_csr_base, ADF_C4XXX_IC_MAC_IM + offset,
+	    ADF_C4XXX_MAC_IM_VAL);
 }
 
 static void
@@ -1002,95 +949,75 @@ c4xxx_enable_parse_extraction(struct adf_accel_dev *accel_dev)
 	/* Enable Inline Parse Extraction CRSs */
 
 	/* Set IC_PARSE_CTRL register */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_CTRL_OFFSET,
-		   ADF_C4XXX_IC_PARSE_CTRL_OFFSET_DEFAULT_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_CTRL_OFFSET,
+	    ADF_C4XXX_IC_PARSE_CTRL_OFFSET_DEFAULT_VALUE);
 
 	/* Set IC_PARSE_FIXED_DATA(0) */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_FIXED_DATA(0),
-		   ADF_C4XXX_DEFAULT_IC_PARSE_FIXED_DATA_0);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_FIXED_DATA(0),
+	    ADF_C4XXX_DEFAULT_IC_PARSE_FIXED_DATA_0);
 
 	/* Set IC_PARSE_FIXED_LENGTH */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_FIXED_LENGTH,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_FIXED_LEN);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_FIXED_LENGTH,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_FIXED_LEN);
 
 	/* Configure ESP protocol from an IPv4 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_OFFSET_0,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_0_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_LENGTH_0,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_0_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_OFFSET_0,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_0_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_LENGTH_0,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_0_VALUE);
 	/* Configure protocol extraction field from an IPv4 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_OFFSET_1,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_1_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_LENGTH_1,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_1_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_OFFSET_1,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_1_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_LENGTH_1,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_1_VALUE);
 	/* Configure SPI extraction field from an IPv4 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_OFFSET_2,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_2_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_LENGTH_2,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_2_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_OFFSET_2,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_2_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_LENGTH_2,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_2_VALUE);
 	/* Configure destination field IP address from an IPv4 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_OFFSET_3,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_3_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV4_LENGTH_3,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_3_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_OFFSET_3,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_OFFS_3_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV4_LENGTH_3,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV4_LEN_3_VALUE);
 
 	/* Configure function number extraction field from an IPv6 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_OFFSET_0,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_0_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_LENGTH_0,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_0_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_OFFSET_0,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_0_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_LENGTH_0,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_0_VALUE);
 	/* Configure protocol extraction field from an IPv6 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_OFFSET_1,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_1_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_LENGTH_1,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_1_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_OFFSET_1,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_1_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_LENGTH_1,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_1_VALUE);
 	/* Configure SPI extraction field from an IPv6 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_OFFSET_2,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_2_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_LENGTH_2,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_2_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_OFFSET_2,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_2_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_LENGTH_2,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_2_VALUE);
 	/* Configure destination field IP address from an IPv6 header */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_OFFSET_3,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_3_VALUE);
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_IC_PARSE_IPV6_LENGTH_3,
-		   ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_3_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_OFFSET_3,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_OFFS_3_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_IC_PARSE_IPV6_LENGTH_3,
+	    ADF_C4XXX_DEFAULT_IC_PARSE_IPV6_LEN_3_VALUE);
 }
 
 static int
 adf_get_inline_ipsec_algo_group(struct adf_accel_dev *accel_dev,
-				unsigned long *ipsec_algo_group)
+    unsigned long *ipsec_algo_group)
 {
 	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 
-	if (adf_cfg_get_param_value(
-		accel_dev, ADF_INLINE_SEC, ADF_INLINE_IPSEC_ALGO_GROUP, val))
+	if (adf_cfg_get_param_value(accel_dev, ADF_INLINE_SEC,
+		ADF_INLINE_IPSEC_ALGO_GROUP, val))
 		return EFAULT;
 	if (kstrtoul(val, 0, ipsec_algo_group))
 		return EFAULT;
 
 	/* Verify the ipsec_algo_group */
 	if (*ipsec_algo_group >= IPSEC_ALGO_GROUP_DELIMITER) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Unsupported IPSEC algo group %lu in config file!\n",
 		    *ipsec_algo_group);
 		return EFAULT;
@@ -1114,26 +1041,25 @@ c4xxx_init_inline_hw(struct adf_accel_dev *accel_dev)
 	if (adf_get_inline_ipsec_algo_group(accel_dev, &ipsec_algo_group))
 		return EFAULT;
 
-	sa_entry_reg_value |=
-	    (ADF_C4XXX_DEFAULT_LU_KEY_LEN << ADF_C4XXX_LU_KEY_LEN_BIT_OFFSET);
+	sa_entry_reg_value |= (ADF_C4XXX_DEFAULT_LU_KEY_LEN
+	    << ADF_C4XXX_LU_KEY_LEN_BIT_OFFSET);
 	if (ipsec_algo_group == IPSEC_DEFAUL_ALGO_GROUP) {
 		sa_entry_reg_value |= ADF_C4XXX_DEFAULT_SA_SIZE;
-		sa_fn_lim =
-		    ADF_C4XXX_FUNC_LIMIT(accel_dev, ADF_C4XXX_DEFAULT_SA_SIZE);
+		sa_fn_lim = ADF_C4XXX_FUNC_LIMIT(accel_dev,
+		    ADF_C4XXX_DEFAULT_SA_SIZE);
 		supported_algo = ADF_C4XXX_DEFAULT_SUPPORTED_ALGORITHMS;
 	} else if (ipsec_algo_group == IPSEC_ALGO_GROUP1) {
 		sa_entry_reg_value |= ADF_C4XXX_ALGO_GROUP1_SA_SIZE;
 		sa_fn_lim = ADF_C4XXX_FUNC_LIMIT(accel_dev,
-						 ADF_C4XXX_ALGO_GROUP1_SA_SIZE);
+		    ADF_C4XXX_ALGO_GROUP1_SA_SIZE);
 		supported_algo = ADF_C4XXX_SUPPORTED_ALGORITHMS_GROUP1;
 	} else {
 		return EFAULT;
 	}
 
 	/* REG_SA_ENTRY_CTRL register initialisation */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_REG_SA_ENTRY_CTRL,
-		   sa_entry_reg_value);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_ENTRY_CTRL,
+	    sa_entry_reg_value);
 
 	/* REG_SAL_FUNC_LIMITS register initialisation. Only the first register
 	 * needs to be initialised to enable as it is assigned to a physical
@@ -1150,49 +1076,45 @@ c4xxx_init_inline_hw(struct adf_accel_dev *accel_dev)
 	/* REG_SA_SCRATCH[2] register initialisation
 	 * to advertise supported crypto offload features.
 	 */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_REG_SA_SCRATCH_2,
-		   ADF_C4XXX_DEFAULT_CY_OFFLOAD_FEATURES);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_SCRATCH_2,
+	    ADF_C4XXX_DEFAULT_CY_OFFLOAD_FEATURES);
 
 	/* Overwrite default MAC_CFG register in ingress offset */
 	ADF_CSR_WR64(aram_csr_base,
-		     ADF_C4XXX_MAC_CFG + ADF_C4XXX_INLINE_INGRESS_OFFSET,
-		     ADF_C4XXX_MAC_CFG_VALUE);
+	    ADF_C4XXX_MAC_CFG + ADF_C4XXX_INLINE_INGRESS_OFFSET,
+	    ADF_C4XXX_MAC_CFG_VALUE);
 
 	/* Overwrite default MAC_CFG register in egress offset */
 	ADF_CSR_WR64(aram_csr_base,
-		     ADF_C4XXX_MAC_CFG + ADF_C4XXX_INLINE_EGRESS_OFFSET,
-		     ADF_C4XXX_MAC_CFG_VALUE);
+	    ADF_C4XXX_MAC_CFG + ADF_C4XXX_INLINE_EGRESS_OFFSET,
+	    ADF_C4XXX_MAC_CFG_VALUE);
 
 	/* Overwrite default MAC_PIA_CFG
 	 * (Packet Interface Adapter Configuration) registers
 	 * in ingress offset
 	 */
 	ADF_CSR_WR64(aram_csr_base,
-		     ADF_C4XXX_MAC_PIA_CFG + ADF_C4XXX_INLINE_INGRESS_OFFSET,
-		     ADF_C4XXX_MAC_PIA_CFG_VALUE);
+	    ADF_C4XXX_MAC_PIA_CFG + ADF_C4XXX_INLINE_INGRESS_OFFSET,
+	    ADF_C4XXX_MAC_PIA_CFG_VALUE);
 
 	/* Overwrite default MAC_PIA_CFG in egress offset */
 	ADF_CSR_WR64(aram_csr_base,
-		     ADF_C4XXX_MAC_PIA_CFG + ADF_C4XXX_INLINE_EGRESS_OFFSET,
-		     ADF_C4XXX_MAC_PIA_CFG_VALUE);
+	    ADF_C4XXX_MAC_PIA_CFG + ADF_C4XXX_INLINE_EGRESS_OFFSET,
+	    ADF_C4XXX_MAC_PIA_CFG_VALUE);
 
 	c4xxx_enable_parse_extraction(accel_dev);
 
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_INGRESS_CMD_DIS_MISC,
-		   ADF_C4XXX_REG_CMD_DIS_MISC_DEFAULT_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_INGRESS_CMD_DIS_MISC,
+	    ADF_C4XXX_REG_CMD_DIS_MISC_DEFAULT_VALUE);
 
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_EGRESS_CMD_DIS_MISC,
-		   ADF_C4XXX_REG_CMD_DIS_MISC_DEFAULT_VALUE);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_EGRESS_CMD_DIS_MISC,
+	    ADF_C4XXX_REG_CMD_DIS_MISC_DEFAULT_VALUE);
 
 	/* Set bits<1:0> in ADF_C4XXX_INLINE_CAPABILITY register to
 	 * advertize that both ingress and egress directions are available
 	 */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_REG_SA_INLINE_CAPABILITY,
-		   ADF_C4XXX_INLINE_CAPABILITIES);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_INLINE_CAPABILITY,
+	    ADF_C4XXX_INLINE_CAPABILITIES);
 
 	/* Set error notification configuration of ingress */
 	offset = ADF_C4XXX_INLINE_INGRESS_OFFSET;
@@ -1214,9 +1136,8 @@ adf_enable_inline_notification(struct adf_accel_dev *accel_dev)
 	/* Set bit<0> in ADF_C4XXX_REG_SA_INLINE_ENABLE to advertise
 	 * that inline is enabled.
 	 */
-	ADF_CSR_WR(aram_csr_base,
-		   ADF_C4XXX_REG_SA_INLINE_ENABLE,
-		   ADF_C4XXX_INLINE_ENABLED);
+	ADF_CSR_WR(aram_csr_base, ADF_C4XXX_REG_SA_INLINE_ENABLE,
+	    ADF_C4XXX_INLINE_ENABLED);
 }
 
 static int
@@ -1236,7 +1157,7 @@ c4xxx_init_aram_config(struct adf_accel_dev *accel_dev)
 
 	if (accel_dev->au_info->num_inline_au > 0)
 		if (adf_get_inline_ipsec_algo_group(accel_dev,
-						    &ipsec_algo_group))
+			&ipsec_algo_group))
 			return EFAULT;
 
 	/* Allocate memory for adf_hw_aram_info */
@@ -1284,8 +1205,8 @@ c4xxx_init_aram_config(struct adf_accel_dev *accel_dev)
 	    ADF_C4XXX_2MB_ARAM_SIZE :
 	    ADF_C4XXX_4MB_ARAM_SIZE;
 	device_printf(GET_DEV(accel_dev),
-		      "Total available accelerator memory: %uMB\n",
-		      aram_size / ADF_C4XXX_1MB_SIZE);
+	    "Total available accelerator memory: %uMB\n",
+	    aram_size / ADF_C4XXX_1MB_SIZE);
 
 	/* Compute MMP region offset */
 	aram_info->mmp_region_size = ADF_C4XXX_DEFAULT_MMP_REGION_SIZE;
@@ -1393,7 +1314,7 @@ get_num_accel_units(struct adf_hw_device_data *self)
 
 static int
 get_accel_unit(struct adf_hw_device_data *self,
-	       struct adf_accel_unit **accel_unit)
+    struct adf_accel_unit **accel_unit)
 {
 	enum dev_sku_info sku;
 
@@ -1458,7 +1379,7 @@ adf_add_debugfs_info(struct adf_accel_dev *accel_dev)
 	/* Add Accel Unit configuration table to debug FS interface */
 	if (c4xxx_init_ae_config(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to create entry for AE configuration\n");
+		    "Failed to create entry for AE configuration\n");
 		return EFAULT;
 	}
 
@@ -1474,8 +1395,7 @@ adf_remove_debugfs_info(struct adf_accel_dev *accel_dev)
 
 static int
 check_svc_to_hw_capabilities(struct adf_accel_dev *accel_dev,
-			     const char *svc_name,
-			     enum icp_qat_capabilities_mask cap)
+    const char *svc_name, enum icp_qat_capabilities_mask cap)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	u32 hw_cap = hw_data->accel_capabilities_mask;
@@ -1483,8 +1403,7 @@ check_svc_to_hw_capabilities(struct adf_accel_dev *accel_dev,
 	hw_cap &= cap;
 	if (hw_cap != cap) {
 		device_printf(GET_DEV(accel_dev),
-			      "Service not supported by accelerator: %s\n",
-			      svc_name);
+		    "Service not supported by accelerator: %s\n", svc_name);
 		return EPERM;
 	}
 
@@ -1492,10 +1411,8 @@ check_svc_to_hw_capabilities(struct adf_accel_dev *accel_dev,
 }
 
 static int
-check_accel_unit_config(struct adf_accel_dev *accel_dev,
-			u8 num_cy_au,
-			u8 num_dc_au,
-			u8 num_inline_au)
+check_accel_unit_config(struct adf_accel_dev *accel_dev, u8 num_cy_au,
+    u8 num_dc_au, u8 num_inline_au)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
@@ -1514,18 +1431,14 @@ check_accel_unit_config(struct adf_accel_dev *accel_dev,
 	while (token) {
 		if (!strncmp(token, ADF_SERVICE_CY, strlen(ADF_SERVICE_CY))) {
 			service_mask |= ADF_ACCEL_CRYPTO;
-			ret |= check_svc_to_hw_capabilities(
-			    accel_dev,
-			    token,
+			ret |= check_svc_to_hw_capabilities(accel_dev, token,
 			    ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC |
 				ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC);
 		}
 
 		if (!strncmp(token, ADF_CFG_SYM, strlen(ADF_CFG_SYM))) {
 			service_mask |= ADF_ACCEL_CRYPTO;
-			ret |= check_svc_to_hw_capabilities(
-			    accel_dev,
-			    token,
+			ret |= check_svc_to_hw_capabilities(accel_dev, token,
 			    ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC);
 		}
 
@@ -1541,26 +1454,21 @@ check_accel_unit_config(struct adf_accel_dev *accel_dev,
 			if (num_inline_au < num_au)
 				service_mask |= ADF_ACCEL_CRYPTO;
 
-			ret |= check_svc_to_hw_capabilities(
-			    accel_dev,
-			    token,
+			ret |= check_svc_to_hw_capabilities(accel_dev, token,
 			    ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC);
 		}
 
 		if (!strncmp(token, ADF_SERVICE_DC, strlen(ADF_SERVICE_DC))) {
 			service_mask |= ADF_ACCEL_COMPRESSION;
-			ret |= check_svc_to_hw_capabilities(
-			    accel_dev,
-			    token,
+			ret |= check_svc_to_hw_capabilities(accel_dev, token,
 			    ICP_ACCEL_CAPABILITIES_COMPRESSION);
 		}
 
-		if (!strncmp(token,
-			     ADF_SERVICE_INLINE,
-			     strlen(ADF_SERVICE_INLINE))) {
+		if (!strncmp(token, ADF_SERVICE_INLINE,
+			strlen(ADF_SERVICE_INLINE))) {
 			service_mask |= ADF_ACCEL_INLINE_CRYPTO;
-			ret |= check_svc_to_hw_capabilities(
-			    accel_dev, token, ICP_ACCEL_CAPABILITIES_INLINE);
+			ret |= check_svc_to_hw_capabilities(accel_dev, token,
+			    ICP_ACCEL_CAPABILITIES_INLINE);
 		}
 
 		token = strsep(&cur_str, ADF_SERVICES_SEPARATOR);
@@ -1571,32 +1479,30 @@ check_accel_unit_config(struct adf_accel_dev *accel_dev,
 	 */
 	if (ret) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid accelerator configuration.\n");
+		    "Invalid accelerator configuration.\n");
 		return EFAULT;
 	}
 
 	if (!(service_mask & ADF_ACCEL_COMPRESSION) && num_dc_au > 0) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid accel unit config.\n");
-		device_printf(
-		    GET_DEV(accel_dev),
+		    "Invalid accel unit config.\n");
+		device_printf(GET_DEV(accel_dev),
 		    "DC accel units set when dc service not enabled\n");
 		return EFAULT;
 	}
 
 	if (!(service_mask & ADF_ACCEL_CRYPTO) && num_cy_au > 0) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid accel unit config.\n");
-		device_printf(
-		    GET_DEV(accel_dev),
+		    "Invalid accel unit config.\n");
+		device_printf(GET_DEV(accel_dev),
 		    "CY accel units set when cy service not enabled\n");
 		return EFAULT;
 	}
 
 	if (!(service_mask & ADF_ACCEL_INLINE_CRYPTO) && num_inline_au > 0) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid accel unit config.\n"
-			      "Inline feature not supported.\n");
+		    "Invalid accel unit config.\n"
+		    "Inline feature not supported.\n");
 		return EFAULT;
 	}
 
@@ -1604,36 +1510,32 @@ check_accel_unit_config(struct adf_accel_dev *accel_dev,
 	/* Ensure the user doesn't allocate more than max accel units */
 	if (num_au != (num_cy_au + num_dc_au + num_inline_au)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid accel unit config.\n");
-		device_printf(GET_DEV(accel_dev),
-			      "Max accel units is %d\n",
-			      num_au);
+		    "Invalid accel unit config.\n");
+		device_printf(GET_DEV(accel_dev), "Max accel units is %d\n",
+		    num_au);
 		return EFAULT;
 	}
 
 	/* Ensure user allocates hardware resources for enabled services */
 	if (!num_cy_au && (service_mask & ADF_ACCEL_CRYPTO)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to enable cy service!\n");
-		device_printf(GET_DEV(accel_dev),
-			      "%s should not be 0",
-			      ADF_NUM_CY_ACCEL_UNITS);
+		    "Failed to enable cy service!\n");
+		device_printf(GET_DEV(accel_dev), "%s should not be 0",
+		    ADF_NUM_CY_ACCEL_UNITS);
 		return EFAULT;
 	}
 	if (!num_dc_au && (service_mask & ADF_ACCEL_COMPRESSION)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to enable dc service!\n");
-		device_printf(GET_DEV(accel_dev),
-			      "%s should not be 0",
-			      ADF_NUM_DC_ACCEL_UNITS);
+		    "Failed to enable dc service!\n");
+		device_printf(GET_DEV(accel_dev), "%s should not be 0",
+		    ADF_NUM_DC_ACCEL_UNITS);
 		return EFAULT;
 	}
 	if (!num_inline_au && (service_mask & ADF_ACCEL_INLINE_CRYPTO)) {
 		device_printf(GET_DEV(accel_dev), "Failed to enable");
 		device_printf(GET_DEV(accel_dev), " inline service!");
-		device_printf(GET_DEV(accel_dev),
-			      " %s should not be 0\n",
-			      ADF_NUM_INLINE_ACCEL_UNITS);
+		device_printf(GET_DEV(accel_dev), " %s should not be 0\n",
+		    ADF_NUM_INLINE_ACCEL_UNITS);
 		return EFAULT;
 	}
 
@@ -1641,10 +1543,8 @@ check_accel_unit_config(struct adf_accel_dev *accel_dev,
 }
 
 static int
-get_accel_unit_config(struct adf_accel_dev *accel_dev,
-		      u8 *num_cy_au,
-		      u8 *num_dc_au,
-		      u8 *num_inline_au)
+get_accel_unit_config(struct adf_accel_dev *accel_dev, u8 *num_cy_au,
+    u8 *num_dc_au, u8 *num_inline_au)
 {
 	char key[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
 	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
@@ -1710,7 +1610,7 @@ adf_get_inline_config(struct adf_accel_dev *accel_dev, u32 *num_ingress_aes)
 
 	if (ingress + egress != ADF_C4XXX_100) {
 		device_printf(GET_DEV(accel_dev),
-			      "The sum of ingress and egress should be 100\n");
+		    "The sum of ingress and egress should be 100\n");
 		return EFAULT;
 	}
 
@@ -1828,14 +1728,14 @@ adf_init_accel_unit_services(struct adf_accel_dev *accel_dev)
 	const struct adf_ae_info *ae_info;
 	int i;
 
-	if (get_accel_unit_config(
-		accel_dev, &num_cy_au, &num_dc_au, &num_inline_au)) {
+	if (get_accel_unit_config(accel_dev, &num_cy_au, &num_dc_au,
+		&num_inline_au)) {
 		device_printf(GET_DEV(accel_dev), "Invalid accel unit cfg\n");
 		return EFAULT;
 	}
 
-	if (check_accel_unit_config(
-		accel_dev, num_cy_au, num_dc_au, num_inline_au))
+	if (check_accel_unit_config(accel_dev, num_cy_au, num_dc_au,
+		num_inline_au))
 		return EFAULT;
 
 	accel_dev->au_info = kzalloc(sizeof(*accel_dev->au_info), GFP_KERNEL);
@@ -1942,15 +1842,12 @@ adf_c4xxx_reset_hw_units(struct adf_accel_dev *accel_dev)
 	 * 4)Re-enable generic clock;
 	 */
 	ADF_CSR_WR(pmisc, ADF_C4XXX_IXP_RESET_GENERIC, ixp_reset_generic);
-	ADF_CSR_WR(pmisc,
-		   ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC,
-		   ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC_DISABLE_ALL);
-	ADF_CSR_WR(pmisc,
-		   ADF_C4XXX_IXP_RESET_GENERIC,
-		   ADF_C4XXX_IXP_RESET_GENERIC_OUT_OF_RESET_TRIGGER);
-	ADF_CSR_WR(pmisc,
-		   ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC,
-		   global_clk_enable);
+	ADF_CSR_WR(pmisc, ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC,
+	    ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC_DISABLE_ALL);
+	ADF_CSR_WR(pmisc, ADF_C4XXX_IXP_RESET_GENERIC,
+	    ADF_C4XXX_IXP_RESET_GENERIC_OUT_OF_RESET_TRIGGER);
+	ADF_CSR_WR(pmisc, ADF_C4XXX_GLOBAL_CLK_ENABLE_GENERIC,
+	    global_clk_enable);
 }
 
 static int
@@ -1966,7 +1863,7 @@ adf_init_accel_units(struct adf_accel_dev *accel_dev)
 	if (accel_dev->au_info->num_cy_au || accel_dev->au_info->num_dc_au) {
 		if (adf_set_ae_mask(accel_dev)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to set ae masks\n");
+			    "Failed to set ae masks\n");
 			goto err_au;
 		}
 	}
@@ -1974,14 +1871,14 @@ adf_init_accel_units(struct adf_accel_dev *accel_dev)
 	if (accel_dev->au_info->num_inline_au) {
 		if (adf_set_inline_ae_mask(accel_dev)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to set inline ae masks\n");
+			    "Failed to set inline ae masks\n");
 			goto err_au;
 		}
 	}
 	/* Define ARAM regions */
 	if (c4xxx_init_aram_config(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to init aram config\n");
+		    "Failed to init aram config\n");
 		goto err_au;
 	}
 	/* Configure h/w registers for inline operations */
@@ -1994,16 +1891,15 @@ adf_init_accel_units(struct adf_accel_dev *accel_dev)
 
 	if (accel_dev->au_info->num_inline_au > 0) {
 		/* ici/ice interrupt shall be enabled after msi-x enabled */
-		ADF_CSR_WR(csr,
-			   ADF_C4XXX_ERRMSK11,
-			   ADF_C4XXX_ERRMSK11_ERR_DISABLE_ICI_ICE_INTR);
+		ADF_CSR_WR(csr, ADF_C4XXX_ERRMSK11,
+		    ADF_C4XXX_ERRMSK11_ERR_DISABLE_ICI_ICE_INTR);
 		adf_enable_inline_notification(accel_dev);
 	}
 
 	update_hw_capability(accel_dev);
 	if (adf_add_debugfs_info(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to add debug FS information\n");
+		    "Failed to add debug FS information\n");
 		goto err_au;
 	}
 	return 0;
@@ -2026,7 +1922,7 @@ adf_exit_accel_units(struct adf_accel_dev *accel_dev)
 
 static const char *
 get_obj_name(struct adf_accel_dev *accel_dev,
-	     enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	u32 capabilities = GET_HW_DATA(accel_dev)->accel_capabilities_mask;
 	bool sym_only_sku = false;
@@ -2073,7 +1969,7 @@ get_objs_num(struct adf_accel_dev *accel_dev)
 
 static uint32_t
 get_obj_cfg_ae_mask(struct adf_accel_dev *accel_dev,
-		    enum adf_accel_unit_services service)
+    enum adf_accel_unit_services service)
 {
 	u32 ae_mask = 0;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
@@ -2105,14 +2001,13 @@ configure_iov_threads(struct adf_accel_dev *accel_dev, bool enable)
 	/* Set/Unset Valid bits in AE Thread to PCIe Function Mapping */
 	for (i = 0; i < ADF_C4XXX_AE2FUNC_REG_PER_AE * num_aes; i++) {
 		reg = ADF_CSR_RD(addr + ADF_C4XXX_AE2FUNC_MAP_OFFSET,
-				 i * ADF_C4XXX_AE2FUNC_MAP_REG_SIZE);
+		    i * ADF_C4XXX_AE2FUNC_MAP_REG_SIZE);
 		if (enable)
 			reg |= ADF_C4XXX_AE2FUNC_MAP_VALID;
 		else
 			reg &= ~ADF_C4XXX_AE2FUNC_MAP_VALID;
 		ADF_CSR_WR(addr + ADF_C4XXX_AE2FUNC_MAP_OFFSET,
-			   i * ADF_C4XXX_AE2FUNC_MAP_REG_SIZE,
-			   reg);
+		    i * ADF_C4XXX_AE2FUNC_MAP_REG_SIZE, reg);
 	}
 }
 
@@ -2209,8 +2104,8 @@ remove_oid(struct adf_accel_dev *accel_dev, struct sysctl_oid *oid)
 	struct sysctl_ctx_list *qat_sysctl_ctx;
 	int ret;
 
-	qat_sysctl_ctx =
-	    device_get_sysctl_ctx(accel_dev->accel_pci_dev.pci_dev);
+	qat_sysctl_ctx = device_get_sysctl_ctx(
+	    accel_dev->accel_pci_dev.pci_dev);
 
 	ret = sysctl_ctx_entry_del(qat_sysctl_ctx, oid);
 	if (ret)

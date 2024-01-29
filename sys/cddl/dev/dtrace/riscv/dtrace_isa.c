@@ -26,33 +26,31 @@
  * Use is subject to license terms.
  */
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
-#include <sys/stack.h>
 #include <sys/pcpu.h>
-
-#include <machine/frame.h>
-#include <machine/md_var.h>
-#include <machine/encoding.h>
-#include <machine/riscvreg.h>
+#include <sys/stack.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/atomic.h>
 #include <machine/db_machdep.h>
+#include <machine/encoding.h>
+#include <machine/frame.h>
 #include <machine/md_var.h>
+#include <machine/riscvreg.h>
 #include <machine/stack.h>
+
 #include <ddb/db_sym.h>
 #include <ddb/ddb.h>
-#include <sys/kdb.h>
 
 #include "regset.h"
 
-#define	MAX_USTACK_DEPTH  2048
+#define MAX_USTACK_DEPTH 2048
 
 uint8_t dtrace_fuword8_nocheck(void *);
 uint16_t dtrace_fuword16_nocheck(void *);
@@ -86,7 +84,7 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 	 * Construct the unwind state, starting from this function. This frame,
 	 * and 'aframes' others will be skipped.
 	 */
-	__asm __volatile("mv %0, sp" : "=&r" (sp));
+	__asm __volatile("mv %0, sp" : "=&r"(sp));
 
 	state.fp = (uintptr_t)__builtin_frame_address(0);
 	state.sp = (uintptr_t)sp;
@@ -96,8 +94,9 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 		if (!unwind_frame(curthread, &state))
 			break;
 
-		if (!INKERNEL(state.pc) || !kstack_contains(curthread,
-		    (vm_offset_t)state.fp, sizeof(uintptr_t)))
+		if (!INKERNEL(state.pc) ||
+		    !kstack_contains(curthread, (vm_offset_t)state.fp,
+			sizeof(uintptr_t)))
 			break;
 
 		if (aframes > 0) {
@@ -295,7 +294,7 @@ dtrace_getstackdepth(int aframes)
 	depth = 1;
 	done = false;
 
-	__asm __volatile("mv %0, sp" : "=&r" (sp));
+	__asm __volatile("mv %0, sp" : "=&r"(sp));
 
 	state.fp = (uintptr_t)__builtin_frame_address(0);
 	state.sp = sp;
@@ -461,7 +460,7 @@ int
 dtrace_instr_sdsp(uint32_t **instr)
 {
 	if (dtrace_match_opcode(**instr, (MATCH_SD | RS2_RA | RS1_SP),
-	    (MASK_SD | RS2_MASK | RS1_MASK)))
+		(MASK_SD | RS2_MASK | RS1_MASK)))
 		return (1);
 
 	return (0);
@@ -476,7 +475,7 @@ dtrace_instr_c_sdsp(uint32_t **instr)
 	for (i = 0; i < 2; i++) {
 		instr1 = (uint16_t *)(*instr) + i;
 		if (dtrace_match_opcode(*instr1, (MATCH_C_SDSP | RS2_C_RA),
-		    (MASK_C_SDSP | RS2_C_MASK))) {
+			(MASK_C_SDSP | RS2_C_MASK))) {
 			*instr = (uint32_t *)instr1;
 			return (1);
 		}
@@ -489,7 +488,7 @@ int
 dtrace_instr_ret(uint32_t **instr)
 {
 	if (dtrace_match_opcode(**instr, (MATCH_JALR | (X_RA << RS1_SHIFT)),
-	    (MASK_JALR | RD_MASK | RS1_MASK | IMM_MASK)))
+		(MASK_JALR | RD_MASK | RS1_MASK | IMM_MASK)))
 		return (1);
 
 	return (0);
@@ -504,7 +503,8 @@ dtrace_instr_c_ret(uint32_t **instr)
 	for (i = 0; i < 2; i++) {
 		instr1 = (uint16_t *)(*instr) + i;
 		if (dtrace_match_opcode(*instr1,
-		    (MATCH_C_JR | (X_RA << RD_SHIFT)), (MASK_C_JR | RD_MASK))) {
+			(MATCH_C_JR | (X_RA << RD_SHIFT)),
+			(MASK_C_JR | RD_MASK))) {
 			*instr = (uint32_t *)instr1;
 			return (1);
 		}

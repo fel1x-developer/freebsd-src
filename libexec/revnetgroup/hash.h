@@ -59,8 +59,8 @@ struct group_entry {
 
 #define LINSIZ 1024 * 10
 
-extern void store(struct group_entry ** , char *, char *);
-extern void mstore(struct member_entry ** , char *, char *, char *);
+extern void store(struct group_entry **, char *, char *);
+extern void mstore(struct member_entry **, char *, char *, char *);
 extern char *lookup(struct group_entry **, char *);
 extern void __endnetgrent(void);
 extern void __setnetgrent(char *);

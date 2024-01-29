@@ -22,10 +22,9 @@
 #include "cpa.h"
 #include "cpa_dc.h"
 #include "cpa_dc_bp.h"
-
-#include "sal_types_compression.h"
 #include "icp_qat_fw_comp.h"
 #include "sal_hw_gen.h"
+#include "sal_types_compression.h"
 
 #define CPA_DC_CEIL_DIV(x, y) (((x) + (y)-1) / (y))
 #define DC_DEST_BUFF_EXTRA_DEFLATE_GEN2 (55)
@@ -36,8 +35,7 @@
 
 CpaStatus
 cpaDcBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
-			   Cpa32U numBuffers,
-			   Cpa32U *pSizeInBytes)
+    Cpa32U numBuffers, Cpa32U *pSizeInBytes)
 {
 	CpaInstanceHandle insHandle = NULL;
 
@@ -59,16 +57,15 @@ cpaDcBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
 	}
 
 	*pSizeInBytes = (sizeof(icp_buffer_list_desc_t) +
-			 (sizeof(icp_flat_buffer_desc_t) * (numBuffers + 1)) +
-			 ICP_DESCRIPTOR_ALIGNMENT_BYTES);
+	    (sizeof(icp_flat_buffer_desc_t) * (numBuffers + 1)) +
+	    ICP_DESCRIPTOR_ALIGNMENT_BYTES);
 
 	return CPA_STATUS_SUCCESS;
 }
 
 CpaStatus
 cpaDcBnpBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
-			      Cpa32U numJobs,
-			      Cpa32U *pSizeInBytes)
+    Cpa32U numJobs, Cpa32U *pSizeInBytes)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
@@ -135,9 +132,7 @@ dcDeflateBoundGen4(CpaDcHuffType huffType, Cpa32U inputSize, Cpa32U *outputSize)
 
 CpaStatus
 cpaDcDeflateCompressBound(const CpaInstanceHandle dcInstance,
-			  CpaDcHuffType huffType,
-			  Cpa32U inputSize,
-			  Cpa32U *outputSize)
+    CpaDcHuffType huffType, Cpa32U inputSize, Cpa32U *outputSize)
 {
 	sal_compression_service_t *pService = NULL;
 	CpaInstanceHandle insHandle = NULL;
@@ -173,17 +168,15 @@ cpaDcDeflateCompressBound(const CpaInstanceHandle dcInstance,
 }
 
 CpaStatus
-cpaDcLZ4CompressBound(const CpaInstanceHandle dcInstance,
-		      Cpa32U inputSize,
-		      Cpa32U *outputSize)
+cpaDcLZ4CompressBound(const CpaInstanceHandle dcInstance, Cpa32U inputSize,
+    Cpa32U *outputSize)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
-cpaDcLZ4SCompressBound(const CpaInstanceHandle dcInstance,
-		       Cpa32U inputSize,
-		       Cpa32U *outputSize)
+cpaDcLZ4SCompressBound(const CpaInstanceHandle dcInstance, Cpa32U inputSize,
+    Cpa32U *outputSize)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }

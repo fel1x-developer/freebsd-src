@@ -67,28 +67,28 @@
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-
-#include "sdp.h"
+#include <sys/sysctl.h>
 
 #include <net/if.h>
 #include <net/route.h>
 #include <net/vnet.h>
-#include <sys/sysctl.h>
 
-uma_zone_t	sdp_zone;
-struct rwlock	sdp_lock;
+#include "sdp.h"
+
+uma_zone_t sdp_zone;
+struct rwlock sdp_lock;
 LIST_HEAD(, sdp_sock) sdp_list;
 
 struct workqueue_struct *rx_comp_wq;
 
 RW_SYSINIT(sdplockinit, &sdp_lock, "SDP lock");
-#define	SDP_LIST_WLOCK()	rw_wlock(&sdp_lock)
-#define	SDP_LIST_RLOCK()	rw_rlock(&sdp_lock)
-#define	SDP_LIST_WUNLOCK()	rw_wunlock(&sdp_lock)
-#define	SDP_LIST_RUNLOCK()	rw_runlock(&sdp_lock)
-#define	SDP_LIST_WLOCK_ASSERT()	rw_assert(&sdp_lock, RW_WLOCKED)
-#define	SDP_LIST_RLOCK_ASSERT()	rw_assert(&sdp_lock, RW_RLOCKED)
-#define	SDP_LIST_LOCK_ASSERT()	rw_assert(&sdp_lock, RW_LOCKED)
+#define SDP_LIST_WLOCK() rw_wlock(&sdp_lock)
+#define SDP_LIST_RLOCK() rw_rlock(&sdp_lock)
+#define SDP_LIST_WUNLOCK() rw_wunlock(&sdp_lock)
+#define SDP_LIST_RUNLOCK() rw_runlock(&sdp_lock)
+#define SDP_LIST_WLOCK_ASSERT() rw_assert(&sdp_lock, RW_WLOCKED)
+#define SDP_LIST_RLOCK_ASSERT() rw_assert(&sdp_lock, RW_RLOCKED)
+#define SDP_LIST_LOCK_ASSERT() rw_assert(&sdp_lock, RW_LOCKED)
 
 MALLOC_DEFINE(M_SDP, "sdp", "Sockets Direct Protocol");
 
@@ -101,8 +101,8 @@ static void sdp_stop_keepalive_timer(struct socket *so);
  * sdp_sendspace and sdp_recvspace are the default send and receive window
  * sizes, respectively.
  */
-u_long	sdp_sendspace = 1024*32;
-u_long	sdp_recvspace = 1024*64;
+u_long sdp_sendspace = 1024 * 32;
+u_long sdp_recvspace = 1024 * 64;
 
 static int sdp_count;
 
@@ -133,7 +133,8 @@ sdp_pcbbind(struct sdp_sock *ssk, struct sockaddr *nam, struct ucred *cred)
 	/* rdma_bind_addr handles bind races.  */
 	SDP_WUNLOCK(ssk);
 	if (ssk->id == NULL)
-		ssk->id = rdma_create_id(&init_net, sdp_cma_handler, ssk, RDMA_PS_SDP, IB_QPT_RC);
+		ssk->id = rdma_create_id(&init_net, sdp_cma_handler, ssk,
+		    RDMA_PS_SDP, IB_QPT_RC);
 	if (ssk->id == NULL) {
 		SDP_WLOCK(ssk);
 		return (ENOMEM);
@@ -193,7 +194,7 @@ sdp_getsockaddr(struct socket *so, struct sockaddr *sa)
 	struct sdp_sock *ssk = sdp_sk(so);
 
 	SDP_RLOCK(ssk);
-	*(struct sockaddr_in *)sa = (struct sockaddr_in ){
+	*(struct sockaddr_in *)sa = (struct sockaddr_in) {
 		.sin_family = AF_INET,
 		.sin_len = sizeof(struct sockaddr_in),
 		.sin_addr.s_addr = ssk->laddr,
@@ -210,7 +211,7 @@ sdp_getpeeraddr(struct socket *so, struct sockaddr *sa)
 	struct sdp_sock *ssk = sdp_sk(so);
 
 	SDP_RLOCK(ssk);
-	*(struct sockaddr_in *)sa = (struct sockaddr_in ){
+	*(struct sockaddr_in *)sa = (struct sockaddr_in) {
 		.sin_family = AF_INET,
 		.sin_len = sizeof(struct sockaddr_in),
 		.sin_addr.s_addr = ssk->faddr,
@@ -292,14 +293,12 @@ sdp_shutdown_task(void *data, int pending)
 	 * because SDP_TIMEWAIT protects it.  SDP_DESTROY may be redundant.
 	 */
 	if (ssk->flags & SDP_DESTROY)
-		panic("sdp_shutdown_task: Racing with pcbfree for ssk %p",
-		    ssk);
+		panic("sdp_shutdown_task: Racing with pcbfree for ssk %p", ssk);
 	if (ssk->flags & SDP_DISCON)
 		sdp_output_reset(ssk);
 	/* We have to clear this so sdp_detach() will call pcbfree(). */
 	ssk->flags &= ~(SDP_TIMEWAIT | SDP_DREQWAIT);
-	if ((ssk->flags & SDP_DROPPED) == 0 &&
-	    sdp_closed(ssk) == NULL)
+	if ((ssk->flags & SDP_DROPPED) == 0 && sdp_closed(ssk) == NULL)
 		return;
 	if (ssk->socket == NULL) {
 		sdp_pcbfree(ssk);
@@ -318,9 +317,9 @@ sdp_2msl_timeout(void *data)
 
 	ssk = data;
 	/* Callout canceled. */
-        if (!callout_active(&ssk->keep2msl))
+	if (!callout_active(&ssk->keep2msl))
 		goto out;
-        callout_deactivate(&ssk->keep2msl);
+	callout_deactivate(&ssk->keep2msl);
 	/* Should be impossible, defensive programming. */
 	if ((ssk->flags & SDP_TIMEWAIT) == 0)
 		goto out;
@@ -354,12 +353,12 @@ sdp_dreq_timeout(void *data)
 
 	ssk = data;
 	/* Callout canceled. */
-        if (!callout_active(&ssk->keep2msl))
+	if (!callout_active(&ssk->keep2msl))
 		goto out;
 	/* Callout rescheduled, probably as a different timer. */
 	if (callout_pending(&ssk->keep2msl))
 		goto out;
-        callout_deactivate(&ssk->keep2msl);
+	callout_deactivate(&ssk->keep2msl);
 	if (ssk->state != TCPS_FIN_WAIT_1 && ssk->state != TCPS_LAST_ACK)
 		goto out;
 	if ((ssk->flags & SDP_DREQWAIT) == 0)
@@ -673,8 +672,8 @@ sdp_output_disconnect(struct sdp_sock *ssk)
 {
 
 	SDP_WLOCK_ASSERT(ssk);
-	callout_reset(&ssk->keep2msl, SDP_FIN_WAIT_TIMEOUT,
-	    sdp_dreq_timeout, ssk);
+	callout_reset(&ssk->keep2msl, SDP_FIN_WAIT_TIMEOUT, sdp_dreq_timeout,
+	    ssk);
 	ssk->flags |= SDP_NEEDFIN | SDP_DREQWAIT;
 	sdp_post_sends(ssk, M_NOWAIT);
 }
@@ -749,7 +748,7 @@ out:
  *
  *
  * XXX This is broken XXX
- * 
+ *
  * The rationale for acquiring the sdp lock here is somewhat complicated,
  * and is described in detail in the commit log entry for r175612.  Acquiring
  * it delays an accept(2) racing with sonewconn(), which inserts the socket
@@ -772,7 +771,7 @@ sdp_accept(struct socket *so, struct sockaddr *sa)
 	if (ssk->flags & (SDP_TIMEWAIT | SDP_DROPPED))
 		error = ECONNABORTED;
 	else
-		*(struct sockaddr_in *)sa = (struct sockaddr_in ){
+		*(struct sockaddr_in *)sa = (struct sockaddr_in) {
 			.sin_family = AF_INET,
 			.sin_len = sizeof(struct sockaddr_in),
 			.sin_addr.s_addr = ssk->faddr,
@@ -794,14 +793,14 @@ sdp_shutdown(struct socket *so, enum shutdown_how how)
 
 	SOCK_LOCK(so);
 	if ((so->so_state &
-	    (SS_ISCONNECTED | SS_ISCONNECTING | SS_ISDISCONNECTING)) == 0) {
+		(SS_ISCONNECTED | SS_ISCONNECTING | SS_ISDISCONNECTING)) == 0) {
 		SOCK_UNLOCK(so);
 		return (ENOTCONN);
 	}
 	if (SOLISTENING(so)) {
 		if (how != SHUT_WR) {
 			so->so_error = ECONNABORTED;
-			solisten_wakeup(so);	/* unlocks so */
+			solisten_wakeup(so); /* unlocks so */
 		} else
 			SOCK_UNLOCK(so);
 		return (0);
@@ -844,7 +843,7 @@ sdp_append(struct sdp_sock *ssk, struct sockbuf *sb, struct mbuf *mb, int cnt)
 	SOCKBUF_LOCK_ASSERT(sb);
 	SBLASTRECORDCHK(sb);
 	KASSERT(mb->m_flags & M_PKTHDR,
-		("sdp_append: %p Missing packet header.\n", mb));
+	    ("sdp_append: %p Missing packet header.\n", mb));
 	n = sb->sb_lastrecord;
 	/*
 	 * If the queue is empty just set all pointers and proceed.
@@ -852,7 +851,7 @@ sdp_append(struct sdp_sock *ssk, struct sockbuf *sb, struct mbuf *mb, int cnt)
 	if (n == NULL) {
 		sb->sb_lastrecord = sb->sb_mb = sb->sb_sndptr = mb;
 		for (; mb; mb = mb->m_next) {
-	                sb->sb_mbtail = mb;
+			sb->sb_mbtail = mb;
 			sballoc(sb, mb);
 		}
 		return;
@@ -871,7 +870,7 @@ sdp_append(struct sdp_sock *ssk, struct sockbuf *sb, struct mbuf *mb, int cnt)
 	 */
 	if (M_WRITABLE(n) && ncnt + cnt < SDP_MAX_SEND_SGES &&
 	    n->m_pkthdr.len + mb->m_pkthdr.len - SDP_HEAD_SIZE <
-	    ssk->xmit_size_goal) {
+		ssk->xmit_size_goal) {
 		m_adj(mb, SDP_HEAD_SIZE);
 		n->m_pkthdr.len += mb->m_pkthdr.len;
 		n->m_flags |= mb->m_flags & (M_PUSH | M_URG);
@@ -903,8 +902,8 @@ sdp_append(struct sdp_sock *ssk, struct sockbuf *sb, struct mbuf *mb, int cnt)
  * This comes from sendfile, normal sends will come from sdp_sosend().
  */
 static int
-sdp_send(struct socket *so, int flags, struct mbuf *m,
-    struct sockaddr *nam, struct mbuf *control, struct thread *td)
+sdp_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
+    struct mbuf *control, struct thread *td)
 {
 	struct sdp_sock *ssk;
 	struct mbuf *n;
@@ -928,10 +927,9 @@ sdp_send(struct socket *so, int flags, struct mbuf *m,
 
 	error = 0;
 	ssk = sdp_sk(so);
-	KASSERT(m->m_flags & M_PKTHDR,
-	    ("sdp_send: %p no packet header", m));
+	KASSERT(m->m_flags & M_PKTHDR, ("sdp_send: %p no packet header", m));
 	M_PREPEND(m, SDP_HEAD_SIZE, M_WAITOK);
-	mtod(m, struct sdp_bsdh *)->mid = SDP_MID_DATA; 
+	mtod(m, struct sdp_bsdh *)->mid = SDP_MID_DATA;
 	for (n = m, cnt = 0; n->m_next; n = n->m_next)
 		cnt++;
 	if (cnt > SDP_MAX_SEND_SGES) {
@@ -962,7 +960,7 @@ sdp_send(struct socket *so, int flags, struct mbuf *m,
 			error = EINVAL;
 			goto out;
 		}
-		m_freem(control);	/* empty control, just free it */
+		m_freem(control); /* empty control, just free it */
 	}
 	if (!(flags & PRUS_OOB)) {
 		SOCKBUF_LOCK(&so->so_snd);
@@ -1113,8 +1111,7 @@ restart:
 			error = EMSGSIZE;
 			goto release;
 		}
-		if (space < resid &&
-		    (atomic || space < so->so_snd.sb_lowat)) {
+		if (space < resid && (atomic || space < so->so_snd.sb_lowat)) {
 			if ((so->so_state & SS_NBIO) ||
 			    (flags & (MSG_NBIO | MSG_DONTWAIT)) != 0) {
 				SOCKBUF_UNLOCK(&so->so_snd);
@@ -1141,9 +1138,8 @@ restart:
 				 */
 				copy = min(space,
 				    ssk->xmit_size_goal - SDP_HEAD_SIZE);
-				top = m_uiotombuf(uio, M_WAITOK, copy,
-				    0, M_PKTHDR |
-				    ((flags & MSG_EOR) ? M_EOR : 0));
+				top = m_uiotombuf(uio, M_WAITOK, copy, 0,
+				    M_PKTHDR | ((flags & MSG_EOR) ? M_EOR : 0));
 				if (top == NULL) {
 					/* only possible error */
 					error = EFAULT;
@@ -1157,14 +1153,18 @@ restart:
 			 * done could be out of date after dropping the
 			 * socket lock.
 			 */
-			error = sdp_send(so, (flags & MSG_OOB) ? PRUS_OOB :
-			/*
-			 * Set EOF on the last send if the user specified
-			 * MSG_EOF.
-			 */
-			    ((flags & MSG_EOF) && (resid <= 0)) ? PRUS_EOF :
-			/* If there is more to send set PRUS_MORETOCOME. */
-			    (resid > 0 && space > 0) ? PRUS_MORETOCOME : 0,
+			error = sdp_send(so,
+			    (flags & MSG_OOB)  ? PRUS_OOB :
+						 /*
+						  * Set EOF on the last send if
+						  * the user specified MSG_EOF.
+						  */
+				((flags & MSG_EOF) && (resid <= 0)) ?
+						PRUS_EOF :
+						   /* If there is more to send set
+						      PRUS_MORETOCOME. */
+				(resid > 0 && space > 0) ? PRUS_MORETOCOME :
+							   0,
 			    top, addr, NULL, td);
 			top = NULL;
 			if (error)
@@ -1203,7 +1203,7 @@ soreceive_rcvoob(struct socket *so, struct uio *uio, int flags)
 		goto bad;
 	do {
 		error = uiomove(mtod(m, void *),
-		    (int) min(uio->uio_resid, m->m_len), uio);
+		    (int)min(uio->uio_resid, m->m_len), uio);
 		m = m_free(m);
 	} while (uio->uio_resid && error == 0 && m);
 bad:
@@ -1232,7 +1232,7 @@ sdp_sorecv(struct socket *so, struct sockaddr **psa, struct uio *uio,
 	if (controlp != NULL)
 		return (EINVAL);
 	if (flagsp != NULL)
-		flags = *flagsp &~ MSG_EOR;
+		flags = *flagsp & ~MSG_EOR;
 	else
 		flags = 0;
 	if (flags & MSG_OOB)
@@ -1257,7 +1257,7 @@ sdp_sorecv(struct socket *so, struct sockaddr **psa, struct uio *uio,
 	oresid = uio->uio_resid;
 
 	/* We will never ever get anything unless we are connected. */
-	if (!(so->so_state & (SS_ISCONNECTED|SS_ISDISCONNECTED))) {
+	if (!(so->so_state & (SS_ISCONNECTED | SS_ISDISCONNECTED))) {
 		/* When disconnecting there may be still some data left. */
 		if (sbavail(sb))
 			goto deliver;
@@ -1268,7 +1268,7 @@ sdp_sorecv(struct socket *so, struct sockaddr **psa, struct uio *uio,
 
 	/* Socket buffer is empty and we shall not block. */
 	if (sbavail(sb) == 0 &&
-	    ((so->so_state & SS_NBIO) || (flags & (MSG_DONTWAIT|MSG_NBIO)))) {
+	    ((so->so_state & SS_NBIO) || (flags & (MSG_DONTWAIT | MSG_NBIO)))) {
 		error = EAGAIN;
 		goto out;
 	}
@@ -1298,11 +1298,9 @@ restart:
 
 	/* Socket buffer got some data that we shall deliver now. */
 	if (sbavail(sb) && !(flags & MSG_WAITALL) &&
-	    ((so->so_state & SS_NBIO) ||
-	     (flags & (MSG_DONTWAIT|MSG_NBIO)) ||
-	     sbavail(sb) >= sb->sb_lowat ||
-	     sbavail(sb) >= uio->uio_resid ||
-	     sbavail(sb) >= sb->sb_hiwat) ) {
+	    ((so->so_state & SS_NBIO) || (flags & (MSG_DONTWAIT | MSG_NBIO)) ||
+		sbavail(sb) >= sb->sb_lowat || sbavail(sb) >= uio->uio_resid ||
+		sbavail(sb) >= sb->sb_hiwat)) {
 		goto deliver;
 	}
 
@@ -1334,8 +1332,7 @@ deliver:
 	if (mp0 != NULL) {
 		/* Dequeue as many mbufs as possible. */
 		if (!(flags & MSG_PEEK) && len >= sb->sb_mb->m_len) {
-			for (*mp0 = m = sb->sb_mb;
-			     m != NULL && m->m_len <= len;
+			for (*mp0 = m = sb->sb_mb; m != NULL && m->m_len <= len;
 			     m = m->m_next) {
 				len -= m->m_len;
 				uio->uio_resid -= m->m_len;
@@ -1354,7 +1351,7 @@ deliver:
 
 			m = m_copym(sb->sb_mb, 0, len, M_NOWAIT);
 			if (m == NULL)
-				len = 0;	/* Don't flush data from sockbuf. */
+				len = 0; /* Don't flush data from sockbuf. */
 			else
 				uio->uio_resid -= m->m_len;
 			if (*mp0 != NULL)
@@ -1421,11 +1418,10 @@ sdp_abort(struct socket *so)
 	/*
 	 * If we have not yet dropped, do it now.
 	 */
-	if (!(ssk->flags & SDP_TIMEWAIT) &&
-	    !(ssk->flags & SDP_DROPPED))
+	if (!(ssk->flags & SDP_TIMEWAIT) && !(ssk->flags & SDP_DROPPED))
 		sdp_drop(ssk, ECONNABORTED);
-	KASSERT(ssk->flags & SDP_DROPPED, ("sdp_abort: %p not dropped 0x%X",
-	    ssk, ssk->flags));
+	KASSERT(ssk->flags & SDP_DROPPED,
+	    ("sdp_abort: %p not dropped 0x%X", ssk, ssk->flags));
 	SDP_WUNLOCK(ssk);
 }
 
@@ -1442,8 +1438,7 @@ sdp_close(struct socket *so)
 	/*
 	 * If we have not yet dropped, do it now.
 	 */
-	if (!(ssk->flags & SDP_TIMEWAIT) &&
-	    !(ssk->flags & SDP_DROPPED)) 
+	if (!(ssk->flags & SDP_TIMEWAIT) && !(ssk->flags & SDP_DROPPED))
 		sdp_start_disconnect(ssk);
 
 	/*
@@ -1477,9 +1472,8 @@ sdp_rcvoob(struct socket *so, struct mbuf *m, int flags)
 		goto out;
 	}
 	if ((so->so_oobmark == 0 &&
-	     (so->so_rcv.sb_state & SBS_RCVATMARK) == 0) ||
-	    so->so_options & SO_OOBINLINE ||
-	    ssk->oobflags & SDP_HADOOB) {
+		(so->so_rcv.sb_state & SBS_RCVATMARK) == 0) ||
+	    so->so_options & SO_OOBINLINE || ssk->oobflags & SDP_HADOOB) {
 		error = EINVAL;
 		goto out;
 	}
@@ -1511,7 +1505,8 @@ sdp_urg(struct sdp_sock *ssk, struct mbuf *mb)
 	sohasoutofband(so);
 	ssk->oobflags &= ~(SDP_HAVEOOB | SDP_HADOOB);
 	if (!(so->so_options & SO_OOBINLINE)) {
-		for (m = mb; m->m_next != NULL; m = m->m_next);
+		for (m = mb; m->m_next != NULL; m = m->m_next)
+			;
 		ssk->iobc = *(mtod(m, char *) + m->m_len - 1);
 		ssk->oobflags |= SDP_HAVEOOB;
 		m->m_len--;
@@ -1531,8 +1526,7 @@ sdp_notify(struct sdp_sock *ssk, int error)
 
 	SDP_WLOCK_ASSERT(ssk);
 
-	if ((ssk->flags & SDP_TIMEWAIT) ||
-	    (ssk->flags & SDP_DROPPED))
+	if ((ssk->flags & SDP_TIMEWAIT) || (ssk->flags & SDP_DROPPED))
 		return (ssk);
 
 	/*
@@ -1540,7 +1534,7 @@ sdp_notify(struct sdp_sock *ssk, int error)
 	 */
 	if (ssk->state == TCPS_ESTABLISHED &&
 	    (error == EHOSTUNREACH || error == ENETUNREACH ||
-	     error == EHOSTDOWN))
+		error == EHOSTDOWN))
 		return (ssk);
 	ssk->softerror = error;
 	return sdp_drop(ssk, error);
@@ -1553,22 +1547,21 @@ sdp_keepalive_timeout(void *data)
 
 	ssk = data;
 	/* Callout canceled. */
-        if (!callout_active(&ssk->keep2msl))
-                return;
+	if (!callout_active(&ssk->keep2msl))
+		return;
 	/* Callout rescheduled as a different kind of timer. */
 	if (callout_pending(&ssk->keep2msl))
 		goto out;
-        callout_deactivate(&ssk->keep2msl);
+	callout_deactivate(&ssk->keep2msl);
 	if (ssk->flags & SDP_DROPPED ||
 	    (ssk->socket->so_options & SO_KEEPALIVE) == 0)
 		goto out;
 	sdp_post_keepalive(ssk);
-	callout_reset(&ssk->keep2msl, SDP_KEEPALIVE_TIME,
-	    sdp_keepalive_timeout, ssk);
+	callout_reset(&ssk->keep2msl, SDP_KEEPALIVE_TIME, sdp_keepalive_timeout,
+	    ssk);
 out:
 	SDP_WUNLOCK(ssk);
 }
-
 
 void
 sdp_start_keepalive_timer(struct socket *so)
@@ -1577,8 +1570,8 @@ sdp_start_keepalive_timer(struct socket *so)
 
 	ssk = sdp_sk(so);
 	if (!callout_pending(&ssk->keep2msl))
-                callout_reset(&ssk->keep2msl, SDP_KEEPALIVE_TIME,
-                    sdp_keepalive_timeout, ssk);
+		callout_reset(&ssk->keep2msl, SDP_KEEPALIVE_TIME,
+		    sdp_keepalive_timeout, ssk);
 }
 
 static void
@@ -1596,18 +1589,19 @@ sdp_stop_keepalive_timer(struct socket *so)
  * has to revalidate that the connection is still valid for the socket
  * option.
  */
-#define SDP_WLOCK_RECHECK(inp) do {					\
-	SDP_WLOCK(ssk);							\
-	if (ssk->flags & (SDP_TIMEWAIT | SDP_DROPPED)) {		\
-		SDP_WUNLOCK(ssk);					\
-		return (ECONNRESET);					\
-	}								\
-} while(0)
+#define SDP_WLOCK_RECHECK(inp)                                   \
+	do {                                                     \
+		SDP_WLOCK(ssk);                                  \
+		if (ssk->flags & (SDP_TIMEWAIT | SDP_DROPPED)) { \
+			SDP_WUNLOCK(ssk);                        \
+			return (ECONNRESET);                     \
+		}                                                \
+	} while (0)
 
 static int
 sdp_ctloutput(struct socket *so, struct sockopt *sopt)
 {
-	int	error, opt, optval;
+	int error, opt, optval;
 	struct sdp_sock *ssk;
 
 	error = 0;
@@ -1721,7 +1715,7 @@ sdp_dev_rem(struct ib_device *device, void *client_data)
 	struct sdp_sock *ssk;
 
 	SDP_LIST_WLOCK();
-	LIST_FOREACH(ssk, &sdp_list, list) {
+	LIST_FOREACH (ssk, &sdp_list, list) {
 		if (ssk->ib_device != device)
 			continue;
 		SDP_WLOCK(ssk);
@@ -1743,9 +1737,9 @@ sdp_dev_rem(struct ib_device *device, void *client_data)
 	free(sdp_dev, M_SDP);
 }
 
-struct ib_client sdp_client =
-    { .name = "sdp", .add = sdp_dev_add, .remove = sdp_dev_rem };
-
+struct ib_client sdp_client = { .name = "sdp",
+	.add = sdp_dev_add,
+	.remove = sdp_dev_rem };
 
 static int
 sdp_pcblist(SYSCTL_HANDLER_ARGS)
@@ -1775,8 +1769,8 @@ sdp_pcblist(SYSCTL_HANDLER_ARGS)
 	n = sdp_count;
 	SDP_LIST_RUNLOCK();
 
-	error = sysctl_wire_old_buffer(req, 2 * (sizeof xig)
-		+ n * sizeof(struct xtcpcb));
+	error = sysctl_wire_old_buffer(req,
+	    2 * (sizeof xig) + n * sizeof(struct xtcpcb));
 	if (error != 0)
 		return (error);
 
@@ -1790,20 +1784,18 @@ sdp_pcblist(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	SDP_LIST_RLOCK();
-	for (ssk = LIST_FIRST(&sdp_list), i = 0;
-	    ssk != NULL && i < n; ssk = LIST_NEXT(ssk, list)) {
+	for (ssk = LIST_FIRST(&sdp_list), i = 0; ssk != NULL && i < n;
+	     ssk = LIST_NEXT(ssk, list)) {
 		struct xtcpcb xt;
 
 		SDP_RLOCK(ssk);
 		if (ssk->flags & SDP_TIMEWAIT) {
 			if (ssk->cred != NULL)
-				error = cr_cansee(req->td->td_ucred,
-				    ssk->cred);
+				error = cr_cansee(req->td->td_ucred, ssk->cred);
 			else
-				error = EINVAL;	/* Skip this inp. */
+				error = EINVAL; /* Skip this inp. */
 		} else if (ssk->socket)
-			error = cr_canseesocket(req->td->td_ucred,
-			    ssk->socket);
+			error = cr_canseesocket(req->td->td_ucred, ssk->socket);
 		else
 			error = EINVAL;
 		if (error) {
@@ -1829,7 +1821,7 @@ sdp_pcblist(SYSCTL_HANDLER_ARGS)
 			break;
 		i++;
 		continue;
-next:
+	next:
 		SDP_RUNLOCK(ssk);
 	}
 	if (!error) {
@@ -1849,12 +1841,10 @@ next:
 	return (error);
 }
 
-SYSCTL_NODE(_net_inet, -1, sdp, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "SDP");
+SYSCTL_NODE(_net_inet, -1, sdp, CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "SDP");
 
 SYSCTL_PROC(_net_inet_sdp, TCPCTL_PCBLIST, pcblist,
-    CTLFLAG_RD | CTLTYPE_STRUCT | CTLFLAG_MPSAFE,
-    0, 0, sdp_pcblist, "S,xtcpcb",
+    CTLFLAG_RD | CTLTYPE_STRUCT | CTLFLAG_MPSAFE, 0, 0, sdp_pcblist, "S,xtcpcb",
     "List of active SDP connections");
 
 static void
@@ -1869,46 +1859,32 @@ sdp_init(void *arg __unused)
 {
 
 	LIST_INIT(&sdp_list);
-	sdp_zone = uma_zcreate("sdp_sock", sizeof(struct sdp_sock),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
+	sdp_zone = uma_zcreate("sdp_sock", sizeof(struct sdp_sock), NULL, NULL,
+	    NULL, NULL, UMA_ALIGN_PTR, UMA_ZONE_NOFREE);
 	uma_zone_set_max(sdp_zone, maxsockets);
 	EVENTHANDLER_REGISTER(maxsockets_change, sdp_zone_change, NULL,
-		EVENTHANDLER_PRI_ANY);
+	    EVENTHANDLER_PRI_ANY);
 	rx_comp_wq = create_singlethread_workqueue("rx_comp_wq");
 	ib_register_client(&sdp_client);
 }
 SYSINIT(sdp_init, SI_SUB_PROTO_DOMAIN, SI_ORDER_SECOND, sdp_init, NULL);
 
-#define	SDP_PROTOSW							\
-	.pr_type =		SOCK_STREAM,				\
-	.pr_flags =		PR_CONNREQUIRED|PR_IMPLOPCL|PR_WANTRCVD,\
-	.pr_ctloutput =		sdp_ctloutput,				\
-	.pr_abort =		sdp_abort,				\
-	.pr_accept =		sdp_accept,				\
-	.pr_attach =		sdp_attach,				\
-	.pr_bind =		sdp_bind,				\
-	.pr_connect =		sdp_connect,				\
-	.pr_detach =		sdp_detach,				\
-	.pr_disconnect =	sdp_disconnect,				\
-	.pr_listen =		sdp_listen,				\
-	.pr_peeraddr =		sdp_getpeeraddr,			\
-	.pr_rcvoob =		sdp_rcvoob,				\
-	.pr_send =		sdp_send,				\
-	.pr_sosend =		sdp_sosend,				\
-	.pr_soreceive =		sdp_sorecv,				\
-	.pr_shutdown =		sdp_shutdown,				\
-	.pr_sockaddr =		sdp_getsockaddr,			\
-	.pr_close =		sdp_close
+#define SDP_PROTOSW                                                            \
+	.pr_type = SOCK_STREAM,                                                \
+	.pr_flags = PR_CONNREQUIRED | PR_IMPLOPCL | PR_WANTRCVD,               \
+	.pr_ctloutput = sdp_ctloutput, .pr_abort = sdp_abort,                  \
+	.pr_accept = sdp_accept, .pr_attach = sdp_attach, .pr_bind = sdp_bind, \
+	.pr_connect = sdp_connect, .pr_detach = sdp_detach,                    \
+	.pr_disconnect = sdp_disconnect, .pr_listen = sdp_listen,              \
+	.pr_peeraddr = sdp_getpeeraddr, .pr_rcvoob = sdp_rcvoob,               \
+	.pr_send = sdp_send, .pr_sosend = sdp_sosend,                          \
+	.pr_soreceive = sdp_sorecv, .pr_shutdown = sdp_shutdown,               \
+	.pr_sockaddr = sdp_getsockaddr, .pr_close = sdp_close
 
-
-static struct protosw sdp_ip_protosw = {
-	.pr_protocol =		IPPROTO_IP,
-	SDP_PROTOSW
-};
-static struct protosw sdp_tcp_protosw = {
-	.pr_protocol =		IPPROTO_TCP,
-	SDP_PROTOSW
-};
+static struct protosw sdp_ip_protosw = { .pr_protocol = IPPROTO_IP,
+	SDP_PROTOSW };
+static struct protosw sdp_tcp_protosw = { .pr_protocol = IPPROTO_TCP,
+	SDP_PROTOSW };
 
 static struct domain sdpdomain = {
 	.dom_family =		AF_INET_SDP,

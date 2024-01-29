@@ -68,38 +68,33 @@
 //* P U B L I C   M E T H O D S
 //******************************************************************************
 
-SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T sci_controller_get_memory_descriptor_list_handle(
-   SCI_CONTROLLER_HANDLE_T controller
-)
+SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T
+sci_controller_get_memory_descriptor_list_handle(
+    SCI_CONTROLLER_HANDLE_T controller)
 {
-   SCI_BASE_CONTROLLER_T * this_controller = (SCI_BASE_CONTROLLER_T*)controller;
-   return (SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T) &this_controller->mdl;
+	SCI_BASE_CONTROLLER_T *this_controller = (SCI_BASE_CONTROLLER_T *)
+	    controller;
+	return (SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T)&this_controller->mdl;
 }
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
 //******************************************************************************
 
-void sci_base_controller_construct(
-   SCI_BASE_CONTROLLER_T               * this_controller,
-   SCI_BASE_LOGGER_T                   * logger,
-   SCI_BASE_STATE_T                    * state_table,
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T    * mdes,
-   U32                                   mde_count,
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T   next_mdl
-)
+void
+sci_base_controller_construct(SCI_BASE_CONTROLLER_T *this_controller,
+    SCI_BASE_LOGGER_T *logger, SCI_BASE_STATE_T *state_table,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mdes, U32 mde_count,
+    SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl)
 {
-   sci_base_object_construct((SCI_BASE_OBJECT_T *)this_controller, logger);
+	sci_base_object_construct((SCI_BASE_OBJECT_T *)this_controller, logger);
 
-   sci_base_state_machine_construct(
-      &this_controller->state_machine,
-      &this_controller->parent,
-      state_table,
-      SCI_BASE_CONTROLLER_STATE_INITIAL
-   );
+	sci_base_state_machine_construct(&this_controller->state_machine,
+	    &this_controller->parent, state_table,
+	    SCI_BASE_CONTROLLER_STATE_INITIAL);
 
-   sci_base_mdl_construct(&this_controller->mdl, mdes, mde_count, next_mdl);
+	sci_base_mdl_construct(&this_controller->mdl, mdes, mde_count,
+	    next_mdl);
 
-   sci_base_state_machine_start(&this_controller->state_machine);
+	sci_base_state_machine_start(&this_controller->state_machine);
 }
-

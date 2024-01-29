@@ -23,15 +23,18 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/time.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <err.h>
-#include <net80211/ieee80211.h>
 #include <sys/endian.h>
+#include <sys/time.h>
+
+#include <net80211/ieee80211.h>
+
+#include <err.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "w00t.h"
 
 enum {
@@ -66,24 +69,26 @@ struct params {
 	int wep_len;
 };
 
-void usage(char *pname)
+void
+usage(char *pname)
 {
 	printf("Usage: %s <opts>\n"
-		"-m\t<source mac>\n"
-		"-s\t<ssid>\n"
-		"-h\tusage\n"
-		"-i\t<iface>\n"
-		"-w\t<wep key>\n"
-		"-t\t<tap>\n"
-		"-b\t<bssid>\n"
-		, pname);
+	       "-m\t<source mac>\n"
+	       "-s\t<ssid>\n"
+	       "-h\tusage\n"
+	       "-i\t<iface>\n"
+	       "-w\t<wep key>\n"
+	       "-t\t<tap>\n"
+	       "-b\t<bssid>\n",
+	    pname);
 	exit(0);
 }
 
-void fill_basic(struct ieee80211_frame *wh, struct params *p)
+void
+fill_basic(struct ieee80211_frame *wh, struct params *p)
 {
 	short *seq;
-	
+
 	wh->i_dur[0] = 0x69;
 	wh->i_dur[1] = 0x00;
 
@@ -91,11 +96,12 @@ void fill_basic(struct ieee80211_frame *wh, struct params *p)
 	memcpy(wh->i_addr2, p->mac, 6);
 	memcpy(wh->i_addr3, p->bssid, 6);
 
-	seq = (short*)wh->i_seq;
+	seq = (short *)wh->i_seq;
 	*seq = seqfn(p->seq, 0);
 }
 
-void send_frame(struct params *p, void *buf, int len)
+void
+send_frame(struct params *p, void *buf, int len)
 {
 	int rc;
 
@@ -110,7 +116,8 @@ void send_frame(struct params *p, void *buf, int len)
 	p->seq++;
 }
 
-void send_probe_request(struct params *p)
+void
+send_probe_request(struct params *p)
 {
 	char buf[2048];
 	struct ieee80211_frame *wh;
@@ -119,14 +126,14 @@ void send_probe_request(struct params *p)
 
 	memset(buf, 0, sizeof(buf));
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 	fill_basic(wh, p);
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_MGT | IEEE80211_FC0_SUBTYPE_PROBE_REQ;
 
 	memset(wh->i_addr1, 0xFF, 6);
 	memset(wh->i_addr3, 0xFF, 6);
 
-	data = (char*) (wh + 1);
+	data = (char *)(wh + 1);
 	*data++ = 0; /* SSID */
 	*data++ = strlen(p->ssid);
 	strcpy(data, p->ssid);
@@ -139,12 +146,13 @@ void send_probe_request(struct params *p)
 	*data++ = 11;
 	*data++ = 22;
 
-	len = data - (char*)wh;
+	len = data - (char *)wh;
 
 	send_frame(p, buf, len);
 }
 
-void send_auth(struct params *p)
+void
+send_auth(struct params *p)
 {
 	char buf[2048];
 	struct ieee80211_frame *wh;
@@ -153,14 +161,14 @@ void send_auth(struct params *p)
 
 	memset(buf, 0, sizeof(buf));
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 	fill_basic(wh, p);
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_MGT | IEEE80211_FC0_SUBTYPE_AUTH;
 
-	data = (char*) (wh + 1);
+	data = (char *)(wh + 1);
 
 	/* algo */
-	*data++ = 0; 
+	*data++ = 0;
 	*data++ = 0;
 
 	/* transaction no. */
@@ -171,12 +179,12 @@ void send_auth(struct params *p)
 	*data++ = 0;
 	*data++ = 0;
 
-	len = data - (char*)wh;
+	len = data - (char *)wh;
 
 	send_frame(p, buf, len);
 }
 
-/* 
+/*
  * Add an ssid element to a frame.
  */
 static u_int8_t *
@@ -188,7 +196,8 @@ ieee80211_add_ssid(u_int8_t *frm, const u_int8_t *ssid, u_int len)
 	return frm + len;
 }
 
-void send_assoc(struct params *p)
+void
+send_assoc(struct params *p)
 {
 	union {
 		struct ieee80211_frame w;
@@ -200,12 +209,12 @@ void send_assoc(struct params *p)
 
 	memset(&u, 0, sizeof(u));
 
-	wh = (struct ieee80211_frame*) &u.w;
+	wh = (struct ieee80211_frame *)&u.w;
 	fill_basic(wh, p);
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_MGT | IEEE80211_FC0_SUBTYPE_ASSOC_REQ;
 
-	data = (char*) (wh + 1);
-	
+	data = (char *)(wh + 1);
+
 	/* capability */
 	capinfo = IEEE80211_CAPINFO_ESS;
 	if (p->wep_len)
@@ -226,33 +235,37 @@ void send_assoc(struct params *p)
 	*data++ = 11;
 	*data++ = 22;
 
-	len = data - (char*)wh;
+	len = data - (char *)wh;
 
 	send_frame(p, u.buf, len);
 }
 
-int for_me(struct ieee80211_frame *wh, char *mac)
+int
+for_me(struct ieee80211_frame *wh, char *mac)
 {
-	return memcmp(wh->i_addr1, mac, 6) == 0;	
+	return memcmp(wh->i_addr1, mac, 6) == 0;
 }
 
-int from_ap(struct ieee80211_frame *wh, char *mac)
+int
+from_ap(struct ieee80211_frame *wh, char *mac)
 {
-	return memcmp(wh->i_addr2, mac, 6) == 0;	
+	return memcmp(wh->i_addr2, mac, 6) == 0;
 }
 
-void ack(struct params *p, struct ieee80211_frame *wh)
-{       
-        if (memcmp(wh->i_addr1, p->mac, 6) != 0)
-                return;
+void
+ack(struct params *p, struct ieee80211_frame *wh)
+{
+	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
+		return;
 
-        if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL)
-                return;
+	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) == IEEE80211_FC0_TYPE_CTL)
+		return;
 
-        send_ack(p->tx, wh->i_addr2);
+	send_ack(p->tx, wh->i_addr2);
 }
 
-void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
+void
+generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 {
 	int type, stype;
 	int dup = 0;
@@ -279,20 +292,19 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 			p->seq_rx = seqno(wh);
 		else {
 			int s = seqno(wh);
-			
+
 			if (s > p->seq_rx) {
 				/* normal case */
 				if (p->seq_rx + 1 == s) {
 #if 0				
 					printf("S=%d\n", s);
-#endif					
+#endif
 					p->seq_rx = s;
-				}	
-				else { /* future */
+				} else { /* future */
 #if 0				
 					printf("Got seq %d, prev %d\n",
 					       s, p->seq_rx);
-#endif					       
+#endif
 					p->seq_rx = s;
 				}
 			} else { /* we got pas stuff... */
@@ -300,16 +312,15 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 #if 0				
 					printf("Seqno wrap seq %d, last %d\n",
 					       s, p->seq_rx);
-#endif					       
+#endif
 					/* seqno wrapping ? */
 					p->seq_rx = 0;
-				}
-				else { /* dup */
+				} else { /* dup */
 					dup = 1;
 #if 0
 					printf("Got dup seq %d, last %d\n",
 					       s, p->seq_rx);
-#endif					       
+#endif
 				}
 			}
 		}
@@ -318,7 +329,7 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 	if (wh->i_fc[1] & IEEE80211_FC1_RETRY) {
 		printf("Got retry\n");
 	}
-#endif	
+#endif
 #if 0
 	if ((wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK) != IEEE80211_FC0_TYPE_CTL) {
 		int rc = send_ack(p->tx, wh->i_addr2);
@@ -344,7 +355,6 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 			if (memcmp(wh->i_addr1, p->ap, 6) != 0)
 				return;
 		}
-		
 
 		if (p->state < S_ASSOCIATED) {
 			printf("Got data when not associated!\n");
@@ -352,7 +362,7 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 		}
 		if (stype != IEEE80211_FC0_SUBTYPE_DATA) {
 			printf("Got weird data frame stype=%d\n",
-			       stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
+			    stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
 			return;
 		}
 
@@ -363,29 +373,30 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 			memcpy(src, wh->i_addr2, 6);
 			memcpy(dst, wh->i_addr3, 6);
 		}
-		
-		ptr = (char*) (wh + 1);
+
+		ptr = (char *)(wh + 1);
 
 		if (wh->i_fc[1] & IEEE80211_FC1_PROTECTED) {
 			if (!p->wep_len) {
-				char srca[3*6];
-				char dsta[3*6];
+				char srca[3 * 6];
+				char dsta[3 * 6];
 
 				mac2str(srca, src);
 				mac2str(dsta, dst);
 				printf("Got wep but i aint wep %s->%s %d\n",
-				       srca, dsta, len-sizeof(*wh)-8);
+				    srca, dsta, len - sizeof(*wh) - 8);
 				return;
 			}
-			
-			if (wep_decrypt(wh, len, p->wep_key, p->wep_len) == -1){
-				char srca[3*6];
-				char dsta[3*6];
+
+			if (wep_decrypt(wh, len, p->wep_key, p->wep_len) ==
+			    -1) {
+				char srca[3 * 6];
+				char dsta[3 * 6];
 
 				mac2str(srca, src);
 				mac2str(dsta, dst);
 				printf("Can't decrypt %s->%s %d\n", srca, dsta,
-				       len-sizeof(*wh)-8);
+				    len - sizeof(*wh) - 8);
 				return;
 			}
 
@@ -415,7 +426,8 @@ void generic_process(struct ieee80211_frame *wh, struct params *p, int len)
 	}
 }
 
-int get_probe_response(struct params *p)
+int
+get_probe_response(struct params *p)
 {
 	char buf[4096];
 	int rc;
@@ -441,10 +453,10 @@ int get_probe_response(struct params *p)
 		return 0;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_MGT,
-			IEEE80211_FC0_SUBTYPE_PROBE_RESP))
+		IEEE80211_FC0_SUBTYPE_PROBE_RESP))
 		return 0;
 
-	data = (char*) (wh+1);
+	data = (char *)(wh + 1);
 	data += 8; /* Timestamp */
 	data += 2; /* Beacon Interval */
 	ess = *data & 1;
@@ -457,7 +469,7 @@ int get_probe_response(struct params *p)
 		return 0;
 	}
 	data++;
-	ssid = data+1;
+	ssid = data + 1;
 	data += 1 + *data;
 	if (*data != 1) {
 		printf("Warning, expected rates got %x\n", *data);
@@ -470,8 +482,8 @@ int get_probe_response(struct params *p)
 
 	mac2str(from, wh->i_addr2);
 	mac2str(bssid, wh->i_addr3);
-	printf("Got response from %s [%s] [%s] ESS=%d WEP=%d\n",
-	       from, bssid, ssid, ess, wep);
+	printf("Got response from %s [%s] [%s] ESS=%d WEP=%d\n", from, bssid,
+	    ssid, ess, wep);
 
 	if (strcmp(ssid, p->ssid) != 0)
 		return 0;
@@ -481,7 +493,8 @@ int get_probe_response(struct params *p)
 	return 1;
 }
 
-int get_auth(struct params *p)
+int
+get_auth(struct params *p)
 {
 	char buf[4096];
 	int rc;
@@ -504,19 +517,18 @@ int get_auth(struct params *p)
 	if (!from_ap(wh, p->ap))
 		return 0;
 
-	if (!frame_type(wh, IEEE80211_FC0_TYPE_MGT,
-			IEEE80211_FC0_SUBTYPE_AUTH))
+	if (!frame_type(wh, IEEE80211_FC0_TYPE_MGT, IEEE80211_FC0_SUBTYPE_AUTH))
 		return 0;
 
-	data = (short*) (wh+1);
-	
+	data = (short *)(wh + 1);
+
 	/* algo */
 	if (le16toh(*data) != 0) {
 		printf("Not open-system %d!\n", le16toh(*data));
 		return 0;
 	}
 	data++;
-	
+
 	/* transaction no. */
 	if (le16toh(*data) != 2) {
 		printf("Got transaction %d!\n", le16toh(*data));
@@ -535,7 +547,8 @@ int get_auth(struct params *p)
 	return 0;
 }
 
-int get_assoc(struct params *p)
+int
+get_assoc(struct params *p)
 {
 	char buf[4096];
 	int rc;
@@ -559,12 +572,11 @@ int get_assoc(struct params *p)
 		return 0;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_MGT,
-			IEEE80211_FC0_SUBTYPE_ASSOC_RESP))
+		IEEE80211_FC0_SUBTYPE_ASSOC_RESP))
 		return 0;
-	
 
-	data = (unsigned short*) (wh+1);
-	
+	data = (unsigned short *)(wh + 1);
+
 	data++; /* caps */
 
 	/* status */
@@ -575,13 +587,14 @@ int get_assoc(struct params *p)
 	}
 
 	/* aid */
-	p->aid = le16toh(*data & ~( (1 << 15) | (1 << 14)));
+	p->aid = le16toh(*data & ~((1 << 15) | (1 << 14)));
 	printf("Association ID=%d\n", p->aid);
-	
+
 	return 1;
 }
 
-void read_wifi(struct params *p)
+void
+read_wifi(struct params *p)
 {
 	char buf[4096];
 	int rc;
@@ -611,16 +624,16 @@ void read_wifi(struct params *p)
 			if (p->state == S_WAIT_ACK)
 				p->state = S_ASSOCIATED;
 			break;
-		
+
 		case IEEE80211_FC0_SUBTYPE_RTS:
 #if 0		
 			printf("Got RTS\n");
-#endif			
+#endif
 			break;
-	
+
 		default:
 			printf("Unknown CTL frame %d\n",
-			       stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
+			    stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
 			abort();
 			break;
 		}
@@ -636,7 +649,7 @@ void read_wifi(struct params *p)
 	if (stype == IEEE80211_FC0_SUBTYPE_DEAUTH ||
 	    stype == IEEE80211_FC0_SUBTYPE_DISASSOC) {
 		printf("Got management! %d\n",
-		       stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
+		    stype >> IEEE80211_FC0_SUBTYPE_SHIFT);
 		p->seq_rx = -1;
 		p->state = S_START;
 	}
@@ -644,7 +657,8 @@ void read_wifi(struct params *p)
 	return;
 }
 
-void read_tap(struct params *p)
+void
+read_tap(struct params *p)
 {
 	char *ptr;
 	int len = sizeof(p->packet);
@@ -667,7 +681,7 @@ void read_tap(struct params *p)
 		err(1, "read()");
 
 	/* 802.11 header */
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 	memcpy(mac, ptr, sizeof(mac));
 	fill_basic(wh, p);
 	memcpy(wh->i_addr3, mac, sizeof(wh->i_addr3));
@@ -677,7 +691,7 @@ void read_tap(struct params *p)
 		wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
 
 	/* LLC & SNAP */
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	if (p->wep_len)
 		ptr += 4;
 	*ptr++ = 0xAA;
@@ -692,7 +706,7 @@ void read_tap(struct params *p)
 
 	/* WEP */
 	if (p->wep_len) {
-		ptr = (char*) (wh+1);
+		ptr = (char *)(wh + 1);
 		memcpy(ptr, &p->wep_iv, 3);
 		ptr[3] = 0;
 		p->wep_iv++;
@@ -702,15 +716,16 @@ void read_tap(struct params *p)
 	}
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-	char* ssid = 0;
+	char *ssid = 0;
 	char mac[] = { 0x00, 0x00, 0xde, 0xfa, 0xce, 0xd };
 	int ch;
 	struct params p;
 	char *iface = "wlan0";
 	char *tap = "tap0";
-	int timeout = 50*1000;
+	int timeout = 50 * 1000;
 	struct timeval start;
 
 	memset(&p, 0, sizeof(p));
@@ -796,25 +811,25 @@ int main(int argc, char *argv[])
 				if (elapsed == 0) {
 					elapsed = tv.tv_usec - start.tv_usec;
 				} else {
-					elapsed *= (elapsed-1)*1000*1000;
-					elapsed += 1000*1000 - start.tv_usec;
+					elapsed *= (elapsed - 1) * 1000 * 1000;
+					elapsed += 1000 * 1000 - start.tv_usec;
 					elapsed += tv.tv_usec;
 				}
 				if (elapsed >= timeout)
 					rc = 0;
-				else {	
+				else {
 					fd_set fds;
 
 					FD_ZERO(&fds);
 					FD_SET(p.rx, &fds);
-					
+
 					elapsed = timeout - elapsed;
-					tv.tv_sec = elapsed/1000/1000;
-					elapsed -= tv.tv_sec*1000*1000;
+					tv.tv_sec = elapsed / 1000 / 1000;
+					elapsed -= tv.tv_sec * 1000 * 1000;
 					tv.tv_usec = elapsed;
 
-					rc = select(p.rx+1, &fds, NULL,
-						    NULL, &tv);
+					rc = select(p.rx + 1, &fds, NULL, NULL,
+					    &tv);
 					if (rc == -1)
 						err(1, "select()");
 				}
@@ -823,11 +838,11 @@ int main(int argc, char *argv[])
 				if (!rc) {
 #if 0
 					printf("Timeout\n");
-#endif					
+#endif
 					p.state--;
-				}	
+				}
 
-			} while(0);
+			} while (0);
 			break;
 		}
 
@@ -860,7 +875,7 @@ int main(int argc, char *argv[])
 				p.state = S_WAIT_AUTH;
 				if (gettimeofday(&start, NULL) == -1)
 					err(1, "gettimeofday()");
-			} while(0);
+			} while (0);
 			break;
 
 		case S_WAIT_AUTH:
@@ -893,11 +908,11 @@ int main(int argc, char *argv[])
 				FD_SET(p.rx, &fds);
 				FD_SET(p.tap, &fds);
 				max = (p.rx > p.tap) ? p.rx : p.tap;
-				
-				max = select(max+1, &fds, NULL, NULL, NULL);
+
+				max = select(max + 1, &fds, NULL, NULL, NULL);
 				if (max == -1)
 					err(1, "select()");
-					
+
 				if (FD_ISSET(p.tap, &fds)) {
 					read_tap(&p);
 					p.state = S_SEND_DATA;
@@ -905,7 +920,7 @@ int main(int argc, char *argv[])
 				if (FD_ISSET(p.rx, &fds)) {
 					read_wifi(&p);
 				}
-			} while(0);
+			} while (0);
 			break;
 
 		case S_SEND_DATA:
@@ -913,7 +928,7 @@ int main(int argc, char *argv[])
 			do {
 				struct ieee80211_frame *wh;
 
-				wh = (struct ieee80211_frame*) p.packet;
+				wh = (struct ieee80211_frame *)p.packet;
 				wh->i_fc[1] |= IEEE80211_FC1_RETRY;
 			} while (0);
 			p.state = S_WAIT_ACK;

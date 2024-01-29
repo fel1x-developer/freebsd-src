@@ -27,16 +27,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_LINUX_HARDIRQ_H_
-#define	_LINUXKPI_LINUX_HARDIRQ_H_
-
-#include <linux/types.h>
-#include <linux/lockdep.h>
+#define _LINUXKPI_LINUX_HARDIRQ_H_
 
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/interrupt.h>
 
-#define	synchronize_irq(irq)	_intr_drain((irq))
+#include <linux/lockdep.h>
+#include <linux/types.h>
+
+#define synchronize_irq(irq) _intr_drain((irq))
 
 /*
  * FIXME: In the i915 driver's `intel_engine_cs.c` file,
@@ -46,6 +46,6 @@
  *
  * See commit f6d50b7af554e21c380486d6f41c8537b265c777 in drm-kmod.
  */
-#define	synchronize_hardirq(irq) _intr_drain((irq))
+#define synchronize_hardirq(irq) _intr_drain((irq))
 
-#endif	/* _LINUXKPI_LINUX_HARDIRQ_H_ */
+#endif /* _LINUXKPI_LINUX_HARDIRQ_H_ */

@@ -30,16 +30,16 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
+
+#include "namespace.h"
+#include "thr_private.h"
 #include "un-namespace.h"
 
-#include "thr_private.h"
-
-static int suspend_common(struct pthread *, struct pthread *,
-		int);
+static int suspend_common(struct pthread *, struct pthread *, int);
 
 __weak_reference(_pthread_suspend_np, pthread_suspend_np);
 __weak_reference(_pthread_suspend_all_np, pthread_suspend_all_np);
@@ -56,8 +56,8 @@ _pthread_suspend_np(pthread_t thread)
 		ret = EDEADLK;
 
 	/* Add a reference to the thread: */
-	else if ((ret = _thr_ref_add(curthread, thread, /*include dead*/0))
-	    == 0) {
+	else if ((ret = _thr_ref_add(curthread, thread, /*include dead*/ 0)) ==
+	    0) {
 		/* Lock the threads scheduling queue: */
 		THR_THREAD_LOCK(curthread, thread);
 		suspend_common(curthread, thread, 1);
@@ -113,19 +113,19 @@ _pthread_suspend_all_np(void)
 	curthread->no_cancel = 1;
 	_thr_suspend_all_lock(curthread);
 	THREAD_LIST_RDLOCK(curthread);
-	TAILQ_FOREACH(thread, &_thread_list, tle) {
+	TAILQ_FOREACH (thread, &_thread_list, tle) {
 		if (thread != curthread) {
 			THR_THREAD_LOCK(curthread, thread);
 			if (thread->state != PS_DEAD &&
-	      		   !(thread->flags & THR_FLAGS_SUSPENDED))
-			    thread->flags |= THR_FLAGS_NEED_SUSPEND;
+			    !(thread->flags & THR_FLAGS_SUSPENDED))
+				thread->flags |= THR_FLAGS_NEED_SUSPEND;
 			THR_THREAD_UNLOCK(curthread, thread);
 		}
 	}
 	thr_kill(-1, SIGCANCEL);
 
 restart:
-	TAILQ_FOREACH(thread, &_thread_list, tle) {
+	TAILQ_FOREACH (thread, &_thread_list, tle) {
 		if (thread != curthread) {
 			/* First try to suspend the thread without waiting */
 			THR_THREAD_LOCK(curthread, thread);
@@ -157,13 +157,12 @@ restart:
 }
 
 static int
-suspend_common(struct pthread *curthread, struct pthread *thread,
-	int waitok)
+suspend_common(struct pthread *curthread, struct pthread *thread, int waitok)
 {
 	uint32_t tmp;
 
 	while (thread->state != PS_DEAD &&
-	      !(thread->flags & THR_FLAGS_SUSPENDED)) {
+	    !(thread->flags & THR_FLAGS_SUSPENDED)) {
 		thread->flags |= THR_FLAGS_NEED_SUSPEND;
 		/* Thread is in creation. */
 		if (thread->tid == TID_TERMINATED)

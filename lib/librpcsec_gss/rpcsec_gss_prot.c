@@ -2,13 +2,13 @@
   SPDX-License-Identifier: BSD-3-Clause
 
   rpcsec_gss_prot.c
-  
+
   Copyright (c) 2000 The Regents of the University of Michigan.
   All rights reserved.
-  
+
   Copyright (c) 2000 Dug Song <dugsong@UMICH.EDU>.
   All rights reserved, all wrongs reversed.
-  
+
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
   are met:
@@ -37,15 +37,16 @@
   $Id: authgss_prot.c,v 1.18 2000/09/01 04:14:03 dugsong Exp $
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
 #include <rpc/rpc.h>
 #include <rpc/rpcsec_gss.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "rpcsec_gss_int.h"
 
-#define MAX_GSS_SIZE	10240	/* XXX */
+#define MAX_GSS_SIZE 10240 /* XXX */
 
 bool_t
 xdr_gss_buffer_desc(XDR *xdrs, gss_buffer_desc *p)
@@ -71,10 +72,8 @@ xdr_rpc_gss_cred(XDR *xdrs, struct rpc_gss_cred *p)
 
 	proc = p->gc_proc;
 	svc = p->gc_svc;
-	ret = (xdr_u_int(xdrs, &p->gc_version) &&
-	    xdr_enum(xdrs, &proc) &&
-	    xdr_u_int(xdrs, &p->gc_seq) &&
-	    xdr_enum(xdrs, &svc) &&
+	ret = (xdr_u_int(xdrs, &p->gc_version) && xdr_enum(xdrs, &proc) &&
+	    xdr_u_int(xdrs, &p->gc_seq) && xdr_enum(xdrs, &svc) &&
 	    xdr_gss_buffer_desc(xdrs, &p->gc_handle));
 	p->gc_proc = proc;
 	p->gc_svc = svc;
@@ -87,27 +86,25 @@ xdr_rpc_gss_init_res(XDR *xdrs, struct rpc_gss_init_res *p)
 {
 
 	return (xdr_gss_buffer_desc(xdrs, &p->gr_handle) &&
-	    xdr_u_int(xdrs, &p->gr_major) &&
-	    xdr_u_int(xdrs, &p->gr_minor) &&
+	    xdr_u_int(xdrs, &p->gr_major) && xdr_u_int(xdrs, &p->gr_minor) &&
 	    xdr_u_int(xdrs, &p->gr_win) &&
 	    xdr_gss_buffer_desc(xdrs, &p->gr_token));
 }
 
 bool_t
 xdr_rpc_gss_wrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
-		      gss_ctx_id_t ctx, gss_qop_t qop,
-		      rpc_gss_service_t svc, u_int seq)
+    gss_ctx_id_t ctx, gss_qop_t qop, rpc_gss_service_t svc, u_int seq)
 {
-	gss_buffer_desc	databuf, wrapbuf;
-	OM_uint32	maj_stat, min_stat;
-	int		start, end, conf_state;
-	u_int		len;
-	bool_t		xdr_stat;
+	gss_buffer_desc databuf, wrapbuf;
+	OM_uint32 maj_stat, min_stat;
+	int start, end, conf_state;
+	u_int len;
+	bool_t xdr_stat;
 
 	/* Skip databody length. */
 	start = XDR_GETPOS(xdrs);
 	XDR_SETPOS(xdrs, start + 4);
-	
+
 	/* Marshal rpc_gss_data_t (sequence number + arguments). */
 	if (!xdr_u_int(xdrs, &seq) || !xdr_func(xdrs, xdr_ptr))
 		return (FALSE);
@@ -119,17 +116,16 @@ xdr_rpc_gss_wrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 	databuf.value = XDR_INLINE(xdrs, databuf.length);
 
 	xdr_stat = FALSE;
-	
+
 	if (svc == rpc_gss_svc_integrity) {
 		/* Marshal databody_integ length. */
 		XDR_SETPOS(xdrs, start);
 		len = databuf.length;
 		if (!xdr_u_int(xdrs, &len))
 			return (FALSE);
-		
+
 		/* Checksum rpc_gss_data_t. */
-		maj_stat = gss_get_mic(&min_stat, ctx, qop,
-				       &databuf, &wrapbuf);
+		maj_stat = gss_get_mic(&min_stat, ctx, qop, &databuf, &wrapbuf);
 		if (maj_stat != GSS_S_COMPLETE) {
 			log_debug("gss_get_mic failed");
 			return (FALSE);
@@ -138,11 +134,10 @@ xdr_rpc_gss_wrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 		XDR_SETPOS(xdrs, end);
 		xdr_stat = xdr_gss_buffer_desc(xdrs, &wrapbuf);
 		gss_release_buffer(&min_stat, &wrapbuf);
-	}		
-	else if (svc == rpc_gss_svc_privacy) {
+	} else if (svc == rpc_gss_svc_privacy) {
 		/* Encrypt rpc_gss_data_t. */
 		maj_stat = gss_wrap(&min_stat, ctx, TRUE, qop, &databuf,
-				    &conf_state, &wrapbuf);
+		    &conf_state, &wrapbuf);
 		if (maj_stat != GSS_S_COMPLETE) {
 			log_status("gss_wrap", NULL, maj_stat, min_stat);
 			return (FALSE);
@@ -157,21 +152,20 @@ xdr_rpc_gss_wrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 
 bool_t
 xdr_rpc_gss_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
-			gss_ctx_id_t ctx, gss_qop_t qop,
-			rpc_gss_service_t svc, u_int seq)
+    gss_ctx_id_t ctx, gss_qop_t qop, rpc_gss_service_t svc, u_int seq)
 {
-	XDR		tmpxdrs;
-	gss_buffer_desc	databuf, wrapbuf;
-	OM_uint32	maj_stat, min_stat;
-	u_int		seq_num, conf_state, qop_state;
-	bool_t		xdr_stat;
+	XDR tmpxdrs;
+	gss_buffer_desc databuf, wrapbuf;
+	OM_uint32 maj_stat, min_stat;
+	u_int seq_num, conf_state, qop_state;
+	bool_t xdr_stat;
 
-	if (xdr_func == (xdrproc_t) xdr_void || xdr_ptr == NULL)
+	if (xdr_func == (xdrproc_t)xdr_void || xdr_ptr == NULL)
 		return (TRUE);
-	
+
 	memset(&databuf, 0, sizeof(databuf));
 	memset(&wrapbuf, 0, sizeof(wrapbuf));
-	
+
 	if (svc == rpc_gss_svc_integrity) {
 		/* Decode databody_integ. */
 		if (!xdr_gss_buffer_desc(xdrs, &databuf)) {
@@ -185,10 +179,10 @@ xdr_rpc_gss_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 			return (FALSE);
 		}
 		/* Verify checksum and QOP. */
-		maj_stat = gss_verify_mic(&min_stat, ctx, &databuf,
-					  &wrapbuf, &qop_state);
+		maj_stat = gss_verify_mic(&min_stat, ctx, &databuf, &wrapbuf,
+		    &qop_state);
 		mem_free(wrapbuf.value, wrapbuf.length);
-		
+
 		if (maj_stat != GSS_S_COMPLETE || qop_state != qop) {
 			mem_free(databuf.value, databuf.length);
 			log_status("gss_verify_mic", NULL, maj_stat, min_stat);
@@ -202,13 +196,13 @@ xdr_rpc_gss_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 		}
 		/* Decrypt databody. */
 		maj_stat = gss_unwrap(&min_stat, ctx, &wrapbuf, &databuf,
-				      &conf_state, &qop_state);
-		
+		    &conf_state, &qop_state);
+
 		mem_free(wrapbuf.value, wrapbuf.length);
-		
+
 		/* Verify encryption and QOP. */
 		if (maj_stat != GSS_S_COMPLETE || qop_state != qop ||
-			conf_state != TRUE) {
+		    conf_state != TRUE) {
 			gss_release_buffer(&min_stat, &databuf);
 			log_status("gss_unwrap", NULL, maj_stat, min_stat);
 			return (FALSE);
@@ -225,11 +219,11 @@ xdr_rpc_gss_unwrap_data(XDR *xdrs, xdrproc_t xdr_func, caddr_t xdr_ptr,
 	 * same way.
 	 */
 	if (svc == rpc_gss_svc_integrity) {
-		xdr_free((xdrproc_t) xdr_gss_buffer_desc, (char *) &databuf);
+		xdr_free((xdrproc_t)xdr_gss_buffer_desc, (char *)&databuf);
 	} else {
 		gss_release_buffer(&min_stat, &databuf);
 	}
-	
+
 	/* Verify sequence number. */
 	if (xdr_stat == TRUE && seq_num != seq) {
 		log_debug("wrong sequence number in databody");
@@ -261,14 +255,14 @@ log_status(const char *m, gss_OID mech, OM_uint32 maj_stat, OM_uint32 min_stat)
 	int msg_ctx = 0;
 
 	fprintf(stderr, "rpcsec_gss: %s: ", m);
-	
+
 	gss_display_status(&min, maj_stat, GSS_C_GSS_CODE, GSS_C_NULL_OID,
-			   &msg_ctx, &msg);
+	    &msg_ctx, &msg);
 	fprintf(stderr, "%s - ", (char *)msg.value);
 	gss_release_buffer(&min, &msg);
 
-	gss_display_status(&min, min_stat, GSS_C_MECH_CODE, mech,
-			   &msg_ctx, &msg);
+	gss_display_status(&min, min_stat, GSS_C_MECH_CODE, mech, &msg_ctx,
+	    &msg);
 	fprintf(stderr, "%s\n", (char *)msg.value);
 	gss_release_buffer(&min, &msg);
 }
@@ -287,5 +281,3 @@ log_status(__unused const char *m, __unused gss_OID mech,
 }
 
 #endif
-
-

@@ -16,7 +16,7 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  */
 
 #ifndef R92CE_RX_DESC_H
@@ -26,15 +26,15 @@
 
 /* Rx MAC descriptor (PCIe). */
 struct r92ce_rx_stat {
-	uint32_t	rxdw0;
-	uint32_t	rxdw1;
-	uint32_t	rxdw2;
-	uint32_t	rxdw3;
-	uint32_t	rxdw4;
-	uint32_t	tsf_low;
+	uint32_t rxdw0;
+	uint32_t rxdw1;
+	uint32_t rxdw2;
+	uint32_t rxdw3;
+	uint32_t rxdw4;
+	uint32_t tsf_low;
 
-	uint32_t	rxbufaddr;
-	uint32_t	rxbufaddr64;
+	uint32_t rxbufaddr;
+	uint32_t rxbufaddr64;
 } __packed __attribute__((aligned(4)));
 
-#endif	/* R92CE_RX_DESC_H */
+#endif /* R92CE_RX_DESC_H */

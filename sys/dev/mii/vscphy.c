@@ -35,84 +35,78 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
 #include "miibus_if.h"
+#include "miidevs.h"
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
+#include <dev/mii/mii_fdt.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/mii/mii_fdt.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
-#define	BIT(x)	(1 << (x))
+#define BIT(x) (1 << (x))
 
 /* Vitesse VSC8501 */
-#define	VSC8501_EXTPAGE_REG		0x001f
+#define VSC8501_EXTPAGE_REG 0x001f
 
-#define	VSC8501_EXTCTL1_REG		0x0017
-#define	  VSC8501_EXTCTL1_RGMII_MODE	  (1u << 12)
+#define VSC8501_EXTCTL1_REG 0x0017
+#define VSC8501_EXTCTL1_RGMII_MODE (1u << 12)
 
-#define	VSC8501_INT_MASK		0x19
-#define	VSC8501_INT_MDINT		BIT(15)
-#define	VSC8501_INT_SPD_CHG		BIT(14)
-#define	VSC8501_INT_LINK_CHG		BIT(13)
-#define	VSC8501_INT_FD_CHG		BIT(12)
-#define	VSC8501_INT_AN_CMPL		BIT(10)
+#define VSC8501_INT_MASK 0x19
+#define VSC8501_INT_MDINT BIT(15)
+#define VSC8501_INT_SPD_CHG BIT(14)
+#define VSC8501_INT_LINK_CHG BIT(13)
+#define VSC8501_INT_FD_CHG BIT(12)
+#define VSC8501_INT_AN_CMPL BIT(10)
 
-#define	VSC8501_INT_STS			0x1a
+#define VSC8501_INT_STS 0x1a
 
-#define	VSC8501_RGMII_CTRL_PAGE		0x02
-#define	VSC8501_RGMII_CTRL_REG		0x14
-#define	  VSC8501_RGMII_DELAY_MASK	  0x07
-#define	  VSC8501_RGMII_DELAY_TXSHIFT	  0
-#define	  VSC8501_RGMII_DELAY_RXSHIFT	  4
-#define	  VSC8501_RGMII_RXCLOCK_DISABLE	  (1u << 11)
-#define	  VSC8501_RGMII_RXSWAP		  (1u <<  7)
-#define	  VSC8501_RGMII_TXSWAP		  (1u <<  3)
-#define	  VSC8501_RGMII_LANESWAP	  (VSC8501_RGMII_RXSWAP | \
-					   VSC8501_RGMII_TXSWAP)
+#define VSC8501_RGMII_CTRL_PAGE 0x02
+#define VSC8501_RGMII_CTRL_REG 0x14
+#define VSC8501_RGMII_DELAY_MASK 0x07
+#define VSC8501_RGMII_DELAY_TXSHIFT 0
+#define VSC8501_RGMII_DELAY_RXSHIFT 4
+#define VSC8501_RGMII_RXCLOCK_DISABLE (1u << 11)
+#define VSC8501_RGMII_RXSWAP (1u << 7)
+#define VSC8501_RGMII_TXSWAP (1u << 3)
+#define VSC8501_RGMII_LANESWAP (VSC8501_RGMII_RXSWAP | VSC8501_RGMII_TXSWAP)
 
 struct vscphy_softc {
-	mii_softc_t	mii_sc;
-	device_t	dev;
-	mii_contype_t	contype;
-	int		rxdelay;
-	int		txdelay;
-	bool		laneswap;
+	mii_softc_t mii_sc;
+	device_t dev;
+	mii_contype_t contype;
+	int rxdelay;
+	int txdelay;
+	bool laneswap;
 	struct resource *irq_res;
-	void 		*irq_cookie;
+	void *irq_cookie;
 };
 
 static void vscphy_reset(struct mii_softc *);
-static int  vscphy_service(struct mii_softc *, struct mii_data *, int);
+static int vscphy_service(struct mii_softc *, struct mii_data *, int);
 
-static const struct mii_phydesc vscphys[] = {
-	MII_PHY_DESC(xxVITESSE, VSC8501),
-	MII_PHY_DESC(xxVITESSE, VSC8504),
-	MII_PHY_DESC(xxVITESSE, VSC8514),
-	MII_PHY_END
-};
+static const struct mii_phydesc vscphys[] = { MII_PHY_DESC(xxVITESSE, VSC8501),
+	MII_PHY_DESC(xxVITESSE, VSC8504), MII_PHY_DESC(xxVITESSE, VSC8514),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs vscphy_funcs = {
-	vscphy_service,
-	ukphy_status,
-	vscphy_reset
-};
+static const struct mii_phy_funcs vscphy_funcs = { vscphy_service, ukphy_status,
+	vscphy_reset };
 
 #ifdef FDT
 static void
@@ -164,11 +158,11 @@ vsc8501_setup_rgmii(struct vscphy_softc *vsc)
 	reg &= ~(VSC8501_RGMII_DELAY_MASK << VSC8501_RGMII_DELAY_RXSHIFT);
 	if (vsc->laneswap)
 		reg |= VSC8501_RGMII_LANESWAP;
-	if (vsc->contype == MII_CONTYPE_RGMII_ID || 
+	if (vsc->contype == MII_CONTYPE_RGMII_ID ||
 	    vsc->contype == MII_CONTYPE_RGMII_TXID) {
 		reg |= vsc->txdelay << VSC8501_RGMII_DELAY_TXSHIFT;
 	}
-	if (vsc->contype == MII_CONTYPE_RGMII_ID || 
+	if (vsc->contype == MII_CONTYPE_RGMII_ID ||
 	    vsc->contype == MII_CONTYPE_RGMII_RXID) {
 		reg |= vsc->rxdelay << VSC8501_RGMII_DELAY_RXSHIFT;
 	}
@@ -199,7 +193,7 @@ vsc8501_reset(struct vscphy_softc *vsc)
 	 * Setup rgmii control register if necessary, after softreset.
 	 */
 	if (mii_contype_is_rgmii(vsc->contype))
-	    vsc8501_setup_rgmii(vsc);
+		vsc8501_setup_rgmii(vsc);
 }
 
 static void
@@ -280,7 +274,7 @@ vscphy_attach(device_t dev)
 
 #ifdef FDT
 	vscphy_fdt_get_config(vsc);
-#endif	
+#endif
 
 	mii_phy_dev_attach(dev, MIIF_NOMANPAUSE, &vscphy_funcs, 1);
 	mii_phy_setmedia(&vsc->mii_sc);
@@ -301,11 +295,8 @@ vscphy_attach(device_t dev)
 
 	/* Ack and unmask all relevant interrupts. */
 	(void)vscphy_read(vsc, VSC8501_INT_STS);
-	value = VSC8501_INT_MDINT    |
-		VSC8501_INT_SPD_CHG  |
-		VSC8501_INT_LINK_CHG |
-		VSC8501_INT_FD_CHG   |
-		VSC8501_INT_AN_CMPL;
+	value = VSC8501_INT_MDINT | VSC8501_INT_SPD_CHG | VSC8501_INT_LINK_CHG |
+	    VSC8501_INT_FD_CHG | VSC8501_INT_AN_CMPL;
 	vscphy_write(vsc, VSC8501_INT_MASK, value);
 
 no_irq:
@@ -327,17 +318,13 @@ vscphy_detach(device_t dev)
 
 static device_method_t vscphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		vscphy_probe),
-	DEVMETHOD(device_attach,	vscphy_attach),
-	DEVMETHOD(device_detach,	vscphy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, vscphy_probe),
+	DEVMETHOD(device_attach, vscphy_attach),
+	DEVMETHOD(device_detach, vscphy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t vscphy_driver = {
-	"vscphy",
-	vscphy_methods,
-	sizeof(struct vscphy_softc)
-};
+static driver_t vscphy_driver = { "vscphy", vscphy_methods,
+	sizeof(struct vscphy_softc) };
 
 DRIVER_MODULE(vscphy, miibus, vscphy_driver, 0, 0);

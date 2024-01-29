@@ -30,6 +30,7 @@
 #include <sys/cdefs.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <archive.h>
 #include <archive_entry.h>
 #include <assert.h>
@@ -47,21 +48,21 @@
 int
 ar_read_archive(struct bsdar *bsdar, int mode, FILE *out)
 {
-	struct archive		 *a;
-	struct archive_entry	 *entry;
-	struct stat		  sb;
-	struct tm		 *tp;
-	const char		 *bname;
-	const char		 *name;
-	mode_t			  md;
-	size_t			  size;
-	time_t			  mtime;
-	uid_t			  uid;
-	gid_t			  gid;
-	char			**av;
-	char			  buf[25];
-	char			  find;
-	int			  exitcode, flags, r, i;
+	struct archive *a;
+	struct archive_entry *entry;
+	struct stat sb;
+	struct tm *tp;
+	const char *bname;
+	const char *name;
+	mode_t md;
+	size_t size;
+	time_t mtime;
+	uid_t uid;
+	gid_t gid;
+	char **av;
+	char buf[25];
+	char find;
+	int exitcode, flags, r, i;
 
 	assert(mode == 'p' || mode == 't' || mode == 'x');
 
@@ -95,7 +96,7 @@ ar_read_archive(struct bsdar *bsdar, int mode, FILE *out)
 
 		if (bsdar->argc > 0) {
 			find = 0;
-			for(i = 0; i < bsdar->argc; i++) {
+			for (i = 0; i < bsdar->argc; i++) {
 				av = &bsdar->argv[i];
 				if (*av == NULL)
 					continue;
@@ -121,8 +122,8 @@ ar_read_archive(struct bsdar *bsdar, int mode, FILE *out)
 				size = archive_entry_size(entry);
 				mtime = archive_entry_mtime(entry);
 				(void)strmode(md, buf);
-				(void)fprintf(out, "%s %6d/%-6d %8ju ",
-				    buf + 1, uid, gid, (uintmax_t)size);
+				(void)fprintf(out, "%s %6d/%-6d %8ju ", buf + 1,
+				    uid, gid, (uintmax_t)size);
 				tp = localtime(&mtime);
 				(void)strftime(buf, sizeof(buf),
 				    "%b %e %H:%M %Y", tp);
@@ -145,8 +146,7 @@ ar_read_archive(struct bsdar *bsdar, int mode, FILE *out)
 			/* mode == 'x' || mode = 'p' */
 			if (mode == 'p') {
 				if (bsdar->options & AR_V) {
-					(void)fprintf(out, "\n<%s>\n\n",
-					    name);
+					(void)fprintf(out, "\n<%s>\n\n", name);
 					fflush(out);
 				}
 				r = archive_read_data_into_fd(a, 1);
@@ -165,7 +165,7 @@ ar_read_archive(struct bsdar *bsdar, int mode, FILE *out)
 						continue;
 					if (bsdar->options & AR_U &&
 					    archive_entry_mtime(entry) <=
-					    sb.st_mtime)
+						sb.st_mtime)
 						continue;
 				}
 

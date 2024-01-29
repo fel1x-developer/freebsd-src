@@ -45,6 +45,7 @@
 
 #include <complex.h>
 #include <math.h>
+
 #include "math_private.h"
 
 float complex
@@ -55,17 +56,17 @@ cpowf(float complex a, float complex z)
 
 	x = crealf(z);
 	y = cimagf(z);
-	absa = cabsf (a);
+	absa = cabsf(a);
 	if (absa == 0.0f) {
 		return (CMPLXF(0.0f, 0.0f));
 	}
-	arga = cargf (a);
-	r = powf (absa, x);
+	arga = cargf(a);
+	r = powf(absa, x);
 	theta = x * arga;
 	if (y != 0.0f) {
-		r = r * expf (-y * arga);
-		theta = theta + y * logf (absa);
+		r = r * expf(-y * arga);
+		theta = theta + y * logf(absa);
 	}
-	w = CMPLXF(r * cosf (theta), r * sinf (theta));
+	w = CMPLXF(r * cosf(theta), r * sinf(theta));
 	return (w);
 }

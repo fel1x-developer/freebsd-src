@@ -2,11 +2,10 @@
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-
 #include "cpa.h"
 #include "icp_adf_init.h"
-#include "icp_adf_transport.h"
 #include "icp_adf_poll.h"
+#include "icp_adf_transport.h"
 #include "icp_adf_transport_dp.h"
 #include "icp_sal_poll.h"
 
@@ -29,18 +28,12 @@ adf_modulo(Cpa32U data, Cpa32U shift)
  * call adf_create_ring from adf driver directly with same parameters
  */
 CpaStatus
-icp_adf_transCreateHandle(icp_accel_dev_t *adf,
-			  icp_transport_type trans_type,
-			  const char *section,
-			  const uint32_t accel_nr,
-			  const uint32_t bank_nr,
-			  const char *service_name,
-			  const icp_adf_ringInfoService_t info,
-			  icp_trans_callback callback,
-			  icp_resp_deliv_method resp,
-			  const uint32_t num_msgs,
-			  const uint32_t msg_size,
-			  icp_comms_trans_handle *trans_handle)
+icp_adf_transCreateHandle(icp_accel_dev_t *adf, icp_transport_type trans_type,
+    const char *section, const uint32_t accel_nr, const uint32_t bank_nr,
+    const char *service_name, const icp_adf_ringInfoService_t info,
+    icp_trans_callback callback, icp_resp_deliv_method resp,
+    const uint32_t num_msgs, const uint32_t msg_size,
+    icp_comms_trans_handle *trans_handle)
 {
 	CpaStatus status;
 	int error;
@@ -48,15 +41,10 @@ icp_adf_transCreateHandle(icp_accel_dev_t *adf,
 	ICP_CHECK_FOR_NULL_PARAM(trans_handle);
 	ICP_CHECK_FOR_NULL_PARAM(adf);
 
-	error = adf_create_ring(adf->accel_dev,
-				section,
-				bank_nr,
-				num_msgs,
-				msg_size,
-				service_name,
-				callback,
-				((resp == ICP_RESP_TYPE_IRQ) ? 0 : 1),
-				(struct adf_etr_ring_data **)trans_handle);
+	error = adf_create_ring(adf->accel_dev, section, bank_nr, num_msgs,
+	    msg_size, service_name, callback,
+	    ((resp == ICP_RESP_TYPE_IRQ) ? 0 : 1),
+	    (struct adf_etr_ring_data **)trans_handle);
 	if (!error)
 		status = CPA_STATUS_SUCCESS;
 	else
@@ -70,18 +58,12 @@ icp_adf_transCreateHandle(icp_accel_dev_t *adf,
  * Reinitialize transport handle for a service
  */
 CpaStatus
-icp_adf_transReinitHandle(icp_accel_dev_t *adf,
-			  icp_transport_type trans_type,
-			  const char *section,
-			  const uint32_t accel_nr,
-			  const uint32_t bank_nr,
-			  const char *service_name,
-			  const icp_adf_ringInfoService_t info,
-			  icp_trans_callback callback,
-			  icp_resp_deliv_method resp,
-			  const uint32_t num_msgs,
-			  const uint32_t msg_size,
-			  icp_comms_trans_handle *trans_handle)
+icp_adf_transReinitHandle(icp_accel_dev_t *adf, icp_transport_type trans_type,
+    const char *section, const uint32_t accel_nr, const uint32_t bank_nr,
+    const char *service_name, const icp_adf_ringInfoService_t info,
+    icp_trans_callback callback, icp_resp_deliv_method resp,
+    const uint32_t num_msgs, const uint32_t msg_size,
+    icp_comms_trans_handle *trans_handle)
 {
 	return CPA_STATUS_SUCCESS;
 }
@@ -132,9 +114,8 @@ icp_adf_transGetRingNum(icp_comms_trans_handle trans_handle, uint32_t *ringNum)
  * call adf_send_message from adf driver directly
  */
 CpaStatus
-icp_adf_transPutMsg(icp_comms_trans_handle trans_handle,
-		    uint32_t *inBuf,
-		    uint32_t bufLen)
+icp_adf_transPutMsg(icp_comms_trans_handle trans_handle, uint32_t *inBuf,
+    uint32_t bufLen)
 {
 	struct adf_etr_ring_data *ring = trans_handle;
 	CpaStatus status = CPA_STATUS_FAIL;
@@ -155,8 +136,7 @@ icp_adf_transPutMsg(icp_comms_trans_handle trans_handle,
 
 CpaStatus
 icp_adf_getInflightRequests(icp_comms_trans_handle trans_handle,
-			    Cpa32U *maxInflightRequests,
-			    Cpa32U *numInflightRequests)
+    Cpa32U *maxInflightRequests, Cpa32U *numInflightRequests)
 {
 	struct adf_etr_ring_data *ring = trans_handle;
 	ICP_CHECK_FOR_NULL_PARAM(ring);
@@ -167,23 +147,21 @@ icp_adf_getInflightRequests(icp_comms_trans_handle trans_handle,
 	 * the absolute max.
 	 */
 	*numInflightRequests = (*(uint32_t *)ring->inflights);
-	*maxInflightRequests =
-	    ADF_MAX_INFLIGHTS(ring->ring_size, ring->msg_size);
+	*maxInflightRequests = ADF_MAX_INFLIGHTS(ring->ring_size,
+	    ring->msg_size);
 	return CPA_STATUS_SUCCESS;
 }
 
 CpaStatus
 icp_adf_dp_getInflightRequests(icp_comms_trans_handle trans_handle,
-			       Cpa32U *maxInflightRequests,
-			       Cpa32U *numInflightRequests)
+    Cpa32U *maxInflightRequests, Cpa32U *numInflightRequests)
 {
 	ICP_CHECK_FOR_NULL_PARAM(trans_handle);
 	ICP_CHECK_FOR_NULL_PARAM(maxInflightRequests);
 	ICP_CHECK_FOR_NULL_PARAM(numInflightRequests);
 
-	return icp_adf_getInflightRequests(trans_handle,
-					   maxInflightRequests,
-					   numInflightRequests);
+	return icp_adf_getInflightRequests(trans_handle, maxInflightRequests,
+	    numInflightRequests);
 }
 
 /*
@@ -197,9 +175,8 @@ icp_adf_dp_getInflightRequests(icp_comms_trans_handle trans_handle,
  * This function will return RETRY if the ring is empty.
  */
 CpaStatus
-icp_adf_pollInstance(icp_comms_trans_handle *trans_hnd,
-		     Cpa32U num_transHandles,
-		     Cpa32U response_quota)
+icp_adf_pollInstance(icp_comms_trans_handle *trans_hnd, Cpa32U num_transHandles,
+    Cpa32U response_quota)
 {
 	Cpa32U resp_total = 0;
 	Cpa32U num_resp;
@@ -241,7 +218,7 @@ icp_adf_pollInstance(icp_comms_trans_handle *trans_hnd,
  */
 CpaStatus
 icp_adf_check_RespInstance(icp_comms_trans_handle *trans_hnd,
-			   Cpa32U num_transHandles)
+    Cpa32U num_transHandles)
 {
 	return CPA_STATUS_SUCCESS;
 }
@@ -289,8 +266,7 @@ icp_sal_pollAllBanks(Cpa32U accelId, Cpa32U response_quota)
  */
 void
 icp_adf_getQueueMemory(icp_comms_trans_handle trans_handle,
-		       Cpa32U numberRequests,
-		       void **pCurrentQatMsg)
+    Cpa32U numberRequests, void **pCurrentQatMsg)
 {
 	struct adf_etr_ring_data *ring = trans_handle;
 	Cpa64U flight;
@@ -316,7 +292,7 @@ icp_adf_getQueueMemory(icp_comms_trans_handle trans_handle,
  */
 void
 icp_adf_getSingleQueueAddr(icp_comms_trans_handle trans_handle,
-			   void **pCurrentQatMsg)
+    void **pCurrentQatMsg)
 {
 	struct adf_etr_ring_data *ring = trans_handle;
 	Cpa64U flight;
@@ -336,9 +312,9 @@ icp_adf_getSingleQueueAddr(icp_comms_trans_handle trans_handle,
 	*pCurrentQatMsg = (void *)((uintptr_t)ring->base_addr + ring->tail);
 
 	/* Update the shadow tail */
-	ring->tail =
-	    adf_modulo(ring->tail + ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
-		       ADF_RING_SIZE_MODULO(ring->ring_size));
+	ring->tail = adf_modulo(ring->tail +
+		ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
+	    ADF_RING_SIZE_MODULO(ring->ring_size));
 }
 
 /*
@@ -355,9 +331,9 @@ icp_adf_getQueueNext(icp_comms_trans_handle trans_handle, void **pCurrentQatMsg)
 	ICP_CHECK_FOR_NULL_PARAM_VOID(pCurrentQatMsg);
 
 	/* Increment tail to next message */
-	ring->tail =
-	    adf_modulo(ring->tail + ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
-		       ADF_RING_SIZE_MODULO(ring->ring_size));
+	ring->tail = adf_modulo(ring->tail +
+		ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
+	    ADF_RING_SIZE_MODULO(ring->ring_size));
 
 	/* Get the address of next message */
 	*pCurrentQatMsg = (void *)((uintptr_t)ring->base_addr + ring->tail);
@@ -382,9 +358,7 @@ icp_adf_updateQueueTail(icp_comms_trans_handle trans_handle)
 	ICP_CHECK_FOR_NULL_PARAM_VOID(csr_ops);
 
 	csr_ops->write_csr_ring_tail(ring->bank->csr_addr,
-				     ring->bank->bank_number,
-				     ring->ring_number,
-				     ring->tail);
+	    ring->bank->bank_number, ring->ring_number, ring->tail);
 	ring->csr_tail_offset = ring->tail;
 }
 

@@ -32,8 +32,8 @@
 #include <sys/param.h>
 #include <sys/endian.h>
 #include <sys/stat.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <db.h>
 #include <err.h>
 #include <errno.h>
@@ -49,36 +49,36 @@
 
 #include "pw_scan.h"
 
-#define	INSECURE	1
-#define	SECURE		2
-#define	PERM_INSECURE	(S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
-#define	PERM_SECURE	(S_IRUSR|S_IWUSR)
-#define LEGACY_VERSION(x)  _PW_VERSIONED(x, 3)
+#define INSECURE 1
+#define SECURE 2
+#define PERM_INSECURE (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+#define PERM_SECURE (S_IRUSR | S_IWUSR)
+#define LEGACY_VERSION(x) _PW_VERSIONED(x, 3)
 #define CURRENT_VERSION(x) _PW_VERSIONED(x, 4)
 
 static HASHINFO openinfo = {
-	4096,		/* bsize */
-	32,		/* ffactor */
-	256,		/* nelem */
-	2048 * 1024,	/* cachesize */
-	NULL,		/* hash() */
-	BIG_ENDIAN	/* lorder */
+	4096,	     /* bsize */
+	32,	     /* ffactor */
+	256,	     /* nelem */
+	2048 * 1024, /* cachesize */
+	NULL,	     /* hash() */
+	BIG_ENDIAN   /* lorder */
 };
 
 static enum state { FILE_INSECURE, FILE_SECURE, FILE_ORIG } clean;
-static struct passwd pwd;			/* password structure */
-static char *pname;				/* password file name */
+static struct passwd pwd; /* password structure */
+static char *pname;	  /* password file name */
 static char prefix[MAXPATHLEN];
 
-static int is_comment;	/* flag for comments */
+static int is_comment; /* flag for comments */
 static char line[LINE_MAX];
 
-void	cleanup(void);
-void	error(const char *);
-void	cp(char *, char *, mode_t mode);
-void	mv(char *, char *);
-int	scan(FILE *, struct passwd *);
-static void	usage(void);
+void cleanup(void);
+void error(const char *);
+void cp(char *, char *, mode_t mode);
+void mv(char *, char *);
+int scan(FILE *, struct passwd *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -110,8 +110,8 @@ main(int argc, char *argv[])
 	username = NULL;
 	oldfp = NULL;
 	while ((ch = getopt(argc, argv, "Cd:iNps:u:v")) != -1)
-		switch(ch) {
-		case 'C':                       /* verify only */
+		switch (ch) {
+		case 'C': /* verify only */
 			Cflag = 1;
 			break;
 		case 'd':
@@ -121,19 +121,19 @@ main(int argc, char *argv[])
 		case 'i':
 			iflag++;
 			break;
-		case 'N':			/* do not wait for lock	*/
-			nblock = LOCK_NB;	/* will fail if locked */
+		case 'N':		  /* do not wait for lock	*/
+			nblock = LOCK_NB; /* will fail if locked */
 			break;
-		case 'p':			/* create V7 "file.orig" */
+		case 'p': /* create V7 "file.orig" */
 			makeold = 1;
 			break;
-		case 's':			/* change default cachesize */
+		case 's': /* change default cachesize */
 			openinfo.cachesize = atoi(optarg) * 1024 * 1024;
 			break;
-		case 'u':			/* only update this record */
+		case 'u': /* only update this record */
 			username = optarg;
 			break;
-		case 'v':                       /* backward compatible */
+		case 'v': /* backward compatible */
 			break;
 		default:
 			usage();
@@ -168,14 +168,15 @@ main(int argc, char *argv[])
 	 *
 	 * This lock is necessary when someone runs pwd_mkdb manually, directly
 	 * on master.passwd, to handle the case where a user might try to
-	 * change his password while pwd_mkdb is running. 
+	 * change his password while pwd_mkdb is running.
 	 */
 	for (;;) {
 		struct stat st;
 
 		if (!(fp = fopen(pname, "r")))
 			error(pname);
-		if (flock(fileno(fp), LOCK_EX|nblock) < 0 && !(dflag && iflag))
+		if (flock(fileno(fp), LOCK_EX | nblock) < 0 &&
+		    !(dflag && iflag))
 			error("flock");
 		if (fstat(fileno(fp), &st) < 0)
 			error(pname);
@@ -206,21 +207,21 @@ main(int argc, char *argv[])
 
 		clean = FILE_INSECURE;
 		cp(buf2, buf, PERM_INSECURE);
-		dp = dbopen(buf,
-		    O_RDWR|O_EXCL, PERM_INSECURE, DB_HASH, &openinfo);
+		dp = dbopen(buf, O_RDWR | O_EXCL, PERM_INSECURE, DB_HASH,
+		    &openinfo);
 		if (dp == NULL)
 			error(buf);
 
 		clean = FILE_SECURE;
 		cp(sbuf2, sbuf, PERM_SECURE);
-		sdp = dbopen(sbuf,
-		    O_RDWR|O_EXCL, PERM_SECURE, DB_HASH, &openinfo);
+		sdp = dbopen(sbuf, O_RDWR | O_EXCL, PERM_SECURE, DB_HASH,
+		    &openinfo);
 		if (sdp == NULL)
 			error(sbuf);
 
 		/*
-		 * Do some trouble to check if we should store this users 
-		 * uid. Don't use getpwnam/getpwuid as that interferes 
+		 * Do some trouble to check if we should store this users
+		 * uid. Don't use getpwnam/getpwuid as that interferes
 		 * with NIS.
 		 */
 		pw_db = dbopen(_PATH_MP_DB, O_RDONLY, 0, DB_HASH, NULL);
@@ -228,7 +229,7 @@ main(int argc, char *argv[])
 			error(_MP_DB);
 
 		key.data = verskey;
-		key.size = sizeof(verskey)-1;
+		key.size = sizeof(verskey) - 1;
 		if ((pw_db->get)(pw_db, &key, &data, 0) == 0)
 			use_version = *(unsigned char *)data.data;
 		else
@@ -270,14 +271,14 @@ main(int argc, char *argv[])
 			error("close pw_db");
 		method = 0;
 	} else {
-		dp = dbopen(buf,
-		    O_RDWR|O_CREAT|O_EXCL, PERM_INSECURE, DB_HASH, &openinfo);
+		dp = dbopen(buf, O_RDWR | O_CREAT | O_EXCL, PERM_INSECURE,
+		    DB_HASH, &openinfo);
 		if (dp == NULL)
 			error(buf);
 		clean = FILE_INSECURE;
 
-		sdp = dbopen(sbuf,
-		    O_RDWR|O_CREAT|O_EXCL, PERM_SECURE, DB_HASH, &openinfo);
+		sdp = dbopen(sbuf, O_RDWR | O_CREAT | O_EXCL, PERM_SECURE,
+		    DB_HASH, &openinfo);
 		if (sdp == NULL)
 			error(sbuf);
 		clean = FILE_SECURE;
@@ -295,8 +296,8 @@ main(int argc, char *argv[])
 	 */
 	if (makeold) {
 		(void)snprintf(buf, sizeof(buf), "%s.orig", pname);
-		if ((tfd = open(buf,
-		    O_WRONLY|O_CREAT|O_EXCL, PERM_INSECURE)) < 0)
+		if ((tfd = open(buf, O_WRONLY | O_CREAT | O_EXCL,
+			 PERM_INSECURE)) < 0)
 			error(buf);
 		if ((oldfp = fdopen(tfd, "w")) == NULL)
 			error(buf);
@@ -316,7 +317,7 @@ main(int argc, char *argv[])
 	 */
 	/* In order to transition this file into a machine-independent
 	 * form, we have to change the format of entries.  However, since
-	 * older binaries will still expect the old MD format entries, we 
+	 * older binaries will still expect the old MD format entries, we
 	 * create those as usual and use versioned tags for the new entries.
 	 */
 	if (username == NULL) {
@@ -326,7 +327,7 @@ main(int argc, char *argv[])
 		 * entries.
 		 */
 		key.data = verskey;
-		key.size = sizeof(verskey)-1;
+		key.size = sizeof(verskey) - 1;
 		data.data = &version;
 		data.size = 1;
 		if ((dp->put)(dp, &key, &data, 0) == -1)
@@ -339,24 +340,28 @@ main(int argc, char *argv[])
 	sdata.data = (u_char *)sbuf;
 	key.data = (u_char *)tbuf;
 	for (cnt = 1; scan(fp, &pwd); ++cnt) {
-		if (!is_comment && 
+		if (!is_comment &&
 		    (pwd.pw_name[0] == '+' || pwd.pw_name[0] == '-')) {
 			yp_enabled = 1;
 			ypcnt++;
 		}
 		if (is_comment)
 			--cnt;
-#define	COMPACT(e)	t = e; while ((*p++ = *t++));
-#define SCALAR(e)	store = htonl((uint32_t)(e));      \
-			memmove(p, &store, sizeof(store)); \
-			p += sizeof(store);
-#define	LSCALAR(e)	store = HTOL((uint32_t)(e));       \
-			memmove(p, &store, sizeof(store)); \
-			p += sizeof(store);
-#define	HTOL(e)		(openinfo.lorder == BYTE_ORDER ? \
-			(uint32_t)(e) : \
-			bswap32((uint32_t)(e)))
-		if (!is_comment && 
+#define COMPACT(e)            \
+	t = e;                \
+	while ((*p++ = *t++)) \
+		;
+#define SCALAR(e)                          \
+	store = htonl((uint32_t)(e));      \
+	memmove(p, &store, sizeof(store)); \
+	p += sizeof(store);
+#define LSCALAR(e)                         \
+	store = HTOL((uint32_t)(e));       \
+	memmove(p, &store, sizeof(store)); \
+	p += sizeof(store);
+#define HTOL(e) \
+	(openinfo.lorder == BYTE_ORDER ? (uint32_t)(e) : bswap32((uint32_t)(e)))
+		if (!is_comment &&
 		    (!username || (strcmp(username, pwd.pw_name) == 0))) {
 			/* Create insecure data. */
 			p = buf;
@@ -436,7 +441,8 @@ main(int argc, char *argv[])
 			if ((sdp->put)(sdp, &key, &sdata, methoduid) == -1)
 				error("put");
 
-			/* Store insecure and secure special plus and special minus */
+			/* Store insecure and secure special plus and special
+			 * minus */
 			if (pwd.pw_name[0] == '+' || pwd.pw_name[0] == '-') {
 				tbuf[0] = CURRENT_VERSION(_PW_KEYYPBYNUM);
 				store = htonl(ypcnt);
@@ -462,10 +468,10 @@ main(int argc, char *argv[])
 			snprintf(uidstr, sizeof(uidstr), "%u", pwd.pw_uid);
 			snprintf(gidstr, sizeof(gidstr), "%u", pwd.pw_gid);
 
-			if (fprintf(oldfp, "%s:*:%s:%s:%s:%s:%s\n",
-			    pwd.pw_name, pwd.pw_fields & _PWF_UID ? uidstr : "",
-			    pwd.pw_fields & _PWF_GID ? gidstr : "",
-			    pwd.pw_gecos, pwd.pw_dir, pwd.pw_shell) < 0)
+			if (fprintf(oldfp, "%s:*:%s:%s:%s:%s:%s\n", pwd.pw_name,
+				pwd.pw_fields & _PWF_UID ? uidstr : "",
+				pwd.pw_fields & _PWF_GID ? gidstr : "",
+				pwd.pw_gecos, pwd.pw_dir, pwd.pw_shell) < 0)
 				error("write old");
 		}
 	}
@@ -492,7 +498,7 @@ main(int argc, char *argv[])
 	}
 
 	/* Set master.passwd permissions, in case caller forgot. */
-	(void)fchmod(fileno(fp), S_IRUSR|S_IWUSR);
+	(void)fchmod(fileno(fp), S_IRUSR | S_IWUSR);
 
 	/* Install as the real password files. */
 	(void)snprintf(buf, sizeof(buf), "%s/%s.tmp", prefix, _MP_DB);
@@ -549,7 +555,7 @@ scan(FILE *fp, struct passwd *pw)
 	memcpy(line, p, len);
 	line[len] = '\0';
 
-	/* 
+	/*
 	 * Ignore comments: ^[ \t]*#
 	 */
 	for (p = line; *p != '\0'; p++)
@@ -557,28 +563,29 @@ scan(FILE *fp, struct passwd *pw)
 			break;
 	if (*p == '#' || *p == '\0') {
 		is_comment = 1;
-		return(1);
+		return (1);
 	} else
 		is_comment = 0;
 
-	if (!__pw_scan(line, pw, _PWSCAN_WARN|_PWSCAN_MASTER)) {
+	if (!__pw_scan(line, pw, _PWSCAN_WARN | _PWSCAN_MASTER)) {
 		warnx("at line #%d", lcnt);
-fmt:		errno = EFTYPE;	/* XXX */
+	fmt:
+		errno = EFTYPE; /* XXX */
 		error(pname);
 	}
 
 	return (1);
 }
 
-void                    
-cp(char *from, char *to, mode_t mode)              
-{               
+void
+cp(char *from, char *to, mode_t mode)
+{
 	static char buf[MAXBSIZE];
 	int from_fd, rcount, to_fd, wcount;
 
 	if ((from_fd = open(from, O_RDONLY, 0)) < 0)
 		error(from);
-	if ((to_fd = open(to, O_WRONLY|O_CREAT|O_EXCL, mode)) < 0)
+	if ((to_fd = open(to, O_WRONLY | O_CREAT | O_EXCL, mode)) < 0)
 		error(to);
 	while ((rcount = read(from_fd, buf, MAXBSIZE)) > 0) {
 		wcount = write(to_fd, buf, rcount);
@@ -599,7 +606,6 @@ cp(char *from, char *to, mode_t mode)
 	}
 }
 
-
 void
 mv(char *from, char *to)
 {
@@ -611,9 +617,8 @@ mv(char *from, char *to)
 	 * Make sure file is safe on disk. To improve performance we will call
 	 * fsync() to the directory where file lies
 	 */
-	if (rename(from, to) != 0 ||
-	    (to_dir = dirname(to)) == NULL ||
-	    (to_dir_fd = open(to_dir, O_RDONLY|O_DIRECTORY)) == -1 ||
+	if (rename(from, to) != 0 || (to_dir = dirname(to)) == NULL ||
+	    (to_dir_fd = open(to_dir, O_RDONLY | O_DIRECTORY)) == -1 ||
 	    fsync(to_dir_fd) != 0) {
 		int sverrno = errno;
 		(void)snprintf(buf, sizeof(buf), "%s to %s", from, to);
@@ -641,7 +646,7 @@ cleanup(void)
 {
 	char buf[MAXPATHLEN];
 
-	switch(clean) {
+	switch (clean) {
 	case FILE_ORIG:
 		(void)snprintf(buf, sizeof(buf), "%s.orig", pname);
 		(void)unlink(buf);
@@ -661,6 +666,6 @@ usage(void)
 {
 
 	(void)fprintf(stderr,
-"usage: pwd_mkdb [-CiNp] [-d directory] [-s cachesize] [-u username] file\n");
+	    "usage: pwd_mkdb [-CiNp] [-d directory] [-s cachesize] [-u username] file\n");
 	exit(1);
 }

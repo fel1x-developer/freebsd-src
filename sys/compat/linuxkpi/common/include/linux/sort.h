@@ -28,14 +28,15 @@
 #ifndef _LINUXKPI_LINUX_SORT_H_
 #define _LINUXKPI_LINUX_SORT_H_
 
-#include <linux/types.h>
-#include <linux/kernel.h>
-
 #include <sys/libkern.h>
 
-#define	sort(base, num, size, cmp, swap)	do {	\
-	BUILD_BUG_ON_ZERO(swap);			\
-	qsort(base, num, size, cmp);			\
-} while (0)
+#include <linux/kernel.h>
+#include <linux/types.h>
 
-#endif	/* _LINUXKPI_LINUX_SORT_H_ */
+#define sort(base, num, size, cmp, swap)     \
+	do {                                 \
+		BUILD_BUG_ON_ZERO(swap);     \
+		qsort(base, num, size, cmp); \
+	} while (0)
+
+#endif /* _LINUXKPI_LINUX_SORT_H_ */

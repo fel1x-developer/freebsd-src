@@ -32,12 +32,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 void
 rewind(FILE *fp)
@@ -51,6 +52,6 @@ rewind(FILE *fp)
 	FLOCKFILE(fp);
 	if (_fseeko(fp, (off_t)0, SEEK_SET, 1) == 0)
 		errno = serrno;
-	clearerr_unlocked(fp);	/* POSIX: clear stdio error regardless */
+	clearerr_unlocked(fp); /* POSIX: clear stdio error regardless */
 	FUNLOCKFILE(fp);
 }

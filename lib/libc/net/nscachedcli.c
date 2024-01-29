@@ -27,22 +27,24 @@
  *
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/event.h>
+#include <sys/socket.h>
 #include <sys/uio.h>
 #include <sys/un.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
-#include "nscachedcli.h"
 
-#define NS_DEFAULT_CACHED_IO_TIMEOUT	4
+#include "namespace.h"
+#include "nscachedcli.h"
+#include "un-namespace.h"
+
+#define NS_DEFAULT_CACHED_IO_TIMEOUT 4
 
 static int safe_write(struct cached_connection_ *, const void *, size_t);
 static int safe_read(struct cached_connection_ *, void *, size_t);
@@ -76,8 +78,9 @@ safe_write(struct cached_connection_ *connection, const void *data,
 		if ((nevents == 1) && (eventlist.filter == EVFILT_WRITE)) {
 			s_result = _sendto(connection->sockfd, data + result,
 			    eventlist.data < data_size - result ?
-			    eventlist.data : data_size - result, MSG_NOSIGNAL,
-			    NULL, 0);
+				eventlist.data :
+				data_size - result,
+			    MSG_NOSIGNAL, NULL, 0);
 			if (s_result == -1)
 				return (-1);
 			else
@@ -119,7 +122,8 @@ safe_read(struct cached_connection_ *connection, void *data, size_t data_size)
 		if (nevents == 1 && eventlist.filter == EVFILT_READ) {
 			s_result = _read(connection->sockfd, data + result,
 			    eventlist.data <= data_size - result ?
-			    eventlist.data : data_size - result);
+				eventlist.data :
+				data_size - result);
 			if (s_result == -1)
 				return (-1);
 			else
@@ -165,17 +169,19 @@ send_credentials(struct cached_connection_ *connection, int type)
 	iov.iov_base = &type;
 	iov.iov_len = sizeof(int);
 
-	EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD,
-	    NOTE_LOWAT, sizeof(int), NULL);
+	EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD, NOTE_LOWAT,
+	    sizeof(int), NULL);
 	(void)_kevent(connection->write_queue, &eventlist, 1, NULL, 0, NULL);
 
 	nevents = _kevent(connection->write_queue, NULL, 0, &eventlist, 1,
 	    NULL);
 	if (nevents == 1 && eventlist.filter == EVFILT_WRITE) {
-		result = _sendmsg(connection->sockfd, &mhdr,
-		    MSG_NOSIGNAL) == -1 ? -1 : 0;
-		EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD,
-		    0, 0, NULL);
+		result = _sendmsg(connection->sockfd, &mhdr, MSG_NOSIGNAL) ==
+			-1 ?
+		    -1 :
+		    0;
+		EV_SET(&eventlist, connection->sockfd, EVFILT_WRITE, EV_ADD, 0,
+		    0, NULL);
 		_kevent(connection->write_queue, &eventlist, 1, NULL, 0, NULL);
 		return (result);
 	} else
@@ -346,11 +352,11 @@ __cached_read(struct cached_connection_ *connection, const char *entry_name,
 	if (result != 0)
 		goto fin;
 
-	 if (result_size > *data_size) {
-		 *data_size = result_size;
-		 error_code = -2;
-		 goto fin;
-	 }
+	if (result_size > *data_size) {
+		*data_size = result_size;
+		error_code = -2;
+		goto fin;
+	}
 
 	result = safe_read(connection, data, result_size);
 	if (result != 0)
@@ -479,7 +485,7 @@ __close_cached_mp_write_session(struct cached_connection_ *ws)
 
 struct cached_connection_ *
 __open_cached_mp_read_session(struct cached_connection_params const *params,
-	const char *entry_name)
+    const char *entry_name)
 {
 	struct cached_connection_ *connection, *retval;
 	size_t name_size;

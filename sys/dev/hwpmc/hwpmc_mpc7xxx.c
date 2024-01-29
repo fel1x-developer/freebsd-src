@@ -29,28 +29,31 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
+#include <machine/cpu.h>
 #include <machine/pmc_mdep.h>
 #include <machine/spr.h>
-#include <machine/cpu.h>
 
 #include "hwpmc_powerpc.h"
 
-#define PPC_SET_PMC1SEL(r, x)	((r & ~(SPR_MMCR0_74XX_PMC1SEL(0x3f))) | \
-				SPR_MMCR0_74XX_PMC1SEL(x))
-#define PPC_SET_PMC2SEL(r, x)	((r & ~(SPR_MMCR0_74XX_PMC2SEL(0x3f))) | \
-				SPR_MMCR0_74XX_PMC2SEL(x))
-#define PPC_SET_PMC3SEL(r, x)	((r & ~(SPR_MMCR1_PMC3SEL(0x1f))) | SPR_MMCR1_PMC3SEL(x))
-#define PPC_SET_PMC4SEL(r, x)	((r & ~(SPR_MMCR1_PMC4SEL(0x1f))) | SPR_MMCR1_PMC4SEL(x))
-#define PPC_SET_PMC5SEL(r, x)	((r & ~(SPR_MMCR1_PMC5SEL(0x1f))) | SPR_MMCR1_PMC5SEL(x))
-#define PPC_SET_PMC6SEL(r, x)	((r & ~(SPR_MMCR1_74XX_PMC6SEL(0x3f))) | \
-				SPR_MMCR1_74XX_PMC6SEL(x))
+#define PPC_SET_PMC1SEL(r, x) \
+	((r & ~(SPR_MMCR0_74XX_PMC1SEL(0x3f))) | SPR_MMCR0_74XX_PMC1SEL(x))
+#define PPC_SET_PMC2SEL(r, x) \
+	((r & ~(SPR_MMCR0_74XX_PMC2SEL(0x3f))) | SPR_MMCR0_74XX_PMC2SEL(x))
+#define PPC_SET_PMC3SEL(r, x) \
+	((r & ~(SPR_MMCR1_PMC3SEL(0x1f))) | SPR_MMCR1_PMC3SEL(x))
+#define PPC_SET_PMC4SEL(r, x) \
+	((r & ~(SPR_MMCR1_PMC4SEL(0x1f))) | SPR_MMCR1_PMC4SEL(x))
+#define PPC_SET_PMC5SEL(r, x) \
+	((r & ~(SPR_MMCR1_PMC5SEL(0x1f))) | SPR_MMCR1_PMC5SEL(x))
+#define PPC_SET_PMC6SEL(r, x) \
+	((r & ~(SPR_MMCR1_74XX_PMC6SEL(0x3f))) | SPR_MMCR1_74XX_PMC6SEL(x))
 
 /* Change this when we support more than just the 7450. */
-#define MPC7XXX_MAX_PMCS	6
+#define MPC7XXX_MAX_PMCS 6
 
 /*
  * Things to improve on this:
@@ -63,12 +66,15 @@
  * specifically).
  */
 
-#define PPC_PMC_MASK_ALL	0x3f
-#define PMC_POWERPC_EVENT(id, mask, number) \
-	{ .pe_event = PMC_EV_PPC7450_##id, .pe_flags = mask, .pe_code = number }
+#define PPC_PMC_MASK_ALL 0x3f
+#define PMC_POWERPC_EVENT(id, mask, number)                        \
+	{                                                          \
+		.pe_event = PMC_EV_PPC7450_##id, .pe_flags = mask, \
+		.pe_code = number                                  \
+	}
 
 static struct pmc_ppc_event mpc7xxx_event_codes[] = {
-	PMC_POWERPC_EVENT(CYCLE,PPC_PMC_MASK_ALL, 1),
+	PMC_POWERPC_EVENT(CYCLE, PPC_PMC_MASK_ALL, 1),
 	PMC_POWERPC_EVENT(INSTR_COMPLETED, 0x0f, 2),
 	PMC_POWERPC_EVENT(TLB_BIT_TRANSITIONS, 0x0f, 3),
 	PMC_POWERPC_EVENT(INSTR_DISPATCHED, 0x0f, 4),
@@ -109,7 +115,8 @@ static struct pmc_ppc_event mpc7xxx_event_codes[] = {
 	PMC_POWERPC_EVENT(DTLB_HW_SEARCH_CYCLES_OVER_THRESHOLD, 0x01, 40),
 	PMC_POWERPC_EVENT(L1_INSTR_CACHE_ACCESSES, 0x01, 41),
 	PMC_POWERPC_EVENT(INSTR_BKPT_MATCHES, 0x01, 42),
-	PMC_POWERPC_EVENT(L1_DATA_CACHE_LOAD_MISS_CYCLES_OVER_THRESHOLD, 0x01, 43),
+	PMC_POWERPC_EVENT(L1_DATA_CACHE_LOAD_MISS_CYCLES_OVER_THRESHOLD, 0x01,
+	    43),
 	PMC_POWERPC_EVENT(L1_DATA_SNOOP_HIT_ON_MODIFIED, 0x01, 44),
 	PMC_POWERPC_EVENT(LOAD_MISS_ALIAS, 0x01, 45),
 	PMC_POWERPC_EVENT(LOAD_MISS_ALIAS_ON_TOUCH, 0x01, 46),
@@ -192,7 +199,8 @@ static struct pmc_ppc_event mpc7xxx_event_codes[] = {
 	PMC_POWERPC_EVENT(CACHEABLE_STORE_MERGE_TO_32_BYTES, 0x02, 52),
 	PMC_POWERPC_EVENT(DATA_BKPT_MATCHES, 0x02, 53),
 	PMC_POWERPC_EVENT(FALL_THROUGH_BRANCHES_PROCESSED, 0x02, 54),
-	PMC_POWERPC_EVENT(FIRST_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY, 0x02, 55),
+	PMC_POWERPC_EVENT(FIRST_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY,
+	    0x02, 55),
 	PMC_POWERPC_EVENT(SECOND_SPECULATION_BUFFER_ACTIVE, 0x02, 56),
 	PMC_POWERPC_EVENT(BPU_STALL_ON_LR_DEPENDENCY, 0x02, 57),
 	PMC_POWERPC_EVENT(BTIC_MISS, 0x02, 58),
@@ -219,7 +227,8 @@ static struct pmc_ppc_event mpc7xxx_event_codes[] = {
 	PMC_POWERPC_EVENT(VT2_FETCHES, 0x04, 24),
 	PMC_POWERPC_EVENT(TAKEN_BRANCHES_PROCESSED, 0x04, 25),
 	PMC_POWERPC_EVENT(BRANCH_FLUSHES, 0x04, 26),
-	PMC_POWERPC_EVENT(SECOND_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY, 0x04, 27),
+	PMC_POWERPC_EVENT(SECOND_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY,
+	    0x04, 27),
 	PMC_POWERPC_EVENT(THIRD_SPECULATION_BUFFER_ACTIVE, 0x04, 28),
 	PMC_POWERPC_EVENT(BRANCH_UNIT_STALL_ON_CTR_DEPENDENCY, 0x04, 29),
 	PMC_POWERPC_EVENT(FAST_BTIC_HIT, 0x04, 30),
@@ -237,7 +246,8 @@ static struct pmc_ppc_event mpc7xxx_event_codes[] = {
 	PMC_POWERPC_EVENT(SNOOP_RETRIES, 0x08, 24),
 	PMC_POWERPC_EVENT(SUCCESSFUL_STWCX, 0x08, 25),
 	PMC_POWERPC_EVENT(DST_STREAM_3_CACHE_LINE_FETCHES, 0x08, 26),
-	PMC_POWERPC_EVENT(THIRD_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY, 0x08, 27),
+	PMC_POWERPC_EVENT(THIRD_SPECULATIVE_BRANCH_BUFFER_RESOLVED_CORRECTLY,
+	    0x08, 27),
 	PMC_POWERPC_EVENT(MISPREDICTED_BRANCHES, 0x08, 28),
 	PMC_POWERPC_EVENT(FOLDED_BRANCHES, 0x08, 29),
 	PMC_POWERPC_EVENT(FP_STORE_DOUBLE_COMPLETES_IN_LSU, 0x08, 30),
@@ -289,7 +299,8 @@ static struct pmc_ppc_event mpc7xxx_event_codes[] = {
 	PMC_POWERPC_EVENT(PREFETCH_ENGINE_COLLISION_VS_LOAD, 0x20, 53),
 	PMC_POWERPC_EVENT(PREFETCH_ENGINE_COLLISION_VS_STORE, 0x20, 54),
 	PMC_POWERPC_EVENT(PREFETCH_ENGINE_COLLISION_VS_INSTR_FETCH, 0x20, 55),
-	PMC_POWERPC_EVENT(PREFETCH_ENGINE_COLLISION_VS_LOAD_STORE_INSTR_FETCH, 0x20, 56),
+	PMC_POWERPC_EVENT(PREFETCH_ENGINE_COLLISION_VS_LOAD_STORE_INSTR_FETCH,
+	    0x20, 56),
 	PMC_POWERPC_EVENT(PREFETCH_ENGINE_FULL, 0x20, 57)
 };
 static size_t mpc7xxx_event_codes_size = nitems(mpc7xxx_event_codes);
@@ -400,8 +411,9 @@ mpc7xxx_pcpu_init(struct pmc_mdep *md, int cpu)
 	powerpc_pcpu_init(md, cpu);
 
 	/* Clear the MMCRs, and set FC, to disable all PMCs. */
-	mtspr(SPR_MMCR0_74XX, SPR_MMCR0_FC | SPR_MMCR0_PMXE |
-	    SPR_MMCR0_FCECE | SPR_MMCR0_PMC1CE | SPR_MMCR0_PMCNCE);
+	mtspr(SPR_MMCR0_74XX,
+	    SPR_MMCR0_FC | SPR_MMCR0_PMXE | SPR_MMCR0_FCECE | SPR_MMCR0_PMC1CE |
+		SPR_MMCR0_PMCNCE);
 	mtspr(SPR_MMCR1_74XX, 0);
 
 	return (0);
@@ -436,26 +448,26 @@ pmc_mpc7xxx_initialize(struct pmc_mdep *pmc_mdep)
 	pmc_mdep->pmd_cputype = PMC_CPU_PPC_7450;
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_POWERPC];
-	pcd->pcd_caps  = POWERPC_PMC_CAPS;
+	pcd->pcd_caps = POWERPC_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_PPC7450;
-	pcd->pcd_num   = MPC7XXX_MAX_PMCS;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
-	pcd->pcd_width = 32;	/* All PMCs, even in ppc970, are 32-bit */
+	pcd->pcd_num = MPC7XXX_MAX_PMCS;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
+	pcd->pcd_width = 32; /* All PMCs, even in ppc970, are 32-bit */
 
-	pcd->pcd_allocate_pmc   = powerpc_allocate_pmc;
-	pcd->pcd_config_pmc     = powerpc_config_pmc;
-	pcd->pcd_pcpu_fini      = mpc7xxx_pcpu_fini;
-	pcd->pcd_pcpu_init      = mpc7xxx_pcpu_init;
-	pcd->pcd_describe       = powerpc_describe;
-	pcd->pcd_get_config     = powerpc_get_config;
-	pcd->pcd_read_pmc       = powerpc_read_pmc;
-	pcd->pcd_release_pmc    = powerpc_release_pmc;
-	pcd->pcd_start_pmc      = powerpc_start_pmc;
-	pcd->pcd_stop_pmc       = powerpc_stop_pmc;
-	pcd->pcd_write_pmc      = powerpc_write_pmc;
+	pcd->pcd_allocate_pmc = powerpc_allocate_pmc;
+	pcd->pcd_config_pmc = powerpc_config_pmc;
+	pcd->pcd_pcpu_fini = mpc7xxx_pcpu_fini;
+	pcd->pcd_pcpu_init = mpc7xxx_pcpu_init;
+	pcd->pcd_describe = powerpc_describe;
+	pcd->pcd_get_config = powerpc_get_config;
+	pcd->pcd_read_pmc = powerpc_read_pmc;
+	pcd->pcd_release_pmc = powerpc_release_pmc;
+	pcd->pcd_start_pmc = powerpc_start_pmc;
+	pcd->pcd_stop_pmc = powerpc_stop_pmc;
+	pcd->pcd_write_pmc = powerpc_write_pmc;
 
-	pmc_mdep->pmd_npmc   += MPC7XXX_MAX_PMCS;
-	pmc_mdep->pmd_intr   =  powerpc_pmc_intr;
+	pmc_mdep->pmd_npmc += MPC7XXX_MAX_PMCS;
+	pmc_mdep->pmd_intr = powerpc_pmc_intr;
 
 	ppc_event_codes = mpc7xxx_event_codes;
 	ppc_event_codes_size = mpc7xxx_event_codes_size;

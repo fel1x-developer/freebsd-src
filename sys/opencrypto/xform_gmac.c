@@ -48,6 +48,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <opencrypto/gmac.h>
 #include <opencrypto/xform_auth.h>
 #include <opencrypto/xform_enc.h>

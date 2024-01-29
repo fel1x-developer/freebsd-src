@@ -75,17 +75,19 @@
 /*
  * Sleep times; used to prevent thrashing.
  */
-#define	GETTY_SPACING		 5	/* N secs minimum getty spacing */
-#define	GETTY_SLEEP		30	/* sleep N secs after spacing problem */
-#define	GETTY_NSPACE		 3	/* max. spacing count to bring reaction */
-#define	WINDOW_WAIT		 3	/* wait N secs after starting window */
-#define	STALL_TIMEOUT		30	/* wait N secs after warning */
-#define	DEATH_WATCH		10	/* wait N secs for procs to die */
-#define	DEATH_SCRIPT		120	/* wait for 2min for /etc/rc.shutdown */
-#define	RESOURCE_RC		"daemon"
-#define	RESOURCE_WINDOW		"default"
-#define	RESOURCE_GETTY		"default"
-#define SCRIPT_ARGV_SIZE 3 /* size of argv passed to execute_script, can be increased if needed */
+#define GETTY_SPACING 5	 /* N secs minimum getty spacing */
+#define GETTY_SLEEP 30	 /* sleep N secs after spacing problem */
+#define GETTY_NSPACE 3	 /* max. spacing count to bring reaction */
+#define WINDOW_WAIT 3	 /* wait N secs after starting window */
+#define STALL_TIMEOUT 30 /* wait N secs after warning */
+#define DEATH_WATCH 10	 /* wait N secs for procs to die */
+#define DEATH_SCRIPT 120 /* wait for 2min for /etc/rc.shutdown */
+#define RESOURCE_RC "daemon"
+#define RESOURCE_WINDOW "default"
+#define RESOURCE_GETTY "default"
+#define SCRIPT_ARGV_SIZE                                                       \
+	3 /* size of argv passed to execute_script, can be increased if needed \
+	   */
 
 static void handle(sig_t, ...);
 static void delset(sigset_t *, ...);
@@ -95,7 +97,7 @@ static void warning(const char *, ...) __printflike(1, 2);
 static void emergency(const char *, ...) __printflike(1, 2);
 static void disaster(int);
 static void revoke_ttys(void);
-static int  runshutdown(void);
+static int runshutdown(void);
 static char *strk(char *);
 static void runfinal(void);
 
@@ -139,24 +141,24 @@ static void replace_init(char *path);
 static void write_stderr(const char *message);
 
 typedef struct init_session {
-	pid_t	se_process;		/* controlling process */
-	time_t	se_started;		/* used to avoid thrashing */
-	int	se_flags;		/* status of session */
-#define	SE_SHUTDOWN	0x1		/* session won't be restarted */
-#define	SE_PRESENT	0x2		/* session is in /etc/ttys */
-#define	SE_IFEXISTS	0x4		/* session defined as "onifexists" */
-#define	SE_IFCONSOLE	0x8		/* session defined as "onifconsole" */
-	int	se_nspace;		/* spacing count */
-	char	*se_device;		/* filename of port */
-	char	*se_getty;		/* what to run on that port */
-	char	*se_getty_argv_space;   /* pre-parsed argument array space */
-	char	**se_getty_argv;	/* pre-parsed argument array */
-	char	*se_window;		/* window system (started only once) */
-	char	*se_window_argv_space;  /* pre-parsed argument array space */
-	char	**se_window_argv;	/* pre-parsed argument array */
-	char	*se_type;		/* default terminal type */
-	struct	init_session *se_prev;
-	struct	init_session *se_next;
+	pid_t se_process;	    /* controlling process */
+	time_t se_started;	    /* used to avoid thrashing */
+	int se_flags;		    /* status of session */
+#define SE_SHUTDOWN 0x1		    /* session won't be restarted */
+#define SE_PRESENT 0x2		    /* session is in /etc/ttys */
+#define SE_IFEXISTS 0x4		    /* session defined as "onifexists" */
+#define SE_IFCONSOLE 0x8	    /* session defined as "onifconsole" */
+	int se_nspace;		    /* spacing count */
+	char *se_device;	    /* filename of port */
+	char *se_getty;		    /* what to run on that port */
+	char *se_getty_argv_space;  /* pre-parsed argument array space */
+	char **se_getty_argv;	    /* pre-parsed argument array */
+	char *se_window;	    /* window system (started only once) */
+	char *se_window_argv_space; /* pre-parsed argument array space */
+	char **se_window_argv;	    /* pre-parsed argument array */
+	char *se_type;		    /* default terminal type */
+	struct init_session *se_prev;
+	struct init_session *se_next;
 } session_t;
 
 static void free_session(session_t *);
@@ -235,7 +237,7 @@ main(int argc, char *argv[])
 				kill(1, sig);
 				_exit(0);
 			} else
-invalid:
+			invalid:
 				errx(1, "invalid run-level ``%s''", argv[1]);
 		} else
 #endif
@@ -301,9 +303,9 @@ invalid:
 	    SIGUSR1, SIGUSR2, SIGWINCH, 0);
 	handle(alrm_handler, SIGALRM, 0);
 	sigfillset(&mask);
-	delset(&mask, SIGABRT, SIGFPE, SIGILL, SIGSEGV, SIGBUS, SIGSYS,
-	    SIGXCPU, SIGXFSZ, SIGHUP, SIGINT, SIGEMT, SIGTERM, SIGTSTP,
-	    SIGALRM, SIGUSR1, SIGUSR2, SIGWINCH, 0);
+	delset(&mask, SIGABRT, SIGFPE, SIGILL, SIGSEGV, SIGBUS, SIGSYS, SIGXCPU,
+	    SIGXFSZ, SIGHUP, SIGINT, SIGEMT, SIGTERM, SIGTSTP, SIGALRM, SIGUSR1,
+	    SIGUSR2, SIGWINCH, 0);
 	sigprocmask(SIG_SETMASK, &mask, NULL);
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
@@ -327,7 +329,7 @@ invalid:
 		state_func_t next_transition;
 
 		if ((next_transition = run_script(kenv_value)) != NULL)
-			initial_transition = (state_t) next_transition;
+			initial_transition = (state_t)next_transition;
 	}
 
 	if (kenv(KENV_GET, "init_chroot", kenv_value, sizeof(kenv_value)) > 0) {
@@ -357,10 +359,10 @@ invalid:
 		char *s;
 		int i;
 
-		char _fstype[]	= "fstype";
-		char _devfs[]	= "devfs";
-		char _fspath[]	= "fspath";
-		char _path_dev[]= _PATH_DEV;
+		char _fstype[] = "fstype";
+		char _devfs[] = "devfs";
+		char _fspath[] = "fspath";
+		char _path_dev[] = _PATH_DEV;
 
 		iov[0].iov_base = _fstype;
 		iov[0].iov_len = sizeof(_fstype);
@@ -504,7 +506,7 @@ disaster(int sig)
 	    (unsigned)sig < NSIG ? sys_siglist[sig] : "unknown signal");
 
 	sleep(STALL_TIMEOUT);
-	_exit(sig);		/* reboot */
+	_exit(sig); /* reboot */
 }
 
 /*
@@ -551,8 +553,8 @@ setsecuritylevel(int newlevel)
 		return;
 	}
 #ifdef SECURE
-	warning("kernel security level changed from %d to %d",
-	    curlevel, newlevel);
+	warning("kernel security level changed from %d to %d", curlevel,
+	    newlevel);
 #endif
 #endif
 }
@@ -567,7 +569,7 @@ transition(state_t s)
 
 	current_state = s;
 	for (;;)
-		current_state = (state_t) (*current_state)();
+		current_state = (state_t)(*current_state)();
 }
 
 /*
@@ -717,21 +719,19 @@ mount_tmpfs(const char *fspath)
 	iov = NULL;
 	iovlen = 0;
 	memset(errmsg, 0, sizeof(errmsg));
-	build_iovec(&iov, &iovlen, "fstype",
-	    __DECONST(void *, "tmpfs"), (size_t)-1);
-	build_iovec(&iov, &iovlen, "fspath",
-	    __DECONST(void *, fspath), (size_t)-1);
-	build_iovec(&iov, &iovlen, "errmsg",
-	    errmsg, sizeof(errmsg));
+	build_iovec(&iov, &iovlen, "fstype", __DECONST(void *, "tmpfs"),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "fspath", __DECONST(void *, fspath),
+	    (size_t)-1);
+	build_iovec(&iov, &iovlen, "errmsg", errmsg, sizeof(errmsg));
 
 	error = nmount(iov, iovlen, 0);
 	if (error != 0) {
 		if (*errmsg != '\0') {
-			emergency("cannot mount tmpfs on %s: %s: %m",
-			    fspath, errmsg);
+			emergency("cannot mount tmpfs on %s: %s: %m", fspath,
+			    errmsg);
 		} else {
-			emergency("cannot mount tmpfs on %s: %m",
-			    fspath);
+			emergency("cannot mount tmpfs on %s: %m", fspath);
 		}
 		return (error);
 	}
@@ -785,7 +785,7 @@ reroot(void)
 out:
 	emergency("reroot failed; going to single user mode");
 	free(buf);
-	return (state_func_t) single_user;
+	return (state_func_t)single_user;
 }
 
 static state_func_t
@@ -814,8 +814,8 @@ reroot_phase_two(void)
 	nbytes = kenv(KENV_GET, "init_path", init_path, sizeof(init_path));
 	if (nbytes <= 0) {
 		init_path_len = sizeof(init_path);
-		error = sysctlbyname("kern.init_path",
-		    init_path, &init_path_len, NULL, 0);
+		error = sysctlbyname("kern.init_path", init_path,
+		    &init_path_len, NULL, 0);
 		if (error != 0) {
 			emergency("failed to retrieve kern.init_path: %m");
 			goto out;
@@ -836,7 +836,7 @@ reroot_phase_two(void)
 
 out:
 	emergency("reroot failed; going to single user mode");
-	return (state_func_t) single_user;
+	return (state_func_t)single_user;
 }
 
 /*
@@ -855,7 +855,7 @@ single_user(void)
 	struct ttyent *typ;
 	struct passwd *pp;
 	static const char banner[] =
-		"Enter root password, or ^D to go multi-user\n";
+	    "Enter root password, or ^D to go multi-user\n";
 	char *clear, *password;
 #endif
 #ifdef DEBUGSHELL
@@ -893,8 +893,8 @@ single_user(void)
 		 */
 		typ = getttynam("console");
 		pp = getpwnam("root");
-		if (typ && (typ->ty_status & TTY_SECURE) == 0 &&
-		    pp && *pp->pw_passwd) {
+		if (typ && (typ->ty_status & TTY_SECURE) == 0 && pp &&
+		    *pp->pw_passwd) {
 			write_stderr(banner);
 			for (;;) {
 				clear = getpass("Password:");
@@ -917,7 +917,7 @@ single_user(void)
 			char *cp = altshell;
 			int num;
 
-#define	SHREQUEST "Enter full pathname of shell or RETURN for "
+#define SHREQUEST "Enter full pathname of shell or RETURN for "
 			write_stderr(SHREQUEST);
 			write_stderr(shell);
 			write_stderr(": ");
@@ -960,9 +960,9 @@ single_user(void)
 		 * We are seriously hosed.  Do our best.
 		 */
 		emergency("can't fork single-user shell, trying again");
-		while (waitpid(-1, (int *) 0, WNOHANG) > 0)
+		while (waitpid(-1, (int *)0, WNOHANG) > 0)
 			continue;
-		return (state_func_t) single_user;
+		return (state_func_t)single_user;
 	}
 
 	requested_transition = 0;
@@ -972,8 +972,9 @@ single_user(void)
 		if (wpid == -1) {
 			if (errno == EINTR)
 				continue;
-			warning("wait for single-user shell failed: %m; restarting");
-			return (state_func_t) single_user;
+			warning(
+			    "wait for single-user shell failed: %m; restarting");
+			return (state_func_t)single_user;
 		}
 		if (wpid == pid && WIFSTOPPED(status)) {
 			warning("init: shell stopped, restarting\n");
@@ -983,7 +984,7 @@ single_user(void)
 	} while (wpid != pid && !requested_transition);
 
 	if (requested_transition)
-		return (state_func_t) requested_transition;
+		return (state_func_t)requested_transition;
 
 	if (!WIFEXITED(status)) {
 		if (WTERMSIG(status) == SIGKILL) {
@@ -994,20 +995,21 @@ single_user(void)
 			gettimeofday(&tv, NULL);
 			tn = tv;
 			tv.tv_sec += STALL_TIMEOUT;
-			while (tv.tv_sec > tn.tv_sec || (tv.tv_sec ==
-			    tn.tv_sec && tv.tv_usec > tn.tv_usec)) {
+			while (tv.tv_sec > tn.tv_sec ||
+			    (tv.tv_sec == tn.tv_sec &&
+				tv.tv_usec > tn.tv_usec)) {
 				sleep(1);
 				gettimeofday(&tn, NULL);
 			}
 			_exit(0);
 		} else {
 			warning("single user shell terminated, restarting");
-			return (state_func_t) single_user;
+			return (state_func_t)single_user;
 		}
 	}
 
 	runcom_mode = FASTBOOT;
-	return (state_func_t) runcom;
+	return (state_func_t)runcom;
 }
 
 /*
@@ -1023,15 +1025,15 @@ runcom(void)
 		return next_transition;
 	BOOTTRACE("/etc/rc finished");
 
-	runcom_mode = AUTOBOOT;		/* the default */
-	return (state_func_t) read_ttys;
+	runcom_mode = AUTOBOOT; /* the default */
+	return (state_func_t)read_ttys;
 }
 
 static void
 execute_script(char *argv[])
 {
 	struct sigaction sa;
-	char* sh_argv[3 + SCRIPT_ARGV_SIZE];
+	char *sh_argv[3 + SCRIPT_ARGV_SIZE];
 	const char *shell, *script;
 	int error, sh_argv_len, i;
 
@@ -1064,12 +1066,12 @@ execute_script(char *argv[])
 	}
 
 	shell = get_shell();
-	sh_argv[0] = __DECONST(char*, shell);
+	sh_argv[0] = __DECONST(char *, shell);
 	sh_argv_len = 1;
 #ifdef SECURE
 	if (strcmp(shell, _PATH_BSHELL) == 0) {
-		sh_argv[1] = __DECONST(char*, "-o");
-		sh_argv[2] = __DECONST(char*, "verify");
+		sh_argv[1] = __DECONST(char *, "-o");
+		sh_argv[2] = __DECONST(char *, "verify");
 		sh_argv_len = 3;
 	}
 #endif
@@ -1120,15 +1122,15 @@ run_script(const char *script)
 
 		execute_script(argv);
 		sleep(STALL_TIMEOUT);
-		_exit(1);	/* force single user mode */
+		_exit(1); /* force single user mode */
 	}
 
 	if (pid == -1) {
 		emergency("can't fork for %s on %s: %m", shell, script);
-		while (waitpid(-1, (int *) 0, WNOHANG) > 0)
+		while (waitpid(-1, (int *)0, WNOHANG) > 0)
 			continue;
 		sleep(STALL_TIMEOUT);
-		return (state_func_t) single_user;
+		return (state_func_t)single_user;
 	}
 
 	/*
@@ -1140,17 +1142,18 @@ run_script(const char *script)
 			collect_child(wpid);
 		if (requested_transition == death_single ||
 		    requested_transition == reroot)
-			return (state_func_t) requested_transition;
+			return (state_func_t)requested_transition;
 		if (wpid == -1) {
 			if (errno == EINTR)
 				continue;
 			warning("wait for %s on %s failed: %m; going to "
-			    "single user mode", shell, script);
-			return (state_func_t) single_user;
+				"single user mode",
+			    shell, script);
+			return (state_func_t)single_user;
 		}
 		if (wpid == pid && WIFSTOPPED(status)) {
-			warning("init: %s on %s stopped, restarting\n",
-			    shell, script);
+			warning("init: %s on %s stopped, restarting\n", shell,
+			    script);
 			kill(pid, SIGCONT);
 			wpid = -1;
 		}
@@ -1168,14 +1171,15 @@ run_script(const char *script)
 
 	if (!WIFEXITED(status)) {
 		warning("%s on %s terminated abnormally, going to single "
-		    "user mode", shell, script);
-		return (state_func_t) single_user;
+			"user mode",
+		    shell, script);
+		return (state_func_t)single_user;
 	}
 
 	if (WEXITSTATUS(status))
-		return (state_func_t) single_user;
+		return (state_func_t)single_user;
 
-	return (state_func_t) 0;
+	return (state_func_t)0;
 }
 
 /*
@@ -1193,7 +1197,6 @@ start_session_db(void)
 		return (1);
 	}
 	return (0);
-
 }
 
 /*
@@ -1254,14 +1257,14 @@ static char **
 construct_argv(char *command)
 {
 	int argc = 0;
-	char **argv = (char **) malloc(((strlen(command) + 1) / 2 + 1)
-						* sizeof (char *));
+	char **argv = (char **)malloc(
+	    ((strlen(command) + 1) / 2 + 1) * sizeof(char *));
 
 	if ((argv[argc++] = strk(command)) == NULL) {
 		free(argv);
 		return (NULL);
 	}
-	while ((argv[argc++] = strk((char *) 0)) != NULL)
+	while ((argv[argc++] = strk((char *)0)) != NULL)
 		continue;
 	return argv;
 }
@@ -1297,12 +1300,11 @@ new_session(session_t *sprev, struct ttyent *typ)
 {
 	session_t *sp;
 
-	if ((typ->ty_status & TTY_ON) == 0 ||
-	    typ->ty_name == 0 ||
+	if ((typ->ty_status & TTY_ON) == 0 || typ->ty_name == 0 ||
 	    typ->ty_getty == 0)
 		return 0;
 
-	sp = (session_t *) calloc(1, sizeof (session_t));
+	sp = (session_t *)calloc(1, sizeof(session_t));
 
 	sp->se_flags |= SE_PRESENT;
 
@@ -1400,7 +1402,7 @@ read_ttys(void)
 	}
 	sessions = 0;
 	if (start_session_db())
-		return (state_func_t) single_user;
+		return (state_func_t)single_user;
 
 	/*
 	 * Allocate a session entry for each active port.
@@ -1412,7 +1414,7 @@ read_ttys(void)
 
 	endttyent();
 
-	return (state_func_t) multi_user;
+	return (state_func_t)multi_user;
 }
 
 /*
@@ -1461,12 +1463,11 @@ start_window_system(session_t *sp)
 		strlcat(term, sp->se_type, sizeof(term));
 		env[0] = term;
 		env[1] = NULL;
-	}
-	else
+	} else
 		env[0] = NULL;
 	execve(sp->se_window_argv[0], sp->se_window_argv, env);
 	stall("can't exec window system '%s' for port %s: %m",
-		sp->se_window_argv[0], sp->se_device);
+	    sp->se_window_argv[0], sp->se_device);
 	_exit(1);
 }
 
@@ -1478,7 +1479,7 @@ start_getty(session_t *sp)
 {
 	pid_t pid;
 	sigset_t mask;
-	time_t current_time = time((time_t *) 0);
+	time_t current_time = time((time_t *)0);
 	int too_quick = 0;
 	char term[64], *env[2];
 
@@ -1503,9 +1504,10 @@ start_getty(session_t *sp)
 		return pid;
 
 	if (too_quick) {
-		warning("getty repeating too quickly on port %s, sleeping %d secs",
+		warning(
+		    "getty repeating too quickly on port %s, sleeping %d secs",
 		    sp->se_device, GETTY_SLEEP);
-		sleep((unsigned) GETTY_SLEEP);
+		sleep((unsigned)GETTY_SLEEP);
 	}
 
 	if (sp->se_window) {
@@ -1528,8 +1530,8 @@ start_getty(session_t *sp)
 	} else
 		env[0] = NULL;
 	execve(sp->se_getty_argv[0], sp->se_getty_argv, env);
-	stall("can't exec getty '%s' for port %s: %m",
-		sp->se_getty_argv[0], sp->se_device);
+	stall("can't exec getty '%s' for port %s: %m", sp->se_getty_argv[0],
+	    sp->se_device);
 	_exit(1);
 }
 
@@ -1566,17 +1568,16 @@ collect_child(pid_t pid)
 {
 	session_t *sp, *sprev, *snext;
 
-	if (! sessions)
+	if (!sessions)
 		return;
 
-	if (! (sp = find_session(pid)))
+	if (!(sp = find_session(pid)))
 		return;
 
 	del_session(sp);
 	sp->se_process = 0;
 
-	if (sp->se_flags & SE_SHUTDOWN ||
-	    session_has_no_tty(sp)) {
+	if (sp->se_flags & SE_SHUTDOWN || session_has_no_tty(sp)) {
 		if ((sprev = sp->se_prev) != NULL)
 			sprev->se_next = sp->se_next;
 		else
@@ -1594,7 +1595,7 @@ collect_child(pid_t pid)
 	}
 
 	sp->se_process = pid;
-	sp->se_started = time((time_t *) 0);
+	sp->se_started = time((time_t *)0);
 	add_session(sp);
 }
 
@@ -1728,7 +1729,7 @@ multi_user(void)
 			break;
 		}
 		sp->se_process = pid;
-		sp->se_started = time((time_t *) 0);
+		sp->se_started = time((time_t *)0);
 		add_session(sp);
 	}
 
@@ -1738,10 +1739,10 @@ multi_user(void)
 		RUNTRACE("multi-user start");
 	}
 	while (!requested_transition)
-		if ((pid = waitpid(-1, (int *) 0, 0)) != -1)
+		if ((pid = waitpid(-1, (int *)0, 0)) != -1)
 			collect_child(pid);
 
-	return (state_func_t) requested_transition;
+	return (state_func_t)requested_transition;
 }
 
 /*
@@ -1784,19 +1785,17 @@ clean_ttys(void)
 			old_type = sp->se_type ? strdup(sp->se_type) : 0;
 			if (setupargv(sp, typ) == 0) {
 				warning("can't parse getty for port %s",
-					sp->se_device);
+				    sp->se_device);
 				sp->se_flags |= SE_SHUTDOWN;
 				kill(sp->se_process, SIGHUP);
-			}
-			else if (   !old_getty
-				 || (!old_type && sp->se_type)
-				 || (old_type && !sp->se_type)
-				 || (!old_window && sp->se_window)
-				 || (old_window && !sp->se_window)
-				 || (strcmp(old_getty, sp->se_getty) != 0)
-				 || (old_window && strcmp(old_window, sp->se_window) != 0)
-				 || (old_type && strcmp(old_type, sp->se_type) != 0)
-				) {
+			} else if (!old_getty || (!old_type && sp->se_type) ||
+			    (old_type && !sp->se_type) ||
+			    (!old_window && sp->se_window) ||
+			    (old_window && !sp->se_window) ||
+			    (strcmp(old_getty, sp->se_getty) != 0) ||
+			    (old_window &&
+				strcmp(old_window, sp->se_window) != 0) ||
+			    (old_type && strcmp(old_type, sp->se_type) != 0)) {
 				/* Don't set SE_SHUTDOWN here */
 				sp->se_nspace = 0;
 				sp->se_started = 0;
@@ -1827,7 +1826,7 @@ clean_ttys(void)
 		}
 	}
 
-	return (state_func_t) multi_user;
+	return (state_func_t)multi_user;
 }
 
 /*
@@ -1841,7 +1840,7 @@ catatonia(void)
 	for (sp = sessions; sp; sp = sp->se_next)
 		sp->se_flags |= SE_SHUTDOWN;
 
-	return (state_func_t) multi_user;
+	return (state_func_t)multi_user;
 }
 
 /*
@@ -1867,8 +1866,8 @@ death(void)
 	/* Temporarily block suspend. */
 	len = sizeof(blocked);
 	block = 1;
-	if (sysctlbyname("kern.suspend_blocked", &blocked, &len,
-	    &block, sizeof(block)) == -1)
+	if (sysctlbyname("kern.suspend_blocked", &blocked, &len, &block,
+		sizeof(block)) == -1)
 		blocked = 0;
 
 	/*
@@ -1884,10 +1883,10 @@ death(void)
 
 	/* Unblock suspend if we blocked it. */
 	if (!blocked)
-		sysctlbyname("kern.suspend_blocked", NULL, NULL,
-		    &blocked, sizeof(blocked));
+		sysctlbyname("kern.suspend_blocked", NULL, NULL, &blocked,
+		    sizeof(blocked));
 
-	return (state_func_t) death_single;
+	return (state_func_t)death_single;
 }
 
 /*
@@ -1906,7 +1905,7 @@ death_single(void)
 	BOOTTRACE("start killing user processes");
 	for (i = 0; i < 2; ++i) {
 		if (kill(-1, death_sigs[i]) == -1 && errno == ESRCH)
-			return (state_func_t) single_user;
+			return (state_func_t)single_user;
 
 		clang = false;
 		alarm(DEATH_WATCH);
@@ -1916,12 +1915,12 @@ death_single(void)
 		while (!clang && errno != ECHILD);
 
 		if (errno == ECHILD)
-			return (state_func_t) single_user;
+			return (state_func_t)single_user;
 	}
 
 	warning("some processes would not die; ps axl advised");
 
-	return (state_func_t) single_user;
+	return (state_func_t)single_user;
 }
 
 static void
@@ -1967,8 +1966,8 @@ runshutdown(void)
 		return 0;
 
 	if ((pid = fork()) == 0) {
-		char _reboot[]	= "reboot";
-		char _single[]	= "single";
+		char _reboot[] = "reboot";
+		char _single[] = "single";
 		char _path_rundown[] = _PATH_RUNDOWN;
 
 		argv[0] = _path_rundown;
@@ -1976,12 +1975,12 @@ runshutdown(void)
 		argv[2] = NULL;
 
 		execute_script(argv);
-		_exit(1);	/* force single user mode */
+		_exit(1); /* force single user mode */
 	}
 
 	if (pid == -1) {
 		emergency("can't fork for %s: %m", _PATH_RUNDOWN);
-		while (waitpid(-1, (int *) 0, WNOHANG) > 0)
+		while (waitpid(-1, (int *)0, WNOHANG) > 0)
 			continue;
 		sleep(STALL_TIMEOUT);
 		return -1;
@@ -1989,7 +1988,8 @@ runshutdown(void)
 
 	len = sizeof(shutdowntimeout);
 	if (sysctlbyname("kern.init_shutdown_timeout", &shutdowntimeout, &len,
-	    NULL, 0) == -1 || shutdowntimeout < 2)
+		NULL, 0) == -1 ||
+	    shutdowntimeout < 2)
 		shutdowntimeout = DEATH_SCRIPT;
 	alarm(shutdowntimeout);
 	clang = false;
@@ -2004,16 +2004,18 @@ runshutdown(void)
 			/* we were waiting for the sub-shell */
 			kill(wpid, SIGTERM);
 			warning("timeout expired for %s: %m; going to "
-			    "single user mode", _PATH_RUNDOWN);
+				"single user mode",
+			    _PATH_RUNDOWN);
 			BOOTTRACE("rc.shutdown's %d sec timeout expired",
-				  shutdowntimeout);
+			    shutdowntimeout);
 			return -1;
 		}
 		if (wpid == -1) {
 			if (errno == EINTR)
 				continue;
 			warning("wait for %s failed: %m; going to "
-			    "single user mode", _PATH_RUNDOWN);
+				"single user mode",
+			    _PATH_RUNDOWN);
 			return -1;
 		}
 		if (wpid == pid && WIFSTOPPED(status)) {
@@ -2042,7 +2044,8 @@ runshutdown(void)
 
 	if (!WIFEXITED(status)) {
 		warning("%s terminated abnormally, going to "
-		    "single user mode", _PATH_RUNDOWN);
+			"single user mode",
+		    _PATH_RUNDOWN);
 		return -2;
 	}
 
@@ -2065,7 +2068,7 @@ strk(char *p)
 		return 0;
 
 	c = *t;
-	while (c == ' ' || c == '\t' )
+	while (c == ' ' || c == '\t')
 		c = *++t;
 	if (!c) {
 		t = 0;
@@ -2077,12 +2080,12 @@ strk(char *p)
 		q = t;
 		while (c && c != '\'')
 			c = *++t;
-		if (!c)  /* unterminated string */
+		if (!c) /* unterminated string */
 			q = t = 0;
 		else
 			*t++ = 0;
 	} else {
-		while (c && c != ' ' && c != '\t' )
+		while (c && c != ' ' && c != '\t')
 			c = *++t;
 		*t++ = 0;
 		if (!c)
@@ -2097,10 +2100,9 @@ setprocresources(const char *cname)
 {
 	login_cap_t *lc;
 	if ((lc = login_getclassbyname(cname, NULL)) != NULL) {
-		setusercontext(lc, (struct passwd*)NULL, 0,
-		    LOGIN_SETENV |
-		    LOGIN_SETPRIORITY | LOGIN_SETRESOURCES |
-		    LOGIN_SETLOGINCLASS | LOGIN_SETCPUMASK);
+		setusercontext(lc, (struct passwd *)NULL, 0,
+		    LOGIN_SETENV | LOGIN_SETPRIORITY | LOGIN_SETRESOURCES |
+			LOGIN_SETLOGINCLASS | LOGIN_SETCPUMASK);
 		login_close(lc);
 	}
 }

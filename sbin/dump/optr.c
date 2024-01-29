@@ -33,25 +33,24 @@
 #include <sys/queue.h>
 #include <sys/wait.h>
 
-#include <ufs/ufs/dinode.h>
-
 #include <errno.h>
 #include <fstab.h>
 #include <grp.h>
 #include <limits.h>
+#include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <signal.h>
 #include <time.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
 #include "dump.h"
 #include "pathnames.h"
 
-void	alarmcatch(int);
-int	datesort(const void *, const void *);
+void alarmcatch(int);
+int datesort(const void *, const void *);
 
 /*
  *	Query the operator; This previously-fascist piece of code
@@ -64,15 +63,15 @@ int	datesort(const void *, const void *);
  *	Every 2 minutes we reprint the message, alerting others
  *	that dump needs attention.
  */
-static	int timeout;
-static	const char *attnmessage;		/* attention message */
+static int timeout;
+static const char *attnmessage; /* attention message */
 
 int
 query(const char *question)
 {
-	char	replybuffer[64];
-	int	back, errcount;
-	FILE	*mytty;
+	char replybuffer[64];
+	int back, errcount;
+	FILE *mytty;
 
 	if ((mytty = fopen(_PATH_TTY, "r")) == NULL)
 		quit("fopen on %s fails: %s\n", _PATH_TTY, strerror(errno));
@@ -84,16 +83,15 @@ query(const char *question)
 	do {
 		if (fgets(replybuffer, 63, mytty) == NULL) {
 			clearerr(mytty);
-			if (++errcount > 30)	/* XXX	ugly */
+			if (++errcount > 30) /* XXX	ugly */
 				quit("excessive operator query failures\n");
 		} else if (replybuffer[0] == 'y' || replybuffer[0] == 'Y') {
 			back = 1;
 		} else if (replybuffer[0] == 'n' || replybuffer[0] == 'N') {
 			back = 0;
 		} else {
-			(void) fprintf(stderr,
-			    "  DUMP: \"Yes\" or \"No\"?\n");
-			(void) fprintf(stderr,
+			(void)fprintf(stderr, "  DUMP: \"Yes\" or \"No\"?\n");
+			(void)fprintf(stderr,
 			    "  DUMP: %s: (\"yes\" or \"no\") ", question);
 		}
 	} while (back < 0);
@@ -101,11 +99,11 @@ query(const char *question)
 	/*
 	 *	Turn off the alarm, and reset the signal to trap out..
 	 */
-	(void) alarm(0);
+	(void)alarm(0);
 	if (signal(SIGALRM, sig) == SIG_IGN)
 		signal(SIGALRM, SIG_IGN);
-	(void) fclose(mytty);
-	return(back);
+	(void)fclose(mytty);
+	return (back);
 }
 
 char lastmsg[BUFSIZ];
@@ -119,21 +117,20 @@ alarmcatch(int sig __unused)
 {
 	if (notify == 0) {
 		if (timeout == 0)
-			(void) fprintf(stderr,
-			    "  DUMP: %s: (\"yes\" or \"no\") ",
-			    attnmessage);
+			(void)fprintf(stderr,
+			    "  DUMP: %s: (\"yes\" or \"no\") ", attnmessage);
 		else
 			msgtail("\a\a");
 	} else {
 		if (timeout) {
 			msgtail("\n");
-			broadcast("");		/* just print last msg */
+			broadcast(""); /* just print last msg */
 		}
-		(void) fprintf(stderr,"  DUMP: %s: (\"yes\" or \"no\") ",
+		(void)fprintf(stderr, "  DUMP: %s: (\"yes\" or \"no\") ",
 		    attnmessage);
 	}
 	signal(SIGALRM, alarmcatch);
-	(void) alarm(120);
+	(void)alarm(120);
 	timeout = 1;
 }
 
@@ -164,26 +161,28 @@ broadcast(const char *message)
 	if ((fp = popen(buf, "w")) == NULL)
 		return;
 
-	(void) fputs("\a\a\aMessage from the dump program to all operators\n\nDUMP: NEEDS ATTENTION: ", fp);
+	(void)fputs(
+	    "\a\a\aMessage from the dump program to all operators\n\nDUMP: NEEDS ATTENTION: ",
+	    fp);
 	if (lastmsg[0])
-		(void) fputs(lastmsg, fp);
+		(void)fputs(lastmsg, fp);
 	if (message[0])
-		(void) fputs(message, fp);
+		(void)fputs(message, fp);
 
-	(void) pclose(fp);
+	(void)pclose(fp);
 }
 
 /*
  *	Print out an estimate of the amount of time left to do the dump
  */
 
-time_t	tschedule = 0;
+time_t tschedule = 0;
 
 void
 timeest(void)
 {
 	double percent;
-	time_t	tnow, tdone;
+	time_t tnow, tdone;
 	char *tdone_str;
 	int deltat, hours, mins;
 
@@ -195,8 +194,10 @@ timeest(void)
 			msg("99.99%% done, finished soon\n");
 		}
 	} else {
-		deltat = (blockswritten == 0) ? 0 : tstart_writing - tnow +
-		    (double)(tnow - tstart_writing) / blockswritten * tapesize;
+		deltat = (blockswritten == 0) ? 0 :
+						tstart_writing - tnow +
+			(double)(tnow - tstart_writing) / blockswritten *
+			    tapesize;
 		tdone = tnow + deltat;
 		percent = (blockswritten * 100.0) / tapesize;
 		hours = deltat / 3600;
@@ -211,8 +212,8 @@ timeest(void)
 			tschedule = tnow + 300;
 			if (blockswritten < 500)
 				return;
-			msg("%3.2f%% done, finished in %d:%02d at %s\n", percent,
-			    hours, mins, tdone_str);
+			msg("%3.2f%% done, finished in %d:%02d at %s\n",
+			    percent, hours, mins, tdone_str);
 		}
 	}
 }
@@ -231,17 +232,17 @@ msg(const char *fmt, ...)
 {
 	va_list ap;
 
-	(void) fprintf(stderr,"  DUMP: ");
+	(void)fprintf(stderr, "  DUMP: ");
 #ifdef TDEBUG
-	(void) fprintf(stderr, "pid=%d ", getpid());
+	(void)fprintf(stderr, "pid=%d ", getpid());
 #endif
 	va_start(ap, fmt);
-	(void) vfprintf(stderr, fmt, ap);
+	(void)vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	(void) fflush(stdout);
-	(void) fflush(stderr);
+	(void)fflush(stdout);
+	(void)fflush(stderr);
 	va_start(ap, fmt);
-	(void) vsnprintf(lastmsg, sizeof(lastmsg), fmt, ap);
+	(void)vsnprintf(lastmsg, sizeof(lastmsg), fmt, ap);
 	va_end(ap);
 }
 
@@ -251,7 +252,7 @@ msgtail(const char *fmt, ...)
 	va_list ap;
 
 	va_start(ap, fmt);
-	(void) vfprintf(stderr, fmt, ap);
+	(void)vfprintf(stderr, fmt, ap);
 	va_end(ap);
 }
 
@@ -260,15 +261,15 @@ quit(const char *fmt, ...)
 {
 	va_list ap;
 
-	(void) fprintf(stderr,"  DUMP: ");
+	(void)fprintf(stderr, "  DUMP: ");
 #ifdef TDEBUG
-	(void) fprintf(stderr, "pid=%d ", getpid());
+	(void)fprintf(stderr, "pid=%d ", getpid());
 #endif
 	va_start(ap, fmt);
-	(void) vfprintf(stderr, fmt, ap);
+	(void)vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	(void) fflush(stdout);
-	(void) fflush(stderr);
+	(void)fflush(stdout);
+	(void)fflush(stderr);
 	dumpabort(0);
 }
 
@@ -282,9 +283,8 @@ allocfsent(const struct fstab *fs)
 {
 	struct fstab *new;
 
-	new = (struct fstab *)malloc(sizeof (*fs));
-	if (new == NULL ||
-	    (new->fs_file = strdup(fs->fs_file)) == NULL ||
+	new = (struct fstab *)malloc(sizeof(*fs));
+	if (new == NULL || (new->fs_file = strdup(fs->fs_file)) == NULL ||
 	    (new->fs_type = strdup(fs->fs_type)) == NULL ||
 	    (new->fs_spec = strdup(fs->fs_spec)) == NULL)
 		quit("%s\n", strerror(errno));
@@ -293,12 +293,12 @@ allocfsent(const struct fstab *fs)
 	return (new);
 }
 
-struct	pfstab {
+struct pfstab {
 	SLIST_ENTRY(pfstab) pf_list;
-	struct	fstab *pf_fstab;
+	struct fstab *pf_fstab;
 };
 
-static	SLIST_HEAD(, pfstab) table;
+static SLIST_HEAD(, pfstab) table;
 
 void
 dump_getfstab(void)
@@ -313,17 +313,17 @@ dump_getfstab(void)
 	}
 	while ((fs = getfsent()) != NULL) {
 		if ((strcmp(fs->fs_type, FSTAB_RW) &&
-		    strcmp(fs->fs_type, FSTAB_RO) &&
-		    strcmp(fs->fs_type, FSTAB_RQ)) ||
+			strcmp(fs->fs_type, FSTAB_RO) &&
+			strcmp(fs->fs_type, FSTAB_RQ)) ||
 		    strcmp(fs->fs_vfstype, "ufs"))
 			continue;
 		fs = allocfsent(fs);
-		if ((pf = (struct pfstab *)malloc(sizeof (*pf))) == NULL)
+		if ((pf = (struct pfstab *)malloc(sizeof(*pf))) == NULL)
 			quit("%s\n", strerror(errno));
 		pf->pf_fstab = fs;
 		SLIST_INSERT_HEAD(&table, pf, pf_list);
 	}
-	(void) endfsent();
+	(void)endfsent();
 }
 
 /*
@@ -339,7 +339,7 @@ fstabsearch(const char *key)
 	struct fstab *fs;
 	char *rn;
 
-	SLIST_FOREACH(pf, &table, pf_list) {
+	SLIST_FOREACH (pf, &table, pf_list) {
 		fs = pf->pf_fstab;
 		if (strcmp(fs->fs_file, key) == 0 ||
 		    strcmp(fs->fs_spec, key) == 0)
@@ -363,7 +363,7 @@ fstabsearch(const char *key)
  *	Tell the operator what to do
  */
 void
-lastdump(int arg)	/* w ==> just what to do; W ==> most recent dumps */
+lastdump(int arg) /* w ==> just what to do; W ==> most recent dumps */
 {
 	int i;
 	struct fstab *dt;
@@ -373,39 +373,38 @@ lastdump(int arg)	/* w ==> just what to do; W ==> most recent dumps */
 	time_t tnow;
 	struct tm *tlast;
 
-	(void) time(&tnow);
-	dump_getfstab();	/* /etc/fstab input */
-	initdumptimes();	/* /etc/dumpdates input */
-	qsort((char *) ddatev, nddates, sizeof(struct dumpdates *), datesort);
+	(void)time(&tnow);
+	dump_getfstab(); /* /etc/fstab input */
+	initdumptimes(); /* /etc/dumpdates input */
+	qsort((char *)ddatev, nddates, sizeof(struct dumpdates *), datesort);
 
 	if (arg == 'w')
-		(void) printf("Dump these file systems:\n");
+		(void)printf("Dump these file systems:\n");
 	else
-		(void) printf("Last dump(s) done (Dump '>' file systems):\n");
+		(void)printf("Last dump(s) done (Dump '>' file systems):\n");
 	lastname = "??";
-	ITITERATE(i, dtwalk) {
+	ITITERATE(i, dtwalk)
+	{
 		if (strncmp(lastname, dtwalk->dd_name,
-		    sizeof(dtwalk->dd_name)) == 0)
+			sizeof(dtwalk->dd_name)) == 0)
 			continue;
 		date = (char *)ctime(&dtwalk->dd_ddate);
-		date[16] = '\0';	/* blast away seconds and year */
+		date[16] = '\0'; /* blast away seconds and year */
 		lastname = dtwalk->dd_name;
 		dt = fstabsearch(dtwalk->dd_name);
 		dumpme = (dt != NULL && dt->fs_freq != 0);
 		if (dumpme) {
-		    tlast = localtime(&dtwalk->dd_ddate);
-		    dumpme = tnow > (dtwalk->dd_ddate - (tlast->tm_hour * 3600)
-				     - (tlast->tm_min * 60) - tlast->tm_sec
-				     + (dt->fs_freq * 86400));
+			tlast = localtime(&dtwalk->dd_ddate);
+			dumpme = tnow >
+			    (dtwalk->dd_ddate - (tlast->tm_hour * 3600) -
+				(tlast->tm_min * 60) - tlast->tm_sec +
+				(dt->fs_freq * 86400));
 		}
 		if (arg != 'w' || dumpme)
-			(void) printf(
+			(void)printf(
 			    "%c %8s\t(%6s) Last dump: Level %d, Date %s\n",
-			    dumpme && (arg != 'w') ? '>' : ' ',
-			    dtwalk->dd_name,
-			    dt ? dt->fs_file : "",
-			    dtwalk->dd_level,
-			    date);
+			    dumpme && (arg != 'w') ? '>' : ' ', dtwalk->dd_name,
+			    dt ? dt->fs_file : "", dtwalk->dd_level, date);
 	}
 }
 

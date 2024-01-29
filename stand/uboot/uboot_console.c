@@ -25,7 +25,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "bootstrap.h"
 #include "glue.h"
 

@@ -26,14 +26,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_G_CONCAT_H_
-#define	_G_CONCAT_H_
+#ifndef _G_CONCAT_H_
+#define _G_CONCAT_H_
 
 #include <sys/endian.h>
 
-#define	G_CONCAT_CLASS_NAME	"CONCAT"
+#define G_CONCAT_CLASS_NAME "CONCAT"
 
-#define	G_CONCAT_MAGIC		"GEOM::CONCAT"
+#define G_CONCAT_MAGIC "GEOM::CONCAT"
 /*
  * Version history:
  * 1 - Initial version number.
@@ -41,52 +41,52 @@
  * 3 - Added md_provider field to metadata and '-h' option to gconcat(8).
  * 4 - Added md_provsize field to metadata.
  */
-#define	G_CONCAT_VERSION	4
+#define G_CONCAT_VERSION 4
 
 #ifdef _KERNEL
-#define	G_CONCAT_TYPE_MANUAL	0
-#define	G_CONCAT_TYPE_AUTOMATIC	1
+#define G_CONCAT_TYPE_MANUAL 0
+#define G_CONCAT_TYPE_AUTOMATIC 1
 
 #define G_CONCAT_DEBUG(lvl, ...) \
-    _GEOM_DEBUG("GEOM_CONCAT", g_concat_debug, (lvl), NULL, __VA_ARGS__)
+	_GEOM_DEBUG("GEOM_CONCAT", g_concat_debug, (lvl), NULL, __VA_ARGS__)
 #define G_CONCAT_LOGREQ(bp, ...) \
-    _GEOM_DEBUG("GEOM_CONCAT", g_concat_debug, 2, (bp), __VA_ARGS__)
+	_GEOM_DEBUG("GEOM_CONCAT", g_concat_debug, 2, (bp), __VA_ARGS__)
 
 struct g_concat_disk {
 	TAILQ_ENTRY(g_concat_disk) d_next;
-	struct g_consumer	*d_consumer;
-	struct g_concat_softc	*d_softc;
-	off_t			 d_start;
-	off_t			 d_end;
-	int			 d_candelete;
-	int			 d_removed;
-	bool			 d_hardcoded;
+	struct g_consumer *d_consumer;
+	struct g_concat_softc *d_softc;
+	off_t d_start;
+	off_t d_end;
+	int d_candelete;
+	int d_removed;
+	bool d_hardcoded;
 };
 
 struct g_concat_softc {
-	u_int		 sc_type;	/* provider type */
-	struct g_geom	*sc_geom;
+	u_int sc_type; /* provider type */
+	struct g_geom *sc_geom;
 	struct g_provider *sc_provider;
-	uint32_t	 sc_id;		/* concat unique ID */
+	uint32_t sc_id; /* concat unique ID */
 
-	uint16_t	 sc_ndisks;
+	uint16_t sc_ndisks;
 	TAILQ_HEAD(g_concat_disks, g_concat_disk) sc_disks;
 
-	struct mtx	 sc_completion_lock; /* synchronizes cross-boundary IOs */
-	struct sx	 sc_disks_lock; /* synchronizes modification of sc_disks */
+	struct mtx sc_completion_lock; /* synchronizes cross-boundary IOs */
+	struct sx sc_disks_lock; /* synchronizes modification of sc_disks */
 };
-#define	sc_name	sc_geom->name
-#endif	/* _KERNEL */
+#define sc_name sc_geom->name
+#endif /* _KERNEL */
 
 struct g_concat_metadata {
-	char		md_magic[16];	/* Magic value. */
-	uint32_t	md_version;	/* Version number. */
-	char		md_name[16];	/* Concat name. */
-	uint32_t	md_id;		/* Unique ID. */
-	uint16_t	md_no;		/* Disk number. */
-	uint16_t	md_all;		/* Number of all disks. */
-	char		md_provider[16]; /* Hardcoded provider. */
-	uint64_t	md_provsize;	/* Provider's size. */
+	char md_magic[16];    /* Magic value. */
+	uint32_t md_version;  /* Version number. */
+	char md_name[16];     /* Concat name. */
+	uint32_t md_id;	      /* Unique ID. */
+	uint16_t md_no;	      /* Disk number. */
+	uint16_t md_all;      /* Number of all disks. */
+	char md_provider[16]; /* Hardcoded provider. */
+	uint64_t md_provsize; /* Provider's size. */
 };
 static __inline void
 concat_metadata_encode(const struct g_concat_metadata *md, u_char *data)
@@ -114,4 +114,4 @@ concat_metadata_decode(const u_char *data, struct g_concat_metadata *md)
 	bcopy(data + 44, md->md_provider, sizeof(md->md_provider));
 	md->md_provsize = le64dec(data + 60);
 }
-#endif	/* _G_CONCAT_H_ */
+#endif /* _G_CONCAT_H_ */

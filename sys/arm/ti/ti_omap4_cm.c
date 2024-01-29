@@ -34,33 +34,33 @@
 #include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
-#include <machine/bus.h>
+#include <sys/rman.h>
+
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/pmap.h>
+
+#include <machine/bus.h>
 
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include <arm/ti/ti_omap4_cm.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{ "ti,omap4-cm",	1 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "ti,omap4-cm", 1 },
+	{ NULL, 0 } };
 
 struct ti_omap4_cm_softc {
-	struct simplebus_softc	sc;
-	device_t		dev;
+	struct simplebus_softc sc;
+	device_t dev;
 };
 
 uint64_t
-ti_omap4_cm_get_simplebus_base_host(device_t dev) {
+ti_omap4_cm_get_simplebus_base_host(device_t dev)
+{
 	struct ti_omap4_cm_softc *sc;
 
 	sc = device_get_softc(dev);
@@ -126,9 +126,9 @@ ti_omap4_cm_detach(device_t dev)
 
 static device_method_t ti_omap4_cm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ti_omap4_cm_probe),
-	DEVMETHOD(device_attach,	ti_omap4_cm_attach),
-	DEVMETHOD(device_detach,	ti_omap4_cm_detach),
+	DEVMETHOD(device_probe, ti_omap4_cm_probe),
+	DEVMETHOD(device_attach, ti_omap4_cm_attach),
+	DEVMETHOD(device_detach, ti_omap4_cm_detach),
 
 	DEVMETHOD_END
 };

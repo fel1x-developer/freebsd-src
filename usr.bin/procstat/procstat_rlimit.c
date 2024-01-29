@@ -28,9 +28,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/user.h>
 
 #include <err.h>
@@ -48,21 +48,21 @@ static struct {
 	const char *name;
 	const char *suffix;
 } rlimit_param[15] = {
-	{"cputime",          "sec"},
-	{"filesize",         "B  "},
-	{"datasize",         "B  "},
-	{"stacksize",        "B  "},
-	{"coredumpsize",     "B  "},
-	{"memoryuse",        "B  "},
-	{"memorylocked",     "B  "},
-	{"maxprocesses",     "   "},
-	{"openfiles",        "   "},
-	{"sbsize",           "B  "},
-	{"vmemoryuse",       "B  "},
-	{"pseudo-terminals", "   "},
-	{"swapuse",          "B  "},
-	{"kqueues",          "   "},
-	{"umtxp",            "   "},
+	{ "cputime", "sec" },
+	{ "filesize", "B  " },
+	{ "datasize", "B  " },
+	{ "stacksize", "B  " },
+	{ "coredumpsize", "B  " },
+	{ "memoryuse", "B  " },
+	{ "memorylocked", "B  " },
+	{ "maxprocesses", "   " },
+	{ "openfiles", "   " },
+	{ "sbsize", "B  " },
+	{ "vmemoryuse", "B  " },
+	{ "pseudo-terminals", "   " },
+	{ "swapuse", "B  " },
+	{ "kqueues", "   " },
+	{ "umtxp", "   " },
 };
 
 #if RLIM_NLIMITS > 15
@@ -95,8 +95,8 @@ procstat_rlimit(struct procstat *prstat, struct kinfo_proc *kipp)
 	int i;
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0) {
-		xo_emit("{T:/%5s %-16s %-16s %16s %16s}\n",
-		    "PID", "COMM", "RLIMIT", "SOFT     ", "HARD     ");
+		xo_emit("{T:/%5s %-16s %-16s %16s %16s}\n", "PID", "COMM",
+		    "RLIMIT", "SOFT     ", "HARD     ");
 	}
 	xo_emit("{ek:process_id/%5d}{e:command/%-16s/%s}", kipp->ki_pid,
 	    kipp->ki_comm);
@@ -104,8 +104,8 @@ procstat_rlimit(struct procstat *prstat, struct kinfo_proc *kipp)
 		if (procstat_getrlimit(prstat, kipp, i, &rlimit) == -1)
 			return;
 		xo_emit("{dk:process_id/%5d} {d:command/%-16s} "
-		    "{d:rlimit_param/%-16s} ", kipp->ki_pid, kipp->ki_comm,
-		    rlimit_param[i].name);
+			"{d:rlimit_param/%-16s} ",
+		    kipp->ki_pid, kipp->ki_comm, rlimit_param[i].name);
 
 		xo_open_container(rlimit_param[i].name);
 		if (rlimit.rlim_cur == RLIM_INFINITY)

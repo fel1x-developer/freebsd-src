@@ -28,33 +28,29 @@
  */
 
 #ifndef __THUNDER_MDIO_VAR_H__
-#define	__THUNDER_MDIO_VAR_H__
+#define __THUNDER_MDIO_VAR_H__
 
-#define	THUNDER_MDIO_DEVSTR	"Cavium ThunderX SMI/MDIO driver"
+#define THUNDER_MDIO_DEVSTR "Cavium ThunderX SMI/MDIO driver"
 MALLOC_DECLARE(M_THUNDER_MDIO);
 DECLARE_CLASS(thunder_mdio_driver);
 
-enum thunder_mdio_mode {
-	MODE_NONE = 0,
-	MODE_IEEE_C22,
-	MODE_IEEE_C45
-};
+enum thunder_mdio_mode { MODE_NONE = 0, MODE_IEEE_C22, MODE_IEEE_C45 };
 
 struct phy_desc {
-	device_t		miibus; /* One miibus per LMAC */
-	if_t 			ifp;	/* Fake ifp to satisfy miibus */
-	int			lmacid;	/* ID number of LMAC connected */
-	TAILQ_ENTRY(phy_desc)	phy_desc_list;
+	device_t miibus; /* One miibus per LMAC */
+	if_t ifp;	 /* Fake ifp to satisfy miibus */
+	int lmacid;	 /* ID number of LMAC connected */
+	TAILQ_ENTRY(phy_desc) phy_desc_list;
 };
 
 struct thunder_mdio_softc {
-	device_t		dev;
-	struct mtx		mtx;
-	struct resource *	reg_base;
+	device_t dev;
+	struct mtx mtx;
+	struct resource *reg_base;
 
-	enum thunder_mdio_mode	mode;
+	enum thunder_mdio_mode mode;
 
-	TAILQ_HEAD(,phy_desc)	phy_desc_head;
+	TAILQ_HEAD(, phy_desc) phy_desc_head;
 };
 
 int thunder_mdio_attach(device_t);

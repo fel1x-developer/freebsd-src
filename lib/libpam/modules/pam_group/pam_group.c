@@ -48,9 +48,9 @@
 #define PAM_SM_AUTH
 #define PAM_SM_ACCOUNT
 
+#include <security/openpam.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
-#include <security/openpam.h>
 
 static int
 pam_group(pam_handle_t *pamh)
@@ -63,8 +63,8 @@ pam_group(pam_handle_t *pamh)
 	struct group *grp;
 
 	/* get target account */
-	if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS ||
-	    user == NULL || (pwd = getpwnam(user)) == NULL)
+	if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || user == NULL ||
+	    (pwd = getpwnam(user)) == NULL)
 		return (PAM_AUTH_ERR);
 	if (pwd->pw_uid != 0 && openpam_get_option(pamh, "root_only"))
 		return (PAM_IGNORE);
@@ -73,14 +73,16 @@ pam_group(pam_handle_t *pamh)
 	local = openpam_get_option(pamh, "luser") ? 1 : 0;
 	remote = openpam_get_option(pamh, "ruser") ? 1 : 0;
 	if (local && remote) {
-		openpam_log(PAM_LOG_ERROR, "(pam_group) "
+		openpam_log(PAM_LOG_ERROR,
+		    "(pam_group) "
 		    "the luser and ruser options are mutually exclusive");
 		return (PAM_SERVICE_ERR);
 	} else if (local) {
 		/* we already have the correct struct passwd */
 	} else {
 		if (!remote)
-			openpam_log(PAM_LOG_NOTICE, "(pam_group) "
+			openpam_log(PAM_LOG_NOTICE,
+			    "(pam_group) "
 			    "neither luser nor ruser specified, assuming ruser");
 		/* default / historical behavior */
 		if (pam_get_item(pamh, PAM_RUSER, &ruser) != PAM_SUCCESS ||
@@ -103,15 +105,15 @@ pam_group(pam_handle_t *pamh)
 		if (strcmp(*list, pwd->pw_name) == 0)
 			goto found;
 
- not_found:
+not_found:
 	if (openpam_get_option(pamh, "deny"))
 		return (PAM_SUCCESS);
 	return (PAM_AUTH_ERR);
- found:
+found:
 	if (openpam_get_option(pamh, "deny"))
 		return (PAM_AUTH_ERR);
 	return (PAM_SUCCESS);
- failed:
+failed:
 	if (openpam_get_option(pamh, "fail_safe"))
 		goto found;
 	else
@@ -119,15 +121,15 @@ pam_group(pam_handle_t *pamh)
 }
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 
 	return (pam_group(pamh));
 }
 
 PAM_EXTERN int
-pam_sm_setcred(pam_handle_t * pamh __unused, int flags __unused,
+pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
     int argc __unused, const char *argv[] __unused)
 {
 
@@ -135,8 +137,8 @@ pam_sm_setcred(pam_handle_t * pamh __unused, int flags __unused,
 }
 
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 
 	return (pam_group(pamh));

@@ -32,7 +32,6 @@
 
 #include "ed.h"
 
-
 /* build_active_list:  add line matching a pattern to the global-active list */
 int
 build_active_list(int isgcmd)
@@ -64,7 +63,6 @@ build_active_list(int isgcmd)
 	return 0;
 }
 
-
 /* exec_global: apply command list in the command buffer to the active
    lines in a range; return command status */
 long
@@ -81,7 +79,7 @@ exec_global(int interact, int gflag)
 #ifdef BACKWARDS
 	if (!interact)
 		if (!strcmp(ibufp, "\n"))
-			cmd = "p\n";		/* null cmd-list == `p' */
+			cmd = "p\n"; /* null cmd-list == `p' */
 		else if ((cmd = get_extended_line(&n, 0)) == NULL)
 			return ERR;
 #else
@@ -94,10 +92,10 @@ exec_global(int interact, int gflag)
 			return ERR;
 		if (interact) {
 			/* print current_addr; get a command in global syntax */
-			if (display_lines(current_addr, current_addr, gflag) < 0)
+			if (display_lines(current_addr, current_addr, gflag) <
+			    0)
 				return ERR;
-			while ((n = get_tty_line()) > 0 &&
-			    ibuf[n - 1] != '\n')
+			while ((n = get_tty_line()) > 0 && ibuf[n - 1] != '\n')
 				clearerr(stdin);
 			if (n < 0)
 				return ERR;
@@ -110,7 +108,8 @@ exec_global(int interact, int gflag)
 				if (cmd == NULL) {
 					errmsg = "no previous command";
 					return ERR;
-				} else cmd = ocmd;
+				} else
+					cmd = ocmd;
 			} else if ((cmd = get_extended_line(&n, 0)) == NULL)
 				return ERR;
 			else {
@@ -118,25 +117,24 @@ exec_global(int interact, int gflag)
 				memcpy(ocmd, cmd, n + 1);
 				cmd = ocmd;
 			}
-
 		}
 		ibufp = cmd;
 		for (; *ibufp;)
 			if ((status = extract_addr_range()) < 0 ||
 			    (status = exec_command()) < 0 ||
-			    (status > 0 && (status = display_lines(
-			    current_addr, current_addr, status)) < 0))
+			    (status > 0 &&
+				(status = display_lines(current_addr,
+				     current_addr, status)) < 0))
 				return status;
 	}
 	return 0;
 }
 
-
-static line_t **active_list;	/* list of lines active in a global command */
-static long active_last;	/* index of last active line in active_list */
-static long active_size;	/* size of active_list */
-static long active_ptr;		/* active_list index (non-decreasing) */
-static long active_ndx;		/* active_list index (modulo active_last) */
+static line_t **active_list; /* list of lines active in a global command */
+static long active_last;     /* index of last active line in active_list */
+static long active_size;     /* size of active_list */
+static long active_ptr;	     /* active_list index (non-decreasing) */
+static long active_ndx;	     /* active_list index (modulo active_last) */
 
 /* set_active_node: add a line node to the global-active list */
 int
@@ -149,8 +147,9 @@ set_active_node(line_t *lp)
 #if defined(sun) || defined(NO_REALLOC_NULL)
 		if (active_list != NULL) {
 #endif
-			if ((ts = (line_t **) realloc(active_list,
-			    (ti += MINBUFSZ) * sizeof(line_t *))) == NULL) {
+			if ((ts = (line_t **)realloc(active_list,
+				 (ti += MINBUFSZ) * sizeof(line_t *))) ==
+			    NULL) {
 				fprintf(stderr, "%s\n", strerror(errno));
 				errmsg = "out of memory";
 				SPL0();
@@ -158,8 +157,8 @@ set_active_node(line_t *lp)
 			}
 #if defined(sun) || defined(NO_REALLOC_NULL)
 		} else {
-			if ((ts = (line_t **) malloc((ti += MINBUFSZ) *
-			    sizeof(line_t **))) == NULL) {
+			if ((ts = (line_t **)malloc((ti += MINBUFSZ) *
+				 sizeof(line_t **))) == NULL) {
 				fprintf(stderr, "%s\n", strerror(errno));
 				errmsg = "out of memory";
 				SPL0();
@@ -175,7 +174,6 @@ set_active_node(line_t *lp)
 	return 0;
 }
 
-
 /* unset_active_nodes: remove a range of lines from the global-active list */
 void
 unset_active_nodes(line_t *np, line_t *mp)
@@ -187,11 +185,13 @@ unset_active_nodes(line_t *np, line_t *mp)
 		for (i = 0; i < active_last; i++)
 			if (active_list[active_ndx] == lp) {
 				active_list[active_ndx] = NULL;
-				active_ndx = INC_MOD(active_ndx, active_last - 1);
+				active_ndx = INC_MOD(active_ndx,
+				    active_last - 1);
 				break;
-			} else	active_ndx = INC_MOD(active_ndx, active_last - 1);
+			} else
+				active_ndx = INC_MOD(active_ndx,
+				    active_last - 1);
 }
-
 
 /* next_active_node: return the next global-active line node */
 line_t *
@@ -201,7 +201,6 @@ next_active_node(void)
 		active_ptr++;
 	return (active_ptr < active_last) ? active_list[active_ptr++] : NULL;
 }
-
 
 /* clear_active_list: clear the global-active list */
 void

@@ -17,13 +17,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "dhcpd.h"
 #include "privsep.h"
 
 struct buf *
 buf_open(size_t len)
 {
-	struct buf	*buf;
+	struct buf *buf;
 
 	if ((buf = calloc(1, sizeof(struct buf))) == NULL)
 		return (NULL);
@@ -50,13 +51,13 @@ buf_add(struct buf *buf, const void *data, size_t len)
 int
 buf_close(int sock, struct buf *buf)
 {
-	ssize_t	n;
+	ssize_t n;
 
 	do {
 		n = write(sock, buf->buf + buf->rpos, buf->size - buf->rpos);
 		if (n != -1)
 			buf->rpos += n;
-		if (n == 0) {			/* connection closed */
+		if (n == 0) { /* connection closed */
 			errno = 0;
 			return (-1);
 		}
@@ -74,7 +75,7 @@ buf_close(int sock, struct buf *buf)
 ssize_t
 buf_read(int sock, void *buf, size_t nbytes)
 {
-	ssize_t	n;
+	ssize_t n;
 	size_t r = 0;
 	char *p = buf;
 
@@ -102,15 +103,14 @@ buf_read(int sock, void *buf, size_t nbytes)
 void
 dispatch_imsg(struct interface_info *ifix, int fd)
 {
-	struct imsg_hdr		 hdr;
-	char			*medium, *reason, *filename,
-				*servername, *prefix;
-	size_t			 medium_len, reason_len, filename_len,
-				 servername_len, optlen, prefix_len, totlen;
-	struct client_lease	 lease;
-	int			 ret, i;
-	struct buf		*buf;
-	u_int16_t		mtu;
+	struct imsg_hdr hdr;
+	char *medium, *reason, *filename, *servername, *prefix;
+	size_t medium_len, reason_len, filename_len, servername_len, optlen,
+	    prefix_len, totlen;
+	struct client_lease lease;
+	int ret, i;
+	struct buf *buf;
+	u_int16_t mtu;
 
 	buf_read(fd, &hdr, sizeof(hdr));
 
@@ -119,8 +119,9 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 		if (hdr.len < sizeof(hdr) + sizeof(size_t))
 			error("corrupted message received");
 		buf_read(fd, &medium_len, sizeof(medium_len));
-		if (hdr.len < medium_len + sizeof(size_t) + sizeof(hdr)
-		    + sizeof(size_t) || medium_len == SIZE_T_MAX)
+		if (hdr.len < medium_len + sizeof(size_t) + sizeof(hdr) +
+			    sizeof(size_t) ||
+		    medium_len == SIZE_T_MAX)
 			error("corrupted message received");
 		if (medium_len > 0) {
 			if ((medium = calloc(1, medium_len + 1)) == NULL)
@@ -167,8 +168,8 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 		if (hdr.len < totlen || servername_len == SIZE_T_MAX)
 			error("corrupted message received");
 		if (servername_len > 0) {
-			if ((servername =
-			    calloc(1, servername_len + 1)) == NULL)
+			if ((servername = calloc(1, servername_len + 1)) ==
+			    NULL)
 				error("%m");
 			buf_read(fd, servername, servername_len);
 		} else
@@ -196,10 +197,9 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 				totlen += optlen;
 				if (hdr.len < totlen || optlen == SIZE_T_MAX)
 					error("corrupted message received");
-				lease.options[i].data =
-				    calloc(1, optlen + 1);
+				lease.options[i].data = calloc(1, optlen + 1);
 				if (lease.options[i].data == NULL)
-				    error("%m");
+					error("%m");
 				buf_read(fd, lease.options[i].data, optlen);
 			}
 		}
@@ -237,8 +237,8 @@ dispatch_imsg(struct interface_info *ifix, int fd)
 		break;
 	case IMSG_SET_INTERFACE_MTU:
 		if (hdr.len < sizeof(hdr) + sizeof(u_int16_t))
-			error("corrupted message received");	
-	
+			error("corrupted message received");
+
 		buf_read(fd, &mtu, sizeof(u_int16_t));
 		interface_set_mtu_priv(ifix->name, mtu);
 		break;

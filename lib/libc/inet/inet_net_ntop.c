@@ -17,30 +17,30 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
-static char *	inet_net_ntop_ipv4(const u_char *src, int bits, char *dst,
-		    size_t size);
-static char *	inet_net_ntop_ipv6(const u_char *src, int bits, char *dst,
-		    size_t size);
+static char *inet_net_ntop_ipv4(const u_char *src, int bits, char *dst,
+    size_t size);
+static char *inet_net_ntop_ipv6(const u_char *src, int bits, char *dst,
+    size_t size);
 
 /*%
  * char *
@@ -132,7 +132,7 @@ inet_net_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size)
 	dst += SPRINTF((dst, "/%u", bits));
 	return (odst);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (NULL);
 }
@@ -155,18 +155,20 @@ inet_net_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size)
  */
 
 static char *
-inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
-	u_int	m;
-	int	b;
-	int	p;
-	int	zero_s, zero_l, tmp_zero_s, tmp_zero_l;
-	int	i;
-	int	is_ipv4 = 0;
+inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size)
+{
+	u_int m;
+	int b;
+	int p;
+	int zero_s, zero_l, tmp_zero_s, tmp_zero_l;
+	int i;
+	int is_ipv4 = 0;
 	unsigned char inbuf[16];
-	char outbuf[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255/128")];
-	char	*cp;
-	int	words;
-	u_char	*s;
+	char
+	    outbuf[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255/128")];
+	char *cp;
+	int words;
+	u_char *s;
 
 	if (bits < 0 || bits > 128) {
 		errno = EINVAL;
@@ -187,7 +189,7 @@ inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 		b = bits % 8;
 		if (b != 0) {
 			m = ~0 << (8 - b);
-			inbuf[p-1] &= m;
+			inbuf[p - 1] &= m;
 		}
 
 		s = inbuf;
@@ -200,7 +202,7 @@ inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 		/* Find the longest substring of zero's */
 		zero_s = zero_l = tmp_zero_s = tmp_zero_l = 0;
 		for (i = 0; i < (words * 2); i += 2) {
-			if ((s[i] | s[i+1]) == 0) {
+			if ((s[i] | s[i + 1]) == 0) {
 				if (tmp_zero_l == 0)
 					tmp_zero_s = i / 2;
 				tmp_zero_l++;
@@ -218,9 +220,10 @@ inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 			zero_l = tmp_zero_l;
 		}
 
-		if (zero_l != words && zero_s == 0 && ((zero_l == 6) ||
-		    ((zero_l == 5 && s[10] == 0xff && s[11] == 0xff) ||
-		    ((zero_l == 7 && s[14] != 0 && s[15] != 1)))))
+		if (zero_l != words && zero_s == 0 &&
+		    ((zero_l == 6) ||
+			((zero_l == 5 && s[10] == 0xff && s[11] == 0xff) ||
+			    ((zero_l == 7 && s[14] != 0 && s[15] != 1)))))
 			is_ipv4 = 1;
 
 		/* Format whole words. */
@@ -236,7 +239,7 @@ inet_net_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 				continue;
 			}
 
-			if (is_ipv4 && p > 5 ) {
+			if (is_ipv4 && p > 5) {
 				*cp++ = (p == 6) ? ':' : '.';
 				cp += SPRINTF((cp, "%u", *s++));
 				/* we can potentially drop the last octet */

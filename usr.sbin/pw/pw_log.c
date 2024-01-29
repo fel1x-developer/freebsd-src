@@ -29,29 +29,30 @@
 #include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
-#include <string.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "pw.h"
 
-static FILE	*logfile = NULL;
+static FILE *logfile = NULL;
 
 void
-pw_log(struct userconf * cnf, int mode, int which, char const * fmt,...)
+pw_log(struct userconf *cnf, int mode, int which, char const *fmt, ...)
 {
-	va_list		argp;
-	time_t		now;
-	const char	*cp, *name;
-	struct tm	*t;
-	int		fd, i, rlen;
-	char		nfmt[256], sname[32];
+	va_list argp;
+	time_t now;
+	const char *cp, *name;
+	struct tm *t;
+	int fd, i, rlen;
+	char nfmt[256], sname[32];
 
 	if (cnf->logfile == NULL || cnf->logfile[0] == '\0') {
 		return;
 	}
 
 	if (logfile == NULL) {
-		/* With umask==0 we need to control file access modes on create */
+		/* With umask==0 we need to control file access modes on create
+		 */
 		fd = open(cnf->logfile, O_WRONLY | O_CREAT | O_APPEND, 0600);
 		if (fd == -1) {
 			return;
@@ -79,7 +80,7 @@ pw_log(struct userconf * cnf, int mode, int which, char const * fmt,...)
 		 *    Escape embedded % characters with another %
 		 */
 		for (i = 0, cp = name;
-		    *cp != '\0' && i < (int)sizeof(sname) - 1; cp++) {
+		     *cp != '\0' && i < (int)sizeof(sname) - 1; cp++) {
 			if (*cp == '%') {
 				if (i < (int)sizeof(sname) - 2) {
 					sname[i++] = '%';
@@ -102,9 +103,9 @@ pw_log(struct userconf * cnf, int mode, int which, char const * fmt,...)
 	/* ISO 8601 International Standard Date format */
 	strftime(nfmt, sizeof nfmt, "%Y-%m-%d %T ", t);
 	rlen = sizeof(nfmt) - strlen(nfmt);
-	if (rlen <= 0 || snprintf(nfmt + strlen(nfmt), rlen,
-	    "[%s:%s%s] %s\n", sname, Which[which], Modes[mode],
-	    fmt) >= rlen) {
+	if (rlen <= 0 ||
+	    snprintf(nfmt + strlen(nfmt), rlen, "[%s:%s%s] %s\n", sname,
+		Which[which], Modes[mode], fmt) >= rlen) {
 		warnx("log format overflow, user name=%s", sname);
 	} else {
 		va_start(argp, fmt);

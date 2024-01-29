@@ -43,10 +43,10 @@ typedef struct nscd_connection_ *nscd_connection;
 typedef struct nscd_connection_ *nscd_mp_write_session;
 typedef struct nscd_connection_ *nscd_mp_read_session;
 
-#define	INVALID_NSCD_CONNECTION	(NULL)
+#define INVALID_NSCD_CONNECTION (NULL)
 
 /* initialization/destruction routines */
-nscd_connection	open_nscd_connection__(struct nscd_connection_params const *);
+nscd_connection open_nscd_connection__(struct nscd_connection_params const *);
 void close_nscd_connection__(nscd_connection);
 int nscd_transform__(nscd_connection, const char *, int);
 

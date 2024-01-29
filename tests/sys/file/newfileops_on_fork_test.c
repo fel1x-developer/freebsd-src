@@ -49,7 +49,7 @@
 #include <unistd.h>
 
 #ifndef PORT
-#define	PORT	9000
+#define PORT 9000
 #endif
 
 static int listen_fd;
@@ -112,11 +112,11 @@ main(void)
 	sin.sin_port = htons(PORT);
 	if (bind(listen_fd, (struct sockaddr *)&sin, sizeof(sin)) < 0)
 		err(1, "bind");
-	if (listen(listen_fd, -1) <0)
+	if (listen(listen_fd, -1) < 0)
 		err(1, "listen");
 	if (pthread_create(&accept_thread, NULL, do_accept, NULL) != 0)
 		err(1, "pthread_create");
-	sleep(1);	/* Easier than using a CV. */
+	sleep(1); /* Easier than using a CV. */
 	do_fork();
 	exit(0);
 }

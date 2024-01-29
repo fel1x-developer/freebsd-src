@@ -28,44 +28,35 @@
 * Include private header files
 *******************************************************************************
 */
-#include "dc_session.h"
 #include "dc_datapath.h"
-#include "sal_statistics.h"
-#include "lac_common.h"
-#include "lac_mem.h"
-#include "lac_mem_pools.h"
-#include "lac_log.h"
-#include "sal_types_compression.h"
+#include "dc_error_counter.h"
+#include "dc_session.h"
 #include "dc_stats.h"
 #include "lac_buffer_desc.h"
+#include "lac_common.h"
+#include "lac_log.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
 #include "lac_sal.h"
 #include "lac_sync.h"
-#include "sal_service_state.h"
 #include "sal_qat_cmn_msg.h"
-#include "dc_error_counter.h"
+#include "sal_service_state.h"
+#include "sal_statistics.h"
+#include "sal_types_compression.h"
 
 CpaStatus
 cpaDcNsDecompressData(CpaInstanceHandle dcInstance,
-		      CpaDcNsSetupData *pSetupData,
-		      CpaBufferList *pSrcBuff,
-		      CpaBufferList *pDestBuff,
-		      CpaDcOpData *pOpData,
-		      CpaDcRqResults *pResults,
-		      CpaDcCallbackFn callbackFn,
-		      void *callbackTag)
+    CpaDcNsSetupData *pSetupData, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcOpData *pOpData, CpaDcRqResults *pResults,
+    CpaDcCallbackFn callbackFn, void *callbackTag)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
-cpaDcNsCompressData(CpaInstanceHandle dcInstance,
-		    CpaDcNsSetupData *pSetupData,
-		    CpaBufferList *pSrcBuff,
-		    CpaBufferList *pDestBuff,
-		    CpaDcOpData *pOpData,
-		    CpaDcRqResults *pResults,
-		    CpaDcCallbackFn callbackFn,
-		    void *callbackTag)
+cpaDcNsCompressData(CpaInstanceHandle dcInstance, CpaDcNsSetupData *pSetupData,
+    CpaBufferList *pSrcBuff, CpaBufferList *pDestBuff, CpaDcOpData *pOpData,
+    CpaDcRqResults *pResults, CpaDcCallbackFn callbackFn, void *callbackTag)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }

@@ -33,9 +33,9 @@
 
 #include <sys/ioccom.h>
 
-#define IPS_USER_CMD _IOWR(0x81,0x21,ips_user_request)
+#define IPS_USER_CMD _IOWR(0x81, 0x21, ips_user_request)
 
-#define IPS_IOCTL_READ	1
+#define IPS_IOCTL_READ 1
 #define IPS_IOCTL_WRITE 2
 
 #define IPS_REBUILD_STAT_SIZE 116
@@ -44,24 +44,23 @@
 
 #define IPS_IOCTL_BUFFER_SIZE 4096
 
-typedef struct ips_user_request{
-	void *	command_buffer;
-	void *	data_buffer;
-	u_int32_t	status;
-}ips_user_request;
+typedef struct ips_user_request {
+	void *command_buffer;
+	void *data_buffer;
+	u_int32_t status;
+} ips_user_request;
 
 #ifdef _KERNEL
 
-typedef struct ips_ioctl{
-	ips_generic_cmd *	command_buffer;
-	void *			data_buffer;
-	ips_cmd_status_t	status;
-	int			datasize;
-	int			readwrite;
-	bus_dma_tag_t 		dmatag;
-	bus_dmamap_t  		dmamap;
-}ips_ioctl_t;
+typedef struct ips_ioctl {
+	ips_generic_cmd *command_buffer;
+	void *data_buffer;
+	ips_cmd_status_t status;
+	int datasize;
+	int readwrite;
+	bus_dma_tag_t dmatag;
+	bus_dmamap_t dmamap;
+} ips_ioctl_t;
 
 #endif
 #endif
-

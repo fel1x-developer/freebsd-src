@@ -28,12 +28,12 @@
 struct vmci_queue_kernel_if;
 
 struct vmci_queue {
-	struct vmci_queue_header	*q_header;
-	struct vmci_queue_header	*saved_header;
-	struct vmci_queue_kernel_if	*kernel_if;
+	struct vmci_queue_header *q_header;
+	struct vmci_queue_header *saved_header;
+	struct vmci_queue_kernel_if *kernel_if;
 };
 
-#define BUF_TYPE	int
+#define BUF_TYPE int
 
 /*
  *------------------------------------------------------------------------------
@@ -48,12 +48,12 @@ struct vmci_queue {
  *
  *------------------------------------------------------------------------------
  */
-typedef	int vmci_memcpy_to_queue_func(struct vmci_queue *queue,
-	    uint64_t queue_offset, const void *src, size_t src_offset,
-	    size_t size, BUF_TYPE buf_type, bool can_block);
-typedef	int vmci_memcpy_from_queue_func(void *dest, size_t dest_offset,
-	    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
-	    BUF_TYPE buf_type, bool can_block);
+typedef int vmci_memcpy_to_queue_func(struct vmci_queue *queue,
+    uint64_t queue_offset, const void *src, size_t src_offset, size_t size,
+    BUF_TYPE buf_type, bool can_block);
+typedef int vmci_memcpy_from_queue_func(void *dest, size_t dest_offset,
+    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
+    BUF_TYPE buf_type, bool can_block);
 
 /*
  *------------------------------------------------------------------------------
@@ -72,30 +72,30 @@ typedef	int vmci_memcpy_from_queue_func(void *dest, size_t dest_offset,
  *------------------------------------------------------------------------------
  */
 
-int	vmci_memcpy_to_queue(struct vmci_queue *queue, uint64_t queue_offset,
-	    const void *src, size_t src_offset, size_t size, BUF_TYPE buf_type,
-	    bool can_block);
-int	vmci_memcpy_from_queue(void *dest, size_t dest_offset,
-	    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
-	    BUF_TYPE buf_type, bool can_block);
-int	vmci_memcpy_to_queue_local(struct vmci_queue *queue,
-	    uint64_t queue_offset, const void *src, size_t src_offset,
-	    size_t size, BUF_TYPE buf_type, bool can_block);
-int	vmci_memcpy_from_queue_local(void *dest, size_t dest_offset,
-	    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
-	    BUF_TYPE buf_type, bool can_block);
+int vmci_memcpy_to_queue(struct vmci_queue *queue, uint64_t queue_offset,
+    const void *src, size_t src_offset, size_t size, BUF_TYPE buf_type,
+    bool can_block);
+int vmci_memcpy_from_queue(void *dest, size_t dest_offset,
+    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
+    BUF_TYPE buf_type, bool can_block);
+int vmci_memcpy_to_queue_local(struct vmci_queue *queue, uint64_t queue_offset,
+    const void *src, size_t src_offset, size_t size, BUF_TYPE buf_type,
+    bool can_block);
+int vmci_memcpy_from_queue_local(void *dest, size_t dest_offset,
+    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
+    BUF_TYPE buf_type, bool can_block);
 
-int	vmci_memcpy_to_queue_v(struct vmci_queue *queue, uint64_t queue_offset,
-	    const void *src, size_t src_offset, size_t size, BUF_TYPE buf_type,
-	    bool can_block);
-int	vmci_memcpy_from_queue_v(void *dest, size_t dest_offset,
-	    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
-	    BUF_TYPE buf_type, bool can_block);
+int vmci_memcpy_to_queue_v(struct vmci_queue *queue, uint64_t queue_offset,
+    const void *src, size_t src_offset, size_t size, BUF_TYPE buf_type,
+    bool can_block);
+int vmci_memcpy_from_queue_v(void *dest, size_t dest_offset,
+    const struct vmci_queue *queue, uint64_t queue_offset, size_t size,
+    BUF_TYPE buf_type, bool can_block);
 
 static inline int
 vmci_memcpy_to_queue_v_local(struct vmci_queue *queue, uint64_t queue_offset,
-   const void *src, size_t src_offset, size_t size, int buf_type,
-   bool can_block)
+    const void *src, size_t src_offset, size_t size, int buf_type,
+    bool can_block)
 {
 
 	return (vmci_memcpy_to_queue_v(queue, queue_offset, src, src_offset,

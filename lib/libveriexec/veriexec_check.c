@@ -31,16 +31,14 @@
 #include <sys/mac.h>
 #include <sys/stat.h>
 
+#include <fcntl.h>
+#include <paths.h>
+#include <security/mac_veriexec/mac_veriexec.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <paths.h>
-
-#include <security/mac_veriexec/mac_veriexec.h>
 
 #include "libveriexec.h"
-
 
 static int
 check_fd_mode(int fd, unsigned int mask)
@@ -70,13 +68,13 @@ veriexec_check_fd_mode(int fd, unsigned int mask)
 	    (void *)(intptr_t)fd);
 	if (error == -1) {
 		switch (errno) {
-		case ENOSYS:	/* veriexec not loaded */
-			error = 0;	/* ignore */
+		case ENOSYS:	   /* veriexec not loaded */
+			error = 0; /* ignore */
 			break;
 		}
 	}
 	if (mask && error == 0)
-	    error = check_fd_mode(fd, mask);
+		error = check_fd_mode(fd, mask);
 
 	return (error);
 }
@@ -106,8 +104,8 @@ veriexec_check_path_mode(const char *file, unsigned int mask)
 	    __DECONST(void *, file));
 	if (error == -1) {
 		switch (errno) {
-		case ENOSYS:	/* veriexec not loaded */
-			error = 0;	/* ignore */
+		case ENOSYS:	   /* veriexec not loaded */
+			error = 0; /* ignore */
 			break;
 		}
 	}
@@ -132,7 +130,7 @@ main(int argc __unused, char *argv[] __unused)
 {
 	int error;
 	int rc = 0;
-    
+
 	while (*++argv) {
 		error = veriexec_check_path(*argv);
 		if (error == -1) {

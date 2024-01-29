@@ -39,134 +39,104 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
 #include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
+#include <machine/bus.h>
 
+#include <dev/bce/if_bcereg.h>
+#include <dev/bge/if_bgereg.h>
+#include <dev/mii/brgphyreg.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/brgphyreg.h>
-#include <net/if_arp.h>
-#include <machine/bus.h>
-#include <dev/bge/if_bgereg.h>
-#include <dev/bce/if_bcereg.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int brgphy_probe(device_t);
 static int brgphy_attach(device_t);
 
 struct brgphy_softc {
 	struct mii_softc mii_sc;
-	int serdes_flags;	/* Keeps track of the serdes type used */
-#define BRGPHY_5706S		0x0001
-#define BRGPHY_5708S		0x0002
-#define BRGPHY_NOANWAIT		0x0004
-#define BRGPHY_5709S		0x0008
-	int bce_phy_flags;	/* PHY flags transferred from the MAC driver */
+	int serdes_flags; /* Keeps track of the serdes type used */
+#define BRGPHY_5706S 0x0001
+#define BRGPHY_5708S 0x0002
+#define BRGPHY_NOANWAIT 0x0004
+#define BRGPHY_5709S 0x0008
+	int bce_phy_flags; /* PHY flags transferred from the MAC driver */
 };
 
 static device_method_t brgphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		brgphy_probe),
-	DEVMETHOD(device_attach,	brgphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, brgphy_probe),
+	DEVMETHOD(device_attach, brgphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t brgphy_driver = {
-	"brgphy",
-	brgphy_methods,
-	sizeof(struct brgphy_softc)
-};
+static driver_t brgphy_driver = { "brgphy", brgphy_methods,
+	sizeof(struct brgphy_softc) };
 
 DRIVER_MODULE(brgphy, miibus, brgphy_driver, 0, 0);
 
-static int	brgphy_service(struct mii_softc *, struct mii_data *, int);
-static void	brgphy_setmedia(struct mii_softc *, int);
-static void	brgphy_status(struct mii_softc *);
-static void	brgphy_mii_phy_auto(struct mii_softc *, int);
-static void	brgphy_reset(struct mii_softc *);
-static void	brgphy_enable_loopback(struct mii_softc *);
-static void	bcm5401_load_dspcode(struct mii_softc *);
-static void	bcm5411_load_dspcode(struct mii_softc *);
-static void	bcm54k2_load_dspcode(struct mii_softc *);
-static void	brgphy_fixup_5704_a0_bug(struct mii_softc *);
-static void	brgphy_fixup_adc_bug(struct mii_softc *);
-static void	brgphy_fixup_adjust_trim(struct mii_softc *);
-static void	brgphy_fixup_ber_bug(struct mii_softc *);
-static void	brgphy_fixup_crc_bug(struct mii_softc *);
-static void	brgphy_fixup_jitter_bug(struct mii_softc *);
-static void	brgphy_ethernet_wirespeed(struct mii_softc *);
-static void	brgphy_bcm54xx_clock_delay(struct mii_softc *);
-static void	brgphy_jumbo_settings(struct mii_softc *, u_long);
+static int brgphy_service(struct mii_softc *, struct mii_data *, int);
+static void brgphy_setmedia(struct mii_softc *, int);
+static void brgphy_status(struct mii_softc *);
+static void brgphy_mii_phy_auto(struct mii_softc *, int);
+static void brgphy_reset(struct mii_softc *);
+static void brgphy_enable_loopback(struct mii_softc *);
+static void bcm5401_load_dspcode(struct mii_softc *);
+static void bcm5411_load_dspcode(struct mii_softc *);
+static void bcm54k2_load_dspcode(struct mii_softc *);
+static void brgphy_fixup_5704_a0_bug(struct mii_softc *);
+static void brgphy_fixup_adc_bug(struct mii_softc *);
+static void brgphy_fixup_adjust_trim(struct mii_softc *);
+static void brgphy_fixup_ber_bug(struct mii_softc *);
+static void brgphy_fixup_crc_bug(struct mii_softc *);
+static void brgphy_fixup_jitter_bug(struct mii_softc *);
+static void brgphy_ethernet_wirespeed(struct mii_softc *);
+static void brgphy_bcm54xx_clock_delay(struct mii_softc *);
+static void brgphy_jumbo_settings(struct mii_softc *, u_long);
 
-static const struct mii_phydesc brgphys[] = {
-	MII_PHY_DESC(BROADCOM, BCM5400),
-	MII_PHY_DESC(BROADCOM, BCM5401),
-	MII_PHY_DESC(BROADCOM, BCM5402),
-	MII_PHY_DESC(BROADCOM, BCM5411),
-	MII_PHY_DESC(BROADCOM, BCM5404),
-	MII_PHY_DESC(BROADCOM, BCM5424),
-	MII_PHY_DESC(BROADCOM, BCM54K2),
-	MII_PHY_DESC(BROADCOM, BCM5701),
-	MII_PHY_DESC(BROADCOM, BCM5703),
-	MII_PHY_DESC(BROADCOM, BCM5704),
-	MII_PHY_DESC(BROADCOM, BCM5705),
-	MII_PHY_DESC(BROADCOM, BCM5706),
-	MII_PHY_DESC(BROADCOM, BCM5714),
-	MII_PHY_DESC(BROADCOM, BCM5421),
-	MII_PHY_DESC(BROADCOM, BCM5750),
-	MII_PHY_DESC(BROADCOM, BCM5752),
-	MII_PHY_DESC(BROADCOM, BCM5780),
-	MII_PHY_DESC(BROADCOM, BCM5708C),
-	MII_PHY_DESC(BROADCOM, BCM5466),
-	MII_PHY_DESC(BROADCOM2, BCM5478),
-	MII_PHY_DESC(BROADCOM2, BCM5488),
-	MII_PHY_DESC(BROADCOM2, BCM5482),
-	MII_PHY_DESC(BROADCOM2, BCM5708S),
-	MII_PHY_DESC(BROADCOM2, BCM5709C),
-	MII_PHY_DESC(BROADCOM2, BCM5709S),
-	MII_PHY_DESC(BROADCOM2, BCM5709CAX),
-	MII_PHY_DESC(BROADCOM2, BCM5722),
-	MII_PHY_DESC(BROADCOM2, BCM5755),
-	MII_PHY_DESC(BROADCOM2, BCM5754),
-	MII_PHY_DESC(BROADCOM2, BCM5761),
-	MII_PHY_DESC(BROADCOM2, BCM5784),
-#ifdef notyet	/* better handled by ukphy(4) until WARs are implemented */
+static const struct mii_phydesc brgphys[] = { MII_PHY_DESC(BROADCOM, BCM5400),
+	MII_PHY_DESC(BROADCOM, BCM5401), MII_PHY_DESC(BROADCOM, BCM5402),
+	MII_PHY_DESC(BROADCOM, BCM5411), MII_PHY_DESC(BROADCOM, BCM5404),
+	MII_PHY_DESC(BROADCOM, BCM5424), MII_PHY_DESC(BROADCOM, BCM54K2),
+	MII_PHY_DESC(BROADCOM, BCM5701), MII_PHY_DESC(BROADCOM, BCM5703),
+	MII_PHY_DESC(BROADCOM, BCM5704), MII_PHY_DESC(BROADCOM, BCM5705),
+	MII_PHY_DESC(BROADCOM, BCM5706), MII_PHY_DESC(BROADCOM, BCM5714),
+	MII_PHY_DESC(BROADCOM, BCM5421), MII_PHY_DESC(BROADCOM, BCM5750),
+	MII_PHY_DESC(BROADCOM, BCM5752), MII_PHY_DESC(BROADCOM, BCM5780),
+	MII_PHY_DESC(BROADCOM, BCM5708C), MII_PHY_DESC(BROADCOM, BCM5466),
+	MII_PHY_DESC(BROADCOM2, BCM5478), MII_PHY_DESC(BROADCOM2, BCM5488),
+	MII_PHY_DESC(BROADCOM2, BCM5482), MII_PHY_DESC(BROADCOM2, BCM5708S),
+	MII_PHY_DESC(BROADCOM2, BCM5709C), MII_PHY_DESC(BROADCOM2, BCM5709S),
+	MII_PHY_DESC(BROADCOM2, BCM5709CAX), MII_PHY_DESC(BROADCOM2, BCM5722),
+	MII_PHY_DESC(BROADCOM2, BCM5755), MII_PHY_DESC(BROADCOM2, BCM5754),
+	MII_PHY_DESC(BROADCOM2, BCM5761), MII_PHY_DESC(BROADCOM2, BCM5784),
+#ifdef notyet /* better handled by ukphy(4) until WARs are implemented */
 	MII_PHY_DESC(BROADCOM2, BCM5785),
 #endif
-	MII_PHY_DESC(BROADCOM3, BCM54616S),
-	MII_PHY_DESC(BROADCOM3, BCM54618SE),
-	MII_PHY_DESC(BROADCOM3, BCM5717C),
-	MII_PHY_DESC(BROADCOM3, BCM5719C),
-	MII_PHY_DESC(BROADCOM3, BCM5720C),
-	MII_PHY_DESC(BROADCOM3, BCM57765),
-	MII_PHY_DESC(BROADCOM3, BCM57780),
-	MII_PHY_DESC(BROADCOM4, BCM54213PE),
+	MII_PHY_DESC(BROADCOM3, BCM54616S), MII_PHY_DESC(BROADCOM3, BCM54618SE),
+	MII_PHY_DESC(BROADCOM3, BCM5717C), MII_PHY_DESC(BROADCOM3, BCM5719C),
+	MII_PHY_DESC(BROADCOM3, BCM5720C), MII_PHY_DESC(BROADCOM3, BCM57765),
+	MII_PHY_DESC(BROADCOM3, BCM57780), MII_PHY_DESC(BROADCOM4, BCM54213PE),
 	MII_PHY_DESC(BROADCOM4, BCM5725C),
-	MII_PHY_DESC(xxBROADCOM_ALT1, BCM5906),
-	MII_PHY_END
-};
+	MII_PHY_DESC(xxBROADCOM_ALT1, BCM5906), MII_PHY_END };
 
-static const struct mii_phy_funcs brgphy_funcs = {
-	brgphy_service,
-	brgphy_status,
-	brgphy_reset
-};
+static const struct mii_phy_funcs brgphy_funcs = { brgphy_service,
+	brgphy_status, brgphy_reset };
 
 static const struct hs21_type {
 	const uint32_t id;
@@ -189,7 +159,7 @@ detect_hs21(struct bce_softc *bce_sc)
 	for (i = 0; i < nitems(hs21_type_lists); i++) {
 		if (bce_sc->bce_chipid == hs21_type_lists[i].id &&
 		    strncmp(sysenv, hs21_type_lists[i].prod,
-		    strlen(hs21_type_lists[i].prod)) == 0) {
+			strlen(hs21_type_lists[i].prod)) == 0) {
 			found++;
 			break;
 		}
@@ -218,8 +188,8 @@ brgphy_attach(device_t dev)
 	bsc = device_get_softc(dev);
 	sc = &bsc->mii_sc;
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &brgphy_funcs, 0);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &brgphy_funcs,
+	    0);
 
 	bsc->serdes_flags = 0;
 
@@ -243,9 +213,9 @@ brgphy_attach(device_t dev)
 			 * 5706S.
 			 */
 			PHY_WRITE(sc, BRGPHY_MII_SHADOW_1C,
-				BRGPHY_SHADOW_1C_MODE_CTRL);
+			    BRGPHY_SHADOW_1C_MODE_CTRL);
 			if (PHY_READ(sc, BRGPHY_MII_SHADOW_1C) &
-				BRGPHY_SHADOW_1C_ENA_1000X) {
+			    BRGPHY_SHADOW_1C_ENA_1000X) {
 				bsc->serdes_flags |= BRGPHY_5706S;
 				sc->mii_flags |= MIIF_HAVEFIBER;
 			}
@@ -296,11 +266,12 @@ brgphy_attach(device_t dev)
 		 * 2.5G support is a software enabled feature
 		 * on the 5708S and 5709S.
 		 */
-		if (bce_sc && (bce_sc->bce_phy_flags &
-		    BCE_PHY_2_5G_CAPABLE_FLAG)) {
+		if (bce_sc &&
+		    (bce_sc->bce_phy_flags & BCE_PHY_2_5G_CAPABLE_FLAG)) {
 			ifmedia_add(&sc->mii_pdata->mii_media,
 			    IFM_MAKEWORD(IFM_ETHER, IFM_2500_SX, IFM_FDX,
-			    sc->mii_inst), 0, NULL);
+				sc->mii_inst),
+			    0, NULL);
 			printf("2500baseSX-FDX, ");
 		} else if ((bsc->serdes_flags & BRGPHY_5708S) && bce_sc &&
 		    (detect_hs21(bce_sc) != 0)) {
@@ -316,8 +287,9 @@ brgphy_attach(device_t dev)
 			printf("auto-neg workaround, ");
 			bsc->serdes_flags |= BRGPHY_NOANWAIT;
 		}
-		ifmedia_add(&sc->mii_pdata->mii_media, IFM_MAKEWORD(IFM_ETHER,
-		    IFM_AUTO, 0, sc->mii_inst), 0, NULL);
+		ifmedia_add(&sc->mii_pdata->mii_media,
+		    IFM_MAKEWORD(IFM_ETHER, IFM_AUTO, 0, sc->mii_inst), 0,
+		    NULL);
 		printf("auto\n");
 	}
 
@@ -336,7 +308,7 @@ brgphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		break;
 	case MII_MEDIACHG:
 		/* Todo: Why is this here?  Is it really needed? */
-		PHY_RESET(sc);	/* XXX hardware bug work-around */
+		PHY_RESET(sc); /* XXX hardware bug work-around */
 
 		switch (IFM_SUBTYPE(ife->ifm_media)) {
 		case IFM_AUTO:
@@ -366,7 +338,7 @@ brgphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		 */
 		val = PHY_READ(sc, MII_BMSR) | PHY_READ(sc, MII_BMSR);
 		if (val & BMSR_LINK) {
-			sc->mii_ticks = 0;	/* Reset autoneg timer. */
+			sc->mii_ticks = 0; /* Reset autoneg timer. */
 			break;
 		}
 
@@ -401,7 +373,8 @@ brgphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 				bcm5401_load_dspcode(sc);
 				break;
 			case MII_MODEL_BROADCOM_BCM5401:
-				if (sc->mii_mpd_rev == 1 || sc->mii_mpd_rev == 3)
+				if (sc->mii_mpd_rev == 1 ||
+				    sc->mii_mpd_rev == 3)
 					bcm5401_load_dspcode(sc);
 				break;
 			case MII_MODEL_BROADCOM_BCM5411:
@@ -504,8 +477,7 @@ brgphy_status(struct mii_softc *sc)
 		mii->mii_media_active |= IFM_LOOP;
 	}
 
-	if ((bmcr & BRGPHY_BMCR_AUTOEN) &&
-	    (bmsr & BRGPHY_BMSR_ACOMP) == 0 &&
+	if ((bmcr & BRGPHY_BMCR_AUTOEN) && (bmsr & BRGPHY_BMSR_ACOMP) == 0 &&
 	    (bsc->serdes_flags & BRGPHY_NOANWAIT) == 0) {
 		/* Erg, still trying, I guess... */
 		mii->mii_media_active |= IFM_NONE;
@@ -526,21 +498,29 @@ brgphy_status(struct mii_softc *sc)
 			mii->mii_media_status |= IFM_ACTIVE;
 			switch (aux & BRGPHY_AUXSTS_AN_RES) {
 			case BRGPHY_RES_1000FD:
-				mii->mii_media_active |= IFM_1000_T | IFM_FDX; 	break;
+				mii->mii_media_active |= IFM_1000_T | IFM_FDX;
+				break;
 			case BRGPHY_RES_1000HD:
-				mii->mii_media_active |= IFM_1000_T | IFM_HDX; 	break;
+				mii->mii_media_active |= IFM_1000_T | IFM_HDX;
+				break;
 			case BRGPHY_RES_100FD:
-				mii->mii_media_active |= IFM_100_TX | IFM_FDX; break;
+				mii->mii_media_active |= IFM_100_TX | IFM_FDX;
+				break;
 			case BRGPHY_RES_100T4:
-				mii->mii_media_active |= IFM_100_T4; break;
+				mii->mii_media_active |= IFM_100_T4;
+				break;
 			case BRGPHY_RES_100HD:
-				mii->mii_media_active |= IFM_100_TX | IFM_HDX; 	break;
+				mii->mii_media_active |= IFM_100_TX | IFM_HDX;
+				break;
 			case BRGPHY_RES_10FD:
-				mii->mii_media_active |= IFM_10_T | IFM_FDX; break;
+				mii->mii_media_active |= IFM_10_T | IFM_FDX;
+				break;
 			case BRGPHY_RES_10HD:
-				mii->mii_media_active |= IFM_10_T | IFM_HDX; break;
+				mii->mii_media_active |= IFM_10_T | IFM_HDX;
+				break;
 			default:
-				mii->mii_media_active |= IFM_NONE; break;
+				mii->mii_media_active |= IFM_NONE;
+				break;
 			}
 
 			if ((mii->mii_media_active & IFM_FDX) != 0)
@@ -561,28 +541,36 @@ brgphy_status(struct mii_softc *sc)
 		if (bsc->serdes_flags & BRGPHY_5706S) {
 			mii->mii_media_active |= IFM_1000_SX;
 
-			/* If autoneg enabled, read negotiated duplex settings */
+			/* If autoneg enabled, read negotiated duplex settings
+			 */
 			if (bmcr & BRGPHY_BMCR_AUTOEN) {
-				val = PHY_READ(sc, BRGPHY_SERDES_ANAR) & PHY_READ(sc, BRGPHY_SERDES_ANLPAR);
+				val = PHY_READ(sc, BRGPHY_SERDES_ANAR) &
+				    PHY_READ(sc, BRGPHY_SERDES_ANLPAR);
 				if (val & BRGPHY_SERDES_ANAR_FDX)
 					mii->mii_media_active |= IFM_FDX;
 				else
 					mii->mii_media_active |= IFM_HDX;
 			}
 		} else if (bsc->serdes_flags & BRGPHY_5708S) {
-			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR, BRGPHY_5708S_DIG_PG0);
+			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
+			    BRGPHY_5708S_DIG_PG0);
 			xstat = PHY_READ(sc, BRGPHY_5708S_PG0_1000X_STAT1);
 
 			/* Check for MRBE auto-negotiated speed results. */
-			switch (xstat & BRGPHY_5708S_PG0_1000X_STAT1_SPEED_MASK) {
+			switch (
+			    xstat & BRGPHY_5708S_PG0_1000X_STAT1_SPEED_MASK) {
 			case BRGPHY_5708S_PG0_1000X_STAT1_SPEED_10:
-				mii->mii_media_active |= IFM_10_FL; break;
+				mii->mii_media_active |= IFM_10_FL;
+				break;
 			case BRGPHY_5708S_PG0_1000X_STAT1_SPEED_100:
-				mii->mii_media_active |= IFM_100_FX; break;
+				mii->mii_media_active |= IFM_100_FX;
+				break;
 			case BRGPHY_5708S_PG0_1000X_STAT1_SPEED_1G:
-				mii->mii_media_active |= IFM_1000_SX; break;
+				mii->mii_media_active |= IFM_1000_SX;
+				break;
 			case BRGPHY_5708S_PG0_1000X_STAT1_SPEED_25G:
-				mii->mii_media_active |= IFM_2500_SX; break;
+				mii->mii_media_active |= IFM_2500_SX;
+				break;
 			}
 
 			/* Check for MRBE auto-negotiated duplex results. */
@@ -591,23 +579,31 @@ brgphy_status(struct mii_softc *sc)
 			else
 				mii->mii_media_active |= IFM_HDX;
 		} else if (bsc->serdes_flags & BRGPHY_5709S) {
-			/* Select GP Status Block of the AN MMD, get autoneg results. */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_GP_STATUS);
+			/* Select GP Status Block of the AN MMD, get autoneg
+			 * results. */
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_GP_STATUS);
 			xstat = PHY_READ(sc, BRGPHY_GP_STATUS_TOP_ANEG_STATUS);
 
-			/* Restore IEEE0 block (assumed in all brgphy(4) code). */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_COMBO_IEEE0);
+			/* Restore IEEE0 block (assumed in all brgphy(4) code).
+			 */
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_COMBO_IEEE0);
 
 			/* Check for MRBE auto-negotiated speed results. */
 			switch (xstat & BRGPHY_GP_STATUS_TOP_ANEG_SPEED_MASK) {
-				case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_10:
-					mii->mii_media_active |= IFM_10_FL; break;
-				case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_100:
-					mii->mii_media_active |= IFM_100_FX; break;
-				case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_1G:
-					mii->mii_media_active |= IFM_1000_SX; break;
-				case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_25G:
-					mii->mii_media_active |= IFM_2500_SX; break;
+			case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_10:
+				mii->mii_media_active |= IFM_10_FL;
+				break;
+			case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_100:
+				mii->mii_media_active |= IFM_100_FX;
+				break;
+			case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_1G:
+				mii->mii_media_active |= IFM_1000_SX;
+				break;
+			case BRGPHY_GP_STATUS_TOP_ANEG_SPEED_25G:
+				mii->mii_media_active |= IFM_2500_SX;
+				break;
 			}
 
 			/* Check for MRBE auto-negotiated duplex results. */
@@ -645,8 +641,8 @@ brgphy_mii_phy_auto(struct mii_softc *sc, int media)
 		PHY_WRITE(sc, BRGPHY_SERDES_ANAR, anar);
 	}
 
-	PHY_WRITE(sc, BRGPHY_MII_BMCR, BRGPHY_BMCR_AUTOEN |
-	    BRGPHY_BMCR_STARTNEG);
+	PHY_WRITE(sc, BRGPHY_MII_BMCR,
+	    BRGPHY_BMCR_AUTOEN | BRGPHY_BMCR_STARTNEG);
 	PHY_WRITE(sc, BRGPHY_MII_IMR, 0xFF00);
 }
 
@@ -669,21 +665,21 @@ static void
 bcm5401_load_dspcode(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_AUXCTL,		0x0c20 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x0012 },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x1804 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x0013 },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x1204 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x8006 },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x0132 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x8006 },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x0232 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x201f },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x0a20 },
-		{ 0,				0 },
+		{ BRGPHY_MII_AUXCTL, 0x0c20 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x0012 },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x1804 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x0013 },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x1204 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x8006 },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x0132 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x8006 },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x0232 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x201f },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x0a20 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -696,13 +692,13 @@ static void
 bcm5411_load_dspcode(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ 0x1c,				0x8c23 },
-		{ 0x1c,				0x8ca3 },
-		{ 0x1c,				0x8c23 },
-		{ 0,				0 },
+		{ 0x1c, 0x8c23 },
+		{ 0x1c, 0x8ca3 },
+		{ 0x1c, 0x8c23 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -714,30 +710,29 @@ void
 bcm54k2_load_dspcode(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ 4,				0x01e1 },
-		{ 9,				0x0300 },
-		{ 0,				0 },
+		{ 4, 0x01e1 },
+		{ 9, 0x0300 },
+		{ 0, 0 },
 	};
 	int i;
 
 	for (i = 0; dspcode[i].reg != 0; i++)
 		PHY_WRITE(sc, dspcode[i].reg, dspcode[i].val);
-
 }
 
 static void
 brgphy_fixup_5704_a0_bug(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ 0x1c,				0x8d68 },
-		{ 0x1c,				0x8d68 },
-		{ 0,				0 },
+		{ 0x1c, 0x8d68 },
+		{ 0x1c, 0x8d68 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -749,13 +744,13 @@ static void
 brgphy_fixup_adc_bug(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_AUXCTL,		0x0c00 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x201f },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x2aaa },
-		{ 0,				0 },
+		{ BRGPHY_MII_AUXCTL, 0x0c00 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x201f },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x2aaa },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -767,15 +762,15 @@ static void
 brgphy_fixup_adjust_trim(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_AUXCTL,		0x0c00 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x000a },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x110b },
-		{ BRGPHY_MII_TEST1,			0x0014 },
-		{ BRGPHY_MII_AUXCTL,		0x0400 },
-		{ 0,				0 },
+		{ BRGPHY_MII_AUXCTL, 0x0c00 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x000a },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x110b },
+		{ BRGPHY_MII_TEST1, 0x0014 },
+		{ BRGPHY_MII_AUXCTL, 0x0400 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -787,18 +782,18 @@ static void
 brgphy_fixup_ber_bug(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_AUXCTL,		0x0c00 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x000a },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x310b },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x201f },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x9506 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x401f },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x14e2 },
-		{ BRGPHY_MII_AUXCTL,		0x0400 },
-		{ 0,				0 },
+		{ BRGPHY_MII_AUXCTL, 0x0c00 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x000a },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x310b },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x201f },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x9506 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x401f },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x14e2 },
+		{ BRGPHY_MII_AUXCTL, 0x0400 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -810,14 +805,14 @@ static void
 brgphy_fixup_crc_bug(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_DSP_RW_PORT,	0x0a75 },
-		{ 0x1c,				0x8c68 },
-		{ 0x1c,				0x8d68 },
-		{ 0x1c,				0x8c68 },
-		{ 0,				0 },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x0a75 },
+		{ 0x1c, 0x8c68 },
+		{ 0x1c, 0x8d68 },
+		{ 0x1c, 0x8c68 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -829,14 +824,14 @@ static void
 brgphy_fixup_jitter_bug(struct mii_softc *sc)
 {
 	static const struct {
-		int		reg;
-		uint16_t	val;
+		int reg;
+		uint16_t val;
 	} dspcode[] = {
-		{ BRGPHY_MII_AUXCTL,		0x0c00 },
-		{ BRGPHY_MII_DSP_ADDR_REG,	0x000a },
-		{ BRGPHY_MII_DSP_RW_PORT,	0x010b },
-		{ BRGPHY_MII_AUXCTL,		0x0400 },
-		{ 0,				0 },
+		{ BRGPHY_MII_AUXCTL, 0x0c00 },
+		{ BRGPHY_MII_DSP_ADDR_REG, 0x000a },
+		{ BRGPHY_MII_DSP_RW_PORT, 0x010b },
+		{ BRGPHY_MII_AUXCTL, 0x0400 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -853,13 +848,12 @@ brgphy_fixup_disable_early_dac(struct mii_softc *sc)
 	val = PHY_READ(sc, BRGPHY_MII_DSP_RW_PORT);
 	val &= ~(1 << 8);
 	PHY_WRITE(sc, BRGPHY_MII_DSP_RW_PORT, val);
-
 }
 
 static void
 brgphy_ethernet_wirespeed(struct mii_softc *sc)
 {
-	uint32_t	val;
+	uint32_t val;
 
 	/* Enable Ethernet@WireSpeed. */
 	PHY_WRITE(sc, BRGPHY_MII_AUXCTL, 0x7007);
@@ -876,16 +870,17 @@ brgphy_bcm54xx_clock_delay(struct mii_softc *sc)
 		/* Adjusting the clocks in rgmii mode causes packet losses. */
 		return;
 
-	PHY_WRITE(sc, BRGPHY_MII_AUXCTL, BRGPHY_AUXCTL_SHADOW_MISC |
-	    BRGPHY_AUXCTL_SHADOW_MISC << BRGPHY_AUXCTL_MISC_READ_SHIFT);
+	PHY_WRITE(sc, BRGPHY_MII_AUXCTL,
+	    BRGPHY_AUXCTL_SHADOW_MISC |
+		BRGPHY_AUXCTL_SHADOW_MISC << BRGPHY_AUXCTL_MISC_READ_SHIFT);
 	val = PHY_READ(sc, BRGPHY_MII_AUXCTL);
 	val &= BRGPHY_AUXCTL_MISC_DATA_MASK;
 	if (sc->mii_flags & MIIF_RX_DELAY)
 		val |= BRGPHY_AUXCTL_MISC_RGMII_SKEW_EN;
 	else
 		val &= ~BRGPHY_AUXCTL_MISC_RGMII_SKEW_EN;
-	PHY_WRITE(sc, BRGPHY_MII_AUXCTL, BRGPHY_AUXCTL_MISC_WRITE_EN |
-	    BRGPHY_AUXCTL_SHADOW_MISC | val);
+	PHY_WRITE(sc, BRGPHY_MII_AUXCTL,
+	    BRGPHY_AUXCTL_MISC_WRITE_EN | BRGPHY_AUXCTL_SHADOW_MISC | val);
 
 	PHY_WRITE(sc, BRGPHY_MII_SHADOW_1C, BRGPHY_SHADOW_1C_CLK_CTRL);
 	val = PHY_READ(sc, BRGPHY_MII_SHADOW_1C);
@@ -894,14 +889,14 @@ brgphy_bcm54xx_clock_delay(struct mii_softc *sc)
 		val |= BRGPHY_SHADOW_1C_GTXCLK_EN;
 	else
 		val &= ~BRGPHY_SHADOW_1C_GTXCLK_EN;
-	PHY_WRITE(sc, BRGPHY_MII_SHADOW_1C, BRGPHY_SHADOW_1C_WRITE_EN |
-	    BRGPHY_SHADOW_1C_CLK_CTRL | val);
+	PHY_WRITE(sc, BRGPHY_MII_SHADOW_1C,
+	    BRGPHY_SHADOW_1C_WRITE_EN | BRGPHY_SHADOW_1C_CLK_CTRL | val);
 }
 
 static void
 brgphy_jumbo_settings(struct mii_softc *sc, u_long mtu)
 {
-	uint32_t	val;
+	uint32_t val;
 
 	/* Set or clear jumbo frame settings in the PHY. */
 	if (mtu > ETHER_MAX_LEN) {
@@ -926,7 +921,7 @@ brgphy_jumbo_settings(struct mii_softc *sc, u_long mtu)
 
 		val = PHY_READ(sc, BRGPHY_MII_PHY_EXTCTL);
 		PHY_WRITE(sc, BRGPHY_MII_PHY_EXTCTL,
-			val & ~BRGPHY_PHY_EXTCTL_HIGH_LA);
+		    val & ~BRGPHY_PHY_EXTCTL_HIGH_LA);
 	}
 }
 
@@ -1018,7 +1013,7 @@ brgphy_reset(struct mii_softc *sc)
 		if (bge_sc->bge_phy_flags & BGE_PHY_NO_3LED) {
 			PHY_WRITE(sc, BRGPHY_MII_PHY_EXTCTL,
 			    PHY_READ(sc, BRGPHY_MII_PHY_EXTCTL) &
-			    ~BRGPHY_PHY_EXTCTL_3_LED);
+				~BRGPHY_PHY_EXTCTL_3_LED);
 		}
 
 		/* Adjust output voltage (From Linux driver) */
@@ -1026,28 +1021,33 @@ brgphy_reset(struct mii_softc *sc)
 			PHY_WRITE(sc, BRGPHY_MII_EPHY_PTEST, 0x12);
 	} else if (bce_sc) {
 		if (BCE_CHIP_NUM(bce_sc) == BCE_CHIP_NUM_5708 &&
-			(bce_sc->bce_phy_flags & BCE_PHY_SERDES_FLAG)) {
-			/* Store autoneg capabilities/results in digital block (Page 0) */
-			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR, BRGPHY_5708S_DIG3_PG2);
+		    (bce_sc->bce_phy_flags & BCE_PHY_SERDES_FLAG)) {
+			/* Store autoneg capabilities/results in digital block
+			 * (Page 0) */
+			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
+			    BRGPHY_5708S_DIG3_PG2);
 			PHY_WRITE(sc, BRGPHY_5708S_PG2_DIGCTL_3_0,
-				BRGPHY_5708S_PG2_DIGCTL_3_0_USE_IEEE);
-			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR, BRGPHY_5708S_DIG_PG0);
+			    BRGPHY_5708S_PG2_DIGCTL_3_0_USE_IEEE);
+			PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
+			    BRGPHY_5708S_DIG_PG0);
 
 			/* Enable fiber mode and autodetection */
 			PHY_WRITE(sc, BRGPHY_5708S_PG0_1000X_CTL1,
-				PHY_READ(sc, BRGPHY_5708S_PG0_1000X_CTL1) |
+			    PHY_READ(sc, BRGPHY_5708S_PG0_1000X_CTL1) |
 				BRGPHY_5708S_PG0_1000X_CTL1_AUTODET_EN |
 				BRGPHY_5708S_PG0_1000X_CTL1_FIBER_MODE);
 
 			/* Enable parallel detection */
 			PHY_WRITE(sc, BRGPHY_5708S_PG0_1000X_CTL2,
-				PHY_READ(sc, BRGPHY_5708S_PG0_1000X_CTL2) |
+			    PHY_READ(sc, BRGPHY_5708S_PG0_1000X_CTL2) |
 				BRGPHY_5708S_PG0_1000X_CTL2_PAR_DET_EN);
 
-			/* Advertise 2.5G support through next page during autoneg */
+			/* Advertise 2.5G support through next page during
+			 * autoneg */
 			if (bce_sc->bce_phy_flags & BCE_PHY_2_5G_CAPABLE_FLAG)
 				PHY_WRITE(sc, BRGPHY_5708S_ANEG_NXT_PG_XMIT1,
-					PHY_READ(sc, BRGPHY_5708S_ANEG_NXT_PG_XMIT1) |
+				    PHY_READ(sc,
+					BRGPHY_5708S_ANEG_NXT_PG_XMIT1) |
 					BRGPHY_5708S_ANEG_NXT_PG_XMIT1_25G);
 
 			/* Increase TX signal amplitude */
@@ -1055,37 +1055,44 @@ brgphy_reset(struct mii_softc *sc)
 			    (BCE_CHIP_ID(bce_sc) == BCE_CHIP_ID_5708_B0) ||
 			    (BCE_CHIP_ID(bce_sc) == BCE_CHIP_ID_5708_B1)) {
 				PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
-					BRGPHY_5708S_TX_MISC_PG5);
+				    BRGPHY_5708S_TX_MISC_PG5);
 				PHY_WRITE(sc, BRGPHY_5708S_PG5_TXACTL1,
-					PHY_READ(sc, BRGPHY_5708S_PG5_TXACTL1) & ~0x30);
+				    PHY_READ(sc, BRGPHY_5708S_PG5_TXACTL1) &
+					~0x30);
 				PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
-					BRGPHY_5708S_DIG_PG0);
+				    BRGPHY_5708S_DIG_PG0);
 			}
 
-			/* Backplanes use special driver/pre-driver/pre-emphasis values. */
-			if ((bce_sc->bce_shared_hw_cfg & BCE_SHARED_HW_CFG_PHY_BACKPLANE) &&
-				(bce_sc->bce_port_hw_cfg & BCE_PORT_HW_CFG_CFG_TXCTL3_MASK)) {
-					PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
-						BRGPHY_5708S_TX_MISC_PG5);
-					PHY_WRITE(sc, BRGPHY_5708S_PG5_TXACTL3,
-						bce_sc->bce_port_hw_cfg &
-						BCE_PORT_HW_CFG_CFG_TXCTL3_MASK);
-					PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
-						BRGPHY_5708S_DIG_PG0);
+			/* Backplanes use special driver/pre-driver/pre-emphasis
+			 * values. */
+			if ((bce_sc->bce_shared_hw_cfg &
+				BCE_SHARED_HW_CFG_PHY_BACKPLANE) &&
+			    (bce_sc->bce_port_hw_cfg &
+				BCE_PORT_HW_CFG_CFG_TXCTL3_MASK)) {
+				PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
+				    BRGPHY_5708S_TX_MISC_PG5);
+				PHY_WRITE(sc, BRGPHY_5708S_PG5_TXACTL3,
+				    bce_sc->bce_port_hw_cfg &
+					BCE_PORT_HW_CFG_CFG_TXCTL3_MASK);
+				PHY_WRITE(sc, BRGPHY_5708S_BLOCK_ADDR,
+				    BRGPHY_5708S_DIG_PG0);
 			}
 		} else if (BCE_CHIP_NUM(bce_sc) == BCE_CHIP_NUM_5709 &&
-			(bce_sc->bce_phy_flags & BCE_PHY_SERDES_FLAG)) {
+		    (bce_sc->bce_phy_flags & BCE_PHY_SERDES_FLAG)) {
 			/* Select the SerDes Digital block of the AN MMD. */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_SERDES_DIG);
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_SERDES_DIG);
 			val = PHY_READ(sc, BRGPHY_SERDES_DIG_1000X_CTL1);
 			val &= ~BRGPHY_SD_DIG_1000X_CTL1_AUTODET;
 			val |= BRGPHY_SD_DIG_1000X_CTL1_FIBER;
 			PHY_WRITE(sc, BRGPHY_SERDES_DIG_1000X_CTL1, val);
 
 			/* Select the Over 1G block of the AN MMD. */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_OVER_1G);
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_OVER_1G);
 
-			/* Enable autoneg "Next Page" to advertise 2.5G support. */
+			/* Enable autoneg "Next Page" to advertise 2.5G support.
+			 */
 			val = PHY_READ(sc, BRGPHY_OVER_1G_UNFORMAT_PG1);
 			if (bce_sc->bce_phy_flags & BCE_PHY_2_5G_CAPABLE_FLAG)
 				val |= BRGPHY_5708S_ANEG_NXT_PG_XMIT1_25G;
@@ -1093,8 +1100,10 @@ brgphy_reset(struct mii_softc *sc)
 				val &= ~BRGPHY_5708S_ANEG_NXT_PG_XMIT1_25G;
 			PHY_WRITE(sc, BRGPHY_OVER_1G_UNFORMAT_PG1, val);
 
-			/* Select the Multi-Rate Backplane Ethernet block of the AN MMD. */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_MRBE);
+			/* Select the Multi-Rate Backplane Ethernet block of the
+			 * AN MMD. */
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_MRBE);
 
 			/* Enable MRBE speed autoneg. */
 			val = PHY_READ(sc, BRGPHY_MRBE_MSG_PG5_NP);
@@ -1103,19 +1112,22 @@ brgphy_reset(struct mii_softc *sc)
 			PHY_WRITE(sc, BRGPHY_MRBE_MSG_PG5_NP, val);
 
 			/* Select the Clause 73 User B0 block of the AN MMD. */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_CL73_USER_B0);
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_CL73_USER_B0);
 
 			/* Enable MRBE speed autoneg. */
 			PHY_WRITE(sc, BRGPHY_CL73_USER_B0_MBRE_CTL1,
 			    BRGPHY_CL73_USER_B0_MBRE_CTL1_NP_AFT_BP |
-			    BRGPHY_CL73_USER_B0_MBRE_CTL1_STA_MGR |
-			    BRGPHY_CL73_USER_B0_MBRE_CTL1_ANEG);
+				BRGPHY_CL73_USER_B0_MBRE_CTL1_STA_MGR |
+				BRGPHY_CL73_USER_B0_MBRE_CTL1_ANEG);
 
-			/* Restore IEEE0 block (assumed in all brgphy(4) code). */
-			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR, BRGPHY_BLOCK_ADDR_COMBO_IEEE0);
-        } else if (BCE_CHIP_NUM(bce_sc) == BCE_CHIP_NUM_5709) {
+			/* Restore IEEE0 block (assumed in all brgphy(4) code).
+			 */
+			PHY_WRITE(sc, BRGPHY_BLOCK_ADDR,
+			    BRGPHY_BLOCK_ADDR_COMBO_IEEE0);
+		} else if (BCE_CHIP_NUM(bce_sc) == BCE_CHIP_NUM_5709) {
 			if ((BCE_CHIP_REV(bce_sc) == BCE_CHIP_REV_Ax) ||
-				(BCE_CHIP_REV(bce_sc) == BCE_CHIP_REV_Bx))
+			    (BCE_CHIP_REV(bce_sc) == BCE_CHIP_REV_Bx))
 				brgphy_fixup_disable_early_dac(sc);
 
 			brgphy_jumbo_settings(sc, if_getmtu(ifp));

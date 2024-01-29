@@ -31,27 +31,27 @@
 
 #include "ice_common.h"
 
-#define ICE_CQ_INIT_REGS(qinfo, prefix)				\
-do {								\
-	(qinfo)->sq.head = prefix##_ATQH;			\
-	(qinfo)->sq.tail = prefix##_ATQT;			\
-	(qinfo)->sq.len = prefix##_ATQLEN;			\
-	(qinfo)->sq.bah = prefix##_ATQBAH;			\
-	(qinfo)->sq.bal = prefix##_ATQBAL;			\
-	(qinfo)->sq.len_mask = prefix##_ATQLEN_ATQLEN_M;	\
-	(qinfo)->sq.len_ena_mask = prefix##_ATQLEN_ATQENABLE_M;	\
-	(qinfo)->sq.len_crit_mask = prefix##_ATQLEN_ATQCRIT_M;	\
-	(qinfo)->sq.head_mask = prefix##_ATQH_ATQH_M;		\
-	(qinfo)->rq.head = prefix##_ARQH;			\
-	(qinfo)->rq.tail = prefix##_ARQT;			\
-	(qinfo)->rq.len = prefix##_ARQLEN;			\
-	(qinfo)->rq.bah = prefix##_ARQBAH;			\
-	(qinfo)->rq.bal = prefix##_ARQBAL;			\
-	(qinfo)->rq.len_mask = prefix##_ARQLEN_ARQLEN_M;	\
-	(qinfo)->rq.len_ena_mask = prefix##_ARQLEN_ARQENABLE_M;	\
-	(qinfo)->rq.len_crit_mask = prefix##_ARQLEN_ARQCRIT_M;	\
-	(qinfo)->rq.head_mask = prefix##_ARQH_ARQH_M;		\
-} while (0)
+#define ICE_CQ_INIT_REGS(qinfo, prefix)                                 \
+	do {                                                            \
+		(qinfo)->sq.head = prefix##_ATQH;                       \
+		(qinfo)->sq.tail = prefix##_ATQT;                       \
+		(qinfo)->sq.len = prefix##_ATQLEN;                      \
+		(qinfo)->sq.bah = prefix##_ATQBAH;                      \
+		(qinfo)->sq.bal = prefix##_ATQBAL;                      \
+		(qinfo)->sq.len_mask = prefix##_ATQLEN_ATQLEN_M;        \
+		(qinfo)->sq.len_ena_mask = prefix##_ATQLEN_ATQENABLE_M; \
+		(qinfo)->sq.len_crit_mask = prefix##_ATQLEN_ATQCRIT_M;  \
+		(qinfo)->sq.head_mask = prefix##_ATQH_ATQH_M;           \
+		(qinfo)->rq.head = prefix##_ARQH;                       \
+		(qinfo)->rq.tail = prefix##_ARQT;                       \
+		(qinfo)->rq.len = prefix##_ARQLEN;                      \
+		(qinfo)->rq.bah = prefix##_ARQBAH;                      \
+		(qinfo)->rq.bal = prefix##_ARQBAL;                      \
+		(qinfo)->rq.len_mask = prefix##_ARQLEN_ARQLEN_M;        \
+		(qinfo)->rq.len_ena_mask = prefix##_ARQLEN_ARQENABLE_M; \
+		(qinfo)->rq.len_crit_mask = prefix##_ARQLEN_ARQCRIT_M;  \
+		(qinfo)->rq.head_mask = prefix##_ARQH_ARQH_M;           \
+	} while (0)
 
 /**
  * ice_adminq_init_regs - Initialize AdminQ registers
@@ -59,7 +59,8 @@ do {								\
  *
  * This assumes the alloc_sq and alloc_rq functions have already been called
  */
-static void ice_adminq_init_regs(struct ice_hw *hw)
+static void
+ice_adminq_init_regs(struct ice_hw *hw)
 {
 	struct ice_ctl_q_info *cq = &hw->adminq;
 
@@ -74,7 +75,8 @@ static void ice_adminq_init_regs(struct ice_hw *hw)
  *
  * This assumes the alloc_sq and alloc_rq functions have already been called
  */
-static void ice_mailbox_init_regs(struct ice_hw *hw)
+static void
+ice_mailbox_init_regs(struct ice_hw *hw)
 {
 	struct ice_ctl_q_info *cq = &hw->mailboxq;
 
@@ -88,13 +90,14 @@ static void ice_mailbox_init_regs(struct ice_hw *hw)
  *
  * Returns true if Queue is enabled else false.
  */
-bool ice_check_sq_alive(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+bool
+ice_check_sq_alive(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	/* check both queue-length and queue-enable fields */
 	if (cq->sq.len && cq->sq.len_mask && cq->sq.len_ena_mask)
-		return (rd32(hw, cq->sq.len) & (cq->sq.len_mask |
-						cq->sq.len_ena_mask)) ==
-			(cq->num_sq_entries | cq->sq.len_ena_mask);
+		return (rd32(hw, cq->sq.len) &
+			   (cq->sq.len_mask | cq->sq.len_ena_mask)) ==
+		    (cq->num_sq_entries | cq->sq.len_ena_mask);
 
 	return false;
 }
@@ -140,7 +143,8 @@ ice_alloc_ctrlq_rq_ring(struct ice_hw *hw, struct ice_ctl_q_info *cq)
  * This assumes the posted buffers have already been cleaned
  * and de-allocated
  */
-static void ice_free_cq_ring(struct ice_hw *hw, struct ice_ctl_q_ring *ring)
+static void
+ice_free_cq_ring(struct ice_hw *hw, struct ice_ctl_q_ring *ring)
 {
 	ice_free_dma_mem(hw, &ring->desc_buf);
 }
@@ -159,7 +163,7 @@ ice_alloc_rq_bufs(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 	 * allocate the mapped buffers for the event processing
 	 */
 	cq->rq.dma_head = ice_calloc(hw, cq->num_rq_entries,
-				     sizeof(cq->rq.desc_buf));
+	    sizeof(cq->rq.desc_buf));
 	if (!cq->rq.dma_head)
 		return ICE_ERR_NO_MEMORY;
 	cq->rq.r.rq_bi = (struct ice_dma_mem *)cq->rq.dma_head;
@@ -188,10 +192,10 @@ ice_alloc_rq_bufs(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 		desc->retval = 0;
 		desc->cookie_high = 0;
 		desc->cookie_low = 0;
-		desc->params.generic.addr_high =
-			CPU_TO_LE32(ICE_HI_DWORD(bi->pa));
-		desc->params.generic.addr_low =
-			CPU_TO_LE32(ICE_LO_DWORD(bi->pa));
+		desc->params.generic.addr_high = CPU_TO_LE32(
+		    ICE_HI_DWORD(bi->pa));
+		desc->params.generic.addr_low = CPU_TO_LE32(
+		    ICE_LO_DWORD(bi->pa));
 		desc->params.generic.param0 = 0;
 		desc->params.generic.param1 = 0;
 	}
@@ -221,7 +225,7 @@ ice_alloc_sq_bufs(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 
 	/* No mapped memory needed yet, just the buffer info structures */
 	cq->sq.dma_head = ice_calloc(hw, cq->num_sq_entries,
-				     sizeof(cq->sq.desc_buf));
+	    sizeof(cq->sq.desc_buf));
 	if (!cq->sq.dma_head)
 		return ICE_ERR_NO_MEMORY;
 	cq->sq.r.sq_bi = (struct ice_dma_mem *)cq->sq.dma_head;
@@ -303,20 +307,20 @@ ice_cfg_rq_regs(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 	return ICE_SUCCESS;
 }
 
-#define ICE_FREE_CQ_BUFS(hw, qi, ring)					\
-do {									\
-	/* free descriptors */						\
-	if ((qi)->ring.r.ring##_bi) {					\
-		int i;							\
-									\
-		for (i = 0; i < (qi)->num_##ring##_entries; i++)	\
-			if ((qi)->ring.r.ring##_bi[i].pa)		\
-				ice_free_dma_mem((hw),			\
-					&(qi)->ring.r.ring##_bi[i]);	\
-	}								\
-	/* free DMA head */						\
-	ice_free(hw, (qi)->ring.dma_head);				\
-} while (0)
+#define ICE_FREE_CQ_BUFS(hw, qi, ring)                                   \
+	do {                                                             \
+		/* free descriptors */                                   \
+		if ((qi)->ring.r.ring##_bi) {                            \
+			int i;                                           \
+                                                                         \
+			for (i = 0; i < (qi)->num_##ring##_entries; i++) \
+				if ((qi)->ring.r.ring##_bi[i].pa)        \
+					ice_free_dma_mem((hw),           \
+					    &(qi)->ring.r.ring##_bi[i]); \
+		}                                                        \
+		/* free DMA head */                                      \
+		ice_free(hw, (qi)->ring.dma_head);                       \
+	} while (0)
 
 /**
  * ice_init_sq - main initialization routine for Control ATQ
@@ -332,7 +336,8 @@ do {									\
  * Do *NOT* hold the lock when calling this as the memory allocation routines
  * called are not going to be atomic context safe
  */
-static enum ice_status ice_init_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+static enum ice_status
+ice_init_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	enum ice_status ret_code;
 
@@ -394,7 +399,8 @@ init_ctrlq_exit:
  * Do *NOT* hold the lock when calling this as the memory allocation routines
  * called are not going to be atomic context safe
  */
-static enum ice_status ice_init_rq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+static enum ice_status
+ice_init_rq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	enum ice_status ret_code;
 
@@ -470,7 +476,7 @@ ice_shutdown_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 	wr32(hw, cq->sq.bal, 0);
 	wr32(hw, cq->sq.bah, 0);
 
-	cq->sq.count = 0;	/* to indicate uninitialized queue */
+	cq->sq.count = 0; /* to indicate uninitialized queue */
 
 	/* free ring buffers and the ring itself */
 	ICE_FREE_CQ_BUFS(hw, cq, sq);
@@ -489,26 +495,31 @@ shutdown_sq_out:
  *
  * Return: 'true' iff the driver should attempt to load. 'false' otherwise.
  */
-static bool ice_aq_ver_check(struct ice_hw *hw)
+static bool
+ice_aq_ver_check(struct ice_hw *hw)
 {
 	if (hw->api_maj_ver > EXP_FW_API_VER_MAJOR) {
 		/* Major API version is newer than expected, don't load */
-		ice_warn(hw, "The driver for the device stopped because the NVM image is newer than expected. You must install the most recent version of the network driver.\n");
+		ice_warn(hw,
+		    "The driver for the device stopped because the NVM image is newer than expected. You must install the most recent version of the network driver.\n");
 		return false;
 	} else if (hw->api_maj_ver == EXP_FW_API_VER_MAJOR) {
 		if (hw->api_min_ver > (EXP_FW_API_VER_MINOR + 2))
-			ice_info(hw, "The driver for the device detected a newer version (%u.%u) of the NVM image than expected (%u.%u). Please install the most recent version of the network driver.\n",
-				 hw->api_maj_ver, hw->api_min_ver,
-				 EXP_FW_API_VER_MAJOR, EXP_FW_API_VER_MINOR);
+			ice_info(hw,
+			    "The driver for the device detected a newer version (%u.%u) of the NVM image than expected (%u.%u). Please install the most recent version of the network driver.\n",
+			    hw->api_maj_ver, hw->api_min_ver,
+			    EXP_FW_API_VER_MAJOR, EXP_FW_API_VER_MINOR);
 		else if ((hw->api_min_ver + 2) < EXP_FW_API_VER_MINOR)
-			ice_info(hw, "The driver for the device detected an older version (%u.%u) of the NVM image than expected (%u.%u). Please update the NVM image.\n",
-				 hw->api_maj_ver, hw->api_min_ver,
-				 EXP_FW_API_VER_MAJOR, EXP_FW_API_VER_MINOR);
+			ice_info(hw,
+			    "The driver for the device detected an older version (%u.%u) of the NVM image than expected (%u.%u). Please update the NVM image.\n",
+			    hw->api_maj_ver, hw->api_min_ver,
+			    EXP_FW_API_VER_MAJOR, EXP_FW_API_VER_MINOR);
 	} else {
 		/* Major API version is older than expected, log a warning */
-		ice_info(hw, "The driver for the device detected an older version (%u.%u) of the NVM image than expected (%u.%u). Please update the NVM image.\n",
-			 hw->api_maj_ver, hw->api_min_ver,
-			 EXP_FW_API_VER_MAJOR, EXP_FW_API_VER_MINOR);
+		ice_info(hw,
+		    "The driver for the device detected an older version (%u.%u) of the NVM image than expected (%u.%u). Please update the NVM image.\n",
+		    hw->api_maj_ver, hw->api_min_ver, EXP_FW_API_VER_MAJOR,
+		    EXP_FW_API_VER_MINOR);
 	}
 	return true;
 }
@@ -558,7 +569,8 @@ shutdown_rq_out:
  * @hw: pointer to the hardware structure
  * @cq: pointer to the specific Control queue
  */
-void ice_idle_aq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+void
+ice_idle_aq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	wr32(hw, cq->sq.len, 0);
 	wr32(hw, cq->rq.len, 0);
@@ -570,7 +582,8 @@ void ice_idle_aq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
  * ice_init_check_adminq - Check version for Admin Queue to know if its alive
  * @hw: pointer to the hardware structure
  */
-static enum ice_status ice_init_check_adminq(struct ice_hw *hw)
+static enum ice_status
+ice_init_check_adminq(struct ice_hw *hw)
 {
 	struct ice_ctl_q_info *cq = &hw->adminq;
 	enum ice_status status;
@@ -608,7 +621,8 @@ init_ctrlq_free_rq:
  *
  * NOTE: this function does not initialize the controlq locks
  */
-static enum ice_status ice_init_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type)
+static enum ice_status
+ice_init_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type)
 {
 	struct ice_ctl_q_info *cq;
 	enum ice_status ret_code;
@@ -630,8 +644,8 @@ static enum ice_status ice_init_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type)
 	cq->qtype = q_type;
 
 	/* verify input for valid configuration */
-	if (!cq->num_rq_entries || !cq->num_sq_entries ||
-	    !cq->rq_buf_size || !cq->sq_buf_size) {
+	if (!cq->num_rq_entries || !cq->num_sq_entries || !cq->rq_buf_size ||
+	    !cq->sq_buf_size) {
 		return ICE_ERR_CFG;
 	}
 
@@ -665,8 +679,7 @@ init_ctrlq_free_sq:
  * NOTE: this function does not destroy the control queue locks.
  */
 static void
-ice_shutdown_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type,
-		   bool unloading)
+ice_shutdown_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type, bool unloading)
 {
 	struct ice_ctl_q_info *cq;
 
@@ -698,7 +711,8 @@ ice_shutdown_ctrlq(struct ice_hw *hw, enum ice_ctl_q q_type,
  * may call this at runtime to shutdown and later restart control queues, such
  * as in response to a reset event.
  */
-void ice_shutdown_all_ctrlq(struct ice_hw *hw, bool unloading)
+void
+ice_shutdown_all_ctrlq(struct ice_hw *hw, bool unloading)
 {
 	ice_debug(hw, ICE_DBG_TRACE, "%s\n", __func__);
 	/* Shutdown FW admin queue */
@@ -720,7 +734,8 @@ void ice_shutdown_all_ctrlq(struct ice_hw *hw, bool unloading)
  *
  * NOTE: this function does not initialize the controlq locks.
  */
-enum ice_status ice_init_all_ctrlq(struct ice_hw *hw)
+enum ice_status
+ice_init_all_ctrlq(struct ice_hw *hw)
 {
 	enum ice_status status;
 	u32 retry = 0;
@@ -737,7 +752,8 @@ enum ice_status ice_init_all_ctrlq(struct ice_hw *hw)
 		if (status != ICE_ERR_AQ_FW_CRITICAL)
 			break;
 
-		ice_debug(hw, ICE_DBG_AQ_MSG, "Retry Admin Queue init due to FW critical error\n");
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "Retry Admin Queue init due to FW critical error\n");
 		ice_shutdown_ctrlq(hw, ICE_CTL_Q_ADMIN, true);
 		ice_msec_delay(ICE_CTL_Q_ADMIN_INIT_MSEC, true);
 	} while (retry++ < ICE_CTL_Q_ADMIN_INIT_TIMEOUT);
@@ -754,7 +770,8 @@ enum ice_status ice_init_all_ctrlq(struct ice_hw *hw)
  *
  * Initializes the send and receive queue locks for a given control queue.
  */
-static void ice_init_ctrlq_locks(struct ice_ctl_q_info *cq)
+static void
+ice_init_ctrlq_locks(struct ice_ctl_q_info *cq)
 {
 	ice_init_lock(&cq->sq_lock);
 	ice_init_lock(&cq->rq_lock);
@@ -776,7 +793,8 @@ static void ice_init_ctrlq_locks(struct ice_ctl_q_info *cq)
  * driver needs to re-initialize control queues at run time it should call
  * ice_init_all_ctrlq instead.
  */
-enum ice_status ice_create_all_ctrlq(struct ice_hw *hw)
+enum ice_status
+ice_create_all_ctrlq(struct ice_hw *hw)
 {
 	ice_init_ctrlq_locks(&hw->adminq);
 	ice_init_ctrlq_locks(&hw->mailboxq);
@@ -790,7 +808,8 @@ enum ice_status ice_create_all_ctrlq(struct ice_hw *hw)
  *
  * Destroys the send and receive queue locks for a given control queue.
  */
-static void ice_destroy_ctrlq_locks(struct ice_ctl_q_info *cq)
+static void
+ice_destroy_ctrlq_locks(struct ice_ctl_q_info *cq)
 {
 	ice_destroy_lock(&cq->sq_lock);
 	ice_destroy_lock(&cq->rq_lock);
@@ -805,7 +824,8 @@ static void ice_destroy_ctrlq_locks(struct ice_ctl_q_info *cq)
  * driver should call ice_shutdown_all_ctrlq if it needs to shut down and
  * reinitialize control queues, such as in response to a reset event.
  */
-void ice_destroy_all_ctrlq(struct ice_hw *hw)
+void
+ice_destroy_all_ctrlq(struct ice_hw *hw)
 {
 	/* shut down all the control queues first */
 	ice_shutdown_all_ctrlq(hw, true);
@@ -821,7 +841,8 @@ void ice_destroy_all_ctrlq(struct ice_hw *hw)
  *
  * returns the number of free desc
  */
-static u16 ice_clean_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+static u16
+ice_clean_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	struct ice_ctl_q_ring *sq = &cq->sq;
 	u16 ntc = sq->next_to_clean;
@@ -830,7 +851,8 @@ static u16 ice_clean_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 	desc = ICE_CTL_Q_DESC(*sq, ntc);
 
 	while (rd32(hw, cq->sq.head) != ntc) {
-		ice_debug(hw, ICE_DBG_AQ_MSG, "ntc %d head %d.\n", ntc, rd32(hw, cq->sq.head));
+		ice_debug(hw, ICE_DBG_AQ_MSG, "ntc %d head %d.\n", ntc,
+		    rd32(hw, cq->sq.head));
 		ice_memset(desc, 0, sizeof(*desc), ICE_DMA_MEM);
 		ntc++;
 		if (ntc == sq->count)
@@ -849,7 +871,8 @@ static u16 ice_clean_sq(struct ice_hw *hw, struct ice_ctl_q_info *cq)
  *
  * Returns: A string name for the given control queue type.
  */
-static const char *ice_ctl_q_str(enum ice_ctl_q qtype)
+static const char *
+ice_ctl_q_str(enum ice_ctl_q qtype)
 {
 	switch (qtype) {
 	case ICE_CTL_Q_UNKNOWN:
@@ -875,8 +898,8 @@ static const char *ice_ctl_q_str(enum ice_ctl_q qtype)
  * Dumps debug log about control command with descriptor contents.
  */
 static void
-ice_debug_cq(struct ice_hw *hw, struct ice_ctl_q_info *cq,
-	     void *desc, void *buf, u16 buf_len, bool response)
+ice_debug_cq(struct ice_hw *hw, struct ice_ctl_q_info *cq, void *desc,
+    void *buf, u16 buf_len, bool response)
 {
 	struct ice_aq_desc *cq_desc = (struct ice_aq_desc *)desc;
 	u16 datalen, flags;
@@ -890,28 +913,29 @@ ice_debug_cq(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	datalen = LE16_TO_CPU(cq_desc->datalen);
 	flags = LE16_TO_CPU(cq_desc->flags);
 
-	ice_debug(hw, ICE_DBG_AQ_DESC, "%s %s: opcode 0x%04X, flags 0x%04X, datalen 0x%04X, retval 0x%04X\n",
-		  ice_ctl_q_str(cq->qtype), response ? "Response" : "Command",
-		  LE16_TO_CPU(cq_desc->opcode), flags, datalen,
-		  LE16_TO_CPU(cq_desc->retval));
+	ice_debug(hw, ICE_DBG_AQ_DESC,
+	    "%s %s: opcode 0x%04X, flags 0x%04X, datalen 0x%04X, retval 0x%04X\n",
+	    ice_ctl_q_str(cq->qtype), response ? "Response" : "Command",
+	    LE16_TO_CPU(cq_desc->opcode), flags, datalen,
+	    LE16_TO_CPU(cq_desc->retval));
 	ice_debug(hw, ICE_DBG_AQ_DESC, "\tcookie (h,l) 0x%08X 0x%08X\n",
-		  LE32_TO_CPU(cq_desc->cookie_high),
-		  LE32_TO_CPU(cq_desc->cookie_low));
+	    LE32_TO_CPU(cq_desc->cookie_high),
+	    LE32_TO_CPU(cq_desc->cookie_low));
 	ice_debug(hw, ICE_DBG_AQ_DESC, "\tparam (0,1)  0x%08X 0x%08X\n",
-		  LE32_TO_CPU(cq_desc->params.generic.param0),
-		  LE32_TO_CPU(cq_desc->params.generic.param1));
+	    LE32_TO_CPU(cq_desc->params.generic.param0),
+	    LE32_TO_CPU(cq_desc->params.generic.param1));
 	ice_debug(hw, ICE_DBG_AQ_DESC, "\taddr (h,l)   0x%08X 0x%08X\n",
-		  LE32_TO_CPU(cq_desc->params.generic.addr_high),
-		  LE32_TO_CPU(cq_desc->params.generic.addr_low));
+	    LE32_TO_CPU(cq_desc->params.generic.addr_high),
+	    LE32_TO_CPU(cq_desc->params.generic.addr_low));
 	/* Dump buffer iff 1) one exists and 2) is either a response indicated
 	 * by the DD and/or CMP flag set or a command with the RD flag set.
 	 */
 	if (buf && cq_desc->datalen != 0 &&
 	    (flags & (ICE_AQ_FLAG_DD | ICE_AQ_FLAG_CMP) ||
-	     flags & ICE_AQ_FLAG_RD)) {
+		flags & ICE_AQ_FLAG_RD)) {
 		ice_debug(hw, ICE_DBG_AQ_DESC_BUF, "Buffer:\n");
 		ice_debug_array(hw, ICE_DBG_AQ_DESC_BUF, 16, 1, (u8 *)buf,
-				MIN_T(u16, buf_len, datalen));
+		    MIN_T(u16, buf_len, datalen));
 	}
 }
 
@@ -923,7 +947,8 @@ ice_debug_cq(struct ice_hw *hw, struct ice_ctl_q_info *cq,
  * Returns: true if all the descriptors on the send side of a control queue
  *          are finished processing, false otherwise.
  */
-bool ice_sq_done(struct ice_hw *hw, struct ice_ctl_q_info *cq)
+bool
+ice_sq_done(struct ice_hw *hw, struct ice_ctl_q_info *cq)
 {
 	/* control queue designers suggest use of head for better
 	 * timing reliability than DD bit
@@ -946,8 +971,7 @@ bool ice_sq_done(struct ice_hw *hw, struct ice_ctl_q_info *cq)
  */
 static enum ice_status
 ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
-		       struct ice_aq_desc *desc, void *buf, u16 buf_size,
-		       struct ice_sq_cd *cd)
+    struct ice_aq_desc *desc, void *buf, u16 buf_size, struct ice_sq_cd *cd)
 {
 	struct ice_dma_mem *dma_buf = NULL;
 	struct ice_aq_desc *desc_on_ring;
@@ -964,7 +988,8 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	cq->sq_last_status = ICE_AQ_RC_OK;
 
 	if (!cq->sq.count) {
-		ice_debug(hw, ICE_DBG_AQ_MSG, "Control Send queue not initialized.\n");
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "Control Send queue not initialized.\n");
 		status = ICE_ERR_AQ_EMPTY;
 		goto sq_send_command_error;
 	}
@@ -976,8 +1001,9 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 
 	if (buf) {
 		if (buf_size > cq->sq_buf_size) {
-			ice_debug(hw, ICE_DBG_AQ_MSG, "Invalid buffer size for Control Send queue: %d.\n",
-				  buf_size);
+			ice_debug(hw, ICE_DBG_AQ_MSG,
+			    "Invalid buffer size for Control Send queue: %d.\n",
+			    buf_size);
 			status = ICE_ERR_INVAL_SIZE;
 			goto sq_send_command_error;
 		}
@@ -989,8 +1015,8 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 
 	val = rd32(hw, cq->sq.head);
 	if (val >= cq->num_sq_entries) {
-		ice_debug(hw, ICE_DBG_AQ_MSG, "head overrun at %d in the Control Send Queue ring\n",
-			  val);
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "head overrun at %d in the Control Send Queue ring\n", val);
 		status = ICE_ERR_AQ_EMPTY;
 		goto sq_send_command_error;
 	}
@@ -1001,7 +1027,8 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	 * called in a separate thread in case of asynchronous completions.
 	 */
 	if (ice_clean_sq(hw, cq) == 0) {
-		ice_debug(hw, ICE_DBG_AQ_MSG, "Error: Control Send Queue is full.\n");
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "Error: Control Send Queue is full.\n");
 		status = ICE_ERR_AQ_FULL;
 		goto sq_send_command_error;
 	}
@@ -1011,7 +1038,7 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 
 	/* if the desc is available copy the temp desc to the right place */
 	ice_memcpy(desc_on_ring, desc, sizeof(*desc_on_ring),
-		   ICE_NONDMA_TO_DMA);
+	    ICE_NONDMA_TO_DMA);
 
 	/* if buf is not NULL assume indirect command */
 	if (buf) {
@@ -1023,14 +1050,15 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 		/* Update the address values in the desc with the pa value
 		 * for respective buffer
 		 */
-		desc_on_ring->params.generic.addr_high =
-			CPU_TO_LE32(ICE_HI_DWORD(dma_buf->pa));
-		desc_on_ring->params.generic.addr_low =
-			CPU_TO_LE32(ICE_LO_DWORD(dma_buf->pa));
+		desc_on_ring->params.generic.addr_high = CPU_TO_LE32(
+		    ICE_HI_DWORD(dma_buf->pa));
+		desc_on_ring->params.generic.addr_low = CPU_TO_LE32(
+		    ICE_LO_DWORD(dma_buf->pa));
 	}
 
 	/* Debug desc and buffer */
-	ice_debug(hw, ICE_DBG_AQ_DESC, "ATQ: Control Send queue desc and buffer:\n");
+	ice_debug(hw, ICE_DBG_AQ_DESC,
+	    "ATQ: Control Send queue desc and buffer:\n");
 	ice_debug_cq(hw, cq, (void *)desc_on_ring, buf, buf_size, false);
 
 	(cq->sq.next_to_use)++;
@@ -1049,25 +1077,26 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	/* if ready, copy the desc back to temp */
 	if (ice_sq_done(hw, cq)) {
 		ice_memcpy(desc, desc_on_ring, sizeof(*desc),
-			   ICE_DMA_TO_NONDMA);
+		    ICE_DMA_TO_NONDMA);
 		if (buf) {
 			/* get returned length to copy */
 			u16 copy_size = LE16_TO_CPU(desc->datalen);
 
 			if (copy_size > buf_size) {
-				ice_debug(hw, ICE_DBG_AQ_MSG, "Return len %d > than buf len %d\n",
-					  copy_size, buf_size);
+				ice_debug(hw, ICE_DBG_AQ_MSG,
+				    "Return len %d > than buf len %d\n",
+				    copy_size, buf_size);
 				status = ICE_ERR_AQ_ERROR;
 			} else {
 				ice_memcpy(buf, dma_buf->va, copy_size,
-					   ICE_DMA_TO_NONDMA);
+				    ICE_DMA_TO_NONDMA);
 			}
 		}
 		retval = LE16_TO_CPU(desc->retval);
 		if (retval) {
-			ice_debug(hw, ICE_DBG_AQ_MSG, "Control Send Queue command 0x%04X completed with error 0x%X\n",
-				  LE16_TO_CPU(desc->opcode),
-				  retval);
+			ice_debug(hw, ICE_DBG_AQ_MSG,
+			    "Control Send Queue command 0x%04X completed with error 0x%X\n",
+			    LE16_TO_CPU(desc->opcode), retval);
 
 			/* strip off FW internal code */
 			retval &= 0xff;
@@ -1083,8 +1112,8 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 
 	/* save writeback AQ if requested */
 	if (cd && cd->wb_desc)
-		ice_memcpy(cd->wb_desc, desc_on_ring,
-			   sizeof(*cd->wb_desc), ICE_DMA_TO_NONDMA);
+		ice_memcpy(cd->wb_desc, desc_on_ring, sizeof(*cd->wb_desc),
+		    ICE_DMA_TO_NONDMA);
 
 	/* update the error if time out occurred */
 	if (!cmd_completed) {
@@ -1093,7 +1122,8 @@ ice_sq_send_cmd_nolock(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 			ice_debug(hw, ICE_DBG_AQ_MSG, "Critical FW error.\n");
 			status = ICE_ERR_AQ_FW_CRITICAL;
 		} else {
-			ice_debug(hw, ICE_DBG_AQ_MSG, "Control Send Queue Writeback timeout.\n");
+			ice_debug(hw, ICE_DBG_AQ_MSG,
+			    "Control Send Queue Writeback timeout.\n");
 			status = ICE_ERR_AQ_TIMEOUT;
 		}
 	}
@@ -1117,8 +1147,7 @@ sq_send_command_error:
  */
 enum ice_status
 ice_sq_send_cmd(struct ice_hw *hw, struct ice_ctl_q_info *cq,
-		struct ice_aq_desc *desc, void *buf, u16 buf_size,
-		struct ice_sq_cd *cd)
+    struct ice_aq_desc *desc, void *buf, u16 buf_size, struct ice_sq_cd *cd)
 {
 	enum ice_status status = ICE_SUCCESS;
 
@@ -1140,7 +1169,8 @@ ice_sq_send_cmd(struct ice_hw *hw, struct ice_ctl_q_info *cq,
  *
  * Fill the desc with default values
  */
-void ice_fill_dflt_direct_cmd_desc(struct ice_aq_desc *desc, u16 opcode)
+void
+ice_fill_dflt_direct_cmd_desc(struct ice_aq_desc *desc, u16 opcode)
 {
 	/* zero out the desc */
 	ice_memset(desc, 0, sizeof(*desc), ICE_NONDMA_MEM);
@@ -1161,7 +1191,7 @@ void ice_fill_dflt_direct_cmd_desc(struct ice_aq_desc *desc, u16 opcode)
  */
 enum ice_status
 ice_clean_rq_elem(struct ice_hw *hw, struct ice_ctl_q_info *cq,
-		  struct ice_rq_event_info *e, u16 *pending)
+    struct ice_rq_event_info *e, u16 *pending)
 {
 	u16 ntc = cq->rq.next_to_clean;
 	enum ice_aq_err rq_last_status;
@@ -1180,7 +1210,8 @@ ice_clean_rq_elem(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	ice_acquire_lock(&cq->rq_lock);
 
 	if (!cq->rq.count) {
-		ice_debug(hw, ICE_DBG_AQ_MSG, "Control Receive queue not initialized.\n");
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "Control Receive queue not initialized.\n");
 		ret_code = ICE_ERR_AQ_EMPTY;
 		goto clean_rq_elem_err;
 	}
@@ -1202,15 +1233,16 @@ ice_clean_rq_elem(struct ice_hw *hw, struct ice_ctl_q_info *cq,
 	flags = LE16_TO_CPU(desc->flags);
 	if (flags & ICE_AQ_FLAG_ERR) {
 		ret_code = ICE_ERR_AQ_ERROR;
-		ice_debug(hw, ICE_DBG_AQ_MSG, "Control Receive Queue Event 0x%04X received with error 0x%X\n",
-			  LE16_TO_CPU(desc->opcode), rq_last_status);
+		ice_debug(hw, ICE_DBG_AQ_MSG,
+		    "Control Receive Queue Event 0x%04X received with error 0x%X\n",
+		    LE16_TO_CPU(desc->opcode), rq_last_status);
 	}
 	ice_memcpy(&e->desc, desc, sizeof(e->desc), ICE_DMA_TO_NONDMA);
 	datalen = LE16_TO_CPU(desc->datalen);
 	e->msg_len = MIN_T(u16, datalen, e->buf_len);
 	if (e->msg_buf && e->msg_len)
-		ice_memcpy(e->msg_buf, cq->rq.r.rq_bi[desc_idx].va,
-			   e->msg_len, ICE_DMA_TO_NONDMA);
+		ice_memcpy(e->msg_buf, cq->rq.r.rq_bi[desc_idx].va, e->msg_len,
+		    ICE_DMA_TO_NONDMA);
 
 	ice_debug(hw, ICE_DBG_AQ_DESC, "ARQ: desc and buffer:\n");
 	ice_debug_cq(hw, cq, (void *)desc, e->msg_buf, cq->rq_buf_size, true);

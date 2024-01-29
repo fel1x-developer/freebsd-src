@@ -50,7 +50,7 @@
  *
  * TRW Financial Systems, in accordance with their agreement with Carnegie
  * Mellon University, makes this software available to CMU to distribute
- * or use in any manner that they see fit as long as this message is kept with 
+ * or use in any manner that they see fit as long as this message is kept with
  * the software. For this reason TFS also grants any other persons or
  * organisations permission to use or modify this software.
  *
@@ -64,7 +64,6 @@
 #ifndef _SCSI_SCSI_CH_H
 #define _SCSI_SCSI_CH_H 1
 
-
 /*
  * SCSI command format
  */
@@ -74,17 +73,17 @@
  * located at the destination element.
  */
 struct scsi_exchange_medium {
-	uint8_t	opcode;
-#define EXCHANGE_MEDIUM		0xa6
-	uint8_t	byte2;
-	uint8_t	tea[2];	/* transport element address */
-	uint8_t	src[2];	/* source address */
-	uint8_t	fdst[2]; /* first destination address */
-	uint8_t	sdst[2]; /* second destination address */
-	uint8_t	invert;
-#define EXCHANGE_MEDIUM_INV1	0x01
-#define EXCHANGE_MEDIUM_INV2	0x02
-	uint8_t	control;
+	uint8_t opcode;
+#define EXCHANGE_MEDIUM 0xa6
+	uint8_t byte2;
+	uint8_t tea[2];	 /* transport element address */
+	uint8_t src[2];	 /* source address */
+	uint8_t fdst[2]; /* first destination address */
+	uint8_t sdst[2]; /* second destination address */
+	uint8_t invert;
+#define EXCHANGE_MEDIUM_INV1 0x01
+#define EXCHANGE_MEDIUM_INV2 0x02
+	uint8_t control;
 };
 
 /*
@@ -92,11 +91,11 @@ struct scsi_exchange_medium {
  * other status relevant to the element.
  */
 struct scsi_initialize_element_status {
-	uint8_t	opcode;
-#define INITIALIZE_ELEMENT_STATUS	0x07
-	uint8_t	byte2;
-	uint8_t	reserved[3];
-	uint8_t	control;
+	uint8_t opcode;
+#define INITIALIZE_ELEMENT_STATUS 0x07
+	uint8_t byte2;
+	uint8_t reserved[3];
+	uint8_t control;
 };
 
 /*
@@ -104,15 +103,15 @@ struct scsi_initialize_element_status {
  * to the destination element.
  */
 struct scsi_move_medium {
-	uint8_t	opcode;
-	uint8_t	byte2;
-	uint8_t	tea[2];	/* transport element address */
-	uint8_t	src[2];	/* source element address */
-	uint8_t	dst[2];	/* destination element address */
-	uint8_t	reserved[2];
-	uint8_t	invert;
-#define MOVE_MEDIUM_INVERT	0x01
-	uint8_t	control;
+	uint8_t opcode;
+	uint8_t byte2;
+	uint8_t tea[2]; /* transport element address */
+	uint8_t src[2]; /* source element address */
+	uint8_t dst[2]; /* destination element address */
+	uint8_t reserved[2];
+	uint8_t invert;
+#define MOVE_MEDIUM_INVERT 0x01
+	uint8_t control;
 };
 
 /*
@@ -120,46 +119,46 @@ struct scsi_move_medium {
  * the destination element specified.
  */
 struct scsi_position_to_element {
-	uint8_t	opcode;
-	uint8_t	byte2;
-	uint8_t	tea[2];	/* transport element address */
-	uint8_t	dst[2];	/* destination element address */
-	uint8_t	reserved[2];
-	uint8_t	invert;
-#define POSITION_TO_ELEMENT_INVERT	0x01
-	uint8_t	control;
+	uint8_t opcode;
+	uint8_t byte2;
+	uint8_t tea[2]; /* transport element address */
+	uint8_t dst[2]; /* destination element address */
+	uint8_t reserved[2];
+	uint8_t invert;
+#define POSITION_TO_ELEMENT_INVERT 0x01
+	uint8_t control;
 };
 
 /*
  * Request that the changer report the status of its internal elements.
  */
 struct scsi_read_element_status {
-	uint8_t	opcode;
-	uint8_t	byte2;
-#define	READ_ELEMENT_STATUS_VOLTAG	0x10	/* report volume tag info */
+	uint8_t opcode;
+	uint8_t byte2;
+#define READ_ELEMENT_STATUS_VOLTAG 0x10 /* report volume tag info */
 	/* ...next 4 bits are an element type code... */
-	uint8_t	sea[2];	/* starting element address */
-	uint8_t	count[2]; /* number of elements */
-	uint8_t	flags;
-#define	READ_ELEMENT_STATUS_DVCID	0x01 /* report device serial number */
-#define	READ_ELEMENT_STATUS_CURDATA	0x02 /* allow motion during command */
+	uint8_t sea[2];	  /* starting element address */
+	uint8_t count[2]; /* number of elements */
+	uint8_t flags;
+#define READ_ELEMENT_STATUS_DVCID 0x01	 /* report device serial number */
+#define READ_ELEMENT_STATUS_CURDATA 0x02 /* allow motion during command */
 
-	uint8_t	len[3];	/* length of data buffer */
-	uint8_t	reserved1;
-	uint8_t	control;
+	uint8_t len[3]; /* length of data buffer */
+	uint8_t reserved1;
+	uint8_t control;
 };
 
 struct scsi_request_volume_element_address {
-	uint8_t	opcode;
-	uint8_t	byte2;
-#define	REQUEST_VOLUME_ELEMENT_ADDRESS_VOLTAG	0x10
+	uint8_t opcode;
+	uint8_t byte2;
+#define REQUEST_VOLUME_ELEMENT_ADDRESS_VOLTAG 0x10
 	/* ...next 4 bits are an element type code... */
-	uint8_t	eaddr[2];	/* element address */
-	uint8_t	count[2];	/* number of elements */
-	uint8_t	reserved0;
-	uint8_t	len[3];		/* length of data buffer */
-	uint8_t	reserved1;
-	uint8_t	control;
+	uint8_t eaddr[2]; /* element address */
+	uint8_t count[2]; /* number of elements */
+	uint8_t reserved0;
+	uint8_t len[3]; /* length of data buffer */
+	uint8_t reserved1;
+	uint8_t control;
 };
 
 /* XXX scsi_release */
@@ -167,29 +166,29 @@ struct scsi_request_volume_element_address {
 /*
  * Changer-specific mode page numbers.
  */
-#define	CH_ELEMENT_ADDR_ASSIGN_PAGE	0x1D
-#define	CH_TRANS_GEOM_PARAMS_PAGE	0x1E
-#define	CH_DEVICE_CAP_PAGE		0x1F
+#define CH_ELEMENT_ADDR_ASSIGN_PAGE 0x1D
+#define CH_TRANS_GEOM_PARAMS_PAGE 0x1E
+#define CH_DEVICE_CAP_PAGE 0x1F
 
 /*
  * Data returned by READ ELEMENT STATUS consists of an 8-byte header
  * followed by one or more read_element_status_pages.
  */
 struct read_element_status_header {
-	uint8_t	fear[2];  /* first element address reported */
-	uint8_t	count[2]; /* number of elements available */
-	uint8_t	reserved;
-	uint8_t	nbytes[3]; /* byte count of all pages */
+	uint8_t fear[2];  /* first element address reported */
+	uint8_t count[2]; /* number of elements available */
+	uint8_t reserved;
+	uint8_t nbytes[3]; /* byte count of all pages */
 };
 
 struct read_element_status_page_header {
-	uint8_t	type;	/* element type code; see type codes below */
-	uint8_t	flags;
-#define	READ_ELEMENT_STATUS_AVOLTAG	0x40
-#define	READ_ELEMENT_STATUS_PVOLTAG	0x80
-	uint8_t	edl[2];	/* element descriptor length */
-	uint8_t	reserved;
-	uint8_t	nbytes[3]; /* byte count of all descriptors */
+	uint8_t type; /* element type code; see type codes below */
+	uint8_t flags;
+#define READ_ELEMENT_STATUS_AVOLTAG 0x40
+#define READ_ELEMENT_STATUS_PVOLTAG 0x80
+	uint8_t edl[2]; /* element descriptor length */
+	uint8_t reserved;
+	uint8_t nbytes[3]; /* byte count of all descriptors */
 };
 
 /*
@@ -197,82 +196,82 @@ struct read_element_status_page_header {
  */
 
 struct volume_tag {
-	uint8_t	vif[32];	/* volume identification field */
-	uint8_t	reserved[2];
-	uint8_t	vsn[2];		/* volume sequence number */
+	uint8_t vif[32]; /* volume identification field */
+	uint8_t reserved[2];
+	uint8_t vsn[2]; /* volume sequence number */
 };
 
 struct read_element_status_device_id {
-	uint8_t	prot_code_set;
-#define	READ_ELEMENT_STATUS_CODE_SET(p) ((p) & 0x0F)
-#define	READ_ELEMENT_STATUS_PROTOCOL_ID(p) ((p) >> 4)
+	uint8_t prot_code_set;
+#define READ_ELEMENT_STATUS_CODE_SET(p) ((p) & 0x0F)
+#define READ_ELEMENT_STATUS_PROTOCOL_ID(p) ((p) >> 4)
 
-	uint8_t	piv_assoc_designator_type;
-#define	READ_ELEMENT_STATUS_PIV_SET 0x80
-#define	READ_ELEMENT_STATUS_ASSOCIATION(p) ((p) >> 4)
-#define	READ_ELEMENT_STATUS_DESIGNATOR_TYPE(p) ((p) & 0x0F)
+	uint8_t piv_assoc_designator_type;
+#define READ_ELEMENT_STATUS_PIV_SET 0x80
+#define READ_ELEMENT_STATUS_ASSOCIATION(p) ((p) >> 4)
+#define READ_ELEMENT_STATUS_DESIGNATOR_TYPE(p) ((p) & 0x0F)
 
-	uint8_t	reserved2;
-	uint8_t	designator_length;
-	uint8_t	designator[256]; /* Allocate max length */
+	uint8_t reserved2;
+	uint8_t designator_length;
+	uint8_t designator[256]; /* Allocate max length */
 };
 
 struct read_element_status_descriptor {
-	uint8_t	eaddr[2];	/* element address */
-	uint8_t	flags1;
+	uint8_t eaddr[2]; /* element address */
+	uint8_t flags1;
 
-#define	READ_ELEMENT_STATUS_FULL	0x01
-#define	READ_ELEMENT_STATUS_IMPEXP	0x02
-#define	READ_ELEMENT_STATUS_EXCEPT	0x04
-#define	READ_ELEMENT_STATUS_ACCESS	0x08
-#define	READ_ELEMENT_STATUS_EXENAB	0x10
-#define	READ_ELEMENT_STATUS_INENAB	0x20
+#define READ_ELEMENT_STATUS_FULL 0x01
+#define READ_ELEMENT_STATUS_IMPEXP 0x02
+#define READ_ELEMENT_STATUS_EXCEPT 0x04
+#define READ_ELEMENT_STATUS_ACCESS 0x08
+#define READ_ELEMENT_STATUS_EXENAB 0x10
+#define READ_ELEMENT_STATUS_INENAB 0x20
 
-#define	READ_ELEMENT_STATUS_MT_MASK1	0x05
-#define	READ_ELEMENT_STATUS_ST_MASK1	0x0c
-#define	READ_ELEMENT_STATUS_IE_MASK1	0x3f
-#define	READ_ELEMENT_STATUS_DT_MASK1	0x0c
+#define READ_ELEMENT_STATUS_MT_MASK1 0x05
+#define READ_ELEMENT_STATUS_ST_MASK1 0x0c
+#define READ_ELEMENT_STATUS_IE_MASK1 0x3f
+#define READ_ELEMENT_STATUS_DT_MASK1 0x0c
 
-	uint8_t	reserved0;
-	uint8_t	sense_code;
-	uint8_t	sense_qual;
+	uint8_t reserved0;
+	uint8_t sense_code;
+	uint8_t sense_qual;
 
 	union {
 		struct {
-			uint8_t	dt_scsi_flags;
+			uint8_t dt_scsi_flags;
 
-#define	READ_ELEMENT_STATUS_DT_LUNMASK	0x07
-#define	READ_ELEMENT_STATUS_DT_LUVALID	0x10
-#define	READ_ELEMENT_STATUS_DT_IDVALID	0x20
-#define	READ_ELEMENT_STATUS_DT_NOTBUS	0x80
+#define READ_ELEMENT_STATUS_DT_LUNMASK 0x07
+#define READ_ELEMENT_STATUS_DT_LUVALID 0x10
+#define READ_ELEMENT_STATUS_DT_IDVALID 0x20
+#define READ_ELEMENT_STATUS_DT_NOTBUS 0x80
 
-			uint8_t	dt_scsi_addr;
-			uint8_t	reserved1;
+			uint8_t dt_scsi_addr;
+			uint8_t reserved1;
 		} scsi_2;
 
 		/* reserved and obsolete (as of SCSI-3) fields */
-		uint8_t	reserved_or_obsolete[3];
+		uint8_t reserved_or_obsolete[3];
 	} dt_or_obsolete;
 
-	uint8_t	flags2;
-#define	READ_ELEMENT_STATUS_INVERT		0x40
-#define	READ_ELEMENT_STATUS_SVALID		0x80
-#define	READ_ELEMENT_STATUS_ED			0x80
-#define	READ_ELEMENT_STATUS_MEDIA_TYPE_MASK	0x07
+	uint8_t flags2;
+#define READ_ELEMENT_STATUS_INVERT 0x40
+#define READ_ELEMENT_STATUS_SVALID 0x80
+#define READ_ELEMENT_STATUS_ED 0x80
+#define READ_ELEMENT_STATUS_MEDIA_TYPE_MASK 0x07
 
-	uint8_t	ssea[2];	/* source storage element address */
+	uint8_t ssea[2]; /* source storage element address */
 
 	union {
-		struct volume_tag			pvoltag;
-		struct volume_tag 			voltag[2];
-		struct read_element_status_device_id	devid;
+		struct volume_tag pvoltag;
+		struct volume_tag voltag[2];
+		struct read_element_status_device_id devid;
 		struct {
-			struct volume_tag			pvoltag;
-			struct read_element_status_device_id	devid;
+			struct volume_tag pvoltag;
+			struct read_element_status_device_id devid;
 		} pvol_and_devid;
 		struct {
-			struct volume_tag			voltag[2];
-			struct read_element_status_device_id	devid;
+			struct volume_tag voltag[2];
+			struct read_element_status_device_id devid;
 		} vol_tags_and_devid;
 	} voltag_devid;
 };
@@ -280,42 +279,42 @@ struct read_element_status_descriptor {
 /* XXX add data returned by REQUEST VOLUME ELEMENT ADDRESS */
 
 /* Element type codes */
-#define ELEMENT_TYPE_MASK	0x0f	/* Note: these aren't bits */
-#define ELEMENT_TYPE_ALL	0x00
-#define ELEMENT_TYPE_MT		0x01
-#define ELEMENT_TYPE_ST		0x02
-#define ELEMENT_TYPE_IE		0x03
-#define ELEMENT_TYPE_DT		0x04
+#define ELEMENT_TYPE_MASK 0x0f /* Note: these aren't bits */
+#define ELEMENT_TYPE_ALL 0x00
+#define ELEMENT_TYPE_MT 0x01
+#define ELEMENT_TYPE_ST 0x02
+#define ELEMENT_TYPE_IE 0x03
+#define ELEMENT_TYPE_DT 0x04
 
 /*
  * XXX The following definitions should be common to all SCSI device types.
  */
-#define PGCODE_MASK	0x3f	/* valid page number bits in pg_code */
-#define PGCODE_PS	0x80	/* indicates page is savable */
+#define PGCODE_MASK 0x3f /* valid page number bits in pg_code */
+#define PGCODE_PS 0x80	 /* indicates page is savable */
 
 /*
  * Send volume tag information to the changer
  */
 
 struct scsi_send_volume_tag {
-	uint8_t	opcode;
-#define SEND_VOLUME_TAG	0xb6
-	uint8_t	byte2;
-	uint8_t	ea[2];		/* element address */
-	uint8_t	reserved2;
-  	uint8_t	sac;		/* send action code */
+	uint8_t opcode;
+#define SEND_VOLUME_TAG 0xb6
+	uint8_t byte2;
+	uint8_t ea[2]; /* element address */
+	uint8_t reserved2;
+	uint8_t sac; /* send action code */
 
-#define SEND_VOLUME_TAG_ASSERT_PRIMARY		0x08
-#define SEND_VOLUME_TAG_ASSERT_ALTERNATE	0x09
-#define SEND_VOLUME_TAG_REPLACE_PRIMARY		0x0a
-#define SEND_VOLUME_TAG_REPLACE_ALTERNATE	0x0b
-#define SEND_VOLUME_TAG_UNDEFINED_PRIMARY	0x0c
-#define SEND_VOLUME_TAG_UNDEFINED_ALTERNATE	0x0d
+#define SEND_VOLUME_TAG_ASSERT_PRIMARY 0x08
+#define SEND_VOLUME_TAG_ASSERT_ALTERNATE 0x09
+#define SEND_VOLUME_TAG_REPLACE_PRIMARY 0x0a
+#define SEND_VOLUME_TAG_REPLACE_ALTERNATE 0x0b
+#define SEND_VOLUME_TAG_UNDEFINED_PRIMARY 0x0c
+#define SEND_VOLUME_TAG_UNDEFINED_ALTERNATE 0x0d
 
-	uint8_t	reserved4[2];
-	uint8_t	pll[2];		/* parameter list length */
-	uint8_t	reserved5;
-	uint8_t	control;
+	uint8_t reserved4[2];
+	uint8_t pll[2]; /* parameter list length */
+	uint8_t reserved5;
+	uint8_t control;
 };
 
 /*
@@ -323,11 +322,11 @@ struct scsi_send_volume_tag {
  */
 
 struct scsi_send_volume_tag_parameters {
-	uint8_t	vitf[32];	/* volume tag identification template */
-	uint8_t	reserved1[2];
-	uint8_t	minvsn[2];	/* minimum volume sequence number */
-	uint8_t	reserved2[2];
-	uint8_t	maxvsn[2];	/* maximum volume sequence number */
+	uint8_t vitf[32]; /* volume tag identification template */
+	uint8_t reserved1[2];
+	uint8_t minvsn[2]; /* minimum volume sequence number */
+	uint8_t reserved2[2];
+	uint8_t maxvsn[2]; /* maximum volume sequence number */
 };
 
 /*
@@ -344,21 +343,21 @@ struct scsi_send_volume_tag_parameters {
  *		DT	Data transfer element (tape/disk drive)
  */
 struct page_device_capabilities {
-	uint8_t	pg_code;	/* page code (0x1f) */
-	uint8_t	pg_length;	/* page length (0x12) */
+	uint8_t pg_code;   /* page code (0x1f) */
+	uint8_t pg_length; /* page length (0x12) */
 
 	/*
 	 * The STOR_xx bits indicate that an element of a given
 	 * type may provide independent storage for a unit of
 	 * media.  The top four bits of this value are reserved.
 	 */
-	uint8_t	stor;
-#define STOR_MT		0x01
-#define STOR_ST		0x02
-#define STOR_IE		0x04
-#define STOR_DT		0x08
+	uint8_t stor;
+#define STOR_MT 0x01
+#define STOR_ST 0x02
+#define STOR_IE 0x04
+#define STOR_DT 0x08
 
-	uint8_t	reserved0;
+	uint8_t reserved0;
 
 	/*
 	 * The MOVE_TO_yy bits indicate the changer supports
@@ -367,22 +366,22 @@ struct page_device_capabilities {
 	 * MOVE MEDIUM command is legal.  The top four bits of each
 	 * of these values are reserved.
 	 */
-	uint8_t	move_from[CHET_MAX + 1];
-#define MOVE_TO_MT	0x01
-#define MOVE_TO_ST	0x02
-#define MOVE_TO_IE	0x04
-#define MOVE_TO_DT	0x08
+	uint8_t move_from[CHET_MAX + 1];
+#define MOVE_TO_MT 0x01
+#define MOVE_TO_ST 0x02
+#define MOVE_TO_IE 0x04
+#define MOVE_TO_DT 0x08
 
-	uint8_t	reserved1[4];
+	uint8_t reserved1[4];
 
 	/*
 	 * Similar to above, but for EXCHANGE MEDIUM.
 	 */
-	uint8_t	exchange_with[CHET_MAX + 1];
-#define EXCHANGE_WITH_MT	0x01
-#define EXCHANGE_WITH_ST	0x02
-#define EXCHANGE_WITH_IE	0x04
-#define EXCHANGE_WITH_DT	0x08
+	uint8_t exchange_with[CHET_MAX + 1];
+#define EXCHANGE_WITH_MT 0x01
+#define EXCHANGE_WITH_ST 0x02
+#define EXCHANGE_WITH_IE 0x04
+#define EXCHANGE_WITH_DT 0x08
 };
 
 /*
@@ -414,34 +413,34 @@ struct page_device_capabilities {
  * tells us how many drives exist in the changer.
  */
 struct page_element_address_assignment {
-	uint8_t	pg_code;	/* page code (0x1d) */
-	uint8_t	pg_length;	/* page length (0x12) */
+	uint8_t pg_code;   /* page code (0x1d) */
+	uint8_t pg_length; /* page length (0x12) */
 
 	/* Medium transport element address */
-	uint8_t	mtea[2];
+	uint8_t mtea[2];
 
 	/* Number of medium transport elements */
-	uint8_t	nmte[2];
+	uint8_t nmte[2];
 
 	/* First storage element address */
-	uint8_t	fsea[2];
+	uint8_t fsea[2];
 
 	/* Number of storage elements */
-	uint8_t	nse[2];
+	uint8_t nse[2];
 
 	/* First import/export element address */
-	uint8_t	fieea[2];
+	uint8_t fieea[2];
 
 	/* Number of import/export elements */
-	uint8_t	niee[2];
+	uint8_t niee[2];
 
 	/* First data transfer element address */
-	uint8_t	fdtea[2];
+	uint8_t fdtea[2];
 
 	/* Number of data transfer elements */
-	uint8_t	ndte[2];
+	uint8_t ndte[2];
 
-	uint8_t	reserved[2];
+	uint8_t reserved[2];
 };
 
 /*
@@ -455,56 +454,47 @@ struct page_element_address_assignment {
  * of 0).
  */
 struct page_transport_geometry_parameters {
-	uint8_t	pg_code;	/* page code (0x1e) */
-	uint8_t	pg_length;	/* page length; variable */
+	uint8_t pg_code;   /* page code (0x1e) */
+	uint8_t pg_length; /* page length; variable */
 
 	/* Transport geometry descriptor(s) are here. */
 
-	uint8_t	misc;
-#define CAN_ROTATE	0x01
+	uint8_t misc;
+#define CAN_ROTATE 0x01
 
 	/* Member number in transport element set. */
-	uint8_t	member;
+	uint8_t member;
 };
 
 __BEGIN_DECLS
 void scsi_move_medium(struct ccb_scsiio *csio, uint32_t retries,
-		      void (*cbfcnp)(struct cam_periph *, union ccb *),
-		      uint8_t tag_action, uint32_t tea, uint32_t src,
-		      uint32_t dst, int invert, uint8_t sense_len,
-		      uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    uint32_t tea, uint32_t src, uint32_t dst, int invert, uint8_t sense_len,
+    uint32_t timeout);
 
 void scsi_exchange_medium(struct ccb_scsiio *csio, uint32_t retries,
-			  void (*cbfcnp)(struct cam_periph *, union ccb *),
-			  uint8_t tag_action, uint32_t tea, uint32_t src,
-			  uint32_t dst1, uint32_t dst2, int invert1,
-			  int invert2, uint8_t sense_len, uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    uint32_t tea, uint32_t src, uint32_t dst1, uint32_t dst2, int invert1,
+    int invert2, uint8_t sense_len, uint32_t timeout);
 
 void scsi_position_to_element(struct ccb_scsiio *csio, uint32_t retries,
-			      void (*cbfcnp)(struct cam_periph *, union ccb *),
-			      uint8_t tag_action, uint32_t tea, uint32_t dst,
-			      int invert, uint8_t sense_len,
-			      uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    uint32_t tea, uint32_t dst, int invert, uint8_t sense_len,
+    uint32_t timeout);
 
 void scsi_read_element_status(struct ccb_scsiio *csio, uint32_t retries,
-			      void (*cbfcnp)(struct cam_periph *, union ccb *),
-			      uint8_t tag_action, int voltag, uint32_t sea,
-			      int curdata, int dvcid,
-			      uint32_t count, uint8_t *data_ptr,
-			      uint32_t dxfer_len, uint8_t sense_len,
-			      uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    int voltag, uint32_t sea, int curdata, int dvcid, uint32_t count,
+    uint8_t *data_ptr, uint32_t dxfer_len, uint8_t sense_len, uint32_t timeout);
 
 void scsi_initialize_element_status(struct ccb_scsiio *csio, uint32_t retries,
-			       void (*cbfcnp)(struct cam_periph *, union ccb *),
-			       uint8_t tag_action, uint8_t sense_len,
-			       uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    uint8_t sense_len, uint32_t timeout);
 void scsi_send_volume_tag(struct ccb_scsiio *csio, uint32_t retries,
-			  void (*cbfcnp)(struct cam_periph *, union ccb *),
-			  uint8_t tag_action, 
-			  uint16_t element_address,
-			  uint8_t send_action_code,
-			  struct scsi_send_volume_tag_parameters *parameters,
-			  uint8_t sense_len, uint32_t timeout);
+    void (*cbfcnp)(struct cam_periph *, union ccb *), uint8_t tag_action,
+    uint16_t element_address, uint8_t send_action_code,
+    struct scsi_send_volume_tag_parameters *parameters, uint8_t sense_len,
+    uint32_t timeout);
 __END_DECLS
 
 #endif /* _SCSI_SCSI_CH_H */

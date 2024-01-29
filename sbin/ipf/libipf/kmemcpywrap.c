@@ -18,4 +18,3 @@ kmemcpywrap(void *from, void *to, size_t size)
 	ret = kmemcpy((caddr_t)to, (u_long)from, size);
 	return (ret);
 }
-

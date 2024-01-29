@@ -34,13 +34,13 @@
  */
 struct ns8250_softc {
 	struct uart_softc base;
-	uint8_t		fcr;
-	uint8_t		ier;
-	uint8_t		mcr;
+	uint8_t fcr;
+	uint8_t ier;
+	uint8_t mcr;
 
-	uint8_t		ier_mask;
-	uint8_t		ier_rxbits;
-	uint8_t		busy_detect;
+	uint8_t ier_mask;
+	uint8_t ier_rxbits;
+	uint8_t busy_detect;
 };
 
 extern struct uart_ops uart_ns8250_ops;

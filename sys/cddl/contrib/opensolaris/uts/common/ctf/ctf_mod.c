@@ -24,25 +24,22 @@
  * Use is subject to license terms.
  */
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
-#include <sys/sysmacros.h>
-#include <sys/modctl.h>
 #include <sys/debug.h>
+#include <sys/kobj.h>
 #include <sys/mman.h>
 #include <sys/modctl.h>
-#include <sys/kobj.h>
+#include <sys/sysmacros.h>
+
 #include <ctf_impl.h>
 
 int ctf_leave_compressed = 0;
 
-static struct modlmisc modlmisc = {
-	&mod_miscops, "Compact C Type Format routines"
-};
+static struct modlmisc modlmisc = { &mod_miscops,
+	"Compact C Type Format routines" };
 
-static struct modlinkage modlinkage = {
-	MODREV_1, &modlmisc, NULL
-};
+static struct modlinkage modlinkage = { MODREV_1, &modlmisc, NULL };
 
 int
 _init(void)
@@ -140,9 +137,9 @@ ctf_modopen(struct module *mp, int *error)
 	symsect.cts_data = mp->symtbl;
 	symsect.cts_size = mp->symhdr->sh_size;
 #ifdef _LP64
-	symsect.cts_entsize = sizeof (Elf64_Sym);
+	symsect.cts_entsize = sizeof(Elf64_Sym);
 #else
-	symsect.cts_entsize = sizeof (Elf32_Sym);
+	symsect.cts_entsize = sizeof(Elf32_Sym);
 #endif
 	symsect.cts_offset = 0;
 

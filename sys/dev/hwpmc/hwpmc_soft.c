@@ -27,10 +27,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/pmc.h>
-#include <sys/pmckern.h>
 #include <sys/systm.h>
 #include <sys/mutex.h>
+#include <sys/pmc.h>
+#include <sys/pmckern.h>
 
 #include <machine/cpu.h>
 #include <machine/cpufunc.h>
@@ -41,41 +41,28 @@
  * Software PMC support.
  */
 
-#define	SOFT_CAPS (PMC_CAP_READ | PMC_CAP_WRITE | PMC_CAP_INTERRUPT | \
-    PMC_CAP_USER | PMC_CAP_SYSTEM)
+#define SOFT_CAPS                                                          \
+	(PMC_CAP_READ | PMC_CAP_WRITE | PMC_CAP_INTERRUPT | PMC_CAP_USER | \
+	    PMC_CAP_SYSTEM)
 
 struct soft_descr {
-	struct pmc_descr pm_descr;  /* "base class" */
+	struct pmc_descr pm_descr; /* "base class" */
 };
 
-static struct soft_descr soft_pmcdesc[SOFT_NPMCS] =
-{
-#define	SOFT_PMCDESCR(N)				\
-	{						\
-		.pm_descr =				\
-		{					\
-			.pd_name = #N,			\
-			.pd_class = PMC_CLASS_SOFT,	\
-			.pd_caps = SOFT_CAPS,		\
-			.pd_width = 64			\
-		},					\
+static struct soft_descr soft_pmcdesc[SOFT_NPMCS] = {
+#define SOFT_PMCDESCR(N)                            \
+	{                                           \
+		.pm_descr = { .pd_name = #N,        \
+			.pd_class = PMC_CLASS_SOFT, \
+			.pd_caps = SOFT_CAPS,       \
+			.pd_width = 64 },           \
 	}
 
-	SOFT_PMCDESCR(SOFT0),
-	SOFT_PMCDESCR(SOFT1),
-	SOFT_PMCDESCR(SOFT2),
-	SOFT_PMCDESCR(SOFT3),
-	SOFT_PMCDESCR(SOFT4),
-	SOFT_PMCDESCR(SOFT5),
-	SOFT_PMCDESCR(SOFT6),
-	SOFT_PMCDESCR(SOFT7),
-	SOFT_PMCDESCR(SOFT8),
-	SOFT_PMCDESCR(SOFT9),
-	SOFT_PMCDESCR(SOFT10),
-	SOFT_PMCDESCR(SOFT11),
-	SOFT_PMCDESCR(SOFT12),
-	SOFT_PMCDESCR(SOFT13),
-	SOFT_PMCDESCR(SOFT14),
+	SOFT_PMCDESCR(SOFT0), SOFT_PMCDESCR(SOFT1), SOFT_PMCDESCR(SOFT2),
+	SOFT_PMCDESCR(SOFT3), SOFT_PMCDESCR(SOFT4), SOFT_PMCDESCR(SOFT5),
+	SOFT_PMCDESCR(SOFT6), SOFT_PMCDESCR(SOFT7), SOFT_PMCDESCR(SOFT8),
+	SOFT_PMCDESCR(SOFT9), SOFT_PMCDESCR(SOFT10), SOFT_PMCDESCR(SOFT11),
+	SOFT_PMCDESCR(SOFT12), SOFT_PMCDESCR(SOFT13), SOFT_PMCDESCR(SOFT14),
 	SOFT_PMCDESCR(SOFT15)
 };
 
@@ -84,10 +71,9 @@ static struct soft_descr soft_pmcdesc[SOFT_NPMCS] =
  */
 
 struct soft_cpu {
-	struct pmc_hw	soft_hw[SOFT_NPMCS];
-	pmc_value_t	soft_values[SOFT_NPMCS];
+	struct pmc_hw soft_hw[SOFT_NPMCS];
+	pmc_value_t soft_values[SOFT_NPMCS];
 };
-
 
 static struct soft_cpu **soft_pcpu;
 
@@ -98,7 +84,7 @@ soft_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	enum pmc_event ev;
 	struct pmc_soft *ps;
 
-	(void) cpu;
+	(void)cpu;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[soft,%d] illegal CPU value %d", __LINE__, cpu));
@@ -135,7 +121,7 @@ soft_config_pmc(int cpu, int ri, struct pmc *pm)
 {
 	struct pmc_hw *phw;
 
-	PMCDBG3(MDP,CFG,1, "cpu=%d ri=%d pm=%p", cpu, ri, pm);
+	PMCDBG3(MDP, CFG, 1, "cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[soft,%d] illegal CPU value %d", __LINE__, cpu));
@@ -145,8 +131,8 @@ soft_config_pmc(int cpu, int ri, struct pmc *pm)
 	phw = &soft_pcpu[cpu]->soft_hw[ri];
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[soft,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__,
-	    pm, phw->phw_pmc));
+	    ("[soft,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__, pm,
+		phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 
@@ -165,17 +151,17 @@ soft_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 	    ("[soft,%d] illegal row-index %d", __LINE__, ri));
 
 	phw = &soft_pcpu[cpu]->soft_hw[ri];
-	pd  = &soft_pmcdesc[ri];
+	pd = &soft_pmcdesc[ri];
 
 	strlcpy(pi->pm_name, pd->pm_descr.pd_name, sizeof(pi->pm_name));
 	pi->pm_class = pd->pm_descr.pd_class;
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -184,7 +170,7 @@ soft_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 static int
 soft_get_config(int cpu, int ri, struct pmc **ppm)
 {
-	(void) ri;
+	(void)ri;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[soft,%d] illegal CPU %d", __LINE__, cpu));
@@ -210,8 +196,7 @@ soft_pcpu_fini(struct pmc_mdep *md, int cpu)
 
 	ri = md->pmd_classdep[PMC_CLASS_INDEX_SOFT].pcd_ri;
 
-	KASSERT(ri >= 0 && ri < SOFT_NPMCS,
-	    ("[soft,%d] ri=%d", __LINE__, ri));
+	KASSERT(ri >= 0 && ri < SOFT_NPMCS, ("[soft,%d] ri=%d", __LINE__, ri));
 
 	pc = pmc_pcpu[cpu];
 	pc->pc_hwpmcs[ri] = NULL;
@@ -227,14 +212,13 @@ soft_pcpu_init(struct pmc_mdep *md, int cpu)
 	struct soft_cpu *soft_pc;
 	struct pmc_hw *phw;
 
-
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[soft,%d] illegal cpu %d", __LINE__, cpu));
 	KASSERT(soft_pcpu, ("[soft,%d] null pcpu", __LINE__));
-	KASSERT(soft_pcpu[cpu] == NULL, ("[soft,%d] non-null per-cpu",
-	    __LINE__));
+	KASSERT(soft_pcpu[cpu] == NULL,
+	    ("[soft,%d] non-null per-cpu", __LINE__));
 
-	soft_pc = malloc(sizeof(struct soft_cpu), M_PMC, M_WAITOK|M_ZERO);
+	soft_pc = malloc(sizeof(struct soft_cpu), M_PMC, M_WAITOK | M_ZERO);
 	pc = pmc_pcpu[cpu];
 
 	KASSERT(pc != NULL, ("[soft,%d] cpu %d null per-cpu", __LINE__, cpu));
@@ -262,7 +246,7 @@ soft_read_pmc(int cpu, int ri, struct pmc *pm __unused, pmc_value_t *v)
 	KASSERT(ri >= 0 && ri < SOFT_NPMCS,
 	    ("[soft,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG1(MDP,REA,1,"soft-read id=%d", ri);
+	PMCDBG1(MDP, REA, 1, "soft-read id=%d", ri);
 
 	*v = soft_pcpu[cpu]->soft_values[ri];
 
@@ -277,7 +261,7 @@ soft_write_pmc(int cpu, int ri, struct pmc *pm __unused, pmc_value_t v)
 	KASSERT(ri >= 0 && ri < SOFT_NPMCS,
 	    ("[soft,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG3(MDP,WRI,1, "soft-write cpu=%d ri=%d v=%jx", cpu, ri, v);
+	PMCDBG3(MDP, WRI, 1, "soft-write cpu=%d ri=%d v=%jx", cpu, ri, v);
 
 	soft_pcpu[cpu]->soft_values[ri] = v;
 
@@ -291,7 +275,7 @@ soft_release_pmc(int cpu, int ri, struct pmc *pmc)
 	enum pmc_event ev;
 	struct pmc_soft *ps;
 
-	(void) pmc;
+	(void)pmc;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[soft,%d] illegal CPU value %d", __LINE__, cpu));
@@ -307,8 +291,7 @@ soft_release_pmc(int cpu, int ri, struct pmc *pmc)
 
 	/* Check if event is registered. */
 	ps = pmc_soft_ev_acquire(ev);
-	KASSERT(ps != NULL,
-	    ("[soft,%d] unregistered event %d", __LINE__, ev));
+	KASSERT(ps != NULL, ("[soft,%d] unregistered event %d", __LINE__, ev));
 	pmc_soft_ev_release(ps);
 	/* Module unload is protected by pmc SX lock. */
 	if (ps->ps_release != NULL)
@@ -371,10 +354,9 @@ pmc_soft_intr(struct pmckern_soft *ks)
 	for (ri = 0; ri < SOFT_NPMCS; ri++) {
 
 		pm = pc->soft_hw[ri].phw_pmc;
-		if (pm == NULL ||
-		    pm->pm_state != PMC_STATE_RUNNING ||
+		if (pm == NULL || pm->pm_state != PMC_STATE_RUNNING ||
 		    pm->pm_event != ks->pm_ev) {
-				continue;
+			continue;
 		}
 
 		processed = 1;
@@ -424,28 +406,28 @@ pmc_soft_initialize(struct pmc_mdep *md)
 
 	/* Add SOFT PMCs. */
 	soft_pcpu = malloc(sizeof(struct soft_cpu *) * pmc_cpu_max(), M_PMC,
-	    M_ZERO|M_WAITOK);
+	    M_ZERO | M_WAITOK);
 
 	pcd = &md->pmd_classdep[PMC_CLASS_INDEX_SOFT];
 
-	pcd->pcd_caps	= SOFT_CAPS;
-	pcd->pcd_class	= PMC_CLASS_SOFT;
-	pcd->pcd_num	= SOFT_NPMCS;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= 64;
+	pcd->pcd_caps = SOFT_CAPS;
+	pcd->pcd_class = PMC_CLASS_SOFT;
+	pcd->pcd_num = SOFT_NPMCS;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = 64;
 
 	pcd->pcd_allocate_pmc = soft_allocate_pmc;
-	pcd->pcd_config_pmc   = soft_config_pmc;
-	pcd->pcd_describe     = soft_describe;
-	pcd->pcd_get_config   = soft_get_config;
-	pcd->pcd_get_msr      = NULL;
-	pcd->pcd_pcpu_init    = soft_pcpu_init;
-	pcd->pcd_pcpu_fini    = soft_pcpu_fini;
-	pcd->pcd_read_pmc     = soft_read_pmc;
-	pcd->pcd_write_pmc    = soft_write_pmc;
-	pcd->pcd_release_pmc  = soft_release_pmc;
-	pcd->pcd_start_pmc    = soft_start_pmc;
-	pcd->pcd_stop_pmc     = soft_stop_pmc;
+	pcd->pcd_config_pmc = soft_config_pmc;
+	pcd->pcd_describe = soft_describe;
+	pcd->pcd_get_config = soft_get_config;
+	pcd->pcd_get_msr = NULL;
+	pcd->pcd_pcpu_init = soft_pcpu_init;
+	pcd->pcd_pcpu_fini = soft_pcpu_fini;
+	pcd->pcd_read_pmc = soft_read_pmc;
+	pcd->pcd_write_pmc = soft_write_pmc;
+	pcd->pcd_release_pmc = soft_release_pmc;
+	pcd->pcd_start_pmc = soft_start_pmc;
+	pcd->pcd_stop_pmc = soft_stop_pmc;
 
 	md->pmd_npmc += SOFT_NPMCS;
 
@@ -458,8 +440,8 @@ pmc_soft_finalize(struct pmc_mdep *md)
 	PMCDBG0(MDP, INI, 1, "soft-finalize");
 
 	for (int i = 0; i < pmc_cpu_max(); i++)
-		KASSERT(soft_pcpu[i] == NULL, ("[soft,%d] non-null pcpu cpu %d",
-		    __LINE__, i));
+		KASSERT(soft_pcpu[i] == NULL,
+		    ("[soft,%d] non-null pcpu cpu %d", __LINE__, i));
 
 	ast_deregister(TDA_HWPMC);
 	free(soft_pcpu, M_PMC);

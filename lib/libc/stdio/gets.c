@@ -32,12 +32,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <unistd.h>
 #include <stdio.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 char *
 __gets_unsafe(char *buf)
@@ -51,10 +52,10 @@ __gets_unsafe(char *buf)
 	FLOCKFILE_CANCELSAFE(stdin);
 	ORIENT(stdin, -1);
 	if (!warned) {
-		(void) _write(STDERR_FILENO, w, sizeof(w) - 1);
+		(void)_write(STDERR_FILENO, w, sizeof(w) - 1);
 		warned = 1;
 	}
-	for (s = buf; (c = __sgetc(stdin)) != '\n'; ) {
+	for (s = buf; (c = __sgetc(stdin)) != '\n';) {
 		if (c == EOF) {
 			if (s == buf) {
 				ret = NULL;
@@ -70,4 +71,4 @@ end:
 	FUNLOCKFILE_CANCELSAFE();
 	return (ret);
 }
-__sym_compat(gets, __gets_unsafe, FBSD_1.0);
+__sym_compat(gets, __gets_unsafe, FBSD_1 .0);

@@ -47,8 +47,8 @@
 #include <ttyent.h>
 #include <unistd.h>
 
-#include "common.h"
 #include "child.h"
+#include "common.h"
 
 /* -1: not started, 0: reaped */
 static volatile pid_t grandchild_pid = -1;
@@ -196,7 +196,7 @@ grandchild_run(const char **argv, const sigset_t *oset)
 	closefrom(3);
 
 	/* Ready to execute the requested program */
-	execvp(argv[0], __DECONST(char * const *, argv));
+	execvp(argv[0], __DECONST(char *const *, argv));
 	err(EX_OSERR, "cannot execvp %s", argv[0]);
 }
 

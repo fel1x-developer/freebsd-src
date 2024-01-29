@@ -24,14 +24,14 @@
 
 /* Tx MAC descriptor defines (chip-specific). */
 /* Tx dword 1. */
-#define R88E_TXDW1_MACID_M	0x0000003f
-#define R88E_TXDW1_MACID_S	0
+#define R88E_TXDW1_MACID_M 0x0000003f
+#define R88E_TXDW1_MACID_S 0
 
 /* Tx dword 2. */
-#define R88E_TXDW2_AGGEN	0x00001000
-#define R88E_TXDW2_AGGBK	0x00010000
+#define R88E_TXDW2_AGGEN 0x00001000
+#define R88E_TXDW2_AGGBK 0x00010000
 
 /* Tx dword 3. */
-#define R88E_TXDSEQ_HWSEQ_EN	0x8000
+#define R88E_TXDSEQ_HWSEQ_EN 0x8000
 
-#endif	/* R88E_TX_DESC_H */
+#endif /* R88E_TX_DESC_H */

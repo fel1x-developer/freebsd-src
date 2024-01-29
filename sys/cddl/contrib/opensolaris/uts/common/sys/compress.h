@@ -25,13 +25,13 @@
  */
 
 #ifndef _SYS_COMPRESS_H
-#define	_SYS_COMPRESS_H
+#define _SYS_COMPRESS_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #include <sys/types.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -39,8 +39,8 @@ extern size_t compress(void *, void *, size_t);
 extern size_t decompress(void *, void *, size_t, size_t);
 extern uint32_t checksum32(void *, size_t);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_COMPRESS_H */
+#endif /* _SYS_COMPRESS_H */

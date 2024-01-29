@@ -31,14 +31,14 @@
  * These constants are shared by several drivers including uart and usb_serial.
  */
 
-#define	UART_PPS_SIGNAL_MASK	0x0f
-#define	UART_PPS_OPTION_MASK	0xf0
+#define UART_PPS_SIGNAL_MASK 0x0f
+#define UART_PPS_OPTION_MASK 0xf0
 
-#define	UART_PPS_DISABLED	0x00
-#define	UART_PPS_CTS		0x01
-#define	UART_PPS_DCD		0x02
+#define UART_PPS_DISABLED 0x00
+#define UART_PPS_CTS 0x01
+#define UART_PPS_DCD 0x02
 
-#define	UART_PPS_INVERT_PULSE	0x10
-#define	UART_PPS_NARROW_PULSE	0x20
+#define UART_PPS_INVERT_PULSE 0x10
+#define UART_PPS_NARROW_PULSE 0x20
 
 #endif /* _DEV_UART_PPSTYPES_H_ */

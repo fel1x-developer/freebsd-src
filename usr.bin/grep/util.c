@@ -32,8 +32,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -51,25 +51,25 @@
 
 #include "grep.h"
 
-static bool	 first_match = true;
+static bool first_match = true;
 
 /*
  * Match printing context
  */
 struct mprintc {
-	long long	tail;		/* Number of trailing lines to record */
-	int		last_outed;	/* Number of lines since last output */
-	bool		doctx;		/* Printing context? */
-	bool		printmatch;	/* Printing matches? */
-	bool		same_file;	/* Same file as previously printed? */
+	long long tail;	 /* Number of trailing lines to record */
+	int last_outed;	 /* Number of lines since last output */
+	bool doctx;	 /* Printing context? */
+	bool printmatch; /* Printing matches? */
+	bool same_file;	 /* Same file as previously printed? */
 };
 
 static void procmatch_match(struct mprintc *mc, struct parsec *pc);
 static void procmatch_nomatch(struct mprintc *mc, struct parsec *pc);
 static bool procmatches(struct mprintc *mc, struct parsec *pc, bool matched);
 #ifdef WITH_INTERNAL_NOSPEC
-static int litexec(const struct pat *pat, const char *string,
-    size_t nmatch, regmatch_t pmatch[]);
+static int litexec(const struct pat *pat, const char *string, size_t nmatch,
+    regmatch_t pmatch[]);
 #endif
 static bool procline(struct parsec *pc);
 static void printline(struct parsec *pc, int sep);
@@ -134,7 +134,7 @@ grep_tree(char **argv)
 	matched = false;
 
 	/* This switch effectively initializes 'fts_flags' */
-	switch(linkbehave) {
+	switch (linkbehave) {
 	case LINK_EXPLICIT:
 		fts_flags = FTS_COMFOLLOW;
 		break;
@@ -147,8 +147,8 @@ grep_tree(char **argv)
 
 	fts_flags |= FTS_NOSTAT | FTS_NOCHDIR;
 
-	fts = fts_open((argv[0] == NULL) ?
-	    __DECONST(char * const *, wd) : argv, fts_flags, NULL);
+	fts = fts_open((argv[0] == NULL) ? __DECONST(char *const *, wd) : argv,
+	    fts_flags, NULL);
 	if (fts == NULL)
 		err(2, "fts_open");
 	while (errno = 0, (p = fts_read(fts)) != NULL) {
@@ -157,8 +157,9 @@ grep_tree(char **argv)
 			/* FALLTHROUGH */
 		case FTS_ERR:
 			file_err = true;
-			if(!sflag)
-				warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
+			if (!sflag)
+				warnx("%s: %s", p->fts_path,
+				    strerror(p->fts_errno));
 			break;
 		case FTS_D:
 			/* FALLTHROUGH */
@@ -304,8 +305,9 @@ procfile(const char *fn)
 			s = sb.st_mode & S_IFMT;
 			if (dirbehave == DIR_SKIP && s == S_IFDIR)
 				return (false);
-			if (devbehave == DEV_SKIP && (s == S_IFIFO ||
-			    s == S_IFCHR || s == S_IFBLK || s == S_IFSOCK))
+			if (devbehave == DEV_SKIP &&
+			    (s == S_IFIFO || s == S_IFCHR || s == S_IFBLK ||
+				s == S_IFSOCK))
 				return (false);
 		}
 		f = grep_open(fn);
@@ -335,7 +337,7 @@ procfile(const char *fn)
 		pc.cntlines = true;
 	mcount = mlimit;
 
-	for (lines = 0; lines == 0 || !(lflag || qflag); ) {
+	for (lines = 0; lines == 0 || !(lflag || qflag);) {
 		/*
 		 * XXX TODO: We need to revisit this in a chunking world. We're
 		 * not going to be doing per-line statistics because of the
@@ -348,8 +350,7 @@ procfile(const char *fn)
 		pc.ln.boff = 0;
 		pc.ln.off += pc.ln.len + 1;
 		/* XXX TODO: Grab a chunk */
-		if ((pc.ln.dat = grep_fgetln(f, &pc)) == NULL ||
-		    pc.ln.len == 0)
+		if ((pc.ln.dat = grep_fgetln(f, &pc)) == NULL || pc.ln.len == 0)
 			break;
 
 		if (pc.ln.len > 0 && pc.ln.dat[pc.ln.len - 1] == fileeol)
@@ -438,8 +439,8 @@ litexec(const struct pat *pat, const char *string, size_t nmatch,
 			break;
 		sub = strstr_fn(search, pat->pat);
 		/*
-		 * Ignoring the empty string possibility due to context: grep optimizes
-		 * for empty patterns and will never reach this point.
+		 * Ignoring the empty string possibility due to context: grep
+		 * optimizes for empty patterns and will never reach this point.
 		 */
 		if (sub == NULL)
 			break;
@@ -464,7 +465,7 @@ litexec(const struct pat *pat, const char *string, size_t nmatch,
 }
 #endif /* WITH_INTERNAL_NOSPEC */
 
-#define iswword(x)	(iswalnum((x)) || (x) == L'_')
+#define iswword(x) (iswalnum((x)) || (x) == L'_')
 
 /*
  * Processes a line comparing it with the specified patterns.  Each pattern
@@ -530,31 +531,31 @@ procline(struct parsec *pc)
 			pmatch.rm_eo = pc->ln.len;
 #ifdef WITH_INTERNAL_NOSPEC
 			if (grepbehave == GREP_FIXED)
-				r = litexec(&pattern[i], pc->ln.dat, 1, &pmatch);
+				r = litexec(&pattern[i], pc->ln.dat, 1,
+				    &pmatch);
 			else
 #endif
-			r = regexec(&r_pattern[i], pc->ln.dat, 1, &pmatch,
-			    leflags);
+				r = regexec(&r_pattern[i], pc->ln.dat, 1,
+				    &pmatch, leflags);
 			if (r != 0)
 				continue;
 			/* Check for full match */
-			if (xflag && (pmatch.rm_so != 0 ||
-			    (size_t)pmatch.rm_eo != pc->ln.len))
+			if (xflag &&
+			    (pmatch.rm_so != 0 ||
+				(size_t)pmatch.rm_eo != pc->ln.len))
 				continue;
 			/* Check for whole word match */
 			if (wflag) {
 				wbegin = wend = L' ';
 				if (pmatch.rm_so != 0 &&
-				    sscanf(&pc->ln.dat[pmatch.rm_so - 1],
-				    "%lc", &wbegin) != 1)
+				    sscanf(&pc->ln.dat[pmatch.rm_so - 1], "%lc",
+					&wbegin) != 1)
 					r = REG_NOMATCH;
-				else if ((size_t)pmatch.rm_eo !=
-				    pc->ln.len &&
-				    sscanf(&pc->ln.dat[pmatch.rm_eo],
-				    "%lc", &wend) != 1)
+				else if ((size_t)pmatch.rm_eo != pc->ln.len &&
+				    sscanf(&pc->ln.dat[pmatch.rm_eo], "%lc",
+					&wend) != 1)
 					r = REG_NOMATCH;
-				else if (iswword(wbegin) ||
-				    iswword(wend))
+				else if (iswword(wbegin) || iswword(wend))
 					r = REG_NOMATCH;
 				/*
 				 * If we're doing whole word matching and we
@@ -566,7 +567,7 @@ procline(struct parsec *pc)
 				 */
 				if (r == REG_NOMATCH &&
 				    (retry == pc->lnstart ||
-				    (unsigned int)pmatch.rm_so + 1 < retry))
+					(unsigned int)pmatch.rm_so + 1 < retry))
 					retry = pmatch.rm_so + 1;
 				if (r == REG_NOMATCH)
 					continue;
@@ -587,8 +588,9 @@ procline(struct parsec *pc)
 				chkmatch = pc->matches[matchidx - 1];
 				if (pmatch.rm_so < chkmatch.rm_so ||
 				    (pmatch.rm_so == chkmatch.rm_so &&
-				    (pmatch.rm_eo - pmatch.rm_so) >
-				    (chkmatch.rm_eo - chkmatch.rm_so))) {
+					(pmatch.rm_eo - pmatch.rm_so) >
+					    (chkmatch.rm_eo -
+						chkmatch.rm_so))) {
 					pc->matches[matchidx - 1] = pmatch;
 					nst = pmatch.rm_eo;
 				}
@@ -618,7 +620,8 @@ procline(struct parsec *pc)
 
 		/* XXX TODO: We will need to keep going, since we're chunky */
 		/* One pass if we are not recording matches */
-		if (!wflag && ((color == NULL && !oflag) || qflag || lflag || Lflag))
+		if (!wflag &&
+		    ((color == NULL && !oflag) || qflag || lflag || Lflag))
 			break;
 
 		/* If we didn't have any matches or REG_NOSUB set */
@@ -629,7 +632,8 @@ procline(struct parsec *pc)
 			/* No matches */
 			break;
 		else if (st == nst && lastmatch.rm_so == lastmatch.rm_eo)
-			/* Zero-length match -- advance one more so we don't get stuck */
+			/* Zero-length match -- advance one more so we don't get
+			 * stuck */
 			nst++;
 
 		/* Advance st based on previous matches */
@@ -701,7 +705,9 @@ grep_strdup(const char *str)
  * Print an entire line as-is, there are no inline matches to consider. This is
  * used for printing context.
  */
-void grep_printline(struct str *line, int sep) {
+void
+grep_printline(struct str *line, int sep)
+{
 	printline_metadata(line, sep);
 	fwrite(line->dat, line->len, 1, stdout);
 	putchar(fileeol);

@@ -26,13 +26,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE. */
 
-
+#include <blacklist.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <blacklist.h>
 #include "blacklist_client.h"
 
 static struct blacklist *blstate;

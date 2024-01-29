@@ -37,16 +37,17 @@ extern "C" {
 
 using namespace testing;
 
-class Mkdir: public FuseTest {};
-class Mkdir_7_8: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+class Mkdir : public FuseTest { };
+class Mkdir_7_8 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 };
 
-/* 
+/*
  * EMLINK is possible on filesystems that limit the number of hard links to a
  * single file, like early versions of BtrFS
  */
@@ -57,18 +58,20 @@ TEST_F(Mkdir, emlink)
 	mode_t mode = 0755;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_mkdir_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EMLINK)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_mkdir_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EMLINK)));
 
 	ASSERT_NE(1, mkdir(FULLPATH, mode));
 	ASSERT_EQ(EMLINK, errno);
@@ -83,33 +86,35 @@ TEST_F(Mkdir, entry_cache_negative)
 	const char RELPATH[] = "some_file.txt";
 	mode_t mode = 0755;
 	uint64_t ino = 42;
-	/* 
+	/*
 	 * Set entry_valid = 0 because this test isn't concerned with whether
 	 * or not we actually cache negative entries, only with whether we
 	 * interpret negative cache responses correctly.
 	 */
-	struct timespec entry_valid = {.tv_sec = 0, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = 0, .tv_nsec = 0 };
 
 	/* mkdir will first do a LOOKUP, adding a negative cache entry */
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(ReturnNegativeCache(&entry_valid));
+	    .WillOnce(ReturnNegativeCache(&entry_valid));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_open_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.create.entry.attr.mode = S_IFDIR | mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_open_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.create.entry.attr.mode = S_IFDIR | mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(0, mkdir(FULLPATH, mode)) << strerror(errno);
 }
@@ -123,30 +128,32 @@ TEST_F(Mkdir, entry_cache_negative_purge)
 	const char RELPATH[] = "some_file.txt";
 	mode_t mode = 0755;
 	uint64_t ino = 42;
-	struct timespec entry_valid = {.tv_sec = TIME_T_MAX, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = TIME_T_MAX, .tv_nsec = 0 };
 
 	/* mkdir will first do a LOOKUP, adding a negative cache entry */
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(1)
-	.WillOnce(Invoke(ReturnNegativeCache(&entry_valid)))
-	.RetiresOnSaturation();
+	    .Times(1)
+	    .WillOnce(Invoke(ReturnNegativeCache(&entry_valid)))
+	    .RetiresOnSaturation();
 
 	/* Then the MKDIR should purge the negative cache entry */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_open_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_open_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(0, mkdir(FULLPATH, mode)) << strerror(errno);
 
@@ -168,25 +175,27 @@ TEST_F(Mkdir, ok)
 	(void)umask(mask);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_mkdir_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				in.body.mkdir.umask == mask &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.create.entry.attr.mode = S_IFDIR | mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_mkdir_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    in.body.mkdir.umask == mask &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.create.entry.attr.mode = S_IFDIR | mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(0, mkdir(FULLPATH, mode)) << strerror(errno);
 }
@@ -209,35 +218,38 @@ TEST_F(Mkdir, parent_inode)
 	(void)umask(mask);
 
 	expect_lookup(PPATH, ino, S_IFDIR | 0755, 0, 1);
-	EXPECT_LOOKUP(ino, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_LOOKUP(ino, RELPATH).WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_mkdir_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				in.body.mkdir.umask == mask &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.create.entry.attr.mode = S_IFDIR | mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_mkdir_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    in.body.mkdir.umask == mask &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.create.entry.attr.mode = S_IFDIR | mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    })));
 	// FUSE_FORGET happens asynchronously, so it may or may not arrive
 	// before the test completes.
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_FORGET);
-		}, Eq(true)),
-		_)
-	).Times(AtMost(1))
-	.WillOnce(Invoke([=](auto in __unused, auto &out __unused) { }));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_FORGET);
+			},
+			Eq(true)),
+		_))
+	    .Times(AtMost(1))
+	    .WillOnce(Invoke([=](auto in __unused, auto &out __unused) {}));
 
 	ASSERT_EQ(-1, mkdir(FULLPATH, mode));
 	ASSERT_EQ(EIO, errno);
@@ -251,24 +263,26 @@ TEST_F(Mkdir_7_8, ok)
 	uint64_t ino = 42;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_mkdir_in);
-			return (in.header.opcode == FUSE_MKDIR &&
-				in.body.mkdir.mode == (S_IFDIR | mode) &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry_7_8);
-		out.body.create.entry.attr.mode = S_IFDIR | mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_mkdir_in);
+				return (in.header.opcode == FUSE_MKDIR &&
+				    in.body.mkdir.mode == (S_IFDIR | mode) &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry_7_8);
+		    out.body.create.entry.attr.mode = S_IFDIR | mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(0, mkdir(FULLPATH, mode)) << strerror(errno);
 }

@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_MINIDUMP_H_
-#define	_MACHINE_MINIDUMP_H_ 1
+#ifndef _MACHINE_MINIDUMP_H_
+#define _MACHINE_MINIDUMP_H_ 1
 
-#define	MINIDUMP_MAGIC		"minidump FreeBSD/i386"
-#define	MINIDUMP_VERSION	2
+#define MINIDUMP_MAGIC "minidump FreeBSD/i386"
+#define MINIDUMP_VERSION 2
 
 struct minidumphdr {
 	char magic[24];

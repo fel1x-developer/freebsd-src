@@ -26,11 +26,12 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <stddef.h>
 
 int getdtablecount(void);
 
-/* 
+/*
  * Return the count of open file descriptors for this process.
  *
  */

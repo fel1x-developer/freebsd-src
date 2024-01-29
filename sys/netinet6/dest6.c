@@ -31,30 +31,29 @@
  *	$KAME: dest6.c,v 1.59 2003/07/11 13:21:16 t-momose Exp $
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/domain.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/domain.h>
 #include <sys/protosw.h>
 #include <sys/socket.h>
-#include <sys/errno.h>
 #include <sys/time.h>
-#include <sys/kernel.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/route.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/in_var.h>
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
-#include <netinet/icmp6.h>
 
 /*
  * Destination options header processing.
@@ -110,7 +109,7 @@ dest6_input(struct mbuf **mp, int *offp, int proto)
 		case IP6OPT_PADN:
 			optlen = *(opt + 1) + 2;
 			break;
-		default:		/* unknown option */
+		default: /* unknown option */
 			optlen = ip6_unknown_opt(opt, m,
 			    opt - mtod(m, u_int8_t *));
 			if (optlen == -1) {
@@ -126,7 +125,7 @@ dest6_input(struct mbuf **mp, int *offp, int proto)
 	*mp = m;
 	return (dstopts->ip6d_nxt);
 
-  bad:
+bad:
 	m_freem(m);
 	*mp = NULL;
 	return (IPPROTO_DONE);

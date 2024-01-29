@@ -25,11 +25,12 @@
  */
 
 #include "opt_kern_tls.h"
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
+
+#include <machine/atomic.h>
 
 #include <dev/mlx5/mlx5_en/en.h>
-#include <machine/atomic.h>
 
 static inline bool
 mlx5e_do_send_cqe_inline(struct mlx5e_sq *sq)
@@ -58,7 +59,8 @@ mlx5e_send_nop(struct mlx5e_sq *sq, u32 ds_cnt)
 
 	memset(&wqe->ctrl, 0, sizeof(wqe->ctrl));
 
-	wqe->ctrl.opmod_idx_opcode = cpu_to_be32((sq->pc << 8) | MLX5_OPCODE_NOP);
+	wqe->ctrl.opmod_idx_opcode = cpu_to_be32(
+	    (sq->pc << 8) | MLX5_OPCODE_NOP);
 	wqe->ctrl.qpn_ds = cpu_to_be32((sq->sqn << 8) | ds_cnt);
 	if (mlx5e_do_send_cqe_inline(sq))
 		wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
@@ -82,7 +84,8 @@ mlx5e_hash_init(void *arg)
 	mlx5e_hash_value = m_ether_tcpip_hash_init();
 }
 
-/* Make kernel call mlx5e_hash_init after the random stack finished initializing */
+/* Make kernel call mlx5e_hash_init after the random stack finished initializing
+ */
 SYSINIT(mlx5e_hash_init, SI_SUB_RANDOM, SI_ORDER_ANY, &mlx5e_hash_init, NULL);
 
 static struct mlx5e_sq *
@@ -100,24 +103,24 @@ top:
 	switch (mb_tag->sw->type) {
 #ifdef RATELIMIT
 	case IF_SND_TAG_TYPE_RATE_LIMIT:
-		sq = container_of(mb_tag,
-		    struct mlx5e_rl_channel, tag)->sq;
+		sq = container_of(mb_tag, struct mlx5e_rl_channel, tag)->sq;
 		break;
 #ifdef KERN_TLS
 	case IF_SND_TAG_TYPE_TLS_RATE_LIMIT:
-		mb_tag = container_of(mb_tag, struct mlx5e_tls_tag, tag)->rl_tag;
+		mb_tag =
+		    container_of(mb_tag, struct mlx5e_tls_tag, tag)->rl_tag;
 		goto top;
 #endif
 #endif
 	case IF_SND_TAG_TYPE_UNLIMITED:
-		sq = &container_of(mb_tag,
-		    struct mlx5e_channel, tag)->sq[0];
+		sq = &container_of(mb_tag, struct mlx5e_channel, tag)->sq[0];
 		KASSERT((mb_tag->refcount > 0),
 		    ("mlx5e_select_queue: Channel refs are zero for unlimited tag"));
 		break;
 #ifdef KERN_TLS
 	case IF_SND_TAG_TYPE_TLS:
-		mb_tag = container_of(mb_tag, struct mlx5e_tls_tag, tag)->rl_tag;
+		mb_tag =
+		    container_of(mb_tag, struct mlx5e_tls_tag, tag)->rl_tag;
 		goto top;
 #endif
 	default:
@@ -156,15 +159,16 @@ mlx5e_select_queue(if_t ifp, struct mbuf *mb)
 #ifdef RSS
 		u32 temp;
 
-		if (rss_hash2bucket(mb->m_pkthdr.flowid,
-		    M_HASHTYPE_GET(mb), &temp) == 0)
+		if (rss_hash2bucket(mb->m_pkthdr.flowid, M_HASHTYPE_GET(mb),
+			&temp) == 0)
 			ch = temp % ch;
 		else
 #endif
 			ch = (mb->m_pkthdr.flowid % 128) % ch;
 	} else {
-		ch = m_ether_tcpip_hash(MBUF_HASHFLAG_L3 |
-		    MBUF_HASHFLAG_L4, mb, mlx5e_hash_value) % ch;
+		ch = m_ether_tcpip_hash(MBUF_HASHFLAG_L3 | MBUF_HASHFLAG_L4, mb,
+			 mlx5e_hash_value) %
+		    ch;
 	}
 
 	/* check if send queue is running */
@@ -185,7 +189,8 @@ mlx5e_get_l2_header_size(struct mlx5e_sq *sq, struct mbuf *mb)
 	if (unlikely(mb->m_len < ETHER_HDR_LEN)) {
 		goto max_inline;
 	} else if (eh->evl_encap_proto == htons(ETHERTYPE_VLAN)) {
-		if (unlikely(mb->m_len < (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN)))
+		if (unlikely(
+			mb->m_len < (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN)))
 			goto max_inline;
 		eth_type = ntohs(eh->evl_proto);
 		min_inline = ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN;
@@ -297,8 +302,8 @@ mlx5e_get_full_header_size(const struct mbuf *mb, const struct tcphdr **ppth)
 tcp_packet:
 	if (unlikely(mb->m_len < eth_hdr_len + sizeof(*th))) {
 		const struct mbuf *m_th = mb->m_next;
-		if (unlikely(mb->m_len != eth_hdr_len ||
-		    m_th == NULL || m_th->m_len < sizeof(*th)))
+		if (unlikely(mb->m_len != eth_hdr_len || m_th == NULL ||
+			m_th->m_len < sizeof(*th)))
 			goto failure;
 		th = (const struct tcphdr *)(m_th->m_data);
 	} else {
@@ -435,8 +440,8 @@ mlx5e_get_vxlan_header_size(const struct mbuf *mb, struct mlx5e_tx_wqe *wqe,
 	 */
 	if (unlikely((cs_mask & MLX5_ETH_WQE_L3_INNER_CSUM) == 0))
 		goto done;
-	if (unlikely(mlx5e_parse_mbuf_chain(&mb, &offset, eth_hdr_len,
-	    8) == NULL))
+	if (unlikely(
+		mlx5e_parse_mbuf_chain(&mb, &offset, eth_hdr_len, 8) == NULL))
 		return (0);
 	eth_hdr_len += 8;
 
@@ -446,7 +451,7 @@ mlx5e_get_vxlan_header_size(const struct mbuf *mb, struct mlx5e_tx_wqe *wqe,
 		return (0);
 	if (eh->evl_encap_proto == htons(ETHERTYPE_VLAN)) {
 		if (unlikely(mb->m_len < eth_hdr_len - offset + ETHER_HDR_LEN +
-		    ETHER_VLAN_ENCAP_LEN))
+			    ETHER_VLAN_ENCAP_LEN))
 			return (0);
 		eth_type = eh->evl_proto;
 		eth_hdr_len += ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN;
@@ -529,8 +534,8 @@ done:
 	 * When inner checksums are set, outer L4 checksum flag must
 	 * be disabled.
 	 */
-	if (wqe->eth.cs_flags & (MLX5_ETH_WQE_L3_INNER_CSUM |
-	    MLX5_ETH_WQE_L4_INNER_CSUM))
+	if (wqe->eth.cs_flags &
+	    (MLX5_ETH_WQE_L3_INNER_CSUM | MLX5_ETH_WQE_L4_INNER_CSUM))
 		wqe->eth.cs_flags &= ~MLX5_ETH_WQE_L4_CSUM;
 
 	return (eth_hdr_len);
@@ -544,7 +549,8 @@ struct mlx5_wqe_dump_seg {
 CTASSERT(DIV_ROUND_UP(2, MLX5_SEND_WQEBB_NUM_DS) == 1);
 
 int
-mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbuf **mbp)
+mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg,
+    struct mbuf **mbp)
 {
 	bus_dma_segment_t segs[MLX5E_MAX_TX_MBUF_FRAGS];
 	struct mlx5_wqe_dump_seg *wqe;
@@ -570,8 +576,8 @@ mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbu
 	sq->mbuf[pi].num_wqebbs = 0;
 
 	/* check number of segments in mbuf */
-	err = bus_dmamap_load_mbuf_sg(sq->dma_tag, sq->mbuf[pi].dma_map,
-	    mb, segs, &nsegs, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(sq->dma_tag, sq->mbuf[pi].dma_map, mb,
+	    segs, &nsegs, BUS_DMA_NOWAIT);
 	if (err == EFBIG) {
 		/* update statistics */
 		sq->stats.defragged++;
@@ -602,7 +608,7 @@ mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbu
 	if (unlikely(xsegs == 0)) {
 		bus_dmamap_unload(sq->dma_tag, sq->mbuf[pi].dma_map);
 		m_freem(mb);
-		*mbp = NULL;	/* safety clear */
+		*mbp = NULL; /* safety clear */
 		return (0);
 	}
 
@@ -611,7 +617,7 @@ mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbu
 		sq->stats.enobuf++;
 		bus_dmamap_unload(sq->dma_tag, sq->mbuf[pi].dma_map);
 		m_freem(mb);
-		*mbp = NULL;	/* safety clear */
+		*mbp = NULL; /* safety clear */
 		return (ENOBUFS);
 	}
 
@@ -629,12 +635,14 @@ mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbu
 			memset(&wqe->ctrl, 0, sizeof(wqe->ctrl));
 
 			/* fill control segment */
-			wqe->ctrl.opmod_idx_opcode = cpu_to_be32((sq->pc << 8) | opcode);
+			wqe->ctrl.opmod_idx_opcode = cpu_to_be32(
+			    (sq->pc << 8) | opcode);
 			wqe->ctrl.qpn_ds = cpu_to_be32((sq->sqn << 8) | ds_cnt);
 			wqe->ctrl.imm = cpu_to_be32(parg->tisn << 8);
 
 			/* fill data segment */
-			wqe->data.addr = cpu_to_be64((uint64_t)segs[x].ds_addr + off);
+			wqe->data.addr = cpu_to_be64(
+			    (uint64_t)segs[x].ds_addr + off);
 			wqe->data.lkey = sq->mkey_be;
 			wqe->data.byte_count = cpu_to_be32(len);
 
@@ -670,7 +678,7 @@ mlx5e_sq_dump_xmit(struct mlx5e_sq *sq, struct mlx5e_xmit_args *parg, struct mbu
 	sq->stats.packets++;
 	sq->stats.bytes += sq->mbuf[pi].num_bytes;
 
-	*mbp = NULL;	/* safety clear */
+	*mbp = NULL; /* safety clear */
 	return (0);
 
 tx_drop:
@@ -700,7 +708,8 @@ mlx5e_sq_xmit(struct mlx5e_sq *sq, struct mbuf **mbp)
 top:
 #endif
 	/* Return ENOBUFS if the queue is full */
-	if (unlikely(!mlx5e_sq_has_room_for(sq, 2 * MLX5_SEND_WQE_MAX_WQEBBS))) {
+	if (unlikely(
+		!mlx5e_sq_has_room_for(sq, 2 * MLX5_SEND_WQE_MAX_WQEBBS))) {
 		sq->stats.enobuf++;
 		return (ENOBUFS);
 	}
@@ -751,7 +760,8 @@ top:
 	if (mb->m_pkthdr.csum_flags & (CSUM_IP | CSUM_TSO)) {
 		wqe->eth.cs_flags |= MLX5_ETH_WQE_L3_CSUM;
 	}
-	if (mb->m_pkthdr.csum_flags & (CSUM_TCP | CSUM_UDP | CSUM_UDP_IPV6 | CSUM_TCP_IPV6 | CSUM_TSO)) {
+	if (mb->m_pkthdr.csum_flags &
+	    (CSUM_TCP | CSUM_UDP | CSUM_UDP_IPV6 | CSUM_TCP_IPV6 | CSUM_TSO)) {
 		wqe->eth.cs_flags |= MLX5_ETH_WQE_L4_CSUM;
 	}
 	if (wqe->eth.cs_flags == 0) {
@@ -777,13 +787,12 @@ top:
 			num_pkts = DIV_ROUND_UP(payload_len, mss);
 		sq->mbuf[pi].num_bytes = payload_len + (num_pkts * args.ihs);
 
-
 		sq->stats.tso_packets++;
 		sq->stats.tso_bytes += payload_len;
 	} else if (mb->m_pkthdr.csum_flags & CSUM_ENCAP_VXLAN) {
 		/* check for inner TCP TSO first */
-		if (mb->m_pkthdr.csum_flags & (CSUM_INNER_IP_TSO |
-		    CSUM_INNER_IP6_TSO)) {
+		if (mb->m_pkthdr.csum_flags &
+		    (CSUM_INNER_IP_TSO | CSUM_INNER_IP6_TSO)) {
 			u32 payload_len;
 			u32 mss = mb->m_pkthdr.tso_segsz;
 			u32 num_pkts;
@@ -793,11 +802,11 @@ top:
 
 			if (likely(args.ihs == 0)) {
 				args.ihs = mlx5e_get_vxlan_header_size(mb, wqe,
-				       MLX5_ETH_WQE_L3_INNER_CSUM |
-				       MLX5_ETH_WQE_L4_INNER_CSUM |
-				       MLX5_ETH_WQE_L4_CSUM |
-				       MLX5_ETH_WQE_L3_CSUM,
-				       opcode);
+				    MLX5_ETH_WQE_L3_INNER_CSUM |
+					MLX5_ETH_WQE_L4_INNER_CSUM |
+					MLX5_ETH_WQE_L4_CSUM |
+					MLX5_ETH_WQE_L3_CSUM,
+				    opcode);
 				if (unlikely(args.ihs == 0)) {
 					err = EINVAL;
 					goto tx_drop;
@@ -822,20 +831,19 @@ top:
 
 				if (mb->m_pkthdr.csum_flags &
 				    (CSUM_INNER_IP_TCP | CSUM_INNER_IP_UDP |
-				     CSUM_INNER_IP6_TCP | CSUM_INNER_IP6_UDP)) {
-					cs_mask =
-					    MLX5_ETH_WQE_L3_INNER_CSUM |
+					CSUM_INNER_IP6_TCP |
+					CSUM_INNER_IP6_UDP)) {
+					cs_mask = MLX5_ETH_WQE_L3_INNER_CSUM |
 					    MLX5_ETH_WQE_L4_INNER_CSUM |
 					    MLX5_ETH_WQE_L4_CSUM |
 					    MLX5_ETH_WQE_L3_CSUM;
-				} else if (mb->m_pkthdr.csum_flags & CSUM_INNER_IP) {
-					cs_mask =
-					    MLX5_ETH_WQE_L3_INNER_CSUM |
+				} else if (mb->m_pkthdr.csum_flags &
+				    CSUM_INNER_IP) {
+					cs_mask = MLX5_ETH_WQE_L3_INNER_CSUM |
 					    MLX5_ETH_WQE_L4_CSUM |
 					    MLX5_ETH_WQE_L3_CSUM;
 				} else {
-					cs_mask =
-					    MLX5_ETH_WQE_L4_CSUM |
+					cs_mask = MLX5_ETH_WQE_L4_CSUM |
 					    MLX5_ETH_WQE_L3_CSUM;
 				}
 				args.ihs = mlx5e_get_vxlan_header_size(mb, wqe,
@@ -846,7 +854,7 @@ top:
 				}
 			}
 
-			sq->mbuf[pi].num_bytes = max_t (unsigned int,
+			sq->mbuf[pi].num_bytes = max_t(unsigned int,
 			    mb->m_pkthdr.len, ETHER_MIN_LEN - ETHER_CRC_LEN);
 		}
 	} else {
@@ -858,7 +866,8 @@ top:
 			case MLX5_INLINE_MODE_TCP_UDP:
 				args.ihs = mlx5e_get_full_header_size(mb, NULL);
 				if (unlikely(args.ihs == 0))
-					args.ihs = mlx5e_get_l2_header_size(sq, mb);
+					args.ihs = mlx5e_get_l2_header_size(sq,
+					    mb);
 				break;
 			case MLX5_INLINE_MODE_L2:
 				args.ihs = mlx5e_get_l2_header_size(sq, mb);
@@ -867,35 +876,44 @@ top:
 				/* FALLTHROUGH */
 			default:
 				if ((mb->m_flags & M_VLANTAG) != 0 &&
-				    (sq->min_insert_caps & MLX5E_INSERT_VLAN) != 0) {
+				    (sq->min_insert_caps & MLX5E_INSERT_VLAN) !=
+					0) {
 					/* inlining VLAN data is not required */
-					wqe->eth.vlan_cmd = htons(0x8000); /* bit 0 CVLAN */
-					wqe->eth.vlan_hdr = htons(mb->m_pkthdr.ether_vtag);
+					wqe->eth.vlan_cmd = htons(
+					    0x8000); /* bit 0 CVLAN */
+					wqe->eth.vlan_hdr = htons(
+					    mb->m_pkthdr.ether_vtag);
 					args.ihs = 0;
 				} else if ((mb->m_flags & M_VLANTAG) == 0 &&
-				    (sq->min_insert_caps & MLX5E_INSERT_NON_VLAN) != 0) {
-					/* inlining non-VLAN data is not required */
+				    (sq->min_insert_caps &
+					MLX5E_INSERT_NON_VLAN) != 0) {
+					/* inlining non-VLAN data is not
+					 * required */
 					args.ihs = 0;
 				} else {
-					/* we are forced to inlining L2 header, if any */
-					args.ihs = mlx5e_get_l2_header_size(sq, mb);
+					/* we are forced to inlining L2 header,
+					 * if any */
+					args.ihs = mlx5e_get_l2_header_size(sq,
+					    mb);
 				}
 				break;
 			}
 		}
-		sq->mbuf[pi].num_bytes = max_t (unsigned int,
-		    mb->m_pkthdr.len, ETHER_MIN_LEN - ETHER_CRC_LEN);
+		sq->mbuf[pi].num_bytes = max_t(unsigned int, mb->m_pkthdr.len,
+		    ETHER_MIN_LEN - ETHER_CRC_LEN);
 	}
 
 	if (likely(args.ihs == 0)) {
 		/* nothing to inline */
 	} else if ((mb->m_flags & M_VLANTAG) != 0) {
 		struct ether_vlan_header *eh = (struct ether_vlan_header *)
-		    wqe->eth.inline_hdr_start;
+						   wqe->eth.inline_hdr_start;
 
 		/* Range checks */
-		if (unlikely(args.ihs > (sq->max_inline - ETHER_VLAN_ENCAP_LEN))) {
-			if (mb->m_pkthdr.csum_flags & (CSUM_TSO | CSUM_ENCAP_VXLAN)) {
+		if (unlikely(
+			args.ihs > (sq->max_inline - ETHER_VLAN_ENCAP_LEN))) {
+			if (mb->m_pkthdr.csum_flags &
+			    (CSUM_TSO | CSUM_ENCAP_VXLAN)) {
 				err = EINVAL;
 				goto tx_drop;
 			}
@@ -919,8 +937,8 @@ top:
 	} else {
 		/* check if inline header size is too big */
 		if (unlikely(args.ihs > sq->max_inline)) {
-			if (unlikely(mb->m_pkthdr.csum_flags & (CSUM_TSO |
-			    CSUM_ENCAP_VXLAN))) {
+			if (unlikely(mb->m_pkthdr.csum_flags &
+				(CSUM_TSO | CSUM_ENCAP_VXLAN))) {
 				err = EINVAL;
 				goto tx_drop;
 			}
@@ -933,13 +951,14 @@ top:
 
 	ds_cnt = sizeof(*wqe) / MLX5_SEND_WQE_DS;
 	if (args.ihs > sizeof(wqe->eth.inline_hdr_start)) {
-		ds_cnt += DIV_ROUND_UP(args.ihs - sizeof(wqe->eth.inline_hdr_start),
+		ds_cnt += DIV_ROUND_UP(args.ihs -
+			sizeof(wqe->eth.inline_hdr_start),
 		    MLX5_SEND_WQE_DS);
 	}
 	dseg = ((struct mlx5_wqe_data_seg *)&wqe->ctrl) + ds_cnt;
 
-	err = bus_dmamap_load_mbuf_sg(sq->dma_tag, sq->mbuf[pi].dma_map,
-	    mb, segs, &nsegs, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(sq->dma_tag, sq->mbuf[pi].dma_map, mb,
+	    segs, &nsegs, BUS_DMA_NOWAIT);
 	if (err == EFBIG) {
 		/* Update statistics */
 		sq->stats.defragged++;
@@ -1005,7 +1024,7 @@ top:
 	sq->stats.packets++;
 	sq->stats.bytes += sq->mbuf[pi].num_bytes;
 
-	*mbp = NULL;	/* safety clear */
+	*mbp = NULL; /* safety clear */
 	return (0);
 
 tx_drop:
@@ -1075,9 +1094,11 @@ mlx5e_poll_tx_cq(struct mlx5e_sq *sq, int budget)
 				if (unlikely(sq->mbuf[ci].num_bytes == 0))
 					sq->stats.nop++;
 			} else {
-				bus_dmamap_sync(sq->dma_tag, sq->mbuf[ci].dma_map,
+				bus_dmamap_sync(sq->dma_tag,
+				    sq->mbuf[ci].dma_map,
 				    BUS_DMASYNC_POSTWRITE);
-				bus_dmamap_unload(sq->dma_tag, sq->mbuf[ci].dma_map);
+				bus_dmamap_unload(sq->dma_tag,
+				    sq->mbuf[ci].dma_map);
 
 				/* Free transmitted mbuf */
 				m_freem(mb);
@@ -1104,7 +1125,7 @@ mlx5e_xmit_locked(if_t ifp, struct mlx5e_sq *sq, struct mbuf *mb)
 	int err = 0;
 
 	if (unlikely((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0 ||
-	    READ_ONCE(sq->running) == 0)) {
+		READ_ONCE(sq->running) == 0)) {
 		m_freem(mb);
 		return (ENETDOWN);
 	}
@@ -1124,7 +1145,7 @@ mlx5e_xmit_locked(if_t ifp, struct mlx5e_sq *sq, struct mbuf *mb)
 	 * transmit ring on timeout:
 	 */
 	if (unlikely(sq->cev_next_state == MLX5E_CEV_STATE_INITIAL &&
-	    sq->cev_factor != 1)) {
+		sq->cev_factor != 1)) {
 		/* start the timer */
 		mlx5e_sq_cev_timeout(sq);
 	} else {
@@ -1147,7 +1168,7 @@ mlx5e_xmit(if_t ifp, struct mbuf *mb)
 			goto select_queue;
 		}
 	} else {
-select_queue:
+	select_queue:
 		sq = mlx5e_select_queue(ifp, mb);
 		if (unlikely(sq == NULL)) {
 			/* Free mbuf */

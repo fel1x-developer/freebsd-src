@@ -16,7 +16,7 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  */
 
 #ifndef R92CE_TX_DESC_H
@@ -26,29 +26,29 @@
 
 /* Tx MAC descriptor (PCIe). */
 struct r92ce_tx_desc {
-	uint16_t 	pktlen;
-	uint8_t		offset;
-	uint8_t		flags0;
+	uint16_t pktlen;
+	uint8_t offset;
+	uint8_t flags0;
 
-	uint32_t	txdw1;
-	uint32_t	txdw2;
-	uint16_t	txdw3;
-	uint16_t	txdseq;
+	uint32_t txdw1;
+	uint32_t txdw2;
+	uint16_t txdw3;
+	uint16_t txdseq;
 
-	uint32_t	txdw4;
-	uint32_t	txdw5;
-	uint32_t	txdw6;
+	uint32_t txdw4;
+	uint32_t txdw5;
+	uint32_t txdw6;
 
-	uint16_t	txbufsize;
-	uint16_t	pad;
+	uint16_t txbufsize;
+	uint16_t pad;
 
-	uint32_t	txbufaddr;
-	uint32_t	txbufaddr64;
+	uint32_t txbufaddr;
+	uint32_t txbufaddr64;
 
-	uint32_t	nextdescaddr;
-	uint32_t	nextdescaddr64;
+	uint32_t nextdescaddr;
+	uint32_t nextdescaddr64;
 
-	uint32_t	reserved[4];
+	uint32_t reserved[4];
 } __packed __attribute__((aligned(4)));
 
-#endif	/* R92CE_TX_DESC_H */
+#endif /* R92CE_TX_DESC_H */

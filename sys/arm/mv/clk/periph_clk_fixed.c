@@ -31,23 +31,22 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_mux.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "clkdev_if.h"
 #include "periph.h"
 
-#define PARENT_CNT	2
+#define PARENT_CNT 2
 
 /*
  * Register clock with fixed frequency divider clock. Chain consists of:
@@ -84,15 +83,14 @@ a37x0_periph_fixed_register_fixed(struct clkdom *clkdom,
 	if (error)
 		goto fail;
 
-	a37x0_periph_set_props(&mux->clkdef, parent_names ,PARENT_CNT);
+	a37x0_periph_set_props(&mux->clkdef, parent_names, PARENT_CNT);
 	error = a37x0_periph_create_mux(clkdom, mux,
 	    A37x0_INTERNAL_CLK_ID(dev_id, MUX_POS));
 	if (error)
 		goto fail;
 
 	a37x0_periph_set_props(&gate->clkdef, &mux->clkdef.name, 1);
-	error = a37x0_periph_create_gate(clkdom, gate,
-	    dev_id);
+	error = a37x0_periph_create_gate(clkdom, gate, dev_id);
 	if (error)
 		goto fail;
 

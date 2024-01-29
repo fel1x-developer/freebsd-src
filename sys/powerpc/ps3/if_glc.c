@@ -27,73 +27,68 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/kernel.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_dl.h>
-
-#include <machine/pio.h>
 #include <machine/bus.h>
+#include <machine/pio.h>
 #include <machine/platform.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
-#include "ps3bus.h"
-#include "ps3-hvcall.h"
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
 #include "if_glcreg.h"
+#include "ps3-hvcall.h"
+#include "ps3bus.h"
 
-static int	glc_probe(device_t);
-static int	glc_attach(device_t);
-static void	glc_init(void *xsc);
-static void	glc_start(if_t ifp);
-static int	glc_ioctl(if_t ifp, u_long cmd, caddr_t data);
-static void	glc_set_multicast(struct glc_softc *sc);
-static int	glc_add_rxbuf(struct glc_softc *sc, int idx);
-static int	glc_add_rxbuf_dma(struct glc_softc *sc, int idx);
-static int	glc_encap(struct glc_softc *sc, struct mbuf **m_head,
-		    bus_addr_t *pktdesc);
-static int	glc_intr_filter(void *xsc);
-static void	glc_intr(void *xsc);
-static void	glc_tick(void *xsc);
-static void	glc_media_status(if_t ifp, struct ifmediareq *ifmr);
-static int	glc_media_change(if_t ifp);
+static int glc_probe(device_t);
+static int glc_attach(device_t);
+static void glc_init(void *xsc);
+static void glc_start(if_t ifp);
+static int glc_ioctl(if_t ifp, u_long cmd, caddr_t data);
+static void glc_set_multicast(struct glc_softc *sc);
+static int glc_add_rxbuf(struct glc_softc *sc, int idx);
+static int glc_add_rxbuf_dma(struct glc_softc *sc, int idx);
+static int glc_encap(struct glc_softc *sc, struct mbuf **m_head,
+    bus_addr_t *pktdesc);
+static int glc_intr_filter(void *xsc);
+static void glc_intr(void *xsc);
+static void glc_tick(void *xsc);
+static void glc_media_status(if_t ifp, struct ifmediareq *ifmr);
+static int glc_media_change(if_t ifp);
 
 static MALLOC_DEFINE(M_GLC, "gelic", "PS3 GELIC ethernet");
 
 static device_method_t glc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		glc_probe),
-	DEVMETHOD(device_attach,	glc_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, glc_probe),
+	DEVMETHOD(device_attach, glc_attach), { 0, 0 }
 };
 
-static driver_t glc_driver = {
-	"glc",
-	glc_methods,
-	sizeof(struct glc_softc)
-};
+static driver_t glc_driver = { "glc", glc_methods, sizeof(struct glc_softc) };
 
 DRIVER_MODULE(glc, ps3bus, glc_driver, 0, 0);
 
-static int 
-glc_probe(device_t dev) 
+static int
+glc_probe(device_t dev)
 {
 
 	if (ps3bus_get_bustype(dev) != PS3_BUSTYPE_SYSBUS ||
@@ -113,8 +108,8 @@ glc_getphys(void *xaddr, bus_dma_segment_t *segs, int nsegs, int error)
 	*(bus_addr_t *)xaddr = segs[0].ds_addr;
 }
 
-static int 
-glc_attach(device_t dev) 
+static int
+glc_attach(device_t dev)
 {
 	struct glc_softc *sc;
 	struct glc_txsoft *txs;
@@ -149,8 +144,8 @@ glc_attach(device_t dev)
 	 * Get MAC address and VLAN id
 	 */
 
-	lv1_net_control(sc->sc_bus, sc->sc_dev, GELIC_GET_MAC_ADDRESS,
-	    0, 0, 0, &mac64, &junk);
+	lv1_net_control(sc->sc_bus, sc->sc_dev, GELIC_GET_MAC_ADDRESS, 0, 0, 0,
+	    &mac64, &junk);
 	memcpy(sc->sc_enaddr, &((uint8_t *)&mac64)[2], sizeof(sc->sc_enaddr));
 	sc->sc_tx_vlan = sc->sc_rx_vlan = -1;
 	err = lv1_net_control(sc->sc_bus, sc->sc_dev, GELIC_GET_VLAN_ID,
@@ -175,46 +170,46 @@ glc_attach(device_t dev)
 	}
 
 	bus_setup_intr(dev, sc->sc_irq,
-	    INTR_TYPE_NET | INTR_MPSAFE | INTR_ENTROPY,
-	    glc_intr_filter, glc_intr, sc, &sc->sc_irqctx);
+	    INTR_TYPE_NET | INTR_MPSAFE | INTR_ENTROPY, glc_intr_filter,
+	    glc_intr, sc, &sc->sc_irqctx);
 	sc->sc_hwirq_status = (uint64_t *)contigmalloc(8, M_GLC, M_ZERO, 0,
 	    BUS_SPACE_MAXADDR_32BIT, 8, PAGE_SIZE);
 	lv1_net_set_interrupt_status_indicator(sc->sc_bus, sc->sc_dev,
 	    vtophys(sc->sc_hwirq_status), 0);
 	lv1_net_set_interrupt_mask(sc->sc_bus, sc->sc_dev,
 	    GELIC_INT_RXDONE | GELIC_INT_RXFRAME | GELIC_INT_PHY |
-	    GELIC_INT_TX_CHAIN_END, 0);
+		GELIC_INT_TX_CHAIN_END,
+	    0);
 
 	/*
 	 * Set up DMA.
 	 */
 
-	err = bus_dma_tag_create(bus_get_dma_tag(dev), 32, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    129*sizeof(struct glc_dmadesc), 1, 128*sizeof(struct glc_dmadesc),
-	    0, NULL,NULL, &sc->sc_dmadesc_tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), 32, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, 129 * sizeof(struct glc_dmadesc), 1,
+	    128 * sizeof(struct glc_dmadesc), 0, NULL, NULL,
+	    &sc->sc_dmadesc_tag);
 
 	err = bus_dmamem_alloc(sc->sc_dmadesc_tag, (void **)&sc->sc_txdmadesc,
 	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
 	    &sc->sc_txdmadesc_map);
 	err = bus_dmamap_load(sc->sc_dmadesc_tag, sc->sc_txdmadesc_map,
-	    sc->sc_txdmadesc, 128*sizeof(struct glc_dmadesc), glc_getphys,
+	    sc->sc_txdmadesc, 128 * sizeof(struct glc_dmadesc), glc_getphys,
 	    &sc->sc_txdmadesc_phys, 0);
 	err = bus_dmamem_alloc(sc->sc_dmadesc_tag, (void **)&sc->sc_rxdmadesc,
 	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
 	    &sc->sc_rxdmadesc_map);
 	err = bus_dmamap_load(sc->sc_dmadesc_tag, sc->sc_rxdmadesc_map,
-	    sc->sc_rxdmadesc, 128*sizeof(struct glc_dmadesc), glc_getphys,
+	    sc->sc_rxdmadesc, 128 * sizeof(struct glc_dmadesc), glc_getphys,
 	    &sc->sc_rxdmadesc_phys, 0);
 
 	err = bus_dma_tag_create(bus_get_dma_tag(dev), 128, 0,
 	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT, 0, NULL,NULL,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL,
 	    &sc->sc_rxdma_tag);
-	err = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE_32BIT, 16, BUS_SPACE_MAXSIZE_32BIT, 0, NULL,NULL,
-	    &sc->sc_txdma_tag);
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE_32BIT, 16,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL, &sc->sc_txdma_tag);
 
 	/* init transmit descriptors */
 	STAILQ_INIT(&sc->sc_txfreeq);
@@ -228,8 +223,8 @@ glc_attach(device_t dev)
 		err = bus_dmamap_create(sc->sc_txdma_tag, 0, &txs->txs_dmamap);
 		if (err) {
 			device_printf(dev,
-			    "unable to create TX DMA map %d, error = %d\n",
-			    i, err);
+			    "unable to create TX DMA map %d, error = %d\n", i,
+			    err);
 		}
 		STAILQ_INSERT_TAIL(&sc->sc_txfreeq, txs, txs_q);
 	}
@@ -240,8 +235,8 @@ glc_attach(device_t dev)
 		    &sc->sc_rxsoft[i].rxs_dmamap);
 		if (err) {
 			device_printf(dev,
-			    "unable to create RX DMA map %d, error = %d\n",
-			    i, err);
+			    "unable to create RX DMA map %d, error = %d\n", i,
+			    err);
 		}
 		sc->sc_rxsoft[i].rxs_mbuf = NULL;
 	}
@@ -333,8 +328,8 @@ glc_init_locked(struct glc_softc *sc)
 	error = lv1_net_start_rx_dma(sc->sc_bus, sc->sc_dev,
 	    sc->sc_rxsoft[0].rxs_desc, 0);
 	if (error != 0)
-		device_printf(sc->sc_self,
-		    "lv1_net_start_rx_dma error: %d\n", error);
+		device_printf(sc->sc_self, "lv1_net_start_rx_dma error: %d\n",
+		    error);
 
 	if_setdrvflagbits(sc->sc_ifp, IFF_DRV_RUNNING, 0);
 	if_setdrvflagbits(sc->sc_ifp, 0, IFF_DRV_OACTIVE);
@@ -466,25 +461,24 @@ glc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 
 	switch (cmd) {
 	case SIOCSIFFLAGS:
-                mtx_lock(&sc->sc_mtx);
+		mtx_lock(&sc->sc_mtx);
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
-			   ((if_getflags(ifp) ^ sc->sc_ifpflags) &
-			    (IFF_ALLMULTI | IFF_PROMISC)) != 0)
+			    ((if_getflags(ifp) ^ sc->sc_ifpflags) &
+				(IFF_ALLMULTI | IFF_PROMISC)) != 0)
 				glc_set_multicast(sc);
 			else
 				glc_init_locked(sc);
-		}
-		else if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0)
+		} else if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0)
 			glc_stop(sc);
 		sc->sc_ifpflags = if_getflags(ifp);
 		mtx_unlock(&sc->sc_mtx);
 		break;
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
-                mtx_lock(&sc->sc_mtx);
+		mtx_lock(&sc->sc_mtx);
 		glc_set_multicast(sc);
-                mtx_unlock(&sc->sc_mtx);
+		mtx_unlock(&sc->sc_mtx);
 		break;
 	case SIOCGIFMEDIA:
 	case SIOCSIFMEDIA:
@@ -529,16 +523,16 @@ glc_set_multicast(struct glc_softc *sc)
 	lv1_net_remove_multicast_address(sc->sc_bus, sc->sc_dev, 0, 1);
 
 	/* Add broadcast */
-	lv1_net_add_multicast_address(sc->sc_bus, sc->sc_dev,
-	    0xffffffffffffL, 0);
+	lv1_net_add_multicast_address(sc->sc_bus, sc->sc_dev, 0xffffffffffffL,
+	    0);
 
 	if ((if_getflags(ifp) & IFF_ALLMULTI) != 0) {
 		lv1_net_add_multicast_address(sc->sc_bus, sc->sc_dev, 0, 1);
 	} else {
 		naddrs = if_foreach_llmaddr(ifp, glc_add_maddr, sc);
 		if (naddrs + 1 == 32)
-			lv1_net_add_multicast_address(sc->sc_bus,
-			    sc->sc_dev, 0, 1);
+			lv1_net_add_multicast_address(sc->sc_bus, sc->sc_dev, 0,
+			    1);
 	}
 }
 
@@ -549,7 +543,7 @@ glc_add_rxbuf(struct glc_softc *sc, int idx)
 	struct mbuf *m;
 	bus_dma_segment_t segs[1];
 	int error, nsegs;
-			
+
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
 		return (ENOBUFS);
@@ -589,13 +583,14 @@ glc_add_rxbuf_dma(struct glc_softc *sc, int idx)
 	sc->sc_rxdmadesc[idx].paddr = rxs->segment.ds_addr;
 	sc->sc_rxdmadesc[idx].len = rxs->segment.ds_len;
 	sc->sc_rxdmadesc[idx].next = sc->sc_rxdmadesc_phys +
-	    ((idx + 1) % GLC_MAX_RX_PACKETS)*sizeof(sc->sc_rxdmadesc[idx]);
+	    ((idx + 1) % GLC_MAX_RX_PACKETS) * sizeof(sc->sc_rxdmadesc[idx]);
 	sc->sc_rxdmadesc[idx].cmd_stat = GELIC_DESCR_OWNED;
 
 	rxs->rxs_desc_slot = idx;
-	rxs->rxs_desc = sc->sc_rxdmadesc_phys + idx*sizeof(struct glc_dmadesc);
+	rxs->rxs_desc = sc->sc_rxdmadesc_phys +
+	    idx * sizeof(struct glc_dmadesc);
 
-        return (0);
+	return (0);
 }
 
 static int
@@ -643,8 +638,8 @@ glc_encap(struct glc_softc *sc, struct mbuf **m_head, bus_addr_t *pktdesc)
 	}
 
 	KASSERT(nsegs <= 128 - sc->bsy_txdma_slots,
-	    ("GLC: Mapped too many (%d) DMA segments with %d available",
-	    nsegs, 128 - sc->bsy_txdma_slots));
+	    ("GLC: Mapped too many (%d) DMA segments with %d available", nsegs,
+		128 - sc->bsy_txdma_slots));
 
 	if (nsegs == 0) {
 		m_freem(*m_head);
@@ -657,26 +652,29 @@ glc_encap(struct glc_softc *sc, struct mbuf **m_head, bus_addr_t *pktdesc)
 
 	idx = txs->txs_firstdesc;
 	firstslotphys = sc->sc_txdmadesc_phys +
-	    txs->txs_firstdesc*sizeof(struct glc_dmadesc);
+	    txs->txs_firstdesc * sizeof(struct glc_dmadesc);
 
 	for (i = 0; i < nsegs; i++) {
 		bzero(&sc->sc_txdmadesc[idx], sizeof(sc->sc_txdmadesc[idx]));
 		sc->sc_txdmadesc[idx].paddr = segs[i].ds_addr;
 		sc->sc_txdmadesc[idx].len = segs[i].ds_len;
 		sc->sc_txdmadesc[idx].next = sc->sc_txdmadesc_phys +
-		    ((idx + 1) % GLC_MAX_TX_PACKETS)*sizeof(struct glc_dmadesc);
+		    ((idx + 1) % GLC_MAX_TX_PACKETS) *
+			sizeof(struct glc_dmadesc);
 		sc->sc_txdmadesc[idx].cmd_stat |= GELIC_CMDSTAT_NOIPSEC;
 
-		if (i+1 == nsegs) {
+		if (i + 1 == nsegs) {
 			txs->txs_lastdesc = idx;
 			sc->sc_txdmadesc[idx].next = 0;
 			sc->sc_txdmadesc[idx].cmd_stat |= GELIC_CMDSTAT_LAST;
 		}
 
 		if ((*m_head)->m_pkthdr.csum_flags & CSUM_TCP)
-			sc->sc_txdmadesc[idx].cmd_stat |= GELIC_CMDSTAT_CSUM_TCP;
+			sc->sc_txdmadesc[idx].cmd_stat |=
+			    GELIC_CMDSTAT_CSUM_TCP;
 		if ((*m_head)->m_pkthdr.csum_flags & CSUM_UDP)
-			sc->sc_txdmadesc[idx].cmd_stat |= GELIC_CMDSTAT_CSUM_UDP;
+			sc->sc_txdmadesc[idx].cmd_stat |=
+			    GELIC_CMDSTAT_CSUM_UDP;
 		sc->sc_txdmadesc[idx].cmd_stat |= GELIC_DESCR_OWNED;
 
 		idx = (idx + 1) % GLC_MAX_TX_PACKETS;
@@ -715,7 +713,7 @@ glc_rxintr(struct glc_softc *sc)
 
 	restart_rxdma = 0;
 	while ((sc->sc_rxdmadesc[sc->sc_next_rxdma_slot].cmd_stat &
-	   GELIC_DESCR_OWNED) == 0) {
+		   GELIC_DESCR_OWNED) == 0) {
 		i = sc->sc_next_rxdma_slot;
 		sc->sc_next_rxdma_slot++;
 		if (sc->sc_next_rxdma_slot >= GLC_MAX_RX_PACKETS)
@@ -731,12 +729,12 @@ glc_rxintr(struct glc_softc *sc)
 
 		m = sc->sc_rxsoft[i].rxs_mbuf;
 		if (sc->sc_rxdmadesc[i].data_stat & GELIC_RX_IPCSUM) {
-			m->m_pkthdr.csum_flags |=
-			    CSUM_IP_CHECKED | CSUM_IP_VALID;
+			m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED |
+			    CSUM_IP_VALID;
 		}
 		if (sc->sc_rxdmadesc[i].data_stat & GELIC_RX_TCPUDPCSUM) {
-			m->m_pkthdr.csum_flags |=
-			    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+			m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+			    CSUM_PSEUDO_HDR;
 			m->m_pkthdr.csum_data = 0xffff;
 		}
 
@@ -760,8 +758,8 @@ glc_rxintr(struct glc_softc *sc)
 		if_input(ifp, m);
 		mtx_lock(&sc->sc_mtx);
 
-	    requeue:
-		glc_add_rxbuf_dma(sc, i);	
+	requeue:
+		glc_add_rxbuf_dma(sc, i);
 	}
 
 	bus_dmamap_sync(sc->sc_dmadesc_tag, sc->sc_rxdmadesc_map,
@@ -787,8 +785,8 @@ glc_txintr(struct glc_softc *sc)
 	    BUS_DMASYNC_POSTREAD);
 
 	while ((txs = STAILQ_FIRST(&sc->sc_txdirtyq)) != NULL) {
-		if (sc->sc_txdmadesc[txs->txs_lastdesc].cmd_stat
-		    & GELIC_DESCR_OWNED)
+		if (sc->sc_txdmadesc[txs->txs_lastdesc].cmd_stat &
+		    GELIC_DESCR_OWNED)
 			break;
 
 		STAILQ_REMOVE_HEAD(&sc->sc_txdirtyq, txs_q);
@@ -800,8 +798,8 @@ glc_txintr(struct glc_softc *sc)
 			txs->txs_mbuf = NULL;
 		}
 
-		if ((sc->sc_txdmadesc[txs->txs_lastdesc].cmd_stat & 0xf0000000)
-		    != 0) {
+		if ((sc->sc_txdmadesc[txs->txs_lastdesc].cmd_stat &
+			0xf0000000) != 0) {
 			lv1_net_stop_tx_dma(sc->sc_bus, sc->sc_dev, 0);
 			kickstart = 1;
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
@@ -825,8 +823,9 @@ glc_txintr(struct glc_softc *sc)
 		/* Speculatively (or necessarily) start the TX queue again */
 		error = lv1_net_start_tx_dma(sc->sc_bus, sc->sc_dev,
 		    sc->sc_txdmadesc_phys +
-		    ((txs == NULL) ? 0 : txs->txs_firstdesc)*
-		     sizeof(struct glc_dmadesc), 0);
+			((txs == NULL) ? 0 : txs->txs_firstdesc) *
+			    sizeof(struct glc_dmadesc),
+		    0);
 		if (error != 0)
 			device_printf(sc->sc_self,
 			    "lv1_net_start_tx_dma error: %d\n", error);
@@ -881,8 +880,8 @@ glc_intr(void *xsc)
 		lv1_net_control(sc->sc_bus, sc->sc_dev, GELIC_GET_LINK_STATUS,
 		    GELIC_VLAN_TX_ETHERNET, 0, 0, &linkstat, &junk);
 
-		linkstat = (linkstat & GELIC_LINK_UP) ?
-		    LINK_STATE_UP : LINK_STATE_DOWN;
+		linkstat = (linkstat & GELIC_LINK_UP) ? LINK_STATE_UP :
+							LINK_STATE_DOWN;
 		if_link_state_change(sc->sc_ifp, linkstat);
 	}
 

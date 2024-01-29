@@ -29,16 +29,17 @@
  * commands.
  */
 
-#include <stand.h>
-#include <stddef.h>
 #include <sys/disk.h>
 #include <sys/reboot.h>
+
+#include <stand.h>
+#include <stddef.h>
 
 #include "bootstrap.h"
 #include "libzfs.h"
 
 COMMAND_SET(lszfs, "lszfs", "list child datasets of a zfs dataset",
-	    command_lszfs);
+    command_lszfs);
 
 static int
 command_lszfs(int argc, char *argv[])
@@ -59,7 +60,7 @@ command_lszfs(int argc, char *argv[])
 }
 
 COMMAND_SET(reloadbe, "reloadbe", "refresh the list of ZFS Boot Environments",
-	    command_reloadbe);
+    command_reloadbe);
 
 static int
 command_reloadbe(int argc, char *argv[])
@@ -77,7 +78,8 @@ command_reloadbe(int argc, char *argv[])
 	} else {
 		root = getenv("zfs_be_root");
 		if (root == NULL) {
-			/* There does not appear to be a ZFS pool here, exit without error */
+			/* There does not appear to be a ZFS pool here, exit
+			 * without error */
 			return (CMD_OK);
 		}
 		err = zfs_bootenv(root);
@@ -94,7 +96,7 @@ command_reloadbe(int argc, char *argv[])
 uint64_t
 ldi_get_size(void *priv)
 {
-	int fd = (uintptr_t) priv;
+	int fd = (uintptr_t)priv;
 	uint64_t size;
 
 	ioctl(fd, DIOCGMEDIASIZE, &size);

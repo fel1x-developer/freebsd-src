@@ -24,16 +24,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_PHY_H__
-#define	__AR40XX_PHY_H__
+#ifndef __AR40XX_PHY_H__
+#define __AR40XX_PHY_H__
 
-extern	int ar40xx_phy_tick(struct ar40xx_softc *sc);
-extern	int ar40xx_attach_phys(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_phy_get_ids(struct ar40xx_softc *sc);
-extern	struct mii_data * ar40xx_phy_miiforport(struct ar40xx_softc *sc,
-	    int port);
-extern	if_t  ar40xx_phy_ifpforport(struct ar40xx_softc *sc,
-	    int port);
+extern int ar40xx_phy_tick(struct ar40xx_softc *sc);
+extern int ar40xx_attach_phys(struct ar40xx_softc *sc);
+extern int ar40xx_hw_phy_get_ids(struct ar40xx_softc *sc);
+extern struct mii_data *ar40xx_phy_miiforport(struct ar40xx_softc *sc,
+    int port);
+extern if_t ar40xx_phy_ifpforport(struct ar40xx_softc *sc, int port);
 
-#endif	/* __AR40XX_PHY_H__ */
-
+#endif /* __AR40XX_PHY_H__ */

@@ -26,26 +26,30 @@
 
 #include <sys/types.h>
 #include <sys/disk.h>
-#include <stdarg.h>
+
 #include <paths.h>
+#include <stdarg.h>
+
+#include "bootstrap.h"
 #include "host_syscall.h"
 #include "kboot.h"
-#include "bootstrap.h"
 #ifdef LOADER_ZFS_SUPPORT
-#include "libzfs.h"
 #include <sys/zfs_bootenv.h>
+
+#include "libzfs.h"
 #endif
 
 static int hostdisk_init(void);
-static int hostdisk_strategy(void *devdata, int flag, daddr_t dblk,
-    size_t size, char *buf, size_t *rsize);
+static int hostdisk_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
+    char *buf, size_t *rsize);
 static int hostdisk_open(struct open_file *f, ...);
 static int hostdisk_close(struct open_file *f);
 static int hostdisk_ioctl(struct open_file *f, u_long cmd, void *data);
 static int hostdisk_print(int verbose);
 static char *hostdisk_fmtdev(struct devdesc *vdev);
 static bool hostdisk_match(struct devsw *devsw, const char *devspec);
-static int hostdisk_parsedev(struct devdesc **idev, const char *devspec, const char **path);
+static int hostdisk_parsedev(struct devdesc **idev, const char *devspec,
+    const char **path);
 
 struct devsw hostdisk = {
 	.dv_name = "/dev",
@@ -68,20 +72,20 @@ struct devsw hostdisk = {
  */
 #define SYSBLK "/sys/block"
 
-#define HOSTDISK_MIN_SIZE (16ul << 20)	/* 16MB */
+#define HOSTDISK_MIN_SIZE (16ul << 20) /* 16MB */
 
 typedef STAILQ_HEAD(, hdinfo) hdinfo_list_t;
 typedef struct hdinfo {
-	STAILQ_ENTRY(hdinfo)	hd_link;	/* link in device list */
-	hdinfo_list_t	hd_children;
-	struct hdinfo	*hd_parent;
-	const char	*hd_dev;
-	uint64_t	hd_size;		/* In bytes */
-	uint64_t	hd_sectors;
-	uint64_t	hd_sectorsize;
-	int		hd_flags;
-#define HDF_HAS_ZPOOL	1			/* We found a zpool here and uuid valid */
-	uint64_t	hd_zfs_uuid;
+	STAILQ_ENTRY(hdinfo) hd_link; /* link in device list */
+	hdinfo_list_t hd_children;
+	struct hdinfo *hd_parent;
+	const char *hd_dev;
+	uint64_t hd_size; /* In bytes */
+	uint64_t hd_sectors;
+	uint64_t hd_sectorsize;
+	int hd_flags;
+#define HDF_HAS_ZPOOL 1 /* We found a zpool here and uuid valid */
+	uint64_t hd_zfs_uuid;
 } hdinfo_t;
 
 #define dev2hd(d) ((hdinfo_t *)d->d_opendata)
@@ -101,7 +105,7 @@ foreach_file(const char *dir, fef_cb_t cb, void *argp, u_int flags)
 
 	fd = host_open(dir, O_RDONLY, 0);
 	if (fd < 0) {
-		printf("Can't open %s\n", dir);/* XXX */
+		printf("Can't open %s\n", dir); /* XXX */
 		return (false);
 	}
 	while (1) {
@@ -110,7 +114,8 @@ foreach_file(const char *dir, fef_cb_t cb, void *argp, u_int flags)
 			break;
 		for (dent = (struct host_dirent64 *)dents;
 		     (char *)dent < dents + dentsize;
-		     dent = (struct host_dirent64 *)((void *)dent + dent->d_reclen)) {
+		     dent = (struct host_dirent64 *)((void *)dent +
+			 dent->d_reclen)) {
 			if (!cb(dent, argp))
 				break;
 		}
@@ -152,8 +157,8 @@ hostdisk_one_part(struct host_dirent64 *dent, void *argp)
 	if (strncmp(dent->d_name, hd_name(hd), strlen(hd_name(hd))) != 0)
 		return (true);
 	/* Find out how big this is -- no size not a disk */
-	snprintf(szfn, sizeof(szfn), "%s/%s/%s/size", SYSBLK,
-	    hd_name(hd), dent->d_name);
+	snprintf(szfn, sizeof(szfn), "%s/%s/%s/size", SYSBLK, hd_name(hd),
+	    dent->d_name);
 	if (!file2u64(szfn, &sz))
 		return true;
 	hostdisk_add_part(hd, dent->d_name, sz);
@@ -185,8 +190,7 @@ hostdisk_add_drive(const char *drv, uint64_t secs)
 	}
 	hd->hd_dev = dev;
 	hd->hd_sectors = secs;
-	snprintf(fn, sizeof(fn), "%s/%s/queue/hw_sector_size",
-	    SYSBLK, drv);
+	snprintf(fn, sizeof(fn), "%s/%s/queue/hw_sector_size", SYSBLK, drv);
 	if (!file2u64(fn, &hd->hd_sectorsize))
 		goto err;
 	hd->hd_size = hd->hd_sectors * hd->hd_sectorsize;
@@ -194,8 +198,8 @@ hostdisk_add_drive(const char *drv, uint64_t secs)
 		goto err;
 	hd->hd_flags = 0;
 	STAILQ_INIT(&hd->hd_children);
-	printf("/dev/%s: %ju %ju %ju\n",
-	    drv, hd->hd_size, hd->hd_sectors, hd->hd_sectorsize);
+	printf("/dev/%s: %ju %ju %ju\n", drv, hd->hd_size, hd->hd_sectors,
+	    hd->hd_sectorsize);
 	STAILQ_INSERT_TAIL(&hdinfo, hd, hd_link);
 	hostdisk_add_parts(hd);
 	return;
@@ -212,17 +216,16 @@ hostdisk_find(const char *fn)
 {
 	hdinfo_t *hd, *md;
 
-	STAILQ_FOREACH(hd, &hdinfo, hd_link) {
+	STAILQ_FOREACH (hd, &hdinfo, hd_link) {
 		if (strcmp(hd->hd_dev, fn) == 0)
 			return (hd);
-		STAILQ_FOREACH(md, &hd->hd_children, hd_link) {
+		STAILQ_FOREACH (md, &hd->hd_children, hd_link) {
 			if (strcmp(md->hd_dev, fn) == 0)
 				return (md);
 		}
 	}
 	return (NULL);
 }
-
 
 static bool
 hostdisk_one_disk(struct host_dirent64 *dent, void *argp __unused)
@@ -233,13 +236,11 @@ hostdisk_one_disk(struct host_dirent64 *dent, void *argp __unused)
 	/*
 	 * Skip . and ..
 	 */
-	if (strcmp(dent->d_name, ".") == 0 ||
-	    strcmp(dent->d_name, "..") == 0)
+	if (strcmp(dent->d_name, ".") == 0 || strcmp(dent->d_name, "..") == 0)
 		return (true);
 
 	/* Find out how big this is -- no size not a disk */
-	snprintf(szfn, sizeof(szfn), "%s/%s/size", SYSBLK,
-	    dent->d_name);
+	snprintf(szfn, sizeof(szfn), "%s/%s/size", SYSBLK, dent->d_name);
 	if (!file2u64(szfn, &sz))
 		return (true);
 	hostdisk_add_drive(dent->d_name, sz);
@@ -263,14 +264,14 @@ hostdisk_fake_one_disk(char *override)
 	if ((hd->hd_dev = strdup(override)) == NULL)
 		goto err;
 	hd->hd_size = sb.st_size;
-	hd->hd_sectorsize = 512;	/* XXX configurable? */
+	hd->hd_sectorsize = 512; /* XXX configurable? */
 	hd->hd_sectors = hd->hd_size / hd->hd_sectorsize;
 	if (hd->hd_size < HOSTDISK_MIN_SIZE)
 		goto err;
 	hd->hd_flags = 0;
 	STAILQ_INIT(&hd->hd_children);
-	printf("%s: %ju %ju %ju\n",
-	    hd->hd_dev, hd->hd_size, hd->hd_sectors, hd->hd_sectorsize);
+	printf("%s: %ju %ju %ju\n", hd->hd_dev, hd->hd_size, hd->hd_sectors,
+	    hd->hd_sectorsize);
 	STAILQ_INSERT_TAIL(&hdinfo, hd, hd_link);
 	return;
 err:
@@ -283,7 +284,7 @@ hostdisk_find_block_devices(void)
 {
 	char *override;
 
-	override=getenv("hostdisk_override");
+	override = getenv("hostdisk_override");
 	if (override != NULL)
 		hostdisk_fake_one_disk(override);
 	else
@@ -299,8 +300,8 @@ hostdisk_init(void)
 }
 
 static int
-hostdisk_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
-    char *buf, size_t *rsize)
+hostdisk_strategy(void *devdata, int flag, daddr_t dblk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct devdesc *desc = devdata;
 	daddr_t pos;
@@ -315,7 +316,8 @@ hostdisk_strategy(void *devdata, int flag, daddr_t dblk, size_t size,
 	posh = (pos >> 32) & 0xffffffffu;
 	if ((off = host_llseek(desc->d_unit, posh, posl, &res, 0)) < 0) {
 		printf("Seek error on fd %d to %ju (dblk %ju) returns %jd\n",
-		    desc->d_unit, (uintmax_t)pos, (uintmax_t)dblk, (intmax_t)off);
+		    desc->d_unit, (uintmax_t)pos, (uintmax_t)dblk,
+		    (intmax_t)off);
 		return (EIO);
 	}
 	n = host_read(desc->d_unit, buf, size);
@@ -387,19 +389,15 @@ hostdisk_print(int verbose)
 	if (pager_output("\n") != 0)
 		return (1);
 
-	STAILQ_FOREACH(hd, &hdinfo, hd_link) {
-		snprintf(line, sizeof(line),
-		    "   %s: %ju X %ju: %ju bytes\n",
-		    hd->hd_dev,
-		    (uintmax_t)hd->hd_sectors,
-		    (uintmax_t)hd->hd_sectorsize,
-		    (uintmax_t)hd->hd_size);
+	STAILQ_FOREACH (hd, &hdinfo, hd_link) {
+		snprintf(line, sizeof(line), "   %s: %ju X %ju: %ju bytes\n",
+		    hd->hd_dev, (uintmax_t)hd->hd_sectors,
+		    (uintmax_t)hd->hd_sectorsize, (uintmax_t)hd->hd_size);
 		if ((ret = pager_output(line)) != 0)
 			break;
-		STAILQ_FOREACH(md, &hd->hd_children, hd_link) {
+		STAILQ_FOREACH (md, &hd->hd_children, hd_link) {
 			snprintf(line, sizeof(line),
-			    "     %s: %ju X %ju: %ju bytes\n",
-			    md->hd_dev,
+			    "     %s: %ju X %ju: %ju bytes\n", md->hd_dev,
 			    (uintmax_t)md->hd_sectors,
 			    (uintmax_t)md->hd_sectorsize,
 			    (uintmax_t)md->hd_size);
@@ -509,7 +507,7 @@ hostdisk_gen_probe(void)
 	hdinfo_t *hd, *md;
 	const char *rv = NULL;
 
-	STAILQ_FOREACH(hd, &hdinfo, hd_link) {
+	STAILQ_FOREACH (hd, &hdinfo, hd_link) {
 		/* try whole disk */
 		if (hd->hd_flags & HDF_HAS_ZPOOL)
 			continue;
@@ -518,7 +516,7 @@ hostdisk_gen_probe(void)
 			return (rv);
 
 		/* try all partitions */
-		STAILQ_FOREACH(md, &hd->hd_children, hd_link) {
+		STAILQ_FOREACH (md, &hd->hd_children, hd_link) {
 			if (md->hd_flags & HDF_HAS_ZPOOL)
 				continue;
 			rv = hostdisk_try_one(md);
@@ -556,16 +554,17 @@ hostdisk_zfs_probe(void)
 {
 	hdinfo_t *hd, *md;
 
-	STAILQ_FOREACH(hd, &hdinfo, hd_link) {
+	STAILQ_FOREACH (hd, &hdinfo, hd_link) {
 		if (hostdisk_zfs_check_one(hd))
 			continue;
-		STAILQ_FOREACH(md, &hd->hd_children, hd_link) {
+		STAILQ_FOREACH (md, &hd->hd_children, hd_link) {
 			hostdisk_zfs_check_one(md);
 		}
 	}
 }
 
-/* This likely shoud move to libsa/zfs/zfs.c and be used by at least EFI booting */
+/* This likely shoud move to libsa/zfs/zfs.c and be used by at least EFI booting
+ */
 static bool
 probe_zfs_currdev(uint64_t pool_guid, uint64_t root_guid, bool setcurrdev)
 {
@@ -585,7 +584,8 @@ probe_zfs_currdev(uint64_t pool_guid, uint64_t root_guid, bool setcurrdev)
 	if (bootable) {
 		char buf[VDEV_PAD_SIZE];
 
-		if (zfs_get_bootonce(&currdev, OS_BOOTONCE, buf, sizeof(buf)) == 0) {
+		if (zfs_get_bootonce(&currdev, OS_BOOTONCE, buf, sizeof(buf)) ==
+		    0) {
 			printf("zfs bootonce: %s\n", buf);
 			if (setcurrdev)
 				set_currdev(buf);
@@ -608,13 +608,13 @@ hostdisk_zfs_find_default(void)
 {
 	hdinfo_t *hd, *md;
 
-	STAILQ_FOREACH(hd, &hdinfo, hd_link) {
+	STAILQ_FOREACH (hd, &hdinfo, hd_link) {
 		if (hd->hd_flags & HDF_HAS_ZPOOL) {
 			if (hostdisk_zfs_try_default(hd))
 				return (true);
 			continue;
 		}
-		STAILQ_FOREACH(md, &hd->hd_children, hd_link) {
+		STAILQ_FOREACH (md, &hd->hd_children, hd_link) {
 			if (md->hd_flags & HDF_HAS_ZPOOL) {
 				if (hostdisk_zfs_try_default(md))
 					return (true);

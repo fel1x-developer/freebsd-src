@@ -26,14 +26,14 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 #ifdef __weak_alias
-__weak_alias(fpgetround,_fpgetround)
+__weak_alias(fpgetround, _fpgetround)
 #endif
 
-fp_rnd_t
-fpgetround(void)
+    fp_rnd_t fpgetround(void)
 {
 	uint32_t fpscr;
 
@@ -41,4 +41,3 @@ fpgetround(void)
 
 	return ((fpscr >> 22) & 3);
 }
-

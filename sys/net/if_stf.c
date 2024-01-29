@@ -64,7 +64,7 @@
  * ICMPv6:
  * - Redirects cannot be used due to the lack of link-local address.
  *
- * stf interface does not have, and will not need, a link-local address.  
+ * stf interface does not have, and will not need, a link-local address.
  * It seems to have no real benefit and does not help the above symptoms much.
  * Even if we assign link-locals to interface, we cannot really
  * use link-local unicast/multicast on top of 6to4 cloud (since there's no
@@ -80,52 +80,47 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/sdt.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
+
 #include <machine/cpu.h>
-
-#include <sys/malloc.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
-#include <net/if_clone.h>
-#include <net/route.h>
-#include <net/route/nhop.h>
-#include <net/netisr.h>
-#include <net/if_stf.h>
-#include <net/if_types.h>
-#include <net/vnet.h>
-
-#include <netinet/in.h>
-#include <netinet/in_fib.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/ip_var.h>
-#include <netinet/in_var.h>
-
-#include <netinet/ip6.h>
-#include <netinet6/in6_fib.h>
-#include <netinet6/ip6_var.h>
-#include <netinet6/in6_var.h>
-#include <netinet/ip_ecn.h>
-
-#include <netinet/ip_encap.h>
-
 #include <machine/stdarg.h>
 
 #include <net/bpf.h>
+#include <net/if.h>
+#include <net/if_clone.h>
+#include <net/if_private.h>
+#include <net/if_stf.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/netisr.h>
+#include <net/route.h>
+#include <net/route/nhop.h>
+#include <net/vnet.h>
+#include <netinet/in.h>
+#include <netinet/in_fib.h>
+#include <netinet/in_systm.h>
+#include <netinet/in_var.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_ecn.h>
+#include <netinet/ip_encap.h>
+#include <netinet/ip_var.h>
+#include <netinet6/in6_fib.h>
+#include <netinet6/in6_var.h>
+#include <netinet6/ip6_var.h>
 
 #include <security/mac/mac_framework.h>
 
@@ -158,7 +153,8 @@ SDT_PROBE_DEFINE1(if_stf, , ioctl, ifaddr, "struct ifaddr *");
 SDT_PROBE_DEFINE4(if_stf, , getin4addr_in6, out, "struct in6_addr *",
     "struct in6_addr *", "struct in6_addr *", "struct sockaddr_in *");
 
-SDT_PROBE_DEFINE2(if_stf, , getin4addr, in, "struct in6_addr *", "struct in6_addr *");
+SDT_PROBE_DEFINE2(if_stf, , getin4addr, in, "struct in6_addr *",
+    "struct in6_addr *");
 SDT_PROBE_DEFINE1(if_stf, , getin4addr, out, "struct sockaddr_in *");
 
 SYSCTL_DECL(_net_link);
@@ -169,25 +165,26 @@ static int stf_permit_rfc1918 = 0;
 SYSCTL_INT(_net_link_stf, OID_AUTO, permit_rfc1918, CTLFLAG_RWTUN,
     &stf_permit_rfc1918, 0, "Permit the use of private IPv4 addresses");
 
-#define STFUNIT		0
+#define STFUNIT 0
 
-#define IN6_IS_ADDR_6TO4(x)	(ntohs((x)->s6_addr16[0]) == 0x2002)
+#define IN6_IS_ADDR_6TO4(x) (ntohs((x)->s6_addr16[0]) == 0x2002)
 
 /*
  * XXX: Return a pointer with 16-bit aligned.  Don't cast it to
  * struct in_addr *; use bcopy() instead.
  */
-#define GET_V4(x)	(&(x)->s6_addr16[1])
+#define GET_V4(x) (&(x)->s6_addr16[1])
 
 struct stf_softc {
-	struct ifnet	*sc_ifp;
-	in_addr_t	braddr;		/* Border relay IPv4 address */
-	in_addr_t	srcv4_addr;	/* Our IPv4 WAN address */
-	u_int		v4prefixlen;	/* How much of the v4 address to include in our address. */
-	u_int		sc_fibnum;
+	struct ifnet *sc_ifp;
+	in_addr_t braddr;     /* Border relay IPv4 address */
+	in_addr_t srcv4_addr; /* Our IPv4 WAN address */
+	u_int v4prefixlen;    /* How much of the v4 address to include in our
+				 address. */
+	u_int sc_fibnum;
 	const struct encaptab *encap_cookie;
 };
-#define STF2IFP(sc)	((sc)->sc_ifp)
+#define STF2IFP(sc) ((sc)->sc_ifp)
 
 static const char stfname[] = "stf";
 
@@ -195,42 +192,38 @@ static MALLOC_DEFINE(M_STF, stfname, "6to4 Tunnel Interface");
 static const int ip_stf_ttl = 40;
 
 static int in_stf_input(struct mbuf *, int, int, void *);
-static char *stfnames[] = {"stf0", "stf", "6to4", NULL};
+static char *stfnames[] = { "stf0", "stf", "6to4", NULL };
 
 static int stfmodevent(module_t, int, void *);
 static int stf_encapcheck(const struct mbuf *, int, int, void *);
 static int stf_getsrcifa6(struct ifnet *, struct in6_addr *, struct in6_addr *);
 static int stf_output(struct ifnet *, struct mbuf *, const struct sockaddr *,
-	struct route *);
+    struct route *);
 static int isrfc1918addr(struct in_addr *);
-static int stf_checkaddr4(struct stf_softc *, struct in_addr *,
-	struct ifnet *);
+static int stf_checkaddr4(struct stf_softc *, struct in_addr *, struct ifnet *);
 static int stf_checkaddr6(struct stf_softc *, struct in6_addr *,
-	struct ifnet *);
+    struct ifnet *);
 static struct sockaddr_in *stf_getin4addr_in6(struct stf_softc *,
-	struct sockaddr_in *, struct in6_addr, struct in6_addr,
-	struct in6_addr);
+    struct sockaddr_in *, struct in6_addr, struct in6_addr, struct in6_addr);
 static struct sockaddr_in *stf_getin4addr(struct stf_softc *,
-	struct sockaddr_in *, struct in6_addr, struct in6_addr);
+    struct sockaddr_in *, struct in6_addr, struct in6_addr);
 static int stf_ioctl(struct ifnet *, u_long, caddr_t);
 
 VNET_DEFINE_STATIC(struct if_clone *, stf_cloner);
-#define V_stf_cloner	VNET(stf_cloner)
+#define V_stf_cloner VNET(stf_cloner)
 
-static const struct encap_config ipv4_encap_cfg = {
-	.proto = IPPROTO_IPV6,
+static const struct encap_config ipv4_encap_cfg = { .proto = IPPROTO_IPV6,
 	.min_length = sizeof(struct ip),
 	.exact_match = (sizeof(in_addr_t) << 3) + 8,
 	.check = stf_encapcheck,
-	.input = in_stf_input
-};
+	.input = in_stf_input };
 
 static int
 stf_clone_match(struct if_clone *ifc, const char *name)
 {
 	int i;
 
-	for(i = 0; stfnames[i] != NULL; i++) {
+	for (i = 0; stfnames[i] != NULL; i++) {
 		if (strcmp(stfnames[i], name) == 0)
 			return (1);
 	}
@@ -278,9 +271,10 @@ stf_clone_create(struct if_clone *ifc, char *name, size_t len,
 	 * In the wildcard case, we need to update the name.
 	 */
 	if (wildcard) {
-		for (dp = name; *dp != '\0'; dp++);
-		if (snprintf(dp, len - (dp-name), "%d", unit) >
-		    len - (dp-name) - 1) {
+		for (dp = name; *dp != '\0'; dp++)
+			;
+		if (snprintf(dp, len - (dp - name), "%d", unit) >
+		    len - (dp - name) - 1) {
 			/*
 			 * This can only be a programmer error and
 			 * there's no straightforward way to recover if
@@ -295,8 +289,8 @@ stf_clone_create(struct if_clone *ifc, char *name, size_t len,
 
 	sc->encap_cookie = ip_encap_attach(&ipv4_encap_cfg, sc, M_WAITOK);
 
-	ifp->if_mtu    = IPV6_MMTU;
-	ifp->if_ioctl  = stf_ioctl;
+	ifp->if_mtu = IPV6_MMTU;
+	ifp->if_ioctl = stf_ioctl;
 	ifp->if_output = stf_output;
 	ifp->if_snd.ifq_maxlen = ifqmaxlen;
 	if_attach(ifp);
@@ -363,11 +357,7 @@ stfmodevent(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t stf_mod = {
-	"if_stf",
-	stfmodevent,
-	0
-};
+static moduledata_t stf_mod = { "if_stf", stfmodevent, 0 };
 
 DECLARE_MODULE(if_stf, stf_mod, SI_SUB_PSEUDO, SI_ORDER_ANY);
 MODULE_VERSION(if_stf, 2);
@@ -407,9 +397,8 @@ stf_encapcheck(const struct mbuf *m, int off, int proto, void *arg)
 	if (sc->srcv4_addr != INADDR_ANY) {
 		sin4addr.sin_addr.s_addr = sc->srcv4_addr;
 		sin4addr.sin_family = AF_INET;
-	} else
-		if (stf_getin4addr(sc, &sin4addr, addr6, mask6) == NULL)
-			return (0);
+	} else if (stf_getin4addr(sc, &sin4addr, addr6, mask6) == NULL)
+		return (0);
 
 	if (sin4addr.sin_addr.s_addr != ip.ip_dst.s_addr)
 		return (0);
@@ -463,7 +452,8 @@ stf_getsrcifa6(struct ifnet *ifp, struct in6_addr *addr, struct in6_addr *mask)
 
 	SDT_PROBE3(if_stf, , getsrcifa6, in, ifp, addr, mask);
 
-	CK_STAILQ_FOREACH(ia, &ifp->if_addrhead, ifa_link) {
+	CK_STAILQ_FOREACH(ia, &ifp->if_addrhead, ifa_link)
+	{
 		if (ia->ifa_addr->sa_family != AF_INET6)
 			continue;
 
@@ -478,8 +468,8 @@ stf_getsrcifa6(struct ifnet *ifp, struct in6_addr *addr, struct in6_addr *mask)
 		}
 
 		CK_LIST_FOREACH(ia4, INADDR_HASH(in.s_addr), ia_hash)
-			if (ia4->ia_addr.sin_addr.s_addr == in.s_addr)
-				break;
+		if (ia4->ia_addr.sin_addr.s_addr == in.s_addr)
+			break;
 		if (ia4 == NULL)
 			continue;
 
@@ -559,12 +549,11 @@ stf_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	 * Pickup the right outer dst addr from the list of candidates.
 	 * ip6_dst has priority as it may be able to give us shorter IPv4 hops.
 	 */
-	if (stf_getin4addr_in6(sc, &dst4, addr6, mask6,
-	    ip6->ip6_dst) == NULL) {
+	if (stf_getin4addr_in6(sc, &dst4, addr6, mask6, ip6->ip6_dst) == NULL) {
 		if (sc->braddr != INADDR_ANY)
 			dst4.sin_addr.s_addr = sc->braddr;
 		else if (stf_getin4addr_in6(sc, &dst4, addr6, mask6,
-		    dst6->sin6_addr) == NULL) {
+			     dst6->sin6_addr) == NULL) {
 			m_freem(m);
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 			SDT_PROBE2(if_stf, , stf_output, error, ENETUNREACH,
@@ -629,10 +618,10 @@ isrfc1918addr(struct in_addr *in)
 	 * returns 1 if private address range:
 	 * 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
 	 */
-	if (stf_permit_rfc1918 == 0 && (
-	    (ntohl(in->s_addr) & 0xff000000) >> 24 == 10 ||
-	    (ntohl(in->s_addr) & 0xfff00000) >> 16 == 172 * 256 + 16 ||
-	    (ntohl(in->s_addr) & 0xffff0000) >> 16 == 192 * 256 + 168))
+	if (stf_permit_rfc1918 == 0 &&
+	    ((ntohl(in->s_addr) & 0xff000000) >> 24 == 10 ||
+		(ntohl(in->s_addr) & 0xfff00000) >> 16 == 172 * 256 + 16 ||
+		(ntohl(in->s_addr) & 0xffff0000) >> 16 == 192 * 256 + 168))
 		return (1);
 
 	return (0);
@@ -650,14 +639,17 @@ stf_checkaddr4(struct stf_softc *sc, struct in_addr *in, struct ifnet *inifp)
 	if (IN_MULTICAST(ntohl(in->s_addr)))
 		return (-1);
 	switch ((ntohl(in->s_addr) & 0xff000000) >> 24) {
-	case 0: case 127: case 255:
+	case 0:
+	case 127:
+	case 255:
 		return (-1);
 	}
 
 	/*
 	 * reject packets with broadcast
 	 */
-	CK_STAILQ_FOREACH(ia4, &V_in_ifaddrhead, ia_link) {
+	CK_STAILQ_FOREACH(ia4, &V_in_ifaddrhead, ia_link)
+	{
 		if ((ia4->ia_ifa.ifa_ifp->if_flags & IFF_BROADCAST) == 0)
 			continue;
 		if (in->s_addr == ia4->ia_broadaddr.sin_addr.s_addr) {
@@ -858,14 +850,14 @@ static struct sockaddr_in *
 stf_getin4addr_in6(struct stf_softc *sc, struct sockaddr_in *sin,
     struct in6_addr addr6, struct in6_addr mask6, struct in6_addr in6)
 {
-       int i;
-       struct sockaddr_in *out;
+	int i;
+	struct sockaddr_in *out;
 
 	/*
-	* When (src addr & src mask) != (in6 & src mask),
-	* the dst is not in the 6rd domain.  The IPv4 address must
-	* not be used.
-	*/
+	 * When (src addr & src mask) != (in6 & src mask),
+	 * the dst is not in the 6rd domain.  The IPv4 address must
+	 * not be used.
+	 */
 	for (i = 0; i < sizeof(addr6); i++) {
 		if ((((u_char *)&addr6)[i] & ((u_char *)&mask6)[i]) !=
 		    (((u_char *)&in6)[i] & ((u_char *)&mask6)[i])) {
@@ -899,7 +891,7 @@ stf_getin4addr(struct stf_softc *sc, struct sockaddr_in *sin,
 	} else {
 		/* 6rd (RFC 5569) */
 		in_addr_t v4prefix;
-		uint8_t *v6 = (uint8_t*)&addr6;
+		uint8_t *v6 = (uint8_t *)&addr6;
 		uint64_t v6prefix;
 		u_int plen;
 		u_int v4suffixlen;
@@ -988,8 +980,7 @@ stf_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 			if (error)
 				break;
 			sc_cur->braddr = args.braddr.s_addr;
-			SDT_PROBE1(if_stf, , ioctl, sdstv4,
-			    sc_cur->braddr);
+			SDT_PROBE1(if_stf, , ioctl, sdstv4, sc_cur->braddr);
 		} else
 			error = EINVAL;
 		break;
@@ -1017,8 +1008,8 @@ stf_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 			break;
 		}
 		if (stf_getin4addr(sc_cur, &sin4,
-		    satosin6(ifa->ifa_addr)->sin6_addr,
-		    satosin6(ifa->ifa_netmask)->sin6_addr) == NULL) {
+			satosin6(ifa->ifa_addr)->sin6_addr,
+			satosin6(ifa->ifa_netmask)->sin6_addr) == NULL) {
 			error = EINVAL;
 			break;
 		}

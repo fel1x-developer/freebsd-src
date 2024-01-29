@@ -27,26 +27,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/ata.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sema.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/ata/ata-pci.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <ata_if.h>
 
 /* local prototypes */
@@ -60,71 +64,72 @@ static int ata_jmicron_setmode(device_t dev, int target, int mode);
 static int
 ata_jmicron_probe(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
-    const struct ata_chip_id *idx;
-    static const struct ata_chip_id ids[] =
-    {{ ATA_JMB360, 0, 1, 0, ATA_SA300, "JMB360" },
-     { ATA_JMB361, 0, 1, 1, ATA_UDMA6, "JMB361" },
-     { ATA_JMB362, 0, 2, 0, ATA_SA300, "JMB362" },
-     { ATA_JMB363, 0, 2, 1, ATA_UDMA6, "JMB363" },
-     { ATA_JMB365, 0, 1, 2, ATA_UDMA6, "JMB365" },
-     { ATA_JMB366, 0, 2, 2, ATA_UDMA6, "JMB366" },
-     { ATA_JMB368, 0, 0, 1, ATA_UDMA6, "JMB368" },
-     { ATA_JMB368_2, 0, 0, 1, ATA_UDMA6, "JMB368" },
-     { 0, 0, 0, 0, 0, 0}};
-    char buffer[64];
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
+	const struct ata_chip_id *idx;
+	static const struct ata_chip_id ids[] = { { ATA_JMB360, 0, 1, 0,
+						      ATA_SA300, "JMB360" },
+		{ ATA_JMB361, 0, 1, 1, ATA_UDMA6, "JMB361" },
+		{ ATA_JMB362, 0, 2, 0, ATA_SA300, "JMB362" },
+		{ ATA_JMB363, 0, 2, 1, ATA_UDMA6, "JMB363" },
+		{ ATA_JMB365, 0, 1, 2, ATA_UDMA6, "JMB365" },
+		{ ATA_JMB366, 0, 2, 2, ATA_UDMA6, "JMB366" },
+		{ ATA_JMB368, 0, 0, 1, ATA_UDMA6, "JMB368" },
+		{ ATA_JMB368_2, 0, 0, 1, ATA_UDMA6, "JMB368" },
+		{ 0, 0, 0, 0, 0, 0 } };
+	char buffer[64];
 
-    if (pci_get_vendor(dev) != ATA_JMICRON_ID)
-	return ENXIO;
+	if (pci_get_vendor(dev) != ATA_JMICRON_ID)
+		return ENXIO;
 
-    if (!(idx = ata_match_chip(dev, ids)))
-        return ENXIO;
+	if (!(idx = ata_match_chip(dev, ids)))
+		return ENXIO;
 
-    sprintf(buffer, "JMicron %s %s controller",
-	idx->text, ata_mode2str(idx->max_dma));
-    device_set_desc_copy(dev, buffer);
-    ctlr->chip = idx;
-    ctlr->chipinit = ata_jmicron_chipinit;
-    return (BUS_PROBE_LOW_PRIORITY);
+	sprintf(buffer, "JMicron %s %s controller", idx->text,
+	    ata_mode2str(idx->max_dma));
+	device_set_desc_copy(dev, buffer);
+	ctlr->chip = idx;
+	ctlr->chipinit = ata_jmicron_chipinit;
+	return (BUS_PROBE_LOW_PRIORITY);
 }
 
 static int
 ata_jmicron_chipinit(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
-    device_t child;
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
+	device_t child;
 
-    if (ata_setup_interrupt(dev, ata_generic_intr))
-	return ENXIO;
+	if (ata_setup_interrupt(dev, ata_generic_intr))
+		return ENXIO;
 
-    /* do we have multiple PCI functions ? */
-    if (pci_read_config(dev, 0xdf, 1) & 0x40) {
-	/* If this was not claimed by AHCI, then we are on the PATA part */
-	ctlr->ch_attach = ata_jmicron_ch_attach;
-	ctlr->ch_detach = ata_pci_ch_detach;
-	ctlr->reset = ata_generic_reset;
-	ctlr->setmode = ata_jmicron_setmode;
-	ctlr->channels = ctlr->chip->cfg2;
-    }
-    else {
-	/* set controller configuration to a combined setup we support */
-	pci_write_config(dev, 0x40, 0x80c0a131, 4);
-	pci_write_config(dev, 0x80, 0x01200000, 4);
-	/* Create AHCI subdevice if AHCI part present. */
-	if (ctlr->chip->cfg1) {
-	    	child = device_add_child(dev, NULL, -1);
-		if (child != NULL) {
-		    device_set_ivars(child, (void *)(intptr_t)-1);
-		    bus_generic_attach(dev);
+	/* do we have multiple PCI functions ? */
+	if (pci_read_config(dev, 0xdf, 1) & 0x40) {
+		/* If this was not claimed by AHCI, then we are on the PATA part
+		 */
+		ctlr->ch_attach = ata_jmicron_ch_attach;
+		ctlr->ch_detach = ata_pci_ch_detach;
+		ctlr->reset = ata_generic_reset;
+		ctlr->setmode = ata_jmicron_setmode;
+		ctlr->channels = ctlr->chip->cfg2;
+	} else {
+		/* set controller configuration to a combined setup we support
+		 */
+		pci_write_config(dev, 0x40, 0x80c0a131, 4);
+		pci_write_config(dev, 0x80, 0x01200000, 4);
+		/* Create AHCI subdevice if AHCI part present. */
+		if (ctlr->chip->cfg1) {
+			child = device_add_child(dev, NULL, -1);
+			if (child != NULL) {
+				device_set_ivars(child, (void *)(intptr_t)-1);
+				bus_generic_attach(dev);
+			}
 		}
+		ctlr->ch_attach = ata_jmicron_ch_attach;
+		ctlr->ch_detach = ata_pci_ch_detach;
+		ctlr->reset = ata_generic_reset;
+		ctlr->setmode = ata_jmicron_setmode;
+		ctlr->channels = ctlr->chip->cfg2;
 	}
-	ctlr->ch_attach = ata_jmicron_ch_attach;
-	ctlr->ch_detach = ata_pci_ch_detach;
-	ctlr->reset = ata_generic_reset;
-	ctlr->setmode = ata_jmicron_setmode;
-	ctlr->channels = ctlr->chip->cfg2;
-    }
-    return 0;
+	return 0;
 }
 
 static int

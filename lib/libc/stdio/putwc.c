@@ -31,12 +31,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
 #include <wchar.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 #undef putwc

@@ -30,37 +30,36 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
-#include <dev/sound/pci/t4dwave.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#include <dev/sound/pci/t4dwave.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
 /* -------------------------------------------------------------------- */
 
-#define TDX_PCI_ID 	0x20001023
-#define TNX_PCI_ID 	0x20011023
-#define ALI_PCI_ID	0x545110b9
-#define SPA_PCI_ID	0x70181039
+#define TDX_PCI_ID 0x20001023
+#define TNX_PCI_ID 0x20011023
+#define ALI_PCI_ID 0x545110b9
+#define SPA_PCI_ID 0x70181039
 
-#define TR_DEFAULT_BUFSZ 	0x1000
+#define TR_DEFAULT_BUFSZ 0x1000
 /* For ALi M5451 the DMA transfer size appears to be fixed to 64k. */
-#define ALI_BUFSZ	0x10000
-#define TR_BUFALGN	0x8
-#define TR_TIMEOUT_CDC	0xffff
-#define TR_MAXHWCH	64
-#define ALI_MAXHWCH	32
-#define TR_MAXPLAYCH	4
-#define ALI_MAXPLAYCH	1
+#define ALI_BUFSZ 0x10000
+#define TR_BUFALGN 0x8
+#define TR_TIMEOUT_CDC 0xffff
+#define TR_MAXHWCH 64
+#define ALI_MAXHWCH 32
+#define TR_MAXPLAYCH 4
+#define ALI_MAXPLAYCH 1
 /*
  * Though, it's not clearly documented in the 4DWAVE datasheet, the
  * DX and NX chips can't handle DMA addresses located above 1GB as the
  * LBA (loop begin address) register which holds the DMA base address
  * is 32-bit, but the two MSBs are used for other purposes.
  */
-#define TR_MAXADDR	((1U << 30) - 1)
-#define ALI_MAXADDR	((1U << 31) - 1)
+#define TR_MAXADDR ((1U << 30) - 1)
+#define ALI_MAXADDR ((1U << 31) - 1)
 
 struct tr_info;
 
@@ -71,7 +70,7 @@ struct tr_chinfo {
 	u_int32_t eso, delta;
 	u_int32_t rvol, cvol;
 	u_int32_t gvsel, pan, vol, ctrl;
-	u_int32_t active:1, was_active:1;
+	u_int32_t active : 1, was_active : 1;
 	int index, bufhalf;
 	struct snd_dbuf *buffer;
 	struct pcm_channel *channel;
@@ -80,7 +79,7 @@ struct tr_chinfo {
 
 struct tr_rchinfo {
 	u_int32_t delta;
-	u_int32_t active:1, was_active:1;
+	u_int32_t active : 1, was_active : 1;
 	struct snd_dbuf *buffer;
 	struct pcm_channel *channel;
 	struct tr_info *parent;
@@ -111,31 +110,19 @@ struct tr_info {
 
 /* -------------------------------------------------------------------- */
 
-static u_int32_t tr_recfmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S8, 1, 0),
-	SND_FORMAT(AFMT_S8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	SND_FORMAT(AFMT_U16_LE, 1, 0),
-	SND_FORMAT(AFMT_U16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps tr_reccaps = {4000, 48000, tr_recfmt, 0};
+static u_int32_t tr_recfmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S8, 1, 0),
+	SND_FORMAT(AFMT_S8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), SND_FORMAT(AFMT_U16_LE, 1, 0),
+	SND_FORMAT(AFMT_U16_LE, 2, 0), 0 };
+static struct pcmchan_caps tr_reccaps = { 4000, 48000, tr_recfmt, 0 };
 
-static u_int32_t tr_playfmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S8, 1, 0),
-	SND_FORMAT(AFMT_S8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	SND_FORMAT(AFMT_U16_LE, 1, 0),
-	SND_FORMAT(AFMT_U16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps tr_playcaps = {4000, 48000, tr_playfmt, 0};
+static u_int32_t tr_playfmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S8, 1, 0),
+	SND_FORMAT(AFMT_S8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), SND_FORMAT(AFMT_U16_LE, 1, 0),
+	SND_FORMAT(AFMT_U16_LE, 2, 0), 0 };
+static struct pcmchan_caps tr_playcaps = { 4000, 48000, tr_playfmt, 0 };
 
 /* -------------------------------------------------------------------- */
 
@@ -144,7 +131,7 @@ static struct pcmchan_caps tr_playcaps = {4000, 48000, tr_playfmt, 0};
 static u_int32_t
 tr_rd(struct tr_info *tr, int regno, int size)
 {
-	switch(size) {
+	switch (size) {
 	case 1:
 		return bus_space_read_1(tr->st, tr->sh, regno);
 	case 2:
@@ -159,7 +146,7 @@ tr_rd(struct tr_info *tr, int regno, int size)
 static void
 tr_wr(struct tr_info *tr, int regno, u_int32_t data, int size)
 {
-	switch(size) {
+	switch (size) {
 	case 1:
 		bus_space_write_1(tr->st, tr->sh, regno, data);
 		break;
@@ -183,23 +170,23 @@ tr_rdcd(kobj_t obj, void *devinfo, int regno)
 
 	switch (tr->type) {
 	case SPA_PCI_ID:
-		treg=SPA_REG_CODECRD;
-		trw=SPA_CDC_RWSTAT;
+		treg = SPA_REG_CODECRD;
+		trw = SPA_CDC_RWSTAT;
 		break;
 	case ALI_PCI_ID:
 		if (tr->rev > 0x01)
-		  treg=TDX_REG_CODECWR;
+			treg = TDX_REG_CODECWR;
 		else
-		  treg=TDX_REG_CODECRD;
-		trw=TDX_CDC_RWSTAT;
+			treg = TDX_REG_CODECRD;
+		trw = TDX_CDC_RWSTAT;
 		break;
 	case TDX_PCI_ID:
-		treg=TDX_REG_CODECRD;
-		trw=TDX_CDC_RWSTAT;
+		treg = TDX_REG_CODECRD;
+		trw = TDX_CDC_RWSTAT;
 		break;
 	case TNX_PCI_ID:
-		treg=(regno & 0x100)? TNX_REG_CODEC2RD : TNX_REG_CODEC1RD;
-		trw=TNX_CDC_RWSTAT;
+		treg = (regno & 0x100) ? TNX_REG_CODEC2RD : TNX_REG_CODEC1RD;
+		trw = TNX_CDC_RWSTAT;
 		break;
 	default:
 		printf("!!! tr_rdcd defaulted !!!\n");
@@ -218,19 +205,19 @@ tr_rdcd(kobj_t obj, void *devinfo, int regno)
 		if (i > 0) {
 			chk1 = tr_rd(tr, 0xc8, 4);
 			chk2 = tr_rd(tr, 0xc8, 4);
-			for (i = TR_TIMEOUT_CDC; (i > 0) && (chk1 == chk2);
-					i--)
+			for (i = TR_TIMEOUT_CDC; (i > 0) && (chk1 == chk2); i--)
 				chk2 = tr_rd(tr, 0xc8, 4);
 		}
 	}
 	if (tr->type != ALI_PCI_ID || i > 0) {
 		tr_wr(tr, treg, regno | trw, 4);
-		j=trw;
-		for (i=TR_TIMEOUT_CDC; (i > 0) && (j & trw); i--)
-		       	j=tr_rd(tr, treg, 4);
+		j = trw;
+		for (i = TR_TIMEOUT_CDC; (i > 0) && (j & trw); i--)
+			j = tr_rd(tr, treg, 4);
 	}
 	snd_mtxunlock(tr->lock);
-	if (i == 0) printf("codec timeout during read of register %x\n", regno);
+	if (i == 0)
+		printf("codec timeout during read of register %x\n", regno);
 	return (j >> TR_CDC_DATA) & 0xffff;
 }
 
@@ -242,17 +229,17 @@ tr_wrcd(kobj_t obj, void *devinfo, int regno, u_int32_t data)
 
 	switch (tr->type) {
 	case SPA_PCI_ID:
-		treg=SPA_REG_CODECWR;
-		trw=SPA_CDC_RWSTAT;
+		treg = SPA_REG_CODECWR;
+		trw = SPA_CDC_RWSTAT;
 		break;
 	case ALI_PCI_ID:
 	case TDX_PCI_ID:
-		treg=TDX_REG_CODECWR;
-		trw=TDX_CDC_RWSTAT;
+		treg = TDX_REG_CODECWR;
+		trw = TDX_CDC_RWSTAT;
 		break;
 	case TNX_PCI_ID:
-		treg=TNX_REG_CODECWR;
-		trw=TNX_CDC_RWSTAT | ((regno & 0x100)? TNX_CDC_SEC : 0);
+		treg = TNX_REG_CODECWR;
+		trw = TNX_CDC_RWSTAT | ((regno & 0x100) ? TNX_CDC_SEC : 0);
 		break;
 	default:
 		printf("!!! tr_wrcd defaulted !!!");
@@ -265,7 +252,7 @@ tr_wrcd(kobj_t obj, void *devinfo, int regno, u_int32_t data)
 #if 0
 	printf("tr_wrcd: reg %x was %x", regno, tr_rdcd(devinfo, regno));
 #endif
-	j=trw;
+	j = trw;
 	snd_mtxlock(tr->lock);
 	if (tr->type == ALI_PCI_ID) {
 		j = trw;
@@ -275,31 +262,28 @@ tr_wrcd(kobj_t obj, void *devinfo, int regno, u_int32_t data)
 			u_int32_t chk1, chk2;
 			chk1 = tr_rd(tr, 0xc8, 4);
 			chk2 = tr_rd(tr, 0xc8, 4);
-			for (i = TR_TIMEOUT_CDC; (i > 0) && (chk1 == chk2);
-					i--)
+			for (i = TR_TIMEOUT_CDC; (i > 0) && (chk1 == chk2); i--)
 				chk2 = tr_rd(tr, 0xc8, 4);
 		}
 	}
 	if (tr->type != ALI_PCI_ID || i > 0) {
-		for (i=TR_TIMEOUT_CDC; (i>0) && (j & trw); i--)
-			j=tr_rd(tr, treg, 4);
+		for (i = TR_TIMEOUT_CDC; (i > 0) && (j & trw); i--)
+			j = tr_rd(tr, treg, 4);
 		if (tr->type == ALI_PCI_ID && tr->rev > 0x01)
-		      	trw |= 0x0100;
+			trw |= 0x0100;
 		tr_wr(tr, treg, (data << TR_CDC_DATA) | regno | trw, 4);
 	}
 #if 0
 	printf(" - wrote %x, now %x\n", data, tr_rdcd(devinfo, regno));
 #endif
 	snd_mtxunlock(tr->lock);
-	if (i==0) printf("codec timeout writing %x, data %x\n", regno, data);
-	return (i > 0)? 0 : -1;
+	if (i == 0)
+		printf("codec timeout writing %x, data %x\n", regno, data);
+	return (i > 0) ? 0 : -1;
 }
 
-static kobj_method_t tr_ac97_methods[] = {
-    	KOBJMETHOD(ac97_read,		tr_rdcd),
-    	KOBJMETHOD(ac97_write,		tr_wrcd),
-	KOBJMETHOD_END
-};
+static kobj_method_t tr_ac97_methods[] = { KOBJMETHOD(ac97_read, tr_rdcd),
+	KOBJMETHOD(ac97_write, tr_wrcd), KOBJMETHOD_END };
 AC97_DECLARE(tr_ac97);
 
 /* -------------------------------------------------------------------- */
@@ -326,24 +310,24 @@ tr_clrint(struct tr_chinfo *ch)
 
 	bank = (ch->index & 0x20) ? 1 : 0;
 	chan = ch->index & 0x1f;
-	tr_wr(tr, bank? TR_REG_ADDRINTB : TR_REG_ADDRINTA, 1 << chan, 4);
+	tr_wr(tr, bank ? TR_REG_ADDRINTB : TR_REG_ADDRINTA, 1 << chan, 4);
 }
 
 static void
 tr_enaint(struct tr_chinfo *ch, int enable)
 {
 	struct tr_info *tr = ch->parent;
-       	u_int32_t i, reg;
+	u_int32_t i, reg;
 	int bank, chan;
 
 	snd_mtxlock(tr->lock);
 	bank = (ch->index & 0x20) ? 1 : 0;
 	chan = ch->index & 0x1f;
-	reg = bank? TR_REG_INTENB : TR_REG_INTENA;
+	reg = bank ? TR_REG_INTENB : TR_REG_INTENA;
 
 	i = tr_rd(tr, reg, 4);
 	i &= ~(1 << chan);
-	i |= (enable? 1 : 0) << chan;
+	i |= (enable ? 1 : 0) << chan;
 
 	tr_clrint(ch);
 	tr_wr(tr, reg, i, 4);
@@ -372,7 +356,7 @@ tr_startch(struct tr_chinfo *ch)
 
 	bank = (ch->index & 0x20) ? 1 : 0;
 	chan = ch->index & 0x1f;
-	tr_wr(tr, bank? TR_REG_STARTB : TR_REG_STARTA, 1 << chan, 4);
+	tr_wr(tr, bank ? TR_REG_STARTB : TR_REG_STARTA, 1 << chan, 4);
 }
 
 static void
@@ -383,7 +367,7 @@ tr_stopch(struct tr_chinfo *ch)
 
 	bank = (ch->index & 0x20) ? 1 : 0;
 	chan = ch->index & 0x1f;
-	tr_wr(tr, bank? TR_REG_STOPB : TR_REG_STOPA, 1 << chan, 4);
+	tr_wr(tr, bank ? TR_REG_STOPB : TR_REG_STOPA, 1 << chan, 4);
 }
 
 static void
@@ -392,25 +376,26 @@ tr_wrch(struct tr_chinfo *ch)
 	struct tr_info *tr = ch->parent;
 	u_int32_t cr[TR_CHN_REGS], i;
 
-	ch->gvsel 	&= 0x00000001;
-	ch->fmc		&= 0x00000003;
-	ch->fms		&= 0x0000000f;
-	ch->ctrl	&= 0x0000000f;
-	ch->pan 	&= 0x0000007f;
-	ch->rvol	&= 0x0000007f;
-	ch->cvol 	&= 0x0000007f;
-	ch->vol		&= 0x000000ff;
-	ch->ec		&= 0x00000fff;
-	ch->alpha	&= 0x00000fff;
-	ch->delta	&= 0x0000ffff;
+	ch->gvsel &= 0x00000001;
+	ch->fmc &= 0x00000003;
+	ch->fms &= 0x0000000f;
+	ch->ctrl &= 0x0000000f;
+	ch->pan &= 0x0000007f;
+	ch->rvol &= 0x0000007f;
+	ch->cvol &= 0x0000007f;
+	ch->vol &= 0x000000ff;
+	ch->ec &= 0x00000fff;
+	ch->alpha &= 0x00000fff;
+	ch->delta &= 0x0000ffff;
 	if (tr->type == ALI_PCI_ID)
 		ch->lba &= ALI_MAXADDR;
 	else
 		ch->lba &= TR_MAXADDR;
 
-	cr[1]=ch->lba;
-	cr[3]=(ch->fmc<<14) | (ch->rvol<<7) | (ch->cvol);
-	cr[4]=(ch->gvsel<<31) | (ch->pan<<24) | (ch->vol<<16) | (ch->ctrl<<12) | (ch->ec);
+	cr[1] = ch->lba;
+	cr[3] = (ch->fmc << 14) | (ch->rvol << 7) | (ch->cvol);
+	cr[4] = (ch->gvsel << 31) | (ch->pan << 24) | (ch->vol << 16) |
+	    (ch->ctrl << 12) | (ch->ec);
 
 	switch (tr->type) {
 	case SPA_PCI_ID:
@@ -418,21 +403,21 @@ tr_wrch(struct tr_chinfo *ch)
 	case TDX_PCI_ID:
 		ch->cso &= 0x0000ffff;
 		ch->eso &= 0x0000ffff;
-		cr[0]=(ch->cso<<16) | (ch->alpha<<4) | (ch->fms);
-		cr[2]=(ch->eso<<16) | (ch->delta);
+		cr[0] = (ch->cso << 16) | (ch->alpha << 4) | (ch->fms);
+		cr[2] = (ch->eso << 16) | (ch->delta);
 		break;
 	case TNX_PCI_ID:
 		ch->cso &= 0x00ffffff;
 		ch->eso &= 0x00ffffff;
-		cr[0]=((ch->delta & 0xff)<<24) | (ch->cso);
-		cr[2]=((ch->delta>>8)<<24) | (ch->eso);
-		cr[3]|=(ch->alpha<<20) | (ch->fms<<16) | (ch->fmc<<14);
+		cr[0] = ((ch->delta & 0xff) << 24) | (ch->cso);
+		cr[2] = ((ch->delta >> 8) << 24) | (ch->eso);
+		cr[3] |= (ch->alpha << 20) | (ch->fms << 16) | (ch->fmc << 14);
 		break;
 	}
 	snd_mtxlock(tr->lock);
 	tr_selch(ch);
-	for (i=0; i<TR_CHN_REGS; i++)
-		tr_wr(tr, TR_REG_CHNBASE+(i<<2), cr[i], 4);
+	for (i = 0; i < TR_CHN_REGS; i++)
+		tr_wr(tr, TR_REG_CHNBASE + (i << 2), cr[i], 4);
 	snd_mtxunlock(tr->lock);
 }
 
@@ -444,38 +429,39 @@ tr_rdch(struct tr_chinfo *ch)
 
 	snd_mtxlock(tr->lock);
 	tr_selch(ch);
-	for (i=0; i<5; i++)
-		cr[i]=tr_rd(tr, TR_REG_CHNBASE+(i<<2), 4);
+	for (i = 0; i < 5; i++)
+		cr[i] = tr_rd(tr, TR_REG_CHNBASE + (i << 2), 4);
 	snd_mtxunlock(tr->lock);
 
 	if (tr->type == ALI_PCI_ID)
-		ch->lba=(cr[1] & ALI_MAXADDR);
+		ch->lba = (cr[1] & ALI_MAXADDR);
 	else
-		ch->lba=(cr[1] & TR_MAXADDR);
-	ch->fmc=	(cr[3] & 0x0000c000) >> 14;
-	ch->rvol=	(cr[3] & 0x00003f80) >> 7;
-	ch->cvol=	(cr[3] & 0x0000007f);
-	ch->gvsel=	(cr[4] & 0x80000000) >> 31;
-	ch->pan=	(cr[4] & 0x7f000000) >> 24;
-	ch->vol=	(cr[4] & 0x00ff0000) >> 16;
-	ch->ctrl=	(cr[4] & 0x0000f000) >> 12;
-	ch->ec=		(cr[4] & 0x00000fff);
-	switch(tr->type) {
+		ch->lba = (cr[1] & TR_MAXADDR);
+	ch->fmc = (cr[3] & 0x0000c000) >> 14;
+	ch->rvol = (cr[3] & 0x00003f80) >> 7;
+	ch->cvol = (cr[3] & 0x0000007f);
+	ch->gvsel = (cr[4] & 0x80000000) >> 31;
+	ch->pan = (cr[4] & 0x7f000000) >> 24;
+	ch->vol = (cr[4] & 0x00ff0000) >> 16;
+	ch->ctrl = (cr[4] & 0x0000f000) >> 12;
+	ch->ec = (cr[4] & 0x00000fff);
+	switch (tr->type) {
 	case SPA_PCI_ID:
 	case ALI_PCI_ID:
 	case TDX_PCI_ID:
-		ch->cso=	(cr[0] & 0xffff0000) >> 16;
-		ch->alpha=	(cr[0] & 0x0000fff0) >> 4;
-		ch->fms=	(cr[0] & 0x0000000f);
-		ch->eso=	(cr[2] & 0xffff0000) >> 16;
-		ch->delta=	(cr[2] & 0x0000ffff);
+		ch->cso = (cr[0] & 0xffff0000) >> 16;
+		ch->alpha = (cr[0] & 0x0000fff0) >> 4;
+		ch->fms = (cr[0] & 0x0000000f);
+		ch->eso = (cr[2] & 0xffff0000) >> 16;
+		ch->delta = (cr[2] & 0x0000ffff);
 		break;
 	case TNX_PCI_ID:
-		ch->cso=	(cr[0] & 0x00ffffff);
-		ch->eso=	(cr[2] & 0x00ffffff);
-		ch->delta=	((cr[2] & 0xff000000) >> 16) | ((cr[0] & 0xff000000) >> 24);
-		ch->alpha=	(cr[3] & 0xfff00000) >> 20;
-		ch->fms=	(cr[3] & 0x000f0000) >> 16;
+		ch->cso = (cr[0] & 0x00ffffff);
+		ch->eso = (cr[2] & 0x00ffffff);
+		ch->delta = ((cr[2] & 0xff000000) >> 16) |
+		    ((cr[0] & 0xff000000) >> 24);
+		ch->alpha = (cr[3] & 0xfff00000) >> 20;
+		ch->fms = (cr[3] & 0x000f0000) >> 16;
 		break;
 	}
 }
@@ -486,9 +472,9 @@ tr_fmttobits(u_int32_t fmt)
 	u_int32_t bits;
 
 	bits = 0;
-	bits |= (fmt & AFMT_SIGNED)? 0x2 : 0;
-	bits |= (AFMT_CHANNEL(fmt) > 1)? 0x4 : 0;
-	bits |= (fmt & AFMT_16BIT)? 0x8 : 0;
+	bits |= (fmt & AFMT_SIGNED) ? 0x2 : 0;
+	bits |= (AFMT_CHANNEL(fmt) > 1) ? 0x4 : 0;
+	bits |= (fmt & AFMT_16BIT) ? 0x8 : 0;
 
 	return bits;
 }
@@ -497,7 +483,8 @@ tr_fmttobits(u_int32_t fmt)
 /* channel interface */
 
 static void *
-trpchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+trpchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	struct tr_info *tr = devinfo;
 	struct tr_chinfo *ch;
@@ -557,13 +544,15 @@ trpchan_trigger(kobj_t obj, void *data, int go)
 		ch->alpha = 0;
 		ch->lba = sndbuf_getbufaddr(ch->buffer);
 		ch->cso = 0;
-		ch->eso = (sndbuf_getsize(ch->buffer) / sndbuf_getalign(ch->buffer)) - 1;
+		ch->eso = (sndbuf_getsize(ch->buffer) /
+			      sndbuf_getalign(ch->buffer)) -
+		    1;
 		ch->rvol = ch->cvol = 0x7f;
 		ch->gvsel = 0;
 		ch->pan = 0;
 		ch->vol = 0;
 		ch->bufhalf = 0;
-   		tr_wrch(ch);
+		tr_wrch(ch);
 		tr_enaint(ch, 1);
 		tr_startch(ch);
 		ch->active = 1;
@@ -590,23 +579,22 @@ trpchan_getcaps(kobj_t obj, void *data)
 	return &tr_playcaps;
 }
 
-static kobj_method_t trpchan_methods[] = {
-    	KOBJMETHOD(channel_init,		trpchan_init),
-    	KOBJMETHOD(channel_setformat,		trpchan_setformat),
-    	KOBJMETHOD(channel_setspeed,		trpchan_setspeed),
-    	KOBJMETHOD(channel_setblocksize,	trpchan_setblocksize),
-    	KOBJMETHOD(channel_trigger,		trpchan_trigger),
-    	KOBJMETHOD(channel_getptr,		trpchan_getptr),
-    	KOBJMETHOD(channel_getcaps,		trpchan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t trpchan_methods[] = { KOBJMETHOD(channel_init,
+					       trpchan_init),
+	KOBJMETHOD(channel_setformat, trpchan_setformat),
+	KOBJMETHOD(channel_setspeed, trpchan_setspeed),
+	KOBJMETHOD(channel_setblocksize, trpchan_setblocksize),
+	KOBJMETHOD(channel_trigger, trpchan_trigger),
+	KOBJMETHOD(channel_getptr, trpchan_getptr),
+	KOBJMETHOD(channel_getcaps, trpchan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(trpchan);
 
 /* -------------------------------------------------------------------- */
 /* rec channel interface */
 
 static void *
-trrchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+trrchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	struct tr_info *tr = devinfo;
 	struct tr_rchinfo *ch;
@@ -631,7 +619,7 @@ trrchan_setformat(kobj_t obj, void *data, u_int32_t format)
 
 	bits = tr_fmttobits(format);
 	/* set # of samples between interrupts */
-	i = (sndbuf_runsz(ch->buffer) >> ((bits & 0x08)? 1 : 0)) - 1;
+	i = (sndbuf_runsz(ch->buffer) >> ((bits & 0x08) ? 1 : 0)) - 1;
 	tr_wr(tr, TR_REG_SBBL, i | (i << 16), 4);
 	/* set sample format */
 	i = 0x18 | (bits << 4);
@@ -680,7 +668,7 @@ trrchan_trigger(kobj_t obj, void *data, int go)
 		i = tr_rd(tr, TR_REG_DMAR11, 1) & 0x03;
 		tr_wr(tr, TR_REG_DMAR11, i | 0x54, 1);
 		/* set up base address */
-	   	tr_wr(tr, TR_REG_DMAR0, sndbuf_getbufaddr(ch->buffer), 4);
+		tr_wr(tr, TR_REG_DMAR0, sndbuf_getbufaddr(ch->buffer), 4);
 		/* set up buffer size */
 		i = tr_rd(tr, TR_REG_DMAR4, 4) & ~0x00ffffff;
 		tr_wr(tr, TR_REG_DMAR4, i | (sndbuf_runsz(ch->buffer) - 1), 4);
@@ -699,7 +687,7 @@ trrchan_trigger(kobj_t obj, void *data, int go)
 static u_int32_t
 trrchan_getptr(kobj_t obj, void *data)
 {
- 	struct tr_rchinfo *ch = data;
+	struct tr_rchinfo *ch = data;
 	struct tr_info *tr = ch->parent;
 
 	/* return current byte offset of channel */
@@ -712,16 +700,14 @@ trrchan_getcaps(kobj_t obj, void *data)
 	return &tr_reccaps;
 }
 
-static kobj_method_t trrchan_methods[] = {
-    	KOBJMETHOD(channel_init,		trrchan_init),
-    	KOBJMETHOD(channel_setformat,		trrchan_setformat),
-    	KOBJMETHOD(channel_setspeed,		trrchan_setspeed),
-    	KOBJMETHOD(channel_setblocksize,	trrchan_setblocksize),
-    	KOBJMETHOD(channel_trigger,		trrchan_trigger),
-    	KOBJMETHOD(channel_getptr,		trrchan_getptr),
-    	KOBJMETHOD(channel_getcaps,		trrchan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t trrchan_methods[] = { KOBJMETHOD(channel_init,
+					       trrchan_init),
+	KOBJMETHOD(channel_setformat, trrchan_setformat),
+	KOBJMETHOD(channel_setspeed, trrchan_setspeed),
+	KOBJMETHOD(channel_setblocksize, trrchan_setblocksize),
+	KOBJMETHOD(channel_trigger, trrchan_trigger),
+	KOBJMETHOD(channel_getptr, trrchan_getptr),
+	KOBJMETHOD(channel_getcaps, trrchan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(trrchan);
 
 /* -------------------------------------------------------------------- */
@@ -740,18 +726,27 @@ tr_intr(void *p)
 		chnum = 0;
 		while (chnum < tr->hwchns) {
 			mask = 0x00000001;
-			active = tr_rd(tr, (chnum < 32)? TR_REG_ADDRINTA : TR_REG_ADDRINTB, 4);
-			bufhalf = tr_rd(tr, (chnum < 32)? TR_REG_CSPF_A : TR_REG_CSPF_B, 4);
+			active = tr_rd(tr,
+			    (chnum < 32) ? TR_REG_ADDRINTA : TR_REG_ADDRINTB,
+			    4);
+			bufhalf = tr_rd(tr,
+			    (chnum < 32) ? TR_REG_CSPF_A : TR_REG_CSPF_B, 4);
 			if (active) {
 				do {
 					if (active & mask) {
-						tmp = (bufhalf & mask)? 1 : 0;
+						tmp = (bufhalf & mask) ? 1 : 0;
 						if (chnum < tr->playchns) {
 							ch = &tr->chinfo[chnum];
-							/* printf("%d @ %d, ", chnum, trpchan_getptr(NULL, ch)); */
-							if (ch->bufhalf != tmp) {
-								chn_intr(ch->channel);
-								ch->bufhalf = tmp;
+							/* printf("%d @ %d, ",
+							 * chnum,
+							 * trpchan_getptr(NULL,
+							 * ch)); */
+							if (ch->bufhalf !=
+							    tmp) {
+								chn_intr(
+								    ch->channel);
+								ch->bufhalf =
+								    tmp;
 							}
 						}
 					}
@@ -761,7 +756,9 @@ tr_intr(void *p)
 			} else
 				chnum += 32;
 
-			tr_wr(tr, (chnum <= 32)? TR_REG_ADDRINTA : TR_REG_ADDRINTB, active, 4);
+			tr_wr(tr,
+			    (chnum <= 32) ? TR_REG_ADDRINTA : TR_REG_ADDRINTB,
+			    active, 4);
 		}
 	}
 	if (intsrc & TR_INT_SB) {
@@ -801,18 +798,18 @@ static int
 tr_pci_probe(device_t dev)
 {
 	switch (pci_get_devid(dev)) {
-		case SPA_PCI_ID:
-			device_set_desc(dev, "SiS 7018");
-			return BUS_PROBE_DEFAULT;
-		case ALI_PCI_ID:
-			device_set_desc(dev, "Acer Labs M5451");
-			return BUS_PROBE_DEFAULT;
-		case TDX_PCI_ID:
-			device_set_desc(dev, "Trident 4DWave DX");
-			return BUS_PROBE_DEFAULT;
-		case TNX_PCI_ID:
-			device_set_desc(dev, "Trident 4DWave NX");
-			return BUS_PROBE_DEFAULT;
+	case SPA_PCI_ID:
+		device_set_desc(dev, "SiS 7018");
+		return BUS_PROBE_DEFAULT;
+	case ALI_PCI_ID:
+		device_set_desc(dev, "Acer Labs M5451");
+		return BUS_PROBE_DEFAULT;
+	case TDX_PCI_ID:
+		device_set_desc(dev, "Trident 4DWave DX");
+		return BUS_PROBE_DEFAULT;
+	case TNX_PCI_ID:
+		device_set_desc(dev, "Trident 4DWave NX");
+		return BUS_PROBE_DEFAULT;
 	}
 
 	return ENXIO;
@@ -823,9 +820,9 @@ tr_pci_attach(device_t dev)
 {
 	struct tr_info *tr;
 	struct ac97_info *codec = NULL;
-	bus_addr_t	lowaddr;
-	int		i, dacn;
-	char 		status[SND_STATUSLEN];
+	bus_addr_t lowaddr;
+	int i, dacn;
+	char status[SND_STATUSLEN];
 
 	tr = malloc(sizeof(*tr), M_DEVBUF, M_WAITOK | M_ZERO);
 	tr->type = pci_get_devid(dev);
@@ -833,8 +830,8 @@ tr_pci_attach(device_t dev)
 	tr->lock = snd_mtxcreate(device_get_nameunit(dev), "snd_t4dwave softc");
 
 	if (resource_int_value(device_get_name(dev), device_get_unit(dev),
-	    "dac", &i) == 0) {
-	    	if (i < 1)
+		"dac", &i) == 0) {
+		if (i < 1)
 			dacn = 1;
 		else if (i > TR_MAXPLAYCH)
 			dacn = TR_MAXPLAYCH;
@@ -856,7 +853,7 @@ tr_pci_attach(device_t dev)
 	tr->regid = PCIR_BAR(0);
 	tr->regtype = SYS_RES_IOPORT;
 	tr->reg = bus_alloc_resource_any(dev, tr->regtype, &tr->regid,
-		RF_ACTIVE);
+	    RF_ACTIVE);
 	if (tr->reg) {
 		tr->st = rman_get_bustag(tr->reg);
 		tr->sh = rman_get_bushandle(tr->reg);
@@ -872,12 +869,14 @@ tr_pci_attach(device_t dev)
 	tr->playchns = 0;
 
 	codec = AC97_CREATE(dev, tr, tr_ac97);
-	if (codec == NULL) goto bad;
-	if (mixer_init(dev, ac97_getmixerclass(), codec) == -1) goto bad;
+	if (codec == NULL)
+		goto bad;
+	if (mixer_init(dev, ac97_getmixerclass(), codec) == -1)
+		goto bad;
 
 	tr->irqid = 0;
 	tr->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &tr->irqid,
-				 RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (!tr->irq || snd_setup_intr(dev, tr->irq, 0, tr_intr, tr, &tr->ih)) {
 		device_printf(dev, "unable to map interrupt\n");
 		goto bad;
@@ -904,22 +903,22 @@ tr_pci_attach(device_t dev)
 		    65536);
 	}
 
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev),
-		/*alignment*/TR_BUFALGN,
-		/*boundary*/0,
-		/*lowaddr*/lowaddr,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/tr->bufsz, /*nsegments*/1, /*maxsegz*/tr->bufsz,
-		/*flags*/0, /*lockfunc*/NULL, /*lockarg*/NULL,
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev),
+		/*alignment*/ TR_BUFALGN,
+		/*boundary*/ 0,
+		/*lowaddr*/ lowaddr,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ tr->bufsz, /*nsegments*/ 1, /*maxsegz*/ tr->bufsz,
+		/*flags*/ 0, /*lockfunc*/ NULL, /*lockarg*/ NULL,
 		&tr->parent_dmat) != 0) {
 		device_printf(dev, "unable to create dma tag\n");
 		goto bad;
 	}
 
 	snprintf(status, SND_STATUSLEN, "port 0x%jx irq %jd on %s",
-		 rman_get_start(tr->reg), rman_get_start(tr->irq),
-		 device_get_nameunit(device_get_parent(dev)));
+	    rman_get_start(tr->reg), rman_get_start(tr->irq),
+	    device_get_nameunit(device_get_parent(dev)));
 
 	if (pcm_register(dev, tr, dacn, 1))
 		goto bad;
@@ -931,12 +930,18 @@ tr_pci_attach(device_t dev)
 	return 0;
 
 bad:
-	if (codec) ac97_destroy(codec);
-	if (tr->reg) bus_release_resource(dev, tr->regtype, tr->regid, tr->reg);
-	if (tr->ih) bus_teardown_intr(dev, tr->irq, tr->ih);
-	if (tr->irq) bus_release_resource(dev, SYS_RES_IRQ, tr->irqid, tr->irq);
-	if (tr->parent_dmat) bus_dma_tag_destroy(tr->parent_dmat);
-	if (tr->lock) snd_mtxfree(tr->lock);
+	if (codec)
+		ac97_destroy(codec);
+	if (tr->reg)
+		bus_release_resource(dev, tr->regtype, tr->regid, tr->reg);
+	if (tr->ih)
+		bus_teardown_intr(dev, tr->irq, tr->ih);
+	if (tr->irq)
+		bus_release_resource(dev, SYS_RES_IRQ, tr->irqid, tr->irq);
+	if (tr->parent_dmat)
+		bus_dma_tag_destroy(tr->parent_dmat);
+	if (tr->lock)
+		snd_mtxfree(tr->lock);
 	free(tr, M_DEVBUF);
 	return ENXIO;
 }
@@ -1018,12 +1023,11 @@ tr_pci_resume(device_t dev)
 
 static device_method_t tr_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tr_pci_probe),
-	DEVMETHOD(device_attach,	tr_pci_attach),
-	DEVMETHOD(device_detach,	tr_pci_detach),
-	DEVMETHOD(device_suspend,	tr_pci_suspend),
-	DEVMETHOD(device_resume,	tr_pci_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, tr_pci_probe),
+	DEVMETHOD(device_attach, tr_pci_attach),
+	DEVMETHOD(device_detach, tr_pci_detach),
+	DEVMETHOD(device_suspend, tr_pci_suspend),
+	DEVMETHOD(device_resume, tr_pci_resume), { 0, 0 }
 };
 
 static driver_t tr_driver = {

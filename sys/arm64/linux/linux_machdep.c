@@ -39,8 +39,7 @@
 #include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_util.h>
 
-#define	LINUX_ARCH_AARCH64		0xc00000b7
-
+#define LINUX_ARCH_AARCH64 0xc00000b7
 
 int
 linux_set_upcall(struct thread *td, register_t stack)
@@ -117,7 +116,8 @@ linux_ptrace_peekuser(struct thread *td, pid_t pid, void *addr, void *data)
 {
 
 	LINUX_RATELIMIT_MSG_OPT1("PTRACE_PEEKUSER offset %ld not implemented; "
-	    "returning EINVAL", (uintptr_t)addr);
+				 "returning EINVAL",
+	    (uintptr_t)addr);
 	return (EINVAL);
 }
 
@@ -126,6 +126,7 @@ linux_ptrace_pokeuser(struct thread *td, pid_t pid, void *addr, void *data)
 {
 
 	LINUX_RATELIMIT_MSG_OPT1("PTRACE_POKEUSER offset %ld "
-	    "not implemented; returning EINVAL", (uintptr_t)addr);
+				 "not implemented; returning EINVAL",
+	    (uintptr_t)addr);
 	return (EINVAL);
 }

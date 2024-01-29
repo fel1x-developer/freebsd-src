@@ -27,10 +27,9 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 
-#include <dev/clk/clk.h>
-
 #include <dev/clk/allwinner/aw_clk.h>
 #include <dev/clk/allwinner/aw_clk_prediv_mux.h>
+#include <dev/clk/clk.h>
 
 #include "clkdev_if.h"
 
@@ -44,27 +43,24 @@
  */
 
 struct aw_clk_prediv_mux_sc {
-	uint32_t	offset;
+	uint32_t offset;
 
-	uint32_t		mux_shift;
-	uint32_t		mux_mask;
+	uint32_t mux_shift;
+	uint32_t mux_mask;
 
-	struct aw_clk_factor	div;
-	struct aw_clk_factor	prediv;
+	struct aw_clk_factor div;
+	struct aw_clk_factor prediv;
 
-	uint32_t	flags;
+	uint32_t flags;
 };
 
-#define	WRITE4(_clk, off, val)						\
+#define WRITE4(_clk, off, val) \
 	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	READ4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	MODIFY4(_clk, off, clr, set )					\
+#define READ4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define MODIFY4(_clk, off, clr, set) \
 	CLKDEV_MODIFY_4(clknode_get_device(_clk), off, clr, set)
-#define	DEVICE_LOCK(_clk)							\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int
 aw_clk_prediv_mux_init(struct clknode *clk, device_t dev)
@@ -124,9 +120,9 @@ aw_clk_prediv_mux_recalc(struct clknode *clk, uint64_t *freq)
 
 static clknode_method_t aw_prediv_mux_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		aw_clk_prediv_mux_init),
-	CLKNODEMETHOD(clknode_set_mux,		aw_clk_prediv_mux_set_mux),
-	CLKNODEMETHOD(clknode_recalc_freq,	aw_clk_prediv_mux_recalc),
+	CLKNODEMETHOD(clknode_init, aw_clk_prediv_mux_init),
+	CLKNODEMETHOD(clknode_set_mux, aw_clk_prediv_mux_set_mux),
+	CLKNODEMETHOD(clknode_recalc_freq, aw_clk_prediv_mux_recalc),
 	CLKNODEMETHOD_END
 };
 
@@ -135,12 +131,14 @@ DEFINE_CLASS_1(aw_prediv_mux_clknode, aw_prediv_mux_clknode_class,
     clknode_class);
 
 int
-aw_clk_prediv_mux_register(struct clkdom *clkdom, struct aw_clk_prediv_mux_def *clkdef)
+aw_clk_prediv_mux_register(struct clkdom *clkdom,
+    struct aw_clk_prediv_mux_def *clkdef)
 {
 	struct clknode *clk;
 	struct aw_clk_prediv_mux_sc *sc;
 
-	clk = clknode_create(clkdom, &aw_prediv_mux_clknode_class, &clkdef->clkdef);
+	clk = clknode_create(clkdom, &aw_prediv_mux_clknode_class,
+	    &clkdef->clkdef);
 	if (clk == NULL)
 		return (1);
 
@@ -155,7 +153,8 @@ aw_clk_prediv_mux_register(struct clkdom *clkdom, struct aw_clk_prediv_mux_def *
 	sc->div.mask = ((1 << clkdef->div.width) - 1) << sc->div.shift;
 	sc->div.value = clkdef->div.value;
 	sc->div.cond_shift = clkdef->div.cond_shift;
-	sc->div.cond_mask = ((1 << clkdef->div.cond_width) - 1) << sc->div.shift;
+	sc->div.cond_mask = ((1 << clkdef->div.cond_width) - 1)
+	    << sc->div.shift;
 	sc->div.cond_value = clkdef->div.cond_value;
 	sc->div.flags = clkdef->div.flags;
 
@@ -164,7 +163,8 @@ aw_clk_prediv_mux_register(struct clkdom *clkdom, struct aw_clk_prediv_mux_def *
 	sc->prediv.value = clkdef->prediv.value;
 	sc->prediv.cond_shift = clkdef->prediv.cond_shift;
 	if (clkdef->prediv.cond_width != 0)
-		sc->prediv.cond_mask = ((1 << clkdef->prediv.cond_width) - 1) << sc->prediv.shift;
+		sc->prediv.cond_mask = ((1 << clkdef->prediv.cond_width) - 1)
+		    << sc->prediv.shift;
 	else
 		sc->prediv.cond_mask = clkdef->prediv.cond_mask;
 	sc->prediv.cond_value = clkdef->prediv.cond_value;

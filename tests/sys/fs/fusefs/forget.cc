@@ -43,15 +43,15 @@ extern "C" {
 
 using namespace testing;
 
-class Forget: public FuseTest {
-public:
-void SetUp() {
-	if (geteuid() != 0)
-		GTEST_SKIP() << "Only root may use " << reclaim_mib;
+class Forget : public FuseTest {
+    public:
+	void SetUp()
+	{
+		if (geteuid() != 0)
+			GTEST_SKIP() << "Only root may use " << reclaim_mib;
 
-	FuseTest::SetUp();
-}
-
+		FuseTest::SetUp();
+	}
 };
 
 /*
@@ -68,15 +68,15 @@ TEST_F(Forget, ok)
 	ASSERT_EQ(0, sem_init(&sem, 0, 0)) << strerror(errno);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.Times(3)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	    .Times(3)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = mode;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr_valid = UINT64_MAX;
+		})));
 	expect_forget(ino, 3, &sem);
 
 	/*
@@ -106,38 +106,38 @@ TEST_F(Forget, invalidate_names)
 	uint64_t file_ino = 43;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, DNAME)
-	.Times(2)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = dir_ino;
-		out.body.entry.attr.nlink = 2;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = S_IFDIR | 0755;
+			out.body.entry.nodeid = dir_ino;
+			out.body.entry.attr.nlink = 2;
+			out.body.entry.attr_valid = UINT64_MAX;
+			out.body.entry.entry_valid = UINT64_MAX;
+		})));
 
-	/* 
+	/*
 	 * Even though we don't reclaim FNAME and its entry is cacheable, we
 	 * should get two lookups because the reclaim of DNAME will invalidate
 	 * the cached FNAME entry.
 	 */
 	EXPECT_LOOKUP(dir_ino, FNAME)
-	.Times(2)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = file_ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = S_IFREG | 0644;
+			out.body.entry.nodeid = file_ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr_valid = UINT64_MAX;
+			out.body.entry.entry_valid = UINT64_MAX;
+		})));
 	expect_forget(dir_ino, 1);
 
 	/* Access the file to cache its name */
 	ASSERT_EQ(0, access(FULLFPATH, F_OK)) << strerror(errno);
-	
+
 	/* Reclaim the directory, invalidating its children from namecache */
 	reclaim_vnode(FULLDPATH);
 
@@ -157,15 +157,15 @@ TEST_F(Forget, root)
 	mode_t mode = S_IFREG | 0755;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = mode;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr_valid = UINT64_MAX;
+			out.body.entry.entry_valid = UINT64_MAX;
+		})));
 
 	/* access(2) the file to force a lookup. */
 	ASSERT_EQ(0, access(FULLPATH, F_OK)) << strerror(errno);

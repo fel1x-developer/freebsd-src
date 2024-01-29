@@ -75,22 +75,17 @@ extern "C" {
  * Macro to read the transport layer register associated with this phy
  * object.
  */
-#define scu_transport_layer_read(phy, reg) \
-   scu_register_read( \
-      scic_sds_phy_get_controller(phy), \
-      (phy)->transport_layer_registers->reg \
-   )
+#define scu_transport_layer_read(phy, reg)                  \
+	scu_register_read(scic_sds_phy_get_controller(phy), \
+	    (phy)->transport_layer_registers->reg)
 
 /**
  * Macro to write the transport layer register associated with this phy
  * object.
  */
-#define scu_transport_layer_write(phy, reg, value) \
-   scu_register_write( \
-      scic_sds_phy_get_controller(phy), \
-      (phy)->transport_layer_registers->reg, \
-      (value) \
-   )
+#define scu_transport_layer_write(phy, reg, value)           \
+	scu_register_write(scic_sds_phy_get_controller(phy), \
+	    (phy)->transport_layer_registers->reg, (value))
 
 //****************************************************************************
 //* Transport Layer registers controlled by the phy object
@@ -99,38 +94,35 @@ extern "C" {
 /**
  * This macro reads the Transport layer control register
  */
-#define SCU_TLCR_READ(phy) \
-   scu_transport_layer_read(phy, control)
+#define SCU_TLCR_READ(phy) scu_transport_layer_read(phy, control)
 
 /**
  * This macro writes the Transport layer control register
  */
 #define SCU_TLCR_WRITE(phy, value) \
-   scu_transport_layer_write(phy, control, value)
+	scu_transport_layer_write(phy, control, value)
 
 /**
  * This macro reads the Transport layer address translation register
  */
-#define SCU_TLADTR_READ(phy) \
-   scu_transport_layer_read(phy, address_translation)
+#define SCU_TLADTR_READ(phy) scu_transport_layer_read(phy, address_translation)
 
 /**
  * This macro writes the Transport layer address translation register
  */
 #define SCU_TLADTR_WRITE(phy) \
-   scu_transport_layer_write(phy, address_translation, value)
+	scu_transport_layer_write(phy, address_translation, value)
 
 /**
  * This macro writes the STP Transport Layer Direct Attached RNi register.
  */
 #define SCU_STPTLDARNI_WRITE(phy, index) \
-   scu_transport_layer_write(phy, stp_rni, index)
+	scu_transport_layer_write(phy, stp_rni, index)
 
 /**
  * This macro reads the STP Transport Layer Direct Attached RNi register.
  */
-#define SCU_STPTLDARNI_READ(phy) \
-   scu_transport_layer_read(phy, stp_rni)
+#define SCU_STPTLDARNI_READ(phy) scu_transport_layer_read(phy, stp_rni)
 
 //*****************************************************************************
 //* SCU LINK LAYER REGISTER OPERATIONS
@@ -140,22 +132,17 @@ extern "C" {
  * THis macro requests the SCU register write for the specified link layer
  * register.
  */
-#define scu_link_layer_register_read(phy, reg) \
-   scu_register_read( \
-      scic_sds_phy_get_controller(phy), \
-      (phy)->link_layer_registers->reg \
-   )
+#define scu_link_layer_register_read(phy, reg)              \
+	scu_register_read(scic_sds_phy_get_controller(phy), \
+	    (phy)->link_layer_registers->reg)
 
 /**
  * This macro requests the SCU register read for the specified link layer
  * register.
  */
-#define scu_link_layer_register_write(phy, reg, value) \
-   scu_register_write( \
-      scic_sds_phy_get_controller(phy), \
-      (phy)->link_layer_registers->reg, \
-      (value) \
-   )
+#define scu_link_layer_register_write(phy, reg, value)       \
+	scu_register_write(scic_sds_phy_get_controller(phy), \
+	    (phy)->link_layer_registers->reg, (value))
 
 //*****************************************************************************
 //* SCU LINK LAYER REGISTERS
@@ -163,105 +150,107 @@ extern "C" {
 
 /// This macro reads from the SAS Identify Frame PHY Identifier register
 #define SCU_SAS_TIPID_READ(phy) \
-    scu_link_layer_register_read(phy, identify_frame_phy_id)
+	scu_link_layer_register_read(phy, identify_frame_phy_id)
 
 /// This macro writes to the SAS Identify Frame PHY Identifier register
 #define SCU_SAS_TIPID_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, identify_frame_phy_id, value)
+	scu_link_layer_register_write(phy, identify_frame_phy_id, value)
 
 /// This macro reads from the SAS Identification register
 #define SCU_SAS_TIID_READ(phy) \
-    scu_link_layer_register_read(phy, transmit_identification)
+	scu_link_layer_register_read(phy, transmit_identification)
 
 /// This macro writes to the SAS Identification register
 #define SCU_SAS_TIID_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, transmit_identification, value)
+	scu_link_layer_register_write(phy, transmit_identification, value)
 
 /// This macro reads the SAS Device Name High register
 #define SCU_SAS_TIDNH_READ(phy) \
-    scu_link_layer_register_read(phy, sas_device_name_high)
+	scu_link_layer_register_read(phy, sas_device_name_high)
 
 /// This macro writes the SAS Device Name High register
 #define SCU_SAS_TIDNH_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, sas_device_name_high, value)
+	scu_link_layer_register_write(phy, sas_device_name_high, value)
 
 /// This macro reads the SAS Device Name Low register
 #define SCU_SAS_TIDNL_READ(phy) \
-    scu_link_layer_register_read(phy, sas_device_name_low)
+	scu_link_layer_register_read(phy, sas_device_name_low)
 
 /// This macro writes the SAS Device Name Low register
 #define SCU_SAS_TIDNL_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, sas_device_name_low, value)
+	scu_link_layer_register_write(phy, sas_device_name_low, value)
 
 /// This macro reads the Source SAS Address High register
 #define SCU_SAS_TISSAH_READ(phy) \
-    scu_link_layer_register_read(phy, source_sas_address_high)
+	scu_link_layer_register_read(phy, source_sas_address_high)
 
 /// This macro writes the Source SAS Address High register
 #define SCU_SAS_TISSAH_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, source_sas_address_high, value)
+	scu_link_layer_register_write(phy, source_sas_address_high, value)
 
 /// This macro reads the Source SAS Address Low register
 #define SCU_SAS_TISSAL_READ(phy) \
-    scu_link_layer_register_read(phy, source_sas_address_low)
+	scu_link_layer_register_read(phy, source_sas_address_low)
 
 /// This macro writes the Source SAS Address Low register
 #define SCU_SAS_TISSAL_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, source_sas_address_low, value)
+	scu_link_layer_register_write(phy, source_sas_address_low, value)
 
 /// This macro reads the PHY Configuration register
 #define SCU_SAS_PCFG_READ(phy) \
-    scu_link_layer_register_read(phy, phy_configuration);
+	scu_link_layer_register_read(phy, phy_configuration);
 
 /// This macro writes the PHY Configuration register
 #define SCU_SAS_PCFG_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, phy_configuration, value)
+	scu_link_layer_register_write(phy, phy_configuration, value)
 
 /// This macro reads the PHY Enable Spinup register
 #define SCU_SAS_ENSPINUP_READ(phy) \
-    scu_link_layer_register_read(phy, notify_enable_spinup_control)
+	scu_link_layer_register_read(phy, notify_enable_spinup_control)
 
 /// This macro writes the PHY Enable Spinup register
 #define SCU_SAS_ENSPINUP_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, notify_enable_spinup_control, value)
+	scu_link_layer_register_write(phy, notify_enable_spinup_control, value)
 
 /// This macro reads the CLKSM register
 #define SCU_SAS_CLKSM_READ(phy) \
-    scu_link_layer_register_read(phy, clock_skew_management)
+	scu_link_layer_register_read(phy, clock_skew_management)
 
 /// This macro writes the CLKSM register
 #define SCU_SAS_CLKSM_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, clock_skew_management, value)
+	scu_link_layer_register_write(phy, clock_skew_management, value)
 
 /// This macro reads the PHY Capacity register
 #define SCU_SAS_PHYCAP_READ(phy) \
-    scu_link_layer_register_read(phy, phy_capabilities)
+	scu_link_layer_register_read(phy, phy_capabilities)
 
 /// This macro writes the PHY Capacity register
 #define SCU_SAS_PHYCAP_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, phy_capabilities, value)
+	scu_link_layer_register_write(phy, phy_capabilities, value)
 
 /// This macro reads the Received PHY Capacity register
 #define SCU_SAS_RECPHYCAP_READ(phy) \
-    scu_link_layer_register_read(phy, receive_phycap)
+	scu_link_layer_register_read(phy, receive_phycap)
 
 /// This macro reads the link layer control register
 #define SCU_SAS_LLCTL_READ(phy) \
-    scu_link_layer_register_read(phy, link_layer_control);
+	scu_link_layer_register_read(phy, link_layer_control);
 
 /// This macro writes the link layer control register
 #define SCU_SAS_LLCTL_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, link_layer_control, value);
+	scu_link_layer_register_write(phy, link_layer_control, value);
 
 /// This macro reads the link layer status register
 #define SCU_SAS_LLSTA_READ(phy) \
-    scu_link_layer_register_read(phy, link_layer_status);
+	scu_link_layer_register_read(phy, link_layer_status);
 
-#define SCU_SAS_ECENCR_READ(phy) \
-    scu_link_layer_register_read(phy, error_counter_event_notification_control)
+#define SCU_SAS_ECENCR_READ(phy)          \
+	scu_link_layer_register_read(phy, \
+	    error_counter_event_notification_control)
 
-#define SCU_SAS_ECENCR_WRITE(phy, value) \
-    scu_link_layer_register_write(phy, error_counter_event_notification_control, value)
+#define SCU_SAS_ECENCR_WRITE(phy, value)   \
+	scu_link_layer_register_write(phy, \
+	    error_counter_event_notification_control, value)
 
 #ifdef __cplusplus
 }

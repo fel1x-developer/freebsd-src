@@ -48,17 +48,17 @@
 
 #include "platform_if.h"
 
-#define	WDTLOAD		0x000
-#define	LOAD_MIN	0x00000001
-#define	LOAD_MAX	0xFFFFFFFF
-#define	WDTVALUE	0x004
-#define	WDTCONTROL	0x008
+#define WDTLOAD 0x000
+#define LOAD_MIN 0x00000001
+#define LOAD_MAX 0xFFFFFFFF
+#define WDTVALUE 0x004
+#define WDTCONTROL 0x008
 /* control register masks */
-#define	INT_ENABLE	(1 << 0)
-#define	RESET_ENABLE	(1 << 1)
-#define	WDTLOCK		0xC00
-#define	UNLOCK		0x1ACCE551
-#define	LOCK		0x00000001
+#define INT_ENABLE (1 << 0)
+#define RESET_ENABLE (1 << 1)
+#define WDTLOCK 0xC00
+#define UNLOCK 0x1ACCE551
+#define LOCK 0x00000001
 
 bus_addr_t al_devmap_pa;
 bus_addr_t al_devmap_size;
@@ -93,8 +93,7 @@ alpine_get_wdt_base(uint32_t *pbase, uint32_t *psize)
 	if ((node = fdt_find_compatible(node, "simple-bus", 1)) == 0)
 		return (EFAULT);
 
-	if ((node =
-	    fdt_find_compatible(node, "arm,sp805", 1)) == 0)
+	if ((node = fdt_find_compatible(node, "arm,sp805", 1)) == 0)
 		return (EFAULT);
 
 	if (fdt_regsize(node, &base, &size))
@@ -130,8 +129,8 @@ alpine_cpu_reset(platform_t plat)
 		goto infinite;
 	}
 
-	ret = bus_space_map(fdtbus_bs_tag, al_devmap_pa + wdbase,
-	    wdsize, 0, &wdbaddr);
+	ret = bus_space_map(fdtbus_bs_tag, al_devmap_pa + wdbase, wdsize, 0,
+	    &wdbaddr);
 	if (ret) {
 		printf("Unable to map WDT base, do power down manually...");
 		goto infinite;
@@ -143,16 +142,17 @@ alpine_cpu_reset(platform_t plat)
 	    INT_ENABLE | RESET_ENABLE);
 
 infinite:
-	while (1) {}
+	while (1) {
+	}
 }
 
 static platform_method_t alpine_methods[] = {
-	PLATFORMMETHOD(platform_devmap_init,	alpine_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	alpine_cpu_reset),
+	PLATFORMMETHOD(platform_devmap_init, alpine_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, alpine_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	alpine_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	alpine_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, alpine_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, alpine_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };

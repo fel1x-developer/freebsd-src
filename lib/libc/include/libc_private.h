@@ -34,8 +34,8 @@
 
 #ifndef _LIBC_PRIVATE_H_
 #define _LIBC_PRIVATE_H_
-#include <sys/_types.h>
 #include <sys/_pthreadtypes.h>
+#include <sys/_types.h>
 
 extern char **environ;
 
@@ -43,7 +43,7 @@ extern char **environ;
  * The kernel doesn't expose PID_MAX to the user space. Save it here
  * to allow to run a newer world on a pre-1400079 kernel.
  */
-#define	_PID_MAX	99999
+#define _PID_MAX 99999
 
 /*
  * This global flag is non-zero when a process has created one
@@ -52,7 +52,7 @@ extern char **environ;
  */
 #ifndef __LIBC_ISTHREADED_DECLARED
 #define __LIBC_ISTHREADED_DECLARED
-extern int	__isthreaded;
+extern int __isthreaded;
 #endif
 
 /*
@@ -62,7 +62,7 @@ extern int	__isthreaded;
  *
  * Type is void to avoid polluting whole libc with ELF types.
  */
-extern void	*__elf_aux_vector;
+extern void *__elf_aux_vector;
 
 /*
  * libc should use libc_dlopen internally, which respects a global
@@ -80,34 +80,38 @@ void _rtld_error(const char *fmt, ...);
  * where locks were set. Allow a debug library to be built which
  * records the source file and line number of each lock call.
  */
-#ifdef	_FLOCK_DEBUG
-#define _FLOCKFILE(x)	_flockfile_debug(x, __FILE__, __LINE__)
+#ifdef _FLOCK_DEBUG
+#define _FLOCKFILE(x) _flockfile_debug(x, __FILE__, __LINE__)
 #else
-#define _FLOCKFILE(x)	_flockfile(x)
+#define _FLOCKFILE(x) _flockfile(x)
 #endif
 
 /*
  * Macros for locking and unlocking FILEs. These test if the
  * process is threaded to avoid locking when not required.
  */
-#define	FLOCKFILE(fp)		if (__isthreaded) _FLOCKFILE(fp)
-#define	FUNLOCKFILE(fp)		if (__isthreaded) _funlockfile(fp)
+#define FLOCKFILE(fp)     \
+	if (__isthreaded) \
+	_FLOCKFILE(fp)
+#define FUNLOCKFILE(fp)   \
+	if (__isthreaded) \
+	_funlockfile(fp)
 
 struct _spinlock;
 extern struct _spinlock __stdio_thread_lock __hidden;
-#define STDIO_THREAD_LOCK()				\
-do {							\
-	if (__isthreaded)				\
-		_SPINLOCK(&__stdio_thread_lock);	\
-} while (0)
-#define STDIO_THREAD_UNLOCK()				\
-do {							\
-	if (__isthreaded)				\
-		_SPINUNLOCK(&__stdio_thread_lock);	\
-} while (0)
+#define STDIO_THREAD_LOCK()                              \
+	do {                                             \
+		if (__isthreaded)                        \
+			_SPINLOCK(&__stdio_thread_lock); \
+	} while (0)
+#define STDIO_THREAD_UNLOCK()                              \
+	do {                                               \
+		if (__isthreaded)                          \
+			_SPINUNLOCK(&__stdio_thread_lock); \
+	} while (0)
 
-void		__libc_spinlock_stub(struct _spinlock *);
-void		__libc_spinunlock_stub(struct _spinlock *);
+void __libc_spinlock_stub(struct _spinlock *);
+void __libc_spinunlock_stub(struct _spinlock *);
 
 /*
  * Indexes into the pthread jump table.
@@ -193,9 +197,9 @@ typedef pthread_func_t pthread_func_entry_t[2];
 
 extern pthread_func_entry_t __thr_jtable[];
 
-void	__set_error_selector(int *(*arg)(void));
-int	_pthread_mutex_init_calloc_cb_stub(pthread_mutex_t *mutex,
-	    void *(calloc_cb)(__size_t, __size_t));
+void __set_error_selector(int *(*arg)(void));
+int _pthread_mutex_init_calloc_cb_stub(pthread_mutex_t *mutex,
+    void *(calloc_cb)(__size_t, __size_t));
 
 typedef int (*interpos_func_t)(void);
 interpos_func_t *__libc_interposing_slot(int interposno);
@@ -256,11 +260,10 @@ enum {
 int _yp_check(char **);
 #endif
 
-void __libc_start1(int, char *[], char *[],
-    void (*)(void), int (*)(int, char *[], char *[])) __dead2;
-void __libc_start1_gcrt(int, char *[], char *[],
-    void (*)(void), int (*)(int, char *[], char *[]),
-    int *, int *) __dead2;
+void __libc_start1(int, char *[], char *[], void (*)(void),
+    int (*)(int, char *[], char *[])) __dead2;
+void __libc_start1_gcrt(int, char *[], char *[], void (*)(void),
+    int (*)(int, char *[], char *[]), int *, int *) __dead2;
 
 /*
  * Initialise TLS for static programs
@@ -312,8 +315,8 @@ extern void (*__cleanup)(void) __hidden;
  * ignores value of $OSVERSION and caches result.
  */
 int __getosreldate(void);
-#include <sys/_types.h>
 #include <sys/_sigset.h>
+#include <sys/_types.h>
 
 struct aiocb;
 struct fd_set;
@@ -333,94 +336,89 @@ struct __siginfo;
 struct __ucontext;
 struct __wrusage;
 enum idtype;
-int		__sys_aio_suspend(const struct aiocb * const[], int,
-		    const struct timespec *);
-int		__sys_accept(int, struct sockaddr *, __socklen_t *);
-int		__sys_accept4(int, struct sockaddr *, __socklen_t *, int);
-int		__sys_clock_gettime(__clockid_t, struct timespec *ts);
-int		__sys_clock_nanosleep(__clockid_t, int,
-		    const struct timespec *, struct timespec *);
-int		__sys_close(int);
-int		__sys_close_range(unsigned, unsigned, int);
-int		__sys_connect(int, const struct sockaddr *, __socklen_t);
-int		__sys_fcntl(int, int, ...);
-int		__sys_fdatasync(int);
-int		__sys_fstat(int fd, struct stat *);
-int		__sys_fstatfs(int fd, struct statfs *);
-int		__sys_fstatat(int, const char *, struct stat *, int);
-int		__sys_fsync(int);
-__pid_t		__sys_fork(void);
-int		__sys_ftruncate(int, __off_t);
-__ssize_t	__sys_getdirentries(int, char *, __size_t, __off_t *);
-int		__sys_getfsstat(struct statfs *, long, int);
-int		__sys_gettimeofday(struct timeval *, struct timezone *);
-int		__sys_kevent(int, const struct kevent *, int, struct kevent *,
-		    int, const struct timespec *);
-__off_t		__sys_lseek(int, __off_t, int);
-void	       *__sys_mmap(void *, __size_t, int, int, int, __off_t);
-int		__sys_msync(void *, __size_t, int);
-int		__sys_nanosleep(const struct timespec *, struct timespec *);
-int		__sys_open(const char *, int, ...);
-int		__sys_openat(int, const char *, int, ...);
-int		__sys_pdfork(int *, int);
-int		__sys_pselect(int, struct fd_set *, struct fd_set *,
-		    struct fd_set *, const struct timespec *,
-		    const __sigset_t *);
-int		__sys_ptrace(int, __pid_t, char *, int);
-int		__sys_poll(struct pollfd *, unsigned, int);
-int		__sys_ppoll(struct pollfd *, unsigned, const struct timespec *,
-		    const __sigset_t *);
-__ssize_t	__sys_pread(int, void *, __size_t, __off_t);
-__ssize_t	__sys_pwrite(int, const void *, __size_t, __off_t);
-__ssize_t	__sys_read(int, void *, __size_t);
-__ssize_t	__sys_readv(int, const struct iovec *, int);
-__ssize_t	__sys_recv(int, void *, __size_t, int);
-__ssize_t	__sys_recvfrom(int, void *, __size_t, int, struct sockaddr *,
-		    __socklen_t *);
-__ssize_t	__sys_recvmsg(int, struct msghdr *, int);
-int		__sys_sched_getcpu(void);
-int		__sys_select(int, struct fd_set *, struct fd_set *,
-		    struct fd_set *, struct timeval *);
-__ssize_t	__sys_sendmsg(int, const struct msghdr *, int);
-__ssize_t	__sys_sendto(int, const void *, __size_t, int,
-		    const struct sockaddr *, __socklen_t);
-int		__sys_setcontext(const struct __ucontext *);
-int		__sys_sigaction(int, const struct sigaction *,
-		    struct sigaction *);
-int		__sys_sigprocmask(int, const __sigset_t *, __sigset_t *);
-int		__sys_sigsuspend(const __sigset_t *);
-int		__sys_sigtimedwait(const __sigset_t *, struct __siginfo *,
-		    const struct timespec *);
-int		__sys_sigwait(const __sigset_t *, int *);
-int		__sys_sigwaitinfo(const __sigset_t *, struct __siginfo *);
-int		__sys___specialfd(int, const void *, __size_t);
-int		__sys_statfs(const char *, struct statfs *);
-int		__sys_swapcontext(struct __ucontext *,
-		    const struct __ucontext *);
-int		__sys_thr_kill(long, int);
-int		__sys_thr_self(long *);
-int		__sys_truncate(const char *, __off_t);
-__pid_t		__sys_wait4(__pid_t, int *, int, struct rusage *);
-__pid_t		__sys_wait6(enum idtype, __id_t, int *, int,
-		    struct __wrusage *, struct __siginfo *);
-__ssize_t	__sys_write(int, const void *, __size_t);
-__ssize_t	__sys_writev(int, const struct iovec *, int);
-int		__sys_shm_open2(const char *, int, __mode_t, int, const char *);
+int __sys_aio_suspend(const struct aiocb *const[], int,
+    const struct timespec *);
+int __sys_accept(int, struct sockaddr *, __socklen_t *);
+int __sys_accept4(int, struct sockaddr *, __socklen_t *, int);
+int __sys_clock_gettime(__clockid_t, struct timespec *ts);
+int __sys_clock_nanosleep(__clockid_t, int, const struct timespec *,
+    struct timespec *);
+int __sys_close(int);
+int __sys_close_range(unsigned, unsigned, int);
+int __sys_connect(int, const struct sockaddr *, __socklen_t);
+int __sys_fcntl(int, int, ...);
+int __sys_fdatasync(int);
+int __sys_fstat(int fd, struct stat *);
+int __sys_fstatfs(int fd, struct statfs *);
+int __sys_fstatat(int, const char *, struct stat *, int);
+int __sys_fsync(int);
+__pid_t __sys_fork(void);
+int __sys_ftruncate(int, __off_t);
+__ssize_t __sys_getdirentries(int, char *, __size_t, __off_t *);
+int __sys_getfsstat(struct statfs *, long, int);
+int __sys_gettimeofday(struct timeval *, struct timezone *);
+int __sys_kevent(int, const struct kevent *, int, struct kevent *, int,
+    const struct timespec *);
+__off_t __sys_lseek(int, __off_t, int);
+void *__sys_mmap(void *, __size_t, int, int, int, __off_t);
+int __sys_msync(void *, __size_t, int);
+int __sys_nanosleep(const struct timespec *, struct timespec *);
+int __sys_open(const char *, int, ...);
+int __sys_openat(int, const char *, int, ...);
+int __sys_pdfork(int *, int);
+int __sys_pselect(int, struct fd_set *, struct fd_set *, struct fd_set *,
+    const struct timespec *, const __sigset_t *);
+int __sys_ptrace(int, __pid_t, char *, int);
+int __sys_poll(struct pollfd *, unsigned, int);
+int __sys_ppoll(struct pollfd *, unsigned, const struct timespec *,
+    const __sigset_t *);
+__ssize_t __sys_pread(int, void *, __size_t, __off_t);
+__ssize_t __sys_pwrite(int, const void *, __size_t, __off_t);
+__ssize_t __sys_read(int, void *, __size_t);
+__ssize_t __sys_readv(int, const struct iovec *, int);
+__ssize_t __sys_recv(int, void *, __size_t, int);
+__ssize_t __sys_recvfrom(int, void *, __size_t, int, struct sockaddr *,
+    __socklen_t *);
+__ssize_t __sys_recvmsg(int, struct msghdr *, int);
+int __sys_sched_getcpu(void);
+int __sys_select(int, struct fd_set *, struct fd_set *, struct fd_set *,
+    struct timeval *);
+__ssize_t __sys_sendmsg(int, const struct msghdr *, int);
+__ssize_t __sys_sendto(int, const void *, __size_t, int,
+    const struct sockaddr *, __socklen_t);
+int __sys_setcontext(const struct __ucontext *);
+int __sys_sigaction(int, const struct sigaction *, struct sigaction *);
+int __sys_sigprocmask(int, const __sigset_t *, __sigset_t *);
+int __sys_sigsuspend(const __sigset_t *);
+int __sys_sigtimedwait(const __sigset_t *, struct __siginfo *,
+    const struct timespec *);
+int __sys_sigwait(const __sigset_t *, int *);
+int __sys_sigwaitinfo(const __sigset_t *, struct __siginfo *);
+int __sys___specialfd(int, const void *, __size_t);
+int __sys_statfs(const char *, struct statfs *);
+int __sys_swapcontext(struct __ucontext *, const struct __ucontext *);
+int __sys_thr_kill(long, int);
+int __sys_thr_self(long *);
+int __sys_truncate(const char *, __off_t);
+__pid_t __sys_wait4(__pid_t, int *, int, struct rusage *);
+__pid_t __sys_wait6(enum idtype, __id_t, int *, int, struct __wrusage *,
+    struct __siginfo *);
+__ssize_t __sys_write(int, const void *, __size_t);
+__ssize_t __sys_writev(int, const struct iovec *, int);
+int __sys_shm_open2(const char *, int, __mode_t, int, const char *);
 
-int		__libc_sigaction(int, const struct sigaction *,
-		    struct sigaction *) __hidden;
-int		__libc_sigprocmask(int, const __sigset_t *, __sigset_t *)
-		    __hidden;
-int		__libc_sigsuspend(const __sigset_t *) __hidden;
-int		__libc_sigwait(const __sigset_t * __restrict,
-		    int * restrict sig);
-int		__libc_system(const char *);
-int		__libc_tcdrain(int);
-int		__fcntl_compat(int fd, int cmd, ...);
+int __libc_sigaction(int, const struct sigaction *,
+    struct sigaction *) __hidden;
+int __libc_sigprocmask(int, const __sigset_t *, __sigset_t *) __hidden;
+int __libc_sigsuspend(const __sigset_t *) __hidden;
+int __libc_sigwait(const __sigset_t *__restrict, int *restrict sig);
+int __libc_system(const char *);
+int __libc_tcdrain(int);
+int __fcntl_compat(int fd, int cmd, ...);
 
-int		__sys_futimens(int fd, const struct timespec *times) __hidden;
-int		__sys_utimensat(int fd, const char *path,
-		    const struct timespec *times, int flag) __hidden;
+int __sys_futimens(int fd, const struct timespec *times) __hidden;
+int __sys_utimensat(int fd, const char *path, const struct timespec *times,
+    int flag) __hidden;
 
 int _elf_aux_info(int aux, void *buf, int buflen);
 struct dl_phdr_info;
@@ -430,19 +428,19 @@ void __libc_map_stacks_exec(void);
 void __libc_distribute_static_tls(__size_t, void *, __size_t, __size_t);
 __uintptr_t __libc_static_tls_base(__size_t);
 
-void	_pthread_cancel_enter(int);
-void	_pthread_cancel_leave(int);
+void _pthread_cancel_enter(int);
+void _pthread_cancel_leave(int);
 
 struct _pthread_cleanup_info;
-void	___pthread_cleanup_push_imp(void (*)(void *), void *,
-	    struct _pthread_cleanup_info *);
-void	___pthread_cleanup_pop_imp(int);
+void ___pthread_cleanup_push_imp(void (*)(void *), void *,
+    struct _pthread_cleanup_info *);
+void ___pthread_cleanup_pop_imp(int);
 
-void __throw_constraint_handler_s(const char * restrict msg, int error);
+void __throw_constraint_handler_s(const char *restrict msg, int error);
 
 struct __nl_cat_d;
 struct _xlocale;
 struct __nl_cat_d *__catopen_l(const char *name, int type,
-	    struct _xlocale *locale);
+    struct _xlocale *locale);
 
 #endif /* _LIBC_PRIVATE_H_ */

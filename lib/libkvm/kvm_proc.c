@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Proc traversal interface for kvm.  ps and w are (probably) the exclusive
  * users of this code, so we've factored it out into a separate module.
@@ -42,38 +41,37 @@
  */
 
 #include <sys/param.h>
-#define	_WANT_UCRED	/* make ucred.h give us 'struct ucred' */
-#include <sys/ucred.h>
-#include <sys/queue.h>
+#define _WANT_UCRED /* make ucred.h give us 'struct ucred' */
 #include <sys/_lock.h>
 #include <sys/_mutex.h>
 #include <sys/_task.h>
 #include <sys/cpuset.h>
-#include <sys/user.h>
 #include <sys/proc.h>
-#define	_WANT_PRISON	/* make jail.h give us 'struct prison' */
-#include <sys/jail.h>
+#include <sys/queue.h>
+#include <sys/ucred.h>
+#include <sys/user.h>
+#define _WANT_PRISON /* make jail.h give us 'struct prison' */
+#include <sys/conf.h>
 #include <sys/exec.h>
+#include <sys/file.h>
+#include <sys/ioctl.h>
+#include <sys/jail.h>
 #include <sys/stat.h>
 #include <sys/sysent.h>
-#include <sys/ioctl.h>
 #include <sys/tty.h>
-#include <sys/file.h>
-#include <sys/conf.h>
-#define	_WANT_KW_EXITCODE
-#include <sys/wait.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <nlist.h>
-#include <kvm.h>
-
+#define _WANT_KW_EXITCODE
 #include <sys/sysctl.h>
+#include <sys/wait.h>
 
+#include <kvm.h>
 #include <limits.h>
 #include <memory.h>
+#include <nlist.h>
 #include <paths.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "kvm_private.h"
 
@@ -166,7 +164,7 @@ kvm_proclist(kvm_t *kd, int what, int arg, struct proc *p,
 			}
 		}
 
-		switch(what & ~KERN_PROC_INC_THREAD) {
+		switch (what & ~KERN_PROC_INC_THREAD) {
 
 		case KERN_PROC_GID:
 			if (kp->ki_groups[0] != (gid_t)arg)
@@ -206,11 +204,11 @@ kvm_proclist(kvm_t *kd, int what, int arg, struct proc *p,
 		 * gather kinfo_proc
 		 */
 		kp->ki_paddr = p;
-		kp->ki_addr = 0;	/* XXX uarea */
+		kp->ki_addr = 0; /* XXX uarea */
 		/* kp->ki_kstack = proc.p_thread.td_kstack; XXXKSE */
 		kp->ki_args = proc.p_args;
 		kp->ki_numthreads = proc.p_numthreads;
-		kp->ki_tracep = NULL;	/* XXXKIB do not expose ktr_io_params */
+		kp->ki_tracep = NULL; /* XXXKIB do not expose ktr_io_params */
 		kp->ki_textvp = proc.p_textvp;
 		kp->ki_fd = proc.p_fd;
 		kp->ki_pd = proc.p_pd;
@@ -261,30 +259,28 @@ kvm_proclist(kvm_t *kd, int what, int arg, struct proc *p,
 			goto nopgrp;
 		if (KREAD(kd, (u_long)proc.p_pgrp, &pgrp)) {
 			_kvm_err(kd, kd->program, "can't read pgrp at %p",
-				 proc.p_pgrp);
+			    proc.p_pgrp);
 			return (-1);
 		}
 		kp->ki_pgid = pgrp.pg_id;
-		kp->ki_jobc = -1;	/* Or calculate?  Arguably not. */
+		kp->ki_jobc = -1; /* Or calculate?  Arguably not. */
 		if (KREAD(kd, (u_long)pgrp.pg_session, &sess)) {
 			_kvm_err(kd, kd->program, "can't read session at %p",
-				pgrp.pg_session);
+			    pgrp.pg_session);
 			return (-1);
 		}
 		kp->ki_sid = sess.s_sid;
-		(void)memcpy(kp->ki_login, sess.s_login,
-						sizeof(kp->ki_login));
+		(void)memcpy(kp->ki_login, sess.s_login, sizeof(kp->ki_login));
 		if ((proc.p_flag & P_CONTROLT) && sess.s_ttyp != NULL) {
 			if (KREAD(kd, (u_long)sess.s_ttyp, &tty)) {
 				_kvm_err(kd, kd->program,
-					 "can't read tty at %p", sess.s_ttyp);
+				    "can't read tty at %p", sess.s_ttyp);
 				return (-1);
 			}
 			if (tty.t_dev != NULL) {
 				if (KREAD(kd, (u_long)tty.t_dev, &t_cdev)) {
 					_kvm_err(kd, kd->program,
-						 "can't read cdev at %p",
-						tty.t_dev);
+					    "can't read cdev at %p", tty.t_dev);
 					return (-1);
 				}
 #if 0
@@ -296,8 +292,8 @@ kvm_proclist(kvm_t *kd, int what, int arg, struct proc *p,
 			if (tty.t_pgrp != NULL) {
 				if (KREAD(kd, (u_long)tty.t_pgrp, &pgrp)) {
 					_kvm_err(kd, kd->program,
-						 "can't read tpgrp at %p",
-						tty.t_pgrp);
+					    "can't read tpgrp at %p",
+					    tty.t_pgrp);
 					return (-1);
 				}
 				kp->ki_tpgid = pgrp.pg_id;
@@ -313,18 +309,18 @@ kvm_proclist(kvm_t *kd, int what, int arg, struct proc *p,
 				kp->ki_tsid = sess.s_sid;
 			}
 		} else {
-nopgrp:
+		nopgrp:
 			kp->ki_tdev = NODEV;
 		}
 
-		(void)kvm_read(kd, (u_long)proc.p_vmspace,
-		    (char *)&vmspace, sizeof(vmspace));
+		(void)kvm_read(kd, (u_long)proc.p_vmspace, (char *)&vmspace,
+		    sizeof(vmspace));
 		kp->ki_size = vmspace.vm_map.size;
 		/*
 		 * Approximate the kernel's method of calculating
 		 * this field.
 		 */
-#define		pmap_resident_count(pm) ((pm)->pm_stats.resident_count)
+#define pmap_resident_count(pm) ((pm)->pm_stats.resident_count)
 		kp->ki_rssize = pmap_resident_count(&vmspace.vm_pmap);
 		kp->ki_swrss = vmspace.vm_swrss;
 		kp->ki_tsize = vmspace.vm_tsize;
@@ -345,7 +341,7 @@ nopgrp:
 
 		case KERN_PROC_TTY:
 			if ((proc.p_flag & P_CONTROLT) == 0 ||
-			     kp->ki_tdev != (dev_t)arg)
+			    kp->ki_tdev != (dev_t)arg)
 				continue;
 			break;
 		}
@@ -367,8 +363,8 @@ nopgrp:
 		/* Per-thread items; iterate as appropriate. */
 		td = TAILQ_FIRST(&proc.p_threads);
 		for (first_thread = true; cnt < maxcnt && td != NULL &&
-		    (first_thread || (what & KERN_PROC_INC_THREAD));
-		    first_thread = false) {
+		     (first_thread || (what & KERN_PROC_INC_THREAD));
+		     first_thread = false) {
 			if (proc.p_state != PRS_ZOMBIE) {
 				if (KREAD(kd, (u_long)td, &mtd)) {
 					_kvm_err(kd, kd->program,
@@ -399,8 +395,7 @@ nopgrp:
 					    (u_long)mtd.td_lockname,
 					    kp->ki_lockname, LOCKNAMELEN);
 				else
-					memset(kp->ki_lockname, 0,
-					    LOCKNAMELEN);
+					memset(kp->ki_lockname, 0, LOCKNAMELEN);
 				kp->ki_lockname[LOCKNAMELEN] = 0;
 			} else
 				kp->ki_kiflag &= ~KI_LOCKBLOCK;
@@ -422,8 +417,8 @@ nopgrp:
 					    TDS_INHIBITED) {
 						if (P_SHOULDSTOP(&proc)) {
 							kp->ki_stat = SSTOP;
-						} else if (
-						    TD_IS_SLEEPING(&mtd)) {
+						} else if (TD_IS_SLEEPING(
+							       &mtd)) {
 							kp->ki_stat = SSLEEP;
 						} else if (TD_ON_LOCK(&mtd)) {
 							kp->ki_stat = SLOCK;
@@ -487,8 +482,8 @@ nopgrp:
  * Return number of procs read.  maxcnt is the max we will read.
  */
 static int
-kvm_deadprocs(kvm_t *kd, int what, int arg, u_long a_allproc,
-    u_long a_zombproc, int maxcnt)
+kvm_deadprocs(kvm_t *kd, int what, int arg, u_long a_allproc, u_long a_zombproc,
+    int maxcnt)
 {
 	struct kinfo_proc *bp = kd->procbase;
 	int acnt, zcnt = 0;
@@ -538,8 +533,9 @@ kvm_getprocs(kvm_t *kd, int op, int arg, int *cnt)
 		mib[3] = arg;
 		temp_op = op & ~KERN_PROC_INC_THREAD;
 		st = sysctl(mib,
-		    temp_op == KERN_PROC_ALL || temp_op == KERN_PROC_PROC ?
-		    3 : 4, NULL, &size, NULL, 0);
+		    temp_op == KERN_PROC_ALL || temp_op == KERN_PROC_PROC ? 3 :
+									    4,
+		    NULL, &size, NULL, 0);
 		if (st == -1) {
 			_kvm_syserr(kd, kd->program, "kvm_getprocs");
 			return (0);
@@ -565,13 +561,16 @@ kvm_getprocs(kvm_t *kd, int op, int arg, int *cnt)
 		}
 		do {
 			size += size / 10;
-			kd->procbase = (struct kinfo_proc *)
-			    _kvm_realloc(kd, kd->procbase, size);
+			kd->procbase = (struct kinfo_proc *)_kvm_realloc(kd,
+			    kd->procbase, size);
 			if (kd->procbase == NULL)
 				return (0);
 			osize = size;
-			st = sysctl(mib, temp_op == KERN_PROC_ALL ||
-			    temp_op == KERN_PROC_PROC ? 3 : 4,
+			st = sysctl(mib,
+			    temp_op == KERN_PROC_ALL ||
+				    temp_op == KERN_PROC_PROC ?
+				3 :
+				4,
 			    kd->procbase, &size, NULL, 0);
 		} while (st == -1 && errno == ENOMEM && size == osize);
 		if (st == -1) {
@@ -592,7 +591,7 @@ kvm_getprocs(kvm_t *kd, int op, int arg, int *cnt)
 			    kd->procbase->ki_structsize);
 			return (0);
 		}
-liveout:
+	liveout:
 		nprocs = size == 0 ? 0 : size / kd->procbase->ki_structsize;
 	} else {
 		struct nlist nl[6], *p;
@@ -617,11 +616,11 @@ liveout:
 		if (kvm_nlist(kd, nl) != 0) {
 			for (p = nl; p->n_type != 0; ++p)
 				;
-			_kvm_err(kd, kd->program,
-				 "%s: no such symbol", p->n_name);
+			_kvm_err(kd, kd->program, "%s: no such symbol",
+			    p->n_name);
 			return (0);
 		}
-		(void) kvm_nlist(kd, nlz);	/* attempt to get zombproc */
+		(void)kvm_nlist(kd, nlz); /* attempt to get zombproc */
 		if (KREAD(kd, nl[0].n_value, &nprocs)) {
 			_kvm_err(kd, kd->program, "can't read nprocs");
 			return (0);
@@ -632,7 +631,7 @@ liveout:
 		 * than 10 threads per process.
 		 */
 		if (op == KERN_PROC_ALL || (op & KERN_PROC_INC_THREAD))
-			nprocs *= 10;		/* XXX */
+			nprocs *= 10; /* XXX */
 		if (KREAD(kd, nl[2].n_value, &ticks)) {
 			_kvm_err(kd, kd->program, "can't read ticks");
 			return (0);
@@ -652,7 +651,7 @@ liveout:
 			return (0);
 
 		nprocs = kvm_deadprocs(kd, op, arg, nl[1].n_value,
-				      nlz[0].n_value, nprocs);
+		    nlz[0].n_value, nprocs);
 		if (nprocs <= 0) {
 			_kvm_freeprocs(kd);
 			nprocs = 0;

@@ -33,39 +33,35 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <dev/gpio/gpiobusvar.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/fdt_pinctrl.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/fdt/fdt_pinctrl.h>
-
-#include "qcom_tlmm_var.h"
-#include "qcom_tlmm_pin.h"
-#include "qcom_tlmm_debug.h"
-
-#include "qcom_tlmm_ipq4018_reg.h"
-#include "qcom_tlmm_ipq4018_hw.h"
-
 #include "gpio_if.h"
+#include "qcom_tlmm_debug.h"
+#include "qcom_tlmm_ipq4018_hw.h"
+#include "qcom_tlmm_ipq4018_reg.h"
+#include "qcom_tlmm_pin.h"
+#include "qcom_tlmm_var.h"
 
-#define	DEFAULT_CAPS	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | \
-	    GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN)
+#define DEFAULT_CAPS \
+	(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT | GPIO_PIN_PULLUP | GPIO_PIN_PULLDOWN)
 
 /* 100 GPIO pins, 0..99 */
-#define QCOM_TLMM_IPQ4018_GPIO_PINS     100
+#define QCOM_TLMM_IPQ4018_GPIO_PINS 100
 
 static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	GDEF(0, "jtag_tdi", "smart0", "i2s_rx_bclk"),
@@ -84,14 +80,12 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	    "wifi0_uart", NULL, "wcss0_dbg21", "wcss1_dbg21", NULL,
 	    "qdss_tracedata_a"),
 
-	GDEF(10, "blsp_uart1", "wifi0_uart0", "wifi1_uart0", "blsp_i2c0",
-	    NULL, "wcss0_dbg22", "wcss1_dbg22", NULL, "qdss_tracedata_a"),
-	GDEF(11, "blsp_uart1", "wifi0_uart", "wifi1_uart", "blsp_i2c0",
-	    NULL, "wcss0_dbg23", "wcss1_dbg23", NULL, "qdss_tracedata_a"),
-	GDEF(12, "blsp_spi0", "blsp_i2c1", NULL, "wcss0_dbg24",
-	    "wcss1_dbg24"),
-	GDEF(13, "blsp_spi0", "blsp_i2c1", NULL, "wcss0_dbg25",
-	    "wcss1_dbg25"),
+	GDEF(10, "blsp_uart1", "wifi0_uart0", "wifi1_uart0", "blsp_i2c0", NULL,
+	    "wcss0_dbg22", "wcss1_dbg22", NULL, "qdss_tracedata_a"),
+	GDEF(11, "blsp_uart1", "wifi0_uart", "wifi1_uart", "blsp_i2c0", NULL,
+	    "wcss0_dbg23", "wcss1_dbg23", NULL, "qdss_tracedata_a"),
+	GDEF(12, "blsp_spi0", "blsp_i2c1", NULL, "wcss0_dbg24", "wcss1_dbg24"),
+	GDEF(13, "blsp_spi0", "blsp_i2c1", NULL, "wcss0_dbg25", "wcss1_dbg25"),
 	GDEF(14, "blsp_spi0", NULL, "wcss0_dbg26", "wcss1_dbg26"),
 	GDEF(15, "blsp_spi0", NULL, "wcss0_dbg", "wcss1_dbg"),
 	GDEF(16, "blsp_uart0", "led0", "smart1", NULL, "wcss0_dbg28",
@@ -107,8 +101,7 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	    "wcss1_dbg16"),
 	GDEF(21, "blsp_i2c0", "i2s_rx_bclk", NULL, "wcss0_dbg17",
 	    "wcss1_dbg17"),
-	GDEF(22, "rgmii0", "i2s_rx_fsync", NULL, "wcss0_dbg18",
-	    "wcss1_dbg18"),
+	GDEF(22, "rgmii0", "i2s_rx_fsync", NULL, "wcss0_dbg18", "wcss1_dbg18"),
 	GDEF(23, "sdio0", "rgmii1", "i2s_rxd", NULL, "wcss0_dbg19",
 	    "wcss1_dbg19"),
 	GDEF(24, "sdio1", "rgmii2", "i2s_tx_mclk", NULL, "wcss0_dbg20",
@@ -130,8 +123,8 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	    "wcss1_dbg27"),
 	GDEF(32, "sdio7", "rgmii_rxc", "audio_pwm2", NULL, "wcss0_dbg28",
 	    "wcss1_dbg28"),
-	GDEF(33, "rgmii_tx", "audio_pwm3", NULL, "wcss0_dbg29",
-	    "wcss1_dbg29", NULL, "boot2"),
+	GDEF(33, "rgmii_tx", "audio_pwm3", NULL, "wcss0_dbg29", "wcss1_dbg29",
+	    NULL, "boot2"),
 	GDEF(34, "blsp_i2c1", "i2s_spdif_in", NULL, "wcss0_dbg30",
 	    "wcss1_dbg30"),
 	GDEF(35, "blsp_i2c1", "i2s_spdif_out", NULL, "wcss0_dbg31",
@@ -139,14 +132,14 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	GDEF(36, "rmii00", "led2", "led0"),
 	GDEF(37, "rmii01", "wifi0_wci", "wifi1_wci", "led1", NULL, NULL,
 	    "wcss0_dbg16", "wcss1_dbg16", NULL, "qdss_tracedata_a", "boot4"),
-	GDEF(38, "rmii0_tx", "led2", NULL, NULL, "wcss0_dbg17",
-	    "wcss1_dbg17", NULL, "qdss_tracedata_a", "boot5"),
+	GDEF(38, "rmii0_tx", "led2", NULL, NULL, "wcss0_dbg17", "wcss1_dbg17",
+	    NULL, "qdss_tracedata_a", "boot5"),
 	GDEF(39, "rmii0_rx", "pcie_clk1", "led3", NULL, NULL, "wcss0_dbg18",
 	    "wcss1_dbg18", NULL, NULL, "qdss_tracedata_a"),
 
-	GDEF(40, "rmii0_refclk", "wifi0_rfsilent0", "wifi1_rfsilent0",
-	    "smart2", "led4", NULL, NULL, "wcss0_dbg19", "wcss1_dbg19", NULL,
-	    NULL, "qdss_tracedata_a"),
+	GDEF(40, "rmii0_refclk", "wifi0_rfsilent0", "wifi1_rfsilent0", "smart2",
+	    "led4", NULL, NULL, "wcss0_dbg19", "wcss1_dbg19", NULL, NULL,
+	    "qdss_tracedata_a"),
 	GDEF(41, "rmii00", "wifi0_cal", "wifi1_cal", "smart2", NULL, NULL,
 	    "wcss0_dbg20", "wcss1_dbg20", NULL, NULL, "qdss_tracedata_a"),
 	GDEF(42, "rmii01", "wifi_wci0", NULL, NULL, "wcss0_dbg21",
@@ -180,16 +173,16 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	    NULL, NULL, "boot9", "tm2"),
 	GDEF(56, "qpic_pad", "blsp_spi0", "i2s_td3", "atest_char1", NULL,
 	    "tm_ack", "wifi03", "wifi13"),
-	GDEF(57, "qpic_pad4", "blsp_spi0", "i2s_tx_fsync", "atest_char0",
-	    NULL, "tm3", "wifi02", "wifi12"),
+	GDEF(57, "qpic_pad4", "blsp_spi0", "i2s_tx_fsync", "atest_char0", NULL,
+	    "tm3", "wifi02", "wifi12"),
 	GDEF(58, "qpic_pad5", "led2", "blsp_i2c0", "smart3", "smart1",
 	    "i2s_rx_mclk", NULL, "wcss0_dbg14", "tm4", "wifi04", "wifi14"),
 	GDEF(59, "qpic_pad6", "blsp_i2c0", "smart3", "smart1", "i2c_spdif_in",
-	    NULL, NULL, "wcss0_dbg15", "qdss_tracectl_a", "boot18", "tm5" ),
+	    NULL, NULL, "wcss0_dbg15", "qdss_tracectl_a", "boot18", "tm5"),
 
 	GDEF(60, "qpic_pad7", "blsp_uart0", "smart1", "smart3", "led0",
 	    "i2s_tx_bclk", "i2s_rx_bclk", "atest_char", NULL, "wcss0_dbg4",
-	    "qdss_traceclk_a", "boot19", "tm6" ),
+	    "qdss_traceclk_a", "boot19", "tm6"),
 	GDEF(61, "qpic_pad", "blsp_uart0", "smart1", "smart3", "led1",
 	    "i2s_tx_fsync", "i2s_rx_fsync", NULL, NULL, "wcss0_dbg5",
 	    "qdss_cti_trig_out_a0", "boot14", "tm7"),
@@ -200,12 +193,9 @@ static const struct qcom_tlmm_gpio_mux gpio_muxes[] = {
 	    "i2s_tdl", "i2s_rxd", "i2s_spdif_out", "i2s_spdif_in", NULL,
 	    "wcss0_dbg7", "wcss1_dbg7", "boot20", "tm9"),
 	GDEF(64, "qpic_pad1", "audio_pwm0", NULL, "wcss0_dbg8", "wcss1_dbg8"),
-	GDEF(65, "qpic_pad2", "audio_pwm1", NULL, "wcss0_dbg9",
-	    "wcss1_dbg9" ),
-	GDEF(66, "qpic_pad3", "audio_pwm2", NULL, "wcss0_dbg10",
-	    "wcss1_dbg10"),
-	GDEF(67, "qpic_pad0", "audio_pwm3", NULL, "wcss0_dbg11",
-	   "wcss1_dbg11"),
+	GDEF(65, "qpic_pad2", "audio_pwm1", NULL, "wcss0_dbg9", "wcss1_dbg9"),
+	GDEF(66, "qpic_pad3", "audio_pwm2", NULL, "wcss0_dbg10", "wcss1_dbg10"),
+	GDEF(67, "qpic_pad0", "audio_pwm3", NULL, "wcss0_dbg11", "wcss1_dbg11"),
 	GDEF(68, "qpic_pad8", NULL, "wcss0_dbg12", "wcss1_dbg12"),
 	GDEF(69, "qpic_pad", NULL, "wcss0_dbg"),
 
@@ -249,7 +239,7 @@ static int
 qcom_tlmm_ipq4018_probe(device_t dev)
 {
 
-	if (! ofw_bus_status_okay(dev))
+	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
 	if (ofw_bus_is_compatible(dev, "qcom,ipq4019-pinctrl") == 0)
@@ -280,10 +270,8 @@ qcom_tlmm_ipq4018_detach(device_t dev)
 		free(sc->gpio_pins, M_DEVBUF);
 	mtx_destroy(&sc->gpio_mtx);
 
-	return(0);
+	return (0);
 }
-
-
 
 static int
 qcom_tlmm_ipq4018_attach(device_t dev)
@@ -308,14 +296,14 @@ qcom_tlmm_ipq4018_attach(device_t dev)
 	}
 
 	if ((sc->gpio_irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &sc->gpio_irq_rid, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
+		 &sc->gpio_irq_rid, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
 		device_printf(dev, "unable to allocate IRQ resource\n");
 		qcom_tlmm_ipq4018_detach(dev);
 		return (ENXIO);
 	}
 
 	if ((bus_setup_intr(dev, sc->gpio_irq_res, INTR_TYPE_MISC,
-	    qcom_tlmm_filter, qcom_tlmm_intr, sc, &sc->gpio_ih))) {
+		qcom_tlmm_filter, qcom_tlmm_intr, sc, &sc->gpio_ih))) {
 		device_printf(dev,
 		    "WARNING: unable to register interrupt handler\n");
 		qcom_tlmm_ipq4018_detach(dev);
@@ -335,11 +323,10 @@ qcom_tlmm_ipq4018_attach(device_t dev)
 
 	/* Note: direct map between gpio pin and gpio_pin[] entry */
 	for (i = 0; i < sc->gpio_npins; i++) {
-		snprintf(sc->gpio_pins[i].gp_name, GPIOMAXNAME,
-		    "gpio%d", i);
+		snprintf(sc->gpio_pins[i].gp_name, GPIOMAXNAME, "gpio%d", i);
 		sc->gpio_pins[i].gp_pin = i;
 		sc->gpio_pins[i].gp_caps = DEFAULT_CAPS;
-		(void) qcom_tlmm_pin_getflags(dev, i,
+		(void)qcom_tlmm_pin_getflags(dev, i,
 		    &sc->gpio_pins[i].gp_flags);
 	}
 
@@ -379,7 +366,7 @@ static device_method_t qcom_tlmm_ipq4018_methods[] = {
 	/* fdt_pinctrl interface */
 	DEVMETHOD(fdt_pinctrl_configure, qcom_tlmm_pinctrl_configure),
 
-	{0, 0},
+	{ 0, 0 },
 };
 
 static driver_t qcom_tlmm_ipq4018_driver = {
@@ -390,6 +377,6 @@ static driver_t qcom_tlmm_ipq4018_driver = {
 
 EARLY_DRIVER_MODULE(qcom_tlmm_ipq4018, simplebus, qcom_tlmm_ipq4018_driver,
     NULL, NULL, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
-EARLY_DRIVER_MODULE(qcom_tlmm_ipq4018, ofwbus, qcom_tlmm_ipq4018_driver,
-    NULL, NULL, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(qcom_tlmm_ipq4018, ofwbus, qcom_tlmm_ipq4018_driver, NULL,
+    NULL, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
 MODULE_VERSION(qcom_tlmm_ipq4018, 1);

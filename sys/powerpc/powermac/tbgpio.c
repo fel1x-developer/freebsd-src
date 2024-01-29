@@ -26,12 +26,11 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/openfirm.h>
@@ -39,27 +38,23 @@
 #include <powerpc/powermac/macgpiovar.h>
 #include <powerpc/powermac/platform_powermac.h>
 
-static int	tbgpio_probe(device_t);
-static int	tbgpio_attach(device_t);
-static void	tbgpio_freeze_timebase(device_t, bool);
+static int tbgpio_probe(device_t);
+static int tbgpio_attach(device_t);
+static void tbgpio_freeze_timebase(device_t, bool);
 
-static device_method_t	tbgpio_methods[] = {
+static device_method_t tbgpio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tbgpio_probe),
-	DEVMETHOD(device_attach,	tbgpio_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, tbgpio_probe),
+	DEVMETHOD(device_attach, tbgpio_attach), DEVMETHOD_END
 };
 
 struct tbgpio_softc {
-	uint32_t	sc_value;
-	uint32_t	sc_mask;
+	uint32_t sc_value;
+	uint32_t sc_mask;
 };
 
-static driver_t tbgpio_driver = {
-	"tbgpio",
-	tbgpio_methods,
-	sizeof(struct tbgpio_softc)
-};
+static driver_t tbgpio_driver = { "tbgpio", tbgpio_methods,
+	sizeof(struct tbgpio_softc) };
 
 EARLY_DRIVER_MODULE(tbgpio, macgpio, tbgpio_driver, 0, 0, BUS_PASS_CPU);
 

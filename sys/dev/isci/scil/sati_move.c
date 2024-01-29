@@ -60,13 +60,13 @@
  *        the various different size CDBs (6, 10, 12, 16).
  */
 
-#include <dev/isci/scil/sati_move.h>
+#include <dev/isci/scil/intel_ata.h>
+#include <dev/isci/scil/intel_sat.h>
+#include <dev/isci/scil/intel_scsi.h>
 #include <dev/isci/scil/sati_callbacks.h>
+#include <dev/isci/scil/sati_move.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
 #include <dev/isci/scil/sati_util.h>
-#include <dev/isci/scil/intel_ata.h>
-#include <dev/isci/scil/intel_scsi.h>
-#include <dev/isci/scil/intel_sat.h>
 
 //******************************************************************************
 //* P R I V A T E   M E T H O D S
@@ -85,20 +85,16 @@
  *
  * @return none.
  */
-static
-void sati_move_set_ata_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_io,
-   U8                           write_opcode,
-   U8                           read_opcode
-)
+static void
+sati_move_set_ata_command(SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_io,
+    U8 write_opcode, U8 read_opcode)
 {
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   if (sequence->data_direction == SATI_DATA_DIRECTION_OUT)
-      sati_set_ata_command(register_fis, write_opcode);
-   else
-      sati_set_ata_command(register_fis, read_opcode);
+	if (sequence->data_direction == SATI_DATA_DIRECTION_OUT)
+		sati_set_ata_command(register_fis, write_opcode);
+	else
+		sati_set_ata_command(register_fis, read_opcode);
 }
 
 /**
@@ -117,25 +113,20 @@ void sati_move_set_ata_command(
  *
  * @return none
  */
-static
-void sati_move_small_udma_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U8                           write_opcode,
-   U8                           read_opcode
-)
+static void
+sati_move_small_udma_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U8 write_opcode, U8 read_opcode)
 {
-   U8 * cdb          = sati_cb_get_cdb_address(scsi_io);
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   sati_move_set_ata_command(sequence, ata_io, write_opcode, read_opcode);
-   sati_set_ata_sector_count(register_fis, sati_get_cdb_byte(cdb, 4));
+	sati_move_set_ata_command(sequence, ata_io, write_opcode, read_opcode);
+	sati_set_ata_sector_count(register_fis, sati_get_cdb_byte(cdb, 4));
 
-   if (sequence->data_direction == SATI_DATA_DIRECTION_IN)
-      sequence->protocol = SAT_PROTOCOL_UDMA_DATA_IN;
-   else
-      sequence->protocol = SAT_PROTOCOL_UDMA_DATA_OUT;
+	if (sequence->data_direction == SATI_DATA_DIRECTION_IN)
+		sequence->protocol = SAT_PROTOCOL_UDMA_DATA_IN;
+	else
+		sequence->protocol = SAT_PROTOCOL_UDMA_DATA_OUT;
 }
 
 /**
@@ -156,26 +147,20 @@ void sati_move_small_udma_translate_command(
  * @return Please reference sati_move_set_sector_count() for information
  *         on return codes from this method.
  */
-static
-SATI_STATUS sati_move_large_udma_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U32                          sector_count,
-   U8                           write_opcode,
-   U8                           read_opcode
-)
+static SATI_STATUS
+sati_move_large_udma_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U32 sector_count, U8 write_opcode,
+    U8 read_opcode)
 {
-   sati_move_set_ata_command(sequence, ata_io, write_opcode, read_opcode);
+	sati_move_set_ata_command(sequence, ata_io, write_opcode, read_opcode);
 
-   if (sequence->data_direction == SATI_DATA_DIRECTION_IN)
-      sequence->protocol = SAT_PROTOCOL_UDMA_DATA_IN;
-   else
-      sequence->protocol = SAT_PROTOCOL_UDMA_DATA_OUT;
+	if (sequence->data_direction == SATI_DATA_DIRECTION_IN)
+		sequence->protocol = SAT_PROTOCOL_UDMA_DATA_IN;
+	else
+		sequence->protocol = SAT_PROTOCOL_UDMA_DATA_OUT;
 
-   return sati_move_set_sector_count(
-             sequence, scsi_io, ata_io, sector_count, FALSE
-          );
+	return sati_move_set_sector_count(sequence, scsi_io, ata_io,
+	    sector_count, FALSE);
 }
 
 /**
@@ -187,22 +172,19 @@ SATI_STATUS sati_move_large_udma_translate_command(
  *
  * @return none
  */
-static
-void sati_move_ncq_translate_8_bit_sector_count(
-   void * scsi_io,
-   void * ata_io
-)
+static void
+sati_move_ncq_translate_8_bit_sector_count(void *scsi_io, void *ata_io)
 {
-   U8 * cdb          = sati_cb_get_cdb_address(scsi_io);
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   sati_set_ata_features(register_fis, sati_get_cdb_byte(cdb, 4));
+	sati_set_ata_features(register_fis, sati_get_cdb_byte(cdb, 4));
 
-   // A read 6 with a 0 sector count indicates a transfer of 256 sectors.
-   // As a result update the MSB (features expanded register) to indicate
-   // 256 sectors (0x100).
-   if (sati_get_cdb_byte(cdb, 4) == 0)
-      sati_set_ata_features_exp(register_fis, 1);
+	// A read 6 with a 0 sector count indicates a transfer of 256 sectors.
+	// As a result update the MSB (features expanded register) to indicate
+	// 256 sectors (0x100).
+	if (sati_get_cdb_byte(cdb, 4) == 0)
+		sati_set_ata_features_exp(register_fis, 1);
 }
 
 //******************************************************************************
@@ -226,54 +208,46 @@ void sati_move_ncq_translate_8_bit_sector_count(
  *
  * @return none
  */
-SATI_STATUS sati_move_set_sector_count(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U32                          sector_count,
-   U8                           is_fpdma_command
-)
+SATI_STATUS
+sati_move_set_sector_count(SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    void *ata_io, U32 sector_count, U8 is_fpdma_command)
 {
-   U32  max_sector_count;
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U32 max_sector_count;
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   if (sequence->device->capabilities & SATI_DEVICE_CAP_48BIT_ENABLE)
-      max_sector_count = 65536;
-   else
-      max_sector_count = 256;
+	if (sequence->device->capabilities & SATI_DEVICE_CAP_48BIT_ENABLE)
+		max_sector_count = 65536;
+	else
+		max_sector_count = 256;
 
-   // Check the CDB transfer length count and set the register FIS sector
-   // count fields
-   if (0 == sector_count)
-   {
-      // A SCSI sector count of 0 for 10-byte CDBs and larger indicate no data
-      // transfer, so simply complete the command immediately.
-      return SATI_COMPLETE;
-   }
-   else if (sector_count >= max_sector_count)
-   {
-      // We have to perform multiple SATA commands to satisfy the sector
-      // count specified in the SCSI command.
-      sequence->command_specific_data.move_sector_count =
-         sector_count - max_sector_count;
+	// Check the CDB transfer length count and set the register FIS sector
+	// count fields
+	if (0 == sector_count) {
+		// A SCSI sector count of 0 for 10-byte CDBs and larger indicate
+		// no data transfer, so simply complete the command immediately.
+		return SATI_COMPLETE;
+	} else if (sector_count >= max_sector_count) {
+		// We have to perform multiple SATA commands to satisfy the
+		// sector count specified in the SCSI command.
+		sequence->command_specific_data.move_sector_count =
+		    sector_count - max_sector_count;
 
-      // In ATA a sector count of 0 indicates use the maximum allowed for
-      // the command (i.e. 0 == 2^16 or 2^8).
-      sector_count = 0;
-   }
+		// In ATA a sector count of 0 indicates use the maximum allowed
+		// for the command (i.e. 0 == 2^16 or 2^8).
+		sector_count = 0;
+	}
 
-   if (is_fpdma_command)
-   {
-      sati_set_ata_features(register_fis, sector_count & 0xFF);
-      sati_set_ata_features_exp(register_fis, (sector_count >> 8) & 0xFF);
-   }
-   else
-   {
-      sati_set_ata_sector_count(register_fis, sector_count & 0xFF);
-      sati_set_ata_sector_count_exp(register_fis, (sector_count >> 8) & 0xFF);
-   }
+	if (is_fpdma_command) {
+		sati_set_ata_features(register_fis, sector_count & 0xFF);
+		sati_set_ata_features_exp(register_fis,
+		    (sector_count >> 8) & 0xFF);
+	} else {
+		sati_set_ata_sector_count(register_fis, sector_count & 0xFF);
+		sati_set_ata_sector_count_exp(register_fis,
+		    (sector_count >> 8) & 0xFF);
+	}
 
-   return SATI_SUCCESS;
+	return SATI_SUCCESS;
 }
 
 /**
@@ -285,21 +259,19 @@ SATI_STATUS sati_move_set_sector_count(
  *
  * @return none
  */
-void sati_move_translate_32_bit_lba(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+void
+sati_move_translate_32_bit_lba(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   U8 * cdb          = sati_cb_get_cdb_address(scsi_io);
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 5));
-   sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 4));
-   sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 3));
-   sati_set_ata_lba_low_exp(register_fis, sati_get_cdb_byte(cdb, 2));
-   sati_set_ata_lba_mid_exp(register_fis, 0);
-   sati_set_ata_lba_high_exp(register_fis, 0);
+	sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 5));
+	sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 4));
+	sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 3));
+	sati_set_ata_lba_low_exp(register_fis, sati_get_cdb_byte(cdb, 2));
+	sati_set_ata_lba_mid_exp(register_fis, 0);
+	sati_set_ata_lba_high_exp(register_fis, 0);
 }
 
 /**
@@ -315,39 +287,33 @@ void sati_move_translate_32_bit_lba(
  * @return SATI_FAILURE_CHECK_RESPONSE_DATA This is returned if either
  *         of the 2 most significant bytes contain a non-zero value.
  */
-SATI_STATUS sati_move_translate_64_bit_lba(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+SATI_STATUS
+sati_move_translate_64_bit_lba(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   U8 * cdb          = sati_cb_get_cdb_address(scsi_io);
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   // Ensure we receive a logical block address that is within range of
-   // addressibility per the ATA specification (i.e. 48-bit or 28-bit).
-   if ( (sati_get_cdb_byte(cdb, 2) == 0) && (sati_get_cdb_byte(cdb, 3) == 0) )
-   {
-      sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 9));
-      sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 8));
-      sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 7));
-      sati_set_ata_lba_low_exp(register_fis, sati_get_cdb_byte(cdb, 6));
-      sati_set_ata_lba_mid_exp(register_fis, sati_get_cdb_byte(cdb, 5));
-      sati_set_ata_lba_high_exp(register_fis, sati_get_cdb_byte(cdb, 4));
-      return SATI_SUCCESS;
-   }
-   else
-   {
-      sati_scsi_sense_data_construct(
-         sequence,
-         scsi_io,
-         SCSI_STATUS_CHECK_CONDITION,
-         SCSI_SENSE_ILLEGAL_REQUEST,
-         SCSI_ASC_LBA_OUT_OF_RANGE,
-         SCSI_ASCQ_LBA_OUT_OF_RANGE
-      );
-      return SATI_FAILURE_CHECK_RESPONSE_DATA;
-   }
+	// Ensure we receive a logical block address that is within range of
+	// addressibility per the ATA specification (i.e. 48-bit or 28-bit).
+	if ((sati_get_cdb_byte(cdb, 2) == 0) &&
+	    (sati_get_cdb_byte(cdb, 3) == 0)) {
+		sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 9));
+		sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 8));
+		sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 7));
+		sati_set_ata_lba_low_exp(register_fis,
+		    sati_get_cdb_byte(cdb, 6));
+		sati_set_ata_lba_mid_exp(register_fis,
+		    sati_get_cdb_byte(cdb, 5));
+		sati_set_ata_lba_high_exp(register_fis,
+		    sati_get_cdb_byte(cdb, 4));
+		return SATI_SUCCESS;
+	} else {
+		sati_scsi_sense_data_construct(sequence, scsi_io,
+		    SCSI_STATUS_CHECK_CONDITION, SCSI_SENSE_ILLEGAL_REQUEST,
+		    SCSI_ASC_LBA_OUT_OF_RANGE, SCSI_ASCQ_LBA_OUT_OF_RANGE);
+		return SATI_FAILURE_CHECK_RESPONSE_DATA;
+	}
 }
 
 /**
@@ -361,24 +327,22 @@ SATI_STATUS sati_move_translate_64_bit_lba(
  * @retval SCI_SUCCESS This is returned if the command translation was
  *         successful.
  */
-SATI_STATUS sati_move_6_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+SATI_STATUS
+sati_move_6_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   U8 * cdb          = sati_cb_get_cdb_address(scsi_io);
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   // Translate the logical block address information from the SCSI CDB.
-   // There is only 5 bits of MSB located in byte 1 of the CDB.
-   sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 3));
-   sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 2));
-   sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 1) & 0x1F);
+	// Translate the logical block address information from the SCSI CDB.
+	// There is only 5 bits of MSB located in byte 1 of the CDB.
+	sati_set_ata_lba_low(register_fis, sati_get_cdb_byte(cdb, 3));
+	sati_set_ata_lba_mid(register_fis, sati_get_cdb_byte(cdb, 2));
+	sati_set_ata_lba_high(register_fis, sati_get_cdb_byte(cdb, 1) & 0x1F);
 
-   sati_move_translate_command(sequence, scsi_io, ata_io, 0);
+	sati_move_translate_command(sequence, scsi_io, ata_io, 0);
 
-   return SATI_SUCCESS;
+	return SATI_SUCCESS;
 }
 
 /**
@@ -395,17 +359,14 @@ SATI_STATUS sati_move_6_translate_command(
  * @retval SCI_SUCCESS This is returned if the command translation was
  *         successful.
  */
-SATI_STATUS sati_move_32_bit_lba_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U8                           device_head
-)
+SATI_STATUS
+sati_move_32_bit_lba_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U8 device_head)
 {
-   sati_move_translate_32_bit_lba(sequence, scsi_io, ata_io);
-   sati_move_translate_command(sequence, scsi_io, ata_io, device_head);
+	sati_move_translate_32_bit_lba(sequence, scsi_io, ata_io);
+	sati_move_translate_command(sequence, scsi_io, ata_io, device_head);
 
-   return SATI_SUCCESS;
+	return SATI_SUCCESS;
 }
 
 /**
@@ -425,63 +386,51 @@ SATI_STATUS sati_move_32_bit_lba_translate_command(
  * @return Indicate if the command translation succeeded.
  * @see sati_move_6_translate_command() for additional return codes.
  */
-SATI_STATUS sati_move_small_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-)
+SATI_STATUS
+sati_move_small_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io)
 {
-   // Translation of the sector count is performed differently for NCQ vs.
-   // other protocols.
-   if (sequence->device->capabilities & SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE)
-   {
-      sati_move_set_ata_command(
-         sequence, ata_io, ATA_WRITE_FPDMA, ATA_READ_FPDMA
-      );
-      sati_move_ncq_translate_8_bit_sector_count(scsi_io, ata_io);
-      sequence->protocol = SAT_PROTOCOL_FPDMA;
-   }
-   else if (sequence->device->capabilities & SATI_DEVICE_CAP_48BIT_ENABLE)
-   {
-      U8 * cdb = sati_cb_get_cdb_address(scsi_io);
+	// Translation of the sector count is performed differently for NCQ vs.
+	// other protocols.
+	if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE) {
+		sati_move_set_ata_command(sequence, ata_io, ATA_WRITE_FPDMA,
+		    ATA_READ_FPDMA);
+		sati_move_ncq_translate_8_bit_sector_count(scsi_io, ata_io);
+		sequence->protocol = SAT_PROTOCOL_FPDMA;
+	} else if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_48BIT_ENABLE) {
+		U8 *cdb = sati_cb_get_cdb_address(scsi_io);
 
-      sati_move_small_udma_translate_command(
-         sequence, scsi_io, ata_io, ATA_WRITE_DMA_EXT, ATA_READ_DMA_EXT
-      );
+		sati_move_small_udma_translate_command(sequence, scsi_io,
+		    ata_io, ATA_WRITE_DMA_EXT, ATA_READ_DMA_EXT);
 
-      // A read/write 6 with a 0 sector count indicates a transfer of 256
-      // sectors.  As a result update the MSB (features expanded register)
-      // to indicate 256 sectors (0x100).
-      if (sati_get_cdb_byte(cdb, 4) == 0)
-      {
-         U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
-         sati_set_ata_sector_count_exp(register_fis, 1);
-      }
-   }
-   else if (sequence->device->capabilities & SATI_DEVICE_CAP_UDMA_ENABLE)
-   {
-      sati_move_small_udma_translate_command(
-         sequence, scsi_io, ata_io, ATA_WRITE_DMA, ATA_READ_DMA
-      );
-   }
-   else
-   {
-      /**
-       * Currently the translation does not support devices incapable of
-       * handling the 48-bit feature set (i.e. 16 bits of sector count).
-       */
-      sati_scsi_sense_data_construct(
-         sequence,
-         scsi_io,
-         SCSI_STATUS_CHECK_CONDITION,
-         SCSI_SENSE_ILLEGAL_REQUEST,
-         SCSI_ASC_INVALID_FIELD_IN_CDB,
-         SCSI_ASCQ_INVALID_FIELD_IN_CDB
-      );
-      return SATI_FAILURE_CHECK_RESPONSE_DATA;
-   }
+		// A read/write 6 with a 0 sector count indicates a transfer of
+		// 256 sectors.  As a result update the MSB (features expanded
+		// register) to indicate 256 sectors (0x100).
+		if (sati_get_cdb_byte(cdb, 4) == 0) {
+			U8 *register_fis = sati_cb_get_h2d_register_fis_address(
+			    ata_io);
+			sati_set_ata_sector_count_exp(register_fis, 1);
+		}
+	} else if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_UDMA_ENABLE) {
+		sati_move_small_udma_translate_command(sequence, scsi_io,
+		    ata_io, ATA_WRITE_DMA, ATA_READ_DMA);
+	} else {
+		/**
+		 * Currently the translation does not support devices incapable
+		 * of handling the 48-bit feature set (i.e. 16 bits of sector
+		 * count).
+		 */
+		sati_scsi_sense_data_construct(sequence, scsi_io,
+		    SCSI_STATUS_CHECK_CONDITION, SCSI_SENSE_ILLEGAL_REQUEST,
+		    SCSI_ASC_INVALID_FIELD_IN_CDB,
+		    SCSI_ASCQ_INVALID_FIELD_IN_CDB);
+		return SATI_FAILURE_CHECK_RESPONSE_DATA;
+	}
 
-   return sati_move_6_translate_command(sequence, scsi_io, ata_io);
+	return sati_move_6_translate_command(sequence, scsi_io, ata_io);
 }
 
 /**
@@ -500,92 +449,65 @@ SATI_STATUS sati_move_small_translate_command(
  *         supported by the target device.
  * @see sati_move_set_sector_count() for additional return codes.
  */
-SATI_STATUS sati_move_large_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U32                          sector_count,
-   U8                         * ata_device_head
-)
+SATI_STATUS
+sati_move_large_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io, U32 sector_count, U8 *ata_device_head)
 {
-   SATI_STATUS   status = SATI_SUCCESS;
-   U8          * cdb    = sati_cb_get_cdb_address(scsi_io);
+	SATI_STATUS status = SATI_SUCCESS;
+	U8 *cdb = sati_cb_get_cdb_address(scsi_io);
 
-   // Parts of translation (e.g. sector count) is performed differently
-   // for NCQ vs. other protocols.
-   if (sequence->device->capabilities & SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE)
-   {
-      // if the user did not request to ignore FUA
-      if((sequence->device->capabilities & SATI_DEVICE_CAP_IGNORE_FUA)==0)
-      {
-         // Is the Force Unit Access bit set?
-         if (sati_get_cdb_byte(cdb, 1) & SCSI_MOVE_FUA_BIT_ENABLE)
-            *ata_device_head = ATA_DEV_HEAD_REG_FUA_ENABLE;
-      }
+	// Parts of translation (e.g. sector count) is performed differently
+	// for NCQ vs. other protocols.
+	if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE) {
+		// if the user did not request to ignore FUA
+		if ((sequence->device->capabilities &
+			SATI_DEVICE_CAP_IGNORE_FUA) == 0) {
+			// Is the Force Unit Access bit set?
+			if (sati_get_cdb_byte(cdb, 1) &
+			    SCSI_MOVE_FUA_BIT_ENABLE)
+				*ata_device_head = ATA_DEV_HEAD_REG_FUA_ENABLE;
+		}
 
-      sati_move_set_ata_command(
-         sequence, ata_io, ATA_WRITE_FPDMA, ATA_READ_FPDMA
-      );
-      status = sati_move_set_sector_count(
-                  sequence, scsi_io, ata_io, sector_count, TRUE
-               );
-      sequence->protocol = SAT_PROTOCOL_FPDMA;
-   }
-   else if (sequence->device->capabilities & SATI_DEVICE_CAP_48BIT_ENABLE)
-   {
-      // Is the Force Unit Access bit set?  If it is, then error.  We
-      // aren't supporting this yet for normal DMA.
-      if (sati_get_cdb_byte(cdb, 1) & SCSI_MOVE_FUA_BIT_ENABLE)
-      {
-         sati_scsi_sense_data_construct(
-            sequence,
-            scsi_io,
-            SCSI_STATUS_CHECK_CONDITION,
-            SCSI_SENSE_ILLEGAL_REQUEST,
-            SCSI_ASC_INVALID_FIELD_IN_CDB,
-            SCSI_ASCQ_INVALID_FIELD_IN_CDB
-         );
-         return SATI_FAILURE_CHECK_RESPONSE_DATA;
-      }
+		sati_move_set_ata_command(sequence, ata_io, ATA_WRITE_FPDMA,
+		    ATA_READ_FPDMA);
+		status = sati_move_set_sector_count(sequence, scsi_io, ata_io,
+		    sector_count, TRUE);
+		sequence->protocol = SAT_PROTOCOL_FPDMA;
+	} else if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_48BIT_ENABLE) {
+		// Is the Force Unit Access bit set?  If it is, then error.  We
+		// aren't supporting this yet for normal DMA.
+		if (sati_get_cdb_byte(cdb, 1) & SCSI_MOVE_FUA_BIT_ENABLE) {
+			sati_scsi_sense_data_construct(sequence, scsi_io,
+			    SCSI_STATUS_CHECK_CONDITION,
+			    SCSI_SENSE_ILLEGAL_REQUEST,
+			    SCSI_ASC_INVALID_FIELD_IN_CDB,
+			    SCSI_ASCQ_INVALID_FIELD_IN_CDB);
+			return SATI_FAILURE_CHECK_RESPONSE_DATA;
+		}
 
-      status = sati_move_large_udma_translate_command(
-                  sequence,
-                  scsi_io,
-                  ata_io,
-                  sector_count,
-                  ATA_WRITE_DMA_EXT,
-                  ATA_READ_DMA_EXT
-               );
-   }
-   else if (sequence->device->capabilities & SATI_DEVICE_CAP_UDMA_ENABLE)
-   {
-      status = sati_move_large_udma_translate_command(
-                  sequence,
-                  scsi_io,
-                  ata_io,
-                  sector_count,
-                  ATA_WRITE_DMA,
-                  ATA_READ_DMA
-               );
-   }
-   else
-   {
-      /**
-       * Currently the translation does not support devices incapable of
-       * handling the 48-bit feature set (i.e. 16 bits of sector count).
-       */
-      sati_scsi_sense_data_construct(
-         sequence,
-         scsi_io,
-         SCSI_STATUS_CHECK_CONDITION,
-         SCSI_SENSE_ILLEGAL_REQUEST,
-         SCSI_ASC_INVALID_FIELD_IN_CDB,
-         SCSI_ASCQ_INVALID_FIELD_IN_CDB
-      );
-      return SATI_FAILURE_CHECK_RESPONSE_DATA;
-   }
+		status = sati_move_large_udma_translate_command(sequence,
+		    scsi_io, ata_io, sector_count, ATA_WRITE_DMA_EXT,
+		    ATA_READ_DMA_EXT);
+	} else if (sequence->device->capabilities &
+	    SATI_DEVICE_CAP_UDMA_ENABLE) {
+		status = sati_move_large_udma_translate_command(sequence,
+		    scsi_io, ata_io, sector_count, ATA_WRITE_DMA, ATA_READ_DMA);
+	} else {
+		/**
+		 * Currently the translation does not support devices incapable
+		 * of handling the 48-bit feature set (i.e. 16 bits of sector
+		 * count).
+		 */
+		sati_scsi_sense_data_construct(sequence, scsi_io,
+		    SCSI_STATUS_CHECK_CONDITION, SCSI_SENSE_ILLEGAL_REQUEST,
+		    SCSI_ASC_INVALID_FIELD_IN_CDB,
+		    SCSI_ASCQ_INVALID_FIELD_IN_CDB);
+		return SATI_FAILURE_CHECK_RESPONSE_DATA;
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -600,17 +522,12 @@ SATI_STATUS sati_move_large_translate_command(
  *
  * @return none
  */
-void sati_move_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io,
-   U8                           device_head
-)
+void
+sati_move_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io,
+    void *ata_io, U8 device_head)
 {
-   U8 * register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
+	U8 *register_fis = sati_cb_get_h2d_register_fis_address(ata_io);
 
-   sati_set_ata_device_head(
-      register_fis, device_head | ATA_DEV_HEAD_REG_LBA_MODE_ENABLE
-   );
+	sati_set_ata_device_head(register_fis,
+	    device_head | ATA_DEV_HEAD_REG_LBA_MODE_ENABLE);
 }
-

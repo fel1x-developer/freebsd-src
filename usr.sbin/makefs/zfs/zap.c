@@ -35,36 +35,35 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <util.h>
 
 #include "makefs.h"
 #include "zfs.h"
 
 typedef struct zfs_zap_entry {
-	char		*name;		/* entry key, private copy */
-	uint64_t	hash;		/* key hash */
+	char *name;    /* entry key, private copy */
+	uint64_t hash; /* key hash */
 	union {
-		uint8_t	 *valp;
+		uint8_t *valp;
 		uint16_t *val16p;
 		uint32_t *val32p;
 		uint64_t *val64p;
-	};				/* entry value, an integer array */
-	uint64_t	val64;		/* embedded value for a common case */
-	size_t		intsz;		/* array element size; 1, 2, 4 or 8 */
-	size_t		intcnt;		/* array size */
+	};		/* entry value, an integer array */
+	uint64_t val64; /* embedded value for a common case */
+	size_t intsz;	/* array element size; 1, 2, 4 or 8 */
+	size_t intcnt;	/* array size */
 	STAILQ_ENTRY(zfs_zap_entry) next;
 } zfs_zap_entry_t;
 
 struct zfs_zap {
 	STAILQ_HEAD(, zfs_zap_entry) kvps;
-	uint64_t	hashsalt;	/* key hash input */
-	unsigned long	kvpcnt;		/* number of key-value pairs */
-	unsigned long	chunks;		/* count of chunks needed for fat ZAP */
-	bool		micro;		/* can this be a micro ZAP? */
+	uint64_t hashsalt;    /* key hash input */
+	unsigned long kvpcnt; /* number of key-value pairs */
+	unsigned long chunks; /* count of chunks needed for fat ZAP */
+	bool micro;	      /* can this be a micro ZAP? */
 
-	dnode_phys_t	*dnode;		/* backpointer */
-	zfs_objset_t	*os;		/* backpointer */
+	dnode_phys_t *dnode; /* backpointer */
+	zfs_objset_t *os;    /* backpointer */
 };
 
 static uint16_t
@@ -155,8 +154,9 @@ zap_add(zfs_zap_t *zap, const char *name, size_t intsz, size_t intcnt,
 	zap->chunks += zap_entry_chunks(ent);
 	STAILQ_INSERT_TAIL(&zap->kvps, ent, next);
 
-	if (zap->micro && (intcnt != 1 || intsz != sizeof(uint64_t) ||
-	    strlen(name) + 1 > MZAP_NAME_LEN || zap->kvpcnt > MZAP_ENT_MAX))
+	if (zap->micro &&
+	    (intcnt != 1 || intsz != sizeof(uint64_t) ||
+		strlen(name) + 1 > MZAP_NAME_LEN || zap->kvpcnt > MZAP_ENT_MAX))
 		zap->micro = false;
 }
 
@@ -177,7 +177,7 @@ zap_entry_exists(zfs_zap_t *zap, const char *name)
 {
 	zfs_zap_entry_t *ent;
 
-	STAILQ_FOREACH(ent, &zap->kvps, next) {
+	STAILQ_FOREACH (ent, &zap->kvps, next) {
 		if (strcmp(ent->name, name) == 0)
 			return (true);
 	}
@@ -203,7 +203,7 @@ zap_micro_write(zfs_opt_t *zfs, zfs_zap_t *zap)
 	assert(bytes <= (off_t)MZAP_MAX_BLKSZ);
 
 	ment = &mzap->mz_chunk[0];
-	STAILQ_FOREACH(ent, &zap->kvps, next) {
+	STAILQ_FOREACH (ent, &zap->kvps, next) {
 		memcpy(&ment->mze_value, ent->valp, ent->intsz * ent->intcnt);
 		ment->mze_cd = 0; /* XXX-MJ */
 		strlcpy(ment->mze_name, ent->name, sizeof(ment->mze_name));
@@ -267,7 +267,7 @@ zap_fat_write_prefixlen(zfs_zap_t *zap, zap_leaf_t *l)
 		uint32_t *leafchunks;
 
 		leafchunks = ecalloc(1u << prefixlen, sizeof(*leafchunks));
-		STAILQ_FOREACH(ent, &zap->kvps, next) {
+		STAILQ_FOREACH (ent, &zap->kvps, next) {
 			uint64_t li;
 			uint16_t chunks;
 
@@ -402,7 +402,7 @@ zap_fat_write(zfs_opt_t *zfs, zfs_zap_t *zap)
 	 * them out.
 	 */
 	ptrhasht = (uint64_t *)(&zfs->filebuf[0] + blksz / 2);
-	STAILQ_FOREACH(ent, &zap->kvps, next) {
+	STAILQ_FOREACH (ent, &zap->kvps, next) {
 		struct zap_leaf_entry *le;
 		uint16_t *lptr;
 		uint64_t hi, li;
@@ -441,10 +441,8 @@ zap_fat_write(zfs_opt_t *zfs, zfs_zap_t *zap)
 		}
 		*lptr = l.l_phys->l_hdr.lh_freelist;
 		l.l_phys->l_hdr.lh_freelist += nchunks;
-		assert(l.l_phys->l_hdr.lh_freelist <=
-		    ZAP_LEAF_NUMCHUNKS(&l));
-		if (l.l_phys->l_hdr.lh_freelist ==
-		    ZAP_LEAF_NUMCHUNKS(&l))
+		assert(l.l_phys->l_hdr.lh_freelist <= ZAP_LEAF_NUMCHUNKS(&l));
+		if (l.l_phys->l_hdr.lh_freelist == ZAP_LEAF_NUMCHUNKS(&l))
 			l.l_phys->l_hdr.lh_freelist = 0xffff;
 
 		/*
@@ -455,20 +453,17 @@ zap_fat_write(zfs_opt_t *zfs, zfs_zap_t *zap)
 			break;
 		case 2:
 			for (uint16_t *v = ent->val16p;
-			    v - ent->val16p < (ptrdiff_t)ent->intcnt;
-			    v++)
+			     v - ent->val16p < (ptrdiff_t)ent->intcnt; v++)
 				*v = htobe16(*v);
 			break;
 		case 4:
 			for (uint32_t *v = ent->val32p;
-			    v - ent->val32p < (ptrdiff_t)ent->intcnt;
-			    v++)
+			     v - ent->val32p < (ptrdiff_t)ent->intcnt; v++)
 				*v = htobe32(*v);
 			break;
 		case 8:
 			for (uint64_t *v = ent->val64p;
-			    v - ent->val64p < (ptrdiff_t)ent->intcnt;
-			    v++)
+			     v - ent->val64p < (ptrdiff_t)ent->intcnt; v++)
 				*v = htobe64(*v);
 			break;
 		default:
@@ -507,8 +502,8 @@ zap_fat_write(zfs_opt_t *zfs, zfs_zap_t *zap)
 	dnode->dn_datablkszsec = blksz >> MINBLOCKSHIFT;
 	dnode->dn_maxblkid = lblkcnt + 1;
 
-	c = dnode_cursor_init(zfs, zap->os, zap->dnode,
-	    (lblkcnt + 1) * blksz, blksz);
+	c = dnode_cursor_init(zfs, zap->os, zap->dnode, (lblkcnt + 1) * blksz,
+	    blksz);
 
 	loc = objset_space_alloc(zfs, zap->os, &blksz);
 	vdev_pwrite_dnode_indir(zfs, dnode, 0, 1, zfs->filebuf, blksz, loc,

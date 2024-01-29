@@ -31,15 +31,16 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/chip.h>
+#include <dev/sound/pcm/sound.h>
 #include <dev/sound/usb/uaudio.h>
 
 #include "mixer_if.h"
 
 /************************************************************/
 static void *
-ua_chan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+ua_chan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	return (uaudio_chan_init(devinfo, b, c, dir));
 }
@@ -73,7 +74,8 @@ ua_chan_setblocksize(kobj_t obj, void *data, uint32_t blocksize)
 }
 
 static int
-ua_chan_setfragments(kobj_t obj, void *data, uint32_t blocksize, uint32_t blockcount)
+ua_chan_setfragments(kobj_t obj, void *data, uint32_t blocksize,
+    uint32_t blockcount)
 {
 	return (uaudio_chan_set_param_fragments(data, blocksize, blockcount));
 }
@@ -109,8 +111,8 @@ ua_chan_getmatrix(kobj_t obj, void *data, uint32_t format)
 	return (uaudio_chan_getmatrix(data, format));
 }
 
-static kobj_method_t ua_chan_methods[] = {
-	KOBJMETHOD(channel_init, ua_chan_init),
+static kobj_method_t ua_chan_methods[] = { KOBJMETHOD(channel_init,
+					       ua_chan_init),
 	KOBJMETHOD(channel_free, ua_chan_free),
 	KOBJMETHOD(channel_setformat, ua_chan_setformat),
 	KOBJMETHOD(channel_setspeed, ua_chan_setspeed),
@@ -119,9 +121,7 @@ static kobj_method_t ua_chan_methods[] = {
 	KOBJMETHOD(channel_trigger, ua_chan_trigger),
 	KOBJMETHOD(channel_getptr, ua_chan_getptr),
 	KOBJMETHOD(channel_getcaps, ua_chan_getcaps),
-	KOBJMETHOD(channel_getmatrix, ua_chan_getmatrix),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(channel_getmatrix, ua_chan_getmatrix), KOBJMETHOD_END };
 
 CHANNEL_DECLARE(ua_chan);
 
@@ -177,13 +177,11 @@ ua_mixer_uninit(struct snd_mixer *m)
 	return (uaudio_mixer_uninit_sub(mix_getdevinfo(m), m));
 }
 
-static kobj_method_t ua_mixer_methods[] = {
-	KOBJMETHOD(mixer_init, ua_mixer_init),
+static kobj_method_t ua_mixer_methods[] = { KOBJMETHOD(mixer_init,
+						ua_mixer_init),
 	KOBJMETHOD(mixer_uninit, ua_mixer_uninit),
 	KOBJMETHOD(mixer_set, ua_mixer_set),
-	KOBJMETHOD(mixer_setrecsrc, ua_mixer_setrecsrc),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(mixer_setrecsrc, ua_mixer_setrecsrc), KOBJMETHOD_END };
 
 MIXER_DECLARE(ua_mixer);
 /************************************************************/
@@ -197,8 +195,7 @@ ua_probe(device_t dev)
 
 	func = device_get_ivars(dev);
 
-	if ((func == NULL) ||
-	    (func->func != SCF_PCM)) {
+	if ((func == NULL) || (func->func != SCF_PCM)) {
 		return (ENXIO);
 	}
 
@@ -221,8 +218,7 @@ ua_detach(device_t dev)
 
 static device_method_t ua_pcm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe, ua_probe),
-	DEVMETHOD(device_attach, ua_attach),
+	DEVMETHOD(device_probe, ua_probe), DEVMETHOD(device_attach, ua_attach),
 	DEVMETHOD(device_detach, ua_detach),
 
 	DEVMETHOD_END

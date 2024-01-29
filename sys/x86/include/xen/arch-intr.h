@@ -26,15 +26,15 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef	_MACHINE__XEN_ARCH_INTR_H_
-#define	_MACHINE__XEN_ARCH_INTR_H_
+#ifndef _MACHINE__XEN_ARCH_INTR_H_
+#define _MACHINE__XEN_ARCH_INTR_H_
 
-#include <x86/intr_machdep.h>
 #include <x86/apicvar.h>
+#include <x86/intr_machdep.h>
 
 typedef struct {
-	struct intsrc		intsrc;		/* @TOP -> *xen_arch_isrc */
-	u_int			vector;		/* Global isrc vector number */
+	struct intsrc intsrc; /* @TOP -> *xen_arch_isrc */
+	u_int vector;	      /* Global isrc vector number */
 } xen_arch_isrc_t;
 
 #include <dev/xen/bus/intr-internal.h>
@@ -44,7 +44,7 @@ typedef struct {
 extern void xen_arch_intr_init(void);
 
 extern struct xenisrc *xen_arch_intr_alloc(void);
-extern void     xen_arch_intr_release(struct xenisrc *isrc);
+extern void xen_arch_intr_release(struct xenisrc *isrc);
 
 static inline u_int
 xen_arch_intr_next_cpu(struct xenisrc *isrc)
@@ -92,4 +92,4 @@ xen_arch_intr_event_bind(struct xenisrc *isrc, u_int cpu)
 	return (intr_event_bind(isrc->xi_arch.intsrc.is_event, cpu));
 }
 
-#endif	/* _MACHINE__XEN_ARCH_INTR_H_ */
+#endif /* _MACHINE__XEN_ARCH_INTR_H_ */

@@ -36,12 +36,13 @@
 /*
  * Function: qla_hw_reset
  */
-static __inline void qla_hw_reset(qla_host_t *ha)
+static __inline void
+qla_hw_reset(qla_host_t *ha)
 {
-        WRITE_OFFSET32(ha, Q8_ASIC_RESET, 0xFFFFFFFF);
+	WRITE_OFFSET32(ha, Q8_ASIC_RESET, 0xFFFFFFFF);
 }
 
-#define QL8_SEMLOCK_TIMEOUT	1000/* QLA8020 Semaphore Lock Timeout 10ms */
+#define QL8_SEMLOCK_TIMEOUT 1000 /* QLA8020 Semaphore Lock Timeout 10ms */
 
 /*
  * Inline functions for hardware semaphores
@@ -65,13 +66,13 @@ qla_sem_lock(qla_host_t *ha, uint32_t sem_reg, uint32_t id_reg, uint32_t id_val)
 		count--;
 
 		if (!count)
-			return(-1);
+			return (-1);
 		qla_mdelay(__func__, 10);
 	}
 	if (id_reg)
 		WRITE_OFFSET32(ha, id_reg, id_val);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -88,7 +89,7 @@ qla_sem_unlock(qla_host_t *ha, uint32_t sem_reg)
 static __inline int
 qla_get_ifq_snd_maxlen(qla_host_t *ha)
 {
-	return((NUM_TX_DESCRIPTORS - 1));
+	return ((NUM_TX_DESCRIPTORS - 1));
 }
 
 static __inline uint32_t
@@ -116,7 +117,7 @@ qla_get_optics(qla_host_t *ha)
 		break;
 	}
 
-	return(link_speed);
+	return (link_speed);
 }
 
 static __inline uint8_t *
@@ -131,10 +132,10 @@ qla_read_mac_addr(qla_host_t *ha)
 	uint32_t mac_crb_addr;
 	uint32_t mac_lo;
 	uint32_t mac_hi;
-	uint8_t	*macp;
+	uint8_t *macp;
 
 	mac_crb_addr = Q8_CRB_MAC_BLOCK_START +
-		(((ha->pci_func >> 1) * 3) << 2) + ((ha->pci_func & 0x01) << 2);
+	    (((ha->pci_func >> 1) * 3) << 2) + ((ha->pci_func & 0x01) << 2);
 
 	mac_lo = READ_REG32(ha, mac_crb_addr);
 	mac_hi = READ_REG32(ha, (mac_crb_addr + 0x4));
@@ -171,7 +172,7 @@ qla_read_mac_addr(qla_host_t *ha)
 
 static __inline void
 qla_set_hw_rcv_desc(qla_host_t *ha, uint32_t ridx, uint32_t index,
-	uint32_t handle, bus_addr_t paddr, uint32_t buf_size)
+    uint32_t handle, bus_addr_t paddr, uint32_t buf_size)
 {
 	q80_recv_desc_t *rcv_desc;
 
@@ -191,10 +192,10 @@ qla_init_hw_rcv_descriptors(qla_host_t *ha, uint32_t ridx)
 {
 	if (ridx == RDS_RING_INDEX_NORMAL)
 		bzero((void *)ha->hw.dma_buf.rds_ring[ridx].dma_b,
-			(sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS));
+		    (sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS));
 	else if (ridx == RDS_RING_INDEX_JUMBO)
 		bzero((void *)ha->hw.dma_buf.rds_ring[ridx].dma_b,
-			(sizeof(q80_recv_desc_t) * NUM_RX_JUMBO_DESCRIPTORS));
+		    (sizeof(q80_recv_desc_t) * NUM_RX_JUMBO_DESCRIPTORS));
 	else
 		QL_ASSERT(0, ("%s: invalid rds index [%d]\n", __func__, ridx));
 }

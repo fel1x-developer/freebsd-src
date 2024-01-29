@@ -36,17 +36,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/filedesc.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
+#include <sys/domain.h>
+#include <sys/filedesc.h>
 #include <sys/ipc.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
+#include <sys/protosw.h>
+#include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/protosw.h>
-#include <sys/domain.h>
-#include <sys/sbuf.h>
-#include <sys/systm.h>
 #include <sys/un.h>
 #include <sys/vnode.h>
 
@@ -276,8 +276,9 @@ audit_arg_groupset(gid_t *gidset, u_int gidset_size)
 		return;
 
 	if (ar->k_ar.ar_arg_groups.gidset == NULL)
-		ar->k_ar.ar_arg_groups.gidset = malloc(
-		    sizeof(gid_t) * gidset_size, M_AUDITGIDSET, M_WAITOK);
+		ar->k_ar.ar_arg_groups.gidset = malloc(sizeof(gid_t) *
+			gidset_size,
+		    M_AUDITGIDSET, M_WAITOK);
 
 	for (i = 0; i < gidset_size; i++)
 		ar->k_ar.ar_arg_groups.gidset[i] = gidset[i];
@@ -414,8 +415,9 @@ audit_arg_process(struct proc *p)
 	ar->k_ar.ar_arg_asid = cred->cr_audit.ai_asid;
 	ar->k_ar.ar_arg_termid_addr = cred->cr_audit.ai_termid;
 	ar->k_ar.ar_arg_pid = p->p_pid;
-	ARG_SET_VALID(ar, ARG_AUID | ARG_EUID | ARG_EGID | ARG_RUID |
-	    ARG_RGID | ARG_ASID | ARG_TERMID_ADDR | ARG_PID | ARG_PROCESS);
+	ARG_SET_VALID(ar,
+	    ARG_AUID | ARG_EUID | ARG_EGID | ARG_RUID | ARG_RGID | ARG_ASID |
+		ARG_TERMID_ADDR | ARG_PID | ARG_PROCESS);
 }
 
 void
@@ -475,7 +477,7 @@ audit_arg_sockaddr(struct thread *td, int dirfd, struct sockaddr *sa)
 		    ((struct sockaddr_un *)sa)->sun_path);
 		ARG_SET_VALID(ar, ARG_SADDRUNIX);
 		break;
-	/* XXXAUDIT: default:? */
+		/* XXXAUDIT: default:? */
 	}
 }
 
@@ -608,7 +610,7 @@ audit_arg_svipc_id(int id)
 }
 
 void
-audit_arg_svipc_addr(void * addr)
+audit_arg_svipc_addr(void *addr)
 {
 	struct kaudit_record *ar;
 
@@ -694,10 +696,8 @@ audit_arg_file(struct proc *p, struct file *fp)
 		so = (struct socket *)fp->f_data;
 		if (INP_CHECK_SOCKAF(so, PF_INET)) {
 			SOCK_LOCK(so);
-			ar->k_ar.ar_arg_sockinfo.so_type =
-			    so->so_type;
-			ar->k_ar.ar_arg_sockinfo.so_domain =
-			    INP_SOCKAF(so);
+			ar->k_ar.ar_arg_sockinfo.so_type = so->so_type;
+			ar->k_ar.ar_arg_sockinfo.so_domain = INP_SOCKAF(so);
 			ar->k_ar.ar_arg_sockinfo.so_protocol =
 			    so->so_proto->pr_protocol;
 			SOCK_UNLOCK(so);
@@ -707,10 +707,8 @@ audit_arg_file(struct proc *p, struct file *fp)
 			    pcb->inp_faddr.s_addr;
 			ar->k_ar.ar_arg_sockinfo.so_laddr =
 			    pcb->inp_laddr.s_addr;
-			ar->k_ar.ar_arg_sockinfo.so_rport =
-			    pcb->inp_fport;
-			ar->k_ar.ar_arg_sockinfo.so_lport =
-			    pcb->inp_lport;
+			ar->k_ar.ar_arg_sockinfo.so_rport = pcb->inp_fport;
+			ar->k_ar.ar_arg_sockinfo.so_lport = pcb->inp_lport;
 			INP_RUNLOCK(pcb);
 			ARG_SET_VALID(ar, ARG_SOCKINFO);
 		}

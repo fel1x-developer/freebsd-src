@@ -30,9 +30,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
-#include <dev/drm2/ttm/ttm_module.h>
 #include <dev/drm2/ttm/ttm_bo_driver.h>
+#include <dev/drm2/ttm/ttm_module.h>
 #include <dev/drm2/ttm/ttm_page_alloc.h>
 #ifdef TTM_HAS_AGP
 #include <dev/drm2/ttm/ttm_placement.h>
@@ -46,9 +47,11 @@ struct ttm_agp_backend {
 
 MALLOC_DEFINE(M_TTM_AGP, "ttm_agp", "TTM AGP Backend");
 
-static int ttm_agp_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
+static int
+ttm_agp_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
 {
-	struct ttm_agp_backend *agp_be = container_of(ttm, struct ttm_agp_backend, ttm);
+	struct ttm_agp_backend *agp_be = container_of(ttm,
+	    struct ttm_agp_backend, ttm);
 	struct drm_mm_node *node = bo_mem->mm_node;
 	int ret;
 	unsigned i;
@@ -64,24 +67,28 @@ static int ttm_agp_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
 
 	agp_be->offset = node->start * PAGE_SIZE;
 	ret = -agp_bind_pages(agp_be->bridge, agp_be->pages,
-			      ttm->num_pages << PAGE_SHIFT, agp_be->offset);
+	    ttm->num_pages << PAGE_SHIFT, agp_be->offset);
 	if (ret)
 		printf("[TTM] AGP Bind memory failed\n");
 
 	return ret;
 }
 
-static int ttm_agp_unbind(struct ttm_tt *ttm)
+static int
+ttm_agp_unbind(struct ttm_tt *ttm)
 {
-	struct ttm_agp_backend *agp_be = container_of(ttm, struct ttm_agp_backend, ttm);
+	struct ttm_agp_backend *agp_be = container_of(ttm,
+	    struct ttm_agp_backend, ttm);
 
 	return -agp_unbind_pages(agp_be->bridge, ttm->num_pages << PAGE_SHIFT,
-				 agp_be->offset);
+	    agp_be->offset);
 }
 
-static void ttm_agp_destroy(struct ttm_tt *ttm)
+static void
+ttm_agp_destroy(struct ttm_tt *ttm)
 {
-	struct ttm_agp_backend *agp_be = container_of(ttm, struct ttm_agp_backend, ttm);
+	struct ttm_agp_backend *agp_be = container_of(ttm,
+	    struct ttm_agp_backend, ttm);
 
 	ttm_tt_fini(ttm);
 	free(agp_be->pages, M_TTM_AGP);
@@ -94,10 +101,9 @@ static struct ttm_backend_func ttm_agp_func = {
 	.destroy = ttm_agp_destroy,
 };
 
-struct ttm_tt *ttm_agp_tt_create(struct ttm_bo_device *bdev,
-				 device_t bridge,
-				 unsigned long size, uint32_t page_flags,
-				 vm_page_t dummy_read_page)
+struct ttm_tt *
+ttm_agp_tt_create(struct ttm_bo_device *bdev, device_t bridge,
+    unsigned long size, uint32_t page_flags, vm_page_t dummy_read_page)
 {
 	struct ttm_agp_backend *agp_be;
 
@@ -106,19 +112,21 @@ struct ttm_tt *ttm_agp_tt_create(struct ttm_bo_device *bdev,
 	agp_be->bridge = bridge;
 	agp_be->ttm.func = &ttm_agp_func;
 
-	if (ttm_tt_init(&agp_be->ttm, bdev, size, page_flags, dummy_read_page)) {
+	if (ttm_tt_init(&agp_be->ttm, bdev, size, page_flags,
+		dummy_read_page)) {
 		free(agp_be, M_TTM_AGP);
 		return NULL;
 	}
 
 	agp_be->offset = 0;
 	agp_be->pages = malloc(agp_be->ttm.num_pages * sizeof(*agp_be->pages),
-			       M_TTM_AGP, M_WAITOK);
+	    M_TTM_AGP, M_WAITOK);
 
 	return &agp_be->ttm;
 }
 
-int ttm_agp_tt_populate(struct ttm_tt *ttm)
+int
+ttm_agp_tt_populate(struct ttm_tt *ttm)
 {
 	if (ttm->state != tt_unpopulated)
 		return 0;
@@ -126,7 +134,8 @@ int ttm_agp_tt_populate(struct ttm_tt *ttm)
 	return ttm_pool_populate(ttm);
 }
 
-void ttm_agp_tt_unpopulate(struct ttm_tt *ttm)
+void
+ttm_agp_tt_unpopulate(struct ttm_tt *ttm)
 {
 	ttm_pool_unpopulate(ttm);
 }

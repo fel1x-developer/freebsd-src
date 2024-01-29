@@ -38,39 +38,42 @@
 /* The actual program logic is in the file procs.c			*/
 
 #include <sys/cdefs.h>
-#include <err.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <rpc/rpc.h>
-#include <rpc/rpc_com.h>
-#include <string.h>
-#include <syslog.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
 #include <netdb.h>
+#include <rpc/rpc.h>
+#include <rpc/rpc_com.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 #include <unistd.h>
+
 #include "statd.h"
 
-#define	GETPORT_MAXTRY	20	/* Max tries to get a port # */
+#define GETPORT_MAXTRY 20 /* Max tries to get a port # */
 
-int debug = 0;		/* Controls syslog() calls for debug messages	*/
+int debug = 0; /* Controls syslog() calls for debug messages	*/
 
 static char **hosts, *svcport_str = NULL;
 static int nhosts = 0;
 static int xcreated = 0;
-static int	mallocd_svcport = 0;
-static int	*sock_fd;
-static int	sock_fdcnt;
-static int	sock_fdpos;
+static int mallocd_svcport = 0;
+static int *sock_fd;
+static int sock_fdcnt;
+static int sock_fdpos;
 
-static int	create_service(struct netconfig *nconf);
-static void	complete_service(struct netconfig *nconf, char *port_str);
-static void	clearout_service(void);
+static int create_service(struct netconfig *nconf);
+static void complete_service(struct netconfig *nconf, char *port_str);
+static void clearout_service(void);
 static void handle_sigchld(int sig);
 void out_of_mem(void) __dead2;
 
@@ -79,239 +82,246 @@ static void usage(void) __dead2;
 int
 main(int argc, char **argv)
 {
-  struct sigaction sa;
-  struct netconfig *nconf;
-  void *nc_handle;
-  in_port_t svcport;
-  int ch, i, s;
-  char *endptr;
-  char **hosts_bak;
-  int have_v6 = 1;
-  int foreground = 0;
-  int maxrec = RPC_MAXDATASIZE;
-  int attempt_cnt, port_len, port_pos, ret;
-  char **port_list;
+	struct sigaction sa;
+	struct netconfig *nconf;
+	void *nc_handle;
+	in_port_t svcport;
+	int ch, i, s;
+	char *endptr;
+	char **hosts_bak;
+	int have_v6 = 1;
+	int foreground = 0;
+	int maxrec = RPC_MAXDATASIZE;
+	int attempt_cnt, port_len, port_pos, ret;
+	char **port_list;
 
-  while ((ch = getopt(argc, argv, "dFh:p:")) != -1)
-    switch (ch) {
-    case 'd':
-      debug = 1;
-      break;
-    case 'F':
-      foreground = 1;
-      break;
-    case 'h':
-      ++nhosts;
-      hosts_bak = hosts;
-      hosts_bak = realloc(hosts, nhosts * sizeof(char *));
-      if (hosts_bak == NULL) {
-	      if (hosts != NULL) {
-		      for (i = 0; i < nhosts; i++) 
-			      free(hosts[i]);
-		      free(hosts);
-		      out_of_mem();
-	      }
-      }
-      hosts = hosts_bak;
-      hosts[nhosts - 1] = strdup(optarg);
-      if (hosts[nhosts - 1] == NULL) {
-	      for (i = 0; i < (nhosts - 1); i++) 
-		      free(hosts[i]);
-	      free(hosts);
-	      out_of_mem();
-      }
-      break;
-    case 'p':
-      endptr = NULL;
-      svcport = (in_port_t)strtoul(optarg, &endptr, 10);
-      if (endptr == NULL || *endptr != '\0' || svcport == 0 || 
-          svcport >= IPPORT_MAX)
-	usage();
-      
-      svcport_str = strdup(optarg);
-      break;
-    default:
-      usage();
-    }
-  argc -= optind;
-  argv += optind;
+	while ((ch = getopt(argc, argv, "dFh:p:")) != -1)
+		switch (ch) {
+		case 'd':
+			debug = 1;
+			break;
+		case 'F':
+			foreground = 1;
+			break;
+		case 'h':
+			++nhosts;
+			hosts_bak = hosts;
+			hosts_bak = realloc(hosts, nhosts * sizeof(char *));
+			if (hosts_bak == NULL) {
+				if (hosts != NULL) {
+					for (i = 0; i < nhosts; i++)
+						free(hosts[i]);
+					free(hosts);
+					out_of_mem();
+				}
+			}
+			hosts = hosts_bak;
+			hosts[nhosts - 1] = strdup(optarg);
+			if (hosts[nhosts - 1] == NULL) {
+				for (i = 0; i < (nhosts - 1); i++)
+					free(hosts[i]);
+				free(hosts);
+				out_of_mem();
+			}
+			break;
+		case 'p':
+			endptr = NULL;
+			svcport = (in_port_t)strtoul(optarg, &endptr, 10);
+			if (endptr == NULL || *endptr != '\0' || svcport == 0 ||
+			    svcport >= IPPORT_MAX)
+				usage();
 
-  (void)rpcb_unset(SM_PROG, SM_VERS, NULL);
+			svcport_str = strdup(optarg);
+			break;
+		default:
+			usage();
+		}
+	argc -= optind;
+	argv += optind;
 
-  /*
-   * Check if IPv6 support is present.
-   */
-  s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-  if (s < 0)
-      have_v6 = 0;
-  else 
-      close(s);
+	(void)rpcb_unset(SM_PROG, SM_VERS, NULL);
 
-  rpc_control(RPC_SVC_CONNMAXREC_SET, &maxrec);
+	/*
+	 * Check if IPv6 support is present.
+	 */
+	s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	if (s < 0)
+		have_v6 = 0;
+	else
+		close(s);
 
-  /*
-   * If no hosts were specified, add a wildcard entry to bind to
-   * INADDR_ANY. Otherwise make sure 127.0.0.1 and ::1 are added to the
-   * list.
-   */
-  if (nhosts == 0) {
-	  hosts = malloc(sizeof(char *));
-	  if (hosts == NULL)
-		  out_of_mem();
+	rpc_control(RPC_SVC_CONNMAXREC_SET, &maxrec);
 
-	  hosts[0] = strdup("*");
-	  nhosts = 1;
-  } else {
-	  hosts_bak = hosts;
-	  if (have_v6) {
-		  hosts_bak = realloc(hosts, (nhosts + 2) *
-		      sizeof(char *));
-		  if (hosts_bak == NULL) {
-			  for (i = 0; i < nhosts; i++)
-				  free(hosts[i]);
-			  free(hosts);
-			  out_of_mem();
-		  } else
-			  hosts = hosts_bak;
+	/*
+	 * If no hosts were specified, add a wildcard entry to bind to
+	 * INADDR_ANY. Otherwise make sure 127.0.0.1 and ::1 are added to the
+	 * list.
+	 */
+	if (nhosts == 0) {
+		hosts = malloc(sizeof(char *));
+		if (hosts == NULL)
+			out_of_mem();
 
-		  nhosts += 2;
-		  hosts[nhosts - 2] = strdup("::1");
-	  } else {
-		  hosts_bak = realloc(hosts, (nhosts + 1) * sizeof(char *));
-		  if (hosts_bak == NULL) {
-			  for (i = 0; i < nhosts; i++)
-				  free(hosts[i]);
+		hosts[0] = strdup("*");
+		nhosts = 1;
+	} else {
+		hosts_bak = hosts;
+		if (have_v6) {
+			hosts_bak = realloc(hosts,
+			    (nhosts + 2) * sizeof(char *));
+			if (hosts_bak == NULL) {
+				for (i = 0; i < nhosts; i++)
+					free(hosts[i]);
+				free(hosts);
+				out_of_mem();
+			} else
+				hosts = hosts_bak;
 
-			  free(hosts);
-			  out_of_mem();
-		  } else {
-			  nhosts += 1;
-			  hosts = hosts_bak;
-		  }
-	  }
-	  hosts[nhosts - 1] = strdup("127.0.0.1");
-  }
+			nhosts += 2;
+			hosts[nhosts - 2] = strdup("::1");
+		} else {
+			hosts_bak = realloc(hosts,
+			    (nhosts + 1) * sizeof(char *));
+			if (hosts_bak == NULL) {
+				for (i = 0; i < nhosts; i++)
+					free(hosts[i]);
 
-  attempt_cnt = 1;
-  sock_fdcnt = 0;
-  sock_fd = NULL;
-  port_list = NULL;
-  port_len = 0;
-  nc_handle = setnetconfig();
-  while ((nconf = getnetconfig(nc_handle))) {
-	  /* We want to listen only on udp6, tcp6, udp, tcp transports */
-	  if (nconf->nc_flag & NC_VISIBLE) {
-		  /* Skip if there's no IPv6 support */
-		  if (have_v6 == 0 && strcmp(nconf->nc_protofmly, "inet6") == 0) {
-	      /* DO NOTHING */
-		  } else {
-			ret = create_service(nconf);
-			if (ret == 1)
-				/* Ignore this call */
-				continue;
-			if (ret < 0) {
-				/*
-				 * Failed to bind port, so close off
-				 * all sockets created and try again
-				 * if the port# was dynamically
-				 * assigned via bind(2).
-				 */
-				clearout_service();
-				if (mallocd_svcport != 0 &&
-				    attempt_cnt < GETPORT_MAXTRY) {
-					free(svcport_str);
+				free(hosts);
+				out_of_mem();
+			} else {
+				nhosts += 1;
+				hosts = hosts_bak;
+			}
+		}
+		hosts[nhosts - 1] = strdup("127.0.0.1");
+	}
+
+	attempt_cnt = 1;
+	sock_fdcnt = 0;
+	sock_fd = NULL;
+	port_list = NULL;
+	port_len = 0;
+	nc_handle = setnetconfig();
+	while ((nconf = getnetconfig(nc_handle))) {
+		/* We want to listen only on udp6, tcp6, udp, tcp transports */
+		if (nconf->nc_flag & NC_VISIBLE) {
+			/* Skip if there's no IPv6 support */
+			if (have_v6 == 0 &&
+			    strcmp(nconf->nc_protofmly, "inet6") == 0) {
+				/* DO NOTHING */
+			} else {
+				ret = create_service(nconf);
+				if (ret == 1)
+					/* Ignore this call */
+					continue;
+				if (ret < 0) {
+					/*
+					 * Failed to bind port, so close off
+					 * all sockets created and try again
+					 * if the port# was dynamically
+					 * assigned via bind(2).
+					 */
+					clearout_service();
+					if (mallocd_svcport != 0 &&
+					    attempt_cnt < GETPORT_MAXTRY) {
+						free(svcport_str);
+						svcport_str = NULL;
+						mallocd_svcport = 0;
+					} else {
+						errno = EADDRINUSE;
+						syslog(LOG_ERR,
+						    "bindresvport_sa: %m");
+						exit(1);
+					}
+
+					/* Start over at the first service. */
+					free(sock_fd);
+					sock_fdcnt = 0;
+					sock_fd = NULL;
+					nc_handle = setnetconfig();
+					attempt_cnt++;
+				} else if (mallocd_svcport != 0 &&
+				    attempt_cnt == GETPORT_MAXTRY) {
+					/*
+					 * For the last attempt, allow
+					 * different port #s for each nconf
+					 * by saving the svcport_str and
+					 * setting it back to NULL.
+					 */
+					port_list = realloc(port_list,
+					    (port_len + 1) * sizeof(char *));
+					if (port_list == NULL)
+						out_of_mem();
+					port_list[port_len++] = svcport_str;
 					svcport_str = NULL;
 					mallocd_svcport = 0;
-				} else {
-					errno = EADDRINUSE;
-					syslog(LOG_ERR,
-					    "bindresvport_sa: %m");
+				}
+			}
+		}
+	}
+
+	/*
+	 * Successfully bound the ports, so call complete_service() to
+	 * do the rest of the setup on the service(s).
+	 */
+	sock_fdpos = 0;
+	port_pos = 0;
+	nc_handle = setnetconfig();
+	while ((nconf = getnetconfig(nc_handle))) {
+		/* We want to listen only on udp6, tcp6, udp, tcp transports */
+		if (nconf->nc_flag & NC_VISIBLE) {
+			/* Skip if there's no IPv6 support */
+			if (have_v6 == 0 &&
+			    strcmp(nconf->nc_protofmly, "inet6") == 0) {
+				/* DO NOTHING */
+			} else if (port_list != NULL) {
+				if (port_pos >= port_len) {
+					syslog(LOG_ERR, "too many port#s");
 					exit(1);
 				}
+				complete_service(nconf, port_list[port_pos++]);
+			} else
+				complete_service(nconf, svcport_str);
+		}
+	}
+	endnetconfig(nc_handle);
+	free(sock_fd);
+	if (port_list != NULL) {
+		for (port_pos = 0; port_pos < port_len; port_pos++)
+			free(port_list[port_pos]);
+		free(port_list);
+	}
 
-				/* Start over at the first service. */
-				free(sock_fd);
-				sock_fdcnt = 0;
-				sock_fd = NULL;
-				nc_handle = setnetconfig();
-				attempt_cnt++;
-			} else if (mallocd_svcport != 0 &&
-			    attempt_cnt == GETPORT_MAXTRY) {
-				/*
-				 * For the last attempt, allow
-				 * different port #s for each nconf
-				 * by saving the svcport_str and
-				 * setting it back to NULL.
-				 */
-				port_list = realloc(port_list,
-				    (port_len + 1) * sizeof(char *));
-				if (port_list == NULL)
-					out_of_mem();
-				port_list[port_len++] = svcport_str;
-				svcport_str = NULL;
-				mallocd_svcport = 0;
-			}
-		  }
-	  }
-  }
+	init_file("/var/db/statd.status");
 
-  /*
-   * Successfully bound the ports, so call complete_service() to
-   * do the rest of the setup on the service(s).
-   */
-  sock_fdpos = 0;
-  port_pos = 0;
-  nc_handle = setnetconfig();
-  while ((nconf = getnetconfig(nc_handle))) {
-	  /* We want to listen only on udp6, tcp6, udp, tcp transports */
-	  if (nconf->nc_flag & NC_VISIBLE) {
-		  /* Skip if there's no IPv6 support */
-		  if (have_v6 == 0 && strcmp(nconf->nc_protofmly, "inet6") == 0) {
-	      /* DO NOTHING */
-		  } else if (port_list != NULL) {
-			if (port_pos >= port_len) {
-				syslog(LOG_ERR, "too many port#s");
-				exit(1);
-			}
-			complete_service(nconf, port_list[port_pos++]);
-		  } else
-			complete_service(nconf, svcport_str);
-	  }
-  }
-  endnetconfig(nc_handle);
-  free(sock_fd);
-  if (port_list != NULL) {
-  	for (port_pos = 0; port_pos < port_len; port_pos++)
-  		free(port_list[port_pos]);
-  	free(port_list);
-  }
+	/* Note that it is NOT sensible to run this program from inetd - the
+	 */
+	/* protocol assumes that it will run immediately at boot time.	*/
+	if ((foreground == 0) && daemon(0, 0) < 0) {
+		err(1, "cannot fork");
+		/* NOTREACHED */
+	}
 
-  init_file("/var/db/statd.status");
+	openlog("rpc.statd", 0, LOG_DAEMON);
+	if (debug)
+		syslog(LOG_INFO, "Starting - debug enabled");
+	else
+		syslog(LOG_INFO, "Starting");
 
-  /* Note that it is NOT sensible to run this program from inetd - the 	*/
-  /* protocol assumes that it will run immediately at boot time.	*/
-  if ((foreground == 0) && daemon(0, 0) < 0) {
-  	err(1, "cannot fork");
-  	/* NOTREACHED */
-  }
+	/* Install signal handler to collect exit status of child processes
+	 */
+	sa.sa_handler = handle_sigchld;
+	sigemptyset(&sa.sa_mask);
+	sigaddset(&sa.sa_mask, SIGCHLD);
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGCHLD, &sa, NULL);
 
-  openlog("rpc.statd", 0, LOG_DAEMON);
-  if (debug) syslog(LOG_INFO, "Starting - debug enabled");
-  else syslog(LOG_INFO, "Starting");
-
-  /* Install signal handler to collect exit status of child processes	*/
-  sa.sa_handler = handle_sigchld;
-  sigemptyset(&sa.sa_mask);
-  sigaddset(&sa.sa_mask, SIGCHLD);
-  sa.sa_flags = SA_RESTART;
-  sigaction(SIGCHLD, &sa, NULL);
-
-  /* Initialisation now complete - start operating			*/
-  notify_hosts();	/* Forks a process (if necessary) to do the	*/
+	/* Initialisation now complete - start operating */
+	notify_hosts(); /* Forks a process (if necessary) to do the	*/
 			/* SM_NOTIFY calls, which may be slow.		*/
 
-  svc_run();	/* Should never return					*/
-  exit(1);
+	svc_run(); /* Should never return */
+	exit(1);
 }
 
 /*
@@ -333,13 +343,13 @@ create_service(struct netconfig *nconf)
 	int fd;
 	int nhostsbak;
 	int r;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	u_int32_t host_addr[4]; /* IPv4 or IPv6 */
 	int mallocd_res;
 
 	if ((nconf->nc_semantics != NC_TPI_CLTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS_ORD))
-		return (1);	/* not my type */
+		return (1); /* not my type */
 
 	/*
 	 * XXX - using RPC library internal functions.
@@ -365,11 +375,11 @@ create_service(struct netconfig *nconf)
 		sock_fd = realloc(sock_fd, (sock_fdcnt + 1) * sizeof(int));
 		if (sock_fd == NULL)
 			out_of_mem();
-		sock_fd[sock_fdcnt++] = -1;	/* Set invalid for now. */
+		sock_fd[sock_fdcnt++] = -1; /* Set invalid for now. */
 		mallocd_res = 0;
 		hints.ai_flags = AI_PASSIVE;
 
-		/*	
+		/*
 		 * XXX - using RPC library internal functions.
 		 */
 		if ((fd = __rpc_nconf2fd(nconf)) < 0) {
@@ -379,30 +389,30 @@ create_service(struct netconfig *nconf)
 		}
 		switch (hints.ai_family) {
 		case AF_INET:
-			if (inet_pton(AF_INET, hosts[nhostsbak],
-			    host_addr) == 1) {
+			if (inet_pton(AF_INET, hosts[nhostsbak], host_addr) ==
+			    1) {
 				hints.ai_flags |= AI_NUMERICHOST;
 			} else {
 				/*
 				 * Skip if we have an AF_INET6 address.
 				 */
 				if (inet_pton(AF_INET6, hosts[nhostsbak],
-				    host_addr) == 1) {
+					host_addr) == 1) {
 					close(fd);
 					continue;
 				}
 			}
 			break;
 		case AF_INET6:
-			if (inet_pton(AF_INET6, hosts[nhostsbak],
-			    host_addr) == 1) {
+			if (inet_pton(AF_INET6, hosts[nhostsbak], host_addr) ==
+			    1) {
 				hints.ai_flags |= AI_NUMERICHOST;
 			} else {
 				/*
 				 * Skip if we have an AF_INET address.
 				 */
 				if (inet_pton(AF_INET, hosts[nhostsbak],
-				    host_addr) == 1) {
+					host_addr) == 1) {
 					close(fd);
 					continue;
 				}
@@ -418,7 +428,7 @@ create_service(struct netconfig *nconf)
 		if (strcmp("*", hosts[nhostsbak]) == 0) {
 			if (svcport_str == NULL) {
 				res = malloc(sizeof(struct addrinfo));
-				if (res == NULL) 
+				if (res == NULL)
 					out_of_mem();
 				mallocd_res = 1;
 				res->ai_flags = hints.ai_flags;
@@ -426,35 +436,38 @@ create_service(struct netconfig *nconf)
 				res->ai_protocol = hints.ai_protocol;
 				switch (res->ai_family) {
 				case AF_INET:
-					sin = malloc(sizeof(struct sockaddr_in));
-					if (sin == NULL) 
+					sin = malloc(
+					    sizeof(struct sockaddr_in));
+					if (sin == NULL)
 						out_of_mem();
 					sin->sin_family = AF_INET;
 					sin->sin_port = htons(0);
-					sin->sin_addr.s_addr = htonl(INADDR_ANY);
-					res->ai_addr = (struct sockaddr*) sin;
-					res->ai_addrlen = (socklen_t)
-					    sizeof(struct sockaddr_in);
+					sin->sin_addr.s_addr = htonl(
+					    INADDR_ANY);
+					res->ai_addr = (struct sockaddr *)sin;
+					res->ai_addrlen = (socklen_t)sizeof(
+					    struct sockaddr_in);
 					break;
 				case AF_INET6:
-					sin6 = malloc(sizeof(struct sockaddr_in6));
+					sin6 = malloc(
+					    sizeof(struct sockaddr_in6));
 					if (sin6 == NULL)
 						out_of_mem();
 					sin6->sin6_family = AF_INET6;
 					sin6->sin6_port = htons(0);
 					sin6->sin6_addr = in6addr_any;
-					res->ai_addr = (struct sockaddr*) sin6;
-					res->ai_addrlen = (socklen_t)
-					    sizeof(struct sockaddr_in6);
+					res->ai_addr = (struct sockaddr *)sin6;
+					res->ai_addrlen = (socklen_t)sizeof(
+					    struct sockaddr_in6);
 					break;
 				default:
 					syslog(LOG_ERR, "bad addr fam %d",
 					    res->ai_family);
 					exit(1);
 				}
-			} else { 
+			} else {
 				if ((aicode = getaddrinfo(NULL, svcport_str,
-				    &hints, &res)) != 0) {
+					 &hints, &res)) != 0) {
 					syslog(LOG_ERR,
 					    "cannot get local address for %s: %s",
 					    nconf->nc_netid,
@@ -465,7 +478,7 @@ create_service(struct netconfig *nconf)
 			}
 		} else {
 			if ((aicode = getaddrinfo(hosts[nhostsbak], svcport_str,
-			    &hints, &res)) != 0) {
+				 &hints, &res)) != 0) {
 				syslog(LOG_ERR,
 				    "cannot get local address for %s: %s",
 				    nconf->nc_netid, gai_strerror(aicode));
@@ -498,10 +511,10 @@ create_service(struct netconfig *nconf)
 				out_of_mem();
 			mallocd_svcport = 1;
 
-			if (getnameinfo(res->ai_addr,
-			    res->ai_addr->sa_len, NULL, NI_MAXHOST,
-			    svcport_str, NI_MAXSERV * sizeof(char),
-			    NI_NUMERICHOST | NI_NUMERICSERV))
+			if (getnameinfo(res->ai_addr, res->ai_addr->sa_len,
+				NULL, NI_MAXHOST, svcport_str,
+				NI_MAXSERV * sizeof(char),
+				NI_NUMERICHOST | NI_NUMERICSERV))
 				errx(1, "Cannot get port number");
 		}
 		if (mallocd_res != 0) {
@@ -524,14 +537,14 @@ complete_service(struct netconfig *nconf, char *port_str)
 	struct addrinfo hints, *res = NULL;
 	struct __rpc_sockinfo si;
 	struct netbuf servaddr;
-	SVCXPRT	*transp = NULL;
+	SVCXPRT *transp = NULL;
 	int aicode, fd, nhostsbak;
 	int registered = 0;
 
 	if ((nconf->nc_semantics != NC_TPI_CLTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS_ORD))
-		return;	/* not my type */
+		return; /* not my type */
 
 	/*
 	 * XXX - using RPC library internal functions.
@@ -557,22 +570,22 @@ complete_service(struct netconfig *nconf, char *port_str)
 		if (nconf->nc_semantics != NC_TPI_CLTS)
 			listen(fd, SOMAXCONN);
 
-		transp = svc_tli_create(fd, nconf, NULL,
-		RPC_MAXDATASIZE, RPC_MAXDATASIZE);
+		transp = svc_tli_create(fd, nconf, NULL, RPC_MAXDATASIZE,
+		    RPC_MAXDATASIZE);
 
-		if (transp != (SVCXPRT *) NULL) {
-			if (!svc_register(transp, SM_PROG, SM_VERS,
-			    sm_prog_1, 0)) {
+		if (transp != (SVCXPRT *)NULL) {
+			if (!svc_register(transp, SM_PROG, SM_VERS, sm_prog_1,
+				0)) {
 				syslog(LOG_ERR, "can't register on %s",
 				    nconf->nc_netid);
 			} else {
 				if (!svc_reg(transp, SM_PROG, SM_VERS,
-				    sm_prog_1, NULL)) 
+					sm_prog_1, NULL))
 					syslog(LOG_ERR,
 					    "can't register %s SM_PROG service",
 					    nconf->nc_netid);
 			}
-		} else 
+		} else
 			syslog(LOG_WARNING, "can't create %s services",
 			    nconf->nc_netid);
 
@@ -584,9 +597,8 @@ complete_service(struct netconfig *nconf, char *port_str)
 			hints.ai_socktype = si.si_socktype;
 			hints.ai_protocol = si.si_proto;
 
-
 			if ((aicode = getaddrinfo(NULL, port_str, &hints,
-			    &res)) != 0) {
+				 &res)) != 0) {
 				syslog(LOG_ERR, "cannot get local address: %s",
 				    gai_strerror(aicode));
 				exit(1);
@@ -624,8 +636,9 @@ clearout_service(void)
 static void
 usage(void)
 {
-      fprintf(stderr, "usage: rpc.statd [-d] [-F] [-h <bindip>] [-p <port>]\n");
-      exit(1);
+	fprintf(stderr,
+	    "usage: rpc.statd [-d] [-F] [-h <bindip>] [-p <port>]\n");
+	exit(1);
 }
 
 /* handle_sigchld ---------------------------------------------------------- */
@@ -639,17 +652,19 @@ usage(void)
 		children to exit when they have done their work.
 */
 
-static void handle_sigchld(int sig __unused)
+static void
+handle_sigchld(int sig __unused)
 {
-  int pid, status;
-  pid = wait4(-1, &status, WNOHANG, (struct rusage*)0);
-  if (!pid) syslog(LOG_ERR, "Phantom SIGCHLD??");
-  else if (status == 0)
-  {
-    if (debug) syslog(LOG_DEBUG, "Child %d exited OK", pid);
-  }
-  else syslog(LOG_ERR, "Child %d failed with status %d", pid,
-    WEXITSTATUS(status));
+	int pid, status;
+	pid = wait4(-1, &status, WNOHANG, (struct rusage *)0);
+	if (!pid)
+		syslog(LOG_ERR, "Phantom SIGCHLD??");
+	else if (status == 0) {
+		if (debug)
+			syslog(LOG_DEBUG, "Child %d exited OK", pid);
+	} else
+		syslog(LOG_ERR, "Child %d failed with status %d", pid,
+		    WEXITSTATUS(status));
 }
 
 /*

@@ -33,9 +33,11 @@
  */
 
 #include <sys/types.h>
+
 #include <stdio.h>
-#include "local.h"
+
 #include "glue.h"
+#include "local.h"
 
 int
 _fwalk(int (*function)(FILE *))

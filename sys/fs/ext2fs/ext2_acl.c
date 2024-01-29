@@ -26,36 +26,36 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/vnode.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/endian.h>
 #include <sys/conf.h>
-#include <sys/mount.h>
+#include <sys/endian.h>
 #include <sys/extattr.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/vnode.h>
 
-#include <fs/ext2fs/fs.h>
-#include <fs/ext2fs/ext2fs.h>
-#include <fs/ext2fs/inode.h>
 #include <fs/ext2fs/ext2_acl.h>
+#include <fs/ext2fs/ext2_dinode.h>
 #include <fs/ext2fs/ext2_extattr.h>
 #include <fs/ext2fs/ext2_extern.h>
-#include <fs/ext2fs/ext2_dinode.h>
 #include <fs/ext2fs/ext2_mount.h>
+#include <fs/ext2fs/ext2fs.h>
+#include <fs/ext2fs/fs.h>
+#include <fs/ext2fs/inode.h>
 
 #ifdef UFS_ACL
 
 void
 ext2_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 {
-	struct acl_entry	*acl_mask, *acl_group_obj;
-	int	i;
+	struct acl_entry *acl_mask, *acl_group_obj;
+	int i;
 
 	/*
 	 * Update ACL_USER_OBJ, ACL_OTHER, but simply identify ACL_MASK
@@ -67,8 +67,8 @@ ext2_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 	for (i = 0; i < acl->acl_cnt; i++) {
 		switch (acl->acl_entry[i].ae_tag) {
 		case ACL_USER_OBJ:
-			acl->acl_entry[i].ae_perm = acl_posix1e_mode_to_perm(
-			    ACL_USER_OBJ, ip->i_mode);
+			acl->acl_entry[i].ae_perm =
+			    acl_posix1e_mode_to_perm(ACL_USER_OBJ, ip->i_mode);
 			acl->acl_entry[i].ae_id = ACL_UNDEFINED_ID;
 			break;
 
@@ -78,8 +78,8 @@ ext2_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 			break;
 
 		case ACL_OTHER:
-			acl->acl_entry[i].ae_perm = acl_posix1e_mode_to_perm(
-			    ACL_OTHER, ip->i_mode);
+			acl->acl_entry[i].ae_perm =
+			    acl_posix1e_mode_to_perm(ACL_OTHER, ip->i_mode);
 			acl->acl_entry[i].ae_id = ACL_UNDEFINED_ID;
 			break;
 
@@ -104,8 +104,8 @@ ext2_sync_acl_from_inode(struct inode *ip, struct acl *acl)
 		/*
 		 * There is no ACL_MASK, so update ACL_GROUP_OBJ.
 		 */
-		acl_group_obj->ae_perm = acl_posix1e_mode_to_perm(
-		    ACL_GROUP_OBJ, ip->i_mode);
+		acl_group_obj->ae_perm = acl_posix1e_mode_to_perm(ACL_GROUP_OBJ,
+		    ip->i_mode);
 	} else {
 		/*
 		 * Update the ACL_MASK entry instead of ACL_GROUP_OBJ.
@@ -152,11 +152,10 @@ ext4_acl_from_disk(char *value, size_t size, struct acl *acl)
 		else
 			count = (size - sizeof(struct ext2_acl_header)) /
 			    sizeof(struct ext2_acl_entry_short);
+	else if (s % sizeof(struct ext2_acl_entry))
+		count = -1;
 	else
-		if (s % sizeof(struct ext2_acl_entry))
-			count = -1;
-		else
-			count = s / sizeof(struct ext2_acl_entry) + 4;
+		count = s / sizeof(struct ext2_acl_entry) + 4;
 
 	if (count <= 0 || count > acl->acl_maxcnt)
 		return (EINVAL);
@@ -168,7 +167,7 @@ ext4_acl_from_disk(char *value, size_t size, struct acl *acl)
 		if ((char *)value + sizeof(struct ext2_acl_entry_short) > end)
 			return (EINVAL);
 
-		acl->acl_entry[n].ae_tag  = entry->ae_tag;
+		acl->acl_entry[n].ae_tag = entry->ae_tag;
 		acl->acl_entry[n].ae_perm = entry->ae_perm;
 
 		switch (acl->acl_entry[n].ae_tag) {
@@ -176,7 +175,8 @@ ext4_acl_from_disk(char *value, size_t size, struct acl *acl)
 		case ACL_GROUP_OBJ:
 		case ACL_MASK:
 		case ACL_OTHER:
-			value = (char *)value + sizeof(struct ext2_acl_entry_short);
+			value = (char *)value +
+			    sizeof(struct ext2_acl_entry_short);
 			break;
 
 		case ACL_USER:
@@ -301,7 +301,7 @@ ext4_acl_to_disk(const struct acl *acl, size_t *size, char *value)
 
 	if (acl->acl_cnt <= 4)
 		disk_size = sizeof(struct ext2_acl_header) +
-		   acl->acl_cnt * sizeof(struct ext2_acl_entry_short);
+		    acl->acl_cnt * sizeof(struct ext2_acl_entry_short);
 	else
 		disk_size = sizeof(struct ext2_acl_header) +
 		    4 * sizeof(struct ext2_acl_entry_short) +
@@ -318,7 +318,7 @@ ext4_acl_to_disk(const struct acl *acl, size_t *size, char *value)
 	for (n = 0; n < acl->acl_cnt; n++) {
 		const struct acl_entry *acl_e = &acl->acl_entry[n];
 		struct ext2_acl_entry *entry = (struct ext2_acl_entry *)e;
-		entry->ae_tag  = acl_e->ae_tag;
+		entry->ae_tag = acl_e->ae_tag;
 		entry->ae_perm = acl_e->ae_perm;
 		switch (acl_e->ae_tag) {
 		case ACL_USER:
@@ -405,8 +405,8 @@ ext2_setacl_posix1e(struct vop_setacl_args *ap)
 		if (error == 0)
 			error = vn_extattr_set(ap->a_vp, IO_NODELOCKED,
 			    POSIX1E_ACL_ACCESS_EXTATTR_NAMESPACE,
-			    POSIX1E_ACL_ACCESS_EXTATTR_NAME, len,
-			    value, ap->a_td);
+			    POSIX1E_ACL_ACCESS_EXTATTR_NAME, len, value,
+			    ap->a_td);
 
 		free(value, M_ACL);
 		break;
@@ -430,7 +430,8 @@ ext2_setacl_posix1e(struct vop_setacl_args *ap)
 			if (error == ENOATTR)
 				error = 0;
 		} else {
-			len = sizeof(*ap->a_aclp) + sizeof(struct ext2_acl_header);
+			len = sizeof(*ap->a_aclp) +
+			    sizeof(struct ext2_acl_header);
 			value = malloc(len, M_ACL, M_WAITOK | M_ZERO);
 			error = ext4_acl_to_disk(ap->a_aclp, &len, value);
 			if (error == 0)
@@ -508,16 +509,16 @@ ext2_aclcheck(struct vop_aclcheck_args *ap)
 	 * Rely on the acl_posix1e_check() routine to verify the contents.
 	 */
 	switch (ap->a_type) {
-		case ACL_TYPE_ACCESS:
+	case ACL_TYPE_ACCESS:
 		break;
 
-		case ACL_TYPE_DEFAULT:
-			if (ap->a_vp->v_type != VDIR)
-				return (EINVAL);
-		break;
-
-		default:
+	case ACL_TYPE_DEFAULT:
+		if (ap->a_vp->v_type != VDIR)
 			return (EINVAL);
+		break;
+
+	default:
+		return (EINVAL);
 	}
 
 	return (acl_posix1e_check(ap->a_aclp));

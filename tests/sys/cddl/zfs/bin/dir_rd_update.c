@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 /*
  * Assertion:
  *
@@ -35,13 +34,14 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#define	TMP_DIR /tmp
+#define TMP_DIR / tmp
 
 static char dirpath[256];
 
@@ -56,7 +56,7 @@ main(int argc, char **argv)
 	static const int op_num = 5;
 
 	if (argc == 1) {
-		(void) printf("Usage: %s <mount point>\n", argv[0]);
+		(void)printf("Usage: %s <mount point>\n", argv[0]);
 		exit(-1);
 	}
 	for (i = 0; i < 256; i++) {
@@ -64,39 +64,39 @@ main(int argc, char **argv)
 	}
 
 	cp1 = argv[1];
-	(void) strcpy(&dirpath[0], (const char *)cp1);
-	(void) strcat(&dirpath[strlen(dirpath)], "TMP_DIR");
+	(void)strcpy(&dirpath[0], (const char *)cp1);
+	(void)strcat(&dirpath[strlen(dirpath)], "TMP_DIR");
 
 	ret = mkdir(dirpath, 0777);
 	if (ret != 0) {
 		if (errno != EEXIST) {
-			(void) printf(
-			"%s: mkdir(<%s>, 0777) failed: errno (decimal)=%d\n",
-				argv[0], dirpath, errno);
+			(void)printf(
+			    "%s: mkdir(<%s>, 0777) failed: errno (decimal)=%d\n",
+			    argv[0], dirpath, errno);
 			exit(-1);
 		}
 	}
-	testdd = open(dirpath, O_RDONLY|O_SYNC);
+	testdd = open(dirpath, O_RDONLY | O_SYNC);
 	if (testdd < 0) {
-		(void) printf(
-"%s: open(<%s>, O_RDONLY|O_SYNC) failed: errno (decimal)=%d\n",
-			argv[0], dirpath, errno);
+		(void)printf(
+		    "%s: open(<%s>, O_RDONLY|O_SYNC) failed: errno (decimal)=%d\n",
+		    argv[0], dirpath, errno);
 		exit(-1);
 	} else {
-		(void) close(testdd);
+		(void)close(testdd);
 	}
 	pid = fork();
 	if (pid > 0) {
-		int fd = open(dirpath, O_RDONLY|O_SYNC);
+		int fd = open(dirpath, O_RDONLY | O_SYNC);
 		char buf[16];
 		int rdret;
 		int j = 0;
 
 		while (j < op_num) {
-			(void) sleep(1);
+			(void)sleep(1);
 			rdret = read(fd, buf, 16);
 			if (rdret == -1) {
-				(void) printf("readdir failed");
+				(void)printf("readdir failed");
 			}
 			j++;
 		}
@@ -106,10 +106,10 @@ main(int argc, char **argv)
 		int k = 0;
 
 		while (k < op_num) {
-			(void) sleep(1);
+			(void)sleep(1);
 			chownret = fchown(fd, 0, 0);
 			if (chownret == -1) {
-				(void) printf("chown failed");
+				(void)printf("chown failed");
 			}
 
 			k++;

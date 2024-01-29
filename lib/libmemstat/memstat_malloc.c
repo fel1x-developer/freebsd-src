@@ -44,19 +44,19 @@
 static int memstat_malloc_zone_count;
 static int memstat_malloc_zone_sizes[32];
 
-static int	memstat_malloc_zone_init(void);
-static int	memstat_malloc_zone_init_kvm(kvm_t *kvm);
+static int memstat_malloc_zone_init(void);
+static int memstat_malloc_zone_init_kvm(kvm_t *kvm);
 
 static struct nlist namelist[] = {
-#define	X_KMEMSTATISTICS	0
+#define X_KMEMSTATISTICS 0
 	{ .n_name = "_kmemstatistics" },
-#define	X_KMEMZONES		1
+#define X_KMEMZONES 1
 	{ .n_name = "_kmemzones" },
-#define	X_NUMZONES		2
+#define X_NUMZONES 2
 	{ .n_name = "_numzones" },
-#define	X_VM_MALLOC_ZONE_COUNT	3
+#define X_VM_MALLOC_ZONE_COUNT 3
 	{ .n_name = "_vm_malloc_zone_count" },
-#define	X_MP_MAXCPUS		4
+#define X_MP_MAXCPUS 4
 	{ .n_name = "_mp_maxcpus" },
 	{ .n_name = "" },
 };
@@ -125,8 +125,8 @@ retry:
 		return (-1);
 	}
 
-	size = sizeof(*mthp) + count * (sizeof(*mthp) + sizeof(*mtsp) *
-	    maxcpus);
+	size = sizeof(*mthp) +
+	    count * (sizeof(*mthp) + sizeof(*mtsp) * maxcpus);
 
 	buffer = malloc(size);
 	if (buffer == NULL) {
@@ -227,8 +227,7 @@ retry:
 			    mtsp->mts_numallocs;
 			mtp->mt_percpu_alloc[j].mtp_numfrees =
 			    mtsp->mts_numfrees;
-			mtp->mt_percpu_alloc[j].mtp_sizemask =
-			    mtsp->mts_size;
+			mtp->mt_percpu_alloc[j].mtp_sizemask = mtsp->mts_size;
 		}
 
 		/*
@@ -244,13 +243,11 @@ retry:
 }
 
 static int
-kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size,
-    size_t offset)
+kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
-	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address,
-	    size);
+	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address, size);
 	if (ret < 0)
 		return (MEMSTAT_ERROR_KVM);
 	if ((size_t)ret != size)
@@ -265,8 +262,8 @@ kread_string(kvm_t *kvm, const void *kvm_pointer, char *buffer, int buflen)
 	int i;
 
 	for (i = 0; i < buflen; i++) {
-		ret = kvm_read(kvm, __DECONST(unsigned long, kvm_pointer) +
-		    i, &(buffer[i]), sizeof(char));
+		ret = kvm_read(kvm, __DECONST(unsigned long, kvm_pointer) + i,
+		    &(buffer[i]), sizeof(char));
 		if (ret < 0)
 			return (MEMSTAT_ERROR_KVM);
 		if ((size_t)ret != sizeof(char))
@@ -275,13 +272,12 @@ kread_string(kvm_t *kvm, const void *kvm_pointer, char *buffer, int buflen)
 			return (0);
 	}
 	/* Truncate. */
-	buffer[i-1] = '\0';
+	buffer[i - 1] = '\0';
 	return (0);
 }
 
 static int
-kread_symbol(kvm_t *kvm, int index, void *address, size_t size,
-    size_t offset)
+kread_symbol(kvm_t *kvm, int index, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
@@ -333,8 +329,8 @@ memstat_kvm_malloc(struct memory_type_list *list, void *kvm_handle)
 		return (-1);
 	}
 
-	ret = kread_symbol(kvm, X_MP_MAXCPUS, &mp_maxcpus,
-	    sizeof(mp_maxcpus), 0);
+	ret = kread_symbol(kvm, X_MP_MAXCPUS, &mp_maxcpus, sizeof(mp_maxcpus),
+	    0);
 	if (ret != 0) {
 		list->mtl_error = ret;
 		return (-1);
@@ -386,8 +382,8 @@ memstat_kvm_malloc(struct memory_type_list *list, void *kvm_handle)
 		} else
 			mtp = NULL;
 		if (mtp == NULL)
-			mtp = _memstat_mt_allocate(list, ALLOCATOR_MALLOC,
-			    name, mp_maxcpus);
+			mtp = _memstat_mt_allocate(list, ALLOCATOR_MALLOC, name,
+			    mp_maxcpus);
 		if (mtp == NULL) {
 			_memstat_mtl_empty(list);
 			list->mtl_error = MEMSTAT_ERROR_NOMEMORY;
@@ -415,14 +411,11 @@ memstat_kvm_malloc(struct memory_type_list *list, void *kvm_handle)
 
 			mtp->mt_percpu_alloc[j].mtp_memalloced =
 			    mts.mts_memalloced;
-			mtp->mt_percpu_alloc[j].mtp_memfreed =
-			    mts.mts_memfreed;
+			mtp->mt_percpu_alloc[j].mtp_memfreed = mts.mts_memfreed;
 			mtp->mt_percpu_alloc[j].mtp_numallocs =
 			    mts.mts_numallocs;
-			mtp->mt_percpu_alloc[j].mtp_numfrees =
-			    mts.mts_numfrees;
-			mtp->mt_percpu_alloc[j].mtp_sizemask =
-			    mts.mts_size;
+			mtp->mt_percpu_alloc[j].mtp_numfrees = mts.mts_numfrees;
+			mtp->mt_percpu_alloc[j].mtp_sizemask = mts.mts_size;
 		}
 		for (; j < mp_maxcpus; j++) {
 			bzero(&mtp->mt_percpu_alloc[j],
@@ -443,17 +436,18 @@ memstat_malloc_zone_init(void)
 
 	size = sizeof(memstat_malloc_zone_count);
 	if (sysctlbyname("vm.malloc.zone_count", &memstat_malloc_zone_count,
-	    &size, NULL, 0) < 0) {
+		&size, NULL, 0) < 0) {
 		return (-1);
 	}
 
-	if (memstat_malloc_zone_count > (int)nitems(memstat_malloc_zone_sizes)) {
+	if (memstat_malloc_zone_count >
+	    (int)nitems(memstat_malloc_zone_sizes)) {
 		return (-1);
 	}
 
 	size = sizeof(memstat_malloc_zone_sizes);
 	if (sysctlbyname("vm.malloc.zone_sizes", &memstat_malloc_zone_sizes,
-	    &size, NULL, 0) < 0) {
+		&size, NULL, 0) < 0) {
 		return (-1);
 	}
 

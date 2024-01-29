@@ -45,8 +45,8 @@
  *     %VERSREQ field in the Makefile.$ARCH of all the affected makefiles
  *     (typically all of them).
  */
-#define	CONFIGVERS	600018
-#define	MAJOR_VERS(x)	((x) / 100000)
+#define CONFIGVERS 600018
+#define MAJOR_VERS(x) ((x) / 100000)
 
 /* Last config(8) version to require envmode/hintmode */
-#define	CONFIGVERS_ENVMODE_REQ	600015
+#define CONFIGVERS_ENVMODE_REQ 600015

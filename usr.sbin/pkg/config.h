@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -47,14 +47,14 @@ typedef enum {
 } pkg_config_key;
 
 typedef enum {
-	PKG_CONFIG_STRING=0,
+	PKG_CONFIG_STRING = 0,
 	PKG_CONFIG_BOOL,
 	PKG_CONFIG_LIST,
 	PKG_CONFIG_OBJECT
 } pkg_config_t;
 
 typedef enum {
-	CONFFILE_PKG=0,
+	CONFFILE_PKG = 0,
 	CONFFILE_REPO,
 } pkg_conf_file_t;
 

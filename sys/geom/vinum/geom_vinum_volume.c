@@ -27,14 +27,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #include <geom/geom.h>
-#include <geom/vinum/geom_vinum_var.h>
 #include <geom/vinum/geom_vinum.h>
+#include <geom/vinum/geom_vinum_var.h>
 
 void
 gv_volume_flush(struct gv_volume *v)
@@ -92,7 +92,7 @@ gv_volume_start(struct gv_softc *sc, struct bio *bp)
 			}
 			if ((p->state > GV_PLEX_DEGRADED) ||
 			    (p->state >= GV_PLEX_DEGRADED &&
-			    p->org == GV_PLEX_RAID5))
+				p->org == GV_PLEX_RAID5))
 				break;
 			p = LIST_NEXT(p, in_volume);
 			if (p == NULL)
@@ -114,7 +114,7 @@ gv_volume_start(struct gv_softc *sc, struct bio *bp)
 	case BIO_WRITE:
 	case BIO_DELETE:
 		/* Delay write-requests if any plex is synchronizing. */
-		LIST_FOREACH(p, &v->plexes, in_volume) {
+		LIST_FOREACH (p, &v->plexes, in_volume) {
 			if (p->flags & GV_PLEX_SYNCING) {
 				bioq_insert_tail(v->wqueue, bp);
 				return;
@@ -123,7 +123,7 @@ gv_volume_start(struct gv_softc *sc, struct bio *bp)
 
 		numwrites = 0;
 		/* Give the BIO to each plex of this volume. */
-		LIST_FOREACH(p, &v->plexes, in_volume) {
+		LIST_FOREACH (p, &v->plexes, in_volume) {
 			if (p->state < GV_PLEX_DEGRADED)
 				continue;
 			gv_plex_start(p, bp);

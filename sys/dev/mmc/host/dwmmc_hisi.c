@@ -25,9 +25,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/taskqueue.h>
@@ -35,13 +37,9 @@
 #include <machine/bus.h>
 
 #include <dev/mmc/bridge.h>
-#include <dev/mmc/mmc_fdt_helpers.h>
-
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/mmc/host/dwmmc_var.h>
-
-#include "opt_mmccam.h"
+#include <dev/mmc/mmc_fdt_helpers.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 static device_probe_t hisi_dwmmc_probe;
 static device_attach_t hisi_dwmmc_attach;
@@ -56,7 +54,8 @@ hisi_dwmmc_probe(device_t dev)
 	if (!ofw_bus_is_compatible(dev, "hisilicon,hi6220-dw-mshc"))
 		return (ENXIO);
 
-	device_set_desc(dev, "Synopsys DesignWare Mobile "
+	device_set_desc(dev,
+	    "Synopsys DesignWare Mobile "
 	    "Storage Host Controller (HiSilicon)");
 
 	return (BUS_PROBE_VENDOR);

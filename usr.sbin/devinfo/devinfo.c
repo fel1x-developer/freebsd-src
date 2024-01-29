@@ -32,28 +32,29 @@
  */
 
 #include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "devinfo.h"
 
-static int	rflag;
-static int	vflag;
+static int rflag;
+static int vflag;
 
-static void	print_resource(struct devinfo_res *);
-static int	print_device_matching_resource(struct devinfo_res *, void *);
-static int	print_device_rman_resources(struct devinfo_rman *, void *);
-static int	print_device(struct devinfo_dev *, void *);
-static int	print_rman_resource(struct devinfo_res *, void *);
-static int	print_rman(struct devinfo_rman *, void *);
+static void print_resource(struct devinfo_res *);
+static int print_device_matching_resource(struct devinfo_res *, void *);
+static int print_device_rman_resources(struct devinfo_rman *, void *);
+static int print_device(struct devinfo_dev *, void *);
+static int print_rman_resource(struct devinfo_res *, void *);
+static int print_rman(struct devinfo_rman *, void *);
 
-struct indent_arg
-{
-	int	indent;
-	void	*arg;
+struct indent_arg {
+	int indent;
+	void *arg;
 };
 
 /*
@@ -62,11 +63,11 @@ struct indent_arg
 void
 print_resource(struct devinfo_res *res)
 {
-	struct devinfo_rman	*rman;
-	int			hexmode;
+	struct devinfo_rman *rman;
+	int hexmode;
 
 	rman = devinfo_handle_to_rman(res->dr_rman);
-	hexmode =  (rman->dm_size > 1000) || (rman->dm_size == 0);
+	hexmode = (rman->dm_size > 1000) || (rman->dm_size == 0);
 	printf(hexmode ? "0x%jx" : "%ju", res->dr_start);
 	if (res->dr_size > 1)
 		printf(hexmode ? "-0x%jx" : "-%ju",
@@ -83,20 +84,20 @@ print_resource(struct devinfo_res *res)
 int
 print_device_matching_resource(struct devinfo_res *res, void *arg)
 {
-	struct indent_arg	*ia = (struct indent_arg *)arg;
-	struct devinfo_dev	*dev = (struct devinfo_dev *)ia->arg;
-	int			i;
+	struct indent_arg *ia = (struct indent_arg *)arg;
+	struct devinfo_dev *dev = (struct devinfo_dev *)ia->arg;
+	int i;
 
 	if (devinfo_handle_to_device(res->dr_device) == dev) {
 		/* in 'detect' mode, found a match */
 		if (ia->indent == 0)
-			return(1);
+			return (1);
 		for (i = 0; i < ia->indent; i++)
 			printf(" ");
 		print_resource(res);
 		printf("\n");
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -105,15 +106,15 @@ print_device_matching_resource(struct devinfo_res *res, void *arg)
 int
 print_device_rman_resources(struct devinfo_rman *rman, void *arg)
 {
-	struct indent_arg	*ia = (struct indent_arg *)arg;
-	int			indent, i;
+	struct indent_arg *ia = (struct indent_arg *)arg;
+	int indent, i;
 
 	indent = ia->indent;
 
 	/* check whether there are any resources matching this device */
 	ia->indent = 0;
-	if (devinfo_foreach_rman_resource(rman,
-	    print_device_matching_resource, ia) != 0) {
+	if (devinfo_foreach_rman_resource(rman, print_device_matching_resource,
+		ia) != 0) {
 
 		/* there are, print header */
 		for (i = 0; i < indent; i++)
@@ -126,7 +127,7 @@ print_device_rman_resources(struct devinfo_rman *rman, void *arg)
 		    print_device_matching_resource, ia);
 	}
 	ia->indent = indent;
-	return(0);
+	return (0);
 }
 
 static void
@@ -144,15 +145,14 @@ print_dev(struct devinfo_dev *dev)
 		printf(" (suspended)");
 }
 
-
 /*
  * Print information about a device.
  */
 int
 print_device(struct devinfo_dev *dev, void *arg)
 {
-	struct indent_arg	ia;
-	int			i, indent;
+	struct indent_arg ia;
+	int i, indent;
 
 	if (vflag || (dev->dd_name[0] != 0 && dev->dd_state >= DS_ATTACHED)) {
 		indent = (int)(intptr_t)arg;
@@ -168,7 +168,7 @@ print_device(struct devinfo_dev *dev, void *arg)
 		}
 	}
 
-	return(devinfo_foreach_device_child(dev, print_device,
+	return (devinfo_foreach_device_child(dev, print_device,
 	    (void *)((char *)arg + 2)));
 }
 
@@ -178,8 +178,8 @@ print_device(struct devinfo_dev *dev, void *arg)
 int
 print_rman_resource(struct devinfo_res *res, void *arg __unused)
 {
-	struct devinfo_dev	*dev;
-	
+	struct devinfo_dev *dev;
+
 	printf("    ");
 	print_resource(res);
 	dev = devinfo_handle_to_device(res->dr_device);
@@ -189,7 +189,7 @@ print_rman_resource(struct devinfo_res *res, void *arg __unused)
 		printf(" ----");
 	}
 	printf("\n");
-	return(0);
+	return (0);
 }
 
 /*
@@ -200,7 +200,7 @@ print_rman(struct devinfo_rman *rman, void *arg __unused)
 {
 	printf("%s:\n", rman->dm_desc);
 	devinfo_foreach_rman_resource(rman, print_rman_resource, 0);
-	return(0);
+	return (0);
 }
 
 static int
@@ -229,23 +229,21 @@ print_path(struct devinfo_dev *dev, void *xname)
 static void __dead2
 usage(void)
 {
-	fprintf(stderr, "%s\n%s\n%s\n",
-	    "usage: devinfo [-rv]",
-	    "       devinfo -u",
-	    "       devinfo -p dev [-v]");
+	fprintf(stderr, "%s\n%s\n%s\n", "usage: devinfo [-rv]",
+	    "       devinfo -u", "       devinfo -p dev [-v]");
 	exit(1);
 }
 
 int
-main(int argc, char *argv[]) 
+main(int argc, char *argv[])
 {
-	struct devinfo_dev	*root;
-	int			c, uflag, rv;
-	char			*path = NULL;
+	struct devinfo_dev *root;
+	int c, uflag, rv;
+	char *path = NULL;
 
 	uflag = 0;
 	while ((c = getopt(argc, argv, "p:ruv")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'p':
 			path = optarg;
 			break;
@@ -275,7 +273,8 @@ main(int argc, char *argv[])
 		errx(1, "can't find root device");
 
 	if (path) {
-		if (devinfo_foreach_device_child(root, print_path, (void *)path) == 0)
+		if (devinfo_foreach_device_child(root, print_path,
+			(void *)path) == 0)
 			errx(1, "%s: Not found", path);
 		if (!vflag)
 			printf("\n");
@@ -286,5 +285,5 @@ main(int argc, char *argv[])
 		/* print device hierarchy */
 		devinfo_foreach_device_child(root, print_device, (void *)0);
 	}
-	return(0);
+	return (0);
 }

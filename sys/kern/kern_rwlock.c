@@ -29,15 +29,16 @@
  * Machine independent bits of reader/writer lock implementation.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_hwpmc_hooks.h"
 #include "opt_no_adaptive_rwlocks.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kdb.h>
-#include <sys/ktr.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
@@ -45,35 +46,34 @@
 #include <sys/sched.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/turnstile.h>
 
 #include <machine/cpu.h>
 
 #if defined(SMP) && !defined(NO_ADAPTIVE_RWLOCKS)
-#define	ADAPTIVE_RWLOCKS
+#define ADAPTIVE_RWLOCKS
 #endif
 
 #ifdef HWPMC_HOOKS
 #include <sys/pmckern.h>
-PMC_SOFT_DECLARE( , , lock, failed);
+PMC_SOFT_DECLARE(, , lock, failed);
 #endif
 
 /*
  * Return the rwlock address when the lock cookie address is provided.
  * This functionality assumes that struct rwlock* have a member named rw_lock.
  */
-#define	rwlock2rw(c)	(__containerof(c, struct rwlock, rw_lock))
+#define rwlock2rw(c) (__containerof(c, struct rwlock, rw_lock))
 
 #ifdef DDB
 #include <ddb/ddb.h>
 
-static void	db_show_rwlock(const struct lock_object *lock);
+static void db_show_rwlock(const struct lock_object *lock);
 #endif
-static void	assert_rw(const struct lock_object *lock, int what);
-static void	lock_rw(struct lock_object *lock, uintptr_t how);
+static void assert_rw(const struct lock_object *lock, int what);
+static void lock_rw(struct lock_object *lock, uintptr_t how);
 #ifdef KDTRACE_HOOKS
-static int	owner_rw(const struct lock_object *lock, struct thread **owner);
+static int owner_rw(const struct lock_object *lock, struct thread **owner);
 #endif
 static uintptr_t unlock_rw(struct lock_object *lock);
 
@@ -95,18 +95,17 @@ struct lock_class lock_class_rw = {
 #ifdef RWLOCK_CUSTOM_BACKOFF
 static u_short __read_frequently rowner_retries;
 static u_short __read_frequently rowner_loops;
-static SYSCTL_NODE(_debug, OID_AUTO, rwlock,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
+static SYSCTL_NODE(_debug, OID_AUTO, rwlock, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "rwlock debugging");
 SYSCTL_U16(_debug_rwlock, OID_AUTO, retry, CTLFLAG_RW, &rowner_retries, 0, "");
 SYSCTL_U16(_debug_rwlock, OID_AUTO, loops, CTLFLAG_RW, &rowner_loops, 0, "");
 
 static struct lock_delay_config __read_frequently rw_delay;
 
-SYSCTL_U16(_debug_rwlock, OID_AUTO, delay_base, CTLFLAG_RW, &rw_delay.base,
-    0, "");
-SYSCTL_U16(_debug_rwlock, OID_AUTO, delay_max, CTLFLAG_RW, &rw_delay.max,
-    0, "");
+SYSCTL_U16(_debug_rwlock, OID_AUTO, delay_base, CTLFLAG_RW, &rw_delay.base, 0,
+    "");
+SYSCTL_U16(_debug_rwlock, OID_AUTO, delay_max, CTLFLAG_RW, &rw_delay.max, 0,
+    "");
 
 static void
 rw_lock_delay_init(void *arg __unused)
@@ -118,9 +117,9 @@ rw_lock_delay_init(void *arg __unused)
 }
 LOCK_DELAY_SYSINIT(rw_lock_delay_init);
 #else
-#define rw_delay	locks_delay
-#define rowner_retries	locks_delay_retries
-#define rowner_loops	locks_delay_loops
+#define rw_delay locks_delay
+#define rowner_retries locks_delay_retries
+#define rowner_loops locks_delay_loops
 #endif
 #endif
 
@@ -129,32 +128,31 @@ LOCK_DELAY_SYSINIT(rw_lock_delay_init);
  * NULL if the lock is unlocked or read-locked.
  */
 
-#define	lv_rw_wowner(v)							\
-	((v) & RW_LOCK_READ ? NULL :					\
-	 (struct thread *)RW_OWNER((v)))
+#define lv_rw_wowner(v) \
+	((v) & RW_LOCK_READ ? NULL : (struct thread *)RW_OWNER((v)))
 
-#define	rw_wowner(rw)	lv_rw_wowner(RW_READ_VALUE(rw))
+#define rw_wowner(rw) lv_rw_wowner(RW_READ_VALUE(rw))
 
 /*
  * Returns if a write owner is recursed.  Write ownership is not assured
  * here and should be previously checked.
  */
-#define	rw_recursed(rw)		((rw)->rw_recurse != 0)
+#define rw_recursed(rw) ((rw)->rw_recurse != 0)
 
 /*
  * Return true if curthread helds the lock.
  */
-#define	rw_wlocked(rw)		(rw_wowner((rw)) == curthread)
+#define rw_wlocked(rw) (rw_wowner((rw)) == curthread)
 
 /*
  * Return a pointer to the owning thread for this lock who should receive
  * any priority lent by threads that block on this lock.  Currently this
  * is identical to rw_wowner().
  */
-#define	rw_owner(rw)		rw_wowner(rw)
+#define rw_owner(rw) rw_wowner(rw)
 
 #ifndef INVARIANTS
-#define	__rw_assert(c, what, file, line)
+#define __rw_assert(c, what, file, line)
 #endif
 
 void
@@ -200,8 +198,8 @@ owner_rw(const struct lock_object *lock, struct thread **owner)
 	uintptr_t x = rw->rw_lock;
 
 	*owner = rw_wowner(rw);
-	return ((x & RW_LOCK_READ) != 0 ?  (RW_READERS(x) != 0) :
-	    (*owner != NULL));
+	return (
+	    (x & RW_LOCK_READ) != 0 ? (RW_READERS(x) != 0) : (*owner != NULL));
 }
 #endif
 
@@ -213,11 +211,12 @@ _rw_init_flags(volatile uintptr_t *c, const char *name, int opts)
 
 	rw = rwlock2rw(c);
 
-	MPASS((opts & ~(RW_DUPOK | RW_NOPROFILE | RW_NOWITNESS | RW_QUIET |
-	    RW_RECURSE | RW_NEW)) == 0);
+	MPASS((opts &
+		  ~(RW_DUPOK | RW_NOPROFILE | RW_NOWITNESS | RW_QUIET |
+		      RW_RECURSE | RW_NEW)) == 0);
 	ASSERT_ATOMIC_LOAD_PTR(rw->rw_lock,
 	    ("%s: rw_lock not aligned for %s: %p", __func__, name,
-	    &rw->rw_lock));
+		&rw->rw_lock));
 
 	flags = LO_UPGRADABLE;
 	if (opts & RW_DUPOK)
@@ -277,9 +276,9 @@ _rw_wlock_cookie(volatile uintptr_t *c, const char *file, int line)
 	rw = rwlock2rw(c);
 
 	KASSERT(kdb_active != 0 || SCHEDULER_STOPPED() ||
-	    !TD_IS_IDLETHREAD(curthread),
-	    ("rw_wlock() by idle thread %p on rwlock %s @ %s:%d",
-	    curthread, rw->lock_object.lo_name, file, line));
+		!TD_IS_IDLETHREAD(curthread),
+	    ("rw_wlock() by idle thread %p on rwlock %s @ %s:%d", curthread,
+		rw->lock_object.lo_name, file, line));
 	KASSERT(rw->rw_lock != RW_DESTROYED,
 	    ("rw_wlock() of destroyed rwlock @ %s:%d", file, line));
 	WITNESS_CHECKORDER(&rw->lock_object, LOP_NEWORDER | LOP_EXCLUSIVE, file,
@@ -289,8 +288,8 @@ _rw_wlock_cookie(volatile uintptr_t *c, const char *file, int line)
 	if (!_rw_write_lock_fetch(rw, &v, tid))
 		_rw_wlock_hard(rw, v, file, line);
 	else
-		LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire, rw,
-		    0, 0, file, line, LOCKSTAT_WRITER);
+		LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire, rw, 0, 0,
+		    file, line, LOCKSTAT_WRITER);
 
 	LOCK_LOG_LOCK("WLOCK", &rw->lock_object, 0, rw->rw_recurse, file, line);
 	WITNESS_LOCK(&rw->lock_object, LOP_EXCLUSIVE, file, line);
@@ -311,8 +310,8 @@ __rw_try_wlock_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 		return (1);
 
 	KASSERT(kdb_active != 0 || !TD_IS_IDLETHREAD(td),
-	    ("rw_try_wlock() by idle thread %p on rwlock %s @ %s:%d",
-	    curthread, rw->lock_object.lo_name, file, line));
+	    ("rw_try_wlock() by idle thread %p on rwlock %s @ %s:%d", curthread,
+		rw->lock_object.lo_name, file, line));
 	KASSERT(rw->rw_lock != RW_DESTROYED,
 	    ("rw_try_wlock() of destroyed rwlock @ %s:%d", file, line));
 
@@ -338,8 +337,8 @@ __rw_try_wlock_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 		WITNESS_LOCK(&rw->lock_object, LOP_EXCLUSIVE | LOP_TRYLOCK,
 		    file, line);
 		if (!recursed)
-			LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire,
-			    rw, 0, 0, file, line, LOCKSTAT_WRITER);
+			LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire, rw,
+			    0, 0, file, line, LOCKSTAT_WRITER);
 		TD_LOCKS_INC(curthread);
 	}
 	return (rval);
@@ -388,8 +387,9 @@ static bool __always_inline
 __rw_can_read(struct thread *td, uintptr_t v, bool fp)
 {
 
-	if ((v & (RW_LOCK_READ | RW_LOCK_WRITE_WAITERS | RW_LOCK_WRITE_SPINNER))
-	    == RW_LOCK_READ)
+	if ((v &
+		(RW_LOCK_READ | RW_LOCK_WRITE_WAITERS |
+		    RW_LOCK_WRITE_SPINNER)) == RW_LOCK_READ)
 		return (true);
 	if (!fp && td->td_rw_rlocks && (v & RW_LOCK_READ))
 		return (true);
@@ -397,8 +397,8 @@ __rw_can_read(struct thread *td, uintptr_t v, bool fp)
 }
 
 static bool __always_inline
-__rw_rlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp, bool fp
-    LOCK_FILE_LINE_ARG_DEF)
+__rw_rlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp,
+    bool fp LOCK_FILE_LINE_ARG_DEF)
 {
 
 	/*
@@ -415,9 +415,8 @@ __rw_rlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp, bool fp
 		if (atomic_fcmpset_acq_ptr(&rw->rw_lock, vp,
 			*vp + RW_ONE_READER)) {
 			if (LOCK_LOG_TEST(&rw->lock_object, 0))
-				CTR4(KTR_LOCK,
-				    "%s: %p succeed %p -> %p", __func__,
-				    rw, (void *)*vp,
+				CTR4(KTR_LOCK, "%s: %p succeed %p -> %p",
+				    __func__, rw, (void *)*vp,
 				    (void *)(*vp + RW_ONE_READER));
 			td->td_rw_rlocks++;
 			return (true);
@@ -427,8 +426,8 @@ __rw_rlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp, bool fp
 }
 
 static void __noinline
-__rw_rlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
-    LOCK_FILE_LINE_ARG_DEF)
+__rw_rlock_hard(struct rwlock *rw, struct thread *td,
+    uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 {
 	struct turnstile *ts;
 	struct thread *owner;
@@ -477,10 +476,10 @@ __rw_rlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
 #endif
 
 #ifdef HWPMC_HOOKS
-	PMC_SOFT_CALL( , , lock, failed);
+	PMC_SOFT_CALL(, , lock, failed);
 #endif
-	lock_profile_obtain_lock_failed(&rw->lock_object, false,
-	    &contested, &waittime);
+	lock_profile_obtain_lock_failed(&rw->lock_object, false, &contested,
+	    &waittime);
 
 	THREAD_CONTENDS_ON_LOCK(&rw->lock_object);
 
@@ -525,9 +524,9 @@ __rw_rlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
 			}
 			if (spintries < rowner_retries) {
 				spintries++;
-				KTR_STATE1(KTR_SCHED, "thread", sched_tdname(curthread),
-				    "spinning", "lockname:\"%s\"",
-				    rw->lock_object.lo_name);
+				KTR_STATE1(KTR_SCHED, "thread",
+				    sched_tdname(curthread), "spinning",
+				    "lockname:\"%s\"", rw->lock_object.lo_name);
 				n = RW_READERS(v);
 				for (i = 0; i < rowner_loops; i += n) {
 					lock_delay_spin(n);
@@ -543,8 +542,8 @@ __rw_rlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
 #ifdef KDTRACE_HOOKS
 				lda.spin_cnt += rowner_loops - i;
 #endif
-				KTR_STATE0(KTR_SCHED, "thread", sched_tdname(curthread),
-				    "running");
+				KTR_STATE0(KTR_SCHED, "thread",
+				    sched_tdname(curthread), "running");
 				if (i < rowner_loops)
 					continue;
 			}
@@ -564,7 +563,7 @@ __rw_rlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
 		 * recheck its state and restart the loop if needed.
 		 */
 		v = RW_READ_VALUE(rw);
-retry_ts:
+	retry_ts:
 		if (((v & RW_LOCK_WRITE_SPINNER) && RW_READERS(v) == 0) ||
 		    __rw_can_read(td, v, false)) {
 			turnstile_cancel(ts);
@@ -602,7 +601,7 @@ retry_ts:
 		 */
 		if (!(v & RW_LOCK_READ_WAITERS)) {
 			if (!atomic_fcmpset_ptr(&rw->rw_lock, &v,
-			    v | RW_LOCK_READ_WAITERS))
+				v | RW_LOCK_READ_WAITERS))
 				goto retry_ts;
 			if (LOCK_LOG_TEST(&rw->lock_object, 0))
 				CTR2(KTR_LOCK, "%s: %p set read waiters flag",
@@ -638,8 +637,8 @@ retry_ts:
 #ifdef KDTRACE_HOOKS
 	all_time += lockstat_nsecs(&rw->lock_object);
 	if (sleep_time)
-		LOCKSTAT_RECORD4(rw__block, rw, sleep_time,
-		    LOCKSTAT_READER, (state & RW_LOCK_READ) == 0,
+		LOCKSTAT_RECORD4(rw__block, rw, sleep_time, LOCKSTAT_READER,
+		    (state & RW_LOCK_READ) == 0,
 		    (state & RW_LOCK_READ) == 0 ? 0 : RW_READERS(state));
 
 	/* Record only the loops spinning and not sleeping. */
@@ -666,20 +665,19 @@ __rw_rlock_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 
 	td = curthread;
 
-	KASSERT(kdb_active != 0 || SCHEDULER_STOPPED() ||
-	    !TD_IS_IDLETHREAD(td),
-	    ("rw_rlock() by idle thread %p on rwlock %s @ %s:%d",
-	    td, rw->lock_object.lo_name, file, line));
+	KASSERT(kdb_active != 0 || SCHEDULER_STOPPED() || !TD_IS_IDLETHREAD(td),
+	    ("rw_rlock() by idle thread %p on rwlock %s @ %s:%d", td,
+		rw->lock_object.lo_name, file, line));
 	KASSERT(rw->rw_lock != RW_DESTROYED,
 	    ("rw_rlock() of destroyed rwlock @ %s:%d", file, line));
 	KASSERT(rw_wowner(rw) != td,
 	    ("rw_rlock: wlock already held for %s @ %s:%d",
-	    rw->lock_object.lo_name, file, line));
+		rw->lock_object.lo_name, file, line));
 	WITNESS_CHECKORDER(&rw->lock_object, LOP_NEWORDER, file, line, NULL);
 
 	v = RW_READ_VALUE(rw);
 	if (__predict_false(LOCKSTAT_PROFILE_ENABLED(rw__acquire) ||
-	    !__rw_rlock_try(rw, td, &v, true LOCK_FILE_LINE_ARG)))
+		!__rw_rlock_try(rw, td, &v, true LOCK_FILE_LINE_ARG)))
 		__rw_rlock_hard(rw, td, v LOCK_FILE_LINE_ARG);
 	else
 		lock_profile_obtain_lock_success(&rw->lock_object, false, 0, 0,
@@ -708,8 +706,8 @@ __rw_try_rlock_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 		return (1);
 
 	KASSERT(kdb_active != 0 || !TD_IS_IDLETHREAD(curthread),
-	    ("rw_try_rlock() by idle thread %p on rwlock %s @ %s:%d",
-	    curthread, rw->lock_object.lo_name, file, line));
+	    ("rw_try_rlock() by idle thread %p on rwlock %s @ %s:%d", curthread,
+		rw->lock_object.lo_name, file, line));
 
 	x = rw->rw_lock;
 	for (;;) {
@@ -717,12 +715,13 @@ __rw_try_rlock_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 		    ("rw_try_rlock() of destroyed rwlock @ %s:%d", file, line));
 		if (!(x & RW_LOCK_READ))
 			break;
-		if (atomic_fcmpset_acq_ptr(&rw->rw_lock, &x, x + RW_ONE_READER)) {
+		if (atomic_fcmpset_acq_ptr(&rw->rw_lock, &x,
+			x + RW_ONE_READER)) {
 			LOCK_LOG_TRY("RLOCK", &rw->lock_object, 0, 1, file,
 			    line);
 			WITNESS_LOCK(&rw->lock_object, LOP_TRYLOCK, file, line);
-			LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire,
-			    rw, 0, 0, file, line, LOCKSTAT_READER);
+			LOCKSTAT_PROFILE_OBTAIN_RWLOCK_SUCCESS(rw__acquire, rw,
+			    0, 0, file, line, LOCKSTAT_READER);
 			TD_LOCKS_INC(curthread);
 			curthread->td_rw_rlocks++;
 			return (1);
@@ -749,7 +748,7 @@ __rw_runlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp)
 	for (;;) {
 		if (RW_READERS(*vp) > 1 || !(*vp & RW_LOCK_WAITERS)) {
 			if (atomic_fcmpset_rel_ptr(&rw->rw_lock, vp,
-			    *vp - RW_ONE_READER)) {
+				*vp - RW_ONE_READER)) {
 				if (LOCK_LOG_TEST(&rw->lock_object, 0))
 					CTR4(KTR_LOCK,
 					    "%s: %p succeeded %p -> %p",
@@ -766,8 +765,8 @@ __rw_runlock_try(struct rwlock *rw, struct thread *td, uintptr_t *vp)
 }
 
 static void __noinline
-__rw_runlock_hard(struct rwlock *rw, struct thread *td, uintptr_t v
-    LOCK_FILE_LINE_ARG_DEF)
+__rw_runlock_hard(struct rwlock *rw, struct thread *td,
+    uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 {
 	struct turnstile *ts;
 	uintptr_t setv, queue;
@@ -854,7 +853,7 @@ _rw_runlock_cookie_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 	v = RW_READ_VALUE(rw);
 
 	if (__predict_false(LOCKSTAT_PROFILE_ENABLED(rw__release) ||
-	    !__rw_runlock_try(rw, td, &v)))
+		!__rw_runlock_try(rw, td, &v)))
 		__rw_runlock_hard(rw, td, v LOCK_FILE_LINE_ARG);
 	else
 		lock_profile_release_lock(&rw->lock_object, false);
@@ -885,7 +884,9 @@ rw_drop_critical(uintptr_t v, bool *in_critical, int *extra_work)
 	}
 }
 #else
-#define rw_drop_critical(v, in_critical, extra_work) do { } while (0)
+#define rw_drop_critical(v, in_critical, extra_work) \
+	do {                                         \
+	} while (0)
 #endif
 
 /*
@@ -955,7 +956,7 @@ __rw_wlock_hard(volatile uintptr_t *c, uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 	if (__predict_false(lv_rw_wowner(v) == (struct thread *)tid)) {
 		KASSERT(rw->lock_object.lo_flags & LO_RECURSABLE,
 		    ("%s: recursing but non-recursive rw %s @ %s:%d\n",
-		    __func__, rw->lock_object.lo_name, file, line));
+			__func__, rw->lock_object.lo_name, file, line));
 		rw->rw_recurse++;
 		atomic_set_ptr(&rw->rw_lock, RW_LOCK_WRITER_RECURSED);
 		if (LOCK_LOG_TEST(&rw->lock_object, 0))
@@ -974,10 +975,10 @@ __rw_wlock_hard(volatile uintptr_t *c, uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 #endif
 
 #ifdef HWPMC_HOOKS
-	PMC_SOFT_CALL( , , lock, failed);
+	PMC_SOFT_CALL(, , lock, failed);
 #endif
-	lock_profile_obtain_lock_failed(&rw->lock_object, false,
-	    &contested, &waittime);
+	lock_profile_obtain_lock_failed(&rw->lock_object, false, &contested,
+	    &waittime);
 
 	THREAD_CONTENDS_ON_LOCK(&rw->lock_object);
 
@@ -1034,7 +1035,7 @@ __rw_wlock_hard(volatile uintptr_t *c, uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 					extra_work++;
 				}
 				if (!atomic_fcmpset_ptr(&rw->rw_lock, &v,
-				    v | RW_LOCK_WRITE_SPINNER)) {
+					v | RW_LOCK_WRITE_SPINNER)) {
 					critical_exit();
 					in_critical = false;
 					extra_work--;
@@ -1065,11 +1066,11 @@ __rw_wlock_hard(volatile uintptr_t *c, uintptr_t v LOCK_FILE_LINE_ARG_DEF)
 			if (i < rowner_loops)
 				continue;
 		}
-ts:
+	ts:
 #endif
 		ts = turnstile_trywait(&rw->lock_object);
 		v = RW_READ_VALUE(rw);
-retry_ts:
+	retry_ts:
 		owner = lv_rw_wowner(v);
 
 #ifdef ADAPTIVE_RWLOCKS
@@ -1102,7 +1103,8 @@ retry_ts:
 		setv = v & (RW_LOCK_WAITERS | RW_LOCK_WRITE_SPINNER);
 		if ((v & ~setv) == RW_UNLOCKED) {
 			setv &= ~RW_LOCK_WRITE_SPINNER;
-			if (atomic_fcmpset_acq_ptr(&rw->rw_lock, &v, tid | setv)) {
+			if (atomic_fcmpset_acq_ptr(&rw->rw_lock, &v,
+				tid | setv)) {
 				if (setv)
 					turnstile_claim(ts);
 				else
@@ -1127,16 +1129,17 @@ retry_ts:
 		} else {
 #endif
 			/*
-			 * If the RW_LOCK_WRITE_WAITERS flag isn't set, then try to
-			 * set it.  If we fail to set it, then loop back and try
-			 * again.
+			 * If the RW_LOCK_WRITE_WAITERS flag isn't set, then try
+			 * to set it.  If we fail to set it, then loop back and
+			 * try again.
 			 */
 			if (!(v & RW_LOCK_WRITE_WAITERS)) {
 				if (!atomic_fcmpset_ptr(&rw->rw_lock, &v,
-				    v | RW_LOCK_WRITE_WAITERS))
+					v | RW_LOCK_WRITE_WAITERS))
 					goto retry_ts;
 				if (LOCK_LOG_TEST(&rw->lock_object, 0))
-					CTR2(KTR_LOCK, "%s: %p set write waiters flag",
+					CTR2(KTR_LOCK,
+					    "%s: %p set write waiters flag",
 					    __func__, rw);
 			}
 #ifdef ADAPTIVE_RWLOCKS
@@ -1180,8 +1183,8 @@ retry_ts:
 #ifdef KDTRACE_HOOKS
 	all_time += lockstat_nsecs(&rw->lock_object);
 	if (sleep_time)
-		LOCKSTAT_RECORD4(rw__block, rw, sleep_time,
-		    LOCKSTAT_WRITER, (state & RW_LOCK_READ) == 0,
+		LOCKSTAT_RECORD4(rw__block, rw, sleep_time, LOCKSTAT_WRITER,
+		    (state & RW_LOCK_READ) == 0,
 		    (state & RW_LOCK_READ) == 0 ? 0 : RW_READERS(state));
 
 	/* Record only the loops spinning and not sleeping. */
@@ -1318,7 +1321,7 @@ __rw_try_upgrade_int(struct rwlock *rw LOCK_FILE_LINE_ARG_DEF)
 		 */
 		ts = turnstile_trywait(&rw->lock_object);
 		v = RW_READ_VALUE(rw);
-retry_ts:
+	retry_ts:
 		if (RW_READERS(v) > 1) {
 			turnstile_cancel(ts);
 			break;
@@ -1471,11 +1474,11 @@ __rw_assert(const volatile uintptr_t *c, int what, const char *file, int line)
 		 * has a lock at all, fail.
 		 */
 		if (rw->rw_lock == RW_UNLOCKED ||
-		    (!(rw->rw_lock & RW_LOCK_READ) && (what & RA_RLOCKED ||
-		    rw_wowner(rw) != curthread)))
+		    (!(rw->rw_lock & RW_LOCK_READ) &&
+			(what & RA_RLOCKED || rw_wowner(rw) != curthread)))
 			panic("Lock %s not %slocked @ %s:%d\n",
-			    rw->lock_object.lo_name, (what & RA_RLOCKED) ?
-			    "read " : "", file, line);
+			    rw->lock_object.lo_name,
+			    (what & RA_RLOCKED) ? "read " : "", file, line);
 
 		if (!(rw->rw_lock & RW_LOCK_READ) && !(what & RA_RLOCKED)) {
 			if (rw_recursed(rw)) {

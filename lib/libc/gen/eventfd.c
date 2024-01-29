@@ -24,14 +24,17 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "namespace.h"
 #include <sys/eventfd.h>
 #include <sys/specialfd.h>
-#include <unistd.h>
-#include "un-namespace.h"
-#include "libc_private.h"
 
-int eventfd(unsigned int initval, int flags)
+#include <unistd.h>
+
+#include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
+
+int
+eventfd(unsigned int initval, int flags)
 {
 	struct specialfd_eventfd args;
 
@@ -40,12 +43,14 @@ int eventfd(unsigned int initval, int flags)
 	return (__sys___specialfd(SPECIALFD_EVENTFD, &args, sizeof(args)));
 }
 
-int eventfd_read(int fd, eventfd_t *value)
+int
+eventfd_read(int fd, eventfd_t *value)
 {
 	return (sizeof(*value) == _read(fd, value, sizeof(*value)) ? 0 : -1);
 }
 
-int eventfd_write(int fd, eventfd_t value)
+int
+eventfd_write(int fd, eventfd_t value)
 {
 	return (sizeof(value) == _write(fd, &value, sizeof(value)) ? 0 : -1);
 }

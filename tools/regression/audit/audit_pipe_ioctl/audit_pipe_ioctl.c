@@ -35,10 +35,9 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
-#include <security/audit/audit_ioctl.h>
-
 #include <err.h>
 #include <fcntl.h>
+#include <security/audit/audit_ioctl.h>
 
 int
 main(int argc, char *argv[])

@@ -64,9 +64,9 @@
  *	Resident memory management module.
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/counter.h>
@@ -81,9 +81,9 @@
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rwlock.h>
-#include <sys/sleepqueue.h>
 #include <sys/sbuf.h>
 #include <sys/sched.h>
+#include <sys/sleepqueue.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
 #include <sys/vmmeter.h>
@@ -91,22 +91,22 @@
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <vm/vm_param.h>
+#include <vm/uma.h>
+#include <vm/uma_int.h>
 #include <vm/vm_domainset.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
-#include <vm/vm_phys.h>
 #include <vm/vm_pagequeue.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 #include <vm/vm_radix.h>
 #include <vm/vm_reserv.h>
-#include <vm/vm_extern.h>
-#include <vm/vm_dumpset.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
 
 #include <machine/md_var.h>
 
@@ -128,19 +128,17 @@ static SYSCTL_NODE(_vm_stats, OID_AUTO, page, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "VM page statistics");
 
 static COUNTER_U64_DEFINE_EARLY(pqstate_commit_retries);
-SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, pqstate_commit_retries,
-    CTLFLAG_RD, &pqstate_commit_retries,
+SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, pqstate_commit_retries, CTLFLAG_RD,
+    &pqstate_commit_retries,
     "Number of failed per-page atomic queue state updates");
 
 static COUNTER_U64_DEFINE_EARLY(queue_ops);
-SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, queue_ops,
-    CTLFLAG_RD, &queue_ops,
+SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, queue_ops, CTLFLAG_RD, &queue_ops,
     "Number of batched queue operations");
 
 static COUNTER_U64_DEFINE_EARLY(queue_nops);
-SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, queue_nops,
-    CTLFLAG_RD, &queue_nops,
-    "Number of batched queue operations with no effects");
+SYSCTL_COUNTER_U64(_vm_stats_page, OID_AUTO, queue_nops, CTLFLAG_RD,
+    &queue_nops, "Number of batched queue operations with no effects");
 
 /*
  * bogus page -- for I/O to/from partially complete buffers,
@@ -157,8 +155,9 @@ long vm_page_dump_pages;
 
 static TAILQ_HEAD(, vm_page) blacklist_head;
 static int sysctl_vm_page_blacklist(SYSCTL_HANDLER_ARGS);
-SYSCTL_PROC(_vm, OID_AUTO, page_blacklist, CTLTYPE_STRING | CTLFLAG_RD |
-    CTLFLAG_MPSAFE, NULL, 0, sysctl_vm_page_blacklist, "A", "Blacklist pages");
+SYSCTL_PROC(_vm, OID_AUTO, page_blacklist,
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
+    sysctl_vm_page_blacklist, "A", "Blacklist pages");
 
 static uma_zone_t fakepg_zone;
 
@@ -230,7 +229,7 @@ vm_page_init_cache_zones(void *dummy __unused)
 			 * domain.
 			 */
 			cache = maxcache != 0 ? maxcache :
-			    vmd->vmd_page_count / 1000;
+						vmd->vmd_page_count / 1000;
 			uma_zone_set_maxcache(pgcache->zone, cache);
 		}
 	}
@@ -277,7 +276,7 @@ vm_page_blacklist_next(char **list, char *end)
 
 	if (list == NULL || *list == NULL)
 		return (0);
-	if (**list =='\0') {
+	if (**list == '\0') {
 		*list = NULL;
 		return (0);
 	}
@@ -291,7 +290,7 @@ vm_page_blacklist_next(char **list, char *end)
 
 	/* Ensure that strtoq() won't walk off the end */
 	if (*end != '\0') {
-		if (*end == '\n' || *end == ' ' || *end  == ',')
+		if (*end == '\n' || *end == ' ' || *end == ',')
 			*end = '\0';
 		else {
 			printf("Blacklist not terminated, skipping\n");
@@ -388,7 +387,7 @@ vm_page_blacklist_load(char **list, char **end)
 	if (mod != NULL) {
 		ptr = preload_fetch_addr(mod);
 		len = preload_fetch_size(mod);
-        }
+	}
 	*list = ptr;
 	if (ptr != NULL)
 		*end = ptr + len;
@@ -409,7 +408,7 @@ sysctl_vm_page_blacklist(SYSCTL_HANDLER_ARGS)
 	if (error != 0)
 		return (error);
 	sbuf_new_for_sysctl(&sbuf, NULL, 128, req);
-	TAILQ_FOREACH(m, &blacklist_head, listq) {
+	TAILQ_FOREACH (m, &blacklist_head, listq) {
 		sbuf_printf(&sbuf, "%s%#jx", first ? "" : ",",
 		    (uintmax_t)m->phys_addr);
 		first = 0;
@@ -446,10 +445,10 @@ vm_page_domain_init(int domain)
 	bzero(vmd, sizeof(*vmd));
 	*__DECONST(const char **, &vmd->vmd_pagequeues[PQ_INACTIVE].pq_name) =
 	    "vm inactive pagequeue";
-	*__DECONST(const char **, &vmd->vmd_pagequeues[PQ_ACTIVE].pq_name) =
-	    "vm active pagequeue";
-	*__DECONST(const char **, &vmd->vmd_pagequeues[PQ_LAUNDRY].pq_name) =
-	    "vm laundry pagequeue";
+	*__DECONST(const char **,
+	    &vmd->vmd_pagequeues[PQ_ACTIVE].pq_name) = "vm active pagequeue";
+	*__DECONST(const char **,
+	    &vmd->vmd_pagequeues[PQ_LAUNDRY].pq_name) = "vm laundry pagequeue";
 	*__DECONST(const char **,
 	    &vmd->vmd_pagequeues[PQ_UNSWAPPABLE].pq_name) =
 	    "vm unswappable pagequeue";
@@ -574,7 +573,7 @@ vm_page_startup(vm_offset_t vaddr)
 
 	vm_phys_early_startup();
 	biggestone = vm_phys_avail_largest();
-	end = phys_avail[biggestone+1];
+	end = phys_avail[biggestone + 1];
 
 	/*
 	 * Initialize the page and queue locks.
@@ -623,8 +622,8 @@ vm_page_startup(vm_offset_t vaddr)
 #else
 	(void)last_pa;
 #endif
-#if defined(__aarch64__) || defined(__amd64__) || \
-    defined(__riscv) || defined(__powerpc64__)
+#if defined(__aarch64__) || defined(__amd64__) || defined(__riscv) || \
+    defined(__powerpc64__)
 	/*
 	 * Include the UMA bootstrap pages, witness pages and vm_page_dump
 	 * in a crash dump.  When pmap_map() uses the direct map, they are
@@ -652,8 +651,8 @@ vm_page_startup(vm_offset_t vaddr)
 	 * use, taking into account the overhead of a page structure per page.
 	 * In other words, solve
 	 *	"available physical memory" - round_page(page_range *
-	 *	    sizeof(struct vm_page)) = page_range * PAGE_SIZE 
-	 * for page_range.  
+	 *	    sizeof(struct vm_page)) = page_range * PAGE_SIZE
+	 * for page_range.
 	 */
 	low_avail = phys_avail[0];
 	high_avail = phys_avail[1];
@@ -728,8 +727,8 @@ vm_page_startup(vm_offset_t vaddr)
 	 */
 	new_end = vm_reserv_startup(&vaddr, new_end);
 #endif
-#if defined(__aarch64__) || defined(__amd64__) || \
-    defined(__riscv) || defined(__powerpc64__)
+#if defined(__aarch64__) || defined(__amd64__) || defined(__riscv) || \
+    defined(__powerpc64__)
 	/*
 	 * Include vm_page_array and vm_reserv_array in a crash dump.
 	 */
@@ -766,7 +765,7 @@ vm_page_startup(vm_offset_t vaddr)
 	for (segind = 0; segind < vm_phys_nsegs; segind++) {
 		seg = &vm_phys_segs[segind];
 		for (m = seg->first_page, pa = seg->start; pa < seg->end;
-		    m++, pa += PAGE_SIZE)
+		     m++, pa += PAGE_SIZE)
 			vm_page_init_page(m, pa, segind);
 
 		/*
@@ -890,13 +889,14 @@ vm_page_busy_acquire(vm_page_t m, int allocflags)
 			locked = false;
 		MPASS(locked || vm_page_wired(m));
 		if (_vm_page_busy_sleep(obj, m, m->pindex, "vmpba", allocflags,
-		    locked) && locked)
+			locked) &&
+		    locked)
 			VM_OBJECT_WLOCK(obj);
 		if ((allocflags & VM_ALLOC_WAITFAIL) != 0)
 			return (false);
 		KASSERT(m->object == obj || m->object == NULL,
-		    ("vm_page_busy_acquire: page %p does not belong to %p",
-		    m, obj));
+		    ("vm_page_busy_acquire: page %p does not belong to %p", m,
+			obj));
 	}
 }
 
@@ -914,8 +914,8 @@ vm_page_busy_downgrade(vm_page_t m)
 
 	x = vm_page_busy_fetch(m);
 	for (;;) {
-		if (atomic_fcmpset_rel_int(&m->busy_lock,
-		    &x, VPB_SHARERS_WORD(1)))
+		if (atomic_fcmpset_rel_int(&m->busy_lock, &x,
+			VPB_SHARERS_WORD(1)))
 			break;
 	}
 	if ((x & VPB_BIT_WAITERS) != 0)
@@ -943,7 +943,7 @@ vm_page_busy_tryupgrade(vm_page_t m)
 		KASSERT((x & ~VPB_BIT_WAITERS) == VPB_SHARERS_WORD(1),
 		    ("vm_page_busy_tryupgrade: invalid lock state"));
 		if (!atomic_fcmpset_acq_int(&m->busy_lock, &x,
-		    ce | (x & VPB_BIT_WAITERS)))
+			ce | (x & VPB_BIT_WAITERS)))
 			continue;
 		return (1);
 	}
@@ -981,7 +981,7 @@ vm_page_sunbusy(vm_page_t m)
 		    ("vm_page_sunbusy: Unlocking freed page."));
 		if (VPB_SHARERS(x) > 1) {
 			if (atomic_fcmpset_int(&m->busy_lock, &x,
-			    x - VPB_ONE_SHARER))
+				x - VPB_ONE_SHARER))
 				break;
 			continue;
 		}
@@ -1018,8 +1018,8 @@ vm_page_busy_sleep(vm_page_t m, const char *wmesg, int allocflags)
 	obj = m->object;
 	VM_OBJECT_ASSERT_LOCKED(obj);
 
-	return (_vm_page_busy_sleep(obj, m, m->pindex, wmesg, allocflags,
-	    true));
+	return (
+	    _vm_page_busy_sleep(obj, m, m->pindex, wmesg, allocflags, true));
 }
 
 /*
@@ -1085,8 +1085,8 @@ _vm_page_busy_sleep(vm_object_t obj, vm_page_t m, vm_pindex_t pindex,
 		 * simply return.
 		 */
 		if (x == VPB_UNBUSIED ||
-		    (xsleep && (x & VPB_BIT_SHARED) != 0) ||
-		    m->object != obj || m->pindex != pindex) {
+		    (xsleep && (x & VPB_BIT_SHARED) != 0) || m->object != obj ||
+		    m->pindex != pindex) {
 			sleepq_release(m);
 			return (false);
 		}
@@ -1127,7 +1127,7 @@ vm_page_trysbusy(vm_page_t m)
 		if (obj != NULL && vm_object_busied(obj))
 			return (0);
 		if (atomic_fcmpset_acq_int(&m->busy_lock, &x,
-		    x + VPB_ONE_SHARER))
+			x + VPB_ONE_SHARER))
 			break;
 	}
 
@@ -1152,8 +1152,8 @@ vm_page_tryxbusy(vm_page_t m)
 {
 	vm_object_t obj;
 
-        if (atomic_cmpset_acq_int(&m->busy_lock, VPB_UNBUSIED,
-            VPB_CURTHREAD_EXCLUSIVE) == 0)
+	if (atomic_cmpset_acq_int(&m->busy_lock, VPB_UNBUSIED,
+		VPB_CURTHREAD_EXCLUSIVE) == 0)
 		return (0);
 
 	obj = m->object;
@@ -1662,7 +1662,7 @@ vm_page_relookup(vm_object_t object, vm_pindex_t pindex)
 
 	m = vm_radix_lookup_unlocked(&object->rtree, pindex);
 	KASSERT(m != NULL && (vm_page_busied(m) || vm_page_wired(m)) &&
-	    m->object == object && m->pindex == pindex,
+		m->object == object && m->pindex == pindex,
 	    ("vm_page_relookup: Invalid page %p", m));
 	return (m);
 }
@@ -1684,12 +1684,12 @@ vm_page_busy_release(vm_page_t m)
 			break;
 		if ((x & VPB_BIT_SHARED) != 0 && VPB_SHARERS(x) > 1) {
 			if (atomic_fcmpset_int(&m->busy_lock, &x,
-			    x - VPB_ONE_SHARER))
+				x - VPB_ONE_SHARER))
 				break;
 			continue;
 		}
 		KASSERT((x & VPB_BIT_SHARED) != 0 ||
-		    (x & ~VPB_BIT_WAITERS) == VPB_CURTHREAD_EXCLUSIVE,
+			(x & ~VPB_BIT_WAITERS) == VPB_CURTHREAD_EXCLUSIVE,
 		    ("vm_page_busy_release: %p xbusy not owned.", m));
 		if (!atomic_fcmpset_rel_int(&m->busy_lock, &x, VPB_UNBUSIED))
 			continue;
@@ -1794,7 +1794,7 @@ vm_page_replace_hold(vm_page_t mnew, vm_object_t object, vm_pindex_t pindex,
 	KASSERT(mret == mold,
 	    ("invalid page replacement, mold=%p, mret=%p", mold, mret));
 	KASSERT((mold->oflags & VPO_UNMANAGED) ==
-	    (mnew->oflags & VPO_UNMANAGED),
+		(mnew->oflags & VPO_UNMANAGED),
 	    ("vm_page_replace: mismatched VPO_UNMANAGED"));
 
 	/* Keep the resident page list in sorted order. */
@@ -1932,8 +1932,8 @@ vm_page_alloc_domain(vm_object_t object, vm_pindex_t pindex, int domain,
  * page index, or NULL if no such page exists.
  */
 vm_page_t
-vm_page_alloc_after(vm_object_t object, vm_pindex_t pindex,
-    int req, vm_page_t mpred)
+vm_page_alloc_after(vm_object_t object, vm_pindex_t pindex, int req,
+    vm_page_t mpred)
 {
 	struct vm_domainset_iter di;
 	vm_page_t m;
@@ -2011,18 +2011,17 @@ vm_page_alloc_domain_after(vm_object_t object, vm_pindex_t pindex, int domain,
 	vm_page_t m;
 	int flags;
 
-#define	VPA_FLAGS	(VM_ALLOC_CLASS_MASK | VM_ALLOC_WAITFAIL |	\
-			 VM_ALLOC_NOWAIT | VM_ALLOC_NOBUSY |		\
-			 VM_ALLOC_SBUSY | VM_ALLOC_WIRED |		\
-			 VM_ALLOC_NODUMP | VM_ALLOC_ZERO | VM_ALLOC_COUNT_MASK)
-	KASSERT((req & ~VPA_FLAGS) == 0,
-	    ("invalid request %#x", req));
+#define VPA_FLAGS                                                    \
+	(VM_ALLOC_CLASS_MASK | VM_ALLOC_WAITFAIL | VM_ALLOC_NOWAIT | \
+	    VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY | VM_ALLOC_WIRED |      \
+	    VM_ALLOC_NODUMP | VM_ALLOC_ZERO | VM_ALLOC_COUNT_MASK)
+	KASSERT((req & ~VPA_FLAGS) == 0, ("invalid request %#x", req));
 	KASSERT(((req & (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)) !=
-	    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
+		    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
 	    ("invalid request %#x", req));
 	KASSERT(mpred == NULL || mpred->pindex < pindex,
 	    ("mpred %p doesn't precede pindex 0x%jx", mpred,
-	    (uintmax_t)pindex));
+		(uintmax_t)pindex));
 	VM_OBJECT_ASSERT_WLOCKED(object);
 
 	flags = 0;
@@ -2036,7 +2035,7 @@ again:
 	 */
 	if (vm_object_reserv(object) &&
 	    (m = vm_reserv_alloc_page(object, pindex, domain, req, mpred)) !=
-	    NULL) {
+		NULL) {
 		goto found;
 	}
 #endif
@@ -2185,8 +2184,8 @@ vm_page_alloc_contig(vm_object_t object, vm_pindex_t pindex, int req,
 			break;
 		if (start_segind == -1)
 			start_segind = vm_phys_lookup_segind(low);
-		if (vm_phys_find_range(bounds, start_segind, domain,
-		    npages, low, high) == -1) {
+		if (vm_phys_find_range(bounds, start_segind, domain, npages,
+			low, high) == -1) {
 			vm_domainset_iter_ignore(&di, domain);
 		}
 	} while (vm_domainset_iter_page(&di, object, &domain) == 0);
@@ -2212,8 +2211,8 @@ vm_page_find_contig_domain(int domain, int req, u_long npages, vm_paddr_t low,
 	 * Try to allocate the pages from the free page queues.
 	 */
 	vm_domain_free_lock(vmd);
-	m_ret = vm_phys_alloc_contig(domain, npages, low, high,
-	    alignment, boundary);
+	m_ret = vm_phys_alloc_contig(domain, npages, low, high, alignment,
+	    boundary);
 	vm_domain_free_unlock(vmd);
 	if (m_ret != NULL)
 		return (m_ret);
@@ -2222,8 +2221,8 @@ vm_page_find_contig_domain(int domain, int req, u_long npages, vm_paddr_t low,
 	 * Try to break a reservation to allocate the pages.
 	 */
 	if ((req & VM_ALLOC_NORECLAIM) == 0) {
-		m_ret = vm_reserv_reclaim_contig(domain, npages, low,
-	            high, alignment, boundary);
+		m_ret = vm_reserv_reclaim_contig(domain, npages, low, high,
+		    alignment, boundary);
 		if (m_ret != NULL)
 			return (m_ret);
 	}
@@ -2240,19 +2239,17 @@ vm_page_alloc_contig_domain(vm_object_t object, vm_pindex_t pindex, int domain,
 	vm_page_t m, m_ret, mpred;
 	u_int busy_lock, flags, oflags;
 
-#define	VPAC_FLAGS	(VPA_FLAGS | VM_ALLOC_NORECLAIM)
-	KASSERT((req & ~VPAC_FLAGS) == 0,
-	    ("invalid request %#x", req));
+#define VPAC_FLAGS (VPA_FLAGS | VM_ALLOC_NORECLAIM)
+	KASSERT((req & ~VPAC_FLAGS) == 0, ("invalid request %#x", req));
 	KASSERT(((req & (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)) !=
-	    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
+		    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
 	    ("invalid request %#x", req));
 	KASSERT((req & (VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM)) !=
-	    (VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM),
+		(VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM),
 	    ("invalid request %#x", req));
 	VM_OBJECT_ASSERT_WLOCKED(object);
 	KASSERT((object->flags & OBJ_FICTITIOUS) == 0,
-	    ("vm_page_alloc_contig: object %p has fictitious pages",
-	    object));
+	    ("vm_page_alloc_contig: object %p has fictitious pages", object));
 	KASSERT(npages > 0, ("vm_page_alloc_contig: npages is zero"));
 
 	mpred = vm_radix_lookup_le(&object->rtree, pindex);
@@ -2265,12 +2262,13 @@ vm_page_alloc_contig_domain(vm_object_t object, vm_pindex_t pindex, int domain,
 		 */
 		if (vm_object_reserv(object) &&
 		    (m_ret = vm_reserv_alloc_contig(object, pindex, domain, req,
-		    mpred, npages, low, high, alignment, boundary)) != NULL) {
+			 mpred, npages, low, high, alignment, boundary)) !=
+			NULL) {
 			break;
 		}
 #endif
 		if ((m_ret = vm_page_find_contig_domain(domain, req, npages,
-		    low, high, alignment, boundary)) != NULL)
+			 low, high, alignment, boundary)) != NULL)
 			break;
 		if (!vm_domain_alloc_fail(VM_DOMAIN(domain), object, req))
 			return (NULL);
@@ -2309,12 +2307,10 @@ vm_page_alloc_contig_domain(vm_object_t object, vm_pindex_t pindex, int domain,
 		if (vm_page_insert_after(m, object, pindex, mpred)) {
 			if ((req & VM_ALLOC_WIRED) != 0)
 				vm_wire_sub(npages);
-			KASSERT(m->object == NULL,
-			    ("page %p has object", m));
+			KASSERT(m->object == NULL, ("page %p has object", m));
 			mpred = m;
 			for (m = m_ret; m < &m_ret[npages]; m++) {
-				if (m <= mpred &&
-				    (req & VM_ALLOC_WIRED) != 0)
+				if (m <= mpred && (req & VM_ALLOC_WIRED) != 0)
 					m->ref_count = 0;
 				m->oflags = VPO_UNMANAGED;
 				m->busy_lock = VPB_UNBUSIED;
@@ -2348,12 +2344,11 @@ _vm_page_alloc_noobj_domain(int domain, const int freelist, int req)
 	vm_page_t m;
 	int flags;
 
-#define	VPAN_FLAGS	(VM_ALLOC_CLASS_MASK | VM_ALLOC_WAITFAIL |      \
-			 VM_ALLOC_NOWAIT | VM_ALLOC_WAITOK |		\
-			 VM_ALLOC_NOBUSY | VM_ALLOC_WIRED |		\
-			 VM_ALLOC_NODUMP | VM_ALLOC_ZERO | VM_ALLOC_COUNT_MASK)
-	KASSERT((req & ~VPAN_FLAGS) == 0,
-	    ("invalid request %#x", req));
+#define VPAN_FLAGS                                                   \
+	(VM_ALLOC_CLASS_MASK | VM_ALLOC_WAITFAIL | VM_ALLOC_NOWAIT | \
+	    VM_ALLOC_WAITOK | VM_ALLOC_NOBUSY | VM_ALLOC_WIRED |     \
+	    VM_ALLOC_NODUMP | VM_ALLOC_ZERO | VM_ALLOC_COUNT_MASK)
+	KASSERT((req & ~VPAN_FLAGS) == 0, ("invalid request %#x", req));
 
 	flags = (req & VM_ALLOC_NODUMP) != 0 ? PG_NODUMP : 0;
 	vmd = VM_DOMAIN(domain);
@@ -2491,19 +2486,18 @@ vm_page_alloc_noobj_contig_domain(int domain, int req, u_long npages,
 	vm_page_t m, m_ret;
 	u_int flags;
 
-#define	VPANC_FLAGS	(VPAN_FLAGS | VM_ALLOC_NORECLAIM)
-	KASSERT((req & ~VPANC_FLAGS) == 0,
-	    ("invalid request %#x", req));
+#define VPANC_FLAGS (VPAN_FLAGS | VM_ALLOC_NORECLAIM)
+	KASSERT((req & ~VPANC_FLAGS) == 0, ("invalid request %#x", req));
 	KASSERT((req & (VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM)) !=
-	    (VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM),
+		(VM_ALLOC_WAITOK | VM_ALLOC_NORECLAIM),
 	    ("invalid request %#x", req));
 	KASSERT(((req & (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)) !=
-	    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
+		    (VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY)),
 	    ("invalid request %#x", req));
 	KASSERT(npages > 0, ("vm_page_alloc_contig: npages is zero"));
 
-	while ((m_ret = vm_page_find_contig_domain(domain, req, npages,
-	    low, high, alignment, boundary)) == NULL) {
+	while ((m_ret = vm_page_find_contig_domain(domain, req, npages, low,
+		    high, alignment, boundary)) == NULL) {
 		if (!vm_domain_alloc_fail(VM_DOMAIN(domain), NULL, req))
 			return (NULL);
 	}
@@ -2555,15 +2549,14 @@ vm_page_alloc_check(vm_page_t m)
 
 	KASSERT(m->object == NULL, ("page %p has object", m));
 	KASSERT(m->a.queue == PQ_NONE &&
-	    (m->a.flags & PGA_QUEUE_STATE_MASK) == 0,
-	    ("page %p has unexpected queue %d, flags %#x",
-	    m, m->a.queue, (m->a.flags & PGA_QUEUE_STATE_MASK)));
+		(m->a.flags & PGA_QUEUE_STATE_MASK) == 0,
+	    ("page %p has unexpected queue %d, flags %#x", m, m->a.queue,
+		(m->a.flags & PGA_QUEUE_STATE_MASK)));
 	KASSERT(m->ref_count == 0, ("page %p has references", m));
 	KASSERT(vm_page_busy_freed(m), ("page %p is not freed", m));
 	KASSERT(m->dirty == 0, ("page %p is dirty", m));
 	KASSERT(pmap_page_get_memattr(m) == VM_MEMATTR_DEFAULT,
-	    ("page %p has unexpected memattr %d",
-	    m, pmap_page_get_memattr(m)));
+	    ("page %p has unexpected memattr %d", m, pmap_page_get_memattr(m)));
 	KASSERT(vm_page_none_valid(m), ("free page %p is valid", m));
 	pmap_vm_page_alloc_check(m);
 }
@@ -2615,9 +2608,9 @@ vm_page_zone_release(void *arg, void **store, int cnt)
 	vm_domain_freecnt_inc(vmd, cnt);
 }
 
-#define	VPSC_ANY	0	/* No restrictions. */
-#define	VPSC_NORESERV	1	/* Skip reservations; implies VPSC_NOSUPER. */
-#define	VPSC_NOSUPER	2	/* Skip superpages. */
+#define VPSC_ANY 0	/* No restrictions. */
+#define VPSC_NORESERV 1 /* Skip reservations; implies VPSC_NOSUPER. */
+#define VPSC_NOSUPER 2	/* Skip superpages. */
 
 /*
  *	vm_page_scan_contig:
@@ -2683,7 +2676,7 @@ vm_page_scan_contig(u_long npages, vm_page_t m_start, vm_page_t m_end,
 		} else
 			KASSERT(m_run != NULL, ("m_run == NULL"));
 
-retry:
+	retry:
 		m_inc = 1;
 		if (vm_page_wired(m))
 			run_ext = 0;
@@ -2693,8 +2686,8 @@ retry:
 			run_ext = 0;
 			/* Advance to the end of the reservation. */
 			pa = VM_PAGE_TO_PHYS(m);
-			m_inc = atop(roundup2(pa + 1, vm_reserv_size(level)) -
-			    pa);
+			m_inc = atop(
+			    roundup2(pa + 1, vm_reserv_size(level)) - pa);
 		}
 #endif
 		else if ((object = atomic_load_ptr(&m->object)) != NULL) {
@@ -2718,8 +2711,9 @@ retry:
 				run_ext = 0;
 				/* Advance to the end of the superpage. */
 				pa = VM_PAGE_TO_PHYS(m);
-				m_inc = atop(roundup2(pa + 1,
-				    vm_reserv_size(level)) - pa);
+				m_inc = atop(
+				    roundup2(pa + 1, vm_reserv_size(level)) -
+				    pa);
 #endif
 			} else if (object->memattr == VM_MEMATTR_DEFAULT &&
 			    vm_page_queue(m) != PQ_NONE && !vm_page_busied(m)) {
@@ -2729,10 +2723,11 @@ retry:
 				 * page.
 				 */
 				KASSERT(pmap_page_get_memattr(m) ==
-				    VM_MEMATTR_DEFAULT,
+					VM_MEMATTR_DEFAULT,
 				    ("page %p has an unexpected memattr", m));
-				KASSERT((m->oflags & (VPO_SWAPINPROG |
-				    VPO_SWAPSLEEP | VPO_UNMANAGED)) == 0,
+				KASSERT((m->oflags &
+					    (VPO_SWAPINPROG | VPO_SWAPSLEEP |
+						VPO_UNMANAGED)) == 0,
 				    ("page %p has unexpected oflags", m));
 				/* Don't care: PGA_NOSYNC. */
 				run_ext = 1;
@@ -2847,7 +2842,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 			/* Don't care: PG_NODUMP, PG_ZERO. */
 			if (m->object != object ||
 			    ((object->flags & OBJ_SWAP) == 0 &&
-			    object->type != OBJT_VNODE))
+				object->type != OBJT_VNODE))
 				error = EINVAL;
 			else if (object->memattr != VM_MEMATTR_DEFAULT)
 				error = EINVAL;
@@ -2859,7 +2854,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 					goto unlock;
 				}
 				KASSERT(pmap_page_get_memattr(m) ==
-				    VM_MEMATTR_DEFAULT,
+					VM_MEMATTR_DEFAULT,
 				    ("page %p has an unexpected memattr", m));
 				KASSERT(m->oflags == 0,
 				    ("page %p has unexpected oflags", m));
@@ -2881,25 +2876,28 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 					    ~(vm_paddr_t)PAGE_MASK) {
 						m_new =
 						    vm_page_alloc_noobj_contig(
-						    req, 1, round_page(high),
-						    ~(vm_paddr_t)0, PAGE_SIZE,
-						    0, VM_MEMATTR_DEFAULT);
+							req, 1,
+							round_page(high),
+							~(vm_paddr_t)0,
+							PAGE_SIZE, 0,
+							VM_MEMATTR_DEFAULT);
 					} else
 						m_new = NULL;
 					if (m_new == NULL) {
 						pa = VM_PAGE_TO_PHYS(m_run);
 						m_new =
 						    vm_page_alloc_noobj_contig(
-						    req, 1, 0, pa - 1,
-						    PAGE_SIZE, 0,
-						    VM_MEMATTR_DEFAULT);
+							req, 1, 0, pa - 1,
+							PAGE_SIZE, 0,
+							VM_MEMATTR_DEFAULT);
 					}
 					if (m_new == NULL) {
 						pa += ptoa(npages);
 						m_new =
 						    vm_page_alloc_noobj_contig(
-						    req, 1, pa, high, PAGE_SIZE,
-						    0, VM_MEMATTR_DEFAULT);
+							req, 1, pa, high,
+							PAGE_SIZE, 0,
+							VM_MEMATTR_DEFAULT);
 					}
 					if (m_new == NULL) {
 						vm_page_xunbusy(m);
@@ -2937,7 +2935,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 					m->flags &= ~PG_ZERO;
 					vm_page_dequeue(m);
 					if (vm_page_replace_hold(m_new, object,
-					    m->pindex, m) &&
+						m->pindex, m) &&
 					    vm_page_free_prep(m))
 						SLIST_INSERT_HEAD(&free, m,
 						    plinks.s.ss);
@@ -2958,7 +2956,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 				}
 			} else
 				error = EBUSY;
-unlock:
+		unlock:
 			VM_OBJECT_WUNLOCK(object);
 		} else {
 			MPASS(vm_page_domain(m) == domain);
@@ -3003,11 +3001,11 @@ unlock:
 	return (error);
 }
 
-#define	NRUNS	16
+#define NRUNS 16
 
-#define	RUN_INDEX(count, nruns)	((count) % (nruns))
+#define RUN_INDEX(count, nruns) ((count) % (nruns))
 
-#define	MIN_RECLAIM	8
+#define MIN_RECLAIM 8
 
 /*
  *	vm_page_reclaim_contig:
@@ -3098,8 +3096,9 @@ vm_page_reclaim_contig_domain_ext(int domain, int req, u_long npages,
 	 */
 	vmd = VM_DOMAIN(domain);
 	count = vmd->vmd_free_count;
-	if (count < npages + vmd->vmd_free_reserved || (count < npages +
-	    vmd->vmd_interrupt_free_min && req_class == VM_ALLOC_SYSTEM) ||
+	if (count < npages + vmd->vmd_free_reserved ||
+	    (count < npages + vmd->vmd_interrupt_free_min &&
+		req_class == VM_ALLOC_SYSTEM) ||
 	    (count < npages && req_class == VM_ALLOC_INTERRUPT))
 		goto done;
 
@@ -3117,10 +3116,10 @@ vm_page_reclaim_contig_domain_ext(int domain, int req, u_long npages,
 		count = 0;
 		segind = start_segind;
 		while ((segind = vm_phys_find_range(bounds, segind, domain,
-		    npages, low, high)) != -1) {
+			    npages, low, high)) != -1) {
 			phys_range_exists = true;
 			while ((m_run = vm_page_scan_contig(npages, bounds[0],
-			    bounds[1], alignment, boundary, options))) {
+				    bounds[1], alignment, boundary, options))) {
 				bounds[0] = m_run + npages;
 				m_runs[RUN_INDEX(count, nruns)] = m_run;
 				count++;
@@ -3179,8 +3178,8 @@ int
 vm_page_reclaim_contig_domain(int domain, int req, u_long npages,
     vm_paddr_t low, vm_paddr_t high, u_long alignment, vm_paddr_t boundary)
 {
-	return (vm_page_reclaim_contig_domain_ext(domain, req, npages, low, high,
-	    alignment, boundary, 1));
+	return (vm_page_reclaim_contig_domain_ext(domain, req, npages, low,
+	    high, alignment, boundary, 1));
 }
 
 int
@@ -3201,8 +3200,10 @@ vm_page_reclaim_contig(int req, u_long npages, vm_paddr_t low, vm_paddr_t high,
 		else if (status == ERANGE)
 			vm_domainset_iter_ignore(&di, domain);
 		else {
-			KASSERT(status == ENOMEM, ("Unrecognized error %d "
-			    "from vm_page_reclaim_contig_domain()", status));
+			KASSERT(status == ENOMEM,
+			    ("Unrecognized error %d "
+			     "from vm_page_reclaim_contig_domain()",
+				status));
 			ret = ENOMEM;
 		}
 	} while (vm_domainset_iter_page(&di, NULL, &domain) == 0);
@@ -3297,8 +3298,8 @@ vm_wait_severe(void)
 	mtx_lock(&vm_domainset_lock);
 	while (vm_page_count_severe()) {
 		vm_severe_waiters++;
-		msleep(&vm_severe_domains, &vm_domainset_lock, PVM,
-		    "vmwait", 0);
+		msleep(&vm_severe_domains, &vm_domainset_lock, PVM, "vmwait",
+		    0);
 	}
 	mtx_unlock(&vm_domainset_lock);
 }
@@ -3437,10 +3438,10 @@ vm_domain_alloc_fail(struct vm_domain *vmd, vm_object_t object, int req)
 	atomic_add_int(&vmd->vmd_pageout_deficit,
 	    max((u_int)req >> VM_ALLOC_COUNT_SHIFT, 1));
 	if (req & (VM_ALLOC_WAITOK | VM_ALLOC_WAITFAIL)) {
-		if (object != NULL) 
+		if (object != NULL)
 			VM_OBJECT_WUNLOCK(object);
 		vm_wait_domain(vmd->vmd_domain);
-		if (object != NULL) 
+		if (object != NULL)
 			VM_OBJECT_WLOCK(object);
 		if (req & VM_ALLOC_WAITOK)
 			return (EAGAIN);
@@ -3494,7 +3495,8 @@ vm_page_pagequeue(vm_page_t m)
 #endif
 
 static __always_inline bool
-vm_page_pqstate_fcmpset(vm_page_t m, vm_page_astate_t *old, vm_page_astate_t new)
+vm_page_pqstate_fcmpset(vm_page_t m, vm_page_astate_t *old,
+    vm_page_astate_t new)
 {
 	vm_page_astate_t tmp;
 
@@ -3522,8 +3524,8 @@ _vm_page_pqstate_commit_dequeue(struct vm_pagequeue *pq, vm_page_t m,
 	KASSERT(vm_page_pagequeue(m) == pq,
 	    ("%s: queue %p does not match page %p", __func__, pq, m));
 	KASSERT(old->queue != PQ_NONE && new.queue != old->queue,
-	    ("%s: invalid queue indices %d %d",
-	    __func__, old->queue, new.queue));
+	    ("%s: invalid queue indices %d %d", __func__, old->queue,
+		new.queue));
 
 	/*
 	 * Once the queue index of the page changes there is nothing
@@ -3590,8 +3592,8 @@ _vm_page_pqstate_commit_requeue(struct vm_pagequeue *pq, vm_page_t m,
 
 	vm_pagequeue_assert_locked(pq);
 	KASSERT(old->queue != PQ_NONE && new.queue == old->queue,
-	    ("%s: invalid queue indices %d %d",
-	    __func__, old->queue, new.queue));
+	    ("%s: invalid queue indices %d %d", __func__, old->queue,
+		new.queue));
 
 	new.flags |= PGA_ENQUEUED;
 	if (!vm_page_pqstate_fcmpset(m, old, new))
@@ -3628,11 +3630,10 @@ vm_page_pqstate_commit_request(vm_page_t m, vm_page_astate_t *old,
 {
 
 	KASSERT(old->queue == new.queue || new.queue != PQ_NONE,
-	    ("%s: invalid state, queue %d flags %x",
-	    __func__, new.queue, new.flags));
+	    ("%s: invalid state, queue %d flags %x", __func__, new.queue,
+		new.flags));
 
-	if (old->_bits != new._bits &&
-	    !vm_page_pqstate_fcmpset(m, old, new))
+	if (old->_bits != new._bits && !vm_page_pqstate_fcmpset(m, old, new))
 		return (false);
 	vm_page_pqbatch_submit(m, new.queue);
 	return (true);
@@ -3681,7 +3682,7 @@ vm_pqbatch_process_page(struct vm_pagequeue *pq, vm_page_t m, uint8_t queue)
 
 	for (old = vm_page_astate_load(m);;) {
 		if (__predict_false(old.queue != queue ||
-		    (old.flags & PGA_QUEUE_OP_MASK) == 0)) {
+			(old.flags & PGA_QUEUE_OP_MASK) == 0)) {
 			counter_u64_add(queue_nops, 1);
 			break;
 		}
@@ -3693,14 +3694,14 @@ vm_pqbatch_process_page(struct vm_pagequeue *pq, vm_page_t m, uint8_t queue)
 			new.flags &= ~PGA_QUEUE_OP_MASK;
 			new.queue = PQ_NONE;
 			if (__predict_true(_vm_page_pqstate_commit_dequeue(pq,
-			    m, &old, new))) {
+				m, &old, new))) {
 				counter_u64_add(queue_ops, 1);
 				break;
 			}
 		} else {
 			new.flags &= ~(PGA_REQUEUE | PGA_REQUEUE_HEAD);
 			if (__predict_true(_vm_page_pqstate_commit_requeue(pq,
-			    m, &old, new))) {
+				m, &old, new))) {
 				counter_u64_add(queue_ops, 1);
 				break;
 			}
@@ -3743,7 +3744,7 @@ vm_page_pqbatch_submit(vm_page_t m, uint8_t queue)
 		/* keep building the bq */
 		critical_exit();
 		return;
-	} else if (slots_remaining > 0 ) {
+	} else if (slots_remaining > 0) {
 		/* Try to process the bq if we can get the lock */
 		pq = &VM_DOMAIN(domain)->vmd_pagequeues[queue];
 		if (vm_pagequeue_trylock(pq)) {
@@ -3783,7 +3784,7 @@ vm_page_pqbatch_drain(void)
 	int cpu, domain, queue;
 
 	td = curthread;
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		thread_lock(td);
 		sched_bind(td, cpu);
 		thread_unlock(td);
@@ -3822,8 +3823,8 @@ vm_page_dequeue_deferred(vm_page_t m)
 	do {
 		if (old.queue == PQ_NONE) {
 			KASSERT((old.flags & PGA_QUEUE_STATE_MASK) == 0,
-			    ("%s: page %p has unexpected queue state",
-			    __func__, m));
+			    ("%s: page %p has unexpected queue state", __func__,
+				m));
 			break;
 		}
 		new = old;
@@ -3846,15 +3847,14 @@ vm_page_dequeue(vm_page_t m)
 	do {
 		if (old.queue == PQ_NONE) {
 			KASSERT((old.flags & PGA_QUEUE_STATE_MASK) == 0,
-			    ("%s: page %p has unexpected queue state",
-			    __func__, m));
+			    ("%s: page %p has unexpected queue state", __func__,
+				m));
 			break;
 		}
 		new = old;
 		new.flags &= ~PGA_QUEUE_OP_MASK;
 		new.queue = PQ_NONE;
 	} while (!vm_page_pqstate_commit_dequeue(m, &old, new));
-
 }
 
 /*
@@ -3866,7 +3866,7 @@ vm_page_enqueue(vm_page_t m, uint8_t queue)
 {
 
 	KASSERT(m->a.queue == PQ_NONE &&
-	    (m->a.flags & PGA_QUEUE_STATE_MASK) == 0,
+		(m->a.flags & PGA_QUEUE_STATE_MASK) == 0,
 	    ("%s: page %p is already enqueued", __func__, m));
 	KASSERT(m->ref_count > 0,
 	    ("%s: page %p does not carry any references", __func__, m));
@@ -3904,8 +3904,9 @@ vm_page_free_prep(vm_page_t m)
 		int i;
 		p = (uint64_t *)PHYS_TO_DMAP(VM_PAGE_TO_PHYS(m));
 		for (i = 0; i < PAGE_SIZE / sizeof(uint64_t); i++, p++)
-			KASSERT(*p == 0, ("vm_page_free_prep %p PG_ZERO %d %jx",
-			    m, i, (uintmax_t)*p));
+			KASSERT(*p == 0,
+			    ("vm_page_free_prep %p PG_ZERO %d %jx", m, i,
+				(uintmax_t)*p));
 	}
 #endif
 	if ((m->oflags & VPO_UNMANAGED) == 0) {
@@ -3921,9 +3922,9 @@ vm_page_free_prep(vm_page_t m)
 
 	if (m->object != NULL) {
 		KASSERT(((m->oflags & VPO_UNMANAGED) != 0) ==
-		    ((m->object->flags & OBJ_UNMANAGED) != 0),
+			((m->object->flags & OBJ_UNMANAGED) != 0),
 		    ("vm_page_free_prep: managed flag mismatch for page %p",
-		    m));
+			m));
 		vm_page_assert_xbusied(m);
 
 		/*
@@ -3931,9 +3932,9 @@ vm_page_free_prep(vm_page_t m)
 		 * operation.
 		 */
 		KASSERT((m->flags & PG_FICTITIOUS) != 0 ||
-		    m->ref_count == VPRC_OBJREF,
+			m->ref_count == VPRC_OBJREF,
 		    ("vm_page_free_prep: page %p has unexpected ref_count %u",
-		    m, m->ref_count));
+			m, m->ref_count));
 		vm_page_object_remove(m);
 		m->ref_count -= VPRC_OBJREF;
 	} else
@@ -4058,7 +4059,7 @@ vm_page_wire(vm_page_t m)
 		VM_OBJECT_ASSERT_LOCKED(m->object);
 #endif
 	KASSERT((m->flags & PG_FICTITIOUS) == 0 ||
-	    VPRC_WIRE_COUNT(m->ref_count) >= 1,
+		VPRC_WIRE_COUNT(m->ref_count) >= 1,
 	    ("vm_page_wire: fictitious page %p has zero wirings", m));
 
 	old = atomic_fetchadd_int(&m->ref_count, 1);
@@ -4166,8 +4167,8 @@ vm_page_unwire(vm_page_t m, uint8_t nqueue)
 {
 
 	KASSERT(nqueue < PQ_COUNT,
-	    ("vm_page_unwire: invalid queue %u request for page %p",
-	    nqueue, m));
+	    ("vm_page_unwire: invalid queue %u request for page %p", nqueue,
+		m));
 
 	if ((m->oflags & VPO_UNMANAGED) != 0) {
 		if (vm_page_unwire_noq(m) && m->ref_count == 0)
@@ -4190,7 +4191,7 @@ vm_page_unwire_noq(vm_page_t m)
 
 	old = vm_page_drop(m, 1);
 	KASSERT(VPRC_WIRE_COUNT(old) != 0,
-	    ("%s: counter underflow for page %p", __func__,  m));
+	    ("%s: counter underflow for page %p", __func__, m));
 	KASSERT((m->flags & PG_FICTITIOUS) == 0 || VPRC_WIRE_COUNT(old) > 1,
 	    ("%s: missing ref on fictitious page %p", __func__, m));
 
@@ -4428,9 +4429,9 @@ vm_page_try_blocked_op(vm_page_t m, void (*op)(vm_page_t))
 	 */
 	old = vm_page_drop(m, VPRC_BLOCKED);
 	KASSERT(!VM_OBJECT_WOWNED(m->object) ||
-	    old == (VPRC_BLOCKED | VPRC_OBJREF),
-	    ("vm_page_try_blocked_op: unexpected refcount value %u for %p",
-	    old, m));
+		old == (VPRC_BLOCKED | VPRC_OBJREF),
+	    ("vm_page_try_blocked_op: unexpected refcount value %u for %p", old,
+		m));
 	return (true);
 }
 
@@ -4560,11 +4561,11 @@ vm_page_grab_check(int allocflags)
 {
 
 	KASSERT((allocflags & VM_ALLOC_NOBUSY) == 0 ||
-	    (allocflags & VM_ALLOC_WIRED) != 0,
+		(allocflags & VM_ALLOC_WIRED) != 0,
 	    ("vm_page_grab*: the pages must be busied or wired"));
 
 	KASSERT((allocflags & VM_ALLOC_SBUSY) == 0 ||
-	    (allocflags & VM_ALLOC_IGN_SBUSY) != 0,
+		(allocflags & VM_ALLOC_IGN_SBUSY) != 0,
 	    ("vm_page_grab*: VM_ALLOC_SBUSY/VM_ALLOC_IGN_SBUSY mismatch"));
 }
 
@@ -4578,7 +4579,7 @@ vm_page_grab_pflags(int allocflags)
 
 	pflags = allocflags &
 	    ~(VM_ALLOC_NOWAIT | VM_ALLOC_WAITOK | VM_ALLOC_WAITFAIL |
-	    VM_ALLOC_NOBUSY | VM_ALLOC_IGN_SBUSY);
+		VM_ALLOC_NOBUSY | VM_ALLOC_IGN_SBUSY);
 	if ((allocflags & VM_ALLOC_NOWAIT) == 0)
 		pflags |= VM_ALLOC_WAITFAIL;
 	if ((allocflags & VM_ALLOC_IGN_SBUSY) != 0)
@@ -4610,7 +4611,7 @@ retrylookup:
 	if ((m = vm_page_lookup(object, pindex)) != NULL) {
 		if (!vm_page_tryacquire(m, allocflags)) {
 			if (vm_page_grab_sleep(object, m, pindex, "pgrbwt",
-			    allocflags, true))
+				allocflags, true))
 				goto retrylookup;
 			return (NULL);
 		}
@@ -4651,8 +4652,8 @@ out:
  * (false, *mp == NULL) - WAITFAIL or NOWAIT prevented acquisition.
  */
 static bool
-vm_page_acquire_unlocked(vm_object_t object, vm_pindex_t pindex,
-    vm_page_t prev, vm_page_t *mp, int allocflags)
+vm_page_acquire_unlocked(vm_object_t object, vm_pindex_t pindex, vm_page_t prev,
+    vm_page_t *mp, int allocflags)
 {
 	vm_page_t m;
 
@@ -4686,8 +4687,8 @@ vm_page_acquire_unlocked(vm_object_t object, vm_pindex_t pindex,
 			cpu_spinwait();
 			continue;
 		}
-		if (!vm_page_grab_sleep(object, m, pindex, "pgnslp",
-		    allocflags, false))
+		if (!vm_page_grab_sleep(object, m, pindex, "pgnslp", allocflags,
+			false))
 			return (false);
 	}
 	if ((allocflags & VM_ALLOC_WIRED) != 0)
@@ -4737,21 +4738,23 @@ vm_page_grab_unlocked(vm_object_t object, vm_pindex_t pindex, int allocflags)
  * will neither be wired nor busy regardless of allocflags.
  */
 int
-vm_page_grab_valid(vm_page_t *mp, vm_object_t object, vm_pindex_t pindex, int allocflags)
+vm_page_grab_valid(vm_page_t *mp, vm_object_t object, vm_pindex_t pindex,
+    int allocflags)
 {
 	vm_page_t m;
 	vm_page_t ma[VM_INITIAL_PAGEIN];
 	int after, i, pflags, rv;
 
 	KASSERT((allocflags & VM_ALLOC_SBUSY) == 0 ||
-	    (allocflags & VM_ALLOC_IGN_SBUSY) != 0,
+		(allocflags & VM_ALLOC_IGN_SBUSY) != 0,
 	    ("vm_page_grab_valid: VM_ALLOC_SBUSY/VM_ALLOC_IGN_SBUSY mismatch"));
 	KASSERT((allocflags &
-	    (VM_ALLOC_NOWAIT | VM_ALLOC_WAITFAIL | VM_ALLOC_ZERO)) == 0,
+		    (VM_ALLOC_NOWAIT | VM_ALLOC_WAITFAIL | VM_ALLOC_ZERO)) == 0,
 	    ("vm_page_grab_valid: Invalid flags 0x%X", allocflags));
 	VM_OBJECT_ASSERT_WLOCKED(object);
-	pflags = allocflags & ~(VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY |
-	    VM_ALLOC_WIRED | VM_ALLOC_IGN_SBUSY);
+	pflags = allocflags &
+	    ~(VM_ALLOC_NOBUSY | VM_ALLOC_SBUSY | VM_ALLOC_WIRED |
+		VM_ALLOC_IGN_SBUSY);
 	pflags |= VM_ALLOC_WAITFAIL;
 
 retrylookup:
@@ -4766,7 +4769,7 @@ retrylookup:
 		 * shared lock.
 		 */
 		if (!vm_page_trybusy(m,
-		    vm_page_all_valid(m) ? allocflags : 0)) {
+			vm_page_all_valid(m) ? allocflags : 0)) {
 			(void)vm_page_grab_sleep(object, m, pindex, "pgrbwt",
 			    allocflags, true);
 			goto retrylookup;
@@ -4855,11 +4858,11 @@ vm_page_grab_valid_unlocked(vm_page_t *mp, vm_object_t object,
 	int error;
 
 	KASSERT((allocflags & VM_ALLOC_SBUSY) == 0 ||
-	    (allocflags & VM_ALLOC_IGN_SBUSY) != 0,
+		(allocflags & VM_ALLOC_IGN_SBUSY) != 0,
 	    ("vm_page_grab_valid_unlocked: VM_ALLOC_SBUSY/VM_ALLOC_IGN_SBUSY "
-	    "mismatch"));
+	     "mismatch"));
 	KASSERT((allocflags &
-	    (VM_ALLOC_NOWAIT | VM_ALLOC_WAITFAIL | VM_ALLOC_ZERO)) == 0,
+		    (VM_ALLOC_NOWAIT | VM_ALLOC_WAITFAIL | VM_ALLOC_ZERO)) == 0,
 	    ("vm_page_grab_valid_unlocked: Invalid flags 0x%X", allocflags));
 
 	/*
@@ -4943,7 +4946,7 @@ retrylookup:
 		if (m != NULL) {
 			if (!vm_page_tryacquire(m, allocflags)) {
 				if (vm_page_grab_sleep(object, m, pindex + i,
-				    "grbmaw", allocflags, true))
+					"grbmaw", allocflags, true))
 					goto retrylookup;
 				break;
 			}
@@ -4953,8 +4956,9 @@ retrylookup:
 			m = vm_page_alloc_after(object, pindex + i,
 			    pflags | VM_ALLOC_COUNT(count - i), mpred);
 			if (m == NULL) {
-				if ((allocflags & (VM_ALLOC_NOWAIT |
-				    VM_ALLOC_WAITFAIL)) != 0)
+				if ((allocflags &
+					(VM_ALLOC_NOWAIT |
+					    VM_ALLOC_WAITFAIL)) != 0)
 					break;
 				goto retrylookup;
 			}
@@ -5029,19 +5033,17 @@ vm_page_bits(int base, int size)
 	int first_bit;
 	int last_bit;
 
-	KASSERT(
-	    base + size <= PAGE_SIZE,
-	    ("vm_page_bits: illegal base/size %d/%d", base, size)
-	);
+	KASSERT(base + size <= PAGE_SIZE,
+	    ("vm_page_bits: illegal base/size %d/%d", base, size));
 
-	if (size == 0)		/* handle degenerate case */
+	if (size == 0) /* handle degenerate case */
 		return (0);
 
 	first_bit = base >> DEV_BSHIFT;
 	last_bit = (base + size - 1) >> DEV_BSHIFT;
 
-	return (((vm_page_bits_t)2 << last_bit) -
-	    ((vm_page_bits_t)1 << first_bit));
+	return (
+	    ((vm_page_bits_t)2 << last_bit) - ((vm_page_bits_t)1 << first_bit));
 }
 
 void
@@ -5056,7 +5058,7 @@ vm_page_bits_set(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t set)
 	atomic_set_16((uint16_t *)bits, set);
 #elif (PAGE_SIZE == 4096) && defined(atomic_set_8)
 	atomic_set_8((uint8_t *)bits, set);
-#else		/* PAGE_SIZE <= 8192 */
+#else /* PAGE_SIZE <= 8192 */
 	uintptr_t addr;
 	int shift;
 
@@ -5074,7 +5076,7 @@ vm_page_bits_set(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t set)
 #endif
 	addr &= ~(sizeof(uint32_t) - 1);
 	atomic_set_32((uint32_t *)addr, set << shift);
-#endif		/* PAGE_SIZE */
+#endif /* PAGE_SIZE */
 }
 
 static inline void
@@ -5089,7 +5091,7 @@ vm_page_bits_clear(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t clear)
 	atomic_clear_16((uint16_t *)bits, clear);
 #elif (PAGE_SIZE == 4096) && defined(atomic_clear_8)
 	atomic_clear_8((uint8_t *)bits, clear);
-#else		/* PAGE_SIZE <= 8192 */
+#else /* PAGE_SIZE <= 8192 */
 	uintptr_t addr;
 	int shift;
 
@@ -5107,7 +5109,7 @@ vm_page_bits_clear(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t clear)
 #endif
 	addr &= ~(sizeof(uint32_t) - 1);
 	atomic_clear_32((uint32_t *)addr, clear << shift);
-#endif		/* PAGE_SIZE */
+#endif /* PAGE_SIZE */
 }
 
 static inline vm_page_bits_t
@@ -5117,27 +5119,31 @@ vm_page_bits_swap(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t newbits)
 	uint64_t old;
 
 	old = *bits;
-	while (atomic_fcmpset_64(bits, &old, newbits) == 0);
+	while (atomic_fcmpset_64(bits, &old, newbits) == 0)
+		;
 	return (old);
 #elif PAGE_SIZE == 16384
 	uint32_t old;
 
 	old = *bits;
-	while (atomic_fcmpset_32(bits, &old, newbits) == 0);
+	while (atomic_fcmpset_32(bits, &old, newbits) == 0)
+		;
 	return (old);
 #elif (PAGE_SIZE == 8192) && defined(atomic_fcmpset_16)
 	uint16_t old;
 
 	old = *bits;
-	while (atomic_fcmpset_16(bits, &old, newbits) == 0);
+	while (atomic_fcmpset_16(bits, &old, newbits) == 0)
+		;
 	return (old);
 #elif (PAGE_SIZE == 4096) && defined(atomic_fcmpset_8)
 	uint8_t old;
 
 	old = *bits;
-	while (atomic_fcmpset_8(bits, &old, newbits) == 0);
+	while (atomic_fcmpset_8(bits, &old, newbits) == 0)
+		;
 	return (old);
-#else		/* PAGE_SIZE <= 4096*/
+#else /* PAGE_SIZE <= 4096*/
 	uintptr_t addr;
 	uint32_t old, new, mask;
 	int shift;
@@ -5163,7 +5169,7 @@ vm_page_bits_swap(vm_page_t m, vm_page_bits_t *bits, vm_page_bits_t newbits)
 		new |= newbits << shift;
 	} while (atomic_fcmpset_32((uint32_t *)addr, &old, new) == 0);
 	return (old >> shift);
-#endif		/* PAGE_SIZE */
+#endif /* PAGE_SIZE */
 }
 
 /*
@@ -5183,7 +5189,7 @@ vm_page_set_valid_range(vm_page_t m, int base, int size)
 	vm_page_bits_t pagebits;
 
 	vm_page_assert_busied(m);
-	if (size == 0)	/* handle degenerate case */
+	if (size == 0) /* handle degenerate case */
 		return;
 
 	/*
@@ -5284,7 +5290,7 @@ vm_page_set_validclean(vm_page_t m, int base, int size)
 	int endoff, frag;
 
 	vm_page_assert_busied(m);
-	if (size == 0)	/* handle degenerate case */
+	if (size == 0) /* handle degenerate case */
 		return;
 
 	/*
@@ -5324,7 +5330,7 @@ vm_page_set_validclean(vm_page_t m, int base, int size)
 		m->valid |= pagebits;
 	else
 		vm_page_bits_set(m, &m->valid, pagebits);
-#if 0	/* NOT YET */
+#if 0 /* NOT YET */
 	if ((frag = base & (DEV_BSIZE - 1)) != 0) {
 		frag = DEV_BSIZE - frag;
 		base += frag;
@@ -5385,15 +5391,14 @@ vm_page_set_invalid(vm_page_t m, int base, int size)
 	VM_OBJECT_ASSERT_WLOCKED(object);
 	vm_page_assert_busied(m);
 
-	if (object->type == OBJT_VNODE && base == 0 && IDX_TO_OFF(m->pindex) +
-	    size >= object->un_pager.vnp.vnp_size)
+	if (object->type == OBJT_VNODE && base == 0 &&
+	    IDX_TO_OFF(m->pindex) + size >= object->un_pager.vnp.vnp_size)
 		bits = VM_PAGE_BITS_ALL;
 	else
 		bits = vm_page_bits(base, size);
 	if (object->ref_count != 0 && vm_page_all_valid(m) && bits != 0)
 		pmap_remove_all(m);
-	KASSERT((bits == 0 && vm_page_all_valid(m)) ||
-	    !pmap_page_is_mapped(m),
+	KASSERT((bits == 0 && vm_page_all_valid(m)) || !pmap_page_is_mapped(m),
 	    ("vm_page_set_invalid: page %p is mapped", m));
 	if (vm_page_xbusied(m)) {
 		m->valid &= ~bits;
@@ -5453,8 +5458,8 @@ vm_page_zero_invalid(vm_page_t m, boolean_t setvalid)
 		if (i == (PAGE_SIZE / DEV_BSIZE) ||
 		    (m->valid & ((vm_page_bits_t)1 << i))) {
 			if (i > b) {
-				pmap_zero_page_area(m,
-				    b << DEV_BSHIFT, (i - b) << DEV_BSHIFT);
+				pmap_zero_page_area(m, b << DEV_BSHIFT,
+				    (i - b) << DEV_BSHIFT);
 			}
 			b = i + 1;
 		}
@@ -5654,10 +5659,8 @@ DB_SHOW_COMMAND_FLAGS(pageq, vm_page_print_pageq_info, DB_CMD_MEMSAFE)
 	db_printf("pq_free %d\n", vm_free_count());
 	for (dom = 0; dom < vm_ndomains; dom++) {
 		db_printf(
-    "dom %d page_cnt %d free %d pq_act %d pq_inact %d pq_laund %d pq_unsw %d\n",
-		    dom,
-		    vm_dom[dom].vmd_page_count,
-		    vm_dom[dom].vmd_free_count,
+		    "dom %d page_cnt %d free %d pq_act %d pq_inact %d pq_laund %d pq_unsw %d\n",
+		    dom, vm_dom[dom].vmd_page_count, vm_dom[dom].vmd_free_count,
 		    vm_dom[dom].vmd_pagequeues[PQ_ACTIVE].pq_cnt,
 		    vm_dom[dom].vmd_pagequeues[PQ_INACTIVE].pq_cnt,
 		    vm_dom[dom].vmd_pagequeues[PQ_LAUNDRY].pq_cnt,
@@ -5684,10 +5687,10 @@ DB_SHOW_COMMAND(pginfo, vm_page_print_pginfo)
 	else
 		m = (vm_page_t)addr;
 	db_printf(
-    "page %p obj %p pidx 0x%jx phys 0x%jx q %d ref 0x%x\n"
-    "  af 0x%x of 0x%x f 0x%x act %d busy %x valid 0x%x dirty 0x%x\n",
+	    "page %p obj %p pidx 0x%jx phys 0x%jx q %d ref 0x%x\n"
+	    "  af 0x%x of 0x%x f 0x%x act %d busy %x valid 0x%x dirty 0x%x\n",
 	    m, m->object, (uintmax_t)m->pindex, (uintmax_t)m->phys_addr,
-	    m->a.queue, m->ref_count, m->a.flags, m->oflags,
-	    m->flags, m->a.act_count, m->busy_lock, m->valid, m->dirty);
+	    m->a.queue, m->ref_count, m->a.flags, m->oflags, m->flags,
+	    m->a.act_count, m->busy_lock, m->valid, m->dirty);
 }
 #endif /* DDB */

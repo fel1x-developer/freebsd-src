@@ -33,20 +33,20 @@
  * ------+---------+---------+---------+---------+---------+---------+---------*
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/types.h>
+#include <sys/param.h> /* needed for lp.h but not used here */
 
 #include <ctype.h>
+#include <dirent.h> /* ditto */
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#include <sys/param.h>		/* needed for lp.h but not used here */
-#include <dirent.h>		/* ditto */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 #include "skimprintcap.h"
@@ -60,15 +60,15 @@
  * middle of an entry.  When the scanner is not in a specific entry,
  * the variable will be the a null string.
  */
-#define QENTRY_MAXLEN	30
-#define QENTRY_PREFIX	" (entry "
-static char	 skim_entryname[sizeof(QENTRY_PREFIX) + QENTRY_MAXLEN + 2];
+#define QENTRY_MAXLEN 30
+#define QENTRY_PREFIX " (entry "
+static char skim_entryname[sizeof(QENTRY_PREFIX) + QENTRY_MAXLEN + 2];
 
 /*
  * isgraph is defined to work on an 'int', in the range 0 to 255, plus EOF.
  * Define a wrapper which can take 'char', either signed or unsigned.
  */
-#define isgraphch(Anychar)    isgraph(((int) Anychar) & 255)
+#define isgraphch(Anychar) isgraph(((int)Anychar) & 255)
 
 struct skiminfo *
 skim_printcap(const char *pcap_fname, int verbosity)
@@ -78,8 +78,8 @@ skim_printcap(const char *pcap_fname, int verbosity)
 	char *ch, *curline, *endfield, *lastchar;
 	FILE *pc_file;
 	int missing_nl;
-	enum {NO_CONTINUE, WILL_CONTINUE, BAD_CONTINUE} is_cont, had_cont;
-	enum {CMNT_LINE, ENTRY_LINE, TAB_LINE, TABERR_LINE} is_type, had_type;
+	enum { NO_CONTINUE, WILL_CONTINUE, BAD_CONTINUE } is_cont, had_cont;
+	enum { CMNT_LINE, ENTRY_LINE, TAB_LINE, TABERR_LINE } is_type, had_type;
 
 	skinf = malloc(sizeof(struct skiminfo));
 	if (skinf == NULL)
@@ -90,7 +90,7 @@ skim_printcap(const char *pcap_fname, int verbosity)
 	if (pc_file == NULL) {
 		warn("fopen(%s)", pcap_fname);
 		skinf->fatalerr++;
-		return (skinf);		/* fatal error */
+		return (skinf); /* fatal error */
 	}
 
 	skim_entryname[0] = '0';
@@ -135,7 +135,7 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		had_type = is_type;
 		is_type = CMNT_LINE;
 		switch (*curline) {
-		case '\0':	/* treat zero-length line as comment */
+		case '\0': /* treat zero-length line as comment */
 		case '#':
 			skinf->comments++;
 			break;
@@ -151,15 +151,15 @@ skim_printcap(const char *pcap_fname, int verbosity)
 			ch = curline;
 			while ((ch <= lastchar) && (*ch != ':') && (*ch != '|'))
 				ch++;
-			ch--;			/* last char of queue name */
+			ch--; /* last char of queue name */
 			strcpy(skim_entryname, QENTRY_PREFIX);
 			if ((ch - curline) > QENTRY_MAXLEN) {
-				strncat(skim_entryname, curline, QENTRY_MAXLEN
-				    - 1);
+				strncat(skim_entryname, curline,
+				    QENTRY_MAXLEN - 1);
 				strcat(skim_entryname, "+");
 			} else {
-				strncat(skim_entryname, curline, (ch - curline
-				    + 1));
+				strncat(skim_entryname, curline,
+				    (ch - curline + 1));
 			}
 			strlcat(skim_entryname, ")", sizeof(skim_entryname));
 			break;
@@ -170,14 +170,14 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		 * line.  The check is delayed until now so a warning message
 		 * is not printed when a "bad continuation" is on a comment
 		 * line, and it just "continues" into another comment line.
-		*/
+		 */
 		if (had_cont == BAD_CONTINUE) {
 			if ((had_type != CMNT_LINE) || (is_type != CMNT_LINE) ||
 			    (verbosity > 1)) {
 				skinf->warnings++;
-				warnx("Warning: blanks after trailing '\\'," 
-				    " at line %d%s", skinf->lines - 1,
-				    skim_entryname);
+				warnx("Warning: blanks after trailing '\\',"
+				      " at line %d%s",
+				    skinf->lines - 1, skim_entryname);
 			}
 		}
 
@@ -189,7 +189,7 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		/*
 		 * Print out warning for missing newline, done down here
 		 * so we are sure to have the right entry-name for it.
-		*/
+		 */
 		if (missing_nl) {
 			skinf->warnings++;
 			warnx("Warning: No newline at end of line %d%s",
@@ -203,14 +203,14 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		 * ALL of the following lines.
 		 * XXXXX - May need to allow for the list-of-names to
 		 *         continue on to the following line...
-		*/
+		 */
 		if (is_type == ENTRY_LINE) {
 			endfield = strchr(curline, ':');
 			if (endfield == NULL) {
 				skinf->warnings++;
 				warnx("Warning: No ':' to terminate name-field"
-				    " at line %d%s", skinf->lines,
-				    skim_entryname);
+				      " at line %d%s",
+				    skinf->lines, skim_entryname);
 			}
 		}
 
@@ -218,14 +218,14 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		 * Now check for cases where this line is (or is-not) a
 		 * continuation of the previous line, and a person skimming
 		 * the file would assume it is not (or is) a continuation.
-		*/
+		 */
 		switch (had_cont) {
 		case NO_CONTINUE:
 		case BAD_CONTINUE:
 			if (is_type == TAB_LINE) {
 				skinf->warnings++;
-				warnx("Warning: values-line after line with" 
-				    " NO trailing '\\', at line %d%s",
+				warnx("Warning: values-line after line with"
+				      " NO trailing '\\', at line %d%s",
 				    skinf->lines, skim_entryname);
 			}
 			break;
@@ -233,8 +233,8 @@ skim_printcap(const char *pcap_fname, int verbosity)
 		case WILL_CONTINUE:
 			if (is_type == ENTRY_LINE) {
 				skinf->warnings++;
-				warnx("Warning: new entry starts after line" 
-				    " with trailing '\\', at line %d%s",
+				warnx("Warning: new entry starts after line"
+				      " with trailing '\\', at line %d%s",
 				    skinf->lines, skim_entryname);
 			}
 			break;
@@ -246,7 +246,7 @@ skim_printcap(const char *pcap_fname, int verbosity)
 
 	if (errno != 0) {
 		warn("fgets(%s)", pcap_fname);
-		skinf->fatalerr++;		/* fatal error */
+		skinf->fatalerr++; /* fatal error */
 	}
 
 	if (skinf->warnings > 0)

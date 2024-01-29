@@ -30,16 +30,16 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/serial.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/scc/scc_bfe.h>
 #include <dev/scc/scc_bus.h>
@@ -115,7 +115,7 @@ scc_bfe_attach(device_t dev, u_int ipc)
 	sc0 = device_get_softc(dev);
 	cl = sc0->sc_class;
 	if (cl->size > sizeof(*sc)) {
-		sc = malloc(cl->size, M_SCC, M_WAITOK|M_ZERO);
+		sc = malloc(cl->size, M_SCC, M_WAITOK | M_ZERO);
 		bcopy(sc0, sc, sizeof(*sc));
 		device_set_softc(dev, sc);
 	} else
@@ -140,8 +140,8 @@ scc_bfe_attach(device_t dev, u_int ipc)
 	 * Allocate interrupt resources. There may be a different interrupt
 	 * per channel. We allocate them all...
 	 */
-	sc->sc_chan = malloc(sizeof(struct scc_chan) * cl->cl_channels,
-	    M_SCC, M_WAITOK | M_ZERO);
+	sc->sc_chan = malloc(sizeof(struct scc_chan) * cl->cl_channels, M_SCC,
+	    M_WAITOK | M_ZERO);
 	for (c = 0; c < cl->cl_channels; c++) {
 		ch = &sc->sc_chan[c];
 		/*
@@ -187,7 +187,7 @@ scc_bfe_attach(device_t dev, u_int ipc)
 		resource_list_add(&ch->ch_rlist, SYS_RES_IRQ, 0, c, c, 1);
 		rle = resource_list_find(&ch->ch_rlist, SYS_RES_IRQ, 0);
 		rle->res = (ch->ch_ires != NULL) ? ch->ch_ires :
-			    sc->sc_chan[0].ch_ires;
+						   sc->sc_chan[0].ch_ires;
 
 		for (mode = 0; mode < SCC_NMODES; mode++) {
 			m = &ch->ch_mode[mode];
@@ -205,7 +205,7 @@ scc_bfe_attach(device_t dev, u_int ipc)
 			}
 		}
 
-	 next:
+	next:
 		start += (cl->cl_range < 0) ? -size : size;
 		sysdev |= ch->ch_sysdev;
 	}
@@ -233,9 +233,8 @@ scc_bfe_attach(device_t dev, u_int ipc)
 		ch = &sc->sc_chan[c];
 		if (ch->ch_ires == NULL)
 			continue;
-		error = bus_setup_intr(dev, ch->ch_ires,
-		    INTR_TYPE_TTY, scc_bfe_intr, NULL, sc,
-		    &ch->ch_icookie);
+		error = bus_setup_intr(dev, ch->ch_ires, INTR_TYPE_TTY,
+		    scc_bfe_intr, NULL, sc, &ch->ch_icookie);
 		if (error) {
 			error = bus_setup_intr(dev, ch->ch_ires,
 			    INTR_TYPE_TTY | INTR_MPSAFE, NULL,
@@ -288,7 +287,7 @@ scc_bfe_attach(device_t dev, u_int ipc)
 
 	return (0);
 
- fail:
+fail:
 	for (c = 0; c < cl->cl_channels; c++) {
 		ch = &sc->sc_chan[c];
 		if (ch->ch_ires == NULL)

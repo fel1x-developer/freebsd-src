@@ -23,13 +23,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _READIN_H_
-#define	_READIN_H_
+#define _READIN_H_
 
 #ifdef LOADER_VERIEXEC
 #include <verify_file.h>
 #endif
 #ifdef LOADER_VERIEXEC_VECTX
-typedef struct vectx * readin_handle_t;
+typedef struct vectx *readin_handle_t;
 #define VECTX_READ vectx_read
 #define VECTX_LSEEK vectx_lseek
 #else
@@ -38,4 +38,4 @@ typedef int readin_handle_t;
 #define VECTX_LSEEK lseek
 #endif
 
-#endif	/* !_READIN_H_ */
+#endif /* !_READIN_H_ */

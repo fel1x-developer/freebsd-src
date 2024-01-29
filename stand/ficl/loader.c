@@ -27,12 +27,13 @@
 /*******************************************************************
 ** l o a d e r . c
 ** Additional FICL words designed for FreeBSD's loader
-** 
+**
 *******************************************************************/
 
 #ifdef TESTMAIN
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -41,11 +42,12 @@
 #else
 #include <stand.h>
 #endif
-#include "bootstrap.h"
-#include <string.h>
-#include <uuid.h>
 #include <gfx_fb.h>
 #include <pnglite.h>
+#include <string.h>
+#include <uuid.h>
+
+#include "bootstrap.h"
 #include "ficl.h"
 
 /*		FreeBSD's loader interaction words and extras
@@ -70,23 +72,23 @@
 void
 ficl_term_putimage(FICL_VM *pVM)
 {
-        char *namep, *name;
-        int names;
-        unsigned long ret = FICL_FALSE;
-        uint32_t x1, y1, x2, y2, f;
-        png_t png;
+	char *namep, *name;
+	int names;
+	unsigned long ret = FICL_FALSE;
+	uint32_t x1, y1, x2, y2, f;
+	png_t png;
 	int error;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 7, 1);
 #endif
-        names = stackPopINT(pVM->pStack);
-        namep = (char *) stackPopPtr(pVM->pStack);
-        y2 = stackPopINT(pVM->pStack);
-        x2 = stackPopINT(pVM->pStack);
-        y1 = stackPopINT(pVM->pStack);
-        x1 = stackPopINT(pVM->pStack);
-        f = stackPopINT(pVM->pStack);
+	names = stackPopINT(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
+	y2 = stackPopINT(pVM->pStack);
+	x2 = stackPopINT(pVM->pStack);
+	y1 = stackPopINT(pVM->pStack);
+	x1 = stackPopINT(pVM->pStack);
+	f = stackPopINT(pVM->pStack);
 
 	x1 = gfx_state.tg_origin.tp_col + x1 * gfx_state.tg_font.vf_width;
 	y1 = gfx_state.tg_origin.tp_row + y1 * gfx_state.tg_font.vf_height;
@@ -99,21 +101,21 @@ ficl_term_putimage(FICL_VM *pVM)
 		    y2 * gfx_state.tg_font.vf_height;
 	}
 
-        name = ficlMalloc(names + 1);
-        if (!name)
+	name = ficlMalloc(names + 1);
+	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
-        (void) strncpy(name, namep, names);
-        name[names] = '\0';
+	(void)strncpy(name, namep, names);
+	name[names] = '\0';
 
-        if ((error = png_open(&png, name)) != PNG_NO_ERROR) {
+	if ((error = png_open(&png, name)) != PNG_NO_ERROR) {
 		if (f & FL_PUTIMAGE_DEBUG)
 			printf("%s\n", png_error_string(error));
 	} else {
-                if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
-                        ret = FICL_TRUE;        /* success */
-                (void) png_close(&png);
+		if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
+			ret = FICL_TRUE; /* success */
+		(void)png_close(&png);
 	}
-        ficlFree(name);
+	ficlFree(name);
 	stackPushUNS(pVM->pStack, ret);
 }
 
@@ -121,54 +123,54 @@ ficl_term_putimage(FICL_VM *pVM)
 void
 ficl_fb_putimage(FICL_VM *pVM)
 {
-        char *namep, *name;
-        int names;
-        unsigned long ret = FICL_FALSE;
-        uint32_t x1, y1, x2, y2, f;
-        png_t png;
+	char *namep, *name;
+	int names;
+	unsigned long ret = FICL_FALSE;
+	uint32_t x1, y1, x2, y2, f;
+	png_t png;
 	int error;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 7, 1);
 #endif
-        names = stackPopINT(pVM->pStack);
-        namep = (char *) stackPopPtr(pVM->pStack);
-        y2 = stackPopINT(pVM->pStack);
-        x2 = stackPopINT(pVM->pStack);
-        y1 = stackPopINT(pVM->pStack);
-        x1 = stackPopINT(pVM->pStack);
-        f = stackPopINT(pVM->pStack);
+	names = stackPopINT(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
+	y2 = stackPopINT(pVM->pStack);
+	x2 = stackPopINT(pVM->pStack);
+	y1 = stackPopINT(pVM->pStack);
+	x1 = stackPopINT(pVM->pStack);
+	f = stackPopINT(pVM->pStack);
 
-        name = ficlMalloc(names + 1);
-        if (!name)
+	name = ficlMalloc(names + 1);
+	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
-        (void) strncpy(name, namep, names);
-        name[names] = '\0';
+	(void)strncpy(name, namep, names);
+	name[names] = '\0';
 
-        if ((error = png_open(&png, name)) != PNG_NO_ERROR) {
+	if ((error = png_open(&png, name)) != PNG_NO_ERROR) {
 		if (f & FL_PUTIMAGE_DEBUG)
 			printf("%s\n", png_error_string(error));
 	} else {
-                if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
-                        ret = FICL_TRUE;        /* success */
-                (void) png_close(&png);
+		if (gfx_fb_putimage(&png, x1, y1, x2, y2, f) == 0)
+			ret = FICL_TRUE; /* success */
+		(void)png_close(&png);
 	}
-        ficlFree(name);
+	ficlFree(name);
 	stackPushUNS(pVM->pStack, ret);
 }
 
 void
 ficl_fb_setpixel(FICL_VM *pVM)
 {
-        FICL_UNS x, y;
+	FICL_UNS x, y;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 2, 0);
 #endif
 
-        y = stackPopUNS(pVM->pStack);
-        x = stackPopUNS(pVM->pStack);
-        gfx_fb_setpixel(x, y);
+	y = stackPopUNS(pVM->pStack);
+	x = stackPopUNS(pVM->pStack);
+	gfx_fb_setpixel(x, y);
 }
 
 void
@@ -239,32 +241,32 @@ ficl_term_drawrect(FICL_VM *pVM)
 	x1 = stackPopUNS(pVM->pStack);
 	gfx_term_drawrect(x1, y1, x2, y2);
 }
-#endif	/* TESTMAIN */
+#endif /* TESTMAIN */
 
 void
 ficlSetenv(FICL_VM *pVM)
 {
 #ifndef TESTMAIN
-	char	*name, *value;
+	char *name, *value;
 #endif
-	char	*namep, *valuep;
-	int	names, values;
+	char *namep, *valuep;
+	int names, values;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 4, 0);
 #endif
 	names = stackPopINT(pVM->pStack);
-	namep = (char*) stackPopPtr(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
 	values = stackPopINT(pVM->pStack);
-	valuep = (char*) stackPopPtr(pVM->pStack);
+	valuep = (char *)stackPopPtr(pVM->pStack);
 
 #ifndef TESTMAIN
-	name = (char*) ficlMalloc(names+1);
+	name = (char *)ficlMalloc(names + 1);
 	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(name, namep, names);
 	name[names] = '\0';
-	value = (char*) ficlMalloc(values+1);
+	value = (char *)ficlMalloc(values + 1);
 	if (!value)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(value, valuep, values);
@@ -282,27 +284,27 @@ void
 ficlSetenvq(FICL_VM *pVM)
 {
 #ifndef TESTMAIN
-	char	*name, *value;
+	char *name, *value;
 #endif
-	char	*namep, *valuep;
-	int	names, values, overwrite;
+	char *namep, *valuep;
+	int names, values, overwrite;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 5, 0);
 #endif
 	overwrite = stackPopINT(pVM->pStack);
 	names = stackPopINT(pVM->pStack);
-	namep = (char*) stackPopPtr(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
 	values = stackPopINT(pVM->pStack);
-	valuep = (char*) stackPopPtr(pVM->pStack);
+	valuep = (char *)stackPopPtr(pVM->pStack);
 
 #ifndef TESTMAIN
-	name = (char*) ficlMalloc(names+1);
+	name = (char *)ficlMalloc(names + 1);
 	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(name, namep, names);
 	name[names] = '\0';
-	value = (char*) ficlMalloc(values+1);
+	value = (char *)ficlMalloc(values + 1);
 	if (!value)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(value, valuep, values);
@@ -320,19 +322,19 @@ void
 ficlGetenv(FICL_VM *pVM)
 {
 #ifndef TESTMAIN
-	char	*name, *value;
+	char *name, *value;
 #endif
-	char	*namep;
-	int	names;
+	char *namep;
+	int names;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 2, 2);
 #endif
 	names = stackPopINT(pVM->pStack);
-	namep = (char*) stackPopPtr(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
 
 #ifndef TESTMAIN
-	name = (char*) ficlMalloc(names+1);
+	name = (char *)ficlMalloc(names + 1);
 	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(name, namep, names);
@@ -341,7 +343,7 @@ ficlGetenv(FICL_VM *pVM)
 	value = getenv(name);
 	ficlFree(name);
 
-	if(value != NULL) {
+	if (value != NULL) {
 		stackPushPtr(pVM->pStack, value);
 		stackPushINT(pVM->pStack, strlen(value));
 	} else
@@ -355,19 +357,19 @@ void
 ficlUnsetenv(FICL_VM *pVM)
 {
 #ifndef TESTMAIN
-	char	*name;
+	char *name;
 #endif
-	char	*namep;
-	int	names;
+	char *namep;
+	int names;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 2, 0);
 #endif
 	names = stackPopINT(pVM->pStack);
-	namep = (char*) stackPopPtr(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
 
 #ifndef TESTMAIN
-	name = (char*) ficlMalloc(names+1);
+	name = (char *)ficlMalloc(names + 1);
 	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(name, namep, names);
@@ -383,9 +385,9 @@ ficlUnsetenv(FICL_VM *pVM)
 void
 ficlCopyin(FICL_VM *pVM)
 {
-	void*		src;
-	vm_offset_t	dest;
-	size_t		len;
+	void *src;
+	vm_offset_t dest;
+	size_t len;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 3, 0);
@@ -405,9 +407,9 @@ ficlCopyin(FICL_VM *pVM)
 void
 ficlCopyout(FICL_VM *pVM)
 {
-	void*		dest;
-	vm_offset_t	src;
-	size_t		len;
+	void *dest;
+	vm_offset_t src;
+	size_t len;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 3, 0);
@@ -428,27 +430,27 @@ void
 ficlFindfile(FICL_VM *pVM)
 {
 #ifndef TESTMAIN
-	char	*name, *type;
+	char *name, *type;
 #endif
-	char	*namep, *typep;
-	struct	preloaded_file* fp;
-	int	names, types;
+	char *namep, *typep;
+	struct preloaded_file *fp;
+	int names, types;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 4, 1);
 #endif
 
 	types = stackPopINT(pVM->pStack);
-	typep = (char*) stackPopPtr(pVM->pStack);
+	typep = (char *)stackPopPtr(pVM->pStack);
 	names = stackPopINT(pVM->pStack);
-	namep = (char*) stackPopPtr(pVM->pStack);
+	namep = (char *)stackPopPtr(pVM->pStack);
 #ifndef TESTMAIN
-	name = (char*) ficlMalloc(names+1);
+	name = (char *)ficlMalloc(names + 1);
 	if (!name)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(name, namep, names);
 	name[names] = '\0';
-	type = (char*) ficlMalloc(types+1);
+	type = (char *)ficlMalloc(types + 1);
 	if (!type)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(type, typep, types);
@@ -480,9 +482,8 @@ ficlIsvirtualizedQ(FICL_VM *pVM)
 	vmCheckStack(pVM, 0, 1);
 #endif
 
-	hv = (archsw.arch_hypervisor != NULL)
-	    ? (*archsw.arch_hypervisor)()
-	    : NULL;
+	hv = (archsw.arch_hypervisor != NULL) ? (*archsw.arch_hypervisor)() :
+						NULL;
 	flag = (hv != NULL) ? FICL_TRUE : FICL_FALSE;
 	stackPushINT(pVM->pStack, flag);
 }
@@ -521,29 +522,29 @@ ficlCcall(FICL_VM *pVM)
 void
 ficlUuidFromString(FICL_VM *pVM)
 {
-#ifndef	TESTMAIN
-	char	*uuid;
+#ifndef TESTMAIN
+	char *uuid;
 	uint32_t status;
 #endif
-	char	*uuidp;
-	int	uuids;
-	uuid_t	*u;
+	char *uuidp;
+	int uuids;
+	uuid_t *u;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 2, 0);
 #endif
 
 	uuids = stackPopINT(pVM->pStack);
-	uuidp = (char *) stackPopPtr(pVM->pStack);
+	uuidp = (char *)stackPopPtr(pVM->pStack);
 
-#ifndef	TESTMAIN
+#ifndef TESTMAIN
 	uuid = (char *)ficlMalloc(uuids + 1);
 	if (!uuid)
 		vmThrowErr(pVM, "Error: out of memory");
 	strncpy(uuid, uuidp, uuids);
 	uuid[uuids] = '\0';
 
-	u = (uuid_t *)ficlMalloc(sizeof (*u));
+	u = (uuid_t *)ficlMalloc(sizeof(*u));
 
 	uuid_from_string(uuid, u, &status);
 	ficlFree(uuid);
@@ -556,18 +557,17 @@ ficlUuidFromString(FICL_VM *pVM)
 #endif
 	stackPushPtr(pVM->pStack, u);
 
-
 	return;
 }
 
 void
 ficlUuidToString(FICL_VM *pVM)
 {
-#ifndef	TESTMAIN
-	char	*uuid;
+#ifndef TESTMAIN
+	char *uuid;
 	uint32_t status;
 #endif
-	uuid_t	*u;
+	uuid_t *u;
 
 #if FICL_ROBUST > 1
 	vmCheckStack(pVM, 1, 0);
@@ -575,7 +575,7 @@ ficlUuidToString(FICL_VM *pVM)
 
 	u = (uuid_t *)stackPopPtr(pVM->pStack);
 
-#ifndef	TESTMAIN
+#ifndef TESTMAIN
 	uuid_to_string(u, &uuid, &status);
 	if (status != uuid_s_ok) {
 		stackPushPtr(pVM->pStack, uuid);
@@ -588,343 +588,355 @@ ficlUuidToString(FICL_VM *pVM)
 }
 
 /**************************************************************************
-                        f i c l E x e c F D
+			f i c l E x e c F D
 ** reads in text from file fd and passes it to ficlExec()
  * returns VM_OUTOFTEXT on success or the ficlExec() error code on
  * failure.
- */ 
+ */
 #define nLINEBUF 256
-int ficlExecFD(FICL_VM *pVM, int fd)
+int
+ficlExecFD(FICL_VM *pVM, int fd)
 {
-    char    cp[nLINEBUF];
-    int     nLine = 0, rval = VM_OUTOFTEXT;
-    char    ch;
-    CELL    id;
+	char cp[nLINEBUF];
+	int nLine = 0, rval = VM_OUTOFTEXT;
+	char ch;
+	CELL id;
 
-    id = pVM->sourceID;
-    pVM->sourceID.i = fd;
+	id = pVM->sourceID;
+	pVM->sourceID.i = fd;
 
-    /* feed each line to ficlExec */
-    while (1) {
-	int status, i;
+	/* feed each line to ficlExec */
+	while (1) {
+		int status, i;
 
-	i = 0;
-	while ((status = read(fd, &ch, 1)) > 0 && ch != '\n')
-	    cp[i++] = ch;
-        nLine++;
-	if (!i) {
-	    if (status < 1)
-		break;
-	    continue;
+		i = 0;
+		while ((status = read(fd, &ch, 1)) > 0 && ch != '\n')
+			cp[i++] = ch;
+		nLine++;
+		if (!i) {
+			if (status < 1)
+				break;
+			continue;
+		}
+		rval = ficlExecC(pVM, cp, i);
+		if (rval != VM_QUIT && rval != VM_USEREXIT &&
+		    rval != VM_OUTOFTEXT) {
+			pVM->sourceID = id;
+			return rval;
+		}
 	}
-        rval = ficlExecC(pVM, cp, i);
-	if(rval != VM_QUIT && rval != VM_USEREXIT && rval != VM_OUTOFTEXT)
-        {
-            pVM->sourceID = id;
-            return rval; 
-        }
-    }
-    /*
-    ** Pass an empty line with SOURCE-ID == -1 to flush
-    ** any pending REFILLs (as required by FILE wordset)
-    */
-    pVM->sourceID.i = -1;
-    ficlExec(pVM, "");
+	/*
+	** Pass an empty line with SOURCE-ID == -1 to flush
+	** any pending REFILLs (as required by FILE wordset)
+	*/
+	pVM->sourceID.i = -1;
+	ficlExec(pVM, "");
 
-    pVM->sourceID = id;
-    return rval;
+	pVM->sourceID = id;
+	return rval;
 }
 
-static void displayCellNoPad(FICL_VM *pVM)
+static void
+displayCellNoPad(FICL_VM *pVM)
 {
-    CELL c;
+	CELL c;
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 0);
+	vmCheckStack(pVM, 1, 0);
 #endif
-    c = stackPop(pVM->pStack);
-    ltoa((c).i, pVM->pad, pVM->base);
-    vmTextOut(pVM, pVM->pad, 0);
-    return;
+	c = stackPop(pVM->pStack);
+	ltoa((c).i, pVM->pad, pVM->base);
+	vmTextOut(pVM, pVM->pad, 0);
+	return;
 }
 
 /*      isdir? - Return whether an fd corresponds to a directory.
  *
  * isdir? ( fd -- bool )
  */
-static void isdirQuestion(FICL_VM *pVM)
+static void
+isdirQuestion(FICL_VM *pVM)
 {
-    struct stat sb;
-    FICL_INT flag;
-    int fd;
+	struct stat sb;
+	FICL_INT flag;
+	int fd;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 1);
+	vmCheckStack(pVM, 1, 1);
 #endif
 
-    fd = stackPopINT(pVM->pStack);
-    flag = FICL_FALSE;
-    do {
-        if (fd < 0)
-            break;
-        if (fstat(fd, &sb) < 0)
-            break;
-        if (!S_ISDIR(sb.st_mode))
-            break;
-        flag = FICL_TRUE;
-    } while (0);
-    stackPushINT(pVM->pStack, flag);
+	fd = stackPopINT(pVM->pStack);
+	flag = FICL_FALSE;
+	do {
+		if (fd < 0)
+			break;
+		if (fstat(fd, &sb) < 0)
+			break;
+		if (!S_ISDIR(sb.st_mode))
+			break;
+		flag = FICL_TRUE;
+	} while (0);
+	stackPushINT(pVM->pStack, flag);
 }
 
 /*          fopen - open a file and return new fd on stack.
  *
  * fopen ( ptr count mode -- fd )
  */
-static void pfopen(FICL_VM *pVM)
+static void
+pfopen(FICL_VM *pVM)
 {
-    int     mode, fd, count;
-    char    *ptr, *name;
+	int mode, fd, count;
+	char *ptr, *name;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 3, 1);
+	vmCheckStack(pVM, 3, 1);
 #endif
 
-    mode = stackPopINT(pVM->pStack);    /* get mode */
-    count = stackPopINT(pVM->pStack);   /* get count */
-    ptr = stackPopPtr(pVM->pStack);     /* get ptr */
+	mode = stackPopINT(pVM->pStack);  /* get mode */
+	count = stackPopINT(pVM->pStack); /* get count */
+	ptr = stackPopPtr(pVM->pStack);	  /* get ptr */
 
-    if ((count < 0) || (ptr == NULL)) {
-        stackPushINT(pVM->pStack, -1);
-        return;
-    }
-
-    /* ensure that the string is null terminated */
-    name = (char *)malloc(count+1);
-    bcopy(ptr,name,count);
-    name[count] = 0;
-
-    /* open the file */
-    fd = open(name, mode);
-#ifdef LOADER_VERIEXEC
-    if (fd >= 0) {
-	if (verify_file(fd, name, 0, VE_GUESS, __func__) < 0) {
-	    /* not verified writing ok but reading is not */
-	    if ((mode & O_ACCMODE) != O_WRONLY) {
-		close(fd);
-		fd = -1;
-	    }
-	} else {
-	    /* verified reading ok but writing is not */
-	    if ((mode & O_ACCMODE) != O_RDONLY) {
-		close(fd);
-		fd = -1;
-	    }
+	if ((count < 0) || (ptr == NULL)) {
+		stackPushINT(pVM->pStack, -1);
+		return;
 	}
-    }
+
+	/* ensure that the string is null terminated */
+	name = (char *)malloc(count + 1);
+	bcopy(ptr, name, count);
+	name[count] = 0;
+
+	/* open the file */
+	fd = open(name, mode);
+#ifdef LOADER_VERIEXEC
+	if (fd >= 0) {
+		if (verify_file(fd, name, 0, VE_GUESS, __func__) < 0) {
+			/* not verified writing ok but reading is not */
+			if ((mode & O_ACCMODE) != O_WRONLY) {
+				close(fd);
+				fd = -1;
+			}
+		} else {
+			/* verified reading ok but writing is not */
+			if ((mode & O_ACCMODE) != O_RDONLY) {
+				close(fd);
+				fd = -1;
+			}
+		}
+	}
 #endif
-    free(name);
-    stackPushINT(pVM->pStack, fd);
-    return;
+	free(name);
+	stackPushINT(pVM->pStack, fd);
+	return;
 }
- 
+
 /*          fclose - close a file who's fd is on stack.
  *
  * fclose ( fd -- )
  */
-static void pfclose(FICL_VM *pVM)
+static void
+pfclose(FICL_VM *pVM)
 {
-    int fd;
+	int fd;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 0);
+	vmCheckStack(pVM, 1, 0);
 #endif
-    fd = stackPopINT(pVM->pStack); /* get fd */
-    if (fd != -1)
-	close(fd);
-    return;
+	fd = stackPopINT(pVM->pStack); /* get fd */
+	if (fd != -1)
+		close(fd);
+	return;
 }
 
 /*          fread - read file contents
  *
  * fread  ( fd buf nbytes  -- nread )
  */
-static void pfread(FICL_VM *pVM)
+static void
+pfread(FICL_VM *pVM)
 {
-    int     fd, len;
-    char *buf;
+	int fd, len;
+	char *buf;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 3, 1);
+	vmCheckStack(pVM, 3, 1);
 #endif
-    len = stackPopINT(pVM->pStack); /* get number of bytes to read */
-    buf = stackPopPtr(pVM->pStack); /* get buffer */
-    fd = stackPopINT(pVM->pStack); /* get fd */
-    if (len > 0 && buf && fd != -1)
-	stackPushINT(pVM->pStack, read(fd, buf, len));
-    else
-	stackPushINT(pVM->pStack, -1);
-    return;
+	len = stackPopINT(pVM->pStack); /* get number of bytes to read */
+	buf = stackPopPtr(pVM->pStack); /* get buffer */
+	fd = stackPopINT(pVM->pStack);	/* get fd */
+	if (len > 0 && buf && fd != -1)
+		stackPushINT(pVM->pStack, read(fd, buf, len));
+	else
+		stackPushINT(pVM->pStack, -1);
+	return;
 }
 
 /*      freaddir - read directory contents
  *
  * freaddir ( fd -- ptr len TRUE | FALSE )
  */
-static void pfreaddir(FICL_VM *pVM)
+static void
+pfreaddir(FICL_VM *pVM)
 {
 #ifdef TESTMAIN
-    static struct dirent dirent;
-    struct stat sb;
-    char *buf;
-    off_t off, ptr;
-    u_int blksz;
-    int bufsz;
+	static struct dirent dirent;
+	struct stat sb;
+	char *buf;
+	off_t off, ptr;
+	u_int blksz;
+	int bufsz;
 #endif
-    struct dirent *d;
-    int fd;
+	struct dirent *d;
+	int fd;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 3);
+	vmCheckStack(pVM, 1, 3);
 #endif
 
-    fd = stackPopINT(pVM->pStack);
+	fd = stackPopINT(pVM->pStack);
 #if TESTMAIN
-    /*
-     * The readdirfd() function is specific to the loader environment.
-     * We do the best we can to make freaddir work, but it's not at
-     * all guaranteed.
-     */
-    d = NULL;
-    buf = NULL;
-    do {
-	if (fd == -1)
-	    break;
-	if (fstat(fd, &sb) == -1)
-	    break;
-	blksz = (sb.st_blksize) ? sb.st_blksize : getpagesize();
-	if ((blksz & (blksz - 1)) != 0)
-	    break;
-	buf = malloc(blksz);
-	if (buf == NULL)
-	    break;
-	off = lseek(fd, 0LL, SEEK_CUR);
-	if (off == -1)
-	    break;
-	ptr = off;
-	if (lseek(fd, 0, SEEK_SET) == -1)
-	    break;
-	bufsz = getdents(fd, buf, blksz);
-	while (bufsz > 0 && bufsz <= ptr) {
-	    ptr -= bufsz;
-	    bufsz = getdents(fd, buf, blksz);
-	}
-	if (bufsz <= 0)
-	    break;
-	d = (void *)(buf + ptr);
-	dirent = *d;
-	off += d->d_reclen;
-	d = (lseek(fd, off, SEEK_SET) != off) ? NULL : &dirent;
-    } while (0);
-    if (buf != NULL)
-	free(buf);
+	/*
+	 * The readdirfd() function is specific to the loader environment.
+	 * We do the best we can to make freaddir work, but it's not at
+	 * all guaranteed.
+	 */
+	d = NULL;
+	buf = NULL;
+	do {
+		if (fd == -1)
+			break;
+		if (fstat(fd, &sb) == -1)
+			break;
+		blksz = (sb.st_blksize) ? sb.st_blksize : getpagesize();
+		if ((blksz & (blksz - 1)) != 0)
+			break;
+		buf = malloc(blksz);
+		if (buf == NULL)
+			break;
+		off = lseek(fd, 0LL, SEEK_CUR);
+		if (off == -1)
+			break;
+		ptr = off;
+		if (lseek(fd, 0, SEEK_SET) == -1)
+			break;
+		bufsz = getdents(fd, buf, blksz);
+		while (bufsz > 0 && bufsz <= ptr) {
+			ptr -= bufsz;
+			bufsz = getdents(fd, buf, blksz);
+		}
+		if (bufsz <= 0)
+			break;
+		d = (void *)(buf + ptr);
+		dirent = *d;
+		off += d->d_reclen;
+		d = (lseek(fd, off, SEEK_SET) != off) ? NULL : &dirent;
+	} while (0);
+	if (buf != NULL)
+		free(buf);
 #else
-    d = readdirfd(fd);
+	d = readdirfd(fd);
 #endif
-    if (d != NULL) {
-        stackPushPtr(pVM->pStack, d->d_name);
-        stackPushINT(pVM->pStack, strlen(d->d_name));
-        stackPushINT(pVM->pStack, FICL_TRUE);
-    } else {
-        stackPushINT(pVM->pStack, FICL_FALSE);
-    }
+	if (d != NULL) {
+		stackPushPtr(pVM->pStack, d->d_name);
+		stackPushINT(pVM->pStack, strlen(d->d_name));
+		stackPushINT(pVM->pStack, FICL_TRUE);
+	} else {
+		stackPushINT(pVM->pStack, FICL_FALSE);
+	}
 }
 
 /*          fload - interpret file contents
  *
  * fload  ( fd -- )
  */
-static void pfload(FICL_VM *pVM)
+static void
+pfload(FICL_VM *pVM)
 {
-    int     fd;
+	int fd;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 0);
+	vmCheckStack(pVM, 1, 0);
 #endif
-    fd = stackPopINT(pVM->pStack); /* get fd */
-    if (fd != -1)
-	ficlExecFD(pVM, fd);
-    return;
+	fd = stackPopINT(pVM->pStack); /* get fd */
+	if (fd != -1)
+		ficlExecFD(pVM, fd);
+	return;
 }
 
 /*          fwrite - write file contents
  *
  * fwrite  ( fd buf nbytes  -- nwritten )
  */
-static void pfwrite(FICL_VM *pVM)
+static void
+pfwrite(FICL_VM *pVM)
 {
-    int     fd, len;
-    char *buf;
+	int fd, len;
+	char *buf;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 3, 1);
+	vmCheckStack(pVM, 3, 1);
 #endif
-    len = stackPopINT(pVM->pStack); /* get number of bytes to read */
-    buf = stackPopPtr(pVM->pStack); /* get buffer */
-    fd = stackPopINT(pVM->pStack); /* get fd */
-    if (len > 0 && buf && fd != -1)
-	stackPushINT(pVM->pStack, write(fd, buf, len));
-    else
-	stackPushINT(pVM->pStack, -1);
-    return;
+	len = stackPopINT(pVM->pStack); /* get number of bytes to read */
+	buf = stackPopPtr(pVM->pStack); /* get buffer */
+	fd = stackPopINT(pVM->pStack);	/* get fd */
+	if (len > 0 && buf && fd != -1)
+		stackPushINT(pVM->pStack, write(fd, buf, len));
+	else
+		stackPushINT(pVM->pStack, -1);
+	return;
 }
 
 /*          fseek - seek to a new position in a file
  *
  * fseek  ( fd ofs whence  -- pos )
  */
-static void pfseek(FICL_VM *pVM)
+static void
+pfseek(FICL_VM *pVM)
 {
-    int     fd, pos, whence;
+	int fd, pos, whence;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 3, 1);
+	vmCheckStack(pVM, 3, 1);
 #endif
-    whence = stackPopINT(pVM->pStack);
-    pos = stackPopINT(pVM->pStack);
-    fd = stackPopINT(pVM->pStack);
-    stackPushINT(pVM->pStack, lseek(fd, pos, whence));
-    return;
+	whence = stackPopINT(pVM->pStack);
+	pos = stackPopINT(pVM->pStack);
+	fd = stackPopINT(pVM->pStack);
+	stackPushINT(pVM->pStack, lseek(fd, pos, whence));
+	return;
 }
 
 /*           key - get a character from stdin
  *
  * key ( -- char )
  */
-static void key(FICL_VM *pVM)
+static void
+key(FICL_VM *pVM)
 {
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 0, 1);
+	vmCheckStack(pVM, 0, 1);
 #endif
-    stackPushINT(pVM->pStack, getchar());
-    return;
+	stackPushINT(pVM->pStack, getchar());
+	return;
 }
 
 /*           key? - check for a character from stdin (FACILITY)
  *
  * key? ( -- flag )
  */
-static void keyQuestion(FICL_VM *pVM)
+static void
+keyQuestion(FICL_VM *pVM)
 {
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 0, 1);
+	vmCheckStack(pVM, 0, 1);
 #endif
 #ifdef TESTMAIN
-    /* XXX Since we don't fiddle with termios, let it always succeed... */
-    stackPushINT(pVM->pStack, FICL_TRUE);
+	/* XXX Since we don't fiddle with termios, let it always succeed... */
+	stackPushINT(pVM->pStack, FICL_TRUE);
 #else
-    /* But here do the right thing. */
-    stackPushINT(pVM->pStack, ischar()? FICL_TRUE : FICL_FALSE);
+	/* But here do the right thing. */
+	stackPushINT(pVM->pStack, ischar() ? FICL_TRUE : FICL_FALSE);
 #endif
-    return;
+	return;
 }
 
 /* seconds - gives number of seconds since beginning of time
@@ -936,13 +948,14 @@ static void keyQuestion(FICL_VM *pVM)
  *
  * seconds ( -- u )
  */
-static void pseconds(FICL_VM *pVM)
+static void
+pseconds(FICL_VM *pVM)
 {
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM,0,1);
+	vmCheckStack(pVM, 0, 1);
 #endif
-    stackPushUNS(pVM->pStack, (FICL_UNS) time(NULL));
-    return;
+	stackPushUNS(pVM->pStack, (FICL_UNS)time(NULL));
+	return;
 }
 
 /* ms - wait at least that many milliseconds (FACILITY)
@@ -950,119 +963,123 @@ static void pseconds(FICL_VM *pVM)
  * ms ( u -- )
  *
  */
-static void ms(FICL_VM *pVM)
+static void
+ms(FICL_VM *pVM)
 {
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM,1,0);
+	vmCheckStack(pVM, 1, 0);
 #endif
 #ifdef TESTMAIN
-    usleep(stackPopUNS(pVM->pStack)*1000);
+	usleep(stackPopUNS(pVM->pStack) * 1000);
 #else
-    delay(stackPopUNS(pVM->pStack)*1000);
+	delay(stackPopUNS(pVM->pStack) * 1000);
 #endif
-    return;
+	return;
 }
 
 /*           fkey - get a character from a file
  *
  * fkey ( file -- char )
  */
-static void fkey(FICL_VM *pVM)
+static void
+fkey(FICL_VM *pVM)
 {
-    int i, fd;
-    char ch;
+	int i, fd;
+	char ch;
 
 #if FICL_ROBUST > 1
-    vmCheckStack(pVM, 1, 1);
+	vmCheckStack(pVM, 1, 1);
 #endif
-    fd = stackPopINT(pVM->pStack);
-    i = read(fd, &ch, 1);
-    stackPushINT(pVM->pStack, i > 0 ? ch : -1);
-    return;
+	fd = stackPopINT(pVM->pStack);
+	i = read(fd, &ch, 1);
+	stackPushINT(pVM->pStack, i > 0 ? ch : -1);
+	return;
 }
-
 
 /*
 ** Retrieves free space remaining on the dictionary
 */
 
-static void freeHeap(FICL_VM *pVM)
+static void
+freeHeap(FICL_VM *pVM)
 {
-    stackPushINT(pVM->pStack, dictCellsAvail(ficlGetDict(pVM->pSys)));
+	stackPushINT(pVM->pStack, dictCellsAvail(ficlGetDict(pVM->pSys)));
 }
-
 
 /******************* Increase dictionary size on-demand ******************/
- 
-static void ficlDictThreshold(FICL_VM *pVM)
+
+static void
+ficlDictThreshold(FICL_VM *pVM)
 {
-    stackPushPtr(pVM->pStack, &dictThreshold);
+	stackPushPtr(pVM->pStack, &dictThreshold);
 }
- 
-static void ficlDictIncrease(FICL_VM *pVM)
+
+static void
+ficlDictIncrease(FICL_VM *pVM)
 {
-    stackPushPtr(pVM->pStack, &dictIncrease);
+	stackPushPtr(pVM->pStack, &dictIncrease);
 }
 
 /**************************************************************************
-                        f i c l C o m p i l e P l a t f o r m
+			f i c l C o m p i l e P l a t f o r m
 ** Build FreeBSD platform extensions into the system dictionary
 **************************************************************************/
-void ficlCompilePlatform(FICL_SYSTEM *pSys)
+void
+ficlCompilePlatform(FICL_SYSTEM *pSys)
 {
-    ficlCompileFcn **fnpp;
-    FICL_DICT *dp = pSys->dp;
-    assert (dp);
+	ficlCompileFcn **fnpp;
+	FICL_DICT *dp = pSys->dp;
+	assert(dp);
 
-    dictAppendWord(dp, ".#",        displayCellNoPad,    FW_DEFAULT);
-    dictAppendWord(dp, "isdir?",    isdirQuestion,  FW_DEFAULT);
-    dictAppendWord(dp, "fopen",	    pfopen,	    FW_DEFAULT);
-    dictAppendWord(dp, "fclose",    pfclose,	    FW_DEFAULT);
-    dictAppendWord(dp, "fread",	    pfread,	    FW_DEFAULT);
-    dictAppendWord(dp, "freaddir",  pfreaddir,	    FW_DEFAULT);
-    dictAppendWord(dp, "fload",	    pfload,	    FW_DEFAULT);
-    dictAppendWord(dp, "fkey",	    fkey,	    FW_DEFAULT);
-    dictAppendWord(dp, "fseek",     pfseek,	    FW_DEFAULT);
-    dictAppendWord(dp, "fwrite",    pfwrite,	    FW_DEFAULT);
-    dictAppendWord(dp, "key",	    key,	    FW_DEFAULT);
-    dictAppendWord(dp, "key?",	    keyQuestion,    FW_DEFAULT);
-    dictAppendWord(dp, "ms",        ms,             FW_DEFAULT);
-    dictAppendWord(dp, "seconds",   pseconds,       FW_DEFAULT);
-    dictAppendWord(dp, "heap?",     freeHeap,       FW_DEFAULT);
-    dictAppendWord(dp, "dictthreshold", ficlDictThreshold, FW_DEFAULT);
-    dictAppendWord(dp, "dictincrease", ficlDictIncrease, FW_DEFAULT);
+	dictAppendWord(dp, ".#", displayCellNoPad, FW_DEFAULT);
+	dictAppendWord(dp, "isdir?", isdirQuestion, FW_DEFAULT);
+	dictAppendWord(dp, "fopen", pfopen, FW_DEFAULT);
+	dictAppendWord(dp, "fclose", pfclose, FW_DEFAULT);
+	dictAppendWord(dp, "fread", pfread, FW_DEFAULT);
+	dictAppendWord(dp, "freaddir", pfreaddir, FW_DEFAULT);
+	dictAppendWord(dp, "fload", pfload, FW_DEFAULT);
+	dictAppendWord(dp, "fkey", fkey, FW_DEFAULT);
+	dictAppendWord(dp, "fseek", pfseek, FW_DEFAULT);
+	dictAppendWord(dp, "fwrite", pfwrite, FW_DEFAULT);
+	dictAppendWord(dp, "key", key, FW_DEFAULT);
+	dictAppendWord(dp, "key?", keyQuestion, FW_DEFAULT);
+	dictAppendWord(dp, "ms", ms, FW_DEFAULT);
+	dictAppendWord(dp, "seconds", pseconds, FW_DEFAULT);
+	dictAppendWord(dp, "heap?", freeHeap, FW_DEFAULT);
+	dictAppendWord(dp, "dictthreshold", ficlDictThreshold, FW_DEFAULT);
+	dictAppendWord(dp, "dictincrease", ficlDictIncrease, FW_DEFAULT);
 
-    dictAppendWord(dp, "setenv",    ficlSetenv,	    FW_DEFAULT);
-    dictAppendWord(dp, "setenv?",   ficlSetenvq,    FW_DEFAULT);
-    dictAppendWord(dp, "getenv",    ficlGetenv,	    FW_DEFAULT);
-    dictAppendWord(dp, "unsetenv",  ficlUnsetenv,   FW_DEFAULT);
-    dictAppendWord(dp, "copyin",    ficlCopyin,	    FW_DEFAULT);
-    dictAppendWord(dp, "copyout",   ficlCopyout,    FW_DEFAULT);
-    dictAppendWord(dp, "findfile",  ficlFindfile,   FW_DEFAULT);
-    dictAppendWord(dp, "ccall",	    ficlCcall,	    FW_DEFAULT);
-    dictAppendWord(dp, "uuid-from-string", ficlUuidFromString, FW_DEFAULT);
-    dictAppendWord(dp, "uuid-to-string", ficlUuidToString, FW_DEFAULT);
+	dictAppendWord(dp, "setenv", ficlSetenv, FW_DEFAULT);
+	dictAppendWord(dp, "setenv?", ficlSetenvq, FW_DEFAULT);
+	dictAppendWord(dp, "getenv", ficlGetenv, FW_DEFAULT);
+	dictAppendWord(dp, "unsetenv", ficlUnsetenv, FW_DEFAULT);
+	dictAppendWord(dp, "copyin", ficlCopyin, FW_DEFAULT);
+	dictAppendWord(dp, "copyout", ficlCopyout, FW_DEFAULT);
+	dictAppendWord(dp, "findfile", ficlFindfile, FW_DEFAULT);
+	dictAppendWord(dp, "ccall", ficlCcall, FW_DEFAULT);
+	dictAppendWord(dp, "uuid-from-string", ficlUuidFromString, FW_DEFAULT);
+	dictAppendWord(dp, "uuid-to-string", ficlUuidToString, FW_DEFAULT);
 #ifndef TESTMAIN
-    dictAppendWord(dp, "fb-setpixel", ficl_fb_setpixel, FW_DEFAULT);
-    dictAppendWord(dp, "fb-line", ficl_fb_line, FW_DEFAULT);
-    dictAppendWord(dp, "fb-bezier", ficl_fb_bezier, FW_DEFAULT);
-    dictAppendWord(dp, "fb-drawrect", ficl_fb_drawrect, FW_DEFAULT);
-    dictAppendWord(dp, "fb-putimage", ficl_fb_putimage, FW_DEFAULT);
-    dictAppendWord(dp, "term-drawrect", ficl_term_drawrect, FW_DEFAULT);
-    dictAppendWord(dp, "term-putimage", ficl_term_putimage, FW_DEFAULT);
-    dictAppendWord(dp, "isvirtualized?",ficlIsvirtualizedQ, FW_DEFAULT);
+	dictAppendWord(dp, "fb-setpixel", ficl_fb_setpixel, FW_DEFAULT);
+	dictAppendWord(dp, "fb-line", ficl_fb_line, FW_DEFAULT);
+	dictAppendWord(dp, "fb-bezier", ficl_fb_bezier, FW_DEFAULT);
+	dictAppendWord(dp, "fb-drawrect", ficl_fb_drawrect, FW_DEFAULT);
+	dictAppendWord(dp, "fb-putimage", ficl_fb_putimage, FW_DEFAULT);
+	dictAppendWord(dp, "term-drawrect", ficl_term_drawrect, FW_DEFAULT);
+	dictAppendWord(dp, "term-putimage", ficl_term_putimage, FW_DEFAULT);
+	dictAppendWord(dp, "isvirtualized?", ficlIsvirtualizedQ, FW_DEFAULT);
 #endif
-    
-    SET_FOREACH(fnpp, Xficl_compile_set)
+
+	SET_FOREACH(fnpp, Xficl_compile_set)
 	(*fnpp)(pSys);
 
 #if defined(__i386__)
-    ficlSetEnv(pSys, "arch-i386",         FICL_TRUE);
-    ficlSetEnv(pSys, "arch-powerpc",      FICL_FALSE);
+	ficlSetEnv(pSys, "arch-i386", FICL_TRUE);
+	ficlSetEnv(pSys, "arch-powerpc", FICL_FALSE);
 #elif defined(__powerpc__)
-    ficlSetEnv(pSys, "arch-i386",         FICL_FALSE);
-    ficlSetEnv(pSys, "arch-powerpc",      FICL_TRUE);
+	ficlSetEnv(pSys, "arch-i386", FICL_FALSE);
+	ficlSetEnv(pSys, "arch-powerpc", FICL_TRUE);
 #endif
 
-    return;
+	return;
 }

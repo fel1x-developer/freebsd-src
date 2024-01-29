@@ -30,15 +30,16 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -55,10 +56,9 @@
 #include <unistd.h>
 
 #include "autofs_ioctl.h"
-
 #include "common.h"
 
-#define AUTOMOUNTD_PIDFILE	"/var/run/automountd.pid"
+#define AUTOMOUNTD_PIDFILE "/var/run/automountd.pid"
 
 static int nchildren = 0;
 static int autofs_fd;
@@ -75,8 +75,8 @@ done(int request_error, bool wildcards)
 	add.add_wildcards = wildcards;
 	add.add_error = request_error;
 
-	log_debugx("completing request %d with error %d",
-	    request_id, request_error);
+	log_debugx("completing request %d with error %d", request_id,
+	    request_error);
 
 	error = ioctl(autofs_fd, AUTOFSDONE, &add);
 	if (error != 0)
@@ -138,7 +138,7 @@ create_subtree(const struct node *node, bool incomplete)
 	create_directory(path);
 
 	if (incomplete) {
-		TAILQ_FOREACH(child, &node->n_children, n_next) {
+		TAILQ_FOREACH (child, &node->n_children, n_next) {
 			if (strcmp(child->n_key, "*") == 0) {
 				wildcard_found = true;
 				break;
@@ -146,7 +146,8 @@ create_subtree(const struct node *node, bool incomplete)
 		}
 
 		if (wildcard_found) {
-			log_debugx("node %s contains wildcard entry; "
+			log_debugx(
+			    "node %s contains wildcard entry; "
 			    "not creating its subdirectories due to -d flag",
 			    path);
 			free(path);
@@ -156,7 +157,7 @@ create_subtree(const struct node *node, bool incomplete)
 
 	free(path);
 
-	TAILQ_FOREACH(child, &node->n_children, n_next)
+	TAILQ_FOREACH (child, &node->n_children, n_next)
 		create_subtree(child, incomplete);
 }
 
@@ -179,8 +180,9 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 	bool wildcards;
 
 	log_debugx("got request %d: from %s, path %s, prefix \"%s\", "
-	    "key \"%s\", options \"%s\"", adr->adr_id, adr->adr_from,
-	    adr->adr_path, adr->adr_prefix, adr->adr_key, adr->adr_options);
+		   "key \"%s\", options \"%s\"",
+	    adr->adr_id, adr->adr_from, adr->adr_path, adr->adr_prefix,
+	    adr->adr_key, adr->adr_options);
 
 	/*
 	 * Try to notify the kernel about any problems.
@@ -208,7 +210,7 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 		 * Indirect map.
 		 */
 		parent = node_new_map(root, checked_strdup(adr->adr_prefix),
-		    NULL,  checked_strdup(map),
+		    NULL, checked_strdup(map),
 		    checked_strdup("[kernel request]"), lineno);
 
 		if (adr->adr_key[0] == '\0')
@@ -237,8 +239,10 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 
 	node = node_find(root, adr->adr_path);
 	if (node == NULL) {
-		log_errx(1, "map %s does not contain key for \"%s\"; "
-		    "failing mount", map, adr->adr_path);
+		log_errx(1,
+		    "map %s does not contain key for \"%s\"; "
+		    "failing mount",
+		    map, adr->adr_path);
 	}
 
 	options = node_options(node);
@@ -260,7 +264,8 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 		nobrowse = pick_option("nobrowse", &options);
 		if (nobrowse != NULL && key == NULL) {
 			log_debugx("skipping map %s due to \"nobrowse\" "
-			    "option; exiting", map);
+				   "option; exiting",
+			    map);
 			done(0, true);
 
 			/*
@@ -302,8 +307,10 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 		node_expand_ampersand(node, key);
 	error = node_expand_defined(node);
 	if (error != 0) {
-		log_errx(1, "variable expansion failed for %s; "
-		    "failing mount", adr->adr_path);
+		log_errx(1,
+		    "variable expansion failed for %s; "
+		    "failing mount",
+		    adr->adr_path);
 	}
 
 	/*
@@ -322,7 +329,7 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 	fstype = pick_option("fstype=", &options);
 	if (fstype == NULL) {
 		log_debugx("fstype not specified in options; "
-		    "defaulting to \"nfs\"");
+			   "defaulting to \"nfs\"");
 		fstype = checked_strdup("nfs");
 	}
 
@@ -336,7 +343,7 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 		retrycnt = pick_option("retrycnt=", &options);
 		if (retrycnt == NULL) {
 			log_debugx("retrycnt not specified in options; "
-			    "defaulting to 1");
+				   "defaulting to 1");
 			options = concat(options, ',', "retrycnt=1");
 		} else {
 			options = concat(options, ',',
@@ -344,8 +351,8 @@ handle_request(const struct autofs_daemon_request *adr, char *cmdline_options,
 		}
 	}
 
-	f = auto_popen("mount", "-t", fstype, "-o", options,
-	    node->n_location, adr->adr_path, NULL);
+	f = auto_popen("mount", "-t", fstype, "-o", options, node->n_location,
+	    adr->adr_path, NULL);
 	assert(f != NULL);
 	error = auto_pclose(f);
 	if (error != 0)
@@ -383,9 +390,7 @@ register_sigchld(void)
 	error = sigaction(SIGCHLD, &sa, NULL);
 	if (error != 0)
 		log_err(1, "sigaction");
-
 }
-
 
 static int
 wait_for_children(bool block)
@@ -408,10 +413,12 @@ wait_for_children(bool block)
 			log_warnx("child process %d terminated with signal %d",
 			    pid, WTERMSIG(status));
 		} else if (WEXITSTATUS(status) != 0) {
-			log_debugx("child process %d terminated with exit status %d",
+			log_debugx(
+			    "child process %d terminated with exit status %d",
 			    pid, WEXITSTATUS(status));
 		} else {
-			log_debugx("child process %d terminated gracefully", pid);
+			log_debugx("child process %d terminated gracefully",
+			    pid);
 		}
 		num++;
 	}
@@ -423,7 +430,8 @@ static void
 usage_automountd(void)
 {
 
-	fprintf(stderr, "usage: automountd [-D name=value][-m maxproc]"
+	fprintf(stderr,
+	    "usage: automountd [-D name=value][-m maxproc]"
 	    "[-o opts][-Tidv]\n");
 	exit(1);
 }
@@ -532,15 +540,18 @@ main_automountd(int argc, char **argv)
 		}
 
 		if (dont_daemonize) {
-			log_debugx("not forking due to -d flag; "
+			log_debugx(
+			    "not forking due to -d flag; "
 			    "will exit after servicing a single request");
 		} else {
 			nchildren -= wait_for_children(false);
 			assert(nchildren >= 0);
 
 			while (maxproc > 0 && nchildren >= maxproc) {
-				log_debugx("maxproc limit of %d child processes hit; "
-				    "waiting for child process to exit", maxproc);
+				log_debugx(
+				    "maxproc limit of %d child processes hit; "
+				    "waiting for child process to exit",
+				    maxproc);
 				nchildren -= wait_for_children(true);
 				assert(nchildren >= 0);
 			}
@@ -563,4 +574,3 @@ main_automountd(int argc, char **argv)
 
 	return (0);
 }
-

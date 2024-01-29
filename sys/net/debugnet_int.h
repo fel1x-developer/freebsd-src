@@ -31,18 +31,21 @@
 #error "Don't include this"
 #endif
 
-#define	DNETDEBUG(f, ...) do {						\
-	if (debugnet_debug > 0)						\
-		printf(("%s: " f), __func__, ## __VA_ARGS__);		\
-} while (0)
-#define	DNETDEBUG_IF(i, f, ...) do {					\
-	if (debugnet_debug > 0)						\
-		if_printf((i), ("%s: " f), __func__, ## __VA_ARGS__);	\
-} while (0)
-#define	DNETDEBUGV(f, ...) do {						\
-	if (debugnet_debug > 1)						\
-		printf(("%s: " f), __func__, ## __VA_ARGS__);		\
-} while (0)
+#define DNETDEBUG(f, ...)                                            \
+	do {                                                         \
+		if (debugnet_debug > 0)                              \
+			printf(("%s: " f), __func__, ##__VA_ARGS__); \
+	} while (0)
+#define DNETDEBUG_IF(i, f, ...)                                              \
+	do {                                                                 \
+		if (debugnet_debug > 0)                                      \
+			if_printf((i), ("%s: " f), __func__, ##__VA_ARGS__); \
+	} while (0)
+#define DNETDEBUGV(f, ...)                                           \
+	do {                                                         \
+		if (debugnet_debug > 1)                              \
+			printf(("%s: " f), __func__, ##__VA_ARGS__); \
+	} while (0)
 
 enum dnet_pcb_st {
 	DN_STATE_INIT = 1,
@@ -52,29 +55,29 @@ enum dnet_pcb_st {
 };
 
 struct debugnet_pcb {
-	uint64_t		dp_rcvd_acks;
+	uint64_t dp_rcvd_acks;
 
-	in_addr_t		dp_client;
-	in_addr_t		dp_server;
-	in_addr_t		dp_gateway;
-	uint32_t		dp_seqno;
+	in_addr_t dp_client;
+	in_addr_t dp_server;
+	in_addr_t dp_gateway;
+	uint32_t dp_seqno;
 
-	struct ether_addr	dp_gw_mac;
-	uint16_t		dp_server_port;
+	struct ether_addr dp_gw_mac;
+	uint16_t dp_server_port;
 
-	struct ifnet		*dp_ifp;
+	struct ifnet *dp_ifp;
 	/* Saved driver if_input to restore on close. */
-	void			(*dp_drv_input)(struct ifnet *, struct mbuf *);
+	void (*dp_drv_input)(struct ifnet *, struct mbuf *);
 
 	/* RX handler for bidirectional protocols. */
-	int			(*dp_rx_handler)(struct mbuf *);
+	int (*dp_rx_handler)(struct mbuf *);
 
 	/* Cleanup signal for bidirectional protocols. */
-	void			(*dp_finish_handler)(void);
+	void (*dp_finish_handler)(void);
 
-	enum dnet_pcb_st	dp_state;
-	uint16_t		dp_client_port;
-	bool			dp_event_started;
+	enum dnet_pcb_st dp_state;
+	uint16_t dp_client_port;
+	bool dp_event_started;
 };
 
 /* TODO(CEM): Obviate this assertion by using a BITSET(9) for acks. */

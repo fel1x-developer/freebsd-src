@@ -29,12 +29,26 @@
 
 #include "gfmult.h"
 
-#define REV_POLY_REDUCT	0xe1	/* 0x87 bit reversed */
+#define REV_POLY_REDUCT 0xe1 /* 0x87 bit reversed */
 
 /* reverse the bits of a nibble */
 static const uint8_t nib_rev[] = {
-	0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe,
-	0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf,
+	0x0,
+	0x8,
+	0x4,
+	0xc,
+	0x2,
+	0xa,
+	0x6,
+	0xe,
+	0x1,
+	0x9,
+	0x5,
+	0xd,
+	0x3,
+	0xb,
+	0x7,
+	0xf,
 };
 
 /* calculate v * 2 */
@@ -120,8 +134,22 @@ readrow(struct gf128table *tbl, unsigned bits)
  * bit reversed to make lookups quicker.
  */
 static uint16_t reduction[] = {
-	0x0000, 0x1c20, 0x3840, 0x2460, 0x7080, 0x6ca0, 0x48c0, 0x54e0,
-	0xe100, 0xfd20, 0xd940, 0xc560, 0x9180, 0x8da0, 0xa9c0, 0xb5e0,
+	0x0000,
+	0x1c20,
+	0x3840,
+	0x2460,
+	0x7080,
+	0x6ca0,
+	0x48c0,
+	0x54e0,
+	0xe100,
+	0xfd20,
+	0xd940,
+	0xc560,
+	0x9180,
+	0x8da0,
+	0xa9c0,
+	0xb5e0,
 };
 
 /*
@@ -205,8 +233,8 @@ gfmultword4(uint64_t worda, uint64_t wordb, uint64_t wordc, uint64_t wordd,
 		wordc >>= 4;
 		wordd >>= 4;
 
-		x = gf128_add(x, gf128_add(rowa, gf128_add(rowb,
-		    gf128_add(rowc, rowd))));
+		x = gf128_add(x,
+		    gf128_add(rowa, gf128_add(rowb, gf128_add(rowc, rowd))));
 	}
 
 	return x;
@@ -260,10 +288,10 @@ gf128_mul4b(struct gf128 r, const uint8_t *v, struct gf128table4 *tbl)
 
 	tmp = MAKE_GF128(0, 0);
 
-	a = gf128_add(r, gf128_read(&v[0*16]));
-	b = gf128_read(&v[1*16]);
-	c = gf128_read(&v[2*16]);
-	d = gf128_read(&v[3*16]);
+	a = gf128_add(r, gf128_read(&v[0 * 16]));
+	b = gf128_read(&v[1 * 16]);
+	c = gf128_read(&v[2 * 16]);
+	d = gf128_read(&v[3 * 16]);
 
 	tmp = gfmultword4(a.v[1], b.v[1], c.v[1], d.v[1], tmp, tbl);
 	tmp = gfmultword4(a.v[0], b.v[0], c.v[0], d.v[0], tmp, tbl);

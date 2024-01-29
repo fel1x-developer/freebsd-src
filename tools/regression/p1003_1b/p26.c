@@ -33,33 +33,38 @@
  */
 #define _POSIX_SOURCE
 #define _POSIX_C_SOURCE 199309L
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 
-int p26(int ac, char *av[])
+int
+p26(int ac, char *av[])
 {
 	int ret = 0;
 
-	#ifndef _POSIX_VERSION
+#ifndef _POSIX_VERSION
 	printf("POSIX is not supported.\n");
 	ret = -1;
-	#else	/* _POSIX_VERSION */
+#else /* _POSIX_VERSION */
 
-	#if (_POSIX_VERSION == 198808L)
+#if (_POSIX_VERSION == 198808L)
 	printf("POSIX.1 is supported but not POSIX.1B (FIPS 151-1)\n");
-	#elif (_POSIX_VERSION == 199009L)
+#elif (_POSIX_VERSION == 199009L)
 	printf("POSIX.1 is supported but not POSIX.1B (FIPS 151-2)\n");
-	#elif (_POSIX_VERSION >= 199309L)
+#elif (_POSIX_VERSION >= 199309L)
 	printf("POSIX.1 and POSIX.1B are supported.\n");
-	#else
+#else
 	printf("_POSIX_VERSION (%ld) not 198808, 199009, or >= 199309.\n",
-		_POSIX_VERSION);
+	    _POSIX_VERSION);
 	ret = -1;
-	#endif
+#endif
 
-	#endif	/* _POSIX_VERSION */
+#endif /* _POSIX_VERSION */
 	return ret;
 }
 #ifdef STANDALONE_TESTS
-int main(int argc, char *argv[]) { return p26(argc, argv); }
+int
+main(int argc, char *argv[])
+{
+	return p26(argc, argv);
+}
 #endif

@@ -27,48 +27,48 @@
  *
  */
 
-#define	SOCK_BACKLOG		5
+#define SOCK_BACKLOG 5
 
-#define	CM_MSG_MAXLEN		8192
-#define	CM_VERSION		1
-#define	CM_VERSION_STR		"1.0"
+#define CM_MSG_MAXLEN 8192
+#define CM_VERSION 1
+#define CM_VERSION_STR "1.0"
 
-#define	CM_TYPE_EOM		0
-#define	CM_TYPE_ACK		1
-#define	CM_TYPE_ERR		2
-#define	CM_TYPE_NUL		3
-#define	CM_TYPE_REQ_SET_PROP	4
-#define	CM_TYPE_REQ_GET_PROP	5
-#define	CM_TYPE_MAX		6
+#define CM_TYPE_EOM 0
+#define CM_TYPE_ACK 1
+#define CM_TYPE_ERR 2
+#define CM_TYPE_NUL 3
+#define CM_TYPE_REQ_SET_PROP 4
+#define CM_TYPE_REQ_GET_PROP 5
+#define CM_TYPE_MAX 6
 
-#define	CM_STATE_EOM		0
-#define	CM_STATE_INIT		1
-#define	CM_STATE_MSG_DISPATCH	2
-#define	CM_STATE_MSG_RECV	3
-#define	CM_STATE_ACK_WAIT	4
+#define CM_STATE_EOM 0
+#define CM_STATE_INIT 1
+#define CM_STATE_MSG_DISPATCH 2
+#define CM_STATE_MSG_RECV 3
+#define CM_STATE_ACK_WAIT 4
 
 struct ctrl_msg_hdr {
-	int	cm_version;
-	size_t	cm_len;
-	int	cm_type;
+	int cm_version;
+	size_t cm_len;
+	int cm_type;
 };
 
 struct ctrl_msg_pl {
-	char	*cp_ifname;
-	char	*cp_key;
+	char *cp_ifname;
+	char *cp_key;
 
-	size_t	cp_val_len;
-	char	*cp_val;
+	size_t cp_val_len;
+	char *cp_val;
 };
 
-int	csock_open(struct sockinfo *, mode_t);
-int	csock_close(struct sockinfo *);
-int	csock_listen(struct sockinfo *);
-int	csock_accept(struct sockinfo *);
-int	cm_send(int, char *);
-int	cm_recv(int, char *);
+int csock_open(struct sockinfo *, mode_t);
+int csock_close(struct sockinfo *);
+int csock_listen(struct sockinfo *);
+int csock_accept(struct sockinfo *);
+int cm_send(int, char *);
+int cm_recv(int, char *);
 
-size_t			cm_pl2bin(char *, struct ctrl_msg_pl *);
-struct ctrl_msg_pl	*cm_bin2pl(char *, struct ctrl_msg_pl *);
-size_t			cm_str2bin(char *, void *, size_t);
-void			*cm_bin2str(char *, void *, size_t);
+size_t cm_pl2bin(char *, struct ctrl_msg_pl *);
+struct ctrl_msg_pl *cm_bin2pl(char *, struct ctrl_msg_pl *);
+size_t cm_str2bin(char *, void *, size_t);
+void *cm_bin2str(char *, void *, size_t);

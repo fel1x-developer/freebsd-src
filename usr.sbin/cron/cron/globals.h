@@ -20,56 +20,45 @@
  */
 
 #ifdef MAIN_PROGRAM
-# define XTRN
-# define INIT(x) = x
+#define XTRN
+#define INIT(x) = x
 #else
-# define XTRN extern
-# define INIT(x)
+#define XTRN extern
+#define INIT(x)
 #endif
 
 XTRN const char *copyright[]
 #ifdef MAIN_PROGRAM
-	= {
-		NULL
-	}
+    = { NULL }
 #endif
-	;
+;
 
 XTRN const char *MonthNames[]
 #ifdef MAIN_PROGRAM
-	= {
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",\
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",\
-		NULL
-	}
+    = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
+	      "Nov", "Dec", NULL }
 #endif
-	;
+;
 
 XTRN const char *DowNames[]
 #ifdef MAIN_PROGRAM
-	= {
-		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",\
-		NULL
-	}
+    = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", NULL }
 #endif
-	;
+;
 
 XTRN const char *ProgramName INIT("amnesia");
 XTRN const char *defmailto;
-XTRN int	LineNumber INIT(0);
-XTRN unsigned	Jitter;
-XTRN unsigned	RootJitter;
-XTRN time_t	TargetTime INIT(0);
+XTRN int LineNumber INIT(0);
+XTRN unsigned Jitter;
+XTRN unsigned RootJitter;
+XTRN time_t TargetTime INIT(0);
 XTRN struct pidfh *pfh;
 
 #if DEBUGGING
-XTRN int	DebugFlags INIT(0);
+XTRN int DebugFlags INIT(0);
 XTRN const char *DebugFlagNames[]
 #ifdef MAIN_PROGRAM
-	= {
-		"ext", "sch", "proc", "pars", "load", "misc", "test", "bit",\
-		NULL
-	}
+    = { "ext", "sch", "proc", "pars", "load", "misc", "test", "bit", NULL }
 #endif
-	;
+;
 #endif /* DEBUGGING */

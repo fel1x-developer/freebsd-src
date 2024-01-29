@@ -61,19 +61,15 @@
  *        ATA responses.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
 SATI_STATUS sati_test_unit_ready_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * translator_sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *translator_sequence, void *scsi_io,
+    void *ata_io);
 
 SATI_STATUS sati_test_unit_ready_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * translator_sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *translator_sequence, void *scsi_io,
+    void *ata_io);
 
 #endif // _SATI_TEST_UNIT_READY_H_

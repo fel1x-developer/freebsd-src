@@ -53,65 +53,56 @@
  * File access mode flags table.
  */
 static const struct {
-	int	flag;
-	char	ch;
-} fflags[] = {
-	{PS_FST_FFLAG_WRITE,	'w'},
-	{PS_FST_FFLAG_APPEND,	'a'},
-	{PS_FST_FFLAG_DIRECT,	'd'},
-	{PS_FST_FFLAG_SHLOCK,	's'},
-	{PS_FST_FFLAG_EXLOCK,	'e'}
-};
-#define	NFFLAGS	(sizeof(fflags) / sizeof(*fflags))
+	int flag;
+	char ch;
+} fflags[] = { { PS_FST_FFLAG_WRITE, 'w' }, { PS_FST_FFLAG_APPEND, 'a' },
+	{ PS_FST_FFLAG_DIRECT, 'd' }, { PS_FST_FFLAG_SHLOCK, 's' },
+	{ PS_FST_FFLAG_EXLOCK, 'e' } };
+#define NFFLAGS (sizeof(fflags) / sizeof(*fflags))
 
 /*
  * Usage flags translation table.
  */
 static const struct {
-	int	flag;
-	char	ch;
-} uflags[] = {
-	{PS_FST_UFLAG_RDIR,	'r'},
-	{PS_FST_UFLAG_CDIR,	'c'},
-	{PS_FST_UFLAG_JAIL,	'j'},
-	{PS_FST_UFLAG_TRACE,	't'},
-	{PS_FST_UFLAG_TEXT,	'x'},
-	{PS_FST_UFLAG_MMAP,	'm'},
-	{PS_FST_UFLAG_CTTY,	'y'}
-};
-#define	NUFLAGS	(sizeof(uflags) / sizeof(*uflags))
+	int flag;
+	char ch;
+} uflags[] = { { PS_FST_UFLAG_RDIR, 'r' }, { PS_FST_UFLAG_CDIR, 'c' },
+	{ PS_FST_UFLAG_JAIL, 'j' }, { PS_FST_UFLAG_TRACE, 't' },
+	{ PS_FST_UFLAG_TEXT, 'x' }, { PS_FST_UFLAG_MMAP, 'm' },
+	{ PS_FST_UFLAG_CTTY, 'y' } };
+#define NUFLAGS (sizeof(uflags) / sizeof(*uflags))
 
 struct consumer {
-	pid_t	pid;
-	uid_t	uid;
-	int	fd;
-	int	flags;
-	int	uflags;
-	STAILQ_ENTRY(consumer)	next;
+	pid_t pid;
+	uid_t uid;
+	int fd;
+	int flags;
+	int uflags;
+	STAILQ_ENTRY(consumer) next;
 };
 struct reqfile {
-	dev_t		fsid;
-	ino_t		fileid;
-	const char	*name;
+	dev_t fsid;
+	ino_t fileid;
+	const char *name;
 	STAILQ_HEAD(, consumer) consumers;
 };
 
 /*
  * Option flags.
  */
-#define	UFLAG	0x01	/* -u flag: show users				*/
-#define	FFLAG	0x02	/* -f flag: specified files only		*/
-#define	CFLAG	0x04	/* -c flag: treat as mpoints			*/
-#define	MFLAG	0x10	/* -m flag: mmapped files too			*/
-#define	KFLAG	0x20	/* -k flag: send signal (SIGKILL by default)	*/
+#define UFLAG 0x01 /* -u flag: show users				*/
+#define FFLAG 0x02 /* -f flag: specified files only		*/
+#define CFLAG 0x04 /* -c flag: treat as mpoints			*/
+#define MFLAG 0x10 /* -m flag: mmapped files too			*/
+#define KFLAG 0x20 /* -k flag: send signal (SIGKILL by default)	*/
 
-static int flags = 0;	/* Option flags. */
+static int flags = 0; /* Option flags. */
 
-static void	printflags(struct consumer *consumer);
-static int	str2sig(const char *str);
-static void	usage(void) __dead2;
-static int	addfile(const char *path, struct reqfile *reqfile);
-static void	dofiles(struct procstat *procstat, struct kinfo_proc *kp,
+static void printflags(struct consumer *consumer);
+static int str2sig(const char *str);
+static void usage(void) __dead2;
+static int addfile(const char *path, struct reqfile *reqfile);
+static void dofiles(struct procstat *procstat, struct kinfo_proc *kp,
     struct reqfile *reqfiles, size_t nfiles);
 
 static void
@@ -119,7 +110,7 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: fuser [-cfhkmu] [-M core] [-N system] [-s signal] file ...\n");
+	    "usage: fuser [-cfhkmu] [-M core] [-N system] [-s signal] file ...\n");
 	exit(EX_USAGE);
 }
 
@@ -168,11 +159,11 @@ do_fuser(int argc, char *argv[])
 	int ch, sig;
 	unsigned int i, cnt, nfiles;
 
-	sig = SIGKILL;	/* Default to kill. */
+	sig = SIGKILL; /* Default to kill. */
 	nlistf = NULL;
 	memf = NULL;
 	while ((ch = getopt(argc, argv, "M:N:cfhkms:u")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'f':
 			if ((flags & CFLAG) != 0)
 				usage();
@@ -202,13 +193,17 @@ do_fuser(int argc, char *argv[])
 			if (isdigit(*optarg)) {
 				sig = strtol(optarg, &ep, 10);
 				if (*ep != '\0' || sig < 0 || sig >= sys_nsig)
-					errx(EX_USAGE, "illegal signal number" ": %s",
+					errx(EX_USAGE,
+					    "illegal signal number"
+					    ": %s",
 					    optarg);
 			} else {
 				sig = str2sig(optarg);
 				if (sig < 0)
-					errx(EX_USAGE, "illegal signal name: "
-					    "%s", optarg);
+					errx(EX_USAGE,
+					    "illegal signal name: "
+					    "%s",
+					    optarg);
 			}
 			break;
 		case 'h':
@@ -223,7 +218,7 @@ do_fuser(int argc, char *argv[])
 	assert(argc >= 0);
 	if (argc == 0)
 		usage();
-		/* NORETURN */
+	/* NORETURN */
 
 	/*
 	 * Process named files.
@@ -246,7 +241,7 @@ do_fuser(int argc, char *argv[])
 		errx(1, "procstat_open()");
 	procs = procstat_getprocs(procstat, KERN_PROC_PROC, 0, &cnt);
 	if (procs == NULL)
-		 errx(1, "procstat_getprocs()");
+		errx(1, "procstat_getprocs()");
 
 	/*
 	 * Walk through process table and look for matching files.
@@ -258,7 +253,7 @@ do_fuser(int argc, char *argv[])
 	for (i = 0; i < nfiles; i++) {
 		fprintf(stderr, "%s:", reqfiles[i].name);
 		fflush(stderr);
-		STAILQ_FOREACH(consumer, &reqfiles[i].consumers, next) {
+		STAILQ_FOREACH (consumer, &reqfiles[i].consumers, next) {
 			if (consumer->flags != 0) {
 				fprintf(stdout, "%6d", consumer->pid);
 				fflush(stdout);
@@ -290,11 +285,11 @@ dofiles(struct procstat *procstat, struct kinfo_proc *kp,
 	int error, match;
 	unsigned int i;
 	char errbuf[_POSIX2_LINE_MAX];
-	
+
 	head = procstat_getfiles(procstat, kp, flags & MFLAG);
 	if (head == NULL)
 		return;
-	STAILQ_FOREACH(fst, head, next) {
+	STAILQ_FOREACH (fst, head, next) {
 		if (fst->fs_type != PS_FST_TYPE_VNODE)
 			continue;
 		error = procstat_get_vnode_info(procstat, fst, &vn, errbuf);
@@ -303,31 +298,29 @@ dofiles(struct procstat *procstat, struct kinfo_proc *kp,
 		for (i = 0; i < nfiles; i++) {
 			if (flags & CFLAG && reqfiles[i].fsid == vn.vn_fsid) {
 				break;
-			}
-			else if (reqfiles[i].fsid == vn.vn_fsid &&
+			} else if (reqfiles[i].fsid == vn.vn_fsid &&
 			    reqfiles[i].fileid == vn.vn_fileid) {
 				break;
-			}
-			else if (!(flags & FFLAG) &&
+			} else if (!(flags & FFLAG) &&
 			    (vn.vn_type == PS_FST_VTYPE_VCHR ||
-			    vn.vn_type == PS_FST_VTYPE_VBLK) &&
+				vn.vn_type == PS_FST_VTYPE_VBLK) &&
 			    vn.vn_fsid == reqfiles[i].fileid) {
 				break;
 			}
 		}
 		if (i == nfiles)
-			continue;	/* No match. */
+			continue; /* No match. */
 
 		/*
 		 * Look for existing entries.
 		 */
 		match = 0;
-		STAILQ_FOREACH(cons, &reqfiles[i].consumers, next)
+		STAILQ_FOREACH (cons, &reqfiles[i].consumers, next)
 			if (cons->pid == kp->ki_pid) {
 				match = 1;
 				break;
 			}
-		if (match == 1) {	/* Use old entry. */
+		if (match == 1) { /* Use old entry. */
 			cons->flags |= fst->fs_fflags;
 			cons->uflags |= fst->fs_uflags;
 		} else {
@@ -360,8 +353,8 @@ str2sig(const char *str)
 	if (!strncasecmp(str, "SIG", 3))
 		str += 3;
 	for (i = 1; i < sys_nsig; i++) {
-                if (!strcasecmp(sys_signame[i], str))
-                        return (i);
-        }
-        return (-1);
+		if (!strcasecmp(sys_signame[i], str))
+			return (i);
+	}
+	return (-1);
 }

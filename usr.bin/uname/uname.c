@@ -38,22 +38,21 @@
 #include <sys/sysctl.h>
 
 #include <err.h>
+#include <osreldate.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <osreldate.h>
-
-#define	MFLAG	0x01
-#define	NFLAG	0x02
-#define	PFLAG	0x04
-#define	RFLAG	0x08
-#define	SFLAG	0x10
-#define	VFLAG	0x20
-#define	IFLAG	0x40
-#define	UFLAG	0x80
-#define	KFLAG	0x100
-#define	BFLAG	0x200
+#define MFLAG 0x01
+#define NFLAG 0x02
+#define PFLAG 0x04
+#define RFLAG 0x08
+#define SFLAG 0x10
+#define VFLAG 0x20
+#define IFLAG 0x40
+#define UFLAG 0x80
+#define KFLAG 0x100
+#define BFLAG 0x200
 
 typedef void (*get_t)(void);
 static get_t get_buildid, get_ident, get_platform, get_hostname, get_arch,
@@ -87,7 +86,7 @@ main(int argc, char *argv[])
 	flags = 0;
 
 	while ((ch = getopt(argc, argv, "abiKmnoprsUv")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			flags |= (MFLAG | NFLAG | RFLAG | SFLAG | VFLAG);
 			break;
@@ -140,14 +139,14 @@ main(int argc, char *argv[])
 	exit(0);
 }
 
-#define	CHECK_ENV(opt,var)				\
-do {							\
-	if ((var = getenv("UNAME_" opt)) == NULL) {	\
-		get_##var = native_##var;		\
-	} else {					\
-		get_##var = (get_t)NULL;		\
-	}						\
-} while (0)
+#define CHECK_ENV(opt, var)                                 \
+	do {                                                \
+		if ((var = getenv("UNAME_" opt)) == NULL) { \
+			get_##var = native_##var;           \
+		} else {                                    \
+			get_##var = (get_t)NULL;            \
+		}                                           \
+	} while (0)
 
 static void
 setup_get(void)
@@ -164,15 +163,15 @@ setup_get(void)
 	CHECK_ENV("b", buildid);
 }
 
-#define	PRINT_FLAG(flags,flag,var)		\
-	if ((flags & flag) == flag) {		\
-		if (space)			\
-			printf(" ");		\
-		else				\
-			space++;		\
-		if (get_##var != NULL)		\
-			(*get_##var)();		\
-		printf("%s", var);		\
+#define PRINT_FLAG(flags, flag, var)    \
+	if ((flags & flag) == flag) {   \
+		if (space)              \
+			printf(" ");    \
+		else                    \
+			space++;        \
+		if (get_##var != NULL)  \
+			(*get_##var)(); \
+		printf("%s", var);      \
 	}
 
 static void
@@ -191,51 +190,56 @@ print_uname(u_int flags)
 	printf("\n");
 }
 
-#define	NATIVE_SYSCTL2_GET(var,mib0,mib1)	\
-static void					\
-native_##var(void)				\
-{						\
-	int mib[] = { (mib0), (mib1) };		\
-	size_t len;				\
-	static char buf[1024];			\
-	char **varp = &(var);			\
-						\
-	len = sizeof buf;			\
-	if (sysctl(mib, sizeof mib / sizeof mib[0],	\
-	   &buf, &len, NULL, 0) == -1)		\
-		err(1, "sysctl");
+#define NATIVE_SYSCTL2_GET(var, mib0, mib1)                                   \
+	static void native_##var(void)                                        \
+	{                                                                     \
+		int mib[] = { (mib0), (mib1) };                               \
+		size_t len;                                                   \
+		static char buf[1024];                                        \
+		char **varp = &(var);                                         \
+                                                                              \
+		len = sizeof buf;                                             \
+		if (sysctl(mib, sizeof mib / sizeof mib[0], &buf, &len, NULL, \
+			0) == -1)                                             \
+			err(1, "sysctl");
 
-#define	NATIVE_SYSCTLNAME_GET(var,name)		\
-static void					\
-native_##var(void)				\
-{						\
-	size_t len;				\
-	static char buf[1024];			\
-	char **varp = &(var);			\
-						\
-	len = sizeof buf;			\
-	if (sysctlbyname(name, &buf, &len, NULL,\
-	    0) == -1)				\
-		err(1, "sysctlbyname");
+#define NATIVE_SYSCTLNAME_GET(var, name)                           \
+	static void native_##var(void)                             \
+	{                                                          \
+		size_t len;                                        \
+		static char buf[1024];                             \
+		char **varp = &(var);                              \
+                                                                   \
+		len = sizeof buf;                                  \
+		if (sysctlbyname(name, &buf, &len, NULL, 0) == -1) \
+			err(1, "sysctlbyname");
 
-#define	NATIVE_SET				\
-	*varp = buf;				\
-	return;					\
-}	struct __hack
+#define NATIVE_SET   \
+	*varp = buf; \
+	return;      \
+	}            \
+	struct __hack
 
-#define	NATIVE_BUFFER	(buf)
-#define	NATIVE_LENGTH	(len)
+#define NATIVE_BUFFER (buf)
+#define NATIVE_LENGTH (len)
 
-NATIVE_SYSCTL2_GET(sysname, CTL_KERN, KERN_OSTYPE) {
-} NATIVE_SET;
+NATIVE_SYSCTL2_GET(sysname, CTL_KERN, KERN_OSTYPE)
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTL2_GET(hostname, CTL_KERN, KERN_HOSTNAME) {
-} NATIVE_SET;
+NATIVE_SYSCTL2_GET(hostname, CTL_KERN, KERN_HOSTNAME)
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTL2_GET(release, CTL_KERN, KERN_OSRELEASE) {
-} NATIVE_SET;
+NATIVE_SYSCTL2_GET(release, CTL_KERN, KERN_OSRELEASE)
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTL2_GET(version, CTL_KERN, KERN_VERSION) {
+NATIVE_SYSCTL2_GET(version, CTL_KERN, KERN_VERSION)
+{
 	size_t n;
 	char *p;
 
@@ -248,19 +252,28 @@ NATIVE_SYSCTL2_GET(version, CTL_KERN, KERN_VERSION) {
 			else
 				*p = '\0';
 		}
-} NATIVE_SET;
+}
+NATIVE_SET;
 
-NATIVE_SYSCTL2_GET(platform, CTL_HW, HW_MACHINE) {
-} NATIVE_SET;
+NATIVE_SYSCTL2_GET(platform, CTL_HW, HW_MACHINE)
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTL2_GET(arch, CTL_HW, HW_MACHINE_ARCH) {
-} NATIVE_SET;
+NATIVE_SYSCTL2_GET(arch, CTL_HW, HW_MACHINE_ARCH)
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTLNAME_GET(ident, "kern.ident") {
-} NATIVE_SET;
+NATIVE_SYSCTLNAME_GET(ident, "kern.ident")
+{
+}
+NATIVE_SET;
 
-NATIVE_SYSCTLNAME_GET(buildid, "kern.build_id") {
-} NATIVE_SET;
+NATIVE_SYSCTLNAME_GET(buildid, "kern.build_id")
+{
+}
+NATIVE_SET;
 
 static void
 native_uservers(void)

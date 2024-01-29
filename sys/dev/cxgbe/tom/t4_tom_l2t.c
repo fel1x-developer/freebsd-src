@@ -25,27 +25,29 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
+
+#include <sys/cdefs.h>
 
 #ifdef TCP_OFFLOAD
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/fnv_hash.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
+#include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/sbuf.h>
 #include <sys/taskqueue.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_types.h>
-#include <net/ethernet.h>
 #include <net/if_vlan_var.h>
 #include <net/route.h>
 #include <netinet/in.h>
@@ -55,16 +57,16 @@
 
 #include "common/common.h"
 #include "common/t4_msg.h"
-#include "tom/t4_tom_l2t.h"
 #include "tom/t4_tom.h"
+#include "tom/t4_tom_l2t.h"
 
-#define VLAN_NONE	0xfff
+#define VLAN_NONE 0xfff
 
 static inline void
 l2t_hold(struct l2t_data *d, struct l2t_entry *e)
 {
 
-	if (atomic_fetchadd_int(&e->refcnt, 1) == 0)  /* 0 -> 1 transition */
+	if (atomic_fetchadd_int(&e->refcnt, 1) == 0) /* 0 -> 1 transition */
 		atomic_subtract_int(&d->nfree, 1);
 }
 
@@ -77,7 +79,7 @@ l2_hash(struct l2t_data *d, const struct sockaddr *sa, int ifindex)
 
 	KASSERT(sa->sa_family == AF_INET || sa->sa_family == AF_INET6,
 	    ("%s: sa %p has unexpected sa_family %d", __func__, sa,
-	    sa->sa_family));
+		sa->sa_family));
 
 	if (sa->sa_family == AF_INET) {
 		const struct sockaddr_in *sin = (const void *)sa;
@@ -105,7 +107,7 @@ l2_cmp(const struct sockaddr *sa, struct l2t_entry *e)
 
 	KASSERT(sa->sa_family == AF_INET || sa->sa_family == AF_INET6,
 	    ("%s: sa %p has unexpected sa_family %d", __func__, sa,
-	    sa->sa_family));
+		sa->sa_family));
 
 	if (sa->sa_family == AF_INET) {
 		const struct sockaddr_in *sin = (const void *)sa;
@@ -124,7 +126,7 @@ l2_store(const struct sockaddr *sa, struct l2t_entry *e)
 
 	KASSERT(sa->sa_family == AF_INET || sa->sa_family == AF_INET6,
 	    ("%s: sa %p has unexpected sa_family %d", __func__, sa,
-	    sa->sa_family));
+		sa->sa_family));
 
 	if (sa->sa_family == AF_INET) {
 		const struct sockaddr_in *sin = (const void *)sa;
@@ -207,7 +209,7 @@ update_entry(struct adapter *sc, struct l2t_entry *e, uint8_t *lladdr,
 		/* Valid or already-stale entry was deleted (or expired) */
 
 		KASSERT(e->state == L2T_STATE_VALID ||
-		    e->state == L2T_STATE_STALE,
+			e->state == L2T_STATE_STALE,
 		    ("%s: lladdr NULL, state %d", __func__, e->state));
 
 		e->state = L2T_STATE_STALE;
@@ -233,8 +235,8 @@ resolve_entry(struct adapter *sc, struct l2t_entry *e)
 {
 	struct tom_data *td = sc->tom_softc;
 	struct toedev *tod = &td->tod;
-	struct sockaddr_in sin = {0};
-	struct sockaddr_in6 sin6 = {0};
+	struct sockaddr_in sin = { 0 };
+	struct sockaddr_in6 sin6 = { 0 };
 	struct sockaddr *sa;
 	uint8_t dmac[ETHER_HDR_LEN];
 	uint16_t vtag;
@@ -270,13 +272,13 @@ t4_l2t_send_slow(struct adapter *sc, struct wrqe *wr, struct l2t_entry *e)
 
 again:
 	switch (e->state) {
-	case L2T_STATE_STALE:     /* entry is stale, kick off revalidation */
+	case L2T_STATE_STALE: /* entry is stale, kick off revalidation */
 
 		resolve_entry(sc, e);
 
 		/* Fall through */
 
-	case L2T_STATE_VALID:     /* fast-path, send the packet on */
+	case L2T_STATE_VALID: /* fast-path, send the packet on */
 
 		t4_wrq_tx(sc, wr);
 		return (0);
@@ -360,7 +362,7 @@ t4_l2t_get(struct port_info *pi, if_t ifp, struct sockaddr *sa)
 
 	KASSERT(sa->sa_family == AF_INET || sa->sa_family == AF_INET6,
 	    ("%s: sa %p has unexpected sa_family %d", __func__, sa,
-	    sa->sa_family));
+		sa->sa_family));
 
 	vid = VLAN_NONE;
 	pcp = 0;
@@ -386,7 +388,7 @@ t4_l2t_get(struct port_info *pi, if_t ifp, struct sockaddr *sa)
 	/* Need to allocate a new entry */
 	e = t4_alloc_l2e(d);
 	if (e) {
-		mtx_lock(&e->lock);          /* avoid race with t4_l2t_free */
+		mtx_lock(&e->lock); /* avoid race with t4_l2t_free */
 		e->next = d->l2tab[hash].first;
 		d->l2tab[hash].first = e;
 
@@ -412,8 +414,8 @@ done:
  * into the HW L2 table.
  */
 void
-t4_l2_update(struct toedev *tod, if_t ifp, struct sockaddr *sa,
-    uint8_t *lladdr, uint16_t vtag)
+t4_l2_update(struct toedev *tod, if_t ifp, struct sockaddr *sa, uint8_t *lladdr,
+    uint16_t vtag)
 {
 	struct adapter *sc = tod->tod_softc;
 	struct l2t_entry *e;

@@ -45,30 +45,13 @@
 #include "opt_inet6.h"
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/if_ether.h>
-#include <netinet/tcp.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/udp.h>
-#include <machine/in_cksum.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -76,12 +59,28 @@
 #include <vm/vm_kern.h>
 
 #include <machine/_inttypes.h>
+#include <machine/in_cksum.h>
 
-#include <xen/xen-os.h>
 #include <xen/hypervisor.h>
+#include <xen/xen-os.h>
 #include <xen/xen_intr.h>
-#include <contrib/xen/io/netif.h>
 #include <xen/xenbus/xenbusvar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+
+#include <contrib/xen/io/netif.h>
 
 /*--------------------------- Compile-time Tunables --------------------------*/
 
@@ -91,43 +90,46 @@
  */
 static MALLOC_DEFINE(M_XENNETBACK, "xnb", "Xen Net Back Driver Data");
 
-#define	XNB_SG	1	/* netback driver supports feature-sg */
-#define	XNB_GSO_TCPV4 0	/* netback driver supports feature-gso-tcpv4 */
-#define	XNB_RX_COPY 1	/* netback driver supports feature-rx-copy */
-#define	XNB_RX_FLIP 0	/* netback driver does not support feature-rx-flip */
+#define XNB_SG 1	/* netback driver supports feature-sg */
+#define XNB_GSO_TCPV4 0 /* netback driver supports feature-gso-tcpv4 */
+#define XNB_RX_COPY 1	/* netback driver supports feature-rx-copy */
+#define XNB_RX_FLIP 0	/* netback driver does not support feature-rx-flip */
 
 #undef XNB_DEBUG
-#define	XNB_DEBUG /* hardcode on during development */
+#define XNB_DEBUG /* hardcode on during development */
 
 #ifdef XNB_DEBUG
-#define	DPRINTF(fmt, args...) \
+#define DPRINTF(fmt, args...) \
 	printf("xnb(%s:%d): " fmt, __FUNCTION__, __LINE__, ##args)
 #else
-#define	DPRINTF(fmt, args...) do {} while (0)
+#define DPRINTF(fmt, args...) \
+	do {                  \
+	} while (0)
 #endif
 
 /* Default length for stack-allocated grant tables */
-#define	GNTTAB_LEN	(64)
+#define GNTTAB_LEN (64)
 
 /* Features supported by all backends.  TSO and LRO can be negotiated */
-#define	XNB_CSUM_FEATURES	(CSUM_TCP | CSUM_UDP)
+#define XNB_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 
-#define	NET_TX_RING_SIZE __RING_SIZE((netif_tx_sring_t *)0, PAGE_SIZE)
-#define	NET_RX_RING_SIZE __RING_SIZE((netif_rx_sring_t *)0, PAGE_SIZE)
+#define NET_TX_RING_SIZE __RING_SIZE((netif_tx_sring_t *)0, PAGE_SIZE)
+#define NET_RX_RING_SIZE __RING_SIZE((netif_rx_sring_t *)0, PAGE_SIZE)
 
 /**
  * Two argument version of the standard macro.  Second argument is a tentative
  * value of req_cons
  */
-#define	RING_HAS_UNCONSUMED_REQUESTS_2(_r, cons) ({                     \
-	unsigned int req = (_r)->sring->req_prod - cons;          	\
-	unsigned int rsp = RING_SIZE(_r) -                              \
-	(cons - (_r)->rsp_prod_pvt);                          		\
-	req < rsp ? req : rsp;                                          \
-})
+#define RING_HAS_UNCONSUMED_REQUESTS_2(_r, cons)                 \
+	({                                                       \
+		unsigned int req = (_r)->sring->req_prod - cons; \
+		unsigned int rsp = RING_SIZE(_r) -               \
+		    (cons - (_r)->rsp_prod_pvt);                 \
+		req < rsp ? req : rsp;                           \
+	})
 
-#define	virt_to_mfn(x) (vtophys(x) >> PAGE_SHIFT)
-#define	virt_to_offset(x) ((x) & (PAGE_SIZE - 1))
+#define virt_to_mfn(x) (vtophys(x) >> PAGE_SHIFT)
+#define virt_to_offset(x) ((x) & (PAGE_SIZE - 1))
 
 /**
  * Predefined array type of grant table copy descriptors.  Used to pass around
@@ -139,56 +141,47 @@ typedef struct gnttab_copy gnttab_copy_table[GNTTAB_LEN];
 struct xnb_softc;
 struct xnb_pkt;
 
-static void	xnb_attach_failed(struct xnb_softc *xnb,
-				  int err, const char *fmt, ...)
-				  __printflike(3,4);
-static int	xnb_shutdown(struct xnb_softc *xnb);
-static int	create_netdev(device_t dev);
-static int	xnb_detach(device_t dev);
-static int	xnb_ifmedia_upd(if_t ifp);
-static void	xnb_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr);
-static void 	xnb_intr(void *arg);
-static int	xnb_send(netif_rx_back_ring_t *rxb, domid_t otherend,
-			 const struct mbuf *mbufc, gnttab_copy_table gnttab);
-static int	xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend,
-			 struct mbuf **mbufc, if_t ifnet,
-			 gnttab_copy_table gnttab);
-static int	xnb_ring2pkt(struct xnb_pkt *pkt,
-			     const netif_tx_back_ring_t *tx_ring,
-			     RING_IDX start);
-static void	xnb_txpkt2rsp(const struct xnb_pkt *pkt,
-			      netif_tx_back_ring_t *ring, int error);
+static void xnb_attach_failed(struct xnb_softc *xnb, int err, const char *fmt,
+    ...) __printflike(3, 4);
+static int xnb_shutdown(struct xnb_softc *xnb);
+static int create_netdev(device_t dev);
+static int xnb_detach(device_t dev);
+static int xnb_ifmedia_upd(if_t ifp);
+static void xnb_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr);
+static void xnb_intr(void *arg);
+static int xnb_send(netif_rx_back_ring_t *rxb, domid_t otherend,
+    const struct mbuf *mbufc, gnttab_copy_table gnttab);
+static int xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend,
+    struct mbuf **mbufc, if_t ifnet, gnttab_copy_table gnttab);
+static int xnb_ring2pkt(struct xnb_pkt *pkt,
+    const netif_tx_back_ring_t *tx_ring, RING_IDX start);
+static void xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring,
+    int error);
 static struct mbuf *xnb_pkt2mbufc(const struct xnb_pkt *pkt, if_t ifp);
-static int	xnb_txpkt2gnttab(const struct xnb_pkt *pkt,
-				 struct mbuf *mbufc,
-				 gnttab_copy_table gnttab,
-				 const netif_tx_back_ring_t *txb,
-				 domid_t otherend_id);
-static void	xnb_update_mbufc(struct mbuf *mbufc,
-				 const gnttab_copy_table gnttab, int n_entries);
-static int	xnb_mbufc2pkt(const struct mbuf *mbufc,
-			      struct xnb_pkt *pkt,
-			      RING_IDX start, int space);
-static int	xnb_rxpkt2gnttab(const struct xnb_pkt *pkt,
-				 const struct mbuf *mbufc,
-				 gnttab_copy_table gnttab,
-				 const netif_rx_back_ring_t *rxb,
-				 domid_t otherend_id);
-static int	xnb_rxpkt2rsp(const struct xnb_pkt *pkt,
-			      const gnttab_copy_table gnttab, int n_entries,
-			      netif_rx_back_ring_t *ring);
-static void	xnb_stop(struct xnb_softc*);
-static int	xnb_ioctl(if_t, u_long, caddr_t);
-static void	xnb_start_locked(if_t);
-static void	xnb_start(if_t);
-static void	xnb_ifinit_locked(struct xnb_softc*);
-static void	xnb_ifinit(void*);
+static int xnb_txpkt2gnttab(const struct xnb_pkt *pkt, struct mbuf *mbufc,
+    gnttab_copy_table gnttab, const netif_tx_back_ring_t *txb,
+    domid_t otherend_id);
+static void xnb_update_mbufc(struct mbuf *mbufc, const gnttab_copy_table gnttab,
+    int n_entries);
+static int xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt,
+    RING_IDX start, int space);
+static int xnb_rxpkt2gnttab(const struct xnb_pkt *pkt, const struct mbuf *mbufc,
+    gnttab_copy_table gnttab, const netif_rx_back_ring_t *rxb,
+    domid_t otherend_id);
+static int xnb_rxpkt2rsp(const struct xnb_pkt *pkt,
+    const gnttab_copy_table gnttab, int n_entries, netif_rx_back_ring_t *ring);
+static void xnb_stop(struct xnb_softc *);
+static int xnb_ioctl(if_t, u_long, caddr_t);
+static void xnb_start_locked(if_t);
+static void xnb_start(if_t);
+static void xnb_ifinit_locked(struct xnb_softc *);
+static void xnb_ifinit(void *);
 #ifdef XNB_DEBUG
-static int	xnb_unit_test_main(SYSCTL_HANDLER_ARGS);
-static int	xnb_dump_rings(SYSCTL_HANDLER_ARGS);
+static int xnb_unit_test_main(SYSCTL_HANDLER_ARGS);
+static int xnb_dump_rings(SYSCTL_HANDLER_ARGS);
 #endif
 #if defined(INET) || defined(INET6)
-static void	xnb_add_mbuf_cksum(struct mbuf *mbufc);
+static void xnb_add_mbuf_cksum(struct mbuf *mbufc);
 #endif
 /*------------------------------ Data Structures -----------------------------*/
 
@@ -196,12 +189,12 @@ static void	xnb_add_mbuf_cksum(struct mbuf *mbufc);
  * Representation of a xennet packet.  Simplified version of a packet as
  * stored in the Xen tx ring.  Applicable to both RX and TX packets
  */
-struct xnb_pkt{
+struct xnb_pkt {
 	/**
 	 * Array index of the first data-bearing (eg, not extra info) entry
 	 * for this packet
 	 */
-	RING_IDX	car;
+	RING_IDX car;
 
 	/**
 	 * Array index of the second data-bearing entry for this packet.
@@ -209,7 +202,7 @@ struct xnb_pkt{
 	 * packet has more than two data-bearing entries, then the second
 	 * through the last will be sequential modulo the ring size
 	 */
-	RING_IDX	cdr;
+	RING_IDX cdr;
 
 	/**
 	 * Optional extra info.  Only valid if flags contains
@@ -220,26 +213,26 @@ struct xnb_pkt{
 	netif_extra_info_t extra;
 
 	/** Size of entire packet in bytes.       */
-	uint16_t	size;
+	uint16_t size;
 
 	/** The size of the first entry's data in bytes */
-	uint16_t	car_size;
+	uint16_t car_size;
 
 	/**
 	 * Either NETTXF_ or NETRXF_ flags.  Note that the flag values are
 	 * not the same for TX and RX packets
 	 */
-	uint16_t	flags;
+	uint16_t flags;
 
 	/**
 	 * The number of valid data-bearing entries (either netif_tx_request's
 	 * or netif_rx_response's) in the packet.  If this is 0, it means the
 	 * entire packet is invalid.
 	 */
-	uint16_t	list_len;
+	uint16_t list_len;
 
 	/** There was an error processing the packet */
-	uint8_t		error;
+	uint8_t error;
 };
 
 /** xnb_pkt method: initialize it */
@@ -267,16 +260,17 @@ xnb_pkt_invalidate(struct xnb_pkt *pxnb)
 static inline int
 xnb_pkt_is_valid(const struct xnb_pkt *pxnb)
 {
-	return (! pxnb->error);
+	return (!pxnb->error);
 }
 
 #ifdef XNB_DEBUG
 /** xnb_pkt method: print the packet's contents in human-readable format*/
 static void __unused
-xnb_dump_pkt(const struct xnb_pkt *pkt) {
+xnb_dump_pkt(const struct xnb_pkt *pkt)
+{
 	if (pkt == NULL) {
-	  DPRINTF("Was passed a null pointer.\n");
-	  return;
+		DPRINTF("Was passed a null pointer.\n");
+		return;
 	}
 	DPRINTF("pkt address= %p\n", pkt);
 	DPRINTF("pkt->size=%d\n", pkt->size);
@@ -314,9 +308,9 @@ struct xnb_ring_config {
 	 * use different data structures, and that cannot be changed since it
 	 * is part of the interdomain protocol.
 	 */
-	union{
-		netif_rx_back_ring_t	  rx_ring;
-		netif_tx_back_ring_t	  tx_ring;
+	union {
+		netif_rx_back_ring_t rx_ring;
+		netif_tx_back_ring_t tx_ring;
 	} back_ring;
 
 	/**
@@ -324,39 +318,38 @@ struct xnb_ring_config {
 	 * mapping the ring and required to unmap it when a connection
 	 * is torn down.
 	 */
-	uint64_t	bus_addr;
+	uint64_t bus_addr;
 
 	/** The pseudo-physical address where ring memory is mapped.*/
-	uint64_t	gnt_addr;
+	uint64_t gnt_addr;
 
 	/** KVA address where ring memory is mapped. */
-	vm_offset_t	va;
+	vm_offset_t va;
 
 	/**
 	 * Grant table handles, one per-ring page, returned by the
 	 * hyperpervisor upon mapping of the ring and required to
 	 * unmap it when a connection is torn down.
 	 */
-	grant_handle_t	handle;
+	grant_handle_t handle;
 
 	/** The number of ring pages mapped for the current connection. */
-	unsigned	ring_pages;
+	unsigned ring_pages;
 
 	/**
 	 * The grant references, one per-ring page, supplied by the
 	 * front-end, allowing us to reference the ring pages in the
 	 * front-end's domain and to map these pages into our own domain.
 	 */
-	grant_ref_t	ring_ref;
+	grant_ref_t ring_ref;
 };
 
 /**
  * Per-instance connection state flags.
  */
-typedef enum
-{
+typedef enum {
 	/** Communication with the front-end has been established. */
-	XNBF_RING_CONNECTED    = 0x01,
+	XNBF_RING_CONNECTED = 0x01,
 
 	/**
 	 * Front-end requests exist in the ring and are waiting for
@@ -365,19 +358,19 @@ typedef enum
 	XNBF_RESOURCE_SHORTAGE = 0x02,
 
 	/** Connection teardown has started. */
-	XNBF_SHUTDOWN          = 0x04,
+	XNBF_SHUTDOWN = 0x04,
 
 	/** A thread is already performing shutdown processing. */
-	XNBF_IN_SHUTDOWN       = 0x08
+	XNBF_IN_SHUTDOWN = 0x08
 } xnb_flag_t;
 
 /**
  * Types of rings.  Used for array indices and to identify a ring's control
  * data structure type
  */
-typedef enum{
-	XNB_RING_TYPE_TX = 0,	/* ID of TX rings, used for array indices */
-	XNB_RING_TYPE_RX = 1,	/* ID of RX rings, used for array indices */
+typedef enum {
+	XNB_RING_TYPE_TX = 0, /* ID of TX rings, used for array indices */
+	XNB_RING_TYPE_RX = 1, /* ID of RX rings, used for array indices */
 	XNB_NUM_RING_TYPES
 } xnb_ring_type_t;
 
@@ -386,21 +379,21 @@ typedef enum{
  */
 struct xnb_softc {
 	/** NewBus device corresponding to this instance. */
-	device_t		dev;
+	device_t dev;
 
 	/* Media related fields */
 
 	/** Generic network media state */
-	struct ifmedia		sc_media;
+	struct ifmedia sc_media;
 
 	/** Media carrier info */
-	if_t			xnb_ifp;
+	if_t xnb_ifp;
 
 	/** Our own private carrier state */
 	unsigned carrier;
 
 	/** Device MAC Address */
-	uint8_t			mac[ETHER_ADDR_LEN];
+	uint8_t mac[ETHER_ADDR_LEN];
 
 	/* Xen related fields */
 
@@ -413,23 +406,23 @@ struct xnb_softc {
 	 * always accommodates the front-end's native abi.  That
 	 * value is pulled from the XenStore and recorded here.
 	 */
-	int			abi;
+	int abi;
 
 	/**
 	 * Name of the bridge to which this VIF is connected, if any
 	 * This field is dynamically allocated by xenbus and must be free()ed
 	 * when no longer needed
 	 */
-	char			*bridge;
+	char *bridge;
 
 	/** The interrupt driven even channel used to signal ring events. */
-	evtchn_port_t		evtchn;
+	evtchn_port_t evtchn;
 
 	/** Xen device handle.*/
-	long 			handle;
+	long handle;
 
 	/** Handle to the communication ring event channel. */
-	xen_intr_handle_t	xen_intr_handle;
+	xen_intr_handle_t xen_intr_handle;
 
 	/**
 	 * \brief Cached value of the front-end's domain id.
@@ -438,71 +431,71 @@ struct xnb_softc {
 	 * a transaction.  We cache it to avoid incuring the
 	 * cost of an ivar access every time this is needed.
 	 */
-	domid_t			otherend_id;
+	domid_t otherend_id;
 
 	/**
 	 * Undocumented frontend feature.  Has something to do with
 	 * scatter/gather IO
 	 */
-	uint8_t			can_sg;
+	uint8_t can_sg;
 	/** Undocumented frontend feature */
-	uint8_t			gso;
+	uint8_t gso;
 	/** Undocumented frontend feature */
-	uint8_t			gso_prefix;
+	uint8_t gso_prefix;
 	/** Can checksum TCP/UDP over IPv4 */
-	uint8_t			ip_csum;
+	uint8_t ip_csum;
 
 	/* Implementation related fields */
 	/**
 	 * Preallocated grant table copy descriptor for RX operations.
 	 * Access must be protected by rx_lock
 	 */
-	gnttab_copy_table	rx_gnttab;
+	gnttab_copy_table rx_gnttab;
 
 	/**
 	 * Preallocated grant table copy descriptor for TX operations.
 	 * Access must be protected by tx_lock
 	 */
-	gnttab_copy_table	tx_gnttab;
+	gnttab_copy_table tx_gnttab;
 
 	/**
 	 * Resource representing allocated physical address space
 	 * associated with our per-instance kva region.
 	 */
-	struct resource		*pseudo_phys_res;
+	struct resource *pseudo_phys_res;
 
 	/** Resource id for allocated physical address space. */
-	int			pseudo_phys_res_id;
+	int pseudo_phys_res_id;
 
 	/** Ring mapping and interrupt configuration data. */
-	struct xnb_ring_config	ring_configs[XNB_NUM_RING_TYPES];
+	struct xnb_ring_config ring_configs[XNB_NUM_RING_TYPES];
 
 	/**
 	 * Global pool of kva used for mapping remote domain ring
 	 * and I/O transaction data.
 	 */
-	vm_offset_t		kva;
+	vm_offset_t kva;
 
 	/** Pseudo-physical address corresponding to kva. */
-	uint64_t		gnt_base_addr;
+	uint64_t gnt_base_addr;
 
 	/** Various configuration and state bit flags. */
-	xnb_flag_t		flags;
+	xnb_flag_t flags;
 
 	/** Mutex protecting per-instance data in the receive path. */
-	struct mtx		rx_lock;
+	struct mtx rx_lock;
 
 	/** Mutex protecting per-instance data in the softc structure. */
-	struct mtx		sc_lock;
+	struct mtx sc_lock;
 
 	/** Mutex protecting per-instance data in the transmit path. */
-	struct mtx		tx_lock;
+	struct mtx tx_lock;
 
 	/** The size of the global kva pool. */
-	int			kva_size;
+	int kva_size;
 
 	/** Name of the interface */
-	char			 if_name[IFNAMSIZ];
+	char if_name[IFNAMSIZ];
 };
 
 /*---------------------------- Debugging functions ---------------------------*/
@@ -518,15 +511,15 @@ xnb_dump_gnttab_copy(const struct gnttab_copy *entry)
 	if (entry->flags & GNTCOPY_dest_gref)
 		printf("gnttab dest ref=\t%u\n", entry->dest.u.ref);
 	else
-		printf("gnttab dest gmfn=\t%"PRI_xen_pfn"\n",
-		       entry->dest.u.gmfn);
+		printf("gnttab dest gmfn=\t%" PRI_xen_pfn "\n",
+		    entry->dest.u.gmfn);
 	printf("gnttab dest offset=\t%hu\n", entry->dest.offset);
 	printf("gnttab dest domid=\t%hu\n", entry->dest.domid);
 	if (entry->flags & GNTCOPY_source_gref)
 		printf("gnttab source ref=\t%u\n", entry->source.u.ref);
 	else
-		printf("gnttab source gmfn=\t%"PRI_xen_pfn"\n",
-		       entry->source.u.gmfn);
+		printf("gnttab source gmfn=\t%" PRI_xen_pfn "\n",
+		    entry->source.u.gmfn);
 	printf("gnttab source offset=\t%hu\n", entry->source.offset);
 	printf("gnttab source domid=\t%hu\n", entry->source.domid);
 	printf("gnttab len=\t%hu\n", entry->len);
@@ -538,33 +531,31 @@ static int
 xnb_dump_rings(SYSCTL_HANDLER_ARGS)
 {
 	static char results[720];
-	struct xnb_softc const* xnb = (struct xnb_softc*)arg1;
-	netif_rx_back_ring_t const* rxb =
-		&xnb->ring_configs[XNB_RING_TYPE_RX].back_ring.rx_ring;
-	netif_tx_back_ring_t const* txb =
-		&xnb->ring_configs[XNB_RING_TYPE_TX].back_ring.tx_ring;
+	struct xnb_softc const *xnb = (struct xnb_softc *)arg1;
+	netif_rx_back_ring_t const *rxb =
+	    &xnb->ring_configs[XNB_RING_TYPE_RX].back_ring.rx_ring;
+	netif_tx_back_ring_t const *txb =
+	    &xnb->ring_configs[XNB_RING_TYPE_TX].back_ring.tx_ring;
 
 	/* empty the result strings */
 	results[0] = 0;
 
-	if ( !txb || !txb->sring || !rxb || !rxb->sring )
+	if (!txb || !txb->sring || !rxb || !rxb->sring)
 		return (SYSCTL_OUT(req, results, strnlen(results, 720)));
 
 	snprintf(results, 720,
-	    "\n\t%35s %18s\n"	/* TX, RX */
-	    "\t%16s %18d %18d\n"	/* req_cons */
-	    "\t%16s %18d %18d\n"	/* nr_ents */
-	    "\t%16s %18d %18d\n"	/* rsp_prod_pvt */
-	    "\t%16s %18p %18p\n"	/* sring */
-	    "\t%16s %18d %18d\n"	/* req_prod */
-	    "\t%16s %18d %18d\n"	/* req_event */
-	    "\t%16s %18d %18d\n"	/* rsp_prod */
-	    "\t%16s %18d %18d\n",	/* rsp_event */
-	    "TX", "RX",
-	    "req_cons", txb->req_cons, rxb->req_cons,
-	    "nr_ents", txb->nr_ents, rxb->nr_ents,
-	    "rsp_prod_pvt", txb->rsp_prod_pvt, rxb->rsp_prod_pvt,
-	    "sring", txb->sring, rxb->sring,
+	    "\n\t%35s %18s\n"	  /* TX, RX */
+	    "\t%16s %18d %18d\n"  /* req_cons */
+	    "\t%16s %18d %18d\n"  /* nr_ents */
+	    "\t%16s %18d %18d\n"  /* rsp_prod_pvt */
+	    "\t%16s %18p %18p\n"  /* sring */
+	    "\t%16s %18d %18d\n"  /* req_prod */
+	    "\t%16s %18d %18d\n"  /* req_event */
+	    "\t%16s %18d %18d\n"  /* rsp_prod */
+	    "\t%16s %18d %18d\n", /* rsp_event */
+	    "TX", "RX", "req_cons", txb->req_cons, rxb->req_cons, "nr_ents",
+	    txb->nr_ents, rxb->nr_ents, "rsp_prod_pvt", txb->rsp_prod_pvt,
+	    rxb->rsp_prod_pvt, "sring", txb->sring, rxb->sring,
 	    "sring->req_prod", txb->sring->req_prod, rxb->sring->req_prod,
 	    "sring->req_event", txb->sring->req_event, rxb->sring->req_event,
 	    "sring->rsp_prod", txb->sring->rsp_prod, rxb->sring->rsp_prod,
@@ -585,18 +576,18 @@ xnb_dump_mbuf(const struct mbuf *m)
 	if (m->m_flags & M_PKTHDR) {
 		printf("    flowid=%10d, csum_flags=%#8x, csum_data=%#8x, "
 		       "tso_segsz=%5hd\n",
-		       m->m_pkthdr.flowid, (int)m->m_pkthdr.csum_flags,
-		       m->m_pkthdr.csum_data, m->m_pkthdr.tso_segsz);
-		printf("    rcvif=%16p,  len=%19d\n",
-		       m->m_pkthdr.rcvif, m->m_pkthdr.len);
+		    m->m_pkthdr.flowid, (int)m->m_pkthdr.csum_flags,
+		    m->m_pkthdr.csum_data, m->m_pkthdr.tso_segsz);
+		printf("    rcvif=%16p,  len=%19d\n", m->m_pkthdr.rcvif,
+		    m->m_pkthdr.len);
 	}
-	printf("    m_next=%16p, m_nextpk=%16p, m_data=%16p\n",
-	       m->m_next, m->m_nextpkt, m->m_data);
-	printf("    m_len=%17d, m_flags=%#15x, m_type=%18u\n",
-	       m->m_len, m->m_flags, m->m_type);
+	printf("    m_next=%16p, m_nextpk=%16p, m_data=%16p\n", m->m_next,
+	    m->m_nextpkt, m->m_data);
+	printf("    m_len=%17d, m_flags=%#15x, m_type=%18u\n", m->m_len,
+	    m->m_flags, m->m_type);
 
 	len = m->m_len;
-	d = mtod(m, uint8_t*);
+	d = mtod(m, uint8_t *);
 	while (len > 0) {
 		int i;
 		printf("                ");
@@ -662,13 +653,13 @@ xnb_disconnect(struct xnb_softc *xnb)
 	}
 
 	/* All request processing has stopped, so unmap the rings */
-	for (i=0; i < XNB_NUM_RING_TYPES; i++) {
+	for (i = 0; i < XNB_NUM_RING_TYPES; i++) {
 		gnts[i].host_addr = xnb->ring_configs[i].gnt_addr;
 		gnts[i].dev_bus_addr = xnb->ring_configs[i].bus_addr;
 		gnts[i].handle = xnb->ring_configs[i].handle;
 	}
 	error = HYPERVISOR_grant_table_op(GNTTABOP_unmap_grant_ref, gnts,
-					  XNB_NUM_RING_TYPES);
+	    XNB_NUM_RING_TYPES);
 	KASSERT(error == 0, ("Grant table unmap op failed (%d)", error));
 
 	xnb_free_communication_mem(xnb);
@@ -707,9 +698,9 @@ xnb_connect_ring(struct xnb_softc *xnb, xnb_ring_type_t ring_type)
 	ring->gnt_addr = xnb->gnt_base_addr + ring_type * PAGE_SIZE;
 
 	gnt.host_addr = ring->gnt_addr;
-	gnt.flags     = GNTMAP_host_map;
-	gnt.ref       = ring->ring_ref;
-	gnt.dom       = xnb->otherend_id;
+	gnt.flags = GNTMAP_host_map;
+	gnt.ref = ring->ring_ref;
+	gnt.dom = xnb->otherend_id;
 
 	error = HYPERVISOR_grant_table_op(GNTTABOP_map_grant_ref, &gnt, 1);
 	if (error != 0)
@@ -719,23 +710,24 @@ xnb_connect_ring(struct xnb_softc *xnb, xnb_ring_type_t ring_type)
 		ring->va = 0;
 		error = EACCES;
 		xenbus_dev_fatal(xnb->dev, error,
-				 "Ring shared page mapping failed. "
-				 "Status %d.", gnt.status);
+		    "Ring shared page mapping failed. "
+		    "Status %d.",
+		    gnt.status);
 	} else {
 		ring->handle = gnt.handle;
 		ring->bus_addr = gnt.dev_bus_addr;
 
 		if (ring_type == XNB_RING_TYPE_TX) {
 			BACK_RING_INIT(&ring->back_ring.tx_ring,
-			    (netif_tx_sring_t*)ring->va,
+			    (netif_tx_sring_t *)ring->va,
 			    ring->ring_pages * PAGE_SIZE);
 		} else if (ring_type == XNB_RING_TYPE_RX) {
 			BACK_RING_INIT(&ring->back_ring.rx_ring,
-			    (netif_rx_sring_t*)ring->va,
+			    (netif_rx_sring_t *)ring->va,
 			    ring->ring_pages * PAGE_SIZE);
 		} else {
 			xenbus_dev_fatal(xnb->dev, error,
-				 "Unknown ring type %d", ring_type);
+			    "Unknown ring type %d", ring_type);
 		}
 	}
 
@@ -751,7 +743,7 @@ xnb_connect_ring(struct xnb_softc *xnb, xnb_ring_type_t ring_type)
 static int
 xnb_connect_comms(struct xnb_softc *xnb)
 {
-	int	error;
+	int error;
 	xnb_ring_type_t i;
 
 	if ((xnb->flags & XNBF_RING_CONNECTED) != 0)
@@ -761,21 +753,18 @@ xnb_connect_comms(struct xnb_softc *xnb)
 	 * Kva for our rings are at the tail of the region of kva allocated
 	 * by xnb_alloc_communication_mem().
 	 */
-	for (i=0; i < XNB_NUM_RING_TYPES; i++) {
+	for (i = 0; i < XNB_NUM_RING_TYPES; i++) {
 		error = xnb_connect_ring(xnb, i);
 		if (error != 0)
-	  		return error;
+			return error;
 	}
 
 	xnb->flags |= XNBF_RING_CONNECTED;
 
-	error = xen_intr_bind_remote_port(xnb->dev,
-					  xnb->otherend_id,
-					  xnb->evtchn,
-					  /*filter*/NULL,
-					  xnb_intr, /*arg*/xnb,
-					  INTR_TYPE_NET | INTR_MPSAFE,
-					  &xnb->xen_intr_handle);
+	error = xen_intr_bind_remote_port(xnb->dev, xnb->otherend_id,
+	    xnb->evtchn,
+	    /*filter*/ NULL, xnb_intr, /*arg*/ xnb, INTR_TYPE_NET | INTR_MPSAFE,
+	    &xnb->xen_intr_handle);
 	if (error != 0) {
 		(void)xnb_disconnect(xnb);
 		xenbus_dev_fatal(xnb->dev, error, "binding event channel");
@@ -803,7 +792,7 @@ xnb_alloc_communication_mem(struct xnb_softc *xnb)
 	xnb_ring_type_t i;
 
 	xnb->kva_size = 0;
-	for (i=0; i < XNB_NUM_RING_TYPES; i++) {
+	for (i = 0; i < XNB_NUM_RING_TYPES; i++) {
 		xnb->kva_size += xnb->ring_configs[i].ring_pages * PAGE_SIZE;
 	}
 
@@ -849,18 +838,15 @@ xnb_collect_xenstore_info(struct xnb_softc *xnb)
 	our_path = xenbus_get_node(xnb->dev);
 
 	/* Collect the critical communication parameters */
-	err = xs_gather(XST_NIL, otherend_path,
-	    "tx-ring-ref", "%l" PRIu32,
-	    	&xnb->ring_configs[XNB_RING_TYPE_TX].ring_ref,
-	    "rx-ring-ref", "%l" PRIu32,
-	    	&xnb->ring_configs[XNB_RING_TYPE_RX].ring_ref,
-	    "event-channel", "%" PRIu32, &xnb->evtchn,
-	    NULL);
+	err = xs_gather(XST_NIL, otherend_path, "tx-ring-ref", "%l" PRIu32,
+	    &xnb->ring_configs[XNB_RING_TYPE_TX].ring_ref, "rx-ring-ref",
+	    "%l" PRIu32, &xnb->ring_configs[XNB_RING_TYPE_RX].ring_ref,
+	    "event-channel", "%" PRIu32, &xnb->evtchn, NULL);
 	if (err != 0) {
 		xenbus_dev_fatal(xnb->dev, err,
-				 "Unable to retrieve ring information from "
-				 "frontend %s.  Unable to connect.",
-				 otherend_path);
+		    "Unable to retrieve ring information from "
+		    "frontend %s.  Unable to connect.",
+		    otherend_path);
 		return (err);
 	}
 
@@ -869,7 +855,8 @@ xnb_collect_xenstore_info(struct xnb_softc *xnb)
 	if (err != 0) {
 		xenbus_dev_fatal(xnb->dev, err,
 		    "Error reading handle from frontend %s.  "
-		    "Unable to connect.", otherend_path);
+		    "Unable to connect.",
+		    otherend_path);
 	}
 
 	/*
@@ -877,7 +864,7 @@ xnb_collect_xenstore_info(struct xnb_softc *xnb)
 	 * throw it away
 	 */
 	err = xs_read(XST_NIL, our_path, "bridge", &bridge_len,
-		      (void**)&xnb->bridge);
+	    (void **)&xnb->bridge);
 	if (err != 0)
 		xnb->bridge = NULL;
 
@@ -886,14 +873,14 @@ xnb_collect_xenstore_info(struct xnb_softc *xnb)
 	 * error because this driver only supports rx copy.
 	 */
 	err = xs_scanf(XST_NIL, otherend_path, "request-rx-copy", NULL,
-		       "%" PRIu32, &rx_copy);
+	    "%" PRIu32, &rx_copy);
 	if (err == ENOENT) {
 		err = 0;
-	 	rx_copy = 0;
+		rx_copy = 0;
 	}
 	if (err < 0) {
 		xenbus_dev_fatal(xnb->dev, err, "reading %s/request-rx-copy",
-				 otherend_path);
+		    otherend_path);
 		return err;
 	}
 	/**
@@ -901,27 +888,27 @@ xnb_collect_xenstore_info(struct xnb_softc *xnb)
 	 * the frontend will set it to true.  It should be set to true
 	 * at some point
 	 */
-/*        if (!rx_copy)*/
-/*          return EOPNOTSUPP;*/
+	/*        if (!rx_copy)*/
+	/*          return EOPNOTSUPP;*/
 
 	/** \todo Collect the rx notify feature */
 
 	/*  Collect the feature-sg. */
-	if (xs_scanf(XST_NIL, otherend_path, "feature-sg", NULL,
-		     "%hhu", &xnb->can_sg) < 0)
+	if (xs_scanf(XST_NIL, otherend_path, "feature-sg", NULL, "%hhu",
+		&xnb->can_sg) < 0)
 		xnb->can_sg = 0;
 
 	/* Collect remaining frontend features */
-	if (xs_scanf(XST_NIL, otherend_path, "feature-gso-tcpv4", NULL,
-		     "%hhu", &xnb->gso) < 0)
+	if (xs_scanf(XST_NIL, otherend_path, "feature-gso-tcpv4", NULL, "%hhu",
+		&xnb->gso) < 0)
 		xnb->gso = 0;
 
 	if (xs_scanf(XST_NIL, otherend_path, "feature-gso-tcpv4-prefix", NULL,
-		     "%hhu", &xnb->gso_prefix) < 0)
+		"%hhu", &xnb->gso_prefix) < 0)
 		xnb->gso_prefix = 0;
 
 	if (xs_scanf(XST_NIL, otherend_path, "feature-no-csum-offload", NULL,
-		     "%hhu", &no_csum_offload) < 0)
+		"%hhu", &no_csum_offload) < 0)
 		no_csum_offload = 0;
 	xnb->ip_csum = (no_csum_offload == 0);
 
@@ -947,28 +934,27 @@ xnb_publish_backend_info(struct xnb_softc *xnb)
 		error = xs_transaction_start(&xst);
 		if (error != 0) {
 			xenbus_dev_fatal(xnb->dev, error,
-					 "Error publishing backend info "
-					 "(start transaction)");
+			    "Error publishing backend info "
+			    "(start transaction)");
 			break;
 		}
 
-		error = xs_printf(xst, our_path, "feature-sg",
-				  "%d", XNB_SG);
+		error = xs_printf(xst, our_path, "feature-sg", "%d", XNB_SG);
 		if (error != 0)
 			break;
 
-		error = xs_printf(xst, our_path, "feature-gso-tcpv4",
-				  "%d", XNB_GSO_TCPV4);
+		error = xs_printf(xst, our_path, "feature-gso-tcpv4", "%d",
+		    XNB_GSO_TCPV4);
 		if (error != 0)
 			break;
 
-		error = xs_printf(xst, our_path, "feature-rx-copy",
-				  "%d", XNB_RX_COPY);
+		error = xs_printf(xst, our_path, "feature-rx-copy", "%d",
+		    XNB_RX_COPY);
 		if (error != 0)
 			break;
 
-		error = xs_printf(xst, our_path, "feature-rx-flip",
-				  "%d", XNB_RX_FLIP);
+		error = xs_printf(xst, our_path, "feature-rx-flip", "%d",
+		    XNB_RX_FLIP);
 		if (error != 0)
 			break;
 
@@ -992,7 +978,7 @@ xnb_publish_backend_info(struct xnb_softc *xnb)
 static void
 xnb_connect(struct xnb_softc *xnb)
 {
-	int	error;
+	int error;
 
 	if (xenbus_get_state(xnb->dev) == XenbusStateConnected)
 		return;
@@ -1008,7 +994,7 @@ xnb_connect(struct xnb_softc *xnb)
 	error = xnb_alloc_communication_mem(xnb);
 	if (error != 0) {
 		xenbus_dev_fatal(xnb->dev, error,
-				 "Unable to allocate communication memory");
+		    "Unable to allocate communication memory");
 		return;
 	}
 
@@ -1092,11 +1078,11 @@ xnb_attach_failed(struct xnb_softc *xnb, int err, const char *fmt, ...)
 
 	va_start(ap, fmt);
 	va_copy(ap_hotplug, ap);
-	xs_vprintf(XST_NIL, xenbus_get_node(xnb->dev),
-		  "hotplug-error", fmt, ap_hotplug);
+	xs_vprintf(XST_NIL, xenbus_get_node(xnb->dev), "hotplug-error", fmt,
+	    ap_hotplug);
 	va_end(ap_hotplug);
-	(void)xs_printf(XST_NIL, xenbus_get_node(xnb->dev),
-		  "hotplug-status", "error");
+	(void)xs_printf(XST_NIL, xenbus_get_node(xnb->dev), "hotplug-status",
+	    "error");
 
 	xenbus_dev_vfatal(xnb->dev, err, fmt, ap);
 	va_end(ap);
@@ -1116,7 +1102,7 @@ xnb_attach_failed(struct xnb_softc *xnb, int err, const char *fmt, ...)
 static int
 xnb_probe(device_t dev)
 {
-	 if (!strcmp(xenbus_get_type(dev), "vif")) {
+	if (!strcmp(xenbus_get_type(dev), "vif")) {
 		DPRINTF("Claiming device %d, %s\n", device_get_unit(dev),
 		    devclass_get_name(device_get_devclass(dev)));
 		device_set_desc(dev, "Backend Virtual Network Device");
@@ -1136,7 +1122,7 @@ static void
 xnb_setup_sysctl(struct xnb_softc *xnb)
 {
 	struct sysctl_ctx_list *sysctl_ctx = NULL;
-	struct sysctl_oid      *sysctl_tree = NULL;
+	struct sysctl_oid *sysctl_tree = NULL;
 
 	sysctl_ctx = device_get_sysctl_ctx(xnb->dev);
 	if (sysctl_ctx == NULL)
@@ -1147,27 +1133,14 @@ xnb_setup_sysctl(struct xnb_softc *xnb)
 		return;
 
 #ifdef XNB_DEBUG
-	SYSCTL_ADD_PROC(sysctl_ctx,
-			SYSCTL_CHILDREN(sysctl_tree),
-			OID_AUTO,
-			"unit_test_results",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-			xnb,
-			0,
-			xnb_unit_test_main,
-			"A",
-			"Results of builtin unit tests");
+	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "unit_test_results",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT, xnb, 0,
+	    xnb_unit_test_main, "A", "Results of builtin unit tests");
 
-	SYSCTL_ADD_PROC(sysctl_ctx,
-			SYSCTL_CHILDREN(sysctl_tree),
-			OID_AUTO,
-			"dump_rings",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-			xnb,
-			0,
-			xnb_dump_rings,
-			"A",
-			"Xennet Back Rings");
+	SYSCTL_ADD_PROC(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
+	    "dump_rings", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT, xnb,
+	    0, xnb_dump_rings, "A", "Xennet Back Rings");
 #endif /* XNB_DEBUG */
 }
 
@@ -1191,8 +1164,8 @@ create_netdev(device_t dev)
 	xnb->dev = dev;
 
 	ifmedia_init(&xnb->sc_media, 0, xnb_ifmedia_upd, xnb_ifmedia_sts);
-	ifmedia_add(&xnb->sc_media, IFM_ETHER|IFM_MANUAL, 0, NULL);
-	ifmedia_set(&xnb->sc_media, IFM_ETHER|IFM_MANUAL);
+	ifmedia_add(&xnb->sc_media, IFM_ETHER | IFM_MANUAL, 0, NULL);
+	ifmedia_set(&xnb->sc_media, IFM_ETHER | IFM_MANUAL);
 
 	/*
 	 * Set the MAC address to a dummy value (00:00:00:00:00),
@@ -1213,7 +1186,7 @@ create_netdev(device_t dev)
 	 * Where handle is the oder of the interface referred to the guest.
 	 */
 	err = xs_scanf(XST_NIL, xenbus_get_node(xnb->dev), "handle", NULL,
-		       "%" PRIu32, &handle);
+	    "%" PRIu32, &handle);
 	if (err != 0)
 		return (err);
 	snprintf(xnb->if_name, IFNAMSIZ, "xnb%" PRIu16 ".%" PRIu32,
@@ -1223,7 +1196,7 @@ create_netdev(device_t dev)
 		/* Set up ifnet structure */
 		ifp = xnb->xnb_ifp = if_alloc(IFT_ETHER);
 		if_setsoftc(ifp, xnb);
-		if_initname(ifp, xnb->if_name,  IF_DUNIT_NONE);
+		if_initname(ifp, xnb->if_name, IF_DUNIT_NONE);
 		if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST);
 		if_setioctlfn(ifp, xnb_ioctl);
 		if_setstartfn(ifp, xnb_start);
@@ -1253,8 +1226,8 @@ static int
 xnb_attach(device_t dev)
 {
 	struct xnb_softc *xnb;
-	int	error;
-	xnb_ring_type_t	i;
+	int error;
+	xnb_ring_type_t i;
 
 	error = create_netdev(dev);
 	if (error != 0) {
@@ -1271,7 +1244,7 @@ xnb_attach(device_t dev)
 	 */
 	xnb = device_get_softc(dev);
 	xnb->otherend_id = xenbus_get_otherend_id(dev);
-	for (i=0; i < XNB_NUM_RING_TYPES; i++) {
+	for (i = 0; i < XNB_NUM_RING_TYPES; i++) {
 		xnb->ring_configs[i].ring_pages = 1;
 	}
 
@@ -1281,11 +1254,11 @@ xnb_attach(device_t dev)
 	xnb_setup_sysctl(xnb);
 
 	/* Update hot-plug status to satisfy xend. */
-	error = xs_printf(XST_NIL, xenbus_get_node(xnb->dev),
-			  "hotplug-status", "connected");
+	error = xs_printf(XST_NIL, xenbus_get_node(xnb->dev), "hotplug-status",
+	    "connected");
 	if (error != 0) {
 		xnb_attach_failed(xnb, error, "writing %s/hotplug-status",
-				  xenbus_get_node(xnb->dev));
+		    xenbus_get_node(xnb->dev));
 		return (error);
 	}
 
@@ -1297,7 +1270,7 @@ xnb_attach(device_t dev)
 		 */
 		xnb_attach_failed(xnb, error,
 		    "Publishing backend status for %s",
-				  xenbus_get_node(xnb->dev));
+		    xenbus_get_node(xnb->dev));
 		return error;
 	}
 
@@ -1330,8 +1303,8 @@ xnb_detach(device_t dev)
 	xnb = device_get_softc(dev);
 	mtx_lock(&xnb->sc_lock);
 	while (xnb_shutdown(xnb) == EAGAIN) {
-		msleep(xnb, &xnb->sc_lock, /*wakeup prio unchanged*/0,
-		       "xnb_shutdown", 0);
+		msleep(xnb, &xnb->sc_lock, /*wakeup prio unchanged*/ 0,
+		    "xnb_shutdown", 0);
 	}
 	mtx_unlock(&xnb->sc_lock);
 	DPRINTF("\n");
@@ -1385,8 +1358,8 @@ xnb_frontend_changed(device_t dev, XenbusState frontend_state)
 	xnb = device_get_softc(dev);
 
 	DPRINTF("frontend_state=%s, xnb_state=%s\n",
-	        xenbus_strstate(frontend_state),
-		xenbus_strstate(xenbus_get_state(xnb->dev)));
+	    xenbus_strstate(frontend_state),
+	    xenbus_strstate(xenbus_get_state(xnb->dev)));
 
 	switch (frontend_state) {
 	case XenbusStateInitialising:
@@ -1405,7 +1378,7 @@ xnb_frontend_changed(device_t dev, XenbusState frontend_state)
 		break;
 	default:
 		xenbus_dev_fatal(xnb->dev, EINVAL, "saw state %d at frontend",
-				 frontend_state);
+		    frontend_state);
 		break;
 	}
 }
@@ -1442,7 +1415,7 @@ xnb_intr(void *arg)
 			int err;
 
 			err = xnb_recv(txb, xnb->otherend_id, &mbufc, ifp,
-			    	       xnb->tx_gnttab);
+			    xnb->tx_gnttab);
 			if (err || (mbufc == NULL))
 				break;
 
@@ -1456,7 +1429,7 @@ xnb_intr(void *arg)
 
 		txb->sring->req_event = txb->req_cons + 1;
 		xen_mb();
-	} while (txb->sring->req_prod != req_prod_local) ;
+	} while (txb->sring->req_prod != req_prod_local);
 	mtx_unlock(&xnb->tx_lock);
 
 	xnb_start(ifp);
@@ -1473,7 +1446,7 @@ xnb_intr(void *arg)
  */
 static int
 xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
-	     RING_IDX start)
+    RING_IDX start)
 {
 	/*
 	 * Outline:
@@ -1485,9 +1458,9 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
 	 * 6) Finalize pkt (stuff like car_size and list_len)
 	 */
 	int idx = start;
-	int discard = 0;	/* whether to discard the packet */
-	int more_data = 0;	/* there are more request past the last one */
-	uint16_t cdr_size = 0;	/* accumulated size of requests 2 through n */
+	int discard = 0;       /* whether to discard the packet */
+	int more_data = 0;     /* there are more request past the last one */
+	uint16_t cdr_size = 0; /* accumulated size of requests 2 through n */
 
 	xnb_pkt_initialize(pkt);
 
@@ -1505,29 +1478,27 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
 	/* Read the extra info */
 	if ((pkt->flags & NETTXF_extra_info) &&
 	    RING_HAS_UNCONSUMED_REQUESTS_2(tx_ring, idx)) {
-		netif_extra_info_t *ext =
-		    (netif_extra_info_t*) RING_GET_REQUEST(tx_ring, idx);
+		netif_extra_info_t *ext = (netif_extra_info_t *)
+		    RING_GET_REQUEST(tx_ring, idx);
 		pkt->extra.type = ext->type;
 		switch (pkt->extra.type) {
-			case XEN_NETIF_EXTRA_TYPE_GSO:
-				pkt->extra.u.gso = ext->u.gso;
-				break;
-			default:
-				/*
-				 * The reference Linux netfront driver will
-				 * never set any other extra.type.  So we don't
-				 * know what to do with it.  Let's print an
-				 * error, then consume and discard the packet
-				 */
-				printf("xnb(%s:%d): Unknown extra info type %d."
-				       "  Discarding packet\n",
-				       __func__, __LINE__, pkt->extra.type);
-				xnb_dump_txreq(start, RING_GET_REQUEST(tx_ring,
-				    start));
-				xnb_dump_txreq(idx, RING_GET_REQUEST(tx_ring,
-				    idx));
-				discard = 1;
-				break;
+		case XEN_NETIF_EXTRA_TYPE_GSO:
+			pkt->extra.u.gso = ext->u.gso;
+			break;
+		default:
+			/*
+			 * The reference Linux netfront driver will
+			 * never set any other extra.type.  So we don't
+			 * know what to do with it.  Let's print an
+			 * error, then consume and discard the packet
+			 */
+			printf("xnb(%s:%d): Unknown extra info type %d."
+			       "  Discarding packet\n",
+			    __func__, __LINE__, pkt->extra.type);
+			xnb_dump_txreq(start, RING_GET_REQUEST(tx_ring, start));
+			xnb_dump_txreq(idx, RING_GET_REQUEST(tx_ring, idx));
+			discard = 1;
+			break;
 		}
 
 		pkt->extra.flags = ext->flags;
@@ -1538,8 +1509,9 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
 			 * will discard the packet.
 			 */
 			printf("xnb(%s:%d): Request sets "
-			    "XEN_NETIF_EXTRA_FLAG_MORE, but we can't handle "
-			    "that\n", __func__, __LINE__);
+			       "XEN_NETIF_EXTRA_FLAG_MORE, but we can't handle "
+			       "that\n",
+			    __func__, __LINE__);
 			xnb_dump_txreq(start, RING_GET_REQUEST(tx_ring, start));
 			xnb_dump_txreq(idx, RING_GET_REQUEST(tx_ring, idx));
 			discard = 1;
@@ -1559,7 +1531,7 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
 		if (tx->flags & ~NETTXF_more_data) {
 			/* There should be no other flags set at this point */
 			printf("xnb(%s:%d): Request sets unknown flags %d "
-			    "after the 1st request in the packet.\n",
+			       "after the 1st request in the packet.\n",
 			    __func__, __LINE__, tx->flags);
 			xnb_dump_txreq(start, RING_GET_REQUEST(tx_ring, start));
 			xnb_dump_txreq(idx, RING_GET_REQUEST(tx_ring, idx));
@@ -1573,7 +1545,7 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
 	if (more_data != 0) {
 		/* The ring ran out of requests before finishing the packet */
 		xnb_pkt_invalidate(pkt);
-		idx = start;	/* tell caller that we consumed no requests */
+		idx = start; /* tell caller that we consumed no requests */
 	} else {
 		/* Calculate car_size */
 		pkt->car_size = pkt->size - cdr_size;
@@ -1594,8 +1566,7 @@ xnb_ring2pkt(struct xnb_pkt *pkt, const netif_tx_back_ring_t *tx_ring,
  * \param[out] ring	Responses go here
  */
 static void
-xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring,
-	      int error)
+xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring, int error)
 {
 	/*
 	 * Outline:
@@ -1610,8 +1581,8 @@ xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring,
 	int i;
 	uint16_t status;
 
-	status = (xnb_pkt_is_valid(pkt) == 0) || error ?
-		NETIF_RSP_ERROR : NETIF_RSP_OKAY;
+	status = (xnb_pkt_is_valid(pkt) == 0) || error ? NETIF_RSP_ERROR :
+							 NETIF_RSP_OKAY;
 	KASSERT((pkt->list_len == 0) || (ring->rsp_prod_pvt == pkt->car),
 	    ("Cannot respond to ring requests out of order"));
 
@@ -1631,7 +1602,7 @@ xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring,
 		}
 	}
 
-	for (i=0; i < pkt->list_len - 1; i++) {
+	for (i = 0; i < pkt->list_len - 1; i++) {
 		uint16_t id;
 		tx = RING_GET_REQUEST(ring, ring->rsp_prod_pvt);
 		id = tx->id;
@@ -1650,7 +1621,7 @@ xnb_txpkt2rsp(const struct xnb_pkt *pkt, netif_tx_back_ring_t *ring,
  * \return	A newly allocated mbuf chain, possibly with clusters attached.
  * 		NULL on failure
  */
-static struct mbuf*
+static struct mbuf *
 xnb_pkt2mbufc(const struct xnb_pkt *pkt, if_t ifp)
 {
 	/**
@@ -1670,12 +1641,8 @@ xnb_pkt2mbufc(const struct xnb_pkt *pkt, if_t ifp)
 			 * checksums are ok, because the packet is unlikely to
 			 * get corrupted going across domains.
 			 */
-			m->m_pkthdr.csum_flags = (
-				CSUM_IP_CHECKED |
-				CSUM_IP_VALID   |
-				CSUM_DATA_VALID |
-				CSUM_PSEUDO_HDR
-				);
+			m->m_pkthdr.csum_flags = (CSUM_IP_CHECKED |
+			    CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
 			m->m_pkthdr.csum_data = 0xffff;
 		}
 	}
@@ -1696,23 +1663,23 @@ xnb_pkt2mbufc(const struct xnb_pkt *pkt, if_t ifp)
  */
 static int
 xnb_txpkt2gnttab(const struct xnb_pkt *pkt, struct mbuf *mbufc,
-		 gnttab_copy_table gnttab, const netif_tx_back_ring_t *txb,
-		 domid_t otherend_id)
+    gnttab_copy_table gnttab, const netif_tx_back_ring_t *txb,
+    domid_t otherend_id)
 {
 
-	struct mbuf *mbuf = mbufc;/* current mbuf within the chain */
-	int gnt_idx = 0;		/* index into grant table */
-	RING_IDX r_idx = pkt->car;	/* index into tx ring buffer */
-	int r_ofs = 0;	/* offset of next data within tx request's data area */
-	int m_ofs = 0;	/* offset of next data within mbuf's data area */
+	struct mbuf *mbuf = mbufc; /* current mbuf within the chain */
+	int gnt_idx = 0;	   /* index into grant table */
+	RING_IDX r_idx = pkt->car; /* index into tx ring buffer */
+	int r_ofs = 0; /* offset of next data within tx request's data area */
+	int m_ofs = 0; /* offset of next data within mbuf's data area */
 	/* size in bytes that still needs to be represented in the table */
 	uint16_t size_remaining = pkt->size;
 
 	while (size_remaining > 0) {
 		const netif_tx_request_t *txq = RING_GET_REQUEST(txb, r_idx);
 		const size_t mbuf_space = M_TRAILINGSPACE(mbuf) - m_ofs;
-		const size_t req_size =
-			r_idx == pkt->car ? pkt->car_size : txq->size;
+		const size_t req_size = r_idx == pkt->car ? pkt->car_size :
+							    txq->size;
 		const size_t pkt_space = req_size - r_ofs;
 		/*
 		 * space is the largest amount of data that can be copied in the
@@ -1763,7 +1730,7 @@ xnb_txpkt2gnttab(const struct xnb_pkt *pkt, struct mbuf *mbufc,
  */
 static void
 xnb_update_mbufc(struct mbuf *mbufc, const gnttab_copy_table gnttab,
-    		 int n_entries)
+    int n_entries)
 {
 	struct mbuf *mbuf = mbufc;
 	int i;
@@ -1772,7 +1739,7 @@ xnb_update_mbufc(struct mbuf *mbufc, const gnttab_copy_table gnttab,
 	for (i = 0; i < n_entries; i++) {
 		KASSERT(gnttab[i].status == GNTST_okay,
 		    ("Some gnttab_copy entry had error status %hd\n",
-		    gnttab[i].status));
+			gnttab[i].status));
 
 		mbuf->m_len += gnttab[i].len;
 		total_size += gnttab[i].len;
@@ -1803,7 +1770,7 @@ xnb_update_mbufc(struct mbuf *mbufc, const gnttab_copy_table gnttab,
  */
 static int
 xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend, struct mbuf **mbufc,
-	 if_t ifnet, gnttab_copy_table gnttab)
+    if_t ifnet, gnttab_copy_table gnttab)
 {
 	struct xnb_pkt pkt;
 	/* number of tx requests consumed to build the last packet */
@@ -1813,7 +1780,7 @@ xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend, struct mbuf **mbufc,
 	*mbufc = NULL;
 	num_consumed = xnb_ring2pkt(&pkt, txb, txb->req_cons);
 	if (num_consumed == 0)
-		return 0;	/* Nothing to receive */
+		return 0; /* Nothing to receive */
 
 	/* update statistics independent of errors */
 	if_inc_counter(ifnet, IFCOUNTER_IPACKETS, 1);
@@ -1827,7 +1794,7 @@ xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend, struct mbuf **mbufc,
 		xnb_txpkt2rsp(&pkt, txb, 1);
 		txb->req_cons += num_consumed;
 		DPRINTF("xnb_intr: garbage packet, num_consumed=%d\n",
-				num_consumed);
+		    num_consumed);
 		if_inc_counter(ifnet, IFCOUNTER_IERRORS, 1);
 		return EINVAL;
 	}
@@ -1874,15 +1841,14 @@ xnb_recv(netif_tx_back_ring_t *txb, domid_t otherend, struct mbuf **mbufc,
  * 			packet
  */
 static int
-xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt,
-	      RING_IDX start, int space)
+xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt, RING_IDX start,
+    int space)
 {
 
 	int retval = 0;
 
-	if ((mbufc == NULL) ||
-	     ( (mbufc->m_flags & M_PKTHDR) == 0) ||
-	     (mbufc->m_pkthdr.len == 0)) {
+	if ((mbufc == NULL) || ((mbufc->m_flags & M_PKTHDR) == 0) ||
+	    (mbufc->m_pkthdr.len == 0)) {
 		xnb_pkt_invalidate(pkt);
 		retval = EINVAL;
 	} else {
@@ -1907,8 +1873,8 @@ xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt,
 			pkt->cdr = start + 1;
 		}
 		if (mbufc->m_pkthdr.csum_flags & (CSUM_TSO | CSUM_DELAY_DATA)) {
-			pkt->flags |=
-			    (NETRXF_csum_blank | NETRXF_data_validated);
+			pkt->flags |= (NETRXF_csum_blank |
+			    NETRXF_data_validated);
 		}
 
 		/*
@@ -1924,7 +1890,7 @@ xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt,
 		}
 
 		slots_required = pkt->list_len +
-			(pkt->flags & NETRXF_extra_info ? 1 : 0);
+		    (pkt->flags & NETRXF_extra_info ? 1 : 0);
 		if (slots_required > space) {
 			xnb_pkt_invalidate(pkt);
 			retval = EAGAIN;
@@ -1948,15 +1914,15 @@ xnb_mbufc2pkt(const struct mbuf *mbufc, struct xnb_pkt *pkt,
  */
 static int
 xnb_rxpkt2gnttab(const struct xnb_pkt *pkt, const struct mbuf *mbufc,
-		 gnttab_copy_table gnttab, const netif_rx_back_ring_t *rxb,
-		 domid_t otherend_id)
+    gnttab_copy_table gnttab, const netif_rx_back_ring_t *rxb,
+    domid_t otherend_id)
 {
 
-	const struct mbuf *mbuf = mbufc;/* current mbuf within the chain */
-	int gnt_idx = 0;		/* index into grant table */
-	RING_IDX r_idx = pkt->car;	/* index into rx ring buffer */
-	int r_ofs = 0;	/* offset of next data within rx request's data area */
-	int m_ofs = 0;	/* offset of next data within mbuf's data area */
+	const struct mbuf *mbuf = mbufc; /* current mbuf within the chain */
+	int gnt_idx = 0;		 /* index into grant table */
+	RING_IDX r_idx = pkt->car;	 /* index into rx ring buffer */
+	int r_ofs = 0; /* offset of next data within rx request's data area */
+	int m_ofs = 0; /* offset of next data within mbuf's data area */
 	/* size in bytes that still needs to be represented in the table */
 	uint16_t size_remaining;
 
@@ -2023,7 +1989,7 @@ xnb_rxpkt2gnttab(const struct xnb_pkt *pkt, const struct mbuf *mbufc,
  */
 static int
 xnb_rxpkt2rsp(const struct xnb_pkt *pkt, const gnttab_copy_table gnttab,
-    	      int n_entries, netif_rx_back_ring_t *ring)
+    int n_entries, netif_rx_back_ring_t *ring)
 {
 	/*
 	 * This code makes the following assumptions:
@@ -2067,7 +2033,7 @@ xnb_rxpkt2rsp(const struct xnb_pkt *pkt, const gnttab_copy_table gnttab,
 	if (error != 0) {
 		uint16_t id;
 		netif_rx_response_t *rsp;
-		
+
 		id = RING_GET_REQUEST(ring, ring->rsp_prod_pvt)->id;
 		rsp = RING_GET_RESPONSE(ring, ring->rsp_prod_pvt);
 		rsp->id = id;
@@ -2091,8 +2057,8 @@ xnb_rxpkt2rsp(const struct xnb_pkt *pkt, const gnttab_copy_table gnttab,
 			rxq = *(RING_GET_REQUEST(ring, r_idx));
 			rsp = RING_GET_RESPONSE(ring, r_idx);
 			if (has_extra && (i == 1)) {
-				netif_extra_info_t *ext =
-					(netif_extra_info_t*)rsp;
+				netif_extra_info_t *ext = (netif_extra_info_t *)
+				    rsp;
 				ext->type = XEN_NETIF_EXTRA_TYPE_GSO;
 				ext->flags = 0;
 				ext->u.gso.size = pkt->extra.u.gso.size;
@@ -2109,13 +2075,13 @@ xnb_rxpkt2rsp(const struct xnb_pkt *pkt, const gnttab_copy_table gnttab,
 				if ((i == 0) && has_extra)
 					rsp->flags |= NETRXF_extra_info;
 				if ((i == 0) &&
-					(pkt->flags & NETRXF_data_validated)) {
+				    (pkt->flags & NETRXF_data_validated)) {
 					rsp->flags |= NETRXF_data_validated;
 					rsp->flags |= NETRXF_csum_blank;
 				}
 				rsp->status = 0;
 				for (; gnttab[gnt_idx].dest.u.ref == rxq.gref;
-				    gnt_idx++) {
+				     gnt_idx++) {
 					rsp->status += gnttab[gnt_idx].len;
 				}
 			}
@@ -2142,14 +2108,14 @@ xnb_add_mbuf_cksum(struct mbuf *mbufc)
 	struct ip *iph;
 	uint16_t ether_type;
 
-	eh = mtod(mbufc, struct ether_header*);
+	eh = mtod(mbufc, struct ether_header *);
 	ether_type = ntohs(eh->ether_type);
 	if (ether_type != ETHERTYPE_IP) {
 		/* Nothing to calculate */
 		return;
 	}
 
-	iph = (struct ip*)(eh + 1);
+	iph = (struct ip *)(eh + 1);
 	if (mbufc->m_pkthdr.csum_flags & CSUM_IP_VALID) {
 		iph->ip_sum = 0;
 		iph->ip_sum = in_cksum_hdr(iph);
@@ -2159,7 +2125,7 @@ xnb_add_mbuf_cksum(struct mbuf *mbufc)
 	case IPPROTO_TCP:
 		if (mbufc->m_pkthdr.csum_flags & CSUM_IP_VALID) {
 			size_t tcplen = ntohs(iph->ip_len) - sizeof(struct ip);
-			struct tcphdr *th = (struct tcphdr*)(iph + 1);
+			struct tcphdr *th = (struct tcphdr *)(iph + 1);
 			th->th_sum = in_pseudo(iph->ip_src.s_addr,
 			    iph->ip_dst.s_addr, htons(IPPROTO_TCP + tcplen));
 			th->th_sum = in_cksum_skip(mbufc,
@@ -2170,7 +2136,7 @@ xnb_add_mbuf_cksum(struct mbuf *mbufc)
 	case IPPROTO_UDP:
 		if (mbufc->m_pkthdr.csum_flags & CSUM_IP_VALID) {
 			size_t udplen = ntohs(iph->ip_len) - sizeof(struct ip);
-			struct udphdr *uh = (struct udphdr*)(iph + 1);
+			struct udphdr *uh = (struct udphdr *)(iph + 1);
 			uh->uh_sum = in_pseudo(iph->ip_src.s_addr,
 			    iph->ip_dst.s_addr, htons(IPPROTO_UDP + udplen));
 			uh->uh_sum = in_cksum_skip(mbufc,
@@ -2199,71 +2165,69 @@ static int
 xnb_ioctl(if_t ifp, u_long cmd, caddr_t data)
 {
 	struct xnb_softc *xnb = if_getsoftc(ifp);
-	struct ifreq *ifr = (struct ifreq*) data;
+	struct ifreq *ifr = (struct ifreq *)data;
 #ifdef INET
-	struct ifaddr *ifa = (struct ifaddr*)data;
+	struct ifaddr *ifa = (struct ifaddr *)data;
 #endif
 	int error = 0;
 
 	switch (cmd) {
-		case SIOCSIFFLAGS:
-			mtx_lock(&xnb->sc_lock);
-			if (if_getflags(ifp) & IFF_UP) {
-				xnb_ifinit_locked(xnb);
-			} else {
-				if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
-					xnb_stop(xnb);
-				}
+	case SIOCSIFFLAGS:
+		mtx_lock(&xnb->sc_lock);
+		if (if_getflags(ifp) & IFF_UP) {
+			xnb_ifinit_locked(xnb);
+		} else {
+			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
+				xnb_stop(xnb);
 			}
-			/*
-			 * Note: netfront sets a variable named xn_if_flags
-			 * here, but that variable is never read
-			 */
+		}
+		/*
+		 * Note: netfront sets a variable named xn_if_flags
+		 * here, but that variable is never read
+		 */
+		mtx_unlock(&xnb->sc_lock);
+		break;
+	case SIOCSIFADDR:
+#ifdef INET
+		mtx_lock(&xnb->sc_lock);
+		if (ifa->ifa_addr->sa_family == AF_INET) {
+			if_setflagbits(ifp, IFF_UP, 0);
+			if (!(if_getdrvflags(ifp) & IFF_DRV_RUNNING)) {
+				if_setdrvflagbits(ifp, 0,
+				    IFF_DRV_RUNNING | IFF_DRV_OACTIVE);
+				if_link_state_change(ifp, LINK_STATE_DOWN);
+				if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
+				if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
+				if_link_state_change(ifp, LINK_STATE_UP);
+			}
+			arp_ifinit(ifp, ifa);
 			mtx_unlock(&xnb->sc_lock);
-			break;
-		case SIOCSIFADDR:
-#ifdef INET
-			mtx_lock(&xnb->sc_lock);
-			if (ifa->ifa_addr->sa_family == AF_INET) {
-				if_setflagbits(ifp, IFF_UP, 0);
-				if (!(if_getdrvflags(ifp) & IFF_DRV_RUNNING)) {
-					if_setdrvflagbits(ifp, 0,
-					    IFF_DRV_RUNNING | IFF_DRV_OACTIVE);
-					if_link_state_change(ifp,
-							LINK_STATE_DOWN);
-					if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
-					if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
-					if_link_state_change(ifp,
-					    LINK_STATE_UP);
-				}
-				arp_ifinit(ifp, ifa);
-				mtx_unlock(&xnb->sc_lock);
-			} else {
-				mtx_unlock(&xnb->sc_lock);
+		} else {
+			mtx_unlock(&xnb->sc_lock);
 #endif
-				error = ether_ioctl(ifp, cmd, data);
+			error = ether_ioctl(ifp, cmd, data);
 #ifdef INET
-			}
+		}
 #endif
-			break;
-		case SIOCSIFCAP:
-			mtx_lock(&xnb->sc_lock);
-			if (ifr->ifr_reqcap & IFCAP_TXCSUM) {
-				if_setcapenablebit(ifp, IFCAP_TXCSUM, 0);
-				if_sethwassistbits(ifp, XNB_CSUM_FEATURES, 0);
-			} else {
-				if_setcapenablebit(ifp, 0, IFCAP_TXCSUM);
-				if_sethwassistbits(ifp, 0, XNB_CSUM_FEATURES);
-			}
-			if ((ifr->ifr_reqcap & IFCAP_RXCSUM)) {
-				if_setcapenablebit(ifp, IFCAP_RXCSUM, 0);
-			} else {
-				if_setcapenablebit(ifp, 0, IFCAP_RXCSUM);
-			}
-			/*
-			 * TODO enable TSO4 and LRO once we no longer need
-			 * to calculate checksums in software
-			 */
+		break;
+	case SIOCSIFCAP:
+		mtx_lock(&xnb->sc_lock);
+		if (ifr->ifr_reqcap & IFCAP_TXCSUM) {
+			if_setcapenablebit(ifp, IFCAP_TXCSUM, 0);
+			if_sethwassistbits(ifp, XNB_CSUM_FEATURES, 0);
+		} else {
+			if_setcapenablebit(ifp, 0, IFCAP_TXCSUM);
+			if_sethwassistbits(ifp, 0, XNB_CSUM_FEATURES);
+		}
+		if ((ifr->ifr_reqcap & IFCAP_RXCSUM)) {
+			if_setcapenablebit(ifp, IFCAP_RXCSUM, 0);
+		} else {
+			if_setcapenablebit(ifp, 0, IFCAP_RXCSUM);
+		}
+		/*
+		 * TODO enable TSO4 and LRO once we no longer need
+		 * to calculate checksums in software
+		 */
 #if 0
 			if (ifr->if_reqcap |= IFCAP_TSO4) {
 				if (IFCAP_TXCSUM & if_getcapenable(ifp)) {
@@ -2285,23 +2249,23 @@ xnb_ioctl(if_t ifp, u_long cmd, caddr_t data)
 				if_setcapenablebit(ifp, 0, IFCAP_LRO);
 			}
 #endif
-			mtx_unlock(&xnb->sc_lock);
-			break;
-		case SIOCSIFMTU:
-			if_setmtu(ifp, ifr->ifr_mtu);
-			if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
-			xnb_ifinit(xnb);
-			break;
-		case SIOCADDMULTI:
-		case SIOCDELMULTI:
-			break;
-		case SIOCSIFMEDIA:
-		case SIOCGIFMEDIA:
-			error = ifmedia_ioctl(ifp, ifr, &xnb->sc_media, cmd);
-			break;
-		default:
-			error = ether_ioctl(ifp, cmd, data);
-			break;
+		mtx_unlock(&xnb->sc_lock);
+		break;
+	case SIOCSIFMTU:
+		if_setmtu(ifp, ifr->ifr_mtu);
+		if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
+		xnb_ifinit(xnb);
+		break;
+	case SIOCADDMULTI:
+	case SIOCDELMULTI:
+		break;
+	case SIOCSIFMEDIA:
+	case SIOCGIFMEDIA:
+		error = ifmedia_ioctl(ifp, ifr, &xnb->sc_media, cmd);
+		break;
+	default:
+		error = ether_ioctl(ifp, cmd, data);
+		break;
 	}
 	return (error);
 }
@@ -2332,34 +2296,34 @@ xnb_start_locked(if_t ifp)
 			if (mbufc == NULL)
 				break;
 			error = xnb_send(rxb, xnb->otherend_id, mbufc,
-			    		 xnb->rx_gnttab);
+			    xnb->rx_gnttab);
 			switch (error) {
-				case EAGAIN:
-					/*
-					 * Insufficient space in the ring.
-					 * Requeue pkt and send when space is
-					 * available.
-					 */
-					if_sendq_prepend(ifp, mbufc);
-					/*
-					 * Perhaps the frontend missed an IRQ
-					 * and went to sleep.  Notify it to wake
-					 * it up.
-					 */
-					out_of_space = 1;
-					break;
+			case EAGAIN:
+				/*
+				 * Insufficient space in the ring.
+				 * Requeue pkt and send when space is
+				 * available.
+				 */
+				if_sendq_prepend(ifp, mbufc);
+				/*
+				 * Perhaps the frontend missed an IRQ
+				 * and went to sleep.  Notify it to wake
+				 * it up.
+				 */
+				out_of_space = 1;
+				break;
 
-				case EINVAL:
-					/* OS gave a corrupt packet.  Drop it.*/
-					if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
-					/* FALLTHROUGH */
-				default:
-					/* Send succeeded, or packet had error.
-					 * Free the packet */
-					if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
-					if (mbufc)
-						m_freem(mbufc);
-					break;
+			case EINVAL:
+				/* OS gave a corrupt packet.  Drop it.*/
+				if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
+				/* FALLTHROUGH */
+			default:
+				/* Send succeeded, or packet had error.
+				 * Free the packet */
+				if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
+				if (mbufc)
+					m_freem(mbufc);
+				break;
 			}
 			if (out_of_space != 0)
 				break;
@@ -2370,7 +2334,7 @@ xnb_start_locked(if_t ifp)
 			xen_intr_signal(xnb->xen_intr_handle);
 		rxb->sring->req_event = req_prod_local + 1;
 		xen_mb();
-	} while (rxb->sring->req_prod != req_prod_local) ;
+	} while (rxb->sring->req_prod != req_prod_local);
 }
 
 /**
@@ -2388,7 +2352,7 @@ xnb_start_locked(if_t ifp)
  */
 static int
 xnb_send(netif_rx_back_ring_t *ring, domid_t otherend, const struct mbuf *mbufc,
-	 gnttab_copy_table gnttab)
+    gnttab_copy_table gnttab)
 {
 	struct xnb_pkt pkt;
 	int error, n_entries;
@@ -2402,8 +2366,8 @@ xnb_send(netif_rx_back_ring_t *ring, domid_t otherend, const struct mbuf *mbufc,
 	if (n_entries != 0) {
 		int __unused hv_ret = HYPERVISOR_grant_table_op(GNTTABOP_copy,
 		    gnttab, n_entries);
-		KASSERT(hv_ret == 0, ("HYPERVISOR_grant_table_op returned %d\n",
-		    hv_ret));
+		KASSERT(hv_ret == 0,
+		    ("HYPERVISOR_grant_table_op returned %d\n", hv_ret));
 	}
 
 	xnb_rxpkt2rsp(&pkt, gnttab, n_entries, ring);
@@ -2469,19 +2433,19 @@ xnb_ifmedia_upd(if_t ifp)
 static void
 xnb_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	ifmr->ifm_status = IFM_AVALID|IFM_ACTIVE;
-	ifmr->ifm_active = IFM_ETHER|IFM_MANUAL;
+	ifmr->ifm_status = IFM_AVALID | IFM_ACTIVE;
+	ifmr->ifm_active = IFM_ETHER | IFM_MANUAL;
 }
 
 /*---------------------------- NewBus Registration ---------------------------*/
 static device_method_t xnb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		xnb_probe),
-	DEVMETHOD(device_attach,	xnb_attach),
-	DEVMETHOD(device_detach,	xnb_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	xnb_suspend),
-	DEVMETHOD(device_resume,	xnb_resume),
+	DEVMETHOD(device_probe, xnb_probe),
+	DEVMETHOD(device_attach, xnb_attach),
+	DEVMETHOD(device_detach, xnb_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, xnb_suspend),
+	DEVMETHOD(device_resume, xnb_resume),
 
 	/* Xenbus interface */
 	DEVMETHOD(xenbus_otherend_changed, xnb_frontend_changed),

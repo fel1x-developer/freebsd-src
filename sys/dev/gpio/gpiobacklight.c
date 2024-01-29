@@ -24,9 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -39,15 +39,13 @@
 #include <sys/sysctl.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 
-#include <dev/gpio/gpiobusvar.h>
-
-struct gpiobacklight_softc 
-{
-	gpio_pin_t		sc_pin;
-	struct sysctl_oid	*sc_oid;
-	bool			sc_brightness;
+struct gpiobacklight_softc {
+	gpio_pin_t sc_pin;
+	struct sysctl_oid *sc_oid;
+	bool sc_brightness;
 };
 
 static int gpiobacklight_sysctl(SYSCTL_HANDLER_ARGS);
@@ -56,7 +54,7 @@ static int gpiobacklight_probe(device_t);
 static int gpiobacklight_attach(device_t);
 static int gpiobacklight_detach(device_t);
 
-static void 
+static void
 gpiobacklight_update_brightness(struct gpiobacklight_softc *sc)
 {
 
@@ -71,7 +69,7 @@ gpiobacklight_sysctl(SYSCTL_HANDLER_ARGS)
 	int error;
 	int brightness;
 
-	sc = (struct gpiobacklight_softc*)arg1;
+	sc = (struct gpiobacklight_softc *)arg1;
 
 	brightness = sc->sc_brightness;
 	error = sysctl_handle_int(oidp, &brightness, 0, req);
@@ -150,9 +148,9 @@ gpiobacklight_detach(device_t dev)
 
 static device_method_t gpiobacklight_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpiobacklight_probe),
-	DEVMETHOD(device_attach,	gpiobacklight_attach),
-	DEVMETHOD(device_detach,	gpiobacklight_detach),
+	DEVMETHOD(device_probe, gpiobacklight_probe),
+	DEVMETHOD(device_attach, gpiobacklight_attach),
+	DEVMETHOD(device_detach, gpiobacklight_detach),
 
 	DEVMETHOD_END
 };

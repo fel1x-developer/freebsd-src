@@ -11,13 +11,11 @@
 
 #include "ipf.h"
 
-#ifndef	MIN
-# define	MIN(a,b)	((a) > (b) ? (b) : (a))
+#ifndef MIN
+#define MIN(a, b) ((a) > (b) ? (b) : (a))
 #endif
 
-
-char	*icmpcodes[MAX_ICMPCODE + 1] = {
-	"net-unr", "host-unr", "proto-unr", "port-unr", "needfrag", "srcfail",
-	"net-unk", "host-unk", "isolate", "net-prohib", "host-prohib",
-	"net-tos", "host-tos", "filter-prohib", "host-preced", "preced-cutoff",
-	NULL };
+char *icmpcodes[MAX_ICMPCODE + 1] = { "net-unr", "host-unr", "proto-unr",
+	"port-unr", "needfrag", "srcfail", "net-unk", "host-unk", "isolate",
+	"net-prohib", "host-prohib", "net-tos", "host-tos", "filter-prohib",
+	"host-preced", "preced-cutoff", NULL };

@@ -25,7 +25,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "openfirm.h"
 
 time_t
@@ -42,7 +44,7 @@ time(time_t *tloc)
 time_t
 getsecs(void)
 {
-	time_t	n = 0;
+	time_t n = 0;
 	time(&n);
 	return n;
 }
@@ -50,10 +52,11 @@ getsecs(void)
 void
 delay(int usecs)
 {
-	int	msecs, start;
+	int msecs, start;
 
 	msecs = usecs / 1000;
 	start = OF_milliseconds();
 
-	while (OF_milliseconds() - start < msecs);
+	while (OF_milliseconds() - start < msecs)
+		;
 }

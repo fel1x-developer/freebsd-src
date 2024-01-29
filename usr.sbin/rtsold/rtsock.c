@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2000 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -39,23 +39,23 @@
 #include <sys/uio.h>
 
 #include <net/if.h>
-#include <net/route.h>
 #include <net/if_dl.h>
-
+#include <net/route.h>
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 
 #include <capsicum_helpers.h>
-#include <time.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stddef.h>
 #include <err.h>
 #include <errno.h>
-#include <string.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <time.h>
+#include <unistd.h>
+
 #include "rtsold.h"
 
 static int rtsock_input_ifannounce(int, struct rt_msghdr *, char *);
@@ -66,7 +66,7 @@ static struct {
 	int (*func)(int, struct rt_msghdr *, char *);
 } rtsock_dispatch[] = {
 	{ RTM_IFANNOUNCE, sizeof(struct if_announcemsghdr),
-	  rtsock_input_ifannounce },
+	    rtsock_input_ifannounce },
 	{ 0, 0, NULL },
 };
 
@@ -99,8 +99,8 @@ rtsock_input(int s)
 	int idx;
 	ssize_t len;
 	int ret = 0;
-	const ssize_t lenlim =
-	    offsetof(struct rt_msghdr, rtm_msglen) + sizeof(rtm->rtm_msglen);
+	const ssize_t lenlim = offsetof(struct rt_msghdr, rtm_msglen) +
+	    sizeof(rtm->rtm_msglen);
 
 	n = read(s, msg, sizeof(msg));
 
@@ -114,9 +114,8 @@ rtsock_input(int s)
 			break;
 
 		if (dflag > 1) {
-			warnmsg(LOG_INFO, __func__,
-			    "rtmsg type %d, len=%lu", rtm->rtm_type,
-			    (u_long)len);
+			warnmsg(LOG_INFO, __func__, "rtmsg type %d, len=%lu",
+			    rtm->rtm_type, (u_long)len);
 		}
 
 		for (idx = 0; rtsock_dispatch[idx].func; idx++) {
@@ -154,12 +153,12 @@ rtsock_input_ifannounce(int s __unused, struct rt_msghdr *rtm, char *lim)
 		 * we may be able to do a name-based interface match,
 		 * and call ifreconfig() to enable the interface again.
 		 */
-		warnmsg(LOG_INFO, __func__,
-		    "interface %s inserted", ifan->ifan_name);
+		warnmsg(LOG_INFO, __func__, "interface %s inserted",
+		    ifan->ifan_name);
 		break;
 	case IFAN_DEPARTURE:
-		warnmsg(LOG_WARNING, __func__,
-		    "interface %s removed", ifan->ifan_name);
+		warnmsg(LOG_WARNING, __func__, "interface %s removed",
+		    ifan->ifan_name);
 		ifi = find_ifinfo(ifan->ifan_index);
 		if (ifi) {
 			if (dflag > 1) {

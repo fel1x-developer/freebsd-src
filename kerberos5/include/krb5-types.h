@@ -2,13 +2,13 @@
  * generic krb5-types.h for cross compiling, assume system is posix/sus
  */
 
-
 #ifndef __krb5_types_h__
 #define __krb5_types_h__
 
-#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <inttypes.h>
 
 typedef socklen_t krb5_socklen_t;
 #include <unistd.h>
@@ -18,15 +18,14 @@ typedef ssize_t krb5_ssize_t;
 #define __has_extension(x) 0
 #endif
 
-#define KRB5TYPES_REQUIRE_GNUC(m,n,p) \
-    (((__GNUC__ * 10000) + (__GNUC_MINOR__ * 100) + __GNUC_PATCHLEVEL__) >= \
-     (((m) * 10000) + ((n) * 100) + (p)))
-
+#define KRB5TYPES_REQUIRE_GNUC(m, n, p)                 \
+	(((__GNUC__ * 10000) + (__GNUC_MINOR__ * 100) + \
+	     __GNUC_PATCHLEVEL__) >= (((m) * 10000) + ((n) * 100) + (p)))
 
 #ifndef HEIMDAL_DEPRECATED
-#if __has_extension(deprecated) || KRB5TYPES_REQUIRE_GNUC(3,1,0)
+#if __has_extension(deprecated) || KRB5TYPES_REQUIRE_GNUC(3, 1, 0)
 #define HEIMDAL_DEPRECATED __attribute__((deprecated))
-#elif defined(_MSC_VER) && (_MSC_VER>1200)
+#elif defined(_MSC_VER) && (_MSC_VER > 1200)
 #define HEIMDAL_DEPRECATED __declspec(deprecated)
 #else
 #define HEIMDAL_DEPRECATED
@@ -34,7 +33,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_PRINTF_ATTRIBUTE
-#if __has_extension(format) || KRB5TYPES_REQUIRE_GNUC(3,1,0)
+#if __has_extension(format) || KRB5TYPES_REQUIRE_GNUC(3, 1, 0)
 #define HEIMDAL_PRINTF_ATTRIBUTE(x) __attribute__((format x))
 #else
 #define HEIMDAL_PRINTF_ATTRIBUTE(x)
@@ -42,7 +41,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_NORETURN_ATTRIBUTE
-#if __has_extension(noreturn) || KRB5TYPES_REQUIRE_GNUC(3,1,0)
+#if __has_extension(noreturn) || KRB5TYPES_REQUIRE_GNUC(3, 1, 0)
 #define HEIMDAL_NORETURN_ATTRIBUTE __attribute__((noreturn))
 #else
 #define HEIMDAL_NORETURN_ATTRIBUTE
@@ -50,7 +49,7 @@ typedef ssize_t krb5_ssize_t;
 #endif
 
 #ifndef HEIMDAL_UNUSED_ATTRIBUTE
-#if __has_extension(unused) || KRB5TYPES_REQUIRE_GNUC(3,1,0)
+#if __has_extension(unused) || KRB5TYPES_REQUIRE_GNUC(3, 1, 0)
 #define HEIMDAL_UNUSED_ATTRIBUTE __attribute__((unused))
 #else
 #define HEIMDAL_UNUSED_ATTRIBUTE

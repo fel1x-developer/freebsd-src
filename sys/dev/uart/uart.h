@@ -38,15 +38,15 @@
 struct uart_bas {
 	bus_space_tag_t bst;
 	bus_space_handle_t bsh;
-	u_int	chan;
-	u_int	rclk;
-	u_int	regshft;
-	u_int	regiowidth;
-	u_int	busy_detect;
+	u_int chan;
+	u_int rclk;
+	u_int regshft;
+	u_int regiowidth;
+	u_int busy_detect;
 };
 
-#define	uart_regofs(bas, reg)		((reg) << (bas)->regshft)
-#define	uart_regiowidth(bas)		((bas)->regiowidth)
+#define uart_regofs(bas, reg) ((reg) << (bas)->regshft)
+#define uart_regiowidth(bas) ((bas)->regiowidth)
 
 static inline uint32_t
 uart_getreg(struct uart_bas *bas, int reg)
@@ -55,13 +55,16 @@ uart_getreg(struct uart_bas *bas, int reg)
 
 	switch (uart_regiowidth(bas)) {
 	case 4:
-		ret = bus_space_read_4(bas->bst, bas->bsh, uart_regofs(bas, reg));
+		ret = bus_space_read_4(bas->bst, bas->bsh,
+		    uart_regofs(bas, reg));
 		break;
 	case 2:
-		ret = bus_space_read_2(bas->bst, bas->bsh, uart_regofs(bas, reg));
+		ret = bus_space_read_2(bas->bst, bas->bsh,
+		    uart_regofs(bas, reg));
 		break;
 	default:
-		ret = bus_space_read_1(bas->bst, bas->bsh, uart_regofs(bas, reg));
+		ret = bus_space_read_1(bas->bst, bas->bsh,
+		    uart_regofs(bas, reg));
 		break;
 	}
 
@@ -74,13 +77,16 @@ uart_setreg(struct uart_bas *bas, int reg, int value)
 
 	switch (uart_regiowidth(bas)) {
 	case 4:
-		bus_space_write_4(bas->bst, bas->bsh, uart_regofs(bas, reg), value);
+		bus_space_write_4(bas->bst, bas->bsh, uart_regofs(bas, reg),
+		    value);
 		break;
 	case 2:
-		bus_space_write_2(bas->bst, bas->bsh, uart_regofs(bas, reg), value);
+		bus_space_write_2(bas->bst, bas->bsh, uart_regofs(bas, reg),
+		    value);
 		break;
 	default:
-		bus_space_write_1(bas->bst, bas->bsh, uart_regofs(bas, reg), value);
+		bus_space_write_1(bas->bst, bas->bsh, uart_regofs(bas, reg),
+		    value);
 		break;
 	}
 }
@@ -90,9 +96,9 @@ uart_setreg(struct uart_bas *bas, int reg, int value)
  * the UART. Since barriers don't use the length field currently, we put
  * a zero there for now.
  */
-#define uart_barrier(bas)		\
-	bus_space_barrier((bas)->bst, (bas)->bsh, 0, 0,		\
-	    BUS_SPACE_BARRIER_READ|BUS_SPACE_BARRIER_WRITE)
+#define uart_barrier(bas)                               \
+	bus_space_barrier((bas)->bst, (bas)->bsh, 0, 0, \
+	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
 
 /*
  * UART device classes.
@@ -106,20 +112,20 @@ extern struct uart_class uart_z8530_class __attribute__((weak));
 /*
  * Device flags.
  */
-#define	UART_FLAGS_CONSOLE(f)		((f) & 0x10)
-#define	UART_FLAGS_DBGPORT(f)		((f) & 0x80)
-#define	UART_FLAGS_FCR_RX_LOW(f)	((f) & 0x100)
-#define	UART_FLAGS_FCR_RX_MEDL(f)	((f) & 0x200)
-#define	UART_FLAGS_FCR_RX_MEDH(f)	((f) & 0x400)
-#define	UART_FLAGS_FCR_RX_HIGH(f)	((f) & 0x800)
+#define UART_FLAGS_CONSOLE(f) ((f) & 0x10)
+#define UART_FLAGS_DBGPORT(f) ((f) & 0x80)
+#define UART_FLAGS_FCR_RX_LOW(f) ((f) & 0x100)
+#define UART_FLAGS_FCR_RX_MEDL(f) ((f) & 0x200)
+#define UART_FLAGS_FCR_RX_MEDH(f) ((f) & 0x400)
+#define UART_FLAGS_FCR_RX_HIGH(f) ((f) & 0x800)
 
 /*
  * Data parity values (magical numbers related to ns8250).
  */
-#define	UART_PARITY_NONE		0
-#define	UART_PARITY_ODD			1
-#define	UART_PARITY_EVEN		3
-#define	UART_PARITY_MARK		5
-#define	UART_PARITY_SPACE		7
+#define UART_PARITY_NONE 0
+#define UART_PARITY_ODD 1
+#define UART_PARITY_EVEN 3
+#define UART_PARITY_MARK 5
+#define UART_PARITY_SPACE 7
 
 #endif /* _DEV_UART_H_ */

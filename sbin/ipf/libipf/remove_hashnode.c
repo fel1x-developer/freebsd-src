@@ -7,12 +7,13 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_htable.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_htable.h"
+#include "netinet/ip_lookup.h"
 
 int
 remove_hashnode(int unit, char *name, iphtent_t *node, ioctlfunc_t iocfunc)
@@ -32,9 +33,9 @@ remove_hashnode(int unit, char *name, iphtent_t *node, ioctlfunc_t iocfunc)
 
 	bzero((char *)&ipe, sizeof(ipe));
 	bcopy((char *)&node->ipe_addr, (char *)&ipe.ipe_addr,
-	      sizeof(ipe.ipe_addr));
+	    sizeof(ipe.ipe_addr));
 	bcopy((char *)&node->ipe_mask, (char *)&ipe.ipe_mask,
-	      sizeof(ipe.ipe_mask));
+	    sizeof(ipe.ipe_mask));
 
 	if (opts & OPT_DEBUG) {
 		printf("\t%s - ", inet_ntoa(ipe.ipe_addr.in4));
@@ -44,7 +45,7 @@ remove_hashnode(int unit, char *name, iphtent_t *node, ioctlfunc_t iocfunc)
 	if (pool_ioctl(iocfunc, SIOCLOOKUPDELNODE, &op)) {
 		if (!(opts & OPT_DONOTHING)) {
 			return (ipf_perror_fd(pool_fd(), iocfunc,
-					     "remove lookup hash node"));
+			    "remove lookup hash node"));
 		}
 	}
 	return (0);

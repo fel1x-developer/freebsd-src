@@ -32,36 +32,31 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
 
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
-
-#include <dev/videomode/videomode.h>
-#include <dev/videomode/edidvar.h>
-
 #include <dev/hdmi/dwc_hdmi.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/videomode/edidvar.h>
+#include <dev/videomode/videomode.h>
 
 #include "crtc_if.h"
 
 struct dwc_hdmi_fdt_softc {
-	struct dwc_hdmi_softc	base;
-	clk_t			clk_hdmi;
-	clk_t			clk_ahb;
-	phandle_t		i2c_xref;
+	struct dwc_hdmi_softc base;
+	clk_t clk_hdmi;
+	clk_t clk_ahb;
+	phandle_t i2c_xref;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{ "synopsys,dwc-hdmi",	1 },
-	{ NULL,	            	0 }
-};
+static struct ofw_compat_data compat_data[] = { { "synopsys,dwc-hdmi", 1 },
+	{ NULL, 0 } };
 
 static device_t
 dwc_hdmi_fdt_get_i2c_dev(device_t dev)
@@ -89,8 +84,8 @@ dwc_hdmi_fdt_detach(device_t dev)
 		clk_release(sc->clk_hdmi);
 
 	if (sc->base.sc_mem_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->base.sc_mem_rid, sc->base.sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->base.sc_mem_rid,
+		    sc->base.sc_mem_res);
 
 	return (0);
 }
@@ -125,7 +120,7 @@ dwc_hdmi_fdt_attach(device_t dev)
 		sc->i2c_xref = i2c_xref;
 
 	if (OF_getencprop(node, "reg-shift", &sc->base.sc_reg_shift,
-	    sizeof(sc->base.sc_reg_shift)) <= 0)
+		sizeof(sc->base.sc_reg_shift)) <= 0)
 		sc->base.sc_reg_shift = 0;
 
 	if (clk_get_by_ofw_name(dev, 0, "hdmi", &sc->clk_hdmi) != 0 ||
@@ -177,21 +172,18 @@ dwc_hdmi_fdt_probe(device_t dev)
 
 static device_method_t dwc_hdmi_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,  dwc_hdmi_fdt_probe),
+	DEVMETHOD(device_probe, dwc_hdmi_fdt_probe),
 	DEVMETHOD(device_attach, dwc_hdmi_fdt_attach),
 	DEVMETHOD(device_detach, dwc_hdmi_fdt_detach),
 
 	/* HDMI methods */
-	DEVMETHOD(hdmi_get_edid,	dwc_hdmi_get_edid),
-	DEVMETHOD(hdmi_set_videomode,	dwc_hdmi_set_videomode),
+	DEVMETHOD(hdmi_get_edid, dwc_hdmi_get_edid),
+	DEVMETHOD(hdmi_set_videomode, dwc_hdmi_set_videomode),
 
 	DEVMETHOD_END
 };
 
-static driver_t dwc_hdmi_fdt_driver = {
-	"dwc_hdmi",
-	dwc_hdmi_fdt_methods,
-	sizeof(struct dwc_hdmi_fdt_softc)
-};
+static driver_t dwc_hdmi_fdt_driver = { "dwc_hdmi", dwc_hdmi_fdt_methods,
+	sizeof(struct dwc_hdmi_fdt_softc) };
 
 DRIVER_MODULE(dwc_hdmi_fdt, simplebus, dwc_hdmi_fdt_driver, 0, 0);

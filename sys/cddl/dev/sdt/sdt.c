@@ -39,8 +39,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/conf.h>
+#include <sys/dtrace.h>
+#include <sys/dtrace_bsd.h>
 #include <sys/endian.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
@@ -55,22 +56,19 @@
 #include <sys/queue.h>
 #include <sys/sdt.h>
 
-#include <sys/dtrace.h>
-#include <sys/dtrace_bsd.h>
-
 /* DTrace methods. */
-static void	sdt_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
-static void	sdt_provide_probes(void *, dtrace_probedesc_t *);
-static void	sdt_destroy(void *, dtrace_id_t, void *);
-static void	sdt_enable(void *, dtrace_id_t, void *);
-static void	sdt_disable(void *, dtrace_id_t, void *);
+static void sdt_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
+static void sdt_provide_probes(void *, dtrace_probedesc_t *);
+static void sdt_destroy(void *, dtrace_id_t, void *);
+static void sdt_enable(void *, dtrace_id_t, void *);
+static void sdt_disable(void *, dtrace_id_t, void *);
 
-static void	sdt_load(void);
-static int	sdt_unload(void);
-static void	sdt_create_provider(struct sdt_provider *);
-static void	sdt_create_probe(struct sdt_probe *);
-static void	sdt_kld_load(void *, struct linker_file *);
-static void	sdt_kld_unload_try(void *, struct linker_file *, int *);
+static void sdt_load(void);
+static int sdt_unload(void);
+static void sdt_create_provider(struct sdt_provider *);
+static void sdt_create_probe(struct sdt_probe *);
+static void sdt_kld_load(void *, struct linker_file *);
+static void sdt_kld_unload_try(void *, struct linker_file *, int *);
 
 static MALLOC_DEFINE(M_SDT, "SDT", "DTrace SDT providers");
 
@@ -78,37 +76,42 @@ static int sdt_probes_enabled_count;
 static int lockstat_enabled_count;
 
 static dtrace_pattr_t sdt_attr = {
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
 };
 
 static dtrace_pops_t sdt_pops = {
-	.dtps_provide =		sdt_provide_probes,
-	.dtps_provide_module =	NULL,
-	.dtps_enable =		sdt_enable,
-	.dtps_disable =		sdt_disable,
-	.dtps_suspend =		NULL,
-	.dtps_resume =		NULL,
-	.dtps_getargdesc =	sdt_getargdesc,
-	.dtps_getargval =	NULL,
-	.dtps_usermode =	NULL,
-	.dtps_destroy =		sdt_destroy,
+	.dtps_provide = sdt_provide_probes,
+	.dtps_provide_module = NULL,
+	.dtps_enable = sdt_enable,
+	.dtps_disable = sdt_disable,
+	.dtps_suspend = NULL,
+	.dtps_resume = NULL,
+	.dtps_getargdesc = sdt_getargdesc,
+	.dtps_getargval = NULL,
+	.dtps_usermode = NULL,
+	.dtps_destroy = sdt_destroy,
 };
 
 static TAILQ_HEAD(, sdt_provider) sdt_prov_list;
 
-static eventhandler_tag	sdt_kld_load_tag;
-static eventhandler_tag	sdt_kld_unload_try_tag;
+static eventhandler_tag sdt_kld_load_tag;
+static eventhandler_tag sdt_kld_unload_try_tag;
 
 static void
 sdt_create_provider(struct sdt_provider *prov)
 {
 	struct sdt_provider *curr, *newprov;
 
-	TAILQ_FOREACH(curr, &sdt_prov_list, prov_entry)
+	TAILQ_FOREACH (curr, &sdt_prov_list, prov_entry)
 		if (strcmp(prov->name, curr->name) == 0) {
 			/* The provider has already been defined. */
 			curr->sdt_refs++;
@@ -143,12 +146,12 @@ sdt_create_probe(struct sdt_probe *probe)
 	size_t len;
 
 	if (probe->version != (int)sizeof(*probe)) {
-		printf("ignoring probe %p, version %u expected %u\n",
-		    probe, probe->version, (int)sizeof(*probe));
+		printf("ignoring probe %p, version %u expected %u\n", probe,
+		    probe->version, (int)sizeof(*probe));
 		return;
 	}
 
-	TAILQ_FOREACH(prov, &sdt_prov_list, prov_entry)
+	TAILQ_FOREACH (prov, &sdt_prov_list, prov_entry)
 		if (strcmp(prov->name, probe->prov->name) == 0)
 			break;
 
@@ -175,7 +178,7 @@ sdt_create_probe(struct sdt_probe *probe)
 	from = probe->name;
 	to = name;
 	for (len = 0; len < (sizeof(name) - 1) && *from != '\0';
-	    len++, from++, to++) {
+	     len++, from++, to++) {
 		if (from[0] == '_' && from[1] == '_') {
 			*to = '-';
 			from++;
@@ -247,7 +250,7 @@ sdt_getargdesc(void *arg, dtrace_id_t id, void *parg, dtrace_argdesc_t *desc)
 		return;
 	}
 
-	TAILQ_FOREACH(argtype, &probe->argtype_list, argtype_entry) {
+	TAILQ_FOREACH (argtype, &probe->argtype_list, argtype_entry) {
 		if (desc->dtargd_ndx == argtype->ndx) {
 			desc->dtargd_mapping = desc->dtargd_ndx;
 			if (argtype->type == NULL) {
@@ -275,7 +278,7 @@ sdt_kld_load_providers(struct linker_file *lf)
 	struct sdt_provider **prov, **begin, **end;
 
 	if (linker_file_lookup_set(lf, "sdt_providers_set", &begin, &end,
-	    NULL) == 0) {
+		NULL) == 0) {
 		for (prov = begin; prov < end; prov++)
 			sdt_create_provider(*prov);
 	}
@@ -288,7 +291,7 @@ sdt_kld_load_probes(struct linker_file *lf)
 	struct sdt_argtype **argtype, **a_begin, **a_end;
 
 	if (linker_file_lookup_set(lf, "sdt_probes_set", &p_begin, &p_end,
-	    NULL) == 0) {
+		NULL) == 0) {
 		for (probe = p_begin; probe < p_end; probe++) {
 			(*probe)->sdtp_lf = lf;
 			sdt_create_probe(*probe);
@@ -297,7 +300,7 @@ sdt_kld_load_probes(struct linker_file *lf)
 	}
 
 	if (linker_file_lookup_set(lf, "sdt_argtypes_set", &a_begin, &a_end,
-	    NULL) == 0) {
+		NULL) == 0) {
 		for (argtype = a_begin; argtype < a_end; argtype++) {
 			(*argtype)->probe->n_args++;
 			TAILQ_INSERT_TAIL(&(*argtype)->probe->argtype_list,
@@ -329,7 +332,7 @@ sdt_kld_unload_try(void *arg __unused, struct linker_file *lf, int *error)
 		/* We already have an error, so don't do anything. */
 		return;
 	else if (linker_file_lookup_set(lf, "sdt_providers_set", &begin, &end,
-	    NULL))
+		     NULL))
 		/* No DTrace providers are declared in this file. */
 		return;
 
@@ -338,7 +341,7 @@ sdt_kld_unload_try(void *arg __unused, struct linker_file *lf, int *error)
 	 * unregister any that aren't declared in another loaded file.
 	 */
 	for (curr = begin; curr < end; curr++) {
-		TAILQ_FOREACH_SAFE(prov, &sdt_prov_list, prov_entry, tmp) {
+		TAILQ_FOREACH_SAFE (prov, &sdt_prov_list, prov_entry, tmp) {
 			if (strcmp(prov->name, (*curr)->name) != 0)
 				continue;
 
@@ -404,7 +407,7 @@ sdt_unload(void)
 
 	sdt_probe_func = sdt_probe_stub;
 
-	TAILQ_FOREACH_SAFE(prov, &sdt_prov_list, prov_entry, tmp) {
+	TAILQ_FOREACH_SAFE (prov, &sdt_prov_list, prov_entry, tmp) {
 		ret = dtrace_unregister(prov->id);
 		if (ret != 0)
 			return (ret);

@@ -27,6 +27,7 @@
 
 #include <sys/types.h>
 #include <sys/proc.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <sysdecode.h>
@@ -48,12 +49,18 @@
 #include <compat/linux/linux_fork.h>
 #include <compat/linux/linux_time.h>
 
-#define	X(a,b)	{ a, #b },
-#define	XEND	{ 0, NULL }
+#define X(a, b) { a, #b },
+#define XEND            \
+	{               \
+		0, NULL \
+	}
 
-#define	TABLE_START(n)	static struct name_table n[] = {
-#define	TABLE_ENTRY	X
-#define	TABLE_END	XEND };
+#define TABLE_START(n) static struct name_table n[] = {
+#define TABLE_ENTRY X
+#define TABLE_END \
+	XEND      \
+	}         \
+	;
 
 #include "tables_linux.h"
 

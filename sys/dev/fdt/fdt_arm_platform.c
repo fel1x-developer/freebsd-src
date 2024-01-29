@@ -29,18 +29,17 @@
 #include <sys/param.h>
 #include <sys/smp.h>
 
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
+
 #include <arm/include/platform.h>
 #include <arm/include/platformvar.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/ofw/ofw_cpu.h>
-#include <dev/fdt/fdt_common.h>
-
 #include "platform_if.h"
 
-#define	FDT_PLATFORM(plat)	\
-    ((fdt_platform_def_t *)(plat)->cls->baseclasses[0])
+#define FDT_PLATFORM(plat) ((fdt_platform_def_t *)(plat)->cls->baseclasses[0])
 
 #if defined(SMP)
 static platform_mp_setmaxid_t fdt_platform_mp_setmaxid;
@@ -92,13 +91,11 @@ fdt_platform_mp_setmaxid(platform_t plat)
 }
 #endif
 
-platform_method_t fdt_platform_methods[] = {
-	PLATFORMMETHOD(platform_probe,	fdt_platform_probe),
+platform_method_t fdt_platform_methods[] = { PLATFORMMETHOD(platform_probe,
+						 fdt_platform_probe),
 
 #if defined(SMP)
 	PLATFORMMETHOD(platform_mp_setmaxid, fdt_platform_mp_setmaxid),
 #endif
 
-	PLATFORMMETHOD_END
-};
-
+	PLATFORMMETHOD_END };

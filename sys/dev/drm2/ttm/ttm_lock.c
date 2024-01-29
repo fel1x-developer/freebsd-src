@@ -36,16 +36,18 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/ttm/ttm_lock.h>
 #include <dev/drm2/ttm/ttm_module.h>
 
-#define TTM_WRITE_LOCK_PENDING    (1 << 0)
-#define TTM_VT_LOCK_PENDING       (1 << 1)
-#define TTM_SUSPEND_LOCK_PENDING  (1 << 2)
-#define TTM_VT_LOCK               (1 << 3)
-#define TTM_SUSPEND_LOCK          (1 << 4)
+#define TTM_WRITE_LOCK_PENDING (1 << 0)
+#define TTM_VT_LOCK_PENDING (1 << 1)
+#define TTM_SUSPEND_LOCK_PENDING (1 << 2)
+#define TTM_VT_LOCK (1 << 3)
+#define TTM_SUSPEND_LOCK (1 << 4)
 
-void ttm_lock_init(struct ttm_lock *lock)
+void
+ttm_lock_init(struct ttm_lock *lock)
 {
 	mtx_init(&lock->lock, "ttmlk", NULL, MTX_DEF);
 	lock->rw = 0;
@@ -59,13 +61,14 @@ ttm_lock_send_sig(int signo)
 {
 	struct proc *p;
 
-	p = curproc;	/* XXXKIB curthread ? */
+	p = curproc; /* XXXKIB curthread ? */
 	PROC_LOCK(p);
 	kern_psignal(p, signo);
 	PROC_UNLOCK(p);
 }
 
-void ttm_read_unlock(struct ttm_lock *lock)
+void
+ttm_read_unlock(struct ttm_lock *lock)
 {
 	mtx_lock(&lock->lock);
 	if (--lock->rw == 0)
@@ -73,7 +76,8 @@ void ttm_read_unlock(struct ttm_lock *lock)
 	mtx_unlock(&lock->lock);
 }
 
-static bool __ttm_read_lock(struct ttm_lock *lock)
+static bool
+__ttm_read_lock(struct ttm_lock *lock)
 {
 	bool locked = false;
 
@@ -113,7 +117,8 @@ ttm_read_lock(struct ttm_lock *lock, bool interruptible)
 	return (ret);
 }
 
-static bool __ttm_read_trylock(struct ttm_lock *lock, bool *locked)
+static bool
+__ttm_read_trylock(struct ttm_lock *lock, bool *locked)
 {
 	bool block = true;
 
@@ -134,7 +139,8 @@ static bool __ttm_read_trylock(struct ttm_lock *lock, bool *locked)
 	return !block;
 }
 
-int ttm_read_trylock(struct ttm_lock *lock, bool interruptible)
+int
+ttm_read_trylock(struct ttm_lock *lock, bool interruptible)
 {
 	const char *wmsg;
 	int flags, ret;
@@ -162,7 +168,8 @@ int ttm_read_trylock(struct ttm_lock *lock, bool interruptible)
 	return (locked) ? 0 : -EBUSY;
 }
 
-void ttm_write_unlock(struct ttm_lock *lock)
+void
+ttm_write_unlock(struct ttm_lock *lock)
 {
 	mtx_lock(&lock->lock);
 	lock->rw = 0;
@@ -170,7 +177,8 @@ void ttm_write_unlock(struct ttm_lock *lock)
 	mtx_unlock(&lock->lock);
 }
 
-static bool __ttm_write_lock(struct ttm_lock *lock)
+static bool
+__ttm_write_lock(struct ttm_lock *lock)
 {
 	bool locked = false;
 
@@ -219,7 +227,8 @@ ttm_write_lock(struct ttm_lock *lock, bool interruptible)
 	return (ret);
 }
 
-void ttm_write_lock_downgrade(struct ttm_lock *lock)
+void
+ttm_write_lock_downgrade(struct ttm_lock *lock)
 {
 	mtx_lock(&lock->lock);
 	lock->rw = 1;
@@ -227,7 +236,8 @@ void ttm_write_lock_downgrade(struct ttm_lock *lock)
 	mtx_unlock(&lock->lock);
 }
 
-static int __ttm_vt_unlock(struct ttm_lock *lock)
+static int
+__ttm_vt_unlock(struct ttm_lock *lock)
 {
 	int ret = 0;
 
@@ -241,7 +251,8 @@ static int __ttm_vt_unlock(struct ttm_lock *lock)
 	return ret;
 }
 
-static void ttm_vt_lock_remove(struct ttm_base_object **p_base)
+static void
+ttm_vt_lock_remove(struct ttm_base_object **p_base)
 {
 	struct ttm_base_object *base = *p_base;
 	struct ttm_lock *lock = container_of(base, struct ttm_lock, base);
@@ -252,7 +263,8 @@ static void ttm_vt_lock_remove(struct ttm_base_object **p_base)
 	MPASS(ret == 0);
 }
 
-static bool __ttm_vt_lock(struct ttm_lock *lock)
+static bool
+__ttm_vt_lock(struct ttm_lock *lock)
 {
 	bool locked = false;
 
@@ -266,9 +278,9 @@ static bool __ttm_vt_lock(struct ttm_lock *lock)
 	return locked;
 }
 
-int ttm_vt_lock(struct ttm_lock *lock,
-		bool interruptible,
-		struct ttm_object_file *tfile)
+int
+ttm_vt_lock(struct ttm_lock *lock, bool interruptible,
+    struct ttm_object_file *tfile)
 {
 	const char *wmsg;
 	int flags, ret;
@@ -299,8 +311,8 @@ int ttm_vt_lock(struct ttm_lock *lock,
 	 * while holding it.
 	 */
 
-	ret = ttm_base_object_init(tfile, &lock->base, false,
-				   ttm_lock_type, &ttm_vt_lock_remove, NULL);
+	ret = ttm_base_object_init(tfile, &lock->base, false, ttm_lock_type,
+	    &ttm_vt_lock_remove, NULL);
 	if (ret)
 		(void)__ttm_vt_unlock(lock);
 	else
@@ -309,13 +321,15 @@ int ttm_vt_lock(struct ttm_lock *lock,
 	return (ret);
 }
 
-int ttm_vt_unlock(struct ttm_lock *lock)
+int
+ttm_vt_unlock(struct ttm_lock *lock)
 {
-	return ttm_ref_object_base_unref(lock->vt_holder,
-					 lock->base.hash.key, TTM_REF_USAGE);
+	return ttm_ref_object_base_unref(lock->vt_holder, lock->base.hash.key,
+	    TTM_REF_USAGE);
 }
 
-void ttm_suspend_unlock(struct ttm_lock *lock)
+void
+ttm_suspend_unlock(struct ttm_lock *lock)
 {
 	mtx_lock(&lock->lock);
 	lock->flags &= ~TTM_SUSPEND_LOCK;
@@ -323,7 +337,8 @@ void ttm_suspend_unlock(struct ttm_lock *lock)
 	mtx_unlock(&lock->lock);
 }
 
-static bool __ttm_suspend_lock(struct ttm_lock *lock)
+static bool
+__ttm_suspend_lock(struct ttm_lock *lock)
 {
 	bool locked = false;
 
@@ -337,7 +352,8 @@ static bool __ttm_suspend_lock(struct ttm_lock *lock)
 	return locked;
 }
 
-void ttm_suspend_lock(struct ttm_lock *lock)
+void
+ttm_suspend_lock(struct ttm_lock *lock)
 {
 	mtx_lock(&lock->lock);
 	while (!__ttm_suspend_lock(lock))

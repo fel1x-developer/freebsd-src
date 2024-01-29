@@ -31,9 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/acl.h>
 #include <sys/errno.h>
 #include <sys/stat.h>
-#include <sys/acl.h>
 
 #include "acl_support.h"
 

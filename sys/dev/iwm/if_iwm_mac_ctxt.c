@@ -102,58 +102,54 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_mac_ctxt.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_mac_ctxt.h>
 
 /*
  * BEGIN mvm/mac-ctxt.c
@@ -167,8 +163,8 @@ const uint8_t iwm_ac_to_tx_fifo[] = {
 };
 
 static void
-iwm_ack_rates(struct iwm_softc *sc, int is2ghz,
-	int *cck_rates, int *ofdm_rates, struct iwm_node *in)
+iwm_ack_rates(struct iwm_softc *sc, int is2ghz, int *cck_rates, int *ofdm_rates,
+    struct iwm_node *in)
 {
 	int lowest_present_ofdm = 100;
 	int lowest_present_cck = 100;
@@ -252,7 +248,7 @@ iwm_ack_rates(struct iwm_softc *sc, int is2ghz,
 
 static void
 iwm_mac_ctxt_cmd_common(struct iwm_softc *sc, struct iwm_node *in,
-	struct iwm_mac_ctx_cmd *cmd, uint32_t action)
+    struct iwm_mac_ctx_cmd *cmd, uint32_t action)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211vap *vap = TAILQ_FIRST(&ic->ic_vaps);
@@ -269,8 +265,8 @@ iwm_mac_ctxt_cmd_common(struct iwm_softc *sc, struct iwm_node *in,
 	 * These are both functions of the vap, not of the node.
 	 * So, for now, hard-code both to 0 (default).
 	 */
-	cmd->id_and_color = htole32(IWM_FW_CMD_ID_AND_COLOR(ivp->id,
-	    ivp->color));
+	cmd->id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ivp->id, ivp->color));
 	cmd->action = htole32(action);
 
 	cmd->mac_type = htole32(IWM_FW_MAC_TYPE_BSS_STA);
@@ -319,7 +315,7 @@ iwm_mac_ctxt_cmd_common(struct iwm_softc *sc, struct iwm_node *in,
 	 * Default to 2ghz if no node information is given.
 	 */
 	if (in && in->in_ni.ni_chan != IEEE80211_CHAN_ANYC) {
-		is2ghz = !! IEEE80211_IS_CHAN_2GHZ(in->in_ni.ni_chan);
+		is2ghz = !!IEEE80211_IS_CHAN_2GHZ(in->in_ni.ni_chan);
 	} else {
 		is2ghz = 1;
 	}
@@ -327,12 +323,12 @@ iwm_mac_ctxt_cmd_common(struct iwm_softc *sc, struct iwm_node *in,
 	cmd->cck_rates = htole32(cck_ack_rates);
 	cmd->ofdm_rates = htole32(ofdm_ack_rates);
 
-	cmd->cck_short_preamble
-	    = htole32((ic->ic_flags & IEEE80211_F_SHPREAMBLE)
-	      ? IWM_MAC_FLG_SHORT_PREAMBLE : 0);
-	cmd->short_slot
-	    = htole32((ic->ic_flags & IEEE80211_F_SHSLOT)
-	      ? IWM_MAC_FLG_SHORT_SLOT : 0);
+	cmd->cck_short_preamble = htole32(
+	    (ic->ic_flags & IEEE80211_F_SHPREAMBLE) ?
+		IWM_MAC_FLG_SHORT_PREAMBLE :
+		0);
+	cmd->short_slot = htole32(
+	    (ic->ic_flags & IEEE80211_F_SHSLOT) ? IWM_MAC_FLG_SHORT_SLOT : 0);
 
 	/*
 	 * XXX TODO: if we're doing QOS..
@@ -344,8 +340,8 @@ iwm_mac_ctxt_cmd_common(struct iwm_softc *sc, struct iwm_node *in,
 
 		cmd->ac[txf].cw_min = htole16(ivp->queue_params[i].cw_min);
 		cmd->ac[txf].cw_max = htole16(ivp->queue_params[i].cw_max);
-		cmd->ac[txf].edca_txop =
-		    htole16(ivp->queue_params[i].edca_txop);
+		cmd->ac[txf].edca_txop = htole16(
+		    ivp->queue_params[i].edca_txop);
 		cmd->ac[txf].aifsn = ivp->queue_params[i].aifsn;
 		cmd->ac[txf].fifos_mask = (1 << txf);
 	}
@@ -363,7 +359,7 @@ static int
 iwm_mac_ctxt_send_cmd(struct iwm_softc *sc, struct iwm_mac_ctx_cmd *cmd)
 {
 	int ret = iwm_send_cmd_pdu(sc, IWM_MAC_CONTEXT_CMD, IWM_CMD_SYNC,
-				       sizeof(*cmd), cmd);
+	    sizeof(*cmd), cmd);
 	if (ret)
 		device_printf(sc->sc_dev,
 		    "%s: Failed to send MAC context (action:%d): %d\n",
@@ -376,7 +372,7 @@ iwm_mac_ctxt_send_cmd(struct iwm_softc *sc, struct iwm_mac_ctx_cmd *cmd)
  */
 static void
 iwm_mac_ctxt_cmd_fill_sta(struct iwm_softc *sc, struct iwm_node *in,
-	struct iwm_mac_data_sta *ctxt_sta, int force_assoc_off)
+    struct iwm_mac_data_sta *ctxt_sta, int force_assoc_off)
 {
 	struct ieee80211_node *ni = &in->in_ni;
 	unsigned dtim_period, dtim_count;
@@ -392,8 +388,7 @@ iwm_mac_ctxt_cmd_fill_sta(struct iwm_softc *sc, struct iwm_node *in,
 	    "DTIM: period=%d count=%d\n", dtim_period, dtim_count);
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_BEACON | IWM_DEBUG_CMD,
 	    "BEACON: tsf: %llu, ni_intval=%d\n",
-	    (unsigned long long) le64toh(ni->ni_tstamp.tsf),
-	    ni->ni_intval);
+	    (unsigned long long)le64toh(ni->ni_tstamp.tsf), ni->ni_intval);
 
 	/* We need the dtim_period to set the MAC as associated */
 	if (in->in_assoc && dtim_period && !force_assoc_off) {
@@ -428,7 +423,8 @@ iwm_mac_ctxt_cmd_fill_sta(struct iwm_softc *sc, struct iwm_node *in,
 		ctxt_sta->dtim_tsf = htole64(tsf + dtim_offs);
 		ctxt_sta->dtim_time = htole32(tsf + dtim_offs);
 
-		IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_BEACON | IWM_DEBUG_CMD,
+		IWM_DPRINTF(sc,
+		    IWM_DEBUG_RESET | IWM_DEBUG_BEACON | IWM_DEBUG_CMD,
 		    "DTIM TBTT is 0x%llx/0x%x, offset %d\n",
 		    (long long)le64toh(ctxt_sta->dtim_tsf),
 		    le32toh(ctxt_sta->dtim_time), dtim_offs);
@@ -440,17 +436,15 @@ iwm_mac_ctxt_cmd_fill_sta(struct iwm_softc *sc, struct iwm_node *in,
 
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD | IWM_DEBUG_BEACON,
 	    "%s: ni_intval: %d, bi_reciprocal: %d, dtim_interval: %d, dtim_reciprocal: %d\n",
-	    __func__,
-	    ni->ni_intval,
-	    iwm_reciprocal(ni->ni_intval),
+	    __func__, ni->ni_intval, iwm_reciprocal(ni->ni_intval),
 	    ni->ni_intval * dtim_period,
 	    iwm_reciprocal(ni->ni_intval * dtim_period));
 
 	ctxt_sta->bi = htole32(ni->ni_intval);
 	ctxt_sta->bi_reciprocal = htole32(iwm_reciprocal(ni->ni_intval));
 	ctxt_sta->dtim_interval = htole32(ni->ni_intval * dtim_period);
-	ctxt_sta->dtim_reciprocal =
-	    htole32(iwm_reciprocal(ni->ni_intval * dtim_period));
+	ctxt_sta->dtim_reciprocal = htole32(
+	    iwm_reciprocal(ni->ni_intval * dtim_period));
 
 	/* 10 = CONN_MAX_LISTEN_INTERVAL */
 	ctxt_sta->listen_interval = htole32(10);
@@ -461,14 +455,14 @@ iwm_mac_ctxt_cmd_fill_sta(struct iwm_softc *sc, struct iwm_node *in,
 
 static int
 iwm_mac_ctxt_cmd_station(struct iwm_softc *sc, struct ieee80211vap *vap,
-	uint32_t action)
+    uint32_t action)
 {
 	struct ieee80211_node *ni = vap->iv_bss;
 	struct iwm_node *in = IWM_NODE(ni);
 	struct iwm_mac_ctx_cmd cmd = {};
 
-	IWM_DPRINTF(sc, IWM_DEBUG_RESET,
-	    "%s: called; action=%d\n", __func__, action);
+	IWM_DPRINTF(sc, IWM_DEBUG_RESET, "%s: called; action=%d\n", __func__,
+	    action);
 
 	/* Fill the common data for all mac context types */
 	iwm_mac_ctxt_cmd_common(sc, in, &cmd, action);
@@ -481,8 +475,8 @@ iwm_mac_ctxt_cmd_station(struct iwm_softc *sc, struct ieee80211vap *vap,
 		cmd.filter_flags &= ~htole32(IWM_MAC_FILTER_IN_BEACON);
 
 	/* Fill the data specific for station mode */
-	iwm_mac_ctxt_cmd_fill_sta(sc, in,
-	    &cmd.sta, action == IWM_FW_CTXT_ACTION_ADD);
+	iwm_mac_ctxt_cmd_fill_sta(sc, in, &cmd.sta,
+	    action == IWM_FW_CTXT_ACTION_ADD);
 
 	return iwm_mac_ctxt_send_cmd(sc, &cmd);
 }

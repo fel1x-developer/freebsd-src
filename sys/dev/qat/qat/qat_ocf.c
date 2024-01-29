@@ -13,14 +13,15 @@
 
 /* Cryptodev headers */
 #include <opencrypto/cryptodev.h>
+
 #include "cryptodev_if.h"
 
 /* QAT specific headers */
+#include "adf_accel_devices.h"
+#include "adf_common_drv.h"
 #include "cpa.h"
 #include "cpa_cy_im.h"
 #include "cpa_cy_sym_dp.h"
-#include "adf_accel_devices.h"
-#include "adf_common_drv.h"
 #include "lac_sym_hash_defs.h"
 #include "lac_sym_qat_hash_defs_lookup.h"
 
@@ -54,17 +55,15 @@ struct qat_ocf_softc {
 /* Function definitions */
 static void qat_ocf_freesession(device_t dev, crypto_session_t cses);
 static int qat_ocf_probesession(device_t dev,
-				const struct crypto_session_params *csp);
-static int qat_ocf_newsession(device_t dev,
-			      crypto_session_t cses,
-			      const struct crypto_session_params *csp);
+    const struct crypto_session_params *csp);
+static int qat_ocf_newsession(device_t dev, crypto_session_t cses,
+    const struct crypto_session_params *csp);
 static int qat_ocf_attach(device_t dev);
 static int qat_ocf_detach(device_t dev);
 
 static void
-symDpCallback(CpaCySymDpOpData *pOpData,
-	      CpaStatus result,
-	      CpaBoolean verifyResult)
+symDpCallback(CpaCySymDpOpData *pOpData, CpaStatus result,
+    CpaBoolean verifyResult)
 {
 	struct qat_ocf_cookie *qat_cookie;
 	struct cryptop *crp;
@@ -116,21 +115,16 @@ symDpCallback(CpaCySymDpOpData *pOpData,
 	if (pOpData->digestResult && qat_session->authLen > 0) {
 		if ((crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) != 0) {
 			char icv[QAT_OCF_MAX_DIGEST] = { 0 };
-			crypto_copydata(crp,
-					crp->crp_digest_start,
-					qat_session->authLen,
-					icv);
-			if (timingsafe_bcmp(icv,
-					    qat_cookie->qat_ocf_digest,
-					    qat_session->authLen) != 0) {
+			crypto_copydata(crp, crp->crp_digest_start,
+			    qat_session->authLen, icv);
+			if (timingsafe_bcmp(icv, qat_cookie->qat_ocf_digest,
+				qat_session->authLen) != 0) {
 				rc = EBADMSG;
 				goto exit;
 			}
 		} else {
-			crypto_copyback(crp,
-					crp->crp_digest_start,
-					qat_session->authLen,
-					qat_cookie->qat_ocf_digest);
+			crypto_copyback(crp, crp->crp_digest_start,
+			    qat_session->authLen, qat_cookie->qat_ocf_digest);
 		}
 	}
 
@@ -233,10 +227,8 @@ qat_ocf_probesession(device_t dev, const struct crypto_session_params *csp)
 }
 
 static CpaStatus
-qat_ocf_session_init(device_t dev,
-		     struct cryptop *crp,
-		     struct qat_ocf_instance *qat_instance,
-		     struct qat_ocf_session *qat_ssession)
+qat_ocf_session_init(device_t dev, struct cryptop *crp,
+    struct qat_ocf_instance *qat_instance, struct qat_ocf_session *qat_ssession)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	/* Crytpodev structures */
@@ -315,9 +307,8 @@ qat_ocf_session_init(device_t dev,
 			    CPA_CY_SYM_HASH_MODE_AUTH;
 			break;
 		default:
-			device_printf(dev,
-				      "cipher_alg: %d not supported\n",
-				      csp->csp_cipher_alg);
+			device_printf(dev, "cipher_alg: %d not supported\n",
+			    csp->csp_cipher_alg);
 			status = CPA_STATUS_UNSUPPORTED;
 			goto fail;
 		}
@@ -407,13 +398,11 @@ qat_ocf_session_init(device_t dev,
 			    csp->csp_auth_mlen;
 			qat_ssession->authLen = csp->csp_auth_mlen;
 		} else {
-			LacSymQat_HashDefsLookupGet(
-			    qat_instance->cyInstHandle,
+			LacSymQat_HashDefsLookupGet(qat_instance->cyInstHandle,
 			    sessionSetupData.hashSetupData.hashAlgorithm,
 			    &pHashDefsInfo);
 			if (NULL == pHashDefsInfo) {
-				device_printf(
-				    dev,
+				device_printf(dev,
 				    "unable to find corresponding hash data\n");
 				status = CPA_STATUS_UNSUPPORTED;
 				goto fail;
@@ -493,32 +482,23 @@ qat_ocf_session_init(device_t dev,
 		}
 		break;
 	default:
-		device_printf(dev,
-			      "%s: unhandled crypto algorithm %d, %d\n",
-			      __func__,
-			      csp->csp_cipher_alg,
-			      csp->csp_auth_alg);
+		device_printf(dev, "%s: unhandled crypto algorithm %d, %d\n",
+		    __func__, csp->csp_cipher_alg, csp->csp_auth_alg);
 		status = CPA_STATUS_FAIL;
 		goto fail;
 	}
 
 	/* Extracting session size */
 	status = cpaCySymSessionCtxGetSize(qat_instance->cyInstHandle,
-					   &sessionSetupData,
-					   &sessionCtxSize);
+	    &sessionSetupData, &sessionCtxSize);
 	if (CPA_STATUS_SUCCESS != status) {
 		device_printf(dev, "unable to get session size\n");
 		goto fail;
 	}
 
 	/* Allocating contiguous memory for session */
-	sessionCtx = contigmalloc(sessionCtxSize,
-				  M_QAT_OCF,
-				  M_NOWAIT,
-				  0,
-				  ~1UL,
-				  1 << (bsrl(sessionCtxSize - 1) + 1),
-				  0);
+	sessionCtx = contigmalloc(sessionCtxSize, M_QAT_OCF, M_NOWAIT, 0, ~1UL,
+	    1 << (bsrl(sessionCtxSize - 1) + 1), 0);
 	if (NULL == sessionCtx) {
 		device_printf(dev, "unable to allocate memory for session\n");
 		status = CPA_STATUS_RESOURCE;
@@ -526,8 +506,7 @@ qat_ocf_session_init(device_t dev,
 	}
 
 	status = cpaCySymDpInitSession(qat_instance->cyInstHandle,
-				       &sessionSetupData,
-				       sessionCtx);
+	    &sessionSetupData, sessionCtx);
 	if (CPA_STATUS_SUCCESS != status) {
 		device_printf(dev, "session initialization failed\n");
 		goto fail;
@@ -550,9 +529,8 @@ fail:
 }
 
 static int
-qat_ocf_newsession(device_t dev,
-		   crypto_session_t cses,
-		   const struct crypto_session_params *csp)
+qat_ocf_newsession(device_t dev, crypto_session_t cses,
+    const struct crypto_session_params *csp)
 {
 	/* Cryptodev QAT structures */
 	struct qat_ocf_softc *qat_softc;
@@ -563,9 +541,8 @@ qat_ocf_newsession(device_t dev,
 	/* Create cryptodev session */
 	qat_softc = device_get_softc(dev);
 	if (qat_softc->numCyInstances > 0) {
-		qat_instance =
-		    &qat_softc
-			 ->cyInstHandles[cpu_id % qat_softc->numCyInstances];
+		qat_instance = &qat_softc->cyInstHandles[cpu_id %
+		    qat_softc->numCyInstances];
 		qat_dsession = crypto_get_driver_session(cses);
 		if (NULL == qat_dsession) {
 			device_printf(dev, "Unable to create new session\n");
@@ -583,9 +560,8 @@ qat_ocf_newsession(device_t dev,
 }
 
 static CpaStatus
-qat_ocf_remove_session(device_t dev,
-		       CpaInstanceHandle cyInstHandle,
-		       struct qat_ocf_session *qat_session)
+qat_ocf_remove_session(device_t dev, CpaInstanceHandle cyInstHandle,
+    struct qat_ocf_session *qat_session)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -597,7 +573,7 @@ qat_ocf_remove_session(device_t dev,
 	 * we have to wait a very short while for counter update
 	 * after call back execution. */
 	status = qat_ocf_wait_for_session(qat_session->sessionCtx,
-					  QAT_OCF_SESSION_WAIT_TIMEOUT_MS);
+	    QAT_OCF_SESSION_WAIT_TIMEOUT_MS);
 	if (CPA_STATUS_SUCCESS != status) {
 		device_printf(dev, "waiting for session un-busy failed\n");
 		return CPA_STATUS_FAIL;
@@ -610,9 +586,8 @@ qat_ocf_remove_session(device_t dev,
 	}
 
 	explicit_bzero(qat_session->sessionCtx, qat_session->sessionCtxSize);
-	contigfree(qat_session->sessionCtx,
-		   qat_session->sessionCtxSize,
-		   M_QAT_OCF);
+	contigfree(qat_session->sessionCtx, qat_session->sessionCtxSize,
+	    M_QAT_OCF);
 	qat_session->sessionCtx = NULL;
 	qat_session->sessionCtxSize = 0;
 
@@ -630,13 +605,11 @@ qat_ocf_freesession(device_t dev, crypto_session_t cses)
 	qat_instance = qat_dsession->qatInstance;
 	mtx_lock(&qat_instance->cyInstMtx);
 	status = qat_ocf_remove_session(dev,
-					qat_dsession->qatInstance->cyInstHandle,
-					&qat_dsession->encSession);
+	    qat_dsession->qatInstance->cyInstHandle, &qat_dsession->encSession);
 	if (CPA_STATUS_SUCCESS != status)
 		device_printf(dev, "unable to remove encrypt session\n");
 	status = qat_ocf_remove_session(dev,
-					qat_dsession->qatInstance->cyInstHandle,
-					&qat_dsession->decSession);
+	    qat_dsession->qatInstance->cyInstHandle, &qat_dsession->decSession);
 	if (CPA_STATUS_SUCCESS != status)
 		device_printf(dev, "unable to remove decrypt session\n");
 	mtx_unlock(&qat_instance->cyInstMtx);
@@ -651,14 +624,11 @@ qat_ocf_load_aad_gcm(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 	pOpData = &qat_cookie->pOpdata;
 
 	if (NULL != crp->crp_aad)
-		memcpy(qat_cookie->qat_ocf_gcm_aad,
-		       crp->crp_aad,
-		       crp->crp_aad_length);
+		memcpy(qat_cookie->qat_ocf_gcm_aad, crp->crp_aad,
+		    crp->crp_aad_length);
 	else
-		crypto_copydata(crp,
-				crp->crp_aad_start,
-				crp->crp_aad_length,
-				qat_cookie->qat_ocf_gcm_aad);
+		crypto_copydata(crp, crp->crp_aad_start, crp->crp_aad_length,
+		    qat_cookie->qat_ocf_gcm_aad);
 
 	pOpData->pAdditionalAuthData = qat_cookie->qat_ocf_gcm_aad;
 	pOpData->additionalAuthData = qat_cookie->qat_ocf_gcm_aad_paddr;
@@ -695,8 +665,8 @@ qat_ocf_load_aad(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 		pOpData->messageLenToCipherInBytes = crp->crp_payload_length;
 		pOpData->cryptoStartSrcOffsetInBytes = crp->crp_payload_start;
 
-		pOpData->messageLenToHashInBytes =
-		    crp->crp_aad_length + crp->crp_payload_length;
+		pOpData->messageLenToHashInBytes = crp->crp_aad_length +
+		    crp->crp_payload_length;
 		pOpData->hashStartSrcOffsetInBytes = crp->crp_aad_start;
 
 		return CPA_STATUS_SUCCESS;
@@ -709,22 +679,19 @@ qat_ocf_load_aad(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 	args.pOpData = pOpData;
 	args.error = 0;
 	status = bus_dmamap_load(qat_cookie->gcm_aad_dma_mem.dma_tag,
-				 qat_cookie->gcm_aad_dma_mem.dma_map,
-				 crp->crp_aad,
-				 crp->crp_aad_length,
-				 qat_ocf_crypto_load_aadbuf_cb,
-				 &args,
-				 BUS_DMA_NOWAIT);
+	    qat_cookie->gcm_aad_dma_mem.dma_map, crp->crp_aad,
+	    crp->crp_aad_length, qat_ocf_crypto_load_aadbuf_cb, &args,
+	    BUS_DMA_NOWAIT);
 	qat_cookie->is_sep_aad_used = CPA_TRUE;
 
 	/* Right after this step we have AAD placed in the first flat buffer
 	 * in source SGL */
 	pOpData->messageLenToCipherInBytes = crp->crp_payload_length;
-	pOpData->cryptoStartSrcOffsetInBytes =
-	    crp->crp_aad_length + crp->crp_aad_start + crp->crp_payload_start;
+	pOpData->cryptoStartSrcOffsetInBytes = crp->crp_aad_length +
+	    crp->crp_aad_start + crp->crp_payload_start;
 
-	pOpData->messageLenToHashInBytes =
-	    crp->crp_aad_length + crp->crp_payload_length;
+	pOpData->messageLenToHashInBytes = crp->crp_aad_length +
+	    crp->crp_payload_length;
 	pOpData->hashStartSrcOffsetInBytes = crp->crp_aad_start;
 
 	return status;
@@ -745,9 +712,8 @@ qat_ocf_load(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 
 	/* Load IV buffer if present */
 	if (csp->csp_ivlen > 0) {
-		memset(qat_cookie->qat_ocf_iv_buf,
-		       0,
-		       sizeof(qat_cookie->qat_ocf_iv_buf));
+		memset(qat_cookie->qat_ocf_iv_buf, 0,
+		    sizeof(qat_cookie->qat_ocf_iv_buf));
 		crypto_read_iv(crp, qat_cookie->qat_ocf_iv_buf);
 		pOpData->iv = qat_cookie->qat_ocf_iv_buf_paddr;
 		pOpData->pIv = qat_cookie->qat_ocf_iv_buf;
@@ -766,11 +732,8 @@ qat_ocf_load(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 	args.pOpData = pOpData;
 	args.error = 0;
 	status = bus_dmamap_load_crp_buffer(qat_cookie->src_dma_mem.dma_tag,
-					    qat_cookie->src_dma_mem.dma_map,
-					    &crp->crp_buf,
-					    qat_ocf_crypto_load_buf_cb,
-					    &args,
-					    BUS_DMA_NOWAIT);
+	    qat_cookie->src_dma_mem.dma_map, &crp->crp_buf,
+	    qat_ocf_crypto_load_buf_cb, &args, BUS_DMA_NOWAIT);
 	if (CPA_STATUS_SUCCESS != status)
 		goto fail;
 	pOpData->srcBuffer = qat_cookie->src_buffer_list_paddr;
@@ -780,11 +743,8 @@ qat_ocf_load(struct cryptop *crp, struct qat_ocf_cookie *qat_cookie)
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp)) {
 		status =
 		    bus_dmamap_load_crp_buffer(qat_cookie->dst_dma_mem.dma_tag,
-					       qat_cookie->dst_dma_mem.dma_map,
-					       &crp->crp_obuf,
-					       qat_ocf_crypto_load_obuf_cb,
-					       &args,
-					       BUS_DMA_NOWAIT);
+			qat_cookie->dst_dma_mem.dma_map, &crp->crp_obuf,
+			qat_ocf_crypto_load_obuf_cb, &args, BUS_DMA_NOWAIT);
 		if (CPA_STATUS_SUCCESS != status)
 			goto fail;
 		pOpData->dstBuffer = qat_cookie->dst_buffer_list_paddr;
@@ -871,8 +831,8 @@ qat_ocf_process(device_t dev, struct cryptop *crp, int hint)
 	status = qat_ocf_load(crp, qat_cookie);
 	if (CPA_STATUS_SUCCESS != status) {
 		device_printf(dev,
-			      "unable to load OCF buffers to QAT DMA "
-			      "transaction\n");
+		    "unable to load OCF buffers to QAT DMA "
+		    "transaction\n");
 		rc = EIO;
 		goto fail;
 	}
@@ -892,8 +852,8 @@ qat_ocf_process(device_t dev, struct cryptop *crp, int hint)
 	 * QAT session while handling traffic.
 	 */
 	if (NULL == qat_session->sessionCtx) {
-		status =
-		    qat_ocf_session_init(dev, crp, qat_instance, qat_session);
+		status = qat_ocf_session_init(dev, crp, qat_instance,
+		    qat_session);
 		if (CPA_STATUS_SUCCESS != status) {
 			mtx_unlock(&qat_instance->cyInstMtx);
 			device_printf(dev, "unable to init session\n");
@@ -920,9 +880,8 @@ qat_ocf_process(device_t dev, struct cryptop *crp, int hint)
 			rc = EAGAIN;
 			goto fail;
 		}
-		device_printf(dev,
-			      "unable to send request. Status: %d\n",
-			      status);
+		device_printf(dev, "unable to send request. Status: %d\n",
+		    status);
 		rc = EIO;
 		goto fail;
 	}
@@ -957,8 +916,7 @@ qat_ocf_probe(device_t dev)
 
 static CpaStatus
 qat_ocf_get_irq_instances(CpaInstanceHandle *cyInstHandles,
-			  Cpa16U cyInstHandlesSize,
-			  Cpa16U *foundInstances)
+    Cpa16U cyInstHandlesSize, Cpa16U *foundInstances)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	icp_accel_dev_t **pAdfInsts = NULL;
@@ -977,8 +935,8 @@ qat_ocf_get_irq_instances(CpaInstanceHandle *cyInstHandles,
 		return status;
 
 	/* Allocate memory to store addr of accel_devs */
-	pAdfInsts =
-	    malloc(numDevices * sizeof(icp_accel_dev_t *), M_QAT_OCF, M_WAITOK);
+	pAdfInsts = malloc(numDevices * sizeof(icp_accel_dev_t *), M_QAT_OCF,
+	    M_WAITOK);
 
 	/* Get ADF to return all accel_devs that support either
 	 * symmetric or asymmetric crypto */
@@ -1029,9 +987,8 @@ qat_ocf_start_instances(struct qat_ocf_softc *qat_softc, device_t dev)
 	Cpa32U i;
 
 	qat_softc->numCyInstances = 0;
-	status = qat_ocf_get_irq_instances(cyInstHandles,
-					   QAT_OCF_MAX_INSTANCES,
-					   &numInstances);
+	status = qat_ocf_get_irq_instances(cyInstHandles, QAT_OCF_MAX_INSTANCES,
+	    &numInstances);
 	if (CPA_STATUS_SUCCESS != status)
 		return status;
 
@@ -1046,29 +1003,27 @@ qat_ocf_start_instances(struct qat_ocf_softc *qat_softc, device_t dev)
 		status = cpaCyStartInstance(cyInstHandle);
 		if (CPA_STATUS_SUCCESS != status) {
 			device_printf(qat_softc->sc_dev,
-				      "unable to get start instance\n");
+			    "unable to get start instance\n");
 			continue;
 		}
 
 		qat_ocf_instance = &qat_softc->cyInstHandles[startedInstances];
 		qat_ocf_instance->cyInstHandle = cyInstHandle;
-		mtx_init(&qat_ocf_instance->cyInstMtx,
-			 "Instance MTX",
-			 NULL,
-			 MTX_DEF);
+		mtx_init(&qat_ocf_instance->cyInstMtx, "Instance MTX", NULL,
+		    MTX_DEF);
 
-		status =
-		    cpaCySetAddressTranslation(cyInstHandle, qatVirtToPhys);
+		status = cpaCySetAddressTranslation(cyInstHandle,
+		    qatVirtToPhys);
 		if (CPA_STATUS_SUCCESS != status) {
 			device_printf(qat_softc->sc_dev,
-				      "unable to add virt to phys callback\n");
+			    "unable to add virt to phys callback\n");
 			goto fail;
 		}
 
 		status = cpaCySymDpRegCbFunc(cyInstHandle, symDpCallback);
 		if (CPA_STATUS_SUCCESS != status) {
 			device_printf(qat_softc->sc_dev,
-				      "unable to add user callback\n");
+			    "unable to add user callback\n");
 			goto fail;
 		}
 
@@ -1076,15 +1031,14 @@ qat_ocf_start_instances(struct qat_ocf_softc *qat_softc, device_t dev)
 		status = qat_ocf_cookie_pool_init(qat_ocf_instance, dev);
 		if (CPA_STATUS_SUCCESS != status) {
 			device_printf(qat_softc->sc_dev,
-				      "unable to create cookie pool\n");
+			    "unable to create cookie pool\n");
 			goto fail;
 		}
 
 		/* Disable forcing HW MAC validation for AEAD */
 		status = icp_sal_setForceAEADMACVerify(cyInstHandle, CPA_FALSE);
 		if (CPA_STATUS_SUCCESS != status) {
-			device_printf(
-			    qat_softc->sc_dev,
+			device_printf(qat_softc->sc_dev,
 			    "unable to disable AEAD HW MAC verification\n");
 			goto fail;
 		}
@@ -1100,7 +1054,7 @@ qat_ocf_start_instances(struct qat_ocf_softc *qat_softc, device_t dev)
 		status = cpaCyStopInstance(cyInstHandle);
 		if (CPA_STATUS_SUCCESS != status)
 			device_printf(qat_softc->sc_dev,
-				      "unable to stop the instance\n");
+			    "unable to stop the instance\n");
 	}
 	qat_softc->numCyInstances = startedInstances;
 
@@ -1160,19 +1114,17 @@ qat_ocf_init(struct qat_ocf_softc *qat_softc)
 	/* Starting instances for OCF */
 	if (qat_ocf_start_instances(qat_softc, qat_softc->sc_dev)) {
 		device_printf(qat_softc->sc_dev,
-			      "unable to get QAT IRQ instances\n");
+		    "unable to get QAT IRQ instances\n");
 		goto fail;
 	}
 
 	/* Register only if instances available */
 	if (qat_softc->numCyInstances) {
-		cryptodev_id =
-		    crypto_get_driverid(qat_softc->sc_dev,
-					sizeof(struct qat_ocf_dsession),
-					CRYPTOCAP_F_HARDWARE);
+		cryptodev_id = crypto_get_driverid(qat_softc->sc_dev,
+		    sizeof(struct qat_ocf_dsession), CRYPTOCAP_F_HARDWARE);
 		if (cryptodev_id < 0) {
 			device_printf(qat_softc->sc_dev,
-				      "cannot initialize!\n");
+			    "cannot initialize!\n");
 			goto fail;
 		}
 		qat_softc->cryptodev_id = cryptodev_id;
@@ -1185,7 +1137,8 @@ fail:
 	return ENXIO;
 }
 
-static int qat_ocf_sysctl_handle(SYSCTL_HANDLER_ARGS)
+static int
+qat_ocf_sysctl_handle(SYSCTL_HANDLER_ARGS)
 {
 	struct qat_ocf_softc *qat_softc = NULL;
 	int ret = 0;
@@ -1225,17 +1178,10 @@ qat_ocf_attach(device_t dev)
 	qat_softc->cryptodev_id = -1;
 	qat_softc->enabled = 1;
 
-	qat_softc->rc =
-	    SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-			    OID_AUTO,
-			    "enable",
-			    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-			    dev,
-			    0,
-			    qat_ocf_sysctl_handle,
-			    "I",
-			    "QAT OCF support enablement");
+	qat_softc->rc = SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "enable",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, dev, 0,
+	    qat_ocf_sysctl_handle, "I", "QAT OCF support enablement");
 
 	if (!qat_softc->rc)
 		return ENOMEM;
@@ -1262,19 +1208,19 @@ qat_ocf_detach(device_t dev)
 	return qat_ocf_deinit(qat_softc);
 }
 
-static device_method_t qat_ocf_methods[] =
-    { DEVMETHOD(device_identify, qat_ocf_identify),
-      DEVMETHOD(device_probe, qat_ocf_probe),
-      DEVMETHOD(device_attach, qat_ocf_attach),
-      DEVMETHOD(device_detach, qat_ocf_detach),
+static device_method_t qat_ocf_methods[] = { DEVMETHOD(device_identify,
+						 qat_ocf_identify),
+	DEVMETHOD(device_probe, qat_ocf_probe),
+	DEVMETHOD(device_attach, qat_ocf_attach),
+	DEVMETHOD(device_detach, qat_ocf_detach),
 
-      /* Cryptodev interface */
-      DEVMETHOD(cryptodev_probesession, qat_ocf_probesession),
-      DEVMETHOD(cryptodev_newsession, qat_ocf_newsession),
-      DEVMETHOD(cryptodev_freesession, qat_ocf_freesession),
-      DEVMETHOD(cryptodev_process, qat_ocf_process),
+	/* Cryptodev interface */
+	DEVMETHOD(cryptodev_probesession, qat_ocf_probesession),
+	DEVMETHOD(cryptodev_newsession, qat_ocf_newsession),
+	DEVMETHOD(cryptodev_freesession, qat_ocf_freesession),
+	DEVMETHOD(cryptodev_process, qat_ocf_process),
 
-      DEVMETHOD_END };
+	DEVMETHOD_END };
 
 static driver_t qat_ocf_driver = {
 	.name = "qat_ocf",
@@ -1282,13 +1228,7 @@ static driver_t qat_ocf_driver = {
 	.size = sizeof(struct qat_ocf_softc),
 };
 
-
-DRIVER_MODULE_ORDERED(qat,
-		      nexus,
-		      qat_ocf_driver,
-		      NULL,
-		      NULL,
-		      SI_ORDER_ANY);
+DRIVER_MODULE_ORDERED(qat, nexus, qat_ocf_driver, NULL, NULL, SI_ORDER_ANY);
 MODULE_VERSION(qat, 1);
 MODULE_DEPEND(qat, qat_c62x, 1, 1, 1);
 MODULE_DEPEND(qat, qat_200xx, 1, 1, 1);

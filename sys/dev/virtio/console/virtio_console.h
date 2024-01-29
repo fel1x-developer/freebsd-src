@@ -13,8 +13,8 @@
  * 3. Neither the name of IBM nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED.  IN NO EVENT SHALL IBM OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -33,11 +33,11 @@
 #define _VIRTIO_CONSOLE_H
 
 /* Feature bits */
-#define VIRTIO_CONSOLE_F_SIZE		0x01	/* Console size */
-#define VIRTIO_CONSOLE_F_MULTIPORT	0x02	/* Multiple ports */
-#define VIRTIO_CONSOLE_F_EMERG_WRITE 	0x04 	/* Emergency write */
+#define VIRTIO_CONSOLE_F_SIZE 0x01	  /* Console size */
+#define VIRTIO_CONSOLE_F_MULTIPORT 0x02	  /* Multiple ports */
+#define VIRTIO_CONSOLE_F_EMERG_WRITE 0x04 /* Emergency write */
 
-#define VIRTIO_CONSOLE_BAD_ID		(~(uint32_t)0)
+#define VIRTIO_CONSOLE_BAD_ID (~(uint32_t)0)
 
 struct virtio_console_config {
 	/* colums of the screens */
@@ -55,19 +55,19 @@ struct virtio_console_config {
  * particular port.
  */
 struct virtio_console_control {
-	uint32_t id;		/* Port number */
-	uint16_t event;		/* The kind of control event (see below) */
-	uint16_t value;		/* Extra information for the key */
+	uint32_t id;	/* Port number */
+	uint16_t event; /* The kind of control event (see below) */
+	uint16_t value; /* Extra information for the key */
 };
 
 /* Some events for control messages */
-#define VIRTIO_CONSOLE_DEVICE_READY	0
-#define VIRTIO_CONSOLE_PORT_ADD		1
-#define VIRTIO_CONSOLE_PORT_REMOVE	2
-#define VIRTIO_CONSOLE_PORT_READY	3
-#define VIRTIO_CONSOLE_CONSOLE_PORT	4
-#define VIRTIO_CONSOLE_RESIZE		5
-#define VIRTIO_CONSOLE_PORT_OPEN	6
-#define VIRTIO_CONSOLE_PORT_NAME	7
+#define VIRTIO_CONSOLE_DEVICE_READY 0
+#define VIRTIO_CONSOLE_PORT_ADD 1
+#define VIRTIO_CONSOLE_PORT_REMOVE 2
+#define VIRTIO_CONSOLE_PORT_READY 3
+#define VIRTIO_CONSOLE_CONSOLE_PORT 4
+#define VIRTIO_CONSOLE_RESIZE 5
+#define VIRTIO_CONSOLE_PORT_OPEN 6
+#define VIRTIO_CONSOLE_PORT_NAME 7
 
 #endif /* _VIRTIO_CONSOLE_H */

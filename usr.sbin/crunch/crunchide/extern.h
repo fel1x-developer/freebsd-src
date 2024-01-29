@@ -33,12 +33,12 @@
  */
 
 #ifdef NLIST_ELF32
-int	check_elf32(int, const char *);
-int	hide_elf32(int, const char *);
+int check_elf32(int, const char *);
+int hide_elf32(int, const char *);
 #endif
 #ifdef NLIST_ELF64
-int	check_elf64(int, const char *);
-int	hide_elf64(int, const char *);
+int check_elf64(int, const char *);
+int hide_elf64(int, const char *);
 #endif
 
-int	in_keep_list(const char *symbol);
+int in_keep_list(const char *symbol);

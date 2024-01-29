@@ -26,15 +26,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *	from: FreeBSD: src/sys/i386/include/signal.h,v 1.13 2000/11/09
- *	from: FreeBSD: src/sys/sparc64/include/signal.h,v 1.6 2001/09/30 18:52:17
+ *	from: FreeBSD: src/sys/sparc64/include/signal.h,v 1.6 2001/09/30
+ *18:52:17
  */
 
-#ifndef	_MACHINE_SIGNAL_H_
-#define	_MACHINE_SIGNAL_H_
+#ifndef _MACHINE_SIGNAL_H_
+#define _MACHINE_SIGNAL_H_
 
 #include <sys/cdefs.h>
 
-typedef	long sig_atomic_t;
+typedef long sig_atomic_t;
 
 #if __BSD_VISIBLE
 

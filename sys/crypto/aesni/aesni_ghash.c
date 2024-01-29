@@ -37,7 +37,7 @@
  * and as such are:
  * Copyright © 2010 Intel Corporation.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -49,7 +49,7 @@
  *   * Neither the name of Intel Corporation nor the
  *     names of its contributors may be used to endorse or promote products
  *     derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -70,9 +70,9 @@
 #include <stdint.h>
 #endif
 
-#include <wmmintrin.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
+#include <wmmintrin.h>
 
 static inline int
 m128icmp(__m128i a, __m128i b)
@@ -87,7 +87,7 @@ m128icmp(__m128i a, __m128i b)
 #ifdef __i386__
 static inline __m128i
 _mm_insert_epi64(__m128i a, int64_t b, const int ndx)
-{  
+{
 
 	if (!ndx) {
 		a = _mm_insert_epi32(a, b, 0);
@@ -158,12 +158,12 @@ gfmul(__m128i a, __m128i b, __m128i *res)
  * Figure 8. Code Sample - Performing Ghash Using an Aggregated Reduction
  * Method */
 static void
-reduce4(__m128i H1, __m128i H2, __m128i H3, __m128i H4,
-    __m128i X1, __m128i X2, __m128i X3, __m128i X4, __m128i *res)
+reduce4(__m128i H1, __m128i H2, __m128i H3, __m128i H4, __m128i X1, __m128i X2,
+    __m128i X3, __m128i X4, __m128i *res)
 {
 	/*algorithm by Krzysztof Jankowski, Pierre Laurent - Intel*/
-	__m128i H1_X1_lo, H1_X1_hi, H2_X2_lo, H2_X2_hi, H3_X3_lo,
-	    H3_X3_hi, H4_X4_lo, H4_X4_hi, lo, hi;
+	__m128i H1_X1_lo, H1_X1_hi, H2_X2_lo, H2_X2_hi, H3_X3_lo, H3_X3_hi,
+	    H4_X4_lo, H4_X4_hi, lo, hi;
 	__m128i tmp0, tmp1, tmp2, tmp3;
 	__m128i tmp4, tmp5, tmp6, tmp7;
 	__m128i tmp8, tmp9;
@@ -267,11 +267,11 @@ reduce4(__m128i H1, __m128i H2, __m128i H3, __m128i H4,
  */
 void
 AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
-	const unsigned char *addt, const unsigned char *ivec,
-	unsigned char *tag, uint32_t nbytes, uint32_t abytes, int ibytes,
-	const unsigned char *key, int nr)
+    const unsigned char *addt, const unsigned char *ivec, unsigned char *tag,
+    uint32_t nbytes, uint32_t abytes, int ibytes, const unsigned char *key,
+    int nr)
 {
-	int i, j ,k;
+	int i, j, k;
 	__m128i tmp1, tmp2, tmp3, tmp4;
 	__m128i tmp5, tmp6, tmp7, tmp8;
 	__m128i H, H2, H3, H4, Y, T;
@@ -281,27 +281,27 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 	__m128i last_block = _mm_setzero_si128();
 	__m128i ONE = _mm_set_epi32(0, 1, 0, 0);
 	__m128i EIGHT = _mm_set_epi32(0, 8, 0, 0);
-	__m128i BSWAP_EPI64 = _mm_set_epi8(8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,
-	    7);
-	__m128i BSWAP_MASK = _mm_set_epi8(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
-	    15);
+	__m128i BSWAP_EPI64 = _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1,
+	    2, 3, 4, 5, 6, 7);
+	__m128i BSWAP_MASK = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	    12, 13, 14, 15);
 	__m128i X = _mm_setzero_si128();
 
-	if (ibytes == 96/8) {
+	if (ibytes == 96 / 8) {
 		Y = _mm_loadu_si128((const __m128i *)ivec);
 		Y = _mm_insert_epi32(Y, 0x1000000, 3);
 		/*(Compute E[ZERO, KS] and E[Y0, KS] together*/
 		tmp1 = _mm_xor_si128(X, KEY[0]);
 		tmp2 = _mm_xor_si128(Y, KEY[0]);
-		for (j=1; j < nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 			tmp2 = _mm_aesenc_si128(tmp2, KEY[j]);
 
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
-			tmp2 = _mm_aesenc_si128(tmp2, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
+			tmp2 = _mm_aesenc_si128(tmp2, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
-		tmp2 = _mm_aesenc_si128(tmp2, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
+		tmp2 = _mm_aesenc_si128(tmp2, KEY[nr - 1]);
 
 		H = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		T = _mm_aesenclast_si128(tmp2, KEY[nr]);
@@ -309,48 +309,49 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 		H = _mm_shuffle_epi8(H, BSWAP_MASK);
 	} else {
 		tmp1 = _mm_xor_si128(X, KEY[0]);
-		for (j=1; j <nr; j++)
+		for (j = 1; j < nr; j++)
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 		H = _mm_aesenclast_si128(tmp1, KEY[nr]);
 
 		H = _mm_shuffle_epi8(H, BSWAP_MASK);
 		Y = _mm_setzero_si128();
 
-		for (i=0; i < ibytes/16; i++) {
+		for (i = 0; i < ibytes / 16; i++) {
 			tmp1 = _mm_loadu_si128(&((const __m128i *)ivec)[i]);
 			tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 			Y = _mm_xor_si128(Y, tmp1);
 			gfmul(Y, H, &Y);
 		}
-		if (ibytes%16) {
-			for (j=0; j < ibytes%16; j++)
-				((unsigned char*)&last_block)[j] = ivec[i*16+j];
+		if (ibytes % 16) {
+			for (j = 0; j < ibytes % 16; j++)
+				((unsigned char *)&last_block)[j] =
+				    ivec[i * 16 + j];
 			tmp1 = last_block;
 			tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 			Y = _mm_xor_si128(Y, tmp1);
 			gfmul(Y, H, &Y);
 		}
-		tmp1 = _mm_insert_epi64(tmp1, (uint64_t)ibytes*8, 0);
+		tmp1 = _mm_insert_epi64(tmp1, (uint64_t)ibytes * 8, 0);
 		tmp1 = _mm_insert_epi64(tmp1, 0, 1);
 
 		Y = _mm_xor_si128(Y, tmp1);
 		gfmul(Y, H, &Y);
 		Y = _mm_shuffle_epi8(Y, BSWAP_MASK); /*Compute E(K, Y0)*/
 		tmp1 = _mm_xor_si128(Y, KEY[0]);
-		for (j=1; j < nr; j++)
+		for (j = 1; j < nr; j++)
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 		T = _mm_aesenclast_si128(tmp1, KEY[nr]);
 	}
 
-	gfmul(H,H,&H2);
-	gfmul(H,H2,&H3);
-	gfmul(H,H3,&H4);
+	gfmul(H, H, &H2);
+	gfmul(H, H2, &H3);
+	gfmul(H, H3, &H4);
 
-	for (i=0; i<abytes/16/4; i++) {
-		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i*4]);
-		tmp2 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+1]);
-		tmp3 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+2]);
-		tmp4 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+3]);
+	for (i = 0; i < abytes / 16 / 4; i++) {
+		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4]);
+		tmp2 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 1]);
+		tmp3 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 2]);
+		tmp4 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 3]);
 
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		tmp2 = _mm_shuffle_epi8(tmp2, BSWAP_MASK);
@@ -360,20 +361,20 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 
 		reduce4(H, H2, H3, H4, tmp4, tmp3, tmp2, tmp1, &X);
 	}
-	for (i=i*4; i<abytes/16; i++) {
+	for (i = i * 4; i < abytes / 16; i++) {
 		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i]);
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
-		X = _mm_xor_si128(X,tmp1);
+		X = _mm_xor_si128(X, tmp1);
 		gfmul(X, H, &X);
 	}
-	if (abytes%16) {
+	if (abytes % 16) {
 		last_block = _mm_setzero_si128();
-		for (j=0; j<abytes%16; j++)
-			((unsigned char*)&last_block)[j] = addt[i*16+j];
+		for (j = 0; j < abytes % 16; j++)
+			((unsigned char *)&last_block)[j] = addt[i * 16 + j];
 		tmp1 = last_block;
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
-		X =_mm_xor_si128(X,tmp1);
-		gfmul(X,H,&X);
+		X = _mm_xor_si128(X, tmp1);
+		gfmul(X, H, &X);
 	}
 
 	ctr1 = _mm_shuffle_epi8(Y, BSWAP_EPI64);
@@ -386,7 +387,7 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 	ctr7 = _mm_add_epi64(ctr6, ONE);
 	ctr8 = _mm_add_epi64(ctr7, ONE);
 
-	for (i=0; i<nbytes/16/8; i++) {
+	for (i = 0; i < nbytes / 16 / 8; i++) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		tmp2 = _mm_shuffle_epi8(ctr2, BSWAP_EPI64);
 		tmp3 = _mm_shuffle_epi8(ctr3, BSWAP_EPI64);
@@ -405,16 +406,16 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 		ctr7 = _mm_add_epi64(ctr7, EIGHT);
 		ctr8 = _mm_add_epi64(ctr8, EIGHT);
 
-		tmp1 =_mm_xor_si128(tmp1, KEY[0]);
-		tmp2 =_mm_xor_si128(tmp2, KEY[0]);
-		tmp3 =_mm_xor_si128(tmp3, KEY[0]);
-		tmp4 =_mm_xor_si128(tmp4, KEY[0]);
-		tmp5 =_mm_xor_si128(tmp5, KEY[0]);
-		tmp6 =_mm_xor_si128(tmp6, KEY[0]);
-		tmp7 =_mm_xor_si128(tmp7, KEY[0]);
-		tmp8 =_mm_xor_si128(tmp8, KEY[0]);
+		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
+		tmp2 = _mm_xor_si128(tmp2, KEY[0]);
+		tmp3 = _mm_xor_si128(tmp3, KEY[0]);
+		tmp4 = _mm_xor_si128(tmp4, KEY[0]);
+		tmp5 = _mm_xor_si128(tmp5, KEY[0]);
+		tmp6 = _mm_xor_si128(tmp6, KEY[0]);
+		tmp7 = _mm_xor_si128(tmp7, KEY[0]);
+		tmp8 = _mm_xor_si128(tmp8, KEY[0]);
 
-		for (j=1; j<nr; j++) {
+		for (j = 1; j < nr; j++) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 			tmp2 = _mm_aesenc_si128(tmp2, KEY[j]);
 			tmp3 = _mm_aesenc_si128(tmp3, KEY[j]);
@@ -424,40 +425,40 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 			tmp7 = _mm_aesenc_si128(tmp7, KEY[j]);
 			tmp8 = _mm_aesenc_si128(tmp8, KEY[j]);
 		}
-		tmp1 =_mm_aesenclast_si128(tmp1, KEY[nr]);
-		tmp2 =_mm_aesenclast_si128(tmp2, KEY[nr]);
-		tmp3 =_mm_aesenclast_si128(tmp3, KEY[nr]);
-		tmp4 =_mm_aesenclast_si128(tmp4, KEY[nr]);
-		tmp5 =_mm_aesenclast_si128(tmp5, KEY[nr]);
-		tmp6 =_mm_aesenclast_si128(tmp6, KEY[nr]);
-		tmp7 =_mm_aesenclast_si128(tmp7, KEY[nr]);
-		tmp8 =_mm_aesenclast_si128(tmp8, KEY[nr]);
+		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
+		tmp2 = _mm_aesenclast_si128(tmp2, KEY[nr]);
+		tmp3 = _mm_aesenclast_si128(tmp3, KEY[nr]);
+		tmp4 = _mm_aesenclast_si128(tmp4, KEY[nr]);
+		tmp5 = _mm_aesenclast_si128(tmp5, KEY[nr]);
+		tmp6 = _mm_aesenclast_si128(tmp6, KEY[nr]);
+		tmp7 = _mm_aesenclast_si128(tmp7, KEY[nr]);
+		tmp8 = _mm_aesenclast_si128(tmp8, KEY[nr]);
 
 		tmp1 = _mm_xor_si128(tmp1,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+0]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 0]));
 		tmp2 = _mm_xor_si128(tmp2,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+1]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 1]));
 		tmp3 = _mm_xor_si128(tmp3,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+2]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 2]));
 		tmp4 = _mm_xor_si128(tmp4,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+3]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 3]));
 		tmp5 = _mm_xor_si128(tmp5,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+4]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 4]));
 		tmp6 = _mm_xor_si128(tmp6,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+5]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 5]));
 		tmp7 = _mm_xor_si128(tmp7,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+6]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 6]));
 		tmp8 = _mm_xor_si128(tmp8,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+7]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 7]));
 
-		_mm_storeu_si128(&((__m128i*)out)[i*8+0], tmp1);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+1], tmp2);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+2], tmp3);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+3], tmp4);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+4], tmp5);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+5], tmp6);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+6], tmp7);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+7], tmp8);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 0], tmp1);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 1], tmp2);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 2], tmp3);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 3], tmp4);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 4], tmp5);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 5], tmp6);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 6], tmp7);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 7], tmp8);
 
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		tmp2 = _mm_shuffle_epi8(tmp2, BSWAP_MASK);
@@ -475,64 +476,63 @@ AES_GCM_encrypt(const unsigned char *in, unsigned char *out,
 		tmp5 = _mm_xor_si128(X, tmp5);
 		reduce4(H, H2, H3, H4, tmp8, tmp7, tmp6, tmp5, &X);
 	}
-	for (k=i*8; k<nbytes/16; k++) {
+	for (k = i * 8; k < nbytes / 16; k++) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		ctr1 = _mm_add_epi64(ctr1, ONE);
 		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
-		for (j=1; j<nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
 		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		tmp1 = _mm_xor_si128(tmp1,
 		    _mm_loadu_si128(&((const __m128i *)in)[k]));
-		_mm_storeu_si128(&((__m128i*)out)[k], tmp1);
+		_mm_storeu_si128(&((__m128i *)out)[k], tmp1);
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		X = _mm_xor_si128(X, tmp1);
-		gfmul(X,H,&X);
+		gfmul(X, H, &X);
 	}
-	//If remains one incomplete block
-	if (nbytes%16) {
+	// If remains one incomplete block
+	if (nbytes % 16) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
-		for (j=1; j<nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
 		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		last_block = _mm_setzero_si128();
-		memcpy(&last_block, &((const __m128i *)in)[k],
-		    nbytes % 16);
+		memcpy(&last_block, &((const __m128i *)in)[k], nbytes % 16);
 		last_block = _mm_xor_si128(last_block, tmp1);
-		for (j=0; j<nbytes%16; j++)
-			out[k*16+j] = ((unsigned char*)&last_block)[j];
-		for ((void)j; j<16; j++)
-			((unsigned char*)&last_block)[j] = 0;
+		for (j = 0; j < nbytes % 16; j++)
+			out[k * 16 + j] = ((unsigned char *)&last_block)[j];
+		for ((void)j; j < 16; j++)
+			((unsigned char *)&last_block)[j] = 0;
 		tmp1 = last_block;
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		X = _mm_xor_si128(X, tmp1);
 		gfmul(X, H, &X);
 	}
-	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)nbytes*8, 0);
-	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)abytes*8, 1);
+	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)nbytes * 8, 0);
+	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)abytes * 8, 1);
 
 	X = _mm_xor_si128(X, tmp1);
-	gfmul(X,H,&X);
+	gfmul(X, H, &X);
 	X = _mm_shuffle_epi8(X, BSWAP_MASK);
 	T = _mm_xor_si128(X, T);
-	_mm_storeu_si128((__m128i*)tag, T);
+	_mm_storeu_si128((__m128i *)tag, T);
 }
 
 /* My modification of _encrypt to be _decrypt */
 int
 AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
-	const unsigned char *addt, const unsigned char *ivec,
-	const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int ibytes,
-	const unsigned char *key, int nr)
+    const unsigned char *addt, const unsigned char *ivec,
+    const unsigned char *tag, uint32_t nbytes, uint32_t abytes, int ibytes,
+    const unsigned char *key, int nr)
 {
-	int i, j ,k;
+	int i, j, k;
 	__m128i tmp1, tmp2, tmp3, tmp4;
 	__m128i tmp5, tmp6, tmp7, tmp8;
 	__m128i H, H2, H3, H4, Y, T;
@@ -542,27 +542,27 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 	__m128i last_block = _mm_setzero_si128();
 	__m128i ONE = _mm_set_epi32(0, 1, 0, 0);
 	__m128i EIGHT = _mm_set_epi32(0, 8, 0, 0);
-	__m128i BSWAP_EPI64 = _mm_set_epi8(8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,
-	    7);
-	__m128i BSWAP_MASK = _mm_set_epi8(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
-	    15);
+	__m128i BSWAP_EPI64 = _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1,
+	    2, 3, 4, 5, 6, 7);
+	__m128i BSWAP_MASK = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	    12, 13, 14, 15);
 	__m128i X = _mm_setzero_si128();
 
-	if (ibytes == 96/8) {
+	if (ibytes == 96 / 8) {
 		Y = _mm_loadu_si128((const __m128i *)ivec);
 		Y = _mm_insert_epi32(Y, 0x1000000, 3);
 		/*(Compute E[ZERO, KS] and E[Y0, KS] together*/
 		tmp1 = _mm_xor_si128(X, KEY[0]);
 		tmp2 = _mm_xor_si128(Y, KEY[0]);
-		for (j=1; j < nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 			tmp2 = _mm_aesenc_si128(tmp2, KEY[j]);
 
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
-			tmp2 = _mm_aesenc_si128(tmp2, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
+			tmp2 = _mm_aesenc_si128(tmp2, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
-		tmp2 = _mm_aesenc_si128(tmp2, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
+		tmp2 = _mm_aesenc_si128(tmp2, KEY[nr - 1]);
 
 		H = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		T = _mm_aesenclast_si128(tmp2, KEY[nr]);
@@ -570,48 +570,49 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 		H = _mm_shuffle_epi8(H, BSWAP_MASK);
 	} else {
 		tmp1 = _mm_xor_si128(X, KEY[0]);
-		for (j=1; j <nr; j++)
+		for (j = 1; j < nr; j++)
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 		H = _mm_aesenclast_si128(tmp1, KEY[nr]);
 
 		H = _mm_shuffle_epi8(H, BSWAP_MASK);
 		Y = _mm_setzero_si128();
 
-		for (i=0; i < ibytes/16; i++) {
+		for (i = 0; i < ibytes / 16; i++) {
 			tmp1 = _mm_loadu_si128(&((const __m128i *)ivec)[i]);
 			tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 			Y = _mm_xor_si128(Y, tmp1);
 			gfmul(Y, H, &Y);
 		}
-		if (ibytes%16) {
-			for (j=0; j < ibytes%16; j++)
-				((unsigned char*)&last_block)[j] = ivec[i*16+j];
+		if (ibytes % 16) {
+			for (j = 0; j < ibytes % 16; j++)
+				((unsigned char *)&last_block)[j] =
+				    ivec[i * 16 + j];
 			tmp1 = last_block;
 			tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 			Y = _mm_xor_si128(Y, tmp1);
 			gfmul(Y, H, &Y);
 		}
-		tmp1 = _mm_insert_epi64(tmp1, (uint64_t)ibytes*8, 0);
+		tmp1 = _mm_insert_epi64(tmp1, (uint64_t)ibytes * 8, 0);
 		tmp1 = _mm_insert_epi64(tmp1, 0, 1);
 
 		Y = _mm_xor_si128(Y, tmp1);
 		gfmul(Y, H, &Y);
 		Y = _mm_shuffle_epi8(Y, BSWAP_MASK); /*Compute E(K, Y0)*/
 		tmp1 = _mm_xor_si128(Y, KEY[0]);
-		for (j=1; j < nr; j++)
+		for (j = 1; j < nr; j++)
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 		T = _mm_aesenclast_si128(tmp1, KEY[nr]);
 	}
 
-	gfmul(H,H,&H2);
-	gfmul(H,H2,&H3);
-	gfmul(H,H3,&H4);
+	gfmul(H, H, &H2);
+	gfmul(H, H2, &H3);
+	gfmul(H, H3, &H4);
 
-	for (i=0; i<abytes/16/4; i++) {
-		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i*4]);
-		tmp2 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+1]);
-		tmp3 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+2]);
-		tmp4 = _mm_loadu_si128(&((const __m128i *)addt)[i*4+3]);
+	for (i = 0; i < abytes / 16 / 4; i++) {
+		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4]);
+		tmp2 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 1]);
+		tmp3 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 2]);
+		tmp4 = _mm_loadu_si128(&((const __m128i *)addt)[i * 4 + 3]);
 
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		tmp2 = _mm_shuffle_epi8(tmp2, BSWAP_MASK);
@@ -622,28 +623,28 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 
 		reduce4(H, H2, H3, H4, tmp4, tmp3, tmp2, tmp1, &X);
 	}
-	for (i=i*4; i<abytes/16; i++) {
+	for (i = i * 4; i < abytes / 16; i++) {
 		tmp1 = _mm_loadu_si128(&((const __m128i *)addt)[i]);
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
-		X = _mm_xor_si128(X,tmp1);
+		X = _mm_xor_si128(X, tmp1);
 		gfmul(X, H, &X);
 	}
-	if (abytes%16) {
+	if (abytes % 16) {
 		last_block = _mm_setzero_si128();
-		for (j=0; j<abytes%16; j++)
-			((unsigned char*)&last_block)[j] = addt[i*16+j];
+		for (j = 0; j < abytes % 16; j++)
+			((unsigned char *)&last_block)[j] = addt[i * 16 + j];
 		tmp1 = last_block;
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
-		X =_mm_xor_si128(X,tmp1);
-		gfmul(X,H,&X);
+		X = _mm_xor_si128(X, tmp1);
+		gfmul(X, H, &X);
 	}
 
 	/* This is where we validate the cipher text before decrypt */
-	for (i = 0; i<nbytes/16/4; i++) {
-		tmp1 = _mm_loadu_si128(&((const __m128i *)in)[i*4]);
-		tmp2 = _mm_loadu_si128(&((const __m128i *)in)[i*4+1]);
-		tmp3 = _mm_loadu_si128(&((const __m128i *)in)[i*4+2]);
-		tmp4 = _mm_loadu_si128(&((const __m128i *)in)[i*4+3]);
+	for (i = 0; i < nbytes / 16 / 4; i++) {
+		tmp1 = _mm_loadu_si128(&((const __m128i *)in)[i * 4]);
+		tmp2 = _mm_loadu_si128(&((const __m128i *)in)[i * 4 + 1]);
+		tmp3 = _mm_loadu_si128(&((const __m128i *)in)[i * 4 + 2]);
+		tmp4 = _mm_loadu_si128(&((const __m128i *)in)[i * 4 + 3]);
 
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		tmp2 = _mm_shuffle_epi8(tmp2, BSWAP_MASK);
@@ -654,32 +655,32 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 
 		reduce4(H, H2, H3, H4, tmp4, tmp3, tmp2, tmp1, &X);
 	}
-	for (i = i*4; i<nbytes/16; i++) {
+	for (i = i * 4; i < nbytes / 16; i++) {
 		tmp1 = _mm_loadu_si128(&((const __m128i *)in)[i]);
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		X = _mm_xor_si128(X, tmp1);
-		gfmul(X,H,&X);
+		gfmul(X, H, &X);
 	}
-	if (nbytes%16) {
+	if (nbytes % 16) {
 		last_block = _mm_setzero_si128();
-		for (j=0; j<nbytes%16; j++)
-			((unsigned char*)&last_block)[j] = in[i*16+j];
+		for (j = 0; j < nbytes % 16; j++)
+			((unsigned char *)&last_block)[j] = in[i * 16 + j];
 		tmp1 = last_block;
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		X = _mm_xor_si128(X, tmp1);
 		gfmul(X, H, &X);
 	}
 
-	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)nbytes*8, 0);
-	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)abytes*8, 1);
+	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)nbytes * 8, 0);
+	tmp1 = _mm_insert_epi64(tmp1, (uint64_t)abytes * 8, 1);
 
 	X = _mm_xor_si128(X, tmp1);
-	gfmul(X,H,&X);
+	gfmul(X, H, &X);
 	X = _mm_shuffle_epi8(X, BSWAP_MASK);
 	T = _mm_xor_si128(X, T);
 
-	if (!m128icmp(T, _mm_loadu_si128((const __m128i*)tag)))
-		return 0; //in case the authentication failed
+	if (!m128icmp(T, _mm_loadu_si128((const __m128i *)tag)))
+		return 0; // in case the authentication failed
 
 	ctr1 = _mm_shuffle_epi8(Y, BSWAP_EPI64);
 	ctr1 = _mm_add_epi64(ctr1, ONE);
@@ -691,7 +692,7 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 	ctr7 = _mm_add_epi64(ctr6, ONE);
 	ctr8 = _mm_add_epi64(ctr7, ONE);
 
-	for (i=0; i<nbytes/16/8; i++) {
+	for (i = 0; i < nbytes / 16 / 8; i++) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		tmp2 = _mm_shuffle_epi8(ctr2, BSWAP_EPI64);
 		tmp3 = _mm_shuffle_epi8(ctr3, BSWAP_EPI64);
@@ -710,16 +711,16 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 		ctr7 = _mm_add_epi64(ctr7, EIGHT);
 		ctr8 = _mm_add_epi64(ctr8, EIGHT);
 
-		tmp1 =_mm_xor_si128(tmp1, KEY[0]);
-		tmp2 =_mm_xor_si128(tmp2, KEY[0]);
-		tmp3 =_mm_xor_si128(tmp3, KEY[0]);
-		tmp4 =_mm_xor_si128(tmp4, KEY[0]);
-		tmp5 =_mm_xor_si128(tmp5, KEY[0]);
-		tmp6 =_mm_xor_si128(tmp6, KEY[0]);
-		tmp7 =_mm_xor_si128(tmp7, KEY[0]);
-		tmp8 =_mm_xor_si128(tmp8, KEY[0]);
+		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
+		tmp2 = _mm_xor_si128(tmp2, KEY[0]);
+		tmp3 = _mm_xor_si128(tmp3, KEY[0]);
+		tmp4 = _mm_xor_si128(tmp4, KEY[0]);
+		tmp5 = _mm_xor_si128(tmp5, KEY[0]);
+		tmp6 = _mm_xor_si128(tmp6, KEY[0]);
+		tmp7 = _mm_xor_si128(tmp7, KEY[0]);
+		tmp8 = _mm_xor_si128(tmp8, KEY[0]);
 
-		for (j=1; j<nr; j++) {
+		for (j = 1; j < nr; j++) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
 			tmp2 = _mm_aesenc_si128(tmp2, KEY[j]);
 			tmp3 = _mm_aesenc_si128(tmp3, KEY[j]);
@@ -729,40 +730,40 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 			tmp7 = _mm_aesenc_si128(tmp7, KEY[j]);
 			tmp8 = _mm_aesenc_si128(tmp8, KEY[j]);
 		}
-		tmp1 =_mm_aesenclast_si128(tmp1, KEY[nr]);
-		tmp2 =_mm_aesenclast_si128(tmp2, KEY[nr]);
-		tmp3 =_mm_aesenclast_si128(tmp3, KEY[nr]);
-		tmp4 =_mm_aesenclast_si128(tmp4, KEY[nr]);
-		tmp5 =_mm_aesenclast_si128(tmp5, KEY[nr]);
-		tmp6 =_mm_aesenclast_si128(tmp6, KEY[nr]);
-		tmp7 =_mm_aesenclast_si128(tmp7, KEY[nr]);
-		tmp8 =_mm_aesenclast_si128(tmp8, KEY[nr]);
+		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
+		tmp2 = _mm_aesenclast_si128(tmp2, KEY[nr]);
+		tmp3 = _mm_aesenclast_si128(tmp3, KEY[nr]);
+		tmp4 = _mm_aesenclast_si128(tmp4, KEY[nr]);
+		tmp5 = _mm_aesenclast_si128(tmp5, KEY[nr]);
+		tmp6 = _mm_aesenclast_si128(tmp6, KEY[nr]);
+		tmp7 = _mm_aesenclast_si128(tmp7, KEY[nr]);
+		tmp8 = _mm_aesenclast_si128(tmp8, KEY[nr]);
 
 		tmp1 = _mm_xor_si128(tmp1,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+0]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 0]));
 		tmp2 = _mm_xor_si128(tmp2,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+1]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 1]));
 		tmp3 = _mm_xor_si128(tmp3,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+2]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 2]));
 		tmp4 = _mm_xor_si128(tmp4,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+3]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 3]));
 		tmp5 = _mm_xor_si128(tmp5,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+4]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 4]));
 		tmp6 = _mm_xor_si128(tmp6,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+5]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 5]));
 		tmp7 = _mm_xor_si128(tmp7,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+6]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 6]));
 		tmp8 = _mm_xor_si128(tmp8,
-		    _mm_loadu_si128(&((const __m128i *)in)[i*8+7]));
+		    _mm_loadu_si128(&((const __m128i *)in)[i * 8 + 7]));
 
-		_mm_storeu_si128(&((__m128i*)out)[i*8+0], tmp1);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+1], tmp2);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+2], tmp3);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+3], tmp4);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+4], tmp5);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+5], tmp6);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+6], tmp7);
-		_mm_storeu_si128(&((__m128i*)out)[i*8+7], tmp8);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 0], tmp1);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 1], tmp2);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 2], tmp3);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 3], tmp4);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 4], tmp5);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 5], tmp6);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 6], tmp7);
+		_mm_storeu_si128(&((__m128i *)out)[i * 8 + 7], tmp8);
 
 		tmp1 = _mm_shuffle_epi8(tmp1, BSWAP_MASK);
 		tmp2 = _mm_shuffle_epi8(tmp2, BSWAP_MASK);
@@ -773,36 +774,36 @@ AES_GCM_decrypt(const unsigned char *in, unsigned char *out,
 		tmp7 = _mm_shuffle_epi8(tmp7, BSWAP_MASK);
 		tmp8 = _mm_shuffle_epi8(tmp8, BSWAP_MASK);
 	}
-	for (k=i*8; k<nbytes/16; k++) {
+	for (k = i * 8; k < nbytes / 16; k++) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		ctr1 = _mm_add_epi64(ctr1, ONE);
 		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
-		for (j=1; j<nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
 		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		tmp1 = _mm_xor_si128(tmp1,
 		    _mm_loadu_si128(&((const __m128i *)in)[k]));
-		_mm_storeu_si128(&((__m128i*)out)[k], tmp1);
+		_mm_storeu_si128(&((__m128i *)out)[k], tmp1);
 	}
-	//If remains one incomplete block
-	if (nbytes%16) {
+	// If remains one incomplete block
+	if (nbytes % 16) {
 		tmp1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
 		tmp1 = _mm_xor_si128(tmp1, KEY[0]);
-		for (j=1; j<nr-1; j+=2) {
+		for (j = 1; j < nr - 1; j += 2) {
 			tmp1 = _mm_aesenc_si128(tmp1, KEY[j]);
-			tmp1 = _mm_aesenc_si128(tmp1, KEY[j+1]);
+			tmp1 = _mm_aesenc_si128(tmp1, KEY[j + 1]);
 		}
-		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr-1]);
+		tmp1 = _mm_aesenc_si128(tmp1, KEY[nr - 1]);
 		tmp1 = _mm_aesenclast_si128(tmp1, KEY[nr]);
 		last_block = _mm_setzero_si128();
-		memcpy(&last_block, &((const __m128i *)in)[k], nbytes%16);
+		memcpy(&last_block, &((const __m128i *)in)[k], nbytes % 16);
 		tmp1 = _mm_xor_si128(tmp1, last_block);
 		last_block = tmp1;
-		for (j=0; j<nbytes%16; j++)
-			out[k*16+j] = ((unsigned char*)&last_block)[j];
+		for (j = 0; j < nbytes % 16; j++)
+			out[k * 16 + j] = ((unsigned char *)&last_block)[j];
 	}
-	return 1; //when sucessfull returns 1
+	return 1; // when sucessfull returns 1
 }

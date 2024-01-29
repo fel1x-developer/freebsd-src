@@ -16,45 +16,46 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef	__AH_EEPROM_9287_H__
-#define	__AH_EEPROM_9287_H__
+#ifndef __AH_EEPROM_9287_H__
+#define __AH_EEPROM_9287_H__
 
-#define OLC_FOR_AR9287_10_LATER (AR_SREV_9287_11_OR_LATER(ah) && \
-				 ah->eep_ops->get_eeprom(ah, EEP_OL_PWRCTRL))
+#define OLC_FOR_AR9287_10_LATER          \
+	(AR_SREV_9287_11_OR_LATER(ah) && \
+	    ah->eep_ops->get_eeprom(ah, EEP_OL_PWRCTRL))
 
-#define AR9287_EEP_VER               0xE
-#define AR9287_EEP_VER_MINOR_MASK    0xFFF
-#define AR9287_EEP_MINOR_VER_1       0x1
-#define AR9287_EEP_MINOR_VER_2       0x2
-#define AR9287_EEP_MINOR_VER_3       0x3
-#define AR9287_EEP_MINOR_VER         AR9287_EEP_MINOR_VER_3
-#define AR9287_EEP_MINOR_VER_b       AR9287_EEP_MINOR_VER
-#define AR9287_EEP_NO_BACK_VER       AR9287_EEP_MINOR_VER_1
+#define AR9287_EEP_VER 0xE
+#define AR9287_EEP_VER_MINOR_MASK 0xFFF
+#define AR9287_EEP_MINOR_VER_1 0x1
+#define AR9287_EEP_MINOR_VER_2 0x2
+#define AR9287_EEP_MINOR_VER_3 0x3
+#define AR9287_EEP_MINOR_VER AR9287_EEP_MINOR_VER_3
+#define AR9287_EEP_MINOR_VER_b AR9287_EEP_MINOR_VER
+#define AR9287_EEP_NO_BACK_VER AR9287_EEP_MINOR_VER_1
 
-#define	AR9287_RDEXT_DEFAULT		0x1F
+#define AR9287_RDEXT_DEFAULT 0x1F
 
-#define AR9287_EEP_START_LOC            128
-#define AR9287_HTC_EEP_START_LOC        256
-#define AR9287_NUM_2G_CAL_PIERS         3
+#define AR9287_EEP_START_LOC 128
+#define AR9287_HTC_EEP_START_LOC 256
+#define AR9287_NUM_2G_CAL_PIERS 3
 #define AR9287_NUM_2G_CCK_TARGET_POWERS 3
-#define AR9287_NUM_2G_20_TARGET_POWERS  3
-#define AR9287_NUM_2G_40_TARGET_POWERS  3
-#define AR9287_NUM_CTLS              	12
-#define AR9287_NUM_BAND_EDGES        	4
-#define AR9287_PD_GAIN_ICEPTS           1
-#define AR9287_EEPMISC_BIG_ENDIAN       0x01
-#define AR9287_EEPMISC_WOW              0x02
-#define AR9287_MAX_CHAINS               2
-#define AR9287_ANT_16S                  32
+#define AR9287_NUM_2G_20_TARGET_POWERS 3
+#define AR9287_NUM_2G_40_TARGET_POWERS 3
+#define AR9287_NUM_CTLS 12
+#define AR9287_NUM_BAND_EDGES 4
+#define AR9287_PD_GAIN_ICEPTS 1
+#define AR9287_EEPMISC_BIG_ENDIAN 0x01
+#define AR9287_EEPMISC_WOW 0x02
+#define AR9287_MAX_CHAINS 2
+#define AR9287_ANT_16S 32
 
-#define AR9287_DATA_SZ                  32
+#define AR9287_DATA_SZ 32
 
-#define AR9287_PWR_TABLE_OFFSET_DB  -5
+#define AR9287_PWR_TABLE_OFFSET_DB -5
 
 #define AR9287_CHECKSUM_LOCATION (AR9287_EEP_START_LOC + 1)
 
 struct base_eep_ar9287_header {
-	uint16_t version;		/* Swapped w/ length; check ah_eeprom_v14.h */
+	uint16_t version; /* Swapped w/ length; check ah_eeprom_v14.h */
 	uint16_t checksum;
 	uint16_t length;
 	uint8_t opCapFlags;
@@ -137,28 +138,28 @@ struct ar9287_eeprom {
 	uint8_t custData[AR9287_DATA_SZ];
 	struct modal_eep_ar9287_header modalHeader;
 	uint8_t calFreqPier2G[AR9287_NUM_2G_CAL_PIERS];
-	union cal_data_per_freq_ar9287_u
-	    calPierData2G[AR9287_MAX_CHAINS][AR9287_NUM_2G_CAL_PIERS];
+	union cal_data_per_freq_ar9287_u calPierData2G[AR9287_MAX_CHAINS]
+						      [AR9287_NUM_2G_CAL_PIERS];
 	CAL_TARGET_POWER_LEG
-	    calTargetPowerCck[AR9287_NUM_2G_CCK_TARGET_POWERS];
+	calTargetPowerCck[AR9287_NUM_2G_CCK_TARGET_POWERS];
 	CAL_TARGET_POWER_LEG
-	    calTargetPower2G[AR9287_NUM_2G_20_TARGET_POWERS];
+	calTargetPower2G[AR9287_NUM_2G_20_TARGET_POWERS];
 	CAL_TARGET_POWER_HT
-	    calTargetPower2GHT20[AR9287_NUM_2G_20_TARGET_POWERS];
+	calTargetPower2GHT20[AR9287_NUM_2G_20_TARGET_POWERS];
 	CAL_TARGET_POWER_HT
-	    calTargetPower2GHT40[AR9287_NUM_2G_40_TARGET_POWERS];
+	calTargetPower2GHT40[AR9287_NUM_2G_40_TARGET_POWERS];
 	uint8_t ctlIndex[AR9287_NUM_CTLS];
 	struct cal_ctl_data_ar9287 ctlData[AR9287_NUM_CTLS];
 	uint8_t padding;
 } __packed;
 
 typedef struct {
-        struct ar9287_eeprom ee_base;
-#define NUM_EDGES        8
-        uint16_t        ee_numCtls;
-        RD_EDGES_POWER  ee_rdEdgesPower[NUM_EDGES*AR9287_NUM_CTLS];
-        /* XXX these are dynamically calculated for use by shared code */
-        int8_t          ee_antennaGainMax[2];
+	struct ar9287_eeprom ee_base;
+#define NUM_EDGES 8
+	uint16_t ee_numCtls;
+	RD_EDGES_POWER ee_rdEdgesPower[NUM_EDGES * AR9287_NUM_CTLS];
+	/* XXX these are dynamically calculated for use by shared code */
+	int8_t ee_antennaGainMax[2];
 } HAL_EEPROM_9287;
 
 typedef struct modal_eep_ar9287_header MODAL_EEP_9287_HEADER;

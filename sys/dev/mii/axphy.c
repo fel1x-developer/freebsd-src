@@ -32,53 +32,44 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include "miibus_if.h"
 #include "miidevs.h"
 
-#include "miibus_if.h"
-
-static int 	axphy_probe(device_t dev);
-static int 	axphy_attach(device_t dev);
+static int axphy_probe(device_t dev);
+static int axphy_attach(device_t dev);
 
 static device_method_t axphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		axphy_probe),
-	DEVMETHOD(device_attach,	axphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, axphy_probe),
+	DEVMETHOD(device_attach, axphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t axphy_driver = {
-	"axphy",
-	axphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t axphy_driver = { "axphy", axphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(axphy, miibus, axphy_driver, 0, 0);
 
-static int	axphy_service(struct mii_softc *, struct mii_data *, int);
-static void	axphy_status(struct mii_softc *);
+static int axphy_service(struct mii_softc *, struct mii_data *, int);
+static void axphy_status(struct mii_softc *);
 
-static const struct mii_phydesc axphys[] = {
-	MII_PHY_DESC(xxASIX, AX88X9X),
-	MII_PHY_END
-};
+static const struct mii_phydesc axphys[] = { MII_PHY_DESC(xxASIX, AX88X9X),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs axphy_funcs = {
-	axphy_service,
-	axphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs axphy_funcs = { axphy_service, axphy_status,
+	mii_phy_reset };
 
 static int
 axphy_probe(device_t dev)
@@ -94,8 +85,8 @@ axphy_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &axphy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &axphy_funcs,
+	    1);
 	mii_phy_setmedia(sc);
 
 	return (0);

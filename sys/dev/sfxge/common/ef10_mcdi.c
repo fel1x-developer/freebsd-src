@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -40,10 +41,8 @@
 #error "WITH_MCDI_V2 required for EF10 MCDIv2 commands."
 #endif
 
-	__checkReturn	efx_rc_t
-ef10_mcdi_init(
-	__in		efx_nic_t *enp,
-	__in		const efx_mcdi_transport_t *emtp)
+__checkReturn efx_rc_t
+ef10_mcdi_init(__in efx_nic_t *enp, __in const efx_mcdi_transport_t *emtp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efsys_mem_t *esmp = emtp->emt_dma_mem;
@@ -81,7 +80,7 @@ ef10_mcdi_init(
 	EFX_BAR_WRITED(enp, ER_DZ_MC_DB_HWRD_REG, &dword, B_FALSE);
 
 	/* Save initial MC reboot status */
-	(void) ef10_mcdi_poll_reboot(enp);
+	(void)ef10_mcdi_poll_reboot(enp);
 
 	/* Start a new epoch (allow fresh MCDI requests to succeed) */
 	efx_mcdi_new_epoch(enp);
@@ -96,9 +95,8 @@ fail1:
 	return (rc);
 }
 
-			void
-ef10_mcdi_fini(
-	__in		efx_nic_t *enp)
+void
+ef10_mcdi_fini(__in efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 
@@ -114,14 +112,12 @@ ef10_mcdi_fini(
  * the timeout for long-running requests which we know firmware may choose to
  * process in a background thread.
  */
-#define	EF10_MCDI_CMD_TIMEOUT_US	(10 * 1000 * 1000)
-#define	EF10_MCDI_CMD_LONG_TIMEOUT_US	(60 * 1000 * 1000)
+#define EF10_MCDI_CMD_TIMEOUT_US (10 * 1000 * 1000)
+#define EF10_MCDI_CMD_LONG_TIMEOUT_US (60 * 1000 * 1000)
 
-			void
-ef10_mcdi_get_timeout(
-	__in		efx_nic_t *enp,
-	__in		efx_mcdi_req_t *emrp,
-	__out		uint32_t *timeoutp)
+void
+ef10_mcdi_get_timeout(__in efx_nic_t *enp, __in efx_mcdi_req_t *emrp,
+    __out uint32_t *timeoutp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 
@@ -145,13 +141,9 @@ ef10_mcdi_get_timeout(
 	}
 }
 
-			void
-ef10_mcdi_send_request(
-	__in			efx_nic_t *enp,
-	__in_bcount(hdr_len)	void *hdrp,
-	__in			size_t hdr_len,
-	__in_bcount(sdu_len)	void *sdup,
-	__in			size_t sdu_len)
+void
+ef10_mcdi_send_request(__in efx_nic_t *enp, __in_bcount(hdr_len) void *hdrp,
+    __in size_t hdr_len, __in_bcount(sdu_len) void *sdup, __in size_t sdu_len)
 {
 	const efx_mcdi_transport_t *emtp = enp->en_mcdi.em_emtp;
 	efsys_mem_t *esmp = emtp->emt_dma_mem;
@@ -163,13 +155,13 @@ ef10_mcdi_send_request(
 	    enp->en_family == EFX_FAMILY_MEDFORD2);
 
 	/* Write the header */
-	for (pos = 0; pos < hdr_len; pos += sizeof (efx_dword_t)) {
+	for (pos = 0; pos < hdr_len; pos += sizeof(efx_dword_t)) {
 		dword = *(efx_dword_t *)((uint8_t *)hdrp + pos);
 		EFSYS_MEM_WRITED(esmp, pos, &dword);
 	}
 
 	/* Write the payload */
-	for (pos = 0; pos < sdu_len; pos += sizeof (efx_dword_t)) {
+	for (pos = 0; pos < sdu_len; pos += sizeof(efx_dword_t)) {
 		dword = *(efx_dword_t *)((uint8_t *)sdup + pos);
 		EFSYS_MEM_WRITED(esmp, hdr_len + pos, &dword);
 	}
@@ -179,8 +171,7 @@ ef10_mcdi_send_request(
 	EFSYS_PIO_WRITE_BARRIER();
 
 	/* Ring the doorbell to post the command DMA address to the MC */
-	EFX_POPULATE_DWORD_1(dword, EFX_DWORD_0,
-	    EFSYS_MEM_ADDR(esmp) >> 32);
+	EFX_POPULATE_DWORD_1(dword, EFX_DWORD_0, EFSYS_MEM_ADDR(esmp) >> 32);
 	EFX_BAR_WRITED(enp, ER_DZ_MC_DB_LWRD_REG, &dword, B_FALSE);
 
 	EFX_POPULATE_DWORD_1(dword, EFX_DWORD_0,
@@ -188,9 +179,8 @@ ef10_mcdi_send_request(
 	EFX_BAR_WRITED(enp, ER_DZ_MC_DB_HWRD_REG, &dword, B_FALSE);
 }
 
-	__checkReturn	boolean_t
-ef10_mcdi_poll_response(
-	__in		efx_nic_t *enp)
+__checkReturn boolean_t
+ef10_mcdi_poll_response(__in efx_nic_t *enp)
 {
 	const efx_mcdi_transport_t *emtp = enp->en_mcdi.em_emtp;
 	efsys_mem_t *esmp = emtp->emt_dma_mem;
@@ -202,12 +192,9 @@ ef10_mcdi_poll_response(
 	return (EFX_DWORD_FIELD(hdr, MCDI_HEADER_RESPONSE) ? B_TRUE : B_FALSE);
 }
 
-			void
-ef10_mcdi_read_response(
-	__in			efx_nic_t *enp,
-	__out_bcount(length)	void *bufferp,
-	__in			size_t offset,
-	__in			size_t length)
+void
+ef10_mcdi_read_response(__in efx_nic_t *enp, __out_bcount(length) void *bufferp,
+    __in size_t offset, __in size_t length)
 {
 	const efx_mcdi_transport_t *emtp = enp->en_mcdi.em_emtp;
 	efsys_mem_t *esmp = emtp->emt_dma_mem;
@@ -216,7 +203,7 @@ ef10_mcdi_read_response(
 	size_t remaining = length;
 
 	while (remaining > 0) {
-		size_t chunk = MIN(remaining, sizeof (data));
+		size_t chunk = MIN(remaining, sizeof(data));
 
 		EFSYS_MEM_READD(esmp, offset + pos, &data);
 		memcpy((uint8_t *)bufferp + pos, &data, chunk);
@@ -225,9 +212,8 @@ ef10_mcdi_read_response(
 	}
 }
 
-			efx_rc_t
-ef10_mcdi_poll_reboot(
-	__in		efx_nic_t *enp)
+efx_rc_t
+ef10_mcdi_poll_reboot(__in efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_dword_t dword;
@@ -272,11 +258,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-ef10_mcdi_feature_supported(
-	__in		efx_nic_t *enp,
-	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp)
+__checkReturn efx_rc_t
+ef10_mcdi_feature_supported(__in efx_nic_t *enp, __in efx_mcdi_feature_id_t id,
+    __out boolean_t *supportedp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t privilege_mask = encp->enc_privilege_mask;
@@ -296,16 +280,14 @@ ef10_mcdi_feature_supported(
 		 * Admin privilege must be used prior to introduction of
 		 * specific flag.
 		 */
-		*supportedp =
-		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, ADMIN);
+		*supportedp = EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, ADMIN);
 		break;
 	case EFX_MCDI_FEATURE_LINK_CONTROL:
 		/*
 		 * Admin privilege used prior to introduction of
 		 * specific flag.
 		 */
-		*supportedp =
-		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, LINK) ||
+		*supportedp = EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, LINK) ||
 		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, ADMIN);
 		break;
 	case EFX_MCDI_FEATURE_MACADDR_CHANGE:
@@ -314,8 +296,8 @@ ef10_mcdi_feature_supported(
 		 * mac spoofing privilege (at v4.6), which is used up to
 		 * introduction of change mac spoofing privilege (at v4.7)
 		 */
-		*supportedp =
-		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, CHANGE_MAC) ||
+		*supportedp = EFX_MCDI_HAVE_PRIVILEGE(privilege_mask,
+				  CHANGE_MAC) ||
 		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, MAC_SPOOFING) ||
 		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, ADMIN);
 		break;
@@ -325,8 +307,8 @@ ef10_mcdi_feature_supported(
 		 * mac spoofing privilege (at v4.6), which is used up to
 		 * introduction of mac spoofing TX privilege (at v4.7)
 		 */
-		*supportedp =
-		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, MAC_SPOOFING_TX) ||
+		*supportedp = EFX_MCDI_HAVE_PRIVILEGE(privilege_mask,
+				  MAC_SPOOFING_TX) ||
 		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, MAC_SPOOFING) ||
 		    EFX_MCDI_HAVE_PRIVILEGE(privilege_mask, ADMIN);
 		break;
@@ -343,6 +325,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_MCDI */
+#endif /* EFSYS_OPT_MCDI */
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */

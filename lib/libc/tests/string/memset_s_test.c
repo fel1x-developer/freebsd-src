@@ -24,17 +24,16 @@
  */
 
 #include <assert.h>
+#include <atf-c.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <atf-c.h>
-
 static errno_t e;
-static const char * restrict m;
+static const char *restrict m;
 
 void
-h(const char * restrict msg, void * restrict ptr __unused, errno_t error)
+h(const char *restrict msg, void *restrict ptr __unused, errno_t error)
 {
 	e = error;
 	m = msg;
@@ -98,7 +97,7 @@ ATF_TC_BODY(n_lt_zero, tc)
 ATF_TC_WITHOUT_HEAD(n_lt_smax);
 ATF_TC_BODY(n_lt_smax, tc)
 {
-	char b[3] = {1, 2, 3};
+	char b[3] = { 1, 2, 3 };
 
 	assert(memset_s(&b[0], 3, 9, 1) == 0);
 	assert(b[0] == 9);
@@ -110,7 +109,7 @@ ATF_TC_BODY(n_lt_smax, tc)
 ATF_TC_WITHOUT_HEAD(n_gt_smax);
 ATF_TC_BODY(n_gt_smax, tc)
 {
-	char b[3] = {1, 2, 3};
+	char b[3] = { 1, 2, 3 };
 
 	e = 0;
 	m = NULL;

@@ -29,31 +29,29 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PSCI_SMCCC_H_
-#define	_PSCI_SMCCC_H_
+#ifndef _PSCI_SMCCC_H_
+#define _PSCI_SMCCC_H_
 
-#define	SMCCC_VERSION_MAJOR(ver)	(((ver) >> 16) & 0x7fff)
-#define	SMCCC_VERSION_MINOR(ver)	((ver) & 0xffff)
+#define SMCCC_VERSION_MAJOR(ver) (((ver) >> 16) & 0x7fff)
+#define SMCCC_VERSION_MINOR(ver) ((ver) & 0xffff)
 
-#define	SMCCC_FUNC_ID(type, call_conv, range, func)	\
-	(((type) << 31) |				\
-	 ((call_conv) << 30) |				\
-	 (((range) & 0x3f) << 24) |				\
-	 ((func) & 0xffff))
+#define SMCCC_FUNC_ID(type, call_conv, range, func)                        \
+	(((type) << 31) | ((call_conv) << 30) | (((range) & 0x3f) << 24) | \
+	    ((func) & 0xffff))
 
-#define	SMCCC_YIELDING_CALL	0
-#define	SMCCC_FAST_CALL		1
+#define SMCCC_YIELDING_CALL 0
+#define SMCCC_FAST_CALL 1
 
-#define	SMCCC_32BIT_CALL	0
-#define	SMCCC_64BIT_CALL	1
+#define SMCCC_32BIT_CALL 0
+#define SMCCC_64BIT_CALL 1
 
-#define	SMCCC_ARM_ARCH_CALLS		0
-#define	SMCCC_CPU_SERVICE_CALLS		1
-#define	SMCCC_SIP_SERVICE_CALLS		2
-#define	SMCCC_OEM_SERVICE_CALLS		3
-#define	SMCCC_STD_SECURE_SERVICE_CALLS	4
-#define	SMCCC_STD_HYP_SERVICE_CALLS	5
-#define	SMCCC_VENDOR_HYP_SERVICE_CALLS	6
+#define SMCCC_ARM_ARCH_CALLS 0
+#define SMCCC_CPU_SERVICE_CALLS 1
+#define SMCCC_SIP_SERVICE_CALLS 2
+#define SMCCC_OEM_SERVICE_CALLS 3
+#define SMCCC_STD_SECURE_SERVICE_CALLS 4
+#define SMCCC_STD_HYP_SERVICE_CALLS 5
+#define SMCCC_VENDOR_HYP_SERVICE_CALLS 6
 
 struct arm_smccc_res {
 	register_t a0;
@@ -66,19 +64,18 @@ struct arm_smccc_res {
  * Arm Architecture Calls.
  * These are documented in the document ARM DEN 0070A.
  */
-#define	SMCCC_VERSION							\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0)
-#define	SMCCC_ARCH_FEATURES						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 1)
-#define	SMCCC_ARCH_WORKAROUND_1						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0x8000)
-#define	SMCCC_ARCH_WORKAROUND_2						\
-    SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0x7fff)
+#define SMCCC_VERSION SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0)
+#define SMCCC_ARCH_FEATURES \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 1)
+#define SMCCC_ARCH_WORKAROUND_1 \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0x8000)
+#define SMCCC_ARCH_WORKAROUND_2 \
+	SMCCC_FUNC_ID(SMCCC_FAST_CALL, SMCCC_32BIT_CALL, 0, 0x7fff)
 
 /* The return values from ARM DEN 0070A. */
-#define	SMCCC_RET_SUCCESS		0
-#define	SMCCC_RET_NOT_SUPPORTED		-1
-#define	SMCCC_RET_NOT_REQUIRED		-2
+#define SMCCC_RET_SUCCESS 0
+#define SMCCC_RET_NOT_SUPPORTED -1
+#define SMCCC_RET_NOT_REQUIRED -2
 
 void smccc_init(void);
 uint32_t smccc_get_version(void);

@@ -24,10 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <stdbool.h>
-
 #include <efi.h>
 #include <efilib.h>
+#include <stdbool.h>
 
 #include "efi_driver_utils.h"
 
@@ -36,56 +35,53 @@ static EFI_GUID DriverBindingProtocolGUID = DRIVER_BINDING_PROTOCOL;
 EFI_STATUS
 connect_controllers(EFI_GUID *filter)
 {
-        EFI_STATUS status;
-        EFI_HANDLE *handles;
-        UINTN nhandles, i, hsize;
+	EFI_STATUS status;
+	EFI_HANDLE *handles;
+	UINTN nhandles, i, hsize;
 
-        nhandles = 0;
-        hsize = 0;
-        status = BS->LocateHandle(ByProtocol, filter, NULL,
-                     &hsize, NULL);
+	nhandles = 0;
+	hsize = 0;
+	status = BS->LocateHandle(ByProtocol, filter, NULL, &hsize, NULL);
 
-        if(status != EFI_BUFFER_TOO_SMALL) {
-                return (status);
-        }
+	if (status != EFI_BUFFER_TOO_SMALL) {
+		return (status);
+	}
 
-        handles = malloc(hsize);
+	handles = malloc(hsize);
 	if (handles == NULL)
 		return (EFI_OUT_OF_RESOURCES);
-        nhandles = hsize / sizeof(EFI_HANDLE);
+	nhandles = hsize / sizeof(EFI_HANDLE);
 
-        status = BS->LocateHandle(ByProtocol, filter, NULL,
-                     &hsize, handles);
+	status = BS->LocateHandle(ByProtocol, filter, NULL, &hsize, handles);
 
-        if(EFI_ERROR(status)) {
-                return (status);
-        }
+	if (EFI_ERROR(status)) {
+		return (status);
+	}
 
-        for(i = 0; i < nhandles; i++) {
-                BS->ConnectController(handles[i], NULL, NULL, true);
-        }
+	for (i = 0; i < nhandles; i++) {
+		BS->ConnectController(handles[i], NULL, NULL, true);
+	}
 
-        free(handles);
+	free(handles);
 
-        return (status);
+	return (status);
 }
 
 EFI_STATUS
 install_driver(EFI_DRIVER_BINDING *driver)
 {
-        EFI_STATUS status;
+	EFI_STATUS status;
 
-        driver->ImageHandle = IH;
-        driver->DriverBindingHandle = NULL;
-        status = BS->InstallMultipleProtocolInterfaces(
-            &(driver->DriverBindingHandle),
-            &DriverBindingProtocolGUID, driver,
-            NULL);
+	driver->ImageHandle = IH;
+	driver->DriverBindingHandle = NULL;
+	status = BS->InstallMultipleProtocolInterfaces(
+	    &(driver->DriverBindingHandle), &DriverBindingProtocolGUID, driver,
+	    NULL);
 
-        if (EFI_ERROR(status)) {
-                printf("Failed to install driver (%ld)!\n",
-                    EFI_ERROR_CODE(status));
-        }
+	if (EFI_ERROR(status)) {
+		printf("Failed to install driver (%ld)!\n",
+		    EFI_ERROR_CODE(status));
+	}
 
-        return (status);
+	return (status);
 }

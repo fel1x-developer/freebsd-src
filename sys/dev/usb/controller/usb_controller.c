@@ -30,44 +30,44 @@
 #else
 #include "opt_ddb.h"
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 
-#define	USB_DEBUG_VAR usb_ctrl_debug
+#define USB_DEBUG_VAR usb_ctrl_debug
 
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_dynamic.h>
-#include <dev/usb/usb_device.h>
 #include <dev/usb/usb_dev.h>
+#include <dev/usb/usb_device.h>
+#include <dev/usb/usb_dynamic.h>
 #include <dev/usb/usb_hub.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_pf.h>
+#include <dev/usb/usb_process.h>
+
 #include "usb_if.h"
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /* function prototypes  */
 
@@ -78,7 +78,7 @@ static device_suspend_t usb_suspend;
 static device_resume_t usb_resume;
 static device_shutdown_t usb_shutdown;
 
-static void	usb_attach_sub(device_t, struct usb_bus *);
+static void usb_attach_sub(device_t, struct usb_bus *);
 
 /* static variables */
 
@@ -105,16 +105,14 @@ static int usb_no_shutdown_wait = 0;
 SYSCTL_INT(_hw_usb, OID_AUTO, no_shutdown_wait, CTLFLAG_RWTUN,
     &usb_no_shutdown_wait, 0, "No USB device waiting at system shutdown.");
 
-static device_method_t usb_methods[] = {
-	DEVMETHOD(device_probe, usb_probe),
+static device_method_t usb_methods[] = { DEVMETHOD(device_probe, usb_probe),
 	DEVMETHOD(device_attach, usb_attach),
 	DEVMETHOD(device_detach, usb_detach),
 	DEVMETHOD(device_suspend, usb_suspend),
 	DEVMETHOD(device_resume, usb_resume),
 	DEVMETHOD(device_shutdown, usb_shutdown),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t usb_driver = {
 	.name = "usbus",
@@ -184,7 +182,7 @@ usb_attach(device_t dev)
 #endif
 	usb_attach_sub(dev, bus);
 
-	return (0);			/* return success */
+	return (0); /* return success */
 }
 
 /*------------------------------------------------------------------------*
@@ -212,17 +210,17 @@ usb_detach(device_t dev)
 	USB_BUS_LOCK(bus);
 
 	/* Queue detach job */
-	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->detach_msg[0], &bus->detach_msg[1]);
+	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->detach_msg[0],
+	    &bus->detach_msg[1]);
 
 	/* Wait for detach to complete */
-	usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->detach_msg[0], &bus->detach_msg[1]);
+	usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus), &bus->detach_msg[0],
+	    &bus->detach_msg[1]);
 
 #if USB_HAVE_UGEN
 	/* Wait for cleanup to complete */
-	usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->cleanup_msg[0], &bus->cleanup_msg[1]);
+	usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus), &bus->cleanup_msg[0],
+	    &bus->cleanup_msg[1]);
 #endif
 	USB_BUS_UNLOCK(bus);
 
@@ -264,12 +262,12 @@ usb_suspend(device_t dev)
 	}
 
 	USB_BUS_LOCK(bus);
-	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->suspend_msg[0], &bus->suspend_msg[1]);
+	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->suspend_msg[0],
+	    &bus->suspend_msg[1]);
 	if (usb_no_suspend_wait == 0) {
 		/* wait for suspend callback to be executed */
-		usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus),
-		    &bus->suspend_msg[0], &bus->suspend_msg[1]);
+		usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus), &bus->suspend_msg[0],
+		    &bus->suspend_msg[1]);
 	}
 	USB_BUS_UNLOCK(bus);
 
@@ -292,8 +290,8 @@ usb_resume(device_t dev)
 	}
 
 	USB_BUS_LOCK(bus);
-	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->resume_msg[0], &bus->resume_msg[1]);
+	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->resume_msg[0],
+	    &bus->resume_msg[1]);
 	USB_BUS_UNLOCK(bus);
 
 	return (0);
@@ -317,8 +315,8 @@ usb_bus_reset_async_locked(struct usb_bus *bus)
 
 	device_printf(bus->parent, "Resetting controller\n");
 
-	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->reset_msg[0], &bus->reset_msg[1]);
+	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->reset_msg[0],
+	    &bus->reset_msg[1]);
 }
 
 /*------------------------------------------------------------------------*
@@ -339,12 +337,12 @@ usb_shutdown(device_t dev)
 	DPRINTF("%s: Controller shutdown\n", device_get_nameunit(bus->bdev));
 
 	USB_BUS_LOCK(bus);
-	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->shutdown_msg[0], &bus->shutdown_msg[1]);
+	usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->shutdown_msg[0],
+	    &bus->shutdown_msg[1]);
 	if (usb_no_shutdown_wait == 0) {
 		/* wait for shutdown callback to be executed */
-		usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus),
-		    &bus->shutdown_msg[0], &bus->shutdown_msg[1]);
+		usb_proc_mwait(USB_BUS_EXPLORE_PROC(bus), &bus->shutdown_msg[0],
+		    &bus->shutdown_msg[1]);
 	}
 	USB_BUS_UNLOCK(bus);
 
@@ -406,8 +404,8 @@ usb_bus_explore(struct usb_proc_msg *pm)
 		 */
 		usb_bus_powerd(bus);
 #endif
-		 /* Explore the Root USB HUB. */
-		(udev->hub->explore) (udev);
+		/* Explore the Root USB HUB. */
+		(udev->hub->explore)(udev);
 		USB_BUS_LOCK(bus);
 	}
 #if USB_HAVE_ROOT_MOUNT_HOLD
@@ -498,10 +496,10 @@ usb_bus_suspend(struct usb_proc_msg *pm)
 	USB_BUS_UNLOCK(bus);
 
 	if (bus->methods->set_hw_power != NULL)
-		(bus->methods->set_hw_power) (bus);
+		(bus->methods->set_hw_power)(bus);
 
 	if (bus->methods->set_hw_power_sleep != NULL)
-		(bus->methods->set_hw_power_sleep) (bus, USB_HW_POWER_SUSPEND);
+		(bus->methods->set_hw_power_sleep)(bus, USB_HW_POWER_SUSPEND);
 
 	if (do_unlock)
 		usbd_enum_unlock(udev);
@@ -539,20 +537,17 @@ usb_bus_resume(struct usb_proc_msg *pm)
 	USB_TAKE_CONTROLLER(device_get_parent(bus->bdev));
 
 	USB_BUS_LOCK(bus);
- 	bus->hw_power_state =
-	  USB_HW_POWER_CONTROL |
-	  USB_HW_POWER_BULK |
-	  USB_HW_POWER_INTERRUPT |
-	  USB_HW_POWER_ISOC |
-	  USB_HW_POWER_NON_ROOT_HUB;
+	bus->hw_power_state = USB_HW_POWER_CONTROL | USB_HW_POWER_BULK |
+	    USB_HW_POWER_INTERRUPT | USB_HW_POWER_ISOC |
+	    USB_HW_POWER_NON_ROOT_HUB;
 	bus->no_explore = 0;
 	USB_BUS_UNLOCK(bus);
 
 	if (bus->methods->set_hw_power_sleep != NULL)
-		(bus->methods->set_hw_power_sleep) (bus, USB_HW_POWER_RESUME);
+		(bus->methods->set_hw_power_sleep)(bus, USB_HW_POWER_RESUME);
 
 	if (bus->methods->set_hw_power != NULL)
-		(bus->methods->set_hw_power) (bus);
+		(bus->methods->set_hw_power)(bus);
 
 	/* restore USB configuration to index 0 */
 	err = usbd_set_config_index(udev, 0);
@@ -562,7 +557,8 @@ usb_bus_resume(struct usb_proc_msg *pm)
 	/* probe and attach */
 	err = usb_probe_and_attach(udev, USB_IFACE_INDEX_ANY);
 	if (err) {
-		device_printf(bus->bdev, "Could not probe and "
+		device_printf(bus->bdev,
+		    "Could not probe and "
 		    "attach root HUB\n");
 	}
 
@@ -629,10 +625,10 @@ usb_bus_shutdown(struct usb_proc_msg *pm)
 	USB_BUS_UNLOCK(bus);
 
 	if (bus->methods->set_hw_power != NULL)
-		(bus->methods->set_hw_power) (bus);
+		(bus->methods->set_hw_power)(bus);
 
 	if (bus->methods->set_hw_power_sleep != NULL)
-		(bus->methods->set_hw_power_sleep) (bus, USB_HW_POWER_SHUTDOWN);
+		(bus->methods->set_hw_power_sleep)(bus, USB_HW_POWER_SHUTDOWN);
 
 	if (do_unlock)
 		usbd_enum_unlock(udev);
@@ -672,15 +668,14 @@ usb_power_wdog(void *arg)
 
 	USB_BUS_LOCK_ASSERT(bus, MA_OWNED);
 
-	usb_callout_reset(&bus->power_wdog,
-	    4 * hz, usb_power_wdog, arg);
+	usb_callout_reset(&bus->power_wdog, 4 * hz, usb_power_wdog, arg);
 
 #ifdef DDB
 	/*
 	 * The following line of code is only here to recover from
 	 * DDB:
 	 */
-	usb_proc_rewakeup(USB_BUS_EXPLORE_PROC(bus));	/* recover from DDB */
+	usb_proc_rewakeup(USB_BUS_EXPLORE_PROC(bus)); /* recover from DDB */
 #endif
 
 #if USB_HAVE_POWERD
@@ -746,28 +741,24 @@ usb_bus_attach(struct usb_proc_msg *pm)
 	}
 
 	/* default power_mask value */
-	bus->hw_power_state =
-	  USB_HW_POWER_CONTROL |
-	  USB_HW_POWER_BULK |
-	  USB_HW_POWER_INTERRUPT |
-	  USB_HW_POWER_ISOC |
-	  USB_HW_POWER_NON_ROOT_HUB;
+	bus->hw_power_state = USB_HW_POWER_CONTROL | USB_HW_POWER_BULK |
+	    USB_HW_POWER_INTERRUPT | USB_HW_POWER_ISOC |
+	    USB_HW_POWER_NON_ROOT_HUB;
 
 	USB_BUS_UNLOCK(bus);
 
 	/* make sure power is set at least once */
 
 	if (bus->methods->set_hw_power != NULL) {
-		(bus->methods->set_hw_power) (bus);
+		(bus->methods->set_hw_power)(bus);
 	}
 
 	/* allocate the Root USB device */
 
-	child = usb_alloc_device(bus->bdev, bus, NULL, 0, 0, 1,
-	    speed, USB_MODE_HOST);
+	child = usb_alloc_device(bus->bdev, bus, NULL, 0, 0, 1, speed,
+	    USB_MODE_HOST);
 	if (child) {
-		err = usb_probe_and_attach(child,
-		    USB_IFACE_INDEX_ANY);
+		err = usb_probe_and_attach(child, USB_IFACE_INDEX_ANY);
 		if (!err) {
 			if ((bus->devices[USB_ROOT_HUB_ADDR] == NULL) ||
 			    (bus->devices[USB_ROOT_HUB_ADDR]->hub == NULL)) {
@@ -858,33 +849,39 @@ usb_attach_sub(device_t dev, struct usb_bus *bus)
 #if USB_HAVE_PER_BUS_PROCESS
 	/* Create USB explore and callback processes */
 
-	if (usb_proc_create(USB_BUS_GIANT_PROC(bus),
-	    &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_MED)) {
-		device_printf(dev, "WARNING: Creation of USB Giant "
+	if (usb_proc_create(USB_BUS_GIANT_PROC(bus), &bus->bus_mtx,
+		device_get_nameunit(dev), USB_PRI_MED)) {
+		device_printf(dev,
+		    "WARNING: Creation of USB Giant "
 		    "callback process failed.\n");
 	} else if (usb_proc_create(USB_BUS_NON_GIANT_ISOC_PROC(bus),
-	    &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_HIGHEST)) {
-		device_printf(dev, "WARNING: Creation of USB non-Giant ISOC "
+		       &bus->bus_mtx, device_get_nameunit(dev),
+		       USB_PRI_HIGHEST)) {
+		device_printf(dev,
+		    "WARNING: Creation of USB non-Giant ISOC "
 		    "callback process failed.\n");
 	} else if (usb_proc_create(USB_BUS_NON_GIANT_BULK_PROC(bus),
-	    &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_HIGH)) {
-		device_printf(dev, "WARNING: Creation of USB non-Giant BULK "
+		       &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_HIGH)) {
+		device_printf(dev,
+		    "WARNING: Creation of USB non-Giant BULK "
 		    "callback process failed.\n");
-	} else if (usb_proc_create(USB_BUS_EXPLORE_PROC(bus),
-	    &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_MED)) {
-		device_printf(dev, "WARNING: Creation of USB explore "
+	} else if (usb_proc_create(USB_BUS_EXPLORE_PROC(bus), &bus->bus_mtx,
+		       device_get_nameunit(dev), USB_PRI_MED)) {
+		device_printf(dev,
+		    "WARNING: Creation of USB explore "
 		    "process failed.\n");
 	} else if (usb_proc_create(USB_BUS_CONTROL_XFER_PROC(bus),
-	    &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_MED)) {
-		device_printf(dev, "WARNING: Creation of USB control transfer "
+		       &bus->bus_mtx, device_get_nameunit(dev), USB_PRI_MED)) {
+		device_printf(dev,
+		    "WARNING: Creation of USB control transfer "
 		    "process failed.\n");
 	} else
 #endif
 	{
 		/* Get final attach going */
 		USB_BUS_LOCK(bus);
-		usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus),
-		    &bus->attach_msg[0], &bus->attach_msg[1]);
+		usb_proc_msignal(USB_BUS_EXPLORE_PROC(bus), &bus->attach_msg[0],
+		    &bus->attach_msg[1]);
 		USB_BUS_UNLOCK(bus);
 
 		/* Do initial explore */
@@ -948,27 +945,26 @@ usb_bus_mem_alloc_all(struct usb_bus *bus, bus_dma_tag_t dmat,
 {
 	bus->alloc_failed = 0;
 
-	mtx_init(&bus->bus_mtx, device_get_nameunit(bus->parent),
-	    "usb_def_mtx", MTX_DEF | MTX_RECURSE);
+	mtx_init(&bus->bus_mtx, device_get_nameunit(bus->parent), "usb_def_mtx",
+	    MTX_DEF | MTX_RECURSE);
 
 	mtx_init(&bus->bus_spin_lock, device_get_nameunit(bus->parent),
 	    "usb_spin_mtx", MTX_SPIN | MTX_RECURSE);
 
-	usb_callout_init_mtx(&bus->power_wdog,
-	    &bus->bus_mtx, 0);
+	usb_callout_init_mtx(&bus->power_wdog, &bus->bus_mtx, 0);
 
 	TAILQ_INIT(&bus->intr_q.head);
 
 #if USB_HAVE_BUSDMA
-	usb_dma_tag_setup(bus->dma_parent_tag, bus->dma_tags,
-	    dmat, &bus->bus_mtx, NULL, bus->dma_bits, USB_BUS_DMA_TAG_MAX);
+	usb_dma_tag_setup(bus->dma_parent_tag, bus->dma_tags, dmat,
+	    &bus->bus_mtx, NULL, bus->dma_bits, USB_BUS_DMA_TAG_MAX);
 #endif
 	if ((bus->devices_max > USB_MAX_DEVICES) ||
-	    (bus->devices_max < USB_MIN_DEVICES) ||
-	    (bus->devices == NULL)) {
-		DPRINTFN(0, "Devices field has not been "
+	    (bus->devices_max < USB_MIN_DEVICES) || (bus->devices == NULL)) {
+		DPRINTFN(0,
+		    "Devices field has not been "
 		    "initialised properly\n");
-		bus->alloc_failed = 1;		/* failure */
+		bus->alloc_failed = 1; /* failure */
 	}
 #if USB_HAVE_BUSDMA
 	if (cb) {
@@ -1017,7 +1013,7 @@ usb_proc_explore_mwait(struct usb_device *udev, void *pm1, void *pm2)
 	usb_proc_mwait(USB_BUS_EXPLORE_PROC(udev->bus), pm1, pm2);
 }
 
-void	*
+void *
 usb_proc_explore_msignal(struct usb_device *udev, void *pm1, void *pm2)
 {
 	return (usb_proc_msignal(USB_BUS_EXPLORE_PROC(udev->bus), pm1, pm2));

@@ -32,38 +32,35 @@
 
 #include <netinet/in.h>
 
-#include <errno.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "fetch.h"
 #include "common.h"
+#include "fetch.h"
 
-auth_t	 fetchAuthMethod;
-int	 fetchLastErrCode;
-char	 fetchLastErrString[MAXERRSTRING];
-int	 fetchTimeout;
-int	 fetchRestartCalls = 1;
-int	 fetchDebug;
-
+auth_t fetchAuthMethod;
+int fetchLastErrCode;
+char fetchLastErrString[MAXERRSTRING];
+int fetchTimeout;
+int fetchRestartCalls = 1;
+int fetchDebug;
 
 /*** Local data **************************************************************/
 
 /*
  * Error messages for parser errors
  */
-#define URL_MALFORMED		1
-#define URL_BAD_SCHEME		2
-#define URL_BAD_PORT		3
-static struct fetcherr url_errlist[] = {
-	{ URL_MALFORMED,	FETCH_URL,	"Malformed URL" },
-	{ URL_BAD_SCHEME,	FETCH_URL,	"Invalid URL scheme" },
-	{ URL_BAD_PORT,		FETCH_URL,	"Invalid server port" },
-	{ -1,			FETCH_UNKNOWN,	"Unknown parser error" }
-};
-
+#define URL_MALFORMED 1
+#define URL_BAD_SCHEME 2
+#define URL_BAD_PORT 3
+static struct fetcherr url_errlist[] = { { URL_MALFORMED, FETCH_URL,
+					     "Malformed URL" },
+	{ URL_BAD_SCHEME, FETCH_URL, "Invalid URL scheme" },
+	{ URL_BAD_PORT, FETCH_URL, "Invalid server port" },
+	{ -1, FETCH_UNKNOWN, "Unknown parser error" } };
 
 /*** Public API **************************************************************/
 
@@ -360,10 +357,10 @@ fetchParseURL(const char *URL)
 
 	/* scheme name */
 	if ((p = strstr(URL, ":/"))) {
-                if (p - URL > URL_SCHEMELEN)
-                        goto ouch;
-                for (i = 0; URL + i < p; i++)
-                        u->scheme[i] = tolower((unsigned char)URL[i]);
+		if (p - URL > URL_SCHEMELEN)
+			goto ouch;
+		for (i = 0; URL + i < p; i++)
+			u->scheme[i] = tolower((unsigned char)URL[i]);
 		URL = ++p;
 		/*
 		 * Only one slash: no host, leave slash as part of document
@@ -375,8 +372,8 @@ fetchParseURL(const char *URL)
 		p = URL;
 	}
 	if (!*URL || *URL == '/' || *URL == '.' ||
-	    (u->scheme[0] == '\0' &&
-		strchr(URL, '/') == NULL && strchr(URL, ':') == NULL))
+	    (u->scheme[0] == '\0' && strchr(URL, '/') == NULL &&
+		strchr(URL, ':') == NULL))
 		goto nohost;
 
 	p = strpbrk(URL, "/@");
@@ -404,9 +401,13 @@ fetchParseURL(const char *URL)
 			goto ouch;
 	} else {
 		/* valid characters in a DNS name */
-		q = p + strspn(p, "-." "0123456789"
-		    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "_"
-		    "abcdefghijklmnopqrstuvwxyz");
+		q = p +
+		    strspn(p,
+			"-."
+			"0123456789"
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			"_"
+			"abcdefghijklmnopqrstuvwxyz");
 	}
 	if ((*q != '\0' && *q != '/' && *q != ':') || q - p > MAXHOSTNAMELEN)
 		goto ouch;
@@ -464,13 +465,12 @@ nohost:
 	}
 
 	DEBUGF("scheme:   \"%s\"\n"
-	    "user:     \"%s\"\n"
-	    "password: \"%s\"\n"
-	    "host:     \"%s\"\n"
-	    "port:     \"%d\"\n"
-	    "document: \"%s\"\n",
-	    u->scheme, u->user, u->pwd,
-	    u->host, u->port, u->doc);
+	       "user:     \"%s\"\n"
+	       "password: \"%s\"\n"
+	       "host:     \"%s\"\n"
+	       "port:     \"%d\"\n"
+	       "document: \"%s\"\n",
+	    u->scheme, u->user, u->pwd, u->host, u->port, u->doc);
 
 	return (u);
 

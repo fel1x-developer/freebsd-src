@@ -33,26 +33,25 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
 #include <sys/fnv_hash.h>
 
-#define	_WANT_VNET
+#define _WANT_VNET
 
-#include <sys/user.h>
 #include <sys/linker.h>
+#include <sys/mman.h>
 #include <sys/pcpu.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <sys/mman.h>
+#include <sys/user.h>
 
-#include <stdbool.h>
 #include <net/vnet.h>
 
 #include <fcntl.h>
 #include <kvm.h>
 #include <limits.h>
 #include <paths.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,7 +185,8 @@ _kvm_open(kvm_t *kd, const char *uf, const char *mf, int flag, char *errout)
 		kd->rawdump = 1;
 		kd->writable = 1;
 	}
-	SET_FOREACH(parch, kvm_arch) {
+	SET_FOREACH(parch, kvm_arch)
+	{
 		if ((*parch)->ka_probe(kd)) {
 			kd->arch = *parch;
 			break;
@@ -245,8 +245,8 @@ kvm_open(const char *uf, const char *mf, const char *sf __unused, int flag,
 
 	if ((kd = calloc(1, sizeof(*kd))) == NULL) {
 		if (errstr != NULL)
-			(void)fprintf(stderr, "%s: %s\n",
-				      errstr, strerror(errno));
+			(void)fprintf(stderr, "%s: %s\n", errstr,
+			    strerror(errno));
 		return (NULL);
 	}
 	kd->program = errstr;
@@ -289,9 +289,9 @@ kvm_close(kvm_t *kd)
 	if (kd->procbase != 0)
 		free((void *)kd->procbase);
 	if (kd->argbuf != 0)
-		free((void *) kd->argbuf);
+		free((void *)kd->argbuf);
 	if (kd->argspc != 0)
-		free((void *) kd->argspc);
+		free((void *)kd->argspc);
 	if (kd->argv != 0)
 		free((void *)kd->argv);
 	if (kd->dpcpu_initialized != 0)
@@ -514,16 +514,16 @@ kvm_kerndisp(kvm_t *kd)
 	size_t rel_kernbase_len = sizeof(rel_kernbase);
 
 	if (ISALIVE(kd)) {
-		if (sysctlbyname("kern.base_address", &kernbase,
-		    &kernbase_len, NULL, 0) == -1) {
+		if (sysctlbyname("kern.base_address", &kernbase, &kernbase_len,
+			NULL, 0) == -1) {
 			_kvm_syserr(kd, kd->program,
-				"failed to get kernel base address");
+			    "failed to get kernel base address");
 			return (0);
 		}
 		if (sysctlbyname("kern.relbase_address", &rel_kernbase,
-		    &rel_kernbase_len, NULL, 0) == -1) {
+			&rel_kernbase_len, NULL, 0) == -1) {
 			_kvm_syserr(kd, kd->program,
-				"failed to get relocated kernel base address");
+			    "failed to get relocated kernel base address");
 			return (0);
 		}
 		return (rel_kernbase - kernbase);

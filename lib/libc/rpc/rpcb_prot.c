@@ -6,31 +6,31 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
+ * Copyright (c) 1986-1991 by Sun Microsystems Inc.
  */
 
 /*
@@ -40,12 +40,13 @@
  * Copyright (C) 1984, 1988, Sun Microsystems, Inc.
  */
 
-#include "namespace.h"
 #include <rpc/rpc.h>
+#include <rpc/rpc_com.h>
+#include <rpc/rpcb_prot.h>
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#include <rpc/rpcb_prot.h>
-#include <rpc/rpc_com.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 bool_t
@@ -108,11 +109,11 @@ xdr_rpcblist_ptr(XDR *xdrs, rpcblist_ptr *rp)
 	next = NULL;
 	for (;;) {
 		more_elements = (bool_t)(*rp != NULL);
-		if (! xdr_bool(xdrs, &more_elements)) {
+		if (!xdr_bool(xdrs, &more_elements)) {
 			return (FALSE);
 		}
-		if (! more_elements) {
-			return (TRUE);  /* we are done */
+		if (!more_elements) {
+			return (TRUE); /* we are done */
 		}
 		/*
 		 * the unfortunate side effect of non-recursion is that in
@@ -121,8 +122,8 @@ xdr_rpcblist_ptr(XDR *xdrs, rpcblist_ptr *rp)
 		 */
 		if (freeing && *rp)
 			next = (*rp)->rpcb_next;
-		if (! xdr_reference(xdrs, (caddr_t *)rp,
-		    (u_int)sizeof (rpcblist), (xdrproc_t)xdr_rpcb)) {
+		if (!xdr_reference(xdrs, (caddr_t *)rp, (u_int)sizeof(rpcblist),
+			(xdrproc_t)xdr_rpcb)) {
 			return (FALSE);
 		}
 		if (freeing) {
@@ -147,12 +148,11 @@ xdr_rpcblist_ptr(XDR *xdrs, rpcblist_ptr *rp)
 bool_t
 xdr_rpcblist(XDR *xdrs, RPCBLIST **rp)
 {
-	bool_t	dummy;
+	bool_t dummy;
 
 	dummy = xdr_rpcblist_ptr(xdrs, (rpcblist_ptr *)rp);
 	return (dummy);
 }
-
 
 bool_t
 xdr_rpcb_entry(XDR *xdrs, rpcb_entry *objp)
@@ -191,11 +191,11 @@ xdr_rpcb_entry_list_ptr(XDR *xdrs, rpcb_entry_list_ptr *rp)
 	next = NULL;
 	for (;;) {
 		more_elements = (bool_t)(*rp != NULL);
-		if (! xdr_bool(xdrs, &more_elements)) {
+		if (!xdr_bool(xdrs, &more_elements)) {
 			return (FALSE);
 		}
-		if (! more_elements) {
-			return (TRUE);  /* we are done */
+		if (!more_elements) {
+			return (TRUE); /* we are done */
 		}
 		/*
 		 * the unfortunate side effect of non-recursion is that in
@@ -204,9 +204,9 @@ xdr_rpcb_entry_list_ptr(XDR *xdrs, rpcb_entry_list_ptr *rp)
 		 */
 		if (freeing && *rp)
 			next = (*rp)->rpcb_entry_next;
-		if (! xdr_reference(xdrs, (caddr_t *)rp,
-		    (u_int)sizeof (rpcb_entry_list),
-				    (xdrproc_t)xdr_rpcb_entry)) {
+		if (!xdr_reference(xdrs, (caddr_t *)rp,
+			(u_int)sizeof(rpcb_entry_list),
+			(xdrproc_t)xdr_rpcb_entry)) {
 			return (FALSE);
 		}
 		if (freeing) {
@@ -231,8 +231,8 @@ xdr_rpcb_entry_list_ptr(XDR *xdrs, rpcb_entry_list_ptr *rp)
 bool_t
 xdr_rpcb_rmtcallargs(XDR *xdrs, struct rpcb_rmtcallargs *p)
 {
-	struct r_rpcb_rmtcallargs *objp =
-	    (struct r_rpcb_rmtcallargs *)(void *)p;
+	struct r_rpcb_rmtcallargs *objp = (struct r_rpcb_rmtcallargs *)(void *)
+	    p;
 	u_int lenposition, argposition, position;
 	int32_t *buf;
 
@@ -257,17 +257,17 @@ xdr_rpcb_rmtcallargs(XDR *xdrs, struct rpcb_rmtcallargs *p)
 	 * All the jugglery for just getting the size of the arguments
 	 */
 	lenposition = XDR_GETPOS(xdrs);
-	if (! xdr_u_int(xdrs, &(objp->args.args_len))) {
+	if (!xdr_u_int(xdrs, &(objp->args.args_len))) {
 		return (FALSE);
 	}
 	argposition = XDR_GETPOS(xdrs);
-	if (! (*objp->xdr_args)(xdrs, objp->args.args_val)) {
+	if (!(*objp->xdr_args)(xdrs, objp->args.args_val)) {
 		return (FALSE);
 	}
 	position = XDR_GETPOS(xdrs);
 	objp->args.args_len = (u_int)((u_long)position - (u_long)argposition);
 	XDR_SETPOS(xdrs, lenposition);
-	if (! xdr_u_int(xdrs, &(objp->args.args_len))) {
+	if (!xdr_u_int(xdrs, &(objp->args.args_len))) {
 		return (FALSE);
 	}
 	XDR_SETPOS(xdrs, position);
@@ -300,11 +300,11 @@ xdr_netbuf(XDR *xdrs, struct netbuf *objp)
 	bool_t dummy;
 	void **pp;
 
-	if (!xdr_u_int32_t(xdrs, (u_int32_t *) &objp->maxlen)) {
+	if (!xdr_u_int32_t(xdrs, (u_int32_t *)&objp->maxlen)) {
 		return (FALSE);
 	}
 	pp = &objp->buf;
-	dummy = xdr_bytes(xdrs, (char **) pp,
-			(u_int *)&(objp->len), objp->maxlen);
+	dummy = xdr_bytes(xdrs, (char **)pp, (u_int *)&(objp->len),
+	    objp->maxlen);
 	return (dummy);
 }

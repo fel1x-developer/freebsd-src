@@ -30,12 +30,13 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <machine/bus.h>
 
-#include <gdb/gdb.h>
+#include <machine/bus.h>
 
 #include <dev/uart/uart.h>
 #include <dev/uart/uart_cpu.h>
+
+#include <gdb/gdb.h>
 
 static gdb_probe_f uart_dbg_probe;
 static gdb_init_f uart_dbg_init;
@@ -43,8 +44,8 @@ static gdb_term_f uart_dbg_term;
 static gdb_getc_f uart_dbg_getc;
 static gdb_putc_f uart_dbg_putc;
 
-GDB_DBGPORT(uart, uart_dbg_probe, uart_dbg_init, uart_dbg_term,
-    uart_dbg_getc, uart_dbg_putc);
+GDB_DBGPORT(uart, uart_dbg_probe, uart_dbg_init, uart_dbg_term, uart_dbg_getc,
+    uart_dbg_putc);
 
 static struct uart_devinfo uart_dbgport;
 

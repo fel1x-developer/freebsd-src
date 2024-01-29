@@ -31,9 +31,9 @@
 #define _GFMULT_H_
 
 #ifdef __APPLE__
-#define	__aligned(x)    __attribute__((__aligned__(x)))
-#define	be64dec(buf)	__builtin_bswap64(*(uint64_t *)buf)
-#define	be64enc(buf, x)	(*(uint64_t *)buf = __builtin_bswap64(x))
+#define __aligned(x) __attribute__((__aligned__(x)))
+#define be64dec(buf) __builtin_bswap64(*(uint64_t *)buf)
+#define be64enc(buf, x) (*(uint64_t *)buf = __builtin_bswap64(x))
 #else
 #include <sys/endian.h>
 #endif
@@ -45,23 +45,23 @@
 #include <strings.h>
 #endif
 
-#define REQ_ALIGN	(16 * 4)
+#define REQ_ALIGN (16 * 4)
 /*
  * The rows are striped across cache lines.  Note that the indexes
  * are bit reversed to make accesses quicker.
  */
 struct gf128table {
-	uint32_t a[16] __aligned(REQ_ALIGN);	/* bits   0 - 31 */
-	uint32_t b[16] __aligned(REQ_ALIGN);	/* bits  63 - 32 */
-	uint32_t c[16] __aligned(REQ_ALIGN);	/* bits  95 - 64 */
-	uint32_t d[16] __aligned(REQ_ALIGN);	/* bits 127 - 96 */
+	uint32_t a[16] __aligned(REQ_ALIGN); /* bits   0 - 31 */
+	uint32_t b[16] __aligned(REQ_ALIGN); /* bits  63 - 32 */
+	uint32_t c[16] __aligned(REQ_ALIGN); /* bits  95 - 64 */
+	uint32_t d[16] __aligned(REQ_ALIGN); /* bits 127 - 96 */
 } __aligned(REQ_ALIGN);
 
 /*
  * A set of tables that contain h, h^2, h^3, h^4.  To be used w/ gf128_mul4.
  */
 struct gf128table4 {
-	struct gf128table	tbls[4];
+	struct gf128table tbls[4];
 };
 
 /*
@@ -77,9 +77,8 @@ struct gf128 {
 };
 
 /* Note that we don't bit reverse in MAKE_GF128. */
-#define MAKE_GF128(a, b)	((struct gf128){.v = { (a), (b) } })
-#define GF128_EQ(a, b)		((((a).v[0] ^ (b).v[0]) | \
-				    ((a).v[1] ^ (b).v[1])) == 0)
+#define MAKE_GF128(a, b) ((struct gf128) { .v = { (a), (b) } })
+#define GF128_EQ(a, b) ((((a).v[0] ^ (b).v[0]) | ((a).v[1] ^ (b).v[1])) == 0)
 
 static inline struct gf128
 gf128_read(const uint8_t *buf)

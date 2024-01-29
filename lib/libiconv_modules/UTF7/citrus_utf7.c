@@ -34,54 +34,53 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_utf7.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
-#define EI_MASK		UINT16_C(0xff)
-#define EI_DIRECT	UINT16_C(0x100)
-#define EI_OPTION	UINT16_C(0x200)
-#define EI_SPACE	UINT16_C(0x400)
+#define EI_MASK UINT16_C(0xff)
+#define EI_DIRECT UINT16_C(0x100)
+#define EI_OPTION UINT16_C(0x200)
+#define EI_SPACE UINT16_C(0x400)
 
 typedef struct {
-	uint16_t	 cell[0x80];
+	uint16_t cell[0x80];
 } _UTF7EncodingInfo;
 
 typedef struct {
-	unsigned int
-		mode: 1,	/* whether base64 mode */
-		bits: 4,	/* need to hold 0 - 15 */
-		cache: 22;	/* 22 = BASE64_BIT + UTF16_BIT */
+	unsigned int mode : 1, /* whether base64 mode */
+	    bits : 4,	       /* need to hold 0 - 15 */
+	    cache : 22;	       /* 22 = BASE64_BIT + UTF16_BIT */
 	int chlen;
 	char ch[4]; /* BASE64_IN, 3 * 6 = 18, most closed to UTF16_BIT */
 } _UTF7State;
 
-#define	_CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define	_CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define	_FUNCNAME(m)			_citrus_UTF7_##m
-#define	_ENCODING_INFO			_UTF7EncodingInfo
-#define	_ENCODING_STATE			_UTF7State
-#define	_ENCODING_MB_CUR_MAX(_ei_)		4
-#define	_ENCODING_IS_STATE_DEPENDENT		1
-#define	_STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_UTF7_##m
+#define _ENCODING_INFO _UTF7EncodingInfo
+#define _ENCODING_STATE _UTF7State
+#define _ENCODING_MB_CUR_MAX(_ei_) 4
+#define _ENCODING_IS_STATE_DEPENDENT 1
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_UTF7_init_state(_UTF7EncodingInfo * __restrict ei __unused,
-    _UTF7State * __restrict s)
+_citrus_UTF7_init_state(_UTF7EncodingInfo *__restrict ei __unused,
+    _UTF7State *__restrict s)
 {
 
 	memset((void *)s, 0, sizeof(*s));
@@ -107,52 +106,53 @@ _citrus_UTF7_unpack_state(_UTF7EncodingInfo * __restrict ei __unused,
 }
 #endif
 
-static const char base64[] =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	"abcdefghijklmnopqrstuvwxyz"
-	"0123456789+/";
+static const char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			     "abcdefghijklmnopqrstuvwxyz"
+			     "0123456789+/";
 
-static const char direct[] =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	"abcdefghijklmnopqrstuvwxyz"
-	"0123456789'(),-./:?";
+static const char direct[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+			     "abcdefghijklmnopqrstuvwxyz"
+			     "0123456789'(),-./:?";
 
 static const char option[] = "!\"#$%&*;<=>@[]^_`{|}";
 static const char spaces[] = " \t\r\n";
 
-#define	BASE64_BIT	6
-#define	UTF16_BIT	16
+#define BASE64_BIT 6
+#define UTF16_BIT 16
 
-#define	BASE64_MAX	0x3f
-#define	UTF16_MAX	UINT16_C(0xffff)
-#define	UTF32_MAX	UINT32_C(0x10ffff)
+#define BASE64_MAX 0x3f
+#define UTF16_MAX UINT16_C(0xffff)
+#define UTF32_MAX UINT32_C(0x10ffff)
 
-#define	BASE64_IN	'+'
-#define	BASE64_OUT	'-'
+#define BASE64_IN '+'
+#define BASE64_OUT '-'
 
-#define	SHIFT7BIT(c)	((c) >> 7)
-#define	ISSPECIAL(c)	((c) == '\0' || (c) == BASE64_IN)
+#define SHIFT7BIT(c) ((c) >> 7)
+#define ISSPECIAL(c) ((c) == '\0' || (c) == BASE64_IN)
 
-#define	FINDLEN(ei, c) \
-	(SHIFT7BIT((c)) ? -1 : (((ei)->cell[(c)] & EI_MASK) - 1))
+#define FINDLEN(ei, c) (SHIFT7BIT((c)) ? -1 : (((ei)->cell[(c)] & EI_MASK) - 1))
 
-#define	ISDIRECT(ei, c)	(!SHIFT7BIT((c)) && (ISSPECIAL((c)) || \
-	ei->cell[(c)] & (EI_DIRECT | EI_OPTION | EI_SPACE)))
+#define ISDIRECT(ei, c)        \
+	(!SHIFT7BIT((c)) &&    \
+	    (ISSPECIAL((c)) || \
+		ei->cell[(c)] & (EI_DIRECT | EI_OPTION | EI_SPACE)))
 
-#define	ISSAFE(ei, c)	(!SHIFT7BIT((c)) && (ISSPECIAL((c)) || \
-	(c < 0x80 && ei->cell[(c)] & (EI_DIRECT | EI_SPACE))))
+#define ISSAFE(ei, c)          \
+	(!SHIFT7BIT((c)) &&    \
+	    (ISSPECIAL((c)) || \
+		(c < 0x80 && ei->cell[(c)] & (EI_DIRECT | EI_SPACE))))
 
 /* surrogate pair */
-#define	SRG_BASE	UINT32_C(0x10000)
-#define	HISRG_MIN	UINT16_C(0xd800)
-#define	HISRG_MAX	UINT16_C(0xdbff)
-#define	LOSRG_MIN	UINT16_C(0xdc00)
-#define	LOSRG_MAX	UINT16_C(0xdfff)
+#define SRG_BASE UINT32_C(0x10000)
+#define HISRG_MIN UINT16_C(0xd800)
+#define HISRG_MAX UINT16_C(0xdbff)
+#define LOSRG_MIN UINT16_C(0xdc00)
+#define LOSRG_MAX UINT16_C(0xdfff)
 
 static int
-_citrus_UTF7_mbtoutf16(_UTF7EncodingInfo * __restrict ei,
-    uint16_t * __restrict u16, char ** __restrict s, size_t n,
-    _UTF7State * __restrict psenc, size_t * __restrict nresult)
+_citrus_UTF7_mbtoutf16(_UTF7EncodingInfo *__restrict ei,
+    uint16_t *__restrict u16, char **__restrict s, size_t n,
+    _UTF7State *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	int done, i, len;
@@ -206,13 +206,19 @@ _citrus_UTF7_mbtoutf16(_UTF7EncodingInfo * __restrict ei,
 					i--;
 				}
 			} else {
-				psenc->cache =
-				    (psenc->cache << BASE64_BIT) | len;
+				psenc->cache = (psenc->cache << BASE64_BIT) |
+				    len;
 				switch (psenc->bits) {
-				case 0: case 2: case 4: case 6: case 8:
+				case 0:
+				case 2:
+				case 4:
+				case 6:
+				case 8:
 					psenc->bits += BASE64_BIT;
 					break;
-				case 10: case 12: case 14:
+				case 10:
+				case 12:
+				case 14:
 					psenc->bits -= (UTF16_BIT - BASE64_BIT);
 					*u16 = (psenc->cache >> psenc->bits) &
 					    UTF16_MAX;
@@ -239,9 +245,9 @@ ilseq:
 }
 
 static int
-_citrus_UTF7_mbrtowc_priv(_UTF7EncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _UTF7State * __restrict psenc, size_t * __restrict nresult)
+_citrus_UTF7_mbrtowc_priv(_UTF7EncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _UTF7State *__restrict psenc, size_t *__restrict nresult)
 {
 	uint32_t u32;
 	uint16_t hi, lo;
@@ -295,9 +301,9 @@ done:
 }
 
 static int
-_citrus_UTF7_utf16tomb(_UTF7EncodingInfo * __restrict ei,
-    char * __restrict s, size_t n __unused, uint16_t u16,
-    _UTF7State * __restrict psenc, size_t * __restrict nresult)
+_citrus_UTF7_utf16tomb(_UTF7EncodingInfo *__restrict ei, char *__restrict s,
+    size_t n __unused, uint16_t u16, _UTF7State *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	int bits, i;
 
@@ -344,9 +350,9 @@ _citrus_UTF7_utf16tomb(_UTF7EncodingInfo * __restrict ei,
 }
 
 static int
-_citrus_UTF7_wcrtomb_priv(_UTF7EncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wchar,
-    _UTF7State * __restrict psenc, size_t * __restrict nresult)
+_citrus_UTF7_wcrtomb_priv(_UTF7EncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, wchar_t wchar, _UTF7State *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	uint32_t u32;
 	uint16_t u16[2];
@@ -382,9 +388,9 @@ _citrus_UTF7_wcrtomb_priv(_UTF7EncodingInfo * __restrict ei,
 
 static int
 /* ARGSUSED */
-_citrus_UTF7_put_state_reset(_UTF7EncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, _UTF7State * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_UTF7_put_state_reset(_UTF7EncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, _UTF7State *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	int bits, pos;
 
@@ -419,8 +425,8 @@ _citrus_UTF7_put_state_reset(_UTF7EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF7_stdenc_wctocs(_UTF7EncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_UTF7_stdenc_wctocs(_UTF7EncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = 0;
@@ -431,8 +437,8 @@ _citrus_UTF7_stdenc_wctocs(_UTF7EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF7_stdenc_cstowc(_UTF7EncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_UTF7_stdenc_cstowc(_UTF7EncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid != 0)
@@ -444,12 +450,13 @@ _citrus_UTF7_stdenc_cstowc(_UTF7EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF7_stdenc_get_state_desc_generic(_UTF7EncodingInfo * __restrict ei __unused,
-    _UTF7State * __restrict psenc, int * __restrict rstate)
+_citrus_UTF7_stdenc_get_state_desc_generic(
+    _UTF7EncodingInfo *__restrict ei __unused, _UTF7State *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
@@ -463,18 +470,18 @@ _citrus_UTF7_encoding_module_uninit(_UTF7EncodingInfo *ei __unused)
 
 static int
 /*ARGSUSED*/
-_citrus_UTF7_encoding_module_init(_UTF7EncodingInfo * __restrict ei,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_UTF7_encoding_module_init(_UTF7EncodingInfo *__restrict ei,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 	const char *s;
 
 	memset(ei, 0, sizeof(*ei));
 
-#define FILL(str, flag)				\
-do {						\
-	for (s = str; *s != '\0'; s++)		\
-		ei->cell[*s & 0x7f] |= flag;	\
-} while (/*CONSTCOND*/0)
+#define FILL(str, flag)                              \
+	do {                                         \
+		for (s = str; *s != '\0'; s++)       \
+			ei->cell[*s & 0x7f] |= flag; \
+	} while (/*CONSTCOND*/ 0)
 
 	FILL(base64, (s - base64) + 1);
 	FILL(direct, EI_DIRECT);

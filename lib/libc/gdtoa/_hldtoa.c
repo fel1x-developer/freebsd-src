@@ -42,13 +42,13 @@
 #if (LDBL_MANT_DIG > DBL_MANT_DIG)
 
 /* Strings values used by dtoa() */
-#define	INFSTR	"Infinity"
-#define	NANSTR	"NaN"
+#define INFSTR "Infinity"
+#define NANSTR "NaN"
 
 #ifdef LDBL_IMPLICIT_NBIT
-#define	MANH_SIZE	LDBL_MANH_SIZE
+#define MANH_SIZE LDBL_MANH_SIZE
 #else
-#define	MANH_SIZE	(LDBL_MANH_SIZE - 1)
+#define MANH_SIZE (LDBL_MANH_SIZE - 1)
 #endif
 
 #if MANH_SIZE > 32
@@ -63,8 +63,8 @@ typedef uint64_t manl_t;
 typedef uint32_t manl_t;
 #endif
 
-#define	LDBL_ADJ	(LDBL_MAX_EXP - 2)
-#define	SIGFIGS		((LDBL_MANT_DIG + 3) / 4 + 1)
+#define LDBL_ADJ (LDBL_MAX_EXP - 2)
+#define SIGFIGS ((LDBL_MANT_DIG + 3) / 4 + 1)
 
 static const float one[] = { 1.0f, -1.0f };
 
@@ -107,14 +107,14 @@ __hldtoa(long double e, const char *xdigs, int ndigits, int *decpt, int *sign,
 	case FP_INFINITE:
 		*decpt = INT_MAX;
 		return (nrv_alloc(INFSTR, rve, sizeof(INFSTR) - 1));
-	default:	/* FP_NAN or unrecognized */
+	default: /* FP_NAN or unrecognized */
 		*decpt = INT_MAX;
 		return (nrv_alloc(NANSTR, rve, sizeof(NANSTR) - 1));
 	}
 
 	/* FP_NORMAL or FP_SUBNORMAL */
 
-	if (ndigits == 0)		/* dtoa() compatibility */
+	if (ndigits == 0) /* dtoa() compatibility */
 		ndigits = 1;
 
 	/*
@@ -142,7 +142,7 @@ __hldtoa(long double e, const char *xdigs, int ndigits, int *decpt, int *sign,
 
 	mask_nbit_l(u);
 	manh = u.bits.manh;
-	manl = u.bits.manl;	
+	manl = u.bits.manl;
 	*s0 = '1';
 	for (s = s0 + 1; s < s0 + bufsize; s++) {
 		*s = xdigs[(manh >> (MANH_SIZE - 4)) & 0xf];
@@ -163,7 +163,7 @@ __hldtoa(long double e, const char *xdigs, int ndigits, int *decpt, int *sign,
 	return (s0);
 }
 
-#else	/* (LDBL_MANT_DIG == DBL_MANT_DIG) */
+#else /* (LDBL_MANT_DIG == DBL_MANT_DIG) */
 
 char *
 __hldtoa(long double e, const char *xdigs, int ndigits, int *decpt, int *sign,
@@ -173,4 +173,4 @@ __hldtoa(long double e, const char *xdigs, int ndigits, int *decpt, int *sign,
 	return (__hdtoa((double)e, xdigs, ndigits, decpt, sign, rve));
 }
 
-#endif	/* (LDBL_MANT_DIG == DBL_MANT_DIG) */
+#endif /* (LDBL_MANT_DIG == DBL_MANT_DIG) */

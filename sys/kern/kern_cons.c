@@ -37,74 +37,74 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_syscons.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/fcntl.h>
 #include <sys/kbio.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/msgbuf.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/reboot.h>
-#include <sys/sysctl.h>
 #include <sys/sbuf.h>
+#include <sys/sysctl.h>
 #include <sys/tslog.h>
 #include <sys/tty.h>
 #include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include <ddb/ddb.h>
+#include <machine/clock.h>
+#include <machine/cpu.h>
 
 #include <dev/kbd/kbdreg.h>
 
-#include <machine/cpu.h>
-#include <machine/clock.h>
+#include <ddb/ddb.h>
 
 static MALLOC_DEFINE(M_TTYCONS, "tty console", "tty console handling");
 
 struct cn_device {
 	STAILQ_ENTRY(cn_device) cnd_next;
-	struct		consdev *cnd_cn;
+	struct consdev *cnd_cn;
 };
 
-#define CNDEVPATHMAX	32
-#define CNDEVTAB_SIZE	4
+#define CNDEVPATHMAX 32
+#define CNDEVTAB_SIZE 4
 static struct cn_device cn_devtab[CNDEVTAB_SIZE];
-static STAILQ_HEAD(, cn_device) cn_devlist =
-    STAILQ_HEAD_INITIALIZER(cn_devlist);
+static STAILQ_HEAD(, cn_device) cn_devlist = STAILQ_HEAD_INITIALIZER(
+    cn_devlist);
 
-int	cons_avail_mask = 0;	/* Bit mask. Each registered low level console
-				 * which is currently unavailable for inpit
-				 * (i.e., if it is in graphics mode) will have
-				 * this bit cleared.
-				 */
+int cons_avail_mask = 0; /* Bit mask. Each registered low level console
+			  * which is currently unavailable for inpit
+			  * (i.e., if it is in graphics mode) will have
+			  * this bit cleared.
+			  */
 
 static int cn_mute;
 SYSCTL_INT(_kern, OID_AUTO, consmute, CTLFLAG_RW, &cn_mute, 0,
     "State of the console muting");
 
-static char *consbuf;			/* buffer used by `consmsgbuf' */
-static struct callout conscallout;	/* callout for outputting to constty */
-struct msgbuf consmsgbuf;		/* message buffer for console tty */
-static bool console_pausing;		/* pause after each line during probe */
+static char *consbuf;		   /* buffer used by `consmsgbuf' */
+static struct callout conscallout; /* callout for outputting to constty */
+struct msgbuf consmsgbuf;	   /* message buffer for console tty */
+static bool console_pausing;	   /* pause after each line during probe */
 static const char console_pausestr[] =
-"<pause; press any key to proceed to next line or '.' to end pause mode>";
-struct tty *constty;			/* pointer to console "window" tty */
-static struct mtx constty_mtx;		/* Mutex for constty assignment. */
+    "<pause; press any key to proceed to next line or '.' to end pause mode>";
+struct tty *constty;	       /* pointer to console "window" tty */
+static struct mtx constty_mtx; /* Mutex for constty assignment. */
 MTX_SYSINIT(constty_mtx, &constty_mtx, "constty_mtx", MTX_DEF);
-static struct mtx cnputs_mtx;		/* Mutex for cnputs(). */
+static struct mtx cnputs_mtx; /* Mutex for cnputs(). */
 MTX_SYSINIT(cnputs_mtx, &cnputs_mtx, "cnputs_mtx", MTX_SPIN | MTX_NOWITNESS);
 
 static void constty_timeout(void *arg);
@@ -123,7 +123,6 @@ SET_DECLARE(cons_set, struct consdev);
 __weak_symbol void
 kbdinit(void)
 {
-
 }
 
 void
@@ -136,12 +135,11 @@ cninit(void)
 	 * Check if we should mute the console (for security reasons perhaps)
 	 * It can be changes dynamically using sysctl kern.consmute
 	 * once we are up and going.
-	 * 
+	 *
 	 */
-        cn_mute = ((boothowto & (RB_MUTE
-			|RB_SINGLE
-			|RB_VERBOSE
-			|RB_ASKNAME)) == RB_MUTE);
+	cn_mute = ((boothowto &
+		       (RB_MUTE | RB_SINGLE | RB_VERBOSE | RB_ASKNAME)) ==
+	    RB_MUTE);
 
 	/*
 	 * Bring up the kbd layer just in time for cnprobe.  Console drivers
@@ -155,7 +153,8 @@ cninit(void)
 	 * Find the first console with the highest priority.
 	 */
 	best_cn = NULL;
-	SET_FOREACH(list, cons_set) {
+	SET_FOREACH(list, cons_set)
+	{
 		cn = *list;
 		cnremove(cn);
 		/* Skip cons_consdev. */
@@ -200,7 +199,7 @@ void
 cninit_finish(void)
 {
 	console_pausing = false;
-} 
+}
 
 /* add a new physical console to back the virtual console */
 int
@@ -209,7 +208,7 @@ cnadd(struct consdev *cn)
 	struct cn_device *cnd;
 	int i;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next)
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next)
 		if (cnd->cnd_cn == cn)
 			return (0);
 	for (i = 0; i < CNDEVTAB_SIZE; i++) {
@@ -240,7 +239,7 @@ cnremove(struct consdev *cn)
 	struct cn_device *cnd;
 	int i;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		if (cnd->cnd_cn != cn)
 			continue;
 		if (STAILQ_FIRST(&cn_devlist) == cnd)
@@ -249,7 +248,7 @@ cnremove(struct consdev *cn)
 		cnd->cnd_cn = NULL;
 
 		/* Remove this device from available mask. */
-		for (i = 0; i < CNDEVTAB_SIZE; i++) 
+		for (i = 0; i < CNDEVTAB_SIZE; i++)
 			if (cnd == &cn_devtab[i]) {
 				cons_avail_mask &= ~(1 << i);
 				break;
@@ -272,7 +271,7 @@ cnselect(struct consdev *cn)
 {
 	struct cn_device *cnd;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		if (cnd->cnd_cn != cn)
 			continue;
 		if (cnd == STAILQ_FIRST(&cn_devlist))
@@ -295,7 +294,7 @@ cnavailable(struct consdev *cn, int available)
 	}
 	if (available) {
 		if (i < CNDEVTAB_SIZE)
-			cons_avail_mask |= (1 << i); 
+			cons_avail_mask |= (1 << i);
 		cn->cn_flags &= ~CN_FLAG_NOAVAIL;
 	} else {
 		if (i < CNDEVTAB_SIZE)
@@ -324,15 +323,16 @@ sysctl_kern_console(SYSCTL_HANDLER_ARGS)
 	int error;
 	struct sbuf *sb;
 
-	sb = sbuf_new(NULL, NULL, CNDEVPATHMAX * 2, SBUF_AUTOEXTEND |
-	    SBUF_INCLUDENUL);
+	sb = sbuf_new(NULL, NULL, CNDEVPATHMAX * 2,
+	    SBUF_AUTOEXTEND | SBUF_INCLUDENUL);
 	if (sb == NULL)
 		return (ENOMEM);
 	sbuf_clear(sb);
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next)
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next)
 		sbuf_printf(sb, "%s,", cnd->cnd_cn->cn_name);
 	sbuf_putc(sb, '/');
-	SET_FOREACH(list, cons_set) {
+	SET_FOREACH(list, cons_set)
+	{
 		cp = *list;
 		if (cp->cn_name[0] != '\0')
 			sbuf_printf(sb, "%s,", cp->cn_name);
@@ -347,7 +347,8 @@ sysctl_kern_console(SYSCTL_HANDLER_ARGS)
 			delete = true;
 			p++;
 		}
-		SET_FOREACH(list, cons_set) {
+		SET_FOREACH(list, cons_set)
+		{
 			cp = *list;
 			if (strcmp(p, cp->cn_name) != 0)
 				continue;
@@ -367,9 +368,8 @@ sysctl_kern_console(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_kern, OID_AUTO, console,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT, 0, 0,
-    sysctl_kern_console, "A",
-    "Console device control");
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT, 0, 0, sysctl_kern_console,
+    "A", "Console device control");
 
 void
 cngrab(void)
@@ -377,7 +377,7 @@ cngrab(void)
 	struct cn_device *cnd;
 	struct consdev *cn;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		cn = cnd->cnd_cn;
 		if (!kdb_active || !(cn->cn_flags & CN_FLAG_NODEBUG))
 			cn->cn_ops->cn_grab(cn);
@@ -390,7 +390,7 @@ cnungrab(void)
 	struct cn_device *cnd;
 	struct consdev *cn;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		cn = cnd->cnd_cn;
 		if (!kdb_active || !(cn->cn_flags & CN_FLAG_NODEBUG))
 			cn->cn_ops->cn_ungrab(cn);
@@ -403,7 +403,7 @@ cnresume(void)
 	struct cn_device *cnd;
 	struct consdev *cn;
 
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		cn = cnd->cnd_cn;
 		if (cn->cn_ops->cn_resume != NULL)
 			cn->cn_ops->cn_resume(cn);
@@ -423,7 +423,7 @@ cngetc(void)
 	while ((c = cncheckc()) == -1)
 		cpu_spinwait();
 	if (c == '\r')
-		c = '\n';		/* console input is always ICRNL */
+		c = '\n'; /* console input is always ICRNL */
 	return (c);
 }
 
@@ -436,7 +436,7 @@ cncheckc(void)
 
 	if (cn_mute)
 		return (-1);
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		cn = cnd->cnd_cn;
 		if (!kdb_active || !(cn->cn_flags & CN_FLAG_NODEBUG)) {
 			c = cn->cn_ops->cn_getc(cn);
@@ -512,7 +512,7 @@ cnputc(int c)
 
 	if (cn_mute || c == '\0')
 		return;
-	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next) {
+	STAILQ_FOREACH (cnd, &cn_devlist, cnd_next) {
 		cn = cnd->cnd_cn;
 		if (!kdb_active || !(cn->cn_flags & CN_FLAG_NODEBUG)) {
 			if (c == '\n')
@@ -648,8 +648,8 @@ constty_timeout(void *arg)
 			return;
 		}
 	}
-	callout_reset_sbt(&conscallout, SBT_1S / constty_wakeups_per_second,
-	    0, constty_timeout, tp, C_PREL(1));
+	callout_reset_sbt(&conscallout, SBT_1S / constty_wakeups_per_second, 0,
+	    constty_timeout, tp, C_PREL(1));
 }
 
 /*

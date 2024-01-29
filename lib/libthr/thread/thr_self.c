@@ -30,11 +30,12 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <pthread.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_Tthr_self, pthread_self);
 __weak_reference(_Tthr_self, _pthread_self);

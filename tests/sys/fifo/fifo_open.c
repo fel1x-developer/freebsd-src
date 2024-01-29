@@ -85,7 +85,7 @@
  * All activity occurs within a temporary directory created early in the
  * test.
  */
-static char	temp_dir[PATH_MAX];
+static char temp_dir[PATH_MAX];
 
 static void __unused
 atexit_temp_dir(void)
@@ -239,7 +239,7 @@ test_blocking_reader(void)
 	 * Block a process in opening the fifo.
 	 */
 	if (run_in_process(blocking_open_reader, &reader_pid,
-	    "test_blocking_reader: blocking_open_reader") < 0) {
+		"test_blocking_reader: blocking_open_reader") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
@@ -264,7 +264,8 @@ test_blocking_reader(void)
 
 	if (wpid == reader_pid) {
 		(void)unlink("testfifo");
-		errx(-1, "test_blocking_reader: blocking child didn't "
+		errx(-1,
+		    "test_blocking_reader: blocking child didn't "
 		    "block");
 	}
 
@@ -272,7 +273,7 @@ test_blocking_reader(void)
 	 * Unblock the blocking reader.
 	 */
 	if (run_in_process(blocking_open_writer, &writer_pid,
-	    "test_blocking_reader: blocking_open_writer") < 0) {
+		"test_blocking_reader: blocking_open_writer") < 0) {
 		(void)unlink("testfifo");
 		(void)kill(reader_pid, SIGTERM);
 		(void)waitpid(reader_pid, &status, 0);
@@ -284,20 +285,20 @@ test_blocking_reader(void)
 	 * they didn't block, and GC.
 	 */
 	if (wait_and_timeout(reader_pid, 1, &status,
-	    "test_blocking_reader: blocking_open_reader") < 0) {
+		"test_blocking_reader: blocking_open_reader") < 0) {
 		(void)unlink("testinfo");
 		(void)kill(reader_pid, SIGTERM);
 		(void)kill(writer_pid, SIGTERM);
 		exit(-1);
 	}
-	
+
 	if (wait_and_timeout(writer_pid, 1, &status,
-	    "test_blocking_reader: blocking_open_writer") < 0) {
+		"test_blocking_reader: blocking_open_writer") < 0) {
 		(void)unlink("testinfo");
 		(void)kill(writer_pid, SIGTERM);
 		exit(-1);
 	}
-	
+
 	if (unlink("testfifo") < 0)
 		err(-1, "test_blocking_reader: unlink: testfifo");
 }
@@ -314,7 +315,7 @@ test_blocking_writer(void)
 	 * Block a process in opening the fifo.
 	 */
 	if (run_in_process(blocking_open_writer, &writer_pid,
-	    "test_blocking_writer: blocking_open_writer") < 0) {
+		"test_blocking_writer: blocking_open_writer") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
@@ -339,7 +340,8 @@ test_blocking_writer(void)
 
 	if (wpid == writer_pid) {
 		(void)unlink("testfifo");
-		errx(-1, "test_blocking_writer: blocking child didn't "
+		errx(-1,
+		    "test_blocking_writer: blocking child didn't "
 		    "block");
 	}
 
@@ -347,7 +349,7 @@ test_blocking_writer(void)
 	 * Unblock the blocking writer.
 	 */
 	if (run_in_process(blocking_open_reader, &reader_pid,
-	    "test_blocking_writer: blocking_open_reader") < 0) {
+		"test_blocking_writer: blocking_open_reader") < 0) {
 		(void)unlink("testfifo");
 		(void)kill(writer_pid, SIGTERM);
 		(void)waitpid(writer_pid, &status, 0);
@@ -359,7 +361,7 @@ test_blocking_writer(void)
 	 * they didn't block, and GC.
 	 */
 	if (wait_and_timeout(writer_pid, 1, &status,
-	    "test_blocking_writer: blocking_open_writer") < 0) {
+		"test_blocking_writer: blocking_open_writer") < 0) {
 		(void)unlink("testinfo");
 		(void)kill(writer_pid, SIGTERM);
 		(void)kill(reader_pid, SIGTERM);
@@ -367,15 +369,15 @@ test_blocking_writer(void)
 		(void)waitpid(reader_pid, &status, 0);
 		exit(-1);
 	}
-	
+
 	if (wait_and_timeout(reader_pid, 1, &status,
-	    "test_blocking_writer: blocking_open_reader") < 0) {
+		"test_blocking_writer: blocking_open_reader") < 0) {
 		(void)unlink("testinfo");
 		(void)kill(reader_pid, SIGTERM);
 		(void)waitpid(reader_pid, &status, 0);
 		exit(-1);
 	}
-	
+
 	if (unlink("testfifo") < 0)
 		err(-1, "test_blocking_writer: unlink: testfifo");
 }
@@ -390,14 +392,14 @@ test_non_blocking_reader(void)
 		err(-1, "test_non_blocking_reader: mkfifo: testfifo");
 
 	if (run_in_process(non_blocking_open_reader, &pid,
-	    "test_non_blocking_reader: non_blocking_open_reader") < 0) {
+		"test_non_blocking_reader: non_blocking_open_reader") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
 
 	status = -1;
 	if (wait_and_timeout(pid, 5, &status,
-	    "test_non_blocking_reader: non_blocking_open_reader") < 0) {
+		"test_non_blocking_reader: non_blocking_open_reader") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
@@ -405,7 +407,8 @@ test_non_blocking_reader(void)
 	if (WEXITSTATUS(status) != 0) {
 		(void)unlink("testfifo");
 		errno = WEXITSTATUS(status);
-		err(-1, "test_non_blocking_reader: "
+		err(-1,
+		    "test_non_blocking_reader: "
 		    "non_blocking_open_reader: open: testfifo");
 	}
 
@@ -423,14 +426,14 @@ test_non_blocking_writer(void)
 		err(-1, "test_non_blocking_writer: mkfifo: testfifo");
 
 	if (run_in_process(non_blocking_open_writer, &pid,
-	    "test_non_blocking_writer: non_blocking_open_writer") < 0) {
+		"test_non_blocking_writer: non_blocking_open_writer") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
 
 	status = -1;
 	if (wait_and_timeout(pid, 5, &status,
-	    "test_non_blocking_writer: non_blocking_open_writer") < 0) {
+		"test_non_blocking_writer: non_blocking_open_writer") < 0) {
 		(void)unlink("testfifo");
 		exit(-1);
 	}
@@ -440,9 +443,11 @@ test_non_blocking_writer(void)
 
 		errno = WEXITSTATUS(status);
 		if (errno == 0)
-			errx(-1, "test_non_blocking_writer: "
+			errx(-1,
+			    "test_non_blocking_writer: "
 			    "non_blocking_open_writer: open succeeded");
-		err(-1, "test_non_blocking_writer: "
+		err(-1,
+		    "test_non_blocking_writer: "
 		    "non_blocking_open_writer: open: testfifo");
 	}
 

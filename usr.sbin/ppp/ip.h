@@ -35,9 +35,9 @@ struct bundle;
 
 extern int ip_PushPacket(struct link *, struct bundle *);
 extern int PacketCheck(struct bundle *, u_int32_t, const unsigned char *, int,
-                          struct filter *, const char *, unsigned *secs);
+    struct filter *, const char *, unsigned *secs);
 extern int FilterCheck(const unsigned char *, u_int32_t, const struct filter *,
-                       unsigned *);
+    unsigned *);
 extern struct mbuf *ipv4_Input(struct bundle *, struct link *, struct mbuf *);
 #ifndef NOINET6
 extern struct mbuf *ipv6_Input(struct bundle *, struct link *, struct mbuf *);

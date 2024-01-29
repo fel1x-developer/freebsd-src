@@ -73,128 +73,128 @@ extern "C" {
  * @brief This structure contains the SCU hardware definition for an SSP
  *       remote node.
  */
-typedef struct SSP_REMOTE_NODE_CONTEXT
-{
-   // WORD 0
+typedef struct SSP_REMOTE_NODE_CONTEXT {
+	// WORD 0
 
-   /**
-    * This field is the remote node index assigned for this remote node. All
-    * remote nodes must have a unique remote node index. The value of the remote
-    * node index can not exceed the maximum number of remote nodes reported in
-    * the SCU device context capacity register.
-    */
-   U32 remote_node_index       :12;
-   U32 reserved0_1             : 4;
+	/**
+	 * This field is the remote node index assigned for this remote node.
+	 * All remote nodes must have a unique remote node index. The value of
+	 * the remote node index can not exceed the maximum number of remote
+	 * nodes reported in the SCU device context capacity register.
+	 */
+	U32 remote_node_index : 12;
+	U32 reserved0_1 : 4;
 
-   /**
-    * This field tells the SCU hardware how many simultaneous connections that
-    * this remote node will support.
-    */
-   U32 remote_node_port_width  : 4;
+	/**
+	 * This field tells the SCU hardware how many simultaneous connections
+	 * that this remote node will support.
+	 */
+	U32 remote_node_port_width : 4;
 
-   /**
-    * This field tells the SCU hardware which logical port to associate with this
-    * remote node.
-    */
-   U32 logical_port_index      : 3;
-   U32 reserved0_2             : 5;
+	/**
+	 * This field tells the SCU hardware which logical port to associate
+	 * with this remote node.
+	 */
+	U32 logical_port_index : 3;
+	U32 reserved0_2 : 5;
 
-   /**
-    * This field will enable the I_T nexus loss timer for this remote node.
-    */
-   U32 nexus_loss_timer_enable : 1;
+	/**
+	 * This field will enable the I_T nexus loss timer for this remote node.
+	 */
+	U32 nexus_loss_timer_enable : 1;
 
-   /**
-    * This field is the for driver debug only and is not used.
-    */
-   U32 check_bit               : 1;
+	/**
+	 * This field is the for driver debug only and is not used.
+	 */
+	U32 check_bit : 1;
 
-   /**
-    * This field must be set to TRUE when the hardware DMAs the remote node
-    * context to the hardware SRAM.  When the remote node is being invalidated
-    * this field must be set to FALSE.
-    */
-   U32 is_valid                : 1;
+	/**
+	 * This field must be set to TRUE when the hardware DMAs the remote node
+	 * context to the hardware SRAM.  When the remote node is being
+	 * invalidated this field must be set to FALSE.
+	 */
+	U32 is_valid : 1;
 
-   /**
-    * This field must be set to TRUE.
-    */
-   U32 is_remote_node_context  : 1;
+	/**
+	 * This field must be set to TRUE.
+	 */
+	U32 is_remote_node_context : 1;
 
-   // WORD 1 - 2
+	// WORD 1 - 2
 
-   /**
-    * This is the low word of the remote device SAS Address
-    */
-   U32 remote_sas_address_lo;
+	/**
+	 * This is the low word of the remote device SAS Address
+	 */
+	U32 remote_sas_address_lo;
 
-   /**
-    * This field is the high word of the remote device SAS Address
-    */
-   U32 remote_sas_address_hi;
+	/**
+	 * This field is the high word of the remote device SAS Address
+	 */
+	U32 remote_sas_address_hi;
 
-   // WORD 3
-   /**
-    * This field reprensets the function number assigned to this remote device.
-    * This value must match the virtual function number that is being used to
-    * communicate to the device.
-    */
-   U32 function_number         : 8;
-   U32 reserved3_1             : 8;
+	// WORD 3
+	/**
+	 * This field reprensets the function number assigned to this remote
+	 * device. This value must match the virtual function number that is
+	 * being used to communicate to the device.
+	 */
+	U32 function_number : 8;
+	U32 reserved3_1 : 8;
 
-   /**
-    * This field provides the driver a way to cheat on the arbitration wait time
-    * for this remote node.
-    */
-   U32 arbitration_wait_time   :16;
+	/**
+	 * This field provides the driver a way to cheat on the arbitration wait
+	 * time for this remote node.
+	 */
+	U32 arbitration_wait_time : 16;
 
-   // WORD 4
-   /**
-    * This field tells the SCU hardware how long this device may occupy the
-    * connection before it must be closed.
-    */
-   U32 connection_occupancy_timeout  :16;
+	// WORD 4
+	/**
+	 * This field tells the SCU hardware how long this device may occupy the
+	 * connection before it must be closed.
+	 */
+	U32 connection_occupancy_timeout : 16;
 
-   /**
-    * This field tells the SCU hardware how long to maintain a connection when
-    * there are no frames being transmitted on the link.
-    */
-   U32 connection_inactivity_timeout :16;
+	/**
+	 * This field tells the SCU hardware how long to maintain a connection
+	 * when there are no frames being transmitted on the link.
+	 */
+	U32 connection_inactivity_timeout : 16;
 
-   // WORD  5
-   /**
-    * This field allows the driver to cheat on the arbitration wait time for this
-    * remote node.
-    */
-   U32 initial_arbitration_wait_time :16;
+	// WORD  5
+	/**
+	 * This field allows the driver to cheat on the arbitration wait time
+	 * for this remote node.
+	 */
+	U32 initial_arbitration_wait_time : 16;
 
-   /**
-    * This field is tells the hardware what to program for the connection rate in
-    * the open address frame.  See the SAS spec for valid values.
-    */
-   U32 oaf_connection_rate           : 4;
+	/**
+	 * This field is tells the hardware what to program for the connection
+	 * rate in the open address frame.  See the SAS spec for valid values.
+	 */
+	U32 oaf_connection_rate : 4;
 
-   /**
-    * This field tells the SCU hardware what to program for the features in the
-    * open address frame.  See the SAS spec for valid values.
-    */
-   U32 oaf_features                  : 4;
+	/**
+	 * This field tells the SCU hardware what to program for the features in
+	 * the open address frame.  See the SAS spec for valid values.
+	 */
+	U32 oaf_features : 4;
 
-   /**
-    * This field tells the SCU hardware what to use for the source zone group in
-    * the open address frame.  See the SAS spec for more details on zoning.
-    */
-   U32 oaf_source_zone_group         : 8;
+	/**
+	 * This field tells the SCU hardware what to use for the source zone
+	 * group in the open address frame.  See the SAS spec for more details
+	 * on zoning.
+	 */
+	U32 oaf_source_zone_group : 8;
 
-   // WORD 6
-   /**
-    * This field tells the SCU hardware what to use as the more capibilities in
-    * the open address frame. See the SAS Spec for details.
-    */
-   U32 oaf_more_compatibility_features;
+	// WORD 6
+	/**
+	 * This field tells the SCU hardware what to use as the more
+	 * capibilities in the open address frame. See the SAS Spec for details.
+	 */
+	U32 oaf_more_compatibility_features;
 
-   // WORD 7
-   U32 reserved7;
+	// WORD 7
+	U32 reserved7;
 
 } SSP_REMOTE_NODE_CONTEXT_T;
 
@@ -207,12 +207,11 @@ typedef struct SSP_REMOTE_NODE_CONTEXT
  * @todo STP Targets are not yet supported so this definition is a placeholder
  *       until we do support them.
  */
-typedef struct STP_REMOTE_NODE_CONTEXT
-{
-   /**
-    * Placeholder data for the STP remote node.
-    */
-   U32 data[8];
+typedef struct STP_REMOTE_NODE_CONTEXT {
+	/**
+	 * Placeholder data for the STP remote node.
+	 */
+	U32 data[8];
 
 } STP_REMOTE_NODE_CONTEXT_T;
 
@@ -221,17 +220,16 @@ typedef struct STP_REMOTE_NODE_CONTEXT
  *
  * @brief This union combines the SAS and SATA remote node definitions.
  */
-typedef union SCU_REMOTE_NODE_CONTEXT
-{
-   /**
-    * SSP Remote Node
-    */
-   SSP_REMOTE_NODE_CONTEXT_T ssp;
+typedef union SCU_REMOTE_NODE_CONTEXT {
+	/**
+	 * SSP Remote Node
+	 */
+	SSP_REMOTE_NODE_CONTEXT_T ssp;
 
-   /**
-    * STP Remote Node
-    */
-   STP_REMOTE_NODE_CONTEXT_T stp;
+	/**
+	 * STP Remote Node
+	 */
+	STP_REMOTE_NODE_CONTEXT_T stp;
 
 } SCU_REMOTE_NODE_CONTEXT_T;
 

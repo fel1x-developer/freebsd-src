@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -38,50 +38,46 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ehci.h>
-
+#include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/phy/phy.h>
 #include <dev/phy/phy_usb.h>
+#include <dev/usb/controller/ehci.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
 
 #include "generic_ehci.h"
 
 struct clk_list {
-	TAILQ_ENTRY(clk_list)	next;
-	clk_t			clk;
+	TAILQ_ENTRY(clk_list) next;
+	clk_t clk;
 };
 
 struct hwrst_list {
-	TAILQ_ENTRY(hwrst_list)	next;
-	hwreset_t		rst;
+	TAILQ_ENTRY(hwrst_list) next;
+	hwreset_t rst;
 };
 
 struct phy_list {
-	TAILQ_ENTRY(phy_list)	next;
-	phy_t			phy;
+	TAILQ_ENTRY(phy_list) next;
+	phy_t phy;
 };
 
 struct generic_ehci_fdt_softc {
-	ehci_softc_t	ehci_sc;
+	ehci_softc_t ehci_sc;
 
-	TAILQ_HEAD(, clk_list)	clk_list;
-	TAILQ_HEAD(, hwrst_list)	rst_list;
-	TAILQ_HEAD(, phy_list)		phy_list;
+	TAILQ_HEAD(, clk_list) clk_list;
+	TAILQ_HEAD(, hwrst_list) rst_list;
+	TAILQ_HEAD(, phy_list) phy_list;
 };
 
 static device_probe_t generic_ehci_fdt_probe;
@@ -189,7 +185,7 @@ generic_ehci_fdt_detach(device_t dev)
 	sc = device_get_softc(dev);
 
 	/* Disable clock */
-	TAILQ_FOREACH_SAFE(clk, &sc->clk_list, next, clk_tmp) {
+	TAILQ_FOREACH_SAFE (clk, &sc->clk_list, next, clk_tmp) {
 		err = clk_disable(clk->clk);
 		if (err != 0)
 			device_printf(dev, "Could not disable clock %s\n",
@@ -203,7 +199,7 @@ generic_ehci_fdt_detach(device_t dev)
 	}
 
 	/* Assert reset */
-	TAILQ_FOREACH_SAFE(rst, &sc->rst_list, next, rst_tmp) {
+	TAILQ_FOREACH_SAFE (rst, &sc->rst_list, next, rst_tmp) {
 		hwreset_assert(rst->rst);
 		hwreset_release(rst->rst);
 		TAILQ_REMOVE(&sc->rst_list, rst, next);
@@ -211,7 +207,7 @@ generic_ehci_fdt_detach(device_t dev)
 	}
 
 	/* Disable phys */
-	TAILQ_FOREACH_SAFE(phy, &sc->phy_list, next, phy_tmp) {
+	TAILQ_FOREACH_SAFE (phy, &sc->phy_list, next, phy_tmp) {
 		err = phy_disable(phy->phy);
 		if (err != 0)
 			device_printf(dev, "Could not disable phy\n");
@@ -225,15 +221,15 @@ generic_ehci_fdt_detach(device_t dev)
 
 static device_method_t ehci_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		generic_ehci_fdt_probe),
-	DEVMETHOD(device_attach,	generic_ehci_fdt_attach),
-	DEVMETHOD(device_detach,	generic_ehci_fdt_detach),
+	DEVMETHOD(device_probe, generic_ehci_fdt_probe),
+	DEVMETHOD(device_attach, generic_ehci_fdt_attach),
+	DEVMETHOD(device_detach, generic_ehci_fdt_detach),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(ehci, ehci_fdt_driver, ehci_fdt_methods,
-    sizeof(ehci_softc_t), generic_ehci_driver);
+DEFINE_CLASS_1(ehci, ehci_fdt_driver, ehci_fdt_methods, sizeof(ehci_softc_t),
+    generic_ehci_driver);
 
 DRIVER_MODULE(generic_ehci, simplebus, ehci_fdt_driver, 0, 0);
 MODULE_DEPEND(generic_ehci, usb, 1, 1, 1);

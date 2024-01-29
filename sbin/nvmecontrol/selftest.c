@@ -42,11 +42,11 @@
 #include "nvmecontrol.h"
 
 #define SELFTEST_CODE_NONE 0xffu
-#define SELFTEST_CODE_MAX  0xfu
+#define SELFTEST_CODE_MAX 0xfu
 
 static struct options {
-	const char	*dev;
-	uint8_t		stc;	/* Self-test Code */
+	const char *dev;
+	uint8_t stc; /* Self-test Code */
 } opt = {
 	.dev = NULL,
 	.stc = SELFTEST_CODE_NONE,
@@ -55,7 +55,7 @@ static struct options {
 static void
 selftest_op(int fd, uint32_t nsid, uint8_t stc)
 {
-	struct nvme_pt_command	pt;
+	struct nvme_pt_command pt;
 
 	memset(&pt, 0, sizeof(pt));
 	pt.cmd.opc = NVME_OPC_DEVICE_SELF_TEST;
@@ -75,10 +75,10 @@ selftest_op(int fd, uint32_t nsid, uint8_t stc)
 static void
 selftest(const struct cmd *f, int argc, char *argv[])
 {
-	struct nvme_controller_data	cdata;
-	int				fd;
-	char				*path;
-	uint32_t			nsid;
+	struct nvme_controller_data cdata;
+	int fd;
+	char *path;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -100,7 +100,7 @@ selftest(const struct cmd *f, int argc, char *argv[])
 		errx(EX_IOERR, "Identify request failed");
 
 	if (((cdata.oacs >> NVME_CTRLR_DATA_OACS_SELFTEST_SHIFT) &
-	     NVME_CTRLR_DATA_OACS_SELFTEST_MASK) == 0)
+		NVME_CTRLR_DATA_OACS_SELFTEST_MASK) == 0)
 		errx(EX_UNAVAILABLE, "controller does not support self-test");
 
 	selftest_op(fd, nsid, opt.stc);
@@ -110,9 +110,11 @@ selftest(const struct cmd *f, int argc, char *argv[])
 }
 
 static const struct opts selftest_opts[] = {
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
-	OPT("test-code", 'c', arg_uint8, opt, stc,
-	    "Self-test Code to execute"),
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
+	OPT("test-code", 'c', arg_uint8, opt, stc, "Self-test Code to execute"),
 	{ NULL, 0, arg_none, NULL, NULL }
 };
 #undef OPT

@@ -52,27 +52,29 @@
  */
 
 #ifndef _SYS_EF10_SIGNED_IMAGE_LAYOUT_H
-#define	_SYS_EF10_SIGNED_IMAGE_LAYOUT_H
+#define _SYS_EF10_SIGNED_IMAGE_LAYOUT_H
 
 /* Signed image chunk type identifiers */
 enum {
-	SIGNED_IMAGE_CHUNK_CMS_HEADER,		/* CMS header describing the signed data */
-	SIGNED_IMAGE_CHUNK_REFLASH_HEADER,	/* Reflash header */
-	SIGNED_IMAGE_CHUNK_IMAGE,		/* Bootable binary image */
-	SIGNED_IMAGE_CHUNK_REFLASH_TRAILER,	/* Reflash trailer */
-	SIGNED_IMAGE_CHUNK_SIGNATURE,		/* Remaining contents of the signed image,
-						 * including the certifiates and signature */
+	SIGNED_IMAGE_CHUNK_CMS_HEADER, /* CMS header describing the signed data
+					*/
+	SIGNED_IMAGE_CHUNK_REFLASH_HEADER,  /* Reflash header */
+	SIGNED_IMAGE_CHUNK_IMAGE,	    /* Bootable binary image */
+	SIGNED_IMAGE_CHUNK_REFLASH_TRAILER, /* Reflash trailer */
+	SIGNED_IMAGE_CHUNK_SIGNATURE, /* Remaining contents of the signed image,
+				       * including the certifiates and signature
+				       */
 	NUM_SIGNED_IMAGE_CHUNKS,
 };
 
 /* Magic */
-#define	SIGNED_IMAGE_CHUNK_HDR_MAGIC	0xEF105161	/* EF10 SIGned Image */
+#define SIGNED_IMAGE_CHUNK_HDR_MAGIC 0xEF105161 /* EF10 SIGned Image */
 
 /* Initial version definition - version 1 */
-#define	SIGNED_IMAGE_CHUNK_HDR_VERSION	0x1
+#define SIGNED_IMAGE_CHUNK_HDR_VERSION 0x1
 
 /* Header length is 32 bytes */
-#define	SIGNED_IMAGE_CHUNK_HDR_LEN	32
+#define SIGNED_IMAGE_CHUNK_HDR_LEN 32
 
 /*
  * Structure describing the header of each chunk of signed image
@@ -99,4 +101,4 @@ typedef struct signed_image_chunk_hdr_e {
 	uint32_t reserved[3];
 } signed_image_chunk_hdr_t;
 
-#endif	/* _SYS_EF10_SIGNED_IMAGE_LAYOUT_H */
+#endif /* _SYS_EF10_SIGNED_IMAGE_LAYOUT_H */

@@ -35,66 +35,61 @@
  */
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/module.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
-#include <sys/socket.h>
+#include <dev/mwl/if_mwlvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_media.h>
 #include <net/if_arp.h>
+#include <net/if_media.h>
 #include <net/route.h>
-
 #include <net80211/ieee80211_var.h>
-
-#include <dev/mwl/if_mwlvar.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 
 /*
  * PCI glue.
  */
 
 struct mwl_pci_softc {
-	struct mwl_softc	sc_sc;
-	struct resource		*sc_sr0;	/* BAR0 memory resource */
-	struct resource		*sc_sr1;	/* BAR1 memory resource */
-	struct resource		*sc_irq;	/* irq resource */
-	void			*sc_ih;		/* interrupt handler */
+	struct mwl_softc sc_sc;
+	struct resource *sc_sr0; /* BAR0 memory resource */
+	struct resource *sc_sr1; /* BAR1 memory resource */
+	struct resource *sc_irq; /* irq resource */
+	void *sc_ih;		 /* interrupt handler */
 };
 
-#define	BS_BAR0	0x10
-#define	BS_BAR1	0x14
+#define BS_BAR0 0x10
+#define BS_BAR1 0x14
 
 struct mwl_pci_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	const char	*name;
+	uint16_t vendor;
+	uint16_t device;
+	const char *name;
 };
 
-static const struct mwl_pci_ident mwl_pci_ids[] = {
-	{ 0x11ab, 0x2a02, "Marvell 88W8363" },
+static const struct mwl_pci_ident mwl_pci_ids[] = { { 0x11ab, 0x2a02,
+							"Marvell 88W8363" },
 	{ 0x11ab, 0x2a03, "Marvell 88W8363" },
 	{ 0x11ab, 0x2a0a, "Marvell 88W8363" },
 	{ 0x11ab, 0x2a0b, "Marvell 88W8363" },
 	{ 0x11ab, 0x2a0c, "Marvell 88W8363" },
 	{ 0x11ab, 0x2a21, "Marvell 88W8363" },
-	{ 0x11ab, 0x2a24, "Marvell 88W8363" },
-	{ 0, 0, NULL }
-};
+	{ 0x11ab, 0x2a24, "Marvell 88W8363" }, { 0, 0, NULL } };
 
 const static struct mwl_pci_ident *
 mwl_pci_lookup(int vendor, int device)
@@ -131,19 +126,19 @@ mwl_pci_attach(device_t dev)
 
 	pci_enable_busmaster(dev);
 
-	/* 
+	/*
 	 * Setup memory-mapping of PCI registers.
 	 */
 	rid = BS_BAR0;
 	psc->sc_sr0 = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-					    RF_ACTIVE);
+	    RF_ACTIVE);
 	if (psc->sc_sr0 == NULL) {
 		device_printf(dev, "cannot map BAR0 register space\n");
 		goto bad;
 	}
 	rid = BS_BAR1;
 	psc->sc_sr1 = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-					    RF_ACTIVE);
+	    RF_ACTIVE);
 	if (psc->sc_sr1 == NULL) {
 		device_printf(dev, "cannot map BAR1 register space\n");
 		goto bad1;
@@ -155,14 +150,13 @@ mwl_pci_attach(device_t dev)
 	 */
 	rid = 0;
 	psc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-					     RF_SHAREABLE|RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (psc->sc_irq == NULL) {
 		device_printf(dev, "could not map interrupt\n");
 		goto bad2;
 	}
-	if (bus_setup_intr(dev, psc->sc_irq,
-			   INTR_TYPE_NET | INTR_MPSAFE,
-			   NULL, mwl_intr, sc, &psc->sc_ih)) {
+	if (bus_setup_intr(dev, psc->sc_irq, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+		mwl_intr, sc, &psc->sc_ih)) {
 		device_printf(dev, "could not establish interrupt\n");
 		goto bad3;
 	}
@@ -170,18 +164,18 @@ mwl_pci_attach(device_t dev)
 	/*
 	 * Setup DMA descriptor area.
 	 */
-	if (bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       1, 0,			/* alignment, bounds */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       BUS_SPACE_MAXSIZE,	/* maxsize */
-			       MWL_TXDESC,		/* nsegments */
-			       BUS_SPACE_MAXSIZE,	/* maxsegsize */
-			       0,			/* flags */
-			       NULL,			/* lockfunc */
-			       NULL,			/* lockarg */
-			       &sc->sc_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		1, 0,				     /* alignment, bounds */
+		BUS_SPACE_MAXADDR_32BIT,	     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		BUS_SPACE_MAXSIZE,		     /* maxsize */
+		MWL_TXDESC,			     /* nsegments */
+		BUS_SPACE_MAXSIZE,		     /* maxsegsize */
+		0,				     /* flags */
+		NULL,				     /* lockfunc */
+		NULL,				     /* lockarg */
+		&sc->sc_dmat)) {
 		device_printf(dev, "cannot allocate DMA tag\n");
 		goto bad4;
 	}
@@ -268,22 +262,18 @@ mwl_pci_resume(device_t dev)
 
 static device_method_t mwl_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mwl_pci_probe),
-	DEVMETHOD(device_attach,	mwl_pci_attach),
-	DEVMETHOD(device_detach,	mwl_pci_detach),
-	DEVMETHOD(device_shutdown,	mwl_pci_shutdown),
-	DEVMETHOD(device_suspend,	mwl_pci_suspend),
-	DEVMETHOD(device_resume,	mwl_pci_resume),
-	{ 0,0 }
+	DEVMETHOD(device_probe, mwl_pci_probe),
+	DEVMETHOD(device_attach, mwl_pci_attach),
+	DEVMETHOD(device_detach, mwl_pci_detach),
+	DEVMETHOD(device_shutdown, mwl_pci_shutdown),
+	DEVMETHOD(device_suspend, mwl_pci_suspend),
+	DEVMETHOD(device_resume, mwl_pci_resume), { 0, 0 }
 };
 
-static driver_t mwl_pci_driver = {
-	"mwl",
-	mwl_pci_methods,
-	sizeof (struct mwl_pci_softc)
-};
+static driver_t mwl_pci_driver = { "mwl", mwl_pci_methods,
+	sizeof(struct mwl_pci_softc) };
 
 DRIVER_MODULE(mwl, pci, mwl_pci_driver, 0, 0);
 MODULE_VERSION(mwl, 1);
-MODULE_DEPEND(mwl, wlan, 1, 1, 1);		/* 802.11 media layer */
+MODULE_DEPEND(mwl, wlan, 1, 1, 1); /* 802.11 media layer */
 MODULE_DEPEND(mwl, firmware, 1, 1, 1);

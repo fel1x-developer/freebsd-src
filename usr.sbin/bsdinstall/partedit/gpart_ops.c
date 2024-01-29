@@ -33,14 +33,13 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <libutil.h>
 #include <inttypes.h>
+#include <libgeom.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libgeom.h>
 
 #include "partedit.h"
 
@@ -101,15 +100,15 @@ newfs_command(const char *fstype, int use_default)
 	if (strcmp(fstype, "freebsd-ufs") == 0) {
 		int i;
 		struct bsddialog_menuitem items[] = {
-			{"", false, 0, "UFS1", "UFS Version 1",
+			{ "", false, 0, "UFS1", "UFS Version 1",
 			    "Use version 1 of the UFS file system instead "
-			    "of version 2 (not recommended)"},
-			{"", true, 0, "SU", "Softupdates",
-			    "Enable softupdates (default)"},
-			{"", true, 0, "SUJ", "Softupdates journaling",
+			    "of version 2 (not recommended)" },
+			{ "", true, 0, "SU", "Softupdates",
+			    "Enable softupdates (default)" },
+			{ "", true, 0, "SUJ", "Softupdates journaling",
 			    "Enable file system journaling (default - "
-			    "turn off for SSDs)"},
-			{"", false, 0, "TRIM", "Enable SSD TRIM support",
+			    "turn off for SSDs)" },
+			{ "", false, 0, "TRIM", "Enable SSD TRIM support",
 			    "Enable TRIM support, useful on solid-state "
 			    "drives" },
 		};
@@ -139,17 +138,19 @@ newfs_command(const char *fstype, int use_default)
 	} else if (strcmp(fstype, "freebsd-zfs") == 0) {
 		int i;
 		struct bsddialog_menuitem items[] = {
-			{"", 0, true, "fletcher4", "checksum algorithm: fletcher4",
+			{ "", 0, true, "fletcher4",
+			    "checksum algorithm: fletcher4",
 			    "Use fletcher4 for data integrity checking. "
-			    "(default)"},
-			{"", 0, false, "fletcher2", "checksum algorithm: fletcher2",
+			    "(default)" },
+			{ "", 0, false, "fletcher2",
+			    "checksum algorithm: fletcher2",
 			    "Use fletcher2 for data integrity checking. "
-			    "(not recommended)"},
-			{"", 0, false, "sha256", "checksum algorithm: sha256",
+			    "(not recommended)" },
+			{ "", 0, false, "sha256", "checksum algorithm: sha256",
 			    "Use sha256 for data integrity checking. "
-			    "(not recommended)"},
-			{"", 0, false, "atime", "Update atimes for files",
-			    "Disable atime update"},
+			    "(not recommended)" },
+			{ "", 0, false, "atime", "Update atimes for files",
+			    "Disable atime update" },
 		};
 
 		if (!use_default) {
@@ -167,8 +168,8 @@ newfs_command(const char *fstype, int use_default)
 
 			snprintf(zfsboot_path, sizeof(zfsboot_path), "%s/zfs",
 			    getenv("BSDINSTALL_TMPBOOT"));
-			mkdir(zfsboot_path, S_IRWXU | S_IRGRP | S_IXGRP |
-			    S_IROTH | S_IXOTH);
+			mkdir(zfsboot_path,
+			    S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 			fprintf(fp, " -o cachefile=%s/zpool.cache ",
 			    zfsboot_path);
 		}
@@ -185,15 +186,15 @@ newfs_command(const char *fstype, int use_default)
 				fputs("-O atime=off ", fp);
 		}
 	} else if (strcmp(fstype, "fat32") == 0 || strcmp(fstype, "efi") == 0 ||
-	     strcmp(fstype, "ms-basic-data") == 0) {
+	    strcmp(fstype, "ms-basic-data") == 0) {
 		int i;
 		struct bsddialog_menuitem items[] = {
-			{"", 0, true, "FAT32", "FAT Type 32",
-			    "Create a FAT32 filesystem (default)"},
-			{"", 0, false, "FAT16", "FAT Type 16",
-			    "Create a FAT16 filesystem"},
-			{"", 0, false, "FAT12", "FAT Type 12",
-			    "Create a FAT12 filesystem"},
+			{ "", 0, true, "FAT32", "FAT Type 32",
+			    "Create a FAT32 filesystem (default)" },
+			{ "", 0, false, "FAT16", "FAT Type 16",
+			    "Create a FAT16 filesystem" },
+			{ "", 0, false, "FAT12", "FAT Type 12",
+			    "Create a FAT12 filesystem" },
 		};
 
 		if (!use_default) {
@@ -219,8 +220,10 @@ newfs_command(const char *fstype, int use_default)
 	} else {
 		if (!use_default) {
 			conf.title = "Error";
-			bsddialog_msgbox(&conf, "No configurable options exist "
-			    "for this filesystem.", 0, 0);
+			bsddialog_msgbox(&conf,
+			    "No configurable options exist "
+			    "for this filesystem.",
+			    0, 0);
 		}
 	}
 
@@ -237,13 +240,13 @@ choose_part_type(const char *def_scheme)
 	struct bsddialog_conf conf;
 
 	struct bsddialog_menuitem items[] = {
-		{"", false, 0, "APM", "Apple Partition Map",
+		{ "", false, 0, "APM", "Apple Partition Map",
 		    "Bootable on PowerPC Apple Hardware" },
-		{"", false, 0, "BSD", "BSD Labels",
+		{ "", false, 0, "BSD", "BSD Labels",
 		    "Bootable on most x86 systems" },
-		{"", false, 0, "GPT", "GUID Partition Table",
+		{ "", false, 0, "GPT", "GUID Partition Table",
 		    "Bootable on most x86 systems and EFI aware ARM64" },
-		{"", false, 0, "MBR", "DOS Partitions",
+		{ "", false, 0, "MBR", "DOS Partitions",
 		    "Bootable on most x86 systems" },
 	};
 
@@ -268,7 +271,8 @@ parttypemenu:
 		snprintf(message, sizeof(message),
 		    "This partition scheme (%s) is not "
 		    "bootable on this platform. Are you sure you want "
-		    "to proceed?", items[choice].name);
+		    "to proceed?",
+		    items[choice].name);
 		conf.button.default_cancel = true;
 		conf.title = "Warning";
 		button = bsddialog_yesno(&conf, message, 0, 0);
@@ -305,7 +309,8 @@ schememenu:
 			snprintf(message, sizeof(message),
 			    "This partition scheme (%s) is not "
 			    "bootable on this platform. Are you sure you want "
-			    "to proceed?", scheme);
+			    "to proceed?",
+			    scheme);
 			conf.button.default_cancel = true;
 			conf.title = "Warning";
 			button = bsddialog_yesno(&conf, message, 0, 0);
@@ -352,7 +357,7 @@ gpart_activate(struct gprovider *pp)
 	 * Some partition schemes need this partition to be marked 'active'
 	 * for it to be bootable.
 	 */
-	LIST_FOREACH(gc, &pp->lg_geom->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_geom->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "scheme") == 0) {
 			scheme = gc->lg_val;
 			break;
@@ -364,7 +369,7 @@ gpart_activate(struct gprovider *pp)
 	else
 		return;
 
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "index") == 0) {
 			idx = atoi(gc->lg_val);
 			break;
@@ -379,9 +384,9 @@ gpart_activate(struct gprovider *pp)
 	gctl_ro_param(r, "index", sizeof(idx), &idx);
 
 	errstr = gctl_issue(r);
-	if (errstr != NULL && errstr[0] != '\0') 
-		gpart_show_error("Error", "Error marking partition active:",
-		    errstr);
+	if (errstr != NULL && errstr[0] != '\0')
+		gpart_show_error("Error",
+		    "Error marking partition active:", errstr);
 	gctl_free(r);
 }
 
@@ -399,9 +404,9 @@ gpart_set_root(const char *lg_name, const char *attribute)
 	gctl_ro_param(r, "attrib", -1, attribute);
 
 	errstr = gctl_issue(r);
-	if (errstr != NULL && errstr[0] != '\0') 
-		gpart_show_error("Error", "Error setting parameter on disk:",
-		    errstr);
+	if (errstr != NULL && errstr[0] != '\0')
+		gpart_show_error("Error",
+		    "Error setting parameter on disk:", errstr);
 	gctl_free(r);
 }
 
@@ -421,7 +426,7 @@ gpart_bootcode(struct ggeom *gp)
 	 * Write default bootcode to the newly partitioned disk, if that
 	 * applies on this platform.
 	 */
-	LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "scheme") == 0) {
 			scheme = gc->lg_val;
 			break;
@@ -429,7 +434,7 @@ gpart_bootcode(struct ggeom *gp)
 	}
 
 	bootcode = bootcode_path(scheme);
-	if (bootcode == NULL) 
+	if (bootcode == NULL)
 		return;
 
 	bootfd = open(bootcode, O_RDONLY);
@@ -455,7 +460,7 @@ gpart_bootcode(struct ggeom *gp)
 	gctl_ro_param(r, "bootcode", bootsize, boot);
 
 	errstr = gctl_issue(r);
-	if (errstr != NULL && errstr[0] != '\0') 
+	if (errstr != NULL && errstr[0] != '\0')
 		gpart_show_error("Bootcode Error", NULL, errstr);
 	gctl_free(r);
 	free(boot);
@@ -470,7 +475,7 @@ gpart_partcode(struct gprovider *pp, const char *fstype)
 	char message[255], command[255];
 	struct bsddialog_conf conf;
 
-	LIST_FOREACH(gc, &pp->lg_geom->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_geom->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "scheme") == 0) {
 			scheme = gc->lg_val;
 			break;
@@ -481,7 +486,7 @@ gpart_partcode(struct gprovider *pp, const char *fstype)
 	if (partcode_path(scheme, fstype) == NULL)
 		return;
 
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "index") == 0) {
 			indexstr = gc->lg_val;
 			break;
@@ -493,8 +498,7 @@ gpart_partcode(struct gprovider *pp, const char *fstype)
 	    partcode_path(scheme, fstype), indexstr, pp->lg_geom->lg_name);
 	if (system(command) != 0) {
 		snprintf(message, sizeof(message),
-		    "Error installing partcode on partition %s",
-		    pp->lg_name);
+		    "Error installing partcode on partition %s", pp->lg_name);
 		bsddialog_initconf(&conf);
 		conf.title = "Error";
 		bsddialog_msgbox(&conf, message, 0, 0);
@@ -510,7 +514,7 @@ gpart_destroy(struct ggeom *lg_geom)
 	int force = 1;
 
 	/* Delete all child metadata */
-	LIST_FOREACH(pp, &lg_geom->lg_provider, lg_provider)
+	LIST_FOREACH (pp, &lg_geom->lg_provider, lg_provider)
 		gpart_delete(pp);
 
 	/* Revert any local changes to get this geom into a pristine state */
@@ -562,15 +566,15 @@ gpart_edit(struct gprovider *pp)
 	struct bsddialog_formitem items[] = {
 		{ "Type:", 1, 1, "", 1, 12, 12, 15, NULL, 0,
 		    "Filesystem type (e.g. freebsd-ufs, freebsd-zfs, "
-		    "freebsd-swap)"},
+		    "freebsd-swap)" },
 		{ "Size:", 2, 1, "", 2, 12, 12, 15, NULL, 0,
 		    "Partition size. Append K, M, G for kilobytes, "
-		    "megabytes or gigabytes."},
+		    "megabytes or gigabytes." },
 		{ "Mountpoint:", 3, 1, "", 3, 12, 12, 15, NULL, 0,
 		    "Path at which to mount this partition (leave blank "
-		    "for swap, set to / for root filesystem)"},
+		    "for swap, set to / for root filesystem)" },
 		{ "Label:", 4, 1, "", 4, 12, 12, 15, NULL, 0,
-		    "Partition name. Not all partition schemes support this."},
+		    "Partition name. Not all partition schemes support this." },
 	};
 
 	bsddialog_initconf(&conf);
@@ -580,11 +584,11 @@ gpart_edit(struct gprovider *pp)
 	 * this provider, or its parent. Check the consumer case first.
 	 */
 	geom = NULL;
-	LIST_FOREACH(cp, &pp->lg_consumers, lg_consumers)
+	LIST_FOREACH (cp, &pp->lg_consumers, lg_consumers)
 		if (strcmp(cp->lg_geom->lg_class->lg_name, "PART") == 0) {
 			/* Check for zombie geoms, treating them as blank */
 			scheme = NULL;
-			LIST_FOREACH(gc, &cp->lg_geom->lg_config, lg_config) {
+			LIST_FOREACH (gc, &cp->lg_geom->lg_config, lg_config) {
 				if (strcmp(gc->lg_name, "scheme") == 0) {
 					scheme = gc->lg_val;
 					break;
@@ -616,7 +620,7 @@ gpart_edit(struct gprovider *pp)
 		return;
 	}
 
-	LIST_FOREACH(gc, &geom->lg_config, lg_config) {
+	LIST_FOREACH (gc, &geom->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "scheme") == 0) {
 			scheme = gc->lg_val;
 			break;
@@ -627,7 +631,7 @@ gpart_edit(struct gprovider *pp)
 
 	/* Edit editable parameters of a partition */
 	hadlabel = 0;
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "type") == 0) {
 			oldtype = gc->lg_val;
 			items[0].init = gc->lg_val;
@@ -640,7 +644,7 @@ gpart_edit(struct gprovider *pp)
 			idx = atoi(gc->lg_val);
 	}
 
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->name != NULL && strcmp(md->name, pp->lg_name) == 0) {
 			if (md->fstab != NULL)
 				items[2].init = md->fstab->fs_file;
@@ -662,8 +666,8 @@ editpart:
 		goto endedit;
 
 	/* If this is the root partition, check that this fs is bootable */
-	if (strcmp(items[2].value, "/") == 0 && !is_fs_bootable(scheme,
-	    items[0].value)) {
+	if (strcmp(items[2].value, "/") == 0 &&
+	    !is_fs_bootable(scheme, items[0].value)) {
 		char message[512];
 
 		snprintf(message, sizeof(message),
@@ -681,8 +685,10 @@ editpart:
 	/* Check if the label has a / in it */
 	if (items[3].value != NULL && strchr(items[3].value, '/') != NULL) {
 		conf.title = "Error";
-		bsddialog_msgbox(&conf, "Label contains a /, which is not an "
-		    "allowed character.", 0, 0);
+		bsddialog_msgbox(&conf,
+		    "Label contains a /, which is not an "
+		    "allowed character.",
+		    0, 0);
 		goto editpart;
 	}
 
@@ -705,15 +711,15 @@ editpart:
 
 	newfs = newfs_command(items[0].value, 1);
 	set_default_part_metadata(pp->lg_name, scheme, items[0].value,
-	    items[2].value, (strcmp(oldtype, items[0].value) != 0) ?
-	    newfs : NULL);
+	    items[2].value,
+	    (strcmp(oldtype, items[0].value) != 0) ? newfs : NULL);
 	free(newfs);
 
 endedit:
 	if (strcmp(oldtype, items[0].value) != 0 && cp != NULL)
 		gpart_destroy(cp->lg_geom);
-	if (strcmp(oldtype, items[0].value) != 0 && strcmp(items[0].value,
-	    "freebsd") == 0)
+	if (strcmp(oldtype, items[0].value) != 0 &&
+	    strcmp(items[0].value, "freebsd") == 0)
 		gpart_partition(pp->lg_name, "BSD");
 
 	for (i = 0; i < nitems(items); i++)
@@ -742,7 +748,8 @@ set_default_part_metadata(const char *name, const char *scheme,
 		if (newfs != NULL && newfs[0] != '\0') {
 			if (strcmp("freebsd-zfs", type) == 0) {
 				zpool_name = strdup((strlen(mountpoint) == 1) ?
-				    "root" : &mountpoint[1]);
+					"root" :
+					&mountpoint[1]);
 				for (i = 0; zpool_name[i] != 0; i++)
 					if (!isalnum(zpool_name[i]))
 						zpool_name[i] = '_';
@@ -792,8 +799,9 @@ set_default_part_metadata(const char *name, const char *scheme,
 		/* Get VFS from text after freebsd-, if possible */
 		if (strncmp("freebsd-", type, 8) == 0)
 			md->fstab->fs_vfstype = strdup(&type[8]);
-		else if (strcmp("fat32", type) == 0 || strcmp("efi", type) == 0
-	     	    || strcmp("ms-basic-data", type) == 0)
+		else if (strcmp("fat32", type) == 0 ||
+		    strcmp("efi", type) == 0 ||
+		    strcmp("ms-basic-data", type) == 0)
 			md->fstab->fs_vfstype = strdup("msdosfs");
 		else
 			md->fstab->fs_vfstype = strdup(type); /* Guess */
@@ -822,21 +830,21 @@ set_default_part_metadata(const char *name, const char *scheme,
 		free(zpool_name);
 }
 
-static
-int part_compare(const void *xa, const void *xb)
+static int
+part_compare(const void *xa, const void *xb)
 {
 	struct gprovider **a = (struct gprovider **)xa;
 	struct gprovider **b = (struct gprovider **)xb;
 	intmax_t astart, bstart;
 	struct gconfig *gc;
-	
+
 	astart = bstart = 0;
-	LIST_FOREACH(gc, &(*a)->lg_config, lg_config)
+	LIST_FOREACH (gc, &(*a)->lg_config, lg_config)
 		if (strcmp(gc->lg_name, "start") == 0) {
 			astart = strtoimax(gc->lg_val, NULL, 0);
 			break;
 		}
-	LIST_FOREACH(gc, &(*b)->lg_config, lg_config)
+	LIST_FOREACH (gc, &(*b)->lg_config, lg_config)
 		if (strcmp(gc->lg_name, "start") == 0) {
 			bstart = strtoimax(gc->lg_val, NULL, 0);
 			break;
@@ -864,7 +872,7 @@ gpart_max_free(struct ggeom *geom, intmax_t *npartstart)
 
 	/* Now get the maximum free size and free start */
 	start = end = 0;
-	LIST_FOREACH(gc, &geom->lg_config, lg_config) {
+	LIST_FOREACH (gc, &geom->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "first") == 0)
 			start = strtoimax(gc->lg_val, NULL, 0);
 		if (strcmp(gc->lg_name, "last") == 0)
@@ -872,10 +880,10 @@ gpart_max_free(struct ggeom *geom, intmax_t *npartstart)
 	}
 
 	i = nparts = 0;
-	LIST_FOREACH(pp, &geom->lg_provider, lg_provider)
+	LIST_FOREACH (pp, &geom->lg_provider, lg_provider)
 		nparts++;
 	providers = calloc(nparts, sizeof(providers[0]));
-	LIST_FOREACH(pp, &geom->lg_provider, lg_provider)
+	LIST_FOREACH (pp, &geom->lg_provider, lg_provider)
 		providers[i++] = pp;
 	qsort(providers, nparts, sizeof(providers[0]), part_compare);
 
@@ -884,7 +892,7 @@ gpart_max_free(struct ggeom *geom, intmax_t *npartstart)
 	for (i = 0; i < nparts; i++) {
 		pp = providers[i];
 
-		LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+		LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "start") == 0)
 				partstart = strtoimax(gc->lg_val, NULL, 0);
 			if (strcmp(gc->lg_name, "end") == 0)
@@ -936,8 +944,8 @@ gpart_max_free(struct ggeom *geom, intmax_t *npartstart)
 }
 
 static size_t
-add_boot_partition(struct ggeom *geom, struct gprovider *pp,
-    const char *scheme, int interactive)
+add_boot_partition(struct ggeom *geom, struct gprovider *pp, const char *scheme,
+    int interactive)
 {
 	struct gconfig *gc;
 	struct gprovider *ppi;
@@ -945,11 +953,11 @@ add_boot_partition(struct ggeom *geom, struct gprovider *pp,
 	struct bsddialog_conf conf;
 
 	/* Check for existing freebsd-boot partition */
-	LIST_FOREACH(ppi, &geom->lg_provider, lg_provider) {
+	LIST_FOREACH (ppi, &geom->lg_provider, lg_provider) {
 		struct partition_metadata *md;
 		const char *bootmount = NULL;
 
-		LIST_FOREACH(gc, &ppi->lg_config, lg_config)
+		LIST_FOREACH (gc, &ppi->lg_config, lg_config)
 			if (strcmp(gc->lg_name, "type") == 0)
 				break;
 		if (gc == NULL)
@@ -966,16 +974,16 @@ add_boot_partition(struct ggeom *geom, struct gprovider *pp,
 			continue;
 
 		/* If it is mountable, but mounted somewhere else, remount */
-		if (bootmount != NULL && md != NULL && md->fstab != NULL
-		    && strlen(md->fstab->fs_file) > 0
-		    && strcmp(md->fstab->fs_file, bootmount) != 0)
+		if (bootmount != NULL && md != NULL && md->fstab != NULL &&
+		    strlen(md->fstab->fs_file) > 0 &&
+		    strcmp(md->fstab->fs_file, bootmount) != 0)
 			continue;
 
 		/* If it is mountable, but mountpoint is not set, mount it */
 		if (bootmount != NULL && md == NULL)
 			set_default_part_metadata(ppi->lg_name, scheme,
 			    gc->lg_val, bootmount, NULL);
-		
+
 		/* Looks good at this point, no added data needed */
 		return (0);
 	}
@@ -986,7 +994,8 @@ add_boot_partition(struct ggeom *geom, struct gprovider *pp,
 		choice = bsddialog_yesno(&conf,
 		    "This partition scheme requires a boot partition "
 		    "for the disk to be bootable. Would you like to "
-		    "make one now?", 0, 0);
+		    "make one now?",
+		    0, 0);
 	} else {
 		choice = BSDDIALOG_YES;
 	}
@@ -997,12 +1006,11 @@ add_boot_partition(struct ggeom *geom, struct gprovider *pp,
 		char *bootpartname = NULL;
 		char sizestr[7];
 
-		humanize_number(sizestr, 7,
-		    bootpart_size(scheme), "B", HN_AUTOSCALE,
-		    HN_NOSPACE | HN_DECIMAL);
+		humanize_number(sizestr, 7, bootpart_size(scheme), "B",
+		    HN_AUTOSCALE, HN_NOSPACE | HN_DECIMAL);
 
-		gpart_create(pp, bootpart_type(scheme, &bootmount),
-		    sizestr, bootmount, &bootpartname, 0);
+		gpart_create(pp, bootpart_type(scheme, &bootmount), sizestr,
+		    bootmount, &bootpartname, 0);
 
 		if (bootpartname == NULL) /* Error reported to user already */
 			return 0;
@@ -1020,14 +1028,14 @@ add_boot_partition(struct ggeom *geom, struct gprovider *pp,
 
 		return (bootpart_size(scheme));
 	}
-	
+
 	return (0);
 }
 
 void
 gpart_create(struct gprovider *pp, const char *default_type,
-    const char *default_size, const char *default_mountpoint,
-    char **partname, int interactive)
+    const char *default_size, const char *default_mountpoint, char **partname,
+    int interactive)
 {
 	struct gctl_req *r;
 	struct gconfig *gc;
@@ -1044,17 +1052,17 @@ gpart_create(struct gprovider *pp, const char *default_type,
 	struct bsddialog_conf conf;
 
 	struct bsddialog_formitem items[] = {
-		{"Type:", 1, 1, "freebsd-ufs", 1, 12, 12, 15, NULL, 0,
+		{ "Type:", 1, 1, "freebsd-ufs", 1, 12, 12, 15, NULL, 0,
 		    "Filesystem type (e.g. freebsd-ufs, freebsd-zfs, "
-		    "freebsd-swap)"},
-		{"Size:", 2, 1, "", 2, 12, 12, 15, NULL, 0,
+		    "freebsd-swap)" },
+		{ "Size:", 2, 1, "", 2, 12, 12, 15, NULL, 0,
 		    "Partition size. Append K, M, G for kilobytes, "
-		    "megabytes or gigabytes."},
-		{"Mountpoint:", 3, 1, "", 3, 12, 12, 15, NULL, 0,
+		    "megabytes or gigabytes." },
+		{ "Mountpoint:", 3, 1, "", 3, 12, 12, 15, NULL, 0,
 		    "Path at which to mount partition (blank for "
-		    "swap, / for root filesystem)"},
-		{"Label:", 4, 1, "", 4, 12, 12, 15, NULL, 0,
-		    "Partition name. Not all partition schemes support this."},
+		    "swap, / for root filesystem)" },
+		{ "Label:", 4, 1, "", 4, 12, 12, 15, NULL, 0,
+		    "Partition name. Not all partition schemes support this." },
 	};
 
 	bsddialog_initconf(&conf);
@@ -1071,7 +1079,7 @@ gpart_create(struct gprovider *pp, const char *default_type,
 	 * this provider, or its parent. Check the consumer case first.
 	 */
 	geom = NULL;
-	LIST_FOREACH(cp, &pp->lg_consumers, lg_consumers)
+	LIST_FOREACH (cp, &pp->lg_consumers, lg_consumers)
 		if (strcmp(cp->lg_geom->lg_class->lg_name, "PART") == 0) {
 			geom = cp->lg_geom;
 			break;
@@ -1083,7 +1091,7 @@ gpart_create(struct gprovider *pp, const char *default_type,
 	/* Now get the partition scheme */
 	scheme = NULL;
 	if (geom != NULL) {
-		LIST_FOREACH(gc, &geom->lg_config, lg_config) 
+		LIST_FOREACH (gc, &geom->lg_config, lg_config)
 			if (strcmp(gc->lg_name, "scheme") == 0)
 				scheme = gc->lg_val;
 	}
@@ -1109,12 +1117,12 @@ gpart_create(struct gprovider *pp, const char *default_type,
 
 	maxsize = size = gpart_max_free(geom, &firstfree);
 	if (size <= 0) {
-		conf .title = "Error";
+		conf.title = "Error";
 		bsddialog_msgbox(&conf, "No free space left on device.", 0, 0);
 		return;
 	}
 
-	humanize_number(sizestr, 7, size*sector, "B", HN_AUTOSCALE,
+	humanize_number(sizestr, 7, size * sector, "B", HN_AUTOSCALE,
 	    HN_NOSPACE | HN_DECIMAL);
 	items[1].init = sizestr;
 
@@ -1134,8 +1142,7 @@ gpart_create(struct gprovider *pp, const char *default_type,
 		items[2].init = (char *)default_mountpoint;
 
 	/* Default options */
-	strncpy(options_fstype, items[0].init,
-	    sizeof(options_fstype));
+	strncpy(options_fstype, items[0].init, sizeof(options_fstype));
 	newfs = newfs_command(options_fstype, 1);
 
 	init_allocated = false;
@@ -1145,7 +1152,8 @@ addpartform:
 		conf.button.extra_label = "Options";
 		conf.button.always_active = true;
 		conf.title = "Add Partition";
-		choice = bsddialog_form(&conf, "", 0, 0, 0, nitems, items, NULL);
+		choice = bsddialog_form(&conf, "", 0, 0, 0, nitems, items,
+		    NULL);
 		conf.button.with_extra = false;
 		conf.button.extra_label = NULL;
 		conf.button.always_active = false;
@@ -1161,7 +1169,7 @@ addpartform:
 			newfs = newfs_command(options_fstype, 0);
 			for (i = 0; i < nitems(items); i++) {
 				if (init_allocated)
-					free((char*)items[i].init);
+					free((char *)items[i].init);
 				items[i].init = items[i].value;
 			}
 			init_allocated = true;
@@ -1196,14 +1204,16 @@ addpartform:
 			bsddialog_msgbox(&conf, error, 0, 0);
 			goto addpartform;
 		}
-		size = MIN((intmax_t)(bytes/sector), maxsize);
+		size = MIN((intmax_t)(bytes / sector), maxsize);
 	}
 
 	/* Check if the label has a / in it */
 	if (items[3].value != NULL && strchr(items[3].value, '/') != NULL) {
 		conf.title = "Error";
-		bsddialog_msgbox(&conf, "Label contains a /, which is not an "
-		    "allowed character.", 0, 0);
+		bsddialog_msgbox(&conf,
+		    "Label contains a /, which is not an "
+		    "allowed character.",
+		    0, 0);
 		goto addpartform;
 	}
 
@@ -1218,8 +1228,8 @@ addpartform:
 			    "This partition does not have a valid mountpoint "
 			    "(for the partition from which you intend to boot the "
 			    "operating system, the mountpoint should be /). Are you "
-			    "sure you want to continue?"
-			, 0, 0);
+			    "sure you want to continue?",
+			    0, 0);
 			conf.button.default_cancel = false;
 		}
 		if (choice == BSDDIALOG_CANCEL)
@@ -1233,10 +1243,12 @@ addpartform:
 	if (strcmp(items[0].value, "freebsd") == 0 &&
 	    strlen(items[2].value) > 0) {
 		conf.title = "Error";
-		bsddialog_msgbox(&conf, "Partitions of type \"freebsd\" are "
+		bsddialog_msgbox(&conf,
+		    "Partitions of type \"freebsd\" are "
 		    "nested BSD-type partition schemes and cannot have "
 		    "mountpoints. After creating one, select it and press "
-		    "Create again to add the actual file systems.", 0, 0);
+		    "Create again to add the actual file systems.",
+		    0, 0);
 		goto addpartform;
 	}
 
@@ -1257,8 +1269,8 @@ addpartform:
 	}
 
 	/* If this is the root partition, check that this fs is bootable */
-	if (strcmp(items[2].value, "/") == 0 && !is_fs_bootable(scheme,
-	    items[0].value)) {
+	if (strcmp(items[2].value, "/") == 0 &&
+	    !is_fs_bootable(scheme, items[0].value)) {
 		char message[512];
 
 		snprintf(message, sizeof(message),
@@ -1279,17 +1291,19 @@ addpartform:
 	 */
 
 	if ((strcmp(items[0].value, "freebsd") == 0 ||
-	    strcmp(items[2].value, "/") == 0) && bootpart_size(scheme) > 0) {
+		strcmp(items[2].value, "/") == 0) &&
+	    bootpart_size(scheme) > 0) {
 		size_t bytes = add_boot_partition(geom, pp, scheme,
 		    interactive);
 
 		/* Now adjust the part we are really adding forward */
 		if (bytes > 0) {
 			firstfree += bytes / sector;
-			size -= (bytes + stripe)/sector;
-			if (stripe > 0 && (firstfree*sector % stripe) != 0) 
-				firstfree += (stripe - ((firstfree*sector) %
-				    stripe)) / sector;
+			size -= (bytes + stripe) / sector;
+			if (stripe > 0 && (firstfree * sector % stripe) != 0)
+				firstfree +=
+				    (stripe - ((firstfree * sector) % stripe)) /
+				    sector;
 		}
 	}
 
@@ -1333,26 +1347,25 @@ addpartform:
 	gctl_issue(r); /* Error usually expected and non-fatal */
 	gctl_free(r);
 
-
 	if (strcmp(items[0].value, "freebsd") == 0)
 		gpart_partition(newpartname, "BSD");
 	else
-		set_default_part_metadata(newpartname, scheme,
-		    items[0].value, items[2].value, newfs);
+		set_default_part_metadata(newpartname, scheme, items[0].value,
+		    items[2].value, newfs);
 	free(newfs);
 
 	for (i = 0; i < nitems(items); i++) {
 		if (items[i].value != NULL) {
 			free(items[i].value);
 			if (init_allocated && items[i].init != NULL)
-				free((char*)items[i].init);
+				free((char *)items[i].init);
 		}
 	}
 
 	if (partname != NULL)
 		*partname = strdup(newpartname);
 }
-	
+
 void
 gpart_delete(struct gprovider *pp)
 {
@@ -1370,7 +1383,7 @@ gpart_delete(struct gprovider *pp)
 
 	/* Find out if this is the root of a gpart geom */
 	geom = NULL;
-	LIST_FOREACH(cp, &pp->lg_consumers, lg_consumers)
+	LIST_FOREACH (cp, &pp->lg_consumers, lg_consumers)
 		if (strcmp(cp->lg_geom->lg_class->lg_name, "PART") == 0) {
 			geom = cp->lg_geom;
 			break;
@@ -1412,7 +1425,7 @@ gpart_delete(struct gprovider *pp)
 	gctl_ro_param(r, "flags", -1, GPART_FLAGS);
 	gctl_ro_param(r, "verb", -1, "delete");
 
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "index") == 0) {
 			idx = atoi(gc->lg_val);
 			gctl_ro_param(r, "index", sizeof(idx), &idx);
@@ -1442,7 +1455,7 @@ gpart_revert_all(struct gmesh *mesh)
 	const char *modified;
 	struct bsddialog_conf conf;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 	}
@@ -1454,10 +1467,10 @@ gpart_revert_all(struct gmesh *mesh)
 		return;
 	}
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		modified = "true"; /* XXX: If we don't know (kernel too old),
 				    * assume there are modifications. */
-		LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+		LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "modified") == 0) {
 				modified = gc->lg_val;
 				break;
@@ -1492,14 +1505,14 @@ gpart_commit(struct gmesh *mesh)
 	const char *rootfs;
 	struct bsddialog_conf conf;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 	}
 
 	/* Figure out what filesystem / uses */
 	rootfs = "ufs"; /* Assume ufs if nothing else present */
-	TAILQ_FOREACH(md, &part_metadata, metadata) {
+	TAILQ_FOREACH (md, &part_metadata, metadata) {
 		if (md->fstab != NULL && strcmp(md->fstab->fs_file, "/") == 0) {
 			rootfs = md->fstab->fs_vfstype;
 			break;
@@ -1513,10 +1526,10 @@ gpart_commit(struct gmesh *mesh)
 		return;
 	}
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		modified = "true"; /* XXX: If we don't know (kernel too old),
 				    * assume there are modifications. */
-		LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+		LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "modified") == 0) {
 				modified = gc->lg_val;
 				break;
@@ -1532,18 +1545,18 @@ gpart_commit(struct gmesh *mesh)
 			gpart_bootcode(gp);
 
 		/* Now install partcode on its partitions, if necessary */
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 			md = get_part_metadata(pp->lg_name, 0);
 			if (md == NULL || !md->bootcode)
 				continue;
-		
+
 			/* Mark this partition active if that's required */
 			gpart_activate(pp);
 
 			/* Check if the partition has sub-partitions */
-			LIST_FOREACH(cp, &pp->lg_consumers, lg_consumers)
+			LIST_FOREACH (cp, &pp->lg_consumers, lg_consumers)
 				if (strcmp(cp->lg_geom->lg_class->lg_name,
-				    "PART") == 0)
+					"PART") == 0)
 					break;
 
 			if (cp == NULL) /* No sub-partitions */
@@ -1556,9 +1569,8 @@ gpart_commit(struct gmesh *mesh)
 		gctl_ro_param(r, "verb", -1, "commit");
 
 		errstr = gctl_issue(r);
-		if (errstr != NULL && errstr[0] != '\0') 
+		if (errstr != NULL && errstr[0] != '\0')
 			gpart_show_error("Error", NULL, errstr);
 		gctl_free(r);
 	}
 }
-

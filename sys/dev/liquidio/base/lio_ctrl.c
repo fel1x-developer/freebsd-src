@@ -33,27 +33,27 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_ctrl.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
-#include "lio_ctrl.h"
 #include "lio_main.h"
+#include "lio_response_manager.h"
 
 int
 lio_send_data_pkt(struct octeon_device *oct, struct lio_data_pkt *ndata)
 {
-	int	ring_doorbell = 1;
+	int ring_doorbell = 1;
 
 	return (lio_send_command(oct, ndata->q_no, ring_doorbell, &ndata->cmd,
-				 ndata->buf, ndata->datasize, ndata->reqtype));
+	    ndata->buf, ndata->datasize, ndata->reqtype));
 }
 
 static void
 lio_ctrl_callback(struct octeon_device *oct, uint32_t status, void *sc_ptr)
 {
-	struct lio_soft_command	*sc = (struct lio_soft_command *)sc_ptr;
-	struct lio_ctrl_pkt	*nctrl;
+	struct lio_soft_command *sc = (struct lio_soft_command *)sc_ptr;
+	struct lio_ctrl_pkt *nctrl;
 
 	nctrl = (struct lio_ctrl_pkt *)sc->ctxptr;
 
@@ -73,9 +73,9 @@ lio_ctrl_callback(struct octeon_device *oct, uint32_t status, void *sc_ptr)
 static inline struct lio_soft_command *
 lio_alloc_ctrl_pkt_sc(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 {
-	struct lio_soft_command	*sc = NULL;
-	uint32_t		datasize = 0, rdatasize, uddsize = 0;
-	uint8_t			*data;
+	struct lio_soft_command *sc = NULL;
+	uint32_t datasize = 0, rdatasize, uddsize = 0;
+	uint8_t *data;
 
 	uddsize = (uint32_t)(nctrl->ncmd.s.more * 8);
 
@@ -83,7 +83,7 @@ lio_alloc_ctrl_pkt_sc(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 	rdatasize = (nctrl->wait_time) ? 16 : 0;
 
 	sc = lio_alloc_soft_command(oct, datasize, rdatasize,
-				    sizeof(struct lio_ctrl_pkt));
+	    sizeof(struct lio_ctrl_pkt));
 
 	if (sc == NULL)
 		return (NULL);
@@ -103,7 +103,7 @@ lio_alloc_ctrl_pkt_sc(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 	sc->iq_no = (uint32_t)nctrl->iq_no;
 
 	lio_prepare_soft_command(oct, sc, LIO_OPCODE_NIC, LIO_OPCODE_NIC_CMD, 0,
-				 0, 0);
+	    0, 0);
 
 	sc->callback = lio_ctrl_callback;
 	sc->callback_arg = sc;
@@ -115,8 +115,8 @@ lio_alloc_ctrl_pkt_sc(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 int
 lio_send_ctrl_pkt(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 {
-	struct lio_soft_command	*sc = NULL;
-	int	retval;
+	struct lio_soft_command *sc = NULL;
+	int retval;
 
 	mtx_lock(&oct->cmd_resp_wqlock);
 	/*
@@ -126,8 +126,9 @@ lio_send_ctrl_pkt(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 	if ((oct->cmd_resp_state == LIO_DRV_OFFLINE) &&
 	    (nctrl->ncmd.s.cmd != LIO_CMD_RX_CTL)) {
 		mtx_unlock(&oct->cmd_resp_wqlock);
-		lio_dev_err(oct, "%s cmd:%d not processed since driver offline\n",
-			    __func__, nctrl->ncmd.s.cmd);
+		lio_dev_err(oct,
+		    "%s cmd:%d not processed since driver offline\n", __func__,
+		    nctrl->ncmd.s.cmd);
 		return (-1);
 	}
 
@@ -141,8 +142,9 @@ lio_send_ctrl_pkt(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl)
 	retval = lio_send_soft_command(oct, sc);
 	if (retval == LIO_IQ_SEND_FAILED) {
 		lio_free_soft_command(oct, sc);
-		lio_dev_err(oct, "%s pf_num:%d soft command:%d send failed status: %x\n",
-			    __func__, oct->pf_num, nctrl->ncmd.s.cmd, retval);
+		lio_dev_err(oct,
+		    "%s pf_num:%d soft command:%d send failed status: %x\n",
+		    __func__, oct->pf_num, nctrl->ncmd.s.cmd, retval);
 		mtx_unlock(&oct->cmd_resp_wqlock);
 		return (-1);
 	}

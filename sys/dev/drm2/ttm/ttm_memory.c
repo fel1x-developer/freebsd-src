@@ -26,6 +26,7 @@
  **************************************************************************/
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/ttm/ttm_memory.h>
 #include <dev/drm2/ttm/ttm_module.h>
@@ -46,11 +47,12 @@ struct ttm_mem_zone {
 
 MALLOC_DEFINE(M_TTM_ZONE, "ttm_zone", "TTM Zone");
 
-static void ttm_mem_zone_kobj_release(struct ttm_mem_zone *zone)
+static void
+ttm_mem_zone_kobj_release(struct ttm_mem_zone *zone)
 {
 
-	printf("[TTM] Zone %7s: Used memory at exit: %llu kiB\n",
-		zone->name, (unsigned long long)zone->used_mem >> 10);
+	printf("[TTM] Zone %7s: Used memory at exit: %llu kiB\n", zone->name,
+	    (unsigned long long)zone->used_mem >> 10);
 	free(zone, M_TTM_ZONE);
 }
 
@@ -121,12 +123,14 @@ static ssize_t ttm_mem_zone_store(struct ttm_mem_zone *zone,
 }
 #endif
 
-static void ttm_mem_global_kobj_release(struct ttm_mem_global *glob)
+static void
+ttm_mem_global_kobj_release(struct ttm_mem_global *glob)
 {
 }
 
-static bool ttm_zones_above_swap_target(struct ttm_mem_global *glob,
-					bool from_wq, uint64_t extra)
+static bool
+ttm_zones_above_swap_target(struct ttm_mem_global *glob, bool from_wq,
+    uint64_t extra)
 {
 	unsigned int i;
 	struct ttm_mem_zone *zone;
@@ -157,8 +161,8 @@ static bool ttm_zones_above_swap_target(struct ttm_mem_global *glob,
  * many threads may try to swap out at any given time.
  */
 
-static void ttm_shrink(struct ttm_mem_global *glob, bool from_wq,
-		       uint64_t extra)
+static void
+ttm_shrink(struct ttm_mem_global *glob, bool from_wq, uint64_t extra)
 {
 	int ret;
 	struct ttm_mem_shrink *shrink;
@@ -179,17 +183,16 @@ out:
 	mtx_unlock(&glob->lock);
 }
 
-
-
-static void ttm_shrink_work(void *arg, int pending __unused)
+static void
+ttm_shrink_work(void *arg, int pending __unused)
 {
 	struct ttm_mem_global *glob = arg;
 
 	ttm_shrink(glob, true, 0ULL);
 }
 
-static int ttm_mem_init_kernel_zone(struct ttm_mem_global *glob,
-    uint64_t mem)
+static int
+ttm_mem_init_kernel_zone(struct ttm_mem_global *glob, uint64_t mem)
 {
 	struct ttm_mem_zone *zone;
 
@@ -208,8 +211,8 @@ static int ttm_mem_init_kernel_zone(struct ttm_mem_global *glob,
 	return 0;
 }
 
-static int ttm_mem_init_dma32_zone(struct ttm_mem_global *glob,
-    uint64_t mem)
+static int
+ttm_mem_init_dma32_zone(struct ttm_mem_global *glob, uint64_t mem)
 {
 	struct ttm_mem_zone *zone;
 
@@ -219,7 +222,7 @@ static int ttm_mem_init_dma32_zone(struct ttm_mem_global *glob,
 	 * No special dma32 zone needed.
 	 */
 
-	if (mem <= ((uint64_t) 1ULL << 32)) {
+	if (mem <= ((uint64_t)1ULL << 32)) {
 		free(zone, M_TTM_ZONE);
 		return 0;
 	}
@@ -230,7 +233,7 @@ static int ttm_mem_init_dma32_zone(struct ttm_mem_global *glob,
 	 * zone really is.
 	 */
 
-	mem = ((uint64_t) 1ULL << 32);
+	mem = ((uint64_t)1ULL << 32);
 	zone->name = "dma32";
 	zone->zone_mem = mem;
 	zone->max_mem = mem >> 1;
@@ -244,7 +247,8 @@ static int ttm_mem_init_dma32_zone(struct ttm_mem_global *glob,
 	return 0;
 }
 
-int ttm_mem_global_init(struct ttm_mem_global *glob)
+int
+ttm_mem_global_init(struct ttm_mem_global *glob)
 {
 	u_int64_t mem;
 	int ret;
@@ -270,17 +274,19 @@ int ttm_mem_global_init(struct ttm_mem_global *glob)
 	for (i = 0; i < glob->num_zones; ++i) {
 		zone = glob->zones[i];
 		printf("[TTM] Zone %7s: Available graphics memory: %llu kiB\n",
-			zone->name, (unsigned long long)zone->max_mem >> 10);
+		    zone->name, (unsigned long long)zone->max_mem >> 10);
 	}
-	ttm_page_alloc_init(glob, glob->zone_kernel->max_mem/(2*PAGE_SIZE));
-	ttm_dma_page_alloc_init(glob, glob->zone_kernel->max_mem/(2*PAGE_SIZE));
+	ttm_page_alloc_init(glob, glob->zone_kernel->max_mem / (2 * PAGE_SIZE));
+	ttm_dma_page_alloc_init(glob,
+	    glob->zone_kernel->max_mem / (2 * PAGE_SIZE));
 	return 0;
 out_no_zone:
 	ttm_mem_global_release(glob);
 	return ret;
 }
 
-void ttm_mem_global_release(struct ttm_mem_global *glob)
+void
+ttm_mem_global_release(struct ttm_mem_global *glob)
 {
 	unsigned int i;
 	struct ttm_mem_zone *zone;
@@ -301,7 +307,8 @@ void ttm_mem_global_release(struct ttm_mem_global *glob)
 		ttm_mem_global_kobj_release(glob);
 }
 
-static void ttm_check_swapping(struct ttm_mem_global *glob)
+static void
+ttm_check_swapping(struct ttm_mem_global *glob)
 {
 	bool needs_swapping = false;
 	unsigned int i;
@@ -320,12 +327,11 @@ static void ttm_check_swapping(struct ttm_mem_global *glob)
 
 	if (unlikely(needs_swapping))
 		taskqueue_enqueue(glob->swap_queue, &glob->work);
-
 }
 
-static void ttm_mem_global_free_zone(struct ttm_mem_global *glob,
-				     struct ttm_mem_zone *single_zone,
-				     uint64_t amount)
+static void
+ttm_mem_global_free_zone(struct ttm_mem_global *glob,
+    struct ttm_mem_zone *single_zone, uint64_t amount)
 {
 	unsigned int i;
 	struct ttm_mem_zone *zone;
@@ -340,15 +346,15 @@ static void ttm_mem_global_free_zone(struct ttm_mem_global *glob,
 	mtx_unlock(&glob->lock);
 }
 
-void ttm_mem_global_free(struct ttm_mem_global *glob,
-			 uint64_t amount)
+void
+ttm_mem_global_free(struct ttm_mem_global *glob, uint64_t amount)
 {
 	return ttm_mem_global_free_zone(glob, NULL, amount);
 }
 
-static int ttm_mem_global_reserve(struct ttm_mem_global *glob,
-				  struct ttm_mem_zone *single_zone,
-				  uint64_t amount, bool reserve)
+static int
+ttm_mem_global_reserve(struct ttm_mem_global *glob,
+    struct ttm_mem_zone *single_zone, uint64_t amount, bool reserve)
 {
 	uint64_t limit;
 	int ret = -ENOMEM;
@@ -362,7 +368,8 @@ static int ttm_mem_global_reserve(struct ttm_mem_global *glob,
 			continue;
 
 		limit = (priv_check(curthread, PRIV_VM_MLOCK) == 0) ?
-			zone->emer_mem : zone->max_mem;
+		    zone->emer_mem :
+		    zone->max_mem;
 
 		if (zone->used_mem > limit)
 			goto out_unlock;
@@ -385,18 +392,15 @@ out_unlock:
 	return ret;
 }
 
-
-static int ttm_mem_global_alloc_zone(struct ttm_mem_global *glob,
-				     struct ttm_mem_zone *single_zone,
-				     uint64_t memory,
-				     bool no_wait, bool interruptible)
+static int
+ttm_mem_global_alloc_zone(struct ttm_mem_global *glob,
+    struct ttm_mem_zone *single_zone, uint64_t memory, bool no_wait,
+    bool interruptible)
 {
 	int count = TTM_MEMORY_ALLOC_RETRIES;
 
-	while (unlikely(ttm_mem_global_reserve(glob,
-					       single_zone,
-					       memory, true)
-			!= 0)) {
+	while (unlikely(
+	    ttm_mem_global_reserve(glob, single_zone, memory, true) != 0)) {
 		if (no_wait)
 			return -ENOMEM;
 		if (unlikely(count-- == 0))
@@ -407,8 +411,9 @@ static int ttm_mem_global_alloc_zone(struct ttm_mem_global *glob,
 	return 0;
 }
 
-int ttm_mem_global_alloc(struct ttm_mem_global *glob, uint64_t memory,
-			 bool no_wait, bool interruptible)
+int
+ttm_mem_global_alloc(struct ttm_mem_global *glob, uint64_t memory, bool no_wait,
+    bool interruptible)
 {
 	/**
 	 * Normal allocations of kernel memory are registered in
@@ -416,14 +421,14 @@ int ttm_mem_global_alloc(struct ttm_mem_global *glob, uint64_t memory,
 	 */
 
 	return ttm_mem_global_alloc_zone(glob, NULL, memory, no_wait,
-					 interruptible);
+	    interruptible);
 }
 
 #define page_to_pfn(pp) OFF_TO_IDX(VM_PAGE_TO_PHYS(pp))
 
-int ttm_mem_global_alloc_page(struct ttm_mem_global *glob,
-			      struct vm_page *page,
-			      bool no_wait, bool interruptible)
+int
+ttm_mem_global_alloc_page(struct ttm_mem_global *glob, struct vm_page *page,
+    bool no_wait, bool interruptible)
 {
 
 	struct ttm_mem_zone *zone = NULL;
@@ -436,10 +441,11 @@ int ttm_mem_global_alloc_page(struct ttm_mem_global *glob,
 	if (glob->zone_dma32 && page_to_pfn(page) > 0x00100000UL)
 		zone = glob->zone_kernel;
 	return ttm_mem_global_alloc_zone(glob, zone, PAGE_SIZE, no_wait,
-					 interruptible);
+	    interruptible);
 }
 
-void ttm_mem_global_free_page(struct ttm_mem_global *glob, struct vm_page *page)
+void
+ttm_mem_global_free_page(struct ttm_mem_global *glob, struct vm_page *page)
 {
 	struct ttm_mem_zone *zone = NULL;
 
@@ -448,8 +454,8 @@ void ttm_mem_global_free_page(struct ttm_mem_global *glob, struct vm_page *page)
 	ttm_mem_global_free_zone(glob, zone, PAGE_SIZE);
 }
 
-
-size_t ttm_round_pot(size_t size)
+size_t
+ttm_round_pot(size_t size)
 {
 	if ((size & (size - 1)) == 0)
 		return size;

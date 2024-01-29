@@ -27,21 +27,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
+
+#include <sys/cdefs.h>
 
 #ifdef TCP_OFFLOAD
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/domain.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/module.h>
 #include <sys/protosw.h>
-#include <sys/domain.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_types.h>
@@ -52,18 +54,18 @@
 #include <netinet/in_pcb.h>
 #include <netinet/ip.h>
 #define TCPSTATES
+#include <netinet/cc/cc.h>
 #include <netinet/tcp_fsm.h>
 #include <netinet/tcp_var.h>
 #include <netinet/toecore.h>
-#include <netinet/cc/cc.h>
 
 #include "common/common.h"
 #include "common/t4_msg.h"
 #include "common/t4_regs.h"
 #include "common/t4_regs_values.h"
 #include "t4_clip.h"
-#include "tom/t4_tom_l2t.h"
 #include "tom/t4_tom.h"
+#include "tom/t4_tom_l2t.h"
 
 /*
  * Active open succeeded.
@@ -125,7 +127,7 @@ act_open_failure_cleanup(struct adapter *sc, u_int atid, u_int status)
 		NET_EPOCH_ENTER(et);
 	INP_WLOCK(inp);
 	toe_connect_failed(tod, inp, status);
-	final_cpl_received(toep);	/* unlocks inp */
+	final_cpl_received(toep); /* unlocks inp */
 	if (status != EAGAIN)
 		NET_EPOCH_EXIT(et);
 	CURVNET_RESTORE();
@@ -135,8 +137,7 @@ act_open_failure_cleanup(struct adapter *sc, u_int atid, u_int status)
  * Active open failed.
  */
 static int
-do_act_open_rpl(struct sge_iq *iq, const struct rss_header *rss,
-    struct mbuf *m)
+do_act_open_rpl(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 {
 	struct adapter *sc = iq->adapter;
 	const struct cpl_act_open_rpl *cpl = (const void *)(rss + 1);
@@ -181,16 +182,18 @@ t4_uninit_connect_cpl_handlers(void)
 }
 
 #ifdef KTR
-#define DONT_OFFLOAD_ACTIVE_OPEN(x)	do { \
-	reason = __LINE__; \
-	rc = (x); \
-	goto failed; \
-} while (0)
+#define DONT_OFFLOAD_ACTIVE_OPEN(x) \
+	do {                        \
+		reason = __LINE__;  \
+		rc = (x);           \
+		goto failed;        \
+	} while (0)
 #else
-#define DONT_OFFLOAD_ACTIVE_OPEN(x)	do { \
-	rc = (x); \
-	goto failed; \
-} while (0)
+#define DONT_OFFLOAD_ACTIVE_OPEN(x) \
+	do {                        \
+		rc = (x);           \
+		goto failed;        \
+	} while (0)
 #endif
 
 static inline int
@@ -198,18 +201,12 @@ act_open_cpl_size(struct adapter *sc, int isipv6)
 {
 	int idx;
 	static const int sz_table[3][2] = {
-		{
-			sizeof (struct cpl_act_open_req),
-			sizeof (struct cpl_act_open_req6)
-		},
-		{
-			sizeof (struct cpl_t5_act_open_req),
-			sizeof (struct cpl_t5_act_open_req6)
-		},
-		{
-			sizeof (struct cpl_t6_act_open_req),
-			sizeof (struct cpl_t6_act_open_req6)
-		},
+		{ sizeof(struct cpl_act_open_req),
+		    sizeof(struct cpl_act_open_req6) },
+		{ sizeof(struct cpl_t5_act_open_req),
+		    sizeof(struct cpl_t5_act_open_req6) },
+		{ sizeof(struct cpl_t6_act_open_req),
+		    sizeof(struct cpl_t6_act_open_req6) },
 	};
 
 	MPASS(chip_id(sc) >= CHELSIO_T4);
@@ -328,8 +325,8 @@ t4_connect(struct toedev *tod, struct socket *so, struct nhop_object *nh,
 			cpl6->params = select_ntuple(vi, toep->l2te);
 			break;
 		}
-		OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ6,
-		    qid_atid));
+		OPCODE_TID(cpl) = htobe32(
+		    MK_OPCODE_TID(CPL_ACT_OPEN_REQ6, qid_atid));
 		cpl->local_port = inp->inp_lport;
 		cpl->local_ip_hi = *(uint64_t *)&inp->in6p_laddr.s6_addr[0];
 		cpl->local_ip_lo = *(uint64_t *)&inp->in6p_laddr.s6_addr[8];
@@ -365,8 +362,8 @@ t4_connect(struct toedev *tod, struct socket *so, struct nhop_object *nh,
 			cpl6->params = select_ntuple(vi, toep->l2te);
 			break;
 		}
-		OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ,
-		    qid_atid));
+		OPCODE_TID(cpl) = htobe32(
+		    MK_OPCODE_TID(CPL_ACT_OPEN_REQ, qid_atid));
 		inp_4tuple_get(inp, &cpl->local_ip, &cpl->local_port,
 		    &cpl->peer_ip, &cpl->peer_port);
 		cpl->opt0 = calc_options0(vi, &toep->params);

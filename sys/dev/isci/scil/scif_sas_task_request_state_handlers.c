@@ -79,16 +79,14 @@
  * @retval SCI_SUCCESS This return value indicates successful starting
  *         of the task request.
  */
-static
-SCI_STATUS scif_sas_task_request_constructed_start_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_constructed_start_handler(
+    SCI_BASE_REQUEST_T *task_request)
 {
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_STARTED
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_STARTED);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 /**
@@ -103,16 +101,14 @@ SCI_STATUS scif_sas_task_request_constructed_start_handler(
  * @retval SCI_SUCCESS This return value indicates successful aborting
  *         of the task request.
  */
-static
-SCI_STATUS scif_sas_task_request_constructed_abort_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_constructed_abort_handler(
+    SCI_BASE_REQUEST_T *task_request)
 {
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_COMPLETED
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_COMPLETED);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -131,18 +127,15 @@ SCI_STATUS scif_sas_task_request_constructed_abort_handler(
  * @retval SCI_SUCCESS This return value indicates that the abort process
  *         began successfully.
  */
-static
-SCI_STATUS scif_sas_task_request_started_abort_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_started_abort_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_REQUEST_T * fw_request = (SCIF_SAS_REQUEST_T *) task_request;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)task_request;
 
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_ABORTING
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_ABORTING);
 
-   return fw_request->status;
+	return fw_request->status;
 }
 
 /**
@@ -157,16 +150,13 @@ SCI_STATUS scif_sas_task_request_started_abort_handler(
  * @retval SCI_SUCCESS This return value indicates that the completion process
  *         was successful.
  */
-static
-SCI_STATUS scif_sas_task_request_started_complete_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_started_complete_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_COMPLETED
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_COMPLETED);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -185,30 +175,24 @@ SCI_STATUS scif_sas_task_request_started_complete_handler(
  * @retval SCI_SUCCESS This return value indicates that the destruct
  *         was successful.
  */
-static
-SCI_STATUS scif_sas_task_request_completed_destruct_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_completed_destruct_handler(
+    SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_SAS_REQUEST_T * fw_request = (SCIF_SAS_REQUEST_T *)task_request;
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)task_request;
 
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_FINAL
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_FINAL);
 
-   sci_base_state_machine_logger_deinitialize(
-      &task_request->state_machine_logger,
-      &task_request->state_machine
-   );
+	sci_base_state_machine_logger_deinitialize(
+	    &task_request->state_machine_logger, &task_request->state_machine);
 
-   if (fw_request->is_internal == TRUE)
-   {
-      scif_sas_internal_task_request_destruct(
-         (SCIF_SAS_TASK_REQUEST_T *)fw_request
-      );
-   }
+	if (fw_request->is_internal == TRUE) {
+		scif_sas_internal_task_request_destruct(
+		    (SCIF_SAS_TASK_REQUEST_T *)fw_request);
+	}
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -227,16 +211,14 @@ SCI_STATUS scif_sas_task_request_completed_destruct_handler(
  * @retval SCI_SUCCESS This return value indicates that the completion
  *         was successful.
  */
-static
-SCI_STATUS scif_sas_task_request_aborting_complete_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_aborting_complete_handler(
+    SCI_BASE_REQUEST_T *task_request)
 {
-   sci_base_state_machine_change_state(
-      &task_request->state_machine, SCI_BASE_REQUEST_STATE_COMPLETED
-   );
+	sci_base_state_machine_change_state(&task_request->state_machine,
+	    SCI_BASE_REQUEST_STATE_COMPLETED);
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -254,21 +236,19 @@ SCI_STATUS scif_sas_task_request_aborting_complete_handler(
  *         not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_task_request_default_start_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_default_start_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_ERROR((
-      sci_base_object_get_logger((SCIF_SAS_TASK_REQUEST_T *) task_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "TaskRequest:0x%x State:0x%x invalid state to start\n",
-      task_request,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_TASK_REQUEST_T *) task_request)->parent.parent.state_machine)
-   ));
+	SCIF_LOG_ERROR((sci_base_object_get_logger(
+			    (SCIF_SAS_TASK_REQUEST_T *)task_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "TaskRequest:0x%x State:0x%x invalid state to start\n",
+	    task_request,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_TASK_REQUEST_T *)task_request)
+		     ->parent.parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -282,21 +262,19 @@ SCI_STATUS scif_sas_task_request_default_start_handler(
  *         not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_task_request_default_abort_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_default_abort_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_ERROR((
-      sci_base_object_get_logger((SCIF_SAS_TASK_REQUEST_T *) task_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "TaskRequest:0x%x State:0x%x invalid state to abort\n",
-      task_request,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_TASK_REQUEST_T *) task_request)->parent.parent.state_machine)
-   ));
+	SCIF_LOG_ERROR((sci_base_object_get_logger(
+			    (SCIF_SAS_TASK_REQUEST_T *)task_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "TaskRequest:0x%x State:0x%x invalid state to abort\n",
+	    task_request,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_TASK_REQUEST_T *)task_request)
+		     ->parent.parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -310,21 +288,19 @@ SCI_STATUS scif_sas_task_request_default_abort_handler(
  *         not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_task_request_default_complete_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_default_complete_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_ERROR((
-      sci_base_object_get_logger((SCIF_SAS_TASK_REQUEST_T *) task_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "TaskRequest:0x%x State:0x%x invalid state to complete\n",
-      task_request,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_TASK_REQUEST_T *) task_request)->parent.parent.state_machine)
-   ));
+	SCIF_LOG_ERROR((sci_base_object_get_logger(
+			    (SCIF_SAS_TASK_REQUEST_T *)task_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "TaskRequest:0x%x State:0x%x invalid state to complete\n",
+	    task_request,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_TASK_REQUEST_T *)task_request)
+		     ->parent.parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
 /**
@@ -338,67 +314,50 @@ SCI_STATUS scif_sas_task_request_default_complete_handler(
  *         not allowed.
  * @retval SCI_FAILURE_INVALID_STATE This value is always returned.
  */
-static
-SCI_STATUS scif_sas_task_request_default_destruct_handler(
-   SCI_BASE_REQUEST_T * task_request
-)
+static SCI_STATUS
+scif_sas_task_request_default_destruct_handler(SCI_BASE_REQUEST_T *task_request)
 {
-   SCIF_LOG_ERROR((
-      sci_base_object_get_logger((SCIF_SAS_TASK_REQUEST_T *) task_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "TaskRequest:0x%x State:0x%x invalid state to destruct.\n",
-      task_request,
-      sci_base_state_machine_get_state(
-         &((SCIF_SAS_TASK_REQUEST_T *) task_request)->parent.parent.state_machine)
-   ));
+	SCIF_LOG_ERROR((sci_base_object_get_logger(
+			    (SCIF_SAS_TASK_REQUEST_T *)task_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "TaskRequest:0x%x State:0x%x invalid state to destruct.\n",
+	    task_request,
+	    sci_base_state_machine_get_state(
+		&((SCIF_SAS_TASK_REQUEST_T *)task_request)
+		     ->parent.parent.state_machine)));
 
-   return SCI_FAILURE_INVALID_STATE;
+	return SCI_FAILURE_INVALID_STATE;
 }
 
-
-SCI_BASE_REQUEST_STATE_HANDLER_T scif_sas_task_request_state_handler_table[] =
-{
-   // SCI_BASE_REQUEST_STATE_INITIAL
-   {
-      scif_sas_task_request_default_start_handler,
-      scif_sas_task_request_default_abort_handler,
-      scif_sas_task_request_default_complete_handler,
-      scif_sas_task_request_default_destruct_handler
-   },
-   // SCI_BASE_REQUEST_STATE_CONSTRUCTED
-   {
-      scif_sas_task_request_constructed_start_handler,
-      scif_sas_task_request_constructed_abort_handler,
-      scif_sas_task_request_default_complete_handler,
-      scif_sas_task_request_default_destruct_handler
-   },
-   // SCI_BASE_REQUEST_STATE_STARTED
-   {
-      scif_sas_task_request_default_start_handler,
-      scif_sas_task_request_started_abort_handler,
-      scif_sas_task_request_started_complete_handler,
-      scif_sas_task_request_default_destruct_handler
-   },
-   // SCI_BASE_REQUEST_STATE_COMPLETED
-   {
-      scif_sas_task_request_default_start_handler,
-      scif_sas_task_request_default_abort_handler,
-      scif_sas_task_request_default_complete_handler,
-      scif_sas_task_request_completed_destruct_handler
-   },
-   // SCI_BASE_REQUEST_STATE_ABORTING
-   {
-      scif_sas_task_request_default_start_handler,
-      scif_sas_task_request_default_abort_handler,
-      scif_sas_task_request_aborting_complete_handler,
-      scif_sas_task_request_default_destruct_handler
-   },
-   // SCI_BASE_REQUEST_STATE_FINAL
-   {
-      scif_sas_task_request_default_start_handler,
-      scif_sas_task_request_default_abort_handler,
-      scif_sas_task_request_default_complete_handler,
-      scif_sas_task_request_default_destruct_handler
-   },
+SCI_BASE_REQUEST_STATE_HANDLER_T scif_sas_task_request_state_handler_table[] = {
+	// SCI_BASE_REQUEST_STATE_INITIAL
+	{ scif_sas_task_request_default_start_handler,
+	    scif_sas_task_request_default_abort_handler,
+	    scif_sas_task_request_default_complete_handler,
+	    scif_sas_task_request_default_destruct_handler },
+	// SCI_BASE_REQUEST_STATE_CONSTRUCTED
+	{ scif_sas_task_request_constructed_start_handler,
+	    scif_sas_task_request_constructed_abort_handler,
+	    scif_sas_task_request_default_complete_handler,
+	    scif_sas_task_request_default_destruct_handler },
+	// SCI_BASE_REQUEST_STATE_STARTED
+	{ scif_sas_task_request_default_start_handler,
+	    scif_sas_task_request_started_abort_handler,
+	    scif_sas_task_request_started_complete_handler,
+	    scif_sas_task_request_default_destruct_handler },
+	// SCI_BASE_REQUEST_STATE_COMPLETED
+	{ scif_sas_task_request_default_start_handler,
+	    scif_sas_task_request_default_abort_handler,
+	    scif_sas_task_request_default_complete_handler,
+	    scif_sas_task_request_completed_destruct_handler },
+	// SCI_BASE_REQUEST_STATE_ABORTING
+	{ scif_sas_task_request_default_start_handler,
+	    scif_sas_task_request_default_abort_handler,
+	    scif_sas_task_request_aborting_complete_handler,
+	    scif_sas_task_request_default_destruct_handler },
+	// SCI_BASE_REQUEST_STATE_FINAL
+	{ scif_sas_task_request_default_start_handler,
+	    scif_sas_task_request_default_abort_handler,
+	    scif_sas_task_request_default_complete_handler,
+	    scif_sas_task_request_default_destruct_handler },
 };
-

@@ -27,25 +27,27 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/errno.h>
-#include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mpsutil.h"
 
 MPS_TABLE(top, debug);
 
 struct mps_dumpreq_hdr {
-	uint32_t	smid;
-	uint32_t	state;
-	uint32_t	numframes;
-	uint32_t	deschi;
-	uint32_t	desclo;
+	uint32_t smid;
+	uint32_t state;
+	uint32_t numframes;
+	uint32_t deschi;
+	uint32_t desclo;
 };
 
 static int find_sgl(char *);
@@ -88,8 +90,9 @@ debug_dumpreqs(int ac, char **av)
 		numframes = hdr->numframes;
 
 		printf("SMID= %d state= %#x numframes= %d desc.hi= %#08x "
-		    "desc.lo= %#08x\n", hdr->smid, hdr->state,
-		    hdr->numframes, hdr->deschi, hdr->desclo);
+		       "desc.lo= %#08x\n",
+		    hdr->smid, hdr->state, hdr->numframes, hdr->deschi,
+		    hdr->desclo);
 
 		buf += sizeof(struct mps_dumpreq_hdr);
 		len -= sizeof(struct mps_dumpreq_hdr);
@@ -125,7 +128,8 @@ find_sgl(char *buf)
 	return (offset);
 }
 
-#define SGL_FLAGS "\10LastElement\7EndOfBuffer\4Local\3Host2IOC\2Addr64\1EndOfList"
+#define SGL_FLAGS \
+	"\10LastElement\7EndOfBuffer\4Local\3Host2IOC\2Addr64\1EndOfList"
 
 static void
 print_sgl(char *buf, int offset, int numframes)
@@ -147,8 +151,8 @@ print_sgl(char *buf, int offset, int numframes)
 		printf("seg%d flags=%x %s len= 0x%06x addr=0x%016jx\n", i,
 		    flags, tmpbuf, sge->FlagsLength & 0xffffff,
 		    mps_to_u64(&sge->Address));
-		if (flags & (MPI2_SGE_FLAGS_END_OF_LIST |
-		    MPI2_SGE_FLAGS_END_OF_BUFFER))
+		if (flags &
+		    (MPI2_SGE_FLAGS_END_OF_LIST | MPI2_SGE_FLAGS_END_OF_BUFFER))
 			break;
 		sge++;
 		i++;
@@ -163,14 +167,15 @@ print_sgl(char *buf, int offset, int numframes)
 			    sizeof(tmpbuf));
 			if (sgc->Flags & MPI2_SGE_FLAGS_64_BIT_ADDRESSING)
 				printf("chain64 flags=0x%x %s len=0x%x "
-				    "Offset=0x%x addr=0x%016jx\n", sgc->Flags,
-				    tmpbuf, sgc->Length, sgc->NextChainOffset,
+				       "Offset=0x%x addr=0x%016jx\n",
+				    sgc->Flags, tmpbuf, sgc->Length,
+				    sgc->NextChainOffset,
 				    mps_to_u64(&sgc->u.Address64));
 			else
 				printf("chain32 flags=0x%x %s len=0x%x "
-				    "Offset=0x%x addr=0x%08x\n", sgc->Flags,
-				    tmpbuf, sgc->Length, sgc->NextChainOffset,
-				    sgc->u.Address32);
+				       "Offset=0x%x addr=0x%08x\n",
+				    sgc->Flags, tmpbuf, sgc->Length,
+				    sgc->NextChainOffset, sgc->u.Address32);
 			if (--numframes <= 0)
 				break;
 			frame += MPS_FRAME_LEN;
@@ -180,4 +185,5 @@ print_sgl(char *buf, int offset, int numframes)
 	}
 }
 
-MPS_COMMAND(debug, dumpreqs, debug_dumpreqs, "", "Dump the active request queue")
+MPS_COMMAND(debug, dumpreqs, debug_dumpreqs, "",
+    "Dump the active request queue")

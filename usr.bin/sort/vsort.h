@@ -29,7 +29,7 @@
  */
 
 #ifndef _VSORT_H_
-#define	_VSORT_H_
+#define _VSORT_H_
 
 #include "bwstring.h"
 

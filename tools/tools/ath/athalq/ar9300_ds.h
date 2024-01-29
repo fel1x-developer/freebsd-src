@@ -13,10 +13,10 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__AR9300_DS_H__
-#define	__AR9300_DS_H__
+#ifndef __AR9300_DS_H__
+#define __AR9300_DS_H__
 
-extern	void ar9300_alq_payload(struct if_ath_alq_payload *a);
-extern	void ath_alq_print_edma_tx_fifo_push(struct if_ath_alq_payload *a);
+extern void ar9300_alq_payload(struct if_ath_alq_payload *a);
+extern void ath_alq_print_edma_tx_fifo_push(struct if_ath_alq_payload *a);
 
-#endif	/* __AR9300_DS_H__ */
+#endif /* __AR9300_DS_H__ */

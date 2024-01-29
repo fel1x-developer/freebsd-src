@@ -29,11 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PROTO_H_
-#define	_PROTO_H_
+#ifndef _PROTO_H_
+#define _PROTO_H_
 
-#include <stdbool.h>	/* bool */
-#include <stdlib.h>	/* size_t */
+#include <stdbool.h> /* bool */
+#include <stdlib.h>  /* size_t */
 
 struct proto_conn;
 
@@ -58,4 +58,4 @@ void proto_remote_address(const struct proto_conn *conn, char *addr,
 int proto_timeout(const struct proto_conn *conn, int timeout);
 void proto_close(struct proto_conn *conn);
 
-#endif	/* !_PROTO_H_ */
+#endif /* !_PROTO_H_ */

@@ -37,14 +37,15 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <limits.h>
+#include <stdio.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
 int
-vsprintf_l(char * __restrict str, locale_t locale,
-		const char * __restrict fmt, __va_list ap)
+vsprintf_l(char *__restrict str, locale_t locale, const char *__restrict fmt,
+    __va_list ap)
 {
 	int ret;
 	FILE f = FAKE_FILE;
@@ -58,7 +59,7 @@ vsprintf_l(char * __restrict str, locale_t locale,
 	return (ret);
 }
 int
-vsprintf(char * __restrict str, const char * __restrict fmt, __va_list ap)
+vsprintf(char *__restrict str, const char *__restrict fmt, __va_list ap)
 {
 	return vsprintf_l(str, __get_locale(), fmt, ap);
 }

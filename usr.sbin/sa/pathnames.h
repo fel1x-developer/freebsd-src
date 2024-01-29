@@ -30,6 +30,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define	_PATH_ACCT	"/var/account/acct"
-#define _PATH_SAVACCT	"/var/account/savacct"
-#define _PATH_USRACCT	"/var/account/usracct"
+#define _PATH_ACCT "/var/account/acct"
+#define _PATH_SAVACCT "/var/account/savacct"
+#define _PATH_USRACCT "/var/account/usracct"

@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <assert.h>
-#include <unistd.h>
 #include <err.h>
-#include <time.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sysexits.h>
 #include <regex.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "libfifolog.h"
 
@@ -48,7 +48,8 @@ static regex_t R;
 static FILE *fo;
 
 static void
-Render(void *priv __unused, time_t now, unsigned flag __unused, const unsigned char *p, unsigned l __unused)
+Render(void *priv __unused, time_t now, unsigned flag __unused,
+    const unsigned char *p, unsigned l __unused)
 {
 	static struct tm utc;
 	char buf[128];
@@ -78,21 +79,20 @@ static void
 Usage(void)
 {
 	fprintf(stderr,
-		"Usage: fiforead [options] fifofile\n"
-		"\t-b <start time integer>\n"
-		"\t-B <start time>\n"
-		"\t-e <end time integer>\n"
-		"\t-E <end time>\n"
-		"\t-o <output file>\n"
-		"\t-R <regexp> # match regexp\n"
-		"\t-t # format timestamps as %%Y%%m%%d%%H%%M%%S\n"
-		"\t-T <timestamp format>\n"
-	);
-	exit (EX_USAGE);
+	    "Usage: fiforead [options] fifofile\n"
+	    "\t-b <start time integer>\n"
+	    "\t-B <start time>\n"
+	    "\t-e <end time integer>\n"
+	    "\t-E <end time>\n"
+	    "\t-o <output file>\n"
+	    "\t-R <regexp> # match regexp\n"
+	    "\t-t # format timestamps as %%Y%%m%%d%%H%%M%%S\n"
+	    "\t-T <timestamp format>\n");
+	exit(EX_USAGE);
 }
 
 int
-main(int argc, char * const *argv)
+main(int argc, char *const *argv)
 {
 	int ch, i;
 	off_t o;
@@ -143,7 +143,7 @@ main(int argc, char * const *argv)
 			char buf[BUFSIZ];
 			(void)regerror(i, &R, buf, sizeof buf);
 			fprintf(stderr, "-R argument: %s\n", buf);
-			exit (1);
+			exit(1);
 		}
 	}
 

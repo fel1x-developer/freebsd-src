@@ -28,11 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_ASM_UNALIGNED_H
-#define	_LINUXKPI_ASM_UNALIGNED_H
+#ifndef _LINUXKPI_ASM_UNALIGNED_H
+#define _LINUXKPI_ASM_UNALIGNED_H
 
-#include <linux/types.h>
 #include <asm/byteorder.h>
+#include <linux/types.h>
 
 static __inline uint16_t
 get_unaligned_le16(const void *p)
@@ -96,4 +96,4 @@ get_unaligned_be64(const void *p)
 	return (be64_to_cpup((const __be64 *)p));
 }
 
-#endif	/* _LINUXKPI_ASM_UNALIGNED_H */
+#endif /* _LINUXKPI_ASM_UNALIGNED_H */

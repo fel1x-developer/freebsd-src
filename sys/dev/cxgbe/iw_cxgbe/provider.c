@@ -32,15 +32,15 @@
  * SOFTWARE.
  */
 #include <sys/cdefs.h>
-#define	LINUXKPI_PARAM_PREFIX iw_cxgbe_
+#define LINUXKPI_PARAM_PREFIX iw_cxgbe_
 
 #include "opt_inet.h"
 
 #ifdef TCP_OFFLOAD
 #include <asm/pgtable.h>
 #include <linux/page.h>
-#include <rdma/ib_verbs.h>
 #include <rdma/ib_user_verbs.h>
+#include <rdma/ib_verbs.h>
 
 #include "iw_cxgbe.h"
 #include "user.h"
@@ -49,48 +49,49 @@ static int fastreg_support = 1;
 module_param(fastreg_support, int, 0644);
 MODULE_PARM_DESC(fastreg_support, "Advertise fastreg support (default = 1)");
 
-static int c4iw_modify_port(struct ib_device *ibdev,
-			    u8 port, int port_modify_mask,
-			    struct ib_port_modify *props)
+static int
+c4iw_modify_port(struct ib_device *ibdev, u8 port, int port_modify_mask,
+    struct ib_port_modify *props)
 {
 	return -ENOSYS;
 }
 
-static int c4iw_ah_create(struct ib_ah *ah,
-			  struct ib_ah_attr *ah_attr, u32 flags,
-			  struct ib_udata *udata)
+static int
+c4iw_ah_create(struct ib_ah *ah, struct ib_ah_attr *ah_attr, u32 flags,
+    struct ib_udata *udata)
 {
 	return -ENOSYS;
 }
 
-static void c4iw_ah_destroy(struct ib_ah *ah, u32 flags)
+static void
+c4iw_ah_destroy(struct ib_ah *ah, u32 flags)
 {
 }
 
-static int c4iw_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
-{
-	return -ENOSYS;
-}
-
-static int c4iw_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
+static int
+c4iw_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 {
 	return -ENOSYS;
 }
 
-static int c4iw_process_mad(struct ib_device *ibdev, int mad_flags,
-		u8 port_num, const struct ib_wc *in_wc,
-		const struct ib_grh *in_grh,
-		const struct ib_mad_hdr *in_mad,
-		size_t in_mad_size,
-		struct ib_mad_hdr *out_mad,
-		size_t *out_mad_size,
-		u16 *out_mad_pkey_index)
+static int
+c4iw_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
+{
+	return -ENOSYS;
+}
+
+static int
+c4iw_process_mad(struct ib_device *ibdev, int mad_flags, u8 port_num,
+    const struct ib_wc *in_wc, const struct ib_grh *in_grh,
+    const struct ib_mad_hdr *in_mad, size_t in_mad_size,
+    struct ib_mad_hdr *out_mad, size_t *out_mad_size, u16 *out_mad_pkey_index)
 
 {
 	return -ENOSYS;
 }
 
-static void c4iw_dealloc_ucontext(struct ib_ucontext *context)
+static void
+c4iw_dealloc_ucontext(struct ib_ucontext *context)
 {
 	struct c4iw_ucontext *ucontext = to_c4iw_ucontext(context);
 	struct c4iw_dev *rhp;
@@ -101,13 +102,12 @@ static void c4iw_dealloc_ucontext(struct ib_ucontext *context)
 
 	CTR2(KTR_IW_CXGBE, "%s ucontext %p", __func__, ucontext);
 
-	list_for_each_entry_safe(mm, tmp, &ucontext->mmaps, entry)
-		kfree(mm);
+	list_for_each_entry_safe(mm, tmp, &ucontext->mmaps, entry) kfree(mm);
 	c4iw_release_dev_ucontext(&rhp->rdev, &ucontext->uctx);
 }
 
-static int c4iw_alloc_ucontext(struct ib_ucontext *ucontext,
-			       struct ib_udata *udata)
+static int
+c4iw_alloc_ucontext(struct ib_ucontext *ucontext, struct ib_udata *udata)
 {
 	struct ib_device *ibdev = ucontext->device;
 	struct c4iw_ucontext *context = to_c4iw_ucontext(ucontext);
@@ -124,9 +124,10 @@ static int c4iw_alloc_ucontext(struct ib_ucontext *ucontext,
 
 	if (udata->outlen < sizeof(uresp) - sizeof(uresp.reserved)) {
 		if (!warned++)
-			log(LOG_ERR, "%s Warning - downlevel libcxgb4 "
-			       "(non-fatal), device status page disabled.\n",
-			       __func__);
+			log(LOG_ERR,
+			    "%s Warning - downlevel libcxgb4 "
+			    "(non-fatal), device status page disabled.\n",
+			    __func__);
 		rhp->rdev.flags |= T4_STATUS_PAGE_DISABLED;
 	} else {
 
@@ -142,7 +143,7 @@ static int c4iw_alloc_ucontext(struct ib_ucontext *ucontext,
 		spin_unlock(&context->mmap_lock);
 
 		ret = ib_copy_to_udata(udata, &uresp,
-				       sizeof(uresp) - sizeof(uresp.reserved));
+		    sizeof(uresp) - sizeof(uresp.reserved));
 		if (ret)
 			goto err_mm;
 
@@ -158,7 +159,8 @@ err:
 	return ret;
 }
 
-static int c4iw_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
+static int
+c4iw_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 {
 	int len = vma->vm_end - vma->vm_start;
 	u32 key = vma->vm_pgoff << PAGE_SHIFT;
@@ -168,13 +170,13 @@ static int c4iw_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 	struct c4iw_ucontext *ucontext;
 	u64 addr = 0;
 
-	CTR4(KTR_IW_CXGBE, "%s:1 ctx %p vma %p, vm_start %u", __func__,
-			context, vma, vma->vm_start);
+	CTR4(KTR_IW_CXGBE, "%s:1 ctx %p vma %p, vm_start %u", __func__, context,
+	    vma, vma->vm_start);
 
 	CTR4(KTR_IW_CXGBE, "%s:1a pgoff 0x%lx key 0x%x len %d", __func__,
 	    vma->vm_pgoff, key, len);
 
-	if (vma->vm_start & (PAGE_SIZE-1)) {
+	if (vma->vm_start & (PAGE_SIZE - 1)) {
 		CTR3(KTR_IW_CXGBE, "%s:2 unaligned vm_start %u vma %p",
 		    __func__, vma->vm_start, vma);
 		return -EINVAL;
@@ -196,7 +198,7 @@ static int c4iw_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 	 * else WQ or CQ memory.
 	 * */
 	if (rdev->adap->iwt.wc_en && addr >= rdev->bar2_pa &&
-			addr < rdev->bar2_pa + rdev->bar2_len)
+	    addr < rdev->bar2_pa + rdev->bar2_len)
 		vma->vm_page_prot = t4_pgprot_wc(vma->vm_page_prot);
 
 	ret = rdma_user_mmap_io(context, vma, addr >> PAGE_SHIFT, len,
@@ -228,10 +230,10 @@ c4iw_allocate_pd(struct ib_pd *pd, struct ib_udata *udata)
 	u32 pdid;
 	struct c4iw_dev *rhp;
 
-	CTR4(KTR_IW_CXGBE, "%s: ibdev %p, pd %p, data %p", __func__, ibdev,
-	    pd, udata);
-	rhp = (struct c4iw_dev *) ibdev;
-	pdid =  c4iw_get_resource(&rhp->rdev.resource.pdid_table);
+	CTR4(KTR_IW_CXGBE, "%s: ibdev %p, pd %p, data %p", __func__, ibdev, pd,
+	    udata);
+	rhp = (struct c4iw_dev *)ibdev;
+	pdid = c4iw_get_resource(&rhp->rdev.resource.pdid_table);
 	if (!pdid)
 		return -EINVAL;
 
@@ -288,7 +290,7 @@ c4iw_query_gid(struct ib_device *ibdev, u8 port, int index, union ib_gid *gid)
 
 static int
 c4iw_query_device(struct ib_device *ibdev, struct ib_device_attr *props,
-		struct ib_udata *uhw)
+    struct ib_udata *uhw)
 {
 	struct c4iw_dev *dev = to_c4iw_dev(ibdev);
 	struct adapter *sc = dev->rdev.adap;
@@ -321,7 +323,8 @@ c4iw_query_device(struct ib_device *ibdev, struct ib_device_attr *props,
 	props->max_mr = c4iw_num_stags(&dev->rdev);
 	props->max_pd = T4_MAX_NUM_PD;
 	props->local_ca_ack_delay = 0;
-	props->max_fast_reg_page_list_len = t4_max_fr_depth(&dev->rdev, use_dsgl);
+	props->max_fast_reg_page_list_len = t4_max_fr_depth(&dev->rdev,
+	    use_dsgl);
 
 	return (0);
 }
@@ -360,11 +363,8 @@ c4iw_query_port(struct ib_device *ibdev, u8 port, struct ib_port_attr *props)
 	else
 		props->active_mtu = IB_MTU_256;
 	props->state = pi->link_cfg.link_ok ? IB_PORT_ACTIVE : IB_PORT_DOWN;
-	props->port_cap_flags =
-	    IB_PORT_CM_SUP |
-	    IB_PORT_SNMP_TUNNEL_SUP |
-	    IB_PORT_REINIT_SUP |
-	    IB_PORT_DEVICE_MGMT_SUP |
+	props->port_cap_flags = IB_PORT_CM_SUP | IB_PORT_SNMP_TUNNEL_SUP |
+	    IB_PORT_REINIT_SUP | IB_PORT_DEVICE_MGMT_SUP |
 	    IB_PORT_VENDOR_CLASS_SUP | IB_PORT_BOOT_MGMT_SUP;
 	props->gid_tbl_len = 1;
 	props->pkey_tbl_len = 1;
@@ -375,8 +375,9 @@ c4iw_query_port(struct ib_device *ibdev, u8 port, struct ib_port_attr *props)
 	return 0;
 }
 
-static int c4iw_port_immutable(struct ib_device *ibdev, u8 port_num,
-			       struct ib_port_immutable *immutable)
+static int
+c4iw_port_immutable(struct ib_device *ibdev, u8 port_num,
+    struct ib_port_immutable *immutable)
 {
 	struct ib_port_attr attr;
 	int err;
@@ -410,10 +411,10 @@ c4iw_register_device(struct c4iw_dev *dev)
 	if (ret)
 		return (ret);
 
-#define	c4iw_ib_cq c4iw_cq
-#define	c4iw_ib_pd c4iw_pd
-#define	c4iw_ib_qp c4iw_qp
-#define	c4iw_ib_ucontext c4iw_ucontext
+#define c4iw_ib_cq c4iw_cq
+#define c4iw_ib_pd c4iw_pd
+#define c4iw_ib_qp c4iw_qp
+#define c4iw_ib_ucontext c4iw_ucontext
 	INIT_IB_DEVICE_OPS(&ibdev->ops, c4iw, CXGB4);
 
 	strlcpy(ibdev->name, device_get_nameunit(sc->dev), sizeof(ibdev->name));
@@ -424,8 +425,7 @@ c4iw_register_device(struct c4iw_dev *dev)
 	if (fastreg_support)
 		dev->device_cap_flags |= IB_DEVICE_MEM_MGT_EXTENSIONS;
 	ibdev->local_dma_lkey = 0;
-	ibdev->uverbs_cmd_mask =
-	    (1ull << IB_USER_VERBS_CMD_GET_CONTEXT) |
+	ibdev->uverbs_cmd_mask = (1ull << IB_USER_VERBS_CMD_GET_CONTEXT) |
 	    (1ull << IB_USER_VERBS_CMD_QUERY_DEVICE) |
 	    (1ull << IB_USER_VERBS_CMD_QUERY_PORT) |
 	    (1ull << IB_USER_VERBS_CMD_ALLOC_PD) |

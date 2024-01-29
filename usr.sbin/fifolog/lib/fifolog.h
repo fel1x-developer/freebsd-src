@@ -121,18 +121,18 @@
  */
 
 /* Magic identification string */
-#define FIFOLOG_FMT_MAGIC	"Measured FIFOLOG Ver 1.01\n"
+#define FIFOLOG_FMT_MAGIC "Measured FIFOLOG Ver 1.01\n"
 
 /* Offset of the 32be encoded recordsize in the first sector */
-#define FIFOLOG_OFF_BS		0x20
+#define FIFOLOG_OFF_BS 0x20
 
-#define FIFOLOG_FLG_1BYTE	0x01
-#define FIFOLOG_FLG_4BYTE	0x02
-#define FIFOLOG_FLG_RESTART	0x40
-#define FIFOLOG_FLG_SYNC	0x80
+#define FIFOLOG_FLG_1BYTE 0x01
+#define FIFOLOG_FLG_4BYTE 0x02
+#define FIFOLOG_FLG_RESTART 0x40
+#define FIFOLOG_FLG_SYNC 0x80
 
-#define FIFOLOG_TIMESTAMP	0x80000000
-#define FIFOLOG_LENGTH		0x40000000
-#define FIFOLOG_IDENT		0x3fffffff
+#define FIFOLOG_TIMESTAMP 0x80000000
+#define FIFOLOG_LENGTH 0x40000000
+#define FIFOLOG_IDENT 0x3fffffff
 
 #endif /* __LOCAL_FIFOLOG_H_ */

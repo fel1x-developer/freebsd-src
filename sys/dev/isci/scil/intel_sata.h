@@ -71,14 +71,14 @@
  * specification.
  */
 /*@{*/
-#define SATA_FIS_TYPE_REGH2D          0x27
-#define SATA_FIS_TYPE_REGD2H          0x34
-#define SATA_FIS_TYPE_SETDEVBITS      0xA1
-#define SATA_FIS_TYPE_DMA_ACTIVATE    0x39
-#define SATA_FIS_TYPE_DMA_SETUP       0x41
-#define SATA_FIS_TYPE_BIST_ACTIVATE   0x58
-#define SATA_FIS_TYPE_PIO_SETUP       0x5F
-#define SATA_FIS_TYPE_DATA            0x46
+#define SATA_FIS_TYPE_REGH2D 0x27
+#define SATA_FIS_TYPE_REGD2H 0x34
+#define SATA_FIS_TYPE_SETDEVBITS 0xA1
+#define SATA_FIS_TYPE_DMA_ACTIVATE 0x39
+#define SATA_FIS_TYPE_DMA_SETUP 0x41
+#define SATA_FIS_TYPE_BIST_ACTIVATE 0x58
+#define SATA_FIS_TYPE_PIO_SETUP 0x5F
+#define SATA_FIS_TYPE_DATA 0x46
 /*@}*/
 
 #define SATA_REGISTER_FIS_SIZE 0x20
@@ -90,45 +90,42 @@
  *        different header word is defined for any FIS type that does not use
  *        the standard header.
  */
-typedef struct SATA_FIS_HEADER
-{
-   U32 fis_type         :8;   // word 0
-   U32 pm_port          :4;
-   U32 reserved         :1;
-   U32 direction_flag   :1;   // direction
-   U32 interrupt_flag   :1;
-   U32 command_flag     :1;   // command, auto_activate, or notification
-   U32 status           :8;
-   U32 error            :8;
+typedef struct SATA_FIS_HEADER {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved : 1;
+	U32 direction_flag : 1; // direction
+	U32 interrupt_flag : 1;
+	U32 command_flag : 1; // command, auto_activate, or notification
+	U32 status : 8;
+	U32 error : 8;
 } SATA_FIS_HEADER_T;
-
 
 /**
  * @struct SATA_FIS_REG_H2D
  *
  * @brief This is the definition for a SATA Host to Device Register FIS.
  */
-typedef struct SATA_FIS_REG_H2D
-{
-   U32 fis_type         :8;     // word 0
-   U32 pm_port          :4;
-   U32 reserved0        :3;
-   U32 command_flag     :1;
-   U32 command          :8;
-   U32 features         :8;
-   U32 lba_low          :8;     // word 1
-   U32 lba_mid          :8;
-   U32 lba_high         :8;
-   U32 device           :8;
-   U32 lba_low_exp      :8;     // word 2
-   U32 lba_mid_exp      :8;
-   U32 lba_high_exp     :8;
-   U32 features_exp     :8;
-   U32 sector_count     :8;     // word 3
-   U32 sector_count_exp :8;
-   U32 reserved1        :8;
-   U32 control          :8;
-   U32 reserved2;               // word 4
+typedef struct SATA_FIS_REG_H2D {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved0 : 3;
+	U32 command_flag : 1;
+	U32 command : 8;
+	U32 features : 8;
+	U32 lba_low : 8; // word 1
+	U32 lba_mid : 8;
+	U32 lba_high : 8;
+	U32 device : 8;
+	U32 lba_low_exp : 8; // word 2
+	U32 lba_mid_exp : 8;
+	U32 lba_high_exp : 8;
+	U32 features_exp : 8;
+	U32 sector_count : 8; // word 3
+	U32 sector_count_exp : 8;
+	U32 reserved1 : 8;
+	U32 control : 8;
+	U32 reserved2; // word 4
 } SATA_FIS_REG_H2D_T;
 
 /**
@@ -136,50 +133,48 @@ typedef struct SATA_FIS_REG_H2D
  *
  * @brief SATA Device To Host FIS
  */
-typedef struct SATA_FIS_REG_D2H
-{
-   U32 fis_type   :8;         // word 0
-   U32 pm_port    :4;
-   U32 reserved0  :2;
-   U32 irq        :1;
-   U32 reserved1  :1;
-   U32 status     :8;
-   U32 error      :8;
-   U8 lba_low;               // word 1
-   U8 lba_mid;
-   U8 lba_high;
-   U8 device;
-   U8 lba_low_exp;           // word 2
-   U8 lba_mid_exp;
-   U8 lba_high_exp;
-   U8 reserved;
-   U8 sector_count;          // word 3
-   U8 sector_count_exp;
-   U16 reserved2;
-   U32 reserved3;
+typedef struct SATA_FIS_REG_D2H {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved0 : 2;
+	U32 irq : 1;
+	U32 reserved1 : 1;
+	U32 status : 8;
+	U32 error : 8;
+	U8 lba_low; // word 1
+	U8 lba_mid;
+	U8 lba_high;
+	U8 device;
+	U8 lba_low_exp; // word 2
+	U8 lba_mid_exp;
+	U8 lba_high_exp;
+	U8 reserved;
+	U8 sector_count; // word 3
+	U8 sector_count_exp;
+	U16 reserved2;
+	U32 reserved3;
 } SATA_FIS_REG_D2H_T;
 
 /**
  *  Status field bit definitions
  */
-#define SATA_FIS_STATUS_DEVBITS_MASK  (0x77)
+#define SATA_FIS_STATUS_DEVBITS_MASK (0x77)
 
 /**
  * @struct SATA_FIS_SET_DEV_BITS
  *
  * @brief SATA Set Device Bits FIS
  */
-typedef struct SATA_FIS_SET_DEV_BITS
-{
-   U32 fis_type      :8;   // word 0
-   U32 pm_port       :4;
-   U32 reserved0     :2;
-   U32 irq           :1;
-   U32 notification  :1;
-   U32 status_low    :4;
-   U32 status_high   :4;
-   U32 error         :8;
-   U32 s_active;           // word 1
+typedef struct SATA_FIS_SET_DEV_BITS {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved0 : 2;
+	U32 irq : 1;
+	U32 notification : 1;
+	U32 status_low : 4;
+	U32 status_high : 4;
+	U32 error : 8;
+	U32 s_active; // word 1
 } SATA_FIS_SET_DEV_BITS_T;
 
 /**
@@ -187,18 +182,17 @@ typedef struct SATA_FIS_SET_DEV_BITS
  *
  * @brief SATA DMA Activate FIS
  */
-typedef struct SATA_FIS_DMA_ACTIVATE
-{
-   U32 fis_type      :8;   // word 0
-   U32 pm_port       :4;
-   U32 reserved0     :24;
+typedef struct SATA_FIS_DMA_ACTIVATE {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved0 : 24;
 } SATA_FIS_DMA_ACTIVATE_T;
 
 /**
  * The lower 5 bits in the DMA Buffer ID Low field of the DMA Setup
  * are used to communicate the command tag.
  */
-#define SATA_DMA_SETUP_TAG_ENABLE      0x1F
+#define SATA_DMA_SETUP_TAG_ENABLE 0x1F
 
 #define SATA_DMA_SETUP_AUTO_ACT_ENABLE 0x80
 
@@ -207,21 +201,20 @@ typedef struct SATA_FIS_DMA_ACTIVATE
  *
  * @brief SATA DMA Setup FIS
  */
-typedef struct SATA_FIS_DMA_SETUP
-{
-   U32 fis_type            :8;   // word 0
-   U32 pm_port             :4;
-   U32 reserved_00         :1;
-   U32 direction           :1;
-   U32 irq                 :1;
-   U32 auto_activate       :1;
-   U32 reserved_01         :16;
-   U32 dma_buffer_id_low;        // word 1
-   U32 dma_buffer_id_high;       // word 2
-   U32 reserved0;                // word 3
-   U32 dma_buffer_offset;        // word 4
-   U32 dma_transfer_count;       // word 5
-   U32 reserved1;                // word 6
+typedef struct SATA_FIS_DMA_SETUP {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved_00 : 1;
+	U32 direction : 1;
+	U32 irq : 1;
+	U32 auto_activate : 1;
+	U32 reserved_01 : 16;
+	U32 dma_buffer_id_low;	// word 1
+	U32 dma_buffer_id_high; // word 2
+	U32 reserved0;		// word 3
+	U32 dma_buffer_offset;	// word 4
+	U32 dma_transfer_count; // word 5
+	U32 reserved1;		// word 6
 } SATA_FIS_DMA_SETUP_T;
 
 /**
@@ -229,43 +222,41 @@ typedef struct SATA_FIS_DMA_SETUP
  *
  *  @brief SATA BIST Activate FIS
  */
-typedef struct SATA_FIS_BIST_ACTIVATE
-{
-   U32 fis_type               :8;   // word 0
-   U32 reserved0              :8;
-   U32 pattern_definition     :8;
-   U32 reserved1              :8;
-   U32 data1;                       // word 1
-   U32 data2;                       // word 1
+typedef struct SATA_FIS_BIST_ACTIVATE {
+	U32 fis_type : 8; // word 0
+	U32 reserved0 : 8;
+	U32 pattern_definition : 8;
+	U32 reserved1 : 8;
+	U32 data1; // word 1
+	U32 data2; // word 1
 } SATA_FIS_BIST_ACTIVATE_T;
 
 /*
  *  SATA PIO Setup FIS
  */
-typedef struct SATA_FIS_PIO_SETUP
-{
-   U32 fis_type         :8;   // word 0
-   U32 pm_port          :4;
-   U32 reserved_00      :1;
-   U32 direction        :1;
-   U32 irq              :1;
-   U32 reserved_01      :1;
-   U32 status           :8;
-   U32 error            :8;
-   U32 lba_low          :8;   // word 1
-   U32 lba_mid          :8;
-   U32 lba_high         :8;
-   U32 device           :8;
-   U32 lba_low_exp      :8;   // word 2
-   U32 lba_mid_exp      :8;
-   U32 lba_high_exp     :8;
-   U32 reserved         :8;
-   U32 sector_count     :8;   // word 3
-   U32 sector_count_exp :8;
-   U32 reserved1        :8;
-   U32 ending_status    :8;
-   U32 transfter_count  :16;  // word 4
-   U32 reserved3        :16;
+typedef struct SATA_FIS_PIO_SETUP {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved_00 : 1;
+	U32 direction : 1;
+	U32 irq : 1;
+	U32 reserved_01 : 1;
+	U32 status : 8;
+	U32 error : 8;
+	U32 lba_low : 8; // word 1
+	U32 lba_mid : 8;
+	U32 lba_high : 8;
+	U32 device : 8;
+	U32 lba_low_exp : 8; // word 2
+	U32 lba_mid_exp : 8;
+	U32 lba_high_exp : 8;
+	U32 reserved : 8;
+	U32 sector_count : 8; // word 3
+	U32 sector_count_exp : 8;
+	U32 reserved1 : 8;
+	U32 ending_status : 8;
+	U32 transfter_count : 16; // word 4
+	U32 reserved3 : 16;
 } SATA_FIS_PIO_SETUP_T;
 
 /**
@@ -273,12 +264,11 @@ typedef struct SATA_FIS_PIO_SETUP
  *
  * @brief SATA Data FIS
  */
-typedef struct SATA_FIS_DATA
-{
-   U32 fis_type      :8;   // word 0
-   U32 pm_port       :4;
-   U32 reserved0     :24;
-   U8  data[4];            // word 1
+typedef struct SATA_FIS_DATA {
+	U32 fis_type : 8; // word 0
+	U32 pm_port : 4;
+	U32 reserved0 : 24;
+	U8 data[4]; // word 1
 } SATA_FIS_DATA_T;
 
 #endif // _SATA_H_

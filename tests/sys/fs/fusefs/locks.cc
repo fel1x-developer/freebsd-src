@@ -30,6 +30,7 @@
 
 extern "C" {
 #include <sys/file.h>
+
 #include <fcntl.h>
 }
 
@@ -42,90 +43,99 @@ extern "C" {
 using namespace testing;
 
 /* For testing filesystems without posix locking support */
-class Fallback: public FuseTest {
-public:
-
-void expect_lookup(const char *relpath, uint64_t ino, uint64_t size = 0)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
-}
-
+class Fallback : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size = 0)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
+	}
 };
 
 /* For testing filesystems with posix locking support */
-class Locks: public Fallback {
-	virtual void SetUp() {
+class Locks : public Fallback {
+	virtual void SetUp()
+	{
 		m_init_flags = FUSE_POSIX_LOCKS;
 		Fallback::SetUp();
 	}
 };
 
-class Fcntl: public Locks {
-public:
-void expect_setlk(uint64_t ino, pid_t pid, uint64_t start, uint64_t end,
-	uint32_t type, int err)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.fh == FH &&
-				in.body.setlk.owner == (uint32_t)pid &&
-				in.body.setlk.lk.start == start &&
-				in.body.setlk.lk.end == end &&
-				in.body.setlk.lk.type == type &&
-				in.body.setlk.lk.pid == (uint64_t)pid);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(err)));
-}
-void expect_setlkw(uint64_t ino, pid_t pid, uint64_t start, uint64_t end,
-	uint32_t type, int err)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLKW &&
-				in.header.nodeid == ino &&
-				in.body.setlkw.fh == FH &&
-				in.body.setlkw.owner == (uint32_t)pid &&
-				in.body.setlkw.lk.start == start &&
-				in.body.setlkw.lk.end == end &&
-				in.body.setlkw.lk.type == type &&
-				in.body.setlkw.lk.pid == (uint64_t)pid);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(err)));
-}
+class Fcntl : public Locks {
+    public:
+	void expect_setlk(uint64_t ino, pid_t pid, uint64_t start, uint64_t end,
+	    uint32_t type, int err)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(
+			ResultOf(
+			    [=](auto in) {
+				    return (in.header.opcode == FUSE_SETLK &&
+					in.header.nodeid == ino &&
+					in.body.setlk.fh == FH &&
+					in.body.setlk.owner == (uint32_t)pid &&
+					in.body.setlk.lk.start == start &&
+					in.body.setlk.lk.end == end &&
+					in.body.setlk.lk.type == type &&
+					in.body.setlk.lk.pid == (uint64_t)pid);
+			    },
+			    Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(err)));
+	}
+	void expect_setlkw(uint64_t ino, pid_t pid, uint64_t start,
+	    uint64_t end, uint32_t type, int err)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(
+			ResultOf(
+			    [=](auto in) {
+				    return (in.header.opcode == FUSE_SETLKW &&
+					in.header.nodeid == ino &&
+					in.body.setlkw.fh == FH &&
+					in.body.setlkw.owner == (uint32_t)pid &&
+					in.body.setlkw.lk.start == start &&
+					in.body.setlkw.lk.end == end &&
+					in.body.setlkw.lk.type == type &&
+					in.body.setlkw.lk.pid == (uint64_t)pid);
+			    },
+			    Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(err)));
+	}
 };
 
-class Flock: public Locks {
-public:
-void expect_setlk(uint64_t ino, uint32_t type, int err)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETLK &&
-				in.header.nodeid == ino &&
-				in.body.setlk.fh == FH &&
-				/* 
-				 * The owner should be set to the address of
-				 * the vnode.  That's hard to verify.
-				 */
-				/* in.body.setlk.owner == ??? && */
-				in.body.setlk.lk.type == type);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(err)));
-}
+class Flock : public Locks {
+    public:
+	void expect_setlk(uint64_t ino, uint32_t type, int err)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_SETLK &&
+					    in.header.nodeid == ino &&
+					    in.body.setlk.fh == FH &&
+					    /*
+					     * The owner should be set to the
+					     * address of the vnode.  That's
+					     * hard to verify.
+					     */
+					    /* in.body.setlk.owner == ??? && */
+					    in.body.setlk.lk.type == type);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(err)));
+	}
 };
 
-class FlockFallback: public Fallback {};
-class GetlkFallback: public Fallback {};
-class Getlk: public Fcntl {};
-class SetlkFallback: public Fallback {};
-class Setlk: public Fcntl {};
-class SetlkwFallback: public Fallback {};
-class Setlkw: public Fcntl {};
+class FlockFallback : public Fallback { };
+class GetlkFallback : public Fallback { };
+class Getlk : public Fcntl { };
+class SetlkFallback : public Fallback { };
+class Setlk : public Fcntl { };
+class SetlkwFallback : public Fallback { };
+class Setlkw : public Fcntl { };
 
 /*
  * If the fuse filesystem does not support flock locks, then the kernel should
@@ -234,7 +244,7 @@ TEST_F(GetlkFallback, local)
 	leak(fd);
 }
 
-/* 
+/*
  * If the filesystem has no locks that fit the description, the filesystem
  * should return F_UNLCK
  */
@@ -249,28 +259,30 @@ TEST_F(Getlk, no_locks)
 
 	expect_lookup(RELPATH, ino);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETLK &&
-				in.header.nodeid == ino &&
-				in.body.getlk.fh == FH &&
-				/*
-				 * Though it seems useless, libfuse expects the
-				 * owner and pid fields to be set during
-				 * FUSE_GETLK.
-				 */
-				in.body.getlk.owner == (uint32_t)pid &&
-				in.body.getlk.lk.pid == (uint64_t)pid &&
-				in.body.getlk.lk.start == 10 &&
-				in.body.getlk.lk.end == 1009 &&
-				in.body.getlk.lk.type == F_RDLCK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in, auto& out) {
-		SET_OUT_HEADER_LEN(out, getlk);
-		out.body.getlk.lk = in.body.getlk.lk;
-		out.body.getlk.lk.type = F_UNLCK;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.getlk.fh == FH &&
+				    /*
+				     * Though it seems useless, libfuse expects
+				     * the owner and pid fields to be set during
+				     * FUSE_GETLK.
+				     */
+				    in.body.getlk.owner == (uint32_t)pid &&
+				    in.body.getlk.lk.pid == (uint64_t)pid &&
+				    in.body.getlk.lk.start == 10 &&
+				    in.body.getlk.lk.end == 1009 &&
+				    in.body.getlk.lk.type == F_RDLCK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in, auto &out) {
+		    SET_OUT_HEADER_LEN(out, getlk);
+		    out.body.getlk.lk = in.body.getlk.lk;
+		    out.body.getlk.lk.type = F_UNLCK;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -310,30 +322,33 @@ TEST_F(Getlk, lock_exists)
 
 	expect_lookup(RELPATH, ino);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETLK &&
-				in.header.nodeid == ino &&
-				in.body.getlk.fh == FH &&
-				/*
-				 * Though it seems useless, libfuse expects the
-				 * owner and pid fields to be set during
-				 * FUSE_GETLK.
-				 */
-				in.body.getlk.owner == (uint32_t)pid &&
-				in.body.getlk.lk.pid == (uint64_t)pid &&
-				in.body.getlk.lk.start == 10 &&
-				in.body.getlk.lk.end == 1009 &&
-				in.body.getlk.lk.type == F_RDLCK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, getlk);
-		out.body.getlk.lk.start = 100;
-		out.body.getlk.lk.end = 199;
-		out.body.getlk.lk.type = F_WRLCK;
-		out.body.getlk.lk.pid = (uint32_t)pid2;;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.getlk.fh == FH &&
+				    /*
+				     * Though it seems useless, libfuse expects
+				     * the owner and pid fields to be set during
+				     * FUSE_GETLK.
+				     */
+				    in.body.getlk.owner == (uint32_t)pid &&
+				    in.body.getlk.lk.pid == (uint64_t)pid &&
+				    in.body.getlk.lk.start == 10 &&
+				    in.body.getlk.lk.end == 1009 &&
+				    in.body.getlk.lk.type == F_RDLCK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, getlk);
+		    out.body.getlk.lk.start = 100;
+		    out.body.getlk.lk.end = 199;
+		    out.body.getlk.lk.type = F_WRLCK;
+		    out.body.getlk.lk.pid = (uint32_t)pid2;
+		    ;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -367,30 +382,32 @@ TEST_F(Getlk, seek_cur)
 
 	expect_lookup(RELPATH, ino, 1024);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETLK &&
-				in.header.nodeid == ino &&
-				in.body.getlk.fh == FH &&
-				/*
-				 * Though it seems useless, libfuse expects the
-				 * owner and pid fields to be set during
-				 * FUSE_GETLK.
-				 */
-				in.body.getlk.owner == (uint32_t)pid &&
-				in.body.getlk.lk.pid == (uint64_t)pid &&
-				in.body.getlk.lk.start == 500 &&
-				in.body.getlk.lk.end == 509 &&
-				in.body.getlk.lk.type == F_RDLCK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, getlk);
-		out.body.getlk.lk.start = 400;
-		out.body.getlk.lk.end = 499;
-		out.body.getlk.lk.type = F_WRLCK;
-		out.body.getlk.lk.pid = (uint32_t)pid + 1;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.getlk.fh == FH &&
+				    /*
+				     * Though it seems useless, libfuse expects
+				     * the owner and pid fields to be set during
+				     * FUSE_GETLK.
+				     */
+				    in.body.getlk.owner == (uint32_t)pid &&
+				    in.body.getlk.lk.pid == (uint64_t)pid &&
+				    in.body.getlk.lk.start == 500 &&
+				    in.body.getlk.lk.end == 509 &&
+				    in.body.getlk.lk.type == F_RDLCK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, getlk);
+		    out.body.getlk.lk.start = 400;
+		    out.body.getlk.lk.end = 499;
+		    out.body.getlk.lk.type = F_WRLCK;
+		    out.body.getlk.lk.pid = (uint32_t)pid + 1;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -432,30 +449,32 @@ TEST_F(Getlk, seek_end)
 
 	expect_lookup(RELPATH, ino, 1024);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETLK &&
-				in.header.nodeid == ino &&
-				in.body.getlk.fh == FH &&
-				/*
-				 * Though it seems useless, libfuse expects the
-				 * owner and pid fields to be set during
-				 * FUSE_GETLK.
-				 */
-				in.body.getlk.owner == (uint32_t)pid &&
-				in.body.getlk.lk.pid == (uint64_t)pid &&
-				in.body.getlk.lk.start == 512 &&
-				in.body.getlk.lk.end == 1023 &&
-				in.body.getlk.lk.type == F_RDLCK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, getlk);
-		out.body.getlk.lk.start = 400;
-		out.body.getlk.lk.end = 499;
-		out.body.getlk.lk.type = F_WRLCK;
-		out.body.getlk.lk.pid = (uint32_t)pid + 1;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETLK &&
+				    in.header.nodeid == ino &&
+				    in.body.getlk.fh == FH &&
+				    /*
+				     * Though it seems useless, libfuse expects
+				     * the owner and pid fields to be set during
+				     * FUSE_GETLK.
+				     */
+				    in.body.getlk.owner == (uint32_t)pid &&
+				    in.body.getlk.lk.pid == (uint64_t)pid &&
+				    in.body.getlk.lk.start == 512 &&
+				    in.body.getlk.lk.end == 1023 &&
+				    in.body.getlk.lk.type == F_RDLCK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, getlk);
+		    out.body.getlk.lk.start = 400;
+		    out.body.getlk.lk.end = 499;
+		    out.body.getlk.lk.type = F_WRLCK;
+		    out.body.getlk.lk.pid = (uint32_t)pid + 1;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);

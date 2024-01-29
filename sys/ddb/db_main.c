@@ -29,9 +29,9 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/cons.h>
-#include <sys/linker.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
 #include <sys/reboot.h>
@@ -41,13 +41,13 @@
 #include <machine/pcb.h>
 #include <machine/setjmp.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_command.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 
 struct db_private {
-	char*		strtab;
-	vm_offset_t	relbase;
+	char *strtab;
+	vm_offset_t relbase;
 };
 typedef struct db_private *db_private_t;
 
@@ -86,14 +86,15 @@ X_db_lookup(db_symtab_t *symtab, const char *symbol)
 	Elf_Sym *sym;
 
 	if (symtab->private == NULL) {
-		return ((c_db_sym_t)((!linker_ddb_lookup(symbol, &lsym))
-			? lsym : NULL));
+		return (
+		    (c_db_sym_t)((!linker_ddb_lookup(symbol, &lsym)) ? lsym :
+								       NULL));
 	} else {
 		sym = (Elf_Sym *)symtab->start;
 		while ((char *)sym < symtab->end) {
 			if (sym->st_name != 0 &&
-			    !strcmp(DB_PRIVATE(symtab)->strtab +
-			    sym->st_name, symbol))
+			    !strcmp(DB_PRIVATE(symtab)->strtab + sym->st_name,
+				symbol))
 				return ((c_db_sym_t)sym);
 			sym++;
 		}
@@ -116,13 +117,12 @@ X_db_search_symbol(db_symtab_t *symtab, db_addr_t off, db_strategy_t strat,
 			return ((c_db_sym_t)lsym);
 		}
 		return (NULL);
-	}
-	else
+	} else
 		stoffs -= DB_PRIVATE(symtab)->relbase;
 
 	diff = ~0UL;
 	match = NULL;
-	for (sym = (Elf_Sym*)symtab->start; (char*)sym < symtab->end; sym++) {
+	for (sym = (Elf_Sym *)symtab->start; (char *)sym < symtab->end; sym++) {
 		if (sym->st_name == 0 || sym->st_shndx == SHN_UNDEF)
 			continue;
 		if (stoffs < sym->st_value)
@@ -159,8 +159,7 @@ X_db_search_symbol(db_symtab_t *symtab, db_addr_t off, db_strategy_t strat,
 }
 
 bool
-X_db_sym_numargs(db_symtab_t *symtab, c_db_sym_t sym, int *nargp,
-    char **argp)
+X_db_sym_numargs(db_symtab_t *symtab, c_db_sym_t sym, int *nargp, char **argp)
 {
 	return (false);
 }
@@ -174,7 +173,7 @@ X_db_symbol_values(db_symtab_t *symtab, c_db_sym_t sym, const char **namep,
 	if (symtab->private == NULL) {
 		linker_ddb_symbol_values((c_linker_sym_t)sym, &lval);
 		if (namep != NULL)
-			*namep = (const char*)lval.name;
+			*namep = (const char *)lval.name;
 		if (valp != NULL)
 			*valp = (db_expr_t)lval.value;
 	} else {
@@ -195,16 +194,15 @@ db_fetch_ksymtab(vm_offset_t ksym_start, vm_offset_t ksym_end,
 
 	if (ksym_end > ksym_start && ksym_start != 0) {
 		ksymtab = ksym_start;
-		ksymtab_size = *(Elf_Size*)ksymtab;
+		ksymtab_size = *(Elf_Size *)ksymtab;
 		ksymtab += sizeof(Elf_Size);
 		kstrtab = ksymtab + ksymtab_size;
-		strsz = *(Elf_Size*)kstrtab;
+		strsz = *(Elf_Size *)kstrtab;
 		kstrtab += sizeof(Elf_Size);
 		ksymtab_relbase = relbase;
 		if (kstrtab + strsz > ksym_end) {
 			/* Sizes doesn't match, unset everything. */
-			ksymtab = ksymtab_size = kstrtab = ksymtab_relbase
-			    = 0;
+			ksymtab = ksymtab_size = kstrtab = ksymtab_relbase = 0;
 		}
 	}
 
@@ -224,10 +222,11 @@ db_init(void)
 		ksymtab_private.strtab = (char *)kstrtab;
 		ksymtab_private.relbase = ksymtab_relbase;
 		db_add_symbol_table((char *)ksymtab,
-		    (char *)(ksymtab + ksymtab_size), "elf", (char *)&ksymtab_private);
+		    (char *)(ksymtab + ksymtab_size), "elf",
+		    (char *)&ksymtab_private);
 	}
 	db_add_symbol_table(NULL, NULL, "kld", NULL);
-	return (1);	/* We're the default debugger. */
+	return (1); /* We're the default debugger. */
 }
 
 static int
@@ -247,7 +246,8 @@ db_trap(int type, int code)
 
 	if (db_stop_at_pc(type, code, &bkpt, &watchpt)) {
 		if (db_inst_count) {
-			db_printf("After %d instructions (%d loads, %d stores),\n",
+			db_printf(
+			    "After %d instructions (%d loads, %d stores),\n",
 			    db_inst_count, db_load_count, db_store_count);
 		}
 		prev_jb = kdb_jmpbuf(jb);

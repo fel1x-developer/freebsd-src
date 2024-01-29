@@ -3,26 +3,25 @@
 #ifndef QAT_FREEBSD_H_
 #define QAT_FREEBSD_H_
 
-#include <sys/param.h>
-#include <sys/module.h>
-#include <sys/bus.h>
-#include <sys/param.h>
-#include <sys/malloc.h>
-#include <sys/firmware.h>
-#include <sys/rman.h>
 #include <sys/types.h>
-#include <sys/ctype.h>
-#include <sys/ioccom.h>
 #include <sys/param.h>
+#include <sys/bus.h>
+#include <sys/ctype.h>
+#include <sys/firmware.h>
+#include <sys/ioccom.h>
 #include <sys/lock.h>
-#include <linux/device.h>
-#include <linux/dma-mapping.h>
-#include <linux/completion.h>
-#include <linux/list.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 #include <machine/bus_dma.h>
-#include <sys/firmware.h>
+
 #include <asm/uaccess.h>
+#include <linux/completion.h>
+#include <linux/device.h>
+#include <linux/dma-mapping.h>
+#include <linux/list.h>
 #include <linux/math64.h>
 #include <linux/spinlock.h>
 
@@ -42,7 +41,7 @@ typedef _Bool bool;
 typedef int _Bool;
 #endif
 
-#define pause_ms(wmesg, ms) pause_sbt(wmesg, (ms)*SBT_1MS, 0, C_HARDCLOCK)
+#define pause_ms(wmesg, ms) pause_sbt(wmesg, (ms) * SBT_1MS, 0, C_HARDCLOCK)
 
 /* Function sets the MaxPayload size of a PCI device. */
 int pci_set_max_payload(device_t dev, int payload_size);
@@ -73,19 +72,15 @@ struct bus_dmamem {
  * and 'dma_baddr' fields are populated with the virtual and bus addresses,
  * respectively, of the mapping.
  */
-int bus_dma_mem_create(struct bus_dmamem *mem,
-		       bus_dma_tag_t parent,
-		       bus_size_t alignment,
-		       bus_addr_t lowaddr,
-		       bus_size_t len,
-		       int flags);
+int bus_dma_mem_create(struct bus_dmamem *mem, bus_dma_tag_t parent,
+    bus_size_t alignment, bus_addr_t lowaddr, bus_size_t len, int flags);
 
 /*
  * Release a mapping created by bus_dma_mem_create().
  */
 void bus_dma_mem_free(struct bus_dmamem *mem);
 
-#define list_for_each_prev_safe(p, n, h)                                       \
+#define list_for_each_prev_safe(p, n, h) \
 	for (p = (h)->prev, n = (p)->prev; p != (h); p = n, n = (p)->prev)
 
 static inline int

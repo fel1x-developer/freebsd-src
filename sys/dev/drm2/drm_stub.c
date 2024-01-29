@@ -32,6 +32,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_core.h>
 
@@ -39,16 +40,16 @@
 unsigned int drm_debug = (DRM_DEBUGBITS_DEBUG | DRM_DEBUGBITS_KMS |
     DRM_DEBUGBITS_FAILED_IOCTL);
 #else
-unsigned int drm_debug = 0;	/* 1 to enable debug output */
+unsigned int drm_debug = 0; /* 1 to enable debug output */
 #endif
 EXPORT_SYMBOL(drm_debug);
 
 unsigned int drm_notyet = 0;
 
-unsigned int drm_vblank_offdelay = 5000;    /* Default to 5000 msecs. */
+unsigned int drm_vblank_offdelay = 5000; /* Default to 5000 msecs. */
 EXPORT_SYMBOL(drm_vblank_offdelay);
 
-unsigned int drm_timestamp_precision = 20;  /* Default to 20 usecs. */
+unsigned int drm_timestamp_precision = 20; /* Default to 20 usecs. */
 EXPORT_SYMBOL(drm_timestamp_precision);
 
 /*
@@ -67,21 +68,21 @@ MODULE_PARM_DESC(timestamp_monotonic, "Use monotonic timestamps");
 
 module_param_named(debug, drm_debug, int, 0600);
 module_param_named(vblankoffdelay, drm_vblank_offdelay, int, 0600);
-module_param_named(timestamp_precision_usec, drm_timestamp_precision, int, 0600);
+module_param_named(timestamp_precision_usec, drm_timestamp_precision, int,
+    0600);
 module_param_named(timestamp_monotonic, drm_timestamp_monotonic, int, 0600);
 
-static struct cdevsw drm_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	drm_open,
-	.d_read =	drm_read,
-	.d_ioctl =	drm_ioctl,
-	.d_poll =	drm_poll,
+static struct cdevsw drm_cdevsw = { .d_version = D_VERSION,
+	.d_open = drm_open,
+	.d_read = drm_read,
+	.d_ioctl = drm_ioctl,
+	.d_poll = drm_poll,
 	.d_mmap_single = drm_mmap_single,
-	.d_name =	"drm",
-	.d_flags =	D_TRACKCLOSE
-};
+	.d_name = "drm",
+	.d_flags = D_TRACKCLOSE };
 
-static int drm_minor_get_id(struct drm_device *dev, int type)
+static int
+drm_minor_get_id(struct drm_device *dev, int type)
 {
 	int new_id;
 
@@ -99,7 +100,8 @@ static int drm_minor_get_id(struct drm_device *dev, int type)
 	return new_id;
 }
 
-struct drm_master *drm_master_create(struct drm_minor *minor)
+struct drm_master *
+drm_master_create(struct drm_minor *minor)
 {
 	struct drm_master *master;
 
@@ -108,8 +110,8 @@ struct drm_master *drm_master_create(struct drm_minor *minor)
 		return NULL;
 
 	refcount_init(&master->refcount, 1);
-	mtx_init(&master->lock.spinlock, "drm_master__lock__spinlock",
-	    NULL, MTX_DEF);
+	mtx_init(&master->lock.spinlock, "drm_master__lock__spinlock", NULL,
+	    MTX_DEF);
 	DRM_INIT_WAITQUEUE(&master->lock.lock_queue);
 	drm_ht_create(&master->magiclist, DRM_MAGIC_HASH_ORDER);
 	INIT_LIST_HEAD(&master->magicfree);
@@ -120,14 +122,16 @@ struct drm_master *drm_master_create(struct drm_minor *minor)
 	return master;
 }
 
-struct drm_master *drm_master_get(struct drm_master *master)
+struct drm_master *
+drm_master_get(struct drm_master *master)
 {
 	refcount_acquire(&master->refcount);
 	return master;
 }
 EXPORT_SYMBOL(drm_master_get);
 
-static void drm_master_destroy(struct drm_master *master)
+static void
+drm_master_destroy(struct drm_master *master)
 {
 	struct drm_magic_entry *pt, *next;
 	struct drm_device *dev = master->minor->dev;
@@ -138,7 +142,8 @@ static void drm_master_destroy(struct drm_master *master)
 	if (dev->driver->master_destroy)
 		dev->driver->master_destroy(dev, master);
 
-	list_for_each_entry_safe(r_list, list_temp, &dev->maplist, head) {
+	list_for_each_entry_safe(r_list, list_temp, &dev->maplist, head)
+	{
 		if (r_list->master == master) {
 			drm_rmmap_locked(dev, r_list->map);
 			r_list = NULL;
@@ -151,7 +156,8 @@ static void drm_master_destroy(struct drm_master *master)
 		master->unique_len = 0;
 	}
 
-	list_for_each_entry_safe(pt, next, &master->magicfree, head) {
+	list_for_each_entry_safe(pt, next, &master->magicfree, head)
+	{
 		list_del(&pt->head);
 		drm_ht_remove_item(&master->magiclist, &pt->hash_item);
 		free(pt, DRM_MEM_MAGIC);
@@ -162,7 +168,8 @@ static void drm_master_destroy(struct drm_master *master)
 	free(master, DRM_MEM_KMS);
 }
 
-void drm_master_put(struct drm_master **master)
+void
+drm_master_put(struct drm_master **master)
 {
 	if (refcount_release(&(*master)->refcount))
 		drm_master_destroy(*master);
@@ -170,15 +177,17 @@ void drm_master_put(struct drm_master **master)
 }
 EXPORT_SYMBOL(drm_master_put);
 
-int drm_setmaster_ioctl(struct drm_device *dev, void *data,
-			struct drm_file *file_priv)
+int
+drm_setmaster_ioctl(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	int ret;
 
 	if (file_priv->is_master)
 		return 0;
 
-	if (file_priv->minor->master && file_priv->minor->master != file_priv->master)
+	if (file_priv->minor->master &&
+	    file_priv->minor->master != file_priv->master)
 		return -EINVAL;
 
 	if (!file_priv->master)
@@ -202,8 +211,9 @@ int drm_setmaster_ioctl(struct drm_device *dev, void *data,
 	return 0;
 }
 
-int drm_dropmaster_ioctl(struct drm_device *dev, void *data,
-			 struct drm_file *file_priv)
+int
+drm_dropmaster_ioctl(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	if (!file_priv->is_master)
 		return -EINVAL;
@@ -220,8 +230,8 @@ int drm_dropmaster_ioctl(struct drm_device *dev, void *data,
 	return 0;
 }
 
-int drm_fill_in_dev(struct drm_device *dev,
-			   struct drm_driver *driver)
+int
+drm_fill_in_dev(struct drm_device *dev, struct drm_driver *driver)
 {
 	int retcode, i;
 
@@ -262,8 +272,6 @@ int drm_fill_in_dev(struct drm_device *dev,
 	if (retcode)
 		goto error_out_unreg;
 
-
-
 	retcode = drm_ctxbitmap_init(dev);
 	if (retcode) {
 		DRM_ERROR("Cannot allocate memory for context bitmap.\n");
@@ -287,13 +295,14 @@ int drm_fill_in_dev(struct drm_device *dev,
 
 	return 0;
 
-      error_out_unreg:
+error_out_unreg:
 	drm_cancel_fill_in_dev(dev);
 	return retcode;
 }
 EXPORT_SYMBOL(drm_fill_in_dev);
 
-void drm_cancel_fill_in_dev(struct drm_device *dev)
+void
+drm_cancel_fill_in_dev(struct drm_device *dev)
 {
 	struct drm_driver *driver;
 
@@ -304,13 +313,12 @@ void drm_cancel_fill_in_dev(struct drm_device *dev)
 		drm_gem_destroy(dev);
 	drm_ctxbitmap_cleanup(dev);
 
-	if (drm_core_has_MTRR(dev) && drm_core_has_AGP(dev) &&
-	    dev->agp && dev->agp->agp_mtrr >= 0) {
+	if (drm_core_has_MTRR(dev) && drm_core_has_AGP(dev) && dev->agp &&
+	    dev->agp->agp_mtrr >= 0) {
 		int retval;
 		retval = drm_mtrr_del(dev->agp->agp_mtrr,
-				  dev->agp->agp_info.ai_aperture_base,
-				  dev->agp->agp_info.ai_aperture_size,
-				  DRM_MTRR_WC);
+		    dev->agp->agp_info.ai_aperture_base,
+		    dev->agp->agp_info.ai_aperture_size, DRM_MTRR_WC);
 		DRM_DEBUG("mtrr_del=%d\n", retval);
 	}
 	free(dev->agp, DRM_MEM_AGPLISTS);
@@ -337,7 +345,8 @@ void drm_cancel_fill_in_dev(struct drm_device *dev)
  * create the proc init entry via proc_init(). This routines assigns
  * minor numbers to secondary heads of multi-headed cards
  */
-int drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
+int
+drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 {
 	struct drm_minor *new_minor;
 	int ret;
@@ -377,8 +386,8 @@ int drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 	}
 
 	ret = make_dev_p(MAKEDEV_WAITOK | MAKEDEV_CHECKNAME, &new_minor->device,
-	    &drm_cdevsw, 0, DRM_DEV_UID, DRM_DEV_GID,
-	    DRM_DEV_MODE, minor_devname, minor_id);
+	    &drm_cdevsw, 0, DRM_DEV_UID, DRM_DEV_GID, DRM_DEV_MODE,
+	    minor_devname, minor_id);
 	if (ret) {
 		DRM_ERROR("Failed to create cdev: %d\n", ret);
 		goto err_mem;
@@ -388,7 +397,6 @@ int drm_get_minor(struct drm_device *dev, struct drm_minor **minor, int type)
 
 	DRM_DEBUG("new minor assigned %d\n", minor_id);
 	return 0;
-
 
 err_mem:
 	free(new_minor, DRM_MEM_MINOR);
@@ -408,7 +416,8 @@ EXPORT_SYMBOL(drm_get_minor);
  * last minor released.
  *
  */
-int drm_put_minor(struct drm_minor **minor_p)
+int
+drm_put_minor(struct drm_minor **minor_p)
 {
 	struct drm_minor *minor = *minor_p;
 
@@ -431,7 +440,8 @@ EXPORT_SYMBOL(drm_put_minor);
  * Cleans up all DRM device, calling drm_lastclose().
  *
  */
-void drm_put_dev(struct drm_device *dev)
+void
+drm_put_dev(struct drm_device *dev)
 {
 	struct drm_driver *driver;
 	struct drm_map_list *r_list, *list_temp;
@@ -446,13 +456,12 @@ void drm_put_dev(struct drm_device *dev)
 
 	drm_lastclose(dev);
 
-	if (drm_core_has_MTRR(dev) && drm_core_has_AGP(dev) &&
-	    dev->agp && dev->agp->agp_mtrr >= 0) {
+	if (drm_core_has_MTRR(dev) && drm_core_has_AGP(dev) && dev->agp &&
+	    dev->agp->agp_mtrr >= 0) {
 		int retval;
 		retval = drm_mtrr_del(dev->agp->agp_mtrr,
-				  dev->agp->agp_info.ai_aperture_base,
-				  dev->agp->agp_info.ai_aperture_size,
-				  DRM_MTRR_WC);
+		    dev->agp->agp_info.ai_aperture_base,
+		    dev->agp->agp_info.ai_aperture_size, DRM_MTRR_WC);
 		DRM_DEBUG("mtrr_del=%d\n", retval);
 	}
 
@@ -472,7 +481,7 @@ void drm_put_dev(struct drm_device *dev)
 	drm_vblank_cleanup(dev);
 
 	list_for_each_entry_safe(r_list, list_temp, &dev->maplist, head)
-		drm_rmmap(dev, r_list->map);
+	    drm_rmmap(dev, r_list->map);
 	drm_ht_remove(&dev->map_hash);
 
 	drm_ctxbitmap_cleanup(dev);

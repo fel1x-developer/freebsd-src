@@ -6,14 +6,14 @@
  *
  * Portions of this software were developed by Landon Fuller
  * under sponsorship from the FreeBSD Foundation.
- * 
+ *
  * Portions of this file were derived from the siutils.c source distributed with
  * the Asus RT-N16 firmware source code release.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -26,42 +26,39 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/bhnd/bhnd.h>
-
 #include <dev/bhnd/cores/chipc/chipcreg.h>
 #include <dev/bhnd/cores/chipc/chipcvar.h>
-
-#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 #include <dev/bhnd/cores/pmu/bhnd_pmureg.h>
+#include <dev/bhnd/cores/pmu/bhnd_pmuvar.h>
 
 #include "bhnd_chipc_if.h"
-#include "bhnd_pwrctl_if.h"
 #include "bhnd_pwrctl_hostb_if.h"
-
+#include "bhnd_pwrctl_if.h"
 #include "bhnd_pwrctl_private.h"
 
 /*
  * ChipCommon Power Control.
- * 
+ *
  * Provides a runtime interface to device clocking and power management on
  * legacy non-PMU chipsets.
  */
 
 typedef enum {
-	BHND_PWRCTL_WAR_UP,	/**< apply attach/resume workarounds */
-	BHND_PWRCTL_WAR_RUN,	/**< apply running workarounds */
-	BHND_PWRCTL_WAR_DOWN,	/**< apply detach/suspend workarounds */
+	BHND_PWRCTL_WAR_UP,   /**< apply attach/resume workarounds */
+	BHND_PWRCTL_WAR_RUN,  /**< apply running workarounds */
+	BHND_PWRCTL_WAR_DOWN, /**< apply detach/suspend workarounds */
 } bhnd_pwrctl_wars;
 
-static int	bhnd_pwrctl_updateclk(struct bhnd_pwrctl_softc *sc,
-		    bhnd_pwrctl_wars wars);
+static int bhnd_pwrctl_updateclk(struct bhnd_pwrctl_softc *sc,
+    bhnd_pwrctl_wars wars);
 
 static struct bhnd_device_quirk pwrctl_quirks[];
 
@@ -73,9 +70,9 @@ static const struct bhnd_device pwrctl_devices[] = {
 
 /* Device quirks table */
 static struct bhnd_device_quirk pwrctl_quirks[] = {
-	BHND_CORE_QUIRK	(HWREV_LTE(5),		PWRCTL_QUIRK_PCICLK_CTL),
-	BHND_CORE_QUIRK	(HWREV_RANGE(6, 9),	PWRCTL_QUIRK_SLOWCLK_CTL),
-	BHND_CORE_QUIRK	(HWREV_RANGE(10, 19),	PWRCTL_QUIRK_INSTACLK_CTL),
+	BHND_CORE_QUIRK(HWREV_LTE(5), PWRCTL_QUIRK_PCICLK_CTL),
+	BHND_CORE_QUIRK(HWREV_RANGE(6, 9), PWRCTL_QUIRK_SLOWCLK_CTL),
+	BHND_CORE_QUIRK(HWREV_RANGE(10, 19), PWRCTL_QUIRK_INSTACLK_CTL),
 
 	BHND_DEVICE_QUIRK_END
 };
@@ -83,9 +80,9 @@ static struct bhnd_device_quirk pwrctl_quirks[] = {
 static int
 bhnd_pwrctl_probe(device_t dev)
 {
-	const struct bhnd_device	*id;
-	struct chipc_caps		*ccaps;
-	device_t			 chipc;
+	const struct bhnd_device *id;
+	struct chipc_caps *ccaps;
+	device_t chipc;
 
 	/* Look for compatible chipc parent */
 	chipc = device_get_parent(dev);
@@ -113,12 +110,12 @@ bhnd_pwrctl_probe(device_t dev)
 static int
 bhnd_pwrctl_attach(device_t dev)
 {
-	struct bhnd_pwrctl_softc	*sc;
-	const struct bhnd_chipid	*cid;
-	struct chipc_softc		*chipc_sc;
-	bhnd_devclass_t			 hostb_class;
-	device_t			 hostb_dev;
-	int				 error;
+	struct bhnd_pwrctl_softc *sc;
+	const struct bhnd_chipid *cid;
+	struct chipc_softc *chipc_sc;
+	bhnd_devclass_t hostb_class;
+	device_t hostb_dev;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -130,7 +127,8 @@ bhnd_pwrctl_attach(device_t dev)
 	/* On devices that lack a slow clock source, HT must always be
 	 * enabled. */
 	hostb_class = BHND_DEVCLASS_INVALID;
-	hostb_dev = bhnd_bus_find_hostb_device(device_get_parent(sc->chipc_dev));
+	hostb_dev = bhnd_bus_find_hostb_device(
+	    device_get_parent(sc->chipc_dev));
 	if (hostb_dev != NULL)
 		hostb_class = bhnd_get_class(hostb_dev);
 
@@ -178,8 +176,10 @@ bhnd_pwrctl_attach(device_t dev)
 
 	/* Register as the bus PWRCTL provider */
 	if ((error = bhnd_register_provider(dev, BHND_SERVICE_PWRCTL))) {
-		device_printf(sc->dev, "failed to register PWRCTL with bus : "
-		    "%d\n", error);
+		device_printf(sc->dev,
+		    "failed to register PWRCTL with bus : "
+		    "%d\n",
+		    error);
 		goto cleanup;
 	}
 
@@ -193,9 +193,9 @@ cleanup:
 static int
 bhnd_pwrctl_detach(device_t dev)
 {
-	struct bhnd_pwrctl_softc	*sc;
-	struct bhnd_pwrctl_clkres	*clkres, *crnext;
-	int				 error;
+	struct bhnd_pwrctl_softc *sc;
+	struct bhnd_pwrctl_clkres *clkres, *crnext;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -209,7 +209,7 @@ bhnd_pwrctl_detach(device_t dev)
 	if (error)
 		return (error);
 
-	STAILQ_FOREACH_SAFE(clkres, &sc->clkres_list, cr_link, crnext)
+	STAILQ_FOREACH_SAFE (clkres, &sc->clkres_list, cr_link, crnext)
 		free(clkres, M_DEVBUF);
 
 	PWRCTL_LOCK_DESTROY(sc);
@@ -219,8 +219,8 @@ bhnd_pwrctl_detach(device_t dev)
 static int
 bhnd_pwrctl_suspend(device_t dev)
 {
-	struct bhnd_pwrctl_softc	*sc;
-	int				 error;
+	struct bhnd_pwrctl_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -235,8 +235,8 @@ bhnd_pwrctl_suspend(device_t dev)
 static int
 bhnd_pwrctl_resume(device_t dev)
 {
-	struct bhnd_pwrctl_softc	*sc;
-	int				 error;
+	struct bhnd_pwrctl_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -261,8 +261,7 @@ cleanup:
 }
 
 static int
-bhnd_pwrctl_get_clock_latency(device_t dev, bhnd_clock clock,
-    u_int *latency)
+bhnd_pwrctl_get_clock_latency(device_t dev, bhnd_clock clock, u_int *latency)
 {
 	struct bhnd_pwrctl_softc *sc = device_get_softc(dev);
 
@@ -302,7 +301,7 @@ bhnd_pwrctl_get_clock_freq(device_t dev, bhnd_clock clock, u_int *freq)
 
 /**
  * Find the clock reservation associated with @p owner, if any.
- * 
+ *
  * @param sc Driver instance state.
  * @param owner The owning device.
  */
@@ -313,7 +312,7 @@ bhnd_pwrctl_find_res(struct bhnd_pwrctl_softc *sc, device_t owner)
 
 	PWRCTL_LOCK_ASSERT(sc, MA_OWNED);
 
-	STAILQ_FOREACH(clkres, &sc->clkres_list, cr_link) {
+	STAILQ_FOREACH (clkres, &sc->clkres_list, cr_link) {
 		if (clkres->owner == owner)
 			return (clkres);
 	}
@@ -325,15 +324,15 @@ bhnd_pwrctl_find_res(struct bhnd_pwrctl_softc *sc, device_t owner)
 /**
  * Enumerate all active clock requests, compute the minimum required clock,
  * and issue any required clock transition.
- * 
+ *
  * @param sc Driver instance state.
  * @param wars Work-around state.
  */
 static int
 bhnd_pwrctl_updateclk(struct bhnd_pwrctl_softc *sc, bhnd_pwrctl_wars wars)
 {
-	struct bhnd_pwrctl_clkres	*clkres;
-	bhnd_clock			 clock;
+	struct bhnd_pwrctl_clkres *clkres;
+	bhnd_clock clock;
 
 	PWRCTL_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -365,7 +364,7 @@ bhnd_pwrctl_updateclk(struct bhnd_pwrctl_softc *sc, bhnd_pwrctl_wars wars)
 	}
 
 	/* Determine required clock */
-	STAILQ_FOREACH(clkres, &sc->clkres_list, cr_link)
+	STAILQ_FOREACH (clkres, &sc->clkres_list, cr_link)
 		clock = bhnd_clock_max(clock, clkres->clock);
 
 	/* Map to supported clock setting */
@@ -396,9 +395,9 @@ bhnd_pwrctl_updateclk(struct bhnd_pwrctl_softc *sc, bhnd_pwrctl_wars wars)
 static int
 bhnd_pwrctl_request_clock(device_t dev, device_t child, bhnd_clock clock)
 {
-	struct bhnd_pwrctl_softc	*sc;
-	struct bhnd_pwrctl_clkres	*clkres;
-	int				 error;
+	struct bhnd_pwrctl_softc *sc;
+	struct bhnd_pwrctl_clkres *clkres;
+	int error;
 
 	sc = device_get_softc(dev);
 	error = 0;
@@ -416,8 +415,8 @@ bhnd_pwrctl_request_clock(device_t dev, device_t child, bhnd_clock clock)
 		}
 
 		/* drop reservation and apply clock transition */
-		STAILQ_REMOVE(&sc->clkres_list, clkres,
-		    bhnd_pwrctl_clkres, cr_link);
+		STAILQ_REMOVE(&sc->clkres_list, clkres, bhnd_pwrctl_clkres,
+		    cr_link);
 
 		if ((error = bhnd_pwrctl_updateclk(sc, BHND_PWRCTL_WAR_RUN))) {
 			device_printf(dev, "clock transition failed: %d\n",
@@ -467,24 +466,24 @@ bhnd_pwrctl_request_clock(device_t dev, device_t child, bhnd_clock clock)
 
 static device_method_t bhnd_pwrctl_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,				bhnd_pwrctl_probe),
-	DEVMETHOD(device_attach,			bhnd_pwrctl_attach),
-	DEVMETHOD(device_detach,			bhnd_pwrctl_detach),
-	DEVMETHOD(device_suspend,			bhnd_pwrctl_suspend),
-	DEVMETHOD(device_resume,			bhnd_pwrctl_resume),
+	DEVMETHOD(device_probe, bhnd_pwrctl_probe),
+	DEVMETHOD(device_attach, bhnd_pwrctl_attach),
+	DEVMETHOD(device_detach, bhnd_pwrctl_detach),
+	DEVMETHOD(device_suspend, bhnd_pwrctl_suspend),
+	DEVMETHOD(device_resume, bhnd_pwrctl_resume),
 
 	/* BHND PWRCTL interface */
-	DEVMETHOD(bhnd_pwrctl_request_clock,		bhnd_pwrctl_request_clock),
-	DEVMETHOD(bhnd_pwrctl_get_clock_freq,		bhnd_pwrctl_get_clock_freq),
-	DEVMETHOD(bhnd_pwrctl_get_clock_latency,	bhnd_pwrctl_get_clock_latency),
+	DEVMETHOD(bhnd_pwrctl_request_clock, bhnd_pwrctl_request_clock),
+	DEVMETHOD(bhnd_pwrctl_get_clock_freq, bhnd_pwrctl_get_clock_freq),
+	DEVMETHOD(bhnd_pwrctl_get_clock_latency, bhnd_pwrctl_get_clock_latency),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_0(bhnd_pwrctl, bhnd_pwrctl_driver, bhnd_pwrctl_methods,
     sizeof(struct bhnd_pwrctl_softc));
-EARLY_DRIVER_MODULE(bhnd_pwrctl, bhnd_chipc, bhnd_pwrctl_driver,
-    NULL, NULL, BUS_PASS_TIMER + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(bhnd_pwrctl, bhnd_chipc, bhnd_pwrctl_driver, NULL, NULL,
+    BUS_PASS_TIMER + BUS_PASS_ORDER_MIDDLE);
 
 MODULE_DEPEND(bhnd_pwrctl, bhnd, 1, 1, 1);
 MODULE_VERSION(bhnd_pwrctl, 1);

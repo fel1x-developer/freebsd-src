@@ -31,58 +31,57 @@
 #ifdef COMPAT_FREEBSD32
 #include <sys/abi_compat.h>
 #endif
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 
-#define	USB_DEBUG_VAR ugen_debug
+#define USB_DEBUG_VAR ugen_debug
 
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
 #include <dev/usb/usb_core.h>
+#include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_dev.h>
+#include <dev/usb/usb_device.h>
+#include <dev/usb/usb_generic.h>
+#include <dev/usb/usb_hub.h>
 #include <dev/usb/usb_mbuf.h>
 #include <dev/usb/usb_process.h>
-#include <dev/usb/usb_device.h>
-#include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_request.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_util.h>
-#include <dev/usb/usb_hub.h>
-#include <dev/usb/usb_generic.h>
 #include <dev/usb/usb_transfer.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb_util.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 #if USB_HAVE_UGEN
 
 /* defines */
 
-#define	UGEN_BULK_FS_BUFFER_SIZE	(64*32)	/* bytes */
-#define	UGEN_BULK_HS_BUFFER_SIZE	(1024*32)	/* bytes */
-#define	UGEN_HW_FRAMES	50		/* number of milliseconds per transfer */
+#define UGEN_BULK_FS_BUFFER_SIZE (64 * 32)   /* bytes */
+#define UGEN_BULK_HS_BUFFER_SIZE (1024 * 32) /* bytes */
+#define UGEN_HW_FRAMES 50 /* number of milliseconds per transfer */
 
 /* function prototypes */
 
@@ -102,24 +101,26 @@ static usb_fifo_cmd_t ugen_start_read;
 static usb_fifo_cmd_t ugen_start_write;
 static usb_fifo_cmd_t ugen_stop_io;
 
-static int	ugen_transfer_setup(struct usb_fifo *,
-		     const struct usb_config *, uint8_t);
-static int	ugen_open_pipe_write(struct usb_fifo *);
-static int	ugen_open_pipe_read(struct usb_fifo *);
-static int	ugen_set_config(struct usb_fifo *, uint8_t);
-static int	ugen_set_interface(struct usb_fifo *, uint8_t, uint8_t);
-static int	ugen_get_cdesc(struct usb_fifo *, struct usb_gen_descriptor *);
-static int	ugen_get_sdesc(struct usb_fifo *, struct usb_gen_descriptor *);
-static int	ugen_get_iface_driver(struct usb_fifo *f, struct usb_gen_descriptor *ugd);
+static int ugen_transfer_setup(struct usb_fifo *, const struct usb_config *,
+    uint8_t);
+static int ugen_open_pipe_write(struct usb_fifo *);
+static int ugen_open_pipe_read(struct usb_fifo *);
+static int ugen_set_config(struct usb_fifo *, uint8_t);
+static int ugen_set_interface(struct usb_fifo *, uint8_t, uint8_t);
+static int ugen_get_cdesc(struct usb_fifo *, struct usb_gen_descriptor *);
+static int ugen_get_sdesc(struct usb_fifo *, struct usb_gen_descriptor *);
+static int ugen_get_iface_driver(struct usb_fifo *f,
+    struct usb_gen_descriptor *ugd);
 #ifdef COMPAT_FREEBSD32
-static int	ugen_get32(u_long cmd, struct usb_fifo *f, struct usb_gen_descriptor32 *ugd32);
+static int ugen_get32(u_long cmd, struct usb_fifo *f,
+    struct usb_gen_descriptor32 *ugd32);
 #endif
-static int	ugen_re_enumerate(struct usb_fifo *);
-static int	ugen_iface_ioctl(struct usb_fifo *, u_long, void *, int);
-static uint8_t	ugen_fs_get_complete(struct usb_fifo *, uint8_t *);
-static int	ugen_fs_uninit(struct usb_fifo *f);
-static int	ugen_fs_copyin(struct usb_fifo *, uint8_t, struct usb_fs_endpoint*);
-static uint8_t	ugen_fifo_in_use(struct usb_fifo *, int fflags);
+static int ugen_re_enumerate(struct usb_fifo *);
+static int ugen_iface_ioctl(struct usb_fifo *, u_long, void *, int);
+static uint8_t ugen_fs_get_complete(struct usb_fifo *, uint8_t *);
+static int ugen_fs_uninit(struct usb_fifo *f);
+static int ugen_fs_copyin(struct usb_fifo *, uint8_t, struct usb_fs_endpoint *);
+static uint8_t ugen_fifo_in_use(struct usb_fifo *, int fflags);
 
 /* structures */
 
@@ -139,15 +140,15 @@ static int ugen_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, ugen, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB generic");
-SYSCTL_INT(_hw_usb_ugen, OID_AUTO, debug, CTLFLAG_RWTUN, &ugen_debug,
-    0, "Debug level");
+SYSCTL_INT(_hw_usb_ugen, OID_AUTO, debug, CTLFLAG_RWTUN, &ugen_debug, 0,
+    "Debug level");
 #endif
 
 /* prototypes */
 
 static int
-ugen_transfer_setup(struct usb_fifo *f,
-    const struct usb_config *setup, uint8_t n_setup)
+ugen_transfer_setup(struct usb_fifo *f, const struct usb_config *setup,
+    uint8_t n_setup)
 {
 	struct usb_endpoint *ep = usb_fifo_softc(f);
 	struct usb_device *udev = f->udev;
@@ -160,8 +161,8 @@ ugen_transfer_setup(struct usb_fifo *f,
 	 * "usbd_transfer_setup()" can sleep so one needs to make a wrapper,
 	 * exiting the mutex and checking things
 	 */
-	error = usbd_transfer_setup(udev, &iface_index, f->xfer,
-	    setup, n_setup, f, f->priv_mtx);
+	error = usbd_transfer_setup(udev, &iface_index, f->xfer, setup, n_setup,
+	    f, f->priv_mtx);
 	if (error == 0) {
 		if (f->xfer[0]->nframes == 1) {
 			error = usb_fifo_alloc_buffer(f,
@@ -205,7 +206,7 @@ ugen_open(struct usb_fifo *f, int fflags)
 
 	type = ed->bmAttributes & UE_XFERTYPE;
 	if (type == UE_INTERRUPT) {
-		f->bufsize = 0;		/* use "wMaxPacketSize" */
+		f->bufsize = 0; /* use "wMaxPacketSize" */
 	}
 	f->timeout = USB_NO_TIMEOUT;
 	f->flag_short = 0;
@@ -256,19 +257,19 @@ ugen_open_pipe_write(struct usb_fifo *f)
 	usb_config[1].type = UE_CONTROL;
 	usb_config[1].endpoint = 0;
 	usb_config[1].direction = UE_DIR_ANY;
-	usb_config[1].timeout = 1000;	/* 1 second */
-	usb_config[1].interval = 50;/* 50 milliseconds */
+	usb_config[1].timeout = 1000; /* 1 second */
+	usb_config[1].interval = 50;  /* 50 milliseconds */
 	usb_config[1].bufsize = sizeof(struct usb_device_request);
 	usb_config[1].callback = &ugen_write_clear_stall_callback;
 	usb_config[1].usb_mode = USB_MODE_HOST;
 
 	usb_config[0].type = ed->bmAttributes & UE_XFERTYPE;
 	usb_config[0].endpoint = ed->bEndpointAddress & UE_ADDR;
-	usb_config[0].stream_id = 0;	/* XXX support more stream ID's */
+	usb_config[0].stream_id = 0; /* XXX support more stream ID's */
 	usb_config[0].direction = UE_DIR_TX;
 	usb_config[0].interval = USB_DEFAULT_INTERVAL;
 	usb_config[0].flags.proxy_buffer = 1;
-	usb_config[0].usb_mode = USB_MODE_DUAL;	/* both modes */
+	usb_config[0].usb_mode = USB_MODE_DUAL; /* both modes */
 
 	switch (ed->bmAttributes & UE_XFERTYPE) {
 	case UE_INTERRUPT:
@@ -289,7 +290,7 @@ ugen_open_pipe_write(struct usb_fifo *f)
 
 	case UE_ISOCHRONOUS:
 		usb_config[0].flags.short_xfer_ok = 1;
-		usb_config[0].bufsize = 0;	/* use default */
+		usb_config[0].bufsize = 0; /* use default */
 		usb_config[0].frames = f->nframes;
 		usb_config[0].callback = &ugen_isoc_write_callback;
 		usb_config[0].timeout = 0;
@@ -325,19 +326,19 @@ ugen_open_pipe_read(struct usb_fifo *f)
 	usb_config[1].type = UE_CONTROL;
 	usb_config[1].endpoint = 0;
 	usb_config[1].direction = UE_DIR_ANY;
-	usb_config[1].timeout = 1000;	/* 1 second */
-	usb_config[1].interval = 50;/* 50 milliseconds */
+	usb_config[1].timeout = 1000; /* 1 second */
+	usb_config[1].interval = 50;  /* 50 milliseconds */
 	usb_config[1].bufsize = sizeof(struct usb_device_request);
 	usb_config[1].callback = &ugen_read_clear_stall_callback;
 	usb_config[1].usb_mode = USB_MODE_HOST;
 
 	usb_config[0].type = ed->bmAttributes & UE_XFERTYPE;
 	usb_config[0].endpoint = ed->bEndpointAddress & UE_ADDR;
-	usb_config[0].stream_id = 0;	/* XXX support more stream ID's */
+	usb_config[0].stream_id = 0; /* XXX support more stream ID's */
 	usb_config[0].direction = UE_DIR_RX;
 	usb_config[0].interval = USB_DEFAULT_INTERVAL;
 	usb_config[0].flags.proxy_buffer = 1;
-	usb_config[0].usb_mode = USB_MODE_DUAL;	/* both modes */
+	usb_config[0].usb_mode = USB_MODE_DUAL; /* both modes */
 
 	switch (ed->bmAttributes & UE_XFERTYPE) {
 	case UE_INTERRUPT:
@@ -359,7 +360,7 @@ ugen_open_pipe_read(struct usb_fifo *f)
 
 	case UE_ISOCHRONOUS:
 		usb_config[0].flags.short_xfer_ok = 1;
-		usb_config[0].bufsize = 0;	/* use default */
+		usb_config[0].bufsize = 0; /* use default */
 		usb_config[0].frames = f->nframes;
 		usb_config[0].callback = &ugen_isoc_read_callback;
 		usb_config[0].timeout = 0;
@@ -430,15 +431,14 @@ ugen_ctrl_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				 * Throttle a little bit we have multiple ZLPs
 				 * in a row!
 				 */
-				xfer->interval = 64;	/* ms */
+				xfer->interval = 64; /* ms */
 			}
 		} else {
 			/* clear throttle */
 			xfer->interval = 0;
 			f->fifo_zlp = 0;
 		}
-		usb_fifo_put_data(f, xfer->frbuffers, 0,
-		    xfer->actlen, 1);
+		usb_fifo_put_data(f, xfer->frbuffers, 0, xfer->actlen, 1);
 
 	case USB_ST_SETUP:
 		if (f->flag_stall) {
@@ -447,12 +447,13 @@ ugen_ctrl_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		USB_IF_POLL(&f->free_q, m);
 		if (m) {
-			usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
+			usbd_xfer_set_frame_len(xfer, 0,
+			    usbd_xfer_max_len(xfer));
 			usbd_transfer_submit(xfer);
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (xfer->error != USB_ERR_CANCELLED) {
 			/* send a zero length packet to userland */
 			usb_fifo_put_data(f, xfer->frbuffers, 0, 0, 1);
@@ -487,13 +488,13 @@ ugen_ctrl_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		 * Write data, setup and perform hardware transfer.
 		 */
 		if (usb_fifo_get_data(f, xfer->frbuffers, 0,
-		    xfer->max_data_length, &actlen, 0)) {
+			xfer->max_data_length, &actlen, 0)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (xfer->error != USB_ERR_CANCELLED) {
 			f->flag_stall = 1;
 			usbd_transfer_start(f->xfer[1]);
@@ -559,7 +560,7 @@ ugen_isoc_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		for (n = 0; n != xfer->nframes; n++) {
 			/* setup size for next transfer */
 			usbd_xfer_set_frame_len(xfer, n, xfer->max_frame_size);
@@ -567,7 +568,7 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (xfer->error == USB_ERR_CANCELLED) {
 			break;
 		}
@@ -588,11 +589,11 @@ ugen_isoc_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		offset = 0;
 		for (n = 0; n != xfer->nframes; n++) {
 			if (usb_fifo_get_data(f, xfer->frbuffers, offset,
-			    xfer->max_frame_size, &actlen, 1)) {
+				xfer->max_frame_size, &actlen, 1)) {
 				usbd_xfer_set_frame_len(xfer, n, actlen);
 				offset += actlen;
 			} else {
@@ -607,7 +608,7 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (xfer->error == USB_ERR_CANCELLED) {
 			break;
 		}
@@ -639,8 +640,7 @@ ugen_set_config(struct usb_fifo *f, uint8_t index)
 }
 
 static int
-ugen_set_interface(struct usb_fifo *f,
-    uint8_t iface_index, uint8_t alt_index)
+ugen_set_interface(struct usb_fifo *f, uint8_t iface_index, uint8_t alt_index)
 {
 	DPRINTFN(2, "%u, %u\n", iface_index, alt_index);
 
@@ -695,8 +695,8 @@ ugen_get_cdesc(struct usb_fifo *f, struct usb_gen_descriptor *ugd)
 
 	} else {
 #if (USB_HAVE_FIXED_CONFIG == 0)
-		if (usbd_req_get_config_desc_full(udev,
-		    NULL, &cdesc, ugd->ugd_config_index)) {
+		if (usbd_req_get_config_desc_full(udev, NULL, &cdesc,
+			ugd->ugd_config_index)) {
 			return (ENXIO);
 		}
 		free_data = 1;
@@ -737,8 +737,8 @@ ugen_get_sdesc(struct usb_fifo *f, struct usb_gen_descriptor *ugd)
 	ptr = f->udev->scratch.data;
 	size = sizeof(f->udev->scratch.data);
 
-	if (usbd_req_get_string_desc(f->udev, NULL, ptr,
-	    size, ugd->ugd_lang_id, ugd->ugd_string_index)) {
+	if (usbd_req_get_string_desc(f->udev, NULL, ptr, size, ugd->ugd_lang_id,
+		ugd->ugd_string_index)) {
 		error = EINVAL;
 	} else {
 		if (size > ((uint8_t *)ptr)[0]) {
@@ -793,8 +793,7 @@ ugen_get_iface_driver(struct usb_fifo *f, struct usb_gen_descriptor *ugd)
 	}
 
 	/* read out device nameunit string, if any */
-	if ((iface->subdev != NULL) &&
-	    device_is_attached(iface->subdev) &&
+	if ((iface->subdev != NULL) && device_is_attached(iface->subdev) &&
 	    (ptr = device_get_nameunit(iface->subdev)) &&
 	    (desc = device_get_desc(iface->subdev))) {
 		/* print description */
@@ -842,8 +841,10 @@ ugen_fill_deviceinfo(struct usb_fifo *f, struct usb_device_info *di)
 	di->udi_addr = udev->address;
 	di->udi_index = udev->device_index;
 	strlcpy(di->udi_serial, usb_get_serial(udev), sizeof(di->udi_serial));
-	strlcpy(di->udi_vendor, usb_get_manufacturer(udev), sizeof(di->udi_vendor));
-	strlcpy(di->udi_product, usb_get_product(udev), sizeof(di->udi_product));
+	strlcpy(di->udi_vendor, usb_get_manufacturer(udev),
+	    sizeof(di->udi_vendor));
+	strlcpy(di->udi_product, usb_get_product(udev),
+	    sizeof(di->udi_product));
 	usb_printbcd(di->udi_release, sizeof(di->udi_release),
 	    UGETW(udev->ddesc.bcdDevice));
 	di->udi_vendorNo = UGETW(udev->ddesc.idVendor);
@@ -888,10 +889,9 @@ ugen_do_request(struct usb_fifo *f, struct usb_ctl_request *ur)
 		}
 	}
 	/* do the USB request */
-	error = usbd_do_request_flags
-	    (f->udev, NULL, &ur->ucr_request, ur->ucr_data,
-	    (ur->ucr_flags & USB_SHORT_XFER_OK) |
-	    USB_USER_DATA_PTR, &actlen,
+	error = usbd_do_request_flags(f->udev, NULL, &ur->ucr_request,
+	    ur->ucr_data,
+	    (ur->ucr_flags & USB_SHORT_XFER_OK) | USB_USER_DATA_PTR, &actlen,
 	    USB_DEFAULT_TIMEOUT);
 
 	ur->ucr_actlen = actlen;
@@ -960,9 +960,8 @@ ugen_re_enumerate(struct usb_fifo *f)
 }
 
 static int
-ugen_fs_init(struct usb_fifo *f,
-    struct usb_fs_endpoint *fs_ep_ptr, usb_size_t fs_ep_sz,
-    int fflags, uint8_t ep_index_max)
+ugen_fs_init(struct usb_fifo *f, struct usb_fs_endpoint *fs_ep_ptr,
+    usb_size_t fs_ep_sz, int fflags, uint8_t ep_index_max)
 {
 	int error;
 
@@ -1018,8 +1017,8 @@ ugen_fs_uninit(struct usb_fifo *f)
 }
 
 static int
-usb_fs_open(struct usb_fifo *f, struct usb_fs_open *popen,
-    int fflags, usb_stream_t stream_id)
+usb_fs_open(struct usb_fifo *f, struct usb_fs_open *popen, int fflags,
+    usb_stream_t stream_id)
 {
 	struct usb_config usb_config[1] = {};
 	struct usb_endpoint *ep;
@@ -1063,25 +1062,26 @@ usb_fs_open(struct usb_fifo *f, struct usb_fs_open *popen,
 
 	usb_config[0].type = ed->bmAttributes & UE_XFERTYPE;
 	usb_config[0].endpoint = ed->bEndpointAddress & UE_ADDR;
-	usb_config[0].direction = ed->bEndpointAddress & (UE_DIR_OUT | UE_DIR_IN);
+	usb_config[0].direction = ed->bEndpointAddress &
+	    (UE_DIR_OUT | UE_DIR_IN);
 	usb_config[0].interval = USB_DEFAULT_INTERVAL;
 	usb_config[0].flags.proxy_buffer = 1;
 	if (pre_scale != 0)
 		usb_config[0].flags.pre_scale_frames = 1;
 
 	usb_config[0].callback = &ugen_ctrl_fs_callback;
-	usb_config[0].timeout = 0;	/* no timeout */
+	usb_config[0].timeout = 0; /* no timeout */
 	usb_config[0].frames = popen->max_frames;
 	usb_config[0].bufsize = popen->max_bufsize;
-	usb_config[0].usb_mode = USB_MODE_DUAL;	/* both modes */
+	usb_config[0].usb_mode = USB_MODE_DUAL; /* both modes */
 	usb_config[0].stream_id = stream_id;
 
 	if (usb_config[0].type == UE_CONTROL) {
 		if (f->udev->flags.usb_mode != USB_MODE_HOST)
 			return (EINVAL);
 	} else {
-		isread = ((usb_config[0].endpoint &
-		    (UE_DIR_IN | UE_DIR_OUT)) == UE_DIR_IN);
+		isread = ((usb_config[0].endpoint & (UE_DIR_IN | UE_DIR_OUT)) ==
+		    UE_DIR_IN);
 
 		if (f->udev->flags.usb_mode != USB_MODE_HOST)
 			isread = !isread;
@@ -1096,8 +1096,7 @@ usb_fs_open(struct usb_fifo *f, struct usb_fs_open *popen,
 		}
 	}
 	error = usbd_transfer_setup(f->udev, &iface_index,
-	    f->fs_xfer + popen->ep_index, usb_config, 1,
-	    f, f->priv_mtx);
+	    f->fs_xfer + popen->ep_index, usb_config, 1, f, f->priv_mtx);
 	if (error == 0) {
 		/* update maximums */
 		popen->max_packet_length =
@@ -1105,11 +1104,10 @@ usb_fs_open(struct usb_fifo *f, struct usb_fs_open *popen,
 		popen->max_bufsize =
 		    f->fs_xfer[popen->ep_index]->max_data_length;
 		/* update number of frames */
-		popen->max_frames =
-		    f->fs_xfer[popen->ep_index]->nframes;
+		popen->max_frames = f->fs_xfer[popen->ep_index]->nframes;
 		/* store index of endpoint */
-		f->fs_xfer[popen->ep_index]->priv_fifo =
-		    ((uint8_t *)0) + popen->ep_index;
+		f->fs_xfer[popen->ep_index]->priv_fifo = ((uint8_t *)0) +
+		    popen->ep_index;
 	} else {
 		error = ENOMEM;
 	}
@@ -1143,7 +1141,8 @@ usb_fs_close(struct usb_fifo *f, struct usb_fs_close *pclose)
 }
 
 static int
-usb_fs_clear_stall_sync(struct usb_fifo *f, struct usb_fs_clear_stall_sync *pstall)
+usb_fs_clear_stall_sync(struct usb_fifo *f,
+    struct usb_fs_clear_stall_sync *pstall)
 {
 	struct usb_device_request req;
 	struct usb_endpoint *ep;
@@ -1196,13 +1195,13 @@ ugen_fs_get_complete(struct usb_fifo *f, uint8_t *pindex)
 
 		USB_IF_ENQUEUE(&f->free_q, m);
 
-		return (0);		/* success */
+		return (0); /* success */
 	} else {
-		*pindex = 0;		/* fix compiler warning */
+		*pindex = 0; /* fix compiler warning */
 
 		f->flag_iscomplete = 0;
 	}
-	return (1);			/* failure */
+	return (1); /* failure */
 }
 
 static void
@@ -1266,7 +1265,7 @@ ugen_fs_copy_in(struct usb_fifo *f, uint8_t ep_index)
 	struct usb_device_request *req;
 	struct usb_xfer *xfer;
 	struct usb_fs_endpoint fs_ep;
-	void *uaddr;			/* userland pointer */
+	void *uaddr; /* userland pointer */
 	void *kaddr;
 	usb_frlength_t offset;
 	usb_frlength_t rem;
@@ -1287,7 +1286,7 @@ ugen_fs_copy_in(struct usb_fifo *f, uint8_t ep_index)
 	}
 	if (usbd_transfer_pending(xfer)) {
 		mtx_unlock(f->priv_mtx);
-		return (EBUSY);		/* should not happen */
+		return (EBUSY); /* should not happen */
 	}
 	mtx_unlock(f->priv_mtx);
 
@@ -1335,8 +1334,7 @@ ugen_fs_copy_in(struct usb_fifo *f, uint8_t ep_index)
 		usbd_xfer_set_frame_len(xfer, 0, length);
 
 		/* Host mode only ! */
-		if ((req->bmRequestType &
-		    (UT_READ | UT_WRITE)) == UT_READ) {
+		if ((req->bmRequestType & (UT_READ | UT_WRITE)) == UT_READ) {
 			isread = 1;
 		} else {
 			isread = 0;
@@ -1431,13 +1429,13 @@ complete:
 static struct usb_fs_endpoint *
 ugen_fs_ep_uptr(struct usb_fifo *f, uint8_t ep_index)
 {
-	return ((struct usb_fs_endpoint *)
-	    ((char *)f->fs_ep_ptr + (ep_index * f->fs_ep_sz)));
+	return ((struct usb_fs_endpoint *)((char *)f->fs_ep_ptr +
+	    (ep_index * f->fs_ep_sz)));
 }
 
 static int
 ugen_fs_copyin(struct usb_fifo *f, uint8_t ep_index,
-    struct usb_fs_endpoint* fs_ep)
+    struct usb_fs_endpoint *fs_ep)
 {
 #ifdef COMPAT_FREEBSD32
 	struct usb_fs_endpoint32 fs_ep32;
@@ -1476,8 +1474,8 @@ ugen_fs_copyin(struct usb_fifo *f, uint8_t ep_index,
 }
 
 static int
-ugen_fs_update(const struct usb_fs_endpoint *fs_ep,
-    struct usb_fifo *f, uint8_t ep_index)
+ugen_fs_update(const struct usb_fs_endpoint *fs_ep, struct usb_fifo *f,
+    uint8_t ep_index)
 {
 	union {
 		struct usb_fs_endpoint *fs_ep_uptr;
@@ -1498,8 +1496,8 @@ ugen_fs_update(const struct usb_fs_endpoint *fs_ep,
 		break;
 #ifdef COMPAT_FREEBSD32
 	case sizeof(struct usb_fs_endpoint32):
-		u.fs_ep_uptr32 = (struct usb_fs_endpoint32 *)
-		    ugen_fs_ep_uptr(f, ep_index);
+		u.fs_ep_uptr32 = (struct usb_fs_endpoint32 *)ugen_fs_ep_uptr(f,
+		    ep_index);
 		aFrames_uptr = &u.fs_ep_uptr32->aFrames;
 		isoc_time_complete_uptr = &u.fs_ep_uptr32->isoc_time_complete;
 		status_uptr = &u.fs_ep_uptr32->status;
@@ -1547,7 +1545,7 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 	struct usb_device_request *req;
 	struct usb_xfer *xfer;
 	struct usb_fs_endpoint fs_ep;
-	void *uaddr;			/* userland ptr */
+	void *uaddr; /* userland ptr */
 	void *kaddr;
 	usb_frlength_t offset;
 	usb_frlength_t rem;
@@ -1567,14 +1565,13 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 		mtx_unlock(f->priv_mtx);
 		return (EINVAL);
 	}
-	if (!xfer->flags_int.transferring &&
-	    !xfer->flags_int.started) {
+	if (!xfer->flags_int.transferring && !xfer->flags_int.started) {
 		mtx_unlock(f->priv_mtx);
 		DPRINTF("Returning fake cancel event\n");
 		return (ugen_fs_copy_out_cancelled(f, ep_index));
 	} else if (usbd_transfer_pending(xfer)) {
 		mtx_unlock(f->priv_mtx);
-		return (EBUSY);		/* should not happen */
+		return (EBUSY); /* should not happen */
 	}
 	mtx_unlock(f->priv_mtx);
 
@@ -1599,7 +1596,7 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 			isread = 0;
 		}
 		if (xfer->nframes == 0)
-			n = 0;		/* should never happen */
+			n = 0; /* should never happen */
 		else
 			n = 1;
 	} else {
@@ -1625,7 +1622,8 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 		if (temp > rem) {
 			/* the userland length has been corrupted */
 			DPRINTF("corrupt userland length "
-			    "%u > %u\n", temp, rem);
+				"%u > %u\n",
+			    temp, rem);
 			fs_ep.status = USB_ERR_INVAL;
 			goto complete;
 		}
@@ -1636,8 +1634,7 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 		if (length > temp) {
 			/* data overflow */
 			fs_ep.status = USB_ERR_INVAL;
-			DPRINTF("data overflow %u > %u\n",
-			    length, temp);
+			DPRINTF("data overflow %u > %u\n", length, temp);
 			goto complete;
 		}
 		if (isread) {
@@ -1648,8 +1645,8 @@ ugen_fs_copy_out(struct usb_fifo *f, uint8_t ep_index)
 			}
 			if (xfer->flags_int.isochronous_xfr) {
 				/* only one frame buffer */
-				kaddr = USB_ADD_BYTES(
-				    xfer->frbuffers[0].buffer, offset);
+				kaddr = USB_ADD_BYTES(xfer->frbuffers[0].buffer,
+				    offset);
 			} else {
 				/* multiple frame buffers */
 				kaddr = xfer->frbuffers[n].buffer;
@@ -1687,15 +1684,13 @@ ugen_fifo_in_use(struct usb_fifo *f, int fflags)
 	f_rx = f->udev->fifo[(f->fifo_index & ~1) + USB_FIFO_RX];
 	f_tx = f->udev->fifo[(f->fifo_index & ~1) + USB_FIFO_TX];
 
-	if ((fflags & FREAD) && f_rx &&
-	    (f_rx->xfer[0] || f_rx->xfer[1])) {
-		return (1);		/* RX FIFO in use */
+	if ((fflags & FREAD) && f_rx && (f_rx->xfer[0] || f_rx->xfer[1])) {
+		return (1); /* RX FIFO in use */
 	}
-	if ((fflags & FWRITE) && f_tx &&
-	    (f_tx->xfer[0] || f_tx->xfer[1])) {
-		return (1);		/* TX FIFO in use */
+	if ((fflags & FWRITE) && f_tx && (f_tx->xfer[0] || f_tx->xfer[1])) {
+		return (1); /* TX FIFO in use */
 	}
-	return (0);			/* not in use */
+	return (0); /* not in use */
 }
 
 static int
@@ -1705,8 +1700,8 @@ ugen_ioctl(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 		struct usb_fs_complete *pcomp;
 		struct usb_fs_start *pstart;
 		struct usb_fs_stop *pstop;
-		void   *addr;
-	}     u;
+		void *addr;
+	} u;
 	struct usb_xfer *xfer;
 	int error;
 	uint8_t ep_index;
@@ -1760,7 +1755,8 @@ ugen_ioctl(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 				 */
 				if (!xfer->flags_int.transferring &&
 				    !xfer->flags_int.started) {
-					DPRINTF("Issuing fake completion event\n");
+					DPRINTF(
+					    "Issuing fake completion event\n");
 					ugen_fs_set_complete(xfer->priv_sc,
 					    USB_P2U(xfer->priv_fifo));
 				}
@@ -1829,7 +1825,7 @@ ugen_set_buffer_size(struct usb_fifo *f, void *addr)
 	usb_frlength_t t;
 
 	if (*(int *)addr < 0)
-		t = 0;		/* use "wMaxPacketSize" */
+		t = 0; /* use "wMaxPacketSize" */
 	else if (*(int *)addr < (256 * 1024))
 		t = *(int *)addr;
 	else
@@ -1855,8 +1851,7 @@ ugen_get_buffer_size(struct usb_fifo *f, void *addr)
 }
 
 static int
-ugen_get_iface_desc(struct usb_fifo *f,
-    struct usb_interface_descriptor *idesc)
+ugen_get_iface_desc(struct usb_fifo *f, struct usb_interface_descriptor *idesc)
 {
 	struct usb_interface *iface;
 
@@ -1870,8 +1865,7 @@ ugen_get_iface_desc(struct usb_fifo *f,
 }
 
 static int
-ugen_get_endpoint_desc(struct usb_fifo *f,
-    struct usb_endpoint_descriptor *ed)
+ugen_get_endpoint_desc(struct usb_fifo *f, struct usb_endpoint_descriptor *ed)
 {
 	struct usb_endpoint *ep;
 
@@ -1892,8 +1886,7 @@ ugen_set_power_mode(struct usb_fifo *f, int mode)
 	int err;
 	uint8_t old_mode;
 
-	if ((udev == NULL) ||
-	    (udev->parent_hub == NULL)) {
+	if ((udev == NULL) || (udev->parent_hub == NULL)) {
 		return (EINVAL);
 	}
 	err = priv_check(curthread, PRIV_DRIVER);
@@ -1957,7 +1950,7 @@ ugen_set_power_mode(struct usb_fifo *f, int mode)
 	}
 
 	if (err)
-		return (ENXIO);		/* I/O failure */
+		return (ENXIO); /* I/O failure */
 
 	/* if we are powered off we need to re-enumerate first */
 	if (old_mode == USB_POWER_MODE_OFF) {
@@ -1971,7 +1964,7 @@ ugen_set_power_mode(struct usb_fifo *f, int mode)
 	/* set new power mode */
 	usbd_set_power_mode(udev, mode);
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -2018,10 +2011,10 @@ ugen_get_port_path(struct usb_fifo *f, struct usb_device_port_path *dpp)
 		dpp->udp_port_no[--nlevel] = next->port_no;
 		next = next->parent_hub;
 	}
-	return (0);	/* success */
+	return (0); /* success */
 
 error:
-	return (EINVAL);	/* failure */
+	return (EINVAL); /* failure */
 }
 
 static int
@@ -2036,8 +2029,8 @@ ugen_get_power_usage(struct usb_fifo *f)
 }
 
 static int
-ugen_do_port_feature(struct usb_fifo *f, uint8_t port_no,
-    uint8_t set, uint16_t feature)
+ugen_do_port_feature(struct usb_fifo *f, uint8_t port_no, uint8_t set,
+    uint16_t feature)
 {
 	struct usb_device *udev = f->udev;
 	struct usb_hub *hub;
@@ -2050,8 +2043,7 @@ ugen_do_port_feature(struct usb_fifo *f, uint8_t port_no,
 	if (port_no == 0) {
 		return (EINVAL);
 	}
-	if ((udev == NULL) ||
-	    (udev->hub == NULL)) {
+	if ((udev == NULL) || (udev->hub == NULL)) {
 		return (EINVAL);
 	}
 	hub = udev->hub;
@@ -2060,16 +2052,14 @@ ugen_do_port_feature(struct usb_fifo *f, uint8_t port_no,
 		return (EINVAL);
 	}
 	if (set)
-		err = usbd_req_set_port_feature(udev,
-		    NULL, port_no, feature);
+		err = usbd_req_set_port_feature(udev, NULL, port_no, feature);
 	else
-		err = usbd_req_clear_port_feature(udev,
-		    NULL, port_no, feature);
+		err = usbd_req_clear_port_feature(udev, NULL, port_no, feature);
 
 	if (err)
-		return (ENXIO);		/* failure */
+		return (ENXIO); /* failure */
 
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int
@@ -2234,9 +2224,9 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 		struct usb_fs_clear_stall_sync *pstall;
 		struct usb_device_port_path *dpp;
 		uint32_t *ptime;
-		void   *addr;
-		int    *pint;
-	}     u;
+		void *addr;
+		int *pint;
+	} u;
 	struct usb_device_descriptor *dtemp;
 	struct usb_config_descriptor *ctemp;
 	struct usb_interface *iface;
@@ -2273,8 +2263,7 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 		break;
 
 	case USB_GET_ALTINTERFACE:
-		iface = usbd_get_iface(f->udev,
-		    u.ai->uai_interface_index);
+		iface = usbd_get_iface(f->udev, u.ai->uai_interface_index);
 		if (iface && iface->idesc) {
 			u.ai->uai_alt_index = iface->alt_index;
 		} else {
@@ -2287,8 +2276,8 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 			error = EPERM;
 			break;
 		}
-		error = ugen_set_interface(f,
-		    u.ai->uai_interface_index, u.ai->uai_alt_index);
+		error = ugen_set_interface(f, u.ai->uai_interface_index,
+		    u.ai->uai_alt_index);
 		break;
 
 	case USB_GET_DEVICE_DESC:
@@ -2431,13 +2420,11 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 		break;
 
 	case USB_SET_PORT_ENABLE:
-		error = ugen_do_port_feature(f,
-		    *u.pint, 1, UHF_PORT_ENABLE);
+		error = ugen_do_port_feature(f, *u.pint, 1, UHF_PORT_ENABLE);
 		break;
 
 	case USB_SET_PORT_DISABLE:
-		error = ugen_do_port_feature(f,
-		    *u.pint, 0, UHF_PORT_ENABLE);
+		error = ugen_do_port_feature(f, *u.pint, 0, UHF_PORT_ENABLE);
 		break;
 
 	case USB_FS_INIT:
@@ -2463,7 +2450,8 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 	case USB_FS_OPEN:
 	case USB_FS_OPEN_STREAM:
 		error = usb_fs_open(f, u.popen, fflags,
-		    (cmd == USB_FS_OPEN_STREAM) ? u.popen_stream->stream_id : 0);
+		    (cmd == USB_FS_OPEN_STREAM) ? u.popen_stream->stream_id :
+						  0);
 		break;
 
 	case USB_FS_CLOSE:
@@ -2487,10 +2475,10 @@ ugen_ioctl_post(struct usb_fifo *f, u_long cmd, void *addr, int fflags)
 static void
 ugen_ctrl_fs_callback(struct usb_xfer *xfer, usb_error_t error)
 {
-	;				/* workaround for a bug in "indent" */
+	; /* workaround for a bug in "indent" */
 
-	DPRINTF("st=%u alen=%u aframes=%u\n",
-	    USB_GET_STATE(xfer), xfer->actlen, xfer->aframes);
+	DPRINTF("st=%u alen=%u aframes=%u\n", USB_GET_STATE(xfer), xfer->actlen,
+	    xfer->aframes);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
@@ -2569,4 +2557,4 @@ ugen_get32(u_long cmd, struct usb_fifo *f, struct usb_gen_descriptor32 *ugd32)
 
 #endif /* COMPAT_FREEBSD32 */
 
-#endif	/* USB_HAVE_UGEN */
+#endif /* USB_HAVE_UGEN */

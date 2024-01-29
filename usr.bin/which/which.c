@@ -26,20 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-static void	 usage(void);
-static int	 print_matches(char *, char *);
+static void usage(void);
+static int print_matches(char *, char *);
 
-static int 	 silent;
-static int 	 allpaths;
+static int silent;
+static int allpaths;
 
 int
 main(int argc, char **argv)
@@ -105,11 +105,10 @@ is_there(char *candidate)
 	struct stat fin;
 
 	/* XXX work around access(2) false positives for superuser */
-	if (access(candidate, X_OK) == 0 &&
-	    stat(candidate, &fin) == 0 &&
+	if (access(candidate, X_OK) == 0 && stat(candidate, &fin) == 0 &&
 	    S_ISREG(fin.st_mode) &&
 	    (getuid() != 0 ||
-	    (fin.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0)) {
+		(fin.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0)) {
 		if (!silent)
 			printf("%s\n", candidate);
 		return (1);
@@ -131,7 +130,7 @@ print_matches(char *path, char *filename)
 		if (*d == '\0')
 			d = ".";
 		if (snprintf(candidate, sizeof(candidate), "%s/%s", d,
-		    filename) >= (int)sizeof(candidate))
+			filename) >= (int)sizeof(candidate))
 			continue;
 		if (is_there(candidate)) {
 			found = 1;
@@ -141,4 +140,3 @@ print_matches(char *path, char *filename)
 	}
 	return (found ? 0 : -1);
 }
-

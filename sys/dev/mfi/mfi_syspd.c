@@ -31,58 +31,53 @@
  * official policies,either expressed or implied, of the FreeBSD Project.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mfi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/selinfo.h>
-#include <sys/sysctl.h>
-#include <sys/uio.h>
-
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/disk.h>
-#include <geom/geom_disk.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
+#include <sys/selinfo.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/md_var.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
+#include <machine/md_var.h>
 
-#include <dev/mfi/mfireg.h>
 #include <dev/mfi/mfi_ioctl.h>
+#include <dev/mfi/mfireg.h>
 #include <dev/mfi/mfivar.h>
 
-static int	mfi_syspd_probe(device_t dev);
-static int	mfi_syspd_attach(device_t dev);
-static int	mfi_syspd_detach(device_t dev);
+#include <geom/geom_disk.h>
 
-static disk_open_t	mfi_syspd_open;
-static disk_close_t	mfi_syspd_close;
-static disk_strategy_t	mfi_syspd_strategy;
-static dumper_t		mfi_syspd_dump;
+static int mfi_syspd_probe(device_t dev);
+static int mfi_syspd_attach(device_t dev);
+static int mfi_syspd_detach(device_t dev);
 
-static device_method_t mfi_syspd_methods[] = {
-	DEVMETHOD(device_probe,		mfi_syspd_probe),
-	DEVMETHOD(device_attach,	mfi_syspd_attach),
-	DEVMETHOD(device_detach,	mfi_syspd_detach),
-	{ 0, 0 }
-};
+static disk_open_t mfi_syspd_open;
+static disk_close_t mfi_syspd_close;
+static disk_strategy_t mfi_syspd_strategy;
+static dumper_t mfi_syspd_dump;
 
-static driver_t mfi_syspd_driver = {
-	"mfisyspd",
-	mfi_syspd_methods,
-	sizeof(struct mfi_system_pd)
-};
+static device_method_t mfi_syspd_methods[] = { DEVMETHOD(device_probe,
+						   mfi_syspd_probe),
+	DEVMETHOD(device_attach, mfi_syspd_attach),
+	DEVMETHOD(device_detach, mfi_syspd_detach), { 0, 0 } };
+
+static driver_t mfi_syspd_driver = { "mfisyspd", mfi_syspd_methods,
+	sizeof(struct mfi_system_pd) };
 
 DRIVER_MODULE(mfisyspd, mfi, mfi_syspd_driver, 0, 0);
 
@@ -114,20 +109,20 @@ mfi_syspd_attach(device_t dev)
 	secsize = MFI_SECTOR_LEN;
 	mtx_lock(&sc->pd_controller->mfi_io_lock);
 	TAILQ_INSERT_TAIL(&sc->pd_controller->mfi_syspd_tqh, sc, pd_link);
-	TAILQ_FOREACH(syspd_pend, &sc->pd_controller->mfi_syspd_pend_tqh,
+	TAILQ_FOREACH (syspd_pend, &sc->pd_controller->mfi_syspd_pend_tqh,
 	    pd_link) {
-		TAILQ_REMOVE(&sc->pd_controller->mfi_syspd_pend_tqh,
-		    syspd_pend, pd_link);
+		TAILQ_REMOVE(&sc->pd_controller->mfi_syspd_pend_tqh, syspd_pend,
+		    pd_link);
 		free(syspd_pend, M_MFIBUF);
 		break;
 	}
 	mtx_unlock(&sc->pd_controller->mfi_io_lock);
 	device_printf(dev, "%juMB (%ju sectors) SYSPD volume (deviceid: %d)\n",
-		      sectors / (1024 * 1024 / secsize), sectors, sc->pd_id);
+	    sectors / (1024 * 1024 / secsize), sectors, sc->pd_id);
 	sc->pd_disk = disk_alloc();
 	sc->pd_disk->d_drv1 = sc;
 	sc->pd_disk->d_maxsize = min(sc->pd_controller->mfi_max_io * secsize,
-		(sc->pd_controller->mfi_max_sge - 1) * PAGE_SIZE);
+	    (sc->pd_controller->mfi_max_sge - 1) * PAGE_SIZE);
 	sc->pd_disk->d_name = "mfisyspd";
 	sc->pd_disk->d_open = mfi_syspd_open;
 	sc->pd_disk->d_close = mfi_syspd_close;
@@ -160,9 +155,9 @@ mfi_syspd_detach(device_t dev)
 	device_printf(dev, "Detaching syspd\n");
 	mtx_lock(&sc->pd_controller->mfi_io_lock);
 	if (((sc->pd_disk->d_flags & DISKFLAG_OPEN) ||
-	    (sc->pd_flags & MFI_DISK_FLAGS_OPEN)) &&
+		(sc->pd_flags & MFI_DISK_FLAGS_OPEN)) &&
 	    (sc->pd_controller->mfi_keep_deleted_volumes ||
-	    sc->pd_controller->mfi_detaching)) {
+		sc->pd_controller->mfi_detaching)) {
 		mtx_unlock(&sc->pd_controller->mfi_io_lock);
 		device_printf(dev, "Cant detach syspd\n");
 		return (EBUSY);
@@ -274,8 +269,8 @@ mfi_syspd_dump(void *arg, void *virt, off_t offset, size_t len)
 	parent_sc = sc->pd_controller;
 
 	if (len > 0) {
-		if ((error = mfi_dump_syspd_blocks(parent_sc,
-		    sc->pd_id, offset / MFI_SECTOR_LEN, virt, len)) != 0)
+		if ((error = mfi_dump_syspd_blocks(parent_sc, sc->pd_id,
+			 offset / MFI_SECTOR_LEN, virt, len)) != 0)
 			return (error);
 	} else {
 		/* mfi_sync_cache(parent_sc, sc->ld_id); */

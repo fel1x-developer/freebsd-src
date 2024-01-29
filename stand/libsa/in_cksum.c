@@ -34,6 +34,7 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/endian.h>
 
 #include "stand.h"
@@ -82,6 +83,6 @@ in_cksum(void *p, int len)
 	if (oddbyte)
 		sum += v;
 	sum = (sum >> 16) + (sum & 0xffff); /* add in accumulated carries */
-	sum += sum >> 16;		/* add potential last carry */
+	sum += sum >> 16;		    /* add potential last carry */
 	return (0xffff & ~sum);
 }

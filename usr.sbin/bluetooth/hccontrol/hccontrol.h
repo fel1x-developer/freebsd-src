@@ -33,58 +33,57 @@
 #ifndef _HCCONTROL_H_
 #define _HCCONTROL_H_
 
-#define	OK			0	/* everything was OK */
-#define	ERROR			1	/* could not execute command */
-#define	FAILED			2	/* error was reported */
-#define	USAGE			3	/* invalid parameters */
+#define OK 0	 /* everything was OK */
+#define ERROR 1	 /* could not execute command */
+#define FAILED 2 /* error was reported */
+#define USAGE 3	 /* invalid parameters */
 
-#define	MAX_NODE_NUM		16	/* max number of nodes */
+#define MAX_NODE_NUM 16 /* max number of nodes */
 
 struct hci_command {
-	char const		*command;
-	char const		*description;
-	int			(*handler)(int, int, char **);
+	char const *command;
+	char const *description;
+	int (*handler)(int, int, char **);
 };
 
-extern int			 timeout;
-extern int			 verbose;
-extern struct hci_command	 link_control_commands[];
-extern struct hci_command	 link_policy_commands[];
-extern struct hci_command	 host_controller_baseband_commands[];
-extern struct hci_command	 info_commands[];
-extern struct hci_command	 status_commands[];
-extern struct hci_command	 node_commands[];
-extern struct hci_command	 le_commands[];
- 
-int                hci_request         (int, int, char const *, int, char *, int *);
-int                hci_simple_request  (int, int, char *, int *);
-int                hci_send            (int, char const *, int);
-int                hci_recv            (int, char *, int *);
+extern int timeout;
+extern int verbose;
+extern struct hci_command link_control_commands[];
+extern struct hci_command link_policy_commands[];
+extern struct hci_command host_controller_baseband_commands[];
+extern struct hci_command info_commands[];
+extern struct hci_command status_commands[];
+extern struct hci_command node_commands[];
+extern struct hci_command le_commands[];
 
-char const *	hci_link2str        (int);
-char const *	hci_pin2str         (int);
-char const *	hci_scan2str        (int);
-char const *	hci_encrypt2str     (int, int);
-char const *	hci_coding2str      (int);
-char const *	hci_vdata2str       (int);
-char const *	hci_hmode2str       (int, char *, int);
-char const *	hci_ver2str         (int);
-char const *	hci_lmpver2str      (int);
-char const *	hci_manufacturer2str(int);
-char const * 	hci_commands2str    (uint8_t *, char *, int);
-char const *	hci_features2str    (uint8_t *, char *, int);
-char const *	hci_le_features2str (uint8_t *, char *, int);
-char const *	hci_cc2str          (int);
-char const *	hci_con_state2str   (int);
-char const *	hci_status2str      (int);
-char const *	hci_bdaddr2str      (bdaddr_t const *);
-char const * 	hci_addrtype2str    (int type);
-char const *    hci_role2str        (int role);
-char const *    hci_mc_accuracy2str (int accuracy);
-char const * 	hci_le_chanmap2str  (uint8_t *, char *, int);
+int hci_request(int, int, char const *, int, char *, int *);
+int hci_simple_request(int, int, char *, int *);
+int hci_send(int, char const *, int);
+int hci_recv(int, char *, int *);
 
-void dump_adv_data(int len, uint8_t* advdata);
-void print_adv_data(int len, uint8_t* advdata);
+char const *hci_link2str(int);
+char const *hci_pin2str(int);
+char const *hci_scan2str(int);
+char const *hci_encrypt2str(int, int);
+char const *hci_coding2str(int);
+char const *hci_vdata2str(int);
+char const *hci_hmode2str(int, char *, int);
+char const *hci_ver2str(int);
+char const *hci_lmpver2str(int);
+char const *hci_manufacturer2str(int);
+char const *hci_commands2str(uint8_t *, char *, int);
+char const *hci_features2str(uint8_t *, char *, int);
+char const *hci_le_features2str(uint8_t *, char *, int);
+char const *hci_cc2str(int);
+char const *hci_con_state2str(int);
+char const *hci_status2str(int);
+char const *hci_bdaddr2str(bdaddr_t const *);
+char const *hci_addrtype2str(int type);
+char const *hci_role2str(int role);
+char const *hci_mc_accuracy2str(int accuracy);
+char const *hci_le_chanmap2str(uint8_t *, char *, int);
+
+void dump_adv_data(int len, uint8_t *advdata);
+void print_adv_data(int len, uint8_t *advdata);
 
 #endif /* _HCCONTROL_H_ */
-

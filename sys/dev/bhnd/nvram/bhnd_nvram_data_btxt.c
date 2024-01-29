@@ -33,9 +33,9 @@
 #ifdef _KERNEL
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #else /* !_KERNEL */
 
@@ -46,11 +46,9 @@
 
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
+#include "bhnd_nvram_data_bcmreg.h" /* for BCM_NVRAM_MAGIC */
 #include "bhnd_nvram_datavar.h"
-
-#include "bhnd_nvram_data_bcmreg.h"	/* for BCM_NVRAM_MAGIC */
+#include "bhnd_nvram_private.h"
 
 /**
  * Broadcom "Board Text" data class.
@@ -61,9 +59,9 @@
  */
 
 struct bhnd_nvram_btxt {
-	struct bhnd_nvram_data	 nv;	/**< common instance state */
-	struct bhnd_nvram_io	*data;	/**< memory-backed board text data */
-	size_t			 count;	/**< variable count */
+	struct bhnd_nvram_data nv;  /**< common instance state */
+	struct bhnd_nvram_io *data; /**< memory-backed board text data */
+	size_t count;		    /**< variable count */
 };
 
 BHND_NVRAM_DATA_CLASS_DEFN(btxt, "Broadcom Board Text",
@@ -71,30 +69,28 @@ BHND_NVRAM_DATA_CLASS_DEFN(btxt, "Broadcom Board Text",
 
 /** Minimal identification header */
 union bhnd_nvram_btxt_ident {
-	uint32_t	bcm_magic;
-	char		btxt[8];
+	uint32_t bcm_magic;
+	char btxt[8];
 };
 
-static void	*bhnd_nvram_btxt_offset_to_cookiep(struct bhnd_nvram_btxt *btxt,
-		 size_t io_offset);
-static size_t	 bhnd_nvram_btxt_cookiep_to_offset(struct bhnd_nvram_btxt *btxt,
-		     void *cookiep);
+static void *bhnd_nvram_btxt_offset_to_cookiep(struct bhnd_nvram_btxt *btxt,
+    size_t io_offset);
+static size_t bhnd_nvram_btxt_cookiep_to_offset(struct bhnd_nvram_btxt *btxt,
+    void *cookiep);
 
-static int	bhnd_nvram_btxt_entry_len(struct bhnd_nvram_io *io,
-		    size_t offset, size_t *line_len, size_t *env_len);
-static int	bhnd_nvram_btxt_seek_next(struct bhnd_nvram_io *io,
-		    size_t *offset);
-static int	bhnd_nvram_btxt_seek_eol(struct bhnd_nvram_io *io,
-		    size_t *offset);
+static int bhnd_nvram_btxt_entry_len(struct bhnd_nvram_io *io, size_t offset,
+    size_t *line_len, size_t *env_len);
+static int bhnd_nvram_btxt_seek_next(struct bhnd_nvram_io *io, size_t *offset);
+static int bhnd_nvram_btxt_seek_eol(struct bhnd_nvram_io *io, size_t *offset);
 
 static int
 bhnd_nvram_btxt_probe(struct bhnd_nvram_io *io)
 {
-	union bhnd_nvram_btxt_ident	ident;
-	char				c;
-	int				error;
+	union bhnd_nvram_btxt_ident ident;
+	char c;
+	int error;
 
-	/* Look at the initial header for something that looks like 
+	/* Look at the initial header for something that looks like
 	 * an ASCII board text file */
 	if ((error = bhnd_nvram_io_read(io, 0x0, &ident, sizeof(ident))))
 		return (error);
@@ -138,13 +134,13 @@ static int
 bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
     void *outp, size_t *olen, bhnd_nvram_type otype)
 {
-	char				 buf[512];
-	btxt_parse_state		 pstate;
-	size_t				 limit, offset;
-	size_t				 buflen, bufpos;
-	size_t				 namelen, namepos;
-	size_t				 vlen;
-	int				 error;
+	char buf[512];
+	btxt_parse_state pstate;
+	size_t limit, offset;
+	size_t buflen, bufpos;
+	size_t namelen, namepos;
+	size_t vlen;
+	int error;
 
 	limit = bhnd_nvram_io_getsize(io);
 	offset = 0;
@@ -185,8 +181,8 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			namepos = 0;
 
 			/* Trim any leading whitespace */
-			while (bufpos < buflen && bhnd_nv_isspace(buf[bufpos]))
-			{
+			while (
+			    bufpos < buflen && bhnd_nv_isspace(buf[bufpos])) {
 				bufpos++;
 			}
 
@@ -209,7 +205,8 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			nleft = namelen - namepos;
 			navail = bhnd_nv_ummin(buflen - bufpos, nleft);
 
-			if (strncmp(name+namepos, buf+bufpos, navail) == 0) {
+			if (strncmp(name + namepos, buf + bufpos, navail) ==
+			    0) {
 				/* Matched */
 				namepos += navail;
 				bufpos += navail;
@@ -251,9 +248,9 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			const char *p;
 
 			/* Scan for a '\r', '\n', or '\r\n' terminator */
-			p = memchr(buf+bufpos, '\n', buflen - bufpos);
+			p = memchr(buf + bufpos, '\n', buflen - bufpos);
 			if (p == NULL)
-				p = memchr(buf+bufpos, '\r', buflen - bufpos);
+				p = memchr(buf + bufpos, '\r', buflen - bufpos);
 
 			if (p != NULL) {
 				/* Found entry terminator; restart name
@@ -261,7 +258,7 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 				pstate = BTXT_PARSE_LINE_START;
 				bufpos = (p - buf);
 			} else {
-				/* Consumed full buffer looking for newline; 
+				/* Consumed full buffer looking for newline;
 				 * force repopulation of the buffer and
 				 * retry */
 				pstate = BTXT_PARSE_NEXT_LINE;
@@ -275,9 +272,9 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			const char *p;
 
 			/* Scan for a terminating newline */
-			p = memchr(buf+bufpos, '\n', buflen - bufpos);
+			p = memchr(buf + bufpos, '\n', buflen - bufpos);
 			if (p == NULL)
-				p = memchr(buf+bufpos, '\r', buflen - bufpos);
+				p = memchr(buf + bufpos, '\r', buflen - bufpos);
 
 			if (p != NULL) {
 				/* Found entry terminator; parse the value */
@@ -291,11 +288,11 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 				pstate = BTXT_PARSE_VALUE;
 
 			} else if (p == NULL && bufpos > 0) {
-				size_t	nread;
+				size_t nread;
 
 				/* Move existing value data to start of
 				 * buffer */
-				memmove(buf, buf+bufpos, buflen - bufpos);
+				memmove(buf, buf + bufpos, buflen - bufpos);
 				buflen = bufpos;
 				bufpos = 0;
 
@@ -305,7 +302,7 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 				    limit - offset);
 
 				error = bhnd_nvram_io_read(io, offset,
-				    buf+buflen, nread);
+				    buf + buflen, nread);
 				if (error)
 					return (error);
 
@@ -314,8 +311,8 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			} else {
 				/* Value exceeds our buffer capacity */
 				BHND_NV_LOG("cannot parse value for '%s' "
-				    "(exceeds %zu byte limit)\n", name,
-				    sizeof(buf));
+					    "(exceeds %zu byte limit)\n",
+				    name, sizeof(buf));
 
 				return (ENXIO);
 			}
@@ -327,11 +324,12 @@ bhnd_nvram_btxt_getvar_direct(struct bhnd_nvram_io *io, const char *name,
 			BHND_NV_ASSERT(vlen <= buflen, ("value buf overrun"));
 
 			/* Trim any trailing whitespace */
-			while (vlen > 0 && bhnd_nv_isspace(buf[bufpos+vlen-1]))
+			while (
+			    vlen > 0 && bhnd_nv_isspace(buf[bufpos + vlen - 1]))
 				vlen--;
 
 			/* Write the value to the caller's buffer */
-			return (bhnd_nvram_value_coerce(buf+bufpos, vlen,
+			return (bhnd_nvram_value_coerce(buf + bufpos, vlen,
 			    BHND_NVRAM_TYPE_STRING, outp, olen, otype));
 		}
 	}
@@ -344,9 +342,9 @@ static int
 bhnd_nvram_btxt_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
     bhnd_nvram_plist *options, void *outp, size_t *olen)
 {
-	bhnd_nvram_prop	*prop;
-	size_t		 limit, nbytes;
-	int		 error;
+	bhnd_nvram_prop *prop;
+	size_t limit, nbytes;
+	int error;
 
 	/* Determine output byte limit */
 	if (outp != NULL)
@@ -359,10 +357,10 @@ bhnd_nvram_btxt_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	/* Write all properties */
 	prop = NULL;
 	while ((prop = bhnd_nvram_plist_next(props, prop)) != NULL) {
-		const char	*name;
-		char		*p;
-		size_t		 prop_limit;
-		size_t		 name_len, value_len;
+		const char *name;
+		char *p;
+		size_t prop_limit;
+		size_t name_len, value_len;
 
 		if (outp == NULL || limit < nbytes) {
 			p = NULL;
@@ -400,8 +398,9 @@ bhnd_nvram_btxt_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 		    BHND_NVRAM_TYPE_STRING);
 		if (p != NULL && error == 0) {
 			/* Replace trailing '\0' with newline */
-			BHND_NV_ASSERT(value_len > 0, ("string length missing "
-			    "minimum required trailing NUL"));
+			BHND_NV_ASSERT(value_len > 0,
+			    ("string length missing "
+			     "minimum required trailing NUL"));
 
 			*(p + (value_len - 1)) = '\n';
 		} else if (error && error != ENOMEM) {
@@ -409,8 +408,8 @@ bhnd_nvram_btxt_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 			 * (which we'll detect and report after encoding all
 			 * properties), return immediately */
 			BHND_NV_LOG("error serializing %s to required type "
-			    "%s: %d\n", name,
-			    bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
+				    "%s: %d\n",
+			    name, bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
 			    error);
 			return (error);
 		}
@@ -436,18 +435,18 @@ bhnd_nvram_btxt_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 
 /**
  * Initialize @p btxt with the provided board text data mapped by @p src.
- * 
+ *
  * @param btxt A newly allocated data instance.
  */
 static int
 bhnd_nvram_btxt_init(struct bhnd_nvram_btxt *btxt, struct bhnd_nvram_io *src)
 {
-	const void		*ptr;
-	const char		*name, *value;
-	size_t			 name_len, value_len;
-	size_t			 line_len, env_len;
-	size_t			 io_offset, io_size, str_size;
-	int			 error;
+	const void *ptr;
+	const char *name, *value;
+	size_t name_len, value_len;
+	size_t line_len, env_len;
+	size_t io_offset, io_size, str_size;
+	int error;
 
 	BHND_NV_ASSERT(btxt->data == NULL, ("btxt data already allocated"));
 
@@ -480,7 +479,7 @@ bhnd_nvram_btxt_init(struct bhnd_nvram_btxt *btxt, struct bhnd_nvram_io *src)
 	/* Process the buffer */
 	btxt->count = 0;
 	while (io_offset < io_size) {
-		const void	*envp;
+		const void *envp;
 
 		/* Seek to the next key=value entry */
 		if ((error = bhnd_nvram_btxt_seek_next(btxt->data, &io_offset)))
@@ -495,8 +494,8 @@ bhnd_nvram_btxt_init(struct bhnd_nvram_btxt *btxt, struct bhnd_nvram_io *src)
 		/* EOF? */
 		if (env_len == 0) {
 			BHND_NV_ASSERT(io_offset == io_size,
-		           ("zero-length record returned from "
-			    "bhnd_nvram_btxt_seek_next()"));
+			    ("zero-length record returned from "
+			     "bhnd_nvram_btxt_seek_next()"));
 			break;
 		}
 
@@ -516,8 +515,8 @@ bhnd_nvram_btxt_init(struct bhnd_nvram_btxt *btxt, struct bhnd_nvram_io *src)
 		/* Insert a '\0' character, replacing the '=' delimiter and
 		 * allowing us to vend references directly to the variable
 		 * name */
-		error = bhnd_nvram_io_write(btxt->data, io_offset+name_len,
-		    &(char){'\0'}, 1);
+		error = bhnd_nvram_io_write(btxt->data, io_offset + name_len,
+		    &(char) { '\0' }, 1);
 		if (error)
 			return (error);
 
@@ -534,8 +533,8 @@ bhnd_nvram_btxt_init(struct bhnd_nvram_btxt *btxt, struct bhnd_nvram_io *src)
 static int
 bhnd_nvram_btxt_new(struct bhnd_nvram_data *nv, struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_btxt	*btxt;
-	int			 error;
+	struct bhnd_nvram_btxt *btxt;
+	int error;
 
 	/* Allocate and initialize the BTXT data instance */
 	btxt = (struct bhnd_nvram_btxt *)nv;
@@ -574,7 +573,7 @@ bhnd_nvram_btxt_options(struct bhnd_nvram_data *nv)
 static uint32_t
 bhnd_nvram_btxt_caps(struct bhnd_nvram_data *nv)
 {
-	return (BHND_NVRAM_DATA_CAP_READ_PTR|BHND_NVRAM_DATA_CAP_DEVPATHS);
+	return (BHND_NVRAM_DATA_CAP_READ_PTR | BHND_NVRAM_DATA_CAP_DEVPATHS);
 }
 
 static void *
@@ -586,10 +585,10 @@ bhnd_nvram_btxt_find(struct bhnd_nvram_data *nv, const char *name)
 static const char *
 bhnd_nvram_btxt_next(struct bhnd_nvram_data *nv, void **cookiep)
 {
-	struct bhnd_nvram_btxt	*btxt;
-	const void		*nptr;
-	size_t			 io_offset, io_size;
-	int			 error;
+	struct bhnd_nvram_btxt *btxt;
+	const void *nptr;
+	size_t io_offset, io_size;
+	int error;
 
 	btxt = (struct bhnd_nvram_btxt *)nv;
 
@@ -670,12 +669,12 @@ const void *
 bhnd_nvram_btxt_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
     size_t *len, bhnd_nvram_type *type)
 {
-	struct bhnd_nvram_btxt	*btxt;
-	const void		*eptr;
-	const char		*vptr;
-	size_t			 io_offset, io_size;
-	size_t			 line_len, env_len;
-	int			 error;
+	struct bhnd_nvram_btxt *btxt;
+	const void *eptr;
+	const char *vptr;
+	size_t io_offset, io_size;
+	size_t line_len, env_len;
+	int error;
 
 	btxt = (struct bhnd_nvram_btxt *)nv;
 
@@ -718,10 +717,10 @@ bhnd_nvram_btxt_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
 static const char *
 bhnd_nvram_btxt_getvar_name(struct bhnd_nvram_data *nv, void *cookiep)
 {
-	struct bhnd_nvram_btxt	*btxt;
-	const void		*ptr;
-	size_t			 io_offset, io_size;
-	int			 error;
+	struct bhnd_nvram_btxt *btxt;
+	const void *ptr;
+	size_t io_offset, io_size;
+	int error;
 
 	btxt = (struct bhnd_nvram_btxt *)nv;
 
@@ -748,8 +747,8 @@ static void *
 bhnd_nvram_btxt_offset_to_cookiep(struct bhnd_nvram_btxt *btxt,
     size_t io_offset)
 {
-	const void	*ptr;
-	int		 error;
+	const void *ptr;
+	int error;
 
 	BHND_NV_ASSERT(io_offset < bhnd_nvram_io_getsize(btxt->data),
 	    ("io_offset %zu out-of-range", io_offset));
@@ -768,10 +767,10 @@ bhnd_nvram_btxt_offset_to_cookiep(struct bhnd_nvram_btxt *btxt,
 static size_t
 bhnd_nvram_btxt_cookiep_to_offset(struct bhnd_nvram_btxt *btxt, void *cookiep)
 {
-	const void	*ptr;
-	intptr_t	 offset;
-	size_t		 io_size;
-	int		 error;
+	const void *ptr;
+	intptr_t offset;
+	size_t io_size;
+	int error;
 
 	BHND_NV_ASSERT(cookiep != NULL, ("null cookiep"));
 
@@ -794,10 +793,10 @@ static int
 bhnd_nvram_btxt_entry_len(struct bhnd_nvram_io *io, size_t offset,
     size_t *line_len, size_t *env_len)
 {
-	const uint8_t	*baseptr, *p;
-	const void	*rbuf;
-	size_t		 nbytes;
-	int		 error;
+	const uint8_t *baseptr, *p;
+	const void *rbuf;
+	size_t nbytes;
+	int error;
 
 	/* Fetch read buffer */
 	if ((error = bhnd_nvram_io_read_ptr(io, offset, &rbuf, 0, &nbytes)))
@@ -833,10 +832,10 @@ bhnd_nvram_btxt_entry_len(struct bhnd_nvram_io *io, size_t offset,
 static int
 bhnd_nvram_btxt_seek_eol(struct bhnd_nvram_io *io, size_t *offset)
 {
-	const uint8_t	*baseptr, *p;
-	const void	*rbuf;
-	size_t		 nbytes;
-	int		 error;
+	const uint8_t *baseptr, *p;
+	const void *rbuf;
+	size_t nbytes;
+	int error;
 
 	/* Fetch read buffer */
 	if ((error = bhnd_nvram_io_read_ptr(io, *offset, &rbuf, 0, &nbytes)))
@@ -873,10 +872,10 @@ bhnd_nvram_btxt_seek_eol(struct bhnd_nvram_io *io, size_t *offset)
 static int
 bhnd_nvram_btxt_seek_next(struct bhnd_nvram_io *io, size_t *offset)
 {
-	const uint8_t	*baseptr, *p;
-	const void	*rbuf;
-	size_t		 nbytes;
-	int		 error;
+	const uint8_t *baseptr, *p;
+	const void *rbuf;
+	size_t nbytes;
+	int error;
 
 	/* Fetch read buffer */
 	if ((error = bhnd_nvram_io_read_ptr(io, *offset, &rbuf, 0, &nbytes)))
@@ -917,11 +916,11 @@ static int
 bhnd_nvram_btxt_filter_setvar(struct bhnd_nvram_data *nv, const char *name,
     bhnd_nvram_val *value, bhnd_nvram_val **result)
 {
-	bhnd_nvram_val	*str;
-	const char	*inp;
-	bhnd_nvram_type	 itype;
-	size_t		 ilen;
-	int		 error;
+	bhnd_nvram_val *str;
+	const char *inp;
+	bhnd_nvram_type itype;
+	size_t ilen;
+	int error;
 
 	/* Name (trimmed of any path prefix) must be valid */
 	if (!bhnd_nvram_validate_name(bhnd_nvram_trim_path_name(name)))

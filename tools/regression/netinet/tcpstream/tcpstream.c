@@ -37,7 +37,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -45,8 +44,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	MAX_LOOPS	10240
-#define	MAX_LONGS	1024
+#define MAX_LOOPS 10240
+#define MAX_LONGS 1024
 
 static void
 usage(void)
@@ -91,7 +90,7 @@ tcpstream_client(struct sockaddr_in sin, long seed)
 	if (sock == -1)
 		errx(-1, "socket: %s", strerror(errno));
 
-	if (connect(sock, (struct sockaddr *) &sin, sizeof(sin)) == -1)
+	if (connect(sock, (struct sockaddr *)&sin, sizeof(sin)) == -1)
 		errx(-1, "connect: %s", strerror(errno));
 
 	for (j = 0; j < MAX_LOOPS; j++) {
@@ -99,8 +98,8 @@ tcpstream_client(struct sockaddr_in sin, long seed)
 			fill_buffer(buffer, i);
 			len = send(sock, buffer, i * sizeof(long), 0);
 			if (len == -1) {
-				printf("%d bytes written of %d expected\n",
-				    len, i * sizeof(long));
+				printf("%d bytes written of %d expected\n", len,
+				    i * sizeof(long));
 				fflush(stdout);
 				perror("send");
 				goto done;
@@ -137,8 +136,8 @@ tcpstream_server(struct sockaddr_in sin, long seed)
 		bzero(&other_sin, sizeof(other_sin));
 		addrlen = sizeof(other_sin);
 
-		accept_sock = accept(listen_sock, (struct sockaddr *)
-		    &other_sin, &addrlen);
+		accept_sock = accept(listen_sock, (struct sockaddr *)&other_sin,
+		    &addrlen);
 		if (accept_sock == -1) {
 			perror("accept");
 			continue;
@@ -159,16 +158,17 @@ tcpstream_server(struct sockaddr_in sin, long seed)
 				}
 				if (check_buffer(buffer, i) == 0) {
 					fprintf(stderr,
-    "Corruption in block beginning %d and ending %d\n", input_byte_counter,
-    input_byte_counter + len);
-					fprintf(stderr,
-    "Block size %d\n", i * sizeof(long));
+					    "Corruption in block beginning %d and ending %d\n",
+					    input_byte_counter,
+					    input_byte_counter + len);
+					fprintf(stderr, "Block size %d\n",
+					    i * sizeof(long));
 					goto done;
 				}
 				input_byte_counter += len;
 			}
 		}
-done:
+	done:
 		printf("connection closed\n");
 		close(accept_sock);
 	}

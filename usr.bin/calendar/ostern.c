@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,12 +46,12 @@
 int
 easter(int year) /* 0 ... abcd, NOT since 1900 */
 {
-	int G,	/* Golden number - 1 */
-	    C,	/* Century */
-	    H,	/* 23 - epact % 30 */
-	    I,	/* days from 21 March to Paschal full moon */
-	    J,	/* weekday of full moon */
-	    L;	/* days from 21 March to Sunday on of before full moon */
+	int G, /* Golden number - 1 */
+	    C, /* Century */
+	    H, /* 23 - epact % 30 */
+	    I, /* days from 21 March to Paschal full moon */
+	    J, /* weekday of full moon */
+	    L; /* days from 21 March to Sunday on of before full moon */
 
 	G = year % 19;
 	C = year / 100;

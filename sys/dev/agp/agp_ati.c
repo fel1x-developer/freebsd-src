@@ -30,49 +30,50 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-
-#include <dev/agp/agppriv.h>
-#include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_object.h>
-#include <vm/pmap.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
+
+#include <dev/agp/agppriv.h>
+#include <dev/agp/agpreg.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 MALLOC_DECLARE(M_AGP);
 
-#define READ4(off)	bus_space_read_4(sc->bst, sc->bsh, off)
-#define WRITE4(off,v)	bus_space_write_4(sc->bst, sc->bsh, off, v)
+#define READ4(off) bus_space_read_4(sc->bst, sc->bsh, off)
+#define WRITE4(off, v) bus_space_write_4(sc->bst, sc->bsh, off, v)
 
 struct agp_ati_softc {
 	struct agp_softc agp;
-	struct resource *regs;	/* memory mapped control registers */
-	bus_space_tag_t bst;	/* bus_space tag */
-	bus_space_handle_t bsh;	/* bus_space handle */
-	u_int32_t	initial_aperture; /* aperture size at startup */
-	char		is_rs300;
+	struct resource *regs;	    /* memory mapped control registers */
+	bus_space_tag_t bst;	    /* bus_space tag */
+	bus_space_handle_t bsh;	    /* bus_space handle */
+	u_int32_t initial_aperture; /* aperture size at startup */
+	char is_rs300;
 
 	/* The GATT */
-	u_int32_t	ag_entries;
-	u_int32_t      *ag_virtual;	/* virtual address of gatt */
-	u_int32_t      *ag_vdir;	/* virtual address of page dir */
-	vm_offset_t	ag_pdir;	/* physical address of page dir */
+	u_int32_t ag_entries;
+	u_int32_t *ag_virtual; /* virtual address of gatt */
+	u_int32_t *ag_vdir;    /* virtual address of page dir */
+	vm_offset_t ag_pdir;   /* physical address of page dir */
 };
 
-static const char*
+static const char *
 agp_ati_match(device_t dev)
 {
 	if (pci_get_class(dev) != PCIC_BRIDGE ||
@@ -138,8 +139,8 @@ agp_ati_alloc_gatt(device_t dev)
 	}
 
 	/* Alloc the page directory -- pointers to each page of the GATT */
-	sc->ag_vdir = kmem_alloc_attr(AGP_PAGE_SIZE, M_NOWAIT | M_ZERO,
-	    0, ~0, VM_MEMATTR_WRITE_COMBINING);
+	sc->ag_vdir = kmem_alloc_attr(AGP_PAGE_SIZE, M_NOWAIT | M_ZERO, 0, ~0,
+	    VM_MEMATTR_WRITE_COMBINING);
 	if (sc->ag_vdir == NULL) {
 		if (bootverbose)
 			device_printf(dev, "pagedir allocation failed\n");
@@ -227,7 +228,7 @@ agp_ati_attach(device_t dev)
 
 	WRITE4(ATI_GART_FEATURE_ID, 0x00060000);
 
-	temp = pci_read_config(dev, 4, 4);	/* XXX: Magic reg# */
+	temp = pci_read_config(dev, 4, 4); /* XXX: Magic reg# */
 	pci_write_config(dev, 4, temp | (1 << 14), 4);
 
 	WRITE4(ATI_GART_BASE, sc->ag_pdir);
@@ -344,25 +345,24 @@ agp_ati_flush_tlb(device_t dev)
 
 static device_method_t agp_ati_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_ati_probe),
-	DEVMETHOD(device_attach,	agp_ati_attach),
-	DEVMETHOD(device_detach,	agp_ati_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_ati_probe),
+	DEVMETHOD(device_attach, agp_ati_attach),
+	DEVMETHOD(device_detach, agp_ati_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_ati_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_ati_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_ati_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_ati_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_ati_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_ati_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_ati_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_ati_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_ati_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_ati_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_ati_driver = {

@@ -25,39 +25,35 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/hyperv/include/hyperv.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "acpi_if.h"
 #include "bus_if.h"
 
-static int		vmbus_res_probe(device_t);
-static int		vmbus_res_attach(device_t);
-static int		vmbus_res_detach(device_t);
+static int vmbus_res_probe(device_t);
+static int vmbus_res_attach(device_t);
+static int vmbus_res_detach(device_t);
 
 static device_method_t vmbus_res_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			vmbus_res_probe),
-	DEVMETHOD(device_attach,		vmbus_res_attach),
-	DEVMETHOD(device_detach,		vmbus_res_detach),
-	DEVMETHOD(device_shutdown,		bus_generic_shutdown),
-	DEVMETHOD(device_suspend,		bus_generic_suspend),
-	DEVMETHOD(device_resume,		bus_generic_resume),
+	DEVMETHOD(device_probe, vmbus_res_probe),
+	DEVMETHOD(device_attach, vmbus_res_attach),
+	DEVMETHOD(device_detach, vmbus_res_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	DEVMETHOD_END
 };
 
-static driver_t vmbus_res_driver = {
-	"vmbus_res",
-	vmbus_res_methods,
-	1
-};
+static driver_t vmbus_res_driver = { "vmbus_res", vmbus_res_methods, 1 };
 
 DRIVER_MODULE(vmbus_res, acpi, vmbus_res_driver, NULL, NULL);
 MODULE_DEPEND(vmbus_res, acpi, 1, 1, 1);
@@ -68,7 +64,7 @@ vmbus_res_probe(device_t dev)
 {
 	char *id[] = { "VMBUS", NULL };
 	int rv;
-	
+
 	if (device_get_unit(dev) != 0 || vm_guest != VM_GUEST_HV ||
 	    (hyperv_features & CPUID_HV_MSR_SYNIC) == 0)
 		return (ENXIO);

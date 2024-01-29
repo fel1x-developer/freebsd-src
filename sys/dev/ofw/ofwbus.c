@@ -39,13 +39,13 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
-#include <dev/fdt/simplebus.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
 
 /*
  * The ofwbus (which is a pseudo-bus actually) iterates over the nodes that
@@ -62,13 +62,13 @@ static bus_release_resource_t ofwbus_release_resource;
 
 static device_method_t ofwbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofwbus_probe),
-	DEVMETHOD(device_attach,	ofwbus_attach),
+	DEVMETHOD(device_probe, ofwbus_probe),
+	DEVMETHOD(device_attach, ofwbus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	ofwbus_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_adjust_resource),
-	DEVMETHOD(bus_release_resource,	ofwbus_release_resource),
+	DEVMETHOD(bus_alloc_resource, ofwbus_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_release_resource, ofwbus_release_resource),
 
 	DEVMETHOD_END
 };
@@ -144,8 +144,10 @@ ofwbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		    type, *rid);
 		if (rle == NULL) {
 			if (bootverbose)
-				device_printf(bus, "no default resources for "
-				    "rid = %d, type = %d\n", *rid, type);
+				device_printf(bus,
+				    "no default resources for "
+				    "rid = %d, type = %d\n",
+				    *rid, type);
 			return (NULL);
 		}
 		start = rle->start;
@@ -170,8 +172,8 @@ ofwbus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 }
 
 static int
-ofwbus_release_resource(device_t bus, device_t child, int type,
-    int rid, struct resource *r)
+ofwbus_release_resource(device_t bus, device_t child, int type, int rid,
+    struct resource *r)
 {
 	struct resource_list_entry *rle;
 	bool passthrough;

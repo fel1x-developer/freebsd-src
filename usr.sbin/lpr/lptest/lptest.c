@@ -30,10 +30,11 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
-#include <stdlib.h>
-#include <stdio.h>
 #include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 
 /*
  * lptest -- line printer test program (and other devices).
@@ -68,6 +69,6 @@ main(int argc, char **argv)
 		if (putchar('\n') == EOF)
 			err(1, "Write error");
 	}
-	(void) fflush(stdout);
+	(void)fflush(stdout);
 	exit(0);
 }

@@ -37,16 +37,17 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/ktr.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/bus.h>
 
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
@@ -54,12 +55,15 @@
 
 #include <powerpc/mpc85xx/mpc85xx.h>
 
-#include "ofw_bus_if.h"
 #include "lbc.h"
+#include "ofw_bus_if.h"
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
@@ -73,11 +77,10 @@ static int lbc_map_resource(device_t, device_t, int, struct resource *,
     struct resource_map_request *, struct resource_map *);
 static int lbc_unmap_resource(device_t, device_t, int, struct resource *,
     struct resource_map *map);
-static int lbc_activate_resource(device_t bus, device_t child,
-    int type, int rid, struct resource *r);
-static int lbc_deactivate_resource(device_t bus,
-    device_t child, int type __unused, int rid,
-    struct resource *r);
+static int lbc_activate_resource(device_t bus, device_t child, int type,
+    int rid, struct resource *r);
+static int lbc_deactivate_resource(device_t bus, device_t child,
+    int type __unused, int rid, struct resource *r);
 static struct rman *lbc_get_rman(device_t, int, u_int);
 static struct resource *lbc_alloc_resource(device_t, device_t, int, int *,
     rman_res_t, rman_res_t, rman_res_t, u_int);
@@ -93,39 +96,34 @@ static const struct ofw_bus_devinfo *lbc_get_devinfo(device_t, device_t);
  */
 static device_method_t lbc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		lbc_probe),
-	DEVMETHOD(device_attach,	lbc_attach),
-	DEVMETHOD(device_shutdown,	lbc_shutdown),
+	DEVMETHOD(device_probe, lbc_probe),
+	DEVMETHOD(device_attach, lbc_attach),
+	DEVMETHOD(device_shutdown, lbc_shutdown),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	lbc_print_child),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	NULL),
+	DEVMETHOD(bus_print_child, lbc_print_child),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, NULL),
 
-	DEVMETHOD(bus_get_rman,		lbc_get_rman),
-	DEVMETHOD(bus_alloc_resource,	lbc_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	lbc_adjust_resource),
-	DEVMETHOD(bus_release_resource,	lbc_release_resource),
+	DEVMETHOD(bus_get_rman, lbc_get_rman),
+	DEVMETHOD(bus_alloc_resource, lbc_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, lbc_adjust_resource),
+	DEVMETHOD(bus_release_resource, lbc_release_resource),
 	DEVMETHOD(bus_activate_resource, lbc_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, lbc_deactivate_resource),
-	DEVMETHOD(bus_map_resource,	lbc_map_resource),
-	DEVMETHOD(bus_unmap_resource,	lbc_unmap_resource),
+	DEVMETHOD(bus_map_resource, lbc_map_resource),
+	DEVMETHOD(bus_unmap_resource, lbc_unmap_resource),
 
 	/* OFW bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	lbc_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
-	{ 0, 0 }
+	DEVMETHOD(ofw_bus_get_devinfo, lbc_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type), { 0, 0 }
 };
 
-static driver_t lbc_driver = {
-	"lbc",
-	lbc_methods,
-	sizeof(struct lbc_softc)
-};
+static driver_t lbc_driver = { "lbc", lbc_methods, sizeof(struct lbc_softc) };
 
 EARLY_DRIVER_MODULE(lbc, ofwbus, lbc_driver, 0, 0, BUS_PASS_BUS);
 
@@ -215,7 +213,7 @@ lbc_banks_map(struct lbc_softc *sc)
 			while (r < ranges && sc->sc_range[r].addr < start)
 				r++;
 			for (s = ranges; s > r; s--)
-				sc->sc_range[s] = sc->sc_range[s-1];
+				sc->sc_range[s] = sc->sc_range[s - 1];
 			sc->sc_range[r].addr = start;
 			sc->sc_range[r].size = size;
 			ranges++;
@@ -229,13 +227,13 @@ lbc_banks_map(struct lbc_softc *sc)
 	r = 0;
 	while (r < ranges - 1) {
 		end = sc->sc_range[r].addr + sc->sc_range[r].size;
-		if (end != sc->sc_range[r+1].addr) {
+		if (end != sc->sc_range[r + 1].addr) {
 			r++;
 			continue;
 		}
-		sc->sc_range[r].size += sc->sc_range[r+1].size;
+		sc->sc_range[r].size += sc->sc_range[r + 1].size;
 		for (s = r + 1; s < ranges - 1; s++)
-			sc->sc_range[s] = sc->sc_range[s+1];
+			sc->sc_range[s] = sc->sc_range[s + 1];
 		bzero(&sc->sc_range[s], sizeof(sc->sc_range[s]));
 		ranges--;
 	}
@@ -314,8 +312,8 @@ lbc_banks_enable(struct lbc_softc *sc)
 		regval |= (sc->sc_banks[i].msel << 5);
 		regval |= (sc->sc_banks[i].atom << 2);
 		regval |= 1;
-		bus_space_write_4(sc->sc_bst, sc->sc_bsh,
-		    LBC85XX_BR(i), regval);
+		bus_space_write_4(sc->sc_bst, sc->sc_bsh, LBC85XX_BR(i),
+		    regval);
 
 		/*
 		 * Compute and program OR value.
@@ -337,8 +335,8 @@ lbc_banks_enable(struct lbc_softc *sc)
 			error = ENOSYS;
 			goto fail;
 		}
-		bus_space_write_4(sc->sc_bst, sc->sc_bsh,
-		    LBC85XX_OR(i), regval);
+		bus_space_write_4(sc->sc_bst, sc->sc_bsh, LBC85XX_OR(i),
+		    regval);
 	}
 
 	return (0);
@@ -366,8 +364,7 @@ fdt_lbc_fixup(phandle_t node, struct lbc_softc *sc, struct lbc_devinfo *di)
 }
 
 static int
-fdt_lbc_reg_decode(phandle_t node, struct lbc_softc *sc,
-    struct lbc_devinfo *di)
+fdt_lbc_reg_decode(phandle_t node, struct lbc_softc *sc, struct lbc_devinfo *di)
 {
 	rman_res_t start, end, count;
 	pcell_t *reg, *regptr;
@@ -410,11 +407,12 @@ fdt_lbc_reg_decode(phandle_t node, struct lbc_softc *sc,
 		end = start + count - 1;
 
 		debugf("reg addr bank = %d, start = %jx, end = %jx, "
-		    "count = %jx\n", bank, start, end, count);
+		       "count = %jx\n",
+		    bank, start, end, count);
 
 		/* Use bank (CS) cell as rid. */
-		resource_list_add(&di->di_res, SYS_RES_MEMORY, bank, start,
-		    end, count);
+		resource_list_add(&di->di_res, SYS_RES_MEMORY, bank, start, end,
+		    count);
 	}
 	rv = 0;
 	OF_prop_free(regptr);
@@ -438,7 +436,7 @@ lbc_probe(device_t dev)
 {
 
 	if (!(ofw_bus_is_compatible(dev, "fsl,lbc") ||
-	    ofw_bus_is_compatible(dev, "fsl,elbc")))
+		ofw_bus_is_compatible(dev, "fsl,elbc")))
 		return (ENXIO);
 
 	device_set_desc(dev, "Freescale Local Bus Controller");
@@ -536,7 +534,7 @@ lbc_attach(device_t dev)
 	 */
 	node = ofw_bus_get_node(dev);
 	if ((fdt_addrsize_cells(node, &sc->sc_addr_cells,
-	    &sc->sc_size_cells)) != 0) {
+		&sc->sc_size_cells)) != 0) {
 		error = ENXIO;
 		goto fail;
 	}
@@ -547,8 +545,8 @@ lbc_attach(device_t dev)
 		error = ERANGE;
 		goto fail;
 	}
-	tuple_size = sizeof(pcell_t) * (sc->sc_addr_cells + par_addr_cells +
-	    sc->sc_size_cells);
+	tuple_size = sizeof(pcell_t) *
+	    (sc->sc_addr_cells + par_addr_cells + sc->sc_size_cells);
 
 	tuples = OF_getencprop_alloc_multi(node, "ranges", tuple_size,
 	    (void **)&ranges);
@@ -560,8 +558,9 @@ lbc_attach(device_t dev)
 	rangesptr = ranges;
 
 	debugf("par addr_cells = %d, addr_cells = %d, size_cells = %d, "
-	    "tuple_size = %d, tuples = %d\n", par_addr_cells,
-	    sc->sc_addr_cells, sc->sc_size_cells, tuple_size, tuples);
+	       "tuple_size = %d, tuples = %d\n",
+	    par_addr_cells, sc->sc_addr_cells, sc->sc_size_cells, tuple_size,
+	    tuples);
 
 	start = 0;
 	size = 0;
@@ -637,7 +636,8 @@ lbc_attach(device_t dev)
 		resource_list_init(&di->di_res);
 
 		if (fdt_lbc_reg_decode(child, sc, di)) {
-			device_printf(dev, "could not process 'reg' "
+			device_printf(dev,
+			    "could not process 'reg' "
 			    "property\n");
 			ofw_bus_gen_destroy_devinfo(&di->di_ofw);
 			free(di, M_LBC);
@@ -680,7 +680,7 @@ lbc_shutdown(device_t dev)
 {
 
 	/* TODO */
-	return(0);
+	return (0);
 }
 
 static struct rman *
@@ -730,8 +730,10 @@ lbc_alloc_resource(device_t bus, device_t child, int type, int *rid,
 
 	rle = resource_list_find(&di->di_res, type, *rid);
 	if (rle == NULL) {
-		device_printf(bus, "no default resources for "
-		    "rid = %d, type = %d\n", *rid, type);
+		device_printf(bus,
+		    "no default resources for "
+		    "rid = %d, type = %d\n",
+		    *rid, type);
 		return (NULL);
 	}
 	start = rle->start;
@@ -788,8 +790,8 @@ lbc_release_resource(device_t dev, device_t child, int type, int rid,
 		type = SYS_RES_MEMORY;
 		/* FALLTHROUGH */
 	case SYS_RES_MEMORY:
-		return (bus_generic_rman_release_resource(dev, child, type,
-		    rid, res));
+		return (bus_generic_rman_release_resource(dev, child, type, rid,
+		    res));
 	case SYS_RES_IRQ:
 		return (bus_release_resource(dev, type, rid, res));
 	default:
@@ -900,8 +902,8 @@ lbc_write_reg(device_t child, u_int off, uint32_t val)
 	dev = device_get_parent(child);
 
 	if (off >= 0x1000) {
-		device_printf(dev, "%s(%s): invalid offset %#x\n",
-		    __func__, device_get_nameunit(child), off);
+		device_printf(dev, "%s(%s): invalid offset %#x\n", __func__,
+		    device_get_nameunit(child), off);
 		return;
 	}
 
@@ -927,8 +929,8 @@ lbc_read_reg(device_t child, u_int off)
 	dev = device_get_parent(child);
 
 	if (off >= 0x1000) {
-		device_printf(dev, "%s(%s): invalid offset %#x\n",
-		    __func__, device_get_nameunit(child), off);
+		device_printf(dev, "%s(%s): invalid offset %#x\n", __func__,
+		    device_get_nameunit(child), off);
 		return (~0U);
 	}
 

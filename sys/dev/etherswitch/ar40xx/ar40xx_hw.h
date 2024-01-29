@@ -24,19 +24,18 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_H__
-#define	__AR40XX_HW_H__
+#ifndef __AR40XX_HW_H__
+#define __AR40XX_HW_H__
 
-extern	int ar40xx_hw_ess_reset(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_init_globals(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_vlan_init(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_sw_hw_apply(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_wait_bit(struct ar40xx_softc *sc, int reg,
-	    uint32_t mask, uint32_t val);
-extern	int ar40xx_hw_read_switch_mac_address(struct ar40xx_softc *sc,
-	    struct ether_addr *ea);
-extern	int ar40xx_hw_write_switch_mac_address(struct ar40xx_softc *sc,
-	    struct ether_addr *ea);
+extern int ar40xx_hw_ess_reset(struct ar40xx_softc *sc);
+extern int ar40xx_hw_init_globals(struct ar40xx_softc *sc);
+extern int ar40xx_hw_vlan_init(struct ar40xx_softc *sc);
+extern int ar40xx_hw_sw_hw_apply(struct ar40xx_softc *sc);
+extern int ar40xx_hw_wait_bit(struct ar40xx_softc *sc, int reg, uint32_t mask,
+    uint32_t val);
+extern int ar40xx_hw_read_switch_mac_address(struct ar40xx_softc *sc,
+    struct ether_addr *ea);
+extern int ar40xx_hw_write_switch_mac_address(struct ar40xx_softc *sc,
+    struct ether_addr *ea);
 
-#endif	/* __AR40XX_HW_H__ */
-
+#endif /* __AR40XX_HW_H__ */

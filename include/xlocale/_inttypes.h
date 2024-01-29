@@ -28,16 +28,13 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Extended locale versions of the locale-aware functions from inttypes.h.
  * Include <inttypes.h> before <xlocale.h> to expose these.
  */
-intmax_t	strtoimax_l(const char * __restrict, char ** __restrict,
-		    int, locale_t);
-uintmax_t	strtoumax_l(const char * __restrict, char ** __restrict, int,
-		    locale_t);
-intmax_t	wcstoimax_l(const wchar_t * __restrict, wchar_t ** __restrict,
-		    int , locale_t);
-uintmax_t	wcstoumax_l(const wchar_t * __restrict, wchar_t ** __restrict,
-		    int, locale_t);
+intmax_t strtoimax_l(const char *__restrict, char **__restrict, int, locale_t);
+uintmax_t strtoumax_l(const char *__restrict, char **__restrict, int, locale_t);
+intmax_t wcstoimax_l(const wchar_t *__restrict, wchar_t **__restrict, int,
+    locale_t);
+uintmax_t wcstoumax_l(const wchar_t *__restrict, wchar_t **__restrict, int,
+    locale_t);

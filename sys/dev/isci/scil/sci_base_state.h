@@ -67,13 +67,9 @@ extern "C" {
 
 #include <dev/isci/scil/sci_base_object.h>
 
-typedef void (*SCI_BASE_STATE_HANDLER_T)(
-   void
-);
+typedef void (*SCI_BASE_STATE_HANDLER_T)(void);
 
-typedef void (*SCI_STATE_TRANSITION_T)(
-   SCI_BASE_OBJECT_T *base_object
-);
+typedef void (*SCI_STATE_TRANSITION_T)(SCI_BASE_OBJECT_T *base_object);
 
 /**
  * @struct SCI_BASE_STATE
@@ -81,25 +77,24 @@ typedef void (*SCI_STATE_TRANSITION_T)(
  * @brief The base state object abstracts the fields common to all state
  *        objects defined in SCI.
  */
-typedef struct SCI_BASE_STATE
-{
-   /**
-    * This field indicates the defined value for this state.  After
-    * initialization this field should not change.
-    */
-   U32  value;
+typedef struct SCI_BASE_STATE {
+	/**
+	 * This field indicates the defined value for this state.  After
+	 * initialization this field should not change.
+	 */
+	U32 value;
 
-   /**
-    * This field is a function pointer that defines the method to be
-    * invoked when the state is entered.
-    */
-   SCI_STATE_TRANSITION_T  enter_state;
+	/**
+	 * This field is a function pointer that defines the method to be
+	 * invoked when the state is entered.
+	 */
+	SCI_STATE_TRANSITION_T enter_state;
 
-   /**
-    * This field is a function pointer that defines the method to be
-    * invoked when the state is exited.
-    */
-   SCI_STATE_TRANSITION_T  exit_state;
+	/**
+	 * This field is a function pointer that defines the method to be
+	 * invoked when the state is exited.
+	 */
+	SCI_STATE_TRANSITION_T exit_state;
 
 } SCI_BASE_STATE_T;
 

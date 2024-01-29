@@ -24,45 +24,45 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/errno.h>
-#include <bootstrap.h>
-#include <stdbool.h>
 
+#include <bootstrap.h>
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
+#include <stdbool.h>
 
 static EFI_GUID serial = SERIAL_IO_PROTOCOL;
 
-#define	COMC_TXWAIT	0x40000		/* transmit timeout */
+#define COMC_TXWAIT 0x40000 /* transmit timeout */
 
-#define	PNP0501		0x501		/* 16550A-compatible COM port */
+#define PNP0501 0x501 /* 16550A-compatible COM port */
 
 struct serial {
-	uint64_t	newbaudrate;
-	uint64_t	baudrate;
-	uint32_t	timeout;
-	uint32_t	receivefifodepth;
-	uint32_t	databits;
-	EFI_PARITY_TYPE	parity;
+	uint64_t newbaudrate;
+	uint64_t baudrate;
+	uint32_t timeout;
+	uint32_t receivefifodepth;
+	uint32_t databits;
+	EFI_PARITY_TYPE parity;
 	EFI_STOP_BITS_TYPE stopbits;
-	int		ioaddr;		/* index in handles array */
-	EFI_HANDLE	currdev;	/* current serial device */
-	EFI_HANDLE	condev;		/* EFI Console device */
+	int ioaddr;	    /* index in handles array */
+	EFI_HANDLE currdev; /* current serial device */
+	EFI_HANDLE condev;  /* EFI Console device */
 	SERIAL_IO_INTERFACE *sio;
 };
 
-static void	comc_probe(struct console *);
-static int	comc_init(int);
-static void	comc_putchar(int);
-static int	comc_getchar(void);
-static int	comc_ischar(void);
-static bool	comc_setup(void);
-static int	comc_parse_intval(const char *, unsigned *);
-static int	comc_port_set(struct env_var *, int, const void *);
-static int	comc_speed_set(struct env_var *, int, const void *);
+static void comc_probe(struct console *);
+static int comc_init(int);
+static void comc_putchar(int);
+static int comc_getchar(void);
+static int comc_ischar(void);
+static bool comc_setup(void);
+static int comc_parse_intval(const char *, unsigned *);
+static int comc_port_set(struct env_var *, int, const void *);
+static int comc_speed_set(struct env_var *, int, const void *);
 
-static struct serial	*comc_port;
+static struct serial *comc_port;
 extern struct console efi_console;
 
 struct console eficom = {
@@ -77,7 +77,7 @@ struct console eficom = {
 };
 
 #if defined(__aarch64__) && __FreeBSD_version < 1500000
-static void	comc_probe_compat(struct console *);
+static void comc_probe_compat(struct console *);
 struct console comconsole = {
 	.c_name = "comconsole",
 	.c_desc = "serial port",
@@ -109,7 +109,7 @@ efi_serial_init(EFI_HANDLE **handlep, int *nhandles)
 	if ((handles = malloc(bufsz)) == NULL)
 		return (ENOMEM);
 
-	*nhandles = (int)(bufsz / sizeof (EFI_HANDLE));
+	*nhandles = (int)(bufsz / sizeof(EFI_HANDLE));
 	/*
 	 * get handle array
 	 */
@@ -129,7 +129,7 @@ efi_serial_init(EFI_HANDLE **handlep, int *nhandles)
 static int
 efi_serial_get_index(EFI_DEVICE_PATH *devpath, int idx)
 {
-	ACPI_HID_DEVICE_PATH  *acpi;
+	ACPI_HID_DEVICE_PATH *acpi;
 	CHAR16 *text;
 
 	while (!IsDevicePathEnd(devpath)) {
@@ -139,7 +139,7 @@ efi_serial_get_index(EFI_DEVICE_PATH *devpath, int idx)
 
 		if (DevicePathType(devpath) == ACPI_DEVICE_PATH &&
 		    (DevicePathSubType(devpath) == ACPI_DP ||
-		    DevicePathSubType(devpath) == ACPI_EXTENDED_DP)) {
+			DevicePathSubType(devpath) == ACPI_EXTENDED_DP)) {
 
 			acpi = (ACPI_HID_DEVICE_PATH *)devpath;
 			if (acpi->HID == EISA_PNP_ID(PNP0501)) {
@@ -281,7 +281,7 @@ comc_probe(struct console *sc)
 #endif
 
 	if (comc_port == NULL) {
-		comc_port = calloc(1, sizeof (struct serial));
+		comc_port = calloc(1, sizeof(struct serial));
 		if (comc_port == NULL)
 			return;
 	}
@@ -310,14 +310,14 @@ comc_probe(struct console *sc)
 	if (handle != NULL) {
 		comc_port->currdev = handle;
 		status = BS->OpenProtocol(handle, &serial,
-		    (void**)&comc_port->sio, IH, NULL,
+		    (void **)&comc_port->sio, IH, NULL,
 		    EFI_OPEN_PROTOCOL_GET_PROTOCOL);
 
 		if (EFI_ERROR(status)) {
 			comc_port->sio = NULL;
 		} else {
-			comc_port->newbaudrate =
-			    comc_port->baudrate = comc_port->sio->Mode->BaudRate;
+			comc_port->newbaudrate = comc_port->baudrate =
+			    comc_port->sio->Mode->BaudRate;
 			comc_port->timeout = comc_port->sio->Mode->Timeout;
 			comc_port->receivefifodepth =
 			    comc_port->sio->Mode->ReceiveFifoDepth;
@@ -337,11 +337,11 @@ comc_probe(struct console *sc)
 		return;
 	}
 
-	if (env != NULL) 
+	if (env != NULL)
 		unsetenv("efi_com_port");
-	snprintf(value, sizeof (value), "%u", comc_port->ioaddr);
-	env_setenv("efi_com_port", EV_VOLATILE, value,
-	    comc_port_set, env_nounset);
+	snprintf(value, sizeof(value), "%u", comc_port->ioaddr);
+	env_setenv("efi_com_port", EV_VOLATILE, value, comc_port_set,
+	    env_nounset);
 
 	env = getenv("efi_com_speed");
 	if (env == NULL)
@@ -353,9 +353,9 @@ comc_probe(struct console *sc)
 
 	if (env != NULL)
 		unsetenv("efi_com_speed");
-	snprintf(value, sizeof (value), "%ju", (uintmax_t)comc_port->baudrate);
-	env_setenv("efi_com_speed", EV_VOLATILE, value,
-	    comc_speed_set, env_nounset);
+	snprintf(value, sizeof(value), "%ju", (uintmax_t)comc_port->baudrate);
+	env_setenv("efi_com_speed", EV_VOLATILE, value, comc_speed_set,
+	    env_nounset);
 
 	if (comc_setup()) {
 		sc->c_flags = C_PRESENTIN | C_PRESENTOUT;
@@ -372,7 +372,8 @@ comc_probe_compat(struct console *sc)
 {
 	comc_probe(&eficom);
 	if (eficom.c_flags & (C_PRESENTIN | C_PRESENTOUT)) {
-		printf("comconsole: comconsole device name is deprecated, switch to eficom\n");
+		printf(
+		    "comconsole: comconsole device name is deprecated, switch to eficom\n");
 	}
 	/*
 	 * Note: We leave the present bits unset in sc to avoid ghosting.
@@ -421,7 +422,6 @@ comc_getchar(void)
 	EFI_STATUS status;
 	UINTN bufsz = 1;
 	char c;
-
 
 	/*
 	 * if this device is also used as ConIn, some firmwares
@@ -498,7 +498,7 @@ comc_port_set(struct env_var *ev, int flags, const void *value)
 	if (value == NULL || comc_port == NULL)
 		return (CMD_ERROR);
 
-	if (comc_parse_intval(value, &port) != CMD_OK) 
+	if (comc_parse_intval(value, &port) != CMD_OK)
 		return (CMD_ERROR);
 
 	handle = efi_serial_get_handle(port, NULL);
@@ -507,8 +507,8 @@ comc_port_set(struct env_var *ev, int flags, const void *value)
 		return (CMD_ERROR);
 	}
 
-	status = BS->OpenProtocol(handle, &serial,
-	    (void**)&sio, IH, NULL, EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+	status = BS->OpenProtocol(handle, &serial, (void **)&sio, IH, NULL,
+	    EFI_OPEN_PROTOCOL_GET_PROTOCOL);
 
 	if (EFI_ERROR(status)) {
 		printf("OpenProtocol: %lu\n", EFI_ERROR_CODE(status));
@@ -518,8 +518,8 @@ comc_port_set(struct env_var *ev, int flags, const void *value)
 	comc_port->currdev = handle;
 	comc_port->ioaddr = port;
 	comc_port->sio = sio;
-	
-	(void) comc_setup();
+
+	(void)comc_setup();
 
 	env_setenv(ev->ev_name, flags | EV_NOHOOK, value, NULL, NULL);
 	return (CMD_OK);
@@ -533,7 +533,7 @@ comc_speed_set(struct env_var *ev, int flags, const void *value)
 	if (value == NULL || comc_port == NULL)
 		return (CMD_ERROR);
 
-	if (comc_parse_intval(value, &speed) != CMD_OK) 
+	if (comc_parse_intval(value, &speed) != CMD_OK)
 		return (CMD_ERROR);
 
 	comc_port->newbaudrate = speed;
@@ -556,7 +556,8 @@ comc_setup(void)
 	/*
 	 * If the device isn't active, or there's no port present.
 	 */
-	if ((eficom.c_flags & (C_ACTIVEIN | C_ACTIVEOUT)) == 0 || comc_port == NULL)
+	if ((eficom.c_flags & (C_ACTIVEIN | C_ACTIVEOUT)) == 0 ||
+	    comc_port == NULL)
 		return (false);
 
 	if (comc_port->sio->Reset != NULL) {
@@ -586,14 +587,15 @@ comc_setup(void)
 	}
 
 #ifdef EFI_FORCE_RTS
-	if (comc_port->sio->GetControl != NULL && comc_port->sio->SetControl != NULL) {
+	if (comc_port->sio->GetControl != NULL &&
+	    comc_port->sio->SetControl != NULL) {
 		UINT32 control;
 
 		status = comc_port->sio->GetControl(comc_port->sio, &control);
 		if (EFI_ERROR(status))
 			return (false);
 		control |= EFI_SERIAL_REQUEST_TO_SEND;
-		(void) comc_port->sio->SetControl(comc_port->sio, control);
+		(void)comc_port->sio->SetControl(comc_port->sio, control);
 	}
 #endif
 	/* Mark this port usable. */

@@ -44,7 +44,7 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define	MAXELEMENTS	32
+#define MAXELEMENTS 32
 
 static void
 usage(void)
@@ -52,7 +52,7 @@ usage(void)
 
 	fprintf(stderr,
 	    "getfmac [-h] [-l list,of,labels] [file1] [file2 ...]\n");
-	exit (EX_USAGE);
+	exit(EX_USAGE);
 }
 
 int
@@ -78,7 +78,6 @@ main(int argc, char *argv[])
 		default:
 			usage();
 		}
-
 	}
 
 	for (i = optind; i < argc; i++) {

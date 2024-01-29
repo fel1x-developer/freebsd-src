@@ -29,6 +29,7 @@
 
 #include <sys/param.h>
 #include <sys/disk.h>
+
 #include <stdlib.h>
 
 typedef struct ddi_devid {
@@ -51,4 +52,4 @@ int devid_get(int fd, ddi_devid_t *retdevid);
 int devid_get_minor_name(int fd, char **retminor_name);
 char *devid_str_encode(ddi_devid_t devid, char *minor_name);
 
-#endif	/* !_OPENSOLARIS_DEVID_H_ */
+#endif /* !_OPENSOLARIS_DEVID_H_ */

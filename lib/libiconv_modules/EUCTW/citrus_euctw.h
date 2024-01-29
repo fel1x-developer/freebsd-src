@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_euctw.h,v 1.2 2003/06/25 09:51:42 tshiozak Exp $	*/
+/*	$NetBSD: citrus_euctw.h,v 1.2 2003/06/25 09:51:42 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause

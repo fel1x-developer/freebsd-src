@@ -26,14 +26,14 @@
 
 #include <sys/cdefs.h>
 /*
- * MD primitives supporting placement of module data 
+ * MD primitives supporting placement of module data
  *
  * XXX should check load address/size against memory top.
  */
 #include <stand.h>
 
-#include "libi386.h"
 #include "btxv86.h"
+#include "libi386.h"
 
 ssize_t
 i386_copyin(const void *src, vm_offset_t dest, const size_t len)
@@ -58,7 +58,6 @@ i386_copyout(const vm_offset_t src, void *dest, const size_t len)
 	bcopy(PTOV(src), dest, len);
 	return (len);
 }
-
 
 ssize_t
 i386_readin(readin_handle_t fd, vm_offset_t dest, const size_t len)

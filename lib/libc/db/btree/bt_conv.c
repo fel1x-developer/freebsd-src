@@ -34,9 +34,9 @@
 
 #include <sys/param.h>
 
+#include <db.h>
 #include <stdio.h>
 
-#include <db.h>
 #include "btree.h"
 
 static void mswap(PAGE *);
@@ -193,16 +193,16 @@ mswap(PAGE *pg)
 	char *p;
 
 	p = (char *)pg;
-	P_32_SWAP(p);		/* magic */
+	P_32_SWAP(p); /* magic */
 	p += sizeof(u_int32_t);
-	P_32_SWAP(p);		/* version */
+	P_32_SWAP(p); /* version */
 	p += sizeof(u_int32_t);
-	P_32_SWAP(p);		/* psize */
+	P_32_SWAP(p); /* psize */
 	p += sizeof(u_int32_t);
-	P_32_SWAP(p);		/* free */
+	P_32_SWAP(p); /* free */
 	p += sizeof(u_int32_t);
-	P_32_SWAP(p);		/* nrecs */
+	P_32_SWAP(p); /* nrecs */
 	p += sizeof(u_int32_t);
-	P_32_SWAP(p);		/* flags */
+	P_32_SWAP(p); /* flags */
 	p += sizeof(u_int32_t);
 }

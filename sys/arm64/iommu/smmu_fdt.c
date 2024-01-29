@@ -30,34 +30,31 @@
 
 #include <sys/types.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
 #include <sys/bitstring.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/sysctl.h>
-#include <sys/tree.h>
-#include <sys/taskqueue.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/tree.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/iommu/iommu.h>
 
+#include <dev/iommu/iommu.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/iommu/iommu.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <arm64/iommu/iommu.h>
 
 #include "smmuvar.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "arm,smmu-v3",			1 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "arm,smmu-v3", 1 },
+	{ NULL, 0 } };
 
 static int
 smmu_fdt_probe(device_t dev)
@@ -179,8 +176,7 @@ smmu_fdt_attach(device_t dev)
 
 error:
 	if (bootverbose) {
-		device_printf(dev,
-		    "Failed to attach. Error %d\n", err);
+		device_printf(dev, "Failed to attach. Error %d\n", err);
 	}
 
 	/* Failure so free resources. */
@@ -191,9 +187,8 @@ error:
 
 static device_method_t smmu_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		smmu_fdt_probe),
-	DEVMETHOD(device_attach,	smmu_fdt_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, smmu_fdt_probe),
+	DEVMETHOD(device_attach, smmu_fdt_attach), DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(smmu, smmu_fdt_driver, smmu_fdt_methods,

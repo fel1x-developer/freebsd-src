@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -35,22 +35,22 @@
  * OF SUCH DAMAGE.
  */
 
-#define MAX_CMD_ALIAS	8
+#define MAX_CMD_ALIAS 8
 
 /* Command descriptors */
 struct ngcmd {
-	  int		(*func)(int ac, char **av);	/* command function */
-	  const char	*cmd;				/* command usage */
-	  const char	*desc;				/* description */
-	  const char	*help;				/* help text */
-	  const char	*aliases[MAX_CMD_ALIAS];	/* command aliases */
+	int (*func)(int ac, char **av);	    /* command function */
+	const char *cmd;		    /* command usage */
+	const char *desc;		    /* description */
+	const char *help;		    /* help text */
+	const char *aliases[MAX_CMD_ALIAS]; /* command aliases */
 };
 
 /* Command return values */
-#define CMDRTN_OK		0
-#define CMDRTN_USAGE		1
-#define CMDRTN_ERROR		2
-#define CMDRTN_QUIT		3
+#define CMDRTN_OK 0
+#define CMDRTN_USAGE 1
+#define CMDRTN_ERROR 2
+#define CMDRTN_QUIT 3
 
 /* Available commands */
 extern const struct ngcmd config_cmd;
@@ -72,9 +72,8 @@ extern const struct ngcmd write_cmd;
 extern const struct ngcmd quit_cmd;
 
 /* Data and control sockets */
-extern int	csock, dsock;
+extern int csock, dsock;
 
 /* Misc functions */
-extern void	MsgRead(void);
-extern void	DumpAscii(const u_char *buf, int len);
-
+extern void MsgRead(void);
+extern void DumpAscii(const u_char *buf, int len);

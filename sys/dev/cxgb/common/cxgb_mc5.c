@@ -29,32 +29,27 @@ POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 
 #include <sys/cdefs.h>
+
 #include <common/cxgb_common.h>
 #include <common/cxgb_regs.h>
 
-enum {
-	IDT75P52100 = 4,
-	IDT75N43102 = 5
-};
+enum { IDT75P52100 = 4, IDT75N43102 = 5 };
 
 /* DBGI command mode */
-enum {
-	DBGI_MODE_MBUS = 0,
-	DBGI_MODE_IDT52100 = 5
-};
+enum { DBGI_MODE_MBUS = 0, DBGI_MODE_IDT52100 = 5 };
 
 /* IDT 75P52100 commands */
-#define IDT_CMD_READ   0
-#define IDT_CMD_WRITE  1
+#define IDT_CMD_READ 0
+#define IDT_CMD_WRITE 1
 #define IDT_CMD_SEARCH 2
-#define IDT_CMD_LEARN  3
+#define IDT_CMD_LEARN 3
 
 /* IDT LAR register address and value for 144-bit mode (low 32 bits) */
-#define IDT_LAR_ADR0   	0x180006
-#define IDT_LAR_MODE144	0xffff0000
+#define IDT_LAR_ADR0 0x180006
+#define IDT_LAR_MODE144 0xffff0000
 
 /* IDT SCR and SSR addresses (low 32 bits) */
-#define IDT_SCR_ADR0  0x180000
+#define IDT_SCR_ADR0 0x180000
 #define IDT_SSR0_ADR0 0x180002
 #define IDT_SSR1_ADR0 0x180004
 
@@ -67,11 +62,11 @@ enum {
 
 /* IDT 75N43102 commands */
 #define IDT4_CMD_SEARCH144 3
-#define IDT4_CMD_WRITE     4
-#define IDT4_CMD_READ      5
+#define IDT4_CMD_WRITE 4
+#define IDT4_CMD_READ 5
 
 /* IDT 75N43102 SCR address (low 32 bits) */
-#define IDT4_SCR_ADR0  0x3
+#define IDT4_SCR_ADR0 0x3
 
 /* IDT 75N43102 GMR base addresses (low 32 bits) */
 #define IDT4_GMR_BASE0 0x10
@@ -90,21 +85,24 @@ enum {
  * Issue a command to the TCAM and wait for its completion.  The address and
  * any data required by the command must have been setup by the caller.
  */
-static int mc5_cmd_write(adapter_t *adapter, u32 cmd)
+static int
+mc5_cmd_write(adapter_t *adapter, u32 cmd)
 {
 	t3_write_reg(adapter, A_MC5_DB_DBGI_REQ_CMD, cmd);
 	return t3_wait_op_done(adapter, A_MC5_DB_DBGI_RSP_STATUS,
-			       F_DBGIRSPVALID, 1, MAX_WRITE_ATTEMPTS, 1);
+	    F_DBGIRSPVALID, 1, MAX_WRITE_ATTEMPTS, 1);
 }
 
-static inline void dbgi_wr_data3(adapter_t *adapter, u32 v1, u32 v2, u32 v3)
+static inline void
+dbgi_wr_data3(adapter_t *adapter, u32 v1, u32 v2, u32 v3)
 {
 	t3_write_reg(adapter, A_MC5_DB_DBGI_REQ_DATA0, v1);
 	t3_write_reg(adapter, A_MC5_DB_DBGI_REQ_DATA1, v2);
 	t3_write_reg(adapter, A_MC5_DB_DBGI_REQ_DATA2, v3);
 }
 
-static inline void dbgi_rd_rsp3(adapter_t *adapter, u32 *v1, u32 *v2, u32 *v3)
+static inline void
+dbgi_rd_rsp3(adapter_t *adapter, u32 *v1, u32 *v2, u32 *v3)
 {
 	*v1 = t3_read_reg(adapter, A_MC5_DB_DBGI_RSP_DATA0);
 	*v2 = t3_read_reg(adapter, A_MC5_DB_DBGI_RSP_DATA1);
@@ -116,7 +114,8 @@ static inline void dbgi_rd_rsp3(adapter_t *adapter, u32 *v1, u32 *v2, u32 *v3)
  * command cmd.  The data to be written must have been set up by the caller.
  * Returns -1 on failure, 0 on success.
  */
-static int mc5_write(adapter_t *adapter, u32 addr_lo, u32 cmd)
+static int
+mc5_write(adapter_t *adapter, u32 addr_lo, u32 cmd)
 {
 	t3_write_reg(adapter, A_MC5_DB_DBGI_REQ_ADDR0, addr_lo);
 	if (mc5_cmd_write(adapter, cmd) == 0)
@@ -125,9 +124,9 @@ static int mc5_write(adapter_t *adapter, u32 addr_lo, u32 cmd)
 	return -1;
 }
 
-static int init_mask_data_array(struct mc5 *mc5, u32 mask_array_base,
-				u32 data_array_base, u32 write_cmd,
-			        int addr_shift)
+static int
+init_mask_data_array(struct mc5 *mc5, u32 mask_array_base, u32 data_array_base,
+    u32 write_cmd, int addr_shift)
 {
 	unsigned int i;
 	adapter_t *adap = mc5->adapter;
@@ -140,7 +139,7 @@ static int init_mask_data_array(struct mc5 *mc5, u32 mask_array_base,
 	unsigned int server_base = t3_read_reg(adap, A_MC5_DB_SERVER_INDEX);
 
 	if (mc5->mode == MC5_MODE_144_BIT) {
-		size72 *= 2;      /* 1 144-bit entry is 2 72-bit entries */
+		size72 *= 2; /* 1 144-bit entry is 2 72-bit entries */
 		server_base *= 2;
 	}
 
@@ -148,40 +147,41 @@ static int init_mask_data_array(struct mc5 *mc5, u32 mask_array_base,
 	dbgi_wr_data3(adap, 0, 0, 0);
 	for (i = 0; i < size72; i++)
 		if (mc5_write(adap, data_array_base + (i << addr_shift),
-			      write_cmd))
+			write_cmd))
 			return -1;
 
 	/* Initialize the mask array. */
 	for (i = 0; i < server_base; i++) {
 		dbgi_wr_data3(adap, 0x3fffffff, 0xfff80000, 0xff);
 		if (mc5_write(adap, mask_array_base + (i << addr_shift),
-			      write_cmd))
+			write_cmd))
 			return -1;
 		i++;
 		dbgi_wr_data3(adap, 0xffffffff, 0xffffffff, 0xff);
 		if (mc5_write(adap, mask_array_base + (i << addr_shift),
-			      write_cmd))
+			write_cmd))
 			return -1;
 	}
 
 	dbgi_wr_data3(adap,
-		      mc5->mode == MC5_MODE_144_BIT ? 0xfffffff9 : 0xfffffffd,
-		      0xffffffff, 0xff);
+	    mc5->mode == MC5_MODE_144_BIT ? 0xfffffff9 : 0xfffffffd, 0xffffffff,
+	    0xff);
 	for (; i < size72; i++)
 		if (mc5_write(adap, mask_array_base + (i << addr_shift),
-			      write_cmd))
+			write_cmd))
 			return -1;
 
 	return 0;
 }
 
-static int init_idt52100(struct mc5 *mc5)
+static int
+init_idt52100(struct mc5 *mc5)
 {
 	int i;
 	adapter_t *adap = mc5->adapter;
 
 	t3_write_reg(adap, A_MC5_DB_RSP_LATENCY,
-		     V_RDLAT(0x15) | V_LRNLAT(0x15) | V_SRCHLAT(0x15));
+	    V_RDLAT(0x15) | V_LRNLAT(0x15) | V_SRCHLAT(0x15));
 	t3_write_reg(adap, A_MC5_DB_PART_ID_INDEX, 2);
 
 	/*
@@ -234,19 +234,20 @@ static int init_idt52100(struct mc5 *mc5)
 		goto err;
 
 	return init_mask_data_array(mc5, IDT_MSKARY_BASE_ADR0,
-				    IDT_DATARY_BASE_ADR0, IDT_CMD_WRITE, 0);
- err:
+	    IDT_DATARY_BASE_ADR0, IDT_CMD_WRITE, 0);
+err:
 	return -EIO;
 }
 
-static int init_idt43102(struct mc5 *mc5)
+static int
+init_idt43102(struct mc5 *mc5)
 {
 	int i;
 	adapter_t *adap = mc5->adapter;
 
 	t3_write_reg(adap, A_MC5_DB_RSP_LATENCY,
-		     adap->params.rev == 0 ? V_RDLAT(0xd) | V_SRCHLAT(0x11) :
-					     V_RDLAT(0xd) | V_SRCHLAT(0x12));
+	    adap->params.rev == 0 ? V_RDLAT(0xd) | V_SRCHLAT(0x11) :
+				    V_RDLAT(0xd) | V_SRCHLAT(0x12));
 
 	/*
 	 * Use GMRs 24-25 for ELOOKUP, GMRs 20-21 for SYN lookups, and no mask
@@ -255,7 +256,7 @@ static int init_idt43102(struct mc5 *mc5)
 	t3_write_reg(adap, A_MC5_DB_POPEN_DATA_WR_CMD, IDT4_CMD_WRITE);
 	t3_write_reg(adap, A_MC5_DB_POPEN_MASK_WR_CMD, IDT4_CMD_WRITE);
 	t3_write_reg(adap, A_MC5_DB_AOPEN_SRCH_CMD,
-		     IDT4_CMD_SEARCH144 | 0x3800);
+	    IDT4_CMD_SEARCH144 | 0x3800);
 	t3_write_reg(adap, A_MC5_DB_SYN_SRCH_CMD, IDT4_CMD_SEARCH144);
 	t3_write_reg(adap, A_MC5_DB_ACK_SRCH_CMD, IDT4_CMD_SEARCH144 | 0x3800);
 	t3_write_reg(adap, A_MC5_DB_ILOOKUP_CMD, IDT4_CMD_SEARCH144 | 0x3800);
@@ -294,23 +295,25 @@ static int init_idt43102(struct mc5 *mc5)
 		goto err;
 
 	return init_mask_data_array(mc5, IDT4_MSKARY_BASE_ADR0,
-				    IDT4_DATARY_BASE_ADR0, IDT4_CMD_WRITE, 1);
- err:
+	    IDT4_DATARY_BASE_ADR0, IDT4_CMD_WRITE, 1);
+err:
 	return -EIO;
 }
 
 /* Put MC5 in DBGI mode. */
-static inline void mc5_dbgi_mode_enable(const struct mc5 *mc5)
+static inline void
+mc5_dbgi_mode_enable(const struct mc5 *mc5)
 {
 	t3_set_reg_field(mc5->adapter, A_MC5_DB_CONFIG, F_PRTYEN | F_MBUSEN,
-			 F_DBGIEN);
+	    F_DBGIEN);
 }
 
 /* Put MC5 in M-Bus mode. */
-static void mc5_dbgi_mode_disable(const struct mc5 *mc5)
+static void
+mc5_dbgi_mode_disable(const struct mc5 *mc5)
 {
 	t3_set_reg_field(mc5->adapter, A_MC5_DB_CONFIG, F_DBGIEN,
-			 V_PRTYEN(mc5->parity_enabled) | F_MBUSEN);
+	    V_PRTYEN(mc5->parity_enabled) | F_MBUSEN);
 }
 
 /**
@@ -324,8 +327,9 @@ static void mc5_dbgi_mode_disable(const struct mc5 *mc5)
  *	number of servers, filters, and routes.  The number of routes is
  *	typically 0 except for specialized uses of the T3 adapters.
  */
-int t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
-		unsigned int nroutes)
+int
+t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
+    unsigned int nroutes)
 {
 	int err;
 	unsigned int tcam_size = mc5->tcam_size;
@@ -343,7 +347,7 @@ int t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
 
 	/* Reset the TCAM */
 	t3_set_reg_field(adap, A_MC5_DB_CONFIG, F_TMMODE | F_COMPEN,
-			 V_COMPEN(mode72) | V_TMMODE(mode72) | F_TMRST);
+	    V_COMPEN(mode72) | V_TMMODE(mode72) | F_TMRST);
 	if (t3_wait_op_done(adap, A_MC5_DB_CONFIG, F_TMRDY, 1, 500, 0)) {
 		CH_ERR(adap, "TCAM reset timed out\n");
 		return -1;
@@ -351,9 +355,9 @@ int t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
 
 	t3_write_reg(adap, A_MC5_DB_ROUTING_TABLE_INDEX, tcam_size - nroutes);
 	t3_write_reg(adap, A_MC5_DB_FILTER_TABLE,
-		     tcam_size - nroutes - nfilters);
+	    tcam_size - nroutes - nfilters);
 	t3_write_reg(adap, A_MC5_DB_SERVER_INDEX,
-		     tcam_size - nroutes - nfilters - nservers);
+	    tcam_size - nroutes - nfilters - nservers);
 
 	/* All the TCAM addresses we access have only the low 32 bits non 0 */
 	t3_write_reg(adap, A_MC5_DB_DBGI_REQ_ADDR1, 0);
@@ -387,8 +391,9 @@ int t3_mc5_init(struct mc5 *mc5, unsigned int nservers, unsigned int nfilters,
  *
  *	Read n 72-bit words from MC5 memory from the given start location.
  */
-int t3_read_mc5_range(const struct mc5 *mc5, unsigned int start,
-		      unsigned int n, u32 *buf)
+int
+t3_read_mc5_range(const struct mc5 *mc5, unsigned int start, unsigned int n,
+    u32 *buf)
 {
 	u32 read_cmd;
 	int err = 0;
@@ -425,7 +430,8 @@ int t3_read_mc5_range(const struct mc5 *mc5, unsigned int start,
  *
  *	The MC5 interrupt handler.
  */
-void t3_mc5_intr_handler(struct mc5 *mc5)
+void
+t3_mc5_intr_handler(struct mc5 *mc5)
 {
 	adapter_t *adap = mc5->adapter;
 	u32 cause = t3_read_reg(adap, A_MC5_DB_INT_CAUSE);
@@ -468,11 +474,12 @@ void t3_mc5_intr_handler(struct mc5 *mc5)
  *	Initialize the SW state associated with MC5.  Among other things
  *	this determines the size of the attached TCAM.
  */
-void __devinit t3_mc5_prep(adapter_t *adapter, struct mc5 *mc5, int mode)
+void __devinit
+t3_mc5_prep(adapter_t *adapter, struct mc5 *mc5, int mode)
 {
-#define K * 1024
+#define K *1024
 
-	static unsigned int tcam_part_size[] = {  /* in K 72-bit entries */
+	static unsigned int tcam_part_size[] = { /* in K 72-bit entries */
 		64 K, 128 K, 256 K, 32 K
 	};
 
@@ -482,8 +489,8 @@ void __devinit t3_mc5_prep(adapter_t *adapter, struct mc5 *mc5, int mode)
 
 	mc5->adapter = adapter;
 	mc5->parity_enabled = 1;
-	mc5->mode = (unsigned char) mode;
-	mc5->part_type = (unsigned char) G_TMTYPE(cfg);
+	mc5->mode = (unsigned char)mode;
+	mc5->part_type = (unsigned char)G_TMTYPE(cfg);
 	if (cfg & F_TMTYPEHI)
 		mc5->part_type |= 4;
 

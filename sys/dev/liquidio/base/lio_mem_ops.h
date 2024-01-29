@@ -49,8 +49,7 @@
  *
  *   @return  64-bit value read from Core memory
  */
-uint64_t	lio_read_device_mem64(struct octeon_device *oct,
-				      uint64_t core_addr);
+uint64_t lio_read_device_mem64(struct octeon_device *oct, uint64_t core_addr);
 
 /*
  *   Read a 32-bit value from a BAR1 mapped core memory address.
@@ -59,8 +58,7 @@ uint64_t	lio_read_device_mem64(struct octeon_device *oct,
  *
  *   @return  32-bit value read from Core memory
  */
-uint32_t	lio_read_device_mem32(struct octeon_device *oct,
-				      uint64_t core_addr);
+uint32_t lio_read_device_mem32(struct octeon_device *oct, uint64_t core_addr);
 
 /*
  *   Write a 32-bit value to a BAR1 mapped core memory address.
@@ -68,17 +66,15 @@ uint32_t	lio_read_device_mem32(struct octeon_device *oct,
  *   @param  core_addr  -  the address to write to.
  *   @param  val        -  32-bit value to write.
  */
-void		lio_write_device_mem32(struct octeon_device *oct,
-				       uint64_t core_addr, uint32_t val);
+void lio_write_device_mem32(struct octeon_device *oct, uint64_t core_addr,
+    uint32_t val);
 
 /* Read multiple bytes from Octeon memory. */
-void		lio_pci_read_core_mem(struct octeon_device *oct,
-				      uint64_t coreaddr, uint8_t *buf,
-				      uint32_t len);
+void lio_pci_read_core_mem(struct octeon_device *oct, uint64_t coreaddr,
+    uint8_t *buf, uint32_t len);
 
 /* Write multiple bytes into Octeon memory. */
-void		lio_pci_write_core_mem(struct octeon_device *oct,
-				       uint64_t coreaddr, uint8_t *buf,
-				       uint32_t len);
+void lio_pci_write_core_mem(struct octeon_device *oct, uint64_t coreaddr,
+    uint8_t *buf, uint32_t len);
 
-#endif	/* __LIO_MEM_OPS_H__ */
+#endif /* __LIO_MEM_OPS_H__ */

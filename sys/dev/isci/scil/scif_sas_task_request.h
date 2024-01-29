@@ -65,12 +65,12 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sati_translator_sequence.h>
-#include <dev/isci/scil/scif_task_request.h>
-#include <dev/isci/scil/sci_base_request.h>
-#include <dev/isci/scil/scif_sas_request.h>
-#include <dev/isci/scil/scif_sas_internal_io_request.h>
 #include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sci_base_request.h>
+#include <dev/isci/scil/scif_sas_internal_io_request.h>
+#include <dev/isci/scil/scif_sas_request.h>
+#include <dev/isci/scil/scif_task_request.h>
 
 /**
  * @struct SCIF_SAS_TASK_REQUEST
@@ -80,64 +80,55 @@ extern "C" {
  *        it provides a higher level of abstraction for the core task
  *        request object.
  */
-typedef struct SCIF_SAS_TASK_REQUEST
-{
-   /**
-    * The SCIF_SAS_REQUEST is the parent object for the
-    * SCIF_SAS_TASK_REQUEST object.
-    */
-   SCIF_SAS_REQUEST_T  parent;
+typedef struct SCIF_SAS_TASK_REQUEST {
+	/**
+	 * The SCIF_SAS_REQUEST is the parent object for the
+	 * SCIF_SAS_TASK_REQUEST object.
+	 */
+	SCIF_SAS_REQUEST_T parent;
 
-   /**
-    * This field contains the number of current requests affected by
-    * this task management request.  This number indicates all of the
-    * requests terminated in the silicon (including previous task requests).
-    */
-   U16  affected_request_count;
+	/**
+	 * This field contains the number of current requests affected by
+	 * this task management request.  This number indicates all of the
+	 * requests terminated in the silicon (including previous task
+	 * requests).
+	 */
+	U16 affected_request_count;
 
-   /**
-    * This field specifies the tag for the IO request or the tag to be
-    * managed for a task management request.
-    * This field is utilized during internal IO requests.
-    */
-   U16  io_tag_to_manage;
+	/**
+	 * This field specifies the tag for the IO request or the tag to be
+	 * managed for a task management request.
+	 * This field is utilized during internal IO requests.
+	 */
+	U16 io_tag_to_manage;
 
-   /**
-    * This field will be utilized to specify the task management function
-    * of this task request.
-    */
-   SCI_SAS_TASK_MGMT_FUNCTION_T function;
+	/**
+	 * This field will be utilized to specify the task management function
+	 * of this task request.
+	 */
+	SCI_SAS_TASK_MGMT_FUNCTION_T function;
 
 } SCIF_SAS_TASK_REQUEST_T;
 
 extern SCI_BASE_STATE_T scif_sas_task_request_state_table[];
 extern SCI_BASE_REQUEST_STATE_HANDLER_T
-   scif_sas_task_request_state_handler_table[];
+    scif_sas_task_request_state_handler_table[];
 
-void scif_sas_task_request_operation_complete(
-   SCIF_SAS_TASK_REQUEST_T * fw_task
-);
+void scif_sas_task_request_operation_complete(SCIF_SAS_TASK_REQUEST_T *fw_task);
 
-U8 scif_sas_task_request_get_function(
-   SCIF_SAS_TASK_REQUEST_T * fw_task
-);
+U8 scif_sas_task_request_get_function(SCIF_SAS_TASK_REQUEST_T *fw_task);
 
 SCI_STATUS scif_sas_internal_task_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scif_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scif_remote_device,
-   U16                          io_tag,
-   void                       * task_request_memory,
-   SCI_TASK_REQUEST_HANDLE_T  * scif_task_request,
-   U8                           task_function
-);
+    SCI_CONTROLLER_HANDLE_T scif_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scif_remote_device, U16 io_tag,
+    void *task_request_memory, SCI_TASK_REQUEST_HANDLE_T *scif_task_request,
+    U8 task_function);
 
 void scif_sas_internal_task_request_destruct(
-   SCIF_SAS_TASK_REQUEST_T * fw_internal_task
-);
+    SCIF_SAS_TASK_REQUEST_T *fw_internal_task);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_TASK_REQUEST_H_
-

@@ -27,11 +27,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/diskmbr.h>
-#include <sys/gsb_crc32.h>
 #include <sys/endian.h>
 #include <sys/gpt.h>
+#include <sys/gsb_crc32.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
 #include <sys/limits.h>
@@ -40,9 +41,9 @@
 #include <sys/mutex.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
 #include <sys/uuid.h>
+
 #include <geom/geom.h>
 #include <geom/geom_int.h>
 #include <geom/part/g_part.h>
@@ -52,22 +53,21 @@
 FEATURE(geom_part_gpt, "GEOM partitioning class for GPT partitions support");
 
 SYSCTL_DECL(_kern_geom_part);
-static SYSCTL_NODE(_kern_geom_part, OID_AUTO, gpt,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "GEOM_PART_GPT GUID Partition Table");
+static SYSCTL_NODE(_kern_geom_part, OID_AUTO, gpt, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "GEOM_PART_GPT GUID Partition Table");
 
 static u_int allow_nesting = 0;
-SYSCTL_UINT(_kern_geom_part_gpt, OID_AUTO, allow_nesting,
-    CTLFLAG_RWTUN, &allow_nesting, 0, "Allow GPT to be nested inside other schemes");
+SYSCTL_UINT(_kern_geom_part_gpt, OID_AUTO, allow_nesting, CTLFLAG_RWTUN,
+    &allow_nesting, 0, "Allow GPT to be nested inside other schemes");
 
 CTASSERT(offsetof(struct gpt_hdr, padding) == 92);
 CTASSERT(sizeof(struct gpt_ent) == 128);
 
 extern u_int geom_part_check_integrity;
 
-#define	EQUUID(a,b)	(memcmp(a, b, sizeof(struct uuid)) == 0)
+#define EQUUID(a, b) (memcmp(a, b, sizeof(struct uuid)) == 0)
 
-#define	MBRSIZE		512
+#define MBRSIZE 512
 
 enum gpt_elt {
 	GPT_ELT_PRIHDR,
@@ -78,26 +78,26 @@ enum gpt_elt {
 };
 
 enum gpt_state {
-	GPT_STATE_UNKNOWN,	/* Not determined. */
-	GPT_STATE_MISSING,	/* No signature found. */
-	GPT_STATE_CORRUPT,	/* Checksum mismatch. */
-	GPT_STATE_INVALID,	/* Nonconformant/invalid. */
-	GPT_STATE_UNSUPPORTED,  /* Not supported. */
-	GPT_STATE_OK		/* Perfectly fine. */
+	GPT_STATE_UNKNOWN,     /* Not determined. */
+	GPT_STATE_MISSING,     /* No signature found. */
+	GPT_STATE_CORRUPT,     /* Checksum mismatch. */
+	GPT_STATE_INVALID,     /* Nonconformant/invalid. */
+	GPT_STATE_UNSUPPORTED, /* Not supported. */
+	GPT_STATE_OK	       /* Perfectly fine. */
 };
 
 struct g_part_gpt_table {
-	struct g_part_table	base;
-	u_char			mbr[MBRSIZE];
-	struct gpt_hdr		*hdr;
-	quad_t			lba[GPT_ELT_COUNT];
-	enum gpt_state		state[GPT_ELT_COUNT];
-	int			bootcamp;
+	struct g_part_table base;
+	u_char mbr[MBRSIZE];
+	struct gpt_hdr *hdr;
+	quad_t lba[GPT_ELT_COUNT];
+	enum gpt_state state[GPT_ELT_COUNT];
+	int bootcamp;
 };
 
 struct g_part_gpt_entry {
-	struct g_part_entry	base;
-	struct gpt_ent		ent;
+	struct g_part_entry base;
+	struct gpt_ent ent;
 };
 
 static void g_gpt_printf_utf16(struct sbuf *, uint16_t *, size_t);
@@ -128,24 +128,22 @@ static int g_part_gpt_resize(struct g_part_table *, struct g_part_entry *,
     struct g_part_parms *);
 static int g_part_gpt_recover(struct g_part_table *);
 
-static kobj_method_t g_part_gpt_methods[] = {
-	KOBJMETHOD(g_part_add,		g_part_gpt_add),
-	KOBJMETHOD(g_part_bootcode,	g_part_gpt_bootcode),
-	KOBJMETHOD(g_part_create,	g_part_gpt_create),
-	KOBJMETHOD(g_part_destroy,	g_part_gpt_destroy),
-	KOBJMETHOD(g_part_dumpconf,	g_part_gpt_dumpconf),
-	KOBJMETHOD(g_part_dumpto,	g_part_gpt_dumpto),
-	KOBJMETHOD(g_part_modify,	g_part_gpt_modify),
-	KOBJMETHOD(g_part_resize,	g_part_gpt_resize),
-	KOBJMETHOD(g_part_name,		g_part_gpt_name),
-	KOBJMETHOD(g_part_probe,	g_part_gpt_probe),
-	KOBJMETHOD(g_part_read,		g_part_gpt_read),
-	KOBJMETHOD(g_part_recover,	g_part_gpt_recover),
-	KOBJMETHOD(g_part_setunset,	g_part_gpt_setunset),
-	KOBJMETHOD(g_part_type,		g_part_gpt_type),
-	KOBJMETHOD(g_part_write,	g_part_gpt_write),
-	{ 0, 0 }
-};
+static kobj_method_t g_part_gpt_methods[] = { KOBJMETHOD(g_part_add,
+						  g_part_gpt_add),
+	KOBJMETHOD(g_part_bootcode, g_part_gpt_bootcode),
+	KOBJMETHOD(g_part_create, g_part_gpt_create),
+	KOBJMETHOD(g_part_destroy, g_part_gpt_destroy),
+	KOBJMETHOD(g_part_dumpconf, g_part_gpt_dumpconf),
+	KOBJMETHOD(g_part_dumpto, g_part_gpt_dumpto),
+	KOBJMETHOD(g_part_modify, g_part_gpt_modify),
+	KOBJMETHOD(g_part_resize, g_part_gpt_resize),
+	KOBJMETHOD(g_part_name, g_part_gpt_name),
+	KOBJMETHOD(g_part_probe, g_part_gpt_probe),
+	KOBJMETHOD(g_part_read, g_part_gpt_read),
+	KOBJMETHOD(g_part_recover, g_part_gpt_recover),
+	KOBJMETHOD(g_part_setunset, g_part_gpt_setunset),
+	KOBJMETHOD(g_part_type, g_part_gpt_type),
+	KOBJMETHOD(g_part_write, g_part_gpt_write), { 0, 0 } };
 
 #define MAXENTSIZE 1024
 
@@ -168,7 +166,8 @@ static struct uuid gpt_uuid_apple_core_storage =
 static struct uuid gpt_uuid_apple_hfs = GPT_ENT_TYPE_APPLE_HFS;
 static struct uuid gpt_uuid_apple_label = GPT_ENT_TYPE_APPLE_LABEL;
 static struct uuid gpt_uuid_apple_raid = GPT_ENT_TYPE_APPLE_RAID;
-static struct uuid gpt_uuid_apple_raid_offline = GPT_ENT_TYPE_APPLE_RAID_OFFLINE;
+static struct uuid gpt_uuid_apple_raid_offline =
+    GPT_ENT_TYPE_APPLE_RAID_OFFLINE;
 static struct uuid gpt_uuid_apple_tv_recovery = GPT_ENT_TYPE_APPLE_TV_RECOVERY;
 static struct uuid gpt_uuid_apple_ufs = GPT_ENT_TYPE_APPLE_UFS;
 static struct uuid gpt_uuid_apple_zfs = GPT_ENT_TYPE_APPLE_ZFS;
@@ -233,78 +232,75 @@ static struct g_part_uuid_alias {
 	struct uuid *uuid;
 	int alias;
 	int mbrtype;
-} gpt_uuid_alias_match[] = {
-	{ &gpt_uuid_apple_apfs,		G_PART_ALIAS_APPLE_APFS,	 0 },
-	{ &gpt_uuid_apple_boot,		G_PART_ALIAS_APPLE_BOOT,	 0xab },
-	{ &gpt_uuid_apple_core_storage,	G_PART_ALIAS_APPLE_CORE_STORAGE, 0 },
-	{ &gpt_uuid_apple_hfs,		G_PART_ALIAS_APPLE_HFS,		 0xaf },
-	{ &gpt_uuid_apple_label,	G_PART_ALIAS_APPLE_LABEL,	 0 },
-	{ &gpt_uuid_apple_raid,		G_PART_ALIAS_APPLE_RAID,	 0 },
-	{ &gpt_uuid_apple_raid_offline,	G_PART_ALIAS_APPLE_RAID_OFFLINE, 0 },
-	{ &gpt_uuid_apple_tv_recovery,	G_PART_ALIAS_APPLE_TV_RECOVERY,	 0 },
-	{ &gpt_uuid_apple_ufs,		G_PART_ALIAS_APPLE_UFS,		 0 },
-	{ &gpt_uuid_apple_zfs,		G_PART_ALIAS_APPLE_ZFS,		 0 },
-	{ &gpt_uuid_bios_boot,		G_PART_ALIAS_BIOS_BOOT,		 0 },
-	{ &gpt_uuid_chromeos_firmware,	G_PART_ALIAS_CHROMEOS_FIRMWARE,	 0 },
-	{ &gpt_uuid_chromeos_kernel,	G_PART_ALIAS_CHROMEOS_KERNEL,	 0 },
-	{ &gpt_uuid_chromeos_reserved,	G_PART_ALIAS_CHROMEOS_RESERVED,	 0 },
-	{ &gpt_uuid_chromeos_root,	G_PART_ALIAS_CHROMEOS_ROOT,	 0 },
-	{ &gpt_uuid_dfbsd_ccd,		G_PART_ALIAS_DFBSD_CCD,		 0 },
-	{ &gpt_uuid_dfbsd_hammer,	G_PART_ALIAS_DFBSD_HAMMER,	 0 },
-	{ &gpt_uuid_dfbsd_hammer2,	G_PART_ALIAS_DFBSD_HAMMER2,	 0 },
-	{ &gpt_uuid_dfbsd_label32,	G_PART_ALIAS_DFBSD,		 0xa5 },
-	{ &gpt_uuid_dfbsd_label64,	G_PART_ALIAS_DFBSD64,		 0xa5 },
-	{ &gpt_uuid_dfbsd_legacy,	G_PART_ALIAS_DFBSD_LEGACY,	 0 },
-	{ &gpt_uuid_dfbsd_swap,		G_PART_ALIAS_DFBSD_SWAP,	 0 },
-	{ &gpt_uuid_dfbsd_ufs1,		G_PART_ALIAS_DFBSD_UFS,		 0 },
-	{ &gpt_uuid_dfbsd_vinum,	G_PART_ALIAS_DFBSD_VINUM,	 0 },
-	{ &gpt_uuid_efi, 		G_PART_ALIAS_EFI,		 0xee },
-	{ &gpt_uuid_freebsd,		G_PART_ALIAS_FREEBSD,		 0xa5 },
-	{ &gpt_uuid_freebsd_boot, 	G_PART_ALIAS_FREEBSD_BOOT,	 0 },
-	{ &gpt_uuid_freebsd_nandfs, 	G_PART_ALIAS_FREEBSD_NANDFS,	 0 },
-	{ &gpt_uuid_freebsd_swap,	G_PART_ALIAS_FREEBSD_SWAP,	 0 },
-	{ &gpt_uuid_freebsd_ufs,	G_PART_ALIAS_FREEBSD_UFS,	 0 },
-	{ &gpt_uuid_freebsd_vinum,	G_PART_ALIAS_FREEBSD_VINUM,	 0 },
-	{ &gpt_uuid_freebsd_zfs,	G_PART_ALIAS_FREEBSD_ZFS,	 0 },
-	{ &gpt_uuid_hifive_fsbl,	G_PART_ALIAS_HIFIVE_FSBL,	 0 },
-	{ &gpt_uuid_hifive_bbl,		G_PART_ALIAS_HIFIVE_BBL,	 0 },
-	{ &gpt_uuid_linux_data,		G_PART_ALIAS_LINUX_DATA,	 0x0b },
-	{ &gpt_uuid_linux_lvm,		G_PART_ALIAS_LINUX_LVM,		 0 },
-	{ &gpt_uuid_linux_raid,		G_PART_ALIAS_LINUX_RAID,	 0 },
-	{ &gpt_uuid_linux_swap,		G_PART_ALIAS_LINUX_SWAP,	 0 },
-	{ &gpt_uuid_mbr,		G_PART_ALIAS_MBR,		 0 },
-	{ &gpt_uuid_ms_basic_data,	G_PART_ALIAS_MS_BASIC_DATA,	 0x0b },
-	{ &gpt_uuid_ms_ldm_data,	G_PART_ALIAS_MS_LDM_DATA,	 0 },
-	{ &gpt_uuid_ms_ldm_metadata,	G_PART_ALIAS_MS_LDM_METADATA,	 0 },
-	{ &gpt_uuid_ms_recovery,	G_PART_ALIAS_MS_RECOVERY,	 0 },
-	{ &gpt_uuid_ms_reserved,	G_PART_ALIAS_MS_RESERVED,	 0 },
-	{ &gpt_uuid_ms_spaces,		G_PART_ALIAS_MS_SPACES,		 0 },
-	{ &gpt_uuid_netbsd_ccd,		G_PART_ALIAS_NETBSD_CCD,	 0 },
-	{ &gpt_uuid_netbsd_cgd,		G_PART_ALIAS_NETBSD_CGD,	 0 },
-	{ &gpt_uuid_netbsd_ffs,		G_PART_ALIAS_NETBSD_FFS,	 0 },
-	{ &gpt_uuid_netbsd_lfs,		G_PART_ALIAS_NETBSD_LFS,	 0 },
-	{ &gpt_uuid_netbsd_raid,	G_PART_ALIAS_NETBSD_RAID,	 0 },
-	{ &gpt_uuid_netbsd_swap,	G_PART_ALIAS_NETBSD_SWAP,	 0 },
-	{ &gpt_uuid_openbsd_data,	G_PART_ALIAS_OPENBSD_DATA,	 0 },
-	{ &gpt_uuid_prep_boot,		G_PART_ALIAS_PREP_BOOT,		 0x41 },
-	{ &gpt_uuid_solaris_boot,	G_PART_ALIAS_SOLARIS_BOOT,	 0 },
-	{ &gpt_uuid_solaris_root,	G_PART_ALIAS_SOLARIS_ROOT,	 0 },
-	{ &gpt_uuid_solaris_swap,	G_PART_ALIAS_SOLARIS_SWAP,	 0 },
-	{ &gpt_uuid_solaris_backup,	G_PART_ALIAS_SOLARIS_BACKUP,	 0 },
-	{ &gpt_uuid_solaris_var,	G_PART_ALIAS_SOLARIS_VAR,	 0 },
-	{ &gpt_uuid_solaris_home,	G_PART_ALIAS_SOLARIS_HOME,	 0 },
-	{ &gpt_uuid_solaris_altsec,	G_PART_ALIAS_SOLARIS_ALTSEC,	 0 },
-	{ &gpt_uuid_solaris_reserved,	G_PART_ALIAS_SOLARIS_RESERVED,	 0 },
-	{ &gpt_uuid_vmfs,		G_PART_ALIAS_VMFS,		 0 },
-	{ &gpt_uuid_vmkdiag,		G_PART_ALIAS_VMKDIAG,		 0 },
-	{ &gpt_uuid_vmreserved,		G_PART_ALIAS_VMRESERVED,	 0 },
-	{ &gpt_uuid_vmvsanhdr,		G_PART_ALIAS_VMVSANHDR,		 0 },
-	{ NULL, 0, 0 }
-};
+} gpt_uuid_alias_match[] = { { &gpt_uuid_apple_apfs, G_PART_ALIAS_APPLE_APFS,
+				 0 },
+	{ &gpt_uuid_apple_boot, G_PART_ALIAS_APPLE_BOOT, 0xab },
+	{ &gpt_uuid_apple_core_storage, G_PART_ALIAS_APPLE_CORE_STORAGE, 0 },
+	{ &gpt_uuid_apple_hfs, G_PART_ALIAS_APPLE_HFS, 0xaf },
+	{ &gpt_uuid_apple_label, G_PART_ALIAS_APPLE_LABEL, 0 },
+	{ &gpt_uuid_apple_raid, G_PART_ALIAS_APPLE_RAID, 0 },
+	{ &gpt_uuid_apple_raid_offline, G_PART_ALIAS_APPLE_RAID_OFFLINE, 0 },
+	{ &gpt_uuid_apple_tv_recovery, G_PART_ALIAS_APPLE_TV_RECOVERY, 0 },
+	{ &gpt_uuid_apple_ufs, G_PART_ALIAS_APPLE_UFS, 0 },
+	{ &gpt_uuid_apple_zfs, G_PART_ALIAS_APPLE_ZFS, 0 },
+	{ &gpt_uuid_bios_boot, G_PART_ALIAS_BIOS_BOOT, 0 },
+	{ &gpt_uuid_chromeos_firmware, G_PART_ALIAS_CHROMEOS_FIRMWARE, 0 },
+	{ &gpt_uuid_chromeos_kernel, G_PART_ALIAS_CHROMEOS_KERNEL, 0 },
+	{ &gpt_uuid_chromeos_reserved, G_PART_ALIAS_CHROMEOS_RESERVED, 0 },
+	{ &gpt_uuid_chromeos_root, G_PART_ALIAS_CHROMEOS_ROOT, 0 },
+	{ &gpt_uuid_dfbsd_ccd, G_PART_ALIAS_DFBSD_CCD, 0 },
+	{ &gpt_uuid_dfbsd_hammer, G_PART_ALIAS_DFBSD_HAMMER, 0 },
+	{ &gpt_uuid_dfbsd_hammer2, G_PART_ALIAS_DFBSD_HAMMER2, 0 },
+	{ &gpt_uuid_dfbsd_label32, G_PART_ALIAS_DFBSD, 0xa5 },
+	{ &gpt_uuid_dfbsd_label64, G_PART_ALIAS_DFBSD64, 0xa5 },
+	{ &gpt_uuid_dfbsd_legacy, G_PART_ALIAS_DFBSD_LEGACY, 0 },
+	{ &gpt_uuid_dfbsd_swap, G_PART_ALIAS_DFBSD_SWAP, 0 },
+	{ &gpt_uuid_dfbsd_ufs1, G_PART_ALIAS_DFBSD_UFS, 0 },
+	{ &gpt_uuid_dfbsd_vinum, G_PART_ALIAS_DFBSD_VINUM, 0 },
+	{ &gpt_uuid_efi, G_PART_ALIAS_EFI, 0xee },
+	{ &gpt_uuid_freebsd, G_PART_ALIAS_FREEBSD, 0xa5 },
+	{ &gpt_uuid_freebsd_boot, G_PART_ALIAS_FREEBSD_BOOT, 0 },
+	{ &gpt_uuid_freebsd_nandfs, G_PART_ALIAS_FREEBSD_NANDFS, 0 },
+	{ &gpt_uuid_freebsd_swap, G_PART_ALIAS_FREEBSD_SWAP, 0 },
+	{ &gpt_uuid_freebsd_ufs, G_PART_ALIAS_FREEBSD_UFS, 0 },
+	{ &gpt_uuid_freebsd_vinum, G_PART_ALIAS_FREEBSD_VINUM, 0 },
+	{ &gpt_uuid_freebsd_zfs, G_PART_ALIAS_FREEBSD_ZFS, 0 },
+	{ &gpt_uuid_hifive_fsbl, G_PART_ALIAS_HIFIVE_FSBL, 0 },
+	{ &gpt_uuid_hifive_bbl, G_PART_ALIAS_HIFIVE_BBL, 0 },
+	{ &gpt_uuid_linux_data, G_PART_ALIAS_LINUX_DATA, 0x0b },
+	{ &gpt_uuid_linux_lvm, G_PART_ALIAS_LINUX_LVM, 0 },
+	{ &gpt_uuid_linux_raid, G_PART_ALIAS_LINUX_RAID, 0 },
+	{ &gpt_uuid_linux_swap, G_PART_ALIAS_LINUX_SWAP, 0 },
+	{ &gpt_uuid_mbr, G_PART_ALIAS_MBR, 0 },
+	{ &gpt_uuid_ms_basic_data, G_PART_ALIAS_MS_BASIC_DATA, 0x0b },
+	{ &gpt_uuid_ms_ldm_data, G_PART_ALIAS_MS_LDM_DATA, 0 },
+	{ &gpt_uuid_ms_ldm_metadata, G_PART_ALIAS_MS_LDM_METADATA, 0 },
+	{ &gpt_uuid_ms_recovery, G_PART_ALIAS_MS_RECOVERY, 0 },
+	{ &gpt_uuid_ms_reserved, G_PART_ALIAS_MS_RESERVED, 0 },
+	{ &gpt_uuid_ms_spaces, G_PART_ALIAS_MS_SPACES, 0 },
+	{ &gpt_uuid_netbsd_ccd, G_PART_ALIAS_NETBSD_CCD, 0 },
+	{ &gpt_uuid_netbsd_cgd, G_PART_ALIAS_NETBSD_CGD, 0 },
+	{ &gpt_uuid_netbsd_ffs, G_PART_ALIAS_NETBSD_FFS, 0 },
+	{ &gpt_uuid_netbsd_lfs, G_PART_ALIAS_NETBSD_LFS, 0 },
+	{ &gpt_uuid_netbsd_raid, G_PART_ALIAS_NETBSD_RAID, 0 },
+	{ &gpt_uuid_netbsd_swap, G_PART_ALIAS_NETBSD_SWAP, 0 },
+	{ &gpt_uuid_openbsd_data, G_PART_ALIAS_OPENBSD_DATA, 0 },
+	{ &gpt_uuid_prep_boot, G_PART_ALIAS_PREP_BOOT, 0x41 },
+	{ &gpt_uuid_solaris_boot, G_PART_ALIAS_SOLARIS_BOOT, 0 },
+	{ &gpt_uuid_solaris_root, G_PART_ALIAS_SOLARIS_ROOT, 0 },
+	{ &gpt_uuid_solaris_swap, G_PART_ALIAS_SOLARIS_SWAP, 0 },
+	{ &gpt_uuid_solaris_backup, G_PART_ALIAS_SOLARIS_BACKUP, 0 },
+	{ &gpt_uuid_solaris_var, G_PART_ALIAS_SOLARIS_VAR, 0 },
+	{ &gpt_uuid_solaris_home, G_PART_ALIAS_SOLARIS_HOME, 0 },
+	{ &gpt_uuid_solaris_altsec, G_PART_ALIAS_SOLARIS_ALTSEC, 0 },
+	{ &gpt_uuid_solaris_reserved, G_PART_ALIAS_SOLARIS_RESERVED, 0 },
+	{ &gpt_uuid_vmfs, G_PART_ALIAS_VMFS, 0 },
+	{ &gpt_uuid_vmkdiag, G_PART_ALIAS_VMKDIAG, 0 },
+	{ &gpt_uuid_vmreserved, G_PART_ALIAS_VMRESERVED, 0 },
+	{ &gpt_uuid_vmvsanhdr, G_PART_ALIAS_VMVSANHDR, 0 }, { NULL, 0, 0 } };
 
 static int
-gpt_write_mbr_entry(u_char *mbr, int idx, int typ, quad_t start,
-    quad_t end)
+gpt_write_mbr_entry(u_char *mbr, int idx, int typ, quad_t start, quad_t end)
 {
 
 	if (typ == 0 || start > UINT32_MAX || end > UINT32_MAX)
@@ -391,7 +387,7 @@ gpt_update_bootcamp(struct g_part_table *basetable, struct g_provider *pp)
 
 	bzero(table->mbr + DOSPARTOFF, DOSPARTSIZE * NDOSPART);
 	slices = 0;
-	LIST_FOREACH(baseentry, &basetable->gpt_entry, gpe_entry) {
+	LIST_FOREACH (baseentry, &basetable->gpt_entry, gpe_entry) {
 		if (baseentry->gpe_deleted)
 			continue;
 		index = baseentry->gpe_index - 1;
@@ -401,13 +397,13 @@ gpt_update_bootcamp(struct g_part_table *basetable, struct g_provider *pp)
 		entry = (struct g_part_gpt_entry *)baseentry;
 
 		switch (index) {
-		case 0:	/* This must be the EFI system partition. */
+		case 0: /* This must be the EFI system partition. */
 			if (!EQUUID(&entry->ent.ent_type, &gpt_uuid_efi))
 				goto disable;
 			error = gpt_write_mbr_entry(table->mbr, index, 0xee,
 			    1ull, entry->ent.ent_lba_end);
 			break;
-		case 1:	/* This must be the HFS+ partition. */
+		case 1: /* This must be the HFS+ partition. */
 			if (!EQUUID(&entry->ent.ent_type, &gpt_uuid_apple_hfs))
 				goto disable;
 			error = gpt_write_mbr_entry(table->mbr, index, 0xaf,
@@ -429,7 +425,7 @@ gpt_update_bootcamp(struct g_part_table *basetable, struct g_provider *pp)
 	if ((slices & 3) == 3)
 		return;
 
- disable:
+disable:
 	table->bootcamp = 0;
 	gpt_create_pmbr(table, pp);
 }
@@ -514,7 +510,8 @@ gpt_read_hdr(struct g_part_gpt_table *table, struct g_consumer *cp,
 		goto fail;
 	lba = hdr->hdr_lba_table +
 	    howmany((uint64_t)hdr->hdr_entries * hdr->hdr_entsz,
-	        pp->sectorsize) - 1;
+		pp->sectorsize) -
+	    1;
 	if (lba >= last)
 		goto fail;
 	if (lba >= hdr->hdr_lba_start && lba <= hdr->hdr_lba_end)
@@ -531,7 +528,7 @@ gpt_read_hdr(struct g_part_gpt_table *table, struct g_consumer *cp,
 	g_free(buf);
 	return (hdr);
 
- fail:
+fail:
 	g_free(hdr);
 	g_free(buf);
 	return (NULL);
@@ -563,7 +560,8 @@ gpt_read_tbl(struct g_part_gpt_table *table, struct g_consumer *cp,
 	sectors = howmany(tblsz, pp->sectorsize);
 	buf = g_malloc(sectors * pp->sectorsize, M_WAITOK | M_ZERO);
 	for (idx = 0; idx < sectors; idx += maxphys / pp->sectorsize) {
-		size = (sectors - idx > maxphys / pp->sectorsize) ?  maxphys:
+		size = (sectors - idx > maxphys / pp->sectorsize) ?
+		    maxphys :
 		    (sectors - idx) * pp->sectorsize;
 		p = g_read_data(cp, (table->lba[elt] + idx) * pp->sectorsize,
 		    size, &error);
@@ -584,8 +582,7 @@ gpt_read_tbl(struct g_part_gpt_table *table, struct g_consumer *cp,
 	tbl = g_malloc(hdr->hdr_entries * sizeof(struct gpt_ent),
 	    M_WAITOK | M_ZERO);
 
-	for (idx = 0, ent = tbl, p = buf;
-	     idx < hdr->hdr_entries;
+	for (idx = 0, ent = tbl, p = buf; idx < hdr->hdr_entries;
 	     idx++, ent++, p += hdr->hdr_entsz) {
 		le_uuid_dec(p, &ent->ent_type);
 		le_uuid_dec(p + 16, &ent->ent_uuid);
@@ -610,12 +607,14 @@ gpt_matched_hdrs(struct gpt_hdr *pri, struct gpt_hdr *sec)
 	if (!EQUUID(&pri->hdr_uuid, &sec->hdr_uuid))
 		return (0);
 	return ((pri->hdr_revision == sec->hdr_revision &&
-	    pri->hdr_size == sec->hdr_size &&
-	    pri->hdr_lba_start == sec->hdr_lba_start &&
-	    pri->hdr_lba_end == sec->hdr_lba_end &&
-	    pri->hdr_entries == sec->hdr_entries &&
-	    pri->hdr_entsz == sec->hdr_entsz &&
-	    pri->hdr_crc_table == sec->hdr_crc_table) ? 1 : 0);
+		    pri->hdr_size == sec->hdr_size &&
+		    pri->hdr_lba_start == sec->hdr_lba_start &&
+		    pri->hdr_lba_end == sec->hdr_lba_end &&
+		    pri->hdr_entries == sec->hdr_entries &&
+		    pri->hdr_entsz == sec->hdr_entsz &&
+		    pri->hdr_crc_table == sec->hdr_crc_table) ?
+		1 :
+		0);
 }
 
 static int
@@ -666,7 +665,7 @@ g_part_gpt_add(struct g_part_table *basetable, struct g_part_entry *baseentry,
 	if (gpp->gpp_parms & G_PART_PARM_LABEL)
 		g_gpt_utf8_to_utf16(gpp->gpp_label, entry->ent.ent_name,
 		    sizeof(entry->ent.ent_name) /
-		    sizeof(entry->ent.ent_name[0]));
+			sizeof(entry->ent.ent_name[0]));
 	return (0);
 }
 
@@ -701,8 +700,8 @@ g_part_gpt_create(struct g_part_table *basetable, struct g_part_parms *gpp)
 	tblsz = howmany(basetable->gpt_entries * sizeof(struct gpt_ent),
 	    pp->sectorsize);
 	if (pp->sectorsize < MBRSIZE ||
-	    pp->mediasize < (3 + 2 * tblsz + basetable->gpt_entries) *
-	    pp->sectorsize)
+	    pp->mediasize <
+		(3 + 2 * tblsz + basetable->gpt_entries) * pp->sectorsize)
 		return (ENOSPC);
 
 	gpt_create_pmbr(table, pp);
@@ -801,8 +800,10 @@ g_part_gpt_dumpto(struct g_part_table *table, struct g_part_entry *baseentry)
 
 	entry = (struct g_part_gpt_entry *)baseentry;
 	return ((EQUUID(&entry->ent.ent_type, &gpt_uuid_freebsd_swap) ||
-	    EQUUID(&entry->ent.ent_type, &gpt_uuid_linux_swap) ||
-	    EQUUID(&entry->ent.ent_type, &gpt_uuid_dfbsd_swap)) ? 1 : 0);
+		    EQUUID(&entry->ent.ent_type, &gpt_uuid_linux_swap) ||
+		    EQUUID(&entry->ent.ent_type, &gpt_uuid_dfbsd_swap)) ?
+		1 :
+		0);
 }
 
 static int
@@ -821,7 +822,7 @@ g_part_gpt_modify(struct g_part_table *basetable,
 	if (gpp->gpp_parms & G_PART_PARM_LABEL)
 		g_gpt_utf8_to_utf16(gpp->gpp_label, entry->ent.ent_name,
 		    sizeof(entry->ent.ent_name) /
-		    sizeof(entry->ent.ent_name[0]));
+			sizeof(entry->ent.ent_name[0]));
 	return (0);
 }
 
@@ -973,17 +974,17 @@ g_part_gpt_read(struct g_part_table *basetable, struct g_consumer *cp)
 			printf("GEOM: %s: unsupported GPT detected.\n",
 			    pp->name);
 			printf(
-		    "GEOM: %s: number of GPT entries: %u, entry size: %uB.\n",
+			    "GEOM: %s: number of GPT entries: %u, entry size: %uB.\n",
 			    pp->name, prihdr->hdr_entries, prihdr->hdr_entsz);
 			printf(
-    "GEOM: %s: maximum supported number of GPT entries: %u, entry size: %uB.\n",
+			    "GEOM: %s: maximum supported number of GPT entries: %u, entry size: %uB.\n",
 			    pp->name, g_part_gpt_scheme.gps_maxent, MAXENTSIZE);
 			printf("GEOM: %s: GPT rejected.\n", pp->name);
 		} else {
 			printf("GEOM: %s: corrupt or invalid GPT detected.\n",
 			    pp->name);
 			printf(
-		    "GEOM: %s: GPT rejected -- may not be recoverable.\n",
+			    "GEOM: %s: GPT rejected -- may not be recoverable.\n",
 			    pp->name);
 		}
 		g_free(prihdr);
@@ -1016,9 +1017,11 @@ g_part_gpt_read(struct g_part_table *basetable, struct g_consumer *cp)
 
 	if (table->state[GPT_ELT_PRITBL] != GPT_STATE_OK) {
 		printf("GEOM: %s: the primary GPT table is corrupt or "
-		    "invalid.\n", pp->name);
+		       "invalid.\n",
+		    pp->name);
 		printf("GEOM: %s: using the secondary instead -- recovery "
-		    "strongly advised.\n", pp->name);
+		       "strongly advised.\n",
+		    pp->name);
 		table->hdr = sechdr;
 		basetable->gpt_corrupt = 1;
 		g_free(prihdr);
@@ -1027,13 +1030,16 @@ g_part_gpt_read(struct g_part_table *basetable, struct g_consumer *cp)
 	} else {
 		if (table->state[GPT_ELT_SECTBL] != GPT_STATE_OK) {
 			printf("GEOM: %s: the secondary GPT table is corrupt "
-			    "or invalid.\n", pp->name);
+			       "or invalid.\n",
+			    pp->name);
 			printf("GEOM: %s: using the primary only -- recovery "
-			    "suggested.\n", pp->name);
+			       "suggested.\n",
+			    pp->name);
 			basetable->gpt_corrupt = 1;
 		} else if (table->lba[GPT_ELT_SECHDR] != last) {
-			printf( "GEOM: %s: the secondary GPT header is not in "
-			    "the last LBA.\n", pp->name);
+			printf("GEOM: %s: the secondary GPT header is not in "
+			       "the last LBA.\n",
+			    pp->name);
 			basetable->gpt_corrupt = 1;
 		}
 		table->hdr = prihdr;
@@ -1049,8 +1055,8 @@ g_part_gpt_read(struct g_part_table *basetable, struct g_consumer *cp)
 	for (index = basetable->gpt_entries - 1; index >= 0; index--) {
 		if (EQUUID(&tbl[index].ent_type, &gpt_uuid_unused))
 			continue;
-		entry = (struct g_part_gpt_entry *)g_part_new_entry(
-		    basetable, index + 1, tbl[index].ent_lba_start,
+		entry = (struct g_part_gpt_entry *)g_part_new_entry(basetable,
+		    index + 1, tbl[index].ent_lba_start,
 		    tbl[index].ent_lba_end);
 		entry->ent = tbl[index];
 	}
@@ -1111,8 +1117,9 @@ g_part_gpt_setunset(struct g_part_table *basetable,
 				return (EINVAL);
 			for (i = 0; i < NDOSPART; i++) {
 				p = &table->mbr[DOSPARTOFF + i * DOSPARTSIZE];
-				p[0] = (i == baseentry->gpe_index - 1)
-				    ? ((set) ? 0x80 : 0) : 0;
+				p[0] = (i == baseentry->gpe_index - 1) ?
+				    ((set) ? 0x80 : 0) :
+				    0;
 			}
 		} else {
 			/* The PMBR is marked as active without an entry. */
@@ -1233,7 +1240,7 @@ g_part_gpt_write(struct g_part_table *basetable, struct g_consumer *cp)
 	le32enc(buf + 80, table->hdr->hdr_entries);
 	le32enc(buf + 84, table->hdr->hdr_entsz);
 
-	LIST_FOREACH(baseentry, &basetable->gpt_entry, gpe_entry) {
+	LIST_FOREACH (baseentry, &basetable->gpt_entry, gpe_entry) {
 		if (baseentry->gpe_deleted)
 			continue;
 		entry = (struct g_part_gpt_entry *)baseentry;
@@ -1253,10 +1260,10 @@ g_part_gpt_write(struct g_part_table *basetable, struct g_consumer *cp)
 	le32enc(buf + 88, crc);
 
 	/* Write primary meta-data. */
-	le32enc(buf + 16, 0);	/* hdr_crc_self. */
-	le64enc(buf + 24, table->lba[GPT_ELT_PRIHDR]);	/* hdr_lba_self. */
-	le64enc(buf + 32, table->lba[GPT_ELT_SECHDR]);	/* hdr_lba_alt. */
-	le64enc(buf + 72, table->lba[GPT_ELT_PRITBL]);	/* hdr_lba_table. */
+	le32enc(buf + 16, 0);			       /* hdr_crc_self. */
+	le64enc(buf + 24, table->lba[GPT_ELT_PRIHDR]); /* hdr_lba_self. */
+	le64enc(buf + 32, table->lba[GPT_ELT_SECHDR]); /* hdr_lba_alt. */
+	le64enc(buf + 72, table->lba[GPT_ELT_PRITBL]); /* hdr_lba_table. */
 	crc = crc32(buf, table->hdr->hdr_size);
 	le32enc(buf + 16, crc);
 
@@ -1264,8 +1271,9 @@ g_part_gpt_write(struct g_part_table *basetable, struct g_consumer *cp)
 		error = g_write_data(cp,
 		    (table->lba[GPT_ELT_PRITBL] + index) * pp->sectorsize,
 		    buf + (index + 1) * pp->sectorsize,
-		    (tblsz - index > maxphys / pp->sectorsize) ? maxphys :
-		    (tblsz - index) * pp->sectorsize);
+		    (tblsz - index > maxphys / pp->sectorsize) ?
+			maxphys :
+			(tblsz - index) * pp->sectorsize);
 		if (error)
 			goto out;
 	}
@@ -1275,10 +1283,10 @@ g_part_gpt_write(struct g_part_table *basetable, struct g_consumer *cp)
 		goto out;
 
 	/* Write secondary meta-data. */
-	le32enc(buf + 16, 0);	/* hdr_crc_self. */
-	le64enc(buf + 24, table->lba[GPT_ELT_SECHDR]);	/* hdr_lba_self. */
-	le64enc(buf + 32, table->lba[GPT_ELT_PRIHDR]);	/* hdr_lba_alt. */
-	le64enc(buf + 72, table->lba[GPT_ELT_SECTBL]);	/* hdr_lba_table. */
+	le32enc(buf + 16, 0);			       /* hdr_crc_self. */
+	le64enc(buf + 24, table->lba[GPT_ELT_SECHDR]); /* hdr_lba_self. */
+	le64enc(buf + 32, table->lba[GPT_ELT_PRIHDR]); /* hdr_lba_alt. */
+	le64enc(buf + 72, table->lba[GPT_ELT_SECTBL]); /* hdr_lba_table. */
 	crc = crc32(buf, table->hdr->hdr_size);
 	le32enc(buf + 16, crc);
 
@@ -1286,22 +1294,23 @@ g_part_gpt_write(struct g_part_table *basetable, struct g_consumer *cp)
 		error = g_write_data(cp,
 		    (table->lba[GPT_ELT_SECTBL] + index) * pp->sectorsize,
 		    buf + (index + 1) * pp->sectorsize,
-		    (tblsz - index > maxphys / pp->sectorsize) ? maxphys :
-		    (tblsz - index) * pp->sectorsize);
+		    (tblsz - index > maxphys / pp->sectorsize) ?
+			maxphys :
+			(tblsz - index) * pp->sectorsize);
 		if (error)
 			goto out;
 	}
 	error = g_write_data(cp, table->lba[GPT_ELT_SECHDR] * pp->sectorsize,
 	    buf, pp->sectorsize);
 
- out:
+out:
 	g_free(buf);
 	return (error);
 }
 
 static void
 g_gpt_set_defaults(struct g_part_table *basetable, struct g_provider *pp,
-	struct g_part_parms *gpp)
+    struct g_part_parms *gpp)
 {
 	struct g_part_entry *baseentry;
 	struct g_part_gpt_entry *entry;
@@ -1326,7 +1335,7 @@ g_gpt_set_defaults(struct g_part_table *basetable, struct g_provider *pp,
 
 	max = start = 2 + tblsz;
 	min = end = last - tblsz - 1;
-	LIST_FOREACH(baseentry, &basetable->gpt_entry, gpe_entry) {
+	LIST_FOREACH (baseentry, &basetable->gpt_entry, gpe_entry) {
 		if (baseentry->gpe_deleted)
 			continue;
 		entry = (struct g_part_gpt_entry *)baseentry;
@@ -1346,8 +1355,7 @@ g_gpt_set_defaults(struct g_part_table *basetable, struct g_provider *pp,
 	 * to a 4k offset on the drive, to make 512e/4kn drives more performant
 	 * by default.
 	 */
-	if (gpp == NULL ||
-	    (gpp->gpp_parms & G_PART_PARM_FLAGS) == 0 ||
+	if (gpp == NULL || (gpp->gpp_parms & G_PART_PARM_FLAGS) == 0 ||
 	    strstr(gpp->gpp_flags, "restore") == NULL) {
 		spb = 4096 / pp->sectorsize;
 		if (spb > 1) {
@@ -1373,14 +1381,14 @@ g_gpt_printf_utf16(struct sbuf *sb, uint16_t *str, size_t len)
 	uint32_t ch;
 	uint16_t c;
 
-	bo = LITTLE_ENDIAN;	/* GPT is little-endian */
+	bo = LITTLE_ENDIAN; /* GPT is little-endian */
 	while (len > 0 && *str != 0) {
 		ch = (bo == BIG_ENDIAN) ? be16toh(*str) : le16toh(*str);
 		str++, len--;
 		if ((ch & 0xf800) == 0xd800) {
 			if (len > 0) {
-				c = (bo == BIG_ENDIAN) ? be16toh(*str)
-				    : le16toh(*str);
+				c = (bo == BIG_ENDIAN) ? be16toh(*str) :
+							 le16toh(*str);
 				str++, len--;
 			} else
 				c = 0xfffd;
@@ -1405,8 +1413,8 @@ g_gpt_printf_utf16(struct sbuf *sb, uint16_t *str, size_t len)
 			g_conf_printf_escaped(sb, "%c%c%c", 0xe0 | (ch >> 12),
 			    0x80 | ((ch >> 6) & 0x3f), 0x80 | (ch & 0x3f));
 		else if (ch < 0x200000)
-			g_conf_printf_escaped(sb, "%c%c%c%c", 0xf0 |
-			    (ch >> 18), 0x80 | ((ch >> 12) & 0x3f),
+			g_conf_printf_escaped(sb, "%c%c%c%c", 0xf0 | (ch >> 18),
+			    0x80 | ((ch >> 12) & 0x3f),
 			    0x80 | ((ch >> 6) & 0x3f), 0x80 | (ch & 0x3f));
 	}
 }
@@ -1462,12 +1470,13 @@ g_gpt_utf8_to_utf16(const uint8_t *s8, uint16_t *s16, size_t s16len)
 			 * string by writing a 0 instead.
 			 */
 			if (utfchar >= 0x10000 && s16idx < s16len - 1) {
-				s16[s16idx++] =
-				    htole16(0xd800 | ((utfchar >> 10) - 0x40));
-				s16[s16idx++] =
-				    htole16(0xdc00 | (utfchar & 0x3ff));
+				s16[s16idx++] = htole16(
+				    0xd800 | ((utfchar >> 10) - 0x40));
+				s16[s16idx++] = htole16(
+				    0xdc00 | (utfchar & 0x3ff));
 			} else
-				s16[s16idx++] = (utfchar >= 0x10000) ? 0 :
+				s16[s16idx++] = (utfchar >= 0x10000) ?
+				    0 :
 				    htole16(utfchar);
 		}
 	}

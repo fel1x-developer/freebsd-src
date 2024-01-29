@@ -30,16 +30,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <utmpx.h>
+
 #include "extern.h"
 
 void
@@ -54,8 +56,8 @@ ftpd_logwtmp(char *id, char *user, struct sockaddr *addr)
 		ut.ut_type = USER_PROCESS;
 		(void)strncpy(ut.ut_user, user, sizeof(ut.ut_user));
 		if (addr != NULL)
-			realhostname_sa(ut.ut_host, sizeof(ut.ut_host),
-			    addr, addr->sa_len);
+			realhostname_sa(ut.ut_host, sizeof(ut.ut_host), addr,
+			    addr->sa_len);
 	} else {
 		/* Log out. */
 		ut.ut_type = DEAD_PROCESS;

@@ -37,11 +37,15 @@
 #include <sys/stat.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netdb.h>
+#include <nfs/nfs_lock.h>
+#include <nfs/nfsproto.h>
+#include <nfsclient/nfs.h>
 #include <paths.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -49,35 +53,30 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <netdb.h>
-
-#include "nlm_prot.h"
-#include <nfs/nfsproto.h>
-#include <nfs/nfs_lock.h>
 
 #include "lockd.h"
 #include "lockd_lock.h"
-#include <nfsclient/nfs.h>
+#include "nlm_prot.h"
 
-#define DAEMON_USERNAME	"daemon"
+#define DAEMON_USERNAME "daemon"
 
 /* Lock request owner. */
 typedef struct __owner {
-	pid_t	 pid;				/* Process ID. */
-	time_t	 tod;				/* Time-of-day. */
+	pid_t pid;  /* Process ID. */
+	time_t tod; /* Time-of-day. */
 } OWNER;
 static OWNER owner;
 
-static char hostname[MAXHOSTNAMELEN + 1];	/* Hostname. */
+static char hostname[MAXHOSTNAMELEN + 1]; /* Hostname. */
 static int devfd;
 
-static void	client_cleanup(void);
+static void client_cleanup(void);
 static const char *from_addr(struct sockaddr *);
-int	lock_request(LOCKD_MSG *);
-static void	set_auth(CLIENT *cl, struct xucred *ucred);
-void	show(LOCKD_MSG *);
-int	test_request(LOCKD_MSG *);
-int	unlock_request(LOCKD_MSG *);
+int lock_request(LOCKD_MSG *);
+static void set_auth(CLIENT *cl, struct xucred *ucred);
+void show(LOCKD_MSG *);
+int test_request(LOCKD_MSG *);
+int unlock_request(LOCKD_MSG *);
 
 static int
 nfslockdans(int vers, struct lockd_ans *ansp)
@@ -90,7 +89,7 @@ nfslockdans(int vers, struct lockd_ans *ansp)
 /*
  * will break because fifo needs to be repopened when EOF'd
  */
-#define lockd_seteuid(uid)	seteuid(uid)
+#define lockd_seteuid(uid) seteuid(uid)
 
 #define d_calls (debug_level > 1)
 #define d_args (debug_level > 2)
@@ -100,8 +99,8 @@ from_addr(struct sockaddr *saddr)
 {
 	static char inet_buf[INET6_ADDRSTRLEN];
 
-	if (getnameinfo(saddr, saddr->sa_len, inet_buf, sizeof(inet_buf),
-			NULL, 0, NI_NUMERICHOST) == 0)
+	if (getnameinfo(saddr, saddr->sa_len, inet_buf, sizeof(inet_buf), NULL,
+		0, NI_NUMERICHOST) == 0)
 		return inet_buf;
 	return "???";
 }
@@ -175,8 +174,8 @@ client_request(void)
 				show(&msg);
 
 			if (msg.lm_version != LOCKD_MSG_VERSION) {
-				syslog(LOG_ERR,
-				    "unknown msg type: %d", msg.lm_version);
+				syslog(LOG_ERR, "unknown msg type: %d",
+				    msg.lm_version);
 			}
 			/*
 			 * Send it to the NLM server and don't grant the lock
@@ -195,8 +194,8 @@ client_request(void)
 				break;
 			default:
 				ret = 1;
-				syslog(LOG_ERR,
-				    "unknown lock type: %d", msg.lm_fl.l_type);
+				syslog(LOG_ERR, "unknown lock type: %d",
+				    msg.lm_fl.l_type);
 				break;
 			}
 			if (ret) {
@@ -206,26 +205,28 @@ client_request(void)
 				ans.la_errno = EHOSTUNREACH;
 
 				if (nfslockdans(LOCKD_ANS_VERSION, &ans)) {
-					syslog((errno == EPIPE ? LOG_INFO : 
-						LOG_ERR), "process %lu: %m",
-						(u_long)msg.lm_msg_ident.pid);
+					syslog((errno == EPIPE ? LOG_INFO :
+								 LOG_ERR),
+					    "process %lu: %m",
+					    (u_long)msg.lm_msg_ident.pid);
 				}
 			}
 		} else if (nr == -1) {
 			if (errno != EAGAIN) {
-				syslog(LOG_ERR, "read: %s: %m", _PATH_NFSLCKDEV);
+				syslog(LOG_ERR, "read: %s: %m",
+				    _PATH_NFSLCKDEV);
 				goto err;
 			}
 		} else if (nr != 0) {
-			syslog(LOG_ERR,
-			    "%s: discard %d bytes", _PATH_NFSLCKDEV, nr);
+			syslog(LOG_ERR, "%s: discard %d bytes", _PATH_NFSLCKDEV,
+			    nr);
 		}
 	}
 
 	/* Reached only on error. */
 err:
 	(void)lockd_seteuid(0);
-	_exit (1);
+	_exit(1);
 }
 
 void
@@ -236,15 +237,11 @@ set_auth(CLIENT *cl, struct xucred *xucred)
 	ngroups = xucred->cr_ngroups - 1;
 	if (ngroups > NGRPS)
 		ngroups = NGRPS;
-        if (cl->cl_auth != NULL)
-                cl->cl_auth->ah_ops->ah_destroy(cl->cl_auth);
-        cl->cl_auth = authunix_create(hostname,
-                        xucred->cr_uid,
-                        xucred->cr_groups[0],
-                        ngroups,
-                        &xucred->cr_groups[1]);
+	if (cl->cl_auth != NULL)
+		cl->cl_auth->ah_ops->ah_destroy(cl->cl_auth);
+	cl->cl_auth = authunix_create(hostname, xucred->cr_uid,
+	    xucred->cr_groups[0], ngroups, &xucred->cr_groups[1]);
 }
-
 
 /*
  * test_request --
@@ -254,7 +251,7 @@ int
 test_request(LOCKD_MSG *msg)
 {
 	CLIENT *cli;
-	struct timeval timeout = {0, 0};	/* No timeout, no response. */
+	struct timeval timeout = { 0, 0 }; /* No timeout, no response. */
 	char dummy;
 
 	if (d_calls)
@@ -278,15 +275,13 @@ test_request(LOCKD_MSG *msg)
 		arg4.alock.l_offset = msg->lm_fl.l_start;
 		arg4.alock.l_len = msg->lm_fl.l_len;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS4)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS4)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
-		(void)clnt_call(cli, NLM_TEST_MSG,
-		    (xdrproc_t)xdr_nlm4_testargs, &arg4,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		(void)clnt_call(cli, NLM_TEST_MSG, (xdrproc_t)xdr_nlm4_testargs,
+		    &arg4, (xdrproc_t)xdr_void, &dummy, timeout);
 	} else {
 		struct nlm_testargs arg;
 
@@ -302,15 +297,13 @@ test_request(LOCKD_MSG *msg)
 		arg.alock.l_offset = msg->lm_fl.l_start;
 		arg.alock.l_len = msg->lm_fl.l_len;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
-		(void)clnt_call(cli, NLM_TEST_MSG,
-		    (xdrproc_t)xdr_nlm_testargs, &arg,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		(void)clnt_call(cli, NLM_TEST_MSG, (xdrproc_t)xdr_nlm_testargs,
+		    &arg, (xdrproc_t)xdr_void, &dummy, timeout);
 	}
 	return (0);
 }
@@ -325,7 +318,7 @@ lock_request(LOCKD_MSG *msg)
 	CLIENT *cli;
 	struct nlm4_lockargs arg4;
 	struct nlm_lockargs arg;
-	struct timeval timeout = {0, 0};	/* No timeout, no response. */
+	struct timeval timeout = { 0, 0 }; /* No timeout, no response. */
 	char dummy;
 
 	if (d_calls)
@@ -350,15 +343,13 @@ lock_request(LOCKD_MSG *msg)
 		arg4.reclaim = 0;
 		arg4.state = nsm_state;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS4)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS4)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
-		(void)clnt_call(cli, NLM_LOCK_MSG,
-		    (xdrproc_t)xdr_nlm4_lockargs, &arg4,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		(void)clnt_call(cli, NLM_LOCK_MSG, (xdrproc_t)xdr_nlm4_lockargs,
+		    &arg4, (xdrproc_t)xdr_void, &dummy, timeout);
 	} else {
 		arg.cookie.n_bytes = (char *)&msg->lm_msg_ident;
 		arg.cookie.n_len = sizeof(msg->lm_msg_ident);
@@ -375,15 +366,13 @@ lock_request(LOCKD_MSG *msg)
 		arg.reclaim = 0;
 		arg.state = nsm_state;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
-		(void)clnt_call(cli, NLM_LOCK_MSG,
-		    (xdrproc_t)xdr_nlm_lockargs, &arg,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		(void)clnt_call(cli, NLM_LOCK_MSG, (xdrproc_t)xdr_nlm_lockargs,
+		    &arg, (xdrproc_t)xdr_void, &dummy, timeout);
 	}
 	return (0);
 }
@@ -398,7 +387,7 @@ unlock_request(LOCKD_MSG *msg)
 	CLIENT *cli;
 	struct nlm4_unlockargs arg4;
 	struct nlm_unlockargs arg;
-	struct timeval timeout = {0, 0};	/* No timeout, no response. */
+	struct timeval timeout = { 0, 0 }; /* No timeout, no response. */
 	char dummy;
 
 	if (d_calls)
@@ -418,15 +407,14 @@ unlock_request(LOCKD_MSG *msg)
 		arg4.alock.l_offset = msg->lm_fl.l_start;
 		arg4.alock.l_len = msg->lm_fl.l_len;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS4)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS4)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
 		(void)clnt_call(cli, NLM_UNLOCK_MSG,
-		    (xdrproc_t)xdr_nlm4_unlockargs, &arg4,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		    (xdrproc_t)xdr_nlm4_unlockargs, &arg4, (xdrproc_t)xdr_void,
+		    &dummy, timeout);
 	} else {
 		arg.cookie.n_bytes = (char *)&msg->lm_msg_ident;
 		arg.cookie.n_len = sizeof(msg->lm_msg_ident);
@@ -439,15 +427,14 @@ unlock_request(LOCKD_MSG *msg)
 		arg.alock.l_offset = msg->lm_fl.l_start;
 		arg.alock.l_len = msg->lm_fl.l_len;
 
-		if ((cli = get_client(
-		    (struct sockaddr *)&msg->lm_addr,
-		    NLM_VERS)) == NULL)
+		if ((cli = get_client((struct sockaddr *)&msg->lm_addr,
+			 NLM_VERS)) == NULL)
 			return (1);
 
 		set_auth(cli, &msg->lm_cred);
 		(void)clnt_call(cli, NLM_UNLOCK_MSG,
-		    (xdrproc_t)xdr_nlm_unlockargs, &arg,
-		    (xdrproc_t)xdr_void, &dummy, timeout);
+		    (xdrproc_t)xdr_nlm_unlockargs, &arg, (xdrproc_t)xdr_void,
+		    &dummy, timeout);
 	}
 
 	return (0);
@@ -459,7 +446,7 @@ lock_answer(int pid, netobj *netcookie, int result, int *pid_p, int version)
 	struct lockd_ans ans;
 
 	if (netcookie->n_len != sizeof(ans.la_msg_ident)) {
-		if (pid == -1) {	/* we're screwed */
+		if (pid == -1) { /* we're screwed */
 			syslog(LOG_ERR, "inedible nlm cookie");
 			return -1;
 		}
@@ -473,8 +460,7 @@ lock_answer(int pid, netobj *netcookie, int result, int *pid_p, int version)
 	if (d_calls)
 		syslog(LOG_DEBUG, "lock answer: pid %lu: %s %d",
 		    (unsigned long)ans.la_msg_ident.pid,
-		    version == NLM_VERS4 ? "nlmv4" : "nlmv3",
-		    result);
+		    version == NLM_VERS4 ? "nlmv4" : "nlmv3", result);
 
 	ans.la_set_getlk_pid = 0;
 	if (version == NLM_VERS4)
@@ -553,9 +539,9 @@ lock_answer(int pid, netobj *netcookie, int result, int *pid_p, int version)
 		}
 
 	if (nfslockdans(LOCKD_ANS_VERSION, &ans)) {
-		syslog(((errno == EPIPE || errno == ESRCH) ? 
-			LOG_INFO : LOG_ERR), 
-			"process %lu: %m", (u_long)ans.la_msg_ident.pid);
+		syslog(((errno == EPIPE || errno == ESRCH) ? LOG_INFO :
+							     LOG_ERR),
+		    "process %lu: %m", (u_long)ans.la_msg_ident.pid);
 		return -1;
 	}
 	return 0;
@@ -570,13 +556,12 @@ show(LOCKD_MSG *mp)
 {
 	static char hex[] = "0123456789abcdef";
 	size_t len;
-	u_int8_t *p, *t, buf[NFS_SMALLFH*3+1];
+	u_int8_t *p, *t, buf[NFS_SMALLFH * 3 + 1];
 
 	syslog(LOG_DEBUG, "process ID: %lu\n", (long)mp->lm_msg_ident.pid);
 
-	for (t = buf, p = (u_int8_t *)mp->lm_fh,
-	    len = mp->lm_fh_len;
-	    len > 0; ++p, --len) {
+	for (t = buf, p = (u_int8_t *)mp->lm_fh, len = mp->lm_fh_len; len > 0;
+	     ++p, --len) {
 		*t++ = '\\';
 		*t++ = hex[(*p & 0xf0) >> 4];
 		*t++ = hex[*p & 0x0f];

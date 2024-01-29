@@ -34,11 +34,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
 #include "citrus_db_hash.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 uint32_t
 _citrus_db_hash_std(struct _region *r)

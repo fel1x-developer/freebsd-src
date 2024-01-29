@@ -29,30 +29,32 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <sys/wait.h>
-#include <fcntl.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <stdarg.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 #define READ 0
 #define WRITE 1
 
 struct fp {
-	FILE	*fp;
-	int	pipe;
-	pid_t	pid;
-	struct	fp *link;
+	FILE *fp;
+	int pipe;
+	pid_t pid;
+	struct fp *link;
 };
 static struct fp *fp_head;
 
 struct child {
-	pid_t	pid;
-	char	done;
-	char	free;
-	int	status;
-	struct	child *link;
+	pid_t pid;
+	char done;
+	char free;
+	int status;
+	struct child *link;
 };
 static struct child *child, *child_freelist = NULL;
 
@@ -294,11 +296,11 @@ findchild(pid_t pid, int dont_alloc)
 	struct child **cpp;
 
 	for (cpp = &child; *cpp != NULL && (*cpp)->pid != pid;
-	    cpp = &(*cpp)->link)
-			;
+	     cpp = &(*cpp)->link)
+		;
 	if (*cpp == NULL) {
 		if (dont_alloc)
-			return(NULL);
+			return (NULL);
 		if (child_freelist) {
 			*cpp = child_freelist;
 			child_freelist = (*cpp)->link;

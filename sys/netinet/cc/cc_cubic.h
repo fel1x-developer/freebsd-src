@@ -42,87 +42,89 @@
 #include <sys/limits.h>
 
 /* Number of bits of precision for fixed point math calcs. */
-#define	CUBIC_SHIFT		8
+#define CUBIC_SHIFT 8
 
-#define	CUBIC_SHIFT_4		32
+#define CUBIC_SHIFT_4 32
 
 /* 0.5 << CUBIC_SHIFT. */
-#define	RENO_BETA		128
+#define RENO_BETA 128
 
 /* ~0.7 << CUBIC_SHIFT. */
-#define	CUBIC_BETA		179
+#define CUBIC_BETA 179
 
 /* ~0.3 << CUBIC_SHIFT. */
-#define	ONE_SUB_CUBIC_BETA	77
+#define ONE_SUB_CUBIC_BETA 77
 
 /* 3 * ONE_SUB_CUBIC_BETA. */
-#define	THREE_X_PT3		231
+#define THREE_X_PT3 231
 
 /* (2 << CUBIC_SHIFT) - ONE_SUB_CUBIC_BETA. */
-#define	TWO_SUB_PT3		435
+#define TWO_SUB_PT3 435
 
 /* ~0.4 << CUBIC_SHIFT. */
-#define	CUBIC_C_FACTOR		102
+#define CUBIC_C_FACTOR 102
 
 /* CUBIC fast convergence factor: (1+beta_cubic)/2. */
-#define	CUBIC_FC_FACTOR		217
+#define CUBIC_FC_FACTOR 217
 
 /* Don't trust s_rtt until this many rtt samples have been taken. */
-#define	CUBIC_MIN_RTT_SAMPLES	8
+#define CUBIC_MIN_RTT_SAMPLES 8
 
 /*
  * (2^21)^3 is long max. Dividing (2^63) by Cubic_C_factor
  * and taking cube-root yields 448845 as the effective useful limit
  */
-#define	CUBED_ROOT_MAX_ULONG	448845
+#define CUBED_ROOT_MAX_ULONG 448845
 
 /* Flags used in the cubic structure */
-#define CUBICFLAG_CONG_EVENT		0x00000001	/* congestion experienced */
-#define CUBICFLAG_IN_SLOWSTART		0x00000002	/* in slow start */
-#define CUBICFLAG_IN_APPLIMIT		0x00000004	/* application limited */
-#define CUBICFLAG_RTO_EVENT		0x00000008	/* RTO experienced */
-#define CUBICFLAG_HYSTART_ENABLED	0x00000010	/* Hystart++ is enabled */
-#define CUBICFLAG_HYSTART_IN_CSS	0x00000020	/* We are in Hystart++ CSS */
+#define CUBICFLAG_CONG_EVENT 0x00000001	     /* congestion experienced */
+#define CUBICFLAG_IN_SLOWSTART 0x00000002    /* in slow start */
+#define CUBICFLAG_IN_APPLIMIT 0x00000004     /* application limited */
+#define CUBICFLAG_RTO_EVENT 0x00000008	     /* RTO experienced */
+#define CUBICFLAG_HYSTART_ENABLED 0x00000010 /* Hystart++ is enabled */
+#define CUBICFLAG_HYSTART_IN_CSS 0x00000020  /* We are in Hystart++ CSS */
 
 /* Kernel only bits */
 #ifdef _KERNEL
 struct cubic {
 	/* CUBIC K in fixed point form with CUBIC_SHIFT worth of precision. */
-	int64_t		K;
+	int64_t K;
 	/* Sum of RTT samples across an epoch in usecs. */
-	int64_t		sum_rtt_usecs;
-	/* Size of cwnd just before cwnd was reduced in the last congestion event */
-	uint64_t	W_max;
+	int64_t sum_rtt_usecs;
+	/* Size of cwnd just before cwnd was reduced in the last congestion
+	 * event */
+	uint64_t W_max;
 	/* An estimate for the congestion window in the Reno-friendly region */
-	uint64_t	W_est;
-	/* The cwnd at the beginning of the current congestion avoidance stage */
-	uint64_t	cwnd_epoch;
+	uint64_t W_est;
+	/* The cwnd at the beginning of the current congestion avoidance stage
+	 */
+	uint64_t cwnd_epoch;
 	/*
 	 * Size of cwnd at the time of setting ssthresh most recently,
 	 * either upon exiting the first slow start, or just before cwnd
 	 * was reduced in the last congestion event
 	 */
-	uint64_t	cwnd_prior;
+	uint64_t cwnd_prior;
 	/* various flags */
-	uint32_t	flags;
+	uint32_t flags;
 	/* Minimum observed rtt in usecs. */
-	int		min_rtt_usecs;
+	int min_rtt_usecs;
 	/* Mean observed rtt between congestion epochs. */
-	int		mean_rtt_usecs;
+	int mean_rtt_usecs;
 	/* ACKs since last congestion event. */
-	int		epoch_ack_count;
+	int epoch_ack_count;
 	/* Timestamp (in ticks) at which the current CA epoch started. */
-	int		t_epoch;
+	int t_epoch;
 	/* Timestamp (in ticks) at which the previous CA epoch started. */
-	int		undo_t_epoch;
+	int undo_t_epoch;
 	/* Few variables to restore the state after RTO_ERR */
-	int64_t		undo_K;
-	uint64_t	undo_cwnd_prior;
-	uint64_t	undo_W_max;
-	uint64_t	undo_W_est;
-	uint64_t	undo_cwnd_epoch;
+	int64_t undo_K;
+	uint64_t undo_cwnd_prior;
+	uint64_t undo_W_max;
+	uint64_t undo_W_est;
+	uint64_t undo_cwnd_epoch;
 	/* Number of congestion events experienced */
-	uint64_t	num_cong_events;
+	uint64_t num_cong_events;
 	uint32_t css_baseline_minrtt;
 	uint32_t css_current_round_minrtt;
 	uint32_t css_lastround_minrtt;
@@ -164,9 +166,13 @@ theoretical_cubic_cwnd(int ticks_since_epoch, unsigned long wmax, uint32_t smss)
 	C = 0.4;
 	wmax_pkts = wmax / (double)smss;
 
-	return (smss * (wmax_pkts +
-	    (C * pow(ticks_since_epoch / (double)hz -
-	    theoretical_cubic_k(wmax_pkts) / pow(2, CUBIC_SHIFT), 3.0))));
+	return (smss *
+	    (wmax_pkts +
+		(C *
+		    pow(ticks_since_epoch / (double)hz -
+			    theoretical_cubic_k(wmax_pkts) /
+				pow(2, CUBIC_SHIFT),
+			3.0))));
 }
 
 static __inline unsigned long
@@ -182,8 +188,9 @@ theoretical_tf_cwnd(int ticks_since_epoch, int rtt_ticks, unsigned long wmax,
     uint32_t smss)
 {
 
-	return ((wmax * 0.7) + ((3 * 0.3) / (2 - 0.3) *
-	    (ticks_since_epoch / (float)rtt_ticks) * smss));
+	return ((wmax * 0.7) +
+	    ((3 * 0.3) / (2 - 0.3) * (ticks_since_epoch / (float)rtt_ticks) *
+		smss));
 }
 
 #endif /* !_KERNEL */
@@ -238,7 +245,7 @@ cubic_cwnd(int usecs_since_epoch, unsigned long wmax, uint32_t smss, int64_t K)
 
 	/* t - K, with CUBIC_SHIFT worth of precision. */
 	cwnd = (((int64_t)usecs_since_epoch << CUBIC_SHIFT) - (K * hz * tick)) /
-	       (hz * tick);
+	    (hz * tick);
 
 	if (cwnd > CUBED_ROOT_MAX_ULONG)
 		return INT_MAX;
@@ -260,7 +267,7 @@ cubic_cwnd(int usecs_since_epoch, unsigned long wmax, uint32_t smss, int64_t K)
 	/*
 	 * for negative cwnd, limiting to zero as lower bound
 	 */
-	return (lmax(0,cwnd));
+	return (lmax(0, cwnd));
 }
 
 /*
@@ -283,8 +290,10 @@ reno_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
 	 * W_tcp(t) deals with cwnd/wmax in pkts, so because our cwnd is in
 	 * bytes, we have to multiply by smss.
 	 */
-	return (((wmax * RENO_BETA) + (((usecs_since_epoch * smss)
-	    << CUBIC_SHIFT) / rtt_usecs)) >> CUBIC_SHIFT);
+	return (
+	    ((wmax * RENO_BETA) +
+		(((usecs_since_epoch * smss) << CUBIC_SHIFT) / rtt_usecs)) >>
+	    CUBIC_SHIFT);
 }
 
 /*
@@ -295,15 +304,16 @@ reno_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
  * the value of cwnd at the last congestion event.
  */
 static __inline unsigned long
-tf_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax,
-    uint32_t smss)
+tf_cwnd(int usecs_since_epoch, int rtt_usecs, unsigned long wmax, uint32_t smss)
 {
 
 	/* Equation 4 of I-D. */
 	return (((wmax * CUBIC_BETA) +
-	    (((THREE_X_PT3 * (unsigned long)usecs_since_epoch *
-	    (unsigned long)smss) << CUBIC_SHIFT) / (TWO_SUB_PT3 * rtt_usecs)))
-	    >> CUBIC_SHIFT);
+		    (((THREE_X_PT3 * (unsigned long)usecs_since_epoch *
+			  (unsigned long)smss)
+			 << CUBIC_SHIFT) /
+			(TWO_SUB_PT3 * rtt_usecs))) >>
+	    CUBIC_SHIFT);
 }
 
 #endif /* _NETINET_CC_CUBIC_H_ */

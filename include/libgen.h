@@ -30,13 +30,13 @@
  */
 
 #ifndef _LIBGEN_H_
-#define	_LIBGEN_H_
+#define _LIBGEN_H_
 
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-char	*basename(char *);
-char	*dirname(char *);
+char *basename(char *);
+char *dirname(char *);
 __END_DECLS
 
 /*
@@ -52,13 +52,13 @@ __END_DECLS
  */
 #if defined(__generic) && !defined(__cplusplus)
 __BEGIN_DECLS
-char	*__old_basename(char *);
-char	*__old_dirname(char *);
+char *__old_basename(char *);
+char *__old_dirname(char *);
 __END_DECLS
-__sym_compat(basename, __old_basename, FBSD_1.0);
-__sym_compat(dirname, __old_dirname, FBSD_1.0);
-#define	basename(x)	__generic(x, const char *, __old_basename, basename)(x)
-#define	dirname(x)	__generic(x, const char *, __old_dirname, dirname)(x)
+__sym_compat(basename, __old_basename, FBSD_1 .0);
+__sym_compat(dirname, __old_dirname, FBSD_1 .0);
+#define basename(x) __generic(x, const char *, __old_basename, basename)(x)
+#define dirname(x) __generic(x, const char *, __old_dirname, dirname)(x)
 #endif
 
 #endif /* !_LIBGEN_H_ */

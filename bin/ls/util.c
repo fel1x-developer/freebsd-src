@@ -45,8 +45,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#include "ls.h"
 #include "extern.h"
+#include "ls.h"
 
 int
 prn_normal(const char *s)
@@ -180,7 +180,7 @@ prn_octal(const char *s)
 			len += wcwidth(wc);
 		} else if (goodchar && f_octal_escape &&
 #if WCHAR_MIN < 0
-                    wc >= 0 &&
+		    wc >= 0 &&
 #endif
 		    wc <= (wchar_t)UCHAR_MAX &&
 		    (p = strchr(esc, (char)wc)) != NULL) {
@@ -219,10 +219,10 @@ usage(void)
 {
 	(void)fprintf(stderr,
 #ifdef COLORLS
-	"usage: ls [-ABCFGHILPRSTUWZabcdfghiklmnopqrstuvwxy1,] [--color=when] [-D format]"
+	    "usage: ls [-ABCFGHILPRSTUWZabcdfghiklmnopqrstuvwxy1,] [--color=when] [-D format]"
 #else
-	"usage: ls [-ABCFHILPRSTUWZabcdfghiklmnopqrstuvwxy1,] [-D format]"
+	    "usage: ls [-ABCFHILPRSTUWZabcdfghiklmnopqrstuvwxy1,] [-D format]"
 #endif
-		      " [file ...]\n");
+	    " [file ...]\n");
 	exit(1);
 }

@@ -23,13 +23,14 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
+
+#include <dev/mlx5/driver.h>
+#include <dev/mlx5/mlx5_core/mlx5_core.h>
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <dev/mlx5/driver.h>
-#include <dev/mlx5/mlx5_core/mlx5_core.h>
 
 #ifdef RATELIMIT
 
@@ -38,8 +39,8 @@
  * otherwise return the first available entry.
  * If the table is full, return NULL
  */
-static struct mlx5_rl_entry *find_rl_entry(struct mlx5_rl_table *table,
-					   u32 rate, u16 burst)
+static struct mlx5_rl_entry *
+find_rl_entry(struct mlx5_rl_table *table, u32 rate, u16 burst)
 {
 	struct mlx5_rl_entry *ret_entry = NULL;
 	struct mlx5_rl_entry *entry;
@@ -56,8 +57,9 @@ static struct mlx5_rl_entry *find_rl_entry(struct mlx5_rl_table *table,
 	return ret_entry;
 }
 
-static int mlx5_set_rate_limit_cmd(struct mlx5_core_dev *dev,
-				   u32 rate, u32 burst, u16 index)
+static int
+mlx5_set_rate_limit_cmd(struct mlx5_core_dev *dev, u32 rate, u32 burst,
+    u16 index)
 {
 	u32 in[MLX5_ST_SZ_DW(set_rate_limit_in)] = {};
 	u32 out[MLX5_ST_SZ_DW(set_rate_limit_out)] = {};
@@ -71,35 +73,40 @@ static int mlx5_set_rate_limit_cmd(struct mlx5_core_dev *dev,
 	return mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 }
 
-int mlx5e_query_rate_limit_cmd(struct mlx5_core_dev *dev,
-				   u16 index, u32 *scq_handle)
+int
+mlx5e_query_rate_limit_cmd(struct mlx5_core_dev *dev, u16 index,
+    u32 *scq_handle)
 {
 	int err;
 	u32 in[MLX5_ST_SZ_DW(query_pp_rate_limit_in)] = {};
 	u32 out[MLX5_ST_SZ_DW(query_pp_rate_limit_out)] = {};
 
-	MLX5_SET(query_pp_rate_limit_in, in, opcode, MLX5_CMD_OP_QUERY_RATE_LIMIT);
+	MLX5_SET(query_pp_rate_limit_in, in, opcode,
+	    MLX5_CMD_OP_QUERY_RATE_LIMIT);
 	MLX5_SET(query_pp_rate_limit_in, in, rate_limit_index, index);
 
 	err = mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 	if (err)
 		return err;
 
-	*scq_handle = MLX5_GET(query_pp_rate_limit_out, out, pp_context.qos_handle);
+	*scq_handle = MLX5_GET(query_pp_rate_limit_out, out,
+	    pp_context.qos_handle);
 
 	return 0;
 }
 
-bool mlx5_rl_is_in_range(const struct mlx5_core_dev *dev, u32 rate, u32 burst)
+bool
+mlx5_rl_is_in_range(const struct mlx5_core_dev *dev, u32 rate, u32 burst)
 {
 	const struct mlx5_rl_table *table = &dev->priv.rl_table;
 
 	return (rate <= table->max_rate && rate >= table->min_rate &&
-		burst <= 65535);
+	    burst <= 65535);
 }
 EXPORT_SYMBOL(mlx5_rl_is_in_range);
 
-int mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
+int
+mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
 {
 	struct mlx5_rl_table *table = &dev->priv.rl_table;
 	struct mlx5_rl_entry *entry;
@@ -109,7 +116,7 @@ int mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
 
 	if (!rate || !mlx5_rl_is_in_range(dev, rate, burst)) {
 		mlx5_core_err(dev, "Invalid rate: %u, should be %u to %u\n",
-			      rate, table->min_rate, table->max_rate);
+		    rate, table->min_rate, table->max_rate);
 		err = -ERANGE;
 		goto out;
 	}
@@ -117,7 +124,7 @@ int mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
 	entry = find_rl_entry(table, rate, burst);
 	if (!entry) {
 		mlx5_core_err(dev, "Max number of %u rates reached\n",
-			      table->max_size);
+		    table->max_size);
 		err = -ENOSPC;
 		goto out;
 	}
@@ -133,7 +140,7 @@ int mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
 		err = mlx5_set_rate_limit_cmd(dev, rate, burst, entry->index);
 		if (err) {
 			mlx5_core_err(dev, "Failed configuring rate: %u (%d)\n",
-				      rate, err);
+			    rate, err);
 			goto out;
 		}
 		entry->rate = rate;
@@ -141,10 +148,13 @@ int mlx5_rl_add_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst, u16 *index)
 		entry->refcount = 1;
 
 		if (MLX5_CAP_QOS(dev, qos_remap_pp)) {
-			err = mlx5e_query_rate_limit_cmd(dev, entry->index, &entry->qos_handle);
+			err = mlx5e_query_rate_limit_cmd(dev, entry->index,
+			    &entry->qos_handle);
 			if (err) {
-				mlx5_core_err(dev, "Failed retrieving schedule queue handle for"
-				    "SQ remap: rate: %u error:(%d)\n", rate, err);
+				mlx5_core_err(dev,
+				    "Failed retrieving schedule queue handle for"
+				    "SQ remap: rate: %u error:(%d)\n",
+				    rate, err);
 				entry->qos_handle = MLX5_INVALID_QUEUE_HANDLE;
 			}
 		} else
@@ -158,7 +168,8 @@ out:
 }
 EXPORT_SYMBOL(mlx5_rl_add_rate);
 
-void mlx5_rl_remove_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst)
+void
+mlx5_rl_remove_rate(struct mlx5_core_dev *dev, u32 rate, u32 burst)
 {
 	struct mlx5_rl_table *table = &dev->priv.rl_table;
 	struct mlx5_rl_entry *entry = NULL;
@@ -187,7 +198,8 @@ out:
 }
 EXPORT_SYMBOL(mlx5_rl_remove_rate);
 
-int mlx5_init_rl_table(struct mlx5_core_dev *dev)
+int
+mlx5_init_rl_table(struct mlx5_core_dev *dev)
 {
 	struct mlx5_rl_table *table = &dev->priv.rl_table;
 	int i;
@@ -204,7 +216,7 @@ int mlx5_init_rl_table(struct mlx5_core_dev *dev)
 	table->min_rate = MLX5_CAP_QOS(dev, packet_pacing_min_rate);
 
 	table->rl_entry = kcalloc(table->max_size, sizeof(struct mlx5_rl_entry),
-				  GFP_KERNEL);
+	    GFP_KERNEL);
 	if (!table->rl_entry)
 		return -ENOMEM;
 
@@ -217,7 +229,8 @@ int mlx5_init_rl_table(struct mlx5_core_dev *dev)
 	return 0;
 }
 
-void mlx5_cleanup_rl_table(struct mlx5_core_dev *dev)
+void
+mlx5_cleanup_rl_table(struct mlx5_core_dev *dev)
 {
 	struct mlx5_rl_table *table = &dev->priv.rl_table;
 	int i;
@@ -226,7 +239,7 @@ void mlx5_cleanup_rl_table(struct mlx5_core_dev *dev)
 	for (i = 0; i < table->max_size; i++)
 		if (table->rl_entry[i].rate)
 			mlx5_set_rate_limit_cmd(dev, 0, 0,
-						table->rl_entry[i].index);
+			    table->rl_entry[i].index);
 
 	kfree(dev->priv.rl_table.rl_entry);
 }

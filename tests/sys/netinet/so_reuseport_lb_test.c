@@ -32,12 +32,11 @@
 
 #include <netinet/in.h>
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 /*
  * Given an array of non-blocking listening sockets configured in a LB group
@@ -71,7 +70,8 @@ lb_simple_accept_loop(int domain, const struct sockaddr *addr, int sds[],
 		ATF_REQUIRE_MSG(error == 0, "connect() failed: %s",
 		    strerror(errno));
 
-		error = setsockopt(sd, SOL_SOCKET, SO_LINGER, &lopt, sizeof(lopt));
+		error = setsockopt(sd, SOL_SOCKET, SO_LINGER, &lopt,
+		    sizeof(lopt));
 		ATF_REQUIRE_MSG(error == 0, "Setting linger failed: %s",
 		    strerror(errno));
 
@@ -83,7 +83,7 @@ lb_simple_accept_loop(int domain, const struct sockaddr *addr, int sds[],
 				csd = accept(sds[i], NULL, NULL);
 				if (csd < 0) {
 					ATF_REQUIRE_MSG(errno == EWOULDBLOCK ||
-					    errno == EAGAIN,
+						errno == EAGAIN,
 					    "accept() failed: %s",
 					    strerror(errno));
 					continue;

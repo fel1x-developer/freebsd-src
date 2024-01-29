@@ -28,8 +28,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ipc.h>
+#include <sys/stat.h>
 
 key_t
 ftok(const char *path, int id)

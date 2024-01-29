@@ -27,11 +27,11 @@
 #ifndef _LINUXKPI_LINUX_JUMP_LABEL_H_
 #define _LINUXKPI_LINUX_JUMP_LABEL_H_
 
-#include <linux/types.h>
-#include <linux/compiler.h>
 #include <linux/bug.h>
+#include <linux/compiler.h>
+#include <linux/types.h>
 
-#define DEFINE_STATIC_KEY_FALSE(key)	bool key = false
+#define DEFINE_STATIC_KEY_FALSE(key) bool key = false
 
 static inline void
 static_branch_enable(bool *flag)
@@ -45,4 +45,4 @@ static_branch_likely(bool *flag)
 	return *flag;
 }
 
-#endif	/* _LINUXKPI_LINUX_JUMP_LABEL_H_ */
+#endif /* _LINUXKPI_LINUX_JUMP_LABEL_H_ */

@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,45 +35,41 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_mdio.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-
-#include <dev/etherswitch/ar40xx/ar40xx_hw_mdio.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 int
 ar40xx_hw_phy_dbg_write(struct ar40xx_softc *sc, int phy, uint16_t dbg,
-     uint16_t data)
+    uint16_t data)
 {
 	AR40XX_LOCK_ASSERT(sc);
 	device_printf(sc->sc_dev, "%s: TODO\n", __func__);
@@ -96,8 +93,7 @@ ar40xx_hw_phy_mmd_write(struct ar40xx_softc *sc, uint32_t phy_id,
 
 	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_ADDR,
 	    mmd_num);
-	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA,
-	    reg_id);
+	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA, reg_id);
 	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_ADDR,
 	    0x4000 | mmd_num);
 	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA,
@@ -115,15 +111,12 @@ ar40xx_hw_phy_mmd_read(struct ar40xx_softc *sc, uint32_t phy_id,
 	AR40XX_LOCK_ASSERT(sc);
 
 	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_ADDR,
-	     mmd_num);
-	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA,
-	    reg_id);
+	    mmd_num);
+	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA, reg_id);
 	MDIO_WRITEREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_ADDR,
 	    0x4000 | mmd_num);
 
-	value = MDIO_READREG(sc->sc_mdio_dev, phy_id,
-	    AR40XX_MII_ATH_MMD_DATA);
+	value = MDIO_READREG(sc->sc_mdio_dev, phy_id, AR40XX_MII_ATH_MMD_DATA);
 
 	return value;
 }
-

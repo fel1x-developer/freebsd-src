@@ -32,7 +32,6 @@
  */
 
 #include <sys/types.h>
-
 #include <sys/capsicum.h>
 #include <sys/errno.h>
 #include <sys/procdesc.h>
@@ -41,16 +40,17 @@
 
 #include <err.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <stdio.h>
-
 #include "cap_test.h"
 
 void handle_signal(int);
-void handle_signal(int sig) {
+void
+handle_signal(int sig)
+{
 	exit(PASSED);
 }
 
@@ -61,7 +61,7 @@ test_pdkill(void)
 	int pd, error;
 	pid_t pid;
 
-	//cap_enter();
+	// cap_enter();
 
 	error = pdfork(&pd, 0);
 	if (error < 0)
@@ -86,7 +86,8 @@ test_pdkill(void)
 
 	/* Make sure the child finished properly. */
 	int status;
-	while (waitpid(pid, &status, 0) != pid) {}
+	while (waitpid(pid, &status, 0) != pid) {
+	}
 	if ((success == PASSED) && WIFEXITED(status))
 		success = WEXITSTATUS(status);
 	else

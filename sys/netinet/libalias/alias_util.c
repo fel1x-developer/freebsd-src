@@ -47,11 +47,12 @@
 #include <sys/proc.h>
 #else
 #include <sys/types.h>
+
 #include <stdio.h>
 #endif
 
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 
@@ -70,8 +71,7 @@
  * purposes);
  */
 u_short
-LibAliasInternetChecksum(struct libalias *la __unused, u_short *ptr,
-    int nbytes)
+LibAliasInternetChecksum(struct libalias *la __unused, u_short *ptr, int nbytes)
 {
 	int sum, oddbyte;
 
@@ -97,9 +97,8 @@ LibAliasInternetChecksum(struct libalias *la __unused, u_short *ptr,
 u_short
 IpChecksum(struct ip *pip)
 {
-	return (LibAliasInternetChecksum(NULL, (u_short *)pip,
-	    (pip->ip_hl << 2)));
-
+	return (
+	    LibAliasInternetChecksum(NULL, (u_short *)pip, (pip->ip_hl << 2)));
 }
 
 u_short
@@ -116,7 +115,7 @@ TcpChecksum(struct ip *pip)
 	tc = (struct tcphdr *)ip_next(pip);
 	ptr = (u_short *)tc;
 
-/* Add up TCP header and data */
+	/* Add up TCP header and data */
 	nbytes = ntcp;
 	sum = 0;
 	while (nbytes > 1) {
@@ -129,7 +128,7 @@ TcpChecksum(struct ip *pip)
 		((u_char *)&oddbyte)[1] = 0;
 		sum += oddbyte;
 	}
-/* "Pseudo-header" data */
+	/* "Pseudo-header" data */
 	ptr = (void *)&pip->ip_dst;
 	sum += *ptr++;
 	sum += *ptr;
@@ -139,14 +138,14 @@ TcpChecksum(struct ip *pip)
 	sum += htons((u_short)ntcp);
 	sum += htons((u_short)pip->ip_p);
 
-/* Roll over carry bits */
+	/* Roll over carry bits */
 	sum = (sum >> 16) + (sum & 0xffff);
 	sum += (sum >> 16);
 
-/* Return checksum */
+	/* Return checksum */
 	return ((u_short)~sum);
 }
-#endif	/* not _KERNEL */
+#endif /* not _KERNEL */
 
 void
 DifferentialChecksum(u_short *cksum, void *newp, void *oldp, int n)
@@ -158,7 +157,7 @@ DifferentialChecksum(u_short *cksum, void *newp, void *oldp, int n)
 
 	accumulate = *cksum;
 	for (i = 0; i < n; i++) {
-		accumulate -= *new++;
+		accumulate -= *new ++;
 		accumulate += *old++;
 	}
 

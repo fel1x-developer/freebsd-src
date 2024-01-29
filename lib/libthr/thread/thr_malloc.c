@@ -31,7 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
+
 #include <rtld_malloc.h>
+
 #include "thr_private.h"
 
 int npagesizes;

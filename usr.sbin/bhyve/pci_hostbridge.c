@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdlib.h>
 
@@ -39,8 +40,8 @@ pci_hostbridge_init(struct pci_devinst *pi, nvlist_t *nvl)
 	const char *value;
 	u_int vendor, device;
 
-	vendor = 0x1275;	/* NetApp */
-	device = 0x1275;	/* NetApp */
+	vendor = 0x1275; /* NetApp */
+	device = 0x1275; /* NetApp */
 
 	value = get_config_value_node(nvl, "vendor");
 	if (value != NULL)
@@ -101,7 +102,7 @@ static const struct pci_devemu pci_de_hostbridge = {
 	.pe_emu = "hostbridge",
 	.pe_init = pci_hostbridge_init,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	pci_de_snapshot,
+	.pe_snapshot = pci_de_snapshot,
 #endif
 };
 PCI_EMUL_SET(pci_de_hostbridge);

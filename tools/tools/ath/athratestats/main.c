@@ -31,30 +31,29 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include <sys/sockio.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 
+#include <curses.h>
+#include <err.h>
+#include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <err.h>
-
-#include <curses.h>
 
 #include "ah.h"
 #include "ah_desc.h"
-#include "net80211/ieee80211_ioctl.h"
-#include "net80211/ieee80211_radiotap.h"
+#include "ath_rate/sample/sample.h"
 #include "if_athioctl.h"
 #include "if_athrate.h"
-
-#include "ath_rate/sample/sample.h"
+#include "net80211/ieee80211_ioctl.h"
+#include "net80211/ieee80211_radiotap.h"
 
 static int do_loop = 0;
 
@@ -62,25 +61,27 @@ static int do_loop = 0;
  * This needs to be big enough to fit the two TLVs, the rate table
  * and the rate statistics table for a single node.
  */
-#define	STATS_BUF_SIZE	65536
+#define STATS_BUF_SIZE 65536
 
-#define	PRINTMSG(...) do {			\
-	if (do_loop == 0)			\
-		printf(__VA_ARGS__);		\
-	else					\
-		printw(__VA_ARGS__);		\
+#define PRINTMSG(...)                        \
+	do {                                 \
+		if (do_loop == 0)            \
+			printf(__VA_ARGS__); \
+		else                         \
+			printw(__VA_ARGS__); \
 	} while (0)
 
-#define	PRINTATTR_ON(_x) do {			\
-	if (do_loop)				\
-		attron(_x);			\
-	} while(0)
+#define PRINTATTR_ON(_x)            \
+	do {                        \
+		if (do_loop)        \
+			attron(_x); \
+	} while (0)
 
-
-#define	PRINTATTR_OFF(_x) do {			\
-	if (do_loop)				\
-		attroff(_x);			\
-	} while(0)
+#define PRINTATTR_OFF(_x)            \
+	do {                         \
+		if (do_loop)         \
+			attroff(_x); \
+	} while (0)
 
 struct ath_ratestats {
 	int s;
@@ -115,43 +116,39 @@ ath_sample_stats(struct ath_ratestats *r, struct ath_rateioctl_rt *rt,
 	uint64_t mask;
 	int rix, y;
 
-	PRINTMSG("static_rix (%d) ratemask 0x%llx\n",
-	    sn->static_rix,
-	    (long long) sn->ratemask);
+	PRINTMSG("static_rix (%d) ratemask 0x%llx\n", sn->static_rix,
+	    (long long)sn->ratemask);
 
 	for (y = 0; y < NUM_PACKET_SIZE_BINS; y++) {
 		PRINTATTR_ON(COLOR_PAIR(2 + (y % 4)) | A_BOLD);
 		PRINTMSG("[%4u] cur rate %d %s since switch: "
-		    "packets %d ticks %u ",
-		    bin_to_size(y),
-		    dot11rate(rt, sn->current_rix[y]),
+			 "packets %d ticks %u ",
+		    bin_to_size(y), dot11rate(rt, sn->current_rix[y]),
 		    dot11str(rt, sn->current_rix[y]),
-		    sn->packets_since_switch[y],
-		    sn->ticks_since_switch[y]);
+		    sn->packets_since_switch[y], sn->ticks_since_switch[y]);
 
 		PRINTMSG("last sample (%d %s) cur sample (%d %s) "
-		    "packets sent %d ",
+			 "packets sent %d ",
 		    dot11rate(rt, sn->last_sample_rix[y]),
 		    dot11str(rt, sn->last_sample_rix[y]),
 		    dot11rate(rt, sn->current_sample_rix[y]),
 		    dot11str(rt, sn->current_sample_rix[y]),
 		    sn->packets_sent[y]);
 		PRINTATTR_OFF(COLOR_PAIR(2 + (y % 4)) | A_BOLD);
-		
+
 		PRINTATTR_ON(COLOR_PAIR(1) | A_BOLD);
 		PRINTMSG("packets since sample %d sample tt %u\n",
-		    sn->packets_since_sample[y],
-		    sn->sample_tt[y]);
+		    sn->packets_since_sample[y], sn->sample_tt[y]);
 		PRINTATTR_OFF(COLOR_PAIR(3) | A_BOLD);
 	}
 	PRINTMSG("   TX Rate      TXTOTAL:TXOK       EWMA          T/   F"
-	    "     avg last xmit  ");
+		 "     avg last xmit  ");
 	PRINTMSG("   TX Rate      TXTOTAL:TXOK       EWMA          T/   F"
-	    "     avg last xmit\n");
+		 "     avg last xmit\n");
 	for (mask = sn->ratemask, rix = 0; mask != 0; mask >>= 1, rix++) {
 		int c = 0;
 		if ((mask & 1) == 0)
-				continue;
+			continue;
 		for (y = 0; y < NUM_PACKET_SIZE_BINS; y++) {
 			if (sn->stats[y][rix].total_packets == 0)
 				continue;
@@ -166,15 +163,14 @@ ath_sample_stats(struct ath_ratestats *r, struct ath_rateioctl_rt *rt,
 				PRINTATTR_ON(COLOR_PAIR(1) | A_BOLD);
 #endif
 			PRINTMSG("[%2u %s:%5u] %8ju:%-8ju "
-			    "(%3d.%1d%%) %8ju/%4d %5uuS %u ",
-			    dot11rate(rt, rix),
-			    dot11str(rt, rix),
+				 "(%3d.%1d%%) %8ju/%4d %5uuS %u ",
+			    dot11rate(rt, rix), dot11str(rt, rix),
 			    bin_to_size(y),
-			    (uintmax_t) sn->stats[y][rix].total_packets,
-			    (uintmax_t) sn->stats[y][rix].packets_acked,
+			    (uintmax_t)sn->stats[y][rix].total_packets,
+			    (uintmax_t)sn->stats[y][rix].packets_acked,
 			    sn->stats[y][rix].ewma_pct / 10,
 			    sn->stats[y][rix].ewma_pct % 10,
-			    (uintmax_t) sn->stats[y][rix].tries,
+			    (uintmax_t)sn->stats[y][rix].tries,
 			    sn->stats[y][rix].successive_failures,
 			    sn->stats[y][rix].average_tx_time,
 			    sn->stats[y][rix].last_tx);
@@ -203,7 +199,7 @@ static void
 ath_setifname(struct ath_ratestats *r, const char *ifname)
 {
 
-	strncpy(r->re.if_name, ifname, sizeof (r->re.if_name));
+	strncpy(r->re.if_name, ifname, sizeof(r->re.if_name));
 }
 
 static void
@@ -228,48 +224,47 @@ rate_node_stats(struct ath_ratestats *r, struct ether_addr *e)
 	struct sample_node *sn = NULL;
 	struct ath_rateioctl_rt *rt = NULL;
 	int error = 0;
-	uint8_t *buf = (uint8_t *) r->re.buf;
+	uint8_t *buf = (uint8_t *)r->re.buf;
 
 	/*
 	 * For now, hard-code the TLV order and contents.  Ew!
 	 */
-	av = (struct ath_rateioctl_tlv *) buf;
+	av = (struct ath_rateioctl_tlv *)buf;
 	if (av->tlv_id != ATH_RATE_TLV_RATETABLE) {
-		fprintf(stderr, "unexpected rate control TLV (got 0x%x, "
+		fprintf(stderr,
+		    "unexpected rate control TLV (got 0x%x, "
 		    "expected 0x%x\n",
-		    av->tlv_id,
-		    ATH_RATE_TLV_RATETABLE);
+		    av->tlv_id, ATH_RATE_TLV_RATETABLE);
 		exit(127);
 	}
 	if (av->tlv_len != sizeof(struct ath_rateioctl_rt)) {
-		fprintf(stderr, "unexpected TLV len (got %d bytes, "
+		fprintf(stderr,
+		    "unexpected TLV len (got %d bytes, "
 		    "expected %d bytes\n",
-		    av->tlv_len,
-		    (int) sizeof(struct ath_rateioctl_rt));
+		    av->tlv_len, (int)sizeof(struct ath_rateioctl_rt));
 		exit(127);
 	}
-	rt = (void *) (buf + sizeof(struct ath_rateioctl_tlv));
+	rt = (void *)(buf + sizeof(struct ath_rateioctl_tlv));
 
 	/* Next */
-	av = (void *) (buf + sizeof(struct ath_rateioctl_tlv) +
+	av = (void *)(buf + sizeof(struct ath_rateioctl_tlv) +
 	    sizeof(struct ath_rateioctl_rt));
 	if (av->tlv_id != ATH_RATE_TLV_SAMPLENODE) {
-		fprintf(stderr, "unexpected rate control TLV (got 0x%x, "
+		fprintf(stderr,
+		    "unexpected rate control TLV (got 0x%x, "
 		    "expected 0x%x\n",
-		    av->tlv_id,
-		    ATH_RATE_TLV_SAMPLENODE);
+		    av->tlv_id, ATH_RATE_TLV_SAMPLENODE);
 		exit(127);
 	}
 	if (av->tlv_len != sizeof(struct sample_node)) {
-		fprintf(stderr, "unexpected TLV len (got %d bytes, "
+		fprintf(stderr,
+		    "unexpected TLV len (got %d bytes, "
 		    "expected %d bytes\n",
-		    av->tlv_len,
-		    (int) sizeof(struct sample_node));
+		    av->tlv_len, (int)sizeof(struct sample_node));
 		exit(127);
 	}
-	sn = (void *) (buf + sizeof(struct ath_rateioctl_tlv) +
-	    sizeof(struct ath_rateioctl_rt) +
-	    sizeof(struct ath_rateioctl_tlv));
+	sn = (void *)(buf + sizeof(struct ath_rateioctl_tlv) +
+	    sizeof(struct ath_rateioctl_rt) + sizeof(struct ath_rateioctl_tlv));
 
 	ath_sample_stats(r, rt, sn);
 
@@ -331,7 +326,7 @@ main(int argc, char *argv[])
 		case 's':
 			sscanf(optarg, "%f", &f);
 			do_loop = 1;
-			sleep_period = (useconds_t) (f * 1000000.0);
+			sleep_period = (useconds_t)(f * 1000000.0);
 			break;
 		default:
 			errx(1,
@@ -359,7 +354,7 @@ main(int argc, char *argv[])
 	if (buf == NULL)
 		err(1, "calloc");
 
-	r.re.buf = (char *) buf;
+	r.re.buf = (char *)buf;
 	r.re.len = STATS_BUF_SIZE;
 
 	r.s = socket(AF_INET, SOCK_DGRAM, 0);

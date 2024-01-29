@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
@@ -37,11 +38,10 @@
 #include <sys/proc.h>
 #include <sys/snoop.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 #include <sys/uio.h>
 
-static struct cdev	*snp_dev;
+static struct cdev *snp_dev;
 static MALLOC_DEFINE(M_SNP, "snp", "tty snoop device");
 
 /* XXX: should be mtx, but TTY can be locked by Giant. */
@@ -49,52 +49,51 @@ static MALLOC_DEFINE(M_SNP, "snp", "tty snoop device");
 static struct mtx	snp_register_lock;
 MTX_SYSINIT(snp_register_lock, &snp_register_lock,
     "tty snoop registration", MTX_DEF);
-#define	SNP_LOCK()	mtx_lock(&snp_register_lock)
-#define	SNP_UNLOCK()	mtx_unlock(&snp_register_lock)
+#define SNP_LOCK() mtx_lock(&snp_register_lock)
+#define SNP_UNLOCK() mtx_unlock(&snp_register_lock)
 #else
-static struct sx	snp_register_lock;
-SX_SYSINIT(snp_register_lock, &snp_register_lock,
-    "tty snoop registration");
-#define	SNP_LOCK()	sx_xlock(&snp_register_lock)
-#define	SNP_UNLOCK()	sx_xunlock(&snp_register_lock)
+static struct sx snp_register_lock;
+SX_SYSINIT(snp_register_lock, &snp_register_lock, "tty snoop registration");
+#define SNP_LOCK() sx_xlock(&snp_register_lock)
+#define SNP_UNLOCK() sx_xunlock(&snp_register_lock)
 #endif
 
-#define	SNPGTYY_32DEV	_IOR('T', 89, uint32_t)
+#define SNPGTYY_32DEV _IOR('T', 89, uint32_t)
 
 /*
  * There is no need to have a big input buffer. In most typical setups,
  * we won't inject much data into the TTY, because users can't type
  * really fast.
  */
-#define SNP_INPUT_BUFSIZE	16
+#define SNP_INPUT_BUFSIZE 16
 /*
  * The output buffer has to be really big. Right now we don't support
  * any form of flow control, which means we lost any data we can't
  * accept. We set the output buffer size to about twice the size of a
  * pseudo-terminal/virtual console's output buffer.
  */
-#define SNP_OUTPUT_BUFSIZE	16384
+#define SNP_OUTPUT_BUFSIZE 16384
 
-static d_open_t		snp_open;
-static d_read_t		snp_read;
-static d_write_t	snp_write;
-static d_ioctl_t	snp_ioctl;
-static d_poll_t		snp_poll;
+static d_open_t snp_open;
+static d_read_t snp_read;
+static d_write_t snp_write;
+static d_ioctl_t snp_ioctl;
+static d_poll_t snp_poll;
 
 static struct cdevsw snp_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_open		= snp_open,
-	.d_read		= snp_read,
-	.d_write	= snp_write,
-	.d_ioctl	= snp_ioctl,
-	.d_poll		= snp_poll,
-	.d_name		= "snp",
+	.d_version = D_VERSION,
+	.d_open = snp_open,
+	.d_read = snp_read,
+	.d_write = snp_write,
+	.d_ioctl = snp_ioctl,
+	.d_poll = snp_poll,
+	.d_name = "snp",
 };
 
-static th_getc_capture_t	snp_getc_capture;
+static th_getc_capture_t snp_getc_capture;
 
 static struct ttyhook snp_hook = {
-	.th_getc_capture	= snp_getc_capture,
+	.th_getc_capture = snp_getc_capture,
 };
 
 /*
@@ -105,10 +104,10 @@ static struct ttyhook snp_hook = {
  * (t)	locked by tty_lock
  */
 struct snp_softc {
-	struct tty	*snp_tty;	/* (r) TTY we're snooping. */
-	struct ttyoutq	snp_outq;	/* (t) Output queue. */
-	struct cv	snp_outwait;	/* (t) Output wait queue. */
-	struct selinfo	snp_outpoll;	/* (t) Output polling. */
+	struct tty *snp_tty;	    /* (r) TTY we're snooping. */
+	struct ttyoutq snp_outq;    /* (t) Output queue. */
+	struct cv snp_outwait;	    /* (t) Output wait queue. */
+	struct selinfo snp_outpoll; /* (t) Output polling. */
 };
 
 static void
@@ -139,7 +138,7 @@ snp_open(struct cdev *dev, int flag, int mode, struct thread *td)
 	struct snp_softc *ss;
 
 	/* Allocate per-snoop data. */
-	ss = malloc(sizeof(struct snp_softc), M_SNP, M_WAITOK|M_ZERO);
+	ss = malloc(sizeof(struct snp_softc), M_SNP, M_WAITOK | M_ZERO);
 	cv_init(&ss->snp_outwait, "snp out");
 
 	devfs_set_cdevpriv(ss, snp_dtor);
@@ -320,7 +319,7 @@ snp_poll(struct cdev *dev, int events, struct thread *td)
 
 	if (devfs_get_cdevpriv((void **)&ss) != 0)
 		return (events &
-		    (POLLHUP|POLLIN|POLLRDNORM|POLLOUT|POLLWRNORM));
+		    (POLLHUP | POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM));
 
 	revents = 0;
 
@@ -350,8 +349,8 @@ snp_modevent(module_t mod, int type, void *data)
 
 	switch (type) {
 	case MOD_LOAD:
-		snp_dev = make_dev(&snp_cdevsw, 0,
-		    UID_ROOT, GID_WHEEL, 0600, "snp");
+		snp_dev = make_dev(&snp_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+		    "snp");
 		return (0);
 	case MOD_UNLOAD:
 		/* XXX: Make existing users leave. */
@@ -373,10 +372,6 @@ snp_getc_capture(struct tty *tp, const void *buf, size_t len)
 	selwakeup(&ss->snp_outpoll);
 }
 
-static moduledata_t snp_mod = {
-	"snp",
-	snp_modevent,
-	NULL
-};
+static moduledata_t snp_mod = { "snp", snp_modevent, NULL };
 
 DECLARE_MODULE(snp, snp_mod, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);

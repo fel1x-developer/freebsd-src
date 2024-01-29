@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "al_init_eth_kr.h"
 #include "al_serdes.h"
 
@@ -52,40 +53,37 @@
 
 /* TODO: fix with more reasonable numbers */
 /* timeout in mSec before auto-negotiation will be terminated */
-#define AL_ETH_KR_AN_TIMEOUT		(500)
-#define AL_ETH_KR_EYE_MEASURE_TIMEOUT	(100)
+#define AL_ETH_KR_AN_TIMEOUT (500)
+#define AL_ETH_KR_EYE_MEASURE_TIMEOUT (100)
 /* timeout in uSec before the process will be terminated */
-#define AL_ETH_KR_FRAME_LOCK_TIMEOUT	(500 * 1000)
-#define AL_ETH_KR_LT_DONE_TIMEOUT	(500 * 1000)
+#define AL_ETH_KR_FRAME_LOCK_TIMEOUT (500 * 1000)
+#define AL_ETH_KR_LT_DONE_TIMEOUT (500 * 1000)
 /* number of times the receiver and transmitter tasks will be called before the
  * algorithm will be terminated */
-#define AL_ETH_KR_LT_MAX_ROUNDS		(50000)
+#define AL_ETH_KR_LT_MAX_ROUNDS (50000)
 
 /* mac algorithm state machine */
 enum al_eth_kr_mac_lt_state {
-	TX_INIT = 0,	/* start of all */
-	WAIT_BEGIN,	/* wait for initial training lock */
-	DO_PRESET,	/* issue PRESET to link partner */
-	DO_HOLD,	/* issue HOLD to link partner */
+	TX_INIT = 0, /* start of all */
+	WAIT_BEGIN,  /* wait for initial training lock */
+	DO_PRESET,   /* issue PRESET to link partner */
+	DO_HOLD,     /* issue HOLD to link partner */
 	/* preparation is done, start testing the coefficient. */
 	QMEASURE,	/* EyeQ measurement. */
 	QCHECK,		/* Check if measurement shows best value. */
 	DO_NEXT_TRY,	/* issue DEC command to coeff for next measurement. */
 	END_STEPS,	/* perform last steps to go back to optimum. */
-	END_STEPS_HOLD,	/* perform last steps HOLD command. */
+	END_STEPS_HOLD, /* perform last steps HOLD command. */
 	COEFF_DONE,	/* done with the current coefficient updates.
 			 * Check if another should be done. */
 	/* end of training to all coefficients */
-	SET_READY,	/* indicate local receiver ready */
-	TX_DONE		/* transmit process completed, training can end. */
+	SET_READY, /* indicate local receiver ready */
+	TX_DONE	   /* transmit process completed, training can end. */
 };
 
-static const char * const al_eth_kr_mac_sm_name[] = {
-	"TX_INIT", "WAIT_BEGIN", "DO_PRESET",
-	"DO_HOLD", "QMEASURE", "QCHECK",
-	"DO_NEXT_TRY", "END_STEPS", "END_STEPS_HOLD",
-	"COEFF_DONE", "SET_READY", "TX_DONE"
-};
+static const char *const al_eth_kr_mac_sm_name[] = { "TX_INIT", "WAIT_BEGIN",
+	"DO_PRESET", "DO_HOLD", "QMEASURE", "QCHECK", "DO_NEXT_TRY",
+	"END_STEPS", "END_STEPS_HOLD", "COEFF_DONE", "SET_READY", "TX_DONE" };
 
 /* Constants used for the measurement. */
 enum al_eth_kr_coef {
@@ -99,19 +97,20 @@ enum al_eth_kr_coef {
  */
 #define COEFF_TO_MANIPULATE AL_ETH_KR_COEF_C_MINUS
 #define COEFF_TO_MANIPULATE_LAST AL_ETH_KR_COEF_C_MINUS
-#define QARRAY_SIZE	3 /**< how many entries we want in our history array. */
+#define QARRAY_SIZE 3 /**< how many entries we want in our history array. */
 
 struct al_eth_kr_data {
-	struct al_hal_eth_adapter	*adapter;
-	struct al_serdes_grp_obj	*serdes_obj;
-	enum al_serdes_lane		lane;
+	struct al_hal_eth_adapter *adapter;
+	struct al_serdes_grp_obj *serdes_obj;
+	enum al_serdes_lane lane;
 
 	/* Receiver side data */
-	struct al_eth_kr_status_report_data status_report; /* report to response */
+	struct al_eth_kr_status_report_data
+	    status_report;			    /* report to response */
 	struct al_eth_kr_coef_up_data last_lpcoeff; /* last coeff received */
 
 	/* Transmitter side data */
-	enum al_eth_kr_mac_lt_state algo_state;	/* Statemachine. */
+	enum al_eth_kr_mac_lt_state algo_state; /* Statemachine. */
 	unsigned int qarray[QARRAY_SIZE];	/* EyeQ measurements history */
 	/* How many entries in the array are valid for compares yet. */
 	unsigned int qarray_cnt;
@@ -121,7 +120,7 @@ struct al_eth_kr_data {
 	 * DEC/INC command (before issuing HOLD again).
 	 */
 	unsigned int coeff_status_step;
-	unsigned int end_steps_cnt;     /* Number of end steps needed */
+	unsigned int end_steps_cnt; /* Number of end steps needed */
 };
 
 static int
@@ -193,19 +192,15 @@ al_eth_lt_coeff_set(struct al_eth_kr_data *kr_data,
 	case AL_PHY_KR_COEF_UP_INC:
 		status = C72_CSTATE_UPDATED;
 
-		if (kr_data->serdes_obj->tx_deemph_inc(
-					kr_data->serdes_obj,
-					kr_data->lane,
-					param) == 0)
+		if (kr_data->serdes_obj->tx_deemph_inc(kr_data->serdes_obj,
+			kr_data->lane, param) == 0)
 			status = C72_CSTATE_MAX;
 		break;
 	case AL_PHY_KR_COEF_UP_DEC:
 		status = C72_CSTATE_UPDATED;
 
-		if (kr_data->serdes_obj->tx_deemph_dec(
-					kr_data->serdes_obj,
-					kr_data->lane,
-					param) == 0)
+		if (kr_data->serdes_obj->tx_deemph_dec(kr_data->serdes_obj,
+			kr_data->lane, param) == 0)
 			status = C72_CSTATE_MIN;
 		break;
 	default: /* 3=reserved */
@@ -227,9 +222,8 @@ al_eth_coeff_req_handle(struct al_eth_kr_data *kr_data,
 
 	/* First check for Init and Preset commands. */
 	if ((lpcoeff->preset != 0) || (lpcoeff->initialize) != 0) {
-		kr_data->serdes_obj->tx_deemph_preset(
-					kr_data->serdes_obj,
-					kr_data->lane);
+		kr_data->serdes_obj->tx_deemph_preset(kr_data->serdes_obj,
+		    kr_data->lane);
 
 		/*
 		 * in case of preset c(0) should be set to maximum and both c(1)
@@ -251,14 +245,14 @@ al_eth_coeff_req_handle(struct al_eth_kr_data *kr_data,
 	report->c_minus = al_eth_lt_coeff_set(kr_data,
 	    AL_SERDES_TX_DEEMP_C_MINUS, lpcoeff->c_minus);
 
-	report->c_zero = al_eth_lt_coeff_set(kr_data,
-	    AL_SERDES_TX_DEEMP_C_ZERO, lpcoeff->c_zero);
+	report->c_zero = al_eth_lt_coeff_set(kr_data, AL_SERDES_TX_DEEMP_C_ZERO,
+	    lpcoeff->c_zero);
 
-	report->c_plus = al_eth_lt_coeff_set(kr_data,
-	    AL_SERDES_TX_DEEMP_C_PLUS, lpcoeff->c_plus);
+	report->c_plus = al_eth_lt_coeff_set(kr_data, AL_SERDES_TX_DEEMP_C_PLUS,
+	    lpcoeff->c_plus);
 
-	al_dbg("%s: c(0) = 0x%x c(-1) = 0x%x c(1) = 0x%x\n",
-	    __func__, report->c_zero, report->c_plus, report->c_minus);
+	al_dbg("%s: c(0) = 0x%x c(-1) = 0x%x c(1) = 0x%x\n", __func__,
+	    report->c_zero, report->c_plus, report->c_minus);
 }
 
 static void
@@ -278,7 +272,7 @@ al_eth_lp_coeff_up_change(struct al_eth_kr_data *kr_data,
 	struct al_eth_kr_coef_up_data *last_lpcoeff = &kr_data->last_lpcoeff;
 
 	if (al_memcmp(last_lpcoeff, lpcoeff,
-	    sizeof(struct al_eth_kr_coef_up_data)) == 0) {
+		sizeof(struct al_eth_kr_coef_up_data)) == 0) {
 		return (false);
 	}
 
@@ -307,13 +301,13 @@ al_eth_kr_lt_receiver_task_run(struct al_eth_kr_data *kr_data)
 	 */
 
 	if (al_eth_kr_receiver_frame_lock_get(kr_data->adapter,
-	    AL_ETH_AN__LT_LANE_0) != 0) {
+		AL_ETH_AN__LT_LANE_0) != 0) {
 		return (0);
 	}
 
 	/* check if a new update command was received */
-	al_eth_lp_coeff_up_get(kr_data->adapter,
-	    AL_ETH_AN__LT_LANE_0, &new_lpcoeff);
+	al_eth_lp_coeff_up_get(kr_data->adapter, AL_ETH_AN__LT_LANE_0,
+	    &new_lpcoeff);
 
 	if (al_eth_lp_coeff_up_change(kr_data, &new_lpcoeff) != 0) {
 		/* got some new coefficient update request. */
@@ -336,19 +330,16 @@ al_eth_kr_lt_transmitter_task_init(struct al_eth_kr_data *kr_data)
 
 	kr_data->qarray_cnt = 0;
 	kr_data->algo_state = TX_INIT;
-	kr_data->curr_coeff = COEFF_TO_MANIPULATE;  /* first coeff to test. */
-	kr_data->coeff_status_step  = C72_CSTATE_NOT_UPDATED;
-	kr_data->end_steps_cnt = QARRAY_SIZE-1;  /* go back to first entry */
+	kr_data->curr_coeff = COEFF_TO_MANIPULATE; /* first coeff to test. */
+	kr_data->coeff_status_step = C72_CSTATE_NOT_UPDATED;
+	kr_data->end_steps_cnt = QARRAY_SIZE - 1; /* go back to first entry */
 
 	/*
 	 * Perform measure eye here to run the rx equalizer
 	 * for the first time to get init values
 	 */
-	rc = kr_data->serdes_obj->eye_measure_run(
-				kr_data->serdes_obj,
-				kr_data->lane,
-				AL_ETH_KR_EYE_MEASURE_TIMEOUT,
-				&temp_val);
+	rc = kr_data->serdes_obj->eye_measure_run(kr_data->serdes_obj,
+	    kr_data->lane, AL_ETH_KR_EYE_MEASURE_TIMEOUT, &temp_val);
 	if (rc != 0) {
 		al_warn("%s: Failed to run Rx equalizer (rc = 0x%x)\n",
 		    __func__, rc);
@@ -428,12 +419,12 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 	 * when remote updates its analogs).
 	 */
 	if (al_eth_kr_receiver_frame_lock_get(kr_data->adapter,
-	    AL_ETH_AN__LT_LANE_0) == 0) {
+		AL_ETH_AN__LT_LANE_0) == 0) {
 		return (0);
 	}
 
-	al_eth_lp_status_report_get(kr_data->adapter,
-	    AL_ETH_AN__LT_LANE_0, &report);
+	al_eth_lp_status_report_get(kr_data->adapter, AL_ETH_AN__LT_LANE_0,
+	    &report);
 
 	/* extract curr status of the coefficient in use */
 	coeff_status_cur = al_eth_kr_lt_coef_report_get(&report,
@@ -445,7 +436,7 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 	case TX_INIT:
 		/* waiting for start */
 		if (al_eth_kr_startup_proto_prog_get(kr_data->adapter,
-		    AL_ETH_AN__LT_LANE_0) != 0) {
+			AL_ETH_AN__LT_LANE_0) != 0) {
 			/* training is on and frame lock */
 			nextstate = WAIT_BEGIN;
 		}
@@ -455,7 +446,7 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 		kr_data->curr_coeff = COEFF_TO_MANIPULATE;
 		kr_data->coeff_status_step = C72_CSTATE_NOT_UPDATED;
 		coeff_status_cur = C72_CSTATE_NOT_UPDATED;
-		kr_data->end_steps_cnt = QARRAY_SIZE-1;
+		kr_data->end_steps_cnt = QARRAY_SIZE - 1;
 
 		/* Wait for not_updated for all coefficients from remote */
 		if (al_eth_kr_lt_all_not_updated(&report) != 0) {
@@ -485,11 +476,8 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 
 	case QMEASURE:
 		/* makes a measurement and fills the new value into the array */
-		rc = kr_data->serdes_obj->eye_measure_run(
-					kr_data->serdes_obj,
-					kr_data->lane,
-					AL_ETH_KR_EYE_MEASURE_TIMEOUT,
-					&val);
+		rc = kr_data->serdes_obj->eye_measure_run(kr_data->serdes_obj,
+		    kr_data->lane, AL_ETH_KR_EYE_MEASURE_TIMEOUT, &val);
 		if (rc != 0) {
 			al_warn("%s: Rx eye measurement failed\n", __func__);
 
@@ -499,10 +487,10 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 		al_dbg("%s: Rx Measure eye returned 0x%x\n", __func__, val);
 
 		/* put the new value into the array at the top. */
-		for (i = 0; i < QARRAY_SIZE-1; i++)
-			kr_data->qarray[i] = kr_data->qarray[i+1];
+		for (i = 0; i < QARRAY_SIZE - 1; i++)
+			kr_data->qarray[i] = kr_data->qarray[i + 1];
 
-		kr_data->qarray[QARRAY_SIZE-1] = val;
+		kr_data->qarray[QARRAY_SIZE - 1] = val;
 
 		if (kr_data->qarray_cnt < QARRAY_SIZE)
 			kr_data->qarray_cnt++;
@@ -575,10 +563,10 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 		kr_data->coeff_status_step = coeff_status_cur;
 
 		if (coeff_status_cur != C72_CSTATE_NOT_UPDATED)
-			nextstate = DO_HOLD;  /* go to next measurement round */
+			nextstate = DO_HOLD; /* go to next measurement round */
 		else
-			al_eth_kr_lt_coef_set(&ldcoeff,
-			    kr_data->curr_coeff, AL_PHY_KR_COEF_UP_DEC);
+			al_eth_kr_lt_coef_set(&ldcoeff, kr_data->curr_coeff,
+			    AL_PHY_KR_COEF_UP_DEC);
 		break;
 	/*
 	 * Coefficient iteration completed, go back to the optimum step
@@ -589,8 +577,8 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 		if (coeff_status_cur != C72_CSTATE_NOT_UPDATED)
 			nextstate = END_STEPS_HOLD;
 		else
-			al_eth_kr_lt_coef_set(&ldcoeff,
-			    kr_data->curr_coeff, AL_PHY_KR_COEF_UP_INC);
+			al_eth_kr_lt_coef_set(&ldcoeff, kr_data->curr_coeff,
+			    AL_PHY_KR_COEF_UP_INC);
 		break;
 	case END_STEPS_HOLD:
 		if (coeff_status_cur == C72_CSTATE_NOT_UPDATED) {
@@ -626,7 +614,7 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 				kr_data->qarray[i] = 0;
 
 			kr_data->qarray_cnt = 0;
-			kr_data->end_steps_cnt = QARRAY_SIZE-1;
+			kr_data->end_steps_cnt = QARRAY_SIZE - 1;
 			kr_data->coeff_status_step = C72_CSTATE_NOT_UPDATED;
 			kr_data->curr_coeff++;
 
@@ -657,7 +645,7 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 		nextstate = TX_DONE;
 		break;
 	case TX_DONE:
-		break;  /* nothing else to do */
+		break; /* nothing else to do */
 	default:
 		nextstate = kr_data->algo_state;
 		break;
@@ -670,10 +658,11 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 	 */
 	if (kr_data->algo_state != nextstate) {
 		al_dbg("[%s] [al_eth_kr_lt_transmit_run] STM changes %s -> %s: "
-		    " Qarray=%d/%d/%d\n", kr_data->adapter->name,
+		       " Qarray=%d/%d/%d\n",
+		    kr_data->adapter->name,
 		    al_eth_kr_mac_sm_name[kr_data->algo_state],
-		    al_eth_kr_mac_sm_name[nextstate],
-		    kr_data->qarray[0], kr_data->qarray[1], kr_data->qarray[2]);
+		    al_eth_kr_mac_sm_name[nextstate], kr_data->qarray[0],
+		    kr_data->qarray[1], kr_data->qarray[2]);
 	}
 
 	kr_data->algo_state = nextstate;
@@ -683,7 +672,8 @@ al_eth_kr_lt_transmitter_task_run(struct al_eth_kr_data *kr_data)
 	 * Important: this must be done always, as the receiver may have
 	 * received update commands and wants to return its status.
 	 */
-	al_eth_ld_coeff_up_set(kr_data->adapter, AL_ETH_AN__LT_LANE_0, &ldcoeff);
+	al_eth_ld_coeff_up_set(kr_data->adapter, AL_ETH_AN__LT_LANE_0,
+	    &ldcoeff);
 	al_eth_ld_status_report_set(kr_data->adapter, AL_ETH_AN__LT_LANE_0,
 	    &kr_data->status_report);
 
@@ -704,7 +694,7 @@ al_eth_kr_run_lt(struct al_eth_kr_data *kr_data)
 	al_eth_kr_lt_initialize(kr_data->adapter, AL_ETH_AN__LT_LANE_0);
 
 	if (al_eth_kr_lt_frame_lock_wait(kr_data->adapter, AL_ETH_AN__LT_LANE_0,
-	    AL_ETH_KR_FRAME_LOCK_TIMEOUT) == AL_TRUE) {
+		AL_ETH_KR_FRAME_LOCK_TIMEOUT) == AL_TRUE) {
 		/*
 		 * when locked, for the first time initialize the receiver and
 		 * transmitter tasks to prepare it for detecting coefficient
@@ -723,17 +713,17 @@ al_eth_kr_run_lt(struct al_eth_kr_data *kr_data)
 
 			ret = al_eth_kr_lt_transmitter_task_run(kr_data);
 			if (ret != 0)
-				break;  /* stop the link training */
+				break; /* stop the link training */
 
 			cnt++;
 			DELAY(100);
 
 		} while ((al_eth_kr_startup_proto_prog_get(kr_data->adapter,
-		    AL_ETH_AN__LT_LANE_0)) && (cnt <= AL_ETH_KR_LT_MAX_ROUNDS));
+			     AL_ETH_AN__LT_LANE_0)) &&
+		    (cnt <= AL_ETH_KR_LT_MAX_ROUNDS));
 
-		training_failure =
-		    al_eth_kr_training_status_fail_get(kr_data->adapter,
-		    AL_ETH_AN__LT_LANE_0);
+		training_failure = al_eth_kr_training_status_fail_get(
+		    kr_data->adapter, AL_ETH_AN__LT_LANE_0);
 		al_dbg("[%s] training ended after %d rounds, failed = %s\n",
 		    kr_data->adapter->name, cnt,
 		    (training_failure) ? "Yes" : "No");
@@ -771,7 +761,8 @@ al_eth_kr_run_lt(struct al_eth_kr_data *kr_data)
 		    &an_completed, &error);
 		DELAY(1);
 		if ((cnt--) == 0) {
-			al_info("%s: wait for an complete timeout!\n", __func__);
+			al_info("%s: wait for an complete timeout!\n",
+			    __func__);
 			ret = ETIMEDOUT;
 			goto error;
 		}
@@ -784,11 +775,10 @@ error:
 }
 
 /* execute Autonegotiation process */
-int al_eth_an_lt_execute(struct al_hal_eth_adapter	*adapter,
-			 struct al_serdes_grp_obj	*serdes_obj,
-			 enum al_serdes_lane		lane,
-			 struct al_eth_an_adv		*an_adv,
-			 struct al_eth_an_adv		*partner_adv)
+int
+al_eth_an_lt_execute(struct al_hal_eth_adapter *adapter,
+    struct al_serdes_grp_obj *serdes_obj, enum al_serdes_lane lane,
+    struct al_eth_an_adv *an_adv, struct al_eth_an_adv *partner_adv)
 {
 	struct al_eth_kr_data kr_data;
 	int rc;
@@ -805,10 +795,8 @@ int al_eth_an_lt_execute(struct al_hal_eth_adapter	*adapter,
 	 * sure rx parameters is not been override
 	 */
 	rx_params.override = AL_FALSE;
-	kr_data.serdes_obj->rx_advanced_params_set(
-					kr_data.serdes_obj,
-					kr_data.lane,
-					&rx_params);
+	kr_data.serdes_obj->rx_advanced_params_set(kr_data.serdes_obj,
+	    kr_data.lane, &rx_params);
 
 	rc = al_eth_kr_an_run(&kr_data, an_adv, partner_adv);
 	if (rc != 0) {

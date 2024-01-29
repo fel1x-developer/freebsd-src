@@ -25,10 +25,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR9285_CAL_H__
-#define	__AR9285_CAL_H__
+#ifndef __AR9285_CAL_H__
+#define __AR9285_CAL_H__
 
 extern void ar9002_hw_pa_cal(struct ath_hal *ah, HAL_BOOL is_reset);
-extern HAL_BOOL ar9285InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan);
+extern HAL_BOOL ar9285InitCalHardware(struct ath_hal *ah,
+    const struct ieee80211_channel *chan);
 
 #endif

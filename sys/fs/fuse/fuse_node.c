@@ -61,39 +61,41 @@
  */
 
 #include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/counter.h>
-#include <sys/module.h>
-#include <sys/errno.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/sx.h>
-#include <sys/mutex.h>
-#include <sys/proc.h>
-#include <sys/vnode.h>
-#include <sys/namei.h>
-#include <sys/mount.h>
-#include <sys/sysctl.h>
-#include <sys/fcntl.h>
-#include <sys/priv.h>
+#include <sys/systm.h>
 #include <sys/buf.h>
-#include <security/mac/mac_framework.h>
+#include <sys/conf.h>
+#include <sys/counter.h>
+#include <sys/errno.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 
+#include <security/mac/mac_framework.h>
+
 #include "fuse.h"
-#include "fuse_node.h"
 #include "fuse_internal.h"
 #include "fuse_io.h"
 #include "fuse_ipc.h"
+#include "fuse_node.h"
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -109,7 +111,7 @@ static counter_u64_t fuse_node_count;
 SYSCTL_COUNTER_U64(_vfs_fusefs_stats, OID_AUTO, node_count, CTLFLAG_RD,
     &fuse_node_count, "Count of FUSE vnodes");
 
-int	fuse_data_cache_mode = FUSE_CACHE_WT;
+int fuse_data_cache_mode = FUSE_CACHE_WT;
 
 /*
  * DEPRECATED
@@ -122,8 +124,8 @@ int	fuse_data_cache_mode = FUSE_CACHE_WT;
  * protocols.  It may be removed entirely once FreeBSD 11.3 and 12.0 are EOL.
  */
 SYSCTL_PROC(_vfs_fusefs, OID_AUTO, data_cache_mode,
-    CTLTYPE_INT | CTLFLAG_MPSAFE | CTLFLAG_RW,
-    &fuse_data_cache_mode, 0, sysctl_fuse_cache_mode, "I",
+    CTLTYPE_INT | CTLFLAG_MPSAFE | CTLFLAG_RW, &fuse_data_cache_mode, 0,
+    sysctl_fuse_cache_mode, "I",
     "Zero: disable caching of FUSE file data; One: write-through caching "
     "(default); Two: write-back caching (generally unsafe)");
 
@@ -174,7 +176,7 @@ fuse_vnode_destroy(struct vnode *vp)
 
 	vp->v_data = NULL;
 	KASSERT(LIST_EMPTY(&fvdat->handles),
-		("Destroying fuse vnode with open files!"));
+	    ("Destroying fuse vnode with open files!"));
 	free(fvdat, M_FUSEVN);
 
 	counter_u64_add(fuse_node_count, -1);
@@ -187,13 +189,10 @@ fuse_vnode_cmp(struct vnode *vp, void *nidp)
 }
 
 SDT_PROBE_DEFINE3(fusefs, , node, stale_vnode, "struct vnode*", "uint8_t",
-		"uint64_t");
+    "uint64_t");
 static int
-fuse_vnode_alloc(struct mount *mp,
-    struct thread *td,
-    uint64_t nodeid,
-    __enum_uint8(vtype) vtyp,
-    struct vnode **vpp)
+fuse_vnode_alloc(struct mount *mp, struct thread *td, uint64_t nodeid,
+    __enum_uint8(vtype) vtyp, struct vnode **vpp)
 {
 	struct fuse_data *data;
 	struct fuse_vnode_data *fvdat;
@@ -216,7 +215,7 @@ fuse_vnode_alloc(struct mount *mp,
 			MPASS((*vpp)->v_data != NULL);
 			MPASS(VTOFUD(*vpp)->nid == nodeid);
 			SDT_PROBE2(fusefs, , node, trace, 1,
-				"vnode taken from hash");
+			    "vnode taken from hash");
 			return (0);
 		} else {
 			/*
@@ -227,7 +226,7 @@ fuse_vnode_alloc(struct mount *mp,
 			 * number following an entry cache expiration.
 			 */
 			SDT_PROBE3(fusefs, , node, stale_vnode, *vpp, vtyp,
-				nodeid);
+			    nodeid);
 			fuse_internal_vnode_disappear(*vpp);
 			vgone(*vpp);
 			lockmgr((*vpp)->v_vnlock, LK_RELEASE, NULL);
@@ -261,8 +260,8 @@ fuse_vnode_alloc(struct mount *mp,
 		VN_LOCK_ASHARE(*vpp);
 
 	vn_set_state(*vpp, VSTATE_CONSTRUCTED);
-	err = vfs_hash_insert(*vpp, fuse_vnode_hash(nodeid), LK_EXCLUSIVE,
-	    td, &vp2, fuse_vnode_cmp, &nodeid);
+	err = vfs_hash_insert(*vpp, fuse_vnode_hash(nodeid), LK_EXCLUSIVE, td,
+	    &vp2, fuse_vnode_cmp, &nodeid);
 	if (err) {
 		lockmgr((*vpp)->v_vnlock, LK_RELEASE, NULL);
 		free(fvdat, M_FUSEVN);
@@ -280,16 +279,12 @@ fuse_vnode_alloc(struct mount *mp,
 }
 
 int
-fuse_vnode_get(struct mount *mp,
-    struct fuse_entry_out *feo,
-    uint64_t nodeid,
-    struct vnode *dvp,
-    struct vnode **vpp,
-    struct componentname *cnp,
+fuse_vnode_get(struct mount *mp, struct fuse_entry_out *feo, uint64_t nodeid,
+    struct vnode *dvp, struct vnode **vpp, struct componentname *cnp,
     __enum_uint8(vtype) vtyp)
 {
 	struct thread *td = curthread;
-	/* 
+	/*
 	 * feo should only be NULL for the root directory, which (when libfuse
 	 * is used) always has generation 0
 	 */
@@ -298,7 +293,7 @@ fuse_vnode_get(struct mount *mp,
 
 	if (dvp != NULL && VTOFUD(dvp)->nid == nodeid) {
 		fuse_warn(fuse_get_mpdata(mp), FSESS_WARN_ILLEGAL_INODE,
-			"Assigned same inode to both parent and child.");
+		    "Assigned same inode to both parent and child.");
 		return EIO;
 	}
 
@@ -309,7 +304,7 @@ fuse_vnode_get(struct mount *mp,
 	if (dvp != NULL) {
 		MPASS(cnp && (cnp->cn_flags & ISDOTDOT) == 0);
 		MPASS(cnp &&
-			!(cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.'));
+		    !(cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.'));
 		fuse_vnode_setparent(*vpp, dvp);
 	}
 	if (dvp != NULL && cnp != NULL && (cnp->cn_flags & MAKEENTRY) != 0 &&
@@ -331,8 +326,9 @@ fuse_vnode_get(struct mount *mp,
 	 * Follow the same semantic and avoid the bump in order to keep
 	 * nlookup counters consistent.
 	 */
-	if (cnp == NULL || ((cnp->cn_flags & ISDOTDOT) == 0 &&
-	    (cnp->cn_namelen != 1 || cnp->cn_nameptr[0] != '.')))
+	if (cnp == NULL ||
+	    ((cnp->cn_flags & ISDOTDOT) == 0 &&
+		(cnp->cn_namelen != 1 || cnp->cn_nameptr[0] != '.')))
 		VTOFUD(*vpp)->nlookup++;
 
 	return 0;
@@ -431,7 +427,7 @@ fuse_vnode_setsize(struct vnode *vp, off_t newsize, bool from_server)
 			goto out;
 		if (newsize % iosize == 0)
 			goto out;
-		/* 
+		/*
 		 * Zero the contents of the last partial block.
 		 * Sure seems like vtruncbuf should do this for us.
 		 */
@@ -443,7 +439,7 @@ fuse_vnode_setsize(struct vnode *vp, off_t newsize, bool from_server)
 			goto out;
 		}
 		if (!(bp->b_flags & B_CACHE))
-			goto out;	/* Nothing to do */
+			goto out; /* Nothing to do */
 		MPASS(bp->b_flags & B_VMIO);
 		vfs_bio_clrbuf(bp);
 		bp->b_dirtyend = MIN(bp->b_dirtyend, newsize - lbn * iosize);
@@ -467,14 +463,14 @@ out:
 /* Get the current, possibly dirty, size of the file */
 int
 fuse_vnode_size(struct vnode *vp, off_t *filesize, struct ucred *cred,
-	struct thread *td)
+    struct thread *td)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	int error = 0;
 
 	if (!(fvdat->flag & FN_SIZECHANGE) &&
-		(!fuse_vnode_attr_cache_valid(vp) ||
-		  fvdat->cached_attrs.va_size == VNOVAL)) 
+	    (!fuse_vnode_attr_cache_valid(vp) ||
+		fvdat->cached_attrs.va_size == VNOVAL))
 		error = fuse_internal_do_getattr(vp, NULL, cred, td);
 
 	if (!error)

@@ -28,13 +28,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "mem.h"
 
-void*
+void *
 sort_calloc(size_t nb, size_t size)
 {
 	void *ptr;

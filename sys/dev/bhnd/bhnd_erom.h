@@ -31,7 +31,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_EROM_BHND_EROM_H_
@@ -50,36 +50,31 @@
 struct bhnd_erom_io;
 struct bhnd_erom_iobus;
 
-bhnd_erom_class_t	*bhnd_erom_probe_driver_classes(devclass_t bus_devclass,
-			     struct bhnd_erom_io *eio,
-			     const struct bhnd_chipid *hint,
-			     struct bhnd_chipid *cid);
+bhnd_erom_class_t *bhnd_erom_probe_driver_classes(devclass_t bus_devclass,
+    struct bhnd_erom_io *eio, const struct bhnd_chipid *hint,
+    struct bhnd_chipid *cid);
 
-bhnd_erom_t		*bhnd_erom_alloc(bhnd_erom_class_t *cls,
-			     const struct bhnd_chipid *cid,
-			     struct bhnd_erom_io *eio);
+bhnd_erom_t *bhnd_erom_alloc(bhnd_erom_class_t *cls,
+    const struct bhnd_chipid *cid, struct bhnd_erom_io *eio);
 
-int			 bhnd_erom_init_static(bhnd_erom_class_t *cls,
-			     bhnd_erom_t *erom, size_t esize,
-			     const struct bhnd_chipid *cid,
-			     struct bhnd_erom_io *eio);
+int bhnd_erom_init_static(bhnd_erom_class_t *cls, bhnd_erom_t *erom,
+    size_t esize, const struct bhnd_chipid *cid, struct bhnd_erom_io *eio);
 
-void			 bhnd_erom_fini_static(bhnd_erom_t *erom);
+void bhnd_erom_fini_static(bhnd_erom_t *erom);
 
-void			 bhnd_erom_free(bhnd_erom_t *erom);
+void bhnd_erom_free(bhnd_erom_t *erom);
 
-struct bhnd_erom_io	*bhnd_erom_iores_new(device_t dev, int rid);
-int			 bhnd_erom_iobus_init(struct bhnd_erom_iobus *iobus,
-			     bhnd_addr_t addr, bhnd_size_t size,
-			     bus_space_tag_t bst, bus_space_handle_t bsh);
+struct bhnd_erom_io *bhnd_erom_iores_new(device_t dev, int rid);
+int bhnd_erom_iobus_init(struct bhnd_erom_iobus *iobus, bhnd_addr_t addr,
+    bhnd_size_t size, bus_space_tag_t bst, bus_space_handle_t bsh);
 
-int			 bhnd_erom_io_map(struct bhnd_erom_io *eio,
-			     bhnd_addr_t addr, bhnd_size_t size);
-int			 bhnd_erom_io_tell(struct bhnd_erom_io *eio,
-			     bhnd_addr_t *addr, bhnd_size_t *size);
-uint32_t		 bhnd_erom_io_read(struct bhnd_erom_io *eio,
-			     bhnd_size_t offset, u_int width);
-void			 bhnd_erom_io_fini(struct bhnd_erom_io *eio);
+int bhnd_erom_io_map(struct bhnd_erom_io *eio, bhnd_addr_t addr,
+    bhnd_size_t size);
+int bhnd_erom_io_tell(struct bhnd_erom_io *eio, bhnd_addr_t *addr,
+    bhnd_size_t *size);
+uint32_t bhnd_erom_io_read(struct bhnd_erom_io *eio, bhnd_size_t offset,
+    u_int width);
+void bhnd_erom_io_fini(struct bhnd_erom_io *eio);
 
 /**
  * Abstract bhnd_erom instance state. Must be first member of all subclass
@@ -91,31 +86,31 @@ struct bhnd_erom {
 
 /** Number of additional bytes to reserve for statically allocated
  *  bhnd_erom instances. */
-#define	BHND_EROM_STATIC_BYTES	64
+#define BHND_EROM_STATIC_BYTES 64
 
 /**
  * A bhnd_erom instance structure large enough to statically allocate
  * any known bhnd_erom subclass.
- * 
+ *
  * The maximum size of subclasses is verified statically in
  * BHND_EROM_DEFINE_CLASS(), and at runtime in bhnd_erom_init_static().
  */
 struct bhnd_erom_static {
-	struct bhnd_erom	obj;
-	uint8_t			idata[BHND_EROM_STATIC_BYTES];
+	struct bhnd_erom obj;
+	uint8_t idata[BHND_EROM_STATIC_BYTES];
 };
 
 /** Registered EROM parser class instances. */
 SET_DECLARE(bhnd_erom_class_set, bhnd_erom_class_t);
 
-#define	BHND_EROM_DEFINE_CLASS(name, classvar, methods, size)	\
-	DEFINE_CLASS_0(name, classvar, methods, size);		\
-	BHND_EROM_CLASS_DEF(classvar);				\
-	_Static_assert(size <= sizeof(struct bhnd_erom_static),	\
-	    "cannot statically allocate instance data; "	\
-	        "increase BHND_EROM_STATIC_BYTES");
+#define BHND_EROM_DEFINE_CLASS(name, classvar, methods, size)   \
+	DEFINE_CLASS_0(name, classvar, methods, size);          \
+	BHND_EROM_CLASS_DEF(classvar);                          \
+	_Static_assert(size <= sizeof(struct bhnd_erom_static), \
+	    "cannot statically allocate instance data; "        \
+	    "increase BHND_EROM_STATIC_BYTES");
 
-#define	BHND_EROM_CLASS_DEF(classvar)	DATA_SET(bhnd_erom_class_set, classvar)
+#define BHND_EROM_CLASS_DEF(classvar) DATA_SET(bhnd_erom_class_set, classvar)
 
 /**
  * Probe to see if this device enumeration class supports the bhnd bus
@@ -150,14 +145,14 @@ bhnd_erom_probe(bhnd_erom_class_t *cls, struct bhnd_erom_io *eio,
 /**
  * Parse all cores descriptors in @p erom, returning the array in @p cores and
  * the count in @p num_cores.
- * 
+ *
  * The memory allocated for the table must be freed via
  * bhnd_erom_free_core_table().
- * 
+ *
  * @param	erom		The erom parser to be queried.
  * @param[out]	cores		The table of parsed core descriptors.
  * @param[out]	num_cores	The number of core records in @p cores.
- * 
+ *
  * @retval 0		success
  * @retval non-zero	if an error occurs, a regular unix error code will
  *			be returned.
@@ -173,7 +168,7 @@ bhnd_erom_get_core_table(bhnd_erom_t *erom, struct bhnd_core_info **cores,
  * Free any memory allocated in a previous call to BHND_EROM_GET_CORE_TABLE().
  *
  * @param	erom		The erom parser instance.
- * @param	cores		A core table allocated by @p erom. 
+ * @param	cores		A core table allocated by @p erom.
  */
 static inline void
 bhnd_erom_free_core_table(bhnd_erom_t *erom, struct bhnd_core_info *cores)
@@ -187,7 +182,7 @@ bhnd_erom_free_core_table(bhnd_erom_t *erom, struct bhnd_core_info *cores)
  * @param	erom	The erom parser to be queried.
  * @param	desc	A core match descriptor.
  * @param[out]	core	On success, the matching core info record.
- * 
+ *
  * @retval 0		success
  * @retval ENOENT	No core matching @p desc was found.
  * @retval non-zero	Reading or parsing failed.
@@ -215,7 +210,7 @@ bhnd_erom_lookup_core(bhnd_erom_t *erom, const struct bhnd_core_match *desc,
  *			info record on success.
  * @param[out]	addr	On success, the base address of the port region.
  * @param[out]	size	On success, the total size of the port region.
- * 
+ *
  * @retval 0		success
  * @retval ENOENT	No core matching @p desc was found.
  * @retval ENOENT	No port region matching @p type, @p port, and @p region
@@ -223,19 +218,20 @@ bhnd_erom_lookup_core(bhnd_erom_t *erom, const struct bhnd_core_match *desc,
  * @retval non-zero	Reading or parsing failed.
  */
 static inline int
-bhnd_erom_lookup_core_addr(bhnd_erom_t *erom, const struct bhnd_core_match *desc,
-    bhnd_port_type type, u_int port, u_int region, struct bhnd_core_info *core,
-    bhnd_addr_t *addr, bhnd_size_t *size)
+bhnd_erom_lookup_core_addr(bhnd_erom_t *erom,
+    const struct bhnd_core_match *desc, bhnd_port_type type, u_int port,
+    u_int region, struct bhnd_core_info *core, bhnd_addr_t *addr,
+    bhnd_size_t *size)
 {
-	return (BHND_EROM_LOOKUP_CORE_ADDR(erom, desc, type, port, region,
-	    core, addr, size));
+	return (BHND_EROM_LOOKUP_CORE_ADDR(erom, desc, type, port, region, core,
+	    addr, size));
 };
 
 /**
  * Enumerate and print all entries in @p erom.
- * 
+ *
  * @param	erom	The erom parser to be enumerated.
- * 
+ *
  * @retval 0		success
  * @retval non-zero	If an error occurs parsing the EROM table, a regular
  *			unix error code will be returned.

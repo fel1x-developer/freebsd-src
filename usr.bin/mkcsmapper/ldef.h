@@ -31,12 +31,12 @@
 #include <sys/types.h>
 
 typedef struct {
-	u_int32_t	 begin;
-	u_int32_t	 end;
-	u_int32_t	 width;
+	u_int32_t begin;
+	u_int32_t end;
+	u_int32_t width;
 } linear_zone_t;
 
-extern int	 debug;
-extern int	 linenumber;
-extern int	 yyerror(const char *);
-extern int	 yylex(void);
+extern int debug;
+extern int linenumber;
+extern int yyerror(const char *);
+extern int yylex(void);

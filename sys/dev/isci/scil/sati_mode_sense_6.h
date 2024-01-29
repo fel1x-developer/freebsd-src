@@ -60,55 +60,35 @@
  *        translate the SCSI mode sense 6-byte commands.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-SATI_STATUS sati_mode_sense_6_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_mode_sense_6_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-void sati_mode_sense_6_caching_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void
+sati_mode_sense_6_caching_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
 void sati_mode_sense_6_informational_excp_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io);
 
 void sati_mode_sense_6_read_write_error_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io);
 
 void sati_mode_sense_6_disconnect_reconnect_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io);
 
-void sati_mode_sense_6_control_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void
+sati_mode_sense_6_control_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
 void sati_mode_sense_6_power_condition_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io);
 
-void sati_mode_sense_6_all_pages_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void
+sati_mode_sense_6_all_pages_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
 #endif // _SATI_MODE_SENSE_6_H_

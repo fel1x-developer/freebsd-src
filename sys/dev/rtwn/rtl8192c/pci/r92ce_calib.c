@@ -18,52 +18,49 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_debug.h>
-
 #include <dev/rtwn/pci/rtwn_pci_var.h>
-
 #include <dev/rtwn/rtl8192c/pci/r92ce.h>
 #include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
+
 /* Registers to save and restore during IQ calibration. */
 struct r92ce_iq_cal_reg_vals {
-	uint32_t	adda[16];
-	uint8_t		txpause;
-	uint8_t		bcn_ctrl[2];
-	uint32_t	gpio_muxcfg;
-	uint32_t	ofdm0_trxpathena;
-	uint32_t	ofdm0_trmuxpar;
-	uint32_t	fpga0_rfifacesw1;
+	uint32_t adda[16];
+	uint8_t txpause;
+	uint8_t bcn_ctrl[2];
+	uint32_t gpio_muxcfg;
+	uint32_t ofdm0_trxpathena;
+	uint32_t ofdm0_trmuxpar;
+	uint32_t fpga0_rfifacesw1;
 };
 
 /* XXX 92CU? */
@@ -73,7 +70,7 @@ r92ce_iq_calib_chain(struct rtwn_softc *sc, int chain, uint16_t tx[2],
 {
 	uint32_t status;
 
-	if (chain == 0) {	/* IQ calibration for chain 0. */
+	if (chain == 0) { /* IQ calibration for chain 0. */
 		/* IQ calibration settings for chain 0. */
 		rtwn_bb_write(sc, R92C_TX_IQK_TONE(0), 0x10008c1f);
 		rtwn_bb_write(sc, R92C_RX_IQK_TONE(0), 0x10008c1f);
@@ -95,7 +92,7 @@ r92ce_iq_calib_chain(struct rtwn_softc *sc, int chain, uint16_t tx[2],
 		rtwn_bb_write(sc, R92C_IQK_AGC_PTS, 0xf9000000);
 		rtwn_bb_write(sc, R92C_IQK_AGC_PTS, 0xf8000000);
 
-	} else {		/* IQ calibration for chain 1. */
+	} else { /* IQ calibration for chain 1. */
 		/* We're doing LO and IQ calibration in one shot. */
 		rtwn_bb_write(sc, R92C_IQK_AGC_CONT, 2);
 		rtwn_bb_write(sc, R92C_IQK_AGC_CONT, 0);
@@ -108,26 +105,26 @@ r92ce_iq_calib_chain(struct rtwn_softc *sc, int chain, uint16_t tx[2],
 	status = rtwn_bb_read(sc, R92C_RX_POWER_IQK_AFTER(0));
 
 	if (status & (1 << (28 + chain * 3)))
-		return (0);	/* Tx failed. */
+		return (0); /* Tx failed. */
 	/* Read Tx IQ calibration results. */
 	tx[0] = MS(rtwn_bb_read(sc, R92C_TX_POWER_IQK_BEFORE(chain)),
 	    R92C_POWER_IQK_RESULT);
 	tx[1] = MS(rtwn_bb_read(sc, R92C_TX_POWER_IQK_AFTER(chain)),
 	    R92C_POWER_IQK_RESULT);
 	if (tx[0] == 0x142 || tx[1] == 0x042)
-		return (0);	/* Tx failed. */
+		return (0); /* Tx failed. */
 
 	if (status & (1 << (27 + chain * 3)))
-		return (1);	/* Rx failed. */
+		return (1); /* Rx failed. */
 	/* Read Rx IQ calibration results. */
 	rx[0] = MS(rtwn_bb_read(sc, R92C_RX_POWER_IQK_BEFORE(chain)),
 	    R92C_POWER_IQK_RESULT);
 	rx[1] = MS(rtwn_bb_read(sc, R92C_RX_POWER_IQK_AFTER(chain)),
 	    R92C_POWER_IQK_RESULT);
 	if (rx[0] == 0x132 || rx[1] == 0x036)
-		return (1);	/* Rx failed. */
+		return (1); /* Rx failed. */
 
-	return (3);	/* Both Tx and Rx succeeded. */
+	return (3); /* Both Tx and Rx succeeded. */
 }
 
 static void
@@ -135,12 +132,9 @@ r92ce_iq_calib_run(struct rtwn_softc *sc, int n, uint16_t tx[2][2],
     uint16_t rx[2][2], struct r92ce_iq_cal_reg_vals *vals)
 {
 	/* Registers to save and restore during IQ calibration. */
-	static const uint16_t reg_adda[16] = {
-		0x85c, 0xe6c, 0xe70, 0xe74,
-		0xe78, 0xe7c, 0xe80, 0xe84,
-		0xe88, 0xe8c, 0xed0, 0xed4,
-		0xed8, 0xedc, 0xee0, 0xeec
-	};
+	static const uint16_t reg_adda[16] = { 0x85c, 0xe6c, 0xe70, 0xe74,
+		0xe78, 0xe7c, 0xe80, 0xe84, 0xe88, 0xe8c, 0xed0, 0xed4, 0xed8,
+		0xedc, 0xee0, 0xeec };
 	int i, chain;
 	uint32_t hssi_param1;
 
@@ -172,11 +166,11 @@ r92ce_iq_calib_run(struct rtwn_softc *sc, int n, uint16_t tx[2][2],
 	}
 
 	if (n == 0) {
-		vals->ofdm0_trxpathena =
-		    rtwn_bb_read(sc, R92C_OFDM0_TRXPATHENA);
+		vals->ofdm0_trxpathena = rtwn_bb_read(sc,
+		    R92C_OFDM0_TRXPATHENA);
 		vals->ofdm0_trmuxpar = rtwn_bb_read(sc, R92C_OFDM0_TRMUXPAR);
-		vals->fpga0_rfifacesw1 =
-		    rtwn_bb_read(sc, R92C_FPGA0_RFIFACESW(1));
+		vals->fpga0_rfifacesw1 = rtwn_bb_read(sc,
+		    R92C_FPGA0_RFIFACESW(1));
 	}
 
 	rtwn_bb_write(sc, R92C_OFDM0_TRXPATHENA, 0x03a05600);
@@ -222,39 +216,39 @@ r92ce_iq_calib_run(struct rtwn_softc *sc, int n, uint16_t tx[2][2],
 		for (i = 0; i < 2; i++) {
 			int ret;
 
-			ret = r92ce_iq_calib_chain(sc, chain,
-			    tx[chain], rx[chain]);
+			ret = r92ce_iq_calib_chain(sc, chain, tx[chain],
+			    rx[chain]);
 			if (ret == 0) {
 				RTWN_DPRINTF(sc, RTWN_DEBUG_CALIB,
-				    "%s: chain %d: Tx failed.\n",
-				    __func__, chain);
+				    "%s: chain %d: Tx failed.\n", __func__,
+				    chain);
 				tx[chain][0] = 0xff;
 				tx[chain][1] = 0xff;
 				rx[chain][0] = 0xff;
 				rx[chain][1] = 0xff;
 			} else if (ret == 1) {
 				RTWN_DPRINTF(sc, RTWN_DEBUG_CALIB,
-				    "%s: chain %d: Rx failed.\n",
-				    __func__, chain);
+				    "%s: chain %d: Rx failed.\n", __func__,
+				    chain);
 				rx[chain][0] = 0xff;
 				rx[chain][1] = 0xff;
 			} else if (ret == 3) {
 				RTWN_DPRINTF(sc, RTWN_DEBUG_CALIB,
 				    "%s: chain %d: Both Tx and Rx "
-				    "succeeded.\n", __func__, chain);
+				    "succeeded.\n",
+				    __func__, chain);
 			}
 		}
 
 		RTWN_DPRINTF(sc, RTWN_DEBUG_CALIB,
 		    "%s: results for run %d chain %d: tx[0] 0x%x, "
-		    "tx[1] 0x%x, rx[0] 0x%x, rx[1] 0x%x\n", __func__, n, chain,
-		    tx[chain][0], tx[chain][1], rx[chain][0], rx[chain][1]);
+		    "tx[1] 0x%x, rx[0] 0x%x, rx[1] 0x%x\n",
+		    __func__, n, chain, tx[chain][0], tx[chain][1],
+		    rx[chain][0], rx[chain][1]);
 	}
 
-	rtwn_bb_write(sc, R92C_OFDM0_TRXPATHENA,
-	    vals->ofdm0_trxpathena);
-	rtwn_bb_write(sc, R92C_FPGA0_RFIFACESW(1),
-	    vals->fpga0_rfifacesw1);
+	rtwn_bb_write(sc, R92C_OFDM0_TRXPATHENA, vals->ofdm0_trxpathena);
+	rtwn_bb_write(sc, R92C_FPGA0_RFIFACESW(1), vals->fpga0_rfifacesw1);
 	rtwn_bb_write(sc, R92C_OFDM0_TRMUXPAR, vals->ofdm0_trmuxpar);
 
 	rtwn_bb_write(sc, R92C_FPGA0_IQK, 0);
@@ -287,7 +281,7 @@ r92ce_iq_calib_compare_results(struct rtwn_softc *sc, uint16_t tx1[2][2],
 
 	tx_ok[0] = tx_ok[1] = rx_ok[0] = rx_ok[1] = 0;
 	for (chain = 0; chain < sc->ntxchains; chain++) {
-		for (i = 0; i < 2; i++)	{
+		for (i = 0; i < 2; i++) {
 			if (tx1[chain][i] == 0xff || tx2[chain][i] == 0xff ||
 			    rx1[chain][i] == 0xff || rx2[chain][i] == 0xff)
 				continue;
@@ -355,7 +349,7 @@ r92ce_iq_calib_write_results(struct rtwn_softc *sc, uint16_t tx[2],
 	}
 }
 
-#define RTWN_IQ_CAL_NRUN	3
+#define RTWN_IQ_CAL_NRUN 3
 void
 r92ce_iq_calib(struct rtwn_softc *sc)
 {
@@ -371,8 +365,8 @@ r92ce_iq_calib(struct rtwn_softc *sc)
 			continue;
 
 		/* Valid results remain stable after consecutive runs. */
-		valid = r92ce_iq_calib_compare_results(sc, tx[n - 1],
-		    rx[n - 1], tx[n], rx[n]);
+		valid = r92ce_iq_calib_compare_results(sc, tx[n - 1], rx[n - 1],
+		    tx[n], rx[n]);
 		if (valid)
 			break;
 	}

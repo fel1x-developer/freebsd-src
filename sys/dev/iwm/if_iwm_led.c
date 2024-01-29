@@ -86,54 +86,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
-#include <machine/endian.h>
 #include <machine/bus.h>
+#include <machine/endian.h>
+
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_led.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 
 #include <net/bpf.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_led.h>
 
 /* Set led register on */
 void

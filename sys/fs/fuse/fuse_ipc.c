@@ -61,34 +61,35 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
 #include <sys/counter.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
 #include <sys/lock.h>
-#include <sys/sx.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/mount.h>
+#include <sys/queue.h>
 #include <sys/sdt.h>
-#include <sys/vnode.h>
 #include <sys/signalvar.h>
+#include <sys/sx.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
 #include <vm/uma.h>
 
 #include "fuse.h"
-#include "fuse_node.h"
-#include "fuse_ipc.h"
 #include "fuse_internal.h"
+#include "fuse_ipc.h"
+#include "fuse_node.h"
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -103,8 +104,7 @@ static void fticket_refresh(struct fuse_ticket *ftick);
 static inline void fticket_reset(struct fuse_ticket *ftick);
 static void fticket_destroy(struct fuse_ticket *ftick);
 static int fticket_wait_answer(struct fuse_ticket *ftick);
-static inline int 
-fticket_aw_pull_uio(struct fuse_ticket *ftick,
+static inline int fticket_aw_pull_uio(struct fuse_ticket *ftick,
     struct uio *uio);
 
 static int fuse_body_audit(struct fuse_ticket *ftick, size_t blen);
@@ -122,14 +122,13 @@ SYSCTL_LONG(_vfs_fusefs, OID_AUTO, iov_permanent_bufsize, CTLFLAG_RW,
     "limit for permanently stored buffer size for fuse_iovs");
 static int fuse_iov_credit = 16;
 
-SYSCTL_INT(_vfs_fusefs, OID_AUTO, iov_credit, CTLFLAG_RW,
-    &fuse_iov_credit, 0,
+SYSCTL_INT(_vfs_fusefs, OID_AUTO, iov_credit, CTLFLAG_RW, &fuse_iov_credit, 0,
     "how many times is an oversized fuse_iov tolerated");
 
 MALLOC_DEFINE(M_FUSEMSG, "fuse_msgbuf", "fuse message buffer");
 static uma_zone_t ticket_zone;
 
-/* 
+/*
  * TODO: figure out how to timeout INTERRUPT requests, because the daemon may
  * leagally never respond
  */
@@ -141,11 +140,11 @@ fuse_interrupt_callback(struct fuse_ticket *tick, struct uio *uio)
 	struct fuse_data *data = tick->tk_data;
 	bool found = false;
 
-	fii = (struct fuse_interrupt_in*)((char*)tick->tk_ms_fiov.base +
-		sizeof(struct fuse_in_header));
+	fii = (struct fuse_interrupt_in *)((char *)tick->tk_ms_fiov.base +
+	    sizeof(struct fuse_in_header));
 
 	fuse_lck_mtx_lock(data->aw_mtx);
-	TAILQ_FOREACH_SAFE(otick, &data->aw_head, tk_aw_link, x_tick) {
+	TAILQ_FOREACH_SAFE (otick, &data->aw_head, tk_aw_link, x_tick) {
 		if (otick->tk_unique == fii->unique) {
 			found = true;
 			break;
@@ -165,7 +164,7 @@ fuse_interrupt_callback(struct fuse_ticket *tick, struct uio *uio)
 		fsess_set_notimpl(data->mp, FUSE_INTERRUPT);
 		return 0;
 	} else if (tick->tk_aw_ohead.error == EAGAIN) {
-		/* 
+		/*
 		 * There are two reasons we might get this:
 		 * 1) the daemon received the INTERRUPT request before the
 		 *    original, or
@@ -196,16 +195,16 @@ fuse_interrupt_send(struct fuse_ticket *otick, int err)
 	gid_t reused_groups[1];
 
 	if (otick->irq_unique == 0) {
-		/* 
+		/*
 		 * If the daemon hasn't yet received otick, then we can answer
 		 * it ourselves and return.
 		 */
 		fuse_lck_mtx_lock(data->ms_mtx);
-		STAILQ_FOREACH_SAFE(tick, &otick->tk_data->ms_head, tk_ms_link,
-			xtick) {
+		STAILQ_FOREACH_SAFE (tick, &otick->tk_data->ms_head, tk_ms_link,
+		    xtick) {
 			if (tick == otick) {
 				STAILQ_REMOVE(&otick->tk_data->ms_head, tick,
-					fuse_ticket, tk_ms_link);
+				    fuse_ticket, tk_ms_link);
 				otick->tk_data->ms_count--;
 				otick->tk_ms_link.stqe_next = NULL;
 				fuse_lck_mtx_unlock(data->ms_mtx);
@@ -231,7 +230,7 @@ fuse_interrupt_send(struct fuse_ticket *otick, int err)
 		if (fsess_not_impl(data->mp, FUSE_INTERRUPT))
 			return;
 
-		/* 
+		/*
 		 * If the fuse daemon has already received otick, then we must
 		 * send FUSE_INTERRUPT.
 		 */
@@ -241,7 +240,7 @@ fuse_interrupt_send(struct fuse_ticket *otick, int err)
 		reused_creds.cr_groups = reused_groups;
 		fdisp_init(&fdi, sizeof(*fii));
 		fdisp_make_pid(&fdi, FUSE_INTERRUPT, data, ftick_hdr->nodeid,
-			ftick_hdr->pid, &reused_creds);
+		    ftick_hdr->pid, &reused_creds);
 
 		fii = fdi.indata;
 		fii->unique = otick->tk_unique;
@@ -281,8 +280,8 @@ fiov_adjust(struct fuse_iov *fiov, size_t size)
 {
 	if (fiov->allocated_size < size ||
 	    (fuse_iov_permanent_bufsize >= 0 &&
-	    fiov->allocated_size - size > fuse_iov_permanent_bufsize &&
-	    --fiov->credit < 0)) {
+		fiov->allocated_size - size > fuse_iov_permanent_bufsize &&
+		--fiov->credit < 0)) {
 		fiov->base = realloc(fiov->base, FU_AT_LEAST(size), M_FUSEMSG,
 		    M_WAITOK | M_ZERO);
 		if (!fiov->base) {
@@ -294,7 +293,7 @@ fiov_adjust(struct fuse_iov *fiov, size_t size)
 		bzero(fiov->base, size);
 	} else if (size > fiov->len) {
 		/* Clear newly extended portion of data buffer */
-		bzero((char*)fiov->base + fiov->len, size - fiov->len);
+		bzero((char *)fiov->base + fiov->len, size - fiov->len);
 	}
 	fiov->len = size;
 }
@@ -347,7 +346,8 @@ fticket_init(void *mem, int size, int flags)
 
 	fiov_init(&ftick->tk_ms_fiov, sizeof(struct fuse_in_header));
 
-	mtx_init(&ftick->tk_aw_mtx, "fuse answer delivery mutex", NULL, MTX_DEF);
+	mtx_init(&ftick->tk_aw_mtx, "fuse answer delivery mutex", NULL,
+	    MTX_DEF);
 	fiov_init(&ftick->tk_aw_fiov, 0);
 
 	return 0;
@@ -442,8 +442,8 @@ retry:
 	kern_sigprocmask(td, SIG_SETMASK, &oldset, NULL, 0);
 	if (err == EWOULDBLOCK) {
 		SDT_PROBE2(fusefs, , ipc, trace, 3,
-			"fticket_wait_answer: EWOULDBLOCK");
-#ifdef XXXIP				/* die conditionally */
+		    "fticket_wait_answer: EWOULDBLOCK");
+#ifdef XXXIP /* die conditionally */
 		if (!fdata_get_dead(data)) {
 			fdata_set_dead(data);
 		}
@@ -465,7 +465,7 @@ retry:
 		sigset_t tmpset;
 
 		SDT_PROBE2(fusefs, , ipc, trace, 4,
-			"fticket_wait_answer: interrupt");
+		    "fticket_wait_answer: interrupt");
 		fuse_lck_mtx_unlock(ftick->tk_aw_mtx);
 		fuse_interrupt_send(ftick, err);
 
@@ -477,8 +477,8 @@ retry:
 		PROC_UNLOCK(td->td_proc);
 
 		fuse_lck_mtx_lock(ftick->tk_aw_mtx);
-		if (!interrupted && !SIGISMEMBER(tmpset, SIGKILL)) { 
-			/* 
+		if (!interrupted && !SIGISMEMBER(tmpset, SIGKILL)) {
+			/*
 			 * Block all signals while we wait for an interrupt
 			 * response.  The protocol doesn't discriminate between
 			 * different signals.
@@ -496,14 +496,14 @@ retry:
 		}
 	} else if (err) {
 		SDT_PROBE2(fusefs, , ipc, trace, 6,
-			"fticket_wait_answer: other error");
+		    "fticket_wait_answer: other error");
 	} else {
 		SDT_PROBE2(fusefs, , ipc, trace, 7, "fticket_wait_answer: OK");
 	}
 out:
 	if (!(err || fticket_answered(ftick))) {
 		SDT_PROBE2(fusefs, , ipc, trace, 1,
-			"FUSE: requester was woken up but still no answer");
+		    "FUSE: requester was woken up but still no answer");
 		err = ENXIO;
 	}
 	fuse_lck_mtx_unlock(ftick->tk_aw_mtx);
@@ -512,8 +512,7 @@ out:
 	return err;
 }
 
-static	inline
-int
+static inline int
 fticket_aw_pull_uio(struct fuse_ticket *ftick, struct uio *uio)
 {
 	int err = 0;
@@ -634,7 +633,7 @@ fuse_ticket_drop(struct fuse_ticket *ftick)
 }
 
 void
-fuse_insert_callback(struct fuse_ticket *ftick, fuse_handler_t * handler)
+fuse_insert_callback(struct fuse_ticket *ftick, fuse_handler_t *handler)
 {
 	if (fdata_get_dead(ftick->tk_data)) {
 		return;
@@ -693,8 +692,8 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 	case FUSE_MKNOD:
 	case FUSE_SYMLINK:
 		if (fuse_libabi_geq(ftick->tk_data, 7, 9)) {
-			err = (blen == sizeof(struct fuse_entry_out)) ?
-				0 : EINVAL;
+			err = (blen == sizeof(struct fuse_entry_out)) ? 0 :
+									EINVAL;
 		} else {
 			err = (blen == FUSE_COMPAT_ENTRY_OUT_SIZE) ? 0 : EINVAL;
 		}
@@ -707,8 +706,8 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 	case FUSE_GETATTR:
 	case FUSE_SETATTR:
 		if (fuse_libabi_geq(ftick->tk_data, 7, 9)) {
-			err = (blen == sizeof(struct fuse_attr_out)) ? 
-			  0 : EINVAL;
+			err = (blen == sizeof(struct fuse_attr_out)) ? 0 :
+								       EINVAL;
 		} else {
 			err = (blen == FUSE_COMPAT_ATTR_OUT_SIZE) ? 0 : EINVAL;
 		}
@@ -735,10 +734,11 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 		break;
 
 	case FUSE_READ:
-		err = (((struct fuse_read_in *)(
-		    (char *)ftick->tk_ms_fiov.base +
-		    sizeof(struct fuse_in_header)
-		    ))->size >= blen) ? 0 : EINVAL;
+		err = (((struct fuse_read_in *)((char *)ftick->tk_ms_fiov.base +
+			    sizeof(struct fuse_in_header)))
+			      ->size >= blen) ?
+		    0 :
+		    EINVAL;
 		break;
 
 	case FUSE_WRITE:
@@ -747,8 +747,8 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 
 	case FUSE_STATFS:
 		if (fuse_libabi_geq(ftick->tk_data, 7, 4)) {
-			err = (blen == sizeof(struct fuse_statfs_out)) ? 
-			  0 : EINVAL;
+			err = (blen == sizeof(struct fuse_statfs_out)) ? 0 :
+									 EINVAL;
 		} else {
 			err = (blen == FUSE_COMPAT_STATFS_SIZE) ? 0 : EINVAL;
 		}
@@ -798,10 +798,11 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 		break;
 
 	case FUSE_READDIR:
-		err = (((struct fuse_read_in *)(
-		    (char *)ftick->tk_ms_fiov.base +
-		    sizeof(struct fuse_in_header)
-		    ))->size >= blen) ? 0 : EINVAL;
+		err = (((struct fuse_read_in *)((char *)ftick->tk_ms_fiov.base +
+			    sizeof(struct fuse_in_header)))
+			      ->size >= blen) ?
+		    0 :
+		    EINVAL;
 		break;
 
 	case FUSE_RELEASEDIR:
@@ -830,11 +831,17 @@ fuse_body_audit(struct fuse_ticket *ftick, size_t blen)
 
 	case FUSE_CREATE:
 		if (fuse_libabi_geq(ftick->tk_data, 7, 9)) {
-			err = (blen == sizeof(struct fuse_entry_out) +
-			    sizeof(struct fuse_open_out)) ? 0 : EINVAL;
+			err = (blen ==
+				  sizeof(struct fuse_entry_out) +
+				      sizeof(struct fuse_open_out)) ?
+			    0 :
+			    EINVAL;
 		} else {
-			err = (blen == FUSE_COMPAT_ENTRY_OUT_SIZE +
-			    sizeof(struct fuse_open_out)) ? 0 : EINVAL;
+			err = (blen ==
+				  FUSE_COMPAT_ENTRY_OUT_SIZE +
+				      sizeof(struct fuse_open_out)) ?
+			    0 :
+			    EINVAL;
 		}
 		break;
 
@@ -911,14 +918,14 @@ fdisp_refresh_pid(struct fuse_dispatcher *fdip, enum fuse_opcode op,
 {
 	MPASS(fdip->tick);
 	MPASS2(sizeof(fdip->finh) + fdip->iosize <= fdip->tick->tk_ms_fiov.len,
-		"Must use fdisp_make_pid to increase the size of the fiov");
+	    "Must use fdisp_make_pid to increase the size of the fiov");
 	fticket_reset(fdip->tick);
 
-	FUSE_DIMALLOC(&fdip->tick->tk_ms_fiov, fdip->finh,
-	    fdip->indata, fdip->iosize);
+	FUSE_DIMALLOC(&fdip->tick->tk_ms_fiov, fdip->finh, fdip->indata,
+	    fdip->iosize);
 
 	fuse_setup_ihead(fdip->finh, fdip->tick, nid, op, fdip->iosize, pid,
-		cred);
+	    cred);
 }
 
 /* Initialize a dispatcher from a pid and node id */
@@ -933,10 +940,11 @@ fdisp_make_pid(struct fuse_dispatcher *fdip, enum fuse_opcode op,
 	}
 
 	/* FUSE_DIMALLOC will bzero the fiovs when it enlarges them */
-	FUSE_DIMALLOC(&fdip->tick->tk_ms_fiov, fdip->finh,
-	    fdip->indata, fdip->iosize);
+	FUSE_DIMALLOC(&fdip->tick->tk_ms_fiov, fdip->finh, fdip->indata,
+	    fdip->iosize);
 
-	fuse_setup_ihead(fdip->finh, fdip->tick, nid, op, fdip->iosize, pid, cred);
+	fuse_setup_ihead(fdip->finh, fdip->tick, nid, op, fdip->iosize, pid,
+	    cred);
 }
 
 void
@@ -957,8 +965,8 @@ fdisp_make_vp(struct fuse_dispatcher *fdip, enum fuse_opcode op,
 	struct fuse_data *data = fuse_get_mpdata(mp);
 
 	RECTIFY_TDCR(td, cred);
-	return fdisp_make_pid(fdip, op, data, VTOI(vp),
-	    td->td_proc->p_pid, cred);
+	return fdisp_make_pid(fdip, op, data, VTOI(vp), td->td_proc->p_pid,
+	    cred);
 }
 
 /* Refresh a fuse_dispatcher so it can be reused, but don't zero its data */
@@ -987,22 +995,22 @@ fdisp_wait_answ(struct fuse_dispatcher *fdip)
 
 		if (fticket_answered(fdip->tick)) {
 			/*
-	                 * Just between noticing the interrupt and getting here,
-	                 * the standard handler has completed his job.
-	                 * So we drop the ticket and exit as usual.
-	                 */
+			 * Just between noticing the interrupt and getting here,
+			 * the standard handler has completed his job.
+			 * So we drop the ticket and exit as usual.
+			 */
 			SDT_PROBE2(fusefs, , ipc, fdisp_wait_answ_error,
-				"IPC: interrupted, already answered", err);
+			    "IPC: interrupted, already answered", err);
 			fuse_lck_mtx_unlock(fdip->tick->tk_aw_mtx);
 			goto out;
 		} else {
 			/*
-	                 * So we were faster than the standard handler.
-	                 * Then by setting the answered flag we get *him*
-	                 * to drop the ticket.
-	                 */
+			 * So we were faster than the standard handler.
+			 * Then by setting the answered flag we get *him*
+			 * to drop the ticket.
+			 */
 			SDT_PROBE2(fusefs, , ipc, fdisp_wait_answ_error,
-				"IPC: interrupted, setting to answered", err);
+			    "IPC: interrupted, setting to answered", err);
 			fticket_set_answered(fdip->tick);
 			fuse_lck_mtx_unlock(fdip->tick->tk_aw_mtx);
 			return err;
@@ -1014,27 +1022,27 @@ fdisp_wait_answ(struct fuse_dispatcher *fdip)
 		err = ENOTCONN;
 		goto out;
 	} else if (fdip->tick->tk_aw_errno) {
-		/* 
+		/*
 		 * There was some sort of communication error with the daemon
 		 * that the client wouldn't understand.
 		 */
 		SDT_PROBE2(fusefs, , ipc, fdisp_wait_answ_error,
-			"IPC: explicit EIO-ing", fdip->tick->tk_aw_errno);
+		    "IPC: explicit EIO-ing", fdip->tick->tk_aw_errno);
 		err = EIO;
 		goto out;
 	}
 	if ((err = fdip->tick->tk_aw_ohead.error)) {
 		SDT_PROBE2(fusefs, , ipc, fdisp_wait_answ_error,
-			"IPC: setting status", fdip->tick->tk_aw_ohead.error);
+		    "IPC: setting status", fdip->tick->tk_aw_ohead.error);
 		/*
-	         * This means a "proper" fuse syscall error.
-	         * We record this value so the caller will
-	         * be able to know it's not a boring messaging
-	         * failure, if she wishes so (and if not, she can
-	         * just simply propagate the return value of this routine).
-	         * [XXX Maybe a bitflag would do the job too,
-	         * if other flags needed, this will be converted thusly.]
-	         */
+		 * This means a "proper" fuse syscall error.
+		 * We record this value so the caller will
+		 * be able to know it's not a boring messaging
+		 * failure, if she wishes so (and if not, she can
+		 * just simply propagate the return value of this routine).
+		 * [XXX Maybe a bitflag would do the job too,
+		 * if other flags needed, this will be converted thusly.]
+		 */
 		fdip->answ_stat = err;
 		goto out;
 	}
@@ -1063,15 +1071,16 @@ fuse_ipc_destroy(void)
 	uma_zdestroy(ticket_zone);
 }
 
-SDT_PROBE_DEFINE3(fusefs,, ipc, warn, "struct fuse_data*", "unsigned", "char*");
+SDT_PROBE_DEFINE3(fusefs, , ipc, warn, "struct fuse_data*", "unsigned",
+    "char*");
 void
 fuse_warn(struct fuse_data *data, unsigned flag, const char *msg)
 {
 	SDT_PROBE3(fusefs, , ipc, warn, data, flag, msg);
 	if (!(data->dataflags & flag)) {
 		printf("WARNING: FUSE protocol violation for server mounted at "
-		    "%s: %s  "
-		    "This warning will not be repeated.\n",
+		       "%s: %s  "
+		       "This warning will not be repeated.\n",
 		    data->mp->mnt_stat.f_mntonname, msg);
 		data->dataflags |= flag;
 	}

@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM64_SCMI_SCMI_CLK_H_
-#define	_ARM64_SCMI_SCMI_CLK_H_
+#ifndef _ARM64_SCMI_SCMI_CLK_H_
+#define _ARM64_SCMI_SCMI_CLK_H_
 
 /*
  * SCMI Clock Protocol
@@ -38,8 +38,8 @@
 struct scmi_clk_protocol_attrs_out {
 	int32_t status;
 	uint32_t attributes;
-#define	CLK_ATTRS_NCLOCKS_S		0
-#define	CLK_ATTRS_NCLOCKS_M		(0xffff << CLK_ATTRS_NCLOCKS_S)
+#define CLK_ATTRS_NCLOCKS_S 0
+#define CLK_ATTRS_NCLOCKS_M (0xffff << CLK_ATTRS_NCLOCKS_S)
 };
 
 struct scmi_clk_attrs_in {
@@ -49,12 +49,12 @@ struct scmi_clk_attrs_in {
 struct scmi_clk_attrs_out {
 	int32_t status;
 	uint32_t attributes;
-#define	CLK_ATTRS_RATE_CHANGE_NOTIFY_SUPP	(1 << 31)
-#define	CLK_ATTRS_RATE_REQ_CHANGE_NOTIFY_SUPP	(1 << 30)
-#define	CLK_ATTRS_EXT_CLK_NAME			(1 << 29)
-#define	CLK_ATTRS_ENABLED			(1 << 0)
-	uint8_t clock_name[16];		/* only if attrs bit 29 unset */
-	uint32_t clock_enable_delay;	/* worst case */
+#define CLK_ATTRS_RATE_CHANGE_NOTIFY_SUPP (1 << 31)
+#define CLK_ATTRS_RATE_REQ_CHANGE_NOTIFY_SUPP (1 << 30)
+#define CLK_ATTRS_EXT_CLK_NAME (1 << 29)
+#define CLK_ATTRS_ENABLED (1 << 0)
+	uint8_t clock_name[16];	     /* only if attrs bit 29 unset */
+	uint32_t clock_enable_delay; /* worst case */
 };
 
 struct scmi_clk_name_get_in {
@@ -75,11 +75,11 @@ enum scmi_clock_message_id {
 	SCMI_CLOCK_NAME_GET = 0x8,
 };
 
-#define SCMI_CLK_RATE_ASYNC_NOTIFY	(1 << 0)
-#define SCMI_CLK_RATE_ASYNC_NORESP	(1 << 0 | 1 << 1)
-#define SCMI_CLK_RATE_ROUND_DOWN	0
-#define SCMI_CLK_RATE_ROUND_UP		(1 << 2)
-#define SCMI_CLK_RATE_ROUND_CLOSEST	(1 << 3)
+#define SCMI_CLK_RATE_ASYNC_NOTIFY (1 << 0)
+#define SCMI_CLK_RATE_ASYNC_NORESP (1 << 0 | 1 << 1)
+#define SCMI_CLK_RATE_ROUND_DOWN 0
+#define SCMI_CLK_RATE_ROUND_UP (1 << 2)
+#define SCMI_CLK_RATE_ROUND_CLOSEST (1 << 3)
 
 struct scmi_clk_state_in {
 	uint32_t clock_id;

@@ -43,28 +43,28 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/errno.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/errno.h>
 #include <sys/random.h>
-#include <sys/conf.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/fcntl.h>
-#include <sys/bus.h>
 #include <sys/sdt.h>
 #include <sys/syscallsubr.h>
+#include <sys/sysctl.h>
 
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
 
 SDT_PROVIDER_DECLARE(opencrypto);
 
-SDT_PROBE_DEFINE1(opencrypto, dev, ioctl, error, "int"/*line number*/);
+SDT_PROBE_DEFINE1(opencrypto, dev, ioctl, error, "int" /*line number*/);
 
 #ifdef COMPAT_FREEBSD12
 /*
@@ -72,67 +72,68 @@ SDT_PROBE_DEFINE1(opencrypto, dev, ioctl, error, "int"/*line number*/);
  * of /dev/crypto obtained via CRIOGET.  Now all ioctls are performed
  * against /dev/crypto directly.
  */
-#define	CRIOGET		_IOWR('c', 100, uint32_t)
+#define CRIOGET _IOWR('c', 100, uint32_t)
 #endif
 
 /* the following are done against the cloned descriptor */
 
 #ifdef COMPAT_FREEBSD32
 #include <sys/mount.h>
+
 #include <compat/freebsd32/freebsd32.h>
 
 struct session_op32 {
-	uint32_t	cipher;
-	uint32_t	mac;
-	uint32_t	keylen;
-	uint32_t	key;
-	int		mackeylen;
-	uint32_t	mackey;
-	uint32_t	ses;
+	uint32_t cipher;
+	uint32_t mac;
+	uint32_t keylen;
+	uint32_t key;
+	int mackeylen;
+	uint32_t mackey;
+	uint32_t ses;
 };
 
 struct session2_op32 {
-	uint32_t	cipher;
-	uint32_t	mac;
-	uint32_t	keylen;
-	uint32_t	key;
-	int		mackeylen;
-	uint32_t	mackey;
-	uint32_t	ses;
-	int		crid;
-	int		ivlen;
-	int		maclen;
-	int		pad[2];
+	uint32_t cipher;
+	uint32_t mac;
+	uint32_t keylen;
+	uint32_t key;
+	int mackeylen;
+	uint32_t mackey;
+	uint32_t ses;
+	int crid;
+	int ivlen;
+	int maclen;
+	int pad[2];
 };
 
 struct crypt_op32 {
-	uint32_t	ses;
-	uint16_t	op;
-	uint16_t	flags;
-	u_int		len;
-	uint32_t	src, dst;
-	uint32_t	mac;
-	uint32_t	iv;
+	uint32_t ses;
+	uint16_t op;
+	uint16_t flags;
+	u_int len;
+	uint32_t src, dst;
+	uint32_t mac;
+	uint32_t iv;
 };
 
 struct crypt_aead32 {
-	uint32_t	ses;
-	uint16_t	op;
-	uint16_t	flags;
-	u_int		len;
-	u_int		aadlen;
-	u_int		ivlen;
-	uint32_t	src;
-	uint32_t	dst;
-	uint32_t	aad;
-	uint32_t	tag;
-	uint32_t	iv;
+	uint32_t ses;
+	uint16_t op;
+	uint16_t flags;
+	u_int len;
+	u_int aadlen;
+	u_int ivlen;
+	uint32_t src;
+	uint32_t dst;
+	uint32_t aad;
+	uint32_t tag;
+	uint32_t iv;
 };
 
-#define	CIOCGSESSION32	_IOWR('c', 101, struct session_op32)
-#define	CIOCCRYPT32	_IOWR('c', 103, struct crypt_op32)
-#define	CIOCGSESSION232	_IOWR('c', 106, struct session2_op32)
-#define	CIOCCRYPTAEAD32	_IOWR('c', 109, struct crypt_aead32)
+#define CIOCGSESSION32 _IOWR('c', 101, struct session_op32)
+#define CIOCCRYPT32 _IOWR('c', 103, struct crypt_op32)
+#define CIOCGSESSION232 _IOWR('c', 106, struct session2_op32)
+#define CIOCCRYPTAEAD32 _IOWR('c', 109, struct crypt_aead32)
 
 static void
 session_op_from_32(const struct session_op32 *from, struct session2_op *to)
@@ -262,31 +263,31 @@ session2_op_to_op(const struct session2_op *from, struct session_op *to)
 struct csession {
 	TAILQ_ENTRY(csession) next;
 	crypto_session_t cses;
-	volatile u_int	refs;
-	uint32_t	ses;
-	struct mtx	lock;		/* for op submission */
+	volatile u_int refs;
+	uint32_t ses;
+	struct mtx lock; /* for op submission */
 
-	u_int		blocksize;
-	int		hashsize;
-	int		ivsize;
+	u_int blocksize;
+	int hashsize;
+	int ivsize;
 
-	void		*key;
-	void		*mackey;
+	void *key;
+	void *mackey;
 };
 
 struct cryptop_data {
 	struct csession *cse;
 
-	char		*buf;
-	char		*obuf;
-	char		*aad;
-	bool		done;
+	char *buf;
+	char *obuf;
+	char *aad;
+	bool done;
 };
 
 struct fcrypt {
 	TAILQ_HEAD(csessionlist, csession) csessions;
-	int		sesn;
-	struct mtx	lock;
+	int sesn;
+	struct mtx lock;
 };
 
 static bool use_outputbuffers;
@@ -296,8 +297,7 @@ SYSCTL_BOOL(_kern_crypto, OID_AUTO, cryptodev_use_output, CTLFLAG_RW,
 
 static bool use_separate_aad;
 SYSCTL_BOOL(_kern_crypto, OID_AUTO, cryptodev_separate_aad, CTLFLAG_RW,
-    &use_separate_aad, 0,
-    "Use separate AAD buffer for /dev/crypto requests.");
+    &use_separate_aad, 0, "Use separate AAD buffer for /dev/crypto requests.");
 
 static MALLOC_DEFINE(M_CRYPTODEV, "cryptodev", "/dev/crypto data buffers");
 
@@ -540,7 +540,7 @@ cse_find(struct fcrypt *fcr, u_int ses)
 	struct csession *cse;
 
 	mtx_lock(&fcr->lock);
-	TAILQ_FOREACH(cse, &fcr->csessions, next) {
+	TAILQ_FOREACH (cse, &fcr->csessions, next) {
 		if (cse->ses == ses) {
 			refcount_acquire(&cse->refs);
 			mtx_unlock(&fcr->lock);
@@ -572,7 +572,7 @@ cse_delete(struct fcrypt *fcr, u_int ses)
 	struct csession *cse;
 
 	mtx_lock(&fcr->lock);
-	TAILQ_FOREACH(cse, &fcr->csessions, next) {
+	TAILQ_FOREACH (cse, &fcr->csessions, next) {
 		if (cse->ses == ses) {
 			TAILQ_REMOVE(&fcr->csessions, cse, next);
 			mtx_unlock(&fcr->lock);
@@ -589,8 +589,8 @@ cod_alloc(struct csession *cse, size_t aad_len, size_t len)
 {
 	struct cryptop_data *cod;
 
-	cod = malloc(sizeof(struct cryptop_data), M_CRYPTODEV, M_WAITOK |
-	    M_ZERO);
+	cod = malloc(sizeof(struct cryptop_data), M_CRYPTODEV,
+	    M_WAITOK | M_ZERO);
 
 	cod->cse = cse;
 	if (crypto_get_params(cse->cses)->csp_flags & CSP_F_SEPARATE_AAD) {
@@ -640,7 +640,7 @@ cryptodev_op(struct csession *cse, const struct crypt_op *cop)
 	char *dst;
 	int error;
 
-	if (cop->len > 256*1024-4) {
+	if (cop->len > 256 * 1024 - 4) {
 		SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 		return (E2BIG);
 	}
@@ -662,7 +662,7 @@ cryptodev_op(struct csession *cse, const struct crypt_op *cop)
 	 */
 	if (cop->flags & COP_F_CIPHER_FIRST) {
 		if (cop->op != COP_ENCRYPT) {
-			SDT_PROBE1(opencrypto, dev, ioctl, error,  __LINE__);
+			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			return (EINVAL);
 		}
 	}
@@ -835,9 +835,10 @@ again:
 	}
 
 	if (cop->dst != NULL) {
-		error = copyout(cod->obuf != NULL ? cod->obuf :
-		    cod->buf + crp->crp_payload_start, dst,
-		    crp->crp_payload_length);
+		error = copyout(cod->obuf != NULL ?
+			cod->obuf :
+			cod->buf + crp->crp_payload_start,
+		    dst, crp->crp_payload_length);
 		if (error) {
 			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			goto bail;
@@ -846,7 +847,8 @@ again:
 
 	if (cop->mac != NULL && (crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) == 0) {
 		error = copyout((cod->obuf != NULL ? cod->obuf : cod->buf) +
-		    crp->crp_digest_start, cop->mac, cse->hashsize);
+			crp->crp_digest_start,
+		    cop->mac, cse->hashsize);
 		if (error) {
 			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			goto bail;
@@ -869,7 +871,7 @@ cryptodev_aead(struct csession *cse, struct crypt_aead *caead)
 	char *dst;
 	int error;
 
-	if (caead->len > 256*1024-4 || caead->aadlen > 256*1024-4) {
+	if (caead->len > 256 * 1024 - 4 || caead->aadlen > 256 * 1024 - 4) {
 		SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 		return (E2BIG);
 	}
@@ -891,7 +893,7 @@ cryptodev_aead(struct csession *cse, struct crypt_aead *caead)
 	 */
 	if (caead->flags & COP_F_CIPHER_FIRST) {
 		if (caead->op != COP_ENCRYPT) {
-			SDT_PROBE1(opencrypto, dev, ioctl, error,  __LINE__);
+			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			return (EINVAL);
 		}
 	}
@@ -956,11 +958,11 @@ cryptodev_aead(struct csession *cse, struct crypt_aead *caead)
 	}
 
 	crp->crp_flags = CRYPTO_F_CBIMM | (caead->flags & COP_F_BATCH);
-	crypto_use_buf(crp, cod->buf, crp->crp_payload_start + caead->len +
-	    cse->hashsize);
+	crypto_use_buf(crp, cod->buf,
+	    crp->crp_payload_start + caead->len + cse->hashsize);
 	if (cod->obuf != NULL)
-		crypto_use_output_buf(crp, cod->obuf, caead->len +
-		    cse->hashsize);
+		crypto_use_output_buf(crp, cod->obuf,
+		    caead->len + cse->hashsize);
 	crp->crp_callback = cryptodev_cb;
 	crp->crp_opaque = cod;
 
@@ -1038,9 +1040,10 @@ again:
 	}
 
 	if (caead->dst != NULL) {
-		error = copyout(cod->obuf != NULL ? cod->obuf :
-		    cod->buf + crp->crp_payload_start, dst,
-		    crp->crp_payload_length);
+		error = copyout(cod->obuf != NULL ?
+			cod->obuf :
+			cod->buf + crp->crp_payload_start,
+		    dst, crp->crp_payload_length);
 		if (error) {
 			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			goto bail;
@@ -1049,7 +1052,8 @@ again:
 
 	if ((crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) == 0) {
 		error = copyout((cod->obuf != NULL ? cod->obuf : cod->buf) +
-		    crp->crp_digest_start, caead->tag, cse->hashsize);
+			crp->crp_digest_start,
+		    caead->tag, cse->hashsize);
 		if (error) {
 			SDT_PROBE1(opencrypto, dev, ioctl, error, __LINE__);
 			goto bail;
@@ -1094,7 +1098,7 @@ fcrypt_dtor(void *data)
 		TAILQ_REMOVE(&fcr->csessions, cse, next);
 		KASSERT(refcount_load(&cse->refs) == 1,
 		    ("%s: crypto session %p with %d refs", __func__, cse,
-		    refcount_load(&cse->refs)));
+			refcount_load(&cse->refs)));
 		cse_free(cse);
 	}
 	mtx_destroy(&fcr->lock);
@@ -1263,10 +1267,10 @@ crypto_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag,
 }
 
 static struct cdevsw crypto_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	crypto_open,
-	.d_ioctl =	crypto_ioctl,
-	.d_name =	"crypto",
+	.d_version = D_VERSION,
+	.d_open = crypto_open,
+	.d_ioctl = crypto_ioctl,
+	.d_name = "crypto",
 };
 static struct cdev *crypto_dev;
 
@@ -1280,9 +1284,8 @@ cryptodev_modevent(module_t mod, int type, void *unused)
 	case MOD_LOAD:
 		if (bootverbose)
 			printf("crypto: <crypto device>\n");
-		crypto_dev = make_dev(&crypto_cdevsw, 0, 
-				      UID_ROOT, GID_WHEEL, 0666,
-				      "crypto");
+		crypto_dev = make_dev(&crypto_cdevsw, 0, UID_ROOT, GID_WHEEL,
+		    0666, "crypto");
 		return 0;
 	case MOD_UNLOAD:
 		/*XXX disallow if active sessions */
@@ -1292,11 +1295,7 @@ cryptodev_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t cryptodev_mod = {
-	"cryptodev",
-	cryptodev_modevent,
-	0
-};
+static moduledata_t cryptodev_mod = { "cryptodev", cryptodev_modevent, 0 };
 MODULE_VERSION(cryptodev, 1);
 DECLARE_MODULE(cryptodev, cryptodev_mod, SI_SUB_PSEUDO, SI_ORDER_ANY);
 MODULE_DEPEND(cryptodev, crypto, 1, 1, 1);

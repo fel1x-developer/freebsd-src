@@ -51,130 +51,130 @@
 /*
  *  This may be defined in <sys/param.h>, if not, it's defined here.
  */
-#ifndef	MAXHOSTNAMELEN
-#define	MAXHOSTNAMELEN 256
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 256
 #endif
 
 /*
  *  SIGUSR1 and SIGUSR2 are defined in <signal.h> for 4.3BSD systems.
  */
 #ifndef SIGUSR1
-#define	SIGUSR1 SIGEMT
+#define SIGUSR1 SIGEMT
 #endif
 #ifndef SIGUSR2
-#define	SIGUSR2 SIGFPE
+#define SIGUSR2 SIGFPE
 #endif
 
 /*
  *  These can be faster & more efficient than strcmp()/strncmp()...
  */
-#define	STREQN(s1,s2)		((*s1 == *s2) && (strcmp(s1,s2) == 0))
-#define	STRNEQN(s1,s2,n)	((*s1 == *s2) && (strncmp(s1,s2,n) == 0))
+#define STREQN(s1, s2) ((*s1 == *s2) && (strcmp(s1, s2) == 0))
+#define STRNEQN(s1, s2, n) ((*s1 == *s2) && (strncmp(s1, s2, n) == 0))
 
 /*
  *  Configuration file limitations.
  */
-#define	C_MAXFILE	10		/* max number of boot-able files */
-#define	C_LINELEN	1024		/* max length of line */
+#define C_MAXFILE 10   /* max number of boot-able files */
+#define C_LINELEN 1024 /* max length of line */
 
 /*
  *  Direction of packet (used as argument to DispPkt).
  */
-#define	DIR_RCVD	0
-#define	DIR_SENT	1
-#define	DIR_NONE	2
+#define DIR_RCVD 0
+#define DIR_SENT 1
+#define DIR_NONE 2
 
 /*
  *  These need not be functions, so...
  */
-#define	FreeStr(str)	free(str)
-#define	FreeClient(cli)	free(cli)
-#define	GenSessID()	(++SessionID ? SessionID: ++SessionID)
+#define FreeStr(str) free(str)
+#define FreeClient(cli) free(cli)
+#define GenSessID() (++SessionID ? SessionID : ++SessionID)
 
 /*
  *  Converting an Ethernet address to a string is done in many routines.
  *  Using `rmp.hp_hdr.saddr' works because this field is *never* changed;
  *  it will *always* contain the source address of the packet.
  */
-#define	EnetStr(rptr)	GetEtherAddr(&(rptr)->rmp.hp_hdr.saddr[0])
+#define EnetStr(rptr) GetEtherAddr(&(rptr)->rmp.hp_hdr.saddr[0])
 
 /*
  *  Every machine we can boot will have one of these allocated for it
  *  (unless there are no restrictions on who we can boot).
  */
 typedef struct client_s {
-	u_int8_t		addr[RMP_ADDRLEN];	/* addr of machine */
-	char			*files[C_MAXFILE];	/* boot-able files */
-	struct client_s		*next;			/* ptr to next */
+	u_int8_t addr[RMP_ADDRLEN]; /* addr of machine */
+	char *files[C_MAXFILE];	    /* boot-able files */
+	struct client_s *next;	    /* ptr to next */
 } CLIENT;
 
 /*
  *  Every active connection has one of these allocated for it.
  */
 typedef struct rmpconn_s {
-	struct rmp_packet	rmp;			/* RMP packet */
-	int			rmplen;			/* length of packet */
-	struct timeval		tstamp;			/* last time active */
-	int			bootfd;			/* open boot file */
-	struct rmpconn_s	*next;			/* ptr to next */
+	struct rmp_packet rmp;	/* RMP packet */
+	int rmplen;		/* length of packet */
+	struct timeval tstamp;	/* last time active */
+	int bootfd;		/* open boot file */
+	struct rmpconn_s *next; /* ptr to next */
 } RMPCONN;
 
 /*
  *  All these variables are defined in "conf.c".
  */
-extern	char	MyHost[];		/* this hosts' name */
-extern	pid_t	MyPid;			/* this processes' ID */
-extern	int	DebugFlg;		/* set true if debugging */
-extern	int	BootAny;		/* set true if we can boot anyone */
+extern char MyHost[]; /* this hosts' name */
+extern pid_t MyPid;   /* this processes' ID */
+extern int DebugFlg;  /* set true if debugging */
+extern int BootAny;   /* set true if we can boot anyone */
 
-extern	char	*ConfigFile;		/* configuration file */
-extern	char	*DfltConfig;		/* default configuration file */
-extern	char	*DbgFile;		/* debug output file */
-extern	char	*PidFile;		/* file containing pid of server */
-extern	char	*BootDir;		/* directory w/boot files */
+extern char *ConfigFile; /* configuration file */
+extern char *DfltConfig; /* default configuration file */
+extern char *DbgFile;	 /* debug output file */
+extern char *PidFile;	 /* file containing pid of server */
+extern char *BootDir;	 /* directory w/boot files */
 
-extern	FILE	*DbgFp;			/* debug file pointer */
-extern	char	*IntfName;		/* interface we are attached to */
+extern FILE *DbgFp;    /* debug file pointer */
+extern char *IntfName; /* interface we are attached to */
 
-extern	u_int16_t SessionID;		/* generated session ID */
+extern u_int16_t SessionID; /* generated session ID */
 
-extern	char	*BootFiles[];		/* list of boot files */
+extern char *BootFiles[]; /* list of boot files */
 
-extern	CLIENT	*Clients;		/* list of addrs we'll accept */
-extern	RMPCONN	*RmpConns;		/* list of active connections */
+extern CLIENT *Clients;	  /* list of addrs we'll accept */
+extern RMPCONN *RmpConns; /* list of active connections */
 
-extern	u_int8_t RmpMcastAddr[];	/* RMP multicast address */
+extern u_int8_t RmpMcastAddr[]; /* RMP multicast address */
 
-void	 AddConn(RMPCONN *);
-int	 BootDone(RMPCONN *);
-void	 BpfClose(void);
-char	*BpfGetIntfName(char **);
-int	 BpfOpen(void);
-int	 BpfRead(RMPCONN *, int);
-int	 BpfWrite(RMPCONN *);
-void	 DebugOff(int);
-void	 DebugOn(int);
-void	 DispPkt(RMPCONN *, int);
-void	 DoTimeout(void);
-void	 DspFlnm(u_int, char *);
-void	 Exit(int);
-CLIENT	*FindClient(RMPCONN *);
-RMPCONN	*FindConn(RMPCONN *);
-void	 FreeClients(void);
-void	 FreeConn(RMPCONN *);
-void	 FreeConns(void);
-int	 GetBootFiles(void);
-char	*GetEtherAddr(u_int8_t *);
-CLIENT	*NewClient(u_int8_t *);
-RMPCONN	*NewConn(RMPCONN *);
-char	*NewStr(char *);
+void AddConn(RMPCONN *);
+int BootDone(RMPCONN *);
+void BpfClose(void);
+char *BpfGetIntfName(char **);
+int BpfOpen(void);
+int BpfRead(RMPCONN *, int);
+int BpfWrite(RMPCONN *);
+void DebugOff(int);
+void DebugOn(int);
+void DispPkt(RMPCONN *, int);
+void DoTimeout(void);
+void DspFlnm(u_int, char *);
+void Exit(int);
+CLIENT *FindClient(RMPCONN *);
+RMPCONN *FindConn(RMPCONN *);
+void FreeClients(void);
+void FreeConn(RMPCONN *);
+void FreeConns(void);
+int GetBootFiles(void);
+char *GetEtherAddr(u_int8_t *);
+CLIENT *NewClient(u_int8_t *);
+RMPCONN *NewConn(RMPCONN *);
+char *NewStr(char *);
 u_int8_t *ParseAddr(char *);
-int	 ParseConfig(void);
-void	 ProcessPacket(RMPCONN *, CLIENT *);
-void	 ReConfig(int);
-void	 RemoveConn(RMPCONN *);
-int	 SendBootRepl(struct rmp_packet *, RMPCONN *, char *[]);
-int	 SendFileNo(struct rmp_packet *, RMPCONN *, char *[]);
-int	 SendPacket(RMPCONN *);
-int	 SendReadRepl(RMPCONN *);
-int	 SendServerID(RMPCONN *);
+int ParseConfig(void);
+void ProcessPacket(RMPCONN *, CLIENT *);
+void ReConfig(int);
+void RemoveConn(RMPCONN *);
+int SendBootRepl(struct rmp_packet *, RMPCONN *, char *[]);
+int SendFileNo(struct rmp_packet *, RMPCONN *, char *[]);
+int SendPacket(RMPCONN *);
+int SendReadRepl(RMPCONN *);
+int SendServerID(RMPCONN *);

@@ -25,7 +25,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_NVRAM_BHND_SPROMVAR_H_
@@ -37,19 +37,19 @@
 
 DECLARE_CLASS(bhnd_sprom_driver);
 
-int	bhnd_sprom_probe(device_t dev);
-int	bhnd_sprom_attach(device_t dev, bus_size_t offset);
-int	bhnd_sprom_resume(device_t dev);
-int	bhnd_sprom_suspend(device_t dev);
-int	bhnd_sprom_detach(device_t dev);
+int bhnd_sprom_probe(device_t dev);
+int bhnd_sprom_attach(device_t dev, bus_size_t offset);
+int bhnd_sprom_resume(device_t dev);
+int bhnd_sprom_suspend(device_t dev);
+int bhnd_sprom_detach(device_t dev);
 
 /**
  * bhnd_sprom driver instance state. Must be first member of all subclass
  * softc structures.
  */
 struct bhnd_sprom_softc {
-	device_t			 dev;
-	struct bhnd_nvram_store		*store;	/**< nvram store */
+	device_t dev;
+	struct bhnd_nvram_store *store; /**< nvram store */
 };
 
 #endif /* _BHND_NVRAM_BHND_SPROMVAR_H_ */

@@ -25,12 +25,12 @@
  */
 
 struct mkuz_fifo_queue {
-    pthread_mutex_t mtx;
-    pthread_cond_t cvar;
-    struct mkuz_bchain_link *first;
-    struct mkuz_bchain_link *last;
-    int length;
-    int wakeup_len;
+	pthread_mutex_t mtx;
+	pthread_cond_t cvar;
+	struct mkuz_bchain_link *first;
+	struct mkuz_bchain_link *last;
+	int length;
+	int wakeup_len;
 };
 
 struct mkuz_blk;
@@ -41,9 +41,10 @@ DEFINE_RAW_METHOD(cmp_cb, int, const struct mkuz_blk *, void *);
 struct mkuz_fifo_queue *mkuz_fqueue_ctor(int);
 void mkuz_fqueue_enq(struct mkuz_fifo_queue *, struct mkuz_blk *);
 struct mkuz_blk *mkuz_fqueue_deq(struct mkuz_fifo_queue *);
-struct mkuz_blk *mkuz_fqueue_deq_when(struct mkuz_fifo_queue *, cmp_cb_t, void *);
+struct mkuz_blk *mkuz_fqueue_deq_when(struct mkuz_fifo_queue *, cmp_cb_t,
+    void *);
 #if defined(NOTYET)
 struct mkuz_bchain_link *mkuz_fqueue_deq_all(struct mkuz_fifo_queue *, int *);
 int mkuz_fqueue_enq_all(struct mkuz_fifo_queue *, struct mkuz_bchain_link *,
-  struct mkuz_bchain_link *, int);
+    struct mkuz_bchain_link *, int);
 #endif

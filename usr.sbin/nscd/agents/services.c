@@ -45,12 +45,12 @@ static void services_mp_destroy_func(void *);
 static int
 services_marshal_func(struct servent *serv, char *buffer, size_t *buffer_size)
 {
-	struct servent	new_serv;
-	size_t	desired_size;
-	char	**alias;
-	char	*p;
-	size_t	size;
-	size_t	aliases_size;
+	struct servent new_serv;
+	size_t desired_size;
+	char **alias;
+	char *p;
+	size_t size;
+	size_t aliases_size;
 
 	TRACE_IN(services_marshal_func);
 	desired_size = ALIGNBYTES + sizeof(struct servent) + sizeof(char *);
@@ -66,8 +66,8 @@ services_marshal_func(struct servent *serv, char *buffer, size_t *buffer_size)
 			++aliases_size;
 		}
 
-		desired_size += ALIGNBYTES + sizeof(char *) *
-		    (aliases_size + 1);
+		desired_size += ALIGNBYTES +
+		    sizeof(char *) * (aliases_size + 1);
 	}
 
 	if ((*buffer_size < desired_size) || (buffer == NULL)) {
@@ -119,13 +119,13 @@ services_marshal_func(struct servent *serv, char *buffer, size_t *buffer_size)
 
 static int
 services_lookup_func(const char *key, size_t key_size, char **buffer,
-	size_t *buffer_size)
+    size_t *buffer_size)
 {
 	enum nss_lookup_type lookup_type;
-	char	*name = NULL;
-	char	*proto = NULL;
-	size_t	size, size2;
-	int	port;
+	char *name = NULL;
+	char *proto = NULL;
+	size_t size, size2;
+	int port;
 
 	struct servent *result;
 
@@ -155,21 +155,20 @@ services_lookup_func(const char *key, size_t key_size, char **buffer,
 			proto = NULL;
 		break;
 	case nss_lt_id:
-		if (key_size < sizeof(enum nss_lookup_type) +
-			sizeof(int)) {
+		if (key_size < sizeof(enum nss_lookup_type) + sizeof(int)) {
 			TRACE_OUT(passwd_lookup_func);
 			return (NS_UNAVAIL);
 		}
 
-		memcpy(&port, key + sizeof(enum nss_lookup_type),
-			sizeof(int));
+		memcpy(&port, key + sizeof(enum nss_lookup_type), sizeof(int));
 
 		size = key_size - sizeof(enum nss_lookup_type) - sizeof(int);
 		if (size > 0) {
 			proto = calloc(1, size + 1);
 			assert(proto != NULL);
-			memcpy(proto, key + sizeof(enum nss_lookup_type) +
-				sizeof(int), size);
+			memcpy(proto,
+			    key + sizeof(enum nss_lookup_type) + sizeof(int),
+			    size);
 		}
 		break;
 	default:
@@ -240,7 +239,7 @@ services_mp_destroy_func(void *mdata)
 struct agent *
 init_services_agent(void)
 {
-	struct common_agent	*retval;
+	struct common_agent *retval;
 	TRACE_IN(init_services_agent);
 
 	retval = calloc(1, sizeof(*retval));
@@ -259,11 +258,10 @@ init_services_agent(void)
 struct agent *
 init_services_mp_agent(void)
 {
-	struct multipart_agent	*retval;
+	struct multipart_agent *retval;
 
 	TRACE_IN(init_services_mp_agent);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent.name = strdup("services");

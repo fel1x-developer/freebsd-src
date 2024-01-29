@@ -40,25 +40,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
-#include "citrus_mmap.h"
-#include "citrus_module.h"
-#include "citrus_hash.h"
-#include "citrus_mapper.h"
 #include "citrus_db.h"
 #include "citrus_db_hash.h"
-
+#include "citrus_hash.h"
+#include "citrus_mapper.h"
 #include "citrus_mapper_std.h"
 #include "citrus_mapper_std_file.h"
+#include "citrus_mmap.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 /* ---------------------------------------------------------------------- */
 
 _CITRUS_MAPPER_DECLS(mapper_std);
 _CITRUS_MAPPER_DEF_OPS(mapper_std);
-
 
 /* ---------------------------------------------------------------------- */
 
@@ -76,8 +74,8 @@ _citrus_mapper_std_mapper_getops(struct _citrus_mapper_ops *ops)
 
 static int
 /*ARGSUSED*/
-rowcol_convert(struct _citrus_mapper_std * __restrict ms,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps __unused)
+rowcol_convert(struct _citrus_mapper_std *__restrict ms,
+    _index_t *__restrict dst, _index_t src, void *__restrict ps __unused)
 {
 	struct _citrus_mapper_std_linear_zone *lz;
 	struct _citrus_mapper_std_rowcol *rc;
@@ -89,7 +87,8 @@ rowcol_convert(struct _citrus_mapper_std * __restrict ms,
 	rc = &ms->ms_rowcol;
 
 	for (i = rc->rc_src_rowcol_len * rc->rc_src_rowcol_bits,
-	    lz = &rc->rc_src_rowcol[0]; i > 0; ++lz) {
+	    lz = &rc->rc_src_rowcol[0];
+	     i > 0; ++lz) {
 		i -= rc->rc_src_rowcol_bits;
 		n = (src >> i) & rc->rc_src_rowcol_mask;
 		if (n < lz->begin || n > lz->end) {
@@ -110,10 +109,10 @@ rowcol_convert(struct _citrus_mapper_std * __restrict ms,
 		conv = _region_peek8(&rc->rc_table, idx);
 		break;
 	case 16:
-		conv = be16toh(_region_peek16(&rc->rc_table, idx*2));
+		conv = be16toh(_region_peek16(&rc->rc_table, idx * 2));
 		break;
 	case 32:
-		conv = be32toh(_region_peek32(&rc->rc_table, idx*4));
+		conv = be32toh(_region_peek32(&rc->rc_table, idx * 4));
 		break;
 	default:
 		return (_MAPPER_CONVERT_FATAL);
@@ -132,8 +131,8 @@ rowcol_convert(struct _citrus_mapper_std * __restrict ms,
 }
 
 static __inline int
-set_linear_zone(struct _citrus_mapper_std_linear_zone *lz,
-    uint32_t begin, uint32_t end)
+set_linear_zone(struct _citrus_mapper_std_linear_zone *lz, uint32_t begin,
+    uint32_t end)
 {
 
 	if (begin > end)
@@ -141,7 +140,7 @@ set_linear_zone(struct _citrus_mapper_std_linear_zone *lz,
 
 	lz->begin = begin;
 	lz->end = end;
-	lz->width= end - begin + 1;
+	lz->width = end - begin + 1;
 
 	return (0);
 }
@@ -165,8 +164,7 @@ rowcol_parse_variable_compat(struct _citrus_mapper_std_rowcol *rc,
 	rc->rc_src_rowcol_bits = m;
 	rc->rc_src_rowcol_mask = n;
 
-	rc->rc_src_rowcol = malloc(2 *
-	    sizeof(*rc->rc_src_rowcol));
+	rc->rc_src_rowcol = malloc(2 * sizeof(*rc->rc_src_rowcol));
 	if (rc->rc_src_rowcol == NULL)
 		return (ENOMEM);
 	lz = rc->rc_src_rowcol;
@@ -189,8 +187,7 @@ rowcol_parse_variable_compat(struct _citrus_mapper_std_rowcol *rc,
 }
 
 static __inline int
-rowcol_parse_variable(struct _citrus_mapper_std_rowcol *rc,
-    struct _region *r)
+rowcol_parse_variable(struct _citrus_mapper_std_rowcol *rc, struct _region *r)
 {
 	const struct _citrus_mapper_std_rowcol_info_x *rcx;
 	struct _citrus_mapper_std_linear_zone *lz;
@@ -212,12 +209,12 @@ rowcol_parse_variable(struct _citrus_mapper_std_rowcol *rc,
 	rc->rc_src_rowcol_len = be32toh(rcx->rcx_src_rowcol_len);
 	if (rc->rc_src_rowcol_len > _CITRUS_MAPPER_STD_ROWCOL_MAX)
 		return (EFTYPE);
-	rc->rc_src_rowcol = malloc(rc->rc_src_rowcol_len *
-	    sizeof(*rc->rc_src_rowcol));
+	rc->rc_src_rowcol = malloc(
+	    rc->rc_src_rowcol_len * sizeof(*rc->rc_src_rowcol));
 	if (rc->rc_src_rowcol == NULL)
 		return (ENOMEM);
-	for (i = 0, lz = rc->rc_src_rowcol;
-	    i < rc->rc_src_rowcol_len; ++i, ++lz) {
+	for (i = 0, lz = rc->rc_src_rowcol; i < rc->rc_src_rowcol_len;
+	     ++i, ++lz) {
 		m = be32toh(rcx->rcx_src_rowcol[i].begin),
 		n = be32toh(rcx->rcx_src_rowcol[i].end);
 		ret = set_linear_zone(lz, m, n);
@@ -284,7 +281,9 @@ rowcol_init(struct _citrus_mapper_std *ms)
 		return (ret);
 	/* sanity check */
 	switch (rc->rc_src_rowcol_bits) {
-	case 8: case 16: case 32:
+	case 8:
+	case 16:
+	case 32:
 		if (rc->rc_src_rowcol_len <= 32 / rc->rc_src_rowcol_bits)
 			break;
 	/*FALLTHROUGH*/
@@ -315,10 +314,9 @@ rowcol_init(struct _citrus_mapper_std *ms)
 		lz = &rc->rc_src_rowcol[--i];
 		table_size *= lz->width;
 	}
-	table_size *= rc->rc_dst_unit_bits/8;
+	table_size *= rc->rc_dst_unit_bits / 8;
 
-	if (table_size > UINT32_MAX ||
-	    _region_size(&rc->rc_table) < table_size)
+	if (table_size > UINT32_MAX || _region_size(&rc->rc_table) < table_size)
 		return (EFTYPE);
 
 	return (0);
@@ -326,19 +324,20 @@ rowcol_init(struct _citrus_mapper_std *ms)
 
 typedef int (*initfunc_t)(struct _citrus_mapper_std *);
 static const struct {
-	initfunc_t			 t_init;
-	const char			*t_name;
+	initfunc_t t_init;
+	const char *t_name;
 } types[] = {
 	{ &rowcol_init, _CITRUS_MAPPER_STD_TYPE_ROWCOL },
 };
-#define NUM_OF_TYPES ((int)(sizeof(types)/sizeof(types[0])))
+#define NUM_OF_TYPES ((int)(sizeof(types) / sizeof(types[0])))
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_std_mapper_init(struct _citrus_mapper_area *__restrict ma __unused,
-    struct _citrus_mapper * __restrict cm, const char * __restrict curdir,
-    const void * __restrict var, size_t lenvar,
-    struct _citrus_mapper_traits * __restrict mt, size_t lenmt)
+_citrus_mapper_std_mapper_init(
+    struct _citrus_mapper_area *__restrict ma __unused,
+    struct _citrus_mapper *__restrict cm, const char *__restrict curdir,
+    const void *__restrict var, size_t lenvar,
+    struct _citrus_mapper_traits *__restrict mt, size_t lenmt)
 {
 	struct _citrus_mapper_std *ms;
 	char path[PATH_MAX];
@@ -350,8 +349,8 @@ _citrus_mapper_std_mapper_init(struct _citrus_mapper_area *__restrict ma __unuse
 		ret = EINVAL;
 		goto err0;
 	}
-	mt->mt_src_max = mt->mt_dst_max = 1;	/* 1:1 converter */
-	mt->mt_state_size = 0;			/* stateless */
+	mt->mt_src_max = mt->mt_dst_max = 1; /* 1:1 converter */
+	mt->mt_state_size = 0;		     /* stateless */
 
 	/* alloc mapper std structure */
 	ms = malloc(sizeof(*ms));
@@ -373,8 +372,8 @@ _citrus_mapper_std_mapper_init(struct _citrus_mapper_area *__restrict ma __unuse
 		goto err2;
 
 	/* get mapper type */
-	ret = _db_lookupstr_by_s(ms->ms_db, _CITRUS_MAPPER_STD_SYM_TYPE,
-	    &type, NULL);
+	ret = _db_lookupstr_by_s(ms->ms_db, _CITRUS_MAPPER_STD_SYM_TYPE, &type,
+	    NULL);
 	if (ret) {
 		if (ret == ENOENT)
 			ret = EFTYPE;
@@ -424,13 +423,12 @@ static void
 /*ARGSUSED*/
 _citrus_mapper_std_mapper_init_state(void)
 {
-
 }
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_std_mapper_convert(struct _citrus_mapper * __restrict cm,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps)
+_citrus_mapper_std_mapper_convert(struct _citrus_mapper *__restrict cm,
+    _index_t *__restrict dst, _index_t src, void *__restrict ps)
 {
 	struct _citrus_mapper_std *ms;
 

@@ -36,6 +36,7 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
+
 #include <machine/bus.h>
 
 #ifdef LOCAL_MODULE
@@ -43,13 +44,14 @@
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
-static void	smic_wait_for_tx_okay(struct ipmi_softc *);
-static void	smic_wait_for_rx_okay(struct ipmi_softc *);
-static void	smic_wait_for_not_busy(struct ipmi_softc *);
-static void	smic_set_busy(struct ipmi_softc *);
+static void smic_wait_for_tx_okay(struct ipmi_softc *);
+static void smic_wait_for_rx_okay(struct ipmi_softc *);
+static void smic_wait_for_not_busy(struct ipmi_softc *);
+static void smic_set_busy(struct ipmi_softc *);
 
 static void
 smic_wait_for_tx_okay(struct ipmi_softc *sc)
@@ -204,8 +206,7 @@ smic_read_byte(struct ipmi_softc *sc, u_char *data)
 	smic_set_busy(sc);
 	smic_wait_for_not_busy(sc);
 	status = INB(sc, SMIC_CTL_STS);
-	if (status != SMIC_SC_SMS_RD_NEXT &&
-	    status != SMIC_SC_SMS_RD_END) {
+	if (status != SMIC_SC_SMS_RD_NEXT && status != SMIC_SC_SMS_RD_END) {
 		error = INB(sc, SMIC_DATA);
 		device_printf(sc->ipmi_dev, "SMIC: Read did not next %02x\n",
 		    error);
@@ -383,8 +384,8 @@ static int
 smic_startup(struct ipmi_softc *sc)
 {
 
-	return (kproc_create(smic_loop, sc, &sc->ipmi_kthread, 0, 0,
-	    "%s: smic", device_get_nameunit(sc->ipmi_dev)));
+	return (kproc_create(smic_loop, sc, &sc->ipmi_kthread, 0, 0, "%s: smic",
+	    device_get_nameunit(sc->ipmi_dev)));
 }
 
 static int

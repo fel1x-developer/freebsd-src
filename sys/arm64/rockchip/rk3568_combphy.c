@@ -32,133 +32,129 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/clk/clk.h>
+#include <dev/fdt/simple_mfd.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/fdt/simple_mfd.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/phy/phy.h>
 #include <dev/regulator/regulator.h>
 #include <dev/syscon/syscon.h>
-#include <dev/phy/phy.h>
 
 #include <contrib/device-tree/include/dt-bindings/phy/phy.h>
 
-#include "syscon_if.h"
 #include "phydev_if.h"
 #include "phynode_if.h"
-
+#include "syscon_if.h"
 
 static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk3568-naneng-combphy",	1},
-	{NULL, 0}
+	{ "rockchip,rk3568-naneng-combphy", 1 }, { NULL, 0 }
 };
 
 struct rk3568_combphy_softc {
-	device_t	dev;
-	phandle_t	node;
-	struct resource	*mem;
-	struct phynode	*phynode;
-	struct syscon	*pipe_grf;
-	struct syscon	*pipe_phy_grf;
-	clk_t		ref_clk;
-	clk_t		apb_clk;
-	clk_t		pipe_clk;
-	hwreset_t	phy_reset;
-	int		mode;
+	device_t dev;
+	phandle_t node;
+	struct resource *mem;
+	struct phynode *phynode;
+	struct syscon *pipe_grf;
+	struct syscon *pipe_phy_grf;
+	clk_t ref_clk;
+	clk_t apb_clk;
+	clk_t pipe_clk;
+	hwreset_t phy_reset;
+	int mode;
 };
 
-#define	PHYREG6				0x14
-#define	 PHYREG6_PLL_DIV_MASK			0xc0
-#define	 PHYREG6_PLL_DIV_2			(1 << 6)
-#define	PHYREG7				0x18
-#define	 PHYREG7_TX_RTERM_50OHM			(8 << 4)
-#define	 PHYREG7_RX_RTERM_44OHM			(15 << 0)
-#define	PHYREG8				0x1c
-#define	 PHYREG8_SSC_EN			0x10
-#define	PHYREG11			0x28
-#define	 PHYREG11_SU_TRIM_0_7			0xf0
-#define	PHYREG12			0x2c
-#define	 PHYREG12_PLL_LPF_ADJ_VALUE		4
-#define	PHYREG15			0x38
-#define	 PHYREG15_CTLE_EN			0x01
-#define	 PHYREG15_SSC_CNT_MASK			0xc0
-#define	 PHYREG15_SSC_CNT_VALUE			(1 << 6)
-#define	PHYREG16			0x3c
-#define	 PHYREG16_SSC_CNT_VALUE			0x5f
-#define	PHYREG18			0x44
-#define	 PHYREG18_PLL_LOOP			0x32
-#define	PHYREG32			0x7c
-#define	 PHYREG32_SSC_MASK			0xf0
-#define	 PHYREG32_SSC_UPWARD			(0 << 4)
-#define	 PHYREG32_SSC_DOWNWARD			(1 << 4)
-#define	 PHYREG32_SSC_OFFSET_500PPM		(1 << 6)
-#define	PHYREG33			0x80
-#define	 PHYREG33_PLL_KVCO_MASK			0x1c
-#define	 PHYREG33_PLL_KVCO_VALUE		(2 << 2)
+#define PHYREG6 0x14
+#define PHYREG6_PLL_DIV_MASK 0xc0
+#define PHYREG6_PLL_DIV_2 (1 << 6)
+#define PHYREG7 0x18
+#define PHYREG7_TX_RTERM_50OHM (8 << 4)
+#define PHYREG7_RX_RTERM_44OHM (15 << 0)
+#define PHYREG8 0x1c
+#define PHYREG8_SSC_EN 0x10
+#define PHYREG11 0x28
+#define PHYREG11_SU_TRIM_0_7 0xf0
+#define PHYREG12 0x2c
+#define PHYREG12_PLL_LPF_ADJ_VALUE 4
+#define PHYREG15 0x38
+#define PHYREG15_CTLE_EN 0x01
+#define PHYREG15_SSC_CNT_MASK 0xc0
+#define PHYREG15_SSC_CNT_VALUE (1 << 6)
+#define PHYREG16 0x3c
+#define PHYREG16_SSC_CNT_VALUE 0x5f
+#define PHYREG18 0x44
+#define PHYREG18_PLL_LOOP 0x32
+#define PHYREG32 0x7c
+#define PHYREG32_SSC_MASK 0xf0
+#define PHYREG32_SSC_UPWARD (0 << 4)
+#define PHYREG32_SSC_DOWNWARD (1 << 4)
+#define PHYREG32_SSC_OFFSET_500PPM (1 << 6)
+#define PHYREG33 0x80
+#define PHYREG33_PLL_KVCO_MASK 0x1c
+#define PHYREG33_PLL_KVCO_VALUE (2 << 2)
 
-#define	PIPE_MASK_ALL			(0xffff << 16)
-#define	PIPE_PHY_GRF_PIPE_CON0		0x00
-#define	 PIPE_DATABUSWIDTH_MASK			0x3
-#define	 PIPE_DATABUSWIDTH_32BIT		0
-#define	 PIPE_DATABUSWIDTH_16BIT		1
-#define	 PIPE_PHYMODE_MASK			(3 << 2)
-#define	 PIPE_PHYMODE_PCIE			(0 << 2)
-#define	 PIPE_PHYMODE_USB3			(1 << 2)
-#define	 PIPE_PHYMODE_SATA			(2 << 2)
-#define	 PIPE_RATE_MASK				(3 << 4)
-#define	 PIPE_RATE_PCIE_2_5GBPS			(0 << 4)
-#define	 PIPE_RATE_PCIE_5GBPS			(1 << 4)
-#define	 PIPE_RATE_USB3_5GBPS			(0 << 4)
-#define	 PIPE_RATE_SATA_1GBPS5			(0 << 4)
-#define	 PIPE_RATE_SATA_3GBPS			(1 << 4)
-#define	 PIPE_RATE_SATA_6GBPS			(2 << 4)
-#define	 PIPE_MAC_PCLKREQ_N			(1 << 8)
-#define	 PIPE_L1SUB_ENTREQ			(1 << 9)
-#define	 PIPE_RXTERM				(1 << 12)
-#define	PIPE_PHY_GRF_PIPE_CON1		0x04
-#define	 PHY_CLK_SEL_MASK			(3 << 13)
-#define	 PHY_CLK_SEL_24M			(0 << 13)
-#define	 PHY_CLK_SEL_25M			(1 << 13)
-#define	 PHY_CLK_SEL_100M			(2 << 13)
-#define	PIPE_PHY_GRF_PIPE_CON2		0x08
-#define	 SEL_PIPE_TXCOMPLIANCE_I		(1 << 15)
-#define	 SEL_PIPE_TXELECIDLE			(1 << 12)
-#define	 SEL_PIPE_RXTERM			(1 << 8)
-#define	 SEL_PIPE_BYPASS_CODEC			(1 << 7)
-#define	 SEL_PIPE_PIPE_EBUF			(1 << 6)
-#define	 SEL_PIPE_PIPE_PHYMODE			(1 << 1)
-#define	 SEL_PIPE_DATABUSWIDTH			(1 << 0)
-#define	PIPE_PHY_GRF_PIPE_CON3		0x0c
-#define	 PIPE_SEL_MASK				(3 << 13)
-#define	 PIPE_SEL_PCIE				(0 << 13)
-#define	 PIPE_SEL_USB3				(1 << 13)
-#define	 PIPE_SEL_SATA				(2 << 13)
-#define	 PIPE_CLK_REF_SRC_I_MASK		(3 << 8)
-#define	 PIPE_CLK_REF_SRC_I_PLL_CKREF_INNER	(2 << 8)
-#define	 PIPE_RXELECIDLE			(1 << 10)
-#define	 PIPE_FROM_PCIE_IO			(1 << 11)
+#define PIPE_MASK_ALL (0xffff << 16)
+#define PIPE_PHY_GRF_PIPE_CON0 0x00
+#define PIPE_DATABUSWIDTH_MASK 0x3
+#define PIPE_DATABUSWIDTH_32BIT 0
+#define PIPE_DATABUSWIDTH_16BIT 1
+#define PIPE_PHYMODE_MASK (3 << 2)
+#define PIPE_PHYMODE_PCIE (0 << 2)
+#define PIPE_PHYMODE_USB3 (1 << 2)
+#define PIPE_PHYMODE_SATA (2 << 2)
+#define PIPE_RATE_MASK (3 << 4)
+#define PIPE_RATE_PCIE_2_5GBPS (0 << 4)
+#define PIPE_RATE_PCIE_5GBPS (1 << 4)
+#define PIPE_RATE_USB3_5GBPS (0 << 4)
+#define PIPE_RATE_SATA_1GBPS5 (0 << 4)
+#define PIPE_RATE_SATA_3GBPS (1 << 4)
+#define PIPE_RATE_SATA_6GBPS (2 << 4)
+#define PIPE_MAC_PCLKREQ_N (1 << 8)
+#define PIPE_L1SUB_ENTREQ (1 << 9)
+#define PIPE_RXTERM (1 << 12)
+#define PIPE_PHY_GRF_PIPE_CON1 0x04
+#define PHY_CLK_SEL_MASK (3 << 13)
+#define PHY_CLK_SEL_24M (0 << 13)
+#define PHY_CLK_SEL_25M (1 << 13)
+#define PHY_CLK_SEL_100M (2 << 13)
+#define PIPE_PHY_GRF_PIPE_CON2 0x08
+#define SEL_PIPE_TXCOMPLIANCE_I (1 << 15)
+#define SEL_PIPE_TXELECIDLE (1 << 12)
+#define SEL_PIPE_RXTERM (1 << 8)
+#define SEL_PIPE_BYPASS_CODEC (1 << 7)
+#define SEL_PIPE_PIPE_EBUF (1 << 6)
+#define SEL_PIPE_PIPE_PHYMODE (1 << 1)
+#define SEL_PIPE_DATABUSWIDTH (1 << 0)
+#define PIPE_PHY_GRF_PIPE_CON3 0x0c
+#define PIPE_SEL_MASK (3 << 13)
+#define PIPE_SEL_PCIE (0 << 13)
+#define PIPE_SEL_USB3 (1 << 13)
+#define PIPE_SEL_SATA (2 << 13)
+#define PIPE_CLK_REF_SRC_I_MASK (3 << 8)
+#define PIPE_CLK_REF_SRC_I_PLL_CKREF_INNER (2 << 8)
+#define PIPE_RXELECIDLE (1 << 10)
+#define PIPE_FROM_PCIE_IO (1 << 11)
 
-#define	PIPE_GRF_PIPE_CON0		0x00
-#define	 SATA2_PHY_SPDMODE_1GBPS5		(0 << 12)
-#define	 SATA2_PHY_SPDMODE_3GBPS		(1 << 12)
-#define	 SATA2_PHY_SPDMODE_6GBPS		(2 << 12)
-#define	 SATA1_PHY_SPDMODE_1GBPS5		(0 << 8)
-#define	 SATA1_PHY_SPDMODE_3GBPS		(1 << 8)
-#define	 SATA1_PHY_SPDMODE_6GBPS		(2 << 8)
-#define	 SATA0_PHY_SPDMODE_1GBPS5		(0 << 4)
-#define	 SATA0_PHY_SPDMODE_3GBPS		(1 << 4)
-#define	 SATA0_PHY_SPDMODE_6GBPS		(2 << 4)
+#define PIPE_GRF_PIPE_CON0 0x00
+#define SATA2_PHY_SPDMODE_1GBPS5 (0 << 12)
+#define SATA2_PHY_SPDMODE_3GBPS (1 << 12)
+#define SATA2_PHY_SPDMODE_6GBPS (2 << 12)
+#define SATA1_PHY_SPDMODE_1GBPS5 (0 << 8)
+#define SATA1_PHY_SPDMODE_3GBPS (1 << 8)
+#define SATA1_PHY_SPDMODE_6GBPS (2 << 8)
+#define SATA0_PHY_SPDMODE_1GBPS5 (0 << 4)
+#define SATA0_PHY_SPDMODE_3GBPS (1 << 4)
+#define SATA0_PHY_SPDMODE_6GBPS (2 << 4)
 
-#define	PIPE_GRF_SATA_CON0		0x10
-#define	PIPE_GRF_SATA_CON1		0x14
-#define	PIPE_GRF_SATA_CON2		0x18
-#define	PIPE_GRF_XPCS_CON0		0x40
-
+#define PIPE_GRF_SATA_CON0 0x10
+#define PIPE_GRF_SATA_CON1 0x14
+#define PIPE_GRF_SATA_CON2 0x18
+#define PIPE_GRF_XPCS_CON0 0x40
 
 /* PHY class and methods */
 static int
@@ -189,15 +185,15 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON2,
 		    PIPE_MASK_ALL | SEL_PIPE_TXCOMPLIANCE_I |
-		    SEL_PIPE_DATABUSWIDTH | 0xc3);
+			SEL_PIPE_DATABUSWIDTH | 0xc3);
 
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON0,
 		    PIPE_MASK_ALL | PIPE_RXTERM | PIPE_DATABUSWIDTH_16BIT |
-		    PIPE_RATE_SATA_3GBPS | PIPE_PHYMODE_SATA);
+			PIPE_RATE_SATA_3GBPS | PIPE_PHYMODE_SATA);
 
 		SYSCON_WRITE_4(sc->pipe_grf, PIPE_GRF_PIPE_CON0,
 		    PIPE_MASK_ALL | SATA0_PHY_SPDMODE_6GBPS |
-		    SATA1_PHY_SPDMODE_6GBPS | SATA2_PHY_SPDMODE_6GBPS);
+			SATA1_PHY_SPDMODE_6GBPS | SATA2_PHY_SPDMODE_6GBPS);
 		break;
 
 	case PHY_TYPE_PCIE:
@@ -206,17 +202,17 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 		/* Set SSC downward spread spectrum */
 		bus_write_4(sc->mem, PHYREG32,
 		    (bus_read_4(sc->mem, PHYREG32) & PHYREG32_SSC_MASK) |
-		    PHYREG32_SSC_DOWNWARD);
+			PHYREG32_SSC_DOWNWARD);
 
 		/* config grf_pipe for PCIe */
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON3,
 		    PIPE_MASK_ALL | PIPE_SEL_PCIE |
-		    PIPE_CLK_REF_SRC_I_PLL_CKREF_INNER);
+			PIPE_CLK_REF_SRC_I_PLL_CKREF_INNER);
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON2,
 		    PIPE_MASK_ALL | SEL_PIPE_RXTERM | SEL_PIPE_DATABUSWIDTH);
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON0,
 		    PIPE_MASK_ALL | PIPE_RXTERM | PIPE_DATABUSWIDTH_32BIT |
-		    PIPE_RATE_PCIE_2_5GBPS | PIPE_PHYMODE_PCIE);
+			PIPE_RATE_PCIE_2_5GBPS | PIPE_PHYMODE_PCIE);
 		break;
 
 	case PHY_TYPE_USB3:
@@ -225,7 +221,7 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 		/* Set SSC downward spread spectrum */
 		bus_write_4(sc->mem, PHYREG32,
 		    (bus_read_4(sc->mem, PHYREG32) & PHYREG32_SSC_MASK) |
-		    PHYREG32_SSC_DOWNWARD);
+			PHYREG32_SSC_DOWNWARD);
 
 		/* Adaptive CTLE */
 		bus_write_4(sc->mem, PHYREG15,
@@ -234,7 +230,7 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 		/* Set PLL KVCO fine tuning signals */
 		bus_write_4(sc->mem, PHYREG33,
 		    (bus_read_4(sc->mem, PHYREG33) & PHYREG33_PLL_KVCO_MASK) |
-		    PHYREG33_PLL_KVCO_VALUE);
+			PHYREG33_PLL_KVCO_VALUE);
 
 		/* Enable controlling random jitter. */
 		bus_write_4(sc->mem, PHYREG12, PHYREG12_PLL_LPF_ADJ_VALUE);
@@ -242,7 +238,7 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 		/* Set PLL input clock divider 1/2 */
 		bus_write_4(sc->mem, PHYREG6,
 		    (bus_read_4(sc->mem, PHYREG6) & PHYREG6_PLL_DIV_MASK) |
-		    PHYREG6_PLL_DIV_2);
+			PHYREG6_PLL_DIV_2);
 
 		/* Set PLL loop divider */
 		bus_write_4(sc->mem, PHYREG18, PHYREG18_PLL_LOOP);
@@ -257,7 +253,7 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 		    PIPE_MASK_ALL);
 		SYSCON_WRITE_4(sc->pipe_phy_grf, PIPE_PHY_GRF_PIPE_CON0,
 		    PIPE_MASK_ALL | PIPE_DATABUSWIDTH_16BIT |
-		    PIPE_PHYMODE_USB3 | PIPE_RATE_USB3_5GBPS);
+			PIPE_PHYMODE_USB3 | PIPE_RATE_USB3_5GBPS);
 		break;
 
 	default:
@@ -277,7 +273,8 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 			/* Adaptive CTLE */
 			bus_write_4(sc->mem, PHYREG15,
 			    (bus_read_4(sc->mem, PHYREG15) &
-			    PHYREG15_SSC_CNT_MASK) | PHYREG15_SSC_CNT_VALUE);
+				PHYREG15_SSC_CNT_MASK) |
+				PHYREG15_SSC_CNT_VALUE);
 
 			/* SSC control period */
 			bus_write_4(sc->mem, PHYREG16, PHYREG16_SSC_CNT_VALUE);
@@ -297,7 +294,8 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 			/* Set PLL KVCO fine tuning signals */
 			bus_write_4(sc->mem, PHYREG33,
 			    (bus_read_4(sc->mem, PHYREG33) &
-			    PHYREG33_PLL_KVCO_MASK) | PHYREG33_PLL_KVCO_VALUE);
+				PHYREG33_PLL_KVCO_MASK) |
+				PHYREG33_PLL_KVCO_VALUE);
 
 			/* Enable controlling random jitter. */
 			bus_write_4(sc->mem, PHYREG12,
@@ -306,7 +304,8 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 			/* Set PLL input clock divider 1/2 */
 			bus_write_4(sc->mem, PHYREG6,
 			    (bus_read_4(sc->mem, PHYREG6) &
-			    PHYREG6_PLL_DIV_MASK) | PHYREG6_PLL_DIV_2);
+				PHYREG6_PLL_DIV_MASK) |
+				PHYREG6_PLL_DIV_2);
 
 			/* Set PLL loop divider */
 			bus_write_4(sc->mem, PHYREG18, PHYREG18_PLL_LOOP);
@@ -318,7 +317,8 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 			/* Set SSC downward spread spectrum */
 			bus_write_4(sc->mem, PHYREG32,
 			    (bus_read_4(sc->mem, PHYREG32) & ~0x000000f0) |
-			    PHYREG32_SSC_DOWNWARD | PHYREG32_SSC_OFFSET_500PPM);
+				PHYREG32_SSC_DOWNWARD |
+				PHYREG32_SSC_OFFSET_500PPM);
 		}
 		break;
 
@@ -343,13 +343,12 @@ rk3568_combphy_enable(struct phynode *phynode, bool enable)
 }
 
 static phynode_method_t rk3568_combphy_phynode_methods[] = {
-	PHYNODEMETHOD(phynode_enable,	rk3568_combphy_enable),
+	PHYNODEMETHOD(phynode_enable, rk3568_combphy_enable),
 
 	PHYNODEMETHOD_END
 };
 DEFINE_CLASS_1(rk3568_combphy_phynode, rk3568_combphy_phynode_class,
     rk3568_combphy_phynode_methods, 0, phynode_class);
-
 
 /* Device class and methods */
 static int
@@ -376,8 +375,8 @@ rk3568_combphy_attach(device_t dev)
 	sc->node = ofw_bus_get_node(dev);
 
 	/* Get memory resource */
-	if (!(sc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE))) {
+	if (!(sc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+		  RF_ACTIVE))) {
 		device_printf(dev, "Cannot allocate memory resources\n");
 		return (ENXIO);
 	}
@@ -385,11 +384,11 @@ rk3568_combphy_attach(device_t dev)
 	/* Get syncons handles */
 	if (OF_hasprop(sc->node, "rockchip,pipe-grf") &&
 	    syscon_get_by_ofw_property(dev, sc->node, "rockchip,pipe-grf",
-	    &sc->pipe_grf))
+		&sc->pipe_grf))
 		return (ENXIO);
 	if (OF_hasprop(sc->node, "rockchip,pipe-phy-grf") &&
 	    syscon_get_by_ofw_property(dev, sc->node, "rockchip,pipe-phy-grf",
-	    &sc->pipe_phy_grf))
+		&sc->pipe_phy_grf))
 		return (ENXIO);
 
 	/* Get & enable clocks */
@@ -423,7 +422,7 @@ rk3568_combphy_attach(device_t dev)
 	phy_init.id = 0;
 	phy_init.ofw_node = sc->node;
 	if (!(phynode = phynode_create(dev, &rk3568_combphy_phynode_class,
-	    &phy_init))) {
+		  &phy_init))) {
 		device_printf(dev, "failed to create combphy PHY\n");
 		return (ENXIO);
 	}
@@ -455,15 +454,14 @@ rk3568_combphy_map(device_t dev, phandle_t xref, int ncells, pcell_t *cells,
 	return (0);
 }
 
-static device_method_t rk3568_combphy_methods[] = {
-	DEVMETHOD(device_probe,		rk3568_combphy_probe),
-	DEVMETHOD(device_attach,	rk3568_combphy_attach),
-	DEVMETHOD(phydev_map,		rk3568_combphy_map),
+static device_method_t rk3568_combphy_methods[] = { DEVMETHOD(device_probe,
+							rk3568_combphy_probe),
+	DEVMETHOD(device_attach, rk3568_combphy_attach),
+	DEVMETHOD(phydev_map, rk3568_combphy_map),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(rk3568_combphy, rk3568_combphy_driver, rk3568_combphy_methods,
     sizeof(struct simple_mfd_softc), simple_mfd_driver);
-EARLY_DRIVER_MODULE(rk3568_combphy, simplebus, rk3568_combphy_driver,
-    0, 0, BUS_PASS_RESOURCE + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(rk3568_combphy, simplebus, rk3568_combphy_driver, 0, 0,
+    BUS_PASS_RESOURCE + BUS_PASS_ORDER_LATE);

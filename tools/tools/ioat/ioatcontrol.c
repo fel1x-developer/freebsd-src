@@ -29,15 +29,14 @@
 #include <sys/queue.h>
 
 #include <fcntl.h>
+#include <libutil.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 #include "ioat_test.h"
 
@@ -47,18 +46,24 @@ static void
 usage(void)
 {
 
-	printf("Usage: %s [-c period] [-EefmVxXz] channel-number num-txns [<bufsize> "
-	    "[<chain-len> [duration]]]\n", getprogname());
-	printf("       %s -r [-c period] [-vVwz] channel-number address [<bufsize>]\n\n",
+	printf(
+	    "Usage: %s [-c period] [-EefmVxXz] channel-number num-txns [<bufsize> "
+	    "[<chain-len> [duration]]]\n",
 	    getprogname());
-	printf("           -c period - Enable interrupt coalescing (us) (default: 0)\n");
+	printf(
+	    "       %s -r [-c period] [-vVwz] channel-number address [<bufsize>]\n\n",
+	    getprogname());
+	printf(
+	    "           -c period - Enable interrupt coalescing (us) (default: 0)\n");
 	printf("           -E        - Test contiguous 8k copy.\n");
 	printf("           -e        - Test non-contiguous 8k copy.\n");
 	printf("           -f        - Test block fill.\n");
 	printf("           -m        - Test memcpy instead of DMA.\n");
-	printf("           -r        - Issue DMA to or from a specific address.\n");
+	printf(
+	    "           -r        - Issue DMA to or from a specific address.\n");
 	printf("           -V        - Enable verification\n");
-	printf("           -v        - <address> is a kernel virtual address\n");
+	printf(
+	    "           -v        - <address> is a kernel virtual address\n");
 	printf("           -w        - Write to the specified address\n");
 	printf("           -x        - Test DMA CRC.\n");
 	printf("           -X        - Test DMA CRC copy.\n");
@@ -172,7 +177,8 @@ main(int argc, char **argv)
 		usage();
 
 	if (modeflags > 1) {
-		printf("Invalid: Cannot use >1 mode flag (-E, -e, -f, -m, -r, -x or -X)\n");
+		printf(
+		    "Invalid: Cannot use >1 mode flag (-E, -e, -f, -m, -r, -x or -X)\n");
 		usage();
 	}
 
@@ -264,8 +270,8 @@ prettyprint(struct ioat_test *t)
 			    (unsigned)t->status[IOAT_TEST_MISCOMPARE]);
 	}
 
-	printf("Processed %u txns\n", (unsigned)t->status[IOAT_TEST_OK] /
-	    t->chain_depth);
+	printf("Processed %u txns\n",
+	    (unsigned)t->status[IOAT_TEST_OK] / t->chain_depth);
 	bytes = (uintmax_t)t->buffer_size * t->status[IOAT_TEST_OK];
 
 	humanize_number(bytesh, sizeof(bytesh), (int64_t)bytes, "B",

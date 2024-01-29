@@ -60,59 +60,53 @@
  *        SCI_BASE_OBJECT object.
  */
 
+#include <dev/isci/scil/sci_base_object.h>
 #include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_base_object.h>
 
 //******************************************************************************
 //* P U B L I C   M E T H O D S
 //******************************************************************************
 
 #if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-void * sci_object_get_association(
-   SCI_OBJECT_HANDLE_T object
-)
+void *
+sci_object_get_association(SCI_OBJECT_HANDLE_T object)
 {
-   return ((SCI_BASE_OBJECT_T *) object)->associated_object;
+	return ((SCI_BASE_OBJECT_T *)object)->associated_object;
 }
 #endif
 
 // ---------------------------------------------------------------------------
 
 #if defined(SCI_OBJECT_USE_ASSOCIATION_FUNCTIONS)
-SCI_STATUS sci_object_set_association(
-   SCI_OBJECT_HANDLE_T   object,
-   void                * associated_object
-)
+SCI_STATUS
+sci_object_set_association(SCI_OBJECT_HANDLE_T object, void *associated_object)
 {
-   ((SCI_BASE_OBJECT_T *)object)->associated_object = associated_object;
-   return SCI_SUCCESS;
+	((SCI_BASE_OBJECT_T *)object)->associated_object = associated_object;
+	return SCI_SUCCESS;
 }
 #endif
 
 // ---------------------------------------------------------------------------
 
-void sci_base_object_construct(
-   SCI_BASE_OBJECT_T      * base_object,
-   struct SCI_BASE_LOGGER * logger
-)
+void
+sci_base_object_construct(SCI_BASE_OBJECT_T *base_object,
+    struct SCI_BASE_LOGGER *logger)
 {
 #if defined(SCI_LOGGING)
-   base_object->logger = logger;
+	base_object->logger = logger;
 #endif // defined(SCI_LOGGING)
-   base_object->associated_object = NULL;
+	base_object->associated_object = NULL;
 }
 
 // ---------------------------------------------------------------------------
 
-SCI_LOGGER_HANDLE_T sci_object_get_logger(
-   SCI_OBJECT_HANDLE_T object
-)
+SCI_LOGGER_HANDLE_T
+sci_object_get_logger(SCI_OBJECT_HANDLE_T object)
 {
 #if defined(SCI_LOGGING)
-   return sci_base_object_get_logger(object);
-#else // defined(SCI_LOGGING)
-   return NULL;
+	return sci_base_object_get_logger(object);
+#else  // defined(SCI_LOGGING)
+	return NULL;
 #endif // defined(SCI_LOGGING)
 }
-

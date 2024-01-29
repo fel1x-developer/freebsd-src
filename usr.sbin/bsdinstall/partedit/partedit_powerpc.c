@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
 #include <string.h>
 
 #include "partedit.h"
@@ -35,7 +36,8 @@
 static char platform[255] = "";
 
 const char *
-default_scheme(void) {
+default_scheme(void)
+{
 	size_t platlen = sizeof(platform);
 	if (strlen(platform) == 0)
 		sysctlbyname("hw.platform", platform, &platlen, NULL, -1);
@@ -51,7 +53,8 @@ default_scheme(void) {
 }
 
 int
-is_scheme_bootable(const char *part_type) {
+is_scheme_bootable(const char *part_type)
+{
 	size_t platlen = sizeof(platform);
 	if (strlen(platform) == 0)
 		sysctlbyname("hw.platform", platform, &platlen, NULL, -1);
@@ -62,7 +65,7 @@ is_scheme_bootable(const char *part_type) {
 		return (1);
 	if ((strcmp(platform, "chrp") == 0 || strcmp(platform, "ps3") == 0) &&
 	    (strcmp(part_type, "MBR") == 0 || strcmp(part_type, "BSD") == 0 ||
-	     strcmp(part_type, "GPT") == 0))
+		strcmp(part_type, "GPT") == 0))
 		return (1);
 	if (strcmp(platform, "mpc85xx") == 0 && strcmp(part_type, "MBR") == 0)
 		return (1);
@@ -75,7 +78,7 @@ is_fs_bootable(const char *part_type, const char *fs)
 {
 	if (strcmp(fs, "freebsd-ufs") == 0)
 		return (1);
-	
+
 	return (0);
 }
 
@@ -87,15 +90,15 @@ bootpart_size(const char *part_type)
 		sysctlbyname("hw.platform", platform, &platlen, NULL, -1);
 
 	if (strcmp(part_type, "APM") == 0)
-		return (800*1024);
+		return (800 * 1024);
 	if (strcmp(part_type, "BSD") == 0) /* Nothing for nested */
 		return (0);
 	if (strcmp(platform, "chrp") == 0)
-		return (800*1024);
+		return (800 * 1024);
 	if (strcmp(platform, "ps3") == 0 || strcmp(platform, "powernv") == 0)
-		return (512*1024*1024);
+		return (512 * 1024 * 1024);
 	if (strcmp(platform, "mpc85xx") == 0)
-		return (16*1024*1024);
+		return (16 * 1024 * 1024);
 	return (0);
 }
 
@@ -126,12 +129,14 @@ bootpart_type(const char *scheme, const char **mountpoint)
 }
 
 const char *
-bootcode_path(const char *part_type) {
+bootcode_path(const char *part_type)
+{
 	return (NULL);
 }
-	
+
 const char *
-partcode_path(const char *part_type, const char *fs_type) {
+partcode_path(const char *part_type, const char *fs_type)
+{
 	size_t platlen = sizeof(platform);
 	if (strlen(platform) == 0)
 		sysctlbyname("hw.platform", platform, &platlen, NULL, -1);
@@ -142,4 +147,3 @@ partcode_path(const char *part_type, const char *fs_type) {
 		return ("/boot/boot1.elf");
 	return (NULL);
 }
-

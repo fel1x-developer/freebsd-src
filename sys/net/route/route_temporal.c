@@ -32,12 +32,12 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
+#include <sys/callout.h>
+#include <sys/ck.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/ck.h>
 #include <sys/rmlock.h>
-#include <sys/callout.h>
+#include <sys/socket.h>
 
 #include <net/if.h>
 #include <net/route.h>
@@ -121,7 +121,8 @@ expire_callout(void *arg)
  * to the tree. RIB_WLOCK must be held.
  */
 void
-tmproutes_update(struct rib_head *rnh, struct rtentry *rt, struct nhop_object *nh)
+tmproutes_update(struct rib_head *rnh, struct rtentry *rt,
+    struct nhop_object *nh)
 {
 	int seconds;
 	uint32_t nh_expire = nhop_get_expire(nh);

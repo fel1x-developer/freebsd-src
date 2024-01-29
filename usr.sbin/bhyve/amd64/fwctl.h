@@ -41,14 +41,14 @@ struct ctl {
 	const int c_len;
 };
 
-#define CTL_NODE(oid, data, len)				\
-	static struct ctl __CONCAT(__ctl, __LINE__) = {		\
-		oid,						\
-		(data),						\
-		(len),						\
-	};							\
+#define CTL_NODE(oid, data, len)                        \
+	static struct ctl __CONCAT(__ctl, __LINE__) = { \
+		oid,                                    \
+		(data),                                 \
+		(len),                                  \
+	};                                              \
 	DATA_SET(ctl_set, __CONCAT(__ctl, __LINE__))
 
-void	fwctl_init(void);
+void fwctl_init(void);
 
 #endif /* _FWCTL_H_ */

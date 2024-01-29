@@ -35,7 +35,7 @@
  */
 
 #ifndef _SYS_CTYPE_H_
-#define	_SYS_CTYPE_H_
+#define _SYS_CTYPE_H_
 
 #ifdef _KERNEL
 

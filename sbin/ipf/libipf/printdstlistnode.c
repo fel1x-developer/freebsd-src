@@ -6,15 +6,14 @@
 
 #include "ipf.h"
 
-
 ipf_dstnode_t *
 printdstlistnode(ipf_dstnode_t *inp, copyfunc_t copyfunc, int opts,
-	wordtab_t *fields)
+    wordtab_t *fields)
 {
 	ipf_dstnode_t node, *np;
 	int i;
 #ifdef USE_INET6
-	char buf[INET6_ADDRSTRLEN+1];
+	char buf[INET6_ADDRSTRLEN + 1];
 	const char *str;
 #endif
 
@@ -42,8 +41,8 @@ printdstlistnode(ipf_dstnode_t *inp, copyfunc_t copyfunc, int opts,
 			printip(AF_INET, (u_32_t *)&np->ipfd_dest.fd_ip);
 		} else {
 #ifdef USE_INET6
-			str = inet_ntop(AF_INET6, &np->ipfd_dest.fd_ip6,
-					buf, sizeof(buf) - 1);
+			str = inet_ntop(AF_INET6, &np->ipfd_dest.fd_ip6, buf,
+			    sizeof(buf) - 1);
 			if (str != NULL)
 				PRINTF("%s", str);
 #endif
@@ -51,10 +50,10 @@ printdstlistnode(ipf_dstnode_t *inp, copyfunc_t copyfunc, int opts,
 		putchar(';');
 	} else {
 		PRINTF("Interface: [%s]/%d\n", np->ipfd_names,
-		       np->ipfd_dest.fd_name);
+		    np->ipfd_dest.fd_name);
 #ifdef USE_INET6
 		str = inet_ntop(np->ipfd_dest.fd_addr.adf_family,
-				&np->ipfd_dest.fd_ip6, buf, sizeof(buf) - 1);
+		    &np->ipfd_dest.fd_ip6, buf, sizeof(buf) - 1);
 		if (str != NULL) {
 			PRINTF("\tAddress: %s\n", str);
 		}
@@ -63,12 +62,12 @@ printdstlistnode(ipf_dstnode_t *inp, copyfunc_t copyfunc, int opts,
 #endif
 		PRINTF(
 #ifdef USE_QUAD_T
-		       "\t\tStates %d\tRef %d\tName [%s]\tUid %d\n",
+		    "\t\tStates %d\tRef %d\tName [%s]\tUid %d\n",
 #else
-		       "\t\tStates %d\tRef %d\tName [%s]\tUid %d\n",
+		    "\t\tStates %d\tRef %d\tName [%s]\tUid %d\n",
 #endif
-		       np->ipfd_states, np->ipfd_ref,
-		       np->ipfd_names, np->ipfd_uid);
+		    np->ipfd_states, np->ipfd_ref, np->ipfd_names,
+		    np->ipfd_uid);
 	}
 	free(np);
 	return (node.ipfd_next);

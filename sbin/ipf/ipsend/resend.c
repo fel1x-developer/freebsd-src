@@ -5,28 +5,30 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  *
  */
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <net/if.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-# include <netinet/ip_var.h>
-# include <netinet/if_ether.h>
-#include <stdio.h>
+#include <netinet/ip_var.h>
+
+#include <arpa/inet.h>
 #include <netdb.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+
 #include "ipsend.h"
 
-extern	int	opts;
+extern int opts;
 
-void	dumppacket(ip_t *);
-
+void dumppacket(ip_t *);
 
 void
 dumppacket(ip_t *ip)
@@ -41,15 +43,15 @@ dumppacket(ip_t *ip)
 		printf("frag @%#x ", (ip->ip_off & 0x1fff) << 3);
 	printf("len %d id %d ", ip->ip_len, ip->ip_id);
 	printf("ttl %d p %d src %s", ip->ip_ttl, ip->ip_p,
-		inet_ntoa(ip->ip_src));
+	    inet_ntoa(ip->ip_src));
 	if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP)
 		printf(",%d", t->th_sport);
 	printf(" dst %s", inet_ntoa(ip->ip_dst));
 	if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP)
 		printf(",%d", t->th_dport);
 	if (ip->ip_p == IPPROTO_TCP) {
-		printf(" seq %lu:%lu flags ",
-			(u_long)t->th_seq, (u_long)t->th_ack);
+		printf(" seq %lu:%lu flags ", (u_long)t->th_seq,
+		    (u_long)t->th_ack);
 		for (j = 0, i = 1; i < 256; i *= 2, j++)
 			if (t->th_flags & i)
 				printf("%c", "FSRPAU--"[j]);
@@ -57,16 +59,15 @@ dumppacket(ip_t *ip)
 	putchar('\n');
 }
 
-
 int
-ip_resend(char *dev, int mtu, struct  ipread  *r, struct  in_addr gwip,
-	char *datain)
+ip_resend(char *dev, int mtu, struct ipread *r, struct in_addr gwip,
+    char *datain)
 {
-	ether_header_t	*eh;
-	char	dhost[6];
-	ip_t	*ip;
-	int	fd, wfd = initdevice(dev, 5), len, i;
-	mb_t	mb;
+	ether_header_t *eh;
+	char dhost[6];
+	ip_t *ip;
+	int fd, wfd = initdevice(dev, 5), len, i;
+	mb_t mb;
 
 	if (wfd == -1)
 		return (-1);
@@ -81,38 +82,36 @@ ip_resend(char *dev, int mtu, struct  ipread  *r, struct  in_addr gwip,
 
 	ip = (struct ip *)mb.mb_buf;
 	eh = (ether_header_t *)malloc(sizeof(*eh));
-	if(!eh)
-	    {
+	if (!eh) {
 		perror("malloc failed");
 		return (-2);
-	    }
+	}
 
-	bzero((char *) &eh->ether_shost, sizeof(eh->ether_shost));
-	if (gwip.s_addr && (arp((char *)&gwip, dhost) == -1))
-	    {
+	bzero((char *)&eh->ether_shost, sizeof(eh->ether_shost));
+	if (gwip.s_addr && (arp((char *)&gwip, dhost) == -1)) {
 		perror("arp");
 		free(eh);
 		return (-2);
-	    }
+	}
 
-	while ((i = (*r->r_readip)(&mb, NULL, NULL)) > 0)
-	    {
+	while ((i = (*r->r_readip)(&mb, NULL, NULL)) > 0) {
 		if (!(opts & OPT_RAW)) {
 			len = ntohs(ip->ip_len);
-			eh = (ether_header_t *)realloc((char *)eh, sizeof(*eh) + len);
+			eh = (ether_header_t *)realloc((char *)eh,
+			    sizeof(*eh) + len);
 			eh->ether_type = htons((u_short)ETHERTYPE_IP);
 			if (!gwip.s_addr) {
 				if (arp((char *)&gwip,
-					(char *) &eh->ether_dhost) == -1) {
+					(char *)&eh->ether_dhost) == -1) {
 					perror("arp");
 					continue;
 				}
 			} else
-				bcopy(dhost, (char *) &eh->ether_dhost,
-				      sizeof(dhost));
+				bcopy(dhost, (char *)&eh->ether_dhost,
+				    sizeof(dhost));
 			if (!ip->ip_sum)
 				ip->ip_sum = chksum((u_short *)ip,
-						    IP_HL(ip) << 2);
+				    IP_HL(ip) << 2);
 			bcopy(ip, (char *)(eh + 1), len);
 			len += sizeof(*eh);
 			dumppacket(ip);
@@ -121,12 +120,11 @@ ip_resend(char *dev, int mtu, struct  ipread  *r, struct  in_addr gwip,
 			len = i;
 		}
 
-		if (sendip(wfd, (char *)eh, len) == -1)
-		    {
+		if (sendip(wfd, (char *)eh, len) == -1) {
 			perror("send_packet");
 			break;
-		    }
-	    }
+		}
+	}
 	(*r->r_close)();
 	free(eh);
 	return (0);

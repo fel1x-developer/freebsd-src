@@ -31,39 +31,38 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cn23xx_pf_device.h"
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
 #include "lio_main.h"
 #include "lio_network.h"
-#include "cn23xx_pf_device.h"
+#include "lio_response_manager.h"
 #include "lio_rxtx.h"
 
 struct lio_iq_post_status {
-	int	status;
-	int	index;
+	int status;
+	int index;
 };
 
-static void	lio_check_db_timeout(void *arg, int pending);
-static void	__lio_check_db_timeout(struct octeon_device *oct,
-				       uint64_t iq_no);
+static void lio_check_db_timeout(void *arg, int pending);
+static void __lio_check_db_timeout(struct octeon_device *oct, uint64_t iq_no);
 
 /* Return 0 on success, 1 on failure */
 int
 lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
-		     uint32_t num_descs)
+    uint32_t num_descs)
 {
-	struct lio_instr_queue	*iq;
-	struct lio_iq_config	*conf = NULL;
-	struct lio_tq		*db_tq;
-	struct lio_request_list	*request_buf;
-	bus_size_t		max_size;
-	uint32_t		iq_no = (uint32_t)txpciq.s.q_no;
-	uint32_t		q_size;
-	int			error, i;
+	struct lio_instr_queue *iq;
+	struct lio_iq_config *conf = NULL;
+	struct lio_tq *db_tq;
+	struct lio_request_list *request_buf;
+	bus_size_t max_size;
+	uint32_t iq_no = (uint32_t)txpciq.s.q_no;
+	uint32_t q_size;
+	int error, i;
 
 	if (LIO_CN23XX_PF(oct))
 		conf = &(LIO_GET_IQ_CFG(LIO_CHIP_CONF(oct, cn23xx_pf)));
@@ -78,28 +77,28 @@ lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
 
 	max_size = LIO_CN23XX_PKI_MAX_FRAME_SIZE * num_descs;
 
-	error = bus_dma_tag_create(bus_get_dma_tag(oct->device),	/* parent */
-				   1, 0,				/* alignment, bounds */
-				   BUS_SPACE_MAXADDR,			/* lowaddr */
-				   BUS_SPACE_MAXADDR,			/* highaddr */
-				   NULL, NULL,				/* filter, filterarg */
-				   max_size,				/* maxsize */
-				   LIO_MAX_SG,				/* nsegments */
-				   PAGE_SIZE,				/* maxsegsize */
-				   0,					/* flags */
-				   NULL,				/* lockfunc */
-				   NULL,				/* lockfuncarg */
-				   &iq->txtag);
+	error = bus_dma_tag_create(bus_get_dma_tag(oct->device), /* parent */
+	    1, 0,	       /* alignment, bounds */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    max_size,	       /* maxsize */
+	    LIO_MAX_SG,	       /* nsegments */
+	    PAGE_SIZE,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockfuncarg */
+	    &iq->txtag);
 	if (error) {
 		lio_dev_err(oct, "Cannot allocate memory for instr queue %d\n",
-			    iq_no);
+		    iq_no);
 		return (1);
 	}
 
 	iq->base_addr = lio_dma_alloc(q_size, (vm_paddr_t *)&iq->base_addr_dma);
 	if (!iq->base_addr) {
 		lio_dev_err(oct, "Cannot allocate memory for instr queue %d\n",
-			    iq_no);
+		    iq_no);
 		return (1);
 	}
 
@@ -110,16 +109,15 @@ lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
 	 * Octeon but has yet to be fetched by octeon
 	 */
 	iq->request_list = malloc(sizeof(*iq->request_list) * num_descs,
-				  M_DEVBUF, M_NOWAIT | M_ZERO);
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (iq->request_list == NULL) {
 		lio_dev_err(oct, "Alloc failed for IQ[%d] nr free list\n",
-			    iq_no);
+		    iq_no);
 		return (1);
 	}
 
-	lio_dev_dbg(oct, "IQ[%d]: base: %p basedma: %llx count: %d\n",
-		    iq_no, iq->base_addr, LIO_CAST64(iq->base_addr_dma),
-		    iq->max_count);
+	lio_dev_dbg(oct, "IQ[%d]: base: %p basedma: %llx count: %d\n", iq_no,
+	    iq->base_addr, LIO_CAST64(iq->base_addr_dma), iq->max_count);
 
 	/* Create the descriptor buffer dma maps */
 	request_buf = iq->request_list;
@@ -146,7 +144,7 @@ lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
 	mtx_init(&iq->enq_lock, "enq_lock", NULL, MTX_DEF);
 
 	mtx_init(&iq->iq_flush_running_lock, "iq_flush_running_lock", NULL,
-		 MTX_DEF);
+	    MTX_DEF);
 
 	oct->io_qmask.iq |= BIT_ULL(iq_no);
 
@@ -158,27 +156,25 @@ lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
 
 	db_tq = &oct->check_db_tq[iq_no];
 	db_tq->tq = taskqueue_create("lio_check_db_timeout", M_WAITOK,
-				     taskqueue_thread_enqueue, &db_tq->tq);
+	    taskqueue_thread_enqueue, &db_tq->tq);
 	if (db_tq->tq == NULL) {
 		lio_dev_err(oct, "check db wq create failed for iq %d\n",
-			    iq_no);
+		    iq_no);
 		return (1);
 	}
 
 	TIMEOUT_TASK_INIT(db_tq->tq, &db_tq->work, 0, lio_check_db_timeout,
-			  (void *)db_tq);
+	    (void *)db_tq);
 	db_tq->ctxul = iq_no;
 	db_tq->ctxptr = oct;
 
 	taskqueue_start_threads(&db_tq->tq, 1, PI_NET,
-				"lio%d_check_db_timeout:%d",
-				oct->octeon_id, iq_no);
+	    "lio%d_check_db_timeout:%d", oct->octeon_id, iq_no);
 	taskqueue_enqueue_timeout(db_tq->tq, &db_tq->work, 1);
 
 	/* Allocate a buf ring */
-	oct->instr_queue[iq_no]->br =
-		buf_ring_alloc(LIO_BR_SIZE, M_DEVBUF, M_WAITOK,
-			       &oct->instr_queue[iq_no]->enq_lock);
+	oct->instr_queue[iq_no]->br = buf_ring_alloc(LIO_BR_SIZE, M_DEVBUF,
+	    M_WAITOK, &oct->instr_queue[iq_no]->enq_lock);
 	if (oct->instr_queue[iq_no]->br == NULL) {
 		lio_dev_err(oct, "Critical Failure setting up buf ring\n");
 		return (1);
@@ -190,27 +186,26 @@ lio_init_instr_queue(struct octeon_device *oct, union octeon_txpciq txpciq,
 int
 lio_delete_instr_queue(struct octeon_device *oct, uint32_t iq_no)
 {
-	struct lio_instr_queue		*iq = oct->instr_queue[iq_no];
-	struct lio_request_list		*request_buf;
-	struct lio_mbuf_free_info	*finfo;
-	uint64_t			desc_size = 0, q_size;
-	int				i;
+	struct lio_instr_queue *iq = oct->instr_queue[iq_no];
+	struct lio_request_list *request_buf;
+	struct lio_mbuf_free_info *finfo;
+	uint64_t desc_size = 0, q_size;
+	int i;
 
 	lio_dev_dbg(oct, "%s[%d]\n", __func__, iq_no);
 
 	if (oct->check_db_tq[iq_no].tq != NULL) {
 		while (taskqueue_cancel_timeout(oct->check_db_tq[iq_no].tq,
-						&oct->check_db_tq[iq_no].work,
-						NULL))
+		    &oct->check_db_tq[iq_no].work, NULL))
 			taskqueue_drain_timeout(oct->check_db_tq[iq_no].tq,
-						&oct->check_db_tq[iq_no].work);
+			    &oct->check_db_tq[iq_no].work);
 		taskqueue_free(oct->check_db_tq[iq_no].tq);
 		oct->check_db_tq[iq_no].tq = NULL;
 	}
 
 	if (LIO_CN23XX_PF(oct))
-		desc_size =
-		    LIO_GET_IQ_INSTR_TYPE_CFG(LIO_CHIP_CONF(oct, cn23xx_pf));
+		desc_size = LIO_GET_IQ_INSTR_TYPE_CFG(
+		    LIO_CHIP_CONF(oct, cn23xx_pf));
 
 	request_buf = iq->request_list;
 	for (i = 0; i < iq->max_count; i++, request_buf++) {
@@ -219,14 +214,13 @@ lio_delete_instr_queue(struct octeon_device *oct, uint32_t iq_no)
 			if (request_buf->buf != NULL) {
 				finfo = request_buf->buf;
 				bus_dmamap_sync(iq->txtag, request_buf->map,
-						BUS_DMASYNC_POSTWRITE);
-				bus_dmamap_unload(iq->txtag,
-						  request_buf->map);
+				    BUS_DMASYNC_POSTWRITE);
+				bus_dmamap_unload(iq->txtag, request_buf->map);
 				m_freem(finfo->mb);
 				request_buf->buf = NULL;
 				if (request_buf->map != NULL) {
 					bus_dmamap_destroy(iq->txtag,
-							   request_buf->map);
+					    request_buf->map);
 					request_buf->map = NULL;
 				}
 			} else if (request_buf->map != NULL) {
@@ -269,13 +263,13 @@ lio_delete_instr_queue(struct octeon_device *oct, uint32_t iq_no)
 /* Return 0 on success, 1 on failure */
 int
 lio_setup_iq(struct octeon_device *oct, int ifidx, int q_index,
-	     union octeon_txpciq txpciq, uint32_t num_descs)
+    union octeon_txpciq txpciq, uint32_t num_descs)
 {
-	uint32_t	iq_no = (uint32_t)txpciq.s.q_no;
+	uint32_t iq_no = (uint32_t)txpciq.s.q_no;
 
 	if (oct->instr_queue[iq_no]->oct_dev != NULL) {
-		lio_dev_dbg(oct, "IQ is in use. Cannot create the IQ: %d again\n",
-			    iq_no);
+		lio_dev_dbg(oct,
+		    "IQ is in use. Cannot create the IQ: %d again\n", iq_no);
 		oct->instr_queue[iq_no]->txpciq.txpciq64 = txpciq.txpciq64;
 		return (0);
 	}
@@ -298,7 +292,7 @@ lio_setup_iq(struct octeon_device *oct, int ifidx, int q_index,
 int
 lio_wait_for_instr_fetch(struct octeon_device *oct)
 {
-	int	i, retry = 1000, pending, instr_cnt = 0;
+	int i, retry = 1000, pending, instr_cnt = 0;
 
 	do {
 		instr_cnt = 0;
@@ -307,7 +301,7 @@ lio_wait_for_instr_fetch(struct octeon_device *oct)
 			if (!(oct->io_qmask.iq & BIT_ULL(i)))
 				continue;
 			pending = atomic_load_acq_int(
-					&oct->instr_queue[i]->instr_pending);
+			    &oct->instr_queue[i]->instr_pending);
 			if (pending)
 				__lio_check_db_timeout(oct, i);
 			instr_cnt += pending;
@@ -340,7 +334,7 @@ lio_ring_doorbell(struct octeon_device *oct, struct lio_instr_queue *iq)
 static inline void
 __lio_copy_cmd_into_iq(struct lio_instr_queue *iq, uint8_t *cmd)
 {
-	uint8_t	*iqptr, cmdsize;
+	uint8_t *iqptr, cmdsize;
 
 	cmdsize = ((iq->iqcmd_64B) ? 64 : 32);
 	iqptr = iq->base_addr + (cmdsize * iq->host_write_index);
@@ -351,7 +345,7 @@ __lio_copy_cmd_into_iq(struct lio_instr_queue *iq, uint8_t *cmd)
 static inline struct lio_iq_post_status
 __lio_post_command2(struct lio_instr_queue *iq, uint8_t *cmd)
 {
-	struct lio_iq_post_status	st;
+	struct lio_iq_post_status st;
 
 	st.status = LIO_IQ_SEND_OK;
 
@@ -375,7 +369,7 @@ __lio_post_command2(struct lio_instr_queue *iq, uint8_t *cmd)
 	/* "index" is returned, host_write_index is modified. */
 	st.index = iq->host_write_index;
 	iq->host_write_index = lio_incr_index(iq->host_write_index, 1,
-					      iq->max_count);
+	    iq->max_count);
 	iq->fill_cnt++;
 
 	/*
@@ -391,7 +385,7 @@ __lio_post_command2(struct lio_instr_queue *iq, uint8_t *cmd)
 
 static inline void
 __lio_add_to_request_list(struct lio_instr_queue *iq, int idx, void *buf,
-			  int reqtype)
+    int reqtype)
 {
 
 	iq->request_list[idx].buf = buf;
@@ -401,14 +395,14 @@ __lio_add_to_request_list(struct lio_instr_queue *iq, int idx, void *buf,
 /* Can only run in process context */
 int
 lio_process_iq_request_list(struct octeon_device *oct,
-			    struct lio_instr_queue *iq, uint32_t budget)
+    struct lio_instr_queue *iq, uint32_t budget)
 {
-	struct lio_soft_command		*sc;
-	struct octeon_instr_irh		*irh = NULL;
-	void				*buf;
-	uint32_t			inst_count = 0;
-	uint32_t			old = iq->flush_index;
-	int				reqtype;
+	struct lio_soft_command *sc;
+	struct octeon_instr_irh *irh = NULL;
+	void *buf;
+	uint32_t inst_count = 0;
+	uint32_t old = iq->flush_index;
+	int reqtype;
 
 	while (old != iq->octeon_read_index) {
 		reqtype = iq->request_list[old].reqtype;
@@ -428,8 +422,8 @@ lio_process_iq_request_list(struct octeon_device *oct,
 		case LIO_REQTYPE_SOFT_COMMAND:
 			sc = buf;
 			if (LIO_CN23XX_PF(oct))
-				irh = (struct octeon_instr_irh *)
-					&sc->cmd.cmd3.irh;
+				irh = (struct octeon_instr_irh *)&sc->cmd.cmd3
+					  .irh;
 			if (irh->rflag) {
 				/*
 				 * We're expecting a response from Octeon.
@@ -438,34 +432,39 @@ lio_process_iq_request_list(struct octeon_device *oct,
 				 * command response list because we expect
 				 * a response from Octeon.
 				 */
-				mtx_lock(&oct->response_list
-					 [LIO_ORDERED_SC_LIST].lock);
-				atomic_add_int(&oct->response_list
-					       [LIO_ORDERED_SC_LIST].
-					       pending_req_count, 1);
-				STAILQ_INSERT_TAIL(&oct->response_list
-						   [LIO_ORDERED_SC_LIST].
-						   head, &sc->node, entries);
-				mtx_unlock(&oct->response_list
-					   [LIO_ORDERED_SC_LIST].lock);
+				mtx_lock(
+				    &oct->response_list[LIO_ORDERED_SC_LIST]
+					 .lock);
+				atomic_add_int(
+				    &oct->response_list[LIO_ORDERED_SC_LIST]
+					 .pending_req_count,
+				    1);
+				STAILQ_INSERT_TAIL(
+				    &oct->response_list[LIO_ORDERED_SC_LIST]
+					 .head,
+				    &sc->node, entries);
+				mtx_unlock(
+				    &oct->response_list[LIO_ORDERED_SC_LIST]
+					 .lock);
 			} else {
 				if (sc->callback != NULL) {
 					/* This callback must not sleep */
 					sc->callback(oct, LIO_REQUEST_DONE,
-						     sc->callback_arg);
+					    sc->callback_arg);
 				}
 			}
 
 			break;
 		default:
-			lio_dev_err(oct, "%s Unknown reqtype: %d buf: %p at idx %d\n",
-				    __func__, reqtype, buf, old);
+			lio_dev_err(oct,
+			    "%s Unknown reqtype: %d buf: %p at idx %d\n",
+			    __func__, reqtype, buf, old);
 		}
 
 		iq->request_list[old].buf = NULL;
 		iq->request_list[old].reqtype = 0;
 
-skip_this:
+	skip_this:
 		inst_count++;
 		old = lio_incr_index(old, 1, iq->max_count);
 
@@ -481,11 +480,11 @@ skip_this:
 /* Can only be called from process context */
 int
 lio_flush_iq(struct octeon_device *oct, struct lio_instr_queue *iq,
-	     uint32_t budget)
+    uint32_t budget)
 {
-	uint32_t	inst_processed = 0;
-	uint32_t	tot_inst_processed = 0;
-	int		tx_done = 1;
+	uint32_t inst_processed = 0;
+	uint32_t tot_inst_processed = 0;
+	int tx_done = 1;
 
 	if (!mtx_trylock(&iq->iq_flush_running_lock))
 		return (tx_done);
@@ -500,13 +499,11 @@ lio_flush_iq(struct octeon_device *oct, struct lio_instr_queue *iq,
 			break;
 
 		if (budget)
-			inst_processed =
-				lio_process_iq_request_list(oct, iq,
-							    budget -
-							    tot_inst_processed);
+			inst_processed = lio_process_iq_request_list(oct, iq,
+			    budget - tot_inst_processed);
 		else
-			inst_processed =
-				lio_process_iq_request_list(oct, iq, 0);
+			inst_processed = lio_process_iq_request_list(oct, iq,
+			    0);
 
 		if (inst_processed) {
 			atomic_subtract_int(&iq->instr_pending, inst_processed);
@@ -536,8 +533,8 @@ lio_flush_iq(struct octeon_device *oct, struct lio_instr_queue *iq,
 static void
 __lio_check_db_timeout(struct octeon_device *oct, uint64_t iq_no)
 {
-	struct lio_instr_queue	*iq;
-	uint64_t		next_time;
+	struct lio_instr_queue *iq;
+	uint64_t next_time;
 
 	if (oct == NULL)
 		return;
@@ -577,23 +574,22 @@ __lio_check_db_timeout(struct octeon_device *oct, uint64_t iq_no)
 static void
 lio_check_db_timeout(void *arg, int pending)
 {
-	struct lio_tq		*db_tq = (struct lio_tq *)arg;
-	struct octeon_device	*oct = db_tq->ctxptr;
-	uint64_t		iq_no = db_tq->ctxul;
-	uint32_t		delay = 10;
+	struct lio_tq *db_tq = (struct lio_tq *)arg;
+	struct octeon_device *oct = db_tq->ctxptr;
+	uint64_t iq_no = db_tq->ctxul;
+	uint32_t delay = 10;
 
 	__lio_check_db_timeout(oct, iq_no);
 	taskqueue_enqueue_timeout(db_tq->tq, &db_tq->work,
-				  lio_ms_to_ticks(delay));
+	    lio_ms_to_ticks(delay));
 }
 
 int
-lio_send_command(struct octeon_device *oct, uint32_t iq_no,
-		 uint32_t force_db, void *cmd, void *buf,
-		 uint32_t datasize, uint32_t reqtype)
+lio_send_command(struct octeon_device *oct, uint32_t iq_no, uint32_t force_db,
+    void *cmd, void *buf, uint32_t datasize, uint32_t reqtype)
 {
-	struct lio_iq_post_status	st;
-	struct lio_instr_queue		*iq = oct->instr_queue[iq_no];
+	struct lio_iq_post_status st;
+	struct lio_instr_queue *iq = oct->instr_queue[iq_no];
 
 	/*
 	 * Get the lock and prevent other tasks and tx interrupt handler
@@ -626,13 +622,13 @@ lio_send_command(struct octeon_device *oct, uint32_t iq_no,
 
 void
 lio_prepare_soft_command(struct octeon_device *oct, struct lio_soft_command *sc,
-			 uint8_t opcode, uint8_t subcode, uint32_t irh_ossp,
-			 uint64_t ossp0, uint64_t ossp1)
+    uint8_t opcode, uint8_t subcode, uint32_t irh_ossp, uint64_t ossp0,
+    uint64_t ossp1)
 {
-	struct octeon_instr_ih3		*ih3;
-	struct octeon_instr_pki_ih3	*pki_ih3;
-	struct octeon_instr_irh		*irh;
-	struct octeon_instr_rdp		*rdp;
+	struct octeon_instr_ih3 *ih3;
+	struct octeon_instr_pki_ih3 *pki_ih3;
+	struct octeon_instr_irh *irh;
+	struct octeon_instr_rdp *rdp;
 
 	KASSERT(opcode <= 15, ("%s, %d, opcode > 15", __func__, __LINE__));
 	KASSERT(subcode <= 127, ("%s, %d, opcode > 127", __func__, __LINE__));
@@ -688,24 +684,27 @@ lio_prepare_soft_command(struct octeon_device *oct, struct lio_soft_command *sc,
 int
 lio_send_soft_command(struct octeon_device *oct, struct lio_soft_command *sc)
 {
-	struct octeon_instr_ih3	*ih3;
-	struct octeon_instr_irh	*irh;
-	uint32_t		len = 0;
+	struct octeon_instr_ih3 *ih3;
+	struct octeon_instr_irh *irh;
+	uint32_t len = 0;
 
 	if (LIO_CN23XX_PF(oct)) {
 		ih3 = (struct octeon_instr_ih3 *)&sc->cmd.cmd3.ih3;
 		if (ih3->dlengsz) {
-			KASSERT(sc->dmadptr, ("%s, %d, sc->dmadptr is NULL",
-					      __func__, __LINE__));
+			KASSERT(sc->dmadptr,
+			    ("%s, %d, sc->dmadptr is NULL", __func__,
+				__LINE__));
 			sc->cmd.cmd3.dptr = sc->dmadptr;
 		}
 
 		irh = (struct octeon_instr_irh *)&sc->cmd.cmd3.irh;
 		if (irh->rflag) {
-			KASSERT(sc->dmarptr, ("%s, %d, sc->dmarptr is NULL",
-					      __func__, __LINE__));
-			KASSERT(sc->status_word, ("%s, %d, sc->status_word is NULL",
-						  __func__, __LINE__));
+			KASSERT(sc->dmarptr,
+			    ("%s, %d, sc->dmarptr is NULL", __func__,
+				__LINE__));
+			KASSERT(sc->status_word,
+			    ("%s, %d, sc->status_word is NULL", __func__,
+				__LINE__));
 			*sc->status_word = COMPLETION_WORD_INIT;
 			sc->cmd.cmd3.rptr = sc->dmarptr;
 		}
@@ -714,24 +713,24 @@ lio_send_soft_command(struct octeon_device *oct, struct lio_soft_command *sc)
 	if (sc->wait_time)
 		sc->timeout = ticks + lio_ms_to_ticks(sc->wait_time);
 
-	return (lio_send_command(oct, sc->iq_no, 1, &sc->cmd, sc,
-				 len, LIO_REQTYPE_SOFT_COMMAND));
+	return (lio_send_command(oct, sc->iq_no, 1, &sc->cmd, sc, len,
+	    LIO_REQTYPE_SOFT_COMMAND));
 }
 
 int
 lio_setup_sc_buffer_pool(struct octeon_device *oct)
 {
-	struct lio_soft_command	*sc;
-	uint64_t		dma_addr;
-	int			i;
+	struct lio_soft_command *sc;
+	uint64_t dma_addr;
+	int i;
 
 	STAILQ_INIT(&oct->sc_buf_pool.head);
 	mtx_init(&oct->sc_buf_pool.lock, "sc_pool_lock", NULL, MTX_DEF);
 	atomic_store_rel_int(&oct->sc_buf_pool.alloc_buf_count, 0);
 
 	for (i = 0; i < LIO_MAX_SOFT_COMMAND_BUFFERS; i++) {
-		sc = (struct lio_soft_command *)
-			lio_dma_alloc(LIO_SOFT_COMMAND_BUFFER_SIZE, (vm_paddr_t *)&dma_addr);
+		sc = (struct lio_soft_command *)lio_dma_alloc(
+		    LIO_SOFT_COMMAND_BUFFER_SIZE, (vm_paddr_t *)&dma_addr);
 		if (sc == NULL) {
 			lio_free_sc_buffer_pool(oct);
 			return (1);
@@ -749,14 +748,14 @@ lio_setup_sc_buffer_pool(struct octeon_device *oct)
 int
 lio_free_sc_buffer_pool(struct octeon_device *oct)
 {
-	struct lio_stailq_node	*tmp, *tmp2;
-	struct lio_soft_command	*sc;
+	struct lio_stailq_node *tmp, *tmp2;
+	struct lio_soft_command *sc;
 
 	mtx_lock(&oct->sc_buf_pool.lock);
 
-	STAILQ_FOREACH_SAFE(tmp, &oct->sc_buf_pool.head, entries, tmp2) {
+	STAILQ_FOREACH_SAFE (tmp, &oct->sc_buf_pool.head, entries, tmp2) {
 		sc = LIO_STAILQ_FIRST_ENTRY(&oct->sc_buf_pool.head,
-					    struct lio_soft_command, node);
+		    struct lio_soft_command, node);
 
 		STAILQ_REMOVE_HEAD(&oct->sc_buf_pool.head, entries);
 
@@ -772,18 +771,18 @@ lio_free_sc_buffer_pool(struct octeon_device *oct)
 
 struct lio_soft_command *
 lio_alloc_soft_command(struct octeon_device *oct, uint32_t datasize,
-		       uint32_t rdatasize, uint32_t ctxsize)
+    uint32_t rdatasize, uint32_t ctxsize)
 {
-	struct lio_soft_command	*sc = NULL;
-	struct lio_stailq_node	*tmp;
-	uint64_t		dma_addr;
-	uint32_t		size;
-	uint32_t		offset = sizeof(struct lio_soft_command);
+	struct lio_soft_command *sc = NULL;
+	struct lio_stailq_node *tmp;
+	uint64_t dma_addr;
+	uint32_t size;
+	uint32_t offset = sizeof(struct lio_soft_command);
 
 	KASSERT((offset + datasize + rdatasize + ctxsize) <=
 		LIO_SOFT_COMMAND_BUFFER_SIZE,
-		("%s, %d, offset + datasize + rdatasize + ctxsize > LIO_SOFT_COMMAND_BUFFER_SIZE",
-		 __func__, __LINE__));
+	    ("%s, %d, offset + datasize + rdatasize + ctxsize > LIO_SOFT_COMMAND_BUFFER_SIZE",
+		__func__, __LINE__));
 
 	mtx_lock(&oct->sc_buf_pool.lock);
 
@@ -826,20 +825,19 @@ lio_alloc_soft_command(struct octeon_device *oct, uint32_t datasize,
 	offset = (offset + datasize + 127) & 0xffffff80;
 
 	if (rdatasize) {
-		KASSERT(rdatasize >= 16, ("%s, %d, rdatasize < 16", __func__,
-					  __LINE__));
+		KASSERT(rdatasize >= 16,
+		    ("%s, %d, rdatasize < 16", __func__, __LINE__));
 		sc->virtrptr = (uint8_t *)sc + offset;
 		sc->dmarptr = dma_addr + offset;
 		sc->rdatasize = rdatasize;
 		sc->status_word = (uint64_t *)((uint8_t *)(sc->virtrptr) +
-					       rdatasize - 8);
+		    rdatasize - 8);
 	}
 	return (sc);
 }
 
 void
-lio_free_soft_command(struct octeon_device *oct,
-		      struct lio_soft_command *sc)
+lio_free_soft_command(struct octeon_device *oct, struct lio_soft_command *sc)
 {
 
 	mtx_lock(&oct->sc_buf_pool.lock);

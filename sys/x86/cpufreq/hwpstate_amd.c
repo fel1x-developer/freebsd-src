@@ -49,88 +49,88 @@
 #include <sys/bus.h>
 #include <sys/cpu.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
-#include <sys/proc.h>
+#include <sys/module.h>
 #include <sys/pcpu.h>
-#include <sys/smp.h>
+#include <sys/proc.h>
 #include <sys/sched.h>
+#include <sys/smp.h>
 
-#include <machine/md_var.h>
 #include <machine/cputypes.h>
+#include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "acpi_if.h"
 #include "cpufreq_if.h"
 
-#define	MSR_AMD_10H_11H_LIMIT	0xc0010061
-#define	MSR_AMD_10H_11H_CONTROL	0xc0010062
-#define	MSR_AMD_10H_11H_STATUS	0xc0010063
-#define	MSR_AMD_10H_11H_CONFIG	0xc0010064
+#define MSR_AMD_10H_11H_LIMIT 0xc0010061
+#define MSR_AMD_10H_11H_CONTROL 0xc0010062
+#define MSR_AMD_10H_11H_STATUS 0xc0010063
+#define MSR_AMD_10H_11H_CONFIG 0xc0010064
 
-#define	AMD_10H_11H_MAX_STATES	16
+#define AMD_10H_11H_MAX_STATES 16
 
 /* for MSR_AMD_10H_11H_LIMIT C001_0061 */
-#define	AMD_10H_11H_GET_PSTATE_MAX_VAL(msr)	(((msr) >> 4) & 0x7)
-#define	AMD_10H_11H_GET_PSTATE_LIMIT(msr)	(((msr)) & 0x7)
+#define AMD_10H_11H_GET_PSTATE_MAX_VAL(msr) (((msr) >> 4) & 0x7)
+#define AMD_10H_11H_GET_PSTATE_LIMIT(msr) (((msr)) & 0x7)
 /* for MSR_AMD_10H_11H_CONFIG 10h:C001_0064:68 / 11h:C001_0064:6B */
-#define	AMD_10H_11H_CUR_VID(msr)		(((msr) >> 9) & 0x7F)
-#define	AMD_10H_11H_CUR_DID(msr)		(((msr) >> 6) & 0x07)
-#define	AMD_10H_11H_CUR_FID(msr)		((msr) & 0x3F)
+#define AMD_10H_11H_CUR_VID(msr) (((msr) >> 9) & 0x7F)
+#define AMD_10H_11H_CUR_DID(msr) (((msr) >> 6) & 0x07)
+#define AMD_10H_11H_CUR_FID(msr) ((msr) & 0x3F)
 
-#define	AMD_17H_CUR_IDIV(msr)			(((msr) >> 30) & 0x03)
-#define	AMD_17H_CUR_IDD(msr)			(((msr) >> 22) & 0xFF)
-#define	AMD_17H_CUR_VID(msr)			(((msr) >> 14) & 0xFF)
-#define	AMD_17H_CUR_DID(msr)			(((msr) >> 8) & 0x3F)
-#define	AMD_17H_CUR_FID(msr)			((msr) & 0xFF)
+#define AMD_17H_CUR_IDIV(msr) (((msr) >> 30) & 0x03)
+#define AMD_17H_CUR_IDD(msr) (((msr) >> 22) & 0xFF)
+#define AMD_17H_CUR_VID(msr) (((msr) >> 14) & 0xFF)
+#define AMD_17H_CUR_DID(msr) (((msr) >> 8) & 0x3F)
+#define AMD_17H_CUR_FID(msr) ((msr) & 0xFF)
 
-#define	HWPSTATE_DEBUG(dev, msg...)			\
-	do {						\
-		if (hwpstate_verbose)			\
-			device_printf(dev, msg);	\
+#define HWPSTATE_DEBUG(dev, msg...)              \
+	do {                                     \
+		if (hwpstate_verbose)            \
+			device_printf(dev, msg); \
 	} while (0)
 
 struct hwpstate_setting {
-	int	freq;		/* CPU clock in Mhz or 100ths of a percent. */
-	int	volts;		/* Voltage in mV. */
-	int	power;		/* Power consumed in mW. */
-	int	lat;		/* Transition latency in us. */
-	int	pstate_id;	/* P-State id */
+	int freq;      /* CPU clock in Mhz or 100ths of a percent. */
+	int volts;     /* Voltage in mV. */
+	int power;     /* Power consumed in mW. */
+	int lat;       /* Transition latency in us. */
+	int pstate_id; /* P-State id */
 };
 
 struct hwpstate_softc {
-	device_t		dev;
-	struct hwpstate_setting	hwpstate_settings[AMD_10H_11H_MAX_STATES];
-	int			cfnum;
+	device_t dev;
+	struct hwpstate_setting hwpstate_settings[AMD_10H_11H_MAX_STATES];
+	int cfnum;
 };
 
-static void	hwpstate_identify(driver_t *driver, device_t parent);
-static int	hwpstate_probe(device_t dev);
-static int	hwpstate_attach(device_t dev);
-static int	hwpstate_detach(device_t dev);
-static int	hwpstate_set(device_t dev, const struct cf_setting *cf);
-static int	hwpstate_get(device_t dev, struct cf_setting *cf);
-static int	hwpstate_settings(device_t dev, struct cf_setting *sets, int *count);
-static int	hwpstate_type(device_t dev, int *type);
-static int	hwpstate_shutdown(device_t dev);
-static int	hwpstate_features(driver_t *driver, u_int *features);
-static int	hwpstate_get_info_from_acpi_perf(device_t dev, device_t perf_dev);
-static int	hwpstate_get_info_from_msr(device_t dev);
-static int	hwpstate_goto_pstate(device_t dev, int pstate_id);
+static void hwpstate_identify(driver_t *driver, device_t parent);
+static int hwpstate_probe(device_t dev);
+static int hwpstate_attach(device_t dev);
+static int hwpstate_detach(device_t dev);
+static int hwpstate_set(device_t dev, const struct cf_setting *cf);
+static int hwpstate_get(device_t dev, struct cf_setting *cf);
+static int hwpstate_settings(device_t dev, struct cf_setting *sets, int *count);
+static int hwpstate_type(device_t dev, int *type);
+static int hwpstate_shutdown(device_t dev);
+static int hwpstate_features(driver_t *driver, u_int *features);
+static int hwpstate_get_info_from_acpi_perf(device_t dev, device_t perf_dev);
+static int hwpstate_get_info_from_msr(device_t dev);
+static int hwpstate_goto_pstate(device_t dev, int pstate_id);
 
-static int	hwpstate_verbose;
-SYSCTL_INT(_debug, OID_AUTO, hwpstate_verbose, CTLFLAG_RWTUN,
-    &hwpstate_verbose, 0, "Debug hwpstate");
+static int hwpstate_verbose;
+SYSCTL_INT(_debug, OID_AUTO, hwpstate_verbose, CTLFLAG_RWTUN, &hwpstate_verbose,
+    0, "Debug hwpstate");
 
-static int	hwpstate_verify;
-SYSCTL_INT(_debug, OID_AUTO, hwpstate_verify, CTLFLAG_RWTUN,
-    &hwpstate_verify, 0, "Verify P-state after setting");
+static int hwpstate_verify;
+SYSCTL_INT(_debug, OID_AUTO, hwpstate_verify, CTLFLAG_RWTUN, &hwpstate_verify,
+    0, "Verify P-state after setting");
 
-static bool	hwpstate_pstate_limit;
+static bool hwpstate_pstate_limit;
 SYSCTL_BOOL(_debug, OID_AUTO, hwpstate_pstate_limit, CTLFLAG_RWTUN,
     &hwpstate_pstate_limit, 0,
     "If enabled (1), limit administrative control of P-states to the value in "
@@ -138,21 +138,20 @@ SYSCTL_BOOL(_debug, OID_AUTO, hwpstate_pstate_limit, CTLFLAG_RWTUN,
 
 static device_method_t hwpstate_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	hwpstate_identify),
-	DEVMETHOD(device_probe,		hwpstate_probe),
-	DEVMETHOD(device_attach,	hwpstate_attach),
-	DEVMETHOD(device_detach,	hwpstate_detach),
-	DEVMETHOD(device_shutdown,	hwpstate_shutdown),
+	DEVMETHOD(device_identify, hwpstate_identify),
+	DEVMETHOD(device_probe, hwpstate_probe),
+	DEVMETHOD(device_attach, hwpstate_attach),
+	DEVMETHOD(device_detach, hwpstate_detach),
+	DEVMETHOD(device_shutdown, hwpstate_shutdown),
 
 	/* cpufreq interface */
-	DEVMETHOD(cpufreq_drv_set,	hwpstate_set),
-	DEVMETHOD(cpufreq_drv_get,	hwpstate_get),
-	DEVMETHOD(cpufreq_drv_settings,	hwpstate_settings),
-	DEVMETHOD(cpufreq_drv_type,	hwpstate_type),
+	DEVMETHOD(cpufreq_drv_set, hwpstate_set),
+	DEVMETHOD(cpufreq_drv_get, hwpstate_get),
+	DEVMETHOD(cpufreq_drv_settings, hwpstate_settings),
+	DEVMETHOD(cpufreq_drv_type, hwpstate_type),
 
 	/* ACPI interface */
-	DEVMETHOD(acpi_get_features,	hwpstate_features),
-	{0, 0}
+	DEVMETHOD(acpi_get_features, hwpstate_features), { 0, 0 }
 };
 
 static driver_t hwpstate_driver = {
@@ -179,8 +178,10 @@ hwpstate_goto_pstate(device_t dev, int id)
 		msr = rdmsr(MSR_AMD_10H_11H_LIMIT);
 		limit = AMD_10H_11H_GET_PSTATE_LIMIT(msr);
 		if (limit > id) {
-			HWPSTATE_DEBUG(dev, "Restricting requested P%d to P%d "
-			    "due to HW limit\n", id, limit);
+			HWPSTATE_DEBUG(dev,
+			    "Restricting requested P%d to P%d "
+			    "due to HW limit\n",
+			    id, limit);
 			id = limit;
 		}
 	}
@@ -194,7 +195,7 @@ hwpstate_goto_pstate(device_t dev, int id)
 	 * We are going to the same Px-state on all cpus.
 	 * Probably should take _PSD into account.
 	 */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (i == cpu)
 			continue;
 
@@ -211,7 +212,7 @@ hwpstate_goto_pstate(device_t dev, int id)
 	 * Verify whether each core is in the requested P-state.
 	 */
 	if (hwpstate_verify) {
-		CPU_FOREACH(i) {
+		CPU_FOREACH (i) {
 			thread_lock(curthread);
 			sched_bind(curthread, i);
 			thread_unlock(curthread);
@@ -324,7 +325,8 @@ hwpstate_identify(driver_t *driver, device_t parent)
 	if (device_find_child(parent, "hwpstate", -1) != NULL)
 		return;
 
-	if ((cpu_vendor_id != CPU_VENDOR_AMD || CPUID_TO_FAMILY(cpu_id) < 0x10) &&
+	if ((cpu_vendor_id != CPU_VENDOR_AMD ||
+		CPUID_TO_FAMILY(cpu_id) < 0x10) &&
 	    cpu_vendor_id != CPU_VENDOR_HYGON)
 		return;
 
@@ -339,8 +341,8 @@ hwpstate_identify(driver_t *driver, device_t parent)
 	if (resource_disabled("hwpstate", 0))
 		return;
 
-	if (BUS_ADD_CHILD(parent, 10, "hwpstate", device_get_unit(parent))
-	    == NULL)
+	if (BUS_ADD_CHILD(parent, 10, "hwpstate", device_get_unit(parent)) ==
+	    NULL)
 		device_printf(parent, "hwpstate: add child failed\n");
 }
 
@@ -375,16 +377,19 @@ hwpstate_probe(device_t dev)
 				 * If acpi_perf doesn't have INFO_ONLY flag,
 				 * it will take care of pstate transitions.
 				 */
-				HWPSTATE_DEBUG(dev, "acpi_perf will take care of pstate transitions.\n");
+				HWPSTATE_DEBUG(dev,
+				    "acpi_perf will take care of pstate transitions.\n");
 				return (ENXIO);
 			} else {
 				/*
-				 * If acpi_perf has INFO_ONLY flag, (_PCT has FFixedHW)
-				 * we can get _PSS info from acpi_perf
+				 * If acpi_perf has INFO_ONLY flag, (_PCT has
+				 * FFixedHW) we can get _PSS info from acpi_perf
 				 * without going into ACPI.
 				 */
-				HWPSTATE_DEBUG(dev, "going to fetch info from acpi_perf\n");
-				error = hwpstate_get_info_from_acpi_perf(dev, perf_dev);
+				HWPSTATE_DEBUG(dev,
+				    "going to fetch info from acpi_perf\n");
+				error = hwpstate_get_info_from_acpi_perf(dev,
+				    perf_dev);
 			}
 		}
 	}
@@ -396,8 +401,10 @@ hwpstate_probe(device_t dev)
 		 */
 		msr = rdmsr(MSR_AMD_10H_11H_LIMIT);
 		if (sc->cfnum != 1 + AMD_10H_11H_GET_PSTATE_MAX_VAL(msr)) {
-			HWPSTATE_DEBUG(dev, "MSR (%jd) and ACPI _PSS (%d)"
-			    " count mismatch\n", (intmax_t)msr, sc->cfnum);
+			HWPSTATE_DEBUG(dev,
+			    "MSR (%jd) and ACPI _PSS (%d)"
+			    " count mismatch\n",
+			    (intmax_t)msr, sc->cfnum);
 			error = TRUE;
 		}
 	}
@@ -485,15 +492,16 @@ hwpstate_get_info_from_msr(device_t dev)
 				hwpstate_set[i].power /= 10;
 			case 1: /* divide by 10 */
 				hwpstate_set[i].power /= 10;
-			case 0:	/* divide by 1 */
-				;
+			case 0: /* divide by 1 */
+			    ;
 			}
 			hwpstate_set[i].power *= hwpstate_set[i].volts;
 			/* Milli amps * milli volts to milli watts. */
 			hwpstate_set[i].power /= 1000;
 			break;
 		default:
-			HWPSTATE_DEBUG(dev, "get_info_from_msr: %s family"
+			HWPSTATE_DEBUG(dev,
+			    "get_info_from_msr: %s family"
 			    " 0x%02x CPUs are not supported yet\n",
 			    cpu_vendor_id == CPU_VENDOR_HYGON ? "Hygon" : "AMD",
 			    family);

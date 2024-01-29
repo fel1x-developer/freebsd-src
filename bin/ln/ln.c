@@ -42,19 +42,19 @@
 #include <string.h>
 #include <unistd.h>
 
-static int	fflag;			/* Unlink existing files. */
-static int	Fflag;			/* Remove empty directories also. */
-static int	hflag;			/* Check new name for symlink first. */
-static int	iflag;			/* Interactive mode. */
-static int	Pflag;			/* Create hard links to symlinks. */
-static int	sflag;			/* Symbolic, not hard, link. */
-static int	vflag;			/* Verbose output. */
-static int	wflag;			/* Warn if symlink target does not
-					 * exist, and -f is not enabled. */
-static char	linkch;
+static int fflag; /* Unlink existing files. */
+static int Fflag; /* Remove empty directories also. */
+static int hflag; /* Check new name for symlink first. */
+static int iflag; /* Interactive mode. */
+static int Pflag; /* Create hard links to symlinks. */
+static int sflag; /* Symbolic, not hard, link. */
+static int vflag; /* Verbose output. */
+static int wflag; /* Warn if symlink target does not
+		   * exist, and -f is not enabled. */
+static char linkch;
 
-static int	linkit(const char *, const char *, int);
-static void	usage(void);
+static int linkit(const char *, const char *, int);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -128,21 +128,20 @@ main(int argc, char *argv[])
 		Fflag = 0;
 	if (Fflag == 1 && iflag == 0) {
 		fflag = 1;
-		wflag = 0;		/* Implied when fflag != 0 */
+		wflag = 0; /* Implied when fflag != 0 */
 	}
 
-	switch(argc) {
+	switch (argc) {
 	case 0:
 		usage();
 		/* NOTREACHED */
-	case 1:				/* ln source */
+	case 1: /* ln source */
 		exit(linkit(argv[0], ".", 1));
-	case 2:				/* ln source target */
+	case 2: /* ln source target */
 		exit(linkit(argv[0], argv[1], 0));
-	default:
-		;
+	default:;
 	}
-					/* ln source1 source2 directory */
+	/* ln source1 source2 directory */
 	targetdir = argv[argc - 1];
 	if (hflag && lstat(targetdir, &sb) == 0 && S_ISLNK(sb.st_mode)) {
 		/*
@@ -235,13 +234,13 @@ linkit(const char *source, const char *target, int isdir)
 	 * If the target is a directory (and not a symlink if hflag),
 	 * append the source's name, unless Fflag is set.
 	 */
-	if (!Fflag && (isdir ||
-	    (lstat(target, &sb) == 0 && S_ISDIR(sb.st_mode)) ||
-	    (!hflag && stat(target, &sb) == 0 && S_ISDIR(sb.st_mode)))) {
+	if (!Fflag &&
+	    (isdir || (lstat(target, &sb) == 0 && S_ISDIR(sb.st_mode)) ||
+		(!hflag && stat(target, &sb) == 0 && S_ISDIR(sb.st_mode)))) {
 		if (strlcpy(bbuf, source, sizeof(bbuf)) >= sizeof(bbuf) ||
 		    (p = basename(bbuf)) == NULL ||
 		    snprintf(path, sizeof(path), "%s/%s", target, p) >=
-		    (ssize_t)sizeof(path)) {
+			(ssize_t)sizeof(path)) {
 			errno = ENAMETOOLONG;
 			warn("%s", source);
 			return (1);
@@ -257,7 +256,7 @@ linkit(const char *source, const char *target, int isdir)
 		if (*source == '/') {
 			/* Absolute link source. */
 			if (stat(source, &sb) != 0)
-				 warn("warning: %s inaccessible", source);
+				warn("warning: %s inaccessible", source);
 		} else {
 			/*
 			 * Relative symlink source.  Try to construct the
@@ -267,8 +266,8 @@ linkit(const char *source, const char *target, int isdir)
 			strlcpy(bbuf, target, sizeof(bbuf));
 			p = dirname(bbuf);
 			if (p != NULL) {
-				(void)snprintf(wbuf, sizeof(wbuf), "%s/%s",
-						p, source);
+				(void)snprintf(wbuf, sizeof(wbuf), "%s/%s", p,
+				    source);
 				if (stat(wbuf, &sb) != 0)
 					warn("warning: %s", source);
 			}
@@ -281,8 +280,8 @@ linkit(const char *source, const char *target, int isdir)
 	exists = !lstat(target, &sb);
 	if (exists) {
 		if (!sflag && samedirent(source, target)) {
-			warnx("%s and %s are the same directory entry",
-			    source, target);
+			warnx("%s and %s are the same directory entry", source,
+			    target);
 			return (1);
 		}
 	}
@@ -305,7 +304,7 @@ linkit(const char *source, const char *target, int isdir)
 		fprintf(stderr, "replace %s? ", target);
 
 		first = ch = getchar();
-		while(ch != '\n' && ch != EOF)
+		while (ch != '\n' && ch != EOF)
 			ch = getchar();
 		if (first != 'y' && first != 'Y') {
 			fprintf(stderr, "not replaced\n");
@@ -325,8 +324,8 @@ linkit(const char *source, const char *target, int isdir)
 
 	/* Attempt the link. */
 	if (sflag ? symlink(source, target) :
-	    linkat(AT_FDCWD, source, AT_FDCWD, target,
-	    Pflag ? 0 : AT_SYMLINK_FOLLOW)) {
+		    linkat(AT_FDCWD, source, AT_FDCWD, target,
+			Pflag ? 0 : AT_SYMLINK_FOLLOW)) {
 		warn("%s", target);
 		return (1);
 	}

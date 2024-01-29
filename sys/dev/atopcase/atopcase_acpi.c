@@ -33,34 +33,31 @@
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/sx.h>
 #include <sys/taskqueue.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/acevents.h>
-#include <dev/acpica/acpivar.h>
 #include <dev/acpica/acpiio.h>
-
+#include <dev/acpica/acpivar.h>
 #include <dev/backlight/backlight.h>
-
 #include <dev/evdev/input.h>
 
-#define	HID_DEBUG_VAR atopcase_debug
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acevents.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
+#define HID_DEBUG_VAR atopcase_debug
 #include <dev/hid/hid.h>
 #include <dev/hid/hidquirk.h>
-
 #include <dev/spibus/spi.h>
 #include <dev/spibus/spibusvar.h>
 
-#include "backlight_if.h"
-#include "hid_if.h"
-
 #include "atopcase_reg.h"
 #include "atopcase_var.h"
+#include "backlight_if.h"
+#include "hid_if.h"
 
 /*
  * XXX: The Linux driver only supports ACPI GPEs, but we only receive
@@ -75,11 +72,11 @@
 
 static const char *atopcase_ids[] = { "APP000D", NULL };
 
-static device_probe_t	atopcase_acpi_probe;
-static device_attach_t	atopcase_acpi_attach;
-static device_detach_t	atopcase_acpi_detach;
-static device_suspend_t	atopcase_acpi_suspend;
-static device_resume_t	atopcase_acpi_resume;
+static device_probe_t atopcase_acpi_probe;
+static device_attach_t atopcase_acpi_attach;
+static device_detach_t atopcase_acpi_detach;
+static device_suspend_t atopcase_acpi_suspend;
+static device_resume_t atopcase_acpi_resume;
 
 static bool
 acpi_is_atopcase(ACPI_HANDLE handle)
@@ -117,8 +114,7 @@ atopcase_acpi_set_comm_enabled(struct atopcase_softc *sc, char *prop,
 	args.Count = 1;
 	args.Pointer = &argobj;
 
-	if (ACPI_FAILURE(
-	    AcpiEvaluateObject(sc->sc_handle, prop, &args, NULL)))
+	if (ACPI_FAILURE(AcpiEvaluateObject(sc->sc_handle, prop, &args, NULL)))
 		return (ENXIO);
 
 	DELAY(100);
@@ -205,8 +201,9 @@ atopcase_acpi_probe(device_t dev)
 		return (ENXIO);
 
 	/* If USB interface exists and is enabled, use USB driver */
-	if (atopcase_acpi_test_comm_enabled(handle, "UIST", &usb_enabled) == 0
-	    && usb_enabled != 0)
+	if (atopcase_acpi_test_comm_enabled(handle, "UIST", &usb_enabled) ==
+		0 &&
+	    usb_enabled != 0)
 		return (ENXIO);
 
 	device_set_desc(dev, "Apple MacBook SPI Topcase");
@@ -226,7 +223,7 @@ atopcase_acpi_attach(device_t dev)
 	sc->sc_handle = acpi_get_handle(dev);
 
 	if (atopcase_acpi_test_comm_enabled(sc->sc_handle, "SIST",
-	    &spi_enabled) != 0) {
+		&spi_enabled) != 0) {
 		device_printf(dev, "can't test SPI communication\n");
 		return (ENXIO);
 	}
@@ -268,12 +265,12 @@ atopcase_acpi_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	err = ENXIO;
-	sc->sc_irq_res = bus_alloc_resource_any(sc->sc_dev,
-	    SYS_RES_IRQ, &sc->sc_irq_rid, RF_ACTIVE);
+	sc->sc_irq_res = bus_alloc_resource_any(sc->sc_dev, SYS_RES_IRQ,
+	    &sc->sc_irq_rid, RF_ACTIVE);
 	if (sc->sc_irq_res != NULL) {
 		if (bus_setup_intr(dev, sc->sc_irq_res,
-		      INTR_TYPE_MISC | INTR_MPSAFE, NULL,
-		      atopcase_acpi_intr, sc, &sc->sc_irq_ih) != 0) {
+			INTR_TYPE_MISC | INTR_MPSAFE, NULL, atopcase_acpi_intr,
+			sc, &sc->sc_irq_ih) != 0) {
 			device_printf(dev, "can't setup interrupt handler\n");
 			goto err;
 		}
@@ -290,10 +287,12 @@ atopcase_acpi_attach(device_t dev)
 		if (sc->sc_intr_cnt > 2 || sc->sc_intr_cnt == 0) {
 			bus_teardown_intr(dev, sc->sc_irq_res, sc->sc_irq_ih);
 			sc->sc_irq_ih = NULL;
-			device_printf(dev, "Interrupt storm detected. "
+			device_printf(dev,
+			    "Interrupt storm detected. "
 			    "Falling back to polling\n");
-			sc->sc_tq = taskqueue_create("atc_tq", M_WAITOK|M_ZERO,
-			    taskqueue_thread_enqueue, &sc->sc_tq);
+			sc->sc_tq = taskqueue_create("atc_tq",
+			    M_WAITOK | M_ZERO, taskqueue_thread_enqueue,
+			    &sc->sc_tq);
 			TIMEOUT_TASK_INIT(sc->sc_tq, &sc->sc_task, 0,
 			    atopcase_acpi_task, sc);
 			taskqueue_start_threads(&sc->sc_tq, 1, PI_TTY,
@@ -311,12 +310,12 @@ atopcase_acpi_attach(device_t dev)
 		if (bootverbose)
 			device_printf(dev, "can't allocate IRQ resource\n");
 		if (ACPI_FAILURE(acpi_GetInteger(sc->sc_handle, "_GPE",
-		    &sc->sc_gpe_bit))) {
+			&sc->sc_gpe_bit))) {
 			device_printf(dev, "can't allocate nor IRQ nor GPE\n");
 			goto err;
 		}
 		if (ACPI_FAILURE(AcpiInstallGpeHandler(NULL, sc->sc_gpe_bit,
-		    ACPI_GPE_LEVEL_TRIGGERED, atopcase_acpi_notify, sc))) {
+			ACPI_GPE_LEVEL_TRIGGERED, atopcase_acpi_notify, sc))) {
 			device_printf(dev, "can't install ACPI GPE handler\n");
 			goto err;
 		}
@@ -350,8 +349,8 @@ atopcase_acpi_detach(device_t dev)
 	if (sc->sc_irq_ih)
 		bus_teardown_intr(dev, sc->sc_irq_res, sc->sc_irq_ih);
 	if (sc->sc_irq_res != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 
 	if (sc->sc_tq != NULL) {
 		while (taskqueue_cancel_timeout(sc->sc_tq, &sc->sc_task, NULL))
@@ -359,8 +358,9 @@ atopcase_acpi_detach(device_t dev)
 		taskqueue_free(sc->sc_tq);
 	}
 
-	if (sc->sc_gpe_bit != 0 && ACPI_FAILURE(AcpiRemoveGpeHandler(NULL,
-	    sc->sc_gpe_bit, atopcase_acpi_notify)))
+	if (sc->sc_gpe_bit != 0 &&
+	    ACPI_FAILURE(AcpiRemoveGpeHandler(NULL, sc->sc_gpe_bit,
+		atopcase_acpi_notify)))
 		device_printf(dev, "can't remove ACPI GPE handler\n");
 
 	if (atopcase_acpi_set_comm_enabled(sc, "SIEN", false) != 0)
@@ -417,27 +417,27 @@ atopcase_acpi_resume(device_t dev)
 
 static device_method_t atopcase_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		atopcase_acpi_probe),
-	DEVMETHOD(device_attach,	atopcase_acpi_attach),
-	DEVMETHOD(device_detach,	atopcase_acpi_detach),
-	DEVMETHOD(device_suspend,	atopcase_acpi_suspend),
-	DEVMETHOD(device_resume,	atopcase_acpi_resume),
+	DEVMETHOD(device_probe, atopcase_acpi_probe),
+	DEVMETHOD(device_attach, atopcase_acpi_attach),
+	DEVMETHOD(device_detach, atopcase_acpi_detach),
+	DEVMETHOD(device_suspend, atopcase_acpi_suspend),
+	DEVMETHOD(device_resume, atopcase_acpi_resume),
 
 	/* HID interrupt interface */
-	DEVMETHOD(hid_intr_setup,	atopcase_intr_setup),
-	DEVMETHOD(hid_intr_unsetup,	atopcase_intr_unsetup),
-	DEVMETHOD(hid_intr_start,	atopcase_intr_start),
-	DEVMETHOD(hid_intr_stop,	atopcase_intr_stop),
-	DEVMETHOD(hid_intr_poll,	atopcase_intr_poll),
+	DEVMETHOD(hid_intr_setup, atopcase_intr_setup),
+	DEVMETHOD(hid_intr_unsetup, atopcase_intr_unsetup),
+	DEVMETHOD(hid_intr_start, atopcase_intr_start),
+	DEVMETHOD(hid_intr_stop, atopcase_intr_stop),
+	DEVMETHOD(hid_intr_poll, atopcase_intr_poll),
 
 	/* HID interface */
-	DEVMETHOD(hid_get_rdesc,	atopcase_get_rdesc),
-	DEVMETHOD(hid_set_report,	atopcase_set_report),
+	DEVMETHOD(hid_get_rdesc, atopcase_get_rdesc),
+	DEVMETHOD(hid_set_report, atopcase_set_report),
 
 	/* Backlight interface */
 	DEVMETHOD(backlight_update_status, atopcase_backlight_update_status),
-	DEVMETHOD(backlight_get_status,	atopcase_backlight_get_status),
-	DEVMETHOD(backlight_get_info,	atopcase_backlight_get_info),
+	DEVMETHOD(backlight_get_status, atopcase_backlight_get_status),
+	DEVMETHOD(backlight_get_info, atopcase_backlight_get_info),
 
 	DEVMETHOD_END
 };

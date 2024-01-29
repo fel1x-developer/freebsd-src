@@ -95,7 +95,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/resource.h>
@@ -118,31 +117,43 @@
 #include <unistd.h>
 
 static struct nlist namelist[] = {
-#define X_TTY_NIN	0
+#define X_TTY_NIN 0
 	{ .n_name = "_tty_nin",
-	  .n_type = 0, .n_other = 0, .n_desc = 0, .n_value = 0 },
-#define X_TTY_NOUT	1
+	    .n_type = 0,
+	    .n_other = 0,
+	    .n_desc = 0,
+	    .n_value = 0 },
+#define X_TTY_NOUT 1
 	{ .n_name = "_tty_nout",
-	  .n_type = 0, .n_other = 0, .n_desc = 0, .n_value = 0 },
-#define X_BOOTTIME	2
+	    .n_type = 0,
+	    .n_other = 0,
+	    .n_desc = 0,
+	    .n_value = 0 },
+#define X_BOOTTIME 2
 	{ .n_name = "_boottime",
-	  .n_type = 0, .n_other = 0, .n_desc = 0, .n_value = 0 },
-#define X_END		2
+	    .n_type = 0,
+	    .n_other = 0,
+	    .n_desc = 0,
+	    .n_value = 0 },
+#define X_END 2
 	{ .n_name = NULL,
-	  .n_type = 0, .n_other = 0, .n_desc = 0, .n_value = 0 },
+	    .n_type = 0,
+	    .n_other = 0,
+	    .n_desc = 0,
+	    .n_value = 0 },
 };
 
-#define	IOSTAT_DEFAULT_ROWS	20	/* Traditional default `wrows' */
+#define IOSTAT_DEFAULT_ROWS 20 /* Traditional default `wrows' */
 
 static struct statinfo cur, last;
 static int num_devices;
 static struct device_selection *dev_select;
 static int maxshowdevs;
 static volatile sig_atomic_t headercount;
-static volatile sig_atomic_t wresized;	/* Tty resized, when non-zero. */
+static volatile sig_atomic_t wresized; /* Tty resized, when non-zero. */
 static volatile sig_atomic_t alarm_rang;
 static volatile sig_atomic_t return_requested;
-static unsigned short wrows;		/* Current number of tty rows. */
+static unsigned short wrows; /* Current number of tty rows. */
 static int dflag = 0, Iflag = 0, Cflag = 0, Tflag = 0, oflag = 0, Kflag = 0;
 static int xflag = 0, zflag = 0;
 
@@ -157,7 +168,7 @@ static void phdr(void);
 static void devstats(int perf_select, long double etime, int havelast);
 static void cpustats(void);
 static int readvar(kvm_t *kd, const char *name, int nlid, void *ptr,
-		   size_t len);
+    size_t len);
 
 static void
 usage(void)
@@ -168,9 +179,10 @@ usage(void)
 	 * This isn't mentioned in the man page, or the usage statement,
 	 * but it is supported.
 	 */
-	fprintf(stderr, "usage: iostat [-CdhIKoTxz] [-c count] [-M core]"
-		" [-n devs] [-N system]\n"
-		"\t      [-t type,if,pass] [-w wait] [drives]\n");
+	fprintf(stderr,
+	    "usage: iostat [-CdhIKoTxz] [-c count] [-M core]"
+	    " [-n devs] [-N system]\n"
+	    "\t      [-t type,if,pass] [-w wait] [drives]\n");
 	exit(1);
 }
 
@@ -200,66 +212,66 @@ main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, "Cc:dhIKM:N:n:oTt:w:xz")) != -1) {
 		switch (c) {
-			case 'C':
-				Cflag++;
-				break;
-			case 'c':
-				cflag++;
-				count = atoi(optarg);
-				if (count < 1)
-					errx(1, "count %d is < 1", count);
-				break;
-			case 'd':
-				dflag++;
-				break;
-			case 'h':
-				hflag++;
-				break;
-			case 'I':
-				Iflag++;
-				break;
-			case 'K':
-				Kflag++;
-				break;
-			case 'M':
-				memf = optarg;
-				break;
-			case 'N':
-				nlistf = optarg;
-				break;
-			case 'n':
-				nflag++;
-				maxshowdevs = atoi(optarg);
-				if (maxshowdevs < 0)
-					errx(1, "number of devices %d is < 0",
-					     maxshowdevs);
-				break;
-			case 'o':
-				oflag++;
-				break;
-			case 'T':
-				Tflag++;
-				break;
-			case 't':
-				if (devstat_buildmatch(optarg, &matches,
-						       &num_matches) != 0)
-					errx(1, "%s", devstat_errbuf);
-				break;
-			case 'w':
-				wflag++;
-				f = atof(optarg);
-				waittime = f * 1000;
-				if (waittime < 1)
-					errx(1, "wait time is < 1ms");
-				break;
-			case 'x':
-				xflag++;
-				break;
-			case 'z':
-				zflag++;
-				break;
-			default:
-				usage();
+		case 'C':
+			Cflag++;
+			break;
+		case 'c':
+			cflag++;
+			count = atoi(optarg);
+			if (count < 1)
+				errx(1, "count %d is < 1", count);
+			break;
+		case 'd':
+			dflag++;
+			break;
+		case 'h':
+			hflag++;
+			break;
+		case 'I':
+			Iflag++;
+			break;
+		case 'K':
+			Kflag++;
+			break;
+		case 'M':
+			memf = optarg;
+			break;
+		case 'N':
+			nlistf = optarg;
+			break;
+		case 'n':
+			nflag++;
+			maxshowdevs = atoi(optarg);
+			if (maxshowdevs < 0)
+				errx(1, "number of devices %d is < 0",
+				    maxshowdevs);
+			break;
+		case 'o':
+			oflag++;
+			break;
+		case 'T':
+			Tflag++;
+			break;
+		case 't':
+			if (devstat_buildmatch(optarg, &matches,
+				&num_matches) != 0)
+				errx(1, "%s", devstat_errbuf);
+			break;
+		case 'w':
+			wflag++;
+			f = atof(optarg);
+			waittime = f * 1000;
+			if (waittime < 1)
+				errx(1, "wait time is < 1ms");
+			break;
+		case 'x':
+			xflag++;
+			break;
+		case 'z':
+			zflag++;
+			break;
+		default:
+			usage();
 		}
 	}
 
@@ -350,13 +362,11 @@ main(int argc, char **argv)
 			break;
 		num_devices_specified++;
 		specified_devices = (char **)realloc(specified_devices,
-						     sizeof(char *) *
-						     num_devices_specified);
+		    sizeof(char *) * num_devices_specified);
 		if (specified_devices == NULL)
 			err(1, "realloc failed");
 
 		specified_devices[num_devices_specified - 1] = *argv;
-
 	}
 	if (nflag == 0 && maxshowdevs < num_devices_specified)
 		maxshowdevs = num_devices_specified;
@@ -373,12 +383,10 @@ main(int argc, char **argv)
 	 * device list has changed, so we don't look for return values of 0
 	 * or 1.  If we get back -1, though, there is an error.
 	 */
-	if (devstat_selectdevs(&dev_select, &num_selected,
-			       &num_selections, &select_generation, generation,
-			       cur.dinfo->devices, num_devices, matches,
-			       num_matches, specified_devices,
-			       num_devices_specified, select_mode, maxshowdevs,
-			       hflag) == -1)
+	if (devstat_selectdevs(&dev_select, &num_selected, &num_selections,
+		&select_generation, generation, cur.dinfo->devices, num_devices,
+		matches, num_matches, specified_devices, num_devices_specified,
+		select_mode, maxshowdevs, hflag) == -1)
 		errx(1, "%s", devstat_errbuf);
 
 	/*
@@ -391,14 +399,16 @@ main(int argc, char **argv)
 		/* Let the user know he goofed, but keep going anyway */
 		if (wflag != 0)
 			warnx("discarding previous wait interval, using"
-			      " %g instead", waittime / 1000.0);
+			      " %g instead",
+			    waittime / 1000.0);
 		wflag++;
 
 		if (*++argv) {
 			count = atoi(*argv);
 			if (cflag != 0)
 				warnx("discarding previous count, using %d"
-				      " instead", count);
+				      " instead",
+				    count);
 			cflag++;
 		} else
 			count = -1;
@@ -475,18 +485,18 @@ main(int argc, char **argv)
 
 		if (Tflag > 0) {
 			if ((readvar(kd, "kern.tty_nin", X_TTY_NIN, &cur.tk_nin,
-			     sizeof(cur.tk_nin)) != 0)
-			 || (readvar(kd, "kern.tty_nout", X_TTY_NOUT,
-			     &cur.tk_nout, sizeof(cur.tk_nout))!= 0)) {
+				 sizeof(cur.tk_nin)) != 0) ||
+			    (readvar(kd, "kern.tty_nout", X_TTY_NOUT,
+				 &cur.tk_nout, sizeof(cur.tk_nout)) != 0)) {
 				Tflag = 0;
 				warnx("disabling TTY statistics");
 			}
-		 }
+		}
 
 		if (Cflag > 0) {
 			if (kd == NULL) {
-				if (readvar(kd, "kern.cp_time", 0,
-				    &cur.cp_time, sizeof(cur.cp_time)) != 0)
+				if (readvar(kd, "kern.cp_time", 0, &cur.cp_time,
+					sizeof(cur.cp_time)) != 0)
 					Cflag = 0;
 			} else {
 				if (kvm_getcptime(kd, cur.cp_time) < 0) {
@@ -529,17 +539,12 @@ main(int argc, char **argv)
 			num_devices = cur.dinfo->numdevs;
 			generation = cur.dinfo->generation;
 			retval = devstat_selectdevs(&dev_select, &num_selected,
-						    &num_selections,
-						    &select_generation,
-						    generation,
-						    cur.dinfo->devices,
-						    num_devices, matches,
-						    num_matches,
-						    specified_devices,
-						    num_devices_specified,
-						    select_mode, maxshowdevs,
-						    hflag);
-			switch(retval) {
+			    &num_selections, &select_generation, generation,
+			    cur.dinfo->devices, num_devices, matches,
+			    num_matches, specified_devices,
+			    num_devices_specified, select_mode, maxshowdevs,
+			    hflag);
+			switch (retval) {
 			case -1:
 				errx(1, "%s", devstat_errbuf);
 				break;
@@ -566,19 +571,14 @@ main(int argc, char **argv)
 		if (hflag > 0) {
 			int retval;
 			retval = devstat_selectdevs(&dev_select, &num_selected,
-						    &num_selections,
-						    &select_generation,
-						    generation,
-						    cur.dinfo->devices,
-						    num_devices, matches,
-						    num_matches,
-						    specified_devices,
-						    num_devices_specified,
-						    select_mode, maxshowdevs,
-						    hflag);
-			switch(retval) {
+			    &num_selections, &select_generation, generation,
+			    cur.dinfo->devices, num_devices, matches,
+			    num_matches, specified_devices,
+			    num_devices_specified, select_mode, maxshowdevs,
+			    hflag);
+			switch (retval) {
 			case -1:
-				errx(1,"%s", devstat_errbuf);
+				errx(1, "%s", devstat_errbuf);
 				break;
 			case 1:
 				phdr();
@@ -637,7 +637,7 @@ main(int argc, char **argv)
 		sigaddset(&sigmask, SIGINT);
 		sigaddset(&sigmask, SIGALRM);
 		sigprocmask(SIG_BLOCK, &sigmask, &oldsigmask);
-		while (! (alarm_rang || return_requested) ) {
+		while (!(alarm_rang || return_requested)) {
 			sigsuspend(&oldsigmask);
 		}
 		sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
@@ -732,14 +732,15 @@ phdr(void)
 
 	if (Tflag > 0)
 		(void)printf("       tty ");
-	for (i = 0, printed=0;(i < num_devices) && (printed < maxshowdevs);i++){
+	for (i = 0, printed = 0; (i < num_devices) && (printed < maxshowdevs);
+	     i++) {
 		int di;
-		if ((dev_select[i].selected != 0)
-		 && (dev_select[i].selected <= maxshowdevs)) {
+		if ((dev_select[i].selected != 0) &&
+		    (dev_select[i].selected <= maxshowdevs)) {
 			di = dev_select[i].position;
-			snprintf(devbuf, sizeof(devbuf), "%s%d", 
-					    cur.dinfo->devices[di].device_name,
-					    cur.dinfo->devices[di].unit_number);
+			snprintf(devbuf, sizeof(devbuf), "%s%d",
+			    cur.dinfo->devices[di].device_name,
+			    cur.dinfo->devices[di].unit_number);
 			if (oflag > 0)
 				(void)printf("%13.6s ", devbuf);
 			else
@@ -755,9 +756,10 @@ phdr(void)
 	if (Tflag > 0)
 		(void)printf(" tin  tout ");
 
-	for (i=0, printed = 0;(i < num_devices) && (printed < maxshowdevs);i++){
-		if ((dev_select[i].selected != 0)
-		 && (dev_select[i].selected <= maxshowdevs)) {
+	for (i = 0, printed = 0; (i < num_devices) && (printed < maxshowdevs);
+	     i++) {
+		if ((dev_select[i].selected != 0) &&
+		    (dev_select[i].selected <= maxshowdevs)) {
 			if (oflag > 0) {
 				if (Iflag == 0)
 					(void)printf(" sps tps msps ");
@@ -776,7 +778,6 @@ phdr(void)
 		(void)printf(" us ni sy in id\n");
 	else
 		printf("\n");
-
 }
 
 static void
@@ -810,10 +811,10 @@ devstats(int perf_select, long double etime, int havelast)
 		printf("\n");
 		if (Iflag == 0) {
 			printf("device       r/s     w/s     kr/s     kw/s "
-			    " ms/r  ms/w  ms/o  ms/t qlen  %%b  ");
+			       " ms/r  ms/w  ms/o  ms/t qlen  %%b  ");
 		} else {
 			printf("device           r/i         w/i         kr/i"
-			    "         kw/i qlen   tsvc_t/i      sb/i  ");
+			       "         kw/i qlen   tsvc_t/i      sb/i  ");
 		}
 		if (Tflag > 0)
 			printf("tin  tout ");
@@ -823,68 +824,68 @@ devstats(int perf_select, long double etime, int havelast)
 	for (dn = 0; dn < num_devices; dn++) {
 		int di;
 
-		if (((perf_select == 0) && (dev_select[dn].selected == 0))
-		 || (dev_select[dn].selected > maxshowdevs))
+		if (((perf_select == 0) && (dev_select[dn].selected == 0)) ||
+		    (dev_select[dn].selected > maxshowdevs))
 			continue;
 
 		di = dev_select[dn].position;
 
 		if (devstat_compute_statistics(&cur.dinfo->devices[di],
-		    havelast ? &last.dinfo->devices[di] : NULL, etime,
-		    DSM_TOTAL_BYTES, &total_bytes,
-		    DSM_TOTAL_BYTES_READ, &total_bytes_read,
-		    DSM_TOTAL_BYTES_WRITE, &total_bytes_write,
-		    DSM_TOTAL_TRANSFERS, &total_transfers,
-		    DSM_TOTAL_TRANSFERS_READ, &total_transfers_read,
-		    DSM_TOTAL_TRANSFERS_WRITE, &total_transfers_write,
-		    DSM_TOTAL_BLOCKS, &total_blocks,
-		    DSM_KB_PER_TRANSFER, &kb_per_transfer,
-		    DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
-		    DSM_TRANSFERS_PER_SECOND_READ, &transfers_per_second_read,
-		    DSM_TRANSFERS_PER_SECOND_WRITE, &transfers_per_second_write,
-		    DSM_MB_PER_SECOND, &mb_per_second,
-		    DSM_MB_PER_SECOND_READ, &mb_per_second_read,
-		    DSM_MB_PER_SECOND_WRITE, &mb_per_second_write,
-		    DSM_BLOCKS_PER_SECOND, &blocks_per_second,
-		    DSM_MS_PER_TRANSACTION, &ms_per_transaction,
-		    DSM_MS_PER_TRANSACTION_READ, &ms_per_read,
-		    DSM_MS_PER_TRANSACTION_WRITE, &ms_per_write,
-		    DSM_MS_PER_TRANSACTION_OTHER, &ms_per_other,
-		    DSM_BUSY_PCT, &busy_pct,
-		    DSM_QUEUE_LENGTH, &queue_len,
-		    DSM_TOTAL_DURATION, &total_duration,
-		    DSM_TOTAL_BUSY_TIME, &busy_time,
-		    DSM_NONE) != 0)
+			havelast ? &last.dinfo->devices[di] : NULL, etime,
+			DSM_TOTAL_BYTES, &total_bytes, DSM_TOTAL_BYTES_READ,
+			&total_bytes_read, DSM_TOTAL_BYTES_WRITE,
+			&total_bytes_write, DSM_TOTAL_TRANSFERS,
+			&total_transfers, DSM_TOTAL_TRANSFERS_READ,
+			&total_transfers_read, DSM_TOTAL_TRANSFERS_WRITE,
+			&total_transfers_write, DSM_TOTAL_BLOCKS, &total_blocks,
+			DSM_KB_PER_TRANSFER, &kb_per_transfer,
+			DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
+			DSM_TRANSFERS_PER_SECOND_READ,
+			&transfers_per_second_read,
+			DSM_TRANSFERS_PER_SECOND_WRITE,
+			&transfers_per_second_write, DSM_MB_PER_SECOND,
+			&mb_per_second, DSM_MB_PER_SECOND_READ,
+			&mb_per_second_read, DSM_MB_PER_SECOND_WRITE,
+			&mb_per_second_write, DSM_BLOCKS_PER_SECOND,
+			&blocks_per_second, DSM_MS_PER_TRANSACTION,
+			&ms_per_transaction, DSM_MS_PER_TRANSACTION_READ,
+			&ms_per_read, DSM_MS_PER_TRANSACTION_WRITE,
+			&ms_per_write, DSM_MS_PER_TRANSACTION_OTHER,
+			&ms_per_other, DSM_BUSY_PCT, &busy_pct,
+			DSM_QUEUE_LENGTH, &queue_len, DSM_TOTAL_DURATION,
+			&total_duration, DSM_TOTAL_BUSY_TIME, &busy_time,
+			DSM_NONE) != 0)
 			errx(1, "%s", devstat_errbuf);
 
 		if (perf_select != 0) {
 			dev_select[dn].bytes = total_bytes;
-			if ((dev_select[dn].selected == 0)
-			 || (dev_select[dn].selected > maxshowdevs))
+			if ((dev_select[dn].selected == 0) ||
+			    (dev_select[dn].selected > maxshowdevs))
 				continue;
 		}
 
 		if (Kflag > 0 || xflag > 0) {
 			int block_size = cur.dinfo->devices[di].block_size;
-			total_blocks = total_blocks * (block_size ?
-						       block_size : 512) / 1024;
+			total_blocks = total_blocks *
+			    (block_size ? block_size : 512) / 1024;
 		}
 
 		if (xflag > 0) {
 			if (asprintf(&devicename, "%s%d",
-			    cur.dinfo->devices[di].device_name,
-			    cur.dinfo->devices[di].unit_number) == -1)
+				cur.dinfo->devices[di].device_name,
+				cur.dinfo->devices[di].unit_number) == -1)
 				err(1, "asprintf");
 			/*
 			 * If zflag is set, skip any devices with zero I/O.
 			 */
 			if (zflag == 0 || transfers_per_second_read > 0.05 ||
 			    transfers_per_second_write > 0.05 ||
-			    mb_per_second_read > ((long double).0005)/1024 ||
-			    mb_per_second_write > ((long double).0005)/1024 ||
+			    mb_per_second_read > ((long double).0005) / 1024 ||
+			    mb_per_second_write > ((long double).0005) / 1024 ||
 			    busy_pct > 0.5) {
 				if (Iflag == 0)
-					printf("%-8.8s %7.0Lf %7.0Lf %8.1Lf "
+					printf(
+					    "%-8.8s %7.0Lf %7.0Lf %8.1Lf "
 					    "%8.1Lf %5.0Lf %5.0Lf %5.0Lf %5.0Lf"
 					    " %4" PRIu64 " %3.0Lf ",
 					    devicename,
@@ -893,22 +894,21 @@ devstats(int perf_select, long double etime, int havelast)
 					    mb_per_second_read * 1024,
 					    mb_per_second_write * 1024,
 					    ms_per_read, ms_per_write,
-					    ms_per_other,
-					    ms_per_transaction,
+					    ms_per_other, ms_per_transaction,
 					    queue_len, busy_pct);
 				else
 					printf("%-8.8s %11.1Lf %11.1Lf "
-					    "%12.1Lf %12.1Lf %4" PRIu64
-					    " %10.1Lf %9.1Lf ",
+					       "%12.1Lf %12.1Lf %4" PRIu64
+					       " %10.1Lf %9.1Lf ",
 					    devicename,
 					    (long double)total_transfers_read,
 					    (long double)total_transfers_write,
-					    (long double)
-					        total_bytes_read / 1024,
-					    (long double)
-					        total_bytes_write / 1024,
-					    queue_len,
-					    total_duration, busy_time);
+					    (long double)total_bytes_read /
+						1024,
+					    (long double)total_bytes_write /
+						1024,
+					    queue_len, total_duration,
+					    busy_time);
 				if (firstline) {
 					/*
 					 * If this is the first device
@@ -928,37 +928,33 @@ devstats(int perf_select, long double etime, int havelast)
 			int msdig = (ms_per_transaction < 99.94) ? 1 : 0;
 
 			if (Iflag == 0)
-				printf("%4.0Lf%4.0Lf%5.*Lf ",
-				       blocks_per_second,
-				       transfers_per_second,
-				       msdig,
-				       ms_per_transaction);
+				printf("%4.0Lf%4.0Lf%5.*Lf ", blocks_per_second,
+				    transfers_per_second, msdig,
+				    ms_per_transaction);
 			else
 				printf("%4" PRIu64 "%4" PRIu64 "%5.*Lf ",
-				       total_blocks,
-				       total_transfers,
-				       msdig,
-				       ms_per_transaction);
+				    total_blocks, total_transfers, msdig,
+				    ms_per_transaction);
 		} else {
 			if (Iflag == 0)
 				printf("%4.*Lf %5.0Lf %5.*Lf ",
-				       kb_per_transfer >= 100 ? 0 : 1,
-				       kb_per_transfer,
-				       transfers_per_second,
-				       mb_per_second >= 1000 ? 0 :
+				    kb_per_transfer >= 100 ? 0 : 1,
+				    kb_per_transfer, transfers_per_second,
+				    mb_per_second >= 1000 ?
+					0 :
 					(total_mb >= 100 ? 1 : 2),
-				       mb_per_second);
+				    mb_per_second);
 			else {
 				total_mb = total_bytes;
 				total_mb /= 1024 * 1024;
 
 				printf("%4.*Lf %5" PRIu64 " %5.*Lf ",
-				       kb_per_transfer >= 100 ? 0 : 1,
-				       kb_per_transfer,
-				       total_transfers,
-				       total_mb >= 1000 ? 0 :
+				    kb_per_transfer >= 100 ? 0 : 1,
+				    kb_per_transfer, total_transfers,
+				    total_mb >= 1000 ?
+					0 :
 					(total_mb >= 100 ? 1 : 2),
-				       total_mb);
+				    total_mb);
 			}
 		}
 	}
@@ -969,7 +965,7 @@ devstats(int perf_select, long double etime, int havelast)
 		 * lines I/O because they were all zero,
 		 * print TTY/CPU stats.
 		 */
-		printf("%52s","");
+		printf("%52s", "");
 		if (Tflag > 0)
 			printf("%4.0Lf %5.0Lf", cur.tk_nin / etime,
 			    cur.tk_nout / etime);
@@ -991,7 +987,7 @@ cpustats(void)
 		cptime += cur.cp_time[state];
 	for (state = 0; state < CPUSTATES; ++state)
 		printf(" %2.0f",
-		       rint(100. * cur.cp_time[state] / (cptime ? cptime : 1)));
+		    rint(100. * cur.cp_time[state] / (cptime ? cptime : 1)));
 }
 
 static int
@@ -1008,7 +1004,7 @@ readvar(kvm_t *kd, const char *name, int nlid, void *ptr, size_t len)
 			return (1);
 		} else if ((size_t)nbytes != len) {
 			warnx("kvm_read(%s): expected %zu bytes, got %zd bytes",
-			      namelist[nlid].n_name, len, nbytes);
+			    namelist[nlid].n_name, len, nbytes);
 			return (1);
 		}
 	} else {
@@ -1020,7 +1016,7 @@ readvar(kvm_t *kd, const char *name, int nlid, void *ptr, size_t len)
 		}
 		if (nlen != len) {
 			warnx("sysctl(%s...): expected %lu, got %lu", name,
-			      (unsigned long)len, (unsigned long)nlen);
+			    (unsigned long)len, (unsigned long)nlen);
 			return (1);
 		}
 	}

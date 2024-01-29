@@ -50,24 +50,21 @@
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
 #endif
+#include <compat/linux/linux_emul.h>
 #include <compat/linux/linux_mib.h>
+#include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_signal.h>
 #include <compat/linux/linux_time.h>
 #include <compat/linux/linux_util.h>
-#include <compat/linux/linux_emul.h>
-#include <compat/linux/linux_misc.h>
 
-static int	linux_pksignal(struct thread *td, int pid, int sig,
-		    ksiginfo_t *ksi);
-static int	linux_psignal(struct thread *td, int pid, int sig);
-static int	linux_tdksignal(struct thread *td, lwpid_t tid,
-		    int tgid, int sig, ksiginfo_t *ksi);
-static int	linux_tdsignal(struct thread *td, lwpid_t tid,
-		    int tgid, int sig);
-static void	sicode_to_lsicode(int sig, int si_code, int *lsi_code);
-static int	linux_common_rt_sigtimedwait(struct thread *,
-		    l_sigset_t *, struct timespec *, l_siginfo_t *,
-		    l_size_t);
+static int linux_pksignal(struct thread *td, int pid, int sig, ksiginfo_t *ksi);
+static int linux_psignal(struct thread *td, int pid, int sig);
+static int linux_tdksignal(struct thread *td, lwpid_t tid, int tgid, int sig,
+    ksiginfo_t *ksi);
+static int linux_tdsignal(struct thread *td, lwpid_t tid, int tgid, int sig);
+static void sicode_to_lsicode(int sig, int si_code, int *lsi_code);
+static int linux_common_rt_sigtimedwait(struct thread *, l_sigset_t *,
+    struct timespec *, l_siginfo_t *, l_size_t);
 
 static void
 linux_to_bsd_sigaction(l_sigaction_t *lsa, struct sigaction *bsa)
@@ -143,7 +140,7 @@ bsd_to_linux_sigaction(struct sigaction *bsa, l_sigaction_t *lsa)
 #else
 	lsa->lsa_handler = bsa->sa_handler;
 #endif
-	lsa->lsa_restorer = 0;		/* unsupported */
+	lsa->lsa_restorer = 0; /* unsupported */
 	lsa->lsa_flags = 0;
 	if (bsa->sa_flags & SA_NOCLDSTOP)
 		lsa->lsa_flags |= LINUX_SA_NOCLDSTOP;
@@ -163,7 +160,7 @@ bsd_to_linux_sigaction(struct sigaction *bsa, l_sigaction_t *lsa)
 
 int
 linux_do_sigaction(struct thread *td, int linux_sig, l_sigaction_t *linux_nsa,
-		   l_sigaction_t *linux_osa)
+    l_sigaction_t *linux_osa)
 {
 	struct sigaction act, oact, *nsa, *osa;
 	int error, sig;
@@ -266,9 +263,8 @@ linux_rt_sigaction(struct thread *td, struct linux_rt_sigaction_args *args)
 			return (error);
 	}
 
-	error = linux_do_sigaction(td, args->sig,
-				   args->act ? &nsa : NULL,
-				   args->oact ? &osa : NULL);
+	error = linux_do_sigaction(td, args->sig, args->act ? &nsa : NULL,
+	    args->oact ? &osa : NULL);
 
 	if (args->oact != NULL && error == 0)
 		error = copyout(&osa, args->oact, sizeof(osa));
@@ -277,8 +273,7 @@ linux_rt_sigaction(struct thread *td, struct linux_rt_sigaction_args *args)
 }
 
 static int
-linux_do_sigprocmask(struct thread *td, int how, sigset_t *new,
-		     l_sigset_t *old)
+linux_do_sigprocmask(struct thread *td, int how, sigset_t *new, l_sigset_t *old)
 {
 	sigset_t omask;
 	int error;
@@ -327,9 +322,8 @@ linux_sigprocmask(struct thread *td, struct linux_sigprocmask_args *args)
 		linux_to_bsd_sigset(&lset, &set);
 	}
 
-	error = linux_do_sigprocmask(td, args->how,
-				     args->mask ? &set : NULL,
-				     args->omask ? &oset : NULL);
+	error = linux_do_sigprocmask(td, args->how, args->mask ? &set : NULL,
+	    args->omask ? &oset : NULL);
 
 	if (args->omask != NULL && error == 0) {
 #ifdef KTRACE
@@ -351,13 +345,13 @@ linux_rt_sigprocmask(struct thread *td, struct linux_rt_sigprocmask_args *args)
 	sigset_t set, *pset;
 	int error;
 
-	error = linux_copyin_sigset(td, args->mask, args->sigsetsize,
-	    &set, &pset);
+	error = linux_copyin_sigset(td, args->mask, args->sigsetsize, &set,
+	    &pset);
 	if (error != 0)
 		return (EINVAL);
 
 	error = linux_do_sigprocmask(td, args->how, pset,
-				     args->omask ? &oset : NULL);
+	    args->omask ? &oset : NULL);
 
 	if (args->omask != NULL && error == 0) {
 #ifdef KTRACE
@@ -447,7 +441,7 @@ linux_rt_sigpending(struct thread *td, struct linux_rt_sigpending_args *args)
 
 	if (args->sigsetsize > sizeof(lset))
 		return (EINVAL);
-		/* NOT REACHED */
+	/* NOT REACHED */
 
 	PROC_LOCK(p);
 	bset = p->p_siglist;
@@ -464,7 +458,7 @@ linux_rt_sigpending(struct thread *td, struct linux_rt_sigpending_args *args)
 
 int
 linux_rt_sigtimedwait(struct thread *td,
-	struct linux_rt_sigtimedwait_args *args)
+    struct linux_rt_sigtimedwait_args *args)
 {
 	struct timespec ts, *tsa;
 	int error;
@@ -477,8 +471,8 @@ linux_rt_sigtimedwait(struct thread *td,
 	} else
 		tsa = NULL;
 
-	return (linux_common_rt_sigtimedwait(td, args->mask, tsa,
-	    args->ptr, args->sigsetsize));
+	return (linux_common_rt_sigtimedwait(td, args->mask, tsa, args->ptr,
+	    args->sigsetsize));
 }
 
 static int
@@ -515,7 +509,7 @@ linux_common_rt_sigtimedwait(struct thread *td, l_sigset_t *mask,
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 int
 linux_rt_sigtimedwait_time64(struct thread *td,
-	struct linux_rt_sigtimedwait_time64_args *args)
+    struct linux_rt_sigtimedwait_time64_args *args)
 {
 	struct timespec ts, *tsa;
 	int error;
@@ -528,8 +522,8 @@ linux_rt_sigtimedwait_time64(struct thread *td,
 	} else
 		tsa = NULL;
 
-	return (linux_common_rt_sigtimedwait(td, args->mask, tsa,
-	    args->ptr, args->sigsetsize));
+	return (linux_common_rt_sigtimedwait(td, args->mask, tsa, args->ptr,
+	    args->sigsetsize));
 }
 #endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
@@ -560,7 +554,7 @@ linux_tgkill(struct thread *td, struct linux_tgkill_args *args)
 {
 	int sig;
 
-	if (args->pid <= 0 || args->tgid <=0)
+	if (args->pid <= 0 || args->tgid <= 0)
 		return (EINVAL);
 
 	/*
@@ -741,8 +735,10 @@ siginfo_to_lsiginfo(const siginfo_t *si, l_siginfo_t *lsi, l_int sig)
 			lsi->lsi_pid = si->si_pid;
 			lsi->lsi_uid = si->si_uid;
 
-			if (si->si_code == CLD_STOPPED || si->si_code == CLD_KILLED)
-				lsi->lsi_status = bsd_to_linux_signal(si->si_status);
+			if (si->si_code == CLD_STOPPED ||
+			    si->si_code == CLD_KILLED)
+				lsi->lsi_status = bsd_to_linux_signal(
+				    si->si_status);
 			else if (si->si_code == CLD_CONTINUED)
 				lsi->lsi_status = bsd_to_linux_signal(SIGCONT);
 			else
@@ -770,13 +766,13 @@ siginfo_to_lsiginfo(const siginfo_t *si, l_siginfo_t *lsi, l_int sig)
 }
 
 static int
-lsiginfo_to_siginfo(struct thread *td, const l_siginfo_t *lsi,
-    siginfo_t *si, int sig)
+lsiginfo_to_siginfo(struct thread *td, const l_siginfo_t *lsi, siginfo_t *si,
+    int sig)
 {
 
 	switch (lsi->lsi_code) {
 	case LINUX_SI_TKILL:
-		if (linux_kernver(td) >= LINUX_KERNVER(2,6,39)) {
+		if (linux_kernver(td) >= LINUX_KERNVER(2, 6, 39)) {
 			linux_msg(td, "SI_TKILL forbidden since 2.6.39");
 			return (EPERM);
 		}
@@ -806,7 +802,8 @@ lsiginfo_to_siginfo(struct thread *td, const l_siginfo_t *lsi,
 }
 
 int
-linux_rt_sigqueueinfo(struct thread *td, struct linux_rt_sigqueueinfo_args *args)
+linux_rt_sigqueueinfo(struct thread *td,
+    struct linux_rt_sigqueueinfo_args *args)
 {
 	l_siginfo_t linfo;
 	ksiginfo_t ksi;
@@ -834,7 +831,8 @@ linux_rt_sigqueueinfo(struct thread *td, struct linux_rt_sigqueueinfo_args *args
 }
 
 int
-linux_rt_tgsigqueueinfo(struct thread *td, struct linux_rt_tgsigqueueinfo_args *args)
+linux_rt_tgsigqueueinfo(struct thread *td,
+    struct linux_rt_tgsigqueueinfo_args *args)
 {
 	l_siginfo_t linfo;
 	ksiginfo_t ksi;
@@ -866,8 +864,8 @@ linux_rt_sigsuspend(struct thread *td, struct linux_rt_sigsuspend_args *uap)
 	sigset_t sigmask;
 	int error;
 
-	error = linux_copyin_sigset(td, uap->newset, uap->sigsetsize,
-	    &sigmask, NULL);
+	error = linux_copyin_sigset(td, uap->newset, uap->sigsetsize, &sigmask,
+	    NULL);
 	if (error != 0)
 		return (error);
 
@@ -956,8 +954,8 @@ linux_psignal(struct thread *td, int pid, int sig)
 }
 
 int
-linux_copyin_sigset(struct thread *td, l_sigset_t *lset,
-    l_size_t sigsetsize, sigset_t *set, sigset_t **pset)
+linux_copyin_sigset(struct thread *td, l_sigset_t *lset, l_size_t sigsetsize,
+    sigset_t *set, sigset_t **pset)
 {
 	l_sigset_t lmask;
 	int error;

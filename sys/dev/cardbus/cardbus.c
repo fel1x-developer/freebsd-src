@@ -27,56 +27,59 @@
  */
 
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/kernel.h>
+#include <sys/pciio.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
-#include <sys/pciio.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pci_private.h>
-
+#include <dev/cardbus/cardbus_cis.h>
 #include <dev/cardbus/cardbusreg.h>
 #include <dev/cardbus/cardbusvar.h>
-#include <dev/cardbus/cardbus_cis.h>
 #include <dev/pccard/pccard_cis.h>
 #include <dev/pccard/pccardvar.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "power_if.h"
 #include "pcib_if.h"
+#include "power_if.h"
 
 /* sysctl vars */
 static SYSCTL_NODE(_hw, OID_AUTO, cardbus, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "CardBus parameters");
 
-int    cardbus_debug = 0;
-SYSCTL_INT(_hw_cardbus, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &cardbus_debug, 0, "CardBus debug");
+int cardbus_debug = 0;
+SYSCTL_INT(_hw_cardbus, OID_AUTO, debug, CTLFLAG_RWTUN, &cardbus_debug, 0,
+    "CardBus debug");
 
-int    cardbus_cis_debug = 0;
-SYSCTL_INT(_hw_cardbus, OID_AUTO, cis_debug, CTLFLAG_RWTUN,
-    &cardbus_cis_debug, 0, "CardBus CIS debug");
+int cardbus_cis_debug = 0;
+SYSCTL_INT(_hw_cardbus, OID_AUTO, cis_debug, CTLFLAG_RWTUN, &cardbus_cis_debug,
+    0, "CardBus CIS debug");
 
-#define	DPRINTF(a) if (cardbus_debug) printf a
-#define	DEVPRINTF(x) if (cardbus_debug) device_printf x
+#define DPRINTF(a)         \
+	if (cardbus_debug) \
+	printf a
+#define DEVPRINTF(x)       \
+	if (cardbus_debug) \
+	device_printf x
 
-static int	cardbus_attach(device_t cbdev);
-static int	cardbus_attach_card(device_t cbdev);
-static int	cardbus_detach(device_t cbdev);
-static int	cardbus_detach_card(device_t cbdev);
-static void	cardbus_device_setup_regs(pcicfgregs *cfg);
-static void	cardbus_driver_added(device_t cbdev, driver_t *driver);
-static int	cardbus_probe(device_t cbdev);
-static int	cardbus_read_ivar(device_t cbdev, device_t child, int which,
-		    uintptr_t *result);
+static int cardbus_attach(device_t cbdev);
+static int cardbus_attach_card(device_t cbdev);
+static int cardbus_detach(device_t cbdev);
+static int cardbus_detach_card(device_t cbdev);
+static void cardbus_device_setup_regs(pcicfgregs *cfg);
+static void cardbus_driver_added(device_t cbdev, driver_t *driver);
+static int cardbus_probe(device_t cbdev);
+static int cardbus_read_ivar(device_t cbdev, device_t child, int which,
+    uintptr_t *result);
 
 /************************************************************************/
 /* Probe/Attach								*/
@@ -161,8 +164,7 @@ cardbus_device_setup_regs(pcicfgregs *cfg)
 	for (i = 0; i < PCIR_MAX_BAR_0; i++)
 		pci_write_config(dev, PCIR_BAR(i), 0, 4);
 
-	cfg->intline =
-	    pci_get_irq(device_get_parent(device_get_parent(dev)));
+	cfg->intline = pci_get_irq(device_get_parent(device_get_parent(dev)));
 	pci_write_config(dev, PCIR_INTLINE, cfg->intline, 1);
 	pci_write_config(dev, PCIR_CACHELNSZ, 0x08, 1);
 	pci_write_config(dev, PCIR_LATTIMER, 0xa8, 1);
@@ -190,7 +192,7 @@ cardbus_attach_card(device_t cbdev)
 	struct cardbus_softc *sc;
 
 	sc = device_get_softc(cbdev);
-	cardbus_detach_card(cbdev); /* detach existing cards */
+	cardbus_detach_card(cbdev);	    /* detach existing cards */
 	POWER_DISABLE_SOCKET(brdev, cbdev); /* Turn the socket off first */
 	POWER_ENABLE_SOCKET(brdev, cbdev);
 	domain = pcib_get_domain(cbdev);
@@ -201,8 +203,8 @@ cardbus_attach_card(device_t cbdev)
 	for (func = 0; func <= cardbusfunchigh; func++) {
 		struct cardbus_devinfo *dinfo;
 
-		dinfo = (struct cardbus_devinfo *)
-		    pci_read_device(brdev, cbdev, domain, bus, slot, func);
+		dinfo = (struct cardbus_devinfo *)pci_read_device(brdev, cbdev,
+		    domain, bus, slot, func);
 		if (dinfo == NULL)
 			continue;
 		if (dinfo->pci.cfg.mfdev)
@@ -233,7 +235,7 @@ cardbus_attach_card(device_t cbdev)
 	bus_topo_unlock();
 	if (cardattached > 0)
 		return (0);
-/*	POWER_DISABLE_SOCKET(brdev, cbdev); */
+	/*	POWER_DISABLE_SOCKET(brdev, cbdev); */
 	return (ENOENT);
 }
 
@@ -285,7 +287,7 @@ cardbus_driver_added(device_t cbdev, driver_t *driver)
 	for (i = 0; i < numdevs; i++) {
 		dev = devlist[i];
 		if (device_get_state(dev) != DS_NOTPRESENT)
-		    break;
+			break;
 	}
 	if (i > 0 && i == numdevs)
 		POWER_ENABLE_SOCKET(device_get_parent(cbdev), cbdev);
@@ -324,10 +326,10 @@ cardbus_read_ivar(device_t cbdev, device_t child, int which, uintptr_t *result)
 		 * we set the return value, then return an error.
 		 */
 		if (dinfo->fepresent & (1 << PCCARD_TPLFE_TYPE_LAN_NID)) {
-			*((uint8_t **) result) = dinfo->funce.lan.nid;
+			*((uint8_t **)result) = dinfo->funce.lan.nid;
 			break;
 		}
-		*((uint8_t **) result) = NULL;
+		*((uint8_t **)result) = NULL;
 		return (EINVAL);
 	default:
 		return (pci_read_ivar(cbdev, child, which, result));
@@ -337,26 +339,25 @@ cardbus_read_ivar(device_t cbdev, device_t child, int which, uintptr_t *result)
 
 static device_method_t cardbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		cardbus_probe),
-	DEVMETHOD(device_attach,	cardbus_attach),
-	DEVMETHOD(device_detach,	cardbus_detach),
-	DEVMETHOD(device_suspend,	cardbus_suspend),
-	DEVMETHOD(device_resume,	cardbus_resume),
+	DEVMETHOD(device_probe, cardbus_probe),
+	DEVMETHOD(device_attach, cardbus_attach),
+	DEVMETHOD(device_detach, cardbus_detach),
+	DEVMETHOD(device_suspend, cardbus_suspend),
+	DEVMETHOD(device_resume, cardbus_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_deleted,	cardbus_child_deleted),
-	DEVMETHOD(bus_get_dma_tag,	bus_generic_get_dma_tag),
-	DEVMETHOD(bus_read_ivar,	cardbus_read_ivar),
-	DEVMETHOD(bus_driver_added,	cardbus_driver_added),
-	DEVMETHOD(bus_rescan,		bus_null_rescan),
+	DEVMETHOD(bus_child_deleted, cardbus_child_deleted),
+	DEVMETHOD(bus_get_dma_tag, bus_generic_get_dma_tag),
+	DEVMETHOD(bus_read_ivar, cardbus_read_ivar),
+	DEVMETHOD(bus_driver_added, cardbus_driver_added),
+	DEVMETHOD(bus_rescan, bus_null_rescan),
 
 	/* Card Interface */
-	DEVMETHOD(card_attach_card,	cardbus_attach_card),
-	DEVMETHOD(card_detach_card,	cardbus_detach_card),
+	DEVMETHOD(card_attach_card, cardbus_attach_card),
+	DEVMETHOD(card_detach_card, cardbus_detach_card),
 
 	/* PCI interface */
-	DEVMETHOD(pci_alloc_devinfo,	cardbus_alloc_devinfo),
-	{0,0}
+	DEVMETHOD(pci_alloc_devinfo, cardbus_alloc_devinfo), { 0, 0 }
 };
 
 DEFINE_CLASS_1(cardbus, cardbus_driver, cardbus_methods,

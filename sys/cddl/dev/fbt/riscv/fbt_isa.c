@@ -30,17 +30,16 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
 
-#include <machine/riscvreg.h>
 #include <machine/encoding.h>
+#include <machine/riscvreg.h>
 
 #include "fbt.h"
 
-#define	FBT_C_PATCHVAL		MATCH_C_EBREAK
-#define	FBT_PATCHVAL		MATCH_EBREAK
-#define	FBT_AFRAMES		5
+#define FBT_C_PATCHVAL MATCH_C_EBREAK
+#define FBT_PATCHVAL MATCH_EBREAK
+#define FBT_AFRAMES 5
 
 int
 fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
@@ -76,7 +75,7 @@ void
 fbt_patch_tracepoint(fbt_probe_t *fbt, fbt_patchval_t val)
 {
 
-	switch(fbt->fbtp_patchval) {
+	switch (fbt->fbtp_patchval) {
 	case FBT_C_PATCHVAL:
 		*(uint16_t *)fbt->fbtp_patchpoint = (uint16_t)val;
 		fence_i();
@@ -142,10 +141,10 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	if (instr >= limit)
 		return (0);
 
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
-	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-	    name, FBT_ENTRY, FBT_AFRAMES, fbt);
+	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name, FBT_ENTRY,
+	    FBT_AFRAMES, fbt);
 	fbt->fbtp_patchpoint = instr;
 	fbt->fbtp_ctl = lf;
 	fbt->fbtp_loadcnt = lf->loadcnt;
@@ -183,11 +182,11 @@ again:
 	/*
 	 * We have a winner!
 	 */
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
 	if (retfbt == NULL) {
-		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-		    name, FBT_RETURN, FBT_AFRAMES, fbt);
+		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name,
+		    FBT_RETURN, FBT_AFRAMES, fbt);
 	} else {
 		retfbt->fbtp_probenext = fbt;
 		fbt->fbtp_id = retfbt->fbtp_id;

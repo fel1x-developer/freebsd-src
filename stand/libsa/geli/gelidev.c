@@ -25,20 +25,22 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/disk.h>
+
 #include <stand.h>
 #include <stdarg.h>
 #include <uuid.h>
-#include <sys/disk.h>
+
 #include "disk.h"
 #include "geliboot.h"
 #include "geliboot_internal.h"
 
-static int  geli_dev_init(void);
-static int  geli_dev_strategy(void *, int, daddr_t, size_t, char *, size_t *);
-static int  geli_dev_open(struct open_file *f, ...);
-static int  geli_dev_close(struct open_file *f);
-static int  geli_dev_ioctl(struct open_file *, u_long, void *);
-static int  geli_dev_print(int);
+static int geli_dev_init(void);
+static int geli_dev_strategy(void *, int, daddr_t, size_t, char *, size_t *);
+static int geli_dev_open(struct open_file *f, ...);
+static int geli_dev_close(struct open_file *f);
+static int geli_dev_ioctl(struct open_file *, u_long, void *);
+static int geli_dev_print(int);
 static void geli_dev_cleanup(void);
 
 /*
@@ -51,16 +53,16 @@ static void geli_dev_cleanup(void);
  * geli_devdesc, effectively routing all IO operations through our code.
  */
 static struct devsw geli_devsw = {
-	.dv_name     = "disk",
-	.dv_type     = DEVT_DISK,
-	.dv_init     = geli_dev_init,
+	.dv_name = "disk",
+	.dv_type = DEVT_DISK,
+	.dv_init = geli_dev_init,
 	.dv_strategy = geli_dev_strategy,
-	.dv_open     = geli_dev_open,
-	.dv_close    = geli_dev_close,
-	.dv_ioctl    = geli_dev_ioctl,
-	.dv_print    = geli_dev_print,
-	.dv_cleanup  = geli_dev_cleanup,
-	.dv_fmtdev   = disk_fmtdev,
+	.dv_open = geli_dev_open,
+	.dv_close = geli_dev_close,
+	.dv_ioctl = geli_dev_ioctl,
+	.dv_print = geli_dev_print,
+	.dv_cleanup = geli_dev_cleanup,
+	.dv_fmtdev = disk_fmtdev,
 	.dv_parsedev = disk_parsedev,
 };
 
@@ -70,11 +72,10 @@ static struct devsw geli_devsw = {
  * disk_devdesc so that we can read the raw encrypted data using it.
  */
 struct geli_devdesc {
-	struct disk_devdesc	ddd;	/* Must be first. */
-	struct disk_devdesc	*hdesc;	/* disk/slice/part hosting geli vol */
-	struct geli_dev		*gdev;	/* geli_dev entry */
+	struct disk_devdesc ddd;    /* Must be first. */
+	struct disk_devdesc *hdesc; /* disk/slice/part hosting geli vol */
+	struct geli_dev *gdev;	    /* geli_dev entry */
 };
-
 
 /*
  * A geli_readfunc that reads via a disk_devdesc passed in readpriv. This is
@@ -82,8 +83,8 @@ struct geli_devdesc {
  * host provider is geli-encrypted.
  */
 static int
-diskdev_read(void *vdev, void *readpriv, off_t offbytes,
-    void *buf, size_t sizebytes)
+diskdev_read(void *vdev, void *readpriv, off_t offbytes, void *buf,
+    size_t sizebytes)
 {
 	struct disk_devdesc *ddev;
 
@@ -129,10 +130,10 @@ geli_dev_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
 	 */
 
 	reqstart = blk * DEV_BSIZE;
-	reqend   = reqstart + size;
+	reqend = reqstart + size;
 	alnstart = rounddown2(reqstart, (int)gdesc->gdev->md.md_sectorsize);
-	alnend   = roundup2(reqend, (int)gdesc->gdev->md.md_sectorsize);
-	alnsize  = alnend - alnstart;
+	alnend = roundup2(reqend, (int)gdesc->gdev->md.md_sectorsize);
+	alnsize = alnend - alnstart;
 
 	/*
 	 * If alignment requires us to read/write more than the size of the
@@ -189,8 +190,8 @@ geli_dev_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
 		    alnsize);
 		if (rc != 0)
 			goto out;
-		rc = gdesc->hdesc->dd.d_dev->dv_strategy(gdesc->hdesc,
-		    rw, alnstart / DEV_BSIZE, alnsize, iobuf, NULL);
+		rc = gdesc->hdesc->dd.d_dev->dv_strategy(gdesc->hdesc, rw,
+		    alnstart / DEV_BSIZE, alnsize, iobuf, NULL);
 	}
 out:
 	if (iobuf != buf)
@@ -275,7 +276,6 @@ geli_dev_cleanup(void)
 	 */
 	panic("%s: should never be called", __func__);
 }
-
 
 /*
  * geli_probe_and_attach() is called from devopen() after it successfully calls

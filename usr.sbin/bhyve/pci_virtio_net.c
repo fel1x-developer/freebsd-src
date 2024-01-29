@@ -27,55 +27,57 @@
  */
 
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/linker_set.h>
 #include <sys/select.h>
 #include <sys/uio.h>
-#include <sys/ioctl.h>
+
 #include <machine/vmm_snapshot.h>
+
 #include <net/ethernet.h>
 #include <net/if.h> /* IFNAMSIZ */
 
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <pthread_np.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <assert.h>
-#include <pthread.h>
-#include <pthread_np.h>
 
 #include "bhyverun.h"
 #include "config.h"
 #include "debug.h"
-#include "pci_emul.h"
-#include "mevent.h"
-#include "virtio.h"
-#include "net_utils.h"
-#include "net_backends.h"
 #include "iov.h"
+#include "mevent.h"
+#include "net_backends.h"
+#include "net_utils.h"
+#include "pci_emul.h"
+#include "virtio.h"
 
-#define VTNET_RINGSZ	1024
+#define VTNET_RINGSZ 1024
 
-#define VTNET_MAXSEGS	256
+#define VTNET_MAXSEGS 256
 
-#define VTNET_MAX_PKT_LEN	(65536 + 64)
+#define VTNET_MAX_PKT_LEN (65536 + 64)
 
-#define VTNET_MIN_MTU	ETHERMIN
-#define VTNET_MAX_MTU	65535
+#define VTNET_MIN_MTU ETHERMIN
+#define VTNET_MAX_MTU 65535
 
-#define VTNET_S_HOSTCAPS      \
-  ( VIRTIO_NET_F_MAC | VIRTIO_NET_F_STATUS | \
-    VIRTIO_F_NOTIFY_ON_EMPTY | VIRTIO_RING_F_INDIRECT_DESC)
+#define VTNET_S_HOSTCAPS                                                     \
+	(VIRTIO_NET_F_MAC | VIRTIO_NET_F_STATUS | VIRTIO_F_NOTIFY_ON_EMPTY | \
+	    VIRTIO_RING_F_INDIRECT_DESC)
 
 /*
  * PCI config-space "registers"
  */
 struct virtio_net_config {
-	uint8_t  mac[6];
+	uint8_t mac[6];
 	uint16_t status;
 	uint16_t max_virtqueue_pairs;
 	uint16_t mtu;
@@ -84,17 +86,19 @@ struct virtio_net_config {
 /*
  * Queue definitions.
  */
-#define VTNET_RXQ	0
-#define VTNET_TXQ	1
-#define VTNET_CTLQ	2	/* NB: not yet supported */
+#define VTNET_RXQ 0
+#define VTNET_TXQ 1
+#define VTNET_CTLQ 2 /* NB: not yet supported */
 
-#define VTNET_MAXQ	3
+#define VTNET_MAXQ 3
 
 /*
  * Debug printf
  */
 static int pci_vtnet_debug;
-#define DPRINTF(params) if (pci_vtnet_debug) PRINTLN params
+#define DPRINTF(params)      \
+	if (pci_vtnet_debug) \
+	PRINTLN params
 #define WPRINTF(params) PRINTLN params
 
 /*
@@ -105,24 +109,24 @@ struct pci_vtnet_softc {
 	struct vqueue_info vsc_queues[VTNET_MAXQ - 1];
 	pthread_mutex_t vsc_mtx;
 
-	net_backend_t	*vsc_be;
+	net_backend_t *vsc_be;
 
-	bool    features_negotiated;	/* protected by rx_mtx */
+	bool features_negotiated; /* protected by rx_mtx */
 
-	int		resetting;	/* protected by tx_mtx */
+	int resetting; /* protected by tx_mtx */
 
-	uint64_t	vsc_features;	/* negotiated features */
+	uint64_t vsc_features; /* negotiated features */
 
-	pthread_mutex_t	rx_mtx;
-	int		rx_merge;	/* merged rx bufs in use */
+	pthread_mutex_t rx_mtx;
+	int rx_merge; /* merged rx bufs in use */
 
-	pthread_t 	tx_tid;
-	pthread_mutex_t	tx_mtx;
-	pthread_cond_t	tx_cond;
-	int		tx_in_progress;
+	pthread_t tx_tid;
+	pthread_mutex_t tx_mtx;
+	pthread_cond_t tx_cond;
+	int tx_in_progress;
 
-	size_t		vhdrlen;
-	size_t		be_vhdrlen;
+	size_t vhdrlen;
+	size_t be_vhdrlen;
 
 	struct virtio_net_config vsc_config;
 	struct virtio_consts vsc_consts;
@@ -140,18 +144,18 @@ static int pci_vtnet_snapshot(void *, struct vm_snapshot_meta *);
 #endif
 
 static struct virtio_consts vtnet_vi_consts = {
-	.vc_name =	"vtnet",
-	.vc_nvq =	VTNET_MAXQ - 1,
-	.vc_cfgsize =	sizeof(struct virtio_net_config),
-	.vc_reset =	pci_vtnet_reset,
-	.vc_cfgread =	pci_vtnet_cfgread,
-	.vc_cfgwrite =	pci_vtnet_cfgwrite,
+	.vc_name = "vtnet",
+	.vc_nvq = VTNET_MAXQ - 1,
+	.vc_cfgsize = sizeof(struct virtio_net_config),
+	.vc_reset = pci_vtnet_reset,
+	.vc_cfgread = pci_vtnet_cfgread,
+	.vc_cfgwrite = pci_vtnet_cfgwrite,
 	.vc_apply_features = pci_vtnet_neg_features,
-	.vc_hv_caps =	VTNET_S_HOSTCAPS,
+	.vc_hv_caps = VTNET_S_HOSTCAPS,
 #ifdef BHYVE_SNAPSHOT
-	.vc_pause =	pci_vtnet_pause,
-	.vc_resume =	pci_vtnet_resume,
-	.vc_snapshot =	pci_vtnet_snapshot,
+	.vc_pause = pci_vtnet_pause,
+	.vc_resume = pci_vtnet_resume,
+	.vc_snapshot = pci_vtnet_snapshot,
 #endif
 };
 
@@ -353,7 +357,8 @@ pci_vtnet_rx(struct pci_vtnet_softc *sc)
 			 * process is stealing our packets).
 			 */
 			WPRINTF(("netbe_recv: expected %zd bytes, "
-				"got %zd", plen - prepend_hdr_len, rlen));
+				 "got %zd",
+			    plen - prepend_hdr_len, rlen));
 			vq_retchains(vq, n_chains);
 			continue;
 		}
@@ -385,7 +390,6 @@ pci_vtnet_rx(struct pci_vtnet_softc *sc)
 			assert(i == n_chains);
 		}
 	}
-
 }
 
 /*
@@ -401,7 +405,6 @@ pci_vtnet_rx_callback(int fd __unused, enum ev_type type __unused, void *param)
 	pthread_mutex_lock(&sc->rx_mtx);
 	pci_vtnet_rx(sc);
 	pthread_mutex_unlock(&sc->rx_mtx);
-
 }
 
 /* Called on RX kick. */
@@ -579,7 +582,7 @@ pci_vtnet_init(struct pci_devinst *pi, nvlist_t *nvl)
 	sc->vsc_queues[VTNET_TXQ].vq_notify = pci_vtnet_ping_txq;
 #ifdef notyet
 	sc->vsc_queues[VTNET_CTLQ].vq_qsize = VTNET_RINGSZ;
-        sc->vsc_queues[VTNET_CTLQ].vq_notify = pci_vtnet_ping_ctlq;
+	sc->vsc_queues[VTNET_CTLQ].vq_notify = pci_vtnet_ping_ctlq;
 #endif
 
 	value = get_config_value_node(nvl, "mac");
@@ -783,8 +786,7 @@ pci_vtnet_snapshot(void *vsc, struct vm_snapshot_meta *meta)
 	SNAPSHOT_VAR_OR_LEAVE(sc->features_negotiated, meta, ret, done);
 
 	/* Force reapply negotiated features at restore time */
-	if (meta->op == VM_SNAPSHOT_RESTORE &&
-	    sc->features_negotiated) {
+	if (meta->op == VM_SNAPSHOT_RESTORE && sc->features_negotiated) {
 		pci_vtnet_neg_features(sc, sc->vsc_features);
 		netbe_rx_enable(sc->vsc_be);
 	}
@@ -801,15 +803,15 @@ done:
 #endif
 
 static const struct pci_devemu pci_de_vnet = {
-	.pe_emu = 	"virtio-net",
-	.pe_init =	pci_vtnet_init,
+	.pe_emu = "virtio-net",
+	.pe_init = pci_vtnet_init,
 	.pe_legacy_config = netbe_legacy_config,
-	.pe_barwrite =	vi_pci_write,
-	.pe_barread =	vi_pci_read,
+	.pe_barwrite = vi_pci_write,
+	.pe_barread = vi_pci_read,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	vi_pci_snapshot,
-	.pe_pause =	vi_pci_pause,
-	.pe_resume =	vi_pci_resume,
+	.pe_snapshot = vi_pci_snapshot,
+	.pe_pause = vi_pci_pause,
+	.pe_resume = vi_pci_resume,
 #endif
 };
 PCI_EMUL_SET(pci_de_vnet);

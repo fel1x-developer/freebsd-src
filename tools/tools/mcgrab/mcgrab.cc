@@ -1,4 +1,4 @@
-// 
+//
 //  Copyright (c) 2008, Neville-Neil Consulting
 //  All rights reserved.
 //
@@ -23,7 +23,7 @@
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 //
-//  This test simply grabs N multicast addresses starting 
+//  This test simply grabs N multicast addresses starting
 //  from a base address.  The purpose is to make sure that switching a device
 //  from using a multicast filtering table or function to promiscuous
 //  multicast listening mode does not cause deleterious side effects.
@@ -31,22 +31,25 @@
 
 #include <sys/cdefs.h>
 // C++ STL and other related includes
-#include <stdlib.h>
 #include <limits.h>
-#include <iostream>
+#include <stdlib.h>
 #include <string.h>
+
+#include <iostream>
 #include <string>
 
 // Operating System and other C based includes
-#include <unistd.h>
-#include <errno.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
 #include <net/if.h>
+#include <netinet/in.h>
+
 #include <arpa/inet.h>
+#include <errno.h>
+#include <unistd.h>
 
 // Private include files
 #include "mctest.h"
@@ -55,94 +58,94 @@ using namespace std;
 
 //
 // usage - just the program's usage line
-// 
 //
-void usage()
+//
+void
+usage()
 {
-    cout << "mcgrab -i interface -g multicast group -n number of groups\n";
-    exit(-1);
+	cout << "mcgrab -i interface -g multicast group -n number of groups\n";
+	exit(-1);
 }
 
 //
 // usage - print out the usage with a possible message and exit
 //
 // \param message optional string
-// 
 //
-void usage(string message)
+//
+void
+usage(string message)
 {
 
-    cerr << message << endl;
-    usage();
+	cerr << message << endl;
+	usage();
 }
-
 
 //
 // grab a set of addresses
-// 
+//
 // @param interface             ///< text name of the interface (em0 etc.)
 // @param group			///< multicast group
 // @param number		///< number of addresses to grab
-// 
+//
 // @return 0 for 0K, -1 for error, sets errno
 //
-void grab(char *interface, struct in_addr *group, int number, int block) {
+void
+grab(char *interface, struct in_addr *group, int number, int block)
+{
 
-    
-    int sock;
-    struct ip_mreq mreq;
-    struct ifreq ifreq;
-    struct in_addr lgroup;
-    
-    if (group == NULL) {
-	group = &lgroup;
-	if (inet_pton(AF_INET, DEFAULT_GROUP, group) < 1)
-	    return;
-    }
-    
-    if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-	perror("failed to open datagram socket");
-	return;
-    }
+	int sock;
+	struct ip_mreq mreq;
+	struct ifreq ifreq;
+	struct in_addr lgroup;
 
-    for (int i = 0; i < number; i++) {
-	bzero((struct ip_mreq *)&mreq, sizeof(mreq));
-	bzero((struct ifreq *)&ifreq, sizeof(ifreq));
-
-	strncpy(ifreq.ifr_name, interface, IFNAMSIZ);
-	if (ioctl(sock, SIOCGIFADDR, &ifreq) < 0) {
-	    perror("no such interface");
-	    return;
+	if (group == NULL) {
+		group = &lgroup;
+		if (inet_pton(AF_INET, DEFAULT_GROUP, group) < 1)
+			return;
 	}
-	
-	memcpy(&mreq.imr_interface, 
-	       &((struct sockaddr_in*) &ifreq.ifr_addr)->sin_addr,
-	       sizeof(struct in_addr));
-	
-	mreq.imr_multiaddr.s_addr = group->s_addr;
-	if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, 
-		       sizeof(mreq)) < 0) {
-	    
-	    perror("failed to add membership");
-	    return;
-	}
-	
-	if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF, 
-		       &((struct sockaddr_in *) &ifreq.ifr_addr)->sin_addr, 
-		       sizeof(struct in_addr)) < 0) {
-	    perror("failed to bind interface");
-	    return;
-	}
-	
-	group->s_addr = htonl(ntohl(group->s_addr) + 1);
-    }
-    if (block > 0) {
-	    printf("Press Control-C to exit.\n");
-	    sleep(INT_MAX);
-    }
 
+	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		perror("failed to open datagram socket");
+		return;
+	}
+
+	for (int i = 0; i < number; i++) {
+		bzero((struct ip_mreq *)&mreq, sizeof(mreq));
+		bzero((struct ifreq *)&ifreq, sizeof(ifreq));
+
+		strncpy(ifreq.ifr_name, interface, IFNAMSIZ);
+		if (ioctl(sock, SIOCGIFADDR, &ifreq) < 0) {
+			perror("no such interface");
+			return;
+		}
+
+		memcpy(&mreq.imr_interface,
+		    &((struct sockaddr_in *)&ifreq.ifr_addr)->sin_addr,
+		    sizeof(struct in_addr));
+
+		mreq.imr_multiaddr.s_addr = group->s_addr;
+		if (setsockopt(sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+			sizeof(mreq)) < 0) {
+
+			perror("failed to add membership");
+			return;
+		}
+
+		if (setsockopt(sock, IPPROTO_IP, IP_MULTICAST_IF,
+			&((struct sockaddr_in *)&ifreq.ifr_addr)->sin_addr,
+			sizeof(struct in_addr)) < 0) {
+			perror("failed to bind interface");
+			return;
+		}
+
+		group->s_addr = htonl(ntohl(group->s_addr) + 1);
+	}
+	if (block > 0) {
+		printf("Press Control-C to exit.\n");
+		sleep(INT_MAX);
+	}
 }
-
 
 //
 // main - the main program
@@ -151,27 +154,29 @@ void grab(char *interface, struct in_addr *group, int number, int block) {
 // \param -i interface on which we're holding the address
 //
 //
-int main(int argc, char**argv)
+int
+main(int argc, char **argv)
 {
-    
-	char ch;		///< character from getopt()
-	extern char* optarg;	///< option argument
-	
-	char* interface = 0;    ///< Name of the interface
-	struct in_addr *group = NULL;	///< the multicast group address
-	int number = 0;		///< Number of addresses to grab
-	int block = 1;		///< Do we block or just return?
-	
+
+	char ch;	     ///< character from getopt()
+	extern char *optarg; ///< option argument
+
+	char *interface = 0;	      ///< Name of the interface
+	struct in_addr *group = NULL; ///< the multicast group address
+	int number = 0;		      ///< Number of addresses to grab
+	int block = 1;		      ///< Do we block or just return?
+
 	if ((argc < 7) || (argc > 8))
 		usage();
-	
+
 	while ((ch = getopt(argc, argv, "g:i:n:bh")) != -1) {
 		switch (ch) {
 		case 'g':
-			group = new (struct in_addr );
-			if (inet_pton(AF_INET, optarg, group) < 1) 
-				usage(argv[0] + string(" Error: invalid multicast group") + 
-				      optarg);
+			group = new (struct in_addr);
+			if (inet_pton(AF_INET, optarg, group) < 1)
+				usage(argv[0] +
+				    string(" Error: invalid multicast group") +
+				    optarg);
 			break;
 		case 'i':
 			interface = optarg;
@@ -187,7 +192,6 @@ int main(int argc, char**argv)
 			break;
 		}
 	}
-	
+
 	grab(interface, group, number, block);
-	
 }

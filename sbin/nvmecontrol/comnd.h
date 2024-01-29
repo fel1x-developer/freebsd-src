@@ -25,11 +25,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	COMND_H
-#define	COMND_H
+#ifndef COMND_H
+#define COMND_H
 
-#include <sys/queue.h>
 #include <sys/linker_set.h>
+#include <sys/queue.h>
 
 /*
  * Regularized parsing of simple arguments built on top of getopt_long.
@@ -52,47 +52,53 @@ typedef enum arg_type {
 // arg_type stuff.
 
 struct opts {
-	const char	*long_arg;
-	int		short_arg;
-	arg_type	at;
-	void 		*ptr;			//  XXXX change to offset of
-	const char	*descr;
+	const char *long_arg;
+	int short_arg;
+	arg_type at;
+	void *ptr; //  XXXX change to offset of
+	const char *descr;
 };
 
 // XXX TDB: subcommand vs actual argument. maybe with subcmd?
 // XXX TBD: do we need parsing callback functions?
 struct args {
-	arg_type	at;
-	void 		*ptr;			//  XXXX change to offset of
-	const char	*descr;
+	arg_type at;
+	void *ptr; //  XXXX change to offset of
+	const char *descr;
 };
 
-typedef void (cmd_load_cb_t)(void *, void *);
+typedef void(cmd_load_cb_t)(void *, void *);
 struct cmd;
-typedef void (cmd_fn_t)(const struct cmd *nf, int argc, char *argv[]);
+typedef void(cmd_fn_t)(const struct cmd *nf, int argc, char *argv[]);
 
-struct cmd  {
-	SLIST_ENTRY(cmd)	link;
-	const char		*name;
-	cmd_fn_t		*fn;
-	size_t			ctx_size;
-	const struct opts	*opts;
-	const struct args	*args;
-	const char		*descr;
-	SLIST_HEAD(,cmd)	subcmd;
-	struct cmd		*parent;
+struct cmd {
+	SLIST_ENTRY(cmd) link;
+	const char *name;
+	cmd_fn_t *fn;
+	size_t ctx_size;
+	const struct opts *opts;
+	const struct args *args;
+	const char *descr;
+	SLIST_HEAD(, cmd) subcmd;
+	struct cmd *parent;
 };
 
 void cmd_register(struct cmd *, struct cmd *);
-#define CMD_COMMAND(c)							\
-    static void cmd_register_##c(void) __attribute__((constructor));	\
-    static void cmd_register_##c(void) { cmd_register(NULL, &c); }
-#define CMD_SUBCOMMAND(c,sc)						\
-    static void cmd_register_##c_##sc(void) __attribute__((constructor)); \
-    static void cmd_register_##c_##sc(void) { cmd_register(&c, &sc); }
+#define CMD_COMMAND(c)                                                   \
+	static void cmd_register_##c(void) __attribute__((constructor)); \
+	static void cmd_register_##c(void)                               \
+	{                                                                \
+		cmd_register(NULL, &c);                                  \
+	}
+#define CMD_SUBCOMMAND(c, sc)                                                 \
+	static void cmd_register_##c_##sc(void) __attribute__((constructor)); \
+	static void cmd_register_##c_##sc(void)                               \
+	{                                                                     \
+		cmd_register(&c, &sc);                                        \
+	}
 
-int arg_parse(int argc, char * const *argv, const struct cmd *f);
-void arg_help(int argc, char * const *argv, const struct cmd *f);
+int arg_parse(int argc, char *const *argv, const struct cmd *f);
+void arg_help(int argc, char *const *argv, const struct cmd *f);
 void cmd_init(void);
 void cmd_load_dir(const char *dir, cmd_load_cb_t *cb, void *argp);
 int cmd_dispatch(int argc, char *argv[], const struct cmd *);

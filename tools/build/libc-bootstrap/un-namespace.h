@@ -36,6 +36,5 @@
 #pragma once
 
 /* Undo the changes made by namespace.h */
-#undef	err
-#undef	warn
-
+#undef err
+#undef warn

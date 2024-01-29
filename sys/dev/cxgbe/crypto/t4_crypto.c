@@ -33,17 +33,16 @@
 #include <sys/bus.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/sglist.h>
 
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
 
-#include "cryptodev_if.h"
-
 #include "common/common.h"
 #include "crypto/t4_crypto.h"
+#include "cryptodev_if.h"
 
 /*
  * Requests consist of:
@@ -116,7 +115,7 @@
 /*
  * The crypto engine supports a maximum AAD size of 511 bytes.
  */
-#define	MAX_AAD_LEN		511
+#define MAX_AAD_LEN 511
 
 /*
  * The documentation for CPL_RX_PHYS_DSGL claims a maximum of 32 SG
@@ -124,15 +123,15 @@
  * sometimes hang if an error occurs while processing a request with a
  * single DSGL entry larger than 2k.
  */
-#define	MAX_RX_PHYS_DSGL_SGE	32
-#define	DSGL_SGE_MAXLEN		2048
+#define MAX_RX_PHYS_DSGL_SGE 32
+#define DSGL_SGE_MAXLEN 2048
 
 /*
  * The adapter only supports requests with a total input or output
  * length of 64k-1 or smaller.  Longer requests either result in hung
  * requests or incorrect results.
  */
-#define	MAX_REQUEST_SIZE	65535
+#define MAX_REQUEST_SIZE 65535
 
 static MALLOC_DEFINE(M_CCR, "ccr", "Chelsio T6 crypto");
 
@@ -401,8 +400,8 @@ ccr_write_ulptx_sgl(struct ccr_session *s, void *dst, int nsegs)
 	MPASS(nsegs == sg->sg_nseg);
 	ss = &sg->sg_segs[0];
 	usgl = dst;
-	usgl->cmd_nsge = htobe32(V_ULPTX_CMD(ULP_TX_SC_DSGL) |
-	    V_ULPTX_NSGE(nsegs));
+	usgl->cmd_nsge = htobe32(
+	    V_ULPTX_CMD(ULP_TX_SC_DSGL) | V_ULPTX_NSGE(nsegs));
 	usgl->len0 = htobe32(ss->ss_len);
 	usgl->addr0 = htobe64(ss->ss_paddr);
 	ss++;
@@ -448,7 +447,7 @@ ccr_populate_wreq(struct ccr_softc *sc, struct ccr_session *s,
 	    V_FW_CRYPTO_LOOKASIDE_WR_PHASH(0) |
 	    V_FW_CRYPTO_LOOKASIDE_WR_IV(IV_NOP) |
 	    V_FW_CRYPTO_LOOKASIDE_WR_FQIDX(0) |
-	    V_FW_CRYPTO_LOOKASIDE_WR_TX_CH(0) |	/* unused in firmware */
+	    V_FW_CRYPTO_LOOKASIDE_WR_TX_CH(0) | /* unused in firmware */
 	    V_FW_CRYPTO_LOOKASIDE_WR_RX_Q_ID(s->port->rxq->iq.abs_id));
 	crwr->wreq.key_addr = 0;
 	crwr->wreq.pld_size_hash_size = htobe32(
@@ -459,8 +458,8 @@ ccr_populate_wreq(struct ccr_softc *sc, struct ccr_session *s,
 	crwr->ulptx.cmd_dest = htobe32(V_ULPTX_CMD(ULP_TX_PKT) |
 	    V_ULP_TXPKT_DATAMODIFY(0) |
 	    V_ULP_TXPKT_CHANNELID(s->port->tx_channel_id) |
-	    V_ULP_TXPKT_DEST(0) |
-	    V_ULP_TXPKT_FID(sc->first_rxq_id) | V_ULP_TXPKT_RO(1));
+	    V_ULP_TXPKT_DEST(0) | V_ULP_TXPKT_FID(sc->first_rxq_id) |
+	    V_ULP_TXPKT_RO(1));
 	crwr->ulptx.len = htobe32(
 	    ((wr_len - sizeof(struct fw_crypto_lookaside_wr)) / 16));
 
@@ -551,20 +550,18 @@ ccr_hash(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	    V_CPL_TX_SEC_PDU_IVINSRTOFST(0));
 
 	crwr->sec_cpl.pldlen = htobe32(crp->crp_payload_length == 0 ?
-	    axf->blocksize : crp->crp_payload_length);
+		axf->blocksize :
+		crp->crp_payload_length);
 
 	crwr->sec_cpl.cipherstop_lo_authinsert = htobe32(
 	    V_CPL_TX_SEC_PDU_AUTHSTART(1) | V_CPL_TX_SEC_PDU_AUTHSTOP(0));
 
 	/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
-	crwr->sec_cpl.seqno_numivs = htobe32(
-	    V_SCMD_SEQ_NO_CTRL(0) |
+	crwr->sec_cpl.seqno_numivs = htobe32(V_SCMD_SEQ_NO_CTRL(0) |
 	    V_SCMD_PROTO_VERSION(SCMD_PROTO_VERSION_GENERIC) |
 	    V_SCMD_CIPH_MODE(SCMD_CIPH_MODE_NOP) |
-	    V_SCMD_AUTH_MODE(s->hmac.auth_mode) |
-	    V_SCMD_HMAC_CTRL(hmac_ctrl));
-	crwr->sec_cpl.ivgen_hdrlen = htobe32(
-	    V_SCMD_LAST_FRAG(0) |
+	    V_SCMD_AUTH_MODE(s->hmac.auth_mode) | V_SCMD_HMAC_CTRL(hmac_ctrl));
+	crwr->sec_cpl.ivgen_hdrlen = htobe32(V_SCMD_LAST_FRAG(0) |
 	    V_SCMD_MORE_FRAGS(crp->crp_payload_length == 0 ? 1 : 0) |
 	    V_SCMD_MAC_ONLY(1));
 
@@ -582,8 +579,8 @@ ccr_hash(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	if (crp->crp_payload_length == 0) {
 		dst[0] = 0x80;
 		if (s->mode == HMAC)
-			*(uint64_t *)(dst + axf->blocksize - sizeof(uint64_t)) =
-			    htobe64(axf->blocksize << 3);
+			*(uint64_t *)(dst + axf->blocksize -
+			    sizeof(uint64_t)) = htobe64(axf->blocksize << 3);
 	} else if (imm_len != 0)
 		crypto_copydata(crp, crp->crp_payload_start,
 		    crp->crp_payload_length, dst);
@@ -683,8 +680,8 @@ ccr_cipher(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 		sgl_len = ccr_ulptx_sgl_len(sgl_nsegs);
 	}
 
-	wr_len = roundup2(transhdr_len, 16) + iv_len +
-	    roundup2(imm_len, 16) + sgl_len;
+	wr_len = roundup2(transhdr_len, 16) + iv_len + roundup2(imm_len, 16) +
+	    sgl_len;
 	if (wr_len > SGE_MAX_WR_LEN)
 		return (EFBIG);
 	wr = alloc_wrqe(wr_len, s->port->txq);
@@ -719,17 +716,14 @@ ccr_cipher(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	    V_CPL_TX_SEC_PDU_CIPHERSTOP_LO(0));
 
 	/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
-	crwr->sec_cpl.seqno_numivs = htobe32(
-	    V_SCMD_SEQ_NO_CTRL(0) |
+	crwr->sec_cpl.seqno_numivs = htobe32(V_SCMD_SEQ_NO_CTRL(0) |
 	    V_SCMD_PROTO_VERSION(SCMD_PROTO_VERSION_GENERIC) |
 	    V_SCMD_ENC_DEC_CTRL(op_type) |
 	    V_SCMD_CIPH_MODE(s->cipher.cipher_mode) |
 	    V_SCMD_AUTH_MODE(SCMD_AUTH_MODE_NOP) |
-	    V_SCMD_HMAC_CTRL(SCMD_HMAC_CTRL_NOP) |
-	    V_SCMD_IV_SIZE(iv_len / 2) |
+	    V_SCMD_HMAC_CTRL(SCMD_HMAC_CTRL_NOP) | V_SCMD_IV_SIZE(iv_len / 2) |
 	    V_SCMD_NUM_IVS(0));
-	crwr->sec_cpl.ivgen_hdrlen = htobe32(
-	    V_SCMD_IV_GEN_CTRL(0) |
+	crwr->sec_cpl.ivgen_hdrlen = htobe32(V_SCMD_IV_GEN_CTRL(0) |
 	    V_SCMD_MORE_FRAGS(0) | V_SCMD_LAST_FRAG(0) | V_SCMD_MAC_ONLY(0) |
 	    V_SCMD_AADIVDROP(1) | V_SCMD_HDR_LEN(dsgl_len));
 
@@ -744,19 +738,18 @@ ccr_cipher(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 			    s->cipher.key_len);
 		break;
 	case SCMD_CIPH_MODE_AES_CTR:
-		memcpy(crwr->key_ctx.key, s->cipher.enckey,
-		    s->cipher.key_len);
+		memcpy(crwr->key_ctx.key, s->cipher.enckey, s->cipher.key_len);
 		break;
 	case SCMD_CIPH_MODE_AES_XTS:
 		key_half = s->cipher.key_len / 2;
 		memcpy(crwr->key_ctx.key, s->cipher.enckey + key_half,
 		    key_half);
 		if (CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
-			memcpy(crwr->key_ctx.key + key_half,
-			    s->cipher.enckey, key_half);
+			memcpy(crwr->key_ctx.key + key_half, s->cipher.enckey,
+			    key_half);
 		else
-			memcpy(crwr->key_ctx.key + key_half,
-			    s->cipher.deckey, key_half);
+			memcpy(crwr->key_ctx.key + key_half, s->cipher.deckey,
+			    key_half);
 		break;
 	}
 
@@ -863,7 +856,8 @@ ccr_eta(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	 */
 	if (op_type == CHCR_ENCRYPT_OP) {
 		if (iv_len + crp->crp_aad_length + crp->crp_payload_length +
-		    hash_size_in_response > MAX_REQUEST_SIZE)
+			hash_size_in_response >
+		    MAX_REQUEST_SIZE)
 			return (EFBIG);
 	} else {
 		if (iv_len + crp->crp_aad_length + crp->crp_payload_length >
@@ -943,8 +937,8 @@ ccr_eta(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 		sglist_reset(s->sg_ulptx);
 		if (crp->crp_aad_length != 0) {
 			if (crp->crp_aad != NULL)
-				error = sglist_append(s->sg_ulptx,
-				    crp->crp_aad, crp->crp_aad_length);
+				error = sglist_append(s->sg_ulptx, crp->crp_aad,
+				    crp->crp_aad_length);
 			else
 				error = sglist_append_sglist(s->sg_ulptx,
 				    s->sg_input, crp->crp_aad_start,
@@ -1026,18 +1020,14 @@ ccr_eta(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 
 	/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
 	hmac_ctrl = ccr_hmac_ctrl(axf->hashsize, hash_size_in_response);
-	crwr->sec_cpl.seqno_numivs = htobe32(
-	    V_SCMD_SEQ_NO_CTRL(0) |
+	crwr->sec_cpl.seqno_numivs = htobe32(V_SCMD_SEQ_NO_CTRL(0) |
 	    V_SCMD_PROTO_VERSION(SCMD_PROTO_VERSION_GENERIC) |
 	    V_SCMD_ENC_DEC_CTRL(op_type) |
 	    V_SCMD_CIPH_AUTH_SEQ_CTRL(op_type == CHCR_ENCRYPT_OP ? 1 : 0) |
 	    V_SCMD_CIPH_MODE(s->cipher.cipher_mode) |
-	    V_SCMD_AUTH_MODE(s->hmac.auth_mode) |
-	    V_SCMD_HMAC_CTRL(hmac_ctrl) |
-	    V_SCMD_IV_SIZE(iv_len / 2) |
-	    V_SCMD_NUM_IVS(0));
-	crwr->sec_cpl.ivgen_hdrlen = htobe32(
-	    V_SCMD_IV_GEN_CTRL(0) |
+	    V_SCMD_AUTH_MODE(s->hmac.auth_mode) | V_SCMD_HMAC_CTRL(hmac_ctrl) |
+	    V_SCMD_IV_SIZE(iv_len / 2) | V_SCMD_NUM_IVS(0));
+	crwr->sec_cpl.ivgen_hdrlen = htobe32(V_SCMD_IV_GEN_CTRL(0) |
 	    V_SCMD_MORE_FRAGS(0) | V_SCMD_LAST_FRAG(0) | V_SCMD_MAC_ONLY(0) |
 	    V_SCMD_AADIVDROP(0) | V_SCMD_HDR_LEN(dsgl_len));
 
@@ -1052,19 +1042,18 @@ ccr_eta(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 			    s->cipher.key_len);
 		break;
 	case SCMD_CIPH_MODE_AES_CTR:
-		memcpy(crwr->key_ctx.key, s->cipher.enckey,
-		    s->cipher.key_len);
+		memcpy(crwr->key_ctx.key, s->cipher.enckey, s->cipher.key_len);
 		break;
 	case SCMD_CIPH_MODE_AES_XTS:
 		key_half = s->cipher.key_len / 2;
 		memcpy(crwr->key_ctx.key, s->cipher.enckey + key_half,
 		    key_half);
 		if (CRYPTO_OP_IS_ENCRYPT(crp->crp_op))
-			memcpy(crwr->key_ctx.key + key_half,
-			    s->cipher.enckey, key_half);
+			memcpy(crwr->key_ctx.key + key_half, s->cipher.enckey,
+			    key_half);
 		else
-			memcpy(crwr->key_ctx.key + key_half,
-			    s->cipher.deckey, key_half);
+			memcpy(crwr->key_ctx.key + key_half, s->cipher.deckey,
+			    key_half);
 		break;
 	}
 
@@ -1102,8 +1091,8 @@ ccr_eta(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 }
 
 static int
-ccr_eta_done(struct ccr_softc *sc, struct ccr_session *s,
-    struct cryptop *crp, const struct cpl_fw6_pld *cpl, int error)
+ccr_eta_done(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp,
+    const struct cpl_fw6_pld *cpl, int error)
 {
 
 	/*
@@ -1166,7 +1155,8 @@ ccr_gcm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	 */
 	if (op_type == CHCR_ENCRYPT_OP) {
 		if (iv_len + crp->crp_aad_length + crp->crp_payload_length +
-		    hash_size_in_response > MAX_REQUEST_SIZE)
+			hash_size_in_response >
+		    MAX_REQUEST_SIZE)
 			return (EFBIG);
 	} else {
 		if (iv_len + crp->crp_aad_length + crp->crp_payload_length >
@@ -1174,8 +1164,8 @@ ccr_gcm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 			return (EFBIG);
 	}
 	sglist_reset(s->sg_dsgl);
-	error = sglist_append_sglist(s->sg_dsgl, sc->sg_iv_aad, 0, iv_len +
-	    crp->crp_aad_length);
+	error = sglist_append_sglist(s->sg_dsgl, sc->sg_iv_aad, 0,
+	    iv_len + crp->crp_aad_length);
 	if (error)
 		return (error);
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp))
@@ -1233,8 +1223,8 @@ ccr_gcm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 		sglist_reset(s->sg_ulptx);
 		if (crp->crp_aad_length != 0) {
 			if (crp->crp_aad != NULL)
-				error = sglist_append(s->sg_ulptx,
-				    crp->crp_aad, crp->crp_aad_length);
+				error = sglist_append(s->sg_ulptx, crp->crp_aad,
+				    crp->crp_aad_length);
 			else
 				error = sglist_append_sglist(s->sg_ulptx,
 				    s->sg_input, crp->crp_aad_start,
@@ -1322,18 +1312,15 @@ ccr_gcm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 
 	/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
 	hmac_ctrl = ccr_hmac_ctrl(AES_GMAC_HASH_LEN, hash_size_in_response);
-	crwr->sec_cpl.seqno_numivs = htobe32(
-	    V_SCMD_SEQ_NO_CTRL(0) |
+	crwr->sec_cpl.seqno_numivs = htobe32(V_SCMD_SEQ_NO_CTRL(0) |
 	    V_SCMD_PROTO_VERSION(SCMD_PROTO_VERSION_GENERIC) |
 	    V_SCMD_ENC_DEC_CTRL(op_type) |
 	    V_SCMD_CIPH_AUTH_SEQ_CTRL(op_type == CHCR_ENCRYPT_OP ? 1 : 0) |
 	    V_SCMD_CIPH_MODE(SCMD_CIPH_MODE_AES_GCM) |
 	    V_SCMD_AUTH_MODE(SCMD_AUTH_MODE_GHASH) |
-	    V_SCMD_HMAC_CTRL(hmac_ctrl) |
-	    V_SCMD_IV_SIZE(iv_len / 2) |
+	    V_SCMD_HMAC_CTRL(hmac_ctrl) | V_SCMD_IV_SIZE(iv_len / 2) |
 	    V_SCMD_NUM_IVS(0));
-	crwr->sec_cpl.ivgen_hdrlen = htobe32(
-	    V_SCMD_IV_GEN_CTRL(0) |
+	crwr->sec_cpl.ivgen_hdrlen = htobe32(V_SCMD_IV_GEN_CTRL(0) |
 	    V_SCMD_MORE_FRAGS(0) | V_SCMD_LAST_FRAG(0) | V_SCMD_MAC_ONLY(0) |
 	    V_SCMD_AADIVDROP(0) | V_SCMD_HDR_LEN(dsgl_len));
 
@@ -1373,8 +1360,8 @@ ccr_gcm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 }
 
 static int
-ccr_gcm_done(struct ccr_softc *sc, struct ccr_session *s,
-    struct cryptop *crp, const struct cpl_fw6_pld *cpl, int error)
+ccr_gcm_done(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp,
+    const struct cpl_fw6_pld *cpl, int error)
 {
 
 	/*
@@ -1516,7 +1503,8 @@ ccr_ccm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 	 */
 	if (op_type == CHCR_ENCRYPT_OP) {
 		if (iv_len + aad_len + crp->crp_payload_length +
-		    hash_size_in_response > MAX_REQUEST_SIZE)
+			hash_size_in_response >
+		    MAX_REQUEST_SIZE)
 			return (EFBIG);
 	} else {
 		if (iv_len + aad_len + crp->crp_payload_length >
@@ -1524,8 +1512,8 @@ ccr_ccm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 			return (EFBIG);
 	}
 	sglist_reset(s->sg_dsgl);
-	error = sglist_append_sglist(s->sg_dsgl, sc->sg_iv_aad, 0, iv_len +
-	    aad_len);
+	error = sglist_append_sglist(s->sg_dsgl, sc->sg_iv_aad, 0,
+	    iv_len + aad_len);
 	if (error)
 		return (error);
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp))
@@ -1585,8 +1573,8 @@ ccr_ccm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 		sglist_reset(s->sg_ulptx);
 		if (crp->crp_aad_length != 0) {
 			if (crp->crp_aad != NULL)
-				error = sglist_append(s->sg_ulptx,
-				    crp->crp_aad, crp->crp_aad_length);
+				error = sglist_append(s->sg_ulptx, crp->crp_aad,
+				    crp->crp_aad_length);
 			else
 				error = sglist_append_sglist(s->sg_ulptx,
 				    s->sg_input, crp->crp_aad_start,
@@ -1669,18 +1657,15 @@ ccr_ccm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 
 	/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
 	hmac_ctrl = ccr_ccm_hmac_ctrl(hash_size_in_response);
-	crwr->sec_cpl.seqno_numivs = htobe32(
-	    V_SCMD_SEQ_NO_CTRL(0) |
+	crwr->sec_cpl.seqno_numivs = htobe32(V_SCMD_SEQ_NO_CTRL(0) |
 	    V_SCMD_PROTO_VERSION(SCMD_PROTO_VERSION_GENERIC) |
 	    V_SCMD_ENC_DEC_CTRL(op_type) |
 	    V_SCMD_CIPH_AUTH_SEQ_CTRL(op_type == CHCR_ENCRYPT_OP ? 0 : 1) |
 	    V_SCMD_CIPH_MODE(SCMD_CIPH_MODE_AES_CCM) |
 	    V_SCMD_AUTH_MODE(SCMD_AUTH_MODE_CBCMAC) |
-	    V_SCMD_HMAC_CTRL(hmac_ctrl) |
-	    V_SCMD_IV_SIZE(iv_len / 2) |
+	    V_SCMD_HMAC_CTRL(hmac_ctrl) | V_SCMD_IV_SIZE(iv_len / 2) |
 	    V_SCMD_NUM_IVS(0));
-	crwr->sec_cpl.ivgen_hdrlen = htobe32(
-	    V_SCMD_IV_GEN_CTRL(0) |
+	crwr->sec_cpl.ivgen_hdrlen = htobe32(V_SCMD_IV_GEN_CTRL(0) |
 	    V_SCMD_MORE_FRAGS(0) | V_SCMD_LAST_FRAG(0) | V_SCMD_MAC_ONLY(0) |
 	    V_SCMD_AADIVDROP(0) | V_SCMD_HDR_LEN(dsgl_len));
 
@@ -1739,8 +1724,8 @@ ccr_ccm(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp)
 }
 
 static int
-ccr_ccm_done(struct ccr_softc *sc, struct ccr_session *s,
-    struct cryptop *crp, const struct cpl_fw6_pld *cpl, int error)
+ccr_ccm_done(struct ccr_softc *sc, struct ccr_session *s, struct cryptop *crp,
+    const struct cpl_fw6_pld *cpl, int error)
 {
 
 	/*
@@ -1952,7 +1937,8 @@ ccr_attach(device_t dev)
 	sc->dev = dev;
 	sysctl_ctx_init(&sc->ctx);
 	sc->adapter = device_get_softc(device_get_parent(dev));
-	for_each_port(sc->adapter, i) {
+	for_each_port(sc->adapter, i)
+	{
 		ccr_init_port(sc, i);
 	}
 	cid = crypto_get_driverid(dev, sizeof(struct ccr_session),
@@ -2035,7 +2021,8 @@ ccr_detach(device_t dev)
 	counter_u64_free(sc->stats_sglist_error);
 	counter_u64_free(sc->stats_process_error);
 	counter_u64_free(sc->stats_sw_fallback);
-	for_each_port(sc->adapter, i) {
+	for_each_port(sc->adapter, i)
+	{
 		ccr_free_port(sc, i);
 	}
 	sglist_free(sc->sg_iv_aad);
@@ -2146,8 +2133,8 @@ ccr_aes_setkey(struct ccr_session *s, const void *key, int klen)
 	}
 	kctx_flits = (sizeof(struct _key_ctx) + kctx_len) / 16;
 	s->cipher.key_ctx_hdr = htobe32(V_KEY_CONTEXT_CTX_LEN(kctx_flits) |
-	    V_KEY_CONTEXT_DUAL_CK(s->cipher.cipher_mode ==
-	    SCMD_CIPH_MODE_AES_XTS) |
+	    V_KEY_CONTEXT_DUAL_CK(
+		s->cipher.cipher_mode == SCMD_CIPH_MODE_AES_XTS) |
 	    V_KEY_CONTEXT_OPAD_PRESENT(opad_present) |
 	    V_KEY_CONTEXT_SALT_PRESENT(1) | V_KEY_CONTEXT_CK_SIZE(ck_size) |
 	    V_KEY_CONTEXT_MK_SIZE(mk_size) | V_KEY_CONTEXT_VALID(1));
@@ -2195,8 +2182,8 @@ ccr_cipher_supported(const struct crypto_session_params *csp)
 	default:
 		return (false);
 	}
-	return (ccr_aes_check_keylen(csp->csp_cipher_alg,
-	    csp->csp_cipher_klen));
+	return (
+	    ccr_aes_check_keylen(csp->csp_cipher_alg, csp->csp_cipher_klen));
 }
 
 static int
@@ -2292,8 +2279,7 @@ ccr_choose_port(struct ccr_softc *sc)
 		if ((sc->port_mask & (1u << i)) == 0)
 			continue;
 
-		if (best == NULL ||
-		    p->active_sessions < best->active_sessions)
+		if (best == NULL || p->active_sessions < best->active_sessions)
 			best = p;
 	}
 	return (best);
@@ -2646,8 +2632,7 @@ out:
 }
 
 static int
-do_cpl6_fw_pld(struct sge_iq *iq, const struct rss_header *rss,
-    struct mbuf *m)
+do_cpl6_fw_pld(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 {
 	struct ccr_softc *sc;
 	struct ccr_session *s;
@@ -2725,25 +2710,20 @@ ccr_modevent(module_t mod, int cmd, void *arg)
 	}
 }
 
-static device_method_t ccr_methods[] = {
-	DEVMETHOD(device_identify,	ccr_identify),
-	DEVMETHOD(device_probe,		ccr_probe),
-	DEVMETHOD(device_attach,	ccr_attach),
-	DEVMETHOD(device_detach,	ccr_detach),
+static device_method_t ccr_methods[] = { DEVMETHOD(device_identify,
+					     ccr_identify),
+	DEVMETHOD(device_probe, ccr_probe),
+	DEVMETHOD(device_attach, ccr_attach),
+	DEVMETHOD(device_detach, ccr_detach),
 
 	DEVMETHOD(cryptodev_probesession, ccr_probesession),
-	DEVMETHOD(cryptodev_newsession,	ccr_newsession),
+	DEVMETHOD(cryptodev_newsession, ccr_newsession),
 	DEVMETHOD(cryptodev_freesession, ccr_freesession),
-	DEVMETHOD(cryptodev_process,	ccr_process),
+	DEVMETHOD(cryptodev_process, ccr_process),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ccr_driver = {
-	"ccr",
-	ccr_methods,
-	sizeof(struct ccr_softc)
-};
+static driver_t ccr_driver = { "ccr", ccr_methods, sizeof(struct ccr_softc) };
 
 DRIVER_MODULE(ccr, t6nex, ccr_driver, ccr_modevent, NULL);
 MODULE_VERSION(ccr, 1);

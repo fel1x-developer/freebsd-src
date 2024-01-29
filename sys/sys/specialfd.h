@@ -29,7 +29,7 @@
 #define _SYS_SPECIALFD_H_
 
 enum specialfd_type {
-	SPECIALFD_EVENTFD	  = 1,
+	SPECIALFD_EVENTFD = 1,
 };
 
 struct specialfd_eventfd {

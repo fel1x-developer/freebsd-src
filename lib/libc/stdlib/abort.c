@@ -29,15 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <signal.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <unistd.h>
 #include <pthread.h>
-#include "un-namespace.h"
+#include <signal.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 void
 abort(void)

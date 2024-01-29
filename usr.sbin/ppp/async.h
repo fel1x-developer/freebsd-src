@@ -26,19 +26,19 @@
  * SUCH DAMAGE.
  */
 
-#define HDLCSIZE	(MAX_MRU*2+6)
+#define HDLCSIZE (MAX_MRU * 2 + 6)
 
 struct async {
-  int mode;
-  int length;
-  u_char hbuff[HDLCSIZE];	/* recv buffer */
-  u_char xbuff[HDLCSIZE];	/* xmit buffer */
-  u_int32_t my_accmap;
-  u_int32_t his_accmap;
+	int mode;
+	int length;
+	u_char hbuff[HDLCSIZE]; /* recv buffer */
+	u_char xbuff[HDLCSIZE]; /* xmit buffer */
+	u_int32_t my_accmap;
+	u_int32_t his_accmap;
 
-  struct {
-    u_char EscMap[33];
-  } cfg;
+	struct {
+		u_char EscMap[33];
+	} cfg;
 };
 
 struct lcp;

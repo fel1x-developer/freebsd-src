@@ -28,10 +28,11 @@
  * I2C HID transport backend.
  */
 
-#include <sys/cdefs.h>
 #include "opt_hid.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/endian.h>
@@ -41,23 +42,20 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/evdev/input.h>
-
 #include <dev/hid/hid.h>
 #include <dev/hid/hidquirk.h>
-
 #include <dev/iicbus/iic.h>
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "hid_if.h"
 
@@ -65,37 +63,42 @@
 static int iichid_debug = 0;
 
 static SYSCTL_NODE(_hw, OID_AUTO, iichid, CTLFLAG_RW, 0, "I2C HID");
-SYSCTL_INT(_hw_iichid, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &iichid_debug, 1, "Debug level");
+SYSCTL_INT(_hw_iichid, OID_AUTO, debug, CTLFLAG_RWTUN, &iichid_debug, 1,
+    "Debug level");
 
-#define	DPRINTFN(sc, n, ...) do {			\
-	if (iichid_debug >= (n))			\
-		device_printf((sc)->dev, __VA_ARGS__);	\
-} while (0)
-#define	DPRINTF(sc, ...)	DPRINTFN(sc, 1, __VA_ARGS__)
+#define DPRINTFN(sc, n, ...)                                   \
+	do {                                                   \
+		if (iichid_debug >= (n))                       \
+			device_printf((sc)->dev, __VA_ARGS__); \
+	} while (0)
+#define DPRINTF(sc, ...) DPRINTFN(sc, 1, __VA_ARGS__)
 #else
-#define	DPRINTFN(...)		do {} while (0)
-#define	DPRINTF(...)		do {} while (0)
+#define DPRINTFN(...) \
+	do {          \
+	} while (0)
+#define DPRINTF(...) \
+	do {         \
+	} while (0)
 #endif
 
-typedef	hid_size_t	iichid_size_t;
-#define	IICHID_SIZE_MAX	(UINT16_MAX - 2)
+typedef hid_size_t iichid_size_t;
+#define IICHID_SIZE_MAX (UINT16_MAX - 2)
 
 /* 7.2 */
 enum {
-	I2C_HID_CMD_DESCR	= 0x0,
-	I2C_HID_CMD_RESET	= 0x1,
-	I2C_HID_CMD_GET_REPORT	= 0x2,
-	I2C_HID_CMD_SET_REPORT	= 0x3,
-	I2C_HID_CMD_GET_IDLE	= 0x4,
-	I2C_HID_CMD_SET_IDLE	= 0x5,
-	I2C_HID_CMD_GET_PROTO	= 0x6,
-	I2C_HID_CMD_SET_PROTO	= 0x7,
-	I2C_HID_CMD_SET_POWER	= 0x8,
+	I2C_HID_CMD_DESCR = 0x0,
+	I2C_HID_CMD_RESET = 0x1,
+	I2C_HID_CMD_GET_REPORT = 0x2,
+	I2C_HID_CMD_SET_REPORT = 0x3,
+	I2C_HID_CMD_GET_IDLE = 0x4,
+	I2C_HID_CMD_SET_IDLE = 0x5,
+	I2C_HID_CMD_GET_PROTO = 0x6,
+	I2C_HID_CMD_SET_PROTO = 0x7,
+	I2C_HID_CMD_SET_POWER = 0x8,
 };
 
-#define	I2C_HID_POWER_ON		0x0
-#define	I2C_HID_POWER_OFF		0x1
+#define I2C_HID_POWER_ON 0x0
+#define I2C_HID_POWER_OFF 0x1
 
 /*
  * Since interrupt resource acquisition is not always possible (in case of GPIO
@@ -106,9 +109,9 @@ enum {
  * sampling_rate_fast value too high as it may result in periodical lags of
  * cursor motion.
  */
-#define	IICHID_SAMPLING_RATE_FAST	80
-#define	IICHID_SAMPLING_RATE_SLOW	10
-#define	IICHID_SAMPLING_HYSTERESIS	16	/* ~ 2x fast / slow */
+#define IICHID_SAMPLING_RATE_FAST 80
+#define IICHID_SAMPLING_RATE_SLOW 10
+#define IICHID_SAMPLING_HYSTERESIS 16 /* ~ 2x fast / slow */
 
 /* 5.1.1 - HID Descriptor Format */
 struct i2c_hid_desc {
@@ -128,18 +131,18 @@ struct i2c_hid_desc {
 	uint32_t reserved;
 } __packed;
 
-#define	IICHID_REG_NONE	-1
-#define	IICHID_REG_ACPI	(UINT16_MAX + 1)
-#define	IICHID_REG_ELAN	0x0001
+#define IICHID_REG_NONE -1
+#define IICHID_REG_ACPI (UINT16_MAX + 1)
+#define IICHID_REG_ELAN 0x0001
 
 static const struct iichid_id {
 	char *id;
 	int reg;
 } iichid_ids[] = {
-	{ "ELAN0000",	IICHID_REG_ELAN },
-	{ "PNP0C50",	IICHID_REG_ACPI },
-	{ "ACPI0C50",	IICHID_REG_ACPI },
-	{ NULL,		0 },
+	{ "ELAN0000", IICHID_REG_ELAN },
+	{ "PNP0C50", IICHID_REG_ACPI },
+	{ "ACPI0C50", IICHID_REG_ACPI },
+	{ NULL, 0 },
 };
 
 enum iichid_powerstate_how {
@@ -154,62 +157,62 @@ enum iichid_powerstate_how {
  * simple at the cost of running front interrupt handlers with locked bus.
  */
 struct iichid_softc {
-	device_t		dev;
+	device_t dev;
 
-	bool			probe_done;
-	int			probe_result;
+	bool probe_done;
+	int probe_result;
 
-	struct hid_device_info	hw;
-	uint16_t		addr;	/* Shifted left by 1 */
-	struct i2c_hid_desc	desc;
+	struct hid_device_info hw;
+	uint16_t addr; /* Shifted left by 1 */
+	struct i2c_hid_desc desc;
 
-	hid_intr_t		*intr_handler;
-	void			*intr_ctx;
-	uint8_t			*intr_buf;
-	iichid_size_t		intr_bufsize;
+	hid_intr_t *intr_handler;
+	void *intr_ctx;
+	uint8_t *intr_buf;
+	iichid_size_t intr_bufsize;
 
-	int			irq_rid;
-	struct resource		*irq_res;
-	void			*irq_cookie;
+	int irq_rid;
+	struct resource *irq_res;
+	void *irq_cookie;
 
 #ifdef IICHID_SAMPLING
-	int			sampling_rate_slow;	/* iicbus lock */
-	int			sampling_rate_fast;
-	int			sampling_hysteresis;
-	int			missing_samples;	/* iicbus lock */
-	int			dup_samples;		/* iicbus lock */
-	iichid_size_t		dup_size;		/* iicbus lock */
-	bool			callout_setup;		/* iicbus lock */
-	uint8_t			*dup_buf;
-	struct taskqueue	*taskqueue;
-	struct timeout_task	sampling_task;		/* iicbus lock */
+	int sampling_rate_slow; /* iicbus lock */
+	int sampling_rate_fast;
+	int sampling_hysteresis;
+	int missing_samples;	/* iicbus lock */
+	int dup_samples;	/* iicbus lock */
+	iichid_size_t dup_size; /* iicbus lock */
+	bool callout_setup;	/* iicbus lock */
+	uint8_t *dup_buf;
+	struct taskqueue *taskqueue;
+	struct timeout_task sampling_task; /* iicbus lock */
 #endif
 
-	struct task		suspend_task;
-	bool			open;			/* iicbus lock */
-	bool			suspend;		/* iicbus lock */
-	bool			power_on;		/* iicbus lock */
+	struct task suspend_task;
+	bool open;     /* iicbus lock */
+	bool suspend;  /* iicbus lock */
+	bool power_on; /* iicbus lock */
 };
 
-static device_probe_t	iichid_probe;
-static device_attach_t	iichid_attach;
-static device_detach_t	iichid_detach;
-static device_resume_t	iichid_resume;
-static device_suspend_t	iichid_suspend;
+static device_probe_t iichid_probe;
+static device_attach_t iichid_attach;
+static device_detach_t iichid_detach;
+static device_resume_t iichid_resume;
+static device_suspend_t iichid_suspend;
 
-static void	iichid_suspend_task(void *, int);
+static void iichid_suspend_task(void *, int);
 
 #ifdef IICHID_SAMPLING
-static int	iichid_setup_callout(struct iichid_softc *);
-static int	iichid_reset_callout(struct iichid_softc *);
-static void	iichid_teardown_callout(struct iichid_softc *);
+static int iichid_setup_callout(struct iichid_softc *);
+static int iichid_reset_callout(struct iichid_softc *);
+static void iichid_teardown_callout(struct iichid_softc *);
 #endif
 
 static inline int
 acpi_is_iichid(ACPI_HANDLE handle)
 {
 	const struct iichid_id *ids;
-	UINT32	sta;
+	UINT32 sta;
 	int reg;
 
 	for (ids = iichid_ids; ids->id != NULL; ids++) {
@@ -245,8 +248,22 @@ iichid_get_config_reg(ACPI_HANDLE handle, uint16_t *config_reg)
 	 */
 	/* 3cdff6f7-4267-4555-ad05-b30a3d8938de */
 	static uint8_t dsm_guid[ACPI_UUID_LENGTH] = {
-		0xF7, 0xF6, 0xDF, 0x3C, 0x67, 0x42, 0x55, 0x45,
-		0xAD, 0x05, 0xB3, 0x0A, 0x3D, 0x89, 0x38, 0xDE,
+		0xF7,
+		0xF6,
+		0xDF,
+		0x3C,
+		0x67,
+		0x42,
+		0x55,
+		0x45,
+		0xAD,
+		0x05,
+		0xB3,
+		0x0A,
+		0x3D,
+		0x89,
+		0x38,
+		0xDE,
 	};
 
 	status = acpi_EvaluateDSMTyped(handle, dsm_guid, 1, 1, NULL, &acpi_buf,
@@ -255,7 +272,7 @@ iichid_get_config_reg(ACPI_HANDLE handle, uint16_t *config_reg)
 		printf("%s: error evaluating _DSM\n", __func__);
 		return (status);
 	}
-	result = (ACPI_OBJECT *) acpi_buf.Pointer;
+	result = (ACPI_OBJECT *)acpi_buf.Pointer;
 	*config_reg = result->Integer.Value & 0xFFFF;
 
 	AcpiOsFree(result);
@@ -263,7 +280,7 @@ iichid_get_config_reg(ACPI_HANDLE handle, uint16_t *config_reg)
 }
 
 static int
-iichid_cmd_read(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
+iichid_cmd_read(struct iichid_softc *sc, void *buf, iichid_size_t maxlen,
     iichid_size_t *actual_len)
 {
 	/*
@@ -273,7 +290,7 @@ iichid_cmd_read(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
 	uint8_t actbuf[2] = { 0, 0 };
 	/* Read actual input report length. */
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_RD | IIC_M_NOSTOP, sizeof(actbuf), actbuf },
+		{ sc->addr, IIC_M_RD | IIC_M_NOSTOP, sizeof(actbuf), actbuf },
 	};
 	uint16_t actlen;
 	int error;
@@ -285,27 +302,29 @@ iichid_cmd_read(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
 	actlen = actbuf[0] | actbuf[1] << 8;
 	if (actlen <= 2 || actlen == 0xFFFF || maxlen == 0) {
 		/* Read and discard 1 byte to send I2C STOP condition. */
-		msgs[0] = (struct iic_msg)
-		    { sc->addr, IIC_M_RD | IIC_M_NOSTART, 1, actbuf };
+		msgs[0] = (struct iic_msg) { sc->addr, IIC_M_RD | IIC_M_NOSTART,
+			1, actbuf };
 		actlen = 0;
 	} else {
 		actlen -= 2;
 		if (actlen > maxlen) {
-			DPRINTF(sc, "input report too big. requested=%d "
-			    "received=%d\n", maxlen, actlen);
+			DPRINTF(sc,
+			    "input report too big. requested=%d "
+			    "received=%d\n",
+			    maxlen, actlen);
 			actlen = maxlen;
 		}
 		/* Read input report itself. */
-		msgs[0] = (struct iic_msg)
-		    { sc->addr, IIC_M_RD | IIC_M_NOSTART, actlen, buf };
+		msgs[0] = (struct iic_msg) { sc->addr, IIC_M_RD | IIC_M_NOSTART,
+			actlen, buf };
 	}
 
 	error = iicbus_transfer(sc->dev, msgs, 1);
 	if (error == 0 && actual_len != NULL)
 		*actual_len = actlen;
 
-	DPRINTFN(sc, 5,
-	    "%*D - %*D\n", 2, actbuf, " ", msgs[0].len, msgs[0].buf, " ");
+	DPRINTFN(sc, 5, "%*D - %*D\n", 2, actbuf, " ", msgs[0].len, msgs[0].buf,
+	    " ");
 
 	return (error);
 }
@@ -318,8 +337,9 @@ iichid_cmd_write(struct iichid_softc *sc, const void *buf, iichid_size_t len)
 	uint16_t replen = 2 + len;
 	uint8_t cmd[4] = { cmdreg[0], cmdreg[1], replen & 0xFF, replen >> 8 };
 	struct iic_msg msgs[] = {
-	    {sc->addr, IIC_M_WR | IIC_M_NOSTOP, sizeof(cmd), cmd},
-	    {sc->addr, IIC_M_WR | IIC_M_NOSTART, len, __DECONST(void *, buf)},
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTOP, sizeof(cmd), cmd },
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTART, len,
+		    __DECONST(void *, buf) },
 	};
 
 	if (le16toh(sc->desc.wMaxOutputLength) == 0)
@@ -327,8 +347,10 @@ iichid_cmd_write(struct iichid_softc *sc, const void *buf, iichid_size_t len)
 	if (len < 2)
 		return (IIC_ENOTSUPP);
 
-	DPRINTF(sc, "HID command I2C_HID_CMD_WRITE (len %d): "
-	    "%*D\n", len, len, buf, " ");
+	DPRINTF(sc,
+	    "HID command I2C_HID_CMD_WRITE (len %d): "
+	    "%*D\n",
+	    len, len, buf, " ");
 
 	return (iicbus_transfer(sc->dev, msgs, nitems(msgs)));
 }
@@ -343,8 +365,8 @@ iichid_cmd_get_hid_desc(struct iichid_softc *sc, uint16_t config_reg,
 	 */
 	uint16_t cmd = htole16(config_reg);
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_WR | IIC_M_NOSTOP, 2, (uint8_t *)&cmd },
-	    { sc->addr, IIC_M_RD, sizeof(*hid_desc), (uint8_t *)hid_desc },
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTOP, 2, (uint8_t *)&cmd },
+		{ sc->addr, IIC_M_RD, sizeof(*hid_desc), (uint8_t *)hid_desc },
 	};
 	int error;
 
@@ -354,8 +376,8 @@ iichid_cmd_get_hid_desc(struct iichid_softc *sc, uint16_t config_reg,
 	if (error != 0)
 		return (error);
 
-	DPRINTF(sc, "HID descriptor: %*D\n",
-	    (int)sizeof(struct i2c_hid_desc), hid_desc, " ");
+	DPRINTF(sc, "HID descriptor: %*D\n", (int)sizeof(struct i2c_hid_desc),
+	    hid_desc, " ");
 
 	return (0);
 }
@@ -366,7 +388,7 @@ iichid_set_power(struct iichid_softc *sc, uint8_t param)
 	uint8_t *cmdreg = (uint8_t *)&sc->desc.wCommandRegister;
 	uint8_t cmd[] = { cmdreg[0], cmdreg[1], param, I2C_HID_CMD_SET_POWER };
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_WR, sizeof(cmd), cmd },
+		{ sc->addr, IIC_M_WR, sizeof(cmd), cmd },
 	};
 
 	DPRINTF(sc, "HID command I2C_HID_CMD_SET_POWER(%d)\n", param);
@@ -380,7 +402,7 @@ iichid_reset(struct iichid_softc *sc)
 	uint8_t *cmdreg = (uint8_t *)&sc->desc.wCommandRegister;
 	uint8_t cmd[] = { cmdreg[0], cmdreg[1], 0, I2C_HID_CMD_RESET };
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_WR, sizeof(cmd), cmd },
+		{ sc->addr, IIC_M_WR, sizeof(cmd), cmd },
 	};
 
 	DPRINTF(sc, "HID command I2C_HID_CMD_RESET\n");
@@ -389,13 +411,13 @@ iichid_reset(struct iichid_softc *sc)
 }
 
 static int
-iichid_cmd_get_report_desc(struct iichid_softc* sc, void *buf,
+iichid_cmd_get_report_desc(struct iichid_softc *sc, void *buf,
     iichid_size_t len)
 {
 	uint16_t cmd = sc->desc.wReportDescRegister;
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_WR | IIC_M_NOSTOP, 2, (uint8_t *)&cmd },
-	    { sc->addr, IIC_M_RD, len, buf },
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTOP, 2, (uint8_t *)&cmd },
+		{ sc->addr, IIC_M_RD, len, buf },
 	};
 	int error;
 
@@ -412,7 +434,7 @@ iichid_cmd_get_report_desc(struct iichid_softc* sc, void *buf,
 }
 
 static int
-iichid_cmd_get_report(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
+iichid_cmd_get_report(struct iichid_softc *sc, void *buf, iichid_size_t maxlen,
     iichid_size_t *actual_len, uint8_t type, uint8_t id)
 {
 	/*
@@ -423,30 +445,33 @@ iichid_cmd_get_report(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
 	 */
 	uint8_t *dtareg = (uint8_t *)&sc->desc.wDataRegister;
 	uint8_t *cmdreg = (uint8_t *)&sc->desc.wCommandRegister;
-	uint8_t cmd[] =	{   /*________|______id>=15_____|______id<15______*/
-						    cmdreg[0]		   ,
-						    cmdreg[1]		   ,
-			    (id >= 15 ? 15 | (type << 4): id | (type << 4)),
-					      I2C_HID_CMD_GET_REPORT	   ,
-			    (id >= 15 ?		id	:    dtareg[0]	  ),
-			    (id >= 15 ?	   dtareg[0]	:    dtareg[1]	  ),
-			    (id >= 15 ?    dtareg[1]	:	0	  ),
-			};
-	int cmdlen    =	    (id >= 15 ?		7	:	6	  );
+	uint8_t cmd[] = {
+		/*________|______id>=15_____|______id<15______*/
+		cmdreg[0],
+		cmdreg[1],
+		(id >= 15 ? 15 | (type << 4) : id | (type << 4)),
+		I2C_HID_CMD_GET_REPORT,
+		(id >= 15 ? id : dtareg[0]),
+		(id >= 15 ? dtareg[0] : dtareg[1]),
+		(id >= 15 ? dtareg[1] : 0),
+	};
+	int cmdlen = (id >= 15 ? 7 : 6);
 	uint8_t actbuf[2] = { 0, 0 };
 	uint16_t actlen;
 	int d, error;
 	struct iic_msg msgs[] = {
-	    { sc->addr, IIC_M_WR | IIC_M_NOSTOP, cmdlen, cmd },
-	    { sc->addr, IIC_M_RD | IIC_M_NOSTOP, 2, actbuf },
-	    { sc->addr, IIC_M_RD | IIC_M_NOSTART, maxlen, buf },
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTOP, cmdlen, cmd },
+		{ sc->addr, IIC_M_RD | IIC_M_NOSTOP, 2, actbuf },
+		{ sc->addr, IIC_M_RD | IIC_M_NOSTART, maxlen, buf },
 	};
 
 	if (maxlen == 0)
 		return (EINVAL);
 
-	DPRINTF(sc, "HID command I2C_HID_CMD_GET_REPORT %d "
-	    "(type %d, len %d)\n", id, type, maxlen);
+	DPRINTF(sc,
+	    "HID command I2C_HID_CMD_GET_REPORT %d "
+	    "(type %d, len %d)\n",
+	    id, type, maxlen);
 
 	/*
 	 * 7.2.2.2 - Response will be a 2-byte length value, the report
@@ -458,8 +483,8 @@ iichid_cmd_get_report(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
 
 	actlen = actbuf[0] | actbuf[1] << 8;
 	if (actlen != maxlen + 2)
-		DPRINTF(sc, "response size %d != expected length %d\n",
-		    actlen, maxlen + 2);
+		DPRINTF(sc, "response size %d != expected length %d\n", actlen,
+		    maxlen + 2);
 
 	if (actlen <= 2 || actlen == 0xFFFF)
 		return (ENOMSG);
@@ -482,7 +507,7 @@ iichid_cmd_get_report(struct iichid_softc* sc, void *buf, iichid_size_t maxlen,
 }
 
 static int
-iichid_cmd_set_report(struct iichid_softc* sc, const void *buf,
+iichid_cmd_set_report(struct iichid_softc *sc, const void *buf,
     iichid_size_t len, uint8_t type, uint8_t id)
 {
 	/*
@@ -494,25 +519,29 @@ iichid_cmd_set_report(struct iichid_softc* sc, const void *buf,
 	uint8_t *dtareg = (uint8_t *)&sc->desc.wDataRegister;
 	uint8_t *cmdreg = (uint8_t *)&sc->desc.wCommandRegister;
 	uint16_t replen = 2 + len;
-	uint8_t cmd[] =	{   /*________|______id>=15_____|______id<15______*/
-						    cmdreg[0]		   ,
-						    cmdreg[1]		   ,
-			    (id >= 15 ? 15 | (type << 4): id | (type << 4)),
-					      I2C_HID_CMD_SET_REPORT	   ,
-			    (id >= 15 ?		id	:    dtareg[0]    ),
-			    (id >= 15 ?    dtareg[0]	:    dtareg[1]    ),
-			    (id >= 15 ?    dtareg[1]	:   replen & 0xff ),
-			    (id >= 15 ?   replen & 0xff	:   replen >> 8   ),
-			    (id >= 15 ?   replen >> 8	:	0	  ),
-			};
-	int cmdlen    =	    (id >= 15 ?		9	:	8	  );
+	uint8_t cmd[] = {
+		/*________|______id>=15_____|______id<15______*/
+		cmdreg[0],
+		cmdreg[1],
+		(id >= 15 ? 15 | (type << 4) : id | (type << 4)),
+		I2C_HID_CMD_SET_REPORT,
+		(id >= 15 ? id : dtareg[0]),
+		(id >= 15 ? dtareg[0] : dtareg[1]),
+		(id >= 15 ? dtareg[1] : replen & 0xff),
+		(id >= 15 ? replen & 0xff : replen >> 8),
+		(id >= 15 ? replen >> 8 : 0),
+	};
+	int cmdlen = (id >= 15 ? 9 : 8);
 	struct iic_msg msgs[] = {
-	    {sc->addr, IIC_M_WR | IIC_M_NOSTOP, cmdlen, cmd},
-	    {sc->addr, IIC_M_WR | IIC_M_NOSTART, len, __DECONST(void *, buf)},
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTOP, cmdlen, cmd },
+		{ sc->addr, IIC_M_WR | IIC_M_NOSTART, len,
+		    __DECONST(void *, buf) },
 	};
 
-	DPRINTF(sc, "HID command I2C_HID_CMD_SET_REPORT %d (type %d, len %d): "
-	    "%*D\n", id, type, len, len, buf, " ");
+	DPRINTF(sc,
+	    "HID command I2C_HID_CMD_SET_REPORT %d (type %d, len %d): "
+	    "%*D\n",
+	    id, type, len, len, buf, " ");
 
 	return (iicbus_transfer(sc->dev, msgs, nitems(msgs)));
 }
@@ -572,7 +601,7 @@ out:
 	if (bus_requested)
 		iicbus_release_bus(parent, sc->dev);
 }
-#endif	/* IICHID_SAMPLING */
+#endif /* IICHID_SAMPLING */
 
 static void
 iichid_intr(void *context)
@@ -619,8 +648,7 @@ iichid_intr(void *context)
 
 static int
 iichid_set_power_state(struct iichid_softc *sc,
-     enum iichid_powerstate_how how_open,
-     enum iichid_powerstate_how how_suspend)
+    enum iichid_powerstate_how how_open, enum iichid_powerstate_how how_suspend)
 {
 	device_t parent;
 	int error;
@@ -691,7 +719,8 @@ iichid_setup_interrupt(struct iichid_softc *sc)
 	sc->irq_cookie = 0;
 
 	int error = bus_setup_intr(sc->dev, sc->irq_res,
-	    INTR_TYPE_TTY|INTR_MPSAFE, NULL, iichid_intr, sc, &sc->irq_cookie);
+	    INTR_TYPE_TTY | INTR_MPSAFE, NULL, iichid_intr, sc,
+	    &sc->irq_cookie);
 	if (error != 0)
 		DPRINTF(sc, "Could not setup interrupt handler\n");
 	else
@@ -729,7 +758,8 @@ iichid_reset_callout(struct iichid_softc *sc)
 {
 
 	if (sc->sampling_rate_slow <= 0) {
-		DPRINTF(sc, "sampling_rate is below or equal to 0, "
+		DPRINTF(sc,
+		    "sampling_rate is below or equal to 0, "
 		    "can't reset callout\n");
 		return (EINVAL);
 	}
@@ -829,8 +859,8 @@ iichid_intr_setup(device_t dev, device_t child __unused, hid_intr_t intr,
 	sc->intr_bufsize = rdesc->rdsize;
 #ifdef IICHID_SAMPLING
 	sc->dup_buf = malloc(rdesc->rdsize, M_DEVBUF, M_WAITOK | M_ZERO);
-	taskqueue_start_threads(&sc->taskqueue, 1, PI_TTY,
-	    "%s taskq", device_get_nameunit(sc->dev));
+	taskqueue_start_threads(&sc->taskqueue, 1, PI_TTY, "%s taskq",
+	    device_get_nameunit(sc->dev));
 #endif
 }
 
@@ -909,8 +939,8 @@ iichid_get_rdesc(device_t dev, device_t child __unused, void *buf,
 }
 
 static int
-iichid_read(device_t dev, device_t child __unused, void *buf,
-    hid_size_t maxlen, hid_size_t *actlen)
+iichid_read(device_t dev, device_t child __unused, void *buf, hid_size_t maxlen,
+    hid_size_t *actlen)
 {
 	struct iichid_softc *sc;
 	device_t parent;
@@ -966,8 +996,8 @@ iichid_set_report(device_t dev, device_t child __unused, const void *buf,
 }
 
 static int
-iichid_set_idle(device_t dev, device_t child __unused,
-    uint16_t duration, uint8_t id)
+iichid_set_idle(device_t dev, device_t child __unused, uint16_t duration,
+    uint8_t id)
 {
 	return (ENOTSUP);
 }
@@ -986,9 +1016,9 @@ iichid_ioctl(device_t dev, device_t child __unused, unsigned long cmd,
 
 	switch (cmd) {
 	case I2CRDWR:
-		error = iic2errno(iicbus_transfer(dev,
-		    ((struct iic_rdwr_data *)data)->msgs,
-		    ((struct iic_rdwr_data *)data)->nmsgs));
+		error = iic2errno(
+		    iicbus_transfer(dev, ((struct iic_rdwr_data *)data)->msgs,
+			((struct iic_rdwr_data *)data)->nmsgs));
 		break;
 	default:
 		error = EINVAL;
@@ -1017,9 +1047,11 @@ iichid_fill_device_info(struct i2c_hid_desc *desc, ACPI_HANDLE handle,
 		    HID_PNP_ID_SIZE);
 	snprintf(hw->name, sizeof(hw->name), "%s:%02lX %04X:%04X",
 	    (device_info->Valid & ACPI_VALID_HID) ?
-	    device_info->HardwareId.String : "Unknown",
+		device_info->HardwareId.String :
+		"Unknown",
 	    (device_info->Valid & ACPI_VALID_UID) ?
-	    strtoul(device_info->UniqueId.String, NULL, 10) : 0UL,
+		strtoul(device_info->UniqueId.String, NULL, 10) :
+		0UL,
 	    le16toh(desc->wVendorID), le16toh(desc->wProductID));
 
 	AcpiOsFree(device_info);
@@ -1075,8 +1107,10 @@ iichid_probe(device_t dev)
 
 	error = iichid_cmd_get_hid_desc(sc, config_reg, &sc->desc);
 	if (error) {
-		DPRINTF(sc, "could not retrieve HID descriptor from the "
-		    "device: %d\n", error);
+		DPRINTF(sc,
+		    "could not retrieve HID descriptor from the "
+		    "device: %d\n",
+		    error);
 		return (ENXIO);
 	}
 
@@ -1145,12 +1179,12 @@ iichid_attach(device_t dev)
 #endif
 
 	sc->irq_rid = 0;
-	sc->irq_res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ,
-	    &sc->irq_rid, RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(sc->dev, SYS_RES_IRQ, &sc->irq_rid,
+	    RF_ACTIVE);
 
 	if (sc->irq_res != NULL) {
-		DPRINTF(sc, "allocated irq at %p and rid %d\n",
-		    sc->irq_res, sc->irq_rid);
+		DPRINTF(sc, "allocated irq at %p and rid %d\n", sc->irq_res,
+		    sc->irq_rid);
 		error = iichid_setup_interrupt(sc);
 	}
 
@@ -1171,20 +1205,18 @@ iichid_attach(device_t dev)
 
 #ifdef IICHID_SAMPLING
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(sc->dev),
-		SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)),
-		OID_AUTO, "sampling_rate_slow", CTLTYPE_INT | CTLFLAG_RWTUN,
-		sc, 0, iichid_sysctl_sampling_rate_handler, "I",
-		"idle sampling rate in num/second");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)), OID_AUTO,
+	    "sampling_rate_slow", CTLTYPE_INT | CTLFLAG_RWTUN, sc, 0,
+	    iichid_sysctl_sampling_rate_handler, "I",
+	    "idle sampling rate in num/second");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(sc->dev),
-		SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)),
-		OID_AUTO, "sampling_rate_fast", CTLFLAG_RWTUN,
-		&sc->sampling_rate_fast, 0,
-		"active sampling rate in num/second");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)), OID_AUTO,
+	    "sampling_rate_fast", CTLFLAG_RWTUN, &sc->sampling_rate_fast, 0,
+	    "active sampling rate in num/second");
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(sc->dev),
-		SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)),
-		OID_AUTO, "sampling_hysteresis", CTLFLAG_RWTUN,
-		&sc->sampling_hysteresis, 0,
-		"number of missing samples before enabling of slow mode");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(sc->dev)), OID_AUTO,
+	    "sampling_hysteresis", CTLFLAG_RWTUN, &sc->sampling_hysteresis, 0,
+	    "number of missing samples before enabling of slow mode");
 	hid_add_dynamic_quirk(&sc->hw, HQ_IICHID_SAMPLING);
 
 	if (sc->sampling_rate_slow >= 0) {
@@ -1274,9 +1306,9 @@ iichid_suspend(device_t dev)
 		 * thread is bound to CPU0. So run it from taskqueue context.
 		 */
 #ifdef IICHID_SAMPLING
-#define	suspend_thread	sc->taskqueue
+#define suspend_thread sc->taskqueue
 #else
-#define	suspend_thread	taskqueue_thread
+#define suspend_thread taskqueue_thread
 #endif
 		taskqueue_enqueue(suspend_thread, &sc->suspend_task);
 		taskqueue_drain(suspend_thread, &sc->suspend_task);
@@ -1308,31 +1340,29 @@ iichid_resume(device_t dev)
 	return (0);
 }
 
-static device_method_t iichid_methods[] = {
-	DEVMETHOD(device_probe,		iichid_probe),
-	DEVMETHOD(device_attach,	iichid_attach),
-	DEVMETHOD(device_detach,	iichid_detach),
-	DEVMETHOD(device_suspend,	iichid_suspend),
-	DEVMETHOD(device_resume,	iichid_resume),
+static device_method_t iichid_methods[] = { DEVMETHOD(device_probe,
+						iichid_probe),
+	DEVMETHOD(device_attach, iichid_attach),
+	DEVMETHOD(device_detach, iichid_detach),
+	DEVMETHOD(device_suspend, iichid_suspend),
+	DEVMETHOD(device_resume, iichid_resume),
 
-	DEVMETHOD(hid_intr_setup,	iichid_intr_setup),
-	DEVMETHOD(hid_intr_unsetup,	iichid_intr_unsetup),
-	DEVMETHOD(hid_intr_start,	iichid_intr_start),
-	DEVMETHOD(hid_intr_stop,	iichid_intr_stop),
-	DEVMETHOD(hid_intr_poll,	iichid_intr_poll),
+	DEVMETHOD(hid_intr_setup, iichid_intr_setup),
+	DEVMETHOD(hid_intr_unsetup, iichid_intr_unsetup),
+	DEVMETHOD(hid_intr_start, iichid_intr_start),
+	DEVMETHOD(hid_intr_stop, iichid_intr_stop),
+	DEVMETHOD(hid_intr_poll, iichid_intr_poll),
 
 	/* HID interface */
-	DEVMETHOD(hid_get_rdesc,	iichid_get_rdesc),
-	DEVMETHOD(hid_read,		iichid_read),
-	DEVMETHOD(hid_write,		iichid_write),
-	DEVMETHOD(hid_get_report,	iichid_get_report),
-	DEVMETHOD(hid_set_report,	iichid_set_report),
-	DEVMETHOD(hid_set_idle,		iichid_set_idle),
-	DEVMETHOD(hid_set_protocol,	iichid_set_protocol),
-	DEVMETHOD(hid_ioctl,		iichid_ioctl),
+	DEVMETHOD(hid_get_rdesc, iichid_get_rdesc),
+	DEVMETHOD(hid_read, iichid_read), DEVMETHOD(hid_write, iichid_write),
+	DEVMETHOD(hid_get_report, iichid_get_report),
+	DEVMETHOD(hid_set_report, iichid_set_report),
+	DEVMETHOD(hid_set_idle, iichid_set_idle),
+	DEVMETHOD(hid_set_protocol, iichid_set_protocol),
+	DEVMETHOD(hid_ioctl, iichid_ioctl),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t iichid_driver = {
 	.name = "iichid",

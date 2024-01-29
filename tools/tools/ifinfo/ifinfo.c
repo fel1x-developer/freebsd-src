@@ -27,9 +27,13 @@
  * SUCH DAMAGE.
  */
 #include <sys/types.h>
-#include <sys/socket.h>		/* for PF_LINK */
+#include <sys/socket.h> /* for PF_LINK */
 #include <sys/sysctl.h>
 #include <sys/time.h>
+
+#include <net/if.h>
+#include <net/if_mib.h>
+#include <net/if_types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -38,10 +42,6 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <net/if.h>
-#include <net/if_types.h>
-#include <net/if_mib.h>
 
 #include "ifinfo.h"
 
@@ -72,7 +72,7 @@ main(int argc, char **argv)
 	char *dname;
 
 	while ((c = getopt(argc, argv, "l")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'l':
 			dolink = 1;
 			break;
@@ -102,8 +102,7 @@ main(int argc, char **argv)
 			if (errno == ENOENT)
 				continue;
 
-			err(EX_OSERR, "sysctl(net.link.ifdata.%d.general)",
-			    i);
+			err(EX_OSERR, "sysctl(net.link.ifdata.%d.general)", i);
 		}
 
 		if (!isit(argc - optind, argv + optind, ifmd.ifmd_name))
@@ -138,8 +137,7 @@ main(int argc, char **argv)
 				    (u_long)linkmiblen);
 			if (sysctl(name, 6, linkmib, &linkmiblen, 0, 0) < 0)
 				err(EX_OSERR,
-				    "sysctl(net.link.ifdata.%d.linkspec)",
-				    i);
+				    "sysctl(net.link.ifdata.%d.linkspec)", i);
 			pf(linkmib, linkmiblen);
 			free(linkmib);
 		}
@@ -181,79 +179,33 @@ printit(const struct ifmibdata *ifmd, const char *dname)
 	printf("\tmulticasts transmitted: %lu\n", ifmd->ifmd_data.ifi_omcasts);
 	printf("\tinput queue drops: %lu\n", ifmd->ifmd_data.ifi_iqdrops);
 	printf("\tpackets for unknown protocol: %lu\n",
-	       ifmd->ifmd_data.ifi_noproto);
+	    ifmd->ifmd_data.ifi_noproto);
 	printf("\tHW offload capabilities: 0x%lx\n",
 	    ifmd->ifmd_data.ifi_hwassist);
 	printf("\tuptime at attach or stat reset: %lu\n",
 	    ifmd->ifmd_data.ifi_epoch);
 #ifdef notdef
 	printf("\treceive timing: %lu usec\n", ifmd->ifmd_data.ifi_recvtiming);
-	printf("\ttransmit timing: %lu usec\n",
-	       ifmd->ifmd_data.ifi_xmittiming);
+	printf("\ttransmit timing: %lu usec\n", ifmd->ifmd_data.ifi_xmittiming);
 #endif
 }
 
-static const char *const if_types[] = {
-	"reserved",
-	"other",
-	"BBN 1822",
-	"HDH 1822",
-	"X.25 DDN",
-	"X.25",
-	"Ethernet",
-	"ISO 8802-3 CSMA/CD",
-	"ISO 8802-4 Token Bus",
-	"ISO 8802-5 Token Ring",
-	"ISO 8802-6 DQDB MAN",
-	"StarLAN",
-	"Proteon proNET-10",
-	"Proteon proNET-80",
-	"HyperChannel",
-	"FDDI",
-	"LAP-B",
-	"SDLC",
-	"T-1",
-	"CEPT",
-	"Basic rate ISDN",
-	"Primary rate ISDN",
-	"Proprietary P2P",
-	"PPP",
-	"Loopback",
-	"ISO CLNP over IP",
-	"Experimental Ethernet",
-	"XNS over IP",
-	"SLIP",
-	"Ultra Technologies",
-	"DS-3",
-	"SMDS",
-	"Frame Relay",
-	"RS-232 serial",
-	"Parallel printer port",
-	"ARCNET",
-	"ARCNET+",
-	"ATM",
-	"MIOX25",
-	"SONET/SDH",
-	"X25PLE",
-	"ISO 8802-2 LLC",
-	"LocalTalk",
-	"SMDSDXI",
-	"Frame Relay DCE",
-	"V.35",
-	"HSSI",
-	"HIPPI",
-	"Generic Modem",
-	"ATM AAL5",
-	"SONETPATH",
-	"SONETVT",
-	"SMDS InterCarrier Interface",
-	"Proprietary virtual interface",
-	"Proprietary multiplexing",
+static const char *const if_types[] = { "reserved", "other", "BBN 1822",
+	"HDH 1822", "X.25 DDN", "X.25", "Ethernet", "ISO 8802-3 CSMA/CD",
+	"ISO 8802-4 Token Bus", "ISO 8802-5 Token Ring", "ISO 8802-6 DQDB MAN",
+	"StarLAN", "Proteon proNET-10", "Proteon proNET-80", "HyperChannel",
+	"FDDI", "LAP-B", "SDLC", "T-1", "CEPT", "Basic rate ISDN",
+	"Primary rate ISDN", "Proprietary P2P", "PPP", "Loopback",
+	"ISO CLNP over IP", "Experimental Ethernet", "XNS over IP", "SLIP",
+	"Ultra Technologies", "DS-3", "SMDS", "Frame Relay", "RS-232 serial",
+	"Parallel printer port", "ARCNET", "ARCNET+", "ATM", "MIOX25",
+	"SONET/SDH", "X25PLE", "ISO 8802-2 LLC", "LocalTalk", "SMDSDXI",
+	"Frame Relay DCE", "V.35", "HSSI", "HIPPI", "Generic Modem", "ATM AAL5",
+	"SONETPATH", "SONETVT", "SMDS InterCarrier Interface",
+	"Proprietary virtual interface", "Proprietary multiplexing",
 	"Generic tunnel interface",
-	"IPv6-to-IPv4 TCP relay capturing interface",
-	"6to4 tunnel interface"
-};
-#define	NIFTYPES (int)((sizeof if_types)/(sizeof if_types[0]))
+	"IPv6-to-IPv4 TCP relay capturing interface", "6to4 tunnel interface" };
+#define NIFTYPES (int)((sizeof if_types) / (sizeof if_types[0]))
 
 static const char *
 iftype(int type)
@@ -283,7 +235,7 @@ isit(int argc, char **argv, const char *name)
 static printfcn
 findlink(int type)
 {
-	switch(type) {
+	switch (type) {
 	case IFT_ETHER:
 	case IFT_ISO88023:
 	case IFT_STARLAN:

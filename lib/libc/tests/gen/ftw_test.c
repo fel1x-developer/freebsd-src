@@ -29,18 +29,18 @@
  */
 
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ftw.h>
 #include <limits.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <spawn.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 extern char **environ;
 
@@ -66,9 +66,8 @@ cb(const char *path, const struct stat *st, int type, struct FTW *f)
 			return (0);
 		break;
 	}
-	ATF_CHECK_MSG(false,
-	    "unexpected path=%s type=%d f.level=%d\n",
-	    path, type, f->level);
+	ATF_CHECK_MSG(false, "unexpected path=%s type=%d f.level=%d\n", path,
+	    type, f->level);
 	return (0);
 }
 
@@ -83,7 +82,7 @@ ATF_TC_BODY(ftw_test, tc)
 	ATF_REQUIRE_MSG(realpath(template, dir) != NULL,
 	    "realpath failed; errno=%d", errno);
 
-	fd = open(dir, O_DIRECTORY|O_RDONLY);
+	fd = open(dir, O_DIRECTORY | O_RDONLY);
 	ATF_REQUIRE_MSG(fd != -1, "open failed; errno=%d", errno);
 
 	ATF_REQUIRE_MSG(mkdirat(fd, "d1", 0777) == 0,
@@ -98,7 +97,7 @@ ATF_TC_BODY(ftw_test, tc)
 	    "nftw FTW_PHYS failed; errno=%d", errno);
 
 	printf("ftwflags=FTW_PHYS|FTW_DEPTH\n");
-	ftwflags = FTW_PHYS|FTW_DEPTH;
+	ftwflags = FTW_PHYS | FTW_DEPTH;
 	ATF_REQUIRE_MSG(nftw(dir, cb, 10, ftwflags) != -1,
 	    "nftw FTW_PHYS|FTW_DEPTH failed; errno=%d", errno);
 

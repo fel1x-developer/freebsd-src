@@ -37,11 +37,12 @@
 #include "math.h"
 #include "math_private.h"
 
-static const union IEEEl2bits
-pi_hi_u = LD80C(0xc90fdaa200000000,   1, 3.14159265346825122833e+00L),
-pi_lo_u = LD80C(0x85a308d313198a2e, -33, 1.21542010130123852029e-10L);
-#define	pi_hi	(pi_hi_u.e)
-#define	pi_lo	(pi_lo_u.e)
+static const union IEEEl2bits pi_hi_u = LD80C(0xc90fdaa200000000, 1,
+				  3.14159265346825122833e+00L),
+			      pi_lo_u = LD80C(0x85a308d313198a2e, -33,
+				  1.21542010130123852029e-10L);
+#define pi_hi (pi_hi_u.e)
+#define pi_lo (pi_lo_u.e)
 
 #include "k_cospil.h"
 #include "k_sinpil.h"
@@ -62,9 +63,9 @@ sinpil(long double x)
 
 	ENTERI();
 
-	if (ix < 0x3fff) {			/* |x| < 1 */
-		if (ix < 0x3ffd) {		/* |x| < 0.25 */
-			if (ix < 0x3fdd) {	/* |x| < 0x1p-34 */
+	if (ix < 0x3fff) {		   /* |x| < 1 */
+		if (ix < 0x3ffd) {	   /* |x| < 0.25 */
+			if (ix < 0x3fdd) { /* |x| < 0x1p-34 */
 				if (x == 0)
 					RETURNI(x);
 				INSERT_LDBL80_WORDS(hi, hx,
@@ -79,30 +80,30 @@ sinpil(long double x)
 			RETURNI((hx & 0x8000) ? -s : s);
 		}
 
-		if (ix < 0x3ffe)			/* |x| < 0.5 */
+		if (ix < 0x3ffe) /* |x| < 0.5 */
 			s = __kernel_cospil(0.5 - ax);
-		else if (lx < 0xc000000000000000ull)	/* |x| < 0.75 */
+		else if (lx < 0xc000000000000000ull) /* |x| < 0.75 */
 			s = __kernel_cospil(ax - 0.5);
 		else
 			s = __kernel_sinpil(1 - ax);
 		RETURNI((hx & 0x8000) ? -s : s);
 	}
 
-	if (ix < 0x403e) {			/* 1 <= |x| < 0x1p63 */
-		FFLOORL80(x, j0, ix, lx);	/* Integer part of ax. */
+	if (ix < 0x403e) {		  /* 1 <= |x| < 0x1p63 */
+		FFLOORL80(x, j0, ix, lx); /* Integer part of ax. */
 		ax -= x;
 		EXTRACT_LDBL80_WORDS(ix, lx, ax);
 
 		if (ix == 0) {
 			s = 0;
 		} else {
-			if (ix < 0x3ffe) {		/* |x| < 0.5 */
-				if (ix < 0x3ffd)	/* |x| < 0.25 */
+			if (ix < 0x3ffe) {	 /* |x| < 0.5 */
+				if (ix < 0x3ffd) /* |x| < 0.25 */
 					s = __kernel_sinpil(ax);
-				else 
+				else
 					s = __kernel_cospil(0.5 - ax);
 			} else {
-							/* |x| < 0.75 */
+				/* |x| < 0.75 */
 				if (lx < 0xc000000000000000ull)
 					s = __kernel_cospil(ax - 0.5);
 				else
@@ -114,7 +115,8 @@ sinpil(long double x)
 			if (j0 > 30)
 				x -= 0x1p30;
 			j0 = (uint32_t)x;
-			if (j0 & 1) s = -s;
+			if (j0 & 1)
+				s = -s;
 		}
 		RETURNI((hx & 0x8000) ? -s : s);
 	}

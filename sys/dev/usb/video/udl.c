@@ -26,37 +26,34 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/condvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <sys/consio.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/syscons/syscons.h>
-
-#include <dev/videomode/videomode.h>
-#include <dev/videomode/edidvar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include "usbdevs.h"
-
 #include <dev/usb/video/udl.h>
+#include <dev/videomode/edidvar.h>
+#include <dev/videomode/videomode.h>
 
 #include "fb_if.h"
+#include "usbdevs.h"
 
 #undef DPRINTF
 #undef DPRINTFN
-#define	USB_DEBUG_VAR udl_debug
+#define USB_DEBUG_VAR udl_debug
 #include <dev/usb/usb_debug.h>
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, udl, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -65,16 +62,16 @@ static SYSCTL_NODE(_hw_usb, OID_AUTO, udl, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 #ifdef USB_DEBUG
 static int udl_debug = 0;
 
-SYSCTL_INT(_hw_usb_udl, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &udl_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_udl, OID_AUTO, debug, CTLFLAG_RWTUN, &udl_debug, 0,
+    "Debug level");
 #endif
 
-#define	UDL_FPS_MAX	60
-#define	UDL_FPS_MIN	1
+#define UDL_FPS_MAX 60
+#define UDL_FPS_MIN 1
 
 static int udl_fps = 25;
-SYSCTL_INT(_hw_usb_udl, OID_AUTO, fps, CTLFLAG_RWTUN,
-    &udl_fps, 0, "Frames Per Second, 1-60");
+SYSCTL_INT(_hw_usb_udl, OID_AUTO, fps, CTLFLAG_RWTUN, &udl_fps, 0,
+    "Frames Per Second, 1-60");
 
 static struct mtx udl_buffer_mtx;
 static struct udl_buffer_head udl_buffer_head;
@@ -97,11 +94,14 @@ static int udl_init_chip(struct udl_softc *);
 static void udl_select_mode(struct udl_softc *);
 static int udl_init_resolution(struct udl_softc *);
 static void udl_fbmem_alloc(struct udl_softc *);
-static int udl_cmd_write_buf_le16(struct udl_softc *, const uint8_t *, uint32_t, uint8_t, int);
-static int udl_cmd_buf_copy_le16(struct udl_softc *, uint32_t, uint32_t, uint8_t, int);
+static int udl_cmd_write_buf_le16(struct udl_softc *, const uint8_t *, uint32_t,
+    uint8_t, int);
+static int udl_cmd_buf_copy_le16(struct udl_softc *, uint32_t, uint32_t,
+    uint8_t, int);
 static void udl_cmd_insert_int_1(struct udl_cmd_buf *, uint8_t);
 static void udl_cmd_insert_int_3(struct udl_cmd_buf *, uint32_t);
-static void udl_cmd_insert_buf_le16(struct udl_cmd_buf *, const uint8_t *, uint32_t);
+static void udl_cmd_insert_buf_le16(struct udl_cmd_buf *, const uint8_t *,
+    uint32_t);
 static void udl_cmd_write_reg_1(struct udl_cmd_buf *, uint8_t, uint8_t);
 static void udl_cmd_write_reg_3(struct udl_cmd_buf *, uint8_t, uint32_t);
 static int udl_power_save(struct udl_softc *, int, int);
@@ -132,13 +132,10 @@ static const struct usb_config udl_config[UDL_N_TRANSFER] = {
 /*
  * Driver glue.
  */
-static device_method_t udl_methods[] = {
-	DEVMETHOD(device_probe, udl_probe),
+static device_method_t udl_methods[] = { DEVMETHOD(device_probe, udl_probe),
 	DEVMETHOD(device_attach, udl_attach),
 	DEVMETHOD(device_detach, udl_detach),
-	DEVMETHOD(fb_getinfo, udl_fb_getinfo),
-	DEVMETHOD_END
-};
+	DEVMETHOD(fb_getinfo, udl_fb_getinfo), DEVMETHOD_END };
 
 static driver_t udl_driver = {
 	.name = "udl",
@@ -156,28 +153,50 @@ MODULE_VERSION(udl, 1);
  * Matching devices.
  */
 static const STRUCT_USB_HOST_ID udl_devs[] = {
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LCD4300U, DL120)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LCD8000U, DL120)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_GUC2020, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LD220, DL165)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_VCUD60, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_DLDVI, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_VGA10, DL120)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_WSDVI, DLUNK)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_EC008, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_HPDOCK, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_NL571, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_M01061, DL195)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_NBDOCK, DL165)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_SWDVI, DLUNK)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_UM7X0, DL120)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_CONV, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_PLUGABLE, DL160)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LUM70, DL125)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_POLARIS2, DLUNK)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LT1421, DLUNK)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_ITEC, DL165)},
-	{USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_DVI_19, DL165)},
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LCD4300U,
+	    DL120) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LCD8000U,
+	    DL120) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_GUC2020,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LD220,
+	    DL165) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_VCUD60,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_DLDVI,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_VGA10,
+	    DL120) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_WSDVI,
+	    DLUNK) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_EC008,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_HPDOCK,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_NL571,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_M01061,
+	    DL195) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_NBDOCK,
+	    DL165) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_SWDVI,
+	    DLUNK) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_UM7X0,
+	    DL120) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_CONV,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_PLUGABLE,
+	    DL160) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LUM70,
+	    DL125) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_POLARIS2,
+	    DLUNK) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_LT1421,
+	    DLUNK) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_ITEC,
+	    DL165) },
+	{ USB_VPI(USB_VENDOR_DISPLAYLINK, USB_PRODUCT_DISPLAYLINK_DVI_19,
+	    DL165) },
 };
 
 static void
@@ -195,7 +214,7 @@ udl_buffer_alloc(uint32_t size)
 {
 	struct udl_buffer *buf;
 	mtx_lock(&udl_buffer_mtx);
-	TAILQ_FOREACH(buf, &udl_buffer_head, entry) {
+	TAILQ_FOREACH (buf, &udl_buffer_head, entry) {
 		if (buf->size == size) {
 			TAILQ_REMOVE(&udl_buffer_head, buf, entry);
 			break;
@@ -277,7 +296,7 @@ udl_callout(void *arg)
 	if (sc->sc_power_save == 0) {
 		fps = udl_fps;
 
-	  	/* figure out number of frames per second */
+		/* figure out number of frames per second */
 		if (fps < UDL_FPS_MIN)
 			fps = UDL_FPS_MIN;
 		else if (fps > UDL_FPS_MAX)
@@ -354,7 +373,8 @@ udl_attach(device_t dev)
 	    CTLFLAG_RD, &sc->sc_chip, 0, "chip ID");
 
 	if (sc->sc_def_chip > -1 && sc->sc_def_chip <= DLMAX) {
-		device_printf(dev, "Forcing chip ID to 0x%04x\n", sc->sc_def_chip);
+		device_printf(dev, "Forcing chip ID to 0x%04x\n",
+		    sc->sc_def_chip);
 		sc->sc_chip = sc->sc_def_chip;
 	}
 	/*
@@ -386,8 +406,8 @@ udl_attach(device_t dev)
 	    CTLFLAG_RWTUN, &sc->sc_def_mode, 0, "mode");
 
 	/* Export current mode */
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "mode",
-	    CTLFLAG_RD, &sc->sc_cur_mode, 0, "mode");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "mode", CTLFLAG_RD,
+	    &sc->sc_cur_mode, 0, "mode");
 
 	i = sc->sc_def_mode;
 	if (i > -1 && i < UDL_MAX_MODES) {
@@ -398,8 +418,7 @@ udl_attach(device_t dev)
 	}
 	/* Printout current mode */
 	device_printf(dev, "Mode selected %dx%d @ %dHz\n",
-	    (int)udl_get_fb_width(sc),
-	    (int)udl_get_fb_height(sc),
+	    (int)udl_get_fb_width(sc), (int)udl_get_fb_height(sc),
 	    (int)udl_get_fb_hz(sc));
 
 	udl_init_resolution(sc);
@@ -551,8 +570,7 @@ udl_fb_synchronize_locked(struct udl_softc *sc)
 	const uint32_t max = udl_get_fb_size(sc);
 
 	/* check if framebuffer is not ready */
-	if (sc->sc_fb_addr == NULL ||
-	    sc->sc_fb_copy == NULL)
+	if (sc->sc_fb_addr == NULL || sc->sc_fb_copy == NULL)
 		return (NULL);
 
 	while (sc->sc_sync_off < max) {
@@ -560,7 +578,8 @@ udl_fb_synchronize_locked(struct udl_softc *sc)
 
 		if (delta > UDL_CMD_MAX_PIXEL_COUNT * 2)
 			delta = UDL_CMD_MAX_PIXEL_COUNT * 2;
-		if (bcmp(sc->sc_fb_addr + sc->sc_sync_off, sc->sc_fb_copy + sc->sc_sync_off, delta) != 0) {
+		if (bcmp(sc->sc_fb_addr + sc->sc_sync_off,
+			sc->sc_fb_copy + sc->sc_sync_off, delta) != 0) {
 			struct udl_cmd_buf *cb;
 
 			cb = udl_cmd_buf_alloc_locked(sc, M_NOWAIT);
@@ -569,10 +588,12 @@ udl_fb_synchronize_locked(struct udl_softc *sc)
 			memcpy(sc->sc_fb_copy + sc->sc_sync_off,
 			    sc->sc_fb_addr + sc->sc_sync_off, delta);
 			udl_cmd_insert_int_1(cb, UDL_BULK_SOC);
-			udl_cmd_insert_int_1(cb, UDL_BULK_CMD_FB_WRITE | UDL_BULK_CMD_FB_WORD);
+			udl_cmd_insert_int_1(cb,
+			    UDL_BULK_CMD_FB_WRITE | UDL_BULK_CMD_FB_WORD);
 			udl_cmd_insert_int_3(cb, sc->sc_sync_off);
 			udl_cmd_insert_int_1(cb, delta / 2);
-			udl_cmd_insert_buf_le16(cb, sc->sc_fb_copy + sc->sc_sync_off, delta);
+			udl_cmd_insert_buf_le16(cb,
+			    sc->sc_fb_copy + sc->sc_sync_off, delta);
 			sc->sc_sync_off += delta;
 			return (cb);
 		} else {
@@ -595,7 +616,7 @@ udl_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	case USB_ST_TRANSFERRED:
 		TAILQ_CONCAT(&sc->sc_cmd_buf_free, phead, entry);
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		for (i = 0; i != UDL_CMD_MAX_FRAMES; i++) {
 			cb = TAILQ_FIRST(&sc->sc_cmd_buf_pending);
 			if (cb == NULL) {
@@ -603,7 +624,8 @@ tr_setup:
 				if (cb == NULL)
 					break;
 			} else {
-				TAILQ_REMOVE(&sc->sc_cmd_buf_pending, cb, entry);
+				TAILQ_REMOVE(&sc->sc_cmd_buf_pending, cb,
+				    entry);
 			}
 			TAILQ_INSERT_TAIL(phead, cb, entry);
 			usbd_xfer_set_frame_data(xfer, i, cb->buf, cb->off);
@@ -651,8 +673,8 @@ udl_power_save(struct udl_softc *sc, int on, int flags)
 }
 
 static int
-udl_ctrl_msg(struct udl_softc *sc, uint8_t rt, uint8_t r,
-    uint16_t index, uint16_t value, uint8_t *buf, size_t len)
+udl_ctrl_msg(struct udl_softc *sc, uint8_t rt, uint8_t r, uint16_t index,
+    uint16_t value, uint8_t *buf, size_t len)
 {
 	usb_device_request_t req;
 	int error;
@@ -663,8 +685,8 @@ udl_ctrl_msg(struct udl_softc *sc, uint8_t rt, uint8_t r,
 	USETW(req.wValue, value);
 	USETW(req.wLength, len);
 
-	error = usbd_do_request_flags(sc->sc_udev, NULL,
-	    &req, buf, 0, NULL, USB_DEFAULT_TIMEOUT);
+	error = usbd_do_request_flags(sc->sc_udev, NULL, &req, buf, 0, NULL,
+	    USB_DEFAULT_TIMEOUT);
 
 	DPRINTF("%s\n", usbd_errstr(error));
 
@@ -677,8 +699,8 @@ udl_poll(struct udl_softc *sc, uint32_t *buf)
 	uint32_t lbuf;
 	int error;
 
-	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_POLL, 0x0000, 0x0000, (uint8_t *)&lbuf, sizeof(lbuf));
+	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE, UDL_CTRL_CMD_POLL,
+	    0x0000, 0x0000, (uint8_t *)&lbuf, sizeof(lbuf));
 	if (error == USB_ERR_NORMAL_COMPLETION)
 		*buf = le32toh(lbuf);
 	return (error);
@@ -690,8 +712,8 @@ udl_read_1(struct udl_softc *sc, uint16_t addr, uint8_t *buf)
 	uint8_t lbuf[1];
 	int error;
 
-	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_READ_1, addr, 0x0000, lbuf, 1);
+	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE, UDL_CTRL_CMD_READ_1,
+	    addr, 0x0000, lbuf, 1);
 	if (error == USB_ERR_NORMAL_COMPLETION)
 		*buf = *(uint8_t *)lbuf;
 	return (error);
@@ -702,8 +724,8 @@ udl_write_1(struct udl_softc *sc, uint16_t addr, uint8_t buf)
 {
 	int error;
 
-	error = udl_ctrl_msg(sc, UT_WRITE_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_WRITE_1, addr, 0x0000, &buf, 1);
+	error = udl_ctrl_msg(sc, UT_WRITE_VENDOR_DEVICE, UDL_CTRL_CMD_WRITE_1,
+	    addr, 0x0000, &buf, 1);
 	return (error);
 }
 
@@ -716,22 +738,22 @@ udl_read_edid(struct udl_softc *sc, uint8_t *buf)
 
 	offset = 0;
 
-	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_READ_EDID, 0x00a1, (offset << 8), lbuf, 64);
+	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE, UDL_CTRL_CMD_READ_EDID,
+	    0x00a1, (offset << 8), lbuf, 64);
 	if (error != USB_ERR_NORMAL_COMPLETION)
 		goto fail;
 	bcopy(lbuf + 1, buf + offset, 63);
 	offset += 63;
 
-	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_READ_EDID, 0x00a1, (offset << 8), lbuf, 64);
+	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE, UDL_CTRL_CMD_READ_EDID,
+	    0x00a1, (offset << 8), lbuf, 64);
 	if (error != USB_ERR_NORMAL_COMPLETION)
 		goto fail;
 	bcopy(lbuf + 1, buf + offset, 63);
 	offset += 63;
 
-	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_READ_EDID, 0x00a1, (offset << 8), lbuf, 3);
+	error = udl_ctrl_msg(sc, UT_READ_VENDOR_DEVICE, UDL_CTRL_CMD_READ_EDID,
+	    0x00a1, (offset << 8), lbuf, 3);
 	if (error != USB_ERR_NORMAL_COMPLETION)
 		goto fail;
 	bcopy(lbuf + 1, buf + offset, 2);
@@ -740,8 +762,8 @@ fail:
 }
 
 static uint8_t
-udl_lookup_mode(uint16_t hdisplay, uint16_t vdisplay, uint8_t hz,
-    uint16_t chip, uint32_t clock)
+udl_lookup_mode(uint16_t hdisplay, uint16_t vdisplay, uint8_t hz, uint16_t chip,
+    uint32_t clock)
 {
 	uint8_t idx;
 
@@ -822,8 +844,8 @@ udl_set_enc_key(struct udl_softc *sc, uint8_t *buf, uint8_t len)
 {
 	int error;
 
-	error = udl_ctrl_msg(sc, UT_WRITE_VENDOR_DEVICE,
-	    UDL_CTRL_CMD_SET_KEY, 0x0000, 0x0000, buf, len);
+	error = udl_ctrl_msg(sc, UT_WRITE_VENDOR_DEVICE, UDL_CTRL_CMD_SET_KEY,
+	    0x0000, 0x0000, buf, len);
 	return (error);
 }
 
@@ -898,7 +920,8 @@ udl_cmd_insert_int_4(struct udl_cmd_buf *cb, uint32_t value)
 #endif
 
 static void
-udl_cmd_insert_buf_le16(struct udl_cmd_buf *cb, const uint8_t *buf, uint32_t len)
+udl_cmd_insert_buf_le16(struct udl_cmd_buf *cb, const uint8_t *buf,
+    uint32_t len)
 {
 	uint32_t x;
 
@@ -943,7 +966,7 @@ udl_init_chip(struct udl_softc *sc)
 
 	/* Some products may use later chip too */
 	switch (ui32 & 0xff) {
-	case 0xf1:			/* DL1x5 */
+	case 0xf1: /* DL1x5 */
 		switch (sc->sc_chip) {
 		case DL120:
 			sc->sc_chip = DL125;
@@ -1023,15 +1046,18 @@ udl_init_resolution(struct udl_softc *sc)
 
 	/* fill screen with black color */
 	for (i = 0; i < max; i += delta) {
-		static const uint8_t udl_black[UDL_CMD_MAX_PIXEL_COUNT * 2] __aligned(4);
+		static const uint8_t
+		    udl_black[UDL_CMD_MAX_PIXEL_COUNT * 2] __aligned(4);
 
 		delta = max - i;
 		if (delta > UDL_CMD_MAX_PIXEL_COUNT * 2)
 			delta = UDL_CMD_MAX_PIXEL_COUNT * 2;
 		if (i == 0)
-			error = udl_cmd_write_buf_le16(sc, udl_black, i, delta / 2, M_WAITOK);
+			error = udl_cmd_write_buf_le16(sc, udl_black, i,
+			    delta / 2, M_WAITOK);
 		else
-			error = udl_cmd_buf_copy_le16(sc, 0, i, delta / 2, M_WAITOK);
+			error = udl_cmd_buf_copy_le16(sc, 0, i, delta / 2,
+			    M_WAITOK);
 		if (error)
 			return (error);
 	}
@@ -1061,16 +1087,14 @@ udl_select_mode(struct udl_softc *sc)
 	edid_print(&sc->sc_edid_info);
 #endif
 	if (sc->sc_edid_info.edid_preferred_mode != NULL) {
-		mode.hz =
-		    (sc->sc_edid_info.edid_preferred_mode->dot_clock * 1000) /
+		mode.hz = (sc->sc_edid_info.edid_preferred_mode->dot_clock *
+			      1000) /
 		    (sc->sc_edid_info.edid_preferred_mode->htotal *
-		    sc->sc_edid_info.edid_preferred_mode->vtotal);
-		mode.clock =
-		    sc->sc_edid_info.edid_preferred_mode->dot_clock / 10;
-		mode.hdisplay =
-		    sc->sc_edid_info.edid_preferred_mode->hdisplay;
-		mode.vdisplay =
-		    sc->sc_edid_info.edid_preferred_mode->vdisplay;
+			sc->sc_edid_info.edid_preferred_mode->vtotal);
+		mode.clock = sc->sc_edid_info.edid_preferred_mode->dot_clock /
+		    10;
+		mode.hdisplay = sc->sc_edid_info.edid_preferred_mode->hdisplay;
+		mode.vdisplay = sc->sc_edid_info.edid_preferred_mode->vdisplay;
 		index = udl_lookup_mode(mode.hdisplay, mode.vdisplay, mode.hz,
 		    sc->sc_chip, mode.clock);
 		sc->sc_cur_mode = index;
@@ -1083,16 +1107,14 @@ udl_select_mode(struct udl_softc *sc)
 
 		i = 0;
 		while (i < sc->sc_edid_info.edid_nmodes) {
-			mode.hz =
-			    (sc->sc_edid_info.edid_modes[i].dot_clock * 1000) /
+			mode.hz = (sc->sc_edid_info.edid_modes[i].dot_clock *
+				      1000) /
 			    (sc->sc_edid_info.edid_modes[i].htotal *
-			    sc->sc_edid_info.edid_modes[i].vtotal);
-			mode.clock =
-			    sc->sc_edid_info.edid_modes[i].dot_clock / 10;
-			mode.hdisplay =
-			    sc->sc_edid_info.edid_modes[i].hdisplay;
-			mode.vdisplay =
-			    sc->sc_edid_info.edid_modes[i].vdisplay;
+				sc->sc_edid_info.edid_modes[i].vtotal);
+			mode.clock = sc->sc_edid_info.edid_modes[i].dot_clock /
+			    10;
+			mode.hdisplay = sc->sc_edid_info.edid_modes[i].hdisplay;
+			mode.vdisplay = sc->sc_edid_info.edid_modes[i].vdisplay;
 			index = udl_lookup_mode(mode.hdisplay, mode.vdisplay,
 			    mode.hz, sc->sc_chip, mode.clock);
 			if (index < UDL_MAX_MODES)

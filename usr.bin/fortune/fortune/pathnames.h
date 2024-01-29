@@ -29,5 +29,5 @@
 
 #include <paths.h>
 
-#define	FORTDIR		"/usr/share/games/fortune:" \
-			_PATH_LOCALBASE "/share/games/fortune"
+#define FORTDIR \
+	"/usr/share/games/fortune:" _PATH_LOCALBASE "/share/games/fortune"

@@ -37,15 +37,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 int
-vscanf_l(locale_t locale, const char * __restrict fmt, __va_list ap)
+vscanf_l(locale_t locale, const char *__restrict fmt, __va_list ap)
 {
 	int retval;
 	FIX_LOCALE(locale);
@@ -56,7 +57,7 @@ vscanf_l(locale_t locale, const char * __restrict fmt, __va_list ap)
 	return (retval);
 }
 int
-vscanf(const char * __restrict fmt, __va_list ap)
+vscanf(const char *__restrict fmt, __va_list ap)
 {
 	return vscanf_l(__get_locale(), fmt, ap);
 }

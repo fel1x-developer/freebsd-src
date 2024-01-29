@@ -26,14 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_TYPES_H_
-#define	_LINUXKPI_LINUX_TYPES_H_
+#ifndef _LINUXKPI_LINUX_TYPES_H_
+#define _LINUXKPI_LINUX_TYPES_H_
 
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <linux/compiler.h>
+
 #include <asm/types.h>
+#include <linux/compiler.h>
 
 #ifndef __bitwise__
 #ifdef __CHECKER__
@@ -56,7 +57,7 @@ typedef uint64_t __aligned_u64 __aligned(sizeof(uint64_t));
 
 #ifdef _KERNEL
 typedef unsigned short ushort;
-typedef unsigned int    uint;
+typedef unsigned int uint;
 #endif
 typedef unsigned long ulong;
 typedef unsigned gfp_t;
@@ -69,15 +70,14 @@ typedef unsigned __poll_t;
 typedef uint64_t phys_addr_t;
 
 typedef size_t __kernel_size_t;
-typedef	unsigned long	kernel_ulong_t;
+typedef unsigned long kernel_ulong_t;
 
-#define	DECLARE_BITMAP(n, bits)						\
-	unsigned long n[howmany(bits, sizeof(long) * 8)]
+#define DECLARE_BITMAP(n, bits) unsigned long n[howmany(bits, sizeof(long) * 8)]
 
 typedef unsigned long irq_hw_number_t;
 
 #ifndef LIST_HEAD_DEF
-#define	LIST_HEAD_DEF
+#define LIST_HEAD_DEF
 struct list_head {
 	struct list_head *next;
 	struct list_head *prev;
@@ -92,4 +92,4 @@ typedef void (*rcu_callback_t)(struct rcu_head *head);
 typedef void (*call_rcu_func_t)(struct rcu_head *head, rcu_callback_t func);
 typedef int linux_task_fn_t(void *data);
 
-#endif	/* _LINUXKPI_LINUX_TYPES_H_ */
+#endif /* _LINUXKPI_LINUX_TYPES_H_ */

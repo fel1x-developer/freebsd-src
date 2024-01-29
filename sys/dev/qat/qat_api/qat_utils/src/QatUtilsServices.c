@@ -1,18 +1,20 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_utils.h"
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/sched.h>
 #include <sys/time.h>
-#include <machine/stdarg.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/stdarg.h>
+
+#include "qat_utils.h"
 
 /**
  *
@@ -34,7 +36,7 @@
 
 typedef struct _QatUtilsMemAllocInfoStruct {
 	void *mAllocMemPtr; /* memory addr returned by the kernel */
-	uint32_t mSize;     /* allocated size */
+	uint32_t mSize;	    /* allocated size */
 } QatUtilsMemAllocInfoStruct;
 
 /**************************************
@@ -63,17 +65,16 @@ qatUtilsMemAllocContiguousNUMA(uint32_t size, uint32_t node, uint32_t alignment)
 	ptr = contigmalloc(memInfo.mSize, M_QAT, M_WAITOK, 0, ~1UL, 64, 0);
 
 	memInfo.mAllocMemPtr = ptr;
-	pRet =
-	    (char *)memInfo.mAllocMemPtr + sizeof(QatUtilsMemAllocInfoStruct);
+	pRet = (char *)memInfo.mAllocMemPtr +
+	    sizeof(QatUtilsMemAllocInfoStruct);
 #ifdef __x86_64__
 	alignment_offset = (uint64_t)pRet % alignment;
 #else
 	alignment_offset = (uint32_t)pRet % alignment;
 #endif
 	pRet = (char *)pRet + (alignment - alignment_offset);
-	memcpy(((char *)pRet) - sizeof(QatUtilsMemAllocInfoStruct),
-	       &memInfo,
-	       sizeof(QatUtilsMemAllocInfoStruct));
+	memcpy(((char *)pRet) - sizeof(QatUtilsMemAllocInfoStruct), &memInfo,
+	    sizeof(QatUtilsMemAllocInfoStruct));
 
 	return pRet;
 }
@@ -83,9 +84,8 @@ qatUtilsMemFreeNUMA(void *ptr)
 {
 	QatUtilsMemAllocInfoStruct *memInfo = NULL;
 
-	memInfo =
-	    (QatUtilsMemAllocInfoStruct *)((int8_t *)ptr -
-					   sizeof(QatUtilsMemAllocInfoStruct));
+	memInfo = (QatUtilsMemAllocInfoStruct *)((int8_t *)ptr -
+	    sizeof(QatUtilsMemAllocInfoStruct));
 	if (memInfo->mSize == 0 || memInfo->mAllocMemPtr == NULL) {
 		QAT_UTILS_LOG(
 		    "QatUtilsMemAlignedFree: Detected corrupted data: memory leak!\n");

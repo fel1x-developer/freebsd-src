@@ -64,8 +64,8 @@ sig_handler(int signo, siginfo_t *si __unused, void *ucp)
 	 */
 	load_gs(gs);
 
-	printf("sig %d %%eax %#x %%ecx %#x %%eip %#x\n", signo,
-	    mc->mc_eax, mc->mc_ecx, mc->mc_eip);
+	printf("sig %d %%eax %#x %%ecx %#x %%eip %#x\n", signo, mc->mc_eax,
+	    mc->mc_ecx, mc->mc_eip);
 	exit(0);
 }
 
@@ -84,8 +84,8 @@ main(void)
 
 	memset(&ssa, 0, sizeof(ssa));
 	ssa.ss_size = PAGE_SIZE * 128;
-	ssa.ss_sp = mmap(NULL, ssa.ss_size, PROT_READ | PROT_WRITE |
-	    PROT_EXEC, MAP_ANON, -1, 0);
+	ssa.ss_sp = mmap(NULL, ssa.ss_size, PROT_READ | PROT_WRITE | PROT_EXEC,
+	    MAP_ANON, -1, 0);
 	if (ssa.ss_sp == MAP_FAILED)
 		err(1, "mmap sigstack");
 	if (sigaltstack(&ssa, NULL) == -1)
@@ -101,8 +101,8 @@ main(void)
 	if (sigaction(SIGILL, &sa, NULL) == -1)
 		err(1, "sigaction SIGILL");
 
-	vm86_code = mmap((void *)0x10000, PAGE_SIZE, PROT_READ | PROT_WRITE |
-	    PROT_EXEC, MAP_ANON | MAP_FIXED, -1, 0);
+	vm86_code = mmap((void *)0x10000, PAGE_SIZE,
+	    PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_FIXED, -1, 0);
 	if (vm86_code == MAP_FAILED)
 		err(1, "mmap");
 	memcpy(vm86_code, vm86_code_start, vm86_code_end - vm86_code_start);

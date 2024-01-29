@@ -49,9 +49,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "truss.h"
 #include "extern.h"
 #include "syscall.h"
+#include "truss.h"
 
 static __dead2 void
 usage(void)
@@ -87,7 +87,7 @@ main(int ac, char **av)
 	LIST_INIT(&trussinfo->proclist);
 	while ((c = getopt(ac, av, "p:o:facedDs:SH")) != -1) {
 		switch (c) {
-		case 'p':	/* specified pid */
+		case 'p': /* specified pid */
 			pid = atoi(optarg);
 			/* make sure i don't trace me */
 			if (pid == getpid()) {
@@ -112,16 +112,17 @@ main(int ac, char **av)
 		case 'D': /* Relative timestamps */
 			trussinfo->flags |= RELATIVETIMESTAMPS;
 			break;
-		case 'o':	/* Specified output file */
+		case 'o': /* Specified output file */
 			fname = optarg;
 			break;
-		case 's':	/* Specified string size */
+		case 's': /* Specified string size */
 			trussinfo->strsize = (int)strtonum(optarg, 0, INT_MAX,
 			    &errstr);
 			if (errstr)
-				errx(1, "maximum string size is %s: %s", errstr, optarg);
+				errx(1, "maximum string size is %s: %s", errstr,
+				    optarg);
 			break;
-		case 'S':	/* Don't trace signals */
+		case 'S': /* Don't trace signals */
 			trussinfo->flags |= NOSIGS;
 			break;
 		case 'H':
@@ -132,9 +133,9 @@ main(int ac, char **av)
 		}
 	}
 
-	ac -= optind; av += optind;
-	if ((pid == 0 && ac == 0) ||
-	    (pid != 0 && ac != 0))
+	ac -= optind;
+	av += optind;
+	if ((pid == 0 && ac == 0) || (pid != 0 && ac != 0))
 		usage();
 
 	if (fname != NULL) { /* Use output file */

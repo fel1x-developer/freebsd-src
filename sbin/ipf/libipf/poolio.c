@@ -6,14 +6,15 @@
  * $Id: poolio.c,v 1.1.2.3 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
+#include <fcntl.h>
+
 #include "ipf.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
 
 static int poolfd = -1;
-
 
 int
 pool_open(void)
@@ -32,7 +33,6 @@ pool_ioctl(ioctlfunc_t iocfunc, ioctlcmd_t cmd, void *ptr)
 {
 	return (*iocfunc)(poolfd, cmd, ptr);
 }
-
 
 void
 pool_close(void)

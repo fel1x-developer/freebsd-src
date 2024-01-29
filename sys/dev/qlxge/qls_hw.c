@@ -33,13 +33,14 @@
  * Content: Contains Hardware dependent functions
  */
 #include <sys/cdefs.h>
-#include "qls_os.h"
-#include "qls_hw.h"
-#include "qls_def.h"
-#include "qls_inline.h"
-#include "qls_ver.h"
-#include "qls_glbl.h"
+
 #include "qls_dbg.h"
+#include "qls_def.h"
+#include "qls_glbl.h"
+#include "qls_hw.h"
+#include "qls_inline.h"
+#include "qls_os.h"
+#include "qls_ver.h"
 
 /*
  * Static Functions
@@ -47,7 +48,7 @@
 static int qls_wait_for_mac_proto_idx_ready(qla_host_t *ha, uint32_t op);
 static int qls_config_unicast_mac_addr(qla_host_t *ha, uint32_t add_mac);
 static int qls_config_mcast_mac_addr(qla_host_t *ha, uint8_t *mac_addr,
-                uint32_t add_mac, uint32_t index);
+    uint32_t add_mac, uint32_t index);
 
 static int qls_init_rss(qla_host_t *ha);
 static int qls_init_comp_queue(qla_host_t *ha, int cid);
@@ -74,9 +75,9 @@ static int qls_flash_validate(qla_host_t *ha, const char *signature);
 
 static int qls_wait_for_proc_addr_ready(qla_host_t *ha);
 static int qls_proc_addr_rd_reg(qla_host_t *ha, uint32_t addr_module,
-		uint32_t reg, uint32_t *data);
+    uint32_t reg, uint32_t *data);
 static int qls_proc_addr_wr_reg(qla_host_t *ha, uint32_t addr_module,
-		uint32_t reg, uint32_t data);
+    uint32_t reg, uint32_t data);
 
 static int qls_hw_reset(qla_host_t *ha);
 
@@ -84,7 +85,7 @@ static int qls_hw_reset(qla_host_t *ha);
  * MPI Related Functions
  */
 static int qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
-		uint32_t *out_mbx, uint32_t o_count);
+    uint32_t *out_mbx, uint32_t o_count);
 static int qls_mbx_set_mgmt_ctrl(qla_host_t *ha, uint32_t t_ctrl);
 static int qls_mbx_get_mgmt_ctrl(qla_host_t *ha, uint32_t *t_status);
 static void qls_mbx_get_link_status(qla_host_t *ha);
@@ -99,70 +100,69 @@ qls_get_msix_count(qla_host_t *ha)
 static int
 qls_syctl_mpi_dump(SYSCTL_HANDLER_ARGS)
 {
-        int err = 0, ret;
-        qla_host_t *ha;
+	int err = 0, ret;
+	qla_host_t *ha;
 
-        err = sysctl_handle_int(oidp, &ret, 0, req);
+	err = sysctl_handle_int(oidp, &ret, 0, req);
 
-        if (err || !req->newptr)
-                return (err);
+	if (err || !req->newptr)
+		return (err);
 
-        if (ret == 1) {
-                ha = (qla_host_t *)arg1;
+	if (ret == 1) {
+		ha = (qla_host_t *)arg1;
 		qls_mpi_core_dump(ha);
-        }
-        return (err);
+	}
+	return (err);
 }
 
 static int
 qls_syctl_link_status(SYSCTL_HANDLER_ARGS)
 {
-        int err = 0, ret;
-        qla_host_t *ha;
+	int err = 0, ret;
+	qla_host_t *ha;
 
-        err = sysctl_handle_int(oidp, &ret, 0, req);
+	err = sysctl_handle_int(oidp, &ret, 0, req);
 
-        if (err || !req->newptr)
-                return (err);
+	if (err || !req->newptr)
+		return (err);
 
-        if (ret == 1) {
-                ha = (qla_host_t *)arg1;
+	if (ret == 1) {
+		ha = (qla_host_t *)arg1;
 		qls_mbx_get_link_status(ha);
 		qls_mbx_about_fw(ha);
-        }
-        return (err);
+	}
+	return (err);
 }
 
 void
 qls_hw_add_sysctls(qla_host_t *ha)
 {
-        device_t	dev;
+	device_t dev;
 
-        dev = ha->pci_dev;
+	dev = ha->pci_dev;
 
-	ha->num_rx_rings = MAX_RX_RINGS; ha->num_tx_rings = MAX_TX_RINGS;
+	ha->num_rx_rings = MAX_RX_RINGS;
+	ha->num_tx_rings = MAX_TX_RINGS;
 
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
-		SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-		OID_AUTO, "num_rx_rings", CTLFLAG_RD, &ha->num_rx_rings,
-		ha->num_rx_rings, "Number of Completion Queues");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "num_rx_rings", CTLFLAG_RD, &ha->num_rx_rings, ha->num_rx_rings,
+	    "Number of Completion Queues");
 
-        SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
-                SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-                OID_AUTO, "num_tx_rings", CTLFLAG_RD, &ha->num_tx_rings,
-		ha->num_tx_rings, "Number of Transmit Rings");
+	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "num_tx_rings", CTLFLAG_RD, &ha->num_tx_rings, ha->num_tx_rings,
+	    "Number of Transmit Rings");
 
-        SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-            SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-            OID_AUTO, "mpi_dump",
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "mpi_dump",
 	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, (void *)ha, 0,
 	    qls_syctl_mpi_dump, "I", "MPI Dump");
 
-        SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-            SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-            OID_AUTO, "link_status",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, (void *)ha, 0,
-	    qls_syctl_link_status, "I", "Link Status");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "link_status", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
+	    (void *)ha, 0, qls_syctl_link_status, "I", "Link Status");
 }
 
 /*
@@ -243,13 +243,13 @@ qls_config_unicast_mac_addr(qla_host_t *ha, uint32_t add_mac)
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_MAC_SERDES,
 		Q81_CTL_SEM_SET_MAC_SERDES)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
 	if (add_mac) {
 		mac_upper = (ha->mac_addr[0] << 8) | ha->mac_addr[1];
 		mac_lower = (ha->mac_addr[2] << 24) | (ha->mac_addr[3] << 16) |
-				(ha->mac_addr[4] << 8) | ha->mac_addr[5];
+		    (ha->mac_addr[4] << 8) | ha->mac_addr[5];
 	}
 	ret = qls_wait_for_mac_proto_idx_ready(ha, Q81_CTL_MAC_PROTO_AI_MW);
 	if (ret)
@@ -258,7 +258,7 @@ qls_config_unicast_mac_addr(qla_host_t *ha, uint32_t add_mac)
 	index = 128 * (ha->pci_func & 0x1); /* index */
 
 	value = (index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
-		Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC;
+	    Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC;
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_INDEX, value);
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_DATA, mac_lower);
@@ -268,7 +268,7 @@ qls_config_unicast_mac_addr(qla_host_t *ha, uint32_t add_mac)
 		goto qls_config_unicast_mac_addr_exit;
 
 	value = (index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
-		Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC | 0x1;
+	    Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC | 0x1;
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_INDEX, value);
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_DATA, mac_upper);
@@ -278,13 +278,13 @@ qls_config_unicast_mac_addr(qla_host_t *ha, uint32_t add_mac)
 		goto qls_config_unicast_mac_addr_exit;
 
 	value = (index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
-		Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC | 0x2;
+	    Q81_CTL_MAC_PROTO_AI_TYPE_CAM_MAC | 0x2;
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_INDEX, value);
 
 	value = Q81_CAM_MAC_OFF2_ROUTE_NIC |
-			((ha->pci_func & 0x1) << Q81_CAM_MAC_OFF2_FUNC_SHIFT) |
-			(0 << Q81_CAM_MAC_OFF2_CQID_SHIFT);
+	    ((ha->pci_func & 0x1) << Q81_CAM_MAC_OFF2_FUNC_SHIFT) |
+	    (0 << Q81_CAM_MAC_OFF2_CQID_SHIFT);
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_DATA, value);
 
@@ -299,7 +299,7 @@ qls_config_unicast_mac_addr_exit:
  */
 static int
 qls_config_mcast_mac_addr(qla_host_t *ha, uint8_t *mac_addr, uint32_t add_mac,
-	uint32_t index)
+    uint32_t index)
 {
 	int ret = 0;
 	uint32_t mac_upper = 0;
@@ -309,21 +309,21 @@ qls_config_mcast_mac_addr(qla_host_t *ha, uint8_t *mac_addr, uint32_t add_mac,
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_MAC_SERDES,
 		Q81_CTL_SEM_SET_MAC_SERDES)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
 	if (add_mac) {
 		mac_upper = (mac_addr[0] << 8) | mac_addr[1];
 		mac_lower = (mac_addr[2] << 24) | (mac_addr[3] << 16) |
-				(mac_addr[4] << 8) | mac_addr[5];
+		    (mac_addr[4] << 8) | mac_addr[5];
 	}
 	ret = qls_wait_for_mac_proto_idx_ready(ha, Q81_CTL_MAC_PROTO_AI_MW);
 	if (ret)
 		goto qls_config_mcast_mac_addr_exit;
 
 	value = Q81_CTL_MAC_PROTO_AI_E |
-			(index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
-			Q81_CTL_MAC_PROTO_AI_TYPE_MCAST ;
+	    (index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
+	    Q81_CTL_MAC_PROTO_AI_TYPE_MCAST;
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_INDEX, value);
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_DATA, mac_lower);
@@ -333,8 +333,8 @@ qls_config_mcast_mac_addr(qla_host_t *ha, uint8_t *mac_addr, uint32_t add_mac,
 		goto qls_config_mcast_mac_addr_exit;
 
 	value = Q81_CTL_MAC_PROTO_AI_E |
-			(index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
-			Q81_CTL_MAC_PROTO_AI_TYPE_MCAST | 0x1;
+	    (index << Q81_CTL_MAC_PROTO_AI_IDX_SHIFT) |
+	    Q81_CTL_MAC_PROTO_AI_TYPE_MCAST | 0x1;
 
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_INDEX, value);
 	WRITE_REG32(ha, Q81_CTL_MAC_PROTO_ADDR_DATA, mac_upper);
@@ -376,7 +376,7 @@ qls_load_route_idx_reg(qla_host_t *ha, uint32_t index, uint32_t data)
 
 	if (ret) {
 		device_printf(ha->pci_dev, "%s: [0x%08x, 0x%08x] failed\n",
-			__func__, index, data);
+		    __func__, index, data);
 		goto qls_load_route_idx_reg_exit;
 	}
 
@@ -395,7 +395,7 @@ qls_load_route_idx_reg_locked(qla_host_t *ha, uint32_t index, uint32_t data)
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_RIDX_DATAREG,
 		Q81_CTL_SEM_SET_RIDX_DATAREG)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
 	ret = qls_load_route_idx_reg(ha, index, data);
@@ -413,12 +413,14 @@ qls_clear_routing_table(qla_host_t *ha)
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_RIDX_DATAREG,
 		Q81_CTL_SEM_SET_RIDX_DATAREG)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
 	for (i = 0; i < 16; i++) {
-		ret = qls_load_route_idx_reg(ha, (Q81_CTL_RI_TYPE_NICQMASK|
-			(i << 8) | Q81_CTL_RI_DST_DFLTQ), 0);
+		ret = qls_load_route_idx_reg(ha,
+		    (Q81_CTL_RI_TYPE_NICQMASK | (i << 8) |
+			Q81_CTL_RI_DST_DFLTQ),
+		    0);
 		if (ret)
 			break;
 	}
@@ -434,17 +436,19 @@ qls_set_promisc(qla_host_t *ha)
 	int ret;
 
 	ret = qls_load_route_idx_reg_locked(ha,
-			(Q81_CTL_RI_E | Q81_CTL_RI_TYPE_NICQMASK |
-			Q81_CTL_RI_IDX_PROMISCUOUS | Q81_CTL_RI_DST_DFLTQ),
-			Q81_CTL_RD_VALID_PKT);
+	    (Q81_CTL_RI_E | Q81_CTL_RI_TYPE_NICQMASK |
+		Q81_CTL_RI_IDX_PROMISCUOUS | Q81_CTL_RI_DST_DFLTQ),
+	    Q81_CTL_RD_VALID_PKT);
 	return (ret);
 }
 
 void
 qls_reset_promisc(qla_host_t *ha)
 {
-	qls_load_route_idx_reg_locked(ha, (Q81_CTL_RI_TYPE_NICQMASK |
-			Q81_CTL_RI_IDX_PROMISCUOUS | Q81_CTL_RI_DST_DFLTQ), 0);
+	qls_load_route_idx_reg_locked(ha,
+	    (Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_PROMISCUOUS |
+		Q81_CTL_RI_DST_DFLTQ),
+	    0);
 	return;
 }
 
@@ -454,17 +458,19 @@ qls_set_allmulti(qla_host_t *ha)
 	int ret;
 
 	ret = qls_load_route_idx_reg_locked(ha,
-			(Q81_CTL_RI_E | Q81_CTL_RI_TYPE_NICQMASK |
-			Q81_CTL_RI_IDX_ALLMULTI | Q81_CTL_RI_DST_DFLTQ),
-			Q81_CTL_RD_MCAST);
+	    (Q81_CTL_RI_E | Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_ALLMULTI |
+		Q81_CTL_RI_DST_DFLTQ),
+	    Q81_CTL_RD_MCAST);
 	return (ret);
 }
 
 void
 qls_reset_allmulti(qla_host_t *ha)
 {
-	qls_load_route_idx_reg_locked(ha, (Q81_CTL_RI_TYPE_NICQMASK |
-			Q81_CTL_RI_IDX_ALLMULTI | Q81_CTL_RI_DST_DFLTQ), 0);
+	qls_load_route_idx_reg_locked(ha,
+	    (Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_ALLMULTI |
+		Q81_CTL_RI_DST_DFLTQ),
+	    0);
 	return;
 }
 
@@ -480,40 +486,43 @@ qls_init_fw_routing_table(qla_host_t *ha)
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_RIDX_DATAREG,
 		Q81_CTL_SEM_SET_RIDX_DATAREG)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
-	ret = qls_load_route_idx_reg(ha, (Q81_CTL_RI_E | Q81_CTL_RI_DST_DROP |
-			Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_ALL_ERROR),
-			Q81_CTL_RD_ERROR_PKT);
+	ret = qls_load_route_idx_reg(ha,
+	    (Q81_CTL_RI_E | Q81_CTL_RI_DST_DROP | Q81_CTL_RI_TYPE_NICQMASK |
+		Q81_CTL_RI_IDX_ALL_ERROR),
+	    Q81_CTL_RD_ERROR_PKT);
 	if (ret)
 		goto qls_init_fw_routing_table_exit;
 
-	ret = qls_load_route_idx_reg(ha, (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ |
-			Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_BCAST),
-			Q81_CTL_RD_BCAST);
+	ret = qls_load_route_idx_reg(ha,
+	    (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ | Q81_CTL_RI_TYPE_NICQMASK |
+		Q81_CTL_RI_IDX_BCAST),
+	    Q81_CTL_RD_BCAST);
 	if (ret)
 		goto qls_init_fw_routing_table_exit;
 
-	if (ha->num_rx_rings > 1 ) {
+	if (ha->num_rx_rings > 1) {
 		ret = qls_load_route_idx_reg(ha,
-				(Q81_CTL_RI_E | Q81_CTL_RI_DST_RSS |
-				Q81_CTL_RI_TYPE_NICQMASK |
-				Q81_CTL_RI_IDX_RSS_MATCH),
-				Q81_CTL_RD_RSS_MATCH);
+		    (Q81_CTL_RI_E | Q81_CTL_RI_DST_RSS |
+			Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_RSS_MATCH),
+		    Q81_CTL_RD_RSS_MATCH);
 		if (ret)
 			goto qls_init_fw_routing_table_exit;
 	}
 
-	ret = qls_load_route_idx_reg(ha, (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ |
-			Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_MCAST_MATCH),
-			Q81_CTL_RD_MCAST_REG_MATCH);
+	ret = qls_load_route_idx_reg(ha,
+	    (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ | Q81_CTL_RI_TYPE_NICQMASK |
+		Q81_CTL_RI_IDX_MCAST_MATCH),
+	    Q81_CTL_RD_MCAST_REG_MATCH);
 	if (ret)
 		goto qls_init_fw_routing_table_exit;
 
-	ret = qls_load_route_idx_reg(ha, (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ |
-			Q81_CTL_RI_TYPE_NICQMASK | Q81_CTL_RI_IDX_CAM_HIT),
-			Q81_CTL_RD_CAM_HIT);
+	ret = qls_load_route_idx_reg(ha,
+	    (Q81_CTL_RI_E | Q81_CTL_RI_DST_DFLTQ | Q81_CTL_RI_TYPE_NICQMASK |
+		Q81_CTL_RI_IDX_CAM_HIT),
+	    Q81_CTL_RD_CAM_HIT);
 	if (ret)
 		goto qls_init_fw_routing_table_exit;
 
@@ -526,105 +535,103 @@ static int
 qls_tx_tso_chksum(qla_host_t *ha, struct mbuf *mp, q81_tx_tso_t *tx_mac)
 {
 #if defined(INET) || defined(INET6)
-        struct ether_vlan_header *eh;
-        struct ip *ip;
+	struct ether_vlan_header *eh;
+	struct ip *ip;
 #if defined(INET6)
-        struct ip6_hdr *ip6;
+	struct ip6_hdr *ip6;
 #endif
 	struct tcphdr *th;
-        uint32_t ehdrlen, ip_hlen;
+	uint32_t ehdrlen, ip_hlen;
 	int ret = 0;
-        uint16_t etype;
-        uint8_t buf[sizeof(struct ip6_hdr)];
+	uint16_t etype;
+	uint8_t buf[sizeof(struct ip6_hdr)];
 
-        eh = mtod(mp, struct ether_vlan_header *);
+	eh = mtod(mp, struct ether_vlan_header *);
 
-        if (eh->evl_encap_proto == htons(ETHERTYPE_VLAN)) {
-                ehdrlen = ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN;
-                etype = ntohs(eh->evl_proto);
-        } else {
-                ehdrlen = ETHER_HDR_LEN;
-                etype = ntohs(eh->evl_encap_proto);
-        }
+	if (eh->evl_encap_proto == htons(ETHERTYPE_VLAN)) {
+		ehdrlen = ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN;
+		etype = ntohs(eh->evl_proto);
+	} else {
+		ehdrlen = ETHER_HDR_LEN;
+		etype = ntohs(eh->evl_encap_proto);
+	}
 
-        switch (etype) {
+	switch (etype) {
 #ifdef INET
-                case ETHERTYPE_IP:
-                        ip = (struct ip *)(mp->m_data + ehdrlen);
+	case ETHERTYPE_IP:
+		ip = (struct ip *)(mp->m_data + ehdrlen);
 
-                        ip_hlen = sizeof (struct ip);
+		ip_hlen = sizeof(struct ip);
 
-                        if (mp->m_len < (ehdrlen + ip_hlen)) {
-                                m_copydata(mp, ehdrlen, sizeof(struct ip), buf);
-                                ip = (struct ip *)buf;
-                        }
-			tx_mac->opcode = Q81_IOCB_TX_TSO;
-			tx_mac->flags |= Q81_TX_TSO_FLAGS_IPV4 ;
+		if (mp->m_len < (ehdrlen + ip_hlen)) {
+			m_copydata(mp, ehdrlen, sizeof(struct ip), buf);
+			ip = (struct ip *)buf;
+		}
+		tx_mac->opcode = Q81_IOCB_TX_TSO;
+		tx_mac->flags |= Q81_TX_TSO_FLAGS_IPV4;
 
-			tx_mac->phdr_offsets = ehdrlen;
+		tx_mac->phdr_offsets = ehdrlen;
 
-			tx_mac->phdr_offsets |= ((ehdrlen + ip_hlen) <<
-							Q81_TX_TSO_PHDR_SHIFT);
+		tx_mac->phdr_offsets |= ((ehdrlen + ip_hlen)
+		    << Q81_TX_TSO_PHDR_SHIFT);
 
-			ip->ip_sum = 0;
+		ip->ip_sum = 0;
 
-			if (mp->m_pkthdr.csum_flags & CSUM_TSO) {
-				tx_mac->flags |= Q81_TX_TSO_FLAGS_LSO;
-				
-				th = (struct tcphdr *)(ip + 1);
+		if (mp->m_pkthdr.csum_flags & CSUM_TSO) {
+			tx_mac->flags |= Q81_TX_TSO_FLAGS_LSO;
 
-				th->th_sum = in_pseudo(ip->ip_src.s_addr,
-						ip->ip_dst.s_addr,
-						htons(IPPROTO_TCP));
-				tx_mac->mss = mp->m_pkthdr.tso_segsz;
-				tx_mac->phdr_length = ip_hlen + ehdrlen +
-							(th->th_off << 2);
-				break;
-			}
-			tx_mac->vlan_off |= Q81_TX_TSO_VLAN_OFF_IC ;
+			th = (struct tcphdr *)(ip + 1);
 
-                        if (ip->ip_p == IPPROTO_TCP) {
-				tx_mac->flags |= Q81_TX_TSO_FLAGS_TC;
-                        } else if (ip->ip_p == IPPROTO_UDP) {
-				tx_mac->flags |= Q81_TX_TSO_FLAGS_UC;
-                        }
-                break;
+			th->th_sum = in_pseudo(ip->ip_src.s_addr,
+			    ip->ip_dst.s_addr, htons(IPPROTO_TCP));
+			tx_mac->mss = mp->m_pkthdr.tso_segsz;
+			tx_mac->phdr_length = ip_hlen + ehdrlen +
+			    (th->th_off << 2);
+			break;
+		}
+		tx_mac->vlan_off |= Q81_TX_TSO_VLAN_OFF_IC;
+
+		if (ip->ip_p == IPPROTO_TCP) {
+			tx_mac->flags |= Q81_TX_TSO_FLAGS_TC;
+		} else if (ip->ip_p == IPPROTO_UDP) {
+			tx_mac->flags |= Q81_TX_TSO_FLAGS_UC;
+		}
+		break;
 #endif
 
 #ifdef INET6
-                case ETHERTYPE_IPV6:
-                        ip6 = (struct ip6_hdr *)(mp->m_data + ehdrlen);
+	case ETHERTYPE_IPV6:
+		ip6 = (struct ip6_hdr *)(mp->m_data + ehdrlen);
 
-                        ip_hlen = sizeof(struct ip6_hdr);
+		ip_hlen = sizeof(struct ip6_hdr);
 
-                        if (mp->m_len < (ehdrlen + ip_hlen)) {
-                                m_copydata(mp, ehdrlen, sizeof (struct ip6_hdr),
-                                        buf);
-                                ip6 = (struct ip6_hdr *)buf;
-                        }
+		if (mp->m_len < (ehdrlen + ip_hlen)) {
+			m_copydata(mp, ehdrlen, sizeof(struct ip6_hdr), buf);
+			ip6 = (struct ip6_hdr *)buf;
+		}
 
-			tx_mac->opcode = Q81_IOCB_TX_TSO;
-			tx_mac->flags |= Q81_TX_TSO_FLAGS_IPV6 ;
-			tx_mac->vlan_off |= Q81_TX_TSO_VLAN_OFF_IC ;
+		tx_mac->opcode = Q81_IOCB_TX_TSO;
+		tx_mac->flags |= Q81_TX_TSO_FLAGS_IPV6;
+		tx_mac->vlan_off |= Q81_TX_TSO_VLAN_OFF_IC;
 
-			tx_mac->phdr_offsets = ehdrlen;
-			tx_mac->phdr_offsets |= ((ehdrlen + ip_hlen) <<
-							Q81_TX_TSO_PHDR_SHIFT);
+		tx_mac->phdr_offsets = ehdrlen;
+		tx_mac->phdr_offsets |= ((ehdrlen + ip_hlen)
+		    << Q81_TX_TSO_PHDR_SHIFT);
 
-                        if (ip6->ip6_nxt == IPPROTO_TCP) {
-				tx_mac->flags |= Q81_TX_TSO_FLAGS_TC;
-                        } else if (ip6->ip6_nxt == IPPROTO_UDP) {
-				tx_mac->flags |= Q81_TX_TSO_FLAGS_UC;
-                        }
-                break;
+		if (ip6->ip6_nxt == IPPROTO_TCP) {
+			tx_mac->flags |= Q81_TX_TSO_FLAGS_TC;
+		} else if (ip6->ip6_nxt == IPPROTO_UDP) {
+			tx_mac->flags |= Q81_TX_TSO_FLAGS_UC;
+		}
+		break;
 #endif
 
-                default:
-                        ret = -1;
-                break;
-        }
+	default:
+		ret = -1;
+		break;
+	}
 
-        return (ret);
+	return (ret);
 #else
 	return (-1);
 #endif
@@ -644,8 +651,8 @@ qls_hw_tx_done(qla_host_t *ha, uint32_t txr_idx)
 	} else if (txr_done > txr_next) {
 		ha->tx_ring[txr_idx].txr_free = txr_done - txr_next;
 	} else {
-		ha->tx_ring[txr_idx].txr_free = NUM_TX_DESCRIPTORS +
-			txr_done - txr_next;
+		ha->tx_ring[txr_idx].txr_free = NUM_TX_DESCRIPTORS + txr_done -
+		    txr_next;
 	}
 
 	if (ha->tx_ring[txr_idx].txr_free <= QLA_TX_MIN_FREE)
@@ -663,30 +670,29 @@ qls_hw_tx_done(qla_host_t *ha, uint32_t txr_idx)
  */
 int
 qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
-	uint32_t txr_next,  struct mbuf *mp, uint32_t txr_idx)
+    uint32_t txr_next, struct mbuf *mp, uint32_t txr_idx)
 {
-        q81_tx_mac_t *tx_mac;
+	q81_tx_mac_t *tx_mac;
 	q81_txb_desc_t *tx_desc;
-        uint32_t total_length = 0;
-        uint32_t i;
-        device_t dev;
+	uint32_t total_length = 0;
+	uint32_t i;
+	device_t dev;
 	int ret = 0;
 
 	dev = ha->pci_dev;
 
-        total_length = mp->m_pkthdr.len;
+	total_length = mp->m_pkthdr.len;
 
-        if (total_length > QLA_MAX_TSO_FRAME_SIZE) {
-                device_printf(dev, "%s: total length exceeds maxlen(%d)\n",
-                        __func__, total_length);
-                return (-1);
-        }
+	if (total_length > QLA_MAX_TSO_FRAME_SIZE) {
+		device_printf(dev, "%s: total length exceeds maxlen(%d)\n",
+		    __func__, total_length);
+		return (-1);
+	}
 
 	if (ha->tx_ring[txr_idx].txr_free <= (NUM_TX_DESCRIPTORS >> 2)) {
 		if (qls_hw_tx_done(ha, txr_idx)) {
-			device_printf(dev, "%s: tx_free[%d] = %d\n",
-				__func__, txr_idx,
-				ha->tx_ring[txr_idx].txr_free);
+			device_printf(dev, "%s: tx_free[%d] = %d\n", __func__,
+			    txr_idx, ha->tx_ring[txr_idx].txr_free);
 			return (-1);
 		}
 	}
@@ -696,17 +702,17 @@ qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
 	bzero(tx_mac, sizeof(q81_tx_mac_t));
 
 	if ((mp->m_pkthdr.csum_flags &
-			(CSUM_TCP | CSUM_UDP | CSUM_IP | CSUM_TSO)) != 0) {
+		(CSUM_TCP | CSUM_UDP | CSUM_IP | CSUM_TSO)) != 0) {
 		ret = qls_tx_tso_chksum(ha, mp, (q81_tx_tso_t *)tx_mac);
-		if (ret) 
+		if (ret)
 			return (EINVAL);
 
 		if (mp->m_pkthdr.csum_flags & CSUM_TSO)
 			ha->tx_ring[txr_idx].tx_tso_frames++;
 		else
 			ha->tx_ring[txr_idx].tx_frames++;
-			
-	} else { 
+
+	} else {
 		tx_mac->opcode = Q81_IOCB_TX_MAC;
 	}
 
@@ -723,7 +729,7 @@ qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
 
 	if (nsegs <= MAX_TX_MAC_DESC) {
 		QL_DPRINT2((dev, "%s: 1 [%d, %d]\n", __func__, total_length,
-			tx_mac->tid_lo));
+		    tx_mac->tid_lo));
 
 		for (i = 0; i < nsegs; i++) {
 			tx_mac->txd[i].baddr = segs->ds_addr;
@@ -734,12 +740,11 @@ qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
 
 	} else {
 		QL_DPRINT2((dev, "%s: 2 [%d, %d]\n", __func__, total_length,
-			tx_mac->tid_lo));
+		    tx_mac->tid_lo));
 
 		tx_mac->txd[0].baddr =
-			ha->tx_ring[txr_idx].tx_buf[txr_next].oal_paddr;
-		tx_mac->txd[0].length =
-			nsegs * (sizeof(q81_txb_desc_t));
+		    ha->tx_ring[txr_idx].tx_buf[txr_next].oal_paddr;
+		tx_mac->txd[0].length = nsegs * (sizeof(q81_txb_desc_t));
 		tx_mac->txd[0].flags = Q81_RXB_DESC_FLAGS_C;
 
 		tx_desc = ha->tx_ring[txr_idx].tx_buf[txr_next].oal_vaddr;
@@ -748,7 +753,7 @@ qls_hw_send(qla_host_t *ha, bus_dma_segment_t *segs, int nsegs,
 			tx_desc->baddr = segs->ds_addr;
 			tx_desc->length = segs->ds_len;
 
-			if (i == (nsegs -1))
+			if (i == (nsegs - 1))
 				tx_desc->flags = Q81_RXB_DESC_FLAGS_E;
 			else
 				tx_desc->flags = 0;
@@ -777,17 +782,17 @@ qls_del_hw_if(qla_host_t *ha)
 {
 	uint32_t value;
 	int i;
-	//int  count;
+	// int  count;
 
 	if (ha->hw_init == 0) {
 		qls_hw_reset(ha);
 		return;
 	}
 
-	for (i = 0;  i < ha->num_tx_rings; i++) {
-		Q81_SET_WQ_INVALID(i); 
+	for (i = 0; i < ha->num_tx_rings; i++) {
+		Q81_SET_WQ_INVALID(i);
 	}
-	for (i = 0;  i < ha->num_rx_rings; i++) {
+	for (i = 0; i < ha->num_rx_rings; i++) {
 		Q81_SET_CQ_INVALID(i);
 	}
 
@@ -816,9 +821,9 @@ qls_del_hw_if(qla_host_t *ha)
 int
 qls_init_hw_if(qla_host_t *ha)
 {
-	uint32_t	value;
-	int		ret = 0;
-	int		i;
+	uint32_t value;
+	int ret = 0;
+	int i;
 
 	QL_DPRINT2((ha->pci_dev, "%s:enter\n", __func__));
 
@@ -840,16 +845,12 @@ qls_init_hw_if(qla_host_t *ha)
 
 	/* Function Specific Control Register - Set Page Size and Enable NIC */
 	value = Q81_CTL_FUNC_SPECIFIC_FE |
-		Q81_CTL_FUNC_SPECIFIC_VM_PGSIZE_MASK |
-		Q81_CTL_FUNC_SPECIFIC_EPC_O |
-		Q81_CTL_FUNC_SPECIFIC_EPC_I |
-		Q81_CTL_FUNC_SPECIFIC_EC;
-	value = (value << Q81_CTL_FUNC_SPECIFIC_MASK_SHIFT) | 
-                        Q81_CTL_FUNC_SPECIFIC_FE |
-			Q81_CTL_FUNC_SPECIFIC_VM_PGSIZE_4K |
-			Q81_CTL_FUNC_SPECIFIC_EPC_O |
-			Q81_CTL_FUNC_SPECIFIC_EPC_I |
-			Q81_CTL_FUNC_SPECIFIC_EC;
+	    Q81_CTL_FUNC_SPECIFIC_VM_PGSIZE_MASK | Q81_CTL_FUNC_SPECIFIC_EPC_O |
+	    Q81_CTL_FUNC_SPECIFIC_EPC_I | Q81_CTL_FUNC_SPECIFIC_EC;
+	value = (value << Q81_CTL_FUNC_SPECIFIC_MASK_SHIFT) |
+	    Q81_CTL_FUNC_SPECIFIC_FE | Q81_CTL_FUNC_SPECIFIC_VM_PGSIZE_4K |
+	    Q81_CTL_FUNC_SPECIFIC_EPC_O | Q81_CTL_FUNC_SPECIFIC_EPC_I |
+	    Q81_CTL_FUNC_SPECIFIC_EC;
 
 	WRITE_REG32(ha, Q81_CTL_FUNC_SPECIFIC, value);
 
@@ -866,7 +867,7 @@ qls_init_hw_if(qla_host_t *ha)
 			goto qls_init_hw_if_exit;
 	}
 
-	if (ha->num_rx_rings > 1 ) {
+	if (ha->num_rx_rings > 1) {
 		ret = qls_init_rss(ha);
 		if (ret)
 			goto qls_init_hw_if_exit;
@@ -925,9 +926,9 @@ qls_init_hw_if(qla_host_t *ha)
 	qls_mbx_get_link_status(ha);
 
 	QL_DPRINT2((ha->pci_dev, "%s:rxr [0x%08x]\n", __func__,
-		ha->rx_ring[0].cq_db_offset));
+	    ha->rx_ring[0].cq_db_offset));
 	QL_DPRINT2((ha->pci_dev, "%s:txr [0x%08x]\n", __func__,
-		ha->tx_ring[0].wq_db_offset));
+	    ha->tx_ring[0].wq_db_offset));
 
 	for (i = 0; i < ha->num_rx_rings; i++) {
 		Q81_WR_CQ_CONS_IDX(i, 0);
@@ -935,10 +936,10 @@ qls_init_hw_if(qla_host_t *ha)
 		Q81_WR_SBQ_PROD_IDX(i, ha->rx_ring[i].sbq_in);
 
 		QL_DPRINT2((ha->pci_dev,
-			"%s: [wq_idx, cq_idx, lbq_idx, sbq_idx]"
-			"[0x%08x, 0x%08x, 0x%08x, 0x%08x]\n", __func__,
-			Q81_RD_WQ_IDX(i), Q81_RD_CQ_IDX(i), Q81_RD_LBQ_IDX(i),
-			Q81_RD_SBQ_IDX(i)));
+		    "%s: [wq_idx, cq_idx, lbq_idx, sbq_idx]"
+		    "[0x%08x, 0x%08x, 0x%08x, 0x%08x]\n",
+		    __func__, Q81_RD_WQ_IDX(i), Q81_RD_CQ_IDX(i),
+		    Q81_RD_LBQ_IDX(i), Q81_RD_SBQ_IDX(i)));
 	}
 
 	for (i = 0; i < ha->num_rx_rings; i++) {
@@ -961,7 +962,7 @@ qls_wait_for_config_reg_bits(qla_host_t *ha, uint32_t bits, uint32_t value)
 
 		if ((data32 & bits) == value)
 			return (0);
-		
+
 		QLA_USEC_DELAY(100);
 	}
 	ha->qla_initiate_recovery = 1;
@@ -969,34 +970,27 @@ qls_wait_for_config_reg_bits(qla_host_t *ha, uint32_t bits, uint32_t value)
 	return (-1);
 }
 
-static uint8_t q81_hash_key[] = {
-			0xda, 0x56, 0x5a, 0x6d,
-			0xc2, 0x0e, 0x5b, 0x25,
-			0x3d, 0x25, 0x67, 0x41,
-			0xb0, 0x8f, 0xa3, 0x43,
-			0xcb, 0x2b, 0xca, 0xd0,
-			0xb4, 0x30, 0x7b, 0xae,
-			0xa3, 0x2d, 0xcb, 0x77,
-			0x0c, 0xf2, 0x30, 0x80,
-			0x3b, 0xb7, 0x42, 0x6a,
-			0xfa, 0x01, 0xac, 0xbe };
+static uint8_t q81_hash_key[] = { 0xda, 0x56, 0x5a, 0x6d, 0xc2, 0x0e, 0x5b,
+	0x25, 0x3d, 0x25, 0x67, 0x41, 0xb0, 0x8f, 0xa3, 0x43, 0xcb, 0x2b, 0xca,
+	0xd0, 0xb4, 0x30, 0x7b, 0xae, 0xa3, 0x2d, 0xcb, 0x77, 0x0c, 0xf2, 0x30,
+	0x80, 0x3b, 0xb7, 0x42, 0x6a, 0xfa, 0x01, 0xac, 0xbe };
 
 static int
 qls_init_rss(qla_host_t *ha)
 {
-	q81_rss_icb_t	*rss_icb;
-	int		ret = 0;
-	int		i;
-	uint32_t	value;
+	q81_rss_icb_t *rss_icb;
+	int ret = 0;
+	int i;
+	uint32_t value;
 
 	rss_icb = ha->rss_dma.dma_b;
 
-	bzero(rss_icb, sizeof (q81_rss_icb_t));
+	bzero(rss_icb, sizeof(q81_rss_icb_t));
 
 	rss_icb->flags_base_cq_num = Q81_RSS_ICB_FLAGS_L4K |
-				Q81_RSS_ICB_FLAGS_L6K | Q81_RSS_ICB_FLAGS_LI |
-				Q81_RSS_ICB_FLAGS_LB | Q81_RSS_ICB_FLAGS_LM |
-				Q81_RSS_ICB_FLAGS_RT4 | Q81_RSS_ICB_FLAGS_RT6; 
+	    Q81_RSS_ICB_FLAGS_L6K | Q81_RSS_ICB_FLAGS_LI |
+	    Q81_RSS_ICB_FLAGS_LB | Q81_RSS_ICB_FLAGS_LM |
+	    Q81_RSS_ICB_FLAGS_RT4 | Q81_RSS_ICB_FLAGS_RT6;
 
 	rss_icb->mask = 0x3FF;
 
@@ -1028,7 +1022,7 @@ qls_init_rss(qla_host_t *ha)
 	qls_sem_unlock(ha, Q81_CTL_SEM_MASK_ICB);
 
 	value = (Q81_CTL_CONFIG_LR << Q81_CTL_CONFIG_MASK_SHIFT) |
-			Q81_CTL_CONFIG_LR;
+	    Q81_CTL_CONFIG_LR;
 
 	WRITE_REG32(ha, Q81_CTL_CONFIG, value);
 
@@ -1041,10 +1035,10 @@ qls_init_rss_exit:
 static int
 qls_init_comp_queue(qla_host_t *ha, int cid)
 {
-	q81_cq_icb_t	*cq_icb;
-	qla_rx_ring_t	*rxr;
-	int		ret = 0;
-	uint32_t	value;
+	q81_cq_icb_t *cq_icb;
+	qla_rx_ring_t *rxr;
+	int ret = 0;
+	uint32_t value;
 
 	rxr = &ha->rx_ring[cid];
 
@@ -1052,14 +1046,11 @@ qls_init_comp_queue(qla_host_t *ha, int cid)
 
 	cq_icb = rxr->cq_icb_vaddr;
 
-	bzero(cq_icb, sizeof (q81_cq_icb_t));
+	bzero(cq_icb, sizeof(q81_cq_icb_t));
 
 	cq_icb->msix_vector = cid;
-	cq_icb->flags = Q81_CQ_ICB_FLAGS_LC |
-			Q81_CQ_ICB_FLAGS_LI |
-			Q81_CQ_ICB_FLAGS_LL |
-			Q81_CQ_ICB_FLAGS_LS |
-			Q81_CQ_ICB_FLAGS_LV;
+	cq_icb->flags = Q81_CQ_ICB_FLAGS_LC | Q81_CQ_ICB_FLAGS_LI |
+	    Q81_CQ_ICB_FLAGS_LL | Q81_CQ_ICB_FLAGS_LS | Q81_CQ_ICB_FLAGS_LV;
 
 	cq_icb->length_v = NUM_CQ_ENTRIES;
 
@@ -1127,34 +1118,33 @@ qls_init_comp_queue_exit:
 static int
 qls_init_work_queue(qla_host_t *ha, int wid)
 {
-	q81_wq_icb_t	*wq_icb;
-	qla_tx_ring_t	*txr;
-	int		ret = 0;
-	uint32_t	value;
+	q81_wq_icb_t *wq_icb;
+	qla_tx_ring_t *txr;
+	int ret = 0;
+	uint32_t value;
 
 	txr = &ha->tx_ring[wid];
 
-	txr->wq_db_addr = (struct resource *)((uint8_t *)ha->pci_reg1
-						+ (ha->vm_pgsize * wid));
+	txr->wq_db_addr = (struct resource *)((uint8_t *)ha->pci_reg1 +
+	    (ha->vm_pgsize * wid));
 
 	txr->wq_db_offset = (ha->vm_pgsize * wid);
 
 	wq_icb = txr->wq_icb_vaddr;
-	bzero(wq_icb, sizeof (q81_wq_icb_t));
+	bzero(wq_icb, sizeof(q81_wq_icb_t));
 
-	wq_icb->length_v = NUM_TX_DESCRIPTORS  |
-				Q81_WQ_ICB_VALID;
+	wq_icb->length_v = NUM_TX_DESCRIPTORS | Q81_WQ_ICB_VALID;
 
 	wq_icb->flags = Q81_WQ_ICB_FLAGS_LO | Q81_WQ_ICB_FLAGS_LI |
-			Q81_WQ_ICB_FLAGS_LB | Q81_WQ_ICB_FLAGS_LC;
+	    Q81_WQ_ICB_FLAGS_LB | Q81_WQ_ICB_FLAGS_LC;
 
 	wq_icb->wqcqid_rss = wid;
 
 	wq_icb->baddr_lo = txr->wq_paddr & 0xFFFFFFFF;
-	wq_icb->baddr_hi = (txr->wq_paddr >> 32)& 0xFFFFFFFF;
+	wq_icb->baddr_hi = (txr->wq_paddr >> 32) & 0xFFFFFFFF;
 
 	wq_icb->ci_addr_lo = txr->txr_cons_paddr & 0xFFFFFFFF;
-	wq_icb->ci_addr_hi = (txr->txr_cons_paddr >> 32)& 0xFFFFFFFF;
+	wq_icb->ci_addr_hi = (txr->txr_cons_paddr >> 32) & 0xFFFFFFFF;
 
 	ret = qls_wait_for_config_reg_bits(ha, Q81_CTL_CONFIG_LRQ, 0);
 
@@ -1198,17 +1188,17 @@ qls_hw_add_all_mcast(qla_host_t *ha)
 
 	nmcast = ha->nmcast;
 
-	for (i = 0 ; ((i < Q8_MAX_NUM_MULTICAST_ADDRS) && nmcast); i++) {
-		if ((ha->mcast[i].addr[0] != 0) || 
-			(ha->mcast[i].addr[1] != 0) ||
-			(ha->mcast[i].addr[2] != 0) ||
-			(ha->mcast[i].addr[3] != 0) ||
-			(ha->mcast[i].addr[4] != 0) ||
-			(ha->mcast[i].addr[5] != 0)) {
-			if (qls_config_mcast_mac_addr(ha, ha->mcast[i].addr,
-				1, i)) {
-                		device_printf(ha->pci_dev, "%s: failed\n",
-					__func__);
+	for (i = 0; ((i < Q8_MAX_NUM_MULTICAST_ADDRS) && nmcast); i++) {
+		if ((ha->mcast[i].addr[0] != 0) ||
+		    (ha->mcast[i].addr[1] != 0) ||
+		    (ha->mcast[i].addr[2] != 0) ||
+		    (ha->mcast[i].addr[3] != 0) ||
+		    (ha->mcast[i].addr[4] != 0) ||
+		    (ha->mcast[i].addr[5] != 0)) {
+			if (qls_config_mcast_mac_addr(ha, ha->mcast[i].addr, 1,
+				i)) {
+				device_printf(ha->pci_dev, "%s: failed\n",
+				    __func__);
 				return (-1);
 			}
 
@@ -1229,17 +1219,17 @@ qls_hw_add_mcast(qla_host_t *ha, uint8_t *mta)
 	}
 
 	for (i = 0; i < Q8_MAX_NUM_MULTICAST_ADDRS; i++) {
-		if ((ha->mcast[i].addr[0] == 0) && 
-			(ha->mcast[i].addr[1] == 0) &&
-			(ha->mcast[i].addr[2] == 0) &&
-			(ha->mcast[i].addr[3] == 0) &&
-			(ha->mcast[i].addr[4] == 0) &&
-			(ha->mcast[i].addr[5] == 0)) {
+		if ((ha->mcast[i].addr[0] == 0) &&
+		    (ha->mcast[i].addr[1] == 0) &&
+		    (ha->mcast[i].addr[2] == 0) &&
+		    (ha->mcast[i].addr[3] == 0) &&
+		    (ha->mcast[i].addr[4] == 0) &&
+		    (ha->mcast[i].addr[5] == 0)) {
 			if (qls_config_mcast_mac_addr(ha, mta, 1, i))
 				return (-1);
 
 			bcopy(mta, ha->mcast[i].addr, Q8_MAC_ADDR_LEN);
-			ha->nmcast++;	
+			ha->nmcast++;
 
 			return 0;
 		}
@@ -1264,7 +1254,7 @@ qls_hw_del_mcast(qla_host_t *ha, uint8_t *mta)
 			ha->mcast[i].addr[4] = 0;
 			ha->mcast[i].addr[5] = 0;
 
-			ha->nmcast--;	
+			ha->nmcast--;
 
 			return 0;
 		}
@@ -1278,8 +1268,7 @@ qls_hw_del_mcast(qla_host_t *ha, uint8_t *mta)
  *	hardware (for the given interface)
  */
 void
-qls_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt,
-	uint32_t add_mac)
+qls_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt, uint32_t add_mac)
 {
 	int i;
 
@@ -1291,7 +1280,7 @@ qls_hw_set_multi(qla_host_t *ha, uint8_t *mta, uint32_t mcnt,
 			if (qls_hw_del_mcast(ha, mta))
 				break;
 		}
-			
+
 		mta += Q8_MAC_ADDR_LEN;
 	}
 	return;
@@ -1309,14 +1298,14 @@ qls_update_link_state(qla_host_t *ha)
 	}
 	link_state = READ_REG32(ha, Q81_CTL_STATUS);
 
-	prev_link_state =  ha->link_up;
+	prev_link_state = ha->link_up;
 
 	if ((ha->pci_func & 0x1) == 0)
-		ha->link_up = ((link_state & Q81_CTL_STATUS_PL0)? 1 : 0);
+		ha->link_up = ((link_state & Q81_CTL_STATUS_PL0) ? 1 : 0);
 	else
-		ha->link_up = ((link_state & Q81_CTL_STATUS_PL1)? 1 : 0);
+		ha->link_up = ((link_state & Q81_CTL_STATUS_PL1) ? 1 : 0);
 
-	if (prev_link_state !=  ha->link_up) {
+	if (prev_link_state != ha->link_up) {
 		if (ha->link_up) {
 			if_link_state_change(ha->ifp, LINK_STATE_UP);
 		} else {
@@ -1359,10 +1348,10 @@ qls_free_tx_dma(qla_host_t *ha)
 		}
 	}
 
-        if (ha->tx_tag != NULL) {
-                bus_dma_tag_destroy(ha->tx_tag);
-                ha->tx_tag = NULL;
-        }
+	if (ha->tx_tag != NULL) {
+		bus_dma_tag_destroy(ha->tx_tag);
+		ha->tx_tag = NULL;
+	}
 
 	return;
 }
@@ -1370,15 +1359,15 @@ qls_free_tx_dma(qla_host_t *ha)
 static int
 qls_alloc_tx_ring_dma(qla_host_t *ha, int ridx)
 {
-	int		ret = 0, i;
-	uint8_t		*v_addr;
-	bus_addr_t	p_addr;
-	qla_tx_buf_t	*txb;
-	device_t	dev = ha->pci_dev;
+	int ret = 0, i;
+	uint8_t *v_addr;
+	bus_addr_t p_addr;
+	qla_tx_buf_t *txb;
+	device_t dev = ha->pci_dev;
 
 	ha->tx_ring[ridx].wq_dma.alignment = 8;
-	ha->tx_ring[ridx].wq_dma.size =
-		NUM_TX_DESCRIPTORS * (sizeof (q81_tx_cmd_t));
+	ha->tx_ring[ridx].wq_dma.size = NUM_TX_DESCRIPTORS *
+	    (sizeof(q81_tx_cmd_t));
 
 	ret = qls_alloc_dmabuf(ha, &ha->tx_ring[ridx].wq_dma);
 
@@ -1409,8 +1398,8 @@ qls_alloc_tx_ring_dma(qla_host_t *ha, int ridx)
 	ha->tx_ring[ridx].wq_icb_vaddr = v_addr;
 	ha->tx_ring[ridx].wq_icb_paddr = p_addr;
 
-	ha->tx_ring[ridx].txr_cons_vaddr =
-		(uint32_t *)(v_addr + (PAGE_SIZE >> 1));
+	ha->tx_ring[ridx].txr_cons_vaddr = (uint32_t *)(v_addr +
+	    (PAGE_SIZE >> 1));
 	ha->tx_ring[ridx].txr_cons_paddr = p_addr + (PAGE_SIZE >> 1);
 
 	v_addr = v_addr + (PAGE_SIZE >> 1);
@@ -1433,26 +1422,26 @@ qls_alloc_tx_ring_dma_exit:
 static int
 qls_alloc_tx_dma(qla_host_t *ha)
 {
-	int	i, j;
-	int	ret = 0;
+	int i, j;
+	int ret = 0;
 	qla_tx_buf_t *txb;
 
-        if (bus_dma_tag_create(NULL,    /* parent */
-                1, 0,    /* alignment, bounds */
-                BUS_SPACE_MAXADDR,       /* lowaddr */
-                BUS_SPACE_MAXADDR,       /* highaddr */
-                NULL, NULL,      /* filter, filterarg */
-                QLA_MAX_TSO_FRAME_SIZE,     /* maxsize */
-                QLA_MAX_SEGMENTS,        /* nsegments */
-                PAGE_SIZE,        /* maxsegsize */
-                BUS_DMA_ALLOCNOW,        /* flags */
-                NULL,    /* lockfunc */
-                NULL,    /* lockfuncarg */
-                &ha->tx_tag)) {
-                device_printf(ha->pci_dev, "%s: tx_tag alloc failed\n",
-                        __func__);
-                return (ENOMEM);
-        }
+	if (bus_dma_tag_create(NULL,	/* parent */
+		1, 0,			/* alignment, bounds */
+		BUS_SPACE_MAXADDR,	/* lowaddr */
+		BUS_SPACE_MAXADDR,	/* highaddr */
+		NULL, NULL,		/* filter, filterarg */
+		QLA_MAX_TSO_FRAME_SIZE, /* maxsize */
+		QLA_MAX_SEGMENTS,	/* nsegments */
+		PAGE_SIZE,		/* maxsegsize */
+		BUS_DMA_ALLOCNOW,	/* flags */
+		NULL,			/* lockfunc */
+		NULL,			/* lockfuncarg */
+		&ha->tx_tag)) {
+		device_printf(ha->pci_dev, "%s: tx_tag alloc failed\n",
+		    __func__);
+		return (ENOMEM);
+	}
 
 	for (i = 0; i < ha->num_tx_rings; i++) {
 		ret = qls_alloc_tx_ring_dma(ha, i);
@@ -1465,18 +1454,18 @@ qls_alloc_tx_dma(qla_host_t *ha)
 		for (j = 0; j < NUM_TX_DESCRIPTORS; j++) {
 			txb = &ha->tx_ring[i].tx_buf[j];
 
-			ret = bus_dmamap_create(ha->tx_tag,
-				BUS_DMA_NOWAIT, &txb->map);
+			ret = bus_dmamap_create(ha->tx_tag, BUS_DMA_NOWAIT,
+			    &txb->map);
 			if (ret) {
 				ha->err_tx_dmamap_create++;
 				device_printf(ha->pci_dev,
-				"%s: bus_dmamap_create failed[%d, %d, %d]\n",
-				__func__, ret, i, j);
+				    "%s: bus_dmamap_create failed[%d, %d, %d]\n",
+				    __func__, ret, i, j);
 
 				qls_free_tx_dma(ha);
 
-                		return (ret);
-       			}
+				return (ret);
+			}
 		}
 	}
 
@@ -1566,10 +1555,10 @@ qls_free_rx_dma(qla_host_t *ha)
 		qls_free_rx_ring_dma(ha, i);
 	}
 
-        if (ha->rx_tag != NULL) {
-                bus_dma_tag_destroy(ha->rx_tag);
-                ha->rx_tag = NULL;
-        }
+	if (ha->rx_tag != NULL) {
+		bus_dma_tag_destroy(ha->rx_tag);
+		ha->rx_tag = NULL;
+	}
 
 	return;
 }
@@ -1577,15 +1566,16 @@ qls_free_rx_dma(qla_host_t *ha)
 static int
 qls_alloc_rx_ring_dma(qla_host_t *ha, int ridx)
 {
-	int				i, ret = 0;
-	uint8_t				*v_addr;
-	bus_addr_t			p_addr;
-	volatile q81_bq_addr_e_t	*bq_e;
-	device_t			dev = ha->pci_dev;
+	int i, ret = 0;
+	uint8_t *v_addr;
+	bus_addr_t p_addr;
+	volatile q81_bq_addr_e_t *bq_e;
+	device_t dev = ha->pci_dev;
 
 	ha->rx_ring[ridx].cq_dma.alignment = 128;
-	ha->rx_ring[ridx].cq_dma.size =
-		(NUM_CQ_ENTRIES * (sizeof (q81_cq_e_t))) + PAGE_SIZE;
+	ha->rx_ring[ridx].cq_dma.size = (NUM_CQ_ENTRIES *
+					    (sizeof(q81_cq_e_t))) +
+	    PAGE_SIZE;
 
 	ret = qls_alloc_dmabuf(ha, &ha->rx_ring[ridx].cq_dma);
 
@@ -1639,8 +1629,8 @@ qls_alloc_rx_ring_dma(qla_host_t *ha, int ridx)
 	v_addr = ha->rx_ring[ridx].cq_dma.dma_b;
 	p_addr = ha->rx_ring[ridx].cq_dma.dma_addr;
 
-	v_addr = v_addr + (NUM_CQ_ENTRIES * (sizeof (q81_cq_e_t)));
-	p_addr = p_addr + (NUM_CQ_ENTRIES * (sizeof (q81_cq_e_t)));
+	v_addr = v_addr + (NUM_CQ_ENTRIES * (sizeof(q81_cq_e_t)));
+	p_addr = p_addr + (NUM_CQ_ENTRIES * (sizeof(q81_cq_e_t)));
 
 	/* completion queue icb */
 	ha->rx_ring[ridx].cq_icb_vaddr = v_addr;
@@ -1702,7 +1692,7 @@ qls_alloc_rx_ring_dma(qla_host_t *ha, int ridx)
 	p_addr = ha->rx_ring[ridx].sbq_paddr;
 	bq_e = ha->rx_ring[ridx].sbq_addr_tbl_vaddr;
 
-	for (i =0; i < (QLA_SBQ_SIZE/QLA_PAGE_SIZE); i++) {
+	for (i = 0; i < (QLA_SBQ_SIZE / QLA_PAGE_SIZE); i++) {
 		bq_e->addr_lo = p_addr & 0xFFFFFFFF;
 		bq_e->addr_hi = (p_addr >> 32) & 0xFFFFFFFF;
 
@@ -1717,26 +1707,26 @@ qls_alloc_rx_ring_dma_exit:
 static int
 qls_alloc_rx_dma(qla_host_t *ha)
 {
-	int	i;
-	int	ret = 0;
+	int i;
+	int ret = 0;
 
-        if (bus_dma_tag_create(NULL,    /* parent */
-                        1, 0,    /* alignment, bounds */
-                        BUS_SPACE_MAXADDR,       /* lowaddr */
-                        BUS_SPACE_MAXADDR,       /* highaddr */
-                        NULL, NULL,      /* filter, filterarg */
-                        MJUM9BYTES,     /* maxsize */
-                        1,        /* nsegments */
-                        MJUM9BYTES,        /* maxsegsize */
-                        BUS_DMA_ALLOCNOW,        /* flags */
-                        NULL,    /* lockfunc */
-                        NULL,    /* lockfuncarg */
-                        &ha->rx_tag)) {
-                device_printf(ha->pci_dev, "%s: rx_tag alloc failed\n",
-                        __func__);
+	if (bus_dma_tag_create(NULL, /* parent */
+		1, 0,		     /* alignment, bounds */
+		BUS_SPACE_MAXADDR,   /* lowaddr */
+		BUS_SPACE_MAXADDR,   /* highaddr */
+		NULL, NULL,	     /* filter, filterarg */
+		MJUM9BYTES,	     /* maxsize */
+		1,		     /* nsegments */
+		MJUM9BYTES,	     /* maxsegsize */
+		BUS_DMA_ALLOCNOW,    /* flags */
+		NULL,		     /* lockfunc */
+		NULL,		     /* lockfuncarg */
+		&ha->rx_tag)) {
+		device_printf(ha->pci_dev, "%s: rx_tag alloc failed\n",
+		    __func__);
 
-                return (ENOMEM);
-        }
+		return (ENOMEM);
+	}
 
 	for (i = 0; i < ha->num_rx_rings; i++) {
 		ret = qls_alloc_rx_ring_dma(ha, i);
@@ -1761,7 +1751,7 @@ qls_wait_for_flash_ready(qla_host_t *ha)
 
 		if (data32 & Q81_CTL_FLASH_ADDR_ERR)
 			goto qls_wait_for_flash_ready_exit;
-		
+
 		if (data32 & Q81_CTL_FLASH_ADDR_RDY)
 			return (0);
 
@@ -1808,36 +1798,37 @@ qls_flash_validate(qla_host_t *ha, const char *signature)
 	int i;
 
 	if (bcmp(ha->flash.id, signature, 4)) {
-		QL_DPRINT1((ha->pci_dev, "%s: invalid signature "
-			"%x:%x:%x:%x %s\n", __func__, ha->flash.id[0],
-			ha->flash.id[1], ha->flash.id[2], ha->flash.id[3],
-			signature));
-		return(-1);
+		QL_DPRINT1((ha->pci_dev,
+		    "%s: invalid signature "
+		    "%x:%x:%x:%x %s\n",
+		    __func__, ha->flash.id[0], ha->flash.id[1], ha->flash.id[2],
+		    ha->flash.id[3], signature));
+		return (-1);
 	}
 
 	data16 = (uint16_t *)&ha->flash;
 
-	for (i = 0; i < (sizeof (q81_flash_t) >> 1); i++) {
+	for (i = 0; i < (sizeof(q81_flash_t) >> 1); i++) {
 		csum16 += *data16++;
 	}
 
 	if (csum16) {
 		QL_DPRINT1((ha->pci_dev, "%s: invalid checksum\n", __func__));
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 int
 qls_rd_nic_params(qla_host_t *ha)
 {
-	int		i, ret = 0;
-	uint32_t	faddr;
-	uint32_t	*qflash;
+	int i, ret = 0;
+	uint32_t faddr;
+	uint32_t *qflash;
 
 	if (qls_sem_lock(ha, Q81_CTL_SEM_MASK_FLASH, Q81_CTL_SEM_SET_FLASH)) {
 		QL_DPRINT1((ha->pci_dev, "%s: semlock failed\n", __func__));
-		return(-1);
+		return (-1);
 	}
 
 	if ((ha->pci_func & 0x1) == 0)
@@ -1847,7 +1838,7 @@ qls_rd_nic_params(qla_host_t *ha)
 
 	qflash = (uint32_t *)&ha->flash;
 
-	for (i = 0; i < (sizeof(q81_flash_t) >> 2) ; i++) {
+	for (i = 0; i < (sizeof(q81_flash_t) >> 2); i++) {
 		ret = qls_rd_flash32(ha, faddr, qflash);
 
 		if (ret)
@@ -1857,7 +1848,7 @@ qls_rd_nic_params(qla_host_t *ha)
 		qflash++;
 	}
 
-	QL_DUMP_BUFFER8(ha, __func__, (&ha->flash), (sizeof (q81_flash_t)));
+	QL_DUMP_BUFFER8(ha, __func__, (&ha->flash), (sizeof(q81_flash_t)));
 
 	ret = qls_flash_validate(ha, Q81_FLASH_ID);
 
@@ -1867,14 +1858,14 @@ qls_rd_nic_params(qla_host_t *ha)
 	bcopy(ha->flash.mac_addr0, ha->mac_addr, ETHER_ADDR_LEN);
 
 	QL_DPRINT1((ha->pci_dev, "%s: mac %02x:%02x:%02x:%02x:%02x:%02x\n",
-		__func__, ha->mac_addr[0],  ha->mac_addr[1], ha->mac_addr[2],
-		ha->mac_addr[3], ha->mac_addr[4],  ha->mac_addr[5]));
+	    __func__, ha->mac_addr[0], ha->mac_addr[1], ha->mac_addr[2],
+	    ha->mac_addr[3], ha->mac_addr[4], ha->mac_addr[5]));
 
 qls_rd_flash_data_exit:
 
 	qls_sem_unlock(ha, Q81_CTL_SEM_MASK_FLASH);
 
-	return(ret);
+	return (ret);
 }
 
 static int
@@ -1884,7 +1875,7 @@ qls_sem_lock(qla_host_t *ha, uint32_t mask, uint32_t value)
 	uint32_t data;
 
 	while (count--) {
-		WRITE_REG32(ha, Q81_CTL_SEMAPHORE, (mask|value));
+		WRITE_REG32(ha, Q81_CTL_SEMAPHORE, (mask | value));
 
 		data = READ_REG32(ha, Q81_CTL_SEMAPHORE);
 
@@ -1915,7 +1906,7 @@ qls_wait_for_proc_addr_ready(qla_host_t *ha)
 
 		if (data32 & Q81_CTL_PROC_ADDR_ERR)
 			goto qls_wait_for_proc_addr_ready_exit;
-		
+
 		if (data32 & Q81_CTL_PROC_ADDR_RDY)
 			return (0);
 
@@ -1931,7 +1922,7 @@ qls_wait_for_proc_addr_ready_exit:
 
 static int
 qls_proc_addr_rd_reg(qla_host_t *ha, uint32_t addr_module, uint32_t reg,
-	uint32_t *data)
+    uint32_t *data)
 {
 	int ret;
 	uint32_t value;
@@ -1950,7 +1941,7 @@ qls_proc_addr_rd_reg(qla_host_t *ha, uint32_t addr_module, uint32_t reg,
 	if (ret)
 		goto qls_proc_addr_rd_reg_exit;
 
-	*data = READ_REG32(ha, Q81_CTL_PROC_DATA); 
+	*data = READ_REG32(ha, Q81_CTL_PROC_DATA);
 
 qls_proc_addr_rd_reg_exit:
 	return (ret);
@@ -1958,7 +1949,7 @@ qls_proc_addr_rd_reg_exit:
 
 static int
 qls_proc_addr_wr_reg(qla_host_t *ha, uint32_t addr_module, uint32_t reg,
-	uint32_t data)
+    uint32_t data)
 {
 	int ret;
 	uint32_t value;
@@ -1983,14 +1974,14 @@ qls_proc_addr_wr_reg_exit:
 static int
 qls_hw_nic_reset(qla_host_t *ha)
 {
-	int		count;
-	uint32_t	data;
-	device_t	dev = ha->pci_dev;
+	int count;
+	uint32_t data;
+	device_t dev = ha->pci_dev;
 
 	ha->hw_init = 0;
 
 	data = (Q81_CTL_RESET_FUNC << Q81_CTL_RESET_MASK_SHIFT) |
-			Q81_CTL_RESET_FUNC;
+	    Q81_CTL_RESET_FUNC;
 	WRITE_REG32(ha, Q81_CTL_RESET, data);
 
 	count = 10;
@@ -2002,7 +1993,7 @@ qls_hw_nic_reset(qla_host_t *ha)
 	}
 	if (count == 0) {
 		device_printf(dev, "%s: Bit 15 not cleared after Reset\n",
-			__func__);
+		    __func__);
 		return (-1);
 	}
 	return (0);
@@ -2011,10 +2002,10 @@ qls_hw_nic_reset(qla_host_t *ha)
 static int
 qls_hw_reset(qla_host_t *ha)
 {
-	device_t	dev = ha->pci_dev;
-	int		ret;
-	int		count;
-	uint32_t	data;
+	device_t dev = ha->pci_dev;
+	int ret;
+	int count;
+	uint32_t data;
 
 	QL_DPRINT2((ha->pci_dev, "%s:enter[%d]\n", __func__, ha->hw_init));
 
@@ -2024,11 +2015,11 @@ qls_hw_reset(qla_host_t *ha)
 	}
 
 	ret = qls_clear_routing_table(ha);
-	if (ret) 
+	if (ret)
 		goto qls_hw_reset_exit;
 
 	ret = qls_mbx_set_mgmt_ctrl(ha, Q81_MBX_SET_MGMT_CTL_STOP);
-	if (ret) 
+	if (ret)
 		goto qls_hw_reset_exit;
 
 	/*
@@ -2051,7 +2042,7 @@ qls_hw_reset(qla_host_t *ha)
 		(void)qls_mbx_get_mgmt_ctrl(ha, &data);
 
 		if ((data & Q81_MBX_GET_MGMT_CTL_FIFO_EMPTY) &&
-			(data & Q81_MBX_GET_MGMT_CTL_SET_MGMT))
+		    (data & Q81_MBX_GET_MGMT_CTL_SET_MGMT))
 			break;
 		qls_mdelay(__func__, 100);
 	}
@@ -2062,7 +2053,7 @@ qls_hw_reset(qla_host_t *ha)
 	 * Reset the NIC function
 	 */
 	ret = qls_hw_nic_reset(ha);
-	if (ret) 
+	if (ret)
 		goto qls_hw_reset_exit;
 
 	ret = qls_mbx_set_mgmt_ctrl(ha, Q81_MBX_SET_MGMT_CTL_RESUME);
@@ -2070,7 +2061,7 @@ qls_hw_reset(qla_host_t *ha)
 qls_hw_reset_exit:
 	if (ret)
 		device_printf(dev, "%s: failed\n", __func__);
-		
+
 	return (ret);
 }
 
@@ -2082,8 +2073,7 @@ qls_mpi_risc_rd_reg(qla_host_t *ha, uint32_t reg, uint32_t *data)
 {
 	int ret;
 
-	ret = qls_proc_addr_rd_reg(ha, Q81_CTL_PROC_ADDR_MPI_RISC,
-			reg, data);
+	ret = qls_proc_addr_rd_reg(ha, Q81_CTL_PROC_ADDR_MPI_RISC, reg, data);
 	return (ret);
 }
 
@@ -2092,8 +2082,7 @@ qls_mpi_risc_wr_reg(qla_host_t *ha, uint32_t reg, uint32_t data)
 {
 	int ret;
 
-	ret = qls_proc_addr_wr_reg(ha, Q81_CTL_PROC_ADDR_MPI_RISC,
-			reg, data);
+	ret = qls_proc_addr_wr_reg(ha, Q81_CTL_PROC_ADDR_MPI_RISC, reg, data);
 	return (ret);
 }
 
@@ -2129,20 +2118,20 @@ qls_mbx_wr_reg(qla_host_t *ha, uint32_t reg, uint32_t data)
 
 static int
 qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
-	uint32_t *out_mbx, uint32_t o_count)
+    uint32_t *out_mbx, uint32_t o_count)
 {
 	int i, ret = -1;
 	uint32_t data32;
 	uint32_t count = 50;
 
-	QL_DPRINT2((ha->pci_dev, "%s: enter[0x%08x 0x%08x 0x%08x]\n",
-		__func__, *in_mbx, *(in_mbx + 1), *(in_mbx + 2)));
+	QL_DPRINT2((ha->pci_dev, "%s: enter[0x%08x 0x%08x 0x%08x]\n", __func__,
+	    *in_mbx, *(in_mbx + 1), *(in_mbx + 2)));
 
 	data32 = READ_REG32(ha, Q81_CTL_HOST_CMD_STATUS);
 
 	if (data32 & Q81_CTL_HCS_HTR_INTR) {
-		device_printf(ha->pci_dev, "%s: cmd_status[0x%08x]\n",
-			__func__, data32);
+		device_printf(ha->pci_dev, "%s: cmd_status[0x%08x]\n", __func__,
+		    data32);
 		goto qls_mbx_cmd_exit;
 	}
 
@@ -2159,8 +2148,8 @@ qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
 
 		if (ret) {
 			device_printf(ha->pci_dev,
-				"%s: mbx_wr[%d, 0x%08x] failed\n", __func__,
-				i, *in_mbx);
+			    "%s: mbx_wr[%d, 0x%08x] failed\n", __func__, i,
+			    *in_mbx);
 			qls_sem_unlock(ha, Q81_CTL_SEM_MASK_PROC_ADDR_NIC_RCV);
 			goto qls_mbx_cmd_exit;
 		}
@@ -2185,19 +2174,19 @@ qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
 
 			ret = qls_mbx_rd_reg(ha, 0, &data32);
 
-			if (ret == 0 ) {
+			if (ret == 0) {
 				if ((data32 & 0xF000) == 0x4000) {
 					out_mbx[0] = data32;
 
 					for (i = 1; i < o_count; i++) {
 						ret = qls_mbx_rd_reg(ha, i,
-								&data32);
+						    &data32);
 						if (ret) {
 							device_printf(
-								ha->pci_dev,
-								"%s: mbx_rd[%d]"
-								" failed\n",
-								__func__, i);
+							    ha->pci_dev,
+							    "%s: mbx_rd[%d]"
+							    " failed\n",
+							    __func__, i);
 							break;
 						}
 						out_mbx[i] = data32;
@@ -2205,9 +2194,8 @@ qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
 					break;
 				} else if ((data32 & 0xF000) == 0x8000) {
 					count = 50;
-					WRITE_REG32(ha,\
-						Q81_CTL_HOST_CMD_STATUS,\
-						Q81_CTL_HCS_CMD_CLR_RTH_INTR);
+					WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,
+					    Q81_CTL_HCS_CMD_CLR_RTH_INTR);
 				}
 			}
 		} else {
@@ -2225,8 +2213,8 @@ qls_mbx_cmd(qla_host_t *ha, uint32_t *in_mbx, uint32_t i_count,
 qls_mbx_cmd_exit:
 
 	if (ha->flags.intr_enable == 0) {
-		WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,\
-			Q81_CTL_HCS_CMD_CLR_RTH_INTR);
+		WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,
+		    Q81_CTL_HCS_CMD_CLR_RTH_INTR);
 	}
 
 	if (ret) {
@@ -2244,7 +2232,7 @@ qls_mbx_set_mgmt_ctrl(qla_host_t *ha, uint32_t t_ctrl)
 	device_t dev = ha->pci_dev;
 
 	mbox = ha->mbox;
-	bzero(mbox, (sizeof (uint32_t) * Q81_NUM_MBX_REGISTERS));
+	bzero(mbox, (sizeof(uint32_t) * Q81_NUM_MBX_REGISTERS));
 
 	mbox[0] = Q81_MBX_SET_MGMT_CTL;
 	mbox[1] = t_ctrl;
@@ -2255,13 +2243,12 @@ qls_mbx_set_mgmt_ctrl(qla_host_t *ha, uint32_t t_ctrl)
 	}
 
 	if ((mbox[0] == Q81_MBX_CMD_COMPLETE) ||
-		((t_ctrl == Q81_MBX_SET_MGMT_CTL_STOP) &&
-			(mbox[0] == Q81_MBX_CMD_ERROR))){
+	    ((t_ctrl == Q81_MBX_SET_MGMT_CTL_STOP) &&
+		(mbox[0] == Q81_MBX_CMD_ERROR))) {
 		return (0);
 	}
 	device_printf(dev, "%s failed [0x%08x]\n", __func__, mbox[0]);
 	return (-1);
-
 }
 
 static int
@@ -2273,7 +2260,7 @@ qls_mbx_get_mgmt_ctrl(qla_host_t *ha, uint32_t *t_status)
 	*t_status = 0;
 
 	mbox = ha->mbox;
-	bzero(mbox, (sizeof (uint32_t) * Q81_NUM_MBX_REGISTERS));
+	bzero(mbox, (sizeof(uint32_t) * Q81_NUM_MBX_REGISTERS));
 
 	mbox[0] = Q81_MBX_GET_MGMT_CTL;
 
@@ -2294,7 +2281,7 @@ qls_mbx_get_link_status(qla_host_t *ha)
 	device_t dev = ha->pci_dev;
 
 	mbox = ha->mbox;
-	bzero(mbox, (sizeof (uint32_t) * Q81_NUM_MBX_REGISTERS));
+	bzero(mbox, (sizeof(uint32_t) * Q81_NUM_MBX_REGISTERS));
 
 	mbox[0] = Q81_MBX_GET_LNK_STATUS;
 
@@ -2303,14 +2290,14 @@ qls_mbx_get_link_status(qla_host_t *ha)
 		return;
 	}
 
-	ha->link_status			= mbox[1];
-	ha->link_down_info		= mbox[2];
-	ha->link_hw_info		= mbox[3];
-	ha->link_dcbx_counters		= mbox[4];
-	ha->link_change_counters	= mbox[5];
+	ha->link_status = mbox[1];
+	ha->link_down_info = mbox[2];
+	ha->link_hw_info = mbox[3];
+	ha->link_dcbx_counters = mbox[4];
+	ha->link_change_counters = mbox[5];
 
 	device_printf(dev, "%s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-		__func__, mbox[0],mbox[1],mbox[2],mbox[3],mbox[4],mbox[5]);
+	    __func__, mbox[0], mbox[1], mbox[2], mbox[3], mbox[4], mbox[5]);
 
 	return;
 }
@@ -2322,7 +2309,7 @@ qls_mbx_about_fw(qla_host_t *ha)
 	device_t dev = ha->pci_dev;
 
 	mbox = ha->mbox;
-	bzero(mbox, (sizeof (uint32_t) * Q81_NUM_MBX_REGISTERS));
+	bzero(mbox, (sizeof(uint32_t) * Q81_NUM_MBX_REGISTERS));
 
 	mbox[0] = Q81_MBX_ABOUT_FW;
 
@@ -2332,21 +2319,21 @@ qls_mbx_about_fw(qla_host_t *ha)
 	}
 
 	device_printf(dev, "%s 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
-		__func__, mbox[0],mbox[1],mbox[2],mbox[3],mbox[4],mbox[5]);
+	    __func__, mbox[0], mbox[1], mbox[2], mbox[3], mbox[4], mbox[5]);
 }
 
 int
 qls_mbx_dump_risc_ram(qla_host_t *ha, void *buf, uint32_t r_addr,
-	uint32_t r_size)
+    uint32_t r_size)
 {
 	bus_addr_t b_paddr;
 	uint32_t *mbox;
 	device_t dev = ha->pci_dev;
 
 	mbox = ha->mbox;
-	bzero(mbox, (sizeof (uint32_t) * Q81_NUM_MBX_REGISTERS));
+	bzero(mbox, (sizeof(uint32_t) * Q81_NUM_MBX_REGISTERS));
 
-	bzero(ha->mpi_dma.dma_b,(r_size << 2));
+	bzero(ha->mpi_dma.dma_b, (r_size << 2));
 	b_paddr = ha->mpi_dma.dma_addr;
 
 	mbox[0] = Q81_MBX_DUMP_RISC_RAM;
@@ -2360,40 +2347,40 @@ qls_mbx_dump_risc_ram(qla_host_t *ha, void *buf, uint32_t r_addr,
 	mbox[8] = (r_addr >> 16) & 0xFFFF;
 
 	bus_dmamap_sync(ha->mpi_dma.dma_tag, ha->mpi_dma.dma_map,
-		BUS_DMASYNC_PREREAD);
+	    BUS_DMASYNC_PREREAD);
 
 	if (qls_mbx_cmd(ha, mbox, 9, mbox, 1)) {
 		device_printf(dev, "%s failed\n", __func__);
 		return (-1);
 	}
-        if (mbox[0] != 0x4000) {
-                device_printf(ha->pci_dev, "%s: failed!\n", __func__);
+	if (mbox[0] != 0x4000) {
+		device_printf(ha->pci_dev, "%s: failed!\n", __func__);
 		return (-1);
-        } else {
-                bus_dmamap_sync(ha->mpi_dma.dma_tag, ha->mpi_dma.dma_map,
-                        BUS_DMASYNC_POSTREAD);
-                bcopy(ha->mpi_dma.dma_b, buf, (r_size << 2));
-        }
+	} else {
+		bus_dmamap_sync(ha->mpi_dma.dma_tag, ha->mpi_dma.dma_map,
+		    BUS_DMASYNC_POSTREAD);
+		bcopy(ha->mpi_dma.dma_b, buf, (r_size << 2));
+	}
 
 	return (0);
 }
 
-int 
+int
 qls_mpi_reset(qla_host_t *ha)
 {
-	int		count;
-	uint32_t	data;
-	device_t	dev = ha->pci_dev;
+	int count;
+	uint32_t data;
+	device_t dev = ha->pci_dev;
 
-	WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,\
-		Q81_CTL_HCS_CMD_SET_RISC_RESET);
+	WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,
+	    Q81_CTL_HCS_CMD_SET_RISC_RESET);
 
 	count = 10;
 	while (count--) {
 		data = READ_REG32(ha, Q81_CTL_HOST_CMD_STATUS);
 		if (data & Q81_CTL_HCS_RISC_RESET) {
-			WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,\
-				Q81_CTL_HCS_CMD_CLR_RISC_RESET);
+			WRITE_REG32(ha, Q81_CTL_HOST_CMD_STATUS,
+			    Q81_CTL_HCS_CMD_CLR_RISC_RESET);
 			break;
 		}
 		qls_mdelay(__func__, 10);

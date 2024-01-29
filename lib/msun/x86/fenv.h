@@ -26,44 +26,45 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FENV_H_
-#define	_FENV_H_
+#ifndef _FENV_H_
+#define _FENV_H_
 
 #include <sys/cdefs.h>
 #include <sys/_types.h>
+
 #include <ieeefp.h>
 
-#ifndef	__fenv_static
-#define	__fenv_static	static
+#ifndef __fenv_static
+#define __fenv_static static
 #endif
 
-typedef	__uint16_t	fexcept_t;
+typedef __uint16_t fexcept_t;
 
 /* Exception flags */
-#define	FE_INVALID	0x01
-#define	FE_DENORMAL	0x02
-#define	FE_DIVBYZERO	0x04
-#define	FE_OVERFLOW	0x08
-#define	FE_UNDERFLOW	0x10
-#define	FE_INEXACT	0x20
-#define	FE_ALL_EXCEPT	(FE_DIVBYZERO | FE_DENORMAL | FE_INEXACT | \
-			 FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+#define FE_INVALID 0x01
+#define FE_DENORMAL 0x02
+#define FE_DIVBYZERO 0x04
+#define FE_OVERFLOW 0x08
+#define FE_UNDERFLOW 0x10
+#define FE_INEXACT 0x20
+#define FE_ALL_EXCEPT                                                         \
+	(FE_DIVBYZERO | FE_DENORMAL | FE_INEXACT | FE_INVALID | FE_OVERFLOW | \
+	    FE_UNDERFLOW)
 
 /* Rounding modes */
-#define	FE_TONEAREST	0x0000
-#define	FE_DOWNWARD	0x0400
-#define	FE_UPWARD	0x0800
-#define	FE_TOWARDZERO	0x0c00
-#define	_ROUND_MASK	(FE_TONEAREST | FE_DOWNWARD | \
-			 FE_UPWARD | FE_TOWARDZERO)
+#define FE_TONEAREST 0x0000
+#define FE_DOWNWARD 0x0400
+#define FE_UPWARD 0x0800
+#define FE_TOWARDZERO 0x0c00
+#define _ROUND_MASK (FE_TONEAREST | FE_DOWNWARD | FE_UPWARD | FE_TOWARDZERO)
 
 /*
  * As compared to the x87 control word, the SSE unit's control word
  * has the rounding control bits offset by 3 and the exception mask
  * bits offset by 7.
  */
-#define	_SSE_ROUND_SHIFT	3
-#define	_SSE_EMASK_SHIFT	7
+#define _SSE_ROUND_SHIFT 3
+#define _SSE_EMASK_SHIFT 7
 
 #ifdef __i386__
 /*
@@ -71,35 +72,38 @@ typedef	__uint16_t	fexcept_t;
  * mxcsr into some reserved fields, rather than changing sizeof(fenv_t).
  */
 typedef struct {
-	__uint16_t	__control;
-	__uint16_t      __mxcsr_hi;
-	__uint16_t	__status;
-	__uint16_t      __mxcsr_lo;
-	__uint32_t	__tag;
-	char		__other[16];
+	__uint16_t __control;
+	__uint16_t __mxcsr_hi;
+	__uint16_t __status;
+	__uint16_t __mxcsr_lo;
+	__uint32_t __tag;
+	char __other[16];
 } fenv_t;
-#else /* __amd64__ */
+#else  /* __amd64__ */
 typedef struct {
 	struct {
-		__uint32_t	__control;
-		__uint32_t	__status;
-		__uint32_t	__tag;
-		char		__other[16];
+		__uint32_t __control;
+		__uint32_t __status;
+		__uint32_t __tag;
+		char __other[16];
 	} __x87;
-	__uint32_t		__mxcsr;
+	__uint32_t __mxcsr;
 } fenv_t;
 #endif /* __i386__ */
 
 __BEGIN_DECLS
 
 /* Default floating-point environment */
-extern const fenv_t	__fe_dfl_env;
-#define	FE_DFL_ENV	(&__fe_dfl_env)
+extern const fenv_t __fe_dfl_env;
+#define FE_DFL_ENV (&__fe_dfl_env)
 
-#define	__fldenvx(__env)	__asm __volatile("fldenv %0" : : "m" (__env)  \
-				: "st", "st(1)", "st(2)", "st(3)", "st(4)",   \
-				"st(5)", "st(6)", "st(7)")
-#define	__fwait()		__asm __volatile("fwait")
+#define __fldenvx(__env)                                                      \
+	__asm __volatile("fldenv %0"                                          \
+			 :                                                    \
+			 : "m"(__env)                                         \
+			 : "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", \
+			 "st(6)", "st(7)")
+#define __fwait() __asm __volatile("fwait")
 
 int fegetenv(fenv_t *__envp);
 int feholdexcept(fenv_t *__envp);
@@ -150,18 +154,18 @@ enum __sse_support { __SSE_YES, __SSE_NO, __SSE_UNK };
 extern enum __sse_support __has_sse;
 int __test_sse(void);
 #ifdef __SSE__
-#define	__HAS_SSE()	1
+#define __HAS_SSE() 1
 #else
-#define	__HAS_SSE()	(__has_sse == __SSE_YES ||			\
-			 (__has_sse == __SSE_UNK && __test_sse()))
+#define __HAS_SSE() \
+	(__has_sse == __SSE_YES || (__has_sse == __SSE_UNK && __test_sse()))
 #endif
 
-#define	__get_mxcsr(env)	(((env).__mxcsr_hi << 16) |	\
-				 ((env).__mxcsr_lo))
-#define	__set_mxcsr(env, x)	do {				\
-	(env).__mxcsr_hi = (__uint32_t)(x) >> 16;		\
-	(env).__mxcsr_lo = (__uint16_t)(x);			\
-} while (0)
+#define __get_mxcsr(env) (((env).__mxcsr_hi << 16) | ((env).__mxcsr_lo))
+#define __set_mxcsr(env, x)                               \
+	do {                                              \
+		(env).__mxcsr_hi = (__uint32_t)(x) >> 16; \
+		(env).__mxcsr_lo = (__uint16_t)(x);       \
+	} while (0)
 
 __fenv_static inline int
 feclearexcept(int __excepts)
@@ -345,4 +349,4 @@ fesetenv(const fenv_t *__envp)
 
 __END_DECLS
 
-#endif	/* !_FENV_H_ */
+#endif /* !_FENV_H_ */

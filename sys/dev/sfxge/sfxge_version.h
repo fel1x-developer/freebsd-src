@@ -32,8 +32,8 @@
  */
 
 #ifndef _SFXGE_VERSION_H
-#define	_SFXGE_VERSION_H
+#define _SFXGE_VERSION_H
 
-#define	SFXGE_VERSION_STRING	"v4.8.0.1081"
+#define SFXGE_VERSION_STRING "v4.8.0.1081"
 
-#endif	/* _SFXGE_DRIVER_VERSION_H */
+#endif /* _SFXGE_DRIVER_VERSION_H */

@@ -23,34 +23,35 @@
 struct ath_hal_9285 {
 	struct ath_hal_5416 ah_5416;
 
-	HAL_INI_ARRAY	ah_ini_txgain;
-	HAL_INI_ARRAY	ah_ini_rxgain;
+	HAL_INI_ARRAY ah_ini_txgain;
+	HAL_INI_ARRAY ah_ini_rxgain;
 
 	struct {
-		int32_t prev_offset;	/* Previous value of PA offset value */
-		int8_t max_skipcount;	/* Max No. of times PACAL can be skipped */
-		int8_t skipcount;	/* No. of times the PACAL to be skipped */
+		int32_t prev_offset; /* Previous value of PA offset value */
+		int8_t
+		    max_skipcount; /* Max No. of times PACAL can be skipped */
+		int8_t skipcount;  /* No. of times the PACAL to be skipped */
 	} pacal_info;
 };
-#define	AH9285(_ah)	((struct ath_hal_9285 *)(_ah))
+#define AH9285(_ah) ((struct ath_hal_9285 *)(_ah))
 
-#define	AR9285_DEFAULT_RXCHAINMASK	1
-#define	AR9285_DEFAULT_TXCHAINMASK	1
+#define AR9285_DEFAULT_RXCHAINMASK 1
+#define AR9285_DEFAULT_TXCHAINMASK 1
 
-#define	AR_PHY_CCA_NOM_VAL_9285_2GHZ		-118
-#define	AR_PHY_CCA_MIN_GOOD_VAL_9285_2GHZ	-127
-#define	AR_PHY_CCA_MAX_GOOD_VAL_9285_2GHZ	-108
+#define AR_PHY_CCA_NOM_VAL_9285_2GHZ -118
+#define AR_PHY_CCA_MIN_GOOD_VAL_9285_2GHZ -127
+#define AR_PHY_CCA_MAX_GOOD_VAL_9285_2GHZ -108
 
 HAL_BOOL ar9285RfAttach(struct ath_hal *, HAL_STATUS *);
 
-extern	HAL_BOOL ar9285SetTransmitPower(struct ath_hal *,
-		const struct ieee80211_channel *, uint16_t *);
+extern HAL_BOOL ar9285SetTransmitPower(struct ath_hal *,
+    const struct ieee80211_channel *, uint16_t *);
 extern HAL_BOOL ar9285SetBoardValues(struct ath_hal *,
-		const struct ieee80211_channel *);
+    const struct ieee80211_channel *);
 
 /* ar9285_btcoex.h */
-extern	void ar9285BTCoexAntennaDiversity(struct ath_hal *ah);
-extern	void ar9285BTCoexSetParameter(struct ath_hal *ah,
-		u_int32_t value, u_int32_t type);
+extern void ar9285BTCoexAntennaDiversity(struct ath_hal *ah);
+extern void ar9285BTCoexSetParameter(struct ath_hal *ah, u_int32_t value,
+    u_int32_t type);
 
-#endif	/* _ATH_AR9285_H_ */
+#endif /* _ATH_AR9285_H_ */

@@ -27,16 +27,17 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "nvme_private.h"
 
 int
 nvme_ns_cmd_read(struct nvme_namespace *ns, void *payload, uint64_t lba,
     uint32_t lba_count, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
+	struct nvme_request *req;
 
 	req = nvme_allocate_request_vaddr(payload,
-	    lba_count*nvme_ns_get_sector_size(ns), cb_fn, cb_arg);
+	    lba_count * nvme_ns_get_sector_size(ns), cb_fn, cb_arg);
 
 	if (req == NULL)
 		return (ENOMEM);
@@ -52,9 +53,9 @@ int
 nvme_ns_cmd_read_bio(struct nvme_namespace *ns, struct bio *bp,
     nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
-	uint64_t		lba;
-	uint64_t		lba_count;
+	struct nvme_request *req;
+	uint64_t lba;
+	uint64_t lba_count;
 
 	req = nvme_allocate_request_bio(bp, cb_fn, cb_arg);
 
@@ -74,10 +75,10 @@ int
 nvme_ns_cmd_write(struct nvme_namespace *ns, void *payload, uint64_t lba,
     uint32_t lba_count, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
+	struct nvme_request *req;
 
 	req = nvme_allocate_request_vaddr(payload,
-	    lba_count*nvme_ns_get_sector_size(ns), cb_fn, cb_arg);
+	    lba_count * nvme_ns_get_sector_size(ns), cb_fn, cb_arg);
 
 	if (req == NULL)
 		return (ENOMEM);
@@ -93,9 +94,9 @@ int
 nvme_ns_cmd_write_bio(struct nvme_namespace *ns, struct bio *bp,
     nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
-	uint64_t		lba;
-	uint64_t		lba_count;
+	struct nvme_request *req;
+	uint64_t lba;
+	uint64_t lba_count;
 
 	req = nvme_allocate_request_bio(bp, cb_fn, cb_arg);
 
@@ -114,8 +115,8 @@ int
 nvme_ns_cmd_deallocate(struct nvme_namespace *ns, void *payload,
     uint8_t num_ranges, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
-	struct nvme_command	*cmd;
+	struct nvme_request *req;
+	struct nvme_command *cmd;
 
 	req = nvme_allocate_request_vaddr(payload,
 	    num_ranges * sizeof(struct nvme_dsm_range), cb_fn, cb_arg);
@@ -139,7 +140,7 @@ nvme_ns_cmd_deallocate(struct nvme_namespace *ns, void *payload,
 int
 nvme_ns_cmd_flush(struct nvme_namespace *ns, nvme_cb_fn_t cb_fn, void *cb_arg)
 {
-	struct nvme_request	*req;
+	struct nvme_request *req;
 
 	req = nvme_allocate_request_null(cb_fn, cb_arg);
 
@@ -153,7 +154,7 @@ nvme_ns_cmd_flush(struct nvme_namespace *ns, nvme_cb_fn_t cb_fn, void *cb_arg)
 }
 
 /* Timeout = 1 sec */
-#define NVD_DUMP_TIMEOUT	200000
+#define NVD_DUMP_TIMEOUT 200000
 
 int
 nvme_ns_dump(struct nvme_namespace *ns, void *virt, off_t offset, size_t len)

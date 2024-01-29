@@ -5,23 +5,23 @@
  * may copy or modify Sun RPC without charge, but are not authorized
  * to license or distribute it to anyone else except as part of a product or
  * program developed by the user.
- * 
+ *
  * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
  * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
  * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
+ *
  * Sun RPC is provided with no support and without any obligation on the
  * part of Sun Microsystems, Inc. to assist in its use, correction,
  * modification or enhancement.
- * 
+ *
  * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
  * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
  * OR ANY PART THEREOF.
- * 
+ *
  * In no event will Sun Microsystems, Inc. be liable for any lost revenue
  * or profits or other special, indirect and consequential damages, even if
  * Sun has been advised of the possibility of such damages.
- * 
+ *
  * Sun Microsystems, Inc.
  * 2550 Garcia Avenue
  * Mountain View, California  94043
@@ -38,9 +38,8 @@
  * guide for specific semantics that are required.
  */
 
-#ifndef	_RPCSVC_NIS_DB_H
-#define	_RPCSVC_NIS_DB_H
-
+#ifndef _RPCSVC_NIS_DB_H
+#define _RPCSVC_NIS_DB_H
 
 /*
  * Note: although the version of <rpcsvc/nis_db.h> shipped with Solaris
@@ -52,7 +51,7 @@
 #include <rpc/rpc.h>
 #include <rpcsvc/nis.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -114,7 +113,7 @@ extern db_result *db_first_entry(char *, int, nis_attr *);
 extern db_result *db_next_entry(char *, db_next_desc *);
 extern db_result *db_reset_next_entry(char *, db_next_desc *);
 extern db_result *db_list_entries(char *, int, nis_attr *);
-extern db_result *db_add_entry(char *, int,  nis_attr *, entry_obj *);
+extern db_result *db_add_entry(char *, int, nis_attr *, entry_obj *);
 extern db_result *db_remove_entry(char *, int, nis_attr *);
 extern db_status db_checkpoint(char *);
 extern db_status db_standby(char *);
@@ -128,4 +127,4 @@ extern void db_free_result(db_result *);
 }
 #endif
 
-#endif	/* _RPCSVC_NIS_DB_H */
+#endif /* _RPCSVC_NIS_DB_H */

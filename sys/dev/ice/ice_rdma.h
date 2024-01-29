@@ -51,8 +51,8 @@
  * Given the version number MAJOR.MINOR.PATCH, increment the:
  *
  * MAJOR version when you make incompatible changes,
- * MINOR version when you add functionality in a backwards-compatible manner, and
- * PATCH version when you make backwards-compatible bug fixes.
+ * MINOR version when you add functionality in a backwards-compatible manner,
+ * and PATCH version when you make backwards-compatible bug fixes.
  *
  * Any change to this file, or one of the kobject interface files must come
  * with an associated change in one of the MAJOR, MINOR, or PATCH versions,
@@ -110,8 +110,8 @@ struct ice_rdma_info {
 	kobj_class_t rdma_class;
 };
 
-#define ICE_RDMA_MAX_USER_PRIORITY	8
-#define ICE_RDMA_MAX_MSIX		64
+#define ICE_RDMA_MAX_USER_PRIORITY 8
+#define ICE_RDMA_MAX_MSIX 64
 
 /* Declare the ice_rdma_di kobject class */
 DECLARE_CLASS(ice_rdma_di_class);
@@ -165,7 +165,7 @@ struct ice_qos_app_priority_table {
 	uint8_t selector;
 };
 
-#define IEEE_8021QAZ_MAX_TCS  8
+#define IEEE_8021QAZ_MAX_TCS 8
 #define ICE_TC_MAX_USER_PRIORITY 8
 #define ICE_QOS_MAX_APPS 32
 #define ICE_QOS_DSCP_NUM_VAL 64

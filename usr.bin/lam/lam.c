@@ -45,32 +45,32 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	MAXOFILES	20
-#define	BIGBUFSIZ	5 * BUFSIZ
+#define MAXOFILES 20
+#define BIGBUFSIZ 5 * BUFSIZ
 
-static struct openfile {	/* open file structure */
-	FILE	*fp;		/* file pointer */
-	short	eof;		/* eof flag */
-	short	pad;		/* pad flag for missing columns */
-	char	eol;		/* end of line character */
-	const char *sepstring;	/* string to print before each line */
-	const char *format;	/* printf(3) style string spec. */
-}	input[MAXOFILES];
+static struct openfile {       /* open file structure */
+	FILE *fp;	       /* file pointer */
+	short eof;	       /* eof flag */
+	short pad;	       /* pad flag for missing columns */
+	char eol;	       /* end of line character */
+	const char *sepstring; /* string to print before each line */
+	const char *format;    /* printf(3) style string spec. */
+} input[MAXOFILES];
 
-static int	morefiles;	/* set by getargs(), changed by gatherline() */
-static int	nofinalnl;	/* normally append \n to each output line */
-static char	line[BIGBUFSIZ];
-static char	*linep;
+static int morefiles; /* set by getargs(), changed by gatherline() */
+static int nofinalnl; /* normally append \n to each output line */
+static char line[BIGBUFSIZ];
+static char *linep;
 
-static char    *gatherline(struct openfile *);
-static void	getargs(char *[]);
-static char    *pad(struct openfile *);
-static void	usage(void);
+static char *gatherline(struct openfile *);
+static void getargs(char *[]);
+static char *pad(struct openfile *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-	struct	openfile *ip;
+	struct openfile *ip;
 
 	if (argc == 1)
 		usage();
@@ -104,7 +104,7 @@ main(int argc, char *argv[])
 static void
 getargs(char *av[])
 {
-	struct	openfile *ip = input;
+	struct openfile *ip = input;
 	char *p, *c;
 	static char fmtbuf[BUFSIZ];
 	char *fmtp = fmtbuf;
@@ -112,7 +112,7 @@ getargs(char *av[])
 	cap_rights_t rights_ro;
 
 	cap_rights_init(&rights_ro, CAP_READ, CAP_FSTAT);
-	P = S = F = T = 0;		/* capitalized options */
+	P = S = F = T = 0; /* capitalized options */
 	while ((p = *++av) != NULL) {
 		if (*p != '-' || !p[1]) {
 			if (++morefiles >= MAXOFILES)
@@ -126,11 +126,12 @@ getargs(char *av[])
 				err(1, "unable to limit rights on: %s", p);
 			ip->pad = P;
 			if (!ip->sepstring)
-				ip->sepstring = (S ? (ip-1)->sepstring : "");
+				ip->sepstring = (S ? (ip - 1)->sepstring : "");
 			if (!ip->format)
-				ip->format = ((P || F) ? (ip-1)->format : "%s");
+				ip->format = ((P || F) ? (ip - 1)->format :
+							 "%s");
 			if (!ip->eol)
-				ip->eol = (T ? (ip-1)->eol : '\n');
+				ip->eol = (T ? (ip - 1)->eol : '\n');
 			ip++;
 			continue;
 		}
@@ -161,15 +162,17 @@ getargs(char *av[])
 				fmtp += strlen(fmtp) + 1;
 				if (fmtp >= fmtbuf + sizeof(fmtbuf))
 					errx(1, "no more format space");
-				/* restrict format string to only valid width formatters */
+				/* restrict format string to only valid width
+				 * formatters */
 				if (strspn(p, "-.0123456789") != strlen(p))
-					errx(1, "invalid format string `%s'", p);
-				if (snprintf(fmtp, fmtbuf + sizeof(fmtbuf) - fmtp, "%%%ss", p)
-				    >= fmtbuf + sizeof(fmtbuf) - fmtp)
+					errx(1, "invalid format string `%s'",
+					    p);
+				if (snprintf(fmtp,
+					fmtbuf + sizeof(fmtbuf) - fmtp, "%%%ss",
+					p) >= fmtbuf + sizeof(fmtbuf) - fmtp)
 					errx(1, "no more format space");
 				ip->format = fmtp;
-			}
-			else
+			} else
 				usage();
 			break;
 		default:
@@ -228,7 +231,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-"usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...",
-"       lam [ -p min.max ] [ -s sepstring ] [ -t c ] file ...");
+	    "usage: lam [ -f min.max ] [ -s sepstring ] [ -t c ] file ...",
+	    "       lam [ -p min.max ] [ -s sepstring ] [ -t c ] file ...");
 	exit(1);
 }

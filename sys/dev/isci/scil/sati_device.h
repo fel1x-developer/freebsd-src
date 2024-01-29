@@ -62,8 +62,8 @@
  *        in the object defined in this file.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/intel_ata.h>
+#include <dev/isci/scil/sati_types.h>
 
 /**
  * @enum _SATI_DEVICE_STATE
@@ -71,17 +71,16 @@
  * @brief This enumeration depicts the various states possible for the a
  *        translation remote device object.
  */
-typedef enum _SATI_DEVICE_STATE
-{
-   SATI_DEVICE_STATE_OPERATIONAL,
-   SATI_DEVICE_STATE_STOPPED,
-   SATI_DEVICE_STATE_STANDBY,
-   SATI_DEVICE_STATE_IDLE,
-   SATI_DEVICE_STATE_DEVICE_FAULT_OCCURRED,
-   SATI_DEVICE_STATE_FORMAT_UNIT_IN_PROGRESS,
-   SATI_DEVICE_STATE_SELF_TEST_IN_PROGRESS,
-   SATI_DEVICE_STATE_SEQUENCE_INCOMPLETE,
-   SATI_DEVICE_STATE_UNIT_ATTENTION_CONDITION
+typedef enum _SATI_DEVICE_STATE {
+	SATI_DEVICE_STATE_OPERATIONAL,
+	SATI_DEVICE_STATE_STOPPED,
+	SATI_DEVICE_STATE_STANDBY,
+	SATI_DEVICE_STATE_IDLE,
+	SATI_DEVICE_STATE_DEVICE_FAULT_OCCURRED,
+	SATI_DEVICE_STATE_FORMAT_UNIT_IN_PROGRESS,
+	SATI_DEVICE_STATE_SELF_TEST_IN_PROGRESS,
+	SATI_DEVICE_STATE_SEQUENCE_INCOMPLETE,
+	SATI_DEVICE_STATE_UNIT_ATTENTION_CONDITION
 
 } SATI_DEVICE_STATE;
 
@@ -92,24 +91,23 @@ typedef enum _SATI_DEVICE_STATE
  * support for which there is an impact on translation.
  */
 /*@{*/
-#define SATI_DEVICE_CAP_UDMA_ENABLE          0x00000001
+#define SATI_DEVICE_CAP_UDMA_ENABLE 0x00000001
 #define SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE 0x00000002
 #define SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE 0x00000004
-#define SATI_DEVICE_CAP_48BIT_ENABLE         0x00000008
-#define SATI_DEVICE_CAP_DMA_FUA_ENABLE       0x00000010
-#define SATI_DEVICE_CAP_SMART_SUPPORT        0x00000020
-#define SATI_DEVICE_CAP_REMOVABLE_MEDIA      0x00000040
-#define SATI_DEVICE_CAP_SMART_ENABLE         0x00000080
-#define SATI_DEVICE_CAP_WRITE_UNCORRECTABLE_ENABLE           0x00000100
+#define SATI_DEVICE_CAP_48BIT_ENABLE 0x00000008
+#define SATI_DEVICE_CAP_DMA_FUA_ENABLE 0x00000010
+#define SATI_DEVICE_CAP_SMART_SUPPORT 0x00000020
+#define SATI_DEVICE_CAP_REMOVABLE_MEDIA 0x00000040
+#define SATI_DEVICE_CAP_SMART_ENABLE 0x00000080
+#define SATI_DEVICE_CAP_WRITE_UNCORRECTABLE_ENABLE 0x00000100
 #define SATI_DEVICE_CAP_MULTIPLE_SECTORS_PER_PHYSCIAL_SECTOR 0x00000200
-#define SATI_DEVICE_CAP_SMART_SELF_TEST_SUPPORT              0x00000400
-#define SATI_DEVICE_CAP_SSD                                  0x00000800
-#define SATI_DEVICE_CAP_DSM_TRIM_SUPPORT                     0x00001000
-#define SATI_DEVICE_CAP_DETERMINISTIC_READ_AFTER_TRIM        0x00002000
-#define SATI_DEVICE_CAP_READ_ZERO_AFTER_TRIM                 0x00004000
-#define SATI_DEVICE_CAP_STANDBY_ENABLE                       0x00008000
-#define SATI_DEVICE_CAP_IGNORE_FUA                           0x00010000
-
+#define SATI_DEVICE_CAP_SMART_SELF_TEST_SUPPORT 0x00000400
+#define SATI_DEVICE_CAP_SSD 0x00000800
+#define SATI_DEVICE_CAP_DSM_TRIM_SUPPORT 0x00001000
+#define SATI_DEVICE_CAP_DETERMINISTIC_READ_AFTER_TRIM 0x00002000
+#define SATI_DEVICE_CAP_READ_ZERO_AFTER_TRIM 0x00004000
+#define SATI_DEVICE_CAP_STANDBY_ENABLE 0x00008000
+#define SATI_DEVICE_CAP_IGNORE_FUA 0x00010000
 
 /*@}*/
 
@@ -119,85 +117,77 @@ typedef enum _SATI_DEVICE_STATE
  * @brief The SATI_DEVICE structure define the state of the remote device
  *        with respect to translation.
  */
-typedef struct SATI_DEVICE
-{
-   /**
-    * This field simply dictates the state of the SATI device.
-    */
-   SATI_DEVICE_STATE state;
+typedef struct SATI_DEVICE {
+	/**
+	 * This field simply dictates the state of the SATI device.
+	 */
+	SATI_DEVICE_STATE state;
 
-   /**
-    * This field indicates features supported by the remote device that
-    * impact translation execution.
-    */
-   U16 capabilities;
+	/**
+	 * This field indicates features supported by the remote device that
+	 * impact translation execution.
+	 */
+	U16 capabilities;
 
-   /**
-    * This field indicates the depth of the native command queue supported
-    * by the device.
-    */
-   U8 ncq_depth;
+	/**
+	 * This field indicates the depth of the native command queue supported
+	 * by the device.
+	 */
+	U8 ncq_depth;
 
-   /**
-    * This field stores the additional sense code for a unit attention
-    * condition.
-    */
-   U8 unit_attention_asc;
+	/**
+	 * This field stores the additional sense code for a unit attention
+	 * condition.
+	 */
+	U8 unit_attention_asc;
 
-   /**
-    * This field indicates the additional sense code qualifier for a unit
-    * attention condition.
-    */
-   U8 unit_attention_ascq;
+	/**
+	 * This field indicates the additional sense code qualifier for a unit
+	 * attention condition.
+	 */
+	U8 unit_attention_ascq;
 
-   /**
-    * This field indicates the ATA standby timer value set through the
-    * ATA IDLE and ATA Standby commands
-    */
-   U8 ata_standby_timer;
+	/**
+	 * This field indicates the ATA standby timer value set through the
+	 * ATA IDLE and ATA Standby commands
+	 */
+	U8 ata_standby_timer;
 
-   /**
-    * This field indicates the maximum number of data set management
-    * descriptor entries the device supports in blocks.
-    */
-   U16 max_lba_range_entry_blocks;
+	/**
+	 * This field indicates the maximum number of data set management
+	 * descriptor entries the device supports in blocks.
+	 */
+	U16 max_lba_range_entry_blocks;
 
-   /**
-    * The field is the reported logical block size for the device
-    */
-   U32 logical_block_size;
+	/**
+	 * The field is the reported logical block size for the device
+	 */
+	U32 logical_block_size;
 
-   /**
-    * This field is the maximum number of blocks per Download Microcode command
-    * for this device.
-    */
-   U16 max_blocks_per_microcode_command;
+	/**
+	 * This field is the maximum number of blocks per Download Microcode
+	 * command for this device.
+	 */
+	U16 max_blocks_per_microcode_command;
 
-   /**
-   * This field is the minimum number of blocks per Download Microcode command
-   * for this device.
-   */
-   U16 min_blocks_per_microcode_command;
+	/**
+	 * This field is the minimum number of blocks per Download Microcode
+	 * command for this device.
+	 */
+	U16 min_blocks_per_microcode_command;
 
-   /**
-    * This field indicates the type of constructed sense data if enabled descriptor
-    * sense data will be constructed
-    */
-   U8 descriptor_sense_enable;
+	/**
+	 * This field indicates the type of constructed sense data if enabled
+	 * descriptor sense data will be constructed
+	 */
+	U8 descriptor_sense_enable;
 
 } SATI_DEVICE_T;
 
-void sati_device_construct(
-   SATI_DEVICE_T * device,
-   BOOL            is_ncq_enabled,
-   U8              max_ncq_depth,
-   BOOL            ignore_fua
-);
+void sati_device_construct(SATI_DEVICE_T *device, BOOL is_ncq_enabled,
+    U8 max_ncq_depth, BOOL ignore_fua);
 
-void sati_device_update_capabilities(
-   SATI_DEVICE_T              * device,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify
-);
+void sati_device_update_capabilities(SATI_DEVICE_T *device,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify);
 
 #endif // _SATI_TRANSLATOR_SEQUENCE_H_
-

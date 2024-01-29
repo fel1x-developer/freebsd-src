@@ -4,7 +4,7 @@
  * Author: Doug Ambrisko <ambrisko@whistle.com>
  * Copyright (c) 2000 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -36,25 +36,18 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <bootstrap.h>
+#include <stand.h>
 
-static void	nullc_probe(struct console *cp);
-static int	nullc_init(int arg);
-static void	nullc_putchar(int c);
-static int	nullc_getchar(void);
-static int	nullc_ischar(void);
+static void nullc_probe(struct console *cp);
+static int nullc_init(int arg);
+static void nullc_putchar(int c);
+static int nullc_getchar(void);
+static int nullc_ischar(void);
 
-struct console nullconsole = {
-	"nullconsole",
-	"null port",
-	0,
-	nullc_probe,
-	nullc_init,
-	nullc_putchar,
-	nullc_getchar,
-	nullc_ischar
-};
+struct console nullconsole = { "nullconsole", "null port", 0, nullc_probe,
+	nullc_init, nullc_putchar, nullc_getchar, nullc_ischar };
 
 static void
 nullc_probe(struct console *cp)
@@ -65,7 +58,7 @@ nullc_probe(struct console *cp)
 static int
 nullc_init(int arg)
 {
-	return(0);
+	return (0);
 }
 
 static void
@@ -76,11 +69,11 @@ nullc_putchar(int c)
 static int
 nullc_getchar(void)
 {
-	return(-1);
+	return (-1);
 }
 
 static int
 nullc_ischar(void)
 {
-	return(0);
+	return (0);
 }

@@ -35,14 +35,14 @@
 #include <sys/sysctl.h>
 
 #include <pwd.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <utmpx.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
 /* physical memory size in Kb */
@@ -290,8 +290,7 @@ OS_checkSystemDateInput(const u_char *str, u_int len)
 	if (len != 8 && len != 11)
 		return (NULL);
 
-	if (str[2] == 0 || str[2] > 12 ||
-	    str[3] == 0 || str[3] > 31 ||
+	if (str[2] == 0 || str[2] > 12 || str[3] == 0 || str[3] > 31 ||
 	    str[4] > 23 || str[5] > 59 || str[6] > 60 || str[7] > 9)
 		return (NULL);
 
@@ -345,15 +344,15 @@ OS_setSystemDate(const struct timeval *timeval_to_set)
  * Returns SNMP_ERR_NOERROR on success
  */
 int
-op_hrSystem(struct snmp_context *ctx, struct snmp_value *value,
-    u_int sub, u_int iidx __unused, enum snmp_op curr_op)
+op_hrSystem(struct snmp_context *ctx, struct snmp_value *value, u_int sub,
+    u_int iidx __unused, enum snmp_op curr_op)
 {
 	int err;
 	u_char *str;
 
 	switch (curr_op) {
 
-	  case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		switch (value->var.subs[sub - 1]) {
 
 		case LEAF_hrSystemUptime:
@@ -383,13 +382,13 @@ op_hrSystem(struct snmp_context *ctx, struct snmp_value *value,
 		}
 		abort();
 
-	  case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		switch (value->var.subs[sub - 1]) {
 
 		case LEAF_hrSystemDate:
-			if ((ctx->scratch->ptr1 =
-			    OS_checkSystemDateInput(value->v.octetstring.octets,
-			    value->v.octetstring.len)) == NULL)
+			if ((ctx->scratch->ptr1 = OS_checkSystemDateInput(
+				 value->v.octetstring.octets,
+				 value->v.octetstring.len)) == NULL)
 				return (SNMP_ERR_WRONG_VALUE);
 
 			return (SNMP_ERR_NOERROR);
@@ -397,11 +396,10 @@ op_hrSystem(struct snmp_context *ctx, struct snmp_value *value,
 		case LEAF_hrSystemInitialLoadDevice:
 		case LEAF_hrSystemInitialLoadParameters:
 			return (SNMP_ERR_NOT_WRITEABLE);
-
 		}
 		abort();
 
-	  case SNMP_OP_ROLLBACK:
+	case SNMP_OP_ROLLBACK:
 		switch (value->var.subs[sub - 1]) {
 
 		case LEAF_hrSystemDate:
@@ -414,7 +412,7 @@ op_hrSystem(struct snmp_context *ctx, struct snmp_value *value,
 		}
 		abort();
 
-	  case SNMP_OP_COMMIT:
+	case SNMP_OP_COMMIT:
 		switch (value->var.subs[sub - 1]) {
 
 		case LEAF_hrSystemDate:
@@ -428,7 +426,7 @@ op_hrSystem(struct snmp_context *ctx, struct snmp_value *value,
 		}
 		abort();
 
-	  case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		abort();
 	}
 	abort();

@@ -27,15 +27,15 @@
  */
 
 #ifndef _ULOG_H_
-#define	_ULOG_H_
+#define _ULOG_H_
 
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-void	ulog_login(const char *, const char *, const char *);
-void	ulog_login_pseudo(int, const char *);
-void	ulog_logout(const char *);
-void	ulog_logout_pseudo(int);
+void ulog_login(const char *, const char *, const char *);
+void ulog_login_pseudo(int, const char *);
+void ulog_logout(const char *);
+void ulog_logout_pseudo(int);
 __END_DECLS
 
 #endif /* !_ULOG_H_ */

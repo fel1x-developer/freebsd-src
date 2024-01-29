@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <stdbool.h>
-
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/vnode.h>
+
+#include <stdbool.h>
 #define _KERNEL
 #include <sys/mount.h>
 #undef _KERNEL
@@ -40,42 +40,41 @@
 
 #include <assert.h>
 #include <err.h>
+#include <fs/udf/ecma167-udf.h>
 #include <kvm.h>
 #include <stdlib.h>
 
-#include <fs/udf/ecma167-udf.h>
-
-#include "libprocstat.h"
 #include "common_kvm.h"
+#include "libprocstat.h"
 
 /* XXX */
 struct udf_mnt {
-	int			im_flags;
-	struct mount		*im_mountp;
-	struct g_consumer	*im_cp;
-	struct bufobj		*im_bo;
-	struct cdev		*im_dev;
-	struct vnode		*im_devvp;
-	int			bsize;
-	int			bshift;
-	int			bmask;
-	uint32_t		part_start;
-	uint32_t		part_len;
-	uint64_t		root_id;
-	struct long_ad		root_icb;
-	int			p_sectors;
-	int			s_table_entries;
-	void			*s_table;
-	void			*im_d2l;
+	int im_flags;
+	struct mount *im_mountp;
+	struct g_consumer *im_cp;
+	struct bufobj *im_bo;
+	struct cdev *im_dev;
+	struct vnode *im_devvp;
+	int bsize;
+	int bshift;
+	int bmask;
+	uint32_t part_start;
+	uint32_t part_len;
+	uint64_t root_id;
+	struct long_ad root_icb;
+	int p_sectors;
+	int s_table_entries;
+	void *s_table;
+	void *im_d2l;
 };
 struct udf_node {
-	struct vnode	*i_vnode;
-	struct udf_mnt	*udfmp;
-	ino_t		hash_id;
-	long		diroff;
+	struct vnode *i_vnode;
+	struct udf_mnt *udfmp;
+	ino_t hash_id;
+	long diroff;
 	struct file_entry *fentry;
 };
-#define VTON(vp)	((struct udf_node *)((vp)->v_data))
+#define VTON(vp) ((struct udf_node *)((vp)->v_data))
 
 int
 udf_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
@@ -91,12 +90,12 @@ udf_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 		warnx("can't read udf fnode at %p", (void *)VTON(vp));
 		return (1);
 	}
-        error = kvm_read_all(kd, (unsigned long)node.udfmp, &mnt, sizeof(mnt));
-        if (error != 0) {
-                warnx("can't read udf_mnt at %p for vnode %p",
-                    (void *)node.udfmp, vp);
-                return (1);
-        }
+	error = kvm_read_all(kd, (unsigned long)node.udfmp, &mnt, sizeof(mnt));
+	if (error != 0) {
+		warnx("can't read udf_mnt at %p for vnode %p",
+		    (void *)node.udfmp, vp);
+		return (1);
+	}
 	vn->vn_fileid = node.hash_id;
 	vn->vn_fsid = dev2udev(kd, mnt.im_dev);
 	return (0);

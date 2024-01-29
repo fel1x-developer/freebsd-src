@@ -32,42 +32,38 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/clk/clk.h>
-#include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_fixed.h>
+#include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_link.h>
-#include <dev/hwreset/hwreset.h>
-
 #include <dev/clk/rockchip/rk_clk_composite.h>
 #include <dev/clk/rockchip/rk_clk_gate.h>
 #include <dev/clk/rockchip/rk_clk_mux.h>
 #include <dev/clk/rockchip/rk_clk_pll.h>
 #include <dev/clk/rockchip/rk_cru.h>
+#include <dev/fdt/simplebus.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 #include "clkdev_if.h"
 #include "hwreset_if.h"
 
-static struct resource_spec rk_cru_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec rk_cru_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
-#define	CCU_READ4(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	CCU_WRITE4(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define CCU_READ4(sc, reg) bus_read_4((sc)->res, (reg))
+#define CCU_WRITE4(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
-void	rk3328_cru_register_clocks(struct rk_cru_softc *sc);
+void rk3328_cru_register_clocks(struct rk_cru_softc *sc);
 
 static int
 rk_cru_write_4(device_t dev, bus_addr_t addr, uint32_t val)
@@ -206,7 +202,7 @@ rk_cru_attach(device_t dev)
 {
 	struct rk_cru_softc *sc;
 	phandle_t node;
-	int	i;
+	int i;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -260,8 +256,7 @@ rk_cru_attach(device_t dev)
 			    sc->clks[i].clk.fract);
 			break;
 		case RK_CLK_LINK:
-			clknode_link_register(sc->clkdom,
-			    sc->clks[i].clk.link);
+			clknode_link_register(sc->clkdom, sc->clks[i].clk.link);
 			break;
 		default:
 			device_printf(dev, "Unknown clock type\n");
@@ -288,15 +283,15 @@ rk_cru_attach(device_t dev)
 
 static device_method_t rk_cru_methods[] = {
 	/* clkdev interface */
-	DEVMETHOD(clkdev_write_4,	rk_cru_write_4),
-	DEVMETHOD(clkdev_read_4,	rk_cru_read_4),
-	DEVMETHOD(clkdev_modify_4,	rk_cru_modify_4),
-	DEVMETHOD(clkdev_device_lock,	rk_cru_device_lock),
-	DEVMETHOD(clkdev_device_unlock,	rk_cru_device_unlock),
+	DEVMETHOD(clkdev_write_4, rk_cru_write_4),
+	DEVMETHOD(clkdev_read_4, rk_cru_read_4),
+	DEVMETHOD(clkdev_modify_4, rk_cru_modify_4),
+	DEVMETHOD(clkdev_device_lock, rk_cru_device_lock),
+	DEVMETHOD(clkdev_device_unlock, rk_cru_device_unlock),
 
 	/* Reset interface */
-	DEVMETHOD(hwreset_assert,	rk_cru_reset_assert),
-	DEVMETHOD(hwreset_is_asserted,	rk_cru_reset_is_asserted),
+	DEVMETHOD(hwreset_assert, rk_cru_reset_assert),
+	DEVMETHOD(hwreset_is_asserted, rk_cru_reset_is_asserted),
 
 	DEVMETHOD_END
 };

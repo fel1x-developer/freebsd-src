@@ -79,8 +79,8 @@ ccp_assign_lsb_regions(struct ccp_softc *sc, uint64_t lsbmask)
 
 		/* Intentionally skip specialized 0th LSB */
 		for (i = 1; i < MAX_LSB_REGIONS; i++) {
-			if ((lsbmask &
-			    (1ull << (q + (MAX_HW_QUEUES * i)))) != 0) {
+			if ((lsbmask & (1ull << (q + (MAX_HW_QUEUES * i)))) !=
+			    0) {
 				sc->queues[q].private_lsb = i;
 				lsbmask &= ~(0x1Full << (MAX_HW_QUEUES * i));
 				break;

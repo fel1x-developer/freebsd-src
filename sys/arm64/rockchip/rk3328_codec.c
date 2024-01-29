@@ -26,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -33,131 +35,127 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
+#include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
 #include <dev/syscon/syscon.h>
 
-#include "syscon_if.h"
-
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/fdt/audio_dai.h>
 #include "audio_dai_if.h"
 #include "mixer_if.h"
+#include "syscon_if.h"
 
-#define	RKCODEC_MIXER_DEVS		(1 << SOUND_MIXER_VOLUME)
+#define RKCODEC_MIXER_DEVS (1 << SOUND_MIXER_VOLUME)
 
-#define	GRF_SOC_CON2			0x0408
-#define	 SOC_CON2_I2S_ACODEC_EN			(1 << 14)
-#define	 SOC_CON2_I2S_ACODEC_EN_MASK		((1 << 14) << 16)
-#define	GRF_SOC_CON10			0x0428
-#define	 SOC_CON10_GPIOMUT			(1 << 1)
-#define	 SOC_CON10_GPIOMUT_MASK			((1 << 1) << 16)
-#define	 SOC_CON10_GPIOMUT_EN			(1 << 0)
-#define	 SOC_CON10_GPIOMUT_EN_MASK		((1 << 0) << 16)
+#define GRF_SOC_CON2 0x0408
+#define SOC_CON2_I2S_ACODEC_EN (1 << 14)
+#define SOC_CON2_I2S_ACODEC_EN_MASK ((1 << 14) << 16)
+#define GRF_SOC_CON10 0x0428
+#define SOC_CON10_GPIOMUT (1 << 1)
+#define SOC_CON10_GPIOMUT_MASK ((1 << 1) << 16)
+#define SOC_CON10_GPIOMUT_EN (1 << 0)
+#define SOC_CON10_GPIOMUT_EN_MASK ((1 << 0) << 16)
 
-#define	CODEC_RESET			0x00
-#define	 RESET_DIG_CORE_RST			(1 << 1)
-#define	 RESET_SYS_RST				(1 << 0)
-#define	CODEC_DAC_INIT_CTRL1		0x0c
-#define	 DAC_INIT_CTRL1_DIRECTION_IN		(0 << 5)
-#define	 DAC_INIT_CTRL1_DIRECTION_OUT		(1 << 5)
-#define	 DAC_INIT_CTRL1_DAC_I2S_MODE_SLAVE	(0 << 4)
-#define	 DAC_INIT_CTRL1_DAC_I2S_MODE_MASTER	(1 << 4)
-#define	 DAC_INIT_CTRL1_MODE_MASK		(3 << 4)
-#define	CODEC_DAC_INIT_CTRL2		0x10
-#define	 DAC_INIT_CTRL2_DAC_VDL_16BITS		(0 << 5)
-#define	 DAC_INIT_CTRL2_DAC_VDL_20BITS		(1 << 5)
-#define	 DAC_INIT_CTRL2_DAC_VDL_24BITS		(2 << 5)
-#define	 DAC_INIT_CTRL2_DAC_VDL_32BITS		(3 << 5)
-#define	 DAC_INIT_CTRL2_DAC_VDL_MASK		(3 << 5)
-#define	 DAC_INIT_CTRL2_DAC_MODE_RJM		(0 << 3)
-#define	 DAC_INIT_CTRL2_DAC_MODE_LJM		(1 << 3)
-#define	 DAC_INIT_CTRL2_DAC_MODE_I2S		(2 << 3)
-#define	 DAC_INIT_CTRL2_DAC_MODE_PCM		(3 << 3)
-#define	 DAC_INIT_CTRL2_DAC_MODE_MASK		(3 << 3)
-#define	CODEC_DAC_INIT_CTRL3		0x14
-#define	 DAC_INIT_CTRL3_WL_16BITS		(0 << 2)
-#define	 DAC_INIT_CTRL3_WL_20BITS		(1 << 2)
-#define	 DAC_INIT_CTRL3_WL_24BITS		(2 << 2)
-#define	 DAC_INIT_CTRL3_WL_32BITS		(3 << 2)
-#define	 DAC_INIT_CTRL3_WL_MASK			(3 << 2)
-#define	 DAC_INIT_CTRL3_RST_MASK		(1 << 1)
-#define	 DAC_INIT_CTRL3_RST_DIS			(1 << 1)
-#define	 DAC_INIT_CTRL3_DAC_BCP_REVERSAL	(1 << 0)
-#define	 DAC_INIT_CTRL3_DAC_BCP_NORMAL		(0 << 0)
-#define	 DAC_INIT_CTRL3_DAC_BCP_MASK		(1 << 0)
-#define	CODEC_DAC_PRECHARGE_CTRL	0x88
-#define	 DAC_PRECHARGE_CTRL_DAC_CHARGE_PRECHARGE	(1 << 7)
-#define	 DAC_PRECHARGE_CTRL_DAC_CHARGE_CURRENT_I	(1 << 0)
-#define	 DAC_PRECHARGE_CTRL_DAC_CHARGE_CURRENT_ALL	(0x7f)
-#define	CODEC_DAC_PWR_CTRL		0x8c
-#define	 DAC_PWR_CTRL_DAC_PWR			(1 << 6)
-#define	 DAC_PWR_CTRL_DACL_PATH_REFV		(1 << 5)
-#define	 DAC_PWR_CTRL_HPOUTL_ZERO_CROSSING	(1 << 4)
-#define	 DAC_PWR_CTRL_DACR_PATH_REFV		(1 << 1)
-#define	 DAC_PWR_CTRL_HPOUTR_ZERO_CROSSING	(1 << 0)
-#define	CODEC_DAC_CLK_CTRL		0x90
-#define	 DAC_CLK_CTRL_DACL_REFV_ON		(1 << 7)
-#define	 DAC_CLK_CTRL_DACL_CLK_ON		(1 << 6)
-#define	 DAC_CLK_CTRL_DACL_ON			(1 << 5)
-#define	 DAC_CLK_CTRL_DACL_INIT_ON		(1 << 4)
-#define	 DAC_CLK_CTRL_DACR_REFV_ON		(1 << 3)
-#define	 DAC_CLK_CTRL_DACR_CLK_ON		(1 << 2)
-#define	 DAC_CLK_CTRL_DACR_ON			(1 << 1)
-#define	 DAC_CLK_CTRL_DACR_INIT_ON		(1 << 0)
-#define	CODEC_HPMIX_CTRL		0x94
-#define	 HPMIX_CTRL_HPMIXL_EN			(1 << 6)
-#define	 HPMIX_CTRL_HPMIXL_INIT_EN		(1 << 5)
-#define	 HPMIX_CTRL_HPMIXL_INIT2_EN		(1 << 4)
-#define	 HPMIX_CTRL_HPMIXR_EN			(1 << 2)
-#define	 HPMIX_CTRL_HPMIXR_INIT_EN		(1 << 1)
-#define	 HPMIX_CTRL_HPMIXR_INIT2_EN		(1 << 0)
-#define	CODEC_DAC_SELECT		0x98
-#define	 DAC_SELECT_DACL_SELECT			(1 << 4)
-#define	 DAC_SELECT_DACR_SELECT			(1 << 0)
-#define	CODEC_HPOUT_CTRL		0x9c
-#define	 HPOUT_CTRL_HPOUTL_EN			(1 << 7)
-#define	 HPOUT_CTRL_HPOUTL_INIT_EN		(1 << 6)
-#define	 HPOUT_CTRL_HPOUTL_UNMUTE		(1 << 5)
-#define	 HPOUT_CTRL_HPOUTR_EN			(1 << 4)
-#define	 HPOUT_CTRL_HPOUTR_INIT_EN		(1 << 3)
-#define	 HPOUT_CTRL_HPOUTR_UNMUTE		(1 << 2)
-#define	CODEC_HPOUTL_GAIN_CTRL		0xa0
-#define	CODEC_HPOUTR_GAIN_CTRL		0xa4
-#define	CODEC_HPOUT_POP_CTRL		0xa8
-#define	 HPOUT_POP_CTRL_HPOUTR_POP		(1 << 5)
-#define	 HPOUT_POP_CTRL_HPOUTR_POP_XCHARGE	(1 << 4)
-#define	 HPOUT_POP_CTRL_HPOUTL_POP		(1 << 1)
-#define	 HPOUT_POP_CTRL_HPOUTL_POP_XCHARGE	(1 << 0)
+#define CODEC_RESET 0x00
+#define RESET_DIG_CORE_RST (1 << 1)
+#define RESET_SYS_RST (1 << 0)
+#define CODEC_DAC_INIT_CTRL1 0x0c
+#define DAC_INIT_CTRL1_DIRECTION_IN (0 << 5)
+#define DAC_INIT_CTRL1_DIRECTION_OUT (1 << 5)
+#define DAC_INIT_CTRL1_DAC_I2S_MODE_SLAVE (0 << 4)
+#define DAC_INIT_CTRL1_DAC_I2S_MODE_MASTER (1 << 4)
+#define DAC_INIT_CTRL1_MODE_MASK (3 << 4)
+#define CODEC_DAC_INIT_CTRL2 0x10
+#define DAC_INIT_CTRL2_DAC_VDL_16BITS (0 << 5)
+#define DAC_INIT_CTRL2_DAC_VDL_20BITS (1 << 5)
+#define DAC_INIT_CTRL2_DAC_VDL_24BITS (2 << 5)
+#define DAC_INIT_CTRL2_DAC_VDL_32BITS (3 << 5)
+#define DAC_INIT_CTRL2_DAC_VDL_MASK (3 << 5)
+#define DAC_INIT_CTRL2_DAC_MODE_RJM (0 << 3)
+#define DAC_INIT_CTRL2_DAC_MODE_LJM (1 << 3)
+#define DAC_INIT_CTRL2_DAC_MODE_I2S (2 << 3)
+#define DAC_INIT_CTRL2_DAC_MODE_PCM (3 << 3)
+#define DAC_INIT_CTRL2_DAC_MODE_MASK (3 << 3)
+#define CODEC_DAC_INIT_CTRL3 0x14
+#define DAC_INIT_CTRL3_WL_16BITS (0 << 2)
+#define DAC_INIT_CTRL3_WL_20BITS (1 << 2)
+#define DAC_INIT_CTRL3_WL_24BITS (2 << 2)
+#define DAC_INIT_CTRL3_WL_32BITS (3 << 2)
+#define DAC_INIT_CTRL3_WL_MASK (3 << 2)
+#define DAC_INIT_CTRL3_RST_MASK (1 << 1)
+#define DAC_INIT_CTRL3_RST_DIS (1 << 1)
+#define DAC_INIT_CTRL3_DAC_BCP_REVERSAL (1 << 0)
+#define DAC_INIT_CTRL3_DAC_BCP_NORMAL (0 << 0)
+#define DAC_INIT_CTRL3_DAC_BCP_MASK (1 << 0)
+#define CODEC_DAC_PRECHARGE_CTRL 0x88
+#define DAC_PRECHARGE_CTRL_DAC_CHARGE_PRECHARGE (1 << 7)
+#define DAC_PRECHARGE_CTRL_DAC_CHARGE_CURRENT_I (1 << 0)
+#define DAC_PRECHARGE_CTRL_DAC_CHARGE_CURRENT_ALL (0x7f)
+#define CODEC_DAC_PWR_CTRL 0x8c
+#define DAC_PWR_CTRL_DAC_PWR (1 << 6)
+#define DAC_PWR_CTRL_DACL_PATH_REFV (1 << 5)
+#define DAC_PWR_CTRL_HPOUTL_ZERO_CROSSING (1 << 4)
+#define DAC_PWR_CTRL_DACR_PATH_REFV (1 << 1)
+#define DAC_PWR_CTRL_HPOUTR_ZERO_CROSSING (1 << 0)
+#define CODEC_DAC_CLK_CTRL 0x90
+#define DAC_CLK_CTRL_DACL_REFV_ON (1 << 7)
+#define DAC_CLK_CTRL_DACL_CLK_ON (1 << 6)
+#define DAC_CLK_CTRL_DACL_ON (1 << 5)
+#define DAC_CLK_CTRL_DACL_INIT_ON (1 << 4)
+#define DAC_CLK_CTRL_DACR_REFV_ON (1 << 3)
+#define DAC_CLK_CTRL_DACR_CLK_ON (1 << 2)
+#define DAC_CLK_CTRL_DACR_ON (1 << 1)
+#define DAC_CLK_CTRL_DACR_INIT_ON (1 << 0)
+#define CODEC_HPMIX_CTRL 0x94
+#define HPMIX_CTRL_HPMIXL_EN (1 << 6)
+#define HPMIX_CTRL_HPMIXL_INIT_EN (1 << 5)
+#define HPMIX_CTRL_HPMIXL_INIT2_EN (1 << 4)
+#define HPMIX_CTRL_HPMIXR_EN (1 << 2)
+#define HPMIX_CTRL_HPMIXR_INIT_EN (1 << 1)
+#define HPMIX_CTRL_HPMIXR_INIT2_EN (1 << 0)
+#define CODEC_DAC_SELECT 0x98
+#define DAC_SELECT_DACL_SELECT (1 << 4)
+#define DAC_SELECT_DACR_SELECT (1 << 0)
+#define CODEC_HPOUT_CTRL 0x9c
+#define HPOUT_CTRL_HPOUTL_EN (1 << 7)
+#define HPOUT_CTRL_HPOUTL_INIT_EN (1 << 6)
+#define HPOUT_CTRL_HPOUTL_UNMUTE (1 << 5)
+#define HPOUT_CTRL_HPOUTR_EN (1 << 4)
+#define HPOUT_CTRL_HPOUTR_INIT_EN (1 << 3)
+#define HPOUT_CTRL_HPOUTR_UNMUTE (1 << 2)
+#define CODEC_HPOUTL_GAIN_CTRL 0xa0
+#define CODEC_HPOUTR_GAIN_CTRL 0xa4
+#define CODEC_HPOUT_POP_CTRL 0xa8
+#define HPOUT_POP_CTRL_HPOUTR_POP (1 << 5)
+#define HPOUT_POP_CTRL_HPOUTR_POP_XCHARGE (1 << 4)
+#define HPOUT_POP_CTRL_HPOUTL_POP (1 << 1)
+#define HPOUT_POP_CTRL_HPOUTL_POP_XCHARGE (1 << 0)
 
-#define	DEFAULT_RATE			(48000 * 256)
+#define DEFAULT_RATE (48000 * 256)
 
-static struct ofw_compat_data compat_data[] = {
-	{ "rockchip,rk3328-codec",	1},
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "rockchip,rk3328-codec", 1 },
+	{ NULL, 0 } };
 
 struct rkcodec_softc {
-	device_t	dev;
-	struct resource	*res;
-	struct mtx	mtx;
-	clk_t		mclk;
-	clk_t		pclk;
-	struct syscon	*grf;
-	u_int	regaddr;	/* address for the sysctl */
+	device_t dev;
+	struct resource *res;
+	struct mtx mtx;
+	clk_t mclk;
+	clk_t pclk;
+	struct syscon *grf;
+	u_int regaddr; /* address for the sysctl */
 };
 
-#define	RKCODEC_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	RKCODEC_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	RKCODEC_READ(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	RKCODEC_WRITE(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define RKCODEC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define RKCODEC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define RKCODEC_READ(sc, reg) bus_read_4((sc)->res, (reg))
+#define RKCODEC_WRITE(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
 static int rkcodec_probe(device_t dev);
 static int rkcodec_attach(device_t dev);
@@ -182,7 +180,6 @@ rkcodec_set_power(struct rkcodec_softc *sc, bool poweron)
 	else
 		val &= ~(DAC_PRECHARGE_CTRL_DAC_CHARGE_CURRENT_ALL);
 	RKCODEC_WRITE(sc, CODEC_DAC_PRECHARGE_CTRL, val);
-
 }
 
 static void
@@ -239,8 +236,8 @@ rkcodec_attach(device_t dev)
 	}
 
 	node = ofw_bus_get_node(dev);
-	if (syscon_get_by_ofw_property(dev, node,
-	    "rockchip,grf", &sc->grf) != 0) {
+	if (syscon_get_by_ofw_property(dev, node, "rockchip,grf", &sc->grf) !=
+	    0) {
 		device_printf(dev, "cannot get rockchip,grf handle\n");
 		return (ENXIO);
 	}
@@ -293,8 +290,7 @@ rkcodec_attach(device_t dev)
 	RKCODEC_WRITE(sc, CODEC_DAC_PWR_CTRL, val);
 	DELAY(1000);
 
-	val |= DAC_PWR_CTRL_DACL_PATH_REFV |
-	    DAC_PWR_CTRL_DACR_PATH_REFV;
+	val |= DAC_PWR_CTRL_DACL_PATH_REFV | DAC_PWR_CTRL_DACR_PATH_REFV;
 	RKCODEC_WRITE(sc, CODEC_DAC_PWR_CTRL, val);
 	DELAY(1000);
 
@@ -305,7 +301,8 @@ rkcodec_attach(device_t dev)
 
 	val = RKCODEC_READ(sc, CODEC_HPOUT_POP_CTRL);
 	val |= HPOUT_POP_CTRL_HPOUTR_POP | HPOUT_POP_CTRL_HPOUTL_POP;
-	val &= ~(HPOUT_POP_CTRL_HPOUTR_POP_XCHARGE | HPOUT_POP_CTRL_HPOUTL_POP_XCHARGE);
+	val &= ~(HPOUT_POP_CTRL_HPOUTR_POP_XCHARGE |
+	    HPOUT_POP_CTRL_HPOUTL_POP_XCHARGE);
 	RKCODEC_WRITE(sc, CODEC_HPOUT_POP_CTRL, val);
 	DELAY(1000);
 
@@ -413,7 +410,8 @@ rkcodec_mixer_reinit(struct snd_mixer *m)
 }
 
 static int
-rkcodec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
+rkcodec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left,
+    unsigned right)
 {
 	struct rkcodec_softc *sc;
 	struct mtx *mixer_lock;
@@ -432,7 +430,7 @@ rkcodec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned rig
 	right = left;
 
 	RKCODEC_LOCK(sc);
-	switch(dev) {
+	switch (dev) {
 	case SOUND_MIXER_VOLUME:
 		break;
 
@@ -457,14 +455,12 @@ rkcodec_mixer_setrecsrc(struct snd_mixer *m, unsigned src)
 	return (0);
 }
 
-static kobj_method_t rkcodec_mixer_methods[] = {
-	KOBJMETHOD(mixer_init,		rkcodec_mixer_init),
-	KOBJMETHOD(mixer_uninit,	rkcodec_mixer_uninit),
-	KOBJMETHOD(mixer_reinit,	rkcodec_mixer_reinit),
-	KOBJMETHOD(mixer_set,		rkcodec_mixer_set),
-	KOBJMETHOD(mixer_setrecsrc,	rkcodec_mixer_setrecsrc),
-	KOBJMETHOD_END
-};
+static kobj_method_t rkcodec_mixer_methods[] = { KOBJMETHOD(mixer_init,
+						     rkcodec_mixer_init),
+	KOBJMETHOD(mixer_uninit, rkcodec_mixer_uninit),
+	KOBJMETHOD(mixer_reinit, rkcodec_mixer_reinit),
+	KOBJMETHOD(mixer_set, rkcodec_mixer_set),
+	KOBJMETHOD(mixer_setrecsrc, rkcodec_mixer_setrecsrc), KOBJMETHOD_END };
 
 MIXER_DECLARE(rkcodec_mixer);
 
@@ -570,13 +566,13 @@ rkcodec_dai_setup_mixer(device_t dev, device_t pcmdev)
 
 static device_method_t rkcodec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rkcodec_probe),
-	DEVMETHOD(device_attach,	rkcodec_attach),
-	DEVMETHOD(device_detach,	rkcodec_detach),
+	DEVMETHOD(device_probe, rkcodec_probe),
+	DEVMETHOD(device_attach, rkcodec_attach),
+	DEVMETHOD(device_detach, rkcodec_detach),
 
-	DEVMETHOD(audio_dai_init,	rkcodec_dai_init),
-	DEVMETHOD(audio_dai_setup_mixer,	rkcodec_dai_setup_mixer),
-	DEVMETHOD(audio_dai_trigger,	rkcodec_dai_trigger),
+	DEVMETHOD(audio_dai_init, rkcodec_dai_init),
+	DEVMETHOD(audio_dai_setup_mixer, rkcodec_dai_setup_mixer),
+	DEVMETHOD(audio_dai_trigger, rkcodec_dai_trigger),
 
 	DEVMETHOD_END
 };

@@ -11,7 +11,7 @@
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice(s), this list of conditions and the following disclaimer as
- *    the first lines of this file unmodified other than the possible 
+ *    the first lines of this file unmodified other than the possible
  *    addition of one or more copyright notices.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice(s), this list of conditions and the following disclaimer in the
@@ -33,9 +33,9 @@
 #ifndef _SYS_KSE_H_
 #define _SYS_KSE_H_
 
-#include <sys/ucontext.h>
-#include <sys/time.h>
 #include <sys/signal.h>
+#include <sys/time.h>
+#include <sys/ucontext.h>
 
 /*
  * This file defines the structures needed for communication between
@@ -45,7 +45,7 @@
  */
 struct kse_mailbox;
 
-typedef void	kse_func_t(struct kse_mailbox *);
+typedef void kse_func_t(struct kse_mailbox *);
 
 /*
  * Thread mailbox.
@@ -53,16 +53,16 @@ typedef void	kse_func_t(struct kse_mailbox *);
  * This describes a user thread to the kernel scheduler.
  */
 struct kse_thr_mailbox {
-	ucontext_t		tm_context;	/* User and machine context */
-	uint32_t		tm_flags;	/* Thread flags */
-	struct kse_thr_mailbox	*tm_next;	/* Next thread in list */
-	void			*tm_udata;	/* For use by the UTS */
-	uint32_t		tm_uticks;	/* Time in userland */
-	uint32_t		tm_sticks;	/* Time in kernel */
-	siginfo_t		tm_syncsig;
-	uint32_t		tm_dflags;	/* Debug flags */
-	lwpid_t			tm_lwp;		/* kernel thread UTS runs on */
-	uint32_t		__spare__[6];
+	ucontext_t tm_context;		 /* User and machine context */
+	uint32_t tm_flags;		 /* Thread flags */
+	struct kse_thr_mailbox *tm_next; /* Next thread in list */
+	void *tm_udata;			 /* For use by the UTS */
+	uint32_t tm_uticks;		 /* Time in userland */
+	uint32_t tm_sticks;		 /* Time in kernel */
+	siginfo_t tm_syncsig;
+	uint32_t tm_dflags; /* Debug flags */
+	lwpid_t tm_lwp;	    /* kernel thread UTS runs on */
+	uint32_t __spare__[6];
 };
 
 /*
@@ -72,64 +72,64 @@ struct kse_thr_mailbox {
  * a single KSE.
  */
 struct kse_mailbox {
-	uint32_t		km_version;	/* Mailbox version */
-	struct kse_thr_mailbox	*km_curthread;	/* Currently running thread */
-	struct kse_thr_mailbox	*km_completed;	/* Threads back from kernel */
-	sigset_t		km_sigscaught;	/* Caught signals */
-	uint32_t		km_flags;	/* Mailbox flags */
-	kse_func_t		*km_func;	/* UTS function */
-	stack_t			km_stack;	/* UTS stack */
-	void			*km_udata;	/* For use by the UTS */
-	struct timespec		km_timeofday;	/* Time of day */
-	uint32_t		km_quantum;	/* Upcall quantum in msecs */
-	lwpid_t			km_lwp;		/* kernel thread UTS runs on */
-	uint32_t		__spare2__[7];
+	uint32_t km_version;		      /* Mailbox version */
+	struct kse_thr_mailbox *km_curthread; /* Currently running thread */
+	struct kse_thr_mailbox *km_completed; /* Threads back from kernel */
+	sigset_t km_sigscaught;		      /* Caught signals */
+	uint32_t km_flags;		      /* Mailbox flags */
+	kse_func_t *km_func;		      /* UTS function */
+	stack_t km_stack;		      /* UTS stack */
+	void *km_udata;			      /* For use by the UTS */
+	struct timespec km_timeofday;	      /* Time of day */
+	uint32_t km_quantum;		      /* Upcall quantum in msecs */
+	lwpid_t km_lwp;			      /* kernel thread UTS runs on */
+	uint32_t __spare2__[7];
 };
 
-#define KSE_VER_0		0
-#define KSE_VERSION		KSE_VER_0
+#define KSE_VER_0 0
+#define KSE_VERSION KSE_VER_0
 
 /* These flags are kept in km_flags */
-#define KMF_NOUPCALL		0x01
-#define KMF_NOCOMPLETED		0x02
-#define KMF_DONE		0x04
-#define KMF_BOUND		0x08
-#define KMF_WAITSIGEVENT	0x10
+#define KMF_NOUPCALL 0x01
+#define KMF_NOCOMPLETED 0x02
+#define KMF_DONE 0x04
+#define KMF_BOUND 0x08
+#define KMF_WAITSIGEVENT 0x10
 
 /* These flags are kept in tm_flags */
-#define TMF_NOUPCALL		0x01
+#define TMF_NOUPCALL 0x01
 
 /* These flags are kept in tm_dlfags */
-#define TMDF_SSTEP		0x01
-#define TMDF_SUSPEND		0x02
+#define TMDF_SSTEP 0x01
+#define TMDF_SUSPEND 0x02
 
 /* Flags for kse_switchin */
-#define KSE_SWITCHIN_SETTMBX	0x01
+#define KSE_SWITCHIN_SETTMBX 0x01
 
 /* Commands for kse_thr_interrupt */
-#define KSE_INTR_INTERRUPT	1
-#define KSE_INTR_RESTART	2
-#define KSE_INTR_SENDSIG	3
-#define KSE_INTR_SIGEXIT	4
-#define KSE_INTR_DBSUSPEND	5
-#define KSE_INTR_EXECVE		6
+#define KSE_INTR_INTERRUPT 1
+#define KSE_INTR_RESTART 2
+#define KSE_INTR_SENDSIG 3
+#define KSE_INTR_SIGEXIT 4
+#define KSE_INTR_DBSUSPEND 5
+#define KSE_INTR_EXECVE 6
 
 struct kse_execve_args {
-	sigset_t	sigmask;
-	sigset_t	sigpend;
-	char		*path;
-	char		**argv;
-	char		**envp;
-	void		*reserved;
+	sigset_t sigmask;
+	sigset_t sigpend;
+	char *path;
+	char **argv;
+	char **envp;
+	void *reserved;
 };
 
 #ifndef _KERNEL
-int	kse_create(struct kse_mailbox *, int);
-int	kse_exit(void);
-int	kse_release(struct timespec *);
-int	kse_thr_interrupt(struct kse_thr_mailbox *, int, long);
-int	kse_wakeup(struct kse_mailbox *);
-int	kse_switchin(struct kse_thr_mailbox *, int flags);
-#endif	/* !_KERNEL */
+int kse_create(struct kse_mailbox *, int);
+int kse_exit(void);
+int kse_release(struct timespec *);
+int kse_thr_interrupt(struct kse_thr_mailbox *, int, long);
+int kse_wakeup(struct kse_mailbox *);
+int kse_switchin(struct kse_thr_mailbox *, int flags);
+#endif /* !_KERNEL */
 
-#endif	/* !_SYS_KSE_H_ */
+#endif /* !_SYS_KSE_H_ */

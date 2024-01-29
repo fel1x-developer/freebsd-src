@@ -43,78 +43,55 @@
  */
 
 #ifdef __linux__
-#include "aic7xxx_osm.h"
-#include "aic7xxx_inline.h"
 #include "aic7xxx_93cx6.h"
+#include "aic7xxx_inline.h"
+#include "aic7xxx_osm.h"
 #else
 #include <sys/cdefs.h>
-#include <dev/aic7xxx/aic7xxx_osm.h>
-#include <dev/aic7xxx/aic7xxx_inline.h>
+
 #include <dev/aic7xxx/aic7xxx_93cx6.h>
+#include <dev/aic7xxx/aic7xxx_inline.h>
+#include <dev/aic7xxx/aic7xxx_osm.h>
 #endif
 
-#define ID_AIC7770	0x04907770
-#define ID_AHA_274x	0x04907771
-#define ID_AHA_284xB	0x04907756 /* BIOS enabled */
-#define ID_AHA_284x	0x04907757 /* BIOS disabled*/
-#define	ID_OLV_274x	0x04907782 /* Olivetti OEM */
-#define	ID_OLV_274xD	0x04907783 /* Olivetti OEM (Differential) */
+#define ID_AIC7770 0x04907770
+#define ID_AHA_274x 0x04907771
+#define ID_AHA_284xB 0x04907756 /* BIOS enabled */
+#define ID_AHA_284x 0x04907757	/* BIOS disabled*/
+#define ID_OLV_274x 0x04907782	/* Olivetti OEM */
+#define ID_OLV_274xD 0x04907783 /* Olivetti OEM (Differential) */
 
 static int aic7770_chip_init(struct ahc_softc *ahc);
 static int aic7770_suspend(struct ahc_softc *ahc);
 static int aic7770_resume(struct ahc_softc *ahc);
 static int aha2840_load_seeprom(struct ahc_softc *ahc);
 static ahc_device_setup_t ahc_aic7770_VL_setup;
-static ahc_device_setup_t ahc_aic7770_EISA_setup;	/* Really just ISA */
+static ahc_device_setup_t ahc_aic7770_EISA_setup; /* Really just ISA */
 static ahc_device_setup_t ahc_aic7770_setup;
 
-struct aic7770_identity aic7770_ident_table[] =
-{
-	{
-		ID_AHA_274x,
-		0xFFFFFFFF,
-		"Adaptec 274X SCSI adapter",
-		ahc_aic7770_EISA_setup
-	},
-	{
-		ID_AHA_284xB,
-		0xFFFFFFFE,
-		"Adaptec 284X SCSI adapter",
-		ahc_aic7770_VL_setup
-	},
-	{
-		ID_AHA_284x,
-		0xFFFFFFFE,
-		"Adaptec 284X SCSI adapter (BIOS Disabled)",
-		ahc_aic7770_VL_setup
-	},
-	{
-		ID_OLV_274x,
-		0xFFFFFFFF,
-		"Adaptec (Olivetti OEM) 274X SCSI adapter",
-		ahc_aic7770_EISA_setup
-	},
-	{
-		ID_OLV_274xD,
-		0xFFFFFFFF,
-		"Adaptec (Olivetti OEM) 274X Differential SCSI adapter",
-		ahc_aic7770_EISA_setup
-	},
+struct aic7770_identity aic7770_ident_table[] = {
+	{ ID_AHA_274x, 0xFFFFFFFF, "Adaptec 274X SCSI adapter",
+	    ahc_aic7770_EISA_setup },
+	{ ID_AHA_284xB, 0xFFFFFFFE, "Adaptec 284X SCSI adapter",
+	    ahc_aic7770_VL_setup },
+	{ ID_AHA_284x, 0xFFFFFFFE, "Adaptec 284X SCSI adapter (BIOS Disabled)",
+	    ahc_aic7770_VL_setup },
+	{ ID_OLV_274x, 0xFFFFFFFF, "Adaptec (Olivetti OEM) 274X SCSI adapter",
+	    ahc_aic7770_EISA_setup },
+	{ ID_OLV_274xD, 0xFFFFFFFF,
+	    "Adaptec (Olivetti OEM) 274X Differential SCSI adapter",
+	    ahc_aic7770_EISA_setup },
 	/* Generic chip probes for devices we don't know 'exactly' */
-	{
-		ID_AIC7770,
-		0xFFFFFFFF,
-		"Adaptec aic7770 SCSI adapter",
-		ahc_aic7770_EISA_setup
-	}
+	{ ID_AIC7770, 0xFFFFFFFF, "Adaptec aic7770 SCSI adapter",
+	    ahc_aic7770_EISA_setup }
 };
 const int ahc_num_aic7770_devs = NUM_ELEMENTS(aic7770_ident_table);
 
 struct aic7770_identity *
 aic7770_find_device(uint32_t id)
 {
-	struct	aic7770_identity *entry;
-	int	i;
+	struct aic7770_identity *entry;
+	int i;
 
 	for (i = 0; i < ahc_num_aic7770_devs; i++) {
 		entry = &aic7770_ident_table[i];
@@ -127,11 +104,11 @@ aic7770_find_device(uint32_t id)
 int
 aic7770_config(struct ahc_softc *ahc, struct aic7770_identity *entry, u_int io)
 {
-	int	error;
-	int	have_seeprom;
-	u_int	hostconf;
-	u_int   irq;
-	u_int	intdef;
+	int error;
+	int have_seeprom;
+	u_int hostconf;
+	u_int irq;
+	u_int intdef;
 
 	error = entry->setup(ahc);
 	have_seeprom = 0;
@@ -159,7 +136,7 @@ aic7770_config(struct ahc_softc *ahc, struct aic7770_identity *entry, u_int io)
 	ahc->bus_suspend = aic7770_suspend;
 	ahc->bus_resume = aic7770_resume;
 
-	error = ahc_reset(ahc, /*reinit*/FALSE);
+	error = ahc_reset(ahc, /*reinit*/ FALSE);
 	if (error != 0)
 		return (error);
 
@@ -182,9 +159,8 @@ aic7770_config(struct ahc_softc *ahc, struct aic7770_identity *entry, u_int io)
 	if ((intdef & EDGE_TRIG) != 0)
 		ahc->flags |= AHC_EDGE_INTERRUPT;
 
-	switch (ahc->chip & (AHC_EISA|AHC_VL)) {
-	case AHC_EISA:
-	{
+	switch (ahc->chip & (AHC_EISA | AHC_VL)) {
+	case AHC_EISA: {
 		u_int biosctrl;
 		u_int scsiconf;
 		u_int scsiconf1;
@@ -214,11 +190,11 @@ aic7770_config(struct ahc_softc *ahc, struct aic7770_identity *entry, u_int io)
 			}
 		}
 		if ((ahc_inb(ahc, HA_274_BIOSGLOBAL) & HA_274_EXTENDED_TRANS))
-			ahc->flags |= AHC_EXTENDED_TRANS_A|AHC_EXTENDED_TRANS_B;
+			ahc->flags |= AHC_EXTENDED_TRANS_A |
+			    AHC_EXTENDED_TRANS_B;
 		break;
 	}
-	case AHC_VL:
-	{
+	case AHC_VL: {
 		have_seeprom = aha2840_load_seeprom(ahc);
 		break;
 	}
@@ -298,15 +274,15 @@ aic7770_resume(struct ahc_softc *ahc)
 static int
 aha2840_load_seeprom(struct ahc_softc *ahc)
 {
-	struct	seeprom_descriptor sd;
-	struct	seeprom_config *sc;
-	int	have_seeprom;
+	struct seeprom_descriptor sd;
+	struct seeprom_config *sc;
+	int have_seeprom;
 	uint8_t scsi_conf;
 
 	sd.sd_ahc = ahc;
 	sd.sd_control_offset = SEECTL_2840;
 	sd.sd_status_offset = STATUS_2840;
-	sd.sd_dataout_offset = STATUS_2840;		
+	sd.sd_dataout_offset = STATUS_2840;
 	sd.sd_chip = C46;
 	sd.sd_MS = 0;
 	sd.sd_RDY = EEPROM_TF;
@@ -319,12 +295,12 @@ aha2840_load_seeprom(struct ahc_softc *ahc)
 	if (bootverbose)
 		printf("%s: Reading SEEPROM...", ahc_name(ahc));
 	have_seeprom = ahc_read_seeprom(&sd, (uint16_t *)sc,
-					/*start_addr*/0, sizeof(*sc)/2);
+	    /*start_addr*/ 0, sizeof(*sc) / 2);
 
 	if (have_seeprom) {
 		if (ahc_verify_cksum(sc) == 0) {
-			if(bootverbose)
-				printf ("checksum error\n");
+			if (bootverbose)
+				printf("checksum error\n");
 			have_seeprom = 0;
 		} else if (bootverbose) {
 			printf("done.\n");
@@ -340,13 +316,13 @@ aha2840_load_seeprom(struct ahc_softc *ahc)
 		 * Put the data we've collected down into SRAM
 		 * where ahc_init will find it.
 		 */
-		int	 i;
-		int	 max_targ;
+		int i;
+		int max_targ;
 		uint16_t discenable;
 
 		max_targ = (ahc->features & AHC_WIDE) != 0 ? 16 : 8;
 		discenable = 0;
-		for (i = 0; i < max_targ; i++){
+		for (i = 0; i < max_targ; i++) {
 			uint8_t target_settings;
 
 			target_settings = (sc->device_flags[i] & CFXFER) << 4;
@@ -369,7 +345,7 @@ aha2840_load_seeprom(struct ahc_softc *ahc)
 		if (sc->adapter_control & CFRESETB)
 			scsi_conf |= RESET_SCSI;
 
-		if (sc->bios_control & CF284XEXTEND)		
+		if (sc->bios_control & CF284XEXTEND)
 			ahc->flags |= AHC_EXTENDED_TRANS_A;
 		/* Set SCSICONF info */
 		ahc_outb(ahc, SCSICONF, scsi_conf);

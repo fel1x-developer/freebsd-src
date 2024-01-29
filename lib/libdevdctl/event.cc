@@ -37,9 +37,9 @@
  * received via the devdctl API.
  */
 #include <sys/cdefs.h>
+#include <sys/param.h>
 #include <sys/disk.h>
 #include <sys/filio.h>
-#include <sys/param.h>
 #include <sys/stat.h>
 
 #include <err.h>
@@ -50,6 +50,11 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "event.h"
+#include "event_factory.h"
+#include "exception.h"
+#include "guid.h"
+
 #include <cstdarg>
 #include <cstring>
 #include <iostream>
@@ -57,11 +62,6 @@
 #include <map>
 #include <sstream>
 #include <string>
-
-#include "guid.h"
-#include "event.h"
-#include "event_factory.h"
-#include "exception.h"
 /*================================== Macros ==================================*/
 #define NUM_ELEMENTS(x) (sizeof(x) / sizeof(*x))
 
@@ -71,26 +71,20 @@ using std::endl;
 using std::string;
 using std::stringstream;
 
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Class Implementations ==========================*/
 /*----------------------------------- Event ----------------------------------*/
 //- Event Static Protected Data ------------------------------------------------
 const string Event::s_theEmptyString;
 
-Event::EventTypeRecord Event::s_typeTable[] =
-{
-	{ Event::NOTIFY,  "Notify" },
-	{ Event::NOMATCH, "No Driver Match" },
-	{ Event::ATTACH,  "Attach" },
-	{ Event::DETACH,  "Detach" }
-};
+Event::EventTypeRecord Event::s_typeTable[] = { { Event::NOTIFY, "Notify" },
+	{ Event::NOMATCH, "No Driver Match" }, { Event::ATTACH, "Attach" },
+	{ Event::DETACH, "Detach" } };
 
 //- Event Static Public Methods ------------------------------------------------
 Event *
-Event::Builder(Event::Type type, NVPairMap &nvPairs,
-	       const string &eventString)
+Event::Builder(Event::Type type, NVPairMap &nvPairs, const string &eventString)
 {
 	return (new Event(type, nvPairs, eventString));
 }
@@ -99,7 +93,7 @@ Event *
 Event::CreateEvent(const EventFactory &factory, const string &eventString)
 {
 	NVPairMap &nvpairs(*new NVPairMap);
-	Type       type(static_cast<Event::Type>(eventString[0]));
+	Type type(static_cast<Event::Type>(eventString[0]));
 
 	try {
 		ParseEventString(type, eventString, nvpairs);
@@ -131,15 +125,11 @@ bool
 Event::IsDiskDev() const
 {
 	const int numDrivers = 2;
-	static const char *diskDevNames[numDrivers] =
-	{
-		"da",
-		"ada"
-	};
+	static const char *diskDevNames[numDrivers] = { "da", "ada" };
 	const char **dName;
 	string devName;
 
-	if (! DevName(devName))
+	if (!DevName(devName))
 		return false;
 
 	size_t find_start = devName.rfind('/');
@@ -150,15 +140,15 @@ Event::IsDiskDev() const
 		find_start++;
 	}
 
-	for (dName = &diskDevNames[0];
-	     dName <= &diskDevNames[numDrivers - 1]; dName++) {
+	for (dName = &diskDevNames[0]; dName <= &diskDevNames[numDrivers - 1];
+	     dName++) {
 
 		size_t loc(devName.find(*dName, find_start));
 		if (loc == find_start) {
 			size_t prefixLen(strlen(*dName));
 
-			if (devName.length() - find_start >= prefixLen
-			 && isdigit(devName[find_start + prefixLen]))
+			if (devName.length() - find_start >= prefixLen &&
+			    isdigit(devName[find_start + prefixLen]))
 				return (true);
 		}
 	}
@@ -206,8 +196,7 @@ Event::ToString() const
 		result << devName->second << ": ";
 
 	NVPairMap::const_iterator systemName(m_nvPairs.find("system"));
-	if (systemName != m_nvPairs.end()
-	 && systemName->second != "none")
+	if (systemName != m_nvPairs.end() && systemName->second != "none")
 		result << systemName->second << ": ";
 
 	result << TypeToString(GetType()) << ' ';
@@ -217,8 +206,7 @@ Event::ToString() const
 		if (curVar == devName || curVar == systemName)
 			continue;
 
-		result << ' '
-		     << curVar->first << "=" << curVar->second;
+		result << ' ' << curVar->first << "=" << curVar->second;
 	}
 	result << endl;
 
@@ -263,7 +251,7 @@ Event::GetTimestamp() const
 
 	if (!Contains("timestamp")) {
 		throw Exception("Event contains no timestamp: %s",
-				m_eventString.c_str());
+		    m_eventString.c_str());
 	}
 	strptime(Value(string("timestamp")).c_str(), "%s", &tm_timestamp);
 	tv_timestamp.tv_sec = mktime(&tm_timestamp);
@@ -309,7 +297,7 @@ Event::PhysicalPath(std::string &path) const
 	int devFd(open(devPath.c_str(), O_RDONLY));
 	if (devFd == -1)
 		return (false);
-	
+
 	char physPath[MAXPATHLEN];
 	physPath[0] = '\0';
 	bool result(ioctl(devFd, DIOCGPHYSPATH, physPath) == 0);
@@ -321,23 +309,22 @@ Event::PhysicalPath(std::string &path) const
 
 //- Event Protected Methods ----------------------------------------------------
 Event::Event(Type type, NVPairMap &map, const string &eventString)
- : m_type(type),
-   m_nvPairs(map),
-   m_eventString(eventString)
+    : m_type(type)
+    , m_nvPairs(map)
+    , m_eventString(eventString)
 {
 }
 
 Event::Event(const Event &src)
- : m_type(src.m_type),
-   m_nvPairs(*new NVPairMap(src.m_nvPairs)),
-   m_eventString(src.m_eventString)
+    : m_type(src.m_type)
+    , m_nvPairs(*new NVPairMap(src.m_nvPairs))
+    , m_eventString(src.m_eventString)
 {
 }
 
 void
-Event::ParseEventString(Event::Type type,
-			      const string &eventString,
-			      NVPairMap& nvpairs)
+Event::ParseEventString(Event::Type type, const string &eventString,
+    NVPairMap &nvpairs)
 {
 	size_t start;
 	size_t end;
@@ -361,14 +348,14 @@ Event::ParseEventString(Event::Type type,
 		end = eventString.find_first_of(" \t\n", start);
 		if (end == string::npos)
 			throw ParseException(ParseException::INVALID_FORMAT,
-					     eventString, start);
+			    eventString, start);
 
 		nvpairs["device-name"] = eventString.substr(start, end - start);
 
 		start = eventString.find(" on ", end);
 		if (end == string::npos)
 			throw ParseException(ParseException::INVALID_FORMAT,
-					     eventString, start);
+			    eventString, start);
 		start += 4;
 		end = eventString.find_first_of(" \t\n", start);
 		nvpairs["parent"] = eventString.substr(start, end);
@@ -377,10 +364,10 @@ Event::ParseEventString(Event::Type type,
 		break;
 	case NOMATCH:
 		throw ParseException(ParseException::DISCARDED_EVENT_TYPE,
-				     eventString);
+		    eventString);
 	default:
 		throw ParseException(ParseException::UNKNOWN_EVENT_TYPE,
-				     eventString);
+		    eventString);
 	}
 
 	/* Process common "key=value" format. */
@@ -400,7 +387,7 @@ Event::ParseEventString(Event::Type type,
 		start = eventString.find_last_of("! \t\n", end);
 		if (start == string::npos)
 			throw ParseException(ParseException::INVALID_FORMAT,
-					     eventString, end);
+			    eventString, end);
 		start++;
 		string key(eventString.substr(start, end - start));
 
@@ -411,7 +398,7 @@ Event::ParseEventString(Event::Type type,
 		start = end + 1;
 		if (start >= eventString.length())
 			throw ParseException(ParseException::INVALID_FORMAT,
-					     eventString, end);
+			    eventString, end);
 		end = eventString.find_first_of(" \t\n", start);
 		if (end == string::npos)
 			end = eventString.length() - 1;
@@ -430,7 +417,8 @@ Event::TimestampEventString(std::string &eventString)
 		 * not already present.
 		 */
 		if (eventString.find(" timestamp=") == string::npos) {
-			const size_t bufsize = 32;	// Long enough for a 64-bit int
+			const size_t bufsize =
+			    32; // Long enough for a 64-bit int
 			timeval now;
 			char timebuf[bufsize];
 
@@ -438,7 +426,7 @@ Event::TimestampEventString(std::string &eventString)
 			if (gettimeofday(&now, NULL) != 0)
 				err(1, "gettimeofday");
 			snprintf(timebuf, bufsize, " timestamp=%" PRId64,
-				(int64_t) now.tv_sec);
+			    (int64_t)now.tv_sec);
 			eventString.insert(eventEnd, timebuf);
 		}
 	}
@@ -448,7 +436,7 @@ Event::TimestampEventString(std::string &eventString)
 //- DevfsEvent Static Public Methods -------------------------------------------
 Event *
 DevfsEvent::Builder(Event::Type type, NVPairMap &nvPairs,
-		    const string &eventString)
+    const string &eventString)
 {
 	return (new DevfsEvent(type, nvPairs, eventString));
 }
@@ -515,13 +503,13 @@ DevfsEvent::DevName(std::string &name) const
 
 //- DevfsEvent Protected Methods -----------------------------------------------
 DevfsEvent::DevfsEvent(Event::Type type, NVPairMap &nvpairs,
-		       const string &eventString)
- : Event(type, nvpairs, eventString)
+    const string &eventString)
+    : Event(type, nvpairs, eventString)
 {
 }
 
 DevfsEvent::DevfsEvent(const DevfsEvent &src)
- : Event(src)
+    : Event(src)
 {
 }
 
@@ -529,7 +517,7 @@ DevfsEvent::DevfsEvent(const DevfsEvent &src)
 //- GeomEvent Static Public Methods --------------------------------------------
 Event *
 GeomEvent::Builder(Event::Type type, NVPairMap &nvpairs,
-		   const string &eventString)
+    const string &eventString)
 {
 	return (new GeomEvent(type, nvpairs, eventString));
 }
@@ -551,18 +539,17 @@ GeomEvent::DevName(std::string &name) const
 	return (!name.empty());
 }
 
-
 //- GeomEvent Protected Methods ------------------------------------------------
 GeomEvent::GeomEvent(Event::Type type, NVPairMap &nvpairs,
-		     const string &eventString)
- : Event(type, nvpairs, eventString),
-   m_devname(Value("devname"))
+    const string &eventString)
+    : Event(type, nvpairs, eventString)
+    , m_devname(Value("devname"))
 {
 }
 
 GeomEvent::GeomEvent(const GeomEvent &src)
- : Event(src),
-   m_devname(src.m_devname)
+    : Event(src)
+    , m_devname(src.m_devname)
 {
 }
 
@@ -570,7 +557,7 @@ GeomEvent::GeomEvent(const GeomEvent &src)
 //- ZfsEvent Static Public Methods ---------------------------------------------
 Event *
 ZfsEvent::Builder(Event::Type type, NVPairMap &nvpairs,
-		  const string &eventString)
+    const string &eventString)
 {
 	return (new ZfsEvent(type, nvpairs, eventString));
 }
@@ -590,17 +577,17 @@ ZfsEvent::DevName(std::string &name) const
 
 //- ZfsEvent Protected Methods -------------------------------------------------
 ZfsEvent::ZfsEvent(Event::Type type, NVPairMap &nvpairs,
-		   const string &eventString)
- : Event(type, nvpairs, eventString),
-   m_poolGUID(Guid(Value("pool_guid"))),
-   m_vdevGUID(Guid(Value("vdev_guid")))
+    const string &eventString)
+    : Event(type, nvpairs, eventString)
+    , m_poolGUID(Guid(Value("pool_guid")))
+    , m_vdevGUID(Guid(Value("vdev_guid")))
 {
 }
 
 ZfsEvent::ZfsEvent(const ZfsEvent &src)
- : Event(src),
-   m_poolGUID(src.m_poolGUID),
-   m_vdevGUID(src.m_vdevGUID)
+    : Event(src)
+    , m_poolGUID(src.m_poolGUID)
+    , m_vdevGUID(src.m_vdevGUID)
 {
 }
 

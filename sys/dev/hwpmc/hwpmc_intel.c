@@ -31,9 +31,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 #include <machine/cputypes.h>
@@ -43,16 +43,16 @@
 static int
 intel_switch_in(struct pmc_cpu *pc, struct pmc_process *pp)
 {
-	(void) pc;
+	(void)pc;
 
-	PMCDBG3(MDP,SWI,1, "pc=%p pp=%p enable-msr=%d", pc, pp,
+	PMCDBG3(MDP, SWI, 1, "pc=%p pp=%p enable-msr=%d", pc, pp,
 	    pp->pp_flags & PMC_PP_ENABLE_MSR_ACCESS);
 
 	/* allow the RDPMC instruction if needed */
 	if (pp->pp_flags & PMC_PP_ENABLE_MSR_ACCESS)
 		load_cr4(rcr4() | CR4_PCE);
 
-	PMCDBG1(MDP,SWI,1, "cr4=0x%jx", (uintmax_t) rcr4());
+	PMCDBG1(MDP, SWI, 1, "cr4=0x%jx", (uintmax_t)rcr4());
 
 	return 0;
 }
@@ -60,11 +60,11 @@ intel_switch_in(struct pmc_cpu *pc, struct pmc_process *pp)
 static int
 intel_switch_out(struct pmc_cpu *pc, struct pmc_process *pp)
 {
-	(void) pc;
-	(void) pp;		/* can be NULL */
+	(void)pc;
+	(void)pp; /* can be NULL */
 
-	PMCDBG3(MDP,SWO,1, "pc=%p pp=%p cr4=0x%jx", pc, pp,
-	    (uintmax_t) rcr4());
+	PMCDBG3(MDP, SWO, 1, "pc=%p pp=%p cr4=0x%jx", pc, pp,
+	    (uintmax_t)rcr4());
 
 	/* always turn off the RDPMC instruction */
 	load_cr4(rcr4() & ~CR4_PCE);
@@ -82,7 +82,7 @@ pmc_intel_initialize(void)
 	KASSERT(cpu_vendor_id == CPU_VENDOR_INTEL,
 	    ("[intel,%d] Initializing non-intel processor", __LINE__));
 
-	PMCDBG1(MDP,INI,0, "intel-initialize cpuid=0x%x", cpu_id);
+	PMCDBG1(MDP, INI, 0, "intel-initialize cpuid=0x%x", cpu_id);
 
 	cputype = -1;
 	nclasses = 2;
@@ -116,14 +116,14 @@ pmc_intel_initialize(void)
 			nclasses = 3;
 			break;
 		case 0x1A:
-		case 0x1E:	/*
-				 * Per Intel document 253669-032 9/2009,
-				 * pages A-2 and A-57
-				 */
-		case 0x1F:	/*
-				 * Per Intel document 253669-032 9/2009,
-				 * pages A-2 and A-57
-				 */
+		case 0x1E: /*
+			    * Per Intel document 253669-032 9/2009,
+			    * pages A-2 and A-57
+			    */
+		case 0x1F: /*
+			    * Per Intel document 253669-032 9/2009,
+			    * pages A-2 and A-57
+			    */
 			cputype = PMC_CPU_INTEL_COREI7;
 			nclasses = 5;
 			break;
@@ -131,28 +131,28 @@ pmc_intel_initialize(void)
 			cputype = PMC_CPU_INTEL_NEHALEM_EX;
 			nclasses = 3;
 			break;
-		case 0x25:	/* Per Intel document 253669-033US 12/2009. */
-		case 0x2C:	/* Per Intel document 253669-033US 12/2009. */
+		case 0x25: /* Per Intel document 253669-033US 12/2009. */
+		case 0x2C: /* Per Intel document 253669-033US 12/2009. */
 			cputype = PMC_CPU_INTEL_WESTMERE;
 			nclasses = 5;
 			break;
-		case 0x2F:	/* Westmere-EX, seen in wild */
+		case 0x2F: /* Westmere-EX, seen in wild */
 			cputype = PMC_CPU_INTEL_WESTMERE_EX;
 			nclasses = 3;
 			break;
-		case 0x2A:	/* Per Intel document 253669-039US 05/2011. */
+		case 0x2A: /* Per Intel document 253669-039US 05/2011. */
 			cputype = PMC_CPU_INTEL_SANDYBRIDGE;
 			nclasses = 3;
 			break;
-		case 0x2D:	/* Per Intel document 253669-044US 08/2012. */
+		case 0x2D: /* Per Intel document 253669-044US 08/2012. */
 			cputype = PMC_CPU_INTEL_SANDYBRIDGE_XEON;
 			nclasses = 3;
 			break;
-		case 0x3A:	/* Per Intel document 253669-043US 05/2012. */
+		case 0x3A: /* Per Intel document 253669-043US 05/2012. */
 			cputype = PMC_CPU_INTEL_IVYBRIDGE;
 			nclasses = 3;
 			break;
-		case 0x3E:	/* Per Intel document 325462-045US 01/2013. */
+		case 0x3E: /* Per Intel document 325462-045US 01/2013. */
 			cputype = PMC_CPU_INTEL_IVYBRIDGE_XEON;
 			nclasses = 3;
 			break;
@@ -166,14 +166,14 @@ pmc_intel_initialize(void)
 			cputype = PMC_CPU_INTEL_BROADWELL_XEON;
 			nclasses = 3;
 			break;
-		case 0x3C:	/* Per Intel document 325462-045US 01/2013. */
-		case 0x45:	/* Per Intel document 325462-045US 09/2014. */
+		case 0x3C: /* Per Intel document 325462-045US 01/2013. */
+		case 0x45: /* Per Intel document 325462-045US 09/2014. */
 			cputype = PMC_CPU_INTEL_HASWELL;
 			nclasses = 3;
 			break;
-		case 0x3F:	/* Per Intel document 325462-045US 09/2014. */
-		case 0x46:	/* Per Intel document 325462-045US 09/2014. */
-			        /* Should 46 be XEON. probably its own? */
+		case 0x3F: /* Per Intel document 325462-045US 09/2014. */
+		case 0x46: /* Per Intel document 325462-045US 09/2014. */
+			/* Should 46 be XEON. probably its own? */
 			cputype = PMC_CPU_INTEL_HASWELL_XEON;
 			nclasses = 3;
 			break;
@@ -181,15 +181,15 @@ pmc_intel_initialize(void)
 		case 0x4e:
 		case 0x5e:
 			/* Kabylake */
-		case 0x8E:	/* Per Intel document 325462-063US July 2017. */
-		case 0x9E:	/* Per Intel document 325462-063US July 2017. */
-			/* Cometlake */
+		case 0x8E: /* Per Intel document 325462-063US July 2017. */
+		case 0x9E: /* Per Intel document 325462-063US July 2017. */
+			   /* Cometlake */
 		case 0xA5:
 		case 0xA6:
 			cputype = PMC_CPU_INTEL_SKYLAKE;
 			nclasses = 3;
 			break;
-		case 0x55:	/* SDM rev 63 */
+		case 0x55: /* SDM rev 63 */
 			cputype = PMC_CPU_INTEL_SKYLAKE_XEON;
 			nclasses = 3;
 			break;
@@ -214,7 +214,7 @@ pmc_intel_initialize(void)
 			cputype = PMC_CPU_INTEL_ALDERLAKE;
 			nclasses = 3;
 			break;
-		case 0x1C:	/* Per Intel document 320047-002. */
+		case 0x1C: /* Per Intel document 320047-002. */
 		case 0x26:
 		case 0x27:
 		case 0x35:
@@ -224,13 +224,13 @@ pmc_intel_initialize(void)
 			break;
 		case 0x37:
 		case 0x4A:
-		case 0x4D:      /* Per Intel document 330061-001 01/2014. */
+		case 0x4D: /* Per Intel document 330061-001 01/2014. */
 		case 0x5A:
 		case 0x5D:
 			cputype = PMC_CPU_INTEL_ATOM_SILVERMONT;
 			nclasses = 3;
 			break;
-		case 0x5C:	/* Per Intel document 325462-071US 10/2019. */
+		case 0x5C: /* Per Intel document 325462-071US 10/2019. */
 		case 0x5F:
 			cputype = PMC_CPU_INTEL_ATOM_GOLDMONT;
 			nclasses = 3;
@@ -248,8 +248,7 @@ pmc_intel_initialize(void)
 		break;
 	}
 
-
-	if ((int) cputype == -1) {
+	if ((int)cputype == -1) {
 		printf("pmc: Unknown Intel CPU.\n");
 		return (NULL);
 	}
@@ -257,8 +256,8 @@ pmc_intel_initialize(void)
 	/* Allocate base class and initialize machine dependent struct */
 	pmc_mdep = pmc_mdep_alloc(nclasses);
 
-	pmc_mdep->pmd_cputype	 = cputype;
-	pmc_mdep->pmd_switch_in	 = intel_switch_in;
+	pmc_mdep->pmd_cputype = cputype;
+	pmc_mdep->pmd_switch_in = intel_switch_in;
 	pmc_mdep->pmd_switch_out = intel_switch_out;
 
 	ncpus = pmc_cpu_max();
@@ -308,7 +307,7 @@ pmc_intel_initialize(void)
 	default:
 		break;
 	}
-  error:
+error:
 	if (error) {
 		pmc_mdep_free(pmc_mdep);
 		pmc_mdep = NULL;

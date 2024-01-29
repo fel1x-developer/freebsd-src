@@ -24,17 +24,16 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_MDIO_H__
-#define	__AR40XX_HW_MDIO_H__
+#ifndef __AR40XX_HW_MDIO_H__
+#define __AR40XX_HW_MDIO_H__
 
-extern	int ar40xx_hw_phy_dbg_write(struct ar40xx_softc *sc, int phy,
-	    uint16_t dbg, uint16_t data);
-extern	int ar40xx_hw_phy_dbg_read(struct ar40xx_softc *sc, int phy,
-	    uint16_t dbg);
-extern	int ar40xx_hw_phy_mmd_write(struct ar40xx_softc *sc, uint32_t phy_id,
-	    uint16_t mmd_num, uint16_t reg_id, uint16_t reg_val);
-extern	int ar40xx_hw_phy_mmd_read(struct ar40xx_softc *sc, uint32_t phy_id,
-	    uint16_t mmd_num, uint16_t reg_id);
+extern int ar40xx_hw_phy_dbg_write(struct ar40xx_softc *sc, int phy,
+    uint16_t dbg, uint16_t data);
+extern int ar40xx_hw_phy_dbg_read(struct ar40xx_softc *sc, int phy,
+    uint16_t dbg);
+extern int ar40xx_hw_phy_mmd_write(struct ar40xx_softc *sc, uint32_t phy_id,
+    uint16_t mmd_num, uint16_t reg_id, uint16_t reg_val);
+extern int ar40xx_hw_phy_mmd_read(struct ar40xx_softc *sc, uint32_t phy_id,
+    uint16_t mmd_num, uint16_t reg_id);
 
-#endif	/* __AR40XX_HW_MDIO_H__ */
-
+#endif /* __AR40XX_HW_MDIO_H__ */

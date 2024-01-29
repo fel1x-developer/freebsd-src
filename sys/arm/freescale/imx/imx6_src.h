@@ -24,9 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IMX6_SRC_H__
-#define	__IMX6_SRC_H__
+#ifndef __IMX6_SRC_H__
+#define __IMX6_SRC_H__
 
 int src_reset_ipu(void);
 
-#endif	/* __IMX6_SRC_H__ */
+#endif /* __IMX6_SRC_H__ */

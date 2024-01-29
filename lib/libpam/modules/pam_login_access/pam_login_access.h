@@ -39,12 +39,13 @@
 #include <stdbool.h>
 
 struct pam_login_access_options {
-	bool		defgroup;
-	bool		audit;
-	const char	*accessfile;
+	bool defgroup;
+	bool audit;
+	const char *accessfile;
 	/* Delimiters for fields and for lists of users, ttys or hosts. */
-	const char	*fieldsep; /* field separator */
-	const char	*listsep; /* list-element separator */
+	const char *fieldsep; /* field separator */
+	const char *listsep;  /* list-element separator */
 };
 
-extern int login_access(const char *, const char *, struct pam_login_access_options *);
+extern int login_access(const char *, const char *,
+    struct pam_login_access_options *);

@@ -28,11 +28,11 @@
 #define _MPR_TABLE_H
 
 struct mpr_table_lookup {
-	char	*string;
-	u_int	code;
+	char *string;
+	u_int code;
 };
 
-char * mpr_describe_table(struct mpr_table_lookup *table, u_int code);
+char *mpr_describe_table(struct mpr_table_lookup *table, u_int code);
 void mpr_describe_devinfo(uint32_t devinfo, char *string, int len);
 
 extern struct mpr_table_lookup mpr_event_names[];
@@ -53,12 +53,12 @@ void mpr_print_sasphy0(struct mpr_softc *, MPI2_CONFIG_PAGE_SAS_PHY_0 *);
 void mpr_print_sgl(struct mpr_softc *, struct mpr_command *, int);
 void mpr_print_scsiio_cmd(struct mpr_softc *, struct mpr_command *);
 
-#define MPR_DPRINT_PAGE(sc, level, func, buf)			\
-do {								\
-	if ((sc)->mpr_debug & level)				\
-		mpr_print_##func((sc), buf);			\
-} while (0)
+#define MPR_DPRINT_PAGE(sc, level, func, buf)        \
+	do {                                         \
+		if ((sc)->mpr_debug & level)         \
+			mpr_print_##func((sc), buf); \
+	} while (0)
 
-#define MPR_DPRINT_EVENT(sc, func, buf)				\
+#define MPR_DPRINT_EVENT(sc, func, buf) \
 	MPR_DPRINT_PAGE(sc, MPR_EVENT, evt_##func, buf)
 #endif

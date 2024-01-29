@@ -32,9 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef _DEV_LE_AM7990VAR_H_
-#define	_DEV_LE_AM7990VAR_H_
+#define _DEV_LE_AM7990VAR_H_
 
 /*
  * Ethernet software status per device.
@@ -49,8 +48,8 @@ struct am7990_softc {
 	struct lance_softc lsc;
 };
 
-int	am7990_config(struct am7990_softc *, const char*, int);
-void	am7990_detach(struct am7990_softc *);
-void	am7990_intr(void *);
+int am7990_config(struct am7990_softc *, const char *, int);
+void am7990_detach(struct am7990_softc *);
+void am7990_intr(void *);
 
 #endif /* !_DEV_LE_AM7990VAR_H_ */

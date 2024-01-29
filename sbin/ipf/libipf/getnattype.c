@@ -9,8 +9,6 @@
 #include "ipf.h"
 #include "kmem.h"
 
-
-
 /*
  * Get a nat filter type given its kernel address.
  */
@@ -23,41 +21,40 @@ getnattype(nat_t *nat)
 	if (!nat)
 		return ("???");
 
-	switch (nat->nat_redir)
-	{
-	case NAT_MAP :
+	switch (nat->nat_redir) {
+	case NAT_MAP:
 		which = "MAP";
 		break;
-	case NAT_MAPBLK :
+	case NAT_MAPBLK:
 		which = "MAP-BLOCK";
 		break;
-	case NAT_REDIRECT :
+	case NAT_REDIRECT:
 		which = "RDR";
 		break;
-	case NAT_MAP|NAT_REWRITE :
+	case NAT_MAP | NAT_REWRITE:
 		which = "RWR-MAP";
 		break;
-	case NAT_REDIRECT|NAT_REWRITE :
+	case NAT_REDIRECT | NAT_REWRITE:
 		which = "RWR-RDR";
 		break;
-	case NAT_BIMAP :
+	case NAT_BIMAP:
 		which = "BIMAP";
 		break;
-	case NAT_REDIRECT|NAT_DIVERTUDP :
+	case NAT_REDIRECT | NAT_DIVERTUDP:
 		which = "DIV-RDR";
 		break;
-	case NAT_MAP|NAT_DIVERTUDP :
+	case NAT_MAP | NAT_DIVERTUDP:
 		which = "DIV-MAP";
 		break;
-	case NAT_REDIRECT|NAT_ENCAP :
+	case NAT_REDIRECT | NAT_ENCAP:
 		which = "ENC-RDR";
 		break;
-	case NAT_MAP|NAT_ENCAP :
+	case NAT_MAP | NAT_ENCAP:
 		which = "ENC-MAP";
 		break;
-	default :
+	default:
 		snprintf(unknownbuf, sizeof(unknownbuf), "unknown(%04x)",
-			nat->nat_redir & 0xffffffff);
+		    nat->nat_redir & 0xffffffff);
 		which = unknownbuf;
 		break;
 	}

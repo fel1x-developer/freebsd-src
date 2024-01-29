@@ -44,7 +44,7 @@ static FILE *tf;
 static size_t lbsize;
 static char *line;
 
-#define	MALLOCCHUNK	100
+#define MALLOCCHUNK 100
 
 static char *skip(char *);
 static char *value(char *);
@@ -57,7 +57,7 @@ getttynam(const char *tty)
 	if (strncmp(tty, "/dev/", 5) == 0)
 		tty += 5;
 	setttyent();
-	while ( (t = getttyent()) )
+	while ((t = getttyent()))
 		if (!strcmp(tty, t->ty_name))
 			break;
 	endttyent();
@@ -146,14 +146,16 @@ getttyent(void)
 			break;
 	}
 
-#define scmp(e) !strncmp(p, e, sizeof(e) - 1) && isspace((unsigned char)p[sizeof(e) - 1])
-#define	vcmp(e)	!strncmp(p, e, sizeof(e) - 1) && p[sizeof(e) - 1] == '='
+#define scmp(e)                          \
+	!strncmp(p, e, sizeof(e) - 1) && \
+	    isspace((unsigned char)p[sizeof(e) - 1])
+#define vcmp(e) !strncmp(p, e, sizeof(e) - 1) && p[sizeof(e) - 1] == '='
 
 	zapchar = 0;
 	tty.ty_name = p;
 	tty.ty_status = 0;
 	tty.ty_window = NULL;
-	tty.ty_group  = _TTYS_NOGROUP;
+	tty.ty_group = _TTYS_NOGROUP;
 
 	p = skip(p);
 	if (!*(tty.ty_getty = p))
@@ -163,7 +165,8 @@ getttyent(void)
 		if (!*(tty.ty_type = p))
 			tty.ty_type = NULL;
 		else {
-			/* compatibility kludge: handle network/dialup specially */
+			/* compatibility kludge: handle network/dialup specially
+			 */
 			if (scmp(_TTYS_DIALUP))
 				tty.ty_status |= TTY_DIALUP;
 			else if (scmp(_TTYS_NETWORK))
@@ -208,7 +211,7 @@ getttyent(void)
 	return (&tty);
 }
 
-#define	QUOTED	1
+#define QUOTED 1
 
 /*
  * Skip over the current field, removing quotes, and return a pointer to
@@ -222,10 +225,10 @@ skip(char *p)
 
 	for (q = 0, t = p; (c = *p) != '\0'; p++) {
 		if (c == '"') {
-			q ^= QUOTED;	/* obscure, but nice */
+			q ^= QUOTED; /* obscure, but nice */
 			continue;
 		}
-		if (q == QUOTED && *p == '\\' && *(p+1) == '"')
+		if (q == QUOTED && *p == '\\' && *(p + 1) == '"')
 			p++;
 		*t++ = *p;
 		if (q == QUOTED)
@@ -266,7 +269,7 @@ setttyent(void)
 	if (tf) {
 		rewind(tf);
 		return (1);
-	} else if ( (tf = fopen(_PATH_TTYS, "re")) )
+	} else if ((tf = fopen(_PATH_TTYS, "re")))
 		return (1);
 	return (0);
 }
@@ -277,7 +280,7 @@ endttyent(void)
 	int rval;
 
 	/*
-         * NB: Don't free `line' because getttynam()
+	 * NB: Don't free `line' because getttynam()
 	 * may still be referencing it
 	 */
 	if (tf) {
@@ -295,7 +298,6 @@ isttystat(const char *tty, int flag)
 
 	return ((t = getttynam(tty)) == NULL) ? 0 : !!(t->ty_status & flag);
 }
-
 
 int
 isdialuptty(const char *tty)

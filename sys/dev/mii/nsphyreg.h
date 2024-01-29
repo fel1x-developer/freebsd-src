@@ -33,32 +33,32 @@
  */
 
 #ifndef _DEV_MII_NSPHYREG_H_
-#define	_DEV_MII_NSPHYREG_H_
+#define _DEV_MII_NSPHYREG_H_
 
 /*
  * DP83840 registers.
  */
 
-#define	MII_NSPHY_DCR		0x12	/* Disconnect counter */
+#define MII_NSPHY_DCR 0x12 /* Disconnect counter */
 
-#define	MII_NSPHY_FCSCR		0x13	/* False carrier sense counter */
+#define MII_NSPHY_FCSCR 0x13 /* False carrier sense counter */
 
-#define	MII_NSPHY_RECR		0x15	/* Receive error counter */
+#define MII_NSPHY_RECR 0x15 /* Receive error counter */
 
-#define	MII_NSPHY_SRR		0x16	/* Silicon revision */
+#define MII_NSPHY_SRR 0x16 /* Silicon revision */
 
-#define	MII_NSPHY_PCR		0x17	/* PCS sub-layer configuration */
-#define	PCR_NRZI		0x8000	/* NRZI encoding enabled for 100TX */
-#define	PCR_DESCRTOSEL		0x4000	/* descrambler t/o select (2ms) */
-#define	PCR_DESCRTODIS		0x2000	/* descrambler t/o disable */
-#define	PCR_REPEATER		0x1000	/* repeater mode */
-#define	PCR_ENCSEL		0x0800	/* encoder mode select */
-#define	PCR_CLK25MDIS		0x0080	/* CLK25M disable */
-#define	PCR_FLINK100		0x0040	/* force good link in 100mbps */
-#define	PCR_CIMDIS		0x0020	/* carrier integrity monitor disable */
-#define	PCR_TXOFF		0x0010	/* force transmit off */
-#define	PCR_LED1MODE		0x0004	/* LED1 mode: see below */
-#define	PCR_LED4MODE		0x0002	/* LED4 mode: see below */
+#define MII_NSPHY_PCR 0x17    /* PCS sub-layer configuration */
+#define PCR_NRZI 0x8000	      /* NRZI encoding enabled for 100TX */
+#define PCR_DESCRTOSEL 0x4000 /* descrambler t/o select (2ms) */
+#define PCR_DESCRTODIS 0x2000 /* descrambler t/o disable */
+#define PCR_REPEATER 0x1000   /* repeater mode */
+#define PCR_ENCSEL 0x0800     /* encoder mode select */
+#define PCR_CLK25MDIS 0x0080  /* CLK25M disable */
+#define PCR_FLINK100 0x0040   /* force good link in 100mbps */
+#define PCR_CIMDIS 0x0020     /* carrier integrity monitor disable */
+#define PCR_TXOFF 0x0010      /* force transmit off */
+#define PCR_LED1MODE 0x0004   /* LED1 mode: see below */
+#define PCR_LED4MODE 0x0002   /* LED4 mode: see below */
 
 /*
  * LED1 Mode:
@@ -78,31 +78,31 @@
  *		mode and full-duplex in 100baseTX mode.
  */
 
-#define	MII_NSPHY_LBREMR	0x18	/* Loopback, bypass, error mask */
-#define	LBREMR_BADSSDEN		0x8000	/* enable bad SSD detection */
-#define	LBREMR_BP4B5B		0x4000	/* bypass 4b/5b encoding */
-#define	LBREMR_BPSCR		0x2000	/* bypass scrambler */
-#define	LBREMR_BPALIGN		0x1000	/* bypass alignment function */
-#define	LBREMR_10LOOP		0x0800	/* 10baseT loopback */
-#define	LBREMR_LB1		0x0200	/* loopback ctl 1 */
-#define	LBREMR_LB0		0x0100	/* loopback ctl 0 */
-#define	LBREMR_ALTCRS		0x0040	/* alt crs operation */
-#define	LBREMR_LOOPXMTDIS	0x0020	/* disable transmit in 100TX loopbk */
-#define	LBREMR_CODEERR		0x0010	/* code errors */
-#define	LBREMR_PEERR		0x0008	/* premature end errors */
-#define	LBREMR_LINKERR		0x0004	/* link errors */
-#define	LBREMR_PKTERR		0x0002	/* packet errors */
+#define MII_NSPHY_LBREMR 0x18	 /* Loopback, bypass, error mask */
+#define LBREMR_BADSSDEN 0x8000	 /* enable bad SSD detection */
+#define LBREMR_BP4B5B 0x4000	 /* bypass 4b/5b encoding */
+#define LBREMR_BPSCR 0x2000	 /* bypass scrambler */
+#define LBREMR_BPALIGN 0x1000	 /* bypass alignment function */
+#define LBREMR_10LOOP 0x0800	 /* 10baseT loopback */
+#define LBREMR_LB1 0x0200	 /* loopback ctl 1 */
+#define LBREMR_LB0 0x0100	 /* loopback ctl 0 */
+#define LBREMR_ALTCRS 0x0040	 /* alt crs operation */
+#define LBREMR_LOOPXMTDIS 0x0020 /* disable transmit in 100TX loopbk */
+#define LBREMR_CODEERR 0x0010	 /* code errors */
+#define LBREMR_PEERR 0x0008	 /* premature end errors */
+#define LBREMR_LINKERR 0x0004	 /* link errors */
+#define LBREMR_PKTERR 0x0002	 /* packet errors */
 
-#define	MII_NSPHY_PAR		0x19	/* Physical address and status */
-#define	PAR_DISCRSJAB		0x0800	/* disable car sense during jab */
-#define	PAR_ANENSTAT		0x0400	/* autoneg mode status */
-#define	PAR_FEFIEN		0x0100	/* far end fault enable */
-#define	PAR_FDX			0x0080	/* full duplex status */
-#define	PAR_10			0x0040	/* 10mbps mode */
-#define	PAR_CON			0x0020	/* connect status */
-#define	PAR_AMASK		0x001f	/* PHY address bits */
+#define MII_NSPHY_PAR 0x19   /* Physical address and status */
+#define PAR_DISCRSJAB 0x0800 /* disable car sense during jab */
+#define PAR_ANENSTAT 0x0400  /* autoneg mode status */
+#define PAR_FEFIEN 0x0100    /* far end fault enable */
+#define PAR_FDX 0x0080	     /* full duplex status */
+#define PAR_10 0x0040	     /* 10mbps mode */
+#define PAR_CON 0x0020	     /* connect status */
+#define PAR_AMASK 0x001f     /* PHY address bits */
 
-#define	MII_NSPHY_10BTSR	0x1b	/* 10baseT status */
-#define	MII_NSPHY_10BTCR	0x1c	/* 10baseT configuration */
+#define MII_NSPHY_10BTSR 0x1b /* 10baseT status */
+#define MII_NSPHY_10BTCR 0x1c /* 10baseT configuration */
 
 #endif /* _DEV_MII_NSPHYREG_H_ */

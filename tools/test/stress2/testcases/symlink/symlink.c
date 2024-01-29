@@ -28,6 +28,7 @@
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -60,11 +61,13 @@ setup(int nb)
 		size = size / 100 * pct + 1;
 
 		if (size > 16000)
-			size = 16000;	/* arbitrary limit number of files pr. dir */
+			size =
+			    16000; /* arbitrary limit number of files pr. dir */
 
 		/* Resource requirements: */
 		while (size > 0) {
-			reserve_in =  1 * size * op->incarnations + op->incarnations;
+			reserve_in = 1 * size * op->incarnations +
+			    op->incarnations;
 			reserve_bl = 26 * size * op->incarnations;
 			if (reserve_bl <= bl && reserve_in <= in)
 				break;
@@ -74,8 +77,10 @@ setup(int nb)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("symlink(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "symlink(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 	} else {
@@ -84,7 +89,7 @@ setup(int nb)
 	if (size == 0)
 		exit(0);
 
-	sprintf(path,"%s.%05d", getprogname(), getpid());
+	sprintf(path, "%s.%05d", getprogname(), getpid());
 	if (mkdir(path, 0770) < 0)
 		err(1, "mkdir(%s), %s:%d", path, __FILE__, __LINE__);
 
@@ -114,10 +119,11 @@ test(void)
 
 	pid = getpid();
 	for (j = 0; j < (int)size && done_testing == 0; j++) {
-		sprintf(file,"p%05d.%05d", pid, j);
+		sprintf(file, "p%05d.%05d", pid, j);
 		if (symlink("/tmp/not/there", file) == -1) {
 			if (errno != EINTR) {
-				warn("symlink(%s). %s.%d", file, __FILE__, __LINE__);
+				warn("symlink(%s). %s.%d", file, __FILE__,
+				    __LINE__);
 				error = 1;
 				exit(1);
 				break;
@@ -126,7 +132,7 @@ test(void)
 	}
 
 	for (i = --j; i >= 0; i--) {
-		sprintf(file,"p%05d.%05d", pid, i);
+		sprintf(file, "p%05d.%05d", pid, i);
 		if (unlink(file) == -1)
 			err(3, "unlink(%s)", file);
 	}

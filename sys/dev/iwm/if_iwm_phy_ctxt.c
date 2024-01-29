@@ -102,58 +102,54 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_phy_ctxt.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_phy_ctxt.h>
 
 /*
  * BEGIN iwlwifi/mvm/phy-ctxt.c
@@ -164,20 +160,16 @@
  */
 static void
 iwm_phy_ctxt_cmd_hdr(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
-	struct iwm_phy_context_cmd *cmd, uint32_t action, uint32_t apply_time)
+    struct iwm_phy_context_cmd *cmd, uint32_t action, uint32_t apply_time)
 {
 	memset(cmd, 0, sizeof(struct iwm_phy_context_cmd));
 
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD,
-	    "%s: id=%d, colour=%d, action=%d, apply_time=%d\n",
-	    __func__,
-	    ctxt->id,
-	    ctxt->color,
-	    action,
-	    apply_time);
+	    "%s: id=%d, colour=%d, action=%d, apply_time=%d\n", __func__,
+	    ctxt->id, ctxt->color, action, apply_time);
 
-	cmd->id_and_color = htole32(IWM_FW_CMD_ID_AND_COLOR(ctxt->id,
-	    ctxt->color));
+	cmd->id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(ctxt->id, ctxt->color));
 	cmd->action = htole32(action);
 	cmd->apply_time = htole32(apply_time);
 }
@@ -186,9 +178,9 @@ iwm_phy_ctxt_cmd_hdr(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
  * Add the phy configuration to the PHY context command
  */
 static void
-iwm_phy_ctxt_cmd_data(struct iwm_softc *sc,
-	struct iwm_phy_context_cmd *cmd, struct ieee80211_channel *chan,
-	uint8_t chains_static, uint8_t chains_dynamic)
+iwm_phy_ctxt_cmd_data(struct iwm_softc *sc, struct iwm_phy_context_cmd *cmd,
+    struct ieee80211_channel *chan, uint8_t chains_static,
+    uint8_t chains_dynamic)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	uint8_t active_cnt, idle_cnt;
@@ -196,17 +188,12 @@ iwm_phy_ctxt_cmd_data(struct iwm_softc *sc,
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD,
 	    "%s: 2ghz=%d, channel=%d, chains static=0x%x, dynamic=0x%x, "
 	    "rx_ant=0x%x, tx_ant=0x%x\n",
-	    __func__,
-	    !! IEEE80211_IS_CHAN_2GHZ(chan),
-	    ieee80211_chan2ieee(ic, chan),
-	    chains_static,
-	    chains_dynamic,
-	    iwm_get_valid_rx_ant(sc),
-	    iwm_get_valid_tx_ant(sc));
+	    __func__, !!IEEE80211_IS_CHAN_2GHZ(chan),
+	    ieee80211_chan2ieee(ic, chan), chains_static, chains_dynamic,
+	    iwm_get_valid_rx_ant(sc), iwm_get_valid_tx_ant(sc));
 
-
-	cmd->ci.band = IEEE80211_IS_CHAN_2GHZ(chan) ?
-	    IWM_PHY_BAND_24 : IWM_PHY_BAND_5;
+	cmd->ci.band = IEEE80211_IS_CHAN_2GHZ(chan) ? IWM_PHY_BAND_24 :
+						      IWM_PHY_BAND_5;
 
 	cmd->ci.channel = ieee80211_chan2ieee(ic, chan);
 	cmd->ci.width = IWM_PHY_VHT_CHANNEL_MODE20;
@@ -228,11 +215,11 @@ iwm_phy_ctxt_cmd_data(struct iwm_softc *sc,
 		active_cnt = 2;
 	}
 
-	cmd->rxchain_info = htole32(iwm_get_valid_rx_ant(sc) <<
-					IWM_PHY_RX_CHAIN_VALID_POS);
+	cmd->rxchain_info = htole32(
+	    iwm_get_valid_rx_ant(sc) << IWM_PHY_RX_CHAIN_VALID_POS);
 	cmd->rxchain_info |= htole32(idle_cnt << IWM_PHY_RX_CHAIN_CNT_POS);
-	cmd->rxchain_info |= htole32(active_cnt <<
-	    IWM_PHY_RX_CHAIN_MIMO_CNT_POS);
+	cmd->rxchain_info |= htole32(
+	    active_cnt << IWM_PHY_RX_CHAIN_MIMO_CNT_POS);
 
 	cmd->txchain_info = htole32(iwm_get_valid_tx_ant(sc));
 }
@@ -244,31 +231,27 @@ iwm_phy_ctxt_cmd_data(struct iwm_softc *sc,
  * configuration changed from the previous apply.
  */
 static int
-iwm_phy_ctxt_apply(struct iwm_softc *sc,
-	struct iwm_phy_ctxt *ctxt,
-	uint8_t chains_static, uint8_t chains_dynamic,
-	uint32_t action, uint32_t apply_time)
+iwm_phy_ctxt_apply(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
+    uint8_t chains_static, uint8_t chains_dynamic, uint32_t action,
+    uint32_t apply_time)
 {
 	struct iwm_phy_context_cmd cmd;
 	int ret;
 
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD,
-	    "%s: called; channel=%p\n",
-	    __func__,
-	    ctxt->channel);
+	    "%s: called; channel=%p\n", __func__, ctxt->channel);
 
 	/* Set the command header fields */
 	iwm_phy_ctxt_cmd_hdr(sc, ctxt, &cmd, action, apply_time);
 
 	/* Set the command data */
-	iwm_phy_ctxt_cmd_data(sc, &cmd, ctxt->channel,
-	    chains_static, chains_dynamic);
+	iwm_phy_ctxt_cmd_data(sc, &cmd, ctxt->channel, chains_static,
+	    chains_dynamic);
 
 	ret = iwm_send_cmd_pdu(sc, IWM_PHY_CONTEXT_CMD, IWM_CMD_SYNC,
 	    sizeof(struct iwm_phy_context_cmd), &cmd);
 	if (ret) {
-		device_printf(sc->sc_dev,
-		    "PHY ctxt cmd error. ret=%d\n", ret);
+		device_printf(sc->sc_dev, "PHY ctxt cmd error. ret=%d\n", ret);
 	}
 	return ret;
 }
@@ -278,18 +261,17 @@ iwm_phy_ctxt_apply(struct iwm_softc *sc,
  */
 int
 iwm_phy_ctxt_add(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
-	struct ieee80211_channel *chan,
-	uint8_t chains_static, uint8_t chains_dynamic)
+    struct ieee80211_channel *chan, uint8_t chains_static,
+    uint8_t chains_dynamic)
 {
 	ctxt->channel = chan;
 
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD,
-	    "%s: called; channel=%d\n",
-	    __func__,
+	    "%s: called; channel=%d\n", __func__,
 	    ieee80211_chan2ieee(&sc->sc_ic, chan));
 
-	return iwm_phy_ctxt_apply(sc, ctxt,
-	    chains_static, chains_dynamic, IWM_FW_CTXT_ACTION_ADD, 0);
+	return iwm_phy_ctxt_apply(sc, ctxt, chains_static, chains_dynamic,
+	    IWM_FW_CTXT_ACTION_ADD, 0);
 }
 
 /*
@@ -298,19 +280,18 @@ iwm_phy_ctxt_add(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
  * changed.
  */
 int
-iwm_phy_ctxt_changed(struct iwm_softc *sc,
-	struct iwm_phy_ctxt *ctxt, struct ieee80211_channel *chan,
-	uint8_t chains_static, uint8_t chains_dynamic)
+iwm_phy_ctxt_changed(struct iwm_softc *sc, struct iwm_phy_ctxt *ctxt,
+    struct ieee80211_channel *chan, uint8_t chains_static,
+    uint8_t chains_dynamic)
 {
 	ctxt->channel = chan;
 
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_CMD,
-	    "%s: called; channel=%d\n",
-	    __func__,
+	    "%s: called; channel=%d\n", __func__,
 	    ieee80211_chan2ieee(&sc->sc_ic, chan));
 
-	return iwm_phy_ctxt_apply(sc, ctxt,
-	    chains_static, chains_dynamic, IWM_FW_CTXT_ACTION_MODIFY, 0);
+	return iwm_phy_ctxt_apply(sc, ctxt, chains_static, chains_dynamic,
+	    IWM_FW_CTXT_ACTION_MODIFY, 0);
 }
 
 /*

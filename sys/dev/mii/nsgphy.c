@@ -58,57 +58,46 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/nsgphyreg.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/nsgphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int nsgphy_probe(device_t);
 static int nsgphy_attach(device_t);
 
 static device_method_t nsgphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		nsgphy_probe),
-	DEVMETHOD(device_attach,	nsgphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, nsgphy_probe),
+	DEVMETHOD(device_attach, nsgphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t nsgphy_driver = {
-	"nsgphy",
-	nsgphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t nsgphy_driver = { "nsgphy", nsgphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(nsgphy, miibus, nsgphy_driver, 0, 0);
 
-static int	nsgphy_service(struct mii_softc *, struct mii_data *,int);
-static void	nsgphy_status(struct mii_softc *);
+static int nsgphy_service(struct mii_softc *, struct mii_data *, int);
+static void nsgphy_status(struct mii_softc *);
 
-static const struct mii_phydesc nsgphys[] = {
-	MII_PHY_DESC(xxNATSEMI, DP83861),
-	MII_PHY_DESC(xxNATSEMI, DP83865),
-	MII_PHY_DESC(xxNATSEMI, DP83891),
-	MII_PHY_END
-};
+static const struct mii_phydesc nsgphys[] = { MII_PHY_DESC(xxNATSEMI, DP83861),
+	MII_PHY_DESC(xxNATSEMI, DP83865), MII_PHY_DESC(xxNATSEMI, DP83891),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs nsgphy_funcs = {
-	nsgphy_service,
-	nsgphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs nsgphy_funcs = { nsgphy_service,
+	nsgphy_status, mii_phy_reset };
 
 static int
 nsgphy_probe(device_t dev)
@@ -132,8 +121,9 @@ nsgphy_attach(device_t dev)
 	 * NB: the PHY has the 10BASE-T BMSR bits hard-wired to 0,
 	 * even though it supports 10BASE-T.
 	 */
-	sc->mii_capabilities = (PHY_READ(sc, MII_BMSR) |
-	    BMSR_10TFDX | BMSR_10THDX) & sc->mii_capmask;
+	sc->mii_capabilities = (PHY_READ(sc, MII_BMSR) | BMSR_10TFDX |
+				   BMSR_10THDX) &
+	    sc->mii_capmask;
 	/*
 	 * Note that as documented manual 1000BASE-T modes of DP83865 only
 	 * work together with other National Semiconductor PHYs.
@@ -235,8 +225,8 @@ nsgphy_status(struct mii_softc *sc)
 		}
 
 		if (physup & PHY_SUP_DUPLEX)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

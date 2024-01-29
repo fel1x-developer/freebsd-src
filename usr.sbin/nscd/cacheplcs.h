@@ -38,10 +38,10 @@
  * another policy queue.
  */
 struct cache_policy_item_ {
-	char	*key;
-    	size_t	key_size;
+	char *key;
+	size_t key_size;
 
-	size_t	request_count;
+	size_t request_count;
 	struct timeval last_request_time;
 	struct timeval creation_time;
 
@@ -53,24 +53,24 @@ struct cache_policy_item_ {
  * setting appropriate function pointers
  */
 struct cache_policy_ {
-	struct cache_policy_item_* (*create_item_func)(void);
+	struct cache_policy_item_ *(*create_item_func)(void);
 	void (*destroy_item_func)(struct cache_policy_item_ *);
 
 	void (*add_item_func)(struct cache_policy_ *,
-		struct cache_policy_item_ *);
+	    struct cache_policy_item_ *);
 	void (*remove_item_func)(struct cache_policy_ *,
-		struct cache_policy_item_ *);
+	    struct cache_policy_item_ *);
 	void (*update_item_func)(struct cache_policy_ *,
-		struct cache_policy_item_ *);
+	    struct cache_policy_item_ *);
 
 	struct cache_policy_item_ *(*get_first_item_func)(
-		struct cache_policy_ *);
+	    struct cache_policy_ *);
 	struct cache_policy_item_ *(*get_last_item_func)(
-		struct cache_policy_ *);
-	struct cache_policy_item_ *(*get_next_item_func)(
-		struct cache_policy_ *, struct cache_policy_item_ *);
-	struct cache_policy_item_ *(*get_prev_item_func)(
-		struct cache_policy_ *, struct cache_policy_item_ *);
+	    struct cache_policy_ *);
+	struct cache_policy_item_ *(*get_next_item_func)(struct cache_policy_ *,
+	    struct cache_policy_item_ *);
+	struct cache_policy_item_ *(*get_prev_item_func)(struct cache_policy_ *,
+	    struct cache_policy_item_ *);
 };
 
 /*
@@ -78,7 +78,7 @@ struct cache_policy_ {
  */
 struct cache_lfu_policy_item_ {
 	struct cache_policy_item_ parent_data;
-	int	frequency;
+	int frequency;
 
 	TAILQ_ENTRY(cache_lfu_policy_item_) entries;
 };

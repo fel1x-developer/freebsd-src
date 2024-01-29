@@ -36,34 +36,34 @@
  */
 
 /* Maximum number of buffers in all BMAN pools */
-#define BMAN_MAX_BUFFERS	4096
+#define BMAN_MAX_BUFFERS 4096
 
 /*
  * Portal definitions
  */
-#define BMAN_CE_PA(base)	(base)
-#define BMAN_CI_PA(base)	((base) + 0x100000)
+#define BMAN_CE_PA(base) (base)
+#define BMAN_CI_PA(base) ((base) + 0x100000)
 
-#define BMAN_PORTAL_CE_PA(base, n)	\
-    (BMAN_CE_PA(base) + ((n) * BMAN_PORTAL_CE_SIZE))
-#define BMAN_PORTAL_CI_PA(base, n)	\
-    (BMAN_CI_PA(base) + ((n) * BMAN_PORTAL_CI_SIZE))
+#define BMAN_PORTAL_CE_PA(base, n) \
+	(BMAN_CE_PA(base) + ((n) * BMAN_PORTAL_CE_SIZE))
+#define BMAN_PORTAL_CI_PA(base, n) \
+	(BMAN_CI_PA(base) + ((n) * BMAN_PORTAL_CI_SIZE))
 
-#define BMAN_CCSR_SIZE		0x1000
+#define BMAN_CCSR_SIZE 0x1000
 
 struct bman_softc {
-	device_t	sc_dev;			/* device handle */
-	int		sc_rrid;		/* register rid */
-	struct resource	*sc_rres;		/* register resource */
-	int		sc_irid;		/* interrupt rid */
-	struct resource	*sc_ires;		/* interrupt resource */
+	device_t sc_dev;	  /* device handle */
+	int sc_rrid;		  /* register rid */
+	struct resource *sc_rres; /* register resource */
+	int sc_irid;		  /* interrupt rid */
+	struct resource *sc_ires; /* interrupt resource */
 
-	bool		sc_regs_mapped[MAXCPU];	/* register mapping status */
+	bool sc_regs_mapped[MAXCPU]; /* register mapping status */
 
-	t_Handle	sc_bh;			/* BMAN handle */
-	t_Handle	sc_bph[MAXCPU];		/* BMAN portal handles */
-	vm_paddr_t	sc_bp_pa;		/* BMAN portals PA */
-	unsigned int	sc_bpool_cpu[BM_MAX_NUM_OF_POOLS];
+	t_Handle sc_bh;		 /* BMAN handle */
+	t_Handle sc_bph[MAXCPU]; /* BMAN portal handles */
+	vm_paddr_t sc_bp_pa;	 /* BMAN portals PA */
+	unsigned int sc_bpool_cpu[BM_MAX_NUM_OF_POOLS];
 };
 
 /*

@@ -30,8 +30,8 @@
 #include <bootstrap.h>
 
 typedef struct efi_driver_t {
-        const char *name;
-        void (*init)(void);
+	const char *name;
+	void (*init)(void);
 } efi_driver_t;
 
 extern struct devsw efipart_dev;

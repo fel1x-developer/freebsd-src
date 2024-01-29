@@ -46,7 +46,7 @@ typedef struct {
 	uint32_t length;
 	uint32_t offset;
 	uint8_t checksum;
-	} vpdbuf_t;
+} vpdbuf_t;
 
 /**
  * @brief return next VPD byte
@@ -55,7 +55,8 @@ typedef struct {
  *
  * @param vpd pointer to vpd buffer
  *
- * @return returns next byte for success, or a negative error code value for failure.
+ * @return returns next byte for success, or a negative error code value for
+ * failure.
  *
  */
 
@@ -101,10 +102,10 @@ vpdref(vpdbuf_t *vpd)
 	return &vpd->buffer[vpd->offset];
 }
 
-#define VPD_LARGE_RESOURCE_TYPE_ID_STRING_TAG	0x82
-#define VPD_LARGE_RESOURCE_TYPE_R_TAG		0x90
-#define VPD_LARGE_RESOURCE_TYPE_W_TAG		0x91
-#define VPD_SMALL_RESOURCE_TYPE_END_TAG		0x78
+#define VPD_LARGE_RESOURCE_TYPE_ID_STRING_TAG 0x82
+#define VPD_LARGE_RESOURCE_TYPE_R_TAG 0x90
+#define VPD_LARGE_RESOURCE_TYPE_W_TAG 0x91
+#define VPD_SMALL_RESOURCE_TYPE_END_TAG 0x78
 
 /**
  * @brief find a VPD entry
@@ -115,7 +116,8 @@ vpdref(vpdbuf_t *vpd)
  * @param vpddata_length length of vpddata buffer in bytes
  * @param key key to look up
 
- * @return returns a pointer to the key location or NULL if not found or checksum error
+ * @return returns a pointer to the key location or NULL if not found or
+ checksum error
  */
 
 static inline uint8_t *
@@ -126,7 +128,7 @@ ocs_find_vpd(uint8_t *vpddata, uint32_t vpddata_length, const char *key)
 	uint8_t c0 = key[0];
 	uint8_t c1 = key[1];
 
-	vpdbuf.buffer = (uint8_t*) vpddata;
+	vpdbuf.buffer = (uint8_t *)vpddata;
 	vpdbuf.length = vpddata_length;
 	vpdbuf.offset = 0;
 	vpdbuf.checksum = 0;
@@ -146,7 +148,8 @@ ocs_find_vpd(uint8_t *vpddata, uint32_t vpddata_length, const char *key)
 		len_hi = vpdnext(&vpdbuf);
 		len = len_lo + (len_hi << 8);
 
-		if ((type == VPD_LARGE_RESOURCE_TYPE_R_TAG) || (type == VPD_LARGE_RESOURCE_TYPE_W_TAG)) {
+		if ((type == VPD_LARGE_RESOURCE_TYPE_R_TAG) ||
+		    (type == VPD_LARGE_RESOURCE_TYPE_W_TAG)) {
 			while (len > 0) {
 				int rc0;
 				int rc1;
@@ -170,20 +173,21 @@ ocs_find_vpd(uint8_t *vpddata, uint32_t vpddata_length, const char *key)
 					for (i = 0; i < sublen; i++) {
 						vpdnext(&vpdbuf);
 					}
-				/* check for "RV" end */
+					/* check for "RV" end */
 				} else if ('R' == rc0 && 'V' == rc1) {
 					/* Read the checksum */
 					for (i = 0; i < sublen; i++) {
 						vpdnext(&vpdbuf);
 					}
 
-					/* The accumulated checksum should be zero here */
+					/* The accumulated checksum should be
+					 * zero here */
 					if (vpdbuf.checksum != 0) {
-						ocs_log_test(NULL, "checksum error\n");
+						ocs_log_test(NULL,
+						    "checksum error\n");
 						return NULL;
 					}
-				}
-				else
+				} else
 					for (i = 0; i < sublen; i++) {
 						vpdnext(&vpdbuf);
 					}
@@ -197,4 +201,4 @@ ocs_find_vpd(uint8_t *vpddata, uint32_t vpddata_length, const char *key)
 
 	return pret;
 }
-#endif 
+#endif

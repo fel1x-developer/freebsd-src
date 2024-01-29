@@ -32,15 +32,15 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
 #include <db.h>
 #include <limits.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <sys/types.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/yp.h>
 
 #ifndef _PATH_YP
 #define _PATH_YP "/var/yp/"
@@ -61,55 +61,55 @@
  * External functions and variables.
  */
 
-extern int	debug;
-extern int	ypdb_debug;
-extern int	do_dns;
-extern int	children;
-extern int	resfd;
-extern char 	*progname;
-extern char	*yp_dir;
-extern pid_t	yp_pid;
+extern int debug;
+extern int ypdb_debug;
+extern int do_dns;
+extern int children;
+extern int resfd;
+extern char *progname;
+extern char *yp_dir;
+extern pid_t yp_pid;
 
-extern enum ypstat	yp_errno;
-extern void	yp_error(const char *, ...) __printflike(1, 2);
+extern enum ypstat yp_errno;
+extern void yp_error(const char *, ...) __printflike(1, 2);
 #ifdef DB_CACHE
-extern int	yp_get_record(DB *, const DBT *, DBT *, int);
+extern int yp_get_record(DB *, const DBT *, DBT *, int);
 #else
-extern int	yp_get_record(const char *, const char *, const DBT *, DBT *, int);
+extern int yp_get_record(const char *, const char *, const DBT *, DBT *, int);
 #endif
-extern int	yp_first_record(const DB *, DBT *, DBT *, int);
-extern int	yp_next_record(const DB *, DBT *, DBT *, int, int);
-extern char	*yp_dnsname(char *);
-extern char	*yp_dnsaddr(const char *);
+extern int yp_first_record(const DB *, DBT *, DBT *, int);
+extern int yp_next_record(const DB *, DBT *, DBT *, int, int);
+extern char *yp_dnsname(char *);
+extern char *yp_dnsaddr(const char *);
 #ifdef DB_CACHE
-extern int	yp_access(const char *, const char *, const struct svc_req *);
+extern int yp_access(const char *, const char *, const struct svc_req *);
 #else
-extern int	yp_access(const char *, const struct svc_req *);
+extern int yp_access(const char *, const struct svc_req *);
 #endif
-extern int	yp_validdomain(const char *);
-extern DB	*yp_open_db(const char *, const char *);
-extern DB	*yp_open_db_cache(const char *, const char *, const char *, int);
-extern void	yp_flush_all(void);
-extern void	yp_init_dbs(void);
-extern int	yp_testflag(char *, char *, int);
-extern void	load_securenets(void);
+extern int yp_validdomain(const char *);
+extern DB *yp_open_db(const char *, const char *);
+extern DB *yp_open_db_cache(const char *, const char *, const char *, int);
+extern void yp_flush_all(void);
+extern void yp_init_dbs(void);
+extern int yp_testflag(char *, char *, int);
+extern void load_securenets(void);
 
 #ifdef DB_CACHE
-extern ypstat	yp_select_map(char *, char *, keydat *, int);
-extern ypstat	yp_getbykey(keydat *, valdat *);
-extern ypstat	yp_firstbykey(keydat *, valdat *);
-extern ypstat	yp_nextbykey(keydat *, valdat *);
+extern ypstat yp_select_map(char *, char *, keydat *, int);
+extern ypstat yp_getbykey(keydat *, valdat *);
+extern ypstat yp_firstbykey(keydat *, valdat *);
+extern ypstat yp_nextbykey(keydat *, valdat *);
 #endif
 
-extern unsigned long	svcudp_set_xid(SVCXPRT *, unsigned long);
-extern unsigned long	svcudp_get_xid(SVCXPRT *);
+extern unsigned long svcudp_set_xid(SVCXPRT *, unsigned long);
+extern unsigned long svcudp_get_xid(SVCXPRT *);
 
 #ifndef RESOLVER_TIMEOUT
 #define RESOLVER_TIMEOUT 3600
 #endif
 
-extern int	yp_init_resolver(void);
-extern void	yp_run_dnsq(void);
-extern void	yp_prune_dnsq(void);
-extern ypstat	yp_async_lookup_name(struct svc_req *, char *, int);
-extern ypstat	yp_async_lookup_addr(struct svc_req *, char *, int);
+extern int yp_init_resolver(void);
+extern void yp_run_dnsq(void);
+extern void yp_prune_dnsq(void);
+extern ypstat yp_async_lookup_name(struct svc_req *, char *, int);
+extern ypstat yp_async_lookup_addr(struct svc_req *, char *, int);

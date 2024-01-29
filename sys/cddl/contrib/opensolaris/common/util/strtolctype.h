@@ -27,10 +27,10 @@
 /*	Copyright (c) 1988 AT&T	*/
 /*	  All Rights Reserved  	*/
 
-#ifndef	_COMMON_UTIL_CTYPE_H
-#define	_COMMON_UTIL_CTYPE_H
+#ifndef _COMMON_UTIL_CTYPE_H
+#define _COMMON_UTIL_CTYPE_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -46,22 +46,24 @@ extern "C" {
 
 #if defined(illumos) && (defined(_KERNEL) || defined(_BOOT))
 
-#define	isalnum(ch)	(isalpha(ch) || isdigit(ch))
-#define	isalpha(ch)	(isupper(ch) || islower(ch))
-#define	isdigit(ch)	((ch) >= '0' && (ch) <= '9')
-#define	islower(ch)	((ch) >= 'a' && (ch) <= 'z')
-#define	isspace(ch)	(((ch) == ' ') || ((ch) == '\r') || ((ch) == '\n') || \
-			((ch) == '\t') || ((ch) == '\f'))
-#define	isupper(ch)	((ch) >= 'A' && (ch) <= 'Z')
-#define	isxdigit(ch)	(isdigit(ch) || ((ch) >= 'a' && (ch) <= 'f') || \
-			((ch) >= 'A' && (ch) <= 'F'))
+#define isalnum(ch) (isalpha(ch) || isdigit(ch))
+#define isalpha(ch) (isupper(ch) || islower(ch))
+#define isdigit(ch) ((ch) >= '0' && (ch) <= '9')
+#define islower(ch) ((ch) >= 'a' && (ch) <= 'z')
+#define isspace(ch)                                           \
+	(((ch) == ' ') || ((ch) == '\r') || ((ch) == '\n') || \
+	    ((ch) == '\t') || ((ch) == '\f'))
+#define isupper(ch) ((ch) >= 'A' && (ch) <= 'Z')
+#define isxdigit(ch)                                    \
+	(isdigit(ch) || ((ch) >= 'a' && (ch) <= 'f') || \
+	    ((ch) >= 'A' && (ch) <= 'F'))
 
-#endif	/* _KERNEL || _BOOT */
+#endif /* _KERNEL || _BOOT */
 
-#define	DIGIT(x)	\
+#define DIGIT(x) \
 	(isdigit(x) ? (x) - '0' : islower(x) ? (x) + 10 - 'a' : (x) + 10 - 'A')
 
-#define	MBASE	('z' - 'a' + 1 + 10)
+#define MBASE ('z' - 'a' + 1 + 10)
 
 /*
  * The following macro is a version of isalnum() that limits alphabetic
@@ -69,11 +71,11 @@ extern "C" {
  * return 1.  The members of a-z and A-Z are assumed to be in ascending order
  * and contiguous.
  */
-#define	lisalnum(x)	\
+#define lisalnum(x) \
 	(isdigit(x) || ((x) >= 'a' && (x) <= 'z') || ((x) >= 'A' && (x) <= 'Z'))
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _COMMON_UTIL_CTYPE_H */
+#endif /* _COMMON_UTIL_CTYPE_H */

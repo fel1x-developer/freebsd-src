@@ -36,7 +36,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
-  * Copyright (c) 1993 Terrence R. Lambert.
+ * Copyright (c) 1993 Terrence R. Lambert.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,11 +68,11 @@
  *
  */
 #include <sys/param.h>
-#include <sys/uio.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
-#include <sys/ioccom.h>
 #include <sys/conf.h>
+#include <sys/ioccom.h>
+#include <sys/proc.h>
+#include <sys/uio.h>
 
 #include "cdev.h"
 
@@ -91,54 +91,54 @@
  * files into a single ".o" file for use by "modload".
  */
 
-#define CDEV_IOCTL1         _IOR('C', 1, u_int)
+#define CDEV_IOCTL1 _IOR('C', 1, u_int)
 
 /* Stores string recv'd by _write() */
-static char buf[512+1];
+static char buf[512 + 1];
 static size_t len;
 
 int
 mydev_open(struct cdev *dev, int flag, int otyp, struct thread *td)
 {
-    struct proc *procp = td->td_proc;
+	struct proc *procp = td->td_proc;
 
-    printf("mydev_open: dev_t=%lu, flag=%x, otyp=%x, procp=%p\n",
-	   dev2udev(dev), flag, otyp, procp);
-    memset(&buf, '\0', 513);
-    len = 0;
-    return (0);
+	printf("mydev_open: dev_t=%lu, flag=%x, otyp=%x, procp=%p\n",
+	    dev2udev(dev), flag, otyp, procp);
+	memset(&buf, '\0', 513);
+	len = 0;
+	return (0);
 }
 
 int
 mydev_close(struct cdev *dev, int flag, int otyp, struct thread *td)
 {
-    struct proc *procp = td->td_proc;
+	struct proc *procp = td->td_proc;
 
-    printf("mydev_close: dev_t=%lu, flag=%x, otyp=%x, procp=%p\n",
-	      dev2udev(dev), flag, otyp, procp);
-    return (0);
+	printf("mydev_close: dev_t=%lu, flag=%x, otyp=%x, procp=%p\n",
+	    dev2udev(dev), flag, otyp, procp);
+	return (0);
 }
 
 int
 mydev_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int mode,
     struct thread *td)
 {
-    int error = 0;
-    struct proc *procp = td->td_proc;
+	int error = 0;
+	struct proc *procp = td->td_proc;
 
-    printf("mydev_ioctl: dev_t=%lu, cmd=%lx, arg=%p, mode=%x procp=%p\n",
-	   dev2udev(dev), cmd, arg, mode, procp);
+	printf("mydev_ioctl: dev_t=%lu, cmd=%lx, arg=%p, mode=%x procp=%p\n",
+	    dev2udev(dev), cmd, arg, mode, procp);
 
-    switch(cmd) {
-    case CDEV_IOCTL1:
-	printf("you called mydev_ioctl CDEV_IOCTL1\n");
-	break;
-    default:
-	printf("No such ioctl for me!\n");
-	error = EINVAL;
-	break;
-    }
-    return (error);
+	switch (cmd) {
+	case CDEV_IOCTL1:
+		printf("you called mydev_ioctl CDEV_IOCTL1\n");
+		break;
+	default:
+		printf("No such ioctl for me!\n");
+		error = EINVAL;
+		break;
+	}
+	return (error);
 }
 
 /*
@@ -148,16 +148,16 @@ mydev_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int mode,
 int
 mydev_write(struct cdev *dev, struct uio *uio, int ioflag)
 {
-    int err = 0;
+	int err = 0;
 
-    printf("mydev_write: dev_t=%lu, uio=%p, ioflag=%d\n",
-	dev2udev(dev), uio, ioflag);
+	printf("mydev_write: dev_t=%lu, uio=%p, ioflag=%d\n", dev2udev(dev),
+	    uio, ioflag);
 
-    err = copyinstr(uio->uio_iov->iov_base, &buf, 512, &len);
-    if (err != 0) {
-	printf("Write to \"cdev\" failed.\n");
-    }
-    return(err);
+	err = copyinstr(uio->uio_iov->iov_base, &buf, 512, &len);
+	if (err != 0) {
+		printf("Write to \"cdev\" failed.\n");
+	}
+	return (err);
 }
 
 /*
@@ -168,15 +168,15 @@ mydev_write(struct cdev *dev, struct uio *uio, int ioflag)
 int
 mydev_read(struct cdev *dev, struct uio *uio, int ioflag)
 {
-    int err = 0;
+	int err = 0;
 
-    printf("mydev_read: dev_t=%lu, uio=%p, ioflag=%d\n",
-	dev2udev(dev), uio, ioflag);
+	printf("mydev_read: dev_t=%lu, uio=%p, ioflag=%d\n", dev2udev(dev), uio,
+	    ioflag);
 
-    if (len <= 0) {
-	err = -1;
-    } else {	/* copy buf to userland */
-	copystr(&buf, uio->uio_iov->iov_base, 513, &len);
-    }
-    return(err);
+	if (len <= 0) {
+		err = -1;
+	} else { /* copy buf to userland */
+		copystr(&buf, uio->uio_iov->iov_base, 513, &len);
+	}
+	return (err);
 }

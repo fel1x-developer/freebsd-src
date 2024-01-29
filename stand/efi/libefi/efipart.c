@@ -25,20 +25,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/disk.h>
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/disk.h>
 #include <sys/queue.h>
-#include <stddef.h>
-#include <stdarg.h>
+#include <sys/time.h>
 
 #include <bootstrap.h>
-
+#include <disk.h>
 #include <efi.h>
+#include <efichar.h>
 #include <efilib.h>
 #include <efiprot.h>
-#include <efichar.h>
-#include <disk.h>
+#include <stdarg.h>
+#include <stddef.h>
 
 static EFI_GUID blkio_guid = BLOCK_IO_PROTOCOL;
 
@@ -60,12 +59,12 @@ static int efipart_printcd(int);
 static int efipart_printhd(int);
 
 /* EISA PNP ID's for floppy controllers */
-#define	PNP0604	0x604
-#define	PNP0700	0x700
-#define	PNP0701	0x701
+#define PNP0604 0x604
+#define PNP0700 0x700
+#define PNP0701 0x701
 
 /* Bounce buffer max size */
-#define	BIO_BUFFER_SIZE	0x4000
+#define BIO_BUFFER_SIZE 0x4000
 
 struct devsw efipart_fddev = {
 	.dv_name = "fd",
@@ -141,7 +140,7 @@ efiblk_get_pdinfo(struct devdesc *dev)
 	if (pdi == NULL)
 		return (pd);
 
-	STAILQ_FOREACH(pd, pdi, pd_link) {
+	STAILQ_FOREACH (pd, pdi, pd_link) {
 		if (pd->pd_unit == dev->d_unit)
 			return (pd);
 	}
@@ -176,23 +175,23 @@ efiblk_get_pdinfo_by_handle(EFI_HANDLE h)
 	/*
 	 * Check hard disks, then cd, then floppy
 	 */
-	STAILQ_FOREACH(dp, &hdinfo, pd_link) {
+	STAILQ_FOREACH (dp, &hdinfo, pd_link) {
 		if (same_handle(dp, h))
 			return (dp);
-		STAILQ_FOREACH(pp, &dp->pd_part, pd_link) {
+		STAILQ_FOREACH (pp, &dp->pd_part, pd_link) {
 			if (same_handle(pp, h))
 				return (pp);
 		}
 	}
-	STAILQ_FOREACH(dp, &cdinfo, pd_link) {
+	STAILQ_FOREACH (dp, &cdinfo, pd_link) {
 		if (same_handle(dp, h))
 			return (dp);
-		STAILQ_FOREACH(pp, &dp->pd_part, pd_link) {
+		STAILQ_FOREACH (pp, &dp->pd_part, pd_link) {
 			if (same_handle(pp, h))
 				return (pp);
 		}
 	}
-	STAILQ_FOREACH(dp, &fdinfo, pd_link) {
+	STAILQ_FOREACH (dp, &fdinfo, pd_link) {
 		if (same_handle(dp, h))
 			return (dp);
 	}
@@ -205,7 +204,7 @@ efiblk_pdinfo_count(pdinfo_list_t *pdi)
 	pdinfo_t *pd;
 	int i = 0;
 
-	STAILQ_FOREACH(pd, pdi, pd_link) {
+	STAILQ_FOREACH (pd, pdi, pd_link) {
 		i++;
 	}
 	return (i);
@@ -223,7 +222,7 @@ efipart_find_parent(pdinfo_list_t *pdi, EFI_DEVICE_PATH *devpath)
 	if (parent == NULL)
 		return (NULL);
 
-	STAILQ_FOREACH(pd, pdi, pd_link) {
+	STAILQ_FOREACH (pd, pdi, pd_link) {
 		/* We must have exact match. */
 		if (efi_devpath_match(pd->pd_devpath, parent))
 			break;
@@ -256,8 +255,7 @@ efipart_ignore_device(EFI_HANDLE h, EFI_BLOCK_IO *blkio,
 	}
 
 	/* Allowed values are 0, 1 and power of 2. */
-	if (blkio->Media->IoAlign > 1 &&
-	    !powerof2(blkio->Media->IoAlign)) {
+	if (blkio->Media->IoAlign > 1 && !powerof2(blkio->Media->IoAlign)) {
 		efi_close_devpath(h);
 		return (true);
 	}
@@ -334,7 +332,7 @@ efipart_ignore_device(EFI_HANDLE h, EFI_BLOCK_IO *blkio,
 			 * LUN or SCSI.
 			 */
 			if (DevicePathSubType(node) ==
-			    MSG_DEVICE_LOGICAL_UNIT_DP ||
+				MSG_DEVICE_LOGICAL_UNIT_DP ||
 			    DevicePathSubType(node) == MSG_SCSI_DP) {
 				efi_close_devpath(h);
 				return (true);
@@ -365,8 +363,7 @@ efipart_inithandles(void)
 		hin = malloc(sz);
 		if (hin == NULL)
 			return (ENOMEM);
-		status = BS->LocateHandle(ByProtocol, &blkio_guid, 0, &sz,
-		    hin);
+		status = BS->LocateHandle(ByProtocol, &blkio_guid, 0, &sz, hin);
 		if (EFI_ERROR(status))
 			free(hin);
 	}
@@ -413,7 +410,7 @@ efipart_inithandles(void)
 	/*
 	 * Walk pdinfo and set parents based on device path.
 	 */
-	STAILQ_FOREACH(pd, &pdinfo, pd_link) {
+	STAILQ_FOREACH (pd, &pdinfo, pd_link) {
 		pd->pd_parent = efipart_find_parent(&pdinfo, pd->pd_devpath);
 	}
 	free(hin);
@@ -428,7 +425,7 @@ efipart_get_pd(pdinfo_list_t *plist, pd_test_cb_t pd_test, pdinfo_t *data)
 {
 	pdinfo_t *pd;
 
-	STAILQ_FOREACH(pd, plist, pd_link) {
+	STAILQ_FOREACH (pd, plist, pd_link) {
 		if (pd_test(pd, data))
 			break;
 	}
@@ -443,7 +440,7 @@ efipart_floppy(EFI_DEVICE_PATH *node)
 
 	if (DevicePathType(node) == ACPI_DEVICE_PATH &&
 	    DevicePathSubType(node) == ACPI_DP) {
-		acpi = (ACPI_HID_DEVICE_PATH *) node;
+		acpi = (ACPI_HID_DEVICE_PATH *)node;
 		if (acpi->HID == EISA_PNP_ID(PNP0604) ||
 		    acpi->HID == EISA_PNP_ID(PNP0700) ||
 		    acpi->HID == EISA_PNP_ID(PNP0701)) {
@@ -516,7 +513,7 @@ efipart_cdinfo_add(pdinfo_t *cd)
 	/* Make sure we have parent added */
 	efipart_cdinfo_add(parent);
 
-	STAILQ_FOREACH(pd, &pdinfo, pd_link) {
+	STAILQ_FOREACH (pd, &pdinfo, pd_link) {
 		if (efi_devpath_match(pd->pd_devpath, cd->pd_devpath)) {
 			STAILQ_REMOVE(&pdinfo, cd, pdinfo, pd_link);
 			break;
@@ -599,12 +596,12 @@ efipart_initcd(void)
 		efipart_cdinfo_add(cd);
 
 	/* Find all children of CD devices we did add above. */
-	STAILQ_FOREACH(cd, &cdinfo, pd_link) {
+	STAILQ_FOREACH (cd, &cdinfo, pd_link) {
 		pdinfo_t *child;
 
 		for (child = efipart_get_pd(&pdinfo, efipart_testchild, cd);
-		    child != NULL;
-		    child = efipart_get_pd(&pdinfo, efipart_testchild, cd))
+		     child != NULL;
+		     child = efipart_get_pd(&pdinfo, efipart_testchild, cd))
 			efipart_cdinfo_add(child);
 	}
 	bcache_add_dev(efiblk_pdinfo_count(&cdinfo));
@@ -673,13 +670,13 @@ efipart_hdinfo_add_filepath(pdinfo_t *hd, FILEPATH_DEVICE_PATH *node)
 	 * then partitions for this disk. If this assumption proves
 	 * false, this code would need update.
 	 */
-	if (p == NULL) {	/* no colon, add the disk */
+	if (p == NULL) { /* no colon, add the disk */
 		hd->pd_devsw = &efipart_hddev;
 		STAILQ_INSERT_TAIL(&hdinfo, hd, pd_link);
 		free(pathname);
 		return;
 	}
-	p++;	/* skip the colon */
+	p++; /* skip the colon */
 	errno = 0;
 	hd->pd_unit = (int)strtol(p, NULL, 0);
 	if (errno != 0) {
@@ -721,7 +718,7 @@ efipart_hdinfo_add(pdinfo_t *hd)
 	/* Make sure we have parent added */
 	efipart_hdinfo_add(parent);
 
-	STAILQ_FOREACH(pd, &pdinfo, pd_link) {
+	STAILQ_FOREACH (pd, &pdinfo, pd_link) {
 		if (efi_devpath_match(pd->pd_devpath, hd->pd_devpath)) {
 			STAILQ_REMOVE(&pdinfo, hd, pdinfo, pd_link);
 			break;
@@ -737,8 +734,7 @@ efipart_hdinfo_add(pdinfo_t *hd)
 
 	if (DevicePathType(node) == MEDIA_DEVICE_PATH &&
 	    DevicePathSubType(node) == MEDIA_FILEPATH_DP) {
-		efipart_hdinfo_add_filepath(hd,
-		    (FILEPATH_DEVICE_PATH *)node);
+		efipart_hdinfo_add_filepath(hd, (FILEPATH_DEVICE_PATH *)node);
 		return;
 	}
 
@@ -802,9 +798,9 @@ efipart_print_common(struct devsw *dev, pdinfo_list_t *pdlist, int verbose)
 	if ((ret = pager_output("\n")) != 0)
 		return (ret);
 
-	STAILQ_FOREACH(pd, pdlist, pd_link) {
+	STAILQ_FOREACH (pd, pdlist, pd_link) {
 		h = pd->pd_handle;
-		if (verbose) {	/* Output the device path. */
+		if (verbose) { /* Output the device path. */
 			text = efi_devpath_name(efi_lookup_devpath(h));
 			if (text != NULL) {
 				printf("  %S", text);
@@ -813,14 +809,16 @@ efipart_print_common(struct devsw *dev, pdinfo_list_t *pdlist, int verbose)
 					break;
 			}
 		}
-		snprintf(line, sizeof(line),
-		    "    %s%d", dev->dv_name, pd->pd_unit);
+		snprintf(line, sizeof(line), "    %s%d", dev->dv_name,
+		    pd->pd_unit);
 		printf("%s:", line);
 		status = OpenProtocolByHandle(h, &blkio_guid, (void **)&blkio);
 		if (!EFI_ERROR(status)) {
 			printf("    %llu",
-			    blkio->Media->LastBlock == 0? 0:
-			    (unsigned long long) (blkio->Media->LastBlock + 1));
+			    blkio->Media->LastBlock == 0 ?
+				0 :
+				(unsigned long long)(blkio->Media->LastBlock +
+				    1));
 			if (blkio->Media->LastBlock != 0) {
 				printf(" X %u", blkio->Media->BlockSize);
 			}
@@ -841,8 +839,9 @@ efipart_print_common(struct devsw *dev, pdinfo_list_t *pdlist, int verbose)
 			pd_dev.dd.d_unit = pd->pd_unit;
 			pd_dev.d_slice = D_SLICENONE;
 			pd_dev.d_partition = D_PARTNONE;
-			ret = disk_open(&pd_dev, blkio->Media->BlockSize *
-			    (blkio->Media->LastBlock + 1),
+			ret = disk_open(&pd_dev,
+			    blkio->Media->BlockSize *
+				(blkio->Media->LastBlock + 1),
 			    blkio->Media->BlockSize);
 			if (ret == 0) {
 				ret = disk_print(&pd_dev, line, verbose);
@@ -1041,8 +1040,8 @@ efipart_readwrite(EFI_BLOCK_IO *blkio, int rw, daddr_t blk, daddr_t nblks,
 }
 
 static int
-efipart_strategy(void *devdata, int rw, daddr_t blk, size_t size,
-    char *buf, size_t *rsize)
+efipart_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct bcache_devdata bcd;
 	struct disk_devdesc *dev;
@@ -1069,15 +1068,15 @@ efipart_strategy(void *devdata, int rw, daddr_t blk, size_t size,
 
 		offset = dev->d_offset * pd->pd_blkio->Media->BlockSize;
 		offset /= 512;
-		return (bcache_strategy(&bcd, rw, blk + offset,
-		    size, buf, rsize));
+		return (
+		    bcache_strategy(&bcd, rw, blk + offset, size, buf, rsize));
 	}
 	return (bcache_strategy(&bcd, rw, blk, size, buf, rsize));
 }
 
 static int
-efipart_realstrategy(void *devdata, int rw, daddr_t blk, size_t size,
-    char *buf, size_t *rsize)
+efipart_realstrategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct disk_devdesc *dev = (struct disk_devdesc *)devdata;
 	pdinfo_t *pd;
@@ -1151,7 +1150,7 @@ efipart_realstrategy(void *devdata, int rw, daddr_t blk, size_t size,
 
 	if (need_buf) {
 		for (bio_size = BIO_BUFFER_SIZE; bio_size > 0;
-		    bio_size -= blkio->Media->BlockSize) {
+		     bio_size -= blkio->Media->BlockSize) {
 			blkbuf = memalign(ioalign, bio_size);
 			if (blkbuf != NULL)
 				break;

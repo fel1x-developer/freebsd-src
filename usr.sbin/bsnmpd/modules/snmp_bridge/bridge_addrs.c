@@ -29,27 +29,26 @@
  * Bridge addresses.
  */
 
+#include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_mib.h>
 
 #include <assert.h>
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "bridge_tree.h"
+#define SNMPTREE_TYPES
 #include "bridge_snmp.h"
+#include "bridge_tree.h"
 
 TAILQ_HEAD(tp_entries, tp_entry);
 
@@ -72,8 +71,7 @@ bridge_tpe_free(struct tp_entries *headp)
  * for the specified bridge interface only.
  */
 static void
-bridge_tpe_bif_free(struct tp_entries *headp,
-	struct bridge_if *bif)
+bridge_tpe_bif_free(struct tp_entries *headp, struct bridge_if *bif)
 {
 	struct tp_entry *tp;
 
@@ -112,16 +110,15 @@ bridge_compare_macs(const uint8_t *m1, const uint8_t *m2)
  * interface. Update the first bridge address if necessary.
  */
 static void
-bridge_addrs_insert_at(struct tp_entries *headp,
-	struct tp_entry *ta, struct tp_entry **f_tpa)
+bridge_addrs_insert_at(struct tp_entries *headp, struct tp_entry *ta,
+    struct tp_entry **f_tpa)
 {
 	struct tp_entry *t1;
 
 	assert(f_tpa != NULL);
 
-	for (t1 = *f_tpa;
-	    t1 != NULL && ta->sysindex == t1->sysindex;
-	    t1 = TAILQ_NEXT(t1, tp_e)) {
+	for (t1 = *f_tpa; t1 != NULL && ta->sysindex == t1->sysindex;
+	     t1 = TAILQ_NEXT(t1, tp_e)) {
 		if (bridge_compare_macs(ta->tp_addr, t1->tp_addr) < 0) {
 			TAILQ_INSERT_BEFORE(t1, ta, tp_e);
 			if (*f_tpa == t1)
@@ -274,7 +271,7 @@ bridge_new_addrs(uint8_t *mac, struct bridge_if *bif)
 {
 	struct tp_entry *te;
 
-	if ((te = (struct tp_entry *) malloc(sizeof(*te))) == NULL) {
+	if ((te = (struct tp_entry *)malloc(sizeof(*te))) == NULL) {
 		syslog(LOG_ERR, "bridge new address: failed: %s",
 		    strerror(errno));
 		return (NULL);
@@ -318,7 +315,7 @@ bridge_addrs_dump(struct bridge_if *bif)
 
 	syslog(LOG_ERR, "Addresses count - %d", bif->num_addrs);
 	for (te = bridge_addrs_bif_first(bif); te != NULL;
-	    te = bridge_addrs_bif_next(te)) {
+	     te = bridge_addrs_bif_next(te)) {
 		syslog(LOG_ERR, "address %x:%x:%x:%x:%x:%x on port %d.%d",
 		    te->tp_addr[0], te->tp_addr[1], te->tp_addr[2],
 		    te->tp_addr[3], te->tp_addr[4], te->tp_addr[5],
@@ -335,7 +332,7 @@ bridge_addrs_dump(struct bridge_if *bif)
  */
 static void
 bridge_addrs_index_append(struct asn_oid *oid, uint sub,
-	const struct tp_entry *te)
+    const struct tp_entry *te)
 {
 	int i;
 
@@ -350,8 +347,7 @@ bridge_addrs_index_append(struct asn_oid *oid, uint sub,
  * Find the address entry for the SNMP index from the default bridge only.
  */
 static struct tp_entry *
-bridge_addrs_get(const struct asn_oid *oid, uint sub,
-	struct bridge_if *bif)
+bridge_addrs_get(const struct asn_oid *oid, uint sub, struct bridge_if *bif)
 {
 	int i;
 	uint8_t tp_addr[ETHER_ADDR_LEN];
@@ -371,8 +367,7 @@ bridge_addrs_get(const struct asn_oid *oid, uint sub,
  * from the default bridge only.
  */
 static struct tp_entry *
-bridge_addrs_getnext(const struct asn_oid *oid, uint sub,
-	struct bridge_if *bif)
+bridge_addrs_getnext(const struct asn_oid *oid, uint sub, struct bridge_if *bif)
 {
 	int i;
 	uint8_t tp_addr[ETHER_ADDR_LEN];
@@ -396,7 +391,7 @@ bridge_addrs_getnext(const struct asn_oid *oid, uint sub,
 
 int
 op_dot1d_tp_fdb(struct snmp_context *c __unused, struct snmp_value *val,
-	uint sub, uint iidx __unused, enum snmp_op op)
+    uint sub, uint iidx __unused, enum snmp_op op)
 {
 	struct bridge_if *bif;
 	struct tp_entry *te;
@@ -409,36 +404,36 @@ op_dot1d_tp_fdb(struct snmp_context *c __unused, struct snmp_value *val,
 		return (SNMP_ERR_NOSUCHNAME);
 
 	switch (op) {
-	    case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		if ((te = bridge_addrs_get(&val->var, sub, bif)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
-	    case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		if ((te = bridge_addrs_getnext(&val->var, sub, bif)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		bridge_addrs_index_append(&val->var, sub, te);
 		goto get;
 
-	    case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	    case SNMP_OP_ROLLBACK:
-	    case SNMP_OP_COMMIT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
 		break;
 	}
 	abort();
 
 get:
 	switch (val->var.subs[sub - 1]) {
-		case LEAF_dot1dTpFdbAddress:
-			return (string_get(val, te->tp_addr, ETHER_ADDR_LEN));
-		case LEAF_dot1dTpFdbPort :
-			val->v.integer = te->port_no;
-			return (SNMP_ERR_NOERROR);
-		case LEAF_dot1dTpFdbStatus:
-			val->v.integer = te->status;
-			return (SNMP_ERR_NOERROR);
+	case LEAF_dot1dTpFdbAddress:
+		return (string_get(val, te->tp_addr, ETHER_ADDR_LEN));
+	case LEAF_dot1dTpFdbPort:
+		val->v.integer = te->port_no;
+		return (SNMP_ERR_NOERROR);
+	case LEAF_dot1dTpFdbStatus:
+		val->v.integer = te->status;
+		return (SNMP_ERR_NOERROR);
 	}
 
 	abort();
@@ -454,7 +449,7 @@ get:
  */
 static int
 bridge_addrs_begemot_index_append(struct asn_oid *oid, uint sub,
-	const struct tp_entry *te)
+    const struct tp_entry *te)
 {
 	uint i, n_len;
 	const char *b_name;
@@ -470,7 +465,7 @@ bridge_addrs_begemot_index_append(struct asn_oid *oid, uint sub,
 		oid->subs[oid->len++] = b_name[i - 1];
 
 	oid->subs[oid->len++] = ETHER_ADDR_LEN;
-	for (i = 1 ; i <= ETHER_ADDR_LEN; i++)
+	for (i = 1; i <= ETHER_ADDR_LEN; i++)
 		oid->subs[oid->len++] = te->tp_addr[i - 1];
 
 	return (0);
@@ -489,8 +484,8 @@ bridge_addrs_begemot_get(const struct asn_oid *oid, uint sub)
 	struct bridge_if *bif;
 
 	n_len = oid->subs[sub];
-	if (oid->len - sub != n_len + ETHER_ADDR_LEN + 3 ||
-	    n_len >= IFNAMSIZ || oid->subs[sub + n_len + 1] != ETHER_ADDR_LEN)
+	if (oid->len - sub != n_len + ETHER_ADDR_LEN + 3 || n_len >= IFNAMSIZ ||
+	    oid->subs[sub + n_len + 1] != ETHER_ADDR_LEN)
 		return (NULL);
 
 	for (i = 0; i < n_len; i++)
@@ -523,8 +518,8 @@ bridge_addrs_begemot_getnext(const struct asn_oid *oid, uint sub)
 		return (bridge_addrs_first());
 
 	n_len = oid->subs[sub];
-	if (oid->len - sub != n_len + ETHER_ADDR_LEN + 2 ||
-	    n_len >= IFNAMSIZ || oid->subs[sub + n_len + 1] != ETHER_ADDR_LEN)
+	if (oid->len - sub != n_len + ETHER_ADDR_LEN + 2 || n_len >= IFNAMSIZ ||
+	    oid->subs[sub + n_len + 1] != ETHER_ADDR_LEN)
 		return (NULL);
 
 	for (i = 1; i <= n_len; i++)
@@ -544,7 +539,7 @@ bridge_addrs_begemot_getnext(const struct asn_oid *oid, uint sub)
 
 int
 op_begemot_tp_fdb(struct snmp_context *c __unused, struct snmp_value *val,
-	uint sub, uint iidx __unused, enum snmp_op op)
+    uint sub, uint iidx __unused, enum snmp_op op)
 {
 	struct tp_entry *te;
 
@@ -552,36 +547,35 @@ op_begemot_tp_fdb(struct snmp_context *c __unused, struct snmp_value *val,
 		bridge_update_all_addrs();
 
 	switch (op) {
-	    case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		if ((te = bridge_addrs_begemot_get(&val->var, sub)) == NULL)
-		    return (SNMP_ERR_NOSUCHNAME);
-		goto get;
-
-	    case SNMP_OP_GETNEXT:
-		if ((te = bridge_addrs_begemot_getnext(&val->var,
-		    sub)) == NULL ||
-		    bridge_addrs_begemot_index_append(&val->var,
-		    sub, te) < 0)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
-	    case SNMP_OP_SET:
+	case SNMP_OP_GETNEXT:
+		if ((te = bridge_addrs_begemot_getnext(&val->var, sub)) ==
+			NULL ||
+		    bridge_addrs_begemot_index_append(&val->var, sub, te) < 0)
+			return (SNMP_ERR_NOSUCHNAME);
+		goto get;
+
+	case SNMP_OP_SET:
 		return (SNMP_ERR_NOT_WRITEABLE);
 
-	    case SNMP_OP_ROLLBACK:
-	    case SNMP_OP_COMMIT:
+	case SNMP_OP_ROLLBACK:
+	case SNMP_OP_COMMIT:
 		break;
 	}
 	abort();
 
 get:
 	switch (val->var.subs[sub - 1]) {
-	    case LEAF_begemotBridgeTpFdbAddress:
+	case LEAF_begemotBridgeTpFdbAddress:
 		return (string_get(val, te->tp_addr, ETHER_ADDR_LEN));
-	    case LEAF_begemotBridgeTpFdbPort:
+	case LEAF_begemotBridgeTpFdbPort:
 		val->v.integer = te->port_no;
 		return (SNMP_ERR_NOERROR);
-	    case LEAF_begemotBridgeTpFdbStatus:
+	case LEAF_begemotBridgeTpFdbStatus:
 		val->v.integer = te->status;
 		return (SNMP_ERR_NOERROR);
 	}

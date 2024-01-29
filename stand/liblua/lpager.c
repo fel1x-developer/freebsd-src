@@ -24,7 +24,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <lua.h>
+
 #include "lauxlib.h"
 
 /* Open the pager.  No arguments, no return value. */
@@ -47,7 +49,7 @@ lpager_output(lua_State *L)
 	int i;
 
 	for (i = 1; i <= lua_gettop(L); i++) {
-		outstr = luaL_tolstring(L,  i, NULL);
+		outstr = luaL_tolstring(L, i, NULL);
 		pager_output(outstr);
 		lua_pop(L, -1);
 	}

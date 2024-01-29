@@ -29,9 +29,11 @@
 
 #include <sys/param.h>
 #include <sys/ucred.h>
-#define	_WANT_FREEBSD11_STATFS
+#define _WANT_FREEBSD11_STATFS
 #include <sys/mount.h>
+
 #include <stdlib.h>
+
 #include "gen-compat.h"
 
 /*
@@ -63,4 +65,4 @@ freebsd11_getmntinfo(struct freebsd11_statfs **mntbufp, int flags)
 	return (mntsize);
 }
 
-__sym_compat(getmntinfo, freebsd11_getmntinfo, FBSD_1.0);
+__sym_compat(getmntinfo, freebsd11_getmntinfo, FBSD_1 .0);

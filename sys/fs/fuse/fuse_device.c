@@ -62,36 +62,36 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/errno.h>
-#include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/sx.h>
-#include <sys/mutex.h>
-#include <sys/proc.h>
-#include <sys/mount.h>
-#include <sys/sdt.h>
-#include <sys/stat.h>
+#include <sys/errno.h>
 #include <sys/fcntl.h>
-#include <sys/sysctl.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
 #include <sys/poll.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sdt.h>
 #include <sys/selinfo.h>
+#include <sys/stat.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+
+#include <compat/linux/linux_errno.h>
 
 #include "fuse.h"
 #include "fuse_internal.h"
 #include "fuse_ipc.h"
 
-#include <compat/linux/linux_errno.h>
 #include <compat/linux/linux_errno.inc>
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -205,7 +205,7 @@ fuse_device_filt_detach(struct knote *kn)
 {
 	struct fuse_data *data;
 
-	data = (struct fuse_data*)kn->kn_hook;
+	data = (struct fuse_data *)kn->kn_hook;
 	MPASS(data != NULL);
 	knlist_remove(&data->ks_rsel.si_note, kn, 0);
 	kn->kn_hook = NULL;
@@ -217,7 +217,7 @@ fuse_device_filt_read(struct knote *kn, long hint)
 	struct fuse_data *data;
 	int ready;
 
-	data = (struct fuse_data*)kn->kn_hook;
+	data = (struct fuse_data *)kn->kn_hook;
 	MPASS(data != NULL);
 
 	mtx_assert(&data->ms_mtx, MA_OWNED);
@@ -276,7 +276,7 @@ fuse_device_poll(struct cdev *dev, int events, struct thread *td)
 	error = devfs_get_cdevpriv((void **)&data);
 	if (error != 0)
 		return (events &
-		    (POLLHUP|POLLIN|POLLRDNORM|POLLOUT|POLLWRNORM));
+		    (POLLHUP | POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM));
 
 	if (events & (POLLIN | POLLRDNORM)) {
 		fuse_lck_mtx_lock(data->ms_mtx);
@@ -316,8 +316,8 @@ fuse_device_read(struct cdev *dev, struct uio *uio, int ioflag)
 again:
 	if (fdata_get_dead(data)) {
 		SDT_PROBE2(fusefs, , device, trace, 2,
-			"we know early on that reader should be kicked so we "
-			"don't wait for news");
+		    "we know early on that reader should be kicked so we "
+		    "don't wait for news");
 		fuse_lck_mtx_unlock(data->ms_mtx);
 		return (ENODEV);
 	}
@@ -354,18 +354,19 @@ again:
 		 * wants this liaison finished off
 		 */
 		SDT_PROBE2(fusefs, , device, trace, 2,
-			"reader is to be sacked");
+		    "reader is to be sacked");
 		if (tick) {
-			SDT_PROBE2(fusefs, , device, trace, 2, "weird -- "
-				"\"kick\" is set tho there is message");
+			SDT_PROBE2(fusefs, , device, trace, 2,
+			    "weird -- "
+			    "\"kick\" is set tho there is message");
 			FUSE_ASSERT_MS_DONE(tick);
 			fuse_ticket_drop(tick);
 		}
-		return (ENODEV);	/* This should make the daemon get off
-					 * of us */
+		return (ENODEV); /* This should make the daemon get off
+				  * of us */
 	}
 	SDT_PROBE2(fusefs, , device, trace, 1,
-		"fuse device read message successfully");
+	    "fuse device read message successfully");
 
 	buf = tick->tk_ms_fiov.base;
 	buflen = tick->tk_ms_fiov.len;
@@ -401,13 +402,13 @@ fuse_ohead_audit(struct fuse_out_header *ohead, struct uio *uio)
 {
 	if (uio->uio_resid + sizeof(struct fuse_out_header) != ohead->len) {
 		SDT_PROBE2(fusefs, , device, trace, 1,
-			"Format error: body size "
-			"differs from size claimed by header");
+		    "Format error: body size "
+		    "differs from size claimed by header");
 		return (EINVAL);
 	}
 	if (uio->uio_resid && ohead->unique != 0 && ohead->error) {
-		SDT_PROBE2(fusefs, , device, trace, 1, 
-			"Format error: non zero error but message had a body");
+		SDT_PROBE2(fusefs, , device, trace, 1,
+		    "Format error: non zero error but message had a body");
 		return (EINVAL);
 	}
 
@@ -415,11 +416,11 @@ fuse_ohead_audit(struct fuse_out_header *ohead, struct uio *uio)
 }
 
 SDT_PROBE_DEFINE1(fusefs, , device, fuse_device_write_notify,
-	"struct fuse_out_header*");
+    "struct fuse_out_header*");
 SDT_PROBE_DEFINE1(fusefs, , device, fuse_device_write_missing_ticket,
-	"uint64_t");
+    "uint64_t");
 SDT_PROBE_DEFINE1(fusefs, , device, fuse_device_write_found,
-	"struct fuse_ticket*");
+    "struct fuse_ticket*");
 /*
  * fuse_device_write first reads the header sent by the daemon.
  * If that's OK, looks up ticket/callback node by the unique id seen in header.
@@ -443,7 +444,7 @@ fuse_device_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	if (uio->uio_resid < sizeof(struct fuse_out_header)) {
 		SDT_PROBE2(fusefs, , device, trace, 1,
-			"fuse_device_write got less than a header!");
+		    "fuse_device_write got less than a header!");
 		fdata_set_dead(data);
 		return (EINVAL);
 	}
@@ -474,23 +475,21 @@ fuse_device_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	/* Looking for ticket with the unique id of header */
 	fuse_lck_mtx_lock(data->aw_mtx);
-	TAILQ_FOREACH_SAFE(tick, &data->aw_head, tk_aw_link,
-	    x_tick) {
+	TAILQ_FOREACH_SAFE (tick, &data->aw_head, tk_aw_link, x_tick) {
 		if (tick->tk_unique == ohead.unique) {
 			SDT_PROBE1(fusefs, , device, fuse_device_write_found,
-				tick);
+			    tick);
 			found = 1;
 			fuse_aw_remove(tick);
 			break;
 		}
 	}
 	if (found && tick->irq_unique > 0) {
-		/* 
+		/*
 		 * Discard the FUSE_INTERRUPT ticket that tried to interrupt
 		 * this operation
 		 */
-		TAILQ_FOREACH_SAFE(itick, &data->aw_head, tk_aw_link,
-		    x_tick) {
+		TAILQ_FOREACH_SAFE (itick, &data->aw_head, tk_aw_link, x_tick) {
 			if (itick->tk_unique == tick->irq_unique) {
 				fuse_aw_remove(itick);
 				fuse_ticket_drop(itick);
@@ -512,25 +511,25 @@ fuse_device_write(struct cdev *dev, struct uio *uio, int ioflag)
 			 * around...)
 			 */
 			SDT_PROBE2(fusefs, , device, trace, 1,
-				"pass ticket to a callback");
+			    "pass ticket to a callback");
 			/* Sanitize the linuxism of negative errnos */
 			ohead.error *= -1;
 			if (ohead.error < 0 || ohead.error > ELAST) {
 				/* Illegal error code */
 				ohead.error = EIO;
 				memcpy(&tick->tk_aw_ohead, &ohead,
-					sizeof(ohead));
+				    sizeof(ohead));
 				tick->tk_aw_handler(tick, uio);
 				err = EINVAL;
 			} else {
 				memcpy(&tick->tk_aw_ohead, &ohead,
-					sizeof(ohead));
+				    sizeof(ohead));
 				err = tick->tk_aw_handler(tick, uio);
 			}
 		} else {
 			/* pretender doesn't wanna do anything with answer */
 			SDT_PROBE2(fusefs, , device, trace, 1,
-				"stuff devalidated, so we drop it");
+			    "stuff devalidated, so we drop it");
 		}
 
 		/*
@@ -539,7 +538,7 @@ fuse_device_write(struct cdev *dev, struct uio *uio, int ioflag)
 		 * because fuse_ticket_drop() will deal with refcount anyway.
 		 */
 		fuse_ticket_drop(tick);
-	} else if (ohead.unique == 0){
+	} else if (ohead.unique == 0) {
 		/* unique == 0 means asynchronous notification */
 		SDT_PROBE1(fusefs, , device, fuse_device_write_notify, &ohead);
 		switch (ohead.error) {
@@ -568,10 +567,10 @@ fuse_device_write(struct cdev *dev, struct uio *uio, int ioflag)
 		}
 	} else {
 		/* no callback at all! */
-		SDT_PROBE1(fusefs, , device, fuse_device_write_missing_ticket, 
-			ohead.unique);
+		SDT_PROBE1(fusefs, , device, fuse_device_write_missing_ticket,
+		    ohead.unique);
 		if (ohead.error == -EAGAIN) {
-			/* 
+			/*
 			 * This was probably a response to a FUSE_INTERRUPT
 			 * operation whose original operation is already
 			 * complete.  We can't store FUSE_INTERRUPT tickets

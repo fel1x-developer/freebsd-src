@@ -30,18 +30,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
 #include <dev/bhnd/bhnd_ids.h>
-#include <dev/bhnd/bhndb/bhndbvar.h>
 #include <dev/bhnd/bhndb/bhndb_hwdata.h>
-
-#include "bcmavar.h"
+#include <dev/bhnd/bhndb/bhndbvar.h>
 
 #include "bcma_eromreg.h"
 #include "bcma_eromvar.h"
+#include "bcmavar.h"
 
 /*
  * Supports attachment of bcma(4) bus devices via a bhndb bridge.
@@ -50,8 +49,8 @@
 static int
 bcma_bhndb_probe(device_t dev)
 {
-	const struct bhnd_chipid	*cid;
-	int				 error;
+	const struct bhnd_chipid *cid;
+	int error;
 
 	/* Defer to default probe implementation */
 	if ((error = bcma_probe(dev)) > 0)
@@ -91,8 +90,8 @@ failed:
 static int
 bcma_bhndb_suspend_child(device_t dev, device_t child)
 {
-	struct bcma_devinfo	*dinfo;
-	int			 error;
+	struct bcma_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_SUSPEND_CHILD(device_get_parent(dev), child);
@@ -117,8 +116,8 @@ bcma_bhndb_suspend_child(device_t dev, device_t child)
 static int
 bcma_bhndb_resume_child(device_t dev, device_t child)
 {
-	struct bcma_devinfo	*dinfo;
-	int			 error;
+	struct bcma_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_SUSPEND_CHILD(device_get_parent(dev), child);
@@ -152,12 +151,12 @@ bcma_bhndb_resume_child(device_t dev, device_t child)
 
 static device_method_t bcma_bhndb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			bcma_bhndb_probe),
-	DEVMETHOD(device_attach,		bcma_bhndb_attach),
+	DEVMETHOD(device_probe, bcma_bhndb_probe),
+	DEVMETHOD(device_attach, bcma_bhndb_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_suspend_child,		bcma_bhndb_suspend_child),
-	DEVMETHOD(bus_resume_child,		bcma_bhndb_resume_child),
+	DEVMETHOD(bus_suspend_child, bcma_bhndb_suspend_child),
+	DEVMETHOD(bus_resume_child, bcma_bhndb_resume_child),
 
 	DEVMETHOD_END
 };

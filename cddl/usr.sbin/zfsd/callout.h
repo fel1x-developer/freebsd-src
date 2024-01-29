@@ -61,10 +61,8 @@ typedef void CalloutFunc_t(void *);
  * Periodic actions can be triggered via the Callout mechanisms by
  * resetting the Callout from within its callback.
  */
-class Callout
-{
-public:
-
+class Callout {
+    public:
 	/**
 	 * Initialize the Callout subsystem.
 	 */
@@ -117,7 +115,7 @@ public:
 	 *                    reset request.
 	 *          In all cases, a new callout is established.
 	 */
-	bool  Reset(const timeval &interval, CalloutFunc_t *func, void *arg);
+	bool Reset(const timeval &interval, CalloutFunc_t *func, void *arg);
 
 	/**
 	 * \brief Calculate the remaining time until this Callout's timer
@@ -130,7 +128,7 @@ public:
 	 */
 	timeval TimeRemaining() const;
 
-private:
+    private:
 	/**
 	 * All active callouts sorted by expiration time.  The callout
 	 * with the nearest expiration time is at the head of the list.
@@ -142,25 +140,25 @@ private:
 	 * signal handler context and tested from Zfsd::EventLoop()
 	 * context via ExpireCallouts().
 	 */
-	static bool                 s_alarmFired;
+	static bool s_alarmFired;
 
 	/**
 	 * Time, relative to others in the active list, until
 	 * this callout is fired.
 	 */
-	timeval                     m_interval;
+	timeval m_interval;
 
 	/** Callback function argument. */
-	void                       *m_arg;
+	void *m_arg;
 
 	/**
 	 * The callback function associated with this timer
 	 * entry.
 	 */
-	CalloutFunc_t              *m_func;
+	CalloutFunc_t *m_func;
 
 	/** State of this callout. */
-	bool                        m_pending;
+	bool m_pending;
 };
 
 //- Callout public const methods ----------------------------------------------
@@ -171,11 +169,10 @@ Callout::IsPending() const
 }
 
 //- Callout public methods ----------------------------------------------------
-inline
-Callout::Callout()
- : m_arg(0),
-   m_func(NULL),
-   m_pending(false)
+inline Callout::Callout()
+    : m_arg(0)
+    , m_func(NULL)
+    , m_pending(false)
 {
 	timerclear(&m_interval);
 }

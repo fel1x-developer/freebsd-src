@@ -34,27 +34,23 @@ struct _dirdesc;
 typedef struct _dirdesc DIR;
 
 /* Nanoseconds to sleep, for tests that must */
-#define NAP_NS	(100'000'000)
+#define NAP_NS (100'000'000)
 
 void get_unprivileged_id(uid_t *uid, gid_t *gid);
-inline void nap()
+inline void
+nap()
 {
 	usleep(NAP_NS / 1000);
 }
 
-enum cache_mode {
-	Uncached,
-	Writethrough,
-	Writeback,
-	WritebackAsync
-};
+enum cache_mode { Uncached, Writethrough, Writeback, WritebackAsync };
 
 const char *cache_mode_to_s(enum cache_mode cm);
 bool is_unsafe_aio_enabled(void);
 
 extern const uint32_t libfuse_max_write;
 class FuseTest : public ::testing::Test {
-	protected:
+    protected:
 	uint32_t m_maxreadahead;
 	uint32_t m_maxwrite;
 	uint32_t m_init_flags;
@@ -75,34 +71,36 @@ class FuseTest : public ::testing::Test {
 	const char *m_fsname;
 	const char *m_subtype;
 
-	public:
+    public:
 	int m_maxbcachebuf;
 	int m_maxphys;
 
-	FuseTest():
-		m_maxreadahead(0),
-		m_maxwrite(0),
-		m_init_flags(0),
-		m_allow_other(false),
-		m_default_permissions(false),
-		m_kernel_minor_version(FUSE_KERNEL_MINOR_VERSION),
-		m_pm(BLOCKING),
-		m_noatime(false),
-		m_push_symlinks_in(false),
-		m_ro(false),
-		m_async(false),
-		m_noclusterr(false),
-		m_nointr(false),
-		m_time_gran(1),
-		m_fsname(""),
-		m_subtype(""),
-		m_maxbcachebuf(0),
-		m_maxphys(0)
-	{}
+	FuseTest()
+	    : m_maxreadahead(0)
+	    , m_maxwrite(0)
+	    , m_init_flags(0)
+	    , m_allow_other(false)
+	    , m_default_permissions(false)
+	    , m_kernel_minor_version(FUSE_KERNEL_MINOR_VERSION)
+	    , m_pm(BLOCKING)
+	    , m_noatime(false)
+	    , m_push_symlinks_in(false)
+	    , m_ro(false)
+	    , m_async(false)
+	    , m_noclusterr(false)
+	    , m_nointr(false)
+	    , m_time_gran(1)
+	    , m_fsname("")
+	    , m_subtype("")
+	    , m_maxbcachebuf(0)
+	    , m_maxphys(0)
+	{
+	}
 
 	virtual void SetUp();
 
-	virtual void TearDown() {
+	virtual void TearDown()
+	{
 		if (m_mock)
 			delete m_mock;
 	}
@@ -122,7 +120,7 @@ class FuseTest : public ::testing::Test {
 	 * returning error
 	 */
 	void expect_fallocate(uint64_t ino, uint64_t offset, uint64_t length,
-		uint32_t mode, int error, int times=1);
+	    uint32_t mode, int error, int times = 1);
 
 	/*
 	 * Create an expectation that FUSE_FLUSH will be called times times for
@@ -156,13 +154,13 @@ class FuseTest : public ::testing::Test {
 	 * with inode ino, mode mode, filesize size.
 	 */
 	void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
-		uint64_t size, int times, uint64_t attr_valid = UINT64_MAX,
-		uid_t uid = 0, gid_t gid = 0);
+	    uint64_t size, int times, uint64_t attr_valid = UINT64_MAX,
+	    uid_t uid = 0, gid_t gid = 0);
 
 	/* The protocol 7.8 version of expect_lookup */
 	void expect_lookup_7_8(const char *relpath, uint64_t ino, mode_t mode,
-		uint64_t size, int times, uint64_t attr_valid = UINT64_MAX,
-		uid_t uid = 0, gid_t gid = 0);
+	    uint64_t size, int times, uint64_t attr_valid = UINT64_MAX,
+	    uid_t uid = 0, gid_t gid = 0);
 
 	/*
 	 * Create an expectation that FUSE_OPEN will be called for the given
@@ -186,8 +184,8 @@ class FuseTest : public ::testing::Test {
 	 * nothing currently validates the size of the fuse_read_in struct.
 	 */
 	void expect_read(uint64_t ino, uint64_t offset, uint64_t isize,
-		uint64_t osize, const void *contents, int flags = -1,
-		uint64_t fh = FH);
+	    uint64_t osize, const void *contents, int flags = -1,
+	    uint64_t fh = FH);
 
 	/*
 	 * Create an expectation that FUSE_READIR will be called any number of
@@ -195,9 +193,9 @@ class FuseTest : public ::testing::Test {
 	 * the provided entries
 	 */
 	void expect_readdir(uint64_t ino, uint64_t off,
-		std::vector<struct dirent> &ents);
+	    std::vector<struct dirent> &ents);
 
-	/* 
+	/*
 	 * Create an expectation that FUSE_RELEASE will be called exactly once
 	 * for the given inode and filehandle, returning success
 	 */
@@ -223,12 +221,12 @@ class FuseTest : public ::testing::Test {
 	 * It will return osize.
 	 */
 	void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
-		uint64_t osize, uint32_t flags_set, uint32_t flags_unset,
-		const void *contents);
+	    uint64_t osize, uint32_t flags_set, uint32_t flags_unset,
+	    const void *contents);
 
 	/* Protocol 7.8 version of expect_write */
 	void expect_write_7_8(uint64_t ino, uint64_t offset, uint64_t isize,
-		uint64_t osize, const void *contents);
+	    uint64_t osize, const void *contents);
 
 	/*
 	 * Helper that runs code in a child process.
@@ -245,8 +243,7 @@ class FuseTest : public ::testing::Test {
 	 * be returned in status.
 	 */
 	void fork(bool drop_privs, int *status,
-		std::function<void()> parent_func,
-		std::function<int()> child_func);
+	    std::function<void()> parent_func, std::function<int()> child_func);
 
 	/*
 	 * Deliberately leak a file descriptor.
@@ -259,14 +256,14 @@ class FuseTest : public ::testing::Test {
 	 * for static analyzers.
 	 */
 	/* coverity[+close: arg-0] */
-	static void leak(int fd __unused) {}
+	static void leak(int fd __unused) { }
 
 	/*
 	 * Deliberately leak a DIR* pointer
 	 *
 	 * See comments for FuseTest::leak
 	 */
-	static void leakdir(DIR* dirp __unused) {}
+	static void leakdir(DIR *dirp __unused) { }
 
 	/* Manually reclaim a vnode.  Requires root privileges. */
 	void reclaim_vnode(const char *fullpath);

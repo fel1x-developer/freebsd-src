@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <efi.h>
 #include <efilib.h>
 
@@ -40,8 +41,8 @@ struct entry *entry;
 int nentries;
 
 int
-efi_register_handles(struct devsw *sw, EFI_HANDLE *handles,
-    EFI_HANDLE *aliases, int count)
+efi_register_handles(struct devsw *sw, EFI_HANDLE *handles, EFI_HANDLE *aliases,
+    int count)
 {
 	size_t sz;
 	int idx, unit;
@@ -99,8 +100,7 @@ efi_handle_lookup(EFI_HANDLE h, struct devsw **dev, int *unit, uint64_t *extra)
 }
 
 int
-efi_handle_update_dev(EFI_HANDLE h, struct devsw *dev, int unit,
-    uint64_t guid)
+efi_handle_update_dev(EFI_HANDLE h, struct devsw *dev, int unit, uint64_t guid)
 {
 	int idx;
 

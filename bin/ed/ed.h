@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <regex.h>
@@ -35,133 +36,138 @@
 #include <string.h>
 #include <unistd.h>
 
-#define ERR		(-2)
-#define EMOD		(-3)
-#define FATAL		(-4)
+#define ERR (-2)
+#define EMOD (-3)
+#define FATAL (-4)
 
-#define MINBUFSZ 512		/* minimum buffer size - must be > 0 */
-#define SE_MAX 30		/* max subexpressions in a regular expression */
+#define MINBUFSZ 512 /* minimum buffer size - must be > 0 */
+#define SE_MAX 30    /* max subexpressions in a regular expression */
 #ifdef INT_MAX
-# define LINECHARS INT_MAX	/* max chars per line */
+#define LINECHARS INT_MAX /* max chars per line */
 #else
-# define LINECHARS MAXINT	/* max chars per line */
+#define LINECHARS MAXINT /* max chars per line */
 #endif
 
 /* gflags */
-#define GLB 001		/* global command */
-#define GPR 002		/* print after command */
-#define GLS 004		/* list after command */
-#define GNP 010		/* enumerate after command */
-#define GSG 020		/* global substitute */
+#define GLB 001 /* global command */
+#define GPR 002 /* print after command */
+#define GLS 004 /* list after command */
+#define GNP 010 /* enumerate after command */
+#define GSG 020 /* global substitute */
 
 typedef regex_t pattern_t;
 
 /* Line node */
-typedef struct	line {
-	struct line	*q_forw;
-	struct line	*q_back;
-	off_t		seek;		/* address of line in scratch buffer */
-	int		len;		/* length of line */
+typedef struct line {
+	struct line *q_forw;
+	struct line *q_back;
+	off_t seek; /* address of line in scratch buffer */
+	int len;    /* length of line */
 } line_t;
-
 
 typedef struct undo {
 
 /* type of undo nodes */
-#define UADD	0
-#define UDEL 	1
-#define UMOV	2
-#define VMOV	3
+#define UADD 0
+#define UDEL 1
+#define UMOV 2
+#define VMOV 3
 
-	int type;			/* command type */
-	line_t	*h;			/* head of list */
-	line_t  *t;			/* tail of list */
+	int type;  /* command type */
+	line_t *h; /* head of list */
+	line_t *t; /* tail of list */
 } undo_t;
 
 #ifndef max
-# define max(a,b) ((a) > (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 #endif
 #ifndef min
-# define min(a,b) ((a) < (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
-#define INC_MOD(l, k)	((l) + 1 > (k) ? 0 : (l) + 1)
-#define DEC_MOD(l, k)	((l) - 1 < 0 ? (k) : (l) - 1)
+#define INC_MOD(l, k) ((l) + 1 > (k) ? 0 : (l) + 1)
+#define DEC_MOD(l, k) ((l)-1 < 0 ? (k) : (l)-1)
 
 /* SPL1: disable some interrupts (requires reliable signals) */
 #define SPL1() mutex++
 
 /* SPL0: enable all interrupts; check sigflags (requires reliable signals) */
-#define SPL0() \
-if (--mutex == 0) { \
-	if (sigflags & (1 << (SIGHUP - 1))) handle_hup(SIGHUP); \
-	if (sigflags & (1 << (SIGINT - 1))) handle_int(SIGINT); \
-}
+#define SPL0()                                      \
+	if (--mutex == 0) {                         \
+		if (sigflags & (1 << (SIGHUP - 1))) \
+			handle_hup(SIGHUP);         \
+		if (sigflags & (1 << (SIGINT - 1))) \
+			handle_int(SIGINT);         \
+	}
 
 /* STRTOL: convert a string to long */
-#define STRTOL(i, p) { \
-	if (((i = strtol(p, &p, 10)) == LONG_MIN || i == LONG_MAX) && \
-	    errno == ERANGE) { \
-		errmsg = "number out of range"; \
-	    	i = 0; \
-		return ERR; \
-	} \
-}
+#define STRTOL(i, p)                                                          \
+	{                                                                     \
+		if (((i = strtol(p, &p, 10)) == LONG_MIN || i == LONG_MAX) && \
+		    errno == ERANGE) {                                        \
+			errmsg = "number out of range";                       \
+			i = 0;                                                \
+			return ERR;                                           \
+		}                                                             \
+	}
 
 #if defined(sun) || defined(NO_REALLOC_NULL)
 /* REALLOC: assure at least a minimum size for buffer b */
-#define REALLOC(b,n,i,err) \
-if ((i) > (n)) { \
-	size_t ti = (n); \
-	char *ts; \
-	SPL1(); \
-	if ((b) != NULL) { \
-		if ((ts = (char *) realloc((b), ti += max((i), MINBUFSZ))) == NULL) { \
-			fprintf(stderr, "%s\n", strerror(errno)); \
-			errmsg = "out of memory"; \
-			SPL0(); \
-			return err; \
-		} \
-	} else { \
-		if ((ts = (char *) malloc(ti += max((i), MINBUFSZ))) == NULL) { \
-			fprintf(stderr, "%s\n", strerror(errno)); \
-			errmsg = "out of memory"; \
-			SPL0(); \
-			return err; \
-		} \
-	} \
-	(n) = ti; \
-	(b) = ts; \
-	SPL0(); \
-}
+#define REALLOC(b, n, i, err)                                                  \
+	if ((i) > (n)) {                                                       \
+		size_t ti = (n);                                               \
+		char *ts;                                                      \
+		SPL1();                                                        \
+		if ((b) != NULL) {                                             \
+			if ((ts = (char *)realloc((b),                         \
+				 ti += max((i), MINBUFSZ))) == NULL) {         \
+				fprintf(stderr, "%s\n", strerror(errno));      \
+				errmsg = "out of memory";                      \
+				SPL0();                                        \
+				return err;                                    \
+			}                                                      \
+		} else {                                                       \
+			if ((ts = (char *)malloc(ti += max((i), MINBUFSZ))) == \
+			    NULL) {                                            \
+				fprintf(stderr, "%s\n", strerror(errno));      \
+				errmsg = "out of memory";                      \
+				SPL0();                                        \
+				return err;                                    \
+			}                                                      \
+		}                                                              \
+		(n) = ti;                                                      \
+		(b) = ts;                                                      \
+		SPL0();                                                        \
+	}
 #else /* NO_REALLOC_NULL */
 /* REALLOC: assure at least a minimum size for buffer b */
-#define REALLOC(b,n,i,err) \
-if ((i) > (n)) { \
-	size_t ti = (n); \
-	char *ts; \
-	SPL1(); \
-	if ((ts = (char *) realloc((b), ti += max((i), MINBUFSZ))) == NULL) { \
-		fprintf(stderr, "%s\n", strerror(errno)); \
-		errmsg = "out of memory"; \
-		SPL0(); \
-		return err; \
-	} \
-	(n) = ti; \
-	(b) = ts; \
-	SPL0(); \
-}
+#define REALLOC(b, n, i, err)                                                \
+	if ((i) > (n)) {                                                     \
+		size_t ti = (n);                                             \
+		char *ts;                                                    \
+		SPL1();                                                      \
+		if ((ts = (char *)realloc((b), ti += max((i), MINBUFSZ))) == \
+		    NULL) {                                                  \
+			fprintf(stderr, "%s\n", strerror(errno));            \
+			errmsg = "out of memory";                            \
+			SPL0();                                              \
+			return err;                                          \
+		}                                                            \
+		(n) = ti;                                                    \
+		(b) = ts;                                                    \
+		SPL0();                                                      \
+	}
 #endif /* NO_REALLOC_NULL */
 
 /* REQUE: link pred before succ */
 #define REQUE(pred, succ) (pred)->q_forw = (succ), (succ)->q_back = (pred)
 
 /* INSQUE: insert elem in circular queue after pred */
-#define INSQUE(elem, pred) \
-{ \
-	REQUE((elem), (pred)->q_forw); \
-	REQUE((pred), elem); \
-}
+#define INSQUE(elem, pred)                     \
+	{                                      \
+		REQUE((elem), (pred)->q_forw); \
+		REQUE((pred), elem);           \
+	}
 
 /* REMQUE: remove_lines elem from circular queue */
 #define REMQUE(elem) REQUE((elem)->q_back, (elem)->q_forw);
@@ -171,7 +177,6 @@ if ((i) > (n)) { \
 
 /* NEWLINE_TO_NUL: overwrite newlines with ASCII NULs */
 #define NEWLINE_TO_NUL(s, l) translit_text(s, l, '\n', '\0')
-
 
 /* Local Function Declarations */
 void add_line_node(line_t *);

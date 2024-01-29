@@ -19,13 +19,12 @@
 
 #include <btxv86.h>
 
-#include "stand.h"
-
+#include "cons.h"
 #include "lib.h"
 #include "rbx.h"
-#include "cons.h"
+#include "stand.h"
 
-#define SECOND		18	/* Circa that many ticks in a second. */
+#define SECOND 18 /* Circa that many ticks in a second. */
 
 uint8_t ioctrl = IO_KEYBOARD;
 
@@ -169,7 +168,7 @@ getstr(char *cmdstr, size_t cmdstrsize)
 
 		/* Translate some extended codes. */
 		switch (c) {
-		case 0x5300:    /* delete */
+		case 0x5300: /* delete */
 			c = '\177';
 			break;
 		default:

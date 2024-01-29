@@ -32,9 +32,9 @@
  * Provides cli command 'nvostre'
  */
 
-#include "stand.h"
-#include "nvstore.h"
 #include "bootstrap.h"
+#include "nvstore.h"
+#include "stand.h"
 
 COMMAND_SET(nvstore, "nvstore", "manage non-volatile data", command_nvstore);
 
@@ -89,7 +89,7 @@ command_nvstore(int argc, char *argv[])
 				return (CMD_OK);
 			}
 			printf("List of configured nvstores:\n");
-			STAILQ_FOREACH(st, &stores, nvs_next) {
+			STAILQ_FOREACH (st, &stores, nvs_next) {
 				printf("\t%s\n", st->nvs_name);
 			}
 			return (CMD_OK);
@@ -153,12 +153,12 @@ command_nvstore(int argc, char *argv[])
 	argv += optind;
 
 	if (list) {
-		(void) nvstore_print(st);
+		(void)nvstore_print(st);
 		return (CMD_OK);
 	}
 
-	if (delete && name != NULL) {
-		(void) nvstore_unset_var(st, name);
+	if (delete &&name != NULL) {
+		(void)nvstore_unset_var(st, name);
 		return (CMD_OK);
 	}
 

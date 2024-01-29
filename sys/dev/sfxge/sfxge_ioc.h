@@ -28,21 +28,17 @@
  * policies, either expressed or implied, of the FreeBSD Project.
  */
 
-#ifndef	_SYS_SFXGE_IOC_H
-#define	_SYS_SFXGE_IOC_H
+#ifndef _SYS_SFXGE_IOC_H
+#define _SYS_SFXGE_IOC_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <sys/types.h>
 
 /* More codes may be added if necessary */
-enum sfxge_ioc_codes {
-	SFXGE_MCDI_IOC,
-	SFXGE_NVRAM_IOC,
-	SFXGE_VPD_IOC
-};
+enum sfxge_ioc_codes { SFXGE_MCDI_IOC, SFXGE_NVRAM_IOC, SFXGE_VPD_IOC };
 
 enum sfxge_nvram_ops {
 	SFXGE_NVRAM_OP_SIZE,
@@ -67,44 +63,41 @@ enum sfxge_nvram_types {
 	SFXGE_NVRAM_TYPE_DYNAMIC_CFG
 };
 
-enum sfxge_vpd_ops {
-	SFXGE_VPD_OP_GET_KEYWORD,
-	SFXGE_VPD_OP_SET_KEYWORD
-};
+enum sfxge_vpd_ops { SFXGE_VPD_OP_GET_KEYWORD, SFXGE_VPD_OP_SET_KEYWORD };
 
-#define	SFXGE_MCDI_MAX_PAYLOAD 0x400
-#define	SFXGE_VPD_MAX_PAYLOAD 0x100
+#define SFXGE_MCDI_MAX_PAYLOAD 0x400
+#define SFXGE_VPD_MAX_PAYLOAD 0x100
 
 typedef struct sfxge_ioc_s {
-	uint32_t	op;
+	uint32_t op;
 	union {
 		struct {
-			caddr_t		payload;
-			uint32_t	cmd;
-			size_t		len; /* In and out */
-			uint32_t	rc;
+			caddr_t payload;
+			uint32_t cmd;
+			size_t len; /* In and out */
+			uint32_t rc;
 		} mcdi;
 		struct {
-			uint32_t	op;
-			uint32_t	type;
-			uint32_t	offset;
-			uint32_t	size;
-			uint32_t	subtype;
-			uint16_t	version[4];		/* get/set_ver */
-			caddr_t		data;
+			uint32_t op;
+			uint32_t type;
+			uint32_t offset;
+			uint32_t size;
+			uint32_t subtype;
+			uint16_t version[4]; /* get/set_ver */
+			caddr_t data;
 		} nvram;
 		struct {
-			uint8_t		op;
-			uint8_t		tag;
-			uint16_t	keyword;
-			uint16_t		len; /* In or out */
-			caddr_t		payload;
+			uint8_t op;
+			uint8_t tag;
+			uint16_t keyword;
+			uint16_t len; /* In or out */
+			caddr_t payload;
 		} vpd;
 	} u;
 } __packed sfxge_ioc_t;
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_SFXGE_IOC_H */
+#endif /* _SYS_SFXGE_IOC_H */

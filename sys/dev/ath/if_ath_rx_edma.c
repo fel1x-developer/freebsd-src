@@ -37,8 +37,8 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 /*
  * This is needed for register operations which are performed
  * by the driver - eg, calls to ath_hal_gettsf32().
@@ -51,38 +51,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/ktr.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/smp.h> /* for mp_ncpus */
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
-#include <sys/module.h>
-#include <sys/ktr.h>
-#include <sys/smp.h>	/* for mp_ncpus */
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -93,25 +92,24 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
+#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_ath_debug.h>
+#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_ath_keycache.h>
+#include <dev/ath/if_ath_led.h>
 #include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_ath_rx.h>
+#include <dev/ath/if_ath_sysctl.h>
 #include <dev/ath/if_ath_tsf.h>
 #include <dev/ath/if_ath_tx.h>
-#include <dev/ath/if_ath_sysctl.h>
-#include <dev/ath/if_ath_led.h>
-#include <dev/ath/if_ath_keycache.h>
-#include <dev/ath/if_ath_rx.h>
-#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_athdfs.h>
-#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_athvar.h>
 
 #ifdef ATH_TX99_DIAG
 #include <dev/ath/ath_tx99/ath_tx99.h>
@@ -119,15 +117,19 @@
 
 #include <dev/ath/if_ath_rx_edma.h>
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 #include <dev/ath/if_ath_alq.h>
 #endif
 
 /*
  * some general macros
-  */
-#define	INCR(_l, _sz)		(_l) ++; (_l) &= ((_sz) - 1)
-#define	DECR(_l, _sz)		(_l) --; (_l) &= ((_sz) - 1)
+ */
+#define INCR(_l, _sz) \
+	(_l)++;       \
+	(_l) &= ((_sz)-1)
+#define DECR(_l, _sz) \
+	(_l)--;       \
+	(_l) &= ((_sz)-1)
 
 MALLOC_DECLARE(M_ATHDEV);
 
@@ -146,22 +148,22 @@ MALLOC_DECLARE(M_ATHDEV);
  * XXX shuffle the function orders so these pre-declarations aren't
  * required!
  */
-static	int ath_edma_rxfifo_alloc(struct ath_softc *sc, HAL_RX_QUEUE qtype,
-	    int nbufs);
-static	int ath_edma_rxfifo_flush(struct ath_softc *sc, HAL_RX_QUEUE qtype);
-static	void ath_edma_rxbuf_free(struct ath_softc *sc, struct ath_buf *bf);
-static	void ath_edma_recv_proc_queue(struct ath_softc *sc,
-	    HAL_RX_QUEUE qtype, int dosched);
-static	int ath_edma_recv_proc_deferred_queue(struct ath_softc *sc,
-	    HAL_RX_QUEUE qtype, int dosched);
+static int ath_edma_rxfifo_alloc(struct ath_softc *sc, HAL_RX_QUEUE qtype,
+    int nbufs);
+static int ath_edma_rxfifo_flush(struct ath_softc *sc, HAL_RX_QUEUE qtype);
+static void ath_edma_rxbuf_free(struct ath_softc *sc, struct ath_buf *bf);
+static void ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
+    int dosched);
+static int ath_edma_recv_proc_deferred_queue(struct ath_softc *sc,
+    HAL_RX_QUEUE qtype, int dosched);
 
 static void
 ath_edma_stoprecv(struct ath_softc *sc, int dodelay)
 {
 	struct ath_hal *ah = sc->sc_ah;
 
-	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called, dodelay=%d\n",
-	    __func__, dodelay);
+	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called, dodelay=%d\n", __func__,
+	    dodelay);
 
 	ATH_RX_LOCK(sc);
 
@@ -215,12 +217,8 @@ ath_edma_reinit_fifo(struct ath_softc *sc, HAL_RX_QUEUE qtype)
 	i = re->m_fifo_head;
 	for (j = 0; j < re->m_fifo_depth; j++) {
 		bf = re->m_fifo[i];
-		DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-		    "%s: Q%d: pos=%i, addr=0x%jx\n",
-		    __func__,
-		    qtype,
-		    i,
-		    (uintmax_t)bf->bf_daddr);
+		DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Q%d: pos=%i, addr=0x%jx\n",
+		    __func__, qtype, i, (uintmax_t)bf->bf_daddr);
 		ath_hal_putrxbuf(sc->sc_ah, bf->bf_daddr, qtype);
 		INCR(i, re->m_fifolen);
 	}
@@ -228,9 +226,7 @@ ath_edma_reinit_fifo(struct ath_softc *sc, HAL_RX_QUEUE qtype)
 	/* Ensure this worked out right */
 	if (i != re->m_fifo_tail) {
 		device_printf(sc->sc_dev, "%s: i (%d) != tail! (%d)\n",
-		    __func__,
-		    i,
-		    re->m_fifo_tail);
+		    __func__, i, re->m_fifo_tail);
 	}
 	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: done\n", __func__);
 }
@@ -243,9 +239,8 @@ ath_edma_startrecv(struct ath_softc *sc)
 {
 	struct ath_hal *ah = sc->sc_ah;
 
-	DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-	    "%s: called; resetted=%d, stopped=%d\n", __func__,
-	    sc->sc_rx_resetted, sc->sc_rx_stopped);
+	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; resetted=%d, stopped=%d\n",
+	    __func__, sc->sc_rx_resetted, sc->sc_rx_stopped);
 
 	ATH_RX_LOCK(sc);
 
@@ -263,20 +258,18 @@ ath_edma_startrecv(struct ath_softc *sc)
 	 * In theory the hardware has been initialised, right?
 	 */
 	if (sc->sc_rx_resetted == 1 || sc->sc_rx_stopped == 1) {
-		DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-		    "%s: Re-initing HP FIFO\n", __func__);
+		DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Re-initing HP FIFO\n",
+		    __func__);
 		ath_edma_reinit_fifo(sc, HAL_RX_QUEUE_HP);
-		DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-		    "%s: Re-initing LP FIFO\n", __func__);
+		DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Re-initing LP FIFO\n",
+		    __func__);
 		ath_edma_reinit_fifo(sc, HAL_RX_QUEUE_LP);
 		sc->sc_rx_resetted = 0;
 	} else {
 		device_printf(sc->sc_dev,
 		    "%s: called without resetting chip? "
 		    "resetted=%d, stopped=%d\n",
-		    __func__,
-		    sc->sc_rx_resetted,
-		    sc->sc_rx_stopped);
+		    __func__, sc->sc_rx_resetted, sc->sc_rx_stopped);
 	}
 
 	/* Add up to m_fifolen entries in each queue */
@@ -295,7 +288,7 @@ ath_edma_startrecv(struct ath_softc *sc)
 	    sc->sc_rxedma[HAL_RX_QUEUE_LP].m_fifolen);
 
 	ath_mode_init(sc);
-	ath_hal_startpcurecv(ah, (!! sc->sc_scanning));
+	ath_hal_startpcurecv(ah, (!!sc->sc_scanning));
 
 	/*
 	 * We're now doing RX DMA!
@@ -309,8 +302,7 @@ ath_edma_startrecv(struct ath_softc *sc)
 }
 
 static void
-ath_edma_recv_sched_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
-    int dosched)
+ath_edma_recv_sched_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype, int dosched)
 {
 	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; qtype=%d, dosched=%d\n",
 	    __func__, qtype, dosched);
@@ -335,8 +327,8 @@ static void
 ath_edma_recv_sched(struct ath_softc *sc, int dosched)
 {
 
-	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; dosched=%d\n",
-	    __func__, dosched);
+	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; dosched=%d\n", __func__,
+	    dosched);
 
 	ATH_LOCK(sc);
 	ath_power_set_power_state(sc, HAL_PM_AWAKE);
@@ -359,7 +351,8 @@ static void
 ath_edma_recv_flush(struct ath_softc *sc)
 {
 
-	DPRINTF(sc, ATH_DEBUG_RECV | ATH_DEBUG_EDMA_RX, "%s: called\n", __func__);
+	DPRINTF(sc, ATH_DEBUG_RECV | ATH_DEBUG_EDMA_RX, "%s: called\n",
+	    __func__);
 
 	ATH_PCU_LOCK(sc);
 	sc->sc_rxproc_cnt++;
@@ -406,8 +399,7 @@ ath_edma_recv_flush(struct ath_softc *sc)
  * Process frames from the current queue into the deferred queue.
  */
 static void
-ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
-    int dosched)
+ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype, int dosched)
 {
 	struct ath_rx_edma *re = &sc->sc_rxedma[qtype];
 	struct ath_rx_status *rs;
@@ -423,7 +415,8 @@ ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 	nf = ath_hal_getchannoise(ah, sc->sc_curchan);
 	sc->sc_stats.ast_rx_noise = nf;
 
-	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; qtype=%d, dosched=%d\n", __func__, qtype, dosched);
+	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; qtype=%d, dosched=%d\n",
+	    __func__, qtype, dosched);
 
 	ATH_RX_LOCK(sc);
 
@@ -434,8 +427,7 @@ ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 		 * receive has been stopped - so complain
 		 * loudly!
 		 */
-		device_printf(sc->sc_dev,
-		    "%s: sc_rx_resetted=1! Bad!\n",
+		device_printf(sc->sc_dev, "%s: sc_rx_resetted=1! Bad!\n",
 		    __func__);
 		ATH_RX_UNLOCK(sc);
 		return;
@@ -447,8 +439,7 @@ ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 		/* This shouldn't occur! */
 		if (bf == NULL) {
 			device_printf(sc->sc_dev, "%s: Q%d: NULL bf?\n",
-			    __func__,
-			    qtype);
+			    __func__, qtype);
 			break;
 		}
 		m = bf->bf_m;
@@ -461,25 +452,25 @@ ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 		bus_dmamap_sync(sc->sc_dmat, bf->bf_dmamap,
 		    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 		rs = &bf->bf_status.ds_rxstat;
-		bf->bf_rxstatus = ath_hal_rxprocdesc(ah, ds, bf->bf_daddr,
-		    NULL, rs);
+		bf->bf_rxstatus = ath_hal_rxprocdesc(ah, ds, bf->bf_daddr, NULL,
+		    rs);
 		if (bf->bf_rxstatus == HAL_EINPROGRESS)
 			break;
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 		if (sc->sc_debug & ATH_DEBUG_RECV_DESC)
 			ath_printrxbuf(sc, bf, 0, bf->bf_rxstatus == HAL_OK);
 #endif /* ATH_DEBUG */
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 		if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_RXSTATUS))
 			if_ath_alq_post(&sc->sc_alq, ATH_ALQ_EDMA_RXSTATUS,
-			    sc->sc_rx_statuslen, (char *) ds);
+			    sc->sc_rx_statuslen, (char *)ds);
 #endif /* ATH_DEBUG */
 
 		/*
 		 * Completed descriptor.
 		 */
-		DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-		    "%s: Q%d: completed!\n", __func__, qtype);
+		DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Q%d: completed!\n",
+		    __func__, qtype);
 		npkts++;
 
 		/*
@@ -509,8 +500,7 @@ ath_edma_recv_proc_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 	/* rx signal state monitoring */
 	ath_hal_rxmonitor(ah, &sc->sc_halstats, sc->sc_curchan);
 
-	ATH_KTR(sc, ATH_KTR_INTERRUPTS, 1,
-	    "ath edma rx proc: npkts=%d\n",
+	ATH_KTR(sc, ATH_KTR_INTERRUPTS, 1, "ath edma rx proc: npkts=%d\n",
 	    npkts);
 
 	return;
@@ -530,13 +520,13 @@ ath_edma_flush_deferred_queue(struct ath_softc *sc)
 	ATH_RX_LOCK_ASSERT(sc);
 
 	/* Free in one set, inside the lock */
-	while (! TAILQ_EMPTY(&sc->sc_rx_rxlist[HAL_RX_QUEUE_LP])) {
+	while (!TAILQ_EMPTY(&sc->sc_rx_rxlist[HAL_RX_QUEUE_LP])) {
 		bf = TAILQ_FIRST(&sc->sc_rx_rxlist[HAL_RX_QUEUE_LP]);
 		TAILQ_REMOVE(&sc->sc_rx_rxlist[HAL_RX_QUEUE_LP], bf, bf_list);
 		/* Free the buffer/mbuf */
 		ath_edma_rxbuf_free(sc, bf);
 	}
-	while (! TAILQ_EMPTY(&sc->sc_rx_rxlist[HAL_RX_QUEUE_HP])) {
+	while (!TAILQ_EMPTY(&sc->sc_rx_rxlist[HAL_RX_QUEUE_HP])) {
 		bf = TAILQ_FIRST(&sc->sc_rx_rxlist[HAL_RX_QUEUE_HP]);
 		TAILQ_REMOVE(&sc->sc_rx_rxlist[HAL_RX_QUEUE_HP], bf, bf_list);
 		/* Free the buffer/mbuf */
@@ -576,7 +566,7 @@ ath_edma_recv_proc_deferred_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 	 * XXX is this SAFE call needed? The ath_buf entries
 	 * aren't modified by ath_rx_pkt, right?
 	 */
-	TAILQ_FOREACH_SAFE(bf, &rxlist, bf_list, next) {
+	TAILQ_FOREACH_SAFE (bf, &rxlist, bf_list, next) {
 		/*
 		 * Skip the RX descriptor status - start at the data offset
 		 */
@@ -596,12 +586,11 @@ ath_edma_recv_proc_deferred_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 	}
 
 	ATH_KTR(sc, ATH_KTR_INTERRUPTS, 1,
-	    "ath edma rx deferred proc: ngood=%d\n",
-	    ngood);
+	    "ath edma rx deferred proc: ngood=%d\n", ngood);
 
 	/* Free in one set, inside the lock */
 	ATH_RX_LOCK(sc);
-	while (! TAILQ_EMPTY(&rxlist)) {
+	while (!TAILQ_EMPTY(&rxlist)) {
 		bf = TAILQ_FIRST(&rxlist);
 		TAILQ_REMOVE(&rxlist, bf, bf_list);
 		/* Free the buffer/mbuf */
@@ -615,13 +604,12 @@ ath_edma_recv_proc_deferred_queue(struct ath_softc *sc, HAL_RX_QUEUE qtype,
 static void
 ath_edma_recv_tasklet(void *arg, int npending)
 {
-	struct ath_softc *sc = (struct ath_softc *) arg;
-#ifdef	IEEE80211_SUPPORT_SUPERG
+	struct ath_softc *sc = (struct ath_softc *)arg;
+#ifdef IEEE80211_SUPPORT_SUPERG
 	struct ieee80211com *ic = &sc->sc_ic;
 #endif
 
-	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; npending=%d\n",
-	    __func__,
+	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: called; npending=%d\n", __func__,
 	    npending);
 
 	ATH_PCU_LOCK(sc);
@@ -650,7 +638,7 @@ ath_edma_recv_tasklet(void *arg, int npending)
 	ath_power_restore_power_state(sc);
 	ATH_UNLOCK(sc);
 
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#ifdef IEEE80211_SUPPORT_SUPERG
 	ieee80211_ff_age_all(ic, 100);
 #endif
 	if (ath_dfs_tasklet_needed(sc, sc->sc_curchan))
@@ -682,8 +670,8 @@ ath_edma_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 	ATH_RX_LOCK_ASSERT(sc);
 
 	m = m_getm(NULL, sc->sc_edma_bufsize, M_NOWAIT, MT_DATA);
-	if (! m)
-		return (ENOBUFS);		/* XXX ?*/
+	if (!m)
+		return (ENOBUFS); /* XXX ?*/
 
 	/* XXX warn/enforce alignment */
 
@@ -702,7 +690,7 @@ ath_edma_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 	 * Populate ath_buf fields.
 	 */
 	bf->bf_desc = mtod(m, struct ath_desc *);
-	bf->bf_lastds = bf->bf_desc;	/* XXX only really for TX? */
+	bf->bf_lastds = bf->bf_desc; /* XXX only really for TX? */
 	bf->bf_m = m;
 
 	/*
@@ -717,12 +705,11 @@ ath_edma_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 	/*
 	 * Create DMA mapping.
 	 */
-	error = bus_dmamap_load_mbuf_sg(sc->sc_dmat,
-	    bf->bf_dmamap, m, bf->bf_segs, &bf->bf_nseg, BUS_DMA_NOWAIT);
+	error = bus_dmamap_load_mbuf_sg(sc->sc_dmat, bf->bf_dmamap, m,
+	    bf->bf_segs, &bf->bf_nseg, BUS_DMA_NOWAIT);
 
 	if (error != 0) {
-		device_printf(sc->sc_dev, "%s: failed; error=%d\n",
-		    __func__,
+		device_printf(sc->sc_dev, "%s: failed; error=%d\n", __func__,
 		    error);
 		m_freem(m);
 		return (error);
@@ -774,9 +761,7 @@ ath_edma_rxbuf_alloc(struct ath_softc *sc)
 	error = ath_edma_rxbuf_init(sc, bf);
 	if (error != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: bf=%p, rxbuf alloc failed! error=%d\n",
-		    __func__,
-		    bf,
+		    "%s: bf=%p, rxbuf alloc failed! error=%d\n", __func__, bf,
 		    error);
 		TAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
 		return (NULL);
@@ -827,11 +812,8 @@ ath_edma_rxfifo_alloc(struct ath_softc *sc, HAL_RX_QUEUE qtype, int nbufs)
 		/* Ensure the FIFO is already blank, complain loudly! */
 		if (re->m_fifo[re->m_fifo_tail] != NULL) {
 			device_printf(sc->sc_dev,
-			    "%s: Q%d: fifo[%d] != NULL (%p)\n",
-			    __func__,
-			    qtype,
-			    re->m_fifo_tail,
-			    re->m_fifo[re->m_fifo_tail]);
+			    "%s: Q%d: fifo[%d] != NULL (%p)\n", __func__, qtype,
+			    re->m_fifo_tail, re->m_fifo[re->m_fifo_tail]);
 
 			/* Free the slot */
 			ath_edma_rxbuf_free(sc, re->m_fifo[re->m_fifo_tail]);
@@ -845,22 +827,15 @@ ath_edma_rxfifo_alloc(struct ath_softc *sc, HAL_RX_QUEUE qtype, int nbufs)
 		if (bf == NULL) {
 			DPRINTF(sc, ATH_DEBUG_EDMA_RX,
 			    "%s: Q%d: alloc failed: i=%d, nbufs=%d?\n",
-			    __func__,
-			    qtype,
-			    i,
-			    nbufs);
+			    __func__, qtype, i, nbufs);
 			break;
 		}
 
 		re->m_fifo[re->m_fifo_tail] = bf;
 
 		/* Write to the RX FIFO */
-		DPRINTF(sc, ATH_DEBUG_EDMA_RX,
-		    "%s: Q%d: putrxbuf=%p (0x%jx)\n",
-		    __func__,
-		    qtype,
-		    bf->bf_desc,
-		    (uintmax_t) bf->bf_daddr);
+		DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Q%d: putrxbuf=%p (0x%jx)\n",
+		    __func__, qtype, bf->bf_desc, (uintmax_t)bf->bf_daddr);
 		ath_hal_putrxbuf(sc->sc_ah, bf->bf_daddr, qtype);
 
 		re->m_fifo_depth++;
@@ -871,10 +846,7 @@ ath_edma_rxfifo_alloc(struct ath_softc *sc, HAL_RX_QUEUE qtype, int nbufs)
 	 * Return how many were allocated.
 	 */
 	DPRINTF(sc, ATH_DEBUG_EDMA_RX, "%s: Q%d: nbufs=%d, nalloced=%d\n",
-	    __func__,
-	    qtype,
-	    nbufs,
-	    i);
+	    __func__, qtype, nbufs, i);
 	return (i);
 }
 
@@ -888,7 +860,7 @@ ath_edma_rxfifo_flush(struct ath_softc *sc, HAL_RX_QUEUE qtype)
 
 	for (i = 0; i < re->m_fifolen; i++) {
 		if (re->m_fifo[i] != NULL) {
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 			struct ath_buf *bf = re->m_fifo[i];
 
 			if (sc->sc_debug & ATH_DEBUG_RECV_DESC)
@@ -919,27 +891,22 @@ ath_edma_setup_rxfifo(struct ath_softc *sc, HAL_RX_QUEUE qtype)
 
 	ATH_RX_LOCK_ASSERT(sc);
 
-	if (! ath_hal_getrxfifodepth(sc->sc_ah, qtype, &re->m_fifolen)) {
-		device_printf(sc->sc_dev, "%s: qtype=%d, failed\n",
-		    __func__,
+	if (!ath_hal_getrxfifodepth(sc->sc_ah, qtype, &re->m_fifolen)) {
+		device_printf(sc->sc_dev, "%s: qtype=%d, failed\n", __func__,
 		    qtype);
 		return (-EINVAL);
 	}
 
 	if (bootverbose)
 		device_printf(sc->sc_dev,
-		    "%s: type=%d, FIFO depth = %d entries\n",
-		    __func__,
-		    qtype,
+		    "%s: type=%d, FIFO depth = %d entries\n", __func__, qtype,
 		    re->m_fifolen);
 
 	/* Allocate ath_buf FIFO array, pre-zero'ed */
-	re->m_fifo = malloc(sizeof(struct ath_buf *) * re->m_fifolen,
-	    M_ATHDEV,
+	re->m_fifo = malloc(sizeof(struct ath_buf *) * re->m_fifolen, M_ATHDEV,
 	    M_NOWAIT | M_ZERO);
 	if (re->m_fifo == NULL) {
-		device_printf(sc->sc_dev, "%s: malloc failed\n",
-		    __func__);
+		device_printf(sc->sc_dev, "%s: malloc failed\n", __func__);
 		return (-ENOMEM);
 	}
 
@@ -957,9 +924,7 @@ ath_edma_rxfifo_free(struct ath_softc *sc, HAL_RX_QUEUE qtype)
 {
 	struct ath_rx_edma *re = &sc->sc_rxedma[qtype];
 
-	device_printf(sc->sc_dev, "%s: called; qtype=%d\n",
-	    __func__,
-	    qtype);
+	device_printf(sc->sc_dev, "%s: called; qtype=%d\n", __func__, qtype);
 
 	free(re->m_fifo, M_ATHDEV);
 
@@ -980,8 +945,8 @@ ath_edma_dma_rxsetup(struct ath_softc *sc)
 		return error;
 
 	ATH_RX_LOCK(sc);
-	(void) ath_edma_setup_rxfifo(sc, HAL_RX_QUEUE_HP);
-	(void) ath_edma_setup_rxfifo(sc, HAL_RX_QUEUE_LP);
+	(void)ath_edma_setup_rxfifo(sc, HAL_RX_QUEUE_HP);
+	(void)ath_edma_setup_rxfifo(sc, HAL_RX_QUEUE_LP);
 	ATH_RX_UNLOCK(sc);
 
 	return (0);
@@ -1016,11 +981,11 @@ ath_recv_setup_edma(struct ath_softc *sc)
 	sc->sc_edma_bufsize = 4096;
 
 	/* Fetch EDMA field and buffer sizes */
-	(void) ath_hal_getrxstatuslen(sc->sc_ah, &sc->sc_rx_statuslen);
+	(void)ath_hal_getrxstatuslen(sc->sc_ah, &sc->sc_rx_statuslen);
 
 	/* Configure the hardware with the RX buffer size */
-	(void) ath_hal_setrxbufsize(sc->sc_ah, sc->sc_edma_bufsize -
-	    sc->sc_rx_statuslen);
+	(void)ath_hal_setrxbufsize(sc->sc_ah,
+	    sc->sc_edma_bufsize - sc->sc_rx_statuslen);
 
 	if (bootverbose) {
 		device_printf(sc->sc_dev, "RX status length: %d\n",

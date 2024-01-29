@@ -33,26 +33,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <netdb.h>
+#include <rpc/rpc.h>
+#include <rpc/xdr.h>
+#include <rpcsvc/yp_prot.h>
+#include <rpcsvc/ypclnt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <rpc/rpc.h>
-#include <rpc/xdr.h>
-#include <rpcsvc/yp_prot.h>
-#include <rpcsvc/ypclnt.h>
 
 static void
 usage(void)
@@ -151,8 +150,8 @@ main(int argc, char *argv[])
 	inmap = argv[optind];
 
 	if (hostname != NULL) {
-		r = get_remote_info(domainname, inmap, hostname,
-		    &order, &master);
+		r = get_remote_info(domainname, inmap, hostname, &order,
+		    &master);
 	} else {
 		r = yp_order(domainname, inmap, &order);
 		if (r == 0)
@@ -160,12 +159,11 @@ main(int argc, char *argv[])
 	}
 
 	if (r != 0)
-		errx(1, "no such map %s: reason: %s",
-		    inmap, yperr_string(r));
+		errx(1, "no such map %s: reason: %s", inmap, yperr_string(r));
 
 	torder = order;
-	printf("Map %s has order number %lld. %s", inmap,
-	    (long long)order, ctime(&torder));
+	printf("Map %s has order number %lld. %s", inmap, (long long)order,
+	    ctime(&torder));
 	printf("The master server is %s.\n", master);
 
 	exit(0);

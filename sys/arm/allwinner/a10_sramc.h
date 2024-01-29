@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_A10_SRAMC_H_
-#define	_A10_SRAMC_H_
+#ifndef _A10_SRAMC_H_
+#define _A10_SRAMC_H_
 
-int	a10_map_to_emac(void);
-int	a10_map_to_otg(void);
+int a10_map_to_emac(void);
+int a10_map_to_otg(void);
 
 #endif

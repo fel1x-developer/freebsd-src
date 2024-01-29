@@ -25,22 +25,22 @@
  */
 
 #ifndef _LEGACY_SYS_FCNTL_H_
-#define	_LEGACY_SYS_FCNTL_H_
+#define _LEGACY_SYS_FCNTL_H_
 
 #include_next <fcntl.h>
 
 struct spacectl_range {
-	off_t	r_offset;
-	off_t	r_len;
+	off_t r_offset;
+	off_t r_len;
 };
 
-#define SPACECTL_DEALLOC	1
+#define SPACECTL_DEALLOC 1
 
-#define SPACECTL_F_SUPPORTED	0
+#define SPACECTL_F_SUPPORTED 0
 
 __BEGIN_DECLS
-int	fspacectl(int, int, const struct spacectl_range *, int,
-	    struct spacectl_range *);
+int fspacectl(int, int, const struct spacectl_range *, int,
+    struct spacectl_range *);
 __END_DECLS
 
 #endif /* !_LEGACY_SYS_STAT_H_ */

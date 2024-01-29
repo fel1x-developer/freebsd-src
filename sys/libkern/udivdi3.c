@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <libkern/quad.h>
 
 /*

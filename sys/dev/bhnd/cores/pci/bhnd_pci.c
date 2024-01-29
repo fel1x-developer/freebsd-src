@@ -32,20 +32,20 @@
 #include <sys/cdefs.h>
 /*
  * Broadcom Common PCI/PCIe Support.
- * 
+ *
  * This base driver implementation is shared by the bhnd_pcib (root complex)
  * and bhnd_pci_hostb (host bridge) drivers.
  */
 
 #include <sys/param.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/module.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
@@ -54,63 +54,65 @@
 #include "bhnd_pcireg.h"
 #include "bhnd_pcivar.h"
 
-static int	bhnd_pcie_mdio_wait_idle(struct bhnd_pci_softc *sc);
-static int	bhnd_pcie_mdio_ioctl(struct bhnd_pci_softc *sc, uint32_t cmd);
-static int	bhnd_pcie_mdio_enable(struct bhnd_pci_softc *sc);
-static void	bhnd_pcie_mdio_disable(struct bhnd_pci_softc *sc);
-static int	bhnd_pcie_mdio_cmd_write(struct bhnd_pci_softc *sc,
-		    uint32_t cmd);
-static int	bhnd_pcie_mdio_cmd_read(struct bhnd_pci_softc *sc, uint32_t cmd,
-		    uint16_t *data_read);
+static int bhnd_pcie_mdio_wait_idle(struct bhnd_pci_softc *sc);
+static int bhnd_pcie_mdio_ioctl(struct bhnd_pci_softc *sc, uint32_t cmd);
+static int bhnd_pcie_mdio_enable(struct bhnd_pci_softc *sc);
+static void bhnd_pcie_mdio_disable(struct bhnd_pci_softc *sc);
+static int bhnd_pcie_mdio_cmd_write(struct bhnd_pci_softc *sc, uint32_t cmd);
+static int bhnd_pcie_mdio_cmd_read(struct bhnd_pci_softc *sc, uint32_t cmd,
+    uint16_t *data_read);
 
 static struct bhnd_device_quirk bhnd_pci_quirks[];
 static struct bhnd_device_quirk bhnd_pcie_quirks[];
 
-#define	BHND_PCI_QUIRKS		bhnd_pci_quirks
-#define	BHND_PCIE_QUIRKS	bhnd_pcie_quirks
-#define	BHND_PCI_DEV(_core, _desc, ...)					\
-	{ BHND_DEVICE(BCM, _core, _desc, BHND_ ## _core ## _QUIRKS,	\
-	    ## __VA_ARGS__), BHND_PCI_REGFMT_ ## _core }
+#define BHND_PCI_QUIRKS bhnd_pci_quirks
+#define BHND_PCIE_QUIRKS bhnd_pcie_quirks
+#define BHND_PCI_DEV(_core, _desc, ...)                               \
+	{                                                             \
+		BHND_DEVICE(BCM, _core, _desc, BHND_##_core##_QUIRKS, \
+		    ##__VA_ARGS__),                                   \
+		    BHND_PCI_REGFMT_##_core                           \
+	}
 
 static const struct bhnd_pci_device {
-	struct bhnd_device	device;
-	bhnd_pci_regfmt_t	regfmt;	/**< register format */
-} bhnd_pci_devs[] = {
-	BHND_PCI_DEV(PCI,	"Host-PCI bridge",		BHND_DF_HOSTB),	     
-	BHND_PCI_DEV(PCI,	"PCI-BHND bridge",		BHND_DF_SOC),
-	BHND_PCI_DEV(PCIE,	"PCIe-G1 Host-PCI bridge",	BHND_DF_HOSTB),
-	BHND_PCI_DEV(PCIE,	"PCIe-G1 PCI-BHND bridge",	BHND_DF_SOC),
-	{ BHND_DEVICE_END, 0 }
-};
+	struct bhnd_device device;
+	bhnd_pci_regfmt_t regfmt; /**< register format */
+} bhnd_pci_devs[] = { BHND_PCI_DEV(PCI, "Host-PCI bridge", BHND_DF_HOSTB),
+	BHND_PCI_DEV(PCI, "PCI-BHND bridge", BHND_DF_SOC),
+	BHND_PCI_DEV(PCIE, "PCIe-G1 Host-PCI bridge", BHND_DF_HOSTB),
+	BHND_PCI_DEV(PCIE, "PCIe-G1 PCI-BHND bridge", BHND_DF_SOC),
+	{ BHND_DEVICE_END, 0 } };
 
 /* Device quirks tables */
 static struct bhnd_device_quirk bhnd_pci_quirks[] = { BHND_DEVICE_QUIRK_END };
 static struct bhnd_device_quirk bhnd_pcie_quirks[] = {
-	BHND_CORE_QUIRK(HWREV_GTE(10),	BHND_PCI_QUIRK_SD_C22_EXTADDR),
+	BHND_CORE_QUIRK(HWREV_GTE(10), BHND_PCI_QUIRK_SD_C22_EXTADDR),
 
 	BHND_DEVICE_QUIRK_END
 };
 
-#define	BHND_PCIE_MDIO_CTL_DELAY	10	/**< usec delay required between
-						  *  MDIO_CTL/MDIO_DATA accesses. */
-#define	BHND_PCIE_MDIO_RETRY_DELAY	2000	/**< usec delay before retrying
-						  *  BHND_PCIE_MDIOCTL_DONE. */
-#define	BHND_PCIE_MDIO_RETRY_COUNT	200	/**< number of times to loop waiting
-						  *  for BHND_PCIE_MDIOCTL_DONE. */
+#define BHND_PCIE_MDIO_CTL_DELAY            \
+	10 /**< usec delay required between \
+	    *  MDIO_CTL/MDIO_DATA accesses. */
+#define BHND_PCIE_MDIO_RETRY_DELAY           \
+	2000 /**< usec delay before retrying \
+	      *  BHND_PCIE_MDIOCTL_DONE. */
+#define BHND_PCIE_MDIO_RETRY_COUNT               \
+	200 /**< number of times to loop waiting \
+	     *  for BHND_PCIE_MDIOCTL_DONE. */
 
-#define	BHND_PCI_READ_4(_sc, _reg)		\
-	bhnd_bus_read_4((_sc)->mem_res, (_reg))
-#define	BHND_PCI_WRITE_4(_sc, _reg, _val)	\
+#define BHND_PCI_READ_4(_sc, _reg) bhnd_bus_read_4((_sc)->mem_res, (_reg))
+#define BHND_PCI_WRITE_4(_sc, _reg, _val) \
 	bhnd_bus_write_4((_sc)->mem_res, (_reg), (_val))
 
-#define	BHND_PCIE_ASSERT(sc)	\
-	KASSERT(bhnd_get_class(sc->dev) == BHND_DEVCLASS_PCIE,	\
+#define BHND_PCIE_ASSERT(sc)                                   \
+	KASSERT(bhnd_get_class(sc->dev) == BHND_DEVCLASS_PCIE, \
 	    ("not a pcie device!"));
 
 int
 bhnd_pci_generic_probe(device_t dev)
 {
-	const struct bhnd_device	*id;
+	const struct bhnd_device *id;
 
 	id = bhnd_device_lookup(dev, &bhnd_pci_devs[0].device,
 	    sizeof(bhnd_pci_devs[0]));
@@ -124,8 +126,8 @@ bhnd_pci_generic_probe(device_t dev)
 int
 bhnd_pci_generic_attach(device_t dev)
 {
-	struct bhnd_pci_softc	*sc;
-	int			 error;
+	struct bhnd_pci_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -156,8 +158,8 @@ cleanup:
 int
 bhnd_pci_generic_detach(device_t dev)
 {
-	struct bhnd_pci_softc	*sc;
-	int			 error;
+	struct bhnd_pci_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -186,8 +188,8 @@ bhnd_pci_get_resource_list(device_t dev, device_t child)
 static device_t
 bhnd_pci_add_child(device_t dev, u_int order, const char *name, int unit)
 {
-	struct bhnd_pci_devinfo	*dinfo;
-	device_t		 child;
+	struct bhnd_pci_devinfo *dinfo;
+	device_t child;
 
 	child = device_add_child_ordered(dev, order, name, unit);
 	if (child == NULL)
@@ -236,7 +238,7 @@ bhnd_pci_generic_resume(device_t dev)
 
 /**
  * Read a 32-bit PCIe TLP/DLLP/PLP protocol register.
- * 
+ *
  * @param sc The bhndb_pci driver state.
  * @param addr The protocol register offset.
  */
@@ -257,7 +259,7 @@ bhnd_pcie_read_proto_reg(struct bhnd_pci_softc *sc, uint32_t addr)
 
 /**
  * Write a 32-bit PCIe TLP/DLLP/PLP protocol register value.
- * 
+ *
  * @param sc The bhndb_pci driver state.
  * @param addr The protocol register offset.
  * @param val The value to write to @p addr.
@@ -316,7 +318,7 @@ bhnd_pcie_mdio_enable(struct bhnd_pci_softc *sc)
 	BHND_PCIE_ASSERT(sc);
 
 	/* Enable MDIO clock and preamble mode */
-	ctl = BHND_PCIE_MDIOCTL_PREAM_EN|BHND_PCIE_MDIOCTL_DIVISOR_VAL;
+	ctl = BHND_PCIE_MDIOCTL_PREAM_EN | BHND_PCIE_MDIOCTL_DIVISOR_VAL;
 	return (bhnd_pcie_mdio_ioctl(sc, ctl));
 }
 
@@ -340,7 +342,8 @@ bhnd_pcie_mdio_cmd_write(struct bhnd_pci_softc *sc, uint32_t cmd)
 
 	BHND_PCI_LOCK_ASSERT(sc, MA_OWNED);
 
-	cmd |= BHND_PCIE_MDIODATA_START|BHND_PCIE_MDIODATA_TA|BHND_PCIE_MDIODATA_CMD_WRITE;
+	cmd |= BHND_PCIE_MDIODATA_START | BHND_PCIE_MDIODATA_TA |
+	    BHND_PCIE_MDIODATA_CMD_WRITE;
 
 	BHND_PCI_WRITE_4(sc, BHND_PCIE_MDIO_DATA, cmd);
 	DELAY(BHND_PCIE_MDIO_CTL_DELAY);
@@ -363,14 +366,15 @@ bhnd_pcie_mdio_cmd_read(struct bhnd_pci_softc *sc, uint32_t cmd,
 
 	BHND_PCI_LOCK_ASSERT(sc, MA_OWNED);
 
-	cmd |= BHND_PCIE_MDIODATA_START|BHND_PCIE_MDIODATA_TA|BHND_PCIE_MDIODATA_CMD_READ;
+	cmd |= BHND_PCIE_MDIODATA_START | BHND_PCIE_MDIODATA_TA |
+	    BHND_PCIE_MDIODATA_CMD_READ;
 	BHND_PCI_WRITE_4(sc, BHND_PCIE_MDIO_DATA, cmd);
 	DELAY(BHND_PCIE_MDIO_CTL_DELAY);
 
 	if ((error = bhnd_pcie_mdio_wait_idle(sc)))
 		return (error);
 
-	*data_read = (BHND_PCI_READ_4(sc, BHND_PCIE_MDIO_DATA) & 
+	*data_read = (BHND_PCI_READ_4(sc, BHND_PCIE_MDIO_DATA) &
 	    BHND_PCIE_MDIODATA_DATA_MASK);
 	return (0);
 }
@@ -378,9 +382,9 @@ bhnd_pcie_mdio_cmd_read(struct bhnd_pci_softc *sc, uint32_t cmd,
 int
 bhnd_pcie_mdio_read(struct bhnd_pci_softc *sc, int phy, int reg)
 {
-	uint32_t	cmd;
-	uint16_t	val;
-	int		error;
+	uint32_t cmd;
+	uint16_t val;
+	int error;
 
 	/* Enable MDIO access */
 	BHND_PCI_LOCK(sc);
@@ -403,15 +407,16 @@ bhnd_pcie_mdio_read(struct bhnd_pci_softc *sc, int phy, int reg)
 int
 bhnd_pcie_mdio_write(struct bhnd_pci_softc *sc, int phy, int reg, int val)
 {
-	uint32_t	cmd;
-	int		error;
+	uint32_t cmd;
+	int error;
 
 	/* Enable MDIO access */
 	BHND_PCI_LOCK(sc);
 	bhnd_pcie_mdio_enable(sc);
 
 	/* Issue the write */
-	cmd = BHND_PCIE_MDIODATA_ADDR(phy, reg) | (val & BHND_PCIE_MDIODATA_DATA_MASK);
+	cmd = BHND_PCIE_MDIODATA_ADDR(phy, reg) |
+	    (val & BHND_PCIE_MDIODATA_DATA_MASK);
 	error = bhnd_pcie_mdio_cmd_write(sc, cmd);
 
 	/* Disable MDIO access */
@@ -425,9 +430,9 @@ int
 bhnd_pcie_mdio_read_ext(struct bhnd_pci_softc *sc, int phy, int devaddr,
     int reg)
 {
-	uint32_t	cmd;
-	uint16_t	val;
-	int		error;
+	uint32_t cmd;
+	uint16_t val;
+	int error;
 
 	if (devaddr == MDIO_DEVADDR_NONE)
 		return (bhnd_pcie_mdio_read(sc, phy, reg));
@@ -435,9 +440,8 @@ bhnd_pcie_mdio_read_ext(struct bhnd_pci_softc *sc, int phy, int devaddr,
 	/* Extended register access is only supported for the SerDes device,
 	 * using the non-standard C22 extended address mechanism */
 	if (!(sc->quirks & BHND_PCI_QUIRK_SD_C22_EXTADDR) ||
-	    phy != BHND_PCIE_PHYADDR_SD)
-	{
-		return (~0U);	
+	    phy != BHND_PCIE_PHYADDR_SD) {
+		return (~0U);
 	}
 
 	/* Enable MDIO access */
@@ -466,9 +470,9 @@ cleanup:
 int
 bhnd_pcie_mdio_write_ext(struct bhnd_pci_softc *sc, int phy, int devaddr,
     int reg, int val)
-{	
-	uint32_t	cmd;
-	int		error;
+{
+	uint32_t cmd;
+	int error;
 
 	if (devaddr == MDIO_DEVADDR_NONE)
 		return (bhnd_pcie_mdio_write(sc, phy, reg, val));
@@ -476,9 +480,8 @@ bhnd_pcie_mdio_write_ext(struct bhnd_pci_softc *sc, int phy, int devaddr,
 	/* Extended register access is only supported for the SerDes device,
 	 * using the non-standard C22 extended address mechanism */
 	if (!(sc->quirks & BHND_PCI_QUIRK_SD_C22_EXTADDR) ||
-	    phy != BHND_PCIE_PHYADDR_SD)
-	{
-		return (~0U);	
+	    phy != BHND_PCIE_PHYADDR_SD) {
+		return (~0U);
 	}
 
 	/* Enable MDIO access */
@@ -504,31 +507,32 @@ cleanup:
 
 static device_method_t bhnd_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			bhnd_pci_generic_probe),
-	DEVMETHOD(device_attach,		bhnd_pci_generic_attach),
-	DEVMETHOD(device_detach,		bhnd_pci_generic_detach),
-	DEVMETHOD(device_suspend,		bhnd_pci_generic_suspend),
-	DEVMETHOD(device_resume,		bhnd_pci_generic_resume),
+	DEVMETHOD(device_probe, bhnd_pci_generic_probe),
+	DEVMETHOD(device_attach, bhnd_pci_generic_attach),
+	DEVMETHOD(device_detach, bhnd_pci_generic_detach),
+	DEVMETHOD(device_suspend, bhnd_pci_generic_suspend),
+	DEVMETHOD(device_resume, bhnd_pci_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,		bhnd_pci_add_child),
-	DEVMETHOD(bus_child_deleted,		bhnd_pci_child_deleted),
-	DEVMETHOD(bus_print_child,		bus_generic_print_child),
-	DEVMETHOD(bus_get_resource_list,	bhnd_pci_get_resource_list),
-	DEVMETHOD(bus_get_resource,		bus_generic_rl_get_resource),
-	DEVMETHOD(bus_set_resource,		bus_generic_rl_set_resource),
-	DEVMETHOD(bus_delete_resource,		bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_add_child, bhnd_pci_add_child),
+	DEVMETHOD(bus_child_deleted, bhnd_pci_child_deleted),
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_get_resource_list, bhnd_pci_get_resource_list),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
 
-	DEVMETHOD(bus_alloc_resource,		bus_generic_rl_alloc_resource),
-	DEVMETHOD(bus_activate_resource,        bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,      bus_generic_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,          bus_generic_adjust_resource),
-	DEVMETHOD(bus_release_resource,		bus_generic_rl_release_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rl_release_resource),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(bhnd_pci, bhnd_pci_driver, bhnd_pci_methods, sizeof(struct bhnd_pci_softc));
+DEFINE_CLASS_0(bhnd_pci, bhnd_pci_driver, bhnd_pci_methods,
+    sizeof(struct bhnd_pci_softc));
 MODULE_DEPEND(bhnd_pci, bhnd, 1, 1, 1);
 MODULE_DEPEND(bhnd_pci, pci, 1, 1, 1);
 MODULE_VERSION(bhnd_pci, 1);

@@ -39,29 +39,28 @@
  */
 
 #include <sys/types.h>
+
 #include <errno.h>
 #include <runetype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 extern int __mb_sb_limit;
 
-static size_t	_BIG5_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static int	_BIG5_mbsinit(const mbstate_t *);
-static size_t	_BIG5_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_BIG5_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_BIG5_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
+static size_t _BIG5_mbrtowc(wchar_t *__restrict, const char *__restrict, size_t,
+    mbstate_t *__restrict);
+static int _BIG5_mbsinit(const mbstate_t *);
+static size_t _BIG5_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _BIG5_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _BIG5_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
 
 typedef struct {
-	wchar_t	ch;
+	wchar_t ch;
 } _BIG5State;
 
 int
@@ -95,8 +94,8 @@ _big5_check(u_int c)
 }
 
 static size_t
-_BIG5_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps)
+_BIG5_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	_BIG5State *bs;
 	wchar_t wc;
@@ -156,7 +155,7 @@ _BIG5_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
 }
 
 static size_t
-_BIG5_wcrtomb(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps)
+_BIG5_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	_BIG5State *bs;
 
@@ -180,15 +179,15 @@ _BIG5_wcrtomb(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps)
 }
 
 static size_t
-_BIG5_mbsnrtowcs(wchar_t * __restrict dst, const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps)
+_BIG5_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _BIG5_mbrtowc));
 }
 
 static size_t
-_BIG5_wcsnrtombs(char * __restrict dst, const wchar_t ** __restrict src,
-    size_t nwc, size_t len, mbstate_t * __restrict ps)
+_BIG5_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _BIG5_wcrtomb));
 }

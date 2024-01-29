@@ -33,10 +33,11 @@
  */
 
 #include <stdio.h>
+
 #include "local.h"
 
 void
-setbuf(FILE * __restrict fp, char * __restrict buf)
+setbuf(FILE *__restrict fp, char *__restrict buf)
 {
-	(void) setvbuf(fp, buf, buf ? _IOFBF : _IONBF, BUFSIZ);
+	(void)setvbuf(fp, buf, buf ? _IOFBF : _IONBF, BUFSIZ);
 }

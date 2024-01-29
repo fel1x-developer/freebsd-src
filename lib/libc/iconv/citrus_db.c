@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -38,19 +38,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
 #include "citrus_db.h"
 #include "citrus_db_factory.h"
 #include "citrus_db_file.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
 
 struct _citrus_db {
-	struct _region		 db_region;
-	_citrus_db_hash_func_t	 db_hashfunc;
-	void			*db_hashfunc_closure;
+	struct _region db_region;
+	_citrus_db_hash_func_t db_hashfunc;
+	void *db_hashfunc_closure;
 };
 
 int
@@ -72,7 +72,7 @@ _citrus_db_open(struct _citrus_db **rdb, struct _region *r, const char *magic,
 	if (_memstream_seek(&ms, be32toh(dhx->dhx_entry_offset), SEEK_SET))
 		return (EFTYPE);
 
-	if (be32toh(dhx->dhx_num_entries)*_CITRUS_DB_ENTRY_SIZE >
+	if (be32toh(dhx->dhx_num_entries) * _CITRUS_DB_ENTRY_SIZE >
 	    _memstream_remainder(&ms))
 		return (EFTYPE);
 
@@ -112,13 +112,13 @@ _citrus_db_lookup(struct _citrus_db *db, struct _citrus_region *key,
 	if (num_entries == 0)
 		return (ENOENT);
 
-	if (dl != NULL && dl->dl_offset>0) {
+	if (dl != NULL && dl->dl_offset > 0) {
 		hashval = dl->dl_hashval;
 		offset = dl->dl_offset;
 		if (offset >= _region_size(&db->db_region))
 			return (ENOENT);
 	} else {
-		hashval = db->db_hashfunc(key)%num_entries;
+		hashval = db->db_hashfunc(key) % num_entries;
 		offset = be32toh(dhx->dhx_entry_offset) +
 		    hashval * _CITRUS_DB_ENTRY_SIZE;
 		if (dl)
@@ -151,23 +151,22 @@ _citrus_db_lookup(struct _citrus_db *db, struct _citrus_region *key,
 		if (be32toh(dex->dex_key_size) == _region_size(key)) {
 			/* seek to the head of the key. */
 			if (_memstream_seek(&ms, be32toh(dex->dex_key_offset),
-			    SEEK_SET))
+				SEEK_SET))
 				return (EFTYPE);
 			/* get the region of the key */
-			if (_memstream_getregion(&ms, &r,
-			    _region_size(key)) == NULL)
+			if (_memstream_getregion(&ms, &r, _region_size(key)) ==
+			    NULL)
 				return (EFTYPE);
 			/* compare key byte stream */
 			if (memcmp(_region_head(&r), _region_head(key),
-			    _region_size(key)) == 0) {
+				_region_size(key)) == 0) {
 				/* match */
-				if (_memstream_seek(
-				    &ms, be32toh(dex->dex_data_offset),
-				    SEEK_SET))
+				if (_memstream_seek(&ms,
+					be32toh(dex->dex_data_offset),
+					SEEK_SET))
 					return (EFTYPE);
-				if (_memstream_getregion(
-				    &ms, data,
-				    be32toh(dex->dex_data_size)) == NULL)
+				if (_memstream_getregion(&ms, data,
+					be32toh(dex->dex_data_size)) == NULL)
 					return (EFTYPE);
 				return (0);
 			}
@@ -268,7 +267,7 @@ _citrus_db_lookup_string_by_string(struct _citrus_db *db, const char *key,
 	/* check whether the string is null terminated */
 	if (_region_size(&r) == 0)
 		return (EFTYPE);
-	if (*((const char*)_region_head(&r)+_region_size(&r)-1) != '\0')
+	if (*((const char *)_region_head(&r) + _region_size(&r) - 1) != '\0')
 		return (EFTYPE);
 
 	if (rdata)
@@ -318,13 +317,14 @@ _citrus_db_get_entry(struct _citrus_db *db, int idx, struct _region *key,
 	if (_memstream_seek(&ms, be32toh(dex->dex_key_offset), SEEK_SET))
 		return (EFTYPE);
 	/* get the region of the key. */
-	if (_memstream_getregion(&ms, key, be32toh(dex->dex_key_size))==NULL)
+	if (_memstream_getregion(&ms, key, be32toh(dex->dex_key_size)) == NULL)
 		return (EFTYPE);
 	/* seek to the head of the data. */
 	if (_memstream_seek(&ms, be32toh(dex->dex_data_offset), SEEK_SET))
 		return (EFTYPE);
 	/* get the region of the data. */
-	if (_memstream_getregion(&ms, data, be32toh(dex->dex_data_size))==NULL)
+	if (_memstream_getregion(&ms, data, be32toh(dex->dex_data_size)) ==
+	    NULL)
 		return (EFTYPE);
 
 	return (0);

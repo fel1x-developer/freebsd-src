@@ -112,8 +112,9 @@
  */
 
 #include <sys/cdefs.h>
-#include "xgbe.h"
+
 #include "xgbe-common.h"
+#include "xgbe.h"
 
 static void xgbe_an_state_machine(struct xgbe_prv_data *pdata);
 
@@ -529,9 +530,9 @@ xgbe_an73_rx_bpa(struct xgbe_prv_data *pdata, enum xgbe_rx *state)
 	lp_reg = XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_LPA);
 
 	return (((ad_reg & XGBE_XNP_NP_EXCHANGE) ||
-		(lp_reg & XGBE_XNP_NP_EXCHANGE))
-	       ? xgbe_an73_tx_xnp(pdata, state)
-	       : xgbe_an73_tx_training(pdata, state));
+		    (lp_reg & XGBE_XNP_NP_EXCHANGE)) ?
+		xgbe_an73_tx_xnp(pdata, state) :
+		xgbe_an73_tx_training(pdata, state));
 }
 
 static enum xgbe_an
@@ -544,9 +545,9 @@ xgbe_an73_rx_xnp(struct xgbe_prv_data *pdata, enum xgbe_rx *state)
 	lp_reg = XMDIO_READ(pdata, MDIO_MMD_AN, MDIO_AN_LPX);
 
 	return (((ad_reg & XGBE_XNP_NP_EXCHANGE) ||
-		(lp_reg & XGBE_XNP_NP_EXCHANGE))
-	       ? xgbe_an73_tx_xnp(pdata, state)
-	       : xgbe_an73_tx_training(pdata, state));
+		    (lp_reg & XGBE_XNP_NP_EXCHANGE)) ?
+		xgbe_an73_tx_xnp(pdata, state) :
+		xgbe_an73_tx_training(pdata, state));
 }
 
 static enum xgbe_an
@@ -781,8 +782,8 @@ xgbe_an37_state_machine(struct xgbe_prv_data *pdata)
 	}
 
 	axgbe_printf(2, "%s: an_state %d an_int %d an_mode %d an_status %d\n",
-	     __func__, pdata->an_state, pdata->an_int, pdata->an_mode,
-	     pdata->an_status);
+	    __func__, pdata->an_state, pdata->an_int, pdata->an_mode,
+	    pdata->an_status);
 
 	xgbe_an37_enable_interrupts(pdata);
 }
@@ -810,8 +811,7 @@ next_int:
 	}
 
 again:
-	axgbe_printf(2, "CL73 AN %s\n",
-	    xgbe_state_as_string(pdata->an_state));
+	axgbe_printf(2, "CL73 AN %s\n", xgbe_state_as_string(pdata->an_state));
 
 	cur_state = pdata->an_state;
 
@@ -834,8 +834,8 @@ again:
 	case XGBE_AN_COMPLETE:
 		pdata->parallel_detect = pdata->an_supported ? 0 : 1;
 		axgbe_printf(2, "%s successful\n",
-		    pdata->an_supported ? "Auto negotiation"
-		    : "Parallel detection");
+		    pdata->an_supported ? "Auto negotiation" :
+					  "Parallel detection");
 		break;
 
 	case XGBE_AN_NO_LINK:
@@ -849,8 +849,7 @@ again:
 		pdata->an_int = 0;
 		xgbe_an73_clear_interrupts(pdata);
 	} else if (pdata->an_state == XGBE_AN_ERROR) {
-		axgbe_printf(2,
-		    "error during auto-negotiation, state=%u\n",
+		axgbe_printf(2, "error during auto-negotiation, state=%u\n",
 		    cur_state);
 
 		pdata->an_int = 0;
@@ -867,7 +866,7 @@ again:
 		if (pdata->phy_if.phy_impl.an_post)
 			pdata->phy_if.phy_impl.an_post(pdata);
 
-		axgbe_printf(2,  "CL73 AN result: %s\n",
+		axgbe_printf(2, "CL73 AN result: %s\n",
 		    xgbe_state_as_string(pdata->an_result));
 	}
 
@@ -915,7 +914,8 @@ xgbe_an37_init(struct xgbe_prv_data *pdata)
 
 	pdata->phy_if.phy_impl.an_advertising(pdata, &local_phy);
 
-	axgbe_printf(2, "%s: advertising 0x%x\n", __func__, local_phy.advertising);
+	axgbe_printf(2, "%s: advertising 0x%x\n", __func__,
+	    local_phy.advertising);
 
 	/* Set up Advertisement register */
 	reg = XMDIO_READ(pdata, MDIO_MMD_VEND2, MDIO_VEND2_AN_ADVERTISE);
@@ -938,8 +938,8 @@ xgbe_an37_init(struct xgbe_prv_data *pdata)
 
 	/* Set up the Control register */
 	reg = XMDIO_READ(pdata, MDIO_MMD_VEND2, MDIO_VEND2_AN_CTRL);
-	axgbe_printf(2, "%s: AN_ADVERTISE reg 0x%x an_mode %d\n", __func__,
-	    reg, pdata->an_mode);
+	axgbe_printf(2, "%s: AN_ADVERTISE reg 0x%x an_mode %d\n", __func__, reg,
+	    pdata->an_mode);
 	reg &= ~XGBE_AN_CL37_TX_CONFIG_MASK;
 	reg &= ~XGBE_AN_CL37_PCS_MODE_MASK;
 
@@ -965,7 +965,7 @@ xgbe_an37_init(struct xgbe_prv_data *pdata)
 static void
 xgbe_an73_init(struct xgbe_prv_data *pdata)
 {
-	/* 
+	/*
 	 * This local_phy is needed because phy-v2 alters the
 	 * advertising flag variable. so phy-v1 an_advertising is just copying
 	 */
@@ -1023,7 +1023,8 @@ xgbe_an_init(struct xgbe_prv_data *pdata)
 {
 	/* Set up advertisement registers based on current settings */
 	pdata->an_mode = pdata->phy_if.phy_impl.an_mode(pdata);
-	axgbe_printf(2, "%s: setting up an_mode %d\n", __func__, pdata->an_mode);
+	axgbe_printf(2, "%s: setting up an_mode %d\n", __func__,
+	    pdata->an_mode);
 
 	switch (pdata->an_mode) {
 	case XGBE_AN_MODE_CL73:
@@ -1075,8 +1076,7 @@ static void
 xgbe_phy_print_status(struct xgbe_prv_data *pdata)
 {
 	if (pdata->phy.link)
-		axgbe_printf(0,
-		    "Link is UP - %s/%s - flow control %s\n",
+		axgbe_printf(0, "Link is UP - %s/%s - flow control %s\n",
 		    xgbe_phy_speed_string(pdata->phy.speed),
 		    pdata->phy.duplex == DUPLEX_FULL ? "Full" : "Half",
 		    xgbe_phy_fc_string(pdata));
@@ -1089,12 +1089,12 @@ xgbe_phy_adjust_link(struct xgbe_prv_data *pdata)
 {
 	int new_state = 0;
 
-	axgbe_printf(1, "link %d/%d tx %d/%d rx %d/%d speed %d/%d autoneg %d/%d\n",
-	    pdata->phy_link, pdata->phy.link,
-	    pdata->tx_pause, pdata->phy.tx_pause,
-	    pdata->rx_pause, pdata->phy.rx_pause,
-	    pdata->phy_speed, pdata->phy.speed,
-	    pdata->pause_autoneg, pdata->phy.pause_autoneg);
+	axgbe_printf(1,
+	    "link %d/%d tx %d/%d rx %d/%d speed %d/%d autoneg %d/%d\n",
+	    pdata->phy_link, pdata->phy.link, pdata->tx_pause,
+	    pdata->phy.tx_pause, pdata->rx_pause, pdata->phy.rx_pause,
+	    pdata->phy_speed, pdata->phy.speed, pdata->pause_autoneg,
+	    pdata->phy.pause_autoneg);
 
 	if (pdata->phy.link) {
 		/* Flow control support */
@@ -1201,7 +1201,8 @@ __xgbe_phy_config_aneg(struct xgbe_prv_data *pdata, bool set_mode)
 		ret = xgbe_phy_config_fixed(pdata);
 		if (ret || !pdata->kr_redrv) {
 			if (ret)
-				axgbe_error("%s: fix conf fail %d\n", __func__, ret);
+				axgbe_error("%s: fix conf fail %d\n", __func__,
+				    ret);
 			goto out;
 		}
 
@@ -1265,8 +1266,9 @@ __xgbe_phy_config_aneg(struct xgbe_prv_data *pdata, bool set_mode)
 
 out:
 	if (ret) {
-		axgbe_printf(0, "%s: set_mode %d AN int reg value 0x%x ret value %d\n",
-		   __func__, set_mode, reg, ret);
+		axgbe_printf(0,
+		    "%s: set_mode %d AN int reg value 0x%x ret value %d\n",
+		    __func__, set_mode, reg, ret);
 		set_bit(XGBE_LINK_ERR, &pdata->dev_state);
 	} else
 		clear_bit(XGBE_LINK_ERR, &pdata->dev_state);
@@ -1411,7 +1413,6 @@ xgbe_phy_status(struct xgbe_prv_data *pdata)
 		}
 
 		xgbe_phy_status_result(pdata);
-
 	}
 
 adjust_link:
@@ -1564,9 +1565,9 @@ xgbe_phy_init(struct xgbe_prv_data *pdata)
 
 	/* Initialize supported features */
 	pdata->fec_ability = XMDIO_READ(pdata, MDIO_MMD_PMAPMD,
-					MDIO_PMA_10GBR_FECABLE);
+	    MDIO_PMA_10GBR_FECABLE);
 	pdata->fec_ability &= (MDIO_PMA_10GBR_FECABLE_ABLE |
-			       MDIO_PMA_10GBR_FECABLE_ERRABLE);
+	    MDIO_PMA_10GBR_FECABLE_ERRABLE);
 
 	/* Setup the phy (including supported features) */
 	ret = pdata->phy_if.phy_impl.init(pdata);
@@ -1616,17 +1617,17 @@ xgbe_phy_init(struct xgbe_prv_data *pdata)
 void
 xgbe_init_function_ptrs_phy(struct xgbe_phy_if *phy_if)
 {
-	phy_if->phy_init	= xgbe_phy_init;
-	phy_if->phy_exit	= xgbe_phy_exit;
+	phy_if->phy_init = xgbe_phy_init;
+	phy_if->phy_exit = xgbe_phy_exit;
 
-	phy_if->phy_reset       = xgbe_phy_reset;
-	phy_if->phy_start       = xgbe_phy_start;
-	phy_if->phy_stop	= xgbe_phy_stop;
+	phy_if->phy_reset = xgbe_phy_reset;
+	phy_if->phy_start = xgbe_phy_start;
+	phy_if->phy_stop = xgbe_phy_stop;
 
-	phy_if->phy_status      = xgbe_phy_status;
+	phy_if->phy_status = xgbe_phy_status;
 	phy_if->phy_config_aneg = xgbe_phy_config_aneg;
 
 	phy_if->phy_valid_speed = xgbe_phy_valid_speed;
 
-	phy_if->an_isr		= xgbe_an_combined_isr;
+	phy_if->an_isr = xgbe_an_combined_isr;
 }

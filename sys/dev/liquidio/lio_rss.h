@@ -39,50 +39,48 @@
 #include <net/rss_config.h>
 #include <netinet/in_rss.h>
 
-#define LIO_RSS_TABLE_SZ	128
-#define LIO_RSS_KEY_SZ		40
+#define LIO_RSS_TABLE_SZ 128
+#define LIO_RSS_KEY_SZ 40
 
 struct lio_rss_params {
-#define LIO_RSS_PARAM_SIZE	16
+#define LIO_RSS_PARAM_SIZE 16
 	struct param {
 #if BYTE_ORDER == LITTLE_ENDIAN
-		uint64_t	flags:16;
-		uint64_t	hashinfo:32;
-		uint64_t	itablesize:16;
+		uint64_t flags : 16;
+		uint64_t hashinfo : 32;
+		uint64_t itablesize : 16;
 
-		uint64_t	hashkeysize:16;
-		uint64_t	reserved:48;
+		uint64_t hashkeysize : 16;
+		uint64_t reserved : 48;
 #elif BYTE_ORDER == BIG_ENDIAN
-		uint64_t	itablesize:16;
-		uint64_t	hashinfo:32;
-		uint64_t	flags:16;
+		uint64_t itablesize : 16;
+		uint64_t hashinfo : 32;
+		uint64_t flags : 16;
 
-		uint64_t	reserved:48;
-		uint64_t	hashkeysize:16;
+		uint64_t reserved : 48;
+		uint64_t hashkeysize : 16;
 #else
 #error Undefined BYTE_ORDER
 #endif
-	}	param;
+	} param;
 
-	uint8_t	itable[LIO_RSS_TABLE_SZ];
-	uint8_t	key[LIO_RSS_KEY_SZ];
-
+	uint8_t itable[LIO_RSS_TABLE_SZ];
+	uint8_t key[LIO_RSS_KEY_SZ];
 };
 
 struct lio_rss_params_set {
-	uint8_t		key[LIO_RSS_KEY_SZ];
-	uint8_t		fw_itable[LIO_RSS_TABLE_SZ];
-	uint64_t	hashinfo;
-
+	uint8_t key[LIO_RSS_KEY_SZ];
+	uint8_t fw_itable[LIO_RSS_TABLE_SZ];
+	uint64_t hashinfo;
 };
 
-#endif	/* RSS */
+#endif /* RSS */
 
-#define LIO_RSS_HASH_IPV4		0x100
-#define LIO_RSS_HASH_TCP_IPV4		0x200
-#define LIO_RSS_HASH_IPV6		0x400
-#define LIO_RSS_HASH_IPV6_EX		0x800
-#define LIO_RSS_HASH_TCP_IPV6		0x1000
-#define LIO_RSS_HASH_TCP_IPV6_EX	0x2000
+#define LIO_RSS_HASH_IPV4 0x100
+#define LIO_RSS_HASH_TCP_IPV4 0x200
+#define LIO_RSS_HASH_IPV6 0x400
+#define LIO_RSS_HASH_IPV6_EX 0x800
+#define LIO_RSS_HASH_TCP_IPV6 0x1000
+#define LIO_RSS_HASH_TCP_IPV6_EX 0x2000
 
-#endif	/* __LIO_RSS_H__ */
+#endif /* __LIO_RSS_H__ */

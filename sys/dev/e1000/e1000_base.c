@@ -32,10 +32,10 @@
 
 ******************************************************************************/
 
-#include "e1000_hw.h"
 #include "e1000_82575.h"
-#include "e1000_mac.h"
 #include "e1000_base.h"
+#include "e1000_hw.h"
+#include "e1000_mac.h"
 #include "e1000_manage.h"
 
 /**
@@ -44,7 +44,8 @@
  *
  *  Acquire access rights to the correct PHY.
  **/
-s32 e1000_acquire_phy_base(struct e1000_hw *hw)
+s32
+e1000_acquire_phy_base(struct e1000_hw *hw)
 {
 	u16 mask = E1000_SWFW_PHY0_SM;
 
@@ -66,7 +67,8 @@ s32 e1000_acquire_phy_base(struct e1000_hw *hw)
  *
  *  A wrapper to release access rights to the correct PHY.
  **/
-void e1000_release_phy_base(struct e1000_hw *hw)
+void
+e1000_release_phy_base(struct e1000_hw *hw)
 {
 	u16 mask = E1000_SWFW_PHY0_SM;
 
@@ -88,7 +90,8 @@ void e1000_release_phy_base(struct e1000_hw *hw)
  *
  *  This inits the hardware readying it for operation.
  **/
-s32 e1000_init_hw_base(struct e1000_hw *hw)
+s32
+e1000_init_hw_base(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	s32 ret_val;
@@ -129,7 +132,8 @@ s32 e1000_init_hw_base(struct e1000_hw *hw)
  * In the case of a PHY power down to save power, or to turn off link during a
  * driver unload, or wake on lan is not enabled, remove the link.
  **/
-void e1000_power_down_phy_copper_base(struct e1000_hw *hw)
+void
+e1000_power_down_phy_copper_base(struct e1000_hw *hw)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 
@@ -150,7 +154,8 @@ void e1000_power_down_phy_copper_base(struct e1000_hw *hw)
  *  function clears the FIFOs and flushes any packets that came in as Rx was
  *  being enabled.
  **/
-void e1000_rx_fifo_flush_base(struct e1000_hw *hw)
+void
+e1000_rx_fifo_flush_base(struct e1000_hw *hw)
 {
 	u32 rctl, rlpml, rxdctl[4], rfctl, temp_rctl, rx_enabled;
 	int i, ms_wait;
@@ -169,7 +174,7 @@ void e1000_rx_fifo_flush_base(struct e1000_hw *hw)
 	for (i = 0; i < 4; i++) {
 		rxdctl[i] = E1000_READ_REG(hw, E1000_RXDCTL(i));
 		E1000_WRITE_REG(hw, E1000_RXDCTL(i),
-				rxdctl[i] & ~E1000_RXDCTL_QUEUE_ENABLE);
+		    rxdctl[i] & ~E1000_RXDCTL_QUEUE_ENABLE);
 	}
 	/* Poll all queues to verify they have shut down */
 	for (ms_wait = 0; ms_wait < 10; ms_wait++) {

@@ -31,9 +31,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "libc_private.h"
 
 #include <stddef.h>
+
+#include "libc_private.h"
 
 ssize_t
 send(int s, const void *msg, size_t len, int flags)
@@ -42,8 +43,8 @@ send(int s, const void *msg, size_t len, int flags)
 	 * POSIX says send() shall be a cancellation point, so call the
 	 * cancellation-enabled sendto() and not _sendto().
 	 */
-	return (((ssize_t (*)(int, const void *, size_t, int,
-	    const struct sockaddr *, socklen_t))
-	    __libc_interposing[INTERPOS_sendto])(s, msg, len, flags,
-	    NULL, 0));
+	return ((
+	    (ssize_t(*)(int, const void *, size_t, int, const struct sockaddr *,
+		socklen_t))__libc_interposing[INTERPOS_sendto])(s, msg, len,
+	    flags, NULL, 0));
 }

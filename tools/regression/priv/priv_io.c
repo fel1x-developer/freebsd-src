@@ -45,9 +45,9 @@
 
 #include "main.h"
 
-#define	NEW_PERMS	0666
-#define	DEV_IO		"/dev/io"
-#define	EXPECTED_PERMS	0600
+#define NEW_PERMS 0666
+#define DEV_IO "/dev/io"
+#define EXPECTED_PERMS 0600
 
 static int initialized;
 static mode_t saved_perms;
@@ -63,8 +63,8 @@ priv_io_setup(int asroot, int asjail, struct test *test)
 	}
 	saved_perms = sb.st_mode & ALLPERMS;
 	if (saved_perms != EXPECTED_PERMS) {
-		warnx("priv_io_setup: perms = 0%o; expected 0%o",
-		    saved_perms, EXPECTED_PERMS);
+		warnx("priv_io_setup: perms = 0%o; expected 0%o", saved_perms,
+		    EXPECTED_PERMS);
 		return (-1);
 	}
 	if (chmod(DEV_IO, NEW_PERMS) < 0) {
@@ -104,7 +104,6 @@ priv_io_cleanup(int asroot, int asjail, struct test *test)
 	if (!initialized)
 		return;
 	if (chmod(DEV_IO, saved_perms) < 0)
-		err(-1, "priv_io_cleanup: chmod(%s, 0%o)", DEV_IO,
-		    saved_perms);
+		err(-1, "priv_io_cleanup: chmod(%s, 0%o)", DEV_IO, saved_perms);
 	initialized = 0;
 }

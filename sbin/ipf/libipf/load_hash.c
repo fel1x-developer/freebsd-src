@@ -7,12 +7,13 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_htable.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_htable.h"
+#include "netinet/ip_lookup.h"
 
 int
 load_hash(iphtable_t *iphp, iphtent_t *list, ioctlfunc_t iocfunc)
@@ -47,8 +48,8 @@ load_hash(iphtable_t *iphp, iphtent_t *list, ioctlfunc_t iocfunc)
 		size = iphp->iph_size;
 	if ((list == NULL) && (size == 1)) {
 		fprintf(stderr,
-			"WARNING: empty hash table %s, recommend setting %s\n",
-			iphp->iph_name, "size to match expected use");
+		    "WARNING: empty hash table %s, recommend setting %s\n",
+		    iphp->iph_name, "size to match expected use");
 	}
 	iph.iph_size = size;
 	iph.iph_table = NULL;
@@ -59,7 +60,7 @@ load_hash(iphtable_t *iphp, iphtent_t *list, ioctlfunc_t iocfunc)
 		if (pool_ioctl(iocfunc, SIOCLOOKUPADDTABLE, &op))
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-					"add lookup hash table"));
+				    "add lookup hash table"));
 			}
 	}
 
@@ -92,7 +93,7 @@ load_hash(iphtable_t *iphp, iphtent_t *list, ioctlfunc_t iocfunc)
 		if (pool_ioctl(iocfunc, SIOCLOOKUPDELTABLE, &op))
 			if ((opts & OPT_DONOTHING) == 0) {
 				return (ipf_perror_fd(pool_fd(), iocfunc,
-					"delete lookup hash table"));
+				    "delete lookup hash table"));
 			}
 	}
 	return (0);

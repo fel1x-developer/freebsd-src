@@ -31,8 +31,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MSGIO_H_
-#define	_MSGIO_H_
+#ifndef _MSGIO_H_
+#define _MSGIO_H_
 
 struct cmsgcred;
 struct iovec;
@@ -47,4 +47,4 @@ int fd_recv(int sock, int *fds, size_t nfds);
 int buf_send(int sock, void *buf, size_t size);
 int buf_recv(int sock, void *buf, size_t size, int flags);
 
-#endif	/* !_MSGIO_H_ */
+#endif /* !_MSGIO_H_ */

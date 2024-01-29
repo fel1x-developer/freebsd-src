@@ -43,9 +43,11 @@ extern int32_t ocs_node_purge_pending(ocs_node_t *node);
 extern int32_t ocs_process_node_pending(ocs_node_t *node);
 extern int32_t ocs_domain_process_pending(ocs_domain_t *domain);
 extern int32_t ocs_domain_purge_pending(ocs_domain_t *domain);
-extern int32_t ocs_dispatch_unsolicited_bls(ocs_node_t *node, ocs_hw_sequence_t *seq);
+extern int32_t ocs_dispatch_unsolicited_bls(ocs_node_t *node,
+    ocs_hw_sequence_t *seq);
 extern void ocs_domain_hold_frames(ocs_domain_t *domain);
 extern void ocs_domain_accept_frames(ocs_domain_t *domain);
 extern void ocs_seq_coalesce_cleanup(ocs_hw_io_t *hio, uint8_t abort_io);
-extern int32_t ocs_sframe_send_bls_acc(ocs_node_t *node,  ocs_hw_sequence_t *seq);
-#endif 
+extern int32_t ocs_sframe_send_bls_acc(ocs_node_t *node,
+    ocs_hw_sequence_t *seq);
+#endif

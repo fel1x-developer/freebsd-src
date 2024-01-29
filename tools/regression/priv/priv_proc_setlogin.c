@@ -70,8 +70,7 @@ priv_proc_setlogin(int asroot, int injail, struct test *test)
 	if (asroot && !injail)
 		expect("priv_proc_setlogin(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_proc_setlogin(!sroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_proc_setlogin(!sroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
 		expect("priv_proc_setlogin(!asroot, !injail)", error, -1,
 		    EPERM);

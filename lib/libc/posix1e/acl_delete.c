@@ -32,12 +32,12 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 #include <sys/errno.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 acl_delete_def_file(const char *path_p)

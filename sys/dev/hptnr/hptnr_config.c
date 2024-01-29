@@ -36,10 +36,11 @@ extern int init_module_him_r750(void);
 extern int init_module_him_dc7280(void);
 extern int init_module_vdev_raw(void);
 
-int init_config(void)
+int
+init_config(void)
 {
-	init_module_him_r750();	
-	init_module_him_dc7280();	
+	init_module_him_r750();
+	init_module_him_dc7280();
 	init_module_vdev_raw();
 	return 0;
 }
@@ -47,7 +48,6 @@ int init_config(void)
 const char driver_name[] = "hptnr";
 const char driver_name_long[] = "R750/DC7280 controller driver";
 const char driver_ver[] = "v1.1.5";
-int  osm_max_targets = 0xff;
-
+int osm_max_targets = 0xff;
 
 int os_max_cache_size = 0x1000000;

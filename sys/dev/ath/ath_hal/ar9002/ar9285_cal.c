@@ -26,24 +26,22 @@
  * SUCH DAMAGE.
  */
 #include "opt_ah.h"
+
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v4k.h"
-
-#include "ar9002/ar9285.h"
-#include "ar5416/ar5416reg.h"
+#include "ah_internal.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 #include "ar9002/ar9002phy.h"
-#include "ar9002/ar9285phy.h"
-#include "ar9002/ar9285an.h"
-
+#include "ar9002/ar9285.h"
 #include "ar9002/ar9285_cal.h"
+#include "ar9002/ar9285an.h"
+#include "ar9002/ar9285phy.h"
 
-#define	AR9285_CLCAL_REDO_THRESH	1
-#define	MAX_PACAL_SKIPCOUNT		8
+#define AR9285_CLCAL_REDO_THRESH 1
+#define MAX_PACAL_SKIPCOUNT 8
 
-#define	N(a)	(sizeof (a) / sizeof (a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 
 static void
 ar9285_hw_pa_cal(struct ath_hal *ah, HAL_BOOL is_reset)
@@ -105,28 +103,32 @@ ar9285_hw_pa_cal(struct ath_hal *ah, HAL_BOOL is_reset)
 		OS_DELAY(1);
 		regVal = OS_REG_READ(ah, 0x7834);
 		regVal &= (~(0x1 << (19 + i)));
-		reg_field = MS(OS_REG_READ(ah, 0x7840), AR9285_AN_RXTXBB1_SPARE9);
+		reg_field = MS(OS_REG_READ(ah, 0x7840),
+		    AR9285_AN_RXTXBB1_SPARE9);
 		regVal |= (reg_field << (19 + i));
 		OS_REG_WRITE(ah, 0x7834, regVal);
 	}
 
 	OS_REG_RMW_FIELD(ah, AR9285_AN_RF2G3, AR9285_AN_RF2G3_PDVCCOMP, 1);
 	OS_DELAY(1);
-	reg_field = MS(OS_REG_READ(ah, AR9285_AN_RF2G9), AR9285_AN_RXTXBB1_SPARE9);
-	OS_REG_RMW_FIELD(ah, AR9285_AN_RF2G3, AR9285_AN_RF2G3_PDVCCOMP, reg_field);
+	reg_field = MS(OS_REG_READ(ah, AR9285_AN_RF2G9),
+	    AR9285_AN_RXTXBB1_SPARE9);
+	OS_REG_RMW_FIELD(ah, AR9285_AN_RF2G3, AR9285_AN_RF2G3_PDVCCOMP,
+	    reg_field);
 	offs_6_1 = MS(OS_REG_READ(ah, AR9285_AN_RF2G6), AR9285_AN_RF2G6_OFFS);
-	offs_0   = MS(OS_REG_READ(ah, AR9285_AN_RF2G3), AR9285_AN_RF2G3_PDVCCOMP);
+	offs_0 = MS(OS_REG_READ(ah, AR9285_AN_RF2G3), AR9285_AN_RF2G3_PDVCCOMP);
 
-	offset = (offs_6_1<<1) | offs_0;
+	offset = (offs_6_1 << 1) | offs_0;
 	offset = offset - 0;
-	offs_6_1 = offset>>1;
+	offs_6_1 = offset >> 1;
 	offs_0 = offset & 1;
 
 	if ((!is_reset) && (AH9285(ah)->pacal_info.prev_offset == offset)) {
 		if (AH9285(ah)->pacal_info.max_skipcount < MAX_PACAL_SKIPCOUNT)
-			AH9285(ah)->pacal_info.max_skipcount =
-				2 * AH9285(ah)->pacal_info.max_skipcount;
-		AH9285(ah)->pacal_info.skipcount = AH9285(ah)->pacal_info.max_skipcount;
+			AH9285(ah)->pacal_info.max_skipcount = 2 *
+			    AH9285(ah)->pacal_info.max_skipcount;
+		AH9285(ah)->pacal_info.skipcount =
+		    AH9285(ah)->pacal_info.max_skipcount;
 	} else {
 		AH9285(ah)->pacal_info.max_skipcount = 1;
 		AH9285(ah)->pacal_info.skipcount = 0;
@@ -166,30 +168,31 @@ ar9285_hw_cl_cal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
 	OS_REG_SET_BIT(ah, AR_PHY_CL_CAL_CTL, AR_PHY_CL_CAL_ENABLE);
 	if (IEEE80211_IS_CHAN_HT20(chan)) {
-		OS_REG_SET_BIT(ah, AR_PHY_CL_CAL_CTL, AR_PHY_PARALLEL_CAL_ENABLE);
+		OS_REG_SET_BIT(ah, AR_PHY_CL_CAL_CTL,
+		    AR_PHY_PARALLEL_CAL_ENABLE);
 		OS_REG_SET_BIT(ah, AR_PHY_TURBO, AR_PHY_FC_DYN2040_EN);
 		OS_REG_CLR_BIT(ah, AR_PHY_AGC_CONTROL,
-			    AR_PHY_AGC_CONTROL_FLTR_CAL);
+		    AR_PHY_AGC_CONTROL_FLTR_CAL);
 		OS_REG_CLR_BIT(ah, AR_PHY_TPCRG1, AR_PHY_TPCRG1_PD_CAL_ENABLE);
 		OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL);
 		if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL,
-				  AR_PHY_AGC_CONTROL_CAL, 0)) {
+			AR_PHY_AGC_CONTROL_CAL, 0)) {
 			HALDEBUG(ah, HAL_DEBUG_PERCAL,
-				"offset calibration failed to complete in 1ms; noisy environment?\n");
+			    "offset calibration failed to complete in 1ms; noisy environment?\n");
 			return AH_FALSE;
 		}
 		OS_REG_CLR_BIT(ah, AR_PHY_TURBO, AR_PHY_FC_DYN2040_EN);
-		OS_REG_CLR_BIT(ah, AR_PHY_CL_CAL_CTL, AR_PHY_PARALLEL_CAL_ENABLE);
+		OS_REG_CLR_BIT(ah, AR_PHY_CL_CAL_CTL,
+		    AR_PHY_PARALLEL_CAL_ENABLE);
 		OS_REG_CLR_BIT(ah, AR_PHY_CL_CAL_CTL, AR_PHY_CL_CAL_ENABLE);
 	}
 	OS_REG_CLR_BIT(ah, AR_PHY_ADC_CTL, AR_PHY_ADC_CTL_OFF_PWDADC);
 	OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_FLTR_CAL);
 	OS_REG_SET_BIT(ah, AR_PHY_TPCRG1, AR_PHY_TPCRG1_PD_CAL_ENABLE);
 	OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL);
-	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL,
-			  0)) {
+	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL, 0)) {
 		HALDEBUG(ah, HAL_DEBUG_PERCAL,
-			"offset calibration failed to complete in 1ms; noisy environment?\n");
+		    "offset calibration failed to complete in 1ms; noisy environment?\n");
 		return AH_FALSE;
 	}
 
@@ -217,11 +220,12 @@ ar9285_hw_clc(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		return AH_FALSE;
 
 	txgain_max = MS(OS_REG_READ(ah, AR_PHY_TX_PWRCTRL7),
-			AR_PHY_TX_PWRCTRL_TX_GAIN_TAB_MAX);
+	    AR_PHY_TX_PWRCTRL_TX_GAIN_TAB_MAX);
 
-	for (i = 0; i < (txgain_max+1); i++) {
-		clc_gain = (OS_REG_READ(ah, (AR_PHY_TX_GAIN_TBL1+(i<<2))) &
-			   AR_PHY_TX_GAIN_CLC) >> AR_PHY_TX_GAIN_CLC_S;
+	for (i = 0; i < (txgain_max + 1); i++) {
+		clc_gain = (OS_REG_READ(ah, (AR_PHY_TX_GAIN_TBL1 + (i << 2))) &
+			       AR_PHY_TX_GAIN_CLC) >>
+		    AR_PHY_TX_GAIN_CLC_S;
 		if (!(gain_mask & (1 << clc_gain))) {
 			gain_mask |= (1 << clc_gain);
 			clc_num++;
@@ -229,10 +233,12 @@ ar9285_hw_clc(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	}
 
 	for (i = 0; i < clc_num; i++) {
-		reg_clc_I0 = (OS_REG_READ(ah, (AR_PHY_CLC_TBL1 + (i << 2)))
-			      & AR_PHY_CLC_I0) >> AR_PHY_CLC_I0_S;
-		reg_clc_Q0 = (OS_REG_READ(ah, (AR_PHY_CLC_TBL1 + (i << 2)))
-			      & AR_PHY_CLC_Q0) >> AR_PHY_CLC_Q0_S;
+		reg_clc_I0 = (OS_REG_READ(ah, (AR_PHY_CLC_TBL1 + (i << 2))) &
+				 AR_PHY_CLC_I0) >>
+		    AR_PHY_CLC_I0_S;
+		reg_clc_Q0 = (OS_REG_READ(ah, (AR_PHY_CLC_TBL1 + (i << 2))) &
+				 AR_PHY_CLC_Q0) >>
+		    AR_PHY_CLC_Q0_S;
 		if (reg_clc_I0 == 0)
 			i0_num++;
 
@@ -244,12 +250,12 @@ ar9285_hw_clc(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		reg_rf2g5_org = OS_REG_READ(ah, AR9285_RF2G5);
 		if (AR_SREV_9285E_20(ah)) {
 			OS_REG_WRITE(ah, AR9285_RF2G5,
-				  (reg_rf2g5_org & AR9285_RF2G5_IC50TX) |
-				  AR9285_RF2G5_IC50TX_XE_SET);
+			    (reg_rf2g5_org & AR9285_RF2G5_IC50TX) |
+				AR9285_RF2G5_IC50TX_XE_SET);
 		} else {
 			OS_REG_WRITE(ah, AR9285_RF2G5,
-				  (reg_rf2g5_org & AR9285_RF2G5_IC50TX) |
-				  AR9285_RF2G5_IC50TX_SET);
+			    (reg_rf2g5_org & AR9285_RF2G5_IC50TX) |
+				AR9285_RF2G5_IC50TX_SET);
 		}
 		retv = ar9285_hw_cl_cal(ah, chan);
 		OS_REG_WRITE(ah, AR9285_RF2G5, reg_rf2g5_org);
@@ -258,11 +264,10 @@ ar9285_hw_clc(struct ath_hal *ah, const struct ieee80211_channel *chan)
 }
 
 HAL_BOOL
-ar9285InitCalHardware(struct ath_hal *ah,
-    const struct ieee80211_channel *chan)
+ar9285InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
 	if (AR_SREV_KITE(ah) && AR_SREV_KITE_10_OR_LATER(ah) &&
-	    (! ar9285_hw_clc(ah, chan)))
+	    (!ar9285_hw_clc(ah, chan)))
 		return AH_FALSE;
 
 	return AH_TRUE;

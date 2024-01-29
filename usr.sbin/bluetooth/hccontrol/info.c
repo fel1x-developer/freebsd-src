@@ -35,38 +35,38 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "hccontrol.h"
 
 /* Send Read_Local_Version_Information command to the unit */
 static int
 hci_read_local_version_information(int s, int argc, char **argv)
 {
-	ng_hci_read_local_ver_rp	rp;
-	int				n;
+	ng_hci_read_local_ver_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_LOCAL_VER), (char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_LOCAL_VER),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	rp.manufacturer = le16toh(rp.manufacturer);
 
 	fprintf(stdout, "HCI version: %s [%#02x]\n",
-		hci_ver2str(rp.hci_version), rp.hci_version);
-	fprintf(stdout, "HCI revision: %#04x\n",
-		le16toh(rp.hci_revision));
+	    hci_ver2str(rp.hci_version), rp.hci_version);
+	fprintf(stdout, "HCI revision: %#04x\n", le16toh(rp.hci_revision));
 	fprintf(stdout, "LMP version: %s [%#02x]\n",
-		hci_lmpver2str(rp.lmp_version), rp.lmp_version);
-	fprintf(stdout, "LMP sub-version: %#04x\n", 
-		le16toh(rp.lmp_subversion));
-	fprintf(stdout, "Manufacturer: %s [%#04x]\n", 
-		hci_manufacturer2str(rp.manufacturer), rp.manufacturer);
+	    hci_lmpver2str(rp.lmp_version), rp.lmp_version);
+	fprintf(stdout, "LMP sub-version: %#04x\n", le16toh(rp.lmp_subversion));
+	fprintf(stdout, "Manufacturer: %s [%#04x]\n",
+	    hci_manufacturer2str(rp.manufacturer), rp.manufacturer);
 
 	return (OK);
 } /* hci_read_local_version_information */
@@ -75,19 +75,19 @@ hci_read_local_version_information(int s, int argc, char **argv)
 static int
 hci_read_local_supported_commands(int s, int argc, char **argv)
 {
-	ng_hci_read_local_commands_rp	rp;
-	int				n;
-	char				buffer[16384];
+	ng_hci_read_local_commands_rp rp;
+	int n;
+	char buffer[16384];
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_LOCAL_COMMANDS),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_LOCAL_COMMANDS),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -97,8 +97,8 @@ hci_read_local_supported_commands(int s, int argc, char **argv)
 			fprintf(stdout, "\n");
 		fprintf(stdout, "%#02x ", rp.features[n]);
 	}
-	fprintf(stdout, "\n%s\n", hci_commands2str(rp.features, 
-		buffer, sizeof(buffer)));
+	fprintf(stdout, "\n%s\n",
+	    hci_commands2str(rp.features, buffer, sizeof(buffer)));
 
 	return (OK);
 } /* hci_read_local_supported_commands */
@@ -107,27 +107,27 @@ hci_read_local_supported_commands(int s, int argc, char **argv)
 static int
 hci_read_local_supported_features(int s, int argc, char **argv)
 {
-	ng_hci_read_local_features_rp	rp;
-	int				n;
-	char				buffer[2048];
+	ng_hci_read_local_features_rp rp;
+	int n;
+	char buffer[2048];
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_LOCAL_FEATURES),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_LOCAL_FEATURES),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Features: ");
 	for (n = 0; n < sizeof(rp.features); n++)
 		fprintf(stdout, "%#02x ", rp.features[n]);
-	fprintf(stdout, "\n%s\n", hci_features2str(rp.features, 
-		buffer, sizeof(buffer)));
+	fprintf(stdout, "\n%s\n",
+	    hci_features2str(rp.features, buffer, sizeof(buffer)));
 
 	return (OK);
 } /* hci_read_local_supported_features */
@@ -136,30 +136,27 @@ hci_read_local_supported_features(int s, int argc, char **argv)
 static int
 hci_read_buffer_size(int s, int argc, char **argv)
 {
-	ng_hci_read_buffer_size_rp	rp;
-	int				n;
+	ng_hci_read_buffer_size_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_BUFFER_SIZE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_BUFFER_SIZE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Max. ACL packet size: %d bytes\n",
-		le16toh(rp.max_acl_size));
-	fprintf(stdout, "Number of ACL packets: %d\n",
-		le16toh(rp.num_acl_pkt));
-	fprintf(stdout, "Max. SCO packet size: %d bytes\n",
-		rp.max_sco_size);
-	fprintf(stdout, "Number of SCO packets: %d\n",
-		le16toh(rp.num_sco_pkt));
-	
+	    le16toh(rp.max_acl_size));
+	fprintf(stdout, "Number of ACL packets: %d\n", le16toh(rp.num_acl_pkt));
+	fprintf(stdout, "Max. SCO packet size: %d bytes\n", rp.max_sco_size);
+	fprintf(stdout, "Number of SCO packets: %d\n", le16toh(rp.num_sco_pkt));
+
 	return (OK);
 } /* hci_read_buffer_size */
 
@@ -167,23 +164,23 @@ hci_read_buffer_size(int s, int argc, char **argv)
 static int
 hci_read_country_code(int s, int argc, char **argv)
 {
-	ng_hci_read_country_code_rp	rp;
-	int				n;
+	ng_hci_read_country_code_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_COUNTRY_CODE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_COUNTRY_CODE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Country code: %s [%#02x]\n",
-			hci_cc2str(rp.country_code), rp.country_code);
+	    hci_cc2str(rp.country_code), rp.country_code);
 
 	return (OK);
 } /* hci_read_country_code */
@@ -192,17 +189,18 @@ hci_read_country_code(int s, int argc, char **argv)
 static int
 hci_read_bd_addr(int s, int argc, char **argv)
 {
-	ng_hci_read_bdaddr_rp	rp;
-	int			n;
+	ng_hci_read_bdaddr_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_INFO,
-			NG_HCI_OCF_READ_BDADDR), (char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_INFO, NG_HCI_OCF_READ_BDADDR),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -211,45 +209,33 @@ hci_read_bd_addr(int s, int argc, char **argv)
 	return (OK);
 } /* hci_read_bd_addr */
 
-struct hci_command	info_commands[] = {
-{
-"read_local_version_information",
-"\nThis command will read the values for the version information for the\n" \
-"local Bluetooth unit.",
-&hci_read_local_version_information	
-},
-{
-"read_local_supported_commands",
-"\nThis command will read the commands the local Bluetooth unit supports.\n",
-&hci_read_local_supported_commands	
-},
-{
-"read_local_supported_features",
-"\nThis command requests a list of the supported features for the local\n" \
-"unit. This command will return a list of the LMP features.",
-&hci_read_local_supported_features
-},
-{
-"read_buffer_size",
-"\nThe Read_Buffer_Size command is used to read the maximum size of the\n" \
-"data portion of HCI ACL and SCO Data Packets sent from the Host to the\n" \
-"Host Controller.",
-&hci_read_buffer_size
-},
-{
-"read_country_code",
-"\nThis command will read the value for the Country_Code return parameter.\n" \
-"The Country_Code defines which range of frequency band of the ISM 2.4 GHz\n" \
-"band will be used by the unit.",
-&hci_read_country_code
-},
-{
-"read_bd_addr",
-"\nThis command will read the value for the BD_ADDR parameter. The BD_ADDR\n" \
-"is a 48-bit unique identifier for a Bluetooth unit.",
-&hci_read_bd_addr
-},
-{
-NULL,
-}};
-
+struct hci_command info_commands[] = {
+	{ "read_local_version_information",
+	    "\nThis command will read the values for the version information for the\n"
+	    "local Bluetooth unit.",
+	    &hci_read_local_version_information },
+	{ "read_local_supported_commands",
+	    "\nThis command will read the commands the local Bluetooth unit supports.\n",
+	    &hci_read_local_supported_commands },
+	{ "read_local_supported_features",
+	    "\nThis command requests a list of the supported features for the local\n"
+	    "unit. This command will return a list of the LMP features.",
+	    &hci_read_local_supported_features },
+	{ "read_buffer_size",
+	    "\nThe Read_Buffer_Size command is used to read the maximum size of the\n"
+	    "data portion of HCI ACL and SCO Data Packets sent from the Host to the\n"
+	    "Host Controller.",
+	    &hci_read_buffer_size },
+	{ "read_country_code",
+	    "\nThis command will read the value for the Country_Code return parameter.\n"
+	    "The Country_Code defines which range of frequency band of the ISM 2.4 GHz\n"
+	    "band will be used by the unit.",
+	    &hci_read_country_code },
+	{ "read_bd_addr",
+	    "\nThis command will read the value for the BD_ADDR parameter. The BD_ADDR\n"
+	    "is a 48-bit unique identifier for a Bluetooth unit.",
+	    &hci_read_bd_addr },
+	{
+	    NULL,
+	}
+};

@@ -34,17 +34,16 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pcm/ac97.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/sound/chip.h>
 #include <dev/sound/pci/csareg.h>
 #include <dev/sound/pci/csavar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+#include <dev/sound/pcm/ac97.h>
+#include <dev/sound/pcm/sound.h>
 
 /* Buffer size on dma transfer. Fixed for CS416x. */
-#define CS461x_BUFFSIZE   (4 * 1024)
+#define CS461x_BUFFSIZE (4 * 1024)
 
 #define GOF_PER_SEC 200
 
@@ -61,60 +60,51 @@ struct csa_chinfo {
 };
 
 struct csa_info {
-	csa_res		res; /* resource */
-	void		*ih; /* Interrupt cookie */
-	bus_dma_tag_t	parent_dmat; /* DMA tag */
+	csa_res res;		      /* resource */
+	void *ih;		      /* Interrupt cookie */
+	bus_dma_tag_t parent_dmat;    /* DMA tag */
 	struct csa_bridgeinfo *binfo; /* The state of the parent. */
 	struct csa_card *card;
 
 	int active;
 	/* Contents of board's registers */
-	u_long		pfie;
-	u_long		pctl;
-	u_long		cctl;
+	u_long pfie;
+	u_long pctl;
+	u_long cctl;
 	struct csa_chinfo pch, rch;
-	u_int32_t	ac97[CS461x_AC97_NUMBER_RESTORE_REGS];
-	u_int32_t	ac97_powerdown;
-	u_int32_t	ac97_general_purpose;
+	u_int32_t ac97[CS461x_AC97_NUMBER_RESTORE_REGS];
+	u_int32_t ac97_powerdown;
+	u_int32_t ac97_general_purpose;
 };
 
 /* -------------------------------------------------------------------- */
 
 /* prototypes */
-static int      csa_init(struct csa_info *);
-static void     csa_intr(void *);
-static void	csa_setplaysamplerate(csa_res *resp, u_long ulInRate);
-static void	csa_setcapturesamplerate(csa_res *resp, u_long ulOutRate);
-static void	csa_startplaydma(struct csa_info *csa);
-static void	csa_startcapturedma(struct csa_info *csa);
-static void	csa_stopplaydma(struct csa_info *csa);
-static void	csa_stopcapturedma(struct csa_info *csa);
-static int	csa_startdsp(csa_res *resp);
-static int	csa_stopdsp(csa_res *resp);
-static int	csa_allocres(struct csa_info *scp, device_t dev);
-static void	csa_releaseres(struct csa_info *scp, device_t dev);
-static void	csa_ac97_suspend(struct csa_info *csa);
-static void	csa_ac97_resume(struct csa_info *csa);
+static int csa_init(struct csa_info *);
+static void csa_intr(void *);
+static void csa_setplaysamplerate(csa_res *resp, u_long ulInRate);
+static void csa_setcapturesamplerate(csa_res *resp, u_long ulOutRate);
+static void csa_startplaydma(struct csa_info *csa);
+static void csa_startcapturedma(struct csa_info *csa);
+static void csa_stopplaydma(struct csa_info *csa);
+static void csa_stopcapturedma(struct csa_info *csa);
+static int csa_startdsp(csa_res *resp);
+static int csa_stopdsp(csa_res *resp);
+static int csa_allocres(struct csa_info *scp, device_t dev);
+static void csa_releaseres(struct csa_info *scp, device_t dev);
+static void csa_ac97_suspend(struct csa_info *csa);
+static void csa_ac97_resume(struct csa_info *csa);
 
-static u_int32_t csa_playfmt[] = {
-	SND_FORMAT(AFMT_U8, 1, 0),
-	SND_FORMAT(AFMT_U8, 2, 0),
-	SND_FORMAT(AFMT_S8, 1, 0),
-	SND_FORMAT(AFMT_S8, 2, 0),
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	SND_FORMAT(AFMT_S16_BE, 1, 0),
-	SND_FORMAT(AFMT_S16_BE, 2, 0),
-	0
-};
-static struct pcmchan_caps csa_playcaps = {8000, 48000, csa_playfmt, 0};
+static u_int32_t csa_playfmt[] = { SND_FORMAT(AFMT_U8, 1, 0),
+	SND_FORMAT(AFMT_U8, 2, 0), SND_FORMAT(AFMT_S8, 1, 0),
+	SND_FORMAT(AFMT_S8, 2, 0), SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), SND_FORMAT(AFMT_S16_BE, 1, 0),
+	SND_FORMAT(AFMT_S16_BE, 2, 0), 0 };
+static struct pcmchan_caps csa_playcaps = { 8000, 48000, csa_playfmt, 0 };
 
-static u_int32_t csa_recfmt[] = {
-	SND_FORMAT(AFMT_S16_LE, 1, 0),
-	SND_FORMAT(AFMT_S16_LE, 2, 0),
-	0
-};
-static struct pcmchan_caps csa_reccaps = {11025, 48000, csa_recfmt, 0};
+static u_int32_t csa_recfmt[] = { SND_FORMAT(AFMT_S16_LE, 1, 0),
+	SND_FORMAT(AFMT_S16_LE, 2, 0), 0 };
+static struct pcmchan_caps csa_reccaps = { 11025, 48000, csa_recfmt, 0 };
 
 /* -------------------------------------------------------------------- */
 
@@ -163,11 +153,8 @@ csa_wrcd(kobj_t obj, void *devinfo, int regno, u_int32_t data)
 	return 0;
 }
 
-static kobj_method_t csa_ac97_methods[] = {
-    	KOBJMETHOD(ac97_read,		csa_rdcd),
-    	KOBJMETHOD(ac97_write,		csa_wrcd),
-	KOBJMETHOD_END
-};
+static kobj_method_t csa_ac97_methods[] = { KOBJMETHOD(ac97_read, csa_rdcd),
+	KOBJMETHOD(ac97_write, csa_wrcd), KOBJMETHOD_END };
 AC97_DECLARE(csa_ac97);
 
 static void
@@ -212,7 +199,9 @@ csa_setplaysamplerate(csa_res *resp, u_long ulInRate)
 	/*
 	 * Fill in the SampleRateConverter control block.
 	 */
-	csa_writemem(resp, BA1_PSRC, ((ulCorrectionPerSec << 16) & 0xFFFF0000) | (ulCorrectionPerGOF & 0xFFFF));
+	csa_writemem(resp, BA1_PSRC,
+	    ((ulCorrectionPerSec << 16) & 0xFFFF0000) |
+		(ulCorrectionPerGOF & 0xFFFF));
 	csa_writemem(resp, BA1_PPI, ulPhiIncr);
 }
 
@@ -230,14 +219,14 @@ csa_setcapturesamplerate(csa_res *resp, u_long ulOutRate)
 	 * We can only decimate by up to a factor of 1/9th the hardware rate.
 	 * Return an error if an attempt is made to stray outside that limit.
 	 */
-	if((ulOutRate * 9) < ulInRate)
+	if ((ulOutRate * 9) < ulInRate)
 		return;
 
 	/*
 	 * We can not capture at at rate greater than the Input Rate (48000).
 	 * Return an error if an attempt is made to stray outside that limit.
 	 */
-	if(ulOutRate > ulInRate)
+	if (ulOutRate > ulInRate)
 		return;
 
 	/*
@@ -286,36 +275,30 @@ csa_setcapturesamplerate(csa_res *resp, u_long ulOutRate)
 	 * Fill in the VariDecimate control block.
 	 */
 	csa_writemem(resp, BA1_CSRC,
-		     ((ulCorrectionPerSec << 16) & 0xFFFF0000) | (ulCorrectionPerGOF & 0xFFFF));
+	    ((ulCorrectionPerSec << 16) & 0xFFFF0000) |
+		(ulCorrectionPerGOF & 0xFFFF));
 	csa_writemem(resp, BA1_CCI, ulCoeffIncr);
 	csa_writemem(resp, BA1_CD,
-	     (((BA1_VARIDEC_BUF_1 + (ulInitialDelay << 2)) << 16) & 0xFFFF0000) | 0x80);
+	    (((BA1_VARIDEC_BUF_1 + (ulInitialDelay << 2)) << 16) & 0xFFFF0000) |
+		0x80);
 	csa_writemem(resp, BA1_CPI, ulPhiIncr);
 
 	/*
-	 * Figure out the frame group length for the write back task.  Basically,
+	 * Figure out the frame group length for the write back task. Basically,
 	 * this is just the factors of 24000 (2^6*3*5^3) that are not present in
 	 * the output sample rate.
 	 */
 	dwFrameGroupLength = 1;
-	for(dwCnt = 2; dwCnt <= 64; dwCnt *= 2)
-	{
-		if(((ulOutRate / dwCnt) * dwCnt) !=
-		   ulOutRate)
-		{
+	for (dwCnt = 2; dwCnt <= 64; dwCnt *= 2) {
+		if (((ulOutRate / dwCnt) * dwCnt) != ulOutRate) {
 			dwFrameGroupLength *= 2;
 		}
 	}
-	if(((ulOutRate / 3) * 3) !=
-	   ulOutRate)
-	{
+	if (((ulOutRate / 3) * 3) != ulOutRate) {
 		dwFrameGroupLength *= 3;
 	}
-	for(dwCnt = 5; dwCnt <= 125; dwCnt *= 5)
-	{
-		if(((ulOutRate / dwCnt) * dwCnt) !=
-		   ulOutRate)
-		{
+	for (dwCnt = 5; dwCnt <= 125; dwCnt *= 5) {
+		if (((ulOutRate / dwCnt) * dwCnt) != ulOutRate) {
 			dwFrameGroupLength *= 5;
 		}
 	}
@@ -428,8 +411,8 @@ csa_startdsp(csa_res *resp)
 	csa_writemem(resp, BA1_FRMT, 0xadf);
 
 	/*
-	 * Turn on the run, run at frame, and DMA enable bits in the local copy of
-	 * the SP control register.
+	 * Turn on the run, run at frame, and DMA enable bits in the local copy
+	 * of the SP control register.
 	 */
 	csa_writemem(resp, BA1_SPCR, SPCR_RUN | SPCR_RUNFR | SPCR_DRQEN);
 
@@ -438,9 +421,10 @@ csa_startdsp(csa_res *resp)
 	 * register.
 	 */
 	ul = 0;
-	for (i = 0 ; i < 25 ; i++) {
+	for (i = 0; i < 25; i++) {
 		/*
-		 * Wait a little bit, so we don't issue PCI reads too frequently.
+		 * Wait a little bit, so we don't issue PCI reads too
+		 * frequently.
 		 */
 		DELAY(50);
 		/*
@@ -451,13 +435,13 @@ csa_startdsp(csa_res *resp)
 		/*
 		 * If the run at frame bit has reset, then stop waiting.
 		 */
-		if((ul & SPCR_RUNFR) == 0)
+		if ((ul & SPCR_RUNFR) == 0)
 			break;
 	}
 	/*
 	 * If the run at frame bit never reset, then return an error.
 	 */
-	if((ul & SPCR_RUNFR) != 0)
+	if ((ul & SPCR_RUNFR) != 0)
 		return (EAGAIN);
 
 	return (0);
@@ -516,7 +500,8 @@ csa_setupchan(struct csa_chinfo *ch)
 		csa_writemem(resp, BA1_CBA, sndbuf_getbufaddr(ch->buffer));
 
 		/* format */
-		csa_writemem(resp, BA1_CIE, (csa_readmem(resp, BA1_CIE) & ~0x0000003f) | 0x00000001);
+		csa_writemem(resp, BA1_CIE,
+		    (csa_readmem(resp, BA1_CIE) & ~0x0000003f) | 0x00000001);
 
 		/* rate */
 		csa_setcapturesamplerate(resp, ch->spd);
@@ -528,10 +513,11 @@ csa_setupchan(struct csa_chinfo *ch)
 /* channel interface */
 
 static void *
-csachan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c, int dir)
+csachan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
+    struct pcm_channel *c, int dir)
 {
 	struct csa_info *csa = devinfo;
-	struct csa_chinfo *ch = (dir == PCMDIR_PLAY)? &csa->pch : &csa->rch;
+	struct csa_chinfo *ch = (dir == PCMDIR_PLAY) ? &csa->pch : &csa->rch;
 
 	ch->parent = csa;
 	ch->channel = c;
@@ -603,11 +589,13 @@ csachan_getptr(kobj_t obj, void *data)
 	resp = &csa->res;
 
 	if (ch->dir == PCMDIR_PLAY) {
-		ptr = csa_readmem(resp, BA1_PBA) - sndbuf_getbufaddr(ch->buffer);
+		ptr = csa_readmem(resp, BA1_PBA) -
+		    sndbuf_getbufaddr(ch->buffer);
 		if ((ch->fmt & AFMT_U8) != 0 || (ch->fmt & AFMT_S8) != 0)
 			ptr >>= 1;
 	} else {
-		ptr = csa_readmem(resp, BA1_CBA) - sndbuf_getbufaddr(ch->buffer);
+		ptr = csa_readmem(resp, BA1_CBA) -
+		    sndbuf_getbufaddr(ch->buffer);
 		if ((ch->fmt & AFMT_U8) != 0 || (ch->fmt & AFMT_S8) != 0)
 			ptr >>= 1;
 	}
@@ -619,19 +607,17 @@ static struct pcmchan_caps *
 csachan_getcaps(kobj_t obj, void *data)
 {
 	struct csa_chinfo *ch = data;
-	return (ch->dir == PCMDIR_PLAY)? &csa_playcaps : &csa_reccaps;
+	return (ch->dir == PCMDIR_PLAY) ? &csa_playcaps : &csa_reccaps;
 }
 
-static kobj_method_t csachan_methods[] = {
-    	KOBJMETHOD(channel_init,		csachan_init),
-    	KOBJMETHOD(channel_setformat,		csachan_setformat),
-    	KOBJMETHOD(channel_setspeed,		csachan_setspeed),
-    	KOBJMETHOD(channel_setblocksize,	csachan_setblocksize),
-    	KOBJMETHOD(channel_trigger,		csachan_trigger),
-    	KOBJMETHOD(channel_getptr,		csachan_getptr),
-    	KOBJMETHOD(channel_getcaps,		csachan_getcaps),
-	KOBJMETHOD_END
-};
+static kobj_method_t csachan_methods[] = { KOBJMETHOD(channel_init,
+					       csachan_init),
+	KOBJMETHOD(channel_setformat, csachan_setformat),
+	KOBJMETHOD(channel_setspeed, csachan_setspeed),
+	KOBJMETHOD(channel_setblocksize, csachan_setblocksize),
+	KOBJMETHOD(channel_trigger, csachan_trigger),
+	KOBJMETHOD(channel_getptr, csachan_getptr),
+	KOBJMETHOD(channel_getcaps, csachan_getcaps), KOBJMETHOD_END };
 CHANNEL_DECLARE(csachan);
 
 /* -------------------------------------------------------------------- */
@@ -674,10 +660,10 @@ csa_init(struct csa_info *csa)
 	csa_writeio(resp, BA0_EGPIODR, EGPIODR_GPOE0);
 	csa_writeio(resp, BA0_EGPIOPTR, EGPIOPTR_GPPT0);
 	/* Power up amplifier */
-	csa_writeio(resp, BA0_EGPIODR, csa_readio(resp, BA0_EGPIODR) |
-		EGPIODR_GPOE2);
-	csa_writeio(resp, BA0_EGPIOPTR, csa_readio(resp, BA0_EGPIOPTR) | 
-		EGPIOPTR_GPPT2);
+	csa_writeio(resp, BA0_EGPIODR,
+	    csa_readio(resp, BA0_EGPIODR) | EGPIODR_GPOE2);
+	csa_writeio(resp, BA0_EGPIOPTR,
+	    csa_readio(resp, BA0_EGPIOPTR) | EGPIOPTR_GPPT2);
 
 	return 0;
 }
@@ -691,31 +677,32 @@ csa_allocres(struct csa_info *csa, device_t dev)
 	resp = &csa->res;
 	if (resp->io == NULL) {
 		resp->io = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-			&resp->io_rid, RF_ACTIVE);
+		    &resp->io_rid, RF_ACTIVE);
 		if (resp->io == NULL)
 			return (1);
 	}
 	if (resp->mem == NULL) {
 		resp->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-			&resp->mem_rid, RF_ACTIVE);
+		    &resp->mem_rid, RF_ACTIVE);
 		if (resp->mem == NULL)
 			return (1);
 	}
 	if (resp->irq == NULL) {
 		resp->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-			&resp->irq_rid, RF_ACTIVE | RF_SHAREABLE);
+		    &resp->irq_rid, RF_ACTIVE | RF_SHAREABLE);
 		if (resp->irq == NULL)
 			return (1);
 	}
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(dev),
-			       /*alignment*/CS461x_BUFFSIZE,
-			       /*boundary*/CS461x_BUFFSIZE,
-			       /*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-			       /*highaddr*/BUS_SPACE_MAXADDR,
-			       /*filter*/NULL, /*filterarg*/NULL,
-			       /*maxsize*/CS461x_BUFFSIZE, /*nsegments*/1, /*maxsegz*/0x3ffff,
-			       /*flags*/0, /*lockfunc*/NULL, /*lockarg*/NULL,
-			       &csa->parent_dmat) != 0)
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(dev),
+		/*alignment*/ CS461x_BUFFSIZE,
+		/*boundary*/ CS461x_BUFFSIZE,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL, /*filterarg*/ NULL,
+		/*maxsize*/ CS461x_BUFFSIZE, /*nsegments*/ 1,
+		/*maxsegz*/ 0x3ffff,
+		/*flags*/ 0, /*lockfunc*/ NULL, /*lockarg*/ NULL,
+		&csa->parent_dmat) != 0)
 		return (1);
 
 	return (0);
@@ -733,15 +720,18 @@ csa_releaseres(struct csa_info *csa, device_t dev)
 	if (resp->irq != NULL) {
 		if (csa->ih)
 			bus_teardown_intr(dev, resp->irq, csa->ih);
-		bus_release_resource(dev, SYS_RES_IRQ, resp->irq_rid, resp->irq);
+		bus_release_resource(dev, SYS_RES_IRQ, resp->irq_rid,
+		    resp->irq);
 		resp->irq = NULL;
 	}
 	if (resp->io != NULL) {
-		bus_release_resource(dev, SYS_RES_MEMORY, resp->io_rid, resp->io);
+		bus_release_resource(dev, SYS_RES_MEMORY, resp->io_rid,
+		    resp->io);
 		resp->io = NULL;
 	}
 	if (resp->mem != NULL) {
-		bus_release_resource(dev, SYS_RES_MEMORY, resp->mem_rid, resp->mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, resp->mem_rid,
+		    resp->mem);
 		resp->mem = NULL;
 	}
 	if (csa->parent_dmat != NULL) {
@@ -820,8 +810,8 @@ pcmcsa_attach(device_t dev)
 	}
 
 	snprintf(status, SND_STATUSLEN, "irq %jd on %s",
-			rman_get_start(resp->irq),
-			device_get_nameunit(device_get_parent(dev)));
+	    rman_get_start(resp->irq),
+	    device_get_nameunit(device_get_parent(dev)));
 
 	/* Enable interrupt. */
 	if (snd_setup_intr(dev, resp->irq, 0, csa_intr, csa, &csa->ih)) {
@@ -830,7 +820,8 @@ pcmcsa_attach(device_t dev)
 		return (ENXIO);
 	}
 	csa_writemem(resp, BA1_PFIE, csa_readmem(resp, BA1_PFIE) & ~0x0000f03f);
-	csa_writemem(resp, BA1_CIE, (csa_readmem(resp, BA1_CIE) & ~0x0000003f) | 0x00000001);
+	csa_writemem(resp, BA1_CIE,
+	    (csa_readmem(resp, BA1_CIE) & ~0x0000003f) | 0x00000001);
 	csa_active(csa, -1);
 
 	if (pcm_register(dev, csa, 1, 1)) {
@@ -867,10 +858,9 @@ csa_ac97_suspend(struct csa_info *csa)
 	int count, i;
 	uint32_t tmp;
 
-	for (count = 0x2, i=0;
-	    (count <= CS461x_AC97_HIGHESTREGTORESTORE) &&
-	    (i < CS461x_AC97_NUMBER_RESTORE_REGS);
-	    count += 2, i++)
+	for (count = 0x2, i = 0; (count <= CS461x_AC97_HIGHESTREGTORESTORE) &&
+	     (i < CS461x_AC97_NUMBER_RESTORE_REGS);
+	     count += 2, i++)
 		csa_readcodec(&csa->res, BA0_AC97_RESET + count, &csa->ac97[i]);
 
 	/* mute the outputs */
@@ -929,10 +919,9 @@ csa_ac97_resume(struct csa_info *csa)
 	 * Restore just the first set of registers, from register number
 	 * 0x02 to the register number that ulHighestRegToRestore specifies.
 	 */
-	for (count = 0x2, i=0;
-	    (count <= CS461x_AC97_HIGHESTREGTORESTORE) &&
-	    (i < CS461x_AC97_NUMBER_RESTORE_REGS);
-	    count += 2, i++)
+	for (count = 0x2, i = 0; (count <= CS461x_AC97_HIGHESTREGTORESTORE) &&
+	     (i < CS461x_AC97_NUMBER_RESTORE_REGS);
+	     count += 2, i++)
 		csa_writecodec(&csa->res, BA0_AC97_RESET + count, csa->ac97[i]);
 }
 
@@ -1019,7 +1008,7 @@ pcmcsa_resume(device_t dev)
 
 static device_method_t pcmcsa_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe , pcmcsa_probe ),
+	DEVMETHOD(device_probe, pcmcsa_probe),
 	DEVMETHOD(device_attach, pcmcsa_attach),
 	DEVMETHOD(device_detach, pcmcsa_detach),
 	DEVMETHOD(device_suspend, pcmcsa_suspend),

@@ -63,19 +63,19 @@ __KERNEL_RCSID(0, "$NetBSD: qat_c2xxx.c,v 1.1 2019/11/20 09:37:46 hikaru Exp $")
 #endif
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 
 #include <machine/bus.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include "qatreg.h"
-#include "qat_hw15reg.h"
 #include "qat_c2xxxreg.h"
-#include "qatvar.h"
+#include "qat_hw15reg.h"
 #include "qat_hw15var.h"
+#include "qatreg.h"
+#include "qatvar.h"
 
 static uint32_t
 qat_c2xxx_get_accel_mask(struct qat_softc *sc)
@@ -93,10 +93,9 @@ qat_c2xxx_get_ae_mask(struct qat_softc *sc)
 	uint32_t fusectl;
 
 	fusectl = pci_read_config(sc->sc_dev, FUSECTL_REG, 4);
-	if (fusectl & (
-	    FUSECTL_C2XXX_PKE_DISABLE |
-	    FUSECTL_C2XXX_ATH_DISABLE |
-	    FUSECTL_C2XXX_CPH_DISABLE)) {
+	if (fusectl &
+	    (FUSECTL_C2XXX_PKE_DISABLE | FUSECTL_C2XXX_ATH_DISABLE |
+		FUSECTL_C2XXX_CPH_DISABLE)) {
 		return 0;
 	} else {
 		if ((~fusectl & AE_MASK_C2XXX) == 0x3) {
@@ -137,8 +136,7 @@ static uint32_t
 qat_c2xxx_get_accel_cap(struct qat_softc *sc)
 {
 	return QAT_ACCEL_CAP_CRYPTO_SYMMETRIC |
-	    QAT_ACCEL_CAP_CRYPTO_ASYMMETRIC |
-	    QAT_ACCEL_CAP_CIPHER |
+	    QAT_ACCEL_CAP_CRYPTO_ASYMMETRIC | QAT_ACCEL_CAP_CIPHER |
 	    QAT_ACCEL_CAP_AUTHENTICATION;
 }
 
@@ -211,6 +209,6 @@ const struct qat_hw qat_hw_c2xxx = {
 	.qhw_send_admin_init = qat_adm_ring_send_init,
 	.qhw_crypto_setup_desc = qat_hw15_crypto_setup_desc,
 	.qhw_crypto_setup_req_params = qat_hw15_crypto_setup_req_params,
-	.qhw_crypto_opaque_offset =
-	    offsetof(struct fw_la_resp, comn_resp.opaque_data),
+	.qhw_crypto_opaque_offset = offsetof(struct fw_la_resp,
+	    comn_resp.opaque_data),
 };

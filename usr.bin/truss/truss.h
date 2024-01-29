@@ -27,14 +27,14 @@
 
 #include <sys/queue.h>
 
-#define	FOLLOWFORKS		0x00000001
-#define	RELATIVETIMESTAMPS	0x00000002
-#define	ABSOLUTETIMESTAMPS	0x00000004
-#define	NOSIGS			0x00000008
-#define	EXECVEARGS		0x00000010
-#define	EXECVEENVS		0x00000020
-#define	COUNTONLY		0x00000040
-#define	DISPLAYTIDS		0x00000080
+#define FOLLOWFORKS 0x00000001
+#define RELATIVETIMESTAMPS 0x00000002
+#define ABSOLUTETIMESTAMPS 0x00000004
+#define NOSIGS 0x00000008
+#define EXECVEARGS 0x00000010
+#define EXECVEENVS 0x00000020
+#define COUNTONLY 0x00000040
+#define DISPLAYTIDS 0x00000080
 
 struct procinfo;
 struct syscall;
@@ -45,7 +45,7 @@ struct trussinfo;
  * array for the first 1024 system calls that can be indexed directly.
  * Unknown system calls with other IDs are stored in a linked list.
  */
-#define	SYSCALL_NORMAL_COUNT	1024
+#define SYSCALL_NORMAL_COUNT 1024
 
 struct extra_syscall {
 	STAILQ_ENTRY(extra_syscall) entries;
@@ -80,11 +80,10 @@ struct current_syscall {
 	unsigned int number;
 	unsigned int nargs;
 	syscallarg_t args[10];
-	char *s_args[10];	/* the printable arguments */
+	char *s_args[10]; /* the printable arguments */
 };
 
-struct threadinfo
-{
+struct threadinfo {
 	LIST_ENTRY(threadinfo) entries;
 	struct procinfo *proc;
 	lwpid_t tid;
@@ -102,8 +101,7 @@ struct procinfo {
 	LIST_HEAD(, threadinfo) threadlist;
 };
 
-struct trussinfo
-{
+struct trussinfo {
 	int flags;
 	int strsize;
 	FILE *outfile;

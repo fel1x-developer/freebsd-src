@@ -62,8 +62,8 @@
 */
 
 #include "cpa.h"
-#include "cpa_cy_sym.h"
 #include "cpa_cy_common.h"
+#include "cpa_cy_sym.h"
 
 /*
 *******************************************************************************
@@ -86,7 +86,7 @@
 * @retval None
 *
 *****************************************************************************/
-#define LAC_SYM_STAT_INC(statistic, instanceHandle)                            \
+#define LAC_SYM_STAT_INC(statistic, instanceHandle) \
 	LacSym_StatsInc(offsetof(CpaCySymStats64, statistic), instanceHandle)
 
 /**
@@ -152,7 +152,7 @@ void LacSym_StatsInc(Cpa32U offset, CpaInstanceHandle instanceHandle);
 *
 *****************************************************************************/
 void LacSym_Stats32CopyGet(CpaInstanceHandle instanceHandle,
-			   struct _CpaCySymStats *const pSymStats);
+    struct _CpaCySymStats *const pSymStats);
 
 /**
 *******************************************************************************
@@ -170,7 +170,7 @@ void LacSym_Stats32CopyGet(CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 void LacSym_Stats64CopyGet(CpaInstanceHandle instanceHandle,
-			   CpaCySymStats64 *const pSymStats);
+    CpaCySymStats64 *const pSymStats);
 
 /**
 *******************************************************************************

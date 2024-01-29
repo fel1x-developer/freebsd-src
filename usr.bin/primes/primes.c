@@ -54,10 +54,10 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <math.h>
+#include <nl_types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <nl_types.h>
 #include <unistd.h>
 
 #include "primes.h"
@@ -71,19 +71,19 @@
  *
  * We make TABSIZE large to reduce the overhead of inner loop setup.
  */
-static char table[TABSIZE];	 /* Eratosthenes sieve of odd numbers */
+static char table[TABSIZE]; /* Eratosthenes sieve of odd numbers */
 
-static int	hflag;
+static int hflag;
 
-static void	primes(ubig, ubig);
-static ubig	read_num_buf(void);
-static void	usage(void);
+static void primes(ubig, ubig);
+static ubig read_num_buf(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
-	ubig start;		/* where to start generating */
-	ubig stop;		/* don't generate at or above this value */
+	ubig start; /* where to start generating */
+	ubig stop;  /* don't generate at or above this value */
 	int ch;
 	char *p;
 
@@ -165,7 +165,7 @@ static ubig
 read_num_buf(void)
 {
 	ubig val;
-	char *p, buf[LINE_MAX];		/* > max number of digits. */
+	char *p, buf[LINE_MAX]; /* > max number of digits. */
 
 	for (;;) {
 		if (fgets(buf, sizeof(buf), stdin) == NULL) {
@@ -173,7 +173,8 @@ read_num_buf(void)
 				err(1, "stdin");
 			exit(0);
 		}
-		for (p = buf; isblank(*p); ++p);
+		for (p = buf; isblank(*p); ++p)
+			;
 		if (*p == '\n' || *p == '\0')
 			continue;
 		if (*p == '-')
@@ -194,12 +195,12 @@ read_num_buf(void)
 static void
 primes(ubig start, ubig stop)
 {
-	char *q;		/* sieve spot */
-	ubig factor;		/* index and factor */
-	char *tab_lim;		/* the limit to sieve on the table */
-	const ubig *p;		/* prime table pointer */
-	ubig fact_lim;		/* highest prime for current block */
-	ubig mod;		/* temp storage for mod */
+	char *q;       /* sieve spot */
+	ubig factor;   /* index and factor */
+	char *tab_lim; /* the limit to sieve on the table */
+	const ubig *p; /* prime table pointer */
+	ubig fact_lim; /* highest prime for current block */
+	ubig mod;      /* temp storage for mod */
 
 	/*
 	 * A number of systems can not convert double values into unsigned
@@ -219,10 +220,10 @@ primes(ubig start, ubig stop)
 	/*
 	 * be sure that the values are odd, or 2
 	 */
-	if (start != 2 && (start&0x1) == 0) {
+	if (start != 2 && (start & 0x1) == 0) {
 		++start;
 	}
-	if (stop != 2 && (stop&0x1) == 0) {
+	if (stop != 2 && (stop & 0x1) == 0) {
 		++stop;
 	}
 
@@ -232,16 +233,18 @@ primes(ubig start, ubig stop)
 	if (start <= *pr_limit) {
 		/* skip primes up to the start value */
 		for (p = &prime[0], factor = prime[0];
-		    factor < stop && p <= pr_limit; factor = *(++p)) {
+		     factor < stop && p <= pr_limit; factor = *(++p)) {
 			if (factor >= start) {
-				printf(hflag ? "%" PRIx64 "\n" : "%" PRIu64 "\n", factor);
+				printf(hflag ? "%" PRIx64 "\n" :
+					       "%" PRIu64 "\n",
+				    factor);
 			}
 		}
 		/* return early if we are done */
 		if (p <= pr_limit) {
 			return;
 		}
-		start = *pr_limit+2;
+		start = *pr_limit + 2;
 	}
 
 	/*
@@ -253,40 +256,43 @@ primes(ubig start, ubig stop)
 		 * factor out 3, 5, 7, 11 and 13
 		 */
 		/* initial pattern copy */
-		factor = (start%(2*3*5*7*11*13))/2; /* starting copy spot */
-		memcpy(table, &pattern[factor], pattern_size-factor);
+		factor = (start % (2 * 3 * 5 * 7 * 11 * 13)) /
+		    2; /* starting copy spot */
+		memcpy(table, &pattern[factor], pattern_size - factor);
 		/* main block pattern copies */
-		for (fact_lim=pattern_size-factor;
-		    fact_lim+pattern_size<=TABSIZE; fact_lim+=pattern_size) {
+		for (fact_lim = pattern_size - factor;
+		     fact_lim + pattern_size <= TABSIZE;
+		     fact_lim += pattern_size) {
 			memcpy(&table[fact_lim], pattern, pattern_size);
 		}
 		/* final block pattern copy */
-		memcpy(&table[fact_lim], pattern, TABSIZE-fact_lim);
+		memcpy(&table[fact_lim], pattern, TABSIZE - fact_lim);
 
 		/*
 		 * sieve for primes 17 and higher
 		 */
 		/* note highest useful factor and sieve spot */
-		if (stop-start > TABSIZE+TABSIZE) {
+		if (stop - start > TABSIZE + TABSIZE) {
 			tab_lim = &table[TABSIZE]; /* sieve it all */
-			fact_lim = sqrt(start+1.0+TABSIZE+TABSIZE);
+			fact_lim = sqrt(start + 1.0 + TABSIZE + TABSIZE);
 		} else {
-			tab_lim = &table[(stop-start)/2]; /* partial sieve */
-			fact_lim = sqrt(stop+1.0);
+			tab_lim =
+			    &table[(stop - start) / 2]; /* partial sieve */
+			fact_lim = sqrt(stop + 1.0);
 		}
 		/* sieve for factors >= 17 */
-		factor = 17;	/* 17 is first prime to use */
-		p = &prime[7];	/* 19 is next prime, pi(19)=7 */
+		factor = 17;   /* 17 is first prime to use */
+		p = &prime[7]; /* 19 is next prime, pi(19)=7 */
 		do {
 			/* determine the factor's initial sieve point */
-			mod = start%factor;
+			mod = start % factor;
 			if (mod & 0x1) {
-				q = &table[(factor-mod)/2];
+				q = &table[(factor - mod) / 2];
 			} else {
-				q = &table[mod ? factor-(mod/2) : 0];
+				q = &table[mod ? factor - (mod / 2) : 0];
 			}
 			/* sive for our current factor */
-			for ( ; q < tab_lim; q += factor) {
+			for (; q < tab_lim; q += factor) {
 				*q = '\0'; /* sieve out a spot */
 			}
 			factor = *p++;
@@ -295,13 +301,15 @@ primes(ubig start, ubig stop)
 		/*
 		 * print generated primes
 		 */
-		for (q = table; q < tab_lim; ++q, start+=2) {
+		for (q = table; q < tab_lim; ++q, start += 2) {
 			if (*q) {
 				if (start > SIEVEMAX) {
 					if (!isprime(start))
 						continue;
 				}
-				printf(hflag ? "%" PRIx64 "\n" : "%" PRIu64 "\n", start);
+				printf(hflag ? "%" PRIx64 "\n" :
+					       "%" PRIu64 "\n",
+				    start);
 			}
 		}
 	}

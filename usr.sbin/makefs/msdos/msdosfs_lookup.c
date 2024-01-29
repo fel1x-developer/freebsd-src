@@ -52,17 +52,16 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 
+#include <fs/msdosfs/bpb.h>
+#include <fs/msdosfs/fat.h>
+#include <fs/msdosfs/msdosfsmount.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <fs/msdosfs/bpb.h>
-#include "msdos/denode.h"
-#include <fs/msdosfs/fat.h>
-#include <fs/msdosfs/msdosfsmount.h>
-
 #include "makefs.h"
 #include "msdos.h"
+#include "msdos/denode.h"
 
 /*
  * dep  - directory entry to copy into the directory
@@ -83,8 +82,8 @@ createde(struct denode *dep, struct denode *ddep, struct denode **depp,
 	daddr_t bn;
 	int blsize;
 
-	MSDOSFS_DPRINTF(("createde(dep %p, ddep %p, depp %p, cnp %p)\n",
-	    dep, ddep, depp, cnp));
+	MSDOSFS_DPRINTF(("createde(dep %p, ddep %p, depp %p, cnp %p)\n", dep,
+	    ddep, depp, cnp));
 
 	/*
 	 * If no space left in the directory then allocate another cluster
@@ -95,8 +94,8 @@ createde(struct denode *dep, struct denode *ddep, struct denode **depp,
 	 * case.
 	 */
 	if (ddep->de_fndoffset >= ddep->de_FileSize) {
-		diroffset = ddep->de_fndoffset + sizeof(struct direntry)
-		    - ddep->de_FileSize;
+		diroffset = ddep->de_fndoffset + sizeof(struct direntry) -
+		    ddep->de_FileSize;
 		dirclust = de_clcount(pmp, diroffset);
 		error = m_extendfile(ddep, dirclust, 0, 0, DE_CLEAR);
 		if (error) {
@@ -115,15 +114,15 @@ createde(struct denode *dep, struct denode *ddep, struct denode **depp,
 	 * entry in.  Then write it to disk. NOTE:  DOS directories
 	 * do not get smaller as clusters are emptied.
 	 */
-	error = pcbmap(ddep, de_cluster(pmp, ddep->de_fndoffset),
-		       &bn, &dirclust, &blsize);
+	error = pcbmap(ddep, de_cluster(pmp, ddep->de_fndoffset), &bn,
+	    &dirclust, &blsize);
 	if (error)
 		return error;
 	diroffset = ddep->de_fndoffset;
 	if (dirclust != MSDOSFSROOT)
 		diroffset &= pmp->pm_crbomask;
-	if ((error = bread((void *)pmp->pm_devvp, bn, blsize, NOCRED,
-	    &bp)) != 0) {
+	if ((error = bread((void *)pmp->pm_devvp, bn, blsize, NOCRED, &bp)) !=
+	    0) {
 		return error;
 	}
 	ndep = bptoep(pmp, bp, ddep->de_fndoffset);
@@ -146,14 +145,13 @@ createde(struct denode *dep, struct denode *ddep, struct denode **depp,
 
 				ddep->de_fndoffset -= sizeof(struct direntry);
 				error = pcbmap(ddep,
-					       de_cluster(pmp,
-							  ddep->de_fndoffset),
-					       &bn, 0, &blsize);
+				    de_cluster(pmp, ddep->de_fndoffset), &bn, 0,
+				    &blsize);
 				if (error)
 					return error;
 
 				error = bread((void *)pmp->pm_devvp, bn, blsize,
-					      NOCRED, &bp);
+				    NOCRED, &bp);
 				if (error) {
 					return error;
 				}
@@ -163,7 +161,7 @@ createde(struct denode *dep, struct denode *ddep, struct denode **depp,
 				ddep->de_fndoffset -= sizeof(struct direntry);
 			}
 			if (!unix2winfn(un, unlen, (struct winentry *)ndep,
-					cnt++, chksum))
+				cnt++, chksum))
 				break;
 		}
 	}
@@ -204,12 +202,12 @@ m_readep(struct msdosfsmount *pmp, u_long dirclust, u_long diroffset,
 	int blsize;
 
 	blsize = pmp->pm_bpcluster;
-	if (dirclust == MSDOSFSROOT
-	    && de_blk(pmp, diroffset + blsize) > pmp->pm_rootdirsize)
+	if (dirclust == MSDOSFSROOT &&
+	    de_blk(pmp, diroffset + blsize) > pmp->pm_rootdirsize)
 		blsize = de_bn2off(pmp, pmp->pm_rootdirsize) & pmp->pm_crbomask;
 	bn = detobn(pmp, dirclust, diroffset);
-	if ((error = bread((void *)pmp->pm_devvp, bn, blsize, NOCRED,
-	    bpp)) != 0) {
+	if ((error = bread((void *)pmp->pm_devvp, bn, blsize, NOCRED, bpp)) !=
+	    0) {
 		*bpp = NULL;
 		return (error);
 	}
@@ -227,8 +225,8 @@ int
 m_readde(struct denode *dep, struct m_buf **bpp, struct direntry **epp)
 {
 
-	return (m_readep(dep->de_pmp, dep->de_dirclust, dep->de_diroffset,
-	    bpp, epp));
+	return (m_readep(dep->de_pmp, dep->de_dirclust, dep->de_diroffset, bpp,
+	    epp));
 }
 
 /*
@@ -248,14 +246,16 @@ uniqdosname(struct denode *dep, struct componentname *cnp, u_char *cp)
 
 	if (pmp->pm_flags & MSDOSFSMNT_SHORTNAME)
 		return (unix2dosfn((const u_char *)cnp->cn_nameptr, cp,
-		    cnp->cn_namelen, 0) ? 0 : EINVAL);
+			    cnp->cn_namelen, 0) ?
+			0 :
+			EINVAL);
 
 	for (gen = 1;; gen++) {
 		/*
 		 * Generate DOS name with generation number
 		 */
 		if (!unix2dosfn((const u_char *)cnp->cn_nameptr, cp,
-		    cnp->cn_namelen, gen))
+			cnp->cn_namelen, gen))
 			return gen == 1 ? EINVAL : EEXIST;
 
 		/*
@@ -263,18 +263,18 @@ uniqdosname(struct denode *dep, struct componentname *cnp, u_char *cp)
 		 */
 		for (cn = error = 0; !error; cn++) {
 			if ((error = pcbmap(dep, cn, &bn, 0, &blsize)) != 0) {
-				if (error == E2BIG)	/* EOF reached and not found */
+				if (error ==
+				    E2BIG) /* EOF reached and not found */
 					return 0;
 				return error;
 			}
-			error = bread((void *)pmp->pm_devvp, bn, blsize,
-			    NOCRED, &bp);
+			error = bread((void *)pmp->pm_devvp, bn, blsize, NOCRED,
+			    &bp);
 			if (error) {
 				return error;
 			}
 			for (dentp = (struct direntry *)bp->b_data;
-			     (char *)dentp < bp->b_data + blsize;
-			     dentp++) {
+			     (char *)dentp < bp->b_data + blsize; dentp++) {
 				if (dentp->deName[0] == SLOT_EMPTY) {
 					/*
 					 * Last used entry and not found

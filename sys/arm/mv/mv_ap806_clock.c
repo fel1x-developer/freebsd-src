@@ -28,22 +28,20 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr.h>
+#include <machine/resource.h>
 
 #include <dev/clk/clk_fixed.h>
-#include <dev/syscon/syscon.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/syscon/syscon.h>
 
 #include "syscon_if.h"
 
@@ -67,7 +65,7 @@ static struct clk_fixed_def ap806_clk_fixed = {
 
 /* Thoses are the only exported clocks AFAICT */
 
-static const char *mss_parents[] = {"ap806-fixed"};
+static const char *mss_parents[] = { "ap806-fixed" };
 static struct clk_fixed_def ap806_clk_mss = {
 	.clkdef.id = 3,
 	.clkdef.name = "ap806-mss",
@@ -77,7 +75,7 @@ static struct clk_fixed_def ap806_clk_mss = {
 	.div = 6,
 };
 
-static const char *sdio_parents[] = {"ap806-fixed"};
+static const char *sdio_parents[] = { "ap806-fixed" };
 static struct clk_fixed_def ap806_clk_sdio = {
 	.clkdef.id = 4,
 	.clkdef.name = "ap806-sdio",
@@ -88,17 +86,15 @@ static struct clk_fixed_def ap806_clk_sdio = {
 };
 
 struct mv_ap806_clock_softc {
-	device_t		dev;
-	struct syscon		*syscon;
+	device_t dev;
+	struct syscon *syscon;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"marvell,ap806-clock",	1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "marvell,ap806-clock", 1 },
+	{ NULL, 0 } };
 
-#define	RD4(sc, reg)		SYSCON_READ_4((sc)->syscon, (reg))
-#define	WR4(sc, reg, val)	SYSCON_WRITE_4((sc)->syscon, (reg), (val))
+#define RD4(sc, reg) SYSCON_READ_4((sc)->syscon, (reg))
+#define WR4(sc, reg, val) SYSCON_WRITE_4((sc)->syscon, (reg), (val))
 
 static int
 mv_ap806_clock_probe(device_t dev)
@@ -178,7 +174,7 @@ mv_ap806_clock_attach(device_t dev)
 		break;
 	default:
 		device_printf(dev, "Cannot guess clock freq with reg %x\n",
-		     reg & 0x1f);
+		    reg & 0x1f);
 		return (ENXIO);
 		break;
 	};
@@ -209,9 +205,9 @@ mv_ap806_clock_detach(device_t dev)
 
 static device_method_t mv_ap806_clock_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mv_ap806_clock_probe),
-	DEVMETHOD(device_attach,	mv_ap806_clock_attach),
-	DEVMETHOD(device_detach,	mv_ap806_clock_detach),
+	DEVMETHOD(device_probe, mv_ap806_clock_probe),
+	DEVMETHOD(device_attach, mv_ap806_clock_attach),
+	DEVMETHOD(device_detach, mv_ap806_clock_detach),
 
 	DEVMETHOD_END
 };

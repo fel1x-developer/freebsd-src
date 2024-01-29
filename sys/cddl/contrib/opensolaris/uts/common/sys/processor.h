@@ -32,12 +32,12 @@
  */
 
 #ifndef _SYS_PROCESSOR_H
-#define	_SYS_PROCESSOR_H
+#define _SYS_PROCESSOR_H
 
 #include <sys/types.h>
 #include <sys/procset.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -53,33 +53,33 @@ typedef uint16_t lgrpid_t;
 /*
  * Type for processor name (CPU number).
  */
-typedef	int	processorid_t;
-typedef int	chipid_t;
+typedef int processorid_t;
+typedef int chipid_t;
 
 /*
  * Flags and return values for p_online(2), and pi_state for processor_info(2).
  * These flags are *not* for in-kernel examination of CPU states.
  * See <sys/cpuvar.h> for appropriate informational functions.
  */
-#define	P_OFFLINE	0x0001	/* processor is offline, as quiet as possible */
-#define	P_ONLINE	0x0002	/* processor is online */
-#define	P_STATUS	0x0003	/* value passed to p_online to request status */
-#define	P_FAULTED	0x0004	/* processor is offline, in faulted state */
-#define	P_POWEROFF	0x0005	/* processor is powered off */
-#define	P_NOINTR	0x0006	/* processor is online, but no I/O interrupts */
-#define	P_SPARE		0x0007	/* processor is offline, can be reactivated */
-#define	P_BAD		P_FAULTED	/* unused but defined by USL */
-#define	P_FORCED 	0x10000000	/* force processor offline */
+#define P_OFFLINE 0x0001    /* processor is offline, as quiet as possible */
+#define P_ONLINE 0x0002	    /* processor is online */
+#define P_STATUS 0x0003	    /* value passed to p_online to request status */
+#define P_FAULTED 0x0004    /* processor is offline, in faulted state */
+#define P_POWEROFF 0x0005   /* processor is powered off */
+#define P_NOINTR 0x0006	    /* processor is online, but no I/O interrupts */
+#define P_SPARE 0x0007	    /* processor is offline, can be reactivated */
+#define P_BAD P_FAULTED	    /* unused but defined by USL */
+#define P_FORCED 0x10000000 /* force processor offline */
 
 /*
  * String names for processor states defined above.
  */
-#define	PS_OFFLINE	"off-line"
-#define	PS_ONLINE	"on-line"
-#define	PS_FAULTED	"faulted"
-#define	PS_POWEROFF	"powered-off"
-#define	PS_NOINTR	"no-intr"
-#define	PS_SPARE	"spare"
+#define PS_OFFLINE "off-line"
+#define PS_ONLINE "on-line"
+#define PS_FAULTED "faulted"
+#define PS_POWEROFF "powered-off"
+#define PS_NOINTR "no-intr"
+#define PS_SPARE "spare"
 
 /*
  * Structure filled in by processor_info(2). This structure
@@ -91,45 +91,44 @@ typedef int	chipid_t;
  * The pi_fputypes field contains a (possibly empty) comma-separated
  * list of floating point identifier strings.
  */
-#define	PI_TYPELEN	16	/* max size of CPU type string */
-#define	PI_FPUTYPE	32	/* max size of FPU types string */
+#define PI_TYPELEN 16 /* max size of CPU type string */
+#define PI_FPUTYPE 32 /* max size of FPU types string */
 
 typedef struct {
-	int	pi_state;  			/* processor state, see above */
-	char	pi_processor_type[PI_TYPELEN];	/* ASCII CPU type */
-	char	pi_fputypes[PI_FPUTYPE];	/* ASCII FPU types */
-	int	pi_clock;			/* CPU clock freq in MHz */
+	int pi_state;			    /* processor state, see above */
+	char pi_processor_type[PI_TYPELEN]; /* ASCII CPU type */
+	char pi_fputypes[PI_FPUTYPE];	    /* ASCII FPU types */
+	int pi_clock;			    /* CPU clock freq in MHz */
 } processor_info_t;
 
 /*
  * Binding values for processor_bind(2)
  */
-#define	PBIND_NONE	-1	/* LWP/thread is not bound */
-#define	PBIND_QUERY	-2	/* don't set, just return the binding */
-#define	PBIND_HARD	-3	/* prevents offlining CPU (default) */
-#define	PBIND_SOFT	-4	/* allows offlining CPU */
-#define	PBIND_QUERY_TYPE	-5	/* Return binding type */
+#define PBIND_NONE -1	    /* LWP/thread is not bound */
+#define PBIND_QUERY -2	    /* don't set, just return the binding */
+#define PBIND_HARD -3	    /* prevents offlining CPU (default) */
+#define PBIND_SOFT -4	    /* allows offlining CPU */
+#define PBIND_QUERY_TYPE -5 /* Return binding type */
 
 /*
  * User-level system call interface prototypes
  */
 #ifndef _KERNEL
 
-extern int	p_online(processorid_t processorid, int flag);
-extern int	processor_info(processorid_t processorid,
-		    processor_info_t *infop);
-extern int	processor_bind(idtype_t idtype, id_t id,
-		    processorid_t processorid, processorid_t *obind);
+extern int p_online(processorid_t processorid, int flag);
+extern int processor_info(processorid_t processorid, processor_info_t *infop);
+extern int processor_bind(idtype_t idtype, id_t id, processorid_t processorid,
+    processorid_t *obind);
 extern processorid_t getcpuid(void);
 extern lgrpid_t gethomelgroup(void);
 
-#else   /* _KERNEL */
+#else /* _KERNEL */
 
 /*
  * Internal interface prototypes
  */
-extern int	p_online_internal(processorid_t, int, int *);
-extern int	p_online_internal_locked(processorid_t, int, int *);
+extern int p_online_internal(processorid_t, int, int *);
+extern int p_online_internal_locked(processorid_t, int, int *);
 
 #endif /* !_KERNEL */
 
@@ -137,4 +136,4 @@ extern int	p_online_internal_locked(processorid_t, int, int *);
 }
 #endif
 
-#endif	/* _SYS_PROCESSOR_H */
+#endif /* _SYS_PROCESSOR_H */

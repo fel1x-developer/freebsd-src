@@ -29,14 +29,13 @@
 #include <sys/ioctl.h>
 
 #include <atf-c.h>
+#include <cam/scsi/scsi_enc.h>
 #include <fcntl.h>
 #include <glob.h>
 #include <regex.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <cam/scsi/scsi_enc.h>
 
 #include "common.h"
 
@@ -73,12 +72,12 @@ do_setelmstat(const char *devname __unused, int fd)
 	int r;
 	elm_type_t last_elm_type = -1;
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	map = calloc(nobj, sizeof(encioc_element_t));
 	ATF_REQUIRE(map != NULL);
-	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) map);
+	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)map);
 
 	/* Set the IDENT bit for every disk slot */
 	for (elm_idx = 0; elm_idx < nobj; elm_idx++) {
@@ -92,14 +91,13 @@ do_setelmstat(const char *devname __unused, int fd)
 		}
 		elmstat.elm_idx = elm_idx;
 		if (map[elm_idx].elm_type == ELMTYP_DEVICE ||
-		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV)
-		{
+		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV) {
 			r = ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&elmstat);
 			ATF_REQUIRE_EQ(r, 0);
 			ses_status_to_ctrl(map[elm_idx].elm_type,
-				&elmstat.cstat[0]);
+			    &elmstat.cstat[0]);
 
-			cslot = (struct ses_ctrl_dev_slot*)&elmstat.cstat[0];
+			cslot = (struct ses_ctrl_dev_slot *)&elmstat.cstat[0];
 
 			ses_ctrl_common_set_select(&cslot->common, 1);
 			ses_ctrl_dev_slot_set_rqst_ident(cslot, 1);
@@ -113,7 +111,7 @@ do_setelmstat(const char *devname __unused, int fd)
 	for (elm_idx = 0; elm_idx < nobj; elm_idx++) {
 		encioc_elm_status_t elmstat;
 		struct ses_status_dev_slot *sslot =
-			(struct ses_status_dev_slot*)&elmstat.cstat[0];
+		    (struct ses_status_dev_slot *)&elmstat.cstat[0];
 
 		if (last_elm_type != map[elm_idx].elm_type) {
 			/* skip overall elements */
@@ -122,8 +120,7 @@ do_setelmstat(const char *devname __unused, int fd)
 		}
 		elmstat.elm_idx = elm_idx;
 		if (map[elm_idx].elm_type == ELMTYP_DEVICE ||
-		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV)
-		{
+		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV) {
 			int i;
 
 			for (i = 0; i < 10; i++) {
@@ -136,7 +133,6 @@ do_setelmstat(const char *devname __unused, int fd)
 				}
 			}
 			ATF_CHECK(ses_status_dev_slot_get_ident(sslot) != 0);
-
 		}
 	}
 
@@ -159,12 +155,12 @@ do_setelmstat_cleanup(const char *devname __unused, int fd __unused)
 	int r;
 	elm_type_t last_elm_type = -1;
 
-	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj);
+	r = ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj);
 	ATF_REQUIRE_EQ(r, 0);
 
 	map = calloc(nobj, sizeof(encioc_element_t));
 	ATF_REQUIRE(map != NULL);
-	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) map);
+	r = ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)map);
 	ATF_REQUIRE_EQ(r, 0);
 
 	/* Clear the IDENT bit for every disk slot */
@@ -179,14 +175,13 @@ do_setelmstat_cleanup(const char *devname __unused, int fd __unused)
 		}
 		elmstat.elm_idx = elm_idx;
 		if (map[elm_idx].elm_type == ELMTYP_DEVICE ||
-		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV)
-		{
+		    map[elm_idx].elm_type == ELMTYP_ARRAY_DEV) {
 			r = ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&elmstat);
 			ATF_REQUIRE_EQ(r, 0);
 			ses_status_to_ctrl(map[elm_idx].elm_type,
 			    &elmstat.cstat[0]);
 
-			cslot = (struct ses_ctrl_dev_slot*)&elmstat.cstat[0];
+			cslot = (struct ses_ctrl_dev_slot *)&elmstat.cstat[0];
 
 			ses_ctrl_common_set_select(&cslot->common, 1);
 			ses_ctrl_dev_slot_set_rqst_ident(cslot, 0);
@@ -195,9 +190,8 @@ do_setelmstat_cleanup(const char *devname __unused, int fd __unused)
 		}
 	}
 
-	return(true);
+	return (true);
 }
-
 
 ATF_TC_WITH_CLEANUP(setelmstat);
 ATF_TC_HEAD(setelmstat, tc)
@@ -220,7 +214,6 @@ ATF_TC_CLEANUP(setelmstat, tc)
 	for_one_ses_dev(do_setelmstat_cleanup);
 }
 
-
 static bool
 do_setencstat(const char *devname __unused, int fd)
 {
@@ -233,12 +226,12 @@ do_setencstat(const char *devname __unused, int fd)
 	 * control page common status bits.  So we'll blindly set CRIT.
 	 */
 	encstat = 1 << SES_CTRL_PAGE_CRIT_SHIFT;
-	r = ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t) &encstat);
+	r = ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t)&encstat);
 	ATF_REQUIRE_EQ(r, 0);
 
 	/* Check that the status has changed */
 	for (i = 0; i < 10; i++) {
-		r = ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t) &encstat);
+		r = ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t)&encstat);
 		ATF_REQUIRE_EQ(r, 0);
 		if (encstat & SES_CTRL_PAGE_CRIT_MASK) {
 			worked = true;
@@ -264,7 +257,7 @@ do_setencstat_cleanup(const char *devname __unused, int fd)
 	 * set to before the test.  We'll blindly clear all bits.
 	 */
 	encstat = 0;
-	ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t) &encstat);
+	ioctl(fd, ENCIOC_SETENCSTAT, (caddr_t)&encstat);
 	return (true);
 }
 

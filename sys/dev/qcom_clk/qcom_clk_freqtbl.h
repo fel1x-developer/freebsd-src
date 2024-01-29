@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_CLK_FREQTBL_H__
-#define	__QCOM_CLK_FREQTBL_H__
+#ifndef __QCOM_CLK_FREQTBL_H__
+#define __QCOM_CLK_FREQTBL_H__
 
 struct qcom_clk_freq_tbl {
 	uint64_t freq;
@@ -36,7 +36,7 @@ struct qcom_clk_freq_tbl {
 	uint32_t n;
 };
 
-const struct qcom_clk_freq_tbl * qcom_clk_freq_tbl_lookup(
-	    const struct qcom_clk_freq_tbl *tbl, uint64_t freq);
+const struct qcom_clk_freq_tbl *
+qcom_clk_freq_tbl_lookup(const struct qcom_clk_freq_tbl *tbl, uint64_t freq);
 
-#endif	/* __QCOM_CLK_FREQTBL_H__ */
+#endif /* __QCOM_CLK_FREQTBL_H__ */

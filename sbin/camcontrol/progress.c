@@ -31,6 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>
@@ -43,41 +44,40 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <sys/cdefs.h>
 #include "progress.h"
 
-static const char * const suffixes[] = {
-	"",	/* 2^0  (byte) */
-	"KiB",	/* 2^10 Kibibyte */
-	"MiB",	/* 2^20 Mebibyte */
-	"GiB",	/* 2^30 Gibibyte */
-	"TiB",	/* 2^40 Tebibyte */
-	"PiB",	/* 2^50 Pebibyte */
-	"EiB",	/* 2^60 Exbibyte */
+static const char *const suffixes[] = {
+	"",    /* 2^0  (byte) */
+	"KiB", /* 2^10 Kibibyte */
+	"MiB", /* 2^20 Mebibyte */
+	"GiB", /* 2^30 Gibibyte */
+	"TiB", /* 2^40 Tebibyte */
+	"PiB", /* 2^50 Pebibyte */
+	"EiB", /* 2^60 Exbibyte */
 };
 
-#define NSUFFIXES	nitems(suffixes)
-#define SECSPERHOUR	(60 * 60)
-#define DEFAULT_TTYWIDTH	80
+#define NSUFFIXES nitems(suffixes)
+#define SECSPERHOUR (60 * 60)
+#define DEFAULT_TTYWIDTH 80
 
 /* initialise progress meter structure */
 int
 progress_init(progress_t *prog, const char *prefix, uint64_t total)
 {
-        struct winsize	winsize;
-        int		oerrno = errno;
+	struct winsize winsize;
+	int oerrno = errno;
 
-	(void) memset(prog, 0x0, sizeof(*prog));
+	(void)memset(prog, 0x0, sizeof(*prog));
 	prog->size = total;
 	prog->prefix = strdup(prefix);
 	prog->start = time(NULL);
-        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &winsize) != -1 &&
-            winsize.ws_col != 0) {
-                prog->ttywidth = winsize.ws_col;
-        } else {
-                prog->ttywidth = DEFAULT_TTYWIDTH;
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &winsize) != -1 &&
+	    winsize.ws_col != 0) {
+		prog->ttywidth = winsize.ws_col;
+	} else {
+		prog->ttywidth = DEFAULT_TTYWIDTH;
 	}
-        errno = oerrno;
+	errno = oerrno;
 	return 1;
 }
 
@@ -89,10 +89,12 @@ progress_update(progress_t *prog, uint64_t done)
 	prog->percent = (prog->done * 100) / prog->size;
 	prog->now = time(NULL);
 	prog->elapsed = prog->now - prog->start;
-	if (done == 0 || prog->elapsed == 0 || prog->done / prog->elapsed == 0) {
+	if (done == 0 || prog->elapsed == 0 ||
+	    prog->done / prog->elapsed == 0) {
 		prog->eta = 0;
 	} else {
-		prog->eta = prog->size / (prog->done / prog->elapsed) - prog->elapsed;
+		prog->eta = prog->size / (prog->done / prog->elapsed) -
+		    prog->elapsed;
 	}
 	return 1;
 }
@@ -119,32 +121,32 @@ progress_complete(progress_t *prog, uint64_t done)
 int
 progress_draw(progress_t *prog)
 {
-#define	BAROVERHEAD	45		/* non `*' portion of progress bar */
-					/*
-					 * stars should contain at least
-					 * sizeof(buf) - BAROVERHEAD entries
-					 */
-#define	MIN_BAR_LEN	10
-	static const char	stars[] =
-"*****************************************************************************"
-"*****************************************************************************"
-"*****************************************************************************";
-	unsigned		bytesabbrev;
-	unsigned		bpsabbrev;
-	int64_t			secs;
-	uint64_t		bytespersec;
-	uint64_t		abbrevsize;
-	int64_t			secsleft;
-	ssize_t			barlength;
-	size_t			starc;
-	char			hours[12];
-	char			buf[256];
-	int			len;
-	int			prefix_len;
+#define BAROVERHEAD 45 /* non `*' portion of progress bar */
+		       /*
+			* stars should contain at least
+			* sizeof(buf) - BAROVERHEAD entries
+			*/
+#define MIN_BAR_LEN 10
+	static const char stars[] =
+	    "*****************************************************************************"
+	    "*****************************************************************************"
+	    "*****************************************************************************";
+	unsigned bytesabbrev;
+	unsigned bpsabbrev;
+	int64_t secs;
+	uint64_t bytespersec;
+	uint64_t abbrevsize;
+	int64_t secsleft;
+	ssize_t barlength;
+	size_t starc;
+	char hours[12];
+	char buf[256];
+	int len;
+	int prefix_len;
 
 	prefix_len = strlen(prog->prefix);
 	barlength = MIN(sizeof(buf) - 1, (unsigned)prog->ttywidth) -
-		BAROVERHEAD - prefix_len;
+	    BAROVERHEAD - prefix_len;
 	if (barlength < MIN_BAR_LEN) {
 		int tmp_prefix_len;
 		/*
@@ -153,7 +155,8 @@ progress_draw(progress_t *prog)
 		 * prefix length.
 		 */
 		barlength = MIN_BAR_LEN;
-		tmp_prefix_len = MIN(sizeof(buf) - 1,(unsigned)prog->ttywidth) -
+		tmp_prefix_len = MIN(sizeof(buf) - 1,
+				     (unsigned)prog->ttywidth) -
 		    BAROVERHEAD - MIN_BAR_LEN;
 		if (tmp_prefix_len > 0)
 			prefix_len = tmp_prefix_len;
@@ -162,7 +165,8 @@ progress_draw(progress_t *prog)
 	}
 	starc = (barlength * prog->percent) / 100;
 	abbrevsize = prog->done;
-	for (bytesabbrev = 0; abbrevsize >= 100000 && bytesabbrev < NSUFFIXES; bytesabbrev++) {
+	for (bytesabbrev = 0; abbrevsize >= 100000 && bytesabbrev < NSUFFIXES;
+	     bytesabbrev++) {
 		abbrevsize >>= 10;
 	}
 	if (bytesabbrev == NSUFFIXES) {
@@ -175,7 +179,8 @@ progress_draw(progress_t *prog)
 			bytespersec /= prog->elapsed;
 		}
 	}
-	for (bpsabbrev = 1; bytespersec >= 1024000 && bpsabbrev < NSUFFIXES; bpsabbrev++) {
+	for (bpsabbrev = 1; bytespersec >= 1024000 && bpsabbrev < NSUFFIXES;
+	     bpsabbrev++) {
 		bytespersec >>= 10;
 	}
 	if (prog->done == 0 || prog->elapsed <= 0 || prog->done > prog->size) {
@@ -184,22 +189,18 @@ progress_draw(progress_t *prog)
 		secsleft = prog->eta;
 	}
 	if ((secs = secsleft / SECSPERHOUR) > 0) {
-		(void) snprintf(hours, sizeof(hours), "%2lld:", (long long)secs);
+		(void)snprintf(hours, sizeof(hours), "%2lld:", (long long)secs);
 	} else {
-		(void) snprintf(hours, sizeof(hours), "   ");
+		(void)snprintf(hours, sizeof(hours), "   ");
 	}
 	secs = secsleft % SECSPERHOUR;
 	len = snprintf(buf, sizeof(buf),
-		"\r%.*s %3lld%% |%.*s%*s| %5lld %-3s %3lld.%02d %.2sB/s %s%02d:%02d ETA",
-		prefix_len, (prog->prefix) ? prog->prefix : "",
-		(long long)prog->percent,
-		(int)starc, stars, (int)(barlength - starc), "",
-		(long long)abbrevsize,
-		suffixes[bytesabbrev],
-		(long long)(bytespersec / 1024),
-		(int)((bytespersec % 1024) * 100 / 1024),
-		suffixes[bpsabbrev],
-		hours,
-		(int)secs / 60, (int)secs % 60);
+	    "\r%.*s %3lld%% |%.*s%*s| %5lld %-3s %3lld.%02d %.2sB/s %s%02d:%02d ETA",
+	    prefix_len, (prog->prefix) ? prog->prefix : "",
+	    (long long)prog->percent, (int)starc, stars,
+	    (int)(barlength - starc), "", (long long)abbrevsize,
+	    suffixes[bytesabbrev], (long long)(bytespersec / 1024),
+	    (int)((bytespersec % 1024) * 100 / 1024), suffixes[bpsabbrev],
+	    hours, (int)secs / 60, (int)secs % 60);
 	return (int)write(STDOUT_FILENO, buf, len);
 }

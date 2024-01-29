@@ -37,31 +37,29 @@
 #include <sys/mutex.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/sysctl.h>
 #include <sys/sx.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/if_vlan_var.h>
+#include <sys/sysctl.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usbdi.h>
 
-#include <dev/usb/usb_process.h>
-#include <dev/usb/net/usb_ethernet.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 static SYSCTL_NODE(_net, OID_AUTO, ue, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "USB Ethernet parameters");
 
-#define	UE_LOCK(_ue)		mtx_lock((_ue)->ue_mtx)
-#define	UE_UNLOCK(_ue)		mtx_unlock((_ue)->ue_mtx)
-#define	UE_LOCK_ASSERT(_ue, t)	mtx_assert((_ue)->ue_mtx, t)
+#define UE_LOCK(_ue) mtx_lock((_ue)->ue_mtx)
+#define UE_UNLOCK(_ue) mtx_unlock((_ue)->ue_mtx)
+#define UE_LOCK_ASSERT(_ue, t) mtx_assert((_ue)->ue_mtx, t)
 
 MODULE_DEPEND(uether, usb, 1, 1, 1);
 MODULE_DEPEND(uether, miibus, 1, 1, 1);
@@ -76,10 +74,10 @@ static usb_proc_callback_t ue_tick_task;
 static usb_proc_callback_t ue_start_task;
 static usb_proc_callback_t ue_stop_task;
 
-static void	ue_init(void *);
-static void	ue_start(if_t);
-static int	ue_ifmedia_upd(if_t);
-static void	ue_watchdog(void *);
+static void ue_init(void *);
+static void ue_start(if_t);
+static int ue_ifmedia_upd(if_t);
+static void ue_watchdog(void *);
 
 /*
  * Return values:
@@ -98,8 +96,7 @@ uether_pause(struct usb_ether *ue, unsigned _ticks)
 }
 
 static void
-ue_queue_command(struct usb_ether *ue,
-    usb_proc_callback_t *fn,
+ue_queue_command(struct usb_ether *ue, usb_proc_callback_t *fn,
     struct usb_proc_msg *t0, struct usb_proc_msg *t1)
 {
 	struct usb_ether_cfg_task *task;
@@ -107,15 +104,15 @@ ue_queue_command(struct usb_ether *ue,
 	UE_LOCK_ASSERT(ue, MA_OWNED);
 
 	if (usb_proc_is_gone(&ue->ue_tq)) {
-		return;         /* nothing to do */
+		return; /* nothing to do */
 	}
-	/* 
+	/*
 	 * NOTE: The task cannot get executed before we drop the
 	 * "sc_mtx" mutex. It is safe to update fields in the message
 	 * structure after that the message got queued.
 	 */
-	task = (struct usb_ether_cfg_task *)
-	  usb_proc_msignal(&ue->ue_tq, t0, t1);
+	task = (struct usb_ether_cfg_task *)usb_proc_msignal(&ue->ue_tq, t0,
+	    t1);
 
 	/* Setup callback and self pointers */
 	task->hdr.pm_callback = fn;
@@ -128,7 +125,7 @@ ue_queue_command(struct usb_ether *ue,
 		usb_proc_mwait(&ue->ue_tq, t0, t1);
 }
 
-if_t 
+if_t
 uether_getifp(struct usb_ether *ue)
 {
 	return (ue->ue_ifp);
@@ -162,13 +159,11 @@ uether_ifattach(struct usb_ether *ue)
 	int error;
 
 	/* check some critical parameters */
-	if ((ue->ue_dev == NULL) ||
-	    (ue->ue_udev == NULL) ||
-	    (ue->ue_mtx == NULL) ||
-	    (ue->ue_methods == NULL))
+	if ((ue->ue_dev == NULL) || (ue->ue_udev == NULL) ||
+	    (ue->ue_mtx == NULL) || (ue->ue_methods == NULL))
 		return (EINVAL);
 
-	error = usb_proc_create(&ue->ue_tq, ue->ue_mtx, 
+	error = usb_proc_create(&ue->ue_tq, ue->ue_mtx,
 	    device_get_nameunit(ue->ue_dev), USB_PRI_MED);
 	if (error) {
 		device_printf(ue->ue_dev, "could not setup taskqueue\n");
@@ -177,8 +172,7 @@ uether_ifattach(struct usb_ether *ue)
 
 	/* fork rest of the attach code */
 	UE_LOCK(ue);
-	ue_queue_command(ue, ue_attach_post_task,
-	    &ue->ue_sync_task[0].hdr,
+	ue_queue_command(ue, ue_attach_post_task, &ue->ue_sync_task[0].hdr,
 	    &ue->ue_sync_task[1].hdr);
 	UE_UNLOCK(ue);
 
@@ -191,8 +185,7 @@ uether_ifattach_wait(struct usb_ether *ue)
 {
 
 	UE_LOCK(ue);
-	usb_proc_mwait(&ue->ue_tq,
-	    &ue->ue_sync_task[0].hdr,
+	usb_proc_mwait(&ue->ue_tq, &ue->ue_sync_task[0].hdr,
 	    &ue->ue_sync_task[1].hdr);
 	UE_UNLOCK(ue);
 }
@@ -200,12 +193,11 @@ uether_ifattach_wait(struct usb_ether *ue)
 static void
 ue_attach_post_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 	if_t ifp;
 	int error;
-	char num[14];			/* sufficient for 32 bits */
+	char num[14]; /* sufficient for 32 bits */
 
 	/* first call driver's post attach routine */
 	ue->ue_methods->ue_attach_post(ue);
@@ -257,7 +249,8 @@ ue_attach_post_task(struct usb_proc_msg *_task)
 		goto fail;
 	}
 
-	if_printf(ifp, "<USB Ethernet> on %s\n", device_get_nameunit(ue->ue_dev));
+	if_printf(ifp, "<USB Ethernet> on %s\n",
+	    device_get_nameunit(ue->ue_dev));
 	ether_ifattach(ifp, ue->ue_eaddr);
 	/* Tell upper layer we support VLAN oversized frames. */
 	if (if_getcapabilities(ifp) & IFCAP_VLAN_MTU)
@@ -267,12 +260,11 @@ ue_attach_post_task(struct usb_proc_msg *_task)
 
 	snprintf(num, sizeof(num), "%u", ue->ue_unit);
 	ue->ue_sysctl_oid = SYSCTL_ADD_NODE(&ue->ue_sysctl_ctx,
-	    &SYSCTL_NODE_CHILDREN(_net, ue),
-	    OID_AUTO, num, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "");
-	SYSCTL_ADD_PROC(&ue->ue_sysctl_ctx,
-	    SYSCTL_CHILDREN(ue->ue_sysctl_oid), OID_AUTO, "%parent",
-	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, ue, 0,
-	    ue_sysctl_parent, "A", "parent device");
+	    &SYSCTL_NODE_CHILDREN(_net, ue), OID_AUTO, num,
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "");
+	SYSCTL_ADD_PROC(&ue->ue_sysctl_ctx, SYSCTL_CHILDREN(ue->ue_sysctl_oid),
+	    OID_AUTO, "%parent", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
+	    ue, 0, ue_sysctl_parent, "A", "parent device");
 
 	UE_LOCK(ue);
 	return;
@@ -362,8 +354,7 @@ ue_init(void *arg)
 	struct usb_ether *ue = arg;
 
 	UE_LOCK(ue);
-	ue_queue_command(ue, ue_start_task,
-	    &ue->ue_sync_task[0].hdr, 
+	ue_queue_command(ue, ue_start_task, &ue->ue_sync_task[0].hdr,
 	    &ue->ue_sync_task[1].hdr);
 	UE_UNLOCK(ue);
 }
@@ -371,8 +362,7 @@ ue_init(void *arg)
 static void
 ue_start_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 	if_t ifp = ue->ue_ifp;
 
@@ -390,8 +380,7 @@ ue_start_task(struct usb_proc_msg *_task)
 static void
 ue_stop_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 
 	UE_LOCK_ASSERT(ue, MA_OWNED);
@@ -424,8 +413,7 @@ ue_start(if_t ifp)
 static void
 ue_promisc_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 
 	ue->ue_methods->ue_setpromisc(ue);
@@ -434,8 +422,7 @@ ue_promisc_task(struct usb_proc_msg *_task)
 static void
 ue_setmulti_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 
 	ue->ue_methods->ue_setmulti(ue);
@@ -455,8 +442,7 @@ ue_ifmedia_upd(if_t ifp)
 
 	/* Defer to process context */
 	UE_LOCK(ue);
-	ue_queue_command(ue, ue_ifmedia_task,
-	    &ue->ue_media_task[0].hdr,
+	ue_queue_command(ue, ue_ifmedia_task, &ue->ue_media_task[0].hdr,
 	    &ue->ue_media_task[1].hdr);
 	UE_UNLOCK(ue);
 
@@ -466,8 +452,7 @@ ue_ifmedia_upd(if_t ifp)
 static void
 ue_ifmedia_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 	if_t ifp = ue->ue_ifp;
 
@@ -483,8 +468,7 @@ ue_watchdog(void *arg)
 	if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 		return;
 
-	ue_queue_command(ue, ue_tick_task,
-	    &ue->ue_tick_task[0].hdr, 
+	ue_queue_command(ue, ue_tick_task, &ue->ue_tick_task[0].hdr,
 	    &ue->ue_tick_task[1].hdr);
 
 	usb_callout_reset(&ue->ue_watchdog, hz, ue_watchdog, ue);
@@ -493,8 +477,7 @@ ue_watchdog(void *arg)
 static void
 ue_tick_task(struct usb_proc_msg *_task)
 {
-	struct usb_ether_cfg_task *task =
-	    (struct usb_ether_cfg_task *)_task;
+	struct usb_ether_cfg_task *task = (struct usb_ether_cfg_task *)_task;
 	struct usb_ether *ue = task->ue;
 	if_t ifp = ue->ue_ifp;
 
@@ -518,16 +501,15 @@ uether_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING)
 				ue_queue_command(ue, ue_promisc_task,
-				    &ue->ue_promisc_task[0].hdr, 
+				    &ue->ue_promisc_task[0].hdr,
 				    &ue->ue_promisc_task[1].hdr);
 			else
 				ue_queue_command(ue, ue_start_task,
-				    &ue->ue_sync_task[0].hdr, 
+				    &ue->ue_sync_task[0].hdr,
 				    &ue->ue_sync_task[1].hdr);
 		} else {
 			ue_queue_command(ue, ue_stop_task,
-			    &ue->ue_sync_task[0].hdr, 
-			    &ue->ue_sync_task[1].hdr);
+			    &ue->ue_sync_task[0].hdr, &ue->ue_sync_task[1].hdr);
 		}
 		UE_UNLOCK(ue);
 		break;
@@ -535,15 +517,15 @@ uether_ioctl(if_t ifp, u_long command, caddr_t data)
 	case SIOCDELMULTI:
 		UE_LOCK(ue);
 		ue_queue_command(ue, ue_setmulti_task,
-		    &ue->ue_multi_task[0].hdr, 
-		    &ue->ue_multi_task[1].hdr);
+		    &ue->ue_multi_task[0].hdr, &ue->ue_multi_task[1].hdr);
 		UE_UNLOCK(ue);
 		break;
 	case SIOCGIFMEDIA:
 	case SIOCSIFMEDIA:
 		if (ue->ue_miibus != NULL) {
 			mii = device_get_softc(ue->ue_miibus);
-			error = ifmedia_ioctl(ifp, ifr, &mii->mii_media, command);
+			error = ifmedia_ioctl(ifp, ifr, &mii->mii_media,
+			    command);
 		} else
 			error = ether_ioctl(ifp, command, data);
 		break;
@@ -569,11 +551,7 @@ uether_modevent(module_t mod, int type, void *data)
 	}
 	return (0);
 }
-static moduledata_t uether_mod = {
-	"uether",
-	uether_modevent,
-	0
-};
+static moduledata_t uether_mod = { "uether", uether_modevent, 0 };
 
 struct mbuf *
 uether_newbuf(void)
@@ -590,8 +568,7 @@ uether_newbuf(void)
 }
 
 int
-uether_rxmbuf(struct usb_ether *ue, struct mbuf *m, 
-    unsigned len)
+uether_rxmbuf(struct usb_ether *ue, struct mbuf *m, unsigned len)
 {
 	if_t ifp = ue->ue_ifp;
 
@@ -608,8 +585,8 @@ uether_rxmbuf(struct usb_ether *ue, struct mbuf *m,
 }
 
 int
-uether_rxbuf(struct usb_ether *ue, struct usb_page_cache *pc, 
-    unsigned offset, unsigned len)
+uether_rxbuf(struct usb_ether *ue, struct usb_page_cache *pc, unsigned offset,
+    unsigned len)
 {
 	if_t ifp = ue->ue_ifp;
 	struct mbuf *m;

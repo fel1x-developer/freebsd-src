@@ -31,12 +31,13 @@
 
 #include <sys/types.h>
 #include <sys/procdesc.h>
+
 #include "libc_private.h"
 
 #pragma weak pdfork
 pid_t
 pdfork(int *fdp, int flags)
 {
-	return (((pid_t (*)(int *, int))__libc_interposing[
-	    INTERPOS_pdfork])(fdp, flags));
+	return (((pid_t(*)(int *, int))__libc_interposing[INTERPOS_pdfork])(fdp,
+	    flags));
 }

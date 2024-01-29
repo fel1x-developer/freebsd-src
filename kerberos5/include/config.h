@@ -1,16 +1,13 @@
 /* include/config.h.  Generated from config.h.in by configure.  */
 /* include/config.h.in.  Generated from configure.ac by autoheader.  */
 
-
 #ifndef RCSID
 #define RCSID(msg)
 #endif
 
 /* Maximum values on all known systems */
-#define MaxHostNameLen (64+4)
-#define MaxPathLen (1024+4)
-
-
+#define MaxHostNameLen (64 + 4)
+#define MaxPathLen (1024 + 4)
 
 #ifdef BUILD_KRB5_LIB
 #ifndef KRB5_LIB
@@ -26,7 +23,6 @@
 #endif
 #endif
 
-
 #ifdef BUILD_ROKEN_LIB
 #ifndef ROKEN_LIB
 #ifdef _WIN32_
@@ -41,7 +37,6 @@
 #endif
 #endif
 
-
 #ifdef BUILD_GSSAPI_LIB
 #ifndef GSSAPI_LIB
 #ifdef _WIN32_
@@ -55,7 +50,6 @@
 #endif
 #endif
 #endif
-
 
 /* Define if you want authentication support in telnet. */
 #define AUTHENTICATION 1
@@ -94,15 +88,15 @@
 /* #undef ENV_HACK */
 
 /* define if prototype of gethostbyaddr is compatible with struct hostent
-   *gethostbyaddr(const void *, size_t, int) */
+ *gethostbyaddr(const void *, size_t, int) */
 /* #undef GETHOSTBYADDR_PROTO_COMPATIBLE */
 
 /* define if prototype of gethostbyname is compatible with struct hostent
-   *gethostbyname(const char *) */
+ *gethostbyname(const char *) */
 #define GETHOSTBYNAME_PROTO_COMPATIBLE 1
 
 /* define if prototype of getservbyname is compatible with struct servent
-   *getservbyname(const char *, const char *) */
+ *getservbyname(const char *, const char *) */
 #define GETSERVBYNAME_PROTO_COMPATIBLE 1
 
 /* define if prototype of getsockname is compatible with int getsockname(int,
@@ -249,23 +243,23 @@
 #define HAVE_DECL_H_ERRNO 1
 
 /* Define to 1 if you have the declaration of `h_nerr', and to 0 if you don't.
-   */
+ */
 /* #undef HAVE_DECL_H_NERR */
 
 /* Define to 1 if you have the declaration of `optarg', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTARG 1
 
 /* Define to 1 if you have the declaration of `opterr', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTERR 1
 
 /* Define to 1 if you have the declaration of `optind', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTIND 1
 
 /* Define to 1 if you have the declaration of `optopt', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTOPT 1
 
 /* Define to 1 if you have the declaration of `timezone', and to 0 if you
@@ -273,7 +267,7 @@
 #define HAVE_DECL_TIMEZONE 1
 
 /* Define to 1 if you have the declaration of `_res', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL__RES 1
 
 /* Define to 1 if you have the declaration of `__progname', and to 0 if you
@@ -1289,7 +1283,7 @@
 
 /* have __sync_add_and_fetch */
 #if defined(__FreeBSD__) && defined(__arm__)
-#undef HAVE___SYNC_ADD_AND_FETCH	/* Not supported on FreeBSD/arm */
+#undef HAVE___SYNC_ADD_AND_FETCH /* Not supported on FreeBSD/arm */
 #else
 #define HAVE___SYNC_ADD_AND_FETCH 1
 #endif
@@ -1322,7 +1316,7 @@
 #define LOCALSTATEDIR "/var/heimdal"
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+ */
 #define LT_OBJDIR ".libs/"
 
 /* define if the system is missing a prototype for asnprintf() */
@@ -1434,7 +1428,7 @@
 /* #undef OPENLDAP_MODULE */
 
 /* define if prototype of openlog is compatible with void openlog(const char
-   *, int, int) */
+ *, int, int) */
 #define OPENLOG_PROTO_COMPATIBLE 1
 
 /* Define if you want OTP support in applications. */
@@ -1603,19 +1597,15 @@ struct sockaddr_in;
 #define realloc(X, Y) rk_realloc((X), (Y))
 #endif
 
-
 #ifdef ENDIANESS_IN_SYS_PARAM_H
-#  include <sys/types.h>
-#  include <sys/param.h>
-#  if BYTE_ORDER == BIG_ENDIAN
-#  define WORDS_BIGENDIAN 1
-#  endif
+#include <sys/types.h>
+#include <sys/param.h>
+#if BYTE_ORDER == BIG_ENDIAN
+#define WORDS_BIGENDIAN 1
+#endif
 #endif
 
-
-
-
-/* Set this to the default system lead string for telnetd 
+/* Set this to the default system lead string for telnetd
  * can contain %-escapes: %s=sysname, %m=machine, %r=os-release
  * %v=os-version, %t=tty, %h=hostname, %d=date and time
  */
@@ -1628,4 +1618,3 @@ struct sockaddr_in;
 #ifndef LOGIN_PATH
 #define LOGIN_PATH BINDIR "/login"
 #endif
-

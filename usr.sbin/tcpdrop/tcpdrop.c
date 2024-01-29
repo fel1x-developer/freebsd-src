@@ -17,8 +17,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -37,8 +37,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	TCPDROP_FOREIGN		0
-#define	TCPDROP_LOCAL		1
+#define TCPDROP_FOREIGN 0
+#define TCPDROP_LOCAL 1
 
 struct host_service {
 	char hs_host[NI_MAXHOST];
@@ -105,8 +105,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (state == TCP_NSTATES ||
-	    state == TCPS_CLOSED ||
+	if (state == TCP_NSTATES || state == TCPS_CLOSED ||
 	    state == TCPS_LISTEN)
 		usage();
 	if (dropall && dropspecific)
@@ -237,11 +236,11 @@ tcpdropall(const char *ca_name, const char *stack, int state)
 
 	head = getxpcblist("net.inet.tcp.pcblist");
 
-#define	XINP_NEXT(xinp)							\
+#define XINP_NEXT(xinp) \
 	((struct xinpgen *)(uintptr_t)((uintptr_t)(xinp) + (xinp)->xig_len))
 
 	for (xinp = XINP_NEXT(head); xinp->xig_len > sizeof *xinp;
-	    xinp = XINP_NEXT(xinp)) {
+	     xinp = XINP_NEXT(xinp)) {
 		xtp = (struct xtcpcb *)xinp;
 		xip = &xtp->xt_inp;
 
@@ -387,12 +386,12 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"usage: tcpdrop local-address local-port foreign-address foreign-port\n"
-"       tcpdrop local-address:local-port foreign-address:foreign-port\n"
-"       tcpdrop local-address.local-port foreign-address.foreign-port\n"
-"       tcpdrop [-l] -a\n"
-"       tcpdrop [-l] -C cc-algo [-S stack] [-s state]\n"
-"       tcpdrop [-l] [-C cc-algo] -S stack [-s state]\n"
-"       tcpdrop [-l] [-C cc-algo] [-S stack] -s state\n");
+	    "usage: tcpdrop local-address local-port foreign-address foreign-port\n"
+	    "       tcpdrop local-address:local-port foreign-address:foreign-port\n"
+	    "       tcpdrop local-address.local-port foreign-address.foreign-port\n"
+	    "       tcpdrop [-l] -a\n"
+	    "       tcpdrop [-l] -C cc-algo [-S stack] [-s state]\n"
+	    "       tcpdrop [-l] [-C cc-algo] -S stack [-s state]\n"
+	    "       tcpdrop [-l] [-C cc-algo] [-S stack] -s state\n");
 	exit(1);
 }

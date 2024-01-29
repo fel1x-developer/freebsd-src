@@ -18,7 +18,7 @@
  * N66001-04-C-6019 ("SEFOS").
  *
  * This software was developed at the University of Cambridge Computer
- * Laboratory with support from a grant from Google, Inc. 
+ * Laboratory with support from a grant from Google, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,28 +42,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sbuf.h>
-#include <sys/sdt.h>
-#include <sys/systm.h>
 #include <sys/mount.h>
-#include <sys/file.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/protosw.h>
+#include <sys/sbuf.h>
+#include <sys/sdt.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip_var.h>
@@ -206,8 +205,7 @@ mac_ipq_reassemble(struct ipq *q, struct mbuf *m)
 
 	label = mac_mbuf_to_label(m);
 
-	MAC_POLICY_PERFORM_NOSLEEP(ipq_reassemble, q, q->ipq_label, m,
-	    label);
+	MAC_POLICY_PERFORM_NOSLEEP(ipq_reassemble, q, q->ipq_label, m, label);
 }
 
 void
@@ -299,8 +297,8 @@ mac_netinet_icmp_reply(struct mbuf *mrecv, struct mbuf *msend)
 	mrecvlabel = mac_mbuf_to_label(mrecv);
 	msendlabel = mac_mbuf_to_label(msend);
 
-	MAC_POLICY_PERFORM_NOSLEEP(netinet_icmp_reply, mrecv, mrecvlabel,
-	    msend, msendlabel);
+	MAC_POLICY_PERFORM_NOSLEEP(netinet_icmp_reply, mrecv, mrecvlabel, msend,
+	    msendlabel);
 }
 
 void
@@ -359,8 +357,7 @@ mac_ipq_update(struct mbuf *m, struct ipq *q)
 	MAC_POLICY_PERFORM_NOSLEEP(ipq_update, m, label, q, q->ipq_label);
 }
 
-MAC_CHECK_PROBE_DEFINE2(inpcb_check_deliver, "struct inpcb *",
-    "struct mbuf *");
+MAC_CHECK_PROBE_DEFINE2(inpcb_check_deliver, "struct inpcb *", "struct mbuf *");
 
 int
 mac_inpcb_check_deliver(struct inpcb *inp, struct mbuf *m)
@@ -479,8 +476,7 @@ mac_syncache_init(struct label **label)
 		 * MAC_PERFORM so we can propagate allocation failures back
 		 * to the syncache code.
 		 */
-		MAC_POLICY_CHECK_NOSLEEP(syncache_init_label, *label,
-		    M_NOWAIT);
+		MAC_POLICY_CHECK_NOSLEEP(syncache_init_label, *label, M_NOWAIT);
 		if (error) {
 			MAC_POLICY_PERFORM_NOSLEEP(syncache_destroy_label,
 			    *label);
@@ -513,6 +509,5 @@ mac_syncache_create_mbuf(struct label *sc_label, struct mbuf *m)
 
 	mlabel = mac_mbuf_to_label(m);
 
-	MAC_POLICY_PERFORM_NOSLEEP(syncache_create_mbuf, sc_label, m,
-	    mlabel);
+	MAC_POLICY_PERFORM_NOSLEEP(syncache_create_mbuf, sc_label, m, mlabel);
 }

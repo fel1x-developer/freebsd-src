@@ -42,11 +42,11 @@
  */
 
 #include <sys/param.h>
-#include <sys/ptrace.h>
-#include <sys/time.h>
-#include <sys/stat.h>
 #include <sys/linker_set.h>
+#include <sys/ptrace.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -60,8 +60,8 @@
 #include "extern.h"
 int pflags;
 
-static void	killed(int);
-static void	usage(void) __dead2;
+static void killed(int);
+static void usage(void) __dead2;
 
 static pid_t pid;
 static bool kflag = false;
@@ -134,11 +134,11 @@ main(int argc, char *argv[])
 
 	pflags = 0;
 	corefile = NULL;
-        while ((ch = getopt(argc, argv, "c:fk")) != -1) {
-                switch (ch) {
-                case 'c':
+	while ((ch = getopt(argc, argv, "c:fk")) != -1) {
+		switch (ch) {
+		case 'c':
 			corefile = optarg;
-                        break;
+			break;
 		case 'f':
 			pflags |= PFLAGS_FULL;
 			break;
@@ -185,7 +185,8 @@ main(int argc, char *argv[])
 	if (efd < 0)
 		err(1, "%s", binfile);
 	dumper = NULL;
-	SET_FOREACH(d, dumpset) {
+	SET_FOREACH(d, dumpset)
+	{
 		lseek(efd, 0, SEEK_SET);
 		if (((*d)->ident)(efd, pid, binfile)) {
 			dumper = (*d);

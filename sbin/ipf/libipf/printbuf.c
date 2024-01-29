@@ -11,7 +11,6 @@
 
 #include "ipf.h"
 
-
 void
 printbuf(char *buf, int len, int zend)
 {

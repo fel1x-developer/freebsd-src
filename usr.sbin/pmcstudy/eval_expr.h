@@ -37,19 +37,20 @@ enum exptype {
 	TYPE_VALUE_PMC
 };
 
-#define STATE_UNSET  0		/* We have no setting yet in value */
-#define STATE_FILLED 1		/* We have filled in value */
+#define STATE_UNSET 0  /* We have no setting yet in value */
+#define STATE_FILLED 1 /* We have filled in value */
 
 struct expression {
-	struct expression *next;	/* Next in expression. */
-	struct expression *prev;	/* Prev in expression. */
-	double value;			/* If there is a value to set */
-	enum exptype type;			/* What is it */
-	uint8_t state;			/* Current state if value type */
-	char name[252];			/* If a PMC whats the name, con value*/
+	struct expression *next; /* Next in expression. */
+	struct expression *prev; /* Prev in expression. */
+	double value;		 /* If there is a value to set */
+	enum exptype type;	 /* What is it */
+	uint8_t state;		 /* Current state if value type */
+	char name[252];		 /* If a PMC whats the name, con value*/
 };
 
 struct expression *parse_expression(char *str);
-double run_expr(struct expression *exp, int initial_call, struct expression **lastone);
+double run_expr(struct expression *exp, int initial_call,
+    struct expression **lastone);
 void print_exp(struct expression *exp);
 #endif

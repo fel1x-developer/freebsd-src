@@ -29,57 +29,39 @@
  * SUCH DAMAGE.
  */
 
-
-
-#include "systat.h"
 #include "extern.h"
 #include "mode.h"
+#include "systat.h"
 
-struct	cmdtab cmdtab[] = {
-	{ "pigs",	showpigs,	fetchpigs,	labelpigs,
-	  initpigs,	openpigs,	closepigs,	0,
-	  0,		CF_LOADAV },
-	{ "swap",	showswap,	fetchswap,	labelswap,
-	  initswap,	openswap,	closeswap,	0,
-	  0,		CF_LOADAV },
-	{ "iostat",	showiostat,	fetchiostat,	labeliostat,
-	  initiostat,	openiostat,	closeiostat,	cmdiostat,
-	  0,		CF_LOADAV },
-	{ "vmstat",	showkre,	fetchkre,	labelkre,
-	  initkre,	openkre,	closekre,	cmdkre,
-	  0,		0 },
-	{ "netstat",	shownetstat,	fetchnetstat,	labelnetstat,
-	  initnetstat,	opennetstat,	closenetstat,	cmdnetstat,
-	  0,		CF_LOADAV },
-	{ "icmp",	showicmp,	fetchicmp,	labelicmp,
-	  initicmp,	openicmp,	closeicmp,	cmdmode,
-	  reseticmp,	CF_LOADAV },
-	{ "ip",		showip,		fetchip,	labelip,
-	  initip,	openip,		closeip,	cmdmode,
-	  resetip,	CF_LOADAV },
+struct cmdtab cmdtab[] = { { "pigs", showpigs, fetchpigs, labelpigs, initpigs,
+			       openpigs, closepigs, 0, 0, CF_LOADAV },
+	{ "swap", showswap, fetchswap, labelswap, initswap, openswap, closeswap,
+	    0, 0, CF_LOADAV },
+	{ "iostat", showiostat, fetchiostat, labeliostat, initiostat,
+	    openiostat, closeiostat, cmdiostat, 0, CF_LOADAV },
+	{ "vmstat", showkre, fetchkre, labelkre, initkre, openkre, closekre,
+	    cmdkre, 0, 0 },
+	{ "netstat", shownetstat, fetchnetstat, labelnetstat, initnetstat,
+	    opennetstat, closenetstat, cmdnetstat, 0, CF_LOADAV },
+	{ "icmp", showicmp, fetchicmp, labelicmp, initicmp, openicmp, closeicmp,
+	    cmdmode, reseticmp, CF_LOADAV },
+	{ "ip", showip, fetchip, labelip, initip, openip, closeip, cmdmode,
+	    resetip, CF_LOADAV },
 #ifdef INET6
-	{ "icmp6",	showicmp6,	fetchicmp6,	labelicmp6,
-	  initicmp6,	openicmp6,	closeicmp6,	cmdmode,
-	  reseticmp6,	CF_LOADAV },
-	{ "ip6",	showip6,	fetchip6,	labelip6,
-	  initip6,	openip6,	closeip6,	cmdmode,
-	  resetip6,	CF_LOADAV },
+	{ "icmp6", showicmp6, fetchicmp6, labelicmp6, initicmp6, openicmp6,
+	    closeicmp6, cmdmode, reseticmp6, CF_LOADAV },
+	{ "ip6", showip6, fetchip6, labelip6, initip6, openip6, closeip6,
+	    cmdmode, resetip6, CF_LOADAV },
 #endif
-	{ "sctp",	showsctp,	fetchsctp,	labelsctp,
-	  initsctp,	opensctp,	closesctp,	cmdmode,
-	  resetsctp,	CF_LOADAV },
-	{ "tcp",	showtcp,	fetchtcp,	labeltcp,
-	  inittcp,	opentcp,	closetcp,	cmdmode,
-	  resettcp,	CF_LOADAV },
-	{ "ifstat",	showifstat,	fetchifstat,	labelifstat,
-	  initifstat,	openifstat,	closeifstat,	cmdifstat,
-	  0,		CF_LOADAV },
-	{ "zarc",	showzarc,	fetchzarc,	labelzarc,
-	  initzarc,	openzarc,	closezarc,	0,
-	  resetzarc,	CF_ZFSARC },
-	{ "iolat",	showiolat,	fetchiolat,	labeliolat,
-	  initiolat,	openiolat,	closeiolat,	cmdiolat,
-	  0,		CF_LOADAV },
-	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 }
-};
-struct  cmdtab *curcmd = &cmdtab[0];
+	{ "sctp", showsctp, fetchsctp, labelsctp, initsctp, opensctp, closesctp,
+	    cmdmode, resetsctp, CF_LOADAV },
+	{ "tcp", showtcp, fetchtcp, labeltcp, inittcp, opentcp, closetcp,
+	    cmdmode, resettcp, CF_LOADAV },
+	{ "ifstat", showifstat, fetchifstat, labelifstat, initifstat,
+	    openifstat, closeifstat, cmdifstat, 0, CF_LOADAV },
+	{ "zarc", showzarc, fetchzarc, labelzarc, initzarc, openzarc, closezarc,
+	    0, resetzarc, CF_ZFSARC },
+	{ "iolat", showiolat, fetchiolat, labeliolat, initiolat, openiolat,
+	    closeiolat, cmdiolat, 0, CF_LOADAV },
+	{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0 } };
+struct cmdtab *curcmd = &cmdtab[0];

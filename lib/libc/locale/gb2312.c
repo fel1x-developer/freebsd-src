@@ -35,29 +35,27 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
 #include <runetype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
-static size_t	_GB2312_mbrtowc(wchar_t * __restrict, const char * __restrict,
-		    size_t, mbstate_t * __restrict);
-static int	_GB2312_mbsinit(const mbstate_t *);
-static size_t	_GB2312_wcrtomb(char * __restrict, wchar_t,
-		    mbstate_t * __restrict);
-static size_t	_GB2312_mbsnrtowcs(wchar_t * __restrict,
-		    const char ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-static size_t	_GB2312_wcsnrtombs(char * __restrict,
-		    const wchar_t ** __restrict, size_t, size_t,
-		    mbstate_t * __restrict);
-
+static size_t _GB2312_mbrtowc(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
+static int _GB2312_mbsinit(const mbstate_t *);
+static size_t _GB2312_wcrtomb(char *__restrict, wchar_t, mbstate_t *__restrict);
+static size_t _GB2312_mbsnrtowcs(wchar_t *__restrict, const char **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
+static size_t _GB2312_wcsnrtombs(char *__restrict, const wchar_t **__restrict,
+    size_t, size_t, mbstate_t *__restrict);
 
 typedef struct {
-	int	count;
-	u_char	bytes[2];
+	int count;
+	u_char bytes[2];
 } _GB2312State;
 
 int
@@ -106,8 +104,8 @@ _GB2312_check(const char *str, size_t n)
 }
 
 static size_t
-_GB2312_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps)
+_GB2312_mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	_GB2312State *gs;
 	wchar_t wc;
@@ -147,7 +145,7 @@ _GB2312_mbrtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n,
 }
 
 static size_t
-_GB2312_wcrtomb(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps)
+_GB2312_wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	_GB2312State *gs;
 
@@ -171,17 +169,15 @@ _GB2312_wcrtomb(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps)
 }
 
 static size_t
-_GB2312_mbsnrtowcs(wchar_t * __restrict dst,
-    const char ** __restrict src, size_t nms, size_t len,
-    mbstate_t * __restrict ps)
+_GB2312_mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps)
 {
 	return (__mbsnrtowcs_std(dst, src, nms, len, ps, _GB2312_mbrtowc));
 }
 
 static size_t
-_GB2312_wcsnrtombs(char * __restrict dst,
-    const wchar_t ** __restrict src, size_t nwc, size_t len,
-    mbstate_t * __restrict ps)
+_GB2312_wcsnrtombs(char *__restrict dst, const wchar_t **__restrict src,
+    size_t nwc, size_t len, mbstate_t *__restrict ps)
 {
 	return (__wcsnrtombs_std(dst, src, nwc, len, ps, _GB2312_wcrtomb));
 }

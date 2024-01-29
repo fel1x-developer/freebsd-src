@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#define	PAP_REQUEST	1
-#define	PAP_ACK		2
-#define	PAP_NAK		3
+#define PAP_REQUEST 1
+#define PAP_ACK 2
+#define PAP_NAK 3
 
 struct mbuf;
 struct physical;

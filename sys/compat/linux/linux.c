@@ -38,15 +38,14 @@
 #include <sys/signalvar.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
+#include <sys/un.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-#include <netlink/netlink.h>
-
-#include <sys/un.h>
+#include <net/if_var.h>
 #include <netinet/in.h>
+#include <netlink/netlink.h>
 
 #include <compat/linux/linux.h>
 #include <compat/linux/linux_common.h>
@@ -57,7 +56,8 @@ _Static_assert(LINUX_IFNAMSIZ == IFNAMSIZ, "Linux IFNAMSIZ");
 _Static_assert(sizeof(struct sockaddr) == sizeof(struct l_sockaddr),
     "Linux struct sockaddr size");
 _Static_assert(offsetof(struct sockaddr, sa_data) ==
-    offsetof(struct l_sockaddr, sa_data), "Linux struct sockaddr layout");
+	offsetof(struct l_sockaddr, sa_data),
+    "Linux struct sockaddr layout");
 
 static bool use_real_ifnames = false;
 SYSCTL_BOOL(_compat_linux, OID_AUTO, use_real_ifnames, CTLFLAG_RWTUN,
@@ -65,84 +65,84 @@ SYSCTL_BOOL(_compat_linux, OID_AUTO, use_real_ifnames, CTLFLAG_RWTUN,
     "Use FreeBSD interface names instead of generating ethN aliases");
 
 static int bsd_to_linux_sigtbl[LINUX_SIGTBLSZ] = {
-	LINUX_SIGHUP,	/* SIGHUP */
-	LINUX_SIGINT,	/* SIGINT */
-	LINUX_SIGQUIT,	/* SIGQUIT */
-	LINUX_SIGILL,	/* SIGILL */
-	LINUX_SIGTRAP,	/* SIGTRAP */
-	LINUX_SIGABRT,	/* SIGABRT */
-	0,		/* SIGEMT */
-	LINUX_SIGFPE,	/* SIGFPE */
-	LINUX_SIGKILL,	/* SIGKILL */
-	LINUX_SIGBUS,	/* SIGBUS */
-	LINUX_SIGSEGV,	/* SIGSEGV */
-	LINUX_SIGSYS,	/* SIGSYS */
-	LINUX_SIGPIPE,	/* SIGPIPE */
-	LINUX_SIGALRM,	/* SIGALRM */
-	LINUX_SIGTERM,	/* SIGTERM */
-	LINUX_SIGURG,	/* SIGURG */
-	LINUX_SIGSTOP,	/* SIGSTOP */
-	LINUX_SIGTSTP,	/* SIGTSTP */
-	LINUX_SIGCONT,	/* SIGCONT */
-	LINUX_SIGCHLD,	/* SIGCHLD */
-	LINUX_SIGTTIN,	/* SIGTTIN */
-	LINUX_SIGTTOU,	/* SIGTTOU */
-	LINUX_SIGIO,	/* SIGIO */
-	LINUX_SIGXCPU,	/* SIGXCPU */
-	LINUX_SIGXFSZ,	/* SIGXFSZ */
-	LINUX_SIGVTALRM,/* SIGVTALRM */
-	LINUX_SIGPROF,	/* SIGPROF */
-	LINUX_SIGWINCH,	/* SIGWINCH */
-	0,		/* SIGINFO */
-	LINUX_SIGUSR1,	/* SIGUSR1 */
-	LINUX_SIGUSR2	/* SIGUSR2 */
+	LINUX_SIGHUP,	 /* SIGHUP */
+	LINUX_SIGINT,	 /* SIGINT */
+	LINUX_SIGQUIT,	 /* SIGQUIT */
+	LINUX_SIGILL,	 /* SIGILL */
+	LINUX_SIGTRAP,	 /* SIGTRAP */
+	LINUX_SIGABRT,	 /* SIGABRT */
+	0,		 /* SIGEMT */
+	LINUX_SIGFPE,	 /* SIGFPE */
+	LINUX_SIGKILL,	 /* SIGKILL */
+	LINUX_SIGBUS,	 /* SIGBUS */
+	LINUX_SIGSEGV,	 /* SIGSEGV */
+	LINUX_SIGSYS,	 /* SIGSYS */
+	LINUX_SIGPIPE,	 /* SIGPIPE */
+	LINUX_SIGALRM,	 /* SIGALRM */
+	LINUX_SIGTERM,	 /* SIGTERM */
+	LINUX_SIGURG,	 /* SIGURG */
+	LINUX_SIGSTOP,	 /* SIGSTOP */
+	LINUX_SIGTSTP,	 /* SIGTSTP */
+	LINUX_SIGCONT,	 /* SIGCONT */
+	LINUX_SIGCHLD,	 /* SIGCHLD */
+	LINUX_SIGTTIN,	 /* SIGTTIN */
+	LINUX_SIGTTOU,	 /* SIGTTOU */
+	LINUX_SIGIO,	 /* SIGIO */
+	LINUX_SIGXCPU,	 /* SIGXCPU */
+	LINUX_SIGXFSZ,	 /* SIGXFSZ */
+	LINUX_SIGVTALRM, /* SIGVTALRM */
+	LINUX_SIGPROF,	 /* SIGPROF */
+	LINUX_SIGWINCH,	 /* SIGWINCH */
+	0,		 /* SIGINFO */
+	LINUX_SIGUSR1,	 /* SIGUSR1 */
+	LINUX_SIGUSR2	 /* SIGUSR2 */
 };
 
-#define	LINUX_SIGPWREMU	(SIGRTMIN + (LINUX_SIGRTMAX - LINUX_SIGRTMIN) + 1)
+#define LINUX_SIGPWREMU (SIGRTMIN + (LINUX_SIGRTMAX - LINUX_SIGRTMIN) + 1)
 
 static int linux_to_bsd_sigtbl[LINUX_SIGTBLSZ] = {
-	SIGHUP,		/* LINUX_SIGHUP */
-	SIGINT,		/* LINUX_SIGINT */
-	SIGQUIT,	/* LINUX_SIGQUIT */
-	SIGILL,		/* LINUX_SIGILL */
-	SIGTRAP,	/* LINUX_SIGTRAP */
-	SIGABRT,	/* LINUX_SIGABRT */
-	SIGBUS,		/* LINUX_SIGBUS */
-	SIGFPE,		/* LINUX_SIGFPE */
-	SIGKILL,	/* LINUX_SIGKILL */
-	SIGUSR1,	/* LINUX_SIGUSR1 */
-	SIGSEGV,	/* LINUX_SIGSEGV */
-	SIGUSR2,	/* LINUX_SIGUSR2 */
-	SIGPIPE,	/* LINUX_SIGPIPE */
-	SIGALRM,	/* LINUX_SIGALRM */
-	SIGTERM,	/* LINUX_SIGTERM */
-	SIGBUS,		/* LINUX_SIGSTKFLT */
-	SIGCHLD,	/* LINUX_SIGCHLD */
-	SIGCONT,	/* LINUX_SIGCONT */
-	SIGSTOP,	/* LINUX_SIGSTOP */
-	SIGTSTP,	/* LINUX_SIGTSTP */
-	SIGTTIN,	/* LINUX_SIGTTIN */
-	SIGTTOU,	/* LINUX_SIGTTOU */
-	SIGURG,		/* LINUX_SIGURG */
-	SIGXCPU,	/* LINUX_SIGXCPU */
-	SIGXFSZ,	/* LINUX_SIGXFSZ */
-	SIGVTALRM,	/* LINUX_SIGVTALARM */
-	SIGPROF,	/* LINUX_SIGPROF */
-	SIGWINCH,	/* LINUX_SIGWINCH */
-	SIGIO,		/* LINUX_SIGIO */
+	SIGHUP,	   /* LINUX_SIGHUP */
+	SIGINT,	   /* LINUX_SIGINT */
+	SIGQUIT,   /* LINUX_SIGQUIT */
+	SIGILL,	   /* LINUX_SIGILL */
+	SIGTRAP,   /* LINUX_SIGTRAP */
+	SIGABRT,   /* LINUX_SIGABRT */
+	SIGBUS,	   /* LINUX_SIGBUS */
+	SIGFPE,	   /* LINUX_SIGFPE */
+	SIGKILL,   /* LINUX_SIGKILL */
+	SIGUSR1,   /* LINUX_SIGUSR1 */
+	SIGSEGV,   /* LINUX_SIGSEGV */
+	SIGUSR2,   /* LINUX_SIGUSR2 */
+	SIGPIPE,   /* LINUX_SIGPIPE */
+	SIGALRM,   /* LINUX_SIGALRM */
+	SIGTERM,   /* LINUX_SIGTERM */
+	SIGBUS,	   /* LINUX_SIGSTKFLT */
+	SIGCHLD,   /* LINUX_SIGCHLD */
+	SIGCONT,   /* LINUX_SIGCONT */
+	SIGSTOP,   /* LINUX_SIGSTOP */
+	SIGTSTP,   /* LINUX_SIGTSTP */
+	SIGTTIN,   /* LINUX_SIGTTIN */
+	SIGTTOU,   /* LINUX_SIGTTOU */
+	SIGURG,	   /* LINUX_SIGURG */
+	SIGXCPU,   /* LINUX_SIGXCPU */
+	SIGXFSZ,   /* LINUX_SIGXFSZ */
+	SIGVTALRM, /* LINUX_SIGVTALARM */
+	SIGPROF,   /* LINUX_SIGPROF */
+	SIGWINCH,  /* LINUX_SIGWINCH */
+	SIGIO,	   /* LINUX_SIGIO */
 	/*
 	 * FreeBSD does not have SIGPWR signal, map Linux SIGPWR signal
 	 * to the first unused FreeBSD signal number. Since Linux supports
 	 * signals from 1 to 64 we are ok here as our SIGRTMIN = 65.
 	 */
-	LINUX_SIGPWREMU,/* LINUX_SIGPWR */
-	SIGSYS		/* LINUX_SIGSYS */
+	LINUX_SIGPWREMU, /* LINUX_SIGPWR */
+	SIGSYS		 /* LINUX_SIGSYS */
 };
 
 static struct cdev *dev_shm_cdev;
 static struct cdevsw dev_shm_cdevsw = {
-     .d_version = D_VERSION,
-     .d_name    = "dev_shm",
+	.d_version = D_VERSION,
+	.d_name = "dev_shm",
 };
 
 /*
@@ -166,7 +166,8 @@ int
 linux_to_bsd_signal(int sig)
 {
 
-	KASSERT(sig > 0 && sig <= LINUX_SIGRTMAX, ("invalid Linux signal %d\n", sig));
+	KASSERT(sig > 0 && sig <= LINUX_SIGRTMAX,
+	    ("invalid Linux signal %d\n", sig));
 
 	if (sig < LINUX_SIGRTMIN)
 		return (linux_to_bsd_sigtbl[_SIG_IDX(sig)]);
@@ -292,10 +293,10 @@ ifname_bsd_to_linux_idx(u_int idx, char *lxname, size_t len)
  * not found, -1 on error.
  */
 struct ifname_bsd_to_linux_ifp_cb_s {
-	struct ifnet	*ifp;
-	int		ethno;
-	char		*lxname;
-	size_t		len;
+	struct ifnet *ifp;
+	int ethno;
+	char *lxname;
+	size_t len;
 };
 
 static int
@@ -333,7 +334,7 @@ ifname_bsd_to_linux_ifp(struct ifnet *ifp, char *lxname, size_t len)
 	if (!IFP_IS_ETH(ifp) || linux_use_real_ifname(ifp))
 		return (strlcpy(lxname, if_name(ifp), len));
 
- 	/* Determine the (relative) unit number for ethernet interfaces. */
+	/* Determine the (relative) unit number for ethernet interfaces. */
 	return (if_foreach(ifname_bsd_to_linux_ifp_cb, &arg));
 }
 
@@ -344,12 +345,12 @@ ifname_bsd_to_linux_ifp(struct ifnet *ifp, char *lxname, size_t len)
  * can point to the same buffer.
  */
 struct ifname_linux_to_ifp_cb_s {
-	bool		is_lo;
-	bool		is_eth;
-	int		ethno;
-	int		unit;
-	const char	*lxname;
-	if_t		ifp;
+	bool is_lo;
+	bool is_eth;
+	int ethno;
+	int unit;
+	const char *lxname;
+	if_t ifp;
 };
 
 static int
@@ -403,7 +404,8 @@ ifname_linux_to_ifp(struct thread *td, const char *lxname)
 	 */
 	arg.is_lo = (len == 2 && strncmp(lxname, "lo", LINUX_IFNAMSIZ) == 0);
 	arg.unit = (int)strtoul(lxname + len, &ep, 10);
-	if ((ep == NULL || ep == lxname + len || ep >= lxname + LINUX_IFNAMSIZ) &&
+	if ((ep == NULL || ep == lxname + len ||
+		ep >= lxname + LINUX_IFNAMSIZ) &&
 	    arg.is_lo == 0)
 		return (NULL);
 	arg.is_eth = (len == 3 && strncmp(lxname, "eth", len) == 0);
@@ -586,7 +588,7 @@ linux_to_bsd_sockaddr(const struct l_sockaddr *osa, struct sockaddr **sap,
 	struct l_sockaddr *kosa;
 #ifdef INET6
 	struct sockaddr_in6 *sin6;
-	bool  oldv6size;
+	bool oldv6size;
 #endif
 	char *name;
 	int salen, bdom, error, hdrlen, namelen;
@@ -633,10 +635,10 @@ linux_to_bsd_sockaddr(const struct l_sockaddr *osa, struct sockaddr **sap,
 			sin6 = (struct sockaddr_in6 *)kosa;
 			if (IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr) ||
 			    (!IN6_IS_ADDR_LINKLOCAL(&sin6->sin6_addr) &&
-			     !IN6_IS_ADDR_SITELOCAL(&sin6->sin6_addr) &&
-			     !IN6_IS_ADDR_V4COMPAT(&sin6->sin6_addr) &&
-			     !IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr) &&
-			     !IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr))) {
+				!IN6_IS_ADDR_SITELOCAL(&sin6->sin6_addr) &&
+				!IN6_IS_ADDR_V4COMPAT(&sin6->sin6_addr) &&
+				!IN6_IS_ADDR_UNSPECIFIED(&sin6->sin6_addr) &&
+				!IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr))) {
 				sin6->sin6_scope_id = 0;
 			} else {
 				linux_msg(curthread,
@@ -703,8 +705,8 @@ linux_dev_shm_create(void)
 	error = make_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK, &dev_shm_cdev,
 	    &dev_shm_cdevsw, NULL, UID_ROOT, GID_WHEEL, 0, "shm/.mountpoint");
 	if (error != 0) {
-		printf("%s: failed to create device node, error %d\n",
-		    __func__, error);
+		printf("%s: failed to create device node, error %d\n", __func__,
+		    error);
 	}
 }
 
@@ -716,8 +718,8 @@ linux_dev_shm_destroy(void)
 }
 
 int
-bsd_to_linux_bits_(int value, struct bsd_to_linux_bitmap *bitmap,
-    size_t mapcnt, int no_value)
+bsd_to_linux_bits_(int value, struct bsd_to_linux_bitmap *bitmap, size_t mapcnt,
+    int no_value)
 {
 	int bsd_mask, bsd_value, linux_mask, linux_value;
 	int linux_ret;
@@ -754,8 +756,8 @@ bsd_to_linux_bits_(int value, struct bsd_to_linux_bitmap *bitmap,
 }
 
 int
-linux_to_bsd_bits_(int value, struct bsd_to_linux_bitmap *bitmap,
-    size_t mapcnt, int no_value)
+linux_to_bsd_bits_(int value, struct bsd_to_linux_bitmap *bitmap, size_t mapcnt,
+    int no_value)
 {
 	int bsd_mask, bsd_value, linux_mask, linux_value;
 	int bsd_ret;
@@ -792,8 +794,7 @@ linux_to_bsd_bits_(int value, struct bsd_to_linux_bitmap *bitmap,
 }
 
 void
-linux_to_bsd_poll_events(struct thread *td, int fd, short lev,
-    short *bev)
+linux_to_bsd_poll_events(struct thread *td, int fd, short lev, short *bev)
 {
 	struct file *fp;
 	int error;
@@ -802,7 +803,7 @@ linux_to_bsd_poll_events(struct thread *td, int fd, short lev,
 	if (lev & LINUX_POLLIN)
 		bits |= POLLIN;
 	if (lev & LINUX_POLLPRI)
-		bits |=	POLLPRI;
+		bits |= POLLPRI;
 	if (lev & LINUX_POLLOUT)
 		bits |= POLLOUT;
 	if (lev & LINUX_POLLERR)
@@ -839,9 +840,11 @@ linux_to_bsd_poll_events(struct thread *td, int fd, short lev,
 	}
 
 	if (lev & LINUX_POLLMSG)
-		LINUX_RATELIMIT_MSG_OPT1("unsupported POLLMSG, events(%d)", lev);
+		LINUX_RATELIMIT_MSG_OPT1("unsupported POLLMSG, events(%d)",
+		    lev);
 	if (lev & LINUX_POLLREMOVE)
-		LINUX_RATELIMIT_MSG_OPT1("unsupported POLLREMOVE, events(%d)", lev);
+		LINUX_RATELIMIT_MSG_OPT1("unsupported POLLREMOVE, events(%d)",
+		    lev);
 
 	*bev = bits;
 }
@@ -854,7 +857,7 @@ bsd_to_linux_poll_events(short bev, short *lev)
 	if (bev & POLLIN)
 		bits |= LINUX_POLLIN;
 	if (bev & POLLPRI)
-		bits |=	LINUX_POLLPRI;
+		bits |= LINUX_POLLPRI;
 	if (bev & (POLLOUT | POLLWRNORM))
 		/*
 		 * POLLWRNORM is equal to POLLOUT on FreeBSD,

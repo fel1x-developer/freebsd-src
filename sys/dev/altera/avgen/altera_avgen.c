@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
@@ -42,17 +43,16 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/stat.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
-#include <geom/geom_disk.h>
+#include <vm/vm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <vm/vm.h>
-
 #include <dev/altera/avgen/altera_avgen.h>
+
+#include <geom/geom_disk.h>
 
 /*
  * Generic device driver for allowing read(), write(), and mmap() on
@@ -65,18 +65,18 @@ static d_mmap_t altera_avgen_mmap;
 static d_read_t altera_avgen_read;
 static d_write_t altera_avgen_write;
 
-#define	ALTERA_AVGEN_DEVNAME		"altera_avgen"
-#define	ALTERA_AVGEN_DEVNAME_FMT	(ALTERA_AVGEN_DEVNAME "%d")
+#define ALTERA_AVGEN_DEVNAME "altera_avgen"
+#define ALTERA_AVGEN_DEVNAME_FMT (ALTERA_AVGEN_DEVNAME "%d")
 
 static struct cdevsw avg_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_mmap =	altera_avgen_mmap,
-	.d_read =	altera_avgen_read,
-	.d_write =	altera_avgen_write,
-	.d_name =	ALTERA_AVGEN_DEVNAME,
+	.d_version = D_VERSION,
+	.d_mmap = altera_avgen_mmap,
+	.d_read = altera_avgen_read,
+	.d_write = altera_avgen_write,
+	.d_name = ALTERA_AVGEN_DEVNAME,
 };
 
-#define	ALTERA_AVGEN_SECTORSIZE	512	/* Not configurable at this time. */
+#define ALTERA_AVGEN_SECTORSIZE 512 /* Not configurable at this time. */
 
 static int
 altera_avgen_read(struct cdev *dev, struct uio *uio, int flag)
@@ -112,23 +112,23 @@ altera_avgen_read(struct cdev *dev, struct uio *uio, int flag)
 			v1 = bus_read_1(sc->avg_res, offset);
 			error = uiomove(&v1, sizeof(v1), uio);
 			break;
-			
+
 		case 2:
 			v2 = bus_read_2(sc->avg_res, offset);
 			error = uiomove(&v2, sizeof(v2), uio);
 			break;
-			
+
 		case 4:
 			v4 = bus_read_4(sc->avg_res, offset);
 			error = uiomove(&v4, sizeof(v4), uio);
 			break;
-			
+
 #ifdef NOTYET
 		case 8:
 			v8 = bus_read_8(sc->avg_res, offset);
 			error = uiomove(&v8, sizeof(v8), uio);
 			break;
-			
+
 #endif
 
 		default:
@@ -223,8 +223,7 @@ altera_avgen_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
 		if ((sc->avg_flags & ALTERA_AVALON_FLAG_MMAP_EXEC) == 0)
 			return (EACCES);
 	}
-	if (trunc_page(offset) == offset &&
-	    offset + PAGE_SIZE > offset &&
+	if (trunc_page(offset) == offset && offset + PAGE_SIZE > offset &&
 	    rman_get_size(sc->avg_res) >= offset + PAGE_SIZE) {
 		*paddr = rman_get_start(sc->avg_res) + offset;
 		*memattr = VM_MEMATTR_UNCACHEABLE;
@@ -399,15 +398,14 @@ altera_avgen_process_options(struct altera_avgen_softc *sc,
 				break;
 
 			default:
-				device_printf(dev,
-				    "invalid %s character %c\n", 
+				device_printf(dev, "invalid %s character %c\n",
 				    ALTERA_AVALON_STR_FILEIO, *cp);
 				return (ENXIO);
 			}
 		}
 	}
 	if (str_geomio != NULL) {
-		for (cp = str_geomio; *cp != '\0'; cp++){
+		for (cp = str_geomio; *cp != '\0'; cp++) {
 			switch (*cp) {
 			case ALTERA_AVALON_CHAR_READ:
 				sc->avg_flags |= ALTERA_AVALON_FLAG_GEOM_READ;
@@ -418,8 +416,7 @@ altera_avgen_process_options(struct altera_avgen_softc *sc,
 				break;
 
 			default:
-				device_printf(dev,
-				    "invalid %s character %c\n",
+				device_printf(dev, "invalid %s character %c\n",
 				    ALTERA_AVALON_STR_GEOMIO, *cp);
 				return (ENXIO);
 			}
@@ -433,8 +430,7 @@ altera_avgen_process_options(struct altera_avgen_softc *sc,
 				break;
 
 			case ALTERA_AVALON_CHAR_WRITE:
-				sc->avg_flags |=
-				    ALTERA_AVALON_FLAG_MMAP_WRITE;
+				sc->avg_flags |= ALTERA_AVALON_FLAG_MMAP_WRITE;
 				break;
 
 			case ALTERA_AVALON_CHAR_EXEC:
@@ -442,8 +438,7 @@ altera_avgen_process_options(struct altera_avgen_softc *sc,
 				break;
 
 			default:
-				device_printf(dev,
-				    "invalid %s character %c\n",
+				device_printf(dev, "invalid %s character %c\n",
 				    ALTERA_AVALON_STR_MMAPIO, *cp);
 				return (ENXIO);
 			}
@@ -487,10 +482,9 @@ altera_avgen_attach(struct altera_avgen_softc *sc, const char *str_fileio,
 		devunit = sc->avg_unit;
 	} else
 		sc->avg_name = strdup(ALTERA_AVGEN_DEVNAME, M_TEMP);
-	if (sc->avg_flags & (ALTERA_AVALON_FLAG_GEOM_READ |
-	    ALTERA_AVALON_FLAG_GEOM_WRITE)) {
-		mtx_init(&sc->avg_disk_mtx, "altera_avgen_disk", NULL,
-		    MTX_DEF);
+	if (sc->avg_flags &
+	    (ALTERA_AVALON_FLAG_GEOM_READ | ALTERA_AVALON_FLAG_GEOM_WRITE)) {
+		mtx_init(&sc->avg_disk_mtx, "altera_avgen_disk", NULL, MTX_DEF);
 		sc->avg_disk = disk_alloc();
 		sc->avg_disk->d_drv1 = sc;
 		sc->avg_disk->d_strategy = altera_avgen_disk_strategy;
@@ -519,8 +513,8 @@ altera_avgen_attach(struct altera_avgen_softc *sc, const char *str_fileio,
 			    str_devname, devunit);
 		else
 			sc->avg_cdev = make_dev(&avg_cdevsw, sc->avg_unit,
-			    UID_ROOT, GID_WHEEL, S_IRUSR | S_IWUSR,
-			    "%s", str_devname);
+			    UID_ROOT, GID_WHEEL, S_IRUSR | S_IWUSR, "%s",
+			    str_devname);
 		if (sc->avg_cdev == NULL) {
 			device_printf(sc->avg_dev, "%s: make_dev failed\n",
 			    __func__);

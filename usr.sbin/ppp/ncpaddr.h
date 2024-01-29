@@ -30,30 +30,30 @@
  * These structures should be treated as opaque.
  */
 struct ncprange {
-  sa_family_t ncprange_family;
-  union {
-    struct {
-      struct in_addr ipaddr;
-      struct in_addr mask;
-      int width;
-    } ip4;
+	sa_family_t ncprange_family;
+	union {
+		struct {
+			struct in_addr ipaddr;
+			struct in_addr mask;
+			int width;
+		} ip4;
 #ifndef NOINET6
-    struct {
-      struct in6_addr ipaddr;
-      int width;
-    } ip6;
+		struct {
+			struct in6_addr ipaddr;
+			int width;
+		} ip6;
 #endif
-  } u;
+	} u;
 };
 
 struct ncpaddr {
-  sa_family_t ncpaddr_family;
-  union {
-    struct in_addr ip4addr;
+	sa_family_t ncpaddr_family;
+	union {
+		struct in_addr ip4addr;
 #ifndef NOINET6
-    struct in6_addr ip6addr;
+		struct in6_addr ip6addr;
 #endif
-  } u;
+	} u;
 };
 
 struct ncp;
@@ -92,9 +92,9 @@ extern void ncprange_setip4(struct ncprange *, struct in_addr, struct in_addr);
 extern void ncprange_setip4host(struct ncprange *, struct in_addr);
 extern int ncprange_setip4mask(struct ncprange *, struct in_addr);
 extern void ncprange_setsa(struct ncprange *, const struct sockaddr *,
-                           const struct sockaddr *);
+    const struct sockaddr *);
 extern void ncprange_getsa(const struct ncprange *, struct sockaddr_storage *,
-                           struct sockaddr_storage *);
+    struct sockaddr_storage *);
 extern int ncprange_getaddr(const struct ncprange *, struct ncpaddr *);
 extern int ncprange_getip4addr(const struct ncprange *, struct in_addr *);
 extern int ncprange_getip4mask(const struct ncprange *, struct in_addr *);

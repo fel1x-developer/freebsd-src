@@ -2,34 +2,34 @@
  * Copyright (c) 2017, Spectra Logic Corporation
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  * thislist of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  *
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-#include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
@@ -41,14 +41,15 @@
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <ifaddrs.h>
+#include <libifconfig.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libifconfig.h>
 
 static const char *carp_states[] = { CARP_STATES };
 
@@ -110,8 +111,9 @@ print_inet6_addr(ifconfig_handle_t *lifh, struct ifaddrs *ifa)
 	if (ifconfig_inet6_get_addrinfo(lifh, ifa->ifa_name, ifa, &addr) != 0) {
 		err(1, "ifconfig_inet6_get_addrinfo");
 	}
-	if (0 != getnameinfo((struct sockaddr *)addr.sin6, addr.sin6->sin6_len,
-	    addr_buf, sizeof(addr_buf), NULL, 0, NI_NUMERICHOST)) {
+	if (0 !=
+	    getnameinfo((struct sockaddr *)addr.sin6, addr.sin6->sin6_len,
+		addr_buf, sizeof(addr_buf), NULL, 0, NI_NUMERICHOST)) {
 		inet_ntop(AF_INET6, &addr.sin6->sin6_addr, addr_buf,
 		    sizeof(addr_buf));
 	}
@@ -161,16 +163,16 @@ print_inet6_addr(ifconfig_handle_t *lifh, struct ifaddrs *ifa)
 	if (addr.lifetime.ia6t_preferred || addr.lifetime.ia6t_expire) {
 		printf("pltime ");
 		if (addr.lifetime.ia6t_preferred) {
-			printf("%ld ", MAX(0l,
-			    addr.lifetime.ia6t_preferred - now.tv_sec));
+			printf("%ld ",
+			    MAX(0l, addr.lifetime.ia6t_preferred - now.tv_sec));
 		} else {
 			printf("infty ");
 		}
 
 		printf("vltime ");
 		if (addr.lifetime.ia6t_expire) {
-			printf("%ld ", MAX(0l,
-			    addr.lifetime.ia6t_expire - now.tv_sec));
+			printf("%ld ",
+			    MAX(0l, addr.lifetime.ia6t_expire - now.tv_sec));
 		} else {
 			printf("infty ");
 		}
@@ -193,8 +195,8 @@ print_link_addr(ifconfig_handle_t *lifh, struct ifaddrs *ifa)
 	sdl = (struct sockaddr_dl *)ifa->ifa_addr;
 	if ((sdl != NULL) && (sdl->sdl_alen > 0)) {
 		if (((sdl->sdl_type == IFT_ETHER) ||
-		    (sdl->sdl_type == IFT_L2VLAN) ||
-		    (sdl->sdl_type == IFT_BRIDGE)) &&
+			(sdl->sdl_type == IFT_L2VLAN) ||
+			(sdl->sdl_type == IFT_BRIDGE)) &&
 		    (sdl->sdl_alen == ETHER_ADDR_LEN)) {
 			ether_ntoa_r((struct ether_addr *)LLADDR(sdl),
 			    addr_buf);
@@ -434,8 +436,7 @@ print_media(ifconfig_handle_t *lifh, struct ifaddrs *ifa)
 	}
 
 	if (ifmr->ifm_status & IFM_AVALID) {
-		printf("\tstatus: %s\n",
-		    ifconfig_media_get_status(ifmr));
+		printf("\tstatus: %s\n", ifconfig_media_get_status(ifmr));
 	}
 
 	printf("\tsupported media:\n");

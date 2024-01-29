@@ -10,7 +10,7 @@
  *    notice and this paragraph in its entirety
  * 2. Distributions including binary code include the above copyright
  *    notice and this paragraph in its entirety in the documentation
- *    or other materials provided with the distribution, and 
+ *    or other materials provided with the distribution, and
  * 3. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
@@ -25,18 +25,17 @@
  * There is an e-mail list for tcpdump: <tcpdump@ee.lbl.gov>
  */
 
-#include <stdio.h>
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h> /* for struct timeval in net/if.h */
 
-#include <sys/time.h>	/* for struct timeval in net/if.h */
 #include <net/if.h>
 #include <netinet/in.h>
 
-#include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "bootp.h"
 #include "bootptest.h"
@@ -59,14 +58,16 @@ bootp_print(struct bootp *bp, int length, u_short sport, u_short dport)
 	u_char *ep;
 	int vdlen;
 
-#define TCHECK(var, l) if ((u_char *)&(var) > ep - l) goto trunc
+#define TCHECK(var, l)                 \
+	if ((u_char *)&(var) > ep - l) \
+	goto trunc
 
 	/* Note funny sized packets */
 	if (length != sizeof(struct bootp))
-		(void) printf(" [len=%d]", length);
+		(void)printf(" [len=%d]", length);
 
 	/* 'ep' points to the end of available data. */
-	ep = (u_char *) snapend;
+	ep = (u_char *)snapend;
 
 	switch (bp->bp_op) {
 
@@ -100,14 +101,14 @@ bootp_print(struct bootp *bp, int length, u_short sport, u_short dport)
 		char *e;
 
 		TCHECK(bp->bp_chaddr[0], 6);
-		eh = (struct ether_header *) packetp;
+		eh = (struct ether_header *)packetp;
 		if (bp->bp_op == BOOTREQUEST)
-			e = (char *) ESRC(eh);
+			e = (char *)ESRC(eh);
 		else if (bp->bp_op == BOOTREPLY)
-			e = (char *) EDST(eh);
+			e = (char *)EDST(eh);
 		else
 			e = NULL;
-		if (e == NULL || bcmp((char *) bp->bp_chaddr, e, 6))
+		if (e == NULL || bcmp((char *)bp->bp_chaddr, e, 6))
 			dump_hex(bp->bp_chaddr, bp->bp_hlen);
 	}
 	/* Only print interesting fields */
@@ -175,11 +176,11 @@ bootp_print(struct bootp *bp, int length, u_short sport, u_short dport)
 		other_print(bp->bp_vend, vdlen);
 
 	return;
- trunc:
+trunc:
 	fputs(tstr, stdout);
 #undef TCHECK
 }
-
+
 /*
  * Option description data follows.
  * These are described in: RFC-1048, RFC-1395, RFC-1497, RFC-1533
@@ -192,81 +193,80 @@ bootp_print(struct bootp *bp, int length, u_short sport, u_short dport)
  * l: int32
  * s: short (16-bit)
  */
-char *
-rfc1048_opts[] = {
+char *rfc1048_opts[] = {
 	/* Originally from RFC-1048: */
-	"?PAD",				/*  0: Padding - special, no data. */
-	"iSM",				/*  1: subnet mask (RFC950)*/
-	"lTZ",				/*  2: time offset, seconds from UTC */
-	"iGW",				/*  3: gateways (or routers) */
-	"iTS",				/*  4: time servers (RFC868) */
-	"iINS",				/*  5: IEN name servers (IEN116) */
-	"iDNS",				/*  6: domain name servers (RFC1035)(1034?) */
-	"iLOG",				/*  7: MIT log servers */
-	"iCS",				/*  8: cookie servers (RFC865) */
-	"iLPR",				/*  9: lpr server (RFC1179) */
-	"iIPS",				/* 10: impress servers (Imagen) */
-	"iRLP",				/* 11: resource location servers (RFC887) */
-	"aHN",				/* 12: host name (ASCII) */
-	"sBFS",				/* 13: boot file size (in 512 byte blocks) */
+	"?PAD", /*  0: Padding - special, no data. */
+	"iSM",	/*  1: subnet mask (RFC950)*/
+	"lTZ",	/*  2: time offset, seconds from UTC */
+	"iGW",	/*  3: gateways (or routers) */
+	"iTS",	/*  4: time servers (RFC868) */
+	"iINS", /*  5: IEN name servers (IEN116) */
+	"iDNS", /*  6: domain name servers (RFC1035)(1034?) */
+	"iLOG", /*  7: MIT log servers */
+	"iCS",	/*  8: cookie servers (RFC865) */
+	"iLPR", /*  9: lpr server (RFC1179) */
+	"iIPS", /* 10: impress servers (Imagen) */
+	"iRLP", /* 11: resource location servers (RFC887) */
+	"aHN",	/* 12: host name (ASCII) */
+	"sBFS", /* 13: boot file size (in 512 byte blocks) */
 
 	/* Added by RFC-1395: */
-	"aDUMP",			/* 14: Merit Dump File */
-	"aDNAM",			/* 15: Domain Name (for DNS) */
-	"iSWAP",			/* 16: Swap Server */
-	"aROOT",			/* 17: Root Path */
+	"aDUMP", /* 14: Merit Dump File */
+	"aDNAM", /* 15: Domain Name (for DNS) */
+	"iSWAP", /* 16: Swap Server */
+	"aROOT", /* 17: Root Path */
 
 	/* Added by RFC-1497: */
-	"aEXTF",			/* 18: Extensions Path (more options) */
+	"aEXTF", /* 18: Extensions Path (more options) */
 
-	/* Added by RFC-1533: (many, many options...) */
-#if 1	/* These might not be worth recognizing by name. */
+/* Added by RFC-1533: (many, many options...) */
+#if 1 /* These might not be worth recognizing by name. */
 
 	/* IP Layer Parameters, per-host (RFC-1533, sect. 4) */
-	"bIP-forward",		/* 19: IP Forwarding flag */
-	"bIP-srcroute",		/* 20: IP Source Routing Enable flag */
-	"iIP-filters",		/* 21: IP Policy Filter (addr pairs) */
-	"sIP-maxudp",		/* 22: IP Max-UDP reassembly size */
-	"bIP-ttlive",		/* 23: IP Time to Live */
-	"lIP-pmtuage",		/* 24: IP Path MTU aging timeout */
-	"sIP-pmtutab",		/* 25: IP Path MTU plateau table */
+	"bIP-forward",	/* 19: IP Forwarding flag */
+	"bIP-srcroute", /* 20: IP Source Routing Enable flag */
+	"iIP-filters",	/* 21: IP Policy Filter (addr pairs) */
+	"sIP-maxudp",	/* 22: IP Max-UDP reassembly size */
+	"bIP-ttlive",	/* 23: IP Time to Live */
+	"lIP-pmtuage",	/* 24: IP Path MTU aging timeout */
+	"sIP-pmtutab",	/* 25: IP Path MTU plateau table */
 
 	/* IP parameters, per-interface (RFC-1533, sect. 5) */
-	"sIP-mtu-sz",		/* 26: IP MTU size */
-	"bIP-mtu-sl",		/* 27: IP MTU all subnets local */
-	"bIP-bcast1",		/* 28: IP Broadcast Addr ones flag */
-	"bIP-mask-d",		/* 29: IP do mask discovery */
-	"bIP-mask-s",		/* 30: IP do mask supplier */
-	"bIP-rt-dsc",		/* 31: IP do router discovery */
-	"iIP-rt-sa",		/* 32: IP router solicitation addr */
-	"iIP-routes",		/* 33: IP static routes (dst,router) */
+	"sIP-mtu-sz", /* 26: IP MTU size */
+	"bIP-mtu-sl", /* 27: IP MTU all subnets local */
+	"bIP-bcast1", /* 28: IP Broadcast Addr ones flag */
+	"bIP-mask-d", /* 29: IP do mask discovery */
+	"bIP-mask-s", /* 30: IP do mask supplier */
+	"bIP-rt-dsc", /* 31: IP do router discovery */
+	"iIP-rt-sa",  /* 32: IP router solicitation addr */
+	"iIP-routes", /* 33: IP static routes (dst,router) */
 
 	/* Link Layer parameters, per-interface (RFC-1533, sect. 6) */
-	"bLL-trailer",		/* 34: do tralier encapsulation */
-	"lLL-arp-tmo",		/* 35: ARP cache timeout */
-	"bLL-ether2",		/* 36: Ethernet version 2 (IEEE 802.3) */
+	"bLL-trailer", /* 34: do tralier encapsulation */
+	"lLL-arp-tmo", /* 35: ARP cache timeout */
+	"bLL-ether2",  /* 36: Ethernet version 2 (IEEE 802.3) */
 
 	/* TCP parameters (RFC-1533, sect. 7) */
-	"bTCP-def-ttl",		/* 37: default time to live */
-	"lTCP-KA-tmo",		/* 38: keepalive time interval */
-	"bTCP-KA-junk",		/* 39: keepalive sends extra junk */
+	"bTCP-def-ttl", /* 37: default time to live */
+	"lTCP-KA-tmo",	/* 38: keepalive time interval */
+	"bTCP-KA-junk", /* 39: keepalive sends extra junk */
 
 	/* Application and Service Parameters (RFC-1533, sect. 8) */
-	"aNISDOM",			/* 40: NIS Domain (Sun YP) */
-	"iNISSRV",			/* 41: NIS Servers */
-	"iNTPSRV",			/* 42: NTP (time) Servers (RFC 1129) */
-	"?VSINFO",			/* 43: Vendor Specific Info (encapsulated) */
-	"iNBiosNS",			/* 44: NetBIOS Name Server (RFC-1001,1..2) */
-	"iNBiosDD",			/* 45: NetBIOS Datagram Dist. Server. */
-	"bNBiosNT",			/* 46: NetBIOS Note Type */
-	"?NBiosS",			/* 47: NetBIOS Scope */
-	"iXW-FS",			/* 48: X Window System Font Servers */
-	"iXW-DM",			/* 49: X Window System Display Managers */
+	"aNISDOM",  /* 40: NIS Domain (Sun YP) */
+	"iNISSRV",  /* 41: NIS Servers */
+	"iNTPSRV",  /* 42: NTP (time) Servers (RFC 1129) */
+	"?VSINFO",  /* 43: Vendor Specific Info (encapsulated) */
+	"iNBiosNS", /* 44: NetBIOS Name Server (RFC-1001,1..2) */
+	"iNBiosDD", /* 45: NetBIOS Datagram Dist. Server. */
+	"bNBiosNT", /* 46: NetBIOS Note Type */
+	"?NBiosS",  /* 47: NetBIOS Scope */
+	"iXW-FS",   /* 48: X Window System Font Servers */
+	"iXW-DM",   /* 49: X Window System Display Managers */
 
-	/* DHCP extensions (RFC-1533, sect. 9) */
+/* DHCP extensions (RFC-1533, sect. 9) */
 #endif
 };
-#define	KNOWN_OPTIONS (sizeof(rfc1048_opts) / sizeof(rfc1048_opts[0]))
+#define KNOWN_OPTIONS (sizeof(rfc1048_opts) / sizeof(rfc1048_opts[0]))
 
 static void
 rfc1048_print(u_char *bp, int length)
@@ -309,50 +309,56 @@ rfc1048_print(u_char *bp, int length)
 		/* Print the option value(s). */
 		switch (optstr[0]) {
 
-		case 'a':				/* ASCII string */
+		case 'a': /* ASCII string */
 			printfn(bp, bp + len);
 			bp += len;
 			len = 0;
 			break;
 
-		case 's':				/* Word formats */
+		case 's': /* Word formats */
 			while (len >= 2) {
-				bcopy((char *) bp, (char *) &us, 2);
+				bcopy((char *)bp, (char *)&us, 2);
 				printf("%d", ntohs(us));
 				bp += 2;
 				len -= 2;
-				if (len) printf(",");
+				if (len)
+					printf(",");
 			}
-			if (len) printf("(junk=%d)", len);
+			if (len)
+				printf("(junk=%d)", len);
 			break;
 
-		case 'l':				/* Long words */
+		case 'l': /* Long words */
 			while (len >= 4) {
-				bcopy((char *) bp, (char *) &ul, 4);
+				bcopy((char *)bp, (char *)&ul, 4);
 				printf("%ld", (long)ntohl(ul));
 				bp += 4;
 				len -= 4;
-				if (len) printf(",");
+				if (len)
+					printf(",");
 			}
-			if (len) printf("(junk=%d)", len);
+			if (len)
+				printf("(junk=%d)", len);
 			break;
 
-		case 'i':				/* INET addresses */
+		case 'i': /* INET addresses */
 			while (len >= 4) {
-				bcopy((char *) bp, (char *) &ia, 4);
+				bcopy((char *)bp, (char *)&ia, 4);
 				printf("%s", ipaddr_string(&ia));
 				bp += 4;
 				len -= 4;
-				if (len) printf(",");
+				if (len)
+					printf(",");
 			}
-			if (len) printf("(junk=%d)", len);
+			if (len)
+				printf("(junk=%d)", len);
 			break;
 
 		case 'b':
 		default:
 			break;
 
-		}						/* switch */
+		} /* switch */
 
 		/* Print as characters, if appropriate. */
 		if (len) {
@@ -375,7 +381,7 @@ cmu_print(u_char *bp, int length)
 
 	printf("-cmu");
 
-	v = (struct cmu_vend *) bp;
+	v = (struct cmu_vend *)bp;
 	if (length < sizeof(*v)) {
 		printf(" |L=%d", length);
 		return;
@@ -406,9 +412,7 @@ cmu_print(u_char *bp, int length)
 		printf(" TS1:%s", ipaddr_string(&v->v_ts1));
 	if (v->v_ts2.s_addr)
 		printf(" TS2:%s", ipaddr_string(&v->v_ts2));
-
 }
-
 
 /*
  * Print out arbitrary, unknown vendor data.
@@ -417,8 +421,8 @@ cmu_print(u_char *bp, int length)
 static void
 other_print(u_char *bp, int length)
 {
-	u_char *ep;					/* end pointer */
-	u_char *zp;					/* points one past last non-zero byte */
+	u_char *ep; /* end pointer */
+	u_char *zp; /* points one past last non-zero byte */
 
 	/* Setup end pointer */
 	ep = bp + length;
@@ -438,7 +442,7 @@ other_print(u_char *bp, int length)
 
 	/* Are there enough trailing zeros to make "00..." worthwhile? */
 	if (zp + 2 > ep)
-		zp = ep;				/* print them all normally */
+		zp = ep; /* print them all normally */
 
 	/* Now just print all the non-zero data. */
 	while (bp < zp) {
@@ -459,7 +463,8 @@ dump_hex(u_char *bp, int len)
 		printf("%02X", *bp);
 		bp++;
 		len--;
-		if (len) printf(".");
+		if (len)
+			printf(".");
 	}
 }
 

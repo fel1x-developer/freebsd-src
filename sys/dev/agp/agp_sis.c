@@ -28,34 +28,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_object.h>
+
 #include <dev/agp/agppriv.h>
 #include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
-#include <vm/vm.h>
-#include <vm/vm_object.h>
-#include <vm/pmap.h>
+#include <dev/pci/pcivar.h>
 
 struct agp_sis_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	u_int32_t initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 };
 
-static const char*
+static const char *
 agp_sis_match(device_t dev)
 {
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return NULL;
 
 	if (agp_find_caps(dev) == 0)
@@ -155,7 +155,7 @@ agp_sis_attach(device_t dev)
 
 	/* Enable the aperture. */
 	pci_write_config(dev, AGP_SIS_WINCTRL,
-			 pci_read_config(dev, AGP_SIS_WINCTRL, 1) | 3, 1);
+	    pci_read_config(dev, AGP_SIS_WINCTRL, 1) | 3, 1);
 
 	/*
 	 * Enable the TLB and make it automatically invalidate entries
@@ -175,7 +175,7 @@ agp_sis_detach(device_t dev)
 
 	/* Disable the aperture.. */
 	pci_write_config(dev, AGP_SIS_WINCTRL,
-			 pci_read_config(dev, AGP_SIS_WINCTRL, 1) & ~3, 1);
+	    pci_read_config(dev, AGP_SIS_WINCTRL, 1) & ~3, 1);
 
 	/* and the TLB. */
 	pci_write_config(dev, AGP_SIS_TLBCTRL, 0, 1);
@@ -197,7 +197,7 @@ agp_sis_get_aperture(device_t dev)
 	 * The aperture size is equal to 4M<<gws.
 	 */
 	gws = (pci_read_config(dev, AGP_SIS_WINCTRL, 1) & 0x70) >> 4;
-	return (4*1024*1024) << gws;
+	return (4 * 1024 * 1024) << gws;
 }
 
 static int
@@ -209,16 +209,14 @@ agp_sis_set_aperture(device_t dev, u_int32_t aperture)
 	 * Check for a power of two and make sure its within the
 	 * programmable range.
 	 */
-	if (aperture & (aperture - 1)
-	    || aperture < 4*1024*1024
-	    || aperture > 256*1024*1024)
+	if (aperture & (aperture - 1) || aperture < 4 * 1024 * 1024 ||
+	    aperture > 256 * 1024 * 1024)
 		return EINVAL;
 
-	gws = ffs(aperture / 4*1024*1024) - 1;
+	gws = ffs(aperture / 4 * 1024 * 1024) - 1;
 
 	pci_write_config(dev, AGP_SIS_WINCTRL,
-			 ((pci_read_config(dev, AGP_SIS_WINCTRL, 1) & ~0x70)
-			  | gws << 4), 1);
+	    ((pci_read_config(dev, AGP_SIS_WINCTRL, 1) & ~0x70) | gws << 4), 1);
 
 	return 0;
 }
@@ -255,25 +253,24 @@ agp_sis_flush_tlb(device_t dev)
 
 static device_method_t agp_sis_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_sis_probe),
-	DEVMETHOD(device_attach,	agp_sis_attach),
-	DEVMETHOD(device_detach,	agp_sis_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_sis_probe),
+	DEVMETHOD(device_attach, agp_sis_attach),
+	DEVMETHOD(device_detach, agp_sis_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_sis_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_sis_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_sis_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_sis_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_sis_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_sis_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_sis_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_sis_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_sis_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_sis_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_sis_driver = {

@@ -31,37 +31,37 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
-#include <math.h>
 #include <locale.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#define ZERO	'0'
-#define SPACE	' '
+#define ZERO '0'
+#define SPACE ' '
 
-#define MAX(a, b)	(((a) < (b))? (b) : (a))
-#define ISSIGN(c)	((int)(c) == '-' || (int)(c) == '+')
-#define ISEXP(c)	((int)(c) == 'e' || (int)(c) == 'E')
-#define ISODIGIT(c)	((int)(c) >= '0' && (int)(c) <= '7')
+#define MAX(a, b) (((a) < (b)) ? (b) : (a))
+#define ISSIGN(c) ((int)(c) == '-' || (int)(c) == '+')
+#define ISEXP(c) ((int)(c) == 'e' || (int)(c) == 'E')
+#define ISODIGIT(c) ((int)(c) >= '0' && (int)(c) <= '7')
 
 /* Globals */
 
-static const char *decimal_point = ".";	/* default */
-static char default_format[] = { "%g" };	/* default */
+static const char *decimal_point = ".";	 /* default */
+static char default_format[] = { "%g" }; /* default */
 
-static const struct option long_opts[] = {
-	{"format",	required_argument,	NULL, 'f'},
-	{"separator",	required_argument,	NULL, 's'},
-	{"terminator",	required_argument,	NULL, 't'},
-	{"equal-width",	no_argument,		NULL, 'w'},
-	{NULL,		no_argument,		NULL, 0}
-};
+static const struct option long_opts[] = { { "format", required_argument, NULL,
+					       'f' },
+	{ "separator", required_argument, NULL, 's' },
+	{ "terminator", required_argument, NULL, 't' },
+	{ "equal-width", no_argument, NULL, 'w' },
+	{ NULL, no_argument, NULL, 0 } };
 
 /* Prototypes */
 
@@ -110,22 +110,22 @@ main(int argc, char *argv[])
 	    (c = getopt_long(argc, argv, "+f:hs:t:w", long_opts, NULL)) != -1) {
 
 		switch (c) {
-		case 'f':	/* format (plan9) */
+		case 'f': /* format (plan9) */
 			fmt = optarg;
 			equalize = 0;
 			break;
-		case 's':	/* separator (GNU) */
+		case 's': /* separator (GNU) */
 			sep = unescape(optarg);
 			break;
-		case 't':	/* terminator (new) */
+		case 't': /* terminator (new) */
 			term = unescape(optarg);
 			break;
-		case 'w':	/* equal width (plan9) */
+		case 'w': /* equal width (plan9) */
 			if (!fmt)
 				if (equalize++)
 					pad = SPACE;
 			break;
-		case 'h':	/* help (GNU) */
+		case 'h': /* help (GNU) */
 		default:
 			errflg++;
 			break;
@@ -180,7 +180,7 @@ main(int argc, char *argv[])
 		fmt = generate_format(first, incr, last, equalize, pad);
 
 	for (step = 1, cur = first; incr > 0 ? cur <= last : cur >= last;
-	    cur = first + incr * step++) {
+	     cur = first + incr * step++) {
 		if (step > 1)
 			fputs(sep, stdout);
 		printf(fmt, cur);
@@ -334,67 +334,66 @@ unescape(char *orig)
 			continue;
 
 		switch (*++cp) {
-		case 'a':	/* alert (bell) */
+		case 'a': /* alert (bell) */
 			*orig = '\a';
 			continue;
-		case 'b':	/* backspace */
+		case 'b': /* backspace */
 			*orig = '\b';
 			continue;
-		case 'e':	/* escape */
+		case 'e': /* escape */
 			*orig = '\e';
 			continue;
-		case 'f':	/* formfeed */
+		case 'f': /* formfeed */
 			*orig = '\f';
 			continue;
-		case 'n':	/* newline */
+		case 'n': /* newline */
 			*orig = '\n';
 			continue;
-		case 'r':	/* carriage return */
+		case 'r': /* carriage return */
 			*orig = '\r';
 			continue;
-		case 't':	/* horizontal tab */
+		case 't': /* horizontal tab */
 			*orig = '\t';
 			continue;
-		case 'v':	/* vertical tab */
+		case 'v': /* vertical tab */
 			*orig = '\v';
 			continue;
-		case '\\':	/* backslash */
+		case '\\': /* backslash */
 			*orig = '\\';
 			continue;
-		case '\'':	/* single quote */
+		case '\'': /* single quote */
 			*orig = '\'';
 			continue;
-		case '\"':	/* double quote */
+		case '\"': /* double quote */
 			*orig = '"';
 			continue;
 		case '0':
 		case '1':
 		case '2':
-		case '3':	/* octal */
+		case '3': /* octal */
 		case '4':
 		case '5':
 		case '6':
-		case '7':	/* number */
+		case '7': /* number */
 			for (i = 0, c = 0;
-			     ISODIGIT((unsigned char)*cp) && i < 3;
-			     i++, cp++) {
+			     ISODIGIT((unsigned char)*cp) && i < 3; i++, cp++) {
 				c <<= 3;
 				c |= (*cp - '0');
 			}
 			*orig = c;
 			--cp;
 			continue;
-		case 'x':	/* hexadecimal number */
-			cp++;	/* skip 'x' */
+		case 'x':     /* hexadecimal number */
+			cp++; /* skip 'x' */
 			for (i = 0, c = 0;
-			     isxdigit((unsigned char)*cp) && i < 2;
-			     i++, cp++) {
+			     isxdigit((unsigned char)*cp) && i < 2; i++, cp++) {
 				c <<= 4;
 				if (isdigit((unsigned char)*cp))
 					c |= (*cp - '0');
 				else
 					c |= ((toupper((unsigned char)*cp) -
-					    'A') + 10);
+						  'A') +
+					    10);
 			}
 			*orig = c;
 			--cp;
@@ -497,8 +496,9 @@ generate_format(double first, double incr, double last, int equalize, char pad)
 
 	if (precision) {
 		sprintf(buf, "%%%c%d.%d%c", pad,
-		    MAX(width1, width2) + (int) strlen(decimal_point) +
-		    precision, precision, (cc) ? cc : 'f');
+		    MAX(width1, width2) + (int)strlen(decimal_point) +
+			precision,
+		    precision, (cc) ? cc : 'f');
 	} else {
 		sprintf(buf, "%%%c%d%c", pad, MAX(width1, width2),
 		    (cc) ? cc : 'g');

@@ -31,12 +31,11 @@
 #include <sys/errno.h>
 #include <sys/mac.h>
 
-#include <unistd.h>
 #include <fcntl.h>
+#include <security/mac_grantbylabel/mac_grantbylabel.h>
 #include <string.h>
 #include <syslog.h>
-
-#include <security/mac_grantbylabel/mac_grantbylabel.h>
+#include <unistd.h>
 
 #include "libveriexec.h"
 
@@ -44,7 +43,7 @@ static char *
 find_interpreter(const char *script)
 {
 	static const char ws[] = " \t\n\r";
-	static char buf[MAXPATHLEN+4];	/* allow space for #! etc */
+	static char buf[MAXPATHLEN + 4]; /* allow space for #! etc */
 	char *cp;
 	int fd;
 	int n;
@@ -95,7 +94,7 @@ find_interpreter(const char *script)
  * error on failure usually EPERM or EAUTH
  */
 int
-execv_script(const char *interpreter, char * const *argv)
+execv_script(const char *interpreter, char *const *argv)
 {
 	const char *script;
 	int rc;
@@ -109,8 +108,8 @@ execv_script(const char *interpreter, char * const *argv)
 		if (!interpreter)
 			interpreter = find_interpreter(script);
 		if (interpreter) {
-			syslog(LOG_NOTICE, "running %s via %s",
-			    script, interpreter);
+			syslog(LOG_NOTICE, "running %s via %s", script,
+			    interpreter);
 			rc = execv(interpreter, argv);
 		}
 	}
@@ -119,6 +118,7 @@ execv_script(const char *interpreter, char * const *argv)
 
 #if defined(MAIN) || defined(UNIT_TEST)
 #include <sys/wait.h>
+
 #include <err.h>
 
 int
@@ -129,7 +129,7 @@ main(int argc __unused, char *argv[])
 	int s;
 	pid_t child;
 
-	openlog("exec_script", LOG_PID|LOG_PERROR, LOG_DAEMON);
+	openlog("exec_script", LOG_PID | LOG_PERROR, LOG_DAEMON);
 
 	interp = NULL;
 	while ((c = getopt(argc, argv, "i:")) != -1) {

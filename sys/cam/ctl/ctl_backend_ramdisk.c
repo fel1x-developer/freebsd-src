@@ -42,86 +42,88 @@
  * Author: Ken Merry <ken@FreeBSD.org>
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/condvar.h>
-#include <sys/types.h>
+#include <sys/conf.h>
+#include <sys/dnv.h>
+#include <sys/ioccom.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/nv.h>
+#include <sys/queue.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/time.h>
-#include <sys/queue.h>
-#include <sys/conf.h>
-#include <sys/ioccom.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
-#include <sys/nv.h>
-#include <sys/dnv.h>
 
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/ctl/ctl_io.h>
 #include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_util.h>
 #include <cam/ctl/ctl_backend.h>
 #include <cam/ctl/ctl_debug.h>
-#include <cam/ctl/ctl_ioctl.h>
-#include <cam/ctl/ctl_ha.h>
-#include <cam/ctl/ctl_private.h>
 #include <cam/ctl/ctl_error.h>
+#include <cam/ctl/ctl_ha.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/ctl/ctl_private.h>
+#include <cam/ctl/ctl_util.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_da.h>
 
-#define PRIV(io)	\
-    ((struct ctl_ptr_len_flags *)&(io)->io_hdr.ctl_private[CTL_PRIV_BACKEND])
-#define ARGS(io)	\
-    ((struct ctl_lba_len_flags *)&(io)->io_hdr.ctl_private[CTL_PRIV_LBA_LEN])
+#define PRIV(io)                           \
+	((struct ctl_ptr_len_flags *)&(io) \
+		->io_hdr.ctl_private[CTL_PRIV_BACKEND])
+#define ARGS(io)                           \
+	((struct ctl_lba_len_flags *)&(io) \
+		->io_hdr.ctl_private[CTL_PRIV_LBA_LEN])
 
-#define	PPP	(PAGE_SIZE / sizeof(uint8_t **))
+#define PPP (PAGE_SIZE / sizeof(uint8_t **))
 #ifdef __LP64__
-#define	PPPS	(PAGE_SHIFT - 3)
+#define PPPS (PAGE_SHIFT - 3)
 #else
-#define	PPPS	(PAGE_SHIFT - 2)
+#define PPPS (PAGE_SHIFT - 2)
 #endif
-#define	SGPP	(PAGE_SIZE / sizeof(struct ctl_sg_entry))
+#define SGPP (PAGE_SIZE / sizeof(struct ctl_sg_entry))
 
-#define	P_UNMAPPED	NULL			/* Page is unmapped. */
-#define	P_ANCHORED	((void *)(uintptr_t)1)	/* Page is anchored. */
+#define P_UNMAPPED NULL			  /* Page is unmapped. */
+#define P_ANCHORED ((void *)(uintptr_t)1) /* Page is anchored. */
 
 typedef enum {
-	GP_READ,	/* Return data page or zero page. */
-	GP_WRITE,	/* Return data page, try allocate if none. */
-	GP_ANCHOR,	/* Return data page, try anchor if none. */
-	GP_OTHER,	/* Return what present, do not allocate/anchor. */
+	GP_READ,   /* Return data page or zero page. */
+	GP_WRITE,  /* Return data page, try allocate if none. */
+	GP_ANCHOR, /* Return data page, try anchor if none. */
+	GP_OTHER,  /* Return what present, do not allocate/anchor. */
 } getpage_op_t;
 
 typedef enum {
-	CTL_BE_RAMDISK_LUN_UNCONFIGURED	= 0x01,
-	CTL_BE_RAMDISK_LUN_WAITING	= 0x04
+	CTL_BE_RAMDISK_LUN_UNCONFIGURED = 0x01,
+	CTL_BE_RAMDISK_LUN_WAITING = 0x04
 } ctl_be_ramdisk_lun_flags;
 
 struct ctl_be_ramdisk_lun {
-	struct ctl_be_lun	cbe_lun;	/* Must be first element. */
+	struct ctl_be_lun cbe_lun; /* Must be first element. */
 	struct ctl_lun_create_params params;
-	int			indir;
-	uint8_t			**pages;
-	uint8_t			*zero_page;
-	struct sx		page_lock;
-	u_int			pblocksize;
-	u_int			pblockmul;
-	uint64_t		size_bytes;
-	uint64_t		size_blocks;
-	uint64_t		cap_bytes;
-	uint64_t		cap_used;
+	int indir;
+	uint8_t **pages;
+	uint8_t *zero_page;
+	struct sx page_lock;
+	u_int pblocksize;
+	u_int pblockmul;
+	uint64_t size_bytes;
+	uint64_t size_blocks;
+	uint64_t cap_bytes;
+	uint64_t cap_used;
 	struct ctl_be_ramdisk_softc *softc;
 	ctl_be_ramdisk_lun_flags flags;
 	SLIST_ENTRY(ctl_be_ramdisk_lun) links;
-	struct taskqueue	*io_taskqueue;
-	struct task		io_task;
+	struct taskqueue *io_taskqueue;
+	struct task io_task;
 	STAILQ_HEAD(, ctl_io_hdr) cont_queue;
-	struct mtx_padalign	queue_lock;
+	struct mtx_padalign queue_lock;
 };
 
 struct ctl_be_ramdisk_softc {
@@ -143,19 +145,19 @@ static int ctl_backend_ramdisk_submit(union ctl_io *io);
 static void ctl_backend_ramdisk_worker(void *context, int pending);
 static int ctl_backend_ramdisk_config_read(union ctl_io *io);
 static int ctl_backend_ramdisk_config_write(union ctl_io *io);
-static uint64_t ctl_backend_ramdisk_lun_attr(struct ctl_be_lun *cbe_lun, const char *attrname);
-static int ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd,
-				     caddr_t addr, int flag, struct thread *td);
+static uint64_t ctl_backend_ramdisk_lun_attr(struct ctl_be_lun *cbe_lun,
+    const char *attrname);
+static int ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
+    int flag, struct thread *td);
 static int ctl_backend_ramdisk_rm(struct ctl_be_ramdisk_softc *softc,
-				  struct ctl_lun_req *req);
+    struct ctl_lun_req *req);
 static int ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
-				      struct ctl_lun_req *req);
+    struct ctl_lun_req *req);
 static int ctl_backend_ramdisk_modify(struct ctl_be_ramdisk_softc *softc,
-				  struct ctl_lun_req *req);
+    struct ctl_lun_req *req);
 static void ctl_backend_ramdisk_lun_shutdown(struct ctl_be_lun *cbe_lun);
 
-static struct ctl_backend_driver ctl_be_ramdisk_driver = 
-{
+static struct ctl_backend_driver ctl_be_ramdisk_driver = {
 	.name = "ramdisk",
 	.flags = CTL_BE_FLAG_HAS_CONFIG,
 	.init = ctl_backend_ramdisk_init,
@@ -233,7 +235,7 @@ ctl_backend_ramdisk_getpage(struct ctl_be_ramdisk_lun *be_lun, off_t pn,
 		for (s = (be_lun->indir - 1) * PPPS; s >= 0; s -= PPPS) {
 			if (*pp == NULL) {
 				*pp = malloc(PAGE_SIZE, M_RAMDISK,
-				    M_WAITOK|M_ZERO);
+				    M_WAITOK | M_ZERO);
 			}
 			i = pn >> s;
 			pp = (uint8_t ***)&(*pp)[i];
@@ -242,13 +244,13 @@ ctl_backend_ramdisk_getpage(struct ctl_be_ramdisk_lun *be_lun, off_t pn,
 		if (*pp == P_UNMAPPED && be_lun->cap_used < be_lun->cap_bytes) {
 			if (op == GP_WRITE) {
 				*pp = malloc(be_lun->pblocksize, M_RAMDISK,
-				    M_WAITOK|M_ZERO);
+				    M_WAITOK | M_ZERO);
 			} else
 				*pp = P_ANCHORED;
 			be_lun->cap_used += be_lun->pblocksize;
 		} else if (*pp == P_ANCHORED && op == GP_WRITE) {
 			*pp = malloc(be_lun->pblocksize, M_RAMDISK,
-			    M_WAITOK|M_ZERO);
+			    M_WAITOK | M_ZERO);
 		}
 		sx_xunlock(&be_lun->page_lock);
 		return ((uint8_t *)*pp);
@@ -363,7 +365,8 @@ static int
 ctl_backend_ramdisk_cmp(union ctl_io *io)
 {
 	struct ctl_be_lun *cbe_lun = CTL_BACKEND_LUN(io);
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	uint8_t *page;
 	uint8_t info[8];
 	uint64_t lba;
@@ -401,8 +404,8 @@ ctl_backend_ramdisk_cmp(union ctl_io *io)
 static int
 ctl_backend_ramdisk_move_done(union ctl_io *io, bool samethr)
 {
-	struct ctl_be_ramdisk_lun *be_lun =
-	    (struct ctl_be_ramdisk_lun *)CTL_BACKEND_LUN(io);
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    CTL_BACKEND_LUN(io);
 
 	CTL_DEBUG_PRINT(("ctl_backend_ramdisk_move_done\n"));
 	if (io->scsiio.kern_sg_entries > 0)
@@ -417,8 +420,8 @@ ctl_backend_ramdisk_move_done(union ctl_io *io, bool samethr)
 		}
 		if (ARGS(io)->len > PRIV(io)->len) {
 			mtx_lock(&be_lun->queue_lock);
-			STAILQ_INSERT_TAIL(&be_lun->cont_queue,
-			    &io->io_hdr, links);
+			STAILQ_INSERT_TAIL(&be_lun->cont_queue, &io->io_hdr,
+			    links);
 			mtx_unlock(&be_lun->queue_lock);
 			taskqueue_enqueue(be_lun->io_taskqueue,
 			    &be_lun->io_task);
@@ -428,7 +431,7 @@ ctl_backend_ramdisk_move_done(union ctl_io *io, bool samethr)
 	}
 done:
 	ctl_data_submit_done(io);
-	return(0);
+	return (0);
 }
 
 static void
@@ -454,7 +457,8 @@ static void
 ctl_backend_ramdisk_rw(union ctl_io *io)
 {
 	struct ctl_be_lun *cbe_lun = CTL_BACKEND_LUN(io);
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	struct ctl_sg_entry *sg_entries;
 	uint8_t *page;
 	uint64_t lba;
@@ -470,7 +474,8 @@ ctl_backend_ramdisk_rw(union ctl_io *io)
 	op = (ARGS(io)->flags & CTL_LLF_WRITE) ? GP_WRITE : GP_READ;
 	if (sgs > 1) {
 		io->scsiio.kern_data_ptr = malloc(sizeof(struct ctl_sg_entry) *
-		    sgs, M_RAMDISK, M_WAITOK);
+			sgs,
+		    M_RAMDISK, M_WAITOK);
 		sg_entries = (struct ctl_sg_entry *)io->scsiio.kern_data_ptr;
 		len = lbas * cbe_lun->blocksize;
 		for (i = 0; i < sgs; i++) {
@@ -478,7 +483,7 @@ ctl_backend_ramdisk_rw(union ctl_io *io)
 			    (lba >> cbe_lun->pblockexp) + i, op);
 			if (page == P_UNMAPPED || page == P_ANCHORED) {
 				free(io->scsiio.kern_data_ptr, M_RAMDISK);
-nospc:
+			nospc:
 				ctl_set_space_alloc_fail(&io->scsiio);
 				ctl_data_submit_done(io);
 				return;
@@ -563,7 +568,8 @@ static int
 ctl_backend_ramdisk_gls(union ctl_io *io)
 {
 	struct ctl_be_lun *cbe_lun = CTL_BACKEND_LUN(io);
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	struct scsi_get_lba_status_data *data;
 	uint8_t *page;
 	u_int lbaoff;
@@ -596,11 +602,11 @@ ctl_backend_ramdisk_config_read(union ctl_io *io)
 			break;
 		}
 		ctl_set_invalid_field(&io->scsiio,
-				      /*sks_valid*/ 1,
-				      /*command*/ 1,
-				      /*field*/ 1,
-				      /*bit_valid*/ 1,
-				      /*bit*/ 4);
+		    /*sks_valid*/ 1,
+		    /*command*/ 1,
+		    /*field*/ 1,
+		    /*bit_valid*/ 1,
+		    /*bit*/ 4);
 		ctl_config_read_done(io);
 		retval = CTL_RETVAL_COMPLETE;
 		break;
@@ -617,7 +623,8 @@ static void
 ctl_backend_ramdisk_delete(struct ctl_be_lun *cbe_lun, off_t lba, off_t len,
     int anchor)
 {
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	uint8_t *page;
 	uint64_t p, lp;
 	u_int lbaoff;
@@ -631,7 +638,7 @@ ctl_backend_ramdisk_delete(struct ctl_be_lun *cbe_lun, off_t lba, off_t len,
 		if (page != P_UNMAPPED && page != P_ANCHORED) {
 			memset(page + lbaoff * cbe_lun->blocksize, 0,
 			    min(len, be_lun->pblockmul - lbaoff) *
-			    cbe_lun->blocksize);
+				cbe_lun->blocksize);
 		}
 		p++;
 	}
@@ -659,7 +666,8 @@ static void
 ctl_backend_ramdisk_ws(union ctl_io *io)
 {
 	struct ctl_be_lun *cbe_lun = CTL_BACKEND_LUN(io);
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	struct ctl_lba_len_flags *lbalen = ARGS(io);
 	uint8_t *page;
 	uint64_t lba;
@@ -667,11 +675,11 @@ ctl_backend_ramdisk_ws(union ctl_io *io)
 
 	if (lbalen->flags & ~(SWS_LBDATA | SWS_UNMAP | SWS_ANCHOR | SWS_NDOB)) {
 		ctl_set_invalid_field(&io->scsiio,
-				      /*sks_valid*/ 1,
-				      /*command*/ 1,
-				      /*field*/ 1,
-				      /*bit_valid*/ 0,
-				      /*bit*/ 0);
+		    /*sks_valid*/ 1,
+		    /*command*/ 1,
+		    /*field*/ 1,
+		    /*bit_valid*/ 0,
+		    /*bit*/ 0);
 		ctl_config_write_done(io);
 		return;
 	}
@@ -715,11 +723,11 @@ ctl_backend_ramdisk_unmap(union ctl_io *io)
 
 	if ((ptrlen->flags & ~SU_ANCHOR) != 0) {
 		ctl_set_invalid_field(&io->scsiio,
-				      /*sks_valid*/ 0,
-				      /*command*/ 0,
-				      /*field*/ 0,
-				      /*bit_valid*/ 0,
-				      /*bit*/ 0);
+		    /*sks_valid*/ 0,
+		    /*command*/ 0,
+		    /*field*/ 0,
+		    /*bit_valid*/ 0,
+		    /*bit*/ 0);
 		ctl_config_write_done(io);
 		return;
 	}
@@ -727,9 +735,8 @@ ctl_backend_ramdisk_unmap(union ctl_io *io)
 	buf = (struct scsi_unmap_desc *)ptrlen->ptr;
 	end = buf + ptrlen->len / sizeof(*buf);
 	for (; buf < end; buf++) {
-		ctl_backend_ramdisk_delete(cbe_lun,
-		    scsi_8btou64(buf->lba), scsi_4btoul(buf->length),
-		    (ptrlen->flags & SU_ANCHOR) != 0);
+		ctl_backend_ramdisk_delete(cbe_lun, scsi_8btou64(buf->lba),
+		    scsi_4btoul(buf->length), (ptrlen->flags & SU_ANCHOR) != 0);
 	}
 
 	ctl_set_success(&io->scsiio);
@@ -795,8 +802,9 @@ ctl_backend_ramdisk_config_write(union ctl_io *io)
 static uint64_t
 ctl_backend_ramdisk_lun_attr(struct ctl_be_lun *cbe_lun, const char *attrname)
 {
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
-	uint64_t		val;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
+	uint64_t val;
 
 	val = UINT64_MAX;
 	if (be_lun->cap_bytes == 0)
@@ -813,8 +821,8 @@ ctl_backend_ramdisk_lun_attr(struct ctl_be_lun *cbe_lun, const char *attrname)
 }
 
 static int
-ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
-			  int flag, struct thread *td)
+ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
+    struct thread *td)
 {
 	struct ctl_be_ramdisk_softc *softc = &rd_softc;
 	struct ctl_lun_req *lun_req;
@@ -837,8 +845,8 @@ ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
 		default:
 			lun_req->status = CTL_LUN_ERROR;
 			snprintf(lun_req->error_str, sizeof(lun_req->error_str),
-				 "%s: invalid LUN request type %d", __func__,
-				 lun_req->reqtype);
+			    "%s: invalid LUN request type %d", __func__,
+			    lun_req->reqtype);
 			break;
 		}
 		break;
@@ -852,7 +860,7 @@ ctl_backend_ramdisk_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
 
 static int
 ctl_backend_ramdisk_rm(struct ctl_be_ramdisk_softc *softc,
-		       struct ctl_lun_req *req)
+    struct ctl_lun_req *req)
 {
 	struct ctl_be_ramdisk_lun *be_lun;
 	struct ctl_lun_rm_params *params;
@@ -861,7 +869,7 @@ ctl_backend_ramdisk_rm(struct ctl_be_ramdisk_softc *softc,
 	params = &req->reqdata.rm;
 	sx_xlock(&softc->modify_lock);
 	mtx_lock(&softc->lock);
-	SLIST_FOREACH(be_lun, &softc->lun_list, links) {
+	SLIST_FOREACH (be_lun, &softc->lun_list, links) {
 		if (be_lun->cbe_lun.lun_id == params->lun_id) {
 			SLIST_REMOVE(&softc->lun_list, be_lun,
 			    ctl_be_ramdisk_lun, links);
@@ -873,8 +881,8 @@ ctl_backend_ramdisk_rm(struct ctl_be_ramdisk_softc *softc,
 	sx_xunlock(&softc->modify_lock);
 	if (be_lun == NULL) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: LUN %u is not managed by the ramdisk backend",
-			 __func__, params->lun_id);
+		    "%s: LUN %u is not managed by the ramdisk backend",
+		    __func__, params->lun_id);
 		goto bailout_error;
 	}
 
@@ -893,8 +901,9 @@ ctl_backend_ramdisk_rm(struct ctl_be_ramdisk_softc *softc,
 	retval = ctl_remove_lun(&be_lun->cbe_lun);
 	if (retval != 0) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: error %d returned from ctl_remove_lun() for "
-			 "LUN %d", __func__, retval, params->lun_id);
+		    "%s: error %d returned from ctl_remove_lun() for "
+		    "LUN %d",
+		    __func__, retval, params->lun_id);
 		mtx_lock(&softc->lock);
 		be_lun->flags &= ~CTL_BE_RAMDISK_LUN_WAITING;
 		mtx_unlock(&softc->lock);
@@ -926,7 +935,7 @@ bailout_error:
 
 static int
 ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
-			   struct ctl_lun_req *req)
+    struct ctl_lun_req *req)
 {
 	struct ctl_be_ramdisk_lun *be_lun;
 	struct ctl_be_lun *cbe_lun;
@@ -966,13 +975,12 @@ ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
 	}
 	if (be_lun->pblocksize < 512 || be_lun->pblocksize > 131072) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: unsupported pblocksize %u", __func__,
-			 be_lun->pblocksize);
+		    "%s: unsupported pblocksize %u", __func__,
+		    be_lun->pblocksize);
 		goto bailout_error;
 	}
 
-	if (cbe_lun->lun_type == T_DIRECT ||
-	    cbe_lun->lun_type == T_CDROM) {
+	if (cbe_lun->lun_type == T_DIRECT || cbe_lun->lun_type == T_CDROM) {
 		if (params->blocksize_bytes != 0)
 			cbe_lun->blocksize = params->blocksize_bytes;
 		else if (cbe_lun->lun_type == T_CDROM)
@@ -982,18 +990,18 @@ ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
 		be_lun->pblockmul = be_lun->pblocksize / cbe_lun->blocksize;
 		if (be_lun->pblockmul < 1 || !powerof2(be_lun->pblockmul)) {
 			snprintf(req->error_str, sizeof(req->error_str),
-				 "%s: pblocksize %u not exp2 of blocksize %u",
-				 __func__,
-				 be_lun->pblocksize, cbe_lun->blocksize);
+			    "%s: pblocksize %u not exp2 of blocksize %u",
+			    __func__, be_lun->pblocksize, cbe_lun->blocksize);
 			goto bailout_error;
 		}
 		if (params->lun_size_bytes < cbe_lun->blocksize) {
 			snprintf(req->error_str, sizeof(req->error_str),
-				 "%s: LUN size %ju < blocksize %u", __func__,
-				 params->lun_size_bytes, cbe_lun->blocksize);
+			    "%s: LUN size %ju < blocksize %u", __func__,
+			    params->lun_size_bytes, cbe_lun->blocksize);
 			goto bailout_error;
 		}
-		be_lun->size_blocks = params->lun_size_bytes / cbe_lun->blocksize;
+		be_lun->size_blocks = params->lun_size_bytes /
+		    cbe_lun->blocksize;
 		be_lun->size_bytes = be_lun->size_blocks * cbe_lun->blocksize;
 		be_lun->indir = 0;
 		t = be_lun->size_bytes / be_lun->pblocksize;
@@ -1050,30 +1058,30 @@ ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
 	cbe_lun->be = &ctl_be_ramdisk_driver;
 	if ((params->flags & CTL_LUN_FLAG_SERIAL_NUM) == 0) {
 		snprintf(tmpstr, sizeof(tmpstr), "MYSERIAL%04d",
-			 softc->num_luns);
+		    softc->num_luns);
 		strncpy((char *)cbe_lun->serial_num, tmpstr,
-			MIN(sizeof(cbe_lun->serial_num), sizeof(tmpstr)));
+		    MIN(sizeof(cbe_lun->serial_num), sizeof(tmpstr)));
 
 		/* Tell the user what we used for a serial number */
 		strncpy((char *)params->serial_num, tmpstr,
-			MIN(sizeof(params->serial_num), sizeof(tmpstr)));
-	} else { 
+		    MIN(sizeof(params->serial_num), sizeof(tmpstr)));
+	} else {
 		strncpy((char *)cbe_lun->serial_num, params->serial_num,
-			MIN(sizeof(cbe_lun->serial_num),
-			    sizeof(params->serial_num)));
+		    MIN(sizeof(cbe_lun->serial_num),
+			sizeof(params->serial_num)));
 	}
 	if ((params->flags & CTL_LUN_FLAG_DEVID) == 0) {
-		snprintf(tmpstr, sizeof(tmpstr), "MYDEVID%04d", softc->num_luns);
+		snprintf(tmpstr, sizeof(tmpstr), "MYDEVID%04d",
+		    softc->num_luns);
 		strncpy((char *)cbe_lun->device_id, tmpstr,
-			MIN(sizeof(cbe_lun->device_id), sizeof(tmpstr)));
+		    MIN(sizeof(cbe_lun->device_id), sizeof(tmpstr)));
 
 		/* Tell the user what we used for a device ID */
 		strncpy((char *)params->device_id, tmpstr,
-			MIN(sizeof(params->device_id), sizeof(tmpstr)));
+		    MIN(sizeof(params->device_id), sizeof(tmpstr)));
 	} else {
 		strncpy((char *)cbe_lun->device_id, params->device_id,
-			MIN(sizeof(cbe_lun->device_id),
-			    sizeof(params->device_id)));
+		    MIN(sizeof(cbe_lun->device_id), sizeof(params->device_id)));
 	}
 
 	STAILQ_INIT(&be_lun->cont_queue);
@@ -1083,32 +1091,33 @@ ctl_backend_ramdisk_create(struct ctl_be_ramdisk_softc *softc,
 		be_lun->pages = malloc(be_lun->pblocksize, M_RAMDISK, M_WAITOK);
 	}
 	be_lun->zero_page = malloc(be_lun->pblocksize, M_RAMDISK,
-	    M_WAITOK|M_ZERO);
+	    M_WAITOK | M_ZERO);
 	mtx_init(&be_lun->queue_lock, "ctlram queue", NULL, MTX_DEF);
-	TASK_INIT(&be_lun->io_task, /*priority*/0, ctl_backend_ramdisk_worker,
+	TASK_INIT(&be_lun->io_task, /*priority*/ 0, ctl_backend_ramdisk_worker,
 	    be_lun);
 
 	be_lun->io_taskqueue = taskqueue_create("ctlramtq", M_WAITOK,
-	    taskqueue_thread_enqueue, /*context*/&be_lun->io_taskqueue);
+	    taskqueue_thread_enqueue, /*context*/ &be_lun->io_taskqueue);
 	if (be_lun->io_taskqueue == NULL) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: Unable to create taskqueue", __func__);
+		    "%s: Unable to create taskqueue", __func__);
 		goto bailout_error;
 	}
 
 	retval = taskqueue_start_threads_in_proc(&be_lun->io_taskqueue,
-					 /*num threads*/1,
-					 /*priority*/PUSER,
-					 /*proc*/control_softc->ctl_proc,
-					 /*thread name*/"ramdisk");
+	    /*num threads*/ 1,
+	    /*priority*/ PUSER,
+	    /*proc*/ control_softc->ctl_proc,
+	    /*thread name*/ "ramdisk");
 	if (retval != 0)
 		goto bailout_error;
 
 	retval = ctl_add_lun(&be_lun->cbe_lun);
 	if (retval != 0) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: ctl_add_lun() returned error %d, see dmesg for "
-			"details", __func__, retval);
+		    "%s: ctl_add_lun() returned error %d, see dmesg for "
+		    "details",
+		    __func__, retval);
 		retval = 0;
 		goto bailout_error;
 	}
@@ -1140,7 +1149,7 @@ bailout_error:
 
 static int
 ctl_backend_ramdisk_modify(struct ctl_be_ramdisk_softc *softc,
-		       struct ctl_lun_req *req)
+    struct ctl_lun_req *req)
 {
 	struct ctl_be_ramdisk_lun *be_lun;
 	struct ctl_be_lun *cbe_lun;
@@ -1152,15 +1161,15 @@ ctl_backend_ramdisk_modify(struct ctl_be_ramdisk_softc *softc,
 	params = &req->reqdata.modify;
 	sx_xlock(&softc->modify_lock);
 	mtx_lock(&softc->lock);
-	SLIST_FOREACH(be_lun, &softc->lun_list, links) {
+	SLIST_FOREACH (be_lun, &softc->lun_list, links) {
 		if (be_lun->cbe_lun.lun_id == params->lun_id)
 			break;
 	}
 	mtx_unlock(&softc->lock);
 	if (be_lun == NULL) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			 "%s: LUN %u is not managed by the ramdisk backend",
-			 __func__, params->lun_id);
+		    "%s: LUN %u is not managed by the ramdisk backend",
+		    __func__, params->lun_id);
 		goto bailout_error;
 	}
 	cbe_lun = &be_lun->cbe_lun;
@@ -1194,8 +1203,8 @@ ctl_backend_ramdisk_modify(struct ctl_be_ramdisk_softc *softc,
 	blocksize = be_lun->cbe_lun.blocksize;
 	if (be_lun->params.lun_size_bytes < blocksize) {
 		snprintf(req->error_str, sizeof(req->error_str),
-			"%s: LUN size %ju < blocksize %u", __func__,
-			be_lun->params.lun_size_bytes, blocksize);
+		    "%s: LUN size %ju < blocksize %u", __func__,
+		    be_lun->params.lun_size_bytes, blocksize);
 		goto bailout_error;
 	}
 	be_lun->size_blocks = be_lun->params.lun_size_bytes / blocksize;
@@ -1219,7 +1228,8 @@ bailout_error:
 static void
 ctl_backend_ramdisk_lun_shutdown(struct ctl_be_lun *cbe_lun)
 {
-	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)cbe_lun;
+	struct ctl_be_ramdisk_lun *be_lun = (struct ctl_be_ramdisk_lun *)
+	    cbe_lun;
 	struct ctl_be_ramdisk_softc *softc = be_lun->softc;
 
 	taskqueue_drain_all(be_lun->io_taskqueue);

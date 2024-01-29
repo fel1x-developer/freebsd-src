@@ -42,11 +42,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdint.h>
 #include <sys/elf.h>
 
-#include "libc_private.h"
+#include <stdint.h>
+
 #include "csu_common.h"
+#include "libc_private.h"
 
 struct Struct_Obj_Entry;
 struct ps_strings;

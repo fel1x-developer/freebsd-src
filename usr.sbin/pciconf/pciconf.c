@@ -42,30 +42,28 @@
 #include <err.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "pathnames.h"
 #include "pciconf.h"
 
-struct pci_device_info
-{
-    TAILQ_ENTRY(pci_device_info)	link;
-    int					id;
-    char				*desc;
+struct pci_device_info {
+	TAILQ_ENTRY(pci_device_info) link;
+	int id;
+	char *desc;
 };
 
-struct pci_vendor_info
-{
-    TAILQ_ENTRY(pci_vendor_info)	link;
-    TAILQ_HEAD(,pci_device_info)	devs;
-    int					id;
-    char				*desc;
+struct pci_vendor_info {
+	TAILQ_ENTRY(pci_vendor_info) link;
+	TAILQ_HEAD(, pci_device_info) devs;
+	int id;
+	char *desc;
 };
 
-static TAILQ_HEAD(,pci_vendor_info)	pci_vendors;
+static TAILQ_HEAD(, pci_vendor_info) pci_vendors;
 
 static struct pcisel getsel(const char *str);
 static void list_bridge(int fd, struct pci_conf *p);
@@ -90,12 +88,12 @@ usage(void)
 {
 
 	fprintf(stderr, "%s",
-		"usage: pciconf -l [-BbcevV] [device]\n"
-		"       pciconf -a device\n"
-		"       pciconf -r [-b | -h] device addr[:addr2]\n"
-		"       pciconf -w [-b | -h] device addr value\n"
-		"       pciconf -D [-b | -h | -x] device bar [start [count]]"
-		"\n");
+	    "usage: pciconf -l [-BbcevV] [device]\n"
+	    "       pciconf -a device\n"
+	    "       pciconf -r [-b | -h] device addr[:addr2]\n"
+	    "       pciconf -w [-b | -h] device addr value\n"
+	    "       pciconf -D [-b | -h | -x] device bar [start [count]]"
+	    "\n");
 	exit(1);
 }
 
@@ -107,11 +105,11 @@ main(int argc, char **argv)
 	int bars, bridge, caps, errors, verbose, vpd;
 
 	listmode = readmode = writemode = attachedmode = dumpbarmode = 0;
-	bars = bridge = caps = errors = verbose = vpd= 0;
+	bars = bridge = caps = errors = verbose = vpd = 0;
 	width = 4;
 
 	while ((c = getopt(argc, argv, "aBbcDehlrwVv")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'a':
 			attachedmode = 1;
 			break;
@@ -170,12 +168,12 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ((listmode && optind >= argc + 1)
-	    || (writemode && optind + 3 != argc)
-	    || (readmode && optind + 2 != argc)
-	    || (attachedmode && optind + 1 != argc)
-	    || (dumpbarmode && (optind + 2 > argc || optind + 4 < argc))
-	    || (width == 8 && !dumpbarmode))
+	if ((listmode && optind >= argc + 1) ||
+	    (writemode && optind + 3 != argc) ||
+	    (readmode && optind + 2 != argc) ||
+	    (attachedmode && optind + 1 != argc) ||
+	    (dumpbarmode && (optind + 2 > argc || optind + 4 < argc)) ||
+	    (width == 8 && !dumpbarmode))
 		usage();
 
 	if (listmode) {
@@ -190,9 +188,9 @@ main(int argc, char **argv)
 		    width);
 	} else if (dumpbarmode) {
 		dump_bar(argv[optind], argv[optind + 1],
-		    optind + 2 < argc ? argv[optind + 2] : NULL, 
-		    optind + 3 < argc ? argv[optind + 3] : NULL, 
-		    width, verbose);
+		    optind + 2 < argc ? argv[optind + 2] : NULL,
+		    optind + 3 < argc ? argv[optind + 3] : NULL, width,
+		    verbose);
 	} else {
 		usage();
 	}
@@ -249,7 +247,7 @@ list_devs(const char *name, int verbose, int bars, int bridge, int caps,
 			exitstatus = 1;
 			close(fd);
 			return;
-		} else if (pc.status ==  PCI_GETCONF_ERROR) {
+		} else if (pc.status == PCI_GETCONF_ERROR) {
 			warnx("error returned from PCIOCGETCONF ioctl");
 			exitstatus = 1;
 			close(fd);
@@ -257,35 +255,37 @@ list_devs(const char *name, int verbose, int bars, int bridge, int caps,
 		}
 		if (listmode == 2)
 			printf("drv\tselector\tclass    rev  hdr  "
-			    "vendor device subven subdev\n");
+			       "vendor device subven subdev\n");
 		for (p = conf; p < &conf[pc.num_matches]; p++) {
 			if (listmode == 2)
 				printf("%s%d@pci%d:%d:%d:%d:"
-				    "\t%06x   %02x   %02x   "
-				    "%04x   %04x   %04x   %04x\n",
+				       "\t%06x   %02x   %02x   "
+				       "%04x   %04x   %04x   %04x\n",
 				    *p->pd_name ? p->pd_name : "none",
 				    *p->pd_name ? (int)p->pd_unit :
-				    none_count++, p->pc_sel.pc_domain,
-				    p->pc_sel.pc_bus, p->pc_sel.pc_dev,
-				    p->pc_sel.pc_func, (p->pc_class << 16) |
-				    (p->pc_subclass << 8) | p->pc_progif,
-				    p->pc_revid, p->pc_hdr,
-				    p->pc_vendor, p->pc_device,
-				    p->pc_subvendor, p->pc_subdevice);
+						  none_count++,
+				    p->pc_sel.pc_domain, p->pc_sel.pc_bus,
+				    p->pc_sel.pc_dev, p->pc_sel.pc_func,
+				    (p->pc_class << 16) |
+					(p->pc_subclass << 8) | p->pc_progif,
+				    p->pc_revid, p->pc_hdr, p->pc_vendor,
+				    p->pc_device, p->pc_subvendor,
+				    p->pc_subdevice);
 			else
 				printf("%s%d@pci%d:%d:%d:%d:"
-				    "\tclass=0x%06x rev=0x%02x hdr=0x%02x "
-				    "vendor=0x%04x device=0x%04x "
-				    "subvendor=0x%04x subdevice=0x%04x\n",
+				       "\tclass=0x%06x rev=0x%02x hdr=0x%02x "
+				       "vendor=0x%04x device=0x%04x "
+				       "subvendor=0x%04x subdevice=0x%04x\n",
 				    *p->pd_name ? p->pd_name : "none",
 				    *p->pd_name ? (int)p->pd_unit :
-				    none_count++, p->pc_sel.pc_domain,
-				    p->pc_sel.pc_bus, p->pc_sel.pc_dev,
-				    p->pc_sel.pc_func, (p->pc_class << 16) |
-				    (p->pc_subclass << 8) | p->pc_progif,
-				    p->pc_revid, p->pc_hdr,
-				    p->pc_vendor, p->pc_device,
-				    p->pc_subvendor, p->pc_subdevice);
+						  none_count++,
+				    p->pc_sel.pc_domain, p->pc_sel.pc_bus,
+				    p->pc_sel.pc_dev, p->pc_sel.pc_func,
+				    (p->pc_class << 16) |
+					(p->pc_subclass << 8) | p->pc_progif,
+				    p->pc_revid, p->pc_hdr, p->pc_vendor,
+				    p->pc_device, p->pc_subvendor,
+				    p->pc_subdevice);
 			if (verbose)
 				list_verbose(p);
 			if (bars)
@@ -364,11 +364,11 @@ print_bridge_windows(int fd, struct pci_conf *p)
 	val = read_config(fd, &p->pc_sel, PCIR_IOBASEL_1, 1);
 	if (val != 0 || read_config(fd, &p->pc_sel, PCIR_IOLIMITL_1, 1) != 0) {
 		if ((val & PCIM_BRIO_MASK) == PCIM_BRIO_32) {
-			base = PCI_PPBIOBASE(
-			    read_config(fd, &p->pc_sel, PCIR_IOBASEH_1, 2),
+			base = PCI_PPBIOBASE(read_config(fd, &p->pc_sel,
+						 PCIR_IOBASEH_1, 2),
 			    val);
-			limit = PCI_PPBIOLIMIT(
-			    read_config(fd, &p->pc_sel, PCIR_IOLIMITH_1, 2),
+			limit = PCI_PPBIOLIMIT(read_config(fd, &p->pc_sel,
+						   PCIR_IOLIMITH_1, 2),
 			    read_config(fd, &p->pc_sel, PCIR_IOLIMITL_1, 1));
 			range = 32;
 		} else {
@@ -389,11 +389,11 @@ print_bridge_windows(int fd, struct pci_conf *p)
 	val = read_config(fd, &p->pc_sel, PCIR_PMBASEL_1, 2);
 	if (val != 0 || read_config(fd, &p->pc_sel, PCIR_PMLIMITL_1, 2) != 0) {
 		if ((val & PCIM_BRPM_MASK) == PCIM_BRPM_64) {
-			base = PCI_PPBMEMBASE(
-			    read_config(fd, &p->pc_sel, PCIR_PMBASEH_1, 4),
+			base = PCI_PPBMEMBASE(read_config(fd, &p->pc_sel,
+						  PCIR_PMBASEH_1, 4),
 			    val);
-			limit = PCI_PPBMEMLIMIT(
-			    read_config(fd, &p->pc_sel, PCIR_PMLIMITH_1, 4),
+			limit = PCI_PPBMEMLIMIT(read_config(fd, &p->pc_sel,
+						    PCIR_PMLIMITH_1, 4),
 			    read_config(fd, &p->pc_sel, PCIR_PMLIMITL_1, 2));
 			range = 64;
 		} else {
@@ -412,14 +412,14 @@ print_bridge_windows(int fd, struct pci_conf *p)
 	 */
 	subtractive = p->pc_progif == PCIP_BRIDGE_PCI_SUBTRACTIVE;
 	switch (p->pc_device << 16 | p->pc_vendor) {
-	case 0xa002177d:		/* Cavium ThunderX */
-	case 0x124b8086:		/* Intel 82380FB Mobile */
-	case 0x060513d7:		/* Toshiba ???? */
+	case 0xa002177d: /* Cavium ThunderX */
+	case 0x124b8086: /* Intel 82380FB Mobile */
+	case 0x060513d7: /* Toshiba ???? */
 		subtractive = true;
 	}
 	if (p->pc_vendor == 0x8086 && (p->pc_device & 0xff00) == 0x2400)
 		subtractive = true;
-		
+
 	bctl = read_config(fd, &p->pc_sel, PCIR_BRIDGECTL_1, 2);
 	print_special_decode(bctl & PCIB_BCR_ISA_ENABLE,
 	    bctl & PCIB_BCR_VGA_ENABLE, subtractive);
@@ -546,8 +546,8 @@ print_bar(int fd, struct pci_conf *p, const char *label, uint16_t bar_offset)
 		}
 		base = bar.pbi_base & ~((uint64_t)0xf);
 	}
-	printf("    %s[%02x] = type %s, range %2d, base %#jx, ",
-	    label, bar_offset, type, range, (uintmax_t)base);
+	printf("    %s[%02x] = type %s, range %2d, base %#jx, ", label,
+	    bar_offset, type, range, (uintmax_t)base);
 	printf("size %ju, %s\n", (uintmax_t)bar.pbi_length,
 	    bar.pbi_enabled ? "enabled" : "disabled");
 }
@@ -555,11 +555,11 @@ print_bar(int fd, struct pci_conf *p, const char *label, uint16_t bar_offset)
 static void
 list_verbose(struct pci_conf *p)
 {
-	struct pci_vendor_info	*vi;
-	struct pci_device_info	*di;
+	struct pci_vendor_info *vi;
+	struct pci_device_info *di;
 	const char *dp;
 
-	TAILQ_FOREACH(vi, &pci_vendors, link) {
+	TAILQ_FOREACH (vi, &pci_vendors, link) {
 		if (vi->id == p->pc_vendor) {
 			printf("    vendor     = '%s'\n", vi->desc);
 			break;
@@ -568,7 +568,7 @@ list_verbose(struct pci_conf *p)
 	if (vi == NULL) {
 		di = NULL;
 	} else {
-		TAILQ_FOREACH(di, &vi->devs, link) {
+		TAILQ_FOREACH (di, &vi->devs, link) {
 			if (di->id == p->pc_device) {
 				printf("    device     = '%s'\n", di->desc);
 				break;
@@ -625,7 +625,7 @@ list_vpd(int fd, struct pci_conf *p)
 			    (unsigned int)vpd->pve_data[0],
 			    PCIR_BAR((unsigned int)vpd->pve_data[1]),
 			    (unsigned int)vpd->pve_data[3] << 8 |
-			    (unsigned int)vpd->pve_data[2]);
+				(unsigned int)vpd->pve_data[2]);
 			continue;
 		}
 
@@ -641,154 +641,148 @@ list_vpd(int fd, struct pci_conf *p)
 /*
  * This is a direct cut-and-paste from the table in sys/dev/pci/pci.c.
  */
-static struct
-{
-	int	class;
-	int	subclass;
+static struct {
+	int class;
+	int subclass;
 	const char *desc;
-} pci_nomatch_tab[] = {
-	{PCIC_OLD,		-1,			"old"},
-	{PCIC_OLD,		PCIS_OLD_NONVGA,	"non-VGA display device"},
-	{PCIC_OLD,		PCIS_OLD_VGA,		"VGA-compatible display device"},
-	{PCIC_STORAGE,		-1,			"mass storage"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SCSI,	"SCSI"},
-	{PCIC_STORAGE,		PCIS_STORAGE_IDE,	"ATA"},
-	{PCIC_STORAGE,		PCIS_STORAGE_FLOPPY,	"floppy disk"},
-	{PCIC_STORAGE,		PCIS_STORAGE_IPI,	"IPI"},
-	{PCIC_STORAGE,		PCIS_STORAGE_RAID,	"RAID"},
-	{PCIC_STORAGE,		PCIS_STORAGE_ATA_ADMA,	"ATA (ADMA)"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SATA,	"SATA"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SAS,	"SAS"},
-	{PCIC_STORAGE,		PCIS_STORAGE_NVM,	"NVM"},
-	{PCIC_STORAGE,		PCIS_STORAGE_UFS,	"UFS"},
-	{PCIC_NETWORK,		-1,			"network"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ETHERNET,	"ethernet"},
-	{PCIC_NETWORK,		PCIS_NETWORK_TOKENRING,	"token ring"},
-	{PCIC_NETWORK,		PCIS_NETWORK_FDDI,	"fddi"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ATM,	"ATM"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ISDN,	"ISDN"},
-	{PCIC_NETWORK,		PCIS_NETWORK_WORLDFIP,	"WorldFip"},
-	{PCIC_NETWORK,		PCIS_NETWORK_PICMG,	"PICMG"},
-	{PCIC_NETWORK,		PCIS_NETWORK_INFINIBAND,	"InfiniBand"},
-	{PCIC_NETWORK,		PCIS_NETWORK_HFC,	"host fabric"},
-	{PCIC_DISPLAY,		-1,			"display"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_VGA,	"VGA"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_XGA,	"XGA"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_3D,	"3D"},
-	{PCIC_MULTIMEDIA,	-1,			"multimedia"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_VIDEO,	"video"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_AUDIO,	"audio"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_TELE,	"telephony"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_HDA,	"HDA"},
-	{PCIC_MEMORY,		-1,			"memory"},
-	{PCIC_MEMORY,		PCIS_MEMORY_RAM,	"RAM"},
-	{PCIC_MEMORY,		PCIS_MEMORY_FLASH,	"flash"},
-	{PCIC_BRIDGE,		-1,			"bridge"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_HOST,	"HOST-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_ISA,	"PCI-ISA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_EISA,	"PCI-EISA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_MCA,	"PCI-MCA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_PCI,	"PCI-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_PCMCIA,	"PCI-PCMCIA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_NUBUS,	"PCI-NuBus"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_CARDBUS,	"PCI-CardBus"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_RACEWAY,	"PCI-RACEway"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_PCI_TRANSPARENT,
-	    "Semi-transparent PCI-to-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_INFINIBAND,	"InfiniBand-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_AS_PCI,
-	    "AdvancedSwitching-PCI"},
-	{PCIC_SIMPLECOMM,	-1,			"simple comms"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_UART,	"UART"},	/* could detect 16550 */
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_PAR,	"parallel port"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_MULSER,	"multiport serial"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_MODEM,	"generic modem"},
-	{PCIC_BASEPERIPH,	-1,			"base peripheral"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_PIC,	"interrupt controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_DMA,	"DMA controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_TIMER,	"timer"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_RTC,	"realtime clock"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_PCIHOT,	"PCI hot-plug controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_SDHC,	"SD host controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_IOMMU,	"IOMMU"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_RCEC,
-	    "Root Complex Event Collector"},
-	{PCIC_INPUTDEV,		-1,			"input device"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_KEYBOARD,	"keyboard"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_DIGITIZER,"digitizer"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_MOUSE,	"mouse"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_SCANNER,	"scanner"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_GAMEPORT,	"gameport"},
-	{PCIC_DOCKING,		-1,			"docking station"},
-	{PCIC_PROCESSOR,	-1,			"processor"},
-	{PCIC_SERIALBUS,	-1,			"serial bus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_FW,	"FireWire"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_ACCESS,	"AccessBus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_SSA,	"SSA"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_USB,	"USB"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_FC,	"Fibre Channel"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_SMBUS,	"SMBus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_INFINIBAND,	"InfiniBand"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_IPMI,	"IPMI"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_SERCOS,	"SERCOS"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_CANBUS,	"CANbus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_MIPI_I3C,	"MIPI I3C"},
-	{PCIC_WIRELESS,		-1,			"wireless controller"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_IRDA,	"iRDA"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_IR,	"IR"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_RF,	"RF"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_BLUETOOTH,	"bluetooth"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_BROADBAND,	"broadband"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_80211A,	"ethernet 802.11a"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_80211B,	"ethernet 802.11b"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_CELL,
-	    "cellular controller/modem"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_CELL_E,
-	    "cellular controller/modem plus ethernet"},
-	{PCIC_INTELLIIO,	-1,			"intelligent I/O controller"},
-	{PCIC_INTELLIIO,	PCIS_INTELLIIO_I2O,	"I2O"},
-	{PCIC_SATCOM,		-1,			"satellite communication"},
-	{PCIC_SATCOM,		PCIS_SATCOM_TV,		"sat TV"},
-	{PCIC_SATCOM,		PCIS_SATCOM_AUDIO,	"sat audio"},
-	{PCIC_SATCOM,		PCIS_SATCOM_VOICE,	"sat voice"},
-	{PCIC_SATCOM,		PCIS_SATCOM_DATA,	"sat data"},
-	{PCIC_CRYPTO,		-1,			"encrypt/decrypt"},
-	{PCIC_CRYPTO,		PCIS_CRYPTO_NETCOMP,	"network/computer crypto"},
-	{PCIC_CRYPTO,		PCIS_CRYPTO_ENTERTAIN,	"entertainment crypto"},
-	{PCIC_DASP,		-1,			"dasp"},
-	{PCIC_DASP,		PCIS_DASP_DPIO,		"DPIO module"},
-	{PCIC_DASP,		PCIS_DASP_PERFCNTRS,	"performance counters"},
-	{PCIC_DASP,		PCIS_DASP_COMM_SYNC,	"communication synchronizer"},
-	{PCIC_DASP,		PCIS_DASP_MGMT_CARD,	"signal processing management"},
-	{PCIC_ACCEL,		-1,			"processing accelerators"},
-	{PCIC_ACCEL,		PCIS_ACCEL_PROCESSING,	"processing accelerators"},
-	{PCIC_INSTRUMENT,	-1,			"non-essential instrumentation"},
-	{0, 0,		NULL}
-};
+} pci_nomatch_tab[] = { { PCIC_OLD, -1, "old" },
+	{ PCIC_OLD, PCIS_OLD_NONVGA, "non-VGA display device" },
+	{ PCIC_OLD, PCIS_OLD_VGA, "VGA-compatible display device" },
+	{ PCIC_STORAGE, -1, "mass storage" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SCSI, "SCSI" },
+	{ PCIC_STORAGE, PCIS_STORAGE_IDE, "ATA" },
+	{ PCIC_STORAGE, PCIS_STORAGE_FLOPPY, "floppy disk" },
+	{ PCIC_STORAGE, PCIS_STORAGE_IPI, "IPI" },
+	{ PCIC_STORAGE, PCIS_STORAGE_RAID, "RAID" },
+	{ PCIC_STORAGE, PCIS_STORAGE_ATA_ADMA, "ATA (ADMA)" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SATA, "SATA" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SAS, "SAS" },
+	{ PCIC_STORAGE, PCIS_STORAGE_NVM, "NVM" },
+	{ PCIC_STORAGE, PCIS_STORAGE_UFS, "UFS" },
+	{ PCIC_NETWORK, -1, "network" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ETHERNET, "ethernet" },
+	{ PCIC_NETWORK, PCIS_NETWORK_TOKENRING, "token ring" },
+	{ PCIC_NETWORK, PCIS_NETWORK_FDDI, "fddi" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ATM, "ATM" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ISDN, "ISDN" },
+	{ PCIC_NETWORK, PCIS_NETWORK_WORLDFIP, "WorldFip" },
+	{ PCIC_NETWORK, PCIS_NETWORK_PICMG, "PICMG" },
+	{ PCIC_NETWORK, PCIS_NETWORK_INFINIBAND, "InfiniBand" },
+	{ PCIC_NETWORK, PCIS_NETWORK_HFC, "host fabric" },
+	{ PCIC_DISPLAY, -1, "display" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_VGA, "VGA" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_XGA, "XGA" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_3D, "3D" },
+	{ PCIC_MULTIMEDIA, -1, "multimedia" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_VIDEO, "video" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_AUDIO, "audio" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_TELE, "telephony" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_HDA, "HDA" },
+	{ PCIC_MEMORY, -1, "memory" }, { PCIC_MEMORY, PCIS_MEMORY_RAM, "RAM" },
+	{ PCIC_MEMORY, PCIS_MEMORY_FLASH, "flash" },
+	{ PCIC_BRIDGE, -1, "bridge" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_HOST, "HOST-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_ISA, "PCI-ISA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_EISA, "PCI-EISA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_MCA, "PCI-MCA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_PCI, "PCI-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_PCMCIA, "PCI-PCMCIA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_NUBUS, "PCI-NuBus" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_CARDBUS, "PCI-CardBus" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_RACEWAY, "PCI-RACEway" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_PCI_TRANSPARENT,
+	    "Semi-transparent PCI-to-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_INFINIBAND, "InfiniBand-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_AS_PCI, "AdvancedSwitching-PCI" },
+	{ PCIC_SIMPLECOMM, -1, "simple comms" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_UART,
+	    "UART" }, /* could detect 16550 */
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_PAR, "parallel port" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_MULSER, "multiport serial" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_MODEM, "generic modem" },
+	{ PCIC_BASEPERIPH, -1, "base peripheral" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_PIC, "interrupt controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_DMA, "DMA controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_TIMER, "timer" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_RTC, "realtime clock" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_PCIHOT, "PCI hot-plug controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_SDHC, "SD host controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_IOMMU, "IOMMU" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_RCEC,
+	    "Root Complex Event Collector" },
+	{ PCIC_INPUTDEV, -1, "input device" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_KEYBOARD, "keyboard" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_DIGITIZER, "digitizer" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_MOUSE, "mouse" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_SCANNER, "scanner" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_GAMEPORT, "gameport" },
+	{ PCIC_DOCKING, -1, "docking station" },
+	{ PCIC_PROCESSOR, -1, "processor" },
+	{ PCIC_SERIALBUS, -1, "serial bus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_FW, "FireWire" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_ACCESS, "AccessBus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_SSA, "SSA" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_USB, "USB" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_FC, "Fibre Channel" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_SMBUS, "SMBus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_INFINIBAND, "InfiniBand" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_IPMI, "IPMI" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_SERCOS, "SERCOS" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_CANBUS, "CANbus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_MIPI_I3C, "MIPI I3C" },
+	{ PCIC_WIRELESS, -1, "wireless controller" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_IRDA, "iRDA" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_IR, "IR" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_RF, "RF" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_BLUETOOTH, "bluetooth" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_BROADBAND, "broadband" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_80211A, "ethernet 802.11a" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_80211B, "ethernet 802.11b" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_CELL, "cellular controller/modem" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_CELL_E,
+	    "cellular controller/modem plus ethernet" },
+	{ PCIC_INTELLIIO, -1, "intelligent I/O controller" },
+	{ PCIC_INTELLIIO, PCIS_INTELLIIO_I2O, "I2O" },
+	{ PCIC_SATCOM, -1, "satellite communication" },
+	{ PCIC_SATCOM, PCIS_SATCOM_TV, "sat TV" },
+	{ PCIC_SATCOM, PCIS_SATCOM_AUDIO, "sat audio" },
+	{ PCIC_SATCOM, PCIS_SATCOM_VOICE, "sat voice" },
+	{ PCIC_SATCOM, PCIS_SATCOM_DATA, "sat data" },
+	{ PCIC_CRYPTO, -1, "encrypt/decrypt" },
+	{ PCIC_CRYPTO, PCIS_CRYPTO_NETCOMP, "network/computer crypto" },
+	{ PCIC_CRYPTO, PCIS_CRYPTO_ENTERTAIN, "entertainment crypto" },
+	{ PCIC_DASP, -1, "dasp" }, { PCIC_DASP, PCIS_DASP_DPIO, "DPIO module" },
+	{ PCIC_DASP, PCIS_DASP_PERFCNTRS, "performance counters" },
+	{ PCIC_DASP, PCIS_DASP_COMM_SYNC, "communication synchronizer" },
+	{ PCIC_DASP, PCIS_DASP_MGMT_CARD, "signal processing management" },
+	{ PCIC_ACCEL, -1, "processing accelerators" },
+	{ PCIC_ACCEL, PCIS_ACCEL_PROCESSING, "processing accelerators" },
+	{ PCIC_INSTRUMENT, -1, "non-essential instrumentation" },
+	{ 0, 0, NULL } };
 
 static const char *
 guess_class(struct pci_conf *p)
 {
-	int	i;
+	int i;
 
 	for (i = 0; pci_nomatch_tab[i].desc != NULL; i++) {
 		if (pci_nomatch_tab[i].class == p->pc_class)
-			return(pci_nomatch_tab[i].desc);
+			return (pci_nomatch_tab[i].desc);
 	}
-	return(NULL);
+	return (NULL);
 }
 
 static const char *
 guess_subclass(struct pci_conf *p)
 {
-	int	i;
+	int i;
 
 	for (i = 0; pci_nomatch_tab[i].desc != NULL; i++) {
 		if ((pci_nomatch_tab[i].class == p->pc_class) &&
 		    (pci_nomatch_tab[i].subclass == p->pc_subclass))
-			return(pci_nomatch_tab[i].desc);
+			return (pci_nomatch_tab[i].desc);
 	}
-	return(NULL);
+	return (NULL);
 }
 
 static int
@@ -811,7 +805,7 @@ load_vendors(void)
 	if ((db = fopen(dbf, "r")) == NULL) {
 		dbf = _PATH_PCIVDB;
 		if ((db = fopen(dbf, "r")) == NULL)
-			return(1);
+			return (1);
 	}
 	cv = NULL;
 	cd = NULL;
@@ -837,10 +831,12 @@ load_vendors(void)
 			continue;
 
 		/* Check for vendor entry */
-		if (buf[0] != '\t' && sscanf(buf, "%04x %[^\n]", &id, str) == 2) {
+		if (buf[0] != '\t' &&
+		    sscanf(buf, "%04x %[^\n]", &id, str) == 2) {
 			if ((id == 0) || (strlen(str) < 1))
 				continue;
-			if ((cv = malloc(sizeof(struct pci_vendor_info))) == NULL) {
+			if ((cv = malloc(sizeof(struct pci_vendor_info))) ==
+			    NULL) {
 				warn("allocating vendor entry");
 				error = 1;
 				break;
@@ -858,14 +854,16 @@ load_vendors(void)
 		}
 
 		/* Check for device entry */
-		if (buf[0] == '\t' && sscanf(buf + 1, "%04x %[^\n]", &id, str) == 2) {
+		if (buf[0] == '\t' &&
+		    sscanf(buf + 1, "%04x %[^\n]", &id, str) == 2) {
 			if ((id == 0) || (strlen(str) < 1))
 				continue;
 			if (cv == NULL) {
 				warnx("device entry with no vendor!");
 				continue;
 			}
-			if ((cd = malloc(sizeof(struct pci_device_info))) == NULL) {
+			if ((cd = malloc(sizeof(struct pci_device_info))) ==
+			    NULL) {
 				warn("allocating device entry");
 				error = 1;
 				break;
@@ -887,7 +885,7 @@ load_vendors(void)
 		error = 1;
 	fclose(db);
 
-	return(error);
+	return (error);
 }
 
 uint32_t
@@ -912,7 +910,7 @@ getdevice(const char *name)
 	struct pci_conf conf[1];
 	struct pci_match_conf patterns[1];
 	char *cp;
-	int fd;	
+	int fd;
 
 	fd = open(_PATH_DEVPCI, O_RDONLY, 0);
 	if (fd < 0)
@@ -1013,7 +1011,7 @@ static void
 readone(int fd, struct pcisel *sel, long reg, int width)
 {
 
-	printf("%0*x", width*2, read_config(fd, sel, reg, width));
+	printf("%0*x", width * 2, read_config(fd, sel, reg, width));
 }
 
 static void
@@ -1034,16 +1032,16 @@ readit(const char *name, const char *reg, int width)
 	rend = rstart = strtol(reg, &end, 0);
 	if (end && *end == ':') {
 		end++;
-		rend = strtol(end, (char **) 0, 0);
+		rend = strtol(end, (char **)0, 0);
 	}
 	sel = getsel(name);
 	for (i = 1, r = rstart; r <= rend; i++, r += width) {
 		readone(fd, &sel, r, width);
 		if (i && !(i % 8))
 			putchar(' ');
-		putchar(i % (16/width) ? ' ' : '\n');
+		putchar(i % (16 / width) ? ' ' : '\n');
 	}
-	if (i % (16/width) != 1)
+	if (i % (16 / width) != 1)
 		putchar('\n');
 	close(fd);
 }
@@ -1112,8 +1110,7 @@ dump_bar(const char *name, const char *reg, const char *bar_start,
 	if (bar_count != NULL) {
 		count = strtoul(bar_count, &el, 0);
 		if (*el != '\0')
-			errx(1, "Invalid count specification %s",
-			    bar_count);
+			errx(1, "Invalid count specification %s", bar_count);
 	}
 
 	pbm.pbm_sel = getsel(name);
@@ -1145,9 +1142,9 @@ dump_bar(const char *name, const char *reg, const char *bar_start,
 		    "Dumping pci%d:%d:%d:%d BAR %x mapped base %p "
 		    "off %#x length %#jx from %#jx count %#jx in %d-bytes\n",
 		    pbm.pbm_sel.pc_domain, pbm.pbm_sel.pc_bus,
-		    pbm.pbm_sel.pc_dev, pbm.pbm_sel.pc_func,
-		    pbm.pbm_reg, pbm.pbm_map_base, pbm.pbm_bar_off,
-		    pbm.pbm_bar_length, start, count, width);
+		    pbm.pbm_sel.pc_dev, pbm.pbm_sel.pc_func, pbm.pbm_reg,
+		    pbm.pbm_map_base, pbm.pbm_bar_off, pbm.pbm_bar_length,
+		    start, count, width);
 	}
 	switch (width) {
 	case 1:

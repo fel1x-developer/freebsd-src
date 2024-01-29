@@ -30,13 +30,13 @@
 
 enum {
 	NLSE_ATTR_UNSPEC = 0,
-	NLSE_ATTR_SYSTEM = 1,     /* string reporting the system name */
-	NLSE_ATTR_SUBSYSTEM = 2,  /* string reporting the subsystem name */
-	NLSE_ATTR_TYPE = 3,       /* string reporting the type if the event */
-	NLSE_ATTR_DATA = 4,       /* string reporting the extra data (can be null) */
+	NLSE_ATTR_SYSTEM = 1,	 /* string reporting the system name */
+	NLSE_ATTR_SUBSYSTEM = 2, /* string reporting the subsystem name */
+	NLSE_ATTR_TYPE = 3,	 /* string reporting the type if the event */
+	NLSE_ATTR_DATA = 4, /* string reporting the extra data (can be null) */
 	__NLSE_ATTR_MAX,
 };
-#define NLSE_ATTR_MAX (__NLSE_ATTR_MAX -1)
+#define NLSE_ATTR_MAX (__NLSE_ATTR_MAX - 1)
 
 /* commands */
 enum {
@@ -44,6 +44,6 @@ enum {
 	NLSE_CMD_NEWEVENT = 1,
 	__NLSE_CMD_MAX,
 };
-#define	NLSE_CMD_MAX (__NLSE_CMD_MAX - 1)
+#define NLSE_CMD_MAX (__NLSE_CMD_MAX - 1)
 
 #endif

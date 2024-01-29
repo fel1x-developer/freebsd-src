@@ -36,7 +36,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * This file is used by all the "password" programs; vipw(8), chpass(1),
  * and passwd(1).
@@ -44,9 +43,9 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 
 #include <ctype.h>
@@ -105,7 +104,8 @@ pw_init(const char *dir, const char *master)
 		if (dir == NULL) {
 			strcpy(masterpasswd, _PATH_MASTERPASSWD);
 		} else if (snprintf(masterpasswd, sizeof(masterpasswd), "%s/%s",
-		    passwd_dir, _MASTERPASSWD) > (int)sizeof(masterpasswd)) {
+			       passwd_dir,
+			       _MASTERPASSWD) > (int)sizeof(masterpasswd)) {
 			errno = ENAMETOOLONG;
 			return (-1);
 		}
@@ -173,7 +173,8 @@ pw_lock(void)
 	for (;;) {
 		struct stat st;
 
-		lockfd = flopen(masterpasswd, O_RDONLY|O_NONBLOCK|O_CLOEXEC, 0);
+		lockfd = flopen(masterpasswd, O_RDONLY | O_NONBLOCK | O_CLOEXEC,
+		    0);
 		if (lockfd == -1) {
 			if (errno == EWOULDBLOCK) {
 				errx(1, "the password db file is busy");
@@ -216,7 +217,8 @@ pw_tmp(int mfd)
 	else
 		p = masterpasswd;
 	if (snprintf(tempname, sizeof(tempname), "%.*spw.XXXXXX",
-		(int)(p - masterpasswd), masterpasswd) >= (int)sizeof(tempname)) {
+		(int)(p - masterpasswd),
+		masterpasswd) >= (int)sizeof(tempname)) {
 		errno = ENAMETOOLONG;
 		return (-1);
 	}
@@ -252,12 +254,11 @@ pw_mkdb(const char *user)
 	case 0:
 		/* child */
 		if (user == NULL)
-			execl(_PATH_PWD_MKDB, "pwd_mkdb", "-p",
-			    "-d", passwd_dir, tempname, (char *)NULL);
+			execl(_PATH_PWD_MKDB, "pwd_mkdb", "-p", "-d",
+			    passwd_dir, tempname, (char *)NULL);
 		else
-			execl(_PATH_PWD_MKDB, "pwd_mkdb", "-p",
-			    "-d", passwd_dir, "-u", user, tempname,
-			    (char *)NULL);
+			execl(_PATH_PWD_MKDB, "pwd_mkdb", "-p", "-d",
+			    passwd_dir, "-u", user, tempname, (char *)NULL);
 		_exit(1);
 		/* NOTREACHED */
 	default:
@@ -327,7 +328,8 @@ pw_edit(int notsetuid)
 			raise(WSTOPSIG(pstat));
 		} else if (WIFEXITED(pstat)) {
 			if (WEXITSTATUS(pstat) != 0)
-				errx(1, "\"%s\" exited with status %d", editor, WEXITSTATUS(pstat));
+				errx(1, "\"%s\" exited with status %d", editor,
+				    WEXITSTATUS(pstat));
 			editpid = -1;
 			break;
 		} else {
@@ -379,8 +381,7 @@ int
 pw_equal(const struct passwd *pw1, const struct passwd *pw2)
 {
 	return (strcmp(pw1->pw_name, pw2->pw_name) == 0 &&
-	    pw1->pw_uid == pw2->pw_uid &&
-	    pw1->pw_gid == pw2->pw_gid &&
+	    pw1->pw_uid == pw2->pw_uid && pw1->pw_gid == pw2->pw_gid &&
 	    strcmp(pw1->pw_class, pw2->pw_class) == 0 &&
 	    pw1->pw_change == pw2->pw_change &&
 	    pw1->pw_expire == pw2->pw_expire &&
@@ -413,8 +414,8 @@ pw_make_v7(const struct passwd *pw)
 	char *line;
 
 	asprintf(&line, "%s:*:%ju:%ju:%s:%s:%s", pw->pw_name,
-	    (uintmax_t)pw->pw_uid, (uintmax_t)pw->pw_gid,
-	    pw->pw_gecos, pw->pw_dir, pw->pw_shell);
+	    (uintmax_t)pw->pw_uid, (uintmax_t)pw->pw_gid, pw->pw_gecos,
+	    pw->pw_dir, pw->pw_shell);
 	return (line);
 }
 
@@ -433,7 +434,7 @@ pw_copy(int ffd, int tfd, const struct passwd *pw, struct passwd *old_pw)
 	char t;
 
 	if (old_pw == NULL && pw == NULL)
-			return (-1);
+		return (-1);
 
 	spw = old_pw;
 	/* deleting a user */
@@ -466,7 +467,8 @@ pw_copy(int ffd, int tfd, const struct passwd *pw, struct passwd *old_pw)
 			if (eof)
 				break;
 			while ((size_t)(q - p) >= size) {
-				if ((tmp = reallocarray(buf, 2, size)) == NULL) {
+				if ((tmp = reallocarray(buf, 2, size)) ==
+				    NULL) {
 					warnx("passwd line too long");
 					goto err;
 				}
@@ -501,7 +503,7 @@ pw_copy(int ffd, int tfd, const struct passwd *pw, struct passwd *old_pw)
 
 		/* is it a blank line or a comment? */
 		for (r = p; r < q && isspace(*r); ++r)
-			/* nothing */ ;
+			/* nothing */;
 		if (r == q || *r == '#') {
 			/* yep */
 			if (write(tfd, p, q - p + 1) != q - p + 1)
@@ -572,14 +574,13 @@ pw_copy(int ffd, int tfd, const struct passwd *pw, struct passwd *old_pw)
 		goto err;
 	}
 	len = strlen(line);
-	if ((size_t)write(tfd, line, len) != len ||
-	    write(tfd, "\n", 1) != 1)
+	if ((size_t)write(tfd, line, len) != len || write(tfd, "\n", 1) != 1)
 		goto err;
- done:
+done:
 	free(line);
 	free(buf);
 	return (0);
- err:
+err:
 	free(line);
 	free(buf);
 	return (-1);

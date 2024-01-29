@@ -25,13 +25,14 @@
  *
  */
 #include <sys/cdefs.h>
+
 #include <mp.h>
 #include <stdio.h>
 #include <string.h>
 #include <sysexits.h>
 
-MINT *c0, *c1, *c2, *c3, *c5, *c6, *c8, *c10, *c14, *c15, *c25, \
-    *c42,*c43, *c44, *c45, *t0, *t1;
+MINT *c0, *c1, *c2, *c3, *c5, *c6, *c8, *c10, *c14, *c15, *c25, *c42, *c43,
+    *c44, *c45, *t0, *t1;
 static int tnr = 0;
 
 static void

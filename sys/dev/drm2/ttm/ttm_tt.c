@@ -36,35 +36,39 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
-#include <dev/drm2/ttm/ttm_module.h>
 #include <dev/drm2/ttm/ttm_bo_driver.h>
-#include <dev/drm2/ttm/ttm_placement.h>
+#include <dev/drm2/ttm/ttm_module.h>
 #include <dev/drm2/ttm/ttm_page_alloc.h>
+#include <dev/drm2/ttm/ttm_placement.h>
 
 MALLOC_DEFINE(M_TTM_PD, "ttm_pd", "TTM Page Directories");
 
 /**
  * Allocates storage for pointers to the pages that back the ttm.
  */
-static void ttm_tt_alloc_page_directory(struct ttm_tt *ttm)
+static void
+ttm_tt_alloc_page_directory(struct ttm_tt *ttm)
 {
-	ttm->pages = malloc(ttm->num_pages * sizeof(void *),
-	    M_TTM_PD, M_WAITOK | M_ZERO);
+	ttm->pages = malloc(ttm->num_pages * sizeof(void *), M_TTM_PD,
+	    M_WAITOK | M_ZERO);
 }
 
-static void ttm_dma_tt_alloc_page_directory(struct ttm_dma_tt *ttm)
+static void
+ttm_dma_tt_alloc_page_directory(struct ttm_dma_tt *ttm)
 {
-	ttm->ttm.pages = malloc(ttm->ttm.num_pages * sizeof(void *),
-	    M_TTM_PD, M_WAITOK | M_ZERO);
+	ttm->ttm.pages = malloc(ttm->ttm.num_pages * sizeof(void *), M_TTM_PD,
+	    M_WAITOK | M_ZERO);
 	ttm->dma_address = malloc(ttm->ttm.num_pages *
-	    sizeof(*ttm->dma_address), M_TTM_PD, M_WAITOK);
+		sizeof(*ttm->dma_address),
+	    M_TTM_PD, M_WAITOK);
 }
 
 #if defined(__i386__) || defined(__amd64__)
-static inline int ttm_tt_set_page_caching(vm_page_t p,
-					  enum ttm_caching_state c_old,
-					  enum ttm_caching_state c_new)
+static inline int
+ttm_tt_set_page_caching(vm_page_t p, enum ttm_caching_state c_old,
+    enum ttm_caching_state c_new)
 {
 
 	/* XXXKIB our VM does not need this. */
@@ -84,9 +88,9 @@ static inline int ttm_tt_set_page_caching(vm_page_t p,
 	return (0);
 }
 #else
-static inline int ttm_tt_set_page_caching(vm_page_t p,
-					  enum ttm_caching_state c_old,
-					  enum ttm_caching_state c_new)
+static inline int
+ttm_tt_set_page_caching(vm_page_t p, enum ttm_caching_state c_old,
+    enum ttm_caching_state c_new)
 {
 	return 0;
 }
@@ -97,8 +101,8 @@ static inline int ttm_tt_set_page_caching(vm_page_t p,
  * for range of pages in a ttm.
  */
 
-static int ttm_tt_set_caching(struct ttm_tt *ttm,
-			      enum ttm_caching_state c_state)
+static int
+ttm_tt_set_caching(struct ttm_tt *ttm, enum ttm_caching_state c_state)
 {
 	int i, j;
 	vm_page_t cur_page;
@@ -120,8 +124,7 @@ static int ttm_tt_set_caching(struct ttm_tt *ttm,
 		cur_page = ttm->pages[i];
 		if (likely(cur_page != NULL)) {
 			ret = ttm_tt_set_page_caching(cur_page,
-						      ttm->caching_state,
-						      c_state);
+			    ttm->caching_state, c_state);
 			if (unlikely(ret != 0))
 				goto out_err;
 		}
@@ -136,14 +139,15 @@ out_err:
 		cur_page = ttm->pages[j];
 		if (cur_page != NULL) {
 			(void)ttm_tt_set_page_caching(cur_page, c_state,
-						      ttm->caching_state);
+			    ttm->caching_state);
 		}
 	}
 
 	return ret;
 }
 
-int ttm_tt_set_placement_caching(struct ttm_tt *ttm, uint32_t placement)
+int
+ttm_tt_set_placement_caching(struct ttm_tt *ttm, uint32_t placement)
 {
 	enum ttm_caching_state state;
 
@@ -157,7 +161,8 @@ int ttm_tt_set_placement_caching(struct ttm_tt *ttm, uint32_t placement)
 	return ttm_tt_set_caching(ttm, state);
 }
 
-void ttm_tt_destroy(struct ttm_tt *ttm)
+void
+ttm_tt_destroy(struct ttm_tt *ttm)
 {
 	if (unlikely(ttm == NULL))
 		return;
@@ -178,9 +183,9 @@ void ttm_tt_destroy(struct ttm_tt *ttm)
 	ttm->func->destroy(ttm);
 }
 
-int ttm_tt_init(struct ttm_tt *ttm, struct ttm_bo_device *bdev,
-		unsigned long size, uint32_t page_flags,
-		vm_page_t dummy_read_page)
+int
+ttm_tt_init(struct ttm_tt *ttm, struct ttm_bo_device *bdev, unsigned long size,
+    uint32_t page_flags, vm_page_t dummy_read_page)
 {
 	ttm->bdev = bdev;
 	ttm->glob = bdev->glob;
@@ -200,15 +205,16 @@ int ttm_tt_init(struct ttm_tt *ttm, struct ttm_bo_device *bdev,
 	return 0;
 }
 
-void ttm_tt_fini(struct ttm_tt *ttm)
+void
+ttm_tt_fini(struct ttm_tt *ttm)
 {
 	free(ttm->pages, M_TTM_PD);
 	ttm->pages = NULL;
 }
 
-int ttm_dma_tt_init(struct ttm_dma_tt *ttm_dma, struct ttm_bo_device *bdev,
-		unsigned long size, uint32_t page_flags,
-		vm_page_t dummy_read_page)
+int
+ttm_dma_tt_init(struct ttm_dma_tt *ttm_dma, struct ttm_bo_device *bdev,
+    unsigned long size, uint32_t page_flags, vm_page_t dummy_read_page)
 {
 	struct ttm_tt *ttm = &ttm_dma->ttm;
 
@@ -231,7 +237,8 @@ int ttm_dma_tt_init(struct ttm_dma_tt *ttm_dma, struct ttm_bo_device *bdev,
 	return 0;
 }
 
-void ttm_dma_tt_fini(struct ttm_dma_tt *ttm_dma)
+void
+ttm_dma_tt_fini(struct ttm_dma_tt *ttm_dma)
 {
 	struct ttm_tt *ttm = &ttm_dma->ttm;
 
@@ -241,7 +248,8 @@ void ttm_dma_tt_fini(struct ttm_dma_tt *ttm_dma)
 	ttm_dma->dma_address = NULL;
 }
 
-void ttm_tt_unbind(struct ttm_tt *ttm)
+void
+ttm_tt_unbind(struct ttm_tt *ttm)
 {
 	int ret __diagused;
 
@@ -252,7 +260,8 @@ void ttm_tt_unbind(struct ttm_tt *ttm)
 	}
 }
 
-int ttm_tt_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
+int
+ttm_tt_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
 {
 	int ret = 0;
 
@@ -275,7 +284,8 @@ int ttm_tt_bind(struct ttm_tt *ttm, struct ttm_mem_reg *bo_mem)
 	return 0;
 }
 
-int ttm_tt_swapin(struct ttm_tt *ttm)
+int
+ttm_tt_swapin(struct ttm_tt *ttm)
 {
 	vm_object_t obj;
 	vm_page_t from_page, to_page;
@@ -313,7 +323,8 @@ err_ret:
 	return (ret);
 }
 
-int ttm_tt_swapout(struct ttm_tt *ttm, vm_object_t persistent_swap_storage)
+int
+ttm_tt_swapout(struct ttm_tt *ttm, vm_object_t persistent_swap_storage)
 {
 	vm_object_t obj;
 	vm_page_t from_page, to_page;

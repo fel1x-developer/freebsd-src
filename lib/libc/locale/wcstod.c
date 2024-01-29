@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -46,8 +47,8 @@
  * for at least the digits, radix character and letters.
  */
 double
-wcstod_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
-		locale_t locale)
+wcstod_l(const wchar_t *__restrict nptr, wchar_t **__restrict endptr,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -109,7 +110,7 @@ wcstod_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
 	return (val);
 }
 double
-wcstod(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr)
+wcstod(const wchar_t *__restrict nptr, wchar_t **__restrict endptr)
 {
 	return wcstod_l(nptr, endptr, __get_locale());
 }

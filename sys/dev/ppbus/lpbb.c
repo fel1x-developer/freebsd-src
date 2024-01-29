@@ -36,22 +36,21 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ppbus/ppbconf.h>
-#include "ppbus_if.h"
 #include <dev/ppbus/ppbio.h>
 
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-
 #include "iicbb_if.h"
+#include "ppbus_if.h"
 
 static int lpbb_detect(device_t dev);
 
@@ -123,10 +122,10 @@ lpbb_callback(device_t dev, int index, caddr_t data)
 
 #define SDA_out 0x80
 #define SCL_out 0x08
-#define SDA_in  0x80
-#define SCL_in  0x08
-#define ALIM    0x20
-#define I2CKEY  0x50
+#define SDA_in 0x80
+#define SCL_in 0x08
+#define ALIM 0x20
+#define I2CKEY 0x50
 
 /* Reset bus by setting SDA first and then SCL. */
 static void
@@ -203,8 +202,7 @@ lpbb_detect(device_t dev)
 
 	lpbb_reset_bus(dev);
 
-	if ((ppb_rstr(ppbus) & I2CKEY) ||
-		((ppb_rstr(ppbus) & ALIM) != ALIM)) {
+	if ((ppb_rstr(ppbus) & I2CKEY) || ((ppb_rstr(ppbus) & ALIM) != ALIM)) {
 		ppb_release_bus(ppbus, dev);
 		ppb_unlock(ppbus);
 		return (0);
@@ -217,7 +215,7 @@ lpbb_detect(device_t dev)
 }
 
 static int
-lpbb_reset(device_t dev, u_char speed, u_char addr, u_char * oldaddr)
+lpbb_reset(device_t dev, u_char speed, u_char addr, u_char *oldaddr)
 {
 	device_t ppbus = device_get_parent(dev);
 
@@ -238,17 +236,17 @@ lpbb_reset(device_t dev, u_char speed, u_char addr, u_char * oldaddr)
 
 static device_method_t lpbb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	lpbb_identify),
-	DEVMETHOD(device_probe,		lpbb_probe),
-	DEVMETHOD(device_attach,	lpbb_attach),
+	DEVMETHOD(device_identify, lpbb_identify),
+	DEVMETHOD(device_probe, lpbb_probe),
+	DEVMETHOD(device_attach, lpbb_attach),
 
 	/* iicbb interface */
-	DEVMETHOD(iicbb_callback,	lpbb_callback),
-	DEVMETHOD(iicbb_setsda,		lpbb_setsda),
-	DEVMETHOD(iicbb_setscl,		lpbb_setscl),
-	DEVMETHOD(iicbb_getsda,		lpbb_getsda),
-	DEVMETHOD(iicbb_getscl,		lpbb_getscl),
-	DEVMETHOD(iicbb_reset,		lpbb_reset),
+	DEVMETHOD(iicbb_callback, lpbb_callback),
+	DEVMETHOD(iicbb_setsda, lpbb_setsda),
+	DEVMETHOD(iicbb_setscl, lpbb_setscl),
+	DEVMETHOD(iicbb_getsda, lpbb_getsda),
+	DEVMETHOD(iicbb_getscl, lpbb_getscl),
+	DEVMETHOD(iicbb_reset, lpbb_reset),
 
 	DEVMETHOD_END
 };

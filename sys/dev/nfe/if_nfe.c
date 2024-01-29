@@ -26,42 +26,39 @@
 #endif
 
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <net/bpf.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
+#include <dev/nfe/if_nfereg.h>
+#include <dev/nfe/if_nfevar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/nfe/if_nfereg.h>
-#include <dev/nfe/if_nfevar.h>
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 MODULE_DEPEND(nfe, pci, 1, 1, 1);
 MODULE_DEPEND(nfe, ether, 1, 1, 1);
@@ -70,23 +67,23 @@ MODULE_DEPEND(nfe, miibus, 1, 1, 1);
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 
-static int  nfe_probe(device_t);
-static int  nfe_attach(device_t);
-static int  nfe_detach(device_t);
-static int  nfe_suspend(device_t);
-static int  nfe_resume(device_t);
+static int nfe_probe(device_t);
+static int nfe_attach(device_t);
+static int nfe_detach(device_t);
+static int nfe_suspend(device_t);
+static int nfe_resume(device_t);
 static int nfe_shutdown(device_t);
-static int  nfe_can_use_msix(struct nfe_softc *);
-static int  nfe_detect_msik9(struct nfe_softc *);
+static int nfe_can_use_msix(struct nfe_softc *);
+static int nfe_detect_msik9(struct nfe_softc *);
 static void nfe_power(struct nfe_softc *);
-static int  nfe_miibus_readreg(device_t, int, int);
-static int  nfe_miibus_writereg(device_t, int, int, int);
+static int nfe_miibus_readreg(device_t, int, int);
+static int nfe_miibus_writereg(device_t, int, int, int);
 static void nfe_miibus_statchg(device_t);
 static void nfe_mac_config(struct nfe_softc *, struct mii_data *);
 static void nfe_set_intr(struct nfe_softc *);
 static __inline void nfe_enable_intr(struct nfe_softc *);
 static __inline void nfe_disable_intr(struct nfe_softc *);
-static int  nfe_ioctl(if_t, u_long, caddr_t);
+static int nfe_ioctl(if_t, u_long, caddr_t);
 static void nfe_alloc_msix(struct nfe_softc *, int);
 static int nfe_intr(void *);
 static void nfe_int_task(void *, int);
@@ -94,10 +91,10 @@ static __inline void nfe_discard_rxbuf(struct nfe_softc *, int);
 static __inline void nfe_discard_jrxbuf(struct nfe_softc *, int);
 static int nfe_newbuf(struct nfe_softc *, int);
 static int nfe_jnewbuf(struct nfe_softc *, int);
-static int  nfe_rxeof(struct nfe_softc *, int, int *);
-static int  nfe_jrxeof(struct nfe_softc *, int, int *);
+static int nfe_rxeof(struct nfe_softc *, int, int *);
+static int nfe_jrxeof(struct nfe_softc *, int, int *);
 static void nfe_txeof(struct nfe_softc *);
-static int  nfe_encap(struct nfe_softc *, struct mbuf **);
+static int nfe_encap(struct nfe_softc *, struct mbuf **);
 static void nfe_setmulti(struct nfe_softc *);
 static void nfe_start(if_t);
 static void nfe_start_locked(if_t);
@@ -105,16 +102,16 @@ static void nfe_watchdog(if_t);
 static void nfe_init(void *);
 static void nfe_init_locked(void *);
 static void nfe_stop(if_t);
-static int  nfe_alloc_rx_ring(struct nfe_softc *, struct nfe_rx_ring *);
+static int nfe_alloc_rx_ring(struct nfe_softc *, struct nfe_rx_ring *);
 static void nfe_alloc_jrx_ring(struct nfe_softc *, struct nfe_jrx_ring *);
-static int  nfe_init_rx_ring(struct nfe_softc *, struct nfe_rx_ring *);
-static int  nfe_init_jrx_ring(struct nfe_softc *, struct nfe_jrx_ring *);
+static int nfe_init_rx_ring(struct nfe_softc *, struct nfe_rx_ring *);
+static int nfe_init_jrx_ring(struct nfe_softc *, struct nfe_jrx_ring *);
 static void nfe_free_rx_ring(struct nfe_softc *, struct nfe_rx_ring *);
 static void nfe_free_jrx_ring(struct nfe_softc *, struct nfe_jrx_ring *);
-static int  nfe_alloc_tx_ring(struct nfe_softc *, struct nfe_tx_ring *);
+static int nfe_alloc_tx_ring(struct nfe_softc *, struct nfe_tx_ring *);
 static void nfe_init_tx_ring(struct nfe_softc *, struct nfe_tx_ring *);
 static void nfe_free_tx_ring(struct nfe_softc *, struct nfe_tx_ring *);
-static int  nfe_ifmedia_upd(if_t);
+static int nfe_ifmedia_upd(if_t);
 static void nfe_ifmedia_sts(if_t, struct ifmediareq *);
 static void nfe_tick(void *);
 static void nfe_get_macaddr(struct nfe_softc *, uint8_t *);
@@ -131,22 +128,24 @@ static void nfe_set_wol(struct nfe_softc *);
 
 #ifdef NFE_DEBUG
 static int nfedebug = 0;
-#define	DPRINTF(sc, ...)	do {				\
-	if (nfedebug)						\
-		device_printf((sc)->nfe_dev, __VA_ARGS__);	\
-} while (0)
-#define	DPRINTFN(sc, n, ...)	do {				\
-	if (nfedebug >= (n))					\
-		device_printf((sc)->nfe_dev, __VA_ARGS__);	\
-} while (0)
+#define DPRINTF(sc, ...)                                           \
+	do {                                                       \
+		if (nfedebug)                                      \
+			device_printf((sc)->nfe_dev, __VA_ARGS__); \
+	} while (0)
+#define DPRINTFN(sc, n, ...)                                       \
+	do {                                                       \
+		if (nfedebug >= (n))                               \
+			device_printf((sc)->nfe_dev, __VA_ARGS__); \
+	} while (0)
 #else
-#define	DPRINTF(sc, ...)
-#define	DPRINTFN(sc, n, ...)
+#define DPRINTF(sc, ...)
+#define DPRINTFN(sc, n, ...)
 #endif
 
-#define	NFE_LOCK(_sc)		mtx_lock(&(_sc)->nfe_mtx)
-#define	NFE_UNLOCK(_sc)		mtx_unlock(&(_sc)->nfe_mtx)
-#define	NFE_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->nfe_mtx, MA_OWNED)
+#define NFE_LOCK(_sc) mtx_lock(&(_sc)->nfe_mtx)
+#define NFE_UNLOCK(_sc) mtx_unlock(&(_sc)->nfe_mtx)
+#define NFE_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->nfe_mtx, MA_OWNED)
 
 /* Tunables. */
 static int msi_disable = 0;
@@ -158,112 +157,108 @@ TUNABLE_INT("hw.nfe.jumbo_disable", &jumbo_disable);
 
 static device_method_t nfe_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nfe_probe),
-	DEVMETHOD(device_attach,	nfe_attach),
-	DEVMETHOD(device_detach,	nfe_detach),
-	DEVMETHOD(device_suspend,	nfe_suspend),
-	DEVMETHOD(device_resume,	nfe_resume),
-	DEVMETHOD(device_shutdown,	nfe_shutdown),
+	DEVMETHOD(device_probe, nfe_probe),
+	DEVMETHOD(device_attach, nfe_attach),
+	DEVMETHOD(device_detach, nfe_detach),
+	DEVMETHOD(device_suspend, nfe_suspend),
+	DEVMETHOD(device_resume, nfe_resume),
+	DEVMETHOD(device_shutdown, nfe_shutdown),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	nfe_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	nfe_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	nfe_miibus_statchg),
+	DEVMETHOD(miibus_readreg, nfe_miibus_readreg),
+	DEVMETHOD(miibus_writereg, nfe_miibus_writereg),
+	DEVMETHOD(miibus_statchg, nfe_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t nfe_driver = {
-	"nfe",
-	nfe_methods,
-	sizeof(struct nfe_softc)
-};
+static driver_t nfe_driver = { "nfe", nfe_methods, sizeof(struct nfe_softc) };
 
 DRIVER_MODULE(nfe, pci, nfe_driver, 0, 0);
 DRIVER_MODULE(miibus, nfe, miibus_driver, 0, 0);
 
 static struct nfe_type nfe_devs[] = {
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE_LAN,
-	    "NVIDIA nForce MCP Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_LAN,
-	    "NVIDIA nForce2 MCP2 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_400_LAN1,
-	    "NVIDIA nForce2 400 MCP4 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_400_LAN2,
-	    "NVIDIA nForce2 400 MCP5 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_LAN1,
-	    "NVIDIA nForce3 MCP3 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_250_LAN,
-	    "NVIDIA nForce3 250 MCP6 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_LAN4,
-	    "NVIDIA nForce3 MCP7 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE4_LAN1,
-	    "NVIDIA nForce4 CK804 MCP8 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE4_LAN2,
-	    "NVIDIA nForce4 CK804 MCP9 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP04_LAN1,
-	    "NVIDIA nForce MCP04 Networking Adapter"},		/* MCP10 */
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP04_LAN2,
-	    "NVIDIA nForce MCP04 Networking Adapter"},		/* MCP11 */
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE430_LAN1,
-	    "NVIDIA nForce 430 MCP12 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE430_LAN2,
-	    "NVIDIA nForce 430 MCP13 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP55_LAN1,
-	    "NVIDIA nForce MCP55 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP55_LAN2,
-	    "NVIDIA nForce MCP55 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN1,
-	    "NVIDIA nForce MCP61 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN2,
-	    "NVIDIA nForce MCP61 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN3,
-	    "NVIDIA nForce MCP61 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN4,
-	    "NVIDIA nForce MCP61 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN1,
-	    "NVIDIA nForce MCP65 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN2,
-	    "NVIDIA nForce MCP65 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN3,
-	    "NVIDIA nForce MCP65 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN4,
-	    "NVIDIA nForce MCP65 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN1,
-	    "NVIDIA nForce MCP67 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN2,
-	    "NVIDIA nForce MCP67 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN3,
-	    "NVIDIA nForce MCP67 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN4,
-	    "NVIDIA nForce MCP67 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN1,
-	    "NVIDIA nForce MCP73 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN2,
-	    "NVIDIA nForce MCP73 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN3,
-	    "NVIDIA nForce MCP73 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN4,
-	    "NVIDIA nForce MCP73 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN1,
-	    "NVIDIA nForce MCP77 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN2,
-	    "NVIDIA nForce MCP77 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN3,
-	    "NVIDIA nForce MCP77 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN4,
-	    "NVIDIA nForce MCP77 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN1,
-	    "NVIDIA nForce MCP79 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN2,
-	    "NVIDIA nForce MCP79 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN3,
-	    "NVIDIA nForce MCP79 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN4,
-	    "NVIDIA nForce MCP79 Networking Adapter"},
-	{PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP89_LAN,
-	    "NVIDIA nForce MCP89 Networking Adapter"},
-	{0, 0, NULL}
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE_LAN,
+	    "NVIDIA nForce MCP Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_LAN,
+	    "NVIDIA nForce2 MCP2 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_400_LAN1,
+	    "NVIDIA nForce2 400 MCP4 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE2_400_LAN2,
+	    "NVIDIA nForce2 400 MCP5 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_LAN1,
+	    "NVIDIA nForce3 MCP3 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_250_LAN,
+	    "NVIDIA nForce3 250 MCP6 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE3_LAN4,
+	    "NVIDIA nForce3 MCP7 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE4_LAN1,
+	    "NVIDIA nForce4 CK804 MCP8 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE4_LAN2,
+	    "NVIDIA nForce4 CK804 MCP9 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP04_LAN1,
+	    "NVIDIA nForce MCP04 Networking Adapter" }, /* MCP10 */
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP04_LAN2,
+	    "NVIDIA nForce MCP04 Networking Adapter" }, /* MCP11 */
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE430_LAN1,
+	    "NVIDIA nForce 430 MCP12 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_NFORCE430_LAN2,
+	    "NVIDIA nForce 430 MCP13 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP55_LAN1,
+	    "NVIDIA nForce MCP55 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP55_LAN2,
+	    "NVIDIA nForce MCP55 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN1,
+	    "NVIDIA nForce MCP61 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN2,
+	    "NVIDIA nForce MCP61 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN3,
+	    "NVIDIA nForce MCP61 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP61_LAN4,
+	    "NVIDIA nForce MCP61 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN1,
+	    "NVIDIA nForce MCP65 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN2,
+	    "NVIDIA nForce MCP65 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN3,
+	    "NVIDIA nForce MCP65 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP65_LAN4,
+	    "NVIDIA nForce MCP65 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN1,
+	    "NVIDIA nForce MCP67 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN2,
+	    "NVIDIA nForce MCP67 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN3,
+	    "NVIDIA nForce MCP67 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP67_LAN4,
+	    "NVIDIA nForce MCP67 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN1,
+	    "NVIDIA nForce MCP73 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN2,
+	    "NVIDIA nForce MCP73 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN3,
+	    "NVIDIA nForce MCP73 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP73_LAN4,
+	    "NVIDIA nForce MCP73 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN1,
+	    "NVIDIA nForce MCP77 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN2,
+	    "NVIDIA nForce MCP77 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN3,
+	    "NVIDIA nForce MCP77 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP77_LAN4,
+	    "NVIDIA nForce MCP77 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN1,
+	    "NVIDIA nForce MCP79 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN2,
+	    "NVIDIA nForce MCP79 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN3,
+	    "NVIDIA nForce MCP79 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP79_LAN4,
+	    "NVIDIA nForce MCP79 Networking Adapter" },
+	{ PCI_VENDOR_NVIDIA, PCI_PRODUCT_NVIDIA_MCP89_LAN,
+	    "NVIDIA nForce MCP89 Networking Adapter" },
+	{ 0, 0, NULL }
 };
 
 /* Probe for supported hardware ID's */
@@ -399,12 +394,13 @@ nfe_attach(device_t dev)
 		if (v != width)
 			device_printf(sc->nfe_dev,
 			    "warning, negotiated width of link(x%d) != "
-			    "max. width of link(x%d)\n", width, v);
+			    "max. width of link(x%d)\n",
+			    width, v);
 	}
 
 	if (nfe_can_use_msix(sc) == 0) {
 		device_printf(sc->nfe_dev,
-		    "MSI/MSI-X capability black-listed, will use INTx\n"); 
+		    "MSI/MSI-X capability black-listed, will use INTx\n");
 		msix_disable = 1;
 		msi_disable = 1;
 	}
@@ -443,7 +439,8 @@ nfe_attach(device_t dev)
 			if (sc->nfe_irq[i] == NULL) {
 				device_printf(dev,
 				    "couldn't allocate IRQ resources for "
-				    "message %d\n", rid);
+				    "message %d\n",
+				    rid);
 				error = ENXIO;
 				goto fail;
 			}
@@ -535,9 +532,8 @@ nfe_attach(device_t dev)
 	case PCI_PRODUCT_NVIDIA_MCP65_LAN2:
 	case PCI_PRODUCT_NVIDIA_MCP65_LAN3:
 	case PCI_PRODUCT_NVIDIA_MCP65_LAN4:
-		sc->nfe_flags |= NFE_JUMBO_SUP | NFE_40BIT_ADDR |
-		    NFE_PWR_MGMT | NFE_CORRECT_MACADDR | NFE_TX_FLOW_CTRL |
-		    NFE_MIB_V2;
+		sc->nfe_flags |= NFE_JUMBO_SUP | NFE_40BIT_ADDR | NFE_PWR_MGMT |
+		    NFE_CORRECT_MACADDR | NFE_TX_FLOW_CTRL | NFE_MIB_V2;
 		break;
 	}
 
@@ -552,16 +548,15 @@ nfe_attach(device_t dev)
 	dma_addr_max = BUS_SPACE_MAXADDR_32BIT;
 	if ((sc->nfe_flags & NFE_40BIT_ADDR) != 0)
 		dma_addr_max = NFE_DMA_MAXADDR;
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->nfe_dev),	/* parent */
-	    1, 0,				/* alignment, boundary */
-	    dma_addr_max,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT, 0,		/* maxsize, nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,		/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->nfe_dev), /* parent */
+	    1, 0,			/* alignment, boundary */
+	    dma_addr_max,		/* lowaddr */
+	    BUS_SPACE_MAXADDR,		/* highaddr */
+	    NULL, NULL,			/* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, 0, /* maxsize, nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
+	    0,				/* flags */
+	    NULL, NULL,			/* lockfunc, lockarg */
 	    &sc->nfe_parent_tag);
 	if (error)
 		goto fail;
@@ -816,11 +811,10 @@ static int
 nfe_can_use_msix(struct nfe_softc *sc)
 {
 	static struct msix_blacklist {
-		char	*maker;
-		char	*product;
-	} msix_blacklists[] = {
-		{ "ASUSTeK Computer INC.", "P5N32-SLI PREMIUM" }
-	};
+		char *maker;
+		char *product;
+	} msix_blacklists[] = { { "ASUSTeK Computer INC.",
+	    "P5N32-SLI PREMIUM" } };
 
 	struct msix_blacklist *mblp;
 	char *maker, *product;
@@ -871,7 +865,7 @@ nfe_power(struct nfe_softc *sc)
 	pwr &= ~NFE_PWR2_WAKEUP_MASK;
 	if (sc->nfe_revid >= 0xa3 &&
 	    (sc->nfe_devid == PCI_PRODUCT_NVIDIA_NFORCE430_LAN1 ||
-	    sc->nfe_devid == PCI_PRODUCT_NVIDIA_NFORCE430_LAN2))
+		sc->nfe_devid == PCI_PRODUCT_NVIDIA_NFORCE430_LAN2))
 		pwr |= NFE_PWR2_REVA3;
 	NFE_WRITE(sc, NFE_PWR2_CTL, pwr);
 }
@@ -935,20 +929,20 @@ nfe_mac_config(struct nfe_softc *sc, struct mii_data *mii)
 	link = NFE_MEDIA_SET;
 
 	if ((IFM_OPTIONS(mii->mii_media_active) & IFM_FDX) == 0) {
-		phy  |= NFE_PHY_HDX;	/* half-duplex */
+		phy |= NFE_PHY_HDX; /* half-duplex */
 		misc |= NFE_MISC1_HDX;
 	}
 
 	switch (IFM_SUBTYPE(mii->mii_media_active)) {
-	case IFM_1000_T:	/* full-duplex only */
+	case IFM_1000_T: /* full-duplex only */
 		link |= NFE_MEDIA_1000T;
 		seed |= NFE_SEED_1000T;
-		phy  |= NFE_PHY_1000T;
+		phy |= NFE_PHY_1000T;
 		break;
 	case IFM_100_TX:
 		link |= NFE_MEDIA_100TX;
 		seed |= NFE_SEED_100TX;
-		phy  |= NFE_PHY_100TX;
+		phy |= NFE_PHY_100TX;
 		break;
 	case IFM_10_T:
 		link |= NFE_MEDIA_10T;
@@ -965,7 +959,7 @@ nfe_mac_config(struct nfe_softc *sc, struct mii_data *mii)
 		val = NFE_R1_MAGIC_DEFAULT;
 	NFE_WRITE(sc, NFE_SETUP_R1, val);
 
-	NFE_WRITE(sc, NFE_RNDSEED, seed);	/* XXX: gigabit NICs only? */
+	NFE_WRITE(sc, NFE_RNDSEED, seed); /* XXX: gigabit NICs only? */
 
 	NFE_WRITE(sc, NFE_PHY_IFACE, phy);
 	NFE_WRITE(sc, NFE_MISC1, misc);
@@ -974,8 +968,7 @@ nfe_mac_config(struct nfe_softc *sc, struct mii_data *mii)
 	if ((IFM_OPTIONS(mii->mii_media_active) & IFM_FDX) != 0) {
 		/* It seems all hardwares supports Rx pause frames. */
 		val = NFE_READ(sc, NFE_RXFILTER);
-		if ((IFM_OPTIONS(mii->mii_media_active) &
-		    IFM_ETH_RXPAUSE) != 0)
+		if ((IFM_OPTIONS(mii->mii_media_active) & IFM_ETH_RXPAUSE) != 0)
 			val |= NFE_PFF_RX_PAUSE;
 		else
 			val &= ~NFE_PFF_RX_PAUSE;
@@ -983,7 +976,7 @@ nfe_mac_config(struct nfe_softc *sc, struct mii_data *mii)
 		if ((sc->nfe_flags & NFE_TX_FLOW_CTRL) != 0) {
 			val = NFE_READ(sc, NFE_MISC1);
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_TXPAUSE) != 0) {
+				IFM_ETH_TXPAUSE) != 0) {
 				NFE_WRITE(sc, NFE_TX_PAUSE_FRAME,
 				    NFE_TX_PAUSE_FRAME_ENABLE);
 				val |= NFE_MISC1_TX_PAUSE;
@@ -1093,23 +1086,23 @@ nfe_alloc_rx_ring(struct nfe_softc *sc, struct nfe_rx_ring *ring)
 
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->desc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->desc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 
 	ring->cur = ring->next = 0;
 
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    NFE_RING_ALIGN, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    NFE_RX_RING_COUNT * descsize, 1,	/* maxsize, nsegments */
-	    NFE_RX_RING_COUNT * descsize,	/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->nfe_parent_tag, NFE_RING_ALIGN,
+	    0,				     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,		     /* highaddr */
+	    NULL, NULL,			     /* filter, filterarg */
+	    NFE_RX_RING_COUNT * descsize, 1, /* maxsize, nsegments */
+	    NFE_RX_RING_COUNT * descsize,    /* maxsegsize */
+	    0,				     /* flags */
+	    NULL, NULL,			     /* lockfunc, lockarg */
 	    &ring->rx_desc_tag);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create desc DMA tag\n");
@@ -1117,8 +1110,9 @@ nfe_alloc_rx_ring(struct nfe_softc *sc, struct nfe_rx_ring *ring)
 	}
 
 	/* allocate memory to desc */
-	error = bus_dmamem_alloc(ring->rx_desc_tag, &desc, BUS_DMA_WAITOK |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &ring->rx_desc_map);
+	error = bus_dmamem_alloc(ring->rx_desc_tag, &desc,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &ring->rx_desc_map);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create desc DMA map\n");
 		goto fail;
@@ -1138,15 +1132,15 @@ nfe_alloc_rx_ring(struct nfe_softc *sc, struct nfe_rx_ring *ring)
 	}
 	ring->physaddr = ctx.nfe_busaddr;
 
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES, 1,		/* maxsize, nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->nfe_parent_tag, 1,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    MCLBYTES, 1,       /* maxsize, nsegments */
+	    MCLBYTES,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &ring->rx_data_tag);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create Rx DMA tag\n");
@@ -1198,23 +1192,23 @@ nfe_alloc_jrx_ring(struct nfe_softc *sc, struct nfe_jrx_ring *ring)
 
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->jdesc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->jdesc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 
 	ring->jcur = ring->jnext = 0;
 
 	/* Create DMA tag for jumbo Rx ring. */
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    NFE_RING_ALIGN, 0,			/* alignment, boundary */
+	error = bus_dma_tag_create(sc->nfe_parent_tag, NFE_RING_ALIGN,
+	    0,					/* alignment, boundary */
 	    BUS_SPACE_MAXADDR,			/* lowaddr */
 	    BUS_SPACE_MAXADDR,			/* highaddr */
 	    NULL, NULL,				/* filter, filterarg */
-	    NFE_JUMBO_RX_RING_COUNT * descsize,	/* maxsize */
-	    1, 					/* nsegments */
-	    NFE_JUMBO_RX_RING_COUNT * descsize,	/* maxsegsize */
+	    NFE_JUMBO_RX_RING_COUNT * descsize, /* maxsize */
+	    1,					/* nsegments */
+	    NFE_JUMBO_RX_RING_COUNT * descsize, /* maxsegsize */
 	    0,					/* flags */
 	    NULL, NULL,				/* lockfunc, lockarg */
 	    &ring->jrx_desc_tag);
@@ -1225,16 +1219,16 @@ nfe_alloc_jrx_ring(struct nfe_softc *sc, struct nfe_jrx_ring *ring)
 	}
 
 	/* Create DMA tag for jumbo Rx buffers. */
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    1, 0,				/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    MJUM9BYTES,				/* maxsize */
-	    1,					/* nsegments */
-	    MJUM9BYTES,				/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->nfe_parent_tag, 1,
+	    0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    MJUM9BYTES,	       /* maxsize */
+	    1,		       /* nsegments */
+	    MJUM9BYTES,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &ring->jrx_data_tag);
 	if (error != 0) {
 		device_printf(sc->nfe_dev,
@@ -1243,8 +1237,9 @@ nfe_alloc_jrx_ring(struct nfe_softc *sc, struct nfe_jrx_ring *ring)
 	}
 
 	/* Allocate DMA'able memory and load the DMA map for jumbo Rx ring. */
-	error = bus_dmamem_alloc(ring->jrx_desc_tag, &desc, BUS_DMA_WAITOK |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &ring->jrx_desc_map);
+	error = bus_dmamem_alloc(ring->jrx_desc_tag, &desc,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &ring->jrx_desc_map);
 	if (error != 0) {
 		device_printf(sc->nfe_dev,
 		    "could not allocate DMA'able memory for jumbo Rx ring\n");
@@ -1294,7 +1289,8 @@ fail:
 	 * so don't fail on creating dma tag/map for jumbo frame.
 	 */
 	nfe_free_jrx_ring(sc, ring);
-	device_printf(sc->nfe_dev, "disabling jumbo frame support due to "
+	device_printf(sc->nfe_dev,
+	    "disabling jumbo frame support due to "
 	    "resource shortage\n");
 	sc->nfe_jumbo_disable = 1;
 }
@@ -1309,10 +1305,10 @@ nfe_init_rx_ring(struct nfe_softc *sc, struct nfe_rx_ring *ring)
 	ring->cur = ring->next = 0;
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->desc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->desc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 	bzero(desc, descsize * NFE_RX_RING_COUNT);
 	for (i = 0; i < NFE_RX_RING_COUNT; i++) {
@@ -1336,10 +1332,10 @@ nfe_init_jrx_ring(struct nfe_softc *sc, struct nfe_jrx_ring *ring)
 	ring->jcur = ring->jnext = 0;
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->jdesc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->jdesc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 	bzero(desc, descsize * NFE_JUMBO_RX_RING_COUNT);
 	for (i = 0; i < NFE_JUMBO_RX_RING_COUNT; i++) {
@@ -1460,32 +1456,33 @@ nfe_alloc_tx_ring(struct nfe_softc *sc, struct nfe_tx_ring *ring)
 
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->desc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->desc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 
 	ring->queued = 0;
 	ring->cur = ring->next = 0;
 
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    NFE_RING_ALIGN, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    NFE_TX_RING_COUNT * descsize, 1,	/* maxsize, nsegments */
-	    NFE_TX_RING_COUNT * descsize,	/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->nfe_parent_tag, NFE_RING_ALIGN,
+	    0,				     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,		     /* highaddr */
+	    NULL, NULL,			     /* filter, filterarg */
+	    NFE_TX_RING_COUNT * descsize, 1, /* maxsize, nsegments */
+	    NFE_TX_RING_COUNT * descsize,    /* maxsegsize */
+	    0,				     /* flags */
+	    NULL, NULL,			     /* lockfunc, lockarg */
 	    &ring->tx_desc_tag);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create desc DMA tag\n");
 		goto fail;
 	}
 
-	error = bus_dmamem_alloc(ring->tx_desc_tag, &desc, BUS_DMA_WAITOK |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &ring->tx_desc_map);
+	error = bus_dmamem_alloc(ring->tx_desc_tag, &desc,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &ring->tx_desc_map);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create desc DMA map\n");
 		goto fail;
@@ -1504,17 +1501,9 @@ nfe_alloc_tx_ring(struct nfe_softc *sc, struct nfe_tx_ring *ring)
 	}
 	ring->physaddr = ctx.nfe_busaddr;
 
-	error = bus_dma_tag_create(sc->nfe_parent_tag,
-	    1, 0,
-	    BUS_SPACE_MAXADDR,
-	    BUS_SPACE_MAXADDR,
-	    NULL, NULL,
-	    NFE_TSO_MAXSIZE,
-	    NFE_MAX_SCATTER,
-	    NFE_TSO_MAXSGSIZE,
-	    0,
-	    NULL, NULL,
-	    &ring->tx_data_tag);
+	error = bus_dma_tag_create(sc->nfe_parent_tag, 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, NFE_TSO_MAXSIZE, NFE_MAX_SCATTER,
+	    NFE_TSO_MAXSGSIZE, 0, NULL, NULL, &ring->tx_data_tag);
 	if (error != 0) {
 		device_printf(sc->nfe_dev, "could not create Tx DMA tag\n");
 		goto fail;
@@ -1545,10 +1534,10 @@ nfe_init_tx_ring(struct nfe_softc *sc, struct nfe_tx_ring *ring)
 	ring->cur = ring->next = 0;
 	if (sc->nfe_flags & NFE_40BIT_ADDR) {
 		desc = ring->desc64;
-		descsize = sizeof (struct nfe_desc64);
+		descsize = sizeof(struct nfe_desc64);
 	} else {
 		desc = ring->desc32;
-		descsize = sizeof (struct nfe_desc32);
+		descsize = sizeof(struct nfe_desc32);
 	}
 	bzero(desc, descsize * NFE_TX_RING_COUNT);
 
@@ -1688,7 +1677,7 @@ nfe_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	int error, init, mask;
 
 	sc = if_getsoftc(ifp);
-	ifr = (struct ifreq *) data;
+	ifr = (struct ifreq *)data;
 	error = 0;
 	init = 0;
 	switch (cmd) {
@@ -1697,14 +1686,15 @@ nfe_ioctl(if_t ifp, u_long cmd, caddr_t data)
 			error = EINVAL;
 		else if (if_getmtu(ifp) != ifr->ifr_mtu) {
 			if ((((sc->nfe_flags & NFE_JUMBO_SUP) == 0) ||
-			    (sc->nfe_jumbo_disable != 0)) &&
+				(sc->nfe_jumbo_disable != 0)) &&
 			    ifr->ifr_mtu > ETHERMTU)
 				error = EINVAL;
 			else {
 				NFE_LOCK(sc);
 				if_setmtu(ifp, ifr->ifr_mtu);
 				if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
-					if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
+					if_setdrvflagbits(ifp, 0,
+					    IFF_DRV_RUNNING);
 					nfe_init_locked(sc);
 				}
 				NFE_UNLOCK(sc);
@@ -1721,7 +1711,7 @@ nfe_ioctl(if_t ifp, u_long cmd, caddr_t data)
 			 */
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) &&
 			    ((if_getflags(ifp) ^ sc->nfe_if_flags) &
-			     (IFF_ALLMULTI | IFF_PROMISC)) != 0)
+				(IFF_ALLMULTI | IFF_PROMISC)) != 0)
 				nfe_setmulti(sc);
 			else
 				nfe_init_locked(sc);
@@ -1860,7 +1850,7 @@ nfe_int_task(void *arg, int pending)
 	if ((r = NFE_READ(sc, sc->nfe_irq_status)) == 0) {
 		nfe_enable_intr(sc);
 		NFE_UNLOCK(sc);
-		return;	/* not for us */
+		return; /* not for us */
 	}
 	NFE_WRITE(sc, sc->nfe_irq_status, r);
 
@@ -1977,7 +1967,7 @@ nfe_newbuf(struct nfe_softc *sc, int idx)
 	m_adj(m, ETHER_ALIGN);
 
 	if (bus_dmamap_load_mbuf_sg(sc->rxq.rx_data_tag, sc->rxq.rx_spare_map,
-	    m, segs, &nsegs, BUS_DMA_NOWAIT) != 0) {
+		m, segs, &nsegs, BUS_DMA_NOWAIT) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -2031,7 +2021,7 @@ nfe_jnewbuf(struct nfe_softc *sc, int idx)
 	m_adj(m, ETHER_ALIGN);
 
 	if (bus_dmamap_load_mbuf_sg(sc->jrxq.jrx_data_tag,
-	    sc->jrxq.jrx_spare_map, m, segs, &nsegs, BUS_DMA_NOWAIT) != 0) {
+		sc->jrxq.jrx_spare_map, m, segs, &nsegs, BUS_DMA_NOWAIT) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -2085,7 +2075,7 @@ nfe_rxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 	bus_dmamap_sync(sc->rxq.rx_desc_tag, sc->rxq.rx_desc_map,
 	    BUS_DMASYNC_POSTREAD);
 
-	for (prog = 0;;NFE_INC(sc->rxq.cur, NFE_RX_RING_COUNT), vtag = 0) {
+	for (prog = 0;; NFE_INC(sc->rxq.cur, NFE_RX_RING_COUNT), vtag = 0) {
 		if (count <= 0)
 			break;
 		count--;
@@ -2114,7 +2104,7 @@ nfe_rxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 			}
 			if ((flags & NFE_RX_FIXME_V1) == NFE_RX_FIXME_V1) {
 				flags &= ~NFE_RX_ERROR;
-				len--;	/* fix buffer length */
+				len--; /* fix buffer length */
 			}
 		} else {
 			if (!(flags & NFE_RX_VALID_V2)) {
@@ -2125,7 +2115,7 @@ nfe_rxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 
 			if ((flags & NFE_RX_FIXME_V2) == NFE_RX_FIXME_V2) {
 				flags &= ~NFE_RX_ERROR;
-				len--;	/* fix buffer length */
+				len--; /* fix buffer length */
 			}
 		}
 
@@ -2199,8 +2189,8 @@ nfe_jrxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 	bus_dmamap_sync(sc->jrxq.jrx_desc_tag, sc->jrxq.jrx_desc_map,
 	    BUS_DMASYNC_POSTREAD);
 
-	for (prog = 0;;NFE_INC(sc->jrxq.jcur, NFE_JUMBO_RX_RING_COUNT),
-	    vtag = 0) {
+	for (prog = 0;;
+	     NFE_INC(sc->jrxq.jcur, NFE_JUMBO_RX_RING_COUNT), vtag = 0) {
 		if (count <= 0)
 			break;
 		count--;
@@ -2229,7 +2219,7 @@ nfe_jrxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 			}
 			if ((flags & NFE_RX_FIXME_V1) == NFE_RX_FIXME_V1) {
 				flags &= ~NFE_RX_ERROR;
-				len--;	/* fix buffer length */
+				len--; /* fix buffer length */
 			}
 		} else {
 			if (!(flags & NFE_RX_VALID_V2)) {
@@ -2240,7 +2230,7 @@ nfe_jrxeof(struct nfe_softc *sc, int count, int *rx_npktsp)
 
 			if ((flags & NFE_RX_FIXME_V2) == NFE_RX_FIXME_V2) {
 				flags &= ~NFE_RX_ERROR;
-				len--;	/* fix buffer length */
+				len--; /* fix buffer length */
 			}
 		}
 
@@ -2313,7 +2303,7 @@ nfe_txeof(struct nfe_softc *sc)
 
 	prog = 0;
 	for (cons = sc->txq.next; cons != sc->txq.cur;
-	    NFE_INC(cons, NFE_TX_RING_COUNT)) {
+	     NFE_INC(cons, NFE_TX_RING_COUNT)) {
 		if (sc->nfe_flags & NFE_40BIT_ADDR) {
 			desc64 = &sc->txq.desc64[cons];
 			flags = le16toh(desc64->flags);
@@ -2417,8 +2407,7 @@ nfe_encap(struct nfe_softc *sc, struct mbuf **m_head)
 	cflags = flags = 0;
 	tsosegsz = 0;
 	if ((m->m_pkthdr.csum_flags & CSUM_TSO) != 0) {
-		tsosegsz = (uint32_t)m->m_pkthdr.tso_segsz <<
-		    NFE_TX_TSO_SHIFT;
+		tsosegsz = (uint32_t)m->m_pkthdr.tso_segsz << NFE_TX_TSO_SHIFT;
 		cflags &= ~(NFE_TX_IP_CSUM | NFE_TX_TCP_UDP_CSUM);
 		cflags |= NFE_TX_TSO;
 	} else if ((m->m_pkthdr.csum_flags & NFE_CSUM_FEATURES) != 0) {
@@ -2433,17 +2422,17 @@ nfe_encap(struct nfe_softc *sc, struct mbuf **m_head)
 	for (i = 0; i < nsegs; i++) {
 		if (sc->nfe_flags & NFE_40BIT_ADDR) {
 			desc64 = &sc->txq.desc64[prod];
-			desc64->physaddr[0] =
-			    htole32(NFE_ADDR_HI(segs[i].ds_addr));
-			desc64->physaddr[1] =
-			    htole32(NFE_ADDR_LO(segs[i].ds_addr));
+			desc64->physaddr[0] = htole32(
+			    NFE_ADDR_HI(segs[i].ds_addr));
+			desc64->physaddr[1] = htole32(
+			    NFE_ADDR_LO(segs[i].ds_addr));
 			desc64->vtag = 0;
 			desc64->length = htole16(segs[i].ds_len - 1);
 			desc64->flags = htole16(flags);
 		} else {
 			desc32 = &sc->txq.desc32[prod];
-			desc32->physaddr =
-			    htole32(NFE_ADDR_LO(segs[i].ds_addr));
+			desc32->physaddr = htole32(
+			    NFE_ADDR_LO(segs[i].ds_addr));
 			desc32->length = htole16(segs[i].ds_len - 1);
 			desc32->flags = htole16(flags);
 		}
@@ -2466,8 +2455,8 @@ nfe_encap(struct nfe_softc *sc, struct mbuf **m_head)
 		desc64->flags |= htole16(NFE_TX_LASTFRAG_V2);
 		desc64 = &sc->txq.desc64[si];
 		if ((m->m_flags & M_VLANTAG) != 0)
-			desc64->vtag = htole32(NFE_TX_VTAG |
-			    m->m_pkthdr.ether_vtag);
+			desc64->vtag = htole32(
+			    NFE_TX_VTAG | m->m_pkthdr.ether_vtag);
 		if (tsosegsz != 0) {
 			/*
 			 * XXX
@@ -2543,9 +2532,8 @@ nfe_setmulti(struct nfe_softc *sc)
 	if_t ifp = sc->nfe_ifp;
 	struct nfe_hash_maddr_ctx ctx;
 	uint32_t filter;
-	uint8_t etherbroadcastaddr[ETHER_ADDR_LEN] = {
-		0xff, 0xff, 0xff, 0xff, 0xff, 0xff
-	};
+	uint8_t etherbroadcastaddr[ETHER_ADDR_LEN] = { 0xff, 0xff, 0xff, 0xff,
+		0xff, 0xff };
 	int i;
 
 	NFE_LOCK_ASSERT(sc);
@@ -2566,21 +2554,22 @@ nfe_setmulti(struct nfe_softc *sc)
 	}
 
 done:
-	ctx.addr[0] |= 0x01;	/* make sure multicast bit is set */
+	ctx.addr[0] |= 0x01; /* make sure multicast bit is set */
 
-	NFE_WRITE(sc, NFE_MULTIADDR_HI, ctx.addr[3] << 24 | ctx.addr[2] << 16 |
-	    ctx.addr[1] << 8 | ctx.addr[0]);
-	NFE_WRITE(sc, NFE_MULTIADDR_LO,
-	    ctx.addr[5] <<  8 | ctx.addr[4]);
-	NFE_WRITE(sc, NFE_MULTIMASK_HI, ctx.mask[3] << 24 | ctx.mask[2] << 16 |
-	    ctx.mask[1] << 8 | ctx.mask[0]);
-	NFE_WRITE(sc, NFE_MULTIMASK_LO,
-	    ctx.mask[5] <<  8 | ctx.mask[4]);
+	NFE_WRITE(sc, NFE_MULTIADDR_HI,
+	    ctx.addr[3] << 24 | ctx.addr[2] << 16 | ctx.addr[1] << 8 |
+		ctx.addr[0]);
+	NFE_WRITE(sc, NFE_MULTIADDR_LO, ctx.addr[5] << 8 | ctx.addr[4]);
+	NFE_WRITE(sc, NFE_MULTIMASK_HI,
+	    ctx.mask[3] << 24 | ctx.mask[2] << 16 | ctx.mask[1] << 8 |
+		ctx.mask[0]);
+	NFE_WRITE(sc, NFE_MULTIMASK_LO, ctx.mask[5] << 8 | ctx.mask[4]);
 
 	filter = NFE_READ(sc, NFE_RXFILTER);
 	filter &= NFE_PFF_RX_PAUSE;
 	filter |= NFE_RXFILTER_MAGIC;
-	filter |= (if_getflags(ifp) & IFF_PROMISC) ? NFE_PFF_PROMISC : NFE_PFF_U2M;
+	filter |= (if_getflags(ifp) & IFF_PROMISC) ? NFE_PFF_PROMISC :
+						     NFE_PFF_U2M;
 	NFE_WRITE(sc, NFE_RXFILTER, filter);
 }
 
@@ -2604,7 +2593,8 @@ nfe_start_locked(if_t ifp)
 	NFE_LOCK_ASSERT(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || sc->nfe_link == 0)
+		IFF_DRV_RUNNING ||
+	    sc->nfe_link == 0)
 		return;
 
 	while (!if_sendq_empty(ifp)) {
@@ -2649,7 +2639,8 @@ nfe_watchdog(if_t ifp)
 	/* Check if we've lost Tx completion interrupt. */
 	nfe_txeof(sc);
 	if (sc->txq.queued == 0) {
-		if_printf(ifp, "watchdog timeout (missed Tx interrupts) "
+		if_printf(ifp,
+		    "watchdog timeout (missed Tx interrupts) "
 		    "-- recovering\n");
 		if (!if_sendq_empty(ifp))
 			nfe_start_locked(ifp);
@@ -2766,8 +2757,7 @@ nfe_init_locked(void *xsc)
 	NFE_WRITE(sc, NFE_TX_RING_ADDR_LO, NFE_ADDR_LO(sc->txq.physaddr));
 
 	NFE_WRITE(sc, NFE_RING_SIZE,
-	    (NFE_RX_RING_COUNT - 1) << 16 |
-	    (NFE_TX_RING_COUNT - 1));
+	    (NFE_RX_RING_COUNT - 1) << 16 | (NFE_TX_RING_COUNT - 1));
 
 	NFE_WRITE(sc, NFE_RXBUFSZ, sc->nfe_framesize);
 
@@ -2822,7 +2812,7 @@ nfe_init_locked(void *xsc)
 		nfe_disable_intr(sc);
 	else
 #endif
-	nfe_set_intr(sc);
+		nfe_set_intr(sc);
 	nfe_enable_intr(sc); /* enable interrupts */
 
 	if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
@@ -2979,7 +2969,7 @@ nfe_get_macaddr(struct nfe_softc *sc, uint8_t *addr)
 		val = NFE_READ(sc, NFE_MACADDR_HI);
 		addr[2] = (val >> 24) & 0xff;
 		addr[3] = (val >> 16) & 0xff;
-		addr[4] = (val >>  8) & 0xff;
+		addr[4] = (val >> 8) & 0xff;
 		addr[5] = (val & 0xff);
 	} else {
 		val = NFE_READ(sc, NFE_MACADDR_LO);
@@ -2989,7 +2979,7 @@ nfe_get_macaddr(struct nfe_softc *sc, uint8_t *addr)
 		val = NFE_READ(sc, NFE_MACADDR_HI);
 		addr[3] = (val >> 24) & 0xff;
 		addr[2] = (val >> 16) & 0xff;
-		addr[1] = (val >>  8) & 0xff;
+		addr[1] = (val >> 8) & 0xff;
 		addr[0] = (val & 0xff);
 	}
 }
@@ -2998,9 +2988,9 @@ static void
 nfe_set_macaddr(struct nfe_softc *sc, uint8_t *addr)
 {
 
-	NFE_WRITE(sc, NFE_MACADDR_LO, addr[5] <<  8 | addr[4]);
-	NFE_WRITE(sc, NFE_MACADDR_HI, addr[3] << 24 | addr[2] << 16 |
-	    addr[1] << 8 | addr[0]);
+	NFE_WRITE(sc, NFE_MACADDR_LO, addr[5] << 8 | addr[4]);
+	NFE_WRITE(sc, NFE_MACADDR_HI,
+	    addr[3] << 24 | addr[2] << 16 | addr[1] << 8 | addr[0]);
 }
 
 /*
@@ -3047,10 +3037,10 @@ sysctl_hw_nfe_proc_limit(SYSCTL_HANDLER_ARGS)
 	    NFE_PROC_MAX));
 }
 
-#define	NFE_SYSCTL_STAT_ADD32(c, h, n, p, d)	\
-	    SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
-#define	NFE_SYSCTL_STAT_ADD64(c, h, n, p, d)	\
-	    SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
+#define NFE_SYSCTL_STAT_ADD32(c, h, n, p, d) \
+	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
+#define NFE_SYSCTL_STAT_ADD64(c, h, n, p, d) \
+	SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
 
 static void
 nfe_sysctl_node(struct nfe_softc *sc)
@@ -3078,7 +3068,8 @@ nfe_sysctl_node(struct nfe_softc *sc)
 		    sc->nfe_process_limit > NFE_PROC_MAX) {
 			device_printf(sc->nfe_dev,
 			    "process_limit value out of range; "
-			    "using default: %d\n", NFE_PROC_DEFAULT);
+			    "using default: %d\n",
+			    NFE_PROC_DEFAULT);
 			sc->nfe_process_limit = NFE_PROC_DEFAULT;
 		}
 	}
@@ -3097,51 +3088,50 @@ nfe_sysctl_node(struct nfe_softc *sc)
 
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "frame_errors",
 	    &stats->rx_frame_errors, "Framing Errors");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "extra_bytes",
-	    &stats->rx_extra_bytes, "Extra Bytes");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "late_cols",
-	    &stats->rx_late_cols, "Late Collisions");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "runts",
-	    &stats->rx_runts, "Runts");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "jumbos",
-	    &stats->rx_jumbos, "Jumbos");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "extra_bytes", &stats->rx_extra_bytes,
+	    "Extra Bytes");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "late_cols", &stats->rx_late_cols,
+	    "Late Collisions");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "runts", &stats->rx_runts, "Runts");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "jumbos", &stats->rx_jumbos,
+	    "Jumbos");
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "fifo_overuns",
 	    &stats->rx_fifo_overuns, "FIFO Overruns");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "crc_errors",
-	    &stats->rx_crc_errors, "CRC Errors");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "fae",
-	    &stats->rx_fae, "Frame Alignment Errors");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "len_errors",
-	    &stats->rx_len_errors, "Length Errors");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "unicast",
-	    &stats->rx_unicast, "Unicast Frames");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "multicast",
-	    &stats->rx_multicast, "Multicast Frames");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "broadcast",
-	    &stats->rx_broadcast, "Broadcast Frames");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "crc_errors", &stats->rx_crc_errors,
+	    "CRC Errors");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "fae", &stats->rx_fae,
+	    "Frame Alignment Errors");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "len_errors", &stats->rx_len_errors,
+	    "Length Errors");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "unicast", &stats->rx_unicast,
+	    "Unicast Frames");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "multicast", &stats->rx_multicast,
+	    "Multicast Frames");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "broadcast", &stats->rx_broadcast,
+	    "Broadcast Frames");
 	if ((sc->nfe_flags & NFE_MIB_V2) != 0) {
-		NFE_SYSCTL_STAT_ADD64(ctx, child, "octets",
-		    &stats->rx_octets, "Octets");
-		NFE_SYSCTL_STAT_ADD32(ctx, child, "pause",
-		    &stats->rx_pause, "Pause frames");
-		NFE_SYSCTL_STAT_ADD32(ctx, child, "drops",
-		    &stats->rx_drops, "Drop frames");
+		NFE_SYSCTL_STAT_ADD64(ctx, child, "octets", &stats->rx_octets,
+		    "Octets");
+		NFE_SYSCTL_STAT_ADD32(ctx, child, "pause", &stats->rx_pause,
+		    "Pause frames");
+		NFE_SYSCTL_STAT_ADD32(ctx, child, "drops", &stats->rx_drops,
+		    "Drop frames");
 	}
 
 	/* Tx statistics. */
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "tx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Tx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	NFE_SYSCTL_STAT_ADD64(ctx, child, "octets",
-	    &stats->tx_octets, "Octets");
+	NFE_SYSCTL_STAT_ADD64(ctx, child, "octets", &stats->tx_octets,
+	    "Octets");
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "zero_rexmits",
 	    &stats->tx_zero_rexmits, "Zero Retransmits");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "one_rexmits",
-	    &stats->tx_one_rexmits, "One Retransmits");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "one_rexmits", &stats->tx_one_rexmits,
+	    "One Retransmits");
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "multi_rexmits",
 	    &stats->tx_multi_rexmits, "Multiple Retransmits");
-	NFE_SYSCTL_STAT_ADD32(ctx, child, "late_cols",
-	    &stats->tx_late_cols, "Late Collisions");
+	NFE_SYSCTL_STAT_ADD32(ctx, child, "late_cols", &stats->tx_late_cols,
+	    "Late Collisions");
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "fifo_underuns",
 	    &stats->tx_fifo_underuns, "FIFO Underruns");
 	NFE_SYSCTL_STAT_ADD32(ctx, child, "carrier_losts",
@@ -3153,18 +3143,18 @@ nfe_sysctl_node(struct nfe_softc *sc)
 	if ((sc->nfe_flags & NFE_MIB_V2) != 0) {
 		NFE_SYSCTL_STAT_ADD32(ctx, child, "deferrals",
 		    &stats->tx_deferals, "Deferrals");
-		NFE_SYSCTL_STAT_ADD32(ctx, child, "frames",
-		    &stats->tx_frames, "Frames");
-		NFE_SYSCTL_STAT_ADD32(ctx, child, "pause",
-		    &stats->tx_pause, "Pause Frames");
+		NFE_SYSCTL_STAT_ADD32(ctx, child, "frames", &stats->tx_frames,
+		    "Frames");
+		NFE_SYSCTL_STAT_ADD32(ctx, child, "pause", &stats->tx_pause,
+		    "Pause Frames");
 	}
 	if ((sc->nfe_flags & NFE_MIB_V3) != 0) {
 		NFE_SYSCTL_STAT_ADD32(ctx, child, "unicast",
 		    &stats->tx_deferals, "Unicast Frames");
 		NFE_SYSCTL_STAT_ADD32(ctx, child, "multicast",
 		    &stats->tx_frames, "Multicast Frames");
-		NFE_SYSCTL_STAT_ADD32(ctx, child, "broadcast",
-		    &stats->tx_pause, "Broadcast Frames");
+		NFE_SYSCTL_STAT_ADD32(ctx, child, "broadcast", &stats->tx_pause,
+		    "Broadcast Frames");
 	}
 }
 
@@ -3256,26 +3246,28 @@ nfe_set_linkspeed(struct nfe_softc *sc)
 	aneg = 0;
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
 	    (IFM_ACTIVE | IFM_AVALID)) {
-		switch IFM_SUBTYPE(mii->mii_media_active) {
-		case IFM_10_T:
-		case IFM_100_TX:
-			return;
-		case IFM_1000_T:
-			aneg++;
-			break;
-		default:
-			break;
-		}
+		switch
+			IFM_SUBTYPE(mii->mii_media_active)
+			{
+			case IFM_10_T:
+			case IFM_100_TX:
+				return;
+			case IFM_1000_T:
+				aneg++;
+				break;
+			default:
+				break;
+			}
 	}
 	miisc = LIST_FIRST(&mii->mii_phys);
 	phyno = miisc->mii_phy;
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	nfe_miibus_writereg(sc->nfe_dev, phyno, MII_100T2CR, 0);
-	nfe_miibus_writereg(sc->nfe_dev, phyno,
-	    MII_ANAR, ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
-	nfe_miibus_writereg(sc->nfe_dev, phyno,
-	    MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
+	nfe_miibus_writereg(sc->nfe_dev, phyno, MII_ANAR,
+	    ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
+	nfe_miibus_writereg(sc->nfe_dev, phyno, MII_BMCR,
+	    BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
 	DELAY(1000);
 	if (aneg != 0) {
 		/*
@@ -3283,8 +3275,9 @@ nfe_set_linkspeed(struct nfe_softc *sc)
 		 */
 		for (i = 0; i < MII_ANEGTICKS_GIGE; i++) {
 			mii_pollstat(mii);
-			if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID))
-			    == (IFM_ACTIVE | IFM_AVALID)) {
+			if ((mii->mii_media_status &
+				(IFM_ACTIVE | IFM_AVALID)) ==
+			    (IFM_ACTIVE | IFM_AVALID)) {
 				switch (IFM_SUBTYPE(mii->mii_media_active)) {
 				case IFM_10_T:
 				case IFM_100_TX:
@@ -3337,8 +3330,8 @@ nfe_set_wol(struct nfe_softc *sc)
 		/* Enable RX. */
 		NFE_WRITE(sc, NFE_RX_RING_ADDR_HI, 0);
 		NFE_WRITE(sc, NFE_RX_RING_ADDR_LO, 0);
-		NFE_WRITE(sc, NFE_RX_CTL, NFE_READ(sc, NFE_RX_CTL) |
-		    NFE_RX_START);
+		NFE_WRITE(sc, NFE_RX_CTL,
+		    NFE_READ(sc, NFE_RX_CTL) | NFE_RX_START);
 	}
 	/* Request PME if WOL is requested. */
 	pmstat = pci_read_config(sc->nfe_dev, pmc + PCIR_POWER_STATUS, 2);

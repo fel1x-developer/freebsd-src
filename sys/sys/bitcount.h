@@ -35,16 +35,16 @@
  */
 
 #ifndef _SYS_BITCOUNT_H_
-#define	_SYS_BITCOUNT_H_
+#define _SYS_BITCOUNT_H_
 
 #include <sys/_types.h>
 
 #ifdef __POPCNT__
-#define	__bitcount64(x)	__builtin_popcountll((__uint64_t)(x))
-#define	__bitcount32(x)	__builtin_popcount((__uint32_t)(x))
-#define	__bitcount16(x)	__builtin_popcount((__uint16_t)(x))
-#define	__bitcountl(x)	__builtin_popcountl((unsigned long)(x))
-#define	__bitcount(x)	__builtin_popcount((unsigned int)(x))
+#define __bitcount64(x) __builtin_popcountll((__uint64_t)(x))
+#define __bitcount32(x) __builtin_popcount((__uint32_t)(x))
+#define __bitcount16(x) __builtin_popcount((__uint16_t)(x))
+#define __bitcountl(x) __builtin_popcountl((unsigned long)(x))
+#define __bitcount(x) __builtin_popcount((unsigned int)(x))
 #else
 /*
  * Population count algorithm using SWAR approach
@@ -87,7 +87,7 @@ __bitcount64(__uint64_t _x)
 	return (_x);
 }
 
-#define	__bitcountl(x)	__bitcount64((unsigned long)(x))
+#define __bitcountl(x) __bitcount64((unsigned long)(x))
 #else
 static __inline __uint64_t
 __bitcount64(__uint64_t _x)
@@ -96,9 +96,9 @@ __bitcount64(__uint64_t _x)
 	return (__bitcount32(_x >> 32) + __bitcount32(_x));
 }
 
-#define	__bitcountl(x)	__bitcount32((unsigned long)(x))
+#define __bitcountl(x) __bitcount32((unsigned long)(x))
 #endif
-#define	__bitcount(x)	__bitcount32((unsigned int)(x))
+#define __bitcount(x) __bitcount32((unsigned int)(x))
 #endif
 
 #endif /* !_SYS_BITCOUNT_H_ */

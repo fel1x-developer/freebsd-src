@@ -33,9 +33,10 @@
 #ifndef WITHOUT_CAPSICUM
 #include <sys/capsicum.h>
 #endif
-#include <sys/limits.h>
 #include <sys/ioctl.h>
+#include <sys/limits.h>
 #include <sys/uio.h>
+
 #include <net/ethernet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -48,117 +49,116 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <md5.h>
+#include <pthread.h>
+#include <pthread_np.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <pthread_np.h>
-
-#include "e1000_regs.h"
-#include "e1000_defines.h"
-#include "mii.h"
 
 #include "bhyverun.h"
 #include "config.h"
 #include "debug.h"
+#include "e1000_defines.h"
+#include "e1000_regs.h"
+#include "mii.h"
 #include "pci_emul.h"
 #ifdef BHYVE_SNAPSHOT
 #include "snapshot.h"
 #endif
 #include "mevent.h"
-#include "net_utils.h"
 #include "net_backends.h"
+#include "net_utils.h"
 
 /* Hardware/register definitions XXX: move some to common code. */
-#define E82545_VENDOR_ID_INTEL			0x8086
-#define E82545_DEV_ID_82545EM_COPPER		0x100F
-#define E82545_SUBDEV_ID			0x1008
+#define E82545_VENDOR_ID_INTEL 0x8086
+#define E82545_DEV_ID_82545EM_COPPER 0x100F
+#define E82545_SUBDEV_ID 0x1008
 
-#define E82545_REVISION_4			4
+#define E82545_REVISION_4 4
 
-#define E82545_MDIC_DATA_MASK			0x0000FFFF
-#define E82545_MDIC_OP_MASK			0x0c000000
-#define E82545_MDIC_IE				0x20000000
+#define E82545_MDIC_DATA_MASK 0x0000FFFF
+#define E82545_MDIC_OP_MASK 0x0c000000
+#define E82545_MDIC_IE 0x20000000
 
-#define E82545_EECD_FWE_DIS	0x00000010 /* Flash writes disabled */
-#define E82545_EECD_FWE_EN	0x00000020 /* Flash writes enabled */
-#define E82545_EECD_FWE_MASK	0x00000030 /* Flash writes mask */
+#define E82545_EECD_FWE_DIS 0x00000010	/* Flash writes disabled */
+#define E82545_EECD_FWE_EN 0x00000020	/* Flash writes enabled */
+#define E82545_EECD_FWE_MASK 0x00000030 /* Flash writes mask */
 
-#define E82545_BAR_REGISTER			0
-#define E82545_BAR_REGISTER_LEN			(128*1024)
-#define E82545_BAR_FLASH			1
-#define E82545_BAR_FLASH_LEN			(64*1024)
-#define E82545_BAR_IO				2
-#define E82545_BAR_IO_LEN			8
+#define E82545_BAR_REGISTER 0
+#define E82545_BAR_REGISTER_LEN (128 * 1024)
+#define E82545_BAR_FLASH 1
+#define E82545_BAR_FLASH_LEN (64 * 1024)
+#define E82545_BAR_IO 2
+#define E82545_BAR_IO_LEN 8
 
-#define E82545_IOADDR				0x00000000
-#define E82545_IODATA				0x00000004
-#define E82545_IO_REGISTER_MAX			0x0001FFFF
-#define E82545_IO_FLASH_BASE			0x00080000
-#define E82545_IO_FLASH_MAX			0x000FFFFF
+#define E82545_IOADDR 0x00000000
+#define E82545_IODATA 0x00000004
+#define E82545_IO_REGISTER_MAX 0x0001FFFF
+#define E82545_IO_FLASH_BASE 0x00080000
+#define E82545_IO_FLASH_MAX 0x000FFFFF
 
-#define E82545_ARRAY_ENTRY(reg, offset)		(reg + (offset<<2))
-#define E82545_RAR_MAX				15
-#define E82545_MTA_MAX				127
-#define E82545_VFTA_MAX				127
+#define E82545_ARRAY_ENTRY(reg, offset) (reg + (offset << 2))
+#define E82545_RAR_MAX 15
+#define E82545_MTA_MAX 127
+#define E82545_VFTA_MAX 127
 
 /* Slightly modified from the driver versions, hardcoded for 3 opcode bits,
  * followed by 6 address bits.
  * TODO: make opcode bits and addr bits configurable?
  * NVM Commands - Microwire */
-#define E82545_NVM_OPCODE_BITS	3
-#define E82545_NVM_ADDR_BITS	6
-#define E82545_NVM_DATA_BITS	16
-#define E82545_NVM_OPADDR_BITS	(E82545_NVM_OPCODE_BITS + E82545_NVM_ADDR_BITS)
-#define E82545_NVM_ADDR_MASK	((1 << E82545_NVM_ADDR_BITS)-1)
-#define E82545_NVM_OPCODE_MASK	\
-    (((1 << E82545_NVM_OPCODE_BITS) - 1) << E82545_NVM_ADDR_BITS)
-#define E82545_NVM_OPCODE_READ	(0x6 << E82545_NVM_ADDR_BITS)	/* read */
-#define E82545_NVM_OPCODE_WRITE	(0x5 << E82545_NVM_ADDR_BITS)	/* write */
-#define E82545_NVM_OPCODE_ERASE	(0x7 << E82545_NVM_ADDR_BITS)	/* erase */
-#define	E82545_NVM_OPCODE_EWEN	(0x4 << E82545_NVM_ADDR_BITS)	/* wr-enable */
+#define E82545_NVM_OPCODE_BITS 3
+#define E82545_NVM_ADDR_BITS 6
+#define E82545_NVM_DATA_BITS 16
+#define E82545_NVM_OPADDR_BITS (E82545_NVM_OPCODE_BITS + E82545_NVM_ADDR_BITS)
+#define E82545_NVM_ADDR_MASK ((1 << E82545_NVM_ADDR_BITS) - 1)
+#define E82545_NVM_OPCODE_MASK \
+	(((1 << E82545_NVM_OPCODE_BITS) - 1) << E82545_NVM_ADDR_BITS)
+#define E82545_NVM_OPCODE_READ (0x6 << E82545_NVM_ADDR_BITS)  /* read */
+#define E82545_NVM_OPCODE_WRITE (0x5 << E82545_NVM_ADDR_BITS) /* write */
+#define E82545_NVM_OPCODE_ERASE (0x7 << E82545_NVM_ADDR_BITS) /* erase */
+#define E82545_NVM_OPCODE_EWEN (0x4 << E82545_NVM_ADDR_BITS)  /* wr-enable */
 
-#define	E82545_NVM_EEPROM_SIZE	64 /* 64 * 16-bit values == 128K */
+#define E82545_NVM_EEPROM_SIZE 64 /* 64 * 16-bit values == 128K */
 
-#define E1000_ICR_SRPD		0x00010000
+#define E1000_ICR_SRPD 0x00010000
 
 /* This is an arbitrary number.  There is no hard limit on the chip. */
-#define I82545_MAX_TXSEGS	64
+#define I82545_MAX_TXSEGS 64
 
 /* Legacy receive descriptor */
 struct e1000_rx_desc {
-	uint64_t buffer_addr;	/* Address of the descriptor's data buffer */
-	uint16_t length;	/* Length of data DMAed into data buffer */
-	uint16_t csum;		/* Packet checksum */
-	uint8_t	 status;       	/* Descriptor status */
-	uint8_t  errors;	/* Descriptor Errors */
+	uint64_t buffer_addr; /* Address of the descriptor's data buffer */
+	uint16_t length;      /* Length of data DMAed into data buffer */
+	uint16_t csum;	      /* Packet checksum */
+	uint8_t status;	      /* Descriptor status */
+	uint8_t errors;	      /* Descriptor Errors */
 	uint16_t special;
 };
 
 /* Transmit descriptor types */
-#define	E1000_TXD_MASK		(E1000_TXD_CMD_DEXT | 0x00F00000)
-#define E1000_TXD_TYP_L		(0)
-#define E1000_TXD_TYP_C		(E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_C)
-#define E1000_TXD_TYP_D		(E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D)
+#define E1000_TXD_MASK (E1000_TXD_CMD_DEXT | 0x00F00000)
+#define E1000_TXD_TYP_L (0)
+#define E1000_TXD_TYP_C (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_C)
+#define E1000_TXD_TYP_D (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D)
 
 /* Legacy transmit descriptor */
 struct e1000_tx_desc {
-	uint64_t buffer_addr;   /* Address of the descriptor's data buffer */
+	uint64_t buffer_addr; /* Address of the descriptor's data buffer */
 	union {
 		uint32_t data;
 		struct {
-			uint16_t length;  /* Data buffer length */
-			uint8_t  cso;  /* Checksum offset */
-			uint8_t  cmd;  /* Descriptor control */
+			uint16_t length; /* Data buffer length */
+			uint8_t cso;	 /* Checksum offset */
+			uint8_t cmd;	 /* Descriptor control */
 		} flags;
 	} lower;
 	union {
 		uint32_t data;
 		struct {
 			uint8_t status; /* Descriptor status */
-			uint8_t css;  /* Checksum start */
+			uint8_t css;	/* Checksum start */
 			uint16_t special;
 		} fields;
 	} upper;
@@ -169,37 +169,37 @@ struct e1000_context_desc {
 	union {
 		uint32_t ip_config;
 		struct {
-			uint8_t ipcss;  /* IP checksum start */
-			uint8_t ipcso;  /* IP checksum offset */
-			uint16_t ipcse;  /* IP checksum end */
+			uint8_t ipcss;	/* IP checksum start */
+			uint8_t ipcso;	/* IP checksum offset */
+			uint16_t ipcse; /* IP checksum end */
 		} ip_fields;
 	} lower_setup;
 	union {
 		uint32_t tcp_config;
 		struct {
-			uint8_t tucss;  /* TCP checksum start */
-			uint8_t tucso;  /* TCP checksum offset */
-			uint16_t tucse;  /* TCP checksum end */
+			uint8_t tucss;	/* TCP checksum start */
+			uint8_t tucso;	/* TCP checksum offset */
+			uint16_t tucse; /* TCP checksum end */
 		} tcp_fields;
 	} upper_setup;
 	uint32_t cmd_and_length;
 	union {
 		uint32_t data;
 		struct {
-			uint8_t status;  /* Descriptor status */
-			uint8_t hdr_len;  /* Header length */
-			uint16_t mss;  /* Maximum segment size */
+			uint8_t status;	 /* Descriptor status */
+			uint8_t hdr_len; /* Header length */
+			uint16_t mss;	 /* Maximum segment size */
 		} fields;
 	} tcp_seg_setup;
 };
 
 /* Data descriptor */
 struct e1000_data_desc {
-	uint64_t buffer_addr;  /* Address of the descriptor's buffer address */
+	uint64_t buffer_addr; /* Address of the descriptor's buffer address */
 	union {
 		uint32_t data;
 		struct {
-			uint16_t length;  /* Data buffer length */
+			uint16_t length; /* Data buffer length */
 			uint8_t typ_len_ext;
 			uint8_t cmd;
 		} flags;
@@ -207,8 +207,8 @@ struct e1000_data_desc {
 	union {
 		uint32_t data;
 		struct {
-			uint8_t status;  /* Descriptor status */
-			uint8_t popts;  /* Packet Options */
+			uint8_t status; /* Descriptor status */
+			uint8_t popts;	/* Packet Options */
 			uint16_t special;
 		} fields;
 	} upper;
@@ -222,103 +222,104 @@ union e1000_tx_udesc {
 
 /* Tx checksum info for a packet. */
 struct ck_info {
-	int	ck_valid;	/* ck_info is valid */
-	uint8_t	ck_start;	/* start byte of cksum calcuation */
-	uint8_t	ck_off;		/* offset of cksum insertion */
-	uint16_t ck_len;	/* length of cksum calc: 0 is to packet-end */
+	int ck_valid;	  /* ck_info is valid */
+	uint8_t ck_start; /* start byte of cksum calcuation */
+	uint8_t ck_off;	  /* offset of cksum insertion */
+	uint16_t ck_len;  /* length of cksum calc: 0 is to packet-end */
 };
 
 /*
  * Debug printf
  */
 static int e82545_debug = 0;
-#define WPRINTF(msg,params...) PRINTLN("e82545: " msg, ##params)
-#define DPRINTF(msg,params...) if (e82545_debug) WPRINTF(msg, params)
+#define WPRINTF(msg, params...) PRINTLN("e82545: " msg, ##params)
+#define DPRINTF(msg, params...) \
+	if (e82545_debug)       \
+	WPRINTF(msg, params)
 
-#define	MIN(a,b) (((a)<(b))?(a):(b))
-#define	MAX(a,b) (((a)>(b))?(a):(b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 /* s/w representation of the RAL/RAH regs */
-struct  eth_uni {
-	int		eu_valid;
-	int		eu_addrsel;
+struct eth_uni {
+	int eu_valid;
+	int eu_addrsel;
 	struct ether_addr eu_eth;
 };
 
-
 struct e82545_softc {
 	struct pci_devinst *esc_pi;
-	struct vmctx	*esc_ctx;
-	struct mevent   *esc_mevpitr;
-	pthread_mutex_t	esc_mtx;
+	struct vmctx *esc_ctx;
+	struct mevent *esc_mevpitr;
+	pthread_mutex_t esc_mtx;
 	struct ether_addr esc_mac;
-	net_backend_t	*esc_be;
+	net_backend_t *esc_be;
 
 	/* General */
-	uint32_t	esc_CTRL;	/* x0000 device ctl */
-	uint32_t	esc_FCAL;	/* x0028 flow ctl addr lo */
-	uint32_t	esc_FCAH;	/* x002C flow ctl addr hi */
-	uint32_t	esc_FCT;	/* x0030 flow ctl type */
-	uint32_t	esc_VET;	/* x0038 VLAN eth type */
-	uint32_t	esc_FCTTV;	/* x0170 flow ctl tx timer */
-	uint32_t	esc_LEDCTL;	/* x0E00 LED control */
-	uint32_t	esc_PBA;	/* x1000 pkt buffer allocation */
+	uint32_t esc_CTRL;   /* x0000 device ctl */
+	uint32_t esc_FCAL;   /* x0028 flow ctl addr lo */
+	uint32_t esc_FCAH;   /* x002C flow ctl addr hi */
+	uint32_t esc_FCT;    /* x0030 flow ctl type */
+	uint32_t esc_VET;    /* x0038 VLAN eth type */
+	uint32_t esc_FCTTV;  /* x0170 flow ctl tx timer */
+	uint32_t esc_LEDCTL; /* x0E00 LED control */
+	uint32_t esc_PBA;    /* x1000 pkt buffer allocation */
 
 	/* Interrupt control */
-	int		esc_irq_asserted;
-	uint32_t	esc_ICR;	/* x00C0 cause read/clear */
-	uint32_t	esc_ITR;	/* x00C4 intr throttling */
-	uint32_t	esc_ICS;	/* x00C8 cause set */
-	uint32_t	esc_IMS;	/* x00D0 mask set/read */
-	uint32_t	esc_IMC;	/* x00D8 mask clear */
+	int esc_irq_asserted;
+	uint32_t esc_ICR; /* x00C0 cause read/clear */
+	uint32_t esc_ITR; /* x00C4 intr throttling */
+	uint32_t esc_ICS; /* x00C8 cause set */
+	uint32_t esc_IMS; /* x00D0 mask set/read */
+	uint32_t esc_IMC; /* x00D8 mask clear */
 
 	/* Transmit */
 	union e1000_tx_udesc *esc_txdesc;
 	struct e1000_context_desc esc_txctx;
-	pthread_t	esc_tx_tid;
-	pthread_cond_t	esc_tx_cond;
-	int		esc_tx_enabled;
-	int		esc_tx_active;
-	uint32_t	esc_TXCW;	/* x0178 transmit config */
-	uint32_t	esc_TCTL;	/* x0400 transmit ctl */
-	uint32_t	esc_TIPG;	/* x0410 inter-packet gap */
-	uint16_t	esc_AIT;	/* x0458 Adaptive Interframe Throttle */
-	uint64_t	esc_tdba;      	/* verified 64-bit desc table addr */
-	uint32_t	esc_TDBAL;	/* x3800 desc table addr, low bits */
-	uint32_t	esc_TDBAH;	/* x3804 desc table addr, hi 32-bits */
-	uint32_t	esc_TDLEN;	/* x3808 # descriptors in bytes */
-	uint16_t	esc_TDH;	/* x3810 desc table head idx */
-	uint16_t	esc_TDHr;	/* internal read version of TDH */
-	uint16_t	esc_TDT;	/* x3818 desc table tail idx */
-	uint32_t	esc_TIDV;	/* x3820 intr delay */
-	uint32_t	esc_TXDCTL;	/* x3828 desc control */
-	uint32_t	esc_TADV;	/* x382C intr absolute delay */
+	pthread_t esc_tx_tid;
+	pthread_cond_t esc_tx_cond;
+	int esc_tx_enabled;
+	int esc_tx_active;
+	uint32_t esc_TXCW;   /* x0178 transmit config */
+	uint32_t esc_TCTL;   /* x0400 transmit ctl */
+	uint32_t esc_TIPG;   /* x0410 inter-packet gap */
+	uint16_t esc_AIT;    /* x0458 Adaptive Interframe Throttle */
+	uint64_t esc_tdba;   /* verified 64-bit desc table addr */
+	uint32_t esc_TDBAL;  /* x3800 desc table addr, low bits */
+	uint32_t esc_TDBAH;  /* x3804 desc table addr, hi 32-bits */
+	uint32_t esc_TDLEN;  /* x3808 # descriptors in bytes */
+	uint16_t esc_TDH;    /* x3810 desc table head idx */
+	uint16_t esc_TDHr;   /* internal read version of TDH */
+	uint16_t esc_TDT;    /* x3818 desc table tail idx */
+	uint32_t esc_TIDV;   /* x3820 intr delay */
+	uint32_t esc_TXDCTL; /* x3828 desc control */
+	uint32_t esc_TADV;   /* x382C intr absolute delay */
 
 	/* L2 frame acceptance */
-	struct eth_uni	esc_uni[16];	/* 16 x unicast MAC addresses */
-	uint32_t	esc_fmcast[128]; /* Multicast filter bit-match */
-	uint32_t	esc_fvlan[128]; /* VLAN 4096-bit filter */
+	struct eth_uni esc_uni[16]; /* 16 x unicast MAC addresses */
+	uint32_t esc_fmcast[128];   /* Multicast filter bit-match */
+	uint32_t esc_fvlan[128];    /* VLAN 4096-bit filter */
 
 	/* Receive */
 	struct e1000_rx_desc *esc_rxdesc;
-	pthread_cond_t	esc_rx_cond;
-	int		esc_rx_enabled;
-	int		esc_rx_active;
-	int		esc_rx_loopback;
-	uint32_t	esc_RCTL;	/* x0100 receive ctl */
-	uint32_t	esc_FCRTL;	/* x2160 flow cntl thresh, low */
-	uint32_t	esc_FCRTH;	/* x2168 flow cntl thresh, hi */
-	uint64_t	esc_rdba;	/* verified 64-bit desc table addr */
-	uint32_t	esc_RDBAL;	/* x2800 desc table addr, low bits */
-	uint32_t	esc_RDBAH;	/* x2804 desc table addr, hi 32-bits*/
-	uint32_t	esc_RDLEN;	/* x2808 #descriptors */
-	uint16_t	esc_RDH;	/* x2810 desc table head idx */
-	uint16_t	esc_RDT;	/* x2818 desc table tail idx */
-	uint32_t	esc_RDTR;	/* x2820 intr delay */
-	uint32_t	esc_RXDCTL;	/* x2828 desc control */
-	uint32_t	esc_RADV;	/* x282C intr absolute delay */
-	uint32_t	esc_RSRPD;	/* x2C00 recv small packet detect */
-	uint32_t	esc_RXCSUM;     /* x5000 receive cksum ctl */
+	pthread_cond_t esc_rx_cond;
+	int esc_rx_enabled;
+	int esc_rx_active;
+	int esc_rx_loopback;
+	uint32_t esc_RCTL;   /* x0100 receive ctl */
+	uint32_t esc_FCRTL;  /* x2160 flow cntl thresh, low */
+	uint32_t esc_FCRTH;  /* x2168 flow cntl thresh, hi */
+	uint64_t esc_rdba;   /* verified 64-bit desc table addr */
+	uint32_t esc_RDBAL;  /* x2800 desc table addr, low bits */
+	uint32_t esc_RDBAH;  /* x2804 desc table addr, hi 32-bits*/
+	uint32_t esc_RDLEN;  /* x2808 #descriptors */
+	uint16_t esc_RDH;    /* x2810 desc table head idx */
+	uint16_t esc_RDT;    /* x2818 desc table tail idx */
+	uint32_t esc_RDTR;   /* x2820 intr delay */
+	uint32_t esc_RXDCTL; /* x2828 desc control */
+	uint32_t esc_RADV;   /* x282C intr absolute delay */
+	uint32_t esc_RSRPD;  /* x2C00 recv small packet detect */
+	uint32_t esc_RXCSUM; /* x5000 receive cksum ctl */
 
 	/* IO Port register access */
 	uint32_t io_addr;
@@ -346,10 +347,10 @@ struct e82545_softc {
 	uint64_t good_octets_tx;
 	uint64_t missed_octets; /* counts missed and oversized */
 
-	uint8_t nvm_bits:6; /* number of bits remaining in/out */
-	uint8_t nvm_mode:2;
-#define E82545_NVM_MODE_OPADDR  0x0
-#define E82545_NVM_MODE_DATAIN  0x1
+	uint8_t nvm_bits : 6; /* number of bits remaining in/out */
+	uint8_t nvm_mode : 2;
+#define E82545_NVM_MODE_OPADDR 0x0
+#define E82545_NVM_MODE_DATAIN 0x1
 #define E82545_NVM_MODE_DATAOUT 0x2
 	/* EEPROM data */
 	uint16_t eeprom_data[E82545_NVM_EEPROM_SIZE];
@@ -381,13 +382,13 @@ e82545_init_eeprom(struct e82545_softc *sc)
 {
 	uint16_t checksum, i;
 
-        /* mac addr */
+	/* mac addr */
 	sc->eeprom_data[NVM_MAC_ADDR] = ((uint16_t)sc->esc_mac.octet[0]) |
-		(((uint16_t)sc->esc_mac.octet[1]) << 8);
-	sc->eeprom_data[NVM_MAC_ADDR+1] = ((uint16_t)sc->esc_mac.octet[2]) |
-		(((uint16_t)sc->esc_mac.octet[3]) << 8);
-	sc->eeprom_data[NVM_MAC_ADDR+2] = ((uint16_t)sc->esc_mac.octet[4]) |
-		(((uint16_t)sc->esc_mac.octet[5]) << 8);
+	    (((uint16_t)sc->esc_mac.octet[1]) << 8);
+	sc->eeprom_data[NVM_MAC_ADDR + 1] = ((uint16_t)sc->esc_mac.octet[2]) |
+	    (((uint16_t)sc->esc_mac.octet[3]) << 8);
+	sc->eeprom_data[NVM_MAC_ADDR + 2] = ((uint16_t)sc->esc_mac.octet[4]) |
+	    (((uint16_t)sc->esc_mac.octet[5]) << 8);
 
 	/* pci ids */
 	sc->eeprom_data[NVM_SUB_DEV_ID] = E82545_SUBDEV_ID;
@@ -396,7 +397,7 @@ e82545_init_eeprom(struct e82545_softc *sc)
 	sc->eeprom_data[NVM_VEN_ID] = E82545_VENDOR_ID_INTEL;
 
 	/* fill in the checksum */
-        checksum = 0;
+	checksum = 0;
 	for (i = 0; i < NVM_CHECKSUM_REG; i++) {
 		checksum += sc->eeprom_data[i];
 	}
@@ -409,31 +410,33 @@ static void
 e82545_write_mdi(struct e82545_softc *sc __unused, uint8_t reg_addr,
     uint8_t phy_addr, uint32_t data)
 {
-	DPRINTF("Write mdi reg:0x%x phy:0x%x data: 0x%x", reg_addr, phy_addr, data);
+	DPRINTF("Write mdi reg:0x%x phy:0x%x data: 0x%x", reg_addr, phy_addr,
+	    data);
 }
 
 static uint32_t
 e82545_read_mdi(struct e82545_softc *sc __unused, uint8_t reg_addr,
     uint8_t phy_addr)
 {
-	//DPRINTF("Read mdi reg:0x%x phy:0x%x", reg_addr, phy_addr);
+	// DPRINTF("Read mdi reg:0x%x phy:0x%x", reg_addr, phy_addr);
 	switch (reg_addr) {
 	case PHY_STATUS:
 		return (MII_SR_LINK_STATUS | MII_SR_AUTONEG_CAPS |
-			MII_SR_AUTONEG_COMPLETE);
+		    MII_SR_AUTONEG_COMPLETE);
 	case PHY_AUTONEG_ADV:
 		return NWAY_AR_SELECTOR_FIELD;
 	case PHY_LP_ABILITY:
 		return 0;
 	case PHY_1000T_STATUS:
 		return (SR_1000T_LP_FD_CAPS | SR_1000T_REMOTE_RX_STATUS |
-			SR_1000T_LOCAL_RX_STATUS);
+		    SR_1000T_LOCAL_RX_STATUS);
 	case PHY_ID1:
 		return (M88E1011_I_PHY_ID >> 16) & 0xFFFF;
 	case PHY_ID2:
 		return (M88E1011_I_PHY_ID | E82545_REVISION_4) & 0xFFFF;
 	default:
-		DPRINTF("Unknown mdi read reg:0x%x phy:0x%x", reg_addr, phy_addr);
+		DPRINTF("Unknown mdi read reg:0x%x phy:0x%x", reg_addr,
+		    phy_addr);
 		return 0;
 	}
 	/* not reached */
@@ -452,8 +455,7 @@ e82545_eecd_strobe(struct e82545_softc *sc)
 	if (sc->nvm_bits == 0) {
 		DPRINTF("eeprom state machine not expecting data! "
 			"0x%x 0x%x 0x%x 0x%x",
-			sc->nvm_mode, sc->nvm_bits,
-			sc->nvm_opaddr, sc->nvm_data);
+		    sc->nvm_mode, sc->nvm_bits, sc->nvm_opaddr, sc->nvm_data);
 		return;
 	}
 	sc->nvm_bits--;
@@ -483,13 +485,13 @@ e82545_eecd_strobe(struct e82545_softc *sc)
 			uint16_t addr = sc->nvm_opaddr & E82545_NVM_ADDR_MASK;
 			if (op != E82545_NVM_OPCODE_WRITE) {
 				DPRINTF("Illegal eeprom write op 0x%x",
-					sc->nvm_opaddr);
+				    sc->nvm_opaddr);
 			} else if (addr >= E82545_NVM_EEPROM_SIZE) {
 				DPRINTF("Illegal eeprom write addr 0x%x",
-					sc->nvm_opaddr);
+				    sc->nvm_opaddr);
 			} else {
 				DPRINTF("eeprom write eeprom[0x%x] = 0x%x",
-				addr, sc->nvm_data);
+				    addr, sc->nvm_data);
 				sc->eeprom_data[addr] = sc->nvm_data;
 			}
 			/* back to opcode mode */
@@ -507,25 +509,25 @@ e82545_eecd_strobe(struct e82545_softc *sc)
 			switch (op) {
 			case E82545_NVM_OPCODE_EWEN:
 				DPRINTF("eeprom write enable: 0x%x",
-					sc->nvm_opaddr);
+				    sc->nvm_opaddr);
 				/* back to opcode mode */
 				sc->nvm_opaddr = 0;
 				sc->nvm_mode = E82545_NVM_MODE_OPADDR;
 				sc->nvm_bits = E82545_NVM_OPADDR_BITS;
 				break;
-			case E82545_NVM_OPCODE_READ:
-			{
+			case E82545_NVM_OPCODE_READ: {
 				uint16_t addr = sc->nvm_opaddr &
-					E82545_NVM_ADDR_MASK;
+				    E82545_NVM_ADDR_MASK;
 				sc->nvm_mode = E82545_NVM_MODE_DATAOUT;
 				sc->nvm_bits = E82545_NVM_DATA_BITS;
 				if (addr < E82545_NVM_EEPROM_SIZE) {
 					sc->nvm_data = sc->eeprom_data[addr];
-					DPRINTF("eeprom read: eeprom[0x%x] = 0x%x",
-						addr, sc->nvm_data);
+					DPRINTF(
+					    "eeprom read: eeprom[0x%x] = 0x%x",
+					    addr, sc->nvm_data);
 				} else {
 					DPRINTF("eeprom illegal read: 0x%x",
-						sc->nvm_opaddr);
+					    sc->nvm_opaddr);
 					sc->nvm_data = 0;
 				}
 				break;
@@ -537,7 +539,7 @@ e82545_eecd_strobe(struct e82545_softc *sc)
 				break;
 			default:
 				DPRINTF("eeprom unknown op: 0x%x",
-					sc->nvm_opaddr);
+				    sc->nvm_opaddr);
 				/* back to opcode mode */
 				sc->nvm_opaddr = 0;
 				sc->nvm_mode = E82545_NVM_MODE_OPADDR;
@@ -547,8 +549,7 @@ e82545_eecd_strobe(struct e82545_softc *sc)
 	} else {
 		DPRINTF("eeprom state machine wrong state! "
 			"0x%x 0x%x 0x%x 0x%x",
-			sc->nvm_mode, sc->nvm_bits,
-			sc->nvm_opaddr, sc->nvm_data);
+		    sc->nvm_mode, sc->nvm_bits, sc->nvm_opaddr, sc->nvm_data);
 	}
 }
 
@@ -595,8 +596,8 @@ e82545_icr_assert(struct e82545_softc *sc, uint32_t bits)
 		sc->esc_irq_asserted = 1;
 		pci_lintr_assert(sc->esc_pi);
 		if (sc->esc_ITR != 0) {
-			sc->esc_mevpitr = mevent_add(
-			    (sc->esc_ITR + 3905) / 3906,  /* 256ns -> 1ms */
+			sc->esc_mevpitr = mevent_add((sc->esc_ITR + 3905) /
+				3906, /* 256ns -> 1ms */
 			    EVF_TIMER, e82545_itr_callback, sc);
 		}
 	}
@@ -623,8 +624,8 @@ e82545_ims_change(struct e82545_softc *sc, uint32_t bits)
 		sc->esc_irq_asserted = 1;
 		pci_lintr_assert(sc->esc_pi);
 		if (sc->esc_ITR != 0) {
-			sc->esc_mevpitr = mevent_add(
-			    (sc->esc_ITR + 3905) / 3906,  /* 256ns -> 1ms */
+			sc->esc_mevpitr = mevent_add((sc->esc_ITR + 3905) /
+				3906, /* 256ns -> 1ms */
 			    EVF_TIMER, e82545_itr_callback, sc);
 		}
 	}
@@ -662,14 +663,14 @@ e82545_intr_write(struct e82545_softc *sc, uint32_t offset, uint32_t value)
 		sc->esc_ITR = value;
 		break;
 	case E1000_ICS:
-		sc->esc_ICS = value;	/* not used: store for debug */
+		sc->esc_ICS = value; /* not used: store for debug */
 		e82545_icr_assert(sc, value);
 		break;
 	case E1000_IMS:
 		e82545_ims_change(sc, value);
 		break;
 	case E1000_IMC:
-		sc->esc_IMC = value;	/* for debug */
+		sc->esc_IMC = value; /* for debug */
 		sc->esc_IMS &= ~value;
 		// XXX clear interrupts if all ICR bits now masked
 		// and interrupt was pending ?
@@ -731,12 +732,11 @@ e82545_rx_update_rdba(struct e82545_softc *sc)
 {
 
 	/* XXX verify desc base/len within phys mem range */
-	sc->esc_rdba = (uint64_t)sc->esc_RDBAH << 32 |
-	    sc->esc_RDBAL;
+	sc->esc_rdba = (uint64_t)sc->esc_RDBAH << 32 | sc->esc_RDBAL;
 
 	/* Cache host mapping of guest descriptor array */
-	sc->esc_rxdesc = paddr_guest2host(sc->esc_ctx,
-	    sc->esc_rdba, sc->esc_RDLEN);
+	sc->esc_rxdesc = paddr_guest2host(sc->esc_ctx, sc->esc_rdba,
+	    sc->esc_RDLEN);
 }
 
 static void
@@ -749,14 +749,14 @@ e82545_rx_ctl(struct e82545_softc *sc, uint32_t val)
 	/* Save RCTL after stripping reserved bits 31:27,24,21,14,11:10,0 */
 	sc->esc_RCTL = val & ~0xF9204c01;
 
-	DPRINTF("rx_ctl - %s RCTL %x, val %x",
-		on ? "on" : "off", sc->esc_RCTL, val);
+	DPRINTF("rx_ctl - %s RCTL %x, val %x", on ? "on" : "off", sc->esc_RCTL,
+	    val);
 
 	/* state change requested */
 	if (on != sc->esc_rx_enabled) {
 		if (on) {
 			/* Catch disallowed/unimplemented settings */
-			//assert(!(val & E1000_RCTL_LBM_TCVR));
+			// assert(!(val & E1000_RCTL_LBM_TCVR));
 
 			if (sc->esc_RCTL & E1000_RCTL_LBM_TCVR) {
 				sc->esc_rx_loopback = 1;
@@ -784,7 +784,7 @@ e82545_tx_update_tdba(struct e82545_softc *sc)
 
 	/* Cache host mapping of guest descriptor array */
 	sc->esc_txdesc = paddr_guest2host(sc->esc_ctx, sc->esc_tdba,
-            sc->esc_TDLEN);
+	    sc->esc_TDLEN);
 }
 
 static void
@@ -816,15 +816,22 @@ e82545_bufsz(uint32_t rctl)
 {
 
 	switch (rctl & (E1000_RCTL_BSEX | E1000_RCTL_SZ_256)) {
-	case (E1000_RCTL_SZ_2048): return (2048);
-	case (E1000_RCTL_SZ_1024): return (1024);
-	case (E1000_RCTL_SZ_512): return (512);
-	case (E1000_RCTL_SZ_256): return (256);
-	case (E1000_RCTL_BSEX|E1000_RCTL_SZ_16384): return (16384);
-	case (E1000_RCTL_BSEX|E1000_RCTL_SZ_8192): return (8192);
-	case (E1000_RCTL_BSEX|E1000_RCTL_SZ_4096): return (4096);
+	case (E1000_RCTL_SZ_2048):
+		return (2048);
+	case (E1000_RCTL_SZ_1024):
+		return (1024);
+	case (E1000_RCTL_SZ_512):
+		return (512);
+	case (E1000_RCTL_SZ_256):
+		return (256);
+	case (E1000_RCTL_BSEX | E1000_RCTL_SZ_16384):
+		return (16384);
+	case (E1000_RCTL_BSEX | E1000_RCTL_SZ_8192):
+		return (8192);
+	case (E1000_RCTL_BSEX | E1000_RCTL_SZ_4096):
+		return (4096);
 	}
-	return (256);	/* Forbidden value. */
+	return (256); /* Forbidden value. */
 }
 
 /* XXX one packet at a time until this is debugged */
@@ -856,8 +863,8 @@ e82545_rx_callback(int fd __unused, enum ev_type type __unused, void *param)
 	head = sc->esc_RDH;
 	left = (size + sc->esc_RDT - head) % size;
 	if (left < maxpktdesc) {
-		DPRINTF("rx overflow (%d < %d) -- packet(s) dropped",
-		    left, maxpktdesc);
+		DPRINTF("rx overflow (%d < %d) -- packet(s) dropped", left,
+		    maxpktdesc);
 		while (netbe_rx_discard(sc->esc_be) > 0) {
 		}
 		goto done1;
@@ -892,16 +899,16 @@ e82545_rx_callback(int fd __unused, enum ev_type type __unused, void *param)
 			len += ETHER_CRC_LEN;
 		n = (len + bufsz - 1) / bufsz;
 
-		DPRINTF("packet read %zd bytes, %d segs, head %d",
-		    len, n, head);
+		DPRINTF("packet read %zd bytes, %d segs, head %d", len, n,
+		    head);
 
 		/* Apply VLAN filter. */
 		tp = (uint16_t *)vec[0].iov_base + 6;
 		if ((sc->esc_RCTL & E1000_RCTL_VFE) &&
 		    (ntohs(tp[0]) == sc->esc_VET)) {
 			tag = ntohs(tp[1]) & 0x0fff;
-			if ((sc->esc_fvlan[tag >> 5] &
-			    (1 << (tag & 0x1f))) != 0) {
+			if ((sc->esc_fvlan[tag >> 5] & (1 << (tag & 0x1f))) !=
+			    0) {
 				DPRINTF("known VLAN %d", tag);
 			} else {
 				DPRINTF("unknown VLAN %d", tag);
@@ -1042,8 +1049,8 @@ e82545_transmit_checksum(struct iovec *iov, int iovcnt, struct ck_info *ck)
 	uint16_t cksum;
 	unsigned int cklen;
 
-	DPRINTF("tx cksum: iovcnt/s/off/len %d/%d/%d/%d",
-	    iovcnt, ck->ck_start, ck->ck_off, ck->ck_len);
+	DPRINTF("tx cksum: iovcnt/s/off/len %d/%d/%d/%d", iovcnt, ck->ck_start,
+	    ck->ck_off, ck->ck_len);
 	cklen = ck->ck_len ? ck->ck_len - ck->ck_start + 1U : UINT_MAX;
 	cksum = e82545_iov_checksum(iov, iovcnt, ck->ck_start, cklen);
 	*(uint16_t *)((uint8_t *)iov[0].iov_base + ck->ck_off) = ~cksum;
@@ -1056,7 +1063,7 @@ e82545_transmit_backend(struct e82545_softc *sc, struct iovec *iov, int iovcnt)
 	if (sc->esc_be == NULL)
 		return;
 
-	(void) netbe_send(sc->esc_be, iov, iovcnt);
+	(void)netbe_send(sc->esc_be, iov, iovcnt);
 }
 
 static void
@@ -1065,7 +1072,7 @@ e82545_transmit_done(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 {
 	union e1000_tx_udesc *dsc;
 
-	for ( ; head != tail; head = (head + 1) % dsize) {
+	for (; head != tail; head = (head + 1) % dsize) {
 		dsc = &sc->esc_txdesc[head];
 		if (dsc->td.lower.data & E1000_TXD_CMD_RS) {
 			dsc->td.upper.data |= E1000_TXD_STAT_DD;
@@ -1084,7 +1091,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	struct e1000_context_desc *cd;
 	struct ck_info ckinfo[2];
 	struct iovec *iov;
-	union  e1000_tx_udesc *dsc;
+	union e1000_tx_udesc *dsc;
 	int desc, dtype, ntype, iovcnt, tcp, tso, paylen, seg, tiovcnt, pv;
 	unsigned hdrlen, vlen, pktlen, len, left, mss, now, nnow, nleft, pvoff;
 	uint32_t tcpsum, tcpseq;
@@ -1102,7 +1109,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	/* iovb[0/1] may be used for writable copy of headers. */
 	iov = &iovb[2];
 
-	for (desc = 0; ; desc++, head = (head + 1) % dsize) {
+	for (desc = 0;; desc++, head = (head + 1) % dsize) {
 		if (head == tail) {
 			*rhead = head;
 			return (0);
@@ -1114,15 +1121,15 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			switch (dtype) {
 			case E1000_TXD_TYP_C:
 				DPRINTF("tx ctxt desc idx %d: %016jx "
-				    "%08x%08x",
+					"%08x%08x",
 				    head, dsc->td.buffer_addr,
 				    dsc->td.upper.data, dsc->td.lower.data);
 				/* Save context and return */
 				sc->esc_txctx = dsc->cd;
 				goto done;
 			case E1000_TXD_TYP_L:
-				DPRINTF("tx legacy desc idx %d: %08x%08x",
-				    head, dsc->td.upper.data, dsc->td.lower.data);
+				DPRINTF("tx legacy desc idx %d: %08x%08x", head,
+				    dsc->td.upper.data, dsc->td.lower.data);
 				/*
 				 * legacy cksum start valid in first descriptor
 				 */
@@ -1130,8 +1137,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 				ckinfo[0].ck_start = dsc->td.upper.fields.css;
 				break;
 			case E1000_TXD_TYP_D:
-				DPRINTF("tx data desc idx %d: %08x%08x",
-				    head, dsc->td.upper.data, dsc->td.lower.data);
+				DPRINTF("tx data desc idx %d: %08x%08x", head,
+				    dsc->td.upper.data, dsc->td.lower.data);
 				ntype = dtype;
 				break;
 			default:
@@ -1140,18 +1147,19 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		} else {
 			/* Descriptor type must be consistent */
 			assert(dtype == ntype);
-			DPRINTF("tx next desc idx %d: %08x%08x",
-			    head, dsc->td.upper.data, dsc->td.lower.data);
+			DPRINTF("tx next desc idx %d: %08x%08x", head,
+			    dsc->td.upper.data, dsc->td.lower.data);
 		}
 
 		len = (dtype == E1000_TXD_TYP_L) ? dsc->td.lower.flags.length :
-		    dsc->dd.lower.data & 0xFFFFF;
+						   dsc->dd.lower.data & 0xFFFFF;
 
 		/* Strip checksum supplied by guest. */
 		if ((dsc->td.lower.data & E1000_TXD_CMD_EOP) != 0 &&
 		    (dsc->td.lower.data & E1000_TXD_CMD_IFCS) == 0) {
 			if (len <= 2) {
-				WPRINTF("final descriptor too short (%d) -- dropped",
+				WPRINTF(
+				    "final descriptor too short (%d) -- dropped",
 				    len);
 				invalid = true;
 			} else
@@ -1186,7 +1194,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 				    E1000_TXD_POPTS_IXSM)
 					ckinfo[0].ck_valid = 1;
 				if (dsc->dd.upper.fields.popts &
-				    E1000_TXD_POPTS_IXSM || tso) {
+					E1000_TXD_POPTS_IXSM ||
+				    tso) {
 					ckinfo[0].ck_start =
 					    cd->lower_setup.ip_fields.ipcss;
 					ckinfo[0].ck_off =
@@ -1198,7 +1207,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 				    E1000_TXD_POPTS_TXSM)
 					ckinfo[1].ck_valid = 1;
 				if (dsc->dd.upper.fields.popts &
-				    E1000_TXD_POPTS_TXSM || tso) {
+					E1000_TXD_POPTS_TXSM ||
+				    tso) {
 					ckinfo[1].ck_start =
 					    cd->upper_setup.tcp_fields.tucss;
 					ckinfo[1].ck_off =
@@ -1215,8 +1225,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		goto done;
 
 	if (iovcnt > I82545_MAX_TXSEGS) {
-		WPRINTF("tx too many descriptors (%d > %d) -- dropped",
-		    iovcnt, I82545_MAX_TXSEGS);
+		WPRINTF("tx too many descriptors (%d > %d) -- dropped", iovcnt,
+		    I82545_MAX_TXSEGS);
 		goto done;
 	}
 
@@ -1224,7 +1234,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	/* Estimate writable space for VLAN header insertion. */
 	if ((sc->esc_CTRL & E1000_CTRL_VME) &&
 	    (dsc->td.lower.data & E1000_TXD_CMD_VLE)) {
-		hdrlen = ETHER_ADDR_LEN*2;
+		hdrlen = ETHER_ADDR_LEN * 2;
 		vlen = ETHER_VLAN_ENCAP_LEN;
 	}
 	if (!tso) {
@@ -1260,10 +1270,10 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		 * but this check is sufficient to prevent
 		 * out-of-bounds access below.
 		 */
-		if (vlen != 0 && hdrlen < ETHER_ADDR_LEN*2) {
+		if (vlen != 0 && hdrlen < ETHER_ADDR_LEN * 2) {
 			WPRINTF("TSO hdrlen too small for vlan insertion "
-			    "(%d vs %d) -- dropped", hdrlen,
-			    ETHER_ADDR_LEN*2);
+				"(%d vs %d) -- dropped",
+			    hdrlen, ETHER_ADDR_LEN * 2);
 			goto done;
 		}
 
@@ -1284,25 +1294,29 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		if (hdrlen < ckinfo[0].ck_start + 6U ||
 		    hdrlen < ckinfo[0].ck_off + 2U) {
 			WPRINTF("TSO hdrlen too small for IP fields (%d) "
-			    "-- dropped", hdrlen);
+				"-- dropped",
+			    hdrlen);
 			goto done;
 		}
 		if (sc->esc_txctx.cmd_and_length & E1000_TXD_CMD_TCP) {
 			if (hdrlen < ckinfo[1].ck_start + 14U) {
 				WPRINTF("TSO hdrlen too small for TCP fields "
-				    "(%d) -- dropped", hdrlen);
+					"(%d) -- dropped",
+				    hdrlen);
 				goto done;
 			}
 		} else {
 			if (hdrlen < ckinfo[1].ck_start + 8U) {
 				WPRINTF("TSO hdrlen too small for UDP fields "
-				    "(%d) -- dropped", hdrlen);
+					"(%d) -- dropped",
+				    hdrlen);
 				goto done;
 			}
 		}
 		if (ckinfo[1].ck_valid && hdrlen < ckinfo[1].ck_off + 2U) {
 			WPRINTF("TSO hdrlen too small for TCP/UDP fields "
-			    "(%d) -- dropped", hdrlen);
+				"(%d) -- dropped",
+			    hdrlen);
 			goto done;
 		}
 	}
@@ -1317,7 +1331,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		hdr = __builtin_alloca(hdrlen + vlen);
 		hdr += vlen;
 		for (left = hdrlen, hdrp = hdr; left > 0;
-		    left -= now, hdrp += now) {
+		     left -= now, hdrp += now) {
 			now = MIN(left, iov->iov_len);
 			memcpy(hdrp, iov->iov_base, now);
 			iov->iov_base = (uint8_t *)iov->iov_base + now;
@@ -1337,12 +1351,13 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	/* Insert VLAN tag. */
 	if (vlen != 0) {
 		hdr -= ETHER_VLAN_ENCAP_LEN;
-		memmove(hdr, hdr + ETHER_VLAN_ENCAP_LEN, ETHER_ADDR_LEN*2);
+		memmove(hdr, hdr + ETHER_VLAN_ENCAP_LEN, ETHER_ADDR_LEN * 2);
 		hdrlen += ETHER_VLAN_ENCAP_LEN;
-		hdr[ETHER_ADDR_LEN*2 + 0] = sc->esc_VET >> 8;
-		hdr[ETHER_ADDR_LEN*2 + 1] = sc->esc_VET & 0xff;
-		hdr[ETHER_ADDR_LEN*2 + 2] = dsc->td.upper.fields.special >> 8;
-		hdr[ETHER_ADDR_LEN*2 + 3] = dsc->td.upper.fields.special & 0xff;
+		hdr[ETHER_ADDR_LEN * 2 + 0] = sc->esc_VET >> 8;
+		hdr[ETHER_ADDR_LEN * 2 + 1] = sc->esc_VET & 0xff;
+		hdr[ETHER_ADDR_LEN * 2 + 2] = dsc->td.upper.fields.special >> 8;
+		hdr[ETHER_ADDR_LEN * 2 + 3] = dsc->td.upper.fields.special &
+		    0xff;
 		iov->iov_base = hdr;
 		iov->iov_len += ETHER_VLAN_ENCAP_LEN;
 		/* Correct checksum offsets after VLAN tag insertion. */
@@ -1379,7 +1394,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		tcpseq = ntohl(*(uint32_t *)&hdr[ckinfo[1].ck_start + 4]);
 	ipcs = *(uint16_t *)&hdr[ckinfo[0].ck_off];
 	tcpcs = 0;
-	if (ckinfo[1].ck_valid)	/* Save partial pseudo-header checksum. */
+	if (ckinfo[1].ck_valid) /* Save partial pseudo-header checksum. */
 		tcpcs = *(uint16_t *)&hdr[ckinfo[1].ck_off];
 	pv = 1;
 	pvoff = 0;
@@ -1403,21 +1418,20 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			} else
 				pvoff += nnow;
 		}
-		DPRINTF("tx segment %d %d+%d bytes %d iovs",
-		    seg, hdrlen, now, tiovcnt);
+		DPRINTF("tx segment %d %d+%d bytes %d iovs", seg, hdrlen, now,
+		    tiovcnt);
 
 		/* Update IP header. */
 		if (sc->esc_txctx.cmd_and_length & E1000_TXD_CMD_IP) {
 			/* IPv4 -- set length and ID */
-			*(uint16_t *)&hdr[ckinfo[0].ck_start + 2] =
-			    htons(hdrlen - ckinfo[0].ck_start + now);
-			*(uint16_t *)&hdr[ckinfo[0].ck_start + 4] =
-			    htons(ipid + seg);
+			*(uint16_t *)&hdr[ckinfo[0].ck_start + 2] = htons(
+			    hdrlen - ckinfo[0].ck_start + now);
+			*(uint16_t *)&hdr[ckinfo[0].ck_start + 4] = htons(
+			    ipid + seg);
 		} else {
 			/* IPv6 -- set length */
-			*(uint16_t *)&hdr[ckinfo[0].ck_start + 4] =
-			    htons(hdrlen - ckinfo[0].ck_start - 40 +
-				  now);
+			*(uint16_t *)&hdr[ckinfo[0].ck_start + 4] = htons(
+			    hdrlen - ckinfo[0].ck_start - 40 + now);
 		}
 
 		/* Update pseudo-header checksum. */
@@ -1427,16 +1441,16 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		/* Update TCP/UDP headers. */
 		if (tcp) {
 			/* Update sequence number and FIN/PUSH flags. */
-			*(uint32_t *)&hdr[ckinfo[1].ck_start + 4] =
-			    htonl(tcpseq + paylen - left);
+			*(uint32_t *)&hdr[ckinfo[1].ck_start + 4] = htonl(
+			    tcpseq + paylen - left);
 			if (now < left) {
-				hdr[ckinfo[1].ck_start + 13] &=
-				    ~(TH_FIN | TH_PUSH);
+				hdr[ckinfo[1].ck_start + 13] &= ~(
+				    TH_FIN | TH_PUSH);
 			}
 		} else {
 			/* Update payload length. */
-			*(uint32_t *)&hdr[ckinfo[1].ck_start + 4] =
-			    hdrlen - ckinfo[1].ck_start + now;
+			*(uint32_t *)&hdr[ckinfo[1].ck_start + 4] = hdrlen -
+			    ckinfo[1].ck_start + now;
 		}
 
 		/* Calculate checksums and transmit. */
@@ -1445,8 +1459,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			e82545_transmit_checksum(tiov, tiovcnt, &ckinfo[0]);
 		}
 		if (ckinfo[1].ck_valid) {
-			*(uint16_t *)&hdr[ckinfo[1].ck_off] =
-			    e82545_carry(tcpsum);
+			*(uint16_t *)&hdr[ckinfo[1].ck_off] = e82545_carry(
+			    tcpsum);
 			e82545_transmit_checksum(tiov, tiovcnt, &ckinfo[1]);
 		}
 		e82545_transmit_backend(sc, tiov, tiovcnt);
@@ -1473,8 +1487,8 @@ e82545_tx_run(struct e82545_softc *sc)
 
 	head = sc->esc_TDH % size;
 	tail = sc->esc_TDT % size;
-	DPRINTF("tx_run: head %x, rhead %x, tail %x",
-	    sc->esc_TDH, sc->esc_TDHr, sc->esc_TDT);
+	DPRINTF("tx_run: head %x, rhead %x, tail %x", sc->esc_TDH, sc->esc_TDHr,
+	    sc->esc_TDT);
 
 	pthread_mutex_unlock(&sc->esc_mtx);
 	rhead = head;
@@ -1497,8 +1511,8 @@ e82545_tx_run(struct e82545_softc *sc)
 	if (cause)
 		e82545_icr_assert(sc, cause);
 
-	DPRINTF("tx_run done: head %x, rhead %x, tail %x",
-	    sc->esc_TDH, sc->esc_TDHr, sc->esc_TDT);
+	DPRINTF("tx_run done: head %x, rhead %x, tail %x", sc->esc_TDH,
+	    sc->esc_TDHr, sc->esc_TDT);
 }
 
 static _Noreturn void *
@@ -1603,16 +1617,13 @@ e82545_read_ra(struct e82545_softc *sc, int reg)
 
 	if (reg & 0x1) {
 		/* RAH */
-		retval = (eu->eu_valid << 31) |
-			 (eu->eu_addrsel << 16) |
-			 (eu->eu_eth.octet[5] << 8) |
-			 eu->eu_eth.octet[4];
+		retval = (eu->eu_valid << 31) | (eu->eu_addrsel << 16) |
+		    (eu->eu_eth.octet[5] << 8) | eu->eu_eth.octet[4];
 	} else {
 		/* RAL */
 		retval = (eu->eu_eth.octet[3] << 24) |
-			 (eu->eu_eth.octet[2] << 16) |
-			 (eu->eu_eth.octet[1] << 8) |
-			 eu->eu_eth.octet[0];
+		    (eu->eu_eth.octet[2] << 16) | (eu->eu_eth.octet[1] << 8) |
+		    eu->eu_eth.octet[0];
 	}
 
 	return (retval);
@@ -1624,7 +1635,8 @@ e82545_write_register(struct e82545_softc *sc, uint32_t offset, uint32_t value)
 	int ridx;
 
 	if (offset & 0x3) {
-		DPRINTF("Unaligned register write offset:0x%x value:0x%x", offset, value);
+		DPRINTF("Unaligned register write offset:0x%x value:0x%x",
+		    offset, value);
 		return;
 	}
 	DPRINTF("Register write: 0x%x value: 0x%x", offset, value);
@@ -1757,52 +1769,52 @@ e82545_write_register(struct e82545_softc *sc, uint32_t offset, uint32_t value)
 		sc->esc_TIDV = value & ~0xFFFF0000;
 		break;
 	case E1000_TXDCTL(0):
-		//assert(!sc->esc_tx_enabled);
+		// assert(!sc->esc_tx_enabled);
 		sc->esc_TXDCTL = value & ~0xC0C0C0;
 		break;
 	case E1000_TADV:
 		sc->esc_TADV = value & ~0xFFFF0000;
 		break;
-	case E1000_RAL(0) ... E1000_RAH(15):
+	case E1000_RAL(0)... E1000_RAH(15):
 		/* convert to u32 offset */
 		ridx = (offset - E1000_RAL(0)) >> 2;
 		e82545_write_ra(sc, ridx, value);
 		break;
-	case E1000_MTA ... (E1000_MTA + (127*4)):
+	case E1000_MTA ...(E1000_MTA + (127 * 4)):
 		sc->esc_fmcast[(offset - E1000_MTA) >> 2] = value;
 		break;
-	case E1000_VFTA ... (E1000_VFTA + (127*4)):
+	case E1000_VFTA ...(E1000_VFTA + (127 * 4)):
 		sc->esc_fvlan[(offset - E1000_VFTA) >> 2] = value;
 		break;
-	case E1000_EECD:
-	{
-		//DPRINTF("EECD write 0x%x -> 0x%x", sc->eeprom_control, value);
+	case E1000_EECD: {
+		// DPRINTF("EECD write 0x%x -> 0x%x", sc->eeprom_control,
+		// value);
 		/* edge triggered low->high */
 		uint32_t eecd_strobe = ((sc->eeprom_control & E1000_EECD_SK) ?
-			0 : (value & E1000_EECD_SK));
-		uint32_t eecd_mask = (E1000_EECD_SK|E1000_EECD_CS|
-					E1000_EECD_DI|E1000_EECD_REQ);
+			0 :
+			(value & E1000_EECD_SK));
+		uint32_t eecd_mask = (E1000_EECD_SK | E1000_EECD_CS |
+		    E1000_EECD_DI | E1000_EECD_REQ);
 		sc->eeprom_control &= ~eecd_mask;
 		sc->eeprom_control |= (value & eecd_mask);
 		/* grant/revoke immediately */
 		if (value & E1000_EECD_REQ) {
 			sc->eeprom_control |= E1000_EECD_GNT;
 		} else {
-                        sc->eeprom_control &= ~E1000_EECD_GNT;
+			sc->eeprom_control &= ~E1000_EECD_GNT;
 		}
 		if (eecd_strobe && (sc->eeprom_control & E1000_EECD_CS)) {
 			e82545_eecd_strobe(sc);
 		}
 		return;
 	}
-	case E1000_MDIC:
-	{
+	case E1000_MDIC: {
 		uint8_t reg_addr = (uint8_t)((value & E1000_MDIC_REG_MASK) >>
-						E1000_MDIC_REG_SHIFT);
+		    E1000_MDIC_REG_SHIFT);
 		uint8_t phy_addr = (uint8_t)((value & E1000_MDIC_PHY_MASK) >>
-						E1000_MDIC_PHY_SHIFT);
-		sc->mdi_control =
-			(value & ~(E1000_MDIC_ERROR|E1000_MDIC_DEST));
+		    E1000_MDIC_PHY_SHIFT);
+		sc->mdi_control = (value &
+		    ~(E1000_MDIC_ERROR | E1000_MDIC_DEST));
 		if ((value & E1000_MDIC_READY) != 0) {
 			DPRINTF("Incorrect MDIC ready bit: 0x%x", value);
 			return;
@@ -1810,11 +1822,12 @@ e82545_write_register(struct e82545_softc *sc, uint32_t offset, uint32_t value)
 		switch (value & E82545_MDIC_OP_MASK) {
 		case E1000_MDIC_OP_READ:
 			sc->mdi_control &= ~E82545_MDIC_DATA_MASK;
-			sc->mdi_control |= e82545_read_mdi(sc, reg_addr, phy_addr);
+			sc->mdi_control |= e82545_read_mdi(sc, reg_addr,
+			    phy_addr);
 			break;
 		case E1000_MDIC_OP_WRITE:
 			e82545_write_mdi(sc, reg_addr, phy_addr,
-				value & E82545_MDIC_DATA_MASK);
+			    value & E82545_MDIC_DATA_MASK);
 			break;
 		default:
 			DPRINTF("Unknown MDIC op: 0x%x", value);
@@ -1960,19 +1973,19 @@ e82545_read_register(struct e82545_softc *sc, uint32_t offset)
 	case E1000_TADV:
 		retval = sc->esc_TADV;
 		break;
-	case E1000_RAL(0) ... E1000_RAH(15):
+	case E1000_RAL(0)... E1000_RAH(15):
 		/* convert to u32 offset */
 		ridx = (offset - E1000_RAL(0)) >> 2;
 		retval = e82545_read_ra(sc, ridx);
 		break;
-	case E1000_MTA ... (E1000_MTA + (127*4)):
+	case E1000_MTA ...(E1000_MTA + (127 * 4)):
 		retval = sc->esc_fmcast[(offset - E1000_MTA) >> 2];
 		break;
-	case E1000_VFTA ... (E1000_VFTA + (127*4)):
+	case E1000_VFTA ...(E1000_VFTA + (127 * 4)):
 		retval = sc->esc_fvlan[(offset - E1000_VFTA) >> 2];
 		break;
 	case E1000_EECD:
-		//DPRINTF("EECD read %x", sc->eeprom_control);
+		// DPRINTF("EECD read %x", sc->eeprom_control);
 		retval = sc->eeprom_control;
 		break;
 	case E1000_MDIC:
@@ -2037,8 +2050,8 @@ e82545_read_register(struct e82545_softc *sc, uint32_t offset)
 		retval = (uint32_t)(sc->good_octets_rx + sc->missed_octets);
 		break;
 	case E1000_TORH:
-		retval = (uint32_t)((sc->good_octets_rx +
-		    sc->missed_octets) >> 32);
+		retval = (uint32_t)((sc->good_octets_rx + sc->missed_octets) >>
+		    32);
 		break;
 	case E1000_TPR:
 		retval = sc->good_pkt_rx_count + sc->missed_pkt_count +
@@ -2116,7 +2129,8 @@ e82545_write(struct pci_devinst *pi, int baridx, uint64_t offset, int size,
 {
 	struct e82545_softc *sc;
 
-	//DPRINTF("Write bar:%d offset:0x%lx value:0x%lx size:%d", baridx, offset, value, size);
+	// DPRINTF("Write bar:%d offset:0x%lx value:0x%lx size:%d", baridx,
+	// offset, value, size);
 
 	sc = pi->pi_arg;
 
@@ -2127,34 +2141,43 @@ e82545_write(struct pci_devinst *pi, int baridx, uint64_t offset, int size,
 		switch (offset) {
 		case E82545_IOADDR:
 			if (size != 4) {
-				DPRINTF("Wrong io addr write sz:%d value:0x%lx", size, value);
+				DPRINTF("Wrong io addr write sz:%d value:0x%lx",
+				    size, value);
 			} else
 				sc->io_addr = (uint32_t)value;
 			break;
 		case E82545_IODATA:
 			if (size != 4) {
-				DPRINTF("Wrong io data write size:%d value:0x%lx", size, value);
+				DPRINTF(
+				    "Wrong io data write size:%d value:0x%lx",
+				    size, value);
 			} else if (sc->io_addr > E82545_IO_REGISTER_MAX) {
-				DPRINTF("Non-register io write addr:0x%x value:0x%lx", sc->io_addr, value);
+				DPRINTF(
+				    "Non-register io write addr:0x%x value:0x%lx",
+				    sc->io_addr, value);
 			} else
 				e82545_write_register(sc, sc->io_addr,
-						      (uint32_t)value);
+				    (uint32_t)value);
 			break;
 		default:
-			DPRINTF("Unknown io bar write offset:0x%lx value:0x%lx size:%d", offset, value, size);
+			DPRINTF(
+			    "Unknown io bar write offset:0x%lx value:0x%lx size:%d",
+			    offset, value, size);
 			break;
 		}
 		break;
 	case E82545_BAR_REGISTER:
 		if (size != 4) {
-			DPRINTF("Wrong register write size:%d offset:0x%lx value:0x%lx", size, offset, value);
+			DPRINTF(
+			    "Wrong register write size:%d offset:0x%lx value:0x%lx",
+			    size, offset, value);
 		} else
 			e82545_write_register(sc, (uint32_t)offset,
-					      (uint32_t)value);
+			    (uint32_t)value);
 		break;
 	default:
 		DPRINTF("Unknown write bar:%d off:0x%lx val:0x%lx size:%d",
-			baridx, offset, value, size);
+		    baridx, offset, value, size);
 	}
 
 	pthread_mutex_unlock(&sc->esc_mtx);
@@ -2166,7 +2189,7 @@ e82545_read(struct pci_devinst *pi, int baridx, uint64_t offset, int size)
 	struct e82545_softc *sc;
 	uint64_t retval;
 
-	//DPRINTF("Read  bar:%d offset:0x%lx size:%d", baridx, offset, size);
+	// DPRINTF("Read  bar:%d offset:0x%lx size:%d", baridx, offset, size);
 	sc = pi->pi_arg;
 	retval = 0;
 
@@ -2187,26 +2210,26 @@ e82545_read(struct pci_devinst *pi, int baridx, uint64_t offset, int size)
 			}
 			if (sc->io_addr > E82545_IO_REGISTER_MAX) {
 				DPRINTF("Non-register io read addr:0x%x",
-					sc->io_addr);
+				    sc->io_addr);
 			} else
 				retval = e82545_read_register(sc, sc->io_addr);
 			break;
 		default:
 			DPRINTF("Unknown io bar read offset:0x%lx size:%d",
-				offset, size);
+			    offset, size);
 			break;
 		}
 		break;
 	case E82545_BAR_REGISTER:
 		if (size != 4) {
 			DPRINTF("Wrong register read size:%d offset:0x%lx",
-				size, offset);
+			    size, offset);
 		} else
 			retval = e82545_read_register(sc, (uint32_t)offset);
 		break;
 	default:
-		DPRINTF("Unknown read bar:%d offset:0x%lx size:%d",
-			baridx, offset, size);
+		DPRINTF("Unknown read bar:%d offset:0x%lx size:%d", baridx,
+		    offset, size);
 		break;
 	}
 
@@ -2324,28 +2347,27 @@ e82545_init(struct pci_devinst *pi, nvlist_t *nvl)
 	pthread_create(&sc->esc_tx_tid, NULL, e82545_tx_thread, sc);
 	snprintf(nstr, sizeof(nstr), "e82545-%d:%d tx", pi->pi_slot,
 	    pi->pi_func);
-        pthread_set_name_np(sc->esc_tx_tid, nstr);
+	pthread_set_name_np(sc->esc_tx_tid, nstr);
 
 	pci_set_cfgdata16(pi, PCIR_DEVICE, E82545_DEV_ID_82545EM_COPPER);
 	pci_set_cfgdata16(pi, PCIR_VENDOR, E82545_VENDOR_ID_INTEL);
-	pci_set_cfgdata8(pi,  PCIR_CLASS, PCIC_NETWORK);
+	pci_set_cfgdata8(pi, PCIR_CLASS, PCIC_NETWORK);
 	pci_set_cfgdata8(pi, PCIR_SUBCLASS, PCIS_NETWORK_ETHERNET);
 	pci_set_cfgdata16(pi, PCIR_SUBDEV_0, E82545_SUBDEV_ID);
 	pci_set_cfgdata16(pi, PCIR_SUBVEND_0, E82545_VENDOR_ID_INTEL);
 
-	pci_set_cfgdata8(pi,  PCIR_HDRTYPE, PCIM_HDRTYPE_NORMAL);
-	pci_set_cfgdata8(pi,  PCIR_INTPIN, 0x1);
+	pci_set_cfgdata8(pi, PCIR_HDRTYPE, PCIM_HDRTYPE_NORMAL);
+	pci_set_cfgdata8(pi, PCIR_INTPIN, 0x1);
 
 	/* TODO: this card also supports msi, but the freebsd driver for it
 	 * does not, so I have not implemented it. */
 	pci_lintr_request(pi);
 
 	pci_emul_alloc_bar(pi, E82545_BAR_REGISTER, PCIBAR_MEM32,
-		E82545_BAR_REGISTER_LEN);
+	    E82545_BAR_REGISTER_LEN);
 	pci_emul_alloc_bar(pi, E82545_BAR_FLASH, PCIBAR_MEM32,
-		E82545_BAR_FLASH_LEN);
-	pci_emul_alloc_bar(pi, E82545_BAR_IO, PCIBAR_IO,
-		E82545_BAR_IO_LEN);
+	    E82545_BAR_FLASH_LEN);
+	pci_emul_alloc_bar(pi, E82545_BAR_IO, PCIBAR_IO, E82545_BAR_IO_LEN);
 
 	mac = get_config_value_node(nvl, "mac");
 	if (mac != NULL) {
@@ -2412,10 +2434,13 @@ e82545_snapshot(struct vm_snapshot_meta *meta)
 	 * bytes in the larger uint variables.
 	 * e.g., ip_config = [ipcss|ipcso|ipcse0|ipcse1]
 	 */
-	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.lower_setup.ip_config, meta, ret, done);
-	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.upper_setup.tcp_config, meta, ret, done);
+	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.lower_setup.ip_config, meta, ret,
+	    done);
+	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.upper_setup.tcp_config, meta, ret,
+	    done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.cmd_and_length, meta, ret, done);
-	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.tcp_seg_setup.data, meta, ret, done);
+	SNAPSHOT_VAR_OR_LEAVE(sc->esc_txctx.tcp_seg_setup.data, meta, ret,
+	    done);
 
 	SNAPSHOT_VAR_OR_LEAVE(sc->esc_tx_enabled, meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->esc_tx_active, meta, ret, done);
@@ -2441,14 +2466,15 @@ e82545_snapshot(struct vm_snapshot_meta *meta)
 	/* L2 frame acceptance */
 	for (i = 0; i < (int)nitems(sc->esc_uni); i++) {
 		SNAPSHOT_VAR_OR_LEAVE(sc->esc_uni[i].eu_valid, meta, ret, done);
-		SNAPSHOT_VAR_OR_LEAVE(sc->esc_uni[i].eu_addrsel, meta, ret, done);
+		SNAPSHOT_VAR_OR_LEAVE(sc->esc_uni[i].eu_addrsel, meta, ret,
+		    done);
 		SNAPSHOT_VAR_OR_LEAVE(sc->esc_uni[i].eu_eth, meta, ret, done);
 	}
 
-	SNAPSHOT_BUF_OR_LEAVE(sc->esc_fmcast, sizeof(sc->esc_fmcast),
-			      meta, ret, done);
-	SNAPSHOT_BUF_OR_LEAVE(sc->esc_fvlan, sizeof(sc->esc_fvlan),
-			      meta, ret, done);
+	SNAPSHOT_BUF_OR_LEAVE(sc->esc_fmcast, sizeof(sc->esc_fmcast), meta, ret,
+	    done);
+	SNAPSHOT_BUF_OR_LEAVE(sc->esc_fvlan, sizeof(sc->esc_fvlan), meta, ret,
+	    done);
 
 	/* Receive */
 	SNAPSHOT_VAR_OR_LEAVE(sc->esc_rx_enabled, meta, ret, done);
@@ -2489,9 +2515,9 @@ e82545_snapshot(struct vm_snapshot_meta *meta)
 	/* Stats */
 	SNAPSHOT_VAR_OR_LEAVE(sc->missed_pkt_count, meta, ret, done);
 	SNAPSHOT_BUF_OR_LEAVE(sc->pkt_rx_by_size, sizeof(sc->pkt_rx_by_size),
-			      meta, ret, done);
+	    meta, ret, done);
 	SNAPSHOT_BUF_OR_LEAVE(sc->pkt_tx_by_size, sizeof(sc->pkt_tx_by_size),
-			      meta, ret, done);
+	    meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->good_pkt_rx_count, meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->bcast_pkt_rx_count, meta, ret, done);
 	SNAPSHOT_VAR_OR_LEAVE(sc->mcast_pkt_rx_count, meta, ret, done);
@@ -2517,8 +2543,8 @@ e82545_snapshot(struct vm_snapshot_meta *meta)
 		sc->nvm_bits = bitmap_value;
 
 	/* EEPROM data */
-	SNAPSHOT_BUF_OR_LEAVE(sc->eeprom_data, sizeof(sc->eeprom_data),
-			      meta, ret, done);
+	SNAPSHOT_BUF_OR_LEAVE(sc->eeprom_data, sizeof(sc->eeprom_data), meta,
+	    ret, done);
 
 done:
 	return (ret);
@@ -2526,13 +2552,13 @@ done:
 #endif
 
 static const struct pci_devemu pci_de_e82545 = {
-	.pe_emu = 	"e1000",
-	.pe_init =	e82545_init,
+	.pe_emu = "e1000",
+	.pe_init = e82545_init,
 	.pe_legacy_config = netbe_legacy_config,
-	.pe_barwrite =	e82545_write,
-	.pe_barread =	e82545_read,
+	.pe_barwrite = e82545_write,
+	.pe_barread = e82545_read,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	e82545_snapshot,
+	.pe_snapshot = e82545_snapshot,
 #endif
 };
 PCI_EMUL_SET(pci_de_e82545);

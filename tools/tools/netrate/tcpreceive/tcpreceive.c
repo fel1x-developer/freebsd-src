@@ -36,7 +36,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,8 +47,8 @@
  * to interrupt the loop and assess the cost, and uses a fixed maximum
  * buffer size.  It makes no attempt to time out old connections.
  */
-#define	BUFFERSIZE	128*1024
-#define	PORT		6060
+#define BUFFERSIZE 128 * 1024
+#define PORT 6060
 
 static void
 handle_connection(int accept_sock)

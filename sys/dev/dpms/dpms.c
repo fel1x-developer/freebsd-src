@@ -69,45 +69,43 @@
 #include <compat/x86bios/x86bios.h>
 
 /*
- * VESA DPMS States 
+ * VESA DPMS States
  */
-#define DPMS_ON		0x00
-#define DPMS_STANDBY	0x01
-#define DPMS_SUSPEND	0x02
-#define DPMS_OFF	0x04
-#define DPMS_REDUCEDON	0x08
+#define DPMS_ON 0x00
+#define DPMS_STANDBY 0x01
+#define DPMS_SUSPEND 0x02
+#define DPMS_OFF 0x04
+#define DPMS_REDUCEDON 0x08
 
-#define	VBE_DPMS_FUNCTION	0x4F10
-#define	VBE_DPMS_GET_SUPPORTED_STATES 0x00
-#define	VBE_DPMS_GET_STATE	0x02
-#define	VBE_DPMS_SET_STATE	0x01
-#define VBE_MAJORVERSION_MASK	0x0F
-#define VBE_MINORVERSION_MASK	0xF0
+#define VBE_DPMS_FUNCTION 0x4F10
+#define VBE_DPMS_GET_SUPPORTED_STATES 0x00
+#define VBE_DPMS_GET_STATE 0x02
+#define VBE_DPMS_SET_STATE 0x01
+#define VBE_MAJORVERSION_MASK 0x0F
+#define VBE_MINORVERSION_MASK 0xF0
 
 struct dpms_softc {
-	int	dpms_supported_states;
-	int	dpms_initial_state;
+	int dpms_supported_states;
+	int dpms_initial_state;
 };
 
-static int	dpms_attach(device_t);
-static int	dpms_detach(device_t);
-static int	dpms_get_supported_states(int *);
-static int	dpms_get_current_state(int *);
-static void	dpms_identify(driver_t *, device_t);
-static int	dpms_probe(device_t);
-static int	dpms_resume(device_t);
-static int	dpms_set_state(int);
-static int	dpms_suspend(device_t);
+static int dpms_attach(device_t);
+static int dpms_detach(device_t);
+static int dpms_get_supported_states(int *);
+static int dpms_get_current_state(int *);
+static void dpms_identify(driver_t *, device_t);
+static int dpms_probe(device_t);
+static int dpms_resume(device_t);
+static int dpms_set_state(int);
+static int dpms_suspend(device_t);
 
-static device_method_t dpms_methods[] = {
-	DEVMETHOD(device_identify,	dpms_identify),
-	DEVMETHOD(device_probe,		dpms_probe),
-	DEVMETHOD(device_attach,	dpms_attach),
-	DEVMETHOD(device_detach,	dpms_detach),
-	DEVMETHOD(device_suspend,	dpms_suspend),
-	DEVMETHOD(device_resume,	dpms_resume),
-	{ 0, 0 }
-};
+static device_method_t dpms_methods[] = { DEVMETHOD(device_identify,
+					      dpms_identify),
+	DEVMETHOD(device_probe, dpms_probe),
+	DEVMETHOD(device_attach, dpms_attach),
+	DEVMETHOD(device_detach, dpms_detach),
+	DEVMETHOD(device_suspend, dpms_suspend),
+	DEVMETHOD(device_resume, dpms_resume), { 0, 0 } };
 
 static driver_t dpms_driver = {
 	"dpms",

@@ -1,23 +1,21 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <sys/mutex.h>
+
+#include <linux/delay.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_dev_err.h"
-#include "adf_uio.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include <sys/mutex.h>
-#include <linux/delay.h>
-#include "adf_accel_devices.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include "adf_uio.h"
 #include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 /* Mask used to check the CompressAndVerify capability bit */
 #define DC_CNV_EXTENDED_CAPABILITY (0x01)
@@ -61,7 +59,7 @@ adf_service_unregister(struct service_hndl *service)
 	for (i = 0; i < ARRAY_SIZE(service->init_status); i++) {
 		if (service->init_status[i] || service->start_status[i]) {
 			pr_err("QAT: Could not remove active service [%d]\n",
-			       i);
+			    i);
 			return EFAULT;
 		}
 	}
@@ -87,58 +85,54 @@ adf_cfg_add_device_params(struct adf_accel_dev *accel_dev)
 
 	snprintf(key, sizeof(key), ADF_DEV_MAX_BANKS);
 	val = GET_MAX_BANKS(accel_dev);
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_DEV_CAPABILITIES_MASK);
 	val = hw_data->accel_capabilities_mask;
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)val, ADF_HEX))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)val, ADF_HEX))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_DEV_PKG_ID);
 	val = accel_dev->accel_id;
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_DEV_NODE_ID);
 	val = dev_to_node(GET_DEV(accel_dev));
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_DEV_MAX_RINGS_PER_BANK);
 	val = hw_data->num_rings_per_bank;
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)&val, ADF_DEC))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)&val, ADF_DEC))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_HW_REV_ID_KEY);
-	snprintf(hw_version,
-		 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-		 "%d",
-		 accel_dev->accel_pci_dev.revid);
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)hw_version, ADF_STR))
+	snprintf(hw_version, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "%d",
+	    accel_dev->accel_pci_dev.revid);
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)hw_version, ADF_STR))
 		goto err;
 
 	snprintf(key, sizeof(key), ADF_MMP_VER_KEY);
-	snprintf(mmp_version,
-		 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-		 "%d.%d.%d",
-		 accel_dev->fw_versions.mmp_version_major,
-		 accel_dev->fw_versions.mmp_version_minor,
-		 accel_dev->fw_versions.mmp_version_patch);
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)mmp_version, ADF_STR))
+	snprintf(mmp_version, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "%d.%d.%d",
+	    accel_dev->fw_versions.mmp_version_major,
+	    accel_dev->fw_versions.mmp_version_minor,
+	    accel_dev->fw_versions.mmp_version_patch);
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)mmp_version, ADF_STR))
 		goto err;
 
 	return 0;
 err:
 	device_printf(GET_DEV(accel_dev),
-		      "Failed to add internal values to accel_dev cfg\n");
+	    "Failed to add internal values to accel_dev cfg\n");
 	return -EINVAL;
 }
 
@@ -149,14 +143,12 @@ adf_cfg_add_fw_version(struct adf_accel_dev *accel_dev)
 	char fw_version[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 
 	snprintf(key, sizeof(key), ADF_UOF_VER_KEY);
-	snprintf(fw_version,
-		 ADF_CFG_MAX_VAL_LEN_IN_BYTES,
-		 "%d.%d.%d",
-		 accel_dev->fw_versions.fw_version_major,
-		 accel_dev->fw_versions.fw_version_minor,
-		 accel_dev->fw_versions.fw_version_patch);
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)fw_version, ADF_STR))
+	snprintf(fw_version, ADF_CFG_MAX_VAL_LEN_IN_BYTES, "%d.%d.%d",
+	    accel_dev->fw_versions.fw_version_major,
+	    accel_dev->fw_versions.fw_version_minor,
+	    accel_dev->fw_versions.fw_version_patch);
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)fw_version, ADF_STR))
 		return EFAULT;
 
 	return 0;
@@ -172,8 +164,8 @@ adf_cfg_add_ext_params(struct adf_accel_dev *accel_dev)
 	snprintf(key, sizeof(key), ADF_DC_EXTENDED_FEATURES);
 
 	val = hw_data->extended_dc_capabilities;
-	if (adf_cfg_add_key_value_param(
-		accel_dev, ADF_GENERAL_SEC, key, (void *)val, ADF_HEX))
+	if (adf_cfg_add_key_value_param(accel_dev, ADF_GENERAL_SEC, key,
+		(void *)val, ADF_HEX))
 		return -EINVAL;
 
 	return 0;
@@ -191,8 +183,8 @@ adf_error_notifier(uintptr_t arg)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_ERROR))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to send error event to %s.\n",
-				      service->name);
+			    "Failed to send error event to %s.\n",
+			    service->name);
 	}
 }
 
@@ -205,8 +197,8 @@ int
 adf_set_ssm_wdtimer(struct adf_accel_dev *accel_dev)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
-	struct adf_bar *misc_bar =
-	    &GET_BARS(accel_dev)[hw_data->get_misc_bar_id(hw_data)];
+	struct adf_bar *misc_bar = &GET_BARS(
+	    accel_dev)[hw_data->get_misc_bar_id(hw_data)];
 	struct resource *csr = misc_bar->virt_addr;
 	u32 i;
 	unsigned int mask;
@@ -216,24 +208,18 @@ adf_set_ssm_wdtimer(struct adf_accel_dev *accel_dev)
 	char timer_str[ADF_CFG_MAX_VAL_LEN_IN_BYTES] = { 0 };
 
 	/* Get Watch Dog Timer for CySym+Comp from the configuration */
-	if (!adf_cfg_get_param_value(accel_dev,
-				     ADF_GENERAL_SEC,
-				     ADF_DEV_SSM_WDT_BULK,
-				     (char *)timer_str)) {
-		if (!compat_strtouint((char *)timer_str,
-				      ADF_CFG_BASE_DEC,
-				      &timer_val))
+	if (!adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+		ADF_DEV_SSM_WDT_BULK, (char *)timer_str)) {
+		if (!compat_strtouint((char *)timer_str, ADF_CFG_BASE_DEC,
+			&timer_val))
 			/* Convert msec to CPP clocks */
 			timer_val = timer_val * (clk_per_sec / 1000);
 	}
 	/* Get Watch Dog Timer for CyAsym from the configuration */
-	if (!adf_cfg_get_param_value(accel_dev,
-				     ADF_GENERAL_SEC,
-				     ADF_DEV_SSM_WDT_PKE,
-				     (char *)timer_str)) {
-		if (!compat_strtouint((char *)timer_str,
-				      ADF_CFG_BASE_DEC,
-				      &timer_val_pke))
+	if (!adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+		ADF_DEV_SSM_WDT_PKE, (char *)timer_str)) {
+		if (!compat_strtouint((char *)timer_str, ADF_CFG_BASE_DEC,
+			&timer_val_pke))
 			/* Convert msec to CPP clocks */
 			timer_val_pke = timer_val_pke * (clk_per_sec / 1000);
 	}
@@ -271,7 +257,7 @@ adf_dev_init(struct adf_accel_dev *accel_dev)
 
 	if (!hw_data) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to init device - hw_data not set\n");
+		    "Failed to init device - hw_data not set\n");
 		return EFAULT;
 	}
 	if (hw_data->reset_hw_units)
@@ -290,25 +276,25 @@ adf_dev_init(struct adf_accel_dev *accel_dev)
 
 	if (hw_data->init_device && hw_data->init_device(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to initialize device\n");
+		    "Failed to initialize device\n");
 		return EFAULT;
 	}
 
 	if (hw_data->init_accel_units && hw_data->init_accel_units(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed initialize accel_units\n");
+		    "Failed initialize accel_units\n");
 		return EFAULT;
 	}
 
 	if (hw_data->init_admin_comms && hw_data->init_admin_comms(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed initialize admin comms\n");
+		    "Failed initialize admin comms\n");
 		return EFAULT;
 	}
 
 	if (hw_data->init_arb && hw_data->init_arb(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed initialize hw arbiter\n");
+		    "Failed initialize hw arbiter\n");
 		return EFAULT;
 	}
 
@@ -319,7 +305,7 @@ adf_dev_init(struct adf_accel_dev *accel_dev)
 
 	if (adf_ae_init(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to initialise Acceleration Engine\n");
+		    "Failed to initialise Acceleration Engine\n");
 		return EFAULT;
 	}
 
@@ -327,14 +313,14 @@ adf_dev_init(struct adf_accel_dev *accel_dev)
 
 	if (adf_ae_fw_load(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to load acceleration FW\n");
+		    "Failed to load acceleration FW\n");
 		return EFAULT;
 	}
 	set_bit(ADF_STATUS_AE_UCODE_LOADED, &accel_dev->status);
 
 	if (hw_data->alloc_irq(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to allocate interrupts\n");
+		    "Failed to allocate interrupts\n");
 		return EFAULT;
 	}
 	set_bit(ADF_STATUS_IRQ_ALLOCATED, &accel_dev->status);
@@ -370,24 +356,19 @@ adf_dev_init(struct adf_accel_dev *accel_dev)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_INIT)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to initialise service %s\n",
-				      service->name);
+			    "Failed to initialise service %s\n", service->name);
 			return EFAULT;
 		}
 		set_bit(accel_dev->accel_id, service->init_status);
 	}
 
 	/* Read autoreset on error parameter */
-	ret = adf_cfg_get_param_value(accel_dev,
-				      ADF_GENERAL_SEC,
-				      ADF_AUTO_RESET_ON_ERROR,
-				      value);
+	ret = adf_cfg_get_param_value(accel_dev, ADF_GENERAL_SEC,
+	    ADF_AUTO_RESET_ON_ERROR, value);
 	if (!ret) {
-		if (compat_strtouint(value,
-				     10,
-				     &accel_dev->autoreset_on_error)) {
-			device_printf(
-			    GET_DEV(accel_dev),
+		if (compat_strtouint(value, 10,
+			&accel_dev->autoreset_on_error)) {
+			device_printf(GET_DEV(accel_dev),
 			    "Failed converting %s to a decimal value\n",
 			    ADF_AUTO_RESET_ON_ERROR);
 			return EFAULT;
@@ -416,9 +397,8 @@ adf_dev_start(struct adf_accel_dev *accel_dev)
 
 	set_bit(ADF_STATUS_STARTING, &accel_dev->status);
 	if (adf_devmgr_verify_id(&accel_dev->accel_id)) {
-		device_printf(GET_DEV(accel_dev),
-			      "QAT: Device %d not found\n",
-			      accel_dev->accel_id);
+		device_printf(GET_DEV(accel_dev), "QAT: Device %d not found\n",
+		    accel_dev->accel_id);
 		return ENODEV;
 	}
 	if (adf_ae_start(accel_dev)) {
@@ -429,13 +409,13 @@ adf_dev_start(struct adf_accel_dev *accel_dev)
 	set_bit(ADF_STATUS_AE_STARTED, &accel_dev->status);
 	if (hw_data->send_admin_init(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to send init message\n");
+		    "Failed to send init message\n");
 		return EFAULT;
 	}
 
 	if (adf_cfg_add_fw_version(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to update configuration FW version\n");
+		    "Failed to update configuration FW version\n");
 		return EFAULT;
 	}
 
@@ -448,13 +428,13 @@ adf_dev_start(struct adf_accel_dev *accel_dev)
 	 */
 	if (hw_data->set_ssm_wdtimer && hw_data->set_ssm_wdtimer(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "QAT: Failed to set ssm watch dog timer\n");
+		    "QAT: Failed to set ssm watch dog timer\n");
 		return EFAULT;
 	}
 
 	if (hw_data->int_timer_init && hw_data->int_timer_init(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to init heartbeat interrupt timer\n");
+		    "Failed to init heartbeat interrupt timer\n");
 		return -EFAULT;
 	}
 
@@ -463,8 +443,7 @@ adf_dev_start(struct adf_accel_dev *accel_dev)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_START)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to start service %s\n",
-				      service->name);
+			    "Failed to start service %s\n", service->name);
 			return EFAULT;
 		}
 		set_bit(accel_dev->accel_id, service->start_status);
@@ -475,7 +454,7 @@ adf_dev_start(struct adf_accel_dev *accel_dev)
 		if (adf_uio_register(accel_dev)) {
 			adf_uio_remove(accel_dev);
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to register UIO devices\n");
+			    "Failed to register UIO devices\n");
 			set_bit(ADF_STATUS_STARTING, &accel_dev->status);
 			clear_bit(ADF_STATUS_STARTED, &accel_dev->status);
 			return ENODEV;
@@ -509,9 +488,8 @@ adf_dev_stop(struct adf_accel_dev *accel_dev)
 	struct list_head *list_itr;
 
 	if (adf_devmgr_verify_id(&accel_dev->accel_id)) {
-		device_printf(GET_DEV(accel_dev),
-			      "QAT: Device %d not found\n",
-			      accel_dev->accel_id);
+		device_printf(GET_DEV(accel_dev), "QAT: Device %d not found\n",
+		    accel_dev->accel_id);
 		return ENODEV;
 	}
 	if (!adf_dev_started(accel_dev) &&
@@ -520,8 +498,7 @@ adf_dev_stop(struct adf_accel_dev *accel_dev)
 	}
 
 	if (adf_dev_stop_notify_sync(accel_dev)) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Waiting for device un-busy failed. Retries limit reached\n");
 		return EBUSY;
 	}
@@ -548,7 +525,7 @@ adf_dev_stop(struct adf_accel_dev *accel_dev)
 	if (test_bit(ADF_STATUS_AE_STARTED, &accel_dev->status)) {
 		if (adf_ae_stop(accel_dev))
 			device_printf(GET_DEV(accel_dev),
-				      "failed to stop AE\n");
+			    "failed to stop AE\n");
 		else
 			clear_bit(ADF_STATUS_AE_STARTED, &accel_dev->status);
 	}
@@ -573,12 +550,11 @@ adf_dev_shutdown(struct adf_accel_dev *accel_dev)
 	if (test_bit(ADF_STATUS_SYSCTL_CTX_INITIALISED, &accel_dev->status)) {
 		sysctl_ctx_free(&accel_dev->sysctl_ctx);
 		clear_bit(ADF_STATUS_SYSCTL_CTX_INITIALISED,
-			  &accel_dev->status);
+		    &accel_dev->status);
 	}
 
 	if (!hw_data) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "QAT: Failed to shutdown device - hw_data not set\n");
 		return;
 	}
@@ -591,10 +567,10 @@ adf_dev_shutdown(struct adf_accel_dev *accel_dev)
 	if (test_bit(ADF_STATUS_AE_INITIALISED, &accel_dev->status)) {
 		if (adf_ae_shutdown(accel_dev))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to shutdown Accel Engine\n");
+			    "Failed to shutdown Accel Engine\n");
 		else
 			clear_bit(ADF_STATUS_AE_INITIALISED,
-				  &accel_dev->status);
+			    &accel_dev->status);
 	}
 
 	list_for_each(list_itr, &service_table)
@@ -604,8 +580,7 @@ adf_dev_shutdown(struct adf_accel_dev *accel_dev)
 			continue;
 		if (service->event_hld(accel_dev, ADF_EVENT_SHUTDOWN))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to shutdown service %s\n",
-				      service->name);
+			    "Failed to shutdown service %s\n", service->name);
 		else
 			clear_bit(accel_dev->accel_id, service->init_status);
 	}
@@ -671,8 +646,7 @@ adf_dev_restarting_notify(struct adf_accel_dev *accel_dev)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_RESTARTING))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to restart service %s.\n",
-				      service->name);
+			    "Failed to restart service %s.\n", service->name);
 	}
 	return 0;
 }
@@ -692,7 +666,7 @@ adf_dev_restarting_notify_sync(struct adf_accel_dev *accel_dev)
 	if (adf_dev_in_use(accel_dev)) {
 		clear_bit(ADF_STATUS_RESTARTING, &accel_dev->status);
 		device_printf(GET_DEV(accel_dev),
-			      "Device still in use during reset sequence.\n");
+		    "Device still in use during reset sequence.\n");
 		return EBUSY;
 	}
 
@@ -712,8 +686,7 @@ adf_dev_stop_notify_sync(struct adf_accel_dev *accel_dev)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_STOP))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to restart service %s.\n",
-				      service->name);
+			    "Failed to restart service %s.\n", service->name);
 	}
 
 	for (times = 0; times < ADF_STOP_RETRY; times++) {
@@ -725,7 +698,7 @@ adf_dev_stop_notify_sync(struct adf_accel_dev *accel_dev)
 	if (adf_dev_in_use(accel_dev)) {
 		clear_bit(ADF_STATUS_RESTARTING, &accel_dev->status);
 		device_printf(GET_DEV(accel_dev),
-			      "Device still in use during stop sequence.\n");
+		    "Device still in use during stop sequence.\n");
 		return EBUSY;
 	}
 
@@ -743,8 +716,7 @@ adf_dev_restarted_notify(struct adf_accel_dev *accel_dev)
 		service = list_entry(list_itr, struct service_hndl, list);
 		if (service->event_hld(accel_dev, ADF_EVENT_RESTARTED))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to restart service %s.\n",
-				      service->name);
+			    "Failed to restart service %s.\n", service->name);
 	}
 	return 0;
 }

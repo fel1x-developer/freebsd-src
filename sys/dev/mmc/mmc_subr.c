@@ -60,13 +60,13 @@
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmc_private.h>
 #include <dev/mmc/mmc_subr.h>
-#include <dev/mmc/mmcreg.h>
 #include <dev/mmc/mmcbrvar.h>
+#include <dev/mmc/mmcreg.h>
 
 #include "mmcbus_if.h"
 
-#define	CMD_RETRIES	3
-#define	LOG_PPS		5 /* Log no more than 5 errors per second. */
+#define CMD_RETRIES 3
+#define LOG_PPS 5 /* Log no more than 5 errors per second. */
 
 int
 mmc_wait_for_cmd(device_t busdev, device_t dev, struct mmc_command *cmd,
@@ -92,8 +92,8 @@ mmc_wait_for_cmd(device_t busdev, device_t dev, struct mmc_command *cmd,
 
 	if (err != MMC_ERR_NONE && busdev == dev) {
 		sc = device_get_softc(busdev);
-		if (sc->squelched == 0 && ppsratecheck(&sc->log_time,
-		    &sc->log_count, LOG_PPS)) {
+		if (sc->squelched == 0 &&
+		    ppsratecheck(&sc->log_time, &sc->log_count, LOG_PPS)) {
 			device_printf(sc->dev, "CMD%d failed, RESULT: %d\n",
 			    cmd->opcode, err);
 		}
@@ -135,8 +135,8 @@ mmc_wait_for_app_cmd(device_t busdev, device_t dev, uint16_t rca,
 	sc->squelched--;
 
 	if (err != MMC_ERR_NONE && busdev == dev) {
-		if (sc->squelched == 0 && ppsratecheck(&sc->log_time,
-		    &sc->log_count, LOG_PPS)) {
+		if (sc->squelched == 0 &&
+		    ppsratecheck(&sc->log_time, &sc->log_count, LOG_PPS)) {
 			device_printf(sc->dev, "ACMD%d failed, RESULT: %d\n",
 			    cmd->opcode, err);
 		}
@@ -202,7 +202,7 @@ mmc_switch_status(device_t busdev, device_t dev, uint16_t rca, u_int timeout)
 	 */
 	end.tv_sec = end.tv_usec = 0;
 	for (;;) {
-		crc_timeout=0;
+		crc_timeout = 0;
 		do {
 			/*
 			 * CRC errors indicate that the command wasn't accepted

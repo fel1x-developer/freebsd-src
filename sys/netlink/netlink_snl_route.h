@@ -24,12 +24,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	_NETLINK_NETLINK_SNL_ROUTE_H_
-#define	_NETLINK_NETLINK_SNL_ROUTE_H_
+#ifndef _NETLINK_NETLINK_SNL_ROUTE_H_
+#define _NETLINK_NETLINK_SNL_ROUTE_H_
 
-#include <netlink/netlink_snl.h>
-#include <netlink/netlink_route.h>
 #include <netinet/in.h>
+#include <netlink/netlink_route.h>
+#include <netlink/netlink_snl.h>
 
 /*
  * Simple Netlink Library - NETLINK_ROUTE helpers
@@ -56,7 +56,8 @@ parse_rta_ip6(struct snl_state *ss, void *rta_data, int *perror)
 {
 	struct sockaddr_in6 *sin6;
 
-	sin6 = (struct sockaddr_in6 *)snl_allocz(ss, sizeof(struct sockaddr_in6));
+	sin6 = (struct sockaddr_in6 *)snl_allocz(ss,
+	    sizeof(struct sockaddr_in6));
 	if (sin6 == NULL) {
 		*perror = ENOBUFS;
 		return (NULL);
@@ -128,28 +129,33 @@ snl_attr_get_ipvia(struct snl_state *ss, struct nlattr *nla,
 }
 
 static inline bool
-snl_add_msg_attr_ip4(struct snl_writer *nw, int attrtype, const struct in_addr *addr)
+snl_add_msg_attr_ip4(struct snl_writer *nw, int attrtype,
+    const struct in_addr *addr)
 {
 	return (snl_add_msg_attr(nw, attrtype, 4, addr));
 }
 
 static inline bool
-snl_add_msg_attr_ip6(struct snl_writer *nw, int attrtype, const struct in6_addr *addr)
+snl_add_msg_attr_ip6(struct snl_writer *nw, int attrtype,
+    const struct in6_addr *addr)
 {
 	return (snl_add_msg_attr(nw, attrtype, 16, addr));
 }
 
 static inline bool
-snl_add_msg_attr_ip(struct snl_writer *nw, int attrtype, const struct sockaddr *sa)
+snl_add_msg_attr_ip(struct snl_writer *nw, int attrtype,
+    const struct sockaddr *sa)
 {
 	const void *addr;
 
 	switch (sa->sa_family) {
 	case AF_INET:
-		addr = &((const struct sockaddr_in *)(const void *)sa)->sin_addr;
+		addr =
+		    &((const struct sockaddr_in *)(const void *)sa)->sin_addr;
 		return (snl_add_msg_attr(nw, attrtype, 4, addr));
 	case AF_INET6:
-		addr = &((const struct sockaddr_in6 *)(const void *)sa)->sin6_addr;
+		addr =
+		    &((const struct sockaddr_in6 *)(const void *)sa)->sin6_addr;
 		return (snl_add_msg_attr(nw, attrtype, 16, addr));
 	}
 
@@ -157,7 +163,8 @@ snl_add_msg_attr_ip(struct snl_writer *nw, int attrtype, const struct sockaddr *
 }
 
 static inline bool
-snl_add_msg_attr_ipvia(struct snl_writer *nw, int attrtype, const struct sockaddr *sa)
+snl_add_msg_attr_ipvia(struct snl_writer *nw, int attrtype,
+    const struct sockaddr *sa)
 {
 	char buf[17];
 
@@ -165,10 +172,14 @@ snl_add_msg_attr_ipvia(struct snl_writer *nw, int attrtype, const struct sockadd
 
 	switch (sa->sa_family) {
 	case AF_INET:
-		memcpy(&buf[1], &((const struct sockaddr_in *)(const void *)sa)->sin_addr, 4);
+		memcpy(&buf[1],
+		    &((const struct sockaddr_in *)(const void *)sa)->sin_addr,
+		    4);
 		return (snl_add_msg_attr(nw, attrtype, 5, buf));
 	case AF_INET6:
-		memcpy(&buf[1], &((const struct sockaddr_in6 *)(const void *)sa)->sin6_addr, 16);
+		memcpy(&buf[1],
+		    &((const struct sockaddr_in6 *)(const void *)sa)->sin6_addr,
+		    16);
 		return (snl_add_msg_attr(nw, attrtype, 17, buf));
 	}
 
@@ -196,6 +207,5 @@ snl_attr_get_in6_addr(struct snl_state *ss __unused, struct nlattr *nla,
 	memcpy(target, NLA_DATA_CONST(nla), sizeof(struct in6_addr));
 	return (true);
 }
-
 
 #endif

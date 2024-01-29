@@ -27,35 +27,35 @@
  */
 
 #ifndef CMAP_H
-#define	CMAP_H
+#define CMAP_H
 
 #include <limits.h>
 #include <stdbool.h>
 #include <wchar.h>
 
 struct cmapnode {
-	wint_t		cmn_from;
-	wint_t		cmn_to;
-	struct cmapnode	*cmn_left;
-	struct cmapnode	*cmn_right;
+	wint_t cmn_from;
+	wint_t cmn_to;
+	struct cmapnode *cmn_left;
+	struct cmapnode *cmn_right;
 };
 
 struct cmap {
-#define	CM_CACHE_SIZE	128
-	wint_t		cm_cache[CM_CACHE_SIZE];
-	bool		cm_havecache;
-	struct cmapnode	*cm_root;
-#define	CM_DEF_SELF	-2
-	wint_t		cm_def;
-	wint_t		cm_min;
-	wint_t		cm_max;
+#define CM_CACHE_SIZE 128
+	wint_t cm_cache[CM_CACHE_SIZE];
+	bool cm_havecache;
+	struct cmapnode *cm_root;
+#define CM_DEF_SELF -2
+	wint_t cm_def;
+	wint_t cm_min;
+	wint_t cm_max;
 };
 
-struct cmap *	cmap_alloc(void);
-bool		cmap_add(struct cmap *, wint_t, wint_t);
-wint_t		cmap_lookup_hard(struct cmap *, wint_t);
-void		cmap_cache(struct cmap *);
-wint_t		cmap_default(struct cmap *, wint_t);
+struct cmap *cmap_alloc(void);
+bool cmap_add(struct cmap *, wint_t, wint_t);
+wint_t cmap_lookup_hard(struct cmap *, wint_t);
+void cmap_cache(struct cmap *);
+wint_t cmap_default(struct cmap *, wint_t);
 
 static __inline wint_t
 cmap_lookup(struct cmap *cm, wint_t from)

@@ -24,20 +24,21 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fts.h>
 #include <ftw.h>
 
 #include "fts-compat11.h"
 
-int freebsd11_ftw(const char *path, int (*fn)(const char *,
-    const struct freebsd11_stat *, int), int nfds);
+int freebsd11_ftw(const char *path,
+    int (*fn)(const char *, const struct freebsd11_stat *, int), int nfds);
 
 int
 freebsd11_ftw(const char *path,
     int (*fn)(const char *, const struct freebsd11_stat *, int), int nfds)
 {
-	char * const paths[2] = { (char *)path, NULL };
+	char *const paths[2] = { (char *)path, NULL };
 	FTSENT11 *cur;
 	FTS11 *ftsp;
 	int error = 0, fnflag, sverrno;
@@ -95,4 +96,4 @@ done:
 	return (error);
 }
 
-__sym_compat(ftw, freebsd11_ftw, FBSD_1.0);
+__sym_compat(ftw, freebsd11_ftw, FBSD_1 .0);

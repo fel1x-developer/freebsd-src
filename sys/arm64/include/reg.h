@@ -32,8 +32,8 @@
 #include <arm/reg.h>
 #else /* !__arm__ */
 
-#ifndef	_MACHINE_REG_H_
-#define	_MACHINE_REG_H_
+#ifndef _MACHINE_REG_H_
+#define _MACHINE_REG_H_
 
 #include <sys/_types.h>
 
@@ -54,9 +54,9 @@ struct reg32 {
 };
 
 struct fpreg {
-	__uint128_t	fp_q[32];
-	__uint32_t	fp_sr;
-	__uint32_t	fp_cr;
+	__uint128_t fp_q[32];
+	__uint32_t fp_sr;
+	__uint32_t fp_cr;
 };
 
 struct fpreg32 {
@@ -64,10 +64,10 @@ struct fpreg32 {
 };
 
 struct dbreg {
-	__uint8_t	db_debug_ver;
-	__uint8_t	db_nbkpts;
-	__uint8_t	db_nwtpts;
-	__uint8_t	db_pad[5];
+	__uint8_t db_debug_ver;
+	__uint8_t db_nbkpts;
+	__uint8_t db_nwtpts;
+	__uint8_t db_pad[5];
 
 	struct {
 		__uint64_t dbr_addr;
@@ -86,11 +86,11 @@ struct dbreg32 {
 };
 
 struct arm64_addr_mask {
-	__uint64_t	code;
-	__uint64_t	data;
+	__uint64_t code;
+	__uint64_t data;
 };
 
-#define	__HAVE_REG32
+#define __HAVE_REG32
 
 #endif /* !_MACHINE_REG_H_ */
 

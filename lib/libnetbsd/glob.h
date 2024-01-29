@@ -30,8 +30,8 @@
 
 #include_next <glob.h>
 
-#ifndef	__gl_stat_t
-#define	__gl_stat_t struct stat
+#ifndef __gl_stat_t
+#define __gl_stat_t struct stat
 #endif
 
 #endif

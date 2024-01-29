@@ -30,20 +30,20 @@
 #ifndef _BNXT_HWRM_H
 #define _BNXT_HWRM_H
 
-#define BNXT_PAUSE_TX 	 (HWRM_PORT_PHY_QCFG_OUTPUT_PAUSE_TX)
-#define BNXT_PAUSE_RX 	 (HWRM_PORT_PHY_QCFG_OUTPUT_PAUSE_RX)
-#define BNXT_AUTO_PAUSE_AUTONEG_PAUSE  				\
-        (HWRM_PORT_PHY_QCFG_OUTPUT_AUTO_PAUSE_AUTONEG_PAUSE)
-#define BNXT_HWRM_SHORT_REQ_LEN	sizeof(struct hwrm_short_input)
-#define BNXT_BACKING_STORE_CFG_LEGACY_LEN       256
+#define BNXT_PAUSE_TX (HWRM_PORT_PHY_QCFG_OUTPUT_PAUSE_TX)
+#define BNXT_PAUSE_RX (HWRM_PORT_PHY_QCFG_OUTPUT_PAUSE_RX)
+#define BNXT_AUTO_PAUSE_AUTONEG_PAUSE \
+	(HWRM_PORT_PHY_QCFG_OUTPUT_AUTO_PAUSE_AUTONEG_PAUSE)
+#define BNXT_HWRM_SHORT_REQ_LEN sizeof(struct hwrm_short_input)
+#define BNXT_BACKING_STORE_CFG_LEGACY_LEN 256
 
 /* HWRM Function Prototypes */
 int bnxt_alloc_hwrm_dma_mem(struct bnxt_softc *softc);
 void bnxt_free_hwrm_dma_mem(struct bnxt_softc *softc);
 int bnxt_hwrm_ring_alloc(struct bnxt_softc *softc, uint8_t type,
-		struct bnxt_ring *ring);
+    struct bnxt_ring *ring);
 int bnxt_hwrm_ring_free(struct bnxt_softc *softc, uint32_t type,
-		struct bnxt_ring *ring, int cmpl_ring_id);
+    struct bnxt_ring *ring, int cmpl_ring_id);
 int bnxt_hwrm_ver_get(struct bnxt_softc *softc);
 int bnxt_hwrm_queue_qportcfg(struct bnxt_softc *softc);
 int bnxt_hwrm_func_drv_rgtr(struct bnxt_softc *softc);
@@ -72,7 +72,7 @@ int bnxt_hwrm_cfa_l2_set_rx_mask(struct bnxt_softc *softc,
 int bnxt_hwrm_set_filter(struct bnxt_softc *softc);
 int bnxt_hwrm_free_filter(struct bnxt_softc *softc);
 int bnxt_hwrm_l2_filter_alloc(struct bnxt_softc *softc, uint16_t vlan_tag,
-		uint64_t *filter_id);
+    uint64_t *filter_id);
 int bnxt_hwrm_l2_filter_free(struct bnxt_softc *softc, uint64_t filter_id);
 int bnxt_hwrm_rss_cfg(struct bnxt_softc *softc, struct bnxt_vnic_info *vnic,
     uint32_t hash_type);
@@ -98,8 +98,8 @@ int bnxt_hwrm_nvm_write(struct bnxt_softc *softc, void *data, bool cpyin,
 int bnxt_hwrm_nvm_erase_dir_entry(struct bnxt_softc *softc, uint16_t index);
 int bnxt_hwrm_nvm_get_dir_info(struct bnxt_softc *softc, uint32_t *entries,
     uint32_t *entry_length);
-int bnxt_hwrm_nvm_get_dir_entries(struct bnxt_softc *softc,
-    uint32_t *entries, uint32_t *entry_length, struct iflib_dma_info *dma_data);
+int bnxt_hwrm_nvm_get_dir_entries(struct bnxt_softc *softc, uint32_t *entries,
+    uint32_t *entry_length, struct iflib_dma_info *dma_data);
 int bnxt_hwrm_nvm_get_dev_info(struct bnxt_softc *softc, uint16_t *mfg_id,
     uint16_t *device_id, uint32_t *sector_size, uint32_t *nvram_size,
     uint32_t *reserved_size, uint32_t *available_size);
@@ -119,14 +119,14 @@ uint16_t bnxt_hwrm_get_wol_fltrs(struct bnxt_softc *softc, uint16_t handle);
 int bnxt_hwrm_alloc_wol_fltr(struct bnxt_softc *softc);
 int bnxt_hwrm_free_wol_fltr(struct bnxt_softc *softc);
 int bnxt_hwrm_set_coal(struct bnxt_softc *softc);
-int bnxt_hwrm_func_rgtr_async_events(struct bnxt_softc *softc, unsigned long *bmap,
-                                     int bmap_size);
+int bnxt_hwrm_func_rgtr_async_events(struct bnxt_softc *softc,
+    unsigned long *bmap, int bmap_size);
 int bnxt_hwrm_func_backing_store_qcaps(struct bnxt_softc *softc);
 int bnxt_hwrm_func_backing_store_cfg(struct bnxt_softc *softc, uint32_t);
 int bnxt_hwrm_func_resc_qcaps(struct bnxt_softc *softc, bool all);
-int bnxt_hwrm_reserve_pf_rings (struct bnxt_softc *softc);
+int bnxt_hwrm_reserve_pf_rings(struct bnxt_softc *softc);
 void bnxt_hwrm_ring_info_get(struct bnxt_softc *softc, uint8_t ring_type,
-                             uint32_t ring_id,  uint32_t *prod, uint32_t *);
+    uint32_t ring_id, uint32_t *prod, uint32_t *);
 int bnxt_hwrm_passthrough(struct bnxt_softc *softc, void *req, uint32_t req_len,
-			  void *resp, uint32_t resp_len, uint32_t timeout);
+    void *resp, uint32_t resp_len, uint32_t timeout);
 #endif

@@ -28,14 +28,15 @@
  * prints out the result in C-format.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <err.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
+
 #include "sysinit.h"
 
 static int opt_R;
@@ -102,8 +103,10 @@ do_malloc(int size)
 static void
 usage(void)
 {
-	errx(EX_USAGE, "sysinit -i sysinit.bin -o sysinit_data.c \\\n"
-	    "\t" "-k sysinit -s sysinit_data [ -R (reverse)]");
+	errx(EX_USAGE,
+	    "sysinit -i sysinit.bin -o sysinit_data.c \\\n"
+	    "\t"
+	    "-k sysinit -s sysinit_data [ -R (reverse)]");
 }
 
 static void
@@ -122,8 +125,8 @@ cleanup(void)
 static int
 compare(const void *_pa, const void *_pb)
 {
-	const struct sysinit_data * const *pa = _pa;
-	const struct sysinit_data * const *pb = _pb;
+	const struct sysinit_data *const *pa = _pa;
+	const struct sysinit_data *const *pb = _pb;
 
 	if ((*pa)->dw_msb_value > (*pb)->dw_msb_value)
 		return (1);
@@ -137,14 +140,14 @@ compare(const void *_pa, const void *_pb)
 	if ((*pa)->dw_lsb_value < (*pb)->dw_lsb_value)
 		return (-1);
 
-	return (0);	/* equal */
+	return (0); /* equal */
 }
 
 static int
 compare_R(const void *_pa, const void *_pb)
 {
-	const struct sysinit_data * const *pa = _pa;
-	const struct sysinit_data * const *pb = _pb;
+	const struct sysinit_data *const *pa = _pa;
+	const struct sysinit_data *const *pb = _pb;
 
 	if ((*pa)->dw_msb_value > (*pb)->dw_msb_value)
 		return (-1);
@@ -158,7 +161,7 @@ compare_R(const void *_pa, const void *_pb)
 	if ((*pa)->dw_lsb_value < (*pb)->dw_lsb_value)
 		return (1);
 
-	return (0);	/* equal */
+	return (0); /* equal */
 }
 
 int
@@ -191,8 +194,8 @@ main(int argc, char **argv)
 		}
 	}
 
-	if (input_f == NULL || output_f == NULL ||
-	    struct_name == NULL || keyword == NULL)
+	if (input_f == NULL || output_f == NULL || struct_name == NULL ||
+	    keyword == NULL)
 		usage();
 
 	atexit(&cleanup);
@@ -251,7 +254,8 @@ main(int argc, char **argv)
 
 	/* safe all strings */
 	for (sipp = start; sipp < stop; sipp++) {
-		(*sipp)->b_keyword_name[sizeof((*sipp)->b_keyword_name) - 1] = 0;
+		(*sipp)->b_keyword_name[sizeof((*sipp)->b_keyword_name) - 1] =
+		    0;
 		(*sipp)->b_global_type[sizeof((*sipp)->b_global_type) - 1] = 0;
 		(*sipp)->b_global_name[sizeof((*sipp)->b_global_name) - 1] = 0;
 		(*sipp)->b_file_name[sizeof((*sipp)->b_file_name) - 1] = 0;
@@ -290,21 +294,20 @@ do_sysinit(void)
 			continue;
 
 		snprintf(scratch_buf, sizeof(scratch_buf),
-		    "/* #%04u: %s entry at %s:%u */\n",
-		    c, (*sipp)->b_debug_info, (*sipp)->b_file_name,
+		    "/* #%04u: %s entry at %s:%u */\n", c,
+		    (*sipp)->b_debug_info, (*sipp)->b_file_name,
 		    (unsigned int)(*sipp)->dw_file_line);
 
 		do_write(output_file, scratch_buf);
 
-		snprintf(scratch_buf, sizeof(scratch_buf),
-		    "extern %s %s;\n\n", (*sipp)->b_global_type,
-		    (*sipp)->b_global_name);
+		snprintf(scratch_buf, sizeof(scratch_buf), "extern %s %s;\n\n",
+		    (*sipp)->b_global_type, (*sipp)->b_global_name);
 
 		do_write(output_file, scratch_buf);
 	}
 
-	snprintf(scratch_buf, sizeof(scratch_buf),
-	    "const void *%s[] = {\n", struct_name);
+	snprintf(scratch_buf, sizeof(scratch_buf), "const void *%s[] = {\n",
+	    struct_name);
 
 	do_write(output_file, scratch_buf);
 
@@ -316,8 +319,8 @@ do_sysinit(void)
 			continue;
 
 		snprintf(scratch_buf, sizeof(scratch_buf),
-		    "\t&%s, /* #%04u */\n",
-		    (*sipp)->b_global_name, (unsigned int)c);
+		    "\t&%s, /* #%04u */\n", (*sipp)->b_global_name,
+		    (unsigned int)c);
 
 		do_write(output_file, scratch_buf);
 	}

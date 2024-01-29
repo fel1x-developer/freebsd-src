@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,7 +37,7 @@
 static int
 agent_cmp_func(const void *a1, const void *a2)
 {
-   	struct agent const *ap1 = *((struct agent const **)a1);
+	struct agent const *ap1 = *((struct agent const **)a1);
 	struct agent const *ap2 = *((struct agent const **)a2);
 	int res;
 
@@ -56,7 +57,7 @@ agent_cmp_func(const void *a1, const void *a2)
 struct agent_table *
 init_agent_table(void)
 {
-   	struct agent_table	*retval;
+	struct agent_table *retval;
 
 	TRACE_IN(init_agent_table);
 	retval = calloc(1, sizeof(*retval));
@@ -70,24 +71,23 @@ void
 register_agent(struct agent_table *at, struct agent *a)
 {
 	struct agent **new_agents;
-    	size_t new_agents_num;
+	size_t new_agents_num;
 
 	TRACE_IN(register_agent);
 	assert(at != NULL);
 	assert(a != NULL);
 	new_agents_num = at->agents_num + 1;
-	new_agents = malloc(sizeof(*new_agents) *
-		new_agents_num);
+	new_agents = malloc(sizeof(*new_agents) * new_agents_num);
 	assert(new_agents != NULL);
 	memcpy(new_agents, at->agents, at->agents_num * sizeof(struct agent *));
 	new_agents[new_agents_num - 1] = a;
 	qsort(new_agents, new_agents_num, sizeof(struct agent *),
-		agent_cmp_func);
+	    agent_cmp_func);
 
 	free(at->agents);
 	at->agents = new_agents;
 	at->agents_num = new_agents_num;
-    	TRACE_OUT(register_agent);
+	TRACE_OUT(register_agent);
 }
 
 struct agent *
@@ -101,16 +101,16 @@ find_agent(struct agent_table *at, const char *name, enum agent_type type)
 	model.type = type;
 	model_p = &model;
 	res = bsearch(&model_p, at->agents, at->agents_num,
-		sizeof(struct agent *), agent_cmp_func);
+	    sizeof(struct agent *), agent_cmp_func);
 
 	TRACE_OUT(find_agent);
-	return ( res == NULL ? NULL : *res);
+	return (res == NULL ? NULL : *res);
 }
 
 void
 destroy_agent_table(struct agent_table *at)
 {
-    	size_t i;
+	size_t i;
 
 	TRACE_IN(destroy_agent_table);
 	assert(at != NULL);

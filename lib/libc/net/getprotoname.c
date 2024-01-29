@@ -33,16 +33,14 @@
 #include <netdb.h>
 #include <nsswitch.h>
 #include <string.h>
+
 #include "netdb_private.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 #include "nss_tls.h"
 
-static const ns_src defaultsrc[] = {
-	{ NSSRC_FILES, NS_SUCCESS },
-	{ NULL, 0 }
-};
+static const ns_src defaultsrc[] = { { NSSRC_FILES, NS_SUCCESS }, { NULL, 0 } };
 
 #ifdef NS_CACHING
 extern int __proto_id_func(char *, size_t *, va_list, void *);
@@ -59,7 +57,7 @@ files_getprotobyname(void *retval, void *mdata, va_list ap)
 	int error;
 
 	char *name;
-	struct protoent	*pptr;
+	struct protoent *pptr;
 	char *buffer;
 	size_t buflen;
 	int *errnop;
@@ -69,7 +67,6 @@ files_getprotobyname(void *retval, void *mdata, va_list ap)
 	buffer = va_arg(ap, char *);
 	buflen = va_arg(ap, size_t);
 	errnop = va_arg(ap, int *);
-
 
 	if ((ped = __protoent_data_init()) == NULL) {
 		*errnop = errno;
@@ -100,25 +97,22 @@ found:
 	return (NS_SUCCESS);
 }
 
-
 int
 getprotobyname_r(const char *name, struct protoent *pptr, char *buffer,
     size_t buflen, struct protoent **result)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-		NS_COMMON_CACHE_INFO_INITIALIZER(
-		protocols, (void *)nss_lt_name,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(protocols, (void *)nss_lt_name,
 		__proto_id_func, __proto_marshal_func, __proto_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_getprotobyname, NULL },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_getprotobyname,
+					    NULL },
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
-	int	rv, ret_errno;
+		    { NULL, NULL, NULL } };
+	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
@@ -141,7 +135,7 @@ getprotobyname(const char *name)
 	if ((pd = __protodata_init()) == NULL)
 		return (NULL);
 	if (getprotobyname_r(name, &pd->proto, pd->data, sizeof(pd->data),
-	    &rval) != 0)
+		&rval) != 0)
 		return (NULL);
 	return (rval);
 }

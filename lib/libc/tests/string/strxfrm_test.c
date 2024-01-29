@@ -24,11 +24,10 @@
  * SUCH DAMAGE.
  */
 
-#include <string.h>
+#include <atf-c.h>
 #include <locale.h>
 #include <stdio.h>
-
-#include <atf-c.h>
+#include <string.h>
 
 ATF_TC_WITHOUT_HEAD(iso_8859_5);
 ATF_TC_BODY(iso_8859_5, tc)

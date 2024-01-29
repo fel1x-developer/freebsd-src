@@ -29,59 +29,55 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
-#include <sys/reboot.h>
 #include <sys/module.h>
+#include <sys/reboot.h>
+#include <sys/rman.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
 
 #include "iicbus_if.h"
 #include "regdev_if.h"
 
-#define	VSEL0	0x00
-#define	VSEL1	0x01
+#define VSEL0 0x00
+#define VSEL1 0x01
 
-#define	VSEL_BUCK_EN	(1 << 7)
-#define	VSEL_NSEL_MASK	0x3F
-#define	VSEL_VOLTAGE_BASE	712500 /* uV */
-#define	VSEL_VOLTAGE_STEP	12500  /* uV */
+#define VSEL_BUCK_EN (1 << 7)
+#define VSEL_NSEL_MASK 0x3F
+#define VSEL_VOLTAGE_BASE 712500 /* uV */
+#define VSEL_VOLTAGE_STEP 12500	 /* uV */
 
-#define	ID1	0x03
-#define	 ID1_VENDOR_MASK	0xE0
-#define	 ID1_VENDOR_SHIFT	5
-#define	 ID1_DIE_MASK		0xF
+#define ID1 0x03
+#define ID1_VENDOR_MASK 0xE0
+#define ID1_VENDOR_SHIFT 5
+#define ID1_DIE_MASK 0xF
 
-#define	ID2	0x4
-#define	 ID2_DIE_REV_MASK	0xF
+#define ID2 0x4
+#define ID2_DIE_REV_MASK 0xF
 
-static struct ofw_compat_data compat_data[] = {
-	{ "silergy,syr827",			1 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "silergy,syr827", 1 },
+	{ NULL, 0 } };
 
 struct syr827_reg_sc {
-	struct regnode		*regnode;
-	device_t		base_dev;
-	phandle_t		xref;
+	struct regnode *regnode;
+	device_t base_dev;
+	phandle_t xref;
 	struct regnode_std_param *param;
 
-	int			volt_reg;
-	int			suspend_reg;
+	int volt_reg;
+	int suspend_reg;
 };
 
 struct syr827_softc {
-	uint16_t		addr;
-	struct intr_config_hook	intr_hook;
+	uint16_t addr;
+	struct intr_config_hook intr_hook;
 
 	/* Regulator */
-	struct syr827_reg_sc	*reg;
+	struct syr827_reg_sc *reg;
 };
 
 static int
@@ -158,18 +154,17 @@ syr827_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 	sc = regnode_get_softc(regnode);
 
 	syr827_read(sc->base_dev, sc->volt_reg, &val, 1);
-	*uvolt = (val & VSEL_NSEL_MASK) * VSEL_VOLTAGE_STEP +
-	    VSEL_VOLTAGE_BASE;
+	*uvolt = (val & VSEL_NSEL_MASK) * VSEL_VOLTAGE_STEP + VSEL_VOLTAGE_BASE;
 
 	return (0);
 }
 
 static regnode_method_t syr827_regnode_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,		syr827_regnode_init),
-	REGNODEMETHOD(regnode_enable,		syr827_regnode_enable),
-	REGNODEMETHOD(regnode_set_voltage,	syr827_regnode_set_voltage),
-	REGNODEMETHOD(regnode_get_voltage,	syr827_regnode_get_voltage),
+	REGNODEMETHOD(regnode_init, syr827_regnode_init),
+	REGNODEMETHOD(regnode_enable, syr827_regnode_enable),
+	REGNODEMETHOD(regnode_set_voltage, syr827_regnode_set_voltage),
+	REGNODEMETHOD(regnode_get_voltage, syr827_regnode_get_voltage),
 	REGNODEMETHOD_END
 };
 DEFINE_CLASS_1(syr827_regnode, syr827_regnode_class, syr827_regnode_methods,
@@ -200,7 +195,7 @@ syr827_reg_attach(device_t dev, phandle_t node)
 	reg_sc->param = regnode_get_stdparam(regnode);
 
 	if (OF_getencprop(node, "fcs,suspend-voltage-selector", &suspend_reg,
-	    sizeof(uint32_t)) <= 0)
+		sizeof(uint32_t)) <= 0)
 		suspend_reg = 0;
 
 	switch (suspend_reg) {
@@ -299,11 +294,11 @@ syr827_attach(device_t dev)
 
 static device_method_t syr827_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		syr827_probe),
-	DEVMETHOD(device_attach,	syr827_attach),
+	DEVMETHOD(device_probe, syr827_probe),
+	DEVMETHOD(device_attach, syr827_attach),
 
 	/* Regdev interface */
-	DEVMETHOD(regdev_map,		syr827_regdev_map),
+	DEVMETHOD(regdev_map, syr827_regdev_map),
 
 	DEVMETHOD_END
 };

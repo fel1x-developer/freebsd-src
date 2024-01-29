@@ -22,15 +22,17 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <fts.h>
 #include <ftw.h>
 
 int
-nftw(const char *path, int (*fn)(const char *, const struct stat *, int,
-     struct FTW *), int nfds, int ftwflags)
+nftw(const char *path,
+    int (*fn)(const char *, const struct stat *, int, struct FTW *), int nfds,
+    int ftwflags)
 {
-	char * const paths[2] = { (char *)path, NULL };
+	char *const paths[2] = { (char *)path, NULL };
 	struct FTW ftw;
 	FTSENT *cur;
 	FTS *ftsp;

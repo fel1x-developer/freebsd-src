@@ -26,8 +26,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -61,11 +62,11 @@ setup(int nb)
 		size = size / 100 * pct + 1;
 
 		if (size > 1000)
-			size = 1000;	/* Due to Soft Update lag */
+			size = 1000; /* Due to Soft Update lag */
 
 		/* Resource requirements: */
 		while (size > 0) {
-			reserve_in =  1 * size * op->incarnations + size;
+			reserve_in = 1 * size * op->incarnations + size;
 			reserve_bl = 29 * size * op->incarnations;
 			if (reserve_bl <= bl && reserve_in <= in)
 				break;
@@ -75,8 +76,10 @@ setup(int nb)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("creat(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "creat(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 	} else {
@@ -85,7 +88,7 @@ setup(int nb)
 
 	if (size == 0)
 		exit(0);
-	sprintf(path,"%s.%05d", getprogname(), getpid());
+	sprintf(path, "%s.%05d", getprogname(), getpid());
 	if (mkdir(path, 0770) < 0)
 		err(1, "mkdir(%s), %s:%d", path, __FILE__, __LINE__);
 
@@ -113,23 +116,22 @@ test(void)
 
 	pid = getpid();
 	for (j = 0; j < (int)size && done_testing == 0; j++) {
-		sprintf(file,"p%05d.%05d", pid, j);
+		sprintf(file, "p%05d.%05d", pid, j);
 		if ((fd = creat(file, 0660)) == -1) {
 			if (errno != EINTR) {
-				warn("creat(%s). %s:%d", file, __FILE__, __LINE__);
+				warn("creat(%s). %s:%d", file, __FILE__,
+				    __LINE__);
 				break;
 			}
 		}
 		if (fd != -1 && close(fd) == -1)
 			err(2, "close(%d)", j);
-
 	}
 
 	for (i = --j; i >= 0; i--) {
-		sprintf(file,"p%05d.%05d", pid, i);
+		sprintf(file, "p%05d.%05d", pid, i);
 		if (unlink(file) == -1)
 			warn("unlink(%s)", file);
-
 	}
 
 	return (0);

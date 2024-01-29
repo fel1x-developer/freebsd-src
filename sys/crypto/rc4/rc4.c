@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1996-2000 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -14,7 +14,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -34,10 +34,11 @@
  * OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/types.h>
+
 #include <crypto/rc4/rc4.h>
 
 static __inline void
@@ -62,13 +63,13 @@ rc4_init(struct rc4_state *const state, const u_char *key, int keylen)
 
 	/* Initialize state with identity permutation */
 	for (i = 0; i < 256; i++)
-		state->perm[i] = (u_char)i; 
+		state->perm[i] = (u_char)i;
 	state->index1 = 0;
 	state->index2 = 0;
-  
+
 	/* Randomize the permutation using key data */
 	for (j = i = k = 0; i < 256; i++) {
-		j += state->perm[i] + key[k]; 
+		j += state->perm[i] + key[k];
 		swap_bytes(&state->perm[i], &state->perm[j]);
 		if (++k >= keylen)
 			k = 0;
@@ -82,8 +83,8 @@ rc4_init(struct rc4_state *const state, const u_char *key, int keylen)
  * for both encryption and decryption.
  */
 void
-rc4_crypt(struct rc4_state *const state,
-	const u_char *inbuf, u_char *outbuf, int buflen)
+rc4_crypt(struct rc4_state *const state, const u_char *inbuf, u_char *outbuf,
+    int buflen)
 {
 	int i;
 	u_char j;
@@ -116,10 +117,6 @@ rc4_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t rc4_mod = {
-	"rc4",
-	rc4_modevent,
-	0
-};
+static moduledata_t rc4_mod = { "rc4", rc4_modevent, 0 };
 DECLARE_MODULE(rc4, rc4_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(rc4, 1);

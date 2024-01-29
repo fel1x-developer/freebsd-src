@@ -42,22 +42,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/mac.h>
-#include <sys/sbuf.h>
-#include <sys/sdt.h>
-#include <sys/systm.h>
+#include <sys/malloc.h>
 #include <sys/mount.h>
-#include <sys/file.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/protosw.h>
+#include <sys/sbuf.h>
+#include <sys/sdt.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
@@ -65,7 +65,6 @@
 #include <net/bpfdesc.h>
 #include <net/if.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip_var.h>
@@ -198,8 +197,8 @@ mac_socket_copy_label(struct label *src, struct label *dest)
 }
 
 int
-mac_socket_externalize_label(struct label *label, char *elements,
-    char *outbuf, size_t outbuflen)
+mac_socket_externalize_label(struct label *label, char *elements, char *outbuf,
+    size_t outbuflen)
 {
 	int error;
 
@@ -214,8 +213,7 @@ mac_socketpeer_externalize_label(struct label *label, char *elements,
 {
 	int error;
 
-	MAC_POLICY_EXTERNALIZE(socketpeer, label, elements, outbuf,
-	    outbuflen);
+	MAC_POLICY_EXTERNALIZE(socketpeer, label, elements, outbuf, outbuflen);
 
 	return (error);
 }
@@ -303,15 +301,14 @@ mac_socket_check_accept(struct ucred *cred, struct socket *so)
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_accept, cred, so,
-	    so->so_label);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_accept, cred, so, so->so_label);
 	MAC_CHECK_PROBE2(socket_check_accept, error, cred, so);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE3(socket_check_bind, "struct ucred *",
-    "struct socket *", "struct sockaddr *");
+MAC_CHECK_PROBE_DEFINE3(socket_check_bind, "struct ucred *", "struct socket *",
+    "struct sockaddr *");
 
 int
 mac_socket_check_bind(struct ucred *cred, struct socket *so,
@@ -319,8 +316,7 @@ mac_socket_check_bind(struct ucred *cred, struct socket *so,
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_bind, cred, so, so->so_label,
-	    sa);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_bind, cred, so, so->so_label, sa);
 	MAC_CHECK_PROBE3(socket_check_bind, error, cred, so, sa);
 
 	return (error);
@@ -335,8 +331,8 @@ mac_socket_check_connect(struct ucred *cred, struct socket *so,
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_connect, cred, so,
-	    so->so_label, sa);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_connect, cred, so, so->so_label,
+	    sa);
 	MAC_CHECK_PROBE3(socket_check_connect, error, cred, so, sa);
 
 	return (error);
@@ -352,8 +348,7 @@ mac_socket_check_create(struct ucred *cred, int domain, int type, int proto)
 
 	MAC_POLICY_CHECK_NOSLEEP(socket_check_create, cred, domain, type,
 	    proto);
-	MAC_CHECK_PROBE4(socket_check_create, error, cred, domain, type,
-	    proto);
+	MAC_CHECK_PROBE4(socket_check_create, error, cred, domain, type, proto);
 
 	return (error);
 }
@@ -387,15 +382,13 @@ mac_socket_check_listen(struct ucred *cred, struct socket *so)
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_listen, cred, so,
-	    so->so_label);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_listen, cred, so, so->so_label);
 	MAC_CHECK_PROBE2(socket_check_listen, error, cred, so);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(socket_check_poll, "struct ucred *",
-    "struct socket *");
+MAC_CHECK_PROBE_DEFINE2(socket_check_poll, "struct ucred *", "struct socket *");
 
 int
 mac_socket_check_poll(struct ucred *cred, struct socket *so)
@@ -416,8 +409,7 @@ mac_socket_check_receive(struct ucred *cred, struct socket *so)
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_receive, cred, so,
-	    so->so_label);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_receive, cred, so, so->so_label);
 	MAC_CHECK_PROBE2(socket_check_receive, error, cred, so);
 
 	return (error);
@@ -434,15 +426,14 @@ mac_socket_check_relabel(struct ucred *cred, struct socket *so,
 
 	SOCK_LOCK_ASSERT(so);
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_relabel, cred, so,
-	    so->so_label, newlabel);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_relabel, cred, so, so->so_label,
+	    newlabel);
 	MAC_CHECK_PROBE3(socket_check_relabel, error, cred, so, newlabel);
 
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(socket_check_send, "struct ucred *",
-    "struct socket *");
+MAC_CHECK_PROBE_DEFINE2(socket_check_send, "struct ucred *", "struct socket *");
 
 int
 mac_socket_check_send(struct ucred *cred, struct socket *so)
@@ -455,8 +446,7 @@ mac_socket_check_send(struct ucred *cred, struct socket *so)
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(socket_check_stat, "struct ucred *",
-    "struct socket *");
+MAC_CHECK_PROBE_DEFINE2(socket_check_stat, "struct ucred *", "struct socket *");
 
 int
 mac_socket_check_stat(struct ucred *cred, struct socket *so)
@@ -477,16 +467,14 @@ mac_socket_check_visible(struct ucred *cred, struct socket *so)
 {
 	int error;
 
-	MAC_POLICY_CHECK_NOSLEEP(socket_check_visible, cred, so,
-	    so->so_label);
+	MAC_POLICY_CHECK_NOSLEEP(socket_check_visible, cred, so, so->so_label);
 	MAC_CHECK_PROBE2(socket_check_visible, error, cred, so);
 
 	return (error);
 }
 
 int
-mac_socket_label_set(struct ucred *cred, struct socket *so,
-    struct label *label)
+mac_socket_label_set(struct ucred *cred, struct socket *so, struct label *label)
 {
 	int error;
 
@@ -585,7 +573,7 @@ mac_getsockopt_label(struct ucred *cred, struct socket *so,
 	    mac->m_buflen);
 	mac_socket_label_free(intlabel);
 	if (error == 0)
-		error = copyout(buffer, mac->m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac->m_string, strlen(buffer) + 1);
 
 	free(buffer, M_MACTEMP);
 	free(elements, M_MACTEMP);
@@ -624,7 +612,7 @@ mac_getsockopt_peerlabel(struct ucred *cred, struct socket *so,
 	    mac->m_buflen);
 	mac_socket_label_free(intlabel);
 	if (error == 0)
-		error = copyout(buffer, mac->m_string, strlen(buffer)+1);
+		error = copyout(buffer, mac->m_string, strlen(buffer) + 1);
 
 	free(buffer, M_MACTEMP);
 	free(elements, M_MACTEMP);

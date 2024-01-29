@@ -24,8 +24,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/types.h>
+#include <sys/capsicum.h>
 #include <sys/sbuf.h>
 
 #include <capsicum_helpers.h>
@@ -41,11 +41,11 @@
 
 typedef enum {
 	/* state	condition to transit to next state */
-	INIT,		/* '$' */
-	DELIM_SEEN,	/* letter */
-	KEYWORD,	/* punctuation mark */
-	PUNC_SEEN,	/* ':' -> _SVN; space -> TEXT */
-	PUNC_SEEN_SVN,	/* space */
+	INIT,	       /* '$' */
+	DELIM_SEEN,    /* letter */
+	KEYWORD,       /* punctuation mark */
+	PUNC_SEEN,     /* ':' -> _SVN; space -> TEXT */
+	PUNC_SEEN_SVN, /* space */
 	TEXT
 } analyzer_states;
 
@@ -56,7 +56,7 @@ scan(FILE *fp, const char *name, bool quiet)
 	bool hasid = false;
 	bool subversion = false;
 	analyzer_states state = INIT;
-	FILE* buffp;
+	FILE *buffp;
 	char *buf;
 	size_t sz;
 	locale_t l;
@@ -154,8 +154,8 @@ scan(FILE *fp, const char *name, bool quiet)
 				break;
 			case ' ':
 				/*
-				 * A space after ':' or '::' indicates we are at the
-				 * last component of potential ident.
+				 * A space after ':' or '::' indicates we are at
+				 * the last component of potential ident.
 				 */
 				state = TEXT;
 				break;
@@ -169,20 +169,22 @@ scan(FILE *fp, const char *name, bool quiet)
 			fputc(c, buffp);
 
 			if (iscntrl_l(c, l)) {
-				/* Control characters are not allowed in this state */
+				/* Control characters are not allowed in this
+				 * state */
 				state = INIT;
 			} else if (c == '$') {
 				fflush(buffp);
 				/*
 				 * valid ident should end with a space.
 				 *
-				 * subversion extension uses '#' to indicate that
-				 * the keyword expansion have exceeded the fixed
-				 * width, so it is also permitted if we are in
-				 * subversion mode.  No length check is enforced
-				 * because GNU RCS ident(1) does not do it either.
+				 * subversion extension uses '#' to indicate
+				 * that the keyword expansion have exceeded the
+				 * fixed width, so it is also permitted if we
+				 * are in subversion mode.  No length check is
+				 * enforced because GNU RCS ident(1) does not do
+				 * it either.
 				 */
-				c = buf[strlen(buf) -2 ];
+				c = buf[strlen(buf) - 2];
 				if (c == ' ' || (subversion && c == '#')) {
 					printf("     %s\n", buf);
 					hasid = true;

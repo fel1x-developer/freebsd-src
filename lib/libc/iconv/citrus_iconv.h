@@ -36,26 +36,25 @@ struct _citrus_iconv_ops;
 struct _citrus_iconv;
 
 __BEGIN_DECLS
-int		 _citrus_iconv_open(struct _citrus_iconv * __restrict * __restrict,
-		    const char * __restrict, const char * __restrict);
-void		 _citrus_iconv_close(struct _citrus_iconv *);
-const char	*_citrus_iconv_canonicalize(const char *);
+int _citrus_iconv_open(struct _citrus_iconv *__restrict *__restrict,
+    const char *__restrict, const char *__restrict);
+void _citrus_iconv_close(struct _citrus_iconv *);
+const char *_citrus_iconv_canonicalize(const char *);
 __END_DECLS
-
 
 #include "citrus_iconv_local.h"
 
-#define _CITRUS_ICONV_F_HIDE_INVALID	0x0001
+#define _CITRUS_ICONV_F_HIDE_INVALID 0x0001
 
 /*
  * _citrus_iconv_convert:
  *	convert a string.
  */
 static __inline int
-_citrus_iconv_convert(struct _citrus_iconv * __restrict cv,
-    char * __restrict * __restrict in, size_t * __restrict inbytes,
-    char * __restrict * __restrict out, size_t * __restrict outbytes,
-    uint32_t flags, size_t * __restrict nresults)
+_citrus_iconv_convert(struct _citrus_iconv *__restrict cv,
+    char *__restrict *__restrict in, size_t *__restrict inbytes,
+    char *__restrict *__restrict out, size_t *__restrict outbytes,
+    uint32_t flags, size_t *__restrict nresults)
 {
 
 	return (*cv->cv_shared->ci_ops->io_convert)(cv, in, inbytes, out,

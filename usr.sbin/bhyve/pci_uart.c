@@ -41,8 +41,8 @@
  * BAR0, that most versions of FreeBSD can understand:
  * Siig CyberSerial 1-port.
  */
-#define COM_VENDOR	0x131f
-#define COM_DEV		0x2000
+#define COM_VENDOR 0x131f
+#define COM_DEV 0x2000
 
 static void
 pci_uart_intr_assert(void *arg)
@@ -111,18 +111,17 @@ pci_uart_init(struct pci_devinst *pi, nvlist_t *nvl)
 	device = get_config_value_node(nvl, "path");
 	if (uart_set_backend(sc, device) != 0) {
 		EPRINTLN("Unable to initialize backend '%s' for "
-		    "pci uart at %d:%d", device, pi->pi_slot, pi->pi_func);
+			 "pci uart at %d:%d",
+		    device, pi->pi_slot, pi->pi_func);
 		return (-1);
 	}
 
 	return (0);
 }
 
-static const struct pci_devemu pci_de_com = {
-	.pe_emu =	"uart",
-	.pe_init =	pci_uart_init,
+static const struct pci_devemu pci_de_com = { .pe_emu = "uart",
+	.pe_init = pci_uart_init,
 	.pe_legacy_config = pci_uart_legacy_config,
-	.pe_barwrite =	pci_uart_write,
-	.pe_barread =	pci_uart_read
-};
+	.pe_barwrite = pci_uart_write,
+	.pe_barread = pci_uart_read };
 PCI_EMUL_SET(pci_de_com);

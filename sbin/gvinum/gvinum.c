@@ -40,54 +40,52 @@
 #include <sys/queue.h>
 #include <sys/utsname.h>
 
-#include <geom/vinum/geom_vinum_var.h>
-#include <geom/vinum/geom_vinum_share.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <geom/vinum/geom_vinum_share.h>
+#include <geom/vinum/geom_vinum_var.h>
 #include <libgeom.h>
+#include <paths.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <unistd.h>
 
 #include "gvinum.h"
 
-static void gvinum_attach(int, char * const *);
-static void gvinum_concat(int, char * const *);
-static void gvinum_create(int, char * const *);
-static void gvinum_detach(int, char * const *);
-static void gvinum_grow(int, char * const *);
+static void gvinum_attach(int, char *const *);
+static void gvinum_concat(int, char *const *);
+static void gvinum_create(int, char *const *);
+static void gvinum_detach(int, char *const *);
+static void gvinum_grow(int, char *const *);
 static void gvinum_help(void);
-static void gvinum_list(int, char * const *);
-static void gvinum_move(int, char * const *);
-static void gvinum_mirror(int, char * const *);
-static void gvinum_parityop(int, char * const * , int);
-static void gvinum_printconfig(int, char * const *);
-static void gvinum_raid5(int, char * const *);
-static void gvinum_rename(int, char * const *);
-static void gvinum_resetconfig(int, char * const *);
-static void gvinum_rm(int, char * const *);
+static void gvinum_list(int, char *const *);
+static void gvinum_move(int, char *const *);
+static void gvinum_mirror(int, char *const *);
+static void gvinum_parityop(int, char *const *, int);
+static void gvinum_printconfig(int, char *const *);
+static void gvinum_raid5(int, char *const *);
+static void gvinum_rename(int, char *const *);
+static void gvinum_resetconfig(int, char *const *);
+static void gvinum_rm(int, char *const *);
 static void gvinum_saveconfig(void);
-static void gvinum_setstate(int, char * const *);
-static void gvinum_start(int, char * const *);
-static void gvinum_stop(int, char * const *);
-static void gvinum_stripe(int, char * const *);
-static void parseline(int, char * const *);
+static void gvinum_setstate(int, char *const *);
+static void gvinum_start(int, char *const *);
+static void gvinum_stop(int, char *const *);
+static void gvinum_stripe(int, char *const *);
+static void parseline(int, char *const *);
 static void printconfig(FILE *, const char *);
 
 static char *create_drive(const char *);
-static void create_volume(int, char * const * , const char *);
+static void create_volume(int, char *const *, const char *);
 static char *find_name(const char *, int, int);
 static const char *find_pattern(char *, const char *);
 static void copy_device(struct gv_drive *, const char *);
-#define	find_drive()							\
-    find_name("gvinumdrive", GV_TYPE_DRIVE, GV_MAXDRIVENAME)
+#define find_drive() find_name("gvinumdrive", GV_TYPE_DRIVE, GV_MAXDRIVENAME)
 
 int
 main(int argc, char **argv)
@@ -107,7 +105,7 @@ main(int argc, char **argv)
 		argv++;
 		parseline(argc, argv);
 
-	/* Interactive mode. */
+		/* Interactive mode. */
 	} else {
 		for (;;) {
 			inputline = readline("gvinum -> ");
@@ -133,7 +131,7 @@ main(int argc, char **argv)
 
 /* Attach a plex to a volume or a subdisk to a plex. */
 static void
-gvinum_attach(int argc, char * const *argv)
+gvinum_attach(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	const char *errstr;
@@ -144,8 +142,8 @@ gvinum_attach(int argc, char * const *argv)
 	offset = -1;
 	if (argc < 3) {
 		warnx("usage:\tattach <subdisk> <plex> [rename] "
-		    "[<plexoffset>]\n"
-		    "\tattach <plex> <volume> [rename]");
+		      "[<plexoffset>]\n"
+		      "\tattach <plex> <volume> [rename]");
 		return;
 	}
 	if (argc > 3) {
@@ -170,7 +168,7 @@ gvinum_attach(int argc, char * const *argv)
 }
 
 static void
-gvinum_create(int argc, char * const *argv)
+gvinum_create(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	struct gv_drive *d;
@@ -192,19 +190,19 @@ gvinum_create(int argc, char * const *argv)
 		/* Force flag used to ignore already created drives. */
 		if (!strcmp(argv[i], "-f")) {
 			flags |= GV_FLAG_F;
-		/* Else it must be a file. */
+			/* Else it must be a file. */
 		} else {
 			if ((tmp = fopen(argv[i], "r")) == NULL) {
 				warn("can't open '%s' for reading", argv[i]);
 				return;
 			}
-		}	
+		}
 	}
 
 	/* We didn't get a file. */
 	if (tmp == NULL) {
 		snprintf(tmpfile, sizeof(tmpfile), "/tmp/gvinum.XXXXXX");
-		
+
 		if ((fd = mkstemp(tmpfile)) == -1) {
 			warn("temporary file not accessible");
 			return;
@@ -215,11 +213,11 @@ gvinum_create(int argc, char * const *argv)
 		}
 		printconfig(tmp, "# ");
 		fclose(tmp);
-		
+
 		ed = getenv("EDITOR");
 		if (ed == NULL)
 			ed = _PATH_VI;
-		
+
 		snprintf(commandline, sizeof(commandline), "%s %s", ed,
 		    tmpfile);
 		status = system(commandline);
@@ -227,7 +225,7 @@ gvinum_create(int argc, char * const *argv)
 			warn("couldn't exec %s; status: %d", ed, status);
 			return;
 		}
-		
+
 		if ((tmp = fopen(tmpfile, "r")) == NULL) {
 			warn("can't open '%s' for reading", tmpfile);
 			return;
@@ -292,7 +290,7 @@ gvinum_create(int argc, char * const *argv)
 			gctl_ro_param(req, buf1, sizeof(*v), v);
 			volumes++;
 
-		/* Plex definition. */
+			/* Plex definition. */
 		} else if (!strcmp(token[0], "plex")) {
 			p = gv_new_plex(tokens, token);
 			if (p == NULL) {
@@ -328,12 +326,13 @@ gvinum_create(int argc, char * const *argv)
 			gctl_ro_param(req, buf1, sizeof(*p), p);
 			plexes++;
 
-		/* Subdisk definition. */
+			/* Subdisk definition. */
 		} else if (!strcmp(token[0], "sd")) {
 			s = gv_new_sd(tokens, token);
 			if (s == NULL) {
 				warnx("line %d: invalid subdisk "
-				    "definition:", line);
+				      "definition:",
+				    line);
 				warnx("line %d: '%s'", line, original);
 				errors++;
 				line++;
@@ -350,7 +349,7 @@ gvinum_create(int argc, char * const *argv)
 					free(sdname);
 				} else {
 					snprintf(s->name, sizeof(s->name),
-					    "%s.s%d",plex, sd_in_plex++);
+					    "%s.s%d", plex, sd_in_plex++);
 				}
 			}
 
@@ -362,7 +361,7 @@ gvinum_create(int argc, char * const *argv)
 			gctl_ro_param(req, buf1, sizeof(*s), s);
 			subdisks++;
 
-		/* Subdisk definition. */
+			/* Subdisk definition. */
 		} else if (!strcmp(token[0], "drive")) {
 			d = gv_new_drive(tokens, token);
 			if (d == NULL) {
@@ -378,7 +377,7 @@ gvinum_create(int argc, char * const *argv)
 			gctl_ro_param(req, buf1, sizeof(*d), d);
 			drives++;
 
-		/* Everything else is bogus. */
+			/* Everything else is bogus. */
 		} else {
 			warnx("line %d: invalid definition:", line);
 			warnx("line %d: '%s'", line, original);
@@ -404,7 +403,7 @@ gvinum_create(int argc, char * const *argv)
 
 /* Create a concatenated volume. */
 static void
-gvinum_concat(int argc, char * const *argv)
+gvinum_concat(int argc, char *const *argv)
 {
 
 	if (argc < 2) {
@@ -484,7 +483,7 @@ create_drive(const char *device)
  * raid5 and stripe commands.
  */
 static void
-create_volume(int argc, char * const *argv, const char *verb)
+create_volume(int argc, char *const *argv, const char *verb)
 {
 	struct gctl_req *req;
 	const char *errstr;
@@ -647,7 +646,7 @@ copy_device(struct gv_drive *d, const char *device)
 
 /* Detach a plex or subdisk from its parent. */
 static void
-gvinum_detach(int argc, char * const *argv)
+gvinum_detach(int argc, char *const *argv)
 {
 	const char *errstr;
 	struct gctl_req *req;
@@ -689,7 +688,8 @@ static void
 gvinum_help(void)
 {
 
-	printf("COMMANDS\n"
+	printf(
+	    "COMMANDS\n"
 	    "checkparity [-f] plex\n"
 	    "        Check the parity blocks of a RAID-5 plex.\n"
 	    "create [-f] description-file\n"
@@ -741,12 +741,11 @@ gvinum_help(void)
 	    "start [-S size] volume | plex | subdisk\n"
 	    "        Allow the system to access the objects.\n"
 	    "stripe [-fv] [-n name] drives\n"
-	    "        Create a striped volume from the specified drives.\n"
-	);
+	    "        Create a striped volume from the specified drives.\n");
 }
 
 static void
-gvinum_setstate(int argc, char * const *argv)
+gvinum_setstate(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	int flags, i;
@@ -801,7 +800,7 @@ gvinum_setstate(int argc, char * const *argv)
 }
 
 static void
-gvinum_list(int argc, char * const *argv)
+gvinum_list(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	int flags, i, j;
@@ -838,7 +837,6 @@ gvinum_list(int argc, char * const *argv)
 		}
 		argc -= optind;
 		argv += optind;
-
 	}
 
 	config[0] = '\0';
@@ -870,7 +868,7 @@ gvinum_list(int argc, char * const *argv)
 
 /* Create a mirrored volume. */
 static void
-gvinum_mirror(int argc, char * const *argv)
+gvinum_mirror(int argc, char *const *argv)
 {
 
 	if (argc < 2) {
@@ -882,7 +880,7 @@ gvinum_mirror(int argc, char * const *argv)
 
 /* Note that move is currently of form '[-r] target object [...]' */
 static void
-gvinum_move(int argc, char * const *argv)
+gvinum_move(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	const char *errstr;
@@ -908,14 +906,14 @@ gvinum_move(int argc, char * const *argv)
 	}
 
 	switch (argc) {
-		case 0:
-			warnx("no destination or object(s) to move specified");
-			return;
-		case 1:
-			warnx("no object(s) to move specified");
-			return;
-		default:
-			break;
+	case 0:
+		warnx("no destination or object(s) to move specified");
+		return;
+	case 1:
+		warnx("no object(s) to move specified");
+		return;
+	default:
+		break;
 	}
 
 	req = gctl_get_handle();
@@ -935,14 +933,14 @@ gvinum_move(int argc, char * const *argv)
 }
 
 static void
-gvinum_printconfig(int argc __unused, char * const *argv __unused)
+gvinum_printconfig(int argc __unused, char *const *argv __unused)
 {
 
 	printconfig(stdout, "");
 }
 
 static void
-gvinum_parityop(int argc, char * const *argv, int rebuild)
+gvinum_parityop(int argc, char *const *argv, int rebuild)
 {
 	struct gctl_req *req;
 	int flags, i;
@@ -994,7 +992,7 @@ gvinum_parityop(int argc, char * const *argv, int rebuild)
 
 /* Create a RAID-5 volume. */
 static void
-gvinum_raid5(int argc, char * const *argv)
+gvinum_raid5(int argc, char *const *argv)
 {
 
 	if (argc < 2) {
@@ -1005,7 +1003,7 @@ gvinum_raid5(int argc, char * const *argv)
 }
 
 static void
-gvinum_rename(int argc, char * const *argv)
+gvinum_rename(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	const char *errstr;
@@ -1030,17 +1028,17 @@ gvinum_rename(int argc, char * const *argv)
 	}
 
 	switch (argc) {
-		case 0:
-			warnx("no object to rename specified");
-			return;
-		case 1:
-			warnx("no new name specified");
-			return;
-		case 2:
-			break;
-		default:
-			warnx("more than one new name specified");
-			return;
+	case 0:
+		warnx("no object to rename specified");
+		return;
+	case 1:
+		warnx("no new name specified");
+		return;
+	case 2:
+		break;
+	default:
+		warnx("more than one new name specified");
+		return;
 	}
 
 	req = gctl_get_handle();
@@ -1056,7 +1054,7 @@ gvinum_rename(int argc, char * const *argv)
 }
 
 static void
-gvinum_rm(int argc, char * const *argv)
+gvinum_rm(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	int flags, i, j;
@@ -1102,7 +1100,7 @@ gvinum_rm(int argc, char * const *argv)
 }
 
 static void
-gvinum_resetconfig(int argc, char * const *argv)
+gvinum_resetconfig(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	const char *errstr;
@@ -1126,11 +1124,11 @@ gvinum_resetconfig(int argc, char * const *argv)
 			return;
 		}
 		printf(" WARNING!  This command will completely wipe out"
-		    " your gvinum configuration.\n"
-		    " All data will be lost.  If you really want to do this,"
-		    " enter the text\n\n"
-		    " NO FUTURE\n"
-		    " Enter text -> ");
+		       " your gvinum configuration.\n"
+		       " All data will be lost.  If you really want to do this,"
+		       " enter the text\n\n"
+		       " NO FUTURE\n"
+		       " Enter text -> ");
 		fgets(reply, sizeof(reply), stdin);
 		if (strcmp(reply, "NO FUTURE\n")) {
 			printf("\n No change\n");
@@ -1166,7 +1164,7 @@ gvinum_saveconfig(void)
 }
 
 static void
-gvinum_start(int argc, char * const *argv)
+gvinum_start(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	int i, initsize, j;
@@ -1218,7 +1216,7 @@ gvinum_start(int argc, char * const *argv)
 }
 
 static void
-gvinum_stop(int argc __unused, char * const *argv __unused)
+gvinum_stop(int argc __unused, char *const *argv __unused)
 {
 	int err, fileid;
 
@@ -1253,7 +1251,7 @@ gvinum_stop(int argc __unused, char * const *argv __unused)
 
 /* Create a striped volume. */
 static void
-gvinum_stripe(int argc, char * const *argv)
+gvinum_stripe(int argc, char *const *argv)
 {
 
 	if (argc < 2) {
@@ -1265,7 +1263,7 @@ gvinum_stripe(int argc, char * const *argv)
 
 /* Grow a subdisk by adding disk backed by provider. */
 static void
-gvinum_grow(int argc, char * const *argv)
+gvinum_grow(int argc, char *const *argv)
 {
 	struct gctl_req *req;
 	char *drive, *sdname;
@@ -1344,7 +1342,7 @@ gvinum_grow(int argc, char * const *argv)
 }
 
 static void
-parseline(int argc, char * const *argv)
+parseline(int argc, char *const *argv)
 {
 
 	if (argc <= 0)
@@ -1440,11 +1438,10 @@ printconfig(FILE *of, const char *comment)
 	gctl_free(req);
 
 	fprintf(of, "# Vinum configuration of %s, saved at %s",
-	    uname_s.nodename,
-	    ctime(&now));
-	
+	    uname_s.nodename, ctime(&now));
+
 	if (*comment != '\0')
-	    fprintf(of, "# Current configuration:\n");
+		fprintf(of, "# Current configuration:\n");
 
 	fprintf(of, "%s", buf);
 }

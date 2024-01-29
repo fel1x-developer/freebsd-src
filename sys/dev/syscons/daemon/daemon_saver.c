@@ -30,13 +30,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/jail.h>
-#include <sys/kernel.h>
-#include <sys/sysctl.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/jail.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/sysctl.h>
 
 #include <machine/pc/display.h>
 
@@ -44,63 +44,40 @@
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define DAEMON_MAX_WIDTH	32
-#define DAEMON_MAX_HEIGHT	19
+#define DAEMON_MAX_WIDTH 32
+#define DAEMON_MAX_HEIGHT 19
 
 static u_char *message;
 static int messagelen;
 static int blanked;
 static int attr_mask;
 
-#define	ATTR(attr)	(((attr) & attr_mask) << 8)
+#define ATTR(attr) (((attr) & attr_mask) << 8)
 
 /* Who is the author of this ASCII pic? */
 
-static u_char *daemon_pic[] = {
-        "             ,        ,",
-	"            /(        )`",
-	"            \\ \\___   / |",
-	"            /- _  `-/  '",
-	"           (/\\/ \\ \\   /\\",
-	"           / /   | `    \\",
-	"           O O   ) /    |",
-	"           `-^--'`<     '",
-	"          (_.)  _  )   /",
-	"           `.___/`    /",
-	"             `-----' /",
+static u_char *daemon_pic[] = { "             ,        ,",
+	"            /(        )`", "            \\ \\___   / |",
+	"            /- _  `-/  '", "           (/\\/ \\ \\   /\\",
+	"           / /   | `    \\", "           O O   ) /    |",
+	"           `-^--'`<     '", "          (_.)  _  )   /",
+	"           `.___/`    /", "             `-----' /",
 	"<----.     __ / __   \\",
-	"<----|====O)))==) \\) /====",
-	"<----'    `--' `.__,' \\",
-	"             |        |",
-	"              \\       /       /\\",
-	"         ______( (_  / \\______/",
-	"       ,'  ,-----'   |",
-	"       `--{__________)",
-	NULL
-};
+	"<----|====O)))==) \\) /====", "<----'    `--' `.__,' \\",
+	"             |        |", "              \\       /       /\\",
+	"         ______( (_  / \\______/", "       ,'  ,-----'   |",
+	"       `--{__________)", NULL };
 
-static u_char *daemon_attr[] = {
-        "             R        R",
-	"            RR        RR",
-	"            R RRRR   R R",
-	"            RR W  RRR  R",
-	"           RWWW W R   RR",
-	"           W W   W R    R",
-	"           B B   W R    R",
-	"           WWWWWWRR     R",
-	"          RRRR  R  R   R",
-	"           RRRRRRR    R",
-	"             RRRRRRR R",
-	"YYYYYY     RR R RR   R",
-	"YYYYYYYYYYRRRRYYR RR RYYYY",
-	"YYYYYY    RRRR RRRRRR R",
-	"             R        R",
-	"              R       R       RR",
-	"         CCCCCCR RR  R RRRRRRRR",
-	"       CC  CCCCCCC   C",
-	"       CCCCCCCCCCCCCCC",
-	NULL
-};
+static u_char *daemon_attr[] = { "             R        R",
+	"            RR        RR", "            R RRRR   R R",
+	"            RR W  RRR  R", "           RWWW W R   RR",
+	"           W W   W R    R", "           B B   W R    R",
+	"           WWWWWWRR     R", "          RRRR  R  R   R",
+	"           RRRRRRR    R", "             RRRRRRR R",
+	"YYYYYY     RR R RR   R", "YYYYYYYYYYRRRRYYR RR RYYYY",
+	"YYYYYY    RRRR RRRRRR R", "             R        R",
+	"              R       R       RR", "         CCCCCCR RR  R RRRRRRRR",
+	"       CC  CCCCCCC   C", "       CCCCCCCCCCCCCCC", NULL };
 
 /*
  * Reverse a graphics character, or return unaltered if no mirror;
@@ -122,8 +99,8 @@ xflip_symbol(u_char symbol)
 }
 
 static void
-clear_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff, 
-	    int xlen, int ylen)
+clear_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff,
+    int xlen, int ylen)
 {
 	int y;
 
@@ -131,15 +108,14 @@ clear_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff,
 		return;
 	for (y = yoff; y < ylen; y++) {
 		sc_vtb_erase(&sc->cur_scp->scr,
-			     (ypos + y)*sc->cur_scp->xsize + xpos + xoff,
-			     xlen - xoff,
-			     sc->scr_map[0x20], ATTR(FG_LIGHTGREY | BG_BLACK));
+		    (ypos + y) * sc->cur_scp->xsize + xpos + xoff, xlen - xoff,
+		    sc->scr_map[0x20], ATTR(FG_LIGHTGREY | BG_BLACK));
 	}
 }
 
 static void
-draw_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff, 
-	    int xlen, int ylen)
+draw_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff,
+    int xlen, int ylen)
 {
 	int x, y;
 	int px;
@@ -152,28 +128,39 @@ draw_daemon(sc_softc_t *sc, int xpos, int ypos, int dxdir, int xoff, int yoff,
 			px = DAEMON_MAX_WIDTH - xlen;
 		if (px >= strlen(daemon_pic[y]))
 			continue;
-		for (x = xoff; (x < xlen) && (daemon_pic[y][px] != '\0'); x++, px++) {
+		for (x = xoff; (x < xlen) && (daemon_pic[y][px] != '\0');
+		     x++, px++) {
 			switch (daemon_attr[y][px]) {
-			case 'R': attr = FG_LIGHTRED | BG_BLACK; break;
-			case 'Y': attr = FG_YELLOW | BG_BLACK; break;
-			case 'B': attr = FG_LIGHTBLUE | BG_BLACK; break;
-			case 'W': attr = FG_LIGHTGREY | BG_BLACK; break;
-			case 'C': attr = FG_CYAN | BG_BLACK; break;
-			default: attr = FG_WHITE | BG_BLACK; break;
+			case 'R':
+				attr = FG_LIGHTRED | BG_BLACK;
+				break;
+			case 'Y':
+				attr = FG_YELLOW | BG_BLACK;
+				break;
+			case 'B':
+				attr = FG_LIGHTBLUE | BG_BLACK;
+				break;
+			case 'W':
+				attr = FG_LIGHTGREY | BG_BLACK;
+				break;
+			case 'C':
+				attr = FG_CYAN | BG_BLACK;
+				break;
+			default:
+				attr = FG_WHITE | BG_BLACK;
+				break;
 			}
-			if (dxdir < 0) {	/* Moving left */
+			if (dxdir < 0) { /* Moving left */
 				sc_vtb_putc(&sc->cur_scp->scr,
-					    (ypos + y)*sc->cur_scp->xsize
-						 + xpos + x,
-					    sc->scr_map[daemon_pic[y][px]],
-					    ATTR(attr));
-			} else {		/* Moving right */
+				    (ypos + y) * sc->cur_scp->xsize + xpos + x,
+				    sc->scr_map[daemon_pic[y][px]], ATTR(attr));
+			} else { /* Moving right */
 				sc_vtb_putc(&sc->cur_scp->scr,
-					    (ypos + y)*sc->cur_scp->xsize
-						+ xpos + DAEMON_MAX_WIDTH 
-						- px - 1,
-					    sc->scr_map[xflip_symbol(daemon_pic[y][px])], 
-					    ATTR(attr));
+				    (ypos + y) * sc->cur_scp->xsize + xpos +
+					DAEMON_MAX_WIDTH - px - 1,
+				    sc->scr_map[xflip_symbol(
+					daemon_pic[y][px])],
+				    ATTR(attr));
 			}
 		}
 	}
@@ -184,9 +171,8 @@ clear_string(sc_softc_t *sc, int xpos, int ypos, int xoff, char *s, int len)
 {
 	if (len <= 0)
 		return;
-	sc_vtb_erase(&sc->cur_scp->scr,
-		     ypos*sc->cur_scp->xsize + xpos + xoff, len - xoff,
-		     sc->scr_map[0x20], ATTR(FG_LIGHTGREY | BG_BLACK));
+	sc_vtb_erase(&sc->cur_scp->scr, ypos * sc->cur_scp->xsize + xpos + xoff,
+	    len - xoff, sc->scr_map[0x20], ATTR(FG_LIGHTGREY | BG_BLACK));
 }
 
 static void
@@ -196,8 +182,8 @@ draw_string(sc_softc_t *sc, int xpos, int ypos, int xoff, u_char *s, int len)
 
 	for (x = xoff; x < len; x++)
 		sc_vtb_putc(&sc->cur_scp->scr,
-			    ypos*sc->cur_scp->xsize + xpos + x,
-			    sc->scr_map[s[x]], ATTR(FG_LIGHTGREEN | BG_BLACK));
+		    ypos * sc->cur_scp->xsize + xpos + x, sc->scr_map[s[x]],
+		    ATTR(FG_LIGHTGREEN | BG_BLACK));
 }
 
 static int
@@ -225,7 +211,7 @@ daemon_saver(video_adapter_t *adp, int blank)
 		if (blanked == 0) {
 			/* clear the screen and set the border color */
 			sc_vtb_clear(&scp->scr, sc->scr_map[0x20],
-				     ATTR(FG_LIGHTGREY | BG_BLACK));
+			    ATTR(FG_LIGHTGREY | BG_BLACK));
 			vidd_set_hw_cursor(adp, -1, -1);
 			sc_set_border(scp, 0);
 			xlen = ylen = tlen = 0;
@@ -234,7 +220,7 @@ daemon_saver(video_adapter_t *adp, int blank)
 			return 0;
 		blanked = 1;
 
- 		clear_daemon(sc, dxpos, dypos, dxdir, xoff, yoff, xlen, ylen);
+		clear_daemon(sc, dxpos, dypos, dxdir, xoff, yoff, xlen, ylen);
 		clear_string(sc, txpos, typos, toff, message, tlen);
 
 		if (++moved_daemon) {
@@ -281,7 +267,8 @@ daemon_saver(video_adapter_t *adp, int blank)
 			}
 
 			moved_daemon = -1;
-			dxpos += dxdir; dypos += dydir;
+			dxpos += dxdir;
+			dypos += dydir;
 
 			/* clip the picture */
 			xoff = 0;
@@ -327,7 +314,8 @@ daemon_saver(video_adapter_t *adp, int blank)
 			typos = scp->ysize - 1;
 			tydir = -1;
 		}
-		txpos += txdir; typos += tydir;
+		txpos += txdir;
+		typos += tydir;
 
 		toff = 0;
 		tlen = messagelen;
@@ -340,7 +328,7 @@ daemon_saver(video_adapter_t *adp, int blank)
 		else if (txpos + tlen > scp->xsize)
 			tlen = scp->xsize - txpos;
 
- 		draw_daemon(sc, dxpos, dypos, dxdir, xoff, yoff, xlen, ylen);
+		draw_daemon(sc, dxpos, dypos, dxdir, xoff, yoff, xlen, ylen);
 		draw_string(sc, txpos, typos, toff, message, tlen);
 	} else
 		blanked = 0;
@@ -384,7 +372,11 @@ daemon_term(video_adapter_t *adp)
 }
 
 static scrn_saver_t daemon_module = {
-	"daemon_saver", daemon_init, daemon_term, daemon_saver, NULL,
+	"daemon_saver",
+	daemon_init,
+	daemon_term,
+	daemon_saver,
+	NULL,
 };
 
 SAVER_MODULE(daemon_saver, daemon_module);

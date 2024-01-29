@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -45,13 +45,8 @@
 
 static int TypesCmd(int ac, char **av);
 
-const struct ngcmd types_cmd = {
-	TypesCmd,
-	"types",
-	"Show information about all installed node types",
-	NULL,
-	{ NULL }
-};
+const struct ngcmd types_cmd = { TypesCmd, "types",
+	"Show information about all installed node types", NULL, { NULL } };
 
 static int
 TypesCmd(int ac, char **av __unused)
@@ -70,8 +65,8 @@ TypesCmd(int ac, char **av __unused)
 	}
 
 	/* Get list of types */
-	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE,
-	    NGM_LISTTYPES, NULL, 0) < 0) {
+	if (NgSendMsg(csock, ".", NGM_GENERIC_COOKIE, NGM_LISTTYPES, NULL, 0) <
+	    0) {
 		warn("send msg");
 		return (CMDRTN_ERROR);
 	}
@@ -81,7 +76,7 @@ TypesCmd(int ac, char **av __unused)
 	}
 
 	/* Show each type */
-	tlist = (struct typelist *) resp->data;
+	tlist = (struct typelist *)resp->data;
 	printf("There are %d total types:\n", tlist->numtypes);
 	if (tlist->numtypes > 0) {
 		printf("%15s   Number of living nodes\n", "Type name");
@@ -96,4 +91,3 @@ TypesCmd(int ac, char **av __unused)
 	free(resp);
 	return (rtn);
 }
-

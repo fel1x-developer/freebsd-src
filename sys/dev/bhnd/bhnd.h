@@ -31,7 +31,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_BHND_H_
@@ -44,17 +44,17 @@
 
 #include <machine/bus.h>
 
-#include "bhnd_ids.h"
-#include "bhnd_types.h"
-#include "bhnd_erom_types.h"
-#include "bhnd_debug.h"
 #include "bhnd_bus_if.h"
+#include "bhnd_debug.h"
+#include "bhnd_erom_types.h"
+#include "bhnd_ids.h"
 #include "bhnd_match.h"
-
+#include "bhnd_types.h"
 #include "nvram/bhnd_nvram.h"
 
-#define	BHND_CHIPID_MAX_NAMELEN	32	/**< maximum buffer required for a
-					     bhnd_format_chip_id() */
+#define BHND_CHIPID_MAX_NAMELEN               \
+	32 /**< maximum buffer required for a \
+		bhnd_format_chip_id() */
 
 /**
  * bhnd child instance variables
@@ -63,7 +63,7 @@ enum bhnd_device_vars {
 	BHND_IVAR_VENDOR,	/**< Designer's JEP-106 manufacturer ID. */
 	BHND_IVAR_DEVICE,	/**< Part number */
 	BHND_IVAR_HWREV,	/**< Core revision */
-	BHND_IVAR_DEVICE_CLASS,	/**< Core class (@sa bhnd_devclass_t) */
+	BHND_IVAR_DEVICE_CLASS, /**< Core class (@sa bhnd_devclass_t) */
 	BHND_IVAR_VENDOR_NAME,	/**< Core vendor name */
 	BHND_IVAR_DEVICE_NAME,	/**< Core name */
 	BHND_IVAR_CORE_INDEX,	/**< Bus-assigned core number */
@@ -77,29 +77,30 @@ enum bhnd_device_vars {
  * bhnd device probe priority bands.
  */
 enum {
-	BHND_PROBE_ROOT         = 0,    /**< Nexus or host bridge */
-	BHND_PROBE_BUS		= 1000,	/**< Buses and bridges */
-	BHND_PROBE_CPU		= 2000,	/**< CPU devices */
-	BHND_PROBE_INTERRUPT	= 3000,	/**< Interrupt controllers. */
-	BHND_PROBE_TIMER	= 4000,	/**< Timers and clocks. */
-	BHND_PROBE_RESOURCE	= 5000,	/**< Resource discovery (including NVRAM/SPROM) */
-	BHND_PROBE_DEFAULT	= 6000,	/**< Default device priority */
+	BHND_PROBE_ROOT = 0,	     /**< Nexus or host bridge */
+	BHND_PROBE_BUS = 1000,	     /**< Buses and bridges */
+	BHND_PROBE_CPU = 2000,	     /**< CPU devices */
+	BHND_PROBE_INTERRUPT = 3000, /**< Interrupt controllers. */
+	BHND_PROBE_TIMER = 4000,     /**< Timers and clocks. */
+	BHND_PROBE_RESOURCE =
+	    5000, /**< Resource discovery (including NVRAM/SPROM) */
+	BHND_PROBE_DEFAULT = 6000, /**< Default device priority */
 };
 
 /**
  * Constants defining fine grained ordering within a BHND_PROBE_* priority band.
- * 
+ *
  * Example:
  * @code
  * BHND_PROBE_BUS + BHND_PROBE_ORDER_FIRST
  * @endcode
  */
 enum {
-	BHND_PROBE_ORDER_FIRST		= 0,
-	BHND_PROBE_ORDER_EARLY		= 25,
-	BHND_PROBE_ORDER_MIDDLE		= 50,
-	BHND_PROBE_ORDER_LATE		= 75,
-	BHND_PROBE_ORDER_LAST		= 100
+	BHND_PROBE_ORDER_FIRST = 0,
+	BHND_PROBE_ORDER_EARLY = 25,
+	BHND_PROBE_ORDER_MIDDLE = 50,
+	BHND_PROBE_ORDER_LATE = 75,
+	BHND_PROBE_ORDER_LAST = 100
 
 };
 
@@ -107,158 +108,168 @@ enum {
  * Per-core IOCTL flags common to all bhnd(4) cores.
  */
 enum {
-	BHND_IOCTL_BIST		= 0x8000,	/**< Initiate a built-in self-test (BIST). Must be cleared
-						     after BIST results are read via BHND_IOST_BIST_* */
-	BHND_IOCTL_PME		= 0x4000,	/**< Enable posting of power management events by the core. */
-	BHND_IOCTL_CFLAGS	= 0x3FFC,	/**< Reserved for core-specific ioctl flags. */
-	BHND_IOCTL_CLK_FORCE	= 0x0002,	/**< Force disable of clock gating, resulting in all clocks
-						     being distributed within the core. Should be set when
-						     asserting/deasserting reset to ensure the reset signal
-						     fully propagates to the entire core. */
-	BHND_IOCTL_CLK_EN	= 0x0001,	/**< If cleared, the core clock will be disabled. Should be
-						     set during normal operation, and cleared when the core is
-						     held in reset. */
+	BHND_IOCTL_BIST =
+	    0x8000, /**< Initiate a built-in self-test (BIST). Must be cleared
+			 after BIST results are read via BHND_IOST_BIST_* */
+	BHND_IOCTL_PME = 0x4000, /**< Enable posting of power management events
+				    by the core. */
+	BHND_IOCTL_CFLAGS =
+	    0x3FFC, /**< Reserved for core-specific ioctl flags. */
+	BHND_IOCTL_CLK_FORCE =
+	    0x0002, /**< Force disable of clock gating, resulting in all clocks
+			 being distributed within the core. Should be set when
+			 asserting/deasserting reset to ensure the reset signal
+			 fully propagates to the entire core. */
+	BHND_IOCTL_CLK_EN =
+	    0x0001, /**< If cleared, the core clock will be disabled. Should be
+			 set during normal operation, and cleared when the core
+		       is held in reset. */
 };
 
 /**
  * Per-core IOST flags common to all bhnd(4) cores.
  */
 enum {
-	BHND_IOST_BIST_DONE	= 0x8000,	/**< Set upon BIST completion (see BHND_IOCTL_BIST), and cleared
-						     if 0 is written to BHND_IOCTL_BIST. */ 
-	BHND_IOST_BIST_FAIL	= 0x4000,	/**< Set upon detection of a BIST error; the value is unspecified
-						     if BIST has not completed and BHND_IOST_BIST_DONE is not set. */
-	BHND_IOST_CLK		= 0x2000,	/**< Set if the core has requested that gated clocks be enabled, or
-						     cleared otherwise. The value is undefined if a core does not
-						     support clock gating. */
-	BHND_IOST_DMA64		= 0x1000,	/**< Set if this core supports 64-bit DMA */
-	BHND_IOST_CFLAGS	= 0x0FFC,	/**< Reserved for core-specific status flags. */
+	BHND_IOST_BIST_DONE =
+	    0x8000, /**< Set upon BIST completion (see BHND_IOCTL_BIST), and
+		       cleared if 0 is written to BHND_IOCTL_BIST. */
+	BHND_IOST_BIST_FAIL =
+	    0x4000, /**< Set upon detection of a BIST error; the value is
+		       unspecified if BIST has not completed and
+		       BHND_IOST_BIST_DONE is not set. */
+	BHND_IOST_CLK =
+	    0x2000, /**< Set if the core has requested that gated clocks be
+		       enabled, or cleared otherwise. The value is undefined if
+		       a core does not support clock gating. */
+	BHND_IOST_DMA64 = 0x1000, /**< Set if this core supports 64-bit DMA */
+	BHND_IOST_CFLAGS =
+	    0x0FFC, /**< Reserved for core-specific status flags. */
 };
 
 /*
  * Simplified accessors for bhnd device ivars
  */
-#define	BHND_ACCESSOR(var, ivar, type) \
+#define BHND_ACCESSOR(var, ivar, type) \
 	__BUS_ACCESSOR(bhnd, var, BHND, ivar, type)
 
-BHND_ACCESSOR(vendor,		VENDOR,		uint16_t);
-BHND_ACCESSOR(device,		DEVICE,		uint16_t);
-BHND_ACCESSOR(hwrev,		HWREV,		uint8_t);
-BHND_ACCESSOR(class,		DEVICE_CLASS,	bhnd_devclass_t);
-BHND_ACCESSOR(vendor_name,	VENDOR_NAME,	const char *);
-BHND_ACCESSOR(device_name,	DEVICE_NAME,	const char *);
-BHND_ACCESSOR(core_index,	CORE_INDEX,	u_int);
-BHND_ACCESSOR(core_unit,	CORE_UNIT,	int);
-BHND_ACCESSOR(pmu_info,		PMU_INFO,	void *);
+BHND_ACCESSOR(vendor, VENDOR, uint16_t);
+BHND_ACCESSOR(device, DEVICE, uint16_t);
+BHND_ACCESSOR(hwrev, HWREV, uint8_t);
+BHND_ACCESSOR(class, DEVICE_CLASS, bhnd_devclass_t);
+BHND_ACCESSOR(vendor_name, VENDOR_NAME, const char *);
+BHND_ACCESSOR(device_name, DEVICE_NAME, const char *);
+BHND_ACCESSOR(core_index, CORE_INDEX, u_int);
+BHND_ACCESSOR(core_unit, CORE_UNIT, int);
+BHND_ACCESSOR(pmu_info, PMU_INFO, void *);
 
-#undef	BHND_ACCESSOR
+#undef BHND_ACCESSOR
 
 /**
  * A bhnd(4) board descriptor.
  */
 struct bhnd_board_info {
-	uint16_t	board_vendor;	/**< Board vendor (PCI-SIG vendor ID).
-					  *
-					  * On PCI devices, this will default to
-					  * the PCI subsystem vendor ID, but may
-					  * be overridden by the 'boardtype'
-					  * NVRAM variable.
-					  *
-					  * On SoCs, this will default to
-					  * PCI_VENDOR_BROADCOM, but may be
-					  * overridden by the 'boardvendor'
-					  * NVRAM variable.
-					  */
-	uint16_t	board_type;	/**< Board type (See BHND_BOARD_*)
-					  *
-					  *  This value is usually a
-					  *  Broadcom-assigned reference board
-					  *  identifier (see BHND_BOARD_*), but
-					  *  may be set to an arbitrary value
-					  *  assigned by the board vendor.
-					  *
-					  *  On PCI devices, this will default
-					  *  to the PCI subsystem ID, but may be
-					  *  overridden by the 'boardtype'
-					  *  NVRAM variable.
-					  *
-					  *  On SoCs, this will always be
-					  *  populated with the value of the
-					  * 'boardtype' NVRAM variable.
-					  */
-	uint16_t	board_devid;	/**< Board device ID.
-					  *
-					  *  On PCI devices, this will default
-					  *  to the PCI device ID, but may
-					  *  be overridden by the 'devid'
-					  *  NVRAM variable.
-					  */
-	uint16_t	board_rev;	/**< Board revision. */
-	uint8_t		board_srom_rev;	/**< Board SROM format revision */
+	uint16_t board_vendor;	/**< Board vendor (PCI-SIG vendor ID).
+				 *
+				 * On PCI devices, this will default to
+				 * the PCI subsystem vendor ID, but may
+				 * be overridden by the 'boardtype'
+				 * NVRAM variable.
+				 *
+				 * On SoCs, this will default to
+				 * PCI_VENDOR_BROADCOM, but may be
+				 * overridden by the 'boardvendor'
+				 * NVRAM variable.
+				 */
+	uint16_t board_type;	/**< Board type (See BHND_BOARD_*)
+				 *
+				 *  This value is usually a
+				 *  Broadcom-assigned reference board
+				 *  identifier (see BHND_BOARD_*), but
+				 *  may be set to an arbitrary value
+				 *  assigned by the board vendor.
+				 *
+				 *  On PCI devices, this will default
+				 *  to the PCI subsystem ID, but may be
+				 *  overridden by the 'boardtype'
+				 *  NVRAM variable.
+				 *
+				 *  On SoCs, this will always be
+				 *  populated with the value of the
+				 * 'boardtype' NVRAM variable.
+				 */
+	uint16_t board_devid;	/**< Board device ID.
+				 *
+				 *  On PCI devices, this will default
+				 *  to the PCI device ID, but may
+				 *  be overridden by the 'devid'
+				 *  NVRAM variable.
+				 */
+	uint16_t board_rev;	/**< Board revision. */
+	uint8_t board_srom_rev; /**< Board SROM format revision */
 
-	uint32_t	board_flags;	/**< Board flags (see BHND_BFL_*) */
-	uint32_t	board_flags2;	/**< Board flags 2 (see BHND_BFL2_*) */
-	uint32_t	board_flags3;	/**< Board flags 3 (see BHND_BFL3_*) */
+	uint32_t board_flags;  /**< Board flags (see BHND_BFL_*) */
+	uint32_t board_flags2; /**< Board flags 2 (see BHND_BFL2_*) */
+	uint32_t board_flags3; /**< Board flags 3 (see BHND_BFL3_*) */
 };
 
 /**
  * Chip Identification
- * 
+ *
  * This is read from the ChipCommon ID register; on earlier bhnd(4) devices
  * where ChipCommon is unavailable, known values must be supplied.
  */
 struct bhnd_chipid {
-	uint16_t	chip_id;	/**< chip id (BHND_CHIPID_*) */
-	uint8_t		chip_rev;	/**< chip revision */
-	uint8_t		chip_pkg;	/**< chip package (BHND_PKGID_*) */
-	uint8_t		chip_type;	/**< chip type (BHND_CHIPTYPE_*) */
-	uint32_t	chip_caps;	/**< chip capabilities (BHND_CAP_*) */
+	uint16_t chip_id;   /**< chip id (BHND_CHIPID_*) */
+	uint8_t chip_rev;   /**< chip revision */
+	uint8_t chip_pkg;   /**< chip package (BHND_PKGID_*) */
+	uint8_t chip_type;  /**< chip type (BHND_CHIPTYPE_*) */
+	uint32_t chip_caps; /**< chip capabilities (BHND_CAP_*) */
 
-	bhnd_addr_t	enum_addr;	/**< chip_type-specific enumeration
-					  *  address; either the siba(4) base
-					  *  core register block, or the bcma(4)
-					  *  EROM core address. */
+	bhnd_addr_t enum_addr; /**< chip_type-specific enumeration
+				*  address; either the siba(4) base
+				*  core register block, or the bcma(4)
+				*  EROM core address. */
 
-	uint8_t		ncores;		/**< number of cores, if known. 0 if
-					  *  not available. */
+	uint8_t ncores; /**< number of cores, if known. 0 if
+			 *  not available. */
 };
 
 /**
  * Chip capabilities
  */
 enum bhnd_cap {
-	BHND_CAP_BP64	= (1<<0),	/**< Backplane supports 64-bit
-					  *  addressing */
-	BHND_CAP_PMU	= (1<<1),	/**< PMU is present */
+	BHND_CAP_BP64 = (1 << 0), /**< Backplane supports 64-bit
+				   *  addressing */
+	BHND_CAP_PMU = (1 << 1),  /**< PMU is present */
 };
 
 /**
  * A bhnd(4) core descriptor.
  */
 struct bhnd_core_info {
-	uint16_t	vendor;		/**< JEP-106 vendor (BHND_MFGID_*) */
-	uint16_t	device;		/**< device */
-	uint16_t	hwrev;		/**< hardware revision */
-	u_int		core_idx;	/**< bus-assigned core index */
-	int		unit;		/**< bus-assigned core unit */
+	uint16_t vendor; /**< JEP-106 vendor (BHND_MFGID_*) */
+	uint16_t device; /**< device */
+	uint16_t hwrev;	 /**< hardware revision */
+	u_int core_idx;	 /**< bus-assigned core index */
+	int unit;	 /**< bus-assigned core unit */
 };
 
 /**
  * bhnd(4) DMA address widths.
  */
 typedef enum {
-	BHND_DMA_ADDR_30BIT	= 30,	/**< 30-bit DMA */
-	BHND_DMA_ADDR_32BIT	= 32,	/**< 32-bit DMA */
-	BHND_DMA_ADDR_64BIT	= 64,	/**< 64-bit DMA */
+	BHND_DMA_ADDR_30BIT = 30, /**< 30-bit DMA */
+	BHND_DMA_ADDR_32BIT = 32, /**< 32-bit DMA */
+	BHND_DMA_ADDR_64BIT = 64, /**< 64-bit DMA */
 } bhnd_dma_addrwidth;
 
 /**
  * Convert an address width (in bits) to its corresponding mask.
  */
-#define	BHND_DMA_ADDR_BITMASK(_width)	\
-	((_width >= 64) ? ~0ULL :	\
-	 (_width == 0) ? 0x0 :		\
-	 ((1ULL << (_width)) - 1))	\
+#define BHND_DMA_ADDR_BITMASK(_width)   \
+	((_width >= 64)	      ? ~0ULL : \
+		(_width == 0) ? 0x0 :   \
+				((1ULL << (_width)) - 1))
 
 /**
  * bhnd(4) DMA address translation descriptor.
@@ -266,19 +277,19 @@ typedef enum {
 struct bhnd_dma_translation {
 	/**
 	 * Host-to-device physical address translation.
-	 * 
+	 *
 	 * This may be added to the host physical address to produce a device
 	 * DMA address.
 	 */
-	bhnd_addr_t	base_addr;
+	bhnd_addr_t base_addr;
 
 	/**
 	 * Device-addressable address mask.
-	 * 
+	 *
 	 * This defines the device's DMA address range, excluding any bits
 	 * reserved for mapping the address to the base_addr.
 	 */
-	bhnd_addr_t	addr_mask;
+	bhnd_addr_t addr_mask;
 
 	/**
 	 * Device-addressable extended address mask.
@@ -293,18 +304,21 @@ struct bhnd_dma_translation {
 	 * sbtopcitranslation base address to map the full address prior to
 	 * performing a DMA transaction.
 	 */
-	bhnd_addr_t	addrext_mask;
+	bhnd_addr_t addrext_mask;
 
 	/**
 	 * Translation flags (see bhnd_dma_translation_flags).
 	 */
-	uint32_t	flags;
+	uint32_t flags;
 };
-#define	BHND_DMA_TRANSLATION_TABLE_END	{ 0, 0, 0, 0 }
+#define BHND_DMA_TRANSLATION_TABLE_END \
+	{                              \
+		0, 0, 0, 0             \
+	}
 
-#define	BHND_DMA_IS_TRANSLATION_TABLE_END(_dt)			\
-	((_dt)->base_addr == 0 && (_dt)->addr_mask == 0 &&	\
-	 (_dt)->addrext_mask == 0 && (_dt)->flags == 0)
+#define BHND_DMA_IS_TRANSLATION_TABLE_END(_dt)             \
+	((_dt)->base_addr == 0 && (_dt)->addr_mask == 0 && \
+	    (_dt)->addrext_mask == 0 && (_dt)->flags == 0)
 
 /**
  * bhnd(4) DMA address translation flags.
@@ -312,12 +326,12 @@ struct bhnd_dma_translation {
 enum bhnd_dma_translation_flags {
 	/**
 	 * The translation remaps the device's physical address space.
-	 * 
+	 *
 	 * This is used in conjunction with BHND_DMA_TRANSLATION_BYTESWAPPED to
 	 * define a DMA translation that provides byteswapped access to
 	 * physical memory on big-endian MIPS SoCs.
 	 */
-	BHND_DMA_TRANSLATION_PHYSMAP		= (1<<0),
+	BHND_DMA_TRANSLATION_PHYSMAP = (1 << 0),
 
 	/**
 	 * Provides a byte-swapped mapping; write requests will be byte-swapped
@@ -327,310 +341,270 @@ enum bhnd_dma_translation_flags {
 	 * This is primarily used to perform efficient byte swapping of DMA
 	 * data on embedded MIPS SoCs executing in big-endian mode.
 	 */
-	BHND_DMA_TRANSLATION_BYTESWAPPED	= (1<<1),	
+	BHND_DMA_TRANSLATION_BYTESWAPPED = (1 << 1),
 };
 
 /**
-* A bhnd(4) bus resource.
-* 
-* This provides an abstract interface to per-core resources that may require
-* bus-level remapping of address windows prior to access.
-*/
+ * A bhnd(4) bus resource.
+ *
+ * This provides an abstract interface to per-core resources that may require
+ * bus-level remapping of address windows prior to access.
+ */
 struct bhnd_resource {
-	struct resource	*res;		/**< the system resource. */
-	bool		 direct;	/**< false if the resource requires
-					 *   bus window remapping before it
-					 *   is MMIO accessible. */
+	struct resource *res; /**< the system resource. */
+	bool direct;	      /**< false if the resource requires
+			       *   bus window remapping before it
+			       *   is MMIO accessible. */
 };
 
 /** Wrap the active resource @p _r in a bhnd_resource structure */
-#define	BHND_DIRECT_RESOURCE(_r)	((struct bhnd_resource) {	\
-	.res = (_r),							\
-	.direct = true,							\
-})
+#define BHND_DIRECT_RESOURCE(_r)  \
+	((struct bhnd_resource) { \
+	    .res = (_r),          \
+	    .direct = true,       \
+	})
 
 /**
  * Device quirk table descriptor.
  */
 struct bhnd_device_quirk {
-	struct bhnd_device_match desc;		/**< device match descriptor */
-	uint32_t		 quirks;	/**< quirk flags */
+	struct bhnd_device_match desc; /**< device match descriptor */
+	uint32_t quirks;	       /**< quirk flags */
 };
 
-#define	BHND_CORE_QUIRK(_rev, _flags)		\
-	{{ BHND_MATCH_CORE_REV(_rev) }, (_flags) }
+#define BHND_CORE_QUIRK(_rev, _flags)                   \
+	{                                               \
+		{ BHND_MATCH_CORE_REV(_rev) }, (_flags) \
+	}
 
-#define	BHND_CHIP_QUIRK(_chip, _rev, _flags)	\
-	{{ BHND_MATCH_CHIP_IR(BCM ## _chip, _rev) }, (_flags) }
+#define BHND_CHIP_QUIRK(_chip, _rev, _flags)                       \
+	{                                                          \
+		{ BHND_MATCH_CHIP_IR(BCM##_chip, _rev) }, (_flags) \
+	}
 
-#define	BHND_PKG_QUIRK(_chip, _pkg, _flags)	\
-	{{ BHND_MATCH_CHIP_IP(BCM ## _chip, BCM ## _chip ## _pkg) }, (_flags) }
+#define BHND_PKG_QUIRK(_chip, _pkg, _flags)                                    \
+	{                                                                      \
+		{ BHND_MATCH_CHIP_IP(BCM##_chip, BCM##_chip##_pkg) }, (_flags) \
+	}
 
-#define	BHND_BOARD_QUIRK(_board, _flags)	\
-	{{ BHND_MATCH_BOARD_TYPE(_board) },	\
-	    (_flags) }
-#define	BHND_DEVICE_QUIRK_END		{ { BHND_MATCH_ANY }, 0 }
-#define	BHND_DEVICE_QUIRK_IS_END(_q)	\
+#define BHND_BOARD_QUIRK(_board, _flags)                    \
+	{                                                   \
+		{ BHND_MATCH_BOARD_TYPE(_board) }, (_flags) \
+	}
+#define BHND_DEVICE_QUIRK_END         \
+	{                             \
+		{ BHND_MATCH_ANY }, 0 \
+	}
+#define BHND_DEVICE_QUIRK_IS_END(_q) \
 	(((_q)->desc.m.match_flags == 0) && (_q)->quirks == 0)
 
 enum {
-	BHND_DF_ANY	= 0,
-	BHND_DF_HOSTB	= (1<<0),	/**< core is serving as the bus' host
-					  *  bridge. implies BHND_DF_ADAPTER */
-	BHND_DF_SOC	= (1<<1),	/**< core is attached to a native
-					     bus (BHND_ATTACH_NATIVE) */
-	BHND_DF_ADAPTER	= (1<<2),	/**< core is attached to a bridged
-					  *  adapter (BHND_ATTACH_ADAPTER) */
+	BHND_DF_ANY = 0,
+	BHND_DF_HOSTB = (1 << 0),   /**< core is serving as the bus' host
+				     *  bridge. implies BHND_DF_ADAPTER */
+	BHND_DF_SOC = (1 << 1),	    /**< core is attached to a native
+					 bus (BHND_ATTACH_NATIVE) */
+	BHND_DF_ADAPTER = (1 << 2), /**< core is attached to a bridged
+				     *  adapter (BHND_ATTACH_ADAPTER) */
 };
 
 /** Device probe table descriptor */
 struct bhnd_device {
-	const struct bhnd_device_match	 core;		/**< core match descriptor */ 
-	const char			*desc;		/**< device description, or NULL. */
-	const struct bhnd_device_quirk	*quirks_table;	/**< quirks table for this device, or NULL */
-	uint32_t			 device_flags;	/**< required BHND_DF_* flags */
+	const struct bhnd_device_match core; /**< core match descriptor */
+	const char *desc; /**< device description, or NULL. */
+	const struct bhnd_device_quirk
+	    *quirks_table;     /**< quirks table for this device, or NULL */
+	uint32_t device_flags; /**< required BHND_DF_* flags */
 };
 
-#define	_BHND_DEVICE(_vendor, _device, _desc, _quirks,		\
-     _flags, ...)						\
-	{ { BHND_MATCH_CORE(BHND_MFGID_ ## _vendor,		\
-	    BHND_COREID_ ## _device) }, _desc, _quirks,		\
-	    _flags }
+#define _BHND_DEVICE(_vendor, _device, _desc, _quirks, _flags, ...) \
+	{                                                           \
+		{ BHND_MATCH_CORE(BHND_MFGID_##_vendor,             \
+		    BHND_COREID_##_device) },                       \
+		    _desc, _quirks, _flags                          \
+	}
 
-#define	BHND_DEVICE(_vendor, _device, _desc, _quirks, ...)	\
-	_BHND_DEVICE(_vendor, _device, _desc, _quirks,		\
-	    ## __VA_ARGS__, 0)
-#define	BHND_DEVICE_END		{ { BHND_MATCH_ANY }, NULL, NULL, 0 }
-#define	BHND_DEVICE_IS_END(_d)	\
+#define BHND_DEVICE(_vendor, _device, _desc, _quirks, ...) \
+	_BHND_DEVICE(_vendor, _device, _desc, _quirks, ##__VA_ARGS__, 0)
+#define BHND_DEVICE_END                           \
+	{                                         \
+		{ BHND_MATCH_ANY }, NULL, NULL, 0 \
+	}
+#define BHND_DEVICE_IS_END(_d) \
 	(BHND_MATCH_IS_ANY(&(_d)->core) && (_d)->desc == NULL)
 
 /**
  * bhnd device sort order.
  */
 typedef enum {
-	BHND_DEVICE_ORDER_ATTACH,	/**< sort by bhnd(4) device attach order;
-					     child devices should be probed/attached
-					     in this order */
-	BHND_DEVICE_ORDER_DETACH,	/**< sort by bhnd(4) device detach order;
-					     child devices should be detached, suspended,
-					     and shutdown in this order */
+	BHND_DEVICE_ORDER_ATTACH, /**< sort by bhnd(4) device attach order;
+				       child devices should be probed/attached
+				       in this order */
+	BHND_DEVICE_ORDER_DETACH, /**< sort by bhnd(4) device detach order;
+				       child devices should be detached,
+				     suspended, and shutdown in this order */
 } bhnd_device_order;
 
 /**
  * A registry of bhnd service providers.
  */
 struct bhnd_service_registry {
-	STAILQ_HEAD(,bhnd_service_entry)	entries;	/**< registered services */
-	struct mtx				lock;		/**< state lock */
+	STAILQ_HEAD(, bhnd_service_entry) entries; /**< registered services */
+	struct mtx lock;			   /**< state lock */
 };
 
 /**
  * bhnd service provider flags.
  */
 enum {
-	BHND_SPF_INHERITED	= (1<<0),	/**< service provider reference was inherited from
-						     a parent bus, and should be deregistered when the
-						     last active reference is released */
+	BHND_SPF_INHERITED = (1
+	    << 0), /**< service provider reference was inherited from
+			a parent bus, and should be deregistered when the
+			last active reference is released */
 };
 
-const char			*bhnd_vendor_name(uint16_t vendor);
-const char			*bhnd_port_type_name(bhnd_port_type port_type);
-const char			*bhnd_nvram_src_name(bhnd_nvram_src nvram_src);
+const char *bhnd_vendor_name(uint16_t vendor);
+const char *bhnd_port_type_name(bhnd_port_type port_type);
+const char *bhnd_nvram_src_name(bhnd_nvram_src nvram_src);
 
-const char 			*bhnd_find_core_name(uint16_t vendor,
-				     uint16_t device);
-bhnd_devclass_t			 bhnd_find_core_class(uint16_t vendor,
-				     uint16_t device);
+const char *bhnd_find_core_name(uint16_t vendor, uint16_t device);
+bhnd_devclass_t bhnd_find_core_class(uint16_t vendor, uint16_t device);
 
-const char			*bhnd_core_name(const struct bhnd_core_info *ci);
-bhnd_devclass_t			 bhnd_core_class(const struct bhnd_core_info *ci);
+const char *bhnd_core_name(const struct bhnd_core_info *ci);
+bhnd_devclass_t bhnd_core_class(const struct bhnd_core_info *ci);
 
-int				 bhnd_format_chip_id(char *buffer, size_t size,
-				     uint16_t chip_id);
+int bhnd_format_chip_id(char *buffer, size_t size, uint16_t chip_id);
 
-device_t			 bhnd_bus_match_child(device_t bus,
-				     const struct bhnd_core_match *desc);
+device_t bhnd_bus_match_child(device_t bus, const struct bhnd_core_match *desc);
 
-device_t			 bhnd_bus_find_child(device_t bus,
-				     bhnd_devclass_t class, int unit);
+device_t bhnd_bus_find_child(device_t bus, bhnd_devclass_t class, int unit);
 
-int				 bhnd_bus_get_children(device_t bus,
-				     device_t **devlistp, int *devcountp,
-				     bhnd_device_order order);
+int bhnd_bus_get_children(device_t bus, device_t **devlistp, int *devcountp,
+    bhnd_device_order order);
 
-void				 bhnd_bus_free_children(device_t *devlist);
+void bhnd_bus_free_children(device_t *devlist);
 
-int				 bhnd_bus_probe_children(device_t bus);
+int bhnd_bus_probe_children(device_t bus);
 
-int				 bhnd_sort_devices(device_t *devlist,
-				     size_t devcount, bhnd_device_order order);
+int bhnd_sort_devices(device_t *devlist, size_t devcount,
+    bhnd_device_order order);
 
-device_t			 bhnd_find_bridge_root(device_t dev,
-				     devclass_t bus_class);
+device_t bhnd_find_bridge_root(device_t dev, devclass_t bus_class);
 
-const struct bhnd_core_info	*bhnd_match_core(
-				     const struct bhnd_core_info *cores,
-				     u_int num_cores,
-				     const struct bhnd_core_match *desc);
+const struct bhnd_core_info *bhnd_match_core(const struct bhnd_core_info *cores,
+    u_int num_cores, const struct bhnd_core_match *desc);
 
-const struct bhnd_core_info	*bhnd_find_core(
-				     const struct bhnd_core_info *cores,
-				     u_int num_cores, bhnd_devclass_t class);
+const struct bhnd_core_info *bhnd_find_core(const struct bhnd_core_info *cores,
+    u_int num_cores, bhnd_devclass_t class);
 
-struct bhnd_core_match		 bhnd_core_get_match_desc(
-				     const struct bhnd_core_info *core);
+struct bhnd_core_match bhnd_core_get_match_desc(
+    const struct bhnd_core_info *core);
 
-bool				 bhnd_cores_equal(
-				     const struct bhnd_core_info *lhs,
-				     const struct bhnd_core_info *rhs);
+bool bhnd_cores_equal(const struct bhnd_core_info *lhs,
+    const struct bhnd_core_info *rhs);
 
-bool				 bhnd_core_matches(
-				     const struct bhnd_core_info *core,
-				     const struct bhnd_core_match *desc);
+bool bhnd_core_matches(const struct bhnd_core_info *core,
+    const struct bhnd_core_match *desc);
 
-bool				 bhnd_chip_matches(
-				     const struct bhnd_chipid *chipid,
-				     const struct bhnd_chip_match *desc);
+bool bhnd_chip_matches(const struct bhnd_chipid *chipid,
+    const struct bhnd_chip_match *desc);
 
-bool				 bhnd_board_matches(
-				     const struct bhnd_board_info *info,
-				     const struct bhnd_board_match *desc);
+bool bhnd_board_matches(const struct bhnd_board_info *info,
+    const struct bhnd_board_match *desc);
 
-bool				 bhnd_hwrev_matches(uint16_t hwrev,
-				     const struct bhnd_hwrev_match *desc);
+bool bhnd_hwrev_matches(uint16_t hwrev, const struct bhnd_hwrev_match *desc);
 
-bool				 bhnd_device_matches(device_t dev,
-				     const struct bhnd_device_match *desc);
+bool bhnd_device_matches(device_t dev, const struct bhnd_device_match *desc);
 
-const struct bhnd_device	*bhnd_device_lookup(device_t dev,
-				     const struct bhnd_device *table,
-				     size_t entry_size);
+const struct bhnd_device *bhnd_device_lookup(device_t dev,
+    const struct bhnd_device *table, size_t entry_size);
 
-uint32_t			 bhnd_device_quirks(device_t dev,
-				     const struct bhnd_device *table,
-				     size_t entry_size);
+uint32_t bhnd_device_quirks(device_t dev, const struct bhnd_device *table,
+    size_t entry_size);
 
-struct bhnd_core_info		 bhnd_get_core_info(device_t dev);
+struct bhnd_core_info bhnd_get_core_info(device_t dev);
 
-int				 bhnd_alloc_resources(device_t dev,
-				     struct resource_spec *rs,
-				     struct bhnd_resource **res);
+int bhnd_alloc_resources(device_t dev, struct resource_spec *rs,
+    struct bhnd_resource **res);
 
-void				 bhnd_release_resources(device_t dev,
-				     const struct resource_spec *rs,
-				     struct bhnd_resource **res);
+void bhnd_release_resources(device_t dev, const struct resource_spec *rs,
+    struct bhnd_resource **res);
 
-void				 bhnd_set_custom_core_desc(device_t dev,
-				     const char *name);
-void				 bhnd_set_default_core_desc(device_t dev);
+void bhnd_set_custom_core_desc(device_t dev, const char *name);
+void bhnd_set_default_core_desc(device_t dev);
 
-void				 bhnd_set_default_bus_desc(device_t dev,
-				     const struct bhnd_chipid *chip_id);
+void bhnd_set_default_bus_desc(device_t dev, const struct bhnd_chipid *chip_id);
 
-int				 bhnd_nvram_getvar_str(device_t dev,
-				     const char *name, char *buf, size_t len,
-				     size_t *rlen);
+int bhnd_nvram_getvar_str(device_t dev, const char *name, char *buf, size_t len,
+    size_t *rlen);
 
-int				 bhnd_nvram_getvar_uint(device_t dev,
-				     const char *name, void *value, int width);
-int				 bhnd_nvram_getvar_uint8(device_t dev,
-				     const char *name, uint8_t *value);
-int				 bhnd_nvram_getvar_uint16(device_t dev,
-				     const char *name, uint16_t *value);
-int				 bhnd_nvram_getvar_uint32(device_t dev,
-				     const char *name, uint32_t *value);
+int bhnd_nvram_getvar_uint(device_t dev, const char *name, void *value,
+    int width);
+int bhnd_nvram_getvar_uint8(device_t dev, const char *name, uint8_t *value);
+int bhnd_nvram_getvar_uint16(device_t dev, const char *name, uint16_t *value);
+int bhnd_nvram_getvar_uint32(device_t dev, const char *name, uint32_t *value);
 
-int				 bhnd_nvram_getvar_int(device_t dev,
-				     const char *name, void *value, int width);
-int				 bhnd_nvram_getvar_int8(device_t dev,
-				     const char *name, int8_t *value);
-int				 bhnd_nvram_getvar_int16(device_t dev,
-				     const char *name, int16_t *value);
-int				 bhnd_nvram_getvar_int32(device_t dev,
-				     const char *name, int32_t *value);
+int bhnd_nvram_getvar_int(device_t dev, const char *name, void *value,
+    int width);
+int bhnd_nvram_getvar_int8(device_t dev, const char *name, int8_t *value);
+int bhnd_nvram_getvar_int16(device_t dev, const char *name, int16_t *value);
+int bhnd_nvram_getvar_int32(device_t dev, const char *name, int32_t *value);
 
-int				 bhnd_nvram_getvar_array(device_t dev,
-				     const char *name, void *buf, size_t count,
-				     bhnd_nvram_type type);
+int bhnd_nvram_getvar_array(device_t dev, const char *name, void *buf,
+    size_t count, bhnd_nvram_type type);
 
-int				 bhnd_service_registry_init(
-				     struct bhnd_service_registry *bsr);
-int				 bhnd_service_registry_fini(
-				     struct bhnd_service_registry *bsr);
-int				 bhnd_service_registry_add(
-				     struct bhnd_service_registry *bsr,
-				     device_t provider,
-				     bhnd_service_t service,
-				     uint32_t flags);
-int				 bhnd_service_registry_remove(
-				     struct bhnd_service_registry *bsr,
-				     device_t provider,
-				     bhnd_service_t service);
-device_t			 bhnd_service_registry_retain(
-				     struct bhnd_service_registry *bsr,
-				     bhnd_service_t service);
-bool				 bhnd_service_registry_release(
-				     struct bhnd_service_registry *bsr,
-				     device_t provider,
-				     bhnd_service_t service);
+int bhnd_service_registry_init(struct bhnd_service_registry *bsr);
+int bhnd_service_registry_fini(struct bhnd_service_registry *bsr);
+int bhnd_service_registry_add(struct bhnd_service_registry *bsr,
+    device_t provider, bhnd_service_t service, uint32_t flags);
+int bhnd_service_registry_remove(struct bhnd_service_registry *bsr,
+    device_t provider, bhnd_service_t service);
+device_t bhnd_service_registry_retain(struct bhnd_service_registry *bsr,
+    bhnd_service_t service);
+bool bhnd_service_registry_release(struct bhnd_service_registry *bsr,
+    device_t provider, bhnd_service_t service);
 
-int				 bhnd_bus_generic_register_provider(
-				     device_t dev, device_t child,
-				     device_t provider, bhnd_service_t service);
-int				 bhnd_bus_generic_deregister_provider(
-				     device_t dev, device_t child,
-				     device_t provider, bhnd_service_t service);
-device_t			 bhnd_bus_generic_retain_provider(device_t dev,
-				     device_t child, bhnd_service_t service);
-void				 bhnd_bus_generic_release_provider(device_t dev,
-				     device_t child, device_t provider,
-				     bhnd_service_t service);
+int bhnd_bus_generic_register_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
+int bhnd_bus_generic_deregister_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
+device_t bhnd_bus_generic_retain_provider(device_t dev, device_t child,
+    bhnd_service_t service);
+void bhnd_bus_generic_release_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
 
-int				 bhnd_bus_generic_sr_register_provider(
-				     device_t dev, device_t child,
-				     device_t provider, bhnd_service_t service);
-int				 bhnd_bus_generic_sr_deregister_provider(
-				     device_t dev, device_t child,
-				     device_t provider, bhnd_service_t service);
-device_t			 bhnd_bus_generic_sr_retain_provider(device_t dev,
-				     device_t child, bhnd_service_t service);
-void				 bhnd_bus_generic_sr_release_provider(device_t dev,
-				     device_t child, device_t provider,
-				     bhnd_service_t service);
+int bhnd_bus_generic_sr_register_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
+int bhnd_bus_generic_sr_deregister_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
+device_t bhnd_bus_generic_sr_retain_provider(device_t dev, device_t child,
+    bhnd_service_t service);
+void bhnd_bus_generic_sr_release_provider(device_t dev, device_t child,
+    device_t provider, bhnd_service_t service);
 
-bool				 bhnd_bus_generic_is_hw_disabled(device_t dev,
-				     device_t child);
-bool				 bhnd_bus_generic_is_region_valid(device_t dev,
-				     device_t child, bhnd_port_type type,
-				     u_int port, u_int region);
-int				 bhnd_bus_generic_get_nvram_var(device_t dev,
-				     device_t child, const char *name,
-				     void *buf, size_t *size,
-				     bhnd_nvram_type type);
-const struct bhnd_chipid	*bhnd_bus_generic_get_chipid(device_t dev,
-				     device_t child);
-int				 bhnd_bus_generic_get_dma_translation(
-				     device_t dev, device_t child, u_int width,
-				     uint32_t flags, bus_dma_tag_t *dmat,
-				     struct bhnd_dma_translation *translation);
-int				 bhnd_bus_generic_read_board_info(device_t dev,
-				     device_t child,
-				     struct bhnd_board_info *info);
-struct bhnd_resource		*bhnd_bus_generic_alloc_resource (device_t dev,
-				     device_t child, int type, int *rid,
-				     rman_res_t start, rman_res_t end,
-				     rman_res_t count, u_int flags);
-int				 bhnd_bus_generic_release_resource (device_t dev,
-				     device_t child, int type, int rid,
-				     struct bhnd_resource *r);
-int				 bhnd_bus_generic_activate_resource (device_t dev,
-				     device_t child, int type, int rid,
-				     struct bhnd_resource *r);
-int				 bhnd_bus_generic_deactivate_resource (device_t dev,
-				     device_t child, int type, int rid,
-				     struct bhnd_resource *r);
-uintptr_t			 bhnd_bus_generic_get_intr_domain(device_t dev,
-				     device_t child, bool self);
+bool bhnd_bus_generic_is_hw_disabled(device_t dev, device_t child);
+bool bhnd_bus_generic_is_region_valid(device_t dev, device_t child,
+    bhnd_port_type type, u_int port, u_int region);
+int bhnd_bus_generic_get_nvram_var(device_t dev, device_t child,
+    const char *name, void *buf, size_t *size, bhnd_nvram_type type);
+const struct bhnd_chipid *bhnd_bus_generic_get_chipid(device_t dev,
+    device_t child);
+int bhnd_bus_generic_get_dma_translation(device_t dev, device_t child,
+    u_int width, uint32_t flags, bus_dma_tag_t *dmat,
+    struct bhnd_dma_translation *translation);
+int bhnd_bus_generic_read_board_info(device_t dev, device_t child,
+    struct bhnd_board_info *info);
+struct bhnd_resource *bhnd_bus_generic_alloc_resource(device_t dev,
+    device_t child, int type, int *rid, rman_res_t start, rman_res_t end,
+    rman_res_t count, u_int flags);
+int bhnd_bus_generic_release_resource(device_t dev, device_t child, int type,
+    int rid, struct bhnd_resource *r);
+int bhnd_bus_generic_activate_resource(device_t dev, device_t child, int type,
+    int rid, struct bhnd_resource *r);
+int bhnd_bus_generic_deactivate_resource(device_t dev, device_t child, int type,
+    int rid, struct bhnd_resource *r);
+uintptr_t bhnd_bus_generic_get_intr_domain(device_t dev, device_t child,
+    bool self);
 
 /**
  * Return the bhnd(4) bus driver's device enumeration parser class
@@ -650,7 +624,8 @@ bhnd_driver_get_erom_class(driver_t *driver)
  * @param dev A bhnd bus device.
  */
 static inline device_t
-bhnd_bus_find_hostb_device(device_t dev) {
+bhnd_bus_find_hostb_device(device_t dev)
+{
 	return (BHND_BUS_FIND_HOSTB_DEVICE(dev));
 }
 
@@ -673,7 +648,7 @@ bhnd_register_provider(device_t dev, bhnd_service_t service)
 	    service));
 }
 
- /**
+/**
  * Attempt to remove a service provider registration for @p dev.
  *
  * @param dev		The device to be deregistered as a service provider.
@@ -703,13 +678,12 @@ bhnd_deregister_provider(device_t dev, bhnd_service_t service)
  * BHND_BUS_RELEASE_PROVIDER().
  *
  * @retval device_t	success
- * @retval NULL		if no provider is registered for @p service. 
+ * @retval NULL		if no provider is registered for @p service.
  */
 static inline device_t
 bhnd_retain_provider(device_t dev, bhnd_service_t service)
 {
-	return (BHND_BUS_RETAIN_PROVIDER(device_get_parent(dev), dev,
-	    service));
+	return (BHND_BUS_RETAIN_PROVIDER(device_get_parent(dev), dev, service));
 }
 
 /**
@@ -721,11 +695,10 @@ bhnd_retain_provider(device_t dev, bhnd_service_t service)
  * @param service The service for which @p provider was previously retained.
  */
 static inline void
-bhnd_release_provider(device_t dev, device_t provider,
-    bhnd_service_t service)
+bhnd_release_provider(device_t dev, device_t provider, bhnd_service_t service)
 {
-	return (BHND_BUS_RELEASE_PROVIDER(device_get_parent(dev), dev,
-	    provider, service));
+	return (BHND_BUS_RELEASE_PROVIDER(device_get_parent(dev), dev, provider,
+	    service));
 }
 
 /**
@@ -740,7 +713,8 @@ bhnd_release_provider(device_t dev, device_t provider,
  * @param dev A bhnd bus child device.
  */
 static inline bool
-bhnd_is_hw_disabled(device_t dev) {
+bhnd_is_hw_disabled(device_t dev)
+{
 	return (BHND_BUS_IS_HW_DISABLED(device_get_parent(dev), dev));
 }
 
@@ -750,7 +724,8 @@ bhnd_is_hw_disabled(device_t dev) {
  * @param dev A bhnd bus child device.
  */
 static inline const struct bhnd_chipid *
-bhnd_get_chipid(device_t dev) {
+bhnd_get_chipid(device_t dev)
+{
 	return (BHND_BUS_GET_CHIPID(device_get_parent(dev), dev));
 };
 
@@ -775,7 +750,7 @@ bhnd_read_ioctl(device_t dev, uint16_t *ioctl)
 /**
  * Write @p value and @p mask to a bhnd(4) device's per-core I/O control
  * register.
- * 
+ *
  * @param dev The bhnd bus child device for which the IOCTL register will be
  * written.
  * @param value The value to be written (see BHND_IOCTL_*).
@@ -814,7 +789,7 @@ bhnd_read_iost(device_t dev, uint16_t *iost)
 /**
  * Return true if the given bhnd device's hardware is currently held
  * in a RESET state or otherwise not clocked (BHND_IOCTL_CLK_EN).
- * 
+ *
  * @param dev The device to query.
  *
  * @retval true If @p dev is held in RESET or not clocked (BHND_IOCTL_CLK_EN),
@@ -831,7 +806,7 @@ bhnd_is_hw_suspended(device_t dev)
  * Place the bhnd(4) device's hardware into a low-power RESET state with
  * the @p reset_ioctl I/O control flags set, and then bring the hardware out of
  * RESET with the @p ioctl I/O control flags set.
- * 
+ *
  * Any clock or resource PMU requests previously made by @p child will be
  * invalidated.
  *
@@ -847,8 +822,8 @@ bhnd_is_hw_suspended(device_t dev)
 static inline int
 bhnd_reset_hw(device_t dev, uint16_t ioctl, uint16_t reset_ioctl)
 {
-	return (BHND_BUS_RESET_HW(device_get_parent(dev), dev, ioctl,
-	    reset_ioctl));
+	return (
+	    BHND_BUS_RESET_HW(device_get_parent(dev), dev, ioctl, reset_ioctl));
 }
 
 /**
@@ -881,7 +856,8 @@ bhnd_suspend_hw(device_t dev, uint16_t ioctl)
  * CPU, etc) to a directly attached native host.
  */
 static inline bhnd_attach_type
-bhnd_get_attach_type (device_t dev) {
+bhnd_get_attach_type(device_t dev)
+{
 	return (BHND_BUS_GET_ATTACH_TYPE(device_get_parent(dev), dev));
 }
 
@@ -940,7 +916,7 @@ bhnd_read_board_info(device_t dev, struct bhnd_board_info *info)
 
 /**
  * Return the number of interrupt lines assigned to @p dev.
- * 
+ *
  * @param dev A bhnd bus child device.
  */
 static inline u_int
@@ -951,7 +927,7 @@ bhnd_get_intr_count(device_t dev)
 
 /**
  * Get the backplane interrupt vector of the @p intr line attached to @p dev.
- * 
+ *
  * @param dev A bhnd bus child device.
  * @param intr The index of the interrupt line being queried.
  * @param[out] ivec On success, the assigned hardware interrupt vector will be
@@ -970,17 +946,17 @@ bhnd_get_intr_count(device_t dev)
 static inline int
 bhnd_get_intr_ivec(device_t dev, u_int intr, u_int *ivec)
 {
-	return (BHND_BUS_GET_INTR_IVEC(device_get_parent(dev), dev, intr,
-	    ivec));
+	return (
+	    BHND_BUS_GET_INTR_IVEC(device_get_parent(dev), dev, intr, ivec));
 }
 
 /**
  * Map the given @p intr to an IRQ number; until unmapped, this IRQ may be used
  * to allocate a resource of type SYS_RES_IRQ.
- * 
+ *
  * On success, the caller assumes ownership of the interrupt mapping, and
  * is responsible for releasing the mapping via bhnd_unmap_intr().
- * 
+ *
  * @param dev The requesting device.
  * @param intr The interrupt being mapped.
  * @param[out] irq On success, the bus interrupt value mapped for @p intr.
@@ -997,7 +973,7 @@ bhnd_map_intr(device_t dev, u_int intr, rman_res_t *irq)
 
 /**
  * Unmap an bus interrupt previously mapped via bhnd_map_intr().
- * 
+ *
  * @param dev The requesting device.
  * @param irq The interrupt value being unmapped.
  */
@@ -1016,7 +992,7 @@ bhnd_unmap_intr(device_t dev, rman_res_t irq)
  * calling bhnd_release_pmu().
  *
  * @param dev The requesting bhnd device.
- * 
+ *
  * @retval 0           success
  * @retval non-zero    If allocating PMU request state otherwise fails, a
  *                     regular unix error code will be returned.
@@ -1032,7 +1008,7 @@ bhnd_alloc_pmu(device_t dev)
  * PMU requests are are discarded.
  *
  * @param dev The requesting bhnd device.
- * 
+ *
  * @retval 0           success
  * @retval non-zero    If releasing PMU request state otherwise fails, a
  *                     regular unix error code will be returned, and
@@ -1049,7 +1025,7 @@ bhnd_release_pmu(device_t dev)
  * known.
  *
  * The BHND_CLOCK_HT latency value is suitable for use as the D11 core's
- * 'fastpwrup_dly' value. 
+ * 'fastpwrup_dly' value.
  *
  * @note A driver must ask the bhnd bus to allocate PMU request state
  * via BHND_BUS_ALLOC_PMU() before querying PMU clocks.
@@ -1058,7 +1034,7 @@ bhnd_release_pmu(device_t dev)
  * @param clock	The clock to be queried for transition latency.
  * @param[out] latency On success, the transition latency of @p clock in
  * microseconds.
- * 
+ *
  * @retval 0		success
  * @retval ENODEV	If the transition latency for @p clock is not available.
  */
@@ -1078,28 +1054,28 @@ bhnd_get_clock_latency(device_t dev, bhnd_clock clock, u_int *latency)
  *
  * @note A driver must ask the bhnd bus to allocate PMU request state
  * via BHND_BUS_ALLOC_PMU() before querying PMU clocks.
- * 
+ *
  * @retval 0		success
  * @retval ENODEV	If the frequency for @p clock is not available.
  */
 static inline int
 bhnd_get_clock_freq(device_t dev, bhnd_clock clock, u_int *freq)
 {
-	return (BHND_BUS_GET_CLOCK_FREQ(device_get_parent(dev), dev, clock,
-	    freq));
+	return (
+	    BHND_BUS_GET_CLOCK_FREQ(device_get_parent(dev), dev, clock, freq));
 }
 
-/** 
+/**
  * Request that @p clock (or faster) be routed to @p dev.
- * 
+ *
  * @note A driver must ask the bhnd bus to allocate clock request state
  * via bhnd_alloc_pmu() before it can request clock resources.
- * 
+ *
  * @note Any outstanding PMU clock requests will be discarded upon calling
  * BHND_BUS_RESET_HW() or BHND_BUS_SUSPEND_HW().
  *
  * @param dev The bhnd(4) device to which @p clock should be routed.
- * @param clock The requested clock source. 
+ * @param clock The requested clock source.
  *
  * @retval 0 success
  * @retval ENODEV If an unsupported clock was requested.
@@ -1117,13 +1093,13 @@ bhnd_request_clock(device_t dev, bhnd_clock clock)
  * This will power any clock sources (e.g. XTAL, PLL, etc) required for
  * @p clocks and wait until they are ready, discarding any previous
  * requests by @p dev.
- * 
+ *
  * @note A driver must ask the bhnd bus to allocate clock request state
  * via bhnd_alloc_pmu() before it can request clock resources.
- * 
+ *
  * @note Any outstanding PMU clock requests will be discarded upon calling
  * BHND_BUS_RESET_HW() or BHND_BUS_SUSPEND_HW().
- * 
+ *
  * @param dev The requesting bhnd(4) device.
  * @param clocks The clock(s) to be enabled.
  *
@@ -1139,7 +1115,7 @@ bhnd_enable_clocks(device_t dev, uint32_t clocks)
 
 /**
  * Power up an external PMU-managed resource assigned to @p dev.
- * 
+ *
  * @note A driver must ask the bhnd bus to allocate PMU request state
  * via bhnd_alloc_pmu() before it can request PMU resources.
  *
@@ -1161,7 +1137,7 @@ bhnd_request_ext_rsrc(device_t dev, u_int rsrc)
 
 /**
  * Power down an external PMU-managed resource assigned to @p dev.
- * 
+ *
  * A driver must ask the bhnd bus to allocate PMU request state
  * via bhnd_alloc_pmu() before it can request PMU resources.
  *
@@ -1193,7 +1169,7 @@ bhnd_release_ext_rsrc(device_t dev, u_int rsrc)
  *
  * @note Device drivers should only use this API for functionality
  * that is not available via another bhnd(4) function.
- * 
+ *
  * @retval 0 success
  * @retval EINVAL If @p child is not a direct child of @p dev.
  * @retval EINVAL If @p width is not one of 1, 2, or 4 bytes.
@@ -1204,8 +1180,8 @@ bhnd_release_ext_rsrc(device_t dev, u_int rsrc)
 static inline uint32_t
 bhnd_read_config(device_t dev, bus_size_t offset, void *value, u_int width)
 {
-	return (BHND_BUS_READ_CONFIG(device_get_parent(dev), dev, offset,
-	    value, width));
+	return (BHND_BUS_READ_CONFIG(device_get_parent(dev), dev, offset, value,
+	    width));
 }
 
 /**
@@ -1222,7 +1198,7 @@ bhnd_read_config(device_t dev, bus_size_t offset, void *value, u_int width)
  *
  * @note Device drivers should only use this API for functionality
  * that is not available via another bhnd(4) function.
- * 
+ *
  * @retval 0 success
  * @retval EINVAL If @p child is not a direct child of @p dev.
  * @retval EINVAL If @p width is not one of 1, 2, or 4 bytes.
@@ -1252,7 +1228,7 @@ bhnd_write_config(device_t dev, bus_size_t offset, const void *value,
  *				value.
  * @param		type	The desired data representation to be written
  *				to @p buf.
- * 
+ *
  * @retval 0		success
  * @retval ENOENT	The requested variable was not found.
  * @retval ENODEV	No valid NVRAM source could be found.
@@ -1265,7 +1241,7 @@ bhnd_write_config(device_t dev, bus_size_t offset, const void *value,
  */
 static inline int
 bhnd_nvram_getvar(device_t dev, const char *name, void *buf, size_t *len,
-     bhnd_nvram_type type)
+    bhnd_nvram_type type)
 {
 	return (BHND_BUS_GET_NVRAM_VAR(device_get_parent(dev), dev, name, buf,
 	    len, type));
@@ -1273,7 +1249,7 @@ bhnd_nvram_getvar(device_t dev, const char *name, void *buf, size_t *len,
 
 /**
  * Allocate a resource from a device's parent bhnd(4) bus.
- * 
+ *
  * @param dev The device requesting resource ownership.
  * @param type The type of resource to allocate. This may be any type supported
  * by the standard bus APIs.
@@ -1283,11 +1259,11 @@ bhnd_nvram_getvar(device_t dev, const char *name, void *buf, size_t *len,
  * @param count The size of the resource.
  * @param flags The flags for the resource to be allocated. These may be any
  * values supported by the standard bus APIs.
- * 
+ *
  * To request the resource's default addresses, pass @p start and
  * @p end values of @c 0 and @c ~0, respectively, and
  * a @p count of @c 1.
- * 
+ *
  * @retval NULL The resource could not be allocated.
  * @retval resource The allocated resource.
  */
@@ -1302,14 +1278,14 @@ bhnd_alloc_resource(device_t dev, int type, int *rid, rman_res_t start,
 /**
  * Allocate a resource from a device's parent bhnd(4) bus, using the
  * resource's default start, end, and count values.
- * 
+ *
  * @param dev The device requesting resource ownership.
  * @param type The type of resource to allocate. This may be any type supported
  * by the standard bus APIs.
  * @param rid The bus-specific handle identifying the resource being allocated.
  * @param flags The flags for the resource to be allocated. These may be any
  * values supported by the standard bus APIs.
- * 
+ *
  * @retval NULL The resource could not be allocated.
  * @retval resource The allocated resource.
  */
@@ -1323,17 +1299,16 @@ bhnd_alloc_resource_any(device_t dev, int type, int *rid, u_int flags)
  * Activate a previously allocated bhnd resource.
  *
  * @param dev The device holding ownership of the allocated resource.
- * @param type The type of the resource. 
+ * @param type The type of the resource.
  * @param rid The bus-specific handle identifying the resource.
  * @param r A pointer to the resource returned by bhnd_alloc_resource or
  * BHND_BUS_ALLOC_RESOURCE.
- * 
+ *
  * @retval 0 success
  * @retval non-zero an error occurred while activating the resource.
  */
 static inline int
-bhnd_activate_resource(device_t dev, int type, int rid,
-   struct bhnd_resource *r)
+bhnd_activate_resource(device_t dev, int type, int rid, struct bhnd_resource *r)
 {
 	return BHND_BUS_ACTIVATE_RESOURCE(device_get_parent(dev), dev, type,
 	    rid, r);
@@ -1343,17 +1318,17 @@ bhnd_activate_resource(device_t dev, int type, int rid,
  * Deactivate a previously activated bhnd resource.
  *
  * @param dev The device holding ownership of the activated resource.
- * @param type The type of the resource. 
+ * @param type The type of the resource.
  * @param rid The bus-specific handle identifying the resource.
  * @param r A pointer to the resource returned by bhnd_alloc_resource or
  * BHND_BUS_ALLOC_RESOURCE.
- * 
+ *
  * @retval 0 success
  * @retval non-zero an error occurred while activating the resource.
  */
 static inline int
 bhnd_deactivate_resource(device_t dev, int type, int rid,
-   struct bhnd_resource *r)
+    struct bhnd_resource *r)
 {
 	return BHND_BUS_DEACTIVATE_RESOURCE(device_get_parent(dev), dev, type,
 	    rid, r);
@@ -1363,20 +1338,19 @@ bhnd_deactivate_resource(device_t dev, int type, int rid,
  * Free a resource allocated by bhnd_alloc_resource().
  *
  * @param dev The device holding ownership of the resource.
- * @param type The type of the resource. 
+ * @param type The type of the resource.
  * @param rid The bus-specific handle identifying the resource.
  * @param r A pointer to the resource returned by bhnd_alloc_resource or
  * BHND_ALLOC_RESOURCE.
- * 
+ *
  * @retval 0 success
  * @retval non-zero an error occurred while activating the resource.
  */
 static inline int
-bhnd_release_resource(device_t dev, int type, int rid,
-   struct bhnd_resource *r)
+bhnd_release_resource(device_t dev, int type, int rid, struct bhnd_resource *r)
 {
-	return BHND_BUS_RELEASE_RESOURCE(device_get_parent(dev), dev, type,
-	    rid, r);
+	return BHND_BUS_RELEASE_RESOURCE(device_get_parent(dev), dev, type, rid,
+	    r);
 }
 
 /**
@@ -1403,7 +1377,8 @@ bhnd_is_region_valid(device_t dev, bhnd_port_type type, u_int port,
  * @param type The port type being queried.
  */
 static inline u_int
-bhnd_get_port_count(device_t dev, bhnd_port_type type) {
+bhnd_get_port_count(device_t dev, bhnd_port_type type)
+{
 	return (BHND_BUS_GET_PORT_COUNT(device_get_parent(dev), dev, type));
 }
 
@@ -1416,9 +1391,10 @@ bhnd_get_port_count(device_t dev, bhnd_port_type type) {
  * @param type The port type being queried.
  */
 static inline u_int
-bhnd_get_region_count(device_t dev, bhnd_port_type type, u_int port) {
-	return (BHND_BUS_GET_REGION_COUNT(device_get_parent(dev), dev, type,
-	    port));
+bhnd_get_region_count(device_t dev, bhnd_port_type type, u_int port)
+{
+	return (
+	    BHND_BUS_GET_REGION_COUNT(device_get_parent(dev), dev, type, port));
 }
 
 /**
@@ -1428,7 +1404,7 @@ bhnd_get_region_count(device_t dev, bhnd_port_type type, u_int port) {
  * @param type The port type.
  * @param port The port identifier.
  * @param region The identifier of the memory region on @p port.
- * 
+ *
  * @retval int The RID for the given @p port and @p region on @p device.
  * @retval -1 No such port/region found.
  */
@@ -1487,263 +1463,247 @@ bhnd_get_region_addr(device_t dev, bhnd_port_type port_type, u_int port,
  *
  * Generated with bhnd/tools/bus_macro.sh
  */
-#define bhnd_bus_barrier(r, o, l, f) \
-    (((r)->direct) ? \
-	bus_barrier((r)->res, (o), (l), (f)) : \
-	BHND_BUS_BARRIER( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (l), (f)))
-#define bhnd_bus_read_1(r, o) \
-    (((r)->direct) ? \
-	bus_read_1((r)->res, (o)) : \
-	BHND_BUS_READ_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_1(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_1((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_stream_1(r, o) \
-    (((r)->direct) ? \
-	bus_read_stream_1((r)->res, (o)) : \
-	BHND_BUS_READ_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_stream_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_stream_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_stream_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_stream_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_stream_1(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_stream_1((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_stream_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_stream_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_stream_1(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_stream_1((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_STREAM_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_set_multi_1(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_multi_1((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_MULTI_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
-#define bhnd_bus_set_region_1(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_region_1((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_REGION_1( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
-#define bhnd_bus_read_2(r, o) \
-    (((r)->direct) ? \
-	bus_read_2((r)->res, (o)) : \
-	BHND_BUS_READ_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_2(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_2((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_stream_2(r, o) \
-    (((r)->direct) ? \
-	bus_read_stream_2((r)->res, (o)) : \
-	BHND_BUS_READ_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_stream_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_stream_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_stream_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_stream_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_stream_2(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_stream_2((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_stream_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_stream_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_stream_2(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_stream_2((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_STREAM_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_set_multi_2(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_multi_2((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_MULTI_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
-#define bhnd_bus_set_region_2(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_region_2((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_REGION_2( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
-#define bhnd_bus_read_4(r, o) \
-    (((r)->direct) ? \
-	bus_read_4((r)->res, (o)) : \
-	BHND_BUS_READ_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_4(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_4((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_stream_4(r, o) \
-    (((r)->direct) ? \
-	bus_read_stream_4((r)->res, (o)) : \
-	BHND_BUS_READ_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o)))
-#define bhnd_bus_read_multi_stream_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_multi_stream_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_MULTI_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_read_region_stream_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_read_region_stream_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_READ_REGION_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_stream_4(r, o, v) \
-    (((r)->direct) ? \
-	bus_write_stream_4((r)->res, (o), (v)) : \
-	BHND_BUS_WRITE_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v)))
-#define bhnd_bus_write_multi_stream_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_multi_stream_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_MULTI_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_write_region_stream_4(r, o, d, c) \
-    (((r)->direct) ? \
-	bus_write_region_stream_4((r)->res, (o), (d), (c)) : \
-	BHND_BUS_WRITE_REGION_STREAM_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (d), (c)))
-#define bhnd_bus_set_multi_4(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_multi_4((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_MULTI_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
-#define bhnd_bus_set_region_4(r, o, v, c) \
-    (((r)->direct) ? \
-	bus_set_region_4((r)->res, (o), (v), (c)) : \
-	BHND_BUS_SET_REGION_4( \
-	    device_get_parent(rman_get_device((r)->res)),	\
-	    rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_barrier(r, o, l, f)                                           \
+	(((r)->direct) ?                                                       \
+		bus_barrier((r)->res, (o), (l), (f)) :                         \
+		BHND_BUS_BARRIER(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (l), (f)))
+#define bhnd_bus_read_1(r, o)                                                 \
+	(((r)->direct) ?                                                      \
+		bus_read_1((r)->res, (o)) :                                   \
+		BHND_BUS_READ_1(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_1(r, o, d, c)                                      \
+	(((r)->direct) ? bus_read_multi_1((r)->res, (o), (d), (c)) :           \
+			 BHND_BUS_READ_MULTI_1(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_1(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_read_region_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_1(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_1(r, o, v)                                              \
+	(((r)->direct) ?                                                       \
+		bus_write_1((r)->res, (o), (v)) :                              \
+		BHND_BUS_WRITE_1(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_1(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_write_multi_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_1(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_1(r, o, d, c)                             \
+	(((r)->direct) ?                                                \
+		bus_write_region_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_1(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_stream_1(r, o)                                   \
+	(((r)->direct) ?                                               \
+		bus_read_stream_1((r)->res, (o)) :                     \
+		BHND_BUS_READ_STREAM_1(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_stream_1(r, o, d, c)                             \
+	(((r)->direct) ?                                                     \
+		bus_read_multi_stream_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_MULTI_STREAM_1(device_get_parent(              \
+						 rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_stream_1(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_read_region_stream_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_STREAM_1(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_stream_1(r, o, v)                                \
+	(((r)->direct) ?                                                \
+		bus_write_stream_1((r)->res, (o), (v)) :                \
+		BHND_BUS_WRITE_STREAM_1(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_stream_1(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_write_multi_stream_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_STREAM_1(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_stream_1(r, o, d, c)                             \
+	(((r)->direct) ?                                                       \
+		bus_write_region_stream_1((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_STREAM_1(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_set_multi_1(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_multi_1((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_MULTI_1(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_set_region_1(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_region_1((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_REGION_1(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_read_2(r, o)                                                 \
+	(((r)->direct) ?                                                      \
+		bus_read_2((r)->res, (o)) :                                   \
+		BHND_BUS_READ_2(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_2(r, o, d, c)                                      \
+	(((r)->direct) ? bus_read_multi_2((r)->res, (o), (d), (c)) :           \
+			 BHND_BUS_READ_MULTI_2(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_2(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_read_region_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_2(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_2(r, o, v)                                              \
+	(((r)->direct) ?                                                       \
+		bus_write_2((r)->res, (o), (v)) :                              \
+		BHND_BUS_WRITE_2(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_2(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_write_multi_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_2(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_2(r, o, d, c)                             \
+	(((r)->direct) ?                                                \
+		bus_write_region_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_2(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_stream_2(r, o)                                   \
+	(((r)->direct) ?                                               \
+		bus_read_stream_2((r)->res, (o)) :                     \
+		BHND_BUS_READ_STREAM_2(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_stream_2(r, o, d, c)                             \
+	(((r)->direct) ?                                                     \
+		bus_read_multi_stream_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_MULTI_STREAM_2(device_get_parent(              \
+						 rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_stream_2(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_read_region_stream_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_STREAM_2(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_stream_2(r, o, v)                                \
+	(((r)->direct) ?                                                \
+		bus_write_stream_2((r)->res, (o), (v)) :                \
+		BHND_BUS_WRITE_STREAM_2(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_stream_2(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_write_multi_stream_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_STREAM_2(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_stream_2(r, o, d, c)                             \
+	(((r)->direct) ?                                                       \
+		bus_write_region_stream_2((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_STREAM_2(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_set_multi_2(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_multi_2((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_MULTI_2(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_set_region_2(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_region_2((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_REGION_2(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_read_4(r, o)                                                 \
+	(((r)->direct) ?                                                      \
+		bus_read_4((r)->res, (o)) :                                   \
+		BHND_BUS_READ_4(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_4(r, o, d, c)                                      \
+	(((r)->direct) ? bus_read_multi_4((r)->res, (o), (d), (c)) :           \
+			 BHND_BUS_READ_MULTI_4(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_4(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_read_region_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_4(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_4(r, o, v)                                              \
+	(((r)->direct) ?                                                       \
+		bus_write_4((r)->res, (o), (v)) :                              \
+		BHND_BUS_WRITE_4(device_get_parent(rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_4(r, o, d, c)                             \
+	(((r)->direct) ?                                               \
+		bus_write_multi_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_4(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_4(r, o, d, c)                             \
+	(((r)->direct) ?                                                \
+		bus_write_region_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_4(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_stream_4(r, o)                                   \
+	(((r)->direct) ?                                               \
+		bus_read_stream_4((r)->res, (o)) :                     \
+		BHND_BUS_READ_STREAM_4(device_get_parent(              \
+					   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o)))
+#define bhnd_bus_read_multi_stream_4(r, o, d, c)                             \
+	(((r)->direct) ?                                                     \
+		bus_read_multi_stream_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_MULTI_STREAM_4(device_get_parent(              \
+						 rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_read_region_stream_4(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_read_region_stream_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_READ_REGION_STREAM_4(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_stream_4(r, o, v)                                \
+	(((r)->direct) ?                                                \
+		bus_write_stream_4((r)->res, (o), (v)) :                \
+		BHND_BUS_WRITE_STREAM_4(device_get_parent(              \
+					    rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (v)))
+#define bhnd_bus_write_multi_stream_4(r, o, d, c)                             \
+	(((r)->direct) ?                                                      \
+		bus_write_multi_stream_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_MULTI_STREAM_4(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_write_region_stream_4(r, o, d, c)                             \
+	(((r)->direct) ?                                                       \
+		bus_write_region_stream_4((r)->res, (o), (d), (c)) :           \
+		BHND_BUS_WRITE_REGION_STREAM_4(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+		    rman_get_device((r)->res), (r), (o), (d), (c)))
+#define bhnd_bus_set_multi_4(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_multi_4((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_MULTI_4(device_get_parent(              \
+						  rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
+#define bhnd_bus_set_region_4(r, o, v, c)                                      \
+	(((r)->direct) ? bus_set_region_4((r)->res, (o), (v), (c)) :           \
+			 BHND_BUS_SET_REGION_4(device_get_parent(              \
+						   rman_get_device((r)->res)), \
+			     rman_get_device((r)->res), (r), (o), (v), (c)))
 
 #endif /* _BHND_BHND_H_ */

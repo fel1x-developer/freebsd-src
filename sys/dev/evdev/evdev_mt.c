@@ -40,22 +40,22 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 
 #include <dev/evdev/evdev.h>
 #include <dev/evdev/evdev_private.h>
 #include <dev/evdev/input.h>
 
 #ifdef DEBUG
-#define	debugf(fmt, args...)	printf("evdev: " fmt "\n", ##args)
+#define debugf(fmt, args...) printf("evdev: " fmt "\n", ##args)
 #else
-#define	debugf(fmt, args...)
+#define debugf(fmt, args...)
 #endif
 
-typedef	u_int	slotset_t;
+typedef u_int slotset_t;
 
 _Static_assert(MAX_MT_SLOTS < sizeof(slotset_t) * 8, "MAX_MT_SLOTS too big");
 
@@ -63,38 +63,38 @@ _Static_assert(MAX_MT_SLOTS < sizeof(slotset_t) * 8, "MAX_MT_SLOTS too big");
 	for ((i) = ffs(v) - 1; (i) != -1; (i) = ffs((v) & (~1 << (i))) - 1)
 
 struct {
-	uint16_t	mt;
-	uint16_t	st;
-	int32_t		max;
+	uint16_t mt;
+	uint16_t st;
+	int32_t max;
 } static evdev_mtstmap[] = {
-	{ ABS_MT_POSITION_X,	ABS_X,		0 },
-	{ ABS_MT_POSITION_Y,	ABS_Y,		0 },
-	{ ABS_MT_PRESSURE,	ABS_PRESSURE,	255 },
-	{ ABS_MT_TOUCH_MAJOR,	ABS_TOOL_WIDTH,	15 },
+	{ ABS_MT_POSITION_X, ABS_X, 0 },
+	{ ABS_MT_POSITION_Y, ABS_Y, 0 },
+	{ ABS_MT_PRESSURE, ABS_PRESSURE, 255 },
+	{ ABS_MT_TOUCH_MAJOR, ABS_TOOL_WIDTH, 15 },
 };
 
 struct evdev_mt {
-	int			last_reported_slot;
-	uint16_t		tracking_id;
-	int32_t			tracking_ids[MAX_MT_SLOTS];
-	bool			type_a;
-	u_int			mtst_events;
+	int last_reported_slot;
+	uint16_t tracking_id;
+	int32_t tracking_ids[MAX_MT_SLOTS];
+	bool type_a;
+	u_int mtst_events;
 	/* the set of slots with active touches */
-	slotset_t		touches;
+	slotset_t touches;
 	/* the set of slots with unsynchronized state */
-	slotset_t		frame;
+	slotset_t frame;
 	/* the set of slots to match with active touches */
-	slotset_t		match_frame;
-	int			match_slot;
-	union evdev_mt_slot	*match_slots;
-	int			*matrix;
-	union evdev_mt_slot	slots[];
+	slotset_t match_frame;
+	int match_slot;
+	union evdev_mt_slot *match_slots;
+	int *matrix;
+	union evdev_mt_slot slots[];
 };
 
-static void	evdev_mt_support_st_compat(struct evdev_dev *);
-static void	evdev_mt_send_st_compat(struct evdev_dev *);
-static void	evdev_mt_send_autorel(struct evdev_dev *);
-static void	evdev_mt_replay_events(struct evdev_dev *);
+static void evdev_mt_support_st_compat(struct evdev_dev *);
+static void evdev_mt_send_st_compat(struct evdev_dev *);
+static void evdev_mt_send_autorel(struct evdev_dev *);
+static void evdev_mt_replay_events(struct evdev_dev *);
 
 static inline int
 ffc_slot(struct evdev_dev *evdev, slotset_t slots)
@@ -113,10 +113,10 @@ evdev_mt_init(struct evdev_dev *evdev)
 	type_a = !bit_test(evdev->ev_abs_flags, ABS_MT_SLOT);
 	if (type_a) {
 		/* Add events produced by MT type A to type B converter */
-		evdev_support_abs(evdev,
-		    ABS_MT_SLOT, 0, MAX_MT_SLOTS - 1, 0, 0, 0);
-		evdev_support_abs(evdev,
-		    ABS_MT_TRACKING_ID, -1, MAX_MT_SLOTS - 1, 0, 0, 0);
+		evdev_support_abs(evdev, ABS_MT_SLOT, 0, MAX_MT_SLOTS - 1, 0, 0,
+		    0);
+		evdev_support_abs(evdev, ABS_MT_TRACKING_ID, -1,
+		    MAX_MT_SLOTS - 1, 0, 0, 0);
 	}
 
 	slots = MAXIMAL_MT_SLOT(evdev) + 1;
@@ -140,8 +140,8 @@ evdev_mt_init(struct evdev_dev *evdev)
 		mt->slots[slot].id = -1;
 
 	if (!bit_test(evdev->ev_flags, EVDEV_FLAG_MT_KEEPID))
-		evdev_support_abs(evdev,
-		    ABS_MT_TRACKING_ID, -1, UINT16_MAX, 0, 0, 0);
+		evdev_support_abs(evdev, ABS_MT_TRACKING_ID, -1, UINT16_MAX, 0,
+		    0, 0);
 	if (bit_test(evdev->ev_flags, EVDEV_FLAG_MT_STCOMPAT))
 		evdev_mt_support_st_compat(evdev);
 }
@@ -184,8 +184,7 @@ evdev_mt_send_slot(struct evdev_dev *evdev, int slot,
 		}
 	}
 	bit_foreach_at(evdev->ev_abs_flags, ABS_MT_FIRST, ABS_MT_LAST + 1, i)
-		evdev_send_event(evdev, EV_ABS, i,
-		    state->val[ABS_MT_INDEX(i)]);
+	    evdev_send_event(evdev, EV_ABS, i, state->val[ABS_MT_INDEX(i)]);
 	if (type_a)
 		evdev_send_event(evdev, EV_SYN, SYN_MT_REPORT, 1);
 }
@@ -211,8 +210,8 @@ evdev_mt_push_slot(struct evdev_dev *evdev, int slot,
 		if (state != NULL)
 			mt->match_slots[mt->match_slot] = *state;
 		else
-			evdev_mt_record_event(evdev, EV_ABS,
-			    ABS_MT_TRACKING_ID, -1);
+			evdev_mt_record_event(evdev, EV_ABS, ABS_MT_TRACKING_ID,
+			    -1);
 	} else
 		evdev_mt_send_slot(evdev, slot, state);
 	EVDEV_EXIT(evdev);
@@ -245,15 +244,17 @@ evdev_mt_matching(int *matrix, int m, int n, int *buffer)
 {
 	int i, j, k, d, e, row, col, delta;
 	int *p;
-	int *r2c = buffer;	/* row-to-column assignments */
-	int *red = r2c + m;	/* reduced values of the assignments */
-	int *mc = red + m;	/* row-wise minimal elements of cs */
-	int *cs = mc + m;	/* the column set */
-	int *c2r = cs + n;	/* column-to-row assignments in cs */
-	int *cd = c2r + n;	/* column deltas (reduction) */
+	int *r2c = buffer;  /* row-to-column assignments */
+	int *red = r2c + m; /* reduced values of the assignments */
+	int *mc = red + m;  /* row-wise minimal elements of cs */
+	int *cs = mc + m;   /* the column set */
+	int *c2r = cs + n;  /* column-to-row assignments in cs */
+	int *cd = c2r + n;  /* column deltas (reduction) */
 
-	for (p = r2c; p < red; *p++ = -1) {}
-	for (; p < mc; *p++ = 0) {}
+	for (p = r2c; p < red; *p++ = -1) {
+	}
+	for (; p < mc; *p++ = 0) {
+	}
 	for (col = 0; col < n; col++) {
 		delta = INT_MAX;
 		for (i = 0, p = matrix + col; i < m; i++, p += n) {
@@ -268,7 +269,8 @@ evdev_mt_matching(int *matrix, int m, int n, int *buffer)
 			r2c[row] = col;
 			continue;
 		}
-		for (p = mc; p < cs; *p++ = col) {}
+		for (p = mc; p < cs; *p++ = col) {
+		}
 		for (k = 0; (j = r2c[row]) >= 0;) {
 			cs[k++] = j;
 			c2r[j] = row;
@@ -283,8 +285,8 @@ evdev_mt_matching(int *matrix, int m, int n, int *buffer)
 						mc[i] = j;
 					}
 					d -= red[i];
-					if (d < delta || (d == delta
-					    && r2c[i] < 0)) {
+					if (d < delta ||
+					    (d == delta && r2c[i] < 0)) {
 						delta = d;
 						row = i;
 					}
@@ -311,8 +313,7 @@ evdev_mt_matching(int *matrix, int m, int n, int *buffer)
  * Set tracking id to -1 for unassigned (new) points.
  */
 void
-evdev_mt_match_frame(struct evdev_dev *evdev, union evdev_mt_slot *pt,
-    int size)
+evdev_mt_match_frame(struct evdev_dev *evdev, union evdev_mt_slot *pt, int size)
 {
 	struct evdev_mt *mt = evdev->ev_mt;
 	int i, j, m, n, dx, dy, slot, num_touches;
@@ -329,16 +330,17 @@ evdev_mt_match_frame(struct evdev_dev *evdev, union evdev_mt_slot *pt,
 	num_touches = bitcount(mt->touches);
 	if (num_touches >= size) {
 		FOREACHBIT(mt->touches, slot)
-			for (i = 0; i < size; i++) {
-				dx = pt[i].x - mt->slots[slot].x;
-				dy = pt[i].y - mt->slots[slot].y;
-				*p++ = dx * dx + dy * dy;
-			}
+		for (i = 0; i < size; i++) {
+			dx = pt[i].x - mt->slots[slot].x;
+			dy = pt[i].y - mt->slots[slot].y;
+			*p++ = dx * dx + dy * dy;
+		}
 		m = num_touches;
 		n = size;
 	} else {
 		for (i = 0; i < size; i++)
-			FOREACHBIT(mt->touches, slot) {
+			FOREACHBIT(mt->touches, slot)
+			{
 				dx = pt[i].x - mt->slots[slot].x;
 				dy = pt[i].y - mt->slots[slot].y;
 				*p++ = dx * dx + dy * dy;
@@ -361,8 +363,8 @@ evdev_mt_match_frame(struct evdev_dev *evdev, union evdev_mt_slot *pt,
 
 	p = (n == size ? r2c : c2r);
 	FOREACHBIT(mt->touches, slot)
-		if ((i = *p++) >= 0)
-			pt[i].id = mt->tracking_ids[slot];
+	if ((i = *p++) >= 0)
+		pt[i].id = mt->tracking_ids[slot];
 }
 
 static void
@@ -434,8 +436,8 @@ evdev_mt_record_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 			KASSERT(mt->match_slot >= 0, ("Negative slot"));
 			KASSERT(mt->match_slot <= MAXIMAL_MT_SLOT(evdev),
 			    ("Slot number too big"));
-			mt->match_slots[mt->match_slot].
-			    val[ABS_MT_INDEX(code)] = value;
+			mt->match_slots[mt->match_slot]
+			    .val[ABS_MT_INDEX(code)] = value;
 			return (true);
 		}
 		break;
@@ -454,7 +456,8 @@ evdev_mt_replay_events(struct evdev_dev *evdev)
 
 	EVDEV_LOCK_ASSERT(evdev);
 
-	FOREACHBIT(mt->match_frame, slot) {
+	FOREACHBIT(mt->match_frame, slot)
+	{
 		if (slot != size)
 			mt->match_slots[size] = mt->match_slots[slot];
 		size++;
@@ -531,8 +534,8 @@ evdev_mt_id_to_slot(struct evdev_dev *evdev, int32_t tracking_id)
 		return (ffc_slot(evdev, mt->match_frame));
 
 	FOREACHBIT(mt->touches, slot)
-		if (mt->tracking_ids[slot] == tracking_id)
-			return (slot);
+	if (mt->tracking_ids[slot] == tracking_id)
+		return (slot);
 	/*
 	 * Do not allow allocation of new slot in a place of just
 	 * released one within the same report.
@@ -562,8 +565,8 @@ evdev_mt_reassign_id(struct evdev_dev *evdev, int slot, int32_t id)
 again:
 	nid = mt->tracking_id++;
 	FOREACHBIT(mt->touches, slot)
-		if (evdev_mt_get_value(evdev, slot, ABS_MT_TRACKING_ID) == nid)
-			goto again;
+	if (evdev_mt_get_value(evdev, slot, ABS_MT_TRACKING_ID) == nid)
+		goto again;
 
 	return (nid);
 }
@@ -597,24 +600,19 @@ evdev_mt_support_st_compat(struct evdev_dev *evdev)
 	/* Echo 0-th MT-slot as ST-slot */
 	for (i = 0; i < nitems(evdev_mtstmap); i++) {
 		if (!bit_test(evdev->ev_abs_flags, evdev_mtstmap[i].mt) ||
-		     bit_test(evdev->ev_abs_flags, evdev_mtstmap[i].st))
+		    bit_test(evdev->ev_abs_flags, evdev_mtstmap[i].st))
 			continue;
 		ai = evdev->ev_absinfo + evdev_mtstmap[i].mt;
 		evdev->ev_mt->mtst_events |= 1U << i;
 		if (evdev_mtstmap[i].max != 0)
-			evdev_support_abs(evdev, evdev_mtstmap[i].st,
-			    0,
-			    evdev_mtstmap[i].max,
-			    0,
-			    evdev_mt_normalize(
-			      ai->flat, 0, ai->maximum, evdev_mtstmap[i].max),
+			evdev_support_abs(evdev, evdev_mtstmap[i].st, 0,
+			    evdev_mtstmap[i].max, 0,
+			    evdev_mt_normalize(ai->flat, 0, ai->maximum,
+				evdev_mtstmap[i].max),
 			    0);
 		else
 			evdev_support_abs(evdev, evdev_mtstmap[i].st,
-			    ai->minimum,
-			    ai->maximum,
-			    0,
-			    ai->flat,
+			    ai->minimum, ai->maximum, 0, ai->flat,
 			    ai->resolution);
 	}
 }
@@ -634,12 +632,12 @@ evdev_mt_send_st_compat(struct evdev_dev *evdev)
 	st_slot = ffs(mt->touches) - 1;
 	if (st_slot != -1)
 		FOREACHBIT(mt->mtst_events, i)
-			evdev_send_event(evdev, EV_ABS, evdev_mtstmap[i].st,
-			    evdev_mt_normalize(evdev_mt_get_value(evdev,
-			      st_slot, evdev_mtstmap[i].mt),
-			      evdev->ev_absinfo[evdev_mtstmap[i].mt].minimum,
-			      evdev->ev_absinfo[evdev_mtstmap[i].mt].maximum,
-			      evdev_mtstmap[i].max));
+	evdev_send_event(evdev, EV_ABS, evdev_mtstmap[i].st,
+	    evdev_mt_normalize(evdev_mt_get_value(evdev, st_slot,
+				   evdev_mtstmap[i].mt),
+		evdev->ev_absinfo[evdev_mtstmap[i].mt].minimum,
+		evdev->ev_absinfo[evdev_mtstmap[i].mt].maximum,
+		evdev_mtstmap[i].max));
 
 	/* Touchscreens should not report tool taps */
 	if (!bit_test(evdev->ev_prop_flags, INPUT_PROP_DIRECT))
@@ -659,7 +657,7 @@ evdev_mt_send_autorel(struct evdev_dev *evdev)
 	KASSERT(mt->match_frame == 0, ("Unmatched events exist"));
 
 	FOREACHBIT(mt->touches & ~mt->frame, slot)
-		evdev_mt_send_slot(evdev, slot, NULL);
+	evdev_mt_send_slot(evdev, slot, NULL);
 }
 
 void

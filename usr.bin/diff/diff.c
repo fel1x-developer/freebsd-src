@@ -27,31 +27,31 @@
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
-#include <stdlib.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include "diff.h"
 #include "xmalloc.h"
 
 static const char diff_version[] = "FreeBSD diff 20220309";
-bool	 lflag, Nflag, Pflag, rflag, sflag, Tflag, cflag;
-bool	 ignore_file_case, suppress_common, color, noderef;
+bool lflag, Nflag, Pflag, rflag, sflag, Tflag, cflag;
+bool ignore_file_case, suppress_common, color, noderef;
 static bool help = false;
-int	 diff_format, diff_context, status;
-int	 tabsize = 8, width = 130;
-static int	colorflag = COLORFLAG_NEVER;
-char	*start, *ifdefname, *diffargs, *label[2];
-char	*ignore_pats, *most_recent_pat;
-char	*group_format = NULL;
-const char	*add_code, *del_code;
+int diff_format, diff_context, status;
+int tabsize = 8, width = 130;
+static int colorflag = COLORFLAG_NEVER;
+char *start, *ifdefname, *diffargs, *label[2];
+char *ignore_pats, *most_recent_pat;
+char *group_format = NULL;
+const char *add_code, *del_code;
 struct stat stb1, stb2;
 struct excludes *excludes_list;
-regex_t	 ignore_re, most_recent_re;
+regex_t ignore_re, most_recent_re;
 
-#define	OPTIONS	"0123456789aBbC:cdD:efF:HhI:iL:lnNPpqrS:sTtU:uwW:X:x:y"
+#define OPTIONS "0123456789aBbC:cdD:efF:HhI:iL:lnNPpqrS:sTtU:uwW:X:x:y"
 enum {
 	OPT_TSIZE = CHAR_MAX + 1,
 	OPT_STRIPCR,
@@ -67,51 +67,46 @@ enum {
 	OPT_VERSION,
 };
 
-static struct option longopts[] = {
-	{ "text",			no_argument,		0,	'a' },
-	{ "ignore-space-change",	no_argument,		0,	'b' },
-	{ "context",			optional_argument,	0,	'C' },
-	{ "ifdef",			required_argument,	0,	'D' },
-	{ "minimal",			no_argument,		0,	'd' },
-	{ "ed",				no_argument,		0,	'e' },
-	{ "forward-ed",			no_argument,		0,	'f' },
-	{ "show-function-line",		required_argument,	0,	'F' },
-	{ "speed-large-files",		no_argument,		NULL,	'H' },
-	{ "ignore-blank-lines",		no_argument,		0,	'B' },
-	{ "ignore-matching-lines",	required_argument,	0,	'I' },
-	{ "ignore-case",		no_argument,		0,	'i' },
-	{ "paginate",			no_argument,		NULL,	'l' },
-	{ "label",			required_argument,	0,	'L' },
-	{ "new-file",			no_argument,		0,	'N' },
-	{ "rcs",			no_argument,		0,	'n' },
-	{ "unidirectional-new-file",	no_argument,		0,	'P' },
-	{ "show-c-function",		no_argument,		0,	'p' },
-	{ "brief",			no_argument,		0,	'q' },
-	{ "recursive",			no_argument,		0,	'r' },
-	{ "report-identical-files",	no_argument,		0,	's' },
-	{ "starting-file",		required_argument,	0,	'S' },
-	{ "expand-tabs",		no_argument,		0,	't' },
-	{ "initial-tab",		no_argument,		0,	'T' },
-	{ "unified",			optional_argument,	0,	'U' },
-	{ "ignore-all-space",		no_argument,		0,	'w' },
-	{ "width",			required_argument,	0,	'W' },
-	{ "exclude",			required_argument,	0,	'x' },
-	{ "exclude-from",		required_argument,	0,	'X' },
-	{ "side-by-side",		no_argument,		NULL,	'y' },
-	{ "ignore-file-name-case",	no_argument,		NULL,	OPT_IGN_FN_CASE },
-	{ "help",			no_argument,		NULL,	OPT_HELP},
-	{ "horizon-lines",		required_argument,	NULL,	OPT_HORIZON_LINES },
-	{ "no-dereference",		no_argument,		NULL,	OPT_NO_DEREFERENCE},
-	{ "no-ignore-file-name-case",	no_argument,		NULL,	OPT_NO_IGN_FN_CASE },
-	{ "normal",			no_argument,		NULL,	OPT_NORMAL },
-	{ "strip-trailing-cr",		no_argument,		NULL,	OPT_STRIPCR },
-	{ "tabsize",			required_argument,	NULL,	OPT_TSIZE },
-	{ "changed-group-format",	required_argument,	NULL,	OPT_CHANGED_GROUP_FORMAT},
-	{ "suppress-common-lines",	no_argument,		NULL,	OPT_SUPPRESS_COMMON },
-	{ "color",			optional_argument,	NULL,	OPT_COLOR },
-	{ "version",			no_argument,		NULL,	OPT_VERSION},
-	{ NULL,				0,			0,	'\0'}
-};
+static struct option longopts[] = { { "text", no_argument, 0, 'a' },
+	{ "ignore-space-change", no_argument, 0, 'b' },
+	{ "context", optional_argument, 0, 'C' },
+	{ "ifdef", required_argument, 0, 'D' },
+	{ "minimal", no_argument, 0, 'd' }, { "ed", no_argument, 0, 'e' },
+	{ "forward-ed", no_argument, 0, 'f' },
+	{ "show-function-line", required_argument, 0, 'F' },
+	{ "speed-large-files", no_argument, NULL, 'H' },
+	{ "ignore-blank-lines", no_argument, 0, 'B' },
+	{ "ignore-matching-lines", required_argument, 0, 'I' },
+	{ "ignore-case", no_argument, 0, 'i' },
+	{ "paginate", no_argument, NULL, 'l' },
+	{ "label", required_argument, 0, 'L' },
+	{ "new-file", no_argument, 0, 'N' }, { "rcs", no_argument, 0, 'n' },
+	{ "unidirectional-new-file", no_argument, 0, 'P' },
+	{ "show-c-function", no_argument, 0, 'p' },
+	{ "brief", no_argument, 0, 'q' }, { "recursive", no_argument, 0, 'r' },
+	{ "report-identical-files", no_argument, 0, 's' },
+	{ "starting-file", required_argument, 0, 'S' },
+	{ "expand-tabs", no_argument, 0, 't' },
+	{ "initial-tab", no_argument, 0, 'T' },
+	{ "unified", optional_argument, 0, 'U' },
+	{ "ignore-all-space", no_argument, 0, 'w' },
+	{ "width", required_argument, 0, 'W' },
+	{ "exclude", required_argument, 0, 'x' },
+	{ "exclude-from", required_argument, 0, 'X' },
+	{ "side-by-side", no_argument, NULL, 'y' },
+	{ "ignore-file-name-case", no_argument, NULL, OPT_IGN_FN_CASE },
+	{ "help", no_argument, NULL, OPT_HELP },
+	{ "horizon-lines", required_argument, NULL, OPT_HORIZON_LINES },
+	{ "no-dereference", no_argument, NULL, OPT_NO_DEREFERENCE },
+	{ "no-ignore-file-name-case", no_argument, NULL, OPT_NO_IGN_FN_CASE },
+	{ "normal", no_argument, NULL, OPT_NORMAL },
+	{ "strip-trailing-cr", no_argument, NULL, OPT_STRIPCR },
+	{ "tabsize", required_argument, NULL, OPT_TSIZE },
+	{ "changed-group-format", required_argument, NULL,
+	    OPT_CHANGED_GROUP_FORMAT },
+	{ "suppress-common-lines", no_argument, NULL, OPT_SUPPRESS_COMMON },
+	{ "color", optional_argument, NULL, OPT_COLOR },
+	{ "version", no_argument, NULL, OPT_VERSION }, { NULL, 0, 0, '\0' } };
 
 static void checked_regcomp(char const *, regex_t *);
 static void usage(void) __dead2;
@@ -128,8 +123,8 @@ main(int argc, char **argv)
 {
 	const char *errstr = NULL;
 	char *ep, **oargv;
-	long  l;
-	int   ch, dflags, lastch, gotstdin, prevoptind, newarg;
+	long l;
+	int ch, dflags, lastch, gotstdin, prevoptind, newarg;
 
 	oargv = argv;
 	gotstdin = 0;
@@ -139,17 +134,26 @@ main(int argc, char **argv)
 	newarg = 1;
 	diff_context = 3;
 	diff_format = D_UNSET;
-#define	FORMAT_MISMATCHED(type)	\
+#define FORMAT_MISMATCHED(type) \
 	(diff_format != D_UNSET && diff_format != (type))
 	while ((ch = getopt_long(argc, argv, OPTIONS, longopts, NULL)) != -1) {
 		switch (ch) {
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			if (newarg)
-				usage();	/* disallow -[0-9]+ */
+				usage(); /* disallow -[0-9]+ */
 			else if (lastch == 'c' || lastch == 'u')
 				diff_context = 0;
-			else if (!isdigit(lastch) || diff_context > INT_MAX / 10)
+			else if (!isdigit(lastch) ||
+			    diff_context > INT_MAX / 10)
 				usage();
 			diff_context = (diff_context * 10) + (ch - '0');
 			break;
@@ -275,7 +279,7 @@ main(int argc, char **argv)
 			dflags |= D_IGNOREBLANKS;
 			break;
 		case 'W':
-			width = (int) strtonum(optarg, 1, INT_MAX, &errstr);
+			width = (int)strtonum(optarg, 1, INT_MAX, &errstr);
 			if (errstr) {
 				warnx("Invalid argument for width");
 				usage();
@@ -316,7 +320,7 @@ main(int argc, char **argv)
 			diff_format = D_NORMAL;
 			break;
 		case OPT_TSIZE:
-			tabsize = (int) strtonum(optarg, 1, INT_MAX, &errstr);
+			tabsize = (int)strtonum(optarg, 1, INT_MAX, &errstr);
 			if (errstr) {
 				warnx("Invalid argument for tabsize");
 				usage();
@@ -336,8 +340,9 @@ main(int argc, char **argv)
 			else if (strncmp(optarg, "never", 5) == 0)
 				colorflag = COLORFLAG_NEVER;
 			else
-				errx(2, "unsupported --color value '%s' (must be always, auto, or never)",
-					optarg);
+				errx(2,
+				    "unsupported --color value '%s' (must be always, auto, or never)",
+				    optarg);
 			break;
 		case OPT_NO_DEREFERENCE:
 			rflag = true;
@@ -411,7 +416,7 @@ main(int argc, char **argv)
 		stb2.st_mode = stb1.st_mode;
 	}
 
-	if (dflags & D_EMPTY1 && dflags & D_EMPTY2){
+	if (dflags & D_EMPTY1 && dflags & D_EMPTY2) {
 		warn("%s", argv[0]);
 		warn("%s", argv[1]);
 		exit(2);
@@ -545,33 +550,37 @@ print_status(int val, char *path1, char *path2, const char *entry)
 
 	switch (val) {
 	case D_BINARY:
-		printf("Binary files %s%s and %s%s differ\n",
-		    path1, entry, path2, entry);
+		printf("Binary files %s%s and %s%s differ\n", path1, entry,
+		    path2, entry);
 		break;
 	case D_DIFFER:
 		if (diff_format == D_BRIEF)
-			printf("Files %s%s and %s%s differ\n",
-			    path1, entry, path2, entry);
+			printf("Files %s%s and %s%s differ\n", path1, entry,
+			    path2, entry);
 		break;
 	case D_SAME:
 		if (sflag)
-			printf("Files %s%s and %s%s are identical\n",
-			    path1, entry, path2, entry);
+			printf("Files %s%s and %s%s are identical\n", path1,
+			    entry, path2, entry);
 		break;
 	case D_MISMATCH1:
-		printf("File %s%s is a directory while file %s%s is a regular file\n",
+		printf(
+		    "File %s%s is a directory while file %s%s is a regular file\n",
 		    path1, entry, path2, entry);
 		break;
 	case D_MISMATCH2:
-		printf("File %s%s is a regular file while file %s%s is a directory\n",
+		printf(
+		    "File %s%s is a regular file while file %s%s is a directory\n",
 		    path1, entry, path2, entry);
 		break;
 	case D_SKIPPED1:
-		printf("File %s%s is not a regular file or directory and was skipped\n",
+		printf(
+		    "File %s%s is not a regular file or directory and was skipped\n",
 		    path1, entry);
 		break;
 	case D_SKIPPED2:
-		printf("File %s%s is not a regular file or directory and was skipped\n",
+		printf(
+		    "File %s%s is not a regular file or directory and was skipped\n",
 		    path2, entry);
 		break;
 	case D_ERROR:
@@ -647,7 +656,7 @@ splice(char *dir, char *path)
 
 	dirlen = strlen(dir);
 	while (dirlen != 0 && dir[dirlen - 1] == '/')
-	    dirlen--;
+		dirlen--;
 	if ((tail = strrchr(path, '/')) == NULL)
 		tail = path;
 	else

@@ -29,12 +29,11 @@
  */
 
 #include <assert.h>
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 #ifndef MEMCMP
 #define MEMCMP memcmp
@@ -60,8 +59,8 @@ check_memcmp(const char *a, const char *b, size_t len, int expected)
 
 	got = memcmp_fn(a, b, len);
 	ATF_CHECK_EQ_MSG(RES(expected), RES(got),
-	    "%s(%p, %p, %zu) gave %d, but wanted %d",
-	    __XSTRING(MEMCMP), a, b, len, got, expected);
+	    "%s(%p, %p, %zu) gave %d, but wanted %d", __XSTRING(MEMCMP), a, b,
+	    len, got, expected);
 }
 
 ATF_TC_WITHOUT_HEAD(zero);

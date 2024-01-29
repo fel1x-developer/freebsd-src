@@ -26,8 +26,9 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/eventhandler.h>
@@ -36,89 +37,85 @@
 #include <sys/module.h>
 #include <sys/power.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
 
-#define _COMPONENT	ACPI_OEM
+#include <contrib/dev/acpica/include/acpi.h>
+
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("Panasonic")
 
 /* Debug */
-#undef	ACPI_PANASONIC_DEBUG
+#undef ACPI_PANASONIC_DEBUG
 
 /* Operations */
-#define	HKEY_SET	0
-#define	HKEY_GET	1
+#define HKEY_SET 0
+#define HKEY_GET 1
 
 /* Functions */
-#define	HKEY_REG_LCD_BRIGHTNESS_MAX_AC	0x02
-#define	HKEY_REG_LCD_BRIGHTNESS_MIN_AC	0x03
-#define	HKEY_REG_LCD_BRIGHTNESS_AC	0x04
-#define	HKEY_REG_LCD_BRIGHTNESS_MAX_DC	0x05
-#define	HKEY_REG_LCD_BRIGHTNESS_MIN_DC	0x06
-#define	HKEY_REG_LCD_BRIGHTNESS_DC	0x07
-#define	HKEY_REG_SOUND_MUTE		0x08
+#define HKEY_REG_LCD_BRIGHTNESS_MAX_AC 0x02
+#define HKEY_REG_LCD_BRIGHTNESS_MIN_AC 0x03
+#define HKEY_REG_LCD_BRIGHTNESS_AC 0x04
+#define HKEY_REG_LCD_BRIGHTNESS_MAX_DC 0x05
+#define HKEY_REG_LCD_BRIGHTNESS_MIN_DC 0x06
+#define HKEY_REG_LCD_BRIGHTNESS_DC 0x07
+#define HKEY_REG_SOUND_MUTE 0x08
 
 /* Field definitions */
-#define	HKEY_LCD_BRIGHTNESS_BITS	4
-#define	HKEY_LCD_BRIGHTNESS_DIV		((1 << HKEY_LCD_BRIGHTNESS_BITS) - 1)
+#define HKEY_LCD_BRIGHTNESS_BITS 4
+#define HKEY_LCD_BRIGHTNESS_DIV ((1 << HKEY_LCD_BRIGHTNESS_BITS) - 1)
 
 struct acpi_panasonic_softc {
-	device_t	dev;
-	ACPI_HANDLE	handle;
+	device_t dev;
+	ACPI_HANDLE handle;
 
-	struct sysctl_ctx_list	sysctl_ctx;
-	struct sysctl_oid	*sysctl_tree;
+	struct sysctl_ctx_list sysctl_ctx;
+	struct sysctl_oid *sysctl_tree;
 
-	eventhandler_tag	power_evh;
+	eventhandler_tag power_evh;
 };
 
 /* Prototype for HKEY functions for getting/setting a value. */
 typedef int hkey_fn_t(ACPI_HANDLE, int, UINT32 *);
 
-static int	acpi_panasonic_probe(device_t dev);
-static int	acpi_panasonic_attach(device_t dev);
-static int	acpi_panasonic_detach(device_t dev);
-static int	acpi_panasonic_shutdown(device_t dev);
-static int	acpi_panasonic_sysctl(SYSCTL_HANDLER_ARGS);
-static UINT64	acpi_panasonic_sinf(ACPI_HANDLE h, UINT64 index);
-static void	acpi_panasonic_sset(ACPI_HANDLE h, UINT64 index,
-		    UINT64 val);
-static int	acpi_panasonic_hkey_event(struct acpi_panasonic_softc *sc,
-		    ACPI_HANDLE h, UINT32 *arg);
-static void	acpi_panasonic_hkey_action(struct acpi_panasonic_softc *sc,
-		    ACPI_HANDLE h, UINT32 key);
-static void	acpi_panasonic_notify(ACPI_HANDLE h, UINT32 notify,
-		    void *context);
-static void	acpi_panasonic_power_profile(void *arg);
+static int acpi_panasonic_probe(device_t dev);
+static int acpi_panasonic_attach(device_t dev);
+static int acpi_panasonic_detach(device_t dev);
+static int acpi_panasonic_shutdown(device_t dev);
+static int acpi_panasonic_sysctl(SYSCTL_HANDLER_ARGS);
+static UINT64 acpi_panasonic_sinf(ACPI_HANDLE h, UINT64 index);
+static void acpi_panasonic_sset(ACPI_HANDLE h, UINT64 index, UINT64 val);
+static int acpi_panasonic_hkey_event(struct acpi_panasonic_softc *sc,
+    ACPI_HANDLE h, UINT32 *arg);
+static void acpi_panasonic_hkey_action(struct acpi_panasonic_softc *sc,
+    ACPI_HANDLE h, UINT32 key);
+static void acpi_panasonic_notify(ACPI_HANDLE h, UINT32 notify, void *context);
+static void acpi_panasonic_power_profile(void *arg);
 
-static hkey_fn_t	hkey_lcd_brightness_max;
-static hkey_fn_t	hkey_lcd_brightness_min;
-static hkey_fn_t	hkey_lcd_brightness;
-static hkey_fn_t	hkey_sound_mute;
+static hkey_fn_t hkey_lcd_brightness_max;
+static hkey_fn_t hkey_lcd_brightness_min;
+static hkey_fn_t hkey_lcd_brightness;
+static hkey_fn_t hkey_sound_mute;
 ACPI_SERIAL_DECL(panasonic, "ACPI Panasonic extras");
 
 /* Table of sysctl names and HKEY functions to call. */
 static struct {
-	char		*name;
-	hkey_fn_t	*handler;
+	char *name;
+	hkey_fn_t *handler;
 } sysctl_table[] = {
 	/* name,		handler */
-	{"lcd_brightness_max",	hkey_lcd_brightness_max},
-	{"lcd_brightness_min",	hkey_lcd_brightness_min},
-	{"lcd_brightness",	hkey_lcd_brightness},
-	{"sound_mute",		hkey_sound_mute},
-	{NULL, NULL}
+	{ "lcd_brightness_max", hkey_lcd_brightness_max },
+	{ "lcd_brightness_min", hkey_lcd_brightness_min },
+	{ "lcd_brightness", hkey_lcd_brightness },
+	{ "sound_mute", hkey_sound_mute }, { NULL, NULL }
 };
 
-static device_method_t acpi_panasonic_methods[] = {
-	DEVMETHOD(device_probe,		acpi_panasonic_probe),
-	DEVMETHOD(device_attach,	acpi_panasonic_attach),
-	DEVMETHOD(device_detach,	acpi_panasonic_detach),
-	DEVMETHOD(device_shutdown,	acpi_panasonic_shutdown),
+static device_method_t acpi_panasonic_methods[] = { DEVMETHOD(device_probe,
+							acpi_panasonic_probe),
+	DEVMETHOD(device_attach, acpi_panasonic_attach),
+	DEVMETHOD(device_detach, acpi_panasonic_detach),
+	DEVMETHOD(device_shutdown, acpi_panasonic_shutdown),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t acpi_panasonic_driver = {
 	"acpi_panasonic",
@@ -135,8 +132,7 @@ acpi_panasonic_probe(device_t dev)
 	static char *mat_ids[] = { "MAT0019", NULL };
 	int rv;
 
-	if (acpi_disabled("panasonic") ||
-	    device_get_unit(dev) != 0)
+	if (acpi_disabled("panasonic") || device_get_unit(dev) != 0)
 		return (ENXIO);
 	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, mat_ids, NULL);
 
@@ -162,14 +158,14 @@ acpi_panasonic_attach(device_t dev)
 	/* Build sysctl tree */
 	sysctl_ctx_init(&sc->sysctl_ctx);
 	sc->sysctl_tree = SYSCTL_ADD_NODE(&sc->sysctl_ctx,
-	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree), OID_AUTO,
-	    "panasonic", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	    SYSCTL_CHILDREN(acpi_sc->acpi_sysctl_tree), OID_AUTO, "panasonic",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 	for (i = 0; sysctl_table[i].name != NULL; i++) {
 		SYSCTL_ADD_PROC(&sc->sysctl_ctx,
 		    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 		    sysctl_table[i].name,
-		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_ANYBODY |
-		    CTLFLAG_MPSAFE, sc, i, acpi_panasonic_sysctl, "I", "");
+		    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_ANYBODY | CTLFLAG_MPSAFE,
+		    sc, i, acpi_panasonic_sysctl, "I", "");
 	}
 
 #if 0
@@ -225,7 +221,8 @@ acpi_panasonic_shutdown(device_t dev)
 	struct acpi_panasonic_softc *sc;
 	int mute;
 
-	/* Mute the main audio during reboot to prevent static burst to speaker. */
+	/* Mute the main audio during reboot to prevent static burst to speaker.
+	 */
 	sc = device_get_softc(dev);
 	mute = 1;
 	hkey_sound_mute(sc->handle, HKEY_SET, &mute);
@@ -306,7 +303,8 @@ hkey_lcd_brightness_max(ACPI_HANDLE h, int op, UINT32 *val)
 
 	ACPI_SERIAL_ASSERT(panasonic);
 	reg = (power_profile_get_state() == POWER_PROFILE_PERFORMANCE) ?
-	    HKEY_REG_LCD_BRIGHTNESS_MAX_AC : HKEY_REG_LCD_BRIGHTNESS_MAX_DC;
+	    HKEY_REG_LCD_BRIGHTNESS_MAX_AC :
+	    HKEY_REG_LCD_BRIGHTNESS_MAX_DC;
 
 	switch (op) {
 	case HKEY_SET:
@@ -327,7 +325,8 @@ hkey_lcd_brightness_min(ACPI_HANDLE h, int op, UINT32 *val)
 
 	ACPI_SERIAL_ASSERT(panasonic);
 	reg = (power_profile_get_state() == POWER_PROFILE_PERFORMANCE) ?
-	    HKEY_REG_LCD_BRIGHTNESS_MIN_AC : HKEY_REG_LCD_BRIGHTNESS_MIN_DC;
+	    HKEY_REG_LCD_BRIGHTNESS_MIN_AC :
+	    HKEY_REG_LCD_BRIGHTNESS_MIN_DC;
 
 	switch (op) {
 	case HKEY_SET:
@@ -348,7 +347,8 @@ hkey_lcd_brightness(ACPI_HANDLE h, int op, UINT32 *val)
 	UINT32 max, min;
 
 	reg = (power_profile_get_state() == POWER_PROFILE_PERFORMANCE) ?
-	    HKEY_REG_LCD_BRIGHTNESS_AC : HKEY_REG_LCD_BRIGHTNESS_DC;
+	    HKEY_REG_LCD_BRIGHTNESS_AC :
+	    HKEY_REG_LCD_BRIGHTNESS_DC;
 
 	ACPI_SERIAL_ASSERT(panasonic);
 	switch (op) {
@@ -409,8 +409,7 @@ acpi_panasonic_hkey_event(struct acpi_panasonic_softc *sc, ACPI_HANDLE h,
 	val = res->Integer.Value;
 #ifdef ACPI_PANASONIC_DEBUG
 	device_printf(sc->dev, "%s button Fn+F%d\n",
-		      (val & 0x80) ? "Pressed" : "Released",
-		      (int)(val & 0x7f));
+	    (val & 0x80) ? "Pressed" : "Released", (int)(val & 0x7f));
 #endif
 	if ((val & 0x7f) > 0 && (val & 0x7f) < 11) {
 		*arg = val;

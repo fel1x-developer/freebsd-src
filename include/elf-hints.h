@@ -26,27 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ELF_HINTS_H_
-#define	_ELF_HINTS_H_
+#ifndef _ELF_HINTS_H_
+#define _ELF_HINTS_H_
 
 /*
  * Hints file produced by ldconfig.
  */
 struct elfhints_hdr {
-	u_int32_t	magic;		/* Magic number */
-	u_int32_t	version;	/* File version (1) */
-	u_int32_t	strtab;		/* Offset of string table in file */
-	u_int32_t	strsize;	/* Size of string table */
-	u_int32_t	dirlist;	/* Offset of directory list in
-					   string table */
-	u_int32_t	dirlistlen;	/* strlen(dirlist) */
-	u_int32_t	spare[26];	/* Room for expansion */
+	u_int32_t magic;      /* Magic number */
+	u_int32_t version;    /* File version (1) */
+	u_int32_t strtab;     /* Offset of string table in file */
+	u_int32_t strsize;    /* Size of string table */
+	u_int32_t dirlist;    /* Offset of directory list in
+				 string table */
+	u_int32_t dirlistlen; /* strlen(dirlist) */
+	u_int32_t spare[26];  /* Room for expansion */
 };
 
-#define ELFHINTS_MAGIC	0x746e6845
+#define ELFHINTS_MAGIC 0x746e6845
 
 #ifndef _PATH_ELF_HINTS
-#define _PATH_ELF_HINTS	"/var/run/ld-elf.so.hints"
+#define _PATH_ELF_HINTS "/var/run/ld-elf.so.hints"
 #endif
 
 #endif /* !_ELF_HINTS_H_ */

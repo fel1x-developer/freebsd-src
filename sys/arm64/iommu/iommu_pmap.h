@@ -28,15 +28,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM64_IOMMU_IOMMU_PMAP_H_
-#define	_ARM64_IOMMU_IOMMU_PMAP_H_
+#ifndef _ARM64_IOMMU_IOMMU_PMAP_H_
+#define _ARM64_IOMMU_IOMMU_PMAP_H_
 
 struct smmu_pmap {
-	struct mtx	sp_mtx;
-	vm_paddr_t	sp_l0_paddr;
-	pd_entry_t	*sp_l0;
+	struct mtx sp_mtx;
+	vm_paddr_t sp_l0_paddr;
+	pd_entry_t *sp_l0;
 #ifdef INVARIANTS
-	long		sp_resident_count;
+	long sp_resident_count;
 #endif
 };
 

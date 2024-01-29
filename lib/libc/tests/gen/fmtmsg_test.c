@@ -26,6 +26,8 @@
 
 #include <sys/param.h>
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fmtmsg.h>
@@ -33,8 +35,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 static char *run_test(long classification, const char *label, int severity,
     const char *text, const char *action, const char *tag);
@@ -48,114 +48,69 @@ struct testcase {
 	const char *tag;
 	const char *msgverb;
 	const char *result;
-} testcases[] = {
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		NULL,
-		"BSD:ls: ERROR: illegal option -- z\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"text:severity:action:tag",
-		"illegal option -- z: ERROR\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"text",
-		"illegal option -- z\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"severity:text",
-		"ERROR: illegal option -- z\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"ignore me",
-		"BSD:ls: ERROR: illegal option -- z\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"tag:severity:text:nothing:action",
-		"BSD:ls: ERROR: illegal option -- z\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		"",
-		"BSD:ls: ERROR: illegal option -- z\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, MM_NULLLBL, MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		NULL,
-		"ERROR: illegal option -- z\n"
-		    "TO FIX: refer to manual BSD:ls:001\n"
-	},
-	{
-		MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
-		"illegal option -- z", MM_NULLACT, MM_NULLTAG,
-		NULL,
-		"BSD:ls: ERROR: illegal option -- z\n"
-	},
-	{
-		MM_UTIL | MM_NULLMC, "BSD:ls", MM_ERROR,
-		"illegal option -- z", "refer to manual", "BSD:ls:001",
-		NULL,
-		""
-	},
-	{
-		MM_APPL | MM_PRINT, "ABCDEFGHIJ:abcdefghijklmn", MM_INFO,
-		"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-		"refer to manual", "ABCDEFGHIJ:abcdefghijklmn:001",
-		NULL,
-		"ABCDEFGHIJ:abcdefghijklmn: INFO: "
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
-		    "TO FIX: refer to manual ABCDEFGHIJ:abcdefghijklmn:001\n"
-	},
-	{
-		MM_OPSYS | MM_PRINT, "TEST:test", MM_HALT,
-		"failed", "nothing can help me", "NOTHING",
-		NULL,
-		"TEST:test: HALT: failed\n"
-		    "TO FIX: nothing can help me NOTHING\n"
-	},
-	{
-		MM_OPSYS | MM_PRINT, "TEST:test", MM_WARNING,
-		"failed", "nothing can help me", "NOTHING",
-		NULL,
-		"TEST:test: WARNING: failed\n"
-		    "TO FIX: nothing can help me NOTHING\n"
-	},
-	{
-		MM_OPSYS | MM_PRINT, "TEST:test", MM_NOSEV,
-		"failed", "nothing can help me", "NOTHING",
-		NULL,
-		"TEST:test: failed\n"
-		    "TO FIX: nothing can help me NOTHING\n"
-	}
-};
+} testcases[] = { { MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR,
+		      "illegal option -- z", "refer to manual", "BSD:ls:001",
+		      NULL,
+		      "BSD:ls: ERROR: illegal option -- z\n"
+		      "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "text:severity:action:tag",
+	    "illegal option -- z: ERROR\n"
+	    "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "text", "illegal option -- z\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "severity:text",
+	    "ERROR: illegal option -- z\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "ignore me",
+	    "BSD:ls: ERROR: illegal option -- z\n"
+	    "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "tag:severity:text:nothing:action",
+	    "BSD:ls: ERROR: illegal option -- z\n"
+	    "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", "",
+	    "BSD:ls: ERROR: illegal option -- z\n"
+	    "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, MM_NULLLBL, MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", NULL,
+	    "ERROR: illegal option -- z\n"
+	    "TO FIX: refer to manual BSD:ls:001\n" },
+	{ MM_UTIL | MM_PRINT, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    MM_NULLACT, MM_NULLTAG, NULL,
+	    "BSD:ls: ERROR: illegal option -- z\n" },
+	{ MM_UTIL | MM_NULLMC, "BSD:ls", MM_ERROR, "illegal option -- z",
+	    "refer to manual", "BSD:ls:001", NULL, "" },
+	{ MM_APPL | MM_PRINT, "ABCDEFGHIJ:abcdefghijklmn", MM_INFO,
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+	    "refer to manual", "ABCDEFGHIJ:abcdefghijklmn:001", NULL,
+	    "ABCDEFGHIJ:abcdefghijklmn: INFO: "
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+	    "TO FIX: refer to manual ABCDEFGHIJ:abcdefghijklmn:001\n" },
+	{ MM_OPSYS | MM_PRINT, "TEST:test", MM_HALT, "failed",
+	    "nothing can help me", "NOTHING", NULL,
+	    "TEST:test: HALT: failed\n"
+	    "TO FIX: nothing can help me NOTHING\n" },
+	{ MM_OPSYS | MM_PRINT, "TEST:test", MM_WARNING, "failed",
+	    "nothing can help me", "NOTHING", NULL,
+	    "TEST:test: WARNING: failed\n"
+	    "TO FIX: nothing can help me NOTHING\n" },
+	{ MM_OPSYS | MM_PRINT, "TEST:test", MM_NOSEV, "failed",
+	    "nothing can help me", "NOTHING", NULL,
+	    "TEST:test: failed\n"
+	    "TO FIX: nothing can help me NOTHING\n" } };
 
 static char *
-run_test(long classification, const char *label, int severity,
-    const char *text, const char *action, const char *tag)
+run_test(long classification, const char *label, int severity, const char *text,
+    const char *action, const char *tag)
 {
 	int pip[2];
 	pid_t pid, wpid;
@@ -174,8 +129,8 @@ run_test(long classification, const char *label, int severity,
 		if (pip[1] != STDERR_FILENO &&
 		    dup2(pip[1], STDERR_FILENO) == -1)
 			_exit(2);
-		if (fmtmsg(classification, label, severity, text, action, tag)
-		    != MM_OK)
+		if (fmtmsg(classification, label, severity, text, action,
+			tag) != MM_OK)
 			_exit(1);
 		else
 			_exit(0);
@@ -235,7 +190,8 @@ ATF_TC_BODY(fmtmsg_test, tc)
 		if (result != NULL)
 			ATF_CHECK_MSG(strcmp(result, t->result) == 0,
 			    "results for testcase %d didn't match; "
-			    "`%s` != `%s`", i + 1, result, t->result);
+			    "`%s` != `%s`",
+			    i + 1, result, t->result);
 		free(result);
 	}
 }

@@ -31,10 +31,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -42,15 +43,14 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <geom/geom_disk.h>
-
 #include <dev/altera/sdcard/altera_sdcard.h>
+
+#include <geom/geom_disk.h>
 
 int altera_sdcard_ignore_crc_errors = 1;
 int altera_sdcard_verify_rxtx_writes = 1;
@@ -244,7 +244,7 @@ altera_sdcard_write_rxtx_buffer(struct altera_sdcard_softc *sc, void *data,
 		 *
 		 * XXXRW: Do we want a limit counter for retries here?
 		 */
-recheck:
+	recheck:
 		corrections = 0;
 		differences = 0;
 		if (altera_sdcard_verify_rxtx_writes) {
@@ -255,15 +255,18 @@ recheck:
 				if (v != d) {
 					if (retry_counter == 0) {
 						bus_write_2(sc->as_res,
-						    ALTERA_SDCARD_OFF_RXTX_BUFFER + i,
+						    ALTERA_SDCARD_OFF_RXTX_BUFFER +
+							i,
 						    d);
 						v = bus_read_2(sc->as_res,
-						    ALTERA_SDCARD_OFF_RXTX_BUFFER + i);
+						    ALTERA_SDCARD_OFF_RXTX_BUFFER +
+							i);
 						if (v == d) {
 							corrections++;
-							device_printf(sc->as_dev,
+							device_printf(
+							    sc->as_dev,
 							    "%s: single word rewrite worked"
-							    " at offset %u\n", 
+							    " at offset %u\n",
 							    __func__, i);
 							continue;
 						}
@@ -299,16 +302,16 @@ altera_sdcard_io_start_internal(struct altera_sdcard_softc *sc,
 
 	switch (bp->bio_cmd) {
 	case BIO_READ:
-		altera_sdcard_write_cmd_arg(sc, bp->bio_pblkno *
-		    ALTERA_SDCARD_SECTORSIZE);
+		altera_sdcard_write_cmd_arg(sc,
+		    bp->bio_pblkno * ALTERA_SDCARD_SECTORSIZE);
 		altera_sdcard_write_cmd(sc, ALTERA_SDCARD_CMD_READ_BLOCK);
 		break;
 
 	case BIO_WRITE:
 		altera_sdcard_write_rxtx_buffer(sc, bp->bio_data,
 		    bp->bio_bcount);
-		altera_sdcard_write_cmd_arg(sc, bp->bio_pblkno *
-		    ALTERA_SDCARD_SECTORSIZE);
+		altera_sdcard_write_cmd_arg(sc,
+		    bp->bio_pblkno * ALTERA_SDCARD_SECTORSIZE);
 		altera_sdcard_write_cmd(sc, ALTERA_SDCARD_CMD_WRITE_BLOCK);
 		break;
 
@@ -375,8 +378,7 @@ altera_sdcard_io_complete(struct altera_sdcard_softc *sc, uint16_t asr)
 			mask &= ~ALTERA_SDCARD_RR1_COMMANDCRCFAILED;
 		if (asr & ALTERA_SDCARD_ASR_CMDTIMEOUT)
 			error = EIO;
-		else if ((asr & ALTERA_SDCARD_ASR_CMDDATAERROR) &&
-		    (rr1 & mask))
+		else if ((asr & ALTERA_SDCARD_ASR_CMDDATAERROR) && (rr1 & mask))
 			error = EIO;
 		else
 			error = 0;
@@ -395,11 +397,14 @@ altera_sdcard_io_complete(struct altera_sdcard_softc *sc, uint16_t asr)
 	if (error) {
 		sc->as_retriesleft--;
 		if (sc->as_retriesleft == 0 || bootverbose)
-			device_printf(sc->as_dev, "%s: %s operation block %ju "
+			device_printf(sc->as_dev,
+			    "%s: %s operation block %ju "
 			    "length %ju failed; asr 0x%08x (rr1: 0x%04x)%s\n",
-			    __func__, bp->bio_cmd == BIO_READ ? "BIO_READ" :
-			    (bp->bio_cmd == BIO_WRITE ? "BIO_WRITE" :
-			    "unknown"),
+			    __func__,
+			    bp->bio_cmd == BIO_READ ?
+				"BIO_READ" :
+				(bp->bio_cmd == BIO_WRITE ? "BIO_WRITE" :
+							    "unknown"),
 			    bp->bio_pblkno, bp->bio_bcount, asr, rr1,
 			    sc->as_retriesleft != 0 ? " retrying" : "");
 		/*
@@ -416,10 +421,14 @@ altera_sdcard_io_complete(struct altera_sdcard_softc *sc, uint16_t asr)
 		 * Successful I/O completion path.
 		 */
 		if (sc->as_flags & ALTERA_SDCARD_FLAG_IOERROR) {
-			device_printf(sc->as_dev, "%s: %s operation block %ju"
+			device_printf(sc->as_dev,
+			    "%s: %s operation block %ju"
 			    " length %ju succeeded after %d retries\n",
-			    __func__, bp->bio_cmd == BIO_READ ? "BIO_READ" :
-			    (bp->bio_cmd == BIO_WRITE ? "write" : "unknown"),
+			    __func__,
+			    bp->bio_cmd == BIO_READ ?
+				"BIO_READ" :
+				(bp->bio_cmd == BIO_WRITE ? "write" :
+							    "unknown"),
 			    bp->bio_pblkno, bp->bio_bcount,
 			    ALTERA_SDCARD_RETRY_LIMIT - sc->as_retriesleft);
 			sc->as_flags &= ~ALTERA_SDCARD_FLAG_IOERROR;

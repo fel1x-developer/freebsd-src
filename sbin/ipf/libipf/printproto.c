@@ -6,9 +6,6 @@
 
 #include "ipf.h"
 
-
-
-
 void
 printproto(struct protoent *pr, int p, ipnat_t *np)
 {

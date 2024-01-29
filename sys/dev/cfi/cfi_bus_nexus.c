@@ -37,7 +37,7 @@
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>   
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
@@ -66,10 +66,9 @@ cfi_nexus_attach(device_t dev)
 
 static device_method_t cfi_nexus_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		cfi_nexus_probe),
-	DEVMETHOD(device_attach,	cfi_nexus_attach),
-	DEVMETHOD(device_detach,	cfi_detach),
-	{0, 0}
+	DEVMETHOD(device_probe, cfi_nexus_probe),
+	DEVMETHOD(device_attach, cfi_nexus_attach),
+	DEVMETHOD(device_detach, cfi_detach), { 0, 0 }
 };
 
 static driver_t cfi_nexus_driver = {

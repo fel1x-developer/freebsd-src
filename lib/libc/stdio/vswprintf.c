@@ -39,12 +39,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
 int
-vswprintf_l(wchar_t * __restrict s, size_t n, locale_t locale,
-		const wchar_t * __restrict fmt, __va_list ap)
+vswprintf_l(wchar_t *__restrict s, size_t n, locale_t locale,
+    const wchar_t *__restrict fmt, __va_list ap)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -71,7 +72,7 @@ vswprintf_l(wchar_t * __restrict s, size_t n, locale_t locale,
 		*s = L'\0';
 		return (-1);
 	}
-	f._bf._size = f._w = 127;		/* Leave room for the NUL */
+	f._bf._size = f._w = 127; /* Leave room for the NUL */
 	ret = __vfwprintf(&f, locale, fmt, ap);
 	if (ret < 0) {
 		sverrno = errno;
@@ -103,7 +104,7 @@ vswprintf_l(wchar_t * __restrict s, size_t n, locale_t locale,
 	return (ret);
 }
 int
-vswprintf(wchar_t * __restrict s, size_t n, const wchar_t * __restrict fmt,
+vswprintf(wchar_t *__restrict s, size_t n, const wchar_t *__restrict fmt,
     __va_list ap)
 {
 	return vswprintf_l(s, n, __get_locale(), fmt, ap);

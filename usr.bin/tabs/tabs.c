@@ -48,31 +48,27 @@
 #include <unistd.h>
 
 /* Maximum number of tab stops allowed in table. */
-#define NSTOPS		20
+#define NSTOPS 20
 
 #define NELEMS(a) (sizeof(a) / sizeof(a[0]))
 
 /* Predefined formats, taken from IEEE Std 1003.1-2001. */
 static const struct {
-	const char	*name;		/* Format name used on cmd. line */
-	long		stops[NSTOPS];	/* Column positions */
-} formats[] = {
-	{ "a",	{ 1, 10, 16, 36, 72 } },
-	{ "a2",	{ 1, 10, 16, 40, 72 } },
-	{ "c",	{ 1, 8, 12, 16, 20, 55 } },
-	{ "c2",	{ 1, 6, 10, 14, 49 } },
-	{ "c3", { 1, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58,
-		62, 67 } },
-	{ "f",	{ 1, 7, 11, 15, 19, 23 } },
-	{ "p",	{ 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57,
-		61 } },
-	{ "s",	{ 1, 10, 55 } },
-	{ "u",	{ 1, 12, 20, 44 } }
-};
+	const char *name;   /* Format name used on cmd. line */
+	long stops[NSTOPS]; /* Column positions */
+} formats[] = { { "a", { 1, 10, 16, 36, 72 } }, { "a2", { 1, 10, 16, 40, 72 } },
+	{ "c", { 1, 8, 12, 16, 20, 55 } }, { "c2", { 1, 6, 10, 14, 49 } },
+	{ "c3",
+	    { 1, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58, 62,
+		67 } },
+	{ "f", { 1, 7, 11, 15, 19, 23 } },
+	{ "p",
+	    { 1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61 } },
+	{ "s", { 1, 10, 55 } }, { "u", { 1, 12, 20, 44 } } };
 
-static void	 gettabs(char *, long *, long *);
-static int	 ttywidth(void);
-static void	 usage(void);
+static void gettabs(char *, long *, long *);
+static int ttywidth(void);
+static void usage(void);
 
 int
 main(int argc __unused, char *argv[])
@@ -124,12 +120,12 @@ main(int argc __unused, char *argv[])
 					break;
 			if (i == NELEMS(formats))
 				usage();
-			for (j = nstops = 0; j < NSTOPS &&
-			    formats[i].stops[j] != 0; j++)
+			for (j = nstops = 0;
+			     j < NSTOPS && formats[i].stops[j] != 0; j++)
 				stops[nstops++] = formats[i].stops[j];
 		}
-	}	
-	
+	}
+
 	if (arg != NULL) {
 		if (nstops != -1)
 			usage();
@@ -187,9 +183,8 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: tabs [-n|-a|-a2|-c|-c2|-c3|-f|-p|-s|-u] [+m[n]] [-T type]\n");
-	fprintf(stderr,
-"       tabs [-T type] [+[n]] n1,[n2,...]\n");
+	    "usage: tabs [-n|-a|-a2|-c|-c2|-c3|-f|-p|-s|-u] [+m[n]] [-T type]\n");
+	fprintf(stderr, "       tabs [-T type] [+[n]] n1,[n2,...]\n");
 	exit(1);
 }
 
@@ -200,7 +195,7 @@ gettabs(char *arg, long stops[], long *nstops)
 	long last, stop;
 
 	for (last = *nstops = 0, tok = strtok(arg, ","); tok != NULL;
-	    tok = strtok(NULL, ",")) {
+	     tok = strtok(NULL, ",")) {
 		if (*nstops >= NSTOPS)
 			errx(1, "too many tab stops (limit %d)", NSTOPS);
 		errno = 0;

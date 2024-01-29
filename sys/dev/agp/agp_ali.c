@@ -28,34 +28,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_object.h>
+
 #include <dev/agp/agppriv.h>
 #include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
-#include <vm/vm.h>
-#include <vm/vm_object.h>
-#include <vm/pmap.h>
+#include <dev/pci/pcivar.h>
 
 struct agp_ali_softc {
 	struct agp_softc agp;
-	u_int32_t	initial_aperture; /* aperture size at startup */
+	u_int32_t initial_aperture; /* aperture size at startup */
 	struct agp_gatt *gatt;
 };
 
-static const char*
+static const char *
 agp_ali_match(device_t dev)
 {
-	if (pci_get_class(dev) != PCIC_BRIDGE
-	    || pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
+	if (pci_get_class(dev) != PCIC_BRIDGE ||
+	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST)
 		return NULL;
 
 	if (agp_find_caps(dev) == 0)
@@ -125,8 +125,8 @@ agp_ali_attach(device_t dev)
 
 	/* Install the gatt. */
 	attbase = pci_read_config(dev, AGP_ALI_ATTBASE, 4);
-	pci_write_config(dev, AGP_ALI_ATTBASE, gatt->ag_physical |
-	    (attbase & 0xfff), 4);
+	pci_write_config(dev, AGP_ALI_ATTBASE,
+	    gatt->ag_physical | (attbase & 0xfff), 4);
 
 	/* Enable the TLB. */
 	pci_write_config(dev, AGP_ALI_TLBCTRL, 0x10, 1);
@@ -155,22 +155,22 @@ agp_ali_detach(device_t dev)
 	return 0;
 }
 
-#define M 1024*1024
+#define M 1024 * 1024
 
 static u_int32_t agp_ali_table[] = {
-	0,			/* 0 - invalid */
-	1,			/* 1 - invalid */
-	2,			/* 2 - invalid */
-	4*M,			/* 3 - invalid */
-	8*M,			/* 4 - invalid */
-	0,			/* 5 - invalid */
-	16*M,			/* 6 - invalid */
-	32*M,			/* 7 - invalid */
-	64*M,			/* 8 - invalid */
-	128*M,			/* 9 - invalid */
-	256*M,			/* 10 - invalid */
+	0,	 /* 0 - invalid */
+	1,	 /* 1 - invalid */
+	2,	 /* 2 - invalid */
+	4 * M,	 /* 3 - invalid */
+	8 * M,	 /* 4 - invalid */
+	0,	 /* 5 - invalid */
+	16 * M,	 /* 6 - invalid */
+	32 * M,	 /* 7 - invalid */
+	64 * M,	 /* 8 - invalid */
+	128 * M, /* 9 - invalid */
+	256 * M, /* 10 - invalid */
 };
-#define	AGP_ALI_TABLE_SIZE nitems(agp_ali_table)
+#define AGP_ALI_TABLE_SIZE nitems(agp_ali_table)
 
 static u_int32_t
 agp_ali_get_aperture(device_t dev)
@@ -235,25 +235,24 @@ agp_ali_flush_tlb(device_t dev)
 
 static device_method_t agp_ali_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_ali_probe),
-	DEVMETHOD(device_attach,	agp_ali_attach),
-	DEVMETHOD(device_detach,	agp_ali_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_ali_probe),
+	DEVMETHOD(device_attach, agp_ali_attach),
+	DEVMETHOD(device_detach, agp_ali_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_ali_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_ali_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_ali_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_ali_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_ali_flush_tlb),
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_get_aperture, agp_ali_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_ali_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_ali_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_ali_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_ali_flush_tlb),
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_ali_driver = {

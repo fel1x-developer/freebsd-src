@@ -40,7 +40,7 @@ MALLOC_DECLARE(M_NLM);
  * This value is added to host system IDs when recording NFS client
  * locks in the local lock manager.
  */
-#define NLM_SYSID_CLIENT	0x1000000
+#define NLM_SYSID_CLIENT 0x1000000
 
 struct nlm_host;
 struct vnode;
@@ -50,13 +50,13 @@ extern int nlm_nsm_state;
 
 /*
  * Make a struct netobj.
- */ 
-extern void nlm_make_netobj(struct netobj *dst, caddr_t srt,
-    size_t srcsize, struct malloc_type *type);
+ */
+extern void nlm_make_netobj(struct netobj *dst, caddr_t srt, size_t srcsize,
+    struct malloc_type *type);
 
 /*
  * Copy a struct netobj.
- */ 
+ */
 extern void nlm_copy_netobj(struct netobj *dst, struct netobj *src,
     struct malloc_type *type);
 
@@ -166,7 +166,7 @@ extern int nlm_do_test(nlm4_testargs *argp, nlm4_testres *result,
  * otherwise.
  */
 extern int nlm_do_lock(nlm4_lockargs *argp, nlm4_res *result,
-    struct svc_req *rqstp, bool_t monitor, CLIENT **rpcp); 
+    struct svc_req *rqstp, bool_t monitor, CLIENT **rpcp);
 
 /*
  * Implementation for cancelling a pending lock request. If the

@@ -21,14 +21,14 @@
 
 #define ROTORSZ 256
 #define MASK 0377
-static char	t1[ROTORSZ];
-static char	t2[ROTORSZ];
-static char	t3[ROTORSZ];
-static char	deck[ROTORSZ];
-static char	buf[13];
+static char t1[ROTORSZ];
+static char t2[ROTORSZ];
+static char t3[ROTORSZ];
+static char deck[ROTORSZ];
+static char buf[13];
 
-static void	shuffle(char *);
-static void	setup(char *);
+static void shuffle(char *);
+static void setup(char *);
 
 static void
 setup(char *pw)
@@ -52,29 +52,31 @@ setup(char *pw)
 	}
 	memcpy(buf, cryptpw, sizeof(buf));
 	seed = 123;
-	for (i=0; i<13; i++)
-		seed = seed*buf[i] + i;
-	for(i=0;i<ROTORSZ;i++) {
+	for (i = 0; i < 13; i++)
+		seed = seed * buf[i] + i;
+	for (i = 0; i < ROTORSZ; i++) {
 		t1[i] = i;
 		deck[i] = i;
 	}
-	for(i=0;i<ROTORSZ;i++) {
-		seed = 5*seed + buf[i%13];
+	for (i = 0; i < ROTORSZ; i++) {
+		seed = 5 * seed + buf[i % 13];
 		rnd = seed % 65521;
-		k = ROTORSZ-1 - i;
-		ic = (rnd&MASK)%(k+1);
+		k = ROTORSZ - 1 - i;
+		ic = (rnd & MASK) % (k + 1);
 		rnd >>= 8;
 		temp = t1[k];
 		t1[k] = t1[ic];
 		t1[ic] = temp;
-		if(t3[k]!=0) continue;
-		ic = (rnd&MASK) % k;
-		while(t3[ic]!=0) ic = (ic+1) % k;
+		if (t3[k] != 0)
+			continue;
+		ic = (rnd & MASK) % k;
+		while (t3[ic] != 0)
+			ic = (ic + 1) % k;
 		t3[k] = ic;
 		t3[ic] = k;
 	}
-	for(i=0;i<ROTORSZ;i++)
-		t2[t1[i]&MASK] = i;
+	for (i = 0; i < ROTORSZ; i++)
+		t2[t1[i] & MASK] = i;
 }
 
 int
@@ -103,27 +105,28 @@ main(int argc, char *argv[])
 		setup(cp);
 	} else if (argc != 2) {
 		setup(getpass("Enter key:"));
-	}
-	else
+	} else
 		setup(argv[1]);
 	n1 = 0;
 	n2 = 0;
 	nr2 = 0;
 
-	while((i=getchar()) != -1) {
+	while ((i = getchar()) != -1) {
 		if (secureflg) {
-			nr1 = deck[n1]&MASK;
-			nr2 = deck[nr1]&MASK;
+			nr1 = deck[n1] & MASK;
+			nr2 = deck[nr1] & MASK;
 		} else {
 			nr1 = n1;
 		}
-		i = t2[(t3[(t1[(i+nr1)&MASK]+nr2)&MASK]-nr2)&MASK]-nr1;
+		i = t2[(t3[(t1[(i + nr1) & MASK] + nr2) & MASK] - nr2) & MASK] -
+		    nr1;
 		putchar(i);
 		n1++;
-		if(n1==ROTORSZ) {
+		if (n1 == ROTORSZ) {
 			n1 = 0;
 			n2++;
-			if(n2==ROTORSZ) n2 = 0;
+			if (n2 == ROTORSZ)
+				n2 = 0;
 			if (secureflg) {
 				shuffle(deck);
 			} else {
@@ -142,11 +145,11 @@ shuffle(char deckary[])
 	unsigned rnd;
 	static int32_t seed = 123;
 
-	for(i=0;i<ROTORSZ;i++) {
-		seed = 5*seed + buf[i%13];
+	for (i = 0; i < ROTORSZ; i++) {
+		seed = 5 * seed + buf[i % 13];
 		rnd = seed % 65521;
-		k = ROTORSZ-1 - i;
-		ic = (rnd&MASK)%(k+1);
+		k = ROTORSZ - 1 - i;
+		ic = (rnd & MASK) % (k + 1);
 		temp = deckary[k];
 		deckary[k] = deckary[ic];
 		deckary[ic] = temp;

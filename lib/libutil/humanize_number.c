@@ -1,4 +1,5 @@
-/*	$NetBSD: humanize_number.c,v 1.14 2008/04/28 20:22:59 martin Exp $	*/
+/*	$NetBSD: humanize_number.c,v 1.14 2008/04/28 20:22:59 martin Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -34,25 +35,26 @@
  */
 
 #include <sys/types.h>
+
 #include <assert.h>
 #include <inttypes.h>
+#include <libutil.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
-#include <libutil.h>
 
 static const int maxscale = 6;
 
 int
-humanize_number(char *buf, size_t len, int64_t quotient,
-    const char *suffix, int scale, int flags)
+humanize_number(char *buf, size_t len, int64_t quotient, const char *suffix,
+    int scale, int flags)
 {
 	const char *prefixes, *sep;
-	int	i, r, remainder, s1, s2, sign;
-	int	divisordeccut;
-	int64_t	divisor, max;
-	size_t	baselen;
+	int i, r, remainder, s1, s2, sign;
+	int divisordeccut;
+	int64_t divisor, max;
+	size_t baselen;
 
 	/* Since so many callers don't check -1, NUL terminate the buffer */
 	if (len > 0)
@@ -64,7 +66,7 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 	if (scale < 0)
 		return (-1);
 	else if (scale > maxscale &&
-	    ((scale & ~(HN_AUTOSCALE|HN_GETSCALE)) != 0))
+	    ((scale & ~(HN_AUTOSCALE | HN_GETSCALE)) != 0))
 		return (-1);
 	if ((flags & HN_DIVISOR_1000) && (flags & HN_IEC_PREFIXES))
 		return (-1);
@@ -84,7 +86,7 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 		 * an assertion earlier).
 		 */
 		divisor = 1024;
-		divisordeccut = 973;	/* ceil(.95 * 1024) */
+		divisordeccut = 973; /* ceil(.95 * 1024) */
 		if (flags & HN_B)
 			prefixes = "B\0\0Ki\0Mi\0Gi\0Ti\0Pi\0Ei";
 		else
@@ -100,7 +102,7 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 				prefixes = "\0\0\0k\0\0M\0\0G\0\0T\0\0P\0\0E";
 		} else {
 			divisor = 1024;
-			divisordeccut = 973;	/* ceil(.95 * 1024) */
+			divisordeccut = 973; /* ceil(.95 * 1024) */
 			if (flags & HN_B)
 				prefixes = "B\0\0K\0\0M\0\0G\0\0T\0\0P\0\0E";
 			else
@@ -108,15 +110,15 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 		}
 	}
 
-#define	SCALE2PREFIX(scale)	(&prefixes[(scale) * 3])
+#define SCALE2PREFIX(scale) (&prefixes[(scale) * 3])
 
 	if (quotient < 0) {
 		sign = -1;
 		quotient = -quotient;
-		baselen += 2;		/* sign, digit */
+		baselen += 2; /* sign, digit */
 	} else {
 		sign = 1;
-		baselen += 1;		/* digit */
+		baselen += 1; /* digit */
 	}
 	if (flags & HN_NOSPACE)
 		sep = "";
@@ -140,10 +142,12 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 		 * If there will be an overflow by the rounding below,
 		 * divide once more.
 		 */
-		for (i = 0;
-		    (quotient >= max || (quotient == max - 1 &&
-		    (remainder >= divisordeccut || remainder >=
-		    divisor / 2))) && i < maxscale; i++) {
+		for (i = 0; (quotient >= max ||
+				(quotient == max - 1 &&
+				    (remainder >= divisordeccut ||
+					remainder >= divisor / 2))) &&
+		     i < maxscale;
+		     i++) {
 			remainder = quotient % divisor;
 			quotient /= divisor;
 		}
@@ -164,12 +168,12 @@ humanize_number(char *buf, size_t len, int64_t quotient,
 	 */
 	if (((quotient == 9 && remainder < divisordeccut) || quotient < 9) &&
 	    i > 0 && flags & HN_DECIMAL) {
-		s1 = (int)quotient + ((remainder * 10 + divisor / 2) /
-		    divisor / 10);
+		s1 = (int)quotient +
+		    ((remainder * 10 + divisor / 2) / divisor / 10);
 		s2 = ((remainder * 10 + divisor / 2) / divisor) % 10;
-		r = snprintf(buf, len, "%d%s%d%s%s%s",
-		    sign * s1, localeconv()->decimal_point, s2,
-		    sep, SCALE2PREFIX(i), suffix);
+		r = snprintf(buf, len, "%d%s%d%s%s%s", sign * s1,
+		    localeconv()->decimal_point, s2, sep, SCALE2PREFIX(i),
+		    suffix);
 	} else
 		r = snprintf(buf, len, "%" PRId64 "%s%s%s",
 		    sign * (quotient + (remainder + divisor / 2) / divisor),

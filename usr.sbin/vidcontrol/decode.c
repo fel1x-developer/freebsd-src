@@ -30,47 +30,50 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "decode.h"
 
-int decode(FILE *fd, char *buffer, int len)
+int
+decode(FILE *fd, char *buffer, int len)
 {
 	int n, pos = 0, tpos;
 	char *bp, *p;
 	char tbuffer[3];
 	char temp[128];
 
-#define	DEC(c)	(((c) - ' ') & 0x3f)
+#define DEC(c) (((c) - ' ') & 0x3f)
 
 	do {
 		if (!fgets(temp, sizeof(temp), fd))
-			return(0);
+			return (0);
 	} while (strncmp(temp, "begin ", 6));
 	sscanf(temp, "begin %o %s", (unsigned *)&n, temp);
 	bp = buffer;
 	for (;;) {
 		if (!fgets(p = temp, sizeof(temp), fd))
-			return(0);
+			return (0);
 		if ((n = DEC(*p)) <= 0)
 			break;
 		for (++p; n > 0; p += 4, n -= 3) {
 			tpos = 0;
 			if (n >= 3) {
-				tbuffer[tpos++] = DEC(p[0])<<2 | DEC(p[1])>>4;
-				tbuffer[tpos++] = DEC(p[1])<<4 | DEC(p[2])>>2;
-				tbuffer[tpos++] = DEC(p[2])<<6 | DEC(p[3]);
-			}
-			else {
+				tbuffer[tpos++] = DEC(p[0]) << 2 |
+				    DEC(p[1]) >> 4;
+				tbuffer[tpos++] = DEC(p[1]) << 4 |
+				    DEC(p[2]) >> 2;
+				tbuffer[tpos++] = DEC(p[2]) << 6 | DEC(p[3]);
+			} else {
 				if (n >= 1) {
-					tbuffer[tpos++] =
-						DEC(p[0])<<2 | DEC(p[1])>>4;
+					tbuffer[tpos++] = DEC(p[0]) << 2 |
+					    DEC(p[1]) >> 4;
 				}
 				if (n >= 2) {
-					tbuffer[tpos++] =
-						DEC(p[1])<<4 | DEC(p[2])>>2;
+					tbuffer[tpos++] = DEC(p[1]) << 4 |
+					    DEC(p[2]) >> 2;
 				}
 				if (n >= 3) {
-					tbuffer[tpos++] =
-						DEC(p[2])<<6 | DEC(p[3]);
+					tbuffer[tpos++] = DEC(p[2]) << 6 |
+					    DEC(p[3]);
 				}
 			}
 			if (tpos == 0)
@@ -87,10 +90,10 @@ int decode(FILE *fd, char *buffer, int len)
 			pos += tpos;
 			bp += tpos;
 			if (pos > len)
-				return(pos);
+				return (pos);
 		}
 	}
 	if (!fgets(temp, sizeof(temp), fd) || strcmp(temp, "end\n"))
-		return(0);
-	return(pos);
+		return (0);
+	return (pos);
 }

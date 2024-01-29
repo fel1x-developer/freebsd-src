@@ -34,6 +34,7 @@
 
 #include <net/if.h>
 #include <net/if_mib.h>
+#include <net/if_vlan_var.h>
 #include <netinet/in.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
@@ -48,12 +49,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <net/if_vlan_var.h>
-
 #include "libifconfig.h"
 #include "libifconfig_internal.h"
 
-#define NOTAG    ((u_short) -1)
+#define NOTAG ((u_short)-1)
 
 static bool
 isnd6defif(ifconfig_handle_t *h, const char *name)
@@ -123,8 +122,8 @@ ifconfig_err_ioctlreq(ifconfig_handle_t *h)
 }
 
 int
-ifconfig_foreach_iface(ifconfig_handle_t *h,
-    ifconfig_foreach_func_t cb, void *udata)
+ifconfig_foreach_iface(ifconfig_handle_t *h, ifconfig_foreach_func_t cb,
+    void *udata)
 {
 	int ret;
 
@@ -153,11 +152,9 @@ ifconfig_foreach_ifaddr(ifconfig_handle_t *h, struct ifaddrs *ifa,
 {
 	struct ifaddrs *ift;
 
-	for (ift = ifa;
-	    ift != NULL &&
-	    ift->ifa_addr != NULL &&
-	    strcmp(ift->ifa_name, ifa->ifa_name) == 0;
-	    ift = ift->ifa_next) {
+	for (ift = ifa; ift != NULL && ift->ifa_addr != NULL &&
+	     strcmp(ift->ifa_name, ifa->ifa_name) == 0;
+	     ift = ift->ifa_next) {
 		cb(h, ift, udata);
 	}
 }
@@ -385,8 +382,7 @@ ifconfig_get_mtu(ifconfig_handle_t *h, const char *name, int *mtu)
 }
 
 int
-ifconfig_get_nd6(ifconfig_handle_t *h, const char *name,
-    struct in6_ndireq *nd)
+ifconfig_get_nd6(ifconfig_handle_t *h, const char *name, struct in6_ndireq *nd)
 {
 	memset(nd, 0, sizeof(*nd));
 	strlcpy(nd->ifname, name, sizeof(nd->ifname));
@@ -554,15 +550,13 @@ ifconfig_create_interface(ifconfig_handle_t *h, const char *name, char **ifname)
 
 	/*
 	 * TODO:
-	 * Insert special snowflake handling here. See GitHub issue #12 for details.
-	 * In the meantime, hard-nosupport interfaces that need special handling.
+	 * Insert special snowflake handling here. See GitHub issue #12 for
+	 * details. In the meantime, hard-nosupport interfaces that need special
+	 * handling.
 	 */
-	if ((strncmp(name, "wlan",
-	    strlen("wlan")) == 0) ||
-	    (strncmp(name, "vlan",
-	    strlen("vlan")) == 0) ||
-	    (strncmp(name, "vxlan",
-	    strlen("vxlan")) == 0)) {
+	if ((strncmp(name, "wlan", strlen("wlan")) == 0) ||
+	    (strncmp(name, "vlan", strlen("vlan")) == 0) ||
+	    (strncmp(name, "vxlan", strlen("vxlan")) == 0)) {
 		h->error.errtype = OTHER;
 		h->error.errcode = ENOSYS;
 		return (-1);

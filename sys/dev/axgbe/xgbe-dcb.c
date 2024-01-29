@@ -114,6 +114,7 @@
  *     THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
+
 #include "xgbe.h"
 
 #if 0

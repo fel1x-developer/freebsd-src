@@ -32,32 +32,30 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "local.h"
 
 FILE *
-funopen(const void *cookie,
-	int (*readfn)(void *, char *, int),
-	int (*writefn)(void *, const char *, int),
-	fpos_t (*seekfn)(void *, fpos_t, int),
-	int (*closefn)(void *))
+funopen(const void *cookie, int (*readfn)(void *, char *, int),
+    int (*writefn)(void *, const char *, int),
+    fpos_t (*seekfn)(void *, fpos_t, int), int (*closefn)(void *))
 {
 	FILE *fp;
 	int flags;
 
 	if (readfn == NULL) {
-		if (writefn == NULL) {		/* illegal */
+		if (writefn == NULL) { /* illegal */
 			errno = EINVAL;
 			return (NULL);
 		} else
-			flags = __SWR;		/* write only */
+			flags = __SWR; /* write only */
 	} else {
 		if (writefn == NULL)
-			flags = __SRD;		/* read only */
+			flags = __SRD; /* read only */
 		else
-			flags = __SRW;		/* read-write */
+			flags = __SRW; /* read-write */
 	}
 	if ((fp = __sfp()) == NULL)
 		return (NULL);

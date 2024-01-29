@@ -30,36 +30,36 @@
  */
 
 #include <string.h>
+
 #include "stand.h"
 #include "zalloc_defs.h"
 
-static size_t	maxheap, heapsize = 0;
-static void	*heapbase;
+static size_t maxheap, heapsize = 0;
+static void *heapbase;
 
 void
 setheap(void *base, void *top)
 {
-    /* Align start address for the malloc code.  Sigh. */
-    heapbase = (void *)(((uintptr_t)base + MALLOCALIGN_MASK) & 
-        ~MALLOCALIGN_MASK);
-    maxheap = (char *)top - (char *)heapbase;
+	/* Align start address for the malloc code.  Sigh. */
+	heapbase = (void *)(((uintptr_t)base + MALLOCALIGN_MASK) &
+	    ~MALLOCALIGN_MASK);
+	maxheap = (char *)top - (char *)heapbase;
 }
 
 char *
 sbrk(int incr)
 {
-    char	*ret;
-    
-    if (heapbase == 0)
-	    panic("No heap setup");
+	char *ret;
 
-    if ((heapsize + incr) <= maxheap) {
-	ret = (char *)heapbase + heapsize;
-	bzero(ret, incr);
-	heapsize += incr;
-	return(ret);
-    }
-    errno = ENOMEM;
-    return((char *)-1);
+	if (heapbase == 0)
+		panic("No heap setup");
+
+	if ((heapsize + incr) <= maxheap) {
+		ret = (char *)heapbase + heapsize;
+		bzero(ret, incr);
+		heapsize += incr;
+		return (ret);
+	}
+	errno = ENOMEM;
+	return ((char *)-1);
 }
-

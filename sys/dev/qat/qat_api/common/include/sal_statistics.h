@@ -34,13 +34,13 @@
 
 /**
 *****************************************************************************
- * @ingroup SalStats
- *      Structure describing stats enabled/disabled in the system
- *
- * @description
- *      Structure describing stats enabled/disabled in the system
- *
- *****************************************************************************/
+* @ingroup SalStats
+*      Structure describing stats enabled/disabled in the system
+*
+* @description
+*      Structure describing stats enabled/disabled in the system
+*
+*****************************************************************************/
 typedef struct sal_statistics_collection_s {
 	CpaBoolean bStatsEnabled;
 	/**< If CPA_TRUE then statistics functionality is enabled */

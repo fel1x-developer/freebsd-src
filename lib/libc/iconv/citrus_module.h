@@ -32,24 +32,23 @@
 #ifndef _CITRUS_MODULE_H_
 #define _CITRUS_MODULE_H_
 
-#define MATCH(x, act)						\
-do {								\
-	if (lenvar >= (sizeof(#x)-1) &&				\
-	    _bcs_strncasecmp(p, #x, sizeof(#x)-1) == 0) {	\
-		act;						\
-		lenvar -= sizeof(#x)-1;				\
-		p += sizeof(#x)-1;				\
-	}							\
-} while (0)
+#define MATCH(x, act)                                               \
+	do {                                                        \
+		if (lenvar >= (sizeof(#x) - 1) &&                   \
+		    _bcs_strncasecmp(p, #x, sizeof(#x) - 1) == 0) { \
+			act;                                        \
+			lenvar -= sizeof(#x) - 1;                   \
+			p += sizeof(#x) - 1;                        \
+		}                                                   \
+	} while (0)
 
 typedef struct _citrus_module_rec *_citrus_module_t;
 
 __BEGIN_DECLS
-void	*_citrus_find_getops(_citrus_module_t __restrict,
-	    const char * __restrict, const char * __restrict);
-int	 _citrus_load_module(_citrus_module_t * __restrict,
-	    const char * __restrict);
-void	 _citrus_unload_module(_citrus_module_t);
+void *_citrus_find_getops(_citrus_module_t __restrict, const char *__restrict,
+    const char *__restrict);
+int _citrus_load_module(_citrus_module_t *__restrict, const char *__restrict);
+void _citrus_unload_module(_citrus_module_t);
 __END_DECLS
 
 #endif

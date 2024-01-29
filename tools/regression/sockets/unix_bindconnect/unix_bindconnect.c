@@ -47,14 +47,14 @@
  * - Check the results of getsockaddr() and getpeeraddr().
  */
 
-#define	SOCK_NAME_ONE	"socket.1"
-#define	SOCK_NAME_TWO	"socket.2"
+#define SOCK_NAME_ONE "socket.1"
+#define SOCK_NAME_TWO "socket.2"
 
-#define	UNWIND_MAX	1024
+#define UNWIND_MAX 1024
 
 static int unwind_len;
 static struct unwind {
-	char	u_path[PATH_MAX];
+	char u_path[PATH_MAX];
 } unwind_list[UNWIND_MAX];
 
 static void
@@ -92,8 +92,8 @@ bind_test(const char *directory_path)
 		return (-1);
 	}
 
-	if (snprintf(socket_path, sizeof(socket_path), "%s/%s",
-	    directory_path, SOCK_NAME_ONE) >= PATH_MAX) {
+	if (snprintf(socket_path, sizeof(socket_path), "%s/%s", directory_path,
+		SOCK_NAME_ONE) >= PATH_MAX) {
 		warn("bind_test: snprintf(socket_path)");
 		close(sock1);
 		return (-1);
@@ -102,8 +102,8 @@ bind_test(const char *directory_path)
 	bzero(&sun, sizeof(sun));
 	sun.sun_len = sizeof(sun);
 	sun.sun_family = AF_UNIX;
-	if (snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", socket_path)
-	    >= (int)sizeof(sun.sun_path)) {
+	if (snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", socket_path) >=
+	    (int)sizeof(sun.sun_path)) {
 		warn("bind_test: snprintf(sun.sun_path)");
 		close(sock1);
 		return (-1);
@@ -203,8 +203,8 @@ connect_test(const char *directory_path)
 		return (-1);
 	}
 
-	if (snprintf(socket_path, sizeof(socket_path), "%s/%s",
-	    directory_path, SOCK_NAME_TWO) >= PATH_MAX) {
+	if (snprintf(socket_path, sizeof(socket_path), "%s/%s", directory_path,
+		SOCK_NAME_TWO) >= PATH_MAX) {
 		warn("connect_test: snprintf(socket_path)");
 		close(sock1);
 		return (-1);
@@ -213,8 +213,8 @@ connect_test(const char *directory_path)
 	bzero(&sun, sizeof(sun));
 	sun.sun_len = sizeof(sun);
 	sun.sun_family = AF_UNIX;
-	if (snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", socket_path)
-	    >= (int)sizeof(sun.sun_path)) {
+	if (snprintf(sun.sun_path, sizeof(sun.sun_path), "%s", socket_path) >=
+	    (int)sizeof(sun.sun_path)) {
 		warn("connect_test: snprintf(sun.sun_path)");
 		close(sock1);
 		return (-1);

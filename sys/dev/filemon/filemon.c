@@ -29,13 +29,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/file.h>
 #include <sys/systm.h>
 #include <sys/buf.h>
 #include <sys/capsicum.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -52,21 +52,21 @@
 #include "filemon.h"
 
 #if defined(COMPAT_FREEBSD32)
-#include <compat/freebsd32/freebsd32_syscall.h>
 #include <compat/freebsd32/freebsd32_proto.h>
+#include <compat/freebsd32/freebsd32_syscall.h>
 #include <compat/freebsd32/freebsd32_util.h>
 #endif
 
-static d_close_t	filemon_close;
-static d_ioctl_t	filemon_ioctl;
-static d_open_t		filemon_open;
+static d_close_t filemon_close;
+static d_ioctl_t filemon_ioctl;
+static d_open_t filemon_open;
 
 static struct cdevsw filemon_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_close	= filemon_close,
-	.d_ioctl	= filemon_ioctl,
-	.d_open		= filemon_open,
-	.d_name		= "filemon",
+	.d_version = D_VERSION,
+	.d_close = filemon_close,
+	.d_ioctl = filemon_ioctl,
+	.d_open = filemon_open,
+	.d_name = "filemon",
 };
 
 MALLOC_DECLARE(M_FILEMON);
@@ -80,15 +80,15 @@ MALLOC_DEFINE(M_FILEMON, "filemon", "File access monitor");
  * - Preventing inheritance or removal of the filemon into proc.p_filemon.
  */
 struct filemon {
-	struct sx	lock;		/* Lock for this filemon. */
-	struct file	*fp;		/* Output file pointer. */
-	struct ucred	*cred;		/* Credential of tracer. */
-	char		fname1[MAXPATHLEN]; /* Temporary filename buffer. */
-	char		fname2[MAXPATHLEN]; /* Temporary filename buffer. */
-	char		msgbufr[2*MAXPATHLEN + 100];	/* Output message buffer. */
-	int		error;		/* Log write error, returned on close(2). */
-	u_int		refcnt;		/* Pointer reference count. */
-	u_int		proccnt;	/* Process count. */
+	struct sx lock;			    /* Lock for this filemon. */
+	struct file *fp;		    /* Output file pointer. */
+	struct ucred *cred;		    /* Credential of tracer. */
+	char fname1[MAXPATHLEN];	    /* Temporary filename buffer. */
+	char fname2[MAXPATHLEN];	    /* Temporary filename buffer. */
+	char msgbufr[2 * MAXPATHLEN + 100]; /* Output message buffer. */
+	int error;     /* Log write error, returned on close(2). */
+	u_int refcnt;  /* Pointer reference count. */
+	u_int proccnt; /* Process count. */
 };
 
 static struct cdev *filemon_dev;
@@ -156,8 +156,8 @@ filemon_proc_drop(struct proc *p)
 {
 	struct filemon *filemon;
 
-	KASSERT(p->p_filemon != NULL, ("%s: proc %p NULL p_filemon",
-	    __func__, p));
+	KASSERT(p->p_filemon != NULL,
+	    ("%s: proc %p NULL p_filemon", __func__, p));
 	sx_assert(&p->p_filemon->lock, SA_XLOCKED);
 	PROC_LOCK(p);
 	filemon = p->p_filemon;
@@ -169,8 +169,10 @@ filemon_proc_drop(struct proc *p)
 	 * cannot be called with filemon locked, which the caller expects
 	 * will stay locked.
 	 */
-	KASSERT(filemon->refcnt > 1, ("%s: proc %p dropping filemon %p "
-	    "with last reference", __func__, p, filemon));
+	KASSERT(filemon->refcnt > 1,
+	    ("%s: proc %p dropping filemon %p "
+	     "with last reference",
+		__func__, p, filemon));
 	filemon_release(filemon);
 }
 
@@ -221,7 +223,7 @@ filemon_untrack_processes(struct filemon *filemon)
 	 * which we hold.
 	 */
 	sx_slock(&allproc_lock);
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		/*
 		 * No PROC_LOCK is needed to compare here since it is
 		 * guaranteed to not change since we have its filemon
@@ -238,10 +240,14 @@ filemon_untrack_processes(struct filemon *filemon)
 	 * dropped shortly as they are restricted from being
 	 * inherited.  There is at least the reference in cdevpriv remaining.
 	 */
-	KASSERT(filemon->refcnt > 0, ("%s: filemon %p should have "
-	    "references still.", __func__, filemon));
-	KASSERT(filemon->proccnt == 0, ("%s: filemon %p should not have "
-	    "attached procs still.", __func__, filemon));
+	KASSERT(filemon->refcnt > 0,
+	    ("%s: filemon %p should have "
+	     "references still.",
+		__func__, filemon));
+	KASSERT(filemon->proccnt == 0,
+	    ("%s: filemon %p should not have "
+	     "attached procs still.",
+		__func__, filemon));
 }
 
 /*
@@ -260,10 +266,9 @@ filemon_close_log(struct filemon *filemon)
 
 	getmicrotime(&now);
 
-	len = snprintf(filemon->msgbufr,
-	    sizeof(filemon->msgbufr),
-	    "# Stop %ju.%06ju\n# Bye bye\n",
-	    (uintmax_t)now.tv_sec, (uintmax_t)now.tv_usec);
+	len = snprintf(filemon->msgbufr, sizeof(filemon->msgbufr),
+	    "# Stop %ju.%06ju\n# Bye bye\n", (uintmax_t)now.tv_sec,
+	    (uintmax_t)now.tv_usec);
 
 	if (len < sizeof(filemon->msgbufr))
 		filemon_output(filemon, filemon->msgbufr, len);
@@ -305,11 +310,11 @@ filemon_attach_proc(struct filemon *filemon, struct proc *p)
 	sx_assert(&filemon->lock, SA_XLOCKED);
 	PROC_LOCK_ASSERT(p, MA_OWNED);
 	KASSERT((p->p_flag & P_WEXIT) == 0,
-	    ("%s: filemon %p attaching to exiting process %p",
-	    __func__, filemon, p));
+	    ("%s: filemon %p attaching to exiting process %p", __func__,
+		filemon, p));
 	KASSERT((p->p_flag & P_INEXEC) == 0,
-	    ("%s: filemon %p attaching to execing process %p",
-	    __func__, filemon, p));
+	    ("%s: filemon %p attaching to execing process %p", __func__,
+		filemon, p));
 
 	if (p->p_filemon == filemon)
 		return (0);
@@ -345,7 +350,7 @@ filemon_attach_proc(struct filemon *filemon, struct proc *p)
 
 	KASSERT(p->p_filemon == NULL,
 	    ("%s: proc %p didn't detach filemon %p", __func__, p,
-	    p->p_filemon));
+		p->p_filemon));
 	p->p_filemon = filemon_acquire(filemon);
 	++filemon->proccnt;
 
@@ -361,7 +366,7 @@ filemon_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag __unused,
 	struct proc *p;
 	int error;
 
-	if ((error = devfs_get_cdevpriv((void **) &filemon)) != 0)
+	if ((error = devfs_get_cdevpriv((void **)&filemon)) != 0)
 		return (error);
 
 	sx_xlock(&filemon->lock);
@@ -400,8 +405,8 @@ filemon_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag __unused,
 		    PGET_CANDEBUG | PGET_NOTWEXIT | PGET_NOTINEXEC, &p);
 		if (error == 0) {
 			KASSERT(p->p_filemon != filemon,
-			    ("%s: proc %p didn't untrack filemon %p",
-			    __func__, p, filemon));
+			    ("%s: proc %p didn't untrack filemon %p", __func__,
+				p, filemon));
 			error = filemon_attach_proc(filemon, p);
 			PROC_UNLOCK(p);
 		}
@@ -423,8 +428,7 @@ filemon_open(struct cdev *dev, int oflags __unused, int devtype __unused,
 	int error;
 	struct filemon *filemon;
 
-	filemon = malloc(sizeof(*filemon), M_FILEMON,
-	    M_WAITOK | M_ZERO);
+	filemon = malloc(sizeof(*filemon), M_FILEMON, M_WAITOK | M_ZERO);
 	sx_init(&filemon->lock, "filemon");
 	refcount_init(&filemon->refcnt, 1);
 	filemon->cred = crhold(td->td_ucred);
@@ -444,7 +448,7 @@ filemon_close(struct cdev *dev __unused, int flag __unused, int fmt __unused,
 	struct filemon *filemon;
 	int error;
 
-	if ((error = devfs_get_cdevpriv((void **) &filemon)) != 0)
+	if ((error = devfs_get_cdevpriv((void **)&filemon)) != 0)
 		return (error);
 
 	sx_xlock(&filemon->lock);
@@ -509,7 +513,6 @@ filemon_modevent(module_t mod __unused, int type, void *data)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);

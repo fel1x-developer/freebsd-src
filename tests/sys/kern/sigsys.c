@@ -20,7 +20,7 @@
 
 static sig_atomic_t sigsys_cnt;
 
-#define	SAVEDVALUE	"savedsignosys"
+#define SAVEDVALUE "savedsignosys"
 
 static void
 sigsys_handler(int signo, siginfo_t *si, void *ucp)
@@ -38,12 +38,12 @@ sigsys_test(int knob)
 	sa.sa_flags = SA_SIGINFO;
 	ATF_REQUIRE(sigaction(SIGSYS, &sa, NULL) == 0);
 
-	ATF_REQUIRE(syscall(273) == -1);	/* reserved */
+	ATF_REQUIRE(syscall(273) == -1); /* reserved */
 	ATF_CHECK_ERRNO(ENOSYS, true);
 	atomic_signal_fence(memory_order_seq_cst);
 	ATF_CHECK_EQ(1 * knob, sigsys_cnt * knob);
 
-	ATF_REQUIRE(syscall(440) == -1);	/* SYS_kse_switchin */
+	ATF_REQUIRE(syscall(440) == -1); /* SYS_kse_switchin */
 	ATF_CHECK_ERRNO(ENOSYS, true);
 	atomic_signal_fence(memory_order_seq_cst);
 	ATF_CHECK_EQ(2 * knob, sigsys_cnt * knob);
@@ -87,8 +87,7 @@ sysctlcleanup(const char *name)
 		buf[MIN((size_t)n, sizeof(buf) - 1)] = '\0';
 		if (sscanf(buf, "%d", &oldval) == 1) {
 			oldlen = sizeof(oldval);
-			(void)sysctlbyname(name, NULL, 0,
-			    &oldval, oldlen);
+			(void)sysctlbyname(name, NULL, 0, &oldval, oldlen);
 		}
 	}
 	(void)unlink(SAVEDVALUE);

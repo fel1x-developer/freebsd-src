@@ -36,17 +36,17 @@
 #include <sys/queue.h>
 #include <sys/sbuf.h>
 
+#include <bsdxml.h>
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <mtlib.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <errno.h>
-#include <bsdxml.h>
-#include <mtlib.h>
 
 /*
  * Called at the start of each XML element, and includes the list of
@@ -65,19 +65,19 @@ mt_start_element(void *user_data, const char *name, const char **attr)
 		return;
 
 	mtinfo->level++;
-	if ((u_int)mtinfo->level >= (sizeof(mtinfo->cur_sb) /
-            sizeof(mtinfo->cur_sb[0]))) {
+	if ((u_int)mtinfo->level >=
+	    (sizeof(mtinfo->cur_sb) / sizeof(mtinfo->cur_sb[0]))) {
 		mtinfo->error = 1;
-                snprintf(mtinfo->error_str, sizeof(mtinfo->error_str), 
+		snprintf(mtinfo->error_str, sizeof(mtinfo->error_str),
 		    "%s: too many nesting levels, %zd max", __func__,
 		    sizeof(mtinfo->cur_sb) / sizeof(mtinfo->cur_sb[0]));
 		return;
 	}
 
-        mtinfo->cur_sb[mtinfo->level] = sbuf_new_auto();
-        if (mtinfo->cur_sb[mtinfo->level] == NULL) {
+	mtinfo->cur_sb[mtinfo->level] = sbuf_new_auto();
+	if (mtinfo->cur_sb[mtinfo->level] == NULL) {
 		mtinfo->error = 1;
-                snprintf(mtinfo->error_str, sizeof(mtinfo->error_str),
+		snprintf(mtinfo->error_str, sizeof(mtinfo->error_str),
 		    "%s: Unable to allocate sbuf", __func__);
 		return;
 	}
@@ -90,7 +90,7 @@ mt_start_element(void *user_data, const char *name, const char **attr)
 		    sizeof(*entry));
 		return;
 	}
-	bzero(entry, sizeof(*entry)); 
+	bzero(entry, sizeof(*entry));
 	STAILQ_INIT(&entry->nv_list);
 	STAILQ_INIT(&entry->child_entries);
 	entry->entry_name = strdup(name);
@@ -99,34 +99,34 @@ mt_start_element(void *user_data, const char *name, const char **attr)
 		STAILQ_INSERT_TAIL(&mtinfo->entries, entry, links);
 	} else {
 		STAILQ_INSERT_TAIL(
-		    &mtinfo->cur_entry[mtinfo->level - 1]->child_entries,
-		    entry, links);
+		    &mtinfo->cur_entry[mtinfo->level - 1]->child_entries, entry,
+		    links);
 		entry->parent = mtinfo->cur_entry[mtinfo->level - 1];
 	}
-	for (i = 0; attr[i] != NULL; i+=2) {
+	for (i = 0; attr[i] != NULL; i += 2) {
 		struct mt_status_nv *nv;
 		int need_nv;
 
 		need_nv = 0;
 
 		if (strcmp(attr[i], "size") == 0) {
-			entry->size = strtoull(attr[i+1], NULL, 0);
+			entry->size = strtoull(attr[i + 1], NULL, 0);
 		} else if (strcmp(attr[i], "type") == 0) {
-			if (strcmp(attr[i+1], "int") == 0) {
+			if (strcmp(attr[i + 1], "int") == 0) {
 				entry->var_type = MT_TYPE_INT;
-			} else if (strcmp(attr[i+1], "uint") == 0) {
+			} else if (strcmp(attr[i + 1], "uint") == 0) {
 				entry->var_type = MT_TYPE_UINT;
-			} else if (strcmp(attr[i+1], "str") == 0) {
+			} else if (strcmp(attr[i + 1], "str") == 0) {
 				entry->var_type = MT_TYPE_STRING;
-			} else if (strcmp(attr[i+1], "node") == 0) {
+			} else if (strcmp(attr[i + 1], "node") == 0) {
 				entry->var_type = MT_TYPE_NODE;
 			} else {
 				need_nv = 1;
 			}
 		} else if (strcmp(attr[i], "fmt") == 0) {
-			entry->fmt = strdup(attr[i+1]);
+			entry->fmt = strdup(attr[i + 1]);
 		} else if (strcmp(attr[i], "desc") == 0) {
-			entry->desc = strdup(attr[i+1]);
+			entry->desc = strdup(attr[i + 1]);
 		} else {
 			need_nv = 1;
 		}
@@ -136,12 +136,12 @@ mt_start_element(void *user_data, const char *name, const char **attr)
 				mtinfo->error = 1;
 				snprintf(mtinfo->error_str,
 				    sizeof(mtinfo->error_str),
-				    "%s: error allocating %zd bytes",
-				    __func__, sizeof(*nv));
+				    "%s: error allocating %zd bytes", __func__,
+				    sizeof(*nv));
 			}
 			bzero(nv, sizeof(*nv));
 			nv->name = strdup(attr[i]);
-			nv->value = strdup(attr[i+1]);
+			nv->value = strdup(attr[i + 1]);
 			STAILQ_INSERT_TAIL(&entry->nv_list, nv, links);
 		}
 	}
@@ -186,7 +186,7 @@ mt_end_element(void *user_data, const char *name)
 		struct mt_status_entry *entry;
 
 		entry = mtinfo->cur_entry[mtinfo->level];
-		switch(entry->var_type) {
+		switch (entry->var_type) {
 		case MT_TYPE_INT:
 			entry->value_signed = strtoll(str, NULL, 0);
 			break;
@@ -223,8 +223,9 @@ mt_char_handler(void *user_data, const XML_Char *str, int len)
 
 void
 mt_status_tree_sbuf(struct sbuf *sb, struct mt_status_entry *entry, int indent,
-    void (*sbuf_func)(struct sbuf *sb, struct mt_status_entry *entry,
-    void *arg), void *arg)
+    void (
+	*sbuf_func)(struct sbuf *sb, struct mt_status_entry *entry, void *arg),
+    void *arg)
 {
 	struct mt_status_nv *nv;
 	struct mt_status_entry *entry2;
@@ -232,17 +233,18 @@ mt_status_tree_sbuf(struct sbuf *sb, struct mt_status_entry *entry, int indent,
 	if (sbuf_func != NULL) {
 		sbuf_func(sb, entry, arg);
 	} else {
-		sbuf_printf(sb, "%*sname: %s, value: %s, fmt: %s, size: %zd, "
-		    "type: %d, desc: %s\n", indent, "", entry->entry_name,
-		    entry->value, entry->fmt, entry->size, entry->var_type,
-		    entry->desc);
-		STAILQ_FOREACH(nv, &entry->nv_list, links) {
+		sbuf_printf(sb,
+		    "%*sname: %s, value: %s, fmt: %s, size: %zd, "
+		    "type: %d, desc: %s\n",
+		    indent, "", entry->entry_name, entry->value, entry->fmt,
+		    entry->size, entry->var_type, entry->desc);
+		STAILQ_FOREACH (nv, &entry->nv_list, links) {
 			sbuf_printf(sb, "%*snv: name: %s, value: %s\n",
 			    indent + 1, "", nv->name, nv->value);
 		}
 	}
 
-	STAILQ_FOREACH(entry2, &entry->child_entries, links)
+	STAILQ_FOREACH (entry2, &entry->child_entries, links)
 		mt_status_tree_sbuf(sb, entry2, indent + 2, sbuf_func, arg);
 }
 
@@ -255,7 +257,7 @@ mt_status_tree_print(struct mt_status_entry *entry, int indent,
 		struct mt_status_entry *entry2;
 
 		print_func(entry, arg);
-		STAILQ_FOREACH(entry2, &entry->child_entries, links)
+		STAILQ_FOREACH (entry2, &entry->child_entries, links)
 			mt_status_tree_print(entry2, indent + 2, print_func,
 			    arg);
 	} else {
@@ -291,13 +293,13 @@ mt_entry_find(struct mt_status_entry *entry, char *name)
 	tmpname2 = tmpname;
 
 	tmpstr = strsep(&tmpname, ".");
-	
+
 	/*
 	 * Is this the entry we're looking for?  Or do we have further
 	 * child entries that we need to grab?
 	 */
 	if (strcmp(entry->entry_name, tmpstr) == 0) {
-	 	if (tmpname == NULL) {
+		if (tmpname == NULL) {
 			/*
 			 * There are no further child entries to find.  We
 			 * have a complete match.
@@ -313,12 +315,12 @@ mt_entry_find(struct mt_status_entry *entry, char *name)
 			 */
 			name = tmpname;
 		}
-	} 
+	}
 
 	/*
 	 * Recursively look for further entries.
 	 */
-	STAILQ_FOREACH(entry2, &entry->child_entries, links) {
+	STAILQ_FOREACH (entry2, &entry->child_entries, links) {
 		struct mt_status_entry *entry3;
 
 		entry3 = mt_entry_find(entry2, name);
@@ -339,7 +341,7 @@ mt_status_entry_find(struct mt_status_data *status_data, char *name)
 {
 	struct mt_status_entry *entry, *entry2;
 
-	STAILQ_FOREACH(entry, &status_data->entries, links) {
+	STAILQ_FOREACH (entry, &status_data->entries, links) {
 		entry2 = mt_entry_find(entry, name);
 		if (entry2 != NULL)
 			return (entry2);
@@ -354,7 +356,7 @@ mt_status_entry_free(struct mt_status_entry *entry)
 	struct mt_status_entry *entry2, *entry3;
 	struct mt_status_nv *nv, *nv2;
 
-	STAILQ_FOREACH_SAFE(entry2, &entry->child_entries, links, entry3) {
+	STAILQ_FOREACH_SAFE (entry2, &entry->child_entries, links, entry3) {
 		STAILQ_REMOVE(&entry->child_entries, entry2, mt_status_entry,
 		    links);
 		mt_status_entry_free(entry2);
@@ -365,7 +367,7 @@ mt_status_entry_free(struct mt_status_entry *entry)
 	free(entry->fmt);
 	free(entry->desc);
 
-	STAILQ_FOREACH_SAFE(nv, &entry->nv_list, links, nv2) {
+	STAILQ_FOREACH_SAFE (nv, &entry->nv_list, links, nv2) {
 		STAILQ_REMOVE(&entry->nv_list, nv, mt_status_nv, links);
 		free(nv->name);
 		free(nv->value);
@@ -379,7 +381,7 @@ mt_status_free(struct mt_status_data *status_data)
 {
 	struct mt_status_entry *entry, *entry2;
 
-	STAILQ_FOREACH_SAFE(entry, &status_data->entries, links, entry2) {
+	STAILQ_FOREACH_SAFE (entry, &status_data->entries, links, entry2) {
 		STAILQ_REMOVE(&status_data->entries, entry, mt_status_entry,
 		    links);
 		mt_status_entry_free(entry);
@@ -389,20 +391,19 @@ mt_status_free(struct mt_status_data *status_data)
 void
 mt_entry_sbuf(struct sbuf *sb, struct mt_status_entry *entry, char *fmt)
 {
-	switch(entry->var_type) {
+	switch (entry->var_type) {
 	case MT_TYPE_INT:
 		if (fmt != NULL)
 			sbuf_printf(sb, fmt, (intmax_t)entry->value_signed);
 		else
-			sbuf_printf(sb, "%jd",
-				    (intmax_t)entry->value_signed);
+			sbuf_printf(sb, "%jd", (intmax_t)entry->value_signed);
 		break;
 	case MT_TYPE_UINT:
 		if (fmt != NULL)
 			sbuf_printf(sb, fmt, (uintmax_t)entry->value_unsigned);
 		else
 			sbuf_printf(sb, "%ju",
-				    (uintmax_t)entry->value_unsigned);
+			    (uintmax_t)entry->value_unsigned);
 		break;
 	default:
 		if (fmt != NULL)
@@ -420,8 +421,8 @@ mt_param_parent_print(struct mt_status_entry *entry,
 	if (entry->parent != NULL)
 		mt_param_parent_print(entry->parent, print_params);
 
-	if (((print_params->flags & MT_PF_INCLUDE_ROOT) == 0)
-	 && (strcmp(entry->entry_name, print_params->root_name) == 0))
+	if (((print_params->flags & MT_PF_INCLUDE_ROOT) == 0) &&
+	    (strcmp(entry->entry_name, print_params->root_name) == 0))
 		return;
 
 	printf("%s.", entry->entry_name);
@@ -434,8 +435,8 @@ mt_param_parent_sbuf(struct sbuf *sb, struct mt_status_entry *entry,
 	if (entry->parent != NULL)
 		mt_param_parent_sbuf(sb, entry->parent, print_params);
 
-	if (((print_params->flags & MT_PF_INCLUDE_ROOT) == 0)
-	 && (strcmp(entry->entry_name, print_params->root_name) == 0))
+	if (((print_params->flags & MT_PF_INCLUDE_ROOT) == 0) &&
+	    (strcmp(entry->entry_name, print_params->root_name) == 0))
 		return;
 
 	sbuf_printf(sb, "%s.", entry->entry_name);
@@ -454,17 +455,14 @@ mt_param_entry_sbuf(struct sbuf *sb, struct mt_status_entry *entry, void *arg)
 	if (entry->var_type == MT_TYPE_NODE)
 		return;
 
-	if ((print_params->flags & MT_PF_FULL_PATH)
-	 && (entry->parent != NULL))
+	if ((print_params->flags & MT_PF_FULL_PATH) && (entry->parent != NULL))
 		mt_param_parent_sbuf(sb, entry->parent, print_params);
 
 	sbuf_printf(sb, "%s: %s", entry->entry_name, entry->value);
-	if ((print_params->flags & MT_PF_VERBOSE)
-	 && (entry->desc != NULL)
-	 && (strlen(entry->desc) > 0))
+	if ((print_params->flags & MT_PF_VERBOSE) && (entry->desc != NULL) &&
+	    (strlen(entry->desc) > 0))
 		sbuf_printf(sb, " (%s)", entry->desc);
 	sbuf_printf(sb, "\n");
-
 }
 
 void
@@ -480,14 +478,12 @@ mt_param_entry_print(struct mt_status_entry *entry, void *arg)
 	if (entry->var_type == MT_TYPE_NODE)
 		return;
 
-	if ((print_params->flags & MT_PF_FULL_PATH)
-	 && (entry->parent != NULL))
+	if ((print_params->flags & MT_PF_FULL_PATH) && (entry->parent != NULL))
 		mt_param_parent_print(entry->parent, print_params);
 
 	printf("%s: %s", entry->entry_name, entry->value);
-	if ((print_params->flags & MT_PF_VERBOSE)
-	 && (entry->desc != NULL)
-	 && (strlen(entry->desc) > 0))
+	if ((print_params->flags & MT_PF_VERBOSE) && (entry->desc != NULL) &&
+	    (strlen(entry->desc) > 0))
 		printf(" (%s)", entry->desc);
 	printf("\n");
 }
@@ -505,7 +501,7 @@ mt_protect_print(struct mt_status_data *status_data, int verbose)
 	if (verbose != 0)
 		print_params.flags |= MT_PF_VERBOSE;
 
-	entry = mt_status_entry_find(status_data, __DECONST(char *,prot_name));
+	entry = mt_status_entry_find(status_data, __DECONST(char *, prot_name));
 	if (entry == NULL)
 		return (1);
 	mt_status_tree_print(entry, 0, mt_param_entry_print, &print_params);
@@ -539,7 +535,7 @@ mt_param_list(struct mt_status_data *status_data, char *param_name, int quiet)
 	} else {
 		entry = mt_status_entry_find(status_data, root_name);
 
-		STAILQ_FOREACH(entry, &status_data->entries, links)
+		STAILQ_FOREACH (entry, &status_data->entries, links)
 			mt_status_tree_print(entry, 0, mt_param_entry_print,
 			    &print_params);
 	}
@@ -554,7 +550,7 @@ static struct densities {
 	const char *name;
 } dens[] = {
 	/*
-	 * Taken from T10 Project 997D 
+	 * Taken from T10 Project 997D
 	 * SCSI-3 Stream Device Commands (SSC)
 	 * Revision 11, 4-Nov-97
 	 *
@@ -573,90 +569,67 @@ static struct densities {
 	 * found here:
 	 *
 	 * http://h20564.www2.hp.com/hpsc/doc/public/display?docId=emr_na-c01065117&sp4ts.oid=429311
- 	 * (Document ID c01065117)
+	 * (Document ID c01065117)
 	 */
 	/*Num.  bpmm    bpi     Reference     */
-	{ 0x1,	32,	800,	"X3.22-1983" },
-	{ 0x2,	63,	1600,	"X3.39-1986" },
-	{ 0x3,	246,	6250,	"X3.54-1986" },
-	{ 0x5,	315,	8000,	"X3.136-1986" },
-	{ 0x6,	126,	3200,	"X3.157-1987" },
-	{ 0x7,	252,	6400,	"X3.116-1986" },
-	{ 0x8,	315,	8000,	"X3.158-1987" },
-	{ 0x9,	491,	37871,	"X3.180" },
-	{ 0xA,	262,	6667,	"X3B5/86-199" },
-	{ 0xB,	63,	1600,	"X3.56-1986" },
-	{ 0xC,	500,	12690,	"HI-TC1" },
-	{ 0xD,	999,	25380,	"HI-TC2" },
-	{ 0xF,	394,	10000,	"QIC-120" },
-	{ 0x10,	394,	10000,	"QIC-150" },
-	{ 0x11,	630,	16000,	"QIC-320" },
-	{ 0x12,	2034,	51667,	"QIC-1350" },
-	{ 0x13,	2400,	61000,	"X3B5/88-185A" },
-	{ 0x14,	1703,	43245,	"X3.202-1991" },
-	{ 0x15,	1789,	45434,	"ECMA TC17" },
-	{ 0x16,	394,	10000,	"X3.193-1990" },
-	{ 0x17,	1673,	42500,	"X3B5/91-174" },
-	{ 0x18,	1673,	42500,	"X3B5/92-50" },
-	{ 0x19, 2460,   62500,  "DLTapeIII" },
-	{ 0x1A, 3214,   81633,  "DLTapeIV(20GB)" },
-	{ 0x1B, 3383,   85937,  "DLTapeIV(35GB)" },
-	{ 0x1C, 1654,	42000,	"QIC-385M" },
-	{ 0x1D,	1512,	38400,	"QIC-410M" },
-	{ 0x1E, 1385,	36000,	"QIC-1000C" },
-	{ 0x1F,	2666,	67733,	"QIC-2100C" },
-	{ 0x20, 2666,	67733,	"QIC-6GB(M)" },
-	{ 0x21,	2666,	67733,	"QIC-20GB(C)" },
-	{ 0x22,	1600,	40640,	"QIC-2GB(C)" },
-	{ 0x23, 2666,	67733,	"QIC-875M" },
-	{ 0x24,	2400,	61000,	"DDS-2" },
-	{ 0x25,	3816,	97000,	"DDS-3" },
-	{ 0x26,	3816,	97000,	"DDS-4" },
-	{ 0x27,	3056,	77611,	"Mammoth" },
-	{ 0x28,	1491,	37871,	"X3.224" },
-	{ 0x40, 4880,   123952, "LTO-1" },
-	{ 0x41, 3868,   98250,  "DLTapeIV(40GB)" },
-	{ 0x42, 7398,   187909, "LTO-2" },
-	{ 0x44, 9638,   244805, "LTO-3" }, 
-	{ 0x46, 12725,  323215, "LTO-4" }, 
-	{ 0x47, 6417,   163000, "DAT-72" },
-	/*
-	 * XXX KDM note that 0x48 is also the density code for DAT-160.
-	 * For some reason they used overlapping density codes.
-	 */
+	{ 0x1, 32, 800, "X3.22-1983" }, { 0x2, 63, 1600, "X3.39-1986" },
+	{ 0x3, 246, 6250, "X3.54-1986" }, { 0x5, 315, 8000, "X3.136-1986" },
+	{ 0x6, 126, 3200, "X3.157-1987" }, { 0x7, 252, 6400, "X3.116-1986" },
+	{ 0x8, 315, 8000, "X3.158-1987" }, { 0x9, 491, 37871, "X3.180" },
+	{ 0xA, 262, 6667, "X3B5/86-199" }, { 0xB, 63, 1600, "X3.56-1986" },
+	{ 0xC, 500, 12690, "HI-TC1" }, { 0xD, 999, 25380, "HI-TC2" },
+	{ 0xF, 394, 10000, "QIC-120" }, { 0x10, 394, 10000, "QIC-150" },
+	{ 0x11, 630, 16000, "QIC-320" }, { 0x12, 2034, 51667, "QIC-1350" },
+	{ 0x13, 2400, 61000, "X3B5/88-185A" },
+	{ 0x14, 1703, 43245, "X3.202-1991" },
+	{ 0x15, 1789, 45434, "ECMA TC17" }, { 0x16, 394, 10000, "X3.193-1990" },
+	{ 0x17, 1673, 42500, "X3B5/91-174" },
+	{ 0x18, 1673, 42500, "X3B5/92-50" }, { 0x19, 2460, 62500, "DLTapeIII" },
+	{ 0x1A, 3214, 81633, "DLTapeIV(20GB)" },
+	{ 0x1B, 3383, 85937, "DLTapeIV(35GB)" },
+	{ 0x1C, 1654, 42000, "QIC-385M" }, { 0x1D, 1512, 38400, "QIC-410M" },
+	{ 0x1E, 1385, 36000, "QIC-1000C" }, { 0x1F, 2666, 67733, "QIC-2100C" },
+	{ 0x20, 2666, 67733, "QIC-6GB(M)" },
+	{ 0x21, 2666, 67733, "QIC-20GB(C)" },
+	{ 0x22, 1600, 40640, "QIC-2GB(C)" }, { 0x23, 2666, 67733, "QIC-875M" },
+	{ 0x24, 2400, 61000, "DDS-2" }, { 0x25, 3816, 97000, "DDS-3" },
+	{ 0x26, 3816, 97000, "DDS-4" }, { 0x27, 3056, 77611, "Mammoth" },
+	{ 0x28, 1491, 37871, "X3.224" }, { 0x40, 4880, 123952, "LTO-1" },
+	{ 0x41, 3868, 98250, "DLTapeIV(40GB)" },
+	{ 0x42, 7398, 187909, "LTO-2" }, { 0x44, 9638, 244805, "LTO-3" },
+	{ 0x46, 12725, 323215, "LTO-4" }, { 0x47, 6417, 163000, "DAT-72" },
+/*
+ * XXX KDM note that 0x48 is also the density code for DAT-160.
+ * For some reason they used overlapping density codes.
+ */
 #if 0
 	{ 0x48, 6870,   174500, "DAT-160" },
 #endif
-	{ 0x48, 5236,   133000, "SDLTapeI(110)" },
-	{ 0x49, 7598,   193000, "SDLTapeI(160)" },
-	{ 0x4a,     0,       0, "T10000A" },
-	{ 0x4b,     0,       0, "T10000B" },
-	{ 0x4c,     0,       0, "T10000C" },
-	{ 0x4d,     0,       0, "T10000D" },
-	{ 0x51, 11800,  299720, "3592A1 (unencrypted)" },
-	{ 0x52, 11800,  299720, "3592A2 (unencrypted)" },
-	{ 0x53, 13452,  341681, "3592A3 (unencrypted)" },
-	{ 0x54, 19686,  500024, "3592A4 (unencrypted)" },
-	{ 0x55, 20670,  525018, "3592A5 (unencrypted)" },
-	{ 0x56, 20670,  525018, "3592B5 (unencrypted)" },
-	{ 0x57, 21850,  554990, "3592A6 (unencrypted)" },
-	{ 0x58, 15142,  384607, "LTO-5" },
-	{ 0x59, 21850,  554990, "3592A7 (unencrypted)" },
-	{ 0x5A, 15142,  384607, "LTO-6" },
-	{ 0x5C, 19107,  485318, "LTO-7" },
-	{ 0x5D, 19107,  485318, "LTO-M8" },
-	{ 0x5E, 20669,  524993, "LTO-8" },
-	{ 0x60, 23031,  584987, "LTO-9" },
-	{ 0x71, 11800,  299720, "3592A1 (encrypted)" },
-	{ 0x72, 11800,  299720, "3592A2 (encrypted)" },
-	{ 0x73, 13452,  341681, "3592A3 (encrypted)" },
-	{ 0x74, 19686,  500024, "3592A4 (encrypted)" },
-	{ 0x75, 20670,  525018, "3592A5 (encrypted)" },
-	{ 0x76, 20670,  525018, "3592B5 (encrypted)" },
-	{ 0x77, 21850,  554990, "3592A6 (encrypted)" },
-	{ 0x79, 21850,  554990, "3592A7 (encrypted)" },
-	{ 0x8c,  1789,   45434, "EXB-8500c" },
-	{ 0x90,  1703,   43245, "EXB-8200c" },
+	{ 0x48, 5236, 133000, "SDLTapeI(110)" },
+	{ 0x49, 7598, 193000, "SDLTapeI(160)" }, { 0x4a, 0, 0, "T10000A" },
+	{ 0x4b, 0, 0, "T10000B" }, { 0x4c, 0, 0, "T10000C" },
+	{ 0x4d, 0, 0, "T10000D" },
+	{ 0x51, 11800, 299720, "3592A1 (unencrypted)" },
+	{ 0x52, 11800, 299720, "3592A2 (unencrypted)" },
+	{ 0x53, 13452, 341681, "3592A3 (unencrypted)" },
+	{ 0x54, 19686, 500024, "3592A4 (unencrypted)" },
+	{ 0x55, 20670, 525018, "3592A5 (unencrypted)" },
+	{ 0x56, 20670, 525018, "3592B5 (unencrypted)" },
+	{ 0x57, 21850, 554990, "3592A6 (unencrypted)" },
+	{ 0x58, 15142, 384607, "LTO-5" },
+	{ 0x59, 21850, 554990, "3592A7 (unencrypted)" },
+	{ 0x5A, 15142, 384607, "LTO-6" }, { 0x5C, 19107, 485318, "LTO-7" },
+	{ 0x5D, 19107, 485318, "LTO-M8" }, { 0x5E, 20669, 524993, "LTO-8" },
+	{ 0x60, 23031, 584987, "LTO-9" },
+	{ 0x71, 11800, 299720, "3592A1 (encrypted)" },
+	{ 0x72, 11800, 299720, "3592A2 (encrypted)" },
+	{ 0x73, 13452, 341681, "3592A3 (encrypted)" },
+	{ 0x74, 19686, 500024, "3592A4 (encrypted)" },
+	{ 0x75, 20670, 525018, "3592A5 (encrypted)" },
+	{ 0x76, 20670, 525018, "3592B5 (encrypted)" },
+	{ 0x77, 21850, 554990, "3592A6 (encrypted)" },
+	{ 0x79, 21850, 554990, "3592A7 (encrypted)" },
+	{ 0x8c, 1789, 45434, "EXB-8500c" }, { 0x90, 1703, 43245, "EXB-8200c" },
 	{ 0, 0, 0, NULL }
 };
 

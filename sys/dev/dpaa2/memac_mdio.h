@@ -25,15 +25,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__MEMAC_MDIO_H
-#define	__MEMAC_MDIO_H
+#ifndef __MEMAC_MDIO_H
+#define __MEMAC_MDIO_H
 
 /* -------------------------------------------------------------------------- */
 
 struct memacphy_softc_common {
-	device_t			dev;
-	device_t			dpnidev;
-	int				phy;
+	device_t dev;
+	device_t dpnidev;
+	int phy;
 };
 
 int memacphy_miibus_readreg(device_t, int, int);
@@ -42,23 +42,22 @@ void memacphy_miibus_statchg(struct memacphy_softc_common *);
 int memacphy_set_ni_dev(struct memacphy_softc_common *, device_t);
 int memacphy_get_phy_loc(struct memacphy_softc_common *, int *);
 
-
 /* -------------------------------------------------------------------------- */
 
 struct memac_mdio_softc_common {
-	device_t		dev;
-	struct resource		*mem_res;
-	bool			is_little_endian;
+	device_t dev;
+	struct resource *mem_res;
+	bool is_little_endian;
 };
 
 int memac_miibus_readreg(struct memac_mdio_softc_common *, int, int);
 int memac_miibus_writereg(struct memac_mdio_softc_common *, int, int, int);
 
-ssize_t memac_mdio_get_property(device_t, device_t, const char *,
-    void *, size_t, device_property_type_t);
+ssize_t memac_mdio_get_property(device_t, device_t, const char *, void *,
+    size_t, device_property_type_t);
 int memac_mdio_read_ivar(device_t, device_t, int, uintptr_t *);
 
 int memac_mdio_generic_attach(struct memac_mdio_softc_common *);
 int memac_mdio_generic_detach(struct memac_mdio_softc_common *);
 
-#endif	/* __MEMAC_MDIO_H */
+#endif /* __MEMAC_MDIO_H */

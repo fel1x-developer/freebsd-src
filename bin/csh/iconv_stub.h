@@ -35,8 +35,8 @@ extern iconv_t dl_iconv_open(const char *, const char *);
 extern dl_iconv_t *dl_iconv;
 extern dl_iconv_close_t *dl_iconv_close;
 
-#define iconv_open	dl_iconv_open
-#define iconv		dl_iconv
-#define iconv_close	dl_iconv_close
+#define iconv_open dl_iconv_open
+#define iconv dl_iconv
+#define iconv_close dl_iconv_close
 
 #endif /* !_ICONV_H_ */

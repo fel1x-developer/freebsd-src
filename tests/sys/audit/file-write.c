@@ -37,12 +37,12 @@ static const char *errpath = "dirdoesnotexist/fileforaudit";
 static const char *successreg = "fileforaudit.*return,success";
 static const char *failurereg = "fileforaudit.*return,failure";
 
-
 ATF_TC_WITH_CLEANUP(truncate_success);
 ATF_TC_HEAD(truncate_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"truncate(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "truncate(2) call");
 }
 
 ATF_TC_BODY(truncate_success, tc)
@@ -60,12 +60,12 @@ ATF_TC_CLEANUP(truncate_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(truncate_failure);
 ATF_TC_HEAD(truncate_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"truncate(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "truncate(2) call");
 }
 
 ATF_TC_BODY(truncate_failure, tc)
@@ -81,12 +81,12 @@ ATF_TC_CLEANUP(truncate_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(ftruncate_success);
 ATF_TC_HEAD(ftruncate_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"ftruncate(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "ftruncate(2) call");
 }
 
 ATF_TC_BODY(ftruncate_success, tc)
@@ -105,12 +105,12 @@ ATF_TC_CLEANUP(ftruncate_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(ftruncate_failure);
 ATF_TC_HEAD(ftruncate_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"ftruncate(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "ftruncate(2) call");
 }
 
 ATF_TC_BODY(ftruncate_failure, tc)
@@ -126,7 +126,6 @@ ATF_TC_CLEANUP(ftruncate_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

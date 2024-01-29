@@ -69,7 +69,6 @@ extern "C" {
 
 #include <dev/isci/scil/sci_types.h>
 
-
 /**
  * @brief This method will return the major revision level for the entire
  *        SCI library.
@@ -77,9 +76,7 @@ extern "C" {
  *
  * @return Return an integer value indicating the major revision level.
  */
-U32 sci_library_get_major_version(
-   void
-);
+U32 sci_library_get_major_version(void);
 
 /**
  * @brief This method will return the minor revision level for the entire
@@ -88,9 +85,7 @@ U32 sci_library_get_major_version(
  *
  * @return Return an integer value indicating the minor revision level.
  */
-U32 sci_library_get_minor_version(
-   void
-);
+U32 sci_library_get_minor_version(void);
 
 /**
  * @brief This method will return the build revision level for the entire
@@ -99,13 +94,10 @@ U32 sci_library_get_minor_version(
  *
  * @return Return an integer value indicating the build revision level.
  */
-U32 sci_library_get_build_version(
-   void
-);
+U32 sci_library_get_build_version(void);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_LIBRARY_H_
-

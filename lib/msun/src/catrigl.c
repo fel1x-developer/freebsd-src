@@ -47,48 +47,53 @@
 #include "math_private.h"
 
 #undef isinf
-#define isinf(x)	(fabsl(x) == INFINITY)
+#define isinf(x) (fabsl(x) == INFINITY)
 #undef isnan
-#define isnan(x)	((x) != (x))
-#define	raise_inexact()	do { volatile float junk __unused = 1 + tiny; } while(0)
+#define isnan(x) ((x) != (x))
+#define raise_inexact()                                  \
+	do {                                             \
+		volatile float junk __unused = 1 + tiny; \
+	} while (0)
 #undef signbit
-#define signbit(x)	(__builtin_signbitl(x))
+#define signbit(x) (__builtin_signbitl(x))
 
 #if LDBL_MAX_EXP != 0x4000
 #error "Unsupported long double format"
 #endif
 
-static const long double
-A_crossover =		10,
-B_crossover =		0.6417,
-FOUR_SQRT_MIN =		0x1p-8189L,
-HALF_MAX =		0x1p16383L,
-QUARTER_SQRT_MAX =	0x1p8189L,
-RECIP_EPSILON =		1 / LDBL_EPSILON,
-SQRT_MIN =		0x1p-8191L;
+static const long double A_crossover = 10, B_crossover = 0.6417,
+			 FOUR_SQRT_MIN = 0x1p-8189L, HALF_MAX = 0x1p16383L,
+			 QUARTER_SQRT_MAX = 0x1p8189L,
+			 RECIP_EPSILON = 1 / LDBL_EPSILON,
+			 SQRT_MIN = 0x1p-8191L;
 
 #if LDBL_MANT_DIG == 64
-static const union IEEEl2bits
-um_e =		LD80C(0xadf85458a2bb4a9b,  1, 2.71828182845904523536e+0L),
-um_ln2 =	LD80C(0xb17217f7d1cf79ac, -1, 6.93147180559945309417e-1L);
-#define		m_e	um_e.e
-#define		m_ln2	um_ln2.e
+static const union IEEEl2bits um_e = LD80C(0xadf85458a2bb4a9b, 1,
+				  2.71828182845904523536e+0L),
+			      um_ln2 = LD80C(0xb17217f7d1cf79ac, -1,
+				  6.93147180559945309417e-1L);
+#define m_e um_e.e
+#define m_ln2 um_ln2.e
 static const long double
-/* The next 2 literals for non-i386.  Misrounding them on i386 is harmless. */
-SQRT_3_EPSILON = 5.70316273435758915310e-10,	/*  0x9cc470a0490973e8.0p-94 */
-SQRT_6_EPSILON = 8.06549008734932771664e-10;	/*  0xddb3d742c265539e.0p-94 */
+    /* The next 2 literals for non-i386.  Misrounding them on i386 is harmless.
+     */
+	SQRT_3_EPSILON =
+	    5.70316273435758915310e-10,		 /*  0x9cc470a0490973e8.0p-94 */
+    SQRT_6_EPSILON = 8.06549008734932771664e-10; /*  0xddb3d742c265539e.0p-94 */
 #elif LDBL_MANT_DIG == 113
-static const long double
-m_e =		2.71828182845904523536028747135266250e0L,	/* 0x15bf0a8b1457695355fb8ac404e7a.0p-111 */
-m_ln2 =		6.93147180559945309417232121458176568e-1L,	/* 0x162e42fefa39ef35793c7673007e6.0p-113 */
-SQRT_3_EPSILON = 2.40370335797945490975336727199878124e-17,	/*  0x1bb67ae8584caa73b25742d7078b8.0p-168 */
-SQRT_6_EPSILON = 3.39934988877629587239082586223300391e-17;	/*  0x13988e1409212e7d0321914321a55.0p-167 */
+static const long double m_e = 2.71828182845904523536028747135266250e0L, /* 0x15bf0a8b1457695355fb8ac404e7a.0p-111
+									  */
+    m_ln2 = 6.93147180559945309417232121458176568e-1L, /* 0x162e42fefa39ef35793c7673007e6.0p-113
+							*/
+    SQRT_3_EPSILON = 2.40370335797945490975336727199878124e-17, /*  0x1bb67ae8584caa73b25742d7078b8.0p-168
+								 */
+    SQRT_6_EPSILON = 3.39934988877629587239082586223300391e-17; /*  0x13988e1409212e7d0321914321a55.0p-167
+								 */
 #else
 #error "Unsupported long double format"
 #endif
 
-static const volatile float
-tiny =			0x1p-100;
+static const volatile float tiny = 0x1p-100;
 
 static long double complex clog_for_large_values(long double complex z);
 
@@ -151,8 +156,8 @@ do_hard_work(long double x, long double y, long double *rx, int *B_is_usable,
 			Amy = f(x, y + 1, R) + f(x, y - 1, S);
 			*sqrt_A2my2 = sqrtl(Amy * (A + y));
 		} else if (y > 1) {
-			*sqrt_A2my2 = x * (4 / LDBL_EPSILON / LDBL_EPSILON) * y /
-			    sqrtl((y + 1) * (y - 1));
+			*sqrt_A2my2 = x * (4 / LDBL_EPSILON / LDBL_EPSILON) *
+			    y / sqrtl((y + 1) * (y - 1));
 			*new_y = y * (4 / LDBL_EPSILON / LDBL_EPSILON);
 		} else {
 			*sqrt_A2my2 = sqrtl((1 - y) * (1 + y));
@@ -187,8 +192,8 @@ casinhl(long double complex z)
 			w = clog_for_large_values(z) + m_ln2;
 		else
 			w = clog_for_large_values(-z) + m_ln2;
-		return (CMPLXL(copysignl(creall(w), x),
-		    copysignl(cimagl(w), y)));
+		return (
+		    CMPLXL(copysignl(creall(w), x), copysignl(cimagl(w), y)));
 	}
 
 	if (x == 0 && y == 0)
@@ -310,8 +315,8 @@ clog_for_large_values(long double complex z)
 	}
 
 	if (ax > HALF_MAX)
-		return (CMPLXL(logl(hypotl(x / m_e, y / m_e)) + 1,
-		    atan2l(y, x)));
+		return (
+		    CMPLXL(logl(hypotl(x / m_e, y / m_e)) + 1, atan2l(y, x)));
 
 	if (ax > QUARTER_SQRT_MAX || ay < SQRT_MIN)
 		return (CMPLXL(logl(hypotl(x, y)), atan2l(y, x)));
@@ -340,8 +345,8 @@ real_part_reciprocal(long double x, long double y)
 	ix = hx & 0x7fff;
 	GET_LDBL_EXPSIGN(hy, y);
 	iy = hy & 0x7fff;
-#define	BIAS	(LDBL_MAX_EXP - 1)
-#define	CUTOFF	(LDBL_MANT_DIG / 2 + 1)
+#define BIAS (LDBL_MAX_EXP - 1)
+#define CUTOFF (LDBL_MANT_DIG / 2 + 1)
 	if (ix - iy >= CUTOFF || isinf(x))
 		return (1 / x);
 	if (iy - ix >= CUTOFF)

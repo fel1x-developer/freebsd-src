@@ -33,7 +33,7 @@ extern "C" {
 #include <sys/mount.h>
 #include <sys/uio.h>
 
-#include "mntopts.h"	// for build_iovec
+#include "mntopts.h" // for build_iovec
 }
 
 #include "mockfs.hh"
@@ -41,38 +41,46 @@ extern "C" {
 
 using namespace testing;
 
-class Mount: public FuseTest {
-public:
-void expect_statfs() {
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
-}
+class Mount : public FuseTest {
+    public:
+	void expect_statfs()
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[](auto in) {
+					return (
+					    in.header.opcode == FUSE_STATFS);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, statfs);
+			})));
+	}
 };
 
-class Fsname: public Mount {
-	void SetUp() {
+class Fsname : public Mount {
+	void SetUp()
+	{
 		m_fsname = "http://something";
 		Mount::SetUp();
 	}
 };
 
-class Subtype: public Mount {
-	void SetUp() {
+class Subtype : public Mount {
+	void SetUp()
+	{
 		m_subtype = "myfs";
 		Mount::SetUp();
 	}
 };
 
-class UpdateOk: public Mount, public WithParamInterface<const char*> {};
-class UpdateErr: public Mount, public WithParamInterface<const char*> {};
+class UpdateOk : public Mount, public WithParamInterface<const char *> { };
+class UpdateErr : public Mount, public WithParamInterface<const char *> { };
 
-int mntflag_from_string(const char *s)
+int
+mntflag_from_string(const char *s)
 {
 	if (0 == strcmp("MNT_RDONLY", s))
 		return MNT_RDONLY;
@@ -125,24 +133,27 @@ TEST_P(UpdateOk, update)
 	if (flag == MNT_SUIDDIR && 0 != geteuid())
 		GTEST_SKIP() << "Only root may set MNT_SUIDDIR";
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		/* 
-		 * All of the fields except f_flags are don't care, and f_flags is set by
-		 * the VFS
-		 */
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			/*
+			 * All of the fields except f_flags are don't care, and
+			 * f_flags is set by the VFS
+			 */
+			SET_OUT_HEADER_LEN(out, statfs);
+		})));
 
 	ASSERT_EQ(0, statfs("mountpoint", &statbuf)) << strerror(errno);
 	newflags = (statbuf.f_flags | MNT_UPDATE) ^ flag;
 
-	build_iovec(&iov, &iovlen, "fstype", (void*)statbuf.f_fstypename, -1);
-	build_iovec(&iov, &iovlen, "fspath", (void*)statbuf.f_mntonname, -1);
+	build_iovec(&iov, &iovlen, "fstype", (void *)statbuf.f_fstypename, -1);
+	build_iovec(&iov, &iovlen, "fspath", (void *)statbuf.f_mntonname, -1);
 	build_iovec(&iov, &iovlen, "from", __DECONST(void *, "/dev/fuse"), -1);
 	ASSERT_EQ(0, nmount(iov, iovlen, newflags)) << strerror(errno);
 
@@ -160,26 +171,29 @@ TEST_P(UpdateErr, update)
 	int newflags = MNT_UPDATE | MNT_SYNCHRONOUS;
 
 	flag = mntflag_from_string(GetParam());
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		/* 
-		 * All of the fields except f_flags are don't care, and f_flags is set by
-		 * the VFS
-		 */
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			/*
+			 * All of the fields except f_flags are don't care, and
+			 * f_flags is set by the VFS
+			 */
+			SET_OUT_HEADER_LEN(out, statfs);
+		})));
 
 	ASSERT_EQ(0, statfs("mountpoint", &statbuf)) << strerror(errno);
 	newflags = (statbuf.f_flags | MNT_UPDATE) ^ flag;
 
-	build_iovec(&iov, &iovlen, "fstype", (void*)statbuf.f_fstypename, -1);
-	build_iovec(&iov, &iovlen, "fspath", (void*)statbuf.f_mntonname, -1);
+	build_iovec(&iov, &iovlen, "fstype", (void *)statbuf.f_fstypename, -1);
+	build_iovec(&iov, &iovlen, "fspath", (void *)statbuf.f_mntonname, -1);
 	build_iovec(&iov, &iovlen, "from", __DECONST(void *, "/dev/fuse"), -1);
-	/* 
+	/*
 	 * Don't check nmount's return value, because vfs_domount may "fix" the
 	 * options for us.  The important thing is to check the final value of
 	 * statbuf.f_flags below.
@@ -191,10 +205,7 @@ TEST_P(UpdateErr, update)
 }
 
 INSTANTIATE_TEST_SUITE_P(Mount, UpdateOk,
-		::testing::Values("MNT_RDONLY", "MNT_NOEXEC", "MNT_NOSUID", "MNT_NOATIME",
-		"MNT_SUIDDIR")
-);
+    ::testing::Values("MNT_RDONLY", "MNT_NOEXEC", "MNT_NOSUID", "MNT_NOATIME",
+	"MNT_SUIDDIR"));
 
-INSTANTIATE_TEST_SUITE_P(Mount, UpdateErr,
-		::testing::Values( "MNT_USER")
-);
+INSTANTIATE_TEST_SUITE_P(Mount, UpdateErr, ::testing::Values("MNT_USER"));

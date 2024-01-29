@@ -37,38 +37,38 @@
 #include <sys/_types.h>
 
 #ifndef _PTRDIFF_T_DECLARED
-typedef	__ptrdiff_t	ptrdiff_t;
-#define	_PTRDIFF_T_DECLARED
+typedef __ptrdiff_t ptrdiff_t;
+#define _PTRDIFF_T_DECLARED
 #endif
 
 #if __BSD_VISIBLE
 #ifndef _RUNE_T_DECLARED
-typedef	__rune_t	rune_t;
-#define	_RUNE_T_DECLARED
+typedef __rune_t rune_t;
+#define _RUNE_T_DECLARED
 #endif
 #endif
 
 #ifndef _SIZE_T_DECLARED
-typedef	__size_t	size_t;
-#define	_SIZE_T_DECLARED
+typedef __size_t size_t;
+#define _SIZE_T_DECLARED
 #endif
 
-#ifndef	__cplusplus
+#ifndef __cplusplus
 #ifndef _WCHAR_T_DECLARED
-typedef	___wchar_t	wchar_t;
-#define	_WCHAR_T_DECLARED
+typedef ___wchar_t wchar_t;
+#define _WCHAR_T_DECLARED
 #endif
 #endif
 
 #if __ISO_C_VISIBLE >= 2011 || __cplusplus >= 201103L
 #ifndef __CLANG_MAX_ALIGN_T_DEFINED
-typedef	__max_align_t	max_align_t;
+typedef __max_align_t max_align_t;
 #define __CLANG_MAX_ALIGN_T_DEFINED
 #define _GCC_MAX_ALIGN_T
 #endif
 #endif
 
-#define	offsetof(type, field)	__offsetof(type, field)
+#define offsetof(type, field) __offsetof(type, field)
 
 #if __EXT1_VISIBLE
 /* ISO/IEC 9899:2011 K.3.3.2 */

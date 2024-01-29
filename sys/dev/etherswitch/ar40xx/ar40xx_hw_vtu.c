@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,42 +35,38 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
-#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
-
 
 /*
  * Perform a VTU (vlan table unit) operation.
@@ -80,11 +77,10 @@ ar40xx_hw_vtu_op(struct ar40xx_softc *sc, uint32_t op, uint32_t val)
 	int ret;
 
 	AR40XX_DPRINTF(sc, AR40XX_DBG_VTU_OP,
-	    "%s: called; op=0x%08x, val=0x%08x\n",
-	    __func__, op, val);
+	    "%s: called; op=0x%08x, val=0x%08x\n", __func__, op, val);
 
 	ret = (ar40xx_hw_wait_bit(sc, AR40XX_REG_VTU_FUNC1,
-                            AR40XX_VTU_FUNC1_BUSY, 0));
+	    AR40XX_VTU_FUNC1_BUSY, 0));
 	if (ret != 0)
 		return (ret);
 
@@ -167,7 +163,8 @@ ar40xx_hw_vtu_get_vlan(struct ar40xx_softc *sc, int vid, uint32_t *ports,
 	/* Filter out any etherswitch VID flags; only grab the VLAN ID */
 	vid &= ETHERSWITCH_VID_MASK;
 
-	/* XXX TODO: the VTU here stores egress mode - keep, tag, untagged, none */
+	/* XXX TODO: the VTU here stores egress mode - keep, tag, untagged, none
+	 */
 	op |= (vid << AR40XX_VTU_FUNC1_VID_S);
 	r = ar40xx_hw_vtu_op(sc, op, 0);
 	if (r != 0) {
@@ -193,4 +190,3 @@ ar40xx_hw_vtu_get_vlan(struct ar40xx_softc *sc, int vid, uint32_t *ports,
 
 	return (0);
 }
-

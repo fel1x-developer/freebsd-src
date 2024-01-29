@@ -26,15 +26,16 @@
 
 #include <sys/cdefs.h>
 #ifdef SAN_NEEDS_INTERCEPTORS
-#define	SAN_RUNTIME
+#define SAN_RUNTIME
 #endif
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <x86/bus.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <x86/bus.h>
 
 /*
  * Implementation of bus_space_map(), which effectively is a thin
@@ -46,9 +47,9 @@ bus_space_map(bus_space_tag_t tag, bus_addr_t addr, bus_size_t size,
     int flags __unused, bus_space_handle_t *bshp)
 {
 
-	*bshp = (tag == X86_BUS_SPACE_MEM)
-	    ? (uintptr_t)pmap_mapdev(addr, size)
-	    : addr;
+	*bshp = (tag == X86_BUS_SPACE_MEM) ?
+	    (uintptr_t)pmap_mapdev(addr, size) :
+	    addr;
 	return (0);
 }
 

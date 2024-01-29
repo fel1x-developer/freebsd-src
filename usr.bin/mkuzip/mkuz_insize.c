@@ -25,11 +25,12 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
 #include <sys/disk.h>
 #include <sys/ioctl.h>
-#include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -74,7 +75,7 @@ mkuz_get_insize(struct mkuz_cfg *cfp)
 		sb.st_size = ms;
 	} else if (!S_ISREG(sb.st_mode)) {
 		warnx("%s: not a character device or regular file\n",
-			cfp->iname);
+		    cfp->iname);
 		return (-1);
 	}
 	return (sb.st_size);

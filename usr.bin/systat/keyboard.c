@@ -29,19 +29,17 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/select.h>
 #include <sys/time.h>
 
-#include <errno.h>
 #include <ctype.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 static char line[80];
 static int keyboard_dispatch(int ch);
@@ -93,7 +91,7 @@ keyboard(void)
 					refresh();
 					continue;
 				}
-	
+
 				line[col] = '\0';
 				command(line + 1);
 				/* Refresh delay */
@@ -158,7 +156,7 @@ keyboard_dispatch(int ch)
 		col = 0;
 		if (line[0] == ':')
 			col++;
-doerase:
+	doerase:
 		move(CMDLINE, col);
 		clrtoeol();
 		return 0;

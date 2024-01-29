@@ -24,14 +24,15 @@
  */
 
 #include <stdlib.h>
+
 #include "jsmn.h"
 #define JSMN_STRICT
 
 /*
  * Allocates a fresh unused token from the token pool.
  */
-static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
-				   jsmntok_t *tokens, size_t num_tokens)
+static jsmntok_t *
+jsmn_alloc_token(jsmn_parser *parser, jsmntok_t *tokens, size_t num_tokens)
 {
 	jsmntok_t *tok;
 
@@ -46,8 +47,8 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
 /*
  * Fills token type and boundaries.
  */
-static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
-			    int start, int end)
+static void
+jsmn_fill_token(jsmntok_t *token, jsmntype_t type, int start, int end)
 {
 	token->type = type;
 	token->start = start;
@@ -58,9 +59,9 @@ static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
 /*
  * Fills next available token with JSON primitive.
  */
-static jsmnerr_t jsmn_parse_primitive(jsmn_parser *parser, const char *js,
-				      size_t len,
-				      jsmntok_t *tokens, size_t num_tokens)
+static jsmnerr_t
+jsmn_parse_primitive(jsmn_parser *parser, const char *js, size_t len,
+    jsmntok_t *tokens, size_t num_tokens)
 {
 	jsmntok_t *token;
 	int start;
@@ -115,9 +116,9 @@ found:
 /*
  * Fills next token with JSON string.
  */
-static jsmnerr_t jsmn_parse_string(jsmn_parser *parser, const char *js,
-				   size_t len,
-				   jsmntok_t *tokens, size_t num_tokens)
+static jsmnerr_t
+jsmn_parse_string(jsmn_parser *parser, const char *js, size_t len,
+    jsmntok_t *tokens, size_t num_tokens)
 {
 	jsmntok_t *token;
 	int start = parser->pos;
@@ -135,8 +136,8 @@ static jsmnerr_t jsmn_parse_string(jsmn_parser *parser, const char *js,
 				parser->pos = start;
 				return JSMN_ERROR_NOMEM;
 			}
-			jsmn_fill_token(token, JSMN_STRING, start+1,
-					parser->pos);
+			jsmn_fill_token(token, JSMN_STRING, start + 1,
+			    parser->pos);
 			return JSMN_SUCCESS;
 		}
 
@@ -172,17 +173,18 @@ static jsmnerr_t jsmn_parse_string(jsmn_parser *parser, const char *js,
 /*
  * Parse JSON string and fill tokens.
  */
-jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
-		     jsmntok_t *tokens, unsigned int num_tokens)
+jsmnerr_t
+jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t *tokens,
+    unsigned int num_tokens)
 {
 	jsmnerr_t r;
 	int i;
 	jsmntok_t *token;
 #ifdef JSMN_STRICT
 	/*
-	 * Keeps track of whether a new object/list/primitive is expected. New items are only
-	 * allowed after an opening brace, comma or colon. A closing brace after a comma is not
-	 * valid JSON.
+	 * Keeps track of whether a new object/list/primitive is expected. New
+	 * items are only allowed after an opening brace, comma or colon. A
+	 * closing brace after a comma is not valid JSON.
 	 */
 	int expecting_item = 1;
 #endif
@@ -243,7 +245,7 @@ jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
 			expecting_item = 0;
 #endif
 			r = jsmn_parse_string(parser, js, len, tokens,
-					      num_tokens);
+			    num_tokens);
 			if (r < 0)
 				return r;
 			if (parser->toksuper != -1)
@@ -297,7 +299,7 @@ jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
 			expecting_item = 0;
 #endif
 			r = jsmn_parse_primitive(parser, js, len, tokens,
-						 num_tokens);
+			    num_tokens);
 			if (r < 0)
 				return r;
 			if (parser->toksuper != -1)
@@ -329,14 +331,16 @@ jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
  * Creates a new parser based over a given  buffer with an array of tokens
  * available.
  */
-void jsmn_init(jsmn_parser *parser)
+void
+jsmn_init(jsmn_parser *parser)
 {
 	parser->pos = 0;
 	parser->toknext = 0;
 	parser->toksuper = -1;
 }
 
-const char *jsmn_strerror(jsmnerr_t err)
+const char *
+jsmn_strerror(jsmnerr_t err)
 {
 	switch (err) {
 	case JSMN_ERROR_NOMEM:

@@ -1,18 +1,15 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include "adf_accel_devices.h"
-#include "adf_common_drv.h"
-#include "adf_transport_internal.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define ADF_ARB_NUM 4
 #define ADF_ARB_REG_SIZE 0x4
@@ -25,25 +22,24 @@
 #define ADF_ARB_WRK_2_SER_MAP_OFFSET 0x180
 #define ADF_ARB_RINGSRVARBEN_OFFSET 0x19C
 
-#define WRITE_CSR_ARB_RINGSRVARBEN(csr_addr, index, value)                     \
-	ADF_CSR_WR(csr_addr,                                                   \
-		   ADF_ARB_RINGSRVARBEN_OFFSET + (ADF_ARB_REG_SLOT * (index)), \
-		   value)
+#define WRITE_CSR_ARB_RINGSRVARBEN(csr_addr, index, value) \
+	ADF_CSR_WR(csr_addr,                               \
+	    ADF_ARB_RINGSRVARBEN_OFFSET + (ADF_ARB_REG_SLOT * (index)), value)
 
-#define WRITE_CSR_ARB_SARCONFIG(csr_addr, csr_offset, index, value)            \
+#define WRITE_CSR_ARB_SARCONFIG(csr_addr, csr_offset, index, value) \
 	ADF_CSR_WR(csr_addr, (csr_offset) + (ADF_ARB_REG_SIZE * (index)), value)
-#define READ_CSR_ARB_RINGSRVARBEN(csr_addr, index)                             \
-	ADF_CSR_RD(csr_addr,                                                   \
-		   ADF_ARB_RINGSRVARBEN_OFFSET + (ADF_ARB_REG_SLOT * (index)))
+#define READ_CSR_ARB_RINGSRVARBEN(csr_addr, index) \
+	ADF_CSR_RD(csr_addr,                       \
+	    ADF_ARB_RINGSRVARBEN_OFFSET + (ADF_ARB_REG_SLOT * (index)))
 
 static DEFINE_MUTEX(csr_arb_lock);
 
-#define WRITE_CSR_ARB_WRK_2_SER_MAP(                                           \
-    csr_addr, csr_offset, wrk_to_ser_map_offset, index, value)                 \
-	ADF_CSR_WR(csr_addr,                                                   \
-		   ((csr_offset) + (wrk_to_ser_map_offset)) +                  \
-		       (ADF_ARB_REG_SIZE * (index)),                           \
-		   value)
+#define WRITE_CSR_ARB_WRK_2_SER_MAP(csr_addr, csr_offset, \
+    wrk_to_ser_map_offset, index, value)                  \
+	ADF_CSR_WR(csr_addr,                              \
+	    ((csr_offset) + (wrk_to_ser_map_offset)) +    \
+		(ADF_ARB_REG_SIZE * (index)),             \
+	    value)
 
 int
 adf_init_arb(struct adf_accel_dev *accel_dev)
@@ -85,11 +81,8 @@ adf_init_gen2_arb(struct adf_accel_dev *accel_dev)
 		return EFAULT;
 
 	for (i = 0; i < hw_data->num_engines; i++)
-		WRITE_CSR_ARB_WRK_2_SER_MAP(csr,
-					    info.arbiter_offset,
-					    info.wrk_thd_2_srv_arb_map,
-					    i,
-					    *(thd_2_arb_cfg + i));
+		WRITE_CSR_ARB_WRK_2_SER_MAP(csr, info.arbiter_offset,
+		    info.wrk_thd_2_srv_arb_map, i, *(thd_2_arb_cfg + i));
 	return 0;
 }
 
@@ -109,8 +102,7 @@ adf_update_ring_arb(struct adf_etr_ring_data *ring)
 	arben_rx = (ring->bank->ring_mask >> shift) & arb_mask;
 	arben = arben_tx & arben_rx;
 	csr_ops->write_csr_ring_srv_arb_en(ring->bank->csr_addr,
-					   ring->bank->bank_number,
-					   arben);
+	    ring->bank->bank_number, arben);
 }
 
 void
@@ -129,14 +121,11 @@ adf_update_uio_ring_arb(struct adf_uio_control_bundle *bundle)
 	arben_rx = (bundle->rings_enabled >> shift) & arb_mask;
 	arben = arben_tx & arben_rx;
 	csr_ops->write_csr_ring_srv_arb_en(bundle->csr_addr,
-					   bundle->hardware_bundle_number,
-					   arben);
+	    bundle->hardware_bundle_number, arben);
 }
 void
-adf_enable_ring_arb(struct adf_accel_dev *accel_dev,
-		    void *csr_addr,
-		    unsigned int bank_nr,
-		    unsigned int mask)
+adf_enable_ring_arb(struct adf_accel_dev *accel_dev, void *csr_addr,
+    unsigned int bank_nr, unsigned int mask)
 {
 	struct adf_hw_csr_ops *csr_ops = GET_CSR_OPS(accel_dev);
 	u32 arbenable;
@@ -153,10 +142,8 @@ adf_enable_ring_arb(struct adf_accel_dev *accel_dev,
 }
 
 void
-adf_disable_ring_arb(struct adf_accel_dev *accel_dev,
-		     void *csr_addr,
-		     unsigned int bank_nr,
-		     unsigned int mask)
+adf_disable_ring_arb(struct adf_accel_dev *accel_dev, void *csr_addr,
+    unsigned int bank_nr, unsigned int mask)
 {
 	struct adf_hw_csr_ops *csr_ops = GET_CSR_OPS(accel_dev);
 	struct resource *csr = csr_addr;
@@ -195,11 +182,8 @@ adf_exit_arb(struct adf_accel_dev *accel_dev)
 	/* Unmap worker threads to service arbiters */
 	if (hw_data->get_arb_mapping) {
 		for (i = 0; i < hw_data->num_engines; i++)
-			WRITE_CSR_ARB_WRK_2_SER_MAP(csr,
-						    info.arbiter_offset,
-						    info.wrk_thd_2_srv_arb_map,
-						    i,
-						    0);
+			WRITE_CSR_ARB_WRK_2_SER_MAP(csr, info.arbiter_offset,
+			    info.wrk_thd_2_srv_arb_map, i, 0);
 	}
 
 	/* Disable arbitration on all rings */

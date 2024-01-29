@@ -41,22 +41,23 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/interrupt.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr.h>
+#include <machine/resource.h>
 
 #ifdef FDT
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
+
 #include "ofw_bus_if.h"
 #endif
 
@@ -65,73 +66,71 @@ extern struct bus_space memmap_bus;
 static MALLOC_DEFINE(M_NEXUSDEV, "nexusdev", "Nexus device");
 
 struct nexus_device {
-	struct resource_list	nx_resources;
+	struct resource_list nx_resources;
 };
 
-#define DEVTONX(dev)	((struct nexus_device *)device_get_ivars(dev))
+#define DEVTONX(dev) ((struct nexus_device *)device_get_ivars(dev))
 
 static struct rman mem_rman;
 static struct rman irq_rman;
 
-static device_probe_t		nexus_fdt_probe;
-static device_attach_t		nexus_attach;
+static device_probe_t nexus_fdt_probe;
+static device_attach_t nexus_attach;
 
-static bus_add_child_t		nexus_add_child;
-static bus_print_child_t	nexus_print_child;
+static bus_add_child_t nexus_add_child;
+static bus_print_child_t nexus_print_child;
 
-static bus_activate_resource_t	nexus_activate_resource;
-static bus_alloc_resource_t	nexus_alloc_resource;
+static bus_activate_resource_t nexus_activate_resource;
+static bus_alloc_resource_t nexus_alloc_resource;
 static bus_deactivate_resource_t nexus_deactivate_resource;
-static bus_get_resource_list_t	nexus_get_reslist;
-static bus_get_rman_t		nexus_get_rman;
-static bus_map_resource_t	nexus_map_resource;
-static bus_unmap_resource_t	nexus_unmap_resource;
+static bus_get_resource_list_t nexus_get_reslist;
+static bus_get_rman_t nexus_get_rman;
+static bus_map_resource_t nexus_map_resource;
+static bus_unmap_resource_t nexus_unmap_resource;
 
-static bus_config_intr_t	nexus_config_intr;
-static bus_describe_intr_t	nexus_describe_intr;
-static bus_setup_intr_t		nexus_setup_intr;
-static bus_teardown_intr_t	nexus_teardown_intr;
+static bus_config_intr_t nexus_config_intr;
+static bus_describe_intr_t nexus_describe_intr;
+static bus_setup_intr_t nexus_setup_intr;
+static bus_teardown_intr_t nexus_teardown_intr;
 
-static bus_get_bus_tag_t	nexus_get_bus_tag;
+static bus_get_bus_tag_t nexus_get_bus_tag;
 
-static ofw_bus_map_intr_t	nexus_ofw_map_intr;
+static ofw_bus_map_intr_t nexus_ofw_map_intr;
 
 static device_method_t nexus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		nexus_fdt_probe),
-	DEVMETHOD(device_attach,	nexus_attach),
+	DEVMETHOD(device_probe, nexus_fdt_probe),
+	DEVMETHOD(device_attach, nexus_attach),
 
 	/* OFW interface */
-	DEVMETHOD(ofw_bus_map_intr,	nexus_ofw_map_intr),
+	DEVMETHOD(ofw_bus_map_intr, nexus_ofw_map_intr),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	nexus_add_child),
-	DEVMETHOD(bus_print_child,	nexus_print_child),
+	DEVMETHOD(bus_add_child, nexus_add_child),
+	DEVMETHOD(bus_print_child, nexus_print_child),
 	DEVMETHOD(bus_activate_resource, nexus_activate_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_rman_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,	nexus_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_rman_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, nexus_alloc_resource),
 	DEVMETHOD(bus_deactivate_resource, nexus_deactivate_resource),
-	DEVMETHOD(bus_delete_resource,	bus_generic_rl_delete_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
 	DEVMETHOD(bus_get_resource_list, nexus_get_reslist),
-	DEVMETHOD(bus_get_rman,		nexus_get_rman),
-	DEVMETHOD(bus_map_resource,	nexus_map_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rman_release_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_unmap_resource,	nexus_unmap_resource),
-	DEVMETHOD(bus_config_intr,	nexus_config_intr),
-	DEVMETHOD(bus_describe_intr,	nexus_describe_intr),
-	DEVMETHOD(bus_setup_intr,	nexus_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	nexus_teardown_intr),
-	DEVMETHOD(bus_get_bus_tag,	nexus_get_bus_tag),
+	DEVMETHOD(bus_get_rman, nexus_get_rman),
+	DEVMETHOD(bus_map_resource, nexus_map_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rman_release_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_unmap_resource, nexus_unmap_resource),
+	DEVMETHOD(bus_config_intr, nexus_config_intr),
+	DEVMETHOD(bus_describe_intr, nexus_describe_intr),
+	DEVMETHOD(bus_setup_intr, nexus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, nexus_teardown_intr),
+	DEVMETHOD(bus_get_bus_tag, nexus_get_bus_tag),
 
 	DEVMETHOD_END
 };
 
 static driver_t nexus_fdt_driver = {
-	"nexus",
-	nexus_methods,
-	1			/* no softc */
+	"nexus", nexus_methods, 1 /* no softc */
 };
 
 EARLY_DRIVER_MODULE(nexus_fdt, root, nexus_fdt_driver, 0, 0,
@@ -194,7 +193,8 @@ nexus_add_child(device_t bus, u_int order, const char *name, int unit)
 	device_t child;
 	struct nexus_device *ndev;
 
-	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV, M_NOWAIT|M_ZERO);
+	ndev = malloc(sizeof(struct nexus_device), M_NEXUSDEV,
+	    M_NOWAIT | M_ZERO);
 	if (!ndev)
 		return (0);
 	resource_list_init(&ndev->nx_resources);
@@ -249,8 +249,8 @@ nexus_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		count = rle->count;
 	}
 
-	return (bus_generic_rman_alloc_resource(bus, child, type, rid,
-	    start, end, count, flags));
+	return (bus_generic_rman_alloc_resource(bus, child, type, rid, start,
+	    end, count, flags));
 }
 
 static int
@@ -424,8 +424,8 @@ nexus_ofw_map_intr(device_t dev, device_t child, phandle_t iparent, int icells,
 	u_int irq;
 
 	len = sizeof(*fdt_data) + icells * sizeof(pcell_t);
-	fdt_data = (struct intr_map_data_fdt *)intr_alloc_map_data(
-	    INTR_MAP_DATA_FDT, len, M_WAITOK | M_ZERO);
+	fdt_data = (struct intr_map_data_fdt *)
+	    intr_alloc_map_data(INTR_MAP_DATA_FDT, len, M_WAITOK | M_ZERO);
 	fdt_data->iparent = iparent;
 	fdt_data->ncells = icells;
 	memcpy(fdt_data->cells, intr, icells * sizeof(pcell_t));

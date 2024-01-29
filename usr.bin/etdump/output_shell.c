@@ -25,12 +25,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "cd9660.h"
 #include "cd9660_eltorito.h"
-
 #include "etdump.h"
 
 static void
@@ -53,9 +53,9 @@ output_entry(FILE *outfile, const char *filename __unused,
 		platform = system_id_string(platform_id);
 
 	fprintf(outfile,
-	    "et_platform=%s;et_system=%s;et_lba=%d;et_sectors=%d\n",
-	    platform, system_id_string(bcse->system_type[0]),
-	    isonum_731(bcse->load_rba), isonum_721(bcse->sector_count));
+	    "et_platform=%s;et_system=%s;et_lba=%d;et_sectors=%d\n", platform,
+	    system_id_string(bcse->system_type[0]), isonum_731(bcse->load_rba),
+	    isonum_721(bcse->sector_count));
 }
 
 static struct outputter _output_shell = {

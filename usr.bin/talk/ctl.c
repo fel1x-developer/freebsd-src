@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * This file handles haggling with the various talk daemons to
  * get a socket to talk to. sockt is opened and connected in
@@ -45,19 +43,22 @@
 #include "talk.h"
 #include "talk_ctl.h"
 
-struct	sockaddr_in daemon_addr = { .sin_len = sizeof(daemon_addr), .sin_family = AF_INET };
-struct	sockaddr_in ctl_addr = { .sin_len = sizeof(ctl_addr), .sin_family = AF_INET };
-struct	sockaddr_in my_addr = { .sin_len = sizeof(my_addr), .sin_family = AF_INET };
+struct sockaddr_in daemon_addr = { .sin_len = sizeof(daemon_addr),
+	.sin_family = AF_INET };
+struct sockaddr_in ctl_addr = { .sin_len = sizeof(ctl_addr),
+	.sin_family = AF_INET };
+struct sockaddr_in my_addr = { .sin_len = sizeof(my_addr),
+	.sin_family = AF_INET };
 
-	/* inet addresses of the two machines */
-struct	in_addr my_machine_addr;
-struct	in_addr his_machine_addr;
+/* inet addresses of the two machines */
+struct in_addr my_machine_addr;
+struct in_addr his_machine_addr;
 
-u_short daemon_port;	/* port number of the talk daemon */
+u_short daemon_port; /* port number of the talk daemon */
 
-int	ctl_sockt;
-int	sockt;
-int	invitation_waiting = 0;
+int ctl_sockt;
+int sockt;
+int invitation_waiting = 0;
 
 CTL_MSG msg;
 
@@ -95,12 +96,11 @@ open_ctl(void)
 	ctl_sockt = socket(AF_INET, SOCK_DGRAM, 0);
 	if (ctl_sockt == -1)
 		p_error("Bad socket");
-	if (bind(ctl_sockt,
-	    (struct sockaddr *)&ctl_addr, sizeof(ctl_addr)) != 0)
+	if (bind(ctl_sockt, (struct sockaddr *)&ctl_addr, sizeof(ctl_addr)) !=
+	    0)
 		p_error("Couldn't bind to control socket");
 	length = sizeof(ctl_addr);
-	if (getsockname(ctl_sockt,
-	    (struct sockaddr *)&ctl_addr, &length) == -1)
+	if (getsockname(ctl_sockt, (struct sockaddr *)&ctl_addr, &length) == -1)
 		p_error("Bad address for ctl socket");
 }
 
@@ -111,8 +111,8 @@ print_addr(struct sockaddr_in addr)
 	int i;
 
 	printf("addr = %lx, port = %o, family = %o zero = ",
-		(u_long)addr.sin_addr.s_addr, addr.sin_port, addr.sin_family);
-	for (i = 0; i<8;i++)
-	printf("%o ", (int)addr.sin_zero[i]);
+	    (u_long)addr.sin_addr.s_addr, addr.sin_port, addr.sin_family);
+	for (i = 0; i < 8; i++)
+		printf("%o ", (int)addr.sin_zero[i]);
 	putchar('\n');
 }

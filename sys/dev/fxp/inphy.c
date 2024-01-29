@@ -37,61 +37,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
 
 #include <dev/fxp/inphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
+#include "miidevs.h"
 
-static int 	inphy_probe(device_t dev);
-static int 	inphy_attach(device_t dev);
+static int inphy_probe(device_t dev);
+static int inphy_attach(device_t dev);
 
 static device_method_t inphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		inphy_probe),
-	DEVMETHOD(device_attach,	inphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, inphy_probe),
+	DEVMETHOD(device_attach, inphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), { 0, 0 }
 };
 
-static driver_t inphy_driver = {
-	"inphy",
-	inphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t inphy_driver = { "inphy", inphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(inphy, miibus, inphy_driver, 0, 0);
 
-static int	inphy_service(struct mii_softc *, struct mii_data *, int);
-static void	inphy_status(struct mii_softc *);
-static void	inphy_reset(struct mii_softc *);
+static int inphy_service(struct mii_softc *, struct mii_data *, int);
+static void inphy_status(struct mii_softc *);
+static void inphy_reset(struct mii_softc *);
 
-static const struct mii_phydesc inphys[] = {
-	MII_PHY_DESC(xxINTEL, I82553),
-	MII_PHY_DESC(yyINTEL, I82553),
-	MII_PHY_DESC(yyINTEL, I82555),
-	MII_PHY_DESC(yyINTEL, I82562EM),
-	MII_PHY_DESC(yyINTEL, I82562ET),
-	MII_PHY_END
-};
+static const struct mii_phydesc inphys[] = { MII_PHY_DESC(xxINTEL, I82553),
+	MII_PHY_DESC(yyINTEL, I82553), MII_PHY_DESC(yyINTEL, I82555),
+	MII_PHY_DESC(yyINTEL, I82562EM), MII_PHY_DESC(yyINTEL, I82562ET),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs inphy_funcs = {
-	inphy_service,
-	inphy_status,
-	inphy_reset
-};
+static const struct mii_phy_funcs inphy_funcs = { inphy_service, inphy_status,
+	inphy_reset };
 
 static int
 inphy_probe(device_t dev)
@@ -176,8 +164,8 @@ inphy_status(struct mii_softc *sc)
 		else
 			mii->mii_media_active |= IFM_10_T;
 		if (scr & SCR_FDX)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

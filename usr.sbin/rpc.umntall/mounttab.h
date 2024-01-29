@@ -26,21 +26,21 @@
  * SUCH DAMAGE.
  */
 
-#define STRSIZ  (MNTNAMLEN+MNTPATHLEN+100)
-#define PATH_MOUNTTAB	"/var/db/mounttab"
+#define STRSIZ (MNTNAMLEN + MNTPATHLEN + 100)
+#define PATH_MOUNTTAB "/var/db/mounttab"
 
 /* Structure for /var/db/mounttab */
 struct mtablist {
-	time_t	mtab_time;
-	char	mtab_host[MNTNAMLEN];
-	char	mtab_dirp[MNTPATHLEN];
+	time_t mtab_time;
+	char mtab_host[MNTNAMLEN];
+	char mtab_dirp[MNTPATHLEN];
 	struct mtablist *mtab_next;
 };
 
 extern struct mtablist *mtabhead;
 
-int	add_mtab(char *, char *);
-void	clean_mtab(char *, char *, int);
-int	read_mtab(void);
-int	write_mtab(int);
-void	free_mtab(void);
+int add_mtab(char *, char *);
+void clean_mtab(char *, char *, int);
+int read_mtab(void);
+int write_mtab(int);
+void free_mtab(void);

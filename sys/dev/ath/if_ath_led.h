@@ -28,10 +28,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_LED_H__
-#define	__IF_ATH_LED_H__
+#ifndef __IF_ATH_LED_H__
+#define __IF_ATH_LED_H__
 
-extern	void ath_led_event(struct ath_softc *sc, int rix);
-extern	void ath_led_config(struct ath_softc *sc);
+extern void ath_led_event(struct ath_softc *sc, int rix);
+extern void ath_led_config(struct ath_softc *sc);
 
 #endif

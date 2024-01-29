@@ -36,40 +36,40 @@
  * be called from within the config thread function !
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
-
-#define	UGENSA_BUF_SIZE		2048	/* bytes */
-#define	UGENSA_CONFIG_INDEX	0
-#define	UGENSA_IFACE_INDEX	0
-#define	UGENSA_IFACE_MAX	8	/* exclusivly */
-#define	UGENSA_PORT_MAX		8	/* exclusivly */
+#define UGENSA_BUF_SIZE 2048 /* bytes */
+#define UGENSA_CONFIG_INDEX 0
+#define UGENSA_IFACE_INDEX 0
+#define UGENSA_IFACE_MAX 8 /* exclusivly */
+#define UGENSA_PORT_MAX 8  /* exclusivly */
 
 enum {
 	UGENSA_BULK_DT_WR,
@@ -88,7 +88,7 @@ struct ugensa_softc {
 	struct ugensa_sub_softc sc_sub[UGENSA_PORT_MAX];
 
 	struct mtx sc_mtx;
-	uint8_t	sc_nports;
+	uint8_t sc_nports;
 };
 
 /* prototypes */
@@ -101,12 +101,12 @@ static void ugensa_free_softc(struct ugensa_softc *);
 static usb_callback_t ugensa_bulk_write_callback;
 static usb_callback_t ugensa_bulk_read_callback;
 
-static void	ugensa_free(struct ucom_softc *);
-static void	ugensa_start_read(struct ucom_softc *);
-static void	ugensa_stop_read(struct ucom_softc *);
-static void	ugensa_start_write(struct ucom_softc *);
-static void	ugensa_stop_write(struct ucom_softc *);
-static void	ugensa_poll(struct ucom_softc *ucom);
+static void ugensa_free(struct ucom_softc *);
+static void ugensa_start_read(struct ucom_softc *);
+static void ugensa_stop_read(struct ucom_softc *);
+static void ugensa_start_write(struct ucom_softc *);
+static void ugensa_stop_write(struct ucom_softc *);
+static void ugensa_poll(struct ucom_softc *ucom);
 
 static const struct usb_config ugensa_xfer_config[UGENSA_N_TRANSFER] = {
 	[UGENSA_BULK_DT_WR] = {
@@ -141,8 +141,7 @@ static device_method_t ugensa_methods[] = {
 	/* Device methods */
 	DEVMETHOD(device_probe, ugensa_probe),
 	DEVMETHOD(device_attach, ugensa_attach),
-	DEVMETHOD(device_detach, ugensa_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, ugensa_detach), DEVMETHOD_END
 };
 
 static driver_t ugensa_driver = {
@@ -153,13 +152,14 @@ static driver_t ugensa_driver = {
 
 /* Driver-info is max number of serial ports per interface */
 static const STRUCT_USB_HOST_ID ugensa_devs[] = {
-	{USB_VPI(USB_VENDOR_AIRPRIME, USB_PRODUCT_AIRPRIME_PC5220, 1)},
-	{USB_VPI(USB_VENDOR_CMOTECH, USB_PRODUCT_CMOTECH_CDMA_MODEM1, 1)},
-	{USB_VPI(USB_VENDOR_KYOCERA2, USB_PRODUCT_KYOCERA2_CDMA_MSM_K, 1)},
-	{USB_VPI(USB_VENDOR_HP, USB_PRODUCT_HP_49GPLUS, 1)},
-	{USB_VPI(USB_VENDOR_NOVATEL2, USB_PRODUCT_NOVATEL2_FLEXPACKGPS, 3)},
-	{USB_VENDOR(USB_VENDOR_GOOGLE), USB_IFACE_CLASS(UICLASS_VENDOR),
-		USB_IFACE_SUBCLASS(0x50), USB_IFACE_PROTOCOL(0x01), USB_DRIVER_INFO(10)},
+	{ USB_VPI(USB_VENDOR_AIRPRIME, USB_PRODUCT_AIRPRIME_PC5220, 1) },
+	{ USB_VPI(USB_VENDOR_CMOTECH, USB_PRODUCT_CMOTECH_CDMA_MODEM1, 1) },
+	{ USB_VPI(USB_VENDOR_KYOCERA2, USB_PRODUCT_KYOCERA2_CDMA_MSM_K, 1) },
+	{ USB_VPI(USB_VENDOR_HP, USB_PRODUCT_HP_49GPLUS, 1) },
+	{ USB_VPI(USB_VENDOR_NOVATEL2, USB_PRODUCT_NOVATEL2_FLEXPACKGPS, 3) },
+	{ USB_VENDOR(USB_VENDOR_GOOGLE), USB_IFACE_CLASS(UICLASS_VENDOR),
+	    USB_IFACE_SUBCLASS(0x50), USB_IFACE_PROTOCOL(0x01),
+	    USB_DRIVER_INFO(10) },
 };
 
 DRIVER_MODULE(ugensa, uhub, ugensa_driver, NULL, NULL);
@@ -202,29 +202,35 @@ ugensa_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, "ugensa", NULL, MTX_DEF);
 	ucom_ref(&sc->sc_super_ucom);
 
-	for (iface_index = UGENSA_IFACE_INDEX; iface_index < UGENSA_IFACE_MAX; iface_index++) {
+	for (iface_index = UGENSA_IFACE_INDEX; iface_index < UGENSA_IFACE_MAX;
+	     iface_index++) {
 		iface = usbd_get_iface(uaa->device, iface_index);
-		if (iface == NULL || iface->idesc->bInterfaceClass != UICLASS_VENDOR)
+		if (iface == NULL ||
+		    iface->idesc->bInterfaceClass != UICLASS_VENDOR)
 			/* Not a serial port, most likely a SD reader */
 			continue;
 
 		/* Loop over all endpoints pairwise */
-		for (x = 0; x < maxports && sc->sc_nports < UGENSA_PORT_MAX; x++) {
+		for (x = 0; x < maxports && sc->sc_nports < UGENSA_PORT_MAX;
+		     x++) {
 			ssc = sc->sc_sub + sc->sc_nports;
 			ssc->sc_ucom_ptr = sc->sc_ucom + sc->sc_nports;
 
-			memcpy(xfer_config, ugensa_xfer_config, sizeof ugensa_xfer_config);
+			memcpy(xfer_config, ugensa_xfer_config,
+			    sizeof ugensa_xfer_config);
 			xfer_config[UGENSA_BULK_DT_RD].ep_index = x;
 			xfer_config[UGENSA_BULK_DT_WR].ep_index = x;
 
-			error = usbd_transfer_setup(uaa->device,
-			    &iface_index, ssc->sc_xfer, xfer_config,
-			    UGENSA_N_TRANSFER, ssc, &sc->sc_mtx);
+			error = usbd_transfer_setup(uaa->device, &iface_index,
+			    ssc->sc_xfer, xfer_config, UGENSA_N_TRANSFER, ssc,
+			    &sc->sc_mtx);
 
 			if (error) {
 				if (x == 0) {
-					device_printf(dev, "allocating USB "
-					    "transfers failed (%d)\n", error);
+					device_printf(dev,
+					    "allocating USB "
+					    "transfers failed (%d)\n",
+					    error);
 					goto detach;
 				}
 				break;
@@ -256,11 +262,11 @@ ugensa_attach(device_t dev)
 	}
 	ucom_set_pnpinfo_usb(&sc->sc_super_ucom, dev);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	ugensa_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -309,16 +315,16 @@ ugensa_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(ssc->sc_ucom_ptr, pc, 0,
-		    UGENSA_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(ssc->sc_ucom_ptr, pc, 0, UGENSA_BUF_SIZE,
+			&actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -343,12 +349,12 @@ ugensa_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(ssc->sc_ucom_ptr, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);

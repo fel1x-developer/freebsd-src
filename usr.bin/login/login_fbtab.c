@@ -1,18 +1,18 @@
 /************************************************************************
-* Copyright 1995 by Wietse Venema.  All rights reserved.
-*
-* This material was originally written and compiled by Wietse Venema at
-* Eindhoven University of Technology, The Netherlands, in 1990, 1991,
-* 1992, 1993, 1994 and 1995.
-*
-* Redistribution and use in source and binary forms are permitted
-* provided that this entire copyright notice is duplicated in all such
-* copies.
-*
-* This software is provided "as is" and without any expressed or implied
-* warranties, including, without limitation, the implied warranties of
-* merchantibility and fitness for any particular purpose.
-************************************************************************/
+ * Copyright 1995 by Wietse Venema.  All rights reserved.
+ *
+ * This material was originally written and compiled by Wietse Venema at
+ * Eindhoven University of Technology, The Netherlands, in 1990, 1991,
+ * 1992, 1993, 1994 and 1995.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this entire copyright notice is duplicated in all such
+ * copies.
+ *
+ * This software is provided "as is" and without any expressed or implied
+ * warranties, including, without limitation, the implied warranties of
+ * merchantibility and fitness for any particular purpose.
+ ************************************************************************/
 /*
     SYNOPSIS
 	void login_fbtab(tty, uid, gid)
@@ -60,6 +60,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <glob.h>
 #include <stdio.h>
@@ -70,48 +71,47 @@
 #include "login.h"
 #include "pathnames.h"
 
-static void	login_protect(const char *, char *, int, uid_t, gid_t);
+static void login_protect(const char *, char *, int, uid_t, gid_t);
 
-#define	WSPACE		" \t\n"
+#define WSPACE " \t\n"
 
 /* login_fbtab - apply protections specified in /etc/fbtab or logindevperm */
 
 void
 login_fbtab(char *tty, uid_t uid, gid_t gid)
 {
-    FILE   *fp;
-    char    buf[BUFSIZ];
-    char   *devname;
-    char   *cp;
-    int     prot;
-    const char *table;
+	FILE *fp;
+	char buf[BUFSIZ];
+	char *devname;
+	char *cp;
+	int prot;
+	const char *table;
 
-    if ((fp = fopen(table = _PATH_FBTAB, "r")) == NULL
-    && (fp = fopen(table = _PATH_LOGINDEVPERM, "r")) == NULL)
-	return;
+	if ((fp = fopen(table = _PATH_FBTAB, "r")) == NULL &&
+	    (fp = fopen(table = _PATH_LOGINDEVPERM, "r")) == NULL)
+		return;
 
-    while (fgets(buf, sizeof(buf), fp)) {
-	if ((cp = strchr(buf, '#')))
-	    *cp = 0;				/* strip comment */
-	if ((cp = devname = strtok(buf, WSPACE)) == NULL)
-	    continue;				/* empty or comment */
-	if (strncmp(devname, _PATH_DEV, sizeof _PATH_DEV - 1) != 0
-	       || (cp = strtok(NULL, WSPACE)) == NULL
-	       || *cp != '0'
-	       || sscanf(cp, "%o", &prot) == 0
-	       || prot == 0
-	       || (prot & 0777) != prot
-	       || (cp = strtok(NULL, WSPACE)) == NULL) {
-	    syslog(LOG_ERR, "%s: bad entry: %s", table, cp ? cp : "(null)");
-	    continue;
+	while (fgets(buf, sizeof(buf), fp)) {
+		if ((cp = strchr(buf, '#')))
+			*cp = 0; /* strip comment */
+		if ((cp = devname = strtok(buf, WSPACE)) == NULL)
+			continue; /* empty or comment */
+		if (strncmp(devname, _PATH_DEV, sizeof _PATH_DEV - 1) != 0 ||
+		    (cp = strtok(NULL, WSPACE)) == NULL || *cp != '0' ||
+		    sscanf(cp, "%o", &prot) == 0 || prot == 0 ||
+		    (prot & 0777) != prot ||
+		    (cp = strtok(NULL, WSPACE)) == NULL) {
+			syslog(LOG_ERR, "%s: bad entry: %s", table,
+			    cp ? cp : "(null)");
+			continue;
+		}
+		if (strcmp(devname + 5, tty) == 0) {
+			for (cp = strtok(cp, ":"); cp; cp = strtok(NULL, ":")) {
+				login_protect(table, cp, prot, uid, gid);
+			}
+		}
 	}
-	if (strcmp(devname + 5, tty) == 0) {
-	    for (cp = strtok(cp, ":"); cp; cp = strtok(NULL, ":")) {
-		login_protect(table, cp, prot, uid, gid);
-	    }
-	}
-    }
-    fclose(fp);
+	fclose(fp);
 }
 
 /* login_protect - protect one device entry */
@@ -119,21 +119,21 @@ login_fbtab(char *tty, uid_t uid, gid_t gid)
 static void
 login_protect(const char *table, char *pattern, int mask, uid_t uid, gid_t gid)
 {
-    glob_t  gl;
-    char   *path;
-    unsigned int     i;
+	glob_t gl;
+	char *path;
+	unsigned int i;
 
-    if (glob(pattern, GLOB_NOSORT, NULL, &gl) != 0)
-	return;
-    for (i = 0; i < gl.gl_pathc; i++) {
-	path = gl.gl_pathv[i];
-	/* clear flags of the device */
-	if (chflags(path, 0) && errno != ENOENT && errno != EOPNOTSUPP)
-	    syslog(LOG_ERR, "%s: chflags(%s): %m", table, path);
-	if (chmod(path, mask) && errno != ENOENT)
-	    syslog(LOG_ERR, "%s: chmod(%s): %m", table, path);
-	if (chown(path, uid, gid) && errno != ENOENT)
-	    syslog(LOG_ERR, "%s: chown(%s): %m", table, path);
-    }
-    globfree(&gl);
+	if (glob(pattern, GLOB_NOSORT, NULL, &gl) != 0)
+		return;
+	for (i = 0; i < gl.gl_pathc; i++) {
+		path = gl.gl_pathv[i];
+		/* clear flags of the device */
+		if (chflags(path, 0) && errno != ENOENT && errno != EOPNOTSUPP)
+			syslog(LOG_ERR, "%s: chflags(%s): %m", table, path);
+		if (chmod(path, mask) && errno != ENOENT)
+			syslog(LOG_ERR, "%s: chmod(%s): %m", table, path);
+		if (chown(path, uid, gid) && errno != ENOENT)
+			syslog(LOG_ERR, "%s: chown(%s): %m", table, path);
+	}
+	globfree(&gl);
 }

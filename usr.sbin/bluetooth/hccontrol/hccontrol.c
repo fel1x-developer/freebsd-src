@@ -31,37 +31,40 @@
  */
 
 #define L2CAP_SOCKET_CHECKED
-#include <bluetooth.h>
 #include <sys/ioctl.h>
 #include <sys/sysctl.h>
+
+#include <netgraph/ng_message.h>
+
 #include <assert.h>
+#include <bluetooth.h>
 #include <err.h>
 #include <errno.h>
-#include <netgraph/ng_message.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "hccontrol.h"
 
 /* Prototypes */
-static int                  do_hci_command    (char const *, int, char **);
-static struct hci_command * find_hci_command  (char const *, struct hci_command *);
-static int                  find_hci_nodes    (struct nodeinfo **);
-static void                 print_hci_command (struct hci_command *);
-static void usage                             (void);
+static int do_hci_command(char const *, int, char **);
+static struct hci_command *find_hci_command(char const *, struct hci_command *);
+static int find_hci_nodes(struct nodeinfo **);
+static void print_hci_command(struct hci_command *);
+static void usage(void);
 
 /* Globals */
-int	 verbose = 0; 
-int	 timeout;
-int	 numeric_bdaddr = 0;
+int verbose = 0;
+int timeout;
+int numeric_bdaddr = 0;
 
 /* Main */
 int
 main(int argc, char *argv[])
 {
-	char	*node = NULL;
-	int	 n;
+	char *node = NULL;
+	int n;
 
 	/* Process command line arguments */
 	while ((n = getopt(argc, argv, "n:Nvh")) != -1) {
@@ -99,12 +102,12 @@ main(int argc, char *argv[])
 static int
 socket_open(char const *node)
 {
-	struct sockaddr_hci			 addr;
-	struct ng_btsocket_hci_raw_filter	 filter;
-	int					 s, mib[4], num;
-	size_t					 size;
-	struct nodeinfo 			*nodes;
-	char                                    *lnode = NULL;
+	struct sockaddr_hci addr;
+	struct ng_btsocket_hci_raw_filter filter;
+	int s, mib[4], num;
+	size_t size;
+	struct nodeinfo *nodes;
+	char *lnode = NULL;
 
 	num = find_hci_nodes(&nodes);
 	if (num == 0)
@@ -126,10 +129,10 @@ socket_open(char const *node)
 	addr.hci_len = sizeof(addr);
 	addr.hci_family = AF_BLUETOOTH;
 	strncpy(addr.hci_node, node, sizeof(addr.hci_node));
-	if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		err(2, "Could not bind socket, node=%s", node);
 
-	if (connect(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+	if (connect(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		err(3, "Could not connect socket, node=%s", node);
 
 	free(lnode);
@@ -147,21 +150,22 @@ socket_open(char const *node)
 	bit_set(filter.event_mask, NG_HCI_EVENT_READ_CLOCK_OFFSET_COMPL - 1);
 	bit_set(filter.event_mask, NG_HCI_EVENT_CON_PKT_TYPE_CHANGED - 1);
 	bit_set(filter.event_mask, NG_HCI_EVENT_ROLE_CHANGE - 1);
-	bit_set(filter.event_mask, NG_HCI_EVENT_LE -1);
+	bit_set(filter.event_mask, NG_HCI_EVENT_LE - 1);
 
-	if (setsockopt(s, SOL_HCI_RAW, SO_HCI_RAW_FILTER, 
-			(void * const) &filter, sizeof(filter)) < 0)
+	if (setsockopt(s, SOL_HCI_RAW, SO_HCI_RAW_FILTER, (void *const)&filter,
+		sizeof(filter)) < 0)
 		err(4, "Could not setsockopt()");
 
-	size = (sizeof(mib)/sizeof(mib[0]));
-	if (sysctlnametomib("net.bluetooth.hci.command_timeout",mib,&size) < 0)
+	size = (sizeof(mib) / sizeof(mib[0]));
+	if (sysctlnametomib("net.bluetooth.hci.command_timeout", mib, &size) <
+	    0)
 		err(5, "Could not sysctlnametomib()");
 
-	if (sysctl(mib, sizeof(mib)/sizeof(mib[0]),
-			(void *) &timeout, &size, NULL, 0) < 0)
+	if (sysctl(mib, sizeof(mib) / sizeof(mib[0]), (void *)&timeout, &size,
+		NULL, 0) < 0)
 		err(6, "Could not sysctl()");
 
-	timeout ++;
+	timeout++;
 
 	return (s);
 } /* socket_open */
@@ -170,14 +174,14 @@ socket_open(char const *node)
 static int
 do_hci_command(char const *node, int argc, char **argv)
 {
-	char			*cmd = argv[0];
-	struct hci_command	*c = NULL;
-	int			 s, e, help;
-	
+	char *cmd = argv[0];
+	struct hci_command *c = NULL;
+	int s, e, help;
+
 	help = 0;
 	if (strcasecmp(cmd, "help") == 0) {
-		argc --;
-		argv ++;
+		argc--;
+		argv++;
 
 		if (argc <= 0) {
 			fprintf(stdout, "Supported commands:\n");
@@ -188,8 +192,9 @@ do_hci_command(char const *node, int argc, char **argv)
 			print_hci_command(status_commands);
 			print_hci_command(le_commands);
 			print_hci_command(node_commands);
-			fprintf(stdout, "\nFor more information use " \
-				"'help command'\n");
+			fprintf(stdout,
+			    "\nFor more information use "
+			    "'help command'\n");
 
 			return (OK);
 		}
@@ -222,7 +227,6 @@ do_hci_command(char const *node, int argc, char **argv)
 	if (c != NULL)
 		goto execute;
 
-	
 	c = find_hci_command(cmd, node_commands);
 	if (c == NULL) {
 		fprintf(stdout, "Unknown command: \"%s\"\n", cmd);
@@ -231,7 +235,7 @@ do_hci_command(char const *node, int argc, char **argv)
 execute:
 	if (!help) {
 		s = socket_open(node);
-		e = (c->handler)(s, -- argc, ++ argv);
+		e = (c->handler)(s, --argc, ++argv);
 		close(s);
 	} else
 		e = USAGE;
@@ -242,17 +246,18 @@ execute:
 		break;
 
 	case ERROR:
-		fprintf(stdout, "Could not execute command \"%s\". %s\n",
-			cmd, strerror(errno));
+		fprintf(stdout, "Could not execute command \"%s\". %s\n", cmd,
+		    strerror(errno));
 		break;
 
 	case USAGE:
 		fprintf(stdout, "Usage: %s\n%s\n", c->command, c->description);
 		break;
 
-	default: assert(0); break;
+	default:
+		assert(0);
+		break;
 	}
-
 
 	return (e);
 } /* do_hci_command */
@@ -261,18 +266,18 @@ execute:
 static struct hci_command *
 find_hci_command(char const *command, struct hci_command *category)
 {
-	struct hci_command	*c = NULL;
+	struct hci_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++) {
-		char 	*c_end = strchr(c->command, ' ');
+		char *c_end = strchr(c->command, ' ');
 
 		if (c_end != NULL) {
-			int	len = c_end - c->command;
+			int len = c_end - c->command;
 
 			if (strncasecmp(command, c->command, len) == 0)
 				return (c);
 		} else if (strcasecmp(command, c->command) == 0)
-				return (c);
+			return (c);
 	}
 
 	return (NULL);
@@ -280,15 +285,16 @@ find_hci_command(char const *command, struct hci_command *category)
 
 /* Find all HCI nodes */
 static int
-find_hci_nodes(struct nodeinfo** nodes)
+find_hci_nodes(struct nodeinfo **nodes)
 {
-	struct ng_btsocket_hci_raw_node_list_names	r;
-	struct sockaddr_hci				addr;
-	int						s;
-	const char *					node = "ubt0hci";
+	struct ng_btsocket_hci_raw_node_list_names r;
+	struct sockaddr_hci addr;
+	int s;
+	const char *node = "ubt0hci";
 
 	r.num_names = MAX_NODE_NUM;
-	r.names = (struct nodeinfo*)calloc(MAX_NODE_NUM, sizeof(struct nodeinfo));
+	r.names = (struct nodeinfo *)calloc(MAX_NODE_NUM,
+	    sizeof(struct nodeinfo));
 	if (r.names == NULL)
 		err(8, "Could not allocate memory");
 
@@ -300,7 +306,7 @@ find_hci_nodes(struct nodeinfo** nodes)
 	addr.hci_len = sizeof(addr);
 	addr.hci_family = AF_BLUETOOTH;
 	strncpy(addr.hci_node, node, sizeof(addr.hci_node));
-	if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+	if (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
 		err(10, "Could not bind socket");
 
 	if (ioctl(s, SIOC_HCI_RAW_NODE_LIST_NAMES, &r, sizeof(r)) < 0)
@@ -317,7 +323,7 @@ find_hci_nodes(struct nodeinfo** nodes)
 static void
 print_hci_command(struct hci_command *category)
 {
-	struct hci_command	*c = NULL;
+	struct hci_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++)
 		fprintf(stdout, "\t%s\n", c->command);
@@ -327,7 +333,7 @@ print_hci_command(struct hci_command *category)
 static void
 usage(void)
 {
-	fprintf(stdout, "Usage: hccontrol [-hN] [-n HCI_node_name] cmd [p1] [..]\n");
+	fprintf(stdout,
+	    "Usage: hccontrol [-hN] [-n HCI_node_name] cmd [p1] [..]\n");
 	exit(255);
 } /* usage */
-

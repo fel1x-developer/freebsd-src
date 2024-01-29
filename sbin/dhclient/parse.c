@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdbool.h>
 
 #include "dhcpd.h"
@@ -144,8 +145,7 @@ int
 parse_ip_addr(FILE *cfile, struct iaddr *addr)
 {
 	addr->len = 4;
-	if (parse_numeric_aggregate(cfile, addr->iabuf,
-	    &addr->len, DOT, 10, 8))
+	if (parse_numeric_aggregate(cfile, addr->iabuf, &addr->len, DOT, 10, 8))
 		return (1);
 	return (0);
 }
@@ -197,8 +197,7 @@ parse_hardware_param(FILE *cfile, struct hardware *hardware)
 		parse_warn("hardware address too long");
 	} else {
 		hardware->hlen = hlen;
-		memcpy((unsigned char *)&hardware->haddr[0], t,
-		    hardware->hlen);
+		memcpy((unsigned char *)&hardware->haddr[0], t, hardware->hlen);
 		if (hlen < sizeof(hardware->haddr))
 			memset(&hardware->haddr[hlen], 0,
 			    sizeof(hardware->haddr) - hlen);

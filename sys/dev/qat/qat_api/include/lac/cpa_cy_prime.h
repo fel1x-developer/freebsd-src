@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -98,33 +98,34 @@ extern "C" {
  *
  *****************************************************************************/
 typedef struct _CpaCyPrimeTestOpData {
-    CpaFlatBuffer primeCandidate;
-    /**< The prime number candidate to test */
-    CpaBoolean performGcdTest;
-    /**< A value of CPA_TRUE means perform a GCD Primality Test */
-    CpaBoolean performFermatTest;
-    /**< A value of CPA_TRUE means perform a Fermat Primality Test */
-    Cpa32U numMillerRabinRounds;
-    /**<  Number of Miller Rabin Primality Test rounds. Set to 0 to perform
-     * zero Miller Rabin tests. The maximum number of rounds supported is 50.
-     */
-    CpaFlatBuffer millerRabinRandomInput;
-    /**<  Flat buffer containing a pointer to an array of n random numbers
-     * for Miller Rabin Primality Tests. The size of the buffer MUST be
-     *
-     *         n * (MAX(64,x))
-     *
-     * where:
-     *
-     * - n is the requested number of rounds.
-     * - x is the minimum number of bytes required to represent the prime
-     *   candidate, i.e. x = ceiling((ceiling(log2(p)))/8).
-     *
-     * Each random number MUST be greater than 1 and less than the prime
-     * candidate - 1, with leading zeroes as necessary.
-     */
-    CpaBoolean performLucasTest;
-    /**< An CPA_TRUE value means perform a Lucas Primality Test */
+	CpaFlatBuffer primeCandidate;
+	/**< The prime number candidate to test */
+	CpaBoolean performGcdTest;
+	/**< A value of CPA_TRUE means perform a GCD Primality Test */
+	CpaBoolean performFermatTest;
+	/**< A value of CPA_TRUE means perform a Fermat Primality Test */
+	Cpa32U numMillerRabinRounds;
+	/**<  Number of Miller Rabin Primality Test rounds. Set to 0 to perform
+	 * zero Miller Rabin tests. The maximum number of rounds supported
+	 * is 50.
+	 */
+	CpaFlatBuffer millerRabinRandomInput;
+	/**<  Flat buffer containing a pointer to an array of n random numbers
+	 * for Miller Rabin Primality Tests. The size of the buffer MUST be
+	 *
+	 *         n * (MAX(64,x))
+	 *
+	 * where:
+	 *
+	 * - n is the requested number of rounds.
+	 * - x is the minimum number of bytes required to represent the prime
+	 *   candidate, i.e. x = ceiling((ceiling(log2(p)))/8).
+	 *
+	 * Each random number MUST be greater than 1 and less than the prime
+	 * candidate - 1, with leading zeroes as necessary.
+	 */
+	CpaBoolean performLucasTest;
+	/**< An CPA_TRUE value means perform a Lucas Primality Test */
 } CpaCyPrimeTestOpData;
 
 /**
@@ -141,21 +142,21 @@ typedef struct _CpaCyPrimeTestOpData {
  *
  ****************************************************************************/
 typedef struct _CpaCyPrimeStats {
-    Cpa32U numPrimeTestRequests;
-    /**<  Total number of successful prime number test requests.*/
-    Cpa32U numPrimeTestRequestErrors;
-    /**<  Total number of prime number test requests that had an
-     * error and could not be processed.  */
-    Cpa32U numPrimeTestCompleted;
-    /**<  Total number of prime number test operations that completed
-     * successfully. */
-    Cpa32U numPrimeTestCompletedErrors;
-    /**<  Total number of prime number test operations that could not be
-     * completed successfully due to errors. */
-    Cpa32U numPrimeTestFailures;
-    /**<  Total number of prime number test operations that executed
-     * successfully but the outcome of the test was that the number was not
-     * prime. */
+	Cpa32U numPrimeTestRequests;
+	/**<  Total number of successful prime number test requests.*/
+	Cpa32U numPrimeTestRequestErrors;
+	/**<  Total number of prime number test requests that had an
+	 * error and could not be processed.  */
+	Cpa32U numPrimeTestCompleted;
+	/**<  Total number of prime number test operations that completed
+	 * successfully. */
+	Cpa32U numPrimeTestCompletedErrors;
+	/**<  Total number of prime number test operations that could not be
+	 * completed successfully due to errors. */
+	Cpa32U numPrimeTestFailures;
+	/**<  Total number of prime number test operations that executed
+	 * successfully but the outcome of the test was that the number was not
+	 * prime. */
 } CpaCyPrimeStats CPA_DEPRECATED;
 
 /**
@@ -169,21 +170,21 @@ typedef struct _CpaCyPrimeStats {
  *      collected per instance.
  ****************************************************************************/
 typedef struct _CpaCyPrimeStats64 {
-    Cpa64U numPrimeTestRequests;
-    /**<  Total number of successful prime number test requests.*/
-    Cpa64U numPrimeTestRequestErrors;
-    /**<  Total number of prime number test requests that had an
-     * error and could not be processed.  */
-    Cpa64U numPrimeTestCompleted;
-    /**<  Total number of prime number test operations that completed
-     * successfully. */
-    Cpa64U numPrimeTestCompletedErrors;
-    /**<  Total number of prime number test operations that could not be
-     * completed successfully due to errors. */
-    Cpa64U numPrimeTestFailures;
-    /**<  Total number of prime number test operations that executed
-     * successfully but the outcome of the test was that the number was not
-     * prime. */
+	Cpa64U numPrimeTestRequests;
+	/**<  Total number of successful prime number test requests.*/
+	Cpa64U numPrimeTestRequestErrors;
+	/**<  Total number of prime number test requests that had an
+	 * error and could not be processed.  */
+	Cpa64U numPrimeTestCompleted;
+	/**<  Total number of prime number test operations that completed
+	 * successfully. */
+	Cpa64U numPrimeTestCompletedErrors;
+	/**<  Total number of prime number test operations that could not be
+	 * completed successfully due to errors. */
+	Cpa64U numPrimeTestFailures;
+	/**<  Total number of prime number test operations that executed
+	 * successfully but the outcome of the test was that the number was not
+	 * prime. */
 } CpaCyPrimeStats64;
 
 /**
@@ -228,10 +229,8 @@ typedef struct _CpaCyPrimeStats64 {
  *      cpaCyPrimeTest()
  *
  *****************************************************************************/
-typedef void (*CpaCyPrimeTestCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData,
-        CpaBoolean testPassed);
+typedef void (*CpaCyPrimeTestCbFunc)(void *pCallbackTag, CpaStatus status,
+    void *pOpData, CpaBoolean testPassed);
 
 /**
  *****************************************************************************
@@ -323,12 +322,9 @@ typedef void (*CpaCyPrimeTestCbFunc)(void *pCallbackTag,
  *      CpaCyPrimeTestOpData, CpaCyPrimeTestCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyPrimeTest(const CpaInstanceHandle instanceHandle,
-        const CpaCyPrimeTestCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyPrimeTestOpData *pOpData,
-        CpaBoolean *pTestPassed);
+CpaStatus cpaCyPrimeTest(const CpaInstanceHandle instanceHandle,
+    const CpaCyPrimeTestCbFunc pCb, void *pCallbackTag,
+    const CpaCyPrimeTestOpData *pOpData, CpaBoolean *pTestPassed);
 
 /******************************************************************************
  * @ingroup cpaCyPrime
@@ -386,8 +382,7 @@ cpaCyPrimeTest(const CpaInstanceHandle instanceHandle,
  *****************************************************************************/
 CpaStatus CPA_DEPRECATED
 cpaCyPrimeQueryStats(const CpaInstanceHandle instanceHandle,
-        struct _CpaCyPrimeStats *pPrimeStats);
-
+    struct _CpaCyPrimeStats *pPrimeStats);
 
 /******************************************************************************
  * @ingroup cpaCyPrime
@@ -439,9 +434,8 @@ cpaCyPrimeQueryStats(const CpaInstanceHandle instanceHandle,
  *      This function operates in a synchronous manner and no asynchronous
  *      callback will be generated.
  *****************************************************************************/
-CpaStatus
-cpaCyPrimeQueryStats64(const CpaInstanceHandle instanceHandle,
-        CpaCyPrimeStats64 *pPrimeStats);
+CpaStatus cpaCyPrimeQueryStats64(const CpaInstanceHandle instanceHandle,
+    CpaCyPrimeStats64 *pPrimeStats);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

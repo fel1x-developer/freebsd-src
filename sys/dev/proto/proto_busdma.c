@@ -25,9 +25,6 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <machine/bus.h>
-#include <machine/bus_dma.h>
-#include <machine/resource.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
@@ -39,18 +36,22 @@
 #include <sys/sbuf.h>
 #include <sys/sx.h>
 #include <sys/uio.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
 
+#include <machine/bus.h>
+#include <machine/bus_dma.h>
+#include <machine/resource.h>
+
 #include <dev/proto/proto.h>
-#include <dev/proto/proto_dev.h>
 #include <dev/proto/proto_busdma.h>
+#include <dev/proto/proto_dev.h>
 
 MALLOC_DEFINE(M_PROTO_BUSDMA, "proto_busdma", "DMA management data");
 
-#define	BNDRY_MIN(a, b)		\
-	(((a) == 0) ? (b) : (((b) == 0) ? (a) : MIN((a), (b))))
+#define BNDRY_MIN(a, b) (((a) == 0) ? (b) : (((b) == 0) ? (a) : MIN((a), (b))))
 
 struct proto_callback_bundle {
 	struct proto_busdma *busdma;
@@ -133,7 +134,7 @@ proto_busdma_tag_lookup(struct proto_busdma *busdma, u_long key)
 {
 	struct proto_tag *tag;
 
-	LIST_FOREACH(tag, &busdma->tags, tags) {
+	LIST_FOREACH (tag, &busdma->tags, tags) {
 		if ((void *)tag == (void *)key)
 			return (tag);
 	}
@@ -159,7 +160,7 @@ proto_busdma_md_destroy_internal(struct proto_busdma *busdma,
 }
 
 static void
-proto_busdma_mem_alloc_callback(void *arg, bus_dma_segment_t *segs, int	nseg,
+proto_busdma_mem_alloc_callback(void *arg, bus_dma_segment_t *segs, int nseg,
     int error)
 {
 	struct proto_callback_bundle *pcb = arg;
@@ -180,8 +181,8 @@ proto_busdma_mem_alloc(struct proto_busdma *busdma, struct proto_tag *tag,
 	md->tag = tag;
 
 	error = bus_dma_tag_create(busdma->bd_roottag, tag->align, tag->bndry,
-	    tag->maxaddr, BUS_SPACE_MAXADDR, NULL, NULL, tag->maxsz,
-	    tag->nsegs, tag->maxsegsz, 0, NULL, NULL, &md->bd_tag);
+	    tag->maxaddr, BUS_SPACE_MAXADDR, NULL, NULL, tag->maxsz, tag->nsegs,
+	    tag->maxsegsz, 0, NULL, NULL, &md->bd_tag);
 	if (error) {
 		free(md, M_PROTO_BUSDMA);
 		return (error);
@@ -234,8 +235,8 @@ proto_busdma_md_create(struct proto_busdma *busdma, struct proto_tag *tag,
 	md->tag = tag;
 
 	error = bus_dma_tag_create(busdma->bd_roottag, tag->align, tag->bndry,
-	    tag->maxaddr, BUS_SPACE_MAXADDR, NULL, NULL, tag->maxsz,
-	    tag->nsegs, tag->maxsegsz, 0, NULL, NULL, &md->bd_tag);
+	    tag->maxaddr, BUS_SPACE_MAXADDR, NULL, NULL, tag->maxsz, tag->nsegs,
+	    tag->maxsegsz, 0, NULL, NULL, &md->bd_tag);
 	if (error) {
 		free(md, M_PROTO_BUSDMA);
 		return (error);
@@ -303,7 +304,7 @@ proto_busdma_md_load(struct proto_busdma *busdma, struct proto_md *md,
 	/* XXX determine *all* physical memory segments */
 	pmap = vmspace_pmap(td->td_proc->p_vmspace);
 	md->physaddr = pmap_extract(pmap, ioc->u.md.virt_addr);
-	ioc->u.md.phys_nsegs = 1;	/* XXX */
+	ioc->u.md.phys_nsegs = 1; /* XXX */
 	ioc->u.md.phys_addr = md->physaddr;
 	return (0);
 }
@@ -340,7 +341,7 @@ proto_busdma_md_lookup(struct proto_busdma *busdma, u_long key)
 {
 	struct proto_md *md;
 
-	LIST_FOREACH(md, &busdma->mds, mds) {
+	LIST_FOREACH (md, &busdma->mds, mds) {
 		if ((void *)md == (void *)key)
 			return (md);
 	}
@@ -374,9 +375,9 @@ proto_busdma_cleanup(struct proto_softc *sc, struct proto_busdma *busdma)
 	struct proto_tag *tag, *tag1;
 
 	sx_xlock(&busdma->sxlck);
-	LIST_FOREACH_SAFE(md, &busdma->mds, mds, md1)
+	LIST_FOREACH_SAFE (md, &busdma->mds, mds, md1)
 		proto_busdma_md_destroy_internal(busdma, md);
-	LIST_FOREACH_SAFE(tag, &busdma->tags, tags, tag1)
+	LIST_FOREACH_SAFE (tag, &busdma->tags, tags, tag1)
 		proto_busdma_tag_destroy(busdma, tag);
 	sx_xunlock(&busdma->sxlck);
 	return (0);
@@ -489,7 +490,7 @@ proto_busdma_mmap_allowed(struct proto_busdma *busdma, vm_paddr_t physaddr)
 	sx_xlock(&busdma->sxlck);
 
 	result = 0;
-	LIST_FOREACH(md, &busdma->mds, mds) {
+	LIST_FOREACH (md, &busdma->mds, mds) {
 		if (physaddr >= trunc_page(md->physaddr) &&
 		    physaddr <= trunc_page(md->physaddr + md->tag->maxsz)) {
 			result = 1;

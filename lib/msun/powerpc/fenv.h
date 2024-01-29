@@ -26,36 +26,37 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FENV_H_
-#define	_FENV_H_
+#ifndef _FENV_H_
+#define _FENV_H_
 
 #include <sys/_types.h>
+
 #include <machine/endian.h>
 
-#ifndef	__fenv_static
-#define	__fenv_static	static
+#ifndef __fenv_static
+#define __fenv_static static
 #endif
 
-typedef	__uint32_t	fenv_t;
-typedef	__uint32_t	fexcept_t;
+typedef __uint32_t fenv_t;
+typedef __uint32_t fexcept_t;
 
 /* Exception flags */
 #ifdef __SPE__
-#define FE_OVERFLOW	0x00000100
-#define FE_UNDERFLOW	0x00000200
-#define FE_DIVBYZERO	0x00000400
-#define FE_INVALID	0x00000800
-#define FE_INEXACT	0x00001000
+#define FE_OVERFLOW 0x00000100
+#define FE_UNDERFLOW 0x00000200
+#define FE_DIVBYZERO 0x00000400
+#define FE_INVALID 0x00000800
+#define FE_INEXACT 0x00001000
 
-#define	FE_ALL_INVALID	FE_INVALID
+#define FE_ALL_INVALID FE_INVALID
 
-#define	_FPUSW_SHIFT	6
+#define _FPUSW_SHIFT 6
 #else
-#define	FE_INEXACT	0x02000000
-#define	FE_DIVBYZERO	0x04000000
-#define	FE_UNDERFLOW	0x08000000
-#define	FE_OVERFLOW	0x10000000
-#define	FE_INVALID	0x20000000	/* all types of invalid FP ops */
+#define FE_INEXACT 0x02000000
+#define FE_DIVBYZERO 0x04000000
+#define FE_UNDERFLOW 0x08000000
+#define FE_OVERFLOW 0x10000000
+#define FE_INVALID 0x20000000 /* all types of invalid FP ops */
 
 /*
  * The PowerPC architecture has extra invalid flags that indicate the
@@ -64,57 +65,57 @@ typedef	__uint32_t	fexcept_t;
  * these bits are cleared when FE_INVALID is cleared, but only
  * FE_VXSOFT is set when FE_INVALID is explicitly set in software.
  */
-#define	FE_VXCVI	0x00000100	/* invalid integer convert */
-#define	FE_VXSQRT	0x00000200	/* square root of a negative */
-#define	FE_VXSOFT	0x00000400	/* software-requested exception */
-#define	FE_VXVC		0x00080000	/* ordered comparison involving NaN */
-#define	FE_VXIMZ	0x00100000	/* inf * 0 */
-#define	FE_VXZDZ	0x00200000	/* 0 / 0 */
-#define	FE_VXIDI	0x00400000	/* inf / inf */
-#define	FE_VXISI	0x00800000	/* inf - inf */
-#define	FE_VXSNAN	0x01000000	/* operation on a signalling NaN */
-#define	FE_ALL_INVALID	(FE_VXCVI | FE_VXSQRT | FE_VXSOFT | FE_VXVC | \
-			 FE_VXIMZ | FE_VXZDZ | FE_VXIDI | FE_VXISI | \
-			 FE_VXSNAN | FE_INVALID)
+#define FE_VXCVI 0x00000100   /* invalid integer convert */
+#define FE_VXSQRT 0x00000200  /* square root of a negative */
+#define FE_VXSOFT 0x00000400  /* software-requested exception */
+#define FE_VXVC 0x00080000    /* ordered comparison involving NaN */
+#define FE_VXIMZ 0x00100000   /* inf * 0 */
+#define FE_VXZDZ 0x00200000   /* 0 / 0 */
+#define FE_VXIDI 0x00400000   /* inf / inf */
+#define FE_VXISI 0x00800000   /* inf - inf */
+#define FE_VXSNAN 0x01000000  /* operation on a signalling NaN */
+#define FE_ALL_INVALID                                                      \
+	(FE_VXCVI | FE_VXSQRT | FE_VXSOFT | FE_VXVC | FE_VXIMZ | FE_VXZDZ | \
+	    FE_VXIDI | FE_VXISI | FE_VXSNAN | FE_INVALID)
 
-#define	_FPUSW_SHIFT	22
+#define _FPUSW_SHIFT 22
 #endif
-#define	FE_ALL_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | \
-			 FE_ALL_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+#define FE_ALL_EXCEPT                                               \
+	(FE_DIVBYZERO | FE_INEXACT | FE_ALL_INVALID | FE_OVERFLOW | \
+	    FE_UNDERFLOW)
 
 /* Rounding modes */
-#define	FE_TONEAREST	0x0000
-#define	FE_TOWARDZERO	0x0001
-#define	FE_UPWARD	0x0002
-#define	FE_DOWNWARD	0x0003
-#define	_ROUND_MASK	(FE_TONEAREST | FE_DOWNWARD | \
-			 FE_UPWARD | FE_TOWARDZERO)
+#define FE_TONEAREST 0x0000
+#define FE_TOWARDZERO 0x0001
+#define FE_UPWARD 0x0002
+#define FE_DOWNWARD 0x0003
+#define _ROUND_MASK (FE_TONEAREST | FE_DOWNWARD | FE_UPWARD | FE_TOWARDZERO)
 
 __BEGIN_DECLS
 
 /* Default floating-point environment */
-extern const fenv_t	__fe_dfl_env;
-#define	FE_DFL_ENV	(&__fe_dfl_env)
+extern const fenv_t __fe_dfl_env;
+#define FE_DFL_ENV (&__fe_dfl_env)
 
 /* We need to be able to map status flag positions to mask flag positions */
-#define	_ENABLE_MASK	((FE_DIVBYZERO | FE_INEXACT | FE_INVALID | \
-			 FE_OVERFLOW | FE_UNDERFLOW) >> _FPUSW_SHIFT)
+#define _ENABLE_MASK                                             \
+	((FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | \
+	     FE_UNDERFLOW) >>                                    \
+	    _FPUSW_SHIFT)
 
 #ifndef _SOFT_FLOAT
 #ifdef __SPE__
-#define	__mffs(__env) \
-	__asm __volatile("mfspr %0, 512" : "=r" ((__env)->__bits.__reg))
-#define	__mtfsf(__env) \
-	__asm __volatile("mtspr 512,%0;isync" :: "r" ((__env).__bits.__reg))
+#define __mffs(__env) \
+	__asm __volatile("mfspr %0, 512" : "=r"((__env)->__bits.__reg))
+#define __mtfsf(__env) \
+	__asm __volatile("mtspr 512,%0;isync" ::"r"((__env).__bits.__reg))
 #else
-#define	__mffs(__env) \
-	__asm __volatile("mffs %0" : "=f" ((__env)->__d))
-#define	__mtfsf(__env) \
-	__asm __volatile("mtfsf 255,%0" :: "f" ((__env).__d))
+#define __mffs(__env) __asm __volatile("mffs %0" : "=f"((__env)->__d))
+#define __mtfsf(__env) __asm __volatile("mtfsf 255,%0" ::"f"((__env).__d))
 #endif
 #else
-#define	__mffs(__env)
-#define	__mtfsf(__env)
+#define __mffs(__env)
+#define __mtfsf(__env)
 #endif
 
 union __fpscr {
@@ -168,7 +169,7 @@ fesetexceptflag(const fexcept_t *__flagp, int __excepts)
 }
 
 #ifdef __SPE__
-extern int	feraiseexcept(int __excepts);
+extern int feraiseexcept(int __excepts);
 #else
 __fenv_static inline int
 feraiseexcept(int __excepts)
@@ -302,4 +303,4 @@ fegetexcept(void)
 
 __END_DECLS
 
-#endif	/* !_FENV_H_ */
+#endif /* !_FENV_H_ */

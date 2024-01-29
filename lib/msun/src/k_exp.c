@@ -31,8 +31,8 @@
 #include "math.h"
 #include "math_private.h"
 
-static const uint32_t k = 1799;		/* constant for reduction */
-static const double kln2 =  1246.97177782734161156;	/* k * ln2 */
+static const uint32_t k = 1799;			   /* constant for reduction */
+static const double kln2 = 1246.97177782734161156; /* k * ln2 */
 
 /*
  * Compute exp(x), scaled to avoid spurious overflow.  An exponent is
@@ -103,6 +103,6 @@ __ldexp_cexp(double complex z, int expt)
 	INSERT_WORDS(scale2, (0x3ff + half_expt) << 20, 0);
 
 	sincos(y, &s, &c);
-	return (CMPLX(c * exp_x * scale1 * scale2,
-	    s * exp_x * scale1 * scale2));
+	return (
+	    CMPLX(c * exp_x * scale1 * scale2, s * exp_x * scale1 * scale2));
 }

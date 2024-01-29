@@ -30,7 +30,7 @@
  */
 
 #ifndef _TERMIOS_H_
-#define	_TERMIOS_H_
+#define _TERMIOS_H_
 
 #include <sys/cdefs.h>
 #include <sys/_termios.h>
@@ -40,61 +40,61 @@
 #endif
 
 #ifndef _PID_T_DECLARED
-typedef	__pid_t		pid_t;
-#define	_PID_T_DECLARED
+typedef __pid_t pid_t;
+#define _PID_T_DECLARED
 #endif
 
 #if __BSD_VISIBLE
-#define	OXTABS		TAB3
-#define	MDMBUF		CCAR_OFLOW
-#endif 
+#define OXTABS TAB3
+#define MDMBUF CCAR_OFLOW
+#endif
 
 #if __BSD_VISIBLE
-#define	CCEQ(val, c)	((c) == (val) && (val) != _POSIX_VDISABLE)
+#define CCEQ(val, c) ((c) == (val) && (val) != _POSIX_VDISABLE)
 #endif
 
 /*
  * Commands passed to tcsetattr() for setting the termios structure.
  */
-#define	TCSANOW		0		/* make change immediate */
-#define	TCSADRAIN	1		/* drain output, then change */
-#define	TCSAFLUSH	2		/* drain output, flush input */
+#define TCSANOW 0   /* make change immediate */
+#define TCSADRAIN 1 /* drain output, then change */
+#define TCSAFLUSH 2 /* drain output, flush input */
 #if __BSD_VISIBLE
-#define	TCSASOFT	0x10		/* flag - don't alter h.w. state */
+#define TCSASOFT 0x10 /* flag - don't alter h.w. state */
 #endif
 
-#define	TCIFLUSH	1
-#define	TCOFLUSH	2
-#define	TCIOFLUSH	3
-#define	TCOOFF		1
-#define	TCOON		2
-#define	TCIOFF		3
-#define	TCION		4
+#define TCIFLUSH 1
+#define TCOFLUSH 2
+#define TCIOFLUSH 3
+#define TCOOFF 1
+#define TCOON 2
+#define TCIOFF 3
+#define TCION 4
 
 __BEGIN_DECLS
-speed_t	cfgetispeed(const struct termios *);
-speed_t	cfgetospeed(const struct termios *);
-int	cfsetispeed(struct termios *, speed_t);
-int	cfsetospeed(struct termios *, speed_t);
-int	tcgetattr(int, struct termios *);
-int	tcsetattr(int, int, const struct termios *);
-int	tcdrain(int);
-int	tcflow(int, int);
-int	tcflush(int, int);
-int	tcsendbreak(int, int);
+speed_t cfgetispeed(const struct termios *);
+speed_t cfgetospeed(const struct termios *);
+int cfsetispeed(struct termios *, speed_t);
+int cfsetospeed(struct termios *, speed_t);
+int tcgetattr(int, struct termios *);
+int tcsetattr(int, int, const struct termios *);
+int tcdrain(int);
+int tcflow(int, int);
+int tcflush(int, int);
+int tcsendbreak(int, int);
 
 #if __POSIX_VISIBLE >= 200112
-pid_t	tcgetsid(int);
+pid_t tcgetsid(int);
 #endif
 #if __BSD_VISIBLE
-int	tcsetsid(int, pid_t);
+int tcsetsid(int, pid_t);
 
-void	cfmakeraw(struct termios *);
-void	cfmakesane(struct termios *);
-int	cfsetspeed(struct termios *, speed_t);
+void cfmakeraw(struct termios *);
+void cfmakesane(struct termios *);
+int cfsetspeed(struct termios *, speed_t);
 
-int	tcgetwinsize(int, struct winsize *);
-int	tcsetwinsize(int, const struct winsize *);
+int tcgetwinsize(int, struct winsize *);
+int tcsetwinsize(int, const struct winsize *);
 #endif
 __END_DECLS
 

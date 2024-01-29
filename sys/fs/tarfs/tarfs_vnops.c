@@ -53,8 +53,8 @@ tarfs_open(struct vop_open_args *ap)
 	MPASS(VOP_ISLOCKED(vp));
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	TARFS_DPF(VNODE, "%s(%p=%s, %o)\n", __func__,
-	    tnp, tnp->name, ap->a_mode);
+	TARFS_DPF(VNODE, "%s(%p=%s, %o)\n", __func__, tnp, tnp->name,
+	    ap->a_mode);
 
 	if (vp->v_type != VREG && vp->v_type != VDIR)
 		return (EOPNOTSUPP);
@@ -75,8 +75,7 @@ tarfs_close(struct vop_close_args *ap)
 	MPASS(VOP_ISLOCKED(vp));
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__,
-	    tnp, tnp->name);
+	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__, tnp, tnp->name);
 #else
 	(void)ap;
 #endif
@@ -99,8 +98,7 @@ tarfs_access(struct vop_access_args *ap)
 	MPASS(VOP_ISLOCKED(vp));
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	TARFS_DPF(VNODE, "%s(%p=%s, %o)\n", __func__,
-	    tnp, tnp->name, accmode);
+	TARFS_DPF(VNODE, "%s(%p=%s, %o)\n", __func__, tnp, tnp->name, accmode);
 
 	switch (vp->v_type) {
 	case VDIR:
@@ -120,8 +118,8 @@ tarfs_access(struct vop_access_args *ap)
 	if ((accmode & VWRITE) != 0)
 		return (EPERM);
 
-	error = vaccess(vp->v_type, tnp->mode, tnp->uid,
-	    tnp->gid, accmode, cred);
+	error = vaccess(vp->v_type, tnp->mode, tnp->uid, tnp->gid, accmode,
+	    cred);
 	return (error);
 }
 
@@ -136,8 +134,7 @@ tarfs_getattr(struct vop_getattr_args *ap)
 	vap = ap->a_vap;
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__,
-	    tnp, tnp->name);
+	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__, tnp, tnp->name);
 
 	vap->va_type = vp->v_type;
 	vap->va_mode = tnp->mode;
@@ -154,8 +151,8 @@ tarfs_getattr(struct vop_getattr_args *ap)
 	vap->va_birthtime = tnp->birthtime;
 	vap->va_gen = tnp->gen;
 	vap->va_flags = tnp->flags;
-	vap->va_rdev = (vp->v_type == VBLK || vp->v_type == VCHR) ?
-	    tnp->rdev : NODEV;
+	vap->va_rdev = (vp->v_type == VBLK || vp->v_type == VCHR) ? tnp->rdev :
+								    NODEV;
 	vap->va_bytes = round_page(tnp->physize);
 	vap->va_filerev = 0;
 
@@ -184,8 +181,7 @@ tarfs_lookup(struct vop_cachedlookup_args *ap)
 	tmp = dirnode->tmp;
 	tnp = NULL;
 
-	TARFS_DPF(LOOKUP, "%s(%p=%s, %.*s)\n", __func__,
-	    dirnode, dirnode->name,
+	TARFS_DPF(LOOKUP, "%s(%p=%s, %.*s)\n", __func__, dirnode, dirnode->name,
 	    (int)cnp->cn_namelen, cnp->cn_nameptr);
 
 	error = VOP_ACCESS(dvp, VEXEC, cnp->cn_cred, curthread);
@@ -198,8 +194,7 @@ tarfs_lookup(struct vop_cachedlookup_args *ap)
 			return (ENOENT);
 
 		/* Allocate a new vnode on the matching entry */
-		error = vn_vget_ino(dvp, parent->ino, cnp->cn_lkflags,
-		    vpp);
+		error = vn_vget_ino(dvp, parent->ino, cnp->cn_lkflags, vpp);
 		if (error != 0)
 			return (error);
 	} else if (cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.') {
@@ -220,8 +215,8 @@ tarfs_lookup(struct vop_cachedlookup_args *ap)
 	} else {
 		tnp = tarfs_lookup_node(dirnode, NULL, cnp);
 		if (tnp == NULL) {
-			TARFS_DPF(LOOKUP, "%s(%p=%s, %.*s): file not found\n", __func__,
-			    dirnode, dirnode->name,
+			TARFS_DPF(LOOKUP, "%s(%p=%s, %.*s): file not found\n",
+			    __func__, dirnode, dirnode->name,
 			    (int)cnp->cn_namelen, cnp->cn_nameptr);
 			return (ENOENT);
 		}
@@ -235,12 +230,12 @@ tarfs_lookup(struct vop_cachedlookup_args *ap)
 			return (error);
 	}
 
-#ifdef	TARFS_DEBUG
+#ifdef TARFS_DEBUG
 	if (tnp == NULL)
 		tnp = VP_TO_TARFS_NODE(*vpp);
-	TARFS_DPF(LOOKUP, "%s: found vnode %p, tarfs_node %p\n", __func__,
-	    *vpp, tnp);
-#endif	/* TARFS_DEBUG */
+	TARFS_DPF(LOOKUP, "%s: found vnode %p, tarfs_node %p\n", __func__, *vpp,
+	    tnp);
+#endif /* TARFS_DEBUG */
 
 	/* Store the result the the cache if MAKEENTRY is specified in flags */
 	if ((cnp->cn_flags & MAKEENTRY) != 0 && cnp->cn_nameiop != CREATE)
@@ -252,7 +247,7 @@ tarfs_lookup(struct vop_cachedlookup_args *ap)
 static int
 tarfs_readdir(struct vop_readdir_args *ap)
 {
-	struct dirent cde = { };
+	struct dirent cde = {};
 	struct tarfs_node *current, *tnp;
 	struct vnode *vp;
 	struct uio *uio;
@@ -277,8 +272,8 @@ tarfs_readdir(struct vop_readdir_args *ap)
 	current = NULL;
 	ndirents = 0;
 
-	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %zd)\n", __func__,
-	    tnp, tnp->name, uio->uio_offset, uio->uio_resid);
+	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %zd)\n", __func__, tnp, tnp->name,
+	    uio->uio_offset, uio->uio_resid);
 
 	if (uio->uio_offset == TARFS_COOKIE_EOF) {
 		TARFS_DPF(VNODE, "%s: EOF\n", __func__);
@@ -368,8 +363,8 @@ tarfs_readdir(struct vop_readdir_args *ap)
 			cde.d_type = DT_REG;
 			break;
 		default:
-			panic("%s: tarfs_node %p, type %d\n", __func__,
-			    current, current->type);
+			panic("%s: tarfs_node %p, type %d\n", __func__, current,
+			    current->type);
 		}
 		cde.d_namlen = current->namelen;
 		MPASS(tnp->namelen < sizeof(cde.d_name));
@@ -393,8 +388,7 @@ tarfs_readdir(struct vop_readdir_args *ap)
 	}
 full:
 	if (cde.d_reclen > uio->uio_resid) {
-		TARFS_DPF(VNODE, "%s: out of space, returning\n",
-		    __func__);
+		TARFS_DPF(VNODE, "%s: out of space, returning\n", __func__);
 		error = (ndirents == 0) ? EINVAL : 0;
 	}
 done:
@@ -425,7 +419,8 @@ done:
 				off = TARFS_COOKIE_DOTDOT;
 			else {
 				if (off == TARFS_COOKIE_DOTDOT) {
-					current = TAILQ_FIRST(&tnp->dir.dirhead);
+					current = TAILQ_FIRST(
+					    &tnp->dir.dirhead);
 				} else if (current != NULL) {
 					current = TAILQ_NEXT(current, dirents);
 				} else {
@@ -438,8 +433,8 @@ done:
 					off = current->ino;
 			}
 
-			TARFS_DPF(VNODE, "%s: [%u] offset %zu\n", __func__,
-			    idx, off);
+			TARFS_DPF(VNODE, "%s: [%u] offset %zu\n", __func__, idx,
+			    off);
 			(*cookies)[idx] = off;
 		}
 		MPASS(uio->uio_offset == off);
@@ -473,8 +468,8 @@ tarfs_read(struct vop_read_args *ap)
 	tnp = VP_TO_TARFS_NODE(vp);
 	error = 0;
 
-	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %zd)\n", __func__,
-	    tnp, tnp->name, uiop->uio_offset, uiop->uio_resid);
+	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %zd)\n", __func__, tnp, tnp->name,
+	    uiop->uio_offset, uiop->uio_resid);
 
 	while ((resid = uiop->uio_resid) > 0) {
 		if (tnp->size <= uiop->uio_offset)
@@ -507,11 +502,9 @@ tarfs_readlink(struct vop_readlink_args *ap)
 
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__,
-	    tnp, tnp->name);
+	TARFS_DPF(VNODE, "%s(%p=%s)\n", __func__, tnp, tnp->name);
 
-	error = uiomove(tnp->link.name,
-	    MIN(tnp->size, uiop->uio_resid), uiop);
+	error = uiomove(tnp->link.name, MIN(tnp->size, uiop->uio_resid), uiop);
 
 	return (error);
 }
@@ -544,11 +537,10 @@ tarfs_print(struct vop_print_args *ap)
 	vp = ap->a_vp;
 	tnp = VP_TO_TARFS_NODE(vp);
 
-	printf("tag tarfs, tarfs_node %p, links %lu\n",
-	    tnp, (unsigned long)tnp->nlink);
-	printf("\tmode 0%o, owner %d, group %d, size %zd\n",
-	    tnp->mode, tnp->uid, tnp->gid,
-	    tnp->size);
+	printf("tag tarfs, tarfs_node %p, links %lu\n", tnp,
+	    (unsigned long)tnp->nlink);
+	printf("\tmode 0%o, owner %d, group %d, size %zd\n", tnp->mode,
+	    tnp->uid, tnp->gid, tnp->size);
 
 	if (vp->v_type == VFIFO)
 		fifo_printinfo(vp);
@@ -575,8 +567,8 @@ tarfs_strategy(struct vop_strategy_args *ap)
 	MPASS(bp->b_iooffset >= 0);
 	MPASS(bp->b_bcount > 0);
 	MPASS(bp->b_bufsize >= bp->b_bcount);
-	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %ld/%ld)\n", __func__, tnp,
-	    tnp->name, (size_t)bp->b_iooffset, bp->b_bcount, bp->b_bufsize);
+	TARFS_DPF(VNODE, "%s(%p=%s, %zu, %ld/%ld)\n", __func__, tnp, tnp->name,
+	    (size_t)bp->b_iooffset, bp->b_bcount, bp->b_bufsize);
 	iov.iov_base = bp->b_data;
 	iov.iov_len = bp->b_bcount;
 	off = bp->b_iooffset;
@@ -626,20 +618,20 @@ tarfs_vptofh(struct vop_vptofh_args *ap)
 }
 
 struct vop_vector tarfs_vnodeops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		tarfs_access,
-	.vop_cachedlookup =	tarfs_lookup,
-	.vop_close =		tarfs_close,
-	.vop_getattr =		tarfs_getattr,
-	.vop_lookup =		vfs_cache_lookup,
-	.vop_open =		tarfs_open,
-	.vop_print =		tarfs_print,
-	.vop_read =		tarfs_read,
-	.vop_readdir =		tarfs_readdir,
-	.vop_readlink =		tarfs_readlink,
-	.vop_reclaim =		tarfs_reclaim,
-	.vop_strategy =		tarfs_strategy,
-	.vop_vptofh =		tarfs_vptofh,
+	.vop_access = tarfs_access,
+	.vop_cachedlookup = tarfs_lookup,
+	.vop_close = tarfs_close,
+	.vop_getattr = tarfs_getattr,
+	.vop_lookup = vfs_cache_lookup,
+	.vop_open = tarfs_open,
+	.vop_print = tarfs_print,
+	.vop_read = tarfs_read,
+	.vop_readdir = tarfs_readdir,
+	.vop_readlink = tarfs_readlink,
+	.vop_reclaim = tarfs_reclaim,
+	.vop_strategy = tarfs_strategy,
+	.vop_vptofh = tarfs_vptofh,
 };
 VFS_VOP_VECTOR_REGISTER(tarfs_vnodeops);

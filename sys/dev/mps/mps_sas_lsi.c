@@ -36,60 +36,59 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/selinfo.h>
-#include <sys/module.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
-#include <sys/malloc.h>
-#include <sys/uio.h>
-#include <sys/sysctl.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
-#include <sys/kthread.h>
-#include <sys/taskqueue.h>
-#include <sys/sbuf.h>
 #include <sys/reboot.h>
+#include <sys/rman.h>
+#include <sys/sbuf.h>
+#include <sys/selinfo.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
 #include <machine/stdarg.h>
+
+#include <dev/mps/mpi/mpi2.h>
+#include <dev/mps/mpi/mpi2_cnfg.h>
+#include <dev/mps/mpi/mpi2_init.h>
+#include <dev/mps/mpi/mpi2_ioc.h>
+#include <dev/mps/mpi/mpi2_raid.h>
+#include <dev/mps/mpi/mpi2_sas.h>
+#include <dev/mps/mpi/mpi2_tool.h>
+#include <dev/mps/mpi/mpi2_type.h>
+#include <dev/mps/mps_ioctl.h>
+#include <dev/mps/mps_sas.h>
+#include <dev/mps/mps_table.h>
+#include <dev/mps/mpsvar.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/cam_debug.h>
-#include <cam/cam_sim.h>
-#include <cam/cam_xpt_sim.h>
-#include <cam/cam_xpt_periph.h>
 #include <cam/cam_periph.h>
+#include <cam/cam_sim.h>
+#include <cam/cam_xpt_periph.h>
+#include <cam/cam_xpt_sim.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
-
-#include <dev/mps/mpi/mpi2_type.h>
-#include <dev/mps/mpi/mpi2.h>
-#include <dev/mps/mpi/mpi2_ioc.h>
-#include <dev/mps/mpi/mpi2_sas.h>
-#include <dev/mps/mpi/mpi2_cnfg.h>
-#include <dev/mps/mpi/mpi2_init.h>
-#include <dev/mps/mpi/mpi2_raid.h>
-#include <dev/mps/mpi/mpi2_tool.h>
-#include <dev/mps/mps_ioctl.h>
-#include <dev/mps/mpsvar.h>
-#include <dev/mps/mps_table.h>
-#include <dev/mps/mps_sas.h>
 
 /* For Hashed SAS Address creation for SATA Drives */
 #define MPT2SAS_SN_LEN 20
 #define MPT2SAS_MN_LEN 40
 
 struct mps_fw_event_work {
-	u16			event;
-	void			*event_data;
-	TAILQ_ENTRY(mps_fw_event_work)	ev_link;
+	u16 event;
+	void *event_data;
+	TAILQ_ENTRY(mps_fw_event_work) ev_link;
 };
 
 union _sata_sas_address {
@@ -104,13 +103,13 @@ union _sata_sas_address {
  * define the IDENTIFY DEVICE structure
  */
 struct _ata_identify_device_data {
-	u16 reserved1[10];	/* 0-9 */
-	u16 serial_number[10];	/* 10-19 */
-	u16 reserved2[7];	/* 20-26 */
-	u16 model_number[20];	/* 27-46*/
-	u16 reserved3[170];	/* 47-216 */
-	u16 rotational_speed;	/* 217 */
-	u16 reserved4[38];	/* 218-255 */
+	u16 reserved1[10];     /* 0-9 */
+	u16 serial_number[10]; /* 10-19 */
+	u16 reserved2[7];      /* 20-26 */
+	u16 model_number[20];  /* 27-46*/
+	u16 reserved3[170];    /* 47-216 */
+	u16 rotational_speed;  /* 217 */
+	u16 reserved4[38];     /* 218-255 */
 };
 static u32 event_count;
 static void mpssas_fw_work(struct mps_softc *sc,
@@ -123,10 +122,9 @@ static int mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
     u32 devinfo);
 static void mpssas_ata_id_complete(struct mps_softc *, struct mps_command *);
 static void mpssas_ata_id_timeout(struct mps_softc *, struct mps_command *);
-int mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
-    u64 *sas_address, u16 handle, u32 device_info, u8 *is_SATA_SSD);
-static int mpssas_volume_add(struct mps_softc *sc,
-    u16 handle);
+int mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc, u64 *sas_address,
+    u16 handle, u32 device_info, u8 *is_SATA_SSD);
+static int mpssas_volume_add(struct mps_softc *sc, u16 handle);
 static void mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto);
 static void mpssas_stop_unit_done(struct cam_periph *periph,
     union ccb *done_ccb);
@@ -143,13 +141,13 @@ mpssas_evt_handler(struct mps_softc *sc, uintptr_t data,
 	mpssas_record_event(sc, event);
 
 	fw_event = malloc(sizeof(struct mps_fw_event_work), M_MPT2,
-	     M_ZERO|M_NOWAIT);
+	    M_ZERO | M_NOWAIT);
 	if (!fw_event) {
 		printf("%s: allocate failed for fw_event\n", __func__);
 		return;
 	}
 	sz = le16toh(event->EventDataLength) * 4;
-	fw_event->event_data = malloc(sz, M_MPT2, M_ZERO|M_NOWAIT);
+	fw_event->event_data = malloc(sz, M_MPT2, M_ZERO | M_NOWAIT);
 	if (!fw_event->event_data) {
 		printf("%s: allocate failed for event_data\n", __func__);
 		free(fw_event, M_MPT2);
@@ -159,8 +157,8 @@ mpssas_evt_handler(struct mps_softc *sc, uintptr_t data,
 	bcopy(event->EventData, fw_event->event_data, sz);
 	fw_event->event = event->Event;
 	if ((event->Event == MPI2_EVENT_SAS_TOPOLOGY_CHANGE_LIST ||
-	    event->Event == MPI2_EVENT_SAS_ENCL_DEVICE_STATUS_CHANGE ||
-	    event->Event == MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST) &&
+		event->Event == MPI2_EVENT_SAS_ENCL_DEVICE_STATUS_CHANGE ||
+		event->Event == MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST) &&
 	    sc->track_mapping_events)
 		sc->pending_map_events++;
 
@@ -170,13 +168,12 @@ mpssas_evt_handler(struct mps_softc *sc, uintptr_t data,
 	 * events are processed.
 	 */
 	if ((event->Event == MPI2_EVENT_SAS_TOPOLOGY_CHANGE_LIST ||
-	    event->Event == MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST) &&
+		event->Event == MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST) &&
 	    sc->wait_for_port_enable)
 		mpssas_startup_increment(sc->sassc);
 
 	TAILQ_INSERT_TAIL(&sc->sassc->ev_queue, fw_event, ev_link);
 	taskqueue_enqueue(sc->sassc->ev_tq, &sc->sassc->ev_task);
-
 }
 
 static void
@@ -202,16 +199,15 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 	sassc = sc->sassc;
 
 	mps_dprint(sc, MPS_EVENT, "(%d)->(%s) Working on  Event: [%x]\n",
-			event_count++,__func__,fw_event->event);
+	    event_count++, __func__, fw_event->event);
 	switch (fw_event->event) {
-	case MPI2_EVENT_SAS_TOPOLOGY_CHANGE_LIST: 
-	{
+	case MPI2_EVENT_SAS_TOPOLOGY_CHANGE_LIST: {
 		MPI2_EVENT_DATA_SAS_TOPOLOGY_CHANGE_LIST *data;
 		MPI2_EVENT_SAS_TOPO_PHY_ENTRY *phy;
 		int i;
 
 		data = (MPI2_EVENT_DATA_SAS_TOPOLOGY_CHANGE_LIST *)
-		    fw_event->event_data;
+			   fw_event->event_data;
 
 		mps_mapping_topology_change_event(sc, fw_event->event_data);
 
@@ -220,19 +216,21 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 			switch (phy->PhyStatus & MPI2_EVENT_SAS_TOPO_RC_MASK) {
 			case MPI2_EVENT_SAS_TOPO_RC_TARG_ADDED:
 				if (mpssas_add_device(sc,
-				    le16toh(phy->AttachedDevHandle),
-				    phy->LinkRate)){
-					mps_dprint(sc, MPS_ERROR, "%s: "
+					le16toh(phy->AttachedDevHandle),
+					phy->LinkRate)) {
+					mps_dprint(sc, MPS_ERROR,
+					    "%s: "
 					    "failed to add device with handle "
-					    "0x%x\n", __func__,
+					    "0x%x\n",
+					    __func__,
 					    le16toh(phy->AttachedDevHandle));
-					mpssas_prepare_remove(sassc, le16toh(
-						phy->AttachedDevHandle));
+					mpssas_prepare_remove(sassc,
+					    le16toh(phy->AttachedDevHandle));
 				}
 				break;
 			case MPI2_EVENT_SAS_TOPO_RC_TARG_NOT_RESPONDING:
-				mpssas_prepare_remove(sassc,le16toh( 
-					phy->AttachedDevHandle));
+				mpssas_prepare_remove(sassc,
+				    le16toh(phy->AttachedDevHandle));
 				break;
 			case MPI2_EVENT_SAS_TOPO_RC_PHY_CHANGED:
 			case MPI2_EVENT_SAS_TOPO_RC_NO_CHANGE:
@@ -249,29 +247,27 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		mpssas_startup_decrement(sassc);
 		break;
 	}
-	case MPI2_EVENT_SAS_DISCOVERY:
-	{
+	case MPI2_EVENT_SAS_DISCOVERY: {
 		MPI2_EVENT_DATA_SAS_DISCOVERY *data;
 
 		data = (MPI2_EVENT_DATA_SAS_DISCOVERY *)fw_event->event_data;
 
 		if (data->ReasonCode & MPI2_EVENT_SAS_DISC_RC_STARTED)
-			mps_dprint(sc, MPS_TRACE,"SAS discovery start event\n");
+			mps_dprint(sc, MPS_TRACE,
+			    "SAS discovery start event\n");
 		if (data->ReasonCode & MPI2_EVENT_SAS_DISC_RC_COMPLETED) {
-			mps_dprint(sc, MPS_TRACE,"SAS discovery stop event\n");
+			mps_dprint(sc, MPS_TRACE, "SAS discovery stop event\n");
 			sassc->flags &= ~MPSSAS_IN_DISCOVERY;
 			mpssas_discovery_end(sassc);
 		}
 		break;
 	}
-	case MPI2_EVENT_SAS_ENCL_DEVICE_STATUS_CHANGE:
-	{
+	case MPI2_EVENT_SAS_ENCL_DEVICE_STATUS_CHANGE: {
 		mps_mapping_enclosure_dev_status_change_event(sc,
 		    fw_event->event_data);
 		break;
 	}
-	case MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST:
-	{
+	case MPI2_EVENT_IR_CONFIGURATION_CHANGE_LIST: {
 		Mpi2EventIrConfigElement_t *element;
 		int i;
 		u8 foreign_config;
@@ -280,8 +276,11 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		unsigned int id;
 
 		event_data = fw_event->event_data;
-		foreign_config = (le32toh(event_data->Flags) &
-		    MPI2_EVENT_IR_CHANGE_FLAGS_FOREIGN_CONFIG) ? 1 : 0;
+		foreign_config =
+		    (le32toh(event_data->Flags) &
+			MPI2_EVENT_IR_CHANGE_FLAGS_FOREIGN_CONFIG) ?
+		    1 :
+		    0;
 
 		element =
 		    (Mpi2EventIrConfigElement_t *)&event_data->ConfigElement[0];
@@ -296,11 +295,14 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 			case MPI2_EVENT_IR_CHANGE_RC_ADDED:
 				if (!foreign_config) {
 					if (mpssas_volume_add(sc,
-					    le16toh(element->VolDevHandle))){
-						printf("%s: failed to add RAID "
+						le16toh(
+						    element->VolDevHandle))) {
+						printf(
+						    "%s: failed to add RAID "
 						    "volume with handle 0x%x\n",
-						    __func__, le16toh(element->
-						    VolDevHandle));
+						    __func__,
+						    le16toh(
+							element->VolDevHandle));
 					}
 				}
 				break;
@@ -312,12 +314,14 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 				if (!foreign_config) {
 					if (id == MPS_MAP_BAD_ID) {
 						printf("%s: could not get ID "
-						    "for volume with handle "
-						    "0x%04x\n", __func__,
-						    le16toh(element->VolDevHandle));
+						       "for volume with handle "
+						       "0x%04x\n",
+						    __func__,
+						    le16toh(
+							element->VolDevHandle));
 						break;
 					}
-					
+
 					targ = &sassc->targets[id];
 					targ->handle = 0x0;
 					targ->encl_slot = 0x0;
@@ -338,24 +342,27 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 				 */
 				targ = mpssas_find_target_by_handle(sassc, 0,
 				    element->PhysDiskDevHandle);
-				if (targ == NULL) 
+				if (targ == NULL)
 					break;
-				
+
 				/*
 				 * Set raid component flags only if it is not
 				 * WD. OR WrapDrive with
 				 * WD_HIDE_ALWAYS/WD_HIDE_IF_VOLUME is set in
 				 * NVRAM
 				 */
-				if((!sc->WD_available) ||
-				((sc->WD_available && 
-				(sc->WD_hide_expose == MPS_WD_HIDE_ALWAYS)) ||
-				(sc->WD_valid_config && (sc->WD_hide_expose ==
-				MPS_WD_HIDE_IF_VOLUME)))) {
-					targ->flags |= MPS_TARGET_FLAGS_RAID_COMPONENT;
+				if ((!sc->WD_available) ||
+				    ((sc->WD_available &&
+					 (sc->WD_hide_expose ==
+					     MPS_WD_HIDE_ALWAYS)) ||
+					(sc->WD_valid_config &&
+					    (sc->WD_hide_expose ==
+						MPS_WD_HIDE_IF_VOLUME)))) {
+					targ->flags |=
+					    MPS_TARGET_FLAGS_RAID_COMPONENT;
 				}
 				mpssas_rescan_target(sc, targ);
-				
+
 				break;
 			case MPI2_EVENT_IR_CHANGE_RC_PD_DELETED:
 				/*
@@ -363,12 +370,16 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 				 * Expose it to the OS.
 				 */
 				if (mpssas_add_device(sc,
-				    le16toh(element->PhysDiskDevHandle), 0)){
+					le16toh(element->PhysDiskDevHandle),
+					0)) {
 					printf("%s: failed to add device with "
-					    "handle 0x%x\n", __func__,
-					    le16toh(element->PhysDiskDevHandle));
-					mpssas_prepare_remove(sassc, le16toh(element->
-					    PhysDiskDevHandle));
+					       "handle 0x%x\n",
+					    __func__,
+					    le16toh(
+						element->PhysDiskDevHandle));
+					mpssas_prepare_remove(sassc,
+					    le16toh(
+						element->PhysDiskDevHandle));
 				}
 				break;
 			}
@@ -381,8 +392,7 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		mpssas_startup_decrement(sassc);
 		break;
 	}
-	case MPI2_EVENT_IR_VOLUME:
-	{
+	case MPI2_EVENT_IR_VOLUME: {
 		Mpi2EventDataIrVolume_t *event_data = fw_event->event_data;
 
 		/*
@@ -391,62 +401,71 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		mps_dprint(sc, MPS_EVENT, "Received IR Volume event:\n");
 		switch (event_data->ReasonCode) {
 		case MPI2_EVENT_IR_VOLUME_RC_SETTINGS_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Volume Settings "
-  			    "changed from 0x%x to 0x%x for Volome with "
- 			    "handle 0x%x", le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue),
- 			    le16toh(event_data->VolDevHandle));
+			mps_dprint(sc, MPS_EVENT,
+			    "   Volume Settings "
+			    "changed from 0x%x to 0x%x for Volome with "
+			    "handle 0x%x",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    le16toh(event_data->VolDevHandle));
 			break;
 		case MPI2_EVENT_IR_VOLUME_RC_STATUS_FLAGS_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Volume Status "
-  			    "changed from 0x%x to 0x%x for Volome with "
- 			    "handle 0x%x", le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue),
- 			    le16toh(event_data->VolDevHandle));
+			mps_dprint(sc, MPS_EVENT,
+			    "   Volume Status "
+			    "changed from 0x%x to 0x%x for Volome with "
+			    "handle 0x%x",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    le16toh(event_data->VolDevHandle));
 			break;
 		case MPI2_EVENT_IR_VOLUME_RC_STATE_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Volume State "
-  			    "changed from 0x%x to 0x%x for Volome with "
- 			    "handle 0x%x", le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue),
- 			    le16toh(event_data->VolDevHandle));
-				u32 state;
-				struct mpssas_target *targ;
-				state = le32toh(event_data->NewValue);
-				switch (state) {
-				case MPI2_RAID_VOL_STATE_MISSING:
-				case MPI2_RAID_VOL_STATE_FAILED:
-					mpssas_prepare_volume_remove(sassc, event_data->
-							VolDevHandle);
-					break;
-		 
-				case MPI2_RAID_VOL_STATE_ONLINE:
-				case MPI2_RAID_VOL_STATE_DEGRADED:
-				case MPI2_RAID_VOL_STATE_OPTIMAL:
-					targ = mpssas_find_target_by_handle(sassc, 0, event_data->VolDevHandle);
-					if (targ) {
-						printf("%s %d: Volume handle 0x%x is already added \n",
-							       	__func__, __LINE__ , event_data->VolDevHandle);
-						break;
-					}
-					if (mpssas_volume_add(sc, le16toh(event_data->VolDevHandle))) {
-						printf("%s: failed to add RAID "
-							"volume with handle 0x%x\n",
-							__func__, le16toh(event_data->
-							VolDevHandle));
-					}
-					break;
-				default:
+			mps_dprint(sc, MPS_EVENT,
+			    "   Volume State "
+			    "changed from 0x%x to 0x%x for Volome with "
+			    "handle 0x%x",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    le16toh(event_data->VolDevHandle));
+			u32 state;
+			struct mpssas_target *targ;
+			state = le32toh(event_data->NewValue);
+			switch (state) {
+			case MPI2_RAID_VOL_STATE_MISSING:
+			case MPI2_RAID_VOL_STATE_FAILED:
+				mpssas_prepare_volume_remove(sassc,
+				    event_data->VolDevHandle);
+				break;
+
+			case MPI2_RAID_VOL_STATE_ONLINE:
+			case MPI2_RAID_VOL_STATE_DEGRADED:
+			case MPI2_RAID_VOL_STATE_OPTIMAL:
+				targ = mpssas_find_target_by_handle(sassc, 0,
+				    event_data->VolDevHandle);
+				if (targ) {
+					printf(
+					    "%s %d: Volume handle 0x%x is already added \n",
+					    __func__, __LINE__,
+					    event_data->VolDevHandle);
 					break;
 				}
+				if (mpssas_volume_add(sc,
+					le16toh(event_data->VolDevHandle))) {
+					printf("%s: failed to add RAID "
+					       "volume with handle 0x%x\n",
+					    __func__,
+					    le16toh(event_data->VolDevHandle));
+				}
+				break;
+			default:
+				break;
+			}
 			break;
 		default:
 			break;
 		}
 		break;
 	}
-	case MPI2_EVENT_IR_PHYSICAL_DISK:
-	{
+	case MPI2_EVENT_IR_PHYSICAL_DISK: {
 		Mpi2EventDataIrPhysicalDisk_t *event_data =
 		    fw_event->event_data;
 		struct mpssas_target *targ;
@@ -457,66 +476,89 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		mps_dprint(sc, MPS_EVENT, "Received IR Phys Disk event:\n");
 		switch (event_data->ReasonCode) {
 		case MPI2_EVENT_IR_PHYSDISK_RC_SETTINGS_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Phys Disk Settings "
-  			    "changed from 0x%x to 0x%x for Phys Disk Number "
-  			    "%d and handle 0x%x at Enclosure handle 0x%x, Slot "
- 			    "%d", le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue),
- 				event_data->PhysDiskNum,
- 			    le16toh(event_data->PhysDiskDevHandle),
- 			    le16toh(event_data->EnclosureHandle), le16toh(event_data->Slot));
+			mps_dprint(sc, MPS_EVENT,
+			    "   Phys Disk Settings "
+			    "changed from 0x%x to 0x%x for Phys Disk Number "
+			    "%d and handle 0x%x at Enclosure handle 0x%x, Slot "
+			    "%d",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    event_data->PhysDiskNum,
+			    le16toh(event_data->PhysDiskDevHandle),
+			    le16toh(event_data->EnclosureHandle),
+			    le16toh(event_data->Slot));
 			break;
 		case MPI2_EVENT_IR_PHYSDISK_RC_STATUS_FLAGS_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Phys Disk Status changed "
-  			    "from 0x%x to 0x%x for Phys Disk Number %d and "
-  			    "handle 0x%x at Enclosure handle 0x%x, Slot %d",
- 				le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue), event_data->PhysDiskNum,
- 			    le16toh(event_data->PhysDiskDevHandle),
- 			    le16toh(event_data->EnclosureHandle), le16toh(event_data->Slot));
+			mps_dprint(sc, MPS_EVENT,
+			    "   Phys Disk Status changed "
+			    "from 0x%x to 0x%x for Phys Disk Number %d and "
+			    "handle 0x%x at Enclosure handle 0x%x, Slot %d",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    event_data->PhysDiskNum,
+			    le16toh(event_data->PhysDiskDevHandle),
+			    le16toh(event_data->EnclosureHandle),
+			    le16toh(event_data->Slot));
 			break;
 		case MPI2_EVENT_IR_PHYSDISK_RC_STATE_CHANGED:
-  			mps_dprint(sc, MPS_EVENT, "   Phys Disk State changed "
-  			    "from 0x%x to 0x%x for Phys Disk Number %d and "
-  			    "handle 0x%x at Enclosure handle 0x%x, Slot %d",
- 				le32toh(event_data->PreviousValue),
- 			    le32toh(event_data->NewValue), event_data->PhysDiskNum,
- 			    le16toh(event_data->PhysDiskDevHandle),
- 			    le16toh(event_data->EnclosureHandle), le16toh(event_data->Slot));
+			mps_dprint(sc, MPS_EVENT,
+			    "   Phys Disk State changed "
+			    "from 0x%x to 0x%x for Phys Disk Number %d and "
+			    "handle 0x%x at Enclosure handle 0x%x, Slot %d",
+			    le32toh(event_data->PreviousValue),
+			    le32toh(event_data->NewValue),
+			    event_data->PhysDiskNum,
+			    le16toh(event_data->PhysDiskDevHandle),
+			    le16toh(event_data->EnclosureHandle),
+			    le16toh(event_data->Slot));
 			switch (event_data->NewValue) {
-				case MPI2_RAID_PD_STATE_ONLINE:
-				case MPI2_RAID_PD_STATE_DEGRADED:
-				case MPI2_RAID_PD_STATE_REBUILDING:
-				case MPI2_RAID_PD_STATE_OPTIMAL:
-				case MPI2_RAID_PD_STATE_HOT_SPARE:
-					targ = mpssas_find_target_by_handle(sassc, 0, 
-							event_data->PhysDiskDevHandle);
-					if (targ) {
-						if(!sc->WD_available) {
-							targ->flags |= MPS_TARGET_FLAGS_RAID_COMPONENT;
-							printf("%s %d: Found Target for handle 0x%x.  \n",
-							__func__, __LINE__ , event_data->PhysDiskDevHandle);
-						} else if ((sc->WD_available && 
-							(sc->WD_hide_expose == MPS_WD_HIDE_ALWAYS)) ||
-        						(sc->WD_valid_config && (sc->WD_hide_expose ==
-        						MPS_WD_HIDE_IF_VOLUME))) {
-							targ->flags |= MPS_TARGET_FLAGS_RAID_COMPONENT;
-							printf("%s %d: WD: Found Target for handle 0x%x.  \n",
-							__func__, __LINE__ , event_data->PhysDiskDevHandle);
-						}
- 					}  		
-				break;
-				case MPI2_RAID_PD_STATE_OFFLINE:
-				case MPI2_RAID_PD_STATE_NOT_CONFIGURED:
-				case MPI2_RAID_PD_STATE_NOT_COMPATIBLE:
-				default:
-					targ = mpssas_find_target_by_handle(sassc, 0, 
-							event_data->PhysDiskDevHandle);
-					if (targ) {
-						targ->flags |= ~MPS_TARGET_FLAGS_RAID_COMPONENT;
-						printf("%s %d: Found Target for handle 0x%x.  \n",
-						__func__, __LINE__ , event_data->PhysDiskDevHandle);
+			case MPI2_RAID_PD_STATE_ONLINE:
+			case MPI2_RAID_PD_STATE_DEGRADED:
+			case MPI2_RAID_PD_STATE_REBUILDING:
+			case MPI2_RAID_PD_STATE_OPTIMAL:
+			case MPI2_RAID_PD_STATE_HOT_SPARE:
+				targ = mpssas_find_target_by_handle(sassc, 0,
+				    event_data->PhysDiskDevHandle);
+				if (targ) {
+					if (!sc->WD_available) {
+						targ->flags |=
+						    MPS_TARGET_FLAGS_RAID_COMPONENT;
+						printf(
+						    "%s %d: Found Target for handle 0x%x.  \n",
+						    __func__, __LINE__,
+						    event_data
+							->PhysDiskDevHandle);
+					} else if (
+					    (sc->WD_available &&
+						(sc->WD_hide_expose ==
+						    MPS_WD_HIDE_ALWAYS)) ||
+					    (sc->WD_valid_config &&
+						(sc->WD_hide_expose ==
+						    MPS_WD_HIDE_IF_VOLUME))) {
+						targ->flags |=
+						    MPS_TARGET_FLAGS_RAID_COMPONENT;
+						printf(
+						    "%s %d: WD: Found Target for handle 0x%x.  \n",
+						    __func__, __LINE__,
+						    event_data
+							->PhysDiskDevHandle);
 					}
+				}
+				break;
+			case MPI2_RAID_PD_STATE_OFFLINE:
+			case MPI2_RAID_PD_STATE_NOT_CONFIGURED:
+			case MPI2_RAID_PD_STATE_NOT_COMPATIBLE:
+			default:
+				targ = mpssas_find_target_by_handle(sassc, 0,
+				    event_data->PhysDiskDevHandle);
+				if (targ) {
+					targ->flags |=
+					    ~MPS_TARGET_FLAGS_RAID_COMPONENT;
+					printf(
+					    "%s %d: Found Target for handle 0x%x.  \n",
+					    __func__, __LINE__,
+					    event_data->PhysDiskDevHandle);
+				}
 				break;
 			}
 		default:
@@ -524,8 +566,7 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		}
 		break;
 	}
-	case MPI2_EVENT_IR_OPERATION_STATUS:
-	{
+	case MPI2_EVENT_IR_OPERATION_STATUS: {
 		Mpi2EventDataIrOperationStatus_t *event_data =
 		    fw_event->event_data;
 
@@ -533,17 +574,17 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 		 * Informational only.
 		 */
 		mps_dprint(sc, MPS_EVENT, "Received IR Op Status event:\n");
-		mps_dprint(sc, MPS_EVENT, "   RAID Operation of %d is %d "
+		mps_dprint(sc, MPS_EVENT,
+		    "   RAID Operation of %d is %d "
 		    "percent complete for Volume with handle 0x%x",
 		    event_data->RAIDOperation, event_data->PercentComplete,
 		    le16toh(event_data->VolDevHandle));
 		break;
 	}
-	case MPI2_EVENT_LOG_ENTRY_ADDED:
-	{
-		pMpi2EventDataLogEntryAdded_t	logEntry;
-		uint16_t			logQualifier;
-		uint8_t				logCode;
+	case MPI2_EVENT_LOG_ENTRY_ADDED: {
+		pMpi2EventDataLogEntryAdded_t logEntry;
+		uint16_t logQualifier;
+		uint8_t logCode;
 
 		logEntry = (pMpi2EventDataLogEntryAdded_t)fw_event->event_data;
 		logQualifier = logEntry->LogEntryQualifier;
@@ -554,25 +595,28 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 			switch (logCode) {
 			case MPI2_WD_SSD_THROTTLING:
 				printf("WarpDrive Warning: IO Throttling has "
-				    "occurred in the WarpDrive subsystem. "
-				    "Check WarpDrive documentation for "
-				    "additional details\n");
+				       "occurred in the WarpDrive subsystem. "
+				       "Check WarpDrive documentation for "
+				       "additional details\n");
 				break;
 			case MPI2_WD_DRIVE_LIFE_WARN:
-				printf("WarpDrive Warning: Program/Erase "
+				printf(
+				    "WarpDrive Warning: Program/Erase "
 				    "Cycles for the WarpDrive subsystem in "
 				    "degraded range. Check WarpDrive "
 				    "documentation for additional details\n");
 				break;
 			case MPI2_WD_DRIVE_LIFE_DEAD:
-				printf("WarpDrive Fatal Error: There are no "
+				printf(
+				    "WarpDrive Fatal Error: There are no "
 				    "Program/Erase Cycles for the WarpDrive "
 				    "subsystem. The storage device will be in "
 				    "read-only mode. Check WarpDrive "
 				    "documentation for additional details\n");
 				break;
 			case MPI2_WD_RAIL_MON_FAIL:
-				printf("WarpDrive Fatal Error: The Backup Rail "
+				printf(
+				    "WarpDrive Fatal Error: The Backup Rail "
 				    "Monitor has failed on the WarpDrive "
 				    "subsystem. Check WarpDrive documentation "
 				    "for additional details\n");
@@ -586,11 +630,12 @@ mpssas_fw_work(struct mps_softc *sc, struct mps_fw_event_work *fw_event)
 	case MPI2_EVENT_SAS_DEVICE_STATUS_CHANGE:
 	case MPI2_EVENT_SAS_BROADCAST_PRIMITIVE:
 	default:
-		mps_dprint(sc, MPS_TRACE,"Unhandled event 0x%0X\n",
+		mps_dprint(sc, MPS_TRACE, "Unhandled event 0x%0X\n",
 		    fw_event->event);
 		break;
 	}
-	mps_dprint(sc, MPS_EVENT, "(%d)->(%s) Event Free: [%x]\n",event_count,__func__, fw_event->event);
+	mps_dprint(sc, MPS_EVENT, "(%d)->(%s) Event Free: [%x]\n", event_count,
+	    __func__, fw_event->event);
 	mpssas_fw_event_free(sc, fw_event);
 }
 
@@ -610,7 +655,8 @@ mpssas_firmware_event_work(void *arg, int pending)
 }
 
 static int
-mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
+mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate)
+{
 	char devstring[80];
 	struct mpssas_softc *sassc;
 	struct mpssas_target *targ;
@@ -628,8 +674,8 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 	sassc = sc->sassc;
 	mpssas_startup_increment(sassc);
 	if (mps_config_get_sas_device_pg0(sc, &mpi_reply, &config_page,
-	    MPI2_SAS_DEVICE_PGAD_FORM_HANDLE, handle) != 0) {
-		mps_dprint(sc, MPS_INFO|MPS_MAPPING|MPS_FAULT,
+		MPI2_SAS_DEVICE_PGAD_FORM_HANDLE, handle) != 0) {
+		mps_dprint(sc, MPS_INFO | MPS_MAPPING | MPS_FAULT,
 		    "Error reading SAS device %#x page0, iocstatus= 0x%x\n",
 		    handle, mpi_reply.IOCStatus);
 		error = ENXIO;
@@ -638,15 +684,15 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 
 	device_info = le32toh(config_page.DeviceInfo);
 
-	if (((device_info & MPI2_SAS_DEVICE_INFO_SMP_TARGET) == 0)
-	 && (le16toh(config_page.ParentDevHandle) != 0)) {
+	if (((device_info & MPI2_SAS_DEVICE_INFO_SMP_TARGET) == 0) &&
+	    (le16toh(config_page.ParentDevHandle) != 0)) {
 		Mpi2ConfigReply_t tmp_mpi_reply;
 		Mpi2SasDevicePage0_t parent_config_page;
 
 		if (mps_config_get_sas_device_pg0(sc, &tmp_mpi_reply,
-		    &parent_config_page, MPI2_SAS_DEVICE_PGAD_FORM_HANDLE,
-		    le16toh(config_page.ParentDevHandle)) != 0) {
-			mps_dprint(sc, MPS_MAPPING|MPS_FAULT,
+			&parent_config_page, MPI2_SAS_DEVICE_PGAD_FORM_HANDLE,
+			le16toh(config_page.ParentDevHandle)) != 0) {
+			mps_dprint(sc, MPS_MAPPING | MPS_FAULT,
 			    "Error reading parent SAS device %#x page0, "
 			    "iocstatus= 0x%x\n",
 			    le16toh(config_page.ParentDevHandle),
@@ -654,15 +700,17 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 		} else {
 			parent_sas_address = parent_config_page.SASAddress.High;
 			parent_sas_address = (parent_sas_address << 32) |
-				parent_config_page.SASAddress.Low;
+			    parent_config_page.SASAddress.Low;
 			parent_devinfo = le32toh(parent_config_page.DeviceInfo);
 		}
 	}
 	/* TODO Check proper endianness */
 	sas_address = config_page.SASAddress.High;
 	sas_address = (sas_address << 32) | config_page.SASAddress.Low;
-        mps_dprint(sc, MPS_MAPPING, "Handle 0x%04x SAS Address from SAS device "
-            "page0 = %jx\n", handle, sas_address);
+	mps_dprint(sc, MPS_MAPPING,
+	    "Handle 0x%04x SAS Address from SAS device "
+	    "page0 = %jx\n",
+	    handle, sas_address);
 
 	/*
 	 * Always get SATA Identify information because this is used to
@@ -673,13 +721,15 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 		ret = mpssas_get_sas_address_for_sata_disk(sc, &sas_address,
 		    handle, device_info, &is_SATA_SSD);
 		if (ret) {
-			mps_dprint(sc, MPS_MAPPING|MPS_ERROR,
+			mps_dprint(sc, MPS_MAPPING | MPS_ERROR,
 			    "%s: failed to get disk type (SSD or HDD) for SATA "
 			    "device with handle 0x%04x\n",
 			    __func__, handle);
 		} else {
-			mps_dprint(sc, MPS_MAPPING, "Handle 0x%04x SAS Address "
-			    "from SATA device = %jx\n", handle, sas_address);
+			mps_dprint(sc, MPS_MAPPING,
+			    "Handle 0x%04x SAS Address "
+			    "from SATA device = %jx\n",
+			    handle, sas_address);
 		}
 	}
 
@@ -697,12 +747,13 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 	 * in the topology.
 	 */
 	id = MPS_MAP_BAD_ID;
-	if (sc->use_phynum != -1) 
+	if (sc->use_phynum != -1)
 		id = mps_mapping_get_tid(sc, sas_address, handle);
 	if (id == MPS_MAP_BAD_ID) {
-		if ((sc->use_phynum == 0)
-		 || ((id = config_page.PhyNum) > sassc->maxtargets)) {
-			mps_dprint(sc, MPS_INFO, "failure at %s:%d/%s()! "
+		if ((sc->use_phynum == 0) ||
+		    ((id = config_page.PhyNum) > sassc->maxtargets)) {
+			mps_dprint(sc, MPS_INFO,
+			    "failure at %s:%d/%s()! "
 			    "Could not get ID for device with handle 0x%04x\n",
 			    __FILE__, __LINE__, __func__, handle);
 			error = ENXIO;
@@ -722,15 +773,17 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 	targ = &sassc->targets[id];
 	if (!(targ->flags & MPS_TARGET_FLAGS_RAID_COMPONENT)) {
 		if (mpssas_check_id(sassc, id) != 0) {
-			mps_dprint(sc, MPS_MAPPING|MPS_INFO,
+			mps_dprint(sc, MPS_MAPPING | MPS_INFO,
 			    "Excluding target id %d\n", id);
 			error = ENXIO;
 			goto out;
 		}
 
 		if (targ->handle != 0x0) {
-			mps_dprint(sc, MPS_MAPPING, "Attempting to reuse "
-			    "target id %d handle 0x%04x\n", id, targ->handle);
+			mps_dprint(sc, MPS_MAPPING,
+			    "Attempting to reuse "
+			    "target id %d handle 0x%04x\n",
+			    id, targ->handle);
 			error = ENXIO;
 			goto out;
 		}
@@ -738,7 +791,7 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 
 	targ->devinfo = device_info;
 	targ->devname = le32toh(config_page.DeviceName.High);
-	targ->devname = (targ->devname << 32) | 
+	targ->devname = (targ->devname << 32) |
 	    le32toh(config_page.DeviceName.Low);
 	targ->encl_handle = le16toh(config_page.EnclosureHandle);
 	targ->encl_slot = le16toh(config_page.Slot);
@@ -748,14 +801,14 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 	targ->parent_sasaddr = le64toh(parent_sas_address);
 	targ->parent_devinfo = parent_devinfo;
 	targ->tid = id;
-	targ->linkrate = (linkrate>>4);
+	targ->linkrate = (linkrate >> 4);
 	targ->flags = 0;
 	if (is_SATA_SSD) {
 		targ->flags = MPS_TARGET_IS_SATA_SSD;
 	}
 	TAILQ_INIT(&targ->commands);
 	TAILQ_INIT(&targ->timedout_commands);
-	while(!SLIST_EMPTY(&targ->luns)) {
+	while (!SLIST_EMPTY(&targ->luns)) {
 		lun = SLIST_FIRST(&targ->luns);
 		SLIST_REMOVE_HEAD(&targ->luns, lun_link);
 		free(lun, M_MPT2);
@@ -786,16 +839,20 @@ mpssas_add_device(struct mps_softc *sc, u16 handle, u8 linkrate){
 			cm->cm_flags |= MPS_CM_FLAGS_TIMEDOUT;
 
 			if ((targ->tm = mpssas_alloc_tm(sc)) != NULL) {
-				mps_dprint(sc, MPS_INFO, "%s: sending Target "
+				mps_dprint(sc, MPS_INFO,
+				    "%s: sending Target "
 				    "Reset for stuck SATA identify command "
-				    "(cm = %p)\n", __func__, cm);
+				    "(cm = %p)\n",
+				    __func__, cm);
 				targ->tm->cm_targ = targ;
 				mpssas_send_reset(sc, targ->tm,
 				    MPI2_SCSITASKMGMT_TASKTYPE_TARGET_RESET);
 			} else {
-				mps_dprint(sc, MPS_ERROR, "Failed to allocate "
+				mps_dprint(sc, MPS_ERROR,
+				    "Failed to allocate "
 				    "tm for Target Reset after SATA ID command "
-				    "timed out (cm %p)\n", cm);
+				    "timed out (cm %p)\n",
+				    cm);
 			}
 			/*
 			 * No need to check for more since the target is
@@ -810,8 +867,8 @@ out:
 }
 
 int
-mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
-    u64 *sas_address, u16 handle, u32 device_info, u8 *is_SATA_SSD)
+mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc, u64 *sas_address,
+    u16 handle, u32 device_info, u8 *is_SATA_SSD)
 {
 	Mpi2SataPassthroughReply_t mpi_reply;
 	int i, rc, try_count;
@@ -828,8 +885,7 @@ mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
 		rc = mpssas_get_sata_identify(sc, handle, &mpi_reply,
 		    (char *)&ata_identify, sizeof(ata_identify), device_info);
 		try_count++;
-		ioc_status = le16toh(mpi_reply.IOCStatus)
-		    & MPI2_IOCSTATUS_MASK;
+		ioc_status = le16toh(mpi_reply.IOCStatus) & MPI2_IOCSTATUS_MASK;
 		sas_status = mpi_reply.SASStatus;
 		switch (ioc_status) {
 		case MPI2_IOCSTATUS_SUCCESS:
@@ -839,7 +895,8 @@ mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
 			break;
 		default:
 			if (sc->spinup_wait_time > 0) {
-				mps_dprint(sc, MPS_INFO, "Sleeping %d seconds "
+				mps_dprint(sc, MPS_INFO,
+				    "Sleeping %d seconds "
 				    "after SATA ID error to wait for spinup\n",
 				    sc->spinup_wait_time);
 				msleep(&sc->msleep_fake_chan, &sc->mps_mtx, 0,
@@ -847,12 +904,14 @@ mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
 			}
 		}
 	} while (((rc && (rc != EWOULDBLOCK)) ||
-	    	 (ioc_status && 
-		  (ioc_status != MPI2_IOCSTATUS_SCSI_PROTOCOL_ERROR))
-	       || sas_status) && (try_count < 5));
+		     (ioc_status &&
+			 (ioc_status != MPI2_IOCSTATUS_SCSI_PROTOCOL_ERROR)) ||
+		     sas_status) &&
+	    (try_count < 5));
 
 	if (rc == 0 && !ioc_status && !sas_status) {
-		mps_dprint(sc, MPS_MAPPING, "%s: got SATA identify "
+		mps_dprint(sc, MPS_MAPPING,
+		    "%s: got SATA identify "
 		    "successfully for handle = 0x%x with try_count = %d\n",
 		    __func__, handle, try_count);
 	} else {
@@ -867,19 +926,19 @@ mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
 	}
 	/* Copy & byteswap the 20 byte serial number to a buffer */
 	for (i = 0; i < MPT2SAS_SN_LEN; i += 2) {
-		buffer[MPT2SAS_MN_LEN + i] =
-		    ((u8 *)ata_identify.serial_number)[i + 1];
-		buffer[MPT2SAS_MN_LEN + i + 1] =
-		    ((u8 *)ata_identify.serial_number)[i];
+		buffer[MPT2SAS_MN_LEN + i] = ((
+		    u8 *)ata_identify.serial_number)[i + 1];
+		buffer[MPT2SAS_MN_LEN + i + 1] = ((
+		    u8 *)ata_identify.serial_number)[i];
 	}
 	bufferptr = (u32 *)buffer;
 	/* There are 60 bytes to hash down to 8. 60 isn't divisible by 8,
 	 * so loop through the first 56 bytes (7*8),
 	 * and then add in the last dword.
 	 */
-	hash_address.word.low  = 0;
+	hash_address.word.low = 0;
 	hash_address.word.high = 0;
-	for (i = 0; (i < ((MPT2SAS_MN_LEN+MPT2SAS_SN_LEN)/8)); i++) {
+	for (i = 0; (i < ((MPT2SAS_MN_LEN + MPT2SAS_SN_LEN) / 8)); i++) {
 		hash_address.word.low += *bufferptr;
 		bufferptr++;
 		hash_address.word.high += *bufferptr;
@@ -895,7 +954,7 @@ mpssas_get_sas_address_for_sata_disk(struct mps_softc *sc,
 	*sas_address = (u64)hash_address.wwid[0] << 56 |
 	    (u64)hash_address.wwid[1] << 48 | (u64)hash_address.wwid[2] << 40 |
 	    (u64)hash_address.wwid[3] << 32 | (u64)hash_address.wwid[4] << 24 |
-	    (u64)hash_address.wwid[5] << 16 | (u64)hash_address.wwid[6] <<  8 |
+	    (u64)hash_address.wwid[5] << 16 | (u64)hash_address.wwid[6] << 8 |
 	    (u64)hash_address.wwid[7];
 	if (ata_identify.rotational_speed == 1) {
 		*is_SATA_SSD = 1;
@@ -914,7 +973,7 @@ mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
 	char *buffer;
 	int error = 0;
 
-	buffer = malloc( sz, M_MPT2, M_NOWAIT | M_ZERO);
+	buffer = malloc(sz, M_MPT2, M_NOWAIT | M_ZERO);
 	if (!buffer)
 		return ENOMEM;
 
@@ -923,7 +982,7 @@ mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
 		return (EBUSY);
 	}
 	mpi_request = (MPI2_SATA_PASSTHROUGH_REQUEST *)cm->cm_req;
-	bzero(mpi_request,sizeof(MPI2_SATA_PASSTHROUGH_REQUEST));
+	bzero(mpi_request, sizeof(MPI2_SATA_PASSTHROUGH_REQUEST));
 	mpi_request->Function = MPI2_FUNCTION_SATA_PASSTHROUGH;
 	mpi_request->VF_ID = 0;
 	mpi_request->DevHandle = htole16(handle);
@@ -932,8 +991,10 @@ mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
 	mpi_request->DataLength = htole32(sz);
 	mpi_request->CommandFIS[0] = 0x27;
 	mpi_request->CommandFIS[1] = 0x80;
-	mpi_request->CommandFIS[2] =  (devinfo &
-	    MPI2_SAS_DEVICE_INFO_ATAPI_DEVICE) ? 0xA1 : 0xEC;
+	mpi_request->CommandFIS[2] = (devinfo &
+					 MPI2_SAS_DEVICE_INFO_ATAPI_DEVICE) ?
+	    0xA1 :
+	    0xEC;
 	cm->cm_sge = &mpi_request->SGL;
 	cm->cm_sglsize = sizeof(MPI2_SGE_IO_UNION);
 	cm->cm_flags = MPS_CM_FLAGS_SGE_SIMPLE | MPS_CM_FLAGS_DATAIN;
@@ -957,11 +1018,11 @@ mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
 	reply = (Mpi2SataPassthroughReply_t *)cm->cm_reply;
 	if (error || (reply == NULL)) {
 		/* FIXME */
- 		/*
- 		 * If the request returns an error then we need to do a diag
- 		 * reset
- 		 */ 
- 		mps_dprint(sc, MPS_INFO|MPS_FAULT|MPS_MAPPING,
+		/*
+		 * If the request returns an error then we need to do a diag
+		 * reset
+		 */
+		mps_dprint(sc, MPS_INFO | MPS_FAULT | MPS_MAPPING,
 		    "Request for SATA PASSTHROUGH page completed with error %d\n",
 		    error);
 		error = ENXIO;
@@ -971,7 +1032,7 @@ mpssas_get_sata_identify(struct mps_softc *sc, u16 handle,
 	bcopy(reply, mpi_reply, sizeof(Mpi2SataPassthroughReply_t));
 	if ((le16toh(reply->IOCStatus) & MPI2_IOCSTATUS_MASK) !=
 	    MPI2_IOCSTATUS_SUCCESS) {
-		mps_dprint(sc, MPS_INFO|MPS_MAPPING|MPS_FAULT,
+		mps_dprint(sc, MPS_INFO | MPS_MAPPING | MPS_FAULT,
 		    "Error reading device %#x SATA PASSTHRU; iocstatus= 0x%x\n",
 		    handle, reply->IOCStatus);
 		error = ENXIO;
@@ -1005,7 +1066,6 @@ mpssas_ata_id_complete(struct mps_softc *sc, struct mps_command *cm)
 	free(cm->cm_data, M_MPT2);
 	mps_free_command(sc, cm);
 }
-
 
 static void
 mpssas_ata_id_timeout(struct mps_softc *sc, struct mps_command *cm)
@@ -1051,8 +1111,8 @@ mpssas_volume_add(struct mps_softc *sc, u16 handle)
 	id = mps_mapping_get_raid_tid(sc, wwid, handle);
 	if (id == MPS_MAP_BAD_ID) {
 		printf("%s: could not get ID for volume with handle 0x%04x and "
-		    "WWID 0x%016llx\n", __func__, handle,
-		    (unsigned long long)wwid);
+		       "WWID 0x%016llx\n",
+		    __func__, handle, (unsigned long long)wwid);
 		error = ENXIO;
 		goto out;
 	}
@@ -1063,7 +1123,7 @@ mpssas_volume_add(struct mps_softc *sc, u16 handle)
 	targ->devname = wwid;
 	TAILQ_INIT(&targ->commands);
 	TAILQ_INIT(&targ->timedout_commands);
-	while(!SLIST_EMPTY(&targ->luns)) {
+	while (!SLIST_EMPTY(&targ->luns)) {
 		lun = SLIST_FIRST(&targ->luns);
 		SLIST_REMOVE_HEAD(&targ->luns, lun_link);
 		free(lun, M_MPT2);
@@ -1078,7 +1138,7 @@ out:
 }
 
 /**
- * mpssas_SSU_to_SATA_devices 
+ * mpssas_SSU_to_SATA_devices
  * @sc: per adapter object
  * @howto: mast of RB_* bits for how we're rebooting
  *
@@ -1113,7 +1173,8 @@ mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto)
 
 		ccb = xpt_alloc_ccb_nowait();
 		if (ccb == NULL) {
-			mps_dprint(sc, MPS_FAULT, "Unable to alloc CCB to stop "
+			mps_dprint(sc, MPS_FAULT,
+			    "Unable to alloc CCB to stop "
 			    "unit.\n");
 			return;
 		}
@@ -1123,10 +1184,11 @@ mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto)
 		 * a SATA direct-access end device.
 		 */
 		if (target->stop_at_shutdown) {
-			if (xpt_create_path(&ccb->ccb_h.path,
-			    xpt_periph, pathid, targetid,
-			    CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
-				mps_dprint(sc, MPS_FAULT, "Unable to create "
+			if (xpt_create_path(&ccb->ccb_h.path, xpt_periph,
+				pathid, targetid,
+				CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+				mps_dprint(sc, MPS_FAULT,
+				    "Unable to create "
 				    "LUN path to stop unit.\n");
 				xpt_free_ccb(ccb);
 				return;
@@ -1134,9 +1196,11 @@ mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto)
 			xpt_path_string(ccb->ccb_h.path, path_str,
 			    sizeof(path_str));
 
-			mps_dprint(sc, MPS_INFO, "Sending StopUnit: path %s "
-			    "handle %d\n", path_str, target->handle);
-			
+			mps_dprint(sc, MPS_INFO,
+			    "Sending StopUnit: path %s "
+			    "handle %d\n",
+			    path_str, target->handle);
+
 			/*
 			 * Issue a START STOP UNIT command for the target.
 			 * Increment the SSU counter to be used to count the
@@ -1144,18 +1208,16 @@ mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto)
 			 */
 			mps_dprint(sc, MPS_INFO, "Incrementing SSU count\n");
 			sc->SSU_refcount++;
-			ccb->ccb_h.target_id =
-			    xpt_path_target_id(ccb->ccb_h.path);
+			ccb->ccb_h.target_id = xpt_path_target_id(
+			    ccb->ccb_h.path);
 			ccb->ccb_h.ppriv_ptr1 = sassc;
 			scsi_start_stop(&ccb->csio,
-			    /*retries*/0,
-			    mpssas_stop_unit_done,
+			    /*retries*/ 0, mpssas_stop_unit_done,
 			    MSG_SIMPLE_Q_TAG,
-			    /*start*/FALSE,
-			    /*load/eject*/0,
-			    /*immediate*/FALSE,
-			    MPS_SENSE_LEN,
-			    /*timeout*/10000);
+			    /*start*/ FALSE,
+			    /*load/eject*/ 0,
+			    /*immediate*/ FALSE, MPS_SENSE_LEN,
+			    /*timeout*/ 10000);
 			xpt_action(ccb);
 		}
 	}
@@ -1175,12 +1237,13 @@ mpssas_SSU_to_SATA_devices(struct mps_softc *sc, int howto)
 	 * routine.
 	 */
 	while (sc->SSU_refcount > 0) {
-		pause("mpswait", hz/10);
+		pause("mpswait", hz / 10);
 		if (SCHEDULER_STOPPED())
 			xpt_sim_poll(sassc->sim);
 
 		if (--timeout == 0) {
-			mps_dprint(sc, MPS_FAULT, "Time has expired waiting "
+			mps_dprint(sc, MPS_FAULT,
+			    "Time has expired waiting "
 			    "for SSU commands to complete.\n");
 			break;
 		}
@@ -1230,7 +1293,7 @@ mpssas_ir_shutdown(struct mps_softc *sc, int howto)
 	u32 start_idx, end_idx;
 	unsigned int id, found_volume = 0;
 	struct mps_command *cm;
-	Mpi2RaidActionRequest_t	*action;
+	Mpi2RaidActionRequest_t *action;
 	target_id_t targetid;
 	struct mpssas_target *target;
 
@@ -1319,8 +1382,8 @@ out:
 			case MPS_SSU_ENABLE_SSD_DISABLE_HDD:
 			default:
 				target->stop_at_shutdown = TRUE;
-				if ((target->flags &
-				    MPS_TARGET_IS_SATA_SSD) == 0) {
+				if ((target->flags & MPS_TARGET_IS_SATA_SSD) ==
+				    0) {
 					target->stop_at_shutdown = FALSE;
 				}
 				break;

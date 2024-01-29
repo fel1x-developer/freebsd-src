@@ -27,10 +27,10 @@
  */
 
 #ifndef _LIBNETBSD_SYS_WAIT_H_
-#define	_LIBNETBSD_SYS_WAIT_H_
+#define _LIBNETBSD_SYS_WAIT_H_
 
 #include_next <sys/wait.h>
 
-#define	wrusage	__wrusage
+#define wrusage __wrusage
 
 #endif

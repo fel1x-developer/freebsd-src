@@ -27,8 +27,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/clock.h>
 
 #include <dev/iicbus/pmic/rockchip/rk8xx.h>
@@ -93,7 +93,7 @@ rk8xx_gettime(device_t dev, struct timespec *ts)
 		bct.dow = 0;
 	bct.ispm = 0;
 	if (sc->type == RK809 || sc->type == RK817)
-		bct.year += 0x2000;	/* valid for 2000-2099 only */
+		bct.year += 0x2000; /* valid for 2000-2099 only */
 
 	if (bootverbose)
 		device_printf(dev, "Read RTC: %02x-%02x-%02x %02x:%02x:%02x\n",

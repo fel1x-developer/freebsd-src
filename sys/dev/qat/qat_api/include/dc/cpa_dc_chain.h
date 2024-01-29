@@ -48,7 +48,8 @@
  * @ingroup cpaDc
  *
  * @description
- *      These functions specify the API for Data Compression Chaining operations.
+ *      These functions specify the API for Data Compression Chaining
+ *operations.
  *
  * @remarks
  *
@@ -59,12 +60,11 @@
 #define CPA_DC_CHAIN_H
 
 #ifdef __cplusplus
-extern"C" {
+extern "C" {
 #endif
 
-#include "cpa_dc.h"
 #include "cpa_cy_sym.h"
-
+#include "cpa_dc.h"
 
 /**
  *****************************************************************************
@@ -75,105 +75,104 @@ extern"C" {
  *      This enumeration lists the supported operations for compression chaining
  *
  *****************************************************************************/
-typedef enum _CpaDcChainOperations
-{
-    CPA_DC_CHAIN_COMPRESS_THEN_HASH,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform hash on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for hash setup data*/
-    CPA_DC_CHAIN_COMPRESS_THEN_ENCRYPT,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform encryption on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for encryption setup data*/
-    CPA_DC_CHAIN_COMPRESS_THEN_HASH_ENCRYPT,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform hash on compressed text and
-     * encryption on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for hash and encryption setup data*/
-    CPA_DC_CHAIN_COMPRESS_THEN_ENCRYPT_HASH,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform encryption on compressed text and
-     * hash on compressed & encrypted text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for encryption and hash setup data*/
-    CPA_DC_CHAIN_COMPRESS_THEN_AEAD,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform AEAD encryption on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for AEAD encryption setup data*/
-    CPA_DC_CHAIN_HASH_THEN_COMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform hash on plain text
-     * 2nd operation is to perform compression on plain text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for hash setup data
-     * 2nd entry is for compression setup data*/
-    CPA_DC_CHAIN_HASH_VERIFY_THEN_DECOMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform hash verify on compressed text
-     * 2nd operation is to perform decompression on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for hash setup data
-     * 2nd entry is for decompression setup data*/
-    CPA_DC_CHAIN_DECRYPT_THEN_DECOMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform decryption on compressed & encrypted text
-     * 2nd operation is to perform decompression on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for decryption setup data
-     * 2nd entry is for decompression setup data*/
-    CPA_DC_CHAIN_HASH_VERIFY_DECRYPT_THEN_DECOMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform hash verify on compressed & encrypted text
-     * and decryption on compressed & encrypted text
-     * 2nd operation is to perform decompression on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for hash and decryption setup data
-     * 2nd entry is for decompression setup data*/
-    CPA_DC_CHAIN_DECRYPT_HASH_VERIFY_THEN_DECOMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform decryption on compressed & encrypted text
-     * and hash verify on compressed text
-     * 2nd operation is to perform decompression on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for decryption and hash setup data
-     * 2nd entry is for decompression setup data*/
-    CPA_DC_CHAIN_AEAD_THEN_DECOMPRESS,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform AEAD decryption on compressed & encrypted text
-     * 2nd operation is to perform decompression on compressed text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for AEAD decryption setup data
-     * 2nd entry is for decompression setup data*/
-    CPA_DC_CHAIN_DECOMPRESS_THEN_HASH_VERIFY,
-    /**< 2 operations for chaining:
-     * 1st operation is to perform decompression on compressed text
-     * 2nd operation is to perform hash verify on plain text
-     **< 2 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for decompression setup data
-     * 2nd entry is for hash setup data*/
-    CPA_DC_CHAIN_COMPRESS_THEN_AEAD_THEN_HASH,
-    /**< 3 operations for chaining:
-     * 1st operation is to perform compression on plain text
-     * 2nd operation is to perform AEAD encryption compressed text
-     * 3rd operation is to perfom hash on compressed & encrypted text
-     **< 3 entries in CpaDcChainSessionSetupData array:
-     * 1st entry is for compression setup data
-     * 2nd entry is for AEAD encryption setup data
-     * 3rd entry is for hash setup data*/
+typedef enum _CpaDcChainOperations {
+	CPA_DC_CHAIN_COMPRESS_THEN_HASH,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform hash on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for hash setup data*/
+	CPA_DC_CHAIN_COMPRESS_THEN_ENCRYPT,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform encryption on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for encryption setup data*/
+	CPA_DC_CHAIN_COMPRESS_THEN_HASH_ENCRYPT,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform hash on compressed text and
+	 * encryption on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for hash and encryption setup data*/
+	CPA_DC_CHAIN_COMPRESS_THEN_ENCRYPT_HASH,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform encryption on compressed text and
+	 * hash on compressed & encrypted text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for encryption and hash setup data*/
+	CPA_DC_CHAIN_COMPRESS_THEN_AEAD,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform AEAD encryption on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for AEAD encryption setup data*/
+	CPA_DC_CHAIN_HASH_THEN_COMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform hash on plain text
+	 * 2nd operation is to perform compression on plain text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for hash setup data
+	 * 2nd entry is for compression setup data*/
+	CPA_DC_CHAIN_HASH_VERIFY_THEN_DECOMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform hash verify on compressed text
+	 * 2nd operation is to perform decompression on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for hash setup data
+	 * 2nd entry is for decompression setup data*/
+	CPA_DC_CHAIN_DECRYPT_THEN_DECOMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform decryption on compressed & encrypted text
+	 * 2nd operation is to perform decompression on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for decryption setup data
+	 * 2nd entry is for decompression setup data*/
+	CPA_DC_CHAIN_HASH_VERIFY_DECRYPT_THEN_DECOMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform hash verify on compressed & encrypted
+	 *text and decryption on compressed & encrypted text 2nd operation is to
+	 *perform decompression on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for hash and decryption setup data
+	 * 2nd entry is for decompression setup data*/
+	CPA_DC_CHAIN_DECRYPT_HASH_VERIFY_THEN_DECOMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform decryption on compressed & encrypted text
+	 * and hash verify on compressed text
+	 * 2nd operation is to perform decompression on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for decryption and hash setup data
+	 * 2nd entry is for decompression setup data*/
+	CPA_DC_CHAIN_AEAD_THEN_DECOMPRESS,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform AEAD decryption on compressed & encrypted
+	 *text 2nd operation is to perform decompression on compressed text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for AEAD decryption setup data
+	 * 2nd entry is for decompression setup data*/
+	CPA_DC_CHAIN_DECOMPRESS_THEN_HASH_VERIFY,
+	/**< 2 operations for chaining:
+	 * 1st operation is to perform decompression on compressed text
+	 * 2nd operation is to perform hash verify on plain text
+	 **< 2 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for decompression setup data
+	 * 2nd entry is for hash setup data*/
+	CPA_DC_CHAIN_COMPRESS_THEN_AEAD_THEN_HASH,
+	/**< 3 operations for chaining:
+	 * 1st operation is to perform compression on plain text
+	 * 2nd operation is to perform AEAD encryption compressed text
+	 * 3rd operation is to perfom hash on compressed & encrypted text
+	 **< 3 entries in CpaDcChainSessionSetupData array:
+	 * 1st entry is for compression setup data
+	 * 2nd entry is for AEAD encryption setup data
+	 * 3rd entry is for hash setup data*/
 } CpaDcChainOperations;
 
 /**
@@ -185,12 +184,11 @@ typedef enum _CpaDcChainOperations
  *      This enumeration lists the supported session types
  *      for data compression chaining.
  *****************************************************************************/
-typedef enum _CpaDcChainSessionType
-{
-    CPA_DC_CHAIN_COMPRESS_DECOMPRESS,
-    /**< Indicate the session is for compression or decompression */
-    CPA_DC_CHAIN_SYMMETRIC_CRYPTO,
-    /**< Indicate the session is for symmetric crypto */
+typedef enum _CpaDcChainSessionType {
+	CPA_DC_CHAIN_COMPRESS_DECOMPRESS,
+	/**< Indicate the session is for compression or decompression */
+	CPA_DC_CHAIN_SYMMETRIC_CRYPTO,
+	/**< Indicate the session is for symmetric crypto */
 } CpaDcChainSessionType;
 
 /**
@@ -204,14 +202,14 @@ typedef enum _CpaDcChainSessionType
  *
  ****************************************************************************/
 typedef struct _CpaDcChainSessionSetupData {
-    CpaDcChainSessionType sessType;
-    /**Indicate the type for this session */
-    union {
-        CpaDcSessionSetupData *pDcSetupData;
-        /**< Pointer to compression session setup data */
-        CpaCySymSessionSetupData *pCySetupData;
-        /**< Pointer to symmectric crypto session setup data */
-    };
+	CpaDcChainSessionType sessType;
+	/**Indicate the type for this session */
+	union {
+		CpaDcSessionSetupData *pDcSetupData;
+		/**< Pointer to compression session setup data */
+		CpaCySymSessionSetupData *pCySetupData;
+		/**< Pointer to symmectric crypto session setup data */
+	};
 } CpaDcChainSessionSetupData;
 
 /**
@@ -224,14 +222,14 @@ typedef struct _CpaDcChainSessionSetupData {
  *
  ****************************************************************************/
 typedef struct _CpaDcChainOpData {
-    CpaDcChainSessionType opType;
-    /**< Indicate the type for this operation */
-    union {
-        CpaDcOpData *pDcOp;
-        /**< Pointer to compression operation data */
-        CpaCySymOpData *pCySymOp;
-        /**< Pointer to symmectric crypto operation data */
-    };
+	CpaDcChainSessionType opType;
+	/**< Indicate the type for this operation */
+	union {
+		CpaDcOpData *pDcOp;
+		/**< Pointer to compression operation data */
+		CpaCySymOpData *pCySymOp;
+		/**< Pointer to symmectric crypto operation data */
+	};
 } CpaDcChainOpData;
 
 /**
@@ -243,24 +241,24 @@ typedef struct _CpaDcChainOpData {
  *
  ****************************************************************************/
 typedef struct _CpaDcChainRqResults {
-    CpaDcReqStatus dcStatus;
-    /**< Additional status details from compression accelerator */
-    CpaStatus cyStatus;
-    /**< Additional status details from symmetric crypto accelerator */
-    CpaBoolean verifyResult;
-    /**<  This parameter is valid when the verifyDigest option is set in the
-     * CpaCySymSessionSetupData structure. A value of CPA_TRUE indicates
-     * that the compare succeeded. A value of CPA_FALSE indicates that the
-     * compare failed */
-    Cpa32U produced;
-    /**< Octets produced to the output buffer */
-    Cpa32U consumed;
-    /**< Octets consumed from the input buffer */
-    Cpa32U crc32;
-    /**< crc32 checksum produced by chaining operations */
-    Cpa32U adler32;
-    /**< adler32 checksum produced by chaining operations */
-}CpaDcChainRqResults;
+	CpaDcReqStatus dcStatus;
+	/**< Additional status details from compression accelerator */
+	CpaStatus cyStatus;
+	/**< Additional status details from symmetric crypto accelerator */
+	CpaBoolean verifyResult;
+	/**<  This parameter is valid when the verifyDigest option is set in the
+	 * CpaCySymSessionSetupData structure. A value of CPA_TRUE indicates
+	 * that the compare succeeded. A value of CPA_FALSE indicates that the
+	 * compare failed */
+	Cpa32U produced;
+	/**< Octets produced to the output buffer */
+	Cpa32U consumed;
+	/**< Octets consumed from the input buffer */
+	Cpa32U crc32;
+	/**< crc32 checksum produced by chaining operations */
+	Cpa32U adler32;
+	/**< adler32 checksum produced by chaining operations */
+} CpaDcChainRqResults;
 
 /**
  *****************************************************************************
@@ -314,12 +312,9 @@ typedef struct _CpaDcChainRqResults {
  *      cpaDcChainInitSession()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcChainGetSessionSize(CpaInstanceHandle dcInstance,
-        CpaDcChainOperations operation,
-        Cpa8U numSessions,
-        CpaDcChainSessionSetupData *pSessionData,
-        Cpa32U* pSessionSize);
+CpaStatus cpaDcChainGetSessionSize(CpaInstanceHandle dcInstance,
+    CpaDcChainOperations operation, Cpa8U numSessions,
+    CpaDcChainSessionSetupData *pSessionData, Cpa32U *pSessionSize);
 
 /**
  *****************************************************************************
@@ -414,13 +409,10 @@ cpaDcChainGetSessionSize(CpaInstanceHandle dcInstance,
  *      None
  *
  *****************************************************************************/
-CpaStatus
-cpaDcChainInitSession(CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle pSessionHandle,
-        CpaDcChainOperations operation,
-        Cpa8U numSessions,
-        CpaDcChainSessionSetupData *pSessionData,
-        CpaDcCallbackFn callbackFn);
+CpaStatus cpaDcChainInitSession(CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle, CpaDcChainOperations operation,
+    Cpa8U numSessions, CpaDcChainSessionSetupData *pSessionData,
+    CpaDcCallbackFn callbackFn);
 
 /**
  *****************************************************************************
@@ -469,10 +461,8 @@ cpaDcChainInitSession(CpaInstanceHandle dcInstance,
  *      cpaDcChainInitSession()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcChainResetSession(const CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle pSessionHandle);
-
+CpaStatus cpaDcChainResetSession(const CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle);
 
 /**
  *****************************************************************************
@@ -525,9 +515,8 @@ cpaDcChainResetSession(const CpaInstanceHandle dcInstance,
  *      cpaDcChainInitSession()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcChainRemoveSession(const CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle pSessionHandle);
+CpaStatus cpaDcChainRemoveSession(const CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle);
 
 /**
  *****************************************************************************
@@ -641,16 +630,11 @@ cpaDcChainRemoveSession(const CpaInstanceHandle dcInstance,
  *      cpaDcCompressData
  *
  *****************************************************************************/
-CpaStatus
-cpaDcChainPerformOp(CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle   pSessionHandle,
-        CpaBufferList        *pSrcBuff,
-        CpaBufferList        *pDestBuff,
-        CpaDcChainOperations operation,
-        Cpa8U                numOpDatas,
-        CpaDcChainOpData     *pChainOpData,
-        CpaDcChainRqResults  *pResults,
-        void                 *callbackTag );
+CpaStatus cpaDcChainPerformOp(CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcChainOperations operation, Cpa8U numOpDatas,
+    CpaDcChainOpData *pChainOpData, CpaDcChainRqResults *pResults,
+    void *callbackTag);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

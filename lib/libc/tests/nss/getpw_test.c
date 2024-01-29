@@ -25,14 +25,13 @@
  *
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "testutil.h"
 
@@ -105,8 +104,7 @@ compare_passwd(struct passwd *pwd1, struct passwd *pwd2, void *mdata __unused)
 	if (pwd1 == pwd2)
 		return (0);
 
-	if (pwd1->pw_uid != pwd2->pw_uid ||
-	    pwd1->pw_gid != pwd2->pw_gid ||
+	if (pwd1->pw_uid != pwd2->pw_uid || pwd1->pw_gid != pwd2->pw_gid ||
 	    pwd1->pw_change != pwd2->pw_change ||
 	    pwd1->pw_expire != pwd2->pw_expire ||
 	    pwd1->pw_fields != pwd2->pw_fields ||
@@ -306,8 +304,9 @@ static int
 passwd_check_ambiguity(struct passwd_test_data *td, struct passwd *pwd)
 {
 
-	return (TEST_DATA_FIND(passwd, td, pwd, compare_passwd, NULL) !=
-	    NULL ? 0 : -1);
+	return (TEST_DATA_FIND(passwd, td, pwd, compare_passwd, NULL) != NULL ?
+		0 :
+		-1);
 }
 
 static int
@@ -353,8 +352,8 @@ passwd_test_getpwuid(struct passwd *pwd_model, void *mdata)
 	pwd = getpwuid(pwd_model->pw_uid);
 	if (passwd_test_correctness(pwd, NULL) != 0 ||
 	    (compare_passwd(pwd, pwd_model, NULL) != 0 &&
-	    passwd_check_ambiguity((struct passwd_test_data *)mdata,
-	    pwd) != 0)) {
+		passwd_check_ambiguity((struct passwd_test_data *)mdata, pwd) !=
+		    0)) {
 #ifdef DEBUG
 		printf("not ok\n");
 #endif
@@ -401,8 +400,8 @@ run_tests(const char *snapshot_file, enum test_methods method)
 				goto fin;
 			}
 
-			TEST_SNAPSHOT_FILE_READ(passwd, snapshot_file,
-			    &td_snap, passwd_read_snapshot_func);
+			TEST_SNAPSHOT_FILE_READ(passwd, snapshot_file, &td_snap,
+			    passwd_read_snapshot_func);
 		}
 	}
 
@@ -413,16 +412,16 @@ run_tests(const char *snapshot_file, enum test_methods method)
 	switch (method) {
 	case TEST_GETPWNAM:
 		if (snapshot_file == NULL)
-			rv = DO_1PASS_TEST(passwd, &td,
-			    passwd_test_getpwnam, (void *)&td);
+			rv = DO_1PASS_TEST(passwd, &td, passwd_test_getpwnam,
+			    (void *)&td);
 		else
 			rv = DO_1PASS_TEST(passwd, &td_snap,
 			    passwd_test_getpwnam, (void *)&td_snap);
 		break;
 	case TEST_GETPWUID:
 		if (snapshot_file == NULL)
-			rv = DO_1PASS_TEST(passwd, &td,
-			    passwd_test_getpwuid, (void *)&td);
+			rv = DO_1PASS_TEST(passwd, &td, passwd_test_getpwuid,
+			    (void *)&td);
 		else
 			rv = DO_1PASS_TEST(passwd, &td_snap,
 			    passwd_test_getpwuid, (void *)&td_snap);
@@ -444,16 +443,20 @@ run_tests(const char *snapshot_file, enum test_methods method)
 		TEST_DATA_DESTROY(passwd, &td_2pass);
 		break;
 	case TEST_GETPWENT_INTERLEAVED_GETPWNAM:
-		TEST_DATA_INIT(passwd, &td_interleaved, clone_passwd, free_passwd);
-		rv = passwd_fill_test_data(&td_interleaved, passwd_test_getpwnam);
+		TEST_DATA_INIT(passwd, &td_interleaved, clone_passwd,
+		    free_passwd);
+		rv = passwd_fill_test_data(&td_interleaved,
+		    passwd_test_getpwnam);
 		if (rv != -1)
 			rv = DO_2PASS_TEST(passwd, &td, &td_interleaved,
 			    compare_passwd, NULL);
 		TEST_DATA_DESTROY(passwd, &td_interleaved);
 		break;
 	case TEST_GETPWENT_INTERLEAVED_GETPWUID:
-		TEST_DATA_INIT(passwd, &td_interleaved, clone_passwd, free_passwd);
-		rv = passwd_fill_test_data(&td_interleaved, passwd_test_getpwuid);
+		TEST_DATA_INIT(passwd, &td_interleaved, clone_passwd,
+		    free_passwd);
+		rv = passwd_fill_test_data(&td_interleaved,
+		    passwd_test_getpwuid);
 		if (rv != -1)
 			rv = DO_2PASS_TEST(passwd, &td, &td_interleaved,
 			    compare_passwd, NULL);
@@ -476,7 +479,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_pwd"
+#define SNAPSHOT_FILE "snapshot_pwd"
 
 ATF_TC_WITHOUT_HEAD(getpwent);
 ATF_TC_BODY(getpwent, tc)

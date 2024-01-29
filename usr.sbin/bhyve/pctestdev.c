@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
+
 #include <machine/vmm.h>
 
 #include <assert.h>
@@ -38,7 +39,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <vmmapi.h>
 
 #include "debug.h"
@@ -48,38 +48,37 @@
 #include "mem.h"
 #include "pctestdev.h"
 
-#define	DEBUGEXIT_BASE		0xf4
-#define	DEBUGEXIT_LEN		4
-#define	DEBUGEXIT_NAME		"isa-debug-exit"
+#define DEBUGEXIT_BASE 0xf4
+#define DEBUGEXIT_LEN 4
+#define DEBUGEXIT_NAME "isa-debug-exit"
 
-#define	IOMEM_BASE		0xff000000
-#define	IOMEM_LEN		0x10000
-#define	IOMEM_NAME		"pc-testdev-iomem"
+#define IOMEM_BASE 0xff000000
+#define IOMEM_LEN 0x10000
+#define IOMEM_NAME "pc-testdev-iomem"
 
-#define	IOPORT_BASE		0xe0
-#define	IOPORT_LEN		4
-#define	IOPORT_NAME		"pc-testdev-ioport"
+#define IOPORT_BASE 0xe0
+#define IOPORT_LEN 4
+#define IOPORT_NAME "pc-testdev-ioport"
 
-#define	IRQ_BASE		0x2000
-#define	IRQ_IOAPIC_PINCOUNT_MIN	24
-#define	IRQ_IOAPIC_PINCOUNT_MAX	32
-#define	IRQ_NAME		"pc-testdev-irq-line"
+#define IRQ_BASE 0x2000
+#define IRQ_IOAPIC_PINCOUNT_MIN 24
+#define IRQ_IOAPIC_PINCOUNT_MAX 32
+#define IRQ_NAME "pc-testdev-irq-line"
 
-#define	PCTESTDEV_NAME		"pc-testdev"
+#define PCTESTDEV_NAME "pc-testdev"
 
-static bool	pctestdev_inited;
-static uint8_t	pctestdev_iomem_buf[IOMEM_LEN];
-static uint32_t	pctestdev_ioport_data;
+static bool pctestdev_inited;
+static uint8_t pctestdev_iomem_buf[IOMEM_LEN];
+static uint32_t pctestdev_ioport_data;
 
-static int	pctestdev_debugexit_io(struct vmctx *ctx, int in,
-		    int port, int bytes, uint32_t *eax, void *arg);
-static int	pctestdev_iomem_io(struct vcpu *vcpu, int dir,
-		    uint64_t addr, int size, uint64_t *val, void *arg1,
-		    long arg2);
-static int	pctestdev_ioport_io(struct vmctx *ctx, int in,
-		    int port, int bytes, uint32_t *eax, void *arg);
-static int	pctestdev_irq_io(struct vmctx *ctx, int in,
-		    int port, int bytes, uint32_t *eax, void *arg);
+static int pctestdev_debugexit_io(struct vmctx *ctx, int in, int port,
+    int bytes, uint32_t *eax, void *arg);
+static int pctestdev_iomem_io(struct vcpu *vcpu, int dir, uint64_t addr,
+    int size, uint64_t *val, void *arg1, long arg2);
+static int pctestdev_ioport_io(struct vmctx *ctx, int in, int port, int bytes,
+    uint32_t *eax, void *arg);
+static int pctestdev_irq_io(struct vmctx *ctx, int in, int port, int bytes,
+    uint32_t *eax, void *arg);
 
 const char *
 pctestdev_getname(void)
@@ -177,8 +176,8 @@ fail:
 }
 
 static int
-pctestdev_debugexit_io(struct vmctx *ctx __unused, int in,
-    int port __unused, int bytes __unused, uint32_t *eax, void *arg __unused)
+pctestdev_debugexit_io(struct vmctx *ctx __unused, int in, int port __unused,
+    int bytes __unused, uint32_t *eax, void *arg __unused)
 {
 	if (in)
 		*eax = 0;
@@ -189,9 +188,8 @@ pctestdev_debugexit_io(struct vmctx *ctx __unused, int in,
 }
 
 static int
-pctestdev_iomem_io(struct vcpu *vcpu __unused, int dir,
-    uint64_t addr, int size, uint64_t *val, void *arg1 __unused,
-    long arg2 __unused)
+pctestdev_iomem_io(struct vcpu *vcpu __unused, int dir, uint64_t addr, int size,
+    uint64_t *val, void *arg1 __unused, long arg2 __unused)
 {
 	uint64_t offset;
 
@@ -210,8 +208,8 @@ pctestdev_iomem_io(struct vcpu *vcpu __unused, int dir,
 }
 
 static int
-pctestdev_ioport_io(struct vmctx *ctx __unused, int in,
-    int port, int bytes, uint32_t *eax, void *arg __unused)
+pctestdev_ioport_io(struct vmctx *ctx __unused, int in, int port, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 	uint32_t mask;
 	int lsb;
@@ -233,8 +231,8 @@ pctestdev_ioport_io(struct vmctx *ctx __unused, int in,
 }
 
 static int
-pctestdev_irq_io(struct vmctx *ctx, int in, int port,
-    int bytes, uint32_t *eax, void *arg __unused)
+pctestdev_irq_io(struct vmctx *ctx, int in, int port, int bytes, uint32_t *eax,
+    void *arg __unused)
 {
 	int irq;
 

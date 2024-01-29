@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 wint_t

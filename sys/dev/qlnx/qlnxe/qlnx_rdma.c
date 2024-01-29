@@ -30,24 +30,24 @@
  * Author: David C Somayajulu
  */
 #include <sys/cdefs.h>
-#include "qlnx_os.h"
-#include "bcm_osal.h"
 
-#include "reg_addr.h"
-#include "ecore_gtt_reg_addr.h"
+#include "bcm_osal.h"
 #include "ecore.h"
 #include "ecore_chain.h"
-#include "ecore_status.h"
+#include "ecore_cxt.h"
+#include "ecore_dev_api.h"
+#include "ecore_gtt_reg_addr.h"
 #include "ecore_hw.h"
-#include "ecore_rt_defs.h"
+#include "ecore_init_fw_funcs.h"
 #include "ecore_init_ops.h"
 #include "ecore_int.h"
-#include "ecore_cxt.h"
-#include "ecore_spq.h"
-#include "ecore_init_fw_funcs.h"
-#include "ecore_sp_commands.h"
-#include "ecore_dev_api.h"
 #include "ecore_l2_api.h"
+#include "ecore_rt_defs.h"
+#include "ecore_sp_commands.h"
+#include "ecore_spq.h"
+#include "ecore_status.h"
+#include "qlnx_os.h"
+#include "reg_addr.h"
 #ifdef CONFIG_ECORE_SRIOV
 #include "ecore_sriov.h"
 #include "ecore_vf.h"
@@ -61,8 +61,8 @@
 #ifdef CONFIG_ECORE_ISCSI
 #include "ecore_iscsi.h"
 #endif
-#include "ecore_mcp.h"
 #include "ecore_hw_defs.h"
+#include "ecore_mcp.h"
 #include "mcp_public.h"
 
 #ifdef CONFIG_ECORE_RDMA
@@ -77,16 +77,16 @@
 #include "ecore_iwarp.h"
 #endif
 
+#include <sys/smp.h>
+
+#include "ecore_dbg_fw_funcs.h"
+#include "ecore_dev_api.h"
 #include "ecore_iro.h"
 #include "nvm_cfg.h"
-#include "ecore_dev_api.h"
-#include "ecore_dbg_fw_funcs.h"
-
-#include "qlnx_ioctl.h"
 #include "qlnx_def.h"
+#include "qlnx_ioctl.h"
 #include "qlnx_rdma.h"
 #include "qlnx_ver.h"
-#include <sys/smp.h>
 
 struct mtx qlnx_rdma_dev_lock;
 struct qlnx_rdma_if *qlnx_rdma_if = NULL;
@@ -97,7 +97,8 @@ void
 qlnx_rdma_init(void)
 {
 	if (!mtx_initialized(&qlnx_rdma_dev_lock)) {
-		mtx_init(&qlnx_rdma_dev_lock, "qlnx_rdma_dev_lock", NULL, MTX_DEF);
+		mtx_init(&qlnx_rdma_dev_lock, "qlnx_rdma_dev_lock", NULL,
+		    MTX_DEF);
 	}
 	return;
 }
@@ -116,11 +117,11 @@ _qlnx_rdma_dev_add(struct qlnx_host *ha)
 {
 	QL_DPRINT12(ha, "enter ha = %p qlnx_rdma_if = %p\n", ha, qlnx_rdma_if);
 
-	if (qlnx_rdma_if == NULL) 
+	if (qlnx_rdma_if == NULL)
 		return;
 
-	if (ha->personality != ECORE_PCI_ETH_IWARP && 
-		ha->personality != ECORE_PCI_ETH_ROCE)
+	if (ha->personality != ECORE_PCI_ETH_IWARP &&
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return;
 
 	ha->qlnx_rdma = qlnx_rdma_if->add(ha);
@@ -135,7 +136,7 @@ qlnx_rdma_dev_add(struct qlnx_host *ha)
 	QL_DPRINT12(ha, "enter ha = %p\n", ha);
 
 	if (ha->personality != ECORE_PCI_ETH_IWARP &&
-			ha->personality != ECORE_PCI_ETH_ROCE)
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return;
 
 	mtx_lock(&qlnx_rdma_dev_lock);
@@ -168,7 +169,7 @@ _qlnx_rdma_dev_remove(struct qlnx_host *ha)
 		return (ret);
 
 	if (ha->personality != ECORE_PCI_ETH_IWARP &&
-		ha->personality != ECORE_PCI_ETH_ROCE)
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return (ret);
 
 	ret = qlnx_rdma_if->remove(ha, ha->qlnx_rdma);
@@ -189,7 +190,7 @@ qlnx_rdma_dev_remove(struct qlnx_host *ha)
 		return (ret);
 
 	if (ha->personality != ECORE_PCI_ETH_IWARP &&
-		ha->personality != ECORE_PCI_ETH_ROCE)
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return (ret);
 
 	ret = _qlnx_rdma_dev_remove(ha);
@@ -255,25 +256,25 @@ qlnx_rdma_deregister_if(qlnx_rdma_if_t *rdma_if)
 
 	printf("%s: enter rdma_if = %p\n", __func__, rdma_if);
 
-        if (mtx_initialized(&qlnx_rdma_dev_lock)) {
-                mtx_lock(&qlnx_rdma_dev_lock);
+	if (mtx_initialized(&qlnx_rdma_dev_lock)) {
+		mtx_lock(&qlnx_rdma_dev_lock);
 
 		ha = qlnx_host_list;
 
 		while (ha != NULL) {
-                	mtx_unlock(&qlnx_rdma_dev_lock);
+			mtx_unlock(&qlnx_rdma_dev_lock);
 
 			if (ha->dbg_level & 0xF000)
 				ret = EBUSY;
 			else
 				ret = _qlnx_rdma_dev_remove(ha);
 
-        		device_printf(ha->pci_dev, "%s [%d]: ret = 0x%x\n",
-				__func__, __LINE__, ret);
+			device_printf(ha->pci_dev, "%s [%d]: ret = 0x%x\n",
+			    __func__, __LINE__, ret);
 			if (ret)
 				return (ret);
-			
-                	mtx_lock(&qlnx_rdma_dev_lock);
+
+			mtx_lock(&qlnx_rdma_dev_lock);
 
 			ha->qlnx_rdma = NULL;
 
@@ -283,11 +284,11 @@ qlnx_rdma_deregister_if(qlnx_rdma_if_t *rdma_if)
 		if (!ret)
 			qlnx_rdma_if = NULL;
 
-                mtx_unlock(&qlnx_rdma_dev_lock);
-        }
+		mtx_unlock(&qlnx_rdma_dev_lock);
+	}
 	printf("%s: exit rdma_if = %p\n", __func__, rdma_if);
 
-        return (ret);
+	return (ret);
 }
 
 void
@@ -298,8 +299,8 @@ qlnx_rdma_dev_open(struct qlnx_host *ha)
 	if (qlnx_rdma_if == NULL)
 		return;
 
-	if (ha->personality != ECORE_PCI_ETH_IWARP && 
-		ha->personality != ECORE_PCI_ETH_ROCE)
+	if (ha->personality != ECORE_PCI_ETH_IWARP &&
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return;
 
 	qlnx_rdma_if->notify(ha, ha->qlnx_rdma, QLNX_ETHDEV_UP);
@@ -316,8 +317,8 @@ qlnx_rdma_dev_close(struct qlnx_host *ha)
 	if (qlnx_rdma_if == NULL)
 		return;
 
-	if (ha->personality != ECORE_PCI_ETH_IWARP && 
-		ha->personality != ECORE_PCI_ETH_ROCE)
+	if (ha->personality != ECORE_PCI_ETH_IWARP &&
+	    ha->personality != ECORE_PCI_ETH_ROCE)
 		return;
 
 	qlnx_rdma_if->notify(ha, ha->qlnx_rdma, QLNX_ETHDEV_DOWN);
@@ -329,5 +330,5 @@ qlnx_rdma_dev_close(struct qlnx_host *ha)
 int
 qlnx_rdma_get_num_irqs(struct qlnx_host *ha)
 {
-        return (QLNX_NUM_CNQ + ecore_rdma_get_sb_id(&ha->cdev.hwfns[0], 0) + 2);
+	return (QLNX_NUM_CNQ + ecore_rdma_get_sb_id(&ha->cdev.hwfns[0], 0) + 2);
 }

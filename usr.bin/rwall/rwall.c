@@ -42,11 +42,12 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/rwall.h>
+
 #include <err.h>
 #include <paths.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/rwall.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -57,7 +58,7 @@ static char *mbuf;
 
 static char notty[] = "no tty";
 
-static void	makemsg(const char *);
+static void makemsg(const char *);
 static void usage(void) __dead2;
 
 /* ARGSUSED */
@@ -79,7 +80,7 @@ main(int argc, char *argv[])
 	 * Create client "handle" used for calling MESSAGEPROG on the
 	 * server designated on the command line. We tell the rpc package
 	 * to use the "tcp" protocol when contacting the server.
-	*/
+	 */
 	cl = clnt_create(wallhost, WALLPROG, WALLVERS, "udp");
 	if (cl == NULL) {
 		/*
@@ -89,10 +90,10 @@ main(int argc, char *argv[])
 		errx(1, "%s", clnt_spcreateerror(wallhost));
 	}
 
-	tv.tv_sec = 15;		/* XXX ?? */
+	tv.tv_sec = 15; /* XXX ?? */
 	tv.tv_usec = 0;
 	if (clnt_call(cl, WALLPROC_WALL, (xdrproc_t)xdr_wrapstring, &mbuf,
-	    (xdrproc_t)xdr_void, &res, tv) != RPC_SUCCESS) {
+		(xdrproc_t)xdr_void, &res, tv) != RPC_SUCCESS) {
 		/*
 		 * An error occurred while calling the server.
 		 * Print error message and die.
@@ -144,13 +145,12 @@ makemsg(const char *fname)
 	 * Which means that we may leave a non-blank character
 	 * in column 80, but that can't be helped.
 	 */
-	fprintf(fp, "Remote Broadcast Message from %s@%s\n",
-	    whom, hostname);
+	fprintf(fp, "Remote Broadcast Message from %s@%s\n", whom, hostname);
 	tty = ttyname(STDERR_FILENO);
 	if (tty == NULL)
 		tty = notty;
-	fprintf(fp, "        (%s) at %d:%02d ...\n", tty,
-	    lt->tm_hour, lt->tm_min);
+	fprintf(fp, "        (%s) at %d:%02d ...\n", tty, lt->tm_hour,
+	    lt->tm_min);
 
 	putc('\n', fp);
 

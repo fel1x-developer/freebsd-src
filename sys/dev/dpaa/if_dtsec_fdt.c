@@ -26,56 +26,52 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 
 #include <machine/bus.h>
 
-#include <powerpc/mpc85xx/mpc85xx.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
 
-#include "miibus_if.h"
+#include <net/if.h>
+#include <net/if_media.h>
 
 #include <contrib/ncsw/inc/Peripherals/fm_port_ext.h>
 #include <contrib/ncsw/inc/xx_ext.h>
+#include <powerpc/mpc85xx/mpc85xx.h>
 
-#include "if_dtsec.h"
 #include "fman.h"
+#include "if_dtsec.h"
+#include "miibus_if.h"
 
-
-static int	dtsec_fdt_probe(device_t dev);
-static int	dtsec_fdt_attach(device_t dev);
+static int dtsec_fdt_probe(device_t dev);
+static int dtsec_fdt_attach(device_t dev);
 
 static device_method_t dtsec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dtsec_fdt_probe),
-	DEVMETHOD(device_attach,	dtsec_fdt_attach),
-	DEVMETHOD(device_detach,	dtsec_detach),
+	DEVMETHOD(device_probe, dtsec_fdt_probe),
+	DEVMETHOD(device_attach, dtsec_fdt_attach),
+	DEVMETHOD(device_detach, dtsec_detach),
 
-	DEVMETHOD(device_shutdown,	dtsec_shutdown),
-	DEVMETHOD(device_suspend,	dtsec_suspend),
-	DEVMETHOD(device_resume,	dtsec_resume),
+	DEVMETHOD(device_shutdown, dtsec_shutdown),
+	DEVMETHOD(device_suspend, dtsec_suspend),
+	DEVMETHOD(device_resume, dtsec_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	DEVMETHOD(bus_driver_added,	bus_generic_driver_added),
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_driver_added, bus_generic_driver_added),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	dtsec_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	dtsec_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	dtsec_miibus_statchg),
+	DEVMETHOD(miibus_readreg, dtsec_miibus_readreg),
+	DEVMETHOD(miibus_writereg, dtsec_miibus_writereg),
+	DEVMETHOD(miibus_statchg, dtsec_miibus_statchg),
 
 	{ 0, 0 }
 };
@@ -102,7 +98,8 @@ dtsec_fdt_probe(device_t dev)
 	    !ofw_bus_is_compatible(dev, "fsl,fman-xgec"))
 		return (ENXIO);
 
-	device_set_desc(dev, "Freescale Data Path Triple Speed Ethernet "
+	device_set_desc(dev,
+	    "Freescale Data Path Triple Speed Ethernet "
 	    "Controller");
 
 	return (BUS_PROBE_DEFAULT);
@@ -122,8 +119,8 @@ dtsec_fdt_attach(device_t dev)
 	sc = device_get_softc(dev);
 	enet_node = ofw_bus_get_node(dev);
 
-	if (OF_getprop(enet_node, "local-mac-address",
-	    (void *)sc->sc_mac_addr, 6) == -1) {
+	if (OF_getprop(enet_node, "local-mac-address", (void *)sc->sc_mac_addr,
+		6) == -1) {
 		device_printf(dev,
 		    "Could not load local-mac-addr property from DTS\n");
 		return (ENXIO);
@@ -135,17 +132,17 @@ dtsec_fdt_attach(device_t dev)
 	else if (ofw_bus_is_compatible(dev, "fsl,fman-xgec") != 0)
 		sc->sc_eth_dev_type = ETH_10GSEC;
 	else
-		return(ENXIO);
+		return (ENXIO);
 
 	/* Get PHY address */
 	if (OF_getprop(enet_node, "phy-handle", (void *)&phy_node,
-	    sizeof(phy_node)) <= 0)
+		sizeof(phy_node)) <= 0)
 		return (ENXIO);
 
 	phy_node = OF_node_from_xref(phy_node);
 
 	if (OF_getprop(phy_node, "reg", (void *)&sc->sc_phy_addr,
-	    sizeof(sc->sc_phy_addr)) <= 0)
+		sizeof(sc->sc_phy_addr)) <= 0)
 		return (ENXIO);
 
 	phy_dev = OF_device_from_xref(OF_parent(phy_node));
@@ -159,13 +156,14 @@ dtsec_fdt_attach(device_t dev)
 
 	/* Get MAC memory offset in SoC */
 	rid = 0;
-	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_mem == NULL)
 		return (ENXIO);
 
 	/* Get PHY connection type */
 	if (OF_getprop(enet_node, "phy-connection-type", (void *)phy_type,
-	    sizeof(phy_type)) <= 0)
+		sizeof(phy_type)) <= 0)
 		return (ENXIO);
 
 	if (!strcmp(phy_type, "sgmii"))
@@ -178,14 +176,14 @@ dtsec_fdt_attach(device_t dev)
 	else
 		return (ENXIO);
 
-	if (OF_getencprop(enet_node, "cell-index",
-	    (void *)&mac_id, sizeof(mac_id)) <= 0)
+	if (OF_getencprop(enet_node, "cell-index", (void *)&mac_id,
+		sizeof(mac_id)) <= 0)
 		return (ENXIO);
 	sc->sc_eth_id = mac_id;
 
 	/* Get RX/TX port handles */
 	if (OF_getprop(enet_node, "fsl,fman-ports", (void *)fman_rxtx_node,
-	    sizeof(fman_rxtx_node)) <= 0)
+		sizeof(fman_rxtx_node)) <= 0)
 		return (ENXIO);
 
 	if (fman_rxtx_node[0] == 0)
@@ -198,25 +196,25 @@ dtsec_fdt_attach(device_t dev)
 	fman_rxtx_node[1] = OF_instance_to_package(fman_rxtx_node[1]);
 
 	if (ofw_bus_node_is_compatible(fman_rxtx_node[0],
-	    "fsl,fman-v2-port-rx") == 0)
+		"fsl,fman-v2-port-rx") == 0)
 		return (ENXIO);
 
 	if (ofw_bus_node_is_compatible(fman_rxtx_node[1],
-	    "fsl,fman-v2-port-tx") == 0)
+		"fsl,fman-v2-port-tx") == 0)
 		return (ENXIO);
 
 	/* Get RX port HW id */
 	if (OF_getprop(fman_rxtx_node[0], "reg", (void *)&sc->sc_port_rx_hw_id,
-	    sizeof(sc->sc_port_rx_hw_id)) <= 0)
+		sizeof(sc->sc_port_rx_hw_id)) <= 0)
 		return (ENXIO);
 
 	/* Get TX port HW id */
 	if (OF_getprop(fman_rxtx_node[1], "reg", (void *)&sc->sc_port_tx_hw_id,
-	    sizeof(sc->sc_port_tx_hw_id)) <= 0)
+		sizeof(sc->sc_port_tx_hw_id)) <= 0)
 		return (ENXIO);
 
 	if (OF_getprop(fman_rxtx_node[1], "cell-index", &fman_tx_cell,
-	    sizeof(fman_tx_cell)) <= 0)
+		sizeof(fman_tx_cell)) <= 0)
 		return (ENXIO);
 	/* Get QMan channel */
 	sc->sc_port_tx_qman_chan = fman_qman_channel_id(device_get_parent(dev),

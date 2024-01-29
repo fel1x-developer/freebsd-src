@@ -37,12 +37,12 @@
 
 #include <err.h>
 #include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <grp.h>
 #include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static void
 usage(void)
@@ -78,7 +78,7 @@ a_gid(const char *s)
 {
 	struct group *gr;
 
-	if (*s == '\0')			/* Argument was "uid[:.]". */
+	if (*s == '\0') /* Argument was "uid[:.]". */
 		errx(1, "group must be specified when the owner is");
 	return ((gr = getgrnam(s)) == NULL) ? id(s, "group") : gr->gr_gid;
 }
@@ -88,7 +88,7 @@ a_uid(const char *s)
 {
 	struct passwd *pw;
 
-	if (*s == '\0')			/* Argument was "[:.]gid". */
+	if (*s == '\0') /* Argument was "[:.]gid". */
 		errx(1, "owner must be specified when the group is");
 	return ((pw = getpwnam(s)) == NULL) ? id(s, "user") : pw->pw_uid;
 }
@@ -137,12 +137,12 @@ main(int argc, char **argv)
 
 	uid = gid = -1;
 	if (6 == argc) {
-	    	/* have owner:group */
+		/* have owner:group */
 		if ((cp = strchr(argv[5], ':')) != NULL) {
 			*cp++ = '\0';
 			gid = a_gid(cp);
 		} else
-		usage();
+			usage();
 		uid = a_uid(argv[5]);
 	}
 

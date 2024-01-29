@@ -29,14 +29,17 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include <capsicum_helpers.h>
+#include <casper/cap_syslog.h>
 #include <ctype.h>
 #include <err.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,13 +47,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <casper/cap_syslog.h>
-
-#define	SYSLOG_NAMES
+#define SYSLOG_NAMES
 #include <syslog.h>
 
-#define	sstosa(ss)	((struct sockaddr *)(void *)ss)
+#define sstosa(ss) ((struct sockaddr *)(void *)ss)
 
 struct socks {
 	int sk_sock;
@@ -58,21 +58,21 @@ struct socks {
 	struct sockaddr_storage sk_addr;
 };
 
-static int	decode(char *, const CODE *);
-static int	pencode(char *);
-static ssize_t	socksetup(const char *, const char *, const char *,
-		    struct socks **);
-static void	logmessage(int, const char *, const char *, const char *,
-		    struct socks *, ssize_t, const char *);
-static void	usage(void);
+static int decode(char *, const CODE *);
+static int pencode(char *);
+static ssize_t socksetup(const char *, const char *, const char *,
+    struct socks **);
+static void logmessage(int, const char *, const char *, const char *,
+    struct socks *, ssize_t, const char *);
+static void usage(void);
 
 static cap_channel_t *capsyslog;
 #ifdef INET6
-static int family = PF_UNSPEC;	/* protocol family (IPv4, IPv6 or both) */
+static int family = PF_UNSPEC; /* protocol family (IPv4, IPv6 or both) */
 #else
-static int family = PF_INET;	/* protocol family (IPv4 only) */
+static int family = PF_INET; /* protocol family (IPv4 only) */
 #endif
-static int send_to_all = 0;	/* send message to all IPv4/IPv6 addresses */
+static int send_to_all = 0; /* send message to all IPv4/IPv6 addresses */
 
 /*
  * logger -- read and log utility
@@ -88,8 +88,8 @@ main(int argc, char *argv[])
 	ssize_t nsock;
 	time_t now;
 	int ch, logflags, pri;
-	char *tag, *host, buf[1024], *timestamp, tbuf[26],
-	    *hostname, hbuf[MAXHOSTNAMELEN], *pristr;
+	char *tag, *host, buf[1024], *timestamp, tbuf[26], *hostname,
+	    hbuf[MAXHOSTNAMELEN], *pristr;
 	const char *svcname, *src;
 
 	tag = NULL;
@@ -103,7 +103,7 @@ main(int argc, char *argv[])
 	logflags = 0;
 	unsetenv("TZ");
 	while ((ch = getopt(argc, argv, "46Af:H:h:iP:p:S:st:")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case '4':
 			family = PF_INET;
 			break;
@@ -115,33 +115,33 @@ main(int argc, char *argv[])
 		case 'A':
 			send_to_all++;
 			break;
-		case 'f':		/* file to log */
+		case 'f': /* file to log */
 			if (freopen(optarg, "r", stdin) == NULL)
 				err(1, "%s", optarg);
 			setvbuf(stdin, 0, _IONBF, 0);
 			break;
-		case 'H':		/* hostname to set in message header */
+		case 'H': /* hostname to set in message header */
 			hostname = optarg;
 			break;
-		case 'h':		/* hostname to deliver to */
+		case 'h': /* hostname to deliver to */
 			host = optarg;
 			break;
-		case 'i':		/* log process id also */
+		case 'i': /* log process id also */
 			logflags |= LOG_PID;
 			break;
-		case 'P':		/* service name or port number */
+		case 'P': /* service name or port number */
 			svcname = optarg;
 			break;
-		case 'p':		/* priority */
+		case 'p': /* priority */
 			pristr = optarg;
 			break;
-		case 's':		/* log to standard error */
+		case 's': /* log to standard error */
 			logflags |= LOG_PERROR;
 			break;
-		case 'S':		/* source address */
+		case 'S': /* source address */
 			src = optarg;
 			break;
-		case 't':		/* tag */
+		case 't': /* tag */
 			tag = optarg;
 			break;
 		case '?':
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
 
 	if (hostname == NULL) {
 		hostname = hbuf;
-		(void )gethostname(hbuf, MAXHOSTNAMELEN);
+		(void)gethostname(hbuf, MAXHOSTNAMELEN);
 		*strchrnul(hostname, '.') = '\0';
 	}
 
@@ -196,20 +196,20 @@ main(int argc, char *argv[])
 		char *p, *endp;
 		size_t len;
 
-		(void )time(&now);
-		(void )ctime_r(&now, tbuf);
+		(void)time(&now);
+		(void)ctime_r(&now, tbuf);
 		tbuf[19] = '\0';
 
 		for (p = buf, endp = buf + sizeof(buf) - 2; *argv;) {
 			len = strlen(*argv);
 			if (p + len > endp && p > buf) {
-				logmessage(pri, timestamp, hostname, tag,
-				    socks, nsock, buf);
+				logmessage(pri, timestamp, hostname, tag, socks,
+				    nsock, buf);
 				p = buf;
 			}
 			if (len > sizeof(buf) - 1)
-				logmessage(pri, timestamp, hostname, tag,
-				    socks, nsock, *argv++);
+				logmessage(pri, timestamp, hostname, tag, socks,
+				    nsock, *argv++);
 			else {
 				if (p != buf)
 					*p++ = ' ';
@@ -222,8 +222,8 @@ main(int argc, char *argv[])
 			    buf);
 	} else
 		while (fgets(buf, sizeof(buf), stdin) != NULL) {
-			(void )time(&now);
-			(void )ctime_r(&now, tbuf);
+			(void)time(&now);
+			(void)ctime_r(&now, tbuf);
 			tbuf[19] = '\0';
 
 			logmessage(pri, timestamp, hostname, tag, socks, nsock,
@@ -234,7 +234,7 @@ main(int argc, char *argv[])
 
 static ssize_t
 socksetup(const char *src, const char *dst, const char *svcname,
-	struct socks **socks)
+    struct socks **socks)
 {
 	struct addrinfo hints, *res, *res0;
 	struct sockaddr_storage *ss_src[AF_MAX];
@@ -250,7 +250,7 @@ socksetup(const char *src, const char *dst, const char *svcname,
 		p0 = p = strdup(src);
 		if (p0 == NULL)
 			err(1, "strdup failed");
-		hs = p0;	/* point to search ":" */ 
+		hs = p0; /* point to search ":" */
 #ifdef INET6
 		/* -S option supports IPv6 addr in "[2001:db8::1]:service". */
 		if (*p0 == '[') {
@@ -276,11 +276,9 @@ socksetup(const char *src, const char *dst, const char *svcname,
 				sbuf = (*(p + 1) != '\0') ? p + 1 : NULL;
 			}
 		}
-		hints = (struct addrinfo){
-			.ai_family = family,
+		hints = (struct addrinfo) { .ai_family = family,
 			.ai_socktype = SOCK_DGRAM,
-			.ai_flags = AI_PASSIVE
-		};
+			.ai_flags = AI_PASSIVE };
 		error = getaddrinfo(hbuf, sbuf, &hints, &res0);
 		if (error)
 			errx(1, "%s: %s", gai_strerror(error), src);
@@ -292,8 +290,8 @@ socksetup(const char *src, const char *dst, const char *svcname,
 #endif
 				if (ss_src[res->ai_family] != NULL)
 					continue;
-				ss_src[res->ai_family] =
-				    malloc(sizeof(struct sockaddr_storage));
+				ss_src[res->ai_family] = malloc(
+				    sizeof(struct sockaddr_storage));
 				if (ss_src[res->ai_family] == NULL)
 					err(1, "malloc failed");
 				memcpy(ss_src[res->ai_family], res->ai_addr,
@@ -305,15 +303,13 @@ socksetup(const char *src, const char *dst, const char *svcname,
 	}
 
 	/* resolve hostname */
-	hints = (struct addrinfo){
-		.ai_family = family,
-		.ai_socktype = SOCK_DGRAM
-	};
+	hints = (struct addrinfo) { .ai_family = family,
+		.ai_socktype = SOCK_DGRAM };
 	error = getaddrinfo(dst, svcname, &hints, &res0);
 	if (error == EAI_SERVICE) {
 		warnx("%s/udp: unknown service", svcname);
 		error = getaddrinfo(dst, "514", &hints, &res0);
-	}	
+	}
 	if (error)
 		errx(1, "%s: %s", gai_strerror(error), dst);
 	/* count max number of sockets we may open */
@@ -326,23 +322,20 @@ socksetup(const char *src, const char *dst, const char *svcname,
 	for (res = res0; res; res = res->ai_next) {
 		int s;
 
-		s = socket(res->ai_family, res->ai_socktype,
-		    res->ai_protocol);
+		s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (s < 0)
 			continue;
 		if (src && ss_src[res->ai_family] == NULL)
 			errx(1, "address family mismatch");
-			
+
 		if (ss_src[res->ai_family]) {
 			error = bind(s, sstosa(ss_src[res->ai_family]),
-				    ss_src[res->ai_family]->ss_len);
+			    ss_src[res->ai_family]->ss_len);
 			if (error < 0)
 				err(1, "bind");
 		}
-		sk[nsock] = (struct socks){
-			.sk_addrlen = res->ai_addrlen,
-			.sk_sock = s
-		};
+		sk[nsock] = (struct socks) { .sk_addrlen = res->ai_addrlen,
+			.sk_sock = s };
 		memcpy(&sk[nsock].sk_addr, res->ai_addr, res->ai_addrlen);
 		nsock++;
 	}
@@ -366,14 +359,14 @@ logmessage(int pri, const char *timestamp, const char *hostname,
 		cap_syslog(capsyslog, pri, "%s", buf);
 		return;
 	}
-	if ((len = asprintf(&line, "<%d>%s %s %s: %s", pri, timestamp,
-	    hostname, tag, buf)) == -1)
+	if ((len = asprintf(&line, "<%d>%s %s %s: %s", pri, timestamp, hostname,
+		 tag, buf)) == -1)
 		errx(1, "asprintf");
 
 	lsent = -1;
 	for (i = 0; i < nsock; i++) {
 		lsent = sendto(sk[i].sk_sock, line, len, 0,
-			       sstosa(&sk[i].sk_addr), sk[i].sk_addrlen);
+		    sstosa(&sk[i].sk_addr), sk[i].sk_addrlen);
 		if (lsent == len && !send_to_all)
 			break;
 	}
@@ -396,15 +389,15 @@ pencode(char *s)
 	char *save;
 	int fac, lev;
 
-	for (save = s; *s && *s != '.'; ++s);
+	for (save = s; *s && *s != '.'; ++s)
+		;
 	if (*s) {
 		*s = '\0';
 		fac = decode(save, facilitynames);
 		if (fac < 0)
 			errx(1, "unknown facility name: %s", save);
 		*s++ = '.';
-	}
-	else {
+	} else {
 		fac = 0;
 		s = save;
 	}
@@ -434,7 +427,6 @@ usage(void)
 {
 	(void)fprintf(stderr, "usage: %s\n",
 	    "logger [-46Ais] [-f file] [-h host] [-P port] [-p pri] [-t tag]\n"
-	    "              [-S addr:port] [message ...]"
-	    );
+	    "              [-S addr:port] [message ...]");
 	exit(1);
 }

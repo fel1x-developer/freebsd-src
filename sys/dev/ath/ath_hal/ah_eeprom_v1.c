@@ -19,8 +19,8 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_eeprom_v1.h"
+#include "ah_internal.h"
 
 static HAL_STATUS
 v1EepromGet(struct ath_hal *ah, int param, void *val)
@@ -32,7 +32,7 @@ v1EepromGet(struct ath_hal *ah, int param, void *val)
 	int i;
 
 	switch (param) {
-        case AR_EEP_MACADDR:		/* Get MAC Address */
+	case AR_EEP_MACADDR: /* Get MAC Address */
 		sum = 0;
 		macaddr = val;
 		for (i = 0; i < 3; i++) {
@@ -43,26 +43,27 @@ v1EepromGet(struct ath_hal *ah, int param, void *val)
 				return HAL_EEREAD;
 			}
 			sum += eeval;
-			macaddr[2*i + 0] = eeval >> 8;
-			macaddr[2*i + 1] = eeval & 0xff;
+			macaddr[2 * i + 0] = eeval >> 8;
+			macaddr[2 * i + 1] = eeval & 0xff;
 		}
-		if (sum == 0 || sum == 0xffff*3) {
+		if (sum == 0 || sum == 0xffff * 3) {
 			HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad mac address %s\n",
 			    __func__, ath_hal_ether_sprintf(macaddr));
 			return HAL_EEBADMAC;
 		}
 		return HAL_OK;
-        case AR_EEP_REGDMN_0:
-		*(uint16_t *) val = ee->ee_regDomain[0];
+	case AR_EEP_REGDMN_0:
+		*(uint16_t *)val = ee->ee_regDomain[0];
 		return HAL_OK;
-        case AR_EEP_RFKILL:
+	case AR_EEP_RFKILL:
 		HALASSERT(val == AH_NULL);
 		return ee->ee_rfKill ? HAL_OK : HAL_EIO;
 	case AR_EEP_WRITEPROTECT:
 		HALASSERT(val == AH_NULL);
 		return (ee->ee_protect & AR_EEPROM_PROTOTECT_WP_128_191) ?
-		    HAL_OK : HAL_EIO;
-        default:
+		    HAL_OK :
+		    HAL_EIO;
+	default:
 		HALASSERT(0);
 		return HAL_EINVAL;
 	}
@@ -75,8 +76,8 @@ v1EepromSet(struct ath_hal *ah, int param, int v)
 }
 
 static HAL_BOOL
-v1EepromDiag(struct ath_hal *ah, int request,
-     const void *args, uint32_t argsize, void **result, uint32_t *resultsize)
+v1EepromDiag(struct ath_hal *ah, int request, const void *args,
+    uint32_t argsize, void **result, uint32_t *resultsize)
 {
 	HAL_EEPROM_v1 *ee = AH_PRIVATE(ah)->ah_eeprom;
 
@@ -89,9 +90,9 @@ v1EepromDiag(struct ath_hal *ah, int request,
 	return AH_FALSE;
 }
 
-static uint16_t 
+static uint16_t
 v1EepromGetSpurChan(struct ath_hal *ah, int ix, HAL_BOOL is2GHz)
-{ 
+{
 	return AR_NO_SPUR;
 }
 
@@ -111,7 +112,7 @@ HAL_STATUS
 ath_hal_v1EepromAttach(struct ath_hal *ah)
 {
 	HAL_EEPROM_v1 *ee = AH_PRIVATE(ah)->ah_eeprom;
-	uint16_t athvals[AR_EEPROM_ATHEROS_MAX];	/* XXX off stack */
+	uint16_t athvals[AR_EEPROM_ATHEROS_MAX]; /* XXX off stack */
 	uint16_t protect, eeprom_version, eeval;
 	uint32_t sum;
 	int i, loc;
@@ -143,13 +144,13 @@ ath_hal_v1EepromAttach(struct ath_hal *ah)
 		    "%s: unable to read EEPROM version\n", __func__);
 		return HAL_EEREAD;
 	}
-	if (((eeprom_version>>12) & 0xf) != 1) {
+	if (((eeprom_version >> 12) & 0xf) != 1) {
 		/*
 		 * This code only groks the version 1 EEPROM layout.
 		 */
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: unsupported EEPROM version 0x%x found\n",
-		    __func__, eeprom_version);
+		    "%s: unsupported EEPROM version 0x%x found\n", __func__,
+		    eeprom_version);
 		return HAL_EEVERSION;
 	}
 
@@ -183,63 +184,64 @@ ath_hal_v1EepromAttach(struct ath_hal *ah)
 		return HAL_ENOMEM;
 	}
 
-	ee->ee_version		= eeprom_version;
-	ee->ee_protect		= protect;
-	ee->ee_antenna		= athvals[2];
-	ee->ee_biasCurrents	= athvals[3];
-	ee->ee_thresh62	= athvals[4] & 0xff;
-	ee->ee_xlnaOn		= (athvals[4] >> 8) & 0xff;
-	ee->ee_xpaOn		= athvals[5] & 0xff;
-	ee->ee_xpaOff		= (athvals[5] >> 8) & 0xff;
-	ee->ee_regDomain[0]	= (athvals[6] >> 8) & 0xff;
-	ee->ee_regDomain[1]	= athvals[6] & 0xff;
-	ee->ee_regDomain[2]	= (athvals[7] >> 8) & 0xff;
-	ee->ee_regDomain[3]	= athvals[7] & 0xff;
-	ee->ee_rfKill		= athvals[8] & 0x1;
-	ee->ee_devType		= (athvals[8] >> 1) & 0x7;
+	ee->ee_version = eeprom_version;
+	ee->ee_protect = protect;
+	ee->ee_antenna = athvals[2];
+	ee->ee_biasCurrents = athvals[3];
+	ee->ee_thresh62 = athvals[4] & 0xff;
+	ee->ee_xlnaOn = (athvals[4] >> 8) & 0xff;
+	ee->ee_xpaOn = athvals[5] & 0xff;
+	ee->ee_xpaOff = (athvals[5] >> 8) & 0xff;
+	ee->ee_regDomain[0] = (athvals[6] >> 8) & 0xff;
+	ee->ee_regDomain[1] = athvals[6] & 0xff;
+	ee->ee_regDomain[2] = (athvals[7] >> 8) & 0xff;
+	ee->ee_regDomain[3] = athvals[7] & 0xff;
+	ee->ee_rfKill = athvals[8] & 0x1;
+	ee->ee_devType = (athvals[8] >> 1) & 0x7;
 
-	for (i = 0, loc = AR_EEPROM_ATHEROS_TP_SETTINGS; i < AR_CHANNELS_MAX; i++, loc += AR_TP_SETTINGS_SIZE) {
+	for (i = 0, loc = AR_EEPROM_ATHEROS_TP_SETTINGS; i < AR_CHANNELS_MAX;
+	     i++, loc += AR_TP_SETTINGS_SIZE) {
 		struct tpcMap *chan = &ee->ee_tpc[i];
 
 		/* Copy pcdac and gain_f values from EEPROM */
-		chan->pcdac[0]	= (athvals[loc] >> 10) & 0x3F;
-		chan->gainF[0]	= (athvals[loc] >> 4) & 0x3F;
-		chan->pcdac[1]	= ((athvals[loc] << 2) & 0x3C)
-				| ((athvals[loc+1] >> 14) & 0x03);
-		chan->gainF[1]	= (athvals[loc+1] >> 8) & 0x3F;
-		chan->pcdac[2]	= (athvals[loc+1] >> 2) & 0x3F;
-		chan->gainF[2]	= ((athvals[loc+1] << 4) & 0x30)
-				| ((athvals[loc+2] >> 12) & 0x0F);
-		chan->pcdac[3]	= (athvals[loc+2] >> 6) & 0x3F;
-		chan->gainF[3]	= athvals[loc+2] & 0x3F;
-		chan->pcdac[4]	= (athvals[loc+3] >> 10) & 0x3F;
-		chan->gainF[4]	= (athvals[loc+3] >> 4) & 0x3F;
-		chan->pcdac[5]	= ((athvals[loc+3] << 2) & 0x3C)
-				| ((athvals[loc+4] >> 14) & 0x03);
-		chan->gainF[5]	= (athvals[loc+4] >> 8) & 0x3F;
-		chan->pcdac[6]	= (athvals[loc+4] >> 2) & 0x3F;
-		chan->gainF[6]	= ((athvals[loc+4] << 4) & 0x30)
-				| ((athvals[loc+5] >> 12) & 0x0F);
-		chan->pcdac[7]	= (athvals[loc+5] >> 6) & 0x3F;
-		chan->gainF[7]	= athvals[loc+5] & 0x3F;
-		chan->pcdac[8]	= (athvals[loc+6] >> 10) & 0x3F;
-		chan->gainF[8]	= (athvals[loc+6] >> 4) & 0x3F;
-		chan->pcdac[9]	= ((athvals[loc+6] << 2) & 0x3C)
-				| ((athvals[loc+7] >> 14) & 0x03);
-		chan->gainF[9]	= (athvals[loc+7] >> 8) & 0x3F;
-		chan->pcdac[10]	= (athvals[loc+7] >> 2) & 0x3F;
-		chan->gainF[10]	= ((athvals[loc+7] << 4) & 0x30)
-				| ((athvals[loc+8] >> 12) & 0x0F);
+		chan->pcdac[0] = (athvals[loc] >> 10) & 0x3F;
+		chan->gainF[0] = (athvals[loc] >> 4) & 0x3F;
+		chan->pcdac[1] = ((athvals[loc] << 2) & 0x3C) |
+		    ((athvals[loc + 1] >> 14) & 0x03);
+		chan->gainF[1] = (athvals[loc + 1] >> 8) & 0x3F;
+		chan->pcdac[2] = (athvals[loc + 1] >> 2) & 0x3F;
+		chan->gainF[2] = ((athvals[loc + 1] << 4) & 0x30) |
+		    ((athvals[loc + 2] >> 12) & 0x0F);
+		chan->pcdac[3] = (athvals[loc + 2] >> 6) & 0x3F;
+		chan->gainF[3] = athvals[loc + 2] & 0x3F;
+		chan->pcdac[4] = (athvals[loc + 3] >> 10) & 0x3F;
+		chan->gainF[4] = (athvals[loc + 3] >> 4) & 0x3F;
+		chan->pcdac[5] = ((athvals[loc + 3] << 2) & 0x3C) |
+		    ((athvals[loc + 4] >> 14) & 0x03);
+		chan->gainF[5] = (athvals[loc + 4] >> 8) & 0x3F;
+		chan->pcdac[6] = (athvals[loc + 4] >> 2) & 0x3F;
+		chan->gainF[6] = ((athvals[loc + 4] << 4) & 0x30) |
+		    ((athvals[loc + 5] >> 12) & 0x0F);
+		chan->pcdac[7] = (athvals[loc + 5] >> 6) & 0x3F;
+		chan->gainF[7] = athvals[loc + 5] & 0x3F;
+		chan->pcdac[8] = (athvals[loc + 6] >> 10) & 0x3F;
+		chan->gainF[8] = (athvals[loc + 6] >> 4) & 0x3F;
+		chan->pcdac[9] = ((athvals[loc + 6] << 2) & 0x3C) |
+		    ((athvals[loc + 7] >> 14) & 0x03);
+		chan->gainF[9] = (athvals[loc + 7] >> 8) & 0x3F;
+		chan->pcdac[10] = (athvals[loc + 7] >> 2) & 0x3F;
+		chan->gainF[10] = ((athvals[loc + 7] << 4) & 0x30) |
+		    ((athvals[loc + 8] >> 12) & 0x0F);
 
 		/* Copy Regulatory Domain and Rate Information from EEPROM */
-		chan->rate36	= (athvals[loc+8] >> 6) & 0x3F;
-		chan->rate48	= athvals[loc+8] & 0x3F;
-		chan->rate54	= (athvals[loc+9] >> 10) & 0x3F;
-		chan->regdmn[0]	= (athvals[loc+9] >> 4) & 0x3F;
-		chan->regdmn[1]	= ((athvals[loc+9] << 2) & 0x3C)
-				| ((athvals[loc+10] >> 14) & 0x03);
-		chan->regdmn[2]	= (athvals[loc+10] >> 8) & 0x3F;
-		chan->regdmn[3]	= (athvals[loc+10] >> 2) & 0x3F;
+		chan->rate36 = (athvals[loc + 8] >> 6) & 0x3F;
+		chan->rate48 = athvals[loc + 8] & 0x3F;
+		chan->rate54 = (athvals[loc + 9] >> 10) & 0x3F;
+		chan->regdmn[0] = (athvals[loc + 9] >> 4) & 0x3F;
+		chan->regdmn[1] = ((athvals[loc + 9] << 2) & 0x3C) |
+		    ((athvals[loc + 10] >> 14) & 0x03);
+		chan->regdmn[2] = (athvals[loc + 10] >> 8) & 0x3F;
+		chan->regdmn[3] = (athvals[loc + 10] >> 2) & 0x3F;
 	}
 
 	AH_PRIVATE(ah)->ah_eeprom = ee;

@@ -6,25 +6,23 @@
 
 #include "ipf.h"
 
-
 void
 printdstlistpolicy(ippool_policy_t policy)
 {
-	switch (policy)
-	{
-	case IPLDP_NONE :
+	switch (policy) {
+	case IPLDP_NONE:
 		PRINTF("none");
 		break;
-	case IPLDP_ROUNDROBIN :
+	case IPLDP_ROUNDROBIN:
 		PRINTF("round-robin");
 		break;
-	case IPLDP_CONNECTION :
+	case IPLDP_CONNECTION:
 		PRINTF("weighting connection");
 		break;
-	case IPLDP_RANDOM :
+	case IPLDP_RANDOM:
 		PRINTF("random");
 		break;
-	default :
+	default:
 		break;
 	}
 }

@@ -29,17 +29,17 @@
 /*
  * Internal prototypes for our back-end functions.
  */
-size_t	__bsd___iconv(iconv_t, char **, size_t *, char **,
-		size_t *, __uint32_t, size_t *);
-void	__bsd___iconv_free_list(char **, size_t);
-int	__bsd___iconv_get_list(char ***, size_t *, __iconv_bool);
-size_t	__bsd_iconv(iconv_t, char ** __restrict,
-		    size_t * __restrict, char ** __restrict,
-		    size_t * __restrict);
+size_t __bsd___iconv(iconv_t, char **, size_t *, char **, size_t *, __uint32_t,
+    size_t *);
+void __bsd___iconv_free_list(char **, size_t);
+int __bsd___iconv_get_list(char ***, size_t *, __iconv_bool);
+size_t __bsd_iconv(iconv_t, char **__restrict, size_t *__restrict,
+    char **__restrict, size_t *__restrict);
 const char *__bsd_iconv_canonicalize(const char *);
-int	__bsd_iconv_close(iconv_t);
-iconv_t	__bsd_iconv_open(const char *, const char *);
-int	__bsd_iconv_open_into(const char *, const char *, iconv_allocation_t *);
-void	__bsd_iconv_set_relocation_prefix(const char *, const char *);
-int	__bsd_iconvctl(iconv_t, int, void *);
-void	__bsd_iconvlist(int (*) (unsigned int, const char * const *, void *), void *);
+int __bsd_iconv_close(iconv_t);
+iconv_t __bsd_iconv_open(const char *, const char *);
+int __bsd_iconv_open_into(const char *, const char *, iconv_allocation_t *);
+void __bsd_iconv_set_relocation_prefix(const char *, const char *);
+int __bsd_iconvctl(iconv_t, int, void *);
+void __bsd_iconvlist(int (*)(unsigned int, const char *const *, void *),
+    void *);

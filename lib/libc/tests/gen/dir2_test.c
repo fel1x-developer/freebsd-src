@@ -1,6 +1,6 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2017 Spectra Logic Corporation
  * All rights reserved.
  *
@@ -31,18 +31,18 @@
  * opendir, readdir, seekdir, telldir, closedir, etc
  */
 
+#include <atf-c.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
-
 ATF_TC(telldir_after_seekdir);
 ATF_TC_HEAD(telldir_after_seekdir, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Calling telldir(3) after seekdir(3) "
+	atf_tc_set_md_var(tc, "descr",
+	    "Calling telldir(3) after seekdir(3) "
 	    "should return the argument passed to seekdir.");
 }
 ATF_TC_BODY(telldir_after_seekdir, tc)
@@ -54,18 +54,18 @@ ATF_TC_BODY(telldir_after_seekdir, tc)
 	DIR *dirp;
 	struct dirent *de;
 	long beginning, middle, end, td;
-	
+
 	/* Create a temporary directory */
 	tmpdir = mkdtemp(template);
 	ATF_REQUIRE_MSG(tmpdir != NULL, "mkdtemp failed");
 	dirfd = open(tmpdir, O_RDONLY | O_DIRECTORY);
 	ATF_REQUIRE(dirfd > 0);
 
-	/* 
+	/*
 	 * Fill it with files.  Must be > 128 to ensure that the directory
 	 * can't fit within a single page
 	 */
-	for (i = 0; i < NUMFILES; i = i+1) {
+	for (i = 0; i < NUMFILES; i = i + 1) {
 		int fd;
 		char filename[16];
 
@@ -79,12 +79,12 @@ ATF_TC_BODY(telldir_after_seekdir, tc)
 	dirp = fdopendir(dirfd);
 	ATF_REQUIRE_MSG(dirfd >= 0, "fdopendir failed");
 	beginning = telldir(dirp);
-	for (i = 0; i < NUMFILES / 2; i = i+1) {
+	for (i = 0; i < NUMFILES / 2; i = i + 1) {
 		de = readdir(dirp);
 		ATF_REQUIRE_MSG(de != NULL, "readdir failed");
 	}
 	middle = telldir(dirp);
-	for (; i < NUMFILES - 1; i = i+1) {
+	for (; i < NUMFILES - 1; i = i + 1) {
 		de = readdir(dirp);
 		ATF_REQUIRE_MSG(de != NULL, "readdir failed");
 	}
@@ -112,13 +112,14 @@ ATF_TC_BODY(telldir_after_seekdir, tc)
 	ATF_REQUIRE_MSG(NULL != readdir(dirp), "invalid directory index");
 
 	closedir(dirp);
-}	
+}
 
 ATF_TC(telldir_at_end_of_block);
 ATF_TC_HEAD(telldir_at_end_of_block, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Calling telldir(3) after readdir(3) read the last entry in the block should return a valid location");
+	atf_tc_set_md_var(tc, "descr",
+	    "Calling telldir(3) after readdir(3) read the last entry in the block should return a valid location");
 }
 ATF_TC_BODY(telldir_at_end_of_block, tc)
 {
@@ -138,11 +139,11 @@ ATF_TC_BODY(telldir_at_end_of_block, tc)
 	dirfd = open(tmpdir, O_RDONLY | O_DIRECTORY);
 	ATF_REQUIRE(dirfd > 0);
 
-	/* 
+	/*
 	 * Fill it with files.  Must be > 128 to ensure that the directory
 	 * can't fit within a single page.  The "-2" accounts for "." and ".."
 	 */
-	for (i = 0; i < NUMFILES - 2; i = i+1) {
+	for (i = 0; i < NUMFILES - 2; i = i + 1) {
 		int fd;
 		char filename[16];
 
@@ -170,11 +171,10 @@ ATF_TC_BODY(telldir_at_end_of_block, tc)
 	seekdir(dirp, td);
 	de = readdir(dirp);
 	ATF_REQUIRE_STREQ_MSG(last_filename, de->d_name,
-			"seekdir went to the wrong directory position");
+	    "seekdir went to the wrong directory position");
 
 	closedir(dirp);
 }
-	
 
 ATF_TP_ADD_TCS(tp)
 {

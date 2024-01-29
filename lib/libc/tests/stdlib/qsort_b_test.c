@@ -48,13 +48,13 @@ ATF_TC_BODY(qsort_b_test, tc)
 
 		/* Sort using qsort_b(3) */
 		qsort_b(testvector, j, sizeof(testvector[0]),
-		    ^(const void* a, const void* b) {
+		    ^(const void *a, const void *b) {
 			if (*(int *)a > *(int *)b)
-			    return (1);
+				return (1);
 			else if (*(int *)a < *(int *)b)
-			    return (-1);
+				return (-1);
 			else
-			    return (0);
+				return (0);
 		    });
 		/* Sort using reference slow sorting routine */
 		ssort(sresvector, j);
@@ -62,8 +62,8 @@ ATF_TC_BODY(qsort_b_test, tc)
 		/* Compare results */
 		for (i = 0; i < j; i++)
 			ATF_CHECK_MSG(testvector[i] == sresvector[i],
-			    "item at index %d didn't match: %d != %d",
-			    i, testvector[i], sresvector[i]);
+			    "item at index %d didn't match: %d != %d", i,
+			    testvector[i], sresvector[i]);
 	}
 }
 

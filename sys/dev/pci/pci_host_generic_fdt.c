@@ -33,9 +33,9 @@
 
 /* Generic ECAM PCIe driver FDT attachment */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -48,30 +48,29 @@
 #include <machine/intr.h>
 #endif
 
-#include <dev/ofw/openfirm.h>
+#include <machine/intr.h>
+
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/pci/pci_host_generic.h>
 #include <dev/pci/pci_host_generic_fdt.h>
-
-#include <machine/intr.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "pcib_if.h"
 
-#define	SPACE_CODE_SHIFT	24
-#define	SPACE_CODE_MASK		0x3
-#define	SPACE_CODE_IO_SPACE	0x1
-#define	PROPS_CELL_SIZE		1
-#define	PCI_ADDR_CELL_SIZE	2
+#define SPACE_CODE_SHIFT 24
+#define SPACE_CODE_MASK 0x3
+#define SPACE_CODE_IO_SPACE 0x1
+#define PROPS_CELL_SIZE 1
+#define PCI_ADDR_CELL_SIZE 2
 
 struct pci_ofw_devinfo {
 	STAILQ_ENTRY(pci_ofw_devinfo) pci_ofw_link;
-	struct ofw_bus_devinfo  di_dinfo;
+	struct ofw_bus_devinfo di_dinfo;
 	uint8_t slot;
 	uint8_t func;
 	uint8_t bus;
@@ -136,7 +135,7 @@ pci_host_generic_setup_fdt(device_t dev)
 	/* TODO parse FDT bus ranges */
 	sc->base.bus_start = 0;
 	sc->base.bus_end = 0xFF;
-	
+
 	/*
 	 * ofw_pcib uses device unit as PCI domain number.
 	 * Do the same. Some boards have multiple RCs handled
@@ -188,11 +187,10 @@ parse_pci_mem_ranges(device_t dev, struct generic_pcie_core_softc *sc)
 	node = ofw_bus_get_node(dev);
 
 	OF_getencprop(node, "#address-cells", &pci_addr_cells,
-					sizeof(pci_addr_cells));
-	OF_getencprop(node, "#size-cells", &size_cells,
-					sizeof(size_cells));
+	    sizeof(pci_addr_cells));
+	OF_getencprop(node, "#size-cells", &size_cells, sizeof(size_cells));
 	OF_getencprop(OF_parent(node), "#address-cells", &parent_addr_cells,
-					sizeof(parent_addr_cells));
+	    sizeof(parent_addr_cells));
 
 	if (parent_addr_cells > 2 || pci_addr_cells != 3 || size_cells > 2) {
 		device_printf(dev,
@@ -207,8 +205,8 @@ parse_pci_mem_ranges(device_t dev, struct generic_pcie_core_softc *sc)
 	OF_getencprop(node, "ranges", base_ranges, nbase_ranges);
 
 	for (i = 0, j = 0; i < sc->nranges; i++) {
-		attributes = (base_ranges[j++] >> SPACE_CODE_SHIFT) & \
-							SPACE_CODE_MASK;
+		attributes = (base_ranges[j++] >> SPACE_CODE_SHIFT) &
+		    SPACE_CODE_MASK;
 		if (attributes == SPACE_CODE_IO_SPACE) {
 			sc->ranges[i].flags |= FLAG_TYPE_IO;
 		} else {
@@ -270,16 +268,16 @@ generic_pcie_fdt_route_interrupt(device_t bus, device_t dev, int pin)
 	    (pci_get_slot(dev) << OFW_PCI_PHYS_HI_DEVICESHIFT) |
 	    (pci_get_function(dev) << OFW_PCI_PHYS_HI_FUNCTIONSHIFT);
 
-	intrcells = ofw_bus_lookup_imap(ofw_bus_get_node(dev),
-	    &sc->pci_iinfo, &reg, sizeof(reg), &pintr, sizeof(pintr),
-	    mintr, sizeof(mintr), &iparent);
+	intrcells = ofw_bus_lookup_imap(ofw_bus_get_node(dev), &sc->pci_iinfo,
+	    &reg, sizeof(reg), &pintr, sizeof(pintr), mintr, sizeof(mintr),
+	    &iparent);
 	if (intrcells) {
 		pintr = ofw_bus_map_intr(dev, iparent, intrcells, mintr);
 		return (pintr);
 	}
 
-	device_printf(bus, "could not route pin %d for device %d.%d\n",
-	    pin, pci_get_slot(dev), pci_get_function(dev));
+	device_printf(bus, "could not route pin %d for device %d.%d\n", pin,
+	    pci_get_slot(dev), pci_get_function(dev));
 	return (PCI_INVALID_IRQ);
 }
 
@@ -295,8 +293,7 @@ generic_pcie_fdt_alloc_msi(device_t pci, device_t child, int count,
 	    &msi_parent, NULL);
 	if (err != 0)
 		return (err);
-	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount,
-	    irqs));
+	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount, irqs));
 #else
 	return (ENXIO);
 #endif
@@ -433,7 +430,7 @@ generic_pcie_ofw_get_devinfo(device_t bus, device_t child)
 	func = pci_get_function(child);
 	busno = pci_get_bus(child);
 
-	STAILQ_FOREACH(di, &sc->pci_ofw_devlist, pci_ofw_link)
+	STAILQ_FOREACH (di, &sc->pci_ofw_devlist, pci_ofw_link)
 		if (slot == di->slot && func == di->func && busno == di->bus)
 			return (&di->di_dinfo);
 
@@ -478,27 +475,27 @@ generic_pcie_ofw_bus_attach(device_t dev)
 }
 
 static device_method_t generic_pcie_fdt_methods[] = {
-	DEVMETHOD(device_probe,		generic_pcie_fdt_probe),
-	DEVMETHOD(device_attach,	pci_host_generic_fdt_attach),
-	DEVMETHOD(bus_alloc_resource,	pci_host_generic_core_alloc_resource),
-	DEVMETHOD(bus_release_resource,	pci_host_generic_core_release_resource),
+	DEVMETHOD(device_probe, generic_pcie_fdt_probe),
+	DEVMETHOD(device_attach, pci_host_generic_fdt_attach),
+	DEVMETHOD(bus_alloc_resource, pci_host_generic_core_alloc_resource),
+	DEVMETHOD(bus_release_resource, pci_host_generic_core_release_resource),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_route_interrupt,	generic_pcie_fdt_route_interrupt),
-	DEVMETHOD(pcib_alloc_msi,	generic_pcie_fdt_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	generic_pcie_fdt_release_msi),
-	DEVMETHOD(pcib_alloc_msix,	generic_pcie_fdt_alloc_msix),
-	DEVMETHOD(pcib_release_msix,	generic_pcie_fdt_release_msix),
-	DEVMETHOD(pcib_map_msi,		generic_pcie_fdt_map_msi),
-	DEVMETHOD(pcib_get_id,		generic_pcie_get_id),
-	DEVMETHOD(pcib_request_feature,	pcib_request_feature_allow),
+	DEVMETHOD(pcib_route_interrupt, generic_pcie_fdt_route_interrupt),
+	DEVMETHOD(pcib_alloc_msi, generic_pcie_fdt_alloc_msi),
+	DEVMETHOD(pcib_release_msi, generic_pcie_fdt_release_msi),
+	DEVMETHOD(pcib_alloc_msix, generic_pcie_fdt_alloc_msix),
+	DEVMETHOD(pcib_release_msix, generic_pcie_fdt_release_msix),
+	DEVMETHOD(pcib_map_msi, generic_pcie_fdt_map_msi),
+	DEVMETHOD(pcib_get_id, generic_pcie_get_id),
+	DEVMETHOD(pcib_request_feature, pcib_request_feature_allow),
 
-	DEVMETHOD(ofw_bus_get_devinfo,	generic_pcie_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, generic_pcie_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };

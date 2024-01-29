@@ -32,26 +32,26 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_REG_H_
-#define	_MACHINE_REG_H_
+#ifndef _MACHINE_REG_H_
+#define _MACHINE_REG_H_
 
 #include <sys/_types.h>
 
 struct reg {
-	__uint64_t	ra;		/* return address */
-	__uint64_t	sp;		/* stack pointer */
-	__uint64_t	gp;		/* global pointer */
-	__uint64_t	tp;		/* thread pointer */
-	__uint64_t	t[7];		/* temporaries */
-	__uint64_t	s[12];		/* saved registers */
-	__uint64_t	a[8];		/* function arguments */
-	__uint64_t	sepc;		/* exception program counter */
-	__uint64_t	sstatus;	/* status register */
+	__uint64_t ra;	    /* return address */
+	__uint64_t sp;	    /* stack pointer */
+	__uint64_t gp;	    /* global pointer */
+	__uint64_t tp;	    /* thread pointer */
+	__uint64_t t[7];    /* temporaries */
+	__uint64_t s[12];   /* saved registers */
+	__uint64_t a[8];    /* function arguments */
+	__uint64_t sepc;    /* exception program counter */
+	__uint64_t sstatus; /* status register */
 };
 
 struct fpreg {
-	__uint64_t	fp_x[32][2];	/* Floating point registers */
-	__uint64_t	fp_fcsr;	/* Floating point control reg */
+	__uint64_t fp_x[32][2]; /* Floating point registers */
+	__uint64_t fp_fcsr;	/* Floating point control reg */
 };
 
 struct dbreg {

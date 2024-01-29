@@ -34,12 +34,12 @@
 #define FSTYPENAMES
 #include <sys/disklabel.h>
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
 
 static int
 gettype(char *t, const char **names)
@@ -57,17 +57,16 @@ gettype(char *t, const char **names)
 struct disklabel *
 getdiskbyname(const char *name)
 {
-	static struct	disklabel disk;
-	struct	disklabel *dp = &disk;
+	static struct disklabel disk;
+	struct disklabel *dp = &disk;
 	struct partition *pp;
-	char	*buf;
-	char  	*db_array[2] = { _PATH_DISKTAB, 0 };
-	char	*cp, *cq;	/* can't be register */
-	char	p, max, psize[3], pbsize[3],
-		pfsize[3], poffset[3], ptype[3];
+	char *buf;
+	char *db_array[2] = { _PATH_DISKTAB, 0 };
+	char *cp, *cq; /* can't be register */
+	char p, max, psize[3], pbsize[3], pfsize[3], poffset[3], ptype[3];
 	u_int32_t *dx;
 
-	if (cgetent(&buf, db_array, (char *) name) < 0)
+	if (cgetent(&buf, db_array, (char *)name) < 0)
 		return NULL;
 
 	bzero((char *)&disk, sizeof(disk));
@@ -84,15 +83,18 @@ getdiskbyname(const char *name)
 	if (cgetstr(buf, "ty", &cq) > 0) {
 		if (strcmp(cq, "removable") == 0)
 			dp->d_flags |= D_REMOVABLE;
-		else  if (cq && strcmp(cq, "simulated") == 0)
+		else if (cq && strcmp(cq, "simulated") == 0)
 			dp->d_flags |= D_RAMDISK;
 		free(cq);
 	}
 	if (cgetcap(buf, "sf", ':') != NULL)
 		dp->d_flags |= D_BADSECT;
 
-#define getnumdflt(field, dname, dflt) \
-        { long f; (field) = (cgetnum(buf, dname, &f) == -1) ? (dflt) : f; }
+#define getnumdflt(field, dname, dflt)                                  \
+	{                                                               \
+		long f;                                                 \
+		(field) = (cgetnum(buf, dname, &f) == -1) ? (dflt) : f; \
+	}
 
 	getnumdflt(dp->d_secsize, "se", DEV_BSIZE);
 	getnumdflt(dp->d_ntracks, "nt", 0);

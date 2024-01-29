@@ -34,20 +34,21 @@
  */
 
 #ifndef _SFXGE_H
-#define	_SFXGE_H
+#define _SFXGE_H
 
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
+
 #include <vm/uma.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 
 #include "sfxge_ioc.h"
 
@@ -55,10 +56,10 @@
  * Debugging
  */
 #if 0
-#define	DBGPRINT(dev, fmt, args...) \
-	device_printf(dev, "%s: " fmt "\n", __func__, ## args)
+#define DBGPRINT(dev, fmt, args...) \
+	device_printf(dev, "%s: " fmt "\n", __func__, ##args)
 #else
-#define	DBGPRINT(dev, fmt, args...)
+#define DBGPRINT(dev, fmt, args...)
 #endif
 
 /*
@@ -68,51 +69,50 @@
 /* This should be right on most machines the driver will be used on, and
  * we needn't care too much about wasting a few KB per interface.
  */
-#define	CACHE_LINE_SIZE 128
+#define CACHE_LINE_SIZE 128
 #endif
 
 #ifndef IFCAP_LINKSTATE
-#define	IFCAP_LINKSTATE 0
+#define IFCAP_LINKSTATE 0
 #endif
 
 #ifndef IFCAP_VLAN_HWTSO
-#define	IFCAP_VLAN_HWTSO 0
+#define IFCAP_VLAN_HWTSO 0
 #endif
 
 #ifndef IFM_10G_T
-#define	IFM_10G_T IFM_UNKNOWN
+#define IFM_10G_T IFM_UNKNOWN
 #endif
 
 #ifndef IFM_10G_KX4
-#define	IFM_10G_KX4 IFM_10G_CX4
+#define IFM_10G_KX4 IFM_10G_CX4
 #endif
 
 #ifndef IFM_40G_CR4
-#define	IFM_40G_CR4 IFM_UNKNOWN
+#define IFM_40G_CR4 IFM_UNKNOWN
 #endif
 
 #ifdef IFM_ETH_RXPAUSE
-#define	SFXGE_HAVE_PAUSE_MEDIAOPTS
+#define SFXGE_HAVE_PAUSE_MEDIAOPTS
 #endif
 
 #ifndef CTLTYPE_U64
-#define	CTLTYPE_U64 CTLTYPE_QUAD
+#define CTLTYPE_U64 CTLTYPE_QUAD
 #endif
 
 #include "sfxge_rx.h"
 #include "sfxge_tx.h"
 
-#define	ROUNDUP_POW_OF_TWO(_n)	(1ULL << flsl((_n) - 1))
+#define ROUNDUP_POW_OF_TWO(_n) (1ULL << flsl((_n)-1))
 
-#define	SFXGE_IP_ALIGN	2
+#define SFXGE_IP_ALIGN 2
 
-#define	SFXGE_ETHERTYPE_LOOPBACK	0x9000	/* Xerox loopback */
+#define SFXGE_ETHERTYPE_LOOPBACK 0x9000 /* Xerox loopback */
 
-#define	SFXGE_MAGIC_RESERVED		0x8000
+#define SFXGE_MAGIC_RESERVED 0x8000
 
-#define	SFXGE_MAGIC_DMAQ_LABEL_WIDTH	6
-#define	SFXGE_MAGIC_DMAQ_LABEL_MASK \
-	((1 << SFXGE_MAGIC_DMAQ_LABEL_WIDTH) - 1)
+#define SFXGE_MAGIC_DMAQ_LABEL_WIDTH 6
+#define SFXGE_MAGIC_DMAQ_LABEL_MASK ((1 << SFXGE_MAGIC_DMAQ_LABEL_WIDTH) - 1)
 
 enum sfxge_sw_ev {
 	SFXGE_SW_EV_RX_QFLUSH_DONE = 1,
@@ -121,7 +121,7 @@ enum sfxge_sw_ev {
 	SFXGE_SW_EV_TX_QFLUSH_DONE,
 };
 
-#define	SFXGE_SW_EV_MAGIC(_sw_ev) \
+#define SFXGE_SW_EV_MAGIC(_sw_ev) \
 	(SFXGE_MAGIC_RESERVED | ((_sw_ev) << SFXGE_MAGIC_DMAQ_LABEL_WIDTH))
 
 static inline uint16_t
@@ -151,39 +151,39 @@ enum sfxge_evq_state {
 	SFXGE_EVQ_STARTED
 };
 
-#define	SFXGE_EV_BATCH	16384
+#define SFXGE_EV_BATCH 16384
 
-#define	SFXGE_STATS_UPDATE_PERIOD_MS	1000
+#define SFXGE_STATS_UPDATE_PERIOD_MS 1000
 
 struct sfxge_evq {
 	/* Structure members below are sorted by usage order */
-	struct sfxge_softc	*sc;
-	struct mtx		lock;
-	unsigned int		index;
-	enum sfxge_evq_state	init_state;
-	efsys_mem_t		mem;
-	efx_evq_t		*common;
-	unsigned int		read_ptr;
-	boolean_t		exception;
-	unsigned int		rx_done;
-	unsigned int		tx_done;
+	struct sfxge_softc *sc;
+	struct mtx lock;
+	unsigned int index;
+	enum sfxge_evq_state init_state;
+	efsys_mem_t mem;
+	efx_evq_t *common;
+	unsigned int read_ptr;
+	boolean_t exception;
+	unsigned int rx_done;
+	unsigned int tx_done;
 
 	/* Linked list of TX queues with completions to process */
-	struct sfxge_txq	*txq;
-	struct sfxge_txq	**txqs;
+	struct sfxge_txq *txq;
+	struct sfxge_txq **txqs;
 
 	/* Structure members not used on event processing path */
-	unsigned int		buf_base_id;
-	unsigned int		entries;
-	char			lock_name[SFXGE_LOCK_NAME_MAX];
+	unsigned int buf_base_id;
+	unsigned int entries;
+	char lock_name[SFXGE_LOCK_NAME_MAX];
 #if EFSYS_OPT_QSTATS
-	clock_t			stats_update_time;
-	uint64_t		stats[EV_NQSTATS];
+	clock_t stats_update_time;
+	uint64_t stats[EV_NQSTATS];
 #endif
 } __aligned(CACHE_LINE_SIZE);
 
-#define	SFXGE_NDESCS	1024
-#define	SFXGE_MODERATION	30
+#define SFXGE_NDESCS 1024
+#define SFXGE_MODERATION 30
 
 enum sfxge_intr_state {
 	SFXGE_INTR_UNINITIALIZED = 0,
@@ -193,19 +193,19 @@ enum sfxge_intr_state {
 };
 
 struct sfxge_intr_hdl {
-	int			eih_rid;
-	void			*eih_tag;
-	struct resource		*eih_res;
+	int eih_rid;
+	void *eih_tag;
+	struct resource *eih_res;
 };
 
 struct sfxge_intr {
-	enum sfxge_intr_state	state;
-	struct resource		*msix_res;
-	struct sfxge_intr_hdl	*table;
-	int			n_alloc;
-	int			type;
-	efsys_mem_t		status;
-	uint32_t		zero_count;
+	enum sfxge_intr_state state;
+	struct resource *msix_res;
+	struct sfxge_intr_hdl *table;
+	int n_alloc;
+	int type;
+	efsys_mem_t status;
+	uint32_t zero_count;
 };
 
 enum sfxge_mcdi_state {
@@ -216,19 +216,19 @@ enum sfxge_mcdi_state {
 };
 
 struct sfxge_mcdi {
-	struct mtx		lock;
-	efsys_mem_t		mem;
-	enum sfxge_mcdi_state	state;
-	efx_mcdi_transport_t	transport;
+	struct mtx lock;
+	efsys_mem_t mem;
+	enum sfxge_mcdi_state state;
+	efx_mcdi_transport_t transport;
 
 	/* Only used in debugging output */
-	char			lock_name[SFXGE_LOCK_NAME_MAX];
+	char lock_name[SFXGE_LOCK_NAME_MAX];
 };
 
 struct sfxge_hw_stats {
-	clock_t			update_time;
-	efsys_mem_t		dma_buf;
-	void			*decode_buf;
+	clock_t update_time;
+	efsys_mem_t dma_buf;
+	void *decode_buf;
 };
 
 enum sfxge_port_state {
@@ -238,22 +238,21 @@ enum sfxge_port_state {
 };
 
 struct sfxge_port {
-	struct sfxge_softc	*sc;
-	struct mtx		lock;
-	enum sfxge_port_state	init_state;
+	struct sfxge_softc *sc;
+	struct mtx lock;
+	enum sfxge_port_state init_state;
 #ifndef SFXGE_HAVE_PAUSE_MEDIAOPTS
-	unsigned int		wanted_fc;
+	unsigned int wanted_fc;
 #endif
-	struct sfxge_hw_stats	phy_stats;
-	struct sfxge_hw_stats	mac_stats;
-	uint16_t		stats_update_period_ms;
-	efx_link_mode_t		link_mode;
-	uint8_t			mcast_addrs[EFX_MAC_MULTICAST_LIST_MAX *
-					    EFX_MAC_ADDR_LEN];
-	unsigned int		mcast_count;
+	struct sfxge_hw_stats phy_stats;
+	struct sfxge_hw_stats mac_stats;
+	uint16_t stats_update_period_ms;
+	efx_link_mode_t link_mode;
+	uint8_t mcast_addrs[EFX_MAC_MULTICAST_LIST_MAX * EFX_MAC_ADDR_LEN];
+	unsigned int mcast_count;
 
 	/* Only used in debugging output */
-	char			lock_name[SFXGE_LOCK_NAME_MAX];
+	char lock_name[SFXGE_LOCK_NAME_MAX];
 };
 
 enum sfxge_softc_state {
@@ -264,81 +263,81 @@ enum sfxge_softc_state {
 };
 
 struct sfxge_softc {
-	device_t			dev;
-	struct sx			softc_lock;
-	char				softc_lock_name[SFXGE_LOCK_NAME_MAX];
-	enum sfxge_softc_state		init_state;
-	if_t				ifnet;
-	unsigned int			if_flags;
-	struct sysctl_oid		*stats_node;
+	device_t dev;
+	struct sx softc_lock;
+	char softc_lock_name[SFXGE_LOCK_NAME_MAX];
+	enum sfxge_softc_state init_state;
+	if_t ifnet;
+	unsigned int if_flags;
+	struct sysctl_oid *stats_node;
 #if EFSYS_OPT_QSTATS
-	struct sysctl_oid		*evqs_stats_node;
+	struct sysctl_oid *evqs_stats_node;
 #endif
-	struct sysctl_oid		*txqs_node;
+	struct sysctl_oid *txqs_node;
 
-	struct task			task_reset;
+	struct task task_reset;
 
-	efx_family_t			family;
-	unsigned int			mem_bar;
+	efx_family_t family;
+	unsigned int mem_bar;
 
-	caddr_t				vpd_data;
-	size_t				vpd_size;
-	efx_nic_t			*enp;
-	efsys_lock_t			enp_lock;
+	caddr_t vpd_data;
+	size_t vpd_size;
+	efx_nic_t *enp;
+	efsys_lock_t enp_lock;
 
-	boolean_t			txq_dynamic_cksum_toggle_supported;
+	boolean_t txq_dynamic_cksum_toggle_supported;
 
-	unsigned int			rxq_entries;
-	unsigned int			txq_entries;
+	unsigned int rxq_entries;
+	unsigned int txq_entries;
 
-	bus_dma_tag_t			parent_dma_tag;
-	efsys_bar_t			bar;
+	bus_dma_tag_t parent_dma_tag;
+	efsys_bar_t bar;
 
-	struct sfxge_intr		intr;
-	struct sfxge_mcdi		mcdi;
-	struct sfxge_port		port;
-	uint32_t			buffer_table_next;
+	struct sfxge_intr intr;
+	struct sfxge_mcdi mcdi;
+	struct sfxge_port port;
+	uint32_t buffer_table_next;
 
-	struct sfxge_evq		*evq[SFXGE_RX_SCALE_MAX];
-	unsigned int			ev_moderation;
+	struct sfxge_evq *evq[SFXGE_RX_SCALE_MAX];
+	unsigned int ev_moderation;
 #if EFSYS_OPT_QSTATS
-	clock_t				ev_stats_update_time;
-	uint64_t			ev_stats[EV_NQSTATS];
+	clock_t ev_stats_update_time;
+	uint64_t ev_stats[EV_NQSTATS];
 #endif
 
-	unsigned int			max_rss_channels;
-	struct sfxge_rxq		*rxq[SFXGE_RX_SCALE_MAX];
-	unsigned int			rx_indir_table[EFX_RSS_TBL_SIZE];
+	unsigned int max_rss_channels;
+	struct sfxge_rxq *rxq[SFXGE_RX_SCALE_MAX];
+	unsigned int rx_indir_table[EFX_RSS_TBL_SIZE];
 
-	struct sfxge_txq		*txq[SFXGE_TXQ_NTYPES + SFXGE_RX_SCALE_MAX];
+	struct sfxge_txq *txq[SFXGE_TXQ_NTYPES + SFXGE_RX_SCALE_MAX];
 
-	struct ifmedia			media;
+	struct ifmedia media;
 
-	size_t				rx_prefix_size;
-	size_t				rx_buffer_size;
-	size_t				rx_buffer_align;
-	int				rx_cluster_size;
+	size_t rx_prefix_size;
+	size_t rx_buffer_size;
+	size_t rx_buffer_align;
+	int rx_cluster_size;
 
-	unsigned int			evq_max;
-	unsigned int			evq_count;
-	unsigned int			rxq_count;
-	unsigned int			txq_count;
+	unsigned int evq_max;
+	unsigned int evq_count;
+	unsigned int rxq_count;
+	unsigned int txq_count;
 
-	unsigned int			tso_fw_assisted;
-#define	SFXGE_FATSOV1	(1 << 0)
-#define	SFXGE_FATSOV2	(1 << 1)
+	unsigned int tso_fw_assisted;
+#define SFXGE_FATSOV1 (1 << 0)
+#define SFXGE_FATSOV2 (1 << 1)
 
 #if EFSYS_OPT_MCDI_LOGGING
-	int				mcdi_logging;
+	int mcdi_logging;
 #endif
 };
 
-#define	SFXGE_LINK_UP(sc) \
+#define SFXGE_LINK_UP(sc)                         \
 	((sc)->port.link_mode != EFX_LINK_DOWN && \
-	 (sc)->port.link_mode != EFX_LINK_UNKNOWN)
-#define	SFXGE_RUNNING(sc) (if_getdrvflags((sc)->ifnet) & IFF_DRV_RUNNING)
+	    (sc)->port.link_mode != EFX_LINK_UNKNOWN)
+#define SFXGE_RUNNING(sc) (if_getdrvflags((sc)->ifnet) & IFF_DRV_RUNNING)
 
-#define	SFXGE_PARAM(_name)	"hw.sfxge." #_name
+#define SFXGE_PARAM(_name) "hw.sfxge." #_name
 
 SYSCTL_DECL(_hw_sfxge);
 
@@ -347,7 +346,7 @@ SYSCTL_DECL(_hw_sfxge);
  */
 extern void sfxge_schedule_reset(struct sfxge_softc *sc);
 extern void sfxge_sram_buf_tbl_alloc(struct sfxge_softc *sc, size_t n,
-				     uint32_t *idp);
+    uint32_t *idp);
 
 /*
  * From sfxge_dma.c.
@@ -355,12 +354,10 @@ extern void sfxge_sram_buf_tbl_alloc(struct sfxge_softc *sc, size_t n,
 extern int sfxge_dma_init(struct sfxge_softc *sc);
 extern void sfxge_dma_fini(struct sfxge_softc *sc);
 extern int sfxge_dma_alloc(struct sfxge_softc *sc, bus_size_t len,
-			   efsys_mem_t *esmp);
+    efsys_mem_t *esmp);
 extern void sfxge_dma_free(efsys_mem_t *esmp);
 extern int sfxge_dma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map,
-				     struct mbuf **mp,
-				     bus_dma_segment_t *segs,
-				     int *nsegs, int maxsegs);
+    struct mbuf **mp, bus_dma_segment_t *segs, int *nsegs, int maxsegs);
 
 /*
  * From sfxge_ev.c.
@@ -398,87 +395,64 @@ extern int sfxge_port_init(struct sfxge_softc *sc);
 extern void sfxge_port_fini(struct sfxge_softc *sc);
 extern int sfxge_port_start(struct sfxge_softc *sc);
 extern void sfxge_port_stop(struct sfxge_softc *sc);
-extern void sfxge_mac_link_update(struct sfxge_softc *sc,
-				  efx_link_mode_t mode);
+extern void sfxge_mac_link_update(struct sfxge_softc *sc, efx_link_mode_t mode);
 extern int sfxge_mac_filter_set(struct sfxge_softc *sc);
 extern int sfxge_port_ifmedia_init(struct sfxge_softc *sc);
 extern uint64_t sfxge_get_counter(if_t ifp, ift_counter c);
 
-#define	SFXGE_MAX_MTU (9 * 1024)
+#define SFXGE_MAX_MTU (9 * 1024)
 
-#define	SFXGE_ADAPTER_LOCK_INIT(_sc, _ifname)				\
-	do {								\
-		struct sfxge_softc *__sc = (_sc);			\
-									\
-		snprintf((__sc)->softc_lock_name,			\
-			 sizeof((__sc)->softc_lock_name),		\
-			 "%s:softc", (_ifname));			\
-		sx_init(&(__sc)->softc_lock, (__sc)->softc_lock_name);	\
+#define SFXGE_ADAPTER_LOCK_INIT(_sc, _ifname)                                \
+	do {                                                                 \
+		struct sfxge_softc *__sc = (_sc);                            \
+                                                                             \
+		snprintf((__sc)->softc_lock_name,                            \
+		    sizeof((__sc)->softc_lock_name), "%s:softc", (_ifname)); \
+		sx_init(&(__sc)->softc_lock, (__sc)->softc_lock_name);       \
 	} while (B_FALSE)
-#define	SFXGE_ADAPTER_LOCK_DESTROY(_sc)					\
-	sx_destroy(&(_sc)->softc_lock)
-#define	SFXGE_ADAPTER_LOCK(_sc)						\
-	sx_xlock(&(_sc)->softc_lock)
-#define	SFXGE_ADAPTER_UNLOCK(_sc)					\
-	sx_xunlock(&(_sc)->softc_lock)
-#define	SFXGE_ADAPTER_LOCK_ASSERT_OWNED(_sc)				\
+#define SFXGE_ADAPTER_LOCK_DESTROY(_sc) sx_destroy(&(_sc)->softc_lock)
+#define SFXGE_ADAPTER_LOCK(_sc) sx_xlock(&(_sc)->softc_lock)
+#define SFXGE_ADAPTER_UNLOCK(_sc) sx_xunlock(&(_sc)->softc_lock)
+#define SFXGE_ADAPTER_LOCK_ASSERT_OWNED(_sc) \
 	sx_assert(&(_sc)->softc_lock, LA_XLOCKED)
 
-#define	SFXGE_PORT_LOCK_INIT(_port, _ifname)				\
-	do {								\
-		struct sfxge_port *__port = (_port);			\
-									\
-		snprintf((__port)->lock_name,				\
-			 sizeof((__port)->lock_name),			\
-			 "%s:port", (_ifname));				\
-		mtx_init(&(__port)->lock, (__port)->lock_name,		\
-			 NULL, MTX_DEF);				\
+#define SFXGE_PORT_LOCK_INIT(_port, _ifname)                                   \
+	do {                                                                   \
+		struct sfxge_port *__port = (_port);                           \
+                                                                               \
+		snprintf((__port)->lock_name, sizeof((__port)->lock_name),     \
+		    "%s:port", (_ifname));                                     \
+		mtx_init(&(__port)->lock, (__port)->lock_name, NULL, MTX_DEF); \
 	} while (B_FALSE)
-#define	SFXGE_PORT_LOCK_DESTROY(_port)					\
-	mtx_destroy(&(_port)->lock)
-#define	SFXGE_PORT_LOCK(_port)						\
-	mtx_lock(&(_port)->lock)
-#define	SFXGE_PORT_UNLOCK(_port)					\
-	mtx_unlock(&(_port)->lock)
-#define	SFXGE_PORT_LOCK_ASSERT_OWNED(_port)				\
-	mtx_assert(&(_port)->lock, MA_OWNED)
+#define SFXGE_PORT_LOCK_DESTROY(_port) mtx_destroy(&(_port)->lock)
+#define SFXGE_PORT_LOCK(_port) mtx_lock(&(_port)->lock)
+#define SFXGE_PORT_UNLOCK(_port) mtx_unlock(&(_port)->lock)
+#define SFXGE_PORT_LOCK_ASSERT_OWNED(_port) mtx_assert(&(_port)->lock, MA_OWNED)
 
-#define	SFXGE_MCDI_LOCK_INIT(_mcdi, _ifname)				\
-	do {								\
-		struct sfxge_mcdi  *__mcdi = (_mcdi);			\
-									\
-		snprintf((__mcdi)->lock_name,				\
-			 sizeof((__mcdi)->lock_name),			\
-			 "%s:mcdi", (_ifname));				\
-		mtx_init(&(__mcdi)->lock, (__mcdi)->lock_name,		\
-			 NULL, MTX_DEF);				\
+#define SFXGE_MCDI_LOCK_INIT(_mcdi, _ifname)                                   \
+	do {                                                                   \
+		struct sfxge_mcdi *__mcdi = (_mcdi);                           \
+                                                                               \
+		snprintf((__mcdi)->lock_name, sizeof((__mcdi)->lock_name),     \
+		    "%s:mcdi", (_ifname));                                     \
+		mtx_init(&(__mcdi)->lock, (__mcdi)->lock_name, NULL, MTX_DEF); \
 	} while (B_FALSE)
-#define	SFXGE_MCDI_LOCK_DESTROY(_mcdi)					\
-	mtx_destroy(&(_mcdi)->lock)
-#define	SFXGE_MCDI_LOCK(_mcdi)						\
-	mtx_lock(&(_mcdi)->lock)
-#define	SFXGE_MCDI_UNLOCK(_mcdi)					\
-	mtx_unlock(&(_mcdi)->lock)
-#define	SFXGE_MCDI_LOCK_ASSERT_OWNED(_mcdi)				\
-	mtx_assert(&(_mcdi)->lock, MA_OWNED)
+#define SFXGE_MCDI_LOCK_DESTROY(_mcdi) mtx_destroy(&(_mcdi)->lock)
+#define SFXGE_MCDI_LOCK(_mcdi) mtx_lock(&(_mcdi)->lock)
+#define SFXGE_MCDI_UNLOCK(_mcdi) mtx_unlock(&(_mcdi)->lock)
+#define SFXGE_MCDI_LOCK_ASSERT_OWNED(_mcdi) mtx_assert(&(_mcdi)->lock, MA_OWNED)
 
-#define	SFXGE_EVQ_LOCK_INIT(_evq, _ifname, _evq_index)			\
-	do {								\
-		struct sfxge_evq  *__evq = (_evq);			\
-									\
-		snprintf((__evq)->lock_name,				\
-			 sizeof((__evq)->lock_name),			\
-			 "%s:evq%u", (_ifname), (_evq_index));		\
-		mtx_init(&(__evq)->lock, (__evq)->lock_name,		\
-			 NULL, MTX_DEF);				\
+#define SFXGE_EVQ_LOCK_INIT(_evq, _ifname, _evq_index)                       \
+	do {                                                                 \
+		struct sfxge_evq *__evq = (_evq);                            \
+                                                                             \
+		snprintf((__evq)->lock_name, sizeof((__evq)->lock_name),     \
+		    "%s:evq%u", (_ifname), (_evq_index));                    \
+		mtx_init(&(__evq)->lock, (__evq)->lock_name, NULL, MTX_DEF); \
 	} while (B_FALSE)
-#define	SFXGE_EVQ_LOCK_DESTROY(_evq)					\
-	mtx_destroy(&(_evq)->lock)
-#define	SFXGE_EVQ_LOCK(_evq)						\
-	mtx_lock(&(_evq)->lock)
-#define	SFXGE_EVQ_UNLOCK(_evq)						\
-	mtx_unlock(&(_evq)->lock)
-#define	SFXGE_EVQ_LOCK_ASSERT_OWNED(_evq)				\
-	mtx_assert(&(_evq)->lock, MA_OWNED)
+#define SFXGE_EVQ_LOCK_DESTROY(_evq) mtx_destroy(&(_evq)->lock)
+#define SFXGE_EVQ_LOCK(_evq) mtx_lock(&(_evq)->lock)
+#define SFXGE_EVQ_UNLOCK(_evq) mtx_unlock(&(_evq)->lock)
+#define SFXGE_EVQ_LOCK_ASSERT_OWNED(_evq) mtx_assert(&(_evq)->lock, MA_OWNED)
 
 #endif /* _SFXGE_H */

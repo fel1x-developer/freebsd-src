@@ -31,38 +31,40 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 
-#include <machine/intr_machdep.h>
-#include <x86/apicvar.h>
 #include <machine/cpu.h>
 #include <machine/cpufunc.h>
+#include <machine/intr_machdep.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#define	CORE_CPUID_REQUEST		0xA
-#define	CORE_CPUID_REQUEST_SIZE		0x4
-#define	CORE_CPUID_EAX			0x0
-#define	CORE_CPUID_EBX			0x1
-#define	CORE_CPUID_ECX			0x2
-#define	CORE_CPUID_EDX			0x3
+#include <x86/apicvar.h>
 
-#define	IAF_PMC_CAPS			\
-	(PMC_CAP_READ | PMC_CAP_WRITE | PMC_CAP_INTERRUPT | \
-	 PMC_CAP_USER | PMC_CAP_SYSTEM)
-#define	IAF_RI_TO_MSR(RI)		((RI) + (1 << 30))
+#define CORE_CPUID_REQUEST 0xA
+#define CORE_CPUID_REQUEST_SIZE 0x4
+#define CORE_CPUID_EAX 0x0
+#define CORE_CPUID_EBX 0x1
+#define CORE_CPUID_ECX 0x2
+#define CORE_CPUID_EDX 0x3
 
-#define	IAP_PMC_CAPS (PMC_CAP_INTERRUPT | PMC_CAP_USER | PMC_CAP_SYSTEM | \
-    PMC_CAP_EDGE | PMC_CAP_THRESHOLD | PMC_CAP_READ | PMC_CAP_WRITE |	 \
-    PMC_CAP_INVERT | PMC_CAP_QUALIFIER | PMC_CAP_PRECISE)
+#define IAF_PMC_CAPS                                                       \
+	(PMC_CAP_READ | PMC_CAP_WRITE | PMC_CAP_INTERRUPT | PMC_CAP_USER | \
+	    PMC_CAP_SYSTEM)
+#define IAF_RI_TO_MSR(RI) ((RI) + (1 << 30))
 
-#define	EV_IS_NOTARCH		0
-#define	EV_IS_ARCH_SUPP		1
-#define	EV_IS_ARCH_NOTSUPP	-1
+#define IAP_PMC_CAPS                                                        \
+	(PMC_CAP_INTERRUPT | PMC_CAP_USER | PMC_CAP_SYSTEM | PMC_CAP_EDGE | \
+	    PMC_CAP_THRESHOLD | PMC_CAP_READ | PMC_CAP_WRITE |              \
+	    PMC_CAP_INVERT | PMC_CAP_QUALIFIER | PMC_CAP_PRECISE)
+
+#define EV_IS_NOTARCH 0
+#define EV_IS_ARCH_SUPP 1
+#define EV_IS_ARCH_NOTSUPP -1
 
 /*
  * "Architectural" events defined by Intel.  The values of these
@@ -70,22 +72,22 @@
  * the CPUID.0AH instruction.
  */
 enum core_arch_events {
-	CORE_AE_BRANCH_INSTRUCTION_RETIRED	= 5,
-	CORE_AE_BRANCH_MISSES_RETIRED		= 6,
-	CORE_AE_INSTRUCTION_RETIRED		= 1,
-	CORE_AE_LLC_MISSES			= 4,
-	CORE_AE_LLC_REFERENCE			= 3,
-	CORE_AE_UNHALTED_REFERENCE_CYCLES	= 2,
-	CORE_AE_UNHALTED_CORE_CYCLES		= 0
+	CORE_AE_BRANCH_INSTRUCTION_RETIRED = 5,
+	CORE_AE_BRANCH_MISSES_RETIRED = 6,
+	CORE_AE_INSTRUCTION_RETIRED = 1,
+	CORE_AE_LLC_MISSES = 4,
+	CORE_AE_LLC_REFERENCE = 3,
+	CORE_AE_UNHALTED_REFERENCE_CYCLES = 2,
+	CORE_AE_UNHALTED_CORE_CYCLES = 0
 };
 
-static enum pmc_cputype	core_cputype;
+static enum pmc_cputype core_cputype;
 static int core_version;
 
 struct core_cpu {
-	volatile uint32_t	pc_iafctrl;	/* Fixed function control. */
-	volatile uint64_t	pc_globalctrl;	/* Global control register. */
-	struct pmc_hw		pc_corepmcs[];
+	volatile uint32_t pc_iafctrl;	 /* Fixed function control. */
+	volatile uint64_t pc_globalctrl; /* Global control register. */
+	struct pmc_hw pc_corepmcs[];
 };
 
 static struct core_cpu **core_pcpu;
@@ -93,7 +95,7 @@ static struct core_cpu **core_pcpu;
 static uint32_t core_architectural_events;
 static uint64_t core_pmcmask;
 
-static int core_iaf_ri;		/* relative index of fixed counters */
+static int core_iaf_ri; /* relative index of fixed counters */
 static int core_iaf_width;
 static int core_iaf_npmc;
 
@@ -107,8 +109,8 @@ static bool pmc_tsx_force_abort_set;
 static int
 core_pcpu_noop(struct pmc_mdep *md, int cpu)
 {
-	(void) md;
-	(void) cpu;
+	(void)md;
+	(void)cpu;
 	return (0);
 }
 
@@ -123,7 +125,7 @@ core_pcpu_init(struct pmc_mdep *md, int cpu)
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[iaf,%d] insane cpu number %d", __LINE__, cpu));
 
-	PMCDBG1(MDP,INI,1,"core-init cpu=%d", cpu);
+	PMCDBG1(MDP, INI, 1, "core-init cpu=%d", cpu);
 
 	core_ri = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAP].pcd_ri;
 	npmc = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAP].pcd_num;
@@ -141,11 +143,11 @@ core_pcpu_init(struct pmc_mdep *md, int cpu)
 	    ("[core,%d] NULL per-cpu structures cpu=%d", __LINE__, cpu));
 
 	for (n = 0, phw = cc->pc_corepmcs; n < npmc; n++, phw++) {
-		phw->phw_state 	  = PMC_PHW_FLAG_IS_ENABLED |
+		phw->phw_state = PMC_PHW_FLAG_IS_ENABLED |
 		    PMC_PHW_CPU_TO_STATE(cpu) |
 		    PMC_PHW_INDEX_TO_STATE(n + core_ri);
-		phw->phw_pmc	  = NULL;
-		pc->pc_hwpmcs[n + core_ri]  = phw;
+		phw->phw_pmc = NULL;
+		pc->pc_hwpmcs[n + core_ri] = phw;
 	}
 
 	if (core_version >= 2 && vm_guest == VM_GUEST_NO) {
@@ -166,7 +168,7 @@ core_pcpu_fini(struct pmc_mdep *md, int cpu)
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[core,%d] insane cpu number (%d)", __LINE__, cpu));
 
-	PMCDBG1(MDP,INI,1,"core-pcpu-fini cpu=%d", cpu);
+	PMCDBG1(MDP, INI, 1, "core-pcpu-fini cpu=%d", cpu);
 
 	if ((cc = core_pcpu[cpu]) == NULL)
 		return (0);
@@ -175,8 +177,7 @@ core_pcpu_fini(struct pmc_mdep *md, int cpu)
 
 	pc = pmc_pcpu[cpu];
 
-	KASSERT(pc != NULL, ("[core,%d] NULL per-cpu %d state", __LINE__,
-		cpu));
+	KASSERT(pc != NULL, ("[core,%d] NULL per-cpu %d state", __LINE__, cpu));
 
 	npmc = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAP].pcd_num;
 	core_ri = md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAP].pcd_ri;
@@ -230,7 +231,8 @@ iaf_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[core,%d] illegal CPU %d", __LINE__, cpu));
 
-	PMCDBG2(MDP,ALL,1, "iaf-allocate ri=%d reqcaps=0x%x", ri, pm->pm_caps);
+	PMCDBG2(MDP, ALL, 1, "iaf-allocate ri=%d reqcaps=0x%x", ri,
+	    pm->pm_caps);
 
 	if (ri < 0 || ri > core_iaf_npmc)
 		return (EINVAL);
@@ -251,19 +253,19 @@ iaf_allocate_pmc(int cpu, int ri, struct pmc *pm,
 			return (EINVAL);
 	} else {
 		switch (ri) {
-		case 0:	/* INST_RETIRED.ANY */
+		case 0: /* INST_RETIRED.ANY */
 			if (ev != 0xC0 || umask != 0x00)
 				return (EINVAL);
 			break;
-		case 1:	/* CPU_CLK_UNHALTED.THREAD */
+		case 1: /* CPU_CLK_UNHALTED.THREAD */
 			if (ev != 0x3C || umask != 0x00)
 				return (EINVAL);
 			break;
-		case 2:	/* CPU_CLK_UNHALTED.REF */
+		case 2: /* CPU_CLK_UNHALTED.REF */
 			if (ev != 0x3C || umask != 0x01)
 				return (EINVAL);
 			break;
-		case 3:	/* TOPDOWN.SLOTS */
+		case 3: /* TOPDOWN.SLOTS */
 			if (ev != 0xA4 || umask != 0x01)
 				return (EINVAL);
 			break;
@@ -276,8 +278,8 @@ iaf_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	if ((cpu_stdext_feature3 & CPUID_STDEXT3_TSXFA) != 0 &&
 	    !pmc_tsx_force_abort_set) {
 		pmc_tsx_force_abort_set = true;
-		x86_msr_op(MSR_TSX_FORCE_ABORT, MSR_OP_RENDEZVOUS_ALL |
-		    MSR_OP_WRITE, 1, NULL);
+		x86_msr_op(MSR_TSX_FORCE_ABORT,
+		    MSR_OP_RENDEZVOUS_ALL | MSR_OP_WRITE, 1, NULL);
 	}
 
 	flags = 0;
@@ -302,8 +304,8 @@ iaf_allocate_pmc(int cpu, int ri, struct pmc *pm,
 
 	pm->pm_md.pm_iaf.pm_iaf_ctrl = (flags << (ri * 4));
 
-	PMCDBG1(MDP,ALL,2, "iaf-allocate config=0x%jx",
-	    (uintmax_t) pm->pm_md.pm_iaf.pm_iaf_ctrl);
+	PMCDBG1(MDP, ALL, 2, "iaf-allocate config=0x%jx",
+	    (uintmax_t)pm->pm_md.pm_iaf.pm_iaf_ctrl);
 
 	return (0);
 }
@@ -317,10 +319,10 @@ iaf_config_pmc(int cpu, int ri, struct pmc *pm)
 	KASSERT(ri >= 0 && ri < core_iaf_npmc,
 	    ("[core,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG3(MDP,CFG,1, "iaf-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
+	PMCDBG3(MDP, CFG, 1, "iaf-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
-	KASSERT(core_pcpu[cpu] != NULL, ("[core,%d] null per-cpu %d", __LINE__,
-	    cpu));
+	KASSERT(core_pcpu[cpu] != NULL,
+	    ("[core,%d] null per-cpu %d", __LINE__, cpu));
 
 	core_pcpu[cpu]->pc_corepmcs[ri + core_iaf_ri].phw_pmc = pm;
 
@@ -339,10 +341,10 @@ iaf_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -384,7 +386,7 @@ iaf_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 	else
 		*v = tmp & ((1ULL << core_iaf_width) - 1);
 
-	PMCDBG4(MDP,REA,1, "iaf-read cpu=%d ri=%d msr=0x%x -> v=%jx", cpu, ri,
+	PMCDBG4(MDP, REA, 1, "iaf-read cpu=%d ri=%d msr=0x%x -> v=%jx", cpu, ri,
 	    IAF_RI_TO_MSR(ri), *v);
 
 	return (0);
@@ -393,7 +395,7 @@ iaf_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 static int
 iaf_release_pmc(int cpu, int ri, struct pmc *pmc)
 {
-	PMCDBG3(MDP,REL,1, "iaf-release cpu=%d ri=%d pm=%p", cpu, ri, pmc);
+	PMCDBG3(MDP, REL, 1, "iaf-release cpu=%d ri=%d pm=%p", cpu, ri, pmc);
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[core,%d] illegal CPU value %d", __LINE__, cpu));
@@ -406,8 +408,8 @@ iaf_release_pmc(int cpu, int ri, struct pmc *pmc)
 	MPASS(pmc_alloc_refs > 0);
 	if (pmc_alloc_refs-- == 1 && pmc_tsx_force_abort_set) {
 		pmc_tsx_force_abort_set = false;
-		x86_msr_op(MSR_TSX_FORCE_ABORT, MSR_OP_RENDEZVOUS_ALL |
-		    MSR_OP_WRITE, 0, NULL);
+		x86_msr_op(MSR_TSX_FORCE_ABORT,
+		    MSR_OP_RENDEZVOUS_ALL | MSR_OP_WRITE, 0, NULL);
 	}
 
 	return (0);
@@ -423,7 +425,7 @@ iaf_start_pmc(int cpu, int ri, struct pmc *pm)
 	KASSERT(ri >= 0 && ri < core_iaf_npmc,
 	    ("[core,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG2(MDP,STA,1,"iaf-start cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STA, 1, "iaf-start cpu=%d ri=%d", cpu, ri);
 
 	cc = core_pcpu[cpu];
 	cc->pc_iafctrl |= pm->pm_md.pm_iaf.pm_iaf_ctrl;
@@ -432,9 +434,9 @@ iaf_start_pmc(int cpu, int ri, struct pmc *pm)
 	cc->pc_globalctrl |= (1ULL << (ri + IAF_OFFSET));
 	wrmsr(IA_GLOBAL_CTRL, cc->pc_globalctrl);
 
-	PMCDBG4(MDP,STA,1,"iafctrl=%x(%x) globalctrl=%jx(%jx)",
-	    cc->pc_iafctrl, (uint32_t) rdmsr(IAF_CTRL),
-	    cc->pc_globalctrl, rdmsr(IA_GLOBAL_CTRL));
+	PMCDBG4(MDP, STA, 1, "iafctrl=%x(%x) globalctrl=%jx(%jx)",
+	    cc->pc_iafctrl, (uint32_t)rdmsr(IAF_CTRL), cc->pc_globalctrl,
+	    rdmsr(IA_GLOBAL_CTRL));
 
 	return (0);
 }
@@ -449,7 +451,7 @@ iaf_stop_pmc(int cpu, int ri, struct pmc *pm)
 	KASSERT(ri >= 0 && ri < core_iaf_npmc,
 	    ("[core,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG2(MDP,STA,1,"iaf-stop cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STA, 1, "iaf-stop cpu=%d ri=%d", cpu, ri);
 
 	cc = core_pcpu[cpu];
 
@@ -458,9 +460,9 @@ iaf_stop_pmc(int cpu, int ri, struct pmc *pm)
 
 	/* Don't need to write IA_GLOBAL_CTRL, one disable is enough. */
 
-	PMCDBG4(MDP,STO,1,"iafctrl=%x(%x) globalctrl=%jx(%jx)",
-	    cc->pc_iafctrl, (uint32_t) rdmsr(IAF_CTRL),
-	    cc->pc_globalctrl, rdmsr(IA_GLOBAL_CTRL));
+	PMCDBG4(MDP, STO, 1, "iafctrl=%x(%x) globalctrl=%jx(%jx)",
+	    cc->pc_iafctrl, (uint32_t)rdmsr(IAF_CTRL), cc->pc_globalctrl,
+	    rdmsr(IA_GLOBAL_CTRL));
 
 	return (0);
 }
@@ -488,14 +490,14 @@ iaf_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 	/* Turn on fixed counters */
 	wrmsr(IAF_CTRL, cc->pc_iafctrl);
 
-	PMCDBG6(MDP,WRI,1, "iaf-write cpu=%d ri=%d msr=0x%x v=%jx iafctrl=%jx "
-	    "pmc=%jx", cpu, ri, IAF_RI_TO_MSR(ri), v,
-	    (uintmax_t) rdmsr(IAF_CTRL),
-	    (uintmax_t) rdpmc(IAF_RI_TO_MSR(ri)));
+	PMCDBG6(MDP, WRI, 1,
+	    "iaf-write cpu=%d ri=%d msr=0x%x v=%jx iafctrl=%jx "
+	    "pmc=%jx",
+	    cpu, ri, IAF_RI_TO_MSR(ri), v, (uintmax_t)rdmsr(IAF_CTRL),
+	    (uintmax_t)rdpmc(IAF_RI_TO_MSR(ri)));
 
 	return (0);
 }
-
 
 static void
 iaf_initialize(struct pmc_mdep *md, int maxcpu, int npmc, int pmcwidth)
@@ -504,30 +506,30 @@ iaf_initialize(struct pmc_mdep *md, int maxcpu, int npmc, int pmcwidth)
 
 	KASSERT(md != NULL, ("[iaf,%d] md is NULL", __LINE__));
 
-	PMCDBG0(MDP,INI,1, "iaf-initialize");
+	PMCDBG0(MDP, INI, 1, "iaf-initialize");
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAF];
 
-	pcd->pcd_caps	= IAF_PMC_CAPS;
-	pcd->pcd_class	= PMC_CLASS_IAF;
-	pcd->pcd_num	= npmc;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= pmcwidth;
+	pcd->pcd_caps = IAF_PMC_CAPS;
+	pcd->pcd_class = PMC_CLASS_IAF;
+	pcd->pcd_num = npmc;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = pmcwidth;
 
-	pcd->pcd_allocate_pmc	= iaf_allocate_pmc;
-	pcd->pcd_config_pmc	= iaf_config_pmc;
-	pcd->pcd_describe	= iaf_describe;
-	pcd->pcd_get_config	= iaf_get_config;
-	pcd->pcd_get_msr	= iaf_get_msr;
-	pcd->pcd_pcpu_fini	= core_pcpu_noop;
-	pcd->pcd_pcpu_init	= core_pcpu_noop;
-	pcd->pcd_read_pmc	= iaf_read_pmc;
-	pcd->pcd_release_pmc	= iaf_release_pmc;
-	pcd->pcd_start_pmc	= iaf_start_pmc;
-	pcd->pcd_stop_pmc	= iaf_stop_pmc;
-	pcd->pcd_write_pmc	= iaf_write_pmc;
+	pcd->pcd_allocate_pmc = iaf_allocate_pmc;
+	pcd->pcd_config_pmc = iaf_config_pmc;
+	pcd->pcd_describe = iaf_describe;
+	pcd->pcd_get_config = iaf_get_config;
+	pcd->pcd_get_msr = iaf_get_msr;
+	pcd->pcd_pcpu_fini = core_pcpu_noop;
+	pcd->pcd_pcpu_init = core_pcpu_noop;
+	pcd->pcd_read_pmc = iaf_read_pmc;
+	pcd->pcd_release_pmc = iaf_release_pmc;
+	pcd->pcd_start_pmc = iaf_start_pmc;
+	pcd->pcd_stop_pmc = iaf_stop_pmc;
+	pcd->pcd_write_pmc = iaf_write_pmc;
 
-	md->pmd_npmc	       += npmc;
+	md->pmd_npmc += npmc;
 }
 
 /*
@@ -535,26 +537,26 @@ iaf_initialize(struct pmc_mdep *md, int maxcpu, int npmc, int pmcwidth)
  */
 
 /* Sub fields of UMASK that this event supports. */
-#define	IAP_M_CORE		(1 << 0) /* Core specificity */
-#define	IAP_M_AGENT		(1 << 1) /* Agent specificity */
-#define	IAP_M_PREFETCH		(1 << 2) /* Prefetch */
-#define	IAP_M_MESI		(1 << 3) /* MESI */
-#define	IAP_M_SNOOPRESPONSE	(1 << 4) /* Snoop response */
-#define	IAP_M_SNOOPTYPE		(1 << 5) /* Snoop type */
-#define	IAP_M_TRANSITION	(1 << 6) /* Transition */
+#define IAP_M_CORE (1 << 0)	     /* Core specificity */
+#define IAP_M_AGENT (1 << 1)	     /* Agent specificity */
+#define IAP_M_PREFETCH (1 << 2)	     /* Prefetch */
+#define IAP_M_MESI (1 << 3)	     /* MESI */
+#define IAP_M_SNOOPRESPONSE (1 << 4) /* Snoop response */
+#define IAP_M_SNOOPTYPE (1 << 5)     /* Snoop type */
+#define IAP_M_TRANSITION (1 << 6)    /* Transition */
 
-#define	IAP_F_CORE		(0x3 << 14) /* Core specificity */
-#define	IAP_F_AGENT		(0x1 << 13) /* Agent specificity */
-#define	IAP_F_PREFETCH		(0x3 << 12) /* Prefetch */
-#define	IAP_F_MESI		(0xF <<  8) /* MESI */
-#define	IAP_F_SNOOPRESPONSE	(0xB <<  8) /* Snoop response */
-#define	IAP_F_SNOOPTYPE		(0x3 <<  8) /* Snoop type */
-#define	IAP_F_TRANSITION	(0x1 << 12) /* Transition */
+#define IAP_F_CORE (0x3 << 14)	       /* Core specificity */
+#define IAP_F_AGENT (0x1 << 13)	       /* Agent specificity */
+#define IAP_F_PREFETCH (0x3 << 12)     /* Prefetch */
+#define IAP_F_MESI (0xF << 8)	       /* MESI */
+#define IAP_F_SNOOPRESPONSE (0xB << 8) /* Snoop response */
+#define IAP_F_SNOOPTYPE (0x3 << 8)     /* Snoop type */
+#define IAP_F_TRANSITION (0x1 << 12)   /* Transition */
 
-#define	IAP_PREFETCH_RESERVED	(0x2 << 12)
-#define	IAP_CORE_THIS		(0x1 << 14)
-#define	IAP_CORE_ALL		(0x3 << 14)
-#define	IAP_F_CMASK		0xFF000000
+#define IAP_PREFETCH_RESERVED (0x2 << 12)
+#define IAP_CORE_THIS (0x1 << 14)
+#define IAP_CORE_ALL (0x3 << 14)
+#define IAP_F_CMASK 0xFF000000
 
 static pmc_value_t
 iap_perfctr_value_to_reload_count(pmc_value_t v)
@@ -702,7 +704,7 @@ iap_event_core_ok_on_counter(uint8_t evsel, int ri)
 		break;
 
 	default:
-		mask = ~0;	/* Any row index is ok. */
+		mask = ~0; /* Any row index is ok. */
 	}
 
 	return (mask & (1 << ri));
@@ -783,10 +785,10 @@ iap_config_pmc(int cpu, int ri, struct pmc *pm)
 	KASSERT(ri >= 0 && ri < core_iap_npmc,
 	    ("[core,%d] illegal row-index %d", __LINE__, ri));
 
-	PMCDBG3(MDP,CFG,1, "iap-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
+	PMCDBG3(MDP, CFG, 1, "iap-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
-	KASSERT(core_pcpu[cpu] != NULL, ("[core,%d] null per-cpu %d", __LINE__,
-	    cpu));
+	KASSERT(core_pcpu[cpu] != NULL,
+	    ("[core,%d] null per-cpu %d", __LINE__, cpu));
 
 	core_pcpu[cpu]->pc_corepmcs[ri].phw_pmc = pm;
 
@@ -805,10 +807,10 @@ iap_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -849,7 +851,7 @@ iap_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 	else
 		*v = tmp & ((1ULL << core_iap_width) - 1);
 
-	PMCDBG4(MDP,REA,1, "iap-read cpu=%d ri=%d msr=0x%x -> v=%jx", cpu, ri,
+	PMCDBG4(MDP, REA, 1, "iap-read cpu=%d ri=%d msr=0x%x -> v=%jx", cpu, ri,
 	    IAP_PMC0 + ri, *v);
 
 	return (0);
@@ -858,18 +860,17 @@ iap_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 static int
 iap_release_pmc(int cpu, int ri, struct pmc *pm)
 {
-	(void) pm;
+	(void)pm;
 
-	PMCDBG3(MDP,REL,1, "iap-release cpu=%d ri=%d pm=%p", cpu, ri,
-	    pm);
+	PMCDBG3(MDP, REL, 1, "iap-release cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[core,%d] illegal CPU value %d", __LINE__, cpu));
 	KASSERT(ri >= 0 && ri < core_iap_npmc,
 	    ("[core,%d] illegal row-index %d", __LINE__, ri));
 
-	KASSERT(core_pcpu[cpu]->pc_corepmcs[ri].phw_pmc
-	    == NULL, ("[core,%d] PHW pmc non-NULL", __LINE__));
+	KASSERT(core_pcpu[cpu]->pc_corepmcs[ri].phw_pmc == NULL,
+	    ("[core,%d] PHW pmc non-NULL", __LINE__));
 
 	return (0);
 }
@@ -887,12 +888,13 @@ iap_start_pmc(int cpu, int ri, struct pmc *pm)
 
 	cc = core_pcpu[cpu];
 
-	PMCDBG2(MDP,STA,1, "iap-start cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STA, 1, "iap-start cpu=%d ri=%d", cpu, ri);
 
 	evsel = pm->pm_md.pm_iap.pm_iap_evsel;
 
-	PMCDBG4(MDP,STA,2, "iap-start/2 cpu=%d ri=%d evselmsr=0x%x evsel=0x%x",
-	    cpu, ri, IAP_EVSEL0 + ri, evsel);
+	PMCDBG4(MDP, STA, 2,
+	    "iap-start/2 cpu=%d ri=%d evselmsr=0x%x evsel=0x%x", cpu, ri,
+	    IAP_EVSEL0 + ri, evsel);
 
 	/* Event specific configuration. */
 
@@ -926,7 +928,7 @@ iap_stop_pmc(int cpu, int ri, struct pmc *pm __unused)
 	KASSERT(ri >= 0 && ri < core_iap_npmc,
 	    ("[core,%d] illegal row index %d", __LINE__, ri));
 
-	PMCDBG2(MDP,STO,1, "iap-stop cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STO, 1, "iap-stop cpu=%d ri=%d", cpu, ri);
 
 	wrmsr(IAP_EVSEL0 + ri, 0);
 
@@ -949,7 +951,7 @@ iap_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 
 	v &= (1ULL << core_iap_width) - 1;
 
-	PMCDBG4(MDP,WRI,1, "iap-write cpu=%d ri=%d msr=0x%x v=%jx", cpu, ri,
+	PMCDBG4(MDP, WRI, 1, "iap-write cpu=%d ri=%d msr=0x%x v=%jx", cpu, ri,
 	    IAP_PMC0 + ri, v);
 
 	/*
@@ -961,7 +963,6 @@ iap_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 	return (0);
 }
 
-
 static void
 iap_initialize(struct pmc_mdep *md, int maxcpu, int npmc, int pmcwidth,
     int flags)
@@ -970,33 +971,33 @@ iap_initialize(struct pmc_mdep *md, int maxcpu, int npmc, int pmcwidth,
 
 	KASSERT(md != NULL, ("[iap,%d] md is NULL", __LINE__));
 
-	PMCDBG0(MDP,INI,1, "iap-initialize");
+	PMCDBG0(MDP, INI, 1, "iap-initialize");
 
 	/* Remember the set of architectural events supported. */
 	core_architectural_events = ~flags;
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_IAP];
 
-	pcd->pcd_caps	= IAP_PMC_CAPS;
-	pcd->pcd_class	= PMC_CLASS_IAP;
-	pcd->pcd_num	= npmc;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= pmcwidth;
+	pcd->pcd_caps = IAP_PMC_CAPS;
+	pcd->pcd_class = PMC_CLASS_IAP;
+	pcd->pcd_num = npmc;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = pmcwidth;
 
-	pcd->pcd_allocate_pmc	= iap_allocate_pmc;
-	pcd->pcd_config_pmc	= iap_config_pmc;
-	pcd->pcd_describe	= iap_describe;
-	pcd->pcd_get_config	= iap_get_config;
-	pcd->pcd_get_msr	= iap_get_msr;
-	pcd->pcd_pcpu_fini	= core_pcpu_fini;
-	pcd->pcd_pcpu_init	= core_pcpu_init;
-	pcd->pcd_read_pmc	= iap_read_pmc;
-	pcd->pcd_release_pmc	= iap_release_pmc;
-	pcd->pcd_start_pmc	= iap_start_pmc;
-	pcd->pcd_stop_pmc	= iap_stop_pmc;
-	pcd->pcd_write_pmc	= iap_write_pmc;
+	pcd->pcd_allocate_pmc = iap_allocate_pmc;
+	pcd->pcd_config_pmc = iap_config_pmc;
+	pcd->pcd_describe = iap_describe;
+	pcd->pcd_get_config = iap_get_config;
+	pcd->pcd_get_msr = iap_get_msr;
+	pcd->pcd_pcpu_fini = core_pcpu_fini;
+	pcd->pcd_pcpu_init = core_pcpu_init;
+	pcd->pcd_read_pmc = iap_read_pmc;
+	pcd->pcd_release_pmc = iap_release_pmc;
+	pcd->pcd_start_pmc = iap_start_pmc;
+	pcd->pcd_stop_pmc = iap_stop_pmc;
+	pcd->pcd_write_pmc = iap_write_pmc;
 
-	md->pmd_npmc	       += npmc;
+	md->pmd_npmc += npmc;
 }
 
 static int
@@ -1007,7 +1008,7 @@ core_intr(struct trapframe *tf)
 	struct core_cpu *cc;
 	int error, found_interrupt, ri;
 
-	PMCDBG3(MDP,INT, 1, "cpu=%d tf=%p um=%d", curcpu, (void *) tf,
+	PMCDBG3(MDP, INT, 1, "cpu=%d tf=%p um=%d", curcpu, (void *)tf,
 	    TRAPF_USERMODE(tf));
 
 	found_interrupt = 0;
@@ -1066,7 +1067,7 @@ core2_intr(struct trapframe *tf)
 	pmc_value_t v;
 
 	cpu = curcpu;
-	PMCDBG3(MDP,INT, 1, "cpu=%d tf=0x%p um=%d", cpu, (void *) tf,
+	PMCDBG3(MDP, INT, 1, "cpu=%d tf=0x%p um=%d", cpu, (void *)tf,
 	    TRAPF_USERMODE(tf));
 
 	/*
@@ -1076,8 +1077,8 @@ core2_intr(struct trapframe *tf)
 	 * after stopping them.
 	 */
 	intrstatus = rdmsr(IA_GLOBAL_STATUS);
-	PMCDBG2(MDP,INT, 1, "cpu=%d intrstatus=%jx", cpu,
-	    (uintmax_t) intrstatus);
+	PMCDBG2(MDP, INT, 1, "cpu=%d intrstatus=%jx", cpu,
+	    (uintmax_t)intrstatus);
 
 	/*
 	 * Stop PMCs unless hardware already done it.
@@ -1113,8 +1114,9 @@ core2_intr(struct trapframe *tf)
 		/* Reload sampling count. */
 		wrmsr(IAF_CTR0 + n, v);
 
-		PMCDBG4(MDP,INT, 1, "iaf-intr cpu=%d error=%d v=%jx(%jx)", curcpu,
-		    error, (uintmax_t) v, (uintmax_t) rdpmc(IAF_RI_TO_MSR(n)));
+		PMCDBG4(MDP, INT, 1, "iaf-intr cpu=%d error=%d v=%jx(%jx)",
+		    curcpu, error, (uintmax_t)v,
+		    (uintmax_t)rdpmc(IAF_RI_TO_MSR(n)));
 	}
 
 	/*
@@ -1137,8 +1139,8 @@ core2_intr(struct trapframe *tf)
 
 		v = iap_reload_count_to_perfctr_value(pm->pm_sc.pm_reloadcount);
 
-		PMCDBG3(MDP,INT, 1, "iap-intr cpu=%d error=%d v=%jx", cpu, error,
-		    (uintmax_t) v);
+		PMCDBG3(MDP, INT, 1, "iap-intr cpu=%d error=%d v=%jx", cpu,
+		    error, (uintmax_t)v);
 
 		/* Reload sampling count. */
 		wrmsr(core_iap_wroffset + IAP_PMC0 + n, v);
@@ -1168,9 +1170,8 @@ core2_intr(struct trapframe *tf)
 	}
 
 	PMCDBG4(MDP, INT, 1, "cpu=%d fixedctrl=%jx globalctrl=%jx status=%jx",
-	    cpu, (uintmax_t) rdmsr(IAF_CTRL),
-	    (uintmax_t) rdmsr(IA_GLOBAL_CTRL),
-	    (uintmax_t) rdmsr(IA_GLOBAL_STATUS));
+	    cpu, (uintmax_t)rdmsr(IAF_CTRL), (uintmax_t)rdmsr(IA_GLOBAL_CTRL),
+	    (uintmax_t)rdmsr(IA_GLOBAL_STATUS));
 
 	return (found_interrupt);
 }
@@ -1185,9 +1186,9 @@ pmc_core_initialize(struct pmc_mdep *md, int maxcpu, int version_override)
 
 	core_cputype = md->pmd_cputype;
 	core_version = (version_override > 0) ? version_override :
-	    cpuid[CORE_CPUID_EAX] & 0xFF;
+						cpuid[CORE_CPUID_EAX] & 0xFF;
 
-	PMCDBG3(MDP,INI,1,"core-init cputype=%d ncpu=%d version=%d",
+	PMCDBG3(MDP, INI, 1, "core-init cputype=%d ncpu=%d version=%d",
 	    core_cputype, maxcpu, core_version);
 
 	if (core_version < 1 || core_version > 5 ||
@@ -1237,7 +1238,7 @@ pmc_core_initialize(struct pmc_mdep *md, int maxcpu, int version_override)
 		core_pmcmask |= ((1ULL << core_iaf_npmc) - 1) << IAF_OFFSET;
 	}
 
-	PMCDBG2(MDP,INI,1,"core-init pmcmask=0x%jx iafri=%d", core_pmcmask,
+	PMCDBG2(MDP, INI, 1, "core-init pmcmask=0x%jx iafri=%d", core_pmcmask,
 	    core_iaf_ri);
 
 	core_pcpu = malloc(sizeof(*core_pcpu) * maxcpu, M_PMC,
@@ -1257,7 +1258,7 @@ pmc_core_initialize(struct pmc_mdep *md, int maxcpu, int version_override)
 void
 pmc_core_finalize(struct pmc_mdep *md)
 {
-	PMCDBG0(MDP,INI,1, "core-finalize");
+	PMCDBG0(MDP, INI, 1, "core-finalize");
 
 	for (int i = 0; i < pmc_cpu_max(); i++)
 		KASSERT(core_pcpu[i] == NULL,

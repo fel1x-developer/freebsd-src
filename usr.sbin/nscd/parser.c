@@ -38,9 +38,9 @@
 #include "log.h"
 #include "parser.h"
 
-static void enable_cache(struct configuration *,const char *, int);
+static void enable_cache(struct configuration *, const char *, int);
 static struct configuration_entry *find_create_entry(struct configuration *,
-	const char *);
+    const char *);
 static int get_number(const char *, int, int);
 static enum cache_policy_t get_policy(const char *);
 static int get_yesno(const char *);
@@ -48,31 +48,29 @@ static int check_cachename(const char *);
 static void check_files(struct configuration *, const char *, int);
 static void set_keep_hot_count(struct configuration *, const char *, int);
 static void set_negative_policy(struct configuration *, const char *,
-	enum cache_policy_t);
-static void set_negative_time_to_live(struct configuration *,
-	const char *, int);
+    enum cache_policy_t);
+static void set_negative_time_to_live(struct configuration *, const char *,
+    int);
 static void set_positive_policy(struct configuration *, const char *,
-	enum cache_policy_t);
+    enum cache_policy_t);
 static void set_perform_actual_lookups(struct configuration *, const char *,
-	int);
-static void set_positive_time_to_live(struct configuration *,
-	const char *, int);
-static void set_suggested_size(struct configuration *, const char *,
-	int size);
+    int);
+static void set_positive_time_to_live(struct configuration *, const char *,
+    int);
+static void set_suggested_size(struct configuration *, const char *, int size);
 static void set_threads_num(struct configuration *, int);
 static int strbreak(char *, char **, int);
 
 static int
 strbreak(char *str, char **fields, int fields_size)
 {
-	char	*c = str;
-	int	i, num;
+	char *c = str;
+	int i, num;
 
 	TRACE_IN(strbreak);
 	num = 0;
 	for (i = 0;
-	     ((*fields =
-	     	strsep(i < fields_size ? &c : NULL, "\n\t ")) != NULL);
+	     ((*fields = strsep(i < fields_size ? &c : NULL, "\n\t ")) != NULL);
 	     ++i)
 		if ((*(*fields)) != '\0') {
 			++fields;
@@ -88,8 +86,7 @@ strbreak(char *str, char **fields, int fields_size)
  * fails, the new entry with the default parameters will be created.
  */
 static struct configuration_entry *
-find_create_entry(struct configuration *config,
-	const char *entry_name)
+find_create_entry(struct configuration *config, const char *entry_name)
 {
 	struct configuration_entry *entry = NULL;
 	int res;
@@ -98,7 +95,7 @@ find_create_entry(struct configuration *config,
 	entry = configuration_find_entry(config, entry_name);
 	if (entry == NULL) {
 		entry = create_def_configuration_entry(entry_name);
-		assert( entry != NULL);
+		assert(entry != NULL);
 		res = add_configuration_entry(config, entry);
 		assert(res == 0);
 	}
@@ -114,7 +111,7 @@ find_create_entry(struct configuration *config,
 static void
 enable_cache(struct configuration *config, const char *entry_name, int flag)
 {
-	struct configuration_entry	*entry;
+	struct configuration_entry *entry;
 
 	TRACE_IN(enable_cache);
 	entry = find_create_entry(config, entry_name);
@@ -123,8 +120,8 @@ enable_cache(struct configuration *config, const char *entry_name, int flag)
 }
 
 static void
-set_positive_time_to_live(struct configuration *config,
-	const char *entry_name, int ttl)
+set_positive_time_to_live(struct configuration *config, const char *entry_name,
+    int ttl)
 {
 	struct configuration_entry *entry;
 	struct timeval lifetime;
@@ -136,17 +133,17 @@ set_positive_time_to_live(struct configuration *config,
 	lifetime.tv_sec = ttl;
 
 	entry = find_create_entry(config, entry_name);
-	memcpy(&entry->positive_cache_params.max_lifetime,
-		&lifetime, sizeof(struct timeval));
-	memcpy(&entry->mp_cache_params.max_lifetime,
-		&lifetime, sizeof(struct timeval));
+	memcpy(&entry->positive_cache_params.max_lifetime, &lifetime,
+	    sizeof(struct timeval));
+	memcpy(&entry->mp_cache_params.max_lifetime, &lifetime,
+	    sizeof(struct timeval));
 
 	TRACE_OUT(set_positive_time_to_live);
 }
 
 static void
-set_negative_time_to_live(struct configuration *config,
-	const char *entry_name, int nttl)
+set_negative_time_to_live(struct configuration *config, const char *entry_name,
+    int nttl)
 {
 	struct configuration_entry *entry;
 	struct timeval lifetime;
@@ -159,15 +156,15 @@ set_negative_time_to_live(struct configuration *config,
 
 	entry = find_create_entry(config, entry_name);
 	assert(entry != NULL);
-	memcpy(&entry->negative_cache_params.max_lifetime,
-		&lifetime, sizeof(struct timeval));
+	memcpy(&entry->negative_cache_params.max_lifetime, &lifetime,
+	    sizeof(struct timeval));
 
 	TRACE_OUT(set_negative_time_to_live);
 }
 
 static void
 set_positive_confidence_threshold(struct configuration *config,
-	const char *entry_name, int conf_thresh)
+    const char *entry_name, int conf_thresh)
 {
 	struct configuration_entry *entry;
 
@@ -184,7 +181,7 @@ set_positive_confidence_threshold(struct configuration *config,
 
 static void
 set_negative_confidence_threshold(struct configuration *config,
-	const char *entry_name, int conf_thresh)
+    const char *entry_name, int conf_thresh)
 {
 	struct configuration_entry *entry;
 
@@ -201,8 +198,8 @@ set_negative_confidence_threshold(struct configuration *config,
  * Hot count is actually the elements size limit.
  */
 static void
-set_keep_hot_count(struct configuration *config,
-	const char *entry_name, int count)
+set_keep_hot_count(struct configuration *config, const char *entry_name,
+    int count)
 {
 	struct configuration_entry *entry;
 
@@ -222,8 +219,8 @@ set_keep_hot_count(struct configuration *config,
 }
 
 static void
-set_positive_policy(struct configuration *config,
-	const char *entry_name, enum cache_policy_t policy)
+set_positive_policy(struct configuration *config, const char *entry_name,
+    enum cache_policy_t policy)
 {
 	struct configuration_entry *entry;
 
@@ -238,8 +235,8 @@ set_positive_policy(struct configuration *config,
 }
 
 static void
-set_negative_policy(struct configuration *config,
-	const char *entry_name, enum cache_policy_t policy)
+set_negative_policy(struct configuration *config, const char *entry_name,
+    enum cache_policy_t policy)
 {
 	struct configuration_entry *entry;
 
@@ -254,8 +251,8 @@ set_negative_policy(struct configuration *config,
 }
 
 static void
-set_perform_actual_lookups(struct configuration *config,
-	const char *entry_name, int flag)
+set_perform_actual_lookups(struct configuration *config, const char *entry_name,
+    int flag)
 {
 	struct configuration_entry *entry;
 
@@ -270,10 +267,10 @@ set_perform_actual_lookups(struct configuration *config,
 }
 
 static void
-set_suggested_size(struct configuration *config,
-	const char *entry_name, int size)
+set_suggested_size(struct configuration *config, const char *entry_name,
+    int size)
 {
-	struct configuration_entry	*entry;
+	struct configuration_entry *entry;
 
 	TRACE_IN(set_suggested_size);
 	assert(config != NULL);
@@ -322,12 +319,10 @@ get_number(const char *str, int low, int max)
 	res = strtol(str, &end, 10);
 	if (*end != '\0')
 		return (-1);
+	else if (((res >= low) || (low == -1)) && ((res <= max) || (max == -1)))
+		return (res);
 	else
-		if (((res >= low) || (low == -1)) &&
-			((res <= max) || (max == -1)))
-			return (res);
-		else
-			return (-2);
+		return (-2);
 }
 
 static enum cache_policy_t
@@ -365,15 +360,15 @@ set_threads_num(struct configuration *config, int value)
  * the same routine implementation in Solaris NSCD.
  */
 int
-parse_config_file(struct configuration *config,
-	const char *fname, char const **error_str, int *error_line)
+parse_config_file(struct configuration *config, const char *fname,
+    char const **error_str, int *error_line)
 {
-	FILE	*fin;
-	char	buffer[255];
-	char	*fields[128];
-	int	field_count, line_num, value;
-	int	res;
-	int	invalid_value;
+	FILE *fin;
+	char buffer[255];
+	char *fields[128];
+	int field_count, line_num, value;
+	int res;
+	int invalid_value;
 
 	TRACE_IN(parse_config_file);
 	assert(config != NULL);
@@ -402,93 +397,95 @@ parse_config_file(struct configuration *config,
 			continue;
 		case 'e':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "enable-cache") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_yesno(fields[2])) != -1)) {
+			    (strcmp(fields[0], "enable-cache") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_yesno(fields[2])) != -1)) {
 				enable_cache(config, fields[1], value);
 				continue;
 			}
 			break;
 		case 'd':
 			if ((field_count == 2) &&
-			(strcmp(fields[0], "debug-level") == 0) &&
-			((value = get_number(fields[1], 0, 10)) != -1)) {
+			    (strcmp(fields[0], "debug-level") == 0) &&
+			    ((value = get_number(fields[1], 0, 10)) != -1)) {
 				continue;
 			}
 			break;
 		case 'p':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "positive-time-to-live") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_number(fields[2], 0, -1)) != -1)) {
+			    (strcmp(fields[0], "positive-time-to-live") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_number(fields[2], 0, -1)) != -1)) {
 				if (value <= 0) {
 					invalid_value = 1;
 					break;
 				}
-				set_positive_time_to_live(config,
-					fields[1], value);
+				set_positive_time_to_live(config, fields[1],
+				    value);
 				continue;
 			} else if ((field_count == 3) &&
-			(strcmp(fields[0], "positive-confidence-threshold") == 0) &&
-			((value = get_number(fields[2], 1, -1)) != -1)) {
+			    (strcmp(fields[0],
+				 "positive-confidence-threshold") == 0) &&
+			    ((value = get_number(fields[2], 1, -1)) != -1)) {
 				if (value <= 0) {
 					invalid_value = 1;
 					break;
 				}
 				set_positive_confidence_threshold(config,
-					fields[1], value);
+				    fields[1], value);
 				continue;
 			} else if ((field_count == 3) &&
-			(strcmp(fields[0], "positive-policy") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_policy(fields[2])) != -1)) {
+			    (strcmp(fields[0], "positive-policy") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_policy(fields[2])) != -1)) {
 				set_positive_policy(config, fields[1], value);
 				continue;
 			} else if ((field_count == 3) &&
-			(strcmp(fields[0], "perform-actual-lookups") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_yesno(fields[2])) != -1)) {
+			    (strcmp(fields[0], "perform-actual-lookups") ==
+				0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_yesno(fields[2])) != -1)) {
 				set_perform_actual_lookups(config, fields[1],
-					value);
+				    value);
 				continue;
 			}
 			break;
 		case 'n':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "negative-time-to-live") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_number(fields[2], 0, -1)) != -1)) {
+			    (strcmp(fields[0], "negative-time-to-live") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_number(fields[2], 0, -1)) != -1)) {
 				if (value <= 0) {
 					invalid_value = 1;
 					break;
 				}
-				set_negative_time_to_live(config,
-					fields[1], value);
+				set_negative_time_to_live(config, fields[1],
+				    value);
 				continue;
 			} else if ((field_count == 3) &&
-			(strcmp(fields[0], "negative-confidence-threshold") == 0) &&
-			((value = get_number(fields[2], 1, -1)) != -1)) {
+			    (strcmp(fields[0],
+				 "negative-confidence-threshold") == 0) &&
+			    ((value = get_number(fields[2], 1, -1)) != -1)) {
 				if (value <= 0) {
 					invalid_value = 1;
 					break;
 				}
 				set_negative_confidence_threshold(config,
-					fields[1], value);
+				    fields[1], value);
 				continue;
 			} else if ((field_count == 3) &&
-			(strcmp(fields[0], "negative-policy") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_policy(fields[2])) != -1)) {
-				set_negative_policy(config,
-					fields[1], value);
+			    (strcmp(fields[0], "negative-policy") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_policy(fields[2])) != -1)) {
+				set_negative_policy(config, fields[1], value);
 				continue;
 			}
 			break;
 		case 's':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "suggested-size") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_number(fields[2], 1, -1)) != -1)) {
+			    (strcmp(fields[0], "suggested-size") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_number(fields[2], 1, -1)) != -1)) {
 				if (value <= 0) {
 					invalid_value = 1;
 					break;
@@ -499,33 +496,31 @@ parse_config_file(struct configuration *config,
 			break;
 		case 't':
 			if ((field_count == 2) &&
-			(strcmp(fields[0], "threads") == 0) &&
-			((value = get_number(fields[1], 1, -1)) != -1)) {
+			    (strcmp(fields[0], "threads") == 0) &&
+			    ((value = get_number(fields[1], 1, -1)) != -1)) {
 				set_threads_num(config, value);
 				continue;
 			}
 			break;
 		case 'k':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "keep-hot-count") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_number(fields[2], 0, -1)) != -1)) {
+			    (strcmp(fields[0], "keep-hot-count") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_number(fields[2], 0, -1)) != -1)) {
 				if (value < 0) {
 					invalid_value = 1;
 					break;
 				}
-				set_keep_hot_count(config,
-					fields[1], value);
+				set_keep_hot_count(config, fields[1], value);
 				continue;
 			}
 			break;
 		case 'c':
 			if ((field_count == 3) &&
-			(strcmp(fields[0], "check-files") == 0) &&
-			(check_cachename(fields[1]) == 0) &&
-			((value = get_yesno(fields[2])) != -1)) {
-				check_files(config,
-					fields[1], value);
+			    (strcmp(fields[0], "check-files") == 0) &&
+			    (check_cachename(fields[1]) == 0) &&
+			    ((value = get_yesno(fields[2])) != -1)) {
+				check_files(config, fields[1], value);
 				continue;
 			}
 			break;
@@ -535,12 +530,13 @@ parse_config_file(struct configuration *config,
 
 		if (invalid_value != 0) {
 			LOG_ERR_2("Invalid value for parameter",
-				"error in file %s on line %d",
-				fname, line_num);
+			    "error in file %s on line %d", fname, line_num);
 			*error_str = "invalid value";
 		} else {
-			LOG_ERR_2("config file parser", "error in file "
-				"%s on line %d", fname, line_num);
+			LOG_ERR_2("config file parser",
+			    "error in file "
+			    "%s on line %d",
+			    fname, line_num);
 			*error_str = "syntax error";
 		}
 		*error_line = line_num;

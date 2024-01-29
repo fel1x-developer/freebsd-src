@@ -11,40 +11,40 @@
 
 /* Completion queue control */
 struct vnic_cq_ctrl {
-	u64 ring_base;			/* 0x00 */
-#define CQ_RING_BASE			   0x00
-	u32 ring_size;			/* 0x08 */
-#define CQ_RING_SIZE			   0x08
+	u64 ring_base; /* 0x00 */
+#define CQ_RING_BASE 0x00
+	u32 ring_size; /* 0x08 */
+#define CQ_RING_SIZE 0x08
 	u32 pad0;
-	u32 flow_control_enable;	/* 0x10 */
-#define CQ_FLOW_CONTROL_ENABLE		   0x10
+	u32 flow_control_enable; /* 0x10 */
+#define CQ_FLOW_CONTROL_ENABLE 0x10
 	u32 pad1;
-	u32 color_enable;		/* 0x18 */
-#define CQ_COLOR_ENABLE			   0x18
+	u32 color_enable; /* 0x18 */
+#define CQ_COLOR_ENABLE 0x18
 	u32 pad2;
-	u32 cq_head;			/* 0x20 */
-#define CQ_HEAD				   0x20
+	u32 cq_head; /* 0x20 */
+#define CQ_HEAD 0x20
 	u32 pad3;
-	u32 cq_tail;			/* 0x28 */
-#define CQ_TAIL				   0x28
+	u32 cq_tail; /* 0x28 */
+#define CQ_TAIL 0x28
 	u32 pad4;
-	u32 cq_tail_color;		/* 0x30 */
-#define CQ_TAIL_COLOR			   0x30
+	u32 cq_tail_color; /* 0x30 */
+#define CQ_TAIL_COLOR 0x30
 	u32 pad5;
-	u32 interrupt_enable;		/* 0x38 */
-#define CQ_INTR_ENABLE			   0x38
+	u32 interrupt_enable; /* 0x38 */
+#define CQ_INTR_ENABLE 0x38
 	u32 pad6;
-	u32 cq_entry_enable;		/* 0x40 */
-#define CQ_ENTRY_ENABLE			   0x40
+	u32 cq_entry_enable; /* 0x40 */
+#define CQ_ENTRY_ENABLE 0x40
 	u32 pad7;
-	u32 cq_message_enable;		/* 0x48 */
-#define CQ_MESSAGE_ENABLE		   0x48
+	u32 cq_message_enable; /* 0x48 */
+#define CQ_MESSAGE_ENABLE 0x48
 	u32 pad8;
-	u32 interrupt_offset;		/* 0x50 */
-#define CQ_INTR_OFFSET			   0x50
+	u32 interrupt_offset; /* 0x50 */
+#define CQ_INTR_OFFSET 0x50
 	u32 pad9;
-	u64 cq_message_addr;		/* 0x58 */
-#define CQ_MESSAGE_ADDR			   0x58
+	u64 cq_message_addr; /* 0x58 */
+#define CQ_MESSAGE_ADDR 0x58
 	u32 pad10;
 };
 
@@ -85,10 +85,10 @@ void vnic_cq_clean(struct vnic_cq *cq);
 int vnic_cq_mem_size(struct vnic_cq *cq, unsigned int desc_count,
     unsigned int desc_size);
 
-static inline unsigned int vnic_cq_service(struct vnic_cq *cq,
-    unsigned int work_to_do,
-    int (*q_service)(struct vnic_dev *vdev, struct cq_desc *cq_desc,
-        u8 type, u16 q_number, u16 completed_index, void *opaque),
+static inline unsigned int
+vnic_cq_service(struct vnic_cq *cq, unsigned int work_to_do,
+    int (*q_service)(struct vnic_dev *vdev, struct cq_desc *cq_desc, u8 type,
+	u16 q_number, u16 completed_index, void *opaque),
     void *opaque)
 {
 	struct cq_desc *cq_desc;
@@ -98,12 +98,11 @@ static inline unsigned int vnic_cq_service(struct vnic_cq *cq,
 
 	cq_desc = (struct cq_desc *)((u8 *)cq->ring.descs +
 	    cq->ring.desc_size * cq->to_clean);
-	cq_desc_dec(cq_desc, &type, &color,
-	    &q_number, &completed_index);
+	cq_desc_dec(cq_desc, &type, &color, &q_number, &completed_index);
 
 	while (color != cq->last_color) {
-		if ((*q_service)(cq->vdev, cq_desc, type,
-			q_number, completed_index, opaque))
+		if ((*q_service)(cq->vdev, cq_desc, type, q_number,
+			completed_index, opaque))
 			break;
 
 		cq->to_clean++;
@@ -114,8 +113,8 @@ static inline unsigned int vnic_cq_service(struct vnic_cq *cq,
 
 		cq_desc = (struct cq_desc *)((u8 *)cq->ring.descs +
 		    cq->ring.desc_size * cq->to_clean);
-		cq_desc_dec(cq_desc, &type, &color,
-		    &q_number, &completed_index);
+		cq_desc_dec(cq_desc, &type, &color, &q_number,
+		    &completed_index);
 
 		work_done++;
 		if (work_done >= work_to_do)
@@ -125,8 +124,8 @@ static inline unsigned int vnic_cq_service(struct vnic_cq *cq,
 	return work_done;
 }
 
-static inline unsigned int vnic_cq_work(struct vnic_cq *cq,
-    unsigned int work_to_do)
+static inline unsigned int
+vnic_cq_work(struct vnic_cq *cq, unsigned int work_to_do)
 {
 	struct cq_desc *cq_desc;
 	unsigned int work_avail = 0;
@@ -138,8 +137,7 @@ static inline unsigned int vnic_cq_work(struct vnic_cq *cq,
 	last_color = cq->last_color;
 	cq_desc = (struct cq_desc *)((u8 *)cq->ring.descs +
 	    cq->ring.desc_size * to_clean);
-	cq_desc_dec(cq_desc, &type, &color,
-	    &q_number, &completed_index);
+	cq_desc_dec(cq_desc, &type, &color, &q_number, &completed_index);
 
 	while (color != last_color) {
 		to_clean++;
@@ -150,8 +148,8 @@ static inline unsigned int vnic_cq_work(struct vnic_cq *cq,
 
 		cq_desc = (struct cq_desc *)((u8 *)cq->ring.descs +
 		    cq->ring.desc_size * to_clean);
-		cq_desc_dec(cq_desc, &type, &color,
-		    &q_number, &completed_index);
+		cq_desc_dec(cq_desc, &type, &color, &q_number,
+		    &completed_index);
 
 		work_avail++;
 		if (work_avail >= work_to_do)

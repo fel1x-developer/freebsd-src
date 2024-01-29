@@ -28,22 +28,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/fbio.h>
-#include <sys/linker.h>
-
 #include "opt_platform.h"
 
-#include <machine/metadata.h>
-#include <machine/vmparam.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
+#include <machine/metadata.h>
+#include <machine/vmparam.h>
+
 #include <dev/vt/colors/vt_termcolors.h>
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
 
 static vd_init_t vt_efifb_init;
 static vd_fini_t vt_efifb_fini;
@@ -74,9 +75,9 @@ VT_DRIVER_DECLARE(vt_efifb, vt_efifb_driver);
 static int
 vt_efifb_probe(struct vt_device *vd)
 {
-	int		disabled;
-	struct efi_fb	*efifb;
-	caddr_t		kmdp;
+	int disabled;
+	struct efi_fb *efifb;
+	caddr_t kmdp;
 
 	disabled = 0;
 	TUNABLE_INT_FETCH("hw.syscons.disable", &disabled);
@@ -97,12 +98,12 @@ vt_efifb_probe(struct vt_device *vd)
 static int
 vt_efifb_init(struct vt_device *vd)
 {
-	struct fb_info	*info;
-	struct efi_fb	*efifb;
-	caddr_t		kmdp;
-	int		memattr;
-	int		roff, goff, boff;
-	char		attr[16];
+	struct fb_info *info;
+	struct efi_fb *efifb;
+	caddr_t kmdp;
+	int memattr;
+	int roff, goff, boff;
+	char attr[16];
 
 	/*
 	 * XXX TODO: I think there's more nuance here than we're acknowledging,
@@ -155,9 +156,8 @@ vt_efifb_init(struct vt_device *vd)
 	goff = ffs(efifb->fb_mask_green) - 1;
 	boff = ffs(efifb->fb_mask_blue) - 1;
 	vt_config_cons_colors(info, COLOR_FORMAT_RGB,
-	    efifb->fb_mask_red >> roff, roff,
-	    efifb->fb_mask_green >> goff, goff,
-	    efifb->fb_mask_blue >> boff, boff);
+	    efifb->fb_mask_red >> roff, roff, efifb->fb_mask_green >> goff,
+	    goff, efifb->fb_mask_blue >> boff, boff);
 	info->fb_cmsize = NCOLORS;
 
 	info->fb_size = info->fb_height * info->fb_stride;
@@ -173,7 +173,7 @@ vt_efifb_init(struct vt_device *vd)
 static void
 vt_efifb_fini(struct vt_device *vd, void *softc)
 {
-	struct fb_info	*info = softc;
+	struct fb_info *info = softc;
 
 	vt_fb_fini(vd, softc);
 	pmap_unmapdev((void *)info->fb_vbase, info->fb_size);

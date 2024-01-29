@@ -32,10 +32,9 @@
 
 ******************************************************************************/
 
-
-#include "ixgbe_type.h"
 #include "ixgbe_dcb.h"
 #include "ixgbe_dcb_82598.h"
+#include "ixgbe_type.h"
 
 /**
  * ixgbe_dcb_get_tc_stats_82598 - Return status data for each traffic class
@@ -45,9 +44,9 @@
  *
  * This function returns the status data for each of the Traffic Classes in use.
  */
-s32 ixgbe_dcb_get_tc_stats_82598(struct ixgbe_hw *hw,
-				 struct ixgbe_hw_stats *stats,
-				 u8 tc_count)
+s32
+ixgbe_dcb_get_tc_stats_82598(struct ixgbe_hw *hw, struct ixgbe_hw_stats *stats,
+    u8 tc_count)
 {
 	int tc;
 
@@ -79,9 +78,9 @@ s32 ixgbe_dcb_get_tc_stats_82598(struct ixgbe_hw *hw,
  *
  * This function returns the CBFC status data for each of the Traffic Classes.
  */
-s32 ixgbe_dcb_get_pfc_stats_82598(struct ixgbe_hw *hw,
-				  struct ixgbe_hw_stats *stats,
-				  u8 tc_count)
+s32
+ixgbe_dcb_get_pfc_stats_82598(struct ixgbe_hw *hw, struct ixgbe_hw_stats *stats,
+    u8 tc_count)
 {
 	int tc;
 
@@ -109,8 +108,9 @@ s32 ixgbe_dcb_get_pfc_stats_82598(struct ixgbe_hw *hw,
  *
  * Configure Rx Data Arbiter and credits for each traffic class.
  */
-s32 ixgbe_dcb_config_rx_arbiter_82598(struct ixgbe_hw *hw, u16 *refill,
-				      u16 *max, u8 *tsa)
+s32
+ixgbe_dcb_config_rx_arbiter_82598(struct ixgbe_hw *hw, u16 *refill, u16 *max,
+    u8 *tsa)
 {
 	u32 reg = 0;
 	u32 credit_refill = 0;
@@ -167,9 +167,9 @@ s32 ixgbe_dcb_config_rx_arbiter_82598(struct ixgbe_hw *hw, u16 *refill,
  *
  * Configure Tx Descriptor Arbiter and credits for each traffic class.
  */
-s32 ixgbe_dcb_config_tx_desc_arbiter_82598(struct ixgbe_hw *hw,
-					   u16 *refill, u16 *max, u8 *bwg_id,
-					   u8 *tsa)
+s32
+ixgbe_dcb_config_tx_desc_arbiter_82598(struct ixgbe_hw *hw, u16 *refill,
+    u16 *max, u8 *bwg_id, u8 *tsa)
 {
 	u32 reg, max_credits;
 	u8 i;
@@ -214,9 +214,9 @@ s32 ixgbe_dcb_config_tx_desc_arbiter_82598(struct ixgbe_hw *hw,
  *
  * Configure Tx Data Arbiter and credits for each traffic class.
  */
-s32 ixgbe_dcb_config_tx_data_arbiter_82598(struct ixgbe_hw *hw,
-					   u16 *refill, u16 *max, u8 *bwg_id,
-					   u8 *tsa)
+s32
+ixgbe_dcb_config_tx_data_arbiter_82598(struct ixgbe_hw *hw, u16 *refill,
+    u16 *max, u8 *bwg_id, u8 *tsa)
 {
 	u32 reg;
 	u8 i;
@@ -259,7 +259,8 @@ s32 ixgbe_dcb_config_tx_data_arbiter_82598(struct ixgbe_hw *hw,
  *
  * Configure Priority Flow Control for each traffic class.
  */
-s32 ixgbe_dcb_config_pfc_82598(struct ixgbe_hw *hw, u8 pfc_en)
+s32
+ixgbe_dcb_config_pfc_82598(struct ixgbe_hw *hw, u8 pfc_en)
 {
 	u32 fcrtl, reg;
 	u8 i;
@@ -311,7 +312,8 @@ s32 ixgbe_dcb_config_pfc_82598(struct ixgbe_hw *hw, u8 pfc_en)
  * Configure queue statistics registers, all queues belonging to same traffic
  * class uses a single set of queue statistics counters.
  */
-s32 ixgbe_dcb_config_tc_stats_82598(struct ixgbe_hw *hw)
+s32
+ixgbe_dcb_config_tc_stats_82598(struct ixgbe_hw *hw)
 {
 	u32 reg = 0;
 	u8 i = 0;
@@ -347,19 +349,16 @@ s32 ixgbe_dcb_config_tc_stats_82598(struct ixgbe_hw *hw)
  *
  * Configure dcb settings and enable dcb mode.
  */
-s32 ixgbe_dcb_hw_config_82598(struct ixgbe_hw *hw, int link_speed,
-			      u16 *refill, u16 *max, u8 *bwg_id,
-			      u8 *tsa)
+s32
+ixgbe_dcb_hw_config_82598(struct ixgbe_hw *hw, int link_speed, u16 *refill,
+    u16 *max, u8 *bwg_id, u8 *tsa)
 {
 	UNREFERENCED_1PARAMETER(link_speed);
 
 	ixgbe_dcb_config_rx_arbiter_82598(hw, refill, max, tsa);
-	ixgbe_dcb_config_tx_desc_arbiter_82598(hw, refill, max, bwg_id,
-					       tsa);
-	ixgbe_dcb_config_tx_data_arbiter_82598(hw, refill, max, bwg_id,
-					       tsa);
+	ixgbe_dcb_config_tx_desc_arbiter_82598(hw, refill, max, bwg_id, tsa);
+	ixgbe_dcb_config_tx_data_arbiter_82598(hw, refill, max, bwg_id, tsa);
 	ixgbe_dcb_config_tc_stats_82598(hw);
-
 
 	return IXGBE_SUCCESS;
 }

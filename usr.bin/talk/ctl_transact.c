@@ -29,17 +29,14 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <arpa/inet.h>
-
 #include <errno.h>
 #include <poll.h>
 
 #include "talk.h"
 #include "talk_ctl.h"
 
-#define CTL_WAIT 2	/* time to wait for a response, in seconds */
+#define CTL_WAIT 2 /* time to wait for a response, in seconds */
 
 /*
  * SOCKDGRAM is unreliable, so we must repeat messages if we have
@@ -65,10 +62,10 @@ ctl_transact(struct in_addr target, CTL_MSG lmsg, int type, CTL_RESPONSE *rp)
 	do {
 		/* resend message until a response is obtained */
 		do {
-			cc = sendto(ctl_sockt, (char *)&lmsg, sizeof (lmsg), 0,
+			cc = sendto(ctl_sockt, (char *)&lmsg, sizeof(lmsg), 0,
 			    (struct sockaddr *)&daemon_addr,
-			    sizeof (daemon_addr));
-			if (cc != sizeof (lmsg)) {
+			    sizeof(daemon_addr));
+			if (cc != sizeof(lmsg)) {
 				if (errno == EINTR)
 					continue;
 				p_error("Error on write to talk daemon");
@@ -86,15 +83,15 @@ ctl_transact(struct in_addr target, CTL_MSG lmsg, int type, CTL_RESPONSE *rp)
 		 * request/acknowledgements being sent)
 		 */
 		do {
-			cc = recv(ctl_sockt, (char *)rp, sizeof (*rp), 0);
+			cc = recv(ctl_sockt, (char *)rp, sizeof(*rp), 0);
 			if (cc < 0) {
 				if (errno == EINTR)
 					continue;
 				p_error("Error on read from talk daemon");
 			}
 			nready = poll(pfd, 1, 0);
-		} while (nready > 0 && (rp->vers != TALK_VERSION ||
-		    rp->type != type));
+		} while (nready > 0 &&
+		    (rp->vers != TALK_VERSION || rp->type != type));
 	} while (rp->vers != TALK_VERSION || rp->type != type);
 	rp->id_num = ntohl(rp->id_num);
 	rp->addr.sa_family = ntohs(rp->addr.sa_family);

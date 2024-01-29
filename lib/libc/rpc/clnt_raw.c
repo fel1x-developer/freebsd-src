@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -41,17 +41,17 @@
  * any interference from the kernel.
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <assert.h>
 #include <err.h>
+#include <rpc/raw.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <rpc/rpc.h>
-#include <rpc/raw.h>
-#include "un-namespace.h"
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "un-namespace.h"
 
 #define MCALL_MSG_SIZE 24
 
@@ -59,18 +59,18 @@
  * This is the "network" we will be moving stuff over.
  */
 static struct clntraw_private {
-	CLIENT	client_object;
-	XDR	xdr_stream;
-	char	*_raw_buf;
+	CLIENT client_object;
+	XDR xdr_stream;
+	char *_raw_buf;
 	union {
-	    struct rpc_msg	mashl_rpcmsg;
-	    char 		mashl_callmsg[MCALL_MSG_SIZE];
+		struct rpc_msg mashl_rpcmsg;
+		char mashl_callmsg[MCALL_MSG_SIZE];
 	} u;
-	u_int	mcnt;
+	u_int mcnt;
 } *clntraw_private;
 
 static enum clnt_stat clnt_raw_call(CLIENT *, rpcproc_t, xdrproc_t, void *,
-	xdrproc_t, void *, struct timeval);
+    xdrproc_t, void *, struct timeval);
 static void clnt_raw_geterr(CLIENT *, struct rpc_err *);
 static bool_t clnt_raw_freeres(CLIENT *, xdrproc_t, void *);
 static void clnt_raw_abort(CLIENT *);
@@ -87,18 +87,18 @@ clnt_raw_create(rpcprog_t prog, rpcvers_t vers)
 	struct clntraw_private *clp;
 	struct rpc_msg call_msg;
 	XDR *xdrs;
-	CLIENT	*client;
+	CLIENT *client;
 
 	mutex_lock(&clntraw_lock);
 	if ((clp = clntraw_private) == NULL) {
-		clp = (struct clntraw_private *)calloc(1, sizeof (*clp));
+		clp = (struct clntraw_private *)calloc(1, sizeof(*clp));
 		if (clp == NULL) {
 			mutex_unlock(&clntraw_lock);
 			return NULL;
 		}
 		if (__rpc_rawcombuf == NULL)
-			__rpc_rawcombuf =
-			    (char *)calloc(UDPMSGSIZE, sizeof (char));
+			__rpc_rawcombuf = (char *)calloc(UDPMSGSIZE,
+			    sizeof(char));
 		clp->_raw_buf = __rpc_rawcombuf;
 		clntraw_private = clp;
 	}
@@ -113,8 +113,8 @@ clnt_raw_create(rpcprog_t prog, rpcvers_t vers)
 	/* XXX: prog and vers have been long historically :-( */
 	call_msg.rm_call.cb_prog = (u_int32_t)prog;
 	call_msg.rm_call.cb_vers = (u_int32_t)vers;
-	xdrmem_create(xdrs, clp->u.mashl_callmsg, MCALL_MSG_SIZE, XDR_ENCODE); 
-	if (! xdr_callhdr(xdrs, &call_msg))
+	xdrmem_create(xdrs, clp->u.mashl_callmsg, MCALL_MSG_SIZE, XDR_ENCODE);
+	if (!xdr_callhdr(xdrs, &call_msg))
 		warnx("clntraw_create - Fatal header serialization error.");
 	clp->mcnt = XDR_GETPOS(xdrs);
 	XDR_DESTROY(xdrs);
@@ -134,7 +134,7 @@ clnt_raw_create(rpcprog_t prog, rpcvers_t vers)
 }
 
 /* ARGSUSED */
-static enum clnt_stat 
+static enum clnt_stat
 clnt_raw_call(CLIENT *h, rpcproc_t proc, xdrproc_t xargs, void *argsp,
     xdrproc_t xresults, void *resultsp, struct timeval timeout)
 {
@@ -159,14 +159,13 @@ call_again:
 	 */
 	xdrs->x_op = XDR_ENCODE;
 	XDR_SETPOS(xdrs, 0);
-	clp->u.mashl_rpcmsg.rm_xid ++ ;
-	if ((! XDR_PUTBYTES(xdrs, clp->u.mashl_callmsg, clp->mcnt)) ||
-	    (! XDR_PUTINT32(xdrs, &proc)) ||
-	    (! AUTH_MARSHALL(h->cl_auth, xdrs)) ||
-	    (! (*xargs)(xdrs, argsp))) {
+	clp->u.mashl_rpcmsg.rm_xid++;
+	if ((!XDR_PUTBYTES(xdrs, clp->u.mashl_callmsg, clp->mcnt)) ||
+	    (!XDR_PUTINT32(xdrs, &proc)) ||
+	    (!AUTH_MARSHALL(h->cl_auth, xdrs)) || (!(*xargs)(xdrs, argsp))) {
 		return (RPC_CANTENCODEARGS);
 	}
-	(void)XDR_GETPOS(xdrs);  /* called just to cause overhead */
+	(void)XDR_GETPOS(xdrs); /* called just to cause overhead */
 
 	/*
 	 * We have to call server input routine here because this is
@@ -182,7 +181,7 @@ call_again:
 	msg.acpted_rply.ar_verf = _null_auth;
 	msg.acpted_rply.ar_results.where = resultsp;
 	msg.acpted_rply.ar_results.proc = xresults;
-	if (! xdr_replymsg(xdrs, &msg)) {
+	if (!xdr_replymsg(xdrs, &msg)) {
 		/*
 		 * It's possible for xdr_replymsg() to fail partway
 		 * through its attempt to decode the result from the
@@ -203,17 +202,17 @@ call_again:
 	status = error.re_status;
 
 	if (status == RPC_SUCCESS) {
-		if (! AUTH_VALIDATE(h->cl_auth, &msg.acpted_rply.ar_verf)) {
+		if (!AUTH_VALIDATE(h->cl_auth, &msg.acpted_rply.ar_verf)) {
 			status = RPC_AUTHERROR;
 		}
-	}  /* end successful completion */
+	} /* end successful completion */
 	else {
 		if (AUTH_REFRESH(h->cl_auth, &msg))
 			goto call_again;
-	}  /* end of unsuccessful completion */
+	} /* end of unsuccessful completion */
 
 	if (status == RPC_SUCCESS) {
-		if (! AUTH_VALIDATE(h->cl_auth, &msg.acpted_rply.ar_verf)) {
+		if (!AUTH_VALIDATE(h->cl_auth, &msg.acpted_rply.ar_verf)) {
 			status = RPC_AUTHERROR;
 		}
 		if (msg.acpted_rply.ar_verf.oa_base != NULL) {
@@ -231,7 +230,6 @@ clnt_raw_geterr(CLIENT *cl, struct rpc_err *err)
 {
 }
 
-
 /* ARGSUSED */
 static bool_t
 clnt_raw_freeres(CLIENT *cl, xdrproc_t xdr_res, void *res_ptr)
@@ -242,7 +240,7 @@ clnt_raw_freeres(CLIENT *cl, xdrproc_t xdr_res, void *res_ptr)
 
 	mutex_lock(&clntraw_lock);
 	if (clp == NULL) {
-		rval = (bool_t) RPC_FAILED;
+		rval = (bool_t)RPC_FAILED;
 		mutex_unlock(&clntraw_lock);
 		return (rval);
 	}

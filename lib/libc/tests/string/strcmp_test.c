@@ -37,7 +37,8 @@ int (*volatile strcmp_fn)(const char *, const char *);
 ATF_TC(strcmp_alignments);
 ATF_TC_HEAD(strcmp_alignments, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Test strcmp(3) with various alignments");
+	atf_tc_set_md_var(tc, "descr",
+	    "Test strcmp(3) with various alignments");
 }
 
 static void
@@ -47,13 +48,13 @@ alignment_testcase(char *a, char *b, int want)
 
 	res = strcmp_fn(a, b);
 	ATF_CHECK_MSG(want == (res > 0) - (res < 0),
-	    "strcmp(%p \"%s\", %p \"%s\") = %d != %d",
-	    (void *)a, a, (void *)b, b, res, want);
+	    "strcmp(%p \"%s\", %p \"%s\") = %d != %d", (void *)a, a, (void *)b,
+	    b, res, want);
 }
 
 static void
-check_strcmp_alignments(char a[], char b[],
-    size_t a_off, size_t b_off, size_t len, size_t pos)
+check_strcmp_alignments(char a[], char b[], size_t a_off, size_t b_off,
+    size_t len, size_t pos)
 {
 	char *a_str, *b_str, a_orig, b_orig;
 
@@ -65,8 +66,8 @@ check_strcmp_alignments(char a[], char b[],
 
 	a_str[len] = '\0';
 	b_str[len] = '\0';
-	a_str[len+1] = 'A';
-	b_str[len+1] = 'B';
+	a_str[len + 1] = 'A';
+	b_str[len + 1] = 'B';
 
 	a_orig = a_str[pos];
 	b_orig = b_str[pos];
@@ -93,15 +94,15 @@ check_strcmp_alignments(char a[], char b[],
 	b[b_off] = '-';
 	a_str[len] = '-';
 	b_str[len] = '-';
-	a_str[len+1] = '-';
-	b_str[len+1] = '-';
+	a_str[len + 1] = '-';
+	b_str[len + 1] = '-';
 }
 
 ATF_TC_BODY(strcmp_alignments, tc)
 {
 	size_t a_off, b_off, len, pos;
 	/* 16B alignment offset + 64B buffer + sentinel before/after + NUL */
-	char a[64+16+3], b[64+16+3];
+	char a[64 + 16 + 3], b[64 + 16 + 3];
 
 	memset(a, '-', sizeof(a));
 	memset(b, '-', sizeof(b));
@@ -111,10 +112,12 @@ ATF_TC_BODY(strcmp_alignments, tc)
 	/* check alignment offsets relevant for SSE routines */
 	for (a_off = 0; a_off < 16; a_off++)
 		for (b_off = 0; b_off < 16; b_off++)
-			/* ensure main loop (@ 32B) is completed at least once */
+			/* ensure main loop (@ 32B) is completed at least once
+			 */
 			for (len = 1; len <= 64; len++)
 				for (pos = 0; pos <= len; pos++)
-					check_strcmp_alignments(a, b, a_off, b_off, len, pos);
+					check_strcmp_alignments(a, b, a_off,
+					    b_off, len, pos);
 }
 
 ATF_TP_ADD_TCS(tp)

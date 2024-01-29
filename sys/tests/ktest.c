@@ -25,55 +25,62 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/refcount.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/socket.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/refcount.h>
+#include <sys/socket.h>
+
+#include <machine/stdarg.h>
 
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_message_parser.h>
 
-#include <machine/stdarg.h>
 #include <tests/ktest.h>
 
 struct mtx ktest_mtx;
-#define	KTEST_LOCK()		mtx_lock(&ktest_mtx)
-#define	KTEST_UNLOCK()		mtx_unlock(&ktest_mtx)
-#define	KTEST_LOCK_ASSERT()	mtx_assert(&ktest_mtx, MA_OWNED)
+#define KTEST_LOCK() mtx_lock(&ktest_mtx)
+#define KTEST_UNLOCK() mtx_unlock(&ktest_mtx)
+#define KTEST_LOCK_ASSERT() mtx_assert(&ktest_mtx, MA_OWNED)
 
 MTX_SYSINIT(ktest_mtx, &ktest_mtx, "ktest mutex", MTX_DEF);
 
 struct ktest_module {
-	struct ktest_module_info	*info;
-	volatile u_int			refcount;
-	TAILQ_ENTRY(ktest_module)	entries;
+	struct ktest_module_info *info;
+	volatile u_int refcount;
+	TAILQ_ENTRY(ktest_module) entries;
 };
-static TAILQ_HEAD(, ktest_module) module_list = TAILQ_HEAD_INITIALIZER(module_list);
+static TAILQ_HEAD(, ktest_module) module_list = TAILQ_HEAD_INITIALIZER(
+    module_list);
 
 struct nl_ktest_parsed {
-	char		*mod_name;
-	char		*test_name;
-	struct nlattr	*test_meta;
+	char *mod_name;
+	char *test_name;
+	struct nlattr *test_meta;
 };
 
-#define	_IN(_field)	offsetof(struct genlmsghdr, _field)
-#define	_OUT(_field)	offsetof(struct nl_ktest_parsed, _field)
+#define _IN(_field) offsetof(struct genlmsghdr, _field)
+#define _OUT(_field) offsetof(struct nl_ktest_parsed, _field)
 
 static const struct nlattr_parser nla_p_get[] = {
-	{ .type = KTEST_ATTR_MOD_NAME, .off = _OUT(mod_name), .cb = nlattr_get_string },
-	{ .type = KTEST_ATTR_TEST_NAME, .off = _OUT(test_name), .cb = nlattr_get_string },
-	{ .type = KTEST_ATTR_TEST_META, .off = _OUT(test_meta), .cb = nlattr_get_nla },
+	{ .type = KTEST_ATTR_MOD_NAME,
+	    .off = _OUT(mod_name),
+	    .cb = nlattr_get_string },
+	{ .type = KTEST_ATTR_TEST_NAME,
+	    .off = _OUT(test_name),
+	    .cb = nlattr_get_string },
+	{ .type = KTEST_ATTR_TEST_META,
+	    .off = _OUT(test_meta),
+	    .cb = nlattr_get_nla },
 };
-static const struct nlfield_parser nlf_p_get[] = {
-};
+static const struct nlfield_parser nlf_p_get[] = {};
 NL_DECLARE_PARSER(ktest_parser, struct genlmsghdr, nlf_p_get, nla_p_get);
 #undef _IN
 #undef _OUT
@@ -84,7 +91,8 @@ create_reply(struct nl_writer *nw, struct nlmsghdr *hdr, int cmd)
 	if (!nlmsg_reply(nw, hdr, sizeof(struct genlmsghdr)))
 		return (false);
 
-	struct genlmsghdr *ghdr_new = nlmsg_reserve_object(nw, struct genlmsghdr);
+	struct genlmsghdr *ghdr_new = nlmsg_reserve_object(nw,
+	    struct genlmsghdr);
 	ghdr_new->cmd = cmd;
 	ghdr_new->version = 0;
 	ghdr_new->reserved = 0;
@@ -118,7 +126,8 @@ dump_mod_tests(struct nlmsghdr *hdr, struct nl_pstate *npt,
 {
 	for (int i = 0; i < mod->info->num_tests; i++) {
 		const struct ktest_test_info *test_info = &mod->info->tests[i];
-		if (attrs->test_name != NULL && strcmp(attrs->test_name, test_info->name))
+		if (attrs->test_name != NULL &&
+		    strcmp(attrs->test_name, test_info->name))
 			continue;
 		int error = dump_mod_test(hdr, npt, mod, test_info);
 		if (error != 0)
@@ -131,7 +140,7 @@ dump_mod_tests(struct nlmsghdr *hdr, struct nl_pstate *npt,
 static int
 dump_tests(struct nlmsghdr *hdr, struct nl_pstate *npt)
 {
-	struct nl_ktest_parsed attrs = { };
+	struct nl_ktest_parsed attrs = {};
 	struct ktest_module *mod;
 	int error;
 
@@ -142,7 +151,7 @@ dump_tests(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	hdr->nlmsg_flags |= NLM_F_MULTI;
 
 	KTEST_LOCK();
-	TAILQ_FOREACH(mod, &module_list, entries) {
+	TAILQ_FOREACH (mod, &module_list, entries) {
 		if (attrs.mod_name && strcmp(attrs.mod_name, mod->info->name))
 			continue;
 		error = dump_mod_tests(hdr, npt, mod, &attrs);
@@ -152,7 +161,7 @@ dump_tests(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	KTEST_UNLOCK();
 
 	if (!nlmsg_end_dump(npt->nw, error, hdr)) {
-		//NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
+		// NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
 		return (ENOMEM);
 	}
 
@@ -162,7 +171,7 @@ dump_tests(struct nlmsghdr *hdr, struct nl_pstate *npt)
 static int
 run_test(struct nlmsghdr *hdr, struct nl_pstate *npt)
 {
-	struct nl_ktest_parsed attrs = { };
+	struct nl_ktest_parsed attrs = {};
 	struct ktest_module *mod;
 	int error;
 
@@ -183,14 +192,15 @@ run_test(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	const struct ktest_test_info *test = NULL;
 
 	KTEST_LOCK();
-	TAILQ_FOREACH(mod, &module_list, entries) {
+	TAILQ_FOREACH (mod, &module_list, entries) {
 		if (strcmp(attrs.mod_name, mod->info->name))
 			continue;
 
 		const struct ktest_module_info *info = mod->info;
 
 		for (int i = 0; i < info->num_tests; i++) {
-			const struct ktest_test_info *test_info = &info->tests[i];
+			const struct ktest_test_info *test_info =
+			    &info->tests[i];
 
 			if (!strcmp(attrs.test_name, test_info->name)) {
 				test = test_info;
@@ -215,7 +225,7 @@ run_test(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	};
 
 	if (ctx.buf == NULL) {
-		//NL_LOG(LOG_DEBUG, "unable to allocate temporary buffer");
+		// NL_LOG(LOG_DEBUG, "unable to allocate temporary buffer");
 		return (ENOMEM);
 	}
 
@@ -234,19 +244,19 @@ run_test(struct nlmsghdr *hdr, struct nl_pstate *npt)
 	refcount_release(&mod->refcount);
 
 	if (!nlmsg_end_dump(npt->nw, error, hdr)) {
-		//NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
+		// NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
 		return (ENOMEM);
 	}
 
 	return (error);
 }
 
-
 /* USER API */
 static void
 register_test_module(struct ktest_module_info *info)
 {
-	struct ktest_module *mod = malloc(sizeof(*mod), M_TEMP, M_WAITOK | M_ZERO);
+	struct ktest_module *mod = malloc(sizeof(*mod), M_TEMP,
+	    M_WAITOK | M_ZERO);
 
 	mod->info = info;
 	info->module_ptr = mod;
@@ -346,17 +356,18 @@ static const struct nlhdr_parser *all_parsers[] = { &ktest_parser };
 
 static const struct genl_cmd ktest_cmds[] = {
 	{
-		.cmd_num = KTEST_CMD_LIST,
-		.cmd_name = "KTEST_CMD_LIST",
-		.cmd_cb = dump_tests,
-		.cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_DUMP | GENL_CMD_CAP_HASPOL,
+	    .cmd_num = KTEST_CMD_LIST,
+	    .cmd_name = "KTEST_CMD_LIST",
+	    .cmd_cb = dump_tests,
+	    .cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_DUMP |
+		GENL_CMD_CAP_HASPOL,
 	},
 	{
-		.cmd_num = KTEST_CMD_RUN,
-		.cmd_name = "KTEST_CMD_RUN",
-		.cmd_cb = run_test,
-		.cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_HASPOL,
-		.cmd_priv = PRIV_KLD_LOAD,
+	    .cmd_num = KTEST_CMD_RUN,
+	    .cmd_name = "KTEST_CMD_RUN",
+	    .cmd_cb = run_test,
+	    .cmd_flags = GENL_CMD_CAP_DO | GENL_CMD_CAP_HASPOL,
+	    .cmd_priv = PRIV_KLD_LOAD,
 	},
 };
 
@@ -367,10 +378,12 @@ ktest_nl_register(void)
 	int family_id __diagused;
 
 	NL_VERIFY_PARSERS(all_parsers);
-	family_id = genl_register_family(KTEST_FAMILY_NAME, 0, 1, KTEST_CMD_MAX);
+	family_id = genl_register_family(KTEST_FAMILY_NAME, 0, 1,
+	    KTEST_CMD_MAX);
 	MPASS(family_id != 0);
 
-	ret = genl_register_cmds(KTEST_FAMILY_NAME, ktest_cmds, NL_ARRAY_LEN(ktest_cmds));
+	ret = genl_register_cmds(KTEST_FAMILY_NAME, ktest_cmds,
+	    NL_ARRAY_LEN(ktest_cmds));
 	MPASS(ret);
 }
 
@@ -401,13 +414,8 @@ ktest_modevent(module_t mod, int type, void *unused)
 	return (error);
 }
 
-static moduledata_t ktestmod = {
-        "ktest",
-        ktest_modevent,
-        0
-};
+static moduledata_t ktestmod = { "ktest", ktest_modevent, 0 };
 
 DECLARE_MODULE(ktestmod, ktestmod, SI_SUB_PSEUDO, SI_ORDER_ANY);
 MODULE_VERSION(ktestmod, 1);
 MODULE_DEPEND(ktestmod, netlink, 1, 1, 1);
-

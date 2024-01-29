@@ -31,18 +31,19 @@
  * Posix rand_r function added May 1999 by Wes Peters <wes@softweyr.com>.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <assert.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <syslog.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
 #include "random.h"
+#include "un-namespace.h"
 
 /*
  * Implement rand(3), the standard C PRNG API, using the non-standard but
@@ -92,14 +93,14 @@ srand(unsigned seed)
 static int
 do_rand(unsigned long *ctx)
 {
-/*
- * Compute x = (7^5 * x) mod (2^31 - 1)
- * without overflowing 31 bits:
- *      (2^31 - 1) = 127773 * (7^5) + 2836
- * From "Random number generators: good ones are hard to find",
- * Park and Miller, Communications of the ACM, vol. 31, no. 10,
- * October 1988, p. 1195.
- */
+	/*
+	 * Compute x = (7^5 * x) mod (2^31 - 1)
+	 * without overflowing 31 bits:
+	 *      (2^31 - 1) = 127773 * (7^5) + 2836
+	 * From "Random number generators: good ones are hard to find",
+	 * Park and Miller, Communications of the ACM, vol. 31, no. 10,
+	 * October 1988, p. 1195.
+	 */
 	long hi, lo, x;
 
 	/* Transform to [1, 0x7ffffffe] range. */
@@ -138,7 +139,7 @@ __rand_fbsd12(void)
 {
 	return (do_rand(&next));
 }
-__sym_compat(rand, __rand_fbsd12, FBSD_1.0);
+__sym_compat(rand, __rand_fbsd12, FBSD_1 .0);
 
 void __srand_fbsd12(unsigned seed);
 void
@@ -146,7 +147,7 @@ __srand_fbsd12(unsigned seed)
 {
 	next = seed;
 }
-__sym_compat(srand, __srand_fbsd12, FBSD_1.0);
+__sym_compat(srand, __srand_fbsd12, FBSD_1 .0);
 
 void __sranddev_fbsd12(void);
 void
@@ -159,4 +160,4 @@ __sranddev_fbsd12(void)
 		warned = true;
 	}
 }
-__sym_compat(sranddev, __sranddev_fbsd12, FBSD_1.0);
+__sym_compat(sranddev, __sranddev_fbsd12, FBSD_1 .0);

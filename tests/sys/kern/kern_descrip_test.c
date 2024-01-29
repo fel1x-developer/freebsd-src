@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -40,8 +41,6 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 static volatile sig_atomic_t done;
 
@@ -129,7 +128,7 @@ openfiles(size_t n)
 	while (done != PARALLEL) {
 		usleep(1000);
 		ATF_REQUIRE_EQ_MSG(0, waitpid(-1, NULL, WNOHANG),
-			"a child exited unexpectedly");
+		    "a child exited unexpectedly");
 	}
 	unlink(RENDEZVOUS);
 	for (i = 0; i < PARALLEL; i++)
@@ -141,8 +140,7 @@ ATF_TC_HEAD(kern_maxfiles__increase, tc)
 {
 	atf_tc_set_md_var(tc, "require.user", "root");
 	atf_tc_set_md_var(tc, "require.config", "allow_sysctl_side_effects");
-	atf_tc_set_md_var(tc, "descr",
-	    "Check kern.maxfiles expansion");
+	atf_tc_set_md_var(tc, "descr", "Check kern.maxfiles expansion");
 }
 
 ATF_TC_BODY(kern_maxfiles__increase, tc)
@@ -165,8 +163,7 @@ ATF_TC_BODY(kern_maxfiles__increase, tc)
 	/* Store old kern.maxfiles in a symlink for cleanup */
 	snprintf(buf, sizeof(buf), "%d", oldmaxfiles);
 	if (symlink(buf, VALUE) == 1)
-		atf_tc_fail("symlink(%s, %s): %s", buf, VALUE,
-		    strerror(errno));
+		atf_tc_fail("symlink(%s, %s): %s", buf, VALUE, strerror(errno));
 
 	maxfiles += EXPANDBY;
 	if (sysctlbyname("kern.maxfiles", NULL, 0, &maxfiles, oldlen) == -1)
@@ -175,7 +172,7 @@ ATF_TC_BODY(kern_maxfiles__increase, tc)
 
 	rl.rlim_cur = rl.rlim_max = maxfiles;
 	ATF_REQUIRE_EQ_MSG(0, setrlimit(RLIMIT_NOFILE, &rl),
-		"setrlimit(RLIMIT_NOFILE, %d): %s", maxfiles, strerror(errno));
+	    "setrlimit(RLIMIT_NOFILE, %d): %s", maxfiles, strerror(errno));
 
 	openfiles(oldmaxfiles - current + EXPANDBY / 2);
 }
@@ -190,7 +187,7 @@ ATF_TC_CLEANUP(kern_maxfiles__increase, tc)
 		buf[MIN((size_t)n, sizeof(buf) - 1)] = '\0';
 		if (sscanf(buf, "%d", &oldmaxfiles) == 1) {
 			oldlen = sizeof(oldmaxfiles);
-			(void) sysctlbyname("kern.maxfiles", NULL, 0,
+			(void)sysctlbyname("kern.maxfiles", NULL, 0,
 			    &oldmaxfiles, oldlen);
 		}
 	}

@@ -14,15 +14,14 @@
  *****************************************************************************/
 
 #include "cpa.h"
+#include "icp_accel_devices.h"
+#include "icp_adf_cfg.h"
+#include "icp_adf_debug.h"
 #include "lac_common.h"
 #include "lac_mem.h"
-#include "icp_adf_cfg.h"
-#include "icp_accel_devices.h"
-#include "sal_statistics.h"
-
-#include "icp_adf_debug.h"
-#include "lac_sal_types.h"
 #include "lac_sal.h"
+#include "lac_sal_types.h"
+#include "sal_statistics.h"
 
 /**
  ******************************************************************************
@@ -43,9 +42,8 @@
  *
  ******************************************************************************/
 static CpaStatus
-SalStatistics_GetStatEnabled(icp_accel_dev_t *device,
-			     const char *statsName,
-			     CpaBoolean *pIsEnabled)
+SalStatistics_GetStatEnabled(icp_accel_dev_t *device, const char *statsName,
+    CpaBoolean *pIsEnabled)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	char param_value[ADF_CFG_MAX_VAL_LEN_IN_BYTES] = { 0 };
@@ -53,20 +51,18 @@ SalStatistics_GetStatEnabled(icp_accel_dev_t *device,
 	LAC_CHECK_NULL_PARAM(pIsEnabled);
 	LAC_CHECK_NULL_PARAM(statsName);
 
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  statsName,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    statsName, param_value);
 
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to get %s from configuration.\n",
-			      statsName);
+		    statsName);
 		return status;
 	}
 
-	if (0 == strncmp(param_value,
-			 SAL_STATISTICS_STRING_OFF,
-			 strlen(SAL_STATISTICS_STRING_OFF))) {
+	if (0 ==
+	    strncmp(param_value, SAL_STATISTICS_STRING_OFF,
+		strlen(SAL_STATISTICS_STRING_OFF))) {
 		*pIsEnabled = CPA_FALSE;
 	} else {
 		*pIsEnabled = CPA_TRUE;
@@ -92,9 +88,8 @@ SalStatistics_InitStatisticsCollection(icp_accel_dev_t *device)
 	}
 	device->pQatStats = pStatsCollection;
 
-	status = SalStatistics_GetStatEnabled(device,
-					      SAL_STATS_CFG_ENABLED,
-					      &pStatsCollection->bStatsEnabled);
+	status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_ENABLED,
+	    &pStatsCollection->bStatsEnabled);
 	LAC_CHECK_STATUS(status);
 
 	if (CPA_FALSE == pStatsCollection->bStatsEnabled) {
@@ -120,69 +115,52 @@ SalStatistics_InitStatisticsCollection(icp_accel_dev_t *device)
 
 	/* Check if the compression service is enabled */
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_DC,
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_DC,
 		    &pStatsCollection->bDcStatsEnabled);
 		LAC_CHECK_STATUS(status);
 	}
 	/* Check if the asym service is enabled */
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM) ||
+		SAL_SERVICE_TYPE_CRYPTO_ASYM) ||
 	    SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_DH,
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_DH,
 		    &pStatsCollection->bDhStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_DSA,
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_DSA,
 		    &pStatsCollection->bDsaStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_ECC,
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_ECC,
 		    &pStatsCollection->bEccStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
+		status = SalStatistics_GetStatEnabled(device,
 		    SAL_STATS_CFG_KEYGEN,
 		    &pStatsCollection->bKeyGenStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_LN,
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_LN,
 		    &pStatsCollection->bLnStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_PRIME,
-		    &pStatsCollection->bPrimeStatsEnabled);
+		status = SalStatistics_GetStatEnabled(device,
+		    SAL_STATS_CFG_PRIME, &pStatsCollection->bPrimeStatsEnabled);
 		LAC_CHECK_STATUS(status);
 
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_RSA,
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_RSA,
 		    &pStatsCollection->bRsaStatsEnabled);
 		LAC_CHECK_STATUS(status);
 	}
 
 	/* Check if the sym service is enabled */
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM) ||
+		SAL_SERVICE_TYPE_CRYPTO_SYM) ||
 	    SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status = SalStatistics_GetStatEnabled(
-		    device,
-		    SAL_STATS_CFG_SYM,
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalStatistics_GetStatEnabled(device, SAL_STATS_CFG_SYM,
 		    &pStatsCollection->bSymStatsEnabled);
 		LAC_CHECK_STATUS(status);
 	}

@@ -28,19 +28,22 @@
 #include <sys/elf.h>
 #include <sys/event.h>
 #include <sys/file.h>
-#include <sys/time.h>
 #include <sys/procctl.h>
 #include <sys/procdesc.h>
-#include <sys/ptrace.h>
 #include <sys/procfs.h>
+#include <sys/ptrace.h>
 #include <sys/queue.h>
 #include <sys/runq.h>
 #include <sys/syscall.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/user.h>
 #include <sys/wait.h>
-#include <errno.h>
+
 #include <machine/cpufunc.h>
+
+#include <atf-c.h>
+#include <errno.h>
 #include <pthread.h>
 #include <sched.h>
 #include <semaphore.h>
@@ -49,14 +52,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <atf-c.h>
 
 /*
  * Architectures with a user-visible breakpoint().
  */
-#if defined(__aarch64__) || defined(__amd64__) || defined(__arm__) ||	\
+#if defined(__aarch64__) || defined(__amd64__) || defined(__arm__) || \
     defined(__i386__) || defined(__riscv)
-#define	HAVE_BREAKPOINT
+#define HAVE_BREAKPOINT
 #endif
 
 /*
@@ -64,13 +66,13 @@
  */
 #ifdef HAVE_BREAKPOINT
 #if defined(__aarch64__)
-#define	SKIP_BREAK(reg)	((reg)->elr += 4)
+#define SKIP_BREAK(reg) ((reg)->elr += 4)
 #elif defined(__amd64__) || defined(__i386__)
-#define	SKIP_BREAK(reg)
+#define SKIP_BREAK(reg)
 #elif defined(__arm__)
-#define	SKIP_BREAK(reg)	((reg)->r_pc += 4)
+#define SKIP_BREAK(reg) ((reg)->r_pc += 4)
 #elif defined(__riscv)
-#define	SKIP_BREAK(reg)	((reg)->sepc += 4)
+#define SKIP_BREAK(reg) ((reg)->sepc += 4)
 #endif
 #endif
 
@@ -79,20 +81,22 @@
  * processes.  This only works if the parent process is tripped up by
  * the early exit and fails some requirement itself.
  */
-#define	CHILD_REQUIRE(exp) do {				\
-	if (!(exp))					\
-		child_fail_require(__FILE__, __LINE__,	\
-		    #exp " not met\n");			\
-} while (0)
+#define CHILD_REQUIRE(exp)                                     \
+	do {                                                   \
+		if (!(exp))                                    \
+			child_fail_require(__FILE__, __LINE__, \
+			    #exp " not met\n");                \
+	} while (0)
 
-#define	CHILD_REQUIRE_EQ(actual, expected) do {			\
-	__typeof__(expected) _e = expected;			\
-	__typeof__(actual) _a = actual;				\
-	if (_e != _a)						\
-		child_fail_require(__FILE__, __LINE__, #actual	\
-		    " (%jd) == " #expected " (%jd) not met\n",	\
-		    (intmax_t)_a, (intmax_t)_e);		\
-} while (0)
+#define CHILD_REQUIRE_EQ(actual, expected)                                     \
+	do {                                                                   \
+		__typeof__(expected) _e = expected;                            \
+		__typeof__(actual) _a = actual;                                \
+		if (_e != _a)                                                  \
+			child_fail_require(__FILE__, __LINE__,                 \
+			    #actual " (%jd) == " #expected " (%jd) not met\n", \
+			    (intmax_t)_a, (intmax_t)_e);                       \
+	} while (0)
 
 static __dead2 void
 child_fail_require(const char *file, int line, const char *fmt, ...)
@@ -111,12 +115,14 @@ child_fail_require(const char *file, int line, const char *fmt, ...)
 	_exit(32);
 }
 
-#define	REQUIRE_EQ(actual, expected) do {				\
-	__typeof__(expected) _e = expected;				\
-	__typeof__(actual) _a = actual;					\
-	ATF_REQUIRE_MSG(_e == _a, #actual " (%jd) == "			\
-	    #expected " (%jd) not met", (intmax_t)_a, (intmax_t)_e);	\
-} while (0)
+#define REQUIRE_EQ(actual, expected)                                 \
+	do {                                                         \
+		__typeof__(expected) _e = expected;                  \
+		__typeof__(actual) _a = actual;                      \
+		ATF_REQUIRE_MSG(_e == _a,                            \
+		    #actual " (%jd) == " #expected " (%jd) not met", \
+		    (intmax_t)_a, (intmax_t)_e);                     \
+	} while (0)
 
 static void
 trace_me(void)
@@ -579,7 +585,7 @@ handle_fork_events(pid_t parent, struct ptrace_lwpinfo *ppl)
 	fork_reported[0] = false;
 	fork_reported[1] = false;
 	child = -1;
-	
+
 	/*
 	 * Each process should report a fork event.  The parent should
 	 * report a PL_FLAG_FORKED event, and the child should report
@@ -590,10 +596,10 @@ handle_fork_events(pid_t parent, struct ptrace_lwpinfo *ppl)
 		ATF_REQUIRE(wpid > 0);
 		ATF_REQUIRE(WIFSTOPPED(status));
 
-		ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-		    sizeof(pl)) != -1);
-		ATF_REQUIRE((pl.pl_flags & (PL_FLAG_FORKED | PL_FLAG_CHILD)) !=
-		    0);
+		ATF_REQUIRE(
+		    ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+		ATF_REQUIRE(
+		    (pl.pl_flags & (PL_FLAG_FORKED | PL_FLAG_CHILD)) != 0);
 		ATF_REQUIRE((pl.pl_flags & (PL_FLAG_FORKED | PL_FLAG_CHILD)) !=
 		    (PL_FLAG_FORKED | PL_FLAG_CHILD));
 		if (pl.pl_flags & PL_FLAG_CHILD) {
@@ -802,7 +808,7 @@ attach_fork_parent(int cpipe[2])
 	CHILD_REQUIRE((fpid = fork()) != -1);
 	if (fpid != 0)
 		_exit(3);
-	
+
 	/* Send the pid of the disassociated child to the debugger. */
 	fpid = getpid();
 	CHILD_REQUIRE_EQ(write(cpipe[1], &fpid, sizeof(fpid)),
@@ -1261,8 +1267,7 @@ ATF_TC_BODY(ptrace__new_child_pl_syscall_code_thread, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	mainlwp = pl.pl_lwpid;
 
 	/*
@@ -1284,8 +1289,8 @@ ATF_TC_BODY(ptrace__new_child_pl_syscall_code_thread, tc)
 		ATF_REQUIRE(WIFSTOPPED(status));
 		REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
 
-		ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-		    sizeof(pl)) != -1);
+		ATF_REQUIRE(
+		    ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 		ATF_REQUIRE((pl.pl_flags & PL_FLAG_SCX) != 0);
 		ATF_REQUIRE(pl.pl_syscall_code != 0);
 		if (pl.pl_lwpid != mainlwp)
@@ -1302,7 +1307,7 @@ ATF_TC_BODY(ptrace__new_child_pl_syscall_code_thread, tc)
 		REQUIRE_EQ(wpid, fpid);
 		if (WIFEXITED(status))
 			break;
-		
+
 		ATF_REQUIRE(WIFSTOPPED(status));
 		REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
 		REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
@@ -1338,8 +1343,7 @@ ATF_TC_BODY(ptrace__lwp_events, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	lwps[0] = pl.pl_lwpid;
 
 	REQUIRE_EQ(ptrace(PT_LWP_EVENTS, wpid, NULL, 1), 0);
@@ -1427,8 +1431,7 @@ ATF_TC_BODY(ptrace__lwp_events_exec, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	lwps[0] = pl.pl_lwpid;
 
 	REQUIRE_EQ(ptrace(PT_LWP_EVENTS, wpid, NULL, 1), 0);
@@ -1572,7 +1575,7 @@ ATF_TC_BODY(ptrace__ptrace_exec_disable, tc)
 
 	events = 0;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 
@@ -1607,7 +1610,7 @@ ATF_TC_BODY(ptrace__ptrace_exec_enable, tc)
 
 	events = PTRACE_EXEC;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 
@@ -1653,21 +1656,21 @@ ATF_TC_BODY(ptrace__event_mask, tc)
 	/* PT_FOLLOW_FORK should toggle the state of PTRACE_FORK. */
 	ATF_REQUIRE(ptrace(PT_FOLLOW_FORK, fpid, NULL, 1) != -1);
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	ATF_REQUIRE(events & PTRACE_FORK);
 	ATF_REQUIRE(ptrace(PT_FOLLOW_FORK, fpid, NULL, 0) != -1);
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	ATF_REQUIRE(!(events & PTRACE_FORK));
 
 	/* PT_LWP_EVENTS should toggle the state of PTRACE_LWP. */
 	ATF_REQUIRE(ptrace(PT_LWP_EVENTS, fpid, NULL, 1) != -1);
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	ATF_REQUIRE(events & PTRACE_LWP);
 	ATF_REQUIRE(ptrace(PT_LWP_EVENTS, fpid, NULL, 0) != -1);
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	ATF_REQUIRE(!(events & PTRACE_LWP));
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
@@ -1705,11 +1708,11 @@ ATF_TC_BODY(ptrace__ptrace_vfork, tc)
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	events |= PTRACE_VFORK;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
-	
+			sizeof(events)) == 0);
+
 	/* Continue the child ignoring the SIGSTOP. */
 	ATF_REQUIRE(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0) != -1);
 
@@ -1756,10 +1759,10 @@ ATF_TC_BODY(ptrace__ptrace_vfork_follow, tc)
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, children[0], (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	events |= PTRACE_FORK | PTRACE_VFORK;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, children[0], (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 
 	/* Continue the child ignoring the SIGSTOP. */
 	ATF_REQUIRE(ptrace(PT_CONTINUE, children[0], (caddr_t)1, 0) != -1);
@@ -1790,8 +1793,8 @@ ATF_TC_BODY(ptrace__ptrace_vfork_follow, tc)
 	REQUIRE_EQ(wpid, children[0]);
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl[0], sizeof(pl[0])) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_LWPINFO, wpid, (caddr_t)&pl[0], sizeof(pl[0])) != -1);
 	ATF_REQUIRE((pl[0].pl_flags & PL_FLAG_VFORK_DONE) != 0);
 
 	ATF_REQUIRE(ptrace(PT_CONTINUE, children[0], (caddr_t)1, 0) != -1);
@@ -1928,8 +1931,7 @@ ATF_TC_BODY(ptrace__PT_KILL_threads, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	main_lwp = pl.pl_lwpid;
 
 	REQUIRE_EQ(ptrace(PT_LWP_EVENTS, wpid, NULL, 1), 0);
@@ -1968,7 +1970,7 @@ mask_usr1_thread(void *arg)
 	pthread_barrier_t *pbarrier;
 	sigset_t sigmask;
 
-	pbarrier = (pthread_barrier_t*)arg;
+	pbarrier = (pthread_barrier_t *)arg;
 
 	sigemptyset(&sigmask);
 	sigaddset(&sigmask, SIGUSR1);
@@ -2009,13 +2011,14 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_signal, tc)
 		CPU_SET(0, &setmask);
 		cpusetid_t setid;
 		CHILD_REQUIRE_EQ(cpuset(&setid), 0);
-		CHILD_REQUIRE(cpuset_setaffinity(CPU_LEVEL_CPUSET,
-		    CPU_WHICH_CPUSET, setid, sizeof(setmask), &setmask) == 0);
+		CHILD_REQUIRE(
+		    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
+			setid, sizeof(setmask), &setmask) == 0);
 
 		CHILD_REQUIRE_EQ(pthread_barrier_init(&barrier, NULL, 2), 0);
 
 		CHILD_REQUIRE(pthread_create(&t, NULL, mask_usr1_thread,
-		    (void*)&barrier) == 0);
+				  (void *)&barrier) == 0);
 
 		/*
 		 * Give the main thread higher priority. The test always
@@ -2024,12 +2027,13 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_signal, tc)
 		 */
 		sched_param.sched_priority =
 		    (sched_get_priority_max(SCHED_FIFO) +
-		    sched_get_priority_min(SCHED_FIFO)) / 2;
-		CHILD_REQUIRE(pthread_setschedparam(pthread_self(),
-		    SCHED_FIFO, &sched_param) == 0);
+			sched_get_priority_min(SCHED_FIFO)) /
+		    2;
+		CHILD_REQUIRE(pthread_setschedparam(pthread_self(), SCHED_FIFO,
+				  &sched_param) == 0);
 		sched_param.sched_priority -= RQ_PPQ;
-		CHILD_REQUIRE(pthread_setschedparam(t, SCHED_FIFO,
-		    &sched_param) == 0);
+		CHILD_REQUIRE(
+		    pthread_setschedparam(t, SCHED_FIFO, &sched_param) == 0);
 
 		sigset_t sigmask;
 		sigemptyset(&sigmask);
@@ -2112,13 +2116,14 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_stop, tc)
 		CPU_SET(0, &setmask);
 		cpusetid_t setid;
 		CHILD_REQUIRE_EQ(cpuset(&setid), 0);
-		CHILD_REQUIRE(cpuset_setaffinity(CPU_LEVEL_CPUSET,
-		    CPU_WHICH_CPUSET, setid, sizeof(setmask), &setmask) == 0);
+		CHILD_REQUIRE(
+		    cpuset_setaffinity(CPU_LEVEL_CPUSET, CPU_WHICH_CPUSET,
+			setid, sizeof(setmask), &setmask) == 0);
 
 		CHILD_REQUIRE_EQ(pthread_barrier_init(&barrier, NULL, 2), 0);
 
 		CHILD_REQUIRE(pthread_create(&t, NULL, mask_usr1_thread,
-		    (void*)&barrier) == 0);
+				  (void *)&barrier) == 0);
 
 		/*
 		 * Give the main thread higher priority. The test always
@@ -2127,12 +2132,13 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_stop, tc)
 		 */
 		sched_param.sched_priority =
 		    (sched_get_priority_max(SCHED_FIFO) +
-		    sched_get_priority_min(SCHED_FIFO)) / 2;
-		CHILD_REQUIRE(pthread_setschedparam(pthread_self(),
-		    SCHED_FIFO, &sched_param) == 0);
+			sched_get_priority_min(SCHED_FIFO)) /
+		    2;
+		CHILD_REQUIRE(pthread_setschedparam(pthread_self(), SCHED_FIFO,
+				  &sched_param) == 0);
 		sched_param.sched_priority -= RQ_PPQ;
-		CHILD_REQUIRE(pthread_setschedparam(t, SCHED_FIFO,
-		    &sched_param) == 0);
+		CHILD_REQUIRE(
+		    pthread_setschedparam(t, SCHED_FIFO, &sched_param) == 0);
 
 		sigset_t sigmask;
 		sigemptyset(&sigmask);
@@ -2171,7 +2177,7 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_stop, tc)
 		ATF_REQUIRE(WIFSTOPPED(status));
 		if (WSTOPSIG(status) == SIGTRAP) {
 			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-			    sizeof(pl)) != -1);
+					sizeof(pl)) != -1);
 			ATF_REQUIRE(pl.pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX));
 		} else {
 			REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
@@ -2188,8 +2194,7 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_stop, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	REQUIRE_EQ(pl.pl_lwpid, main_lwp);
 	ATF_REQUIRE(pl.pl_flags & PL_FLAG_SCE);
 	/* Prevent the main thread from hitting its syscall exit for now. */
@@ -2206,8 +2211,7 @@ ATF_TC_BODY(ptrace__PT_KILL_competing_stop, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 	ATF_REQUIRE(pl.pl_lwpid != main_lwp);
 	ATF_REQUIRE(pl.pl_flags & PL_FLAG_SCX);
 
@@ -2285,7 +2289,7 @@ ATF_TC_BODY(ptrace__PT_KILL_with_signal_full_sigqueue, tc)
 
 	len = sizeof(max_pending_per_proc);
 	ATF_REQUIRE(sysctlbyname("kern.sigqueue.max_pending_per_proc",
-	    &max_pending_per_proc, &len, NULL, 0) == 0);
+			&max_pending_per_proc, &len, NULL, 0) == 0);
 
 	/* Fill the signal queue. */
 	for (i = 0; i < max_pending_per_proc; ++i)
@@ -2356,7 +2360,8 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_system_call_entry, tc)
 		wpid = waitpid(fpid, &status, 0);
 		REQUIRE_EQ(wpid, fpid);
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
-			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
+					sizeof(pl)) != -1);
 			ATF_REQUIRE(pl.pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX));
 			REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 		} else {
@@ -2445,7 +2450,8 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_system_call_entry_and_exit, tc)
 		wpid = waitpid(fpid, &status, 0);
 		REQUIRE_EQ(wpid, fpid);
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
-			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
+					sizeof(pl)) != -1);
 			ATF_REQUIRE(pl.pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX));
 			REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 		} else {
@@ -2490,7 +2496,7 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_full_sigqueue, tc)
 
 	len = sizeof(max_pending_per_proc);
 	ATF_REQUIRE(sysctlbyname("kern.sigqueue.max_pending_per_proc",
-	    &max_pending_per_proc, &len, NULL, 0) == 0);
+			&max_pending_per_proc, &len, NULL, 0) == 0);
 
 	/* Fill the signal queue. */
 	for (i = 0; i < max_pending_per_proc; ++i)
@@ -2581,7 +2587,7 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_masked_full_sigqueue, tc)
 
 	len = sizeof(max_pending_per_proc);
 	ATF_REQUIRE(sysctlbyname("kern.sigqueue.max_pending_per_proc",
-	    &max_pending_per_proc, &len, NULL, 0) == 0);
+			&max_pending_per_proc, &len, NULL, 0) == 0);
 
 	/* Fill the signal queue. */
 	for (i = 0; i < max_pending_per_proc; ++i)
@@ -2729,7 +2735,8 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_sigtrap_system_call_entry, tc)
 		wpid = waitpid(fpid, &status, 0);
 		REQUIRE_EQ(wpid, fpid);
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
-			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
+					sizeof(pl)) != -1);
 			ATF_REQUIRE(pl.pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX));
 			REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 		} else {
@@ -2821,7 +2828,8 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_mix, tc)
 		wpid = waitpid(fpid, &status, 0);
 		REQUIRE_EQ(wpid, fpid);
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
-			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+			ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
+					sizeof(pl)) != -1);
 			ATF_REQUIRE(pl.pl_flags & (PL_FLAG_SCE | PL_FLAG_SCX));
 			REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 		} else {
@@ -2897,7 +2905,7 @@ signal_thread(void *arg)
 	int err;
 	sigset_t sigmask;
 
-	pthread_barrier_t *pbarrier = (pthread_barrier_t*)arg;
+	pthread_barrier_t *pbarrier = (pthread_barrier_t *)arg;
 
 	/* Wait for this thread to receive a SIGUSR1. */
 	do {
@@ -3089,7 +3097,8 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_with_signal_thread_sigmask, tc)
 	ATF_REQUIRE((fpid = fork()) != -1);
 	if (fpid == 0) {
 		CHILD_REQUIRE_EQ(pthread_create(&t, NULL, signal_thread,
-		    (void *)&barrier), 0);
+				     (void *)&barrier),
+		    0);
 
 		/* The other thread should receive the first SIGUSR1. */
 		CHILD_REQUIRE_EQ(sigemptyset(&sigmask), 0);
@@ -3215,32 +3224,32 @@ ATF_TC_BODY(ptrace__PT_REGSET, tc)
 	/* Check the size is returned when vec.iov_base is NULL */
 	vec.iov_base = NULL;
 	vec.iov_len = 0;
-	ATF_REQUIRE(ptrace(PT_GETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) != -1);
 	ATF_REQUIRE(vec.iov_len == sizeof(prstatus));
 	ATF_REQUIRE(vec.iov_base == NULL);
 
 	/* Read the registers. */
 	memset(&prstatus, 0, sizeof(prstatus));
 	vec.iov_base = &prstatus;
-	ATF_REQUIRE(ptrace(PT_GETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) != -1);
 	ATF_REQUIRE(vec.iov_len == sizeof(prstatus));
 	ATF_REQUIRE(vec.iov_base == &prstatus);
 	ATF_REQUIRE(prstatus.pr_statussz == sizeof(prstatus));
 
 	/* Write the registers back. */
-	ATF_REQUIRE(ptrace(PT_SETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_SETREGSET, wpid, (caddr_t)&vec, NT_PRSTATUS) != -1);
 
 #if defined(__aarch64__)
 	vec.iov_base = &addr_mask;
 	vec.iov_len = sizeof(addr_mask);
-	ATF_REQUIRE(ptrace(PT_GETREGSET, wpid, (caddr_t)&vec,
-	    NT_ARM_ADDR_MASK) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GETREGSET, wpid, (caddr_t)&vec, NT_ARM_ADDR_MASK) != -1);
 	REQUIRE_EQ(addr_mask.code, addr_mask.data);
-	ATF_REQUIRE(addr_mask.code == 0 ||
-	    addr_mask.code == 0xff7f000000000000UL);
+	ATF_REQUIRE(
+	    addr_mask.code == 0 || addr_mask.code == 0xff7f000000000000UL);
 #endif
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, child, (caddr_t)1, 0), 0);
@@ -3301,8 +3310,8 @@ terminate_with_pending_sigstop(bool sigstop_from_main_thread)
 			CPU_SET(0, &setmask);
 			CHILD_REQUIRE_EQ(cpuset(&setid), 0);
 			CHILD_REQUIRE(cpuset_setaffinity(CPU_LEVEL_CPUSET,
-			    CPU_WHICH_CPUSET, setid,
-			    sizeof(setmask), &setmask) == 0);
+					  CPU_WHICH_CPUSET, setid,
+					  sizeof(setmask), &setmask) == 0);
 
 			if (sigstop_from_main_thread) {
 				/*
@@ -3312,7 +3321,7 @@ terminate_with_pending_sigstop(bool sigstop_from_main_thread)
 				 * threads compete.
 				 */
 				CHILD_REQUIRE(pthread_create(&t, NULL,
-				    sleep_thread, NULL) == 0);
+						  sleep_thread, NULL) == 0);
 				raise(SIGSTOP);
 			} else {
 				/*
@@ -3321,8 +3330,9 @@ terminate_with_pending_sigstop(bool sigstop_from_main_thread)
 				 * just get off the CPU so the other thread can
 				 * raise the SIGSTOP.
 				 */
-				CHILD_REQUIRE(pthread_create(&t, NULL,
-				    raise_sigstop_thread, NULL) == 0);
+				CHILD_REQUIRE(
+				    pthread_create(&t, NULL,
+					raise_sigstop_thread, NULL) == 0);
 				sleep(60);
 			}
 
@@ -3429,7 +3439,7 @@ ATF_TC_BODY(ptrace__event_mask_sigkill_discard, tc)
 	/* Set several unobtrusive event bits. */
 	event_mask = PTRACE_EXEC | PTRACE_FORK | PTRACE_LWP;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, wpid, (caddr_t)&event_mask,
-	    sizeof(event_mask)) == 0);
+			sizeof(event_mask)) == 0);
 
 	/* Send a SIGKILL without using ptrace. */
 	REQUIRE_EQ(kill(fpid, SIGKILL), 0);
@@ -3459,7 +3469,7 @@ ATF_TC_BODY(ptrace__event_mask_sigkill_discard, tc)
 	/* Check the current event mask. It should not have changed. */
 	new_event_mask = 0;
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, wpid, (caddr_t)&new_event_mask,
-	    sizeof(new_event_mask)) == 0);
+			sizeof(new_event_mask)) == 0);
 	REQUIRE_EQ(event_mask, new_event_mask);
 
 	/* Continue the child to let it exit. */
@@ -3502,7 +3512,7 @@ ATF_TC_BODY(ptrace__PT_ATTACH_with_SBDRY_thread, tc)
 
 	REQUIRE_EQ(pthread_barrierattr_init(&battr), 0);
 	ATF_REQUIRE(pthread_barrierattr_setpshared(&battr,
-	    PTHREAD_PROCESS_SHARED) == 0);
+			PTHREAD_PROCESS_SHARED) == 0);
 	REQUIRE_EQ(pthread_barrier_init(&barrier, &battr, 2), 0);
 
 	(void)snprintf(tmpfile, sizeof(tmpfile), "./ptrace.XXXXXX");
@@ -3771,10 +3781,10 @@ continue_thread_main(void)
 {
 	pthread_t threads[2];
 
-	CHILD_REQUIRE(pthread_create(&threads[0], NULL, continue_thread,
-	    NULL) == 0);
-	CHILD_REQUIRE(pthread_create(&threads[1], NULL, continue_thread,
-	    NULL) == 0);
+	CHILD_REQUIRE(
+	    pthread_create(&threads[0], NULL, continue_thread, NULL) == 0);
+	CHILD_REQUIRE(
+	    pthread_create(&threads[1], NULL, continue_thread, NULL) == 0);
 	CHILD_REQUIRE_EQ(pthread_join(threads[0], NULL), 0);
 	CHILD_REQUIRE_EQ(pthread_join(threads[1], NULL), 0);
 	exit(1);
@@ -3807,8 +3817,7 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_different_thread, tc)
 	ATF_REQUIRE(WIFSTOPPED(status));
 	REQUIRE_EQ(WSTOPSIG(status), SIGSTOP);
 
-	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-	    sizeof(pl)) != -1);
+	ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
 
 	REQUIRE_EQ(ptrace(PT_LWP_EVENTS, wpid, NULL, 1), 0);
 
@@ -3886,9 +3895,9 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_different_thread, tc)
 		ATF_REQUIRE(WIFSTOPPED(status));
 		REQUIRE_EQ(WSTOPSIG(status), SIGTRAP);
 
-		ATF_REQUIRE(ptrace(PT_LWPINFO, wpid, (caddr_t)&pl,
-		    sizeof(pl)) != -1);
-		
+		ATF_REQUIRE(
+		    ptrace(PT_LWPINFO, wpid, (caddr_t)&pl, sizeof(pl)) != -1);
+
 		if (pl.pl_lwpid == lwps[0])
 			i = 0;
 		else
@@ -3906,11 +3915,11 @@ ATF_TC_BODY(ptrace__PT_CONTINUE_different_thread, tc)
 			ATF_REQUIRE_MSG(!hit_break[i],
 			    "double breakpoint event");
 			hit_break[i] = true;
-			ATF_REQUIRE(ptrace(PT_GETREGS, pl.pl_lwpid, (caddr_t)&reg,
-			    0) != -1);
+			ATF_REQUIRE(ptrace(PT_GETREGS, pl.pl_lwpid,
+					(caddr_t)&reg, 0) != -1);
 			SKIP_BREAK(&reg);
-			ATF_REQUIRE(ptrace(PT_SETREGS, pl.pl_lwpid, (caddr_t)&reg,
-			    0) != -1);
+			ATF_REQUIRE(ptrace(PT_SETREGS, pl.pl_lwpid,
+					(caddr_t)&reg, 0) != -1);
 		}
 
 		REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
@@ -3987,10 +3996,10 @@ ATF_TC_BODY(ptrace__PT_LWPINFO_stale_siginfo, tc)
 
 	/* Disable syscall tracing and continue the child to let it exit. */
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	events &= ~PTRACE_SYSCALL;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 
 	/* The last event should be for the child process's exit. */
@@ -4062,8 +4071,8 @@ ATF_TC_BODY(ptrace__syscall_args, tc)
 	ATF_REQUIRE(pl.pl_flags & PL_FLAG_SCX);
 	REQUIRE_EQ(pl.pl_syscall_code, (unsigned)SYS_getpid);
 
-	ATF_REQUIRE(ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr,
-	    sizeof(psr)) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr, sizeof(psr)) != -1);
 	REQUIRE_EQ(psr.sr_error, 0);
 	REQUIRE_EQ(psr.sr_retval[0], wpid);
 
@@ -4082,8 +4091,8 @@ ATF_TC_BODY(ptrace__syscall_args, tc)
 	REQUIRE_EQ(pl.pl_syscall_code, (unsigned)SYS_kill);
 	REQUIRE_EQ(pl.pl_syscall_narg, 2u);
 
-	ATF_REQUIRE(ptrace(PT_GET_SC_ARGS, wpid, (caddr_t)args,
-	    sizeof(args)) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GET_SC_ARGS, wpid, (caddr_t)args, sizeof(args)) != -1);
 	REQUIRE_EQ(args[0], wpid);
 	REQUIRE_EQ(args[1], 0);
 
@@ -4101,8 +4110,8 @@ ATF_TC_BODY(ptrace__syscall_args, tc)
 	ATF_REQUIRE(pl.pl_flags & PL_FLAG_SCX);
 	REQUIRE_EQ(pl.pl_syscall_code, (unsigned)SYS_kill);
 
-	ATF_REQUIRE(ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr,
-	    sizeof(psr)) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr, sizeof(psr)) != -1);
 	REQUIRE_EQ(psr.sr_error, 0);
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
@@ -4120,8 +4129,8 @@ ATF_TC_BODY(ptrace__syscall_args, tc)
 	REQUIRE_EQ(pl.pl_syscall_code, (unsigned)SYS_close);
 	REQUIRE_EQ(pl.pl_syscall_narg, 1u);
 
-	ATF_REQUIRE(ptrace(PT_GET_SC_ARGS, wpid, (caddr_t)args,
-	    sizeof(args)) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GET_SC_ARGS, wpid, (caddr_t)args, sizeof(args)) != -1);
 	REQUIRE_EQ(args[0], 12345);
 
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
@@ -4138,16 +4147,16 @@ ATF_TC_BODY(ptrace__syscall_args, tc)
 	ATF_REQUIRE(pl.pl_flags & PL_FLAG_SCX);
 	REQUIRE_EQ(pl.pl_syscall_code, (unsigned)SYS_close);
 
-	ATF_REQUIRE(ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr,
-	    sizeof(psr)) != -1);
+	ATF_REQUIRE(
+	    ptrace(PT_GET_SC_RET, wpid, (caddr_t)&psr, sizeof(psr)) != -1);
 	REQUIRE_EQ(psr.sr_error, EBADF);
 
 	/* Disable syscall tracing and continue the child to let it exit. */
 	ATF_REQUIRE(ptrace(PT_GET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	events &= ~PTRACE_SYSCALL;
 	ATF_REQUIRE(ptrace(PT_SET_EVENT_MASK, fpid, (caddr_t)&events,
-	    sizeof(events)) == 0);
+			sizeof(events)) == 0);
 	REQUIRE_EQ(ptrace(PT_CONTINUE, fpid, (caddr_t)1, 0), 0);
 
 	/* The last event should be for the child process's exit. */
@@ -4336,8 +4345,8 @@ ATF_TC_BODY(ptrace__PT_SC_REMOTE_getpid, tc)
 	pscr.pscr_syscall = SYS_getpid;
 	pscr.pscr_nargs = 0;
 	pscr.pscr_args = NULL;
-	ATF_REQUIRE(ptrace(PT_SC_REMOTE, fpid, (caddr_t)&pscr, sizeof(pscr)) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_SC_REMOTE, fpid, (caddr_t)&pscr, sizeof(pscr)) != -1);
 	ATF_REQUIRE_MSG(pscr.pscr_ret.sr_error == 0,
 	    "remote getpid failed with error %d", pscr.pscr_ret.sr_error);
 	ATF_REQUIRE_MSG(pscr.pscr_ret.sr_retval[0] == fpid,
@@ -4352,8 +4361,8 @@ ATF_TC_BODY(ptrace__PT_SC_REMOTE_getpid, tc)
 	pscr.pscr_syscall = SYS_getppid;
 	pscr.pscr_nargs = 0;
 	pscr.pscr_args = NULL;
-	ATF_REQUIRE(ptrace(PT_SC_REMOTE, fpid, (caddr_t)&pscr, sizeof(pscr)) !=
-	    -1);
+	ATF_REQUIRE(
+	    ptrace(PT_SC_REMOTE, fpid, (caddr_t)&pscr, sizeof(pscr)) != -1);
 	ATF_REQUIRE_MSG(pscr.pscr_ret.sr_error == 0,
 	    "remote getppid failed with error %d", pscr.pscr_ret.sr_error);
 	ATF_REQUIRE_MSG(pscr.pscr_ret.sr_retval[0] == getpid(),

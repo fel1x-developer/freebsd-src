@@ -2,7 +2,7 @@
 Copyright 1990, by Alfalfa Software Incorporated, Cambridge, Massachusetts.
 Copyright 2010, Gabor Kovesdan <gabor@FreeBSD.org>
 
-                        All Rights Reserved
+			All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted,
@@ -33,15 +33,14 @@ up-to-date.  Many thanks.
 
 #define _NLS_PRIVATE
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/queue.h>
+#include <sys/stat.h>
 
-#include <arpa/inet.h>		/* for ntohl() */
 #include <machine/atomic.h>
 
+#include <arpa/inet.h> /* for ntohl() */
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -52,70 +51,83 @@ up-to-date.  Many thanks.
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "../locale/xlocale_private.h"
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-#define _DEFAULT_NLS_PATH "/usr/share/nls/%L/%N.cat:/usr/share/nls/%N/%L:"	\
-				_PATH_LOCALBASE "/share/nls/%L/%N.cat:"		\
-				_PATH_LOCALBASE "/share/nls/%N/%L"
+#define _DEFAULT_NLS_PATH                                                \
+	"/usr/share/nls/%L/%N.cat:/usr/share/nls/%N/%L:" _PATH_LOCALBASE \
+	"/share/nls/%L/%N.cat:" _PATH_LOCALBASE "/share/nls/%N/%L"
 
-#define RLOCK(fail)	{ int ret;						\
-			  if (__isthreaded &&					\
-			      ((ret = _pthread_rwlock_rdlock(&rwlock)) != 0)) {	\
-				  errno = ret;					\
-				  return (fail);				\
-			  }}
-#define WLOCK(fail)	{ int ret;						\
-			  if (__isthreaded &&					\
-			      ((ret = _pthread_rwlock_wrlock(&rwlock)) != 0)) {	\
-				  errno = ret;					\
-				  return (fail);				\
-			  }}
-#define UNLOCK		{ if (__isthreaded)					\
-			      _pthread_rwlock_unlock(&rwlock); }
+#define RLOCK(fail)                                                   \
+	{                                                             \
+		int ret;                                              \
+		if (__isthreaded &&                                   \
+		    ((ret = _pthread_rwlock_rdlock(&rwlock)) != 0)) { \
+			errno = ret;                                  \
+			return (fail);                                \
+		}                                                     \
+	}
+#define WLOCK(fail)                                                   \
+	{                                                             \
+		int ret;                                              \
+		if (__isthreaded &&                                   \
+		    ((ret = _pthread_rwlock_wrlock(&rwlock)) != 0)) { \
+			errno = ret;                                  \
+			return (fail);                                \
+		}                                                     \
+	}
+#define UNLOCK                                           \
+	{                                                \
+		if (__isthreaded)                        \
+			_pthread_rwlock_unlock(&rwlock); \
+	}
 
-#define	NLERR		((nl_catd) -1)
-#define NLRETERR(errc)  { errno = errc; return (NLERR); }
-#define SAVEFAIL(n, l, e)	{ np = calloc(1, sizeof(struct catentry));	\
-				  if (np != NULL) {				\
-				  	np->name = strdup(n);			\
-					np->catd = NLERR;			\
-					np->lang = (l == NULL) ? NULL :		\
-					    strdup(l);				\
-					np->caterrno = e;			\
-					if (np->name == NULL ||			\
-					    (l != NULL && np->lang == NULL)) {	\
-						free(np->name);			\
-						free(np->lang);			\
-						free(np);			\
-					} else {				\
-						WLOCK(NLERR);			\
-						SLIST_INSERT_HEAD(&cache, np,	\
-						    list);			\
-						UNLOCK;				\
-					}					\
-				  }						\
-				  errno = e;					\
-				}
+#define NLERR ((nl_catd)-1)
+#define NLRETERR(errc)          \
+	{                       \
+		errno = errc;   \
+		return (NLERR); \
+	}
+#define SAVEFAIL(n, l, e)                                            \
+	{                                                            \
+		np = calloc(1, sizeof(struct catentry));             \
+		if (np != NULL) {                                    \
+			np->name = strdup(n);                        \
+			np->catd = NLERR;                            \
+			np->lang = (l == NULL) ? NULL : strdup(l);   \
+			np->caterrno = e;                            \
+			if (np->name == NULL ||                      \
+			    (l != NULL && np->lang == NULL)) {       \
+				free(np->name);                      \
+				free(np->lang);                      \
+				free(np);                            \
+			} else {                                     \
+				WLOCK(NLERR);                        \
+				SLIST_INSERT_HEAD(&cache, np, list); \
+				UNLOCK;                              \
+			}                                            \
+		}                                                    \
+		errno = e;                                           \
+	}
 
 static nl_catd load_msgcat(const char *, const char *, const char *);
 
-static pthread_rwlock_t		 rwlock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 struct catentry {
-	SLIST_ENTRY(catentry)	 list;
-	char			*name;
-	char			*path;
-	int			 caterrno;
-	nl_catd			 catd;
-	char			*lang;
-	int			 refcount;
+	SLIST_ENTRY(catentry) list;
+	char *name;
+	char *path;
+	int caterrno;
+	nl_catd catd;
+	char *lang;
+	int refcount;
 };
 
-SLIST_HEAD(listhead, catentry) cache =
-    SLIST_HEAD_INITIALIZER(cache);
+SLIST_HEAD(listhead, catentry) cache = SLIST_HEAD_INITIALIZER(cache);
 
 nl_catd
 catopen(const char *name, int type)
@@ -147,19 +159,22 @@ __catopen_l(const char *name, int type, locale_t locale)
 		else
 			lang = getenv("LANG");
 
-		if (lang == NULL || *lang == '\0' || strlen(lang) > ENCODING_LEN ||
+		if (lang == NULL || *lang == '\0' ||
+		    strlen(lang) > ENCODING_LEN ||
 		    (lang[0] == '.' &&
-		    (lang[1] == '\0' || (lang[1] == '.' && lang[2] == '\0'))) ||
+			(lang[1] == '\0' ||
+			    (lang[1] == '.' && lang[2] == '\0'))) ||
 		    strchr(lang, '/') != NULL)
 			lang = "C";
 	}
 
 	/* Try to get it from the cache first */
 	RLOCK(NLERR);
-	SLIST_FOREACH(np, &cache, list) {
+	SLIST_FOREACH (np, &cache, list) {
 		if ((strcmp(np->name, name) == 0) &&
 		    ((lang != NULL && np->lang != NULL &&
-		    strcmp(np->lang, lang) == 0) || (np->lang == lang))) {
+			 strcmp(np->lang, lang) == 0) ||
+			(np->lang == lang))) {
 			if (np->caterrno != 0) {
 				/* Found cached failing entry */
 				UNLOCK;
@@ -235,15 +250,16 @@ __catopen_l(const char *name, int type, locale_t locale)
 						continue;
 					}
 					++nlspath;
-			put_tmpptr:
+				put_tmpptr:
 					spcleft = sizeof(path) -
-						  (pathP - path) - 1;
+					    (pathP - path) - 1;
 					if (strlcpy(pathP, tmpptr, spcleft) >=
 					    spcleft) {
-			too_long:
+					too_long:
 						free(plang);
 						free(base);
-						SAVEFAIL(name, lang, ENAMETOOLONG);
+						SAVEFAIL(name, lang,
+						    ENAMETOOLONG);
 						NLRETERR(ENAMETOOLONG);
 					}
 					pathP += strlen(tmpptr);
@@ -297,8 +313,8 @@ catgets(nl_catd catd, int set_id, int msg_id, const char *s)
 		r = set_id - ntohl((u_int32_t)set_hdr[i].__setno);
 
 		if (r == 0) {
-			msg_hdr = (struct _nls_msg_hdr *)
-			    (void *)((char *)catd->__data +
+			msg_hdr = (struct _nls_msg_hdr *)(void *)((char *)catd
+								      ->__data +
 			    sizeof(struct _nls_cat_hdr) +
 			    ntohl((u_int32_t)cat_hdr->__msg_hdr_offset));
 
@@ -309,12 +325,12 @@ catgets(nl_catd catd, int set_id, int msg_id, const char *s)
 				r = msg_id -
 				    ntohl((u_int32_t)msg_hdr[i].__msgno);
 				if (r == 0) {
-					return ((char *) catd->__data +
+					return ((char *)catd->__data +
 					    sizeof(struct _nls_cat_hdr) +
-					    ntohl((u_int32_t)
-					    cat_hdr->__msg_txt_offset) +
-					    ntohl((u_int32_t)
-					    msg_hdr[i].__offset));
+					    ntohl((u_int32_t)cat_hdr
+						      ->__msg_txt_offset) +
+					    ntohl((u_int32_t)msg_hdr[i]
+						      .__offset));
 				} else if (r < 0) {
 					u = i - 1;
 				} else {
@@ -367,7 +383,7 @@ catclose(nl_catd catd)
 
 	/* Remove from cache if not referenced any more */
 	WLOCK(-1);
-	SLIST_FOREACH(np, &cache, list) {
+	SLIST_FOREACH (np, &cache, list) {
 		if (catd == np->catd) {
 			if (atomic_fetchadd_int(&np->refcount, -1) == 1)
 				catfree(np);
@@ -386,7 +402,7 @@ static nl_catd
 load_msgcat(const char *path, const char *name, const char *lang)
 {
 	struct stat st;
-	nl_catd	catd;
+	nl_catd catd;
 	struct catentry *np;
 	void *data;
 	char *copy_path, *copy_name, *copy_lang;
@@ -399,7 +415,7 @@ load_msgcat(const char *path, const char *name, const char *lang)
 	 * it might still be found by absolute path.
 	 */
 	RLOCK(NLERR);
-	SLIST_FOREACH(np, &cache, list) {
+	SLIST_FOREACH (np, &cache, list) {
 		if ((np->path != NULL) && (strcmp(np->path, path) == 0)) {
 			atomic_add_int(&np->refcount, 1);
 			UNLOCK;
@@ -431,7 +447,7 @@ load_msgcat(const char *path, const char *name, const char *lang)
 	}
 
 	if ((data = mmap(0, (size_t)st.st_size, PROT_READ,
-	    MAP_FILE|MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
+		 MAP_FILE | MAP_SHARED, fd, (off_t)0)) == MAP_FAILED) {
 		int saved_errno = errno;
 		_close(fd);
 		SAVEFAIL(name, lang, saved_errno);
@@ -449,12 +465,11 @@ load_msgcat(const char *path, const char *name, const char *lang)
 	copy_name = strdup(name);
 	copy_path = strdup(path);
 	copy_lang = (lang == NULL) ? NULL : strdup(lang);
-	catd = malloc(sizeof (*catd));
+	catd = malloc(sizeof(*catd));
 	np = calloc(1, sizeof(struct catentry));
 
 	if (copy_name == NULL || copy_path == NULL ||
-	    (lang != NULL && copy_lang == NULL) ||
-	    catd == NULL || np == NULL) {
+	    (lang != NULL && copy_lang == NULL) || catd == NULL || np == NULL) {
 		free(copy_name);
 		free(copy_path);
 		free(copy_lang);

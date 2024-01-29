@@ -41,8 +41,8 @@
 
 #include "main.h"
 
-#define	MSGBUF_CONTROL_NAME	"security.bsd.unprivileged_read_msgbuf"
-#define	MSGBUF_NAME		"kern.msgbuf"
+#define MSGBUF_CONTROL_NAME "security.bsd.unprivileged_read_msgbuf"
+#define MSGBUF_NAME "kern.msgbuf"
 
 /*
  * We must query and save the original value, then restore it when done.
@@ -60,14 +60,14 @@ priv_msgbuf_privonly_setup(int asroot, int injail, struct test *test)
 	 * Separately query and set to make debugging easier.
 	 */
 	len = sizeof(unprivileged_read_msgbuf);
-	if (sysctlbyname(MSGBUF_CONTROL_NAME, &unprivileged_read_msgbuf,
-	    &len, NULL, 0) < 0) {
+	if (sysctlbyname(MSGBUF_CONTROL_NAME, &unprivileged_read_msgbuf, &len,
+		NULL, 0) < 0) {
 		warn("priv_msgbuf_privonly_setup: sysctlbyname query");
 		return (-1);
 	}
 	newval = 0;
 	if (sysctlbyname(MSGBUF_CONTROL_NAME, NULL, NULL, &newval,
-	    sizeof(newval)) < 0) {
+		sizeof(newval)) < 0) {
 		warn("priv_msgbuf_privonly_setup: sysctlbyname set");
 		return (-1);
 	}
@@ -106,13 +106,13 @@ priv_msgbuf_unprivok_setup(int asroot, int injail, struct test *test)
 	 */
 	len = sizeof(unprivileged_read_msgbuf);
 	if (sysctlbyname(MSGBUF_CONTROL_NAME, &unprivileged_read_msgbuf, &len,
-	    NULL, 0) < 0) {
+		NULL, 0) < 0) {
 		warn("priv_msgbuf_unprivok_setup: sysctlbyname query");
 		return (-1);
 	}
 	newval = 1;
 	if (sysctlbyname(MSGBUF_CONTROL_NAME, NULL, NULL, &newval,
-	    sizeof(newval)) < 0) {
+		sizeof(newval)) < 0) {
 		warn("priv_msgbuf_unprivok_setup: sysctlbyname set");
 		return (-1);
 	}

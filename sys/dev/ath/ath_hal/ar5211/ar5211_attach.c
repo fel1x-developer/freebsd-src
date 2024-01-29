@@ -19,164 +19,162 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-
-#include "ar5211/ar5211.h"
-#include "ar5211/ar5211reg.h"
-#include "ar5211/ar5211phy.h"
-
 #include "ah_eeprom_v3.h"
+#include "ah_internal.h"
+#include "ar5211/ar5211.h"
+#include "ar5211/ar5211phy.h"
+#include "ar5211/ar5211reg.h"
 
-static HAL_BOOL ar5211GetChannelEdges(struct ath_hal *ah,
-		uint16_t flags, uint16_t *low, uint16_t *high);
+static HAL_BOOL ar5211GetChannelEdges(struct ath_hal *ah, uint16_t flags,
+    uint16_t *low, uint16_t *high);
 static HAL_BOOL ar5211GetChipPowerLimits(struct ath_hal *ah,
-		struct ieee80211_channel *chan);
+    struct ieee80211_channel *chan);
 
 static void ar5211ConfigPCIE(struct ath_hal *ah, HAL_BOOL restore,
-		HAL_BOOL power_off);
+    HAL_BOOL power_off);
 static void ar5211DisablePCIE(struct ath_hal *ah);
 
-static const struct ath_hal_private ar5211hal = {{
-	.ah_magic			= AR5211_MAGIC,
+static const struct ath_hal_private ar5211hal = {
+	{ .ah_magic = AR5211_MAGIC,
 
-	.ah_getRateTable		= ar5211GetRateTable,
-	.ah_detach			= ar5211Detach,
+	    .ah_getRateTable = ar5211GetRateTable,
+	    .ah_detach = ar5211Detach,
 
-	/* Reset Functions */
-	.ah_reset			= ar5211Reset,
-	.ah_phyDisable			= ar5211PhyDisable,
-	.ah_disable			= ar5211Disable,
-	.ah_configPCIE			= ar5211ConfigPCIE,
-	.ah_disablePCIE			= ar5211DisablePCIE,
-	.ah_setPCUConfig		= ar5211SetPCUConfig,
-	.ah_perCalibration		= ar5211PerCalibration,
-	.ah_perCalibrationN		= ar5211PerCalibrationN,
-	.ah_resetCalValid		= ar5211ResetCalValid,
-	.ah_setTxPowerLimit		= ar5211SetTxPowerLimit,
-	.ah_getChanNoise		= ath_hal_getChanNoise,
+	    /* Reset Functions */
+	    .ah_reset = ar5211Reset,
+	    .ah_phyDisable = ar5211PhyDisable,
+	    .ah_disable = ar5211Disable,
+	    .ah_configPCIE = ar5211ConfigPCIE,
+	    .ah_disablePCIE = ar5211DisablePCIE,
+	    .ah_setPCUConfig = ar5211SetPCUConfig,
+	    .ah_perCalibration = ar5211PerCalibration,
+	    .ah_perCalibrationN = ar5211PerCalibrationN,
+	    .ah_resetCalValid = ar5211ResetCalValid,
+	    .ah_setTxPowerLimit = ar5211SetTxPowerLimit,
+	    .ah_getChanNoise = ath_hal_getChanNoise,
 
-	/* Transmit functions */
-	.ah_updateTxTrigLevel		= ar5211UpdateTxTrigLevel,
-	.ah_setupTxQueue		= ar5211SetupTxQueue,
-	.ah_setTxQueueProps             = ar5211SetTxQueueProps,
-	.ah_getTxQueueProps             = ar5211GetTxQueueProps,
-	.ah_releaseTxQueue		= ar5211ReleaseTxQueue,
-	.ah_resetTxQueue		= ar5211ResetTxQueue,
-	.ah_getTxDP			= ar5211GetTxDP,
-	.ah_setTxDP			= ar5211SetTxDP,
-	.ah_numTxPending		= ar5211NumTxPending,
-	.ah_startTxDma			= ar5211StartTxDma,
-	.ah_stopTxDma			= ar5211StopTxDma,
-	.ah_setupTxDesc			= ar5211SetupTxDesc,
-	.ah_setupXTxDesc		= ar5211SetupXTxDesc,
-	.ah_fillTxDesc			= ar5211FillTxDesc,
-	.ah_procTxDesc			= ar5211ProcTxDesc,
-	.ah_getTxIntrQueue		= ar5211GetTxIntrQueue,
-	.ah_reqTxIntrDesc 		= ar5211IntrReqTxDesc,
-	.ah_getTxCompletionRates	= ar5211GetTxCompletionRates,
-	.ah_setTxDescLink		= ar5211SetTxDescLink,
-	.ah_getTxDescLink		= ar5211GetTxDescLink,
-	.ah_getTxDescLinkPtr		= ar5211GetTxDescLinkPtr,
+	    /* Transmit functions */
+	    .ah_updateTxTrigLevel = ar5211UpdateTxTrigLevel,
+	    .ah_setupTxQueue = ar5211SetupTxQueue,
+	    .ah_setTxQueueProps = ar5211SetTxQueueProps,
+	    .ah_getTxQueueProps = ar5211GetTxQueueProps,
+	    .ah_releaseTxQueue = ar5211ReleaseTxQueue,
+	    .ah_resetTxQueue = ar5211ResetTxQueue,
+	    .ah_getTxDP = ar5211GetTxDP,
+	    .ah_setTxDP = ar5211SetTxDP,
+	    .ah_numTxPending = ar5211NumTxPending,
+	    .ah_startTxDma = ar5211StartTxDma,
+	    .ah_stopTxDma = ar5211StopTxDma,
+	    .ah_setupTxDesc = ar5211SetupTxDesc,
+	    .ah_setupXTxDesc = ar5211SetupXTxDesc,
+	    .ah_fillTxDesc = ar5211FillTxDesc,
+	    .ah_procTxDesc = ar5211ProcTxDesc,
+	    .ah_getTxIntrQueue = ar5211GetTxIntrQueue,
+	    .ah_reqTxIntrDesc = ar5211IntrReqTxDesc,
+	    .ah_getTxCompletionRates = ar5211GetTxCompletionRates,
+	    .ah_setTxDescLink = ar5211SetTxDescLink,
+	    .ah_getTxDescLink = ar5211GetTxDescLink,
+	    .ah_getTxDescLinkPtr = ar5211GetTxDescLinkPtr,
 
-	/* RX Functions */
-	.ah_getRxDP			= ar5211GetRxDP,
-	.ah_setRxDP			= ar5211SetRxDP,
-	.ah_enableReceive		= ar5211EnableReceive,
-	.ah_stopDmaReceive		= ar5211StopDmaReceive,
-	.ah_startPcuReceive		= ar5211StartPcuReceive,
-	.ah_stopPcuReceive		= ar5211StopPcuReceive,
-	.ah_setMulticastFilter		= ar5211SetMulticastFilter,
-	.ah_setMulticastFilterIndex	= ar5211SetMulticastFilterIndex,
-	.ah_clrMulticastFilterIndex	= ar5211ClrMulticastFilterIndex,
-	.ah_getRxFilter			= ar5211GetRxFilter,
-	.ah_setRxFilter			= ar5211SetRxFilter,
-	.ah_setupRxDesc			= ar5211SetupRxDesc,
-	.ah_procRxDesc			= ar5211ProcRxDesc,
-	.ah_rxMonitor			= ar5211RxMonitor,
-	.ah_aniPoll			= ar5211AniPoll,
-	.ah_procMibEvent		= ar5211MibEvent,
+	    /* RX Functions */
+	    .ah_getRxDP = ar5211GetRxDP,
+	    .ah_setRxDP = ar5211SetRxDP,
+	    .ah_enableReceive = ar5211EnableReceive,
+	    .ah_stopDmaReceive = ar5211StopDmaReceive,
+	    .ah_startPcuReceive = ar5211StartPcuReceive,
+	    .ah_stopPcuReceive = ar5211StopPcuReceive,
+	    .ah_setMulticastFilter = ar5211SetMulticastFilter,
+	    .ah_setMulticastFilterIndex = ar5211SetMulticastFilterIndex,
+	    .ah_clrMulticastFilterIndex = ar5211ClrMulticastFilterIndex,
+	    .ah_getRxFilter = ar5211GetRxFilter,
+	    .ah_setRxFilter = ar5211SetRxFilter,
+	    .ah_setupRxDesc = ar5211SetupRxDesc,
+	    .ah_procRxDesc = ar5211ProcRxDesc,
+	    .ah_rxMonitor = ar5211RxMonitor,
+	    .ah_aniPoll = ar5211AniPoll,
+	    .ah_procMibEvent = ar5211MibEvent,
 
-	/* Misc Functions */
-	.ah_getCapability		= ar5211GetCapability,
-	.ah_setCapability		= ar5211SetCapability,
-	.ah_getDiagState		= ar5211GetDiagState,
-	.ah_getMacAddress		= ar5211GetMacAddress,
-	.ah_setMacAddress		= ar5211SetMacAddress,
-	.ah_getBssIdMask		= ar5211GetBssIdMask,
-	.ah_setBssIdMask		= ar5211SetBssIdMask,
-	.ah_setRegulatoryDomain		= ar5211SetRegulatoryDomain,
-	.ah_setLedState			= ar5211SetLedState,
-	.ah_writeAssocid		= ar5211WriteAssocid,
-	.ah_gpioCfgInput		= ar5211GpioCfgInput,
-	.ah_gpioCfgOutput		= ar5211GpioCfgOutput,
-	.ah_gpioGet			= ar5211GpioGet,
-	.ah_gpioSet			= ar5211GpioSet,
-	.ah_gpioSetIntr			= ar5211GpioSetIntr,
-	.ah_getTsf32			= ar5211GetTsf32,
-	.ah_getTsf64			= ar5211GetTsf64,
-	.ah_resetTsf			= ar5211ResetTsf,
-	.ah_detectCardPresent		= ar5211DetectCardPresent,
-	.ah_updateMibCounters		= ar5211UpdateMibCounters,
-	.ah_getRfGain			= ar5211GetRfgain,
-	.ah_getDefAntenna		= ar5211GetDefAntenna,
-	.ah_setDefAntenna		= ar5211SetDefAntenna,
-	.ah_getAntennaSwitch		= ar5211GetAntennaSwitch,
-	.ah_setAntennaSwitch		= ar5211SetAntennaSwitch,
-	.ah_setSifsTime			= ar5211SetSifsTime,
-	.ah_getSifsTime			= ar5211GetSifsTime,
-	.ah_setSlotTime			= ar5211SetSlotTime,
-	.ah_getSlotTime			= ar5211GetSlotTime,
-	.ah_setAckTimeout		= ar5211SetAckTimeout,
-	.ah_getAckTimeout		= ar5211GetAckTimeout,
-	.ah_setAckCTSRate		= ar5211SetAckCTSRate,
-	.ah_getAckCTSRate		= ar5211GetAckCTSRate,
-	.ah_setCTSTimeout		= ar5211SetCTSTimeout,
-	.ah_getCTSTimeout		= ar5211GetCTSTimeout,
-	.ah_setDecompMask		= ar5211SetDecompMask,
-	.ah_setCoverageClass		= ar5211SetCoverageClass,
-	.ah_setQuiet			= ar5211SetQuiet,
-	.ah_get11nExtBusy		= ar5211Get11nExtBusy,
-	.ah_getMibCycleCounts		= ar5211GetMibCycleCounts,
-	.ah_setChainMasks		= ar5211SetChainMasks,
-	.ah_enableDfs			= ar5211EnableDfs,
-	.ah_getDfsThresh		= ar5211GetDfsThresh,
-	/* XXX procRadarEvent */
-	/* XXX isFastClockEnabled */
-	.ah_setNav			= ar5211SetNav,
-	.ah_getNav			= ar5211GetNav,
+	    /* Misc Functions */
+	    .ah_getCapability = ar5211GetCapability,
+	    .ah_setCapability = ar5211SetCapability,
+	    .ah_getDiagState = ar5211GetDiagState,
+	    .ah_getMacAddress = ar5211GetMacAddress,
+	    .ah_setMacAddress = ar5211SetMacAddress,
+	    .ah_getBssIdMask = ar5211GetBssIdMask,
+	    .ah_setBssIdMask = ar5211SetBssIdMask,
+	    .ah_setRegulatoryDomain = ar5211SetRegulatoryDomain,
+	    .ah_setLedState = ar5211SetLedState,
+	    .ah_writeAssocid = ar5211WriteAssocid,
+	    .ah_gpioCfgInput = ar5211GpioCfgInput,
+	    .ah_gpioCfgOutput = ar5211GpioCfgOutput,
+	    .ah_gpioGet = ar5211GpioGet,
+	    .ah_gpioSet = ar5211GpioSet,
+	    .ah_gpioSetIntr = ar5211GpioSetIntr,
+	    .ah_getTsf32 = ar5211GetTsf32,
+	    .ah_getTsf64 = ar5211GetTsf64,
+	    .ah_resetTsf = ar5211ResetTsf,
+	    .ah_detectCardPresent = ar5211DetectCardPresent,
+	    .ah_updateMibCounters = ar5211UpdateMibCounters,
+	    .ah_getRfGain = ar5211GetRfgain,
+	    .ah_getDefAntenna = ar5211GetDefAntenna,
+	    .ah_setDefAntenna = ar5211SetDefAntenna,
+	    .ah_getAntennaSwitch = ar5211GetAntennaSwitch,
+	    .ah_setAntennaSwitch = ar5211SetAntennaSwitch,
+	    .ah_setSifsTime = ar5211SetSifsTime,
+	    .ah_getSifsTime = ar5211GetSifsTime,
+	    .ah_setSlotTime = ar5211SetSlotTime,
+	    .ah_getSlotTime = ar5211GetSlotTime,
+	    .ah_setAckTimeout = ar5211SetAckTimeout,
+	    .ah_getAckTimeout = ar5211GetAckTimeout,
+	    .ah_setAckCTSRate = ar5211SetAckCTSRate,
+	    .ah_getAckCTSRate = ar5211GetAckCTSRate,
+	    .ah_setCTSTimeout = ar5211SetCTSTimeout,
+	    .ah_getCTSTimeout = ar5211GetCTSTimeout,
+	    .ah_setDecompMask = ar5211SetDecompMask,
+	    .ah_setCoverageClass = ar5211SetCoverageClass,
+	    .ah_setQuiet = ar5211SetQuiet,
+	    .ah_get11nExtBusy = ar5211Get11nExtBusy,
+	    .ah_getMibCycleCounts = ar5211GetMibCycleCounts,
+	    .ah_setChainMasks = ar5211SetChainMasks,
+	    .ah_enableDfs = ar5211EnableDfs,
+	    .ah_getDfsThresh = ar5211GetDfsThresh,
+	    /* XXX procRadarEvent */
+	    /* XXX isFastClockEnabled */
+	    .ah_setNav = ar5211SetNav,
+	    .ah_getNav = ar5211GetNav,
 
-	/* Key Cache Functions */
-	.ah_getKeyCacheSize		= ar5211GetKeyCacheSize,
-	.ah_resetKeyCacheEntry		= ar5211ResetKeyCacheEntry,
-	.ah_isKeyCacheEntryValid	= ar5211IsKeyCacheEntryValid,
-	.ah_setKeyCacheEntry		= ar5211SetKeyCacheEntry,
-	.ah_setKeyCacheEntryMac		= ar5211SetKeyCacheEntryMac,
+	    /* Key Cache Functions */
+	    .ah_getKeyCacheSize = ar5211GetKeyCacheSize,
+	    .ah_resetKeyCacheEntry = ar5211ResetKeyCacheEntry,
+	    .ah_isKeyCacheEntryValid = ar5211IsKeyCacheEntryValid,
+	    .ah_setKeyCacheEntry = ar5211SetKeyCacheEntry,
+	    .ah_setKeyCacheEntryMac = ar5211SetKeyCacheEntryMac,
 
-	/* Power Management Functions */
-	.ah_setPowerMode		= ar5211SetPowerMode,
-	.ah_getPowerMode		= ar5211GetPowerMode,
+	    /* Power Management Functions */
+	    .ah_setPowerMode = ar5211SetPowerMode,
+	    .ah_getPowerMode = ar5211GetPowerMode,
 
-	/* Beacon Functions */
-	.ah_setBeaconTimers		= ar5211SetBeaconTimers,
-	.ah_beaconInit			= ar5211BeaconInit,
-	.ah_setStationBeaconTimers	= ar5211SetStaBeaconTimers,
-	.ah_resetStationBeaconTimers	= ar5211ResetStaBeaconTimers,
-	.ah_getNextTBTT			= ar5211GetNextTBTT,
+	    /* Beacon Functions */
+	    .ah_setBeaconTimers = ar5211SetBeaconTimers,
+	    .ah_beaconInit = ar5211BeaconInit,
+	    .ah_setStationBeaconTimers = ar5211SetStaBeaconTimers,
+	    .ah_resetStationBeaconTimers = ar5211ResetStaBeaconTimers,
+	    .ah_getNextTBTT = ar5211GetNextTBTT,
 
-	/* Interrupt Functions */
-	.ah_isInterruptPending		= ar5211IsInterruptPending,
-	.ah_getPendingInterrupts	= ar5211GetPendingInterrupts,
-	.ah_getInterrupts		= ar5211GetInterrupts,
-	.ah_setInterrupts		= ar5211SetInterrupts },
+	    /* Interrupt Functions */
+	    .ah_isInterruptPending = ar5211IsInterruptPending,
+	    .ah_getPendingInterrupts = ar5211GetPendingInterrupts,
+	    .ah_getInterrupts = ar5211GetInterrupts,
+	    .ah_setInterrupts = ar5211SetInterrupts },
 
-	.ah_getChannelEdges		= ar5211GetChannelEdges,
-	.ah_getWirelessModes		= ar5211GetWirelessModes,
-	.ah_eepromRead			= ar5211EepromRead,
+	.ah_getChannelEdges = ar5211GetChannelEdges,
+	.ah_getWirelessModes = ar5211GetWirelessModes,
+	.ah_eepromRead = ar5211EepromRead,
 #ifdef AH_SUPPORT_WRITE_EEPROM
-	.ah_eepromWrite			= ar5211EepromWrite,
+	.ah_eepromWrite = ar5211EepromWrite,
 #endif
-	.ah_getChipPowerLimits		= ar5211GetChipPowerLimits,
+	.ah_getChipPowerLimits = ar5211GetChipPowerLimits,
 };
 
 static HAL_BOOL ar5211ChipTest(struct ath_hal *);
@@ -204,22 +202,21 @@ ar5211GetRadioRev(struct ath_hal *ah)
  * Attach for an AR5211 part.
  */
 static struct ath_hal *
-ar5211Attach(uint16_t devid, HAL_SOFTC sc,
-	HAL_BUS_TAG st, HAL_BUS_HANDLE sh, uint16_t *eepromdata,
-	HAL_OPS_CONFIG *ah_config, HAL_STATUS *status)
+ar5211Attach(uint16_t devid, HAL_SOFTC sc, HAL_BUS_TAG st, HAL_BUS_HANDLE sh,
+    uint16_t *eepromdata, HAL_OPS_CONFIG *ah_config, HAL_STATUS *status)
 {
-#define	N(a)	(sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 	struct ath_hal_5211 *ahp;
 	struct ath_hal *ah;
 	uint32_t val;
 	uint16_t eeval;
 	HAL_STATUS ecode;
 
-	HALDEBUG(AH_NULL, HAL_DEBUG_ATTACH, "%s: sc %p st %p sh %p\n",
-	    __func__, sc, (void*) st, (void*) sh);
+	HALDEBUG(AH_NULL, HAL_DEBUG_ATTACH, "%s: sc %p st %p sh %p\n", __func__,
+	    sc, (void *)st, (void *)sh);
 
 	/* NB: memory is returned zero'd */
-	ahp = ath_hal_malloc(sizeof (struct ath_hal_5211));
+	ahp = ath_hal_malloc(sizeof(struct ath_hal_5211));
 	if (ahp == AH_NULL) {
 		HALDEBUG(AH_NULL, HAL_DEBUG_ANY,
 		    "%s: cannot allocate memory for state block\n", __func__);
@@ -233,23 +230,24 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 	ah->ah_st = st;
 	ah->ah_sh = sh;
 
-	ah->ah_devid = devid;			/* NB: for AH_DEBUG_ALQ */
+	ah->ah_devid = devid; /* NB: for AH_DEBUG_ALQ */
 	AH_PRIVATE(ah)->ah_devid = devid;
-	AH_PRIVATE(ah)->ah_subvendorid = 0;	/* XXX */
+	AH_PRIVATE(ah)->ah_subvendorid = 0; /* XXX */
 
 	AH_PRIVATE(ah)->ah_powerLimit = MAX_RATE_POWER;
-	AH_PRIVATE(ah)->ah_tpScale = HAL_TP_SCALE_MAX;	/* no scaling */
+	AH_PRIVATE(ah)->ah_tpScale = HAL_TP_SCALE_MAX; /* no scaling */
 
 	ahp->ah_diversityControl = HAL_ANT_VARIABLE;
 	ahp->ah_staId1Defaults = 0;
 	ahp->ah_rssiThr = INIT_RSSI_THR;
-	ahp->ah_sifstime = (u_int) -1;
-	ahp->ah_slottime = (u_int) -1;
-	ahp->ah_acktimeout = (u_int) -1;
-	ahp->ah_ctstimeout = (u_int) -1;
+	ahp->ah_sifstime = (u_int)-1;
+	ahp->ah_slottime = (u_int)-1;
+	ahp->ah_acktimeout = (u_int)-1;
+	ahp->ah_ctstimeout = (u_int)-1;
 
-	if (!ar5211ChipReset(ah, AH_NULL)) {	/* reset chip */
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: chip reset failed\n", __func__);
+	if (!ar5211ChipReset(ah, AH_NULL)) { /* reset chip */
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: chip reset failed\n",
+		    __func__);
 		ecode = HAL_EIO;
 		goto bad;
 	}
@@ -283,7 +281,8 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 		goto bad;
 	}
 
-	/* Set correct Baseband to analog shift setting to access analog chips. */
+	/* Set correct Baseband to analog shift setting to access analog chips.
+	 */
 	if (AH_PRIVATE(ah)->ah_macVersion >= AR_SREV_VERSION_OAHU) {
 		OS_REG_WRITE(ah, AR_PHY_BASE, 0x00000007);
 	} else {
@@ -296,16 +295,19 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 	if ((AH_PRIVATE(ah)->ah_analog5GhzRev & 0xf0) != RAD5_SREV_MAJOR) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: 5G Radio Chip Rev 0x%02X is not supported by this "
-		    "driver\n", __func__, AH_PRIVATE(ah)->ah_analog5GhzRev);
+		    "driver\n",
+		    __func__, AH_PRIVATE(ah)->ah_analog5GhzRev);
 		ecode = HAL_ENOTSUPP;
 		goto bad;
 	}
 
 	val = (OS_REG_READ(ah, AR_PCICFG) & AR_PCICFG_EEPROM_SIZE_M) >>
-               AR_PCICFG_EEPROM_SIZE_S;
+	    AR_PCICFG_EEPROM_SIZE_S;
 	if (val != AR_PCICFG_EEPROM_SIZE_16K) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: unsupported EEPROM size "
-		    "%u (0x%x) found\n", __func__, val, val);
+		HALDEBUG(ah, HAL_DEBUG_ANY,
+		    "%s: unsupported EEPROM size "
+		    "%u (0x%x) found\n",
+		    __func__, val, val);
 		ecode = HAL_EESIZE;
 		goto bad;
 	}
@@ -314,10 +316,11 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 		goto bad;
 	}
 
-        /* If Bmode and AR5211, verify 2.4 analog exists */
+	/* If Bmode and AR5211, verify 2.4 analog exists */
 	if (AH_PRIVATE(ah)->ah_macVersion >= AR_SREV_VERSION_OAHU &&
 	    ath_hal_eepromGetFlag(ah, AR_EEP_BMODE)) {
-		/* Set correct Baseband to analog shift setting to access analog chips. */
+		/* Set correct Baseband to analog shift setting to access analog
+		 * chips. */
 		OS_REG_WRITE(ah, AR_PHY_BASE, 0x00004007);
 		OS_DELAY(2000);
 		AH_PRIVATE(ah)->ah_analog2GhzRev = ar5211GetRadioRev(ah);
@@ -325,17 +328,18 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 		/* Set baseband for 5GHz chip */
 		OS_REG_WRITE(ah, AR_PHY_BASE, 0x00000007);
 		OS_DELAY(2000);
-		if ((AH_PRIVATE(ah)->ah_analog2GhzRev & 0xF0) != RAD2_SREV_MAJOR) {
+		if ((AH_PRIVATE(ah)->ah_analog2GhzRev & 0xF0) !=
+		    RAD2_SREV_MAJOR) {
 			HALDEBUG(ah, HAL_DEBUG_ANY,
 			    "%s: 2G Radio Chip Rev 0x%x is not supported by "
-			    "this driver\n", __func__,
-			    AH_PRIVATE(ah)->ah_analog2GhzRev);
+			    "this driver\n",
+			    __func__, AH_PRIVATE(ah)->ah_analog2GhzRev);
 			ecode = HAL_ENOTSUPP;
 			goto bad;
 		}
 	} else {
 		ath_hal_eepromSet(ah, AR_EEP_BMODE, AH_FALSE);
-        }
+	}
 
 	ecode = ath_hal_eepromGet(ah, AR_EEP_REGDMN_0, &eeval);
 	if (ecode != HAL_OK) {
@@ -343,14 +347,14 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 		    "%s: cannot read regulatory domain from EEPROM\n",
 		    __func__);
 		goto bad;
-        }
+	}
 	AH_PRIVATE(ah)->ah_currentRD = eeval;
 	AH_PRIVATE(ah)->ah_getNfAdjust = ar5211GetNfAdjust;
 
 	/*
 	 * Got everything we need now to setup the capabilities.
 	 */
-	(void) ar5211FillCapabilityInfo(ah);
+	(void)ar5211FillCapabilityInfo(ah);
 
 	/* Initialize gain ladder thermal calibration structure */
 	ar5211InitializeGainValues(ah);
@@ -360,14 +364,14 @@ ar5211Attach(uint16_t devid, HAL_SOFTC sc,
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: error getting mac address from EEPROM\n", __func__);
 		goto bad;
-        }
+	}
 
 	HALDEBUG(ah, HAL_DEBUG_ATTACH, "%s: return\n", __func__);
 
 	return ah;
 bad:
 	if (ahp)
-		ar5211Detach((struct ath_hal *) ahp);
+		ar5211Detach((struct ath_hal *)ahp);
 	if (status)
 		*status = ecode;
 	return AH_NULL;
@@ -389,10 +393,10 @@ ar5211Detach(struct ath_hal *ah)
 static HAL_BOOL
 ar5211ChipTest(struct ath_hal *ah)
 {
-	uint32_t regAddr[2] = { AR_STA_ID0, AR_PHY_BASE+(8 << 2) };
+	uint32_t regAddr[2] = { AR_STA_ID0, AR_PHY_BASE + (8 << 2) };
 	uint32_t regHold[2];
-	uint32_t patternData[4] =
-	    { 0x55555555, 0xaaaaaaaa, 0x66666666, 0x99999999 };
+	uint32_t patternData[4] = { 0x55555555, 0xaaaaaaaa, 0x66666666,
+		0x99999999 };
 	int i, j;
 
 	/* Test PHY & MAC registers */
@@ -407,8 +411,8 @@ ar5211ChipTest(struct ath_hal *ah)
 			rdData = OS_REG_READ(ah, addr);
 			if (rdData != wrData) {
 				HALDEBUG(ah, HAL_DEBUG_ANY,
-"%s: address test failed addr: 0x%08x - wr:0x%08x != rd:0x%08x\n",
-				__func__, addr, wrData, rdData);
+				    "%s: address test failed addr: 0x%08x - wr:0x%08x != rd:0x%08x\n",
+				    __func__, addr, wrData, rdData);
 				return AH_FALSE;
 			}
 		}
@@ -418,8 +422,8 @@ ar5211ChipTest(struct ath_hal *ah)
 			rdData = OS_REG_READ(ah, addr);
 			if (wrData != rdData) {
 				HALDEBUG(ah, HAL_DEBUG_ANY,
-"%s: address test failed addr: 0x%08x - wr:0x%08x != rd:0x%08x\n",
-					__func__, addr, wrData, rdData);
+				    "%s: address test failed addr: 0x%08x - wr:0x%08x != rd:0x%08x\n",
+				    __func__, addr, wrData, rdData);
 				return AH_FALSE;
 			}
 		}
@@ -433,8 +437,8 @@ ar5211ChipTest(struct ath_hal *ah)
  * Store the channel edges for the requested operational mode
  */
 static HAL_BOOL
-ar5211GetChannelEdges(struct ath_hal *ah,
-	uint16_t flags, uint16_t *low, uint16_t *high)
+ar5211GetChannelEdges(struct ath_hal *ah, uint16_t flags, uint16_t *low,
+    uint16_t *high)
 {
 	if (flags & IEEE80211_CHAN_5GHZ) {
 		*low = 4920;
@@ -454,8 +458,7 @@ static HAL_BOOL
 ar5211GetChipPowerLimits(struct ath_hal *ah, struct ieee80211_channel *chan)
 {
 	/* XXX fill in, this is just a placeholder */
-	HALDEBUG(ah, HAL_DEBUG_ATTACH,
-	    "%s: no min/max power for %u/0x%x\n",
+	HALDEBUG(ah, HAL_DEBUG_ATTACH, "%s: no min/max power for %u/0x%x\n",
 	    __func__, chan->ic_freq, chan->ic_flags);
 	chan->ic_maxpower = MAX_RATE_POWER;
 	chan->ic_minpower = 0;
@@ -500,8 +503,8 @@ ar5211FillCapabilityInfo(struct ath_hal *ah)
 	pCap->halSleepAfterBeaconBroken = AH_TRUE;
 	pCap->halPSPollBroken = AH_TRUE;
 	pCap->halVEOLSupport = AH_TRUE;
-	pCap->halNumMRRetries = 1;	/* No hardware MRR support */
-	pCap->halNumTxMaps = 1;		/* Single TX ptr per descr */
+	pCap->halNumMRRetries = 1; /* No hardware MRR support */
+	pCap->halNumTxMaps = 1;	   /* Single TX ptr per descr */
 
 	pCap->halTotalQueues = HAL_NUM_TX_QUEUES;
 	pCap->halKeyCacheSize = 128;
@@ -517,7 +520,8 @@ ar5211FillCapabilityInfo(struct ath_hal *ah)
 	pCap->halUseCombinedRadarRssi = AH_TRUE;
 
 	if (ath_hal_eepromGetFlag(ah, AR_EEP_RFKILL) &&
-	    ath_hal_eepromGet(ah, AR_EEP_RFSILENT, &ahpriv->ah_rfsilent) == HAL_OK) {
+	    ath_hal_eepromGet(ah, AR_EEP_RFSILENT, &ahpriv->ah_rfsilent) ==
+		HAL_OK) {
 		/* NB: enabled by default */
 		ahpriv->ah_rfkillEnabled = AH_TRUE;
 		pCap->halRfSilentSupport = AH_TRUE;
@@ -525,13 +529,8 @@ ar5211FillCapabilityInfo(struct ath_hal *ah)
 
 	pCap->halRxTstampPrecision = 13;
 	pCap->halTxTstampPrecision = 16;
-	pCap->halIntrMask = HAL_INT_COMMON
-			| HAL_INT_RX
-			| HAL_INT_TX
-			| HAL_INT_FATAL
-			| HAL_INT_BNR
-			| HAL_INT_TIM
-			;
+	pCap->halIntrMask = HAL_INT_COMMON | HAL_INT_RX | HAL_INT_TX |
+	    HAL_INT_FATAL | HAL_INT_BNR | HAL_INT_TIM;
 
 	pCap->hal4kbSplitTransSupport = AH_TRUE;
 	pCap->halHasRxSelfLinkedTail = AH_TRUE;
@@ -541,7 +540,7 @@ ar5211FillCapabilityInfo(struct ath_hal *ah)
 	return AH_TRUE;
 }
 
-static const char*
+static const char *
 ar5211Probe(uint16_t vendorid, uint16_t devid)
 {
 	if (vendorid == ATHEROS_VENDOR_ID) {

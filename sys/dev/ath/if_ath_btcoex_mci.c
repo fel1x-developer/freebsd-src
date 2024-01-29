@@ -37,47 +37,42 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
+#include <net/bpf.h>
+#include <net/ethernet.h> /* XXX for ether_sprintf */
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
+#include <net/if_media.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_var.h>
 
-#include <net/bpf.h>
-
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
+#include <dev/ath/if_ath_btcoex.h>
+#include <dev/ath/if_ath_btcoex_mci.h>
 #include <dev/ath/if_ath_debug.h>
 #include <dev/ath/if_ath_descdma.h>
-#include <dev/ath/if_ath_btcoex.h>
-
-#include <dev/ath/if_ath_btcoex_mci.h>
+#include <dev/ath/if_athvar.h>
 
 MALLOC_DECLARE(M_ATHDEV);
 
-#define	ATH_MCI_GPM_MAX_ENTRY		16
-#define	ATH_MCI_GPM_BUF_SIZE		(ATH_MCI_GPM_MAX_ENTRY * 16)
-#define	ATH_MCI_SCHED_BUF_SIZE		(16 * 16) /* 16 entries, 4 dword each */
+#define ATH_MCI_GPM_MAX_ENTRY 16
+#define ATH_MCI_GPM_BUF_SIZE (ATH_MCI_GPM_MAX_ENTRY * 16)
+#define ATH_MCI_SCHED_BUF_SIZE (16 * 16) /* 16 entries, 4 dword each */
 
 static void ath_btcoex_mci_update_wlan_channels(struct ath_softc *sc);
 
@@ -87,8 +82,8 @@ ath_btcoex_mci_attach(struct ath_softc *sc)
 	int buflen, error;
 
 	buflen = ATH_MCI_GPM_BUF_SIZE + ATH_MCI_SCHED_BUF_SIZE;
-	error = ath_descdma_alloc_desc(sc, &sc->sc_btcoex.buf, NULL,
-	    "MCI bufs", buflen, 1);
+	error = ath_descdma_alloc_desc(sc, &sc->sc_btcoex.buf, NULL, "MCI bufs",
+	    buflen, 1);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "%s: failed to alloc MCI RAM\n",
 		    __func__);
@@ -109,17 +104,16 @@ ath_btcoex_mci_attach(struct ath_softc *sc)
 	 * after gpm_addr, and it does math to figure out the right
 	 * sched_buf pointer.
 	 *
-	 * So, set gpm_addr to buf, sched_addr to gpm_addr + ATH_MCI_GPM_BUF_SIZE,
-	 * the HAL call with do (gpm_buf + (sched_addr - gpm_addr)) to
-	 * set sched_buf, and we're "golden".
+	 * So, set gpm_addr to buf, sched_addr to gpm_addr +
+	 * ATH_MCI_GPM_BUF_SIZE, the HAL call with do (gpm_buf + (sched_addr -
+	 * gpm_addr)) to set sched_buf, and we're "golden".
 	 *
 	 * Note, it passes in 'len' here (gpm_len) as
 	 * ATH_MCI_GPM_BUF_SIZE >> 4.  My guess is that it's 16
 	 * bytes per entry and we're storing 16 entries.
 	 */
-	sc->sc_btcoex.gpm_buf = (void *) sc->sc_btcoex.buf.dd_desc;
-	sc->sc_btcoex.sched_buf = sc->sc_btcoex.gpm_buf +
-	    ATH_MCI_GPM_BUF_SIZE;
+	sc->sc_btcoex.gpm_buf = (void *)sc->sc_btcoex.buf.dd_desc;
+	sc->sc_btcoex.sched_buf = sc->sc_btcoex.gpm_buf + ATH_MCI_GPM_BUF_SIZE;
 
 	sc->sc_btcoex.gpm_paddr = sc->sc_btcoex.buf.dd_desc_paddr;
 	sc->sc_btcoex.sched_paddr = sc->sc_btcoex.gpm_paddr +
@@ -139,10 +133,8 @@ ath_btcoex_mci_attach(struct ath_softc *sc)
 	 * Fixing this would require some HAL surgery so it
 	 * actually /did/ the buffer flushing as appropriate.
 	 */
-	ath_hal_btcoex_mci_setup(sc->sc_ah,
-	    sc->sc_btcoex.gpm_paddr,
-	    sc->sc_btcoex.gpm_buf,
-	    ATH_MCI_GPM_BUF_SIZE >> 4,
+	ath_hal_btcoex_mci_setup(sc->sc_ah, sc->sc_btcoex.gpm_paddr,
+	    sc->sc_btcoex.gpm_buf, ATH_MCI_GPM_BUF_SIZE >> 4,
 	    sc->sc_btcoex.sched_paddr);
 
 	return (0);
@@ -203,7 +195,7 @@ ath_btcoex_mci_event(struct ath_softc *sc, ATH_BT_COEX_EVENT nevent,
     void *param)
 {
 
-	if (! sc->sc_btcoex_mci)
+	if (!sc->sc_btcoex_mci)
 		return;
 
 	/*
@@ -212,11 +204,11 @@ ath_btcoex_mci_event(struct ath_softc *sc, ATH_BT_COEX_EVENT nevent,
 	 * then wait for the MCI response with the updated profile list.
 	 */
 	if (ath_hal_btcoex_mci_state(sc->sc_ah,
-	    HAL_MCI_STATE_NEED_FLUSH_BT_INFO, NULL) != 0) {
+		HAL_MCI_STATE_NEED_FLUSH_BT_INFO, NULL) != 0) {
 		uint32_t data = 0;
 
-		if (ath_hal_btcoex_mci_state(sc->sc_ah,
-		    HAL_MCI_STATE_ENABLE, NULL) != 0) {
+		if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_ENABLE,
+			NULL) != 0) {
 			DPRINTF(sc, ATH_DEBUG_BTCOEX,
 			    "(MCI) Flush BT profile\n");
 			/*
@@ -260,13 +252,13 @@ static void
 ath_btcoex_mci_cal_msg(struct ath_softc *sc, uint8_t opcode,
     uint8_t *rx_payload)
 {
-	uint32_t payload[4] = {0, 0, 0, 0};
+	uint32_t payload[4] = { 0, 0, 0, 0 };
 
 	switch (opcode) {
 	case MCI_GPM_BT_CAL_REQ:
 		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) receive BT_CAL_REQ\n");
 		if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_BT,
-		    NULL) == MCI_BT_AWAKE) {
+			NULL) == MCI_BT_AWAKE) {
 			ath_hal_btcoex_mci_state(sc->sc_ah,
 			    HAL_MCI_STATE_SET_BT_CAL_START, NULL);
 			ath_btcoex_mci_bt_cal_do(sc, 1000, 1000);
@@ -274,15 +266,14 @@ ath_btcoex_mci_cal_msg(struct ath_softc *sc, uint8_t opcode,
 			DPRINTF(sc, ATH_DEBUG_BTCOEX,
 			    "(MCI) State mismatches: %d\n",
 			    ath_hal_btcoex_mci_state(sc->sc_ah,
-			    HAL_MCI_STATE_BT, NULL));
+				HAL_MCI_STATE_BT, NULL));
 		}
 		break;
 	case MCI_GPM_BT_CAL_DONE:
 		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) receive BT_CAL_DONE\n");
 		if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_BT,
-		    NULL) == MCI_BT_CAL) {
-			DPRINTF(sc, ATH_DEBUG_BTCOEX,
-			    "(MCI) ERROR ILLEGAL!\n");
+			NULL) == MCI_BT_CAL) {
+			DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) ERROR ILLEGAL!\n");
 		} else {
 			DPRINTF(sc, ATH_DEBUG_BTCOEX,
 			    "(MCI) BT not in CAL state.\n");
@@ -322,8 +313,8 @@ ath_btcoex_mci_update_wlan_channels(struct ath_softc *sc)
 {
 	struct ieee80211com *ic = &sc->sc_ic;
 	struct ieee80211_channel *chan = ic->ic_curchan;
-	uint32_t channel_info[4] =
-	    { 0x00000000, 0xffffffff, 0xffffffff, 0x7fffffff };
+	uint32_t channel_info[4] = { 0x00000000, 0xffffffff, 0xffffffff,
+		0x7fffffff };
 	int32_t wl_chan, bt_chan, bt_start = 0, bt_end = 79;
 
 	/* BT channel frequency is 2402 + k, k = 0 ~ 78 */
@@ -352,8 +343,8 @@ ath_btcoex_mci_update_wlan_channels(struct ath_softc *sc)
 		}
 		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) WLAN use channel %d\n",
 		    chan->ic_freq);
-		DPRINTF(sc, ATH_DEBUG_BTCOEX,
-		    "(MCI) mask BT channel %d - %d\n", bt_start, bt_end);
+		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) mask BT channel %d - %d\n",
+		    bt_start, bt_end);
 		for (bt_chan = bt_start; bt_chan < bt_end; bt_chan++) {
 			MCI_GPM_CLR_CHANNEL_BIT(&channel_info[0], bt_chan);
 		}
@@ -387,8 +378,8 @@ ath_btcoex_mci_coex_msg(struct ath_softc *sc, uint8_t opcode,
 		    "(MCI) Recv GPM COEX Version Response.\n");
 		major = *(rx_payload + MCI_GPM_COEX_B_MAJOR_VERSION);
 		minor = *(rx_payload + MCI_GPM_COEX_B_MINOR_VERSION);
-		DPRINTF(sc, ATH_DEBUG_BTCOEX,
-		    "(MCI) BT Coex version: %d.%d\n", major, minor);
+		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) BT Coex version: %d.%d\n",
+		    major, minor);
 		version = (major << 8) + minor;
 		version = ath_hal_btcoex_mci_state(sc->sc_ah,
 		    HAL_MCI_STATE_SET_BT_COEX_VERSION, &version);
@@ -414,8 +405,7 @@ ath_btcoex_mci_coex_msg(struct ath_softc *sc, uint8_t opcode,
 	case MCI_GPM_COEX_BT_STATUS_UPDATE:
 		seq_num = *((uint32_t *)(rx_payload + 12));
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
-		    "(MCI) Recv GPM COEX BT_Status_Update: SEQ=%d\n",
-		    seq_num);
+		    "(MCI) Recv GPM COEX BT_Status_Update: SEQ=%d\n", seq_num);
 		break;
 
 	default:
@@ -439,12 +429,11 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 
 	ath_hal_btcoex_mci_get_interrupt(sc->sc_ah, &mciInt, &mciIntRxMsg);
 
-	if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_ENABLE,
-	    NULL) == 0) {
+	if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_ENABLE, NULL) ==
+	    0) {
 		ath_hal_btcoex_mci_state(sc->sc_ah,
 		    HAL_MCI_STATE_INIT_GPM_OFFSET, NULL);
-		DPRINTF(sc, ATH_DEBUG_BTCOEX,
-		    "(MCI) INTR but MCI_disabled\n");
+		DPRINTF(sc, ATH_DEBUG_BTCOEX, "(MCI) INTR but MCI_disabled\n");
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
 		    "(MCI) MCI interrupt: mciInt = 0x%x, mciIntRxMsg = 0x%x\n",
 		    mciInt, mciIntRxMsg);
@@ -453,7 +442,7 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 
 	if (mciIntRxMsg & HAL_MCI_INTERRUPT_RX_MSG_REQ_WAKE) {
 		uint32_t payload4[4] = { 0xffffffff, 0xffffffff, 0xffffffff,
-		    0xffffff00};
+			0xffffff00 };
 
 		/*
 		 * The following REMOTE_RESET and SYS_WAKING used to sent
@@ -462,31 +451,33 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 		 */
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
 		    "(MCI) 1. INTR Send REMOTE_RESET\n");
-		ath_hal_btcoex_mci_send_message(sc->sc_ah,
-		    MCI_REMOTE_RESET, 0, payload4, 16, AH_TRUE, AH_FALSE);
+		ath_hal_btcoex_mci_send_message(sc->sc_ah, MCI_REMOTE_RESET, 0,
+		    payload4, 16, AH_TRUE, AH_FALSE);
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
 		    "(MCI) 1. INTR Send SYS_WAKING\n");
-		ath_hal_btcoex_mci_send_message(sc->sc_ah,
-		    MCI_SYS_WAKING, 0, NULL, 0, AH_TRUE, AH_FALSE);
+		ath_hal_btcoex_mci_send_message(sc->sc_ah, MCI_SYS_WAKING, 0,
+		    NULL, 0, AH_TRUE, AH_FALSE);
 
 		mciIntRxMsg &= ~HAL_MCI_INTERRUPT_RX_MSG_REQ_WAKE;
 		ath_hal_btcoex_mci_state(sc->sc_ah,
 		    HAL_MCI_STATE_RESET_REQ_WAKE, NULL);
 
-		/* always do this for recovery and 2G/5G toggling and LNA_TRANS */
+		/* always do this for recovery and 2G/5G toggling and LNA_TRANS
+		 */
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
 		    "(MCI) 1. Set BT state to AWAKE.\n");
-		ath_hal_btcoex_mci_state(sc->sc_ah,
-		    HAL_MCI_STATE_SET_BT_AWAKE, NULL);
+		ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_SET_BT_AWAKE,
+		    NULL);
 	}
 
 	/* Processing SYS_WAKING/SYS_SLEEPING */
 	if (mciIntRxMsg & HAL_MCI_INTERRUPT_RX_MSG_SYS_WAKING) {
 		mciIntRxMsg &= ~HAL_MCI_INTERRUPT_RX_MSG_SYS_WAKING;
 		if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_BT,
-		    NULL) == MCI_BT_SLEEP) {
+			NULL) == MCI_BT_SLEEP) {
 			if (ath_hal_btcoex_mci_state(sc->sc_ah,
-			    HAL_MCI_STATE_REMOTE_SLEEP, NULL) == MCI_BT_SLEEP) {
+				HAL_MCI_STATE_REMOTE_SLEEP,
+				NULL) == MCI_BT_SLEEP) {
 				DPRINTF(sc, ATH_DEBUG_BTCOEX,
 				    "(MCI) 2. BT stays in SLEEP mode.\n");
 			} else {
@@ -504,9 +495,10 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 	if (mciIntRxMsg & HAL_MCI_INTERRUPT_RX_MSG_SYS_SLEEPING) {
 		mciIntRxMsg &= ~HAL_MCI_INTERRUPT_RX_MSG_SYS_SLEEPING;
 		if (ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_BT,
-		    NULL) == MCI_BT_AWAKE) {
+			NULL) == MCI_BT_AWAKE) {
 			if (ath_hal_btcoex_mci_state(sc->sc_ah,
-			    HAL_MCI_STATE_REMOTE_SLEEP, NULL) == MCI_BT_AWAKE) {
+				HAL_MCI_STATE_REMOTE_SLEEP,
+				NULL) == MCI_BT_AWAKE) {
 				DPRINTF(sc, ATH_DEBUG_BTCOEX,
 				    "(MCI) 3. BT stays in AWAKE mode.\n");
 			} else {
@@ -528,8 +520,8 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 	    (mciInt & HAL_MCI_INTERRUPT_CONT_INFO_TIMEOUT)) {
 		DPRINTF(sc, ATH_DEBUG_BTCOEX,
 		    "(MCI) MCI RX broken, skip GPM messages\n");
-		ath_hal_btcoex_mci_state(sc->sc_ah,
-		    HAL_MCI_STATE_RECOVER_RX, NULL);
+		ath_hal_btcoex_mci_state(sc->sc_ah, HAL_MCI_STATE_RECOVER_RX,
+		    NULL);
 		skip_gpm = true;
 	}
 
@@ -546,7 +538,7 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 		mciIntRxMsg &= ~HAL_MCI_INTERRUPT_RX_MSG_GPM;
 
 		while (more_data == HAL_MCI_GPM_MORE) {
-			pGpm = (void *) sc->sc_btcoex.gpm_buf;
+			pGpm = (void *)sc->sc_btcoex.gpm_buf;
 			offset = ath_hal_btcoex_mci_state(sc->sc_ah,
 			    HAL_MCI_STATE_NEXT_GPM_OFFSET, &more_data);
 
@@ -563,17 +555,17 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 			if (!skip_gpm) {
 				if (MCI_GPM_IS_CAL_TYPE(subtype)) {
 					ath_btcoex_mci_cal_msg(sc, subtype,
-					    (uint8_t*) pGpm);
+					    (uint8_t *)pGpm);
 				} else {
 					switch (subtype) {
 					case MCI_GPM_COEX_AGENT:
 						ath_btcoex_mci_coex_msg(sc,
-						    opcode, (uint8_t*) pGpm);
-					break;
+						    opcode, (uint8_t *)pGpm);
+						break;
 					case MCI_GPM_BT_DEBUG:
 						device_printf(sc->sc_dev,
 						    "(MCI) TODO: GPM_BT_DEBUG!\n");
-					break;
+						break;
 					default:
 						DPRINTF(sc, ATH_DEBUG_BTCOEX,
 						    "(MCI) Unknown GPM message.\n");
@@ -609,17 +601,17 @@ ath_btcoex_mci_intr(struct ath_softc *sc)
 
 			mciIntRxMsg &= ~HAL_MCI_INTERRUPT_RX_MSG_CONT_INFO;
 			if (ath_hal_btcoex_mci_state(sc->sc_ah,
-			    HAL_MCI_STATE_CONT_TXRX, NULL)) {
+				HAL_MCI_STATE_CONT_TXRX, NULL)) {
 				DPRINTF(sc, ATH_DEBUG_BTCOEX,
 				    "(MCI) CONT_INFO: (tx) pri = %d, pwr = %d dBm\n",
-				ath_hal_btcoex_mci_state(sc->sc_ah,
-				    HAL_MCI_STATE_CONT_PRIORITY, NULL),
+				    ath_hal_btcoex_mci_state(sc->sc_ah,
+					HAL_MCI_STATE_CONT_PRIORITY, NULL),
 				    value_dbm);
 			} else {
 				DPRINTF(sc, ATH_DEBUG_BTCOEX,
 				    "(MCI) CONT_INFO: (rx) pri = %d, rssi = %d dBm\n",
-				ath_hal_btcoex_mci_state(sc->sc_ah,
-				    HAL_MCI_STATE_CONT_PRIORITY, NULL),
+				    ath_hal_btcoex_mci_state(sc->sc_ah,
+					HAL_MCI_STATE_CONT_PRIORITY, NULL),
 				    value_dbm);
 			}
 		}

@@ -60,7 +60,7 @@ main(int argc, char **argv)
 	suffixlen = 0;
 
 	while ((ch = getopt(argc, argv, "as:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			aflag = 1;
 			break;
@@ -128,7 +128,7 @@ usage(void)
 {
 
 	(void)fprintf(stderr,
-"usage: basename string [suffix]\n"
-"       basename [-a] [-s suffix] string [...]\n");
+	    "usage: basename string [suffix]\n"
+	    "       basename [-a] [-s suffix] string [...]\n");
 	exit(1);
 }

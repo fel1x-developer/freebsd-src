@@ -26,21 +26,23 @@
  */
 #pragma once
 
-#define	ASSERT(x, fmt, ...) do {					\
-	if (__predict_true(x))					\
-		break;							\
-	panic("%s:%d: Assertion '" #x "' in function %s failed: " fmt, 	\
-	    __FILE__, __LINE__, __func__, ## __VA_ARGS__);		\
-} while (false)
+#define ASSERT(x, fmt, ...)                                                    \
+	do {                                                                   \
+		if (__predict_true(x))                                         \
+			break;                                                 \
+		panic("%s:%d: Assertion '" #x "' in function %s failed: " fmt, \
+		    __FILE__, __LINE__, __func__, ##__VA_ARGS__);              \
+	} while (false)
 #ifdef INVARIANTS
-#define	ASSERT_DEBUG(x, fmt, ...) do {					\
-	if (__predict_true(x))					\
-		break;							\
-	panic("%s:%d: Assertion '" #x "' in function %s failed: " fmt, 	\
-	    __FILE__, __LINE__, __func__, ## __VA_ARGS__);		\
-} while (false)
+#define ASSERT_DEBUG(x, fmt, ...)                                              \
+	do {                                                                   \
+		if (__predict_true(x))                                         \
+			break;                                                 \
+		panic("%s:%d: Assertion '" #x "' in function %s failed: " fmt, \
+		    __FILE__, __LINE__, __func__, ##__VA_ARGS__);              \
+	} while (false)
 #else
-#define	ASSERT_DEBUG(...)
+#define ASSERT_DEBUG(...)
 #endif
 
 extern struct fxrng_buffered_rng fxrng_root;

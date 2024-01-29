@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,45 +35,41 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_atu.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_mdio.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
+#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_mdio.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_atu.h>
-#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
-#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
-
 
 int
 ar40xx_phy_tick(struct ar40xx_softc *sc)
@@ -116,7 +113,7 @@ ar40xx_phy_tick(struct ar40xx_softc *sc)
 		}
 
 		mii_tick(mii);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -132,7 +129,7 @@ static inline int
 ar40xx_portforphy(int phy)
 {
 
-	return (phy+1);
+	return (phy + 1);
 }
 
 struct mii_data *
@@ -140,19 +137,19 @@ ar40xx_phy_miiforport(struct ar40xx_softc *sc, int port)
 {
 	int phy;
 
-	phy = port-1;
+	phy = port - 1;
 
 	if (phy < 0 || phy >= AR40XX_NUM_PHYS)
 		return (NULL);
 	return (device_get_softc(sc->sc_phys.miibus[phy]));
 }
 
-if_t 
+if_t
 ar40xx_phy_ifpforport(struct ar40xx_softc *sc, int port)
 {
 	int phy;
 
-	phy = port-1;
+	phy = port - 1;
 	if (phy < 0 || phy >= AR40XX_NUM_PHYS)
 		return (NULL);
 	return (sc->sc_phys.ifp[phy]);
@@ -202,8 +199,7 @@ ar40xx_attach_phys(struct ar40xx_softc *sc)
 		sc->sc_phys.ifp[phy] = if_alloc(IFT_ETHER);
 		if (sc->sc_phys.ifp[phy] == NULL) {
 			device_printf(sc->sc_dev,
-			    "PHY %d: couldn't allocate ifnet structure\n",
-			    phy);
+			    "PHY %d: couldn't allocate ifnet structure\n", phy);
 			err = ENOMEM;
 			break;
 		}
@@ -211,22 +207,21 @@ ar40xx_attach_phys(struct ar40xx_softc *sc)
 		sc->sc_phys.ifp[phy]->if_softc = sc;
 		sc->sc_phys.ifp[phy]->if_flags |= IFF_UP | IFF_BROADCAST |
 		    IFF_DRV_RUNNING | IFF_SIMPLEX;
-		sc->sc_phys.ifname[phy] = malloc(strlen(name)+1, M_DEVBUF,
+		sc->sc_phys.ifname[phy] = malloc(strlen(name) + 1, M_DEVBUF,
 		    M_WAITOK);
-		bcopy(name, sc->sc_phys.ifname[phy], strlen(name)+1);
+		bcopy(name, sc->sc_phys.ifname[phy], strlen(name) + 1);
 		if_initname(sc->sc_phys.ifp[phy], sc->sc_phys.ifname[phy],
 		    ar40xx_portforphy(phy));
 		err = mii_attach(sc->sc_dev, &sc->sc_phys.miibus[phy],
 		    sc->sc_phys.ifp[phy], ar40xx_ifmedia_upd,
-		    ar40xx_ifmedia_sts, BMSR_DEFCAPMASK,
-		    phy, MII_OFFSET_ANY, 0);
+		    ar40xx_ifmedia_sts, BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY,
+		    0);
 		device_printf(sc->sc_dev,
 		    "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(sc->sc_phys.miibus[phy]),
 		    sc->sc_phys.ifp[phy]->if_xname);
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			return (err);
 		}
@@ -244,8 +239,8 @@ ar40xx_hw_phy_get_ids(struct ar40xx_softc *sc)
 		id1 = MDIO_READREG(sc->sc_mdio_dev, phy, 2);
 		id2 = MDIO_READREG(sc->sc_mdio_dev, phy, 3);
 		device_printf(sc->sc_dev,
-		    "%s: PHY %d: ID1=0x%04x, ID2=0x%04x\n",
-		    __func__, phy, id1, id2);
+		    "%s: PHY %d: ID1=0x%04x, ID2=0x%04x\n", __func__, phy, id1,
+		    id2);
 	}
 
 	return (0);

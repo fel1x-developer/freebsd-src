@@ -40,15 +40,15 @@
  * In short, do not user this header file or the CTF routines for any purpose.
  */
 
-#ifndef	_CTF_API_H
-#define	_CTF_API_H
+#ifndef _CTF_API_H
+#define _CTF_API_H
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/elf.h>
 #include <sys/ctf.h>
+#include <sys/elf.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -66,17 +66,17 @@ typedef long ctf_id_t;
  * filling in ctf_sect_t structures and passing them to ctf_bufopen():
  */
 typedef struct ctf_sect {
-	const char *cts_name;	/* section name (if any) */
-	ulong_t cts_type;	/* section type (ELF SHT_... value) */
-	ulong_t cts_flags;	/* section flags (ELF SHF_... value) */
+	const char *cts_name; /* section name (if any) */
+	ulong_t cts_type;     /* section type (ELF SHT_... value) */
+	ulong_t cts_flags;    /* section flags (ELF SHF_... value) */
 #ifdef illumos
-	const void *cts_data;	/* pointer to section data */
+	const void *cts_data; /* pointer to section data */
 #else
-	void *cts_data;		/* pointer to section data */
+	void *cts_data; /* pointer to section data */
 #endif
-	size_t cts_size;	/* size of data in bytes */
-	size_t cts_entsize;	/* size of each section entry (symtab only) */
-	off64_t cts_offset;	/* file offset of this section (if any) */
+	size_t cts_size;    /* size of data in bytes */
+	size_t cts_entsize; /* size of each section entry (symtab only) */
+	off64_t cts_offset; /* file offset of this section (if any) */
 } ctf_sect_t;
 
 /*
@@ -85,50 +85,50 @@ typedef struct ctf_sect {
  * field will contain values appropriate for the type defined in <sys/ctf.h>.
  */
 typedef struct ctf_encoding {
-	uint_t cte_format;	/* data format (CTF_INT_* or CTF_FP_* flags) */
-	uint_t cte_offset;	/* offset of value in bits */
-	uint_t cte_bits;	/* size of storage in bits */
+	uint_t cte_format; /* data format (CTF_INT_* or CTF_FP_* flags) */
+	uint_t cte_offset; /* offset of value in bits */
+	uint_t cte_bits;   /* size of storage in bits */
 } ctf_encoding_t;
 
 typedef struct ctf_membinfo {
-	ctf_id_t ctm_type;	/* type of struct or union member */
-	ulong_t ctm_offset;	/* offset of member in bits */
+	ctf_id_t ctm_type;  /* type of struct or union member */
+	ulong_t ctm_offset; /* offset of member in bits */
 } ctf_membinfo_t;
 
 typedef struct ctf_arinfo {
-	ctf_id_t ctr_contents;	/* type of array contents */
-	ctf_id_t ctr_index;	/* type of array index */
-	uint_t ctr_nelems;	/* number of elements */
+	ctf_id_t ctr_contents; /* type of array contents */
+	ctf_id_t ctr_index;    /* type of array index */
+	uint_t ctr_nelems;     /* number of elements */
 } ctf_arinfo_t;
 
 typedef struct ctf_funcinfo {
-	ctf_id_t ctc_return;	/* function return type */
-	uint_t ctc_argc;	/* number of typed arguments to function */
-	uint_t ctc_flags;	/* function attributes (see below) */
+	ctf_id_t ctc_return; /* function return type */
+	uint_t ctc_argc;     /* number of typed arguments to function */
+	uint_t ctc_flags;    /* function attributes (see below) */
 } ctf_funcinfo_t;
 
 typedef struct ctf_lblinfo {
-	ctf_id_t ctb_typeidx;	/* last type associated with the label */
+	ctf_id_t ctb_typeidx; /* last type associated with the label */
 } ctf_lblinfo_t;
 
-#define	CTF_FUNC_VARARG	0x1	/* function arguments end with varargs */
+#define CTF_FUNC_VARARG 0x1 /* function arguments end with varargs */
 
 /*
  * Functions that return integer status or a ctf_id_t use the following value
  * to indicate failure.  ctf_errno() can be used to obtain an error code.
  */
-#define	CTF_ERR	(-1L)
+#define CTF_ERR (-1L)
 
 /*
  * The CTF data model is inferred to be the caller's data model or the data
  * model of the given object, unless ctf_setmodel() is explicitly called.
  */
-#define	CTF_MODEL_ILP32	1	/* object data model is ILP32 */
-#define	CTF_MODEL_LP64	2	/* object data model is LP64 */
+#define CTF_MODEL_ILP32 1 /* object data model is ILP32 */
+#define CTF_MODEL_LP64 2  /* object data model is LP64 */
 #ifdef _LP64
-#define	CTF_MODEL_NATIVE	CTF_MODEL_LP64
+#define CTF_MODEL_NATIVE CTF_MODEL_LP64
 #else
-#define	CTF_MODEL_NATIVE	CTF_MODEL_ILP32
+#define CTF_MODEL_NATIVE CTF_MODEL_ILP32
 #endif
 
 /*
@@ -137,8 +137,8 @@ typedef struct ctf_lblinfo {
  * New types are labeled as root or non-root to determine whether they are
  * visible at the top-level program scope when subsequently doing a lookup.
  */
-#define	CTF_ADD_NONROOT	0	/* type only visible in nested scope */
-#define	CTF_ADD_ROOT	1	/* type visible at top-level scope */
+#define CTF_ADD_NONROOT 0 /* type only visible in nested scope */
+#define CTF_ADD_ROOT 1	  /* type visible at top-level scope */
 
 /*
  * These typedefs are used to define the signature for callback functions
@@ -211,13 +211,13 @@ extern int ctf_label_iter(ctf_file_t *, ctf_label_f *, void *);
 extern ctf_id_t ctf_add_array(ctf_file_t *, uint_t, const ctf_arinfo_t *);
 extern ctf_id_t ctf_add_const(ctf_file_t *, uint_t, ctf_id_t);
 extern ctf_id_t ctf_add_enum(ctf_file_t *, uint_t, const char *);
-extern ctf_id_t ctf_add_float(ctf_file_t *, uint_t,
-    const char *, const ctf_encoding_t *);
+extern ctf_id_t ctf_add_float(ctf_file_t *, uint_t, const char *,
+    const ctf_encoding_t *);
 extern ctf_id_t ctf_add_forward(ctf_file_t *, uint_t, const char *, uint_t);
-extern ctf_id_t ctf_add_function(ctf_file_t *, uint_t,
-    const ctf_funcinfo_t *, const ctf_id_t *);
-extern ctf_id_t ctf_add_integer(ctf_file_t *, uint_t,
-    const char *, const ctf_encoding_t *);
+extern ctf_id_t ctf_add_function(ctf_file_t *, uint_t, const ctf_funcinfo_t *,
+    const ctf_id_t *);
+extern ctf_id_t ctf_add_integer(ctf_file_t *, uint_t, const char *,
+    const ctf_encoding_t *);
 extern ctf_id_t ctf_add_pointer(ctf_file_t *, uint_t, ctf_id_t);
 extern ctf_id_t ctf_add_type(ctf_file_t *, ctf_file_t *, ctf_id_t);
 extern ctf_id_t ctf_add_typedef(ctf_file_t *, uint_t, const char *, ctf_id_t);
@@ -244,8 +244,8 @@ extern ctf_file_t *ctf_modopen(struct module *, int *);
 
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _CTF_API_H */
+#endif /* _CTF_API_H */

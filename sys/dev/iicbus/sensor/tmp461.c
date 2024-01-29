@@ -25,97 +25,92 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/module.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
 #include <sys/libkern.h>
+#include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/sysctl.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
-#define BIT(x)					(1UL << (x))
+#define BIT(x) (1UL << (x))
 
 /* register map */
-#define TMP461_LOCAL_TEMP_REG_MSB		0x0
-#define TMP461_LOCAL_TEMP_REG_LSB		0x15
-#define TMP461_GLOBAL_TEMP_REG_MSB		0x1
-#define TMP461_GLOBAL_TEMP_REG_LSB		0x10
-#define TMP461_STATUS_REG			0x2
-#define TMP461_STATUS_REG_TEMP_LOCAL		BIT(2)
-#define TMP461_CONFIG_REG_R			0x3
-#define TMP461_CONFIG_REG_W			0x9
-#define TMP461_CONFIG_REG_TEMP_RANGE_BIT	BIT(2)
-#define TMP461_CONFIG_REG_STANDBY_BIT		BIT(6)
-#define TMP461_CONVERSION_RATE_REG		0x4
-#define TMP461_ONESHOT_REG			0xF
-#define TMP461_EXTENDED_TEMP_MODIFIER		64
+#define TMP461_LOCAL_TEMP_REG_MSB 0x0
+#define TMP461_LOCAL_TEMP_REG_LSB 0x15
+#define TMP461_GLOBAL_TEMP_REG_MSB 0x1
+#define TMP461_GLOBAL_TEMP_REG_LSB 0x10
+#define TMP461_STATUS_REG 0x2
+#define TMP461_STATUS_REG_TEMP_LOCAL BIT(2)
+#define TMP461_CONFIG_REG_R 0x3
+#define TMP461_CONFIG_REG_W 0x9
+#define TMP461_CONFIG_REG_TEMP_RANGE_BIT BIT(2)
+#define TMP461_CONFIG_REG_STANDBY_BIT BIT(6)
+#define TMP461_CONVERSION_RATE_REG 0x4
+#define TMP461_ONESHOT_REG 0xF
+#define TMP461_EXTENDED_TEMP_MODIFIER 64
 
 /* 28.4 fixed point representation of 273.15f */
-#define TMP461_C_TO_K_FIX			4370
+#define TMP461_C_TO_K_FIX 4370
 
-#define TMP461_SENSOR_MAX_CONV_TIME		16000000
-#define TMP461_LOCAL_MEASURE			0
-#define TMP461_REMOTE_MEASURE			1
+#define TMP461_SENSOR_MAX_CONV_TIME 16000000
+#define TMP461_LOCAL_MEASURE 0
+#define TMP461_REMOTE_MEASURE 1
 
 /* flags */
-#define TMP461_LOCAL_TEMP_DOUBLE_REG		BIT(0)
-#define TMP461_REMOTE_TEMP_DOUBLE_REG		BIT(1)
+#define TMP461_LOCAL_TEMP_DOUBLE_REG BIT(0)
+#define TMP461_REMOTE_TEMP_DOUBLE_REG BIT(1)
 
 static int tmp461_probe(device_t dev);
 static int tmp461_attach(device_t dev);
 static int tmp461_read_1(device_t dev, uint8_t reg, uint8_t *data);
 static int tmp461_write_1(device_t dev, uint8_t reg, uint8_t data);
-static int tmp461_read_temperature(device_t dev, int32_t *temperature, bool mode);
+static int tmp461_read_temperature(device_t dev, int32_t *temperature,
+    bool mode);
 static int tmp461_detach(device_t dev);
 static int tmp461_sensor_sysctl(SYSCTL_HANDLER_ARGS);
 
-static device_method_t tmp461_methods[] = {
-	DEVMETHOD(device_probe,		tmp461_probe),
-	DEVMETHOD(device_attach,	tmp461_attach),
-	DEVMETHOD(device_detach,	tmp461_detach),
+static device_method_t tmp461_methods[] = { DEVMETHOD(device_probe,
+						tmp461_probe),
+	DEVMETHOD(device_attach, tmp461_attach),
+	DEVMETHOD(device_detach, tmp461_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 struct tmp461_softc {
-	struct mtx		mtx;
-	uint8_t			conf;
+	struct mtx mtx;
+	uint8_t conf;
 };
 
-static driver_t tmp461_driver = {
-	"tmp461_dev",
-	tmp461_methods,
-	sizeof(struct tmp461_softc)
-};
+static driver_t tmp461_driver = { "tmp461_dev", tmp461_methods,
+	sizeof(struct tmp461_softc) };
 
 struct tmp461_data {
-	const char	*compat;
-	const char	*desc;
-	uint8_t		flags;
+	const char *compat;
+	const char *desc;
+	uint8_t flags;
 };
 
 static struct tmp461_data sensor_list[] = {
-	{"adt7461", "ADT7461 Thernal Sensor Information",
-	    TMP461_REMOTE_TEMP_DOUBLE_REG},
-	{"tmp461", "TMP461 Thernal Sensor Information",
-	    TMP461_LOCAL_TEMP_DOUBLE_REG | TMP461_REMOTE_TEMP_DOUBLE_REG}
+	{ "adt7461", "ADT7461 Thernal Sensor Information",
+	    TMP461_REMOTE_TEMP_DOUBLE_REG },
+	{ "tmp461", "TMP461 Thernal Sensor Information",
+	    TMP461_LOCAL_TEMP_DOUBLE_REG | TMP461_REMOTE_TEMP_DOUBLE_REG }
 };
 
 static struct ofw_compat_data tmp461_compat_data[] = {
-	{"adi,adt7461",		(uintptr_t)&sensor_list[0]},
-	{"ti,tmp461",		(uintptr_t)&sensor_list[1]},
-	{NULL,			0}
+	{ "adi,adt7461", (uintptr_t)&sensor_list[0] },
+	{ "ti,tmp461", (uintptr_t)&sensor_list[1] }, { NULL, 0 }
 };
 
 DRIVER_MODULE(tmp461, iicbus, tmp461_driver, 0, 0);
@@ -131,8 +126,9 @@ tmp461_attach(device_t dev)
 	uint8_t data;
 
 	sc = device_get_softc(dev);
-	compat_data = (struct tmp461_data *)
-	    ofw_bus_search_compatible(dev, tmp461_compat_data)->ocd_data;
+	compat_data = (struct tmp461_data *)ofw_bus_search_compatible(dev,
+	    tmp461_compat_data)
+			  ->ocd_data;
 	sc->conf = compat_data->flags;
 	ctx = device_get_sysctl_ctx(dev);
 
@@ -145,9 +141,8 @@ tmp461_attach(device_t dev)
 		return (ENXIO);
 
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(sensor_root_oid), OID_AUTO,
-	    "local_sensor", CTLTYPE_INT | CTLFLAG_RD, dev,
-	    TMP461_LOCAL_MEASURE, tmp461_sensor_sysctl,
-	    "IK1", compat_data->desc);
+	    "local_sensor", CTLTYPE_INT | CTLFLAG_RD, dev, TMP461_LOCAL_MEASURE,
+	    tmp461_sensor_sysctl, "IK1", compat_data->desc);
 
 	/* get status register */
 	if (tmp461_read_1(dev, TMP461_STATUS_REG, &data) != 0)
@@ -156,8 +151,8 @@ tmp461_attach(device_t dev)
 	if (!(data & TMP461_STATUS_REG_TEMP_LOCAL))
 		SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(sensor_root_oid), OID_AUTO,
 		    "remote_sensor", CTLTYPE_INT | CTLFLAG_RD, dev,
-		    TMP461_REMOTE_MEASURE, tmp461_sensor_sysctl,
-		    "IK1", compat_data->desc);
+		    TMP461_REMOTE_MEASURE, tmp461_sensor_sysctl, "IK1",
+		    compat_data->desc);
 
 	/* set standby mode */
 	if (tmp461_read_1(dev, TMP461_CONFIG_REG_R, &data) != 0)
@@ -178,8 +173,9 @@ tmp461_probe(device_t dev)
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
-	compat_data = (struct tmp461_data *)
-	    ofw_bus_search_compatible(dev, tmp461_compat_data)->ocd_data;
+	compat_data = (struct tmp461_data *)ofw_bus_search_compatible(dev,
+	    tmp461_compat_data)
+			  ->ocd_data;
 	if (!compat_data)
 		return (ENXIO);
 
@@ -204,7 +200,7 @@ tmp461_read_1(device_t dev, uint8_t reg, uint8_t *data)
 {
 	int error;
 
-	error = iicdev_readfrom(dev, reg, (void *) data, 1, IIC_DONTWAIT);
+	error = iicdev_readfrom(dev, reg, (void *)data, 1, IIC_DONTWAIT);
 	if (error != 0)
 		device_printf(dev, "Failed to read from device\n");
 
@@ -216,7 +212,7 @@ tmp461_write_1(device_t dev, uint8_t reg, uint8_t data)
 {
 	int error;
 
-	error = iicdev_writeto(dev, reg, (void *) &data, 1, IIC_DONTWAIT);
+	error = iicdev_writeto(dev, reg, (void *)&data, 1, IIC_DONTWAIT);
 	if (error != 0)
 		device_printf(dev, "Failed to write to device\n");
 
@@ -244,7 +240,7 @@ tmp461_read_temperature(device_t dev, int32_t *temperature, bool remote_measure)
 		goto fail;
 
 	/* wait for conversion time */
-	DELAY(TMP461_SENSOR_MAX_CONV_TIME/(1UL<<data));
+	DELAY(TMP461_SENSOR_MAX_CONV_TIME / (1UL << data));
 
 	/* read config register offset */
 	error = tmp461_read_1(dev, TMP461_CONFIG_REG_R, &data);
@@ -252,10 +248,11 @@ tmp461_read_temperature(device_t dev, int32_t *temperature, bool remote_measure)
 		goto fail;
 
 	offset = (data & TMP461_CONFIG_REG_TEMP_RANGE_BIT ?
-	    TMP461_EXTENDED_TEMP_MODIFIER : 0);
+		TMP461_EXTENDED_TEMP_MODIFIER :
+		0);
 
-	reg = remote_measure ?
-	    TMP461_GLOBAL_TEMP_REG_MSB : TMP461_LOCAL_TEMP_REG_MSB;
+	reg = remote_measure ? TMP461_GLOBAL_TEMP_REG_MSB :
+			       TMP461_LOCAL_TEMP_REG_MSB;
 
 	/* read temeperature value*/
 	error = tmp461_read_1(dev, reg, &data);
@@ -267,8 +264,8 @@ tmp461_read_temperature(device_t dev, int32_t *temperature, bool remote_measure)
 
 	if (remote_measure) {
 		if (sc->conf & TMP461_REMOTE_TEMP_DOUBLE_REG) {
-			error = tmp461_read_1(dev,
-			    TMP461_GLOBAL_TEMP_REG_LSB, &data);
+			error = tmp461_read_1(dev, TMP461_GLOBAL_TEMP_REG_LSB,
+			    &data);
 			if (error != 0)
 				goto fail;
 
@@ -276,8 +273,8 @@ tmp461_read_temperature(device_t dev, int32_t *temperature, bool remote_measure)
 		}
 	} else {
 		if (sc->conf & TMP461_LOCAL_TEMP_DOUBLE_REG) {
-			error = tmp461_read_1(dev,
-			    TMP461_LOCAL_TEMP_REG_LSB, &data);
+			error = tmp461_read_1(dev, TMP461_LOCAL_TEMP_REG_LSB,
+			    &data);
 			if (error != 0)
 				goto fail;
 

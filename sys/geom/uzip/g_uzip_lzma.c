@@ -28,11 +28,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/malloc.h>
 
 #include <contrib/xz-embedded/linux/include/linux/xz.h>
-
 #include <geom/uzip/g_uzip.h>
 #include <geom/uzip/g_uzip_dapi.h>
 #include <geom/uzip/g_uzip_lzma.h>
@@ -62,8 +61,8 @@ g_uzip_lzma_free(struct g_uzip_dapi *lzpp)
 }
 
 static int
-g_uzip_lzma_decompress(struct g_uzip_dapi *lzpp, const char *gp_name,
-    void *ibp, size_t ilen, void *obp)
+g_uzip_lzma_decompress(struct g_uzip_dapi *lzpp, const char *gp_name, void *ibp,
+    size_t ilen, void *obp)
 {
 	struct g_uzip_lzma *lzp;
 	int err;
@@ -79,9 +78,10 @@ g_uzip_lzma_decompress(struct g_uzip_dapi *lzpp, const char *gp_name,
 	/* TODO decoder recovery, if needed */
 	if (err != 0) {
 		printf("%s: ibp=%p, obp=%p, in_pos=%jd, out_pos=%jd, "
-		    "in_size=%jd, out_size=%jd\n", __func__, ibp, obp,
-		    (intmax_t)lzp->b.in_pos, (intmax_t)lzp->b.out_pos,
-		    (intmax_t)lzp->b.in_size, (intmax_t)lzp->b.out_size);
+		       "in_size=%jd, out_size=%jd\n",
+		    __func__, ibp, obp, (intmax_t)lzp->b.in_pos,
+		    (intmax_t)lzp->b.out_pos, (intmax_t)lzp->b.in_size,
+		    (intmax_t)lzp->b.out_size);
 	}
 
 	return (err);
@@ -91,7 +91,7 @@ static int
 LZ4_compressBound(int isize)
 {
 
-        return (isize + (isize / 255) + 16);
+	return (isize + (isize / 255) + 16);
 }
 
 struct g_uzip_dapi *
@@ -112,13 +112,13 @@ g_uzip_lzma_ctor(uint32_t blksz)
 	lzp->pub.pvt = lzp;
 	return (&lzp->pub);
 e1:
-        free(lzp, M_GEOM_UZIP);
-        return (NULL);
+	free(lzp, M_GEOM_UZIP);
+	return (NULL);
 }
 
 static int
 g_uzip_lzma_nop(struct g_uzip_dapi *zpp, const char *gp_name)
 {
 
-        return (0);
+	return (0);
 }

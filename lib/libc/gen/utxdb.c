@@ -26,36 +26,43 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/endian.h>
 #include <sys/time.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <utmpx.h>
-#include "utxdb.h"
-#include "un-namespace.h"
 
-#define	UTOF_STRING(ut, fu, field) do { \
-	strncpy((fu)->fu_ ## field, (ut)->ut_ ## field,		\
-	    MIN(sizeof (fu)->fu_ ## field, sizeof (ut)->ut_ ## field));	\
-} while (0)
-#define	UTOF_ID(ut, fu) do { \
-	memcpy((fu)->fu_id, (ut)->ut_id,				\
-	    MIN(sizeof (fu)->fu_id, sizeof (ut)->ut_id));		\
-} while (0)
-#define	UTOF_PID(ut, fu) do { \
-	(fu)->fu_pid = htobe32((ut)->ut_pid);				\
-} while (0)
-#define	UTOF_TYPE(ut, fu) do { \
-	(fu)->fu_type = (ut)->ut_type;					\
-} while (0)
-#define	UTOF_TV(fu) do { \
-	struct timeval tv;						\
-	gettimeofday(&tv, NULL);					\
-	(fu)->fu_tv = htobe64((uint64_t)tv.tv_sec * 1000000 +		\
-	    (uint64_t)tv.tv_usec);					\
-} while (0)
+#include "namespace.h"
+#include "un-namespace.h"
+#include "utxdb.h"
+
+#define UTOF_STRING(ut, fu, field)                                        \
+	do {                                                              \
+		strncpy((fu)->fu_##field, (ut)->ut_##field,               \
+		    MIN(sizeof(fu)->fu_##field, sizeof(ut)->ut_##field)); \
+	} while (0)
+#define UTOF_ID(ut, fu)                                         \
+	do {                                                    \
+		memcpy((fu)->fu_id, (ut)->ut_id,                \
+		    MIN(sizeof(fu)->fu_id, sizeof(ut)->ut_id)); \
+	} while (0)
+#define UTOF_PID(ut, fu)                              \
+	do {                                          \
+		(fu)->fu_pid = htobe32((ut)->ut_pid); \
+	} while (0)
+#define UTOF_TYPE(ut, fu)                      \
+	do {                                   \
+		(fu)->fu_type = (ut)->ut_type; \
+	} while (0)
+#define UTOF_TV(fu)                                                        \
+	do {                                                               \
+		struct timeval tv;                                         \
+		gettimeofday(&tv, NULL);                                   \
+		(fu)->fu_tv = htobe64(                                     \
+		    (uint64_t)tv.tv_sec * 1000000 + (uint64_t)tv.tv_usec); \
+	} while (0)
 
 void
 utx_to_futx(const struct utmpx *ut, struct futx *fu)
@@ -101,26 +108,31 @@ utx_to_futx(const struct utmpx *ut, struct futx *fu)
 	UTOF_TV(fu);
 }
 
-#define	FTOU_STRING(fu, ut, field) do { \
-	strncpy((ut)->ut_ ## field, (fu)->fu_ ## field,		\
-	    MIN(sizeof (ut)->ut_ ## field - 1, sizeof (fu)->fu_ ## field)); \
-} while (0)
-#define	FTOU_ID(fu, ut) do { \
-	memcpy((ut)->ut_id, (fu)->fu_id,				\
-	    MIN(sizeof (ut)->ut_id, sizeof (fu)->fu_id));		\
-} while (0)
-#define	FTOU_PID(fu, ut) do { \
-	(ut)->ut_pid = be32toh((fu)->fu_pid);				\
-} while (0)
-#define	FTOU_TYPE(fu, ut) do { \
-	(ut)->ut_type = (fu)->fu_type;					\
-} while (0)
-#define	FTOU_TV(fu, ut) do { \
-	uint64_t t;							\
-	t = be64toh((fu)->fu_tv);					\
-	(ut)->ut_tv.tv_sec = t / 1000000;				\
-	(ut)->ut_tv.tv_usec = t % 1000000;				\
-} while (0)
+#define FTOU_STRING(fu, ut, field)                                            \
+	do {                                                                  \
+		strncpy((ut)->ut_##field, (fu)->fu_##field,                   \
+		    MIN(sizeof(ut)->ut_##field - 1, sizeof(fu)->fu_##field)); \
+	} while (0)
+#define FTOU_ID(fu, ut)                                         \
+	do {                                                    \
+		memcpy((ut)->ut_id, (fu)->fu_id,                \
+		    MIN(sizeof(ut)->ut_id, sizeof(fu)->fu_id)); \
+	} while (0)
+#define FTOU_PID(fu, ut)                              \
+	do {                                          \
+		(ut)->ut_pid = be32toh((fu)->fu_pid); \
+	} while (0)
+#define FTOU_TYPE(fu, ut)                      \
+	do {                                   \
+		(ut)->ut_type = (fu)->fu_type; \
+	} while (0)
+#define FTOU_TV(fu, ut)                            \
+	do {                                       \
+		uint64_t t;                        \
+		t = be64toh((fu)->fu_tv);          \
+		(ut)->ut_tv.tv_sec = t / 1000000;  \
+		(ut)->ut_tv.tv_usec = t % 1000000; \
+	} while (0)
 
 struct utmpx *
 futx_to_utx(const struct futx *fu)

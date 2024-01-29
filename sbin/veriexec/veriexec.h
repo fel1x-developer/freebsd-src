@@ -29,6 +29,7 @@
 #define __VERIEXEC_H__
 
 #include <sys/ioctl.h>
+
 #include <dev/veriexec/veriexec_ioctl.h>
 
 extern int dev_fd;
@@ -38,9 +39,11 @@ extern int Verbose;
 extern int VeriexecVersion;
 extern const char *Cdir;
 
-#define VERBOSE(n, x) if (Verbose > n) printf x
+#define VERBOSE(n, x)    \
+	if (Verbose > n) \
+	printf x
 
-FILE * manifest_open (const char *file, const char *file_content);
+FILE *manifest_open(const char *file, const char *file_content);
 void manifest_parser_init(void);
 int yyparse(void);
 extern FILE *yyin;

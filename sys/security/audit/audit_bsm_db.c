@@ -43,8 +43,8 @@
 #include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/rwlock.h>
-#include <sys/sem.h>
 #include <sys/sbuf.h>
+#include <sys/sem.h>
 #include <sys/sx.h>
 #include <sys/syscall.h>
 #include <sys/sysctl.h>
@@ -60,7 +60,7 @@
  * Hash table functions for the audit event number to event class mask
  * mapping.
  */
-#define	EVCLASSMAP_HASH_TABLE_SIZE	251
+#define EVCLASSMAP_HASH_TABLE_SIZE 251
 struct evclass_elem {
 	au_event_t event;
 	au_class_t class;
@@ -71,14 +71,14 @@ struct evclass_list {
 };
 
 static MALLOC_DEFINE(M_AUDITEVCLASS, "audit_evclass", "Audit event class");
-static struct rwlock		evclass_lock;
-static struct evclass_list	evclass_hash[EVCLASSMAP_HASH_TABLE_SIZE];
+static struct rwlock evclass_lock;
+static struct evclass_list evclass_hash[EVCLASSMAP_HASH_TABLE_SIZE];
 
-#define	EVCLASS_LOCK_INIT()	rw_init(&evclass_lock, "evclass_lock")
-#define	EVCLASS_RLOCK()		rw_rlock(&evclass_lock)
-#define	EVCLASS_RUNLOCK()	rw_runlock(&evclass_lock)
-#define	EVCLASS_WLOCK()		rw_wlock(&evclass_lock)
-#define	EVCLASS_WUNLOCK()	rw_wunlock(&evclass_lock)
+#define EVCLASS_LOCK_INIT() rw_init(&evclass_lock, "evclass_lock")
+#define EVCLASS_RLOCK() rw_rlock(&evclass_lock)
+#define EVCLASS_RUNLOCK() rw_runlock(&evclass_lock)
+#define EVCLASS_WLOCK() rw_wlock(&evclass_lock)
+#define EVCLASS_WUNLOCK() rw_wunlock(&evclass_lock)
 
 /*
  * Hash table maintaining a mapping from audit event numbers to audit event
@@ -89,21 +89,21 @@ static struct evclass_list	evclass_hash[EVCLASSMAP_HASH_TABLE_SIZE];
  * struct evname_elem is defined in audit_private.h so that audit_dtrace.c can
  * use the definition.
  */
-#define	EVNAMEMAP_HASH_TABLE_MODULE	"etc_security_audit_event"
-#define	EVNAMEMAP_HASH_TABLE_SIZE	251
+#define EVNAMEMAP_HASH_TABLE_MODULE "etc_security_audit_event"
+#define EVNAMEMAP_HASH_TABLE_SIZE 251
 struct evname_list {
-	LIST_HEAD(, evname_elem)	enl_head;
+	LIST_HEAD(, evname_elem) enl_head;
 };
 
 static MALLOC_DEFINE(M_AUDITEVNAME, "audit_evname", "Audit event name");
-static struct sx		evnamemap_lock;
-static struct evname_list	evnamemap_hash[EVNAMEMAP_HASH_TABLE_SIZE];
+static struct sx evnamemap_lock;
+static struct evname_list evnamemap_hash[EVNAMEMAP_HASH_TABLE_SIZE];
 
-#define	EVNAMEMAP_LOCK_INIT()	sx_init(&evnamemap_lock, "evnamemap_lock");
-#define	EVNAMEMAP_RLOCK()	sx_slock(&evnamemap_lock)
-#define	EVNAMEMAP_RUNLOCK()	sx_sunlock(&evnamemap_lock)
-#define	EVNAMEMAP_WLOCK()	sx_xlock(&evnamemap_lock)
-#define	EVNAMEMAP_WUNLOCK()	sx_xunlock(&evnamemap_lock)
+#define EVNAMEMAP_LOCK_INIT() sx_init(&evnamemap_lock, "evnamemap_lock");
+#define EVNAMEMAP_RLOCK() sx_slock(&evnamemap_lock)
+#define EVNAMEMAP_RUNLOCK() sx_sunlock(&evnamemap_lock)
+#define EVNAMEMAP_WLOCK() sx_xlock(&evnamemap_lock)
+#define EVNAMEMAP_WUNLOCK() sx_xunlock(&evnamemap_lock)
 
 /*
  * Look up the class for an audit event in the class mapping table.
@@ -118,7 +118,7 @@ au_event_class(au_event_t event)
 	EVCLASS_RLOCK();
 	evcl = &evclass_hash[event % EVCLASSMAP_HASH_TABLE_SIZE];
 	class = 0;
-	LIST_FOREACH(evc, &evcl->head, entry) {
+	LIST_FOREACH (evc, &evcl->head, entry) {
 		if (evc->event == event) {
 			class = evc->class;
 			goto out;
@@ -150,7 +150,7 @@ au_evclassmap_insert(au_event_t event, au_class_t class)
 
 	EVCLASS_WLOCK();
 	evcl = &evclass_hash[event % EVCLASSMAP_HASH_TABLE_SIZE];
-	LIST_FOREACH(evc, &evcl->head, entry) {
+	LIST_FOREACH (evc, &evcl->head, entry) {
 		if (evc->event == event) {
 			evc->class = class;
 			EVCLASS_WUNLOCK();
@@ -201,7 +201,7 @@ au_event_name(au_event_t event, char *name)
 	error = ENOENT;
 	EVNAMEMAP_RLOCK();
 	enl = &evnamemap_hash[event % EVNAMEMAP_HASH_TABLE_SIZE];
-	LIST_FOREACH(ene, &enl->enl_head, ene_entry) {
+	LIST_FOREACH (ene, &enl->enl_head, ene_entry) {
 		if (ene->ene_event == event) {
 			strlcpy(name, ene->ene_name, EVNAMEMAP_NAME_SIZE);
 			error = 0;
@@ -241,7 +241,7 @@ au_evnamemap_insert(au_event_t event, const char *name)
 	ene_new = malloc(sizeof(*ene_new), M_AUDITEVNAME, M_WAITOK | M_ZERO);
 	EVNAMEMAP_WLOCK();
 	enl = &evnamemap_hash[event % EVNAMEMAP_HASH_TABLE_SIZE];
-	LIST_FOREACH(ene, &enl->enl_head, ene_entry) {
+	LIST_FOREACH (ene, &enl->enl_head, ene_entry) {
 		if (ene->ene_event == event) {
 			EVNAME_LOCK(ene);
 			(void)strlcpy(ene->ene_name, name,
@@ -314,23 +314,23 @@ au_evnamemap_init_preload(void)
 		 */
 		evnum_str = strsep(&line, ":");
 		if (evnum_str == NULL || *evnum_str == '\0') {
-			printf("%s: Invalid line %u - evnum strsep\n",
-			    __func__, lineno);
+			printf("%s: Invalid line %u - evnum strsep\n", __func__,
+			    lineno);
 			lineno++;
 			continue;
 		}
 		evnum = strtol(evnum_str, &endptr, 10);
-		if (*evnum_str == '\0' || *endptr != '\0' ||
-		    evnum <= 0 || evnum > UINT16_MAX) {
-			printf("%s: Invalid line %u - evnum strtol\n",
-			    __func__, lineno);
+		if (*evnum_str == '\0' || *endptr != '\0' || evnum <= 0 ||
+		    evnum > UINT16_MAX) {
+			printf("%s: Invalid line %u - evnum strtol\n", __func__,
+			    lineno);
 			lineno++;
 			continue;
 		}
 		evname = strsep(&line, ":");
 		if (evname == NULL || *evname == '\0') {
-			printf("%s: Invalid line %u - evname strsp\n",
-			    __func__, lineno);
+			printf("%s: Invalid line %u - evname strsp\n", __func__,
+			    lineno);
 			lineno++;
 			continue;
 		}
@@ -366,7 +366,7 @@ au_evnamemap_foreach(au_evnamemap_callback_t callback)
 	EVNAMEMAP_WLOCK();
 	for (i = 0; i < EVNAMEMAP_HASH_TABLE_SIZE; i++) {
 		enl = &evnamemap_hash[i];
-		LIST_FOREACH(ene, &enl->enl_head, ene_entry)
+		LIST_FOREACH (ene, &enl->enl_head, ene_entry)
 			callback(ene);
 	}
 	EVNAMEMAP_WUNLOCK();
@@ -390,7 +390,7 @@ au_evnamemap_lookup(au_event_t event)
 
 	EVNAMEMAP_RLOCK();
 	enl = &evnamemap_hash[event % EVNAMEMAP_HASH_TABLE_SIZE];
-	LIST_FOREACH(ene, &enl->enl_head, ene_entry) {
+	LIST_FOREACH (ene, &enl->enl_head, ene_entry) {
 		if (ene->ene_event == event)
 			goto out;
 	}

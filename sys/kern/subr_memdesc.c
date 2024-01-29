@@ -27,14 +27,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/mbuf.h>
 #include <sys/memdesc.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_page.h>
 #include <vm/vm_param.h>
+
 #include <machine/bus.h>
 
 /*
@@ -66,8 +68,8 @@ phys_copyback(vm_paddr_t pa, int off, int size, const void *src)
 }
 
 static void
-vlist_copyback(struct bus_dma_segment *vlist, int sglist_cnt, int off,
-    int size, const void *src)
+vlist_copyback(struct bus_dma_segment *vlist, int sglist_cnt, int off, int size,
+    const void *src)
 {
 	const char *p;
 	int todo;
@@ -98,8 +100,8 @@ vlist_copyback(struct bus_dma_segment *vlist, int sglist_cnt, int off,
 }
 
 static void
-plist_copyback(struct bus_dma_segment *plist, int sglist_cnt, int off,
-    int size, const void *src)
+plist_copyback(struct bus_dma_segment *plist, int sglist_cnt, int off, int size,
+    const void *src)
 {
 	const char *p;
 	int todo;
@@ -177,8 +179,7 @@ memdesc_copyback(struct memdesc *mem, int off, int size, const void *src)
 		break;
 	case MEMDESC_VMPAGES:
 		KASSERT(off + size <= mem->md_len, ("copy out of bounds"));
-		vmpages_copyback(mem->u.md_ma, mem->md_offset + off, size,
-		    src);
+		vmpages_copyback(mem->u.md_ma, mem->md_offset + off, size, src);
 		break;
 	default:
 		__assert_unreachable();
@@ -214,8 +215,8 @@ phys_copydata(vm_paddr_t pa, int off, int size, void *dst)
 }
 
 static void
-vlist_copydata(struct bus_dma_segment *vlist, int sglist_cnt, int off,
-    int size, void *dst)
+vlist_copydata(struct bus_dma_segment *vlist, int sglist_cnt, int off, int size,
+    void *dst)
 {
 	char *p;
 	int todo;
@@ -246,8 +247,8 @@ vlist_copydata(struct bus_dma_segment *vlist, int sglist_cnt, int off,
 }
 
 static void
-plist_copydata(struct bus_dma_segment *plist, int sglist_cnt, int off,
-    int size, void *dst)
+plist_copydata(struct bus_dma_segment *plist, int sglist_cnt, int off, int size,
+    void *dst)
 {
 	char *p;
 	int todo;
@@ -325,8 +326,7 @@ memdesc_copydata(struct memdesc *mem, int off, int size, void *dst)
 		break;
 	case MEMDESC_VMPAGES:
 		KASSERT(off + size <= mem->md_len, ("copy out of bounds"));
-		vmpages_copydata(mem->u.md_ma, mem->md_offset + off, size,
-		    dst);
+		vmpages_copydata(mem->u.md_ma, mem->md_offset + off, size, dst);
 		break;
 	default:
 		__assert_unreachable();
@@ -468,8 +468,8 @@ error:
 
 static struct mbuf *
 vlist_ext_mbuf(memdesc_alloc_ext_mbuf_t *ext_alloc, void *cb_arg, int how,
-    struct bus_dma_segment *vlist, u_int sglist_cnt, size_t offset,
-    size_t len, size_t *actual_len)
+    struct bus_dma_segment *vlist, u_int sglist_cnt, size_t offset, size_t len,
+    size_t *actual_len)
 {
 	struct mbuf *m, *n, *tail;
 	size_t todo;
@@ -492,8 +492,8 @@ vlist_ext_mbuf(memdesc_alloc_ext_mbuf_t *ext_alloc, void *cb_arg, int how,
 		if (todo > vlist->ds_len - offset)
 			todo = vlist->ds_len - offset;
 
-		n = ext_alloc(cb_arg, how, (char *)(uintptr_t)vlist->ds_addr +
-		    offset, todo);
+		n = ext_alloc(cb_arg, how,
+		    (char *)(uintptr_t)vlist->ds_addr + offset, todo);
 		if (n == NULL)
 			goto error;
 
@@ -685,8 +685,8 @@ error:
  * the end.
  */
 static struct mbuf *
-mbuf_subchain(struct mbuf *m0, size_t offset, size_t len,
-    size_t *actual_len, bool can_truncate, int how)
+mbuf_subchain(struct mbuf *m0, size_t offset, size_t len, size_t *actual_len,
+    bool can_truncate, int how)
 {
 	struct mbuf *m, *tail;
 	size_t totlen;
@@ -760,8 +760,8 @@ memdesc_alloc_ext_mbufs(struct memdesc *mem,
 		    (char *)mem->u.md_vaddr + offset, len, &done);
 		break;
 	case MEMDESC_PADDR:
-		m = paddr_ext_mbuf(extpg_alloc, cb_arg, how, mem->u.md_paddr +
-		    offset, len, &done, can_truncate);
+		m = paddr_ext_mbuf(extpg_alloc, cb_arg, how,
+		    mem->u.md_paddr + offset, len, &done, can_truncate);
 		break;
 	case MEMDESC_VLIST:
 		m = vlist_ext_mbuf(ext_alloc, cb_arg, how, mem->u.md_list,

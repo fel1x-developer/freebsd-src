@@ -28,17 +28,17 @@
 #include <sys/cdefs.h>
 #include <sys/dnv.h>
 #include <sys/nv.h>
+
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <netdb.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <libcasper_service.h>
 
 #include "cap_netdb.h"
 
@@ -104,7 +104,7 @@ protoent_pack(const struct protoent *pp, nvlist_t *nvl)
 	while (pp->p_aliases[n] != NULL)
 		++n;
 	nvlist_add_string_array(nvl, "aliases",
-	    (const char * const *)pp->p_aliases, n);
+	    (const char *const *)pp->p_aliases, n);
 
 	nvlist_add_number(nvl, "proto", (uint64_t)pp->p_proto);
 }

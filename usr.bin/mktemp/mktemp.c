@@ -48,11 +48,11 @@
 static void usage(void) __dead2;
 
 static const struct option long_opts[] = {
-	{"directory",	no_argument,	NULL,	'd'},
-	{"tmpdir",	optional_argument,	NULL,	'p'},
-	{"quiet",	no_argument,	NULL,	'q'},
-	{"dry-run",	no_argument,	NULL,	'u'},
-	{NULL,		no_argument,	NULL,	0},
+	{ "directory", no_argument, NULL, 'd' },
+	{ "tmpdir", optional_argument, NULL, 'p' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "dry-run", no_argument, NULL, 'u' },
+	{ NULL, no_argument, NULL, 0 },
 };
 
 int
@@ -195,9 +195,9 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-		"usage: mktemp [-d] [-p tmpdir] [-q] [-t prefix] [-u] template "
-		"...\n");
+	    "usage: mktemp [-d] [-p tmpdir] [-q] [-t prefix] [-u] template "
+	    "...\n");
 	fprintf(stderr,
-		"       mktemp [-d] [-p tmpdir] [-q] [-u] -t prefix \n");
-	exit (1);
+	    "       mktemp [-d] [-p tmpdir] [-q] [-u] -t prefix \n");
+	exit(1);
 }

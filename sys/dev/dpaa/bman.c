@@ -26,13 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/proc.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sched.h>
 
@@ -53,12 +53,12 @@ bman_exception(t_Handle h_App, e_BmExceptions exception)
 	sc = h_App;
 
 	switch (exception) {
-    	case e_BM_EX_INVALID_COMMAND:
+	case e_BM_EX_INVALID_COMMAND:
 		message = "Invalid Command Verb";
 		break;
 	case e_BM_EX_FBPR_THRESHOLD:
 		message = "FBPR pool exhaused. Consider increasing "
-		    "BMAN_MAX_BUFFERS";
+			  "BMAN_MAX_BUFFERS";
 		break;
 	case e_BM_EX_SINGLE_ECC:
 		message = "Single bit ECC error";
@@ -130,8 +130,8 @@ bman_attach(device_t dev)
 	if (error != E_OK)
 		goto err;
 
-	device_printf(dev, "Hardware version: %d.%d.\n",
-	    rev.majorRev, rev.minorRev);
+	device_printf(dev, "Hardware version: %d.%d.\n", rev.majorRev,
+	    rev.minorRev);
 
 	return (0);
 
@@ -151,12 +151,12 @@ bman_detach(device_t dev)
 		BM_Free(sc->sc_bh);
 
 	if (sc->sc_ires != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_irid, sc->sc_ires);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irid,
+		    sc->sc_ires);
 
 	if (sc->sc_rres != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->sc_rrid, sc->sc_rres);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rrid,
+		    sc->sc_rres);
 
 	return (0);
 }

@@ -1,21 +1,24 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <sys/types.h>
+#include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/limits.h>
+
+#include <machine/bus_dma.h>
+
+#include <dev/pci/pcireg.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include <sys/types.h>
-#include <sys/limits.h>
-#include <sys/kernel.h>
-#include <sys/systm.h>
-#include <machine/bus_dma.h>
-#include <dev/pci/pcireg.h>
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 MALLOC_DEFINE(M_QAT, "qat", "qat");
 
@@ -37,51 +40,29 @@ bus_dma_mem_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 }
 
 int
-bus_dma_mem_create(struct bus_dmamem *mem,
-		   bus_dma_tag_t parent,
-		   bus_size_t alignment,
-		   bus_addr_t lowaddr,
-		   bus_size_t len,
-		   int flags)
+bus_dma_mem_create(struct bus_dmamem *mem, bus_dma_tag_t parent,
+    bus_size_t alignment, bus_addr_t lowaddr, bus_size_t len, int flags)
 {
 	struct bus_dma_mem_cb_data d;
 	int error;
 
 	bzero(mem, sizeof(*mem));
-	error = bus_dma_tag_create(parent,
-				   alignment,
-				   0,
-				   lowaddr,
-				   BUS_SPACE_MAXADDR,
-				   NULL,
-				   NULL,
-				   len,
-				   1,
-				   len,
-				   0,
-				   NULL,
-				   NULL,
-				   &mem->dma_tag);
+	error = bus_dma_tag_create(parent, alignment, 0, lowaddr,
+	    BUS_SPACE_MAXADDR, NULL, NULL, len, 1, len, 0, NULL, NULL,
+	    &mem->dma_tag);
 	if (error) {
 		bus_dma_mem_free(mem);
 		return (error);
 	}
-	error = bus_dmamem_alloc(mem->dma_tag,
-				 &mem->dma_vaddr,
-				 flags,
-				 &mem->dma_map);
+	error = bus_dmamem_alloc(mem->dma_tag, &mem->dma_vaddr, flags,
+	    &mem->dma_map);
 	if (error) {
 		bus_dma_mem_free(mem);
 		return (error);
 	}
 	d.mem = mem;
-	error = bus_dmamap_load(mem->dma_tag,
-				mem->dma_map,
-				mem->dma_vaddr,
-				len,
-				bus_dma_mem_cb,
-				&d,
-				BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(mem->dma_tag, mem->dma_map, mem->dma_vaddr, len,
+	    bus_dma_mem_cb, &d, BUS_DMA_NOWAIT);
 	if (error == 0)
 		error = d.error;
 	if (error) {

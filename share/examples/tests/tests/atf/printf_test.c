@@ -67,8 +67,8 @@ ATF_TC_BODY(snprintf__two_formatters, tc)
 	/* This first require-style check invokes the function we are
 	 * interested in testing.  This will cause the test to fail if
 	 * the condition provided to ATF_REQUIRE is not met. */
-	ATF_REQUIRE(snprintf(buffer, sizeof(buffer), "%s, %s!",
-	    "Hello", "tests") > 0);
+	ATF_REQUIRE(
+	    snprintf(buffer, sizeof(buffer), "%s, %s!", "Hello", "tests") > 0);
 
 	/* This second check-style check compares that the result of the
 	 * snprintf call we performed above is correct.  We use a check
@@ -94,7 +94,8 @@ ATF_TC_HEAD(snprintf__overflow, tc)
 	 *
 	 * However, note again that you should favor highly descriptive
 	 * test case names to textual descriptions.  */
-	atf_tc_set_md_var(tc, "descr", "This test case validates the proper "
+	atf_tc_set_md_var(tc, "descr",
+	    "This test case validates the proper "
 	    "truncation of the output string from snprintf when it does not "
 	    "fit the provided buffer.");
 }
@@ -113,7 +114,7 @@ ATF_TC_BODY(snprintf__overflow, tc)
 	 * is generic enough). */
 	if (snprintf(buffer, sizeof(buffer), "0123456789abcdef") != 16)
 		atf_tc_fail("snprintf did not return the expected number "
-		    "of characters");
+			    "of characters");
 
 	ATF_CHECK(strcmp(buffer, "012345678") == 0);
 }

@@ -23,18 +23,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_LEDS_H
-#define	_LINUXKPI_LINUX_LEDS_H
+#ifndef _LINUXKPI_LINUX_LEDS_H
+#define _LINUXKPI_LINUX_LEDS_H
 
 enum led_brightness {
 	__DUMMY,
 };
 
 struct led_classdev {
-	const char		*name;
-	const char		*default_trigger;
-	int (*blink_set)(struct led_classdev *, unsigned long *, unsigned long *);
+	const char *name;
+	const char *default_trigger;
+	int (*blink_set)(struct led_classdev *, unsigned long *,
+	    unsigned long *);
 	void (*brightness_set)(struct led_classdev *, enum led_brightness);
 };
 
-#endif	/* _LINUXKPI_LINUX_LEDS_H */
+#endif /* _LINUXKPI_LINUX_LEDS_H */

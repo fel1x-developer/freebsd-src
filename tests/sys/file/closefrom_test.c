@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <sys/user.h>
 #include <sys/wait.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <libutil.h>
@@ -45,9 +46,9 @@
 #include <unistd.h>
 
 struct shared_info {
-	int	failed;
-	char	tag[64];
-	char	message[0];
+	int failed;
+	char tag[64];
+	char message[0];
 };
 
 static int test = 1;
@@ -77,7 +78,7 @@ fail(const char *descr, const char *fmt, ...)
 	exit(1);
 }
 
-#define	fail_err(descr)		fail((descr), "%s", strerror(errno))
+#define fail_err(descr) fail((descr), "%s", strerror(errno))
 
 static void
 cok(struct shared_info *info, const char *descr)
@@ -103,7 +104,7 @@ cfail(struct shared_info *info, const char *descr, const char *fmt, ...)
 	exit(0);
 }
 
-#define	cfail_err(info, descr)	cfail((info), (descr), "%s", strerror(errno))
+#define cfail_err(info, descr) cfail((info), (descr), "%s", strerror(errno))
 
 /*
  * Use kinfo_getfile() to fetch the list of file descriptors and figure out
@@ -133,7 +134,8 @@ devnull(void)
 
 	fd = open(_PATH_DEVNULL, O_RDONLY);
 	if (fd < 0)
-		fail_err("open(\" "_PATH_DEVNULL" \")");
+		fail_err("open(\" "_PATH_DEVNULL
+			 " \")");
 	return (fd);
 }
 
@@ -205,8 +207,8 @@ main(void)
 	ok("closefrom");
 
 	/* Allocate a small SHM region for IPC with our child. */
-	info = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE, MAP_ANON |
-	    MAP_SHARED, -1, 0);
+	info = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE,
+	    MAP_ANON | MAP_SHARED, -1, 0);
 	if (info == MAP_FAILED)
 		fail_err("mmap");
 	ok("mmap");
@@ -334,23 +336,29 @@ main(void)
 	if (flags < 0)
 		fail_err("fcntl(.., F_GETFD)");
 	if ((flags & FD_CLOEXEC) != 0)
-		fail("close_range", "CLOSE_RANGE_CLOEXEC set close-on-exec "
-		    "when it should not have on fd %d", start);
+		fail("close_range",
+		    "CLOSE_RANGE_CLOEXEC set close-on-exec "
+		    "when it should not have on fd %d",
+		    start);
 	for (i = start + 1; i <= start + 4; i++) {
 		flags = fcntl(i, F_GETFD);
 		if (flags < 0)
 			fail_err("fcntl(.., F_GETFD)");
 		if ((flags & FD_CLOEXEC) == 0)
-			fail("close_range", "CLOSE_RANGE_CLOEXEC did not set "
-			    "close-on-exec on fd %d", i);
+			fail("close_range",
+			    "CLOSE_RANGE_CLOEXEC did not set "
+			    "close-on-exec on fd %d",
+			    i);
 	}
 	for (; i < start + 8; i++) {
 		flags = fcntl(i, F_GETFD);
 		if (flags < 0)
 			fail_err("fcntl(.., F_GETFD)");
 		if ((flags & FD_CLOEXEC) != 0)
-			fail("close_range", "CLOSE_RANGE_CLOEXEC set close-on-exec "
-			    "when it should not have on fd %d", i);
+			fail("close_range",
+			    "CLOSE_RANGE_CLOEXEC set close-on-exec "
+			    "when it should not have on fd %d",
+			    i);
 	}
 	if (close_range(start, start + 8, 0) < 0)
 		fail_err("close_range");

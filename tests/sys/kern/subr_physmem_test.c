@@ -117,7 +117,7 @@ ATF_TC_BODY(hwregion_unordered, tc)
 	/* Add a partial page */
 	physmem_hardware_region(PAGE_SIZE, PAGE_SIZE / 2);
 	/* Add a full page not touching the previous */
-	physmem_hardware_region( 2 * PAGE_SIZE, PAGE_SIZE);
+	physmem_hardware_region(2 * PAGE_SIZE, PAGE_SIZE);
 	/* Add the remainder of the first page */
 	physmem_hardware_region(PAGE_SIZE + PAGE_SIZE / 2, PAGE_SIZE / 2);
 

@@ -29,9 +29,21 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/disk.h>
+#include <sys/event.h>
+#include <sys/queue.h>
+#include <sys/stat.h>
+
+#include <aio.h>
+#include <assert.h>
+#include <cam/cam_queue.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_targetio.h>
 #include <ctype.h>
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
@@ -40,62 +52,48 @@
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <aio.h>
-#include <assert.h>
-#include <sys/stat.h>
-#include <sys/queue.h>
-#include <sys/event.h>
-#include <sys/param.h>
-#include <sys/disk.h>
-#include <cam/cam_queue.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_targetio.h>
-#include <cam/scsi/scsi_message.h>
+
 #include "scsi_target.h"
 
 /* Maximum amount to transfer per CTIO */
-#define MAX_XFER	MAXPHYS
+#define MAX_XFER MAXPHYS
 /* Maximum number of allocated CTIOs */
-#define MAX_CTIOS	64
+#define MAX_CTIOS 64
 /* Maximum sector size for emulated volume */
-#define MAX_SECTOR	32768
+#define MAX_SECTOR 32768
 
 /* Global variables */
-int		debug;
-int		notaio = 0;
-off_t		volume_size;
-u_int		sector_size;
-size_t		buf_size;
+int debug;
+int notaio = 0;
+off_t volume_size;
+u_int sector_size;
+size_t buf_size;
 
 /* Local variables */
-static int    targ_fd;
-static int    kq_fd;
-static int    file_fd;
-static int    num_ctios;
-static struct ccb_queue		pending_queue;
-static struct ccb_queue		work_queue;
-static struct ioc_enable_lun	ioc_enlun = {
-	CAM_BUS_WILDCARD,
-	CAM_TARGET_WILDCARD,
-	CAM_LUN_WILDCARD
-};
+static int targ_fd;
+static int kq_fd;
+static int file_fd;
+static int num_ctios;
+static struct ccb_queue pending_queue;
+static struct ccb_queue work_queue;
+static struct ioc_enable_lun ioc_enlun = { CAM_BUS_WILDCARD,
+	CAM_TARGET_WILDCARD, CAM_LUN_WILDCARD };
 
 /* Local functions */
-static void		cleanup(void);
-static int		init_ccbs(void);
-static void		request_loop(void);
-static void		handle_read(void);
+static void cleanup(void);
+static int init_ccbs(void);
+static void request_loop(void);
+static void handle_read(void);
 /* static int		work_atio(struct ccb_accept_tio *); */
-static void		queue_io(struct ccb_scsiio *);
-static int		run_queue(struct ccb_accept_tio *);
-static int		work_inot(struct ccb_immediate_notify *);
-static struct ccb_scsiio *
-			get_ctio(void);
+static void queue_io(struct ccb_scsiio *);
+static int run_queue(struct ccb_accept_tio *);
+static int work_inot(struct ccb_immediate_notify *);
+static struct ccb_scsiio *get_ctio(void);
 /* static void		free_ccb(union ccb *); */
-static cam_status	get_sim_flags(u_int16_t *);
-static void		rel_simq(void);
-static void		abort_all_pending(void);
-static void		usage(void);
+static cam_status get_sim_flags(u_int16_t *);
+static void rel_simq(void);
+static void abort_all_pending(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -119,7 +117,7 @@ main(int argc, char *argv[])
 	TAILQ_INIT(&work_queue);
 
 	while ((ch = getopt(argc, argv, "AdSTYb:c:s:W:")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'A':
 			req_flags |= SID_Addr16;
 			break;
@@ -142,8 +140,7 @@ main(int argc, char *argv[])
 			if (sector_size < 512 || sector_size > MAX_SECTOR)
 				errx(1, "Unreasonable sector size: %s", optarg);
 			break;
-		case 's':
-		{
+		case 's': {
 			int last, shift = 0;
 
 			last = strlen(optarg) - 1;
@@ -170,7 +167,7 @@ main(int argc, char *argv[])
 					break;
 				}
 			}
-			user_size = strtoll(optarg, (char **)NULL, /*base*/10);
+			user_size = strtoll(optarg, (char **)NULL, /*base*/ 10);
 			user_size <<= shift;
 			if (user_size < 0)
 				errx(1, "Unreasonable volume size: %s", optarg);
@@ -204,12 +201,12 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
-	
+
 	if (argc != 2)
 		usage();
 
 	sscanf(argv[0], "%u:%u:%u", &ioc_enlun.path_id, &ioc_enlun.target_id,
-	       &ioc_enlun.lun_id);
+	    &ioc_enlun.lun_id);
 	file_name = argv[1];
 
 	if (ioc_enlun.path_id == CAM_BUS_WILDCARD ||
@@ -239,7 +236,7 @@ main(int argc, char *argv[])
 			/* raw device */
 			off_t mediasize;
 			if (ioctl(file_fd, DIOCGMEDIASIZE, &mediasize) < 0)
-				err(1, "DIOCGMEDIASIZE"); 
+				err(1, "DIOCGMEDIASIZE");
 
 			/* XXX get sector size by ioctl()?? */
 			volume_size = mediasize / sector_size;
@@ -258,7 +255,7 @@ main(int argc, char *argv[])
 
 	if (notaio == 0) {
 		struct aiocb aio, *aiop;
-		
+
 		/* See if we have we have working AIO support */
 		memset(&aio, 0, sizeof(aio));
 		aio.aio_buf = malloc(sector_size);
@@ -285,9 +282,9 @@ main(int argc, char *argv[])
 
 	targ_fd = open("/dev/targ", O_RDWR);
 	if (targ_fd < 0)
-    	    err(1, "/dev/targ");
+		err(1, "/dev/targ");
 	else
-	    warnx("opened /dev/targ");
+		warnx("opened /dev/targ");
 
 	/* The first three are handled by kevent() later */
 	signal(SIGHUP, SIG_IGN);
@@ -380,7 +377,7 @@ init_ccbs()
 		}
 		atio->ccb_h.func_code = XPT_ACCEPT_TARGET_IO;
 		atio->ccb_h.targ_descr = a_descr;
-		send_ccb((union ccb *)atio, /*priority*/1);
+		send_ccb((union ccb *)atio, /*priority*/ 1);
 
 		inot = (struct ccb_immediate_notify *)malloc(sizeof(*inot));
 		if (inot == NULL) {
@@ -388,7 +385,7 @@ init_ccbs()
 			return (-1);
 		}
 		inot->ccb_h.func_code = XPT_IMMEDIATE_NOTIFY;
-		send_ccb((union ccb *)inot, /*priority*/1);
+		send_ccb((union ccb *)inot, /*priority*/ 1);
 	}
 
 	return (0);
@@ -406,10 +403,10 @@ request_loop()
 		err(1, "init kqueue");
 
 	/* Set up some default events */
-	EV_SET(&events[0], SIGHUP, EVFILT_SIGNAL, EV_ADD|EV_ENABLE, 0, 0, 0);
-	EV_SET(&events[1], SIGINT, EVFILT_SIGNAL, EV_ADD|EV_ENABLE, 0, 0, 0);
-	EV_SET(&events[2], SIGTERM, EVFILT_SIGNAL, EV_ADD|EV_ENABLE, 0, 0, 0);
-	EV_SET(&events[3], targ_fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, 0);
+	EV_SET(&events[0], SIGHUP, EVFILT_SIGNAL, EV_ADD | EV_ENABLE, 0, 0, 0);
+	EV_SET(&events[1], SIGINT, EVFILT_SIGNAL, EV_ADD | EV_ENABLE, 0, 0, 0);
+	EV_SET(&events[2], SIGTERM, EVFILT_SIGNAL, EV_ADD | EV_ENABLE, 0, 0, 0);
+	EV_SET(&events[3], targ_fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, 0);
 	if (kevent(kq_fd, events, 4, NULL, 0, NULL) < 0)
 		err(1, "kevent signal registration");
 
@@ -430,8 +427,7 @@ request_loop()
 				if (debug)
 					warnx("EINTR, looping");
 				continue;
-            		}
-			else {
+			} else {
 				err(1, "kevent failed");
 			}
 		} else if (retval > MAX_EVENTS) {
@@ -449,8 +445,7 @@ request_loop()
 					warnx("read ready");
 				handle_read();
 				break;
-			case EVFILT_AIO:
-			{
+			case EVFILT_AIO: {
 				struct ccb_scsiio *ctio;
 				struct ctio_descr *c_descr;
 				if (debug)
@@ -458,7 +453,7 @@ request_loop()
 
 				ctio = (struct ccb_scsiio *)events[i].udata;
 				c_descr = (struct ctio_descr *)
-					  ctio->ccb_h.targ_descr;
+					      ctio->ccb_h.targ_descr;
 				c_descr->event = AIO_DONE;
 				/* Queue on the appropriate ATIO */
 				queue_io(ctio);
@@ -500,7 +495,7 @@ request_loop()
 				break;
 			default:
 				warnx("Unhandled ccb type %#x on workq",
-				      ccb_h->func_code);
+				    ccb_h->func_code);
 				abort();
 				/* NOTREACHED */
 			}
@@ -517,7 +512,7 @@ request_loop()
 			/* No more work needed for this command. */
 			if (retval == 0) {
 				TAILQ_REMOVE(&work_queue, ccb_h,
-					     periph_links.tqe);
+				    periph_links.tqe);
 			}
 		}
 
@@ -556,8 +551,7 @@ handle_read()
 		TAILQ_REMOVE(&pending_queue, &ccb->ccb_h, periph_links.tqe);
 
 		switch (ccb->ccb_h.func_code) {
-		case XPT_ACCEPT_TARGET_IO:
-		{
+		case XPT_ACCEPT_TARGET_IO: {
 			struct ccb_accept_tio *atio;
 			struct atio_descr *a_descr;
 
@@ -567,7 +561,7 @@ handle_read()
 			bzero(a_descr, sizeof(*a_descr));
 			TAILQ_INIT(&a_descr->cmplt_io);
 			a_descr->flags = atio->ccb_h.flags &
-				(CAM_DIS_DISCONNECT | CAM_TAG_ACTION_VALID);
+			    (CAM_DIS_DISCONNECT | CAM_TAG_ACTION_VALID);
 			/* XXX add a_descr->priority */
 			if ((atio->ccb_h.flags & CAM_CDB_POINTER) == 0)
 				a_descr->cdb = atio->cdb_io.cdb_bytes;
@@ -576,11 +570,10 @@ handle_read()
 
 			/* ATIOs are processed in FIFO order */
 			TAILQ_INSERT_TAIL(&work_queue, &ccb->ccb_h,
-					  periph_links.tqe);
+			    periph_links.tqe);
 			break;
 		}
-		case XPT_CONT_TARGET_IO:
-		{
+		case XPT_CONT_TARGET_IO: {
 			struct ccb_scsiio *ctio;
 			struct ctio_descr *c_descr;
 
@@ -596,11 +589,11 @@ handle_read()
 		case XPT_IMMEDIATE_NOTIFY:
 			/* INOTs are handled with priority */
 			TAILQ_INSERT_HEAD(&work_queue, &ccb->ccb_h,
-					  periph_links.tqe);
+			    periph_links.tqe);
 			break;
 		default:
 			warnx("Unhandled ccb type %#x in handle_read",
-			      ccb->ccb_h.func_code);
+			    ccb->ccb_h.func_code);
 			break;
 		}
 	}
@@ -640,7 +633,7 @@ work_atio(struct ccb_accept_tio *atio)
 	else
 		c_descr->offset = a_descr->base_off;
 
-	/* 
+	/*
 	 * Return a check condition if there was an error while
 	 * receiving this ATIO.
 	 */
@@ -649,12 +642,12 @@ work_atio(struct ccb_accept_tio *atio)
 
 		if (debug) {
 			warnx("ATIO with %u bytes sense received",
-			      atio->sense_len);
+			    atio->sense_len);
 		}
 		sense = (struct scsi_sense_data_fixed *)&atio->sense_data;
 		tcmd_sense(ctio->init_id, ctio, sense->flags,
-			   sense->add_sense_code, sense->add_sense_code_qual);
-		send_ccb((union ccb *)ctio, /*priority*/1);
+		    sense->add_sense_code, sense->add_sense_code_qual);
+		send_ccb((union ccb *)ctio, /*priority*/ 1);
 		return (0);
 	}
 
@@ -667,7 +660,7 @@ work_atio(struct ccb_accept_tio *atio)
 		warn("ATIO %p aborted", a_descr);
 		/* Requeue on HBA */
 		TAILQ_REMOVE(&work_queue, &atio->ccb_h, periph_links.tqe);
-		send_ccb((union ccb *)atio, /*priority*/1);
+		send_ccb((union ccb *)atio, /*priority*/ 1);
 		ret = 1;
 		break;
 	default:
@@ -686,7 +679,7 @@ queue_io(struct ccb_scsiio *ctio)
 	struct ccb_hdr *ccb_h;
 	struct io_queue *ioq;
 	struct ctio_descr *c_descr;
-	
+
 	c_descr = (struct ctio_descr *)ctio->ccb_h.targ_descr;
 	if (c_descr->atio == NULL) {
 		errx(1, "CTIO %p has NULL ATIO", ctio);
@@ -698,9 +691,9 @@ queue_io(struct ccb_scsiio *ctio)
 		return;
 	}
 
-	TAILQ_FOREACH_REVERSE(ccb_h, ioq, io_queue, periph_links.tqe) {
-		struct ctio_descr *curr_descr = 
-		    (struct ctio_descr *)ccb_h->targ_descr;
+	TAILQ_FOREACH_REVERSE (ccb_h, ioq, io_queue, periph_links.tqe) {
+		struct ctio_descr *curr_descr = (struct ctio_descr *)
+						    ccb_h->targ_descr;
 		if (curr_descr->offset <= c_descr->offset) {
 			break;
 		}
@@ -738,33 +731,36 @@ run_queue(struct ccb_accept_tio *atio)
 
 		if (ctio->ccb_h.status == CAM_REQ_ABORTED) {
 			TAILQ_REMOVE(&a_descr->cmplt_io, ccb_h,
-				     periph_links.tqe);
+			    periph_links.tqe);
 			free_ccb((union ccb *)ctio);
-			send_ccb((union ccb *)atio, /*priority*/1);
+			send_ccb((union ccb *)atio, /*priority*/ 1);
 			continue;
 		}
 
 		/* If completed item is in range, call handler */
 		if ((c_descr->event == AIO_DONE &&
-		    c_descr->offset == a_descr->base_off + a_descr->targ_ack)
-		 || (c_descr->event == CTIO_DONE &&
-		    c_descr->offset == a_descr->base_off + a_descr->init_ack)) {
+			c_descr->offset ==
+			    a_descr->base_off + a_descr->targ_ack) ||
+		    (c_descr->event == CTIO_DONE &&
+			c_descr->offset ==
+			    a_descr->base_off + a_descr->init_ack)) {
 			sent_status = (ccb_h->flags & CAM_SEND_STATUS) != 0;
 			event = c_descr->event;
 
 			TAILQ_REMOVE(&a_descr->cmplt_io, ccb_h,
-				     periph_links.tqe);
+			    periph_links.tqe);
 			tcmd_handle(atio, ctio, c_descr->event);
 
 			/* If entire transfer complete, send back ATIO */
 			if (sent_status != 0 && event == CTIO_DONE)
-				send_ccb((union ccb *)atio, /*priority*/1);
+				send_ccb((union ccb *)atio, /*priority*/ 1);
 		} else {
 			/* Gap in offsets so wait until later callback */
 			if (/* debug */ 1)
-				warnx("IO %p:%p out of order %s",  ccb_h,
-				    a_descr, c_descr->event == AIO_DONE?
-				    "aio" : "ctio");
+				warnx("IO %p:%p out of order %s", ccb_h,
+				    a_descr,
+				    c_descr->event == AIO_DONE ? "aio" :
+								 "ctio");
 			return (1);
 		}
 	}
@@ -817,7 +813,7 @@ work_inot(struct ccb_immediate_notify *inot)
 
 	/* Requeue on SIM */
 	TAILQ_REMOVE(&work_queue, &inot->ccb_h, periph_links.tqe);
-	send_ccb((union ccb *)inot, /*priority*/1);
+	send_ccb((union ccb *)inot, /*priority*/ 1);
 
 	return (1);
 }
@@ -830,7 +826,7 @@ send_ccb(union ccb *ccb, int priority)
 	ccb->ccb_h.pinfo.priority = priority;
 	if (XPT_FC_IS_QUEUED(ccb)) {
 		TAILQ_INSERT_TAIL(&pending_queue, &ccb->ccb_h,
-				  periph_links.tqe);
+		    periph_links.tqe);
 	}
 	if (write(targ_fd, &ccb, sizeof(ccb)) != sizeof(ccb)) {
 		warn("write ccb");
@@ -891,8 +887,7 @@ void
 free_ccb(union ccb *ccb)
 {
 	switch (ccb->ccb_h.func_code) {
-	case XPT_CONT_TARGET_IO:
-	{
+	case XPT_CONT_TARGET_IO: {
 		struct ctio_descr *c_descr;
 
 		c_descr = (struct ctio_descr *)ccb->ccb_h.targ_descr;
@@ -919,7 +914,7 @@ get_sim_flags(u_int16_t *flags)
 	/* Find SIM capabilities */
 	bzero(&cpi, sizeof(cpi));
 	cpi.ccb_h.func_code = XPT_PATH_INQ;
-	send_ccb((union ccb *)&cpi, /*priority*/1);
+	send_ccb((union ccb *)&cpi, /*priority*/ 1);
 	status = cpi.ccb_h.status & CAM_STATUS_MASK;
 	if (status != CAM_REQ_CMP) {
 		fprintf(stderr, "CPI failed, status %#x\n", status);
@@ -948,29 +943,29 @@ rel_simq()
 	crs.openings = 0;
 	crs.release_timeout = 0;
 	crs.qfrozen_cnt = 0;
-	send_ccb((union ccb *)&crs, /*priority*/0);
+	send_ccb((union ccb *)&crs, /*priority*/ 0);
 }
 
 /* Cancel all pending CCBs. */
 static void
 abort_all_pending()
 {
-	struct ccb_abort	 cab;
-	struct ccb_hdr		*ccb_h;
+	struct ccb_abort cab;
+	struct ccb_hdr *ccb_h;
 
 	if (debug)
-		  warnx("abort_all_pending");
+		warnx("abort_all_pending");
 
 	bzero(&cab, sizeof(cab));
 	cab.ccb_h.func_code = XPT_ABORT;
-	TAILQ_FOREACH(ccb_h, &pending_queue, periph_links.tqe) {
+	TAILQ_FOREACH (ccb_h, &pending_queue, periph_links.tqe) {
 		if (debug)
-			  warnx("Aborting pending CCB %p\n", ccb_h);
+			warnx("Aborting pending CCB %p\n", ccb_h);
 		cab.abort_ccb = (union ccb *)ccb_h;
-		send_ccb((union ccb *)&cab, /*priority*/1);
+		send_ccb((union ccb *)&cab, /*priority*/ 1);
 		if (cab.ccb_h.status != CAM_REQ_CMP) {
 			warnx("Unable to abort CCB, status %#x\n",
-			       cab.ccb_h.status);
+			    cab.ccb_h.status);
 		}
 	}
 }
@@ -979,8 +974,8 @@ static void
 usage()
 {
 	fprintf(stderr,
-		"Usage: scsi_target [-AdSTY] [-b bufsize] [-c sectorsize]\n"
-		"\t\t[-r numbufs] [-s volsize] [-W 8,16,32]\n"
-		"\t\tbus:target:lun filename\n");
+	    "Usage: scsi_target [-AdSTY] [-b bufsize] [-c sectorsize]\n"
+	    "\t\t[-r numbufs] [-s volsize] [-W 8,16,32]\n"
+	    "\t\tbus:target:lun filename\n");
 	exit(1);
 }

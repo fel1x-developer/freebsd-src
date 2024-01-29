@@ -27,11 +27,11 @@
  */
 
 #ifndef _SYS_FEATURE_TESTS_H
-#define	_SYS_FEATURE_TESTS_H
+#define _SYS_FEATURE_TESTS_H
 
 #include <sys/ccompile.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -47,7 +47,7 @@ extern "C" {
  *		200809L     POSIX.1-2008 compilation
  */
 #if defined(_POSIX_SOURCE) && !defined(_POSIX_C_SOURCE)
-#define	_POSIX_C_SOURCE 1
+#define _POSIX_C_SOURCE 1
 #endif
 
 /*
@@ -86,7 +86,7 @@ extern "C" {
  */
 
 #if defined(_XOPEN_SOURCE) || defined(_POSIX_C_SOURCE)
-#define	__XOPEN_OR_POSIX
+#define __XOPEN_OR_POSIX
 #endif
 
 /*
@@ -135,10 +135,10 @@ extern "C" {
  */
 
 #if (__STDC__ - 0 == 1 && !defined(__GNUC__)) || \
-	(defined(__GNUC__) && defined(__STRICT_ANSI__))
-#define	_STRICT_STDC
+    (defined(__GNUC__) && defined(__STRICT_ANSI__))
+#define _STRICT_STDC
 #else
-#undef	_STRICT_STDC
+#undef _STRICT_STDC
 #endif
 
 /*
@@ -147,7 +147,7 @@ extern "C" {
 
 #if __STDC_VERSION__ - 0 >= 199901L
 #ifndef _STDC_C99
-#define	_STDC_C99
+#define _STDC_C99
 #endif
 #endif
 
@@ -155,8 +155,8 @@ extern "C" {
  * Use strict symbol visibility.
  */
 #if (defined(_STRICT_STDC) || defined(__XOPEN_OR_POSIX)) && \
-	!defined(__EXTENSIONS__)
-#define	_STRICT_SYMBOLS
+    !defined(__EXTENSIONS__)
+#define _STRICT_SYMBOLS
 #endif
 
 /*
@@ -188,15 +188,14 @@ extern "C" {
  *	defined).  (Note that this dependency is an artifact of the current
  *	kernel implementation and may change in future releases.)
  */
-#if	(!defined(_STRICT_STDC) && !defined(__XOPEN_OR_POSIX)) || \
-		defined(_KERNEL) || defined(_KMEMUSER) || \
-		defined(__EXTENSIONS__)
-#undef	_LARGEFILE64_SOURCE
-#define	_LARGEFILE64_SOURCE	1
+#if (!defined(_STRICT_STDC) && !defined(__XOPEN_OR_POSIX)) || \
+    defined(_KERNEL) || defined(_KMEMUSER) || defined(__EXTENSIONS__)
+#undef _LARGEFILE64_SOURCE
+#define _LARGEFILE64_SOURCE 1
 #endif
-#if	_LARGEFILE64_SOURCE - 0 == 1
-#undef	_LARGEFILE_SOURCE
-#define	_LARGEFILE_SOURCE	1
+#if _LARGEFILE64_SOURCE - 0 == 1
+#undef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE 1
 #endif
 
 /*
@@ -213,19 +212,19 @@ extern "C" {
  */
 #if defined(_LP64)
 #ifndef _FILE_OFFSET_BITS
-#define	_FILE_OFFSET_BITS	64
+#define _FILE_OFFSET_BITS 64
 #endif
-#if	_FILE_OFFSET_BITS - 0 != 64
-#error	"invalid _FILE_OFFSET_BITS value specified"
+#if _FILE_OFFSET_BITS - 0 != 64
+#error "invalid _FILE_OFFSET_BITS value specified"
 #endif
-#else	/* _LP64 */
-#ifndef	_FILE_OFFSET_BITS
-#define	_FILE_OFFSET_BITS	32
+#else /* _LP64 */
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 32
 #endif
-#if	_FILE_OFFSET_BITS - 0 != 32 && _FILE_OFFSET_BITS - 0 != 64
-#error	"invalid _FILE_OFFSET_BITS value specified"
+#if _FILE_OFFSET_BITS - 0 != 32 && _FILE_OFFSET_BITS - 0 != 64
+#error "invalid _FILE_OFFSET_BITS value specified"
 #endif
-#endif	/* _LP64 */
+#endif /* _LP64 */
 
 /*
  * Use of _XOPEN_SOURCE
@@ -285,49 +284,49 @@ extern "C" {
 
 /* X/Open Portability Guide, Issue 3 */
 #if defined(_XOPEN_SOURCE) && (_XOPEN_SOURCE - 0 < 500) && \
-	(_XOPEN_VERSION - 0 < 4) && !defined(_XOPEN_SOURCE_EXTENDED)
-#define	_XPG3
+    (_XOPEN_VERSION - 0 < 4) && !defined(_XOPEN_SOURCE_EXTENDED)
+#define _XPG3
 /* X/Open CAE Specification, Issue 4 */
-#elif	(defined(_XOPEN_SOURCE) && _XOPEN_VERSION - 0 == 4)
-#define	_XPG4
-#define	_XPG3
+#elif (defined(_XOPEN_SOURCE) && _XOPEN_VERSION - 0 == 4)
+#define _XPG4
+#define _XPG3
 /* X/Open CAE Specification, Issue 4, Version 2 */
 #elif (defined(_XOPEN_SOURCE) && _XOPEN_SOURCE_EXTENDED - 0 == 1)
-#define	_XPG4_2
-#define	_XPG4
-#define	_XPG3
+#define _XPG4_2
+#define _XPG4
+#define _XPG3
 /* X/Open CAE Specification, Issue 5 */
-#elif	(_XOPEN_SOURCE - 0 == 500)
-#define	_XPG5
-#define	_XPG4_2
-#define	_XPG4
-#define	_XPG3
-#undef	_POSIX_C_SOURCE
-#define	_POSIX_C_SOURCE			199506L
+#elif (_XOPEN_SOURCE - 0 == 500)
+#define _XPG5
+#define _XPG4_2
+#define _XPG4
+#define _XPG3
+#undef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 199506L
 /* Open Group Technical Standard , Issue 6 */
-#elif	(_XOPEN_SOURCE - 0 == 600) || (_POSIX_C_SOURCE - 0 == 200112L)
-#define	_XPG6
-#define	_XPG5
-#define	_XPG4_2
-#define	_XPG4
-#define	_XPG3
-#undef	_POSIX_C_SOURCE
-#define	_POSIX_C_SOURCE			200112L
-#undef	_XOPEN_SOURCE
-#define	_XOPEN_SOURCE			600
+#elif (_XOPEN_SOURCE - 0 == 600) || (_POSIX_C_SOURCE - 0 == 200112L)
+#define _XPG6
+#define _XPG5
+#define _XPG4_2
+#define _XPG4
+#define _XPG3
+#undef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#undef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 600
 
 /* Open Group Technical Standard, Issue 7 */
-#elif	(_XOPEN_SOURCE - 0 == 700) || (_POSIX_C_SOURCE - 0 == 200809L)
-#define	_XPG7
-#define	_XPG6
-#define	_XPG5
-#define	_XPG4_2
-#define	_XPG4
-#define	_XPG3
-#undef	_POSIX_C_SOURCE
-#define	_POSIX_C_SOURCE			200809L
-#undef	_XOPEN_SOURCE
-#define	_XOPEN_SOURCE			700
+#elif (_XOPEN_SOURCE - 0 == 700) || (_POSIX_C_SOURCE - 0 == 200809L)
+#define _XPG7
+#define _XPG6
+#define _XPG5
+#define _XPG4_2
+#define _XPG4
+#define _XPG3
+#undef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#undef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 700
 #endif
 
 /*
@@ -344,16 +343,16 @@ extern "C" {
  * defaults to 3 otherwise indicating support for XPG3 applications.
  */
 #ifndef _XOPEN_VERSION
-#if	defined(_XPG7)
-#define	_XOPEN_VERSION 700
-#elif	defined(_XPG6)
-#define	_XOPEN_VERSION 600
+#if defined(_XPG7)
+#define _XOPEN_VERSION 700
+#elif defined(_XPG6)
+#define _XOPEN_VERSION 600
 #elif defined(_XPG5)
-#define	_XOPEN_VERSION 500
-#elif	defined(_XPG4_2)
-#define	_XOPEN_VERSION  4
+#define _XOPEN_VERSION 500
+#elif defined(_XPG4_2)
+#define _XOPEN_VERSION 4
 #else
-#define	_XOPEN_VERSION  3
+#define _XOPEN_VERSION 3
 #endif
 #endif
 
@@ -369,11 +368,11 @@ extern "C" {
  * Resist attempts to force the definition of long long in this case.
  */
 #if defined(_LONGLONG_TYPE)
-#error	"No long long in strictly conforming ANSI C & 1990 ISO C environments"
+#error "No long long in strictly conforming ANSI C & 1990 ISO C environments"
 #endif
 #else
 #if !defined(_LONGLONG_TYPE)
-#define	_LONGLONG_TYPE
+#define _LONGLONG_TYPE
 #endif
 #endif
 
@@ -387,8 +386,7 @@ extern "C" {
 #if defined(_STDC_C99) && (defined(__XOPEN_OR_POSIX) && !defined(_XPG6))
 #error "Compiler or options invalid for pre-UNIX 03 X/Open applications \
 	and pre-2001 POSIX applications"
-#elif !defined(_STDC_C99) && \
-	(defined(__XOPEN_OR_POSIX) && defined(_XPG6))
+#elif !defined(_STDC_C99) && (defined(__XOPEN_OR_POSIX) && defined(_XPG6))
 #error "Compiler or options invalid; UNIX 03 and POSIX.1-2001 applications \
 	require the use of c99"
 #endif
@@ -401,31 +399,31 @@ extern "C" {
  * declarations regardless of compiler version.
  */
 #if (defined(__STDC__) && defined(_STDC_C99)) && !defined(__cplusplus)
-#define	_RESTRICT_KYWD	restrict
+#define _RESTRICT_KYWD restrict
 #else
-#define	_RESTRICT_KYWD
+#define _RESTRICT_KYWD
 #endif
 
 /*
  * The following macro indicates header support for the ANSI C++
  * standard.  The ISO/IEC designation for this is ISO/IEC FDIS 14882.
  */
-#define	_ISO_CPP_14882_1998
+#define _ISO_CPP_14882_1998
 
 /*
  * The following macro indicates header support for the C99 standard,
  * ISO/IEC 9899:1999, Programming Languages - C.
  */
-#define	_ISO_C_9899_1999
+#define _ISO_C_9899_1999
 
 /*
  * The following macro indicates header support for DTrace. The value is an
  * integer that corresponds to the major version number for DTrace.
  */
-#define	_DTRACE_VERSION	1
+#define _DTRACE_VERSION 1
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_FEATURE_TESTS_H */
+#endif /* _SYS_FEATURE_TESTS_H */

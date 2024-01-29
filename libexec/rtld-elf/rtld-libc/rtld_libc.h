@@ -38,49 +38,48 @@
 
 /* Avoid dependencies on libthr (used by closedir/opendir/readdir) */
 #define __isthreaded 0
-#define _pthread_mutex_lock(mtx)	(void)0
-#define _pthread_mutex_unlock(mtx)	(void)0
-#define _pthread_mutex_destroy(mtx)	(void)0
+#define _pthread_mutex_lock(mtx) (void)0
+#define _pthread_mutex_unlock(mtx) (void)0
+#define _pthread_mutex_destroy(mtx) (void)0
 #define __libc_interposing error, must not use this variable inside rtld
 
-int	__sys_close(int);
-void	__sys_exit(int) __dead2;
-int	__sys_fcntl(int, int, ...);
-int	__sys_fstat(int fd, struct stat *);
-int	__sys_fstatat(int, const char *, struct stat *, int);
-int	__sys___getcwd(char *, size_t);
-int	__sys_open(const char *, int, ...);
-int	__sys_openat(int, const char *, int, ...);
-int	__sys_sigprocmask(int, const sigset_t *, sigset_t *);
-int	__sys_thr_kill(long, int);
-int	__sys_thr_self(long *);
-__ssize_t	__sys_pread(int, void *, __size_t, __off_t);
-__ssize_t	__sys_read(int, void *, __size_t);
-__ssize_t	__sys_write(int, const void *, __size_t);
+int __sys_close(int);
+void __sys_exit(int) __dead2;
+int __sys_fcntl(int, int, ...);
+int __sys_fstat(int fd, struct stat *);
+int __sys_fstatat(int, const char *, struct stat *, int);
+int __sys___getcwd(char *, size_t);
+int __sys_open(const char *, int, ...);
+int __sys_openat(int, const char *, int, ...);
+int __sys_sigprocmask(int, const sigset_t *, sigset_t *);
+int __sys_thr_kill(long, int);
+int __sys_thr_self(long *);
+__ssize_t __sys_pread(int, void *, __size_t, __off_t);
+__ssize_t __sys_read(int, void *, __size_t);
+__ssize_t __sys_write(int, const void *, __size_t);
 
-extern char* __progname;
+extern char *__progname;
 const char *_getprogname(void);
 int __getosreldate(void);
-
 
 /*
  * Don't pull in any of the libc wrappers. Instead we use the system call
  * directly inside RTLD to avoid pulling in __libc_interposing (which pulls
  * in lots more object files).
  */
-#define close(fd)	__sys_close(fd)
-#define _close(fd)	__sys_close(fd)
-#define exit(status)	__sys_exit(status)
-#define _exit(status)	__sys_exit(status)
-#define fcntl(fd, cmd, arg)	__sys_fcntl(fd, cmd, arg)
-#define _fcntl(fd, cmd, arg)	__sys_fcntl(fd, cmd, arg)
-#define _fstat(fd, sb)	__sys_fstat(fd, sb)
-#define open(path, ...)	__sys_open(path, __VA_ARGS__)
-#define pread(fd, buf, nbytes, offset)	__sys_pread(fd, buf, nbytes, offset)
-#define read(fd, buf, nbytes)	__sys_read(fd, buf, nbytes)
-#define sigprocmask(how, set, oset)	__sys_sigprocmask(how, set, oset)
-#define strerror(errno)	rtld_strerror(errno)
-#define _write(fd, buf, nbytes)	__sys_write(fd, buf, nbytes)
-#define write(fd, buf, nbytes)	__sys_write(fd, buf, nbytes)
+#define close(fd) __sys_close(fd)
+#define _close(fd) __sys_close(fd)
+#define exit(status) __sys_exit(status)
+#define _exit(status) __sys_exit(status)
+#define fcntl(fd, cmd, arg) __sys_fcntl(fd, cmd, arg)
+#define _fcntl(fd, cmd, arg) __sys_fcntl(fd, cmd, arg)
+#define _fstat(fd, sb) __sys_fstat(fd, sb)
+#define open(path, ...) __sys_open(path, __VA_ARGS__)
+#define pread(fd, buf, nbytes, offset) __sys_pread(fd, buf, nbytes, offset)
+#define read(fd, buf, nbytes) __sys_read(fd, buf, nbytes)
+#define sigprocmask(how, set, oset) __sys_sigprocmask(how, set, oset)
+#define strerror(errno) rtld_strerror(errno)
+#define _write(fd, buf, nbytes) __sys_write(fd, buf, nbytes)
+#define write(fd, buf, nbytes) __sys_write(fd, buf, nbytes)
 
 #endif /* _RTLD_AVOID_LIBC_DEPS_H_ */

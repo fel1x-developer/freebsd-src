@@ -32,11 +32,12 @@
  */
 
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-wcrtomb_l(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps,
-		locale_t locale)
+wcrtomb_l(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps,
+    locale_t locale)
 {
 	FIX_LOCALE(locale);
 	if (ps == NULL)
@@ -45,7 +46,7 @@ wcrtomb_l(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps,
 }
 
 size_t
-wcrtomb(char * __restrict s, wchar_t wc, mbstate_t * __restrict ps)
+wcrtomb(char *__restrict s, wchar_t wc, mbstate_t *__restrict ps)
 {
 	return wcrtomb_l(s, wc, ps, __get_locale());
 }

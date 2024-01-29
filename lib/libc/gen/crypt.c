@@ -82,7 +82,7 @@ __freebsd11_encrypt(char *block __unused, int flag __unused)
 	return (0);
 }
 
-__sym_compat(des_setkey, __freebsd11_des_setkey, FBSD_1.0);
-__sym_compat(des_cipher, __freebsd11_des_cipher, FBSD_1.0);
-__sym_compat(setkey, __freebsd11_setkey, FBSD_1.0);
-__sym_compat(encrypt, __freebsd11_encrypt, FBSD_1.0);
+__sym_compat(des_setkey, __freebsd11_des_setkey, FBSD_1 .0);
+__sym_compat(des_cipher, __freebsd11_des_cipher, FBSD_1 .0);
+__sym_compat(setkey, __freebsd11_setkey, FBSD_1 .0);
+__sym_compat(encrypt, __freebsd11_encrypt, FBSD_1 .0);

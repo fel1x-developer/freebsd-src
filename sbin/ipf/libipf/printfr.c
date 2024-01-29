@@ -9,15 +9,14 @@
 
 #include "ipf.h"
 
-
 /*
  * print the filter structure in a useful way
  */
 void
-printfr( struct frentry *fp, ioctlfunc_t iocfunc)
+printfr(struct frentry *fp, ioctlfunc_t iocfunc)
 {
-	struct protoent	*p;
-	u_short	sec[2];
+	struct protoent *p;
+	u_short sec[2];
 	u_32_t type;
 	int pr, af;
 	char *s;
@@ -68,8 +67,7 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 			PRINTF(" return-icmp");
 		if (fp->fr_icode) {
 			if (fp->fr_icode <= MAX_ICMPCODE)
-				PRINTF("(%s)",
-					icmpcodes[(int)fp->fr_icode]);
+				PRINTF("(%s)", icmpcodes[(int)fp->fr_icode]);
 			else
 				PRINTF("(%d)", fp->fr_icode);
 		}
@@ -92,29 +90,28 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 
 	if (fp->fr_ifnames[0] != -1) {
 		printifname("on ", fp->fr_names + fp->fr_ifnames[0],
-			    fp->fr_ifa);
+		    fp->fr_ifa);
 		if (fp->fr_ifnames[1] != -1 &&
 		    strcmp(fp->fr_names + fp->fr_ifnames[1], "*"))
 			printifname(",", fp->fr_names + fp->fr_ifnames[1],
-				    fp->fr_ifas[1]);
+			    fp->fr_ifas[1]);
 		putchar(' ');
 	}
 
 	if (fp->fr_tif.fd_name != -1)
 		print_toif(fp->fr_family, "to", fp->fr_names, &fp->fr_tif);
 	if (fp->fr_dif.fd_name != -1)
-		print_toif(fp->fr_family, "dup-to", fp->fr_names,
-			   &fp->fr_dif);
+		print_toif(fp->fr_family, "dup-to", fp->fr_names, &fp->fr_dif);
 	if (fp->fr_rif.fd_name != -1)
 		print_toif(fp->fr_family, "reply-to", fp->fr_names,
-			   &fp->fr_rif);
+		    &fp->fr_rif);
 	if (fp->fr_flags & FR_FASTROUTE)
 		PRINTF("fastroute ");
 
 	if ((fp->fr_ifnames[2] != -1 &&
-	     strcmp(fp->fr_names + fp->fr_ifnames[2], "*")) ||
+		strcmp(fp->fr_names + fp->fr_ifnames[2], "*")) ||
 	    (fp->fr_ifnames[3] != -1 &&
-		 strcmp(fp->fr_names + fp->fr_ifnames[3], "*"))) {
+		strcmp(fp->fr_names + fp->fr_ifnames[3], "*"))) {
 		if (fp->fr_flags & FR_OUTQUE)
 			PRINTF("in-via ");
 		else
@@ -122,11 +119,11 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 
 		if (fp->fr_ifnames[2] != -1) {
 			printifname("", fp->fr_names + fp->fr_ifnames[2],
-				    fp->fr_ifas[2]);
+			    fp->fr_ifas[2]);
 			if (fp->fr_ifnames[3] != -1) {
 				printifname(",",
-					    fp->fr_names + fp->fr_ifnames[3],
-					    fp->fr_ifas[3]);
+				    fp->fr_names + fp->fr_ifnames[3],
+				    fp->fr_ifas[3]);
 			}
 			putchar(' ');
 		}
@@ -161,29 +158,29 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 		}
 	}
 
-	switch (type)
-	{
-	case FR_T_NONE :
+	switch (type) {
+	case FR_T_NONE:
 		PRINTF("all");
 		break;
 
-	case FR_T_IPF :
+	case FR_T_IPF:
 		PRINTF("from %s", fp->fr_flags & FR_NOTSRCIP ? "!" : "");
 		printaddr(af, fp->fr_satype, fp->fr_names, fp->fr_ifnames[0],
-			  &fp->fr_src.s_addr, &fp->fr_smsk.s_addr);
+		    &fp->fr_src.s_addr, &fp->fr_smsk.s_addr);
 		if (fp->fr_scmp)
 			printportcmp(pr, &fp->fr_tuc.ftu_src);
 
 		PRINTF(" to %s", fp->fr_flags & FR_NOTDSTIP ? "!" : "");
 		printaddr(af, fp->fr_datype, fp->fr_names, fp->fr_ifnames[0],
-			  &fp->fr_dst.s_addr, &fp->fr_dmsk.s_addr);
+		    &fp->fr_dst.s_addr, &fp->fr_dmsk.s_addr);
 		if (fp->fr_dcmp)
 			printportcmp(pr, &fp->fr_tuc.ftu_dst);
 
 		if (((fp->fr_proto == IPPROTO_ICMP) ||
-		     (fp->fr_proto == IPPROTO_ICMPV6)) && fp->fr_icmpm) {
-			int	type = fp->fr_icmp, code;
-			char	*name;
+			(fp->fr_proto == IPPROTO_ICMPV6)) &&
+		    fp->fr_icmpm) {
+			int type = fp->fr_icmp, code;
+			char *name;
 
 			type = ntohs(fp->fr_icmp);
 			code = type & 0xff;
@@ -203,8 +200,7 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 		}
 		break;
 
-	case FR_T_BPFOPC :
-	    {
+	case FR_T_BPFOPC: {
 		fakebpf_t *fb;
 		int i;
 
@@ -213,47 +209,46 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 
 		for (fb = fp->fr_data, s = ""; i; i--, fb++, s = " ")
 			PRINTF("%s%#x %#x %#x %#x", s, fb->fb_c, fb->fb_t,
-			       fb->fb_f, fb->fb_k);
+			    fb->fb_f, fb->fb_k);
 
 		PRINTF("\" }");
 		break;
-	    }
+	}
 
-	case FR_T_COMPIPF :
+	case FR_T_COMPIPF:
 		break;
 
-	case FR_T_CALLFUNC :
+	case FR_T_CALLFUNC:
 		PRINTF("call function at %p", fp->fr_data);
 		break;
 
-	case FR_T_IPFEXPR :
+	case FR_T_IPFEXPR:
 		PRINTF("exp { \"");
 		printipfexpr(fp->fr_data);
 		PRINTF("\" } ");
 		break;
 
-	default :
+	default:
 		PRINTF("[unknown filter type %#x]", fp->fr_type);
 		break;
 	}
 
 	if ((type == FR_T_IPF) &&
 	    ((fp->fr_flx & FI_WITH) || (fp->fr_mflx & FI_WITH) ||
-	     fp->fr_optbits || fp->fr_optmask ||
-	     fp->fr_secbits || fp->fr_secmask)) {
+		fp->fr_optbits || fp->fr_optmask || fp->fr_secbits ||
+		fp->fr_secmask)) {
 		char *comma = " ";
 
 		PRINTF(" with");
-		if (fp->fr_optbits || fp->fr_optmask ||
-		    fp->fr_secbits || fp->fr_secmask) {
+		if (fp->fr_optbits || fp->fr_optmask || fp->fr_secbits ||
+		    fp->fr_secmask) {
 			sec[0] = fp->fr_secmask;
 			sec[1] = fp->fr_secbits;
 			if (fp->fr_family == AF_INET)
 				optprint(sec, fp->fr_optmask, fp->fr_optbits);
-#ifdef	USE_INET6
+#ifdef USE_INET6
 			else
-				optprintv6(sec, fp->fr_optmask,
-					   fp->fr_optbits);
+				optprintv6(sec, fp->fr_optmask, fp->fr_optbits);
 #endif
 		} else if (fp->fr_mflx & FI_OPTIONS) {
 			fputs(comma, stdout);
@@ -365,8 +360,9 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 	if (fp->fr_flags & FR_KEEPSTATE) {
 		host_track_t *src = &fp->fr_srctrack;
 		PRINTF(" keep state");
-		if ((fp->fr_flags & (FR_STSTRICT|FR_NEWISN|
-				     FR_NOICMPERR|FR_STATESYNC)) ||
+		if ((fp->fr_flags &
+			(FR_STSTRICT | FR_NEWISN | FR_NOICMPERR |
+			    FR_STATESYNC)) ||
 		    (fp->fr_statemax != 0) || (fp->fr_age[0] != 0) ||
 		    (src->ht_max_nodes != 0)) {
 			char *comma = "";
@@ -377,11 +373,11 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 			}
 			if (src->ht_max_nodes != 0) {
 				PRINTF("%smax-nodes %d", comma,
-				       src->ht_max_nodes);
+				    src->ht_max_nodes);
 				if (src->ht_max_per_node)
 					PRINTF(", max-per-src %d/%d",
-					       src->ht_max_per_node,
-					       src->ht_netmask);
+					    src->ht_max_per_node,
+					    src->ht_netmask);
 				comma = ",";
 			}
 			if (fp->fr_flags & FR_STSTRICT) {
@@ -406,7 +402,7 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 			}
 			if (fp->fr_age[0] || fp->fr_age[1])
 				PRINTF("%sage %d/%d", comma, fp->fr_age[0],
-				       fp->fr_age[1]);
+				    fp->fr_age[1]);
 			PRINTF(")");
 		}
 	}
@@ -417,7 +413,6 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 			if (fp->fr_flags & FR_FRSTRICT)
 				PRINTF("strict");
 			PRINTF(")");
-
 		}
 	}
 	if (fp->fr_isc != (struct ipscan *)-1) {
@@ -440,7 +435,7 @@ printfr( struct frentry *fp, ioctlfunc_t iocfunc)
 		}
 		if (*fp->fr_nattag.ipt_tag) {
 			PRINTF("%snat=%-.*s", s, IPFTAG_LEN,
-				fp->fr_nattag.ipt_tag);
+			    fp->fr_nattag.ipt_tag);
 		}
 		PRINTF(")");
 	}

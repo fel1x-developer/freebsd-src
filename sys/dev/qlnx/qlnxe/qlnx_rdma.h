@@ -40,16 +40,16 @@ enum qlnx_rdma_event {
 };
 
 struct qlnx_rdma_if {
-	void *	(*add)(void *ha);
-	int 	(*remove)(void *ha, void *qlnx_rdma_dev);
-	void 	(*notify)(void *ha, void *qlnx_rdma_dev, enum qlnx_rdma_event);
+	void *(*add)(void *ha);
+	int (*remove)(void *ha, void *qlnx_rdma_dev);
+	void (*notify)(void *ha, void *qlnx_rdma_dev, enum qlnx_rdma_event);
 };
 typedef struct qlnx_rdma_if qlnx_rdma_if_t;
 
 extern int qlnx_rdma_register_if(qlnx_rdma_if_t *rdma_if);
 extern int qlnx_rdma_deregister_if(qlnx_rdma_if_t *rdma_if);
 
-#define QLNX_NUM_CNQ	1
+#define QLNX_NUM_CNQ 1
 
 extern int qlnx_rdma_get_num_irqs(struct qlnx_host *ha);
 extern void qlnx_rdma_dev_add(struct qlnx_host *ha);

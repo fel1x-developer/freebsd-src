@@ -34,6 +34,7 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include <netinet/in.h>
 
 #include <errno.h>
@@ -42,15 +43,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "extern.h"
 #include "pathnames.h"
-#include <syslog.h>
-#include <time.h>
 
-#define	MAXUSRARGS	100
-#define	MAXGLOBARGS	1000
+#define MAXUSRARGS 100
+#define MAXGLOBARGS 1000
 
 /*
  * Special version of popen which avoids call to shell.  This ensures no one
@@ -89,9 +90,10 @@ ftpd_popen(char *program, char *type)
 
 	/* glob each piece */
 	gargv[0] = argv[0];
-	for (gargc = argc = 1; argv[argc] && gargc < (MAXGLOBARGS-1); argc++) {
+	for (gargc = argc = 1; argv[argc] && gargc < (MAXGLOBARGS - 1);
+	     argc++) {
 		glob_t gl;
-		int flags = GLOB_BRACE|GLOB_NOCHECK|GLOB_TILDE;
+		int flags = GLOB_BRACE | GLOB_NOCHECK | GLOB_TILDE;
 
 		memset(&gl, 0, sizeof(gl));
 		gl.gl_matchc = MAXGLOBARGS;
@@ -99,8 +101,8 @@ ftpd_popen(char *program, char *type)
 		if (glob(argv[argc], flags, NULL, &gl))
 			gargv[gargc++] = strdup(argv[argc]);
 		else if (gl.gl_pathc > 0) {
-			for (pop = gl.gl_pathv; *pop && gargc < (MAXGLOBARGS-1);
-			     pop++)
+			for (pop = gl.gl_pathv;
+			     *pop && gargc < (MAXGLOBARGS - 1); pop++)
 				gargv[gargc++] = strdup(*pop);
 		}
 		globfree(&gl);
@@ -110,13 +112,13 @@ ftpd_popen(char *program, char *type)
 	iop = NULL;
 	fflush(NULL);
 	pid = (strcmp(gargv[0], _PATH_LS) == 0) ? fork() : vfork();
-	switch(pid) {
-	case -1:			/* error */
+	switch (pid) {
+	case -1: /* error */
 		(void)close(pdes[0]);
 		(void)close(pdes[1]);
 		goto pfree;
 		/* NOTREACHED */
-	case 0:				/* child */
+	case 0: /* child */
 		if (*type == 'r') {
 			if (pdes[1] != STDOUT_FILENO) {
 				dup2(pdes[1], STDOUT_FILENO);
@@ -161,7 +163,8 @@ ftpd_popen(char *program, char *type)
 	}
 	pids[fileno(iop)] = pid;
 
-pfree:	for (argc = 1; gargv[argc] != NULL; argc++)
+pfree:
+	for (argc = 1; gargv[argc] != NULL; argc++)
 		free(gargv[argc]);
 
 	return (iop);
@@ -180,7 +183,7 @@ ftpd_pclose(FILE *iop)
 	if (pids == NULL || pids[fdes = fileno(iop)] == 0)
 		return (-1);
 	(void)fclose(iop);
-	omask = sigblock(sigmask(SIGINT)|sigmask(SIGQUIT)|sigmask(SIGHUP));
+	omask = sigblock(sigmask(SIGINT) | sigmask(SIGQUIT) | sigmask(SIGHUP));
 	while ((pid = waitpid(pids[fdes], &status, 0)) < 0 && errno == EINTR)
 		continue;
 	(void)sigsetmask(omask);

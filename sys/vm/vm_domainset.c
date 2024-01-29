@@ -27,25 +27,25 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bitset.h>
 #include <sys/domainset.h>
-#include <sys/proc.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/rwlock.h>
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_domainset.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
 
 #ifdef NUMA
@@ -97,8 +97,8 @@ static void
 vm_domainset_iter_rr(struct vm_domainset_iter *di, int *domain)
 {
 
-	*domain = di->di_domain->ds_order[
-	    ++(*di->di_iter) % di->di_domain->ds_cnt];
+	*domain =
+	    di->di_domain->ds_order[++(*di->di_iter) % di->di_domain->ds_cnt];
 }
 
 static void
@@ -107,8 +107,8 @@ vm_domainset_iter_prefer(struct vm_domainset_iter *di, int *domain)
 	int d;
 
 	do {
-		d = di->di_domain->ds_order[
-		    ++(*di->di_iter) % di->di_domain->ds_cnt];
+		d = di->di_domain
+			->ds_order[++(*di->di_iter) % di->di_domain->ds_cnt];
 	} while (d == di->di_domain->ds_prefer);
 	*domain = d;
 }
@@ -327,8 +327,8 @@ void
 vm_domainset_iter_ignore(struct vm_domainset_iter *di, int domain)
 {
 	KASSERT(DOMAINSET_ISSET(domain, &di->di_valid_mask),
-	    ("%s: domain %d not present in di_valid_mask for di %p",
-	    __func__, domain, di));
+	    ("%s: domain %d not present in di_valid_mask for di %p", __func__,
+		domain, di));
 	DOMAINSET_CLR(domain, &di->di_valid_mask);
 }
 

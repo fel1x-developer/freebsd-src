@@ -18,34 +18,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_calib.h>
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_task.h>
+#include <dev/rtwn/if_rtwnvar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static void
 rtwn_temp_calib(struct rtwn_softc *sc)
@@ -66,15 +64,14 @@ rtwn_temp_calib(struct rtwn_softc *sc)
 
 	/* Read measured temperature. */
 	temp = rtwn_temp_read(sc);
-	if (temp == 0) {	/* Read failed, skip. */
+	if (temp == 0) { /* Read failed, skip. */
 		RTWN_DPRINTF(sc, RTWN_DEBUG_TEMP,
 		    "%s: temperature read failed, skipping\n", __func__);
 		return;
 	}
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_TEMP,
-	    "temperature: previous %u, current %u\n",
-	    sc->thcal_temp, temp);
+	    "temperature: previous %u, current %u\n", sc->thcal_temp, temp);
 
 	/*
 	 * Redo LC/IQ calibration if temperature changed significantly since
@@ -87,8 +84,8 @@ rtwn_temp_calib(struct rtwn_softc *sc)
 		sc->thcal_temp = temp;
 	} else if (abs(temp - sc->thcal_temp) > sc->temp_delta) {
 		RTWN_DPRINTF(sc, RTWN_DEBUG_TEMP,
-		    "%s: LC/IQ calib triggered by temp: %u -> %u\n",
-		    __func__, sc->thcal_temp, temp);
+		    "%s: LC/IQ calib triggered by temp: %u -> %u\n", __func__,
+		    sc->thcal_temp, temp);
 
 		rtwn_lc_calib(sc);
 		rtwn_iq_calib(sc);
@@ -112,7 +109,7 @@ rtwn_calib_cb(struct rtwn_softc *sc, union sec_param *data)
 #endif
 
 	if (sc->vaps_running > sc->monvaps_running)
-		callout_reset(&sc->sc_calib_to, 2*hz, rtwn_calib_to, sc);
+		callout_reset(&sc->sc_calib_to, 2 * hz, rtwn_calib_to, sc);
 }
 
 void

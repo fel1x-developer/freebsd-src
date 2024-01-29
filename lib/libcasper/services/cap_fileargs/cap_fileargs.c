@@ -28,32 +28,31 @@
 
 #include <sys/types.h>
 #include <sys/capsicum.h>
-#include <sys/sysctl.h>
 #include <sys/cnv.h>
 #include <sys/dnv.h>
 #include <sys/nv.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <libcasper_service.h>
-
 #include "cap_fileargs.h"
 
-#define CACHE_SIZE	128
+#define CACHE_SIZE 128
 
-#define FILEARGS_MAGIC	0xFA00FA00
+#define FILEARGS_MAGIC 0xFA00FA00
 
 struct fileargs {
-	uint32_t	 fa_magic;
-	nvlist_t	*fa_cache;
-	cap_channel_t	*fa_chann;
-	int		 fa_fdflags;
+	uint32_t fa_magic;
+	nvlist_t *fa_cache;
+	cap_channel_t *fa_chann;
+	int fa_fdflags;
 };
 
 static int
@@ -134,7 +133,7 @@ fileargs_set_cache(fileargs_t *fa, nvlist_t *nvl)
 	fa->fa_cache = nvl;
 }
 
-static nvlist_t*
+static nvlist_t *
 fileargs_fetch(fileargs_t *fa, const char *name, const char *cmd)
 {
 	nvlist_t *nvl;
@@ -162,8 +161,8 @@ fileargs_fetch(fileargs_t *fa, const char *name, const char *cmd)
 }
 
 static nvlist_t *
-fileargs_create_limit(int argc, const char * const *argv, int flags,
-    mode_t mode, cap_rights_t *rightsp, int operations)
+fileargs_create_limit(int argc, const char *const *argv, int flags, mode_t mode,
+    cap_rights_t *rightsp, int operations)
 {
 	nvlist_t *limits;
 	int i;
@@ -219,8 +218,8 @@ fileargs_init(int argc, char *argv[], int flags, mode_t mode,
 		return (fileargs_create(NULL, 0));
 	}
 
-	limits = fileargs_create_limit(argc, (const char * const *)argv, flags,
-	   mode, rightsp, operations);
+	limits = fileargs_create_limit(argc, (const char *const *)argv, flags,
+	    mode, rightsp, operations);
 	if (limits == NULL)
 		return (NULL);
 
@@ -229,7 +228,7 @@ fileargs_init(int argc, char *argv[], int flags, mode_t mode,
 
 fileargs_t *
 fileargs_cinit(cap_channel_t *cas, int argc, char *argv[], int flags,
-     mode_t mode, cap_rights_t *rightsp, int operations)
+    mode_t mode, cap_rights_t *rightsp, int operations)
 {
 	nvlist_t *limits;
 
@@ -237,8 +236,8 @@ fileargs_cinit(cap_channel_t *cas, int argc, char *argv[], int flags,
 		return (fileargs_create(NULL, 0));
 	}
 
-	limits = fileargs_create_limit(argc, (const char * const *)argv, flags,
-	   mode, rightsp, operations);
+	limits = fileargs_create_limit(argc, (const char *const *)argv, flags,
+	    mode, rightsp, operations);
 	if (limits == NULL)
 		return (NULL);
 
@@ -248,21 +247,21 @@ fileargs_cinit(cap_channel_t *cas, int argc, char *argv[], int flags,
 fileargs_t *
 fileargs_initnv(nvlist_t *limits)
 {
-        cap_channel_t *cas;
+	cap_channel_t *cas;
 	fileargs_t *fa;
 
 	if (limits == NULL) {
 		return (fileargs_create(NULL, 0));
 	}
 
-        cas = cap_init();
-        if (cas == NULL) {
+	cas = cap_init();
+	if (cas == NULL) {
 		nvlist_destroy(limits);
-                return (NULL);
+		return (NULL);
 	}
 
-        fa = fileargs_cinitnv(cas, limits);
-        cap_close(cas);
+	fa = fileargs_cinitnv(cas, limits);
+	cap_close(cas);
 
 	return (fa);
 }
@@ -433,8 +432,7 @@ fileargs_realpath(fileargs_t *fa, const char *pathname, char *reserved_path)
 
 	if (reserved_path != NULL) {
 		ret = reserved_path;
-		strcpy(reserved_path,
-		    nvlist_get_string(nvl, "realpath"));
+		strcpy(reserved_path, nvlist_get_string(nvl, "realpath"));
 	} else {
 		ret = nvlist_take_string(nvl, "realpath");
 	}
@@ -562,8 +560,7 @@ fileargs_add_cache(nvlist_t *nvlout, const nvlist_t *limits,
 			i--;
 			continue;
 		}
-		if (current_name != NULL &&
-		    strcmp(fname, current_name) == 0) {
+		if (current_name != NULL && strcmp(fname, current_name) == 0) {
 			current_name = NULL;
 			i--;
 			continue;
@@ -624,7 +621,8 @@ fileargs_limit(const nvlist_t *oldlimits, const nvlist_t *newlimits)
 		return (ENOTCAPABLE);
 
 	capflags = (int)dnvlist_get_number(newlimits, "flags", 0);
-	allowed_operations = (int)dnvlist_get_number(newlimits, "operations", 0);
+	allowed_operations = (int)dnvlist_get_number(newlimits, "operations",
+	    0);
 	if ((capflags & O_CREAT) != 0)
 		capmode = (mode_t)nvlist_get_number(newlimits, "mode");
 	else
@@ -655,8 +653,7 @@ fileargs_command_lstat(const nvlist_t *limits, nvlist_t *nvlin,
 	if (error < 0)
 		return (errno);
 
-	if (!allcached && (lastname == NULL ||
-	    strcmp(name, lastname) == 0)) {
+	if (!allcached && (lastname == NULL || strcmp(name, lastname) == 0)) {
 		nvlist_add_string(nvlout, "cmd", "cache");
 		fileargs_add_cache(nvlout, limits, name);
 	} else {
@@ -689,8 +686,7 @@ fileargs_command_realpath(const nvlist_t *limits, nvlist_t *nvlin,
 }
 
 static int
-fileargs_command_open(const nvlist_t *limits, nvlist_t *nvlin,
-    nvlist_t *nvlout)
+fileargs_command_open(const nvlist_t *limits, nvlist_t *nvlin, nvlist_t *nvlout)
 {
 	int fd;
 	const char *name;
@@ -707,8 +703,7 @@ fileargs_command_open(const nvlist_t *limits, nvlist_t *nvlin,
 	if (fd < 0)
 		return (errno);
 
-	if (!allcached && (lastname == NULL ||
-	    strcmp(name, lastname) == 0)) {
+	if (!allcached && (lastname == NULL || strcmp(name, lastname) == 0)) {
 		nvlist_add_string(nvlout, "cmd", "cache");
 		fileargs_add_cache(nvlout, limits, name);
 	} else {
@@ -719,8 +714,8 @@ fileargs_command_open(const nvlist_t *limits, nvlist_t *nvlin,
 }
 
 static int
-fileargs_command(const char *cmd, const nvlist_t *limits,
-    nvlist_t *nvlin, nvlist_t *nvlout)
+fileargs_command(const char *cmd, const nvlist_t *limits, nvlist_t *nvlin,
+    nvlist_t *nvlout)
 {
 
 	if (strcmp(cmd, "open") == 0)

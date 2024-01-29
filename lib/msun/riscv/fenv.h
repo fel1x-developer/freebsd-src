@@ -33,43 +33,42 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FENV_H_
-#define	_FENV_H_
+#ifndef _FENV_H_
+#define _FENV_H_
 
 #include <sys/_types.h>
 
-#ifndef	__fenv_static
-#define	__fenv_static	static
+#ifndef __fenv_static
+#define __fenv_static static
 #endif
 
-typedef	__uint64_t	fenv_t;
-typedef	__uint64_t	fexcept_t;
+typedef __uint64_t fenv_t;
+typedef __uint64_t fexcept_t;
 
 /* Exception flags */
-#define	FE_INVALID	0x0010
-#define	FE_DIVBYZERO	0x0008
-#define	FE_OVERFLOW	0x0004
-#define	FE_UNDERFLOW	0x0002
-#define	FE_INEXACT	0x0001
-#define	FE_ALL_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | \
-			 FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+#define FE_INVALID 0x0010
+#define FE_DIVBYZERO 0x0008
+#define FE_OVERFLOW 0x0004
+#define FE_UNDERFLOW 0x0002
+#define FE_INEXACT 0x0001
+#define FE_ALL_EXCEPT \
+	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
 
 /*
  * RISC-V Rounding modes
  */
-#define	_ROUND_SHIFT	5
-#define	FE_TONEAREST	(0x00 << _ROUND_SHIFT)
-#define	FE_TOWARDZERO	(0x01 << _ROUND_SHIFT)
-#define	FE_DOWNWARD	(0x02 << _ROUND_SHIFT)
-#define	FE_UPWARD	(0x03 << _ROUND_SHIFT)
-#define	_ROUND_MASK	(FE_TONEAREST | FE_DOWNWARD | \
-			 FE_UPWARD | FE_TOWARDZERO)
+#define _ROUND_SHIFT 5
+#define FE_TONEAREST (0x00 << _ROUND_SHIFT)
+#define FE_TOWARDZERO (0x01 << _ROUND_SHIFT)
+#define FE_DOWNWARD (0x02 << _ROUND_SHIFT)
+#define FE_UPWARD (0x03 << _ROUND_SHIFT)
+#define _ROUND_MASK (FE_TONEAREST | FE_DOWNWARD | FE_UPWARD | FE_TOWARDZERO)
 
 __BEGIN_DECLS
 
 /* Default floating-point environment */
-extern const fenv_t	__fe_dfl_env;
-#define	FE_DFL_ENV	(&__fe_dfl_env)
+extern const fenv_t __fe_dfl_env;
+#define FE_DFL_ENV (&__fe_dfl_env)
 
 #if !defined(__riscv_float_abi_soft) && !defined(__riscv_float_abi_double)
 #if defined(__riscv_float_abi_single)
@@ -80,8 +79,8 @@ extern const fenv_t	__fe_dfl_env;
 #endif
 
 #ifndef __riscv_float_abi_soft
-#define	__rfs(__fcsr)	__asm __volatile("csrr %0, fcsr" : "=r" (__fcsr))
-#define	__wfs(__fcsr)	__asm __volatile("csrw fcsr, %0" :: "r" (__fcsr))
+#define __rfs(__fcsr) __asm __volatile("csrr %0, fcsr" : "=r"(__fcsr))
+#define __wfs(__fcsr) __asm __volatile("csrw fcsr, %0" ::"r"(__fcsr))
 #endif
 
 #ifdef __riscv_float_abi_soft
@@ -101,7 +100,7 @@ __fenv_static inline int
 feclearexcept(int __excepts)
 {
 
-	__asm __volatile("csrc fflags, %0" :: "r"(__excepts));
+	__asm __volatile("csrc fflags, %0" ::"r"(__excepts));
 
 	return (0);
 }
@@ -123,8 +122,8 @@ fesetexceptflag(const fexcept_t *__flagp, int __excepts)
 	fexcept_t __fcsr;
 
 	__fcsr = *__flagp;
-	__asm __volatile("csrc fflags, %0" :: "r"(__excepts));
-	__asm __volatile("csrs fflags, %0" :: "r"(__fcsr & __excepts));
+	__asm __volatile("csrc fflags, %0" ::"r"(__excepts));
+	__asm __volatile("csrs fflags, %0" ::"r"(__fcsr & __excepts));
 
 	return (0);
 }
@@ -133,7 +132,7 @@ __fenv_static inline int
 feraiseexcept(int __excepts)
 {
 
-	__asm __volatile("csrs fflags, %0" :: "r"(__excepts));
+	__asm __volatile("csrs fflags, %0" ::"r"(__excepts));
 
 	return (0);
 }
@@ -255,4 +254,4 @@ fegetexcept(void)
 
 __END_DECLS
 
-#endif	/* !_FENV_H_ */
+#endif /* !_FENV_H_ */

@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
@@ -39,10 +39,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <wordexp.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
-static int	we_askshell(const char *, wordexp_t *, int);
-static int	we_check(const char *);
+#include "namespace.h"
+#include "un-namespace.h"
+static int we_askshell(const char *, wordexp_t *, int);
+static int we_check(const char *);
 
 /*
  * wordexp --
@@ -52,7 +54,7 @@ static int	we_check(const char *);
  *	Specified by IEEE Std. 1003.1-2001.
  */
 int
-wordexp(const char * __restrict words, wordexp_t * __restrict we, int flags)
+wordexp(const char *__restrict words, wordexp_t *__restrict we, int flags)
 {
 	int error;
 
@@ -120,22 +122,22 @@ we_write_fully(int fd, const char *buffer, size_t len)
 static int
 we_askshell(const char *words, wordexp_t *we, int flags)
 {
-	int pdesw[2];			/* Pipe for writing words */
-	int pdes[2];			/* Pipe for reading output */
+	int pdesw[2]; /* Pipe for writing words */
+	int pdes[2];  /* Pipe for reading output */
 	char wfdstr[sizeof(int) * 3 + 1];
-	char buf[35];			/* Buffer for byte and word count */
-	long nwords, nbytes;		/* Number of words, bytes from child */
-	long i;				/* Handy integer */
-	size_t sofs;			/* Offset into we->we_strings */
-	size_t vofs;			/* Offset into we->we_wordv */
-	pid_t pid;			/* Process ID of child */
-	pid_t wpid;			/* waitpid return value */
-	int status;			/* Child exit status */
-	int error;			/* Our return value */
-	int serrno;			/* errno to return */
-	char *np, *p;			/* Handy pointers */
-	char *nstrings;			/* Temporary for realloc() */
-	char **nwv;			/* Temporary for realloc() */
+	char buf[35];	     /* Buffer for byte and word count */
+	long nwords, nbytes; /* Number of words, bytes from child */
+	long i;		     /* Handy integer */
+	size_t sofs;	     /* Offset into we->we_strings */
+	size_t vofs;	     /* Offset into we->we_wordv */
+	pid_t pid;	     /* Process ID of child */
+	pid_t wpid;	     /* waitpid return value */
+	int status;	     /* Child exit status */
+	int error;	     /* Our return value */
+	int serrno;	     /* errno to return */
+	char *np, *p;	     /* Handy pointers */
+	char *nstrings;	     /* Temporary for realloc() */
+	char **nwv;	     /* Temporary for realloc() */
 	sigset_t newsigblock, oldsigblock;
 	const char *ifs;
 
@@ -143,12 +145,12 @@ we_askshell(const char *words, wordexp_t *we, int flags)
 	ifs = getenv("IFS");
 
 	if (pipe2(pdesw, O_CLOEXEC) < 0)
-		return (WRDE_NOSPACE);	/* XXX */
+		return (WRDE_NOSPACE); /* XXX */
 	snprintf(wfdstr, sizeof(wfdstr), "%d", pdesw[0]);
 	if (pipe2(pdes, O_CLOEXEC) < 0) {
 		_close(pdesw[0]);
 		_close(pdesw[1]);
-		return (WRDE_NOSPACE);	/* XXX */
+		return (WRDE_NOSPACE); /* XXX */
 	}
 	(void)sigemptyset(&newsigblock);
 	(void)sigaddset(&newsigblock, SIGCHLD);
@@ -161,28 +163,25 @@ we_askshell(const char *words, wordexp_t *we, int flags)
 		_close(pdes[1]);
 		(void)__libc_sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 		errno = serrno;
-		return (WRDE_NOSPACE);	/* XXX */
-	}
-	else if (pid == 0) {
+		return (WRDE_NOSPACE); /* XXX */
+	} else if (pid == 0) {
 		/*
 		 * We are the child; make /bin/sh expand `words'.
 		 */
 		(void)__libc_sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 		if ((pdes[1] != STDOUT_FILENO ?
-		    _dup2(pdes[1], STDOUT_FILENO) :
-		    _fcntl(pdes[1], F_SETFD, 0)) < 0)
+			    _dup2(pdes[1], STDOUT_FILENO) :
+			    _fcntl(pdes[1], F_SETFD, 0)) < 0)
 			_exit(1);
 		if (_fcntl(pdesw[0], F_SETFD, 0) < 0)
 			_exit(1);
 		execl(_PATH_BSHELL, "sh", flags & WRDE_UNDEF ? "-u" : "+u",
-		    "-c", "IFS=$1;eval \"$2\";"
+		    "-c",
+		    "IFS=$1;eval \"$2\";"
 		    "freebsd_wordexp -f \"$3\" ${4:+\"$4\"}",
-		    "",
-		    ifs != NULL ? ifs : " \t\n",
-		    flags & WRDE_SHOWERR ? "" : "exec 2>/dev/null",
-		    wfdstr,
-		    flags & WRDE_NOCMD ? "-p" : "",
-		    (char *)NULL);
+		    "", ifs != NULL ? ifs : " \t\n",
+		    flags & WRDE_SHOWERR ? "" : "exec 2>/dev/null", wfdstr,
+		    flags & WRDE_NOCMD ? "-p" : "", (char *)NULL);
 		_exit(1);
 	}
 
@@ -228,13 +227,14 @@ we_askshell(const char *words, wordexp_t *we, int flags)
 	 */
 	sofs = we->we_nbytes;
 	vofs = we->we_wordc;
-	if ((flags & (WRDE_DOOFFS|WRDE_APPEND)) == (WRDE_DOOFFS|WRDE_APPEND))
+	if ((flags & (WRDE_DOOFFS | WRDE_APPEND)) ==
+	    (WRDE_DOOFFS | WRDE_APPEND))
 		vofs += we->we_offs;
 	we->we_wordc += nwords;
 	we->we_nbytes += nbytes;
-	if ((nwv = reallocarray(we->we_wordv, (we->we_wordc + 1 +
-	    (flags & WRDE_DOOFFS ? we->we_offs : 0)),
-	    sizeof(char *))) == NULL) {
+	if ((nwv = reallocarray(we->we_wordv,
+		 (we->we_wordc + 1 + (flags & WRDE_DOOFFS ? we->we_offs : 0)),
+		 sizeof(char *))) == NULL) {
 		error = WRDE_NOSPACE;
 		goto cleanup;
 	}
@@ -279,7 +279,7 @@ cleanup:
 	while (nwords-- != 0) {
 		we->we_wordv[vofs++] = p;
 		if ((np = memchr(p, '\0', nbytes)) == NULL)
-			return (WRDE_NOSPACE);	/* XXX */
+			return (WRDE_NOSPACE); /* XXX */
 		nbytes -= np - p + 1;
 		p = np + 1;
 	}
@@ -371,7 +371,12 @@ we_check(const char *words)
 				return (WRDE_BADCHAR);
 			need_cmd_new = false;
 			break;
-		case '|': case '&': case ';': case '<': case '>': case '\n':
+		case '|':
+		case '&':
+		case ';':
+		case '<':
+		case '>':
+		case '\n':
 			if (!quote && !have_sq && !have_dq && !have_cmd)
 				return (WRDE_BADCHAR);
 			break;

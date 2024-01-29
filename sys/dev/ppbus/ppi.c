@@ -28,77 +28,76 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_ppb_1284.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/fcntl.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/sx.h>
 #include <sys/uio.h>
-#include <sys/fcntl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_msq.h>
+#include <dev/ppbus/ppbconf.h>
 
 #ifdef PERIPH_1284
 #include <sys/malloc.h>
+
 #include <dev/ppbus/ppb_1284.h>
 #endif
 
+#include <dev/ppbus/ppbio.h>
 #include <dev/ppbus/ppi.h>
 
 #include "ppbus_if.h"
 
-#include <dev/ppbus/ppbio.h>
-
-#define BUFSIZE		512
+#define BUFSIZE 512
 
 struct ppi_data {
-    device_t	ppi_device;
-    struct cdev *ppi_cdev;
-    struct sx	ppi_lock;
-    int		ppi_flags;
-#define HAVE_PPBUS	(1<<0)
+	device_t ppi_device;
+	struct cdev *ppi_cdev;
+	struct sx ppi_lock;
+	int ppi_flags;
+#define HAVE_PPBUS (1 << 0)
 
-    int		ppi_mode;			/* IEEE1284 mode */
-    char	ppi_buffer[BUFSIZE];
+	int ppi_mode; /* IEEE1284 mode */
+	char ppi_buffer[BUFSIZE];
 
 #ifdef PERIPH_1284
-    struct resource *intr_resource;	/* interrupt resource */
-    void *intr_cookie;			/* interrupt registration cookie */
-#endif /* PERIPH_1284 */
+	struct resource *intr_resource; /* interrupt resource */
+	void *intr_cookie;		/* interrupt registration cookie */
+#endif					/* PERIPH_1284 */
 };
 
-#define DEVTOSOFTC(dev) \
-	((struct ppi_data *)device_get_softc(dev))
+#define DEVTOSOFTC(dev) ((struct ppi_data *)device_get_softc(dev))
 
 #ifdef PERIPH_1284
-static void	ppiintr(void *arg);
+static void ppiintr(void *arg);
 #endif
 
-static	d_open_t	ppiopen;
-static	d_close_t	ppiclose;
-static	d_ioctl_t	ppiioctl;
-static	d_write_t	ppiwrite;
-static	d_read_t	ppiread;
+static d_open_t ppiopen;
+static d_close_t ppiclose;
+static d_ioctl_t ppiioctl;
+static d_write_t ppiwrite;
+static d_read_t ppiread;
 
 static struct cdevsw ppi_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	ppiopen,
-	.d_close =	ppiclose,
-	.d_read =	ppiread,
-	.d_write =	ppiwrite,
-	.d_ioctl =	ppiioctl,
-	.d_name =	"ppi",
+	.d_version = D_VERSION,
+	.d_open = ppiopen,
+	.d_close = ppiclose,
+	.d_read = ppiread,
+	.d_write = ppiwrite,
+	.d_ioctl = ppiioctl,
+	.d_name = "ppi",
 };
 
 #ifdef PERIPH_1284
@@ -181,9 +180,8 @@ ppi_attach(device_t dev)
 #endif /* PERIPH_1284 */
 
 	sx_init(&ppi->ppi_lock, "ppi");
-	ppi->ppi_cdev = make_dev(&ppi_cdevsw, device_get_unit(dev),
-		 UID_ROOT, GID_WHEEL,
-		 0600, "ppi%d", device_get_unit(dev));
+	ppi->ppi_cdev = make_dev(&ppi_cdevsw, device_get_unit(dev), UID_ROOT,
+	    GID_WHEEL, 0600, "ppi%d", device_get_unit(dev));
 	if (ppi->ppi_cdev == NULL) {
 		device_printf(dev, "Failed to create character device\n");
 		return (ENXIO);
@@ -238,8 +236,7 @@ ppiintr(void *arg)
 	 * continue negotiation at process level */
 	case PPB_FORWARD_IDLE:
 		/* Event 1 */
-		if ((ppb_rstr(ppbus) & (SELECT | nBUSY)) ==
-							(SELECT | nBUSY)) {
+		if ((ppb_rstr(ppbus) & (SELECT | nBUSY)) == (SELECT | nBUSY)) {
 			/* IEEE1284 negotiation */
 #ifdef DEBUG_1284
 			printf("N");
@@ -370,15 +367,15 @@ ppiread(struct cdev *dev, struct uio *uio, int ioflag)
 		/* if can't negotiate NIBBLE mode then try BYTE mode,
 		 * the peripheral may be a computer
 		 */
-		if ((ppb_1284_negociate(ppbus,
-			ppi->ppi_mode = PPB_NIBBLE, 0))) {
+		if ((ppb_1284_negociate(ppbus, ppi->ppi_mode = PPB_NIBBLE,
+			0))) {
 			/* XXX Wait 2 seconds to let the remote host some
 			 * time to terminate its interrupt
 			 */
 			ppb_sleep(ppbus, ppi, PPBPRI, "ppiread", 2 * hz);
 
 			if ((error = ppb_1284_negociate(ppbus,
-			    ppi->ppi_mode = PPB_BYTE, 0))) {
+				 ppi->ppi_mode = PPB_BYTE, 0))) {
 				ppb_unlock(ppbus);
 				free(buffer, M_DEVBUF);
 				return (error);
@@ -399,14 +396,14 @@ ppiread(struct cdev *dev, struct uio *uio, int ioflag)
 	/* read data */
 	len = 0;
 	while (uio->uio_resid) {
-		error = ppb_1284_read(ppbus, ppi->ppi_mode,
-		    buffer, min(BUFSIZE, uio->uio_resid), &len);
+		error = ppb_1284_read(ppbus, ppi->ppi_mode, buffer,
+		    min(BUFSIZE, uio->uio_resid), &len);
 		ppb_unlock(ppbus);
 		if (error)
 			goto error;
 
 		if (!len)
-			goto error;		/* no more data */
+			goto error; /* no more data */
 
 #ifdef DEBUG_1284
 		printf("d");
@@ -452,8 +449,8 @@ ppiwrite(struct cdev *dev, struct uio *uio, int ioflag)
 #if 0
 	int ret;
 
-	#define ADDRESS		MS_PARAM(0, 0, MS_TYP_PTR)
-	#define LENGTH		MS_PARAM(0, 1, MS_TYP_INT)
+#define ADDRESS MS_PARAM(0, 0, MS_TYP_PTR)
+#define LENGTH MS_PARAM(0, 1, MS_TYP_INT)
 
 	struct ppb_microseq msq[] = {
 		  { MS_OP_PUT, { MS_UNKNOWN, MS_UNKNOWN, MS_UNKNOWN } },
@@ -485,10 +482,10 @@ ppiwrite(struct cdev *dev, struct uio *uio, int ioflag)
 	/* we have to be peripheral to be able to send data, so
 	 * wait for the appropriate state
 	 */
- 	if (ppb_1284_get_state(ppbus) < PPB_PERIPHERAL_NEGOCIATION)
+	if (ppb_1284_get_state(ppbus) < PPB_PERIPHERAL_NEGOCIATION)
 		ppb_1284_terminate(ppbus);
 
- 	while (ppb_1284_get_state(ppbus) != PPB_PERIPHERAL_IDLE) {
+	while (ppb_1284_get_state(ppbus) != PPB_PERIPHERAL_IDLE) {
 		/* XXX should check a variable before sleeping */
 #ifdef DEBUG_1284
 		printf("s");
@@ -519,8 +516,7 @@ ppiwrite(struct cdev *dev, struct uio *uio, int ioflag)
 		ppb_unlock(ppbus);
 		uiomove(buffer, len, uio);
 		ppb_lock(ppbus);
-		if ((error = byte_peripheral_write(ppbus,
-						buffer, len, &sent)))
+		if ((error = byte_peripheral_write(ppbus, buffer, len, &sent)))
 			goto error;
 #ifdef DEBUG_1284
 		printf("d");
@@ -538,7 +534,8 @@ error:
 }
 
 static int
-ppiioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *td)
+ppiioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	struct ppi_data *ppi = dev->si_drv1;
 	device_t ppidev = ppi->ppi_device;
@@ -548,46 +545,46 @@ ppiioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 
 	ppb_lock(ppbus);
 	switch (cmd) {
-	case PPIGDATA:			/* get data register */
+	case PPIGDATA: /* get data register */
 		*val = ppb_rdtr(ppbus);
 		break;
-	case PPIGSTATUS:		/* get status bits */
+	case PPIGSTATUS: /* get status bits */
 		*val = ppb_rstr(ppbus);
 		break;
-	case PPIGCTRL:			/* get control bits */
+	case PPIGCTRL: /* get control bits */
 		*val = ppb_rctr(ppbus);
 		break;
-	case PPIGEPPD:			/* get EPP data bits */
+	case PPIGEPPD: /* get EPP data bits */
 		*val = ppb_repp_D(ppbus);
 		break;
-	case PPIGECR:			/* get ECP bits */
+	case PPIGECR: /* get ECP bits */
 		*val = ppb_recr(ppbus);
 		break;
-	case PPIGFIFO:			/* read FIFO */
+	case PPIGFIFO: /* read FIFO */
 		*val = ppb_rfifo(ppbus);
 		break;
-	case PPISDATA:			/* set data register */
+	case PPISDATA: /* set data register */
 		ppb_wdtr(ppbus, *val);
 		break;
-	case PPISSTATUS:		/* set status bits */
+	case PPISSTATUS: /* set status bits */
 		ppb_wstr(ppbus, *val);
 		break;
-	case PPISCTRL:			/* set control bits */
+	case PPISCTRL: /* set control bits */
 		ppb_wctr(ppbus, *val);
 		break;
-	case PPISEPPD:			/* set EPP data bits */
+	case PPISEPPD: /* set EPP data bits */
 		ppb_wepp_D(ppbus, *val);
 		break;
-	case PPISECR:			/* set ECP bits */
+	case PPISECR: /* set ECP bits */
 		ppb_wecr(ppbus, *val);
 		break;
-	case PPISFIFO:			/* write FIFO */
+	case PPISFIFO: /* write FIFO */
 		ppb_wfifo(ppbus, *val);
 		break;
-	case PPIGEPPA:			/* get EPP address bits */
+	case PPIGEPPA: /* get EPP address bits */
 		*val = ppb_repp_A(ppbus);
 		break;
-	case PPISEPPA:			/* set EPP address bits */
+	case PPISEPPA: /* set EPP address bits */
 		ppb_wepp_A(ppbus, *val);
 		break;
 	default:
@@ -601,11 +598,10 @@ ppiioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 
 static device_method_t ppi_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	ppi_identify),
-	DEVMETHOD(device_probe,		ppi_probe),
-	DEVMETHOD(device_attach,	ppi_attach),
-	DEVMETHOD(device_detach,	ppi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, ppi_identify),
+	DEVMETHOD(device_probe, ppi_probe),
+	DEVMETHOD(device_attach, ppi_attach),
+	DEVMETHOD(device_detach, ppi_detach), { 0, 0 }
 };
 
 static driver_t ppi_driver = {

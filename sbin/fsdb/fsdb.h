@@ -5,7 +5,7 @@
  *
  *  Copyright (c) 1995 John T. Kohl
  *  All rights reserved.
- * 
+ *
  *  Redistribution and use in source and binary forms, with or without
  *  modification, are permitted provided that the following conditions
  *  are met:
@@ -16,7 +16,7 @@
  *     documentation and/or other materials provided with the distribution.
  *  3. The name of the author may not be used to endorse or promote products
  *     derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR `AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -45,10 +45,10 @@ struct cmdtable {
 	unsigned int minargc;
 	unsigned int maxargc;
 	unsigned int flags;
-#define	FL_RO	0x0000		/* for symmetry */
-#define	FL_WR	0x0001		/* wants to write */
-#define	FL_CWR	0x0002		/* wants to write critical data */
-#define	FL_ST	0x0003		/* resplit final string if argc > maxargc */
+#define FL_RO 0x0000  /* for symmetry */
+#define FL_WR 0x0001  /* wants to write */
+#define FL_CWR 0x0002 /* wants to write critical data */
+#define FL_ST 0x0003  /* resplit final string if argc > maxargc */
 	int (*handler)(int argc, char *argv[]);
 };
 extern struct inode curip;

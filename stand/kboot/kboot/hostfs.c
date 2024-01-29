@@ -5,11 +5,12 @@
  */
 
 #include <sys/types.h>
-#include "stand.h"
+
 #include "host_syscall.h"
 #include "kboot.h"
+#include "stand.h"
 
-#define HOST_PATH_MAX	1025
+#define HOST_PATH_MAX 1025
 
 extern struct devsw host_dev;
 
@@ -21,12 +22,12 @@ enum FTYPE {
 };
 
 typedef struct _hostfs_file {
-	enum FTYPE	hf_type;
-	int		hf_fd;
+	enum FTYPE hf_type;
+	int hf_fd;
 	/* The following are only used for FTYPE == dir */
-	char		hf_dents[2048];
-	char		*hf_curdent;
-	int		hf_dentlen;	/* Valid part of hf_dents */
+	char hf_dents[2048];
+	char *hf_curdent;
+	int hf_dentlen; /* Valid part of hf_dents */
 } hostfs_file;
 
 static hostfs_file *
@@ -154,24 +155,24 @@ hostfs_stat(struct open_file *f, struct stat *sb)
 	 * stat structure, missing fields are zero and commented below).
 	 */
 	memset(sb, 0, sizeof(*sb));
-	sb->st_dev		= ksb.st_dev;
-	sb->st_ino		= ksb.st_ino;
-	sb->st_nlink		= ksb.st_nlink;
-	sb->st_mode		= ksb.st_mode;
-	sb->st_uid		= ksb.st_uid;
-	sb->st_gid		= ksb.st_gid;
-	sb->st_rdev		= ksb.st_rdev;
+	sb->st_dev = ksb.st_dev;
+	sb->st_ino = ksb.st_ino;
+	sb->st_nlink = ksb.st_nlink;
+	sb->st_mode = ksb.st_mode;
+	sb->st_uid = ksb.st_uid;
+	sb->st_gid = ksb.st_gid;
+	sb->st_rdev = ksb.st_rdev;
 	/* No st_?time_ext on i386 */
-	sb->st_atim.tv_sec	= ksb.st_atime_sec;
-	sb->st_atim.tv_nsec	= ksb.st_atime_nsec;
-	sb->st_mtim.tv_sec	= ksb.st_mtime_sec;
-	sb->st_mtim.tv_nsec	= ksb.st_mtime_nsec;
-	sb->st_ctim.tv_sec	= ksb.st_ctime_sec;
-	sb->st_ctim.tv_nsec	= ksb.st_ctime_nsec;
+	sb->st_atim.tv_sec = ksb.st_atime_sec;
+	sb->st_atim.tv_nsec = ksb.st_atime_nsec;
+	sb->st_mtim.tv_sec = ksb.st_mtime_sec;
+	sb->st_mtim.tv_nsec = ksb.st_mtime_nsec;
+	sb->st_ctim.tv_sec = ksb.st_ctime_sec;
+	sb->st_ctim.tv_nsec = ksb.st_ctime_nsec;
 	/* No st_birthtim */
-	sb->st_size		= ksb.st_size;
-	sb->st_blocks		= ksb.st_blocks;
-	sb->st_blksize		= ksb.st_blksize;
+	sb->st_size = ksb.st_size;
+	sb->st_blocks = ksb.st_blocks;
+	sb->st_blksize = ksb.st_blksize;
 	/* no st_flags */
 	/* no st_get */
 
@@ -186,7 +187,8 @@ hostfs_readdir(struct open_file *f, struct dirent *d)
 	struct host_dirent64 *dent;
 
 	if (hf->hf_curdent == NULL) {
-		dentlen = host_getdents64(hf->hf_fd, hf->hf_dents, sizeof(hf->hf_dents));
+		dentlen = host_getdents64(hf->hf_fd, hf->hf_dents,
+		    sizeof(hf->hf_dents));
 		if (dentlen <= 0)
 			return (EINVAL);
 		hf->hf_dentlen = dentlen;
@@ -194,8 +196,9 @@ hostfs_readdir(struct open_file *f, struct dirent *d)
 	}
 	dent = (struct host_dirent64 *)hf->hf_curdent;
 	d->d_fileno = dent->d_ino;
-	d->d_type = dent->d_type;	/* HOST_DT_XXXX == DX_XXXX for all values */
-	strlcpy(d->d_name, dent->d_name, sizeof(d->d_name)); /* d_name is NUL terminated */
+	d->d_type = dent->d_type; /* HOST_DT_XXXX == DX_XXXX for all values */
+	strlcpy(d->d_name, dent->d_name,
+	    sizeof(d->d_name)); /* d_name is NUL terminated */
 	d->d_namlen = strlen(d->d_name);
 	hf->hf_curdent += dent->d_reclen;
 	if (hf->hf_curdent >= hf->hf_dents + hf->hf_dentlen) {
@@ -206,16 +209,14 @@ hostfs_readdir(struct open_file *f, struct dirent *d)
 	return (0);
 }
 
-struct fs_ops hostfs_fsops = {
-	.fs_name = "host",
+struct fs_ops hostfs_fsops = { .fs_name = "host",
 	.fo_open = hostfs_open,
 	.fo_close = hostfs_close,
 	.fo_read = hostfs_read,
 	.fo_write = null_write,
 	.fo_seek = hostfs_seek,
 	.fo_stat = hostfs_stat,
-	.fo_readdir = hostfs_readdir
-};
+	.fo_readdir = hostfs_readdir };
 
 /*
  * Generic "null" host device. This goes hand and hand with the host fs object
@@ -260,14 +261,13 @@ host_dev_close(struct open_file *f)
 }
 
 static int
-host_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size,
-    char *buf, size_t *rsize)
+host_dev_strategy(void *devdata, int rw, daddr_t dblk, size_t size, char *buf,
+    size_t *rsize)
 {
 	return (ENOSYS);
 }
 
-struct devsw host_dev = {
-	.dv_name = "host",
+struct devsw host_dev = { .dv_name = "host",
 	.dv_type = DEVT_NET,
 	.dv_init = host_dev_init,
 	.dv_strategy = host_dev_strategy,
@@ -275,5 +275,4 @@ struct devsw host_dev = {
 	.dv_close = host_dev_close,
 	.dv_ioctl = noioctl,
 	.dv_print = host_dev_print,
-	.dv_cleanup = NULL
-};
+	.dv_cleanup = NULL };

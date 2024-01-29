@@ -68,32 +68,31 @@
 #include <sys/mtio.h>
 #include <sys/queue.h>
 
-#include <ctype.h>
-#include <err.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <errno.h>
 #include <bsdxml.h>
-#include <mtlib.h>
-
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/cam_periph.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_sa.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <mtlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 /* the appropriate sections of <sys/mtio.h> are also #ifdef'd for FreeBSD */
 /* c_flags */
-#define NEED_2ARGS	0x01
-#define ZERO_ALLOWED	0x02
-#define IS_DENSITY	0x04
-#define DISABLE_THIS	0x08
-#define IS_COMP		0x10
-#define	USE_GETOPT	0x20
+#define NEED_2ARGS 0x01
+#define ZERO_ALLOWED 0x02
+#define IS_DENSITY 0x04
+#define DISABLE_THIS 0x08
+#define IS_COMP 0x10
+#define USE_GETOPT 0x20
 
 #ifndef TRUE
 #define TRUE 1
@@ -102,12 +101,12 @@
 #define FALSE 0
 #endif
 #ifndef MAX
-#define	MAX(a, b) (a > b) ? a : b
+#define MAX(a, b) (a > b) ? a : b
 #endif
 #define MT_PLURAL(a) (a == 1) ? "" : "s"
 
 typedef enum {
-	MT_CMD_NONE	= MTLOAD + 1,
+	MT_CMD_NONE = MTLOAD + 1,
 	MT_CMD_PROTECT,
 	MT_CMD_GETDENSITY
 } mt_commands;
@@ -117,74 +116,62 @@ static const struct commands {
 	unsigned long c_code;
 	int c_ronly;
 	int c_flags;
-} com[] = {
-	{ "bsf",	MTBSF,	1, 0 },
-	{ "bsr",	MTBSR,	1, 0 },
+} com[] = { { "bsf", MTBSF, 1, 0 }, { "bsr", MTBSR, 1, 0 },
 	/* XXX FreeBSD considered "eof" dangerous, since it's being
 	   confused with "eom" (and is an alias for "weof" anyway) */
-	{ "eof",	MTWEOF, 0, DISABLE_THIS },
-	{ "fsf",	MTFSF,	1, 0 },
-	{ "fsr",	MTFSR,	1, 0 },
-	{ "offline",	MTOFFL,	1, 0 },
-	{ "load",	MTLOAD, 1, 0 },
-	{ "rewind",	MTREW,	1, 0 },
-	{ "rewoffl",	MTOFFL,	1, 0 },
-	{ "ostatus",	MTNOP,	1, 0 },
-	{ "weof",	MTWEOF,	0, ZERO_ALLOWED },
-	{ "weofi",	MTWEOFI, 0, ZERO_ALLOWED },
-	{ "erase",	MTERASE, 0, ZERO_ALLOWED},
-	{ "blocksize",	MTSETBSIZ, 0, NEED_2ARGS|ZERO_ALLOWED },
-	{ "density",	MTSETDNSTY, 0, NEED_2ARGS|ZERO_ALLOWED|IS_DENSITY },
-	{ "eom",	MTEOD, 1, 0 },
-	{ "eod",	MTEOD, 1, 0 },
-	{ "smk",	MTWSS, 0, 0 },
-	{ "wss",	MTWSS, 0, 0 },
-	{ "fss",	MTFSS, 1, 0 },
-	{ "bss",	MTBSS, 1, 0 },
-	{ "comp",	MTCOMP, 0, NEED_2ARGS|ZERO_ALLOWED|IS_COMP },
-	{ "retension",	MTRETENS, 1, 0 },
-	{ "rdhpos",     MTIOCRDHPOS,  0, 0 },
-	{ "rdspos",     MTIOCRDSPOS,  0, 0 },
-	{ "sethpos",    MTIOCHLOCATE, 0, NEED_2ARGS|ZERO_ALLOWED },
-	{ "setspos",    MTIOCSLOCATE, 0, NEED_2ARGS|ZERO_ALLOWED },
-	{ "errstat",	MTIOCERRSTAT, 0, 0 },
-	{ "setmodel",	MTIOCSETEOTMODEL, 0, NEED_2ARGS|ZERO_ALLOWED },
-	{ "seteotmodel",	MTIOCSETEOTMODEL, 0, NEED_2ARGS|ZERO_ALLOWED },
-	{ "getmodel",	MTIOCGETEOTMODEL, 0, 0 },
-	{ "geteotmodel",	MTIOCGETEOTMODEL, 0, 0 },
-	{ "rblim", 	MTIOCRBLIM, 0, 0},
-	{ "getdensity",	MT_CMD_GETDENSITY, 0, USE_GETOPT},
-	{ "status",	MTIOCEXTGET, 0, USE_GETOPT },
-	{ "locate",	MTIOCEXTLOCATE, 0, USE_GETOPT },
-	{ "param",	MTIOCPARAMGET, 0, USE_GETOPT },
-	{ "protect", 	MT_CMD_PROTECT, 0, USE_GETOPT },
-	{ NULL, 0, 0, 0 }
-};
-
+	{ "eof", MTWEOF, 0, DISABLE_THIS }, { "fsf", MTFSF, 1, 0 },
+	{ "fsr", MTFSR, 1, 0 }, { "offline", MTOFFL, 1, 0 },
+	{ "load", MTLOAD, 1, 0 }, { "rewind", MTREW, 1, 0 },
+	{ "rewoffl", MTOFFL, 1, 0 }, { "ostatus", MTNOP, 1, 0 },
+	{ "weof", MTWEOF, 0, ZERO_ALLOWED },
+	{ "weofi", MTWEOFI, 0, ZERO_ALLOWED },
+	{ "erase", MTERASE, 0, ZERO_ALLOWED },
+	{ "blocksize", MTSETBSIZ, 0, NEED_2ARGS | ZERO_ALLOWED },
+	{ "density", MTSETDNSTY, 0, NEED_2ARGS | ZERO_ALLOWED | IS_DENSITY },
+	{ "eom", MTEOD, 1, 0 }, { "eod", MTEOD, 1, 0 }, { "smk", MTWSS, 0, 0 },
+	{ "wss", MTWSS, 0, 0 }, { "fss", MTFSS, 1, 0 }, { "bss", MTBSS, 1, 0 },
+	{ "comp", MTCOMP, 0, NEED_2ARGS | ZERO_ALLOWED | IS_COMP },
+	{ "retension", MTRETENS, 1, 0 }, { "rdhpos", MTIOCRDHPOS, 0, 0 },
+	{ "rdspos", MTIOCRDSPOS, 0, 0 },
+	{ "sethpos", MTIOCHLOCATE, 0, NEED_2ARGS | ZERO_ALLOWED },
+	{ "setspos", MTIOCSLOCATE, 0, NEED_2ARGS | ZERO_ALLOWED },
+	{ "errstat", MTIOCERRSTAT, 0, 0 },
+	{ "setmodel", MTIOCSETEOTMODEL, 0, NEED_2ARGS | ZERO_ALLOWED },
+	{ "seteotmodel", MTIOCSETEOTMODEL, 0, NEED_2ARGS | ZERO_ALLOWED },
+	{ "getmodel", MTIOCGETEOTMODEL, 0, 0 },
+	{ "geteotmodel", MTIOCGETEOTMODEL, 0, 0 },
+	{ "rblim", MTIOCRBLIM, 0, 0 },
+	{ "getdensity", MT_CMD_GETDENSITY, 0, USE_GETOPT },
+	{ "status", MTIOCEXTGET, 0, USE_GETOPT },
+	{ "locate", MTIOCEXTLOCATE, 0, USE_GETOPT },
+	{ "param", MTIOCPARAMGET, 0, USE_GETOPT },
+	{ "protect", MT_CMD_PROTECT, 0, USE_GETOPT }, { NULL, 0, 0, 0 } };
 
 static const char *getblksiz(int);
 static void printreg(const char *, u_int, const char *);
 static void status(struct mtget *);
 static void usage(void) __dead2;
 const char *get_driver_state_str(int dsreg);
-static void st_status (struct mtget *);
+static void st_status(struct mtget *);
 static int mt_locate(int argc, char **argv, int mtfd, const char *tape);
 static int nstatus_print(int argc, char **argv, char *xml_str,
-			 struct mt_status_data *status_data);
+    struct mt_status_data *status_data);
 static int mt_xml_cmd(unsigned long cmd, int argc, char **argv, int mtfd,
-		      const char *tape);
-static int mt_print_density_entry(struct mt_status_entry *density_root, int indent);
-static int mt_print_density_report(struct mt_status_entry *report_root, int indent);
+    const char *tape);
+static int mt_print_density_entry(struct mt_status_entry *density_root,
+    int indent);
+static int mt_print_density_report(struct mt_status_entry *report_root,
+    int indent);
 static int mt_print_density(struct mt_status_entry *density_root, int indent);
 static int mt_getdensity(int argc, char **argv, char *xml_str,
-			 struct mt_status_data *status_data);
+    struct mt_status_data *status_data);
 static int mt_set_param(int mtfd, struct mt_status_data *status_data,
-			char *param_name, char *param_value);
+    char *param_name, char *param_value);
 static int mt_protect(int argc, char **argv, int mtfd,
-		      struct mt_status_data *status_data);
+    struct mt_status_data *status_data);
 static int mt_param(int argc, char **argv, int mtfd, char *xml_str,
-		    struct mt_status_data *status_data);
-static const char *denstostring (int d);
+    struct mt_status_data *status_data);
+static const char *denstostring(int d);
 static u_int32_t stringtocomp(const char *s);
 static const char *comptostring(u_int32_t comp);
 static void warn_eof(void);
@@ -199,12 +186,12 @@ main(int argc, char *argv[])
 	const char *p, *tape;
 
 	bzero(&mt_com, sizeof(mt_com));
-	
+
 	if ((tape = getenv("TAPE")) == NULL)
 		tape = DEFTAPE;
 
 	while ((ch = getopt(argc, argv, "f:t:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'f':
 		case 't':
 			tape = optarg;
@@ -228,9 +215,9 @@ main(int argc, char *argv[])
 		if (strncmp(p, comp->c_name, len) == 0)
 			break;
 	}
-	if((comp->c_flags & NEED_2ARGS) && argc != 2)
+	if ((comp->c_flags & NEED_2ARGS) && argc != 2)
 		usage();
-	if(comp->c_flags & DISABLE_THIS) {
+	if (comp->c_flags & DISABLE_THIS) {
 		warn_eof();
 	}
 	if (comp->c_flags & USE_GETOPT) {
@@ -243,8 +230,7 @@ main(int argc, char *argv[])
 	if (comp->c_code != MTNOP) {
 		mt_com.mt_op = comp->c_code;
 		if (*argv) {
-			if (!isdigit(**argv) &&
-			    (comp->c_flags & IS_DENSITY)) {
+			if (!isdigit(**argv) && (comp->c_flags & IS_DENSITY)) {
 				const char *dcanon;
 				mt_com.mt_count = mt_density_num(*argv);
 				if (mt_com.mt_count == 0)
@@ -252,16 +238,16 @@ main(int argc, char *argv[])
 				dcanon = denstostring(mt_com.mt_count);
 				if (strcmp(dcanon, *argv) != 0)
 					printf(
-					"Using \"%s\" as an alias for %s\n",
-					       *argv, dcanon);
+					    "Using \"%s\" as an alias for %s\n",
+					    *argv, dcanon);
 				p = "";
 			} else if (!isdigit(**argv) &&
-				   (comp->c_flags & IS_COMP)) {
+			    (comp->c_flags & IS_COMP)) {
 
 				mt_com.mt_count = stringtocomp(*argv);
 				if ((u_int32_t)mt_com.mt_count == 0xf0f0f0f0)
 					errx(1, "%s: unknown compression",
-					     *argv);
+					    *argv);
 				p = "";
 			} else if ((comp->c_flags & USE_GETOPT) == 0) {
 				char *q;
@@ -269,18 +255,16 @@ main(int argc, char *argv[])
 				mt_com.mt_count = strtol(*argv, &q, 0);
 				p = q;
 			}
-			if (((comp->c_flags & USE_GETOPT) == 0)
-			 && (((mt_com.mt_count <=
-			     ((comp->c_flags & ZERO_ALLOWED)? -1: 0))
-			   && ((comp->c_flags & IS_COMP) == 0))
-			  || *p))
+			if (((comp->c_flags & USE_GETOPT) == 0) &&
+			    (((mt_com.mt_count <=
+				  ((comp->c_flags & ZERO_ALLOWED) ? -1 : 0)) &&
+				 ((comp->c_flags & IS_COMP) == 0)) ||
+				*p))
 				errx(1, "%s: illegal count", *argv);
-		}
-		else
+		} else
 			mt_com.mt_count = 1;
 		switch (comp->c_code) {
-		case MTIOCERRSTAT:
-		{
+		case MTIOCERRSTAT: {
 			unsigned int i;
 			union mterrstat umn;
 			struct scsi_tape_errors *s = &umn.scsi_errstat;
@@ -289,11 +273,11 @@ main(int argc, char *argv[])
 				err(2, "%s", tape);
 			(void)printf("Last I/O Residual: %u\n", s->io_resid);
 			(void)printf(" Last I/O Command:");
-			for (i = 0; i < sizeof (s->io_cdb); i++)
+			for (i = 0; i < sizeof(s->io_cdb); i++)
 				(void)printf(" %02X", s->io_cdb[i]);
 			(void)printf("\n");
 			(void)printf("   Last I/O Sense:\n\n\t");
-			for (i = 0; i < sizeof (s->io_sense); i++) {
+			for (i = 0; i < sizeof(s->io_sense); i++) {
 				(void)printf(" %02X", s->io_sense[i]);
 				if (((i + 1) & 0xf) == 0) {
 					(void)printf("\n\t");
@@ -303,11 +287,11 @@ main(int argc, char *argv[])
 			(void)printf("Last Control Residual: %u\n",
 			    s->ctl_resid);
 			(void)printf(" Last Control Command:");
-			for (i = 0; i < sizeof (s->ctl_cdb); i++)
+			for (i = 0; i < sizeof(s->ctl_cdb); i++)
 				(void)printf(" %02X", s->ctl_cdb[i]);
 			(void)printf("\n");
 			(void)printf("   Last Control Sense:\n\n\t");
-			for (i = 0; i < sizeof (s->ctl_sense); i++) {
+			for (i = 0; i < sizeof(s->ctl_sense); i++) {
 				(void)printf(" %02X", s->ctl_sense[i]);
 				if (((i + 1) & 0xf) == 0) {
 					(void)printf("\n\t");
@@ -318,52 +302,48 @@ main(int argc, char *argv[])
 			/* NOTREACHED */
 		}
 		case MTIOCRDHPOS:
-		case MTIOCRDSPOS:
-		{
+		case MTIOCRDSPOS: {
 			u_int32_t block;
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&block) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s: %s block location %u\n", tape,
-			    (comp->c_code == MTIOCRDHPOS)? "hardware" :
-			    "logical", block);
+			    (comp->c_code == MTIOCRDHPOS) ? "hardware" :
+							    "logical",
+			    block);
 			exit(0);
 			/* NOTREACHED */
 		}
 		case MTIOCSLOCATE:
-		case MTIOCHLOCATE:
-		{
+		case MTIOCHLOCATE: {
 			u_int32_t block = (u_int32_t)mt_com.mt_count;
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&block) < 0)
 				err(2, "%s", tape);
 			exit(0);
 			/* NOTREACHED */
 		}
-		case MTIOCGETEOTMODEL:
-		{
+		case MTIOCGETEOTMODEL: {
 			u_int32_t om;
 			if (ioctl(mtfd, MTIOCGETEOTMODEL, (caddr_t)&om) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s: the model is %u filemar%s at EOT\n",
-			    tape, om, (om > 1)? "ks" : "k");
+			    tape, om, (om > 1) ? "ks" : "k");
 			exit(0);
 			/* NOTREACHED */
 		}
-		case MTIOCSETEOTMODEL:
-		{
+		case MTIOCSETEOTMODEL: {
 			u_int32_t om, nm = (u_int32_t)mt_com.mt_count;
 			if (ioctl(mtfd, MTIOCGETEOTMODEL, (caddr_t)&om) < 0)
 				err(2, "%s", tape);
 			if (ioctl(mtfd, comp->c_code, (caddr_t)&nm) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s: old model was %u filemar%s at EOT\n",
-			    tape, om, (om > 1)? "ks" : "k");
+			    tape, om, (om > 1) ? "ks" : "k");
 			(void)printf("%s: new model  is %u filemar%s at EOT\n",
-			    tape, nm, (nm > 1)? "ks" : "k");
+			    tape, nm, (nm > 1) ? "ks" : "k");
 			exit(0);
 			/* NOTREACHED */
 		}
-		case MTIOCRBLIM:
-		{
+		case MTIOCRBLIM: {
 			struct mtrblim rblim;
 
 			bzero(&rblim, sizeof(rblim));
@@ -371,9 +351,9 @@ main(int argc, char *argv[])
 			if (ioctl(mtfd, MTIOCRBLIM, (caddr_t)&rblim) < 0)
 				err(2, "%s", tape);
 			(void)printf("%s:\n"
-			    "    min blocksize %u byte%s\n"
-			    "    max blocksize %u byte%s\n"
-			    "    granularity %u byte%s\n",
+				     "    min blocksize %u byte%s\n"
+				     "    max blocksize %u byte%s\n"
+				     "    granularity %u byte%s\n",
 			    tape, rblim.min_block_length,
 			    MT_PLURAL(rblim.min_block_length),
 			    rblim.max_block_length,
@@ -386,8 +366,7 @@ main(int argc, char *argv[])
 		case MTIOCPARAMGET:
 		case MTIOCEXTGET:
 		case MT_CMD_PROTECT:
-		case MT_CMD_GETDENSITY:
-		{
+		case MT_CMD_GETDENSITY: {
 			int retval = 0;
 
 			retval = mt_xml_cmd(comp->c_code, argc, argv, mtfd,
@@ -395,8 +374,7 @@ main(int argc, char *argv[])
 
 			exit(retval);
 		}
-		case MTIOCEXTLOCATE:
-		{
+		case MTIOCEXTLOCATE: {
 			int retval = 0;
 
 			retval = mt_locate(argc, argv, mtfd, tape);
@@ -418,14 +396,11 @@ main(int argc, char *argv[])
 }
 
 static const struct tape_desc {
-	short	t_type;		/* type of magtape device */
-	const char *t_name;	/* printing name */
-	const char *t_dsbits;	/* "drive status" register */
-	const char *t_erbits;	/* "error" register */
-} tapes[] = {
-	{ MT_ISAR,	"SCSI tape drive", 0,		0 },
-	{ 0, NULL, 0, 0 }
-};
+	short t_type;	      /* type of magtape device */
+	const char *t_name;   /* printing name */
+	const char *t_dsbits; /* "drive status" register */
+	const char *t_erbits; /* "error" register */
+} tapes[] = { { MT_ISAR, "SCSI tape drive", 0, 0 }, { 0, NULL, 0, 0 } };
 
 /*
  * Interpret the status buffer returned
@@ -444,11 +419,11 @@ status(struct mtget *bp)
 		if (mt->t_type == bp->mt_type)
 			break;
 	}
-	if(mt->t_type == MT_ISAR)
+	if (mt->t_type == MT_ISAR)
 		st_status(bp);
 	else {
-		(void)printf("%s tape drive, residual=%d\n", 
-		    mt->t_name, bp->mt_resid);
+		(void)printf("%s tape drive, residual=%d\n", mt->t_name,
+		    bp->mt_resid);
 		printreg("ds", (unsigned short)bp->mt_dsreg, mt->t_dsbits);
 		printreg("\ner", (unsigned short)bp->mt_erreg, mt->t_erbits);
 		(void)putchar('\n');
@@ -474,7 +449,7 @@ printreg(const char *s, u_int v, const char *bits)
 	if (v && bits) {
 		putchar('<');
 		while ((i = *bits++)) {
-			if (v & (1 << (i-1))) {
+			if (v & (1 << (i - 1))) {
 				if (any)
 					putchar(',');
 				any = 1;
@@ -496,17 +471,11 @@ usage(void)
 }
 
 static const struct compression_types {
-	u_int32_t	comp_number;
-	const char 	*name;
-} comp_types[] = {
-	{ 0x00, "none" },
-	{ 0x00, "off" },
-	{ 0x10, "IDRC" },
-	{ 0x20, "DCLZ" },
-	{ 0xffffffff, "enable" },
-	{ 0xffffffff, "on" },
-	{ 0xf0f0f0f0, NULL}
-};
+	u_int32_t comp_number;
+	const char *name;
+} comp_types[] = { { 0x00, "none" }, { 0x00, "off" }, { 0x10, "IDRC" },
+	{ 0x20, "DCLZ" }, { 0xffffffff, "enable" }, { 0xffffffff, "on" },
+	{ 0xf0f0f0f0, NULL } };
 
 static const char *
 denstostring(int d)
@@ -516,7 +485,7 @@ denstostring(int d)
 
 	if (name == NULL)
 		sprintf(buf, "0x%02x", d);
-	else 
+	else
 		sprintf(buf, "0x%02x:%s", d, name);
 	return buf;
 }
@@ -550,9 +519,9 @@ comptostring(u_int32_t comp)
 
 	if (ct->comp_number == 0xf0f0f0f0) {
 		sprintf(buf, "0x%x", comp);
-		return(buf);
+		return (buf);
 	} else
-		return(ct->name);
+		return (ct->name);
 }
 
 static u_int32_t
@@ -565,7 +534,7 @@ stringtocomp(const char *s)
 		if (strncasecmp(ct->name, s, l) == 0)
 			break;
 
-	return(ct->comp_number);
+	return (ct->comp_number);
 }
 
 static struct driver_state {
@@ -592,7 +561,8 @@ get_driver_state_str(int dsreg)
 {
 	unsigned int i;
 
-	for (i = 0; i < (sizeof(driver_states)/sizeof(driver_states[0])); i++) {
+	for (i = 0; i < (sizeof(driver_states) / sizeof(driver_states[0]));
+	     i++) {
 		if (driver_states[i].dsreg == dsreg)
 			return (driver_states[i].desc);
 	}
@@ -611,16 +581,16 @@ st_status(struct mtget *bp)
 	       "1:        %-17s    %-12s   %-7d  %s\n"
 	       "2:        %-17s    %-12s   %-7d  %s\n"
 	       "3:        %-17s    %-12s   %-7d  %s\n",
-	       denstostring(bp->mt_density), getblksiz(bp->mt_blksiz),
-	       mt_density_bp(bp->mt_density, TRUE), comptostring(bp->mt_comp),
-	       denstostring(bp->mt_density0), getblksiz(bp->mt_blksiz0),
-	       mt_density_bp(bp->mt_density0, TRUE), comptostring(bp->mt_comp0),
-	       denstostring(bp->mt_density1), getblksiz(bp->mt_blksiz1),
-	       mt_density_bp(bp->mt_density1, TRUE), comptostring(bp->mt_comp1),
-	       denstostring(bp->mt_density2), getblksiz(bp->mt_blksiz2),
-	       mt_density_bp(bp->mt_density2, TRUE), comptostring(bp->mt_comp2),
-	       denstostring(bp->mt_density3), getblksiz(bp->mt_blksiz3),
-	       mt_density_bp(bp->mt_density3, TRUE), comptostring(bp->mt_comp3));
+	    denstostring(bp->mt_density), getblksiz(bp->mt_blksiz),
+	    mt_density_bp(bp->mt_density, TRUE), comptostring(bp->mt_comp),
+	    denstostring(bp->mt_density0), getblksiz(bp->mt_blksiz0),
+	    mt_density_bp(bp->mt_density0, TRUE), comptostring(bp->mt_comp0),
+	    denstostring(bp->mt_density1), getblksiz(bp->mt_blksiz1),
+	    mt_density_bp(bp->mt_density1, TRUE), comptostring(bp->mt_comp1),
+	    denstostring(bp->mt_density2), getblksiz(bp->mt_blksiz2),
+	    mt_density_bp(bp->mt_density2, TRUE), comptostring(bp->mt_comp2),
+	    denstostring(bp->mt_density3), getblksiz(bp->mt_blksiz3),
+	    mt_density_bp(bp->mt_density3, TRUE), comptostring(bp->mt_comp3));
 
 	if (bp->mt_dsreg != MTIO_DSREG_NIL) {
 		const char sfmt[] = "Current Driver State: %s.\n";
@@ -630,14 +600,14 @@ st_status(struct mtget *bp)
 		state_str = get_driver_state_str(bp->mt_dsreg);
 		if (state_str == NULL) {
 			char foo[32];
-			(void) sprintf(foo, "Unknown state 0x%x", bp->mt_dsreg);
+			(void)sprintf(foo, "Unknown state 0x%x", bp->mt_dsreg);
 			printf(sfmt, foo);
 		} else {
 			printf(sfmt, state_str);
 		}
 	}
-	if (bp->mt_resid == 0 && bp->mt_fileno == (daddr_t) -1 &&
-	    bp->mt_blkno == (daddr_t) -1)
+	if (bp->mt_resid == 0 && bp->mt_fileno == (daddr_t)-1 &&
+	    bp->mt_blkno == (daddr_t)-1)
 		return;
 	printf("---------------------------------\n");
 	printf("File Number: %d\tRecord Number: %d\tResidual Count %d\n",
@@ -749,73 +719,55 @@ mt_locate(int argc, char **argv, int mtfd, const char *tape)
 }
 
 typedef enum {
-	MT_PERIPH_NAME			= 0,
-	MT_UNIT_NUMBER 			= 1,
-	MT_VENDOR			= 2,
-	MT_PRODUCT			= 3,
-	MT_REVISION			= 4,
-	MT_COMPRESSION_SUPPORTED	= 5,
-	MT_COMPRESSION_ENABLED		= 6,
-	MT_COMPRESSION_ALGORITHM	= 7,
-	MT_MEDIA_DENSITY		= 8,
-	MT_MEDIA_BLOCKSIZE		= 9,
-	MT_CALCULATED_FILENO		= 10,
-	MT_CALCULATED_REL_BLKNO		= 11,
-	MT_REPORTED_FILENO		= 12,
-	MT_REPORTED_BLKNO		= 13,
-	MT_PARTITION			= 14,
-	MT_BOP				= 15,
-	MT_EOP				= 16,
-	MT_BPEW				= 17,
-	MT_DSREG			= 18,
-	MT_RESID			= 19,
-	MT_FIXED_MODE			= 20,
-	MT_SERIAL_NUM			= 21,
-	MT_MAXIO			= 22,
-	MT_CPI_MAXIO			= 23,
-	MT_MAX_BLK			= 24,
-	MT_MIN_BLK			= 25,
-	MT_BLK_GRAN			= 26,
-	MT_MAX_EFF_IOSIZE		= 27
+	MT_PERIPH_NAME = 0,
+	MT_UNIT_NUMBER = 1,
+	MT_VENDOR = 2,
+	MT_PRODUCT = 3,
+	MT_REVISION = 4,
+	MT_COMPRESSION_SUPPORTED = 5,
+	MT_COMPRESSION_ENABLED = 6,
+	MT_COMPRESSION_ALGORITHM = 7,
+	MT_MEDIA_DENSITY = 8,
+	MT_MEDIA_BLOCKSIZE = 9,
+	MT_CALCULATED_FILENO = 10,
+	MT_CALCULATED_REL_BLKNO = 11,
+	MT_REPORTED_FILENO = 12,
+	MT_REPORTED_BLKNO = 13,
+	MT_PARTITION = 14,
+	MT_BOP = 15,
+	MT_EOP = 16,
+	MT_BPEW = 17,
+	MT_DSREG = 18,
+	MT_RESID = 19,
+	MT_FIXED_MODE = 20,
+	MT_SERIAL_NUM = 21,
+	MT_MAXIO = 22,
+	MT_CPI_MAXIO = 23,
+	MT_MAX_BLK = 24,
+	MT_MIN_BLK = 25,
+	MT_BLK_GRAN = 26,
+	MT_MAX_EFF_IOSIZE = 27
 } status_item_index;
 
 static struct mt_status_items {
 	const char *name;
 	struct mt_status_entry *entry;
-} req_status_items[] = {
-	{ "periph_name", NULL },
-	{ "unit_number", NULL },
-	{ "vendor", NULL },
-	{ "product", NULL },
-	{ "revision", NULL },
-	{ "compression_supported", NULL },
-	{ "compression_enabled", NULL },
-	{ "compression_algorithm", NULL },
-	{ "media_density", NULL },
-	{ "media_blocksize", NULL },
-	{ "calculated_fileno", NULL },
-	{ "calculated_rel_blkno", NULL },
-	{ "reported_fileno", NULL },
-	{ "reported_blkno", NULL },
-	{ "partition", NULL },
-	{ "bop", NULL },
-	{ "eop", NULL },
-	{ "bpew", NULL },
-	{ "dsreg", NULL },
-	{ "residual", NULL },
-	{ "fixed_mode", NULL },
-	{ "serial_num", NULL },
-	{ "maxio", NULL },
-	{ "cpi_maxio", NULL },
-	{ "max_blk", NULL },
-	{ "min_blk", NULL },
-	{ "blk_gran", NULL },
-	{ "max_effective_iosize", NULL }
-};
+} req_status_items[] = { { "periph_name", NULL }, { "unit_number", NULL },
+	{ "vendor", NULL }, { "product", NULL }, { "revision", NULL },
+	{ "compression_supported", NULL }, { "compression_enabled", NULL },
+	{ "compression_algorithm", NULL }, { "media_density", NULL },
+	{ "media_blocksize", NULL }, { "calculated_fileno", NULL },
+	{ "calculated_rel_blkno", NULL }, { "reported_fileno", NULL },
+	{ "reported_blkno", NULL }, { "partition", NULL }, { "bop", NULL },
+	{ "eop", NULL }, { "bpew", NULL }, { "dsreg", NULL },
+	{ "residual", NULL }, { "fixed_mode", NULL }, { "serial_num", NULL },
+	{ "maxio", NULL }, { "cpi_maxio", NULL }, { "max_blk", NULL },
+	{ "min_blk", NULL }, { "blk_gran", NULL },
+	{ "max_effective_iosize", NULL } };
 
 int
 nstatus_print(int argc, char **argv, char *xml_str,
-	      struct mt_status_data *status_data)
+    struct mt_status_data *status_data)
 {
 	unsigned int i;
 	int64_t calculated_fileno, calculated_rel_blkno;
@@ -847,7 +799,8 @@ nstatus_print(int argc, char **argv, char *xml_str,
 		return (0);
 	}
 
-	for (i = 0; i < (sizeof(req_status_items)/sizeof(req_status_items[0]));
+	for (i = 0;
+	     i < (sizeof(req_status_items) / sizeof(req_status_items[0]));
 	     i++) {
 		char *name;
 
@@ -861,13 +814,14 @@ nstatus_print(int argc, char **argv, char *xml_str,
 	}
 
 	printf("Drive: %s%ju: <%s %s %s> Serial Number: %s\n",
-	       req_status_items[MT_PERIPH_NAME].entry->value,
-	       (uintmax_t)req_status_items[MT_UNIT_NUMBER].entry->value_unsigned,
-	       req_status_items[MT_VENDOR].entry->value,
-	       req_status_items[MT_PRODUCT].entry->value,
-	       req_status_items[MT_REVISION].entry->value,
-	       (req_status_items[MT_SERIAL_NUM].entry->value) ? 
-	       req_status_items[MT_SERIAL_NUM].entry->value : "none");
+	    req_status_items[MT_PERIPH_NAME].entry->value,
+	    (uintmax_t)req_status_items[MT_UNIT_NUMBER].entry->value_unsigned,
+	    req_status_items[MT_VENDOR].entry->value,
+	    req_status_items[MT_PRODUCT].entry->value,
+	    req_status_items[MT_REVISION].entry->value,
+	    (req_status_items[MT_SERIAL_NUM].entry->value) ?
+		req_status_items[MT_SERIAL_NUM].entry->value :
+		"none");
 	printf("---------------------------------\n");
 
 	/*
@@ -880,11 +834,11 @@ nstatus_print(int argc, char **argv, char *xml_str,
 		snprintf(block_str, sizeof(block_str), "variable");
 	else
 		snprintf(block_str, sizeof(block_str), "%s",
-		    getblksiz(req_status_items[
-			      MT_MEDIA_BLOCKSIZE].entry->value_unsigned));
+		    getblksiz(req_status_items[MT_MEDIA_BLOCKSIZE]
+				  .entry->value_unsigned));
 
-	dens_str = denstostring(req_status_items[
-	    MT_MEDIA_DENSITY].entry->value_unsigned);
+	dens_str = denstostring(
+	    req_status_items[MT_MEDIA_DENSITY].entry->value_unsigned);
 	if (dens_str == NULL)
 		dens_len = 0;
 	else
@@ -892,19 +846,20 @@ nstatus_print(int argc, char **argv, char *xml_str,
 	field_width = MAX(dens_len, 17);
 	printf("Mode      %-*s    Blocksize      bpi      Compression\n"
 	       "Current:  %-*s    %-12s   %-7d  ",
-	       field_width, "Density", field_width, dens_str, block_str,
-	       mt_density_bp(req_status_items[
-	       MT_MEDIA_DENSITY].entry->value_unsigned, TRUE));
+	    field_width, "Density", field_width, dens_str, block_str,
+	    mt_density_bp(
+		req_status_items[MT_MEDIA_DENSITY].entry->value_unsigned,
+		TRUE));
 
 	if (req_status_items[MT_COMPRESSION_SUPPORTED].entry->value_signed == 0)
 		printf("unsupported\n");
-	else if (req_status_items[
-		 MT_COMPRESSION_ENABLED].entry->value_signed == 0)
+	else if (req_status_items[MT_COMPRESSION_ENABLED].entry->value_signed ==
+	    0)
 		printf("disabled\n");
 	else {
 		printf("enabled (%s)\n",
-		       comptostring(req_status_items[
-		       MT_COMPRESSION_ALGORITHM].entry->value_unsigned));
+		    comptostring(req_status_items[MT_COMPRESSION_ALGORITHM]
+				     .entry->value_unsigned));
 	}
 
 	dsreg = req_status_items[MT_DSREG].entry->value_signed;
@@ -916,21 +871,19 @@ nstatus_print(int argc, char **argv, char *xml_str,
 		state_str = get_driver_state_str(dsreg);
 		if (state_str == NULL) {
 			char foo[32];
-			(void) sprintf(foo, "Unknown state 0x%x", dsreg);
+			(void)sprintf(foo, "Unknown state 0x%x", dsreg);
 			printf(sfmt, foo);
 		} else {
 			printf(sfmt, state_str);
 		}
 	}
 	resid = req_status_items[MT_RESID].entry->value_signed;
-	calculated_fileno = req_status_items[
-	    MT_CALCULATED_FILENO].entry->value_signed;
-	calculated_rel_blkno = req_status_items[
-	    MT_CALCULATED_REL_BLKNO].entry->value_signed;
-	rep_fileno = req_status_items[
-	    MT_REPORTED_FILENO].entry->value_signed;
-	rep_blkno = req_status_items[
-	    MT_REPORTED_BLKNO].entry->value_signed;
+	calculated_fileno =
+	    req_status_items[MT_CALCULATED_FILENO].entry->value_signed;
+	calculated_rel_blkno =
+	    req_status_items[MT_CALCULATED_REL_BLKNO].entry->value_signed;
+	rep_fileno = req_status_items[MT_REPORTED_FILENO].entry->value_signed;
+	rep_blkno = req_status_items[MT_REPORTED_BLKNO].entry->value_signed;
 	bop = req_status_items[MT_BOP].entry->value_signed;
 	eop = req_status_items[MT_EOP].entry->value_signed;
 	bpew = req_status_items[MT_BPEW].entry->value_signed;
@@ -940,8 +893,9 @@ nstatus_print(int argc, char **argv, char *xml_str,
 	printf("Partition: %3jd      Calc File Number: %3jd "
 	       "    Calc Record Number: %jd\n"
 	       "Residual:  %3jd  Reported File Number: %3jd "
-	       "Reported Record Number: %jd\n", partition, calculated_fileno,
-	       calculated_rel_blkno, resid, rep_fileno, rep_blkno);
+	       "Reported Record Number: %jd\n",
+	    partition, calculated_fileno, calculated_rel_blkno, resid,
+	    rep_fileno, rep_blkno);
 
 	printf("Flags: ");
 	if (bop > 0 || eop > 0 || bpew > 0) {
@@ -1014,7 +968,7 @@ mt_xml_cmd(unsigned long cmd, int argc, char **argv, int mtfd, const char *tape)
 
 	/*
 	 * This gets set if there are memory allocation or other errors in
-	 * our parsing of the XML. 
+	 * our parsing of the XML.
 	 */
 	if (status_data.error != 0) {
 		warnx("%s", status_data.error_str);
@@ -1111,7 +1065,6 @@ mt_set_param(int mtfd, struct mt_status_data *status_data, char *param_name,
 	return (0);
 }
 
-
 typedef enum {
 	MT_PP_LBP_R,
 	MT_PP_LBP_W,
@@ -1124,17 +1077,14 @@ static struct mt_protect_info {
 	const char *name;
 	struct mt_status_entry *entry;
 	uint32_t value;
-} mt_protect_list[] = {
-	{ "lbp_r", NULL, 0 },
-	{ "lbp_w", NULL, 0 },
-	{ "rbdp", NULL, 0 },
-	{ "pi_length", NULL, 0 },
-	{ "prot_method", NULL, 0 }
-};
+} mt_protect_list[] = { { "lbp_r", NULL, 0 }, { "lbp_w", NULL, 0 },
+	{ "rbdp", NULL, 0 }, { "pi_length", NULL, 0 },
+	{ "prot_method", NULL, 0 } };
 
-#define	MT_NUM_PROTECT_PARAMS	(sizeof(mt_protect_list)/sizeof(mt_protect_list[0]))
+#define MT_NUM_PROTECT_PARAMS \
+	(sizeof(mt_protect_list) / sizeof(mt_protect_list[0]))
 
-#define	MT_PROT_NAME	"protection"
+#define MT_PROT_NAME "protection"
 
 static int
 mt_protect(int argc, char **argv, int mtfd, struct mt_status_data *status_data)
@@ -1174,15 +1124,15 @@ mt_protect(int argc, char **argv, int mtfd, struct mt_status_data *status_data)
 			pi_length_set = 1;
 			pi_length = strtoul(optarg, NULL, 0);
 			if (pi_length > SA_CTRL_DP_PI_LENGTH_MASK)
-				errx(1, "PI length %u > maximum %u",
-				    pi_length, SA_CTRL_DP_PI_LENGTH_MASK);
+				errx(1, "PI length %u > maximum %u", pi_length,
+				    SA_CTRL_DP_PI_LENGTH_MASK);
 			break;
 		case 'm':
 			prot_method_set = 1;
 			prot_method = strtoul(optarg, NULL, 0);
 			if (prot_method > SA_CTRL_DP_METHOD_MAX)
-				errx(1, "Method %u > maximum %u",
-				    prot_method, SA_CTRL_DP_METHOD_MAX);
+				errx(1, "Method %u > maximum %u", prot_method,
+				    SA_CTRL_DP_METHOD_MAX);
 			break;
 		case 'r':
 			lbp_r_set = 1;
@@ -1205,7 +1155,7 @@ mt_protect(int argc, char **argv, int mtfd, struct mt_status_data *status_data)
 	}
 
 	if ((rbdp_set + do_disable + do_enable + do_list + pi_length_set +
-	    prot_method_set + lbp_r_set + lbp_w_set) == 0)
+		prot_method_set + lbp_r_set + lbp_w_set) == 0)
 		errx(1, "Need an argument for protect");
 
 	if ((do_disable + do_enable + do_list) != 1)
@@ -1253,10 +1203,10 @@ mt_protect(int argc, char **argv, int mtfd, struct mt_status_data *status_data)
 	if (supported_entry == NULL)
 		errx(1, "Unable to find protection support information");
 
-	if (((supported_entry->var_type == MT_TYPE_INT)
-	  && (supported_entry->value_signed == 0))
-	 || ((supported_entry->var_type == MT_TYPE_UINT)
-	  && (supported_entry->value_unsigned == 0)))
+	if (((supported_entry->var_type == MT_TYPE_INT) &&
+		(supported_entry->value_signed == 0)) ||
+	    ((supported_entry->var_type == MT_TYPE_UINT) &&
+		(supported_entry->value_unsigned == 0)))
 		errx(1, "This device does not support protection information");
 
 	mt_protect_list[MT_PP_LBP_R].value = lbp_r;
@@ -1283,16 +1233,16 @@ mt_protect(int argc, char **argv, int mtfd, struct mt_status_data *status_data)
 		mt_protect_list[i].entry = entry;
 
 		if (entry->var_type != MT_TYPE_UINT)
-			errx(1, "Parameter %s is type %d, not unsigned, "
-			    "cannot proceed", mt_protect_list[i].name,
-			    entry->var_type);
+			errx(1,
+			    "Parameter %s is type %d, not unsigned, "
+			    "cannot proceed",
+			    mt_protect_list[i].name, entry->var_type);
 		snprintf(params[i].value_name, sizeof(params[i].value_name),
 		    "%s.%s", MT_PROT_NAME, mt_protect_list[i].name);
 		/* XXX KDM unify types here */
 		params[i].value_type = MT_PARAM_SET_UNSIGNED;
 		params[i].value_len = sizeof(mt_protect_list[i].value);
 		params[i].value.value_unsigned = mt_protect_list[i].value;
-		
 	}
 	param_list.num_params = MT_NUM_PROTECT_PARAMS;
 	param_list.param_len = sizeof(params);
@@ -1314,7 +1264,7 @@ bailout:
 
 static int
 mt_param(int argc, char **argv, int mtfd, char *xml_str,
-	 struct mt_status_data *status_data)
+    struct mt_status_data *status_data)
 {
 	int list = 0, do_set = 0, xml_dump = 0;
 	char *param_name = NULL, *param_value = NULL;
@@ -1329,7 +1279,7 @@ mt_param(int argc, char **argv, int mtfd, char *xml_str,
 		case 'p':
 			if (param_name != NULL) {
 				warnx("Only one parameter name may be "
-				    "specified");
+				      "specified");
 				retval = 1;
 				goto bailout;
 			}
@@ -1341,7 +1291,7 @@ mt_param(int argc, char **argv, int mtfd, char *xml_str,
 		case 's':
 			if (param_value != NULL) {
 				warnx("Only one parameter value may be "
-				    "specified");
+				      "specified");
 				retval = 1;
 				goto bailout;
 			}
@@ -1389,7 +1339,7 @@ mt_print_density_entry(struct mt_status_entry *density_root, int indent)
 	struct mt_status_entry *entry;
 	int retval = 0;
 
-	STAILQ_FOREACH(entry, &density_root->child_entries, links) {
+	STAILQ_FOREACH (entry, &density_root->child_entries, links) {
 		if (entry->var_type == MT_TYPE_NODE) {
 			retval = mt_print_density_entry(entry, indent + 2);
 			if (retval != 0)
@@ -1397,12 +1347,13 @@ mt_print_density_entry(struct mt_status_entry *density_root, int indent)
 			else
 				continue;
 		}
-		if ((strcmp(entry->entry_name, "primary_density_code") == 0)
-		 || (strcmp(entry->entry_name, "secondary_density_code") == 0)
-		 || (strcmp(entry->entry_name, "density_code") == 0)) {
+		if ((strcmp(entry->entry_name, "primary_density_code") == 0) ||
+		    (strcmp(entry->entry_name, "secondary_density_code") ==
+			0) ||
+		    (strcmp(entry->entry_name, "density_code") == 0)) {
 
-			printf("%*s%s (%s): %s\n", indent, "", entry->desc ?
-			    entry->desc : "", entry->entry_name,
+			printf("%*s%s (%s): %s\n", indent, "",
+			    entry->desc ? entry->desc : "", entry->entry_name,
 			    denstostring(entry->value_unsigned));
 		} else if (strcmp(entry->entry_name, "density_flags") == 0) {
 			printf("%*sMedium Access: ", indent, "");
@@ -1413,25 +1364,26 @@ mt_print_density_entry(struct mt_status_entry *density_root, int indent)
 			}
 			printf("%*sDefault Density: %s\n", indent, "",
 			    (entry->value_unsigned & MT_DENS_DEFLT) ? "Yes" :
-			    "No");
+								      "No");
 			printf("%*sDuplicate Density: %s\n", indent, "",
 			    (entry->value_unsigned & MT_DENS_DUP) ? "Yes" :
-			    "No");
+								    "No");
 		} else if (strcmp(entry->entry_name, "media_width") == 0) {
 			printf("%*s%s (%s): %.1f mm\n", indent, "",
-			    entry->desc ?  entry->desc : "", entry->entry_name,
+			    entry->desc ? entry->desc : "", entry->entry_name,
 			    (double)((double)entry->value_unsigned / 10));
 		} else if (strcmp(entry->entry_name, "medium_length") == 0) {
 			printf("%*s%s (%s): %ju m\n", indent, "",
-			    entry->desc ?  entry->desc : "", entry->entry_name,
+			    entry->desc ? entry->desc : "", entry->entry_name,
 			    (uintmax_t)entry->value_unsigned);
 		} else if (strcmp(entry->entry_name, "capacity") == 0) {
-			printf("%*s%s (%s): %ju MB\n", indent, "", entry->desc ?
-			    entry->desc : "", entry->entry_name,
+			printf("%*s%s (%s): %ju MB\n", indent, "",
+			    entry->desc ? entry->desc : "", entry->entry_name,
 			    (uintmax_t)entry->value_unsigned);
 		} else {
-			printf("%*s%s (%s): %s\n", indent, "", entry->desc ?
-			    entry->desc : "", entry->entry_name, entry->value);
+			printf("%*s%s (%s): %s\n", indent, "",
+			    entry->desc ? entry->desc : "", entry->entry_name,
+			    entry->value);
 		}
 	}
 
@@ -1455,30 +1407,34 @@ mt_print_density_report(struct mt_status_entry *report_root, int indent)
 	if (media_report == NULL)
 		return (1);
 
-	if ((mt_report->value_signed == 0)
-	 && (media_report->value_signed == 0)) {
+	if ((mt_report->value_signed == 0) &&
+	    (media_report->value_signed == 0)) {
 		printf("%*sThis tape drive supports the following "
-		    "media densities:\n", indent, "");
-	} else if ((mt_report->value_signed == 0)
-		&& (media_report->value_signed != 0)) {
+		       "media densities:\n",
+		    indent, "");
+	} else if ((mt_report->value_signed == 0) &&
+	    (media_report->value_signed != 0)) {
 		printf("%*sThe tape currently in this drive supports "
-		    "the following media densities:\n", indent, "");
-	} else if ((mt_report->value_signed != 0)
-		&& (media_report->value_signed == 0)) {
+		       "the following media densities:\n",
+		    indent, "");
+	} else if ((mt_report->value_signed != 0) &&
+	    (media_report->value_signed == 0)) {
 		printf("%*sThis tape drive supports the following "
-		    "media types:\n", indent, "");
+		       "media types:\n",
+		    indent, "");
 	} else {
 		printf("%*sThis tape currently in this drive supports "
-		    "the following media types:\n", indent, "");
+		       "the following media types:\n",
+		    indent, "");
 	}
 
-	STAILQ_FOREACH(entry, &report_root->child_entries, links) {
+	STAILQ_FOREACH (entry, &report_root->child_entries, links) {
 		struct mt_status_nv *nv;
 
 		if (strcmp(entry->entry_name, MT_DENSITY_ENTRY_NAME) != 0)
 			continue;
 
-		STAILQ_FOREACH(nv, &entry->nv_list, links) {
+		STAILQ_FOREACH (nv, &entry->nv_list, links) {
 			if (strcmp(nv->name, "num") != 0)
 				continue;
 
@@ -1515,7 +1471,7 @@ mt_print_density(struct mt_status_entry *density_root, int indent)
 	    __DECONST(char *, MT_MEDIA_DENSITY_NAME));
 	if (entry == NULL)
 		errx(1, "Unable to find node %s", MT_MEDIA_DENSITY_NAME);
-	
+
 	printf("%*sCurrent density: %s\n", indent, "",
 	    denstostring(entry->value_unsigned));
 
@@ -1525,7 +1481,7 @@ mt_print_density(struct mt_status_entry *density_root, int indent)
 	 * won't have any; they will only have the current density entry
 	 * above.
 	 */
-	STAILQ_FOREACH(entry, &density_root->child_entries, links) {
+	STAILQ_FOREACH (entry, &density_root->child_entries, links) {
 		if (strcmp(entry->entry_name, MT_DENSITY_REPORT_NAME) != 0)
 			continue;
 
@@ -1575,9 +1531,9 @@ static void
 warn_eof(void)
 {
 	fprintf(stderr,
-		"The \"eof\" command has been disabled.\n"
-		"Use \"weof\" if you really want to write end-of-file marks,\n"
-		"or \"eom\" if you rather want to skip to the end of "
-		"recorded medium.\n");
+	    "The \"eof\" command has been disabled.\n"
+	    "Use \"weof\" if you really want to write end-of-file marks,\n"
+	    "or \"eom\" if you rather want to skip to the end of "
+	    "recorded medium.\n");
 	exit(1);
 }

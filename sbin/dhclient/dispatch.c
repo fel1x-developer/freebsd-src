@@ -42,26 +42,26 @@
  */
 
 #include <sys/cdefs.h>
-#include "dhcpd.h"
-#include "privsep.h"
-
 #include <sys/ioctl.h>
 
-#include <assert.h>
 #include <net/if_media.h>
+
+#include <assert.h>
 #include <ifaddrs.h>
 #include <poll.h>
 
+#include "dhcpd.h"
+#include "privsep.h"
+
 /* Assert that pointer p is aligned to at least align bytes */
-#define assert_aligned(p, align) assert((((uintptr_t)p) & ((align) - 1)) == 0)
+#define assert_aligned(p, align) assert((((uintptr_t)p) & ((align)-1)) == 0)
 
 static struct protocol *protocols;
 static struct timeout *timeouts;
 static struct timeout *free_timeouts;
 static int interfaces_invalidated;
-void (*bootp_packet_handler)(struct interface_info *,
-    struct dhcp_packet *, int, unsigned int,
-    struct iaddr, struct hardware *);
+void (*bootp_packet_handler)(struct interface_info *, struct dhcp_packet *, int,
+    unsigned int, struct iaddr, struct hardware *);
 
 static int interface_status(struct interface_info *ifinfo);
 
@@ -97,12 +97,12 @@ discover_interfaces(struct interface_info *iface)
 		if (ifa->ifa_addr->sa_family == AF_LINK) {
 			struct sockaddr_dl *foo;
 
-			/* 
+			/*
 			 * The implementation of getifaddrs should guarantee
 			 * this alignment
 			 */
 			assert_aligned(ifa->ifa_addr,
-				       _Alignof(struct sockaddr_dl));
+			    _Alignof(struct sockaddr_dl));
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
@@ -115,8 +115,8 @@ discover_interfaces(struct interface_info *iface)
 			iface->index = foo->sdl_index;
 			iface->hw_address.hlen = foo->sdl_alen;
 			iface->hw_address.htype = HTYPE_ETHER; /* XXX */
-			memcpy(iface->hw_address.haddr,
-			    LLADDR(foo), foo->sdl_alen);
+			memcpy(iface->hw_address.haddr, LLADDR(foo),
+			    foo->sdl_alen);
 		}
 		if (!iface->ifp) {
 			if ((tif = calloc(1, len)) == NULL)
@@ -124,7 +124,6 @@ discover_interfaces(struct interface_info *iface)
 			strlcpy(tif->ifr_name, ifa->ifa_name, IFNAMSIZ);
 			iface->ifp = tif;
 		}
-
 	}
 
 	if (!iface->ifp)
@@ -169,7 +168,7 @@ dispatch(void)
 		 * Call any expired timeouts, and then if there's still
 		 * a timeout registered, time out the select call then.
 		 */
-another:
+	another:
 		if (timeouts) {
 			struct timeout *t;
 
@@ -233,8 +232,7 @@ another:
 			ip = l->local;
 			if ((fds[i].revents & (POLLIN | POLLHUP))) {
 				fds[i].revents = 0;
-				if (ip && (l->handler != got_one ||
-				    !ip->dead))
+				if (ip && (l->handler != got_one || !ip->dead))
 					(*(l->handler))(l);
 				if (interfaces_invalidated)
 					break;
@@ -244,7 +242,6 @@ another:
 		interfaces_invalidated = 0;
 	} while (1);
 }
-
 
 void
 got_one(struct protocol *l)
@@ -264,7 +261,7 @@ got_one(struct protocol *l)
 	struct interface_info *ip = l->local;
 
 	if ((result = receive_packet(ip, u.packbuf, sizeof(u), &from,
-	    &hfrom)) == -1) {
+		 &hfrom)) == -1) {
 		warning("receive_packet failed on %s: %s", ip->name,
 		    strerror(errno));
 		ip->errors++;
@@ -288,8 +285,8 @@ got_one(struct protocol *l)
 		ifrom.len = 4;
 		memcpy(ifrom.iabuf, &from.sin_addr, ifrom.len);
 
-		(*bootp_packet_handler)(ip, &u.packet, result,
-		    from.sin_port, ifrom, &hfrom);
+		(*bootp_packet_handler)(ip, &u.packet, result, from.sin_port,
+		    ifrom, &hfrom);
 	}
 }
 
@@ -314,7 +311,7 @@ interface_status(struct interface_info *ifinfo)
 	 * if one of UP and RUNNING flags is dropped,
 	 * the interface is not active.
 	 */
-	if ((ifr.ifr_flags & (IFF_UP|IFF_RUNNING)) != (IFF_UP|IFF_RUNNING))
+	if ((ifr.ifr_flags & (IFF_UP | IFF_RUNNING)) != (IFF_UP | IFF_RUNNING))
 		goto inactive;
 
 	/* Next, check carrier on the interface, if possible */
@@ -517,8 +514,7 @@ interface_set_mtu_unpriv(int privfd, u_int16_t mtu)
 	int errs = 0;
 
 	hdr.code = IMSG_SET_INTERFACE_MTU;
-	hdr.len = sizeof(hdr) +
-		sizeof(u_int16_t);
+	hdr.len = sizeof(hdr) + sizeof(u_int16_t);
 
 	if ((buf = buf_open(hdr.len)) == NULL)
 		error("buf_open: %m");
@@ -527,7 +523,7 @@ interface_set_mtu_unpriv(int privfd, u_int16_t mtu)
 	errs += buf_add(buf, &mtu, sizeof(mtu));
 	if (errs)
 		error("buf_add: %m");
-	
+
 	if (buf_close(privfd, buf) == -1)
 		error("buf_close: %m");
 }
@@ -548,8 +544,7 @@ interface_set_mtu_priv(char *ifname, u_int16_t mtu)
 	strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
 
 	if (ioctl(sock, SIOCGIFMTU, (caddr_t)&ifr) == -1)
-		warning("SIOCGIFMTU failed (%s): %s", ifname,
-			strerror(errno));
+		warning("SIOCGIFMTU failed (%s): %s", ifname, strerror(errno));
 	else
 		old_mtu = ifr.ifr_mtu;
 
@@ -558,7 +553,7 @@ interface_set_mtu_priv(char *ifname, u_int16_t mtu)
 
 		if (ioctl(sock, SIOCSIFMTU, &ifr) == -1)
 			warning("SIOCSIFMTU failed (%d): %s", mtu,
-				strerror(errno));
+			    strerror(errno));
 	}
 
 	close(sock);

@@ -24,36 +24,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_evdev.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/conf.h>
+#include <sys/kbio.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/limits.h>
-#include <sys/lock.h>
-#include <sys/taskqueue.h>
-#include <sys/selinfo.h>
-#include <sys/sysctl.h>
+#include <sys/mutex.h>
 #include <sys/poll.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
-#include <sys/kthread.h>
-#include <sys/syscallsubr.h>
-#include <sys/sysproto.h>
+#include <sys/selinfo.h>
 #include <sys/sema.h>
 #include <sys/signal.h>
+#include <sys/syscallsubr.h>
+#include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
-#include <sys/mutex.h>
-#include <sys/callout.h>
+#include <sys/sysproto.h>
+#include <sys/taskqueue.h>
+#include <sys/uio.h>
 
-#include <sys/kbio.h>
 #include <dev/kbd/kbdreg.h>
 #include <dev/kbd/kbdtables.h>
 
@@ -64,24 +64,27 @@
 
 #include "dev/hyperv/input/hv_kbdc.h"
 
-#define HVKBD_MTX_LOCK(_m) do {		\
-	mtx_lock(_m);			\
-} while (0)
+#define HVKBD_MTX_LOCK(_m)    \
+	do {                  \
+		mtx_lock(_m); \
+	} while (0)
 
-#define HVKBD_MTX_UNLOCK(_m) do {	\
-	mtx_unlock(_m);			\
-} while (0)
+#define HVKBD_MTX_UNLOCK(_m)    \
+	do {                    \
+		mtx_unlock(_m); \
+	} while (0)
 
-#define HVKBD_MTX_ASSERT(_m, _t) do {	\
-	mtx_assert(_m, _t);		\
-} while (0)
+#define HVKBD_MTX_ASSERT(_m, _t)    \
+	do {                        \
+		mtx_assert(_m, _t); \
+	} while (0)
 
-#define	HVKBD_LOCK()		HVKBD_MTX_LOCK(&Giant)
-#define	HVKBD_UNLOCK()		HVKBD_MTX_UNLOCK(&Giant)
-#define	HVKBD_LOCK_ASSERT()	HVKBD_MTX_ASSERT(&Giant, MA_OWNED)
+#define HVKBD_LOCK() HVKBD_MTX_LOCK(&Giant)
+#define HVKBD_UNLOCK() HVKBD_MTX_UNLOCK(&Giant)
+#define HVKBD_LOCK_ASSERT() HVKBD_MTX_ASSERT(&Giant, MA_OWNED)
 
-#define	HVKBD_FLAG_COMPOSE	0x00000001	/* compose char flag */
-#define HVKBD_FLAG_POLLING	0x00000002
+#define HVKBD_FLAG_COMPOSE 0x00000001 /* compose char flag */
+#define HVKBD_FLAG_POLLING 0x00000002
 
 #ifdef EVDEV_SUPPORT
 static evdev_event_t hvkbd_ev_event;
@@ -149,7 +152,7 @@ hvkbd_lock(keyboard_t *kbd, int lock)
 static int
 hvkbd_get_state(keyboard_t *kbd, void *buf, size_t len)
 {
-	DEBUG_HVKBD(kbd,"%s\n",  __func__);
+	DEBUG_HVKBD(kbd, "%s\n", __func__);
 	return (len == 0) ? 1 : -1;
 }
 
@@ -327,10 +330,8 @@ next_code:
 	}
 #ifdef EVDEV_SUPPORT
 	/* push evdev event */
-	if (evdev_rcpt_mask & EVDEV_RCPT_HW_KBD &&
-	    sc->ks_evdev != NULL) {
-		keycode = evdev_scancode2key(&sc->ks_evdev_state,
-		    scancode);
+	if (evdev_rcpt_mask & EVDEV_RCPT_HW_KBD && sc->ks_evdev != NULL) {
+		keycode = evdev_scancode2key(&sc->ks_evdev_state, scancode);
 
 		if (keycode != KEY_RESERVED) {
 			evdev_push_event(sc->ks_evdev, EV_KEY,
@@ -351,16 +352,16 @@ next_code:
 	/* translate the scan code into a keycode */
 	keycode = scancode & 0x7F;
 	switch (sc->sc_prefix) {
-	case 0x00:      /* normal scancode */
-		switch(scancode) {
-		case 0xB8:      /* left alt (compose key) released */
+	case 0x00: /* normal scancode */
+		switch (scancode) {
+		case 0xB8: /* left alt (compose key) released */
 			if (sc->sc_flags & HVKBD_FLAG_COMPOSE) {
 				sc->sc_flags &= ~HVKBD_FLAG_COMPOSE;
 				if (sc->sc_composed_char > UCHAR_MAX)
 					sc->sc_composed_char = 0;
 			}
 			break;
-		case 0x38:      /* left alt (compose key) pressed */
+		case 0x38: /* left alt (compose key) pressed */
 			if (!(sc->sc_flags & HVKBD_FLAG_COMPOSE)) {
 				sc->sc_flags |= HVKBD_FLAG_COMPOSE;
 				sc->sc_composed_char = 0;
@@ -372,81 +373,82 @@ next_code:
 			goto next_code;
 		}
 		break;
-	case 0xE0:		/* 0xE0 prefix */
+	case 0xE0: /* 0xE0 prefix */
 		sc->sc_prefix = 0;
 		switch (keycode) {
-		case 0x1C:	/* right enter key */
+		case 0x1C: /* right enter key */
 			keycode = 0x59;
 			break;
-		case 0x1D:	/* right ctrl key */
+		case 0x1D: /* right ctrl key */
 			keycode = 0x5A;
 			break;
-		case 0x35:	/* keypad divide key */
+		case 0x35: /* keypad divide key */
 			keycode = 0x5B;
 			break;
-		case 0x37:	/* print scrn key */
+		case 0x37: /* print scrn key */
 			keycode = 0x5C;
 			break;
-		case 0x38:	/* right alt key (alt gr) */
+		case 0x38: /* right alt key (alt gr) */
 			keycode = 0x5D;
 			break;
-		case 0x46:	/* ctrl-pause/break on AT 101 (see below) */
+		case 0x46: /* ctrl-pause/break on AT 101 (see below) */
 			keycode = 0x68;
 			break;
-		case 0x47:	/* grey home key */
+		case 0x47: /* grey home key */
 			keycode = 0x5E;
 			break;
-		case 0x48:	/* grey up arrow key */
+		case 0x48: /* grey up arrow key */
 			keycode = 0x5F;
 			break;
-		case 0x49:	/* grey page up key */
+		case 0x49: /* grey page up key */
 			keycode = 0x60;
 			break;
-		case 0x4B:	/* grey left arrow key */
+		case 0x4B: /* grey left arrow key */
 			keycode = 0x61;
 			break;
-		case 0x4D:	/* grey right arrow key */
+		case 0x4D: /* grey right arrow key */
 			keycode = 0x62;
 			break;
-		case 0x4F:	/* grey end key */
+		case 0x4F: /* grey end key */
 			keycode = 0x63;
 			break;
-		case 0x50:	/* grey down arrow key */
+		case 0x50: /* grey down arrow key */
 			keycode = 0x64;
 			break;
-		case 0x51:	/* grey page down key */
+		case 0x51: /* grey page down key */
 			keycode = 0x65;
 			break;
-		case 0x52:	/* grey insert key */
+		case 0x52: /* grey insert key */
 			keycode = 0x66;
 			break;
-		case 0x53:	/* grey delete key */
+		case 0x53: /* grey delete key */
 			keycode = 0x67;
 			break;
-			/* the following 3 are only used on the MS "Natural" keyboard */
-		case 0x5b:	/* left Window key */
+			/* the following 3 are only used on the MS "Natural"
+			 * keyboard */
+		case 0x5b: /* left Window key */
 			keycode = 0x69;
 			break;
-		case 0x5c:	/* right Window key */
+		case 0x5c: /* right Window key */
 			keycode = 0x6a;
 			break;
-		case 0x5d:	/* menu key */
+		case 0x5d: /* menu key */
 			keycode = 0x6b;
 			break;
-		case 0x5e:	/* power key */
+		case 0x5e: /* power key */
 			keycode = 0x6d;
 			break;
-		case 0x5f:	/* sleep key */
+		case 0x5f: /* sleep key */
 			keycode = 0x6e;
 			break;
-		case 0x63:	/* wake key */
+		case 0x63: /* wake key */
 			keycode = 0x6f;
 			break;
-		default:	/* ignore everything else */
+		default: /* ignore everything else */
 			goto next_code;
 		}
 		break;
-	case 0xE1:	/* 0xE1 prefix */
+	case 0xE1: /* 0xE1 prefix */
 		/*
 		 * The pause/break key on the 101 keyboard produces:
 		 * E1-1D-45 E1-9D-C5
@@ -458,7 +460,7 @@ next_code:
 			sc->sc_prefix = 0x1D;
 		goto next_code;
 		/* NOT REACHED */
-	case 0x1D:	/* pause / break */
+	case 0x1D: /* pause / break */
 		sc->sc_prefix = 0;
 		if (keycode != 0x45)
 			goto next_code;
@@ -468,11 +470,11 @@ next_code:
 
 	/* XXX assume 101/102 keys AT keyboard */
 	switch (keycode) {
-	case 0x5c:      /* print screen */
+	case 0x5c: /* print screen */
 		if (sc->sc_flags & ALTS)
 			keycode = 0x54; /* sysrq */
 		break;
-	case 0x68:      /* pause/break */
+	case 0x68: /* pause/break */
 		if (sc->sc_flags & CTLS)
 			keycode = 0x6c; /* break */
 		break;
@@ -483,41 +485,53 @@ next_code:
 		return (keycode | (scancode & 0x80));
 
 	/* compose a character code */
-	if (sc->sc_flags &  HVKBD_FLAG_COMPOSE) {
+	if (sc->sc_flags & HVKBD_FLAG_COMPOSE) {
 		switch (keycode | (scancode & 0x80)) {
 		/* key pressed, process it */
-		case 0x47: case 0x48: case 0x49:	/* keypad 7,8,9 */
+		case 0x47:
+		case 0x48:
+		case 0x49: /* keypad 7,8,9 */
 			sc->sc_composed_char *= 10;
 			sc->sc_composed_char += keycode - 0x40;
 			if (sc->sc_composed_char > UCHAR_MAX)
 				return ERRKEY;
 			goto next_code;
-		case 0x4B: case 0x4C: case 0x4D:	/* keypad 4,5,6 */
+		case 0x4B:
+		case 0x4C:
+		case 0x4D: /* keypad 4,5,6 */
 			sc->sc_composed_char *= 10;
 			sc->sc_composed_char += keycode - 0x47;
 			if (sc->sc_composed_char > UCHAR_MAX)
 				return ERRKEY;
 			goto next_code;
-		case 0x4F: case 0x50: case 0x51:	/* keypad 1,2,3 */
+		case 0x4F:
+		case 0x50:
+		case 0x51: /* keypad 1,2,3 */
 			sc->sc_composed_char *= 10;
 			sc->sc_composed_char += keycode - 0x4E;
 			if (sc->sc_composed_char > UCHAR_MAX)
 				return ERRKEY;
 			goto next_code;
-		case 0x52:				/* keypad 0 */
+		case 0x52: /* keypad 0 */
 			sc->sc_composed_char *= 10;
 			if (sc->sc_composed_char > UCHAR_MAX)
 				return ERRKEY;
 			goto next_code;
 
 		/* key released, no interest here */
-		case 0xC7: case 0xC8: case 0xC9:	/* keypad 7,8,9 */
-		case 0xCB: case 0xCC: case 0xCD:	/* keypad 4,5,6 */
-		case 0xCF: case 0xD0: case 0xD1:	/* keypad 1,2,3 */
-		case 0xD2:				/* keypad 0 */
+		case 0xC7:
+		case 0xC8:
+		case 0xC9: /* keypad 7,8,9 */
+		case 0xCB:
+		case 0xCC:
+		case 0xCD: /* keypad 4,5,6 */
+		case 0xCF:
+		case 0xD0:
+		case 0xD1: /* keypad 1,2,3 */
+		case 0xD2: /* keypad 0 */
 			goto next_code;
 
-		case 0x38:				/* left alt key */
+		case 0x38: /* left alt key */
 			break;
 
 		default:
@@ -531,8 +545,8 @@ next_code:
 	}
 
 	/* keycode to key action */
-	action = genkbd_keyaction(kbd, keycode, scancode & 0x80,
-				  &sc->sc_state, &sc->sc_accents);
+	action = genkbd_keyaction(kbd, keycode, scancode & 0x80, &sc->sc_state,
+	    &sc->sc_accents);
 	if (action == NOKEY)
 		goto next_code;
 	else
@@ -557,7 +571,7 @@ static void
 hvkbd_clear_state(keyboard_t *kbd)
 {
 	hv_kbd_sc *sc = kbd->kb_data;
-	sc->sc_state &= LOCK_MASK;	/* preserve locking key state */
+	sc->sc_state &= LOCK_MASK; /* preserve locking key state */
 	sc->sc_flags &= ~(HVKBD_FLAG_POLLING | HVKBD_FLAG_COMPOSE);
 	sc->sc_accents = 0;
 	sc->sc_composed_char = 0;
@@ -569,7 +583,7 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 	int i;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
     defined(COMPAT_FREEBSD4) || defined(COMPAT_43)
-        int ival;
+	int ival;
 #endif
 	hv_kbd_sc *sc = kbd->kb_data;
 	switch (cmd) {
@@ -583,7 +597,7 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBMODE:		/* set keyboard mode */
+	case KDSKBMODE: /* set keyboard mode */
 		DEBUG_HVKBD(kbd, "expected mode: %x\n", *(int *)arg);
 		switch (*(int *)arg) {
 		case K_XLATE:
@@ -596,7 +610,8 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		case K_RAW:
 		case K_CODE:
 			if (sc->sc_mode != *(int *)arg) {
-				DEBUG_HVKBD(kbd, "mod changed to %x\n", *(int *)arg);
+				DEBUG_HVKBD(kbd, "mod changed to %x\n",
+				    *(int *)arg);
 				if ((sc->sc_flags & HVKBD_FLAG_POLLING) == 0)
 					hvkbd_clear_state(kbd);
 				sc->sc_mode = *(int *)arg;
@@ -606,7 +621,7 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 			return (EINVAL);
 		}
 		break;
-	case KDGKBSTATE:	/* get lock key state */
+	case KDGKBSTATE: /* get lock key state */
 		*(int *)arg = sc->sc_state & LOCK_MASK;
 		break;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
@@ -616,14 +631,14 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBSTATE:		/* set lock key state */
+	case KDSKBSTATE: /* set lock key state */
 		if (*(int *)arg & ~LOCK_MASK) {
 			return (EINVAL);
 		}
 		sc->sc_state &= ~LOCK_MASK;
 		sc->sc_state |= *(int *)arg;
 		return hvkbd_ioctl_locked(kbd, KDSETLED, arg);
-	case KDGETLED:			/* get keyboard LED */
+	case KDGETLED: /* get keyboard LED */
 		*(int *)arg = KBD_LED_VAL(kbd);
 		break;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
@@ -633,7 +648,7 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETLED:			/* set keyboard LED */
+	case KDSETLED: /* set keyboard LED */
 		/* NOTE: lock key state in "sc_state" won't be changed */
 		if (*(int *)arg & ~LOCK_MASK)
 			return (EINVAL);
@@ -654,19 +669,18 @@ hvkbd_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 
 #ifdef EVDEV_SUPPORT
 		/* push LED states to evdev */
-		if (sc->ks_evdev != NULL &&
-		    evdev_rcpt_mask & EVDEV_RCPT_HW_KBD)
+		if (sc->ks_evdev != NULL && evdev_rcpt_mask & EVDEV_RCPT_HW_KBD)
 			evdev_push_leds(sc->ks_evdev, *(int *)arg);
 #endif
 		KBD_LED_VAL(kbd) = *(int *)arg;
 		break;
-	case PIO_KEYMAP:	/* set keyboard translation table */
-	case PIO_KEYMAPENT:	/* set keyboard translation table entry */
-	case PIO_DEADKEYMAP:	/* set accent key translation table */
+	case PIO_KEYMAP:     /* set keyboard translation table */
+	case PIO_KEYMAPENT:  /* set keyboard translation table entry */
+	case PIO_DEADKEYMAP: /* set accent key translation table */
 #ifdef COMPAT_FREEBSD13
-	case OPIO_KEYMAP:	/* set keyboard translation table (compat) */
-	case OPIO_DEADKEYMAP:	/* set accent key translation table (compat) */
-#endif /* COMPAT_FREEBSD13 */
+	case OPIO_KEYMAP:     /* set keyboard translation table (compat) */
+	case OPIO_DEADKEYMAP: /* set accent key translation table (compat) */
+#endif			      /* COMPAT_FREEBSD13 */
 		sc->sc_accents = 0;
 		/* FALLTHROUGH */
 	default:
@@ -707,7 +721,7 @@ hvkbd_ev_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 	keyboard_t *kbd = evdev_get_softc(evdev);
 
 	if (evdev_rcpt_mask & EVDEV_RCPT_HW_KBD &&
-	(type == EV_LED || type == EV_REP)) {
+	    (type == EV_LED || type == EV_REP)) {
 		mtx_lock(&Giant);
 		kbd_ev_event(kbd, type, code, value);
 		mtx_unlock(&Giant);
@@ -716,23 +730,23 @@ hvkbd_ev_event(struct evdev_dev *evdev, uint16_t type, uint16_t code,
 #endif
 
 static keyboard_switch_t hvkbdsw = {
-	.probe =	hvkbd_probe,		/* not used */
-	.init =		hvkbd_init,
-	.term =		hvkbd_term,		/* not used */
-	.intr =		hvkbd_intr,		/* not used */
-	.test_if =	hvkbd_test_if,		/* not used */
-	.enable =	hvkbd_enable,
-	.disable =	hvkbd_disable,
-	.read =		hvkbd_read,
-	.check =	hvkbd_check,
-	.read_char =	hvkbd_read_char,
-	.check_char =	hvkbd_check_char,
-	.ioctl =	hvkbd_ioctl,
-	.lock =		hvkbd_lock,		/* not used */
-	.clear_state =	hvkbd_clear_state,
-	.get_state =	hvkbd_get_state,	/* not used */
-	.set_state =	hvkbd_set_state,	/* not used */
-	.poll =		hvkbd_poll,
+	.probe = hvkbd_probe, /* not used */
+	.init = hvkbd_init,
+	.term = hvkbd_term,	  /* not used */
+	.intr = hvkbd_intr,	  /* not used */
+	.test_if = hvkbd_test_if, /* not used */
+	.enable = hvkbd_enable,
+	.disable = hvkbd_disable,
+	.read = hvkbd_read,
+	.check = hvkbd_check,
+	.read_char = hvkbd_read_char,
+	.check_char = hvkbd_check_char,
+	.ioctl = hvkbd_ioctl,
+	.lock = hvkbd_lock, /* not used */
+	.clear_state = hvkbd_clear_state,
+	.get_state = hvkbd_get_state, /* not used */
+	.set_state = hvkbd_set_state, /* not used */
+	.poll = hvkbd_poll,
 };
 
 KEYBOARD_DRIVER(hvkbd, hvkbdsw, hvkbd_configure);
@@ -744,10 +758,9 @@ hv_kbd_intr(hv_kbd_sc *sc)
 	if ((sc->sc_flags & HVKBD_FLAG_POLLING) != 0)
 		return;
 
-	if (KBD_IS_ACTIVE(&sc->sc_kbd) &&
-	    KBD_IS_BUSY(&sc->sc_kbd)) {
+	if (KBD_IS_ACTIVE(&sc->sc_kbd) && KBD_IS_BUSY(&sc->sc_kbd)) {
 		/* let the callback function process the input */
-		(sc->sc_kbd.kb_callback.kc_func) (&sc->sc_kbd, KBDIO_KEYINPUT,
+		(sc->sc_kbd.kb_callback.kc_func)(&sc->sc_kbd, KBDIO_KEYINPUT,
 		    sc->sc_kbd.kb_callback.kc_arg);
 	} else {
 		/* read and discard the input, no one is waiting for it */
@@ -823,7 +836,7 @@ hv_kbd_drv_attach(device_t dev)
 	}
 	KBD_CONFIG_DONE(kbd);
 #ifdef KBD_INSTALL_CDEV
-        if (kbd_attach(kbd)) {
+	if (kbd_attach(kbd)) {
 		goto detach;
 	}
 #endif
@@ -848,7 +861,8 @@ hv_kbd_drv_detach(device_t dev)
 	if (KBD_IS_CONFIGURED(&sc->sc_kbd)) {
 		error = kbd_unregister(&sc->sc_kbd);
 		if (error) {
-			device_printf(dev, "WARNING: kbd_unregister() "
+			device_printf(dev,
+			    "WARNING: kbd_unregister() "
 			    "returned non-zero! (ignored)\n");
 		}
 	}
@@ -857,4 +871,3 @@ hv_kbd_drv_detach(device_t dev)
 #endif
 	return (error);
 }
-

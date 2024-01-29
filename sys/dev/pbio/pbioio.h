@@ -43,11 +43,11 @@
 /*
  * ioctls
  */
-#define PBIO_SETDIFF	_IOW('p', 0x01, int)
-#define PBIO_SETIPACE	_IOW('p', 0x02, int)
-#define PBIO_SETOPACE	_IOW('p', 0x03, int)
-#define PBIO_GETDIFF	_IOR('p', 0x81, int)
-#define PBIO_GETIPACE	_IOR('p', 0x82, int)
-#define PBIO_GETOPACE	_IOR('p', 0x83, int)
+#define PBIO_SETDIFF _IOW('p', 0x01, int)
+#define PBIO_SETIPACE _IOW('p', 0x02, int)
+#define PBIO_SETOPACE _IOW('p', 0x03, int)
+#define PBIO_GETDIFF _IOR('p', 0x81, int)
+#define PBIO_GETIPACE _IOR('p', 0x82, int)
+#define PBIO_GETOPACE _IOR('p', 0x83, int)
 
 #endif

@@ -23,40 +23,41 @@
  * SUCH DAMAGE.
  */
 
-/* 
+/*
  * Prerequisities:
  * - AIO support must be compiled into the kernel (see sys/<arch>/NOTES for
  *   more details).
  *
- * Note: it is a good idea to run this against a physical drive to 
+ * Note: it is a good idea to run this against a physical drive to
  * exercise the physio fast path (ie. aio_kqueue /dev/<something safe>)
  */
 
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
 #include <aio.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "freebsd_test_suite/macros.h"
 #include "local.h"
 
-#define PATH_TEMPLATE   "aio.XXXXXXXXXX"
+#define PATH_TEMPLATE "aio.XXXXXXXXXX"
 
 #define MAX_RUNS 300
 /* #define DEBUG */
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	struct aiocb **iocb, *kq_iocb;
-	char *file, pathname[sizeof(PATH_TEMPLATE)+1];
+	char *file, pathname[sizeof(PATH_TEMPLATE) + 1];
 	struct kevent kq_returned;
 	struct timespec ts;
 	char buffer[32768];
@@ -73,10 +74,10 @@ main (int argc, char *argv[])
 	PLAIN_REQUIRE_UNSAFE_AIO(0);
 
 	max_queue_per_proc_size = sizeof(max_queue_per_proc);
-	if (sysctlbyname("vfs.aio.max_aio_queue_per_proc",
-	    &max_queue_per_proc, &max_queue_per_proc_size, NULL, 0) != 0)
+	if (sysctlbyname("vfs.aio.max_aio_queue_per_proc", &max_queue_per_proc,
+		&max_queue_per_proc_size, NULL, 0) != 0)
 		err(1, "sysctlbyname");
-	iocb = calloc(max_queue_per_proc, sizeof(struct aiocb*));
+	iocb = calloc(max_queue_per_proc, sizeof(struct aiocb *));
 	if (iocb == NULL)
 		err(1, "calloc");
 
@@ -86,19 +87,19 @@ main (int argc, char *argv[])
 		exit(1);
 	}
 
-	if (argc == 1) { 
+	if (argc == 1) {
 		strcpy(pathname, PATH_TEMPLATE);
 		fd = mkstemp(pathname);
 		file = pathname;
 		tmp_file = 1;
 	} else {
 		file = argv[1];
-		fd = open(file, O_RDWR|O_CREAT, 0666);
+		fd = open(file, O_RDWR | O_CREAT, 0666);
 	}
 	if (fd == -1)
 		err(1, "Can't open %s\n", file);
 
-	for (run = 0; run < MAX_RUNS; run++){
+	for (run = 0; run < MAX_RUNS; run++) {
 #ifdef DEBUG
 		printf("Run %d\n", run);
 #endif
@@ -131,11 +132,12 @@ main (int argc, char *argv[])
 			printf("WRITE %d is at %p\n", i, iocb[i]);
 #endif
 			result = rand();
-			if (result < RAND_MAX/32) {
-				if (result > RAND_MAX/64) {
+			if (result < RAND_MAX / 32) {
+				if (result > RAND_MAX / 64) {
 					result = aio_cancel(fd, iocb[i]);
 #ifdef DEBUG
-					printf("Cancel %d %p result %d\n", i, iocb[i], result);
+					printf("Cancel %d %p result %d\n", i,
+					    iocb[i], result);
 #endif
 					if (result == AIO_CANCELED) {
 						aio_return(iocb[i]);
@@ -157,8 +159,8 @@ main (int argc, char *argv[])
 				bzero(&kq_returned, sizeof(kq_returned));
 				ts.tv_sec = 0;
 				ts.tv_nsec = 1;
-				result = kevent(kq, NULL, 0,
-						&kq_returned, 1, &ts);
+				result = kevent(kq, NULL, 0, &kq_returned, 1,
+				    &ts);
 #ifdef DEBUG
 				error = errno;
 #endif
@@ -169,17 +171,17 @@ main (int argc, char *argv[])
 				printf("kevent %d %d errno %d return.ident %p "
 				       "return.data %p return.udata %p %p"
 				       " filter %d flags %#x fflags %#x\n",
-				       i, result, error,
-				       (void*)kq_returned.ident,
-				       (void*)kq_returned.data,
-				       kq_returned.udata,
-				       kq_iocb,
-				       kq_returned.filter,
-				       kq_returned.flags,
-				       kq_returned.fflags);
+				    i, result, error, (void *)kq_returned.ident,
+				    (void *)kq_returned.data, kq_returned.udata,
+				    kq_iocb, kq_returned.filter,
+				    kq_returned.flags, kq_returned.fflags);
 				if (result > 0)
-					printf("\tsigev_notify_kevent_flags %#x\n",
-				       ((struct aiocb*)(kq_returned.ident))->aio_sigevent.sigev_notify_kevent_flags);
+					printf(
+					    "\tsigev_notify_kevent_flags %#x\n",
+					    ((struct aiocb *)(kq_returned
+								  .ident))
+						->aio_sigevent
+						.sigev_notify_kevent_flags);
 #endif
 
 				if (kq_iocb)
@@ -190,13 +192,14 @@ main (int argc, char *argv[])
 #endif
 			}
 
-			for (j = 0; j < max_queue_per_proc && iocb[j] != kq_iocb;
-			   j++) ;
+			for (j = 0;
+			     j < max_queue_per_proc && iocb[j] != kq_iocb; j++)
+				;
 #ifdef DEBUG
 			printf("kq_iocb %p\n", kq_iocb);
 
-			printf("Error Result for %d is %d pending %d\n",
-			    j, result, pending);
+			printf("Error Result for %d is %d pending %d\n", j,
+			    result, pending);
 #endif
 			result = aio_return(kq_iocb);
 #ifdef DEBUG
@@ -204,8 +207,9 @@ main (int argc, char *argv[])
 #endif
 			if (result != sizeof(buffer)) {
 				printf("FAIL: run %d, operation %d, result %d "
-				    " (errno=%d) should be %zu\n", run, pending,
-				    result, errno, sizeof(buffer));
+				       " (errno=%d) should be %zu\n",
+				    run, pending, result, errno,
+				    sizeof(buffer));
 				failed++;
 			} else
 				printf("PASS: run %d, left %d\n", run,
@@ -219,7 +223,6 @@ main (int argc, char *argv[])
 
 		for (i = 0; i < max_queue_per_proc; i++)
 			free(iocb[i]);
-
 	}
 
 	if (tmp_file)
@@ -230,5 +233,5 @@ main (int argc, char *argv[])
 	else
 		printf("PASS: All tests passed\n");
 
-	exit (failed == 0 ? 0 : 1);
+	exit(failed == 0 ? 0 : 1);
 }

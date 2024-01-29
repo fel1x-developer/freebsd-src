@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <string.h>
 
 char *__stpncpy(char *restrict, const char *restrict, size_t);

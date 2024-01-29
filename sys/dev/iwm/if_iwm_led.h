@@ -86,12 +86,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	__IF_IWM_LED_H__
-#define	__IF_IWM_LED_H__
+#ifndef __IF_IWM_LED_H__
+#define __IF_IWM_LED_H__
 
-extern	void iwm_led_enable(struct iwm_softc *);
-extern	void iwm_led_disable(struct iwm_softc *);
-extern	void iwm_led_blink_start(struct iwm_softc *);
-extern	void iwm_led_blink_stop(struct iwm_softc *);
+extern void iwm_led_enable(struct iwm_softc *);
+extern void iwm_led_disable(struct iwm_softc *);
+extern void iwm_led_blink_start(struct iwm_softc *);
+extern void iwm_led_blink_stop(struct iwm_softc *);
 
-#endif	/* __IF_IWM_LED_H__ */
+#endif /* __IF_IWM_LED_H__ */

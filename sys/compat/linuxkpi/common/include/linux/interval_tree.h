@@ -36,20 +36,20 @@ struct interval_tree_node {
 	unsigned long last;
 };
 
-#define	interval_tree_iter_first(...)	\
-	lkpi_interval_tree_iter_first(__VA_ARGS__)
-#define	interval_tree_iter_next(...)	\
-	lkpi_interval_tree_iter_next(__VA_ARGS__)
-#define	interval_tree_insert(...)	lkpi_interval_tree_insert(__VA_ARGS__)
-#define	interval_tree_remove(...)	lkpi_interval_tree_remove(__VA_ARGS__)
+#define interval_tree_iter_first(...) lkpi_interval_tree_iter_first(__VA_ARGS__)
+#define interval_tree_iter_next(...) lkpi_interval_tree_iter_next(__VA_ARGS__)
+#define interval_tree_insert(...) lkpi_interval_tree_insert(__VA_ARGS__)
+#define interval_tree_remove(...) lkpi_interval_tree_remove(__VA_ARGS__)
 
-struct interval_tree_node *lkpi_interval_tree_iter_first(
-    struct rb_root_cached *, unsigned long, unsigned long);
-struct interval_tree_node *lkpi_interval_tree_iter_next(
-    struct interval_tree_node *, unsigned long, unsigned long);
+struct interval_tree_node *
+lkpi_interval_tree_iter_first(struct rb_root_cached *, unsigned long,
+    unsigned long);
+struct interval_tree_node *
+lkpi_interval_tree_iter_next(struct interval_tree_node *, unsigned long,
+    unsigned long);
 void lkpi_interval_tree_insert(struct interval_tree_node *,
     struct rb_root_cached *);
 void lkpi_interval_tree_remove(struct interval_tree_node *,
     struct rb_root_cached *);
 
-#endif	/* _LINUXKPI_LINUX_INTERVAL_TREE_H */
+#endif /* _LINUXKPI_LINUX_INTERVAL_TREE_H */

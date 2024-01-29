@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/specialreg.h>
 #include <machine/cpufunc.h>
+#include <machine/specialreg.h>
 
 static uint32_t cpu_feature, cpu_feature2;
 static uint32_t cpu_stdext_feature, cpu_stdext_feature2;
@@ -34,22 +34,23 @@ init_cpu_features(void)
 {
 	u_int cpuid_supported, p[4];
 
-	__asm __volatile(
-	    "	pushfl\n"
-	    "	popl	%%eax\n"
-	    "	movl    %%eax,%%ecx\n"
-	    "	xorl    $0x200000,%%eax\n"
-	    "	pushl	%%eax\n"
-	    "	popfl\n"
-	    "	pushfl\n"
-	    "	popl    %%eax\n"
-	    "	xorl    %%eax,%%ecx\n"
-	    "	je	1f\n"
-	    "	movl	$1,%0\n"
-	    "	jmp	2f\n"
-	    "1:	movl	$0,%0\n"
-	    "2:\n"
-	    : "=r" (cpuid_supported) : : "eax", "ecx", "cc");
+	__asm __volatile("	pushfl\n"
+			 "	popl	%%eax\n"
+			 "	movl    %%eax,%%ecx\n"
+			 "	xorl    $0x200000,%%eax\n"
+			 "	pushl	%%eax\n"
+			 "	popfl\n"
+			 "	pushfl\n"
+			 "	popl    %%eax\n"
+			 "	xorl    %%eax,%%ecx\n"
+			 "	je	1f\n"
+			 "	movl	$1,%0\n"
+			 "	jmp	2f\n"
+			 "1:	movl	$0,%0\n"
+			 "2:\n"
+			 : "=r"(cpuid_supported)
+			 :
+			 : "eax", "ecx", "cc");
 	if (cpuid_supported) {
 		do_cpuid(1, p);
 		cpu_feature = p[3];
@@ -79,9 +80,10 @@ crt1_handle_rel(const Elf_Rel *r)
 	switch (ELF_R_TYPE(r->r_info)) {
 	case R_386_IRELATIVE:
 		where = (Elf_Addr *)r->r_offset;
-		target = ((Elf_Addr (*)(uint32_t, uint32_t, uint32_t,
-		    uint32_t))*where)(cpu_feature, cpu_feature2,
-		    cpu_stdext_feature, cpu_stdext_feature2);
+		target = ((Elf_Addr(*)(uint32_t, uint32_t, uint32_t,
+			      uint32_t)) *
+		    where)(cpu_feature, cpu_feature2, cpu_stdext_feature,
+		    cpu_stdext_feature2);
 		*where = target;
 		break;
 	}

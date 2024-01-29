@@ -39,6 +39,8 @@
 #include <err.h>
 #include <errno.h>
 #include <fstab.h>
+#include <libutil.h>
+#include <libxo/xo.h>
 #include <paths.h>
 #include <pwd.h>
 #include <signal.h>
@@ -47,61 +49,54 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libutil.h>
-#include <libxo/xo.h>
 
 #include "extern.h"
 #include "mntopts.h"
 #include "pathnames.h"
 
-#define EXIT(a) {			\
-	xo_close_container("mount");	\
-	xo_finish();			\
-	exit(a);			\
+#define EXIT(a)                              \
+	{                                    \
+		xo_close_container("mount"); \
+		xo_finish();                 \
+		exit(a);                     \
 	}
 
 /* `meta' options */
-#define MOUNT_META_OPTION_FSTAB		"fstab"
-#define MOUNT_META_OPTION_CURRENT	"current"
+#define MOUNT_META_OPTION_FSTAB "fstab"
+#define MOUNT_META_OPTION_CURRENT "current"
 
 static int debug, fstab_style, verbose;
 
 struct cpa {
-	char	**a;
-	ssize_t	sz;
-	int	c;
+	char **a;
+	ssize_t sz;
+	int c;
 };
 
-char   *catopt(char *, const char *);
-int	hasopt(const char *, const char *);
-int	ismounted(struct fstab *, struct statfs *, int);
-int	isremountable(const char *);
-int	allow_file_mount(const char *);
-void	mangle(char *, struct cpa *);
-char   *update_options(char *, char *, int);
-int	mountfs(const char *, const char *, const char *,
-			int, const char *, const char *);
-void	remopt(char *, const char *);
-void	prmount(struct statfs *);
-void	putfsent(struct statfs *);
-void	usage(void);
-char   *flags2opts(int);
+char *catopt(char *, const char *);
+int hasopt(const char *, const char *);
+int ismounted(struct fstab *, struct statfs *, int);
+int isremountable(const char *);
+int allow_file_mount(const char *);
+void mangle(char *, struct cpa *);
+char *update_options(char *, char *, int);
+int mountfs(const char *, const char *, const char *, int, const char *,
+    const char *);
+void remopt(char *, const char *);
+void prmount(struct statfs *);
+void putfsent(struct statfs *);
+void usage(void);
+char *flags2opts(int);
 
 /* Map from mount options to printable formats. */
-static struct mntoptnames optnames[] = {
-	MNTOPT_NAMES
-};
+static struct mntoptnames optnames[] = { MNTOPT_NAMES };
 
 /*
  * List of VFS types that can be remounted without becoming mounted on top
  * of each other.
  * XXX Is this list correct?
  */
-static const char *
-remountable_fs_names[] = {
-	"ufs", "ffs", "ext2fs",
-	0
-};
+static const char *remountable_fs_names[] = { "ufs", "ffs", "ext2fs", 0 };
 
 static const char userquotaeq[] = "userquota=";
 static const char groupquotaeq[] = "groupquota=";
@@ -116,11 +111,8 @@ use_mountprog(const char *vfstype)
 	 *	each filesystem properly implement the nmount() system call.
 	 */
 	unsigned int i;
-	const char *fs[] = {
-	"cd9660", "mfs", "msdosfs", "nfs",
-	"nullfs", "smbfs", "udf", "unionfs",
-	NULL
-	};
+	const char *fs[] = { "cd9660", "mfs", "msdosfs", "nfs", "nullfs",
+		"smbfs", "udf", "unionfs", NULL };
 
 	if (mountprog != NULL)
 		return (1);
@@ -140,10 +132,10 @@ exec_mountprog(const char *name, const char *execname, char *const argv[])
 	int status;
 
 	switch (pid = fork()) {
-	case -1:				/* Error. */
+	case -1: /* Error. */
 		xo_warn("fork");
 		EXIT(1);
-	case 0:					/* Child. */
+	case 0: /* Child. */
 		/* Go find an executable. */
 		execvP(execname, _PATH_SYSPATH, argv);
 		if (errno == ENOENT) {
@@ -153,7 +145,7 @@ exec_mountprog(const char *name, const char *execname, char *const argv[])
 			}
 		}
 		EXIT(1);
-	default:				/* Parent. */
+	default: /* Parent. */
 		if (waitpid(pid, &status, 0) < 0) {
 			xo_warn("waitpid");
 			return (1);
@@ -180,7 +172,7 @@ specified_ro(const char *arg)
 
 	optbuf = strdup(arg);
 	if (optbuf == NULL)
-		 xo_err(1, "strdup failed");
+		xo_err(1, "strdup failed");
 
 	for (opt = optbuf; (opt = strtok(opt, ",")) != NULL; opt = NULL) {
 		if (strcmp(opt, "ro") == 0) {
@@ -261,7 +253,8 @@ main(int argc, char *argv[])
 			break;
 		case 't':
 			if (vfslist != NULL)
-				xo_errx(1, "only one -t option may be specified");
+				xo_errx(1,
+				    "only one -t option may be specified");
 			vfslist = makevfslist(optarg);
 			vfstype = optarg;
 			break;
@@ -282,9 +275,9 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-#define	BADTYPE(type)							\
-	(strcmp(type, FSTAB_RO) &&					\
-	    strcmp(type, FSTAB_RW) && strcmp(type, FSTAB_RQ))
+#define BADTYPE(type)                                        \
+	(strcmp(type, FSTAB_RO) && strcmp(type, FSTAB_RW) && \
+	    strcmp(type, FSTAB_RQ))
 
 	if ((init_flags & MNT_UPDATE) && (ro == 0))
 		options = catopt(options, "noro");
@@ -293,7 +286,7 @@ main(int argc, char *argv[])
 	switch (argc) {
 	case 0:
 		if ((mntsize = getmntinfo(&mntbuf,
-		     verbose ? MNT_WAIT : MNT_NOWAIT)) == 0)
+			 verbose ? MNT_WAIT : MNT_NOWAIT)) == 0)
 			xo_err(1, "getmntinfo");
 		if (all) {
 			while ((fs = getfsent()) != NULL) {
@@ -318,14 +311,16 @@ main(int argc, char *argv[])
 				options = update_options(options, fs->fs_mntops,
 				    mntbuf->f_flags);
 				if (mountfs(fs->fs_vfstype, fs->fs_spec,
-				    fs->fs_file, init_flags, options,
-				    fs->fs_mntops) && !failok)
+					fs->fs_file, init_flags, options,
+					fs->fs_mntops) &&
+				    !failok)
 					rval = 1;
 			}
 		} else if (fstab_style) {
 			xo_open_list("fstab");
 			for (i = 0; i < mntsize; i++) {
-				if (checkvfsname(mntbuf[i].f_fstypename, vfslist))
+				if (checkvfsname(mntbuf[i].f_fstypename,
+					vfslist))
 					continue;
 				xo_open_instance("fstab");
 				putfsent(&mntbuf[i]);
@@ -336,7 +331,7 @@ main(int argc, char *argv[])
 			xo_open_list("mounted");
 			for (i = 0; i < mntsize; i++) {
 				if (checkvfsname(mntbuf[i].f_fstypename,
-				    vfslist))
+					vfslist))
 					continue;
 				if (!verbose &&
 				    (mntbuf[i].f_flags & MNT_IGNORE) != 0)
@@ -367,15 +362,15 @@ main(int argc, char *argv[])
 			 */
 			if ((fs = getfsfile(mntbuf->f_mntonname)) != NULL) {
 				if (strcmp(fs->fs_spec,
-				    mntbuf->f_mntfromname) == 0 &&
-				    strcmp(fs->fs_file,
-				    mntbuf->f_mntonname) == 0) {
+					mntbuf->f_mntfromname) == 0 &&
+				    strcmp(fs->fs_file, mntbuf->f_mntonname) ==
+					0) {
 					have_fstab = 1;
 					mntfromname = mntbuf->f_mntfromname;
 				} else if (argv[0][0] == '/' &&
 				    argv[0][1] == '\0' &&
 				    strcmp(fs->fs_vfstype,
-				    mntbuf->f_fstypename) == 0) {
+					mntbuf->f_fstypename) == 0) {
 					fs = getfsfile("/");
 					have_fstab = 1;
 					mntfromname = fs->fs_spec;
@@ -398,8 +393,7 @@ main(int argc, char *argv[])
 			xo_errx(1, "%s: unknown special file or file system",
 			    *argv);
 		if (BADTYPE(fs->fs_type))
-			xo_errx(1, "%s has unknown file system type",
-			    *argv);
+			xo_errx(1, "%s has unknown file system type", *argv);
 		rval = mountfs(fs->fs_vfstype, fs->fs_spec, fs->fs_file,
 		    init_flags, options, fs->fs_mntops);
 		break;
@@ -413,8 +407,9 @@ main(int argc, char *argv[])
 		 * ':' will be correctly parsed only if the separator is '@'.
 		 * The definition of a valid hostname is taken from RFC 1034.
 		 */
-		if (vfslist == NULL && ((ep = strchr(argv[0], '@')) != NULL ||
-		    (ep = strchr(argv[0], ':')) != NULL)) {
+		if (vfslist == NULL &&
+		    ((ep = strchr(argv[0], '@')) != NULL ||
+			(ep = strchr(argv[0], ':')) != NULL)) {
 			if (*ep == '@') {
 				cp = ep + 1;
 				ep = cp + strlen(cp);
@@ -429,8 +424,8 @@ main(int argc, char *argv[])
 			if (cp == ep)
 				vfstype = "nfs";
 		}
-		rval = mountfs(vfstype,
-		    argv[0], argv[1], init_flags, options, NULL);
+		rval = mountfs(vfstype, argv[0], argv[1], init_flags, options,
+		    NULL);
 		break;
 	default:
 		usage();
@@ -463,7 +458,7 @@ ismounted(struct fstab *fs, struct statfs *mntbuf, int mntsize)
 		strlcpy(realfsfile, fs->fs_file, sizeof(realfsfile));
 	}
 
-	/* 
+	/*
 	 * Consider the filesystem to be mounted if:
 	 * It has the same mountpoint as a mounted filesystem, and
 	 * It has the same type as that same mounted filesystem, and
@@ -472,9 +467,9 @@ ismounted(struct fstab *fs, struct statfs *mntbuf, int mntsize)
 	 */
 	for (i = mntsize - 1; i >= 0; --i)
 		if (strcmp(realfsfile, mntbuf[i].f_mntonname) == 0 &&
-		    strcmp(fs->fs_vfstype, mntbuf[i].f_fstypename) == 0 && 
+		    strcmp(fs->fs_vfstype, mntbuf[i].f_fstypename) == 0 &&
 		    (!isremountable(fs->fs_vfstype) ||
-		     (strcmp(fs->fs_spec, mntbuf[i].f_mntfromname) == 0)))
+			(strcmp(fs->fs_spec, mntbuf[i].f_mntfromname) == 0)))
 			return (1);
 	return (0);
 }
@@ -537,7 +532,7 @@ append_arg(struct cpa *sa, char *arg)
 
 int
 mountfs(const char *vfstype, const char *spec, const char *name, int flags,
-	const char *options, const char *mntopts)
+    const char *options, const char *mntopts)
 {
 	struct statfs sf;
 	int i, ret;
@@ -598,7 +593,9 @@ mountfs(const char *vfstype, const char *spec, const char *name, int flags,
 		if (use_mountprog(vfstype))
 			xo_emit("{Lwc:exec}{:execname/%s}", execname);
 		else
-			xo_emit("{:execname/mount}{P: }{l:opts/-t}{P: }{l:opts/%s}", vfstype);
+			xo_emit(
+			    "{:execname/mount}{P: }{l:opts/-t}{P: }{l:opts/%s}",
+			    vfstype);
 		for (i = 1; i < mnt_argv.c; i++)
 			xo_emit("{P: }{l:opts}", mnt_argv.a[i]);
 		xo_emit("\n");
@@ -650,8 +647,8 @@ prmount(struct statfs *sfp)
 	struct passwd *pw;
 	char *fsidbuf;
 
-	xo_emit("{:special/%hs}{L: on }{:node/%hs}{L: (}{:fstype}", sfp->f_mntfromname,
-	    sfp->f_mntonname, sfp->f_fstypename);
+	xo_emit("{:special/%hs}{L: on }{:node/%hs}{L: (}{:fstype}",
+	    sfp->f_mntfromname, sfp->f_mntonname, sfp->f_fstypename);
 
 	flags = sfp->f_flags & MNT_VISFLAGMASK;
 	for (o = optnames; flags != 0 && o->o_opt != 0; o++)
@@ -673,14 +670,16 @@ prmount(struct statfs *sfp)
 	if (verbose) {
 		if (sfp->f_syncwrites != 0 || sfp->f_asyncwrites != 0) {
 			xo_open_container("writes");
-			xo_emit("{D:, }{Lwc:writes}{Lw:sync}{w:sync/%ju}{Lw:async}{:async/%ju}",
+			xo_emit(
+			    "{D:, }{Lwc:writes}{Lw:sync}{w:sync/%ju}{Lw:async}{:async/%ju}",
 			    (uintmax_t)sfp->f_syncwrites,
 			    (uintmax_t)sfp->f_asyncwrites);
 			xo_close_container("writes");
 		}
 		if (sfp->f_syncreads != 0 || sfp->f_asyncreads != 0) {
 			xo_open_container("reads");
-			xo_emit("{D:, }{Lwc:reads}{Lw:sync}{w:sync/%ju}{Lw:async}{:async/%ju}",
+			xo_emit(
+			    "{D:, }{Lwc:reads}{Lw:sync}{w:sync/%ju}{Lw:async}{:async/%ju}",
 			    (uintmax_t)sfp->f_syncreads,
 			    (uintmax_t)sfp->f_asyncreads);
 			xo_close_container("reads");
@@ -764,25 +763,26 @@ mangle(char *options, struct cpa *a)
 				 * userland mount programs.
 				 */
 				val = strchr(p, '=');
-                        	if (val != NULL) {
-                                	++val;
+				if (val != NULL) {
+					++val;
 					if (*val != '\0')
 						mountprog = strdup(val);
 				}
 
 				if (mountprog == NULL) {
-					xo_errx(1, "Need value for -o mountprog");
+					xo_errx(1,
+					    "Need value for -o mountprog");
 				}
 				continue;
 			} else if (strcmp(p, "userquota") == 0) {
 				continue;
 			} else if (strncmp(p, userquotaeq,
-			    sizeof(userquotaeq) - 1) == 0) {
+				       sizeof(userquotaeq) - 1) == 0) {
 				continue;
 			} else if (strcmp(p, "groupquota") == 0) {
 				continue;
 			} else if (strncmp(p, groupquotaeq,
-			    sizeof(groupquotaeq) - 1) == 0) {
+				       sizeof(groupquotaeq) - 1) == 0) {
 				continue;
 			} else if (*p == '-') {
 				append_arg(a, p);
@@ -797,7 +797,6 @@ mangle(char *options, struct cpa *a)
 			}
 		}
 }
-
 
 char *
 update_options(char *opts, char *fstab, int curflags)
@@ -836,7 +835,7 @@ update_options(char *opts, char *fstab, int curflags)
 	 */
 	newopt = NULL;
 	for (p = expopt; (o = strsep(&p, ",")) != NULL;) {
-		if ((tmpopt = malloc( strlen(o) + 2 + 1 )) == NULL)
+		if ((tmpopt = malloc(strlen(o) + 2 + 1)) == NULL)
 			xo_errx(1, "malloc failed");
 
 		strcpy(tmpopt, "no");
@@ -845,7 +844,7 @@ update_options(char *opts, char *fstab, int curflags)
 		free(tmpopt);
 
 		if (strncmp("no", o, 2) == 0)
-			remopt(newopt, o+2);
+			remopt(newopt, o + 2);
 
 		newopt = catopt(newopt, o);
 	}
@@ -869,7 +868,7 @@ remopt(char *string, const char *opt)
 			if (*r == ',' && *o != '\0')
 				r++;
 			while ((*r++ = *o++) != '\0')
-			    ;
+				;
 			*--r = ',';
 		}
 	}
@@ -881,9 +880,9 @@ usage(void)
 {
 
 	xo_error("%s\n%s\n%s\n",
-"usage: mount [-adflpruvw] [-F fstab] [-o options] [-t ufs | external_type]",
-"       mount [-dfpruvw] special | node",
-"       mount [-dfpruvw] [-o options] [-t ufs | external_type] special node");
+	    "usage: mount [-adflpruvw] [-F fstab] [-o options] [-t ufs | external_type]",
+	    "       mount [-dfpruvw] special | node",
+	    "       mount [-dfpruvw] [-o options] [-t ufs | external_type] special node");
 	EXIT(1);
 }
 
@@ -907,34 +906,27 @@ putfsent(struct statfs *ent)
 	if (strncmp(ent->f_mntfromname, "<below>", 7) == 0 ||
 	    strncmp(ent->f_mntfromname, "<above>", 7) == 0) {
 		strlcpy(ent->f_mntfromname,
-		    (strnstr(ent->f_mntfromname, ":", 8) +1),
+		    (strnstr(ent->f_mntfromname, ":", 8) + 1),
 		    sizeof(ent->f_mntfromname));
 	}
 
 	l = strlen(ent->f_mntfromname);
-	xo_emit("{:device}{P:/%s}{P:/%s}{P:/%s}",
-	    ent->f_mntfromname,
-	    l < 8 ? "\t" : "",
-	    l < 16 ? "\t" : "",
-	    l < 24 ? "\t" : " ");
+	xo_emit("{:device}{P:/%s}{P:/%s}{P:/%s}", ent->f_mntfromname,
+	    l < 8 ? "\t" : "", l < 16 ? "\t" : "", l < 24 ? "\t" : " ");
 	l = strlen(ent->f_mntonname);
-	xo_emit("{:mntpoint}{P:/%s}{P:/%s}{P:/%s}",
-	    ent->f_mntonname,
-	    l < 8 ? "\t" : "",
-	    l < 16 ? "\t" : "",
-	    l < 24 ? "\t" : " ");
+	xo_emit("{:mntpoint}{P:/%s}{P:/%s}{P:/%s}", ent->f_mntonname,
+	    l < 8 ? "\t" : "", l < 16 ? "\t" : "", l < 24 ? "\t" : " ");
 	xo_emit("{:fstype}{P:\t}", ent->f_fstypename);
 	l = strlen(opts);
-	xo_emit("{:opts}{P:/%s}", opts,
-	    l < 8 ? "\t" : " ");
+	xo_emit("{:opts}{P:/%s}", opts, l < 8 ? "\t" : " ");
 	free(opts);
 
 	if ((fst = getfsspec(ent->f_mntfromname)))
-		xo_emit("{P:\t}{n:dump/%u}{P: }{n:pass/%u}\n",
-		    fst->fs_freq, fst->fs_passno);
+		xo_emit("{P:\t}{n:dump/%u}{P: }{n:pass/%u}\n", fst->fs_freq,
+		    fst->fs_passno);
 	else if ((fst = getfsfile(ent->f_mntonname)))
-		xo_emit("{P:\t}{n:dump/%u}{P: }{n:pass/%u}\n",
-		    fst->fs_freq, fst->fs_passno);
+		xo_emit("{P:\t}{n:dump/%u}{P: }{n:pass/%u}\n", fst->fs_freq,
+		    fst->fs_passno);
 	else if (strcmp(ent->f_fstypename, "ufs") == 0) {
 		if (strcmp(ent->f_mntonname, "/") == 0)
 			xo_emit("{P:\t}{n:dump/1}{P: }{n:pass/1}\n");
@@ -944,7 +936,6 @@ putfsent(struct statfs *ent)
 		xo_emit("{P:\t}{n:dump/0}{P: }{n:pass/0}\n");
 }
 
-
 char *
 flags2opts(int flags)
 {
@@ -952,23 +943,40 @@ flags2opts(int flags)
 
 	res = NULL;
 
-	if (flags & MNT_RDONLY)		res = catopt(res, "ro");
-	if (flags & MNT_SYNCHRONOUS)	res = catopt(res, "sync");
-	if (flags & MNT_NOEXEC)		res = catopt(res, "noexec");
-	if (flags & MNT_NOSUID)		res = catopt(res, "nosuid");
-	if (flags & MNT_UNION)		res = catopt(res, "union");
-	if (flags & MNT_ASYNC)		res = catopt(res, "async");
-	if (flags & MNT_NOATIME)	res = catopt(res, "noatime");
-	if (flags & MNT_NOCLUSTERR)	res = catopt(res, "noclusterr");
-	if (flags & MNT_NOCLUSTERW)	res = catopt(res, "noclusterw");
-	if (flags & MNT_NOSYMFOLLOW)	res = catopt(res, "nosymfollow");
-	if (flags & MNT_SUIDDIR)	res = catopt(res, "suiddir");
-	if (flags & MNT_MULTILABEL)	res = catopt(res, "multilabel");
-	if (flags & MNT_ACLS)		res = catopt(res, "acls");
-	if (flags & MNT_NFS4ACLS)	res = catopt(res, "nfsv4acls");
-	if (flags & MNT_UNTRUSTED)	res = catopt(res, "untrusted");
-	if (flags & MNT_NOCOVER)	res = catopt(res, "nocover");
-	if (flags & MNT_EMPTYDIR)	res = catopt(res, "emptydir");
+	if (flags & MNT_RDONLY)
+		res = catopt(res, "ro");
+	if (flags & MNT_SYNCHRONOUS)
+		res = catopt(res, "sync");
+	if (flags & MNT_NOEXEC)
+		res = catopt(res, "noexec");
+	if (flags & MNT_NOSUID)
+		res = catopt(res, "nosuid");
+	if (flags & MNT_UNION)
+		res = catopt(res, "union");
+	if (flags & MNT_ASYNC)
+		res = catopt(res, "async");
+	if (flags & MNT_NOATIME)
+		res = catopt(res, "noatime");
+	if (flags & MNT_NOCLUSTERR)
+		res = catopt(res, "noclusterr");
+	if (flags & MNT_NOCLUSTERW)
+		res = catopt(res, "noclusterw");
+	if (flags & MNT_NOSYMFOLLOW)
+		res = catopt(res, "nosymfollow");
+	if (flags & MNT_SUIDDIR)
+		res = catopt(res, "suiddir");
+	if (flags & MNT_MULTILABEL)
+		res = catopt(res, "multilabel");
+	if (flags & MNT_ACLS)
+		res = catopt(res, "acls");
+	if (flags & MNT_NFS4ACLS)
+		res = catopt(res, "nfsv4acls");
+	if (flags & MNT_UNTRUSTED)
+		res = catopt(res, "untrusted");
+	if (flags & MNT_NOCOVER)
+		res = catopt(res, "nocover");
+	if (flags & MNT_EMPTYDIR)
+		res = catopt(res, "emptydir");
 
 	return (res);
 }

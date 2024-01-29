@@ -37,18 +37,17 @@
 
 #include <syslog.h>
 
-#include <cstdio>
+#include "exception.h"
+
 #include <cstdarg>
+#include <cstdio>
 #include <sstream>
 #include <string>
-
-#include "exception.h"
 /*============================ Namespace Control =============================*/
+using std::endl;
 using std::string;
 using std::stringstream;
-using std::endl;
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Class Implementations ==========================*/
 /*--------------------------------- Exception --------------------------------*/
@@ -83,38 +82,38 @@ Exception::Log() const
 /*------------------------------ ParseException ------------------------------*/
 //- ParseException Inline Public Methods ---------------------------------------
 ParseException::ParseException(Type type, const std::string &parsedBuffer,
-			       size_t offset)
- : Exception(),
-   m_type(type),
-   m_parsedBuffer(parsedBuffer),
-   m_offset(offset)
+    size_t offset)
+    : Exception()
+    , m_type(type)
+    , m_parsedBuffer(parsedBuffer)
+    , m_offset(offset)
 {
-        stringstream logstream;
+	stringstream logstream;
 
-        logstream << "Parsing ";
+	logstream << "Parsing ";
 
-        switch (Type()) {
-        case INVALID_FORMAT:
-                logstream << "invalid format ";
-                break;
-        case DISCARDED_EVENT_TYPE:
-                logstream << "discarded event ";
-                break;
-        case UNKNOWN_EVENT_TYPE:
-                logstream << "unknown event ";
-                break;
-        default:
-                break;
-        }
-        logstream << "exception on buffer: \'";
-        if (GetOffset() == 0) {
-                logstream << m_parsedBuffer << '\'' << endl;
-        } else {
-                string markedBuffer(m_parsedBuffer);
+	switch (Type()) {
+	case INVALID_FORMAT:
+		logstream << "invalid format ";
+		break;
+	case DISCARDED_EVENT_TYPE:
+		logstream << "discarded event ";
+		break;
+	case UNKNOWN_EVENT_TYPE:
+		logstream << "unknown event ";
+		break;
+	default:
+		break;
+	}
+	logstream << "exception on buffer: \'";
+	if (GetOffset() == 0) {
+		logstream << m_parsedBuffer << '\'' << endl;
+	} else {
+		string markedBuffer(m_parsedBuffer);
 
-                markedBuffer.insert(GetOffset(), "<HERE-->");
-                logstream << markedBuffer << '\'' << endl;
-        }
+		markedBuffer.insert(GetOffset(), "<HERE-->");
+		logstream << markedBuffer << '\'' << endl;
+	}
 
 	GetString() = logstream.str();
 }

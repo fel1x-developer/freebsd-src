@@ -37,7 +37,7 @@ thread(void *arg)
 
 	if (pthread_mutex_isowned_np(mtx) != 0) {
 		printf("pthread_mutex_isowned_np() returned non-zero\n"
-		    "for a mutex held by another thread\n");
+		       "for a mutex held by another thread\n");
 		exit(1);
 	}
 	return (NULL);
@@ -52,13 +52,13 @@ main(void)
 	pthread_mutex_init(&mtx, NULL);
 	if (pthread_mutex_isowned_np(&mtx) != 0) {
 		printf("pthread_mutex_isowned_np() returned non-zero\n"
-		    "for a mutex that is not held\n");
+		       "for a mutex that is not held\n");
 		exit(1);
 	}
 	pthread_mutex_lock(&mtx);
 	if (pthread_mutex_isowned_np(&mtx) == 0) {
 		printf("pthread_mutex_isowned_np() returned zero\n"
-		    "for a mutex we hold ourselves\n");
+		       "for a mutex we hold ourselves\n");
 		exit(1);
 	}
 	pthread_create(&thr, NULL, thread, &mtx);
@@ -66,7 +66,7 @@ main(void)
 	pthread_mutex_unlock(&mtx);
 	if (pthread_mutex_isowned_np(&mtx) != 0) {
 		printf("pthread_mutex_isowned_np() returned non-zero\n"
-		    "for a mutex that is not held\n");
+		       "for a mutex that is not held\n");
 		exit(1);
 	}
 

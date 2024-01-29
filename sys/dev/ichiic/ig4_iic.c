@@ -45,45 +45,45 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/sx.h>
-#include <sys/syslog.h>
-#include <sys/bus.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 #include <dev/acpica/acpivar.h>
-#endif
 
-#include <dev/iicbus/iicbus.h>
-#include <dev/iicbus/iiconf.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#endif
 
 #include <dev/ichiic/ig4_reg.h>
 #include <dev/ichiic/ig4_var.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
-#define DO_POLL(sc)	(cold || kdb_active || SCHEDULER_STOPPED() || sc->poll)
+#define DO_POLL(sc) (cold || kdb_active || SCHEDULER_STOPPED() || sc->poll)
 
 /*
  * tLOW, tHIGH periods of the SCL clock and maximal falling time of both
  * lines are taken from I2C specifications.
  */
-#define	IG4_SPEED_STD_THIGH	4000	/* nsec */
-#define	IG4_SPEED_STD_TLOW	4700	/* nsec */
-#define	IG4_SPEED_STD_TF_MAX	300	/* nsec */
-#define	IG4_SPEED_FAST_THIGH	600	/* nsec */
-#define	IG4_SPEED_FAST_TLOW	1300	/* nsec */
-#define	IG4_SPEED_FAST_TF_MAX	300	/* nsec */
+#define IG4_SPEED_STD_THIGH 4000  /* nsec */
+#define IG4_SPEED_STD_TLOW 4700	  /* nsec */
+#define IG4_SPEED_STD_TF_MAX 300  /* nsec */
+#define IG4_SPEED_FAST_THIGH 600  /* nsec */
+#define IG4_SPEED_FAST_TLOW 1300  /* nsec */
+#define IG4_SPEED_FAST_TF_MAX 300 /* nsec */
 
 /*
  * Ig4 hardware parameters except Haswell are taken from intel_lpss driver
@@ -139,8 +139,8 @@ static driver_filter_t ig4iic_intr;
 static void ig4iic_dump(ig4iic_softc_t *sc);
 
 static int ig4_dump;
-SYSCTL_INT(_debug, OID_AUTO, ig4_dump, CTLFLAG_RW,
-	   &ig4_dump, 0, "Dump controller registers");
+SYSCTL_INT(_debug, OID_AUTO, ig4_dump, CTLFLAG_RW, &ig4_dump, 0,
+    "Dump controller registers");
 
 /*
  * Clock registers initialization control
@@ -204,16 +204,15 @@ intrstat2iic(ig4iic_softc_t *sc, uint32_t val)
 		if (src & IG4_ABRTSRC_ARBLOST)
 			return (IIC_EBUSBSY);
 		/* Did not receive an acknowledge from the remote slave */
-		if (src & (IG4_ABRTSRC_TXNOACK_ADDR7 |
-			   IG4_ABRTSRC_TXNOACK_ADDR10_1 |
-			   IG4_ABRTSRC_TXNOACK_ADDR10_2 |
-			   IG4_ABRTSRC_TXNOACK_DATA |
-			   IG4_ABRTSRC_GENCALL_NOACK))
+		if (src &
+		    (IG4_ABRTSRC_TXNOACK_ADDR7 | IG4_ABRTSRC_TXNOACK_ADDR10_1 |
+			IG4_ABRTSRC_TXNOACK_ADDR10_2 |
+			IG4_ABRTSRC_TXNOACK_DATA | IG4_ABRTSRC_GENCALL_NOACK))
 			return (IIC_ENOACK);
 		/* Programming errors */
-		if (src & (IG4_ABRTSRC_GENCALL_READ |
-			   IG4_ABRTSRC_NORESTART_START |
-			   IG4_ABRTSRC_NORESTART_10))
+		if (src &
+		    (IG4_ABRTSRC_GENCALL_READ | IG4_ABRTSRC_NORESTART_START |
+			IG4_ABRTSRC_NORESTART_10))
 			return (IIC_ENOTSUPP);
 		/* Other errors */
 		if (src & IG4_ABRTSRC_ACKED_START)
@@ -313,7 +312,7 @@ wait_intr(ig4iic_softc_t *sc, uint32_t intr)
 			mtx_lock_spin(&sc->io_lock);
 			ig4iic_set_intr_mask(sc, intr | IG4_INTR_ERR_MASK);
 			msleep_spin(sc, &sc->io_lock, "i2cwait",
-				  (hz + 99) / 100); /* sleep up to 10ms */
+			    (hz + 99) / 100); /* sleep up to 10ms */
 			ig4iic_set_intr_mask(sc, 0);
 			mtx_unlock_spin(&sc->io_lock);
 			count_us += 10000;
@@ -397,7 +396,8 @@ ig4iic_xfer_is_started(ig4iic_softc_t *sc)
 	 * register reads is issued after START condition.
 	 */
 	return ((reg_read(sc, IG4_REG_RAW_INTR_STAT) &
-	    (IG4_INTR_START_DET | IG4_INTR_STOP_DET)) == IG4_INTR_START_DET);
+		    (IG4_INTR_START_DET | IG4_INTR_STOP_DET)) ==
+	    IG4_INTR_START_DET);
 }
 
 static int
@@ -422,11 +422,11 @@ ig4iic_xfer_abort(ig4iic_softc_t *sc)
  * 2 bytes is enough in FAST mode. 8 bytes is better in FAST+ and HIGH modes.
  * Intel-recommended value is 16 for DMA transfers with 64-byte depth FIFOs.
  */
-#define	IG4_FIFO_LOWAT	2
+#define IG4_FIFO_LOWAT 2
 
 static int
-ig4iic_read(ig4iic_softc_t *sc, uint8_t *buf, uint16_t len,
-    bool repeated_start, bool stop)
+ig4iic_read(ig4iic_softc_t *sc, uint8_t *buf, uint16_t len, bool repeated_start,
+    bool stop)
 {
 	uint32_t cmd;
 	int requested = 0;
@@ -450,8 +450,8 @@ ig4iic_read(ig4iic_softc_t *sc, uint8_t *buf, uint16_t len,
 			    (reg_read(sc, IG4_REG_TXFLR) & IG4_FIFOLVL_MASK);
 		}
 		/* Ensure we have enough free space in RXFIFO */
-		burst = MIN(burst, sc->cfg.rxfifo_depth -
-		    (requested - received));
+		burst = MIN(burst,
+		    sc->cfg.rxfifo_depth - (requested - received));
 		target = MIN(requested + burst, (int)len);
 		while (requested < target) {
 			cmd = IG4_DATA_COMMAND_RD;
@@ -585,9 +585,9 @@ ig4iic_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 			}
 			if ((msgs[i].flags & IIC_M_NOSTART) != 0 &&
 			    (msgs[i].flags & IIC_M_RD) !=
-			    (msgs[i - 1].flags & IIC_M_RD)) {
+				(msgs[i - 1].flags & IIC_M_RD)) {
 				reason = "change of direction without repeated"
-				    " start";
+					 " start";
 				break;
 			}
 		}
@@ -626,7 +626,8 @@ ig4iic_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 		} else {
 			if (!sc->slave_valid ||
 			    (msgs[i].slave >> 1) != sc->last_slave) {
-				device_printf(dev, "start condition suppressed"
+				device_printf(dev,
+				    "start condition suppressed"
 				    "but slave address is not set up");
 				error = EINVAL;
 				break;
@@ -659,7 +660,8 @@ ig4iic_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 			 */
 			if (ig4iic_xfer_is_started(sc) &&
 			    ig4iic_xfer_abort(sc) != 0) {
-				device_printf(sc->dev, "Failed to abort "
+				device_printf(sc->dev,
+				    "Failed to abort "
 				    "transfer. Do the controller reset.\n");
 				ig4iic_set_config(sc, true);
 			} else {
@@ -746,12 +748,12 @@ ig4iic_callback(device_t dev, int index, caddr_t data)
  * timing values provided by Intel LPSS driver "as is".
  */
 static int
-ig4iic_clk_params(const struct ig4_hw *hw, int speed,
-    uint16_t *scl_hcnt, uint16_t *scl_lcnt, uint16_t *sda_hold)
+ig4iic_clk_params(const struct ig4_hw *hw, int speed, uint16_t *scl_hcnt,
+    uint16_t *scl_lcnt, uint16_t *sda_hold)
 {
-	uint32_t thigh, tlow, tf_max;	/* nsec */
-	uint32_t sda_fall_time;		/* nsec */
-        uint32_t scl_fall_time;		/* nsec */
+	uint32_t thigh, tlow, tf_max; /* nsec */
+	uint32_t sda_fall_time;	      /* nsec */
+	uint32_t scl_fall_time;	      /* nsec */
 
 	switch (speed) {
 	case IG4_CTL_SPEED_STD:
@@ -772,28 +774,33 @@ ig4iic_clk_params(const struct ig4_hw *hw, int speed,
 
 	/* Use slowest falling time defaults to be on the safe side */
 	sda_fall_time = hw->sda_fall_time == 0 ? tf_max : hw->sda_fall_time;
-	*scl_hcnt = (uint16_t)
-	    ((hw->ic_clock_rate * (thigh + sda_fall_time) + 500) / 1000 - 3);
+	*scl_hcnt = (uint16_t)((hw->ic_clock_rate * (thigh + sda_fall_time) +
+				   500) /
+		1000 -
+	    3);
 
 	scl_fall_time = hw->scl_fall_time == 0 ? tf_max : hw->scl_fall_time;
-	*scl_lcnt = (uint16_t)
-	    ((hw->ic_clock_rate * (tlow + scl_fall_time) + 500) / 1000 - 1);
+	*scl_lcnt = (uint16_t)((hw->ic_clock_rate * (tlow + scl_fall_time) +
+				   500) /
+		1000 -
+	    1);
 
 	/*
 	 * There is no "known good" default value for tHD;DAT so keep SDA_HOLD
 	 * intact if sda_hold_time value is not provided.
 	 */
 	if (hw->sda_hold_time != 0)
-		*sda_hold = (uint16_t)
-		    ((hw->ic_clock_rate * hw->sda_hold_time + 500) / 1000);
+		*sda_hold = (uint16_t)((hw->ic_clock_rate * hw->sda_hold_time +
+					   500) /
+		    1000);
 
 	return (0);
 }
 
 #ifdef DEV_ACPI
 static ACPI_STATUS
-ig4iic_acpi_params(ACPI_HANDLE handle, char *method,
-    uint16_t *scl_hcnt, uint16_t *scl_lcnt, uint16_t *sda_hold)
+ig4iic_acpi_params(ACPI_HANDLE handle, char *method, uint16_t *scl_hcnt,
+    uint16_t *scl_lcnt, uint16_t *sda_hold)
 {
 	ACPI_BUFFER buf;
 	ACPI_OBJECT *obj, *elems;
@@ -833,16 +840,17 @@ ig4iic_get_config(ig4iic_softc_t *sc)
 	/* Fetch default hardware config from controller */
 	sc->cfg.version = reg_read(sc, IG4_REG_COMP_VER);
 	sc->cfg.bus_speed = reg_read(sc, IG4_REG_CTL) & IG4_CTL_SPEED_MASK;
-	sc->cfg.ss_scl_hcnt =
-	    reg_read(sc, IG4_REG_SS_SCL_HCNT) & IG4_SCL_CLOCK_MASK;
-	sc->cfg.ss_scl_lcnt =
-	    reg_read(sc, IG4_REG_SS_SCL_LCNT) & IG4_SCL_CLOCK_MASK;
-	sc->cfg.fs_scl_hcnt =
-	    reg_read(sc, IG4_REG_FS_SCL_HCNT) & IG4_SCL_CLOCK_MASK;
-	sc->cfg.fs_scl_lcnt =
-	    reg_read(sc, IG4_REG_FS_SCL_LCNT) & IG4_SCL_CLOCK_MASK;
-	sc->cfg.ss_sda_hold = sc->cfg.fs_sda_hold =
-	    reg_read(sc, IG4_REG_SDA_HOLD) & IG4_SDA_TX_HOLD_MASK;
+	sc->cfg.ss_scl_hcnt = reg_read(sc, IG4_REG_SS_SCL_HCNT) &
+	    IG4_SCL_CLOCK_MASK;
+	sc->cfg.ss_scl_lcnt = reg_read(sc, IG4_REG_SS_SCL_LCNT) &
+	    IG4_SCL_CLOCK_MASK;
+	sc->cfg.fs_scl_hcnt = reg_read(sc, IG4_REG_FS_SCL_HCNT) &
+	    IG4_SCL_CLOCK_MASK;
+	sc->cfg.fs_scl_lcnt = reg_read(sc, IG4_REG_FS_SCL_LCNT) &
+	    IG4_SCL_CLOCK_MASK;
+	sc->cfg.ss_sda_hold = sc->cfg.fs_sda_hold = reg_read(sc,
+							IG4_REG_SDA_HOLD) &
+	    IG4_SDA_TX_HOLD_MASK;
 
 	if (sc->cfg.bus_speed != IG4_CTL_SPEED_STD)
 		sc->cfg.bus_speed = IG4_CTL_SPEED_FAST;
@@ -915,7 +923,8 @@ ig4iic_set_config(ig4iic_softc_t *sc, bool reset)
 
 	v = reg_read(sc, IG4_REG_DEVIDLE_CTRL);
 	if (IG4_HAS_ADDREGS(sc->version) && (v & IG4_RESTORE_REQUIRED)) {
-		reg_write(sc, IG4_REG_DEVIDLE_CTRL, IG4_DEVICE_IDLE | IG4_RESTORE_REQUIRED);
+		reg_write(sc, IG4_REG_DEVIDLE_CTRL,
+		    IG4_DEVICE_IDLE | IG4_RESTORE_REQUIRED);
 		reg_write(sc, IG4_REG_DEVIDLE_CTRL, 0);
 		pause("i2crst", 1);
 		reset = true;
@@ -931,7 +940,7 @@ ig4iic_set_config(ig4iic_softc_t *sc, bool reset)
 
 	if (sc->version == IG4_ATOM)
 		v = reg_read(sc, IG4_REG_COMP_TYPE);
-	
+
 	if (sc->version == IG4_HASWELL || sc->version == IG4_ATOM) {
 		v = reg_read(sc, IG4_REG_COMP_PARAM1);
 		v = reg_read(sc, IG4_REG_GENERAL);
@@ -958,7 +967,7 @@ ig4iic_set_config(ig4iic_softc_t *sc, bool reset)
 	if (sc->version == IG4_HASWELL || sc->version == IG4_ATOM) {
 		v = reg_read(sc, IG4_REG_COMP_VER);
 		if (v < IG4_COMP_MIN_VER)
-			return(ENXIO);
+			return (ENXIO);
 	}
 
 	if (set_controller(sc, 0)) {
@@ -975,17 +984,16 @@ ig4iic_set_config(ig4iic_softc_t *sc, bool reset)
 	reg_write(sc, IG4_REG_FS_SCL_HCNT, sc->cfg.fs_scl_hcnt);
 	reg_write(sc, IG4_REG_FS_SCL_LCNT, sc->cfg.fs_scl_lcnt);
 	reg_write(sc, IG4_REG_SDA_HOLD,
-	    (sc->cfg.bus_speed  & IG4_CTL_SPEED_MASK) == IG4_CTL_SPEED_STD ?
-	      sc->cfg.ss_sda_hold : sc->cfg.fs_sda_hold);
+	    (sc->cfg.bus_speed & IG4_CTL_SPEED_MASK) == IG4_CTL_SPEED_STD ?
+		sc->cfg.ss_sda_hold :
+		sc->cfg.fs_sda_hold);
 
 	reg_write(sc, IG4_REG_RX_TL, 0);
 	reg_write(sc, IG4_REG_TX_TL, 0);
 
 	reg_write(sc, IG4_REG_CTL,
-		  IG4_CTL_MASTER |
-		  IG4_CTL_SLAVE_DISABLE |
-		  IG4_CTL_RESTARTEN |
-		  (sc->cfg.bus_speed & IG4_CTL_SPEED_MASK));
+	    IG4_CTL_MASTER | IG4_CTL_SLAVE_DISABLE | IG4_CTL_RESTARTEN |
+		(sc->cfg.bus_speed & IG4_CTL_SPEED_MASK));
 
 	/* Force setting of the target address on the next transfer */
 	sc->slave_valid = false;
@@ -1006,20 +1014,22 @@ ig4iic_get_fifo(ig4iic_softc_t *sc)
 	if (sc->cfg.txfifo_depth == 0) {
 		v = reg_read(sc, IG4_REG_TX_TL);
 		reg_write(sc, IG4_REG_TX_TL, v | IG4_FIFO_MASK);
-		sc->cfg.txfifo_depth =
-		    (reg_read(sc, IG4_REG_TX_TL) & IG4_FIFO_MASK) + 1;
+		sc->cfg.txfifo_depth = (reg_read(sc, IG4_REG_TX_TL) &
+					   IG4_FIFO_MASK) +
+		    1;
 		reg_write(sc, IG4_REG_TX_TL, v);
 	}
 	if (sc->cfg.rxfifo_depth == 0) {
 		v = reg_read(sc, IG4_REG_RX_TL);
 		reg_write(sc, IG4_REG_RX_TL, v | IG4_FIFO_MASK);
-		sc->cfg.rxfifo_depth =
-		    (reg_read(sc, IG4_REG_RX_TL) & IG4_FIFO_MASK) + 1;
+		sc->cfg.rxfifo_depth = (reg_read(sc, IG4_REG_RX_TL) &
+					   IG4_FIFO_MASK) +
+		    1;
 		reg_write(sc, IG4_REG_RX_TL, v);
 	}
 	if (bootverbose) {
-		printf("  FIFO:  RX:0x%04x: TX:0x%04x\n",
-		    sc->cfg.rxfifo_depth, sc->cfg.txfifo_depth);
+		printf("  FIFO:  RX:0x%04x: TX:0x%04x\n", sc->cfg.rxfifo_depth,
+		    sc->cfg.txfifo_depth);
 	}
 }
 
@@ -1058,17 +1068,18 @@ ig4iic_attach(ig4iic_softc_t *sc)
 		error = ENXIO;
 		goto done;
 	}
-	error = bus_setup_intr(sc->dev, sc->intr_res, INTR_TYPE_MISC | INTR_MPSAFE,
-			       ig4iic_intr, NULL, sc, &sc->intr_handle);
+	error = bus_setup_intr(sc->dev, sc->intr_res,
+	    INTR_TYPE_MISC | INTR_MPSAFE, ig4iic_intr, NULL, sc,
+	    &sc->intr_handle);
 	if (error) {
-		device_printf(sc->dev,
-			      "Unable to setup irq: error %d\n", error);
+		device_printf(sc->dev, "Unable to setup irq: error %d\n",
+		    error);
 	}
 
 	error = bus_generic_attach(sc->dev);
 	if (error) {
-		device_printf(sc->dev,
-			      "failed to attach child: error %d\n", error);
+		device_printf(sc->dev, "failed to attach child: error %d\n",
+		    error);
 	}
 
 done:
@@ -1132,7 +1143,8 @@ ig4iic_suspend(ig4iic_softc_t *sc)
 	return (error);
 }
 
-int ig4iic_resume(ig4iic_softc_t *sc)
+int
+ig4iic_resume(ig4iic_softc_t *sc)
 {
 	int error;
 
@@ -1168,7 +1180,7 @@ ig4iic_intr(void *cookie)
 	return (retval);
 }
 
-#define REGDUMP(sc, reg)	\
+#define REGDUMP(sc, reg) \
 	device_printf(sc->dev, "  %-23s %08x\n", #reg, reg_read(sc, reg))
 
 static void

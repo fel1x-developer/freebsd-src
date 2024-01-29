@@ -34,7 +34,7 @@
  */
 
 #ifndef _DEV_MII_QSPHYREG_H_
-#define	_DEV_MII_QSPHYREG_H_
+#define _DEV_MII_QSPHYREG_H_
 
 /*
  * Register definitions for the Quality Semiconductor QS6612
@@ -42,41 +42,41 @@
  * 	http://www.qualitysemi.com/products/network.html
  */
 
-#define	MII_QSPHY_MCTL		0x11	/* Mode control */
-#define	MCTL_T4PRE		0x1000	/* 100baseT4 interface present */
-#define	MCTL_BTEXT		0x0800	/* reduce 10baseT squelch level */
-#define	MCTL_FACTTEST		0x0100	/* factory test mode */
-#define	MCTL_PHYADDRMASK	0x00f8	/* PHY address */
-#define	MCTL_FACTTEST2		0x0004	/* another factory test mode */
-#define	MCTL_NLPDIS		0x0002	/* disable link pulse tx */
-#define	MCTL_SQEDIS		0x0001	/* disable SQE */
+#define MII_QSPHY_MCTL 0x11	/* Mode control */
+#define MCTL_T4PRE 0x1000	/* 100baseT4 interface present */
+#define MCTL_BTEXT 0x0800	/* reduce 10baseT squelch level */
+#define MCTL_FACTTEST 0x0100	/* factory test mode */
+#define MCTL_PHYADDRMASK 0x00f8 /* PHY address */
+#define MCTL_FACTTEST2 0x0004	/* another factory test mode */
+#define MCTL_NLPDIS 0x0002	/* disable link pulse tx */
+#define MCTL_SQEDIS 0x0001	/* disable SQE */
 
-#define	MII_QSPHY_ISRC		0x1d	/* Interrupt source */
-#define	MII_QSPHY_IMASK		0x1e	/* Interrupt mask */
-#define	IMASK_TLINTR		0x8000	/* ThunderLAN interrupt mode */
-#define	IMASK_ANCPL		0x0040	/* autonegotiation complete */
-#define	IMASK_RFD		0x0020	/* remote fault detected */
-#define	IMASK_LD		0x0010	/* link down */
-#define	IMASK_ANLPA		0x0008	/* autonegotiation LP ACK */
-#define	IMASK_PDT		0x0004	/* parallel detection fault */
-#define	IMASK_ANPR		0x0002	/* autonegotiation page received */
-#define	IMASK_REF		0x0001	/* receive error counter full */
+#define MII_QSPHY_ISRC 0x1d  /* Interrupt source */
+#define MII_QSPHY_IMASK 0x1e /* Interrupt mask */
+#define IMASK_TLINTR 0x8000  /* ThunderLAN interrupt mode */
+#define IMASK_ANCPL 0x0040   /* autonegotiation complete */
+#define IMASK_RFD 0x0020     /* remote fault detected */
+#define IMASK_LD 0x0010	     /* link down */
+#define IMASK_ANLPA 0x0008   /* autonegotiation LP ACK */
+#define IMASK_PDT 0x0004     /* parallel detection fault */
+#define IMASK_ANPR 0x0002    /* autonegotiation page received */
+#define IMASK_REF 0x0001     /* receive error counter full */
 
-#define	MII_QSPHY_PCTL		0x1f	/* PHY control */
-#define	PCTL_RXERDIS		0x2000	/* receive error counter disable */
-#define	PCTL_ANC		0x1000	/* autonegotiation complete */
-#define	PCTL_RLBEN		0x0200	/* remote coopback enable */
-#define	PCTL_DCREN		0x0100	/* DC restoration enable */
-#define	PCTL_4B5BEN		0x0040	/* 4b/5b encoding */
-#define	PCTL_PHYISO		0x0020	/* isolate PHY */
-#define	PCTL_OPMASK		0x001c	/* operation mode mask */
-#define	PCTL_AN			0x0000	/* autonegotiation in-progress */
-#define	PCTL_10_T		0x0004	/* 10baseT */
-#define	PCTL_100_TX		0x0008	/* 100baseTX */
-#define	PCTL_100_T4		0x0010	/* 100baseT4 */
-#define	PCTL_10_T_FDX		0x0014	/* 10baseT-FDX */
-#define	PCTL_100_TX_FDX		0x0018	/* 100baseTX-FDX */
-#define	PCTL_MLT3DIS		0x0002	/* disable MLT3 */
-#define	PCTL_SRCDIS		0x0001	/* disable scrambling */
+#define MII_QSPHY_PCTL 0x1f    /* PHY control */
+#define PCTL_RXERDIS 0x2000    /* receive error counter disable */
+#define PCTL_ANC 0x1000	       /* autonegotiation complete */
+#define PCTL_RLBEN 0x0200      /* remote coopback enable */
+#define PCTL_DCREN 0x0100      /* DC restoration enable */
+#define PCTL_4B5BEN 0x0040     /* 4b/5b encoding */
+#define PCTL_PHYISO 0x0020     /* isolate PHY */
+#define PCTL_OPMASK 0x001c     /* operation mode mask */
+#define PCTL_AN 0x0000	       /* autonegotiation in-progress */
+#define PCTL_10_T 0x0004       /* 10baseT */
+#define PCTL_100_TX 0x0008     /* 100baseTX */
+#define PCTL_100_T4 0x0010     /* 100baseT4 */
+#define PCTL_10_T_FDX 0x0014   /* 10baseT-FDX */
+#define PCTL_100_TX_FDX 0x0018 /* 100baseTX-FDX */
+#define PCTL_MLT3DIS 0x0002    /* disable MLT3 */
+#define PCTL_SRCDIS 0x0001     /* disable scrambling */
 
 #endif /* _DEV_MII_QSPHYREG_H_ */

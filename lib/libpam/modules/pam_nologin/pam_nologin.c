@@ -38,6 +38,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <fcntl.h>
 #include <login_cap.h>
 #include <pwd.h>
@@ -48,16 +49,16 @@
 #define PAM_SM_ACCOUNT
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define	_PATH_NOLOGIN	"/var/run/nologin"
+#define _PATH_NOLOGIN "/var/run/nologin"
 
 static char nologin_def[] = _PATH_NOLOGIN;
 
 PAM_EXTERN int
-pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc __unused,
+    const char *argv[] __unused)
 {
 	login_cap_t *lc;
 	struct passwd *pwd;

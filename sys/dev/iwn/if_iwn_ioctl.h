@@ -13,8 +13,8 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__IF_IWN_IOCTL_H__
-#define	__IF_IWN_IOCTL_H__
+#ifndef __IF_IWN_IOCTL_H__
+#define __IF_IWN_IOCTL_H__
 
 struct iwn_ioctl_data {
 	void *dst_addr;
@@ -22,7 +22,7 @@ struct iwn_ioctl_data {
 };
 
 /* XXX how should I pick appropriate ioctl numbers? */
-#define	SIOCGIWNSTATS		_IOWR('f', 145, struct iwn_ioctl_data)
-#define	SIOCZIWNSTATS		_IOWR('f', 146, struct iwn_ioctl_data)
+#define SIOCGIWNSTATS _IOWR('f', 145, struct iwn_ioctl_data)
+#define SIOCZIWNSTATS _IOWR('f', 146, struct iwn_ioctl_data)
 
-#endif	/* __IF_IWN_IOCTL_H__ */
+#endif /* __IF_IWN_IOCTL_H__ */

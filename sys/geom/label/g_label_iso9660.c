@@ -35,9 +35,12 @@
 #include <geom/geom_dbg.h>
 #include <geom/label/g_label.h>
 
-#define	ISO9660_MAGIC	"\x01" "CD001" "\x01\x00"
-#define	ISO9660_OFFSET	0x8000
-#define	VOLUME_LEN	32
+#define ISO9660_MAGIC \
+	"\x01"        \
+	"CD001"       \
+	"\x01\x00"
+#define ISO9660_OFFSET 0x8000
+#define VOLUME_LEN 32
 
 static void
 g_label_iso9660_taste(struct g_consumer *cp, char *label, size_t size)
@@ -69,10 +72,9 @@ g_label_iso9660_taste(struct g_consumer *cp, char *label, size_t size)
 	g_label_rtrim(label, size);
 }
 
-struct g_label_desc g_label_iso9660 = {
-	.ld_taste = g_label_iso9660_taste,
+struct g_label_desc g_label_iso9660 = { .ld_taste = g_label_iso9660_taste,
 	.ld_dirprefix = "iso9660/",
-	.ld_enabled = 1
-};
+	.ld_enabled = 1 };
 
-G_LABEL_INIT(iso9660, g_label_iso9660, "Create device nodes for ISO9660 volume names");
+G_LABEL_INIT(iso9660, g_label_iso9660,
+    "Create device nodes for ISO9660 volume names");

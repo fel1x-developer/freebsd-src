@@ -35,94 +35,92 @@
  * Universal 10/100/1000 Ethernet MAC (DWC_gmac).
  */
 
-#ifndef	__IF_DWCVAR_H__
-#define	__IF_DWCVAR_H__
+#ifndef __IF_DWCVAR_H__
+#define __IF_DWCVAR_H__
 
 /*
  * Driver data and defines.
  */
-#define	RX_DESC_COUNT	1024
-#define	RX_DESC_SIZE	(sizeof(struct dwc_hwdesc) * RX_DESC_COUNT)
-#define	TX_DESC_COUNT	1024
-#define	TX_MAP_COUNT	TX_DESC_COUNT
-#define	TX_DESC_SIZE	(sizeof(struct dwc_hwdesc) * TX_DESC_COUNT)
-#define	TX_MAP_MAX_SEGS	32
+#define RX_DESC_COUNT 1024
+#define RX_DESC_SIZE (sizeof(struct dwc_hwdesc) * RX_DESC_COUNT)
+#define TX_DESC_COUNT 1024
+#define TX_MAP_COUNT TX_DESC_COUNT
+#define TX_DESC_SIZE (sizeof(struct dwc_hwdesc) * TX_DESC_COUNT)
+#define TX_MAP_MAX_SEGS 32
 
-#define	DMA_DEFAULT_PBL	8
+#define DMA_DEFAULT_PBL 8
 
 struct dwc_bufmap {
-	bus_dmamap_t		map;
-	struct mbuf		*mbuf;
+	bus_dmamap_t map;
+	struct mbuf *mbuf;
 	/* Only used for TX descirptors */
-	int			last_desc_idx;
+	int last_desc_idx;
 };
 
 struct dwc_softc {
-	struct resource		*res[2];
-	device_t		dev;
-	phandle_t		node;
-	int			mii_clk;
-	device_t		miibus;
-	struct mii_data *	mii_softc;
-	if_t			ifp;
-	int			if_flags;
-	struct mtx		mtx;
-	void *			intr_cookie;
-	struct callout		dwc_callout;
-	bool			link_is_up;
-	bool			is_attached;
-	bool			is_detaching;
-	int			tx_watchdog_count;
-	int			stats_harvest_count;
-	int			phy_mode;
+	struct resource *res[2];
+	device_t dev;
+	phandle_t node;
+	int mii_clk;
+	device_t miibus;
+	struct mii_data *mii_softc;
+	if_t ifp;
+	int if_flags;
+	struct mtx mtx;
+	void *intr_cookie;
+	struct callout dwc_callout;
+	bool link_is_up;
+	bool is_attached;
+	bool is_detaching;
+	int tx_watchdog_count;
+	int stats_harvest_count;
+	int phy_mode;
 
 	/* clocks and reset */
-	clk_t			clk_stmmaceth;
-	clk_t			clk_pclk;
-	hwreset_t		rst_stmmaceth;
-	hwreset_t		rst_ahb;
+	clk_t clk_stmmaceth;
+	clk_t clk_pclk;
+	hwreset_t rst_stmmaceth;
+	hwreset_t rst_ahb;
 
 	/* DMA config */
-	uint32_t		txpbl;	/* TX Burst lenght */
-	uint32_t		rxpbl;	/* RX Burst lenght */
-	bool			nopblx8;
-	bool			fixed_burst;
-	bool			mixed_burst;
-	bool			aal;
-	bool			dma_ext_desc;
+	uint32_t txpbl; /* TX Burst lenght */
+	uint32_t rxpbl; /* RX Burst lenght */
+	bool nopblx8;
+	bool fixed_burst;
+	bool mixed_burst;
+	bool aal;
+	bool dma_ext_desc;
 
 	/* RX */
-	bus_dma_tag_t		rxdesc_tag;
-	bus_dmamap_t		rxdesc_map;
-	struct dwc_hwdesc	*rxdesc_ring;
-	bus_addr_t		rxdesc_ring_paddr;
-	bus_dma_tag_t		rxbuf_tag;
-	struct dwc_bufmap	rxbuf_map[RX_DESC_COUNT];
-	uint32_t		rx_idx;
+	bus_dma_tag_t rxdesc_tag;
+	bus_dmamap_t rxdesc_map;
+	struct dwc_hwdesc *rxdesc_ring;
+	bus_addr_t rxdesc_ring_paddr;
+	bus_dma_tag_t rxbuf_tag;
+	struct dwc_bufmap rxbuf_map[RX_DESC_COUNT];
+	uint32_t rx_idx;
 
 	/* TX */
-	bus_dma_tag_t		txdesc_tag;
-	bus_dmamap_t		txdesc_map;
-	struct dwc_hwdesc	*txdesc_ring;
-	bus_addr_t		txdesc_ring_paddr;
-	bus_dma_tag_t		txbuf_tag;
-	struct dwc_bufmap	txbuf_map[TX_DESC_COUNT];
-	uint32_t		tx_desc_head;
-	uint32_t		tx_desc_tail;
-	uint32_t		tx_map_head;
-	uint32_t		tx_map_tail;
-	int			tx_desccount;
-	int			tx_mapcount;
+	bus_dma_tag_t txdesc_tag;
+	bus_dmamap_t txdesc_map;
+	struct dwc_hwdesc *txdesc_ring;
+	bus_addr_t txdesc_ring_paddr;
+	bus_dma_tag_t txbuf_tag;
+	struct dwc_bufmap txbuf_map[TX_DESC_COUNT];
+	uint32_t tx_desc_head;
+	uint32_t tx_desc_tail;
+	uint32_t tx_map_head;
+	uint32_t tx_map_tail;
+	int tx_desccount;
+	int tx_mapcount;
 };
 
-#define	READ4(_sc, _reg) \
-	bus_read_4((_sc)->res[0], _reg)
-#define	WRITE4(_sc, _reg, _val) \
-	bus_write_4((_sc)->res[0], _reg, _val)
+#define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
+#define WRITE4(_sc, _reg, _val) bus_write_4((_sc)->res[0], _reg, _val)
 
-#define	DWC_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	DWC_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	DWC_ASSERT_LOCKED(sc)		mtx_assert(&(sc)->mtx, MA_OWNED)
-#define	DWC_ASSERT_UNLOCKED(sc)		mtx_assert(&(sc)->mtx, MA_NOTOWNED)
+#define DWC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define DWC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define DWC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED)
+#define DWC_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED)
 
-#endif	/* __IF_DWCVAR_H__ */
+#endif /* __IF_DWCVAR_H__ */

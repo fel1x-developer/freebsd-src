@@ -12,10 +12,10 @@
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the 
+ *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND 
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
@@ -31,36 +31,38 @@
  */
 
 #include <sys/uio.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
 #include <errno.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <sdp-int.h>
 #include <sdp.h>
+#include <string.h>
+#include <unistd.h>
 
 static int32_t sdp_receive_error_pdu(sdp_session_p ss);
 
 int32_t
 sdp_register_service(void *xss, uint16_t uuid, bdaddr_p const bdaddr,
-		uint8_t const *data, uint32_t datalen, uint32_t *handle)
+    uint8_t const *data, uint32_t datalen, uint32_t *handle)
 {
-	sdp_session_p	ss = (sdp_session_p) xss;
-	struct iovec	iov[4];
-	sdp_pdu_t	pdu;
-	int32_t		len;
+	sdp_session_p ss = (sdp_session_p)xss;
+	struct iovec iov[4];
+	sdp_pdu_t pdu;
+	int32_t len;
 
 	if (ss == NULL)
 		return (-1);
-	if (bdaddr == NULL || data == NULL ||
-	    datalen == 0 || !(ss->flags & SDP_SESSION_LOCAL)) {
+	if (bdaddr == NULL || data == NULL || datalen == 0 ||
+	    !(ss->flags & SDP_SESSION_LOCAL)) {
 		ss->error = EINVAL;
 		return (-1);
 	}
-	if (sizeof(pdu)+sizeof(uuid)+sizeof(*bdaddr)+datalen > SDP_LOCAL_MTU) {
+	if (sizeof(pdu) + sizeof(uuid) + sizeof(*bdaddr) + datalen >
+	    SDP_LOCAL_MTU) {
 		ss->error = EMSGSIZE;
 		return (-1);
 	}
@@ -71,20 +73,20 @@ sdp_register_service(void *xss, uint16_t uuid, bdaddr_p const bdaddr,
 
 	uuid = htons(uuid);
 
-	iov[0].iov_base = (void *) &pdu;
+	iov[0].iov_base = (void *)&pdu;
 	iov[0].iov_len = sizeof(pdu);
 
-	iov[1].iov_base = (void *) &uuid;
+	iov[1].iov_base = (void *)&uuid;
 	iov[1].iov_len = sizeof(uuid);
 
-	iov[2].iov_base = (void *) bdaddr;
+	iov[2].iov_base = (void *)bdaddr;
 	iov[2].iov_len = sizeof(*bdaddr);
 
-	iov[3].iov_base = (void *) data;
+	iov[3].iov_base = (void *)data;
 	iov[3].iov_len = datalen;
 
 	do {
-		len = writev(ss->s, iov, sizeof(iov)/sizeof(iov[0]));
+		len = writev(ss->s, iov, sizeof(iov) / sizeof(iov[0]));
 	} while (len < 0 && errno == EINTR);
 
 	if (len < 0) {
@@ -101,10 +103,10 @@ sdp_register_service(void *xss, uint16_t uuid, bdaddr_p const bdaddr,
 	}
 
 	if (handle != NULL) {
-		*handle  = (uint32_t) ss->rsp[--len];
-		*handle |= (uint32_t) ss->rsp[--len] << 8;
-		*handle |= (uint32_t) ss->rsp[--len] << 16;
-		*handle |= (uint32_t) ss->rsp[--len] << 24;
+		*handle = (uint32_t)ss->rsp[--len];
+		*handle |= (uint32_t)ss->rsp[--len] << 8;
+		*handle |= (uint32_t)ss->rsp[--len] << 16;
+		*handle |= (uint32_t)ss->rsp[--len] << 24;
 	}
 
 	return (0);
@@ -113,10 +115,10 @@ sdp_register_service(void *xss, uint16_t uuid, bdaddr_p const bdaddr,
 int32_t
 sdp_unregister_service(void *xss, uint32_t handle)
 {
-	sdp_session_p	ss = (sdp_session_p) xss;
-	struct iovec	iov[2];
-	sdp_pdu_t	pdu;
-	int32_t		len;
+	sdp_session_p ss = (sdp_session_p)xss;
+	struct iovec iov[2];
+	sdp_pdu_t pdu;
+	int32_t len;
 
 	if (ss == NULL)
 		return (-1);
@@ -135,14 +137,14 @@ sdp_unregister_service(void *xss, uint32_t handle)
 
 	handle = htonl(handle);
 
-	iov[0].iov_base = (void *) &pdu;
+	iov[0].iov_base = (void *)&pdu;
 	iov[0].iov_len = sizeof(pdu);
 
-	iov[1].iov_base = (void *) &handle;
+	iov[1].iov_base = (void *)&handle;
 	iov[1].iov_len = sizeof(handle);
 
 	do {
-		len = writev(ss->s, iov, sizeof(iov)/sizeof(iov[0]));
+		len = writev(ss->s, iov, sizeof(iov) / sizeof(iov[0]));
 	} while (len < 0 && errno == EINTR);
 
 	if (len < 0) {
@@ -150,17 +152,17 @@ sdp_unregister_service(void *xss, uint32_t handle)
 		return (-1);
 	}
 
-	return ((sdp_receive_error_pdu(ss) < 0)? -1 : 0);
+	return ((sdp_receive_error_pdu(ss) < 0) ? -1 : 0);
 }
 
 int32_t
-sdp_change_service(void *xss, uint32_t handle,
-		uint8_t const *data, uint32_t datalen)
+sdp_change_service(void *xss, uint32_t handle, uint8_t const *data,
+    uint32_t datalen)
 {
-	sdp_session_p	ss = (sdp_session_p) xss;
-	struct iovec	iov[3];
-	sdp_pdu_t	pdu;
-	int32_t		len;
+	sdp_session_p ss = (sdp_session_p)xss;
+	struct iovec iov[3];
+	sdp_pdu_t pdu;
+	int32_t len;
 
 	if (ss == NULL)
 		return (-1);
@@ -179,17 +181,17 @@ sdp_change_service(void *xss, uint32_t handle,
 
 	handle = htons(handle);
 
-	iov[0].iov_base = (void *) &pdu;
+	iov[0].iov_base = (void *)&pdu;
 	iov[0].iov_len = sizeof(pdu);
 
-	iov[1].iov_base = (void *) &handle;
+	iov[1].iov_base = (void *)&handle;
 	iov[1].iov_len = sizeof(handle);
 
-	iov[2].iov_base = (void *) data;
+	iov[2].iov_base = (void *)data;
 	iov[2].iov_len = datalen;
 
 	do {
-		len = writev(ss->s, iov, sizeof(iov)/sizeof(iov[0]));
+		len = writev(ss->s, iov, sizeof(iov) / sizeof(iov[0]));
 	} while (len < 0 && errno == EINTR);
 
 	if (len < 0) {
@@ -197,15 +199,15 @@ sdp_change_service(void *xss, uint32_t handle,
 		return (-1);
 	}
 
-	return ((sdp_receive_error_pdu(ss) < 0)? -1 : 0);
+	return ((sdp_receive_error_pdu(ss) < 0) ? -1 : 0);
 }
 
 static int32_t
 sdp_receive_error_pdu(sdp_session_p ss)
 {
-	sdp_pdu_p	pdu;
-	int32_t		len;
-	uint16_t	error;
+	sdp_pdu_p pdu;
+	int32_t len;
+	uint16_t error;
 
 	do {
 		len = read(ss->s, ss->rsp, ss->rsp_e - ss->rsp);
@@ -216,7 +218,7 @@ sdp_receive_error_pdu(sdp_session_p ss)
 		return (-1);
 	}
 
-	pdu = (sdp_pdu_p) ss->rsp;
+	pdu = (sdp_pdu_p)ss->rsp;
 	pdu->tid = ntohs(pdu->tid);
 	pdu->len = ntohs(pdu->len);
 
@@ -226,8 +228,8 @@ sdp_receive_error_pdu(sdp_session_p ss)
 		return (-1);
 	}
 
-	error  = (uint16_t) ss->rsp[sizeof(pdu)] << 8;
-	error |= (uint16_t) ss->rsp[sizeof(pdu) + 1];
+	error = (uint16_t)ss->rsp[sizeof(pdu)] << 8;
+	error |= (uint16_t)ss->rsp[sizeof(pdu) + 1];
 
 	if (error != 0) {
 		ss->error = EIO;
@@ -236,4 +238,3 @@ sdp_receive_error_pdu(sdp_session_p ss)
 
 	return (len);
 }
-

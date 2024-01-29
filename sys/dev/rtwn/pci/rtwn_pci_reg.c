@@ -19,33 +19,31 @@
  */
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
-#include <dev/rtwn/pci/rtwn_pci_var.h>
 #include <dev/rtwn/pci/rtwn_pci_reg.h>
+#include <dev/rtwn/pci/rtwn_pci_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 rtwn_pci_write_1(struct rtwn_softc *sc, uint16_t addr, uint8_t val)
@@ -113,7 +111,7 @@ rtwn_pci_delay(struct rtwn_softc *sc, int usec)
 	if (usec < 1000)
 		DELAY(usec);
 	else {
-		(void) mtx_sleep(sc, &sc->sc_mtx, 0, "rtwn_pci",
+		(void)mtx_sleep(sc, &sc->sc_mtx, 0, "rtwn_pci",
 		    msecs_to_ticks(usec / 1000));
 	}
 }

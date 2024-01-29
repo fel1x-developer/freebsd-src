@@ -44,26 +44,26 @@
 #include <unistd.h>
 
 static struct hs {
-	struct	whod hs_wd;
-	int	hs_nusers;
+	struct whod hs_wd;
+	int hs_nusers;
 } *hs;
-#define	LEFTEARTH(h)	(now - (h) > 4*24*60*60)
-#define	ISDOWN(h)	(now - (h)->hs_wd.wd_recvtime > 11 * 60)
-#define	WHDRSIZE	__offsetof(struct whod, wd_we)
+#define LEFTEARTH(h) (now - (h) > 4 * 24 * 60 * 60)
+#define ISDOWN(h) (now - (h)->hs_wd.wd_recvtime > 11 * 60)
+#define WHDRSIZE __offsetof(struct whod, wd_we)
 
 static size_t nhosts;
 static time_t now;
 static int rflg = 1;
 static DIR *dirp;
 
-static int	 hscmp(const void *, const void *);
-static char	*interval(time_t, const char *);
-static int	 iwidth(int);
-static int	 lcmp(const void *, const void *);
-static void	 ruptime(const char *, int, int (*)(const void *, const void *));
-static int	 tcmp(const void *, const void *);
-static int	 ucmp(const void *, const void *);
-static void	 usage(void);
+static int hscmp(const void *, const void *);
+static char *interval(time_t, const char *);
+static int iwidth(int);
+static int lcmp(const void *, const void *);
+static void ruptime(const char *, int, int (*)(const void *, const void *));
+static int tcmp(const void *, const void *);
+static int ucmp(const void *, const void *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -125,11 +125,11 @@ interval(time_t tval, const char *updown)
 	days = hours / 24;
 	hours %= 24;
 	if (days)
-		(void)snprintf(resbuf, sizeof(resbuf),
-		    "%s %4d+%02d:%02d", updown, days, hours, minutes);
+		(void)snprintf(resbuf, sizeof(resbuf), "%s %4d+%02d:%02d",
+		    updown, days, hours, minutes);
 	else
-		(void)snprintf(resbuf, sizeof(resbuf),
-		    "%s      %2d:%02d", updown, hours, minutes);
+		(void)snprintf(resbuf, sizeof(resbuf), "%s      %2d:%02d",
+		    updown, hours, minutes);
 	return (resbuf);
 }
 
@@ -148,7 +148,7 @@ iwidth(int w)
 	return (5);
 }
 
-#define	HS(a)	((const struct hs *)(a))
+#define HS(a) ((const struct hs *)(a))
 
 /* Alphabetical comparison. */
 static int
@@ -171,7 +171,7 @@ lcmp(const void *a1, const void *a2)
 		return (-rflg);
 	else
 		return (rflg *
-		   (HS(a2)->hs_wd.wd_loadav[0] - HS(a1)->hs_wd.wd_loadav[0]));
+		    (HS(a2)->hs_wd.wd_loadav[0] - HS(a1)->hs_wd.wd_loadav[0]));
 }
 
 static void
@@ -202,8 +202,8 @@ ruptime(const char *host, int aflg, int (*cmp)(const void *, const void *))
 		}
 
 		if (nhosts == hspace) {
-			if ((hs =
-			    realloc(hs, (hspace += 40) * sizeof(*hs))) == NULL)
+			if ((hs = realloc(hs, (hspace += 40) * sizeof(*hs))) ==
+			    NULL)
 				err(1, NULL);
 			hsp = hs + nhosts;
 		}
@@ -249,26 +249,26 @@ ruptime(const char *host, int aflg, int (*cmp)(const void *, const void *))
 	qsort(hs, nhosts, sizeof(hs[0]), cmp);
 	w = userswidth + loadavwidth[0] + loadavwidth[1] + loadavwidth[2];
 	if (hostnamewidth + w > 41)
-		hostnamewidth = 41 - w;	/* limit to 79 cols */
+		hostnamewidth = 41 - w; /* limit to 79 cols */
 	for (i = 0; i < (int)nhosts; i++) {
 		hsp = &hs[i];
 		wd = &hsp->hs_wd;
 		if (ISDOWN(hsp)) {
-			(void)printf("%-*.*s  %s\n",
-			    hostnamewidth, hostnamewidth, wd->wd_hostname,
+			(void)printf("%-*.*s  %s\n", hostnamewidth,
+			    hostnamewidth, wd->wd_hostname,
 			    interval(now - hsp->hs_wd.wd_recvtime, "down"));
 			continue;
 		}
 		(void)printf(
 		    "%-*.*s  %s,  %*d user%s  load %*.2f, %*.2f, %*.2f\n",
 		    hostnamewidth, hostnamewidth, wd->wd_hostname,
-		    interval((time_t)wd->wd_sendtime -
-		        (time_t)wd->wd_boottime, "  up"),
+		    interval((time_t)wd->wd_sendtime - (time_t)wd->wd_boottime,
+			"  up"),
 		    userswidth, hsp->hs_nusers,
-		    hsp->hs_nusers == 1 ? ", " : "s,",
-		    loadavwidth[0], wd->wd_loadav[0] / 100.0,
-		    loadavwidth[1], wd->wd_loadav[1] / 100.0,
-		    loadavwidth[2], wd->wd_loadav[2] / 100.0);
+		    hsp->hs_nusers == 1 ? ", " : "s,", loadavwidth[0],
+		    wd->wd_loadav[0] / 100.0, loadavwidth[1],
+		    wd->wd_loadav[1] / 100.0, loadavwidth[2],
+		    wd->wd_loadav[2] / 100.0);
 	}
 	free(hs);
 	hs = NULL;
@@ -293,13 +293,13 @@ ucmp(const void *a1, const void *a2)
 static int
 tcmp(const void *a1, const void *a2)
 {
-	return (rflg * (
-		(ISDOWN(HS(a2)) ? HS(a2)->hs_wd.wd_recvtime - now
-		    : HS(a2)->hs_wd.wd_sendtime - HS(a2)->hs_wd.wd_boottime)
-		-
-		(ISDOWN(HS(a1)) ? HS(a1)->hs_wd.wd_recvtime - now
-		    : HS(a1)->hs_wd.wd_sendtime - HS(a1)->hs_wd.wd_boottime)
-	));
+	return (rflg *
+	    ((ISDOWN(HS(a2)) ?
+		     HS(a2)->hs_wd.wd_recvtime - now :
+		     HS(a2)->hs_wd.wd_sendtime - HS(a2)->hs_wd.wd_boottime) -
+		(ISDOWN(HS(a1)) ? HS(a1)->hs_wd.wd_recvtime - now :
+				  HS(a1)->hs_wd.wd_sendtime -
+			    HS(a1)->hs_wd.wd_boottime)));
 }
 
 static void

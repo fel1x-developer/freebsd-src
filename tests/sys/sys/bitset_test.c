@@ -12,10 +12,10 @@
 #include <sys/types.h>
 #include <sys/_bitset.h>
 #include <sys/bitset.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 BITSET_DEFINE(bs256, 256);
 
@@ -25,25 +25,26 @@ ATF_TC_BODY(bit_foreach, tc)
 	struct bs256 bs0, bs1, bsrand;
 	int setc, clrc, i;
 
-#define	_BIT_FOREACH_COUNT(s, bs) do {					\
-	int prev = -1;							\
-	setc = clrc = 0;						\
-	BIT_FOREACH_ISSET((s), i, (bs)) {				\
-		ATF_REQUIRE_MSG(prev < i, "incorrect bit ordering");	\
-		ATF_REQUIRE_MSG(BIT_ISSET((s), i, (bs)),		\
-		    "bit %d is not set", i);				\
-		setc++;							\
-		prev = i;						\
-	}								\
-	prev = -1;							\
-	BIT_FOREACH_ISCLR((s), i, (bs)) {				\
-		ATF_REQUIRE_MSG(prev < i, "incorrect bit ordering");	\
-		ATF_REQUIRE_MSG(!BIT_ISSET((s), i, (bs)),		\
-		    "bit %d is set", i);				\
-		clrc++;							\
-		prev = i;						\
-	}								\
-} while (0)
+#define _BIT_FOREACH_COUNT(s, bs)                                            \
+	do {                                                                 \
+		int prev = -1;                                               \
+		setc = clrc = 0;                                             \
+		BIT_FOREACH_ISSET ((s), i, (bs)) {                           \
+			ATF_REQUIRE_MSG(prev < i, "incorrect bit ordering"); \
+			ATF_REQUIRE_MSG(BIT_ISSET((s), i, (bs)),             \
+			    "bit %d is not set", i);                         \
+			setc++;                                              \
+			prev = i;                                            \
+		}                                                            \
+		prev = -1;                                                   \
+		BIT_FOREACH_ISCLR ((s), i, (bs)) {                           \
+			ATF_REQUIRE_MSG(prev < i, "incorrect bit ordering"); \
+			ATF_REQUIRE_MSG(!BIT_ISSET((s), i, (bs)),            \
+			    "bit %d is set", i);                             \
+			clrc++;                                              \
+			prev = i;                                            \
+		}                                                            \
+	} while (0)
 
 	/*
 	 * Create several bitsets, and for each one count the number
@@ -65,14 +66,14 @@ ATF_TC_BODY(bit_foreach, tc)
 		if (random() % 2 != 0)
 			BIT_SET(256, i, &bsrand);
 	_BIT_FOREACH_COUNT(256, &bsrand);
-	ATF_REQUIRE_MSG(setc + clrc == 256, "incorrect counts %d, %d",
-	    setc, clrc);
+	ATF_REQUIRE_MSG(setc + clrc == 256, "incorrect counts %d, %d", setc,
+	    clrc);
 
 	/*
 	 * Try to verify that we can safely clear bits in the set while
 	 * iterating.
 	 */
-	BIT_FOREACH_ISSET(256, i, &bsrand) {
+	BIT_FOREACH_ISSET (256, i, &bsrand) {
 		ATF_REQUIRE(setc-- > 0);
 		BIT_CLR(256, i, &bsrand);
 	}

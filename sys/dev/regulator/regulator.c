@@ -24,21 +24,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/queue.h>
 #include <sys/kobj.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -56,7 +57,7 @@ SYSCTL_NODE(_hw, OID_AUTO, regulator, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
 
 MALLOC_DEFINE(M_REGULATOR, "regulator", "Regulator framework");
 
-#define	DIV_ROUND_UP(n,d) howmany(n, d)
+#define DIV_ROUND_UP(n, d) howmany(n, d)
 
 /* Forward declarations. */
 struct regulator;
@@ -79,16 +80,15 @@ static void regulator_shutdown(void *dummy);
 /*
  * Regulator controller methods.
  */
-static regnode_method_t regnode_methods[] = {
-	REGNODEMETHOD(regnode_init,		regnode_method_init),
-	REGNODEMETHOD(regnode_enable,		regnode_method_enable),
-	REGNODEMETHOD(regnode_status,		regnode_method_status),
-	REGNODEMETHOD(regnode_set_voltage,	regnode_method_set_voltage),
-	REGNODEMETHOD(regnode_get_voltage,	regnode_method_get_voltage),
-	REGNODEMETHOD(regnode_check_voltage,	regnode_method_check_voltage),
+static regnode_method_t regnode_methods[] = { REGNODEMETHOD(regnode_init,
+						  regnode_method_init),
+	REGNODEMETHOD(regnode_enable, regnode_method_enable),
+	REGNODEMETHOD(regnode_status, regnode_method_status),
+	REGNODEMETHOD(regnode_set_voltage, regnode_method_set_voltage),
+	REGNODEMETHOD(regnode_get_voltage, regnode_method_get_voltage),
+	REGNODEMETHOD(regnode_check_voltage, regnode_method_check_voltage),
 
-	REGNODEMETHOD_END
-};
+	REGNODEMETHOD_END };
 DEFINE_CLASS_0(regnode, regnode_class, regnode_methods, 0);
 
 /*
@@ -98,30 +98,30 @@ DEFINE_CLASS_0(regnode, regnode_class, regnode_methods, 0);
 struct regnode {
 	KOBJ_FIELDS;
 
-	TAILQ_ENTRY(regnode)	reglist_link;	/* Global list entry */
-	regulator_list_t	consumers_list;	/* Consumers list */
+	TAILQ_ENTRY(regnode) reglist_link; /* Global list entry */
+	regulator_list_t consumers_list;   /* Consumers list */
 
 	/* Cache for already resolved names */
-	struct regnode		*parent;	/* Resolved parent */
+	struct regnode *parent; /* Resolved parent */
 
 	/* Details of this device. */
-	const char		*name;		/* Globally unique name */
-	const char		*parent_name;	/* Parent name */
+	const char *name;	 /* Globally unique name */
+	const char *parent_name; /* Parent name */
 
-	device_t		pdev;		/* Producer device_t */
-	void			*softc;		/* Producer softc */
-	intptr_t		id;		/* Per producer unique id */
+	device_t pdev; /* Producer device_t */
+	void *softc;   /* Producer softc */
+	intptr_t id;   /* Per producer unique id */
 #ifdef FDT
-	 phandle_t 		ofw_node;	/* OFW node of regulator */
+	phandle_t ofw_node; /* OFW node of regulator */
 #endif
-	int			flags;		/* REGULATOR_FLAGS_ */
-	struct sx		lock;		/* Lock for this regulator */
-	int			ref_cnt;	/* Reference counter */
-	int			enable_cnt;	/* Enabled counter */
+	int flags;	/* REGULATOR_FLAGS_ */
+	struct sx lock; /* Lock for this regulator */
+	int ref_cnt;	/* Reference counter */
+	int enable_cnt; /* Enabled counter */
 
-	struct regnode_std_param std_param;	/* Standard parameters */
+	struct regnode_std_param std_param; /* Standard parameters */
 
-	struct sysctl_ctx_list	sysctl_ctx;
+	struct sysctl_ctx_list sysctl_ctx;
 };
 
 /*
@@ -130,13 +130,13 @@ struct regnode {
  * A pointer to this structure is used as a handle in the consumer interface.
  */
 struct regulator {
-	device_t		cdev;		/* Consumer device */
-	struct regnode		*regnode;
-	TAILQ_ENTRY(regulator)	link;		/* Consumers list entry */
+	device_t cdev; /* Consumer device */
+	struct regnode *regnode;
+	TAILQ_ENTRY(regulator) link; /* Consumers list entry */
 
-	int			enable_cnt;
-	int 			min_uvolt;	/* Requested uvolt range */
-	int 			max_uvolt;
+	int enable_cnt;
+	int min_uvolt; /* Requested uvolt range */
+	int max_uvolt;
 };
 
 /*
@@ -144,18 +144,18 @@ struct regulator {
  */
 static regnode_list_t regnode_list = TAILQ_HEAD_INITIALIZER(regnode_list);
 
-static struct sx		regnode_topo_lock;
+static struct sx regnode_topo_lock;
 SX_SYSINIT(regulator_topology, &regnode_topo_lock, "Regulator topology lock");
 
-#define REG_TOPO_SLOCK()	sx_slock(&regnode_topo_lock)
-#define REG_TOPO_XLOCK()	sx_xlock(&regnode_topo_lock)
-#define REG_TOPO_UNLOCK()	sx_unlock(&regnode_topo_lock)
-#define REG_TOPO_ASSERT()	sx_assert(&regnode_topo_lock, SA_LOCKED)
-#define REG_TOPO_XASSERT() 	sx_assert(&regnode_topo_lock, SA_XLOCKED)
+#define REG_TOPO_SLOCK() sx_slock(&regnode_topo_lock)
+#define REG_TOPO_XLOCK() sx_xlock(&regnode_topo_lock)
+#define REG_TOPO_UNLOCK() sx_unlock(&regnode_topo_lock)
+#define REG_TOPO_ASSERT() sx_assert(&regnode_topo_lock, SA_LOCKED)
+#define REG_TOPO_XASSERT() sx_assert(&regnode_topo_lock, SA_XLOCKED)
 
-#define REGNODE_SLOCK(_sc)	sx_slock(&((_sc)->lock))
-#define REGNODE_XLOCK(_sc)	sx_xlock(&((_sc)->lock))
-#define REGNODE_UNLOCK(_sc)	sx_unlock(&((_sc)->lock))
+#define REGNODE_SLOCK(_sc) sx_slock(&((_sc)->lock))
+#define REGNODE_XLOCK(_sc) sx_xlock(&((_sc)->lock))
+#define REGNODE_UNLOCK(_sc) sx_unlock(&((_sc)->lock))
 
 SYSINIT(regulator_constraint, SI_SUB_LAST, SI_ORDER_ANY, regulator_constraint,
     NULL);
@@ -169,10 +169,11 @@ regulator_constraint(void *dummy)
 	int rv;
 
 	REG_TOPO_SLOCK();
-	TAILQ_FOREACH(entry, &regnode_list, reglist_link) {
+	TAILQ_FOREACH (entry, &regnode_list, reglist_link) {
 		rv = regnode_set_constraint(entry);
 		if (rv != 0 && bootverbose)
-			printf("regulator: setting constraint on %s failed (%d)\n",
+			printf(
+			    "regulator: setting constraint on %s failed (%d)\n",
 			    entry->name, rv);
 	}
 	REG_TOPO_UNLOCK();
@@ -199,12 +200,13 @@ regulator_shutdown(void *dummy)
 
 	if (bootverbose)
 		printf("regulator: shutting down unused regulators\n");
-	TAILQ_FOREACH(entry, &regnode_list, reglist_link) {
+	TAILQ_FOREACH (entry, &regnode_list, reglist_link) {
 		if (!entry->std_param.always_on) {
 			ret = regnode_status(entry, &status);
 			if (ret == 0 && status == REGULATOR_STATUS_ENABLED) {
 				if (bootverbose)
-					printf("regulator: shutting down %s... ",
+					printf(
+					    "regulator: shutting down %s... ",
 					    entry->name);
 				ret = regnode_stop(entry, 0);
 				if (bootverbose) {
@@ -281,8 +283,8 @@ regnode_method_status(struct regnode *regnode, int *status)
 }
 
 static int
-regnode_method_set_voltage(struct regnode *regnode, int min_uvolt, int max_uvolt,
-    int *udelay)
+regnode_method_set_voltage(struct regnode *regnode, int min_uvolt,
+    int max_uvolt, int *udelay)
 {
 
 	if ((min_uvolt > regnode->std_param.max_uvolt) ||
@@ -324,7 +326,7 @@ regnode_find_by_name(const char *name)
 
 	REG_TOPO_ASSERT();
 
-	TAILQ_FOREACH(entry, &regnode_list, reglist_link) {
+	TAILQ_FOREACH (entry, &regnode_list, reglist_link) {
 		if (strcmp(entry->name, name) == 0)
 			return (entry);
 	}
@@ -338,8 +340,8 @@ regnode_find_by_id(device_t dev, intptr_t id)
 
 	REG_TOPO_ASSERT();
 
-	TAILQ_FOREACH(entry, &regnode_list, reglist_link) {
-		if ((entry->pdev == dev) && (entry->id ==  id))
+	TAILQ_FOREACH (entry, &regnode_list, reglist_link) {
+		if ((entry->pdev == dev) && (entry->id == id))
 			return (entry);
 	}
 
@@ -376,7 +378,6 @@ regnode_create(device_t pdev, regnode_class_t regnode_class,
 		    M_WAITOK | M_ZERO);
 	}
 
-
 	/* Copy all strings unless they're flagged as static. */
 	if (def->flags & REGULATOR_FLAGS_STATIC) {
 		regnode->name = def->name;
@@ -401,63 +402,40 @@ regnode_create(device_t pdev, regnode_class_t regnode_class,
 
 	sysctl_ctx_init(&regnode->sysctl_ctx);
 	regnode_oid = SYSCTL_ADD_NODE(&regnode->sysctl_ctx,
-	    SYSCTL_STATIC_CHILDREN(_hw_regulator),
-	    OID_AUTO, regnode->name,
+	    SYSCTL_STATIC_CHILDREN(_hw_regulator), OID_AUTO, regnode->name,
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "A regulator node");
 
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "min_uvolt",
-	    CTLFLAG_RD, &regnode->std_param.min_uvolt, 0,
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "min_uvolt", CTLFLAG_RD, &regnode->std_param.min_uvolt, 0,
 	    "Minimal voltage (in uV)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "max_uvolt",
-	    CTLFLAG_RD, &regnode->std_param.max_uvolt, 0,
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "max_uvolt", CTLFLAG_RD, &regnode->std_param.max_uvolt, 0,
 	    "Maximal voltage (in uV)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "min_uamp",
-	    CTLFLAG_RD, &regnode->std_param.min_uamp, 0,
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "min_uamp", CTLFLAG_RD, &regnode->std_param.min_uamp, 0,
 	    "Minimal amperage (in uA)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "max_uamp",
-	    CTLFLAG_RD, &regnode->std_param.max_uamp, 0,
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "max_uamp", CTLFLAG_RD, &regnode->std_param.max_uamp, 0,
 	    "Maximal amperage (in uA)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "ramp_delay",
-	    CTLFLAG_RD, &regnode->std_param.ramp_delay, 0,
-	    "Ramp delay (in uV/us)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "enable_delay",
-	    CTLFLAG_RD, &regnode->std_param.enable_delay, 0,
-	    "Enable delay (in us)");
-	SYSCTL_ADD_INT(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "enable_cnt",
-	    CTLFLAG_RD, &regnode->enable_cnt, 0,
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "ramp_delay", CTLFLAG_RD, &regnode->std_param.ramp_delay,
+	    0, "Ramp delay (in uV/us)");
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "enable_delay", CTLFLAG_RD,
+	    &regnode->std_param.enable_delay, 0, "Enable delay (in us)");
+	SYSCTL_ADD_INT(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "enable_cnt", CTLFLAG_RD, &regnode->enable_cnt, 0,
 	    "The regulator enable counter");
-	SYSCTL_ADD_U8(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "boot_on",
-	    CTLFLAG_RD, (uint8_t *) &regnode->std_param.boot_on, 0,
-	    "Is enabled on boot");
-	SYSCTL_ADD_U8(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "always_on",
-	    CTLFLAG_RD, (uint8_t *)&regnode->std_param.always_on, 0,
-	    "Is always enabled");
+	SYSCTL_ADD_U8(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "boot_on", CTLFLAG_RD,
+	    (uint8_t *)&regnode->std_param.boot_on, 0, "Is enabled on boot");
+	SYSCTL_ADD_U8(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "always_on", CTLFLAG_RD,
+	    (uint8_t *)&regnode->std_param.always_on, 0, "Is always enabled");
 
-	SYSCTL_ADD_PROC(&regnode->sysctl_ctx,
-	    SYSCTL_CHILDREN(regnode_oid),
-	    OID_AUTO, "uvolt",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-	    regnode, 0, regnode_uvolt_sysctl,
-	    "I",
-	    "Current voltage (in uV)");
+	SYSCTL_ADD_PROC(&regnode->sysctl_ctx, SYSCTL_CHILDREN(regnode_oid),
+	    OID_AUTO, "uvolt", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
+	    regnode, 0, regnode_uvolt_sysctl, "I", "Current voltage (in uV)");
 
 	return (regnode);
 }
@@ -496,8 +474,7 @@ regnode_resolve_parent(struct regnode *regnode)
 {
 
 	/* All ready resolved or no parent? */
-	if ((regnode->parent != NULL) ||
-	    (regnode->parent_name == NULL))
+	if ((regnode->parent != NULL) || (regnode->parent_name == NULL))
 		return (0);
 
 	regnode->parent = regnode_find_by_name(regnode->parent_name);
@@ -562,30 +539,33 @@ regnode_get_device(struct regnode *regnode)
 	return (regnode->pdev);
 }
 
-struct regnode_std_param *regnode_get_stdparam(struct regnode *regnode)
+struct regnode_std_param *
+regnode_get_stdparam(struct regnode *regnode)
 {
 
 	return (&regnode->std_param);
 }
 
-void regnode_topo_unlock(void)
+void
+regnode_topo_unlock(void)
 {
 
 	REG_TOPO_UNLOCK();
 }
 
-void regnode_topo_xlock(void)
+void
+regnode_topo_xlock(void)
 {
 
 	REG_TOPO_XLOCK();
 }
 
-void regnode_topo_slock(void)
+void
+regnode_topo_slock(void)
 {
 
 	REG_TOPO_SLOCK();
 }
-
 
 /* --------------------------------------------------------------------------
  *
@@ -752,7 +732,6 @@ regnode_get_voltage(struct regnode *regnode, int *uvolt)
 			return (rv);
 		if (regnode->parent != NULL)
 			rv = regnode_get_voltage(regnode->parent, uvolt);
-
 	}
 	return (rv);
 }
@@ -803,7 +782,7 @@ regnode_set_voltage_checked(struct regnode *regnode, struct regulator *reg,
 	/* Get actual voltage range for all consumers. */
 	all_min_uvolt = regnode->std_param.min_uvolt;
 	all_max_uvolt = regnode->std_param.max_uvolt;
-	TAILQ_FOREACH(tmp, &regnode->consumers_list, link) {
+	TAILQ_FOREACH (tmp, &regnode->consumers_list, link) {
 		/* Don't take requestor in account. */
 		if (tmp == reg)
 			continue;
@@ -814,8 +793,7 @@ regnode_set_voltage_checked(struct regnode *regnode, struct regulator *reg,
 	}
 
 	/* Test if request fits to actual contract. */
-	if ((min_uvolt > all_max_uvolt) ||
-	    (max_uvolt < all_min_uvolt)) {
+	if ((min_uvolt > all_max_uvolt) || (max_uvolt < all_min_uvolt)) {
 		REGNODE_UNLOCK(regnode);
 		return (ERANGE);
 	}
@@ -861,12 +839,12 @@ regnode_set_constraint(struct regnode *regnode)
 	}
 
 	if (uvolt < regnode->std_param.min_uvolt ||
-	  uvolt > regnode->std_param.max_uvolt) {
+	    uvolt > regnode->std_param.max_uvolt) {
 		if (bootverbose)
 			printf("Regulator %s current voltage %d is not in the"
-			    " acceptable range : %d<->%d\n",
-			    regnode_get_name(regnode),
-			    uvolt, regnode->std_param.min_uvolt,
+			       " acceptable range : %d<->%d\n",
+			    regnode_get_name(regnode), uvolt,
+			    regnode->std_param.min_uvolt,
 			    regnode->std_param.max_uvolt);
 		return (ERANGE);
 	}
@@ -904,8 +882,7 @@ regulator_create(struct regnode *regnode, device_t cdev)
 
 	REG_TOPO_ASSERT();
 
-	reg =  malloc(sizeof(struct regulator), M_REGULATOR,
-	    M_WAITOK | M_ZERO);
+	reg = malloc(sizeof(struct regulator), M_REGULATOR, M_WAITOK | M_ZERO);
 	reg->cdev = cdev;
 	reg->regnode = regnode;
 	reg->enable_cnt = 0;
@@ -913,8 +890,8 @@ regulator_create(struct regnode *regnode, device_t cdev)
 	REGNODE_XLOCK(regnode);
 	regnode->ref_cnt++;
 	TAILQ_INSERT_TAIL(&regnode->consumers_list, reg, link);
-	reg ->min_uvolt = regnode->std_param.min_uvolt;
-	reg ->max_uvolt = regnode->std_param.max_uvolt;
+	reg->min_uvolt = regnode->std_param.min_uvolt;
+	reg->max_uvolt = regnode->std_param.max_uvolt;
 	REGNODE_UNLOCK(regnode);
 
 	return (reg);
@@ -928,7 +905,7 @@ regulator_enable(regulator_t reg)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 	REG_TOPO_SLOCK();
 	rv = regnode_enable(regnode);
 	if (rv == 0)
@@ -945,10 +922,10 @@ regulator_disable(regulator_t reg)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 	KASSERT(reg->enable_cnt > 0,
-	   ("Attempt to disable already disabled regulator: %s\n",
-	   regnode->name));
+	    ("Attempt to disable already disabled regulator: %s\n",
+		regnode->name));
 	REG_TOPO_SLOCK();
 	rv = regnode_disable(regnode);
 	if (rv == 0)
@@ -965,9 +942,9 @@ regulator_stop(regulator_t reg)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 	KASSERT(reg->enable_cnt == 0,
-	   ("Attempt to stop already enabled regulator: %s\n", regnode->name));
+	    ("Attempt to stop already enabled regulator: %s\n", regnode->name));
 
 	REG_TOPO_SLOCK();
 	rv = regnode_stop(regnode, 0);
@@ -983,7 +960,7 @@ regulator_status(regulator_t reg, int *status)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 
 	if (reg->enable_cnt == 0) {
 		*status = 0;
@@ -1003,7 +980,7 @@ regulator_get_voltage(regulator_t reg, int *uvolt)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 
 	REG_TOPO_SLOCK();
 	rv = regnode_get_voltage(regnode, uvolt);
@@ -1019,7 +996,7 @@ regulator_set_voltage(regulator_t reg, int min_uvolt, int max_uvolt)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 
 	REG_TOPO_SLOCK();
 
@@ -1040,7 +1017,7 @@ regulator_check_voltage(regulator_t reg, int uvolt)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 
 	REG_TOPO_SLOCK();
 	rv = REGNODE_CHECK_VOLTAGE(regnode, uvolt);
@@ -1055,7 +1032,7 @@ regulator_get_name(regulator_t reg)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 	return (regnode->name);
 }
 
@@ -1100,7 +1077,7 @@ regulator_release(regulator_t reg)
 
 	regnode = reg->regnode;
 	KASSERT(regnode->ref_cnt > 0,
-	   ("Attempt to access unreferenced regulator: %s\n", regnode->name));
+	    ("Attempt to access unreferenced regulator: %s\n", regnode->name));
 	REG_TOPO_SLOCK();
 	while (reg->enable_cnt > 0) {
 		regnode_disable(regnode);
@@ -1119,15 +1096,15 @@ regulator_release(regulator_t reg)
 #ifdef FDT
 /* Default DT mapper. */
 int
-regdev_default_ofw_map(device_t dev, phandle_t 	xref, int ncells,
-    pcell_t *cells, intptr_t *id)
+regdev_default_ofw_map(device_t dev, phandle_t xref, int ncells, pcell_t *cells,
+    intptr_t *id)
 {
 	if (ncells == 0)
 		*id = 1;
 	else if (ncells == 1)
 		*id = cells[0];
 	else
-		return  (ERANGE);
+		return (ERANGE);
 
 	return (0);
 }
@@ -1141,11 +1118,9 @@ regulator_parse_ofw_stdparam(device_t pdev, phandle_t node,
 	int rv;
 
 	par = &def->std_param;
-	rv = OF_getprop_alloc(node, "regulator-name",
-	    (void **)&def->name);
+	rv = OF_getprop_alloc(node, "regulator-name", (void **)&def->name);
 	if (rv <= 0) {
-		device_printf(pdev, "%s: Missing regulator name\n",
-		 __func__);
+		device_printf(pdev, "%s: Missing regulator name\n", __func__);
 		return (ENXIO);
 	}
 
@@ -1190,7 +1165,7 @@ regulator_parse_ofw_stdparam(device_t pdev, phandle_t node,
 
 	rv = OF_getencprop(node, "vin-supply", &supply_xref,
 	    sizeof(supply_xref));
-	if (rv >=  0) {
+	if (rv >= 0) {
 		rv = OF_getprop_alloc(supply_xref, "regulator-name",
 		    (void **)&def->parent_name);
 		if (rv <= 0)
@@ -1214,7 +1189,7 @@ regulator_get_by_ofw_property(device_t cdev, phandle_t cnode, char *name,
 		cnode = ofw_bus_get_node(cdev);
 	if (cnode <= 0) {
 		device_printf(cdev, "%s called on not ofw based device\n",
-		 __func__);
+		    __func__);
 		return (ENXIO);
 	}
 
@@ -1249,7 +1224,7 @@ regulator_get_by_ofw_property(device_t cdev, phandle_t cnode, char *name,
 /* Convert raw selector value to real voltage */
 int
 regulator_range_sel8_to_volt(struct regulator_range *ranges, int nranges,
-   uint8_t sel, int *volt)
+    uint8_t sel, int *volt)
 {
 	struct regulator_range *range;
 	int i;
@@ -1257,11 +1232,10 @@ regulator_range_sel8_to_volt(struct regulator_range *ranges, int nranges,
 	if (nranges == 0)
 		panic("Voltage regulator have zero ranges\n");
 
-	for (i = 0; i < nranges ; i++) {
-		range = ranges  + i;
+	for (i = 0; i < nranges; i++) {
+		range = ranges + i;
 
-		if (!(sel >= range->min_sel &&
-		      sel <= range->max_sel))
+		if (!(sel >= range->min_sel && sel <= range->max_sel))
 			continue;
 
 		sel -= range->min_sel;
@@ -1286,12 +1260,11 @@ regulator_range_volt_to_sel8(struct regulator_range *ranges, int nranges,
 		panic("Voltage regulator have zero ranges\n");
 
 	for (i = 0; i < nranges; i++) {
-		range = ranges  + i;
+		range = ranges + i;
 		uvolt = range->min_uvolt +
 		    (range->max_sel - range->min_sel) * range->step_uvolt;
 
-		if ((min_uvolt > uvolt) ||
-		    (max_uvolt < range->min_uvolt))
+		if ((min_uvolt > uvolt) || (max_uvolt < range->min_uvolt))
 			continue;
 
 		if (min_uvolt <= range->min_uvolt)
@@ -1302,8 +1275,7 @@ regulator_range_volt_to_sel8(struct regulator_range *ranges, int nranges,
 			sel = 0;
 		else
 			sel = DIV_ROUND_UP(min_uvolt - range->min_uvolt,
-			   range->step_uvolt);
-
+			    range->step_uvolt);
 
 		sel += range->min_sel;
 

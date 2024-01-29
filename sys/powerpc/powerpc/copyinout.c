@@ -23,7 +23,7 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ */
 /*-
  * Copyright (C) 1993 Wolfgang Solfrank.
  * Copyright (C) 1993 TooLs GmbH.
@@ -56,9 +56,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/proc.h>
 
 #include <vm/vm.h>
@@ -66,10 +66,10 @@
 #include <vm/vm_extern.h>
 #include <vm/vm_map.h>
 
+#include <machine/ifunc.h>
 #include <machine/mmuvar.h>
 #include <machine/pcb.h>
 #include <machine/vmparam.h>
-#include <machine/ifunc.h>
 
 /*
  * On powerpc64 (AIM only) the copy functions are IFUNCs, selecting the best
@@ -115,23 +115,23 @@ int fueword64_direct(volatile const void *addr, int64_t *val);
 int fueword_remap(volatile const void *addr, long *val);
 int fueword_direct(volatile const void *addr, long *val);
 int casueword32_remap(volatile uint32_t *addr, uint32_t old, uint32_t *oldvalp,
-	uint32_t new);
+    uint32_t new);
 int casueword32_direct(volatile uint32_t *addr, uint32_t old, uint32_t *oldvalp,
-	uint32_t new);
+    uint32_t new);
 int casueword_remap(volatile u_long *addr, u_long old, u_long *oldvalp,
-	u_long new);
+    u_long new);
 int casueword_direct(volatile u_long *addr, u_long old, u_long *oldvalp,
-	u_long new);
+    u_long new);
 
 /*
  * The IFUNC resolver determines the copy based on whether the PMAP
  * implementation includes a pmap_map_user_ptr function.
  */
-#define DEFINE_COPY_FUNC(ret, func, args)			\
-	DEFINE_IFUNC(, ret, func, args)				\
-	{							\
-		return (PMAP_RESOLVE_FUNC(map_user_ptr) ?	\
-		    func##_remap : func##_direct);		\
+#define DEFINE_COPY_FUNC(ret, func, args)                                 \
+	DEFINE_IFUNC(, ret, func, args)                                   \
+	{                                                                 \
+		return (PMAP_RESOLVE_FUNC(map_user_ptr) ? func##_remap :  \
+							  func##_direct); \
 	}
 DEFINE_COPY_FUNC(int, subyte, (volatile void *, int))
 DEFINE_COPY_FUNC(int, copyinstr, (const void *, void *, size_t, size_t *))
@@ -150,20 +150,20 @@ DEFINE_COPY_FUNC(int, casueword32,
     (volatile uint32_t *, uint32_t, uint32_t *, uint32_t))
 DEFINE_COPY_FUNC(int, casueword, (volatile u_long *, u_long, u_long *, u_long))
 
-#define REMAP(x)	x##_remap
+#define REMAP(x) x##_remap
 #else
-#define	REMAP(x)	x
+#define REMAP(x) x
 #endif
 
 int
 REMAP(copyout)(const void *kaddr, void *udaddr, size_t len)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	const char	*kp;
-	char		*up, *p;
-	size_t		l;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	const char *kp;
+	char *up, *p;
+	size_t l;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -197,12 +197,12 @@ REMAP(copyout)(const void *kaddr, void *udaddr, size_t len)
 int
 REMAP(copyin)(const void *udaddr, void *kaddr, size_t len)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	const char	*up;
-	char		*kp, *p;
-	size_t		l;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	const char *up;
+	char *kp, *p;
+	size_t l;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -236,13 +236,13 @@ REMAP(copyin)(const void *udaddr, void *kaddr, size_t len)
 int
 REMAP(copyinstr)(const void *udaddr, void *kaddr, size_t len, size_t *done)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	const char	*up;
-	char		*kp, *p;
-	size_t		i, l, t;
-	int		rv;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	const char *up;
+	char *kp, *p;
+	size_t i, l, t;
+	int rv;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -289,10 +289,10 @@ done:
 int
 REMAP(subyte)(volatile void *addr, int byte)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	char		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	char *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -317,10 +317,10 @@ REMAP(subyte)(volatile void *addr, int byte)
 int
 REMAP(suword16)(volatile void *addr, int word)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	int16_t		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	int16_t *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -346,10 +346,10 @@ REMAP(suword16)(volatile void *addr, int word)
 int
 REMAP(suword32)(volatile void *addr, int word)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	int		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	int *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -374,17 +374,17 @@ REMAP(suword32)(volatile void *addr, int word)
 int
 REMAP(suword32)(volatile void *addr, int32_t word)
 {
-REMAP(	return (suword)(addr, (long)word));
+	REMAP(return (suword)(addr, (long)word));
 }
 #endif
 
 int
 REMAP(suword)(volatile void *addr, long word)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	long		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	long *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -417,11 +417,11 @@ REMAP(suword64)(volatile void *addr, int64_t word)
 int
 REMAP(fubyte)(volatile const void *addr)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	u_char		*p;
-	int		val;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	u_char *p;
+	int val;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -446,10 +446,10 @@ REMAP(fubyte)(volatile const void *addr)
 int
 REMAP(fuword16)(volatile const void *addr)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	uint16_t	*p, val;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	uint16_t *p, val;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -474,10 +474,10 @@ REMAP(fuword16)(volatile const void *addr)
 int
 REMAP(fueword32)(volatile const void *addr, int32_t *val)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	int32_t		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	int32_t *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -503,10 +503,10 @@ REMAP(fueword32)(volatile const void *addr, int32_t *val)
 int
 REMAP(fueword64)(volatile const void *addr, int64_t *val)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	int64_t		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	int64_t *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -532,10 +532,10 @@ REMAP(fueword64)(volatile const void *addr, int64_t *val)
 int
 REMAP(fueword)(volatile const void *addr, long *val)
 {
-	struct		thread *td;
-	pmap_t		pm;
-	jmp_buf		env;
-	long		*p;
+	struct thread *td;
+	pmap_t pm;
+	jmp_buf env;
+	long *p;
 
 	td = curthread;
 	pm = &td->td_proc->p_vmspace->vm_pmap;
@@ -563,7 +563,7 @@ REMAP(casueword32)(volatile uint32_t *addr, uint32_t old, uint32_t *oldvalp,
 {
 	struct thread *td;
 	pmap_t pm;
-	jmp_buf		env;
+	jmp_buf env;
 	uint32_t *p, val;
 	int res;
 
@@ -577,26 +577,25 @@ REMAP(casueword32)(volatile uint32_t *addr, uint32_t old, uint32_t *oldvalp,
 	}
 
 	if (pmap_map_user_ptr(pm, (void *)(uintptr_t)addr, (void **)&p,
-	    sizeof(*p), NULL)) {
+		sizeof(*p), NULL)) {
 		td->td_pcb->pcb_onfault = NULL;
 		return (-1);
 	}
 
 	res = 0;
-	__asm __volatile (
-		"lwarx %0, 0, %3\n\t"		/* load old value */
-		"cmplw %4, %0\n\t"		/* compare */
-		"bne 1f\n\t"			/* exit if not equal */
-		"stwcx. %5, 0, %3\n\t"      	/* attempt to store */
-		"bne- 2f\n\t"			/* if failed */
-		"b 3f\n\t"			/* we've succeeded */
-		"1:\n\t"
-		"stwcx. %0, 0, %3\n\t"       	/* clear reservation (74xx) */
-		"2:li %2, 1\n\t"
-		"3:\n\t"
-		: "=&r" (val), "=m" (*p), "+&r" (res)
-		: "r" (p), "r" (old), "r" (new), "m" (*p)
-		: "cr0", "memory");
+	__asm __volatile("lwarx %0, 0, %3\n\t"	/* load old value */
+			 "cmplw %4, %0\n\t"	/* compare */
+			 "bne 1f\n\t"		/* exit if not equal */
+			 "stwcx. %5, 0, %3\n\t" /* attempt to store */
+			 "bne- 2f\n\t"		/* if failed */
+			 "b 3f\n\t"		/* we've succeeded */
+			 "1:\n\t"
+			 "stwcx. %0, 0, %3\n\t" /* clear reservation (74xx) */
+			 "2:li %2, 1\n\t"
+			 "3:\n\t"
+			 : "=&r"(val), "=m"(*p), "+&r"(res)
+			 : "r"(p), "r"(old), "r"(new), "m"(*p)
+			 : "cr0", "memory");
 
 	td->td_pcb->pcb_onfault = NULL;
 
@@ -609,8 +608,8 @@ int
 REMAP(casueword)(volatile u_long *addr, u_long old, u_long *oldvalp, u_long new)
 {
 
-	return (casueword32((volatile uint32_t *)addr, old,
-	    (uint32_t *)oldvalp, new));
+	return (casueword32((volatile uint32_t *)addr, old, (uint32_t *)oldvalp,
+	    new));
 }
 #else
 int
@@ -618,7 +617,7 @@ REMAP(casueword)(volatile u_long *addr, u_long old, u_long *oldvalp, u_long new)
 {
 	struct thread *td;
 	pmap_t pm;
-	jmp_buf		env;
+	jmp_buf env;
 	u_long *p, val;
 	int res;
 
@@ -632,26 +631,25 @@ REMAP(casueword)(volatile u_long *addr, u_long old, u_long *oldvalp, u_long new)
 	}
 
 	if (pmap_map_user_ptr(pm, (void *)(uintptr_t)addr, (void **)&p,
-	    sizeof(*p), NULL)) {
+		sizeof(*p), NULL)) {
 		td->td_pcb->pcb_onfault = NULL;
 		return (-1);
 	}
 
 	res = 0;
-	__asm __volatile (
-		"ldarx %0, 0, %3\n\t"		/* load old value */
-		"cmpld %4, %0\n\t"		/* compare */
-		"bne 1f\n\t"			/* exit if not equal */
-		"stdcx. %5, 0, %3\n\t"      	/* attempt to store */
-		"bne- 2f\n\t"			/* if failed */
-		"b 3f\n\t"			/* we've succeeded */
-		"1:\n\t"
-		"stdcx. %0, 0, %3\n\t"       	/* clear reservation (74xx) */
-		"2:li %2, 1\n\t"
-		"3:\n\t"
-		: "=&r" (val), "=m" (*p), "+&r" (res)
-		: "r" (p), "r" (old), "r" (new), "m" (*p)
-		: "cr0", "memory");
+	__asm __volatile("ldarx %0, 0, %3\n\t"	/* load old value */
+			 "cmpld %4, %0\n\t"	/* compare */
+			 "bne 1f\n\t"		/* exit if not equal */
+			 "stdcx. %5, 0, %3\n\t" /* attempt to store */
+			 "bne- 2f\n\t"		/* if failed */
+			 "b 3f\n\t"		/* we've succeeded */
+			 "1:\n\t"
+			 "stdcx. %0, 0, %3\n\t" /* clear reservation (74xx) */
+			 "2:li %2, 1\n\t"
+			 "3:\n\t"
+			 : "=&r"(val), "=m"(*p), "+&r"(res)
+			 : "r"(p), "r"(old), "r"(new), "m"(*p)
+			 : "cr0", "memory");
 
 	td->td_pcb->pcb_onfault = NULL;
 

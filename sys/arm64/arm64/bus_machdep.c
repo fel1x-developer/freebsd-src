@@ -26,18 +26,19 @@
  */
 
 #if defined(KASAN) || defined(KCSAN)
-#define	SAN_RUNTIME
+#define SAN_RUNTIME
 #endif
 
 #include "opt_platform.h"
 
 #include <sys/param.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
 #include <machine/bus.h>
 
-uint8_t  generic_bs_r_1(void *, bus_space_handle_t, bus_size_t);
+uint8_t generic_bs_r_1(void *, bus_space_handle_t, bus_size_t);
 uint16_t generic_bs_r_2(void *, bus_space_handle_t, bus_size_t);
 uint32_t generic_bs_r_4(void *, bus_space_handle_t, bus_size_t);
 uint64_t generic_bs_r_8(void *, bus_space_handle_t, bus_size_t);
@@ -83,15 +84,15 @@ void generic_bs_wr_4(void *, bus_space_handle_t, bus_size_t, const uint32_t *,
 void generic_bs_wr_8(void *, bus_space_handle_t, bus_size_t, const uint64_t *,
     bus_size_t);
 
-int generic_bs_peek_1(void *, bus_space_handle_t,  bus_size_t , uint8_t *);
-int generic_bs_peek_2(void *, bus_space_handle_t,  bus_size_t , uint16_t *);
-int generic_bs_peek_4(void *, bus_space_handle_t,  bus_size_t , uint32_t *);
-int generic_bs_peek_8(void *, bus_space_handle_t,  bus_size_t , uint64_t *);
+int generic_bs_peek_1(void *, bus_space_handle_t, bus_size_t, uint8_t *);
+int generic_bs_peek_2(void *, bus_space_handle_t, bus_size_t, uint16_t *);
+int generic_bs_peek_4(void *, bus_space_handle_t, bus_size_t, uint32_t *);
+int generic_bs_peek_8(void *, bus_space_handle_t, bus_size_t, uint64_t *);
 
-int generic_bs_poke_1(void *, bus_space_handle_t,  bus_size_t, uint8_t);
-int generic_bs_poke_2(void *, bus_space_handle_t,  bus_size_t, uint16_t);
-int generic_bs_poke_4(void *, bus_space_handle_t,  bus_size_t, uint32_t);
-int generic_bs_poke_8(void *, bus_space_handle_t,  bus_size_t, uint64_t);
+int generic_bs_poke_1(void *, bus_space_handle_t, bus_size_t, uint8_t);
+int generic_bs_poke_2(void *, bus_space_handle_t, bus_size_t, uint16_t);
+int generic_bs_poke_4(void *, bus_space_handle_t, bus_size_t, uint32_t);
+int generic_bs_poke_8(void *, bus_space_handle_t, bus_size_t, uint64_t);
 
 static int
 generic_bs_map(void *t, bus_addr_t bpa, bus_size_t size, int flags,
@@ -137,8 +138,8 @@ generic_bs_subregion(void *t, bus_space_handle_t bsh, bus_size_t offset,
  * by tag/handle starting at `offset'.
  */
 static void
-generic_bs_sr_1(void *t, bus_space_handle_t bsh,
-    bus_size_t offset, uint8_t value, size_t count)
+generic_bs_sr_1(void *t, bus_space_handle_t bsh, bus_size_t offset,
+    uint8_t value, size_t count)
 {
 
 	for (; count != 0; count--, offset++)
@@ -146,8 +147,8 @@ generic_bs_sr_1(void *t, bus_space_handle_t bsh,
 }
 
 static void
-generic_bs_sr_2(void *t, bus_space_handle_t bsh,
-		       bus_size_t offset, uint16_t value, size_t count)
+generic_bs_sr_2(void *t, bus_space_handle_t bsh, bus_size_t offset,
+    uint16_t value, size_t count)
 {
 
 	for (; count != 0; count--, offset += 2)
@@ -155,8 +156,8 @@ generic_bs_sr_2(void *t, bus_space_handle_t bsh,
 }
 
 static void
-generic_bs_sr_4(void *t, bus_space_handle_t bsh,
-    bus_size_t offset, uint32_t value, size_t count)
+generic_bs_sr_4(void *t, bus_space_handle_t bsh, bus_size_t offset,
+    uint32_t value, size_t count)
 {
 
 	for (; count != 0; count--, offset += 4)
@@ -231,10 +232,10 @@ struct bus_space memmap_bus = {
 	.bs_sm_8 = NULL,
 
 	/* set region */
-	.bs_sr_1 =	generic_bs_sr_1,
-	.bs_sr_2 =	generic_bs_sr_2,
-	.bs_sr_4 =	generic_bs_sr_4,
-	.bs_sr_8 =	generic_bs_sr_8,
+	.bs_sr_1 = generic_bs_sr_1,
+	.bs_sr_2 = generic_bs_sr_2,
+	.bs_sr_4 = generic_bs_sr_4,
+	.bs_sr_8 = generic_bs_sr_8,
 
 	/* copy */
 	.bs_c_1 = NULL,

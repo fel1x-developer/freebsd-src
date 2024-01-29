@@ -41,33 +41,30 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_vlan_var.h>
 #include <net/route.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
-#define	NOTAG	((u_short) -1)
+#define NOTAG ((u_short)-1)
 
-static const char proto_8021Q[]  = "802.1q";
+static const char proto_8021Q[] = "802.1q";
 static const char proto_8021ad[] = "802.1ad";
 static const char proto_qinq[] = "qinq";
 
-static 	struct vlanreq params = {
-	.vlr_tag	= NOTAG,
-	.vlr_proto	= ETHERTYPE_VLAN,
+static struct vlanreq params = {
+	.vlr_tag = NOTAG,
+	.vlr_proto = ETHERTYPE_VLAN,
 };
 
 static void
@@ -81,19 +78,19 @@ vlan_status(if_ctx *ctx)
 	printf("\tvlan: %d", vreq.vlr_tag);
 	printf(" vlanproto: ");
 	switch (vreq.vlr_proto) {
-		case ETHERTYPE_VLAN:
-			printf(proto_8021Q);
-			break;
-		case ETHERTYPE_QINQ:
-			printf(proto_8021ad);
-			break;
-		default:
-			printf("0x%04x", vreq.vlr_proto);
+	case ETHERTYPE_VLAN:
+		printf(proto_8021Q);
+		break;
+	case ETHERTYPE_QINQ:
+		printf(proto_8021ad);
+		break;
+	default:
+		printf("0x%04x", vreq.vlr_proto);
 	}
 	if (ioctl_ctx_ifr(ctx, SIOCGVLANPCP, &ifr) != -1)
 		printf(" vlanpcp: %u", ifr.ifr_vlan_pcp);
-	printf(" parent interface: %s", vreq.vlr_parent[0] == '\0' ?
-	    "<none>" : vreq.vlr_parent);
+	printf(" parent interface: %s",
+	    vreq.vlr_parent[0] == '\0' ? "<none>" : vreq.vlr_parent);
 	printf("\n");
 }
 
@@ -157,7 +154,7 @@ vlan_create(if_ctx *ctx, struct ifreq *ifr)
 			errx(1, "must specify a tag for vlan create");
 		if (params.vlr_parent[0] == '\0')
 			errx(1, "must specify a parent device for vlan create");
-		ifr->ifr_data = (caddr_t) &params;
+		ifr->ifr_data = (caddr_t)&params;
 	}
 	ifcreate_ioctl(ctx, ifr);
 }
@@ -173,7 +170,7 @@ static void
 vlan_set(int s, struct ifreq *ifr)
 {
 	if (params.vlr_tag != NOTAG && params.vlr_parent[0] != '\0') {
-		ifr->ifr_data = (caddr_t) &params;
+		ifr->ifr_data = (caddr_t)&params;
 		if (ioctl(s, SIOCSETVLAN, (caddr_t)ifr) == -1)
 			err(1, "SIOCSETVLAN");
 	}
@@ -220,11 +217,11 @@ setvlanproto(if_ctx *ctx, const char *val, int dummy __unused)
 	struct vlanreq vreq = {};
 	struct ifreq ifr = { .ifr_data = (caddr_t)&vreq };
 
-	if (strncasecmp(proto_8021Q, val,
-	    strlen(proto_8021Q)) == 0) {
+	if (strncasecmp(proto_8021Q, val, strlen(proto_8021Q)) == 0) {
 		params.vlr_proto = ETHERTYPE_VLAN;
-	} else if ((strncasecmp(proto_8021ad, val, strlen(proto_8021ad)) == 0)
-	    || (strncasecmp(proto_qinq, val, strlen(proto_qinq)) == 0)) {
+	} else if ((strncasecmp(proto_8021ad, val, strlen(proto_8021ad)) ==
+		       0) ||
+	    (strncasecmp(proto_qinq, val, strlen(proto_qinq)) == 0)) {
 		params.vlr_proto = ETHERTYPE_QINQ;
 	} else
 		errx(1, "invalid value for vlanproto");
@@ -270,30 +267,30 @@ unsetvlandev(if_ctx *ctx, const char *val __unused, int dummy __unused)
 }
 
 static struct cmd vlan_cmds[] = {
-	DEF_CLONE_CMD_ARG("vlan",			setvlantag),
-	DEF_CLONE_CMD_ARG("vlandev",			setvlandev),
-	DEF_CLONE_CMD_ARG("vlanproto",			setvlanproto),
-	DEF_CMD_ARG("vlanpcp",				setvlanpcp),
+	DEF_CLONE_CMD_ARG("vlan", setvlantag),
+	DEF_CLONE_CMD_ARG("vlandev", setvlandev),
+	DEF_CLONE_CMD_ARG("vlanproto", setvlanproto),
+	DEF_CMD_ARG("vlanpcp", setvlanpcp),
 	/* NB: non-clone cmds */
-	DEF_CMD_ARG("vlan",				setvlantag),
-	DEF_CMD_ARG("vlandev",				setvlandev),
-	DEF_CMD_ARG("vlanproto",			setvlanproto),
+	DEF_CMD_ARG("vlan", setvlantag),
+	DEF_CMD_ARG("vlandev", setvlandev),
+	DEF_CMD_ARG("vlanproto", setvlanproto),
 	/* XXX For compatibility.  Should become DEF_CMD() some day. */
-	DEF_CMD_OPTARG("-vlandev",			unsetvlandev),
-	DEF_CMD("vlanmtu",	IFCAP_VLAN_MTU,		setifcap),
-	DEF_CMD("-vlanmtu",	IFCAP_VLAN_MTU,		clearifcap),
-	DEF_CMD("vlanhwtag",	IFCAP_VLAN_HWTAGGING,	setifcap),
-	DEF_CMD("-vlanhwtag",	IFCAP_VLAN_HWTAGGING,	clearifcap),
-	DEF_CMD("vlanhwfilter",	IFCAP_VLAN_HWFILTER,	setifcap),
-	DEF_CMD("-vlanhwfilter", IFCAP_VLAN_HWFILTER,	clearifcap),
-	DEF_CMD("vlanhwtso",	IFCAP_VLAN_HWTSO,	setifcap),
-	DEF_CMD("-vlanhwtso",	IFCAP_VLAN_HWTSO,	clearifcap),
-	DEF_CMD("vlanhwcsum",	IFCAP_VLAN_HWCSUM,	setifcap),
-	DEF_CMD("-vlanhwcsum",	IFCAP_VLAN_HWCSUM,	clearifcap),
+	DEF_CMD_OPTARG("-vlandev", unsetvlandev),
+	DEF_CMD("vlanmtu", IFCAP_VLAN_MTU, setifcap),
+	DEF_CMD("-vlanmtu", IFCAP_VLAN_MTU, clearifcap),
+	DEF_CMD("vlanhwtag", IFCAP_VLAN_HWTAGGING, setifcap),
+	DEF_CMD("-vlanhwtag", IFCAP_VLAN_HWTAGGING, clearifcap),
+	DEF_CMD("vlanhwfilter", IFCAP_VLAN_HWFILTER, setifcap),
+	DEF_CMD("-vlanhwfilter", IFCAP_VLAN_HWFILTER, clearifcap),
+	DEF_CMD("vlanhwtso", IFCAP_VLAN_HWTSO, setifcap),
+	DEF_CMD("-vlanhwtso", IFCAP_VLAN_HWTSO, clearifcap),
+	DEF_CMD("vlanhwcsum", IFCAP_VLAN_HWCSUM, setifcap),
+	DEF_CMD("-vlanhwcsum", IFCAP_VLAN_HWCSUM, clearifcap),
 };
 static struct afswtch af_vlan = {
-	.af_name	= "af_vlan",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_vlan",
+	.af_af = AF_UNSPEC,
 	.af_other_status = vlan_status,
 };
 
@@ -302,7 +299,7 @@ vlan_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(vlan_cmds);  i++)
+	for (i = 0; i < nitems(vlan_cmds); i++)
 		cmd_register(&vlan_cmds[i]);
 	af_register(&af_vlan);
 	callback_register(vlan_cb, NULL);

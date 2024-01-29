@@ -30,4 +30,4 @@
 #include <dev/rtwn/rtl8188e/usb/r88eu_reg.h>
 #include <dev/rtwn/rtl8812a/r12a_reg.h>
 
-#endif	/* R12AU_REG_H */
+#endif /* R12AU_REG_H */

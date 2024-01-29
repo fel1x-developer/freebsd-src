@@ -141,12 +141,11 @@ static void
 usage(void)
 {
 
-	(void) fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n",
-		"usage: [id|rt]prio",
-		"       [id|rt]prio [-]pid",
-		"       [id|rt]prio priority command [args]",
-		"       [id|rt]prio priority -pid",
-		"       [id|rt]prio -t command [args]",
-		"       [id|rt]prio -t -pid");
+	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n%s\n%s\n", "usage: [id|rt]prio",
+	    "       [id|rt]prio [-]pid",
+	    "       [id|rt]prio priority command [args]",
+	    "       [id|rt]prio priority -pid",
+	    "       [id|rt]prio -t command [args]",
+	    "       [id|rt]prio -t -pid");
 	exit(1);
 }

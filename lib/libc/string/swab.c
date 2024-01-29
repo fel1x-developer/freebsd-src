@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 void
-swab(const void * __restrict from, void * __restrict to, ssize_t len)
+swab(const void *__restrict from, void *__restrict to, ssize_t len)
 {
 	unsigned char temp;
 	size_t n;
@@ -44,15 +44,21 @@ swab(const void * __restrict from, void * __restrict to, ssize_t len)
 
 	if (len <= 0)
 		return;
-	n  = (size_t)len >> 1;
+	n = (size_t)len >> 1;
 	fp = (const unsigned char *)from;
 	tp = (unsigned char *)to;
-#define	STEP	temp = *fp++,*tp++ = *fp++,*tp++ = temp
+#define STEP temp = *fp++, *tp++ = *fp++, *tp++ = temp
 	/* round to multiple of 8 */
 	for (; n & 0x7; --n)
 		STEP;
 	for (n >>= 3; n > 0; --n) {
-		STEP; STEP; STEP; STEP;
-		STEP; STEP; STEP; STEP;
+		STEP;
+		STEP;
+		STEP;
+		STEP;
+		STEP;
+		STEP;
+		STEP;
+		STEP;
 	}
 }

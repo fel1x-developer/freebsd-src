@@ -27,14 +27,14 @@
 #ifndef RTL8192EU_H
 #define RTL8192EU_H
 
-#include <dev/rtwn/rtl8812a/r12a.h>
 #include <dev/rtwn/rtl8192e/r92e.h>
+#include <dev/rtwn/rtl8812a/r12a.h>
 
 /*
  * Function declarations.
  */
 /* r92eu_init.c */
-void	r92eu_init_rx_agg(struct rtwn_softc *);
-void	r92eu_post_init(struct rtwn_softc *);
+void r92eu_init_rx_agg(struct rtwn_softc *);
+void r92eu_post_init(struct rtwn_softc *);
 
-#endif	/* RTL8192EU_H */
+#endif /* RTL8192EU_H */

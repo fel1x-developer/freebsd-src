@@ -27,11 +27,11 @@
  */
 
 #ifndef _LINUXKPI_LINUX_SEQLOCK_H__
-#define	_LINUXKPI_LINUX_SEQLOCK_H__
+#define _LINUXKPI_LINUX_SEQLOCK_H__
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/cdefs.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
@@ -40,18 +40,18 @@
 struct lock_class_key;
 
 struct seqcount {
-	seqc_t		seqc;
+	seqc_t seqc;
 };
 typedef struct seqcount seqcount_t;
 
 struct seqlock {
-	struct mtx	seql_lock;
-	struct seqcount	seql_count;
+	struct mtx seql_lock;
+	struct seqcount seql_count;
 };
 typedef struct seqlock seqlock_t;
 
 struct seqcount_mutex {
-	seqc_t		seqc;
+	seqc_t seqc;
 };
 typedef struct seqcount_mutex seqcount_mutex_t;
 typedef struct seqcount_mutex seqcount_ww_mutex_t;
@@ -62,7 +62,7 @@ __seqcount_init(struct seqcount *seqcount, const char *name __unused,
 {
 	seqcount->seqc = 0;
 }
-#define	seqcount_init(seqcount)	__seqcount_init(seqcount, NULL, NULL)
+#define seqcount_init(seqcount) __seqcount_init(seqcount, NULL, NULL)
 
 static inline void
 seqcount_mutex_init(struct seqcount_mutex *seqcount, void *mutex __unused)
@@ -70,20 +70,18 @@ seqcount_mutex_init(struct seqcount_mutex *seqcount, void *mutex __unused)
 	seqcount->seqc = 0;
 }
 
-#define	seqcount_ww_mutex_init(seqcount, ww_mutex) \
-    seqcount_mutex_init((seqcount), (ww_mutex))
+#define seqcount_ww_mutex_init(seqcount, ww_mutex) \
+	seqcount_mutex_init((seqcount), (ww_mutex))
 
-#define	write_seqcount_begin(s)						\
-    _Generic(*(s),							\
-	struct seqcount:	seqc_sleepable_write_begin,		\
-	struct seqcount_mutex:	seqc_write_begin			\
-    )(&(s)->seqc)
+#define write_seqcount_begin(s)                          \
+	_Generic(*(s),                                   \
+	    struct seqcount: seqc_sleepable_write_begin, \
+	    struct seqcount_mutex: seqc_write_begin)(&(s)->seqc)
 
-#define	write_seqcount_end(s)						\
-    _Generic(*(s),							\
-	struct seqcount:	seqc_sleepable_write_end,		\
-	struct seqcount_mutex:	seqc_write_end				\
-    )(&(s)->seqc)
+#define write_seqcount_end(s)                          \
+	_Generic(*(s),                                 \
+	    struct seqcount: seqc_sleepable_write_end, \
+	    struct seqcount_mutex: seqc_write_end)(&(s)->seqc)
 
 static inline void
 lkpi_write_seqcount_invalidate(seqc_t *seqcp)
@@ -91,24 +89,24 @@ lkpi_write_seqcount_invalidate(seqc_t *seqcp)
 	atomic_thread_fence_rel();
 	*seqcp += SEQC_MOD * 2;
 }
-#define	write_seqcount_invalidate(s) lkpi_write_seqcount_invalidate(&(s)->seqc)
+#define write_seqcount_invalidate(s) lkpi_write_seqcount_invalidate(&(s)->seqc)
 
-#define	read_seqcount_begin(s)	seqc_read(&(s)->seqc)
-#define	raw_read_seqcount(s)	seqc_read_any(&(s)->seqc)
+#define read_seqcount_begin(s) seqc_read(&(s)->seqc)
+#define raw_read_seqcount(s) seqc_read_any(&(s)->seqc)
 
 static inline seqc_t
 lkpi_seqprop_sequence(const seqc_t *seqcp)
 {
 	return (atomic_load_int(__DECONST(seqc_t *, seqcp)));
 }
-#define	seqprop_sequence(s)	lkpi_seqprop_sequence(&(s)->seqc)
+#define seqprop_sequence(s) lkpi_seqprop_sequence(&(s)->seqc)
 
 /*
  * XXX: Are predicts from inline functions still not honored by clang?
  */
-#define	__read_seqcount_retry(seqcount, gen)	\
+#define __read_seqcount_retry(seqcount, gen) \
 	(!seqc_consistent_no_fence(&(seqcount)->seqc, gen))
-#define	read_seqcount_retry(seqcount, gen)	\
+#define read_seqcount_retry(seqcount, gen) \
 	(!seqc_consistent(&(seqcount)->seqc, gen))
 
 static inline void
@@ -119,7 +117,7 @@ seqlock_init(struct seqlock *seqlock)
 	 * seqlock has been freed. There is no seqlock destructor exists so we
 	 * can't expect automatic mtx_destroy() execution before free().
 	 */
-	mtx_init(&seqlock->seql_lock, "seqlock", NULL, MTX_DEF|MTX_NOWITNESS);
+	mtx_init(&seqlock->seql_lock, "seqlock", NULL, MTX_DEF | MTX_NOWITNESS);
 	seqcount_init(&seqlock->seql_count);
 }
 
@@ -160,10 +158,11 @@ write_sequnlock(struct seqlock *seqlock)
  * blocking operations while holding the write lock; probably a safe
  * assumption.
  */
-#define	write_seqlock_irqsave(seqlock, flags)	do {	\
-	(flags) = 0;					\
-	lkpi_write_seqlock(seqlock, true);		\
-} while (0)
+#define write_seqlock_irqsave(seqlock, flags)      \
+	do {                                       \
+		(flags) = 0;                       \
+		lkpi_write_seqlock(seqlock, true); \
+	} while (0)
 
 static inline void
 write_sequnlock_irqrestore(struct seqlock *seqlock,
@@ -178,7 +177,7 @@ read_seqbegin(const struct seqlock *seqlock)
 	return (read_seqcount_begin(&seqlock->seql_count));
 }
 
-#define	read_seqretry(seqlock, gen)	\
+#define read_seqretry(seqlock, gen) \
 	read_seqcount_retry(&(seqlock)->seql_count, gen)
 
-#endif	/* _LINUXKPI_LINUX_SEQLOCK_H__ */
+#endif /* _LINUXKPI_LINUX_SEQLOCK_H__ */

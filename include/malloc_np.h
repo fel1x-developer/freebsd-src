@@ -30,99 +30,100 @@
  */
 
 #ifndef _MALLOC_NP_H_
-#define	_MALLOC_NP_H_
+#define _MALLOC_NP_H_
 
 #include <sys/types.h>
 
 #ifdef __cplusplus
-#define	__MyBool	bool
+#define __MyBool bool
 #else
-#define	__MyBool	_Bool
+#define __MyBool _Bool
 #endif
 
 __BEGIN_DECLS
 typedef struct extent_hooks_s extent_hooks_t;
 typedef void *(extent_alloc_t)(extent_hooks_t *, void *, size_t, size_t,
     __MyBool *, __MyBool *, unsigned);
-typedef __MyBool (extent_dalloc_t)(extent_hooks_t *, void *, size_t, __MyBool,
-    unsigned);
-typedef void (extent_destroy_t)(extent_hooks_t *, void *, size_t, __MyBool,
-    unsigned);
-typedef __MyBool (extent_commit_t)(extent_hooks_t *, void *, size_t, size_t,
+typedef __MyBool(
+    extent_dalloc_t)(extent_hooks_t *, void *, size_t, __MyBool, unsigned);
+typedef void(
+    extent_destroy_t)(extent_hooks_t *, void *, size_t, __MyBool, unsigned);
+typedef __MyBool(extent_commit_t)(extent_hooks_t *, void *, size_t, size_t,
     size_t, unsigned);
-typedef __MyBool (extent_decommit_t)(extent_hooks_t *, void *, size_t, size_t,
+typedef __MyBool(extent_decommit_t)(extent_hooks_t *, void *, size_t, size_t,
     size_t, unsigned);
-typedef __MyBool (extent_purge_t)(extent_hooks_t *, void *, size_t, size_t, size_t,
-    unsigned);
-typedef __MyBool (extent_split_t)(extent_hooks_t *, void *, size_t, size_t, size_t,
-    __MyBool, unsigned);
-typedef __MyBool (extent_merge_t)(extent_hooks_t *, void *, size_t, void *, size_t,
-    __MyBool, unsigned);
+typedef __MyBool(
+    extent_purge_t)(extent_hooks_t *, void *, size_t, size_t, size_t, unsigned);
+typedef __MyBool(extent_split_t)(extent_hooks_t *, void *, size_t, size_t,
+    size_t, __MyBool, unsigned);
+typedef __MyBool(extent_merge_t)(extent_hooks_t *, void *, size_t, void *,
+    size_t, __MyBool, unsigned);
 struct extent_hooks_s {
-	extent_alloc_t		*alloc;
-	extent_dalloc_t		*dalloc;
-	extent_destroy_t	*destroy;
-	extent_commit_t		*commit;
-	extent_decommit_t	*decommit;
-	extent_purge_t		*purge_lazy;
-	extent_purge_t		*purge_forced;
-	extent_split_t		*split;
-	extent_merge_t		*merge;
+	extent_alloc_t *alloc;
+	extent_dalloc_t *dalloc;
+	extent_destroy_t *destroy;
+	extent_commit_t *commit;
+	extent_decommit_t *decommit;
+	extent_purge_t *purge_lazy;
+	extent_purge_t *purge_forced;
+	extent_split_t *split;
+	extent_merge_t *merge;
 };
 
-size_t	malloc_usable_size(const void *ptr);
+size_t malloc_usable_size(const void *ptr);
 
-void	malloc_stats_print(void (*write_cb)(void *, const char *),
-    void *cbopaque, const char *opts);
+void malloc_stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
+    const char *opts);
 
-#define	MALLCTL_ARENAS_ALL	4096
-#define	MALLCTL_ARENAS_DESTROYED	4097
+#define MALLCTL_ARENAS_ALL 4096
+#define MALLCTL_ARENAS_DESTROYED 4097
 
-int	mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+int mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
     size_t newlen);
-int	mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
-int	mallctlbymib(const size_t *mib, size_t miblen, void *oldp,
-    size_t *oldlenp, void *newp, size_t newlen);
+int mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
+int mallctlbymib(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp,
+    void *newp, size_t newlen);
 
-#define	MALLOCX_LG_ALIGN(la)	((int)(la))
-#define	MALLOCX_ALIGN(a)	((int)(ffsl((int)(a))-1))
-#define	MALLOCX_ZERO		((int)0x40)
-#define	MALLOCX_TCACHE(tc)	((int)(((tc)+2) << 8))
-#define	MALLOCX_TCACHE_NONE	MALLOCX_TCACHE(-1)
-#define	MALLOCX_ARENA(a)	((((int)(a))+1) << 20)
+#define MALLOCX_LG_ALIGN(la) ((int)(la))
+#define MALLOCX_ALIGN(a) ((int)(ffsl((int)(a)) - 1))
+#define MALLOCX_ZERO ((int)0x40)
+#define MALLOCX_TCACHE(tc) ((int)(((tc) + 2) << 8))
+#define MALLOCX_TCACHE_NONE MALLOCX_TCACHE(-1)
+#define MALLOCX_ARENA(a) ((((int)(a)) + 1) << 20)
 
-void	*mallocx(size_t size, int flags);
-void	*rallocx(void *ptr, size_t size, int flags);
-size_t	xallocx(void *ptr, size_t size, size_t extra, int flags);
-size_t	sallocx(const void *ptr, int flags);
-void	dallocx(void *ptr, int flags);
-void	sdallocx(void *ptr, size_t size, int flags);
-size_t	nallocx(size_t size, int flags);
+void *mallocx(size_t size, int flags);
+void *rallocx(void *ptr, size_t size, int flags);
+size_t xallocx(void *ptr, size_t size, size_t extra, int flags);
+size_t sallocx(const void *ptr, int flags);
+void dallocx(void *ptr, int flags);
+void sdallocx(void *ptr, size_t size, int flags);
+size_t nallocx(size_t size, int flags);
 
-void *	__calloc(size_t number, size_t size) __malloc_like;
-void *	__malloc(size_t size) __malloc_like;
-void *	__realloc(void *ptr, size_t size);
-void	__free(void *ptr);
-int	__posix_memalign(void **ptr, size_t alignment, size_t size);
-void	*__aligned_alloc(size_t alignment, size_t size);
-size_t	__malloc_usable_size(const void *ptr);
-void	__malloc_stats_print(void (*write_cb)(void *, const char *),
+void *__calloc(size_t number, size_t size) __malloc_like;
+void *__malloc(size_t size) __malloc_like;
+void *__realloc(void *ptr, size_t size);
+void __free(void *ptr);
+int __posix_memalign(void **ptr, size_t alignment, size_t size);
+void *__aligned_alloc(size_t alignment, size_t size);
+size_t __malloc_usable_size(const void *ptr);
+void __malloc_stats_print(void (*write_cb)(void *, const char *),
     void *cbopaque, const char *opts);
-int	__mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
+int __mallctl(const char *name, void *oldp, size_t *oldlenp, void *newp,
     size_t newlen);
-int	__mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
-int	__mallctlbymib(const size_t *mib, size_t miblen, void *oldp,
+int __mallctlnametomib(const char *name, size_t *mibp, size_t *miblenp);
+int __mallctlbymib(const size_t *mib, size_t miblen, void *oldp,
     size_t *oldlenp, void *newp, size_t newlen);
-void	*__mallocx(size_t size, int flags);
-void	*__rallocx(void *ptr, size_t size, int flags);
-size_t	__xallocx(void *ptr, size_t size, size_t extra, int flags);
-size_t	__sallocx(const void *ptr, int flags);
-void	__dallocx(void *ptr, int flags);
-void	__sdallocx(void *ptr, size_t size, int flags);
-size_t	__nallocx(size_t size, int flags);
+void *__mallocx(size_t size, int flags);
+void *__rallocx(void *ptr, size_t size, int flags);
+size_t __xallocx(void *ptr, size_t size, size_t extra, int flags);
+size_t __sallocx(const void *ptr, int flags);
+void __dallocx(void *ptr, int flags);
+void __sdallocx(void *ptr, size_t size, int flags);
+size_t __nallocx(size_t size, int flags);
 
-void	*memalign(size_t, size_t) __malloc_like __alloc_align(1)
-	    __alloc_size(2);
+void *
+memalign(size_t, size_t)
+__malloc_like __alloc_align(1) __alloc_size(2);
 __END_DECLS
 
 #undef __MyBool

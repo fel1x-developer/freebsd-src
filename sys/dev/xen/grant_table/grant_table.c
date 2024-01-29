@@ -1,11 +1,11 @@
 /******************************************************************************
  * gnttab.c
- * 
+ *
  * Two sets of functionality:
  * 1. Granting foreign access to our memory reservation.
  * 2. Accessing others' memory reservations via grant references.
  * (i.e., mechanisms for both sender and recipient of grant references)
- * 
+ *
  * Copyright (c) 2005, Christopher Clark
  * Copyright (c) 2004, K A Fraser
  */
@@ -14,24 +14,25 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/module.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mman.h>
-#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
-#include <machine/cpu.h>
-
-#include <xen/xen-os.h>
-#include <xen/hypervisor.h>
-#include <xen/gnttab.h>
 
 #include <vm/vm.h>
-#include <vm/vm_kern.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
+
+#include <machine/cpu.h>
+#include <machine/resource.h>
+
+#include <xen/gnttab.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
 
 /* External tools reserve first few grant table entries. */
 #define NR_RESERVED_ENTRIES 8
@@ -132,7 +133,7 @@ put_free_entry(grant_ref_t ref)
 
 int
 gnttab_grant_foreign_access(domid_t domid, unsigned long frame, int readonly,
-	grant_ref_t *result)
+    grant_ref_t *result)
 {
 	int error, ref;
 
@@ -154,7 +155,7 @@ gnttab_grant_foreign_access(domid_t domid, unsigned long frame, int readonly,
 
 void
 gnttab_grant_foreign_access_ref(grant_ref_t ref, domid_t domid,
-				unsigned long frame, int readonly)
+    unsigned long frame, int readonly)
 {
 
 	shared[ref].frame = frame;
@@ -170,7 +171,7 @@ gnttab_query_foreign_access(grant_ref_t ref)
 
 	nflags = shared[ref].flags;
 
-	return (nflags & (GTF_reading|GTF_writing));
+	return (nflags & (GTF_reading | GTF_writing));
 }
 
 int
@@ -179,7 +180,7 @@ gnttab_end_foreign_access_ref(grant_ref_t ref)
 	uint16_t flags;
 
 	while (!((flags = atomic_load_16(&shared[ref].flags)) &
-	    (GTF_reading|GTF_writing)))
+	    (GTF_reading | GTF_writing)))
 		if (atomic_cmpset_16(&shared[ref].flags, flags, 0))
 			return (1);
 
@@ -195,12 +196,11 @@ gnttab_end_foreign_access(grant_ref_t ref, void *page)
 		if (page != NULL) {
 			free(page, M_DEVBUF);
 		}
-	}
-	else {
+	} else {
 		/* XXX This needs to be fixed so that the ref and page are
 		   placed on a list to be freed up later. */
 		printf("%s: WARNING: leaking g.e. and page still in use!\n",
-		       __func__);
+		    __func__);
 	}
 }
 
@@ -208,8 +208,8 @@ void
 gnttab_end_foreign_access_references(u_int count, grant_ref_t *refs)
 {
 	grant_ref_t *last_ref;
-	grant_ref_t  head;
-	grant_ref_t  tail;
+	grant_ref_t head;
+	grant_ref_t tail;
 
 	head = GNTTAB_LIST_END;
 	tail = *refs;
@@ -220,11 +220,11 @@ gnttab_end_foreign_access_references(u_int count, grant_ref_t *refs)
 			head = *refs;
 		} else {
 			/*
-			 * XXX This needs to be fixed so that the ref 
+			 * XXX This needs to be fixed so that the ref
 			 * is placed on a list to be freed up later.
 			 */
 			printf("%s: WARNING: leaking g.e. still in use!\n",
-			       __func__);
+			    __func__);
 			count--;
 		}
 		refs++;
@@ -258,7 +258,7 @@ gnttab_grant_foreign_transfer(domid_t domid, unsigned long pfn,
 
 void
 gnttab_grant_foreign_transfer_ref(grant_ref_t ref, domid_t domid,
-	unsigned long pfn)
+    unsigned long pfn)
 {
 	shared[ref].frame = pfn;
 	shared[ref].domid = domid;
@@ -270,17 +270,17 @@ unsigned long
 gnttab_end_foreign_transfer_ref(grant_ref_t ref)
 {
 	unsigned long frame;
-	uint16_t      flags;
+	uint16_t flags;
 
 	/*
-         * If a transfer is not even yet started, try to reclaim the grant
-         * reference and return failure (== 0).
+	 * If a transfer is not even yet started, try to reclaim the grant
+	 * reference and return failure (== 0).
 	 *
 	 * NOTE: This is a loop since the atomic cmpset can fail multiple
 	 * times.  In normal operation it will be rare to execute more than
 	 * twice.  Attempting an attack would consume a great deal of
 	 * attacker resources and be unlikely to prolong the loop very much.
-         */
+	 */
 	while (!((flags = atomic_load_16(&shared[ref].flags)) &
 	    GTF_transfer_committed))
 		if (atomic_cmpset_16(&shared[ref].flags, flags, 0))
@@ -370,7 +370,7 @@ gnttab_claim_grant_reference(grant_ref_t *private_head)
 }
 
 void
-gnttab_release_grant_reference(grant_ref_t *private_head, grant_ref_t  release)
+gnttab_release_grant_reference(grant_ref_t *private_head, grant_ref_t release)
 {
 
 	gnttab_entry(release) = *private_head;
@@ -391,9 +391,8 @@ gnttab_request_free_callback(struct gnttab_free_callback *callback,
 	callback->next = gnttab_free_callback_list;
 	gnttab_free_callback_list = callback;
 	check_free_callbacks();
- out:
+out:
 	mtx_unlock(&gnttab_list_lock);
-
 }
 
 void
@@ -417,12 +416,11 @@ grow_gnttab_list(unsigned int more_frames)
 	unsigned int new_nr_grant_frames, extra_entries, i;
 
 	new_nr_grant_frames = nr_grant_frames + more_frames;
-	extra_entries       = more_frames * GREFS_PER_GRANT_FRAME;
+	extra_entries = more_frames * GREFS_PER_GRANT_FRAME;
 
-	for (i = nr_grant_frames; i < new_nr_grant_frames; i++)
-	{
-		gnttab_list[i] = (grant_ref_t *)
-			malloc(PAGE_SIZE, M_DEVBUF, M_NOWAIT);
+	for (i = nr_grant_frames; i < new_nr_grant_frames; i++) {
+		gnttab_list[i] = (grant_ref_t *)malloc(PAGE_SIZE, M_DEVBUF,
+		    M_NOWAIT);
 
 		if (!gnttab_list[i])
 			goto grow_nomem;
@@ -443,7 +441,7 @@ grow_gnttab_list(unsigned int more_frames)
 	return (0);
 
 grow_nomem:
-	for ( ; i >= nr_grant_frames; i--)
+	for (; i >= nr_grant_frames; i--)
 		free(gnttab_list[i], M_DEVBUF);
 	return (ENOMEM);
 }
@@ -463,8 +461,8 @@ __max_nr_grant_frames(void)
 	return (query.max_nr_frames);
 }
 
-static inline
-unsigned int max_nr_grant_frames(void)
+static inline unsigned int
+max_nr_grant_frames(void)
 {
 
 	return (min(__max_nr_grant_frames(), boot_max_nr_grant_frames));
@@ -476,8 +474,7 @@ unsigned int max_nr_grant_frames(void)
  *
  */
 static int
-map_pte_fn(pte_t *pte, struct page *pmd_page,
-		      unsigned long addr, void *data)
+map_pte_fn(pte_t *pte, struct page *pmd_page, unsigned long addr, void *data)
 {
 	unsigned long **frames = (unsigned long **)data;
 
@@ -487,8 +484,7 @@ map_pte_fn(pte_t *pte, struct page *pmd_page,
 }
 
 static int
-unmap_pte_fn(pte_t *pte, struct page *pmd_page,
-			unsigned long addr, void *data)
+unmap_pte_fn(pte_t *pte, struct page *pmd_page, unsigned long addr, void *data)
 {
 
 	set_pte_at(&init_mm, addr, pte, __pte(0));
@@ -589,7 +585,7 @@ granttable_identify(driver_t *driver, device_t parent)
  *
  * \return  Always returns 0 indicating success.
  */
-static int 
+static int
 granttable_probe(device_t dev)
 {
 
@@ -621,8 +617,8 @@ granttable_attach(device_t dev)
 		return (ENOMEM);
 
 	for (i = 0; i < nr_grant_frames; i++) {
-		gnttab_list[i] = (grant_ref_t *)
-			malloc(PAGE_SIZE, M_DEVBUF, M_NOWAIT);
+		gnttab_list[i] = (grant_ref_t *)malloc(PAGE_SIZE, M_DEVBUF,
+		    M_NOWAIT);
 		if (gnttab_list[i] == NULL)
 			goto ini_nomem;
 	}
@@ -637,7 +633,7 @@ granttable_attach(device_t dev)
 
 	gnttab_entry(nr_init_grefs - 1) = GNTTAB_LIST_END;
 	gnttab_free_count = nr_init_grefs - NR_RESERVED_ENTRIES;
-	gnttab_free_head  = NR_RESERVED_ENTRIES;
+	gnttab_free_head = NR_RESERVED_ENTRIES;
 
 	if (bootverbose)
 		printf("Grant table initialized\n");
@@ -654,9 +650,9 @@ ini_nomem:
 /*-------------------- Private Device Attachment Data  -----------------------*/
 static device_method_t granttable_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	granttable_identify),
-	DEVMETHOD(device_probe,         granttable_probe),
-	DEVMETHOD(device_attach,        granttable_attach),
+	DEVMETHOD(device_identify, granttable_identify),
+	DEVMETHOD(device_probe, granttable_probe),
+	DEVMETHOD(device_attach, granttable_attach),
 
 	DEVMETHOD_END
 };

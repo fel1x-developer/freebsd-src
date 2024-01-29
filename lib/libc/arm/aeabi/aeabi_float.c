@@ -27,11 +27,10 @@
  *
  */
 
-#include "softfloat-for-gcc.h"
-#include "milieu.h"
-#include "softfloat.h"
-
 #include "aeabi_vfp.h"
+#include "milieu.h"
+#include "softfloat-for-gcc.h"
+#include "softfloat.h"
 
 extern int _libc_arm_fpu_present;
 
@@ -57,21 +56,34 @@ float32 __aeabi_fsub_vfp(float32, float32);
  *  On armv6 with a vfp call the above function, or
  *  Call the softfloat function in the 3rd argument.
  */
-int AEABI_FUNC2(fcmpeq, float32, float32_eq)
-int AEABI_FUNC2(fcmplt, float32, float32_lt)
-int AEABI_FUNC2(fcmple, float32, float32_le)
-int AEABI_FUNC2_REV(fcmpge, float32, float32_le)
-int AEABI_FUNC2_REV(fcmpgt, float32, float32_lt)
-int AEABI_FUNC2(fcmpun, float32, __unordsf2)
+int
+AEABI_FUNC2(fcmpeq, float32, float32_eq)
+int
+AEABI_FUNC2(fcmplt, float32, float32_lt)
+int
+AEABI_FUNC2(fcmple, float32, float32_le)
+int
+AEABI_FUNC2_REV(fcmpge, float32, float32_le)
+int
+AEABI_FUNC2_REV(fcmpgt, float32, float32_lt)
+int
+AEABI_FUNC2(fcmpun, float32, __unordsf2)
 
-int AEABI_FUNC(f2iz, float32, float32_to_int32_round_to_zero)
-float64 AEABI_FUNC(f2d, float32, float32_to_float64)
-float32 AEABI_FUNC(i2f, int, int32_to_float32)
+int
+AEABI_FUNC(f2iz, float32, float32_to_int32_round_to_zero)
+float64
+AEABI_FUNC(f2d, float32, float32_to_float64)
+float32
+AEABI_FUNC(i2f, int, int32_to_float32)
 
-float32 AEABI_FUNC2(fadd, float32, float32_add)
-float32 AEABI_FUNC2(fdiv, float32, float32_div)
-float32 AEABI_FUNC2(fmul, float32, float32_mul)
-float32 AEABI_FUNC2(fsub, float32, float32_sub)
+float32
+AEABI_FUNC2(fadd, float32, float32_add)
+float32
+AEABI_FUNC2(fdiv, float32, float32_div)
+float32
+AEABI_FUNC2(fmul, float32, float32_mul)
+float32
+AEABI_FUNC2(fsub, float32, float32_sub)
 
 int
 __aeabi_cfcmpeq_helper(float32 a, float32 b)

@@ -62,66 +62,66 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/errno.h>
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/sx.h>
-#include <sys/mutex.h>
-#include <sys/rwlock.h>
-#include <sys/priv.h>
-#include <sys/proc.h>
-#include <sys/mount.h>
-#include <sys/vnode.h>
-#include <sys/stat.h>
-#include <sys/unistd.h>
-#include <sys/filedesc.h>
-#include <sys/file.h>
-#include <sys/fcntl.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/errno.h>
+#include <sys/fcntl.h>
+#include <sys/file.h>
+#include <sys/filedesc.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/rwlock.h>
+#include <sys/stat.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/unistd.h>
 #include <sys/vmmeter.h>
+#include <sys/vnode.h>
 
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_map.h>
-#include <vm/vm_page.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vnode_pager.h>
 
 #include "fuse.h"
 #include "fuse_file.h"
-#include "fuse_node.h"
 #include "fuse_internal.h"
-#include "fuse_ipc.h"
 #include "fuse_io.h"
+#include "fuse_ipc.h"
+#include "fuse_node.h"
 
-/* 
+/*
  * Set in a struct buf to indicate that the write came from the buffer cache
  * and the originating cred and pid are no longer known.
  */
 #define B_FUSEFS_WRITE_CACHE B_FS_FLAG1
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
  */
 SDT_PROBE_DEFINE2(fusefs, , io, trace, "int", "char*");
 
-SDT_PROBE_DEFINE4(fusefs, , io, read_bio_backend_start, "int", "int", "int", "int");
+SDT_PROBE_DEFINE4(fusefs, , io, read_bio_backend_start, "int", "int", "int",
+    "int");
 SDT_PROBE_DEFINE2(fusefs, , io, read_bio_backend_feed, "int", "struct buf*");
 SDT_PROBE_DEFINE4(fusefs, , io, read_bio_backend_end, "int", "ssize_t", "int",
-		"struct buf*");
+    "struct buf*");
 int
 fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
     struct ucred *cred, struct fuse_filehandle *fufh, pid_t pid)
@@ -160,15 +160,15 @@ fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
 		if ((off_t)lbn * biosize >= filesize) {
 			bcount = 0;
 		} else if ((off_t)(lbn + 1) * biosize > filesize) {
-			bcount = filesize - (off_t)lbn *biosize;
+			bcount = filesize - (off_t)lbn * biosize;
 		} else {
 			bcount = biosize;
 		}
 		nextlbn = lbn + 1;
 		nextsize = MIN(biosize, filesize - nextlbn * biosize);
 
-		SDT_PROBE4(fusefs, , io, read_bio_backend_start,
-			biosize, (int)lbn, on, bcount);
+		SDT_PROBE4(fusefs, , io, read_bio_backend_start, biosize,
+		    (int)lbn, on, bcount);
 
 		if (bcount < biosize) {
 			/* If near EOF, don't do readahead */
@@ -177,13 +177,13 @@ fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
 			/* Try clustered read */
 			long totread = uio->uio_resid + on;
 			seqcount = MIN(seqcount,
-				data->max_readahead_blocks + 1);
+			    data->max_readahead_blocks + 1);
 			err = cluster_read(vp, filesize, lbn, bcount, NOCRED,
-				totread, seqcount, 0, &bp);
+			    totread, seqcount, 0, &bp);
 		} else if (seqcount > 1 && data->max_readahead_blocks >= 1) {
 			/* Try non-clustered readahead */
 			err = breadn(vp, lbn, bcount, &nextlbn, &nextsize, 1,
-				NOCRED, &bp);
+			    NOCRED, &bp);
 		} else {
 			/* Just read what was requested */
 			err = bread(vp, lbn, bcount, NOCRED, &bp);
@@ -196,12 +196,12 @@ fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
 		}
 
 		/*
-	         * on is the offset into the current bp.  Figure out how many
-	         * bytes we can copy out of the bp.  Note that bcount is
-	         * NOT DEV_BSIZE aligned.
-	         *
-	         * Then figure out how many bytes we can copy into the uio.
-	         */
+		 * on is the offset into the current bp.  Figure out how many
+		 * bytes we can copy out of the bp.  Note that bcount is
+		 * NOT DEV_BSIZE aligned.
+		 *
+		 * Then figure out how many bytes we can copy into the uio.
+		 */
 
 		n = 0;
 		if (on < bcount - bp->b_resid)
@@ -213,7 +213,7 @@ fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
 		}
 		vfs_bio_brelse(bp, ioflag);
 		SDT_PROBE4(fusefs, , io, read_bio_backend_end, err,
-			uio->uio_resid, n, bp);
+		    uio->uio_resid, n, bp);
 		if (bp->b_resid > 0) {
 			/* Short read indicates EOF */
 			break;
@@ -224,13 +224,13 @@ fuse_read_biobackend(struct vnode *vp, struct uio *uio, int ioflag,
 }
 
 SDT_PROBE_DEFINE1(fusefs, , io, read_directbackend_start,
-	"struct fuse_read_in*");
+    "struct fuse_read_in*");
 SDT_PROBE_DEFINE3(fusefs, , io, read_directbackend_complete,
-	"struct fuse_dispatcher*", "struct fuse_read_in*", "struct uio*");
+    "struct fuse_dispatcher*", "struct fuse_read_in*", "struct uio*");
 
 int
-fuse_read_directbackend(struct vnode *vp, struct uio *uio,
-    struct ucred *cred, struct fuse_filehandle *fufh)
+fuse_read_directbackend(struct vnode *vp, struct uio *uio, struct ucred *cred,
+    struct fuse_filehandle *fufh)
 {
 	struct fuse_data *data;
 	struct fuse_dispatcher fdi;
@@ -245,13 +245,13 @@ fuse_read_directbackend(struct vnode *vp, struct uio *uio,
 	fdisp_init(&fdi, 0);
 
 	/*
-         * XXX In "normal" case we use an intermediate kernel buffer for
-         * transmitting data from daemon's context to ours. Eventually, we should
-         * get rid of this. Anyway, if the target uio lives in sysspace (we are
-         * called from pageops), and the input data doesn't need kernel-side
-         * processing (we are not called from readdir) we can already invoke
-         * an optimized, "peer-to-peer" I/O routine.
-         */
+	 * XXX In "normal" case we use an intermediate kernel buffer for
+	 * transmitting data from daemon's context to ours. Eventually, we
+	 * should get rid of this. Anyway, if the target uio lives in sysspace
+	 * (we are called from pageops), and the input data doesn't need
+	 * kernel-side processing (we are not called from readdir) we can
+	 * already invoke an optimized, "peer-to-peer" I/O routine.
+	 */
 	while (uio->uio_resid > 0) {
 		fdi.iosize = sizeof(*fri);
 		fdisp_make_vp(&fdi, FUSE_READ, vp, uio->uio_td, cred);
@@ -271,13 +271,13 @@ fuse_read_directbackend(struct vnode *vp, struct uio *uio,
 		if ((err = fdisp_wait_answ(&fdi)))
 			goto out;
 
-		SDT_PROBE3(fusefs, , io, read_directbackend_complete,
-			&fdi, fri, uio);
+		SDT_PROBE3(fusefs, , io, read_directbackend_complete, &fdi, fri,
+		    uio);
 
 		if ((err = uiomove(fdi.answ, MIN(fri->size, fdi.iosize), uio)))
 			break;
 		if (fdi.iosize < fri->size) {
-			/* 
+			/*
 			 * Short read.  Should only happen at EOF or with
 			 * direct io.
 			 */
@@ -291,9 +291,8 @@ out:
 }
 
 int
-fuse_write_directbackend(struct vnode *vp, struct uio *uio,
-    struct ucred *cred, struct fuse_filehandle *fufh, off_t filesize,
-    int ioflag, bool pages)
+fuse_write_directbackend(struct vnode *vp, struct uio *uio, struct ucred *cred,
+    struct fuse_filehandle *fufh, off_t filesize, int ioflag, bool pages)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	struct fuse_data *data;
@@ -312,7 +311,7 @@ fuse_write_directbackend(struct vnode *vp, struct uio *uio,
 
 	data = fuse_get_mpdata(vp->v_mount);
 
-	/* 
+	/*
 	 * Don't set FUSE_WRITE_LOCKOWNER in write_flags.  It can't be set
 	 * accurately when using POSIX AIO, libfuse doesn't use it, and I'm not
 	 * aware of any file systems that do.  It was an attempt to add
@@ -326,10 +325,12 @@ fuse_write_directbackend(struct vnode *vp, struct uio *uio,
 	 * writeback cache.  I don't know of a single file system that cares,
 	 * but the protocol says we're supposed to do this.
 	 */
-	write_flags = !pages && (
-		(ioflag & IO_DIRECT) ||
-		!fsess_opt_datacache(vnode_mount(vp)) ||
-		!fsess_opt_writeback(vnode_mount(vp))) ? 0 : FUSE_WRITE_CACHE;
+	write_flags = !pages &&
+		((ioflag & IO_DIRECT) ||
+		    !fsess_opt_datacache(vnode_mount(vp)) ||
+		    !fsess_opt_writeback(vnode_mount(vp))) ?
+	    0 :
+	    FUSE_WRITE_CACHE;
 
 	if (uio->uio_resid == 0)
 		return (0);
@@ -372,7 +373,7 @@ fuse_write_directbackend(struct vnode *vp, struct uio *uio,
 		if ((err = uiomove(fwi_data, chunksize, uio)))
 			break;
 
-retry:
+	retry:
 		err = fdisp_wait_answ(&fdi);
 		if (err == ERESTART || err == EINTR || err == EWOULDBLOCK) {
 			/*
@@ -381,7 +382,7 @@ retry:
 			 */
 			uio->uio_resid += fwi->size;
 			uio->uio_offset -= fwi->size;
-			/* 
+			/*
 			 * Change ERESTART into EINTR because we can't rewind
 			 * uio->uio_iov.  Basically, once uiomove(9) has been
 			 * called, it's impossible to restart a syscall.
@@ -399,7 +400,7 @@ retry:
 
 		if (fwo->size > fwi->size) {
 			fuse_warn(data, FSESS_WARN_WROTE_LONG,
-				"wrote more data than we provided it.");
+			    "wrote more data than we provided it.");
 			/* This is bonkers.  Clear attr cache. */
 			fvdat->flag &= ~FN_SIZECHANGE;
 			fuse_vnode_clear_attr_cache(vp);
@@ -423,8 +424,8 @@ retry:
 			/* Short write */
 			if (!direct_io) {
 				fuse_warn(data, FSESS_WARN_SHORT_WRITE,
-					"short writes are only allowed with "
-					"direct_io.");
+				    "short writes are only allowed with "
+				    "direct_io.");
 			}
 			if (ioflag & IO_DIRECT) {
 				/* Return early */
@@ -436,12 +437,13 @@ retry:
 				fdi.iosize = sizeof_fwi + diff;
 				/* Refresh fdi without clearing data buffer */
 				fdisp_refresh_vp(&fdi, FUSE_WRITE, vp,
-					uio->uio_td, cred);
+				    uio->uio_td, cred);
 				fwi = fdi.indata;
-				MPASS2(fwi == fdi.indata, "FUSE dispatcher "
-					"reallocated despite no increase in "
-					"size?");
-				void *src = (char*)fwi_data + fwo->size;
+				MPASS2(fwi == fdi.indata,
+				    "FUSE dispatcher "
+				    "reallocated despite no increase in "
+				    "size?");
+				void *src = (char *)fwi_data + fwo->size;
 				memmove(fwi_data, src, diff);
 				fwi->fh = fufh->fh_id;
 				fwi->offset = as_written_offset;
@@ -462,13 +464,13 @@ retry:
 }
 
 SDT_PROBE_DEFINE6(fusefs, , io, write_biobackend_start, "int64_t", "int", "int",
-		"struct uio*", "int", "bool");
+    "struct uio*", "int", "bool");
 SDT_PROBE_DEFINE2(fusefs, , io, write_biobackend_append_race, "long", "int");
 SDT_PROBE_DEFINE2(fusefs, , io, write_biobackend_issue, "int", "struct buf*");
 
 int
-fuse_write_biobackend(struct vnode *vp, struct uio *uio,
-    struct ucred *cred, struct fuse_filehandle *fufh, int ioflag, pid_t pid)
+fuse_write_biobackend(struct vnode *vp, struct uio *uio, struct ucred *cred,
+    struct fuse_filehandle *fufh, int ioflag, pid_t pid)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	struct buf *bp;
@@ -514,7 +516,7 @@ fuse_write_biobackend(struct vnode *vp, struct uio *uio,
 		on = uio->uio_offset & (biosize - 1);
 		n = MIN((unsigned)(biosize - on), uio->uio_resid);
 
-again:
+	again:
 		/* Get or create a buffer for the write */
 		direct_append = uio->uio_offset == filesize && n;
 		if (uio->uio_offset + n < filesize) {
@@ -531,7 +533,7 @@ again:
 			bcount = on + n;
 		}
 		if (direct_append) {
-			/* 
+			/*
 			 * Take care to preserve the buffer's B_CACHE state so
 			 * as not to cause an unnecessary read.
 			 */
@@ -549,40 +551,41 @@ again:
 			break;
 		}
 		if (extending) {
-			/* 
+			/*
 			 * Extend file _after_ locking buffer so we won't race
 			 * with other readers
 			 */
-			err = fuse_vnode_setsize(vp, uio->uio_offset + n, false);
+			err = fuse_vnode_setsize(vp, uio->uio_offset + n,
+			    false);
 			filesize = uio->uio_offset + n;
 			getnanouptime(&fvdat->last_local_modify);
 			fvdat->flag |= FN_SIZECHANGE;
 			if (err) {
 				brelse(bp);
 				break;
-			} 
+			}
 		}
 
-		SDT_PROBE6(fusefs, , io, write_biobackend_start,
-			lbn, on, n, uio, bcount, direct_append);
+		SDT_PROBE6(fusefs, , io, write_biobackend_start, lbn, on, n,
+		    uio, bcount, direct_append);
 		/*
-	         * Issue a READ if B_CACHE is not set.  In special-append
-	         * mode, B_CACHE is based on the buffer prior to the write
-	         * op and is typically set, avoiding the read.  If a read
-	         * is required in special append mode, the server will
-	         * probably send us a short-read since we extended the file
-	         * on our end, resulting in b_resid == 0 and, thusly,
-	         * B_CACHE getting set.
-	         *
-	         * We can also avoid issuing the read if the write covers
-	         * the entire buffer.  We have to make sure the buffer state
-	         * is reasonable in this case since we will not be initiating
-	         * I/O.  See the comments in kern/vfs_bio.c's getblk() for
-	         * more information.
-	         *
-	         * B_CACHE may also be set due to the buffer being cached
-	         * normally.
-	         */
+		 * Issue a READ if B_CACHE is not set.  In special-append
+		 * mode, B_CACHE is based on the buffer prior to the write
+		 * op and is typically set, avoiding the read.  If a read
+		 * is required in special append mode, the server will
+		 * probably send us a short-read since we extended the file
+		 * on our end, resulting in b_resid == 0 and, thusly,
+		 * B_CACHE getting set.
+		 *
+		 * We can also avoid issuing the read if the write covers
+		 * the entire buffer.  We have to make sure the buffer state
+		 * is reasonable in this case since we will not be initiating
+		 * I/O.  See the comments in kern/vfs_bio.c's getblk() for
+		 * more information.
+		 *
+		 * B_CACHE may also be set due to the buffer being cached
+		 * normally.
+		 */
 
 		if (on == 0 && n == bcount) {
 			bp->b_flags |= B_CACHE;
@@ -598,12 +601,12 @@ again:
 				break;
 			}
 			if (bp->b_resid > 0) {
-				/* 
+				/*
 				 * Short read indicates EOF.  Update file size
 				 * from the server and try again.
 				 */
 				SDT_PROBE2(fusefs, , io, trace, 1,
-					"Short read during a RMW");
+				    "Short read during a RMW");
 				brelse(bp);
 				err = fuse_vnode_size(vp, &filesize, cred,
 				    curthread);
@@ -617,13 +620,13 @@ again:
 			bp->b_wcred = crhold(cred);
 
 		/*
-	         * If dirtyend exceeds file size, chop it down.  This should
-	         * not normally occur but there is an append race where it
-	         * might occur XXX, so we log it.
-	         *
-	         * If the chopping creates a reverse-indexed or degenerate
-	         * situation with dirtyoff/end, we 0 both of them.
-	         */
+		 * If dirtyend exceeds file size, chop it down.  This should
+		 * not normally occur but there is an append race where it
+		 * might occur XXX, so we log it.
+		 *
+		 * If the chopping creates a reverse-indexed or degenerate
+		 * situation with dirtyoff/end, we 0 both of them.
+		 */
 		if (bp->b_dirtyend > bcount) {
 			SDT_PROBE2(fusefs, , io, write_biobackend_append_race,
 			    (long)bp->b_blkno * biosize,
@@ -634,30 +637,30 @@ again:
 			bp->b_dirtyoff = bp->b_dirtyend = 0;
 
 		/*
-	         * If the new write will leave a contiguous dirty
-	         * area, just update the b_dirtyoff and b_dirtyend,
-	         * otherwise force a write rpc of the old dirty area.
-	         *
-	         * While it is possible to merge discontiguous writes due to
-	         * our having a B_CACHE buffer ( and thus valid read data
-	         * for the hole), we don't because it could lead to
-	         * significant cache coherency problems with multiple clients,
-	         * especially if locking is implemented later on.
-	         *
-	         * as an optimization we could theoretically maintain
-	         * a linked list of discontinuous areas, but we would still
-	         * have to commit them separately so there isn't much
-	         * advantage to it except perhaps a bit of asynchronization.
-	         */
+		 * If the new write will leave a contiguous dirty
+		 * area, just update the b_dirtyoff and b_dirtyend,
+		 * otherwise force a write rpc of the old dirty area.
+		 *
+		 * While it is possible to merge discontiguous writes due to
+		 * our having a B_CACHE buffer ( and thus valid read data
+		 * for the hole), we don't because it could lead to
+		 * significant cache coherency problems with multiple clients,
+		 * especially if locking is implemented later on.
+		 *
+		 * as an optimization we could theoretically maintain
+		 * a linked list of discontinuous areas, but we would still
+		 * have to commit them separately so there isn't much
+		 * advantage to it except perhaps a bit of asynchronization.
+		 */
 
 		if (bp->b_dirtyend > 0 &&
 		    (on > bp->b_dirtyend || (on + n) < bp->b_dirtyoff)) {
 			/*
-	                 * Yes, we mean it. Write out everything to "storage"
-	                 * immediately, without hesitation. (Apart from other
-	                 * reasons: the only way to know if a write is valid
-	                 * if its actually written out.)
-	                 */
+			 * Yes, we mean it. Write out everything to "storage"
+			 * immediately, without hesitation. (Apart from other
+			 * reasons: the only way to know if a write is valid
+			 * if its actually written out.)
+			 */
 			SDT_PROBE2(fusefs, , io, write_biobackend_issue, 0, bp);
 			bwrite(bp);
 			if (bp->b_error == EINTR) {
@@ -676,9 +679,9 @@ again:
 			/* TODO: vfs_bio_clrbuf like ffs_write does? */
 		}
 		/*
-	         * Only update dirtyoff/dirtyend if not a degenerate
-	         * condition.
-	         */
+		 * Only update dirtyoff/dirtyend if not a degenerate
+		 * condition.
+		 */
 		if (n) {
 			if (bp->b_dirtyend > 0) {
 				bp->b_dirtyoff = MIN(on, bp->b_dirtyoff);
@@ -698,9 +701,8 @@ again:
 			if (!(ioflag & IO_VMIO))
 				bp->b_flags &= ~B_FUSEFS_WRITE_CACHE;
 			err = bwrite(bp);
-		} else if (vm_page_count_severe() ||
-			    buf_dirty_count_severe() ||
-			    (ioflag & IO_ASYNC)) {
+		} else if (vm_page_count_severe() || buf_dirty_count_severe() ||
+		    (ioflag & IO_ASYNC)) {
 			bp->b_flags |= B_CLUSTEROK;
 			SDT_PROBE2(fusefs, , io, write_biobackend_issue, 3, bp);
 			bawrite(bp);
@@ -708,12 +710,12 @@ again:
 			if ((vp->v_mount->mnt_flag & MNT_NOCLUSTERW) == 0) {
 				bp->b_flags |= B_CLUSTEROK;
 				SDT_PROBE2(fusefs, , io, write_biobackend_issue,
-					4, bp);
+				    4, bp);
 				cluster_write(vp, &fvdat->clusterw, bp,
 				    filesize, seqcount, 0);
 			} else {
 				SDT_PROBE2(fusefs, , io, write_biobackend_issue,
-					5, bp);
+				    5, bp);
 				bawrite(bp);
 			}
 		} else if (ioflag & IO_DIRECT) {
@@ -757,7 +759,7 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 	cred = bp->b_iocmd == BIO_READ ? bp->b_rcred : bp->b_wcred;
 	error = fuse_filehandle_getrw(vp, fflag, &fufh, cred, pid);
 	if (bp->b_iocmd == BIO_READ && error == EBADF) {
-		/* 
+		/*
 		 * This may be a read-modify-write operation on a cached file
 		 * opened O_WRONLY.  The FUSE protocol allows this.
 		 */
@@ -778,10 +780,10 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 	uiop->uio_td = curthread;
 
 	/*
-         * clear BIO_ERROR and B_INVAL state prior to initiating the I/O.  We
-         * do this here so we do not have to do it in all the code that
-         * calls us.
-         */
+	 * clear BIO_ERROR and B_INVAL state prior to initiating the I/O.  We
+	 * do this here so we do not have to do it in all the code that
+	 * calls us.
+	 */
 	bp->b_flags &= ~B_INVAL;
 	bp->b_ioflags &= ~BIO_ERROR;
 
@@ -796,7 +798,7 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 
 		uiop->uio_offset = ((off_t)bp->b_lblkno) * biosize;
 		error = fuse_read_directbackend(vp, uiop, cred, fufh);
-		/* 
+		/*
 		 * Store the amount we failed to read in the buffer's private
 		 * field, so callers can truncate the file if necessary'
 		 */
@@ -817,12 +819,12 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 				 * We must still bzero the remaining buffer so
 				 * uninitialized data doesn't get exposed by a
 				 * future truncate that extends the file.
-				 * 
+				 *
 				 * To prevent lock order problems, we must
 				 * truncate the file upstack, not here.
 				 */
 				SDT_PROBE2(fusefs, , io, trace, 1,
-					"Short read of a clean file");
+				    "Short read of a clean file");
 				fuse_vnode_clear_attr_cache(vp);
 			} else {
 				/*
@@ -835,7 +837,7 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 				 * both.
 				 */
 				SDT_PROBE2(fusefs, , io, trace, 1,
-					"Short read of a dirty file");
+				    "Short read of a dirty file");
 				uiop->uio_resid = 0;
 			}
 		}
@@ -845,8 +847,8 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 		}
 	} else {
 		/*
-	         * Setup for actual write
-	         */
+		 * Setup for actual write
+		 */
 		/*
 		 * If the file's size is cached, use that value, even if the
 		 * cache is expired.  At this point we're already committed to
@@ -861,20 +863,20 @@ fuse_io_strategy(struct vnode *vp, struct buf *bp)
 		KASSERT(filesize != VNOVAL, ("filesize should've been cached"));
 
 		if ((off_t)bp->b_lblkno * biosize + bp->b_dirtyend > filesize)
-			bp->b_dirtyend = filesize - 
-				(off_t)bp->b_lblkno * biosize;
+			bp->b_dirtyend = filesize -
+			    (off_t)bp->b_lblkno * biosize;
 
 		if (bp->b_dirtyend > bp->b_dirtyoff) {
-			io.iov_len = uiop->uio_resid = bp->b_dirtyend
-			    - bp->b_dirtyoff;
-			uiop->uio_offset = (off_t)bp->b_lblkno * biosize
-			    + bp->b_dirtyoff;
+			io.iov_len = uiop->uio_resid = bp->b_dirtyend -
+			    bp->b_dirtyoff;
+			uiop->uio_offset = (off_t)bp->b_lblkno * biosize +
+			    bp->b_dirtyoff;
 			io.iov_base = (char *)bp->b_data + bp->b_dirtyoff;
 			uiop->uio_rw = UIO_WRITE;
 
 			bool pages = bp->b_flags & B_FUSEFS_WRITE_CACHE;
 			error = fuse_write_directbackend(vp, uiop, cred, fufh,
-				filesize, 0, pages);
+			    filesize, 0, pages);
 
 			if (error == EINTR || error == ETIMEDOUT) {
 				bp->b_flags &= ~(B_INVAL | B_NOCACHE);

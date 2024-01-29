@@ -34,7 +34,7 @@ struct bundle;
 struct cmdargs;
 
 extern int system_Select(struct bundle *bundle, const char *, const char *,
-                        struct prompt *, struct datalink *);
+    struct prompt *, struct datalink *);
 extern const char *system_IsValid(const char *, struct prompt *, int);
 extern FILE *OpenSecret(const char *);
 extern void CloseSecret(FILE *);

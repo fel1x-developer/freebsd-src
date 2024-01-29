@@ -64,15 +64,14 @@
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
 #include <net/route.h>
-
-#include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211_freebsd.h>
+#include <net80211/ieee80211_ioctl.h>
+#include <net80211/ieee80211_mesh.h>
 #include <net80211/ieee80211_superg.h>
 #include <net80211/ieee80211_tdma.h>
-#include <net80211/ieee80211_mesh.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -80,12 +79,12 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <stdarg.h>
+#include <stddef.h> /* NB: for offsetof */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdarg.h>
-#include <stddef.h>		/* NB: for offsetof */
 
 #include "lib80211_ioctl.h"
 
@@ -99,8 +98,8 @@ lib80211_get80211(int s, const char *name, int type, void *data, int len)
 {
 	struct ieee80211req ireq;
 
-	(void) memset(&ireq, 0, sizeof(ireq));
-	(void) strncpy(ireq.i_name, name, sizeof(ireq.i_name));
+	(void)memset(&ireq, 0, sizeof(ireq));
+	(void)strncpy(ireq.i_name, name, sizeof(ireq.i_name));
 	ireq.i_type = type;
 	ireq.i_data = data;
 	ireq.i_len = len;
@@ -108,15 +107,16 @@ lib80211_get80211(int s, const char *name, int type, void *data, int len)
 }
 
 int
-lib80211_get80211len(int s, const char *name, int type, void *data, int len, int *plen)
+lib80211_get80211len(int s, const char *name, int type, void *data, int len,
+    int *plen)
 {
 	struct ieee80211req ireq;
 
-	(void) memset(&ireq, 0, sizeof(ireq));
-	(void) strncpy(ireq.i_name, name, sizeof(ireq.i_name));
+	(void)memset(&ireq, 0, sizeof(ireq));
+	(void)strncpy(ireq.i_name, name, sizeof(ireq.i_name));
 	ireq.i_type = type;
 	ireq.i_len = len;
-	assert(ireq.i_len == len);	/* NB: check for 16-bit truncation */
+	assert(ireq.i_len == len); /* NB: check for 16-bit truncation */
 	ireq.i_data = data;
 	if (ioctl(s, SIOCG80211, &ireq) < 0)
 		return -1;
@@ -129,8 +129,8 @@ lib80211_get80211val(int s, const char *name, int type, int *val)
 {
 	struct ieee80211req ireq;
 
-	(void) memset(&ireq, 0, sizeof(ireq));
-	(void) strncpy(ireq.i_name, name, sizeof(ireq.i_name));
+	(void)memset(&ireq, 0, sizeof(ireq));
+	(void)strncpy(ireq.i_name, name, sizeof(ireq.i_name));
 	ireq.i_type = type;
 	if (ioctl(s, SIOCG80211, &ireq) < 0)
 		return -1;
@@ -139,19 +139,19 @@ lib80211_get80211val(int s, const char *name, int type, int *val)
 }
 
 int
-lib80211_set80211(int s, const char *name, int type, int val, int len, void *data)
+lib80211_set80211(int s, const char *name, int type, int val, int len,
+    void *data)
 {
-	struct ieee80211req	ireq;
+	struct ieee80211req ireq;
 
-	(void) memset(&ireq, 0, sizeof(ireq));
-	(void) strncpy(ireq.i_name, name, sizeof(ireq.i_name));
+	(void)memset(&ireq, 0, sizeof(ireq));
+	(void)strncpy(ireq.i_name, name, sizeof(ireq.i_name));
 	ireq.i_type = type;
 	ireq.i_val = val;
 	ireq.i_len = len;
-	assert(ireq.i_len == len);	/* NB: check for 16-bit truncation */
+	assert(ireq.i_len == len); /* NB: check for 16-bit truncation */
 	ireq.i_data = data;
 	if (ioctl(s, SIOCS80211, &ireq) < 0)
 		return (-1);
 	return (0);
 }
-

@@ -34,10 +34,10 @@
 
 #include "tip.h"
 
-static	jmp_buf deadline;
-static	int deadfl;
+static jmp_buf deadline;
+static int deadfl;
 
-static void	dead(int);
+static void dead(int);
 
 /*ARGSUSED*/
 static void
@@ -75,8 +75,8 @@ hunt(char *name)
 			break;
 		if (setjmp(deadline) == 0) {
 			alarm(10);
-			FD = open(cp, (O_RDWR |
-			    (boolean(value(DC)) ? O_NONBLOCK : 0)));
+			FD = open(cp,
+			    (O_RDWR | (boolean(value(DC)) ? O_NONBLOCK : 0)));
 		}
 		alarm(0);
 		if (FD < 0) {

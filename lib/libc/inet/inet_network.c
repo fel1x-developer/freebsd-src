@@ -29,14 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <ctype.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * Internet network address interpretation routine.
@@ -52,7 +53,9 @@ inet_network(const char *cp)
 	int i, digit;
 
 again:
-	val = 0; base = 10; digit = 0;
+	val = 0;
+	base = 10;
+	digit = 0;
 	if (*cp == '0')
 		digit = 1, base = 8, cp++;
 	if (*cp == 'x' || *cp == 'X')
@@ -68,7 +71,7 @@ again:
 		}
 		if (base == 16U && isxdigit((unsigned char)c)) {
 			val = (val << 4) +
-			      (c + 10 - (islower((unsigned char)c) ? 'a' : 'A'));
+			    (c + 10 - (islower((unsigned char)c) ? 'a' : 'A'));
 			cp++;
 			digit = 1;
 			continue;
@@ -83,7 +86,7 @@ again:
 		*pp++ = val, cp++;
 		goto again;
 	}
-	if (*cp && !isspace(*cp&0xff))
+	if (*cp && !isspace(*cp & 0xff))
 		return (INADDR_NONE);
 	*pp++ = val;
 	n = pp - parts;

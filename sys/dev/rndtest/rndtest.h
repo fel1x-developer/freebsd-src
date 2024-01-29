@@ -34,27 +34,27 @@
  */
 
 /* Some of the tests depend on these values */
-#define	RNDTEST_NBYTES	2500
-#define	RNDTEST_NBITS	(8 * RNDTEST_NBYTES)
+#define RNDTEST_NBYTES 2500
+#define RNDTEST_NBITS (8 * RNDTEST_NBYTES)
 
 struct rndtest_state {
-	device_t	rs_parent;	/* associated device */
-	u_int8_t	*rs_end, *rs_begin, *rs_current;
-	struct callout	rs_to;
-	int		rs_collect;	/* collect and test data */
-	int		rs_discard;	/* discard/accept random data */
-	u_int8_t	rs_buf[RNDTEST_NBYTES];
+	device_t rs_parent; /* associated device */
+	u_int8_t *rs_end, *rs_begin, *rs_current;
+	struct callout rs_to;
+	int rs_collect; /* collect and test data */
+	int rs_discard; /* discard/accept random data */
+	u_int8_t rs_buf[RNDTEST_NBYTES];
 };
 
 struct rndtest_stats {
-	u_int32_t	rst_discard;	/* number of bytes discarded */
-	u_int32_t	rst_tests;	/* number of test runs */
-	u_int32_t	rst_monobit;	/* monobit test failures */
-	u_int32_t	rst_runs;	/* 0/1 runs failures */
-	u_int32_t	rst_longruns;	/* longruns failures */
-	u_int32_t	rst_chi;	/* chi^2 failures */
+	u_int32_t rst_discard;	/* number of bytes discarded */
+	u_int32_t rst_tests;	/* number of test runs */
+	u_int32_t rst_monobit;	/* monobit test failures */
+	u_int32_t rst_runs;	/* 0/1 runs failures */
+	u_int32_t rst_longruns; /* longruns failures */
+	u_int32_t rst_chi;	/* chi^2 failures */
 };
 
-extern 	struct rndtest_state *rndtest_attach(device_t dev);
-extern	void rndtest_detach(struct rndtest_state *);
-extern	void rndtest_harvest(struct rndtest_state *arg, void * buf, u_int len);
+extern struct rndtest_state *rndtest_attach(device_t dev);
+extern void rndtest_detach(struct rndtest_state *);
+extern void rndtest_harvest(struct rndtest_state *arg, void *buf, u_int len);

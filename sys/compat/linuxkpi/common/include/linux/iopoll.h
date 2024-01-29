@@ -25,68 +25,70 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_IOPOLL_H
-#define	_LINUXKPI_LINUX_IOPOLL_H
+#ifndef _LINUXKPI_LINUX_IOPOLL_H
+#define _LINUXKPI_LINUX_IOPOLL_H
 
 #include <sys/types.h>
 #include <sys/time.h>
+
 #include <linux/delay.h>
 
-#define	read_poll_timeout(_pollfp, _var, _cond, _us, _to, _early_sleep, ...)	\
-({										\
-	struct timeval __now, __end;						\
-	if (_to) {								\
-		__end.tv_sec = (_to) / USEC_PER_SEC;				\
-		__end.tv_usec = (_to) % USEC_PER_SEC;				\
-		microtime(&__now);						\
-		timevaladd(&__end, &__now);					\
-	}									\
-										\
-	if ((_early_sleep) && (_us) > 0)					\
-		usleep_range(_us, _us);						\
-	do {									\
-		(_var) = _pollfp(__VA_ARGS__);					\
-		if (_cond)							\
-			break;							\
-		if (_to) {							\
-			microtime(&__now);					\
-			if (timevalcmp(&__now, &__end, >))			\
-				break;						\
-		}								\
-		if ((_us) != 0)							\
-			usleep_range(_us, _us);					\
-	} while (1);								\
-	(_cond) ? 0 : (-ETIMEDOUT);						\
-})
+#define read_poll_timeout(_pollfp, _var, _cond, _us, _to, _early_sleep, ...) \
+	({                                                                   \
+		struct timeval __now, __end;                                 \
+		if (_to) {                                                   \
+			__end.tv_sec = (_to) / USEC_PER_SEC;                 \
+			__end.tv_usec = (_to) % USEC_PER_SEC;                \
+			microtime(&__now);                                   \
+			timevaladd(&__end, &__now);                          \
+		}                                                            \
+                                                                             \
+		if ((_early_sleep) && (_us) > 0)                             \
+			usleep_range(_us, _us);                              \
+		do {                                                         \
+			(_var) = _pollfp(__VA_ARGS__);                       \
+			if (_cond)                                           \
+				break;                                       \
+			if (_to) {                                           \
+				microtime(&__now);                           \
+				if (timevalcmp(&__now, &__end, >))           \
+					break;                               \
+			}                                                    \
+			if ((_us) != 0)                                      \
+				usleep_range(_us, _us);                      \
+		} while (1);                                                 \
+		(_cond) ? 0 : (-ETIMEDOUT);                                  \
+	})
 
-#define readx_poll_timeout(_pollfp, _addr, _var, _cond, _us, _to)		\
+#define readx_poll_timeout(_pollfp, _addr, _var, _cond, _us, _to) \
 	read_poll_timeout(_pollfp, _var, _cond, _us, _to, false, _addr)
 
-#define	read_poll_timeout_atomic(_pollfp, _var, _cond, _us, _to, _early_sleep, ...)	\
-({										\
-	struct timeval __now, __end;						\
-	if (_to) {								\
-		__end.tv_sec = (_to) / USEC_PER_SEC;				\
-		__end.tv_usec = (_to) % USEC_PER_SEC;				\
-		microtime(&__now);						\
-		timevaladd(&__end, &__now);					\
-	}									\
-										\
-	if ((_early_sleep) && (_us) > 0)					\
-		DELAY(_us);							\
-	do {									\
-		(_var) = _pollfp(__VA_ARGS__);					\
-		if (_cond)							\
-			break;							\
-		if (_to) {							\
-			microtime(&__now);					\
-			if (timevalcmp(&__now, &__end, >))			\
-				break;						\
-		}								\
-		if ((_us) != 0)							\
-			DELAY(_us);						\
-	} while (1);								\
-	(_cond) ? 0 : (-ETIMEDOUT);						\
-})
+#define read_poll_timeout_atomic(_pollfp, _var, _cond, _us, _to, _early_sleep, \
+    ...)                                                                       \
+	({                                                                     \
+		struct timeval __now, __end;                                   \
+		if (_to) {                                                     \
+			__end.tv_sec = (_to) / USEC_PER_SEC;                   \
+			__end.tv_usec = (_to) % USEC_PER_SEC;                  \
+			microtime(&__now);                                     \
+			timevaladd(&__end, &__now);                            \
+		}                                                              \
+                                                                               \
+		if ((_early_sleep) && (_us) > 0)                               \
+			DELAY(_us);                                            \
+		do {                                                           \
+			(_var) = _pollfp(__VA_ARGS__);                         \
+			if (_cond)                                             \
+				break;                                         \
+			if (_to) {                                             \
+				microtime(&__now);                             \
+				if (timevalcmp(&__now, &__end, >))             \
+					break;                                 \
+			}                                                      \
+			if ((_us) != 0)                                        \
+				DELAY(_us);                                    \
+		} while (1);                                                   \
+		(_cond) ? 0 : (-ETIMEDOUT);                                    \
+	})
 
-#endif	/* _LINUXKPI_LINUX_IOPOLL_H */
+#endif /* _LINUXKPI_LINUX_IOPOLL_H */

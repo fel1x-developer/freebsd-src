@@ -25,30 +25,29 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/ctype.h>
-#include <sys/kernel.h>
-#include <sys/systm.h>
+#include <sys/dnv.h>
 #include <sys/iov.h>
+#include <sys/iov_schema.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/nv.h>
 #include <sys/queue.h>
 
 #include <machine/stdarg.h>
 
-#include <sys/dnv.h>
-#include <sys/nv.h>
-#include <sys/iov_schema.h>
+#include <dev/pci/schema_private.h>
 
 #include <net/ethernet.h>
 
-#include <dev/pci/schema_private.h>
-
 struct config_type_validator;
-typedef int (validate_func)(const struct config_type_validator *,
-   const nvlist_t *, const char *name);
-typedef int (default_validate_t)(const struct config_type_validator *,
-   const nvlist_t *);
+typedef int(validate_func)(const struct config_type_validator *,
+    const nvlist_t *, const char *name);
+typedef int(
+    default_validate_t)(const struct config_type_validator *, const nvlist_t *);
 
 static validate_func pci_iov_schema_validate_bool;
 static validate_func pci_iov_schema_validate_string;
@@ -68,44 +67,32 @@ struct config_type_validator {
 };
 
 static struct config_type_validator pci_iov_schema_validators[] = {
+	{ .type_name = "bool",
+	    .validate = pci_iov_schema_validate_bool,
+	    .default_validate = pci_iov_validate_bool_default },
+	{ .type_name = "string",
+	    .validate = pci_iov_schema_validate_string,
+	    .default_validate = pci_iov_validate_string_default },
+	{ .type_name = "uint8_t",
+	    .validate = pci_iov_schema_validate_uint,
+	    .default_validate = pci_iov_validate_uint_default,
+	    .limit = UINT8_MAX },
+	{ .type_name = "uint16_t",
+	    .validate = pci_iov_schema_validate_uint,
+	    .default_validate = pci_iov_validate_uint_default,
+	    .limit = UINT16_MAX },
+	{ .type_name = "uint32_t",
+	    .validate = pci_iov_schema_validate_uint,
+	    .default_validate = pci_iov_validate_uint_default,
+	    .limit = UINT32_MAX },
+	{ .type_name = "uint64_t",
+	    .validate = pci_iov_schema_validate_uint,
+	    .default_validate = pci_iov_validate_uint_default,
+	    .limit = UINT64_MAX },
 	{
-		.type_name = "bool",
-		.validate = pci_iov_schema_validate_bool,
-		.default_validate = pci_iov_validate_bool_default
-	},
-	{
-		.type_name = "string",
-		.validate = pci_iov_schema_validate_string,
-		.default_validate = pci_iov_validate_string_default
-	},
-	{
-		.type_name = "uint8_t",
-		.validate = pci_iov_schema_validate_uint,
-		.default_validate = pci_iov_validate_uint_default,
-		.limit = UINT8_MAX
-	},
-	{
-		.type_name = "uint16_t",
-		.validate = pci_iov_schema_validate_uint,
-		.default_validate = pci_iov_validate_uint_default,
-		.limit = UINT16_MAX
-	},
-	{
-		.type_name = "uint32_t",
-		.validate = pci_iov_schema_validate_uint,
-		.default_validate = pci_iov_validate_uint_default,
-		.limit = UINT32_MAX
-	},
-	{
-		.type_name = "uint64_t",
-		.validate = pci_iov_schema_validate_uint,
-		.default_validate = pci_iov_validate_uint_default,
-		.limit = UINT64_MAX
-	},
-	{
-		.type_name = "unicast-mac",
-		.validate = pci_iov_schema_validate_unicast_mac,
-		.default_validate = pci_iov_validate_unicast_mac_default,
+	    .type_name = "unicast-mac",
+	    .validate = pci_iov_schema_validate_unicast_mac,
+	    .default_validate = pci_iov_validate_unicast_mac_default,
 	},
 };
 
@@ -243,7 +230,7 @@ pci_iov_schema_add_uint64(nvlist_t *schema, const char *name, uint32_t flags,
 
 void
 pci_iov_schema_add_unicast_mac(nvlist_t *schema, const char *name,
-    uint32_t flags, const uint8_t * defaultVal)
+    uint32_t flags, const uint8_t *defaultVal)
 {
 	nvlist_t *entry;
 
@@ -262,8 +249,8 @@ pci_iov_schema_add_unicast_mac(nvlist_t *schema, const char *name,
 }
 
 static int
-pci_iov_schema_validate_bool(const struct config_type_validator * validator,
-   const nvlist_t *config, const char *name)
+pci_iov_schema_validate_bool(const struct config_type_validator *validator,
+    const nvlist_t *config, const char *name)
 {
 
 	if (!nvlist_exists_bool(config, name))
@@ -272,8 +259,8 @@ pci_iov_schema_validate_bool(const struct config_type_validator * validator,
 }
 
 static int
-pci_iov_schema_validate_string(const struct config_type_validator * validator,
-   const nvlist_t *config, const char *name)
+pci_iov_schema_validate_string(const struct config_type_validator *validator,
+    const nvlist_t *config, const char *name)
 {
 
 	if (!nvlist_exists_string(config, name))
@@ -282,8 +269,8 @@ pci_iov_schema_validate_string(const struct config_type_validator * validator,
 }
 
 static int
-pci_iov_schema_validate_uint(const struct config_type_validator * validator,
-   const nvlist_t *config, const char *name)
+pci_iov_schema_validate_uint(const struct config_type_validator *validator,
+    const nvlist_t *config, const char *name)
 {
 	uint64_t value;
 
@@ -300,8 +287,8 @@ pci_iov_schema_validate_uint(const struct config_type_validator * validator,
 
 static int
 pci_iov_schema_validate_unicast_mac(
-   const struct config_type_validator * validator,
-   const nvlist_t *config, const char *name)
+    const struct config_type_validator *validator, const nvlist_t *config,
+    const char *name)
 {
 	const uint8_t *mac;
 	size_t size;
@@ -347,8 +334,8 @@ pci_iov_config_add_default(const nvlist_t *param_schema, const char *name,
 }
 
 static int
-pci_iov_validate_bool_default(const struct config_type_validator * validator,
-   const nvlist_t *param)
+pci_iov_validate_bool_default(const struct config_type_validator *validator,
+    const nvlist_t *param)
 {
 
 	if (!nvlist_exists_bool(param, DEFAULT_SCHEMA_NAME))
@@ -357,8 +344,8 @@ pci_iov_validate_bool_default(const struct config_type_validator * validator,
 }
 
 static int
-pci_iov_validate_string_default(const struct config_type_validator * validator,
-   const nvlist_t *param)
+pci_iov_validate_string_default(const struct config_type_validator *validator,
+    const nvlist_t *param)
 {
 
 	if (!nvlist_exists_string(param, DEFAULT_SCHEMA_NAME))
@@ -367,8 +354,8 @@ pci_iov_validate_string_default(const struct config_type_validator * validator,
 }
 
 static int
-pci_iov_validate_uint_default(const struct config_type_validator * validator,
-   const nvlist_t *param)
+pci_iov_validate_uint_default(const struct config_type_validator *validator,
+    const nvlist_t *param)
 {
 	uint64_t defaultVal;
 
@@ -383,7 +370,7 @@ pci_iov_validate_uint_default(const struct config_type_validator * validator,
 
 static int
 pci_iov_validate_unicast_mac_default(
-   const struct config_type_validator * validator, const nvlist_t *param)
+    const struct config_type_validator *validator, const nvlist_t *param)
 {
 	const uint8_t *mac;
 	size_t size;
@@ -710,7 +697,7 @@ pci_iov_schema_validate_vfs(const nvlist_t *schema, nvlist_t *config,
 	int i, error;
 
 	for (i = 0; i < num_vfs; i++) {
-		snprintf(device, sizeof(device), VF_PREFIX"%d", i);
+		snprintf(device, sizeof(device), VF_PREFIX "%d", i);
 
 		error = pci_iov_schema_validate_device(schema, config,
 		    VF_SCHEMA_NAME, device);

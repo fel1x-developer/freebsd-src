@@ -15,20 +15,17 @@
 *******************************************************************************
 */
 #include "cpa.h"
-
+#include "cpa_cy_sym.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
-
+#include "lac_common.h"
 #include "lac_log.h"
 #include "lac_sym.h"
-#include "cpa_cy_sym.h"
-#include "lac_common.h"
-
 #include "lac_sym_partial.h"
 
 CpaStatus
 LacSym_PartialPacketStateCheck(CpaCySymPacketType packetType,
-			       CpaCySymPacketType partialState)
+    CpaCySymPacketType partialState)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -40,12 +37,12 @@ LacSym_PartialPacketStateCheck(CpaCySymPacketType packetType,
 
 	/* state is no partial - only a partial is allowed */
 	if (((CPA_CY_SYM_PACKET_TYPE_FULL == partialState) &&
-	     (CPA_CY_SYM_PACKET_TYPE_PARTIAL == packetType)) ||
+		(CPA_CY_SYM_PACKET_TYPE_PARTIAL == packetType)) ||
 
 	    /* state is partial - only a partial or final partial is allowed */
 	    ((CPA_CY_SYM_PACKET_TYPE_PARTIAL == partialState) &&
-	     ((CPA_CY_SYM_PACKET_TYPE_PARTIAL == packetType) ||
-	      (CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL == packetType)))) {
+		((CPA_CY_SYM_PACKET_TYPE_PARTIAL == packetType) ||
+		    (CPA_CY_SYM_PACKET_TYPE_LAST_PARTIAL == packetType)))) {
 		status = CPA_STATUS_SUCCESS;
 	} else /* invalid sequence */
 	{
@@ -58,7 +55,7 @@ LacSym_PartialPacketStateCheck(CpaCySymPacketType packetType,
 
 void
 LacSym_PartialPacketStateUpdate(CpaCySymPacketType packetType,
-				CpaCySymPacketType *pPartialState)
+    CpaCySymPacketType *pPartialState)
 {
 	/* if previous packet was either a full or ended a partial stream,
 	 * update

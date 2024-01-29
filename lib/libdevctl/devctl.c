@@ -25,10 +25,12 @@
 
 #include <sys/types.h>
 #include <sys/bus.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "devctl.h"
 
 static int
@@ -70,8 +72,8 @@ int
 devctl_detach(const char *device, bool force)
 {
 
-	return (devctl_simple_request(DEV_DETACH, device, force ?
-	    DEVF_FORCE_DETACH : 0));
+	return (devctl_simple_request(DEV_DETACH, device,
+	    force ? DEVF_FORCE_DETACH : 0));
 }
 
 int
@@ -85,8 +87,8 @@ int
 devctl_disable(const char *device, bool force_detach)
 {
 
-	return (devctl_simple_request(DEV_DISABLE, device, force_detach ?
-	    DEVF_FORCE_DETACH : 0));
+	return (devctl_simple_request(DEV_DISABLE, device,
+	    force_detach ? DEVF_FORCE_DETACH : 0));
 }
 
 int
@@ -124,8 +126,8 @@ int
 devctl_clear_driver(const char *device, bool force)
 {
 
-	return (devctl_simple_request(DEV_CLEAR_DRIVER, device, force ?
-	    DEVF_CLEAR_DRIVER_DETACH : 0));
+	return (devctl_simple_request(DEV_CLEAR_DRIVER, device,
+	    force ? DEVF_CLEAR_DRIVER_DETACH : 0));
 }
 
 int
@@ -139,8 +141,8 @@ int
 devctl_delete(const char *device, bool force)
 {
 
-	return (devctl_simple_request(DEV_DELETE, device, force ?
-	    DEVF_FORCE_DELETE : 0));
+	return (devctl_simple_request(DEV_DELETE, device,
+	    force ? DEVF_FORCE_DELETE : 0));
 }
 
 int
@@ -161,8 +163,8 @@ int
 devctl_reset(const char *device, bool detach)
 {
 
-	return (devctl_simple_request(DEV_RESET, device, detach ?
-	    DEVF_RESET_DETACH : 0));
+	return (devctl_simple_request(DEV_RESET, device,
+	    detach ? DEVF_RESET_DETACH : 0));
 }
 
 #define BUFLEN 1024

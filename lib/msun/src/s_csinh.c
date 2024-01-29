@@ -64,7 +64,7 @@ csinh(double complex z)
 	if (ix < 0x7ff00000 && iy < 0x7ff00000) {
 		if ((iy | ly) == 0)
 			return (CMPLX(sinh(x), y));
-		if (ix < 0x40360000)	/* |x| < 22: normal case */
+		if (ix < 0x40360000) /* |x| < 22: normal case */
 			return (CMPLX(sinh(x) * cos(y), cosh(x) * sin(y)));
 
 		/* |x| >= 22, so cosh(x) ~= exp(|x|) */
@@ -92,7 +92,7 @@ csinh(double complex z)
 	 * The sign of 0 in the result is unspecified.  Choice = same sign
 	 * as the argument.
 	 */
-	if ((ix | lx) == 0)		/* && iy >= 0x7ff00000 */
+	if ((ix | lx) == 0) /* && iy >= 0x7ff00000 */
 		return (CMPLX(x, y - y));
 
 	/*
@@ -100,7 +100,7 @@ csinh(double complex z)
 	 *
 	 * sinh(NaN +- I 0)   = d(NaN) + I +-0.
 	 */
-	if ((iy | ly) == 0)		/* && ix >= 0x7ff00000 */
+	if ((iy | ly) == 0) /* && ix >= 0x7ff00000 */
 		return (CMPLX(x + x, y));
 
 	/*
@@ -111,7 +111,7 @@ csinh(double complex z)
 	 * Optionally raises the invalid floating-point exception for finite
 	 * nonzero x.  Choice = don't raise (except for signaling NaNs).
 	 */
-	if (ix < 0x7ff00000)		/* && iy >= 0x7ff00000 */
+	if (ix < 0x7ff00000) /* && iy >= 0x7ff00000 */
 		return (CMPLX(y - y, y - y));
 
 	/*

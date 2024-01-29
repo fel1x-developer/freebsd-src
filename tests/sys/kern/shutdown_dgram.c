@@ -27,13 +27,14 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+
+#include <netinet/in.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <netinet/in.h>
-
-#include <atf-c.h>
 
 /*
  * shutdown(2) on SOCK_DGRAM shall return ENOTCONN per POSIX.  However, there
@@ -50,7 +51,6 @@
  * https://reviews.freebsd.org/D3039 (regresses)
  * kern/84761 c5cff17017f9 aada5cccd878
  */
-
 
 static void *
 blocking_thread(void *arg)

@@ -35,13 +35,15 @@
 
 static int ntest = 1;
 
-#define	CHECK(expr)	do {						\
-	if ((expr))							\
-		printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok # %d %s:%u\n", ntest, __FILE__, __LINE__);\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                           \
+	do {                                                                  \
+		if ((expr))                                                   \
+			printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                          \
+			printf("not ok # %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+		ntest++;                                                      \
+	} while (0)
 
 int
 main(void)
@@ -108,10 +110,13 @@ main(void)
 	CHECK(nvlist_error(nvl) == 0);
 	CHECK(nvlist_exists_string(nvl, "nvlist/string/x"));
 
-	CHECK(!nvlist_exists_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
-	nvlist_add_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz");
+	CHECK(!nvlist_exists_string(nvl,
+	    "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
+	nvlist_add_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz",
+	    "abcdefghijklmnopqrstuvwxyz");
 	CHECK(nvlist_error(nvl) == 0);
-	CHECK(nvlist_exists_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_string(nvl,
+	    "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
 
 	CHECK(!nvlist_exists_string(nvl, "nvlist/stringf/"));
 	nvlist_add_stringf(nvl, "nvlist/stringf/", "%s", "");
@@ -124,12 +129,15 @@ main(void)
 	CHECK(nvlist_exists_string(nvl, "nvlist/stringf/x"));
 
 	CHECK(!nvlist_exists_string(nvl, "nvlist/stringf/666Xabc"));
-	nvlist_add_stringf(nvl, "nvlist/stringf/666Xabc", "%d%c%s", 666, 'X', "abc");
+	nvlist_add_stringf(nvl, "nvlist/stringf/666Xabc", "%d%c%s", 666, 'X',
+	    "abc");
 	CHECK(nvlist_error(nvl) == 0);
 	CHECK(nvlist_exists_string(nvl, "nvlist/stringf/666Xabc"));
 
-	CHECK(!nvlist_exists_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO"));
-	nvlist_add_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO", STDERR_FILENO);
+	CHECK(
+	    !nvlist_exists_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO"));
+	nvlist_add_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO",
+	    STDERR_FILENO);
 	CHECK(nvlist_error(nvl) == 0);
 	CHECK(nvlist_exists_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO"));
 
@@ -138,10 +146,13 @@ main(void)
 	CHECK(nvlist_error(nvl) == 0);
 	CHECK(nvlist_exists_binary(nvl, "nvlist/binary/x"));
 
-	CHECK(!nvlist_exists_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
-	nvlist_add_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz", sizeof("abcdefghijklmnopqrstuvwxyz"));
+	CHECK(!nvlist_exists_binary(nvl,
+	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
+	nvlist_add_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz",
+	    "abcdefghijklmnopqrstuvwxyz", sizeof("abcdefghijklmnopqrstuvwxyz"));
 	CHECK(nvlist_error(nvl) == 0);
-	CHECK(nvlist_exists_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_binary(nvl,
+	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
 
 	CHECK(!nvlist_exists_nvlist(nvl, "nvlist/nvlist"));
 	nvlist_add_nvlist(nvl, "nvlist/nvlist", nvl);
@@ -159,13 +170,15 @@ main(void)
 	CHECK(nvlist_exists_number(nvl, "nvlist/number/INT64_MAX"));
 	CHECK(nvlist_exists_string(nvl, "nvlist/string/"));
 	CHECK(nvlist_exists_string(nvl, "nvlist/string/x"));
-	CHECK(nvlist_exists_string(nvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_string(nvl,
+	    "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
 	CHECK(nvlist_exists_string(nvl, "nvlist/stringf/"));
 	CHECK(nvlist_exists_string(nvl, "nvlist/stringf/x"));
 	CHECK(nvlist_exists_string(nvl, "nvlist/stringf/666Xabc"));
 	CHECK(nvlist_exists_descriptor(nvl, "nvlist/descriptor/STDERR_FILENO"));
 	CHECK(nvlist_exists_binary(nvl, "nvlist/binary/x"));
-	CHECK(nvlist_exists_binary(nvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_binary(nvl,
+	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
 	CHECK(nvlist_exists_nvlist(nvl, "nvlist/nvlist"));
 
 	cnvl = nvlist_get_nvlist(nvl, "nvlist/nvlist");
@@ -180,13 +193,16 @@ main(void)
 	CHECK(nvlist_exists_number(cnvl, "nvlist/number/INT64_MAX"));
 	CHECK(nvlist_exists_string(cnvl, "nvlist/string/"));
 	CHECK(nvlist_exists_string(cnvl, "nvlist/string/x"));
-	CHECK(nvlist_exists_string(cnvl, "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_string(cnvl,
+	    "nvlist/string/abcdefghijklmnopqrstuvwxyz"));
 	CHECK(nvlist_exists_string(cnvl, "nvlist/stringf/"));
 	CHECK(nvlist_exists_string(cnvl, "nvlist/stringf/x"));
 	CHECK(nvlist_exists_string(cnvl, "nvlist/stringf/666Xabc"));
-	CHECK(nvlist_exists_descriptor(cnvl, "nvlist/descriptor/STDERR_FILENO"));
+	CHECK(
+	    nvlist_exists_descriptor(cnvl, "nvlist/descriptor/STDERR_FILENO"));
 	CHECK(nvlist_exists_binary(cnvl, "nvlist/binary/x"));
-	CHECK(nvlist_exists_binary(cnvl, "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
+	CHECK(nvlist_exists_binary(cnvl,
+	    "nvlist/binary/abcdefghijklmnopqrstuvwxyz"));
 
 	nvlist_destroy(nvl);
 

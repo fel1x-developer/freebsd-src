@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <net/pfkeyv2.h>
 #include <netinet/in.h>
 #include <netipsec/ipsec.h>
@@ -42,12 +43,11 @@
 
 #include "main.h"
 
-static char	policy_bypass[]	= "in bypass";
-static char	policy_entrust[] = "in entrust";
-static char	*bypassbuf = NULL;
-static char	*entrustbuf = NULL;
-static int	sd = -1;
-
+static char policy_bypass[] = "in bypass";
+static char policy_entrust[] = "in entrust";
+static char *bypassbuf = NULL;
+static char *entrustbuf = NULL;
+static int sd = -1;
 
 static int
 priv_netinet_ipsec_policy_bypass_setup_af(int asroot, int injail,
@@ -103,13 +103,13 @@ priv_netinet_ipsec_policy6_bypass_setup(int asroot, int injail,
 }
 #endif
 
-
 static int
 priv_netinet_ipsec_policy_entrust_setup_af(int asroot, int injail,
     struct test *test, int af)
 {
 
-	entrustbuf = ipsec_set_policy(policy_entrust, sizeof(policy_entrust)-1);
+	entrustbuf = ipsec_set_policy(policy_entrust,
+	    sizeof(policy_entrust) - 1);
 	if (entrustbuf == NULL) {
 		warn("%s: ipsec_set_policy(NULL)", __func__);
 		return (-1);
@@ -173,21 +173,20 @@ priv_netinet_ipsec_pfkey(int asroot, int injail, struct test *test)
 	 * sys/kern/uipc_socket.c:socreate cred checks are working correctly.
 	 */
 	if (asroot && injail)
-		expect("priv_netinet_ipsec_pfkey(asroot, injail)", error,
-		    -1, EPROTONOSUPPORT);
+		expect("priv_netinet_ipsec_pfkey(asroot, injail)", error, -1,
+		    EPROTONOSUPPORT);
 	if (asroot && !injail)
-		expect("priv_netinet_ipsec_pfkey(asroot, !injail)", error,
-		    0, 0);
+		expect("priv_netinet_ipsec_pfkey(asroot, !injail)", error, 0,
+		    0);
 	if (!asroot && injail)
-		expect("priv_netinet_ipsec_pfkey(!asroot, injail)", error,
-		    -1, EPROTONOSUPPORT);
+		expect("priv_netinet_ipsec_pfkey(!asroot, injail)", error, -1,
+		    EPROTONOSUPPORT);
 	if (!asroot && !injail)
-		expect("priv_netinet_ipsec_pfkey(!asroot, !injail)", error,
-		    -1, EPERM);
+		expect("priv_netinet_ipsec_pfkey(!asroot, !injail)", error, -1,
+		    EPERM);
 	if (fd >= 0)
 		(void)close(fd);
 }
-
 
 static void
 priv_netinet_ipsec_policy_bypass_af(int asroot, int injail, struct test *test,
@@ -210,8 +209,8 @@ priv_netinet_ipsec_policy_bypass_af(int asroot, int injail, struct test *test,
 		warnx("%s: unexpected address family", __func__);
 		return;
 	}
-	error = setsockopt(sd, level, optname,
-	    bypassbuf, ipsec_get_policylen(bypassbuf));
+	error = setsockopt(sd, level, optname, bypassbuf,
+	    ipsec_get_policylen(bypassbuf));
 	if (asroot && injail)
 		expect("priv_netinet_ipsec_policy_bypass(asroot, injail)",
 		    error, -1, EACCES); /* see ipsec_set_policy */
@@ -263,8 +262,8 @@ priv_netinet_ipsec_policy_entrust_af(int asroot, int injail, struct test *test,
 		warnx("%s: unexpected address family", __func__);
 		return;
 	}
-	error = setsockopt(sd, level, optname,
-	    entrustbuf, ipsec_get_policylen(entrustbuf));
+	error = setsockopt(sd, level, optname, entrustbuf,
+	    ipsec_get_policylen(entrustbuf));
 	if (asroot && injail)
 		expect("priv_netinet_ipsec_policy_entrust(asroot, injail)",
 		    error, 0, 0); /* XXX ipsec_set_policy */
@@ -324,4 +323,3 @@ priv_netinet_ipsec_policy_entrust_cleanup(int asroot, int injail,
 		sd = -1;
 	}
 }
-

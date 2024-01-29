@@ -34,8 +34,9 @@
 #define MLX5_FPGA_SDK_H
 
 #include <dev/mlx5/driver.h>
-#include <linux/types.h>
+
 #include <linux/list.h>
+#include <linux/types.h>
 /* #include <linux/dma-direction.h> */
 
 #include <dev/mlx5/mlx5_fpga/cmd.h>
@@ -70,7 +71,7 @@ struct mlx5_fpga_client {
 	 * Any SBU-specific initialization should happen at this stage
 	 * Return: 0 on success, nonzero error value otherwise
 	 */
-	int  (*add)(struct mlx5_fpga_device *fdev, u32 vid, u16 pid);
+	int (*add)(struct mlx5_fpga_device *fdev, u32 vid, u16 pid);
 	/**
 	 * @remove: Informs the client that a core device is not operational
 	 *          anymore.
@@ -99,7 +100,8 @@ struct mlx5_fpga_dma_entry {
 	void *data;
 	/** @size: Size in bytes of the data */
 	unsigned int size;
-	/** @dma_addr: Private member. Physical DMA-mapped address of the data */
+	/** @dma_addr: Private member. Physical DMA-mapped address of the data
+	 */
 	dma_addr_t dma_addr;
 };
 
@@ -122,8 +124,8 @@ struct mlx5_fpga_dma_buf {
 	 * @status: 0 if successful, or an error code otherwise
 	 */
 	void (*complete)(struct mlx5_fpga_conn *conn,
-			 struct mlx5_fpga_device *fdev,
-			 struct mlx5_fpga_dma_buf *buf, u8 status);
+	    struct mlx5_fpga_device *fdev, struct mlx5_fpga_dma_buf *buf,
+	    u8 status);
 };
 
 /**
@@ -182,7 +184,7 @@ void mlx5_fpga_client_unregister(struct mlx5_fpga_client *client);
  * Return: 0 if successful, or a negative error value otherwise
  */
 int mlx5_fpga_device_reload(struct mlx5_fpga_device *fdev,
-			    enum mlx5_fpga_image image);
+    enum mlx5_fpga_image image);
 
 /**
  * mlx5_fpga_flash_select() - Select the current active flash
@@ -196,7 +198,7 @@ int mlx5_fpga_device_reload(struct mlx5_fpga_device *fdev,
  * Return: 0 if successful, or a negative error value otherwise
  */
 int mlx5_fpga_flash_select(struct mlx5_fpga_device *fdev,
-			   enum mlx5_fpga_image image);
+    enum mlx5_fpga_image image);
 
 /**
  * mlx5_fpga_sbu_conn_create() - Initialize a new FPGA SBU connection
@@ -212,9 +214,8 @@ int mlx5_fpga_flash_select(struct mlx5_fpga_device *fdev,
  *
  * Return: A new connection, or ERR_PTR() error value otherwise.
  */
-struct mlx5_fpga_conn *
-mlx5_fpga_sbu_conn_create(struct mlx5_fpga_device *fdev,
-			  struct mlx5_fpga_conn_attr *attr);
+struct mlx5_fpga_conn *mlx5_fpga_sbu_conn_create(struct mlx5_fpga_device *fdev,
+    struct mlx5_fpga_conn_attr *attr);
 
 /**
  * mlx5_fpga_sbu_conn_destroy() - Destroy an FPGA SBU connection
@@ -238,7 +239,7 @@ void mlx5_fpga_sbu_conn_destroy(struct mlx5_fpga_conn *conn);
  * Return: 0 if successful, or an error value otherwise.
  */
 int mlx5_fpga_sbu_conn_sendmsg(struct mlx5_fpga_conn *conn,
-			       struct mlx5_fpga_dma_buf *buf);
+    struct mlx5_fpga_dma_buf *buf);
 
 /**
  * mlx5_fpga_mem_read() - Read from FPGA memory address space
@@ -256,7 +257,7 @@ int mlx5_fpga_sbu_conn_sendmsg(struct mlx5_fpga_conn *conn,
  * Return: 0 if successful, or an error value otherwise.
  */
 int mlx5_fpga_mem_read(struct mlx5_fpga_device *fdev, size_t size, u64 addr,
-		       void *buf, enum mlx5_fpga_access_type access_type);
+    void *buf, enum mlx5_fpga_access_type access_type);
 
 /**
  * mlx5_fpga_mem_write() - Write to FPGA memory address space
@@ -274,7 +275,7 @@ int mlx5_fpga_mem_read(struct mlx5_fpga_device *fdev, size_t size, u64 addr,
  * Return: 0 if successful, or an error value otherwise.
  */
 int mlx5_fpga_mem_write(struct mlx5_fpga_device *fdev, size_t size, u64 addr,
-			void *buf, enum mlx5_fpga_access_type access_type);
+    void *buf, enum mlx5_fpga_access_type access_type);
 
 /**
  * mlx5_fpga_get_sbu_caps() - Read the SBU capabilities
@@ -318,8 +319,7 @@ u64 mlx5_fpga_ddr_base_get(struct mlx5_fpga_device *fdev);
  * mlx5_fpga_client_data_get().
  */
 void mlx5_fpga_client_data_set(struct mlx5_fpga_device *fdev,
-			       struct mlx5_fpga_client *client,
-			       void *data);
+    struct mlx5_fpga_client *client, void *data);
 
 /**
  * mlx5_fpga_client_data_get() - Retrieve client-defined private value
@@ -332,7 +332,7 @@ void mlx5_fpga_client_data_set(struct mlx5_fpga_device *fdev,
  * Return: The private value
  */
 void *mlx5_fpga_client_data_get(struct mlx5_fpga_device *fdev,
-				struct mlx5_fpga_client *client);
+    struct mlx5_fpga_client *client);
 
 /**
  * mlx5_fpga_device_query() - Query FPGA device state information
@@ -342,7 +342,7 @@ void *mlx5_fpga_client_data_get(struct mlx5_fpga_device *fdev,
  * Queries the device state and returns it in *query
  */
 void mlx5_fpga_device_query(struct mlx5_fpga_device *fdev,
-			    struct mlx5_fpga_query *query);
+    struct mlx5_fpga_query *query);
 
 /**
  * mlx5_fpga_dev() - Retrieve FPGA device structure
@@ -361,7 +361,7 @@ struct device *mlx5_fpga_dev(struct mlx5_fpga_device *fdev);
  *         or any other error value otherwise.
  */
 int mlx5_fpga_temperature(struct mlx5_fpga_device *fdev,
-			  struct mlx5_fpga_temperature *temp);
+    struct mlx5_fpga_temperature *temp);
 
 /**
  * mlx5_fpga_connectdisconnect() - Connect/disconnect ConnectX to FPGA
@@ -371,7 +371,7 @@ int mlx5_fpga_temperature(struct mlx5_fpga_device *fdev,
  *         or any other error value otherwise.
  */
 int mlx5_fpga_connectdisconnect(struct mlx5_fpga_device *fdev,
-				enum mlx5_fpga_connect *connect);
+    enum mlx5_fpga_connect *connect);
 
 /**
  * mlx5_fpga_get_cap() - Returns the FPGA cap mailbox from FW without parsing.

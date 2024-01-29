@@ -31,9 +31,11 @@
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
+
 #include <link.h>
 #include <stddef.h>
 #include <string.h>
+
 #include "libc_private.h"
 #include "static_tls.h"
 
@@ -51,21 +53,22 @@ __elf_phdr_match_addr(struct dl_phdr_info *phdr_info, void *addr)
 		if (ph->p_type != PT_LOAD)
 			continue;
 
-		/* ELFv1 ABI for powerpc64 passes function descriptor
-		 * pointers around, not function pointers.  The function
-		 * descriptors live in .opd, which is a non-executable segment.
-		 * The PF_X check would therefore make all address checks fail,
-		 * causing a crash in some instances.  Don't skip over
-		 * non-executable segments in the ELFv1 powerpc64 case.
-		 */
+			/* ELFv1 ABI for powerpc64 passes function descriptor
+			 * pointers around, not function pointers.  The function
+			 * descriptors live in .opd, which is a non-executable
+			 * segment. The PF_X check would therefore make all
+			 * address checks fail, causing a crash in some
+			 * instances.  Don't skip over non-executable segments
+			 * in the ELFv1 powerpc64 case.
+			 */
 #if !defined(__powerpc64__) || (defined(_CALL_ELF) && _CALL_ELF == 2)
 		if ((ph->p_flags & PF_X) == 0)
 			continue;
 #endif
 
 		if (phdr_info->dlpi_addr + ph->p_vaddr <= (uintptr_t)addr &&
-		    (uintptr_t)addr < phdr_info->dlpi_addr +
-		    ph->p_vaddr + ph->p_memsz)
+		    (uintptr_t)addr <
+			phdr_info->dlpi_addr + ph->p_vaddr + ph->p_memsz)
 			break;
 	}
 	return (i != phdr_info->dlpi_phnum);
@@ -78,7 +81,7 @@ __libc_map_stacks_exec(void)
 	struct rlimit rlim;
 	u_long usrstack, stacksz;
 	size_t len;
-	
+
 	if (_elf_aux_info(AT_USRSTACKBASE, &usrstack, sizeof(usrstack)) != 0) {
 		mib[0] = CTL_KERN;
 		mib[1] = KERN_USRSTACK;
@@ -120,6 +123,7 @@ __pthread_distribute_static_tls(size_t offset, void *src, size_t len,
     size_t total_len)
 {
 
-	((void (*)(size_t, void *, size_t, size_t))__libc_interposing[
-	    INTERPOS_distribute_static_tls])(offset, src, len, total_len);
+	((void (*)(size_t, void *, size_t,
+	    size_t))__libc_interposing[INTERPOS_distribute_static_tls])(offset,
+	    src, len, total_len);
 }

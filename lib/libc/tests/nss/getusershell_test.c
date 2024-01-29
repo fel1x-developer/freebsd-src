@@ -26,20 +26,16 @@
  */
 
 #include <assert.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 #include "testutil.h"
 
-enum test_methods {
-	TEST_GETUSERSHELL,
-	TEST_BUILD_SNAPSHOT
-};
+enum test_methods { TEST_GETUSERSHELL, TEST_BUILD_SNAPSHOT };
 
 struct usershell {
 	char *path;
@@ -163,7 +159,7 @@ run_tests(const char *snapshot_file, enum test_methods method)
 			}
 		} else {
 			rv = TEST_SNAPSHOT_FILE_READ(usershell, snapshot_file,
-				&td_snap, usershell_read_snapshot_func);
+			    &td_snap, usershell_read_snapshot_func);
 			if (rv != 0) {
 				printf("error reading snapshot file\n");
 				goto fin;
@@ -173,8 +169,8 @@ run_tests(const char *snapshot_file, enum test_methods method)
 
 	switch (method) {
 	case TEST_GETUSERSHELL:
-		rv = DO_2PASS_TEST(usershell, &td, &td_snap,
-			compare_usershell, NULL);
+		rv = DO_2PASS_TEST(usershell, &td, &td_snap, compare_usershell,
+		    NULL);
 		break;
 	case TEST_BUILD_SNAPSHOT:
 		if (snapshot_file != NULL) {
@@ -194,7 +190,7 @@ fin:
 	return (rv);
 }
 
-#define	SNAPSHOT_FILE	"snapshot_usershell"
+#define SNAPSHOT_FILE "snapshot_usershell"
 
 ATF_TC_WITHOUT_HEAD(getusershell_with_snapshot);
 ATF_TC_BODY(getusershell_with_snapshot, tc)

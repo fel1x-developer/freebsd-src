@@ -34,19 +34,19 @@
 #include <isc/assertions.h>
 #endif
 #include <isc/eventlib.h>
-#include "eventlib_p.h"
 
+#include "eventlib_p.h"
 #include "port_after.h"
 
 /* Constants. */
 
-#define	MILLION 1000000
+#define MILLION 1000000
 #define BILLION 1000000000
 
 /* Forward. */
 
 #ifdef _LIBC
-static int	__evOptMonoTime;
+static int __evOptMonoTime;
 #else
 static int due_sooner(void *, void *);
 static void set_index(void *, int);
@@ -57,18 +57,19 @@ static void idle_timeout(evContext, void *, struct timespec, struct timespec);
 /* Private type. */
 
 typedef struct {
-	evTimerFunc	func;
-	void *		uap;
-	struct timespec	lastTouched;
-	struct timespec	max_idle;
-	evTimer *	timer;
+	evTimerFunc func;
+	void *uap;
+	struct timespec lastTouched;
+	struct timespec max_idle;
+	evTimer *timer;
 } idle_timer;
 #endif
 
 /* Public. */
 
 struct timespec
-evConsTime(time_t sec, long nsec) {
+evConsTime(time_t sec, long nsec)
+{
 	struct timespec x;
 
 	x.tv_sec = sec;
@@ -77,7 +78,8 @@ evConsTime(time_t sec, long nsec) {
 }
 
 struct timespec
-evAddTime(struct timespec addend1, struct timespec addend2) {
+evAddTime(struct timespec addend1, struct timespec addend2)
+{
 	struct timespec x;
 
 	x.tv_sec = addend1.tv_sec + addend2.tv_sec;
@@ -90,7 +92,8 @@ evAddTime(struct timespec addend1, struct timespec addend2) {
 }
 
 struct timespec
-evSubTime(struct timespec minuend, struct timespec subtrahend) {
+evSubTime(struct timespec minuend, struct timespec subtrahend)
+{
 	struct timespec x;
 
 	x.tv_sec = minuend.tv_sec - subtrahend.tv_sec;
@@ -104,7 +107,8 @@ evSubTime(struct timespec minuend, struct timespec subtrahend) {
 }
 
 int
-evCmpTime(struct timespec a, struct timespec b) {
+evCmpTime(struct timespec a, struct timespec b)
+{
 	long x = a.tv_sec - b.tv_sec;
 
 	if (x == 0L)
@@ -113,7 +117,8 @@ evCmpTime(struct timespec a, struct timespec b) {
 }
 
 struct timespec
-evNowTime(void) {
+evNowTime(void)
+{
 	struct timeval now;
 #ifdef CLOCK_REALTIME
 	struct timespec tsnow;
@@ -132,7 +137,8 @@ evNowTime(void) {
 }
 
 struct timespec
-evUTCTime(void) {
+evUTCTime(void)
+{
 	struct timeval now;
 #ifdef CLOCK_REALTIME
 	struct timespec tsnow;
@@ -146,7 +152,8 @@ evUTCTime(void) {
 
 #ifndef _LIBC
 struct timespec
-evLastEventTime(evContext opaqueCtx) {
+evLastEventTime(evContext opaqueCtx)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 
 	return (ctx->lastEventTime);
@@ -154,7 +161,8 @@ evLastEventTime(evContext opaqueCtx) {
 #endif
 
 struct timespec
-evTimeSpec(struct timeval tv) {
+evTimeSpec(struct timeval tv)
+{
 	struct timespec ts;
 
 	ts.tv_sec = tv.tv_sec;
@@ -164,7 +172,8 @@ evTimeSpec(struct timeval tv) {
 
 #if !defined(USE_KQUEUE) || !defined(_LIBC)
 struct timeval
-evTimeVal(struct timespec ts) {
+evTimeVal(struct timespec ts)
+{
 	struct timeval tv;
 
 	tv.tv_sec = ts.tv_sec;
@@ -175,21 +184,16 @@ evTimeVal(struct timespec ts) {
 
 #ifndef _LIBC
 int
-evSetTimer(evContext opaqueCtx,
-	   evTimerFunc func,
-	   void *uap,
-	   struct timespec due,
-	   struct timespec inter,
-	   evTimerID *opaqueID
-) {
+evSetTimer(evContext opaqueCtx, evTimerFunc func, void *uap,
+    struct timespec due, struct timespec inter, evTimerID *opaqueID)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *id;
 
 	evPrintf(ctx, 1,
-"evSetTimer(ctx %p, func %p, uap %p, due %ld.%09ld, inter %ld.%09ld)\n",
-		 ctx, func, uap,
-		 (long)due.tv_sec, due.tv_nsec,
-		 (long)inter.tv_sec, inter.tv_nsec);
+	    "evSetTimer(ctx %p, func %p, uap %p, due %ld.%09ld, inter %ld.%09ld)\n",
+	    ctx, func, uap, (long)due.tv_sec, due.tv_nsec, (long)inter.tv_sec,
+	    inter.tv_nsec);
 
 #ifdef __hpux
 	/*
@@ -228,19 +232,19 @@ evSetTimer(evContext opaqueCtx,
 
 	if (ctx->debug > 7) {
 		evPrintf(ctx, 7, "timers after evSetTimer:\n");
-		(void) heap_for_each(ctx->timers, print_timer, (void *)ctx);
+		(void)heap_for_each(ctx->timers, print_timer, (void *)ctx);
 	}
 
 	return (0);
 }
 
 int
-evClearTimer(evContext opaqueCtx, evTimerID id) {
+evClearTimer(evContext opaqueCtx, evTimerID id)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *del = id.opaque;
 
-	if (ctx->cur != NULL &&
-	    ctx->cur->type == Timer &&
+	if (ctx->cur != NULL && ctx->cur->type == Timer &&
 	    ctx->cur->u.timer.this == del) {
 		evPrintf(ctx, 8, "deferring delete of timer (executing)\n");
 		/*
@@ -260,21 +264,18 @@ evClearTimer(evContext opaqueCtx, evTimerID id) {
 
 	if (ctx->debug > 7) {
 		evPrintf(ctx, 7, "timers after evClearTimer:\n");
-		(void) heap_for_each(ctx->timers, print_timer, (void *)ctx);
+		(void)heap_for_each(ctx->timers, print_timer, (void *)ctx);
 	}
 
 	return (0);
 }
 
 int
-evConfigTimer(evContext opaqueCtx,
-	     evTimerID id,
-	     const char *param,
-	     int value
-) {
+evConfigTimer(evContext opaqueCtx, evTimerID id, const char *param, int value)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *timer = id.opaque;
-	int result=0;
+	int result = 0;
 
 	UNUSED(value);
 
@@ -292,17 +293,13 @@ evConfigTimer(evContext opaqueCtx,
 }
 
 int
-evResetTimer(evContext opaqueCtx,
-	     evTimerID id,
-	     evTimerFunc func,
-	     void *uap,
-	     struct timespec due,
-	     struct timespec inter
-) {
+evResetTimer(evContext opaqueCtx, evTimerID id, evTimerFunc func, void *uap,
+    struct timespec due, struct timespec inter)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *timer = id.opaque;
 	struct timespec old_due;
-	int result=0;
+	int result = 0;
 
 	if (heap_element(ctx->timers, timer->index) != timer)
 		EV_ERR(ENOENT);
@@ -345,19 +342,16 @@ evResetTimer(evContext opaqueCtx,
 
 	if (ctx->debug > 7) {
 		evPrintf(ctx, 7, "timers after evResetTimer:\n");
-		(void) heap_for_each(ctx->timers, print_timer, (void *)ctx);
+		(void)heap_for_each(ctx->timers, print_timer, (void *)ctx);
 	}
 
 	return (result);
 }
 
 int
-evSetIdleTimer(evContext opaqueCtx,
-		evTimerFunc func,
-		void *uap,
-		struct timespec max_idle,
-		evTimerID *opaqueID
-) {
+evSetIdleTimer(evContext opaqueCtx, evTimerFunc func, void *uap,
+    struct timespec max_idle, evTimerID *opaqueID)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	idle_timer *tt;
 
@@ -369,8 +363,8 @@ evSetIdleTimer(evContext opaqueCtx,
 	tt->max_idle = max_idle;
 
 	if (evSetTimer(opaqueCtx, idle_timeout, tt,
-		       evAddTime(ctx->lastEventTime, max_idle),
-		       max_idle, opaqueID) < 0) {
+		evAddTime(ctx->lastEventTime, max_idle), max_idle,
+		opaqueID) < 0) {
 		FREE(tt);
 		return (-1);
 	}
@@ -381,7 +375,8 @@ evSetIdleTimer(evContext opaqueCtx,
 }
 
 int
-evClearIdleTimer(evContext opaqueCtx, evTimerID id) {
+evClearIdleTimer(evContext opaqueCtx, evTimerID id)
+{
 	evTimer *del = id.opaque;
 	idle_timer *tt = del->uap;
 
@@ -390,12 +385,9 @@ evClearIdleTimer(evContext opaqueCtx, evTimerID id) {
 }
 
 int
-evResetIdleTimer(evContext opaqueCtx,
-		 evTimerID opaqueID,
-		 evTimerFunc func,
-		 void *uap,
-		 struct timespec max_idle
-) {
+evResetIdleTimer(evContext opaqueCtx, evTimerID opaqueID, evTimerFunc func,
+    void *uap, struct timespec max_idle)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *timer = opaqueID.opaque;
 	idle_timer *tt = timer->uap;
@@ -406,12 +398,12 @@ evResetIdleTimer(evContext opaqueCtx,
 	tt->max_idle = max_idle;
 
 	return (evResetTimer(opaqueCtx, opaqueID, idle_timeout, tt,
-			     evAddTime(ctx->lastEventTime, max_idle),
-			     max_idle));
+	    evAddTime(ctx->lastEventTime, max_idle), max_idle));
 }
 
 int
-evTouchIdleTimer(evContext opaqueCtx, evTimerID id) {
+evTouchIdleTimer(evContext opaqueCtx, evTimerID id)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	evTimer *t = id.opaque;
 	idle_timer *tt = t->uap;
@@ -424,7 +416,8 @@ evTouchIdleTimer(evContext opaqueCtx, evTimerID id) {
 /* Public to the rest of eventlib. */
 
 heap_context
-evCreateTimers(const evContext_p *ctx) {
+evCreateTimers(const evContext_p *ctx)
+{
 
 	UNUSED(ctx);
 
@@ -432,15 +425,17 @@ evCreateTimers(const evContext_p *ctx) {
 }
 
 void
-evDestroyTimers(const evContext_p *ctx) {
-	(void) heap_for_each(ctx->timers, free_timer, NULL);
-	(void) heap_free(ctx->timers);
+evDestroyTimers(const evContext_p *ctx)
+{
+	(void)heap_for_each(ctx->timers, free_timer, NULL);
+	(void)heap_free(ctx->timers);
 }
 
 /* Private. */
 
 static int
-due_sooner(void *a, void *b) {
+due_sooner(void *a, void *b)
+{
 	evTimer *a_timer, *b_timer;
 
 	a_timer = a;
@@ -449,7 +444,8 @@ due_sooner(void *a, void *b) {
 }
 
 static void
-set_index(void *what, int index) {
+set_index(void *what, int index)
+{
 	evTimer *timer;
 
 	timer = what;
@@ -457,7 +453,8 @@ set_index(void *what, int index) {
 }
 
 static void
-free_timer(void *what, void *uap) {
+free_timer(void *what, void *uap)
+{
 	evTimer *t = what;
 
 	UNUSED(uap);
@@ -466,35 +463,32 @@ free_timer(void *what, void *uap) {
 }
 
 static void
-print_timer(void *what, void *uap) {
+print_timer(void *what, void *uap)
+{
 	evTimer *cur = what;
 	evContext_p *ctx = uap;
 
 	cur = what;
-	evPrintf(ctx, 7,
-	    "  func %p, uap %p, due %ld.%09ld, inter %ld.%09ld\n",
-		 cur->func, cur->uap,
-		 (long)cur->due.tv_sec, cur->due.tv_nsec,
-		 (long)cur->inter.tv_sec, cur->inter.tv_nsec);
+	evPrintf(ctx, 7, "  func %p, uap %p, due %ld.%09ld, inter %ld.%09ld\n",
+	    cur->func, cur->uap, (long)cur->due.tv_sec, cur->due.tv_nsec,
+	    (long)cur->inter.tv_sec, cur->inter.tv_nsec);
 }
 
 static void
-idle_timeout(evContext opaqueCtx,
-	     void *uap,
-	     struct timespec due,
-	     struct timespec inter
-) {
+idle_timeout(evContext opaqueCtx, void *uap, struct timespec due,
+    struct timespec inter)
+{
 	evContext_p *ctx = opaqueCtx.opaque;
 	idle_timer *this = uap;
 	struct timespec idle;
 
 	UNUSED(due);
 	UNUSED(inter);
-	
+
 	idle = evSubTime(ctx->lastEventTime, this->lastTouched);
 	if (evCmpTime(idle, this->max_idle) >= 0) {
 		(this->func)(opaqueCtx, this->uap, this->timer->due,
-			     this->max_idle);
+		    this->max_idle);
 		/*
 		 * Setting the interval to zero will cause the timer to
 		 * be cleaned up in evDrop().

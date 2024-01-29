@@ -43,27 +43,28 @@
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <assert.h>
-#include <pthread.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include "bhyverun.h"
 #include "debug.h"
 #include "pci_emul.h"
 #include "virtio.h"
 
-#define VTRND_RINGSZ	64
-
+#define VTRND_RINGSZ 64
 
 static int pci_vtrnd_debug;
-#define DPRINTF(params) if (pci_vtrnd_debug) PRINTLN params
+#define DPRINTF(params)      \
+	if (pci_vtrnd_debug) \
+	PRINTLN params
 #define WPRINTF(params) PRINTLN params
 
 /*
@@ -71,22 +72,22 @@ static int pci_vtrnd_debug;
  */
 struct pci_vtrnd_softc {
 	struct virtio_softc vrsc_vs;
-	struct vqueue_info  vrsc_vq;
-	pthread_mutex_t     vrsc_mtx;
-	uint64_t            vrsc_cfg;
-	int                 vrsc_fd;
+	struct vqueue_info vrsc_vq;
+	pthread_mutex_t vrsc_mtx;
+	uint64_t vrsc_cfg;
+	int vrsc_fd;
 };
 
 static void pci_vtrnd_reset(void *);
 static void pci_vtrnd_notify(void *, struct vqueue_info *);
 
 static struct virtio_consts vtrnd_vi_consts = {
-	.vc_name =	"vtrnd",
-	.vc_nvq =	1,
-	.vc_cfgsize =	0,
-	.vc_reset =	pci_vtrnd_reset,
-	.vc_qnotify =	pci_vtrnd_notify,
-	.vc_hv_caps =	0,
+	.vc_name = "vtrnd",
+	.vc_nvq = 1,
+	.vc_cfgsize = 0,
+	.vc_reset = pci_vtrnd_reset,
+	.vc_qnotify = pci_vtrnd_notify,
+	.vc_hv_caps = 0,
 };
 
 static void
@@ -99,7 +100,6 @@ pci_vtrnd_reset(void *vsc)
 	DPRINTF(("vtrnd: device reset requested !"));
 	vi_reset_dev(&sc->vrsc_vs);
 }
-
 
 static void
 pci_vtrnd_notify(void *vsc, struct vqueue_info *vq)
@@ -132,9 +132,8 @@ pci_vtrnd_notify(void *vsc, struct vqueue_info *vq)
 		 */
 		vq_relchain(vq, req.idx, len);
 	}
-	vq_endchains(vq, 1);	/* Generate interrupt if appropriate. */
+	vq_endchains(vq, 1); /* Generate interrupt if appropriate. */
 }
-
 
 static int
 pci_vtrnd_init(struct pci_devinst *pi, nvlist_t *nvl __unused)
@@ -196,14 +195,13 @@ pci_vtrnd_init(struct pci_devinst *pi, nvlist_t *nvl __unused)
 	return (0);
 }
 
-
 static const struct pci_devemu pci_de_vrnd = {
-	.pe_emu =	"virtio-rnd",
-	.pe_init =	pci_vtrnd_init,
-	.pe_barwrite =	vi_pci_write,
-	.pe_barread =	vi_pci_read,
+	.pe_emu = "virtio-rnd",
+	.pe_init = pci_vtrnd_init,
+	.pe_barwrite = vi_pci_write,
+	.pe_barread = vi_pci_read,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	vi_pci_snapshot,
+	.pe_snapshot = vi_pci_snapshot,
 #endif
 };
 PCI_EMUL_SET(pci_de_vrnd);

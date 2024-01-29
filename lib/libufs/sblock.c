@@ -28,23 +28,21 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 
+#include <errno.h>
+#include <libufs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #include <ufs/ufs/extattr.h>
 #include <ufs/ufs/quota.h>
 #include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
-
-#include <libufs.h>
 
 static int handle_disk_read(struct uufsd *, struct fs *, int);
 
@@ -111,11 +109,13 @@ handle_disk_read(struct uufsd *disk, struct fs *fs, int error)
 			ERROR(disk, "superblock check-hash failure");
 			break;
 		case ENOSPC:
-			ERROR(disk, "failed to allocate space for superblock "
+			ERROR(disk,
+			    "failed to allocate space for superblock "
 			    "information");
 			break;
 		case EINVAL:
-			ERROR(disk, "The previous newfs operation on this "
+			ERROR(disk,
+			    "The previous newfs operation on this "
 			    "volume did not complete.\nYou must complete "
 			    "newfs before using this volume.");
 			break;
@@ -262,7 +262,7 @@ sbput(int devfd, struct fs *fs, int numaltwrite)
 	for (i = 0; i < numaltwrite; i++) {
 		fs->fs_sblockactualloc = dbtob(fsbtodb(fs, cgsblock(fs, i)));
 		if ((error = ffs_sbput(&devfd, fs, fs->fs_sblockactualloc,
-		     use_pwrite)) != 0) {
+			 use_pwrite)) != 0) {
 			fflush(NULL); /* flush any messages */
 			fs->fs_sblockactualloc = savedactualloc;
 			fs->fs_csp = savedcsp;

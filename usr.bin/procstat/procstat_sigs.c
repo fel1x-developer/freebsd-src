@@ -34,13 +34,13 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <libprocstat.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libprocstat.h>
 
 #include "procstat.h"
 
@@ -85,26 +85,26 @@ procstat_print_sig(const sigset_t *set, int sig, char flag)
 {
 	xo_emit("{d:sigmember/%c}", sigismember(set, sig) ? flag : '-');
 	switch (flag) {
-		case 'B':
-			xo_emit("{en:mask/%s}", sigismember(set, sig) ?
-			    "true" : "false");
-			break;
-		case 'C':
-			xo_emit("{en:catch/%s}", sigismember(set, sig) ?
-			    "true" : "false");
-			break;
-		case 'P':
-			xo_emit("{en:list/%s}", sigismember(set, sig) ?
-			    "true" : "false");
-			break;
-		case 'I':
-			xo_emit("{en:ignore/%s}", sigismember(set, sig) ?
-			    "true" : "false");
-			break;
-		default:
-			xo_emit("{en:unknown/%s}", sigismember(set, sig) ?
-			    "true" : "false");
-			break;
+	case 'B':
+		xo_emit("{en:mask/%s}",
+		    sigismember(set, sig) ? "true" : "false");
+		break;
+	case 'C':
+		xo_emit("{en:catch/%s}",
+		    sigismember(set, sig) ? "true" : "false");
+		break;
+	case 'P':
+		xo_emit("{en:list/%s}",
+		    sigismember(set, sig) ? "true" : "false");
+		break;
+	case 'I':
+		xo_emit("{en:ignore/%s}",
+		    sigismember(set, sig) ? "true" : "false");
+		break;
+	default:
+		xo_emit("{en:unknown/%s}",
+		    sigismember(set, sig) ? "true" : "false");
+		break;
 	}
 }
 
@@ -144,7 +144,7 @@ procstat_threads_sigs(struct procstat *procstat, struct kinfo_proc *kipp)
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
 		xo_emit("{T:/%5s %6s %-16s %-7s %4s}\n", "PID", "TID", "COMM",
-		     "SIG", "FLAGS");
+		    "SIG", "FLAGS");
 
 	kip = procstat_getprocs(procstat, KERN_PROC_PID | KERN_PROC_INC_THREAD,
 	    kipp->ki_pid, &count);
@@ -158,7 +158,8 @@ procstat_threads_sigs(struct procstat *procstat, struct kinfo_proc *kipp)
 		kipp = &kip[i];
 		asprintf(&threadid, "%d", kipp->ki_tid);
 		if (threadid == NULL)
-			xo_errc(1, ENOMEM, "Failed to allocate memory in "
+			xo_errc(1, ENOMEM,
+			    "Failed to allocate memory in "
 			    "procstat_threads_sigs()");
 		xo_open_container(threadid);
 		xo_emit("{e:thread_id/%6d/%d}", kipp->ki_tid);
@@ -195,8 +196,8 @@ procstat_sigfastblock(struct procstat *procstat, struct kinfo_proc *kipp)
 	bool has_sigfastblk_addr;
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
-		xo_emit("{T:/%5s %6s %-16s %-16s}\n", "PID", "TID",
-		     "COMM", "SIGFBLK");
+		xo_emit("{T:/%5s %6s %-16s %-16s}\n", "PID", "TID", "COMM",
+		    "SIGFBLK");
 
 	kip = procstat_getprocs(procstat, KERN_PROC_PID | KERN_PROC_INC_THREAD,
 	    kipp->ki_pid, &count);
@@ -225,16 +226,19 @@ procstat_sigfastblock(struct procstat *procstat, struct kinfo_proc *kipp)
 
 		asprintf(&threadid, "%d", kipp->ki_tid);
 		if (threadid == NULL)
-			xo_errc(1, ENOMEM, "Failed to allocate memory in "
+			xo_errc(1, ENOMEM,
+			    "Failed to allocate memory in "
 			    "procstat_sigfastblock()");
 		xo_open_container(threadid);
 		xo_emit("{dk:process_id/%5d/%d} ", kipp->ki_pid);
 		xo_emit("{d:thread_id/%6d/%d} ", kipp->ki_tid);
 		xo_emit("{d:command/%-16s/%s} ", kipp->ki_comm);
-		xo_emit("{e:sigfastblock/%#-16jx/%#jx}", has_sigfastblk_addr ?
-		    (uintmax_t)sigfastblk_addr : (uintmax_t)-1);
-		xo_emit("{d:sigfastblock/%#-16jx/%#jx}", has_sigfastblk_addr ?
-		    (uintmax_t)sigfastblk_addr : (uintmax_t)-1);
+		xo_emit("{e:sigfastblock/%#-16jx/%#jx}",
+		    has_sigfastblk_addr ? (uintmax_t)sigfastblk_addr :
+					  (uintmax_t)-1);
+		xo_emit("{d:sigfastblock/%#-16jx/%#jx}",
+		    has_sigfastblk_addr ? (uintmax_t)sigfastblk_addr :
+					  (uintmax_t)-1);
 		xo_emit("\n");
 		xo_close_container(threadid);
 		free(threadid);

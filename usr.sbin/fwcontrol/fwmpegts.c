@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005
  * 	Petr Holub, Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,22 +32,23 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/uio.h>
+
 #include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #if defined(__FreeBSD__)
 #include <dev/firewire/firewire.h>
@@ -59,10 +60,9 @@
 #warning "You need to add support for your OS"
 #endif
 
-
 #include "fwmethods.h"
 
-#define	DEBUG 0
+#define DEBUG 0
 
 /*****************************************************************************
 
@@ -87,7 +87,7 @@ MPEG-2 Transport Stream (MPEG TS) packet format according to IEC 61883:
 |                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+  --------
 |                            data_CRC                           |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+  
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 N.b. that CRCs are removed by firewire layer!
 
@@ -103,7 +103,7 @@ fmt = (1<<5)
 fdf = reserved
 In the supported streams we also require
 qpc = 0
-fn = 3 
+fn = 3
 and thus the payload is divided in 8 blocks as follows:
 
   +-----+-----+-----+-----+-----+-----+-----+-----+
@@ -123,27 +123,21 @@ which are (4+188)B long. Experimentally, the N ranges from 0 through 3.
 
 *****************************************************************************/
 
-
 typedef uint8_t mpeg_ts_pld[188];
 
 struct mpeg_pldt {
 #if BYTE_ORDER == BIG_ENDIAN
-	uint32_t	:7,
-				c_count:13,
-				c_offset:12;
-#else /* BYTE_ORDER != BIG_ENDIAN */
-	uint32_t	c_offset:12,
-				c_count:13,
-				:7;
+	uint32_t : 7, c_count : 13, c_offset : 12;
+#else  /* BYTE_ORDER != BIG_ENDIAN */
+	uint32_t c_offset : 12, c_count : 13, : 7;
 #endif /* BYTE_ORDER == BIG_ENDIAN */
 	mpeg_ts_pld payload;
 };
 
-
-#define	NCHUNK 8
-#define	PSIZE 596
-#define	NPACKET_R 4096
-#define	RBUFSIZE (PSIZE * NPACKET_R)
+#define NCHUNK 8
+#define PSIZE 596
+#define NPACKET_R 4096
+#define RBUFSIZE (PSIZE * NPACKET_R)
 
 void
 mpegtsrecv(int d, const char *filename, char ich, int count)
@@ -196,74 +190,79 @@ mpegtsrecv(int d, const char *filename, char ich, int count)
 			}
 			err(1, "read failed");
 		}
-		ptr = (uint32_t *) buf;
+		ptr = (uint32_t *)buf;
 
 		do {
-			pkt = (struct fw_pkt *) ptr;	
+			pkt = (struct fw_pkt *)ptr;
 #if DEBUG
 			fprintf(stderr, "\nReading new packet.\n");
-			fprintf(stderr, "%08x %08x %08x %08x\n",
-				htonl(ptr[0]), htonl(ptr[1]),
-				htonl(ptr[2]), htonl(ptr[3]));
+			fprintf(stderr, "%08x %08x %08x %08x\n", htonl(ptr[0]),
+			    htonl(ptr[1]), htonl(ptr[2]), htonl(ptr[3]));
 #endif /* DEBUG */
 			/* there is no CRC in the 1394 header */
-			ciph = (struct ciphdr *)(ptr + 1);	/* skip iso header */
+			ciph = (struct ciphdr *)(ptr + 1); /* skip iso header */
 			if (ciph->fmt != CIP_FMT_MPEG)
 				errx(1, "unknown format 0x%x", ciph->fmt);
 			if (ciph->fn != 3) {
 				errx(1,
-						"unsupported MPEG TS stream, fn=%d (only fn=3 is supported)",
-						ciph->fn);
+				    "unsupported MPEG TS stream, fn=%d (only fn=3 is supported)",
+				    ciph->fn);
 			}
-			ptr = (uint32_t *) (ciph + 1);		/* skip cip header */
+			ptr = (uint32_t *)(ciph + 1); /* skip cip header */
 
 			if (pkt->mode.stream.len <= sizeof(struct ciphdr)) {
 				/* no payload */
-				/* tlen needs to be decremented before end of the loop */
+				/* tlen needs to be decremented before end of
+				 * the loop */
 				goto next;
 			}
 #if DEBUG
 			else {
 				fprintf(stderr,
-						"Packet net payload length (IEEE1394 header): %d\n",
-						pkt->mode.stream.len - sizeof(struct ciphdr));
-				fprintf(stderr, "Data block size (CIP header): %d [q], %d [B]\n",
-						ciph->len, ciph->len * 4);
+				    "Packet net payload length (IEEE1394 header): %d\n",
+				    pkt->mode.stream.len -
+					sizeof(struct ciphdr));
 				fprintf(stderr,
-						"Data fraction number (CIP header): %d => DBC increments with %d\n",
-						ciph->fn, (1<<ciph->fn) );
-				fprintf(stderr, "QCP (CIP header): %d\n", ciph->qpc );
-				fprintf(stderr, "DBC counter (CIP header): %d\n", ciph->dbc );
+				    "Data block size (CIP header): %d [q], %d [B]\n",
+				    ciph->len, ciph->len * 4);
+				fprintf(stderr,
+				    "Data fraction number (CIP header): %d => DBC increments with %d\n",
+				    ciph->fn, (1 << ciph->fn));
+				fprintf(stderr, "QCP (CIP header): %d\n",
+				    ciph->qpc);
+				fprintf(stderr,
+				    "DBC counter (CIP header): %d\n",
+				    ciph->dbc);
 				fprintf(stderr, "MPEG payload type size: %d\n",
-						sizeof(struct mpeg_pldt));
+				    sizeof(struct mpeg_pldt));
 			}
 #endif /* DEBUG */
 
-			/* This is a condition that needs to be satisfied to start
-			   writing the data */
-			if (ciph->dbc % (1<<ciph->fn) == 0)
+			/* This is a condition that needs to be satisfied to
+			   start writing the data */
+			if (ciph->dbc % (1 << ciph->fn) == 0)
 				startwr = 1;
-			/* Read out all the MPEG TS data blocks from current packet */
-			for (pld = (struct mpeg_pldt *)ptr;
-			    (intptr_t)pld < (intptr_t)((char *)ptr +
-			    pkt->mode.stream.len - sizeof(struct ciphdr));
-			    pld++) {
+			/* Read out all the MPEG TS data blocks from current
+			 * packet */
+			for (pld = (struct mpeg_pldt *)ptr; (intptr_t)pld <
+			     (intptr_t)((char *)ptr + pkt->mode.stream.len -
+				 sizeof(struct ciphdr));
+			     pld++) {
 				if (startwr == 1)
 					write(fd, pld->payload,
 					    sizeof(pld->payload));
 			}
 
-next:
+		next:
 			/* CRCs are removed from both header and trailer
 			so that only 4 bytes of 1394 header remains */
-			pkt_size = pkt->mode.stream.len + 4; 
+			pkt_size = pkt->mode.stream.len + 4;
 			ptr = (uint32_t *)((intptr_t)pkt + pkt_size);
 			tlen -= pkt_size;
 		} while (tlen > 0);
 #if DEBUG
 		fprintf(stderr, "\nReading a data from firewire.\n");
 #endif /* DEBUG */
-
 	}
 	if (fd != STDOUT_FILENO)
 		close(fd);

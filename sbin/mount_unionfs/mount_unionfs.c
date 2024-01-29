@@ -36,25 +36,25 @@
  */
 
 #include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/mount.h>
 #include <sys/uio.h>
-#include <sys/errno.h>
 
 #include <err.h>
+#include <grp.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <grp.h>
-#include <pwd.h>
 
 #include "mntopts.h"
 
-static int 
+static int
 subdir(const char *p, const char *dir)
 {
-	int		l;
+	int l;
 
 	l = strlen(dir);
 	if (l <= 1)
@@ -66,7 +66,7 @@ subdir(const char *p, const char *dir)
 	return (0);
 }
 
-static void 
+static void
 usage(void)
 {
 	(void)fprintf(stderr,
@@ -85,8 +85,8 @@ parse_gid(const char *s, char *buf, size_t bufsize)
 	else {
 		strtol(s, &inval, 10);
 		if (*inval != 0) {
-                       errx(EX_NOUSER, "unknown group id: %s", s);
-                       usage();
+			errx(EX_NOUSER, "unknown group id: %s", s);
+			usage();
 		} else {
 			strncpy(buf, s, bufsize);
 		}
@@ -96,7 +96,7 @@ parse_gid(const char *s, char *buf, size_t bufsize)
 static void
 parse_uid(const char *s, char *buf, size_t bufsize)
 {
-	struct passwd  *pw;
+	struct passwd *pw;
 	char *inval;
 
 	if ((pw = getpwnam(s)) != NULL)
@@ -104,20 +104,20 @@ parse_uid(const char *s, char *buf, size_t bufsize)
 	else {
 		strtol(s, &inval, 10);
 		if (*inval != 0) {
-                       errx(EX_NOUSER, "unknown user id: %s", s);
-                       usage();
+			errx(EX_NOUSER, "unknown user id: %s", s);
+			usage();
 		} else {
 			strncpy(buf, s, bufsize);
 		}
 	}
 }
 
-int 
+int
 main(int argc, char *argv[])
 {
-	struct iovec	*iov;
+	struct iovec *iov;
 	int ch, iovlen;
-	char source [MAXPATHLEN], target[MAXPATHLEN], errmsg[255];
+	char source[MAXPATHLEN], target[MAXPATHLEN], errmsg[255];
 	char uid_str[20], gid_str[20];
 	char fstype[] = "unionfs";
 	char *p, *val;
@@ -129,25 +129,27 @@ main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "bo:")) != -1) {
 		switch (ch) {
 		case 'b':
-			printf("\n  -b is deprecated.  Use \"-o below\" instead\n");
+			printf(
+			    "\n  -b is deprecated.  Use \"-o below\" instead\n");
 			build_iovec(&iov, &iovlen, "below", NULL, 0);
 			break;
 		case 'o':
-                        p = strchr(optarg, '=');
-                        val = NULL;
-                        if (p != NULL) {
-                                *p = '\0';
-                                val = p + 1;
+			p = strchr(optarg, '=');
+			val = NULL;
+			if (p != NULL) {
+				*p = '\0';
+				val = p + 1;
 				if (strcmp(optarg, "gid") == 0) {
-					parse_gid(val, gid_str, sizeof(gid_str));
+					parse_gid(val, gid_str,
+					    sizeof(gid_str));
 					val = gid_str;
-				}
-				else if (strcmp(optarg, "uid") == 0) {
-					parse_uid(val, uid_str, sizeof(uid_str));
+				} else if (strcmp(optarg, "uid") == 0) {
+					parse_uid(val, uid_str,
+					    sizeof(uid_str));
 					val = uid_str;
 				}
-                        }
-                        build_iovec(&iov, &iovlen, optarg, val, (size_t)-1);
+			}
+			build_iovec(&iov, &iovlen, optarg, val, (size_t)-1);
 			break;
 		case '?':
 		default:
@@ -169,7 +171,7 @@ main(int argc, char *argv[])
 
 	if (subdir(target, source) || subdir(source, target))
 		errx(EX_USAGE, "%s (%s) and %s (%s) are not distinct paths",
-		     argv[0], target, argv[1], source);
+		    argv[0], target, argv[1], source);
 
 	build_iovec(&iov, &iovlen, "fstype", fstype, (size_t)-1);
 	build_iovec(&iov, &iovlen, "fspath", source, (size_t)-1);

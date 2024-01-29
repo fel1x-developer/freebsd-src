@@ -53,27 +53,18 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/scil/sci_base_request.h>
 
-void sci_base_request_construct(
-   SCI_BASE_REQUEST_T *this_request,
-   SCI_BASE_LOGGER_T  *my_logger,
-   SCI_BASE_STATE_T   *my_state_table
-)
+void
+sci_base_request_construct(SCI_BASE_REQUEST_T *this_request,
+    SCI_BASE_LOGGER_T *my_logger, SCI_BASE_STATE_T *my_state_table)
 {
-   sci_base_object_construct(
-      &this_request->parent,
-      my_logger
-   );
+	sci_base_object_construct(&this_request->parent, my_logger);
 
-   sci_base_state_machine_construct(
-      &this_request->state_machine,
-      &this_request->parent,
-      my_state_table,
-      SCI_BASE_REQUEST_STATE_INITIAL
-   );
+	sci_base_state_machine_construct(&this_request->state_machine,
+	    &this_request->parent, my_state_table,
+	    SCI_BASE_REQUEST_STATE_INITIAL);
 
-   sci_base_state_machine_start(
-      &this_request->state_machine
-   );
+	sci_base_state_machine_start(&this_request->state_machine);
 }

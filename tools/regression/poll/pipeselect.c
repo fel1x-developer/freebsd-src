@@ -1,6 +1,6 @@
 
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 
 #include <err.h>
@@ -10,18 +10,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	FIFONAME	"fifo.tmp"
-#define	FT_END		3
-#define	FT_FIFO		2
-#define	FT_PIPE		0
-#define	FT_SOCKETPAIR	1
+#define FIFONAME "fifo.tmp"
+#define FT_END 3
+#define FT_FIFO 2
+#define FT_PIPE 0
+#define FT_SOCKETPAIR 1
 
-#define	SETUP(fd, rfds, tv) do {				\
-	FD_ZERO(&(rfds));					\
-	FD_SET((fd), &(rfds));					\
-	(tv).tv_sec = 0;					\
-	(tv).tv_usec = 0;					\
-} while (0)
+#define SETUP(fd, rfds, tv)            \
+	do {                           \
+		FD_ZERO(&(rfds));      \
+		FD_SET((fd), &(rfds)); \
+		(tv).tv_sec = 0;       \
+		(tv).tv_usec = 0;      \
+	} while (0)
 
 static int filetype;
 
@@ -39,8 +40,9 @@ report(int num, const char *state, int expected, int got)
 	else
 		printf("not ok %-2d", num);
 	printf(" %s state %s: expected %s; got %s\n",
-	    filetype == FT_PIPE ? "Pipe" :
-	    filetype == FT_SOCKETPAIR ? "Sock" : "FIFO",
+	    filetype == FT_PIPE		  ? "Pipe" :
+		filetype == FT_SOCKETPAIR ? "Sock" :
+					    "FIFO",
 	    state, decode_events(expected), decode_events(got));
 	fflush(stdout);
 }
@@ -49,8 +51,7 @@ static pid_t cpid;
 static pid_t ppid;
 static volatile sig_atomic_t state;
 
-static void
-catch(int sig)
+static void catch (int sig)
 {
 	state++;
 }
@@ -288,8 +289,8 @@ main(void)
 			fd[1] = -1;
 			break;
 		case FT_SOCKETPAIR:
-			if (socketpair(AF_UNIX, SOCK_STREAM, AF_UNSPEC,
-			    fd) != 0)
+			if (socketpair(AF_UNIX, SOCK_STREAM, AF_UNSPEC, fd) !=
+			    0)
 				err(1, "socketpair");
 			break;
 		case FT_PIPE:

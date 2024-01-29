@@ -32,10 +32,10 @@
 #include <sys/cdefs.h>
 /*
  * Broadcom BHND PCIe-Gen2 PCI-Host Bridge.
- * 
+ *
  * This driver handles all interactions with PCIe-G2 bridge cores operating in
  * endpoint mode.
- * 
+ *
  * Host-level PCI operations are handled at the bhndb bridge level by the
  * bhndb_pci driver.
  */
@@ -50,52 +50,51 @@
 //   BCM94360X51P2, BCM94360X51A)
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-
-#include <sys/malloc.h>
-
-#include <sys/bus.h>
-#include <sys/module.h>
-
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include "bhnd_pcie2_reg.h"
 #include "bhnd_pcie2_hostbvar.h"
+#include "bhnd_pcie2_reg.h"
 
 static const struct bhnd_device_quirk bhnd_pcie2_quirks[];
 
-static int	bhnd_pcie2_wars_early_once(struct bhnd_pcie2hb_softc *sc);
-static int	bhnd_pcie2_wars_hwup(struct bhnd_pcie2hb_softc *sc);
-static int	bhnd_pcie2_wars_hwdown(struct bhnd_pcie2hb_softc *sc);
+static int bhnd_pcie2_wars_early_once(struct bhnd_pcie2hb_softc *sc);
+static int bhnd_pcie2_wars_hwup(struct bhnd_pcie2hb_softc *sc);
+static int bhnd_pcie2_wars_hwdown(struct bhnd_pcie2hb_softc *sc);
 
 /*
  * device/quirk tables
  */
 
-#define	BHND_PCI_DEV(_core, _quirks)		\
+#define BHND_PCI_DEV(_core, _quirks) \
 	BHND_DEVICE(BCM, _core, NULL, _quirks, BHND_DF_HOSTB)
 
 static const struct bhnd_device bhnd_pcie2_devs[] = {
-	BHND_PCI_DEV(PCIE2,	bhnd_pcie2_quirks),
-	BHND_DEVICE_END
+	BHND_PCI_DEV(PCIE2, bhnd_pcie2_quirks), BHND_DEVICE_END
 };
 
 static const struct bhnd_device_quirk bhnd_pcie2_quirks[] = {
 	/* Apple BCM4360 boards that require adjusting TX amplitude and
 	 * differential output de-emphasis of the PCIe SerDes */
-	{{ BHND_MATCH_BOARD(PCI_VENDOR_APPLE, BCM94360X51P2), },
-		BHND_PCIE2_QUIRK_SERDES_TXDRV_DEEMPH },
-	{{ BHND_MATCH_BOARD(PCI_VENDOR_APPLE, BCM94360X51A), },
-		BHND_PCIE2_QUIRK_SERDES_TXDRV_DEEMPH },
+	{ {
+	      BHND_MATCH_BOARD(PCI_VENDOR_APPLE, BCM94360X51P2),
+	  },
+	    BHND_PCIE2_QUIRK_SERDES_TXDRV_DEEMPH },
+	{ {
+	      BHND_MATCH_BOARD(PCI_VENDOR_APPLE, BCM94360X51A),
+	  },
+	    BHND_PCIE2_QUIRK_SERDES_TXDRV_DEEMPH },
 
 	BHND_DEVICE_QUIRK_END
 };
@@ -103,8 +102,8 @@ static const struct bhnd_device_quirk bhnd_pcie2_quirks[] = {
 static int
 bhnd_pcie2_hostb_attach(device_t dev)
 {
-	struct bhnd_pcie2hb_softc	*sc;
-	int				 error;
+	struct bhnd_pcie2hb_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -140,8 +139,8 @@ failed:
 static int
 bhnd_pcie2_hostb_detach(device_t dev)
 {
-	struct bhnd_pcie2hb_softc	*sc;
-	int				 error;
+	struct bhnd_pcie2hb_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -155,8 +154,8 @@ bhnd_pcie2_hostb_detach(device_t dev)
 static int
 bhnd_pcie2_hostb_suspend(device_t dev)
 {
-	struct bhnd_pcie2hb_softc	*sc;
-	int				 error;
+	struct bhnd_pcie2hb_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -170,8 +169,8 @@ bhnd_pcie2_hostb_suspend(device_t dev)
 static int
 bhnd_pcie2_hostb_resume(device_t dev)
 {
-	struct bhnd_pcie2hb_softc	*sc;
-	int				 error;
+	struct bhnd_pcie2hb_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -190,7 +189,7 @@ bhnd_pcie2_hostb_resume(device_t dev)
 /**
  * Apply any hardware work-arounds that must be executed exactly once, early in
  * the attach process.
- * 
+ *
  * This must be called after core enumeration and discovery of all applicable
  * quirks, but prior to probe/attach of any cores, parsing of
  * SPROM, etc.
@@ -226,17 +225,16 @@ bhnd_pcie2_wars_hwdown(struct bhnd_pcie2hb_softc *sc)
 
 static device_method_t bhnd_pcie2_hostb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,		bhnd_pcie2_hostb_attach),
-	DEVMETHOD(device_detach,		bhnd_pcie2_hostb_detach),
-	DEVMETHOD(device_suspend,		bhnd_pcie2_hostb_suspend),
-	DEVMETHOD(device_resume,		bhnd_pcie2_hostb_resume),	
+	DEVMETHOD(device_attach, bhnd_pcie2_hostb_attach),
+	DEVMETHOD(device_detach, bhnd_pcie2_hostb_detach),
+	DEVMETHOD(device_suspend, bhnd_pcie2_hostb_suspend),
+	DEVMETHOD(device_resume, bhnd_pcie2_hostb_resume),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(bhnd_hostb, bhnd_pcie2_hostb_driver,
-    bhnd_pcie2_hostb_methods, sizeof(struct bhnd_pcie2hb_softc),
-    bhnd_pcie2_driver);
+DEFINE_CLASS_1(bhnd_hostb, bhnd_pcie2_hostb_driver, bhnd_pcie2_hostb_methods,
+    sizeof(struct bhnd_pcie2hb_softc), bhnd_pcie2_driver);
 
 DRIVER_MODULE(bhnd_pcie2_hostb, bhnd, bhnd_pcie2_hostb_driver, 0, 0);
 

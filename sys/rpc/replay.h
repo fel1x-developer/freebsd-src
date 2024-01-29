@@ -31,10 +31,10 @@
 #define _RPC_REPLAY_H
 
 enum replay_state {
-	RS_NEW,			/* new request - caller should execute */
-	RS_DONE,		/* request was executed and reply sent */
-	RS_INPROGRESS,		/* request is being executed now */
-	RS_ERROR		/* allocation or other failure */
+	RS_NEW,	       /* new request - caller should execute */
+	RS_DONE,       /* request was executed and reply sent */
+	RS_INPROGRESS, /* request is being executed now */
+	RS_ERROR       /* allocation or other failure */
 };
 
 struct replay_cache;
@@ -42,18 +42,18 @@ struct replay_cache;
 /*
  * Create a new replay cache.
  */
-struct replay_cache	*replay_newcache(size_t);
+struct replay_cache *replay_newcache(size_t);
 
 /*
  * Set the replay cache size.
  */
-void			replay_setsize(struct replay_cache *, size_t);
+void replay_setsize(struct replay_cache *, size_t);
 
 /*
  * Free a replay cache. Caller must ensure that no cache entries are
  * in-progress.
  */
-void			replay_freecache(struct replay_cache *rc);
+void replay_freecache(struct replay_cache *rc);
 
 /*
  * Check a replay cache for a message from a given address.
@@ -72,14 +72,13 @@ void			replay_freecache(struct replay_cache *rc);
  * If the attempt to update the replay cache or copy a replay failed
  * for some reason (typically memory shortage), RS_ERROR is returned.
  */
-enum replay_state	replay_find(struct replay_cache *rc,
-    struct rpc_msg *msg, struct sockaddr *addr,
-    struct rpc_msg *repmsg, struct mbuf **mp);
+enum replay_state replay_find(struct replay_cache *rc, struct rpc_msg *msg,
+    struct sockaddr *addr, struct rpc_msg *repmsg, struct mbuf **mp);
 
 /*
  * Call this after executing a request to record the reply.
  */
-void			replay_setreply(struct replay_cache *rc,
-    struct rpc_msg *repmsg,  struct sockaddr *addr, struct mbuf *m);
+void replay_setreply(struct replay_cache *rc, struct rpc_msg *repmsg,
+    struct sockaddr *addr, struct mbuf *m);
 
 #endif /* !_RPC_REPLAY_H */

@@ -51,6 +51,7 @@
 #include <getopt.h>
 #include <kvm.h>
 #include <libgen.h>
+#include <libpmcstat.h>
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
@@ -66,19 +67,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <libpmcstat.h>
 #include "cmd_pmc.h"
 
-static struct pmcstat_stats pmcstat_stats;	/* statistics */
+static struct pmcstat_stats pmcstat_stats; /* statistics */
 
-static struct pmc_plugins plugins[] = {
-	{
-		.pl_name = "none",
-	},
-	{
-		.pl_name = NULL
-	}
-};
+static struct pmc_plugins plugins[] = { {
+					    .pl_name = "none",
+					},
+	{ .pl_name = NULL } };
 
 int
 pmc_util_get_pid(struct pmcstat_args *args)
@@ -125,17 +121,17 @@ pmc_util_cleanup(struct pmcstat_args *args)
 	struct pmcstat_ev *ev;
 
 	/* release allocated PMCs. */
-	STAILQ_FOREACH(ev, &args->pa_events, ev_next)
-	    if (ev->ev_pmcid != PMC_ID_INVALID) {
-		if (pmc_stop(ev->ev_pmcid) < 0)
-			err(EX_OSERR,
-			    "ERROR: cannot stop pmc 0x%x \"%s\"",
-			    ev->ev_pmcid, ev->ev_name);
-		if (pmc_release(ev->ev_pmcid) < 0)
-			err(EX_OSERR,
-			    "ERROR: cannot release pmc 0x%x \"%s\"",
-			    ev->ev_pmcid, ev->ev_name);
-	}
+	STAILQ_FOREACH (ev, &args->pa_events, ev_next)
+		if (ev->ev_pmcid != PMC_ID_INVALID) {
+			if (pmc_stop(ev->ev_pmcid) < 0)
+				err(EX_OSERR,
+				    "ERROR: cannot stop pmc 0x%x \"%s\"",
+				    ev->ev_pmcid, ev->ev_name);
+			if (pmc_release(ev->ev_pmcid) < 0)
+				err(EX_OSERR,
+				    "ERROR: cannot release pmc 0x%x \"%s\"",
+				    ev->ev_pmcid, ev->ev_name);
+		}
 	/* de-configure the log file if present. */
 	if (args->pa_flags & (FLAG_HAS_PIPE | FLAG_HAS_OUTPUT_LOGFILE))
 		(void)pmc_configure_logfile(-1);
@@ -152,7 +148,7 @@ pmc_util_start_pmcs(struct pmcstat_args *args)
 {
 	struct pmcstat_ev *ev;
 
-	STAILQ_FOREACH(ev, &args->pa_events, ev_next) {
+	STAILQ_FOREACH (ev, &args->pa_events, ev_next) {
 
 		assert(ev->ev_pmcid != PMC_ID_INVALID);
 

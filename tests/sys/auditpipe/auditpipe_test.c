@@ -25,11 +25,10 @@
 
 #include <sys/ioctl.h>
 
-#include <bsm/audit.h>
-#include <security/audit/audit_ioctl.h>
-
 #include <atf-c.h>
+#include <bsm/audit.h>
 #include <fcntl.h>
+#include <security/audit/audit_ioctl.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -39,8 +38,9 @@ static FILE *fileptr;
 ATF_TC(auditpipe_get_qlen);
 ATF_TC_HEAD(auditpipe_get_qlen, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-					"AUDITPIPE_GET_QLEN works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_GET_QLEN works properly");
 }
 
 ATF_TC_BODY(auditpipe_get_qlen, tc)
@@ -52,12 +52,12 @@ ATF_TC_BODY(auditpipe_get_qlen, tc)
 	close(filedesc);
 }
 
-
 ATF_TC(auditpipe_get_qlimit);
 ATF_TC_HEAD(auditpipe_get_qlimit, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-					"AUDITPIPE_GET_QLIMIT works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_GET_QLIMIT works properly");
 }
 
 ATF_TC_BODY(auditpipe_get_qlimit, tc)
@@ -69,12 +69,12 @@ ATF_TC_BODY(auditpipe_get_qlimit, tc)
 	close(filedesc);
 }
 
-
 ATF_TC_WITH_CLEANUP(auditpipe_set_qlimit);
 ATF_TC_HEAD(auditpipe_set_qlimit, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-					"AUDITPIPE_SET_QLIMIT works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_SET_QLIMIT works properly");
 }
 
 ATF_TC_BODY(auditpipe_set_qlimit, tc)
@@ -86,7 +86,7 @@ ATF_TC_BODY(auditpipe_set_qlimit, tc)
 	ATF_REQUIRE_EQ(0, ioctl(filedesc, AUDITPIPE_GET_QLIMIT, &curr_qlimit));
 	ATF_REQUIRE((fileptr = fopen("qlimit_store", "a")) != NULL);
 	ATF_REQUIRE_EQ(sizeof(curr_qlimit),
-		fprintf(fileptr, "%d\n", curr_qlimit));
+	    fprintf(fileptr, "%d\n", curr_qlimit));
 
 	/*
 	 * Set QLIMIT different from the current system value to confirm
@@ -118,12 +118,12 @@ ATF_TC_CLEANUP(auditpipe_set_qlimit, tc)
 	}
 }
 
-
 ATF_TC(auditpipe_get_qlimit_min);
 ATF_TC_HEAD(auditpipe_get_qlimit_min, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-				"AUDITPIPE_GET_QLIMIT_MIN works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_GET_QLIMIT_MIN works properly");
 }
 
 ATF_TC_BODY(auditpipe_get_qlimit_min, tc)
@@ -135,12 +135,12 @@ ATF_TC_BODY(auditpipe_get_qlimit_min, tc)
 	close(filedesc);
 }
 
-
 ATF_TC(auditpipe_get_qlimit_max);
 ATF_TC_HEAD(auditpipe_get_qlimit_max, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-				"AUDITPIPE_GET_QLIMIT_MAX works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_GET_QLIMIT_MAX works properly");
 }
 
 ATF_TC_BODY(auditpipe_get_qlimit_max, tc)
@@ -152,12 +152,12 @@ ATF_TC_BODY(auditpipe_get_qlimit_max, tc)
 	close(filedesc);
 }
 
-
 ATF_TC(auditpipe_get_maxauditdata);
 ATF_TC_HEAD(auditpipe_get_maxauditdata, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Verifies whether the auditpipe ioctl, "
-				"AUDITPIPE_GET_MAXAUDITDATA works properly");
+	atf_tc_set_md_var(tc, "descr",
+	    "Verifies whether the auditpipe ioctl, "
+	    "AUDITPIPE_GET_MAXAUDITDATA works properly");
 }
 
 ATF_TC_BODY(auditpipe_get_maxauditdata, tc)
@@ -168,7 +168,6 @@ ATF_TC_BODY(auditpipe_get_maxauditdata, tc)
 	ATF_REQUIRE(audata != -1);
 	close(filedesc);
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

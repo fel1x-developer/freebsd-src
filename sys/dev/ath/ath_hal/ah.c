@@ -19,11 +19,10 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-#include "ah_eeprom.h"			/* for 5ghz fast clock flag */
-
-#include "ar5416/ar5416reg.h"		/* NB: includes ar5212reg.h */
+#include "ah_eeprom.h" /* for 5ghz fast clock flag */
+#include "ah_internal.h"
+#include "ar5416/ar5416reg.h" /* NB: includes ar5212reg.h */
 #include "ar9003/ar9300_devid.h"
 
 /* linker set of registered chips */
@@ -50,21 +49,22 @@ ath_hal_remove_chip(struct ath_hal_chip *ahc)
  * Check the set of registered chips to see if any recognize
  * the device as one they can support.
  */
-const char*
+const char *
 ath_hal_probe(uint16_t vendorid, uint16_t devid)
 {
-	struct ath_hal_chip * const *pchip;
+	struct ath_hal_chip *const *pchip;
 	struct ath_hal_chip *pc;
 
 	/* Linker set */
-	OS_SET_FOREACH(pchip, ah_chips) {
+	OS_SET_FOREACH(pchip, ah_chips)
+	{
 		const char *name = (*pchip)->probe(vendorid, devid);
 		if (name != AH_NULL)
 			return name;
 	}
 
 	/* List */
-	TAILQ_FOREACH(pc, &ah_chip_list, node) {
+	TAILQ_FOREACH (pc, &ah_chip_list, node) {
 		const char *name = pc->probe(vendorid, devid);
 		if (name != AH_NULL)
 			return name;
@@ -80,16 +80,15 @@ ath_hal_probe(uint16_t vendorid, uint16_t devid)
  * Any failures will return an error that should cause a hardware
  * disable.
  */
-struct ath_hal*
-ath_hal_attach(uint16_t devid, HAL_SOFTC sc,
-	HAL_BUS_TAG st, HAL_BUS_HANDLE sh, uint16_t *eepromdata,
-	HAL_OPS_CONFIG *ah_config,
-	HAL_STATUS *error)
+struct ath_hal *
+ath_hal_attach(uint16_t devid, HAL_SOFTC sc, HAL_BUS_TAG st, HAL_BUS_HANDLE sh,
+    uint16_t *eepromdata, HAL_OPS_CONFIG *ah_config, HAL_STATUS *error)
 {
-	struct ath_hal_chip * const *pchip;
+	struct ath_hal_chip *const *pchip;
 	struct ath_hal_chip *pc;
 
-	OS_SET_FOREACH(pchip, ah_chips) {
+	OS_SET_FOREACH(pchip, ah_chips)
+	{
 		struct ath_hal_chip *chip = *pchip;
 		struct ath_hal *ah;
 
@@ -112,7 +111,7 @@ ath_hal_attach(uint16_t devid, HAL_SOFTC sc,
 	}
 
 	/* List */
-	TAILQ_FOREACH(pc, &ah_chip_list, node) {
+	TAILQ_FOREACH (pc, &ah_chip_list, node) {
 		struct ath_hal_chip *chip = pc;
 		struct ath_hal *ah;
 
@@ -157,9 +156,9 @@ ath_hal_mac_name(struct ath_hal *ah)
 		return "AR5413";
 	case AR_SREV_VERSION_COBRA:
 		return "AR2415";
-	case AR_SREV_2425:	/* Swan */
+	case AR_SREV_2425: /* Swan */
 		return "AR2425";
-	case AR_SREV_2417:	/* Nala */
+	case AR_SREV_2417: /* Nala */
 		return "AR2417";
 	case AR_XSREV_VERSION_OWL_PCI:
 		return "AR5416";
@@ -205,7 +204,7 @@ ath_hal_mac_name(struct ath_hal *ah)
  * Return the mask of available modes based on the hardware capabilities.
  */
 u_int
-ath_hal_getwirelessmodes(struct ath_hal*ah)
+ath_hal_getwirelessmodes(struct ath_hal *ah)
 {
 	return ath_hal_getWirelessModes(ah);
 }
@@ -237,16 +236,17 @@ ath_hal_remove_rf(struct ath_hal_rf *arf)
 struct ath_hal_rf *
 ath_hal_rfprobe(struct ath_hal *ah, HAL_STATUS *ecode)
 {
-	struct ath_hal_rf * const *prf;
-	struct ath_hal_rf * rf;
+	struct ath_hal_rf *const *prf;
+	struct ath_hal_rf *rf;
 
-	OS_SET_FOREACH(prf, ah_rfs) {
+	OS_SET_FOREACH(prf, ah_rfs)
+	{
 		struct ath_hal_rf *rf = *prf;
 		if (rf->probe(ah))
 			return rf;
 	}
 
-	TAILQ_FOREACH(rf, &ah_rf_list, node) {
+	TAILQ_FOREACH (rf, &ah_rf_list, node) {
 		if (rf->probe(ah))
 			return rf;
 	}
@@ -258,8 +258,8 @@ const char *
 ath_hal_rf_name(struct ath_hal *ah)
 {
 	switch (ah->ah_analog5GhzRev & AR_RADIO_SREV_MAJOR) {
-	case 0:			/* 5210 */
-		return "5110";	/* NB: made up */
+	case 0:		       /* 5210 */
+		return "5110"; /* NB: made up */
 	case AR_RAD5111_SREV_MAJOR:
 	case AR_RAD5111_SREV_PROD:
 		return "5111";
@@ -302,13 +302,14 @@ ath_hal_rf_name(struct ath_hal *ah)
 HAL_BOOL
 ath_hal_wait(struct ath_hal *ah, u_int reg, uint32_t mask, uint32_t val)
 {
-#define	AH_TIMEOUT	5000
+#define AH_TIMEOUT 5000
 	return ath_hal_waitfor(ah, reg, mask, val, AH_TIMEOUT);
 #undef AH_TIMEOUT
 }
 
 HAL_BOOL
-ath_hal_waitfor(struct ath_hal *ah, u_int reg, uint32_t mask, uint32_t val, uint32_t timeout)
+ath_hal_waitfor(struct ath_hal *ah, u_int reg, uint32_t mask, uint32_t val,
+    uint32_t timeout)
 {
 	int i;
 
@@ -318,8 +319,8 @@ ath_hal_waitfor(struct ath_hal *ah, u_int reg, uint32_t mask, uint32_t val, uint
 		OS_DELAY(10);
 	}
 	HALDEBUG(ah, HAL_DEBUG_REGIO | HAL_DEBUG_PHYIO,
-	    "%s: timeout on reg 0x%x: 0x%08x & 0x%08x != 0x%08x\n",
-	    __func__, reg, OS_REG_READ(ah, reg), mask, val);
+	    "%s: timeout on reg 0x%x: 0x%08x & 0x%08x != 0x%08x\n", __func__,
+	    reg, OS_REG_READ(ah, reg), mask, val);
 	return AH_FALSE;
 }
 
@@ -342,24 +343,24 @@ ath_hal_reverseBits(uint32_t val, uint32_t n)
 
 /* 802.11n related timing definitions */
 
-#define	OFDM_PLCP_BITS	22
-#define	HT_L_STF	8
-#define	HT_L_LTF	8
-#define	HT_L_SIG	4
-#define	HT_SIG		8
-#define	HT_STF		4
-#define	HT_LTF(n)	((n) * 4)
+#define OFDM_PLCP_BITS 22
+#define HT_L_STF 8
+#define HT_L_LTF 8
+#define HT_L_SIG 4
+#define HT_SIG 8
+#define HT_STF 4
+#define HT_LTF(n) ((n) * 4)
 
-#define	HT_RC_2_MCS(_rc)	((_rc) & 0x1f)
-#define	HT_RC_2_STREAMS(_rc)	((((_rc) & 0x78) >> 3) + 1)
-#define	IS_HT_RATE(_rc)		( (_rc) & IEEE80211_RATE_MCS)
+#define HT_RC_2_MCS(_rc) ((_rc) & 0x1f)
+#define HT_RC_2_STREAMS(_rc) ((((_rc) & 0x78) >> 3) + 1)
+#define IS_HT_RATE(_rc) ((_rc) & IEEE80211_RATE_MCS)
 
 /*
  * Calculate the duration of a packet whether it is 11n or legacy.
  */
 uint32_t
-ath_hal_pkt_txtime(struct ath_hal *ah, const HAL_RATE_TABLE *rates, uint32_t frameLen,
-    uint16_t rateix, HAL_BOOL isht40, HAL_BOOL shortPreamble,
+ath_hal_pkt_txtime(struct ath_hal *ah, const HAL_RATE_TABLE *rates,
+    uint32_t frameLen, uint16_t rateix, HAL_BOOL isht40, HAL_BOOL shortPreamble,
     HAL_BOOL includeSifs)
 {
 	uint8_t rc;
@@ -368,7 +369,7 @@ ath_hal_pkt_txtime(struct ath_hal *ah, const HAL_RATE_TABLE *rates, uint32_t fra
 	rc = rates->info[rateix].rateCode;
 
 	/* Legacy rate? Return the old way */
-	if (! IS_HT_RATE(rc))
+	if (!IS_HT_RATE(rc))
 		return ath_hal_computetxtime(ah, rates, frameLen, rateix,
 		    shortPreamble, includeSifs);
 
@@ -376,25 +377,19 @@ ath_hal_pkt_txtime(struct ath_hal *ah, const HAL_RATE_TABLE *rates, uint32_t fra
 	numStreams = HT_RC_2_STREAMS(rc);
 	KASSERT(numStreams > 0 && numStreams <= 4,
 	    ("number of spatial streams needs to be 1..3: MCS rate 0x%x!",
-	    rateix));
+		rateix));
 
 	/* XXX TODO: Add SIFS */
 	return ath_computedur_ht(frameLen, rc, numStreams, isht40,
 	    shortPreamble);
 }
 
-static const uint16_t ht20_bps[32] = {
-    26, 52, 78, 104, 156, 208, 234, 260,
-    52, 104, 156, 208, 312, 416, 468, 520,
-    78, 156, 234, 312, 468, 624, 702, 780,
-    104, 208, 312, 416, 624, 832, 936, 1040
-};
-static const uint16_t ht40_bps[32] = {
-    54, 108, 162, 216, 324, 432, 486, 540,
-    108, 216, 324, 432, 648, 864, 972, 1080,
-    162, 324, 486, 648, 972, 1296, 1458, 1620,
-    216, 432, 648, 864, 1296, 1728, 1944, 2160
-};
+static const uint16_t ht20_bps[32] = { 26, 52, 78, 104, 156, 208, 234, 260, 52,
+	104, 156, 208, 312, 416, 468, 520, 78, 156, 234, 312, 468, 624, 702,
+	780, 104, 208, 312, 416, 624, 832, 936, 1040 };
+static const uint16_t ht40_bps[32] = { 54, 108, 162, 216, 324, 432, 486, 540,
+	108, 216, 324, 432, 648, 864, 972, 1080, 162, 324, 486, 648, 972, 1296,
+	1458, 1620, 216, 432, 648, 864, 1296, 1728, 1944, 2160 };
 
 /*
  * Calculate the transmit duration of an 11n frame.
@@ -406,7 +401,7 @@ ath_computedur_ht(uint32_t frameLen, uint16_t rate, int streams,
 	uint32_t bitsPerSymbol, numBits, numSymbols, txTime;
 
 	KASSERT(rate & IEEE80211_RATE_MCS, ("not mcs %d", rate));
-	KASSERT((rate &~ IEEE80211_RATE_MCS) < 31, ("bad mcs 0x%x", rate));
+	KASSERT((rate & ~IEEE80211_RATE_MCS) < 31, ("bad mcs 0x%x", rate));
 
 	if (isht40)
 		bitsPerSymbol = ht40_bps[HT_RC_2_MCS(rate)];
@@ -415,11 +410,11 @@ ath_computedur_ht(uint32_t frameLen, uint16_t rate, int streams,
 	numBits = OFDM_PLCP_BITS + (frameLen << 3);
 	numSymbols = howmany(numBits, bitsPerSymbol);
 	if (isShortGI)
-		txTime = ((numSymbols * 18) + 4) / 5;   /* 3.6us */
+		txTime = ((numSymbols * 18) + 4) / 5; /* 3.6us */
 	else
-		txTime = numSymbols * 4;                /* 4us */
-	return txTime + HT_L_STF + HT_L_LTF +
-	    HT_L_SIG + HT_SIG + HT_STF + HT_LTF(streams);
+		txTime = numSymbols * 4; /* 4us */
+	return txTime + HT_L_STF + HT_L_LTF + HT_L_SIG + HT_SIG + HT_STF +
+	    HT_LTF(streams);
 }
 
 /*
@@ -427,9 +422,9 @@ ath_computedur_ht(uint32_t frameLen, uint16_t rate, int streams,
  * using the specified rate, phy, and short preamble setting.
  */
 uint16_t
-ath_hal_computetxtime(struct ath_hal *ah,
-	const HAL_RATE_TABLE *rates, uint32_t frameLen, uint16_t rateix,
-	HAL_BOOL shortPreamble, HAL_BOOL includeSifs)
+ath_hal_computetxtime(struct ath_hal *ah, const HAL_RATE_TABLE *rates,
+    uint32_t frameLen, uint16_t rateix, HAL_BOOL shortPreamble,
+    HAL_BOOL includeSifs)
 {
 	uint32_t bitsPerSymbol, numBits, numSymbols, phyTime, txTime;
 	uint32_t kbps;
@@ -441,70 +436,67 @@ ath_hal_computetxtime(struct ath_hal *ah,
 
 	kbps = rates->info[rateix].rateKbps;
 	/*
-	 * index can be invalid during dynamic Turbo transitions. 
+	 * index can be invalid during dynamic Turbo transitions.
 	 * XXX
 	 */
 	if (kbps == 0)
 		return 0;
 	switch (rates->info[rateix].phy) {
 	case IEEE80211_T_CCK:
-		phyTime		= CCK_PREAMBLE_BITS + CCK_PLCP_BITS;
+		phyTime = CCK_PREAMBLE_BITS + CCK_PLCP_BITS;
 		if (shortPreamble && rates->info[rateix].shortPreamble)
 			phyTime >>= 1;
-		numBits		= frameLen << 3;
-		txTime		= phyTime
-				+ ((numBits * 1000)/kbps);
+		numBits = frameLen << 3;
+		txTime = phyTime + ((numBits * 1000) / kbps);
 		if (includeSifs)
-			txTime	+= CCK_SIFS_TIME;
+			txTime += CCK_SIFS_TIME;
 		break;
 	case IEEE80211_T_OFDM:
-		bitsPerSymbol	= (kbps * OFDM_SYMBOL_TIME) / 1000;
+		bitsPerSymbol = (kbps * OFDM_SYMBOL_TIME) / 1000;
 		HALASSERT(bitsPerSymbol != 0);
 
-		numBits		= OFDM_PLCP_BITS + (frameLen << 3);
-		numSymbols	= howmany(numBits, bitsPerSymbol);
-		txTime		= OFDM_PREAMBLE_TIME
-				+ (numSymbols * OFDM_SYMBOL_TIME);
+		numBits = OFDM_PLCP_BITS + (frameLen << 3);
+		numSymbols = howmany(numBits, bitsPerSymbol);
+		txTime = OFDM_PREAMBLE_TIME + (numSymbols * OFDM_SYMBOL_TIME);
 		if (includeSifs)
-			txTime	+= OFDM_SIFS_TIME;
+			txTime += OFDM_SIFS_TIME;
 		break;
 	case IEEE80211_T_OFDM_HALF:
-		bitsPerSymbol	= (kbps * OFDM_HALF_SYMBOL_TIME) / 1000;
+		bitsPerSymbol = (kbps * OFDM_HALF_SYMBOL_TIME) / 1000;
 		HALASSERT(bitsPerSymbol != 0);
 
-		numBits		= OFDM_HALF_PLCP_BITS + (frameLen << 3);
-		numSymbols	= howmany(numBits, bitsPerSymbol);
-		txTime		= OFDM_HALF_PREAMBLE_TIME
-				+ (numSymbols * OFDM_HALF_SYMBOL_TIME);
+		numBits = OFDM_HALF_PLCP_BITS + (frameLen << 3);
+		numSymbols = howmany(numBits, bitsPerSymbol);
+		txTime = OFDM_HALF_PREAMBLE_TIME +
+		    (numSymbols * OFDM_HALF_SYMBOL_TIME);
 		if (includeSifs)
-			txTime	+= OFDM_HALF_SIFS_TIME;
+			txTime += OFDM_HALF_SIFS_TIME;
 		break;
 	case IEEE80211_T_OFDM_QUARTER:
-		bitsPerSymbol	= (kbps * OFDM_QUARTER_SYMBOL_TIME) / 1000;
+		bitsPerSymbol = (kbps * OFDM_QUARTER_SYMBOL_TIME) / 1000;
 		HALASSERT(bitsPerSymbol != 0);
 
-		numBits		= OFDM_QUARTER_PLCP_BITS + (frameLen << 3);
-		numSymbols	= howmany(numBits, bitsPerSymbol);
-		txTime		= OFDM_QUARTER_PREAMBLE_TIME
-				+ (numSymbols * OFDM_QUARTER_SYMBOL_TIME);
+		numBits = OFDM_QUARTER_PLCP_BITS + (frameLen << 3);
+		numSymbols = howmany(numBits, bitsPerSymbol);
+		txTime = OFDM_QUARTER_PREAMBLE_TIME +
+		    (numSymbols * OFDM_QUARTER_SYMBOL_TIME);
 		if (includeSifs)
-			txTime	+= OFDM_QUARTER_SIFS_TIME;
+			txTime += OFDM_QUARTER_SIFS_TIME;
 		break;
 	case IEEE80211_T_TURBO:
-		bitsPerSymbol	= (kbps * TURBO_SYMBOL_TIME) / 1000;
+		bitsPerSymbol = (kbps * TURBO_SYMBOL_TIME) / 1000;
 		HALASSERT(bitsPerSymbol != 0);
 
-		numBits		= TURBO_PLCP_BITS + (frameLen << 3);
-		numSymbols	= howmany(numBits, bitsPerSymbol);
-		txTime		= TURBO_PREAMBLE_TIME
-				+ (numSymbols * TURBO_SYMBOL_TIME);
+		numBits = TURBO_PLCP_BITS + (frameLen << 3);
+		numSymbols = howmany(numBits, bitsPerSymbol);
+		txTime = TURBO_PREAMBLE_TIME + (numSymbols * TURBO_SYMBOL_TIME);
 		if (includeSifs)
-			txTime	+= TURBO_SIFS_TIME;
+			txTime += TURBO_SIFS_TIME;
 		break;
 	default:
 		HALDEBUG(ah, HAL_DEBUG_PHYIO,
-		    "%s: unknown phy %u (rate ix %u)\n",
-		    __func__, rates->info[rateix].phy, rateix);
+		    "%s: unknown phy %u (rate ix %u)\n", __func__,
+		    rates->info[rateix].phy, rateix);
 		txTime = 0;
 		break;
 	}
@@ -555,11 +547,11 @@ ath_hal_get_curmode(struct ath_hal *ah, const struct ieee80211_channel *chan)
 }
 
 typedef enum {
-	WIRELESS_MODE_11a   = 0,
+	WIRELESS_MODE_11a = 0,
 	WIRELESS_MODE_TURBO = 1,
-	WIRELESS_MODE_11b   = 2,
-	WIRELESS_MODE_11g   = 3,
-	WIRELESS_MODE_108g  = 4,
+	WIRELESS_MODE_11b = 2,
+	WIRELESS_MODE_11g = 3,
+	WIRELESS_MODE_108g = 4,
 
 	WIRELESS_MODE_MAX
 } WIRELESS_MODE;
@@ -586,10 +578,10 @@ ath_hal_chan2wmode(struct ath_hal *ah, const struct ieee80211_channel *chan)
 /*
  * Convert between microseconds and core system clocks.
  */
-                                     /* 11a Turbo  11b  11g  108g */
-static const uint8_t CLOCK_RATE[]  = { 40,  80,   22,  44,   88  };
+/* 11a Turbo  11b  11g  108g */
+static const uint8_t CLOCK_RATE[] = { 40, 80, 22, 44, 88 };
 
-#define	CLOCK_FAST_RATE_5GHZ_OFDM	44
+#define CLOCK_FAST_RATE_5GHZ_OFDM 44
 
 u_int
 ath_hal_mac_clks(struct ath_hal *ah, u_int usecs)
@@ -644,7 +636,8 @@ ath_hal_mac_psec(struct ath_hal *ah, u_int clks)
 		if (IEEE80211_IS_CHAN_HT40(c))
 			psec >>= 1;
 	} else if (c != AH_NULL) {
-		psec = (clks * 1000000ULL) / CLOCK_RATE[ath_hal_chan2wmode(ah, c)];
+		psec = (clks * 1000000ULL) /
+		    CLOCK_RATE[ath_hal_chan2wmode(ah, c)];
 		if (IEEE80211_IS_CHAN_HT40(c))
 			psec >>= 1;
 	} else
@@ -666,13 +659,13 @@ ath_hal_mac_psec(struct ath_hal *ah, u_int clks)
 void
 ath_hal_setupratetable(struct ath_hal *ah, HAL_RATE_TABLE *rt)
 {
-#define	N(a)	(sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 	int i;
 
-	if (rt->rateCodeToIndex[0] != 0)	/* already setup */
+	if (rt->rateCodeToIndex[0] != 0) /* already setup */
 		return;
 	for (i = 0; i < N(rt->rateCodeToIndex); i++)
-		rt->rateCodeToIndex[i] = (uint8_t) -1;
+		rt->rateCodeToIndex[i] = (uint8_t)-1;
 	for (i = 0; i < rt->rateCount; i++) {
 		uint8_t code = rt->info[i].rateCode;
 		uint8_t cix = rt->info[i].controlRate;
@@ -689,46 +682,47 @@ ath_hal_setupratetable(struct ath_hal *ah, HAL_RATE_TABLE *rt)
 		 *     2Mb/s rate which will work but is suboptimal
 		 */
 		rt->info[i].lpAckDuration = ath_hal_computetxtime(ah, rt,
-			WLAN_CTRL_FRAME_SIZE, cix, AH_FALSE, AH_TRUE);
+		    WLAN_CTRL_FRAME_SIZE, cix, AH_FALSE, AH_TRUE);
 		rt->info[i].spAckDuration = ath_hal_computetxtime(ah, rt,
-			WLAN_CTRL_FRAME_SIZE, cix, AH_TRUE, AH_TRUE);
+		    WLAN_CTRL_FRAME_SIZE, cix, AH_TRUE, AH_TRUE);
 	}
 #undef N
 }
 
 HAL_STATUS
 ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t *result)
+    uint32_t capability, uint32_t *result)
 {
 	const HAL_CAPABILITIES *pCap = &AH_PRIVATE(ah)->ah_caps;
 
 	switch (type) {
-	case HAL_CAP_REG_DMN:		/* regulatory domain */
+	case HAL_CAP_REG_DMN: /* regulatory domain */
 		*result = AH_PRIVATE(ah)->ah_currentRD;
 		return HAL_OK;
-	case HAL_CAP_DFS_DMN:		/* DFS Domain */
+	case HAL_CAP_DFS_DMN: /* DFS Domain */
 		*result = AH_PRIVATE(ah)->ah_dfsDomain;
 		return HAL_OK;
-	case HAL_CAP_CIPHER:		/* cipher handled in hardware */
-	case HAL_CAP_TKIP_MIC:		/* handle TKIP MIC in hardware */
+	case HAL_CAP_CIPHER:   /* cipher handled in hardware */
+	case HAL_CAP_TKIP_MIC: /* handle TKIP MIC in hardware */
 		return HAL_ENOTSUPP;
-	case HAL_CAP_TKIP_SPLIT:	/* hardware TKIP uses split keys */
+	case HAL_CAP_TKIP_SPLIT: /* hardware TKIP uses split keys */
 		return HAL_ENOTSUPP;
-	case HAL_CAP_PHYCOUNTERS:	/* hardware PHY error counters */
+	case HAL_CAP_PHYCOUNTERS: /* hardware PHY error counters */
 		return pCap->halHwPhyCounterSupport ? HAL_OK : HAL_ENXIO;
-	case HAL_CAP_WME_TKIPMIC:   /* hardware can do TKIP MIC when WMM is turned on */
+	case HAL_CAP_WME_TKIPMIC: /* hardware can do TKIP MIC when WMM is turned
+				     on */
 		return HAL_ENOTSUPP;
-	case HAL_CAP_DIVERSITY:		/* hardware supports fast diversity */
+	case HAL_CAP_DIVERSITY: /* hardware supports fast diversity */
 		return HAL_ENOTSUPP;
-	case HAL_CAP_KEYCACHE_SIZE:	/* hardware key cache size */
-		*result =  pCap->halKeyCacheSize;
+	case HAL_CAP_KEYCACHE_SIZE: /* hardware key cache size */
+		*result = pCap->halKeyCacheSize;
 		return HAL_OK;
-	case HAL_CAP_NUM_TXQUEUES:	/* number of hardware tx queues */
+	case HAL_CAP_NUM_TXQUEUES: /* number of hardware tx queues */
 		*result = pCap->halTotalQueues;
 		return HAL_OK;
-	case HAL_CAP_VEOL:		/* hardware supports virtual EOL */
+	case HAL_CAP_VEOL: /* hardware supports virtual EOL */
 		return pCap->halVEOLSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_PSPOLL:		/* hardware PS-Poll support works */
+	case HAL_CAP_PSPOLL: /* hardware PS-Poll support works */
 		return pCap->halPSPollBroken ? HAL_ENOTSUPP : HAL_OK;
 	case HAL_CAP_COMPRESSION:
 		return pCap->halCompressSupport ? HAL_OK : HAL_ENOTSUPP;
@@ -736,38 +730,38 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		return pCap->halBurstSupport ? HAL_OK : HAL_ENOTSUPP;
 	case HAL_CAP_FASTFRAME:
 		return pCap->halFastFramesSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_DIAG:		/* hardware diagnostic support */
+	case HAL_CAP_DIAG: /* hardware diagnostic support */
 		*result = AH_PRIVATE(ah)->ah_diagreg;
 		return HAL_OK;
-	case HAL_CAP_TXPOW:		/* global tx power limit  */
+	case HAL_CAP_TXPOW: /* global tx power limit  */
 		switch (capability) {
-		case 0:			/* facility is supported */
+		case 0: /* facility is supported */
 			return HAL_OK;
-		case 1:			/* current limit */
+		case 1: /* current limit */
 			*result = AH_PRIVATE(ah)->ah_powerLimit;
 			return HAL_OK;
-		case 2:			/* current max tx power */
+		case 2: /* current max tx power */
 			*result = AH_PRIVATE(ah)->ah_maxPowerLevel;
 			return HAL_OK;
-		case 3:			/* scale factor */
+		case 3: /* scale factor */
 			*result = AH_PRIVATE(ah)->ah_tpScale;
 			return HAL_OK;
 		}
 		return HAL_ENOTSUPP;
-	case HAL_CAP_BSSIDMASK:		/* hardware supports bssid mask */
+	case HAL_CAP_BSSIDMASK: /* hardware supports bssid mask */
 		return pCap->halBssIdMaskSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_MCAST_KEYSRCH:	/* multicast frame keycache search */
+	case HAL_CAP_MCAST_KEYSRCH: /* multicast frame keycache search */
 		return pCap->halMcastKeySrchSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_TSF_ADJUST:	/* hardware has beacon tsf adjust */
+	case HAL_CAP_TSF_ADJUST: /* hardware has beacon tsf adjust */
 		return HAL_ENOTSUPP;
-	case HAL_CAP_RFSILENT:		/* rfsilent support  */
+	case HAL_CAP_RFSILENT: /* rfsilent support  */
 		switch (capability) {
-		case 0:			/* facility is supported */
+		case 0: /* facility is supported */
 			return pCap->halRfSilentSupport ? HAL_OK : HAL_ENOTSUPP;
-		case 1:			/* current setting */
-			return AH_PRIVATE(ah)->ah_rfkillEnabled ?
-				HAL_OK : HAL_ENOTSUPP;
-		case 2:			/* rfsilent config */
+		case 1: /* current setting */
+			return AH_PRIVATE(ah)->ah_rfkillEnabled ? HAL_OK :
+								  HAL_ENOTSUPP;
+		case 2: /* rfsilent config */
 			*result = AH_PRIVATE(ah)->ah_rfsilent;
 			return HAL_OK;
 		}
@@ -781,10 +775,10 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		return pCap->halGTTSupport ? HAL_OK : HAL_ENOTSUPP;
 	case HAL_CAP_FAST_CC:
 		return pCap->halFastCCSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_TX_CHAINMASK:	/* mask of TX chains supported */
+	case HAL_CAP_TX_CHAINMASK: /* mask of TX chains supported */
 		*result = pCap->halTxChainMask;
 		return HAL_OK;
-	case HAL_CAP_RX_CHAINMASK:	/* mask of RX chains supported */
+	case HAL_CAP_RX_CHAINMASK: /* mask of RX chains supported */
 		*result = pCap->halRxChainMask;
 		return HAL_OK;
 	case HAL_CAP_NUM_GPIO_PINS:
@@ -809,7 +803,8 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		return pCap->halAutoSleepSupport ? HAL_OK : HAL_ENOTSUPP;
 	case HAL_CAP_MBSSID_AGGR_SUPPORT:
 		return pCap->halMbssidAggrSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_SPLIT_4KB_TRANS:	/* hardware handles descriptors straddling 4k page boundary */
+	case HAL_CAP_SPLIT_4KB_TRANS: /* hardware handles descriptors straddling
+					 4k page boundary */
 		return pCap->hal4kbSplitTransSupport ? HAL_OK : HAL_ENOTSUPP;
 	case HAL_CAP_REG_FLAG:
 		*result = AH_PRIVATE(ah)->ah_currentRDext;
@@ -838,7 +833,7 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 			return HAL_OK;
 		default:
 			return HAL_ENOTSUPP;
-	}
+		}
 	case HAL_CAP_RXBUFSIZE:
 	case HAL_CAP_NUM_MR_RETRIES:
 		*result = pCap->halNumMRRetries;
@@ -849,48 +844,50 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		return pCap->halSpectralScanSupport ? HAL_OK : HAL_ENOTSUPP;
 	case HAL_CAP_HT20_SGI:
 		return pCap->halHTSGI20Support ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_RXTSTAMP_PREC:	/* rx desc tstamp precision (bits) */
+	case HAL_CAP_RXTSTAMP_PREC: /* rx desc tstamp precision (bits) */
 		*result = pCap->halRxTstampPrecision;
 		return HAL_OK;
-	case HAL_CAP_ANT_DIV_COMB:	/* AR9285/AR9485 LNA diversity */
-		return pCap->halAntDivCombSupport ? HAL_OK  : HAL_ENOTSUPP;
+	case HAL_CAP_ANT_DIV_COMB: /* AR9285/AR9485 LNA diversity */
+		return pCap->halAntDivCombSupport ? HAL_OK : HAL_ENOTSUPP;
 
 	case HAL_CAP_ENHANCED_DFS_SUPPORT:
 		return pCap->halEnhancedDfsSupport ? HAL_OK : HAL_ENOTSUPP;
 
 	/* FreeBSD-specific entries for now */
-	case HAL_CAP_RXORN_FATAL:	/* HAL_INT_RXORN treated as fatal  */
+	case HAL_CAP_RXORN_FATAL: /* HAL_INT_RXORN treated as fatal  */
 		return AH_PRIVATE(ah)->ah_rxornIsFatal ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_INTRMASK:		/* mask of supported interrupts */
+	case HAL_CAP_INTRMASK: /* mask of supported interrupts */
 		*result = pCap->halIntrMask;
 		return HAL_OK;
-	case HAL_CAP_BSSIDMATCH:	/* hardware has disable bssid match */
+	case HAL_CAP_BSSIDMATCH: /* hardware has disable bssid match */
 		return pCap->halBssidMatchSupport ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_STREAMS:		/* number of 11n spatial streams */
+	case HAL_CAP_STREAMS: /* number of 11n spatial streams */
 		switch (capability) {
-		case 0:			/* TX */
+		case 0: /* TX */
 			*result = pCap->halTxStreams;
 			return HAL_OK;
-		case 1:			/* RX */
+		case 1: /* RX */
 			*result = pCap->halRxStreams;
 			return HAL_OK;
 		default:
 			return HAL_ENOTSUPP;
 		}
-	case HAL_CAP_RXDESC_SELFLINK:	/* hardware supports self-linked final RX descriptors correctly */
+	case HAL_CAP_RXDESC_SELFLINK: /* hardware supports self-linked final RX
+					 descriptors correctly */
 		return pCap->halHasRxSelfLinkedTail ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_BB_READ_WAR:		/* Baseband read WAR */
-		return pCap->halHasBBReadWar? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_SERIALISE_WAR:		/* PCI register serialisation */
+	case HAL_CAP_BB_READ_WAR: /* Baseband read WAR */
+		return pCap->halHasBBReadWar ? HAL_OK : HAL_ENOTSUPP;
+	case HAL_CAP_SERIALISE_WAR: /* PCI register serialisation */
 		return pCap->halSerialiseRegWar ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_MFP:			/* Management frame protection setting */
+	case HAL_CAP_MFP: /* Management frame protection setting */
 		*result = pCap->halMfpSupport;
 		return HAL_OK;
-	case HAL_CAP_RX_LNA_MIXING:	/* Hardware uses an RX LNA mixer to map 2 antennas to a 1 stream receiver */
+	case HAL_CAP_RX_LNA_MIXING: /* Hardware uses an RX LNA mixer to map 2
+				       antennas to a 1 stream receiver */
 		return pCap->halRxUsingLnaMixing ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_DO_MYBEACON:	/* Hardware supports filtering my-beacons */
+	case HAL_CAP_DO_MYBEACON: /* Hardware supports filtering my-beacons */
 		return pCap->halRxDoMyBeacon ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_TXTSTAMP_PREC:	/* tx desc tstamp precision (bits) */
+	case HAL_CAP_TXTSTAMP_PREC: /* tx desc tstamp precision (bits) */
 		*result = pCap->halTxTstampPrecision;
 		return HAL_OK;
 	default:
@@ -900,7 +897,7 @@ ath_hal_getcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 
 HAL_BOOL
 ath_hal_setcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t setting, HAL_STATUS *status)
+    uint32_t capability, uint32_t setting, HAL_STATUS *status)
 {
 
 	switch (type) {
@@ -914,25 +911,25 @@ ath_hal_setcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 			break;
 		}
 		break;
-	case HAL_CAP_RFSILENT:		/* rfsilent support  */
+	case HAL_CAP_RFSILENT: /* rfsilent support  */
 		/*
 		 * NB: allow even if halRfSilentSupport is false
 		 *     in case the EEPROM is misprogrammed.
 		 */
 		switch (capability) {
-		case 1:			/* current setting */
+		case 1: /* current setting */
 			AH_PRIVATE(ah)->ah_rfkillEnabled = (setting != 0);
 			return AH_TRUE;
-		case 2:			/* rfsilent config */
+		case 2: /* rfsilent config */
 			/* XXX better done per-chip for validation? */
 			AH_PRIVATE(ah)->ah_rfsilent = setting;
 			return AH_TRUE;
 		}
 		break;
-	case HAL_CAP_REG_DMN:		/* regulatory domain */
+	case HAL_CAP_REG_DMN: /* regulatory domain */
 		AH_PRIVATE(ah)->ah_currentRD = setting;
 		return AH_TRUE;
-	case HAL_CAP_RXORN_FATAL:	/* HAL_INT_RXORN treated as fatal  */
+	case HAL_CAP_RXORN_FATAL: /* HAL_INT_RXORN treated as fatal  */
 		AH_PRIVATE(ah)->ah_rxornIsFatal = setting;
 		return AH_TRUE;
 	default:
@@ -943,30 +940,30 @@ ath_hal_setcapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 	return AH_FALSE;
 }
 
-/* 
+/*
  * Common support for getDiagState method.
  */
 
 static u_int
-ath_hal_getregdump(struct ath_hal *ah, const HAL_REGRANGE *regs,
-	void *dstbuf, int space)
+ath_hal_getregdump(struct ath_hal *ah, const HAL_REGRANGE *regs, void *dstbuf,
+    int space)
 {
 	uint32_t *dp = dstbuf;
 	int i;
 
-	for (i = 0; space >= 2*sizeof(uint32_t); i++) {
+	for (i = 0; space >= 2 * sizeof(uint32_t); i++) {
 		uint32_t r = regs[i].start;
 		uint32_t e = regs[i].end;
 		*dp++ = r;
 		*dp++ = e;
-		space -= 2*sizeof(uint32_t);
+		space -= 2 * sizeof(uint32_t);
 		do {
 			*dp++ = OS_REG_READ(ah, r);
 			r += sizeof(uint32_t);
 			space -= sizeof(uint32_t);
 		} while (r <= e && space >= sizeof(uint32_t));
 	}
-	return (char *) dp - (char *) dstbuf;
+	return (char *)dp - (char *)dstbuf;
 }
 
 static void
@@ -979,9 +976,8 @@ ath_hal_setregs(struct ath_hal *ah, const HAL_REGWRITE *regs, int space)
 }
 
 HAL_BOOL
-ath_hal_getdiagstate(struct ath_hal *ah, int request,
-	const void *args, uint32_t argsize,
-	void **result, uint32_t *resultsize)
+ath_hal_getdiagstate(struct ath_hal *ah, int request, const void *args,
+    uint32_t argsize, void **result, uint32_t *resultsize)
 {
 
 	switch (request) {
@@ -990,7 +986,8 @@ ath_hal_getdiagstate(struct ath_hal *ah, int request,
 		*resultsize = sizeof(HAL_REVS);
 		return AH_TRUE;
 	case HAL_DIAG_REGS:
-		*resultsize = ath_hal_getregdump(ah, args, *result,*resultsize);
+		*resultsize = ath_hal_getregdump(ah, args, *result,
+		    *resultsize);
 		return AH_TRUE;
 	case HAL_DIAG_SETREGS:
 		ath_hal_setregs(ah, args, argsize);
@@ -1014,8 +1011,8 @@ ath_hal_getdiagstate(struct ath_hal *ah, int request,
 		if (argsize != sizeof(HAL_DIAG_KEYVAL))
 			return AH_FALSE;
 		dk = (const HAL_DIAG_KEYVAL *)args;
-		return ah->ah_setKeyCacheEntry(ah, dk->dk_keyix,
-			&dk->dk_keyval, dk->dk_mac, dk->dk_xor);
+		return ah->ah_setKeyCacheEntry(ah, dk->dk_keyix, &dk->dk_keyval,
+		    dk->dk_mac, dk->dk_xor);
 	}
 	case HAL_DIAG_RESETKEY:
 		if (argsize != sizeof(uint16_t))
@@ -1034,8 +1031,7 @@ ath_hal_getdiagstate(struct ath_hal *ah, int request,
 	case HAL_DIAG_11NCOMPAT:
 		if (argsize == 0) {
 			*resultsize = sizeof(uint32_t);
-			*((uint32_t *)(*result)) =
-				AH_PRIVATE(ah)->ah_11nCompat;
+			*((uint32_t *)(*result)) = AH_PRIVATE(ah)->ah_11nCompat;
 		} else if (argsize == sizeof(uint32_t)) {
 			AH_PRIVATE(ah)->ah_11nCompat = *(const uint32_t *)args;
 		} else
@@ -1054,14 +1050,14 @@ ath_hal_getdiagstate(struct ath_hal *ah, int request,
  * from qInfo.
  */
 HAL_BOOL
-ath_hal_setTxQProps(struct ath_hal *ah,
-	HAL_TX_QUEUE_INFO *qi, const HAL_TXQ_INFO *qInfo)
+ath_hal_setTxQProps(struct ath_hal *ah, HAL_TX_QUEUE_INFO *qi,
+    const HAL_TXQ_INFO *qInfo)
 {
 	uint32_t cw;
 
 	if (qi->tqi_type == HAL_TX_QUEUE_INACTIVE) {
-		HALDEBUG(ah, HAL_DEBUG_TXQUEUE,
-		    "%s: inactive queue\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_TXQUEUE, "%s: inactive queue\n",
+		    __func__);
 		return AH_FALSE;
 	}
 	/* XXX validate parameters */
@@ -1109,18 +1105,18 @@ ath_hal_setTxQProps(struct ath_hal *ah,
 			qi->tqi_intFlags = HAL_TXQ_USE_LOCKOUT_BKOFF_DIS;
 		break;
 	default:
-		break;		/* NB: silence compiler */
+		break; /* NB: silence compiler */
 	}
 	return AH_TRUE;
 }
 
 HAL_BOOL
-ath_hal_getTxQProps(struct ath_hal *ah,
-	HAL_TXQ_INFO *qInfo, const HAL_TX_QUEUE_INFO *qi)
+ath_hal_getTxQProps(struct ath_hal *ah, HAL_TXQ_INFO *qInfo,
+    const HAL_TX_QUEUE_INFO *qi)
 {
 	if (qi->tqi_type == HAL_TX_QUEUE_INACTIVE) {
-		HALDEBUG(ah, HAL_DEBUG_TXQUEUE,
-		    "%s: inactive queue\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_TXQUEUE, "%s: inactive queue\n",
+		    __func__);
 		return AH_FALSE;
 	}
 
@@ -1141,8 +1137,8 @@ ath_hal_getTxQProps(struct ath_hal *ah,
 	return AH_TRUE;
 }
 
-                                     /* 11a Turbo  11b  11g  108g */
-static const int16_t NOISE_FLOOR[] = { -96, -93,  -98, -96,  -93 };
+/* 11a Turbo  11b  11g  108g */
+static const int16_t NOISE_FLOOR[] = { -96, -93, -98, -96, -93 };
 
 /*
  * Read the current channel noise floor and return.
@@ -1160,8 +1156,8 @@ ath_hal_getChanNoise(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	ichan = ath_hal_checkchannel(ah, chan);
 	if (ichan == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_NFCAL,
-		    "%s: invalid channel %u/0x%x; no mapping\n",
-		    __func__, chan->ic_freq, chan->ic_flags);
+		    "%s: invalid channel %u/0x%x; no mapping\n", __func__,
+		    chan->ic_freq, chan->ic_flags);
 		return 0;
 	}
 	if (ichan->rawNoiseFloor == 0) {
@@ -1184,8 +1180,7 @@ ath_hal_getChanNoise(struct ath_hal *ah, const struct ieee80211_channel *chan)
  */
 int
 ath_hal_get_mimo_chan_noise(struct ath_hal *ah,
-    const struct ieee80211_channel *chan, int16_t *nf_ctl,
-    int16_t *nf_ext)
+    const struct ieee80211_channel *chan, int16_t *nf_ctl, int16_t *nf_ext)
 {
 	HAL_CHANNEL_INTERNAL *ichan;
 	int i;
@@ -1193,8 +1188,8 @@ ath_hal_get_mimo_chan_noise(struct ath_hal *ah,
 	ichan = ath_hal_checkchannel(ah, chan);
 	if (ichan == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_NFCAL,
-		    "%s: invalid channel %u/0x%x; no mapping\n",
-		    __func__, chan->ic_freq, chan->ic_flags);
+		    "%s: invalid channel %u/0x%x; no mapping\n", __func__,
+		    chan->ic_freq, chan->ic_flags);
 		for (i = 0; i < AH_MAX_CHAINS; i++) {
 			nf_ctl[i] = nf_ext[i] = 0;
 		}
@@ -1202,7 +1197,7 @@ ath_hal_get_mimo_chan_noise(struct ath_hal *ah,
 	}
 
 	/* Return 0 if there's no valid MIMO values (yet) */
-	if (! (ichan->privFlags & CHANNEL_MIMO_NF_VALID)) {
+	if (!(ichan->privFlags & CHANNEL_MIMO_NF_VALID)) {
 		for (i = 0; i < AH_MAX_CHAINS; i++) {
 			nf_ctl[i] = nf_ext[i] = 0;
 		}
@@ -1224,20 +1219,24 @@ ath_hal_get_mimo_chan_noise(struct ath_hal *ah,
 	} else {
 		/*
 		 * The value returned here from a MIMO radio is presumed to be
-		 * "good enough" as a NF calculation. As RSSI values are calculated
-		 * against this, an adjusted NF may be higher than the RSSI value
-		 * returned from a vary weak station, resulting in an obscenely
-		 * high signal strength calculation being returned.
+		 * "good enough" as a NF calculation. As RSSI values are
+		 * calculated against this, an adjusted NF may be higher than
+		 * the RSSI value returned from a vary weak station, resulting
+		 * in an obscenely high signal strength calculation being
+		 * returned.
 		 *
 		 * This should be re-evaluated at a later date, along with any
 		 * signal strength calculations which are made. Quite likely the
-		 * RSSI values will need to be adjusted to ensure the calculations
-		 * don't "wrap" when RSSI is less than the "adjusted" NF value.
+		 * RSSI values will need to be adjusted to ensure the
+		 * calculations don't "wrap" when RSSI is less than the
+		 * "adjusted" NF value.
 		 * ("Adjust" here is via ichan->noiseFloorAdjust.)
 		 */
 		for (i = 0; i < AH_MAX_CHAINS; i++) {
-			nf_ctl[i] = ichan->noiseFloorCtl[i] + ath_hal_getNfAdjust(ah, ichan);
-			nf_ext[i] = ichan->noiseFloorExt[i] + ath_hal_getNfAdjust(ah, ichan);
+			nf_ctl[i] = ichan->noiseFloorCtl[i] +
+			    ath_hal_getNfAdjust(ah, ichan);
+			nf_ext[i] = ichan->noiseFloorExt[i] +
+			    ath_hal_getNfAdjust(ah, ichan);
 		}
 		return 1;
 	}
@@ -1257,7 +1256,7 @@ ath_hal_process_noisefloor(struct ath_hal *ah)
 	int16_t lowest2, lowest5;
 	int i;
 
-	/* 
+	/*
 	 * Find the lowest 2GHz and 5GHz noise floor values after adjusting
 	 * for statistically recorded NF/channel deviation.
 	 */
@@ -1273,18 +1272,20 @@ ath_hal_process_noisefloor(struct ath_hal *ah)
 		/* XXX can't identify proper mode */
 		mode = IS_CHAN_5GHZ(c) ? WIRELESS_MODE_11a : WIRELESS_MODE_11g;
 		nf = c->rawNoiseFloor + NOISE_FLOOR[mode] +
-			ath_hal_getNfAdjust(ah, c);
+		    ath_hal_getNfAdjust(ah, c);
 		if (IS_CHAN_5GHZ(c)) {
-			if (nf < lowest5) { 
+			if (nf < lowest5) {
 				lowest5 = nf;
 				correct5 = NOISE_FLOOR[mode] -
-				    (c->rawNoiseFloor + ath_hal_getNfAdjust(ah, c));
+				    (c->rawNoiseFloor +
+					ath_hal_getNfAdjust(ah, c));
 			}
 		} else {
-			if (nf < lowest2) { 
+			if (nf < lowest2) {
 				lowest2 = nf;
 				correct2 = NOISE_FLOOR[mode] -
-				    (c->rawNoiseFloor + ath_hal_getNfAdjust(ah, c));
+				    (c->rawNoiseFloor +
+					ath_hal_getNfAdjust(ah, c));
 			}
 		}
 	}
@@ -1296,7 +1297,7 @@ ath_hal_process_noisefloor(struct ath_hal *ah)
 			continue;
 		/* Apply correction factor */
 		c->noiseFloorAdjust = ath_hal_getNfAdjust(ah, c) +
-			(IS_CHAN_5GHZ(c) ? correct5 : correct2);
+		    (IS_CHAN_5GHZ(c) ? correct5 : correct2);
 		HALDEBUG(ah, HAL_DEBUG_NFCAL, "%u raw nf %d adjust %d\n",
 		    c->channel, c->rawNoiseFloor, c->noiseFloorAdjust);
 	}
@@ -1307,8 +1308,8 @@ ath_hal_process_noisefloor(struct ath_hal *ah)
  */
 
 int
-ath_hal_ini_write(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
-	int col, int regWr)
+ath_hal_ini_write(struct ath_hal *ah, const HAL_INI_ARRAY *ia, int col,
+    int regWr)
 {
 	int r;
 
@@ -1317,8 +1318,10 @@ ath_hal_ini_write(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
 		OS_REG_WRITE(ah, HAL_INI_VAL(ia, r, 0),
 		    HAL_INI_VAL(ia, r, col));
 
-		/* Analog shift register delay seems needed for Merlin - PR kern/154220 */
-		if (HAL_INI_VAL(ia, r, 0) >= 0x7800 && HAL_INI_VAL(ia, r, 0) < 0x7900)
+		/* Analog shift register delay seems needed for Merlin - PR
+		 * kern/154220 */
+		if (HAL_INI_VAL(ia, r, 0) >= 0x7800 &&
+		    HAL_INI_VAL(ia, r, 0) < 0x7900)
 			OS_DELAY(100);
 
 		DMA_YIELD(regWr);
@@ -1338,7 +1341,7 @@ ath_hal_ini_bank_setup(uint32_t data[], const HAL_INI_ARRAY *ia, int col)
 
 int
 ath_hal_ini_bank_write(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
-	const uint32_t data[], int regWr)
+    const uint32_t data[], int regWr)
 {
 	int r;
 
@@ -1365,45 +1368,45 @@ ath_hal_ini_bank_write(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
  */
 HAL_BOOL
 ath_ee_getLowerUpperIndex(uint8_t target, uint8_t *pList, uint16_t listSize,
-                   uint16_t *indexL, uint16_t *indexR)
+    uint16_t *indexL, uint16_t *indexR)
 {
-    uint16_t i;
+	uint16_t i;
 
-    /*
-     * Check first and last elements for beyond ordered array cases.
-     */
-    if (target <= pList[0]) {
-        *indexL = *indexR = 0;
-        return AH_TRUE;
-    }
-    if (target >= pList[listSize-1]) {
-        *indexL = *indexR = (uint16_t)(listSize - 1);
-        return AH_TRUE;
-    }
+	/*
+	 * Check first and last elements for beyond ordered array cases.
+	 */
+	if (target <= pList[0]) {
+		*indexL = *indexR = 0;
+		return AH_TRUE;
+	}
+	if (target >= pList[listSize - 1]) {
+		*indexL = *indexR = (uint16_t)(listSize - 1);
+		return AH_TRUE;
+	}
 
-    /* look for value being near or between 2 values in list */
-    for (i = 0; i < listSize - 1; i++) {
-        /*
-         * If value is close to the current value of the list
-         * then target is not between values, it is one of the values
-         */
-        if (pList[i] == target) {
-            *indexL = *indexR = i;
-            return AH_TRUE;
-        }
-        /*
-         * Look for value being between current value and next value
-         * if so return these 2 values
-         */
-        if (target < pList[i + 1]) {
-            *indexL = i;
-            *indexR = (uint16_t)(i + 1);
-            return AH_FALSE;
-        }
-    }
-    HALASSERT(0);
-    *indexL = *indexR = 0;
-    return AH_FALSE;
+	/* look for value being near or between 2 values in list */
+	for (i = 0; i < listSize - 1; i++) {
+		/*
+		 * If value is close to the current value of the list
+		 * then target is not between values, it is one of the values
+		 */
+		if (pList[i] == target) {
+			*indexL = *indexR = i;
+			return AH_TRUE;
+		}
+		/*
+		 * Look for value being between current value and next value
+		 * if so return these 2 values
+		 */
+		if (target < pList[i + 1]) {
+			*indexL = i;
+			*indexR = (uint16_t)(i + 1);
+			return AH_FALSE;
+		}
+	}
+	HALASSERT(0);
+	*indexL = *indexR = 0;
+	return AH_FALSE;
 }
 
 /**************************************************************
@@ -1414,31 +1417,35 @@ ath_ee_getLowerUpperIndex(uint8_t target, uint8_t *pList, uint16_t listSize,
  */
 HAL_BOOL
 ath_ee_FillVpdTable(uint8_t pwrMin, uint8_t pwrMax, uint8_t *pPwrList,
-                   uint8_t *pVpdList, uint16_t numIntercepts, uint8_t *pRetVpdList)
+    uint8_t *pVpdList, uint16_t numIntercepts, uint8_t *pRetVpdList)
 {
-    uint16_t  i, k;
-    uint8_t   currPwr = pwrMin;
-    uint16_t  idxL, idxR;
+	uint16_t i, k;
+	uint8_t currPwr = pwrMin;
+	uint16_t idxL, idxR;
 
-    HALASSERT(pwrMax > pwrMin);
-    for (i = 0; i <= (pwrMax - pwrMin) / 2; i++) {
-        ath_ee_getLowerUpperIndex(currPwr, pPwrList, numIntercepts,
-                           &(idxL), &(idxR));
-        if (idxR < 1)
-            idxR = 1;           /* extrapolate below */
-        if (idxL == numIntercepts - 1)
-            idxL = (uint16_t)(numIntercepts - 2);   /* extrapolate above */
-        if (pPwrList[idxL] == pPwrList[idxR])
-            k = pVpdList[idxL];
-        else
-            k = (uint16_t)( ((currPwr - pPwrList[idxL]) * pVpdList[idxR] + (pPwrList[idxR] - currPwr) * pVpdList[idxL]) /
-                  (pPwrList[idxR] - pPwrList[idxL]) );
-        HALASSERT(k < 256);
-        pRetVpdList[i] = (uint8_t)k;
-        currPwr += 2;               /* half dB steps */
-    }
+	HALASSERT(pwrMax > pwrMin);
+	for (i = 0; i <= (pwrMax - pwrMin) / 2; i++) {
+		ath_ee_getLowerUpperIndex(currPwr, pPwrList, numIntercepts,
+		    &(idxL), &(idxR));
+		if (idxR < 1)
+			idxR = 1; /* extrapolate below */
+		if (idxL == numIntercepts - 1)
+			idxL = (uint16_t)(numIntercepts -
+			    2); /* extrapolate above */
+		if (pPwrList[idxL] == pPwrList[idxR])
+			k = pVpdList[idxL];
+		else
+			k = (uint16_t)(((currPwr - pPwrList[idxL]) *
+					       pVpdList[idxR] +
+					   (pPwrList[idxR] - currPwr) *
+					       pVpdList[idxL]) /
+			    (pPwrList[idxR] - pPwrList[idxL]));
+		HALASSERT(k < 256);
+		pRetVpdList[i] = (uint8_t)k;
+		currPwr += 2; /* half dB steps */
+	}
 
-    return AH_TRUE;
+	return AH_TRUE;
 }
 
 /**************************************************************************
@@ -1448,17 +1455,18 @@ ath_ee_FillVpdTable(uint8_t pwrMin, uint8_t pwrMax, uint8_t *pPwrList,
  */
 int16_t
 ath_ee_interpolate(uint16_t target, uint16_t srcLeft, uint16_t srcRight,
-            int16_t targetLeft, int16_t targetRight)
+    int16_t targetLeft, int16_t targetRight)
 {
-    int16_t rv;
+	int16_t rv;
 
-    if (srcRight == srcLeft) {
-        rv = targetLeft;
-    } else {
-        rv = (int16_t)( ((target - srcLeft) * targetRight +
-              (srcRight - target) * targetLeft) / (srcRight - srcLeft) );
-    }
-    return rv;
+	if (srcRight == srcLeft) {
+		rv = targetLeft;
+	} else {
+		rv = (int16_t)(((target - srcLeft) * targetRight +
+				   (srcRight - target) * targetLeft) /
+		    (srcRight - srcLeft));
+	}
+	return rv;
 }
 
 /*
@@ -1519,7 +1527,7 @@ ath_hal_set_dfs_cac_tx_quiet(struct ath_hal *ah, HAL_BOOL ena)
  */
 /* NB: This is in 16 bit words; not bytes */
 /* XXX This doesn't belong here!  */
-#define ATH_DATA_EEPROM_SIZE    2048
+#define ATH_DATA_EEPROM_SIZE 2048
 
 HAL_BOOL
 ath_hal_EepromDataRead(struct ath_hal *ah, u_int off, uint16_t *data)
@@ -1529,8 +1537,8 @@ ath_hal_EepromDataRead(struct ath_hal *ah, u_int off, uint16_t *data)
 		return AH_FALSE;
 	}
 	if (off > ATH_DATA_EEPROM_SIZE) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: offset %x > %x\n",
-		    __func__, off, ATH_DATA_EEPROM_SIZE);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: offset %x > %x\n", __func__,
+		    off, ATH_DATA_EEPROM_SIZE);
 		return AH_FALSE;
 	}
 	(*data) = ah->ah_eepromdata[off];
@@ -1550,7 +1558,7 @@ ath_hal_mhz2ieee_2ghz(struct ath_hal *ah, int freq)
 	if (freq == 2484)
 		return 14;
 	if (freq < 2484)
-		return ((int) freq - 2407) / 5;
+		return ((int)freq - 2407) / 5;
 	else
 		return 15 + ((freq - 2512) / 20);
 }

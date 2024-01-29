@@ -26,9 +26,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -37,10 +37,11 @@
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+
 #include <geom/geom_disk.h>
 
 #ifdef FDT
@@ -49,61 +50,59 @@
 #include <dev/ofw/openfirm.h>
 #endif
 
+#include <dev/flash/mx25lreg.h>
 #include <dev/spibus/spi.h>
+
 #include "spibus_if.h"
 
-#include <dev/flash/mx25lreg.h>
-
-#define	FL_NONE			0x00
-#define	FL_ERASE_4K		0x01
-#define	FL_ERASE_32K		0x02
-#define	FL_ENABLE_4B_ADDR	0x04
-#define	FL_DISABLE_4B_ADDR	0x08
+#define FL_NONE 0x00
+#define FL_ERASE_4K 0x01
+#define FL_ERASE_32K 0x02
+#define FL_ENABLE_4B_ADDR 0x04
+#define FL_DISABLE_4B_ADDR 0x08
 
 /*
  * Define the sectorsize to be a smaller size rather than the flash
  * sector size. Trying to run FFS off of a 64k flash sector size
  * results in a completely un-usable system.
  */
-#define	MX25L_SECTORSIZE	512
+#define MX25L_SECTORSIZE 512
 
-struct mx25l_flash_ident
-{
-	const char	*name;
-	uint8_t		manufacturer_id;
-	uint16_t	device_id;
-	unsigned int	sectorsize;
-	unsigned int	sectorcount;
-	unsigned int	flags;
+struct mx25l_flash_ident {
+	const char *name;
+	uint8_t manufacturer_id;
+	uint16_t device_id;
+	unsigned int sectorsize;
+	unsigned int sectorcount;
+	unsigned int flags;
 };
 
-struct mx25l_softc 
-{
-	device_t	sc_dev;
-	device_t	sc_parent;
-	uint8_t		sc_manufacturer_id;
-	uint16_t	sc_device_id;
-	unsigned int	sc_erasesize;
-	struct mtx	sc_mtx;
-	struct disk	*sc_disk;
-	struct proc	*sc_p;
+struct mx25l_softc {
+	device_t sc_dev;
+	device_t sc_parent;
+	uint8_t sc_manufacturer_id;
+	uint16_t sc_device_id;
+	unsigned int sc_erasesize;
+	struct mtx sc_mtx;
+	struct disk *sc_disk;
+	struct proc *sc_p;
 	struct bio_queue_head sc_bio_queue;
-	unsigned int	sc_flags;
-	unsigned int	sc_taskstate;
-	uint8_t		sc_dummybuf[FLASH_PAGE_SIZE];
+	unsigned int sc_flags;
+	unsigned int sc_taskstate;
+	uint8_t sc_dummybuf[FLASH_PAGE_SIZE];
 };
 
-#define	TSTATE_STOPPED	0
-#define	TSTATE_STOPPING	1
-#define	TSTATE_RUNNING	2
+#define TSTATE_STOPPED 0
+#define TSTATE_STOPPING 1
+#define TSTATE_RUNNING 2
 
-#define M25PXX_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	M25PXX_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define M25PXX_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->sc_dev), \
-	    "mx25l", MTX_DEF)
-#define M25PXX_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->sc_mtx);
-#define M25PXX_ASSERT_LOCKED(_sc)	mtx_assert(&_sc->sc_mtx, MA_OWNED);
+#define M25PXX_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define M25PXX_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define M25PXX_LOCK_INIT(_sc)                                             \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->sc_dev), "mx25l", \
+	    MTX_DEF)
+#define M25PXX_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx);
+#define M25PXX_ASSERT_LOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_OWNED);
 #define M25PXX_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_NOTOWNED);
 
 /* disk routines */
@@ -115,45 +114,50 @@ static int mx25l_getattr(struct bio *bp);
 static void mx25l_task(void *arg);
 
 static struct mx25l_flash_ident flash_devices[] = {
-	{ "en25f32",	0x1c, 0x3116, 64 * 1024, 64, FL_NONE },
-	{ "en25p32",	0x1c, 0x2016, 64 * 1024, 64, FL_NONE },
-	{ "en25p64",	0x1c, 0x2017, 64 * 1024, 128, FL_NONE },
-	{ "en25q32",	0x1c, 0x3016, 64 * 1024, 64, FL_NONE },
-	{ "en25q64",	0x1c, 0x3017, 64 * 1024, 128, FL_ERASE_4K },
-	{ "m25p32",	0x20, 0x2016, 64 * 1024, 64, FL_NONE },
-	{ "m25p64",	0x20, 0x2017, 64 * 1024, 128, FL_NONE },
-	{ "mx25l1606e", 0xc2, 0x2015, 64 * 1024, 32, FL_ERASE_4K},
-	{ "mx25ll32",	0xc2, 0x2016, 64 * 1024, 64, FL_NONE },
-	{ "mx25ll64",	0xc2, 0x2017, 64 * 1024, 128, FL_NONE },
-	{ "mx25ll128",	0xc2, 0x2018, 64 * 1024, 256, FL_ERASE_4K | FL_ERASE_32K },
-	{ "mx25ll256",	0xc2, 0x2019, 64 * 1024, 512, FL_ERASE_4K | FL_ERASE_32K | FL_ENABLE_4B_ADDR },
-	{ "n25q64",     0x20, 0xba17, 64 * 1024, 128, FL_ERASE_4K },
-	{ "s25fl032",	0x01, 0x0215, 64 * 1024, 64, FL_NONE },
-	{ "s25fl064",	0x01, 0x0216, 64 * 1024, 128, FL_NONE },
-	{ "s25fl128",	0x01, 0x2018, 64 * 1024, 256, FL_NONE },
-	{ "s25fl256s",	0x01, 0x0219, 64 * 1024, 512, FL_NONE },
-	{ "s25fl512s",	0x01, 0x0220, 64 * 1024, 1024, FL_NONE },
-	{ "SST25VF010A", 0xbf, 0x2549, 4 * 1024, 32, FL_ERASE_4K | FL_ERASE_32K },
-	{ "SST25VF032B", 0xbf, 0x254a, 64 * 1024, 64, FL_ERASE_4K | FL_ERASE_32K },
+	{ "en25f32", 0x1c, 0x3116, 64 * 1024, 64, FL_NONE },
+	{ "en25p32", 0x1c, 0x2016, 64 * 1024, 64, FL_NONE },
+	{ "en25p64", 0x1c, 0x2017, 64 * 1024, 128, FL_NONE },
+	{ "en25q32", 0x1c, 0x3016, 64 * 1024, 64, FL_NONE },
+	{ "en25q64", 0x1c, 0x3017, 64 * 1024, 128, FL_ERASE_4K },
+	{ "m25p32", 0x20, 0x2016, 64 * 1024, 64, FL_NONE },
+	{ "m25p64", 0x20, 0x2017, 64 * 1024, 128, FL_NONE },
+	{ "mx25l1606e", 0xc2, 0x2015, 64 * 1024, 32, FL_ERASE_4K },
+	{ "mx25ll32", 0xc2, 0x2016, 64 * 1024, 64, FL_NONE },
+	{ "mx25ll64", 0xc2, 0x2017, 64 * 1024, 128, FL_NONE },
+	{ "mx25ll128", 0xc2, 0x2018, 64 * 1024, 256,
+	    FL_ERASE_4K | FL_ERASE_32K },
+	{ "mx25ll256", 0xc2, 0x2019, 64 * 1024, 512,
+	    FL_ERASE_4K | FL_ERASE_32K | FL_ENABLE_4B_ADDR },
+	{ "n25q64", 0x20, 0xba17, 64 * 1024, 128, FL_ERASE_4K },
+	{ "s25fl032", 0x01, 0x0215, 64 * 1024, 64, FL_NONE },
+	{ "s25fl064", 0x01, 0x0216, 64 * 1024, 128, FL_NONE },
+	{ "s25fl128", 0x01, 0x2018, 64 * 1024, 256, FL_NONE },
+	{ "s25fl256s", 0x01, 0x0219, 64 * 1024, 512, FL_NONE },
+	{ "s25fl512s", 0x01, 0x0220, 64 * 1024, 1024, FL_NONE },
+	{ "SST25VF010A", 0xbf, 0x2549, 4 * 1024, 32,
+	    FL_ERASE_4K | FL_ERASE_32K },
+	{ "SST25VF032B", 0xbf, 0x254a, 64 * 1024, 64,
+	    FL_ERASE_4K | FL_ERASE_32K },
 
 	/* Winbond -- w25x "blocks" are 64K, "sectors" are 4KiB */
-	{ "w25x32",	0xef, 0x3016, 64 * 1024, 64, FL_ERASE_4K },
-	{ "w25x64",	0xef, 0x3017, 64 * 1024, 128, FL_ERASE_4K },
-	{ "w25q32",	0xef, 0x4016, 64 * 1024, 64, FL_ERASE_4K },
-	{ "w25q64",	0xef, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
-	{ "w25q64bv",	0xef, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
-	{ "w25q128",	0xef, 0x4018, 64 * 1024, 256, FL_ERASE_4K },
-	{ "w25q256",	0xef, 0x4019, 64 * 1024, 512, FL_ERASE_4K },
+	{ "w25x32", 0xef, 0x3016, 64 * 1024, 64, FL_ERASE_4K },
+	{ "w25x64", 0xef, 0x3017, 64 * 1024, 128, FL_ERASE_4K },
+	{ "w25q32", 0xef, 0x4016, 64 * 1024, 64, FL_ERASE_4K },
+	{ "w25q64", 0xef, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
+	{ "w25q64bv", 0xef, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
+	{ "w25q128", 0xef, 0x4018, 64 * 1024, 256, FL_ERASE_4K },
+	{ "w25q256", 0xef, 0x4019, 64 * 1024, 512, FL_ERASE_4K },
 
-	 /* Atmel */
-	{ "at25df641",  0x1f, 0x4800, 64 * 1024, 128, FL_ERASE_4K },
+	/* Atmel */
+	{ "at25df641", 0x1f, 0x4800, 64 * 1024, 128, FL_ERASE_4K },
 
 	/* GigaDevice */
-	{ "gd25q64",	0xc8, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
-	{ "gd25q128",	0xc8, 0x4018, 64 * 1024, 256, FL_ERASE_4K },
+	{ "gd25q64", 0xc8, 0x4017, 64 * 1024, 128, FL_ERASE_4K },
+	{ "gd25q128", 0xc8, 0x4018, 64 * 1024, 256, FL_ERASE_4K },
 
 	/* Integrated Silicon Solution */
-	{ "is25wp256",	0x9d, 0x7019, 64 * 1024, 512, FL_ERASE_4K | FL_ENABLE_4B_ADDR},
+	{ "is25wp256", 0x9d, 0x7019, 64 * 1024, 512,
+	    FL_ERASE_4K | FL_ENABLE_4B_ADDR },
 };
 
 static int
@@ -177,7 +181,7 @@ mx25l_wait_for_device_ready(struct mx25l_softc *sc)
 	return (err);
 }
 
-static struct mx25l_flash_ident*
+static struct mx25l_flash_ident *
 mx25l_get_device_ident(struct mx25l_softc *sc)
 {
 	uint8_t txBuf[8], rxBuf[8];
@@ -353,9 +357,9 @@ mx25l_write(struct mx25l_softc *sc, off_t offset, caddr_t data, off_t count)
 		if (err)
 			break;
 
-		data   += bytes_to_write;
+		data += bytes_to_write;
 		offset += bytes_to_write;
-		count  -= bytes_to_write;
+		count -= bytes_to_write;
 	}
 
 	return (err);
@@ -434,11 +438,11 @@ mx25l_set_4b_mode(struct mx25l_softc *sc, uint8_t command)
 	return (err);
 }
 
-#ifdef	FDT
+#ifdef FDT
 static struct ofw_compat_data compat_data[] = {
-	{ "st,m25p",		1 },
-	{ "jedec,spi-nor",	1 },
-	{ NULL,			0 },
+	{ "st,m25p", 1 },
+	{ "jedec,spi-nor", 1 },
+	{ NULL, 0 },
 };
 #endif
 
@@ -521,7 +525,7 @@ mx25l_attach(device_t dev)
 	sc->sc_disk->d_mediasize = ident->sectorsize * ident->sectorcount;
 	sc->sc_disk->d_stripesize = sc->sc_erasesize;
 	sc->sc_disk->d_unit = device_get_unit(sc->sc_dev);
-	sc->sc_disk->d_dump = NULL;		/* NB: no dumps */
+	sc->sc_disk->d_dump = NULL; /* NB: no dumps */
 	strlcpy(sc->sc_disk->d_descr, ident->name,
 	    sizeof(sc->sc_disk->d_descr));
 
@@ -531,10 +535,9 @@ mx25l_attach(device_t dev)
 	kproc_create(&mx25l_task, sc, &sc->sc_p, 0, 0, "task: mx25l flash");
 	sc->sc_taskstate = TSTATE_RUNNING;
 
-	device_printf(sc->sc_dev, 
+	device_printf(sc->sc_dev,
 	    "device type %s, size %dK in %d sectors of %dK, erase size %dK\n",
-	    ident->name,
-	    ident->sectorcount * ident->sectorsize / 1024,
+	    ident->name, ident->sectorcount * ident->sectorsize / 1024,
 	    ident->sectorcount, ident->sectorsize / 1024,
 	    sc->sc_erasesize / 1024);
 
@@ -588,7 +591,7 @@ mx25l_close(struct disk *dp)
 
 static int
 mx25l_ioctl(struct disk *dp, u_long cmd, void *data, int fflag,
-	struct thread *td)
+    struct thread *td)
 {
 
 	return (EINVAL);
@@ -630,7 +633,7 @@ mx25l_getattr(struct bio *bp)
 static void
 mx25l_task(void *arg)
 {
-	struct mx25l_softc *sc = (struct mx25l_softc*)arg;
+	struct mx25l_softc *sc = (struct mx25l_softc *)arg;
 	struct bio *bp;
 
 	for (;;) {
@@ -651,17 +654,16 @@ mx25l_task(void *arg)
 
 		switch (bp->bio_cmd) {
 		case BIO_READ:
-			bp->bio_error = mx25l_read(sc, bp->bio_offset, 
+			bp->bio_error = mx25l_read(sc, bp->bio_offset,
 			    bp->bio_data, bp->bio_bcount);
 			break;
 		case BIO_WRITE:
-			bp->bio_error = mx25l_write(sc, bp->bio_offset, 
+			bp->bio_error = mx25l_write(sc, bp->bio_offset,
 			    bp->bio_data, bp->bio_bcount);
 			break;
 		default:
 			bp->bio_error = EOPNOTSUPP;
 		}
-
 
 		biodone(bp);
 	}
@@ -669,9 +671,9 @@ mx25l_task(void *arg)
 
 static device_method_t mx25l_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mx25l_probe),
-	DEVMETHOD(device_attach,	mx25l_attach),
-	DEVMETHOD(device_detach,	mx25l_detach),
+	DEVMETHOD(device_probe, mx25l_probe),
+	DEVMETHOD(device_attach, mx25l_attach),
+	DEVMETHOD(device_detach, mx25l_detach),
 
 	{ 0, 0 }
 };
@@ -684,7 +686,7 @@ static driver_t mx25l_driver = {
 
 DRIVER_MODULE(mx25l, spibus, mx25l_driver, 0, 0);
 MODULE_DEPEND(mx25l, spibus, 1, 1, 1);
-#ifdef	FDT
+#ifdef FDT
 MODULE_DEPEND(mx25l, fdt_slicer, 1, 1, 1);
 SPIBUS_FDT_PNP_INFO(compat_data);
 #endif

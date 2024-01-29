@@ -28,8 +28,8 @@
 /* Dialog Semiconductor DA9063 PMIC, 2-WIRE */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
@@ -41,34 +41,32 @@
 
 #include "da9063_if.h"
 
-#define	DA9063_IIC_PAGE_SHIFT	8
-#define	DA9063_IIC_PAGE_SIZE	(1 << DA9063_IIC_PAGE_SHIFT)
-#define	DA9063_IIC_PAGE(_a)	((_a) >> DA9063_IIC_PAGE_SHIFT)
-#define	DA9063_IIC_PAGE_OFF(_a)	((_a) & (DA9063_IIC_PAGE_SIZE - 1))
-#define	DA9063_IIC_ADDR(_p, _o)	(((_p) << DA9063_IIC_PAGE_SHIFT) | (_o))
+#define DA9063_IIC_PAGE_SHIFT 8
+#define DA9063_IIC_PAGE_SIZE (1 << DA9063_IIC_PAGE_SHIFT)
+#define DA9063_IIC_PAGE(_a) ((_a) >> DA9063_IIC_PAGE_SHIFT)
+#define DA9063_IIC_PAGE_OFF(_a) ((_a) & (DA9063_IIC_PAGE_SIZE - 1))
+#define DA9063_IIC_ADDR(_p, _o) (((_p) << DA9063_IIC_PAGE_SHIFT) | (_o))
 
 /*
  * For 2-WIRE (I2C) operation pages are 256 registers but PAGE_CON is in units
  * of 128 registers with the LSB ignored so scale the page when writing to it.
  */
-#define	DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT	1
+#define DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT 1
 
 struct da9063_iic_softc {
-	struct simplebus_softc	simplebus_sc;
-	device_t		dev;
-	struct mtx		mtx;
-	uint8_t			page;
+	struct simplebus_softc simplebus_sc;
+	device_t dev;
+	struct mtx mtx;
+	uint8_t page;
 };
 
-#define	DA9063_IIC_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	DA9063_IIC_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	DA9063_IIC_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->mtx, MA_OWNED);
-#define	DA9063_IIC_ASSERT_UNLOCKED(sc)	mtx_assert(&(sc)->mtx, MA_NOTOWNED);
+#define DA9063_IIC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define DA9063_IIC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define DA9063_IIC_ASSERT_LOCKED(sc) mtx_assert(&(sc)->mtx, MA_OWNED);
+#define DA9063_IIC_ASSERT_UNLOCKED(sc) mtx_assert(&(sc)->mtx, MA_NOTOWNED);
 
-static struct ofw_compat_data compat_data[] = {
-	{ "dlg,da9063",	1 },
-	{ NULL,		0 }
-};
+static struct ofw_compat_data compat_data[] = { { "dlg,da9063", 1 },
+	{ NULL, 0 } };
 
 static int
 da9063_iic_select_page(struct da9063_iic_softc *sc, uint16_t page)
@@ -85,10 +83,10 @@ da9063_iic_select_page(struct da9063_iic_softc *sc, uint16_t page)
 	if (error != 0)
 		return (iic2errno(error));
 
-	reg &= ~(DA9063_PAGE_CON_REG_PAGE_MASK <<
-	    DA9063_PAGE_CON_REG_PAGE_SHIFT);
-	reg |= (page << DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT) <<
-	    DA9063_PAGE_CON_REG_PAGE_SHIFT;
+	reg &= ~(
+	    DA9063_PAGE_CON_REG_PAGE_MASK << DA9063_PAGE_CON_REG_PAGE_SHIFT);
+	reg |= (page << DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT)
+	    << DA9063_PAGE_CON_REG_PAGE_SHIFT;
 
 	error = iicdev_writeto(sc->dev, DA9063_PAGE_CON, &reg, 1, IIC_WAIT);
 	if (error != 0)
@@ -216,7 +214,8 @@ da9063_iic_attach(device_t dev)
 		return (iic2errno(error));
 
 	sc->page = ((reg >> DA9063_PAGE_CON_REG_PAGE_SHIFT) &
-	    DA9063_PAGE_CON_REG_PAGE_MASK) >> DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT;
+		       DA9063_PAGE_CON_REG_PAGE_MASK) >>
+	    DA9063_IIC_PAGE_CON_REG_PAGE_SHIFT;
 	mtx_init(&sc->mtx, device_get_nameunit(sc->dev), NULL, MTX_DEF);
 
 	sc->simplebus_sc.flags |= SB_FLAG_NO_RANGES;
@@ -243,14 +242,14 @@ da9063_iic_detach(device_t dev)
 
 static device_method_t da9063_iic_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		da9063_iic_probe),
-	DEVMETHOD(device_attach,	da9063_iic_attach),
-	DEVMETHOD(device_detach,	da9063_iic_detach),
+	DEVMETHOD(device_probe, da9063_iic_probe),
+	DEVMETHOD(device_attach, da9063_iic_attach),
+	DEVMETHOD(device_detach, da9063_iic_detach),
 
 	/* DA9063 interface */
-	DEVMETHOD(da9063_read,		da9063_iic_read),
-	DEVMETHOD(da9063_write,		da9063_iic_write),
-	DEVMETHOD(da9063_modify,	da9063_iic_modify),
+	DEVMETHOD(da9063_read, da9063_iic_read),
+	DEVMETHOD(da9063_write, da9063_iic_write),
+	DEVMETHOD(da9063_modify, da9063_iic_modify),
 
 	DEVMETHOD_END
 };

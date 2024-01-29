@@ -37,8 +37,8 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 /*
  * This is needed for register operations which are performed
  * by the driver - eg, calls to ath_hal_gettsf32().
@@ -51,38 +51,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/ktr.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/smp.h> /* for mp_ncpus */
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
-#include <sys/module.h>
-#include <sys/ktr.h>
-#include <sys/smp.h>	/* for mp_ncpus */
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -93,31 +92,30 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
+#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_ath_debug.h>
+#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_ath_keycache.h>
+#include <dev/ath/if_ath_led.h>
 #include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_ath_rx.h>
+#include <dev/ath/if_ath_sysctl.h>
 #include <dev/ath/if_ath_tsf.h>
 #include <dev/ath/if_ath_tx.h>
-#include <dev/ath/if_ath_sysctl.h>
-#include <dev/ath/if_ath_led.h>
-#include <dev/ath/if_ath_keycache.h>
-#include <dev/ath/if_ath_rx.h>
-#include <dev/ath/if_ath_beacon.h>
 #include <dev/ath/if_athdfs.h>
-#include <dev/ath/if_ath_descdma.h>
+#include <dev/ath/if_athvar.h>
 
 #ifdef ATH_TX99_DIAG
 #include <dev/ath/ath_tx99/ath_tx99.h>
 #endif
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 #include <dev/ath/if_ath_alq.h>
 #endif
 
@@ -180,7 +178,7 @@ ath_calcrxfilter(struct ath_softc *sc)
 	if (ic->ic_opmode == IEEE80211_M_IBSS || sc->sc_swbmiss) {
 		rfilt |= HAL_RX_FILTER_BEACON;
 	} else if (ic->ic_opmode == IEEE80211_M_STA) {
-		if (sc->sc_do_mybeacon && ! sc->sc_scanning) {
+		if (sc->sc_do_mybeacon && !sc->sc_scanning) {
 			rfilt |= HAL_RX_FILTER_MYBEACON;
 		} else { /* scanning, non-mybeacon chips */
 			rfilt |= HAL_RX_FILTER_BEACON;
@@ -201,8 +199,8 @@ ath_calcrxfilter(struct ath_softc *sc)
 	 * STA mode sends PS-POLL frames but never
 	 * receives them.
 	 */
-	if (ath_hal_getcapability(sc->sc_ah, HAL_CAP_PSPOLL,
-	    0, NULL) == HAL_OK &&
+	if (ath_hal_getcapability(sc->sc_ah, HAL_CAP_PSPOLL, 0, NULL) ==
+		HAL_OK &&
 	    ic->ic_opmode == IEEE80211_M_HOSTAP)
 		rfilt |= HAL_RX_FILTER_PSPOLL;
 
@@ -237,8 +235,8 @@ ath_calcrxfilter(struct ath_softc *sc)
 	if (sc->sc_dospectral)
 		rfilt |= HAL_RX_FILTER_PHYRADAR;
 
-	DPRINTF(sc, ATH_DEBUG_MODE, "%s: RX filter 0x%x, %s\n",
-	    __func__, rfilt, ieee80211_opmode_name[ic->ic_opmode]);
+	DPRINTF(sc, ATH_DEBUG_MODE, "%s: RX filter 0x%x, %s\n", __func__, rfilt,
+	    ieee80211_opmode_name[ic->ic_opmode]);
 	return rfilt;
 }
 
@@ -263,17 +261,15 @@ ath_legacy_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 		 */
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL) {
-			DPRINTF(sc, ATH_DEBUG_ANY,
-				"%s: no mbuf/cluster\n", __func__);
+			DPRINTF(sc, ATH_DEBUG_ANY, "%s: no mbuf/cluster\n",
+			    __func__);
 			sc->sc_stats.ast_rx_nombuf++;
 			return ENOMEM;
 		}
 		m->m_pkthdr.len = m->m_len = m->m_ext.ext_size;
 
-		error = bus_dmamap_load_mbuf_sg(sc->sc_dmat,
-					     bf->bf_dmamap, m,
-					     bf->bf_segs, &bf->bf_nseg,
-					     BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_mbuf_sg(sc->sc_dmat, bf->bf_dmamap, m,
+		    bf->bf_segs, &bf->bf_nseg, BUS_DMA_NOWAIT);
 		if (error != 0) {
 			DPRINTF(sc, ATH_DEBUG_ANY,
 			    "%s: bus_dmamap_load_mbuf_sg failed; error %d\n",
@@ -283,7 +279,7 @@ ath_legacy_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 			return error;
 		}
 		KASSERT(bf->bf_nseg == 1,
-			("multi-segment packet; nseg %u", bf->bf_nseg));
+		    ("multi-segment packet; nseg %u", bf->bf_nseg));
 		bf->bf_m = m;
 	}
 	bus_dmamap_sync(sc->sc_dmat, bf->bf_dmamap, BUS_DMASYNC_PREREAD);
@@ -311,14 +307,13 @@ ath_legacy_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
 	 */
 	ds = bf->bf_desc;
 	if (sc->sc_rxslink)
-		ds->ds_link = bf->bf_daddr;	/* link to self */
+		ds->ds_link = bf->bf_daddr; /* link to self */
 	else
-		ds->ds_link = 0;		/* terminate the list */
+		ds->ds_link = 0; /* terminate the list */
 	ds->ds_data = bf->bf_segs[0].ds_addr;
-	ath_hal_setuprxdesc(ah, ds
-		, m->m_len		/* buffer size */
-		, 0
-	);
+	ath_hal_setuprxdesc(ah, ds, m->m_len /* buffer size */
+	    ,
+	    0);
 
 	if (sc->sc_rxlink != NULL)
 		*sc->sc_rxlink = bf->bf_daddr;
@@ -331,8 +326,8 @@ ath_legacy_rxbuf_init(struct ath_softc *sc, struct ath_buf *bf)
  * and to do ibss merges.
  */
 void
-ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
-	int subtype, const struct ieee80211_rx_stats *rxs, int rssi, int nf)
+ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
+    const struct ieee80211_rx_stats *rxs, int rssi, int nf)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct ath_softc *sc = vap->iv_ic->ic_softc;
@@ -344,15 +339,15 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 	uint64_t tsf_beacon_target;
 	int tsf_intval;
 
-	tsf_beacon_old = ((uint64_t) le32dec(ni->ni_tstamp.data + 4)) << 32;
+	tsf_beacon_old = ((uint64_t)le32dec(ni->ni_tstamp.data + 4)) << 32;
 	tsf_beacon_old |= le32dec(ni->ni_tstamp.data);
 
-#define	TU_TO_TSF(_tu)	(((u_int64_t)(_tu)) << 10)
+#define TU_TO_TSF(_tu) (((u_int64_t)(_tu)) << 10)
 	tsf_intval = 1;
 	if (ni->ni_intval > 0) {
 		tsf_intval = TU_TO_TSF(ni->ni_intval);
 	}
-#undef	TU_TO_TSF
+#undef TU_TO_TSF
 
 	/*
 	 * Call up first so subsequent work can use information
@@ -383,71 +378,76 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 			/* XXX unlocked check against vap->iv_bss? */
 			ATH_RSSI_LPF(sc->sc_halstats.ns_avgbrssi, rssi);
 
-			tsf_beacon = ((uint64_t) le32dec(ni->ni_tstamp.data + 4)) << 32;
+			tsf_beacon = ((uint64_t)le32dec(ni->ni_tstamp.data + 4))
+			    << 32;
 			tsf_beacon |= le32dec(ni->ni_tstamp.data);
 
 			nexttbtt = ath_hal_getnexttbtt(sc->sc_ah);
 
 			/*
-			 * Let's calculate the delta and remainder, so we can see
-			 * if the beacon timer from the AP is varying by more than
-			 * a few TU.  (Which would be a huge, huge problem.)
+			 * Let's calculate the delta and remainder, so we can
+			 * see if the beacon timer from the AP is varying by
+			 * more than a few TU.  (Which would be a huge, huge
+			 * problem.)
 			 */
-			tsf_delta = (long long) tsf_beacon - (long long) tsf_beacon_old;
+			tsf_delta = (long long)tsf_beacon -
+			    (long long)tsf_beacon_old;
 
 			tsf_delta_bmiss = tsf_delta / tsf_intval;
 
 			/*
-			 * If our delta is greater than half the beacon interval,
-			 * let's round the bmiss value up to the next beacon
-			 * interval.  Ie, we're running really, really early
-			 * on the next beacon.
+			 * If our delta is greater than half the beacon
+			 * interval, let's round the bmiss value up to the next
+			 * beacon interval.  Ie, we're running really, really
+			 * early on the next beacon.
 			 */
 			if (tsf_delta % tsf_intval > (tsf_intval / 2))
-				tsf_delta_bmiss ++;
+				tsf_delta_bmiss++;
 
 			tsf_beacon_target = tsf_beacon_old +
-			    (((unsigned long long) tsf_delta_bmiss) * (long long) tsf_intval);
+			    (((unsigned long long)tsf_delta_bmiss) *
+				(long long)tsf_intval);
 
 			/*
 			 * The remainder using '%' is between 0 .. intval-1.
-			 * If we're actually running too fast, then the remainder
-			 * will be some large number just under intval-1.
-			 * So we need to look at whether we're running
+			 * If we're actually running too fast, then the
+			 * remainder will be some large number just under
+			 * intval-1. So we need to look at whether we're running
 			 * before or after the target beacon interval
 			 * and if we are, modify how we do the remainder
 			 * calculation.
 			 */
 			if (tsf_beacon < tsf_beacon_target) {
-				tsf_remainder =
-				    -(tsf_intval - ((tsf_beacon - tsf_beacon_old) % tsf_intval));
+				tsf_remainder = -(tsf_intval -
+				    ((tsf_beacon - tsf_beacon_old) %
+					tsf_intval));
 			} else {
-				tsf_remainder = (tsf_beacon - tsf_beacon_old) % tsf_intval;
+				tsf_remainder = (tsf_beacon - tsf_beacon_old) %
+				    tsf_intval;
 			}
 
-			DPRINTF(sc, ATH_DEBUG_BEACON, "%s: %s: old_tsf=%llu (%u), new_tsf=%llu (%u), target_tsf=%llu (%u), delta=%lld, bmiss=%d, remainder=%d\n",
-			    __func__,
-			    ieee80211_get_vap_ifname(vap),
-			    (unsigned long long) tsf_beacon_old,
-			    (unsigned int) (tsf_beacon_old >> 10),
-			    (unsigned long long) tsf_beacon,
-			    (unsigned int ) (tsf_beacon >> 10),
-			    (unsigned long long) tsf_beacon_target,
-			    (unsigned int) (tsf_beacon_target >> 10),
-			    (long long) tsf_delta,
-			    tsf_delta_bmiss,
+			DPRINTF(sc, ATH_DEBUG_BEACON,
+			    "%s: %s: old_tsf=%llu (%u), new_tsf=%llu (%u), target_tsf=%llu (%u), delta=%lld, bmiss=%d, remainder=%d\n",
+			    __func__, ieee80211_get_vap_ifname(vap),
+			    (unsigned long long)tsf_beacon_old,
+			    (unsigned int)(tsf_beacon_old >> 10),
+			    (unsigned long long)tsf_beacon,
+			    (unsigned int)(tsf_beacon >> 10),
+			    (unsigned long long)tsf_beacon_target,
+			    (unsigned int)(tsf_beacon_target >> 10),
+			    (long long)tsf_delta, tsf_delta_bmiss,
 			    tsf_remainder);
 
-			DPRINTF(sc, ATH_DEBUG_BEACON, "%s: %s: ni=%6D bssid=%6D tsf=%llu (%u), nexttbtt=%llu (%u), delta=%d\n",
-			    __func__,
-			    ieee80211_get_vap_ifname(vap),
-			    ni->ni_bssid, ":",
-			    vap->iv_bss->ni_bssid, ":",
-			    (unsigned long long) tsf_beacon,
-			    (unsigned int) (tsf_beacon >> 10),
-			    (unsigned long long) nexttbtt,
-			    (unsigned int) (nexttbtt >> 10),
-			    (int32_t) tsf_beacon - (int32_t) nexttbtt + tsf_intval);
+			DPRINTF(sc, ATH_DEBUG_BEACON,
+			    "%s: %s: ni=%6D bssid=%6D tsf=%llu (%u), nexttbtt=%llu (%u), delta=%d\n",
+			    __func__, ieee80211_get_vap_ifname(vap),
+			    ni->ni_bssid, ":", vap->iv_bss->ni_bssid, ":",
+			    (unsigned long long)tsf_beacon,
+			    (unsigned int)(tsf_beacon >> 10),
+			    (unsigned long long)nexttbtt,
+			    (unsigned int)(nexttbtt >> 10),
+			    (int32_t)tsf_beacon - (int32_t)nexttbtt +
+				tsf_intval);
 
 			/*
 			 * We only do syncbeacon on STA VAPs; not on IBSS;
@@ -458,17 +458,17 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 			 * this..
 			 */
 			if (vap->iv_opmode == IEEE80211_M_STA &&
-			    sc->sc_syncbeacon &&
-			    (!sc->sc_swbmiss) &&
+			    sc->sc_syncbeacon && (!sc->sc_swbmiss) &&
 			    ni == vap->iv_bss &&
-			    ((vap->iv_flags_ext & IEEE80211_FEXT_SWBMISS) == 0) &&
-			    (vap->iv_state == IEEE80211_S_RUN || vap->iv_state == IEEE80211_S_SLEEP)) {
+			    ((vap->iv_flags_ext & IEEE80211_FEXT_SWBMISS) ==
+				0) &&
+			    (vap->iv_state == IEEE80211_S_RUN ||
+				vap->iv_state == IEEE80211_S_SLEEP)) {
 				DPRINTF(sc, ATH_DEBUG_BEACON,
-				    "%s: syncbeacon=1; syncing\n",
-				    __func__);
+				    "%s: syncbeacon=1; syncing\n", __func__);
 				/*
-				 * Resync beacon timers using the tsf of the beacon
-				 * frame we just received.
+				 * Resync beacon timers using the tsf of the
+				 * beacon frame we just received.
 				 */
 				ath_beacon_config(sc, vap);
 				sc->sc_syncbeacon = 0;
@@ -482,7 +482,7 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 		    ieee80211_ibss_merge_check(ni)) {
 			uint32_t rstamp = sc->sc_lastrs->rs_tstamp;
 			uint64_t tsf = ath_extend_tsf(sc, rstamp,
-				ath_hal_gettsf64(sc->sc_ah));
+			    ath_hal_gettsf64(sc->sc_ah));
 			/*
 			 * Handle ibss merge as needed; check the tsf on the
 			 * frame before attempting the merge.  The 802.11 spec
@@ -496,16 +496,17 @@ ath_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 			if (le64toh(ni->ni_tstamp.tsf) >= tsf) {
 				DPRINTF(sc, ATH_DEBUG_STATE,
 				    "ibss merge, rstamp %u tsf %ju "
-				    "tstamp %ju\n", rstamp, (uintmax_t)tsf,
+				    "tstamp %ju\n",
+				    rstamp, (uintmax_t)tsf,
 				    (uintmax_t)ni->ni_tstamp.tsf);
-				(void) ieee80211_ibss_merge(ni);
+				(void)ieee80211_ibss_merge(ni);
 			}
 		}
 		break;
 	}
 }
 
-#ifdef	ATH_ENABLE_RADIOTAP_VENDOR_EXT
+#ifdef ATH_ENABLE_RADIOTAP_VENDOR_EXT
 static void
 ath_rx_tap_vendor(struct ath_softc *sc, struct mbuf *m,
     const struct ath_rx_status *rs, u_int64_t tsf, int16_t nf)
@@ -521,8 +522,8 @@ ath_rx_tap_vendor(struct ath_softc *sc, struct mbuf *m,
 
 	/* XXX what should this be? */
 	sc->sc_rx_th.wr_vh.vh_sub_ns = 0;
-	sc->sc_rx_th.wr_vh.vh_skip_len =
-	    htole16(sizeof(struct ath_radiotap_vendor_hdr));
+	sc->sc_rx_th.wr_vh.vh_skip_len = htole16(
+	    sizeof(struct ath_radiotap_vendor_hdr));
 
 	/* General version info */
 	sc->sc_rx_th.wr_v.vh_version = 1;
@@ -569,16 +570,16 @@ ath_rx_tap_vendor(struct ath_softc *sc, struct mbuf *m,
 	sc->sc_rx_th.wr_v.vh_rs_status = rs->rs_status;
 	sc->sc_rx_th.wr_v.vh_rssi = rs->rs_rssi;
 }
-#endif	/* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
+#endif /* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
 
 static void
-ath_rx_tap(struct ath_softc *sc, struct mbuf *m,
-	const struct ath_rx_status *rs, u_int64_t tsf, int16_t nf)
+ath_rx_tap(struct ath_softc *sc, struct mbuf *m, const struct ath_rx_status *rs,
+    u_int64_t tsf, int16_t nf)
 {
-#define	CHAN_HT20	htole32(IEEE80211_CHAN_HT20)
-#define	CHAN_HT40U	htole32(IEEE80211_CHAN_HT40U)
-#define	CHAN_HT40D	htole32(IEEE80211_CHAN_HT40D)
-#define	CHAN_HT		(CHAN_HT20|CHAN_HT40U|CHAN_HT40D)
+#define CHAN_HT20 htole32(IEEE80211_CHAN_HT20)
+#define CHAN_HT40U htole32(IEEE80211_CHAN_HT40U)
+#define CHAN_HT40D htole32(IEEE80211_CHAN_HT40D)
+#define CHAN_HT (CHAN_HT20 | CHAN_HT40U | CHAN_HT40D)
 	const HAL_RATE_TABLE *rt;
 	uint8_t rix;
 
@@ -602,7 +603,7 @@ ath_rx_tap(struct ath_softc *sc, struct mbuf *m,
 			sc->sc_rx_th.wr_chan_flags |= CHAN_HT40D;
 		else if (IEEE80211_IS_CHAN_HT20(sc->sc_curchan))
 			sc->sc_rx_th.wr_chan_flags |= CHAN_HT20;
-	} else if (sc->sc_rx_th.wr_rate & IEEE80211_RATE_MCS) {	/* HT rate */
+	} else if (sc->sc_rx_th.wr_rate & IEEE80211_RATE_MCS) { /* HT rate */
 		struct ieee80211com *ic = &sc->sc_ic;
 
 		if ((rs->rs_flags & HAL_RX_2040) == 0)
@@ -630,14 +631,14 @@ ath_rx_tap(struct ath_softc *sc, struct mbuf *m,
 }
 
 static void
-ath_handle_micerror(struct ieee80211com *ic,
-	struct ieee80211_frame *wh, int keyix)
+ath_handle_micerror(struct ieee80211com *ic, struct ieee80211_frame *wh,
+    int keyix)
 {
 	struct ieee80211_node *ni;
 
 	/* XXX recheck MIC to deal w/ chips that lie */
 	/* XXX discard MIC errors on !data frames */
-	ni = ieee80211_find_rxnode(ic, (const struct ieee80211_frame_min *) wh);
+	ni = ieee80211_find_rxnode(ic, (const struct ieee80211_frame_min *)wh);
 	if (ni != NULL) {
 		ieee80211_notify_michael_failure(ni->ni_vap, wh, keyix);
 		ieee80211_free_node(ni);
@@ -709,7 +710,7 @@ ath_rx_pkt(struct ath_softc *sc, struct ath_rx_status *rs, HAL_STATUS status,
 			 */
 			if (rs->rs_phyerr < ATH_IOCTL_STATS_NUM_RX_PHYERR)
 				sc->sc_stats.ast_rx_phy[rs->rs_phyerr]++;
-			goto rx_error;	/* NB: don't count in ierrors */
+			goto rx_error; /* NB: don't count in ierrors */
 		}
 		if (rs->rs_status & HAL_RXERR_DECRYPT) {
 			/*
@@ -742,15 +743,15 @@ ath_rx_pkt(struct ath_softc *sc, struct ath_rx_status *rs, HAL_STATUS status,
 			 */
 			/* XXX frag's and qos frames */
 			len = rs->rs_datalen;
-			if (len >= sizeof (struct ieee80211_frame)) {
+			if (len >= sizeof(struct ieee80211_frame)) {
 				ath_handle_micerror(ic,
 				    mtod(m, struct ieee80211_frame *),
-				    sc->sc_splitmic ?
-					rs->rs_keyix-32 : rs->rs_keyix);
+				    sc->sc_splitmic ? rs->rs_keyix - 32 :
+						      rs->rs_keyix);
 			}
 		}
 		counter_u64_add(ic->ic_ierrors, 1);
-rx_error:
+	rx_error:
 		/*
 		 * Cleanup any pending partial frame.
 		 */
@@ -770,13 +771,14 @@ rx_error:
 			len = rs->rs_datalen;
 			m->m_pkthdr.len = m->m_len = len;
 			ath_rx_tap(sc, m, rs, rstamp, nf);
-#ifdef	ATH_ENABLE_RADIOTAP_VENDOR_EXT
+#ifdef ATH_ENABLE_RADIOTAP_VENDOR_EXT
 			ath_rx_tap_vendor(sc, m, rs, rstamp, nf);
-#endif	/* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
+#endif /* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
 			ieee80211_radiotap_rx_all(ic, m);
 		}
 		/* XXX pass MIC errors up for s/w reclaculation */
-		m_freem(m); m = NULL;
+		m_freem(m);
+		m = NULL;
 		goto rx_next;
 	}
 rx_accept:
@@ -836,12 +838,12 @@ rx_accept:
 	 * for the last frame in an aggregate.
 	 */
 	if (rs->rs_antenna >= ATH_IOCTL_STATS_NUM_RX_ANTENNA) {
-		device_printf(sc->sc_dev, "%s: rs_antenna > 7 (%d)\n",
-		    __func__, rs->rs_antenna);
-#ifdef	ATH_DEBUG
+		device_printf(sc->sc_dev, "%s: rs_antenna > 7 (%d)\n", __func__,
+		    rs->rs_antenna);
+#ifdef ATH_DEBUG
 		ath_printrxbuf(sc, bf, 0, status == HAL_OK);
-#endif /* ATH_DEBUG */
-		rs->rs_antenna = 0;	/* XXX better than nothing */
+#endif				    /* ATH_DEBUG */
+		rs->rs_antenna = 0; /* XXX better than nothing */
 	}
 
 	/*
@@ -863,9 +865,8 @@ rx_accept:
 		rs->rs_antenna = 0;
 
 		/* Bits 0:1 - the LNA configuration used */
-		rs->rs_antenna |=
-		    ((rs->rs_rssi_ctl[2] & HAL_RX_LNA_CFG_USED)
-		      >> HAL_RX_LNA_CFG_USED_S);
+		rs->rs_antenna |= ((rs->rs_rssi_ctl[2] & HAL_RX_LNA_CFG_USED) >>
+		    HAL_RX_LNA_CFG_USED_S);
 
 		/* Bit 2 - the external RX antenna switch */
 		if (rs->rs_rssi_ctl[2] & HAL_RX_LNA_EXTCFG)
@@ -883,9 +884,9 @@ rx_accept:
 	 */
 	if (ieee80211_radiotap_active(ic)) {
 		ath_rx_tap(sc, m, rs, rstamp, nf);
-#ifdef	ATH_ENABLE_RADIOTAP_VENDOR_EXT
+#ifdef ATH_ENABLE_RADIOTAP_VENDOR_EXT
 		ath_rx_tap_vendor(sc, m, rs, rstamp, nf);
-#endif	/* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
+#endif /* ATH_ENABLE_RADIOTAP_VENDOR_EXT */
 	}
 
 	/*
@@ -894,14 +895,15 @@ rx_accept:
 	 */
 	if (len < IEEE80211_MIN_LEN) {
 		if (!ieee80211_radiotap_active(ic)) {
-			DPRINTF(sc, ATH_DEBUG_RECV,
-			    "%s: short packet %d\n", __func__, len);
+			DPRINTF(sc, ATH_DEBUG_RECV, "%s: short packet %d\n",
+			    __func__, len);
 			sc->sc_stats.ast_rx_tooshort++;
 		} else {
 			/* NB: in particular this captures ack's */
 			ieee80211_radiotap_rx_all(ic, m);
 		}
-		m_freem(m); m = NULL;
+		m_freem(m);
+		m = NULL;
 		goto rx_next;
 	}
 
@@ -921,9 +923,9 @@ rx_accept:
 	 * for its use.
 	 */
 	ni = ieee80211_find_rxnode_withkey(ic,
-		mtod(m, const struct ieee80211_frame_min *),
-		rs->rs_keyix == HAL_RXKEYIX_INVALID ?
-			IEEE80211_KEYIX_NONE : rs->rs_keyix);
+	    mtod(m, const struct ieee80211_frame_min *),
+	    rs->rs_keyix == HAL_RXKEYIX_INVALID ? IEEE80211_KEYIX_NONE :
+						  rs->rs_keyix);
 	sc->sc_lastrs = rs;
 
 	if (rs->rs_isaggr)
@@ -933,15 +935,12 @@ rx_accept:
 	 * Populate the per-chain RSSI values where appropriate.
 	 */
 	bzero(&rxs, sizeof(rxs));
-	rxs.r_flags |= IEEE80211_R_NF | IEEE80211_R_RSSI |
-	    IEEE80211_R_C_CHAIN |
-	    IEEE80211_R_C_NF |
-	    IEEE80211_R_C_RSSI |
-	    IEEE80211_R_TSF64 |
-	    IEEE80211_R_TSF_START;	/* XXX TODO: validate */
+	rxs.r_flags |= IEEE80211_R_NF | IEEE80211_R_RSSI | IEEE80211_R_C_CHAIN |
+	    IEEE80211_R_C_NF | IEEE80211_R_C_RSSI | IEEE80211_R_TSF64 |
+	    IEEE80211_R_TSF_START; /* XXX TODO: validate */
 	rxs.c_rssi = rs->rs_rssi;
 	rxs.c_nf = nf;
-	rxs.c_chain = 3;	/* XXX TODO: check */
+	rxs.c_chain = 3; /* XXX TODO: check */
 	rxs.c_rx_tsf = rstamp;
 
 	for (i = 0; i < 3; i++) {
@@ -969,10 +968,10 @@ rx_accept:
 		 * It can then use this information to potentially drastically
 		 * alter the available rate based on the RSSI estimate.
 		 *
-		 * This is super important when associating to a far away station;
-		 * you don't want to waste time trying higher rates at some low
-		 * packet exchange rate (like during DHCP) just to establish
-		 * that higher MCS rates aren't available.
+		 * This is super important when associating to a far away
+		 * station; you don't want to waste time trying higher rates at
+		 * some low packet exchange rate (like during DHCP) just to
+		 * establish that higher MCS rates aren't available.
 		 */
 		ATH_RSSI_LPF(ATH_NODE(ni)->an_node_stats.ns_avgrssi,
 		    rs->rs_rssi);
@@ -982,7 +981,7 @@ rx_accept:
 		/*
 		 * Sending station is known, dispatch directly.
 		 */
-		(void) ieee80211_add_rx_params(m, &rxs);
+		(void)ieee80211_add_rx_params(m, &rxs);
 		type = ieee80211_input_mimo(ni, m);
 		ieee80211_free_node(ni);
 		m = NULL;
@@ -996,7 +995,7 @@ rx_accept:
 		    rs->rs_keyix != HAL_RXKEYIX_INVALID)
 			is_good = 1;
 	} else {
-		(void) ieee80211_add_rx_params(m, &rxs);
+		(void)ieee80211_add_rx_params(m, &rxs);
 		type = ieee80211_input_mimo_all(ic, m);
 		m = NULL;
 	}
@@ -1037,26 +1036,23 @@ rx_accept:
 		 */
 		if (type == IEEE80211_FC0_TYPE_DATA) {
 			const HAL_RATE_TABLE *rt = sc->sc_currates;
-			ath_led_event(sc,
-			    rt->rateCodeToIndex[rs->rs_rate]);
+			ath_led_event(sc, rt->rateCodeToIndex[rs->rs_rate]);
 		} else if (ticks - sc->sc_ledevent >= sc->sc_ledidle)
 			ath_led_event(sc, 0);
-		}
+	}
 rx_next:
 	/*
 	 * Debugging - complain if we didn't NULL the mbuf pointer
 	 * here.
 	 */
 	if (m != NULL) {
-		device_printf(sc->sc_dev,
-		    "%s: mbuf %p should've been freed!\n",
-		    __func__,
-		    m);
+		device_printf(sc->sc_dev, "%s: mbuf %p should've been freed!\n",
+		    __func__, m);
 	}
 	return (is_good);
 }
 
-#define	ATH_RX_MAX		128
+#define ATH_RX_MAX 128
 
 /*
  * XXX TODO: break out the "get buffers" from "call ath_rx_pkt()" like
@@ -1069,9 +1065,9 @@ rx_next:
 static void
 ath_rx_proc(struct ath_softc *sc, int resched)
 {
-#define	PA2DESC(_sc, _pa) \
+#define PA2DESC(_sc, _pa)                                       \
 	((struct ath_desc *)((caddr_t)(_sc)->sc_rxdma.dd_desc + \
-		((_pa) - (_sc)->sc_rxdma.dd_desc_paddr)))
+	    ((_pa) - (_sc)->sc_rxdma.dd_desc_paddr)))
 	struct ath_buf *bf;
 	struct ath_hal *ah = sc->sc_ah;
 #ifdef IEEE80211_SUPPORT_SUPERG
@@ -1117,7 +1113,7 @@ ath_rx_proc(struct ath_softc *sc, int resched)
 			break;
 
 		bf = TAILQ_FIRST(&sc->sc_rxbuf);
-		if (sc->sc_rxslink && bf == NULL) {	/* NB: shouldn't happen */
+		if (sc->sc_rxslink && bf == NULL) { /* NB: shouldn't happen */
 			device_printf(sc->sc_dev, "%s: no buffer!\n", __func__);
 			break;
 		} else if (bf == NULL) {
@@ -1129,7 +1125,7 @@ ath_rx_proc(struct ath_softc *sc, int resched)
 			break;
 		}
 		m = bf->bf_m;
-		if (m == NULL) {		/* NB: shouldn't happen */
+		if (m == NULL) { /* NB: shouldn't happen */
 			/*
 			 * If mbuf allocation failed previously there
 			 * will be no mbuf; try again to re-populate it.
@@ -1158,18 +1154,18 @@ ath_rx_proc(struct ath_softc *sc, int resched)
 		 * a self-linked list to avoid rx overruns.
 		 */
 		rs = &bf->bf_status.ds_rxstat;
-		status = ath_hal_rxprocdesc(ah, ds,
-				bf->bf_daddr, PA2DESC(sc, ds->ds_link), rs);
+		status = ath_hal_rxprocdesc(ah, ds, bf->bf_daddr,
+		    PA2DESC(sc, ds->ds_link), rs);
 #ifdef ATH_DEBUG
 		if (sc->sc_debug & ATH_DEBUG_RECV_DESC)
 			ath_printrxbuf(sc, bf, 0, status == HAL_OK);
 #endif
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 		if (if_ath_alq_checkdebug(&sc->sc_alq, ATH_ALQ_EDMA_RXSTATUS))
-		    if_ath_alq_post(&sc->sc_alq, ATH_ALQ_EDMA_RXSTATUS,
-		    sc->sc_rx_statuslen, (char *) ds);
-#endif	/* ATH_DEBUG_ALQ */
+			if_ath_alq_post(&sc->sc_alq, ATH_ALQ_EDMA_RXSTATUS,
+			    sc->sc_rx_statuslen, (char *)ds);
+#endif /* ATH_DEBUG_ALQ */
 
 		if (status == HAL_EINPROGRESS)
 			break;
@@ -1180,12 +1176,13 @@ ath_rx_proc(struct ath_softc *sc, int resched)
 		/*
 		 * Process a single frame.
 		 */
-		bus_dmamap_sync(sc->sc_dmat, bf->bf_dmamap, BUS_DMASYNC_POSTREAD);
+		bus_dmamap_sync(sc->sc_dmat, bf->bf_dmamap,
+		    BUS_DMASYNC_POSTREAD);
 		bus_dmamap_unload(sc->sc_dmat, bf->bf_dmamap);
 		bf->bf_m = NULL;
 		if (ath_rx_pkt(sc, rs, status, tsf, nf, HAL_RX_QUEUE_HP, bf, m))
 			ngood++;
-rx_proc_next:
+	rx_proc_next:
 		/*
 		 * If there's a holding buffer, insert that onto
 		 * the RX list; the hardware is now definitely not pointing
@@ -1194,8 +1191,7 @@ rx_proc_next:
 		ret = 0;
 		if (sc->sc_rxedma[HAL_RX_QUEUE_HP].m_holdbf != NULL) {
 			TAILQ_INSERT_TAIL(&sc->sc_rxbuf,
-			    sc->sc_rxedma[HAL_RX_QUEUE_HP].m_holdbf,
-			    bf_list);
+			    sc->sc_rxedma[HAL_RX_QUEUE_HP].m_holdbf, bf_list);
 			ret = ath_rxbuf_init(sc,
 			    sc->sc_rxedma[HAL_RX_QUEUE_HP].m_holdbf);
 		}
@@ -1212,7 +1208,8 @@ rx_proc_next:
 	if (ngood)
 		sc->sc_lastrx = tsf;
 
-	ATH_KTR(sc, ATH_KTR_RXPROC, 2, "ath_rx_proc: npkts=%d, ngood=%d", npkts, ngood);
+	ATH_KTR(sc, ATH_KTR_RXPROC, 2, "ath_rx_proc: npkts=%d, ngood=%d", npkts,
+	    ngood);
 	/* Queue DFS tasklet if needed */
 	if (resched && ath_dfs_tasklet_needed(sc, sc->sc_curchan))
 		taskqueue_enqueue(sc->sc_tq, &sc->sc_dfstask);
@@ -1260,9 +1257,10 @@ rx_proc_next:
 		 */
 		bf = TAILQ_FIRST(&sc->sc_rxbuf);
 		ath_hal_putrxbuf(ah, bf->bf_daddr, HAL_RX_QUEUE_HP);
-		ath_hal_rxena(ah);		/* enable recv descriptors */
-		ath_mode_init(sc);		/* set filters, etc. */
-		ath_hal_startpcurecv(ah, (!! sc->sc_scanning));	/* re-enable PCU/DMA engine */
+		ath_hal_rxena(ah); /* enable recv descriptors */
+		ath_mode_init(sc); /* set filters, etc. */
+		ath_hal_startpcurecv(ah,
+		    (!!sc->sc_scanning)); /* re-enable PCU/DMA engine */
 #endif
 
 		ath_hal_intrset(ah, sc->sc_imask);
@@ -1295,8 +1293,8 @@ rx_proc_next:
 	sc->sc_rxproc_cnt--;
 	ATH_PCU_UNLOCK(sc);
 }
-#undef	PA2DESC
-#undef	ATH_RX_MAX
+#undef PA2DESC
+#undef ATH_RX_MAX
 
 /*
  * Only run the RX proc if it's not already running.
@@ -1312,8 +1310,8 @@ ath_legacy_rx_tasklet(void *arg, int npending)
 	DPRINTF(sc, ATH_DEBUG_RX_PROC, "%s: pending %u\n", __func__, npending);
 	ATH_PCU_LOCK(sc);
 	if (sc->sc_inreset_cnt > 0) {
-		device_printf(sc->sc_dev,
-		    "%s: sc_inreset_cnt > 0; skipping\n", __func__);
+		device_printf(sc->sc_dev, "%s: sc_inreset_cnt > 0; skipping\n",
+		    __func__);
 		ATH_PCU_UNLOCK(sc);
 		return;
 	}
@@ -1364,7 +1362,7 @@ ath_legacy_flush_rxholdbf(struct ath_softc *sc)
 			m_freem(bf->bf_m);
 		bf->bf_m = NULL;
 		TAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
-		(void) ath_rxbuf_init(sc, bf);
+		(void)ath_rxbuf_init(sc, bf);
 	}
 	sc->sc_rxedma[HAL_RX_QUEUE_HP].m_holdbf = NULL;
 
@@ -1374,7 +1372,7 @@ ath_legacy_flush_rxholdbf(struct ath_softc *sc)
 			m_freem(bf->bf_m);
 		bf->bf_m = NULL;
 		TAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
-		(void) ath_rxbuf_init(sc, bf);
+		(void)ath_rxbuf_init(sc, bf);
 	}
 	sc->sc_rxedma[HAL_RX_QUEUE_LP].m_holdbf = NULL;
 
@@ -1387,51 +1385,51 @@ ath_legacy_flush_rxholdbf(struct ath_softc *sc)
 static void
 ath_legacy_stoprecv(struct ath_softc *sc, int dodelay)
 {
-#define	PA2DESC(_sc, _pa) \
+#define PA2DESC(_sc, _pa)                                       \
 	((struct ath_desc *)((caddr_t)(_sc)->sc_rxdma.dd_desc + \
-		((_pa) - (_sc)->sc_rxdma.dd_desc_paddr)))
+	    ((_pa) - (_sc)->sc_rxdma.dd_desc_paddr)))
 	struct ath_hal *ah = sc->sc_ah;
 
 	ATH_RX_LOCK(sc);
 
-	ath_hal_stoppcurecv(ah);	/* disable PCU */
-	ath_hal_setrxfilter(ah, 0);	/* clear recv filter */
-	ath_hal_stopdmarecv(ah);	/* disable DMA engine */
-	/*
-	 * TODO: see if this particular DELAY() is required; it may be
-	 * masking some missing FIFO flush or DMA sync.
-	 */
+	ath_hal_stoppcurecv(ah);    /* disable PCU */
+	ath_hal_setrxfilter(ah, 0); /* clear recv filter */
+	ath_hal_stopdmarecv(ah);    /* disable DMA engine */
+				    /*
+				     * TODO: see if this particular DELAY() is required; it may be
+				     * masking some missing FIFO flush or DMA sync.
+				     */
 #if 0
 	if (dodelay)
 #endif
-		DELAY(3000);		/* 3ms is long enough for 1 frame */
+	DELAY(3000); /* 3ms is long enough for 1 frame */
 #ifdef ATH_DEBUG
 	if (sc->sc_debug & (ATH_DEBUG_RESET | ATH_DEBUG_FATAL)) {
 		struct ath_buf *bf;
 		u_int ix;
 
-		device_printf(sc->sc_dev,
-		    "%s: rx queue %p, link %p\n",
+		device_printf(sc->sc_dev, "%s: rx queue %p, link %p\n",
 		    __func__,
-		    (caddr_t)(uintptr_t) ath_hal_getrxbuf(ah, HAL_RX_QUEUE_HP),
+		    (caddr_t)(uintptr_t)ath_hal_getrxbuf(ah, HAL_RX_QUEUE_HP),
 		    sc->sc_rxlink);
 		ix = 0;
-		TAILQ_FOREACH(bf, &sc->sc_rxbuf, bf_list) {
+		TAILQ_FOREACH (bf, &sc->sc_rxbuf, bf_list) {
 			struct ath_desc *ds = bf->bf_desc;
 			struct ath_rx_status *rs = &bf->bf_status.ds_rxstat;
 			HAL_STATUS status = ath_hal_rxprocdesc(ah, ds,
-				bf->bf_daddr, PA2DESC(sc, ds->ds_link), rs);
-			if (status == HAL_OK || (sc->sc_debug & ATH_DEBUG_FATAL))
+			    bf->bf_daddr, PA2DESC(sc, ds->ds_link), rs);
+			if (status == HAL_OK ||
+			    (sc->sc_debug & ATH_DEBUG_FATAL))
 				ath_printrxbuf(sc, bf, ix, status == HAL_OK);
 			ix++;
 		}
 	}
 #endif
 
-	(void) ath_legacy_flush_rxpending(sc);
-	(void) ath_legacy_flush_rxholdbf(sc);
+	(void)ath_legacy_flush_rxpending(sc);
+	(void)ath_legacy_flush_rxholdbf(sc);
 
-	sc->sc_rxlink = NULL;		/* just in case */
+	sc->sc_rxlink = NULL; /* just in case */
 
 	ATH_RX_UNLOCK(sc);
 #undef PA2DESC
@@ -1458,27 +1456,27 @@ ath_legacy_startrecv(struct ath_softc *sc)
 	 * XXX should verify these are already all NULL!
 	 */
 	sc->sc_rxlink = NULL;
-	(void) ath_legacy_flush_rxpending(sc);
-	(void) ath_legacy_flush_rxholdbf(sc);
+	(void)ath_legacy_flush_rxpending(sc);
+	(void)ath_legacy_flush_rxholdbf(sc);
 
 	/*
 	 * Re-chain all of the buffers in the RX buffer list.
 	 */
-	TAILQ_FOREACH(bf, &sc->sc_rxbuf, bf_list) {
+	TAILQ_FOREACH (bf, &sc->sc_rxbuf, bf_list) {
 		int error = ath_rxbuf_init(sc, bf);
 		if (error != 0) {
 			DPRINTF(sc, ATH_DEBUG_RECV,
-				"%s: ath_rxbuf_init failed %d\n",
-				__func__, error);
+			    "%s: ath_rxbuf_init failed %d\n", __func__, error);
 			return error;
 		}
 	}
 
 	bf = TAILQ_FIRST(&sc->sc_rxbuf);
 	ath_hal_putrxbuf(ah, bf->bf_daddr, HAL_RX_QUEUE_HP);
-	ath_hal_rxena(ah);		/* enable recv descriptors */
-	ath_mode_init(sc);		/* set filters, etc. */
-	ath_hal_startpcurecv(ah, (!! sc->sc_scanning));	/* re-enable PCU/DMA engine */
+	ath_hal_rxena(ah); /* enable recv descriptors */
+	ath_mode_init(sc); /* set filters, etc. */
+	ath_hal_startpcurecv(ah,
+	    (!!sc->sc_scanning)); /* re-enable PCU/DMA engine */
 
 	ATH_RX_UNLOCK(sc);
 	return 0;
@@ -1489,8 +1487,8 @@ ath_legacy_dma_rxsetup(struct ath_softc *sc)
 {
 	int error;
 
-	error = ath_descdma_setup(sc, &sc->sc_rxdma, &sc->sc_rxbuf,
-	    "rx", sizeof(struct ath_desc), ath_rxbuf, 1);
+	error = ath_descdma_setup(sc, &sc->sc_rxdma, &sc->sc_rxbuf, "rx",
+	    sizeof(struct ath_desc), ath_rxbuf, 1);
 	if (error != 0)
 		return (error);
 
@@ -1514,8 +1512,7 @@ ath_legacy_recv_sched(struct ath_softc *sc, int dosched)
 }
 
 static void
-ath_legacy_recv_sched_queue(struct ath_softc *sc, HAL_RX_QUEUE q,
-    int dosched)
+ath_legacy_recv_sched_queue(struct ath_softc *sc, HAL_RX_QUEUE q, int dosched)
 {
 
 	taskqueue_enqueue(sc->sc_tq, &sc->sc_rxtask);

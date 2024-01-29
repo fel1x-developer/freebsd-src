@@ -32,16 +32,17 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_evdev.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/condvar.h>
 #include <sys/consio.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/poll.h>
@@ -49,49 +50,48 @@
 #include <sys/selinfo.h>
 #include <sys/sigio.h>
 #include <sys/signalvar.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <dev/vt/vt.h>
 
 #ifdef EVDEV_SUPPORT
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
+#include <dev/evdev/input.h>
 #endif
 
-static d_open_t		sysmouse_open;
-static d_close_t	sysmouse_close;
-static d_read_t		sysmouse_read;
-static d_ioctl_t	sysmouse_ioctl;
-static d_poll_t		sysmouse_poll;
+static d_open_t sysmouse_open;
+static d_close_t sysmouse_close;
+static d_read_t sysmouse_read;
+static d_ioctl_t sysmouse_ioctl;
+static d_poll_t sysmouse_poll;
 
 static struct cdevsw sysmouse_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_open		= sysmouse_open,
-	.d_close	= sysmouse_close,
-	.d_read		= sysmouse_read,
-	.d_ioctl	= sysmouse_ioctl,
-	.d_poll		= sysmouse_poll,
-	.d_name		= "sysmouse",
+	.d_version = D_VERSION,
+	.d_open = sysmouse_open,
+	.d_close = sysmouse_close,
+	.d_read = sysmouse_read,
+	.d_ioctl = sysmouse_ioctl,
+	.d_poll = sysmouse_poll,
+	.d_name = "sysmouse",
 };
 
-static struct mtx	 sysmouse_lock;
-static struct cv	 sysmouse_sleep;
-static struct selinfo	 sysmouse_bufpoll;
+static struct mtx sysmouse_lock;
+static struct cv sysmouse_sleep;
+static struct selinfo sysmouse_bufpoll;
 
-static int		 sysmouse_level;
-static mousestatus_t	 sysmouse_status;
-static int		 sysmouse_flags;
-#define	SM_ASYNC	0x1
-static struct sigio	*sysmouse_sigio;
+static int sysmouse_level;
+static mousestatus_t sysmouse_status;
+static int sysmouse_flags;
+#define SM_ASYNC 0x1
+static struct sigio *sysmouse_sigio;
 
-#define	SYSMOUSE_MAXFRAMES	250	/* 2 KB */
+#define SYSMOUSE_MAXFRAMES 250 /* 2 KB */
 static MALLOC_DEFINE(M_SYSMOUSE, "sysmouse", "sysmouse device");
-static unsigned char	*sysmouse_buffer;
-static unsigned int	 sysmouse_start, sysmouse_length;
+static unsigned char *sysmouse_buffer;
+static unsigned int sysmouse_start, sysmouse_length;
 
 #ifdef EVDEV_SUPPORT
-static struct evdev_dev	*sysmouse_evdev;
+static struct evdev_dev *sysmouse_evdev;
 
 static void
 sysmouse_evdev_init(void)
@@ -145,7 +145,7 @@ sysmouse_evdev_store(int x, int y, int z, int buttons)
 			evdev_push_rel(sysmouse_evdev, REL_HWHEEL, 1);
 		else if (buttons & (1 << 5))
 			evdev_push_rel(sysmouse_evdev, REL_HWHEEL, -1);
-		buttons &= ~((1 << 5)|(1 << 6));
+		buttons &= ~((1 << 5) | (1 << 6));
 		/* PASSTHROUGH */
 	case EVDEV_SYSMOUSE_T_AXIS_NONE:
 	default:
@@ -167,8 +167,8 @@ sysmouse_buf_read(struct uio *uio, unsigned int length)
 	else if (sysmouse_length == 0)
 		return (EWOULDBLOCK);
 
-	memcpy(buf, sysmouse_buffer +
-	    sysmouse_start * MOUSE_SYS_PACKETSIZE, MOUSE_SYS_PACKETSIZE);
+	memcpy(buf, sysmouse_buffer + sysmouse_start * MOUSE_SYS_PACKETSIZE,
+	    MOUSE_SYS_PACKETSIZE);
 	sysmouse_start = (sysmouse_start + 1) % SYSMOUSE_MAXFRAMES;
 	sysmouse_length--;
 
@@ -202,14 +202,14 @@ sysmouse_process_event(mouse_info_t *mi)
 {
 	/* MOUSE_BUTTON?DOWN -> MOUSE_MSC_BUTTON?UP */
 	static const int buttonmap[8] = {
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP,
-	    MOUSE_MSC_BUTTON2UP,
-	    MOUSE_MSC_BUTTON1UP,
-	    0,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP,
+		MOUSE_MSC_BUTTON2UP,
+		MOUSE_MSC_BUTTON1UP,
+		0,
 	};
 	unsigned char buf[MOUSE_SYS_PACKETSIZE];
 	int x, y, iy, z;
@@ -261,11 +261,11 @@ sysmouse_process_event(mouse_info_t *mi)
 	buf[2] = iy >> 1;
 	buf[4] = iy - buf[2];
 	/* Extended part. */
-        z = imax(imin(z, 127), -128);
-        buf[5] = (z >> 1) & 0x7f;
-        buf[6] = (z - (z >> 1)) & 0x7f;
-        /* Buttons 4-10. */
-        buf[7] = (~sysmouse_status.button >> 3) & 0x7f;
+	z = imax(imin(z, 127), -128);
+	buf[5] = (z >> 1) & 0x7f;
+	buf[6] = (z - (z >> 1)) & 0x7f;
+	/* Buttons 4-10. */
+	buf[7] = (~sysmouse_status.button >> 3) & 0x7f;
 
 	sysmouse_buf_store(buf);
 
@@ -276,7 +276,8 @@ sysmouse_process_event(mouse_info_t *mi)
 	return;
 #endif
 
-done:	mtx_unlock(&sysmouse_lock);
+done:
+	mtx_unlock(&sysmouse_lock);
 }
 
 static int
@@ -284,8 +285,8 @@ sysmouse_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 {
 	void *buf;
 
-	buf = malloc(MOUSE_SYS_PACKETSIZE * SYSMOUSE_MAXFRAMES,
-	    M_SYSMOUSE, M_WAITOK);
+	buf = malloc(MOUSE_SYS_PACKETSIZE * SYSMOUSE_MAXFRAMES, M_SYSMOUSE,
+	    M_WAITOK);
 	mtx_lock(&sysmouse_lock);
 	if (sysmouse_buffer == NULL) {
 		sysmouse_buffer = buf;
@@ -323,7 +324,7 @@ sysmouse_read(struct cdev *dev, struct uio *uio, int ioflag)
 
 	mtx_lock(&sysmouse_lock);
 	length = sysmouse_level >= 1 ? MOUSE_SYS_PACKETSIZE :
-	    MOUSE_MSC_PACKETSIZE;
+				       MOUSE_MSC_PACKETSIZE;
 
 	while (uio->uio_resid >= length) {
 		error = sysmouse_buf_read(uio, length);
@@ -450,8 +451,8 @@ sysmouse_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag,
 		return (0);
 	default:
 #ifdef VT_SYSMOUSE_DEBUG
-		printf("sysmouse: unknown ioctl: %c:%lx\n",
-		    (char)IOCGROUP(cmd), IOCBASECMD(cmd));
+		printf("sysmouse: unknown ioctl: %c:%lx\n", (char)IOCGROUP(cmd),
+		    IOCBASECMD(cmd));
 #endif
 		return (ENOIOCTL);
 	}
@@ -463,9 +464,9 @@ sysmouse_poll(struct cdev *dev, int events, struct thread *td)
 	int revents = 0;
 
 	mtx_lock(&sysmouse_lock);
-	if (events & (POLLIN|POLLRDNORM)) {
+	if (events & (POLLIN | POLLRDNORM)) {
 		if (sysmouse_length > 0)
-			revents = events & (POLLIN|POLLRDNORM);
+			revents = events & (POLLIN | POLLRDNORM);
 		else
 			selrecord(td, &sysmouse_bufpoll);
 	}
@@ -482,8 +483,7 @@ sysmouse_drvinit(void *unused)
 		return;
 	mtx_init(&sysmouse_lock, "sysmouse", NULL, MTX_DEF);
 	cv_init(&sysmouse_sleep, "sysmrd");
-	make_dev(&sysmouse_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
-	    "sysmouse");
+	make_dev(&sysmouse_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600, "sysmouse");
 #ifdef EVDEV_SUPPORT
 	sysmouse_evdev_init();
 #endif

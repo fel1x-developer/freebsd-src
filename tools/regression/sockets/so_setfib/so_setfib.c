@@ -29,7 +29,7 @@
 
 /*
  * Regression test on SO_SETFIB setsockopt(2).
- * 
+ *
  * Check that the expected domain(9) families all handle the socket option
  * correctly and do proper bounds checks.
  *
@@ -43,8 +43,8 @@
  * 5. Repeat for next domain family and type from (2) on.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
@@ -56,8 +56,8 @@
 #include <unistd.h>
 
 static struct t_dom {
-	int		domain;
-	const char	*name;
+	int domain;
+	const char *name;
 } t_dom[] = {
 #ifdef INET6
 	{ .domain = PF_INET6, .name = "PF_INET6" },
@@ -70,8 +70,8 @@ static struct t_dom {
 };
 
 static struct t_type {
-	int		type;
-	const char	*name;
+	int type;
+	const char *name;
 } t_type[] = {
 	{ .type = SOCK_STREAM, .name = "SOCK_STREAM" },
 	{ .type = SOCK_DGRAM, .name = "SOCK_DGRAM" },
@@ -80,13 +80,12 @@ static struct t_type {
 
 /*
  * Number of FIBs as read from net.fibs sysctl - 1.  Initialize to clear out of
- * bounds value to not accidentally run on a limited range. 
+ * bounds value to not accidentally run on a limited range.
  */
 static int rt_numfibs = -42;
 
 /* Number of test case. */
 static int testno = 1;
-
 
 /*
  * Try the setsockopt with given FIB number i on socket s.
@@ -104,15 +103,15 @@ so_setfib(int s, int i, u_int dom, u_int type)
 		    t_type[type].name, i);
 	else if (error != -1 && (i < 0 || i > rt_numfibs))
 		printf("not ok %d %s_%s_%d # setsockopt(%d, SOL_SOCKET, "
-		    "SO_SETFIB, %d, ..) unexpectedly succeeded\n", testno,
-		    t_dom[dom].name, t_type[type].name, i, s, i);
+		       "SO_SETFIB, %d, ..) unexpectedly succeeded\n",
+		    testno, t_dom[dom].name, t_type[type].name, i, s, i);
 	else if (error == 0)
 		printf("ok %d %s_%s_%d\n", testno, t_dom[dom].name,
 		    t_type[type].name, i);
 	else if (errno != EINVAL)
 		printf("not ok %d %s_%s_%d # setsockopt(%d, SOL_SOCKET, "
-		    "SO_SETFIB, %d, ..) unexpected error: %s\n", testno,
-		    t_dom[dom].name, t_type[type].name, i, s, i,
+		       "SO_SETFIB, %d, ..) unexpected error: %s\n",
+		    testno, t_dom[dom].name, t_type[type].name, i, s, i,
 		    strerror(errno));
 	else
 		printf("not ok %d %s_%s_%d\n", testno, t_dom[dom].name,
@@ -145,7 +144,7 @@ t(u_int dom, u_int type)
 		testno++;
 		return;
 	}
-	
+
 	/* Test FIBs -2, -1, 0, .. n, n + 1, n + 2. */
 	for (i = -2; i <= (rt_numfibs + 2); i++)
 		so_setfib(s, i, dom, type);

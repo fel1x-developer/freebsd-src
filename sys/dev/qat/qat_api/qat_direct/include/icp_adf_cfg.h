@@ -21,8 +21,8 @@
 #include "icp_accel_devices.h"
 
 /******************************************************************************
-* Section for #define's & typedef's
-******************************************************************************/
+ * Section for #define's & typedef's
+ ******************************************************************************/
 /* Address of the UOF firmware */
 #define ICP_CFG_UOF_ADDRESS_KEY ("Firmware_UofAddress")
 /* Size of the UOF firmware */
@@ -97,9 +97,7 @@
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_cfgGetParamValue(icp_accel_dev_t *accel_dev,
-				   const char *section,
-				   const char *param_name,
-				   char *param_value);
+    const char *section, const char *param_name, char *param_value);
 /*
  * icp_adf_cfgGetRingNumber
  *
@@ -111,11 +109,8 @@ CpaStatus icp_adf_cfgGetParamValue(icp_accel_dev_t *accel_dev,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_cfgGetRingNumber(icp_accel_dev_t *accel_dev,
-				   const char *section_name,
-				   const Cpa32U accel_num,
-				   const Cpa32U bank_num,
-				   const char *pServiceName,
-				   Cpa32U *pRingNum);
+    const char *section_name, const Cpa32U accel_num, const Cpa32U bank_num,
+    const char *pServiceName, Cpa32U *pRingNum);
 
 /*
  * icp_adf_get_busAddress

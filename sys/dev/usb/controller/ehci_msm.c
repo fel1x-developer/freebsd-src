@@ -31,46 +31,41 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/condvar.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/controller/ehci.h>
 #include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 struct ehci_msm_softc {
-	ehci_softc_t		base;
-	struct resource		*res[3];
+	ehci_softc_t base;
+	struct resource *res[3];
 };
 
 static struct resource_spec ehci_msm_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { SYS_RES_MEMORY, 1, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 }
 };
 
-#define	EHCI_HC_DEVSTR		"Qualcomm USB 2.0 controller"
+#define EHCI_HC_DEVSTR "Qualcomm USB 2.0 controller"
 
 static device_attach_t ehci_msm_attach;
 static device_detach_t ehci_msm_detach;
@@ -110,8 +105,8 @@ ehci_msm_attach(device_t dev)
 	sc->sc_io_tag = rman_get_bustag(esc->res[0]);
 
 	/* Get all DMA memory */
-	if (usb_bus_mem_alloc_all(&sc->sc_bus,
-	    USB_GET_DMA_TAG(dev), &ehci_iterate_hw_softc)) {
+	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(dev),
+		&ehci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 
@@ -120,8 +115,8 @@ ehci_msm_attach(device_t dev)
 	bsh = rman_get_bushandle(esc->res[0]);
 	sc->sc_io_size = rman_get_size(esc->res[0]);
 
-	if (bus_space_subregion(sc->sc_io_tag, bsh, 0x100,
-	    sc->sc_io_size, &sc->sc_io_hdl) != 0)
+	if (bus_space_subregion(sc->sc_io_tag, bsh, 0x100, sc->sc_io_size,
+		&sc->sc_io_hdl) != 0)
 		panic("%s: unable to subregion USB host registers",
 		    device_get_name(dev));
 
@@ -195,8 +190,7 @@ ehci_msm_detach(device_t dev)
 		sc->sc_irq_res = NULL;
 	}
 	if (sc->sc_io_res) {
-		bus_release_resource(dev, SYS_RES_MEMORY, 0,
-		    sc->sc_io_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, 0, sc->sc_io_res);
 		sc->sc_io_res = NULL;
 	}
 
@@ -207,13 +201,12 @@ ehci_msm_detach(device_t dev)
 
 static device_method_t ehci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ehci_msm_probe),
-	DEVMETHOD(device_attach,	ehci_msm_attach),
-	DEVMETHOD(device_detach,	ehci_msm_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ehci_msm_probe),
+	DEVMETHOD(device_attach, ehci_msm_attach),
+	DEVMETHOD(device_detach, ehci_msm_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
 static driver_t ehci_driver = {

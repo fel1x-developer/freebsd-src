@@ -28,31 +28,29 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <errno.h>
 #include <fcntl.h>
 #include <fstab.h>
+#include <libufs.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
 
-#include <libufs.h>
-
 /* Internally, track the 'name' value, it's ours. */
-#define	MINE_NAME	0x01
+#define MINE_NAME 0x01
 /* Track if its fd points to a writable device. */
-#define	MINE_WRITE	0x02
+#define MINE_WRITE 0x02
 
 int
 ufs_disk_close(struct uufsd *disk)
@@ -99,7 +97,8 @@ ufs_disk_fillout_blank(struct uufsd *disk, const char *name)
 	ERROR(disk, NULL);
 
 	oname = name;
-again:	if ((ret = stat(name, &st)) < 0) {
+again:
+	if ((ret = stat(name, &st)) < 0) {
 		if (*name != '/') {
 			snprintf(dev, sizeof(dev), "%s%s", _PATH_DEV, name);
 			name = dev;
@@ -151,7 +150,8 @@ again:	if ((ret = stat(name, &st)) < 0) {
 	}
 
 	if (((uintptr_t)disk & ~(LIBUFS_BUFALIGN - 1)) != (uintptr_t)disk) {
-		ERROR(disk, "uufsd structure must be aligned to "
+		ERROR(disk,
+		    "uufsd structure must be aligned to "
 		    "LIBUFS_BUFALIGN byte boundry, see ufs_disk_fillout(3)");
 		close(fd);
 		return (-1);

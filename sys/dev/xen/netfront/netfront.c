@@ -27,54 +27,53 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/sockio.h>
-#include <sys/limits.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/bpf.h>
-#include <net/if_types.h>
-
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/if_ether.h>
-#include <netinet/tcp.h>
-#include <netinet/tcp_lro.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <sys/bus.h>
+#include <machine/bus.h>
 
-#include <xen/xen-os.h>
-#include <xen/hypervisor.h>
-#include <xen/xen_intr.h>
 #include <xen/gnttab.h>
-#include <contrib/xen/memory.h>
-#include <contrib/xen/io/netif.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
 #include <xen/xenbus/xenbusvar.h>
 
-#include <machine/bus.h>
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <netinet/tcp_lro.h>
+
+#include <contrib/xen/io/netif.h>
+#include <contrib/xen/memory.h>
 
 #include "xenbus_if.h"
 
 /* Features supported by all backends.  TSO and LRO can be negotiated */
-#define XN_CSUM_FEATURES	(CSUM_TCP | CSUM_UDP)
+#define XN_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 
 #define NET_TX_RING_SIZE __CONST_RING_SIZE(netif_tx, PAGE_SIZE)
 #define NET_RX_RING_SIZE __CONST_RING_SIZE(netif_rx, PAGE_SIZE)
@@ -104,7 +103,7 @@ TUNABLE_ULONG("hw.xn.num_queues", &xn_num_queues);
  * we are dealing with a Linux driver domain and have set our limit
  * to mirror the Linux MAX_SKB_FRAGS constant.
  */
-#define	MAX_TX_REQ_FRAGS (65536 / PAGE_SIZE + 2)
+#define MAX_TX_REQ_FRAGS (65536 / PAGE_SIZE + 2)
 
 #define RX_COPY_THRESHOLD 256
 
@@ -150,90 +149,89 @@ static void xn_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr);
 static int xn_connect(struct netfront_info *);
 static void xn_kick_rings(struct netfront_info *);
 
-static int xn_get_responses(struct netfront_rxq *,
-    struct netfront_rx_info *, RING_IDX, RING_IDX *,
-    struct mbuf **);
+static int xn_get_responses(struct netfront_rxq *, struct netfront_rx_info *,
+    RING_IDX, RING_IDX *, struct mbuf **);
 
 #define virt_to_mfn(x) (vtophys(x) >> PAGE_SHIFT)
 
 #define INVALID_P2M_ENTRY (~0UL)
-#define XN_QUEUE_NAME_LEN  8	/* xn{t,r}x_%u, allow for two digits */
+#define XN_QUEUE_NAME_LEN 8 /* xn{t,r}x_%u, allow for two digits */
 struct netfront_rxq {
-	struct netfront_info 	*info;
-	u_int			id;
-	char			name[XN_QUEUE_NAME_LEN];
-	struct mtx		lock;
+	struct netfront_info *info;
+	u_int id;
+	char name[XN_QUEUE_NAME_LEN];
+	struct mtx lock;
 
-	int			ring_ref;
-	netif_rx_front_ring_t 	ring;
-	xen_intr_handle_t	xen_intr_handle;
+	int ring_ref;
+	netif_rx_front_ring_t ring;
+	xen_intr_handle_t xen_intr_handle;
 
-	grant_ref_t 		gref_head;
-	grant_ref_t 		grant_ref[NET_RX_RING_SIZE + 1];
+	grant_ref_t gref_head;
+	grant_ref_t grant_ref[NET_RX_RING_SIZE + 1];
 
-	struct mbuf		*mbufs[NET_RX_RING_SIZE + 1];
+	struct mbuf *mbufs[NET_RX_RING_SIZE + 1];
 
-	struct lro_ctrl		lro;
+	struct lro_ctrl lro;
 
-	struct callout		rx_refill;
+	struct callout rx_refill;
 };
 
 struct netfront_txq {
-	struct netfront_info 	*info;
-	u_int 			id;
-	char			name[XN_QUEUE_NAME_LEN];
-	struct mtx		lock;
+	struct netfront_info *info;
+	u_int id;
+	char name[XN_QUEUE_NAME_LEN];
+	struct mtx lock;
 
-	int			ring_ref;
-	netif_tx_front_ring_t	ring;
-	xen_intr_handle_t 	xen_intr_handle;
+	int ring_ref;
+	netif_tx_front_ring_t ring;
+	xen_intr_handle_t xen_intr_handle;
 
-	grant_ref_t		gref_head;
-	grant_ref_t		grant_ref[NET_TX_RING_SIZE + 1];
+	grant_ref_t gref_head;
+	grant_ref_t grant_ref[NET_TX_RING_SIZE + 1];
 
-	struct mbuf		*mbufs[NET_TX_RING_SIZE + 1];
-	int			mbufs_cnt;
-	struct buf_ring		*br;
+	struct mbuf *mbufs[NET_TX_RING_SIZE + 1];
+	int mbufs_cnt;
+	struct buf_ring *br;
 
-	struct taskqueue 	*tq;
-	struct task       	defrtask;
+	struct taskqueue *tq;
+	struct task defrtask;
 
-	bus_dma_segment_t	segs[MAX_TX_REQ_FRAGS];
+	bus_dma_segment_t segs[MAX_TX_REQ_FRAGS];
 	struct mbuf_xennet {
-		struct m_tag 	tag;
-		bus_dma_tag_t	dma_tag;
-		bus_dmamap_t	dma_map;
+		struct m_tag tag;
+		bus_dma_tag_t dma_tag;
+		bus_dmamap_t dma_map;
 		struct netfront_txq *txq;
 		SLIST_ENTRY(mbuf_xennet) next;
-		u_int 		count;
-	}			xennet_tag[NET_TX_RING_SIZE + 1];
+		u_int count;
+	} xennet_tag[NET_TX_RING_SIZE + 1];
 	SLIST_HEAD(, mbuf_xennet) tags;
 
-	bool			full;
+	bool full;
 };
 
 struct netfront_info {
-	if_t			xn_ifp;
+	if_t xn_ifp;
 
-	struct mtx   		sc_lock;
+	struct mtx sc_lock;
 
-	u_int  num_queues;
-	struct netfront_rxq 	*rxq;
-	struct netfront_txq 	*txq;
+	u_int num_queues;
+	struct netfront_rxq *rxq;
+	struct netfront_txq *txq;
 
-	u_int			carrier;
-	u_int			maxfrags;
+	u_int carrier;
+	u_int maxfrags;
 
-	device_t		xbdev;
-	uint8_t			mac[ETHER_ADDR_LEN];
+	device_t xbdev;
+	uint8_t mac[ETHER_ADDR_LEN];
 
-	int			xn_if_flags;
+	int xn_if_flags;
 
-	struct ifmedia		sc_media;
+	struct ifmedia sc_media;
 
-	bus_dma_tag_t		dma_tag;
+	bus_dma_tag_t dma_tag;
 
-	bool			xn_reset;
+	bool xn_reset;
 };
 
 struct netfront_rx_info {
@@ -241,23 +239,23 @@ struct netfront_rx_info {
 	struct netif_extra_info extras[XEN_NETIF_EXTRA_TYPE_MAX - 1];
 };
 
-#define XN_RX_LOCK(_q)         mtx_lock(&(_q)->lock)
-#define XN_RX_UNLOCK(_q)       mtx_unlock(&(_q)->lock)
+#define XN_RX_LOCK(_q) mtx_lock(&(_q)->lock)
+#define XN_RX_UNLOCK(_q) mtx_unlock(&(_q)->lock)
 
-#define XN_TX_LOCK(_q)         mtx_lock(&(_q)->lock)
-#define XN_TX_TRYLOCK(_q)      mtx_trylock(&(_q)->lock)
-#define XN_TX_UNLOCK(_q)       mtx_unlock(&(_q)->lock)
+#define XN_TX_LOCK(_q) mtx_lock(&(_q)->lock)
+#define XN_TX_TRYLOCK(_q) mtx_trylock(&(_q)->lock)
+#define XN_TX_UNLOCK(_q) mtx_unlock(&(_q)->lock)
 
-#define XN_LOCK(_sc)           mtx_lock(&(_sc)->sc_lock);
-#define XN_UNLOCK(_sc)         mtx_unlock(&(_sc)->sc_lock);
+#define XN_LOCK(_sc) mtx_lock(&(_sc)->sc_lock);
+#define XN_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_lock);
 
-#define XN_LOCK_ASSERT(_sc)    mtx_assert(&(_sc)->sc_lock, MA_OWNED);
-#define XN_RX_LOCK_ASSERT(_q)  mtx_assert(&(_q)->lock, MA_OWNED);
-#define XN_TX_LOCK_ASSERT(_q)  mtx_assert(&(_q)->lock, MA_OWNED);
+#define XN_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sc_lock, MA_OWNED);
+#define XN_RX_LOCK_ASSERT(_q) mtx_assert(&(_q)->lock, MA_OWNED);
+#define XN_TX_LOCK_ASSERT(_q) mtx_assert(&(_q)->lock, MA_OWNED);
 
-#define netfront_carrier_on(netif)	((netif)->carrier = 1)
-#define netfront_carrier_off(netif)	((netif)->carrier = 0)
-#define netfront_carrier_ok(netif)	((netif)->carrier)
+#define netfront_carrier_on(netif) ((netif)->carrier = 1)
+#define netfront_carrier_off(netif) ((netif)->carrier = 0)
+#define netfront_carrier_ok(netif) ((netif)->carrier)
 
 /* Access macros for acquiring freeing slots in xn_free_{tx,rx}_idxs[]. */
 
@@ -266,9 +264,9 @@ add_id_to_freelist(struct mbuf **list, uintptr_t id)
 {
 
 	KASSERT(id != 0,
-		("%s: the head item (0) must always be free.", __func__));
+	    ("%s: the head item (0) must always be free.", __func__));
 	list[id] = list[0];
-	list[0]  = (struct mbuf *)id;
+	list[0] = (struct mbuf *)id;
 }
 
 static inline unsigned short
@@ -278,7 +276,7 @@ get_id_from_freelist(struct mbuf **list)
 
 	id = (uintptr_t)list[0];
 	KASSERT(id != 0,
-		("%s: the head item (0) must always remain free.", __func__));
+	    ("%s: the head item (0) must always remain free.", __func__));
 	list[0] = list[id];
 	return (id);
 }
@@ -316,22 +314,24 @@ xn_get_rx_ref(struct netfront_rxq *rxq, RING_IDX ri)
 #define MTAG_COOKIE 1218492000
 #define MTAG_XENNET 0
 
-static void mbuf_grab(struct mbuf *m)
+static void
+mbuf_grab(struct mbuf *m)
 {
 	struct mbuf_xennet *ref;
 
-	ref = (struct mbuf_xennet *)m_tag_locate(m, MTAG_COOKIE,
-	    MTAG_XENNET, NULL);
+	ref = (struct mbuf_xennet *)m_tag_locate(m, MTAG_COOKIE, MTAG_XENNET,
+	    NULL);
 	KASSERT(ref != NULL, ("Cannot find refcount"));
 	ref->count++;
 }
 
-static void mbuf_release(struct mbuf *m)
+static void
+mbuf_release(struct mbuf *m)
 {
 	struct mbuf_xennet *ref;
 
-	ref = (struct mbuf_xennet *)m_tag_locate(m, MTAG_COOKIE,
-	    MTAG_XENNET, NULL);
+	ref = (struct mbuf_xennet *)m_tag_locate(m, MTAG_COOKIE, MTAG_XENNET,
+	    NULL);
 	KASSERT(ref != NULL, ("Cannot find refcount"));
 	KASSERT(ref->count > 0, ("Invalid reference count"));
 
@@ -339,7 +339,8 @@ static void mbuf_release(struct mbuf *m)
 		m_freem(m);
 }
 
-static void tag_free(struct m_tag *t)
+static void
+tag_free(struct m_tag *t)
 {
 	struct mbuf_xennet *ref = (struct mbuf_xennet *)t;
 
@@ -349,17 +350,14 @@ static void tag_free(struct m_tag *t)
 	SLIST_INSERT_HEAD(&ref->txq->tags, ref, next);
 }
 
-#define IPRINTK(fmt, args...) \
-    printf("[XEN] " fmt, ##args)
+#define IPRINTK(fmt, args...) printf("[XEN] " fmt, ##args)
 #ifdef INVARIANTS
-#define WPRINTK(fmt, args...) \
-    printf("[XEN] " fmt, ##args)
+#define WPRINTK(fmt, args...) printf("[XEN] " fmt, ##args)
 #else
 #define WPRINTK(fmt, args...)
 #endif
 #ifdef DEBUG
-#define DPRINTK(fmt, args...) \
-    printf("[XEN] %s: " fmt, __func__, ##args)
+#define DPRINTK(fmt, args...) printf("[XEN] %s: " fmt, __func__, ##args)
 #else
 #define DPRINTK(fmt, args...)
 #endif
@@ -378,7 +376,7 @@ xen_net_read_mac(device_t dev, uint8_t mac[])
 	const char *path;
 
 	path = xenbus_get_node(dev);
-	error = xs_read(XST_NIL, path, "mac", NULL, (void **) &macstr);
+	error = xs_read(XST_NIL, path, "mac", NULL, (void **)&macstr);
 	if (error == ENOENT) {
 		/*
 		 * Deal with missing mac XenStore nodes on devices with
@@ -396,7 +394,7 @@ xen_net_read_mac(device_t dev, uint8_t mac[])
 		 * anything.
 		 */
 		path = xenbus_get_otherend_path(dev);
-		error = xs_read(XST_NIL, path, "mac", NULL, (void **) &macstr);
+		error = xs_read(XST_NIL, path, "mac", NULL, (void **)&macstr);
 	}
 	if (error != 0) {
 		xenbus_dev_fatal(dev, error, "parsing %s/mac", path);
@@ -449,14 +447,14 @@ netfront_attach(device_t dev)
 	}
 
 	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "enable_lro", CTLFLAG_RW,
-	    &xn_enable_lro, 0, "Large Receive Offload");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "enable_lro", CTLFLAG_RW, &xn_enable_lro, 0,
+	    "Large Receive Offload");
 
 	SYSCTL_ADD_ULONG(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "num_queues", CTLFLAG_RD,
-	    &xn_num_queues, "Number of pairs of queues");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "num_queues", CTLFLAG_RD, &xn_num_queues,
+	    "Number of pairs of queues");
 
 	return (0);
 }
@@ -509,10 +507,8 @@ netfront_resume(device_t dev)
 }
 
 static int
-write_queue_xenstore_keys(device_t dev,
-    struct netfront_rxq *rxq,
-    struct netfront_txq *txq,
-    struct xs_transaction *xst, bool hierarchy)
+write_queue_xenstore_keys(device_t dev, struct netfront_rxq *rxq,
+    struct netfront_txq *txq, struct xs_transaction *xst, bool hierarchy)
 {
 	int err;
 	const char *message;
@@ -527,20 +523,20 @@ write_queue_xenstore_keys(device_t dev,
 
 	if (hierarchy) {
 		path_size = strlen(node) + 10;
-		path = malloc(path_size, M_DEVBUF, M_WAITOK|M_ZERO);
+		path = malloc(path_size, M_DEVBUF, M_WAITOK | M_ZERO);
 		snprintf(path, path_size, "%s/queue-%u", node, rxq->id);
 	} else {
 		path_size = strlen(node) + 1;
-		path = malloc(path_size, M_DEVBUF, M_WAITOK|M_ZERO);
+		path = malloc(path_size, M_DEVBUF, M_WAITOK | M_ZERO);
 		snprintf(path, path_size, "%s", node);
 	}
 
-	err = xs_printf(*xst, path, "tx-ring-ref","%u", txq->ring_ref);
+	err = xs_printf(*xst, path, "tx-ring-ref", "%u", txq->ring_ref);
 	if (err != 0) {
 		message = "writing tx ring-ref";
 		goto error;
 	}
-	err = xs_printf(*xst, path, "rx-ring-ref","%u", rxq->ring_ref);
+	err = xs_printf(*xst, path, "rx-ring-ref", "%u", rxq->ring_ref);
 	if (err != 0) {
 		message = "writing rx ring-ref";
 		goto error;
@@ -594,7 +590,7 @@ talk_to_backend(device_t dev, struct netfront_info *info)
 		goto out;
 	}
 
- again:
+again:
 	err = xs_transaction_start(&xst);
 	if (err != 0) {
 		xenbus_dev_fatal(dev, err, "starting transaction");
@@ -607,8 +603,8 @@ talk_to_backend(device_t dev, struct netfront_info *info)
 		if (err != 0)
 			goto abort_transaction_no_def_error;
 	} else {
-		err = xs_printf(xst, node, "multi-queue-num-queues",
-		    "%u", info->num_queues);
+		err = xs_printf(xst, node, "multi-queue-num-queues", "%u",
+		    info->num_queues);
 		if (err != 0) {
 			message = "writing multi-queue-num-queues";
 			goto abort_transaction;
@@ -662,13 +658,13 @@ talk_to_backend(device_t dev, struct netfront_info *info)
 
 	return 0;
 
- abort_transaction:
+abort_transaction:
 	xenbus_dev_fatal(dev, err, "%s", message);
- abort_transaction_no_def_error:
+abort_transaction_no_def_error:
 	xs_transaction_end(xst, 1);
- free:
+free:
 	netif_free(info);
- out:
+out:
 	return (err);
 }
 
@@ -753,16 +749,15 @@ destroy_rxqs(struct netfront_info *np)
 }
 
 static int
-setup_rxqs(device_t dev, struct netfront_info *info,
-	   unsigned long num_queues)
+setup_rxqs(device_t dev, struct netfront_info *info, unsigned long num_queues)
 {
 	int q, i;
 	int error;
 	netif_rx_sring_t *rxs;
 	struct netfront_rxq *rxq;
 
-	info->rxq = malloc(sizeof(struct netfront_rxq) * num_queues,
-	    M_DEVBUF, M_WAITOK|M_ZERO);
+	info->rxq = malloc(sizeof(struct netfront_rxq) * num_queues, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	for (q = 0; q < num_queues; q++) {
 		rxq = &info->rxq[q];
@@ -785,14 +780,14 @@ setup_rxqs(device_t dev, struct netfront_info *info,
 		/* Start resources allocation */
 
 		if (gnttab_alloc_grant_references(NET_RX_RING_SIZE,
-		    &rxq->gref_head) != 0) {
+			&rxq->gref_head) != 0) {
 			device_printf(dev, "allocating rx gref");
 			error = ENOMEM;
 			goto fail;
 		}
 
 		rxs = (netif_rx_sring_t *)malloc(PAGE_SIZE, M_DEVBUF,
-		    M_WAITOK|M_ZERO);
+		    M_WAITOK | M_ZERO);
 		SHARED_RING_INIT(rxs);
 		FRONT_RING_INIT(&rxq->ring, rxs, PAGE_SIZE);
 
@@ -869,16 +864,15 @@ destroy_txqs(struct netfront_info *np)
 }
 
 static int
-setup_txqs(device_t dev, struct netfront_info *info,
-	   unsigned long num_queues)
+setup_txqs(device_t dev, struct netfront_info *info, unsigned long num_queues)
 {
 	int q, i;
 	int error;
 	netif_tx_sring_t *txs;
 	struct netfront_txq *txq;
 
-	info->txq = malloc(sizeof(struct netfront_txq) * num_queues,
-	    M_DEVBUF, M_WAITOK|M_ZERO);
+	info->txq = malloc(sizeof(struct netfront_txq) * num_queues, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	for (q = 0; q < num_queues; q++) {
 		txq = &info->txq[q];
@@ -897,7 +891,7 @@ setup_txqs(device_t dev, struct netfront_info *info,
 		SLIST_INIT(&txq->tags);
 
 		for (i = 0; i <= NET_TX_RING_SIZE; i++) {
-			txq->mbufs[i] = (void *) ((u_long) i+1);
+			txq->mbufs[i] = (void *)((u_long)i + 1);
 			txq->grant_ref[i] = GRANT_REF_INVALID;
 			txq->xennet_tag[i].txq = txq;
 			txq->xennet_tag[i].dma_tag = info->dma_tag;
@@ -908,10 +902,10 @@ setup_txqs(device_t dev, struct netfront_info *info,
 				    "failed to allocate dma map\n");
 				goto fail;
 			}
-			m_tag_setup(&txq->xennet_tag[i].tag,
-			    MTAG_COOKIE, MTAG_XENNET,
+			m_tag_setup(&txq->xennet_tag[i].tag, MTAG_COOKIE,
+			    MTAG_XENNET,
 			    sizeof(txq->xennet_tag[i]) -
-			    sizeof(txq->xennet_tag[i].tag));
+				sizeof(txq->xennet_tag[i].tag));
 			txq->xennet_tag[i].tag.m_tag_free = &tag_free;
 			SLIST_INSERT_HEAD(&txq->tags, &txq->xennet_tag[i],
 			    next);
@@ -921,14 +915,15 @@ setup_txqs(device_t dev, struct netfront_info *info,
 		/* Start resources allocation. */
 
 		if (gnttab_alloc_grant_references(NET_TX_RING_SIZE,
-		    &txq->gref_head) != 0) {
-			device_printf(dev, "failed to allocate tx grant refs\n");
+			&txq->gref_head) != 0) {
+			device_printf(dev,
+			    "failed to allocate tx grant refs\n");
 			error = ENOMEM;
 			goto fail;
 		}
 
 		txs = (netif_tx_sring_t *)malloc(PAGE_SIZE, M_DEVBUF,
-		    M_WAITOK|M_ZERO);
+		    M_WAITOK | M_ZERO);
 		SHARED_RING_INIT(txs);
 		FRONT_RING_INIT(&txq->ring, txs, PAGE_SIZE);
 
@@ -939,8 +934,8 @@ setup_txqs(device_t dev, struct netfront_info *info,
 			goto fail_grant_ring;
 		}
 
-		txq->br = buf_ring_alloc(NET_TX_RING_SIZE, M_DEVBUF,
-		    M_WAITOK, &txq->lock);
+		txq->br = buf_ring_alloc(NET_TX_RING_SIZE, M_DEVBUF, M_WAITOK,
+		    &txq->lock);
 		TASK_INIT(&txq->defrtask, 0, xn_txq_tq_deferred, txq);
 
 		txq->tq = taskqueue_create(txq->name, M_WAITOK,
@@ -960,7 +955,8 @@ setup_txqs(device_t dev, struct netfront_info *info,
 		    &txq->xen_intr_handle);
 
 		if (error != 0) {
-			device_printf(dev, "xen_intr_alloc_and_bind_local_port failed\n");
+			device_printf(dev,
+			    "xen_intr_alloc_and_bind_local_port failed\n");
 			goto fail_bind_port;
 		}
 	}
@@ -987,8 +983,7 @@ fail:
 }
 
 static int
-setup_device(device_t dev, struct netfront_info *info,
-    unsigned long num_queues)
+setup_device(device_t dev, struct netfront_info *info, unsigned long num_queues)
 {
 	int error;
 	int q;
@@ -1017,7 +1012,8 @@ setup_device(device_t dev, struct netfront_info *info,
 	return (0);
 
 out:
-	KASSERT(error != 0, ("Error path taken without providing an error code"));
+	KASSERT(error != 0,
+	    ("Error path taken without providing an error code"));
 	return (error);
 }
 
@@ -1160,8 +1156,7 @@ xn_alloc_rx_buffers(struct netfront_rxq *rxq)
 		return;
 
 	for (req_prod = rxq->ring.req_prod_pvt;
-	     req_prod - rxq->ring.rsp_cons < NET_RX_RING_SIZE;
-	     req_prod++) {
+	     req_prod - rxq->ring.rsp_cons < NET_RX_RING_SIZE; req_prod++) {
 		struct mbuf *m;
 		unsigned short id;
 		grant_ref_t ref;
@@ -1195,19 +1190,20 @@ xn_alloc_rx_buffers(struct netfront_rxq *rxq)
 
 	/* Not enough requests? Try again later. */
 	if (req_prod - rxq->ring.rsp_cons < NET_RX_SLOTS_MIN) {
-		callout_reset_curcpu(&rxq->rx_refill, hz/10,
+		callout_reset_curcpu(&rxq->rx_refill, hz / 10,
 		    xn_alloc_rx_buffers_callout, rxq);
 		return;
 	}
 
-	wmb();		/* barrier so backend seens requests */
+	wmb(); /* barrier so backend seens requests */
 
 	RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&rxq->ring, notify);
 	if (notify)
 		xen_intr_signal(rxq->xen_intr_handle);
 }
 
-static void xn_alloc_rx_buffers_callout(void *arg)
+static void
+xn_alloc_rx_buffers_callout(void *arg)
 {
 	struct netfront_rxq *rxq;
 
@@ -1220,7 +1216,7 @@ static void xn_alloc_rx_buffers_callout(void *arg)
 static void
 xn_release_rx_bufs(struct netfront_rxq *rxq)
 {
-	int i,  ref;
+	int i, ref;
 	struct mbuf *m;
 
 	for (i = 0; i < NET_RX_RING_SIZE; i++) {
@@ -1270,11 +1266,12 @@ xn_rxeof(struct netfront_rxq *rxq)
 
 	do {
 		rp = rxq->ring.sring->rsp_prod;
-		rmb();	/* Ensure we see queued responses up to 'rp'. */
+		rmb(); /* Ensure we see queued responses up to 'rp'. */
 
 		i = rxq->ring.rsp_cons;
 		while ((i != rp)) {
-			memcpy(rx, RING_GET_RESPONSE(&rxq->ring, i), sizeof(*rx));
+			memcpy(rx, RING_GET_RESPONSE(&rxq->ring, i),
+			    sizeof(*rx));
 			memset(extras, 0, sizeof(rinfo.extras));
 
 			m = NULL;
@@ -1282,7 +1279,7 @@ xn_rxeof(struct netfront_rxq *rxq)
 
 			if (__predict_false(err)) {
 				if (m)
-					(void )mbufq_enqueue(&mbufq_errq, m);
+					(void)mbufq_enqueue(&mbufq_errq, m);
 				if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
 				continue;
 			}
@@ -1298,19 +1295,20 @@ xn_rxeof(struct netfront_rxq *rxq)
 				 * CSUM_DATA_VALID and CSUM_PSEUDO_HDR flags,
 				 * and the csum_data field to 0xffff.
 				 */
-				m->m_pkthdr.csum_flags |= (CSUM_DATA_VALID
-				    | CSUM_PSEUDO_HDR);
+				m->m_pkthdr.csum_flags |= (CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR);
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 			if ((rx->flags & NETRXF_extra_info) != 0 &&
 			    (extras[XEN_NETIF_EXTRA_TYPE_GSO - 1].type ==
-			    XEN_NETIF_EXTRA_TYPE_GSO)) {
+				XEN_NETIF_EXTRA_TYPE_GSO)) {
 				m->m_pkthdr.tso_segsz =
-				extras[XEN_NETIF_EXTRA_TYPE_GSO - 1].u.gso.size;
+				    extras[XEN_NETIF_EXTRA_TYPE_GSO - 1]
+					.u.gso.size;
 				m->m_pkthdr.csum_flags |= CSUM_TSO;
 			}
 
-			(void )mbufq_enqueue(&mbufq_rxq, m);
+			(void)mbufq_enqueue(&mbufq_rxq, m);
 		}
 
 		rxq->ring.rsp_cons = i;
@@ -1378,31 +1376,33 @@ xn_txeof(struct netfront_txq *txq)
 
 			if (txr->status != NETIF_RSP_OKAY) {
 				printf("%s: WARNING: response is %d!\n",
-				       __func__, txr->status);
+				    __func__, txr->status);
 			}
 			id = txr->id;
 			m = txq->mbufs[id];
 			KASSERT(m != NULL, ("mbuf not found in chain"));
 			KASSERT((uintptr_t)m > NET_TX_RING_SIZE,
-				("mbuf already on the free list, but we're "
-				"trying to free it again!"));
+			    ("mbuf already on the free list, but we're "
+			     "trying to free it again!"));
 			M_ASSERTVALID(m);
 
 			if (__predict_false(gnttab_query_foreign_access(
-			    txq->grant_ref[id]) != 0)) {
+						txq->grant_ref[id]) != 0)) {
 				panic("%s: grant id %u still in use by the "
-				    "backend", __func__, id);
+				      "backend",
+				    __func__, id);
 			}
 			gnttab_end_foreign_access_ref(txq->grant_ref[id]);
-			gnttab_release_grant_reference(
-				&txq->gref_head, txq->grant_ref[id]);
+			gnttab_release_grant_reference(&txq->gref_head,
+			    txq->grant_ref[id]);
 			txq->grant_ref[id] = GRANT_REF_INVALID;
 
 			txq->mbufs[id] = NULL;
 			add_id_to_freelist(txq->mbufs, id);
 			txq->mbufs_cnt--;
 			mbuf_release(m);
-			/* Only mark the txq active if we've freed up at least one slot to try */
+			/* Only mark the txq active if we've freed up at least
+			 * one slot to try */
 			if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 		}
 		txq->ring.rsp_cons = prod;
@@ -1416,8 +1416,8 @@ xn_txeof(struct netfront_txq *txq)
 		 * cases notification from Xen is likely to be the only kick
 		 * that we'll get.
 		 */
-		txq->ring.sring->rsp_event =
-		    prod + ((txq->ring.sring->req_prod - prod) >> 1) + 1;
+		txq->ring.sring->rsp_event = prod +
+		    ((txq->ring.sring->req_prod - prod) >> 1) + 1;
 
 		mb();
 	} while (prod != txq->ring.sring->rsp_prod);
@@ -1442,8 +1442,7 @@ xn_intr(void *xsc)
 }
 
 static void
-xn_move_rx_slot(struct netfront_rxq *rxq, struct mbuf *m,
-    grant_ref_t ref)
+xn_move_rx_slot(struct netfront_rxq *rxq, struct mbuf *m, grant_ref_t ref)
 {
 	int new = xn_rxidx(rxq->ring.req_prod_pvt);
 
@@ -1456,8 +1455,8 @@ xn_move_rx_slot(struct netfront_rxq *rxq, struct mbuf *m,
 }
 
 static int
-xn_get_extras(struct netfront_rxq *rxq,
-    struct netif_extra_info *extras, RING_IDX rp, RING_IDX *cons)
+xn_get_extras(struct netfront_rxq *rxq, struct netif_extra_info *extras,
+    RING_IDX rp, RING_IDX *cons)
 {
 	struct netif_extra_info *extra;
 
@@ -1472,8 +1471,8 @@ xn_get_extras(struct netfront_rxq *rxq,
 			break;
 		}
 
-		extra = (struct netif_extra_info *)
-		RING_GET_RESPONSE(&rxq->ring, ++(*cons));
+		extra = (struct netif_extra_info *)RING_GET_RESPONSE(&rxq->ring,
+		    ++(*cons));
 
 		if (__predict_false(!extra->type ||
 			extra->type >= XEN_NETIF_EXTRA_TYPE_MAX)) {
@@ -1483,7 +1482,7 @@ xn_get_extras(struct netfront_rxq *rxq,
 		}
 
 		m = xn_get_rx_mbuf(rxq, *cons);
-		ref = xn_get_rx_ref(rxq,  *cons);
+		ref = xn_get_rx_ref(rxq, *cons);
 		xn_move_rx_slot(rxq, m, ref);
 	} while (extra->flags & XEN_NETIF_EXTRA_FLAG_MORE);
 
@@ -1491,9 +1490,8 @@ xn_get_extras(struct netfront_rxq *rxq,
 }
 
 static int
-xn_get_responses(struct netfront_rxq *rxq,
-    struct netfront_rx_info *rinfo, RING_IDX rp, RING_IDX *cons,
-    struct mbuf  **list)
+xn_get_responses(struct netfront_rxq *rxq, struct netfront_rx_info *rinfo,
+    RING_IDX rp, RING_IDX *cons, struct mbuf **list)
 {
 	struct netif_rx_response *rx = &rinfo->rx;
 	struct netif_extra_info *extras = rinfo->extras;
@@ -1535,7 +1533,8 @@ xn_get_responses(struct netfront_rxq *rxq,
 		 * situation to the system controller to reboot the backed.
 		 */
 		if (ref == GRANT_REF_INVALID) {
-			printf("%s: Bad rx response id %d.\n", __func__, rx->id);
+			printf("%s: Bad rx response id %d.\n", __func__,
+			    rx->id);
 			err = EINVAL;
 			goto next;
 		}
@@ -1545,7 +1544,7 @@ xn_get_responses(struct netfront_rxq *rxq,
 
 		gnttab_release_grant_reference(&rxq->gref_head, ref);
 
-next:
+	next:
 		if (m == NULL)
 			break;
 
@@ -1553,7 +1552,7 @@ next:
 		m->m_data += rx->offset;
 		m0->m_pkthdr.len += rx->status;
 
-next_skip_queue:
+	next_skip_queue:
 		if (!(rx->flags & NETRXF_more_data))
 			break;
 
@@ -1562,7 +1561,7 @@ next_skip_queue:
 				WPRINTK("Need more frags\n");
 			err = ENOENT;
 			printf("%s: cons %u frags %u rp %u, not enough frags\n",
-			       __func__, *cons, frags, rp);
+			    __func__, *cons, frags, rp);
 			break;
 		}
 		/*
@@ -1617,8 +1616,8 @@ xn_assemble_tx_request(struct netfront_txq *txq, struct mbuf *m_head)
 	SLIST_REMOVE_HEAD(&txq->tags, next);
 	KASSERT(tag->count == 0, ("tag already in-use"));
 	map = tag->dma_map;
-	error = bus_dmamap_load_mbuf_sg(np->dma_tag, map, m_head, segs,
-	    &nfrags, 0);
+	error = bus_dmamap_load_mbuf_sg(np->dma_tag, map, m_head, segs, &nfrags,
+	    0);
 	if (error == EFBIG || nfrags > np->maxfrags) {
 		struct mbuf *m;
 
@@ -1659,7 +1658,7 @@ xn_assemble_tx_request(struct netfront_txq *txq, struct mbuf *m_head)
 #ifdef DEBUG
 		printf("%s: nfrags %d > MAX_TX_REQ_FRAGS %d, netback "
 		       "won't be able to handle it, dropping\n",
-		       __func__, nfrags, MAX_TX_REQ_FRAGS);
+		    __func__, nfrags, MAX_TX_REQ_FRAGS);
 #endif
 		SLIST_INSERT_HEAD(&txq->tags, tag, next);
 		bus_dmamap_unload(np->dma_tag, map);
@@ -1675,9 +1674,10 @@ xn_assemble_tx_request(struct netfront_txq *txq, struct mbuf *m_head)
 	 * chain_cnt is accurate.
 	 */
 	KASSERT((txq->mbufs_cnt + nfrags) <= NET_TX_RING_SIZE,
-		("%s: chain_cnt (%d) + nfrags (%d) > NET_TX_RING_SIZE "
-		 "(%d)!", __func__, (int) txq->mbufs_cnt,
-                    (int) nfrags, (int) NET_TX_RING_SIZE));
+	    ("%s: chain_cnt (%d) + nfrags (%d) > NET_TX_RING_SIZE "
+	     "(%d)!",
+		__func__, (int)txq->mbufs_cnt, (int)nfrags,
+		(int)NET_TX_RING_SIZE));
 
 	/*
 	 * Start packing the mbufs in this chain into
@@ -1707,8 +1707,8 @@ xn_assemble_tx_request(struct netfront_txq *txq, struct mbuf *m_head)
 		ref = gnttab_claim_grant_reference(&txq->gref_head);
 		KASSERT((short)ref >= 0, ("Negative ref"));
 		mfn = atop(segs[i].ds_addr);
-		gnttab_grant_foreign_access_ref(ref, otherend_id,
-		    mfn, GNTMAP_readonly);
+		gnttab_grant_foreign_access_ref(ref, otherend_id, mfn,
+		    GNTMAP_readonly);
 		tx->gref = txq->grant_ref[id] = ref;
 		tx->offset = segs[i].ds_addr & PAGE_MASK;
 		KASSERT(tx->offset + segs[i].ds_len <= PAGE_SIZE,
@@ -1737,22 +1737,20 @@ xn_assemble_tx_request(struct netfront_txq *txq, struct mbuf *m_head)
 			 * so we have to test for CSUM_TSO
 			 * explicitly.
 			 */
-			if (m_head->m_pkthdr.csum_flags
-			    & (CSUM_DELAY_DATA | CSUM_TSO)) {
-				tx->flags |= (NETTXF_csum_blank
-				    | NETTXF_data_validated);
+			if (m_head->m_pkthdr.csum_flags &
+			    (CSUM_DELAY_DATA | CSUM_TSO)) {
+				tx->flags |= (NETTXF_csum_blank |
+				    NETTXF_data_validated);
 			}
 			if (m_head->m_pkthdr.csum_flags & CSUM_TSO) {
 				struct netif_extra_info *gso =
-					(struct netif_extra_info *)
-					RING_GET_REQUEST(&txq->ring,
-							 ++txq->ring.req_prod_pvt);
+				    (struct netif_extra_info *)RING_GET_REQUEST(
+					&txq->ring, ++txq->ring.req_prod_pvt);
 
 				tx->flags |= NETTXF_extra_info;
 
 				gso->u.gso.size = m_head->m_pkthdr.tso_segsz;
-				gso->u.gso.type =
-					XEN_NETIF_GSO_TYPE_TCPV4;
+				gso->u.gso.type = XEN_NETIF_GSO_TYPE_TCPV4;
 				gso->u.gso.pad = 0;
 				gso->u.gso.features = 0;
 
@@ -1826,7 +1824,7 @@ static int
 xn_ioctl(if_t ifp, u_long cmd, caddr_t data)
 {
 	struct netfront_info *sc = if_getsoftc(ifp);
-	struct ifreq *ifr = (struct ifreq *) data;
+	struct ifreq *ifr = (struct ifreq *)data;
 	device_t dev;
 #ifdef INET
 	struct ifaddr *ifa = (struct ifaddr *)data;
@@ -1835,7 +1833,7 @@ xn_ioctl(if_t ifp, u_long cmd, caddr_t data)
 
 	dev = sc->xbdev;
 
-	switch(cmd) {
+	switch (cmd) {
 	case SIOCSIFADDR:
 #ifdef INET
 		XN_LOCK(sc);
@@ -1940,7 +1938,7 @@ xn_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		 * from the ioctl. 30s should be more than enough for any
 		 * sane backend to reconnect.
 		 */
-		error = tsleep(sc, 0, "xn_rst", 30*hz);
+		error = tsleep(sc, 0, "xn_rst", 30 * hz);
 		break;
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
@@ -1990,11 +1988,10 @@ xn_rebuild_rx_bufs(struct netfront_rxq *rxq)
 		pfn = vtophys(mtod(m, vm_offset_t)) >> PAGE_SHIFT;
 
 		gnttab_grant_foreign_access_ref(ref,
-		    xenbus_get_otherend_id(rxq->info->xbdev),
-		    pfn, 0);
+		    xenbus_get_otherend_id(rxq->info->xbdev), pfn, 0);
 
 		req->gref = ref;
-		req->id   = requeue_idx;
+		req->id = requeue_idx;
 
 		requeue_idx++;
 	}
@@ -2079,8 +2076,8 @@ xn_query_features(struct netfront_info *np)
 
 	device_printf(np->xbdev, "backend features:");
 
-	if (xs_scanf(XST_NIL, xenbus_get_otherend_path(np->xbdev),
-		"feature-sg", NULL, "%d", &val) != 0)
+	if (xs_scanf(XST_NIL, xenbus_get_otherend_path(np->xbdev), "feature-sg",
+		NULL, "%d", &val) != 0)
 		val = 0;
 
 	np->maxfrags = 1;
@@ -2128,7 +2125,8 @@ xn_configure_features(struct netfront_info *np)
 	ifp = np->xn_ifp;
 	err = 0;
 
-	if ((if_getcapenable(ifp) & if_getcapabilities(ifp)) == if_getcapenable(ifp)) {
+	if ((if_getcapenable(ifp) & if_getcapabilities(ifp)) ==
+	    if_getcapenable(ifp)) {
 		/* Current options are available, no need to do anything. */
 		return (0);
 	}
@@ -2144,7 +2142,7 @@ xn_configure_features(struct netfront_info *np)
 			tcp_lro_free(&np->rxq[i].lro);
 	if (xn_enable_lro &&
 	    (if_getcapabilities(ifp) & cap_enabled & IFCAP_LRO) != 0) {
-	    	if_setcapenablebit(ifp, IFCAP_LRO, 0);
+		if_setcapenablebit(ifp, IFCAP_LRO, 0);
 		for (i = 0; i < np->num_queues; i++) {
 			err = tcp_lro_init(&np->rxq[i].lro);
 			if (err != 0) {
@@ -2294,13 +2292,13 @@ create_netdev(device_t dev)
 
 	np = device_get_softc(dev);
 
-	np->xbdev         = dev;
+	np->xbdev = dev;
 
 	mtx_init(&np->sc_lock, "xnsc", "netfront softc lock", MTX_DEF);
 
 	ifmedia_init(&np->sc_media, 0, xn_ifmedia_upd, xn_ifmedia_sts);
-	ifmedia_add(&np->sc_media, IFM_ETHER|IFM_MANUAL, 0, NULL);
-	ifmedia_set(&np->sc_media, IFM_ETHER|IFM_MANUAL);
+	ifmedia_add(&np->sc_media, IFM_ETHER | IFM_MANUAL, 0, NULL);
+	ifmedia_set(&np->sc_media, IFM_ETHER | IFM_MANUAL);
 
 	err = xen_net_read_mac(dev, np->mac);
 	if (err != 0)
@@ -2309,7 +2307,7 @@ create_netdev(device_t dev)
 	/* Set up ifnet structure */
 	ifp = np->xn_ifp = if_alloc(IFT_ETHER);
 	if_setsoftc(ifp, np);
-	if_initname(ifp, "xn",  device_get_unit(dev));
+	if_initname(ifp, "xn", device_get_unit(dev));
 	if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST);
 	if_setioctlfn(ifp, xn_ioctl);
 
@@ -2320,7 +2318,7 @@ create_netdev(device_t dev)
 
 	if_sethwassist(ifp, XN_CSUM_FEATURES);
 	/* Enable all supported features at device creation. */
-	if_setcapabilities(ifp, IFCAP_HWCSUM|IFCAP_TSO4|IFCAP_LRO);
+	if_setcapabilities(ifp, IFCAP_HWCSUM | IFCAP_TSO4 | IFCAP_LRO);
 	cap_enabled = if_getcapabilities(ifp);
 	if (!xn_enable_lro) {
 		cap_enabled &= ~IFCAP_LRO;
@@ -2334,17 +2332,16 @@ create_netdev(device_t dev)
 	ether_ifattach(ifp, np->mac);
 	netfront_carrier_off(np);
 
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),		/* parent */
-	    1, PAGE_SIZE,			/* algnmnt, boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    PAGE_SIZE * MAX_TX_REQ_FRAGS,	/* max request size */
-	    MAX_TX_REQ_FRAGS,			/* max segments */
-	    PAGE_SIZE,				/* maxsegsize */
-	    BUS_DMA_ALLOCNOW,			/* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	err = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    1, PAGE_SIZE,			       /* algnmnt, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    PAGE_SIZE * MAX_TX_REQ_FRAGS,	       /* max request size */
+	    MAX_TX_REQ_FRAGS,			       /* max segments */
+	    PAGE_SIZE,				       /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,			       /* flags */
+	    NULL, NULL,				       /* lockfunc, lockarg */
 	    &np->dma_tag);
 
 	return (err);
@@ -2415,19 +2412,19 @@ static void
 xn_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
 
-	ifmr->ifm_status = IFM_AVALID|IFM_ACTIVE;
-	ifmr->ifm_active = IFM_ETHER|IFM_MANUAL;
+	ifmr->ifm_status = IFM_AVALID | IFM_ACTIVE;
+	ifmr->ifm_active = IFM_ETHER | IFM_MANUAL;
 }
 
 /* ** Driver registration ** */
 static device_method_t netfront_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         netfront_probe),
-	DEVMETHOD(device_attach,        netfront_attach),
-	DEVMETHOD(device_detach,        netfront_detach),
-	DEVMETHOD(device_shutdown,      bus_generic_shutdown),
-	DEVMETHOD(device_suspend,       netfront_suspend),
-	DEVMETHOD(device_resume,        netfront_resume),
+	DEVMETHOD(device_probe, netfront_probe),
+	DEVMETHOD(device_attach, netfront_attach),
+	DEVMETHOD(device_detach, netfront_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, netfront_suspend),
+	DEVMETHOD(device_resume, netfront_resume),
 
 	/* Xenbus interface */
 	DEVMETHOD(xenbus_otherend_changed, netfront_backend_changed),

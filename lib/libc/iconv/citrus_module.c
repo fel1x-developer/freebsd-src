@@ -104,23 +104,23 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	I18NMODULE_MAJOR	5
+#define I18NMODULE_MAJOR 5
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "libc_private.h"
 
-static int		 _getdewey(int[], char *);
-static int		 _cmpndewey(int[], int, int[], int);
-static const char	*_findshlib(char *, int *, int *);
+static int _getdewey(int[], char *);
+static int _cmpndewey(int[], int, int[], int);
+static const char *_findshlib(char *, int *, int *);
 
 static const char *_pathI18nModule = NULL;
 
 /* from libexec/ld.aout_so/shlib.c */
 #undef major
 #undef minor
-#define MAXDEWEY	3	/*ELF*/
+#define MAXDEWEY 3 /*ELF*/
 
 static int
 _getdewey(int dewey[], char *cp)
@@ -131,7 +131,8 @@ _getdewey(int dewey[], char *cp)
 		if (*cp == '\0')
 			break;
 
-		if (*cp == '.') cp++;
+		if (*cp == '.')
+			cp++;
 		if (*cp < '0' || '9' < *cp)
 			return (0);
 
@@ -206,10 +207,10 @@ _findshlib(char *name, int *majorp, int *minorp)
 				continue;
 			if (strncmp(dp->d_name, lname, (size_t)len) != 0)
 				continue;
-			if (strncmp(dp->d_name+len, ".so.", 4) != 0)
+			if (strncmp(dp->d_name + len, ".so.", 4) != 0)
 				continue;
 
-			if ((n = _getdewey(tmp, dp->d_name+len+4)) == 0)
+			if ((n = _getdewey(tmp, dp->d_name + len + 4)) == 0)
 				continue;
 
 			if (major != -1 && found_dot_a)
@@ -265,8 +266,7 @@ _citrus_find_getops(_citrus_module_t handle, const char *modname,
 	char name[PATH_MAX];
 	void *p;
 
-	snprintf(name, sizeof(name), "_citrus_%s_%s_getops",
-	    modname, ifname);
+	snprintf(name, sizeof(name), "_citrus_%s_%s_getops", modname, ifname);
 	p = dlsym((void *)handle, name);
 	return (p);
 }

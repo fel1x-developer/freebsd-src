@@ -26,16 +26,15 @@
  * SUCH DAMAGE.
  */
 #include "opt_ah.h"
+
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v4k.h"
-
-#include "ar9002/ar9285.h"
-#include "ar5416/ar5416reg.h"
+#include "ah_internal.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 #include "ar9002/ar9002phy.h"
-//#include "ar9002/ar9287phy.h"
+#include "ar9002/ar9285.h"
+// #include "ar9002/ar9287phy.h"
 
 #include "ar9002/ar9287_cal.h"
 
@@ -58,11 +57,11 @@ ar9287InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	    OS_REG_READ(ah, AR_PHY_AGC_CONTROL) | AR_PHY_AGC_CONTROL_CAL);
 
 	/* Poll for offset calibration complete */
-	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL,
-	    AR_PHY_AGC_CONTROL_CAL, 0)) {
+	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL, 0)) {
 		HALDEBUG(ah, HAL_DEBUG_RESET,
 		    "%s: offset calibration failed to complete in 1ms; "
-		    "noisy environment?\n", __func__);
+		    "noisy environment?\n",
+		    __func__);
 		return AH_FALSE;
 	}
 

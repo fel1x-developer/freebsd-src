@@ -26,32 +26,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_INTERRUPT_H_
-#define	_LINUXKPI_LINUX_INTERRUPT_H_
-
-#include <linux/cpu.h>
-#include <linux/device.h>
-#include <linux/pci.h>
-#include <linux/irqreturn.h>
-#include <linux/hardirq.h>
+#ifndef _LINUXKPI_LINUX_INTERRUPT_H_
+#define _LINUXKPI_LINUX_INTERRUPT_H_
 
 #include <sys/param.h>
 #include <sys/interrupt.h>
 
-typedef	irqreturn_t	(*irq_handler_t)(int, void *);
+#include <linux/cpu.h>
+#include <linux/device.h>
+#include <linux/hardirq.h>
+#include <linux/irqreturn.h>
+#include <linux/pci.h>
 
-#define	IRQF_SHARED		0x0004	/* Historically */
-#define	IRQF_NOBALANCING	0
+typedef irqreturn_t (*irq_handler_t)(int, void *);
 
-#define	IRQ_DISABLE_UNLAZY	0
+#define IRQF_SHARED 0x0004 /* Historically */
+#define IRQF_NOBALANCING 0
 
-#define	IRQ_NOTCONNECTED	(1U << 31)
+#define IRQ_DISABLE_UNLAZY 0
 
-int  lkpi_request_irq(struct device *, unsigned int, irq_handler_t,
-	irq_handler_t, unsigned long, const char *, void *);
-int  lkpi_enable_irq(unsigned int);
+#define IRQ_NOTCONNECTED (1U << 31)
+
+int lkpi_request_irq(struct device *, unsigned int, irq_handler_t,
+    irq_handler_t, unsigned long, const char *, void *);
+int lkpi_enable_irq(unsigned int);
 void lkpi_disable_irq(unsigned int);
-int  lkpi_bind_irq_to_cpu(unsigned int, int);
+int lkpi_bind_irq_to_cpu(unsigned int, int);
 void lkpi_free_irq(unsigned int, void *);
 void lkpi_devm_free_irq(struct device *, unsigned int, void *);
 
@@ -65,30 +65,30 @@ request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags,
 
 static inline int
 request_threaded_irq(int irq, irq_handler_t handler,
-    irq_handler_t thread_handler, unsigned long flags,
-    const char *name, void *arg)
+    irq_handler_t thread_handler, unsigned long flags, const char *name,
+    void *arg)
 {
 
-	return (lkpi_request_irq(NULL, irq, handler, thread_handler,
-	    flags, name, arg));
+	return (lkpi_request_irq(NULL, irq, handler, thread_handler, flags,
+	    name, arg));
 }
 
 static inline int
-devm_request_irq(struct device *dev, int irq,
-    irq_handler_t handler, unsigned long flags, const char *name, void *arg)
+devm_request_irq(struct device *dev, int irq, irq_handler_t handler,
+    unsigned long flags, const char *name, void *arg)
 {
 
 	return (lkpi_request_irq(dev, irq, handler, NULL, flags, name, arg));
 }
 
 static inline int
-devm_request_threaded_irq(struct device *dev, int irq,
-    irq_handler_t handler, irq_handler_t thread_handler,
-    unsigned long flags, const char *name, void *arg)
+devm_request_threaded_irq(struct device *dev, int irq, irq_handler_t handler,
+    irq_handler_t thread_handler, unsigned long flags, const char *name,
+    void *arg)
 {
 
-	return (lkpi_request_irq(dev, irq, handler, thread_handler,
-	    flags, name, arg));
+	return (lkpi_request_irq(dev, irq, handler, thread_handler, flags, name,
+	    arg));
 }
 
 static inline int
@@ -133,7 +133,8 @@ irq_set_affinity_hint(int vector, const cpumask_t *mask)
 	int error;
 
 	if (mask != NULL)
-		error = intr_setaffinity(vector, CPU_WHICH_IRQ, __DECONST(cpumask_t *, mask));
+		error = intr_setaffinity(vector, CPU_WHICH_IRQ,
+		    __DECONST(cpumask_t *, mask));
 	else
 		error = intr_setaffinity(vector, CPU_WHICH_IRQ, cpuset_root);
 
@@ -170,14 +171,13 @@ struct tasklet_struct {
 	bool use_callback;
 };
 
-#define	DECLARE_TASKLET(_name, _func, _data)	\
-struct tasklet_struct _name = { .func = (_func), .data = (_data) }
+#define DECLARE_TASKLET(_name, _func, _data) \
+	struct tasklet_struct _name = { .func = (_func), .data = (_data) }
 
-#define	tasklet_hi_schedule(t)	tasklet_schedule(t)
+#define tasklet_hi_schedule(t) tasklet_schedule(t)
 
 /* Some other compat code in the tree has this defined as well. */
-#define	from_tasklet(_dev, _t, _field)		\
-    container_of(_t, typeof(*(_dev)), _field)
+#define from_tasklet(_dev, _t, _field) container_of(_t, typeof(*(_dev)), _field)
 
 void tasklet_setup(struct tasklet_struct *, tasklet_callback_t *);
 extern void tasklet_schedule(struct tasklet_struct *);
@@ -190,6 +190,6 @@ extern void tasklet_disable_nosync(struct tasklet_struct *);
 extern int tasklet_trylock(struct tasklet_struct *);
 extern void tasklet_unlock(struct tasklet_struct *);
 extern void tasklet_unlock_wait(struct tasklet_struct *ts);
-#define	tasklet_unlock_spin_wait(ts)	tasklet_unlock_wait(ts)
+#define tasklet_unlock_spin_wait(ts) tasklet_unlock_wait(ts)
 
-#endif	/* _LINUXKPI_LINUX_INTERRUPT_H_ */
+#endif /* _LINUXKPI_LINUX_INTERRUPT_H_ */

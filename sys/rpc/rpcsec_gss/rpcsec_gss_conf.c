@@ -97,18 +97,18 @@ rpc_gss_get_mechanisms(void)
 		return (mech_names);
 
 	count = 0;
-	LIST_FOREACH(km, &kgss_mechs, km_link) {
+	LIST_FOREACH (km, &kgss_mechs, km_link) {
 		count++;
 	}
 	count++;
 
 	mech_names = malloc(count * sizeof(const char *), M_RPC, M_WAITOK);
 	count = 0;
-	LIST_FOREACH(km, &kgss_mechs, km_link) {
+	LIST_FOREACH (km, &kgss_mechs, km_link) {
 		mech_names[count++] = km->km_mech_name;
 	}
 	mech_names[count++] = NULL;
-	
+
 	return (mech_names);
 }
 
@@ -159,4 +159,3 @@ rpc_gss_is_installed(const char *mech)
 	else
 		return (FALSE);
 }
-

@@ -31,17 +31,17 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/ttydefaults.h>
 #include <sys/utsname.h>
 
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <locale.h>
 #include <libutil.h>
+#include <locale.h>
 #include <setjmp.h>
 #include <signal.h>
 #include <stdio.h>
@@ -52,28 +52,28 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "gettytab.h"
 #include "extern.h"
+#include "gettytab.h"
 #include "pathnames.h"
 
 /*
  * Set the amount of running time that getty should accumulate
  * before deciding that something is wrong and exit.
  */
-#define GETTY_TIMEOUT	60 /* seconds */
+#define GETTY_TIMEOUT 60 /* seconds */
 
 #undef CTRL
-#define CTRL(x)  (x&037)
+#define CTRL(x) (x & 037)
 
 /* defines for auto detection of incoming PPP calls (->PAP/CHAP) */
 
-#define PPP_FRAME           0x7e  /* PPP Framing character */
-#define PPP_STATION         0xff  /* "All Station" character */
-#define PPP_ESCAPE          0x7d  /* Escape Character */
-#define PPP_CONTROL         0x03  /* PPP Control Field */
-#define PPP_CONTROL_ESCAPED 0x23  /* PPP Control Field, escaped */
-#define PPP_LCP_HI          0xc0  /* LCP protocol - high byte */
-#define PPP_LCP_LOW         0x21  /* LCP protocol - low byte */
+#define PPP_FRAME 0x7e		 /* PPP Framing character */
+#define PPP_STATION 0xff	 /* "All Station" character */
+#define PPP_ESCAPE 0x7d		 /* Escape Character */
+#define PPP_CONTROL 0x03	 /* PPP Control Field */
+#define PPP_CONTROL_ESCAPED 0x23 /* PPP Control Field, escaped */
+#define PPP_LCP_HI 0xc0		 /* LCP protocol - high byte */
+#define PPP_LCP_LOW 0x21	 /* LCP protocol - low byte */
 
 /* original mode; flags've been reset using values from <sys/ttydefaults.h> */
 struct termios omode;
@@ -82,56 +82,49 @@ struct termios tmode;
 
 static int crmod, digit, lower, upper;
 
-char	hostname[MAXHOSTNAMELEN];
-static char	name[MAXLOGNAME*3];
-static char	ttyn[32];
+char hostname[MAXHOSTNAMELEN];
+static char name[MAXLOGNAME * 3];
+static char ttyn[32];
 
-#define	OBUFSIZ		128
+#define OBUFSIZ 128
 
-static const char	*tname;
+static const char *tname;
 
-static char	*env[128];
+static char *env[128];
 
-static char partab[] = {
-	0001,0201,0201,0001,0201,0001,0001,0201,
-	0202,0004,0003,0205,0005,0206,0201,0001,
-	0201,0001,0001,0201,0001,0201,0201,0001,
-	0001,0201,0201,0001,0201,0001,0001,0201,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0000,0200,0200,0000,0200,0000,0000,0200,
-	0000,0200,0200,0000,0200,0000,0000,0200,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0000,0200,0200,0000,0200,0000,0000,0200,
-	0000,0200,0200,0000,0200,0000,0000,0200,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0000,0200,0200,0000,0200,0000,0000,0200,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0200,0000,0000,0200,0000,0200,0200,0000,
-	0000,0200,0200,0000,0200,0000,0000,0201
-};
+static char partab[] = { 0001, 0201, 0201, 0001, 0201, 0001, 0001, 0201, 0202,
+	0004, 0003, 0205, 0005, 0206, 0201, 0001, 0201, 0001, 0001, 0201, 0001,
+	0201, 0201, 0001, 0001, 0201, 0201, 0001, 0201, 0001, 0001, 0201, 0200,
+	0000, 0000, 0200, 0000, 0200, 0200, 0000, 0000, 0200, 0200, 0000, 0200,
+	0000, 0000, 0200, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0200, 0200,
+	0000, 0000, 0200, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0200, 0000,
+	0200, 0200, 0000, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0200, 0000,
+	0200, 0200, 0000, 0200, 0000, 0000, 0200, 0200, 0000, 0000, 0200, 0000,
+	0200, 0200, 0000, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0200, 0200,
+	0000, 0000, 0200, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0200, 0000,
+	0200, 0200, 0000, 0000, 0200, 0200, 0000, 0200, 0000, 0000, 0201 };
 
-#define	ERASE	tmode.c_cc[VERASE]
-#define	KILL	tmode.c_cc[VKILL]
-#define	EOT	tmode.c_cc[VEOF]
+#define ERASE tmode.c_cc[VERASE]
+#define KILL tmode.c_cc[VKILL]
+#define EOT tmode.c_cc[VEOF]
 
-#define	puts	Gputs
+#define puts Gputs
 
-static void	defttymode(void);
-static void	dingdong(int);
-static void	dogettytab(void);
-static int	getname(void);
-static void	interrupt(int);
-static void	oflush(void);
-static void	prompt(void);
-static void	putchr(int);
-static void	putf(const char *);
-static void	putpad(const char *);
-static void	puts(const char *);
-static void	timeoverrun(int);
-static char	*get_line(int);
-static void	setttymode(int);
-static int	opentty(const char *, int);
+static void defttymode(void);
+static void dingdong(int);
+static void dogettytab(void);
+static int getname(void);
+static void interrupt(int);
+static void oflush(void);
+static void prompt(void);
+static void putchr(int);
+static void putf(const char *);
+static void putpad(const char *);
+static void puts(const char *);
+static void timeoverrun(int);
+static char *get_line(int);
+static void setttymode(int);
+static int opentty(const char *, int);
 
 static jmp_buf timeout;
 
@@ -142,7 +135,7 @@ dingdong(int signo __unused)
 	longjmp(timeout, 1);
 }
 
-static jmp_buf	intrupt;
+static jmp_buf intrupt;
 
 static void
 interrupt(int signo __unused)
@@ -171,7 +164,7 @@ main(int argc, char *argv[])
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
 
-	openlog("getty", LOG_CONS|LOG_PID, LOG_AUTH);
+	openlog("getty", LOG_CONS | LOG_PID, LOG_AUTH);
 	gethostname(hostname, sizeof(hostname) - 1);
 	hostname[sizeof(hostname) - 1] = '\0';
 	if (hostname[0] == '\0')
@@ -224,7 +217,7 @@ main(int argc, char *argv[])
 			 * Init or answer modem sequence has been specified.
 			 */
 			if (IC || AC) {
-				if (!opentty(ttyn, O_RDWR|O_NONBLOCK))
+				if (!opentty(ttyn, O_RDWR | O_NONBLOCK))
 					exit(1);
 				defttymode();
 				setttymode(1);
@@ -232,8 +225,10 @@ main(int argc, char *argv[])
 
 			if (IC) {
 				if (getty_chat(IC, CT, DC) > 0) {
-					syslog(LOG_ERR, "modem init problem on %s", ttyn);
-					(void)tcsetattr(STDIN_FILENO, TCSANOW, &tmode);
+					syslog(LOG_ERR,
+					    "modem init problem on %s", ttyn);
+					(void)tcsetattr(STDIN_FILENO, TCSANOW,
+					    &tmode);
 					exit(1);
 				}
 			}
@@ -247,22 +242,28 @@ main(int argc, char *argv[])
 				FD_SET(0, &rfds);
 				to.tv_sec = RT;
 				to.tv_usec = 0;
-				i = select(32, &rfds, NULL, NULL, RT ? &to : NULL);
+				i = select(32, &rfds, NULL, NULL,
+				    RT ? &to : NULL);
 				if (i < 0) {
 					syslog(LOG_ERR, "select %s: %m", ttyn);
 				} else if (i == 0) {
-					syslog(LOG_NOTICE, "recycle tty %s", ttyn);
-					(void)tcsetattr(STDIN_FILENO, TCSANOW, &tmode);
-					exit(0);  /* recycle for init */
+					syslog(LOG_NOTICE, "recycle tty %s",
+					    ttyn);
+					(void)tcsetattr(STDIN_FILENO, TCSANOW,
+					    &tmode);
+					exit(0); /* recycle for init */
 				}
 				i = getty_chat(AC, CT, DC);
 				if (i > 0) {
-					syslog(LOG_ERR, "modem answer problem on %s", ttyn);
-					(void)tcsetattr(STDIN_FILENO, TCSANOW, &tmode);
+					syslog(LOG_ERR,
+					    "modem answer problem on %s", ttyn);
+					(void)tcsetattr(STDIN_FILENO, TCSANOW,
+					    &tmode);
 					exit(1);
 				}
 			} else { /* maybe blocking open */
-				if (!opentty(ttyn, O_RDWR | (NC ? O_NONBLOCK : 0 )))
+				if (!opentty(ttyn,
+					O_RDWR | (NC ? O_NONBLOCK : 0)))
 					exit(1);
 			}
 		}
@@ -303,7 +304,7 @@ main(int argc, char *argv[])
 			int fd;
 
 			if ((fd = open(IF, O_RDONLY)) != -1) {
-				char * cp;
+				char *cp;
 
 				while ((cp = get_line(fd)) != NULL) {
 					putf(cp);
@@ -350,7 +351,7 @@ main(int argc, char *argv[])
 			limit.rlim_max = RLIM_INFINITY;
 			limit.rlim_cur = RLIM_INFINITY;
 			(void)setrlimit(RLIMIT_CPU, &limit);
-			execle(PP, "ppplogin", ttyn, (char *) 0, env);
+			execle(PP, "ppplogin", ttyn, (char *)0, env);
 			syslog(LOG_ERR, "%s: %m", PP);
 			exit(1);
 		} else if (rval || AL) {
@@ -396,8 +397,8 @@ main(int argc, char *argv[])
 			limit.rlim_max = RLIM_INFINITY;
 			limit.rlim_cur = RLIM_INFINITY;
 			(void)setrlimit(RLIMIT_CPU, &limit);
-			execle(LO, "login", AL ? "-fp" : "-p", name,
-			    (char *) 0, env);
+			execle(LO, "login", AL ? "-fp" : "-p", name, (char *)0,
+			    env);
 			syslog(LOG_ERR, "%s: %m", LO);
 			exit(1);
 		}
@@ -416,8 +417,7 @@ opentty(const char *tty, int flags)
 {
 	int failopenlogged = 0, i, saved_errno;
 
-	while ((i = open(tty, flags)) == -1)
-	{
+	while ((i = open(tty, flags)) == -1) {
 		saved_errno = errno;
 		if (!failopenlogged) {
 			syslog(LOG_ERR, "open %s: %m", tty);
@@ -428,8 +428,8 @@ opentty(const char *tty, int flags)
 		sleep(60);
 	}
 	if (login_tty(i) < 0) {
-		if (daemon(0,0) < 0) {
-			syslog(LOG_ERR,"daemon: %m");
+		if (daemon(0, 0) < 0) {
+			syslog(LOG_ERR, "daemon: %m");
 			close(i);
 			return 0;
 		}
@@ -476,7 +476,7 @@ setttymode(int raw)
 {
 	int off = 0;
 
-	(void)tcflush(STDIN_FILENO, TCIOFLUSH);	/* clear out the crap */
+	(void)tcflush(STDIN_FILENO, TCIOFLUSH); /* clear out the crap */
 	ioctl(STDIN_FILENO, FIONBIO, &off);	/* turn off non-blocking mode */
 	ioctl(STDIN_FILENO, FIOASYNC, &off);	/* ditto for async mode */
 
@@ -497,7 +497,6 @@ setttymode(int raw)
 		exit(1);
 	}
 }
-
 
 static int
 getname(void)
@@ -533,7 +532,7 @@ getname(void)
 		oflush();
 		if (read(STDIN_FILENO, &cs, 1) <= 0)
 			exit(0);
-		if ((c = cs&0177) == 0)
+		if ((c = cs & 0177) == 0)
 			return (0);
 
 		/* PPP detection state machine..
@@ -551,8 +550,8 @@ getname(void)
 			ppp_state = 2;
 		} else if (ppp_state == 2 && cs == PPP_ESCAPE) {
 			ppp_state = 3;
-		} else if ((ppp_state == 2 && cs == PPP_CONTROL)
-		    || (ppp_state == 3 && cs == PPP_CONTROL_ESCAPED)) {
+		} else if ((ppp_state == 2 && cs == PPP_CONTROL) ||
+		    (ppp_state == 3 && cs == PPP_CONTROL_ESCAPED)) {
 			ppp_state = 4;
 		} else if (ppp_state == 4 && cs == PPP_LCP_HI) {
 			ppp_state = 5;
@@ -565,7 +564,7 @@ getname(void)
 
 		if (c == EOT || c == CTRL('d'))
 			exit(0);
-		if (c == '\r' || c == '\n' || np >= &name[sizeof name-1]) {
+		if (c == '\r' || c == '\n' || np >= &name[sizeof name - 1]) {
 			putf("\r\n");
 			break;
 		}
@@ -655,8 +654,8 @@ puts(const char *s)
 		putchr(*s++);
 }
 
-static char	outbuf[OBUFSIZ];
-static int	obufcnt = 0;
+static char outbuf[OBUFSIZ];
+static int obufcnt = 0;
 
 static void
 putchr(int cc)
@@ -665,7 +664,7 @@ putchr(int cc)
 
 	c = cc;
 	if (!NP) {
-		c |= partab[c&0177] & 0200;
+		c |= partab[c & 0177] & 0200;
 		if (OP)
 			c ^= 0200;
 	}
@@ -694,7 +693,6 @@ prompt(void)
 		putchr('\n');
 }
 
-
 static char *
 get_line(int fd)
 {
@@ -705,7 +703,7 @@ get_line(int fd)
 	 * This is certainly slow, but it avoids having to include
 	 * stdio.h unnecessarily. Issue files should be small anyway.
 	 */
-	while (i < (sizeof linebuf - 3) && read(fd, linebuf+i, 1)==1) {
+	while (i < (sizeof linebuf - 3) && read(fd, linebuf + i, 1) == 1) {
 		if (linebuf[i] == '\n') {
 			/* Don't rely on newline mode, assume raw */
 			linebuf[i++] = '\r';
@@ -740,7 +738,7 @@ putf(const char *cp)
 
 		case 't':
 			slash = strrchr(ttyn, '/');
-			if (slash == (char *) 0)
+			if (slash == (char *)0)
 				puts(ttyn);
 			else
 				puts(&slash[1]);

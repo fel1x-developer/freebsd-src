@@ -32,7 +32,6 @@
  */
 
 #include <sys/types.h>
-
 #include <sys/capsium.h>
 #include <sys/errno.h>
 #include <sys/procdesc.h>
@@ -41,12 +40,11 @@
 #include <sys/wait.h>
 
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-
-#include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "cap_test.h"
 
@@ -59,7 +57,7 @@ test_pdfork(void)
 	pid_t pid;
 	time_t now;
 
-	//cap_enter();
+	// cap_enter();
 
 	pid = pdfork(&pd, 0);
 	if (pid < 0)
@@ -98,7 +96,8 @@ test_pdfork(void)
 	CHECK(pid > 0);
 
 	int status;
-	while (waitpid(pid, &status, 0) != pid) {}
+	while (waitpid(pid, &status, 0) != pid) {
+	}
 	if ((success == PASSED) && WIFEXITED(status))
 		success = WEXITSTATUS(status);
 	else

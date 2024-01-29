@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__LIBRSS_H__
-#define	__LIBRSS_H__
+#ifndef __LIBRSS_H__
+#define __LIBRSS_H__
 
 struct rss_config {
 	int rss_ncpus;
@@ -48,29 +48,29 @@ typedef void rss_bucket_rebalance_cb_t(void *arg);
  * Enable or disable receiving RSS/flowid information on
  * received UDP frames.
  */
-extern	int rss_sock_set_recvrss(int fd, int af, int val);
+extern int rss_sock_set_recvrss(int fd, int af, int val);
 
 /*
  * Fetch RSS configuration information.
  */
-extern	struct rss_config * rss_config_get(void);
+extern struct rss_config *rss_config_get(void);
 
 /*
  * Free an RSS configuration structure.
  */
-extern	void rss_config_free(struct rss_config *rc);
+extern void rss_config_free(struct rss_config *rc);
 
 /*
  * Return how many RSS buckets there are.
  */
-extern	int rss_config_get_bucket_count(struct rss_config *rc);
+extern int rss_config_get_bucket_count(struct rss_config *rc);
 
 /*
  * Fetch the cpuset configuration for the given RSS bucket and
  * type.
  */
-extern	int rss_get_bucket_cpuset(struct rss_config *rc,
-    rss_bucket_type_t btype, int bucket, cpuset_t *cs);
+extern int rss_get_bucket_cpuset(struct rss_config *rc, rss_bucket_type_t btype,
+    int bucket, cpuset_t *cs);
 
 /*
  * Set a callback for bucket rebalancing.
@@ -78,7 +78,7 @@ extern	int rss_get_bucket_cpuset(struct rss_config *rc,
  * This will occur in a separate thread context rather than
  * a signal handler.
  */
-extern	int rss_set_bucket_rebalance_cb(rss_bucket_rebalance_cb_t *cb,
-	    void *cbdata);
+extern int rss_set_bucket_rebalance_cb(rss_bucket_rebalance_cb_t *cb,
+    void *cbdata);
 
 #endif /* __LIBRSS_H__ */

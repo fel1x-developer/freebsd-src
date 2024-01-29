@@ -72,8 +72,7 @@ LIN_SDT_PROVIDER_DEFINE(linuxulator32);
 char linux_emul_path[MAXPATHLEN] = "/compat/linux";
 
 SYSCTL_STRING(_compat_linux, OID_AUTO, emul_path, CTLFLAG_RWTUN,
-    linux_emul_path, sizeof(linux_emul_path),
-    "Linux runtime environment path");
+    linux_emul_path, sizeof(linux_emul_path), "Linux runtime environment path");
 
 int
 linux_pwd_onexec(struct thread *td)
@@ -127,17 +126,15 @@ linux_msg(const struct thread *td, const char *fmt, ...)
 	printf("\n");
 }
 
-struct device_element
-{
+struct device_element {
 	TAILQ_ENTRY(device_element) list;
 	struct linux_device_handler entry;
 };
 
-static TAILQ_HEAD(, device_element) devices =
-	TAILQ_HEAD_INITIALIZER(devices);
+static TAILQ_HEAD(, device_element) devices = TAILQ_HEAD_INITIALIZER(devices);
 
-static struct linux_device_handler null_handler =
-	{ "mem", "mem", "null", "null", 1, 3, 1};
+static struct linux_device_handler null_handler = { "mem", "mem", "null",
+	"null", 1, 3, 1 };
 
 DATA_SET(linux_device_handler_set, null_handler);
 
@@ -149,7 +146,7 @@ linux_driver_get_name_dev(device_t dev)
 
 	if (device_name == NULL)
 		return (NULL);
-	TAILQ_FOREACH(de, &devices, list) {
+	TAILQ_FOREACH (de, &devices, list) {
 		if (strcmp(device_name, de->entry.bsd_driver_name) == 0)
 			return (de->entry.linux_driver_name);
 	}
@@ -209,7 +206,7 @@ linux_driver_get_major_minor(const char *node, int *major, int *minor)
 		return (0);
 	}
 
-	TAILQ_FOREACH(de, &devices, list) {
+	TAILQ_FOREACH (de, &devices, list) {
 		if (strcmp(node, de->entry.bsd_device_name) == 0) {
 			*major = de->entry.linux_major;
 			*minor = de->entry.linux_minor;
@@ -232,8 +229,8 @@ linux_vn_get_major_minor(const struct vnode *vp, int *major, int *minor)
 		dev_unlock();
 		return (ENXIO);
 	}
-	error = linux_driver_get_major_minor(devtoname(vp->v_rdev),
-	    major, minor);
+	error = linux_driver_get_major_minor(devtoname(vp->v_rdev), major,
+	    minor);
 	dev_unlock();
 	return (error);
 }
@@ -274,7 +271,7 @@ linux_get_char_devices(void)
 	string = malloc(string_size, M_LINUX, M_WAITOK);
 	string[0] = '\000';
 	last = "";
-	TAILQ_FOREACH(de, &devices, list) {
+	TAILQ_FOREACH (de, &devices, list) {
 		if (!de->entry.linux_char_device)
 			continue;
 		temp = string;
@@ -282,13 +279,10 @@ linux_get_char_devices(void)
 			last = de->entry.bsd_driver_name;
 
 			snprintf(formated, sizeof(formated), "%3d %s\n",
-				 de->entry.linux_major,
-				 de->entry.linux_device_name);
-			if (strlen(formated) + current_size
-			    >= string_size) {
+			    de->entry.linux_major, de->entry.linux_device_name);
+			if (strlen(formated) + current_size >= string_size) {
 				string_size *= 2;
-				string = malloc(string_size,
-				    M_LINUX, M_WAITOK);
+				string = malloc(string_size, M_LINUX, M_WAITOK);
 				bcopy(temp, string, current_size);
 				free(temp, M_LINUX);
 			}
@@ -337,7 +331,7 @@ linux_device_unregister_handler(struct linux_device_handler *d)
 	if (d == NULL)
 		return (EINVAL);
 
-	TAILQ_FOREACH(de, &devices, list) {
+	TAILQ_FOREACH (de, &devices, list) {
 		if (bcmp(d, &de->entry, sizeof(*d)) == 0) {
 			TAILQ_REMOVE(&devices, de, list);
 			free(de, M_LINUX);

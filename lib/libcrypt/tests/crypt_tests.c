@@ -1,11 +1,11 @@
 #include <sys/cdefs.h>
 #include <sys/types.h>
+
+#include <atf-c.h>
 #include <crypt.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define	LEET "0.s0.l33t"
+#define LEET "0.s0.l33t"
 
 ATF_TC(md5);
 ATF_TC_HEAD(md5, tc)

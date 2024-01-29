@@ -26,6 +26,7 @@
  */
 
 #include <sys/types.h>
+
 #include <linux/fs.h>
 
 MALLOC_DEFINE(M_LSATTR, "simple_attr", "Linux Simple Attribute File");
@@ -69,7 +70,7 @@ simple_attr_open(struct inode *inode, struct file *filp,
 	sattr->fmt = fmt;
 	mutex_init(&sattr->mutex);
 
-	filp->private_data = (void *) sattr;
+	filp->private_data = (void *)sattr;
 
 	return (nonseekable_open(inode, filp));
 }
@@ -154,7 +155,8 @@ unlock:
  * On failure, negative signed ERRNO
  */
 ssize_t
-simple_attr_write(struct file *filp, const char *buf, size_t write_size, loff_t *ppos)
+simple_attr_write(struct file *filp, const char *buf, size_t write_size,
+    loff_t *ppos)
 {
 	struct simple_attr *sattr;
 	unsigned long long data;

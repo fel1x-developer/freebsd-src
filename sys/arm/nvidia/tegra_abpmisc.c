@@ -35,41 +35,39 @@
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include <arm/nvidia/tegra_efuse.h>
 
-#define	PMC_STRAPPING_OPT_A	0  	/* 0x464 */
+#define PMC_STRAPPING_OPT_A 0 /* 0x464 */
 
-#define	PMC_STRAPPING_OPT_A_RAM_CODE_SHIFT	4
-#define	PMC_STRAPPING_OPT_A_RAM_CODE_MASK_LONG	\
+#define PMC_STRAPPING_OPT_A_RAM_CODE_SHIFT 4
+#define PMC_STRAPPING_OPT_A_RAM_CODE_MASK_LONG \
 	(0xf << PMC_STRAPPING_OPT_A_RAM_CODE_SHIFT)
-#define	PMC_STRAPPING_OPT_A_RAM_CODE_MASK_SHORT	\
+#define PMC_STRAPPING_OPT_A_RAM_CODE_MASK_SHORT \
 	(0x3 << PMC_STRAPPING_OPT_A_RAM_CODE_SHIFT)
 
-#define	ABP_RD4(_sc, _r)	bus_read_4((_sc)->abp_misc_res, (_r))
-#define	STR_RD4(_sc, _r)	bus_read_4((_sc)->strap_opt_res, (_r))
+#define ABP_RD4(_sc, _r) bus_read_4((_sc)->abp_misc_res, (_r))
+#define STR_RD4(_sc, _r) bus_read_4((_sc)->strap_opt_res, (_r))
 
-static struct ofw_compat_data compat_data[] = {
-	{"nvidia,tegra124-apbmisc",	1},
-	{"nvidia,tegra210-apbmisc",	1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "nvidia,tegra124-apbmisc",
+						    1 },
+	{ "nvidia,tegra210-apbmisc", 1 }, { NULL, 0 } };
 
 struct tegra_abpmisc_softc {
-	device_t		dev;
+	device_t dev;
 
-	struct resource		*abp_misc_res;
-	struct resource		*strap_opt_res;
+	struct resource *abp_misc_res;
+	struct resource *strap_opt_res;
 };
 
 static struct tegra_abpmisc_softc *dev_sc;
@@ -177,9 +175,9 @@ tegra_abpmisc_detach(device_t dev)
 
 static device_method_t tegra_abpmisc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tegra_abpmisc_probe),
-	DEVMETHOD(device_attach,	tegra_abpmisc_attach),
-	DEVMETHOD(device_detach,	tegra_abpmisc_detach),
+	DEVMETHOD(device_probe, tegra_abpmisc_probe),
+	DEVMETHOD(device_attach, tegra_abpmisc_attach),
+	DEVMETHOD(device_detach, tegra_abpmisc_detach),
 
 	DEVMETHOD_END
 };

@@ -34,62 +34,51 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/rdcphyreg.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include "miibus_if.h"
 #include "miidevs.h"
 
-#include <dev/mii/rdcphyreg.h>
-
-#include "miibus_if.h"
-
-static device_probe_t	rdcphy_probe;
-static device_attach_t	rdcphy_attach;
+static device_probe_t rdcphy_probe;
+static device_attach_t rdcphy_attach;
 
 struct rdcphy_softc {
 	struct mii_softc mii_sc;
 	int mii_link_tick;
-#define	RDCPHY_MANNEG_TICK	3
+#define RDCPHY_MANNEG_TICK 3
 };
 
 static device_method_t rdcphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		rdcphy_probe),
-	DEVMETHOD(device_attach,	rdcphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, rdcphy_probe),
+	DEVMETHOD(device_attach, rdcphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t rdcphy_driver = {
-	"rdcphy",
-	rdcphy_methods,
-	sizeof(struct rdcphy_softc)
-};
+static driver_t rdcphy_driver = { "rdcphy", rdcphy_methods,
+	sizeof(struct rdcphy_softc) };
 
 DRIVER_MODULE(rdcphy, miibus, rdcphy_driver, 0, 0);
 
-static int	rdcphy_service(struct mii_softc *, struct mii_data *, int);
-static void	rdcphy_status(struct mii_softc *);
+static int rdcphy_service(struct mii_softc *, struct mii_data *, int);
+static void rdcphy_status(struct mii_softc *);
 
-static const struct mii_phydesc rdcphys[] = {
-	MII_PHY_DESC(RDC, R6040),
-	MII_PHY_DESC(RDC, R6040_2),
-	MII_PHY_END
-};
+static const struct mii_phydesc rdcphys[] = { MII_PHY_DESC(RDC, R6040),
+	MII_PHY_DESC(RDC, R6040_2), MII_PHY_END };
 
-static const struct mii_phy_funcs rdcphy_funcs = {
-	rdcphy_service,
-	rdcphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs rdcphy_funcs = { rdcphy_service,
+	rdcphy_status, mii_phy_reset };
 
 static int
 rdcphy_probe(device_t dev)

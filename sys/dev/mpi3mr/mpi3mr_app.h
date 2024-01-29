@@ -14,11 +14,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -44,44 +44,43 @@
 #include "mpi3mr.h"
 
 #ifndef _MPI3MR_APP_H_
-#define	_MPI3MR_APP_H_
+#define _MPI3MR_APP_H_
 
-#define MPI3MR_IOCTL_ADPTYPE_AVGFAMILY  1
-#define MPI3MR_IOCTL_VERSION		0x06
+#define MPI3MR_IOCTL_ADPTYPE_AVGFAMILY 1
+#define MPI3MR_IOCTL_VERSION 0x06
 
-#define MPI3MRDRVCMD    _IOWR('B', 1, struct mpi3mr_ioctl_drvcmd)
-#define MPI3MRMPTCMD    _IOWR('B', 2, struct mpi3mr_ioctl_mptcmd)
+#define MPI3MRDRVCMD _IOWR('B', 1, struct mpi3mr_ioctl_drvcmd)
+#define MPI3MRMPTCMD _IOWR('B', 2, struct mpi3mr_ioctl_mptcmd)
 
-#define MPI3MR_IOCTL_DEFAULT_TIMEOUT	(10)
-#define PEND_IOCTLS_COMP_WAIT_TIME	(10)
+#define MPI3MR_IOCTL_DEFAULT_TIMEOUT (10)
+#define PEND_IOCTLS_COMP_WAIT_TIME (10)
 
-#define MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES	400
-#define MPI3MR_IOCTL_LOGDATA_ENTRY_HEADER_SZ	0x5
+#define MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES 400
+#define MPI3MR_IOCTL_LOGDATA_ENTRY_HEADER_SZ 0x5
 
-#define GET_IOC_STATUS(ioc_status)	\
-	ioc_status & MPI3_IOCSTATUS_STATUS_MASK
+#define GET_IOC_STATUS(ioc_status) ioc_status &MPI3_IOCSTATUS_STATUS_MASK
 
 /* Encapsulated NVMe command definitions */
-#define	MPI3MR_NVME_PRP_SIZE		8
-#define	MPI3MR_NVME_CMD_PRP1_OFFSET	24
-#define	MPI3MR_NVME_CMD_PRP2_OFFSET	32
-#define	MPI3MR_NVME_CMD_SGL_OFFSET	24
-#define MPI3MR_NVME_DATA_FORMAT_PRP	0
-#define MPI3MR_NVME_DATA_FORMAT_SGL1	1
-#define MPI3MR_NVME_DATA_FORMAT_SGL2	2
+#define MPI3MR_NVME_PRP_SIZE 8
+#define MPI3MR_NVME_CMD_PRP1_OFFSET 24
+#define MPI3MR_NVME_CMD_PRP2_OFFSET 32
+#define MPI3MR_NVME_CMD_SGL_OFFSET 24
+#define MPI3MR_NVME_DATA_FORMAT_PRP 0
+#define MPI3MR_NVME_DATA_FORMAT_SGL1 1
+#define MPI3MR_NVME_DATA_FORMAT_SGL2 2
 
-#define MPI3MR_NVMESGL_DATA_SEGMENT	0x00
-#define MPI3MR_NVMESGL_LAST_SEGMENT	0x03
+#define MPI3MR_NVMESGL_DATA_SEGMENT 0x00
+#define MPI3MR_NVMESGL_LAST_SEGMENT 0x03
 
 int mpi3mr_app_attach(struct mpi3mr_softc *);
 void mpi3mr_app_detach(struct mpi3mr_softc *);
 
 enum mpi3mr_ioctl_adp_state {
-	MPI3MR_IOCTL_ADP_STATE_UNKNOWN		= 0,
-	MPI3MR_IOCTL_ADP_STATE_OPERATIONAL	= 1,
-	MPI3MR_IOCTL_ADP_STATE_FAULT		= 2,
-	MPI3MR_IOCTL_ADP_STATE_IN_RESET		= 3,
-	MPI3MR_IOCTL_ADP_STATE_UNRECOVERABLE	= 4,
+	MPI3MR_IOCTL_ADP_STATE_UNKNOWN = 0,
+	MPI3MR_IOCTL_ADP_STATE_OPERATIONAL = 1,
+	MPI3MR_IOCTL_ADP_STATE_FAULT = 2,
+	MPI3MR_IOCTL_ADP_STATE_IN_RESET = 3,
+	MPI3MR_IOCTL_ADP_STATE_UNRECOVERABLE = 4,
 };
 
 enum mpi3mr_ioctl_data_dir {
@@ -91,16 +90,16 @@ enum mpi3mr_ioctl_data_dir {
 };
 
 enum mpi3mr_ioctl_drvcmds_opcode {
-	MPI3MR_DRVRIOCTL_OPCODE_UNKNOWN		= 0,
-	MPI3MR_DRVRIOCTL_OPCODE_ADPINFO		= 1,
-	MPI3MR_DRVRIOCTL_OPCODE_ADPRESET	= 2,
-	MPI3MR_DRVRIOCTL_OPCODE_TGTDEVINFO	= 3,
-	MPI3MR_DRVRIOCTL_OPCODE_ALLTGTDEVINFO	= 4,
-	MPI3MR_DRVRIOCTL_OPCODE_GETCHGCNT	= 5,
-	MPI3MR_DRVRIOCTL_OPCODE_LOGDATAENABLE	= 6,
-	MPI3MR_DRVRIOCTL_OPCODE_PELENABLE	= 7,
-	MPI3MR_DRVRIOCTL_OPCODE_GETLOGDATA	= 8,
-	MPI3MR_DRVRIOCTL_OPCODE_GETPCIINFO	= 100,
+	MPI3MR_DRVRIOCTL_OPCODE_UNKNOWN = 0,
+	MPI3MR_DRVRIOCTL_OPCODE_ADPINFO = 1,
+	MPI3MR_DRVRIOCTL_OPCODE_ADPRESET = 2,
+	MPI3MR_DRVRIOCTL_OPCODE_TGTDEVINFO = 3,
+	MPI3MR_DRVRIOCTL_OPCODE_ALLTGTDEVINFO = 4,
+	MPI3MR_DRVRIOCTL_OPCODE_GETCHGCNT = 5,
+	MPI3MR_DRVRIOCTL_OPCODE_LOGDATAENABLE = 6,
+	MPI3MR_DRVRIOCTL_OPCODE_PELENABLE = 7,
+	MPI3MR_DRVRIOCTL_OPCODE_GETLOGDATA = 8,
+	MPI3MR_DRVRIOCTL_OPCODE_GETPCIINFO = 100,
 };
 
 enum mpi3mr_ioctl_mpibuffer_type {
@@ -119,21 +118,21 @@ enum mpi3mr_ioctl_mpireply_type {
 	MPI3MR_IOCTL_MPI_REPLY_BUFTYPE_ADDRESS,
 };
 
-enum  mpi3mr_ioctl_reset_type {
+enum mpi3mr_ioctl_reset_type {
 	MPI3MR_IOCTL_ADPRESET_UNKNOWN,
-	MPI3MR_IOCTL_ADPRESET_SOFT,		
+	MPI3MR_IOCTL_ADPRESET_SOFT,
 	MPI3MR_IOCTL_ADPRESET_DIAG_FAULT,
 };
 
 struct mpi3mr_ioctl_drvcmd {
-        U8 mrioc_id;
-        U8 opcode;
-        U16 rsvd1;
-        U32 rsvd2;
-        void *data_in_buf;
-        void *data_out_buf;
-        U32 data_in_size;
-        U32 data_out_size;
+	U8 mrioc_id;
+	U8 opcode;
+	U16 rsvd1;
+	U32 rsvd2;
+	void *data_in_buf;
+	void *data_out_buf;
+	U32 data_in_size;
+	U32 data_out_size;
 };
 
 struct mpi3mr_ioctl_adpinfo {
@@ -143,10 +142,10 @@ struct mpi3mr_ioctl_adpinfo {
 	U32 pci_dev_hw_rev;
 	U32 pci_subsys_dev_id;
 	U32 pci_subsys_ven_id;
-	U32 pci_dev:5;
-	U32 pci_func:3;
-	U32 pci_bus:8;
-	U32 rsvd2:16;
+	U32 pci_dev : 5;
+	U32 pci_func : 3;
+	U32 pci_bus : 8;
+	U32 rsvd2 : 16;
 	U32 pci_seg_id;
 	U32 ioctl_ver;
 	U8 adp_state;
@@ -157,17 +156,17 @@ struct mpi3mr_ioctl_adpinfo {
 };
 
 struct mpi3mr_ioctl_pciinfo {
-	U32	config_space[64];
+	U32 config_space[64];
 };
 
 struct mpi3mr_ioctl_tgtinfo {
-        U32 target_id;
-        U8 bus_id;
-        U8 rsvd1;
-        U16 rsvd2;
-        U16 dev_handle;
-        U16 persistent_id;
-        U32 seq_num;
+	U32 target_id;
+	U8 bus_id;
+	U8 rsvd1;
+	U16 rsvd2;
+	U16 dev_handle;
+	U16 persistent_id;
+	U32 seq_num;
 };
 
 struct mpi3mr_device_map_info {
@@ -182,7 +181,7 @@ struct mpi3mr_device_map_info {
 struct mpi3mr_ioctl_all_tgtinfo {
 	U16 num_devices;
 	U16 rsvd1;
-        U32 rsvd2;
+	U32 rsvd2;
 	struct mpi3mr_device_map_info dmi[1];
 };
 
@@ -198,14 +197,14 @@ struct mpi3mr_ioctl_adpreset {
 };
 
 struct mpi3mr_ioctl_mptcmd {
-        U8 mrioc_id;
-        U8 rsvd1;       
-        U16 timeout;
-        U16 rsvd2;          
-        U16 mpi_msg_size;
-        void *mpi_msg_buf;
-        void *buf_entry_list;
-        U32 buf_entry_list_size;
+	U8 mrioc_id;
+	U8 rsvd1;
+	U16 timeout;
+	U16 rsvd2;
+	U16 mpi_msg_size;
+	void *mpi_msg_buf;
+	void *buf_entry_list;
+	U32 buf_entry_list_size;
 };
 
 struct mpi3mr_buf_entry {
@@ -249,8 +248,8 @@ struct mpi3mr_nvme_pt_sge {
 	U32 length;
 	U16 rsvd;
 	U8 rsvd1;
-	U8 sub_type:4;
-	U8 type:4;
+	U8 sub_type : 4;
+	U8 type : 4;
 };
 
 struct mpi3mr_log_data_entry {
@@ -271,21 +270,15 @@ struct mpi3mr_ioctl_pel_enable {
 	U8 rsvd;
 };
 
-int
-mpi3mr_pel_abort(struct mpi3mr_softc *sc);
-void
-mpi3mr_pel_getseq_complete(struct mpi3mr_softc *sc,
-			   struct mpi3mr_drvr_cmd *drvr_cmd);
-void
-mpi3mr_issue_pel_wait(struct mpi3mr_softc *sc,
-		     struct mpi3mr_drvr_cmd *drvr_cmd);
-void
-mpi3mr_pel_wait_complete(struct mpi3mr_softc *sc,
-			 struct mpi3mr_drvr_cmd *drvr_cmd);
-void 
-mpi3mr_send_pel_getseq(struct mpi3mr_softc *sc,
-		       struct mpi3mr_drvr_cmd *drvr_cmd);
-void
-mpi3mr_app_send_aen(struct mpi3mr_softc *sc);
+int mpi3mr_pel_abort(struct mpi3mr_softc *sc);
+void mpi3mr_pel_getseq_complete(struct mpi3mr_softc *sc,
+    struct mpi3mr_drvr_cmd *drvr_cmd);
+void mpi3mr_issue_pel_wait(struct mpi3mr_softc *sc,
+    struct mpi3mr_drvr_cmd *drvr_cmd);
+void mpi3mr_pel_wait_complete(struct mpi3mr_softc *sc,
+    struct mpi3mr_drvr_cmd *drvr_cmd);
+void mpi3mr_send_pel_getseq(struct mpi3mr_softc *sc,
+    struct mpi3mr_drvr_cmd *drvr_cmd);
+void mpi3mr_app_send_aen(struct mpi3mr_softc *sc);
 
 #endif /* !_MPI3MR_API_H_ */

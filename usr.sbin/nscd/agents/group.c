@@ -116,12 +116,12 @@ group_marshal_func(struct group *grp, char *buffer, size_t *buffer_size)
 
 static int
 group_lookup_func(const char *key, size_t key_size, char **buffer,
-	size_t *buffer_size)
+    size_t *buffer_size)
 {
 	enum nss_lookup_type lookup_type;
-	char	*name;
-	size_t	size;
-	gid_t	gid;
+	char *name;
+	size_t size;
+	gid_t gid;
 
 	struct group *result;
 
@@ -137,14 +137,13 @@ group_lookup_func(const char *key, size_t key_size, char **buffer,
 
 	switch (lookup_type) {
 	case nss_lt_name:
-		size = key_size - sizeof(enum nss_lookup_type)	+ 1;
+		size = key_size - sizeof(enum nss_lookup_type) + 1;
 		name = calloc(1, size);
 		assert(name != NULL);
 		memcpy(name, key + sizeof(enum nss_lookup_type), size - 1);
 		break;
 	case nss_lt_id:
-		if (key_size < sizeof(enum nss_lookup_type) +
-			sizeof(gid_t)) {
+		if (key_size < sizeof(enum nss_lookup_type) + sizeof(gid_t)) {
 			TRACE_OUT(passwd_lookup_func);
 			return (NS_UNAVAIL);
 		}
@@ -219,7 +218,7 @@ group_mp_destroy_func(void *mdata)
 struct agent *
 init_group_agent(void)
 {
-	struct common_agent	*retval;
+	struct common_agent *retval;
 
 	TRACE_IN(init_group_agent);
 	retval = calloc(1, sizeof(*retval));
@@ -238,11 +237,10 @@ init_group_agent(void)
 struct agent *
 init_group_mp_agent(void)
 {
-	struct multipart_agent	*retval;
+	struct multipart_agent *retval;
 
 	TRACE_IN(init_group_mp_agent);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent.name = strdup("group");

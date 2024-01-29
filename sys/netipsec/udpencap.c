@@ -24,11 +24,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ipsec.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -39,6 +39,9 @@
 #include <sys/sockopt.h>
 #include <sys/sysctl.h>
 
+#include <machine/in_cksum.h>
+
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/in_systm.h>
@@ -48,20 +51,14 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
-
 #include <netinet6/ip6_var.h>
-
-#include <net/vnet.h>
-
-#include <netipsec/ipsec.h>
 #include <netipsec/esp.h>
 #include <netipsec/esp_var.h>
-#include <netipsec/xform.h>
-
+#include <netipsec/ipsec.h>
+#include <netipsec/ipsec_support.h>
 #include <netipsec/key.h>
 #include <netipsec/key_debug.h>
-#include <netipsec/ipsec_support.h>
-#include <machine/in_cksum.h>
+#include <netipsec/xform.h>
 
 /*
  * Handle UDP_ENCAP socket option. Always return with released INP_WLOCK.
@@ -133,7 +130,7 @@ udp_ipsec_input(struct mbuf *m, int off, int af)
 		return (0);
 
 	m_copydata(m, off, sizeof(uint32_t), (caddr_t)&spi);
-	if (spi == 0)	/* Non-ESP marker. */
+	if (spi == 0) /* Non-ESP marker. */
 		return (0);
 
 	/*
@@ -182,8 +179,7 @@ udp_ipsec_input(struct mbuf *m, int off, int af)
 		return (ENOENT);
 	}
 	udp = mtodo(m, hlen);
-	if (sav->natt == NULL ||
-	    sav->natt->sport != udp->uh_sport ||
+	if (sav->natt == NULL || sav->natt->sport != udp->uh_sport ||
 	    sav->natt->dport != udp->uh_dport) {
 		/* XXXAE: should we check source address? */
 		ESPSTAT_INC(esps_notdb);
@@ -215,13 +211,15 @@ udp_ipsec_input(struct mbuf *m, int off, int af)
 #ifdef INET
 	case AF_INET:
 		if (m->m_pkthdr.csum_flags & CSUM_DATA_VALID)
-			m->m_pkthdr.csum_flags &= ~(CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
+			m->m_pkthdr.csum_flags &= ~(
+			    CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
 		break;
 #endif /* INET */
 #ifdef INET6
 	case AF_INET6:
 		if (m->m_pkthdr.csum_flags & CSUM_DATA_VALID_IPV6)
-			m->m_pkthdr.csum_flags &= ~(CSUM_DATA_VALID_IPV6 | CSUM_PSEUDO_HDR);
+			m->m_pkthdr.csum_flags &= ~(
+			    CSUM_DATA_VALID_IPV6 | CSUM_PSEUDO_HDR);
 		break;
 #endif /* INET6 */
 	default:
@@ -236,7 +234,7 @@ udp_ipsec_input(struct mbuf *m, int off, int af)
 	 */
 	ESPSTAT_INC(esps_input);
 	(*sav->tdb_xform->xf_input)(m, sav, hlen, off);
-	return (EINPROGRESS);	/* Consumed by IPsec. */
+	return (EINPROGRESS); /* Consumed by IPsec. */
 }
 
 int
@@ -299,8 +297,8 @@ udp_ipsec_output(struct mbuf *m, struct secasvar *sav)
 		    ("unexpected next header type %d", ip6->ip6_nxt));
 		ip6->ip6_plen = htons(m->m_pkthdr.len);
 		ip6->ip6_nxt = IPPROTO_UDP;
-		udp->uh_sum = in6_cksum_pseudo(ip6,
-		    m->m_pkthdr.len - hlen, ip6->ip6_nxt, 0);
+		udp->uh_sum = in6_cksum_pseudo(ip6, m->m_pkthdr.len - hlen,
+		    ip6->ip6_nxt, 0);
 		m->m_pkthdr.csum_flags = CSUM_UDP_IPV6;
 		m->m_pkthdr.csum_data = offsetof(struct udphdr, uh_sum);
 		break;
@@ -329,7 +327,7 @@ udp_ipsec_adjust_cksum(struct mbuf *m, struct secasvar *sav, int proto,
 	else
 		off = offsetof(struct tcphdr, th_sum);
 
-	if (V_natt_cksum_policy == 0) {	/* auto */
+	if (V_natt_cksum_policy == 0) { /* auto */
 		if (sav->natt->cksum != 0) {
 			/* Incrementally recompute. */
 			m_copydata(m, skip + off, sizeof(cksum),
@@ -346,14 +344,15 @@ udp_ipsec_adjust_cksum(struct mbuf *m, struct secasvar *sav, int proto,
 				switch (sav->sah->saidx.dst.sa.sa_family) {
 #ifdef INET
 				case AF_INET:
-					m->m_pkthdr.csum_flags |= (CSUM_DATA_VALID |
-					    CSUM_PSEUDO_HDR);
+					m->m_pkthdr.csum_flags |=
+					    (CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
 					break;
 #endif
 #ifdef INET6
 				case AF_INET6:
-					m->m_pkthdr.csum_flags |= (CSUM_DATA_VALID_IPV6 |
-					    CSUM_PSEUDO_HDR);
+					m->m_pkthdr.csum_flags |=
+					    (CSUM_DATA_VALID_IPV6 |
+						CSUM_PSEUDO_HDR);
 					break;
 #endif
 				default:
@@ -374,9 +373,10 @@ udp_ipsec_adjust_cksum(struct mbuf *m, struct secasvar *sav, int proto,
 			cksum = in_pseudo(ip->ip_src.s_addr, ip->ip_dst.s_addr,
 			    htons(m->m_pkthdr.len - skip + proto));
 			m_copyback(m, skip + off, sizeof(cksum),
-		            (caddr_t)&cksum);
-			m->m_pkthdr.csum_flags =
-			    (proto == IPPROTO_UDP) ? CSUM_UDP : CSUM_TCP;
+			    (caddr_t)&cksum);
+			m->m_pkthdr.csum_flags = (proto == IPPROTO_UDP) ?
+			    CSUM_UDP :
+			    CSUM_TCP;
 			m->m_pkthdr.csum_data = off;
 			in_delayed_cksum(m);
 			m->m_pkthdr.csum_flags &= ~CSUM_DELAY_DATA;
@@ -389,15 +389,16 @@ udp_ipsec_adjust_cksum(struct mbuf *m, struct secasvar *sav, int proto,
 
 			ip6 = mtod(m, struct ip6_hdr *);
 			cksum = in6_cksum_pseudo(ip6, m->m_pkthdr.len - skip,
-			   proto, 0);
+			    proto, 0);
 			m_copyback(m, skip + off, sizeof(cksum),
-			   (caddr_t)&cksum);
-			m->m_pkthdr.csum_flags =
-			   (proto == IPPROTO_UDP) ? CSUM_UDP_IPV6 : CSUM_TCP_IPV6;
+			    (caddr_t)&cksum);
+			m->m_pkthdr.csum_flags = (proto == IPPROTO_UDP) ?
+			    CSUM_UDP_IPV6 :
+			    CSUM_TCP_IPV6;
 			m->m_pkthdr.csum_data = off;
 			in6_delayed_cksum(m,
-			   m->m_pkthdr.len - sizeof(struct ip6_hdr),
-			   sizeof(struct ip6_hdr));
+			    m->m_pkthdr.len - sizeof(struct ip6_hdr),
+			    sizeof(struct ip6_hdr));
 			m->m_pkthdr.csum_flags &= ~CSUM_DELAY_DATA_IPV6;
 			break;
 		}

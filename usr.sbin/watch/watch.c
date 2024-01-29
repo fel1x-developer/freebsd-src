@@ -16,10 +16,10 @@
 #include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
-#include <sys/snoop.h>
-#include <sys/stat.h>
 #include <sys/linker.h>
 #include <sys/module.h>
+#include <sys/snoop.h>
+#include <sys/stat.h>
 
 #include <err.h>
 #include <errno.h>
@@ -35,47 +35,47 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MSG_INIT	"Snoop started."
-#define MSG_OFLOW	"Snoop stopped due to overflow. Reconnecting."
-#define MSG_CLOSED	"Snoop stopped due to tty close. Reconnecting."
-#define MSG_CHANGE	"Snoop device change by user request."
-#define MSG_NOWRITE	"Snoop device change due to write failure."
+#define MSG_INIT "Snoop started."
+#define MSG_OFLOW "Snoop stopped due to overflow. Reconnecting."
+#define MSG_CLOSED "Snoop stopped due to tty close. Reconnecting."
+#define MSG_CHANGE "Snoop device change by user request."
+#define MSG_NOWRITE "Snoop device change due to write failure."
 
-#define DEV_NAME_LEN	1024	/* for /dev/ttyXX++ */
-#define MIN_SIZE	256
+#define DEV_NAME_LEN 1024 /* for /dev/ttyXX++ */
+#define MIN_SIZE 256
 
-#define CHR_SWITCH	24	/* Ctrl+X	 */
-#define CHR_CLEAR	23	/* Ctrl+V	 */
+#define CHR_SWITCH 24 /* Ctrl+X	 */
+#define CHR_CLEAR 23  /* Ctrl+V	 */
 
-static void	clear(void);
-static void	timestamp(const char *);
-static void	set_tty(void);
-static void	unset_tty(void);
-static void	fatal(int, const char *);
-static int	open_snp(void);
-static void	cleanup(int);
-static void	usage(void) __dead2;
-static void	setup_scr(void);
-static void	attach_snp(void);
-static void	detach_snp(void);
-static void	set_dev(const char *);
-static void	ask_dev(char *, const char *);
+static void clear(void);
+static void timestamp(const char *);
+static void set_tty(void);
+static void unset_tty(void);
+static void fatal(int, const char *);
+static int open_snp(void);
+static void cleanup(int);
+static void usage(void) __dead2;
+static void setup_scr(void);
+static void attach_snp(void);
+static void detach_snp(void);
+static void set_dev(const char *);
+static void ask_dev(char *, const char *);
 
-int		opt_reconn_close = 0;
-int		opt_reconn_oflow = 0;
-int		opt_interactive = 1;
-int		opt_timestamp = 0;
-int		opt_write = 0;
-int		opt_no_switch = 0;
-const char	*opt_snpdev;
+int opt_reconn_close = 0;
+int opt_reconn_oflow = 0;
+int opt_interactive = 1;
+int opt_timestamp = 0;
+int opt_write = 0;
+int opt_no_switch = 0;
+const char *opt_snpdev;
 
-char		dev_name[DEV_NAME_LEN];
-int		snp_io;
-int		std_in = 0, std_out = 1;
+char dev_name[DEV_NAME_LEN];
+int snp_io;
+int std_in = 0, std_out = 1;
 
-int		clear_ok = 0;
-struct termios	otty;
-char		tbuf[1024], gbuf[1024];
+int clear_ok = 0;
+struct termios otty;
+char tbuf[1024], gbuf[1024];
 
 static void
 clear(void)
@@ -89,8 +89,8 @@ clear(void)
 static void
 timestamp(const char *buf)
 {
-	time_t		t;
-	char		btmp[1024];
+	time_t t;
+	char btmp[1024];
 
 	clear();
 	printf("\n---------------------------------------------\n");
@@ -105,10 +105,10 @@ timestamp(const char *buf)
 static void
 set_tty(void)
 {
-	struct termios	ntty;
+	struct termios ntty;
 
 	ntty = otty;
-	ntty.c_lflag &= ~ICANON;	/* disable canonical operation */
+	ntty.c_lflag &= ~ICANON; /* disable canonical operation */
 	ntty.c_lflag &= ~ECHO;
 #ifdef FLUSHO
 	ntty.c_lflag &= ~FLUSHO;
@@ -119,11 +119,11 @@ set_tty(void)
 #ifdef IEXTEN
 	ntty.c_lflag &= ~IEXTEN;
 #endif
-	ntty.c_cc[VMIN] = 1;		/* minimum of one character */
-	ntty.c_cc[VTIME] = 0;		/* timeout value */
+	ntty.c_cc[VMIN] = 1;  /* minimum of one character */
+	ntty.c_cc[VTIME] = 0; /* timeout value */
 
-	ntty.c_cc[VINTR] = 07;		/* ^G */
-	ntty.c_cc[VQUIT] = 07;		/* ^G */
+	ntty.c_cc[VINTR] = 07; /* ^G */
+	ntty.c_cc[VQUIT] = 07; /* ^G */
 	tcsetattr(std_in, TCSANOW, &ntty);
 }
 
@@ -148,7 +148,7 @@ fatal(int error, const char *buf)
 static int
 open_snp(void)
 {
-	int		f, mode;
+	int f, mode;
 
 	if (opt_write)
 		mode = O_RDWR;
@@ -187,7 +187,7 @@ usage(void)
 static void
 setup_scr(void)
 {
-	char		*cbuf = gbuf, *term;
+	char *cbuf = gbuf, *term;
 
 	if (!opt_interactive)
 		return;
@@ -202,7 +202,7 @@ setup_scr(void)
 static void
 detach_snp(void)
 {
-	int		fd;
+	int fd;
 
 	fd = -1;
 	ioctl(snp_io, SNPSTTY, &fd);
@@ -211,7 +211,7 @@ detach_snp(void)
 static void
 attach_snp(void)
 {
-	int		snp_tty;
+	int snp_tty;
 
 	snp_tty = open(dev_name, O_RDONLY | O_NONBLOCK);
 	if (snp_tty < 0)
@@ -226,10 +226,11 @@ attach_snp(void)
 static void
 set_dev(const char *name)
 {
-	char		buf[DEV_NAME_LEN];
-	struct stat	sb;
+	char buf[DEV_NAME_LEN];
+	struct stat sb;
 
-	if (strlen(name) > 5 && !strncmp(name, _PATH_DEV, sizeof _PATH_DEV - 1)) {
+	if (strlen(name) > 5 &&
+	    !strncmp(name, _PATH_DEV, sizeof _PATH_DEV - 1)) {
 		snprintf(buf, sizeof buf, "%s", name);
 	} else {
 		if (strlen(name) == 2)
@@ -252,8 +253,8 @@ set_dev(const char *name)
 void
 ask_dev(char *dbuf, const char *msg)
 {
-	char		buf[DEV_NAME_LEN];
-	int		len;
+	char buf[DEV_NAME_LEN];
+	int len;
 
 	clear();
 	unset_tty();
@@ -275,17 +276,17 @@ ask_dev(char *dbuf, const char *msg)
 	set_tty();
 }
 
-#define READB_LEN	5
+#define READB_LEN 5
 
 int
 main(int ac, char *av[])
 {
-	int		ch, res, rv, nread;
-	size_t		b_size = MIN_SIZE;
-	char		*buf, chb[READB_LEN];
-	fd_set		fd_s;
+	int ch, res, rv, nread;
+	size_t b_size = MIN_SIZE;
+	char *buf, chb[READB_LEN];
+	fd_set fd_s;
 
-	(void) setlocale(LC_TIME, "");
+	(void)setlocale(LC_TIME, "");
 
 	if (isatty(std_out))
 		opt_interactive = 1;
@@ -341,7 +342,7 @@ main(int ac, char *av[])
 
 	set_dev(dev_name);
 
-	if (!(buf = (char *) malloc(b_size)))
+	if (!(buf = (char *)malloc(b_size)))
 		fatal(EX_UNAVAILABLE, "malloc failed");
 
 	FD_ZERO(&fd_s);
@@ -384,7 +385,6 @@ main(int ac, char *av[])
 						set_dev(dev_name);
 					}
 				}
-
 			}
 		}
 		if (!FD_ISSET(snp_io, &fd_s))
@@ -416,14 +416,14 @@ main(int ac, char *av[])
 		default:
 			if (nread < (b_size / 2) && (b_size / 2) > MIN_SIZE) {
 				free(buf);
-				if (!(buf = (char *) malloc(b_size / 2)))
+				if (!(buf = (char *)malloc(b_size / 2)))
 					fatal(EX_UNAVAILABLE, "malloc failed");
 				b_size = b_size / 2;
 			}
 			if (nread > b_size) {
 				b_size = (nread % 2) ? (nread + 1) : (nread);
 				free(buf);
-				if (!(buf = (char *) malloc(b_size)))
+				if (!(buf = (char *)malloc(b_size)))
 					fatal(EX_UNAVAILABLE, "malloc failed");
 			}
 			rv = read(snp_io, buf, nread);
@@ -433,6 +433,6 @@ main(int ac, char *av[])
 			if (rv == -1 || rv != nread)
 				fatal(EX_IOERR, "write failed");
 		}
-	}			/* While */
-	return(0);
+	} /* While */
+	return (0);
 }

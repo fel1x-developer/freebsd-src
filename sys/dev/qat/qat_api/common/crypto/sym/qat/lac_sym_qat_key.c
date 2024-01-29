@@ -12,27 +12,25 @@
 
 #include "cpa.h"
 #include "cpa_cy_key.h"
-#include "lac_mem.h"
-#include "icp_qat_fw_la.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
+#include "icp_qat_fw_la.h"
 #include "lac_list.h"
+#include "lac_mem.h"
 #include "lac_sal_types.h"
-#include "lac_sym_qat_key.h"
 #include "lac_sym_hash_defs.h"
+#include "lac_sym_qat_key.h"
 
 void
 LacSymQat_KeySslRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
-				icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
-				Cpa32U generatedKeyLenInBytes,
-				Cpa32U labelLenInBytes,
-				Cpa32U secretLenInBytes,
-				Cpa32U iterations)
+    icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
+    Cpa32U generatedKeyLenInBytes, Cpa32U labelLenInBytes,
+    Cpa32U secretLenInBytes, Cpa32U iterations)
 {
 	/* Rounded to nearest 8 byte boundary */
 	Cpa8U outLenRounded = 0;
 	outLenRounded = LAC_ALIGN_POW2_ROUNDUP(generatedKeyLenInBytes,
-					       LAC_QUAD_WORD_IN_BYTES);
+	    LAC_QUAD_WORD_IN_BYTES);
 
 	pKeyGenReqMid->u.secret_lgth_ssl = secretLenInBytes;
 	pKeyGenReqMid->u1.s1.output_lgth_ssl = outLenRounded;
@@ -52,13 +50,10 @@ LacSymQat_KeyTlsRequestPopulate(
     icp_qat_fw_la_key_gen_common_t *pKeyGenReqParams,
     Cpa32U generatedKeyLenInBytes,
     Cpa32U labelInfo, /* Generic name, can be num of labels or label length */
-    Cpa32U secretLenInBytes,
-    Cpa8U seedLenInBytes,
-    icp_qat_fw_la_cmd_id_t cmdId)
+    Cpa32U secretLenInBytes, Cpa8U seedLenInBytes, icp_qat_fw_la_cmd_id_t cmdId)
 {
-	pKeyGenReqParams->u1.s3.output_lgth_tls =
-	    LAC_ALIGN_POW2_ROUNDUP(generatedKeyLenInBytes,
-				   LAC_QUAD_WORD_IN_BYTES);
+	pKeyGenReqParams->u1.s3.output_lgth_tls = LAC_ALIGN_POW2_ROUNDUP(
+	    generatedKeyLenInBytes, LAC_QUAD_WORD_IN_BYTES);
 
 	/* For TLS u param of auth_req_params is set to secretLen */
 	pKeyGenReqParams->u.secret_lgth_tls = secretLenInBytes;
@@ -97,97 +92,78 @@ LacSymQat_KeyTlsRequestPopulate(
 
 void
 LacSymQat_KeyMgfRequestPopulate(icp_qat_la_bulk_req_hdr_t *pKeyGenReqHdr,
-				icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid,
-				Cpa8U seedLenInBytes,
-				Cpa16U maskLenInBytes,
-				Cpa8U hashLenInBytes)
+    icp_qat_fw_la_key_gen_common_t *pKeyGenReqMid, Cpa8U seedLenInBytes,
+    Cpa16U maskLenInBytes, Cpa8U hashLenInBytes)
 {
 	pKeyGenReqHdr->comn_hdr.service_cmd_id = ICP_QAT_FW_LA_CMD_MGF1;
-	pKeyGenReqMid->u.mask_length =
-	    LAC_ALIGN_POW2_ROUNDUP(maskLenInBytes, LAC_QUAD_WORD_IN_BYTES);
+	pKeyGenReqMid->u.mask_length = LAC_ALIGN_POW2_ROUNDUP(maskLenInBytes,
+	    LAC_QUAD_WORD_IN_BYTES);
 
 	pKeyGenReqMid->u1.s2.hash_length = hashLenInBytes;
 	pKeyGenReqMid->u1.s2.seed_length = seedLenInBytes;
 }
 
 void
-LacSymQat_KeySslKeyMaterialInputPopulate(
-    sal_service_t *pService,
-    icp_qat_fw_la_ssl_key_material_input_t *pSslKeyMaterialInput,
-    void *pSeed,
-    Cpa64U labelPhysAddr,
-    void *pSecret)
+LacSymQat_KeySslKeyMaterialInputPopulate(sal_service_t *pService,
+    icp_qat_fw_la_ssl_key_material_input_t *pSslKeyMaterialInput, void *pSeed,
+    Cpa64U labelPhysAddr, void *pSecret)
 {
-	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-	    (*pService), pSslKeyMaterialInput->seed_addr, pSeed);
+	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+	    pSslKeyMaterialInput->seed_addr, pSeed);
 
 	pSslKeyMaterialInput->label_addr = labelPhysAddr;
 
-	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-	    (*pService), pSslKeyMaterialInput->secret_addr, pSecret);
+	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+	    pSslKeyMaterialInput->secret_addr, pSecret);
 }
 
 void
-LacSymQat_KeyTlsKeyMaterialInputPopulate(
-    sal_service_t *pService,
-    icp_qat_fw_la_tls_key_material_input_t *pTlsKeyMaterialInput,
-    void *pSeed,
+LacSymQat_KeyTlsKeyMaterialInputPopulate(sal_service_t *pService,
+    icp_qat_fw_la_tls_key_material_input_t *pTlsKeyMaterialInput, void *pSeed,
     Cpa64U labelPhysAddr)
 {
-	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-	    (*pService), pTlsKeyMaterialInput->seed_addr, pSeed);
+	LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+	    pTlsKeyMaterialInput->seed_addr, pSeed);
 
 	pTlsKeyMaterialInput->label_addr = labelPhysAddr;
 }
 
 void
-LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(
-    sal_service_t *pService,
+LacSymQat_KeyTlsHKDFKeyMaterialInputPopulate(sal_service_t *pService,
     icp_qat_fw_la_hkdf_key_material_input_t *pTlsKeyMaterialInput,
-    CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
-    Cpa64U subLabelsPhysAddr,
+    CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData, Cpa64U subLabelsPhysAddr,
     icp_qat_fw_la_cmd_id_t cmdId)
 {
 	switch (cmdId) {
 	case ICP_QAT_FW_LA_CMD_HKDF_EXTRACT:
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService),
-		    pTlsKeyMaterialInput->ikm_addr,
-		    pKeyGenTlsOpData->secret);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pTlsKeyMaterialInput->ikm_addr, pKeyGenTlsOpData->secret);
 		break;
 	case ICP_QAT_FW_LA_CMD_HKDF_EXPAND:
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService),
-		    pTlsKeyMaterialInput->labels_addr,
-		    pKeyGenTlsOpData->info);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pTlsKeyMaterialInput->labels_addr, pKeyGenTlsOpData->info);
 		break;
 	case ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND:
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService),
-		    pTlsKeyMaterialInput->ikm_addr,
-		    pKeyGenTlsOpData->secret);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pTlsKeyMaterialInput->ikm_addr, pKeyGenTlsOpData->secret);
 		pTlsKeyMaterialInput->labels_addr =
 		    pTlsKeyMaterialInput->ikm_addr +
 		    ((uint64_t)&pKeyGenTlsOpData->info -
-		     (uint64_t)&pKeyGenTlsOpData->secret);
+			(uint64_t)&pKeyGenTlsOpData->secret);
 		break;
 	case ICP_QAT_FW_LA_CMD_HKDF_EXPAND_LABEL:
 		pTlsKeyMaterialInput->sublabels_addr = subLabelsPhysAddr;
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService),
-		    pTlsKeyMaterialInput->labels_addr,
-		    pKeyGenTlsOpData->label);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pTlsKeyMaterialInput->labels_addr, pKeyGenTlsOpData->label);
 		break;
 	case ICP_QAT_FW_LA_CMD_HKDF_EXTRACT_AND_EXPAND_LABEL:
 		pTlsKeyMaterialInput->sublabels_addr = subLabelsPhysAddr;
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService),
-		    pTlsKeyMaterialInput->ikm_addr,
-		    pKeyGenTlsOpData->secret);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pTlsKeyMaterialInput->ikm_addr, pKeyGenTlsOpData->secret);
 		pTlsKeyMaterialInput->labels_addr =
 		    pTlsKeyMaterialInput->ikm_addr +
 		    ((uint64_t)&pKeyGenTlsOpData->label -
-		     (uint64_t)&pKeyGenTlsOpData->secret);
+			(uint64_t)&pKeyGenTlsOpData->secret);
 		break;
 	default:
 		break;

@@ -37,6 +37,6 @@ extern int ocs_fdb_dump(ocs_t *ocs);
 extern int ocs_dump_to_host(ocs_t *ocs, void *buf, uint32_t buflen);
 extern int ocs_function_speciic_dump(ocs_t *ocs, void *buf, uint32_t buflen);
 
-#define OCS_MAX_HBA_PORTS	4
+#define OCS_MAX_HBA_PORTS 4
 
 #endif // __OCS_GENDUMP_H__

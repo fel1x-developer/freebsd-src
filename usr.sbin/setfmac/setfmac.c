@@ -49,17 +49,17 @@
 
 struct label_spec {
 	struct label_spec_entry {
-		regex_t regex;	/* compiled regular expression to match */
-		char *regexstr;	/* uncompiled regular expression */
-		mode_t mode;	/* mode to possibly match */
-		const char *modestr;	/* print-worthy ",-?" mode string */
-		char *mactext;	/* MAC label to apply */
-		int flags;	/* miscellaneous flags */
-#define		F_DONTLABEL	0x01
-#define		F_ALWAYSMATCH	0x02
-	} *entries,		/* entries[0..nentries] */
-	  *match;		/* cached decision for MAC label to apply */
-	size_t nentries;	/* size of entries list */
+		regex_t regex;	     /* compiled regular expression to match */
+		char *regexstr;	     /* uncompiled regular expression */
+		mode_t mode;	     /* mode to possibly match */
+		const char *modestr; /* print-worthy ",-?" mode string */
+		char *mactext;	     /* MAC label to apply */
+		int flags;	     /* miscellaneous flags */
+#define F_DONTLABEL 0x01
+#define F_ALWAYSMATCH 0x02
+	} *entries,	 /* entries[0..nentries] */
+	    *match;	 /* cached decision for MAC label to apply */
+	size_t nentries; /* size of entries list */
 	STAILQ_ENTRY(label_spec) link;
 };
 
@@ -93,8 +93,8 @@ main(int argc, char **argv)
 	is_setfmac = strcmp(bn, "setfmac") == 0;
 	hflag = is_setfmac ? FTS_LOGICAL : FTS_PHYSICAL;
 	specs = new_specs();
-	while ((ch = getopt(argc, argv, is_setfmac ? "Rhq" : "ef:qs:vx")) !=
-	    -1) {
+	while (
+	    (ch = getopt(argc, argv, is_setfmac ? "Rhq" : "ef:qs:vx")) != -1) {
 		switch (ch) {
 		case 'R':
 			Rflag = 1;
@@ -128,7 +128,7 @@ main(int argc, char **argv)
 	argv += optind;
 
 	if (is_setfmac) {
-		if (argc <= 1)	
+		if (argc <= 1)
 			usage(is_setfmac);
 		add_setfmac_specs(specs, *argv);
 		argc--;
@@ -142,18 +142,18 @@ main(int argc, char **argv)
 		err(1, "cannot traverse filesystem%s", argc ? "s" : "");
 	while (errno = 0, (ftsent = fts_read(fts)) != NULL) {
 		switch (ftsent->fts_info) {
-		case FTS_DP:		/* skip post-order */
+		case FTS_DP: /* skip post-order */
 			break;
-		case FTS_D:		/* do pre-order */
-		case FTS_DC:		/* do cyclic? */
+		case FTS_D:  /* do pre-order */
+		case FTS_DC: /* do cyclic? */
 			/* don't ever recurse directories as setfmac(8) */
 			if (is_setfmac && !Rflag)
 				fts_set(fts, ftsent, FTS_SKIP);
-		case FTS_DEFAULT:	/* do default */
-		case FTS_F:		/* do regular */
-		case FTS_SL:		/* do symlink */
-		case FTS_SLNONE:	/* do symlink */
-		case FTS_W:		/* do whiteout */
+		case FTS_DEFAULT: /* do default */
+		case FTS_F:	  /* do regular */
+		case FTS_SL:	  /* do symlink */
+		case FTS_SLNONE:  /* do symlink */
+		case FTS_W:	  /* do whiteout */
 			if (apply_specs(specs, ftsent, hflag, vflag)) {
 				if (eflag) {
 					errx(1, "labeling not supported in %s",
@@ -165,7 +165,7 @@ main(int argc, char **argv)
 				fts_set(fts, ftsent, FTS_SKIP);
 			}
 			break;
-		case FTS_DNR:		/* die on all errors */
+		case FTS_DNR: /* die on all errors */
 		case FTS_ERR:
 		case FTS_NS:
 			err(1, "traversing %s", ftsent->fts_path);
@@ -187,7 +187,8 @@ usage(int is_setfmac)
 	if (is_setfmac)
 		fprintf(stderr, "usage: setfmac [-Rhq] label file ...\n");
 	else
-		fprintf(stderr, "usage: setfsmac [-ehqvx] [-f specfile [...]] [-s specfile [...]] file ...\n");
+		fprintf(stderr,
+		    "usage: setfsmac [-ehqvx] [-f specfile [...]] [-s specfile [...]] file ...\n");
 	exit(1);
 }
 
@@ -196,7 +197,7 @@ chomp_line(char **line, size_t *linesize)
 {
 	char *s;
 	int freeme = 0;
-	
+
 	for (s = *line; (unsigned)(s - *line) < *linesize; s++) {
 		if (!isspace(*s))
 			break;
@@ -313,7 +314,7 @@ add_spec_line(const char *file, int is_sebsd, struct label_spec_entry *entry,
 	if (modestr == NULL)
 		errx(1, "%s: need a label", file);
 	macstr = strtok(NULL, " \t");
-	if (macstr == NULL) {	/* the mode is just optional */
+	if (macstr == NULL) { /* the mode is just optional */
 		macstr = modestr;
 		modestr = NULL;
 	}
@@ -406,9 +407,9 @@ apply_specs(struct label_specs *specs, FTSENT *ftsent, int hflag, int vflag)
 	 * order to find the "last" (hopefully "best") match.
 	 */
 	matchedby = 0;
-	STAILQ_FOREACH(ls, &specs->head, link) {
+	STAILQ_FOREACH (ls, &specs->head, link) {
 		for (ls->match = NULL, ent = ls->entries;
-		    ent < &ls->entries[ls->nentries]; ent++) {
+		     ent < &ls->entries[ls->nentries]; ent++) {
 			if (ent->flags & F_ALWAYSMATCH)
 				goto matched;
 			if (ent->mode != 0 &&
@@ -451,10 +452,10 @@ apply_specs(struct label_specs *specs, FTSENT *ftsent, int hflag, int vflag)
 	if (vflag && matchedby)
 		printf("\n");
 	size = 0;
-	STAILQ_FOREACH(ls, &specs->head, link) {
+	STAILQ_FOREACH (ls, &specs->head, link) {
 		/* cached match decision */
 		if (ls->match && (ls->match->flags & F_DONTLABEL) == 0)
-			 /* add length of "x\0"/"y," */
+			/* add length of "x\0"/"y," */
 			size += strlen(ls->match->mactext) + 1;
 	}
 	if (size == 0)
@@ -463,7 +464,7 @@ apply_specs(struct label_specs *specs, FTSENT *ftsent, int hflag, int vflag)
 	if (macstr == NULL)
 		err(1, "malloc");
 	*macstr = '\0';
-	STAILQ_FOREACH(ls, &specs->head, link) {
+	STAILQ_FOREACH (ls, &specs->head, link) {
 		/* cached match decision */
 		if (ls->match && (ls->match->flags & F_DONTLABEL) == 0) {
 			if (*macstr != '\0')
@@ -473,8 +474,9 @@ apply_specs(struct label_specs *specs, FTSENT *ftsent, int hflag, int vflag)
 	}
 	if (mac_from_text(&mac, macstr))
 		err(1, "mac_from_text(%s)", macstr);
-	if ((hflag == FTS_PHYSICAL ? mac_set_link(ftsent->fts_accpath, mac) :
-	    mac_set_file(ftsent->fts_accpath, mac)) != 0) {
+	if ((hflag == FTS_PHYSICAL ?
+		    mac_set_link(ftsent->fts_accpath, mac) :
+		    mac_set_file(ftsent->fts_accpath, mac)) != 0) {
 		if (errno == EOPNOTSUPP) {
 			mac_free(mac);
 			free(macstr);

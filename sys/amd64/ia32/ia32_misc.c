@@ -27,20 +27,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/sysent.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <machine/cpu.h>
 #include <machine/sysarch.h>
 
-#include <compat/freebsd32/freebsd32_util.h>
 #include <compat/freebsd32/freebsd32.h>
 #include <compat/freebsd32/freebsd32_proto.h>
+#include <compat/freebsd32/freebsd32_util.h>
 
 int
 freebsd32_sysarch(struct thread *td, struct freebsd32_sysarch_args *uap)
@@ -57,7 +57,7 @@ freebsd32_sysarch(struct thread *td, struct freebsd32_sysarch_args *uap)
 		uap1.parms = (char *)&uapl;
 		uapl.start = uapl32.start;
 		uapl.descs = (struct user_segment_descriptor *)(uintptr_t)
-		    uapl32.descs;
+				 uapl32.descs;
 		uapl.num = uapl32.num;
 		return (sysarch_ldt(td, &uap1, UIO_SYSSPACE));
 	} else {

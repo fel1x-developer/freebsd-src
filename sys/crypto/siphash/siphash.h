@@ -45,26 +45,25 @@
 #ifndef _SIPHASH_H_
 #define _SIPHASH_H_
 
-#define SIPHASH_BLOCK_LENGTH	 8
-#define SIPHASH_KEY_LENGTH	16
-#define SIPHASH_DIGEST_LENGTH	 8
+#define SIPHASH_BLOCK_LENGTH 8
+#define SIPHASH_KEY_LENGTH 16
+#define SIPHASH_DIGEST_LENGTH 8
 
 typedef struct _SIPHASH_CTX {
-	uint64_t	v[4];
+	uint64_t v[4];
 	union {
-		uint64_t	b64;
-		uint8_t		b8[8];
+		uint64_t b64;
+		uint8_t b8[8];
 	} buf;
-	uint64_t	bytes;
-	uint8_t		buflen;
-	uint8_t		rounds_compr;
-	uint8_t		rounds_final;
-	uint8_t		initialized;
+	uint64_t bytes;
+	uint8_t buflen;
+	uint8_t rounds_compr;
+	uint8_t rounds_final;
+	uint8_t initialized;
 } SIPHASH_CTX;
 
-
-#define SipHash24_Init(x)	SipHash_InitX((x), 2, 4)
-#define SipHash48_Init(x)	SipHash_InitX((x), 4, 8)
+#define SipHash24_Init(x) SipHash_InitX((x), 2, 4)
+#define SipHash48_Init(x) SipHash_InitX((x), 4, 8)
 void SipHash_InitX(SIPHASH_CTX *, int, int);
 void SipHash_SetKey(SIPHASH_CTX *,
     const uint8_t[__min_size(SIPHASH_KEY_LENGTH)]);
@@ -72,8 +71,8 @@ void SipHash_Update(SIPHASH_CTX *, const void *, size_t);
 void SipHash_Final(uint8_t[__min_size(SIPHASH_DIGEST_LENGTH)], SIPHASH_CTX *);
 uint64_t SipHash_End(SIPHASH_CTX *);
 
-#define SipHash24(x, y, z, i)	SipHashX((x), 2, 4, (y), (z), (i));
-#define SipHash48(x, y, z, i)	SipHashX((x), 4, 8, (y), (z), (i));
+#define SipHash24(x, y, z, i) SipHashX((x), 2, 4, (y), (z), (i));
+#define SipHash48(x, y, z, i) SipHashX((x), 4, 8, (y), (z), (i));
 uint64_t SipHashX(SIPHASH_CTX *, int, int,
     const uint8_t[__min_size(SIPHASH_KEY_LENGTH)], const void *, size_t);
 

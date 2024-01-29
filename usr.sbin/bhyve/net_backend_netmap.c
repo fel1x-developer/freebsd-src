@@ -40,10 +40,11 @@
 #include "net_backends_priv.h"
 
 /* The virtio-net features supported by netmap. */
-#define NETMAP_FEATURES (VIRTIO_NET_F_CSUM | VIRTIO_NET_F_HOST_TSO4 | \
-		VIRTIO_NET_F_HOST_TSO6 | VIRTIO_NET_F_HOST_UFO | \
-		VIRTIO_NET_F_GUEST_CSUM | VIRTIO_NET_F_GUEST_TSO4 | \
-		VIRTIO_NET_F_GUEST_TSO6 | VIRTIO_NET_F_GUEST_UFO)
+#define NETMAP_FEATURES                                                        \
+	(VIRTIO_NET_F_CSUM | VIRTIO_NET_F_HOST_TSO4 | VIRTIO_NET_F_HOST_TSO6 | \
+	    VIRTIO_NET_F_HOST_UFO | VIRTIO_NET_F_GUEST_CSUM |                  \
+	    VIRTIO_NET_F_GUEST_TSO4 | VIRTIO_NET_F_GUEST_TSO6 |                \
+	    VIRTIO_NET_F_GUEST_UFO)
 
 struct netmap_priv {
 	char ifname[IFNAMSIZ];
@@ -110,8 +111,8 @@ static uint64_t
 netmap_get_cap(struct net_backend *be)
 {
 
-	return (netmap_has_vnet_hdr_len(be, VNET_HDR_LEN) ?
-	    NETMAP_FEATURES : 0);
+	return (
+	    netmap_has_vnet_hdr_len(be, VNET_HDR_LEN) ? NETMAP_FEATURES : 0);
 }
 
 static int
@@ -123,8 +124,8 @@ netmap_set_cap(struct net_backend *be, uint64_t features __unused,
 }
 
 static int
-netmap_init(struct net_backend *be, const char *devname,
-    nvlist_t *nvl __unused, net_be_rxeof_t cb, void *param)
+netmap_init(struct net_backend *be, const char *devname, nvlist_t *nvl __unused,
+    net_be_rxeof_t cb, void *param)
 {
 	struct netmap_priv *priv = NET_BE_PRIV(be);
 
@@ -169,8 +170,7 @@ netmap_cleanup(struct net_backend *be)
 }
 
 static ssize_t
-netmap_send(struct net_backend *be, const struct iovec *iov,
-	    int iovcnt)
+netmap_send(struct net_backend *be, const struct iovec *iov, int iovcnt)
 {
 	struct netmap_priv *priv = NET_BE_PRIV(be);
 	struct netmap_ring *ring;
@@ -204,7 +204,8 @@ netmap_send(struct net_backend *be, const struct iovec *iov,
 		for (;;) {
 			int copylen;
 
-			copylen = iov_frag_size < nm_buf_size ? iov_frag_size : nm_buf_size;
+			copylen = iov_frag_size < nm_buf_size ? iov_frag_size :
+								nm_buf_size;
 			memcpy(nm_buf, iov_frag_buf, copylen);
 
 			iov_frag_buf += copylen;
@@ -300,7 +301,8 @@ netmap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt)
 
 		for (;;) {
 			int copylen = nm_buf_len < iov_frag_size ?
-			    nm_buf_len : iov_frag_size;
+			    nm_buf_len :
+			    iov_frag_size;
 
 			memcpy(iov_frag_buf, nm_buf, copylen);
 			nm_buf += copylen;
@@ -317,8 +319,7 @@ netmap_recv(struct net_backend *be, const struct iovec *iov, int iovcnt)
 			iovcnt--;
 			if (iovcnt == 0) {
 				/* No space to receive. */
-				EPRINTLN("Short iov, drop %zd bytes",
-				    totlen);
+				EPRINTLN("Short iov, drop %zd bytes", totlen);
 				return (-ENOSPC);
 			}
 			iov_frag_buf = iov->iov_base;

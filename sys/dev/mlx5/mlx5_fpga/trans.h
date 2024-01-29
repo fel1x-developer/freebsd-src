@@ -33,8 +33,8 @@
 #ifndef __MLX5_FPGA_TRANS_H__
 #define __MLX5_FPGA_TRANS_H__
 
-#include <dev/mlx5/mlx5_fpga/sdk.h>
 #include <dev/mlx5/mlx5_fpga/core.h>
+#include <dev/mlx5/mlx5_fpga/sdk.h>
 
 #define MLX5_FPGA_TRANSACTION_MAX_SIZE 1008
 #define MLX5_FPGA_TRANSACTION_SEND_ALIGN_BITS 3
@@ -53,7 +53,7 @@ struct mlx5_fpga_transaction {
 	u64 addr;
 	u8 *data;
 	void (*complete1)(const struct mlx5_fpga_transaction *complete,
-			 u8 status);
+	    u8 status);
 };
 
 int mlx5_fpga_trans_device_init(struct mlx5_fpga_device *fdev);

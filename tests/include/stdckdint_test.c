@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
+#include <atf-c.h>
 #include <limits.h>
 #include <stdckdint.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(ckd_add);
 ATF_TC_BODY(ckd_add, tc)
@@ -48,5 +47,4 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, ckd_sub);
 	ATF_TP_ADD_TC(tp, ckd_mul);
 	return (atf_no_error());
-
 }

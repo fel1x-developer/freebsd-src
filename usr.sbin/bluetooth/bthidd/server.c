@@ -33,11 +33,13 @@
  */
 
 #include <sys/queue.h>
+
 #include <assert.h>
 #define L2CAP_SOCKET_CHECKED
-#include <bluetooth.h>
 #include <dev/evdev/input.h>
 #include <dev/vkbd/vkbd_var.h>
+
+#include <bluetooth.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -46,16 +48,17 @@
 #include <syslog.h>
 #include <unistd.h>
 #include <usbhid.h>
+
 #include "bthid_config.h"
 #include "bthidd.h"
 #include "btuinput.h"
 #include "kbd.h"
 
-#undef	max
-#define	max(x, y)	(((x) > (y))? (x) : (y))
+#undef max
+#define max(x, y) (((x) > (y)) ? (x) : (y))
 
-static int32_t	server_accept (bthid_server_p srv, int32_t fd);
-static int32_t	server_process(bthid_server_p srv, int32_t fd);
+static int32_t server_accept(bthid_server_p srv, int32_t fd);
+static int32_t server_process(bthid_server_p srv, int32_t fd);
 
 /*
  * Initialize server
@@ -64,7 +67,7 @@ static int32_t	server_process(bthid_server_p srv, int32_t fd);
 int32_t
 server_init(bthid_server_p srv)
 {
-	struct sockaddr_l2cap	l2addr;
+	struct sockaddr_l2cap l2addr;
 
 	assert(srv != NULL);
 
@@ -77,15 +80,17 @@ server_init(bthid_server_p srv)
 	srv->cons = open("/dev/consolectl", O_RDWR);
 	if (srv->cons < 0) {
 		syslog(LOG_ERR, "Could not open /dev/consolectl. %s (%d)",
-			strerror(errno), errno);
+		    strerror(errno), errno);
 		return (-1);
 	}
 
 	/* Create control socket */
 	srv->ctrl = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BLUETOOTH_PROTO_L2CAP);
 	if (srv->ctrl < 0) {
-		syslog(LOG_ERR, "Could not create control L2CAP socket. " \
-			"%s (%d)", strerror(errno), errno);
+		syslog(LOG_ERR,
+		    "Could not create control L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->cons);
 		return (-1);
 	}
@@ -96,18 +101,22 @@ server_init(bthid_server_p srv)
 	l2addr.l2cap_psm = htole16(0x11);
 	l2addr.l2cap_bdaddr_type = BDADDR_BREDR;
 	l2addr.l2cap_cid = 0;
-	
-	if (bind(srv->ctrl, (struct sockaddr *) &l2addr, sizeof(l2addr)) < 0) {
-		syslog(LOG_ERR, "Could not bind control L2CAP socket. " \
-			"%s (%d)", strerror(errno), errno);
+
+	if (bind(srv->ctrl, (struct sockaddr *)&l2addr, sizeof(l2addr)) < 0) {
+		syslog(LOG_ERR,
+		    "Could not bind control L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->ctrl);
 		close(srv->cons);
 		return (-1);
 	}
 
 	if (listen(srv->ctrl, 10) < 0) {
-		syslog(LOG_ERR, "Could not listen on control L2CAP socket. " \
-			"%s (%d)", strerror(errno), errno);
+		syslog(LOG_ERR,
+		    "Could not listen on control L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->ctrl);
 		close(srv->cons);
 		return (-1);
@@ -116,8 +125,10 @@ server_init(bthid_server_p srv)
 	/* Create interrupt socket */
 	srv->intr = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BLUETOOTH_PROTO_L2CAP);
 	if (srv->intr < 0) {
-		syslog(LOG_ERR, "Could not create interrupt L2CAP socket. " \
-			"%s (%d)", strerror(errno), errno);
+		syslog(LOG_ERR,
+		    "Could not create interrupt L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->ctrl);
 		close(srv->cons);
 		return (-1);
@@ -125,9 +136,11 @@ server_init(bthid_server_p srv)
 
 	l2addr.l2cap_psm = htole16(0x13);
 
-	if (bind(srv->intr, (struct sockaddr *) &l2addr, sizeof(l2addr)) < 0) {
-		syslog(LOG_ERR, "Could not bind interrupt L2CAP socket. " \
-			"%s (%d)", strerror(errno), errno);
+	if (bind(srv->intr, (struct sockaddr *)&l2addr, sizeof(l2addr)) < 0) {
+		syslog(LOG_ERR,
+		    "Could not bind interrupt L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->intr);
 		close(srv->ctrl);
 		close(srv->cons);
@@ -135,8 +148,10 @@ server_init(bthid_server_p srv)
 	}
 
 	if (listen(srv->intr, 10) < 0) {
-		syslog(LOG_ERR, "Could not listen on interrupt L2CAP socket. "\
-			"%s (%d)", strerror(errno), errno);
+		syslog(LOG_ERR,
+		    "Could not listen on interrupt L2CAP socket. "
+		    "%s (%d)",
+		    strerror(errno), errno);
 		close(srv->intr);
 		close(srv->ctrl);
 		close(srv->cons);
@@ -176,9 +191,9 @@ server_shutdown(bthid_server_p srv)
 int32_t
 server_do(bthid_server_p srv)
 {
-	struct timeval	tv;
-	fd_set		rfdset, wfdset;
-	int32_t		n, fd;
+	struct timeval tv;
+	fd_set rfdset, wfdset;
+	int32_t n, fd;
 
 	assert(srv != NULL);
 
@@ -191,26 +206,26 @@ server_do(bthid_server_p srv)
 
 	n = select(srv->maxfd + 1, &rfdset, &wfdset, NULL, &tv);
 	if (n < 0) {
-		if (errno == EINTR)  
+		if (errno == EINTR)
 			return (0);
 
 		syslog(LOG_ERR, "Could not select(%d, %p, %p). %s (%d)",
-			srv->maxfd + 1, &rfdset, &wfdset, strerror(errno), errno);
+		    srv->maxfd + 1, &rfdset, &wfdset, strerror(errno), errno);
 
 		return (-1);
 	}
 
 	/* Process descriptors (if any) */
-	for (fd = 0; fd < srv->maxfd + 1 && n > 0; fd ++) {
+	for (fd = 0; fd < srv->maxfd + 1 && n > 0; fd++) {
 		if (FD_ISSET(fd, &rfdset)) {
-			n --;
+			n--;
 
 			if (fd == srv->ctrl || fd == srv->intr)
 				server_accept(srv, fd);
 			else
 				server_process(srv, fd);
 		} else if (FD_ISSET(fd, &wfdset)) {
-			n --;
+			n--;
 
 			client_connect(srv, fd);
 		}
@@ -220,32 +235,33 @@ server_do(bthid_server_p srv)
 }
 
 /*
- * Accept new connection 
+ * Accept new connection
  */
 
 static int32_t
 server_accept(bthid_server_p srv, int32_t fd)
 {
-	bthid_session_p		s;
-	hid_device_p		d;
-	struct sockaddr_l2cap	l2addr;
-	int32_t			new_fd;
-	socklen_t		len;
+	bthid_session_p s;
+	hid_device_p d;
+	struct sockaddr_l2cap l2addr;
+	int32_t new_fd;
+	socklen_t len;
 
 	len = sizeof(l2addr);
-	if ((new_fd = accept(fd, (struct sockaddr *) &l2addr, &len)) < 0) {
+	if ((new_fd = accept(fd, (struct sockaddr *)&l2addr, &len)) < 0) {
 		syslog(LOG_ERR, "Could not accept %s connection. %s (%d)",
-			(fd == srv->ctrl)? "control" : "interrupt",
-			strerror(errno), errno);
+		    (fd == srv->ctrl) ? "control" : "interrupt",
+		    strerror(errno), errno);
 		return (-1);
 	}
 
 	/* Is device configured? */
 	if ((d = get_hid_device(&l2addr.l2cap_bdaddr)) == NULL) {
-		syslog(LOG_ERR, "Rejecting %s connection from %s. " \
-			"Device not configured",
-			(fd == srv->ctrl)? "control" : "interrupt",
-			bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
+		syslog(LOG_ERR,
+		    "Rejecting %s connection from %s. "
+		    "Device not configured",
+		    (fd == srv->ctrl) ? "control" : "interrupt",
+		    bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
 		close(new_fd);
 		return (-1);
 	}
@@ -257,8 +273,10 @@ server_accept(bthid_server_p srv, int32_t fd)
 
 		/* Create new inbound session */
 		if ((s = session_open(srv, d)) == NULL) {
-			syslog(LOG_CRIT, "Could not open inbound session "
-				"for %s", bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
+			syslog(LOG_CRIT,
+			    "Could not open inbound session "
+			    "for %s",
+			    bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
 			close(new_fd);
 			return (-1);
 		}
@@ -268,11 +286,11 @@ server_accept(bthid_server_p srv, int32_t fd)
 	if (fd == srv->ctrl) {
 		assert(s->ctrl == -1);
 		s->ctrl = new_fd;
-		s->state = (s->intr == -1)? W4INTR : OPEN;
+		s->state = (s->intr == -1) ? W4INTR : OPEN;
 	} else {
 		assert(s->intr == -1);
 		s->intr = new_fd;
-		s->state = (s->ctrl == -1)? W4CTRL : OPEN;
+		s->state = (s->ctrl == -1) ? W4CTRL : OPEN;
 	}
 
 	FD_SET(new_fd, &srv->rfdset);
@@ -280,8 +298,8 @@ server_accept(bthid_server_p srv, int32_t fd)
 		srv->maxfd = new_fd;
 
 	syslog(LOG_NOTICE, "Accepted %s connection from %s",
-		(fd == srv->ctrl)? "control" : "interrupt",
-		bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
+	    (fd == srv->ctrl) ? "control" : "interrupt",
+	    bt_ntoa(&l2addr.l2cap_bdaddr, NULL));
 
 	/* Create virtual kbd/mouse after both channels are established */
 	if (s->state == OPEN && session_run(s) < 0) {
@@ -299,18 +317,17 @@ server_accept(bthid_server_p srv, int32_t fd)
 static int32_t
 server_process(bthid_server_p srv, int32_t fd)
 {
-	bthid_session_p		s = session_by_fd(srv, fd);
-	int32_t			len, to_read;
-	int32_t			(*cb)(bthid_session_p, uint8_t *, int32_t);
+	bthid_session_p s = session_by_fd(srv, fd);
+	int32_t len, to_read;
+	int32_t (*cb)(bthid_session_p, uint8_t *, int32_t);
 	union {
-		uint8_t			b[1024];
-		vkbd_status_t		s;
-		struct input_event	ie;
-	}				data;
+		uint8_t b[1024];
+		vkbd_status_t s;
+		struct input_event ie;
+	} data;
 
 	if (s == NULL)
 		return (0); /* can happen on device disconnect */
-
 
 	if (fd == s->ctrl) {
 		cb = hid_control;
@@ -334,23 +351,22 @@ server_process(bthid_server_p srv, int32_t fd)
 
 	if (len < 0) {
 		syslog(LOG_ERR, "Could not read data from %s (%s). %s (%d)",
-			bt_ntoa(&s->bdaddr, NULL),
-			(fd == s->ctrl)? "control" : "interrupt",
-			strerror(errno), errno);
+		    bt_ntoa(&s->bdaddr, NULL),
+		    (fd == s->ctrl) ? "control" : "interrupt", strerror(errno),
+		    errno);
 		session_close(s);
 		return (0);
 	}
 
 	if (len == 0) {
 		syslog(LOG_NOTICE, "Remote device %s has closed %s connection",
-			bt_ntoa(&s->bdaddr, NULL),
-			(fd == s->ctrl)? "control" : "interrupt");
+		    bt_ntoa(&s->bdaddr, NULL),
+		    (fd == s->ctrl) ? "control" : "interrupt");
 		session_close(s);
 		return (0);
 	}
 
-	(*cb)(s, (uint8_t *) &data, len);
+	(*cb)(s, (uint8_t *)&data, len);
 
 	return (0);
 }
-

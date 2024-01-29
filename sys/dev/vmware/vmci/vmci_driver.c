@@ -7,6 +7,7 @@
 /* VMCI initialization. */
 
 #include <sys/cdefs.h>
+
 #include "vmci.h"
 #include "vmci_doorbell.h"
 #include "vmci_driver.h"
@@ -15,8 +16,8 @@
 #include "vmci_kernel_defs.h"
 #include "vmci_resource.h"
 
-#define LGPFX			"vmci: "
-#define VMCI_UTIL_NUM_RESOURCES	1
+#define LGPFX "vmci: "
+#define VMCI_UTIL_NUM_RESOURCES 1
 
 static vmci_id ctx_update_sub_id = VMCI_INVALID_ID;
 static volatile int vm_context_id = VMCI_INVALID_ID;
@@ -46,16 +47,17 @@ vmci_util_cid_update(vmci_id sub_id, struct vmci_event_data *event_data,
 	ev_payload = vmci_event_data_payload(event_data);
 
 	if (sub_id != ctx_update_sub_id) {
-		VMCI_LOG_DEBUG(LGPFX"Invalid subscriber (ID=0x%x).\n", sub_id);
+		VMCI_LOG_DEBUG(LGPFX "Invalid subscriber (ID=0x%x).\n", sub_id);
 		return;
 	}
 	if (event_data == NULL || ev_payload->context_id == VMCI_INVALID_ID) {
-		VMCI_LOG_DEBUG(LGPFX"Invalid event data.\n");
+		VMCI_LOG_DEBUG(LGPFX "Invalid event data.\n");
 		return;
 	}
-	VMCI_LOG_INFO(LGPFX"Updating context from (ID=0x%x) to (ID=0x%x) on "
-	    "event (type=%d).\n", atomic_load_int(&vm_context_id),
-	    ev_payload->context_id, event_data->event);
+	VMCI_LOG_INFO(LGPFX "Updating context from (ID=0x%x) to (ID=0x%x) on "
+			    "event (type=%d).\n",
+	    atomic_load_int(&vm_context_id), ev_payload->context_id,
+	    event_data->event);
 	atomic_store_int(&vm_context_id, ev_payload->context_id);
 }
 
@@ -83,10 +85,11 @@ vmci_util_init(void)
 	 * We subscribe to the VMCI_EVENT_CTX_ID_UPDATE here so we can update
 	 * the internal context id when needed.
 	 */
-	if (vmci_event_subscribe(VMCI_EVENT_CTX_ID_UPDATE,
-	    vmci_util_cid_update, NULL, &ctx_update_sub_id) < VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to subscribe to event "
-		    "(type=%d).\n", VMCI_EVENT_CTX_ID_UPDATE);
+	if (vmci_event_subscribe(VMCI_EVENT_CTX_ID_UPDATE, vmci_util_cid_update,
+		NULL, &ctx_update_sub_id) < VMCI_SUCCESS) {
+		VMCI_LOG_WARNING(LGPFX "Failed to subscribe to event "
+				       "(type=%d).\n",
+		    VMCI_EVENT_CTX_ID_UPDATE);
 	}
 }
 
@@ -111,8 +114,8 @@ vmci_util_exit(void)
 {
 
 	if (vmci_event_unsubscribe(ctx_update_sub_id) < VMCI_SUCCESS)
-		VMCI_LOG_WARNING(LGPFX"Failed to unsubscribe to event "
-		    "(type=%d) with subscriber (ID=0x%x).\n",
+		VMCI_LOG_WARNING(LGPFX "Failed to unsubscribe to event "
+				       "(type=%d) with subscriber (ID=0x%x).\n",
 		    VMCI_EVENT_CTX_ID_UPDATE, ctx_update_sub_id);
 }
 
@@ -147,7 +150,7 @@ vmci_util_check_host_capabilities(void)
 	check_msg = vmci_alloc_kernel_mem(msg_size, VMCI_MEMORY_NORMAL);
 
 	if (check_msg == NULL) {
-		VMCI_LOG_WARNING(LGPFX"Check host: Insufficient memory.\n");
+		VMCI_LOG_WARNING(LGPFX "Check host: Insufficient memory.\n");
 		return (false);
 	}
 
@@ -199,9 +202,9 @@ vmci_check_host_capabilities(void)
 		 * If it failed, then make sure this goes to the system event
 		 * log.
 		 */
-		VMCI_LOG_WARNING(LGPFX"Host capability checked failed.\n");
+		VMCI_LOG_WARNING(LGPFX "Host capability checked failed.\n");
 	} else
-		VMCI_LOG_DEBUG(LGPFX"Host capability check passed.\n");
+		VMCI_LOG_DEBUG(LGPFX "Host capability check passed.\n");
 
 	return (result);
 }
@@ -259,8 +262,8 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 			ASSERT(remaining_bytes > PAGE_SIZE);
 			dg = (struct vmci_datagram *)ROUNDUP((uintptr_t)dg + 1,
 			    PAGE_SIZE);
-			ASSERT((uint8_t *)dg < dg_in_buffer +
-			    current_dg_in_buffer_size);
+			ASSERT((uint8_t *)dg <
+			    dg_in_buffer + current_dg_in_buffer_size);
 			remaining_bytes = (size_t)(dg_in_buffer +
 			    current_dg_in_buffer_size - (uint8_t *)dg);
 			continue;
@@ -288,9 +291,10 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 					 * into the following bytes.
 					 */
 
-					memmove(dg_in_buffer, dg_in_buffer +
-					    current_dg_in_buffer_size -
-					    remaining_bytes,
+					memmove(dg_in_buffer,
+					    dg_in_buffer +
+						current_dg_in_buffer_size -
+						remaining_bytes,
 					    remaining_bytes);
 
 					dg = (struct vmci_datagram *)
@@ -305,7 +309,7 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 				vmci_read_port_bytes(io_handle, dg_in_port,
 				    dg_in_buffer + remaining_bytes,
 				    current_dg_in_buffer_size -
-				    remaining_bytes);
+					remaining_bytes);
 			}
 
 			/*
@@ -316,10 +320,10 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 			    dg->dst.resource == VMCI_EVENT_HANDLER)
 				result = vmci_event_dispatch(dg);
 			else
-				result =
-				    vmci_datagram_invoke_guest_handler(dg);
+				result = vmci_datagram_invoke_guest_handler(dg);
 			if (result < VMCI_SUCCESS)
-				VMCI_LOG_DEBUG(LGPFX"Datagram with resource"
+				VMCI_LOG_DEBUG(LGPFX
+				    "Datagram with resource"
 				    " (ID=0x%x) failed (err=%d).\n",
 				    dg->dst.resource, result);
 
@@ -334,8 +338,9 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 			 * size. We drop it.
 			 */
 
-			VMCI_LOG_DEBUG(LGPFX"Failed to receive datagram "
-			    "(size=%zu bytes).\n", dg_in_size);
+			VMCI_LOG_DEBUG(LGPFX "Failed to receive datagram "
+					     "(size=%zu bytes).\n",
+			    dg_in_size);
 
 			bytes_to_skip = dg_in_size - remaining_bytes;
 			if (current_dg_in_buffer_size != dg_in_buffer_size)
@@ -343,8 +348,7 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 			for (;;) {
 				vmci_read_port_bytes(io_handle, dg_in_port,
 				    dg_in_buffer, current_dg_in_buffer_size);
-				if (bytes_to_skip <=
-				    current_dg_in_buffer_size)
+				if (bytes_to_skip <= current_dg_in_buffer_size)
 					break;
 				bytes_to_skip -= current_dg_in_buffer_size;
 			}
@@ -352,7 +356,7 @@ vmci_read_datagrams_from_port(vmci_io_handle io_handle, vmci_io_port dg_in_port,
 			    bytes_to_skip);
 		}
 
-		remaining_bytes = (size_t) (dg_in_buffer +
+		remaining_bytes = (size_t)(dg_in_buffer +
 		    current_dg_in_buffer_size - (uint8_t *)dg);
 
 		if (remaining_bytes < VMCI_DG_HEADERSIZE) {
@@ -389,7 +393,7 @@ vmci_get_context_id(void)
 	if (atomic_load_int(&vm_context_id) == VMCI_INVALID_ID) {
 		uint32_t result;
 		struct vmci_datagram get_cid_msg;
-		get_cid_msg.dst =  VMCI_MAKE_HANDLE(VMCI_HYPERVISOR_CONTEXT_ID,
+		get_cid_msg.dst = VMCI_MAKE_HANDLE(VMCI_HYPERVISOR_CONTEXT_ID,
 		    VMCI_GET_CONTEXT_ID);
 		get_cid_msg.src = VMCI_ANON_SRC_HANDLE;
 		get_cid_msg.payload_size = 0;
@@ -422,26 +426,29 @@ vmci_components_init(void)
 
 	result = vmci_resource_init();
 	if (result < VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to initialize vmci_resource "
-		    "(result=%d).\n", result);
+		VMCI_LOG_WARNING(LGPFX "Failed to initialize vmci_resource "
+				       "(result=%d).\n",
+		    result);
 		goto error_exit;
 	}
 
 	result = vmci_event_init();
 	if (result < VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to initialize vmci_event "
-		    "(result=%d).\n", result);
+		VMCI_LOG_WARNING(LGPFX "Failed to initialize vmci_event "
+				       "(result=%d).\n",
+		    result);
 		goto resource_exit;
 	}
 
 	result = vmci_doorbell_init();
 	if (result < VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to initialize vmci_doorbell "
-		    "(result=%d).\n", result);
+		VMCI_LOG_WARNING(LGPFX "Failed to initialize vmci_doorbell "
+				       "(result=%d).\n",
+		    result);
 		goto event_exit;
 	}
 
-	VMCI_LOG_DEBUG(LGPFX"components initialized.\n");
+	VMCI_LOG_DEBUG(LGPFX "components initialized.\n");
 	return (VMCI_SUCCESS);
 
 event_exit:

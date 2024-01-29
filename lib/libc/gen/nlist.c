@@ -29,22 +29,23 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
+#include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/file.h>
-#include <arpa/inet.h>
 
-#include <errno.h>
+#include <machine/elf.h>
+
 #include <a.out.h>
+#include <arpa/inet.h>
+#include <elf-hints.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include <machine/elf.h>
-#include <elf-hints.h>
+#include "namespace.h"
+#include "un-namespace.h"
 
 int __fdnlist(int, struct nlist *);
 int __elf_fdnlist(int, struct nlist *);
@@ -64,7 +65,7 @@ nlist(const char *name, struct nlist *list)
 }
 
 static struct nlist_handlers {
-	int	(*fn)(int fd, struct nlist *list);
+	int (*fn)(int fd, struct nlist *list);
 } nlist_fn[] = {
 	{ __elf_fdnlist },
 };
@@ -83,7 +84,7 @@ __fdnlist(int fd, struct nlist *list)
 	return (n);
 }
 
-#define	ISLAST(p)	(p->n_un.n_name == 0 || p->n_un.n_name[0] == 0)
+#define ISLAST(p) (p->n_un.n_name == 0 || p->n_un.n_name[0] == 0)
 
 static void elf_sym_to_nlist(struct nlist *, Elf_Sym *, Elf_Shdr *, int);
 
@@ -104,8 +105,7 @@ __elf_is_okay__(Elf_Ehdr *ehdr)
 	 * Elf_Ehdr structure.  These few elements are
 	 * represented in a machine independent fashion.
 	 */
-	if (IS_ELF(*ehdr) &&
-	    ehdr->e_ident[EI_CLASS] == ELF_TARG_CLASS &&
+	if (IS_ELF(*ehdr) && ehdr->e_ident[EI_CLASS] == ELF_TARG_CLASS &&
 	    ehdr->e_ident[EI_DATA] == ELF_TARG_DATA &&
 	    ehdr->e_ident[EI_VERSION] == ELF_TARG_VER) {
 
@@ -138,8 +138,7 @@ __elf_fdnlist(int fd, struct nlist *list)
 	/* Make sure obj is OK */
 	if (lseek(fd, (off_t)0, SEEK_SET) == -1 ||
 	    _read(fd, &ehdr, sizeof(Elf_Ehdr)) != sizeof(Elf_Ehdr) ||
-	    !__elf_is_okay__(&ehdr) ||
-	    _fstat(fd, &st) < 0)
+	    !__elf_is_okay__(&ehdr) || _fstat(fd, &st) < 0)
 		return (-1);
 
 	/* calculate section header table size */
@@ -213,8 +212,8 @@ __elf_fdnlist(int fd, struct nlist *list)
 	/* Don't process any further if object is stripped. */
 	if (symoff == 0)
 		goto done;
-		
-	if (lseek(fd, (off_t) symoff, SEEK_SET) == -1) {
+
+	if (lseek(fd, (off_t)symoff, SEEK_SET) == -1) {
 		nent = -1;
 		goto done;
 	}
@@ -233,8 +232,9 @@ __elf_fdnlist(int fd, struct nlist *list)
 				continue;
 			for (p = list; !ISLAST(p); p++) {
 				if ((p->n_un.n_name[0] == '_' &&
-				    strcmp(name, p->n_un.n_name+1) == 0)
-				    || strcmp(name, p->n_un.n_name) == 0) {
+					strcmp(name, p->n_un.n_name + 1) ==
+					    0) ||
+				    strcmp(name, p->n_un.n_name) == 0) {
 					elf_sym_to_nlist(p, s, shdr,
 					    ehdr.e_shnum);
 					if (--nent <= 0)
@@ -243,7 +243,7 @@ __elf_fdnlist(int fd, struct nlist *list)
 			}
 		}
 	}
-  done:
+done:
 	errsave = errno;
 	if (strtab != NULL)
 		munmap(strtab, symstrsize);
@@ -268,8 +268,7 @@ elf_sym_to_nlist(struct nlist *nl, Elf_Sym *s, Elf_Shdr *shdr, int shnum)
 		nl->n_type = N_UNDF;
 		break;
 	case SHN_ABS:
-		nl->n_type = ELF_ST_TYPE(s->st_info) == STT_FILE ?
-		    N_FN : N_ABS;
+		nl->n_type = ELF_ST_TYPE(s->st_info) == STT_FILE ? N_FN : N_ABS;
 		break;
 	default:
 		if (s->st_shndx >= shnum)

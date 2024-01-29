@@ -33,13 +33,13 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
 #include "lio_mem_ops.h"
+#include "lio_response_manager.h"
 
-#define MEMOPS_IDX   LIO_MAX_BAR1_MAP_INDEX
+#define MEMOPS_IDX LIO_MAX_BAR1_MAP_INDEX
 
 #if BYTE_ORDER == BIG_ENDIAN
 static inline void
@@ -52,16 +52,16 @@ lio_toggle_bar1_swapmode(struct octeon_device *oct, uint32_t idx)
 	oct->fn_list.bar1_idx_write(oct, idx, mask);
 }
 
-#else	/* BYTE_ORDER != BIG_ENDIAN */
+#else /* BYTE_ORDER != BIG_ENDIAN */
 #define lio_toggle_bar1_swapmode(oct, idx)
-#endif	/* BYTE_ORDER == BIG_ENDIAN */
+#endif /* BYTE_ORDER == BIG_ENDIAN */
 
 static inline void
 lio_write_bar1_mem8(struct octeon_device *oct, uint32_t reg, uint64_t val)
 {
 
 	bus_space_write_1(oct->mem_bus_space[1].tag,
-			  oct->mem_bus_space[1].handle, reg, val);
+	    oct->mem_bus_space[1].handle, reg, val);
 }
 
 #ifdef __i386__
@@ -70,7 +70,7 @@ lio_read_bar1_mem32(struct octeon_device *oct, uint32_t reg)
 {
 
 	return (bus_space_read_4(oct->mem_bus_space[1].tag,
-				 oct->mem_bus_space[1].handle, reg));
+	    oct->mem_bus_space[1].handle, reg));
 }
 
 static inline void
@@ -78,7 +78,7 @@ lio_write_bar1_mem32(struct octeon_device *oct, uint32_t reg, uint32_t val)
 {
 
 	bus_space_write_4(oct->mem_bus_space[1].tag,
-			  oct->mem_bus_space[1].handle, reg, val);
+	    oct->mem_bus_space[1].handle, reg, val);
 }
 #endif
 
@@ -88,10 +88,10 @@ lio_read_bar1_mem64(struct octeon_device *oct, uint32_t reg)
 
 #ifdef __i386__
 	return (lio_read_bar1_mem32(oct, reg) |
-			((uint64_t)lio_read_bar1_mem32(oct, reg + 4) << 32));
+	    ((uint64_t)lio_read_bar1_mem32(oct, reg + 4) << 32));
 #else
 	return (bus_space_read_8(oct->mem_bus_space[1].tag,
-				 oct->mem_bus_space[1].handle, reg));
+	    oct->mem_bus_space[1].handle, reg));
 #endif
 }
 
@@ -104,13 +104,13 @@ lio_write_bar1_mem64(struct octeon_device *oct, uint32_t reg, uint64_t val)
 	lio_write_bar1_mem32(oct, reg + 4, val >> 32);
 #else
 	bus_space_write_8(oct->mem_bus_space[1].tag,
-			  oct->mem_bus_space[1].handle, reg, val);
+	    oct->mem_bus_space[1].handle, reg, val);
 #endif
 }
 
 static void
-lio_pci_fastwrite(struct octeon_device *oct, uint32_t offset,
-		  uint8_t *hostbuf, uint32_t len)
+lio_pci_fastwrite(struct octeon_device *oct, uint32_t offset, uint8_t *hostbuf,
+    uint32_t len)
 {
 
 	while ((len) && ((unsigned long)offset) & 7) {
@@ -138,12 +138,12 @@ lio_read_bar1_mem8(struct octeon_device *oct, uint32_t reg)
 {
 
 	return (bus_space_read_1(oct->mem_bus_space[1].tag,
-				 oct->mem_bus_space[1].handle, reg));
+	    oct->mem_bus_space[1].handle, reg));
 }
 
 static void
-lio_pci_fastread(struct octeon_device *oct, uint32_t offset,
-		 uint8_t *hostbuf, uint32_t len)
+lio_pci_fastread(struct octeon_device *oct, uint32_t offset, uint8_t *hostbuf,
+    uint32_t len)
 {
 
 	while ((len) && ((unsigned long)offset) & 7) {
@@ -169,18 +169,18 @@ lio_pci_fastread(struct octeon_device *oct, uint32_t offset,
 /* Core mem read/write with temporary bar1 settings. */
 /* op = 1 to read, op = 0 to write. */
 static void
-lio_pci_rw_core_mem(struct octeon_device *oct, uint64_t addr,
-		    uint8_t *hostbuf, uint32_t len, uint32_t op)
+lio_pci_rw_core_mem(struct octeon_device *oct, uint64_t addr, uint8_t *hostbuf,
+    uint32_t len, uint32_t op)
 {
-	uint64_t	static_mapping_base;
-	uint32_t	copy_len = 0, index_reg_val = 0;
-	uint32_t	offset;
+	uint64_t static_mapping_base;
+	uint32_t copy_len = 0, index_reg_val = 0;
+	uint32_t offset;
 
 	static_mapping_base = oct->console_nb_info.dram_region_base;
 
-	if (static_mapping_base && static_mapping_base ==
-	    (addr & 0xFFFFFFFFFFC00000ULL)) {
-		int	bar1_index = oct->console_nb_info.bar1_index;
+	if (static_mapping_base &&
+	    static_mapping_base == (addr & 0xFFFFFFFFFFC00000ULL)) {
+		int bar1_index = oct->console_nb_info.bar1_index;
 
 		offset = (bar1_index << 22) + (addr & 0x3fffff);
 
@@ -205,17 +205,16 @@ lio_pci_rw_core_mem(struct octeon_device *oct, uint64_t addr,
 		 */
 		if (((addr + len - 1) & ~(0x3fffff)) != (addr & ~(0x3fffff))) {
 			copy_len = (uint32_t)(((addr & ~(0x3fffff)) +
-					       (MEMOPS_IDX << 22)) - addr);
+						  (MEMOPS_IDX << 22)) -
+			    addr);
 		} else {
 			copy_len = len;
 		}
 
-		if (op) {	/* read from core */
-			lio_pci_fastread(oct, offset, hostbuf,
-					 copy_len);
+		if (op) { /* read from core */
+			lio_pci_fastread(oct, offset, hostbuf, copy_len);
 		} else {
-			lio_pci_fastwrite(oct, offset, hostbuf,
-					  copy_len);
+			lio_pci_fastwrite(oct, offset, hostbuf, copy_len);
 		}
 
 		len -= copy_len;
@@ -231,7 +230,7 @@ lio_pci_rw_core_mem(struct octeon_device *oct, uint64_t addr,
 
 void
 lio_pci_read_core_mem(struct octeon_device *oct, uint64_t coreaddr,
-		      uint8_t *buf, uint32_t len)
+    uint8_t *buf, uint32_t len)
 {
 
 	lio_pci_rw_core_mem(oct, coreaddr, buf, len, 1);
@@ -239,7 +238,7 @@ lio_pci_read_core_mem(struct octeon_device *oct, uint64_t coreaddr,
 
 void
 lio_pci_write_core_mem(struct octeon_device *oct, uint64_t coreaddr,
-		       uint8_t *buf, uint32_t len)
+    uint8_t *buf, uint32_t len)
 {
 
 	lio_pci_rw_core_mem(oct, coreaddr, buf, len, 0);
@@ -248,7 +247,7 @@ lio_pci_write_core_mem(struct octeon_device *oct, uint64_t coreaddr,
 uint64_t
 lio_read_device_mem64(struct octeon_device *oct, uint64_t coreaddr)
 {
-	__be64	ret;
+	__be64 ret;
 
 	lio_pci_rw_core_mem(oct, coreaddr, (uint8_t *)&ret, 8, 1);
 
@@ -258,7 +257,7 @@ lio_read_device_mem64(struct octeon_device *oct, uint64_t coreaddr)
 uint32_t
 lio_read_device_mem32(struct octeon_device *oct, uint64_t coreaddr)
 {
-	__be32	ret;
+	__be32 ret;
 
 	lio_pci_rw_core_mem(oct, coreaddr, (uint8_t *)&ret, 4, 1);
 
@@ -267,9 +266,9 @@ lio_read_device_mem32(struct octeon_device *oct, uint64_t coreaddr)
 
 void
 lio_write_device_mem32(struct octeon_device *oct, uint64_t coreaddr,
-		       uint32_t val)
+    uint32_t val)
 {
-	__be32	t = htobe32(val);
+	__be32 t = htobe32(val);
 
 	lio_pci_rw_core_mem(oct, coreaddr, (uint8_t *)&t, 4, 0);
 }

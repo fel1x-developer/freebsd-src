@@ -37,20 +37,17 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/syscon/syscon.h>
 #include <dev/syscon/syscon_generic.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"sifive,test0",	1},
-	{"sifive,test1",	1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "sifive,test0", 1 },
+	{ "sifive,test1", 1 }, { NULL, 0 } };
 
 static int
 riscv_syscon_probe(device_t dev)
@@ -65,11 +62,10 @@ riscv_syscon_probe(device_t dev)
 	return (BUS_PROBE_DEFAULT);
 }
 
-static device_method_t riscv_syscon_methods[] = {
-	DEVMETHOD(device_probe, riscv_syscon_probe),
+static device_method_t riscv_syscon_methods[] = { DEVMETHOD(device_probe,
+						      riscv_syscon_probe),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(riscv_syscon, riscv_syscon_driver, riscv_syscon_methods,
     sizeof(struct syscon_generic_softc), syscon_generic_driver);

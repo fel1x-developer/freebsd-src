@@ -43,46 +43,38 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/ioccom.h>
 #include <sys/malloc.h>
 #include <sys/memrange.h>
 #include <sys/module.h>
+#include <sys/msgbuf.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/msgbuf.h>
-#include <sys/systm.h>
 #include <sys/signalvar.h>
 #include <sys/uio.h>
-
-#include <machine/md_var.h>
-#include <machine/vmparam.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_page.h>
 
+#include <machine/md_var.h>
 #include <machine/memdev.h>
+#include <machine/vmparam.h>
 
 static void ppc_mrinit(struct mem_range_softc *);
 static int ppc_mrset(struct mem_range_softc *, struct mem_range_desc *, int *);
 
 MALLOC_DEFINE(M_MEMDESC, "memdesc", "memory range descriptors");
 
-static struct mem_range_ops ppc_mem_range_ops = {
-	ppc_mrinit,
-	ppc_mrset,
-	NULL,
-	NULL
-};
-struct mem_range_softc mem_range_softc = {
-	&ppc_mem_range_ops,
-	0, 0, NULL
-}; 
+static struct mem_range_ops ppc_mem_range_ops = { ppc_mrinit, ppc_mrset, NULL,
+	NULL };
+struct mem_range_softc mem_range_softc = { &ppc_mem_range_ops, 0, 0, NULL };
 
 /* ARGSUSED */
 int
@@ -113,9 +105,10 @@ memrw(struct cdev *dev, struct uio *uio, int flags)
 		if (dev2unit(dev) == CDEV_MINOR_MEM) {
 			v = uio->uio_offset;
 
-kmem_direct_mapped:	off = v & PAGE_MASK;
-			cnt = PAGE_SIZE - ((vm_offset_t)iov->iov_base &
-			    PAGE_MASK);
+		kmem_direct_mapped:
+			off = v & PAGE_MASK;
+			cnt = PAGE_SIZE -
+			    ((vm_offset_t)iov->iov_base & PAGE_MASK);
 			cnt = min(cnt, PAGE_SIZE - off);
 			cnt = min(cnt, iov->iov_len);
 
@@ -132,21 +125,20 @@ kmem_direct_mapped:	off = v & PAGE_MASK;
 				marr = &m;
 				error = uiomove_fromphys(&marr, off, cnt, uio);
 			}
-		}
-		else if (dev2unit(dev) == CDEV_MINOR_KMEM) {
+		} else if (dev2unit(dev) == CDEV_MINOR_KMEM) {
 			va = uio->uio_offset;
 
 			if (hw_direct_map &&
-			    ((va < VM_MIN_KERNEL_ADDRESS) || (va > virtual_end))) {
+			    ((va < VM_MIN_KERNEL_ADDRESS) ||
+				(va > virtual_end))) {
 				v = DMAP_TO_PHYS(va);
 				goto kmem_direct_mapped;
 			}
 
 			va = trunc_page(uio->uio_offset);
-			eva = round_page(uio->uio_offset
-			    + iov->iov_len);
+			eva = round_page(uio->uio_offset + iov->iov_len);
 
-			/* 
+			/*
 			 * Make sure that all the pages are currently resident
 			 * so that we don't create any zero-fill pages.
 			 */
@@ -160,12 +152,13 @@ kmem_direct_mapped:	off = v & PAGE_MASK;
 			if (error != 0)
 				break;
 
-			prot = (uio->uio_rw == UIO_READ)
-			    ? VM_PROT_READ : VM_PROT_WRITE;
+			prot = (uio->uio_rw == UIO_READ) ? VM_PROT_READ :
+							   VM_PROT_WRITE;
 
 			va = uio->uio_offset;
-			if (((va >= VM_MIN_KERNEL_ADDRESS) && (va <= virtual_end)) &&
-			    !kernacc((void *) va, iov->iov_len, prot)) {
+			if (((va >= VM_MIN_KERNEL_ADDRESS) &&
+				(va <= virtual_end)) &&
+			    !kernacc((void *)va, iov->iov_len, prot)) {
 				error = EFAULT;
 				break;
 			}
@@ -187,8 +180,8 @@ kmem_direct_mapped:	off = v & PAGE_MASK;
  * instead of going through read/write
  */
 int
-memmmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int prot, vm_memattr_t *memattr)
+memmmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr, int prot,
+    vm_memattr_t *memattr)
 {
 	int i;
 
@@ -203,7 +196,7 @@ memmmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
 
 		if (offset >= mem_range_softc.mr_desc[i].mr_base &&
 		    offset < mem_range_softc.mr_desc[i].mr_base +
-		    mem_range_softc.mr_desc[i].mr_len) {
+			    mem_range_softc.mr_desc[i].mr_len) {
 			switch (mem_range_softc.mr_desc[i].mr_flags &
 			    MDF_ATTRMASK) {
 			case MDF_WRITEBACK:
@@ -241,7 +234,7 @@ ppc_mrset(struct mem_range_softc *sc, struct mem_range_desc *desc, int *arg)
 {
 	int i;
 
-	switch(*arg) {
+	switch (*arg) {
 	case MEMRANGE_SET_UPDATE:
 		for (i = 0; i < sc->mr_ndesc; i++) {
 			if (!sc->mr_desc[i].mr_len) {
@@ -275,7 +268,7 @@ ppc_mrset(struct mem_range_softc *sc, struct mem_range_desc *desc, int *arg)
  * This is basically just an ioctl shim for mem_range_attr_get
  * and mem_range_attr_set.
  */
-int 
+int
 memioctl_md(struct cdev *dev __unused, u_long cmd, caddr_t data, int flags,
     struct thread *td)
 {
@@ -284,8 +277,7 @@ memioctl_md(struct cdev *dev __unused, u_long cmd, caddr_t data, int flags,
 	struct mem_range_desc *md;
 
 	/* is this for us? */
-	if ((cmd != MEMRANGE_GET) &&
-	    (cmd != MEMRANGE_SET))
+	if ((cmd != MEMRANGE_GET) && (cmd != MEMRANGE_SET))
 		return (ENOTTY);
 
 	/* any chance we can handle this? */
@@ -300,23 +292,23 @@ memioctl_md(struct cdev *dev __unused, u_long cmd, caddr_t data, int flags,
 	case MEMRANGE_GET:
 		nd = imin(mo->mo_arg[0], mem_range_softc.mr_ndesc);
 		if (nd > 0) {
-			md = (struct mem_range_desc *)
-				malloc(nd * sizeof(struct mem_range_desc),
-				       M_MEMDESC, M_WAITOK);
+			md = (struct mem_range_desc *)malloc(nd *
+				sizeof(struct mem_range_desc),
+			    M_MEMDESC, M_WAITOK);
 			error = mem_range_attr_get(md, &nd);
 			if (!error)
-				error = copyout(md, mo->mo_desc, 
-					nd * sizeof(struct mem_range_desc));
+				error = copyout(md, mo->mo_desc,
+				    nd * sizeof(struct mem_range_desc));
 			free(md, M_MEMDESC);
-		}
-		else
+		} else
 			nd = mem_range_softc.mr_ndesc;
 		mo->mo_arg[0] = nd;
 		break;
-		
+
 	case MEMRANGE_SET:
-		md = (struct mem_range_desc *)malloc(sizeof(struct mem_range_desc),
-						    M_MEMDESC, M_WAITOK);
+		md = (struct mem_range_desc *)malloc(sizeof(
+							 struct mem_range_desc),
+		    M_MEMDESC, M_WAITOK);
 		error = copyin(mo->mo_desc, md, sizeof(struct mem_range_desc));
 		/* clamp description string */
 		md->mr_owner[sizeof(md->mr_owner) - 1] = 0;

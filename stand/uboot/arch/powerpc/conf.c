@@ -25,7 +25,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "bootstrap.h"
 #include "libuboot.h"
 
@@ -33,7 +35,8 @@
 #include "dev_net.h"
 #endif
 
-/* Make sure we have an explicit reference to exit so libsa's panic pulls in the MD exit */
+/* Make sure we have an explicit reference to exit so libsa's panic pulls in the
+ * MD exit */
 void (*exitfn)(int) = exit;
 
 /*
@@ -48,37 +51,37 @@ void (*exitfn)(int) = exit;
 /* Exported for libsa */
 struct devsw *devsw[] = {
 #if defined(LOADER_DISK_SUPPORT) || defined(LOADER_CD9660_SUPPORT)
-    &uboot_storage,
+	&uboot_storage,
 #endif
 #if defined(LOADER_NET_SUPPORT)
-    &netdev,
+	&netdev,
 #endif
-    NULL
+	NULL
 };
 
 struct fs_ops *file_system[] = {
 #if defined(LOADER_UFS_SUPPORT)
-    &ufs_fsops,
+	&ufs_fsops,
 #endif
 #if defined(LOADER_CD9660_SUPPORT)
-    &cd9660_fsops,
+	&cd9660_fsops,
 #endif
 #if defined(LOADER_EXT2FS_SUPPORT)
-    &ext2fs_fsops,
+	&ext2fs_fsops,
 #endif
 #if defined(LOADER_NFS_SUPPORT)
-    &nfs_fsops,
+	&nfs_fsops,
 #endif
 #if defined(LOADER_TFTP_SUPPORT)
-    &tftp_fsops,
+	&tftp_fsops,
 #endif
 #if defined(LOADER_GZIP_SUPPORT)
-    &gzipfs_fsops,
+	&gzipfs_fsops,
 #endif
 #if defined(LOADER_BZIP2_SUPPORT)
-    &bzipfs_fsops,
+	&bzipfs_fsops,
 #endif
-    NULL
+	NULL
 };
 
 struct netif_driver *netif_drivers[] = {
@@ -89,24 +92,17 @@ struct netif_driver *netif_drivers[] = {
 };
 
 /* Exported for PowerPC only */
-/* 
+/*
  * Sort formats so that those that can detect based on arguments
  * rather than reading the file go first.
  */
 extern struct file_format uboot_elf64;
 
-struct file_format *file_formats[] = {
-	&uboot_elf,
-	&uboot_elf64,
-	NULL
-};
+struct file_format *file_formats[] = { &uboot_elf, &uboot_elf64, NULL };
 
-/* 
- * Consoles 
+/*
+ * Consoles
  */
 extern struct console uboot_console;
 
-struct console *consoles[] = {
-	&uboot_console,
-	NULL
-};
+struct console *consoles[] = { &uboot_console, NULL };

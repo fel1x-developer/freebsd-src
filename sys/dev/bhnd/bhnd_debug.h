@@ -29,7 +29,6 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-
 /*
  * This file provides set of macros for logging:
  *  - BHND_<LEVEL> and
@@ -71,78 +70,73 @@
 
 #include <sys/systm.h>
 
-#define	BHND_ERROR_LEVEL	0x00
-#define	BHND_ERROR_MSG		"ERROR"
-#define	BHND_WARN_LEVEL		0x10
-#define	BHND_WARN_MSG		"!WARN"
-#define	BHND_INFO_LEVEL		0x20
-#define	BHND_INFO_MSG		" info"
-#define	BHND_DEBUG_LEVEL	0x30
-#define	BHND_DEBUG_MSG		"debug"
-#define	BHND_TRACE_LEVEL	0x40
-#define	BHND_TRACE_MSG		"trace"
+#define BHND_ERROR_LEVEL 0x00
+#define BHND_ERROR_MSG "ERROR"
+#define BHND_WARN_LEVEL 0x10
+#define BHND_WARN_MSG "!WARN"
+#define BHND_INFO_LEVEL 0x20
+#define BHND_INFO_MSG " info"
+#define BHND_DEBUG_LEVEL 0x30
+#define BHND_DEBUG_MSG "debug"
+#define BHND_TRACE_LEVEL 0x40
+#define BHND_TRACE_MSG "trace"
 
 #if !(defined(BHND_LOGGING))
 #if !(defined(BHND_LOGLEVEL))
 /* By default logging will print only INFO+ message*/
-#define	BHND_LOGGING		BHND_INFO_LEVEL
+#define BHND_LOGGING BHND_INFO_LEVEL
 #else /* defined(BHND_LOGLEVEL) */
 /* Kernel configuration specifies logging level */
-#define	BHND_LOGGING		BHND_LOGLEVEL
+#define BHND_LOGGING BHND_LOGLEVEL
 #endif /* !(defined(BHND_LOGLEVEL)) */
 #endif /* !(defined(BHND_LOGGING)) */
 
 #if BHND_LOGGING > BHND_INFO_LEVEL
-#define	_BHND_PRINT(fn, level, fmt, ...)				\
-	do {								\
-		if (level##LEVEL < BHND_DEBUG_LEVEL || bootverbose)	\
+#define _BHND_PRINT(fn, level, fmt, ...)                            \
+	do {                                                        \
+		if (level##LEVEL < BHND_DEBUG_LEVEL || bootverbose) \
 		    fn "[BHND " level##MSG "] %s:%d => " fmt "\n",	\
-			__func__, __LINE__, ## __VA_ARGS__);		\
-	} while(0);
+			__func__, __LINE__, ## __VA_ARGS__);        \
+	} while (0);
 #else /* BHND_LOGGING <= BHND_INFO_LEVEL */
-#define	_BHND_PRINT(fn, level, fmt, ...)				\
-	do {								\
-		if (level##LEVEL < BHND_DEBUG_LEVEL || bootverbose)	\
-		    fn "bhnd: " fmt "\n", ## __VA_ARGS__);		\
-	} while(0);
+#define _BHND_PRINT(fn, level, fmt, ...)                            \
+	do {                                                        \
+		if (level##LEVEL < BHND_DEBUG_LEVEL || bootverbose) \
+		    fn "bhnd: " fmt "\n", ## __VA_ARGS__);          \
+	} while (0);
 #endif /* BHND_LOGGING > BHND_INFO_LEVEL */
 
-#define	_BHND_RAWPRINTFN	printf(
-#define	_BHND_DEVPRINTFN(dev)	device_printf(dev,
+#define _BHND_RAWPRINTFN	printf(
+#define _BHND_DEVPRINTFN(dev)	device_printf(dev,
 
-#define	_BHND_LOGPRINT(level, fmt, ...) 				\
-	_BHND_PRINT(_BHND_RAWPRINTFN, level, fmt, ## __VA_ARGS__)
-#define	_BHND_DEVPRINT(dev, level, fmt, ...)				\
-	_BHND_PRINT(_BHND_DEVPRINTFN(dev), level, fmt, ## __VA_ARGS__)
+#define _BHND_LOGPRINT(level, fmt, ...) \
+	_BHND_PRINT(_BHND_RAWPRINTFN, level, fmt, ##__VA_ARGS__)
+#define _BHND_DEVPRINT(dev, level, fmt, ...) \
+	_BHND_PRINT(_BHND_DEVPRINTFN(dev), level, fmt, ##__VA_ARGS__)
 
-#define	BHND_ERROR(fmt, ...)						\
-	_BHND_LOGPRINT(BHND_ERROR_, fmt, ## __VA_ARGS__);
-#define	BHND_ERROR_DEV(dev, fmt, ...)					\
-	_BHND_DEVPRINT(dev, BHND_ERROR_, fmt, ## __VA_ARGS__)
+#define BHND_ERROR(fmt, ...) _BHND_LOGPRINT(BHND_ERROR_, fmt, ##__VA_ARGS__);
+#define BHND_ERROR_DEV(dev, fmt, ...) \
+	_BHND_DEVPRINT(dev, BHND_ERROR_, fmt, ##__VA_ARGS__)
 
 #if BHND_LOGGING >= BHND_WARN_LEVEL
-#define	BHND_WARN(fmt, ...)						\
-	_BHND_LOGPRINT(BHND_WARN_, fmt, ## __VA_ARGS__)
-#define	BHND_WARN_DEV(dev, fmt, ...)					\
-	_BHND_DEVPRINT(dev, BHND_WARN_, fmt, ## __VA_ARGS__)
+#define BHND_WARN(fmt, ...) _BHND_LOGPRINT(BHND_WARN_, fmt, ##__VA_ARGS__)
+#define BHND_WARN_DEV(dev, fmt, ...) \
+	_BHND_DEVPRINT(dev, BHND_WARN_, fmt, ##__VA_ARGS__)
 
 #if BHND_LOGGING >= BHND_INFO_LEVEL
-#define	BHND_INFO(fmt, ...)						\
-	_BHND_LOGPRINT(BHND_INFO_, fmt, ## __VA_ARGS__)
-#define	BHND_INFO_DEV(dev, fmt, ...)					\
-	_BHND_DEVPRINT(dev, BHND_INFO_, fmt, ## __VA_ARGS__)
+#define BHND_INFO(fmt, ...) _BHND_LOGPRINT(BHND_INFO_, fmt, ##__VA_ARGS__)
+#define BHND_INFO_DEV(dev, fmt, ...) \
+	_BHND_DEVPRINT(dev, BHND_INFO_, fmt, ##__VA_ARGS__)
 
 #if BHND_LOGGING >= BHND_DEBUG_LEVEL
-#define	BHND_DEBUG(fmt, ...)						\
-	_BHND_LOGPRINT(BHND_DEBUG_, fmt, ## __VA_ARGS__)
-#define	BHND_DEBUG_DEV(dev, fmt, ...)					\
-	_BHND_DEVPRINT(dev, BHND_DEBUG_, fmt, ## __VA_ARGS__)
+#define BHND_DEBUG(fmt, ...) _BHND_LOGPRINT(BHND_DEBUG_, fmt, ##__VA_ARGS__)
+#define BHND_DEBUG_DEV(dev, fmt, ...) \
+	_BHND_DEVPRINT(dev, BHND_DEBUG_, fmt, ##__VA_ARGS__)
 
 #if BHND_LOGGING >= BHND_TRACE_LEVEL
-#define	BHND_TRACE(fmt, ...)						\
-	_BHND_LOGPRINT(BHND_TRACE_, fmt, ## __VA_ARGS__)
-#define	BHND_TRACE_DEV(dev, fmt, ...)					\
-	_BHND_DEVPRINT(dev, BHND_TRACE_, fmt, ## __VA_ARGS__)
+#define BHND_TRACE(fmt, ...) _BHND_LOGPRINT(BHND_TRACE_, fmt, ##__VA_ARGS__)
+#define BHND_TRACE_DEV(dev, fmt, ...) \
+	_BHND_DEVPRINT(dev, BHND_TRACE_, fmt, ##__VA_ARGS__)
 
 #endif /* BHND_LOGGING >= BHND_TRACE_LEVEL */
 #endif /* BHND_LOGGING >= BHND_DEBUG_LEVEL */
@@ -153,38 +147,38 @@
  * Empty defines without device context
  */
 #if !(defined(BHND_WARN))
-#define	BHND_WARN(fmt, ...);
+#define BHND_WARN(fmt, ...) ;
 #endif
 
 #if !(defined(BHND_INFO))
-#define	BHND_INFO(fmt, ...);
+#define BHND_INFO(fmt, ...) ;
 #endif
 
 #if !(defined(BHND_DEBUG))
-#define	BHND_DEBUG(fmt, ...);
+#define BHND_DEBUG(fmt, ...) ;
 #endif
 
 #if !(defined(BHND_TRACE))
-#define	BHND_TRACE(fmt, ...);
+#define BHND_TRACE(fmt, ...) ;
 #endif
 
 /*
  * Empty defines with device context
  */
 #if !(defined(BHND_WARN_DEV))
-#define	BHND_WARN_DEV(dev, fmt, ...);
+#define BHND_WARN_DEV(dev, fmt, ...) ;
 #endif
 
 #if !(defined(BHND_INFO_DEV))
-#define	BHND_INFO_DEV(dev, fmt, ...);
+#define BHND_INFO_DEV(dev, fmt, ...) ;
 #endif
 
 #if !(defined(BHND_DEBUG_DEV))
-#define	BHND_DEBUG_DEV(dev, fmt, ...);
+#define BHND_DEBUG_DEV(dev, fmt, ...) ;
 #endif
 
 #if !(defined(BHND_TRACE_DEV))
-#define	BHND_TRACE_DEV(dev, fmt, ...);
+#define BHND_TRACE_DEV(dev, fmt, ...) ;
 #endif
 
 #endif /* _BHND_BHND_DEBUG_H_ */

@@ -37,8 +37,8 @@ __RCSID("$NetBSD: stat.c,v 1.33 2011/01/15 22:54:10 njoly Exp $"
 #endif
 #endif
 #if HAVE_CONFIG_H
-#include "config.h" 
-#else  /* HAVE_CONFIG_H */
+#include "config.h"
+#else /* HAVE_CONFIG_H */
 #define HAVE_STRUCT_STAT_ST_FLAGS 1
 #define HAVE_STRUCT_STAT_ST_GEN 1
 #define HAVE_STRUCT_STAT_ST_BIRTHTIME 1
@@ -46,10 +46,10 @@ __RCSID("$NetBSD: stat.c,v 1.33 2011/01/15 22:54:10 njoly Exp $"
 #define HAVE_DEVNAME 1
 #endif /* HAVE_CONFIG_H */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/param.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -91,115 +91,114 @@ __RCSID("$NetBSD: stat.c,v 1.33 2011/01/15 22:54:10 njoly Exp $"
 #define st_mtimespec st_mtim
 #endif /* HAVE_STRUCT_STAT_ST_ATIM */
 
-#define DEF_FORMAT \
+#define DEF_FORMAT                                                  \
 	"%d %i %Sp %l %Su %Sg %r %z \"%Sa\" \"%Sm\" \"%Sc\" " DEF_B \
 	"%k %b " DEF_F "%N"
-#define RAW_FORMAT	"%d %i %#p %l %u %g %r %z %a %m %c " RAW_B \
-	"%k %b " RAW_F "%N"
-#define LS_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%SY"
-#define LSF_FORMAT	"%Sp %l %Su %Sg %Z %Sm %N%T%SY"
-#define SHELL_FORMAT \
+#define RAW_FORMAT \
+	"%d %i %#p %l %u %g %r %z %a %m %c " RAW_B "%k %b " RAW_F "%N"
+#define LS_FORMAT "%Sp %l %Su %Sg %Z %Sm %N%SY"
+#define LSF_FORMAT "%Sp %l %Su %Sg %Z %Sm %N%T%SY"
+#define SHELL_FORMAT                                   \
 	"st_dev=%d st_ino=%i st_mode=%#p st_nlink=%l " \
-	"st_uid=%u st_gid=%g st_rdev=%r st_size=%z " \
+	"st_uid=%u st_gid=%g st_rdev=%r st_size=%z "   \
 	"st_atime=%a st_mtime=%m st_ctime=%c " SHELL_B \
 	"st_blksize=%k st_blocks=%b" SHELL_F
-#define LINUX_FORMAT \
-	"  File: \"%N\"%n" \
-	"  Size: %-11z  FileType: %HT%n" \
+#define LINUX_FORMAT                                                             \
+	"  File: \"%N\"%n"                                                       \
+	"  Size: %-11z  FileType: %HT%n"                                         \
 	"  Mode: (%OMp%03OLp/%.10Sp)         Uid: (%5u/%8Su)  Gid: (%5g/%8Sg)%n" \
-	"Device: %Hd,%Ld   Inode: %i    Links: %l%n" \
-	"Access: %Sa%n" \
-	"Modify: %Sm%n" \
-	"Change: %Sc%n"	\
+	"Device: %Hd,%Ld   Inode: %i    Links: %l%n"                             \
+	"Access: %Sa%n"                                                          \
+	"Modify: %Sm%n"                                                          \
+	"Change: %Sc%n"                                                          \
 	" Birth: %SB"
 
-#define TIME_FORMAT	"%b %e %T %Y"
+#define TIME_FORMAT "%b %e %T %Y"
 
-#define FLAG_POUND	0x01
-#define FLAG_SPACE	0x02
-#define FLAG_PLUS	0x04
-#define FLAG_ZERO	0x08
-#define FLAG_MINUS	0x10
+#define FLAG_POUND 0x01
+#define FLAG_SPACE 0x02
+#define FLAG_PLUS 0x04
+#define FLAG_ZERO 0x08
+#define FLAG_MINUS 0x10
 
 /*
  * These format characters must all be unique, except the magic one.
  */
-#define FMT_MAGIC	'%'
-#define FMT_DOT		'.'
+#define FMT_MAGIC '%'
+#define FMT_DOT '.'
 
-#define SIMPLE_NEWLINE	'n'
-#define SIMPLE_TAB	't'
-#define SIMPLE_PERCENT	'%'
-#define SIMPLE_NUMBER	'@'
+#define SIMPLE_NEWLINE 'n'
+#define SIMPLE_TAB 't'
+#define SIMPLE_PERCENT '%'
+#define SIMPLE_NUMBER '@'
 
-#define FMT_POUND	'#'
-#define FMT_SPACE	' '
-#define FMT_PLUS	'+'
-#define FMT_ZERO	'0'
-#define FMT_MINUS	'-'
+#define FMT_POUND '#'
+#define FMT_SPACE ' '
+#define FMT_PLUS '+'
+#define FMT_ZERO '0'
+#define FMT_MINUS '-'
 
-#define FMT_DECIMAL 	'D'
-#define FMT_OCTAL 	'O'
-#define FMT_UNSIGNED 	'U'
-#define FMT_HEX 	'X'
-#define FMT_FLOAT 	'F'
-#define FMT_STRING 	'S'
+#define FMT_DECIMAL 'D'
+#define FMT_OCTAL 'O'
+#define FMT_UNSIGNED 'U'
+#define FMT_HEX 'X'
+#define FMT_FLOAT 'F'
+#define FMT_STRING 'S'
 
-#define FMTF_DECIMAL	0x01
-#define FMTF_OCTAL	0x02
-#define FMTF_UNSIGNED	0x04
-#define FMTF_HEX	0x08
-#define FMTF_FLOAT	0x10
-#define FMTF_STRING	0x20
+#define FMTF_DECIMAL 0x01
+#define FMTF_OCTAL 0x02
+#define FMTF_UNSIGNED 0x04
+#define FMTF_HEX 0x08
+#define FMTF_FLOAT 0x10
+#define FMTF_STRING 0x20
 
-#define HIGH_PIECE	'H'
-#define MIDDLE_PIECE	'M'
-#define LOW_PIECE	'L'
+#define HIGH_PIECE 'H'
+#define MIDDLE_PIECE 'M'
+#define LOW_PIECE 'L'
 
-#define	SHOW_realpath	'R'
-#define SHOW_st_dev	'd'
-#define SHOW_st_ino	'i'
-#define SHOW_st_mode	'p'
-#define SHOW_st_nlink	'l'
-#define SHOW_st_uid	'u'
-#define SHOW_st_gid	'g'
-#define SHOW_st_rdev	'r'
-#define SHOW_st_atime	'a'
-#define SHOW_st_mtime	'm'
-#define SHOW_st_ctime	'c'
-#define SHOW_st_btime	'B'
-#define SHOW_st_size	'z'
-#define SHOW_st_blocks	'b'
-#define SHOW_st_blksize	'k'
-#define SHOW_st_flags	'f'
-#define SHOW_st_gen	'v'
-#define SHOW_symlink	'Y'
-#define SHOW_filetype	'T'
-#define SHOW_filename	'N'
-#define SHOW_sizerdev	'Z'
+#define SHOW_realpath 'R'
+#define SHOW_st_dev 'd'
+#define SHOW_st_ino 'i'
+#define SHOW_st_mode 'p'
+#define SHOW_st_nlink 'l'
+#define SHOW_st_uid 'u'
+#define SHOW_st_gid 'g'
+#define SHOW_st_rdev 'r'
+#define SHOW_st_atime 'a'
+#define SHOW_st_mtime 'm'
+#define SHOW_st_ctime 'c'
+#define SHOW_st_btime 'B'
+#define SHOW_st_size 'z'
+#define SHOW_st_blocks 'b'
+#define SHOW_st_blksize 'k'
+#define SHOW_st_flags 'f'
+#define SHOW_st_gen 'v'
+#define SHOW_symlink 'Y'
+#define SHOW_filetype 'T'
+#define SHOW_filename 'N'
+#define SHOW_sizerdev 'Z'
 
-void	usage(const char *);
-void	output(const struct stat *, const char *,
-	    const char *, int, int);
-int	format1(const struct stat *,	/* stat info */
-	    const char *,		/* the file name */
-	    const char *, int,		/* the format string itself */
-	    char *, size_t,		/* a place to put the output */
-	    int, int, int, int,		/* the parsed format */
-	    int, int);
-int	hex2byte(const char [2]);
+void usage(const char *);
+void output(const struct stat *, const char *, const char *, int, int);
+int format1(const struct stat *, /* stat info */
+    const char *,		 /* the file name */
+    const char *, int,		 /* the format string itself */
+    char *, size_t,		 /* a place to put the output */
+    int, int, int, int,		 /* the parsed format */
+    int, int);
+int hex2byte(const char[2]);
 #if HAVE_STRUCT_STAT_ST_FLAGS
-char   *xfflagstostr(unsigned long);
+char *xfflagstostr(unsigned long);
 #endif
 
 static const char *timefmt;
 static int linkfail;
 
-#define addchar(s, c, nl) \
-	do { \
+#define addchar(s, c, nl)              \
+	do {                           \
 		(void)fputc((c), (s)); \
 		(*nl) = ((c) == '\n'); \
-	} while (0/*CONSTCOND*/)
+	} while (0 /*CONSTCOND*/)
 
 int
 main(int argc, char *argv[])
@@ -233,7 +232,7 @@ main(int argc, char *argv[])
 	} else {
 		options = "f:FHlLnqrst:x";
 		synopsis = "[-FLnq] [-f format | -l | -r | -s | -x] "
-		    "[-t timefmt] [file|handle ...]";
+			   "[-t timefmt] [file|handle ...]";
 	}
 
 	while ((ch = getopt(argc, argv, options)) != -1)
@@ -241,7 +240,7 @@ main(int argc, char *argv[])
 		case 'F':
 			lsF = 1;
 			break;
-                case 'H':
+		case 'H':
 			nfs_handle = 1;
 			break;
 		case 'L':
@@ -321,8 +320,9 @@ main(int argc, char *argv[])
 	errs = 0;
 	do {
 		if (argc == 0) {
-			if (fdevname_r(STDIN_FILENO, dname +
-			    sizeof _PATH_DEV - 1, SPECNAMELEN) != NULL)
+			if (fdevname_r(STDIN_FILENO,
+				dname + sizeof _PATH_DEV - 1,
+				SPECNAMELEN) != NULL)
 				file = dname;
 			else
 				file = "(stdin)";
@@ -342,7 +342,7 @@ main(int argc, char *argv[])
 						rc = hex2byte(&file[j - 2]);
 						if (rc == -1)
 							break;
-						((char*) &fhnd)[j / 2 - 1] = rc;
+						((char *)&fhnd)[j / 2 - 1] = rc;
 						j -= 2;
 					}
 				}
@@ -361,8 +361,7 @@ main(int argc, char *argv[])
 				    errno == ENOENT &&
 				    (rc = lstat(file, &st)) == -1)
 					errno = ENOENT;
-			}
-			else
+			} else
 				rc = lstat(file, &st);
 		}
 
@@ -371,8 +370,7 @@ main(int argc, char *argv[])
 			linkfail = 1;
 			if (!quiet)
 				warn("%s", file);
-		}
-		else
+		} else
 			output(&st, file, statfmt, fn, nonl);
 
 		argv++;
@@ -410,12 +408,12 @@ usage(const char *synopsis)
 	exit(1);
 }
 
-/* 
+/*
  * Parses a format string.
  */
 void
-output(const struct stat *st, const char *file,
-    const char *statfmt, int fn, int nonl)
+output(const struct stat *st, const char *file, const char *statfmt, int fn,
+    int nonl)
 {
 	int flags, size, prec, ofmt, hilo, what;
 	char buf[PATH_MAX + 4 + 1];
@@ -492,7 +490,7 @@ output(const struct stat *st, const char *file,
 		 */
 		flags = 0;
 		do {
-			if      (*statfmt == FMT_POUND)
+			if (*statfmt == FMT_POUND)
 				flags |= FLAG_POUND;
 			else if (*statfmt == FMT_SPACE)
 				flags |= FLAG_SPACE;
@@ -505,7 +503,7 @@ output(const struct stat *st, const char *file,
 			else
 				break;
 			statfmt++;
-		} while (1/*CONSTCOND*/);
+		} while (1 /*CONSTCOND*/);
 
 		size = -1;
 		if (isdigit((unsigned)*statfmt)) {
@@ -531,15 +529,23 @@ output(const struct stat *st, const char *file,
 			}
 		}
 
-#define fmtcase(x, y)		case (y): (x) = (y); statfmt++; break
-#define fmtcasef(x, y, z)	case (y): (x) = (z); statfmt++; break
+#define fmtcase(x, y)      \
+	case (y):          \
+		(x) = (y); \
+		statfmt++; \
+		break
+#define fmtcasef(x, y, z)  \
+	case (y):          \
+		(x) = (z); \
+		statfmt++; \
+		break
 		switch (*statfmt) {
-			fmtcasef(ofmt, FMT_DECIMAL,	FMTF_DECIMAL);
-			fmtcasef(ofmt, FMT_OCTAL,	FMTF_OCTAL);
-			fmtcasef(ofmt, FMT_UNSIGNED,	FMTF_UNSIGNED);
-			fmtcasef(ofmt, FMT_HEX,		FMTF_HEX);
-			fmtcasef(ofmt, FMT_FLOAT,	FMTF_FLOAT);
-			fmtcasef(ofmt, FMT_STRING,	FMTF_STRING);
+			fmtcasef(ofmt, FMT_DECIMAL, FMTF_DECIMAL);
+			fmtcasef(ofmt, FMT_OCTAL, FMTF_OCTAL);
+			fmtcasef(ofmt, FMT_UNSIGNED, FMTF_UNSIGNED);
+			fmtcasef(ofmt, FMT_HEX, FMTF_HEX);
+			fmtcasef(ofmt, FMT_FLOAT, FMTF_FLOAT);
+			fmtcasef(ofmt, FMT_STRING, FMTF_STRING);
 		default:
 			ofmt = 0;
 			break;
@@ -582,11 +588,8 @@ output(const struct stat *st, const char *file,
 #undef fmtcasef
 #undef fmtcase
 
-		t = format1(st,
-		     file,
-		     subfmt, statfmt - subfmt,
-		     buf, sizeof(buf),
-		     flags, size, prec, ofmt, hilo, what);
+		t = format1(st, file, subfmt, statfmt - subfmt, buf,
+		    sizeof(buf), flags, size, prec, ofmt, hilo, what);
 
 		for (i = 0; i < t && i < (int)(sizeof(buf) - 1); i++)
 			addchar(stdout, buf[i], &nl);
@@ -594,8 +597,8 @@ output(const struct stat *st, const char *file,
 		continue;
 
 	badfmt:
-		errx(1, "%.*s: bad format",
-		    (int)(statfmt - subfmt + 1), subfmt);
+		errx(1, "%.*s: bad format", (int)(statfmt - subfmt + 1),
+		    subfmt);
 	}
 
 	if (!nl && !nonl)
@@ -607,12 +610,9 @@ output(const struct stat *st, const char *file,
  * Arranges output according to a single parsed format substring.
  */
 int
-format1(const struct stat *st,
-    const char *file,
-    const char *fmt, int flen,
-    char *buf, size_t blen,
-    int flags, int size, int prec, int ofmt,
-    int hilo, int what)
+format1(const struct stat *st, const char *file, const char *fmt, int flen,
+    char *buf, size_t blen, int flags, int size, int prec, int ofmt, int hilo,
+    int what)
 {
 	u_int64_t data;
 	char *stmp, lfmt[24], tmp[20];
@@ -637,22 +637,22 @@ format1(const struct stat *st,
 		small = (sizeof(st->st_dev) == 4);
 		data = (what == SHOW_st_dev) ? st->st_dev : st->st_rdev;
 #if HAVE_DEVNAME
-		sdata = devname(what == SHOW_st_dev ? st->st_dev :
-		    st->st_rdev, S_ISCHR(st->st_mode) ? S_IFCHR :
-		    (S_ISBLK(st->st_mode) ? S_IFBLK : 0));
+		sdata = devname(what == SHOW_st_dev ? st->st_dev : st->st_rdev,
+		    S_ISCHR(st->st_mode) ?
+			S_IFCHR :
+			(S_ISBLK(st->st_mode) ? S_IFBLK : 0));
 #endif /* HAVE_DEVNAME */
 		if (hilo == HIGH_PIECE) {
 			data = major(data);
 			hilo = 0;
-		}
-		else if (hilo == LOW_PIECE) {
+		} else if (hilo == LOW_PIECE) {
 			data = minor((unsigned)data);
 			hilo = 0;
 		}
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
 #if HAVE_DEVNAME
 		    FMTF_STRING;
-#else /* HAVE_DEVNAME */
+#else  /* HAVE_DEVNAME */
 		    0;
 #endif /* HAVE_DEVNAME */
 		if (ofmt == 0)
@@ -679,14 +679,12 @@ format1(const struct stat *st,
 			stmp += 1;
 			stmp[3] = '\0';
 			hilo = 0;
-		}
-		else if (hilo == MIDDLE_PIECE) {
+		} else if (hilo == MIDDLE_PIECE) {
 			data = (data >> 9) & 07;
 			stmp += 4;
 			stmp[3] = '\0';
 			hilo = 0;
-		}
-		else if (hilo == LOW_PIECE) {
+		} else if (hilo == LOW_PIECE) {
 			data &= 0777;
 			stmp += 7;
 			stmp[3] = '\0';
@@ -742,13 +740,13 @@ format1(const struct stat *st,
 	case SHOW_st_ctime:
 		if (tsp == NULL)
 			tsp = &st->st_ctimespec;
-		/* FALLTHROUGH */
+			/* FALLTHROUGH */
 #if HAVE_STRUCT_STAT_ST_BIRTHTIME
 	case SHOW_st_btime:
 		if (tsp == NULL)
 			tsp = &st->st_birthtimespec;
-#endif /* HAVE_STRUCT_STAT_ST_BIRTHTIME */
-		ts = *tsp;		/* copy so we can muck with it */
+#endif			   /* HAVE_STRUCT_STAT_ST_BIRTHTIME */
+		ts = *tsp; /* copy so we can muck with it */
 		small = (sizeof(ts.tv_sec) == 4);
 		data = ts.tv_sec;
 		tm = localtime(&ts.tv_sec);
@@ -844,8 +842,7 @@ format1(const struct stat *st,
 			}
 			path[l + 4] = '\0';
 			sdata = path + (ofmt == FMTF_STRING ? 0 : 4);
-		}
-		else {
+		} else {
 			linkfail = 1;
 			sdata = "";
 		}
@@ -859,40 +856,70 @@ format1(const struct stat *st,
 		sdata = "";
 		if (hilo == 0 || hilo == LOW_PIECE) {
 			switch (st->st_mode & S_IFMT) {
-			case S_IFIFO:	sdata = "|";	break;
-			case S_IFDIR:	sdata = "/";	break;
+			case S_IFIFO:
+				sdata = "|";
+				break;
+			case S_IFDIR:
+				sdata = "/";
+				break;
 			case S_IFREG:
-				if (st->st_mode &
-				    (S_IXUSR | S_IXGRP | S_IXOTH))
+				if (st->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
 					sdata = "*";
 				break;
-			case S_IFLNK:	sdata = "@";	break;
-			case S_IFSOCK:	sdata = "=";	break;
+			case S_IFLNK:
+				sdata = "@";
+				break;
+			case S_IFSOCK:
+				sdata = "=";
+				break;
 #ifdef S_IFWHT
-			case S_IFWHT:	sdata = "%";	break;
+			case S_IFWHT:
+				sdata = "%";
+				break;
 #endif /* S_IFWHT */
 #ifdef S_IFDOOR
-			case S_IFDOOR:	sdata = ">";	break;
+			case S_IFDOOR:
+				sdata = ">";
+				break;
 #endif /* S_IFDOOR */
 			}
 			hilo = 0;
-		}
-		else if (hilo == HIGH_PIECE) {
+		} else if (hilo == HIGH_PIECE) {
 			switch (st->st_mode & S_IFMT) {
-			case S_IFIFO:	sdata = "Fifo File";		break;
-			case S_IFCHR:	sdata = "Character Device";	break;
-			case S_IFDIR:	sdata = "Directory";		break;
-			case S_IFBLK:	sdata = "Block Device";		break;
-			case S_IFREG:	sdata = "Regular File";		break;
-			case S_IFLNK:	sdata = "Symbolic Link";	break;
-			case S_IFSOCK:	sdata = "Socket";		break;
+			case S_IFIFO:
+				sdata = "Fifo File";
+				break;
+			case S_IFCHR:
+				sdata = "Character Device";
+				break;
+			case S_IFDIR:
+				sdata = "Directory";
+				break;
+			case S_IFBLK:
+				sdata = "Block Device";
+				break;
+			case S_IFREG:
+				sdata = "Regular File";
+				break;
+			case S_IFLNK:
+				sdata = "Symbolic Link";
+				break;
+			case S_IFSOCK:
+				sdata = "Socket";
+				break;
 #ifdef S_IFWHT
-			case S_IFWHT:	sdata = "Whiteout File";	break;
+			case S_IFWHT:
+				sdata = "Whiteout File";
+				break;
 #endif /* S_IFWHT */
 #ifdef S_IFDOOR
-			case S_IFDOOR:	sdata = "Door";			break;
+			case S_IFDOOR:
+				sdata = "Door";
+				break;
 #endif /* S_IFDOOR */
-			default:	sdata = "???";			break;
+			default:
+				sdata = "???";
+				break;
 			}
 			hilo = 0;
 		}
@@ -914,28 +941,17 @@ format1(const struct stat *st,
 			char majdev[20], mindev[20];
 			int l1, l2;
 
-			l1 = format1(st,
-			    file,
-			    fmt, flen,
-			    majdev, sizeof(majdev),
-			    flags, size, prec,
-			    ofmt, HIGH_PIECE, SHOW_st_rdev);
-			l2 = format1(st,
-			    file,
-			    fmt, flen,
-			    mindev, sizeof(mindev),
-			    flags, size, prec,
-			    ofmt, LOW_PIECE, SHOW_st_rdev);
-			return (snprintf(buf, blen, "%.*s,%.*s",
-			    l1, majdev, l2, mindev));
-		}
-		else {
-			return (format1(st,
-			    file,
-			    fmt, flen,
-			    buf, blen,
-			    flags, size, prec,
-			    ofmt, 0, SHOW_st_size));
+			l1 = format1(st, file, fmt, flen, majdev,
+			    sizeof(majdev), flags, size, prec, ofmt, HIGH_PIECE,
+			    SHOW_st_rdev);
+			l2 = format1(st, file, fmt, flen, mindev,
+			    sizeof(mindev), flags, size, prec, ofmt, LOW_PIECE,
+			    SHOW_st_rdev);
+			return (snprintf(buf, blen, "%.*s,%.*s", l1, majdev, l2,
+			    mindev));
+		} else {
+			return (format1(st, file, fmt, flen, buf, blen, flags,
+			    size, prec, ofmt, 0, SHOW_st_size));
 		}
 		/*NOTREACHED*/
 	default:
@@ -968,7 +984,7 @@ format1(const struct stat *st,
 	/*
 	 * Only the timespecs support the FLOAT output format, and that
 	 * requires work that differs from the other formats.
-	 */ 
+	 */
 	if (ofmt == FMTF_FLOAT) {
 		/*
 		 * Nothing after the decimal point, so just print seconds.
@@ -979,8 +995,8 @@ format1(const struct stat *st,
 				(void)strcat(lfmt, tmp);
 			}
 			(void)strcat(lfmt, "lld");
-			return (snprintf(buf, blen, lfmt,
-			    (long long)ts.tv_sec));
+			return (
+			    snprintf(buf, blen, lfmt, (long long)ts.tv_sec));
 		}
 
 		/*
@@ -1072,19 +1088,27 @@ format1(const struct stat *st,
 	 */
 	(void)strcat(lfmt, "ll");
 	switch (ofmt) {
-	case FMTF_DECIMAL:	(void)strcat(lfmt, "d");	break;
-	case FMTF_OCTAL:		(void)strcat(lfmt, "o");	break;
-	case FMTF_UNSIGNED:	(void)strcat(lfmt, "u");	break;
-	case FMTF_HEX:		(void)strcat(lfmt, "x");	break;
+	case FMTF_DECIMAL:
+		(void)strcat(lfmt, "d");
+		break;
+	case FMTF_OCTAL:
+		(void)strcat(lfmt, "o");
+		break;
+	case FMTF_UNSIGNED:
+		(void)strcat(lfmt, "u");
+		break;
+	case FMTF_HEX:
+		(void)strcat(lfmt, "x");
+		break;
 	}
 
 	return (snprintf(buf, blen, lfmt, data));
 }
 
-
 #define hex2nibble(c) (c <= '9' ? c - '0' : toupper(c) - 'A' + 10)
 int
-hex2byte(const char c[2]) {
+hex2byte(const char c[2])
+{
 	if (!(ishexnumber(c[0]) && ishexnumber(c[1])))
 		return -1;
 	return (hex2nibble(c[0]) << 4) + hex2nibble(c[1]);

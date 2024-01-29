@@ -22,11 +22,13 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/systm.h>
-#include <sys/module.h>
+#include "opt_md.h"
+
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/proc.h>
 
 #include <vm/vm.h>
@@ -36,11 +38,9 @@
 #include <machine/elf.h>
 #include <machine/param.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include "opt_md.h"
+#include <dev/ofw/openfirm.h>
 
 extern u_char *mfs_root;
 extern int mfs_root_size;
@@ -86,13 +86,13 @@ ofw_initrd_probe_and_attach(void *junk)
 		end = cell[0];
 	else if (size == 8)
 		end = (uint64_t)cell[0] << 32 | cell[1];
-	else{
+	else {
 		printf("ofw_initrd: Wrong linux,initrd-end size\n");
 		return;
 	}
 
 	if (end - start > 0) {
-		taste = (u_char*) PHYS_TO_DMAP(start);
+		taste = (u_char *)PHYS_TO_DMAP(start);
 		memcpy(&ehdr, taste, sizeof(ehdr));
 
 		if (IS_ELF(ehdr)) {
@@ -102,7 +102,7 @@ ofw_initrd_probe_and_attach(void *junk)
 
 		mfs_root = taste;
 		mfs_root_size = end - start;
-		printf("ofw_initrd: initrd loaded at 0x%08lx-0x%08lx\n",
-			start, end);
+		printf("ofw_initrd: initrd loaded at 0x%08lx-0x%08lx\n", start,
+		    end);
 	}
 }

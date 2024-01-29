@@ -22,25 +22,24 @@
  * entities created only on the host.
  */
 struct datagram_entry {
-	struct vmci_resource	resource;
-	uint32_t		flags;
-	bool			run_delayed;
-	vmci_datagram_recv_cb	recv_cb;
-	void			*client_data;
-	vmci_event		destroy_event;
-	vmci_privilege_flags	priv_flags;
+	struct vmci_resource resource;
+	uint32_t flags;
+	bool run_delayed;
+	vmci_datagram_recv_cb recv_cb;
+	void *client_data;
+	vmci_event destroy_event;
+	vmci_privilege_flags priv_flags;
 };
 
 struct vmci_delayed_datagram_info {
-	struct datagram_entry	*entry;
-	struct vmci_datagram	msg;
+	struct datagram_entry *entry;
+	struct vmci_datagram msg;
 };
 
-static int	vmci_datagram_get_priv_flags_int(vmci_id contextID,
-		    struct vmci_handle handle,
-		    vmci_privilege_flags *priv_flags);
-static void	datagram_free_cb(void *resource);
-static int	datagram_release_cb(void *client_data);
+static int vmci_datagram_get_priv_flags_int(vmci_id contextID,
+    struct vmci_handle handle, vmci_privilege_flags *priv_flags);
+static void datagram_free_cb(void *resource);
+static int datagram_release_cb(void *client_data);
 
 /*------------------------------ Helper functions ----------------------------*/
 
@@ -159,8 +158,8 @@ datagram_create_hnd(vmci_id resource_id, uint32_t flags,
 
 	entry = vmci_alloc_kernel_mem(sizeof(*entry), VMCI_MEMORY_NORMAL);
 	if (entry == NULL) {
-		VMCI_LOG_WARNING(LGPFX"Failed allocating memory for datagram "
-		    "entry.\n");
+		VMCI_LOG_WARNING(LGPFX "Failed allocating memory for datagram "
+				       "entry.\n");
 		return (VMCI_ERROR_NO_MEM);
 	}
 
@@ -171,8 +170,8 @@ datagram_create_hnd(vmci_id resource_id, uint32_t flags,
 		}
 		entry->run_delayed = false;
 	} else
-		entry->run_delayed = (flags & VMCI_FLAG_DG_DELAYED_CB) ?
-		    true : false;
+		entry->run_delayed = (flags & VMCI_FLAG_DG_DELAYED_CB) ? true :
+									 false;
 
 	entry->flags = flags;
 	entry->recv_cb = recv_cb;
@@ -184,8 +183,9 @@ datagram_create_hnd(vmci_id resource_id, uint32_t flags,
 	result = vmci_resource_add(&entry->resource,
 	    VMCI_RESOURCE_TYPE_DATAGRAM, handle, datagram_free_cb, entry);
 	if (result != VMCI_SUCCESS) {
-		VMCI_LOG_WARNING(LGPFX"Failed to add new resource "
-		    "(handle=0x%x:0x%x).\n", handle.context, handle.resource);
+		VMCI_LOG_WARNING(LGPFX "Failed to add new resource "
+				       "(handle=0x%x:0x%x).\n",
+		    handle.context, handle.resource);
 		vmci_destroy_event(&entry->destroy_event);
 		vmci_free_kernel_mem(entry, sizeof(*entry));
 		return (result);
@@ -223,14 +223,14 @@ vmci_datagram_create_handle(vmci_id resource_id, uint32_t flags,
 		return (VMCI_ERROR_INVALID_ARGS);
 
 	if (recv_cb == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Client callback needed when creating "
-		    "datagram.\n");
+		VMCI_LOG_DEBUG(LGPFX "Client callback needed when creating "
+				     "datagram.\n");
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
 
 	return (datagram_create_hnd(resource_id, flags,
-	    VMCI_DEFAULT_PROC_PRIVILEGE_FLAGS,
-	    recv_cb, client_data, out_handle));
+	    VMCI_DEFAULT_PROC_PRIVILEGE_FLAGS, recv_cb, client_data,
+	    out_handle));
 }
 
 /*
@@ -259,8 +259,8 @@ vmci_datagram_create_handle_priv(vmci_id resource_id, uint32_t flags,
 		return (VMCI_ERROR_INVALID_ARGS);
 
 	if (recv_cb == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Client callback needed when creating "
-		    "datagram.\n");
+		VMCI_LOG_DEBUG(LGPFX "Client callback needed when creating "
+				     "datagram.\n");
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
 
@@ -293,11 +293,11 @@ vmci_datagram_destroy_handle(struct vmci_handle handle)
 	struct datagram_entry *entry;
 	struct vmci_resource *resource;
 
-	resource = vmci_resource_get(handle,
-	    VMCI_RESOURCE_TYPE_DATAGRAM);
+	resource = vmci_resource_get(handle, VMCI_RESOURCE_TYPE_DATAGRAM);
 	if (resource == NULL) {
-		VMCI_LOG_DEBUG(LGPFX"Failed to destroy datagram "
-		    "(handle=0x%x:0x%x).\n", handle.context, handle.resource);
+		VMCI_LOG_DEBUG(LGPFX "Failed to destroy datagram "
+				     "(handle=0x%x:0x%x).\n",
+		    handle.context, handle.resource);
 		return (VMCI_ERROR_NOT_FOUND);
 	}
 	entry = RESOURCE_CONTAINER(resource, struct datagram_entry, resource);
@@ -425,8 +425,8 @@ vmci_datagram_delayed_dispatch_cb(void *data)
 
 	vmci_resource_release(&dg_info->entry->resource);
 
-	vmci_free_kernel_mem(dg_info, sizeof(*dg_info) +
-	    (size_t)dg_info->msg.payload_size);
+	vmci_free_kernel_mem(dg_info,
+	    sizeof(*dg_info) + (size_t)dg_info->msg.payload_size);
 }
 
 /*
@@ -487,8 +487,9 @@ vmci_datagram_dispatch(vmci_id context_id, struct vmci_datagram *dg)
 	ASSERT_ON_COMPILE(sizeof(struct vmci_datagram) == 24);
 
 	if (VMCI_DG_SIZE(dg) > VMCI_MAX_DG_SIZE) {
-		VMCI_LOG_DEBUG(LGPFX"Payload (size=%lu bytes) too big to send."
-		    "\n", dg->payload_size);
+		VMCI_LOG_DEBUG(LGPFX "Payload (size=%lu bytes) too big to send."
+				     "\n",
+		    dg->payload_size);
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
 
@@ -523,15 +524,17 @@ vmci_datagram_invoke_guest_handler(struct vmci_datagram *dg)
 	ASSERT(dg);
 
 	if (dg->payload_size > VMCI_MAX_DG_PAYLOAD_SIZE) {
-		VMCI_LOG_DEBUG(LGPFX"Payload (size=%lu bytes) too large to "
-		    "deliver.\n", dg->payload_size);
+		VMCI_LOG_DEBUG(LGPFX "Payload (size=%lu bytes) too large to "
+				     "deliver.\n",
+		    dg->payload_size);
 		return (VMCI_ERROR_PAYLOAD_TOO_LARGE);
 	}
 
 	resource = vmci_resource_get(dg->dst, VMCI_RESOURCE_TYPE_DATAGRAM);
 	if (NULL == resource) {
-		VMCI_LOG_DEBUG(LGPFX"destination (handle=0x%x:0x%x) doesn't "
-		    "exist.\n", dg->dst.context, dg->dst.resource);
+		VMCI_LOG_DEBUG(LGPFX "destination (handle=0x%x:0x%x) doesn't "
+				     "exist.\n",
+		    dg->dst.context, dg->dst.resource);
 		return (VMCI_ERROR_NO_HANDLE);
 	}
 
@@ -541,7 +544,8 @@ vmci_datagram_invoke_guest_handler(struct vmci_datagram *dg)
 		struct vmci_delayed_datagram_info *dg_info;
 
 		dg_info = vmci_alloc_kernel_mem(sizeof(*dg_info) +
-		    (size_t)dg->payload_size, VMCI_MEMORY_ATOMIC);
+			(size_t)dg->payload_size,
+		    VMCI_MEMORY_ATOMIC);
 		if (NULL == dg_info) {
 			vmci_resource_release(resource);
 			retval = VMCI_ERROR_NO_MEM;
@@ -554,10 +558,12 @@ vmci_datagram_invoke_guest_handler(struct vmci_datagram *dg)
 		retval = vmci_schedule_delayed_work(
 		    vmci_datagram_delayed_dispatch_cb, dg_info);
 		if (retval < VMCI_SUCCESS) {
-			VMCI_LOG_WARNING(LGPFX"Failed to schedule delayed "
-			    "work for datagram (result=%d).\n", retval);
-			vmci_free_kernel_mem(dg_info, sizeof(*dg_info) +
-			    (size_t)dg->payload_size);
+			VMCI_LOG_WARNING(LGPFX
+			    "Failed to schedule delayed "
+			    "work for datagram (result=%d).\n",
+			    retval);
+			vmci_free_kernel_mem(dg_info,
+			    sizeof(*dg_info) + (size_t)dg->payload_size);
 			vmci_resource_release(resource);
 			dg_info = NULL;
 			goto exit;

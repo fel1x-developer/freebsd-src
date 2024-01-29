@@ -42,15 +42,15 @@
 #include "proto.h"
 #include "proto_impl.h"
 
-#define	PROTO_CONN_MAGIC	0x907041c
+#define PROTO_CONN_MAGIC 0x907041c
 struct proto_conn {
-	int		 pc_magic;
-	struct proto	*pc_proto;
-	void		*pc_ctx;
-	int		 pc_side;
-#define	PROTO_SIDE_CLIENT		0
-#define	PROTO_SIDE_SERVER_LISTEN	1
-#define	PROTO_SIDE_SERVER_WORK		2
+	int pc_magic;
+	struct proto *pc_proto;
+	void *pc_ctx;
+	int pc_side;
+#define PROTO_SIDE_CLIENT 0
+#define PROTO_SIDE_SERVER_LISTEN 1
+#define PROTO_SIDE_SERVER_WORK 2
 };
 
 static TAILQ_HEAD(, proto) protos = TAILQ_HEAD_INITIALIZER(protos);
@@ -76,8 +76,7 @@ proto_alloc(struct proto *proto, int side)
 
 	PJDLOG_ASSERT(proto != NULL);
 	PJDLOG_ASSERT(side == PROTO_SIDE_CLIENT ||
-	    side == PROTO_SIDE_SERVER_LISTEN ||
-	    side == PROTO_SIDE_SERVER_WORK);
+	    side == PROTO_SIDE_SERVER_LISTEN || side == PROTO_SIDE_SERVER_WORK);
 
 	conn = malloc(sizeof(*conn));
 	if (conn != NULL) {
@@ -112,10 +111,10 @@ proto_common_setup(const char *srcaddr, const char *dstaddr,
 	void *ctx;
 	int ret;
 
-	PJDLOG_ASSERT(side == PROTO_SIDE_CLIENT ||
-	    side == PROTO_SIDE_SERVER_LISTEN);
+	PJDLOG_ASSERT(
+	    side == PROTO_SIDE_CLIENT || side == PROTO_SIDE_SERVER_LISTEN);
 
-	TAILQ_FOREACH(proto, &protos, prt_next) {
+	TAILQ_FOREACH (proto, &protos, prt_next) {
 		if (side == PROTO_SIDE_CLIENT) {
 			if (proto->prt_client == NULL)
 				ret = -1;
@@ -212,7 +211,8 @@ int
 proto_server(const char *addr, struct proto_conn **connp)
 {
 
-	return (proto_common_setup(NULL, addr, connp, PROTO_SIDE_SERVER_LISTEN));
+	return (
+	    proto_common_setup(NULL, addr, connp, PROTO_SIDE_SERVER_LISTEN));
 }
 
 int
@@ -333,7 +333,7 @@ proto_connection_recv(const struct proto_conn *conn, bool client,
 
 	PJDLOG_ASSERT(fd >= 0);
 
-	TAILQ_FOREACH(proto, &protos, prt_next) {
+	TAILQ_FOREACH (proto, &protos, prt_next) {
 		if (strcmp(proto->prt_name, protoname) == 0)
 			break;
 	}

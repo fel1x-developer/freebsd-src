@@ -33,14 +33,14 @@
  */
 
 #ifndef _LINUXKPI_LINUX_CAPABILITY_H
-#define	_LINUXKPI_LINUX_CAPABILITY_H
+#define _LINUXKPI_LINUX_CAPABILITY_H
 
 #include <sys/types.h>
-#include <sys/proc.h>
 #include <sys/priv.h>
+#include <sys/proc.h>
 
-#define	CAP_SYS_ADMIN		PRIV_DRIVER
-#define	CAP_SYS_NICE		PRIV_SCHED_SETPRIORITY
+#define CAP_SYS_ADMIN PRIV_DRIVER
+#define CAP_SYS_NICE PRIV_SCHED_SETPRIORITY
 
 static inline bool
 capable(const int tryme)

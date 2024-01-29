@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -43,19 +43,16 @@
 
 #include "ngctl.h"
 
-#define FMT		"  %-15s %-15s %-12s %-15s %-15s\n"
-#define UNNAMED		"<unnamed>"
-#define NOSTATUS	"<no status>"
+#define FMT "  %-15s %-15s %-12s %-15s %-15s\n"
+#define UNNAMED "<unnamed>"
+#define NOSTATUS "<no status>"
 
 static int ShowCmd(int ac, char **av);
 
-const struct ngcmd show_cmd = {
-	ShowCmd,
-	"show [-n] <path>",
+const struct ngcmd show_cmd = { ShowCmd, "show [-n] <path>",
 	"Show information about the node at <path>",
 	"If the -n flag is given, hooks are not listed.",
-	{ "inquire", "info" }
-};
+	{ "inquire", "info" } };
 
 static int
 ShowCmd(int ac, char **av)
@@ -92,8 +89,8 @@ ShowCmd(int ac, char **av)
 	}
 
 	/* Get node info and hook list */
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	    NGM_LISTHOOKS, NULL, 0) < 0) {
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_LISTHOOKS, NULL, 0) <
+	    0) {
 		warn("send msg");
 		return (CMDRTN_ERROR);
 	}
@@ -103,7 +100,7 @@ ShowCmd(int ac, char **av)
 	}
 
 	/* Show node information */
-	hlist = (struct hooklist *) resp->data;
+	hlist = (struct hooklist *)resp->data;
 	ninfo = &hlist->nodeinfo;
 	if (!*ninfo->name)
 		snprintf(ninfo->name, sizeof(ninfo->name), "%s", UNNAMED);
@@ -112,26 +109,24 @@ ShowCmd(int ac, char **av)
 	if (!no_hooks && ninfo->hooks > 0) {
 		u_int k;
 
-		printf(FMT, "Local hook", "Peer name",
-		    "Peer type", "Peer ID", "Peer hook");
-		printf(FMT, "----------", "---------",
-		    "---------", "-------", "---------");
+		printf(FMT, "Local hook", "Peer name", "Peer type", "Peer ID",
+		    "Peer hook");
+		printf(FMT, "----------", "---------", "---------", "-------",
+		    "---------");
 		for (k = 0; k < ninfo->hooks; k++) {
 			struct linkinfo *const link = &hlist->link[k];
 			struct nodeinfo *const peer = &hlist->link[k].nodeinfo;
 			char idbuf[20];
 
 			if (!*peer->name) {
-				snprintf(peer->name, sizeof(peer->name),
-				  "%s", UNNAMED);
+				snprintf(peer->name, sizeof(peer->name), "%s",
+				    UNNAMED);
 			}
 			snprintf(idbuf, sizeof(idbuf), "%08x", peer->id);
-			printf(FMT, link->ourhook, peer->name,
-			    peer->type, idbuf, link->peerhook);
+			printf(FMT, link->ourhook, peer->name, peer->type,
+			    idbuf, link->peerhook);
 		}
 	}
 	free(resp);
 	return (CMDRTN_OK);
 }
-
-

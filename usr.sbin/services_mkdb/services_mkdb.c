@@ -1,4 +1,5 @@
-/*	$NetBSD: services_mkdb.c,v 1.14 2008/04/28 20:24:17 martin Exp $	*/
+/*	$NetBSD: services_mkdb.c,v 1.14 2008/04/28 20:24:17 martin Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -35,59 +36,56 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+#include <ctype.h>
 #include <db.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <ctype.h>
-#include <errno.h>
 #include <stringlist.h>
+#include <unistd.h>
 
 #include "extern.h"
 
 static char tname[MAXPATHLEN];
 
-#define	PMASK		0xffff
-#define	PROTOMAX	6
+#define PMASK 0xffff
+#define PROTOMAX 6
 
-static void	add(DB *, StringList *, size_t, const char *, size_t *, int);
+static void add(DB *, StringList *, size_t, const char *, size_t *, int);
 static StringList ***parseservices(const char *, StringList *);
-static void	cleanup(void);
-static void	store(DB *, DBT *, DBT *, int);
-static void	killproto(DBT *);
-static char    *getstring(const char *, size_t, char **, const char *);
-static size_t	getprotoindex(StringList *, const char *);
+static void cleanup(void);
+static void store(DB *, DBT *, DBT *, int);
+static void killproto(DBT *);
+static char *getstring(const char *, size_t, char **, const char *);
+static size_t getprotoindex(StringList *, const char *);
 static const char *getprotostr(StringList *, size_t);
 static const char *mkaliases(StringList *, char *, size_t);
-static void	usage(void);
+static void usage(void);
 
-HASHINFO hinfo = {
-	.bsize = 256,
+HASHINFO hinfo = { .bsize = 256,
 	.ffactor = 4,
 	.nelem = 32768,
 	.cachesize = 1024,
 	.hash = NULL,
-	.lorder = 0
-};
-
+	.lorder = 0 };
 
 int
 main(int argc, char *argv[])
 {
-	DB	*db;
-	int	 ch;
+	DB *db;
+	int ch;
 	const char *fname = _PATH_SERVICES;
 	const char *dbname = _PATH_SERVICES_DB;
-	int	 warndup = 1;
-	int	 unique = 0;
-	int	 otherflag = 0;
-	int	 byteorder = 0;
-	size_t	 cnt = 0;
+	int warndup = 1;
+	int unique = 0;
+	int otherflag = 0;
+	int byteorder = 0;
+	size_t cnt = 0;
 	StringList *sl, ***svc;
 	size_t port, proto;
 	char *dbname_dir, *dbname_dirbuf;
@@ -144,7 +142,6 @@ main(int argc, char *argv[])
 	if (!db)
 		err(1, "Error opening temporary database `%s'", tname);
 
-
 	for (port = 0; port < PMASK + 1; port++) {
 		if (svc[port] == NULL)
 			continue;
@@ -172,7 +169,7 @@ main(int argc, char *argv[])
 	if (rename(tname, dbname) == -1 ||
 	    (dbname_dirbuf = strdup(dbname)) == NULL ||
 	    (dbname_dir = dirname(dbname_dirbuf)) == NULL ||
-	    (dbname_dir_fd = open(dbname_dir, O_RDONLY|O_DIRECTORY)) == -1 ||
+	    (dbname_dir_fd = open(dbname_dir, O_RDONLY | O_DIRECTORY)) == -1 ||
 	    fsync(dbname_dir_fd) != 0) {
 		if (dbname_dir_fd != -1)
 			close(dbname_dir_fd);
@@ -190,27 +187,27 @@ add(DB *db, StringList *sl, size_t port, const char *proto, size_t *cnt,
     int warndup)
 {
 	size_t i;
-	char	 keyb[BUFSIZ], datab[BUFSIZ], abuf[BUFSIZ];
-	DBT	 data, key;
+	char keyb[BUFSIZ], datab[BUFSIZ], abuf[BUFSIZ];
+	DBT data, key;
 	key.data = keyb;
 	data.data = datab;
 
 #ifdef DEBUG
 	(void)printf("add %s %zu %s [ ", sl->sl_str[0], port, proto);
 	for (i = 1; i < sl->sl_cur; i++)
-	    (void)printf("%s ", sl->sl_str[i]);
+		(void)printf("%s ", sl->sl_str[i]);
 	(void)printf("]\n");
 #endif
 
 	/* key `indirect key', data `full line' */
 	data.size = snprintf(datab, sizeof(datab), "%zu", (*cnt)++) + 1;
-	key.size = snprintf(keyb, sizeof(keyb), "%s %zu/%s %s",
-	    sl->sl_str[0], port, proto, mkaliases(sl, abuf, sizeof(abuf))) + 1;
+	key.size = snprintf(keyb, sizeof(keyb), "%s %zu/%s %s", sl->sl_str[0],
+		       port, proto, mkaliases(sl, abuf, sizeof(abuf))) +
+	    1;
 	store(db, &data, &key, warndup);
 
 	/* key `\377port/proto', data = `indirect key' */
-	key.size = snprintf(keyb, sizeof(keyb), "\377%zu/%s",
-	    port, proto) + 1;
+	key.size = snprintf(keyb, sizeof(keyb), "\377%zu/%s", port, proto) + 1;
 	store(db, &key, &data, warndup);
 
 	/* key `\377port', data = `indirect key' */
@@ -221,7 +218,8 @@ add(DB *db, StringList *sl, size_t port, const char *proto, size_t *cnt,
 	for (i = 0; i < sl->sl_cur; i++) {
 		/* key `\376service/proto', data = `indirect key' */
 		key.size = snprintf(keyb, sizeof(keyb), "\376%s/%s",
-		    sl->sl_str[i], proto) + 1;
+			       sl->sl_str[i], proto) +
+		    1;
 		store(db, &key, &data, warndup);
 
 		/* key `\376service', data = `indirect key' */
@@ -249,7 +247,7 @@ parseservices(const char *fname, StringList *sl)
 
 	p = NULL;
 	while ((len = getline(&p, &linecap, fp)) != -1) {
-		char	*name, *port, *proto, *aliases, *cp, *alias;
+		char *name, *port, *proto, *aliases, *cp, *alias;
 		unsigned long pnum;
 
 		line++;
@@ -380,9 +378,8 @@ store(DB *db, DBT *key, DBT *data, int warndup)
 #ifdef DEBUG
 	int k = key->size - 1;
 	int d = data->size - 1;
-	(void)printf("store [%*.*s] [%*.*s]\n",
-		k, k, (char *)key->data + 1,
-		d, d, (char *)data->data + 1);
+	(void)printf("store [%*.*s] [%*.*s]\n", k, k, (char *)key->data + 1, d,
+	    d, (char *)data->data + 1);
 #endif
 	switch ((db->put)(db, key, data, R_NOOVERWRITE)) {
 	case 0:
@@ -407,13 +404,15 @@ getprotoindex(StringList *sl, const char *str)
 	size_t i;
 	char *p;
 
-	for (i= 0; i < sl->sl_cur; i++)
+	for (i = 0; i < sl->sl_cur; i++)
 		if (strcmp(sl->sl_str[i], str) == 0)
 			return i;
 
 	if (i == PROTOMAX)
-		errx(1, "Ran out of protocols adding `%s';"
-		    " recompile with larger PROTOMAX", str);
+		errx(1,
+		    "Ran out of protocols adding `%s';"
+		    " recompile with larger PROTOMAX",
+		    str);
 	if ((p = strdup(str)) == NULL)
 		err(1, "Cannot copy string");
 	(void)sl_add(sl, p);
@@ -456,6 +455,7 @@ usage(void)
 {
 	(void)fprintf(stderr,
 	    "Usage:\t%s [-b | -l] [-q] [-o <db>] [<servicefile>]\n"
-	    "\t%s -u [<servicefile>]\n", getprogname(), getprogname());
+	    "\t%s -u [<servicefile>]\n",
+	    getprogname(), getprogname());
 	exit(1);
 }

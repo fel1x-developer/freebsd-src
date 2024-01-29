@@ -51,8 +51,8 @@
 #include <compat/linux/linux_persona.h>
 #include <compat/linux/linux_util.h>
 
-#define STACK_SIZE  (2 * 1024 * 1024)
-#define GUARD_SIZE  (4 * PAGE_SIZE)
+#define STACK_SIZE (2 * 1024 * 1024)
+#define GUARD_SIZE (4 * PAGE_SIZE)
 
 #if defined(__amd64__)
 static void linux_fixup_prot(struct thread *td, int *prot);
@@ -78,8 +78,8 @@ linux_mmap_common(struct thread *td, uintptr_t addr, size_t len, int prot,
 	struct vmspace *vms = td->td_proc->p_vmspace;
 	int bsd_flags, error;
 
-	LINUX_CTR6(mmap2, "0x%lx, %ld, %ld, 0x%08lx, %ld, 0x%lx",
-	    addr, len, prot, flags, fd, pos);
+	LINUX_CTR6(mmap2, "0x%lx, %ld, %ld, 0x%08lx, %ld, 0x%lx", addr, len,
+	    prot, flags, fd, pos);
 
 	error = 0;
 	bsd_flags = 0;
@@ -170,7 +170,8 @@ linux_mmap_common(struct thread *td, uintptr_t addr, size_t len, int prot,
 			 * mmap's return value.
 			 */
 			PROC_LOCK(p);
-			vms->vm_maxsaddr = (char *)round_page(vms->vm_stacktop) -
+			vms->vm_maxsaddr = (char *)round_page(
+					       vms->vm_stacktop) -
 			    lim_cur_proc(p, RLIMIT_STACK);
 			PROC_UNLOCK(p);
 		}
@@ -228,8 +229,9 @@ linux_mprotect_common(struct thread *td, uintptr_t addr, size_t len, int prot)
 
 	/* XXX Ignore PROT_GROWSUP for now. */
 	prot &= ~LINUX_PROT_GROWSUP;
-	if ((prot & ~(LINUX_PROT_GROWSDOWN | PROT_READ | PROT_WRITE |
-	    PROT_EXEC)) != 0)
+	if ((prot &
+		~(LINUX_PROT_GROWSDOWN | PROT_READ | PROT_WRITE | PROT_EXEC)) !=
+	    0)
 		return (EINVAL);
 	if ((prot & LINUX_PROT_GROWSDOWN) != 0) {
 		prot &= ~LINUX_PROT_GROWSDOWN;
@@ -419,6 +421,5 @@ linux_fixup_prot(struct thread *td, int *prot)
 		if (pem->persona & LINUX_READ_IMPLIES_EXEC)
 			*prot |= PROT_EXEC;
 	}
-
 }
 #endif

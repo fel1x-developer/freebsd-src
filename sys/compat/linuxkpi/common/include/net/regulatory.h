@@ -27,21 +27,21 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_NET_REGULATORY_H
-#define	_LINUXKPI_NET_REGULATORY_H
+#ifndef _LINUXKPI_NET_REGULATORY_H
+#define _LINUXKPI_NET_REGULATORY_H
 
 enum environment_cap {
-	ENVIRON_INDOOR		= 1,	/* keep != 0 */
+	ENVIRON_INDOOR = 1, /* keep != 0 */
 };
 
-#define	REG_RULE(_begin, _end, _bw, _mag, _meirp, _flags)		\
-{									\
-	.flags = (_flags),						\
-	.freq_range.start_freq_khz = MHZ_TO_KHZ(_begin),		\
-	.freq_range.end_freq_khz = MHZ_TO_KHZ(_end),			\
-	.freq_range.max_bandwidth_khz = MHZ_TO_KHZ(_bw),		\
-	.power_rule.max_antenna_gain = DBI_TO_MBI(_mag),		\
-	.power_rule.max_eirp = DBI_TO_MBI(_meirp),			\
-}
+#define REG_RULE(_begin, _end, _bw, _mag, _meirp, _flags)        \
+	{                                                        \
+		.flags = (_flags),                               \
+		.freq_range.start_freq_khz = MHZ_TO_KHZ(_begin), \
+		.freq_range.end_freq_khz = MHZ_TO_KHZ(_end),     \
+		.freq_range.max_bandwidth_khz = MHZ_TO_KHZ(_bw), \
+		.power_rule.max_antenna_gain = DBI_TO_MBI(_mag), \
+		.power_rule.max_eirp = DBI_TO_MBI(_meirp),       \
+	}
 
-#endif	/* _LINUXKPI_NET_REGULATORY_H */
+#endif /* _LINUXKPI_NET_REGULATORY_H */

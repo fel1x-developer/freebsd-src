@@ -36,15 +36,15 @@
 #include <linux/types.h>
 
 enum mlx5_ib_uapi_flow_action_flags {
-	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA	= 1 << 0,
+	MLX5_IB_UAPI_FLOW_ACTION_FLAGS_REQUIRE_METADATA = 1 << 0,
 };
 
 enum mlx5_ib_uapi_flow_table_type {
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX     = 0x0,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX	= 0x1,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_FDB	= 0x2,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_RDMA_RX	= 0x3,
-	MLX5_IB_UAPI_FLOW_TABLE_TYPE_RDMA_TX	= 0x4,
+	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_RX = 0x0,
+	MLX5_IB_UAPI_FLOW_TABLE_TYPE_NIC_TX = 0x1,
+	MLX5_IB_UAPI_FLOW_TABLE_TYPE_FDB = 0x2,
+	MLX5_IB_UAPI_FLOW_TABLE_TYPE_RDMA_RX = 0x3,
+	MLX5_IB_UAPI_FLOW_TABLE_TYPE_RDMA_TX = 0x4,
 };
 
 enum mlx5_ib_uapi_flow_action_packet_reformat_type {
@@ -55,8 +55,8 @@ enum mlx5_ib_uapi_flow_action_packet_reformat_type {
 };
 
 struct mlx5_ib_uapi_devx_async_cmd_hdr {
-	__aligned_u64	wr_id;
-	__u8		out_data[];
+	__aligned_u64 wr_id;
+	__u8 out_data[];
 };
 
 enum mlx5_ib_uapi_dm_type {
@@ -70,8 +70,8 @@ enum mlx5_ib_uapi_devx_create_event_channel_flags {
 };
 
 struct mlx5_ib_uapi_devx_async_event_hdr {
-	__aligned_u64	cookie;
-	__u8		out_data[];
+	__aligned_u64 cookie;
+	__u8 out_data[];
 };
 
 enum mlx5_ib_uapi_pp_alloc_flags {
@@ -84,4 +84,3 @@ enum mlx5_ib_uapi_uar_alloc_type {
 };
 
 #endif
-

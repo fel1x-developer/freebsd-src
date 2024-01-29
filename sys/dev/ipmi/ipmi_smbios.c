@@ -30,10 +30,10 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/selinfo.h>
-#include <sys/efi.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -47,44 +47,45 @@
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
 struct ipmi_entry {
-	uint8_t		type;
-	uint8_t		length;
-	uint16_t	handle;
-	uint8_t		interface_type;
-	uint8_t		spec_revision;
-	uint8_t		i2c_slave_address;
-	uint8_t		NV_storage_device_address;
-	uint64_t	base_address;
-	uint8_t		base_address_modifier;
-	uint8_t		interrupt_number;
+	uint8_t type;
+	uint8_t length;
+	uint16_t handle;
+	uint8_t interface_type;
+	uint8_t spec_revision;
+	uint8_t i2c_slave_address;
+	uint8_t NV_storage_device_address;
+	uint64_t base_address;
+	uint8_t base_address_modifier;
+	uint8_t interrupt_number;
 };
 
 /* Fields in the base_address field of an IPMI entry. */
-#define	IPMI_BAR_MODE(ba)	((ba) & 0x0000000000000001)
-#define	IPMI_BAR_ADDR(ba)	((ba) & 0xfffffffffffffffe)
+#define IPMI_BAR_MODE(ba) ((ba) & 0x0000000000000001)
+#define IPMI_BAR_ADDR(ba) ((ba) & 0xfffffffffffffffe)
 
 /* Fields in the base_address_modifier field of an IPMI entry. */
-#define	IPMI_BAM_IRQ_TRIGGER	0x01
-#define	IPMI_BAM_IRQ_POLARITY	0x02
-#define	IPMI_BAM_IRQ_VALID	0x08
-#define	IPMI_BAM_ADDR_LSB(bam)	(((bam) & 0x10) >> 4)
-#define	IPMI_BAM_REG_SPACING(bam) (((bam) & 0xc0) >> 6)
-#define	SPACING_8		0x0
-#define	SPACING_32		0x1
-#define	SPACING_16		0x2
+#define IPMI_BAM_IRQ_TRIGGER 0x01
+#define IPMI_BAM_IRQ_POLARITY 0x02
+#define IPMI_BAM_IRQ_VALID 0x08
+#define IPMI_BAM_ADDR_LSB(bam) (((bam) & 0x10) >> 4)
+#define IPMI_BAM_REG_SPACING(bam) (((bam) & 0xc0) >> 6)
+#define SPACING_8 0x0
+#define SPACING_32 0x1
+#define SPACING_16 0x2
 
 static struct ipmi_get_info ipmi_info;
 static int ipmi_probed;
 static struct mtx ipmi_info_mtx;
 MTX_SYSINIT(ipmi_info, &ipmi_info_mtx, "ipmi info", MTX_DEF);
 
-static void	ipmi_smbios_probe(struct ipmi_get_info *);
-static int	smbios_cksum(struct smbios_eps *);
-static void	smbios_ipmi_info(struct smbios_structure_header *, void *);
+static void ipmi_smbios_probe(struct ipmi_get_info *);
+static int smbios_cksum(struct smbios_eps *);
+static void smbios_ipmi_info(struct smbios_structure_header *, void *);
 
 static void
 smbios_ipmi_info(struct smbios_structure_header *h, void *arg)
@@ -92,8 +93,8 @@ smbios_ipmi_info(struct smbios_structure_header *h, void *arg)
 	struct ipmi_get_info *info;
 	struct ipmi_entry *s;
 
-	if (h->type != 38 || h->length <
-	    offsetof(struct ipmi_entry, interrupt_number))
+	if (h->type != 38 ||
+	    h->length < offsetof(struct ipmi_entry, interrupt_number))
 		return;
 	s = (struct ipmi_entry *)h;
 	info = arg;
@@ -122,7 +123,8 @@ smbios_ipmi_info(struct smbios_structure_header *h, void *arg)
 		break;
 	case SSIF_MODE:
 		if ((s->base_address & 0xffffffffffffff00) != 0) {
-			printf("SMBIOS: Invalid SSIF SMBus address, using BMC I2C slave address instead\n");
+			printf(
+			    "SMBIOS: Invalid SSIF SMBus address, using BMC I2C slave address instead\n");
 			info->address = s->i2c_slave_address;
 			break;
 		}
@@ -169,7 +171,7 @@ ipmi_smbios_probe(struct ipmi_get_info *info)
 	if (addr == 0)
 		/* Find the SMBIOS table header. */
 		addr = bios_sigsearch(SMBIOS_START, SMBIOS_SIG, SMBIOS_LEN,
-			SMBIOS_STEP, SMBIOS_OFF);
+		    SMBIOS_STEP, SMBIOS_OFF);
 	if (addr == 0)
 		return;
 

@@ -26,27 +26,28 @@
  */
 
 #include <sys/types.h>
-#include <sys/ioctl.h>
-#include <stdbool.h>
 #include <sys/capsicum.h>
+#include <sys/ioctl.h>
+
 #include <dev/pwm/pwmc.h>
 
+#include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <capsicum_helpers.h>
 
-#define	PWM_ENABLE	0x0001
-#define	PWM_DISABLE	0x0002
-#define	PWM_SHOW_CONFIG	0x0004
-#define	PWM_PERIOD	0x0008
-#define	PWM_DUTY	0x0010
-#define	PWM_INVERTED	0x0020
+#define PWM_ENABLE 0x0001
+#define PWM_DISABLE 0x0002
+#define PWM_SHOW_CONFIG 0x0004
+#define PWM_PERIOD 0x0008
+#define PWM_DUTY 0x0010
+#define PWM_INVERTED 0x0020
 
 static char device_name[PATH_MAX] = "/dev/pwm/pwmc0.0";
 
@@ -65,7 +66,8 @@ usage(void)
 {
 	fprintf(stderr, "Usage:\n");
 	fprintf(stderr, "\tpwm [-f dev] -C\n");
-	fprintf(stderr, "\tpwm [-f dev] [-D | -E] [-I] [-p period] [-d duty[%%]]\n");
+	fprintf(stderr,
+	    "\tpwm [-f dev] [-D | -E] [-I] [-p period] [-d duty[%%]]\n");
 	exit(1);
 }
 
@@ -77,7 +79,7 @@ main(int argc, char *argv[])
 	u_int period, duty;
 	int action, ch;
 	cap_rights_t right_ioctl;
-	const unsigned long pwm_ioctls[] = {PWMGETSTATE, PWMSETSTATE};
+	const unsigned long pwm_ioctls[] = { PWMGETSTATE, PWMSETSTATE };
 	char *percent;
 	bool setname;
 
@@ -142,8 +144,8 @@ main(int argc, char *argv[])
 		usage();
 
 	if ((fd = open(device_name, O_RDWR)) == -1) {
-		fprintf(stderr, "pwm: cannot open %s: %s\n",
-		    device_name, strerror(errno));
+		fprintf(stderr, "pwm: cannot open %s: %s\n", device_name,
+		    strerror(errno));
 		if (setname)
 			exit(1);
 		else
@@ -171,15 +173,14 @@ main(int argc, char *argv[])
 
 	/* Fill the common args */
 	if (ioctl(fd, PWMGETSTATE, &state) == -1) {
-		fprintf(stderr, "Cannot get current state of the pwm controller\n");
+		fprintf(stderr,
+		    "Cannot get current state of the pwm controller\n");
 		goto fail;
 	}
 
 	if (action == PWM_SHOW_CONFIG) {
 		printf("period: %u\nduty: %u\nenabled:%d\ninverted:%d\n",
-		    state.period,
-		    state.duty,
-		    state.enable,
+		    state.period, state.duty, state.enable,
 		    state.flags & PWM_POLARITY_INVERTED);
 	} else {
 		if (action & PWM_ENABLE)
@@ -194,14 +195,15 @@ main(int argc, char *argv[])
 			state.flags &= ~PWM_POLARITY_INVERTED;
 		if (action & PWM_DUTY) {
 			if (*percent != '\0')
-				state.duty = (uint64_t)state.period * duty / 100;
+				state.duty = (uint64_t)state.period * duty /
+				    100;
 			else
 				state.duty = duty;
 		}
 
 		if (ioctl(fd, PWMSETSTATE, &state) == -1) {
 			fprintf(stderr,
-			  "Cannot configure the pwm controller\n");
+			    "Cannot configure the pwm controller\n");
 			goto fail;
 		}
 	}

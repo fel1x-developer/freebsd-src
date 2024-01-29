@@ -45,16 +45,16 @@
 
 extern char **environ;
 
-int	 env_verbosity;
+int env_verbosity;
 
 static void usage(void) __dead2;
 
 /*
  * Exit codes.
  */
-#define EXIT_CANCELED      125 /* Internal error prior to exec attempt. */
+#define EXIT_CANCELED 125      /* Internal error prior to exec attempt. */
 #define EXIT_CANNOT_INVOKE 126 /* Program located, but not usable. */
-#define EXIT_ENOENT        127 /* Could not find program to exec. */
+#define EXIT_ENOENT 127	       /* Could not find program to exec. */
 
 int
 main(int argc, char **argv)
@@ -78,7 +78,7 @@ main(int argc, char **argv)
 	want_clear = 0;
 	term = '\n';
 	while ((ch = getopt(argc, argv, "-0iL:P:S:U:u:v")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '-':
 		case 'i':
 			want_clear = 1;
@@ -139,7 +139,8 @@ main(int argc, char **argv)
 					pw = getpwuid(uid);
 			}
 			if (pw == NULL)
-				errx(EXIT_FAILURE, "no such user: %s", login_name);
+				errx(EXIT_FAILURE, "no such user: %s",
+				    login_name);
 		}
 		/*
 		 * Note that it is safe for pw to be null here; the libutil
@@ -197,8 +198,8 @@ main(int argc, char **argv)
 				sleep(1);
 		}
 		execvp(*argv, argv);
-		err(errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE,
-		    "%s", *argv);
+		err(errno == ENOENT ? EXIT_ENOENT : EXIT_CANNOT_INVOKE, "%s",
+		    *argv);
 	}
 	for (ep = environ; *ep; ep++)
 		(void)printf("%s%c", *ep, term);

@@ -29,31 +29,24 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_init_rxq(
-	__in		efx_nic_t *enp,
-	__in		uint32_t ndescs,
-	__in		uint32_t target_evq,
-	__in		uint32_t label,
-	__in		uint32_t instance,
-	__in		efsys_mem_t *esmp,
-	__in		boolean_t disable_scatter,
-	__in		boolean_t want_inner_classes,
-	__in		uint32_t ps_bufsize,
-	__in		uint32_t es_bufs_per_desc,
-	__in		uint32_t es_max_dma_len,
-	__in		uint32_t es_buf_stride,
-	__in		uint32_t hol_block_timeout)
+static __checkReturn efx_rc_t
+efx_mcdi_init_rxq(__in efx_nic_t *enp, __in uint32_t ndescs,
+    __in uint32_t target_evq, __in uint32_t label, __in uint32_t instance,
+    __in efsys_mem_t *esmp, __in boolean_t disable_scatter,
+    __in boolean_t want_inner_classes, __in uint32_t ps_bufsize,
+    __in uint32_t es_bufs_per_desc, __in uint32_t es_max_dma_len,
+    __in uint32_t es_buf_stride, __in uint32_t hol_block_timeout)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_INIT_RXQ_V3_IN_LEN,
-		MC_CMD_INIT_RXQ_V3_OUT_LEN);
+	    MC_CMD_INIT_RXQ_V3_OUT_LEN);
 	int npages = EFX_RXQ_NBUFS(ndescs);
 	int i;
 	efx_qword_t *dma_addr;
@@ -107,14 +100,11 @@ efx_mcdi_init_rxq(
 	MCDI_IN_SET_DWORD(req, INIT_RXQ_EXT_IN_LABEL, label);
 	MCDI_IN_SET_DWORD(req, INIT_RXQ_EXT_IN_INSTANCE, instance);
 	MCDI_IN_POPULATE_DWORD_9(req, INIT_RXQ_EXT_IN_FLAGS,
-	    INIT_RXQ_EXT_IN_FLAG_BUFF_MODE, 0,
-	    INIT_RXQ_EXT_IN_FLAG_HDR_SPLIT, 0,
-	    INIT_RXQ_EXT_IN_FLAG_TIMESTAMP, 0,
-	    INIT_RXQ_EXT_IN_CRC_MODE, 0,
+	    INIT_RXQ_EXT_IN_FLAG_BUFF_MODE, 0, INIT_RXQ_EXT_IN_FLAG_HDR_SPLIT,
+	    0, INIT_RXQ_EXT_IN_FLAG_TIMESTAMP, 0, INIT_RXQ_EXT_IN_CRC_MODE, 0,
 	    INIT_RXQ_EXT_IN_FLAG_PREFIX, 1,
 	    INIT_RXQ_EXT_IN_FLAG_DISABLE_SCATTER, disable_scatter,
-	    INIT_RXQ_EXT_IN_DMA_MODE,
-	    dma_mode,
+	    INIT_RXQ_EXT_IN_DMA_MODE, dma_mode,
 	    INIT_RXQ_EXT_IN_PACKED_STREAM_BUFF_SIZE, ps_bufsize,
 	    INIT_RXQ_EXT_IN_FLAG_WANT_OUTER_CLASSES, want_outer_classes);
 	MCDI_IN_SET_DWORD(req, INIT_RXQ_EXT_IN_OWNER_ID, 0);
@@ -124,10 +114,10 @@ efx_mcdi_init_rxq(
 		MCDI_IN_SET_DWORD(req,
 		    INIT_RXQ_V3_IN_ES_PACKET_BUFFERS_PER_BUCKET,
 		    es_bufs_per_desc);
-		MCDI_IN_SET_DWORD(req,
-		    INIT_RXQ_V3_IN_ES_MAX_DMA_LEN, es_max_dma_len);
-		MCDI_IN_SET_DWORD(req,
-		    INIT_RXQ_V3_IN_ES_PACKET_STRIDE, es_buf_stride);
+		MCDI_IN_SET_DWORD(req, INIT_RXQ_V3_IN_ES_MAX_DMA_LEN,
+		    es_max_dma_len);
+		MCDI_IN_SET_DWORD(req, INIT_RXQ_V3_IN_ES_PACKET_STRIDE,
+		    es_buf_stride);
 		MCDI_IN_SET_DWORD(req,
 		    INIT_RXQ_V3_IN_ES_HEAD_OF_LINE_BLOCK_TIMEOUT,
 		    hol_block_timeout);
@@ -137,9 +127,9 @@ efx_mcdi_init_rxq(
 	addr = EFSYS_MEM_ADDR(esmp);
 
 	for (i = 0; i < npages; i++) {
-		EFX_POPULATE_QWORD_2(*dma_addr,
-		    EFX_DWORD_1, (uint32_t)(addr >> 32),
-		    EFX_DWORD_0, (uint32_t)(addr & 0xffffffff));
+		EFX_POPULATE_QWORD_2(*dma_addr, EFX_DWORD_1,
+		    (uint32_t)(addr >> 32), EFX_DWORD_0,
+		    (uint32_t)(addr & 0xffffffff));
 
 		dma_addr++;
 		addr += EFX_BUF_SIZE;
@@ -162,14 +152,12 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_fini_rxq(
-	__in		efx_nic_t *enp,
-	__in		uint32_t instance)
+static __checkReturn efx_rc_t
+efx_mcdi_fini_rxq(__in efx_nic_t *enp, __in uint32_t instance)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_FINI_RXQ_IN_LEN,
-		MC_CMD_FINI_RXQ_OUT_LEN);
+	    MC_CMD_FINI_RXQ_OUT_LEN);
 	efx_rc_t rc;
 
 	req.emr_cmd = MC_CMD_FINI_RXQ;
@@ -201,16 +189,14 @@ fail1:
 }
 
 #if EFSYS_OPT_RX_SCALE
-static	__checkReturn	efx_rc_t
-efx_mcdi_rss_context_alloc(
-	__in		efx_nic_t *enp,
-	__in		efx_rx_scale_context_type_t type,
-	__in		uint32_t num_queues,
-	__out		uint32_t *rss_contextp)
+static __checkReturn efx_rc_t
+efx_mcdi_rss_context_alloc(__in efx_nic_t *enp,
+    __in efx_rx_scale_context_type_t type, __in uint32_t num_queues,
+    __out uint32_t *rss_contextp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_RSS_CONTEXT_ALLOC_IN_LEN,
-		MC_CMD_RSS_CONTEXT_ALLOC_OUT_LEN);
+	    MC_CMD_RSS_CONTEXT_ALLOC_OUT_LEN);
 	uint32_t rss_context;
 	uint32_t context_type;
 	efx_rc_t rc;
@@ -288,14 +274,12 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-static			efx_rc_t
-efx_mcdi_rss_context_free(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context)
+static efx_rc_t
+efx_mcdi_rss_context_free(__in efx_nic_t *enp, __in uint32_t rss_context)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_RSS_CONTEXT_FREE_IN_LEN,
-		MC_CMD_RSS_CONTEXT_FREE_OUT_LEN);
+	    MC_CMD_RSS_CONTEXT_FREE_OUT_LEN);
 	efx_rc_t rc;
 
 	if (rss_context == EF10_RSS_CONTEXT_INVALID) {
@@ -330,34 +314,32 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-static			efx_rc_t
-efx_mcdi_rss_context_set_flags(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in		efx_rx_hash_type_t type)
+static efx_rc_t
+efx_mcdi_rss_context_set_flags(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in efx_rx_hash_type_t type)
 {
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_LEN,
-		MC_CMD_RSS_CONTEXT_SET_FLAGS_OUT_LEN);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_OUT_LEN);
 	efx_rc_t rc;
 
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV4_TCP_LBN ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV4_RSS_MODE_LBN);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV4_RSS_MODE_LBN);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV4_TCP_WIDTH ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV4_RSS_MODE_WIDTH);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV4_RSS_MODE_WIDTH);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV4_LBN ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV4_RSS_MODE_LBN);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV4_RSS_MODE_LBN);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV4_WIDTH ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV4_RSS_MODE_WIDTH);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV4_RSS_MODE_WIDTH);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV6_TCP_LBN ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV6_RSS_MODE_LBN);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV6_RSS_MODE_LBN);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV6_TCP_WIDTH ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV6_RSS_MODE_WIDTH);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV6_RSS_MODE_WIDTH);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV6_LBN ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV6_RSS_MODE_LBN);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV6_RSS_MODE_LBN);
 	EFX_STATIC_ASSERT(EFX_RX_CLASS_IPV6_WIDTH ==
-		    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV6_RSS_MODE_WIDTH);
+	    MC_CMD_RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV6_RSS_MODE_WIDTH);
 
 	if (rss_context == EF10_RSS_CONTEXT_INVALID) {
 		rc = EINVAL;
@@ -391,18 +373,18 @@ efx_mcdi_rss_context_set_flags(
 	    (type & EFX_RX_HASH_TCPIPV6) ? 1 : 0,
 	    RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV4_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV4_TCP_LBN) &
-	    EFX_MASK32(EFX_RX_CLASS_IPV4_TCP),
+		EFX_MASK32(EFX_RX_CLASS_IPV4_TCP),
 	    RSS_CONTEXT_SET_FLAGS_IN_UDP_IPV4_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV4_UDP_LBN) &
-	    EFX_MASK32(EFX_RX_CLASS_IPV4_UDP),
+		EFX_MASK32(EFX_RX_CLASS_IPV4_UDP),
 	    RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV4_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV4_LBN) & EFX_MASK32(EFX_RX_CLASS_IPV4),
 	    RSS_CONTEXT_SET_FLAGS_IN_TCP_IPV6_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV6_TCP_LBN) &
-	    EFX_MASK32(EFX_RX_CLASS_IPV6_TCP),
+		EFX_MASK32(EFX_RX_CLASS_IPV6_TCP),
 	    RSS_CONTEXT_SET_FLAGS_IN_UDP_IPV6_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV6_UDP_LBN) &
-	    EFX_MASK32(EFX_RX_CLASS_IPV6_UDP),
+		EFX_MASK32(EFX_RX_CLASS_IPV6_UDP),
 	    RSS_CONTEXT_SET_FLAGS_IN_OTHER_IPV6_RSS_MODE,
 	    (type >> EFX_RX_CLASS_IPV6_LBN) & EFX_MASK32(EFX_RX_CLASS_IPV6));
 
@@ -425,16 +407,13 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-static			efx_rc_t
-efx_mcdi_rss_context_set_key(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in_ecount(n)	uint8_t *key,
-	__in		size_t n)
+static efx_rc_t
+efx_mcdi_rss_context_set_key(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in_ecount(n) uint8_t *key, __in size_t n)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_RSS_CONTEXT_SET_KEY_IN_LEN,
-		MC_CMD_RSS_CONTEXT_SET_KEY_OUT_LEN);
+	    MC_CMD_RSS_CONTEXT_SET_KEY_OUT_LEN);
 	efx_rc_t rc;
 
 	if (rss_context == EF10_RSS_CONTEXT_INVALID) {
@@ -457,8 +436,8 @@ efx_mcdi_rss_context_set_key(
 		goto fail2;
 	}
 
-	memcpy(MCDI_IN2(req, uint8_t, RSS_CONTEXT_SET_KEY_IN_TOEPLITZ_KEY),
-	    key, n);
+	memcpy(MCDI_IN2(req, uint8_t, RSS_CONTEXT_SET_KEY_IN_TOEPLITZ_KEY), key,
+	    n);
 
 	efx_mcdi_execute(enp, &req);
 
@@ -481,16 +460,13 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-static			efx_rc_t
-efx_mcdi_rss_context_set_table(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in_ecount(n)	unsigned int *table,
-	__in		size_t n)
+static efx_rc_t
+efx_mcdi_rss_context_set_table(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in_ecount(n) unsigned int *table, __in size_t n)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_RSS_CONTEXT_SET_TABLE_IN_LEN,
-		MC_CMD_RSS_CONTEXT_SET_TABLE_OUT_LEN);
+	    MC_CMD_RSS_CONTEXT_SET_TABLE_OUT_LEN);
 	uint8_t *req_table;
 	int i, rc;
 
@@ -508,12 +484,11 @@ efx_mcdi_rss_context_set_table(
 	MCDI_IN_SET_DWORD(req, RSS_CONTEXT_SET_TABLE_IN_RSS_CONTEXT_ID,
 	    rss_context);
 
-	req_table =
-	    MCDI_IN2(req, uint8_t, RSS_CONTEXT_SET_TABLE_IN_INDIRECTION_TABLE);
+	req_table = MCDI_IN2(req, uint8_t,
+	    RSS_CONTEXT_SET_TABLE_IN_INDIRECTION_TABLE);
 
-	for (i = 0;
-	    i < MC_CMD_RSS_CONTEXT_SET_TABLE_IN_INDIRECTION_TABLE_LEN;
-	    i++) {
+	for (i = 0; i < MC_CMD_RSS_CONTEXT_SET_TABLE_IN_INDIRECTION_TABLE_LEN;
+	     i++) {
 		req_table[i] = (n > 0) ? (uint8_t)table[i % n] : 0;
 	}
 
@@ -535,9 +510,8 @@ fail1:
 }
 #endif /* EFSYS_OPT_RX_SCALE */
 
-	__checkReturn	efx_rc_t
-ef10_rx_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+ef10_rx_init(__in efx_nic_t *enp)
 {
 #if EFSYS_OPT_RX_SCALE
 
@@ -565,23 +539,19 @@ ef10_rx_init(
 }
 
 #if EFSYS_OPT_RX_SCATTER
-	__checkReturn	efx_rc_t
-ef10_rx_scatter_enable(
-	__in		efx_nic_t *enp,
-	__in		unsigned int buf_size)
+__checkReturn efx_rc_t
+ef10_rx_scatter_enable(__in efx_nic_t *enp, __in unsigned int buf_size)
 {
 	_NOTE(ARGUNUSED(enp, buf_size))
 	return (0);
 }
-#endif	/* EFSYS_OPT_RX_SCATTER */
+#endif /* EFSYS_OPT_RX_SCATTER */
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	efx_rc_t
-ef10_rx_scale_context_alloc(
-	__in		efx_nic_t *enp,
-	__in		efx_rx_scale_context_type_t type,
-	__in		uint32_t num_queues,
-	__out		uint32_t *rss_contextp)
+__checkReturn efx_rc_t
+ef10_rx_scale_context_alloc(__in efx_nic_t *enp,
+    __in efx_rx_scale_context_type_t type, __in uint32_t num_queues,
+    __out uint32_t *rss_contextp)
 {
 	efx_rc_t rc;
 
@@ -598,10 +568,8 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	efx_rc_t
-ef10_rx_scale_context_free(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context)
+__checkReturn efx_rc_t
+ef10_rx_scale_context_free(__in efx_nic_t *enp, __in uint32_t rss_context)
 {
 	efx_rc_t rc;
 
@@ -618,13 +586,10 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	efx_rc_t
-ef10_rx_scale_mode_set(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in		efx_rx_hash_alg_t alg,
-	__in		efx_rx_hash_type_t type,
-	__in		boolean_t insert)
+__checkReturn efx_rc_t
+ef10_rx_scale_mode_set(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in efx_rx_hash_alg_t alg, __in efx_rx_hash_type_t type,
+    __in boolean_t insert)
 {
 	efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	efx_rc_t rc;
@@ -645,8 +610,7 @@ ef10_rx_scale_mode_set(
 		rss_context = enp->en_rss_context;
 	}
 
-	if ((rc = efx_mcdi_rss_context_set_flags(enp,
-		    rss_context, type)) != 0)
+	if ((rc = efx_mcdi_rss_context_set_flags(enp, rss_context, type)) != 0)
 		goto fail3;
 
 	return (0);
@@ -663,17 +627,14 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	efx_rc_t
-ef10_rx_scale_key_set(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in_ecount(n)	uint8_t *key,
-	__in		size_t n)
+__checkReturn efx_rc_t
+ef10_rx_scale_key_set(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in_ecount(n) uint8_t *key, __in size_t n)
 {
 	efx_rc_t rc;
 
-	EFX_STATIC_ASSERT(EFX_RSS_KEY_SIZE ==
-	    MC_CMD_RSS_CONTEXT_SET_KEY_IN_TOEPLITZ_KEY_LEN);
+	EFX_STATIC_ASSERT(
+	    EFX_RSS_KEY_SIZE == MC_CMD_RSS_CONTEXT_SET_KEY_IN_TOEPLITZ_KEY_LEN);
 
 	if (rss_context == EFX_RSS_CONTEXT_DEFAULT) {
 		if (enp->en_rss_context_type == EFX_RX_SCALE_UNAVAILABLE) {
@@ -698,12 +659,9 @@ fail1:
 #endif /* EFSYS_OPT_RX_SCALE */
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	efx_rc_t
-ef10_rx_scale_tbl_set(
-	__in		efx_nic_t *enp,
-	__in		uint32_t rss_context,
-	__in_ecount(n)	unsigned int *table,
-	__in		size_t n)
+__checkReturn efx_rc_t
+ef10_rx_scale_tbl_set(__in efx_nic_t *enp, __in uint32_t rss_context,
+    __in_ecount(n) unsigned int *table, __in size_t n)
 {
 	efx_rc_t rc;
 
@@ -715,8 +673,8 @@ ef10_rx_scale_tbl_set(
 		rss_context = enp->en_rss_context;
 	}
 
-	if ((rc = efx_mcdi_rss_context_set_table(enp,
-		    rss_context, table, n)) != 0)
+	if ((rc = efx_mcdi_rss_context_set_table(enp, rss_context, table, n)) !=
+	    0)
 		goto fail2;
 
 	return (0);
@@ -750,11 +708,9 @@ fail1:
  * See "The RX Pseudo-header" in SF-109306-TC.
  */
 
-	__checkReturn	efx_rc_t
-ef10_rx_prefix_pktlen(
-	__in		efx_nic_t *enp,
-	__in		uint8_t *buffer,
-	__out		uint16_t *lengthp)
+__checkReturn efx_rc_t
+ef10_rx_prefix_pktlen(__in efx_nic_t *enp, __in uint8_t *buffer,
+    __out uint16_t *lengthp)
 {
 	_NOTE(ARGUNUSED(enp))
 
@@ -770,20 +726,16 @@ ef10_rx_prefix_pktlen(
 }
 
 #if EFSYS_OPT_RX_SCALE
-	__checkReturn	uint32_t
-ef10_rx_prefix_hash(
-	__in		efx_nic_t *enp,
-	__in		efx_rx_hash_alg_t func,
-	__in		uint8_t *buffer)
+__checkReturn uint32_t
+ef10_rx_prefix_hash(__in efx_nic_t *enp, __in efx_rx_hash_alg_t func,
+    __in uint8_t *buffer)
 {
 	_NOTE(ARGUNUSED(enp))
 
 	switch (func) {
 	case EFX_RX_HASHALG_PACKED_STREAM:
 	case EFX_RX_HASHALG_TOEPLITZ:
-		return (buffer[0] |
-		    (buffer[1] << 8) |
-		    (buffer[2] << 16) |
+		return (buffer[0] | (buffer[1] << 8) | (buffer[2] << 16) |
 		    (buffer[3] << 24));
 
 	default:
@@ -798,17 +750,13 @@ ef10_rx_prefix_hash(
  * Fake length for RXQ descriptors in packed stream mode
  * to make hardware happy
  */
-#define	EFX_RXQ_PACKED_STREAM_FAKE_BUF_SIZE 32
+#define EFX_RXQ_PACKED_STREAM_FAKE_BUF_SIZE 32
 #endif
 
-				void
-ef10_rx_qpost(
-	__in			efx_rxq_t *erp,
-	__in_ecount(ndescs)	efsys_dma_addr_t *addrp,
-	__in			size_t size,
-	__in			unsigned int ndescs,
-	__in			unsigned int completed,
-	__in			unsigned int added)
+void
+ef10_rx_qpost(__in efx_rxq_t *erp, __in_ecount(ndescs) efsys_dma_addr_t *addrp,
+    __in size_t size, __in unsigned int ndescs, __in unsigned int completed,
+    __in unsigned int added)
 {
 	efx_qword_t qword;
 	unsigned int i;
@@ -832,29 +780,24 @@ ef10_rx_qpost(
 
 	id = added & (erp->er_mask);
 	for (i = 0; i < ndescs; i++) {
-		EFSYS_PROBE4(rx_post, unsigned int, erp->er_index,
-		    unsigned int, id, efsys_dma_addr_t, addrp[i],
-		    size_t, size);
+		EFSYS_PROBE4(rx_post, unsigned int, erp->er_index, unsigned int,
+		    id, efsys_dma_addr_t, addrp[i], size_t, size);
 
-		EFX_POPULATE_QWORD_3(qword,
-		    ESF_DZ_RX_KER_BYTE_CNT, (uint32_t)(size),
-		    ESF_DZ_RX_KER_BUF_ADDR_DW0,
+		EFX_POPULATE_QWORD_3(qword, ESF_DZ_RX_KER_BYTE_CNT,
+		    (uint32_t)(size), ESF_DZ_RX_KER_BUF_ADDR_DW0,
 		    (uint32_t)(addrp[i] & 0xffffffff),
-		    ESF_DZ_RX_KER_BUF_ADDR_DW1,
-		    (uint32_t)(addrp[i] >> 32));
+		    ESF_DZ_RX_KER_BUF_ADDR_DW1, (uint32_t)(addrp[i] >> 32));
 
-		offset = id * sizeof (efx_qword_t);
+		offset = id * sizeof(efx_qword_t);
 		EFSYS_MEM_WRITEQ(erp->er_esmp, offset, &qword);
 
 		id = (id + 1) & (erp->er_mask);
 	}
 }
 
-			void
-ef10_rx_qpush(
-	__in	efx_rxq_t *erp,
-	__in	unsigned int added,
-	__inout	unsigned int *pushedp)
+void
+ef10_rx_qpush(__in efx_rxq_t *erp, __in unsigned int added,
+    __inout unsigned int *pushedp)
 {
 	efx_nic_t *enp = erp->er_enp;
 	unsigned int pushed = *pushedp;
@@ -874,18 +817,17 @@ ef10_rx_qpush(
 	EFX_POPULATE_DWORD_1(dword, ERF_DZ_RX_DESC_WPTR, wptr);
 
 	/* Guarantee ordering of memory (descriptors) and PIO (doorbell) */
-	EFX_DMA_SYNC_QUEUE_FOR_DEVICE(erp->er_esmp, erp->er_mask + 1,
-	    wptr, pushed & erp->er_mask);
+	EFX_DMA_SYNC_QUEUE_FOR_DEVICE(erp->er_esmp, erp->er_mask + 1, wptr,
+	    pushed & erp->er_mask);
 	EFSYS_PIO_WRITE_BARRIER();
-	EFX_BAR_VI_WRITED(enp, ER_DZ_RX_DESC_UPD_REG,
-	    erp->er_index, &dword, B_FALSE);
+	EFX_BAR_VI_WRITED(enp, ER_DZ_RX_DESC_UPD_REG, erp->er_index, &dword,
+	    B_FALSE);
 }
 
 #if EFSYS_OPT_RX_PACKED_STREAM
 
-			void
-ef10_rx_qpush_ps_credits(
-	__in		efx_rxq_t *erp)
+void
+ef10_rx_qpush_ps_credits(__in efx_rxq_t *erp)
 {
 	efx_nic_t *enp = erp->er_enp;
 	efx_dword_t dword;
@@ -904,13 +846,11 @@ ef10_rx_qpush_ps_credits(
 	 */
 	credits = MIN(rxq_state->eers_rx_packed_stream_credits,
 	    EFX_RX_PACKED_STREAM_MAX_CREDITS);
-	EFX_POPULATE_DWORD_3(dword,
-	    ERF_DZ_RX_DESC_MAGIC_DOORBELL, 1,
-	    ERF_DZ_RX_DESC_MAGIC_CMD,
-	    ERE_DZ_RX_DESC_MAGIC_CMD_PS_CREDITS,
+	EFX_POPULATE_DWORD_3(dword, ERF_DZ_RX_DESC_MAGIC_DOORBELL, 1,
+	    ERF_DZ_RX_DESC_MAGIC_CMD, ERE_DZ_RX_DESC_MAGIC_CMD_PS_CREDITS,
 	    ERF_DZ_RX_DESC_MAGIC_DATA, credits);
-	EFX_BAR_VI_WRITED(enp, ER_DZ_RX_DESC_UPD_REG,
-	    erp->er_index, &dword, B_FALSE);
+	EFX_BAR_VI_WRITED(enp, ER_DZ_RX_DESC_UPD_REG, erp->er_index, &dword,
+	    B_FALSE);
 
 	rxq_state->eers_rx_packed_stream_credits = 0;
 }
@@ -925,15 +865,11 @@ ef10_rx_qpush_ps_credits(
  *  - optional padding to align to 64 bytes boundary
  *  - 64 bytes scratch space for the host software
  */
-	__checkReturn	uint8_t *
-ef10_rx_qps_packet_info(
-	__in		efx_rxq_t *erp,
-	__in		uint8_t *buffer,
-	__in		uint32_t buffer_length,
-	__in		uint32_t current_offset,
-	__out		uint16_t *lengthp,
-	__out		uint32_t *next_offsetp,
-	__out		uint32_t *timestamp)
+__checkReturn uint8_t *
+ef10_rx_qps_packet_info(__in efx_rxq_t *erp, __in uint8_t *buffer,
+    __in uint32_t buffer_length, __in uint32_t current_offset,
+    __out uint16_t *lengthp, __out uint32_t *next_offsetp,
+    __out uint32_t *timestamp)
 {
 	uint16_t buf_len;
 	uint8_t *pkt_start;
@@ -947,14 +883,14 @@ ef10_rx_qps_packet_info(
 
 	qwordp = (efx_qword_t *)buffer;
 	*timestamp = EFX_QWORD_FIELD(*qwordp, ES_DZ_PS_RX_PREFIX_TSTAMP);
-	*lengthp   = EFX_QWORD_FIELD(*qwordp, ES_DZ_PS_RX_PREFIX_ORIG_LEN);
-	buf_len    = EFX_QWORD_FIELD(*qwordp, ES_DZ_PS_RX_PREFIX_CAP_LEN);
+	*lengthp = EFX_QWORD_FIELD(*qwordp, ES_DZ_PS_RX_PREFIX_ORIG_LEN);
+	buf_len = EFX_QWORD_FIELD(*qwordp, ES_DZ_PS_RX_PREFIX_CAP_LEN);
 
 	buf_len = EFX_P2ROUNDUP(uint16_t,
 	    buf_len + EFX_RX_PACKED_STREAM_RX_PREFIX_SIZE,
 	    EFX_RX_PACKED_STREAM_ALIGNMENT);
-	*next_offsetp =
-	    current_offset + buf_len + EFX_RX_PACKED_STREAM_ALIGNMENT;
+	*next_offsetp = current_offset + buf_len +
+	    EFX_RX_PACKED_STREAM_ALIGNMENT;
 
 	EFSYS_ASSERT3U(*next_offsetp, <=, buffer_length);
 	EFSYS_ASSERT3U(current_offset + *lengthp, <, *next_offsetp);
@@ -968,9 +904,8 @@ ef10_rx_qps_packet_info(
 
 #endif
 
-	__checkReturn	efx_rc_t
-ef10_rx_qflush(
-	__in	efx_rxq_t *erp)
+__checkReturn efx_rc_t
+ef10_rx_qflush(__in efx_rxq_t *erp)
 {
 	efx_nic_t *enp = erp->er_enp;
 	efx_rc_t rc;
@@ -993,28 +928,18 @@ fail1:
 	return (rc);
 }
 
-		void
-ef10_rx_qenable(
-	__in	efx_rxq_t *erp)
-{
+void
+ef10_rx_qenable(__in efx_rxq_t *erp) {
 	/* FIXME */
 	_NOTE(ARGUNUSED(erp))
 	/* FIXME */
 }
 
-	__checkReturn	efx_rc_t
-ef10_rx_qcreate(
-	__in		efx_nic_t *enp,
-	__in		unsigned int index,
-	__in		unsigned int label,
-	__in		efx_rxq_type_t type,
-	__in_opt	const efx_rxq_type_data_t *type_data,
-	__in		efsys_mem_t *esmp,
-	__in		size_t ndescs,
-	__in		uint32_t id,
-	__in		unsigned int flags,
-	__in		efx_evq_t *eep,
-	__in		efx_rxq_t *erp)
+__checkReturn efx_rc_t ef10_rx_qcreate(__in efx_nic_t *enp,
+    __in unsigned int index, __in unsigned int label, __in efx_rxq_type_t type,
+    __in_opt const efx_rxq_type_data_t *type_data, __in efsys_mem_t *esmp,
+    __in size_t ndescs, __in uint32_t id, __in unsigned int flags,
+    __in efx_evq_t *eep, __in efx_rxq_t *erp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	efx_rc_t rc;
@@ -1035,8 +960,8 @@ ef10_rx_qcreate(
 	EFX_STATIC_ASSERT(ISP2(EFX_RXQ_MAXNDESCS));
 	EFX_STATIC_ASSERT(ISP2(EFX_RXQ_MINNDESCS));
 
-	if (!ISP2(ndescs) ||
-	    (ndescs < EFX_RXQ_MINNDESCS) || (ndescs > EFX_RXQ_MAXNDESCS)) {
+	if (!ISP2(ndescs) || (ndescs < EFX_RXQ_MINNDESCS) ||
+	    (ndescs > EFX_RXQ_MAXNDESCS)) {
 		rc = EINVAL;
 		goto fail1;
 	}
@@ -1113,7 +1038,7 @@ ef10_rx_qcreate(
 			goto fail8;
 		}
 	}
-#else /* EFSYS_OPT_RX_PACKED_STREAM */
+#else  /* EFSYS_OPT_RX_PACKED_STREAM */
 	EFSYS_ASSERT(ps_buf_size == 0);
 #endif /* EFSYS_OPT_RX_PACKED_STREAM */
 
@@ -1124,17 +1049,17 @@ ef10_rx_qcreate(
 			goto fail9;
 		}
 		if (!EFX_IS_P2ALIGNED(uint32_t, es_max_dma_len,
-			    EFX_RX_ES_SUPER_BUFFER_BUF_ALIGNMENT)) {
+			EFX_RX_ES_SUPER_BUFFER_BUF_ALIGNMENT)) {
 			rc = EINVAL;
 			goto fail10;
 		}
 		if (!EFX_IS_P2ALIGNED(uint32_t, es_buf_stride,
-			    EFX_RX_ES_SUPER_BUFFER_BUF_ALIGNMENT)) {
+			EFX_RX_ES_SUPER_BUFFER_BUF_ALIGNMENT)) {
 			rc = EINVAL;
 			goto fail11;
 		}
 	}
-#else /* EFSYS_OPT_RX_ES_SUPER_BUFFER */
+#else  /* EFSYS_OPT_RX_ES_SUPER_BUFFER */
 	EFSYS_ASSERT(es_bufs_per_desc == 0);
 #endif /* EFSYS_OPT_RX_ES_SUPER_BUFFER */
 
@@ -1150,9 +1075,9 @@ ef10_rx_qcreate(
 		want_inner_classes = B_FALSE;
 
 	if ((rc = efx_mcdi_init_rxq(enp, ndescs, eep->ee_index, label, index,
-		    esmp, disable_scatter, want_inner_classes,
-		    ps_buf_size, es_bufs_per_desc, es_max_dma_len,
-		    es_buf_stride, hol_block_timeout)) != 0)
+		 esmp, disable_scatter, want_inner_classes, ps_buf_size,
+		 es_bufs_per_desc, es_max_dma_len, es_buf_stride,
+		 hol_block_timeout)) != 0)
 		goto fail12;
 
 	erp->er_eep = eep;
@@ -1200,9 +1125,8 @@ fail1:
 	return (rc);
 }
 
-		void
-ef10_rx_qdestroy(
-	__in	efx_rxq_t *erp)
+void
+ef10_rx_qdestroy(__in efx_rxq_t *erp)
 {
 	efx_nic_t *enp = erp->er_enp;
 	efx_evq_t *eep = erp->er_eep;
@@ -1213,16 +1137,15 @@ ef10_rx_qdestroy(
 	EFSYS_ASSERT(enp->en_rx_qcount != 0);
 	--enp->en_rx_qcount;
 
-	EFSYS_KMEM_FREE(enp->en_esip, sizeof (efx_rxq_t), erp);
+	EFSYS_KMEM_FREE(enp->en_esip, sizeof(efx_rxq_t), erp);
 }
 
-		void
-ef10_rx_fini(
-	__in	efx_nic_t *enp)
+void
+ef10_rx_fini(__in efx_nic_t *enp)
 {
 #if EFSYS_OPT_RX_SCALE
 	if (enp->en_rss_context_type != EFX_RX_SCALE_UNAVAILABLE)
-		(void) efx_mcdi_rss_context_free(enp, enp->en_rss_context);
+		(void)efx_mcdi_rss_context_free(enp, enp->en_rss_context);
 	enp->en_rss_context = 0;
 	enp->en_rss_context_type = EFX_RX_SCALE_UNAVAILABLE;
 #else

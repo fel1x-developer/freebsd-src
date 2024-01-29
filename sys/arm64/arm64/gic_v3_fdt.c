@@ -37,11 +37,12 @@
 #include <machine/intr.h>
 #include <machine/resource.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include <arm/arm/gic_common.h>
+
 #include "gic_v3_reg.h"
 #include "gic_v3_var.h"
 
@@ -56,20 +57,20 @@ static bus_get_resource_list_t gic_v3_fdt_get_resource_list;
 
 static device_method_t gic_v3_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gic_v3_fdt_probe),
-	DEVMETHOD(device_attach,	gic_v3_fdt_attach),
+	DEVMETHOD(device_probe, gic_v3_fdt_probe),
+	DEVMETHOD(device_attach, gic_v3_fdt_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_get_resource_list,	gic_v3_fdt_get_resource_list),
-	DEVMETHOD(bus_get_device_path,  ofw_bus_gen_get_device_path),
+	DEVMETHOD(bus_get_resource_list, gic_v3_fdt_get_resource_list),
+	DEVMETHOD(bus_get_device_path, ofw_bus_gen_get_device_path),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	gic_v3_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, gic_v3_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	/* End */
 	DEVMETHOD_END
@@ -123,7 +124,7 @@ gic_v3_fdt_attach(device_t dev)
 	 * Recover number of the Re-Distributor regions.
 	 */
 	if (OF_getencprop(ofw_bus_get_node(dev), "#redistributor-regions",
-	    &redist_regions, sizeof(redist_regions)) <= 0)
+		&redist_regions, sizeof(redist_regions)) <= 0)
 		sc->gic_redists.nregions = 1;
 	else
 		sc->gic_redists.nregions = redist_regions;
@@ -138,7 +139,8 @@ gic_v3_fdt_attach(device_t dev)
 			sc->gic_mbi_end = mbi_ranges[0] + mbi_ranges[1];
 		} else {
 			if (bootverbose)
-				device_printf(dev, "Malformed mbi-ranges property\n");
+				device_printf(dev,
+				    "Malformed mbi-ranges property\n");
 		}
 		free(mbi_ranges, M_OFWPROP);
 	}
@@ -186,15 +188,15 @@ gic_v3_fdt_attach(device_t dev)
 		}
 	}
 
-	if (device_get_children(dev, &sc->gic_children, &sc->gic_nchildren) != 0)
+	if (device_get_children(dev, &sc->gic_children, &sc->gic_nchildren) !=
+	    0)
 		sc->gic_nchildren = 0;
 
 	return (err);
 
 error:
 	if (bootverbose) {
-		device_printf(dev,
-		    "Failed to attach. Error %d\n", err);
+		device_printf(dev, "Failed to attach. Error %d\n", err);
 	}
 	/* Failure so free resources */
 	gic_v3_detach(dev);
@@ -204,9 +206,9 @@ error:
 
 /* OFW bus interface */
 struct gic_v3_ofw_devinfo {
-	struct gic_v3_devinfo	di_gic_dinfo;
-	struct ofw_bus_devinfo	di_dinfo;
-	struct resource_list	di_rl;
+	struct gic_v3_devinfo di_gic_dinfo;
+	struct ofw_bus_devinfo di_dinfo;
+	struct resource_list di_rl;
 };
 
 static const struct ofw_bus_devinfo *
@@ -237,8 +239,7 @@ gic_v3_ofw_fill_ranges(phandle_t parent, struct gic_v3_softc *sc,
 	OF_getencprop(parent, "#address-cells", &addr_cells,
 	    sizeof(addr_cells));
 	size_cells = 2;
-	OF_getencprop(parent, "#size-cells", &size_cells,
-	    sizeof(size_cells));
+	OF_getencprop(parent, "#size-cells", &size_cells, sizeof(size_cells));
 
 	*addr_cellsp = addr_cells;
 	*size_cellsp = size_cells;
@@ -317,8 +318,8 @@ gic_v3_ofw_bus_attach(device_t dev)
 
 			/* Read the numa node, or -1 if there is none */
 			if (OF_getencprop(node, "numa-node-id",
-			    &di->di_gic_dinfo.gic_domain,
-			    sizeof(di->di_gic_dinfo.gic_domain)) <= 0) {
+				&di->di_gic_dinfo.gic_domain,
+				sizeof(di->di_gic_dinfo.gic_domain)) <= 0) {
 				di->di_gic_dinfo.gic_domain = -1;
 			}
 

@@ -74,8 +74,8 @@ gvt_d_alloc_mmio_memory(const vm_paddr_t host_address, const vm_paddr_t length,
 	}
 
 	/*
-	 * We're not able to reuse the host address. Fall back to the highest usable
-	 * address below 4 GB.
+	 * We're not able to reuse the host address. Fall back to the highest
+	 * usable address below 4 GB.
 	 */
 	return (
 	    e820_alloc(4 * GB, length, alignment, type, E820_ALLOCATE_HIGHEST));
@@ -123,8 +123,7 @@ gvt_d_setup_gsm(struct pci_devinst *const pi)
 	error = sysctlbyname("hw.intel_graphics_stolen_base", &gsm->hpa,
 	    &sysctl_len, NULL, 0);
 	if (error) {
-		warn("%s: Unable to get graphics stolen memory base",
-		    __func__);
+		warn("%s: Unable to get graphics stolen memory base", __func__);
 		return (-1);
 	}
 	sysctl_len = sizeof(gsm->len);
@@ -149,21 +148,21 @@ gvt_d_setup_gsm(struct pci_devinst *const pi)
 	if (gsm->gpa != gsm->hpa) {
 		/*
 		 * ACRN source code implies that graphics driver for newer Intel
-		 * platforms like Tiger Lake will read the Graphics Stolen Memory
-		 * address from an MMIO register. We have three options to solve this
-		 * issue:
+		 * platforms like Tiger Lake will read the Graphics Stolen
+		 * Memory address from an MMIO register. We have three options
+		 * to solve this issue:
 		 *    1. Patch the value in the MMIO register
 		 *       This could have unintended side effects. Without any
-		 *       documentation how this register is used by the GPU, don't do
-		 *       it.
+		 *       documentation how this register is used by the GPU,
+		 * don't do it.
 		 *    2. Trap the MMIO register
-		 *       It's not possible to trap a single MMIO register. We need to
-		 *       trap a whole page. Trapping a bunch of MMIO register could
-		 *       degrade the performance noticeably. We have to test it.
+		 *       It's not possible to trap a single MMIO register. We
+		 * need to trap a whole page. Trapping a bunch of MMIO register
+		 * could degrade the performance noticeably. We have to test it.
 		 *    3. Use an 1:1 host to guest mapping
-		 *       Maybe not always possible. As far as we know, no supported
-		 *       platform requires a 1:1 mapping. For that reason, just log a
-		 *       warning.
+		 *       Maybe not always possible. As far as we know, no
+		 * supported platform requires a 1:1 mapping. For that reason,
+		 * just log a warning.
 		 */
 		warnx(
 		    "Warning: Unable to reuse host address of Graphics Stolen Memory. GPU passthrough might not work properly.");
@@ -211,7 +210,7 @@ gvt_d_setup_opregion(struct pci_devinst *const pi)
 		return (-1);
 	}
 	if (memcmp(header->sign, IGD_OPREGION_HEADER_SIGN,
-	    sizeof(header->sign)) != 0) {
+		sizeof(header->sign)) != 0) {
 		warnx("%s: Invalid OpRegion signature", __func__);
 		munmap(header, sizeof(*header));
 		close(memfd);

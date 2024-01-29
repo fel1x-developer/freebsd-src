@@ -1,7 +1,7 @@
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -32,17 +32,17 @@ SOFTWARE.
  * Information Technology Center at Carnegie Mellon.
  */
 
-
 #include <sys/types.h>
+
 #include <stdlib.h>
 #include <strings.h>
 
 #include "hash.h"
 
-#define TRUE		1
-#define FALSE		0
-#ifndef	NULL
-#define NULL		0
+#define TRUE 1
+#define FALSE 0
+#ifndef NULL
+#define NULL 0
 #endif
 
 /*
@@ -53,9 +53,6 @@ SOFTWARE.
 #endif
 
 PRIVATE void hashi_FreeMembers(hash_member *, hash_freefp);
-
-
-
 
 /*
  * Hash table initialization routine.
@@ -73,22 +70,20 @@ hash_Init(unsigned tablesize)
 	unsigned totalsize;
 
 	if (tablesize > 0) {
-		totalsize = sizeof(hash_tbl)
-			+ sizeof(hash_member *) * (tablesize - 1);
-		hashtblptr = (hash_tbl *) malloc(totalsize);
+		totalsize = sizeof(hash_tbl) +
+		    sizeof(hash_member *) * (tablesize - 1);
+		hashtblptr = (hash_tbl *)malloc(totalsize);
 		if (hashtblptr) {
-			bzero((char *) hashtblptr, totalsize);
-			hashtblptr->size = tablesize;	/* Success! */
+			bzero((char *)hashtblptr, totalsize);
+			hashtblptr->size = tablesize; /* Success! */
 			hashtblptr->bucketnum = 0;
 			hashtblptr->member = (hashtblptr->table)[0];
 		}
 	} else {
-		hashtblptr = NULL;		/* Disallow zero-length tables */
+		hashtblptr = NULL; /* Disallow zero-length tables */
 	}
-	return hashtblptr;			/* NULL if failure */
+	return hashtblptr; /* NULL if failure */
 }
-
-
 
 /*
  * Frees an entire linked list of bucket members (used in the open
@@ -101,14 +96,11 @@ hashi_FreeMembers(hash_member *bucketptr, hash_freefp free_data)
 	hash_member *nextbucket;
 	while (bucketptr) {
 		nextbucket = bucketptr->next;
-		(*free_data) (bucketptr->data);
-		free((char *) bucketptr);
+		(*free_data)(bucketptr->data);
+		free((char *)bucketptr);
 		bucketptr = nextbucket;
 	}
 }
-
-
-
 
 /*
  * This routine re-initializes the hash table.  It frees all the allocated
@@ -129,8 +121,6 @@ hash_Reset(hash_tbl *hashtable, hash_freefp free_data)
 	hashtable->bucketnum = 0;
 	hashtable->member = (hashtable->table)[0];
 }
-
-
 
 /*
  * Generic hash function to calculate a hash code from the given string.
@@ -160,12 +150,10 @@ hash_HashFunction(unsigned char *string, unsigned len)
 	accum = 0;
 	for (; len > 0; len--) {
 		accum <<= 1;
-		accum += (unsigned) (*string++ & 0xFF);
+		accum += (unsigned)(*string++ & 0xFF);
 	}
 	return accum;
 }
-
-
 
 /*
  * Returns TRUE if at least one entry for the given key exists; FALSE
@@ -174,21 +162,19 @@ hash_HashFunction(unsigned char *string, unsigned len)
 
 int
 hash_Exists(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
-	hash_datum *key)
+    hash_datum *key)
 {
 	hash_member *memberptr;
 
 	memberptr = (hashtable->table)[hashcode % (hashtable->size)];
 	while (memberptr) {
-		if ((*compare) (key, memberptr->data)) {
-			return TRUE;		/* Entry does exist */
+		if ((*compare)(key, memberptr->data)) {
+			return TRUE; /* Entry does exist */
 		}
 		memberptr = memberptr->next;
 	}
-	return FALSE;				/* Entry does not exist */
+	return FALSE; /* Entry does not exist */
 }
-
-
 
 /*
  * Insert the data item "element" into the hash table using "hashcode"
@@ -202,25 +188,23 @@ hash_Exists(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 
 int
 hash_Insert(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
-	hash_datum *key, hash_datum *element)
+    hash_datum *key, hash_datum *element)
 {
 	hash_member *temp;
 
 	hashcode %= hashtable->size;
 	if (hash_Exists(hashtable, hashcode, compare, key)) {
-		return -1;				/* At least one entry already exists */
+		return -1; /* At least one entry already exists */
 	}
-	temp = (hash_member *) malloc(sizeof(hash_member));
+	temp = (hash_member *)malloc(sizeof(hash_member));
 	if (!temp)
-		return -1;				/* malloc failed! */
+		return -1; /* malloc failed! */
 
 	temp->data = element;
 	temp->next = (hashtable->table)[hashcode];
 	(hashtable->table)[hashcode] = temp;
-	return 0;					/* Success */
+	return 0; /* Success */
 }
-
-
 
 /*
  * Delete all data elements which match the given key.  If at least one
@@ -230,7 +214,7 @@ hash_Insert(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 
 int
 hash_Delete(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
-	hash_datum *key, hash_freefp free_data)
+    hash_datum *key, hash_freefp free_data)
 {
 	hash_member *memberptr, *tempptr;
 	hash_member *previous = NULL;
@@ -245,7 +229,7 @@ hash_Delete(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 	 * over and over until it no longer matches.
 	 */
 	memberptr = (hashtable->table)[hashcode];
-	while (memberptr && (*compare) (key, memberptr->data)) {
+	while (memberptr && (*compare)(key, memberptr->data)) {
 		(hashtable->table)[hashcode] = memberptr->next;
 		/*
 		 * Stop hashi_FreeMembers() from deleting the whole list!
@@ -264,7 +248,7 @@ hash_Delete(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 		memberptr = memberptr->next;
 	}
 	while (memberptr) {
-		if ((*compare) (key, memberptr->data)) {
+		if ((*compare)(key, memberptr->data)) {
 			tempptr = memberptr;
 			previous->next = memberptr = memberptr->next;
 			/*
@@ -280,8 +264,6 @@ hash_Delete(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 	}
 	return retval;
 }
-
-
 
 /*
  * Locate and return the data entry associated with the given key.
@@ -292,21 +274,19 @@ hash_Delete(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
 
 hash_datum *
 hash_Lookup(hash_tbl *hashtable, unsigned hashcode, hash_cmpfp compare,
-	hash_datum *key)
+    hash_datum *key)
 {
 	hash_member *memberptr;
 
 	memberptr = (hashtable->table)[hashcode % (hashtable->size)];
 	while (memberptr) {
-		if ((*compare) (key, memberptr->data)) {
+		if ((*compare)(key, memberptr->data)) {
 			return (memberptr->data);
 		}
 		memberptr = memberptr->next;
 	}
 	return NULL;
 }
-
-
 
 /*
  * Return the next available entry in the hashtable for a linear search
@@ -323,8 +303,8 @@ hash_NextEntry(hash_tbl *hashtable)
 	 */
 	memberptr = hashtable->member;
 	if (memberptr) {
-		hashtable->member = memberptr->next;	/* Set up for next call */
-		return memberptr->data;	/* Return the data */
+		hashtable->member = memberptr->next; /* Set up for next call */
+		return memberptr->data;		     /* Return the data */
 	}
 	/*
 	 * We hit the end of a chain, so look through the array of buckets
@@ -332,7 +312,7 @@ hash_NextEntry(hash_tbl *hashtable)
 	 */
 	bucket = hashtable->bucketnum + 1;
 	while ((bucket < hashtable->size) &&
-		   !(memberptr = (hashtable->table)[bucket])) {
+	    !(memberptr = (hashtable->table)[bucket])) {
 		bucket++;
 	}
 
@@ -354,11 +334,9 @@ hash_NextEntry(hash_tbl *hashtable)
 	 * Must have found a non-empty bucket.
 	 */
 	hashtable->bucketnum = bucket;
-	hashtable->member = memberptr->next;	/* Set up for next call */
-	return memberptr->data;		/* Return the data */
+	hashtable->member = memberptr->next; /* Set up for next call */
+	return memberptr->data;		     /* Return the data */
 }
-
-
 
 /*
  * Return the first entry in a hash table for a linear search

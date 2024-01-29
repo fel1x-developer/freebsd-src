@@ -10,7 +10,7 @@
  * for fall-over but must keep it so we never have
  * wrap in hashing over valid other entries.
  */
-#define MAX_ALLOWED_SEQ_RANGE (SEQ_BUCKET_SIZE * (MAX_HASH_ENTRIES-1))
+#define MAX_ALLOWED_SEQ_RANGE (SEQ_BUCKET_SIZE * (MAX_HASH_ENTRIES - 1))
 
 struct tailq_hash {
 	struct rack_head ht[MAX_HASH_ENTRIES];
@@ -19,55 +19,42 @@ struct tailq_hash {
 	uint32_t count;
 };
 
-struct rack_sendmap *
-tqhash_min(struct tailq_hash *hs);
+struct rack_sendmap *tqhash_min(struct tailq_hash *hs);
 
-struct rack_sendmap *
-tqhash_max(struct tailq_hash *hs);
+struct rack_sendmap *tqhash_max(struct tailq_hash *hs);
 
-int
-tqhash_empty(struct tailq_hash *hs);
+int tqhash_empty(struct tailq_hash *hs);
 
-struct rack_sendmap *
-tqhash_find(struct tailq_hash *hs, uint32_t seq);
+struct rack_sendmap *tqhash_find(struct tailq_hash *hs, uint32_t seq);
 
-struct rack_sendmap *
-tqhash_next(struct tailq_hash *hs, struct rack_sendmap *rsm);
+struct rack_sendmap *tqhash_next(struct tailq_hash *hs,
+    struct rack_sendmap *rsm);
 
-struct rack_sendmap *
-tqhash_prev(struct tailq_hash *hs, struct rack_sendmap *rsm);
+struct rack_sendmap *tqhash_prev(struct tailq_hash *hs,
+    struct rack_sendmap *rsm);
 
-#define REMOVE_TYPE_CUMACK	1	/* Cumack moved */
-#define REMOVE_TYPE_MERGE	2	/* Merging two blocks */
-#define REMOVE_TYPE_FINI	3	/* The connection is over */
+#define REMOVE_TYPE_CUMACK 1 /* Cumack moved */
+#define REMOVE_TYPE_MERGE 2  /* Merging two blocks */
+#define REMOVE_TYPE_FINI 3   /* The connection is over */
 
-void
-tqhash_remove(struct tailq_hash *hs, struct rack_sendmap *rsm, int type);
+void tqhash_remove(struct tailq_hash *hs, struct rack_sendmap *rsm, int type);
 
-int
-tqhash_insert(struct tailq_hash *hs, struct rack_sendmap *rsm);
+int tqhash_insert(struct tailq_hash *hs, struct rack_sendmap *rsm);
 
-void
-tqhash_init(struct tailq_hash *hs);
+void tqhash_init(struct tailq_hash *hs);
 
-int
-tqhash_trim(struct tailq_hash *hs, uint32_t th_ack);
+int tqhash_trim(struct tailq_hash *hs, uint32_t th_ack);
 
-
-#define	TQHASH_FOREACH(var, head) \
-	for ((var) = tqhash_min((head));		\
-	     (var);					\
+#define TQHASH_FOREACH(var, head)               \
+	for ((var) = tqhash_min((head)); (var); \
 	     (var) = tqhash_next((head), (var)))
 
-#define TQHASH_FOREACH_FROM(var, head, fvar)					\
-	for ((var) = ((fvar) ? (fvar) : tqhash_min((head)));		\
-	    (var);							\
+#define TQHASH_FOREACH_FROM(var, head, fvar)                        \
+	for ((var) = ((fvar) ? (fvar) : tqhash_min((head))); (var); \
 	     (var) = tqhash_next((head), (var)))
 
-#define	TQHASH_FOREACH_REVERSE_FROM(var, head)		\
-	for ((var) = ((var) ? (var) : tqhash_max((head)));		\
-	    (var);							\
-	    (var) = tqhash_prev((head), (var)))
-
+#define TQHASH_FOREACH_REVERSE_FROM(var, head)                    \
+	for ((var) = ((var) ? (var) : tqhash_max((head))); (var); \
+	     (var) = tqhash_prev((head), (var)))
 
 #endif

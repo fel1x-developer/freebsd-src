@@ -33,7 +33,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <util.h>
 
 #include "zfs.h"
@@ -202,7 +201,7 @@ vdev_label_write(zfs_opt_t *zfs, int ind, const vdev_label_t *labelp)
 	blksz = 1 << zfs->ashift;
 	assert(sizeof(label->vl_uberblock) % blksz == 0);
 	for (size_t roff = 0; roff < sizeof(label->vl_uberblock);
-	    roff += blksz) {
+	     roff += blksz) {
 		vdev_label_set_checksum(&label->vl_uberblock[0] + roff,
 		    loff + __offsetof(vdev_label_t, vl_uberblock) + roff,
 		    blksz);
@@ -299,9 +298,9 @@ vdev_spacemap_write(zfs_opt_t *zfs)
 	off_t smblksz, objarrblksz, objarrloc;
 
 	struct {
-		dnode_phys_t	*dnode;
-		uint64_t	dnid;
-		off_t		loc;
+		dnode_phys_t *dnode;
+		uint64_t dnid;
+		off_t loc;
 	} *sma;
 
 	objarrblksz = sizeof(uint64_t) * zfs->mscount;
@@ -355,7 +354,7 @@ vdev_spacemap_write(zfs_opt_t *zfs)
 		shift = zfs->msshift - zfs->ashift;
 		for (srunb = startb = i * (1 << shift),
 		    endb = (i + 1) * (1 << shift);
-		    srunb < endb; srunb = erunb) {
+		     srunb < endb; srunb = erunb) {
 			uint64_t runlen, runoff;
 
 			/* Find a run of allocated space. */

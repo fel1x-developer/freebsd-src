@@ -30,6 +30,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <limits.h>
 #include <stdio.h>
@@ -38,8 +39,8 @@
 
 #include "ctags.h"
 
-static void	add_node(NODE *, NODE *);
-static void	free_tree(NODE *);
+static void add_node(NODE *, NODE *);
+static void free_tree(NODE *);
 
 /*
  * pfnote --
@@ -48,9 +49,9 @@ static void	free_tree(NODE *);
 void
 pfnote(const char *name, int ln)
 {
-	NODE	*np;
-	char	*fp;
-	char	nbuf[MAXTOKEN];
+	NODE *np;
+	char *fp;
+	char nbuf[MAXTOKEN];
 
 	/*NOSTRICT*/
 	if (!(np = (NODE *)malloc(sizeof(NODE)))) {
@@ -88,21 +89,24 @@ pfnote(const char *name, int ln)
 static void
 add_node(NODE *node, NODE *cur_node)
 {
-	int	dif;
+	int dif;
 
 	dif = strcoll(node->entry, cur_node->entry);
 	if (!dif) {
 		if (node->file == cur_node->file) {
 			if (!wflag)
-				fprintf(stderr, "Duplicate entry in file %s, line %d: %s\nSecond entry ignored\n", node->file, lineno, node->entry);
+				fprintf(stderr,
+				    "Duplicate entry in file %s, line %d: %s\nSecond entry ignored\n",
+				    node->file, lineno, node->entry);
 			return;
 		}
 		if (!cur_node->been_warned)
 			if (!wflag)
-				fprintf(stderr, "Duplicate entry in files %s and %s: %s (Warning only)\n", node->file, cur_node->file, node->entry);
+				fprintf(stderr,
+				    "Duplicate entry in files %s and %s: %s (Warning only)\n",
+				    node->file, cur_node->file, node->entry);
 		cur_node->been_warned = YES;
-	}
-	else if (dif < 0)
+	} else if (dif < 0)
 		if (cur_node->left)
 			add_node(node, cur_node->left);
 		else

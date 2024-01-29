@@ -164,7 +164,8 @@ tpm_device_create(struct tpm_device **const new_dev, struct vmctx *const vm_ctx,
 
 	value = get_config_value_node(nvl, "type");
 	assert(value != NULL);
-	SET_FOREACH(ppemul, tpm_emul_set) {
+	SET_FOREACH(ppemul, tpm_emul_set)
+	{
 		if (strcmp(value, (*ppemul)->name))
 			continue;
 		dev->emul = *ppemul;
@@ -183,7 +184,8 @@ tpm_device_create(struct tpm_device **const new_dev, struct vmctx *const vm_ctx,
 	}
 
 	value = get_config_value_node(nvl, "intf");
-	SET_FOREACH(ppintf, tpm_intf_set) {
+	SET_FOREACH(ppintf, tpm_intf_set)
+	{
 		if (strcmp(value, (*ppintf)->name)) {
 			continue;
 		}
@@ -204,7 +206,8 @@ tpm_device_create(struct tpm_device **const new_dev, struct vmctx *const vm_ctx,
 	}
 
 	value = get_config_value_node(nvl, "ppi");
-	SET_FOREACH(pp_ppi, tpm_ppi_set) {
+	SET_FOREACH(pp_ppi, tpm_ppi_set)
+	{
 		if (strcmp(value, (*pp_ppi)->name)) {
 			continue;
 		}
@@ -247,8 +250,8 @@ init_tpm(struct vmctx *ctx)
 
 	error = tpm_device_create(&lpc_tpm, ctx, nvl);
 	if (error) {
-		warnx("%s: unable to create a TPM device (%d)",
-		    __func__, error);
+		warnx("%s: unable to create a TPM device (%d)", __func__,
+		    error);
 		return (error);
 	}
 

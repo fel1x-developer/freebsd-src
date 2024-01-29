@@ -34,9 +34,9 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+#include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
-#include <sys/module.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -53,13 +53,15 @@
 
 #include "ef.h"
 
-#define	MAXRECSIZE	(64 << 10)	/* 64k */
-#define check(val)	if ((error = (val)) != 0) break
+#define MAXRECSIZE (64 << 10) /* 64k */
+#define check(val)                \
+	if ((error = (val)) != 0) \
+	break
 
-static bool dflag;	/* do not create a hint file, only write on stdout */
+static bool dflag; /* do not create a hint file, only write on stdout */
 static int verbose;
 
-static FILE *fxref;	/* current hints file */
+static FILE *fxref; /* current hints file */
 static int byte_order;
 static GElf_Ehdr ehdr;
 static char *ehdr_filename;
@@ -70,8 +72,8 @@ static const char *xref_file = "linker.hints";
  * A record is stored in the static buffer recbuf before going to disk.
  */
 static char recbuf[MAXRECSIZE];
-static int recpos;	/* current write position */
-static int reccnt;	/* total record written to this file so far */
+static int recpos; /* current write position */
+static int reccnt; /* total record written to this file so far */
 
 static void
 intalign(void)
@@ -164,7 +166,7 @@ record_string(const char *str)
 	int error;
 	size_t len;
 	u_char val;
-	
+
 	if (dflag)
 		return (0);
 	val = len = strlen(str);
@@ -182,7 +184,7 @@ pnp_eisaformat(uint32_t id)
 {
 	uint8_t *data;
 	static char idbuf[8];
-	const char  hextoascii[] = "0123456789abcdef";
+	const char hextoascii[] = "0123456789abcdef";
 
 	id = htole32(id);
 	data = (uint8_t *)&id;
@@ -197,33 +199,32 @@ pnp_eisaformat(uint32_t id)
 	return (idbuf);
 }
 
-struct pnp_elt
-{
-	int	pe_kind;	/* What kind of entry */
-#define TYPE_SZ_MASK	0x0f
-#define TYPE_FLAGGED	0x10	/* all f's is a wildcard */
-#define	TYPE_INT	0x20	/* Is a number */
-#define TYPE_PAIRED	0x40
-#define TYPE_LE		0x80	/* Matches <= this value */
-#define TYPE_GE		0x100	/* Matches >= this value */
-#define TYPE_MASK	0x200	/* Specifies a mask to follow */
-#define TYPE_U8		(1 | TYPE_INT)
-#define TYPE_V8		(1 | TYPE_INT | TYPE_FLAGGED)
-#define TYPE_G16	(2 | TYPE_INT | TYPE_GE)
-#define TYPE_L16	(2 | TYPE_INT | TYPE_LE)
-#define TYPE_M16	(2 | TYPE_INT | TYPE_MASK)
-#define TYPE_U16	(2 | TYPE_INT)
-#define TYPE_V16	(2 | TYPE_INT | TYPE_FLAGGED)
-#define TYPE_U32	(4 | TYPE_INT)
-#define TYPE_V32	(4 | TYPE_INT | TYPE_FLAGGED)
-#define TYPE_W32	(4 | TYPE_INT | TYPE_PAIRED)
-#define TYPE_D		7
-#define TYPE_Z		8
-#define TYPE_P		9
-#define TYPE_E		10
-#define TYPE_T		11
-	int	pe_offset;	/* Offset within the element */
-	char *	pe_key;		/* pnp key name */
+struct pnp_elt {
+	int pe_kind; /* What kind of entry */
+#define TYPE_SZ_MASK 0x0f
+#define TYPE_FLAGGED 0x10 /* all f's is a wildcard */
+#define TYPE_INT 0x20	  /* Is a number */
+#define TYPE_PAIRED 0x40
+#define TYPE_LE 0x80	/* Matches <= this value */
+#define TYPE_GE 0x100	/* Matches >= this value */
+#define TYPE_MASK 0x200 /* Specifies a mask to follow */
+#define TYPE_U8 (1 | TYPE_INT)
+#define TYPE_V8 (1 | TYPE_INT | TYPE_FLAGGED)
+#define TYPE_G16 (2 | TYPE_INT | TYPE_GE)
+#define TYPE_L16 (2 | TYPE_INT | TYPE_LE)
+#define TYPE_M16 (2 | TYPE_INT | TYPE_MASK)
+#define TYPE_U16 (2 | TYPE_INT)
+#define TYPE_V16 (2 | TYPE_INT | TYPE_FLAGGED)
+#define TYPE_U32 (4 | TYPE_INT)
+#define TYPE_V32 (4 | TYPE_INT | TYPE_FLAGGED)
+#define TYPE_W32 (4 | TYPE_INT | TYPE_PAIRED)
+#define TYPE_D 7
+#define TYPE_Z 8
+#define TYPE_P 9
+#define TYPE_E 10
+#define TYPE_T 11
+	int pe_offset;		   /* Offset within the element */
+	char *pe_key;		   /* pnp key name */
 	TAILQ_ENTRY(pnp_elt) next; /* Link */
 };
 typedef TAILQ_HEAD(pnp_head, pnp_elt) pnp_list;
@@ -339,47 +340,50 @@ parse_pnp_list(struct elf_file *ef, const char *desc, char **new_desc,
 			elt->pe_kind = TYPE_V32;
 		else if (strcmp(type, "W32") == 0)
 			elt->pe_kind = TYPE_W32;
-		else if (strcmp(type, "D") == 0)	/* description char * */
+		else if (strcmp(type, "D") == 0) /* description char * */
 			elt->pe_kind = TYPE_D;
-		else if (strcmp(type, "Z") == 0)	/* char * to match */
+		else if (strcmp(type, "Z") == 0) /* char * to match */
 			elt->pe_kind = TYPE_Z;
-		else if (strcmp(type, "P") == 0)	/* Pointer -- ignored */
+		else if (strcmp(type, "P") == 0) /* Pointer -- ignored */
 			elt->pe_kind = TYPE_P;
-		else if (strcmp(type, "E") == 0)	/* EISA PNP ID, as uint32_t */
+		else if (strcmp(type, "E") == 0) /* EISA PNP ID, as uint32_t */
 			elt->pe_kind = TYPE_E;
 		else if (strcmp(type, "T") == 0)
 			elt->pe_kind = TYPE_T;
 		else
 			goto err;
 		/*
-		 * Maybe the rounding here needs to be more nuanced and/or somehow
-		 * architecture specific. Fortunately, most tables in the system
-		 * have sane ordering of types.
+		 * Maybe the rounding here needs to be more nuanced and/or
+		 * somehow architecture specific. Fortunately, most tables in
+		 * the system have sane ordering of types.
 		 */
 		if (elt->pe_kind & TYPE_INT) {
-			elt->pe_offset = roundup2(elt->pe_offset, elt->pe_kind & TYPE_SZ_MASK);
+			elt->pe_offset = roundup2(elt->pe_offset,
+			    elt->pe_kind & TYPE_SZ_MASK);
 			off = elt->pe_offset + (elt->pe_kind & TYPE_SZ_MASK);
 		} else if (elt->pe_kind == TYPE_E) {
 			/* Type E stored as Int, displays as string */
-			elt->pe_offset = roundup2(elt->pe_offset, sizeof(uint32_t));
+			elt->pe_offset = roundup2(elt->pe_offset,
+			    sizeof(uint32_t));
 			off = elt->pe_offset + sizeof(uint32_t);
 		} else if (elt->pe_kind == TYPE_T) {
 			/* doesn't actually consume space in the table */
 			off = elt->pe_offset;
 		} else {
-			elt->pe_offset = roundup2(elt->pe_offset, elf_pointer_size(ef));
+			elt->pe_offset = roundup2(elt->pe_offset,
+			    elf_pointer_size(ef));
 			off = elt->pe_offset + elf_pointer_size(ef);
 		}
 		if (elt->pe_kind & TYPE_PAIRED) {
 			char *word, *ctx, newtype;
 
-			for (word = strtok_r(key, "/", &ctx);
-			     word; word = strtok_r(NULL, "/", &ctx)) {
-				newtype = elt->pe_kind & TYPE_FLAGGED ? 'J' : 'I';
+			for (word = strtok_r(key, "/", &ctx); word;
+			     word = strtok_r(NULL, "/", &ctx)) {
+				newtype = elt->pe_kind & TYPE_FLAGGED ? 'J' :
+									'I';
 				fprintf(fp, "%c:%s;", newtype, word);
 			}
-		}
-		else {
+		} else {
 			char newtype;
 
 			if (elt->pe_kind & TYPE_FLAGGED)
@@ -394,7 +398,8 @@ parse_pnp_list(struct elf_file *ef, const char *desc, char **new_desc,
 				newtype = 'I';
 			else if (elt->pe_kind == TYPE_D)
 				newtype = 'D';
-			else if (elt->pe_kind == TYPE_Z || elt->pe_kind == TYPE_E)
+			else if (elt->pe_kind == TYPE_Z ||
+			    elt->pe_kind == TYPE_E)
 				newtype = 'Z';
 			else if (elt->pe_kind == TYPE_T)
 				newtype = 'T';
@@ -419,7 +424,7 @@ free_pnp_list(char *new_desc, pnp_list *list)
 {
 	struct pnp_elt *elt, *elt_tmp;
 
-	TAILQ_FOREACH_SAFE(elt, list, next, elt_tmp) {
+	TAILQ_FOREACH_SAFE (elt, list, next, elt_tmp) {
 		TAILQ_REMOVE(list, elt, next);
 		free(elt);
 	}
@@ -450,7 +455,7 @@ parse_pnp_entry(struct elf_file *ef, struct pnp_elt *elt, const char *walker)
 	uint8_t v1;
 	uint16_t v2;
 	uint32_t v4;
-	int	value;
+	int value;
 	char buffer[1024];
 
 	if (elt->pe_kind == TYPE_W32) {
@@ -501,8 +506,8 @@ parse_pnp_entry(struct elf_file *ef, struct pnp_elt *elt, const char *walker)
 		} else {
 			GElf_Addr address;
 
-			address = elf_address_from_pointer(ef, walker +
-			    elt->pe_offset);
+			address = elf_address_from_pointer(ef,
+			    walker + elt->pe_offset);
 			buffer[0] = '\0';
 			if (address != 0) {
 				elf_read_string(ef, address, buffer,
@@ -511,8 +516,11 @@ parse_pnp_entry(struct elf_file *ef, struct pnp_elt *elt, const char *walker)
 			}
 		}
 		if (verbose > 1)
-			printf("%c:%s;", elt->pe_kind == TYPE_E ? 'E' :
-			    (elt->pe_kind == TYPE_Z ? 'Z' : 'D'), buffer);
+			printf("%c:%s;",
+			    elt->pe_kind == TYPE_E ?
+				'E' :
+				(elt->pe_kind == TYPE_Z ? 'Z' : 'D'),
+			    buffer);
 		record_string(buffer);
 	}
 }
@@ -529,7 +537,8 @@ record_pnp_info(struct elf_file *ef, const char *cval,
 	int error, i;
 
 	if (verbose > 1)
-		printf("  pnp info for bus %s format %s %d entries of %d bytes\n",
+		printf(
+		    "  pnp info for bus %s format %s %d entries of %d bytes\n",
 		    cval, descr, pnp->num_entry, pnp->entry_len);
 
 	/*
@@ -554,7 +563,7 @@ record_pnp_info(struct elf_file *ef, const char *cval,
 	 */
 	walker = table;
 	for (i = 0; i < pnp->num_entry; i++) {
-		TAILQ_FOREACH(elt, &list, next) {
+		TAILQ_FOREACH (elt, &list, next) {
 			parse_pnp_entry(ef, elt, walker);
 		}
 		if (verbose > 1)
@@ -568,8 +577,8 @@ record_pnp_info(struct elf_file *ef, const char *cval,
 }
 
 static int
-parse_entry(struct Gmod_metadata *md, const char *cval,
-    struct elf_file *ef, const char *kldname)
+parse_entry(struct Gmod_metadata *md, const char *cval, struct elf_file *ef,
+    const char *kldname)
 {
 	struct Gmod_depend mdp;
 	struct Gmod_version mdv;
@@ -587,7 +596,8 @@ parse_entry(struct Gmod_metadata *md, const char *cval,
 			break;
 		check(elf_read_mod_depend(ef, data, &mdp));
 		printf("  depends on %s.%d (%d,%d)\n", cval,
-		    mdp.md_ver_preferred, mdp.md_ver_minimum, mdp.md_ver_maximum);
+		    mdp.md_ver_preferred, mdp.md_ver_minimum,
+		    mdp.md_ver_maximum);
 		break;
 	case MDT_VERSION:
 		check(elf_read_mod_version(ef, data, &mdv));
@@ -613,14 +623,16 @@ parse_entry(struct Gmod_metadata *md, const char *cval,
 		check(elf_read_mod_pnp_match_info(ef, data, &pnp));
 		check(elf_read_string(ef, pnp.descr, descr, sizeof(descr)));
 		if (dflag) {
-			printf("  pnp info for bus %s format %s %d entries of %d bytes\n",
+			printf(
+			    "  pnp info for bus %s format %s %d entries of %d bytes\n",
 			    cval, descr, pnp.num_entry, pnp.entry_len);
 		} else {
 			record_pnp_info(ef, cval, &pnp, descr);
 		}
 		break;
 	default:
-		warnx("unknown metadata record %d in file %s", md->md_type, kldname);
+		warnx("unknown metadata record %d in file %s", md->md_type,
+		    kldname);
 	}
 	if (!error)
 		record_end();
@@ -650,8 +662,8 @@ read_kld(char *filename, char *kldname)
 		free(ehdr_filename);
 		ehdr_filename = strdup(filename);
 	} else if (!elf_compatible(&ef, &ehdr)) {
-		warnx("%s does not match architecture of %s",
-		    filename, ehdr_filename);
+		warnx("%s does not match architecture of %s", filename,
+		    ehdr_filename);
 		elf_close_file(&ef);
 		return (EINVAL);
 	}
@@ -705,7 +717,7 @@ read_kld(char *filename, char *kldname)
 		if (error != 0)
 			warnc(error, "error while reading %s", filename);
 		free(p);
-	} while(0);
+	} while (0);
 	elf_close_file(&ef);
 	return (error);
 }
@@ -731,7 +743,7 @@ maketempfile(char *dest, const char *root)
 	fd = mkstemp(dest);
 	if (fd < 0)
 		return (NULL);
-	fchmod(fd, 0644);	/* nothing secret in the file */
+	fchmod(fd, 0644); /* nothing secret in the file */
 	return (fdopen(fd, "w+"));
 }
 
@@ -742,8 +754,7 @@ usage(void)
 {
 
 	fprintf(stderr, "%s\n",
-	    "usage: kldxref [-Rdv] [-f hintsfile] path ..."
-	);
+	    "usage: kldxref [-Rdv] [-f hintsfile] path ...");
 	exit(1);
 }
 
@@ -775,16 +786,16 @@ main(int argc, char *argv[])
 
 	while ((opt = getopt(argc, argv, "Rdf:v")) != -1) {
 		switch (opt) {
-		case 'd':	/* no hint file, only print on stdout */
+		case 'd': /* no hint file, only print on stdout */
 			dflag = true;
 			break;
-		case 'f':	/* use this name instead of linker.hints */
+		case 'f': /* use this name instead of linker.hints */
 			xref_file = optarg;
 			break;
 		case 'v':
 			verbose++;
 			break;
-		case 'R':	/* recurse on directories */
+		case 'R': /* recurse on directories */
 			fts_options |= FTS_COMFOLLOW;
 			break;
 		default:
@@ -841,8 +852,8 @@ main(int argc, char *argv[])
 		if (p->fts_info != FTS_F)
 			continue;
 		/*
-		 * Skip files that generate errors like .debug, .symbol and .pkgsave
-		 * by generally skipping all files with 2 dots.
+		 * Skip files that generate errors like .debug, .symbol and
+		 * .pkgsave by generally skipping all files with 2 dots.
 		 */
 		dot = strchr(p->fts_name, '.');
 		if (dot && strchr(dot + 1, '.') != NULL)

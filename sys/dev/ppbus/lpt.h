@@ -44,22 +44,22 @@
  */
 
 #ifndef __LPT_H
-#define	__LPT_H
+#define __LPT_H
 
 /* machine independent definitions, it shall only depend on the ppbus
  * parallel port model */
 
-					/* PIN */
-#define	LPS_NERR		0x08	/* 15  printer no error */
-#define	LPS_SEL			0x10	/* 13  printer selected */
-#define	LPS_OUT			0x20	/* 12  printer out of paper */
-#define	LPS_NACK		0x40	/* 10  printer no ack of data */
-#define	LPS_NBSY		0x80	/* 11  printer busy */
+/* PIN */
+#define LPS_NERR 0x08 /* 15  printer no error */
+#define LPS_SEL 0x10  /* 13  printer selected */
+#define LPS_OUT 0x20  /* 12  printer out of paper */
+#define LPS_NACK 0x40 /* 10  printer no ack of data */
+#define LPS_NBSY 0x80 /* 11  printer busy */
 
-#define	LPC_STB			0x01	/*  1  strobe data to printer */
-#define	LPC_AUTOL		0x02	/* 14  automatic linefeed */
-#define	LPC_NINIT		0x04	/* 16  initialize printer */
-#define	LPC_SEL			0x08	/* 17  printer selected */
-#define	LPC_ENA			0x10	/*  -  enable IRQ */
+#define LPC_STB 0x01   /*  1  strobe data to printer */
+#define LPC_AUTOL 0x02 /* 14  automatic linefeed */
+#define LPC_NINIT 0x04 /* 16  initialize printer */
+#define LPC_SEL 0x08   /* 17  printer selected */
+#define LPC_ENA 0x10   /*  -  enable IRQ */
 
 #endif

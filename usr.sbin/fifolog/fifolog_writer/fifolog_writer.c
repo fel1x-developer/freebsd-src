@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
+#include <assert.h>
+#include <ctype.h>
+#include <err.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sysexits.h>
-#include <err.h>
-#include <unistd.h>
-#include <ctype.h>
-#include <assert.h>
-#include <poll.h>
 #include <string.h>
+#include <sysexits.h>
+#include <unistd.h>
 #include <zlib.h>
 
 #include "libfifolog.h"
@@ -49,7 +49,7 @@ usage(void)
 }
 
 int
-main(int argc, char * const *argv)
+main(int argc, char *const *argv)
 {
 	struct fifolog_writer *f;
 	const char *es;
@@ -61,7 +61,7 @@ main(int argc, char * const *argv)
 	unsigned z_opt = Z_BEST_COMPRESSION;
 
 	while ((c = getopt(argc, argv, "w:s:z:")) != -1) {
-		switch(c) {
+		switch (c) {
 		case 'w':
 			w_opt = strtoul(optarg, NULL, 0);
 			break;

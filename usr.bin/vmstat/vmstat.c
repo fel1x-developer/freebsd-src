@@ -30,20 +30,20 @@
  */
 
 #include <sys/param.h>
-#include <sys/proc.h>
-#include <sys/uio.h>
-#include <sys/namei.h>
-#include <sys/malloc.h>
-#include <sys/signal.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/malloc.h>
+#include <sys/namei.h>
+#include <sys/proc.h>
 #include <sys/resource.h>
+#include <sys/signal.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/user.h>
-#define	_WANT_VMMETER
-#include <sys/vmmeter.h>
+#define _WANT_VMMETER
 #include <sys/pcpu.h>
+#include <sys/vmmeter.h>
 
 #include <vm/vm_param.h>
 
@@ -53,6 +53,8 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <kvm.h>
+#include <libutil.h>
+#include <libxo/xo.h>
 #include <limits.h>
 #include <memstat.h>
 #include <nlist.h>
@@ -63,15 +65,22 @@
 #include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
-#include <libutil.h>
-#include <libxo/xo.h>
 
 #define VMSTAT_XO_VERSION "1"
 
 static char da[] = "da";
 
-enum x_stats { X_SUM, X_HZ, X_STATHZ, X_NCHSTATS, X_INTRNAMES, X_SINTRNAMES,
-    X_INTRCNT, X_SINTRCNT, X_NINTRCNT };
+enum x_stats {
+	X_SUM,
+	X_HZ,
+	X_STATHZ,
+	X_NCHSTATS,
+	X_INTRNAMES,
+	X_SINTRNAMES,
+	X_INTRCNT,
+	X_SINTRCNT,
+	X_NINTRCNT
+};
 
 static struct nlist namelist[] = {
 	[X_SUM] = { .n_name = "_vm_cnt", },
@@ -151,49 +160,49 @@ static struct __vmmeter {
 	u_int v_free_severe;
 } sum, osum;
 
-#define	VMSTAT_DEFAULT_LINES	20	/* Default number of `winlines'. */
-static volatile sig_atomic_t wresized;		/* Tty resized when non-zero. */
+#define VMSTAT_DEFAULT_LINES 20		    /* Default number of `winlines'. */
+static volatile sig_atomic_t wresized;	    /* Tty resized when non-zero. */
 static int winlines = VMSTAT_DEFAULT_LINES; /* Current number of tty rows. */
 
-static int	aflag;
-static int	nflag;
-static int	Pflag;
-static int	hflag;
+static int aflag;
+static int nflag;
+static int Pflag;
+static int hflag;
 
-static kvm_t	*kd;
+static kvm_t *kd;
 
-#define	FORKSTAT	0x01
-#define	INTRSTAT	0x02
-#define	MEMSTAT		0x04
-#define	SUMSTAT		0x08
-#define	TIMESTAT	0x10
-#define	VMSTAT		0x20
-#define	ZMEMSTAT	0x40
-#define	OBJSTAT		0x80
+#define FORKSTAT 0x01
+#define INTRSTAT 0x02
+#define MEMSTAT 0x04
+#define SUMSTAT 0x08
+#define TIMESTAT 0x10
+#define VMSTAT 0x20
+#define ZMEMSTAT 0x40
+#define OBJSTAT 0x80
 
-static void	cpustats(void);
-static void	pcpustats(u_long, int);
-static void	devstats(void);
-static void	doforkst(void);
-static void	dointr(unsigned int, int);
-static void	doobjstat(void);
-static void	dosum(void);
-static void	dovmstat(unsigned int, int);
-static void	domemstat_malloc(void);
-static void	domemstat_zone(void);
-static void	kread(int, void *, size_t);
-static void	kreado(int, void *, size_t, size_t);
-static void	kreadptr(uintptr_t, void *, size_t);
-static void	needhdr(int);
-static void	needresize(int);
-static void	doresize(void);
-static void	printhdr(int, u_long);
-static void	usage(void);
+static void cpustats(void);
+static void pcpustats(u_long, int);
+static void devstats(void);
+static void doforkst(void);
+static void dointr(unsigned int, int);
+static void doobjstat(void);
+static void dosum(void);
+static void dovmstat(unsigned int, int);
+static void domemstat_malloc(void);
+static void domemstat_zone(void);
+static void kread(int, void *, size_t);
+static void kreado(int, void *, size_t, size_t);
+static void kreadptr(uintptr_t, void *, size_t);
+static void needhdr(int);
+static void needresize(int);
+static void doresize(void);
+static void printhdr(int, u_long);
+static void usage(void);
 
-static long	pct(long, long);
-static long long	getuptime(void);
+static long pct(long, long);
+static long long getuptime(void);
 
-static char	**getdrivedata(char **);
+static char **getdrivedata(char **);
 
 int
 main(int argc, char *argv[])
@@ -258,8 +267,8 @@ main(int argc, char *argv[])
 			todo |= OBJSTAT;
 			break;
 		case 'p':
-			if (devstat_buildmatch(optarg, &matches, &num_matches)
-			    != 0)
+			if (devstat_buildmatch(optarg, &matches,
+				&num_matches) != 0)
 				xo_errx(1, "%s", devstat_errbuf);
 			break;
 		case 's':
@@ -318,15 +327,14 @@ retry_nlist:
 
 			for (c = 0; c < (int)(nitems(namelist)); c++)
 				if (namelist[c].n_type == 0)
-					bufsize += strlen(namelist[c].n_name)
-					    + 1;
+					bufsize += strlen(namelist[c].n_name) +
+					    1;
 			bufsize += len + 1;
 			buf = bp = alloca(bufsize);
 
 			for (c = 0; c < (int)(nitems(namelist)); c++)
 				if (namelist[c].n_type == 0) {
-					xo_error(" %s",
-					    namelist[c].n_name);
+					xo_error(" %s", namelist[c].n_name);
 					len = strlen(namelist[c].n_name);
 					*bp++ = ' ';
 					memcpy(bp, namelist[c].n_name, len);
@@ -351,7 +359,6 @@ nlist_ok:
 		 */
 		if (devstat_checkversion(NULL) < 0)
 			xo_errx(1, "%s", devstat_errbuf);
-
 
 		argv = getdrivedata(argv);
 	}
@@ -454,13 +461,12 @@ getdrivedata(char **argv)
 	 * or 1.  If we get back -1, though, there is an error.
 	 */
 	if (devstat_selectdevs(&dev_select, &num_selected, &num_selections,
-	    &select_generation, generation, cur.dinfo->devices,
-	    num_devices, matches, num_matches, specified_devices,
-	    num_devices_specified, select_mode,
-	    maxshowdevs, 0) == -1)
+		&select_generation, generation, cur.dinfo->devices, num_devices,
+		matches, num_matches, specified_devices, num_devices_specified,
+		select_mode, maxshowdevs, 0) == -1)
 		xo_errx(1, "%s", devstat_errbuf);
 
-	return(argv);
+	return (argv);
 }
 
 /* Return system uptime in nanoseconds */
@@ -470,7 +476,7 @@ getuptime(void)
 	struct timespec sp;
 
 	(void)clock_gettime(CLOCK_UPTIME, &sp);
-	return((long long)sp.tv_sec * 1000000000LL + sp.tv_nsec);
+	return ((long long)sp.tv_sec * 1000000000LL + sp.tv_nsec);
 }
 
 static void
@@ -481,8 +487,8 @@ fill_vmmeter(struct __vmmeter *vmmp)
 
 	if (kd != NULL) {
 		kread(X_SUM, &vm_cnt, sizeof(vm_cnt));
-#define	GET_COUNTER(name) \
-		vmmp->name = kvm_counter_u64_fetch(kd, (u_long)vm_cnt.name)
+#define GET_COUNTER(name) \
+	vmmp->name = kvm_counter_u64_fetch(kd, (u_long)vm_cnt.name)
 		GET_COUNTER(v_swtch);
 		GET_COUNTER(v_trap);
 		GET_COUNTER(v_syscall);
@@ -514,10 +520,11 @@ fill_vmmeter(struct __vmmeter *vmmp)
 		GET_COUNTER(v_kthreadpages);
 #undef GET_COUNTER
 	} else {
-#define GET_VM_STATS(cat, name)	do {					\
-	size = sizeof(vmmp->name);					\
-	mysysctl("vm.stats." #cat "." #name, &vmmp->name, &size);	\
-} while (0)
+#define GET_VM_STATS(cat, name)                                           \
+	do {                                                              \
+		size = sizeof(vmmp->name);                                \
+		mysysctl("vm.stats." #cat "." #name, &vmmp->name, &size); \
+	} while (0)
 		/* sys */
 		GET_VM_STATS(sys, v_swtch);
 		GET_VM_STATS(sys, v_trap);
@@ -725,12 +732,10 @@ dovmstat(unsigned int interval, int reps)
 			generation = cur.dinfo->generation;
 
 			retval = devstat_selectdevs(&dev_select, &num_selected,
-			    &num_selections, &select_generation,
-			    generation, cur.dinfo->devices,
-			    num_devices, matches, num_matches,
-			    specified_devices,
-			    num_devices_specified, select_mode,
-			    maxshowdevs, 0);
+			    &num_selections, &select_generation, generation,
+			    cur.dinfo->devices, num_devices, matches,
+			    num_matches, specified_devices,
+			    num_devices_specified, select_mode, maxshowdevs, 0);
 			switch (retval) {
 			case -1:
 				xo_errx(1, "%s", devstat_errbuf);
@@ -750,16 +755,17 @@ dovmstat(unsigned int interval, int reps)
 		fill_vmtotal(&total);
 		xo_open_container("processes");
 		xo_emit("{:runnable/%2d} {:waiting/%2ld} "
-		    "{:swapped-out/%2ld}", total.t_rq - 1, total.t_dw +
-		    total.t_pw, total.t_sw);
+			"{:swapped-out/%2ld}",
+		    total.t_rq - 1, total.t_dw + total.t_pw, total.t_sw);
 		xo_close_container("processes");
 		xo_open_container("memory");
-#define	rate(x)	(unsigned long)(((x) * rate_adj + halfuptime) / uptime)
+#define rate(x) (unsigned long)(((x) * rate_adj + halfuptime) / uptime)
 		xo_emit(" {[:4}{h,hn-decimal:available-memory/%ju}{]:}",
 		    (uintmax_t)total.t_avm * sum.v_page_size);
 		xo_emit(" {[:4}{h,hn-decimal:free-memory/%ju}{]:}",
 		    (uintmax_t)total.t_free * sum.v_page_size);
-		xo_emit(" {[:4}{h,hn-decimal,hn-1000:total-page-faults/%lu}{]:} ",
+		xo_emit(
+		    " {[:4}{h,hn-decimal,hn-1000:total-page-faults/%lu}{]:} ",
 		    rate(sum.v_vm_faults - osum.v_vm_faults));
 		xo_close_container("memory");
 
@@ -768,10 +774,10 @@ dovmstat(unsigned int interval, int reps)
 		    rate(sum.v_reactivated - osum.v_reactivated));
 		xo_emit("{:paged-in/%3lu} ",
 		    rate(sum.v_swapin + sum.v_vnodein -
-		    (osum.v_swapin + osum.v_vnodein)));
+			(osum.v_swapin + osum.v_vnodein)));
 		xo_emit("{:paged-out/%3lu}",
 		    rate(sum.v_swapout + sum.v_vnodeout -
-		    (osum.v_swapout + osum.v_vnodeout)));
+			(osum.v_swapout + osum.v_vnodeout)));
 		xo_emit(" {[:4}{h,hn-decimal,hn-1000:freed/%lu}{]:}",
 		    rate(sum.v_tfree - osum.v_tfree));
 		xo_emit(" {[:4}{h,hn-decimal,hn-1000:scanned/%lu}{]:}",
@@ -781,8 +787,8 @@ dovmstat(unsigned int interval, int reps)
 		devstats();
 		xo_open_container("fault-rates");
 		xo_emit(" {[:4}{h,hn-decimal,hn-1000:interrupts/%lu}{]:}"
-		    " {[:4}{h,hn-decimal,hn-1000:system-calls/%lu}{]:}"
-		    " {[:4}{h,hn-decimal,hn-1000:context-switches/%lu}{]:}",
+			" {[:4}{h,hn-decimal,hn-1000:system-calls/%lu}{]:}"
+			" {[:4}{h,hn-decimal,hn-1000:context-switches/%lu}{]:}",
 		    rate(sum.v_intr - osum.v_intr),
 		    rate(sum.v_syscall - osum.v_syscall),
 		    rate(sum.v_swtch - osum.v_swtch));
@@ -831,7 +837,7 @@ printhdr(int maxid, u_long cpumask)
 	} else
 		xo_emit(" {T:cpu}\n");
 	xo_emit(" {T:r}  {T:b}  {T:w}  {T:avm}  {T:fre}  {T:flt}  {T:re}"
-	    "  {T:pi}  {T:po}   {T:fr}   {T:sr} ");
+		"  {T:pi}  {T:po}   {T:fr}   {T:sr} ");
 	for (i = 0; i < num_devices; i++)
 		if ((dev_select[i].selected) &&
 		    (dev_select[i].selected <= maxshowdevs))
@@ -908,12 +914,12 @@ pct(long top, long bot)
 	long ans;
 
 	if (bot == 0)
-		return(0);
+		return (0);
 	ans = (quad_t)top * 100 / bot;
 	return (ans);
 }
 
-#define	PCT(top, bot) pct((long)(top), (long)(bot))
+#define PCT(top, bot) pct((long)(top), (long)(bot))
 
 static void
 dosum(void)
@@ -926,26 +932,20 @@ dosum(void)
 	xo_open_container("summary-statistics");
 	xo_emit("{:context-switches/%9u} {N:cpu context switches}\n",
 	    sum.v_swtch);
-	xo_emit("{:interrupts/%9u} {N:device interrupts}\n",
-	    sum.v_intr);
+	xo_emit("{:interrupts/%9u} {N:device interrupts}\n", sum.v_intr);
 	xo_emit("{:software-interrupts/%9u} {N:software interrupts}\n",
 	    sum.v_soft);
 	xo_emit("{:traps/%9u} {N:traps}\n", sum.v_trap);
-	xo_emit("{:system-calls/%9u} {N:system calls}\n",
-	    sum.v_syscall);
+	xo_emit("{:system-calls/%9u} {N:system calls}\n", sum.v_syscall);
 	xo_emit("{:kernel-threads/%9u} {N:kernel threads created}\n",
 	    sum.v_kthreads);
 	xo_emit("{:forks/%9u} {N: fork() calls}\n", sum.v_forks);
-	xo_emit("{:vforks/%9u} {N:vfork() calls}\n",
-	    sum.v_vforks);
-	xo_emit("{:rforks/%9u} {N:rfork() calls}\n",
-	    sum.v_rforks);
-	xo_emit("{:swap-ins/%9u} {N:swap pager pageins}\n",
-	    sum.v_swapin);
+	xo_emit("{:vforks/%9u} {N:vfork() calls}\n", sum.v_vforks);
+	xo_emit("{:rforks/%9u} {N:rfork() calls}\n", sum.v_rforks);
+	xo_emit("{:swap-ins/%9u} {N:swap pager pageins}\n", sum.v_swapin);
 	xo_emit("{:swap-in-pages/%9u} {N:swap pager pages paged in}\n",
 	    sum.v_swappgsin);
-	xo_emit("{:swap-outs/%9u} {N:swap pager pageouts}\n",
-	    sum.v_swapout);
+	xo_emit("{:swap-outs/%9u} {N:swap pager pageouts}\n", sum.v_swapout);
 	xo_emit("{:swap-out-pages/%9u} {N:swap pager pages paged out}\n",
 	    sum.v_swappgsout);
 	xo_emit("{:vnode-page-ins/%9u} {N:vnode pager pageins}\n",
@@ -959,51 +959,54 @@ dosum(void)
 	xo_emit("{:page-daemon-wakeups/%9u} {N:page daemon wakeups}\n",
 	    sum.v_pdwakeups);
 	xo_emit("{:page-daemon-pages/%9u} {N:pages examined by the page "
-	    "daemon}\n", sum.v_pdpages);
+		"daemon}\n",
+	    sum.v_pdpages);
 	xo_emit("{:page-reclamation-shortfalls/%9u} {N:clean page reclamation "
-	    "shortfalls}\n", sum.v_pdshortfalls);
+		"shortfalls}\n",
+	    sum.v_pdshortfalls);
 	xo_emit("{:reactivated/%9u} {N:pages reactivated by the page daemon}\n",
 	    sum.v_reactivated);
 	xo_emit("{:copy-on-write-faults/%9u} {N:copy-on-write faults}\n",
 	    sum.v_cow_faults);
 	xo_emit("{:copy-on-write-optimized-faults/%9u} {N:copy-on-write "
-	    "optimized faults}\n", sum.v_cow_optim);
+		"optimized faults}\n",
+	    sum.v_cow_optim);
 	xo_emit("{:zero-fill-pages/%9u} {N:zero fill pages zeroed}\n",
 	    sum.v_zfod);
 	xo_emit("{:zero-fill-prezeroed/%9u} {N:zero fill pages prezeroed}\n",
 	    sum.v_ozfod);
-	xo_emit("{:intransit-blocking/%9u} {N:intransit blocking page faults}\n",
+	xo_emit(
+	    "{:intransit-blocking/%9u} {N:intransit blocking page faults}\n",
 	    sum.v_intrans);
 	xo_emit("{:total-faults/%9u} {N:total VM faults taken}\n",
 	    sum.v_vm_faults);
 	xo_emit("{:faults-requiring-io/%9u} {N:page faults requiring I\\/O}\n",
 	    sum.v_io_faults);
 	xo_emit("{:faults-from-thread-creation/%9u} {N:pages affected by "
-	    "kernel thread creation}\n", sum.v_kthreadpages);
+		"kernel thread creation}\n",
+	    sum.v_kthreadpages);
 	xo_emit("{:faults-from-fork/%9u} {N:pages affected by  fork}()\n",
 	    sum.v_forkpages);
 	xo_emit("{:faults-from-vfork/%9u} {N:pages affected by vfork}()\n",
 	    sum.v_vforkpages);
 	xo_emit("{:pages-rfork/%9u} {N:pages affected by rfork}()\n",
 	    sum.v_rforkpages);
-	xo_emit("{:pages-freed/%9u} {N:pages freed}\n",
-	    sum.v_tfree);
+	xo_emit("{:pages-freed/%9u} {N:pages freed}\n", sum.v_tfree);
 	xo_emit("{:pages-freed-by-daemon/%9u} {N:pages freed by daemon}\n",
 	    sum.v_dfree);
-	xo_emit("{:pages-freed-on-exit/%9u} {N:pages freed by exiting processes}\n",
+	xo_emit(
+	    "{:pages-freed-on-exit/%9u} {N:pages freed by exiting processes}\n",
 	    sum.v_pfree);
-	xo_emit("{:active-pages/%9u} {N:pages active}\n",
-	    sum.v_active_count);
+	xo_emit("{:active-pages/%9u} {N:pages active}\n", sum.v_active_count);
 	xo_emit("{:inactive-pages/%9u} {N:pages inactive}\n",
 	    sum.v_inactive_count);
 	xo_emit("{:laundry-pages/%9u} {N:pages in the laundry queue}\n",
 	    sum.v_laundry_count);
-	xo_emit("{:wired-pages/%9u} {N:pages wired down}\n",
-	    sum.v_wire_count);
+	xo_emit("{:wired-pages/%9u} {N:pages wired down}\n", sum.v_wire_count);
 	xo_emit("{:virtual-user-wired-pages/%9lu} {N:virtual user pages wired "
-	    "down}\n", sum.v_user_wire_count);
-	xo_emit("{:free-pages/%9u} {N:pages free}\n",
-	    sum.v_free_count);
+		"down}\n",
+	    sum.v_user_wire_count);
+	xo_emit("{:free-pages/%9u} {N:pages free}\n", sum.v_free_count);
 	xo_emit("{:bytes-per-page/%9u} {N:bytes per page}\n", sum.v_page_size);
 	if (kd != NULL) {
 		kread(X_NCHSTATS, &lnchstats, sizeof(lnchstats));
@@ -1019,16 +1022,16 @@ dosum(void)
 	xo_emit("{:total-name-lookups/%9ld} {N:total name lookups}\n",
 	    nchtotal);
 	xo_emit("{P:/%9s} {N:cache hits} "
-	    "({:positive-cache-hits/%ld}% pos + "
-	    "{:negative-cache-hits/%ld}% {N:neg}) "
-	    "system {:cache-hit-percent/%ld}% per-directory\n",
+		"({:positive-cache-hits/%ld}% pos + "
+		"{:negative-cache-hits/%ld}% {N:neg}) "
+		"system {:cache-hit-percent/%ld}% per-directory\n",
 	    "", PCT(lnchstats.ncs_goodhits, nchtotal),
 	    PCT(lnchstats.ncs_neghits, nchtotal),
 	    PCT(lnchstats.ncs_pass2, nchtotal));
 	xo_emit("{P:/%9s} {L:deletions} {:deletions/%ld}%, "
-	    "{L:falsehits} {:false-hits/%ld}%, "
-	    "{L:toolong} {:too-long/%ld}%\n", "",
-	    PCT(lnchstats.ncs_badhits, nchtotal),
+		"{L:falsehits} {:false-hits/%ld}%, "
+		"{L:toolong} {:too-long/%ld}%\n",
+	    "", PCT(lnchstats.ncs_badhits, nchtotal),
 	    PCT(lnchstats.ncs_falsehits, nchtotal),
 	    PCT(lnchstats.ncs_long, nchtotal));
 	xo_close_container("summary-statistics");
@@ -1041,20 +1044,17 @@ doforkst(void)
 	fill_vmmeter(&sum);
 	xo_open_container("fork-statistics");
 	xo_emit("{:fork/%u} {N:forks}, {:fork-pages/%u} {N:pages}, "
-	    "{L:average} {:fork-average/%.2f}\n",
+		"{L:average} {:fork-average/%.2f}\n",
 	    sum.v_forks, sum.v_forkpages,
-	    sum.v_forks == 0 ? 0.0 :
-	    (double)sum.v_forkpages / sum.v_forks);
+	    sum.v_forks == 0 ? 0.0 : (double)sum.v_forkpages / sum.v_forks);
 	xo_emit("{:vfork/%u} {N:vforks}, {:vfork-pages/%u} {N:pages}, "
-	    "{L:average} {:vfork-average/%.2f}\n",
+		"{L:average} {:vfork-average/%.2f}\n",
 	    sum.v_vforks, sum.v_vforkpages,
-	    sum.v_vforks == 0 ? 0.0 :
-	    (double)sum.v_vforkpages / sum.v_vforks);
+	    sum.v_vforks == 0 ? 0.0 : (double)sum.v_vforkpages / sum.v_vforks);
 	xo_emit("{:rfork/%u} {N:rforks}, {:rfork-pages/%u} {N:pages}, "
-	    "{L:average} {:rfork-average/%.2f}\n",
+		"{L:average} {:rfork-average/%.2f}\n",
 	    sum.v_rforks, sum.v_rforkpages,
-	    sum.v_rforks == 0 ? 0.0 :
-	    (double)sum.v_rforkpages / sum.v_rforks);
+	    sum.v_rforks == 0 ? 0.0 : (double)sum.v_rforkpages / sum.v_rforks);
 	xo_close_container("fork-statistics");
 }
 
@@ -1082,14 +1082,13 @@ devstats(void)
 		di = dev_select[dn].position;
 
 		if (devstat_compute_statistics(&cur.dinfo->devices[di],
-		    &last.dinfo->devices[di], busy_seconds,
-		    DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
-		    DSM_NONE) != 0)
+			&last.dinfo->devices[di], busy_seconds,
+			DSM_TRANSFERS_PER_SECOND, &transfers_per_second,
+			DSM_NONE) != 0)
 			xo_errx(1, "%s", devstat_errbuf);
 
 		xo_open_instance("device");
-		xo_emit("{ekq:name/%s%d}",
-		    dev_select[dn].device_name,
+		xo_emit("{ekq:name/%s%d}", dev_select[dn].device_name,
 		    dev_select[dn].unit_number);
 		xo_emit("{[:5}{h,hn-decimal,hn-1000:transfers/%ju}{]:}",
 		    (uintmax_t)transfers_per_second);
@@ -1125,10 +1124,12 @@ cpustats(void)
 		total = 1;
 	over = 0;
 	xo_open_container("cpu-statistics");
-	percent("user", 100LL * (cur.cp_time[CP_USER] + cur.cp_time[CP_NICE]) /
-	    total, &over);
-	percent("system", 100LL * (cur.cp_time[CP_SYS] + cur.cp_time[CP_INTR]) /
-	    total, &over);
+	percent("user",
+	    100LL * (cur.cp_time[CP_USER] + cur.cp_time[CP_NICE]) / total,
+	    &over);
+	percent("system",
+	    100LL * (cur.cp_time[CP_SYS] + cur.cp_time[CP_INTR]) / total,
+	    &over);
 	percent("idle", 100LL * cur.cp_time[CP_IDLE] / total, &over);
 	xo_close_container("cpu-statistics");
 }
@@ -1145,8 +1146,8 @@ pcpustats(u_long cpumask, int maxid)
 			continue;
 		for (state = 0; state < CPUSTATES; ++state) {
 			tmp = cur_cp_times[i * CPUSTATES + state];
-			cur_cp_times[i * CPUSTATES + state] -= last_cp_times[i *
-			    CPUSTATES + state];
+			cur_cp_times[i * CPUSTATES + state] -=
+			    last_cp_times[i * CPUSTATES + state];
 			last_cp_times[i * CPUSTATES + state] = tmp;
 		}
 	}
@@ -1164,11 +1165,17 @@ pcpustats(u_long cpumask, int maxid)
 		if (total == 0)
 			total = 1;
 		percent("user",
-		    100LL * (cur_cp_times[i * CPUSTATES + CP_USER] +
-		    cur_cp_times[i * CPUSTATES + CP_NICE]) / total, &over);
+		    100LL *
+			(cur_cp_times[i * CPUSTATES + CP_USER] +
+			    cur_cp_times[i * CPUSTATES + CP_NICE]) /
+			total,
+		    &over);
 		percent("system",
-		    100LL * (cur_cp_times[i * CPUSTATES + CP_SYS] +
-		    cur_cp_times[i * CPUSTATES + CP_INTR]) / total, &over);
+		    100LL *
+			(cur_cp_times[i * CPUSTATES + CP_SYS] +
+			    cur_cp_times[i * CPUSTATES + CP_INTR]) /
+			total,
+		    &over);
 		percent("idle",
 		    100LL * cur_cp_times[i * CPUSTATES + CP_IDLE] / total,
 		    &over);
@@ -1194,7 +1201,7 @@ read_intrcnts(unsigned long **intrcnts)
 			kreadptr(kaddr, *intrcnts, intrcntlen);
 		}
 	} else {
-		for (*intrcnts = NULL, intrcntlen = 1024; ; intrcntlen *= 2) {
+		for (*intrcnts = NULL, intrcntlen = 1024;; intrcntlen *= 2) {
 			*intrcnts = reallocf(*intrcnts, intrcntlen);
 			if (*intrcnts == NULL)
 				err(1, "reallocf()");
@@ -1220,10 +1227,11 @@ print_intrcnts(unsigned long *intrcnts, unsigned long *old_intrcnts,
 	for (i = 0; i < nintr; i++) {
 		if (intrnames[0] != '\0' && (*intrcnts != 0 || aflag)) {
 			count = *intrcnts - *old_intrcnts;
-			rate = ((uint64_t)count * 1000 + period_ms / 2) / period_ms;
+			rate = ((uint64_t)count * 1000 + period_ms / 2) /
+			    period_ms;
 			xo_open_instance("interrupt");
 			xo_emit("{d:name/%-*s}{ket:name/%s} "
-			    "{:total/%20lu} {:rate/%10lu}\n",
+				"{:total/%20lu} {:rate/%10lu}\n",
 			    (int)istrnamlen, intrnames, intrnames, count, rate);
 			xo_close_instance("interrupt");
 		}
@@ -1235,8 +1243,9 @@ print_intrcnts(unsigned long *intrcnts, unsigned long *old_intrcnts,
 	total_rate = (total_count * 1000 + period_ms / 2) / period_ms;
 	xo_close_list("interrupt");
 	xo_emit("{L:/%-*s} {:total-interrupts/%20ju} "
-	    "{:total-rate/%10ju}\n", (int)istrnamlen,
-	    "Total", (uintmax_t)total_count, (uintmax_t)total_rate);
+		"{:total-rate/%10ju}\n",
+	    (int)istrnamlen, "Total", (uintmax_t)total_count,
+	    (uintmax_t)total_rate);
 }
 
 static void
@@ -1264,7 +1273,7 @@ dointr(unsigned int interval, int reps)
 			kreadptr(kaddr, intrnames, inamlen);
 		}
 	} else {
-		for (intrnames = NULL, inamlen = 1024; ; inamlen *= 2) {
+		for (intrnames = NULL, inamlen = 1024;; inamlen *= 2) {
 			if ((intrnames = reallocf(intrnames, inamlen)) == NULL)
 				xo_err(1, "reallocf()");
 			if (mysysctl("hw.intrnames", intrnames, &inamlen) == 0)
@@ -1281,19 +1290,19 @@ dointr(unsigned int interval, int reps)
 			istrnamlen = clen;
 		intrname += strlen(intrname) + 1;
 	}
-	xo_emit("{T:/%-*s} {T:/%20s} {T:/%10s}\n",
-	    (int)istrnamlen, "interrupt", "total", "rate");
+	xo_emit("{T:/%-*s} {T:/%20s} {T:/%10s}\n", (int)istrnamlen, "interrupt",
+	    "total", "rate");
 
-	/* 
+	/*
 	 * Loop reps times printing differential interrupt counts.  If reps is
 	 * zero, then run just once, printing total counts
 	 */
 	xo_open_container("interrupt-statistics");
 
 	period_ms = uptime / 1000000;
-	while(1) {
+	while (1) {
 		nintr = read_intrcnts(&intrcnts);
-		/* 
+		/*
 		 * Initialize old_intrcnts to 0 for the first pass, so
 		 * print_intrcnts will print total interrupts since boot
 		 */
@@ -1351,20 +1360,20 @@ domemstat_malloc(void)
 		}
 	}
 	xo_open_container("malloc-statistics");
-	xo_emit("{T:/%16s} {T:/%4s} {T:/%5s} {T:/%3s} {T:Size(s)}\n",
-	    "Type", "Use", "Memory", "Req");
+	xo_emit("{T:/%16s} {T:/%4s} {T:/%5s} {T:/%3s} {T:Size(s)}\n", "Type",
+	    "Use", "Memory", "Req");
 	xo_open_list("memory");
 	zones = memstat_malloc_zone_get_count();
 	for (mtp = memstat_mtl_first(mtlp); mtp != NULL;
-	    mtp = memstat_mtl_next(mtp)) {
+	     mtp = memstat_mtl_next(mtp)) {
 		if (memstat_get_numallocs(mtp) == 0 &&
 		    memstat_get_count(mtp) == 0)
 			continue;
 		xo_open_instance("memory");
 		xo_emit("{k:type/%16s/%s} "
-		    "{[:4}{h,hn-decimal,hn-1000:in-use/%ju}{]:} "
-		    "{[:5}{h,hn-decimal:memory-use/%ju}{]:} "
-		    "{[:4}{h,hn-decimal,hn-1000:requests/%ju}{]:} ",
+			"{[:4}{h,hn-decimal,hn-1000:in-use/%ju}{]:} "
+			"{[:5}{h,hn-decimal:memory-use/%ju}{]:} "
+			"{[:4}{h,hn-decimal,hn-1000:requests/%ju}{]:} ",
 		    memstat_get_name(mtp), (uintmax_t)memstat_get_count(mtp),
 		    (uintmax_t)memstat_get_bytes(mtp),
 		    (uintmax_t)memstat_get_numallocs(mtp));
@@ -1374,7 +1383,8 @@ domemstat_malloc(void)
 			if (memstat_malloc_zone_used(mtp, i)) {
 				if (!first)
 					xo_emit(",");
-				xo_emit("{lh:size/%d}", memstat_malloc_zone_get_size(i));
+				xo_emit("{lh:size/%d}",
+				    memstat_malloc_zone_get_size(i));
 				first = 0;
 			}
 		}
@@ -1409,8 +1419,7 @@ domemstat_zone(void)
 		if (memstat_kvm_uma(mtlp, kd) < 0) {
 			error = memstat_mtl_geterror(mtlp);
 			if (error == MEMSTAT_ERROR_KVM)
-				xo_warnx("memstat_kvm_uma: %s",
-				    kvm_geterr(kd));
+				xo_warnx("memstat_kvm_uma: %s", kvm_geterr(kd));
 			else
 				xo_warnx("memstat_kvm_uma: %s",
 				    memstat_strerror(error));
@@ -1418,17 +1427,18 @@ domemstat_zone(void)
 	}
 	xo_open_container("memory-zone-statistics");
 	xo_emit("{T:/%-19s} {T:/%7s} {T:/%7s} {T:/%8s} {T:/%8s} {T:/%8s} "
-	    "{T:/%4s} {T:/%4s} {T:/%4s}\n", "ITEM", "SIZE",
-	    "LIMIT", "USED", "FREE", "REQ", "FAIL", "SLEEP", "XDOM");
+		"{T:/%4s} {T:/%4s} {T:/%4s}\n",
+	    "ITEM", "SIZE", "LIMIT", "USED", "FREE", "REQ", "FAIL", "SLEEP",
+	    "XDOM");
 	xo_open_list("zone");
 	for (mtp = memstat_mtl_first(mtlp); mtp != NULL;
-	    mtp = memstat_mtl_next(mtp)) {
+	     mtp = memstat_mtl_next(mtp)) {
 		len = strlen(memstat_get_name(mtp));
 		xo_open_instance("zone");
 		xo_emit("{k:name/%s}:{d:size/%*ju}{e:size/%ju},"
-		    "{:limit/%7ju},{:used/%8ju},"
-		    "{:free/%8ju},{:requests/%8ju},"
-		    "{:fail/%4ju},{:sleep/%4ju},{:xdomain/%4ju}\n",
+			"{:limit/%7ju},{:used/%8ju},"
+			"{:free/%8ju},{:requests/%8ju},"
+			"{:fail/%4ju},{:sleep/%4ju},{:xdomain/%4ju}\n",
 		    memstat_get_name(mtp), MAX(1, 26 - len),
 		    (uintmax_t)memstat_get_size(mtp),
 		    (uintmax_t)memstat_get_size(mtp),
@@ -1458,9 +1468,9 @@ display_object(struct kinfo_vmobject *kvo)
 	xo_emit("{:refcount/%3d} ", kvo->kvo_ref_count);
 	xo_emit("{:shadowcount/%3d} ", kvo->kvo_shadow_count);
 
-#define	MEMATTR_STR(type, val)					\
-	if (kvo->kvo_memattr == (type)) {			\
-		str = (val);					\
+#define MEMATTR_STR(type, val)            \
+	if (kvo->kvo_memattr == (type)) { \
+		str = (val);              \
 	} else
 #ifdef VM_MEMATTR_UNCACHEABLE
 	MEMATTR_STR(VM_MEMATTR_UNCACHEABLE, "UC")
@@ -1553,7 +1563,7 @@ doobjstat(void)
 		return;
 	}
 	xo_emit("{T:RES/%5s} {T:ACT/%5s} {T:INACT/%5s} {T:REF/%3s} {T:SHD/%3s} "
-	    "{T:CM/%3s} {T:TP/%2s} {T:PATH/%s}\n");
+		"{T:CM/%3s} {T:TP/%2s} {T:PATH/%s}\n");
 	xo_open_list("object");
 	for (i = 0; i < cnt; i++)
 		display_object(&kvo[i]);
@@ -1575,8 +1585,8 @@ kreado(int nlx, void *addr, size_t size, size_t offset)
 			++sym;
 		xo_errx(1, "symbol %s not defined", sym);
 	}
-	if ((size_t)kvm_read(kd, namelist[nlx].n_value + offset, addr,
-	    size) != size) {
+	if ((size_t)kvm_read(kd, namelist[nlx].n_value + offset, addr, size) !=
+	    size) {
 		sym = namelist[nlx].n_name;
 		if (*sym == '_')
 			++sym;

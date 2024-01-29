@@ -38,13 +38,14 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 #else
-#include <errno.h>
 #include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #endif
 
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 
@@ -56,8 +57,8 @@
 #include "alias_mod.h"
 #endif
 
-static void
-AliasHandleDummy(struct libalias *la, struct ip *ip, struct alias_data *ah);
+static void AliasHandleDummy(struct libalias *la, struct ip *ip,
+    struct alias_data *ah);
 
 static int
 fingerprint(struct libalias *la, struct alias_data *ah)
@@ -74,8 +75,8 @@ fingerprint(struct libalias *la, struct alias_data *ah)
 	 * return an OK value.
 	 */
 	if (ntohs(*ah->dport) == 123 || ntohs(*ah->sport) == 456)
-		return (0);	/* I know how to handle it. */
-	return (-1);		/* I don't recognize this packet. */
+		return (0); /* I know how to handle it. */
+	return (-1);	    /* I don't recognize this packet. */
 }
 
 /*
@@ -98,16 +99,12 @@ protohandler(struct libalias *la, struct ip *pip, struct alias_data *ah)
  * ITS EXACT NAME: handlers.
  */
 
-struct proto_handler handlers [] = {
-	{
-	  .pri = 666,
-	  .dir = IN|OUT,
-	  .proto = UDP|TCP,
-	  .fingerprint = &fingerprint,
-	  .protohandler = &protohandler
-	},
-	{ EOH }
-};
+struct proto_handler handlers[] = { { .pri = 666,
+					.dir = IN | OUT,
+					.proto = UDP | TCP,
+					.fingerprint = &fingerprint,
+					.protohandler = &protohandler },
+	{ EOH } };
 
 static int
 mod_handler(module_t mod, int type, void *data)
@@ -132,9 +129,7 @@ mod_handler(module_t mod, int type, void *data)
 #ifdef _KERNEL
 static
 #endif
-moduledata_t alias_mod = {
-       "alias_dummy", mod_handler, NULL
-};
+    moduledata_t alias_mod = { "alias_dummy", mod_handler, NULL };
 
 #ifdef _KERNEL
 DECLARE_MODULE(alias_dummy, alias_mod, SI_SUB_DRIVERS, SI_ORDER_SECOND);

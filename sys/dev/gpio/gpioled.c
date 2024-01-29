@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -47,21 +47,21 @@
 /*
  * Only one pin for led
  */
-#define	GPIOLED_PIN	0
+#define GPIOLED_PIN 0
 
-#define	GPIOLED_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	GPIOLED_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	GPIOLED_LOCK_INIT(_sc)		mtx_init(&(_sc)->sc_mtx,	\
-    device_get_nameunit((_sc)->sc_dev), "gpioled", MTX_DEF)
-#define	GPIOLED_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx)
+#define GPIOLED_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define GPIOLED_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define GPIOLED_LOCK_INIT(_sc)                                       \
+	mtx_init(&(_sc)->sc_mtx, device_get_nameunit((_sc)->sc_dev), \
+	    "gpioled", MTX_DEF)
+#define GPIOLED_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
 
-struct gpioled_softc 
-{
-	device_t	sc_dev;
-	device_t	sc_busdev;
-	struct mtx	sc_mtx;
-	struct cdev	*sc_leddev;
-	int		sc_invert;
+struct gpioled_softc {
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
+	struct cdev *sc_leddev;
+	int sc_invert;
 };
 
 static void gpioled_control(void *, int);
@@ -69,7 +69,7 @@ static int gpioled_probe(device_t);
 static int gpioled_attach(device_t);
 static int gpioled_detach(device_t);
 
-static void 
+static void
 gpioled_control(void *priv, int onoff)
 {
 	struct gpioled_softc *sc;
@@ -77,7 +77,7 @@ gpioled_control(void *priv, int onoff)
 	sc = (struct gpioled_softc *)priv;
 	GPIOLED_LOCK(sc);
 	if (GPIOBUS_PIN_SETFLAGS(sc->sc_busdev, sc->sc_dev, GPIOLED_PIN,
-	    GPIO_PIN_OUTPUT) == 0) {
+		GPIO_PIN_OUTPUT) == 0) {
 		if (sc->sc_invert)
 			onoff = !onoff;
 		GPIOBUS_PIN_SET(sc->sc_busdev, sc->sc_dev, GPIOLED_PIN,
@@ -108,16 +108,16 @@ gpioled_attach(device_t dev)
 
 	state = 0;
 
-	if (resource_string_value(device_get_name(dev), 
-	    device_get_unit(dev), "name", &name))
+	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
+		"name", &name))
 		name = NULL;
-	resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "invert", &sc->sc_invert);
-	resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "state", &state);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "invert",
+	    &sc->sc_invert);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "state",
+	    &state);
 
-	sc->sc_leddev = led_create_state(gpioled_control, sc, name ? name :
-	    device_get_nameunit(dev), state);
+	sc->sc_leddev = led_create_state(gpioled_control, sc,
+	    name ? name : device_get_nameunit(dev), state);
 
 	return (0);
 }
@@ -138,9 +138,9 @@ gpioled_detach(device_t dev)
 
 static device_method_t gpioled_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpioled_probe),
-	DEVMETHOD(device_attach,	gpioled_attach),
-	DEVMETHOD(device_detach,	gpioled_detach),
+	DEVMETHOD(device_probe, gpioled_probe),
+	DEVMETHOD(device_attach, gpioled_attach),
+	DEVMETHOD(device_detach, gpioled_detach),
 
 	DEVMETHOD_END
 };

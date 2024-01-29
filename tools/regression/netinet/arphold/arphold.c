@@ -41,16 +41,18 @@
  * fail.
  */
 
-#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
+
+#include <net/if_arp.h>
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <net/if_arp.h>
+#include <unistd.h>
 
 #define MSG_SIZE 1024
 #define PORT 6969
@@ -70,12 +72,12 @@ main(int argc, char **argv)
 
 	memset(&message, 1, sizeof(message));
 
-	if (sysctlbyname("net.link.ether.inet.maxhold", &maxhold, &size,
-			 NULL, 0) < 0) {
+	if (sysctlbyname("net.link.ether.inet.maxhold", &maxhold, &size, NULL,
+		0) < 0) {
 		perror("not ok 1 - sysctlbyname failed");
 		exit(1);
 	}
-	    
+
 #ifdef DEBUG
 	printf("maxhold is %d\n", maxhold);
 #endif /* DEBUG */
@@ -94,8 +96,8 @@ main(int argc, char **argv)
 	dest.sin_family = AF_INET;
 	dest.sin_port = htons(PORT);
 
-	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len,
-			 NULL, 0) < 0) {
+	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len, NULL, 0) <
+	    0) {
 		perror("not ok 1 - could not get initial arp stats");
 		exit(1);
 	}
@@ -105,22 +107,22 @@ main(int argc, char **argv)
 	printf("dropped before %ld\n", dropped);
 #endif /* DEBUG */
 
-	/* 
+	/*
 	 * Load up the queue in the ARP entry to the maximum.
-	 * We should not drop any packets at this point. 
+	 * We should not drop any packets at this point.
 	 */
 
 	while (maxhold > 0) {
 		if (sendto(sock, message, sizeof(message), 0,
-			   (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+			(struct sockaddr *)&dest, sizeof(dest)) < 0) {
 			perror("not ok 1 - could not send packet");
 			exit(1);
 		}
 		maxhold--;
 	}
 
-	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len,
-			 NULL, 0) < 0) {
+	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len, NULL, 0) <
+	    0) {
 		perror("not ok 1 - could not get new arp stats");
 		exit(1);
 	}
@@ -131,28 +133,30 @@ main(int argc, char **argv)
 
 	if (arpstat.dropped != dropped) {
 		printf("not ok 1 - Failed, drops changed:"
-		       "before %ld after %ld\n", dropped, arpstat.dropped);
+		       "before %ld after %ld\n",
+		    dropped, arpstat.dropped);
 		exit(1);
 	}
-	
+
 	dropped = arpstat.dropped;
 
 	/* Now add one extra and make sure it is dropped. */
-	if (sendto(sock, message, sizeof(message), 0,
-		   (struct sockaddr *)&dest, sizeof(dest)) < 0) {
+	if (sendto(sock, message, sizeof(message), 0, (struct sockaddr *)&dest,
+		sizeof(dest)) < 0) {
 		perror("not ok 1 - could not send packet");
 		exit(1);
 	}
 
-	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len,
-			 NULL, 0) < 0) {
+	if (sysctlbyname("net.link.ether.arp.stats", &arpstat, &len, NULL, 0) <
+	    0) {
 		perror("not ok 1 - could not get new arp stats");
 		exit(1);
 	}
 
 	if (arpstat.dropped != (dropped + 1)) {
 		printf("not ok 1 - Failed to drop one packet: before"
-		       " %ld after %ld\n", dropped, arpstat.dropped);
+		       " %ld after %ld\n",
+		    dropped, arpstat.dropped);
 		exit(1);
 	}
 

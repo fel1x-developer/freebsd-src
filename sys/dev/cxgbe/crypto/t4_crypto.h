@@ -26,15 +26,15 @@
  */
 
 #ifndef __T4_CRYPTO_H__
-#define	__T4_CRYPTO_H__
+#define __T4_CRYPTO_H__
 
 /* From chr_core.h */
-#define PAD_ERROR_BIT		1
-#define CHK_PAD_ERR_BIT(x)	(((x) >> PAD_ERROR_BIT) & 1)
+#define PAD_ERROR_BIT 1
+#define CHK_PAD_ERR_BIT(x) (((x) >> PAD_ERROR_BIT) & 1)
 
-#define MAC_ERROR_BIT		0
-#define CHK_MAC_ERR_BIT(x)	(((x) >> MAC_ERROR_BIT) & 1)
-#define MAX_SALT                4
+#define MAC_ERROR_BIT 0
+#define CHK_MAC_ERR_BIT(x) (((x) >> MAC_ERROR_BIT) & 1)
+#define MAX_SALT 4
 
 struct _key_ctx {
 	__be32 ctx_hdr;
@@ -54,67 +54,61 @@ struct chcr_wr {
 /* From chr_algo.h */
 
 /* Crypto key context */
-#define S_KEY_CONTEXT_CTX_LEN           24
-#define M_KEY_CONTEXT_CTX_LEN           0xff
-#define V_KEY_CONTEXT_CTX_LEN(x)        ((x) << S_KEY_CONTEXT_CTX_LEN)
+#define S_KEY_CONTEXT_CTX_LEN 24
+#define M_KEY_CONTEXT_CTX_LEN 0xff
+#define V_KEY_CONTEXT_CTX_LEN(x) ((x) << S_KEY_CONTEXT_CTX_LEN)
 #define G_KEY_CONTEXT_CTX_LEN(x) \
 	(((x) >> S_KEY_CONTEXT_CTX_LEN) & M_KEY_CONTEXT_CTX_LEN)
 
-#define S_KEY_CONTEXT_DUAL_CK      12
-#define M_KEY_CONTEXT_DUAL_CK      0x1
-#define V_KEY_CONTEXT_DUAL_CK(x)   ((x) << S_KEY_CONTEXT_DUAL_CK)
-#define G_KEY_CONTEXT_DUAL_CK(x)   \
-(((x) >> S_KEY_CONTEXT_DUAL_CK) & M_KEY_CONTEXT_DUAL_CK)
-#define F_KEY_CONTEXT_DUAL_CK      V_KEY_CONTEXT_DUAL_CK(1U)
+#define S_KEY_CONTEXT_DUAL_CK 12
+#define M_KEY_CONTEXT_DUAL_CK 0x1
+#define V_KEY_CONTEXT_DUAL_CK(x) ((x) << S_KEY_CONTEXT_DUAL_CK)
+#define G_KEY_CONTEXT_DUAL_CK(x) \
+	(((x) >> S_KEY_CONTEXT_DUAL_CK) & M_KEY_CONTEXT_DUAL_CK)
+#define F_KEY_CONTEXT_DUAL_CK V_KEY_CONTEXT_DUAL_CK(1U)
 
-#define S_KEY_CONTEXT_OPAD_PRESENT      11
-#define M_KEY_CONTEXT_OPAD_PRESENT      0x1
-#define V_KEY_CONTEXT_OPAD_PRESENT(x)   ((x) << S_KEY_CONTEXT_OPAD_PRESENT)
-#define G_KEY_CONTEXT_OPAD_PRESENT(x)   \
-	(((x) >> S_KEY_CONTEXT_OPAD_PRESENT) & \
-	 M_KEY_CONTEXT_OPAD_PRESENT)
-#define F_KEY_CONTEXT_OPAD_PRESENT      V_KEY_CONTEXT_OPAD_PRESENT(1U)
+#define S_KEY_CONTEXT_OPAD_PRESENT 11
+#define M_KEY_CONTEXT_OPAD_PRESENT 0x1
+#define V_KEY_CONTEXT_OPAD_PRESENT(x) ((x) << S_KEY_CONTEXT_OPAD_PRESENT)
+#define G_KEY_CONTEXT_OPAD_PRESENT(x) \
+	(((x) >> S_KEY_CONTEXT_OPAD_PRESENT) & M_KEY_CONTEXT_OPAD_PRESENT)
+#define F_KEY_CONTEXT_OPAD_PRESENT V_KEY_CONTEXT_OPAD_PRESENT(1U)
 
-#define S_KEY_CONTEXT_SALT_PRESENT      10
-#define M_KEY_CONTEXT_SALT_PRESENT      0x1
-#define V_KEY_CONTEXT_SALT_PRESENT(x)   ((x) << S_KEY_CONTEXT_SALT_PRESENT)
-#define G_KEY_CONTEXT_SALT_PRESENT(x)   \
-	(((x) >> S_KEY_CONTEXT_SALT_PRESENT) & \
-	 M_KEY_CONTEXT_SALT_PRESENT)
-#define F_KEY_CONTEXT_SALT_PRESENT      V_KEY_CONTEXT_SALT_PRESENT(1U)
+#define S_KEY_CONTEXT_SALT_PRESENT 10
+#define M_KEY_CONTEXT_SALT_PRESENT 0x1
+#define V_KEY_CONTEXT_SALT_PRESENT(x) ((x) << S_KEY_CONTEXT_SALT_PRESENT)
+#define G_KEY_CONTEXT_SALT_PRESENT(x) \
+	(((x) >> S_KEY_CONTEXT_SALT_PRESENT) & M_KEY_CONTEXT_SALT_PRESENT)
+#define F_KEY_CONTEXT_SALT_PRESENT V_KEY_CONTEXT_SALT_PRESENT(1U)
 
-#define S_KEY_CONTEXT_CK_SIZE           6
-#define M_KEY_CONTEXT_CK_SIZE           0xf
-#define V_KEY_CONTEXT_CK_SIZE(x)        ((x) << S_KEY_CONTEXT_CK_SIZE)
-#define G_KEY_CONTEXT_CK_SIZE(x)        \
+#define S_KEY_CONTEXT_CK_SIZE 6
+#define M_KEY_CONTEXT_CK_SIZE 0xf
+#define V_KEY_CONTEXT_CK_SIZE(x) ((x) << S_KEY_CONTEXT_CK_SIZE)
+#define G_KEY_CONTEXT_CK_SIZE(x) \
 	(((x) >> S_KEY_CONTEXT_CK_SIZE) & M_KEY_CONTEXT_CK_SIZE)
 
-#define S_KEY_CONTEXT_MK_SIZE           2
-#define M_KEY_CONTEXT_MK_SIZE           0xf
-#define V_KEY_CONTEXT_MK_SIZE(x)        ((x) << S_KEY_CONTEXT_MK_SIZE)
-#define G_KEY_CONTEXT_MK_SIZE(x)        \
+#define S_KEY_CONTEXT_MK_SIZE 2
+#define M_KEY_CONTEXT_MK_SIZE 0xf
+#define V_KEY_CONTEXT_MK_SIZE(x) ((x) << S_KEY_CONTEXT_MK_SIZE)
+#define G_KEY_CONTEXT_MK_SIZE(x) \
 	(((x) >> S_KEY_CONTEXT_MK_SIZE) & M_KEY_CONTEXT_MK_SIZE)
 
-#define S_KEY_CONTEXT_VALID     0
-#define M_KEY_CONTEXT_VALID     0x1
-#define V_KEY_CONTEXT_VALID(x)  ((x) << S_KEY_CONTEXT_VALID)
-#define G_KEY_CONTEXT_VALID(x)  \
-	(((x) >> S_KEY_CONTEXT_VALID) & \
-	 M_KEY_CONTEXT_VALID)
-#define F_KEY_CONTEXT_VALID     V_KEY_CONTEXT_VALID(1U)
+#define S_KEY_CONTEXT_VALID 0
+#define M_KEY_CONTEXT_VALID 0x1
+#define V_KEY_CONTEXT_VALID(x) ((x) << S_KEY_CONTEXT_VALID)
+#define G_KEY_CONTEXT_VALID(x) \
+	(((x) >> S_KEY_CONTEXT_VALID) & M_KEY_CONTEXT_VALID)
+#define F_KEY_CONTEXT_VALID V_KEY_CONTEXT_VALID(1U)
 
 #define CHCR_HASH_MAX_DIGEST_SIZE 64
 
 #define DUMMY_BYTES 16
 
-#define TRANSHDR_SIZE(kctx_len)\
-	(sizeof(struct chcr_wr) +\
-	 kctx_len)
-#define CIPHER_TRANSHDR_SIZE(kctx_len, sge_pairs) \
-	(TRANSHDR_SIZE((kctx_len)) + (sge_pairs) +\
-	 sizeof(struct cpl_rx_phys_dsgl))
-#define HASH_TRANSHDR_SIZE(kctx_len)\
-	(TRANSHDR_SIZE(kctx_len) + DUMMY_BYTES)
+#define TRANSHDR_SIZE(kctx_len) (sizeof(struct chcr_wr) + kctx_len)
+#define CIPHER_TRANSHDR_SIZE(kctx_len, sge_pairs)  \
+	(TRANSHDR_SIZE((kctx_len)) + (sge_pairs) + \
+	    sizeof(struct cpl_rx_phys_dsgl))
+#define HASH_TRANSHDR_SIZE(kctx_len) (TRANSHDR_SIZE(kctx_len) + DUMMY_BYTES)
 
 #define CRYPTO_MAX_IMM_TX_PKT_LEN 256
 
@@ -124,10 +118,10 @@ struct phys_sge_pairs {
 };
 
 /* From chr_crypto.h */
-#define CCM_B0_SIZE             16
-#define CCM_AAD_FIELD_SIZE      2
+#define CCM_B0_SIZE 16
+#define CCM_AAD_FIELD_SIZE 2
 
-#define CHCR_AES_MAX_KEY_LEN  (AES_XTS_MAX_KEY)
+#define CHCR_AES_MAX_KEY_LEN (AES_XTS_MAX_KEY)
 #define CHCR_MAX_CRYPTO_IV_LEN 16 /* AES IV len */
 
 #define CHCR_ENCRYPT_OP 0
@@ -140,53 +134,53 @@ struct phys_sge_pairs {
 #define SCMD_PROTO_VERSION_TLS_1_1 1
 #define SCMD_PROTO_VERSION_GENERIC 4
 
-#define SCMD_CIPH_MODE_NOP               0
-#define SCMD_CIPH_MODE_AES_CBC           1
-#define SCMD_CIPH_MODE_AES_GCM           2
-#define SCMD_CIPH_MODE_AES_CTR           3
-#define SCMD_CIPH_MODE_GENERIC_AES       4
-#define SCMD_CIPH_MODE_AES_XTS           6
-#define SCMD_CIPH_MODE_AES_CCM           7
+#define SCMD_CIPH_MODE_NOP 0
+#define SCMD_CIPH_MODE_AES_CBC 1
+#define SCMD_CIPH_MODE_AES_GCM 2
+#define SCMD_CIPH_MODE_AES_CTR 3
+#define SCMD_CIPH_MODE_GENERIC_AES 4
+#define SCMD_CIPH_MODE_AES_XTS 6
+#define SCMD_CIPH_MODE_AES_CCM 7
 
-#define SCMD_AUTH_MODE_NOP             0
-#define SCMD_AUTH_MODE_SHA1            1
-#define SCMD_AUTH_MODE_SHA224          2
-#define SCMD_AUTH_MODE_SHA256          3
-#define SCMD_AUTH_MODE_GHASH           4
-#define SCMD_AUTH_MODE_SHA512_224      5
-#define SCMD_AUTH_MODE_SHA512_256      6
-#define SCMD_AUTH_MODE_SHA512_384      7
-#define SCMD_AUTH_MODE_SHA512_512      8
-#define SCMD_AUTH_MODE_CBCMAC          9
-#define SCMD_AUTH_MODE_CMAC            10
+#define SCMD_AUTH_MODE_NOP 0
+#define SCMD_AUTH_MODE_SHA1 1
+#define SCMD_AUTH_MODE_SHA224 2
+#define SCMD_AUTH_MODE_SHA256 3
+#define SCMD_AUTH_MODE_GHASH 4
+#define SCMD_AUTH_MODE_SHA512_224 5
+#define SCMD_AUTH_MODE_SHA512_256 6
+#define SCMD_AUTH_MODE_SHA512_384 7
+#define SCMD_AUTH_MODE_SHA512_512 8
+#define SCMD_AUTH_MODE_CBCMAC 9
+#define SCMD_AUTH_MODE_CMAC 10
 
-#define SCMD_HMAC_CTRL_NOP             0
-#define SCMD_HMAC_CTRL_NO_TRUNC        1
-#define SCMD_HMAC_CTRL_TRUNC_RFC4366   2
-#define SCMD_HMAC_CTRL_IPSEC_96BIT     3
-#define SCMD_HMAC_CTRL_PL1             4
-#define SCMD_HMAC_CTRL_PL2             5
-#define SCMD_HMAC_CTRL_PL3             6
-#define SCMD_HMAC_CTRL_DIV2            7
+#define SCMD_HMAC_CTRL_NOP 0
+#define SCMD_HMAC_CTRL_NO_TRUNC 1
+#define SCMD_HMAC_CTRL_TRUNC_RFC4366 2
+#define SCMD_HMAC_CTRL_IPSEC_96BIT 3
+#define SCMD_HMAC_CTRL_PL1 4
+#define SCMD_HMAC_CTRL_PL2 5
+#define SCMD_HMAC_CTRL_PL3 6
+#define SCMD_HMAC_CTRL_DIV2 7
 
 /* This are not really mac key size. They are intermediate values
  * of sha engine and its size
  */
-#define CHCR_KEYCTX_MAC_KEY_SIZE_128        0
-#define CHCR_KEYCTX_MAC_KEY_SIZE_160        1
-#define CHCR_KEYCTX_MAC_KEY_SIZE_192        2
-#define CHCR_KEYCTX_MAC_KEY_SIZE_256        3
-#define CHCR_KEYCTX_MAC_KEY_SIZE_512        4
-#define CHCR_KEYCTX_CIPHER_KEY_SIZE_128     0
-#define CHCR_KEYCTX_CIPHER_KEY_SIZE_192     1
-#define CHCR_KEYCTX_CIPHER_KEY_SIZE_256     2
-#define CHCR_KEYCTX_NO_KEY                  15
+#define CHCR_KEYCTX_MAC_KEY_SIZE_128 0
+#define CHCR_KEYCTX_MAC_KEY_SIZE_160 1
+#define CHCR_KEYCTX_MAC_KEY_SIZE_192 2
+#define CHCR_KEYCTX_MAC_KEY_SIZE_256 3
+#define CHCR_KEYCTX_MAC_KEY_SIZE_512 4
+#define CHCR_KEYCTX_CIPHER_KEY_SIZE_128 0
+#define CHCR_KEYCTX_CIPHER_KEY_SIZE_192 1
+#define CHCR_KEYCTX_CIPHER_KEY_SIZE_256 2
+#define CHCR_KEYCTX_NO_KEY 15
 
-#define IV_NOP                  0
-#define IV_IMMEDIATE            1
-#define IV_DSGL			2
+#define IV_NOP 0
+#define IV_IMMEDIATE 1
+#define IV_DSGL 2
 
-#define CHCR_HASH_MAX_BLOCK_SIZE_64  64
+#define CHCR_HASH_MAX_BLOCK_SIZE_64 64
 #define CHCR_HASH_MAX_BLOCK_SIZE_128 128
 
 /*
@@ -198,50 +192,50 @@ struct tls_key_req {
 	/* FW_ULPTX_WR */
 	__be32 wr_hi;
 	__be32 wr_mid;
-        __be32 ftid;
-        __u8   reneg_to_write_rx;
-        __u8   protocol;
-        __be16 mfs;
+	__be32 ftid;
+	__u8 reneg_to_write_rx;
+	__u8 protocol;
+	__be16 mfs;
 	/* master command */
 	__be32 cmd;
-	__be32 len16;             /* command length */
-	__be32 dlen;              /* data length in 32-byte units */
+	__be32 len16; /* command length */
+	__be32 dlen;  /* data length in 32-byte units */
 	__be32 kaddr;
 	/* sub-command */
 	__be32 sc_more;
 	__be32 sc_len;
-}__packed;
+} __packed;
 
 struct tls_keyctx {
-        union key_ctx {
-                struct tx_keyctx_hdr {
-                        __u8   ctxlen;
-                        __u8   r2;
-                        __be16 dualck_to_txvalid;
-                        __u8   txsalt[4];
-                        __be64 r5;
-                } txhdr;
-                struct rx_keyctx_hdr {
-                        __u8   flitcnt_hmacctrl;
-                        __u8   protover_ciphmode;
-                        __u8   authmode_to_rxvalid;
-                        __u8   ivpresent_to_rxmk_size;
-                        __u8   rxsalt[4];
-                        __be64 ivinsert_to_authinsrt;
-                } rxhdr;
-        } u;
-        struct keys {
-                __u8   edkey[32];
-                __u8   ipad[64];
-                __u8   opad[64];
-        } keys;
+	union key_ctx {
+		struct tx_keyctx_hdr {
+			__u8 ctxlen;
+			__u8 r2;
+			__be16 dualck_to_txvalid;
+			__u8 txsalt[4];
+			__be64 r5;
+		} txhdr;
+		struct rx_keyctx_hdr {
+			__u8 flitcnt_hmacctrl;
+			__u8 protover_ciphmode;
+			__u8 authmode_to_rxvalid;
+			__u8 ivpresent_to_rxmk_size;
+			__u8 rxsalt[4];
+			__be64 ivinsert_to_authinsrt;
+		} rxhdr;
+	} u;
+	struct keys {
+		__u8 edkey[32];
+		__u8 ipad[64];
+		__u8 opad[64];
+	} keys;
 };
 
-#define SALT_SIZE		4
+#define SALT_SIZE 4
 
-#define	TLS_KEY_CONTEXT_SZ	roundup2(sizeof(struct tls_keyctx), 32)
+#define TLS_KEY_CONTEXT_SZ roundup2(sizeof(struct tls_keyctx), 32)
 
-#define	TLS_KEY_WR_SZ							\
+#define TLS_KEY_WR_SZ \
 	roundup2(sizeof(struct tls_key_req) + TLS_KEY_CONTEXT_SZ, 16)
 
 #endif /* !__T4_CRYPTO_H__ */

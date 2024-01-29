@@ -126,14 +126,13 @@ memstat_mtl_geterror(struct memory_type_list *list)
  * memstat error.
  */
 struct memory_type *
-memstat_mtl_find(struct memory_type_list *list, int allocator,
-    const char *name)
+memstat_mtl_find(struct memory_type_list *list, int allocator, const char *name)
 {
 	struct memory_type *mtp;
 
-	LIST_FOREACH(mtp, &list->mtl_list, mt_list) {
+	LIST_FOREACH (mtp, &list->mtl_list, mt_list) {
 		if ((mtp->mt_allocator == allocator ||
-		    allocator == ALLOCATOR_ANY) &&
+			allocator == ALLOCATOR_ANY) &&
 		    strcmp(mtp->mt_name, name) == 0)
 			return (mtp);
 	}
@@ -159,10 +158,10 @@ _memstat_mt_allocate(struct memory_type_list *list, int allocator,
 	bzero(mtp, sizeof(*mtp));
 
 	mtp->mt_allocator = allocator;
-	mtp->mt_percpu_alloc = malloc(sizeof(struct mt_percpu_alloc_s) *
-	    maxcpus);
-	mtp->mt_percpu_cache = malloc(sizeof(struct mt_percpu_cache_s) *
-	    maxcpus);
+	mtp->mt_percpu_alloc = malloc(
+	    sizeof(struct mt_percpu_alloc_s) * maxcpus);
+	mtp->mt_percpu_cache = malloc(
+	    sizeof(struct mt_percpu_cache_s) * maxcpus);
 	strlcpy(mtp->mt_name, name, MEMTYPE_MAXNAME);
 	LIST_INSERT_HEAD(&list->mtl_list, mtp, mt_list);
 	return (mtp);
@@ -417,8 +416,8 @@ memstat_get_percpu_caller_pointer(const struct memory_type *mtp, int cpu,
 }
 
 void
-memstat_set_percpu_caller_pointer(struct memory_type *mtp, int cpu,
-    int index, void *value)
+memstat_set_percpu_caller_pointer(struct memory_type *mtp, int cpu, int index,
+    void *value)
 {
 
 	mtp->mt_percpu_alloc[cpu].mtp_caller_pointer[index] = value;

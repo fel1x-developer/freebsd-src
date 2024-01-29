@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "smartpqi_includes.h"
 
 #ifndef LOCKFREE_STACK
@@ -36,7 +35,7 @@ pqisrc_put_tag(pqi_taglist_t *taglist, uint32_t elem)
 {
 
 	OS_ACQUIRE_SPINLOCK(&(taglist->lock));
-/*	DBG_FUNC("IN\n");*/
+	/*	DBG_FUNC("IN\n");*/
 
 	ASSERT(taglist->num_elem < taglist->max_elem);
 
@@ -48,7 +47,7 @@ pqisrc_put_tag(pqi_taglist_t *taglist, uint32_t elem)
 
 	OS_RELEASE_SPINLOCK(&taglist->lock);
 
-/*	DBG_FUNC("OUT\n");*/
+	/*	DBG_FUNC("OUT\n");*/
 }
 
 /*
@@ -59,7 +58,7 @@ pqisrc_get_tag(pqi_taglist_t *taglist)
 {
 	uint32_t elem = INVALID_ELEM;
 
-/*	DBG_FUNC("IN\n");*/
+	/*	DBG_FUNC("IN\n");*/
 
 	OS_ACQUIRE_SPINLOCK(&taglist->lock);
 
@@ -73,7 +72,7 @@ pqisrc_get_tag(pqi_taglist_t *taglist)
 
 	OS_RELEASE_SPINLOCK(&taglist->lock);
 
-/*	DBG_FUNC("OUT got %d\n", elem);*/
+	/*	DBG_FUNC("OUT got %d\n", elem);*/
 	return elem;
 }
 
@@ -82,7 +81,7 @@ pqisrc_get_tag(pqi_taglist_t *taglist)
  */
 int
 pqisrc_init_taglist(pqisrc_softstate_t *softs, pqi_taglist_t *taglist,
-				uint32_t max_elem)
+    uint32_t max_elem)
 {
 	int ret = PQI_STATUS_SUCCESS;
 	int i = 0;
@@ -94,24 +93,24 @@ pqisrc_init_taglist(pqisrc_softstate_t *softs, pqi_taglist_t *taglist,
 	taglist->head = 0;
 	taglist->tail = 0;
 	taglist->elem_array = os_mem_alloc(softs,
-			(max_elem * sizeof(uint32_t)));
+	    (max_elem * sizeof(uint32_t)));
 	if (!(taglist->elem_array)) {
 		DBG_FUNC("Unable to allocate memory for taglist\n");
 		ret = PQI_STATUS_FAILURE;
 		goto err_out;
 	}
 
-    os_strlcpy(taglist->lockname, "tag_lock",  LOCKNAME_SIZE);
-    ret = os_init_spinlock(softs, &taglist->lock, taglist->lockname);
-    if(ret){
-        DBG_ERR("tag lock initialization failed\n");
-        taglist->lockcreated=false;
-        goto err_lock;
+	os_strlcpy(taglist->lockname, "tag_lock", LOCKNAME_SIZE);
+	ret = os_init_spinlock(softs, &taglist->lock, taglist->lockname);
+	if (ret) {
+		DBG_ERR("tag lock initialization failed\n");
+		taglist->lockcreated = false;
+		goto err_lock;
 	}
-    taglist->lockcreated = true;
+	taglist->lockcreated = true;
 
 	/* indices 1 to max_elem are considered as valid tags */
-	for (i=1; i <= max_elem; i++) {
+	for (i = 1; i <= max_elem; i++) {
 		softs->rcb[i].tag = INVALID_ELEM;
 		pqisrc_put_tag(taglist, i);
 	}
@@ -120,8 +119,8 @@ pqisrc_init_taglist(pqisrc_softstate_t *softs, pqi_taglist_t *taglist,
 	return ret;
 
 err_lock:
-    os_mem_free(softs, (char *)taglist->elem_array,
-        (taglist->max_elem * sizeof(uint32_t)));
+	os_mem_free(softs, (char *)taglist->elem_array,
+	    (taglist->max_elem * sizeof(uint32_t)));
 	taglist->elem_array = NULL;
 err_out:
 	DBG_FUNC("OUT failed\n");
@@ -136,25 +135,25 @@ pqisrc_destroy_taglist(pqisrc_softstate_t *softs, pqi_taglist_t *taglist)
 {
 	DBG_FUNC("IN\n");
 	os_mem_free(softs, (char *)taglist->elem_array,
-		(taglist->max_elem * sizeof(uint32_t)));
+	    (taglist->max_elem * sizeof(uint32_t)));
 	taglist->elem_array = NULL;
 
-    if(taglist->lockcreated==true){
-        os_uninit_spinlock(&taglist->lock);
-        taglist->lockcreated = false;
-    }
+	if (taglist->lockcreated == true) {
+		os_uninit_spinlock(&taglist->lock);
+		taglist->lockcreated = false;
+	}
 
 	DBG_FUNC("OUT\n");
 }
 
-#else	 /* LOCKFREE_STACK */
+#else  /* LOCKFREE_STACK */
 
 /*
  * Initialize circular queue implementation of tag list.
  */
 int
 pqisrc_init_taglist(pqisrc_softstate_t *softs, lockless_stack_t *stack,
-				uint32_t max_elem)
+    uint32_t max_elem)
 {
 	int ret = PQI_STATUS_SUCCESS;
 	int index = 0;
@@ -164,11 +163,11 @@ pqisrc_init_taglist(pqisrc_softstate_t *softs, lockless_stack_t *stack,
 	/* indices 1 to max_elem are considered as valid tags */
 	stack->max_elem = max_elem + 1;
 	stack->head.data = 0;
-	DBG_INFO("Stack head address :%p\n",&stack->head);
+	DBG_INFO("Stack head address :%p\n", &stack->head);
 
 	/*Allocate memory for stack*/
-	stack->next_index_array = (uint32_t*)os_mem_alloc(softs,
-		(stack->max_elem * sizeof(uint32_t)));
+	stack->next_index_array = (uint32_t *)os_mem_alloc(softs,
+	    (stack->max_elem * sizeof(uint32_t)));
 	if (!(stack->next_index_array)) {
 		DBG_ERR("Unable to allocate memory for stack\n");
 		ret = PQI_STATUS_FAILURE;
@@ -176,7 +175,7 @@ pqisrc_init_taglist(pqisrc_softstate_t *softs, lockless_stack_t *stack,
 	}
 
 	/* push all the entries to the stack */
-	for (index = 1; index < stack->max_elem ; index++) {
+	for (index = 1; index < stack->max_elem; index++) {
 		softs->rcb[index].tag = INVALID_ELEM;
 		pqisrc_put_tag(stack, index);
 	}
@@ -198,8 +197,8 @@ pqisrc_destroy_taglist(pqisrc_softstate_t *softs, lockless_stack_t *stack)
 
 	/* de-allocate stack memory */
 	if (stack->next_index_array) {
-		os_mem_free(softs,(char*)stack->next_index_array,
-			(stack->max_elem * sizeof(uint32_t)));
+		os_mem_free(softs, (char *)stack->next_index_array,
+		    (stack->max_elem * sizeof(uint32_t)));
 		stack->next_index_array = NULL;
 	}
 
@@ -212,10 +211,10 @@ pqisrc_destroy_taglist(pqisrc_softstate_t *softs, lockless_stack_t *stack)
 void
 pqisrc_put_tag(lockless_stack_t *stack, uint32_t index)
 {
-   union head_list cur_head, new_head;
+	union head_list cur_head, new_head;
 
 	DBG_FUNC("IN\n");
- 	DBG_INFO("push tag :%u\n",index);
+	DBG_INFO("push tag :%u\n", index);
 
 	if (index >= stack->max_elem) {
 		ASSERT(false);
@@ -224,7 +223,7 @@ pqisrc_put_tag(lockless_stack_t *stack, uint32_t index)
 	}
 
 	if (stack->next_index_array[index] != 0) {
- 		ASSERT(false);
+		ASSERT(false);
 		DBG_INFO("Index already present as tag in the stack\n");
 		return;
 	}
@@ -232,15 +231,17 @@ pqisrc_put_tag(lockless_stack_t *stack, uint32_t index)
 	do {
 		cur_head = stack->head;
 		/* increment seq_no */
- 		new_head.top.seq_no = cur_head.top.seq_no + 1;
-		/* update the index at the top of the stack with the new index */
+		new_head.top.seq_no = cur_head.top.seq_no + 1;
+		/* update the index at the top of the stack with the new index
+		 */
 		new_head.top.index = index;
 		/* Create a link to the previous index */
 		stack->next_index_array[index] = cur_head.top.index;
-	}while(!os_atomic64_cas(&stack->head.data,cur_head.data,new_head.data));
+	} while (
+	    !os_atomic64_cas(&stack->head.data, cur_head.data, new_head.data));
 	stack->num_elem++;
- 	DBG_FUNC("OUT\n");
- 	return;
+	DBG_FUNC("OUT\n");
+	return;
 }
 
 /*
@@ -254,18 +255,21 @@ pqisrc_get_tag(lockless_stack_t *stack)
 	DBG_FUNC("IN\n");
 	do {
 		cur_head = stack->head;
-		if (cur_head.top.index == 0)    /* stack empty */
+		if (cur_head.top.index == 0) /* stack empty */
 			return INVALID_ELEM;
 		/* increment seq_no field */
 		new_head.top.seq_no = cur_head.top.seq_no + 1;
-		/* update the index at the top of the stack with the next index */
-		new_head.top.index = stack->next_index_array[cur_head.top.index];
-	}while(!os_atomic64_cas(&stack->head.data,cur_head.data,new_head.data));
- 	stack->next_index_array[cur_head.top.index] = 0;
+		/* update the index at the top of the stack with the next index
+		 */
+		new_head.top.index =
+		    stack->next_index_array[cur_head.top.index];
+	} while (
+	    !os_atomic64_cas(&stack->head.data, cur_head.data, new_head.data));
+	stack->next_index_array[cur_head.top.index] = 0;
 	stack->num_elem--;
 
-	DBG_INFO("pop tag: %u\n",cur_head.top.index);
- 	DBG_FUNC("OUT\n");
+	DBG_INFO("pop tag: %u\n", cur_head.top.index);
+	DBG_FUNC("OUT\n");
 	return cur_head.top.index; /*tag*/
 }
 #endif /* LOCKFREE_STACK */

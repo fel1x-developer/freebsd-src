@@ -65,23 +65,21 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/intel_sas.h>
-
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief
  */
-typedef enum SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE
-{
-   SCIC_REMOTE_DEVICE_NOT_READY_START_REQUESTED,
-   SCIC_REMOTE_DEVICE_NOT_READY_STOP_REQUESTED,
-   SCIC_REMOTE_DEVICE_NOT_READY_SATA_REQUEST_STARTED,
-   SCIC_REMOTE_DEVICE_NOT_READY_SATA_SDB_ERROR_FIS_RECEIVED,
-   SCIC_REMOTE_DEVICE_NOT_READY_SMP_REQUEST_STARTED,
+typedef enum SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE {
+	SCIC_REMOTE_DEVICE_NOT_READY_START_REQUESTED,
+	SCIC_REMOTE_DEVICE_NOT_READY_STOP_REQUESTED,
+	SCIC_REMOTE_DEVICE_NOT_READY_SATA_REQUEST_STARTED,
+	SCIC_REMOTE_DEVICE_NOT_READY_SATA_SDB_ERROR_FIS_RECEIVED,
+	SCIC_REMOTE_DEVICE_NOT_READY_SMP_REQUEST_STARTED,
 
-   SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE_MAX
+	SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE_MAX
 
 } SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE_T;
 
@@ -92,9 +90,7 @@ typedef enum SCIC_REMOTE_DEVICE_NOT_READY_REASON_CODE
  * @return a positive integer value indicating the size (in bytes) of the
  *         remote device object.
  */
-U32 scic_remote_device_get_object_size(
-   void
-);
+U32 scic_remote_device_get_object_size(void);
 
 /**
  * @brief This method will perform the construction common to all
@@ -118,11 +114,9 @@ U32 scic_remote_device_get_object_size(
  *
  * @return none
  */
-void scic_remote_device_construct(
-   SCI_PORT_HANDLE_T            port,
-   void                       * remote_device_memory,
-   SCI_REMOTE_DEVICE_HANDLE_T * new_remote_device_handle
-);
+void scic_remote_device_construct(SCI_PORT_HANDLE_T port,
+    void *remote_device_memory,
+    SCI_REMOTE_DEVICE_HANDLE_T *new_remote_device_handle);
 
 /**
  * @brief This method will construct a SCIC_REMOTE_DEVICE object for a
@@ -153,8 +147,7 @@ void scic_remote_device_construct(
  *         is unable to support additional remote devices.
  */
 SCI_STATUS scic_remote_device_da_construct(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This method will construct an SCIC_REMOTE_DEVICE object for an
@@ -184,10 +177,9 @@ SCI_STATUS scic_remote_device_da_construct(
  *         the core controller associated with the supplied parameters
  *         is unable to support additional remote devices.
  */
-SCI_STATUS scic_remote_device_ea_construct(
-   SCI_REMOTE_DEVICE_HANDLE_T   remote_device,
-   SMP_RESPONSE_DISCOVER_T    * discover_response
-);
+SCI_STATUS
+scic_remote_device_ea_construct(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SMP_RESPONSE_DISCOVER_T *discover_response);
 
 /**
  * @brief This method is utilized to free up a core's remote device object.
@@ -208,8 +200,7 @@ SCI_STATUS scic_remote_device_ea_construct(
  *         the handle isn't valid, etc.).
  */
 SCI_STATUS scic_remote_device_destruct(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 #if !defined(DISABLE_WIDE_PORTED_TARGETS)
 /**
@@ -220,25 +211,24 @@ SCI_STATUS scic_remote_device_destruct(
  * @param[in]  new_port_width The new port width to update.
  *
  * @return Indicate if the device port width was successfully updated.
- * @retval SCI_SUCCESS This value is returned when port width update was successful.
+ * @retval SCI_SUCCESS This value is returned when port width update was
+ * successful.
  * @retval SCI_FAILURE The port width update failed.
  */
-SCI_STATUS scic_remote_device_set_port_width(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   U8                          new_port_width
-);
+SCI_STATUS
+scic_remote_device_set_port_width(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    U8 new_port_width);
 
 /**
- * @brief This method retrieve the SCIC's record of a remote device's port width.
+ * @brief This method retrieve the SCIC's record of a remote device's port
+ * width.
  *
  * @param[in]  remote_device This parameter specifies the remote device
  *             object for which to retrieve the port width value.
  *
  * @return The SCIC's record of a remote device's port width
  */
-U8 scic_remote_device_get_port_width(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+U8 scic_remote_device_get_port_width(SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 #define scic_remote_device_da_add_phy(device, phy) SCI_FAILURE
 #define scic_remote_device_ea_add_phy(device, response) SCI_FAILURE
@@ -270,10 +260,8 @@ U8 scic_remote_device_get_port_width(
  * @retval SCI_FAILURE_INVALID_PHY This value is returned if the user attempts
  *         to start the device when there have been no phys added to it.
  */
-SCI_STATUS scic_remote_device_start(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   U32                         timeout
-);
+SCI_STATUS scic_remote_device_start(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    U32 timeout);
 
 /**
  * @brief This method will stop both transmission and reception of link
@@ -289,10 +277,8 @@ SCI_STATUS scic_remote_device_start(
  * @retval SCI_SUCCESS This value is returned if the transmission and reception
  *         for the device was successfully stopped.
  */
-SCI_STATUS scic_remote_device_stop(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   U32                         timeout
-);
+SCI_STATUS scic_remote_device_stop(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    U32 timeout);
 
 /**
  * @brief This method will reset the device making it ready for operation.
@@ -309,9 +295,7 @@ SCI_STATUS scic_remote_device_stop(
  * @return An indication of whether the device reset was accepted.
  * @retval SCI_SUCCESS This value is returned if the device reset is started.
  */
-SCI_STATUS scic_remote_device_reset(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+SCI_STATUS scic_remote_device_reset(SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This method informs the device object that the reset operation is
@@ -324,8 +308,7 @@ SCI_STATUS scic_remote_device_reset(
  * @retval SCI_SUCCESS the device is resuming operation.
  */
 SCI_STATUS scic_remote_device_reset_complete(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This method returns the suggested target reset timeout.  SAS and
@@ -339,8 +322,7 @@ SCI_STATUS scic_remote_device_reset_complete(
  *         in milliseconds.
  */
 U32 scic_remote_device_get_suggested_reset_timeout(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This method will set the maximum link speed to be utilized
@@ -364,9 +346,8 @@ U32 scic_remote_device_get_suggested_reset_timeout(
  *         for a maximum connection rate change.
  */
 SCI_STATUS scic_remote_device_set_max_connection_rate(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_SAS_LINK_RATE           connection_rate
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_SAS_LINK_RATE connection_rate);
 
 /**
  * @brief This method simply returns the link rate at which communications
@@ -379,8 +360,7 @@ SCI_STATUS scic_remote_device_set_max_connection_rate(
  *         remote device.
  */
 SCI_SAS_LINK_RATE scic_remote_device_get_connection_rate(
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This method will indicate which protocols are supported by this
@@ -396,10 +376,8 @@ SCI_SAS_LINK_RATE scic_remote_device_get_connection_rate(
  *         returned as part of a bit mask in order to allow for multi-protocol
  *         support.
  */
-void scic_remote_device_get_protocols(
-   SCI_REMOTE_DEVICE_HANDLE_T          remote_device,
-   SMP_DISCOVER_RESPONSE_PROTOCOLS_T * protocols
-);
+void scic_remote_device_get_protocols(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SMP_DISCOVER_RESPONSE_PROTOCOLS_T *protocols);
 
 /**
  * @brief This method will indicate the SAS address for the remote device.
@@ -412,10 +390,9 @@ void scic_remote_device_get_protocols(
  *
  * @return none
  */
-void scic_remote_device_get_sas_address(
-   SCI_REMOTE_DEVICE_HANDLE_T   remote_device,
-   SCI_SAS_ADDRESS_T          * sas_address
-);
+void
+scic_remote_device_get_sas_address(SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_SAS_ADDRESS_T *sas_address);
 
 #if !defined(DISABLE_ATAPI)
 /**
@@ -427,9 +404,7 @@ void scic_remote_device_get_sas_address(
  *
  * @return BOOL Indicate a device is ATAPI device or not.
  */
-BOOL scic_remote_device_is_atapi(
-   SCI_REMOTE_DEVICE_HANDLE_T device_handle
-);
+BOOL scic_remote_device_is_atapi(SCI_REMOTE_DEVICE_HANDLE_T device_handle);
 #else // !defined(DISABLE_ATAPI)
 #define scic_remote_device_is_atapi(device_handle) FALSE
 #endif // !defined(DISABLE_ATAPI)
@@ -439,4 +414,3 @@ BOOL scic_remote_device_is_atapi(
 #endif // __cplusplus
 
 #endif // _SCIC_REMOTE_DEVICE_H_
-

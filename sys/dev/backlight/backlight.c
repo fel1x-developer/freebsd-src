@@ -27,13 +27,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/limits.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/lock.h>
 #include <sys/sx.h>
 
 #include <dev/backlight/backlight.h>
@@ -53,8 +53,8 @@ struct backlight_softc {
 };
 
 static int
-backlight_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int fflag, struct thread *td)
+backlight_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct backlight_softc *sc;
 	struct backlight_props props;
@@ -95,9 +95,9 @@ backlight_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 }
 
 static struct cdevsw backlight_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	backlight_ioctl,
-	.d_name =	"backlight",
+	.d_version = D_VERSION,
+	.d_ioctl = backlight_ioctl,
+	.d_name = "backlight",
 };
 
 struct cdev *
@@ -125,8 +125,8 @@ backlight_register(const char *name, device_t dev)
 	if (error != 0)
 		goto fail;
 
-	error = make_dev_alias_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
-	  &sc->alias, sc->cdev, "backlight/%s%d", name, sc->unit);
+	error = make_dev_alias_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK, &sc->alias,
+	    sc->cdev, "backlight/%s%d", name, sc->unit);
 	if (error != 0)
 		device_printf(dev, "Cannot register with alias %s%d\n", name,
 		    sc->unit);

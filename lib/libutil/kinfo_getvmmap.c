@@ -2,6 +2,7 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -71,5 +72,5 @@ kinfo_getvmmap(pid_t pid, int *cntp)
 	}
 	free(buf);
 	*cntp = cnt;
-	return (kiv);	/* Caller must free() return value */
+	return (kiv); /* Caller must free() return value */
 }

@@ -25,29 +25,30 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/devctl.h>
 #include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+
 #include <net/vnet.h>
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_generic.h>
 #include <netlink/netlink_sysevent.h>
 
-#define DEBUG_MOD_NAME  nl_sysevent
+#define DEBUG_MOD_NAME nl_sysevent
 #define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
 MALLOC_DEFINE(M_NLSE, "nlsysevent", "Memory used for Netlink sysevent");
-#define	NLSE_FAMILY_NAME	"nlsysevent"
+#define NLSE_FAMILY_NAME "nlsysevent"
 static uint32_t ctrl_family_id;
 
-#define MAX_SYSEVENT_GROUPS	64
+#define MAX_SYSEVENT_GROUPS 64
 static struct sysevent_group {
 	char *name;
 	uint32_t id;
@@ -77,12 +78,13 @@ static const char *devctl_systems[] = {
 };
 
 static void
-sysevent_write(struct sysevent_group *se, const char *subsystem, const char *type,
-    const char *data)
+sysevent_write(struct sysevent_group *se, const char *subsystem,
+    const char *type, const char *data)
 {
 	struct nl_writer nw = {};
 
-	if (!nlmsg_get_group_writer(&nw, NLMSG_LARGE, NETLINK_GENERIC, se->id)) {
+	if (!nlmsg_get_group_writer(&nw, NLMSG_LARGE, NETLINK_GENERIC,
+		se->id)) {
 		NL_LOG(LOG_DEBUG, "error allocating group writer");
 		return;
 	}
@@ -112,12 +114,15 @@ static void
 sysevent_new_group(size_t index, const char *name)
 {
 	if (index >= MAX_SYSEVENT_GROUPS) {
-		NL_LOG(LOG_WARNING, "impossible to add the event %s, "
-		    "too many event groups\n", name);
+		NL_LOG(LOG_WARNING,
+		    "impossible to add the event %s, "
+		    "too many event groups\n",
+		    name);
 		return;
 	}
 	sysevent_groups[index].name = strdup(name, M_NLSE);
-	sysevent_groups[index].id = genl_register_group(NLSE_FAMILY_NAME, sysevent_groups[index].name);
+	sysevent_groups[index].id = genl_register_group(NLSE_FAMILY_NAME,
+	    sysevent_groups[index].name);
 }
 
 static struct sysevent_group *
@@ -142,8 +147,10 @@ sysevent_send(const char *system, const char *subsystem, const char *type,
 	struct sysevent_group *se = sysevent_get_group(system);
 
 	if (se == NULL) {
-		NL_LOG(LOG_WARNING, "impossible to add the event %s, "
-		    "too many event groups\n", system);
+		NL_LOG(LOG_WARNING,
+		    "impossible to add the event %s, "
+		    "too many event groups\n",
+		    system);
 		return;
 	}
 
@@ -156,10 +163,13 @@ static void
 nlsysevent_load(void)
 {
 	devctl_set_notify_hook(sysevent_send);
-	ctrl_family_id = genl_register_family(NLSE_FAMILY_NAME, 0, 2, NLSE_ATTR_MAX);
+	ctrl_family_id = genl_register_family(NLSE_FAMILY_NAME, 0, 2,
+	    NLSE_ATTR_MAX);
 	for (size_t i = 0; i < nitems(devctl_systems); i++) {
 		if (i >= MAX_SYSEVENT_GROUPS) {
-			NL_LOG(LOG_WARNING, "impossible to add the event %s, too many events\n", devctl_systems[i]);
+			NL_LOG(LOG_WARNING,
+			    "impossible to add the event %s, too many events\n",
+			    devctl_systems[i]);
 			continue;
 		}
 		sysevent_new_group(i, devctl_systems[i]);
@@ -196,7 +206,7 @@ nlsysevent_loader(module_t mod __unused, int what, void *priv __unused)
 	}
 	return (err);
 }
-static moduledata_t nlsysevent_mod = { "nlsysevent", nlsysevent_loader, NULL};
+static moduledata_t nlsysevent_mod = { "nlsysevent", nlsysevent_loader, NULL };
 
 DECLARE_MODULE(nlsysevent, nlsysevent_mod, SI_SUB_PSEUDO, SI_ORDER_ANY);
 MODULE_DEPEND(nlsysevent, netlink, 1, 1, 1);

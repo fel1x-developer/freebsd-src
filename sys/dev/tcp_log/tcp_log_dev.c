@@ -28,24 +28,25 @@
 
 #include <sys/param.h>
 #include <sys/conf.h>
+#include <sys/counter.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/poll.h>
 #include <sys/queue.h>
 #include <sys/refcount.h>
-#include <sys/mutex.h>
 #include <sys/selinfo.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
 #include <sys/tree.h>
 #include <sys/uio.h>
+
 #include <machine/atomic.h>
-#include <sys/counter.h>
 
 #include <dev/tcp_log/tcp_log_dev.h>
 
@@ -57,33 +58,37 @@ extern counter_u64_t tcp_log_que_freed;
 static struct cdev *tcp_log_dev;
 static struct selinfo tcp_log_sel;
 
-static struct log_queueh tcp_log_dev_queue_head = STAILQ_HEAD_INITIALIZER(tcp_log_dev_queue_head);
-static struct log_infoh tcp_log_dev_reader_head = STAILQ_HEAD_INITIALIZER(tcp_log_dev_reader_head);
+static struct log_queueh tcp_log_dev_queue_head = STAILQ_HEAD_INITIALIZER(
+    tcp_log_dev_queue_head);
+static struct log_infoh tcp_log_dev_reader_head = STAILQ_HEAD_INITIALIZER(
+    tcp_log_dev_reader_head);
 
 MALLOC_DEFINE(M_TCPLOGDEV, "tcp_log_dev", "TCP log device data structures");
 
-static int	tcp_log_dev_listeners = 0;
+static int tcp_log_dev_listeners = 0;
 
 static struct mtx tcp_log_dev_queue_lock;
 
-#define	TCP_LOG_DEV_QUEUE_LOCK()	mtx_lock(&tcp_log_dev_queue_lock)
-#define	TCP_LOG_DEV_QUEUE_UNLOCK()	mtx_unlock(&tcp_log_dev_queue_lock)
-#define	TCP_LOG_DEV_QUEUE_LOCK_ASSERT()	mtx_assert(&tcp_log_dev_queue_lock, MA_OWNED)
-#define	TCP_LOG_DEV_QUEUE_UNLOCK_ASSERT() mtx_assert(&tcp_log_dev_queue_lock, MA_NOTOWNED)
-#define	TCP_LOG_DEV_QUEUE_REF(tldq)	refcount_acquire(&((tldq)->tldq_refcnt))
-#define	TCP_LOG_DEV_QUEUE_UNREF(tldq)	refcount_release(&((tldq)->tldq_refcnt))
+#define TCP_LOG_DEV_QUEUE_LOCK() mtx_lock(&tcp_log_dev_queue_lock)
+#define TCP_LOG_DEV_QUEUE_UNLOCK() mtx_unlock(&tcp_log_dev_queue_lock)
+#define TCP_LOG_DEV_QUEUE_LOCK_ASSERT() \
+	mtx_assert(&tcp_log_dev_queue_lock, MA_OWNED)
+#define TCP_LOG_DEV_QUEUE_UNLOCK_ASSERT() \
+	mtx_assert(&tcp_log_dev_queue_lock, MA_NOTOWNED)
+#define TCP_LOG_DEV_QUEUE_REF(tldq) refcount_acquire(&((tldq)->tldq_refcnt))
+#define TCP_LOG_DEV_QUEUE_UNREF(tldq) refcount_release(&((tldq)->tldq_refcnt))
 
-static void	tcp_log_dev_clear_refcount(struct tcp_log_dev_queue *entry);
-static void	tcp_log_dev_clear_cdevpriv(void *data);
-static int	tcp_log_dev_open(struct cdev *dev __unused, int flags,
+static void tcp_log_dev_clear_refcount(struct tcp_log_dev_queue *entry);
+static void tcp_log_dev_clear_cdevpriv(void *data);
+static int tcp_log_dev_open(struct cdev *dev __unused, int flags,
     int devtype __unused, struct thread *td __unused);
-static int	tcp_log_dev_write(struct cdev *dev __unused,
+static int tcp_log_dev_write(struct cdev *dev __unused,
     struct uio *uio __unused, int flags __unused);
-static int	tcp_log_dev_read(struct cdev *dev __unused, struct uio *uio,
+static int tcp_log_dev_read(struct cdev *dev __unused, struct uio *uio,
     int flags __unused);
-static int	tcp_log_dev_ioctl(struct cdev *dev __unused, u_long cmd,
+static int tcp_log_dev_ioctl(struct cdev *dev __unused, u_long cmd,
     caddr_t data, int fflag __unused, struct thread *td __unused);
-static int	tcp_log_dev_poll(struct cdev *dev __unused, int events,
+static int tcp_log_dev_poll(struct cdev *dev __unused, int events,
     struct thread *td);
 
 enum tcp_log_dev_queue_lock_state {
@@ -92,16 +97,16 @@ enum tcp_log_dev_queue_lock_state {
 };
 
 static struct cdevsw tcp_log_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_read =	tcp_log_dev_read,
-	.d_open =	tcp_log_dev_open,
-	.d_write =	tcp_log_dev_write,
-	.d_poll =	tcp_log_dev_poll,
-	.d_ioctl =	tcp_log_dev_ioctl,
+	.d_version = D_VERSION,
+	.d_read = tcp_log_dev_read,
+	.d_open = tcp_log_dev_open,
+	.d_write = tcp_log_dev_write,
+	.d_poll = tcp_log_dev_poll,
+	.d_ioctl = tcp_log_dev_ioctl,
 #ifdef NOTYET
-	.d_mmap =	tcp_log_dev_mmap,
+	.d_mmap = tcp_log_dev_mmap,
 #endif
-	.d_name =	"tcp_log",
+	.d_name = "tcp_log",
 };
 
 static __inline void
@@ -162,14 +167,14 @@ tcp_log_dev_clear_cdevpriv(void *data)
 	 * Lock the queue and drop our references. We hold references to all
 	 * the entries starting with tldi_head (or, if tldi_head == NULL, all
 	 * entries in the queue).
-	 * 
+	 *
 	 * Because we don't want anyone adding addition things to the queue
 	 * while we are doing this, we lock the queue.
 	 */
 	TCP_LOG_DEV_QUEUE_LOCK();
 	if (priv->tldi_head != NULL) {
 		entry = priv->tldi_head;
-		STAILQ_FOREACH_FROM_SAFE(entry, &tcp_log_dev_queue_head,
+		STAILQ_FOREACH_FROM_SAFE (entry, &tcp_log_dev_queue_head,
 		    tldq_queue, entry_tmp) {
 			tcp_log_dev_clear_refcount(entry);
 		}
@@ -216,7 +221,7 @@ tcp_log_dev_open(struct cdev *dev __unused, int flags, int devtype __unused,
 		priv->tldi_head = STAILQ_FIRST(&tcp_log_dev_queue_head);
 		if (priv->tldi_head != NULL)
 			priv->tldi_cur = priv->tldi_head->tldq_buf;
-		STAILQ_FOREACH(entry, &tcp_log_dev_queue_head, tldq_queue)
+		STAILQ_FOREACH (entry, &tcp_log_dev_queue_head, tldq_queue)
 			TCP_LOG_DEV_QUEUE_REF(entry);
 		TCP_LOG_DEV_QUEUE_UNLOCK();
 	} else {
@@ -240,12 +245,10 @@ tcp_log_dev_rotate_bufs(struct tcp_log_dev_info *priv, int *lockstate)
 	struct tcp_log_dev_queue *entry;
 
 	KASSERT(priv->tldi_head != NULL,
-	    ("%s:%d: priv->tldi_head unexpectedly NULL",
-	    __func__, __LINE__));
+	    ("%s:%d: priv->tldi_head unexpectedly NULL", __func__, __LINE__));
 	KASSERT(priv->tldi_head->tldq_buf == priv->tldi_cur,
-	    ("%s:%d: buffer mismatch (%p vs %p)",
-	    __func__, __LINE__, priv->tldi_head->tldq_buf,
-	    priv->tldi_cur));
+	    ("%s:%d: buffer mismatch (%p vs %p)", __func__, __LINE__,
+		priv->tldi_head->tldq_buf, priv->tldi_cur));
 	tcp_log_dev_queue_validate_lock(*lockstate);
 
 	if (*lockstate == QUEUE_UNLOCKED) {
@@ -280,7 +283,7 @@ tcp_log_dev_read(struct cdev *dev __unused, struct uio *uio, int flags)
 		/* Did we somehow forget to rotate? */
 		KASSERT(priv->tldi_cur == NULL,
 		    ("%s:%d: tldi_cur is unexpectedly non-NULL", __func__,
-		    __LINE__));
+			__LINE__));
 		if (priv->tldi_cur != NULL)
 			tcp_log_dev_rotate_bufs(priv, &lockstate);
 
@@ -341,8 +344,8 @@ tcp_log_dev_read(struct cdev *dev __unused, struct uio *uio, int flags)
 		len = priv->tldi_cur->tlch_length - priv->tldi_off;
 		if (len > uio->uio_resid)
 			len = uio->uio_resid;
-		rv = uiomove(((uint8_t *)priv->tldi_cur) + priv->tldi_off,
-		    len, uio);
+		rv = uiomove(((uint8_t *)priv->tldi_cur) + priv->tldi_off, len,
+		    uio);
 		if (rv != 0)
 			goto done;
 		priv->tldi_off += len;
@@ -354,8 +357,8 @@ tcp_log_dev_read(struct cdev *dev __unused, struct uio *uio, int flags)
 	if (priv->tldi_off >= priv->tldi_cur->tlch_length) {
 		KASSERT(priv->tldi_off == priv->tldi_cur->tlch_length,
 		    ("%s: offset (%ju) exceeds length (%ju)", __func__,
-		    (uintmax_t)priv->tldi_off,
-		    (uintmax_t)priv->tldi_cur->tlch_length));
+			(uintmax_t)priv->tldi_off,
+			(uintmax_t)priv->tldi_cur->tlch_length));
 		tcp_log_dev_rotate_bufs(priv, &lockstate);
 	}
 done:
@@ -420,7 +423,7 @@ tcp_log_dev_poll(struct cdev *dev __unused, int events, struct thread *td)
 		TCP_LOG_DEV_QUEUE_LOCK();
 		if ((priv->tldi_head != NULL && priv->tldi_cur == NULL) ||
 		    (priv->tldi_cur != NULL &&
-		    priv->tldi_off < priv->tldi_cur->tlch_length))
+			priv->tldi_off < priv->tldi_cur->tlch_length))
 			revents = events & (POLLIN | POLLRDNORM);
 		else
 			selrecord(td, &tcp_log_sel);
@@ -445,7 +448,7 @@ tcp_log_dev_add_log(struct tcp_log_dev_queue *entry)
 
 	KASSERT(entry->tldq_buf != NULL || entry->tldq_xform != NULL,
 	    ("%s: Called with both tldq_buf and tldq_xform set to NULL",
-	    __func__));
+		__func__));
 	KASSERT(entry->tldq_dtor != NULL,
 	    ("%s: Called with tldq_dtor set to NULL", __func__));
 
@@ -469,7 +472,7 @@ tcp_log_dev_add_log(struct tcp_log_dev_queue *entry)
 	 * waiting. Point their head to this new entry.
 	 */
 	wakeup_needed = false;
-	STAILQ_FOREACH(priv, &tcp_log_dev_reader_head, tldi_list)
+	STAILQ_FOREACH (priv, &tcp_log_dev_reader_head, tldi_list)
 		if (priv->tldi_head == NULL) {
 			priv->tldi_head = entry;
 			wakeup_needed = true;
@@ -500,7 +503,7 @@ tcp_log_dev_modevent(module_t mod __unused, int type, void *data __unused)
 		memset(&tcp_log_sel, 0, sizeof(tcp_log_sel));
 		memset(&tcp_log_dev_queue_lock, 0, sizeof(struct mtx));
 		mtx_init(&tcp_log_dev_queue_lock, "tcp_log dev",
-			 "tcp_log device queues", MTX_DEF);
+		    "tcp_log device queues", MTX_DEF);
 		tcp_log_dev = make_dev_credf(MAKEDEV_ETERNAL_KLD,
 		    &tcp_log_cdevsw, 0, NULL, UID_ROOT, GID_WHEEL, 0400,
 		    "tcp_log");

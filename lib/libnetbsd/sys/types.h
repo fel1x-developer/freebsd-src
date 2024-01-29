@@ -27,10 +27,9 @@
  */
 
 #ifndef _LIBNETBSD_SYS_TYPES_H_
-#define	_LIBNETBSD_SYS_TYPES_H_
+#define _LIBNETBSD_SYS_TYPES_H_
 
 #include_next <sys/types.h>
-
-#include <sys/param.h>	/* For NBBY */
+#include <sys/param.h> /* For NBBY */
 
 #endif

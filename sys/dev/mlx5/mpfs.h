@@ -33,4 +33,4 @@ int mlx5_mpfs_del_mac(struct mlx5_core_dev *dev, u32 index);
 int mlx5_mpfs_init(struct mlx5_core_dev *dev);
 void mlx5_mpfs_destroy(struct mlx5_core_dev *dev);
 
-#endif		/* _MLX5_MPFS_H_ */
+#endif /* _MLX5_MPFS_H_ */

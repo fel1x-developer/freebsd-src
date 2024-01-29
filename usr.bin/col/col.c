@@ -46,66 +46,66 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define	BS	'\b'		/* backspace */
-#define	TAB	'\t'		/* tab */
-#define	SPACE	' '		/* space */
-#define	NL	'\n'		/* newline */
-#define	CR	'\r'		/* carriage return */
-#define	ESC	'\033'		/* escape */
-#define	SI	'\017'		/* shift in to normal character set */
-#define	SO	'\016'		/* shift out to alternate character set */
-#define	VT	'\013'		/* vertical tab (aka reverse line feed) */
-#define	RLF	'7'		/* ESC-7 reverse line feed */
-#define	RHLF	'8'		/* ESC-8 reverse half-line feed */
-#define	FHLF	'9'		/* ESC-9 forward half-line feed */
+#define BS '\b'	   /* backspace */
+#define TAB '\t'   /* tab */
+#define SPACE ' '  /* space */
+#define NL '\n'	   /* newline */
+#define CR '\r'	   /* carriage return */
+#define ESC '\033' /* escape */
+#define SI '\017'  /* shift in to normal character set */
+#define SO '\016'  /* shift out to alternate character set */
+#define VT '\013'  /* vertical tab (aka reverse line feed) */
+#define RLF '7'	   /* ESC-7 reverse line feed */
+#define RHLF '8'   /* ESC-8 reverse half-line feed */
+#define FHLF '9'   /* ESC-9 forward half-line feed */
 
 /* build up at least this many lines before flushing them out */
-#define	BUFFER_MARGIN		32
+#define BUFFER_MARGIN 32
 
 typedef char CSET;
 
 typedef struct char_str {
-#define	CS_NORMAL	1
-#define	CS_ALTERNATE	2
-	short		c_column;	/* column character is in */
-	CSET		c_set;		/* character set (currently only 2) */
-	wchar_t		c_char;		/* character in question */
-	int		c_width;	/* character width */
+#define CS_NORMAL 1
+#define CS_ALTERNATE 2
+	short c_column; /* column character is in */
+	CSET c_set;	/* character set (currently only 2) */
+	wchar_t c_char; /* character in question */
+	int c_width;	/* character width */
 } CHAR;
 
 typedef struct line_str LINE;
 struct line_str {
-	CHAR	*l_line;		/* characters on the line */
-	LINE	*l_prev;		/* previous line */
-	LINE	*l_next;		/* next line */
-	int	l_lsize;		/* allocated sizeof l_line */
-	int	l_line_len;		/* strlen(l_line) */
-	int	l_needs_sort;		/* set if chars went in out of order */
-	int	l_max_col;		/* max column in the line */
+	CHAR *l_line;	  /* characters on the line */
+	LINE *l_prev;	  /* previous line */
+	LINE *l_next;	  /* next line */
+	int l_lsize;	  /* allocated sizeof l_line */
+	int l_line_len;	  /* strlen(l_line) */
+	int l_needs_sort; /* set if chars went in out of order */
+	int l_max_col;	  /* max column in the line */
 };
 
-static void	addto_lineno(int *, int);
-static LINE	*alloc_line(void);
-static void	dowarn(int);
-static void	flush_line(LINE *);
-static void	flush_lines(int);
-static void	flush_blanks(void);
-static void	free_line(LINE *);
-static void	usage(void);
+static void addto_lineno(int *, int);
+static LINE *alloc_line(void);
+static void dowarn(int);
+static void flush_line(LINE *);
+static void flush_lines(int);
+static void flush_blanks(void);
+static void free_line(LINE *);
+static void usage(void);
 
-static CSET	last_set;		/* char_set of last char printed */
-static LINE	*lines;
-static int	compress_spaces;	/* if doing space -> tab conversion */
-static int	fine;			/* if `fine' resolution (half lines) */
-static int	max_bufd_lines;		/* max # of half lines to keep in memory */
-static int	nblank_lines;		/* # blanks after last flushed line */
-static int	no_backspaces;		/* if not to output any backspaces */
-static int	pass_unknown_seqs;	/* pass unknown control sequences */
+static CSET last_set; /* char_set of last char printed */
+static LINE *lines;
+static int compress_spaces;   /* if doing space -> tab conversion */
+static int fine;	      /* if `fine' resolution (half lines) */
+static int max_bufd_lines;    /* max # of half lines to keep in memory */
+static int nblank_lines;      /* # blanks after last flushed line */
+static int no_backspaces;     /* if not to output any backspaces */
+static int pass_unknown_seqs; /* pass unknown control sequences */
 
-#define	PUTC(ch) \
-	do {					\
-		if (putwchar(ch) == WEOF)	\
-			errx(1, "write error");	\
+#define PUTC(ch)                                \
+	do {                                    \
+		if (putwchar(ch) == WEOF)       \
+			errx(1, "write error"); \
 	} while (0)
 
 int
@@ -113,14 +113,14 @@ main(int argc, char **argv)
 {
 	wint_t ch;
 	CHAR *c;
-	CSET cur_set;			/* current character set */
-	LINE *l;			/* current line */
-	int extra_lines;		/* # of lines above first line */
-	int cur_col;			/* current column */
-	int cur_line;			/* line number of current position */
-	int max_line;			/* max value of cur_line */
-	int this_line;			/* line l points to */
-	int nflushd_lines;		/* number of lines that were flushed */
+	CSET cur_set;	   /* current character set */
+	LINE *l;	   /* current line */
+	int extra_lines;   /* # of lines above first line */
+	int cur_col;	   /* current column */
+	int cur_line;	   /* line number of current position */
+	int max_line;	   /* max value of cur_line */
+	int this_line;	   /* line l points to */
+	int nflushd_lines; /* number of lines that were flushed */
 	int adjust, opt, warned, width;
 	const char *errstr;
 
@@ -133,29 +133,31 @@ main(int argc, char **argv)
 		err(1, "unable to enter capability mode");
 
 	max_bufd_lines = 256;
-	compress_spaces = 1;		/* compress spaces into tabs */
+	compress_spaces = 1; /* compress spaces into tabs */
 	while ((opt = getopt(argc, argv, "bfhl:px")) != -1)
 		switch (opt) {
-		case 'b':		/* do not output backspaces */
+		case 'b': /* do not output backspaces */
 			no_backspaces = 1;
 			break;
-		case 'f':		/* allow half forward line feeds */
+		case 'f': /* allow half forward line feeds */
 			fine = 1;
 			break;
-		case 'h':		/* compress spaces into tabs */
+		case 'h': /* compress spaces into tabs */
 			compress_spaces = 1;
 			break;
-		case 'l':		/* buffered line count */
+		case 'l': /* buffered line count */
 			max_bufd_lines = strtonum(optarg, 1,
-			    (INT_MAX - BUFFER_MARGIN) / 2, &errstr) * 2;
+					     (INT_MAX - BUFFER_MARGIN) / 2,
+					     &errstr) *
+			    2;
 			if (errstr != NULL)
-				errx(1, "bad -l argument, %s: %s", errstr, 
-					optarg);
+				errx(1, "bad -l argument, %s: %s", errstr,
+				    optarg);
 			break;
-		case 'p':		/* pass unknown control sequences */
+		case 'p': /* pass unknown control sequences */
 			pass_unknown_seqs = 1;
 			break;
-		case 'x':		/* do not compress spaces into tabs */
+		case 'x': /* do not compress spaces into tabs */
 			compress_spaces = 0;
 			break;
 		case '?':
@@ -174,7 +176,7 @@ main(int argc, char **argv)
 	while ((ch = getwchar()) != WEOF) {
 		if (!iswgraph(ch)) {
 			switch (ch) {
-			case BS:		/* can't go back further */
+			case BS: /* can't go back further */
 				if (cur_col == 0)
 					continue;
 				--cur_col;
@@ -182,8 +184,8 @@ main(int argc, char **argv)
 			case CR:
 				cur_col = 0;
 				continue;
-			case ESC:		/* just ignore EOF */
-				switch(getwchar()) {
+			case ESC: /* just ignore EOF */
+				switch (getwchar()) {
 				/*
 				 * In the input stream, accept both the
 				 * XPG5 sequences ESC-digit and the
@@ -222,7 +224,7 @@ main(int argc, char **argv)
 			case SO:
 				cur_set = CS_ALTERNATE;
 				continue;
-			case TAB:		/* adjust column */
+			case TAB: /* adjust column */
 				cur_col |= 7;
 				++cur_col;
 				continue;
@@ -259,8 +261,8 @@ main(int argc, char **argv)
 						 * line if nothing has been
 						 * flushed yet.
 						 */
-						while (cur_line + adjust
-						    < this_line) {
+						while (cur_line + adjust <
+						    this_line) {
 							lnew = alloc_line();
 							l->l_prev = lnew;
 							lnew->l_next = l;
@@ -287,13 +289,13 @@ main(int argc, char **argv)
 			}
 			if (this_line > nflushd_lines &&
 			    this_line - nflushd_lines >=
-			    max_bufd_lines + BUFFER_MARGIN) {
+				max_bufd_lines + BUFFER_MARGIN) {
 				if (extra_lines) {
 					flush_lines(extra_lines);
 					extra_lines = 0;
 				}
-				flush_lines(this_line - nflushd_lines -
-				    max_bufd_lines);
+				flush_lines(
+				    this_line - nflushd_lines - max_bufd_lines);
 				nflushd_lines = this_line - max_bufd_lines;
 			}
 		}
@@ -303,7 +305,7 @@ main(int argc, char **argv)
 
 			need = l->l_lsize ? l->l_lsize * 2 : 90;
 			if ((l->l_line = realloc(l->l_line,
-			    (unsigned)need * sizeof(CHAR))) == NULL)
+				 (unsigned)need * sizeof(CHAR))) == NULL)
 				err(1, NULL);
 			l->l_lsize = need;
 		}
@@ -436,13 +438,13 @@ flush_line(LINE *l)
 		if (l->l_lsize > sorted_size) {
 			sorted_size = l->l_lsize;
 			if ((sorted = realloc(sorted,
-			    (unsigned)sizeof(CHAR) * sorted_size)) == NULL)
+				 (unsigned)sizeof(CHAR) * sorted_size)) == NULL)
 				err(1, NULL);
 		}
 		if (l->l_max_col >= count_size) {
 			count_size = l->l_max_col + 1;
 			if ((count = realloc(count,
-			    (unsigned)sizeof(int) * count_size)) == NULL)
+				 (unsigned)sizeof(int) * count_size)) == NULL)
 				err(1, NULL);
 		}
 		memset(count, 0, sizeof(int) * l->l_max_col + 1);
@@ -542,7 +544,7 @@ addto_lineno(int *lno, int offset)
 	*lno += offset;
 }
 
-#define	NALLOC 64
+#define NALLOC 64
 
 static LINE *line_freelist;
 
@@ -588,5 +590,5 @@ dowarn(int line)
 {
 
 	warnx("warning: can't back up %s",
-		line < 0 ? "past first line" : "-- line already flushed");
+	    line < 0 ? "past first line" : "-- line already flushed");
 }

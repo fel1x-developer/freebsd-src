@@ -35,6 +35,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
 #include <ctype.h>
 #include <db.h>
 #include <err.h>
@@ -47,12 +48,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <utmpx.h>
+
 #include "finger.h"
 #include "pathnames.h"
 
-static void	 find_idle_and_ttywrite(WHERE *);
-static void	 userinfo(PERSON *, struct passwd *);
-static WHERE	*walloc(PERSON *);
+static void find_idle_and_ttywrite(WHERE *);
+static void userinfo(PERSON *, struct passwd *);
+static WHERE *walloc(PERSON *);
 
 int
 match(struct passwd *pw, const char *user)
@@ -61,7 +63,7 @@ match(struct passwd *pw, const char *user)
 	char name[1024];
 
 	if (!strcasecmp(pw->pw_name, user))
-		return(1);
+		return (1);
 
 	/*
 	 * XXX
@@ -74,11 +76,11 @@ match(struct passwd *pw, const char *user)
 
 	/* Ampersands get replaced by the login name. */
 	if ((p = strtok(p, ",")) == NULL)
-		return(0);
+		return (0);
 
 	for (t = name; t < &name[sizeof(name) - 1] && (*t = *p) != '\0'; ++p) {
-		if (*t == '&') { 
-			(void)strncpy(t, pw->pw_name, 
+		if (*t == '&') {
+			(void)strncpy(t, pw->pw_name,
 			    sizeof(name) - (t - name));
 			name[sizeof(name) - 1] = '\0';
 			while (t < &name[sizeof(name) - 1] && *++t)
@@ -90,8 +92,8 @@ match(struct passwd *pw, const char *user)
 	*t = '\0';
 	for (t = name; (p = strtok(t, "\t ")) != NULL; t = NULL)
 		if (!strcasecmp(p, user))
-			return(1);
-	return(0);
+			return (1);
+	return (0);
 }
 
 void
@@ -188,10 +190,10 @@ find_person(char *name)
 	PERSON *p;
 
 	if (!db)
-		return(NULL);
+		return (NULL);
 
 	if ((pw = getpwnam(name)) && hide(pw))
-		return(NULL);
+		return (NULL);
 
 	key.data = name;
 	key.size = strlen(name);
@@ -209,7 +211,7 @@ palloc(void)
 
 	if ((p = malloc(sizeof(PERSON))) == NULL)
 		err(1, NULL);
-	return(p);
+	return (p);
 }
 
 static WHERE *
@@ -226,7 +228,7 @@ walloc(PERSON *pn)
 		pn->wtail = w;
 	}
 	w->next = NULL;
-	return(w);
+	return (w);
 }
 
 char *
@@ -239,43 +241,43 @@ prphone(char *num)
 	/* don't touch anything if the user has their own formatting */
 	for (p = num; *p; ++p)
 		if (!isdigit(*p))
-			return(num);
+			return (num);
 	len = p - num;
 	p = pbuf;
-	switch(len) {
-	case 11:			/* +0-123-456-7890 */
+	switch (len) {
+	case 11: /* +0-123-456-7890 */
 		*p++ = '+';
 		*p++ = *num++;
 		*p++ = '-';
 		/* FALLTHROUGH */
-	case 10:			/* 012-345-6789 */
+	case 10: /* 012-345-6789 */
 		*p++ = *num++;
 		*p++ = *num++;
 		*p++ = *num++;
 		*p++ = '-';
 		/* FALLTHROUGH */
-	case 7:				/* 012-3456 */
+	case 7: /* 012-3456 */
 		*p++ = *num++;
 		*p++ = *num++;
 		*p++ = *num++;
 		break;
-	case 5:				/* x0-1234 */
-	case 4:				/* x1234 */
+	case 5: /* x0-1234 */
+	case 4: /* x1234 */
 		*p++ = 'x';
 		*p++ = *num++;
 		break;
 	default:
-		return(num);
+		return (num);
 	}
 	if (len != 4) {
-	    *p++ = '-';
-	    *p++ = *num++;
+		*p++ = '-';
+		*p++ = *num++;
 	}
 	*p++ = *num++;
 	*p++ = *num++;
 	*p++ = *num++;
 	*p = '\0';
-	return(pbuf);
+	return (pbuf);
 }
 
 static void
@@ -309,7 +311,7 @@ find_idle_and_ttywrite(WHERE *w)
 	}
 	w->idletime = now < touched ? 0 : now - touched;
 
-#define	TALKABLE	0220		/* tty is writable if 220 mode */
+#define TALKABLE 0220 /* tty is writable if 220 mode */
 	w->writable = ((sb.st_mode & TALKABLE) == TALKABLE);
 }
 
@@ -341,7 +343,7 @@ userinfo(PERSON *pn, struct passwd *pw)
 		return;
 	for (t = name; t < &name[sizeof(name) - 1] && (*t = *p) != '\0'; ++p) {
 		if (*t == '&') {
-			(void)strncpy(t, pw->pw_name, 
+			(void)strncpy(t, pw->pw_name,
 			    sizeof(name) - (t - name));
 			name[sizeof(name) - 1] = '\0';
 			if (islower(*t))
@@ -355,14 +357,11 @@ userinfo(PERSON *pn, struct passwd *pw)
 	*t = '\0';
 	if ((pn->realname = strdup(name)) == NULL)
 		err(1, "strdup failed");
-	pn->office = ((p = strsep(&bp, ",")) && *p) ?
-	    strdup(p) : NULL;
-	pn->officephone = ((p = strsep(&bp, ",")) && *p) ?
-	    strdup(p) : NULL;
-	pn->homephone = ((p = strsep(&bp, ",")) && *p) ?
-	    strdup(p) : NULL;
+	pn->office = ((p = strsep(&bp, ",")) && *p) ? strdup(p) : NULL;
+	pn->officephone = ((p = strsep(&bp, ",")) && *p) ? strdup(p) : NULL;
+	pn->homephone = ((p = strsep(&bp, ",")) && *p) ? strdup(p) : NULL;
 	(void)snprintf(tbuf, sizeof(tbuf), "%s/%s", _PATH_MAILDIR, pw->pw_name);
-	pn->mailrecv = -1;		/* -1 == not_valid */
+	pn->mailrecv = -1; /* -1 == not_valid */
 	if (stat(tbuf, &sb) < 0) {
 		if (errno != ENOENT) {
 			warn("%s", tbuf);

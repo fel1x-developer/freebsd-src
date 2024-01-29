@@ -33,33 +33,33 @@
 #ifndef __T4_H__
 #define __T4_H__
 
-#include "common/t4_regs_values.h"
 #include "common/t4_regs.h"
+#include "common/t4_regs_values.h"
 /*
  * Fixme: Adding missing defines
  */
 #define SGE_PF_KDOORBELL 0x0
-#define  QID_MASK    0xffff8000U
-#define  QID_SHIFT   15
-#define  QID(x)      ((x) << QID_SHIFT)
-#define  DBPRIO      0x00004000U
-#define  PIDX_MASK   0x00003fffU
-#define  PIDX_SHIFT  0
-#define  PIDX(x)     ((x) << PIDX_SHIFT)
+#define QID_MASK 0xffff8000U
+#define QID_SHIFT 15
+#define QID(x) ((x) << QID_SHIFT)
+#define DBPRIO 0x00004000U
+#define PIDX_MASK 0x00003fffU
+#define PIDX_SHIFT 0
+#define PIDX(x) ((x) << PIDX_SHIFT)
 
 #define SGE_PF_GTS 0x4
-#define  INGRESSQID_MASK   0xffff0000U
-#define  INGRESSQID_SHIFT  16
-#define  INGRESSQID(x)     ((x) << INGRESSQID_SHIFT)
-#define  TIMERREG_MASK     0x0000e000U
-#define  TIMERREG_SHIFT    13
-#define  TIMERREG(x)       ((x) << TIMERREG_SHIFT)
-#define  SEINTARM_MASK     0x00001000U
-#define  SEINTARM_SHIFT    12
-#define  SEINTARM(x)       ((x) << SEINTARM_SHIFT)
-#define  CIDXINC_MASK      0x00000fffU
-#define  CIDXINC_SHIFT     0
-#define  CIDXINC(x)        ((x) << CIDXINC_SHIFT)
+#define INGRESSQID_MASK 0xffff0000U
+#define INGRESSQID_SHIFT 16
+#define INGRESSQID(x) ((x) << INGRESSQID_SHIFT)
+#define TIMERREG_MASK 0x0000e000U
+#define TIMERREG_SHIFT 13
+#define TIMERREG(x) ((x) << TIMERREG_SHIFT)
+#define SEINTARM_MASK 0x00001000U
+#define SEINTARM_SHIFT 12
+#define SEINTARM(x) ((x) << SEINTARM_SHIFT)
+#define CIDXINC_MASK 0x00000fffU
+#define CIDXINC_SHIFT 0
+#define CIDXINC(x) ((x) << CIDXINC_SHIFT)
 
 #define T4_MAX_NUM_PD 65536
 #define T4_MAX_MR_SIZE (~0ULL)
@@ -69,12 +69,12 @@
 #define A_PCIE_MA_SYNC 0x30b4
 
 struct t4_status_page {
-	__be32 rsvd1;	/* flit 0 - hw owns */
+	__be32 rsvd1; /* flit 0 - hw owns */
 	__be16 rsvd2;
 	__be16 qid;
 	__be16 cidx;
 	__be16 pidx;
-	u8 qp_err;	/* flit 1 - sw owns */
+	u8 qp_err; /* flit 1 - sw owns */
 	u8 db_off;
 	u8 pad;
 	u16 host_wq_pidx;
@@ -86,18 +86,24 @@ struct t4_status_page {
 
 #define T4_SQ_NUM_SLOTS 5
 #define T4_SQ_NUM_BYTES (T4_EQ_ENTRY_SIZE * T4_SQ_NUM_SLOTS)
-#define T4_MAX_SEND_SGE ((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_send_wr) - \
-			sizeof(struct fw_ri_isgl)) / sizeof(struct fw_ri_sge))
-#define T4_MAX_SEND_INLINE ((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_send_wr) - \
-			sizeof(struct fw_ri_immd)))
-#define T4_MAX_WRITE_INLINE ((T4_SQ_NUM_BYTES - \
-			sizeof(struct fw_ri_rdma_write_wr) - \
-			sizeof(struct fw_ri_immd)))
-#define T4_MAX_WRITE_SGE ((T4_SQ_NUM_BYTES - \
-			sizeof(struct fw_ri_rdma_write_wr) - \
-			sizeof(struct fw_ri_isgl)) / sizeof(struct fw_ri_sge))
-#define T4_MAX_FR_IMMD ((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_fr_nsmr_wr) - \
-			sizeof(struct fw_ri_immd)) & ~31UL)
+#define T4_MAX_SEND_SGE                                    \
+	((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_send_wr) - \
+	     sizeof(struct fw_ri_isgl)) /                  \
+	    sizeof(struct fw_ri_sge))
+#define T4_MAX_SEND_INLINE                                 \
+	((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_send_wr) - \
+	    sizeof(struct fw_ri_immd)))
+#define T4_MAX_WRITE_INLINE                                      \
+	((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_rdma_write_wr) - \
+	    sizeof(struct fw_ri_immd)))
+#define T4_MAX_WRITE_SGE                                         \
+	((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_rdma_write_wr) - \
+	     sizeof(struct fw_ri_isgl)) /                        \
+	    sizeof(struct fw_ri_sge))
+#define T4_MAX_FR_IMMD                                        \
+	((T4_SQ_NUM_BYTES - sizeof(struct fw_ri_fr_nsmr_wr) - \
+	     sizeof(struct fw_ri_immd)) &                     \
+	    ~31UL)
 #define T4_MAX_FR_IMMD_DEPTH (T4_MAX_FR_IMMD / sizeof(u64))
 #define T4_MAX_FR_DSGL 1024
 #define T4_MAX_FR_DSGL_DEPTH (T4_MAX_FR_DSGL / sizeof(u64))
@@ -128,8 +134,9 @@ union t4_recv_wr {
 	__be64 flits[T4_EQ_ENTRY_SIZE / sizeof(__be64) * T4_RQ_NUM_SLOTS];
 };
 
-static inline void init_wr_hdr(union t4_wr *wqe, u16 wrid,
-			       enum fw_wr_opcodes opcode, u8 flags, u8 len16)
+static inline void
+init_wr_hdr(union t4_wr *wqe, u16 wrid, enum fw_wr_opcodes opcode, u8 flags,
+    u8 len16)
 {
 	wqe->send.opcode = (u8)opcode;
 	wqe->send.flags = flags;
@@ -141,45 +148,45 @@ static inline void init_wr_hdr(union t4_wr *wqe, u16 wrid,
 }
 
 /* CQE/AE status codes */
-#define T4_ERR_SUCCESS                     0x0
-#define T4_ERR_STAG                        0x1	/* STAG invalid: either the */
-						/* STAG is offlimt, being 0, */
-						/* or STAG_key mismatch */
-#define T4_ERR_PDID                        0x2	/* PDID mismatch */
-#define T4_ERR_QPID                        0x3	/* QPID mismatch */
-#define T4_ERR_ACCESS                      0x4	/* Invalid access right */
-#define T4_ERR_WRAP                        0x5	/* Wrap error */
-#define T4_ERR_BOUND                       0x6	/* base and bounds voilation */
-#define T4_ERR_INVALIDATE_SHARED_MR        0x7	/* attempt to invalidate a  */
-						/* shared memory region */
-#define T4_ERR_INVALIDATE_MR_WITH_MW_BOUND 0x8	/* attempt to invalidate a  */
-						/* shared memory region */
-#define T4_ERR_ECC                         0x9	/* ECC error detected */
-#define T4_ERR_ECC_PSTAG                   0xA	/* ECC error detected when  */
-						/* reading PSTAG for a MW  */
-						/* Invalidate */
-#define T4_ERR_PBL_ADDR_BOUND              0xB	/* pbl addr out of bounds:  */
-						/* software error */
-#define T4_ERR_SWFLUSH			   0xC	/* SW FLUSHED */
-#define T4_ERR_CRC                         0x10 /* CRC error */
-#define T4_ERR_MARKER                      0x11 /* Marker error */
-#define T4_ERR_PDU_LEN_ERR                 0x12 /* invalid PDU length */
-#define T4_ERR_OUT_OF_RQE                  0x13 /* out of RQE */
-#define T4_ERR_DDP_VERSION                 0x14 /* wrong DDP version */
-#define T4_ERR_RDMA_VERSION                0x15 /* wrong RDMA version */
-#define T4_ERR_OPCODE                      0x16 /* invalid rdma opcode */
-#define T4_ERR_DDP_QUEUE_NUM               0x17 /* invalid ddp queue number */
-#define T4_ERR_MSN                         0x18 /* MSN error */
-#define T4_ERR_TBIT                        0x19 /* tag bit not set correctly */
-#define T4_ERR_MO                          0x1A /* MO not 0 for TERMINATE  */
-						/* or READ_REQ */
-#define T4_ERR_MSN_GAP                     0x1B
-#define T4_ERR_MSN_RANGE                   0x1C
-#define T4_ERR_IRD_OVERFLOW                0x1D
-#define T4_ERR_RQE_ADDR_BOUND              0x1E /* RQE addr out of bounds:  */
-						/* software error */
-#define T4_ERR_INTERNAL_ERR                0x1F /* internal error (opcode  */
-						/* mismatch) */
+#define T4_ERR_SUCCESS 0x0
+#define T4_ERR_STAG 0x1			       /* STAG invalid: either the */
+					       /* STAG is offlimt, being 0, */
+					       /* or STAG_key mismatch */
+#define T4_ERR_PDID 0x2			       /* PDID mismatch */
+#define T4_ERR_QPID 0x3			       /* QPID mismatch */
+#define T4_ERR_ACCESS 0x4		       /* Invalid access right */
+#define T4_ERR_WRAP 0x5			       /* Wrap error */
+#define T4_ERR_BOUND 0x6		       /* base and bounds voilation */
+#define T4_ERR_INVALIDATE_SHARED_MR 0x7	       /* attempt to invalidate a  */
+					       /* shared memory region */
+#define T4_ERR_INVALIDATE_MR_WITH_MW_BOUND 0x8 /* attempt to invalidate a  */
+					       /* shared memory region */
+#define T4_ERR_ECC 0x9			       /* ECC error detected */
+#define T4_ERR_ECC_PSTAG 0xA		       /* ECC error detected when  */
+					       /* reading PSTAG for a MW  */
+					       /* Invalidate */
+#define T4_ERR_PBL_ADDR_BOUND 0xB	       /* pbl addr out of bounds:  */
+					       /* software error */
+#define T4_ERR_SWFLUSH 0xC		       /* SW FLUSHED */
+#define T4_ERR_CRC 0x10			       /* CRC error */
+#define T4_ERR_MARKER 0x11		       /* Marker error */
+#define T4_ERR_PDU_LEN_ERR 0x12		       /* invalid PDU length */
+#define T4_ERR_OUT_OF_RQE 0x13		       /* out of RQE */
+#define T4_ERR_DDP_VERSION 0x14		       /* wrong DDP version */
+#define T4_ERR_RDMA_VERSION 0x15	       /* wrong RDMA version */
+#define T4_ERR_OPCODE 0x16		       /* invalid rdma opcode */
+#define T4_ERR_DDP_QUEUE_NUM 0x17	       /* invalid ddp queue number */
+#define T4_ERR_MSN 0x18			       /* MSN error */
+#define T4_ERR_TBIT 0x19		       /* tag bit not set correctly */
+#define T4_ERR_MO 0x1A			       /* MO not 0 for TERMINATE  */
+					       /* or READ_REQ */
+#define T4_ERR_MSN_GAP 0x1B
+#define T4_ERR_MSN_RANGE 0x1C
+#define T4_ERR_IRD_OVERFLOW 0x1D
+#define T4_ERR_RQE_ADDR_BOUND 0x1E /* RQE addr out of bounds:  */
+				   /* software error */
+#define T4_ERR_INTERNAL_ERR 0x1F   /* internal error (opcode  */
+				   /* mismatch) */
 /*
  * CQE defs
  */
@@ -208,95 +215,97 @@ struct t4_cqe {
 
 /* macros for flit 0 of the cqe */
 
-#define S_CQE_QPID        12
-#define M_CQE_QPID        0xFFFFF
-#define G_CQE_QPID(x)     ((((x) >> S_CQE_QPID)) & M_CQE_QPID)
-#define V_CQE_QPID(x)	  ((x)<<S_CQE_QPID)
+#define S_CQE_QPID 12
+#define M_CQE_QPID 0xFFFFF
+#define G_CQE_QPID(x) ((((x) >> S_CQE_QPID)) & M_CQE_QPID)
+#define V_CQE_QPID(x) ((x) << S_CQE_QPID)
 
-#define S_CQE_SWCQE       11
-#define M_CQE_SWCQE       0x1
-#define G_CQE_SWCQE(x)    ((((x) >> S_CQE_SWCQE)) & M_CQE_SWCQE)
-#define V_CQE_SWCQE(x)	  ((x)<<S_CQE_SWCQE)
+#define S_CQE_SWCQE 11
+#define M_CQE_SWCQE 0x1
+#define G_CQE_SWCQE(x) ((((x) >> S_CQE_SWCQE)) & M_CQE_SWCQE)
+#define V_CQE_SWCQE(x) ((x) << S_CQE_SWCQE)
 
-#define S_CQE_STATUS      5
-#define M_CQE_STATUS      0x1F
-#define G_CQE_STATUS(x)   ((((x) >> S_CQE_STATUS)) & M_CQE_STATUS)
-#define V_CQE_STATUS(x)   ((x)<<S_CQE_STATUS)
+#define S_CQE_STATUS 5
+#define M_CQE_STATUS 0x1F
+#define G_CQE_STATUS(x) ((((x) >> S_CQE_STATUS)) & M_CQE_STATUS)
+#define V_CQE_STATUS(x) ((x) << S_CQE_STATUS)
 
-#define S_CQE_TYPE        4
-#define M_CQE_TYPE        0x1
-#define G_CQE_TYPE(x)     ((((x) >> S_CQE_TYPE)) & M_CQE_TYPE)
-#define V_CQE_TYPE(x)     ((x)<<S_CQE_TYPE)
+#define S_CQE_TYPE 4
+#define M_CQE_TYPE 0x1
+#define G_CQE_TYPE(x) ((((x) >> S_CQE_TYPE)) & M_CQE_TYPE)
+#define V_CQE_TYPE(x) ((x) << S_CQE_TYPE)
 
-#define S_CQE_OPCODE      0
-#define M_CQE_OPCODE      0xF
-#define G_CQE_OPCODE(x)   ((((x) >> S_CQE_OPCODE)) & M_CQE_OPCODE)
-#define V_CQE_OPCODE(x)   ((x)<<S_CQE_OPCODE)
+#define S_CQE_OPCODE 0
+#define M_CQE_OPCODE 0xF
+#define G_CQE_OPCODE(x) ((((x) >> S_CQE_OPCODE)) & M_CQE_OPCODE)
+#define V_CQE_OPCODE(x) ((x) << S_CQE_OPCODE)
 
-#define SW_CQE(x)         (G_CQE_SWCQE(be32_to_cpu((x)->header)))
-#define CQE_QPID(x)       (G_CQE_QPID(be32_to_cpu((x)->header)))
-#define CQE_TYPE(x)       (G_CQE_TYPE(be32_to_cpu((x)->header)))
-#define SQ_TYPE(x)	  (CQE_TYPE((x)))
-#define RQ_TYPE(x)	  (!CQE_TYPE((x)))
-#define CQE_STATUS(x)     (G_CQE_STATUS(be32_to_cpu((x)->header)))
-#define CQE_OPCODE(x)     (G_CQE_OPCODE(be32_to_cpu((x)->header)))
+#define SW_CQE(x) (G_CQE_SWCQE(be32_to_cpu((x)->header)))
+#define CQE_QPID(x) (G_CQE_QPID(be32_to_cpu((x)->header)))
+#define CQE_TYPE(x) (G_CQE_TYPE(be32_to_cpu((x)->header)))
+#define SQ_TYPE(x) (CQE_TYPE((x)))
+#define RQ_TYPE(x) (!CQE_TYPE((x)))
+#define CQE_STATUS(x) (G_CQE_STATUS(be32_to_cpu((x)->header)))
+#define CQE_OPCODE(x) (G_CQE_OPCODE(be32_to_cpu((x)->header)))
 
-#define CQE_SEND_OPCODE(x)(\
-	(G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND) || \
-	(G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND_WITH_SE) || \
-	(G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND_WITH_INV) || \
-	(G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND_WITH_SE_INV))
+#define CQE_SEND_OPCODE(x)                                                     \
+	((G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND) ||             \
+	    (G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND_WITH_SE) ||  \
+	    (G_CQE_OPCODE(be32_to_cpu((x)->header)) == FW_RI_SEND_WITH_INV) || \
+	    (G_CQE_OPCODE(be32_to_cpu((x)->header)) ==                         \
+		FW_RI_SEND_WITH_SE_INV))
 
-#define CQE_LEN(x)        (be32_to_cpu((x)->len))
+#define CQE_LEN(x) (be32_to_cpu((x)->len))
 
 /* used for RQ completion processing */
-#define CQE_WRID_STAG(x)  (be32_to_cpu((x)->u.rcqe.stag))
-#define CQE_WRID_MSN(x)   (be32_to_cpu((x)->u.rcqe.msn))
+#define CQE_WRID_STAG(x) (be32_to_cpu((x)->u.rcqe.stag))
+#define CQE_WRID_MSN(x) (be32_to_cpu((x)->u.rcqe.msn))
 
 /* used for SQ completion processing */
-#define CQE_WRID_SQ_IDX(x)	((x)->u.scqe.cidx)
-#define CQE_WRID_FR_STAG(x)     (be32_to_cpu((x)->u.scqe.stag))
+#define CQE_WRID_SQ_IDX(x) ((x)->u.scqe.cidx)
+#define CQE_WRID_FR_STAG(x) (be32_to_cpu((x)->u.scqe.stag))
 
 /* generic accessor macros */
-#define CQE_WRID_HI(x)		((x)->u.gen.wrid_hi)
-#define CQE_WRID_LOW(x)		((x)->u.gen.wrid_low)
-#define CQE_DRAIN_COOKIE(x)	(x)->u.drain_cookie;
+#define CQE_WRID_HI(x) ((x)->u.gen.wrid_hi)
+#define CQE_WRID_LOW(x) ((x)->u.gen.wrid_low)
+#define CQE_DRAIN_COOKIE(x) (x)->u.drain_cookie;
 
 /* macros for flit 3 of the cqe */
-#define S_CQE_GENBIT	63
-#define M_CQE_GENBIT	0x1
-#define G_CQE_GENBIT(x)	(((x) >> S_CQE_GENBIT) & M_CQE_GENBIT)
-#define V_CQE_GENBIT(x) ((x)<<S_CQE_GENBIT)
+#define S_CQE_GENBIT 63
+#define M_CQE_GENBIT 0x1
+#define G_CQE_GENBIT(x) (((x) >> S_CQE_GENBIT) & M_CQE_GENBIT)
+#define V_CQE_GENBIT(x) ((x) << S_CQE_GENBIT)
 
-#define S_CQE_OVFBIT	62
-#define M_CQE_OVFBIT	0x1
-#define G_CQE_OVFBIT(x)	((((x) >> S_CQE_OVFBIT)) & M_CQE_OVFBIT)
+#define S_CQE_OVFBIT 62
+#define M_CQE_OVFBIT 0x1
+#define G_CQE_OVFBIT(x) ((((x) >> S_CQE_OVFBIT)) & M_CQE_OVFBIT)
 
-#define S_CQE_IQTYPE	60
-#define M_CQE_IQTYPE	0x3
-#define G_CQE_IQTYPE(x)	((((x) >> S_CQE_IQTYPE)) & M_CQE_IQTYPE)
+#define S_CQE_IQTYPE 60
+#define M_CQE_IQTYPE 0x3
+#define G_CQE_IQTYPE(x) ((((x) >> S_CQE_IQTYPE)) & M_CQE_IQTYPE)
 
-#define M_CQE_TS	0x0fffffffffffffffULL
-#define G_CQE_TS(x)	((x) & M_CQE_TS)
+#define M_CQE_TS 0x0fffffffffffffffULL
+#define G_CQE_TS(x) ((x) & M_CQE_TS)
 
-#define CQE_OVFBIT(x)	((unsigned)G_CQE_OVFBIT(be64_to_cpu((x)->bits_type_ts)))
-#define CQE_GENBIT(x)	((unsigned)G_CQE_GENBIT(be64_to_cpu((x)->bits_type_ts)))
-#define CQE_TS(x)	(G_CQE_TS(be64_to_cpu((x)->bits_type_ts)))
+#define CQE_OVFBIT(x) ((unsigned)G_CQE_OVFBIT(be64_to_cpu((x)->bits_type_ts)))
+#define CQE_GENBIT(x) ((unsigned)G_CQE_GENBIT(be64_to_cpu((x)->bits_type_ts)))
+#define CQE_TS(x) (G_CQE_TS(be64_to_cpu((x)->bits_type_ts)))
 
 struct t4_swsqe {
-	u64			wr_id;
-	struct t4_cqe		cqe;
-	int			read_len;
-	int			opcode;
-	int			complete;
-	int			signaled;
-	u16			idx;
-	int                     flushed;
-	struct timespec         host_ts;
-	u64                     sge_ts;
+	u64 wr_id;
+	struct t4_cqe cqe;
+	int read_len;
+	int opcode;
+	int complete;
+	int signaled;
+	u16 idx;
+	int flushed;
+	struct timespec host_ts;
+	u64 sge_ts;
 };
 
-static inline pgprot_t t4_pgprot_wc(pgprot_t prot)
+static inline pgprot_t
+t4_pgprot_wc(pgprot_t prot)
 {
 #if defined(__i386__) || defined(__x86_64__) || defined(CONFIG_PPC64)
 	return pgprot_writecombine(prot);
@@ -306,7 +315,7 @@ static inline pgprot_t t4_pgprot_wc(pgprot_t prot)
 }
 
 enum {
-	T4_SQ_ONCHIP = (1<<0),
+	T4_SQ_ONCHIP = (1 << 0),
 };
 
 struct t4_sq {
@@ -336,7 +345,7 @@ struct t4_swrqe {
 };
 
 struct t4_rq {
-	union  t4_recv_wr *queue;
+	union t4_recv_wr *queue;
 	bus_addr_t dma_addr;
 	DEFINE_DMA_UNMAP_ADDR(mapping);
 	unsigned long phys_addr;
@@ -364,37 +373,43 @@ struct t4_wq {
 	int flushed;
 };
 
-static inline int t4_rqes_posted(struct t4_wq *wq)
+static inline int
+t4_rqes_posted(struct t4_wq *wq)
 {
 	return wq->rq.in_use;
 }
 
-static inline int t4_rq_empty(struct t4_wq *wq)
+static inline int
+t4_rq_empty(struct t4_wq *wq)
 {
 	return wq->rq.in_use == 0;
 }
 
-static inline int t4_rq_full(struct t4_wq *wq)
+static inline int
+t4_rq_full(struct t4_wq *wq)
 {
 	return wq->rq.in_use == (wq->rq.size - 1);
 }
 
-static inline u32 t4_rq_avail(struct t4_wq *wq)
+static inline u32
+t4_rq_avail(struct t4_wq *wq)
 {
 	return wq->rq.size - 1 - wq->rq.in_use;
 }
 
-static inline void t4_rq_produce(struct t4_wq *wq, u8 len16)
+static inline void
+t4_rq_produce(struct t4_wq *wq, u8 len16)
 {
 	wq->rq.in_use++;
 	if (++wq->rq.pidx == wq->rq.size)
 		wq->rq.pidx = 0;
-	wq->rq.wq_pidx += DIV_ROUND_UP(len16*16, T4_EQ_ENTRY_SIZE);
+	wq->rq.wq_pidx += DIV_ROUND_UP(len16 * 16, T4_EQ_ENTRY_SIZE);
 	if (wq->rq.wq_pidx >= wq->rq.size * T4_RQ_NUM_SLOTS)
 		wq->rq.wq_pidx %= wq->rq.size * T4_RQ_NUM_SLOTS;
 }
 
-static inline void t4_rq_consume(struct t4_wq *wq)
+static inline void
+t4_rq_consume(struct t4_wq *wq)
 {
 	wq->rq.in_use--;
 	wq->rq.msn++;
@@ -402,47 +417,55 @@ static inline void t4_rq_consume(struct t4_wq *wq)
 		wq->rq.cidx = 0;
 }
 
-static inline u16 t4_rq_host_wq_pidx(struct t4_wq *wq)
+static inline u16
+t4_rq_host_wq_pidx(struct t4_wq *wq)
 {
 	return wq->rq.queue[wq->rq.size].status.host_wq_pidx;
 }
 
-static inline u16 t4_rq_wq_size(struct t4_wq *wq)
+static inline u16
+t4_rq_wq_size(struct t4_wq *wq)
 {
 	return wq->rq.size * T4_RQ_NUM_SLOTS;
 }
 
-static inline int t4_sq_onchip(struct t4_sq *sq)
+static inline int
+t4_sq_onchip(struct t4_sq *sq)
 {
 	return sq->flags & T4_SQ_ONCHIP;
 }
 
-static inline int t4_sq_empty(struct t4_wq *wq)
+static inline int
+t4_sq_empty(struct t4_wq *wq)
 {
 	return wq->sq.in_use == 0;
 }
 
-static inline int t4_sq_full(struct t4_wq *wq)
+static inline int
+t4_sq_full(struct t4_wq *wq)
 {
 	return wq->sq.in_use == (wq->sq.size - 1);
 }
 
-static inline u32 t4_sq_avail(struct t4_wq *wq)
+static inline u32
+t4_sq_avail(struct t4_wq *wq)
 {
 	return wq->sq.size - 1 - wq->sq.in_use;
 }
 
-static inline void t4_sq_produce(struct t4_wq *wq, u8 len16)
+static inline void
+t4_sq_produce(struct t4_wq *wq, u8 len16)
 {
 	wq->sq.in_use++;
 	if (++wq->sq.pidx == wq->sq.size)
 		wq->sq.pidx = 0;
-	wq->sq.wq_pidx += DIV_ROUND_UP(len16*16, T4_EQ_ENTRY_SIZE);
+	wq->sq.wq_pidx += DIV_ROUND_UP(len16 * 16, T4_EQ_ENTRY_SIZE);
 	if (wq->sq.wq_pidx >= wq->sq.size * T4_SQ_NUM_SLOTS)
 		wq->sq.wq_pidx %= wq->sq.size * T4_SQ_NUM_SLOTS;
 }
 
-static inline void t4_sq_consume(struct t4_wq *wq)
+static inline void
+t4_sq_consume(struct t4_wq *wq)
 {
 	BUG_ON(wq->sq.in_use < 1);
 	if (wq->sq.cidx == wq->sq.flush_cidx)
@@ -452,21 +475,24 @@ static inline void t4_sq_consume(struct t4_wq *wq)
 		wq->sq.cidx = 0;
 }
 
-static inline u16 t4_sq_host_wq_pidx(struct t4_wq *wq)
+static inline u16
+t4_sq_host_wq_pidx(struct t4_wq *wq)
 {
 	return wq->sq.queue[wq->sq.size].status.host_wq_pidx;
 }
 
-static inline u16 t4_sq_wq_size(struct t4_wq *wq)
+static inline u16
+t4_sq_wq_size(struct t4_wq *wq)
 {
-		return wq->sq.size * T4_SQ_NUM_SLOTS;
+	return wq->sq.size * T4_SQ_NUM_SLOTS;
 }
 
 /* This function copies 64 byte coalesced work request to memory
  * mapped BAR2 space. For coalesced WRs, the SGE fetches data
  * from the FIFO instead of from Host.
  */
-static inline void pio_copy(u64 __iomem *dst, u64 *src)
+static inline void
+pio_copy(u64 __iomem *dst, u64 *src)
 {
 	int count = 8;
 
@@ -485,17 +511,16 @@ t4_ring_sq_db(struct t4_wq *wq, u16 inc, union t4_wr *wqe, u8 wc)
 	/* Flush host queue memory writes. */
 	wmb();
 	if (wc && inc == 1 && wq->sq.bar2_qid == 0 && wqe) {
-		CTR2(KTR_IW_CXGBE, "%s: WC wq->sq.pidx = %d",
-				__func__, wq->sq.pidx);
-		pio_copy((u64 __iomem *)
-				((u64)wq->sq.bar2_va + SGE_UDB_WCDOORBELL),
-				(u64 *)wqe);
+		CTR2(KTR_IW_CXGBE, "%s: WC wq->sq.pidx = %d", __func__,
+		    wq->sq.pidx);
+		pio_copy((u64 __iomem *)((u64)wq->sq.bar2_va +
+			     SGE_UDB_WCDOORBELL),
+		    (u64 *)wqe);
 	} else {
-		CTR2(KTR_IW_CXGBE, "%s: DB wq->sq.pidx = %d",
-				__func__, wq->sq.pidx);
+		CTR2(KTR_IW_CXGBE, "%s: DB wq->sq.pidx = %d", __func__,
+		    wq->sq.pidx);
 		writel(V_PIDX_T5(inc) | V_QID(wq->sq.bar2_qid),
-				(void __iomem *)((u64)wq->sq.bar2_va +
-					SGE_UDB_KDOORBELL));
+		    (void __iomem *)((u64)wq->sq.bar2_va + SGE_UDB_KDOORBELL));
 	}
 
 	/* Flush user doorbell area writes. */
@@ -510,16 +535,16 @@ t4_ring_rq_db(struct t4_wq *wq, u16 inc, union t4_recv_wr *wqe, u8 wc)
 	/* Flush host queue memory writes. */
 	wmb();
 	if (wc && inc == 1 && wq->rq.bar2_qid == 0 && wqe) {
-		CTR2(KTR_IW_CXGBE, "%s: WC wq->rq.pidx = %d",
-				__func__, wq->rq.pidx);
+		CTR2(KTR_IW_CXGBE, "%s: WC wq->rq.pidx = %d", __func__,
+		    wq->rq.pidx);
 		pio_copy((u64 __iomem *)((u64)wq->rq.bar2_va +
-					SGE_UDB_WCDOORBELL), (u64 *)wqe);
+			     SGE_UDB_WCDOORBELL),
+		    (u64 *)wqe);
 	} else {
-		CTR2(KTR_IW_CXGBE, "%s: DB wq->rq.pidx = %d",
-				__func__, wq->rq.pidx);
+		CTR2(KTR_IW_CXGBE, "%s: DB wq->rq.pidx = %d", __func__,
+		    wq->rq.pidx);
 		writel(V_PIDX_T5(inc) | V_QID(wq->rq.bar2_qid),
-				(void __iomem *)((u64)wq->rq.bar2_va +
-					SGE_UDB_KDOORBELL));
+		    (void __iomem *)((u64)wq->rq.bar2_va + SGE_UDB_KDOORBELL));
 	}
 
 	/* Flush user doorbell area writes. */
@@ -527,18 +552,20 @@ t4_ring_rq_db(struct t4_wq *wq, u16 inc, union t4_recv_wr *wqe, u8 wc)
 	return;
 }
 
-static inline int t4_wq_in_error(struct t4_wq *wq)
+static inline int
+t4_wq_in_error(struct t4_wq *wq)
 {
 	return wq->rq.queue[wq->rq.size].status.qp_err;
 }
 
-static inline void t4_set_wq_in_error(struct t4_wq *wq)
+static inline void
+t4_set_wq_in_error(struct t4_wq *wq)
 {
 	wq->rq.queue[wq->rq.size].status.qp_err = 1;
 }
 
 enum t4_cq_flags {
-	CQ_ARMED	= 1,
+	CQ_ARMED = 1,
 };
 
 struct t4_cq {
@@ -566,18 +593,21 @@ struct t4_cq {
 	unsigned long flags;
 };
 
-static inline void write_gts(struct t4_cq *cq, u32 val)
+static inline void
+write_gts(struct t4_cq *cq, u32 val)
 {
 	writel(val | V_INGRESSQID(cq->bar2_qid),
-		       (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
+	    (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
 }
 
-static inline int t4_clear_cq_armed(struct t4_cq *cq)
+static inline int
+t4_clear_cq_armed(struct t4_cq *cq)
 {
 	return test_and_clear_bit(CQ_ARMED, &cq->flags);
 }
 
-static inline int t4_arm_cq(struct t4_cq *cq, int se)
+static inline int
+t4_arm_cq(struct t4_cq *cq, int se)
 {
 	u32 val;
 
@@ -585,22 +615,23 @@ static inline int t4_arm_cq(struct t4_cq *cq, int se)
 	while (cq->cidx_inc > CIDXINC_MASK) {
 		val = SEINTARM(0) | CIDXINC(CIDXINC_MASK) | TIMERREG(7);
 		writel(val | V_INGRESSQID(cq->bar2_qid),
-		       (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
+		    (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
 		cq->cidx_inc -= CIDXINC_MASK;
 	}
 	val = SEINTARM(se) | CIDXINC(cq->cidx_inc) | TIMERREG(6);
 	writel(val | V_INGRESSQID(cq->bar2_qid),
-		       (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
+	    (void __iomem *)((u64)cq->bar2_va + SGE_UDB_GTS));
 	cq->cidx_inc = 0;
 	return 0;
 }
 
-static inline void t4_swcq_produce(struct t4_cq *cq)
+static inline void
+t4_swcq_produce(struct t4_cq *cq)
 {
 	cq->sw_in_use++;
 	if (cq->sw_in_use == cq->size) {
-		CTR2(KTR_IW_CXGBE, "%s cxgb4 sw cq overflow cqid %u",
-			 __func__, cq->cqid);
+		CTR2(KTR_IW_CXGBE, "%s cxgb4 sw cq overflow cqid %u", __func__,
+		    cq->cqid);
 		cq->error = 1;
 		BUG_ON(1);
 	}
@@ -608,7 +639,8 @@ static inline void t4_swcq_produce(struct t4_cq *cq)
 		cq->sw_pidx = 0;
 }
 
-static inline void t4_swcq_consume(struct t4_cq *cq)
+static inline void
+t4_swcq_consume(struct t4_cq *cq)
 {
 	BUG_ON(cq->sw_in_use < 1);
 	cq->sw_in_use--;
@@ -616,7 +648,8 @@ static inline void t4_swcq_consume(struct t4_cq *cq)
 		cq->sw_cidx = 0;
 }
 
-static inline void t4_hwcq_consume(struct t4_cq *cq)
+static inline void
+t4_hwcq_consume(struct t4_cq *cq)
 {
 	cq->bits_type_ts = cq->queue[cq->cidx].bits_type_ts;
 	if (++cq->cidx_inc == (cq->size >> 4) || cq->cidx_inc == M_CIDXINC) {
@@ -632,17 +665,20 @@ static inline void t4_hwcq_consume(struct t4_cq *cq)
 	}
 }
 
-static inline int t4_valid_cqe(struct t4_cq *cq, struct t4_cqe *cqe)
+static inline int
+t4_valid_cqe(struct t4_cq *cq, struct t4_cqe *cqe)
 {
 	return (CQE_GENBIT(cqe) == cq->gen);
 }
 
-static inline int t4_cq_notempty(struct t4_cq *cq)
+static inline int
+t4_cq_notempty(struct t4_cq *cq)
 {
 	return cq->sw_in_use || t4_valid_cqe(cq, &cq->queue[cq->cidx]);
 }
 
-static inline int t4_next_hw_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
+static inline int
+t4_next_hw_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
 {
 	int ret;
 	u16 prev_cidx;
@@ -668,11 +704,12 @@ static inline int t4_next_hw_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
 	return ret;
 }
 
-static inline struct t4_cqe *t4_next_sw_cqe(struct t4_cq *cq)
+static inline struct t4_cqe *
+t4_next_sw_cqe(struct t4_cq *cq)
 {
 	if (cq->sw_in_use == cq->size) {
-		CTR2(KTR_IW_CXGBE, "%s cxgb4 sw cq overflow cqid %u",
-			 __func__, cq->cqid);
+		CTR2(KTR_IW_CXGBE, "%s cxgb4 sw cq overflow cqid %u", __func__,
+		    cq->cqid);
 		cq->error = 1;
 		BUG_ON(1);
 		return NULL;
@@ -682,7 +719,8 @@ static inline struct t4_cqe *t4_next_sw_cqe(struct t4_cq *cq)
 	return NULL;
 }
 
-static inline int t4_next_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
+static inline int
+t4_next_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
 {
 	int ret = 0;
 
@@ -695,12 +733,14 @@ static inline int t4_next_cqe(struct t4_cq *cq, struct t4_cqe **cqe)
 	return ret;
 }
 
-static inline int t4_cq_in_error(struct t4_cq *cq)
+static inline int
+t4_cq_in_error(struct t4_cq *cq)
 {
 	return ((struct t4_status_page *)&cq->queue[cq->size])->qp_err;
 }
 
-static inline void t4_set_cq_in_error(struct t4_cq *cq)
+static inline void
+t4_set_cq_in_error(struct t4_cq *cq)
 {
 	((struct t4_status_page *)&cq->queue[cq->size])->qp_err = 1;
 }

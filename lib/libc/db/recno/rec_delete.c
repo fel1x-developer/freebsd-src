@@ -34,11 +34,11 @@
 
 #include <sys/types.h>
 
+#include <db.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <db.h>
 #include "recno.h"
 
 static int rec_rdelete(BTREE *, recno_t);
@@ -69,7 +69,7 @@ __rec_delete(const DB *dbp, const DBT *key, u_int flags)
 		t->bt_pinned = NULL;
 	}
 
-	switch(flags) {
+	switch (flags) {
 	case 0:
 		if ((nrec = *(recno_t *)key->data) == 0)
 			goto einval;
@@ -88,7 +88,8 @@ __rec_delete(const DB *dbp, const DBT *key, u_int flags)
 			--t->bt_cursor.rcursor;
 		break;
 	default:
-einval:		errno = EINVAL;
+	einval:
+		errno = EINVAL;
 		return (RET_ERROR);
 	}
 

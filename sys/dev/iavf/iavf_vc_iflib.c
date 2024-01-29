@@ -54,21 +54,21 @@ iavf_configure_queues(struct iavf_sc *sc)
 {
 	device_t dev = sc->dev;
 	struct iavf_vsi *vsi = &sc->vsi;
-	if_softc_ctx_t		scctx = iflib_get_softc_ctx(vsi->ctx);
-	struct iavf_tx_queue	*tx_que = vsi->tx_queues;
-	struct iavf_rx_queue	*rx_que = vsi->rx_queues;
-	struct tx_ring		*txr;
-	struct rx_ring		*rxr;
-	int			len, pairs;
+	if_softc_ctx_t scctx = iflib_get_softc_ctx(vsi->ctx);
+	struct iavf_tx_queue *tx_que = vsi->tx_queues;
+	struct iavf_rx_queue *rx_que = vsi->rx_queues;
+	struct tx_ring *txr;
+	struct rx_ring *rxr;
+	int len, pairs;
 
 	struct virtchnl_vsi_queue_config_info *vqci;
 	struct virtchnl_queue_pair_info *vqpi;
 
-	/* XXX: Linux PF driver wants matching ids in each tx/rx struct, so both TX/RX
-	 * queues of a pair need to be configured */
+	/* XXX: Linux PF driver wants matching ids in each tx/rx struct, so both
+	 * TX/RX queues of a pair need to be configured */
 	pairs = max(vsi->num_tx_queues, vsi->num_rx_queues);
 	len = sizeof(struct virtchnl_vsi_queue_config_info) +
-		       (sizeof(struct virtchnl_queue_pair_info) * pairs);
+	    (sizeof(struct virtchnl_queue_pair_info) * pairs);
 	vqci = malloc(len, M_IAVF, M_NOWAIT | M_ZERO);
 	if (!vqci) {
 		device_printf(dev, "%s: unable to allocate memory\n", __func__);
@@ -108,8 +108,7 @@ iavf_configure_queues(struct iavf_sc *sc)
 		vqpi->rxq.splithdr_enabled = 0;
 	}
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_VSI_QUEUES,
-			   (u8 *)vqci, len);
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_VSI_QUEUES, (u8 *)vqci, len);
 	free(vqci, M_IAVF);
 
 	return (0);
@@ -128,11 +127,11 @@ int
 iavf_map_queues(struct iavf_sc *sc)
 {
 	struct virtchnl_irq_map_info *vm;
-	int			i, q, len;
-	struct iavf_vsi		*vsi = &sc->vsi;
-	struct iavf_rx_queue	*rx_que = vsi->rx_queues;
-	if_softc_ctx_t		scctx = vsi->shared;
-	device_t		dev = sc->dev;
+	int i, q, len;
+	struct iavf_vsi *vsi = &sc->vsi;
+	struct iavf_rx_queue *rx_que = vsi->rx_queues;
+	if_softc_ctx_t scctx = vsi->shared;
+	device_t dev = sc->dev;
 
 	// XXX: What happens if we only get 1 MSI-X vector?
 	MPASS(scctx->isc_vectors > 1);
@@ -142,7 +141,7 @@ iavf_map_queues(struct iavf_sc *sc)
 	q = scctx->isc_vectors - 1;
 
 	len = sizeof(struct virtchnl_irq_map_info) +
-	      (scctx->isc_vectors * sizeof(struct virtchnl_vector_map));
+	    (scctx->isc_vectors * sizeof(struct virtchnl_vector_map));
 	vm = malloc(len, M_IAVF, M_NOWAIT);
 	if (!vm) {
 		device_printf(dev, "%s: unable to allocate memory\n", __func__);
@@ -169,8 +168,7 @@ iavf_map_queues(struct iavf_sc *sc)
 	vm->vecmap[i].rxitr_idx = 0;
 	vm->vecmap[i].txitr_idx = 0;
 
-	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_IRQ_MAP,
-	    (u8 *)vm, len);
+	iavf_send_pf_msg(sc, VIRTCHNL_OP_CONFIG_IRQ_MAP, (u8 *)vm, len);
 	free(vm, M_IAVF);
 
 	return (0);

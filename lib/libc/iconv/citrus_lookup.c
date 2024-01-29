@@ -41,15 +41,15 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
 #include "citrus_db.h"
 #include "citrus_db_hash.h"
 #include "citrus_lookup.h"
 #include "citrus_lookup_file.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
 
 struct _citrus_lookup {
 	union {
@@ -64,21 +64,21 @@ struct _citrus_lookup {
 			struct _memstream ms;
 		} plain;
 	} u;
-#define cl_db		u.db.db
-#define cl_dbidx	u.db.idx
-#define cl_dbfile	u.db.file
-#define cl_dbnum	u.db.num
-#define cl_dblocator	u.db.locator
-#define cl_plainr	u.plain.r
-#define cl_plainms	u.plain.ms
+#define cl_db u.db.db
+#define cl_dbidx u.db.idx
+#define cl_dbfile u.db.file
+#define cl_dbnum u.db.num
+#define cl_dblocator u.db.locator
+#define cl_plainr u.plain.r
+#define cl_plainms u.plain.ms
 	int cl_ignore_case;
 	int cl_rewind;
 	char *cl_key;
 	size_t cl_keylen;
 	int (*cl_next)(struct _citrus_lookup *, struct _region *,
-		       struct _region *);
+	    struct _region *);
 	int (*cl_lookup)(struct _citrus_lookup *, const char *,
-			 struct _region *);
+	    struct _region *);
 	int (*cl_num_entries)(struct _citrus_lookup *);
 	void (*cl_close)(struct _citrus_lookup *);
 };
@@ -123,8 +123,8 @@ seq_lookup_db(struct _citrus_lookup *cl, const char *key, struct _region *data)
 		_bcs_convert_to_lower(cl->cl_key);
 	cl->cl_keylen = strlen(cl->cl_key);
 	_db_locator_init(&cl->cl_dblocator);
-	return (_db_lookup_by_s(cl->cl_db, cl->cl_key, data,
-	    &cl->cl_dblocator));
+	return (
+	    _db_lookup_by_s(cl->cl_db, cl->cl_key, data, &cl->cl_dblocator));
 }
 
 static void
@@ -147,8 +147,8 @@ seq_open_db(struct _citrus_lookup *cl, const char *name)
 	if (ret)
 		return (ret);
 
-	ret = _db_open(&cl->cl_db, &r, _CITRUS_LOOKUP_MAGIC,
-	    _db_hash_std, NULL);
+	ret = _db_open(&cl->cl_db, &r, _CITRUS_LOOKUP_MAGIC, _db_hash_std,
+	    NULL);
 	if (ret) {
 		_unmap_file(&r);
 		return (ret);
@@ -169,7 +169,7 @@ seq_open_db(struct _citrus_lookup *cl, const char *name)
 #define T_COMM '#'
 static int
 seq_next_plain(struct _citrus_lookup *cl, struct _region *key,
-	       struct _region *data)
+    struct _region *data)
 {
 	const char *p, *q;
 	size_t len;
@@ -193,8 +193,9 @@ retry:
 	q = _bcs_skip_nonws_len(p, &len);
 	if (p == q)
 		goto retry;
-	if (cl->cl_key && ((size_t)(q - p) != cl->cl_keylen ||
-	    memcmp(p, cl->cl_key, (size_t)(q - p)) != 0))
+	if (cl->cl_key &&
+	    ((size_t)(q - p) != cl->cl_keylen ||
+		memcmp(p, cl->cl_key, (size_t)(q - p)) != 0))
 		goto retry;
 
 	/* found a entry */
@@ -304,8 +305,8 @@ _citrus_lookup_seq_rewind(struct _citrus_lookup *cl)
 }
 
 int
-_citrus_lookup_seq_next(struct _citrus_lookup *cl,
-    struct _region *key, struct _region *data)
+_citrus_lookup_seq_next(struct _citrus_lookup *cl, struct _region *key,
+    struct _region *data)
 {
 
 	return ((*cl->cl_next)(cl, key, data));
@@ -336,8 +337,8 @@ _citrus_lookup_seq_close(struct _citrus_lookup *cl)
 }
 
 char *
-_citrus_lookup_simple(const char *name, const char *key,
-    char *linebuf, size_t linebufsize, int ignore_case)
+_citrus_lookup_simple(const char *name, const char *key, char *linebuf,
+    size_t linebufsize, int ignore_case)
 {
 	struct _citrus_lookup *cl;
 	struct _region data;

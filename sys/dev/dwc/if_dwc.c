@@ -49,38 +49,33 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
+#include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/dwc/dwc1000_core.h>
+#include <dev/dwc/dwc1000_dma.h>
+#include <dev/dwc/if_dwcvar.h>
+#include <dev/hwreset/hwreset.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/mii_fdt.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <net/bpf.h>
-#include <net/if.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
 
-#include <machine/bus.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-#include <dev/mii/mii_fdt.h>
-
-#include <dev/dwc/if_dwcvar.h>
-#include <dev/dwc/dwc1000_core.h>
-#include <dev/dwc/dwc1000_dma.h>
-
-#include "if_dwc_if.h"
 #include "gpio_if.h"
+#include "if_dwc_if.h"
 #include "miibus_if.h"
 
-static struct resource_spec dwc_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec dwc_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
 static void dwc_stop_locked(struct dwc_softc *sc);
 
@@ -142,7 +137,7 @@ dwc_txstart_locked(struct dwc_softc *sc)
 
 	ifp = sc->ifp;
 
-	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING|IFF_DRV_OACTIVE)) !=
+	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
 	    IFF_DRV_RUNNING)
 		return;
 	dma1000_txstart(sc);
@@ -169,8 +164,9 @@ dwc_init_locked(struct dwc_softc *sc)
 		return;
 
 	/*
-	 * Call mii_mediachg() which will call back into dwc1000_miibus_statchg()
-	 * to set up the remaining config registers based on current media.
+	 * Call mii_mediachg() which will call back into
+	 * dwc1000_miibus_statchg() to set up the remaining config registers
+	 * based on current media.
 	 */
 	mii_mediachg(sc->mii_softc);
 
@@ -231,7 +227,7 @@ dwc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 				flags = if_getflags(ifp) ^ sc->if_flags;
-				if ((flags & (IFF_PROMISC|IFF_ALLMULTI)) != 0)
+				if ((flags & (IFF_PROMISC | IFF_ALLMULTI)) != 0)
 					dwc1000_setup_rxfilter(sc);
 			} else {
 				if (!sc->is_detaching)
@@ -268,9 +264,11 @@ dwc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if (mask & IFCAP_TXCSUM)
 			if_togglecapenable(ifp, IFCAP_TXCSUM);
 		if ((if_getcapenable(ifp) & IFCAP_TXCSUM) != 0)
-			if_sethwassistbits(ifp, CSUM_IP | CSUM_UDP | CSUM_TCP, 0);
+			if_sethwassistbits(ifp, CSUM_IP | CSUM_UDP | CSUM_TCP,
+			    0);
 		else
-			if_sethwassistbits(ifp, 0, CSUM_IP | CSUM_UDP | CSUM_TCP);
+			if_sethwassistbits(ifp, 0,
+			    CSUM_IP | CSUM_UDP | CSUM_TCP);
 
 		if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 			DWC_LOCK(sc);
@@ -291,7 +289,6 @@ dwc_ioctl(if_t ifp, u_long cmd, caddr_t data)
  * Interrupts functions
  */
 
-
 static void
 dwc_intr(void *arg)
 {
@@ -304,7 +301,7 @@ dwc_intr(void *arg)
 	rv = dma1000_intr(sc);
 	if (rv == EIO) {
 		device_printf(sc->dev,
-		  "Ethernet DMA error, restarting controller.\n");
+		    "Ethernet DMA error, restarting controller.\n");
 		dwc_stop_locked(sc);
 		dwc_init_locked(sc);
 	}
@@ -325,7 +322,7 @@ dwc_tick(void *arg)
 	ifp = sc->ifp;
 
 	if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
-	    return;
+		return;
 
 	/*
 	 * Typical tx watchdog.  If this fires it indicates that we enqueued
@@ -366,12 +363,12 @@ dwc_reset_phy(struct dwc_softc *sc)
 	 * The new way to deal with this is to use the generic bindings
 	 * present in the ethernet-phy node.
 	 */
-	if (OF_getencprop(sc->node, "snps,reset-gpio",
-	    gpio_prop, sizeof(gpio_prop)) <= 0)
+	if (OF_getencprop(sc->node, "snps,reset-gpio", gpio_prop,
+		sizeof(gpio_prop)) <= 0)
 		return (0);
 
-	if (OF_getencprop(sc->node, "snps,reset-delays-us",
-	    delay_prop, sizeof(delay_prop)) <= 0) {
+	if (OF_getencprop(sc->node, "snps,reset-delays-us", delay_prop,
+		sizeof(delay_prop)) <= 0) {
 		device_printf(sc->dev,
 		    "Wrong property for snps,reset-delays-us");
 		return (ENXIO);
@@ -384,9 +381,8 @@ dwc_reset_phy(struct dwc_softc *sc)
 		return (ENXIO);
 	}
 
-	if (GPIO_MAP_GPIOS(gpio, sc->node, gpio_node,
-	    nitems(gpio_prop) - 1,
-	    gpio_prop + 1, &pin, &flags) != 0) {
+	if (GPIO_MAP_GPIOS(gpio, sc->node, gpio_node, nitems(gpio_prop) - 1,
+		gpio_prop + 1, &pin, &flags) != 0) {
 		device_printf(sc->dev, "Can't map gpio for phy reset\n");
 		return (ENXIO);
 	}
@@ -447,7 +443,8 @@ dwc_reset_deassert(struct dwc_softc *sc)
 	int rv;
 
 	/* Required reset */
-	rv = hwreset_get_by_ofw_name(sc->dev, 0, "stmmaceth", &sc->rst_stmmaceth);
+	rv = hwreset_get_by_ofw_name(sc->dev, 0, "stmmaceth",
+	    &sc->rst_stmmaceth);
 	if (rv != 0) {
 		device_printf(sc->dev, "Cannot get GMAC reset\n");
 		return (ENXIO);
@@ -521,9 +518,11 @@ dwc_attach(device_t dev)
 
 	if (OF_getencprop(sc->node, "snps,pbl", &pbl, sizeof(uint32_t)) <= 0)
 		pbl = DMA_DEFAULT_PBL;
-	if (OF_getencprop(sc->node, "snps,txpbl", &sc->txpbl, sizeof(uint32_t)) <= 0)
+	if (OF_getencprop(sc->node, "snps,txpbl", &sc->txpbl,
+		sizeof(uint32_t)) <= 0)
 		sc->txpbl = pbl;
-	if (OF_getencprop(sc->node, "snps,rxpbl", &sc->rxpbl, sizeof(uint32_t)) <= 0)
+	if (OF_getencprop(sc->node, "snps,rxpbl", &sc->rxpbl,
+		sizeof(uint32_t)) <= 0)
 		sc->rxpbl = pbl;
 	if (OF_hasprop(sc->node, "snps,no-pbl-x8") == 1)
 		sc->nopblx8 = true;
@@ -551,7 +550,8 @@ dwc_attach(device_t dev)
 		return (ENXIO);
 
 	if ((sc->mii_clk = IF_DWC_MII_CLK(dev)) < 0) {
-		device_printf(dev, "Cannot get mii clock value %d\n", -sc->mii_clk);
+		device_printf(dev, "Cannot get mii clock value %d\n",
+		    -sc->mii_clk);
 		return (ENXIO);
 	}
 
@@ -582,8 +582,8 @@ dwc_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	mtx_init(&sc->mtx, device_get_nameunit(sc->dev),
-	    MTX_NETWORK_LOCK, MTX_DEF);
+	mtx_init(&sc->mtx, device_get_nameunit(sc->dev), MTX_NETWORK_LOCK,
+	    MTX_DEF);
 
 	callout_init_mtx(&sc->dwc_callout, &sc->mtx, 0);
 
@@ -613,8 +613,7 @@ dwc_attach(device_t dev)
 
 	/* Attach the mii driver. */
 	error = mii_attach(dev, &sc->miibus, ifp, dwc_media_change,
-	    dwc_media_status, BMSR_DEFCAPMASK, MII_PHY_ANY,
-	    MII_OFFSET_ANY, 0);
+	    dwc_media_status, BMSR_DEFCAPMASK, MII_PHY_ANY, MII_OFFSET_ANY, 0);
 
 	if (error != 0) {
 		device_printf(dev, "PHY attach failed\n");
@@ -676,18 +675,16 @@ dwc_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t dwc_methods[] = {
-	DEVMETHOD(device_probe,		dwc_probe),
-	DEVMETHOD(device_attach,	dwc_attach),
-	DEVMETHOD(device_detach,	dwc_detach),
+static device_method_t dwc_methods[] = { DEVMETHOD(device_probe, dwc_probe),
+	DEVMETHOD(device_attach, dwc_attach),
+	DEVMETHOD(device_detach, dwc_detach),
 
 	/* MII Interface */
-	DEVMETHOD(miibus_readreg,	dwc1000_miibus_read_reg),
-	DEVMETHOD(miibus_writereg,	dwc1000_miibus_write_reg),
-	DEVMETHOD(miibus_statchg,	dwc1000_miibus_statchg),
+	DEVMETHOD(miibus_readreg, dwc1000_miibus_read_reg),
+	DEVMETHOD(miibus_writereg, dwc1000_miibus_write_reg),
+	DEVMETHOD(miibus_statchg, dwc1000_miibus_statchg),
 
-	{ 0, 0 }
-};
+	{ 0, 0 } };
 
 driver_t dwc_driver = {
 	"dwc",

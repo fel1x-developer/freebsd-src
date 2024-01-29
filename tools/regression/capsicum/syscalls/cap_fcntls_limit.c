@@ -459,10 +459,10 @@ main(void)
 		exit(0);
 	} else {
 		CHECK(pdwait(pfd) == 0);
-/*
-		It fails with EBADF, which I believe is a bug.
-		CHECK(close(pfd) == 0);
-*/
+		/*
+				It fails with EBADF, which I believe is a bug.
+				CHECK(close(pfd) == 0);
+		*/
 		fcntl_tests_1(fd);
 	}
 	CHECK(close(fd) == 0);
@@ -477,10 +477,10 @@ main(void)
 	} else {
 		fcntl_tests_1(fd);
 		CHECK(pdwait(pfd) == 0);
-/*
-		It fails with EBADF, which I believe is a bug.
-		CHECK(close(pfd) == 0);
-*/
+		/*
+				It fails with EBADF, which I believe is a bug.
+				CHECK(close(pfd) == 0);
+		*/
 	}
 	CHECK(close(fd) == 0);
 

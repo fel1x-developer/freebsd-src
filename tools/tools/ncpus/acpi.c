@@ -32,23 +32,24 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
+
 #include <assert.h>
+#include <devinfo.h>
 #include <err.h>
 #include <fcntl.h>
+#include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <paths.h>
-#include <devinfo.h>
 
 #include "acpidump.h"
 
-static void	acpi_handle_apic(struct ACPIsdt *sdp);
+static void acpi_handle_apic(struct ACPIsdt *sdp);
 static struct ACPIsdt *acpi_map_sdt(vm_offset_t pa);
-static void	acpi_handle_rsdt(struct ACPIsdt *rsdp);
+static void acpi_handle_rsdt(struct ACPIsdt *rsdp);
 static struct acpi_user_mapping *acpi_user_find_mapping(vm_offset_t, size_t);
-static void *	acpi_map_physical(vm_offset_t, size_t);
+static void *acpi_map_physical(vm_offset_t, size_t);
 
 /* Size of an address. 32-bit for ACPI 1.0, 64-bit for ACPI 2.0 and up. */
 static int addr_size;
@@ -65,25 +66,25 @@ acpi_handle_apic(struct ACPIsdt *sdp)
 	struct MADT_local_apic *apic;
 	struct MADT_local_sapic *sapic;
 
-	madtp = (struct MADTbody *) sdp->body;
+	madtp = (struct MADTbody *)sdp->body;
 	mp = (struct MADT_APIC *)madtp->body;
 	while (((uintptr_t)mp) - ((uintptr_t)sdp) < sdp->len) {
 		switch (mp->type) {
 		case ACPI_MADT_APIC_TYPE_LOCAL_APIC:
 			apic = &mp->body.local_apic;
-			warnx("MADT: Found CPU APIC ID %d %s",
-			    apic->cpu_id,
+			warnx("MADT: Found CPU APIC ID %d %s", apic->cpu_id,
 			    apic->flags & ACPI_MADT_APIC_LOCAL_FLAG_ENABLED ?
-				"enabled" : "disabled");
+				"enabled" :
+				"disabled");
 			if (apic->flags & ACPI_MADT_APIC_LOCAL_FLAG_ENABLED)
 				ncpu++;
 			break;
 		case ACPI_MADT_APIC_TYPE_LOCAL_SAPIC:
 			sapic = &mp->body.local_sapic;
-			warnx("MADT: Found CPU SAPIC ID %d %s",
-			    sapic->cpu_id,
+			warnx("MADT: Found CPU SAPIC ID %d %s", sapic->cpu_id,
 			    sapic->flags & ACPI_MADT_APIC_LOCAL_FLAG_ENABLED ?
-				"enabled" : "disabled");
+				"enabled" :
+				"disabled");
 			/* XXX is enable flag the same? */
 			if (sapic->flags & ACPI_MADT_APIC_LOCAL_FLAG_ENABLED)
 				ncpu++;
@@ -91,7 +92,7 @@ acpi_handle_apic(struct ACPIsdt *sdp)
 		default:
 			break;
 		}
-		mp = (struct MADT_APIC *) ((char *)mp + mp->len);
+		mp = (struct MADT_APIC *)((char *)mp + mp->len);
 	}
 }
 
@@ -112,7 +113,7 @@ acpi_checksum(void *p, size_t length)
 static struct ACPIsdt *
 acpi_map_sdt(vm_offset_t pa)
 {
-	struct	ACPIsdt *sp;
+	struct ACPIsdt *sp;
 
 	sp = acpi_map_physical(pa, sizeof(struct ACPIsdt));
 	sp = acpi_map_physical(pa, sp->len);
@@ -130,10 +131,10 @@ acpi_handle_rsdt(struct ACPIsdt *rsdp)
 	for (i = 0; i < entries; i++) {
 		switch (addr_size) {
 		case 4:
-			addr = le32dec((char*)rsdp->body + i * addr_size);
+			addr = le32dec((char *)rsdp->body + i * addr_size);
 			break;
 		case 8:
-			addr = le64dec((char*)rsdp->body + i * addr_size);
+			addr = le64dec((char *)rsdp->body + i * addr_size);
 			break;
 		default:
 			assert((addr = 0));
@@ -152,14 +153,14 @@ acpi_handle_rsdt(struct ACPIsdt *rsdp)
 	}
 }
 
-static char	machdep_acpi_root[] = "machdep.acpi_root";
-static int      acpi_mem_fd = -1;
+static char machdep_acpi_root[] = "machdep.acpi_root";
+static int acpi_mem_fd = -1;
 
 struct acpi_user_mapping {
 	LIST_ENTRY(acpi_user_mapping) link;
-	vm_offset_t     pa;
-	caddr_t         va;
-	size_t          size;
+	vm_offset_t pa;
+	caddr_t va;
+	size_t size;
 };
 
 LIST_HEAD(acpi_user_mapping_list, acpi_user_mapping) maplist;
@@ -179,7 +180,7 @@ acpi_user_init(void)
 static struct acpi_user_mapping *
 acpi_user_find_mapping(vm_offset_t pa, size_t size)
 {
-	struct	acpi_user_mapping *map;
+	struct acpi_user_mapping *map;
 
 	/* First search for an existing mapping */
 	for (map = LIST_FIRST(&maplist); map; map = LIST_NEXT(map, link)) {
@@ -196,7 +197,7 @@ acpi_user_find_mapping(vm_offset_t pa, size_t size)
 	map->pa = pa;
 	map->va = mmap(0, size, PROT_READ, MAP_SHARED, acpi_mem_fd, pa);
 	map->size = size;
-	if ((intptr_t) map->va == -1)
+	if ((intptr_t)map->va == -1)
 		err(1, "can't map address");
 	LIST_INSERT_HEAD(&maplist, map, link);
 
@@ -206,7 +207,7 @@ acpi_user_find_mapping(vm_offset_t pa, size_t size)
 static void *
 acpi_map_physical(vm_offset_t pa, size_t size)
 {
-	struct	acpi_user_mapping *map;
+	struct acpi_user_mapping *map;
 
 	map = acpi_user_find_mapping(pa, size);
 	return (map->va + (pa - map->pa));
@@ -264,8 +265,7 @@ acpi0_check(struct devinfo_dev *dd, void *arg)
 	printf("%s: %s %s\n", __func__, dd->dd_name, devstate(dd->dd_state));
 	/* NB: device must be present AND attached */
 	if (strcmp(dd->dd_name, "acpi0") == 0)
-		return (dd->dd_state == DS_ATTACHED ||
-			dd->dd_state == DS_BUSY);
+		return (dd->dd_state == DS_ATTACHED || dd->dd_state == DS_BUSY);
 	return devinfo_foreach_device_child(dd, acpi0_check, arg);
 }
 
@@ -307,8 +307,9 @@ acpi_detect(void)
 	}
 	rp = acpi_get_rsdp(addr);
 	if (rp == NULL) {
-		warnx("cannot find ACPI information: sysctl %s does not point to RSDP",
-			machdep_acpi_root);
+		warnx(
+		    "cannot find ACPI information: sysctl %s does not point to RSDP",
+		    machdep_acpi_root);
 		return -1;
 	}
 	if (rp->revision < 2) {

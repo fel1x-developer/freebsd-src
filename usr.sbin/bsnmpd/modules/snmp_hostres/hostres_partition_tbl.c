@@ -41,30 +41,30 @@
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <sysexits.h>
+#include <syslog.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
-#define	HR_FREEBSD_PART_TYPE	165
+#define HR_FREEBSD_PART_TYPE 165
 
 /* Maximum length for label and id including \0 */
-#define	PART_STR_MLEN	(128 + 1)
+#define PART_STR_MLEN (128 + 1)
 
 /*
  * One row in the hrPartitionTable
  */
 struct partition_entry {
-	asn_subid_t	index[2];
-	u_char		*label;	/* max allocated len will be PART_STR_MLEN */
-	u_char		*id;	/* max allocated len will be PART_STR_MLEN */
-	int32_t		size;
-	int32_t		fs_Index;
+	asn_subid_t index[2];
+	u_char *label; /* max allocated len will be PART_STR_MLEN */
+	u_char *id;    /* max allocated len will be PART_STR_MLEN */
+	int32_t size;
+	int32_t fs_Index;
 	TAILQ_ENTRY(partition_entry) link;
-#define	HR_PARTITION_FOUND		0x001
-	uint32_t	flags;
+#define HR_PARTITION_FOUND 0x001
+	uint32_t flags;
 };
 TAILQ_HEAD(partition_tbl, partition_entry);
 
@@ -73,25 +73,25 @@ TAILQ_HEAD(partition_tbl, partition_entry);
  * mapping while we rebuild the partition table.
  */
 struct partition_map_entry {
-	int32_t		index;	/* partition_entry::index */
-	u_char		*id;	/* max allocated len will be PART_STR_MLEN */
+	int32_t index; /* partition_entry::index */
+	u_char *id;    /* max allocated len will be PART_STR_MLEN */
 
 	/*
 	 * next may be NULL if the respective partition_entry
 	 * is (temporally) gone.
 	 */
-	struct partition_entry	*entry;
+	struct partition_entry *entry;
 	STAILQ_ENTRY(partition_map_entry) link;
 };
 STAILQ_HEAD(partition_map, partition_map_entry);
 
 /* Mapping table for consistent indexing */
-static struct partition_map partition_map =
-    STAILQ_HEAD_INITIALIZER(partition_map);
+static struct partition_map partition_map = STAILQ_HEAD_INITIALIZER(
+    partition_map);
 
 /* THE partition table. */
-static struct partition_tbl partition_tbl =
-    TAILQ_HEAD_INITIALIZER(partition_tbl);
+static struct partition_tbl partition_tbl = TAILQ_HEAD_INITIALIZER(
+    partition_tbl);
 
 /* next int available for indexing the hrPartitionTable */
 static uint32_t next_partition_index = 1;
@@ -162,7 +162,7 @@ partition_entry_create(int32_t ds_index, const char *chunk_name)
 		return (NULL);
 
 	/* check whether we already have seen this partition */
-	STAILQ_FOREACH(map, &partition_map, link)
+	STAILQ_FOREACH (map, &partition_map, link)
 		if (strcmp(map->id, chunk_name) == 0)
 			break;
 
@@ -198,12 +198,12 @@ partition_entry_create(int32_t ds_index, const char *chunk_name)
 
 		STAILQ_INSERT_TAIL(&partition_map, map, link);
 
-		HRDBG("%s added into hrPartitionMap at index=%d",
-		    chunk_name, map->index);
+		HRDBG("%s added into hrPartitionMap at index=%d", chunk_name,
+		    map->index);
 
 	} else {
-		HRDBG("%s exists in hrPartitionMap index=%d",
-		    chunk_name, map->index);
+		HRDBG("%s exists in hrPartitionMap index=%d", chunk_name,
+		    map->index);
 	}
 
 	if ((entry = malloc(sizeof(*entry))) == NULL) {
@@ -232,7 +232,7 @@ partition_entry_create(int32_t ds_index, const char *chunk_name)
 	if (id_len > PART_STR_MLEN)
 		id_len = PART_STR_MLEN;
 
-	if ((entry->label = malloc(id_len )) == NULL) {
+	if ((entry->label = malloc(id_len)) == NULL) {
 		free(entry->id);
 		free(entry);
 		return (NULL);
@@ -257,7 +257,7 @@ partition_entry_delete(struct partition_entry *entry)
 	assert(entry != NULL);
 
 	TAILQ_REMOVE(&partition_tbl, entry, link);
-	STAILQ_FOREACH(map, &partition_map, link)
+	STAILQ_FOREACH (map, &partition_map, link)
 		if (map->entry == entry) {
 			map->entry = NULL;
 			break;
@@ -273,9 +273,9 @@ partition_entry_delete(struct partition_entry *entry)
 static struct partition_entry *
 partition_entry_find_by_name(const char *name)
 {
-	struct partition_entry *entry =  NULL;
+	struct partition_entry *entry = NULL;
 
-	TAILQ_FOREACH(entry, &partition_tbl, link)
+	TAILQ_FOREACH (entry, &partition_tbl, link)
 		if (strcmp(entry->id, name) == 0)
 			return (entry);
 
@@ -288,9 +288,9 @@ partition_entry_find_by_name(const char *name)
 static struct partition_entry *
 partition_entry_find_by_label(const char *name)
 {
-	struct partition_entry *entry =  NULL;
+	struct partition_entry *entry = NULL;
 
-	TAILQ_FOREACH(entry, &partition_tbl, link)
+	TAILQ_FOREACH (entry, &partition_tbl, link)
 		if (strcmp(entry->label, name) == 0)
 			return (entry);
 
@@ -316,8 +316,8 @@ handle_chunk(int32_t ds_index, const char *chunk_name, off_t chunk_size)
 	HRDBG("ANALYZE chunk %s", chunk_name);
 
 	if ((entry = partition_entry_find_by_name(chunk_name)) == NULL)
-		if ((entry = partition_entry_create(ds_index,
-		    chunk_name)) == NULL)
+		if ((entry = partition_entry_create(ds_index, chunk_name)) ==
+		    NULL)
 			return;
 
 	entry->flags |= HR_PARTITION_FOUND;
@@ -338,7 +338,7 @@ partition_tbl_pre_refresh(void)
 	struct partition_entry *entry;
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &partition_tbl, link)
+	TAILQ_FOREACH (entry, &partition_tbl, link)
 		entry->flags &= ~HR_PARTITION_FOUND;
 }
 
@@ -351,7 +351,7 @@ find_class(struct gmesh *mesh, const char *name)
 {
 	struct gclass *classp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class)
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class)
 		if (strcmp(classp->lg_name, name) == 0)
 			return (classp);
 	return (NULL);
@@ -368,7 +368,7 @@ get_mbr(struct gclass *classp, int32_t ds_index, const char *disk_dev_name)
 	struct gconfig *conf;
 	long part_type;
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		/* We are only interested in partitions from this disk */
 		if (strcmp(gp->lg_name, disk_dev_name) != 0)
 			continue;
@@ -376,8 +376,8 @@ get_mbr(struct gclass *classp, int32_t ds_index, const char *disk_dev_name)
 		/*
 		 * Find all the non-BSD providers (these are handled in get_bsd)
 		 */
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
-			LIST_FOREACH(conf, &pp->lg_config, lg_config) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
+			LIST_FOREACH (conf, &pp->lg_config, lg_config) {
 				if (conf->lg_name == NULL ||
 				    conf->lg_val == NULL ||
 				    strcmp(conf->lg_name, "type") != 0)
@@ -397,8 +397,8 @@ get_mbr(struct gclass *classp, int32_t ds_index, const char *disk_dev_name)
 				    (intmax_t)pp->lg_mediasize / 1024);
 				HRDBG("Sectorsize: %u", pp->lg_sectorsize);
 				HRDBG("Mode: %s", pp->lg_mode);
-				HRDBG("CONFIG: %s: %s",
-				    conf->lg_name, conf->lg_val);
+				HRDBG("CONFIG: %s: %s", conf->lg_name,
+				    conf->lg_val);
 
 				handle_chunk(ds_index, pp->lg_name,
 				    pp->lg_mediasize);
@@ -416,16 +416,16 @@ get_bsd_sun(struct gclass *classp, int32_t ds_index, const char *disk_dev_name)
 	struct ggeom *gp;
 	struct gprovider *pp;
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		/*
 		 * We are only interested in those geoms starting with
 		 * the disk_dev_name passed as parameter to this function.
 		 */
 		if (strncmp(gp->lg_name, disk_dev_name,
-		    strlen(disk_dev_name)) != 0)
+			strlen(disk_dev_name)) != 0)
 			continue;
 
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 			if (pp->lg_name == NULL)
 				continue;
 			handle_chunk(ds_index, pp->lg_name, pp->lg_mediasize);
@@ -443,7 +443,7 @@ get_bsd_sun(struct gclass *classp, int32_t ds_index, const char *disk_dev_name)
 void
 partition_tbl_handle_disk(int32_t ds_index, const char *disk_dev_name)
 {
-	struct gmesh mesh;	/* GEOM userland tree */
+	struct gmesh mesh; /* GEOM userland tree */
 	struct gclass *classp;
 	int error;
 
@@ -505,7 +505,7 @@ partition_tbl_post_refresh(void)
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(e, &partition_tbl, link, etmp)
+	TAILQ_FOREACH_SAFE (e, &partition_tbl, link, etmp)
 		if (!(e->flags & HR_PARTITION_FOUND))
 			partition_entry_delete(e);
 }
@@ -521,7 +521,7 @@ fini_partition_tbl(void)
 
 	while ((m = STAILQ_FIRST(&partition_map)) != NULL) {
 		STAILQ_REMOVE_HEAD(&partition_map, link);
-		if(m->entry != NULL) {
+		if (m->entry != NULL) {
 			TAILQ_REMOVE(&partition_tbl, m->entry, link);
 			free(m->entry->id);
 			free(m->entry->label);
@@ -571,8 +571,8 @@ op_hrPartitionTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	switch (op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_FUNC(&partition_tbl,
-		    &value->var, sub, partition_idx_cmp)) == NULL)
+		if ((entry = NEXT_OBJECT_FUNC(&partition_tbl, &value->var, sub,
+			 partition_idx_cmp)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 
 		value->var.len = sub + 2;
@@ -582,14 +582,14 @@ op_hrPartitionTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_FUNC(&partition_tbl,
-		    &value->var, sub, partition_idx_cmp)) == NULL)
+		if ((entry = FIND_OBJECT_FUNC(&partition_tbl, &value->var, sub,
+			 partition_idx_cmp)) == NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_FUNC(&partition_tbl,
-		    &value->var, sub, partition_idx_cmp)) == NULL)
+		if ((entry = FIND_OBJECT_FUNC(&partition_tbl, &value->var, sub,
+			 partition_idx_cmp)) == NULL)
 			return (SNMP_ERR_NOT_WRITEABLE);
 		return (SNMP_ERR_NO_CREATION);
 
@@ -599,7 +599,7 @@ op_hrPartitionTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrPartitionIndex:
@@ -610,7 +610,7 @@ op_hrPartitionTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 		return (string_get(value, entry->label, -1));
 
 	case LEAF_hrPartitionID:
-		return(string_get(value, entry->id, -1));
+		return (string_get(value, entry->id, -1));
 
 	case LEAF_hrPartitionSize:
 		value->v.integer = entry->size;

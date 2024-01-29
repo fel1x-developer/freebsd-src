@@ -61,9 +61,9 @@
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #include "clock_if.h"
@@ -72,45 +72,45 @@
 /*
  * I2C address 1101 000x
  */
-#define	DS13xx_ADDR		0xd0
+#define DS13xx_ADDR 0xd0
 
 /*
  * Registers, bits within them, and masks for the various chip types.
  */
 
-#define	DS13xx_R_NONE		0xff	/* Placeholder */
+#define DS13xx_R_NONE 0xff /* Placeholder */
 
-#define	DS130x_R_CONTROL	0x07
-#define	DS133x_R_CONTROL	0x0e
-#define	DS1340_R_CONTROL	0x07
-#define	DS1341_R_CONTROL	0x0e
-#define	DS1371_R_CONTROL	0x07
-#define	DS1372_R_CONTROL	0x07
-#define	DS1374_R_CONTROL	0x07
-#define	DS1375_R_CONTROL	0x0e
-#define	DS1388_R_CONTROL	0x0c
+#define DS130x_R_CONTROL 0x07
+#define DS133x_R_CONTROL 0x0e
+#define DS1340_R_CONTROL 0x07
+#define DS1341_R_CONTROL 0x0e
+#define DS1371_R_CONTROL 0x07
+#define DS1372_R_CONTROL 0x07
+#define DS1374_R_CONTROL 0x07
+#define DS1375_R_CONTROL 0x0e
+#define DS1388_R_CONTROL 0x0c
 
-#define	DS13xx_R_SECOND		0x00
-#define	DS1388_R_SECOND		0x01
+#define DS13xx_R_SECOND 0x00
+#define DS1388_R_SECOND 0x01
 
-#define	DS130x_R_STATUS		DS13xx_R_NONE
-#define	DS133x_R_STATUS		0x0f
-#define	DS1340_R_STATUS		0x09
-#define	DS137x_R_STATUS		0x08
-#define	DS1388_R_STATUS		0x0b
+#define DS130x_R_STATUS DS13xx_R_NONE
+#define DS133x_R_STATUS 0x0f
+#define DS1340_R_STATUS 0x09
+#define DS137x_R_STATUS 0x08
+#define DS1388_R_STATUS 0x0b
 
-#define	DS13xx_B_STATUS_OSF	0x80	/* OSF is 1<<7 in status and sec regs */
-#define	DS13xx_B_HOUR_AMPM	0x40	/* AMPM mode is bit 1<<6 */
-#define	DS13xx_B_HOUR_PM	0x20	/* PM hours indicated by 1<<5 */
-#define	DS13xx_B_MONTH_CENTURY	0x80	/* 21st century indicated by 1<<7 */
+#define DS13xx_B_STATUS_OSF 0x80    /* OSF is 1<<7 in status and sec regs */
+#define DS13xx_B_HOUR_AMPM 0x40	    /* AMPM mode is bit 1<<6 */
+#define DS13xx_B_HOUR_PM 0x20	    /* PM hours indicated by 1<<5 */
+#define DS13xx_B_MONTH_CENTURY 0x80 /* 21st century indicated by 1<<7 */
 
-#define	DS13xx_M_SECOND		0x7f	/* Masks for all BCD time regs... */
-#define	DS13xx_M_MINUTE		0x7f
-#define	DS13xx_M_12HOUR		0x1f
-#define	DS13xx_M_24HOUR		0x3f
-#define	DS13xx_M_DAY		0x3f
-#define	DS13xx_M_MONTH		0x1f
-#define	DS13xx_M_YEAR		0xff
+#define DS13xx_M_SECOND 0x7f /* Masks for all BCD time regs... */
+#define DS13xx_M_MINUTE 0x7f
+#define DS13xx_M_12HOUR 0x1f
+#define DS13xx_M_24HOUR 0x3f
+#define DS13xx_M_DAY 0x3f
+#define DS13xx_M_MONTH 0x1f
+#define DS13xx_M_YEAR 0xff
 
 /*
  * The chip types we support.
@@ -159,14 +159,14 @@ struct time_regs {
 };
 
 struct ds13rtc_softc {
-	device_t	dev;
-	device_t	busdev;
-	u_int		chiptype;	/* Type of DS13xx chip */
-	uint8_t		secaddr;	/* Address of seconds register */
-	uint8_t		osfaddr;	/* Address of register with OSF */
-	bool		use_ampm;	/* Use AM/PM mode. */
-	bool		use_century;	/* Use the Century bit. */
-	bool		is_binary_counter; /* Chip has 32-bit binary counter. */
+	device_t dev;
+	device_t busdev;
+	u_int chiptype;		/* Type of DS13xx chip */
+	uint8_t secaddr;	/* Address of seconds register */
+	uint8_t osfaddr;	/* Address of register with OSF */
+	bool use_ampm;		/* Use AM/PM mode. */
+	bool use_century;	/* Use the Century bit. */
+	bool is_binary_counter; /* Chip has 32-bit binary counter. */
 };
 
 /*
@@ -178,26 +178,26 @@ typedef struct ofw_compat_data ds13_compat_data;
 #else
 typedef struct {
 	const char *ocd_str;
-	uintptr_t  ocd_data;
+	uintptr_t ocd_data;
 } ds13_compat_data;
 #endif
 
 static ds13_compat_data compat_data[] = {
-	{"dallas,ds1307",   TYPE_DS1307},
-	{"dallas,ds1308",   TYPE_DS1308},
-	{"dallas,ds1337",   TYPE_DS1337},
-	{"dallas,ds1338",   TYPE_DS1338},
-	{"dallas,ds1339",   TYPE_DS1339},
-	{"dallas,ds1340",   TYPE_DS1340},
-	{"dallas,ds1341",   TYPE_DS1341},
-	{"dallas,ds1342",   TYPE_DS1342},
-	{"dallas,ds1371",   TYPE_DS1371},
-	{"dallas,ds1372",   TYPE_DS1372},
-	{"dallas,ds1374",   TYPE_DS1374},
-	{"dallas,ds1375",   TYPE_DS1375},
-	{"dallas,ds1388",   TYPE_DS1388},
+	{ "dallas,ds1307", TYPE_DS1307 },
+	{ "dallas,ds1308", TYPE_DS1308 },
+	{ "dallas,ds1337", TYPE_DS1337 },
+	{ "dallas,ds1338", TYPE_DS1338 },
+	{ "dallas,ds1339", TYPE_DS1339 },
+	{ "dallas,ds1340", TYPE_DS1340 },
+	{ "dallas,ds1341", TYPE_DS1341 },
+	{ "dallas,ds1342", TYPE_DS1342 },
+	{ "dallas,ds1371", TYPE_DS1371 },
+	{ "dallas,ds1372", TYPE_DS1372 },
+	{ "dallas,ds1374", TYPE_DS1374 },
+	{ "dallas,ds1375", TYPE_DS1375 },
+	{ "dallas,ds1388", TYPE_DS1388 },
 
-	{NULL,              TYPE_NONE},
+	{ NULL, TYPE_NONE },
 };
 
 static int
@@ -219,8 +219,8 @@ read_timeregs(struct ds13rtc_softc *sc, struct time_regs *tregs)
 {
 	int err;
 
-	if ((err = iicdev_readfrom(sc->dev, sc->secaddr, tregs,
-	    sizeof(*tregs), IIC_WAIT)) != 0)
+	if ((err = iicdev_readfrom(sc->dev, sc->secaddr, tregs, sizeof(*tregs),
+		 IIC_WAIT)) != 0)
 		return (err);
 
 	return (err);
@@ -230,8 +230,8 @@ static int
 write_timeregs(struct ds13rtc_softc *sc, struct time_regs *tregs)
 {
 
-	return (iicdev_writeto(sc->dev, sc->secaddr, tregs,
-	    sizeof(*tregs), IIC_WAIT));
+	return (iicdev_writeto(sc->dev, sc->secaddr, tregs, sizeof(*tregs),
+	    IIC_WAIT));
 }
 
 static int
@@ -241,7 +241,7 @@ read_timeword(struct ds13rtc_softc *sc, time_t *secs)
 	uint8_t buf[4];
 
 	if ((err = iicdev_readfrom(sc->dev, sc->secaddr, buf, sizeof(buf),
-	    IIC_WAIT)) == 0)
+		 IIC_WAIT)) == 0)
 		*secs = le32dec(buf);
 
 	return (err);
@@ -253,8 +253,8 @@ write_timeword(struct ds13rtc_softc *sc, time_t secs)
 	uint8_t buf[4];
 
 	le32enc(buf, (uint32_t)secs);
-	return (iicdev_writeto(sc->dev, sc->secaddr, buf, sizeof(buf),
-	    IIC_WAIT));
+	return (
+	    iicdev_writeto(sc->dev, sc->secaddr, buf, sizeof(buf), IIC_WAIT));
 }
 
 static void
@@ -314,7 +314,7 @@ ds13rtc_start(void *arg)
 		return;
 	}
 	if (statreg & DS13xx_B_STATUS_OSF) {
-		device_printf(sc->dev, 
+		device_printf(sc->dev,
 		    "WARNING: RTC battery failed; time is invalid\n");
 	}
 
@@ -379,13 +379,13 @@ ds13rtc_gettime(device_t dev, struct timespec *ts)
 		hourmask = DS13xx_M_24HOUR;
 
 	bct.nsec = 0;
-	bct.ispm = tregs.hour  & DS13xx_B_HOUR_PM;
-	bct.sec  = tregs.sec   & DS13xx_M_SECOND;
-	bct.min  = tregs.min   & DS13xx_M_MINUTE;
-	bct.hour = tregs.hour  & hourmask;
-	bct.day  = tregs.day   & DS13xx_M_DAY;
-	bct.mon  = tregs.month & DS13xx_M_MONTH;
-	bct.year = tregs.year  & DS13xx_M_YEAR;
+	bct.ispm = tregs.hour & DS13xx_B_HOUR_PM;
+	bct.sec = tregs.sec & DS13xx_M_SECOND;
+	bct.min = tregs.min & DS13xx_M_MINUTE;
+	bct.hour = tregs.hour & hourmask;
+	bct.day = tregs.day & DS13xx_M_DAY;
+	bct.mon = tregs.month & DS13xx_M_MONTH;
+	bct.year = tregs.year & DS13xx_M_YEAR;
 
 	/*
 	 * If this chip has a century bit, honor it.  Otherwise let
@@ -394,7 +394,7 @@ ds13rtc_gettime(device_t dev, struct timespec *ts)
 	if (sc->use_century)
 		bct.year += (tregs.month & DS13xx_B_MONTH_CENTURY) ? 0x100 : 0;
 
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct);
 	err = clock_bcd_to_ts(&bct, ts, sc->use_ampm);
 
 	return (err);
@@ -422,7 +422,7 @@ ds13rtc_settime(device_t dev, struct timespec *ts)
 		return (write_timeword(sc, ts->tv_sec));
 
 	clock_ts_to_bcd(ts, &bct, sc->use_ampm);
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_WRITE, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_WRITE, &bct);
 
 	/* If the chip is in AMPM mode deal with the PM flag. */
 	pmflags = 0;
@@ -439,13 +439,13 @@ ds13rtc_settime(device_t dev, struct timespec *ts)
 			cflag |= DS13xx_B_MONTH_CENTURY;
 	}
 
-	tregs.sec   = bct.sec;
-	tregs.min   = bct.min;
-	tregs.hour  = bct.hour | pmflags;
-	tregs.day   = bct.day;
+	tregs.sec = bct.sec;
+	tregs.min = bct.min;
+	tregs.hour = bct.hour | pmflags;
+	tregs.day = bct.day;
 	tregs.month = bct.mon | cflag;
-	tregs.year  = bct.year & 0xff;
-	tregs.wday  = bct.dow;
+	tregs.year = bct.year & 0xff;
+	tregs.wday = bct.dow;
 
 	/*
 	 * Set the time.  Reset the OSF bit if it is on and it is not part of
@@ -478,13 +478,13 @@ ds13rtc_get_chiptype(device_t dev)
 	return (ofw_bus_search_compatible(dev, compat_data)->ocd_data);
 #else
 	ds13_compat_data *cdata;
-	const char *htype; 
+	const char *htype;
 
 	/*
 	 * We can only attach if provided a chiptype hint string.
 	 */
-	if (resource_string_value(device_get_name(dev), 
-	    device_get_unit(dev), "compatible", &htype) != 0)
+	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
+		"compatible", &htype) != 0)
 		return (TYPE_NONE);
 
 	/*
@@ -538,7 +538,7 @@ ds13rtc_attach(device_t dev)
 	}
 
 	/* The seconds register is in the same place on all except DS1388. */
-	if (sc->chiptype == TYPE_DS1388) 
+	if (sc->chiptype == TYPE_DS1388)
 		sc->secaddr = DS1388_R_SECOND;
 	else
 		sc->secaddr = DS13xx_R_SECOND;
@@ -594,16 +594,15 @@ ds13rtc_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t ds13rtc_methods[] = {
-	DEVMETHOD(device_probe,		ds13rtc_probe),
-	DEVMETHOD(device_attach,	ds13rtc_attach),
-	DEVMETHOD(device_detach,	ds13rtc_detach),
+static device_method_t ds13rtc_methods[] = { DEVMETHOD(device_probe,
+						 ds13rtc_probe),
+	DEVMETHOD(device_attach, ds13rtc_attach),
+	DEVMETHOD(device_detach, ds13rtc_detach),
 
-	DEVMETHOD(clock_gettime,	ds13rtc_gettime),
-	DEVMETHOD(clock_settime,	ds13rtc_settime),
+	DEVMETHOD(clock_gettime, ds13rtc_gettime),
+	DEVMETHOD(clock_settime, ds13rtc_settime),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ds13rtc_driver = {
 	"ds13rtc",

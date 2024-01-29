@@ -25,9 +25,8 @@
  */
 
 #ifndef _LINUXKPI_LINUX_MMU_NOTIFIER_H_
-#define	_LINUXKPI_LINUX_MMU_NOTIFIER_H_
+#define _LINUXKPI_LINUX_MMU_NOTIFIER_H_
 
-struct mmu_notifier {
-};
+struct mmu_notifier { };
 
 #endif /* _LINUXKPI_LINUX_MMU_NOTIFIER_H_ */

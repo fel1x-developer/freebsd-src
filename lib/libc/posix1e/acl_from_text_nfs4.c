@@ -25,19 +25,20 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
-#include <pwd.h>
-#include <grp.h>
-#include <ctype.h>
-#include <err.h>
-#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/acl.h>
+#include <sys/syscall.h>
+
+#include <assert.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <grp.h>
+#include <pwd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "acl_support.h"
 
@@ -168,7 +169,7 @@ parse_appended_id(char *str, acl_entry_t entry)
 	qualifier_length = strlen(str);
 	if (qualifier_length == 0) {
 		warnx("malformed ACL: \"appended id\" field present, "
-	           "but empty");
+		      "but empty");
 		return (-1);
 	}
 
@@ -262,7 +263,8 @@ _nfs4_acl_entry_from_text(acl_t aclp, char *str)
 	if (need_qualifier) {
 		if (str == NULL) {
 			warnx("malformed ACL: unknown user or group name "
-			    "\"%s\"", qualifier_field);
+			      "\"%s\"",
+			    qualifier_field);
 			goto truncated_entry;
 		}
 

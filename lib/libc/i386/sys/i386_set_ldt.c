@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <machine/segments.h>
 #include <machine/sysarch.h>
 
@@ -39,7 +40,7 @@ i386_set_ldt(int start, union descriptor *descs, int num)
 
 	p.start = start;
 	p.descs = descs;
-	p.num   = num;
+	p.num = num;
 
 	return sysarch(I386_SET_LDT, &p);
 }

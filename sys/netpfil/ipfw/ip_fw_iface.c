@@ -29,8 +29,8 @@
  *
  */
 
-#include "opt_ipfw.h"
 #include "opt_inet.h"
+#include "opt_ipfw.h"
 #ifndef INET
 #error IPFIREWALL requires INET.
 #endif /* INET */
@@ -38,28 +38,27 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
-#include <sys/rmlock.h>
-#include <sys/socket.h>
+#include <sys/malloc.h>
 #include <sys/queue.h>
-#include <sys/eventhandler.h>
+#include <sys/rmlock.h>
+#include <sys/rwlock.h>
+#include <sys/socket.h>
+
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
-#include <netinet/ip_var.h>	/* struct ipfw_rule_ref */
 #include <netinet/ip_fw.h>
-
+#include <netinet/ip_var.h> /* struct ipfw_rule_ref */
 #include <netpfil/ipfw/ip_fw_private.h>
 
-#define	CHAIN_TO_II(ch)		((struct namedobj_instance *)ch->ifcfg)
+#define CHAIN_TO_II(ch) ((struct namedobj_instance *)ch->ifcfg)
 
-#define	DEFAULT_IFACES	128
+#define DEFAULT_IFACES 128
 
 static void handle_ifdetach(struct ip_fw_chain *ch, struct ipfw_iface *iif,
     uint16_t ifindex);
@@ -68,8 +67,8 @@ static void handle_ifattach(struct ip_fw_chain *ch, struct ipfw_iface *iif,
 static int list_ifaces(struct ip_fw_chain *ch, ip_fw3_opheader *op3,
     struct sockopt_data *sd);
 
-static struct ipfw_sopt_handler	scodes[] = {
-	{ IP_FW_XIFLIST,	0,	HDIR_GET,	list_ifaces },
+static struct ipfw_sopt_handler scodes[] = {
+	{ IP_FW_XIFLIST, 0, HDIR_GET, list_ifaces },
 };
 
 /*
@@ -108,7 +107,7 @@ ipfw_kifhandler(void *arg, struct ifnet *ifp)
 		IPFW_UH_WUNLOCK(ch);
 		return;
 	}
-	iif = (struct ipfw_iface*)ipfw_objhash_lookup_name(ii, 0,
+	iif = (struct ipfw_iface *)ipfw_objhash_lookup_name(ii, 0,
 	    if_name(ifp));
 	if (iif != NULL) {
 		if (htype == 1)
@@ -141,12 +140,10 @@ iface_khandler_register(void)
 
 	printf("IPFW: starting up interface tracker\n");
 
-	ipfw_ifdetach_event = EVENTHANDLER_REGISTER(
-	    ifnet_departure_event, ipfw_kifhandler, NULL,
-	    EVENTHANDLER_PRI_ANY);
-	ipfw_ifattach_event = EVENTHANDLER_REGISTER(
-	    ifnet_arrival_event, ipfw_kifhandler, (void*)((uintptr_t)1),
-	    EVENTHANDLER_PRI_ANY);
+	ipfw_ifdetach_event = EVENTHANDLER_REGISTER(ifnet_departure_event,
+	    ipfw_kifhandler, NULL, EVENTHANDLER_PRI_ANY);
+	ipfw_ifattach_event = EVENTHANDLER_REGISTER(ifnet_arrival_event,
+	    ipfw_kifhandler, (void *)((uintptr_t)1), EVENTHANDLER_PRI_ANY);
 }
 
 /*
@@ -169,10 +166,8 @@ iface_khandler_deregister(void)
 	if (destroy == 0)
 		return;
 
-	EVENTHANDLER_DEREGISTER(ifnet_arrival_event,
-	    ipfw_ifattach_event);
-	EVENTHANDLER_DEREGISTER(ifnet_departure_event,
-	    ipfw_ifdetach_event);
+	EVENTHANDLER_DEREGISTER(ifnet_arrival_event, ipfw_ifattach_event);
+	EVENTHANDLER_DEREGISTER(ifnet_departure_event, ipfw_ifdetach_event);
 }
 
 /*
@@ -249,8 +244,7 @@ vnet_ipfw_iface_init(struct ip_fw_chain *ch)
 }
 
 static int
-destroy_iface(struct namedobj_instance *ii, struct named_object *no,
-    void *arg)
+destroy_iface(struct namedobj_instance *ii, struct named_object *no, void *arg)
 {
 
 	/* Assume all consumers have been already detached */
@@ -288,8 +282,7 @@ vnet_ipfw_iface_destroy(struct ip_fw_chain *ch)
  * Returns 0 on success.
  */
 int
-ipfw_iface_ref(struct ip_fw_chain *ch, char *name,
-    struct ipfw_ifc *ic)
+ipfw_iface_ref(struct ip_fw_chain *ch, char *name, struct ipfw_ifc *ic)
 {
 	struct namedobj_instance *ii;
 	struct ipfw_iface *iif, *tmp;
@@ -428,7 +421,7 @@ handle_ifattach(struct ip_fw_chain *ch, struct ipfw_iface *iif,
 	iif->ifindex = ifindex;
 
 	IPFW_WLOCK(ch);
-	TAILQ_FOREACH(ic, &iif->consumers, next)
+	TAILQ_FOREACH (ic, &iif->consumers, next)
 		ic->cb(ch, ic->cbdata, iif->ifindex);
 	IPFW_WUNLOCK(ch);
 }
@@ -445,7 +438,7 @@ handle_ifdetach(struct ip_fw_chain *ch, struct ipfw_iface *iif,
 	IPFW_UH_WLOCK_ASSERT(ch);
 
 	IPFW_WLOCK(ch);
-	TAILQ_FOREACH(ic, &iif->consumers, next)
+	TAILQ_FOREACH (ic, &iif->consumers, next)
 		ic->cb(ch, ic->cbdata, 0);
 	IPFW_WUNLOCK(ch);
 
@@ -500,7 +493,8 @@ list_ifaces(struct ip_fw_chain *ch, ip_fw3_opheader *op3,
 	struct dump_iface_args da;
 	uint32_t count, size;
 
-	olh = (struct _ipfw_obj_lheader *)ipfw_get_sopt_header(sd,sizeof(*olh));
+	olh = (struct _ipfw_obj_lheader *)ipfw_get_sopt_header(sd,
+	    sizeof(*olh));
 	if (olh == NULL)
 		return (EINVAL);
 	if (sd->valsize < olh->size)

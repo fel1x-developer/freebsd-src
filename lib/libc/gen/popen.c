@@ -32,22 +32,23 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/wait.h>
 
-#include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <paths.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
-#include <pthread.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 struct pid {
 	SLIST_ENTRY(pid) next;
@@ -57,8 +58,12 @@ struct pid {
 static SLIST_HEAD(, pid) pidlist = SLIST_HEAD_INITIALIZER(pidlist);
 static pthread_mutex_t pidlist_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#define	THREAD_LOCK()	if (__isthreaded) _pthread_mutex_lock(&pidlist_mutex)
-#define	THREAD_UNLOCK()	if (__isthreaded) _pthread_mutex_unlock(&pidlist_mutex)
+#define THREAD_LOCK()     \
+	if (__isthreaded) \
+	_pthread_mutex_lock(&pidlist_mutex)
+#define THREAD_UNLOCK()   \
+	if (__isthreaded) \
+	_pthread_mutex_unlock(&pidlist_mutex)
 
 FILE *
 popen(const char *command, const char *type)
@@ -78,7 +83,7 @@ popen(const char *command, const char *type)
 	if (strchr(type, '+')) {
 		twoway = 1;
 		type = "r+";
-	} else  {
+	} else {
 		twoway = 0;
 		if ((*type != 'r' && *type != 'w') ||
 		    (type[1] && (type[1] != 'e' || type[2])))
@@ -114,7 +119,7 @@ popen(const char *command, const char *type)
 
 	THREAD_LOCK();
 	switch (pid = vfork()) {
-	case -1:			/* Error. */
+	case -1: /* Error. */
 		THREAD_UNLOCK();
 		/*
 		 * The _close() closes the unused end of pdes[], while
@@ -126,7 +131,7 @@ popen(const char *command, const char *type)
 		(void)fclose(iop);
 		return (NULL);
 		/* NOTREACHED */
-	case 0:				/* Child. */
+	case 0: /* Child. */
 		if (*type == 'r') {
 			/*
 			 * The _dup2() to STDIN_FILENO is repeated to avoid
@@ -139,7 +144,8 @@ popen(const char *command, const char *type)
 			if (pdes[1] != STDOUT_FILENO) {
 				(void)_dup2(pdes[1], STDOUT_FILENO);
 				if (twoway)
-					(void)_dup2(STDOUT_FILENO, STDIN_FILENO);
+					(void)_dup2(STDOUT_FILENO,
+					    STDIN_FILENO);
 			} else if (twoway && (pdes[1] != STDIN_FILENO)) {
 				(void)_dup2(pdes[1], STDIN_FILENO);
 				(void)_fcntl(pdes[1], F_SETFD, 0);
@@ -151,7 +157,7 @@ popen(const char *command, const char *type)
 			} else
 				(void)_fcntl(pdes[0], F_SETFD, 0);
 		}
-		SLIST_FOREACH(p, &pidlist, next)
+		SLIST_FOREACH (p, &pidlist, next)
 			(void)_close(fileno(p->fp));
 		_execve(_PATH_BSHELL, argv, environ);
 		_exit(127);
@@ -196,7 +202,7 @@ pclose(FILE *iop)
 	 * Find the appropriate file pointer and remove it from the list.
 	 */
 	THREAD_LOCK();
-	SLIST_FOREACH(cur, &pidlist, next) {
+	SLIST_FOREACH (cur, &pidlist, next) {
 		if (cur->fp == iop)
 			break;
 		last = cur;

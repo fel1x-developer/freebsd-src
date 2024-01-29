@@ -31,9 +31,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
-
 #include <ieeefp.h>
+
+#include "namespace.h"
 #ifdef SOFTFLOAT_FOR_GCC
 #include "softfloat-for-gcc.h"
 #endif
@@ -41,11 +41,10 @@
 #include "softfloat.h"
 
 #ifdef __weak_alias
-__weak_alias(fpsetmask,_fpsetmask)
+__weak_alias(fpsetmask, _fpsetmask)
 #endif
 
-fp_except
-fpsetmask(fp_except mask)
+    fp_except fpsetmask(fp_except mask)
 {
 	fp_except old;
 

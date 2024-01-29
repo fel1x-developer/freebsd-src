@@ -31,8 +31,8 @@
 #include "math.h"
 #include "math_private.h"
 
-static const uint32_t k = 235;			/* constant for reduction */
-static const float kln2 =  162.88958740F;	/* k * ln2 */
+static const uint32_t k = 235;		 /* constant for reduction */
+static const float kln2 = 162.88958740F; /* k * ln2 */
 
 /*
  * See k_exp.c for details.
@@ -82,6 +82,6 @@ __ldexp_cexpf(float complex z, int expt)
 	SET_FLOAT_WORD(scale2, (0x7f + half_expt) << 23);
 
 	sincosf(y, &s, &c);
-	return (CMPLXF(c * exp_x * scale1 * scale2,
-	    s * exp_x * scale1 * scale2));
+	return (
+	    CMPLXF(c * exp_x * scale1 * scale2, s * exp_x * scale1 * scale2));
 }

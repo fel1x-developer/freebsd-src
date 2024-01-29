@@ -25,6 +25,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -32,25 +34,23 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "audio_dai_if.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "dummy-codec",	1},
-	{ NULL,			0 }
-};
+static struct ofw_compat_data compat_data[] = { { "dummy-codec", 1 },
+	{ NULL, 0 } };
 
 struct dummy_codec_softc {
-	device_t	dev;
+	device_t dev;
 };
 
 static int dummy_codec_probe(device_t dev);
@@ -101,11 +101,11 @@ dummy_codec_dai_init(device_t dev, uint32_t format)
 
 static device_method_t dummy_codec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dummy_codec_probe),
-	DEVMETHOD(device_attach,	dummy_codec_attach),
-	DEVMETHOD(device_detach,	dummy_codec_detach),
+	DEVMETHOD(device_probe, dummy_codec_probe),
+	DEVMETHOD(device_attach, dummy_codec_attach),
+	DEVMETHOD(device_detach, dummy_codec_detach),
 
-	DEVMETHOD(audio_dai_init,	dummy_codec_dai_init),
+	DEVMETHOD(audio_dai_init, dummy_codec_dai_init),
 
 	DEVMETHOD_END
 };

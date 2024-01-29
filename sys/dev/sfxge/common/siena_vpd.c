@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -38,12 +39,9 @@
 
 #if EFSYS_OPT_SIENA
 
-static	__checkReturn			efx_rc_t
-siena_vpd_get_static(
-	__in				efx_nic_t *enp,
-	__in				uint32_t partn,
-	__deref_out_bcount_opt(*sizep)	caddr_t *svpdp,
-	__out				size_t *sizep)
+static __checkReturn efx_rc_t
+siena_vpd_get_static(__in efx_nic_t *enp, __in uint32_t partn,
+    __deref_out_bcount_opt(*sizep) caddr_t *svpdp, __out size_t *sizep)
 {
 	siena_mc_static_config_hdr_t *scfg;
 	caddr_t svpd;
@@ -57,7 +55,7 @@ siena_vpd_get_static(
 	efx_rc_t rc;
 
 	EFSYS_ASSERT(partn == MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT0 ||
-		    partn == MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT1);
+	    partn == MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT1);
 
 	/* Allocate sufficient memory for the entire static cfg area */
 	if ((rc = siena_nvram_partn_size(enp, partn, &size)) != 0)
@@ -74,8 +72,8 @@ siena_vpd_get_static(
 		goto fail3;
 	}
 
-	if ((rc = siena_nvram_partn_read(enp, partn, 0,
-	    (caddr_t)scfg, SIENA_NVRAM_CHUNK)) != 0)
+	if ((rc = siena_nvram_partn_read(enp, partn, 0, (caddr_t)scfg,
+		 SIENA_NVRAM_CHUNK)) != 0)
 		goto fail4;
 
 	/* Verify the magic number */
@@ -103,8 +101,8 @@ siena_vpd_get_static(
 	region = vpd_offset + vpd_length;
 	if (region > SIENA_NVRAM_CHUNK) {
 		if ((rc = siena_nvram_partn_read(enp, partn, SIENA_NVRAM_CHUNK,
-		    (caddr_t)scfg + SIENA_NVRAM_CHUNK,
-		    region - SIENA_NVRAM_CHUNK)) != 0)
+			 (caddr_t)scfg + SIENA_NVRAM_CHUNK,
+			 region - SIENA_NVRAM_CHUNK)) != 0)
 			goto fail7;
 	}
 
@@ -161,9 +159,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_init(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_vpd_init(__in efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	caddr_t svpd = NULL;
@@ -173,9 +170,8 @@ siena_vpd_init(
 
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_SIENA);
 
-	partn = (emip->emi_port == 1)
-		? MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT0
-		: MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT1;
+	partn = (emip->emi_port == 1) ? MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT0 :
+					MC_CMD_NVRAM_TYPE_STATIC_CFG_PORT1;
 
 	/*
 	 * We need the static VPD sector to present a unified static+dynamic
@@ -205,10 +201,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_size(
-	__in			efx_nic_t *enp,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+siena_vpd_size(__in efx_nic_t *enp, __out size_t *sizep)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	uint32_t partn;
@@ -224,9 +218,8 @@ siena_vpd_size(
 	 * (as version numbers are inserted), just be safe and return the
 	 * total size of the dynamic_config *sector*
 	 */
-	partn = (emip->emi_port == 1)
-		? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0
-		: MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
+	partn = (emip->emi_port == 1) ? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 :
+					MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
 
 	if ((rc = siena_nvram_partn_size(enp, partn, sizep)) != 0)
 		goto fail1;
@@ -239,11 +232,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_read(
-	__in			efx_nic_t *enp,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_vpd_read(__in efx_nic_t *enp, __out_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	siena_mc_dynamic_config_hdr_t *dcfg = NULL;
@@ -255,19 +246,19 @@ siena_vpd_read(
 
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_SIENA);
 
-	dcfg_partn = (emip->emi_port == 1)
-		? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0
-		: MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
+	dcfg_partn = (emip->emi_port == 1) ?
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 :
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
 
-	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn,
-	    B_TRUE, &dcfg, &dcfg_size)) != 0)
+	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn, B_TRUE, &dcfg,
+		 &dcfg_size)) != 0)
 		goto fail1;
 
 	vpd_length = EFX_DWORD_FIELD(dcfg->dynamic_vpd_length, EFX_DWORD_0);
 	vpd_offset = EFX_DWORD_FIELD(dcfg->dynamic_vpd_offset, EFX_DWORD_0);
 
 	if (vpd_length > size) {
-		rc = EFAULT;	/* Invalid dcfg: header bigger than sector */
+		rc = EFAULT; /* Invalid dcfg: header bigger than sector */
 		goto fail2;
 	}
 
@@ -291,11 +282,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_verify(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_vpd_verify(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	efx_vpd_tag_t stag;
 	efx_vpd_tag_t dtag;
@@ -327,8 +316,8 @@ siena_vpd_verify(
 	dcont = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_hunk_next(data, size, &dtag,
-		    &dkey, NULL, NULL, &dcont)) != 0)
+		if ((rc = efx_vpd_hunk_next(data, size, &dtag, &dkey, NULL,
+			 NULL, &dcont)) != 0)
 			goto fail2;
 		if (dcont == 0)
 			break;
@@ -343,10 +332,9 @@ siena_vpd_verify(
 		scont = 0;
 		_NOTE(CONSTANTCONDITION)
 		while (1) {
-			if ((rc = efx_vpd_hunk_next(
-			    enp->en_u.siena.enu_svpd,
-			    enp->en_u.siena.enu_svpd_length, &stag, &skey,
-			    NULL, NULL, &scont)) != 0)
+			if ((rc = efx_vpd_hunk_next(enp->en_u.siena.enu_svpd,
+				 enp->en_u.siena.enu_svpd_length, &stag, &skey,
+				 NULL, NULL, &scont)) != 0)
 				goto fail3;
 			if (scont == 0)
 				break;
@@ -373,11 +361,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_reinit(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_vpd_reinit(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	boolean_t wantpid;
 	efx_rc_t rc;
@@ -392,8 +378,8 @@ siena_vpd_reinit(
 		uint8_t length;
 
 		rc = efx_vpd_hunk_get(enp->en_u.siena.enu_svpd,
-				    enp->en_u.siena.enu_svpd_length,
-				    EFX_VPD_ID, 0, &offset, &length);
+		    enp->en_u.siena.enu_svpd_length, EFX_VPD_ID, 0, &offset,
+		    &length);
 		if (rc == 0)
 			wantpid = B_FALSE;
 		else if (rc == ENOENT)
@@ -415,12 +401,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_get(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__inout			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+siena_vpd_get(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __inout efx_vpd_value_t *evvp)
 {
 	unsigned int offset;
 	uint8_t length;
@@ -431,8 +414,8 @@ siena_vpd_get(
 	/* Attempt to satisfy the request from svpd first */
 	if (enp->en_u.siena.enu_svpd_length > 0) {
 		if ((rc = efx_vpd_hunk_get(enp->en_u.siena.enu_svpd,
-		    enp->en_u.siena.enu_svpd_length, evvp->evv_tag,
-		    evvp->evv_keyword, &offset, &length)) == 0) {
+			 enp->en_u.siena.enu_svpd_length, evvp->evv_tag,
+			 evvp->evv_keyword, &offset, &length)) == 0) {
 			evvp->evv_length = length;
 			memcpy(evvp->evv_value,
 			    enp->en_u.siena.enu_svpd + offset, length);
@@ -442,8 +425,8 @@ siena_vpd_get(
 	}
 
 	/* And then from the provided data buffer */
-	if ((rc = efx_vpd_hunk_get(data, size, evvp->evv_tag,
-	    evvp->evv_keyword, &offset, &length)) != 0) {
+	if ((rc = efx_vpd_hunk_get(data, size, evvp->evv_tag, evvp->evv_keyword,
+		 &offset, &length)) != 0) {
 		if (rc == ENOENT)
 			return (rc);
 
@@ -463,12 +446,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_set(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+siena_vpd_set(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __in efx_vpd_value_t *evvp)
 {
 	efx_rc_t rc;
 
@@ -480,8 +460,8 @@ siena_vpd_set(
 		uint8_t length;
 
 		if ((rc = efx_vpd_hunk_get(enp->en_u.siena.enu_svpd,
-		    enp->en_u.siena.enu_svpd_length, evvp->evv_tag,
-		    evvp->evv_keyword, &offset, &length)) == 0) {
+			 enp->en_u.siena.enu_svpd_length, evvp->evv_tag,
+			 evvp->evv_keyword, &offset, &length)) == 0) {
 			rc = EACCES;
 			goto fail1;
 		}
@@ -500,24 +480,18 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_next(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__out			efx_vpd_value_t *evvp,
-	__inout			unsigned int *contp)
+__checkReturn efx_rc_t
+siena_vpd_next(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __out efx_vpd_value_t *evvp, __inout unsigned int *contp)
 {
 	_NOTE(ARGUNUSED(enp, data, size, evvp, contp))
 
 	return (ENOTSUP);
 }
 
-	__checkReturn		efx_rc_t
-siena_vpd_write(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_vpd_write(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	siena_mc_dynamic_config_hdr_t *dcfg = NULL;
@@ -537,9 +511,9 @@ siena_vpd_write(
 		goto fail1;
 
 	/* Lock dynamic config sector for write, and read structure only */
-	dcfg_partn = (emip->emi_port == 1)
-		? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0
-		: MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
+	dcfg_partn = (emip->emi_port == 1) ?
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 :
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
 
 	if ((rc = siena_nvram_partn_size(enp, dcfg_partn, &partn_size)) != 0)
 		goto fail2;
@@ -547,8 +521,8 @@ siena_vpd_write(
 	if ((rc = siena_nvram_partn_lock(enp, dcfg_partn)) != 0)
 		goto fail3;
 
-	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn,
-	    B_FALSE, &dcfg, &dcfg_size)) != 0)
+	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn, B_FALSE, &dcfg,
+		 &dcfg_size)) != 0)
 		goto fail4;
 
 	hdr_length = EFX_WORD_FIELD(dcfg->length, EFX_WORD_0);
@@ -577,7 +551,7 @@ siena_vpd_write(
 
 	/* Write out the new structure to nvram */
 	if ((rc = siena_nvram_partn_write(enp, dcfg_partn, 0, (caddr_t)dcfg,
-	    vpd_offset + vpd_length)) != 0)
+		 vpd_offset + vpd_length)) != 0)
 		goto fail7;
 
 	EFSYS_KMEM_FREE(enp->en_esip, dcfg_size, dcfg);
@@ -608,21 +582,20 @@ fail1:
 	return (rc);
 }
 
-				void
-siena_vpd_fini(
-	__in			efx_nic_t *enp)
+void
+siena_vpd_fini(__in efx_nic_t *enp)
 {
 	EFSYS_ASSERT(enp->en_family == EFX_FAMILY_SIENA);
 
 	if (enp->en_u.siena.enu_svpd_length > 0) {
 		EFSYS_KMEM_FREE(enp->en_esip, enp->en_u.siena.enu_svpd_length,
-				enp->en_u.siena.enu_svpd);
+		    enp->en_u.siena.enu_svpd);
 
 		enp->en_u.siena.enu_svpd = NULL;
 		enp->en_u.siena.enu_svpd_length = 0;
 	}
 }
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
-#endif	/* EFSYS_OPT_VPD */
+#endif /* EFSYS_OPT_VPD */

@@ -26,44 +26,43 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/usb_pci.h>
 #include <dev/usb/controller/xhci.h>
 #include <dev/usb/controller/xhcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_pci.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+
 #include "usb_if.h"
 
-#define	PCI_XHCI_VENDORID_AMD		0x1022
-#define	PCI_XHCI_VENDORID_INTEL		0x8086
-#define	PCI_XHCI_VENDORID_VMWARE	0x15ad
-#define	PCI_XHCI_VENDORID_ZHAOXIN	0x1d17
+#define PCI_XHCI_VENDORID_AMD 0x1022
+#define PCI_XHCI_VENDORID_INTEL 0x8086
+#define PCI_XHCI_VENDORID_VMWARE 0x15ad
+#define PCI_XHCI_VENDORID_ZHAOXIN 0x1d17
 
 static device_probe_t xhci_pci_probe;
 static device_detach_t xhci_pci_detach;
@@ -188,7 +187,8 @@ xhci_pci_match(device_t self)
 	case 0x9a178086:
 		return ("Intel Tiger Lake-H Thunderbolt 4 USB controller");
 	case 0x9cb18086:
-		return ("Broadwell Integrated PCH-LP chipset USB 3.0 controller");
+		return (
+		    "Broadwell Integrated PCH-LP chipset USB 3.0 controller");
 	case 0x9d2f8086:
 		return ("Intel Sunrise Point-LP USB 3.0 controller");
 	case 0xa0ed8086:
@@ -219,12 +219,12 @@ xhci_pci_match(device_t self)
 		break;
 	}
 
-	if ((pci_get_class(self) == PCIC_SERIALBUS)
-	    && (pci_get_subclass(self) == PCIS_SERIALBUS_USB)
-	    && (pci_get_progif(self) == PCIP_SERIALBUS_USB_XHCI)) {
+	if ((pci_get_class(self) == PCIC_SERIALBUS) &&
+	    (pci_get_subclass(self) == PCIS_SERIALBUS_USB) &&
+	    (pci_get_progif(self) == PCIP_SERIALBUS_USB_XHCI)) {
 		return ("XHCI (generic) USB 3.0 controller");
 	}
-	return (NULL);			/* dunno */
+	return (NULL); /* dunno */
 }
 
 static int
@@ -300,25 +300,25 @@ xhci_pci_attach(device_t self)
 	sc->sc_io_size = rman_get_size(sc->sc_io_res);
 
 	switch (pci_get_devid(self)) {
-	case 0x10091b73:	/* Fresco Logic FL1009 USB3.0 xHCI Controller */
-	case 0x8241104c:	/* TUSB73x0 USB3.0 xHCI Controller */
+	case 0x10091b73: /* Fresco Logic FL1009 USB3.0 xHCI Controller */
+	case 0x8241104c: /* TUSB73x0 USB3.0 xHCI Controller */
 		sc->sc_no_deconfigure = 1;
 		break;
-	case 0x01941033:	/* NEC uPD720200 USB 3.0 controller */
-	case 0x00141912:	/* NEC uPD720201 USB 3.0 controller */
+	case 0x01941033: /* NEC uPD720200 USB 3.0 controller */
+	case 0x00141912: /* NEC uPD720201 USB 3.0 controller */
 		/* Don't use 64-bit DMA on these controllers. */
 		usedma32 = 1;
 		break;
-	case 0x10001b73:	/* FL1000G */
+	case 0x10001b73: /* FL1000G */
 		/* Fresco Logic host doesn't support MSI. */
 		usemsi = 0;
 		break;
-	case 0x0f358086:	/* BayTrail */
-	case 0x9c318086:	/* Panther Point */
-	case 0x1e318086:	/* Panther Point */
-	case 0x8c318086:	/* Lynx Point */
-	case 0x8cb18086:	/* Wildcat Point */
-	case 0x9cb18086:	/* Broadwell Mobile Integrated */
+	case 0x0f358086: /* BayTrail */
+	case 0x9c318086: /* Panther Point */
+	case 0x1e318086: /* Panther Point */
+	case 0x8c318086: /* Lynx Point */
+	case 0x8cb18086: /* Wildcat Point */
+	case 0x9cb18086: /* Broadwell Mobile Integrated */
 		/*
 		 * On Intel chipsets, reroute ports from EHCI to XHCI
 		 * controller and use a different IMOD value.
@@ -364,8 +364,8 @@ xhci_pci_attach(device_t self)
 			} else {
 				if (sc->sc_msix_res != sc->sc_io_res) {
 					bus_release_resource(self,
-					    SYS_RES_MEMORY,
-					    msix_table, sc->sc_msix_res);
+					    SYS_RES_MEMORY, msix_table,
+					    sc->sc_msix_res);
 				}
 				sc->sc_msix_res = NULL;
 			}
@@ -410,20 +410,22 @@ xhci_pci_attach(device_t self)
 		if (bootverbose)
 			device_printf(self, "(New XHCI DeviceId=0x%08x)\n",
 			    pci_get_devid(self));
-		snprintf(sc->sc_vendor, sizeof(sc->sc_vendor),
-		    "(0x%04x)", pci_get_vendor(self));
+		snprintf(sc->sc_vendor, sizeof(sc->sc_vendor), "(0x%04x)",
+		    pci_get_vendor(self));
 		break;
 	}
 
 	if (sc->sc_irq_res != NULL && xhci_use_polling() == 0) {
-		err = bus_setup_intr(self, sc->sc_irq_res, INTR_TYPE_BIO | INTR_MPSAFE,
-		    NULL, (driver_intr_t *)xhci_interrupt, sc, &sc->sc_intr_hdl);
+		err = bus_setup_intr(self, sc->sc_irq_res,
+		    INTR_TYPE_BIO | INTR_MPSAFE, NULL,
+		    (driver_intr_t *)xhci_interrupt, sc, &sc->sc_intr_hdl);
 		if (err != 0) {
 			bus_release_resource(self, SYS_RES_IRQ,
 			    rman_get_rid(sc->sc_irq_res), sc->sc_irq_res);
 			sc->sc_irq_res = NULL;
 			pci_release_msi(self);
-			device_printf(self, "Could not setup IRQ, err=%d\n", err);
+			device_printf(self, "Could not setup IRQ, err=%d\n",
+			    err);
 			sc->sc_intr_hdl = NULL;
 		}
 	}
@@ -448,7 +450,8 @@ xhci_pci_attach(device_t self)
 		err = device_probe_and_attach(sc->sc_bus.bdev);
 
 	if (err) {
-		device_printf(self, "XHCI halt/start/probe failed err=%d\n", err);
+		device_printf(self, "XHCI halt/start/probe failed err=%d\n",
+		    err);
 		goto error;
 	}
 	return (0);
@@ -513,24 +516,23 @@ xhci_pci_take_controller(device_t self)
 	eec = -1;
 
 	/* Synchronise with the BIOS if it owns the controller. */
-	for (eecp = XHCI_HCS0_XECP(cparams) << 2; eecp != 0 && XHCI_XECP_NEXT(eec);
-	    eecp += XHCI_XECP_NEXT(eec) << 2) {
+	for (eecp = XHCI_HCS0_XECP(cparams) << 2;
+	     eecp != 0 && XHCI_XECP_NEXT(eec);
+	     eecp += XHCI_XECP_NEXT(eec) << 2) {
 		eec = XREAD4(sc, capa, eecp);
 
 		if (XHCI_XECP_ID(eec) != XHCI_ID_USB_LEGACY)
 			continue;
-		bios_sem = XREAD1(sc, capa, eecp +
-		    XHCI_XECP_BIOS_SEM);
+		bios_sem = XREAD1(sc, capa, eecp + XHCI_XECP_BIOS_SEM);
 		if (bios_sem == 0)
 			continue;
-		device_printf(sc->sc_bus.bdev, "waiting for BIOS "
+		device_printf(sc->sc_bus.bdev,
+		    "waiting for BIOS "
 		    "to give up control\n");
-		XWRITE1(sc, capa, eecp +
-		    XHCI_XECP_OS_SEM, 1);
+		XWRITE1(sc, capa, eecp + XHCI_XECP_OS_SEM, 1);
 		to = 500;
 		while (1) {
-			bios_sem = XREAD1(sc, capa, eecp +
-			    XHCI_XECP_BIOS_SEM);
+			bios_sem = XREAD1(sc, capa, eecp + XHCI_XECP_BIOS_SEM);
 			if (bios_sem == 0)
 				break;
 
@@ -539,7 +541,7 @@ xhci_pci_take_controller(device_t self)
 				    "timed out waiting for BIOS\n");
 				break;
 			}
-			usb_pause_mtx(NULL, hz / 100);	/* wait 10ms */
+			usb_pause_mtx(NULL, hz / 100); /* wait 10ms */
 		}
 	}
 	return (0);

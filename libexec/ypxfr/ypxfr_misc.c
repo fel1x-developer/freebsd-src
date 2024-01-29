@@ -33,14 +33,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <sys/param.h>
+
 #include <rpc/rpc.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "ypxfr_extern.h"
 
 const char *
@@ -140,32 +142,33 @@ ypxfr_get_master(char *domain, char *map, char *source, const int yplib)
 				yp_errno = (enum ypstat)YPXFR_YPERR;
 				break;
 			}
-			return(NULL);
+			return (NULL);
 		} else {
 			snprintf(mastername, sizeof(mastername), "%s", master);
 			free(master);
-			return((char *)&mastername);
+			return ((char *)&mastername);
 		}
 	} else {
 		CLIENT *clnt;
 		ypresp_master *resp;
 		ypreq_nokey req;
 
-		if ((clnt = clnt_create(source,YPPROG,YPVERS,"udp")) == NULL) {
-			yp_error("%s",clnt_spcreateerror("failed to \
+		if ((clnt = clnt_create(source, YPPROG, YPVERS, "udp")) ==
+		    NULL) {
+			yp_error("%s", clnt_spcreateerror("failed to \
 create udp handle to ypserv"));
 			yp_errno = (enum ypstat)YPXFR_RPC;
-			return(NULL);
+			return (NULL);
 		}
 
 		req.map = map;
 		req.domain = domain;
 		if ((resp = ypproc_master_2(&req, clnt)) == NULL) {
-			yp_error("%s",clnt_sperror(clnt,"YPPROC_MASTER \
+			yp_error("%s", clnt_sperror(clnt, "YPPROC_MASTER \
 failed"));
 			clnt_destroy(clnt);
 			yp_errno = (enum ypstat)YPXFR_RPC;
-			return(NULL);
+			return (NULL);
 		}
 		clnt_destroy(clnt);
 		if (resp->stat != YP_TRUE) {
@@ -181,11 +184,11 @@ failed"));
 				yp_errno = (enum ypstat)YPXFR_YPERR;
 				break;
 			}
-			return(NULL);
+			return (NULL);
 		}
 		snprintf(mastername, sizeof(mastername), "%s", resp->peer);
-/*		xdr_free(xdr_ypresp_master, (char *)&resp); */
-		return((char *)&mastername);
+		/*		xdr_free(xdr_ypresp_master, (char *)&resp); */
+		return ((char *)&mastername);
 	}
 }
 
@@ -208,19 +211,20 @@ ypxfr_get_order(char *domain, char *map, char *source, const int yplib)
 				yp_errno = (enum ypstat)YPXFR_YPERR;
 				break;
 			}
-			return(0);
+			return (0);
 		} else
-			return(order);
+			return (order);
 	} else {
 		CLIENT *clnt;
 		ypresp_order *resp;
 		ypreq_nokey req;
 
-		if ((clnt = clnt_create(source,YPPROG,YPVERS,"udp")) == NULL) {
-			yp_error("%s",clnt_spcreateerror("couldn't create \
+		if ((clnt = clnt_create(source, YPPROG, YPVERS, "udp")) ==
+		    NULL) {
+			yp_error("%s", clnt_spcreateerror("couldn't create \
 udp handle to ypserv"));
 			yp_errno = (enum ypstat)YPXFR_RPC;
-			return(0);
+			return (0);
 		}
 		req.map = map;
 		req.domain = domain;
@@ -229,7 +233,7 @@ udp handle to ypserv"));
 failed"));
 			clnt_destroy(clnt);
 			yp_errno = (enum ypstat)YPXFR_RPC;
-			return(0);
+			return (0);
 		}
 		clnt_destroy(clnt);
 		if (resp->stat != YP_TRUE) {
@@ -245,9 +249,9 @@ failed"));
 				yp_errno = (enum ypstat)YPXFR_YPERR;
 				break;
 			}
-			return(0);
+			return (0);
 		}
-		return(resp->ordernum);
+		return (resp->ordernum);
 	}
 }
 
@@ -262,10 +266,10 @@ ypxfr_match(char *server, char *domain, char *map, char *key,
 
 	bzero(buf, sizeof(buf));
 
-	if ((clnt = clnt_create(server, YPPROG,YPVERS,"udp")) == NULL) {
+	if ((clnt = clnt_create(server, YPPROG, YPVERS, "udp")) == NULL) {
 		yp_error("failed to create UDP handle: %s",
-					clnt_spcreateerror(server));
-		return(0);
+		    clnt_spcreateerror(server));
+		return (0);
 	}
 
 	ypkey.domain = domain;
@@ -276,18 +280,18 @@ ypxfr_match(char *server, char *domain, char *map, char *key,
 	if ((ypval = ypproc_match_2(&ypkey, clnt)) == NULL) {
 		clnt_destroy(clnt);
 		yp_error("%s: %s", server,
-				clnt_sperror(clnt,"YPPROC_MATCH failed"));
-		return(0);
+		    clnt_sperror(clnt, "YPPROC_MATCH failed"));
+		return (0);
 	}
 
 	clnt_destroy(clnt);
 
 	if (ypval->stat != YP_TRUE) {
 		xdr_free((xdrproc_t)xdr_ypresp_val, ypval);
-		return(0);
+		return (0);
 	}
 
 	xdr_free((xdrproc_t)xdr_ypresp_val, ypval);
 
-	return(1);
+	return (1);
 }

@@ -27,11 +27,11 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
 #include <sys/filio.h>
 #include <sys/ioccom.h>
-#include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/ucred.h>
 #include <sys/uio.h>
@@ -52,51 +52,51 @@
 
 #include "inetd.h"
 
-static void	chargen_dg(int, struct servtab *);
-static void	chargen_stream(int, struct servtab *);
-static void	daytime_dg(int, struct servtab *);
-static void	daytime_stream(int, struct servtab *);
-static void	discard_dg(int, struct servtab *);
-static void	discard_stream(int, struct servtab *);
-static void	echo_dg(int, struct servtab *);
-static void	echo_stream(int, struct servtab *);
-static int	get_line(int, char *, int);
-static void	iderror(int, int, int, const char *);
-static void	ident_stream(int, struct servtab *);
-static void	initring(void);
-static uint32_t	machtime(void);
-static void	machtime_dg(int, struct servtab *);
-static void	machtime_stream(int, struct servtab *);
+static void chargen_dg(int, struct servtab *);
+static void chargen_stream(int, struct servtab *);
+static void daytime_dg(int, struct servtab *);
+static void daytime_stream(int, struct servtab *);
+static void discard_dg(int, struct servtab *);
+static void discard_stream(int, struct servtab *);
+static void echo_dg(int, struct servtab *);
+static void echo_stream(int, struct servtab *);
+static int get_line(int, char *, int);
+static void iderror(int, int, int, const char *);
+static void ident_stream(int, struct servtab *);
+static void initring(void);
+static uint32_t machtime(void);
+static void machtime_dg(int, struct servtab *);
+static void machtime_stream(int, struct servtab *);
 
 static char ring[128];
 static char *endring;
 
 struct biltin biltins[] = {
 	/* Echo received data */
-	{ "echo",	SOCK_STREAM,	1, -1,	echo_stream },
-	{ "echo",	SOCK_DGRAM,	0, 1,	echo_dg },
+	{ "echo", SOCK_STREAM, 1, -1, echo_stream },
+	{ "echo", SOCK_DGRAM, 0, 1, echo_dg },
 
 	/* Internet /dev/null */
-	{ "discard",	SOCK_STREAM,	1, -1,	discard_stream },
-	{ "discard",	SOCK_DGRAM,	0, 1,	discard_dg },
+	{ "discard", SOCK_STREAM, 1, -1, discard_stream },
+	{ "discard", SOCK_DGRAM, 0, 1, discard_dg },
 
 	/* Return 32 bit time since 1900 */
-	{ "time",	SOCK_STREAM,	0, -1,	machtime_stream },
-	{ "time",	SOCK_DGRAM,	0, 1,	machtime_dg },
+	{ "time", SOCK_STREAM, 0, -1, machtime_stream },
+	{ "time", SOCK_DGRAM, 0, 1, machtime_dg },
 
 	/* Return human-readable time */
-	{ "daytime",	SOCK_STREAM,	0, -1,	daytime_stream },
-	{ "daytime",	SOCK_DGRAM,	0, 1,	daytime_dg },
+	{ "daytime", SOCK_STREAM, 0, -1, daytime_stream },
+	{ "daytime", SOCK_DGRAM, 0, 1, daytime_dg },
 
 	/* Familiar character generator */
-	{ "chargen",	SOCK_STREAM,	1, -1,	chargen_stream },
-	{ "chargen",	SOCK_DGRAM,	0, 1,	chargen_dg },
+	{ "chargen", SOCK_STREAM, 1, -1, chargen_stream },
+	{ "chargen", SOCK_DGRAM, 0, 1, chargen_dg },
 
-	{ "tcpmux",	SOCK_STREAM,	1, -1,	(bi_fn_t *)tcpmux },
+	{ "tcpmux", SOCK_STREAM, 1, -1, (bi_fn_t *)tcpmux },
 
-	{ "auth",	SOCK_STREAM,	1, -1,	ident_stream },
+	{ "auth", SOCK_STREAM, 1, -1, ident_stream },
 
-	{ NULL,		0,		0, 0,	NULL }
+	{ NULL, 0, 0, 0, NULL }
 };
 
 /*
@@ -128,7 +128,7 @@ chargen_dg(int s, struct servtab *sep)
 	static char *rs;
 	int len;
 	socklen_t size;
-	char text[LINESIZ+2];
+	char text[LINESIZ + 2];
 
 	if (endring == NULL)
 		initring();
@@ -136,8 +136,8 @@ chargen_dg(int s, struct servtab *sep)
 		rs = ring;
 
 	size = sizeof(ss);
-	if (recvfrom(s, text, sizeof(text), 0,
-		     (struct sockaddr *)&ss, &size) < 0)
+	if (recvfrom(s, text, sizeof(text), 0, (struct sockaddr *)&ss, &size) <
+	    0)
 		return;
 
 	if (check_loop((struct sockaddr *)&ss, sep))
@@ -153,7 +153,7 @@ chargen_dg(int s, struct servtab *sep)
 		rs = ring;
 	text[LINESIZ] = '\r';
 	text[LINESIZ + 1] = '\n';
-	(void) sendto(s, text, sizeof(text), 0, (struct sockaddr *)&ss, size);
+	(void)sendto(s, text, sizeof(text), 0, (struct sockaddr *)&ss, size);
 }
 
 /* Character generator */
@@ -162,7 +162,7 @@ static void
 chargen_stream(int s, struct servtab *sep)
 {
 	int len;
-	char *rs, text[LINESIZ+2];
+	char *rs, text[LINESIZ + 2];
 
 	inetd_setproctitle(sep->se_service, s);
 
@@ -201,19 +201,19 @@ daytime_dg(int s, struct servtab *sep)
 	struct sockaddr_storage ss;
 	socklen_t size;
 
-	now = time((time_t *) 0);
+	now = time((time_t *)0);
 
 	size = sizeof(ss);
-	if (recvfrom(s, buffer, sizeof(buffer), 0,
-		     (struct sockaddr *)&ss, &size) < 0)
+	if (recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr *)&ss,
+		&size) < 0)
 		return;
 
 	if (check_loop((struct sockaddr *)&ss, sep))
 		return;
 
-	(void) sprintf(buffer, "%.24s\r\n", ctime(&now));
-	(void) sendto(s, buffer, strlen(buffer), 0,
-		      (struct sockaddr *)&ss, size);
+	(void)sprintf(buffer, "%.24s\r\n", ctime(&now));
+	(void)sendto(s, buffer, strlen(buffer), 0, (struct sockaddr *)&ss,
+	    size);
 }
 
 /* Return human-readable time of day */
@@ -224,10 +224,10 @@ daytime_stream(int s, struct servtab *sep __unused)
 	char buffer[256];
 	time_t now;
 
-	now = time((time_t *) 0);
+	now = time((time_t *)0);
 
-	(void) sprintf(buffer, "%.24s\r\n", ctime(&now));
-	(void) send(s, buffer, strlen(buffer), MSG_EOF);
+	(void)sprintf(buffer, "%.24s\r\n", ctime(&now));
+	(void)send(s, buffer, strlen(buffer), MSG_EOF);
 }
 
 /*
@@ -242,7 +242,7 @@ discard_dg(int s, struct servtab *sep __unused)
 {
 	char buffer[BUFSIZE];
 
-	(void) read(s, buffer, sizeof(buffer));
+	(void)read(s, buffer, sizeof(buffer));
 }
 
 /* Discard service -- ignore data */
@@ -279,14 +279,14 @@ echo_dg(int s, struct servtab *sep)
 	struct sockaddr_storage ss;
 
 	size = sizeof(ss);
-	if ((i = recvfrom(s, buffer, sizeof(buffer), 0,
-			  (struct sockaddr *)&ss, &size)) < 0)
+	if ((i = recvfrom(s, buffer, sizeof(buffer), 0, (struct sockaddr *)&ss,
+		 &size)) < 0)
 		return;
 
 	if (check_loop((struct sockaddr *)&ss, sep))
 		return;
 
-	(void) sendto(s, buffer, i, 0, (struct sockaddr *)&ss, size);
+	(void)sendto(s, buffer, i, 0, (struct sockaddr *)&ss, size);
 }
 
 /* Echo service -- echo data back */
@@ -312,10 +312,10 @@ echo_stream(int s, struct servtab *sep)
  */
 
 /* RFC 1413 says the following are the only errors you can return. */
-#define ID_INVALID	"INVALID-PORT"	/* Port number improperly specified. */
-#define ID_NOUSER	"NO-USER"	/* Port not in use/not identifable. */
-#define ID_HIDDEN	"HIDDEN-USER"	/* Hiden at user's request. */
-#define ID_UNKNOWN	"UNKNOWN-ERROR"	/* Everything else. */
+#define ID_INVALID "INVALID-PORT"  /* Port number improperly specified. */
+#define ID_NOUSER "NO-USER"	   /* Port not in use/not identifable. */
+#define ID_HIDDEN "HIDDEN-USER"	   /* Hiden at user's request. */
+#define ID_UNKNOWN "UNKNOWN-ERROR" /* Everything else. */
 
 /* Generic ident_stream error-sending func */
 /* ARGSUSED */
@@ -348,10 +348,7 @@ ident_stream(int s, struct servtab *sep)
 #endif
 	struct sockaddr_storage ss[2];
 	struct xucred uc;
-	struct timeval tv = {
-		10,
-		0
-	}, to;
+	struct timeval tv = { 10, 0 }, to;
 	struct passwd *pw = NULL;
 	fd_set fdset;
 	char buf[BUFSIZE], *p, **av, *osname = NULL, e;
@@ -393,11 +390,11 @@ ident_stream(int s, struct servtab *sep)
 				break;
 			case 'F':
 				fflag = 1;
-				Fflag=1;
+				Fflag = 1;
 				break;
 			case 'g':
 				gflag = 1;
-				rnd32 = 0;	/* Shush, compiler. */
+				rnd32 = 0; /* Shush, compiler. */
 				/*
 				 * The number of bits in "rnd32" divided
 				 * by the number of bits needed per iteration
@@ -471,7 +468,7 @@ ident_stream(int s, struct servtab *sep)
 	size = 0;
 	bufsiz = sizeof(buf) - 1;
 	FD_ZERO(&fdset);
- 	while (bufsiz > 0) {
+	while (bufsiz > 0) {
 		gettimeofday(&tv, NULL);
 		tv.tv_sec = to.tv_sec - tv.tv_sec;
 		tv.tv_usec = to.tv_usec - tv.tv_usec;
@@ -497,7 +494,7 @@ ident_stream(int s, struct servtab *sep)
 		size += ssize;
 		if (memchr(&buf[size - ssize], '\n', ssize) != NULL)
 			break;
- 	}
+	}
 	buf[size] = '\0';
 	/* Read two characters, and check for a delimiting character */
 	if (sscanf(buf, "%hu , %hu%c", &lport, &fport, &e) != 3 || isdigit(e))
@@ -541,7 +538,7 @@ ident_stream(int s, struct servtab *sep)
 		sin4[1] = *(struct sockaddr_in *)&ss[1];
 		sin4[1].sin_port = htons(fport);
 		if (sysctlbyname("net.inet.tcp.getcred", &uc, &size, sin4,
-				 sizeof(sin4)) == -1)
+			sizeof(sin4)) == -1)
 			getcredfail = errno;
 		break;
 #ifdef INET6
@@ -551,7 +548,7 @@ ident_stream(int s, struct servtab *sep)
 		sin6[1] = *(struct sockaddr_in6 *)&ss[1];
 		sin6[1].sin6_port = htons(fport);
 		if (sysctlbyname("net.inet6.tcp6.getcred", &uc, &size, sin6,
-				 sizeof(sin6)) == -1)
+			sizeof(sin6)) == -1)
 			getcredfail = errno;
 		break;
 #endif
@@ -664,7 +661,7 @@ ident_stream(int s, struct servtab *sep)
 
 		strlcpy(idbuf, p, sizeof(idbuf));
 
-fakeid_fail:
+	fakeid_fail:
 		if (fakeid_fd != -1)
 			close(fakeid_fd);
 	}
@@ -672,13 +669,13 @@ fakeid_fail:
 printit:
 	/* Finally, we make and send the reply. */
 	if (asprintf(&p, "%d , %d : USERID : %s : %s\r\n", lport, fport, osname,
-	    idbuf) == -1) {
+		idbuf) == -1) {
 		syslog(LOG_ERR, "asprintf: %m");
 		exit(EX_OSERR);
 	}
 	send(s, p, strlen(p), MSG_EOF);
 	free(p);
-	
+
 	exit(0);
 }
 
@@ -695,7 +692,7 @@ static uint32_t
 machtime(void)
 {
 
-#define	OFFSET ((uint32_t)25567 * 24*60*60)
+#define OFFSET ((uint32_t)25567 * 24 * 60 * 60)
 	return (htonl((uint32_t)(time(NULL) + OFFSET)));
 #undef OFFSET
 }
@@ -710,15 +707,15 @@ machtime_dg(int s, struct servtab *sep)
 
 	size = sizeof(ss);
 	if (recvfrom(s, (char *)&result, sizeof(result), 0,
-		     (struct sockaddr *)&ss, &size) < 0)
+		(struct sockaddr *)&ss, &size) < 0)
 		return;
 
 	if (check_loop((struct sockaddr *)&ss, sep))
 		return;
 
 	result = machtime();
-	(void) sendto(s, (char *) &result, sizeof(result), 0,
-		      (struct sockaddr *)&ss, size);
+	(void)sendto(s, (char *)&result, sizeof(result), 0,
+	    (struct sockaddr *)&ss, size);
 }
 
 /* ARGSUSED */
@@ -728,7 +725,7 @@ machtime_stream(int s, struct servtab *sep __unused)
 	uint32_t result;
 
 	result = machtime();
-	(void) send(s, (char *) &result, sizeof(result), MSG_EOF);
+	(void)send(s, (char *)&result, sizeof(result), MSG_EOF);
 }
 
 /*
@@ -739,10 +736,10 @@ machtime_stream(int s, struct servtab *sep __unused)
  *  sri-nic::ps:<mkl>tcpmux.c
  */
 
-#define MAX_SERV_LEN	(256+2)		/* 2 bytes for \r\n */
-#define strwrite(fd, buf)	(void) write(fd, buf, sizeof(buf)-1)
+#define MAX_SERV_LEN (256 + 2) /* 2 bytes for \r\n */
+#define strwrite(fd, buf) (void)write(fd, buf, sizeof(buf) - 1)
 
-static int		/* # of characters up to \r,\n or \0 */
+static int /* # of characters up to \r,\n or \0 */
 get_line(int fd, char *buf, int len)
 {
 	int count = 0, n;
@@ -754,7 +751,7 @@ get_line(int fd, char *buf, int len)
 	sigaction(SIGALRM, &sa, (struct sigaction *)0);
 	do {
 		alarm(10);
-		n = read(fd, buf, len-count);
+		n = read(fd, buf, len - count);
 		alarm(0);
 		if (n == 0)
 			return (count);
@@ -774,7 +771,7 @@ struct servtab *
 tcpmux(int s)
 {
 	struct servtab *sep;
-	char service[MAX_SERV_LEN+1];
+	char service[MAX_SERV_LEN + 1];
 	int len;
 
 	/* Get requested service name */
@@ -795,7 +792,8 @@ tcpmux(int s)
 		for (sep = servtab; sep; sep = sep->se_next) {
 			if (!ISMUX(sep))
 				continue;
-			(void)write(s,sep->se_service,strlen(sep->se_service));
+			(void)write(s, sep->se_service,
+			    strlen(sep->se_service));
 			strwrite(s, "\r\n");
 		}
 		return (NULL);

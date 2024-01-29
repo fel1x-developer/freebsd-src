@@ -24,7 +24,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include "disk.h"
 #ifdef LOADER_ZFS_SUPPORT
 #include "libzfs.h"
@@ -32,10 +31,8 @@
 /*
  * i386 fully-qualified device descriptor.
  */
-struct i386_devdesc
-{
-	union
-	{
+struct i386_devdesc {
+	union {
 		struct devdesc dd;
 		struct disk_devdesc disk;
 #ifdef LOADER_ZFS_SUPPORT
@@ -48,9 +45,9 @@ struct i386_devdesc
  * relocater trampoline support.
  */
 struct relocate_data {
-	uint32_t	src;
-	uint32_t	dest;
-	uint32_t	size;
+	uint32_t src;
+	uint32_t dest;
+	uint32_t size;
 };
 
 extern void relocater(void);
@@ -76,13 +73,13 @@ extern uint32_t relocator_edx;
 extern uint32_t relocator_ebp;
 extern uint16_t relocator_a20_enabled;
 
-int	i386_getdev(void **vdev, const char *devspec, const char **path);
-char	*i386_fmtdev(void *vdev);
+int i386_getdev(void **vdev, const char *devspec, const char **path);
+char *i386_fmtdev(void *vdev);
 
-extern struct devdesc	currdev;	/* our current device */
+extern struct devdesc currdev; /* our current device */
 
-#define MAXDEV		31		/* maximum number of distinct devices */
-#define MAXBDDEV	MAXDEV
+#define MAXDEV 31 /* maximum number of distinct devices */
+#define MAXBDDEV MAXDEV
 
 #include <readin.h>
 
@@ -93,59 +90,59 @@ extern struct devsw bioshd;
 extern struct devsw pxedisk;
 extern struct fs_ops pxe_fsops;
 
-int	bc_add(int biosdev);		/* Register CD booted from. */
-uint32_t bd_getbigeom(int bunit);	/* return geometry in bootinfo format */
-int	bd_bios2unit(int biosdev);	/* xlate BIOS device -> biosdisk unit */
-int	bd_unit2bios(struct i386_devdesc *); /* xlate biosdisk -> BIOS device */
-int	bd_getdev(struct i386_devdesc *dev);	/* return dev_t for (dev) */
+int bc_add(int biosdev);	  /* Register CD booted from. */
+uint32_t bd_getbigeom(int bunit); /* return geometry in bootinfo format */
+int bd_bios2unit(int biosdev);	  /* xlate BIOS device -> biosdisk unit */
+int bd_unit2bios(struct i386_devdesc *); /* xlate biosdisk -> BIOS device */
+int bd_getdev(struct i386_devdesc *dev); /* return dev_t for (dev) */
 
-ssize_t	i386_copyin(const void *src, vm_offset_t dest, const size_t len);
-ssize_t	i386_copyout(const vm_offset_t src, void *dest, const size_t len);
-ssize_t	i386_readin(readin_handle_t fd, vm_offset_t dest, const size_t len);
+ssize_t i386_copyin(const void *src, vm_offset_t dest, const size_t len);
+ssize_t i386_copyout(const vm_offset_t src, void *dest, const size_t len);
+ssize_t i386_readin(readin_handle_t fd, vm_offset_t dest, const size_t len);
 
 struct preloaded_file;
-void	bios_addsmapdata(struct preloaded_file *);
-void	bios_getsmap(void);
+void bios_addsmapdata(struct preloaded_file *);
+void bios_getsmap(void);
 
-void	bios_getmem(void);
-extern uint32_t		bios_basemem;	/* base memory in bytes */
-extern uint32_t		bios_extmem;	/* extended memory in bytes */
-extern vm_offset_t	memtop;		/* last address of physical memory + 1 */
-extern vm_offset_t	memtop_copyin;	/* memtop less heap size for the cases */
-					/*  when heap is at the top of         */
-					/*  extended memory; for other cases   */
-					/*  just the same as memtop            */
-extern uint32_t		high_heap_size;	/* extended memory region available */
-extern vm_offset_t	high_heap_base;	/* for use as the heap */
+void bios_getmem(void);
+extern uint32_t bios_basemem;	   /* base memory in bytes */
+extern uint32_t bios_extmem;	   /* extended memory in bytes */
+extern vm_offset_t memtop;	   /* last address of physical memory + 1 */
+extern vm_offset_t memtop_copyin;  /* memtop less heap size for the cases */
+				   /*  when heap is at the top of         */
+				   /*  extended memory; for other cases   */
+				   /*  just the same as memtop            */
+extern uint32_t high_heap_size;	   /* extended memory region available */
+extern vm_offset_t high_heap_base; /* for use as the heap */
 
 /* 16KB buffer space for real mode data transfers. */
-#define	BIO_BUFFER_SIZE 0x4000
+#define BIO_BUFFER_SIZE 0x4000
 void *bio_alloc(size_t size);
 void bio_free(void *ptr, size_t size);
 
 /*
  * Values for width parameter to biospci_{read,write}_config
  */
-#define BIOSPCI_8BITS	0
-#define BIOSPCI_16BITS	1
-#define BIOSPCI_32BITS	2
+#define BIOSPCI_8BITS 0
+#define BIOSPCI_16BITS 1
+#define BIOSPCI_32BITS 2
 
-void	biospci_detect(void);
-int	biospci_find_devclass(uint32_t class, int index, uint32_t *locator);
-int	biospci_read_config(uint32_t locator, int offset, int width, uint32_t *val);
+void biospci_detect(void);
+int biospci_find_devclass(uint32_t class, int index, uint32_t *locator);
+int biospci_read_config(uint32_t locator, int offset, int width, uint32_t *val);
 uint32_t biospci_locator(int8_t bus, uint8_t device, uint8_t function);
-int	biospci_write_config(uint32_t locator, int offset, int width, uint32_t val);
+int biospci_write_config(uint32_t locator, int offset, int width, uint32_t val);
 
-void	biosacpi_detect(void);
+void biosacpi_detect(void);
 
-int	i386_autoload(void);
+int i386_autoload(void);
 
-void	bi_load_vbe_data(struct preloaded_file *kfp);
-int	bi_getboothowto(char *kargs);
-void	bi_setboothowto(int howto);
-int	bi_load32(char *args, int *howtop, int *bootdevp, vm_offset_t *bip,
-	    vm_offset_t *modulep, vm_offset_t *kernend);
-int	bi_load64(char *args, vm_offset_t *modulep,
-	    vm_offset_t *kernend, int add_smap);
+void bi_load_vbe_data(struct preloaded_file *kfp);
+int bi_getboothowto(char *kargs);
+void bi_setboothowto(int howto);
+int bi_load32(char *args, int *howtop, int *bootdevp, vm_offset_t *bip,
+    vm_offset_t *modulep, vm_offset_t *kernend);
+int bi_load64(char *args, vm_offset_t *modulep, vm_offset_t *kernend,
+    int add_smap);
 
-void	pxe_enable(void *pxeinfo);
+void pxe_enable(void *pxeinfo);

@@ -97,21 +97,13 @@ extern "C" {
 //*
 //******************************************************************************
 
-U32 sci_iterator_get_object_size(
-   void
-);
+U32 sci_iterator_get_object_size(void);
 
-void * sci_iterator_get_current(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-);
+void *sci_iterator_get_current(SCI_ITERATOR_HANDLE_T iterator_handle);
 
-void sci_iterator_first(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-);
+void sci_iterator_first(SCI_ITERATOR_HANDLE_T iterator_handle);
 
-void sci_iterator_next(
-   SCI_ITERATOR_HANDLE_T iterator_handle
-);
+void sci_iterator_next(SCI_ITERATOR_HANDLE_T iterator_handle);
 
 #else // !defined(DISABLE_SCI_ITERATORS)
 

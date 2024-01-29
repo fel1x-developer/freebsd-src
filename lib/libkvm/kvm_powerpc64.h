@@ -25,35 +25,34 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__KVM_POWERPC64_H__
-#define	__KVM_POWERPC64_H__
+#ifndef __KVM_POWERPC64_H__
+#define __KVM_POWERPC64_H__
 
 /* Debug stuff */
-#define	KVM_PPC64_DBG	0
-#if	KVM_PPC64_DBG
+#define KVM_PPC64_DBG 0
+#if KVM_PPC64_DBG
 #include <stdio.h>
-#define	dprintf(fmt, ...)	printf(fmt, ## __VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
-#define	dprintf(fmt, ...)
+#define dprintf(fmt, ...)
 #endif
 
-
-#define	PPC64_KERNBASE		0x100100ULL
+#define PPC64_KERNBASE 0x100100ULL
 
 /* Page params */
-#define	PPC64_PAGE_SHIFT	12
-#define	PPC64_PAGE_SIZE		(1ULL << PPC64_PAGE_SHIFT)
-#define	PPC64_PAGE_MASK		(PPC64_PAGE_SIZE - 1)
+#define PPC64_PAGE_SHIFT 12
+#define PPC64_PAGE_SIZE (1ULL << PPC64_PAGE_SHIFT)
+#define PPC64_PAGE_MASK (PPC64_PAGE_SIZE - 1)
 
-#define	ppc64_round_page(x)	roundup2((kvaddr_t)(x), PPC64_PAGE_SIZE)
+#define ppc64_round_page(x) roundup2((kvaddr_t)(x), PPC64_PAGE_SIZE)
 
-#define	PPC64_MMU_G5		"mmu_g5"
-#define	PPC64_MMU_PHYP		"mmu_phyp"
+#define PPC64_MMU_G5 "mmu_g5"
+#define PPC64_MMU_PHYP "mmu_phyp"
 
 /* MMU interface */
-#define	PPC64_MMU_OPS(kd)	(kd)->vmst->mmu.ops
-#define	PPC64_MMU_OP(kd, op, ...) PPC64_MMU_OPS(kd)->op((kd), ## __VA_ARGS__)
-#define	PPC64_MMU_DATA(kd)	(kd)->vmst->mmu.data
+#define PPC64_MMU_OPS(kd) (kd)->vmst->mmu.ops
+#define PPC64_MMU_OP(kd, op, ...) PPC64_MMU_OPS(kd)->op((kd), ##__VA_ARGS__)
+#define PPC64_MMU_DATA(kd) (kd)->vmst->mmu.data
 
 struct ppc64_mmu_ops {
 	int (*init)(kvm_t *);

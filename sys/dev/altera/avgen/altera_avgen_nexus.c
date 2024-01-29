@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
@@ -41,13 +42,12 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/stat.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
+
+#include <vm/vm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-
-#include <vm/vm.h>
 
 #include <dev/altera/avgen/altera_avgen.h>
 
@@ -87,21 +87,21 @@ altera_avgen_nexus_attach(device_t dev)
 		device_printf(dev, "invalid %s\n", ALTERA_AVALON_STR_WIDTH);
 		return (error);
 	}
-	(void)resource_string_value(device_get_name(dev),
-	    device_get_unit(dev), ALTERA_AVALON_STR_FILEIO, &str_fileio);
-	(void)resource_string_value(device_get_name(dev),
-	    device_get_unit(dev), ALTERA_AVALON_STR_GEOMIO, &str_geomio);
-	(void)resource_string_value(device_get_name(dev),
-	    device_get_unit(dev), ALTERA_AVALON_STR_MMAPIO, &str_mmapio);
-	(void)resource_string_value(device_get_name(dev),
-	    device_get_unit(dev), ALTERA_AVALON_STR_DEVNAME, &str_devname);
+	(void)resource_string_value(device_get_name(dev), device_get_unit(dev),
+	    ALTERA_AVALON_STR_FILEIO, &str_fileio);
+	(void)resource_string_value(device_get_name(dev), device_get_unit(dev),
+	    ALTERA_AVALON_STR_GEOMIO, &str_geomio);
+	(void)resource_string_value(device_get_name(dev), device_get_unit(dev),
+	    ALTERA_AVALON_STR_MMAPIO, &str_mmapio);
+	(void)resource_string_value(device_get_name(dev), device_get_unit(dev),
+	    ALTERA_AVALON_STR_DEVNAME, &str_devname);
 	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    ALTERA_AVALON_STR_DEVUNIT, &devunit);
 
 	/* Memory allocation and checking. */
 	sc->avg_rid = 0;
-	sc->avg_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &sc->avg_rid, RF_ACTIVE);
+	sc->avg_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->avg_rid,
+	    RF_ACTIVE);
 	if (sc->avg_res == NULL) {
 		device_printf(dev, "couldn't map memory\n");
 		return (ENXIO);
@@ -126,10 +126,9 @@ altera_avgen_nexus_detach(device_t dev)
 }
 
 static device_method_t altera_avgen_nexus_methods[] = {
-	DEVMETHOD(device_probe,		altera_avgen_nexus_probe),
-	DEVMETHOD(device_attach,	altera_avgen_nexus_attach),
-	DEVMETHOD(device_detach,	altera_avgen_nexus_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, altera_avgen_nexus_probe),
+	DEVMETHOD(device_attach, altera_avgen_nexus_attach),
+	DEVMETHOD(device_detach, altera_avgen_nexus_detach), { 0, 0 }
 };
 
 static driver_t altera_avgen_nexus_driver = {

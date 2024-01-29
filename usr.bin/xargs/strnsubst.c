@@ -9,13 +9,14 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-bool	strnsubst(char **, const char *, const char *, size_t);
+bool strnsubst(char **, const char *, const char *, size_t);
 
 /*
  * Replaces str with a string consisting of str with match replaced with
@@ -66,8 +67,8 @@ strnsubst(char **str, const char *match, const char *replstr, size_t maxsize)
 		this = strstr(s1, match);
 		if (this == NULL)
 			break;
-		if ((strlen(s2) + strlen(s1) + strlen(replstr) -
-		    strlen(match) + 1) > maxsize) {
+		if ((strlen(s2) + strlen(s1) + strlen(replstr) - strlen(match) +
+			1) > maxsize) {
 			strlcat(s2, s1, maxsize);
 			error = true;
 			goto done;
@@ -85,7 +86,7 @@ done:
 #ifdef TEST
 #include <stdio.h>
 
-int 
+int
 main(void)
 {
 	char *x, *y, *z, *za;

@@ -37,77 +37,86 @@ extern "C" {
 
 using namespace testing;
 
-class Create: public FuseTest {
-public:
+class Create : public FuseTest {
+    public:
+	void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
+	{
+		mode_t mask = umask(0);
+		(void)umask(mask);
 
-void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
-{
-	mode_t mask = umask(0);
-	(void)umask(mask);
-
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_create_in);
-			return (in.header.opcode == FUSE_CREATE &&
-				in.body.create.mode == mode &&
-				in.body.create.umask == mask &&
-				(0 == strcmp(relpath, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(fuse_create_in);
+					return (
+					    in.header.opcode == FUSE_CREATE &&
+					    in.body.create.mode == mode &&
+					    in.body.create.umask == mask &&
+					    (0 == strcmp(relpath, name)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
 /* FUSE_CREATE operations for a protocol 7.8 server */
-class Create_7_8: public Create {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	Create::SetUp();
-}
+class Create_7_8 : public Create {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		Create::SetUp();
+	}
 
-void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_open_in);
-			return (in.header.opcode == FUSE_CREATE &&
-				in.body.create.mode == mode &&
-				(0 == strcmp(relpath, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+	void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(fuse_open_in);
+					return (
+					    in.header.opcode == FUSE_CREATE &&
+					    in.body.create.mode == mode &&
+					    (0 == strcmp(relpath, name)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
 /* FUSE_CREATE operations for a server built at protocol <= 7.11 */
-class Create_7_11: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 11;
-	FuseTest::SetUp();
-}
+class Create_7_11 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 11;
+		FuseTest::SetUp();
+	}
 
-void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_open_in);
-			return (in.header.opcode == FUSE_CREATE &&
-				in.body.create.mode == mode &&
-				(0 == strcmp(relpath, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+	void expect_create(const char *relpath, mode_t mode, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *name = (const char *)
+							       in.body.bytes +
+					    sizeof(fuse_open_in);
+					return (
+					    in.header.opcode == FUSE_CREATE &&
+					    in.body.create.mode == mode &&
+					    (0 == strcmp(relpath, name)));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
-
 
 /*
  * If FUSE_CREATE sets attr_valid, then subsequent GETATTRs should use the
@@ -122,23 +131,25 @@ TEST_F(Create, attr_cache)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -156,29 +167,32 @@ TEST_F(Create, clear_attr_cache)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == FUSE_ROOT_ID);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = FUSE_ROOT_ID;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == FUSE_ROOT_ID);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = FUSE_ROOT_ID;
+			out.body.attr.attr.mode = S_IFDIR | 0755;
+			out.body.attr.attr_valid = UINT64_MAX;
+		})));
 
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	EXPECT_EQ(0, stat("mountpoint", &sb)) << strerror(errno);
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
@@ -188,7 +202,7 @@ TEST_F(Create, clear_attr_cache)
 	leak(fd);
 }
 
-/* 
+/*
  * The fuse daemon fails the request with EEXIST.  This usually indicates a
  * race condition: some other FUSE client created the file in between when the
  * kernel checked for it with lookup and tried to create it with create
@@ -200,7 +214,7 @@ TEST_F(Create, eexist)
 	mode_t mode = S_IFREG | 0755;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode, ReturnErrno(EEXIST));
 	EXPECT_EQ(-1, open(FULLPATH, O_CREAT | O_EXCL, mode));
 	EXPECT_EQ(EEXIST, errno);
@@ -219,37 +233,41 @@ TEST_F(Create, Enosys)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode, ReturnErrno(ENOSYS));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *name = (const char*)in.body.bytes +
-				sizeof(fuse_mknod_in);
-			return (in.header.opcode == FUSE_MKNOD &&
-				in.body.mknod.mode == (S_IFREG | mode) &&
-				in.body.mknod.rdev == 0 &&
-				(0 == strcmp(RELPATH, name)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *name = (const char *)in.body.bytes +
+				    sizeof(fuse_mknod_in);
+				return (in.header.opcode == FUSE_MKNOD &&
+				    in.body.mknod.mode == (S_IFREG | mode) &&
+				    in.body.mknod.rdev == 0 &&
+				    (0 == strcmp(RELPATH, name)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+	    })));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_OPEN &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto& out) {
-		out.header.len = sizeof(out.header);
-		SET_OUT_HEADER_LEN(out, open);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_OPEN &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto &out) {
+		    out.header.len = sizeof(out.header);
+		    SET_OUT_HEADER_LEN(out, open);
+	    })));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -266,24 +284,24 @@ TEST_F(Create, entry_cache_negative)
 	mode_t mode = S_IFREG | 0755;
 	uint64_t ino = 42;
 	int fd;
-	/* 
+	/*
 	 * Set entry_valid = 0 because this test isn't concerned with whether
 	 * or not we actually cache negative entries, only with whether we
 	 * interpret negative cache responses correctly.
 	 */
-	struct timespec entry_valid = {.tv_sec = 0, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = 0, .tv_nsec = 0 };
 
 	/* create will first do a LOOKUP, adding a negative cache entry */
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(ReturnNegativeCache(&entry_valid));
+	    .WillOnce(ReturnNegativeCache(&entry_valid));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -300,21 +318,22 @@ TEST_F(Create, entry_cache_negative_purge)
 	mode_t mode = S_IFREG | 0755;
 	uint64_t ino = 42;
 	int fd;
-	struct timespec entry_valid = {.tv_sec = TIME_T_MAX, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = TIME_T_MAX, .tv_nsec = 0 };
 
 	/* create will first do a LOOKUP, adding a negative cache entry */
-	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH).Times(1)
-		.WillOnce(Invoke(ReturnNegativeCache(&entry_valid)))
-	.RetiresOnSaturation();
+	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
+	    .Times(1)
+	    .WillOnce(Invoke(ReturnNegativeCache(&entry_valid)))
+	    .RetiresOnSaturation();
 
 	/* Then the CREATE should purge the negative cache entry */
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -326,7 +345,7 @@ TEST_F(Create, entry_cache_negative_purge)
 	leak(fd);
 }
 
-/* 
+/*
  * The daemon is responsible for checking file permissions (unless the
  * default_permissions mount option was used)
  */
@@ -337,7 +356,7 @@ TEST_F(Create, eperm)
 	mode_t mode = S_IFREG | 0755;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode, ReturnErrno(EPERM));
 
 	EXPECT_EQ(-1, open(FULLPATH, O_CREAT | O_EXCL, mode));
@@ -353,15 +372,15 @@ TEST_F(Create, ok)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -383,26 +402,27 @@ TEST_F(Create, parent_inode)
 	int fd;
 
 	expect_lookup(RELDIRPATH, ino, S_IFDIR | mode, 0, 1);
-	EXPECT_LOOKUP(ino, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_LOOKUP(ino, RELPATH).WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, S_IFREG | mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = S_IFREG | mode;
-		/* Return the same inode as the parent dir */
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = S_IFREG | mode;
+		    /* Return the same inode as the parent dir */
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 	// FUSE_RELEASE happens asynchronously, so it may or may not arrive
 	// before the test completes.
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RELEASE);
-		}, Eq(true)),
-		_)
-	).Times(AtMost(1))
-	.WillOnce(Invoke([=](auto in __unused, auto &out __unused) { }));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_RELEASE);
+			},
+			Eq(true)),
+		_))
+	    .Times(AtMost(1))
+	    .WillOnce(Invoke([=](auto in __unused, auto &out __unused) {}));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_EQ(-1, fd);
@@ -426,15 +446,15 @@ TEST_F(Create, wronly_0444)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	fd = open(FULLPATH, O_CREAT | O_WRONLY, mode);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -450,16 +470,16 @@ TEST_F(Create_7_8, ok)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create_7_8);
-		out.body.create_7_8.entry.attr.mode = mode;
-		out.body.create_7_8.entry.nodeid = ino;
-		out.body.create_7_8.entry.entry_valid = UINT64_MAX;
-		out.body.create_7_8.entry.attr_valid = UINT64_MAX;
-		out.body.create_7_8.open.fh = FH;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create_7_8);
+		    out.body.create_7_8.entry.attr.mode = mode;
+		    out.body.create_7_8.entry.nodeid = ino;
+		    out.body.create_7_8.entry.entry_valid = UINT64_MAX;
+		    out.body.create_7_8.entry.attr_valid = UINT64_MAX;
+		    out.body.create_7_8.open.fh = FH;
+	    }));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FH);
 
@@ -477,15 +497,15 @@ TEST_F(Create_7_11, ok)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 	expect_create(RELPATH, mode,
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, create);
-		out.body.create.entry.attr.mode = mode;
-		out.body.create.entry.nodeid = ino;
-		out.body.create.entry.entry_valid = UINT64_MAX;
-		out.body.create.entry.attr_valid = UINT64_MAX;
-	}));
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, create);
+		    out.body.create.entry.attr.mode = mode;
+		    out.body.create.entry.nodeid = ino;
+		    out.body.create.entry.entry_valid = UINT64_MAX;
+		    out.body.create.entry.attr_valid = UINT64_MAX;
+	    }));
 
 	fd = open(FULLPATH, O_CREAT | O_EXCL, mode);
 	ASSERT_LE(0, fd) << strerror(errno);

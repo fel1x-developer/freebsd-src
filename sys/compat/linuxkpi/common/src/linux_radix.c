@@ -29,14 +29,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/sysctl.h>
 
-#include <linux/slab.h>
+#include <linux/err.h>
 #include <linux/kernel.h>
 #include <linux/radix-tree.h>
-#include <linux/err.h>
+#include <linux/slab.h>
 
 static MALLOC_DEFINE(M_RADIX, "radix", "Linux radix compat");
 
@@ -100,7 +100,8 @@ restart:
 	if (height == -1 || index > radix_max(root))
 		return (false);
 	do {
-		unsigned long mask = RADIX_TREE_MAP_MASK << (RADIX_TREE_MAP_SHIFT * height);
+		unsigned long mask = RADIX_TREE_MAP_MASK
+		    << (RADIX_TREE_MAP_SHIFT * height);
 		unsigned long step = 1UL << (RADIX_TREE_MAP_SHIFT * height);
 		int pos = radix_pos(index, height);
 		struct radix_tree_node *next;
@@ -214,7 +215,8 @@ radix_tree_insert(struct radix_tree_root *root, unsigned long index, void *item)
 		 * allocate a new radix level:
 		 */
 		if (node->count != 0) {
-			node = malloc(sizeof(*node), M_RADIX, root->gfp_mask | M_ZERO);
+			node = malloc(sizeof(*node), M_RADIX,
+			    root->gfp_mask | M_ZERO);
 			if (node == NULL) {
 				/*
 				 * Freeing the already allocated radix
@@ -236,7 +238,7 @@ radix_tree_insert(struct radix_tree_root *root, unsigned long index, void *item)
 	height = root->height - 1;
 
 	/* walk down the tree until the first missing node, if any */
-	for ( ; height != 0; height--) {
+	for (; height != 0; height--) {
 		idx = radix_pos(index, height);
 		if (node->slots[idx] == NULL)
 			break;
@@ -256,7 +258,7 @@ radix_tree_insert(struct radix_tree_root *root, unsigned long index, void *item)
 	}
 
 	/* setup new radix levels, if any */
-	for ( ; height != 0; height--) {
+	for (; height != 0; height--) {
 		idx = radix_pos(index, height);
 		node->slots[idx] = temp[height - 1];
 		node->count++;
@@ -276,7 +278,8 @@ radix_tree_insert(struct radix_tree_root *root, unsigned long index, void *item)
 }
 
 int
-radix_tree_store(struct radix_tree_root *root, unsigned long index, void **ppitem)
+radix_tree_store(struct radix_tree_root *root, unsigned long index,
+    void **ppitem)
 {
 	struct radix_tree_node *node;
 	struct radix_tree_node *temp[RADIX_TREE_MAX_HEIGHT - 1];
@@ -318,7 +321,8 @@ radix_tree_store(struct radix_tree_root *root, unsigned long index, void **ppite
 		 * allocate a new radix level:
 		 */
 		if (node->count != 0) {
-			node = malloc(sizeof(*node), M_RADIX, root->gfp_mask | M_ZERO);
+			node = malloc(sizeof(*node), M_RADIX,
+			    root->gfp_mask | M_ZERO);
 			if (node == NULL) {
 				/*
 				 * Freeing the already allocated radix
@@ -340,7 +344,7 @@ radix_tree_store(struct radix_tree_root *root, unsigned long index, void **ppite
 	height = root->height - 1;
 
 	/* walk down the tree until the first missing node, if any */
-	for ( ; height != 0; height--) {
+	for (; height != 0; height--) {
 		idx = radix_pos(index, height);
 		if (node->slots[idx] == NULL)
 			break;
@@ -360,7 +364,7 @@ radix_tree_store(struct radix_tree_root *root, unsigned long index, void **ppite
 	}
 
 	/* setup new radix levels, if any */
-	for ( ; height != 0; height--) {
+	for (; height != 0; height--) {
 		idx = radix_pos(index, height);
 		node->slots[idx] = temp[height - 1];
 		node->count++;

@@ -26,28 +26,28 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/capsicum.h>
-#include <sys/proc.h>
-#include <sys/vnode.h>
+#include <sys/imgact.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/mac.h>
+#include <sys/module.h>
 #include <sys/namei.h>
 #include <sys/priv.h>
-#include <sys/imgact.h>
+#include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <security/mac/mac_policy.h>
+#include <sys/vnode.h>
 
-#include "mac_grantbylabel.h"
+#include <security/mac/mac_policy.h>
 #include <security/mac_veriexec/mac_veriexec_internal.h>
 
-#define MAC_GRANTBYLABEL_FULLNAME   "MAC/grantbylabel"
+#include "mac_grantbylabel.h"
+
+#define MAC_GRANTBYLABEL_FULLNAME "MAC/grantbylabel"
 
 SYSCTL_DECL(_security_mac);
 SYSCTL_NODE(_security_mac, OID_AUTO, grantbylabel, CTLFLAG_RW, 0,
@@ -59,28 +59,27 @@ static int mac_grantbylabel_debug;
 SYSCTL_INT(_security_mac_grantbylabel, OID_AUTO, debug, CTLFLAG_RW,
     &mac_grantbylabel_debug, 0, "Debug mac_grantbylabel");
 
-#define GRANTBYLABEL_DEBUG(n, x) if (mac_grantbylabel_debug >= (n)) printf x
+#define GRANTBYLABEL_DEBUG(n, x)           \
+	if (mac_grantbylabel_debug >= (n)) \
+	printf x
 
-#define	MAC_GRANTBYLABEL_DBG(_lvl, _fmt, ...)				\
-	do {								\
-		GRANTBYLABEL_DEBUG((_lvl), (MAC_GRANTBYLABEL_FULLNAME ": " \
-			_fmt "\n", ##__VA_ARGS__));			\
-	} while(0)
+#define MAC_GRANTBYLABEL_DBG(_lvl, _fmt, ...)                  \
+	do {                                                   \
+		GRANTBYLABEL_DEBUG((_lvl),                     \
+		    (MAC_GRANTBYLABEL_FULLNAME ": " _fmt "\n", \
+			##__VA_ARGS__));                       \
+	} while (0)
 #else
-#define	MAC_GRANTBYLABEL_DBG(_lvl, _fmt, ...)
+#define MAC_GRANTBYLABEL_DBG(_lvl, _fmt, ...)
 #endif
-
 
 /* label token prefix */
 #define GBL_PREFIX "gbl/"
 
 static int mac_grantbylabel_slot;
 
-#define	SLOT(l) \
-	mac_label_get((l), mac_grantbylabel_slot)
-#define	SLOT_SET(l, v) \
-	mac_label_set((l), mac_grantbylabel_slot, (v))
-
+#define SLOT(l) mac_label_get((l), mac_grantbylabel_slot)
+#define SLOT_SET(l, v) mac_label_set((l), mac_grantbylabel_slot, (v))
 
 /**
  * @brief parse label into bitmask
@@ -112,8 +111,8 @@ gbl_parse_label(const char *label)
 			break;
 		case 'd':
 			if (strncmp(cp, "daemon", 6) == 0)
-				gbl |= (GBL_BIND|GBL_IPC|GBL_NET|GBL_PROC|
-				    GBL_SYSCTL|GBL_VACCESS);
+				gbl |= (GBL_BIND | GBL_IPC | GBL_NET |
+				    GBL_PROC | GBL_SYSCTL | GBL_VACCESS);
 			break;
 		case 'i':
 			if (strncmp(cp, "ipc", 3) == 0)
@@ -145,17 +144,15 @@ gbl_parse_label(const char *label)
 			else if (strncmp(cp, "veriexec", 8) == 0)
 				gbl |= GBL_VERIEXEC;
 			break;
-		default:		/* ignore unknown? */
+		default: /* ignore unknown? */
 			MAC_GRANTBYLABEL_DBG(1,
-			    "ignoring unknown token at %s/%s",
-			    GBL_PREFIX, cp);
+			    "ignoring unknown token at %s/%s", GBL_PREFIX, cp);
 			break;
 		}
 	}
 
 	return gbl;
 }
-
 
 /**
  * @brief get the v_label for a vnode
@@ -180,24 +177,21 @@ gbl_get_vlabel(struct vnode *vp, struct ucred *cred)
 			    va.va_fileid, va.va_gen, FALSE);
 			if (label) {
 				MAC_GRANTBYLABEL_DBG(1,
-				    "label=%s dev=%ju, file %ju.%lu",
-				    label,
+				    "label=%s dev=%ju, file %ju.%lu", label,
 				    (uintmax_t)va.va_fsid,
-				    (uintmax_t)va.va_fileid,
-				    va.va_gen);
+				    (uintmax_t)va.va_fileid, va.va_gen);
 				gbl = gbl_parse_label(label);
 			} else {
 				gbl = GBL_EMPTY;
-				MAC_GRANTBYLABEL_DBG(2, "no label dev=%ju, file %ju.%lu",
+				MAC_GRANTBYLABEL_DBG(2,
+				    "no label dev=%ju, file %ju.%lu",
 				    (uintmax_t)va.va_fsid,
-				    (uintmax_t)va.va_fileid,
-				    va.va_gen);
+				    (uintmax_t)va.va_fileid, va.va_gen);
 			}
 		}
 	}
 	return gbl;
 }
-
 
 /**
  * @brief grant priv if warranted
@@ -212,10 +206,10 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
 	gbl_label_t label;
 	int rc;
 
-	rc = EPERM;			/* default response */
+	rc = EPERM; /* default response */
 
-	if ((curproc->p_flag & (P_KPROC|P_SYSTEM)))
-		return rc;		/* not interested */
+	if ((curproc->p_flag & (P_KPROC | P_SYSTEM)))
+		return rc; /* not interested */
 
 	switch (priv) {
 	case PRIV_KMEM_READ:
@@ -227,7 +221,7 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
 		break;
 	default:
 		if (cred->cr_uid == 0)
-			return rc;	/* not interested */
+			return rc; /* not interested */
 		break;
 	}
 
@@ -250,7 +244,7 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
 			rc = 0;
 		break;
 	case PRIV_NETINET_BINDANY:
-	case PRIV_NETINET_RESERVEDPORT:	/* socket bind low port */
+	case PRIV_NETINET_RESERVEDPORT: /* socket bind low port */
 	case PRIV_NETINET_REUSEPORT:
 		if (label & GBL_BIND)
 			rc = 0;
@@ -289,9 +283,9 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
 	case PRIV_VFS_ADMIN:
 	case PRIV_VFS_BLOCKRESERVE:
 	case PRIV_VFS_CHOWN:
-	case PRIV_VFS_EXEC:	/* vaccess file and accmode & VEXEC */
+	case PRIV_VFS_EXEC: /* vaccess file and accmode & VEXEC */
 	case PRIV_VFS_GENERATION:
-	case PRIV_VFS_LOOKUP:	/* vaccess DIR */
+	case PRIV_VFS_LOOKUP: /* vaccess DIR */
 		if (label & GBL_VACCESS)
 			rc = 0;
 		break;
@@ -325,13 +319,11 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
 	default:
 		break;
 	}
-	MAC_GRANTBYLABEL_DBG(rc ? 1 : 2,
-	    "pid=%d priv=%d, label=%#o rc=%d",
+	MAC_GRANTBYLABEL_DBG(rc ? 1 : 2, "pid=%d priv=%d, label=%#o rc=%d",
 	    curproc->p_pid, priv, label, rc);
 
 	return rc;
 }
-
 
 /*
  * If proc->p_textvp does not yet have a label,
@@ -340,8 +332,7 @@ mac_grantbylabel_priv_grant(struct ucred *cred, int priv)
  * If there is no label set it to GBL_EMPTY.
  */
 static int
-mac_grantbylabel_proc_check_resource(struct ucred *cred,
-    struct proc *proc)
+mac_grantbylabel_proc_check_resource(struct ucred *cred, struct proc *proc)
 {
 	gbl_label_t gbl;
 
@@ -379,14 +370,14 @@ mac_grantbylabel_syscall(struct thread *td, int call, void *arg)
 	proc_locked = 0;
 	switch (call) {
 	case MAC_GRANTBYLABEL_FETCH_GBL:
-		error = getvnode(td, gbl_args.u.fd,
-		    cap_rights_init(&rights), &fp);
+		error = getvnode(td, gbl_args.u.fd, cap_rights_init(&rights),
+		    &fp);
 		if (error)
 			return (error);
 
 		if (fp->f_type != DTYPE_VNODE) {
-		       error = EINVAL;
-		       goto cleanup_file;
+			error = EINVAL;
+			goto cleanup_file;
 		}
 
 		vn_lock(fp->f_vnode, LK_SHARED | LK_RETRY);
@@ -396,13 +387,12 @@ mac_grantbylabel_syscall(struct thread *td, int call, void *arg)
 		else
 			error = 0;
 		VOP_UNLOCK(fp->f_vnode);
-cleanup_file:
+	cleanup_file:
 		fdrop(fp, td);
 		break;
 	case MAC_GRANTBYLABEL_FETCH_PID_GBL:
 		error = 0;
-		if (gbl_args.u.pid == 0
-		    || gbl_args.u.pid == curproc->p_pid) {
+		if (gbl_args.u.pid == 0 || gbl_args.u.pid == curproc->p_pid) {
 			proc = curproc;
 		} else {
 			proc = pfind(gbl_args.u.pid);
@@ -422,19 +412,18 @@ cleanup_file:
 	return error;
 }
 
-
 static void
 mac_grantbylabel_proc_init_label(struct label *label)
 {
 
-	SLOT_SET(label, 0);		/* not yet set! */
+	SLOT_SET(label, 0); /* not yet set! */
 }
 
 static void
 mac_grantbylabel_vnode_init_label(struct label *label)
 {
 
-	SLOT_SET(label, 0);		/* not yet set! */
+	SLOT_SET(label, 0); /* not yet set! */
 }
 
 /**
@@ -469,9 +458,8 @@ mac_grantbylabel_copy_label(struct label *src, struct label *dest)
  */
 static int
 mac_grantbylabel_vnode_execve_will_transition(struct ucred *old,
-    struct vnode *vp, struct label *vplabel,
-    struct label *interpvplabel, struct image_params *imgp,
-    struct label *execlabel)
+    struct vnode *vp, struct label *vplabel, struct label *interpvplabel,
+    struct image_params *imgp, struct label *execlabel)
 {
 	gbl_label_t gbl;
 
@@ -480,27 +468,27 @@ mac_grantbylabel_vnode_execve_will_transition(struct ucred *old,
 		if (gbl) {
 			SLOT_SET(imgp->proc->p_label, gbl);
 		}
-		MAC_GRANTBYLABEL_DBG(1, "execve_will_transition label=%#o", gbl);
+		MAC_GRANTBYLABEL_DBG(1, "execve_will_transition label=%#o",
+		    gbl);
 	}
 	return 0;
 }
 
-
-static struct mac_policy_ops mac_grantbylabel_ops =
-{
+static struct mac_policy_ops mac_grantbylabel_ops = {
 	.mpo_proc_check_resource = mac_grantbylabel_proc_check_resource,
 	.mpo_priv_grant = mac_grantbylabel_priv_grant,
 	.mpo_syscall = mac_grantbylabel_syscall,
 	.mpo_proc_init_label = mac_grantbylabel_proc_init_label,
 	.mpo_vnode_check_exec = mac_grantbylabel_vnode_check_exec,
 	.mpo_vnode_copy_label = mac_grantbylabel_copy_label,
-	.mpo_vnode_execve_will_transition = mac_grantbylabel_vnode_execve_will_transition,
+	.mpo_vnode_execve_will_transition =
+	    mac_grantbylabel_vnode_execve_will_transition,
 	.mpo_vnode_init_label = mac_grantbylabel_vnode_init_label,
 };
 
 MAC_POLICY_SET(&mac_grantbylabel_ops, mac_grantbylabel,
-    MAC_GRANTBYLABEL_FULLNAME,
-    MPC_LOADTIME_FLAG_NOTLATE, &mac_grantbylabel_slot);
+    MAC_GRANTBYLABEL_FULLNAME, MPC_LOADTIME_FLAG_NOTLATE,
+    &mac_grantbylabel_slot);
 MODULE_VERSION(mac_grantbylabel, 1);
 MODULE_DEPEND(mac_grantbylabel, mac_veriexec, MAC_VERIEXEC_VERSION,
     MAC_VERIEXEC_VERSION, MAC_VERIEXEC_VERSION);

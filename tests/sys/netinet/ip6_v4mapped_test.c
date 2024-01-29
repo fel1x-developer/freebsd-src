@@ -38,6 +38,7 @@
 
 #include <netinet/in.h>
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -46,17 +47,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
+#define SYSCTLBAKFILE "tmp.net.inet.ip.portrange.values"
 
-#define	SYSCTLBAKFILE	"tmp.net.inet.ip.portrange.values"
-
-#define	PORT_FIRST	10000		/* normal default */
-#define	PORT_LAST	10003
-#define	LOOPS		10		/* 5 should be enough */
+#define PORT_FIRST 10000 /* normal default */
+#define PORT_LAST 10003
+#define LOOPS 10 /* 5 should be enough */
 
 struct portrange {
-	int	first;
-	int	last;
+	int first;
+	int last;
 };
 
 /*
@@ -86,13 +85,14 @@ set_portrange(void)
 	    &sysctlsz, &first_new, sizeof(first_new));
 	if (error) {
 		warn("sysctlbyname(\"net.inet.ip.portrange.first\") "
-		    "failed");
+		     "failed");
 		atf_tc_skip("Unable to set sysctl");
 	}
 	if (sysctlsz != sizeof(save_ports.first)) {
-		fprintf(stderr, "Error: unexpected sysctl value size "
-		    "(expected %zu, actual %zu)\n", sizeof(save_ports.first),
-		    sysctlsz);
+		fprintf(stderr,
+		    "Error: unexpected sysctl value size "
+		    "(expected %zu, actual %zu)\n",
+		    sizeof(save_ports.first), sysctlsz);
 		goto restore_sysctl;
 	}
 
@@ -102,19 +102,20 @@ set_portrange(void)
 	    &sysctlsz, &last_new, sizeof(last_new));
 	if (error) {
 		warn("sysctlbyname(\"net.inet.ip.portrange.last\") "
-		    "failed");
+		     "failed");
 		atf_tc_skip("Unable to set sysctl");
 	}
 	if (sysctlsz != sizeof(save_ports.last)) {
-		fprintf(stderr, "Error: unexpected sysctl value size "
-		    "(expected %zu, actual %zu)\n", sizeof(save_ports.last),
-		    sysctlsz);
+		fprintf(stderr,
+		    "Error: unexpected sysctl value size "
+		    "(expected %zu, actual %zu)\n",
+		    sizeof(save_ports.last), sysctlsz);
 		goto restore_sysctl;
 	}
 
 	/* Open the backup file, write the contents, and close it. */
-	fd = open(SYSCTLBAKFILE, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL,
-	    S_IRUSR|S_IWUSR);
+	fd = open(SYSCTLBAKFILE, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL,
+	    S_IRUSR | S_IWUSR);
 	if (fd < 0) {
 		warn("error opening sysctl backup file");
 		goto restore_sysctl;
@@ -127,22 +128,23 @@ set_portrange(void)
 	if (error != (int)sizeof(save_ports)) {
 		fprintf(stderr,
 		    "Error writing saved value to sysctl backup file: "
-		    "(expected %zu, actual %d)\n", sizeof(save_ports), error);
+		    "(expected %zu, actual %d)\n",
+		    sizeof(save_ports), error);
 		goto cleanup_and_restore;
 	}
 	error = close(fd);
 	if (error) {
 		warn("error closing sysctl backup file");
-cleanup_and_restore:
+	cleanup_and_restore:
 		(void)close(fd);
 		(void)unlink(SYSCTLBAKFILE);
-restore_sysctl:
+	restore_sysctl:
 		sysctlsz = sizeof(save_ports.first);
-		(void)sysctlbyname("net.inet.ip.portrange.first", NULL,
-		    NULL, &save_ports.first, sysctlsz);
+		(void)sysctlbyname("net.inet.ip.portrange.first", NULL, NULL,
+		    &save_ports.first, sysctlsz);
 		sysctlsz = sizeof(save_ports.last);
-		(void)sysctlbyname("net.inet.ip.portrange.last", NULL,
-		    NULL, &save_ports.last, sysctlsz);
+		(void)sysctlbyname("net.inet.ip.portrange.last", NULL, NULL,
+		    &save_ports.last, sysctlsz);
 		atf_tc_skip("Error setting sysctl");
 	}
 }
@@ -170,7 +172,8 @@ restore_portrange(void)
 	if (error != (int)sizeof(save_ports)) {
 		fprintf(stderr,
 		    "Error reading saved values from sysctl backup file: "
-		    "(expected %zu, actual %d)\n", sizeof(save_ports), error);
+		    "(expected %zu, actual %d)\n",
+		    sizeof(save_ports), error);
 		return;
 	}
 	error = close(fd);
@@ -185,12 +188,12 @@ restore_portrange(void)
 	    &save_ports.first, sizeof(save_ports.first));
 	if (error)
 		warn("sysctlbyname(\"net.inet.ip.portrange.first\") "
-		    "failed while restoring value");
+		     "failed while restoring value");
 	error = sysctlbyname("net.inet.ip.portrange.last", NULL, NULL,
 	    &save_ports.last, sizeof(save_ports.last));
 	if (error)
 		warn("sysctlbyname(\"net.inet.ip.portrange.last\") "
-		    "failed while restoring value");
+		     "failed while restoring value");
 }
 
 ATF_TC_WITH_CLEANUP(tcp_v4mapped_bind);
@@ -244,8 +247,7 @@ ATF_TC_BODY(tcp_v4mapped_bind, tc)
 	salen = sizeof(su_srvr);
 	error = getsockname(lsock, &su_srvr.saddr, &salen);
 	ATF_REQUIRE_MSG(error == 0,
-	    "getsockname() for listen socket failed: %s",
-	    strerror(errno));
+	    "getsockname() for listen socket failed: %s", strerror(errno));
 	ATF_REQUIRE_MSG(salen == sizeof(struct sockaddr_in),
 	    "unexpected sockaddr size");
 	ATF_REQUIRE_MSG(su_srvr.saddr.sa_len == sizeof(struct sockaddr_in),
@@ -269,8 +271,8 @@ ATF_TC_BODY(tcp_v4mapped_bind, tc)
 	for (i = 0; i < LOOPS; i++) {
 		csock = socket(PF_INET6, SOCK_STREAM, 0);
 		ATF_REQUIRE_MSG(csock >= 0,
-		    "socket() for client socket %d failed: %s",
-		    i, strerror(errno));
+		    "socket() for client socket %d failed: %s", i,
+		    strerror(errno));
 		error = setsockopt(csock, IPPROTO_IPV6, IPV6_V6ONLY, &off,
 		    sizeof(off));
 		ATF_REQUIRE_MSG(error == 0,
@@ -282,24 +284,25 @@ ATF_TC_BODY(tcp_v4mapped_bind, tc)
 		 */
 		error = bind(csock, &su_clnt.saddr, sizeof(su_clnt.saddr6));
 		if (error != 0) {
-			if (errno == EADDRNOTAVAIL) {	/* Success, expected */
+			if (errno == EADDRNOTAVAIL) { /* Success, expected */
 				got_bind_error = true;
 				break;
 			}
-			ATF_REQUIRE_MSG(error == 0,
-			    "client bind %d failed: %s", i, strerror(errno));
+			ATF_REQUIRE_MSG(error == 0, "client bind %d failed: %s",
+			    i, strerror(errno));
 		}
 
-		error = connect(csock, &su_mapped.saddr, su_mapped.saddr.sa_len);
+		error = connect(csock, &su_mapped.saddr,
+		    su_mapped.saddr.sa_len);
 		if (error != 0 && errno == EADDRINUSE) {
 			/* This is the specific error we were looking for. */
 			atf_tc_fail("client connect %d failed, "
-			    " client had duplicate port: %s",
+				    " client had duplicate port: %s",
 			    i, strerror(errno));
 		}
 		ATF_REQUIRE_MSG(error == 0,
-		    "connect() for client socket %d failed: %s",
-		    i, strerror(errno));
+		    "connect() for client socket %d failed: %s", i,
+		    strerror(errno));
 
 		/*
 		 * We don't accept the new socket from the server socket
@@ -373,8 +376,8 @@ ATF_TC_BODY(udp_v4mapped_sendto, tc)
 
 	zero = 0;
 	error = setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &zero, sizeof(zero));
-	ATF_REQUIRE_MSG(error == 0,
-	    "setsockopt(IPV6_V6ONLY) failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "setsockopt(IPV6_V6ONLY) failed: %s",
+	    strerror(errno));
 
 	ch = 0x42;
 	n = sendto(s, &ch, 1, 0, (struct sockaddr *)&sin6, sizeof(sin6));

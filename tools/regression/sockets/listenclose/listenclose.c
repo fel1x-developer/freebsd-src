@@ -30,7 +30,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -64,7 +63,6 @@ main(void)
 		    "socket(PF_INET, SOCK_STREAM, 0) for listen socket: %s",
 		    strerror(errno));
 
-
 	bzero(&sin, sizeof(sin));
 	sin.sin_len = sizeof(sin);
 	sin.sin_family = AF_INET;
@@ -86,13 +84,17 @@ main(void)
 
 	connect_sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect_sock == -1)
-		errx(-1, "socket(PF_INET, SOCK_STREAM, 0) for connect "
-		    "socket: %s", strerror(errno));
+		errx(-1,
+		    "socket(PF_INET, SOCK_STREAM, 0) for connect "
+		    "socket: %s",
+		    strerror(errno));
 
 	arg = O_NONBLOCK;
 	if (fcntl(connect_sock, F_SETFL, &arg) < 0)
-		errx(-1, "socket(PF_INET, SOCK_STREAM, 0) for connect socket"
-		    ": %s", strerror(errno));
+		errx(-1,
+		    "socket(PF_INET, SOCK_STREAM, 0) for connect socket"
+		    ": %s",
+		    strerror(errno));
 
 	bzero(&sin, sizeof(sin));
 	sin.sin_len = sizeof(sin);

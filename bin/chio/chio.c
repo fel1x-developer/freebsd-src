@@ -36,84 +36,85 @@
  */
 
 #include <sys/param.h>
-#include <sys/chio.h> 
+#include <sys/chio.h>
+
 #include <err.h>
 #include <fcntl.h>
-#include <stdio.h>
+#include <langinfo.h>
+#include <locale.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <langinfo.h>
-#include <locale.h>
 
 #include "defs.h"
 #include "pathnames.h"
 
-static	void usage(void) __dead2;
-static	void cleanup(void);
-static	u_int16_t parse_element_type(char *);
-static	u_int16_t parse_element_unit(char *);
-static	const char * element_type_name(int et);
-static	int parse_special(char *);
-static	int is_special(char *);
-static	const char *bits_to_string(ces_status_flags, const char *);
+static void usage(void) __dead2;
+static void cleanup(void);
+static u_int16_t parse_element_type(char *);
+static u_int16_t parse_element_unit(char *);
+static const char *element_type_name(int et);
+static int parse_special(char *);
+static int is_special(char *);
+static const char *bits_to_string(ces_status_flags, const char *);
 
-static	void find_element(char *, uint16_t *, uint16_t *);
-static	struct changer_element_status *get_element_status
-	   (unsigned int, unsigned int, int);
+static void find_element(char *, uint16_t *, uint16_t *);
+static struct changer_element_status *get_element_status(unsigned int,
+    unsigned int, int);
 
-static	int do_move(const char *, int, char **);
-static	int do_exchange(const char *, int, char **);
-static	int do_position(const char *, int, char **);
-static	int do_params(const char *, int, char **);
-static	int do_getpicker(const char *, int, char **);
-static	int do_setpicker(const char *, int, char **);
-static	int do_status(const char *, int, char **);
-static	int do_ielem(const char *, int, char **);
-static	int do_return(const char *, int, char **);
-static	int do_voltag(const char *, int, char **);
-static	void print_designator(const char *, u_int8_t, u_int8_t);
+static int do_move(const char *, int, char **);
+static int do_exchange(const char *, int, char **);
+static int do_position(const char *, int, char **);
+static int do_params(const char *, int, char **);
+static int do_getpicker(const char *, int, char **);
+static int do_setpicker(const char *, int, char **);
+static int do_status(const char *, int, char **);
+static int do_ielem(const char *, int, char **);
+static int do_return(const char *, int, char **);
+static int do_voltag(const char *, int, char **);
+static void print_designator(const char *, u_int8_t, u_int8_t);
 
 #ifndef CHET_VT
-#define	CHET_VT		10			/* Completely Arbitrary */
+#define CHET_VT 10 /* Completely Arbitrary */
 #endif
 
 /* Valid changer element types. */
-static	const struct element_type elements[] = {
-	{ "drive",		CHET_DT },
-	{ "picker",		CHET_MT },
-	{ "portal",		CHET_IE },
-	{ "slot",		CHET_ST },
-	{ "voltag",		CHET_VT },	/* Select tapes by barcode */
-	{ NULL,			0 },
+static const struct element_type elements[] = {
+	{ "drive", CHET_DT },
+	{ "picker", CHET_MT },
+	{ "portal", CHET_IE },
+	{ "slot", CHET_ST },
+	{ "voltag", CHET_VT }, /* Select tapes by barcode */
+	{ NULL, 0 },
 };
 
 /* Valid commands. */
-static	const struct changer_command commands[] = {
-	{ "exchange",		do_exchange },
-	{ "getpicker",		do_getpicker },
-	{ "ielem", 		do_ielem },
-	{ "move",		do_move },
-	{ "params",		do_params },
-	{ "position",		do_position },
-	{ "setpicker",		do_setpicker },
-	{ "status",		do_status },
-	{ "return",		do_return },
-	{ "voltag",		do_voltag },
-	{ NULL,			0 },
+static const struct changer_command commands[] = {
+	{ "exchange", do_exchange },
+	{ "getpicker", do_getpicker },
+	{ "ielem", do_ielem },
+	{ "move", do_move },
+	{ "params", do_params },
+	{ "position", do_position },
+	{ "setpicker", do_setpicker },
+	{ "status", do_status },
+	{ "return", do_return },
+	{ "voltag", do_voltag },
+	{ NULL, 0 },
 };
 
 /* Valid special words. */
-static	const struct special_word specials[] = {
-	{ "inv",		SW_INVERT },
-	{ "inv1",		SW_INVERT1 },
-	{ "inv2",		SW_INVERT2 },
-	{ NULL,			0 },
+static const struct special_word specials[] = {
+	{ "inv", SW_INVERT },
+	{ "inv1", SW_INVERT1 },
+	{ "inv2", SW_INVERT2 },
+	{ NULL, 0 },
 };
 
-static	int changer_fd;
-static	const char *changer_name;
+static int changer_fd;
+static const char *changer_name;
 
 int
 main(int argc, char **argv)
@@ -157,14 +158,14 @@ main(int argc, char **argv)
 		/* look for abbreviation */
 		for (i = 0; commands[i].cc_name != NULL; ++i)
 			if (strncmp(*argv, commands[i].cc_name,
-			    strlen(*argv)) == 0)
+				strlen(*argv)) == 0)
 				break;
 	}
 
 	if (commands[i].cc_name == NULL)
 		errx(1, "unknown command: %s", *argv);
 
-	exit ((*commands[i].cc_handler)(commands[i].cc_name, argc, argv));
+	exit((*commands[i].cc_handler)(commands[i].cc_name, argc, argv));
 	/* NOTREACHED */
 }
 
@@ -182,7 +183,8 @@ do_move(const char *cname, int argc, char **argv)
 	 * where ET == element type and EU == element unit.
 	 */
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc < 4) {
 		warnx("%s: too few arguments", cname);
@@ -191,11 +193,12 @@ do_move(const char *cname, int argc, char **argv)
 		warnx("%s: too many arguments", cname);
 		goto usage;
 	}
-	(void) memset(&cmd, 0, sizeof(cmd));
+	(void)memset(&cmd, 0, sizeof(cmd));
 
 	/* <from ET>  */
 	cmd.cm_fromtype = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Check for voltag virtual type */
 	if (CHET_VT == cmd.cm_fromtype) {
@@ -204,20 +207,23 @@ do_move(const char *cname, int argc, char **argv)
 		/* <from EU> */
 		cmd.cm_fromunit = parse_element_unit(*argv);
 	}
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* <to ET> */
 	cmd.cm_totype = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Check for voltag virtual type, and report error */
 	if (CHET_VT == cmd.cm_totype)
-		errx(1,"%s: voltag only makes sense as an element source",
-		     cname);
+		errx(1, "%s: voltag only makes sense as an element source",
+		    cname);
 
 	/* <to EU> */
 	cmd.cm_tounit = parse_element_unit(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Deal with optional command modifier. */
 	if (argc) {
@@ -228,8 +234,8 @@ do_move(const char *cname, int argc, char **argv)
 			break;
 
 		default:
-			errx(1, "%s: inappropriate modifier `%s'",
-			    cname, *argv);
+			errx(1, "%s: inappropriate modifier `%s'", cname,
+			    *argv);
 			/* NOTREACHED */
 		}
 	}
@@ -240,9 +246,11 @@ do_move(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s "
-	    "<from ET> <from EU> <to ET> <to EU> [inv]\n", getprogname(), cname);
+usage:
+	(void)fprintf(stderr,
+	    "usage: %s %s "
+	    "<from ET> <from EU> <to ET> <to EU> [inv]\n",
+	    getprogname(), cname);
 	return (1);
 }
 
@@ -255,12 +263,14 @@ do_exchange(const char *cname, int argc, char **argv)
 	/*
 	 * On an exchange command, we expect the following:
 	 *
-  * <src ET> <src EU> <dst1 ET> <dst1 EU> [<dst2 ET> <dst2 EU>] [inv1] [inv2]
+	 * <src ET> <src EU> <dst1 ET> <dst1 EU> [<dst2 ET> <dst2 EU>] [inv1]
+	 * [inv2]
 	 *
 	 * where ET == element type and EU == element unit.
 	 */
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc < 4) {
 		warnx("%s: too few arguments", cname);
@@ -269,11 +279,12 @@ do_exchange(const char *cname, int argc, char **argv)
 		warnx("%s: too many arguments", cname);
 		goto usage;
 	}
-	(void) memset(&cmd, 0, sizeof(cmd));
+	(void)memset(&cmd, 0, sizeof(cmd));
 
 	/* <src ET>  */
 	cmd.ce_srctype = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Check for voltag virtual type */
 	if (CHET_VT == cmd.ce_srctype) {
@@ -282,11 +293,13 @@ do_exchange(const char *cname, int argc, char **argv)
 		/* <from EU> */
 		cmd.ce_srcunit = parse_element_unit(*argv);
 	}
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* <dst1 ET> */
 	cmd.ce_fdsttype = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Check for voltag virtual type */
 	if (CHET_VT == cmd.ce_fdsttype) {
@@ -295,7 +308,8 @@ do_exchange(const char *cname, int argc, char **argv)
 		/* <from EU> */
 		cmd.ce_fdstunit = parse_element_unit(*argv);
 	}
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/*
 	 * If the next token is a special word or there are no more
@@ -310,21 +324,24 @@ do_exchange(const char *cname, int argc, char **argv)
 
 	/* <dst2 ET> */
 	cmd.ce_sdsttype = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (CHET_VT == cmd.ce_sdsttype)
-		errx(1,"%s %s: voltag only makes sense as an element source",
-		     cname, *argv);
+		errx(1, "%s %s: voltag only makes sense as an element source",
+		    cname, *argv);
 
 	/* <dst2 EU> */
 	cmd.ce_sdstunit = parse_element_unit(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
- do_special:
+do_special:
 	/* Deal with optional command modifiers. */
 	while (argc) {
 		val = parse_special(*argv);
-		++argv; --argc;
+		++argv;
+		--argc;
 		switch (val) {
 		case SW_INVERT1:
 			cmd.ce_flags |= CE_INVERT1;
@@ -335,8 +352,8 @@ do_exchange(const char *cname, int argc, char **argv)
 			break;
 
 		default:
-			errx(1, "%s: inappropriate modifier `%s'",
-			    cname, *argv);
+			errx(1, "%s: inappropriate modifier `%s'", cname,
+			    *argv);
 			/* NOTREACHED */
 		}
 	}
@@ -347,8 +364,8 @@ do_exchange(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr,
+usage:
+	(void)fprintf(stderr,
 	    "usage: %s %s <src ET> <src EU> <dst1 ET> <dst1 EU>\n"
 	    "       [<dst2 ET> <dst2 EU>] [inv1] [inv2]\n",
 	    getprogname(), cname);
@@ -369,7 +386,8 @@ do_position(const char *cname, int argc, char **argv)
 	 * where ET == element type and EU == element unit.
 	 */
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc < 2) {
 		warnx("%s: too few arguments", cname);
@@ -378,15 +396,17 @@ do_position(const char *cname, int argc, char **argv)
 		warnx("%s: too many arguments", cname);
 		goto usage;
 	}
-	(void) memset(&cmd, 0, sizeof(cmd));
+	(void)memset(&cmd, 0, sizeof(cmd));
 
 	/* <to ET>  */
 	cmd.cp_type = parse_element_type(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* <to EU> */
 	cmd.cp_unit = parse_element_unit(*argv);
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Deal with optional command modifier. */
 	if (argc) {
@@ -397,8 +417,8 @@ do_position(const char *cname, int argc, char **argv)
 			break;
 
 		default:
-			errx(1, "%s: inappropriate modifier `%s'",
-			    cname, *argv);
+			errx(1, "%s: inappropriate modifier `%s'", cname,
+			    *argv);
 			/* NOTREACHED */
 		}
 	}
@@ -409,8 +429,8 @@ do_position(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s <to ET> <to EU> [inv]\n",
+usage:
+	(void)fprintf(stderr, "usage: %s %s <to ET> <to EU> [inv]\n",
 	    getprogname(), cname);
 	return (1);
 }
@@ -424,7 +444,8 @@ do_params(const char *cname, int argc, char **argv __unused)
 
 	/* No arguments to this command. */
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc) {
 		warnx("%s: no arguments expected", cname);
@@ -432,29 +453,28 @@ do_params(const char *cname, int argc, char **argv __unused)
 	}
 
 	/* Get params from changer and display them. */
-	(void) memset(&data, 0, sizeof(data));
+	(void)memset(&data, 0, sizeof(data));
 	if (ioctl(changer_fd, CHIOGPARAMS, &data))
 		err(1, "%s: CHIOGPARAMS", changer_name);
 
-	(void) printf("%s: %d slot%s, %d drive%s, %d picker%s",
-	    changer_name,
-	    data.cp_nslots, (data.cp_nslots > 1) ? "s" : "",
-	    data.cp_ndrives, (data.cp_ndrives > 1) ? "s" : "",
-	    data.cp_npickers, (data.cp_npickers > 1) ? "s" : "");
+	(void)printf("%s: %d slot%s, %d drive%s, %d picker%s", changer_name,
+	    data.cp_nslots, (data.cp_nslots > 1) ? "s" : "", data.cp_ndrives,
+	    (data.cp_ndrives > 1) ? "s" : "", data.cp_npickers,
+	    (data.cp_npickers > 1) ? "s" : "");
 	if (data.cp_nportals)
-		(void) printf(", %d portal%s", data.cp_nportals,
+		(void)printf(", %d portal%s", data.cp_nportals,
 		    (data.cp_nportals > 1) ? "s" : "");
 
 	/* Get current picker from changer and display it. */
 	if (ioctl(changer_fd, CHIOGPICKER, &picker))
 		err(1, "%s: CHIOGPICKER", changer_name);
 
-	(void) printf("\n%s: current picker: %d\n", changer_name, picker);
+	(void)printf("\n%s: current picker: %d\n", changer_name, picker);
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s\n", getprogname(), cname);
+usage:
+	(void)fprintf(stderr, "usage: %s %s\n", getprogname(), cname);
 	return (1);
 }
 
@@ -466,7 +486,8 @@ do_getpicker(const char *cname, int argc, char **argv __unused)
 
 	/* No arguments to this command. */
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc) {
 		warnx("%s: no arguments expected", cname);
@@ -477,12 +498,12 @@ do_getpicker(const char *cname, int argc, char **argv __unused)
 	if (ioctl(changer_fd, CHIOGPICKER, &picker))
 		err(1, "%s: CHIOGPICKER", changer_name);
 
-	(void) printf("%s: current picker: %d\n", changer_name, picker);
+	(void)printf("%s: current picker: %d\n", changer_name, picker);
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s\n", getprogname(), cname);
+usage:
+	(void)fprintf(stderr, "usage: %s %s\n", getprogname(), cname);
 	return (1);
 }
 
@@ -491,7 +512,8 @@ do_setpicker(const char *cname, int argc, char **argv)
 {
 	int picker;
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc < 1) {
 		warnx("%s: too few arguments", cname);
@@ -509,8 +531,8 @@ do_setpicker(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s <picker>\n", getprogname(), cname);
+usage:
+	(void)fprintf(stderr, "usage: %s %s <picker>\n", getprogname(), cname);
 	return (1);
 }
 
@@ -606,7 +628,7 @@ do_status(const char *cname, int argc, char **argv)
 	for (chet = schet; chet <= echet; ++chet) {
 		switch (chet) {
 		case CHET_MT:
-			if (count == 0) 
+			if (count == 0)
 				count = cp.cp_npickers;
 			else if (count > cp.cp_npickers)
 				errx(1, "not that many pickers in device");
@@ -614,7 +636,7 @@ do_status(const char *cname, int argc, char **argv)
 			break;
 
 		case CHET_ST:
-			if (count == 0) 
+			if (count == 0)
 				count = cp.cp_nslots;
 			else if (count > cp.cp_nslots)
 				errx(1, "not that many slots in device");
@@ -622,7 +644,7 @@ do_status(const char *cname, int argc, char **argv)
 			break;
 
 		case CHET_IE:
-			if (count == 0) 
+			if (count == 0)
 				count = cp.cp_nportals;
 			else if (count > cp.cp_nportals)
 				errx(1, "not that many portals in device");
@@ -630,25 +652,25 @@ do_status(const char *cname, int argc, char **argv)
 			break;
 
 		case CHET_DT:
-			if (count == 0) 
+			if (count == 0)
 				count = cp.cp_ndrives;
 			else if (count > cp.cp_ndrives)
 				errx(1, "not that many drives in device");
 			description = "drive";
 			break;
- 
- 		default:
- 			/* To appease gcc -Wuninitialized. */
- 			count = 0;
- 			description = NULL;
+
+		default:
+			/* To appease gcc -Wuninitialized. */
+			count = 0;
+			description = NULL;
 		}
 
 		if (count == 0) {
 			if (argc == 0)
 				continue;
 			else {
-				printf("%s: no %s elements\n",
-				    changer_name, description);
+				printf("%s: no %s elements\n", changer_name,
+				    description);
 				return (0);
 			}
 		}
@@ -658,10 +680,10 @@ do_status(const char *cname, int argc, char **argv)
 		cesr.cesr_element_base = base;
 		cesr.cesr_element_count = count;
 		/* Allocate storage for the status structures. */
-		cesr.cesr_element_status =
-		  (struct changer_element_status *) 
-		  calloc((size_t)count, sizeof(struct changer_element_status));
-		
+		cesr.cesr_element_status = (struct changer_element_status *)
+		    calloc((size_t)count,
+			sizeof(struct changer_element_status));
+
 		if (!cesr.cesr_element_status)
 			errx(1, "can't allocate status storage");
 
@@ -675,29 +697,27 @@ do_status(const char *cname, int argc, char **argv)
 
 		/* Dump the status for each reported element. */
 		for (i = 0; i < count; ++i) {
-			struct changer_element_status *ces =
-			         &(cesr.cesr_element_status[i]);
+			struct changer_element_status *ces = &(
+			    cesr.cesr_element_status[i]);
 			printf("%s %d: %s", description, ces->ces_addr,
-			    bits_to_string(ces->ces_flags,
-					   CESTATUS_BITS));
+			    bits_to_string(ces->ces_flags, CESTATUS_BITS));
 			if (sense)
 				printf(" sense: <0x%02x/0x%02x>",
-				       ces->ces_sensecode, 
-				       ces->ces_sensequal);
+				    ces->ces_sensecode, ces->ces_sensequal);
 			if (pvoltag)
-				printf(" voltag: <%s:%d>", 
-				       ces->ces_pvoltag.cv_volid,
-				       ces->ces_pvoltag.cv_serial);
+				printf(" voltag: <%s:%d>",
+				    ces->ces_pvoltag.cv_volid,
+				    ces->ces_pvoltag.cv_serial);
 			if (avoltag)
-				printf(" avoltag: <%s:%d>", 
-				       ces->ces_avoltag.cv_volid,
-				       ces->ces_avoltag.cv_serial);
+				printf(" avoltag: <%s:%d>",
+				    ces->ces_avoltag.cv_volid,
+				    ces->ces_avoltag.cv_serial);
 			if (source) {
 				if (ces->ces_flags & CES_SOURCE_VALID)
-					printf(" source: <%s %d>", 
-					       element_type_name(
-						       ces->ces_source_type),
-					       ces->ces_source_addr);
+					printf(" source: <%s %d>",
+					    element_type_name(
+						ces->ces_source_type),
+					    ces->ces_source_addr);
 				else
 					printf(" source: <>");
 			}
@@ -718,8 +738,8 @@ do_status(const char *cname, int argc, char **argv)
 			}
 			if (ces->ces_designator_length > 0)
 				print_designator(ces->ces_designator,
-						 ces->ces_code_set,
-						 ces->ces_designator_length);
+				    ces->ces_code_set,
+				    ces->ces_designator_length);
 			putchar('\n');
 		}
 
@@ -729,9 +749,10 @@ do_status(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s [-vVsSbaA] [<element type> [<start-addr> [<end-addr>] ] ]\n",
-		       getprogname(), cname);
+usage:
+	(void)fprintf(stderr,
+	    "usage: %s %s [-vVsSbaA] [<element type> [<start-addr> [<end-addr>] ] ]\n",
+	    getprogname(), cname);
 	return (1);
 }
 
@@ -752,9 +773,9 @@ do_ielem(const char *cname, int argc, char **argv)
 
 	return (0);
 
- usage:
-	(void) fprintf(stderr, "usage: %s %s [<timeout>]\n",
-		       getprogname(), cname);
+usage:
+	(void)fprintf(stderr, "usage: %s %s [<timeout>]\n", getprogname(),
+	    cname);
 	return (1);
 }
 
@@ -815,7 +836,7 @@ do_voltag(const char *cname, int argc, char **argv)
 		}
 
 		strlcpy((char *)csvr.csvr_voltag.cv_volid, argv[2],
-		       sizeof(csvr.csvr_voltag.cv_volid));
+		    sizeof(csvr.csvr_voltag.cv_volid));
 
 		if (argc == 4) {
 			csvr.csvr_voltag.cv_serial = (u_int16_t)atol(argv[3]);
@@ -836,10 +857,10 @@ do_voltag(const char *cname, int argc, char **argv)
 		err(1, "%s: CHIOSETVOLTAG", changer_name);
 
 	return 0;
- usage:
-	(void) fprintf(stderr, 
-		       "usage: %s %s [-fca] <element> [<voltag> [<vsn>] ]\n",
-		       getprogname(), cname);
+usage:
+	(void)fprintf(stderr,
+	    "usage: %s %s [-fca] <element> [<voltag> [<vsn>] ]\n",
+	    getprogname(), cname);
 	return 1;
 }
 
@@ -914,15 +935,15 @@ bits_to_string(ces_status_flags v, const char *cp)
 	static char buf[128];
 
 	bp = buf;
-	(void) memset(buf, 0, sizeof(buf));
+	(void)memset(buf, 0, sizeof(buf));
 
 	for (sep = '<'; (f = *cp++) != 0; cp = np) {
 		for (np = cp; *np >= ' ';)
 			np++;
 		if (((int)v & (1 << (f - 1))) == 0)
 			continue;
-		(void) snprintf(bp, sizeof(buf) - (size_t)(bp - &buf[0]),
-			"%c%.*s", sep, (int)(long)(np - cp), cp);
+		(void)snprintf(bp, sizeof(buf) - (size_t)(bp - &buf[0]),
+		    "%c%.*s", sep, (int)(long)(np - cp), cp);
 		bp += strlen(bp);
 		sep = ',';
 	}
@@ -933,7 +954,7 @@ bits_to_string(ces_status_flags v, const char *cp)
 }
 /*
  * do_return()
- * 
+ *
  * Given an element reference, ask the changer/picker to move that
  * element back to its source slot.
  */
@@ -942,9 +963,10 @@ do_return(const char *cname, int argc, char **argv)
 {
 	struct changer_element_status *ces;
 	struct changer_move cmd;
-	uint16_t	type, element;
+	uint16_t type, element;
 
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	if (argc < 2) {
 		warnx("%s: too few arguments", cname);
@@ -955,15 +977,17 @@ do_return(const char *cname, int argc, char **argv)
 	}
 
 	type = parse_element_type(*argv);
-	++argv; --argc;
-	
+	++argv;
+	--argc;
+
 	/* Handle voltag virtual Changer Element Type */
 	if (CHET_VT == type) {
 		find_element(*argv, &type, &element);
 	} else {
 		element = parse_element_unit(*argv);
 	}
-	++argv; --argc;
+	++argv;
+	--argc;
 
 	/* Get the status */
 	ces = get_element_status((unsigned int)type, (unsigned int)element,
@@ -975,7 +999,7 @@ do_return(const char *cname, int argc, char **argv)
 	if (!(ces->ces_flags & CES_SOURCE_VALID))
 		errx(1, "%s: no source information", cname);
 
-	(void) memset(&cmd, 0, sizeof(cmd));
+	(void)memset(&cmd, 0, sizeof(cmd));
 
 	cmd.cm_fromtype = type;
 	cmd.cm_fromunit = element;
@@ -986,12 +1010,14 @@ do_return(const char *cname, int argc, char **argv)
 		err(1, "%s: CHIOMOVE", changer_name);
 	free(ces);
 
-	return(0);
+	return (0);
 
 usage:
-	(void) fprintf(stderr, "usage: %s %s "
-	    "<from ET> <from EU>\n", getprogname(), cname);
-	return(1);
+	(void)fprintf(stderr,
+	    "usage: %s %s "
+	    "<from ET> <from EU>\n",
+	    getprogname(), cname);
+	return (1);
 }
 
 /*
@@ -1006,9 +1032,9 @@ get_element_status(unsigned int type, unsigned int element, int use_voltags)
 {
 	struct changer_element_status_request cesr;
 	struct changer_element_status *ces;
-	
-	ces = (struct changer_element_status *)
-	    calloc((size_t)1, sizeof(struct changer_element_status));
+
+	ces = (struct changer_element_status *)calloc((size_t)1,
+	    sizeof(struct changer_element_status));
 
 	if (NULL == ces)
 		errx(1, "can't allocate status storage");
@@ -1017,7 +1043,7 @@ get_element_status(unsigned int type, unsigned int element, int use_voltags)
 
 	cesr.cesr_element_type = (uint16_t)type;
 	cesr.cesr_element_base = (uint16_t)element;
-	cesr.cesr_element_count = 1;		/* Only this one element */
+	cesr.cesr_element_count = 1; /* Only this one element */
 	if (use_voltags)
 		cesr.cesr_flags |= CESR_VOLTAGS; /* Grab voltags as well */
 	cesr.cesr_element_status = ces;
@@ -1031,10 +1057,9 @@ get_element_status(unsigned int type, unsigned int element, int use_voltags)
 	return ces;
 }
 
-
 /*
  * find_element()
- * 
+ *
  * Given a <voltag> find the chager element and unit, or exit
  * with an error if it isn't found.  We grab the changer status
  * and iterate until we find a match, or crap out.
@@ -1056,11 +1081,11 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 		err(1, "%s: CHIOGPARAMS", changer_name);
 
 	/* Allocate some memory for the results */
-	total_elem = (cp.cp_nslots + cp.cp_ndrives
-	    + cp.cp_npickers + cp.cp_nportals);
-	
-	ch_ces = (struct changer_element_status *)
-	    calloc(total_elem, sizeof(struct changer_element_status));
+	total_elem = (cp.cp_nslots + cp.cp_ndrives + cp.cp_npickers +
+	    cp.cp_nportals);
+
+	ch_ces = (struct changer_element_status *)calloc(total_elem,
+	    sizeof(struct changer_element_status));
 
 	if (NULL == ch_ces)
 		errx(1, "can't allocate status storage");
@@ -1069,7 +1094,7 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 
 	/* Read in the changer slots */
 	if (cp.cp_nslots > 0) {
-		(void) memset(&cesr, 0, sizeof(cesr));
+		(void)memset(&cesr, 0, sizeof(cesr));
 		cesr.cesr_element_type = CHET_ST;
 		cesr.cesr_element_base = 0;
 		cesr.cesr_element_count = cp.cp_nslots;
@@ -1081,12 +1106,12 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 			err(1, "%s: CHIOGSTATUS", changer_name);
 		}
 		ces += cp.cp_nslots;
-	}	
+	}
 
 	/* Read in the drive information */
-	if (cp.cp_ndrives > 0 ) {
+	if (cp.cp_ndrives > 0) {
 
-		(void) memset(&cesr, 0, sizeof(cesr));
+		(void)memset(&cesr, 0, sizeof(cesr));
 		cesr.cesr_element_type = CHET_DT;
 		cesr.cesr_element_base = 0;
 		cesr.cesr_element_count = cp.cp_ndrives;
@@ -1101,8 +1126,8 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 	}
 
 	/* Read in the portal information */
-	if (cp.cp_nportals > 0 ) {
-		(void) memset(&cesr, 0, sizeof(cesr));
+	if (cp.cp_nportals > 0) {
+		(void)memset(&cesr, 0, sizeof(cesr));
 		cesr.cesr_element_type = CHET_IE;
 		cesr.cesr_element_base = 0;
 		cesr.cesr_element_count = cp.cp_nportals;
@@ -1118,7 +1143,7 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 
 	/* Read in the picker information */
 	if (cp.cp_npickers > 0) {
-		(void) memset(&cesr, 0, sizeof(cesr));
+		(void)memset(&cesr, 0, sizeof(cesr));
 		cesr.cesr_element_type = CHET_MT;
 		cesr.cesr_element_base = 0;
 		cesr.cesr_element_count = cp.cp_npickers;
@@ -1133,19 +1158,19 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 
 	/*
 	 * Now search the list the specified <voltag>
-	 */	
+	 */
 	for (elem = 0; elem < total_elem; ++elem) {
 
 		ces = &ch_ces[elem];
 
 		/* Make sure we have a tape in this element */
-		if ((ces->ces_flags & (CES_STATUS_ACCESS|CES_STATUS_FULL))
-		    != (CES_STATUS_ACCESS|CES_STATUS_FULL))
+		if ((ces->ces_flags & (CES_STATUS_ACCESS | CES_STATUS_FULL)) !=
+		    (CES_STATUS_ACCESS | CES_STATUS_FULL))
 			continue;
 
 		/* Check to see if it is our target */
 		if (strcasecmp(voltag,
-		    (const char *)ces->ces_pvoltag.cv_volid) == 0) {
+			(const char *)ces->ces_pvoltag.cv_volid) == 0) {
 			*et = ces->ces_type;
 			*eu = ces->ces_addr;
 			++found;
@@ -1154,7 +1179,7 @@ find_element(char *voltag, uint16_t *et, uint16_t *eu)
 	}
 	if (!found) {
 		errx(1, "%s: unable to locate voltag: %s", changer_name,
-		     voltag);
+		    voltag);
 	}
 	free(ch_ces);
 	return;
@@ -1170,12 +1195,14 @@ cleanup(void)
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: %s [-f changer] command [-<flags>] "
-		"arg1 arg2 [arg3 [...]]\n", getprogname());
+	(void)fprintf(stderr,
+	    "usage: %s [-f changer] command [-<flags>] "
+	    "arg1 arg2 [arg3 [...]]\n",
+	    getprogname());
 	exit(1);
 }
 
-#define	UTF8CODESET	"UTF-8"
+#define UTF8CODESET "UTF-8"
 
 static void
 print_designator(const char *designator, u_int8_t code_set,
@@ -1213,8 +1240,9 @@ print_designator(const char *designator, u_int8_t code_set,
 			 * iconv(3) in the base system yet.  So we use %XX
 			 * notation for non US-ASCII characters instead.
 			 */
-			for (i = 0; i < designator_length &&
-			    designator[i] != '\0'; i++) {
+			for (i = 0;
+			     i < designator_length && designator[i] != '\0';
+			     i++) {
 				if ((unsigned char)designator[i] < 0x80)
 					printf("%c", designator[i]);
 				else

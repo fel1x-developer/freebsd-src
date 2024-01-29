@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_SCM_LEGACY_DEFS_H__
-#define	__QCOM_SCM_LEGACY_DEFS_H__
+#ifndef __QCOM_SCM_LEGACY_DEFS_H__
+#define __QCOM_SCM_LEGACY_DEFS_H__
 
 /*
  * These definitions are specific to the 32 bit legacy SCM interface
@@ -40,7 +40,7 @@
  * This is particular to the legacy SCM interface, and is not the
  * same as the non-legacy 32/64 bit FNID mapping layout.
  */
-#define	QCOM_SCM_LEGACY_SMC_FNID(s, c)		(((s) << 10) | ((c) & 0x3ff))
+#define QCOM_SCM_LEGACY_SMC_FNID(s, c) (((s) << 10) | ((c) & 0x3ff))
 
 /*
  * There are two kinds of SCM calls in this legacy path.
@@ -66,18 +66,17 @@ struct qcom_scm_legacy_smc_args {
 /*
  * Atomic SCM call command/response buffer definitions.
  */
-#define	QCOM_SCM_LEGACY_ATOMIC_MAX_ARGCOUNT		5
-#define	QCOM_SCM_LEGACY_CLASS_REGISTER			(0x2 << 8)
-#define	QCOM_SCM_LEGACY_MASK_IRQS			(1U << 5)
+#define QCOM_SCM_LEGACY_ATOMIC_MAX_ARGCOUNT 5
+#define QCOM_SCM_LEGACY_CLASS_REGISTER (0x2 << 8)
+#define QCOM_SCM_LEGACY_MASK_IRQS (1U << 5)
 
 /*
  * Mapping an SCM service/command/argcount into the a0 register
  * for an SMC instruction call.
  */
-#define	QCOM_SCM_LEGACY_ATOMIC_ID(svc, cmd, n) \
-	    ((QCOM_SCM_LEGACY_SMC_FNID((svc), cmd) << 12) | \
-	    QCOM_SCM_LEGACY_CLASS_REGISTER | \
-	    QCOM_SCM_LEGACY_MASK_IRQS | \
+#define QCOM_SCM_LEGACY_ATOMIC_ID(svc, cmd, n)                           \
+	((QCOM_SCM_LEGACY_SMC_FNID((svc), cmd) << 12) |                  \
+	    QCOM_SCM_LEGACY_CLASS_REGISTER | QCOM_SCM_LEGACY_MASK_IRQS | \
 	    ((n) & 0xf))
 
 /*
@@ -144,4 +143,4 @@ struct qcom_scm_legacy_response_header {
 	uint32_t is_complete;
 };
 
-#endif	/* __QCOM_SCM_LEGACY_DEFS_H__ */
+#endif /* __QCOM_SCM_LEGACY_DEFS_H__ */

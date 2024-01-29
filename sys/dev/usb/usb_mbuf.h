@@ -26,7 +26,7 @@
  */
 
 #ifndef _USB_MBUF_H_
-#define	_USB_MBUF_H_
+#define _USB_MBUF_H_
 
 /*
  * The following structure defines a minimum re-implementation of the
@@ -40,52 +40,56 @@ struct usb_mbuf {
 
 	usb_size_t cur_data_len;
 	usb_size_t max_data_len;
-	uint8_t last_packet:1;
-	uint8_t unused:7;
+	uint8_t last_packet : 1;
+	uint8_t unused : 7;
 };
 
-#define	USB_IF_ENQUEUE(ifq, m) do {		\
-    (m)->usb_nextpkt = NULL;			\
-    if ((ifq)->ifq_tail == NULL)		\
-        (ifq)->ifq_head = (m);			\
-    else					\
-        (ifq)->ifq_tail->usb_nextpkt = (m);	\
-    (ifq)->ifq_tail = (m);			\
-    (ifq)->ifq_len++;				\
-  } while (0)
+#define USB_IF_ENQUEUE(ifq, m)                              \
+	do {                                                \
+		(m)->usb_nextpkt = NULL;                    \
+		if ((ifq)->ifq_tail == NULL)                \
+			(ifq)->ifq_head = (m);              \
+		else                                        \
+			(ifq)->ifq_tail->usb_nextpkt = (m); \
+		(ifq)->ifq_tail = (m);                      \
+		(ifq)->ifq_len++;                           \
+	} while (0)
 
-#define	USB_IF_DEQUEUE(ifq, m) do {				\
-    (m) = (ifq)->ifq_head;					\
-    if (m) {							\
-        if (((ifq)->ifq_head = (m)->usb_nextpkt) == NULL) {	\
-	     (ifq)->ifq_tail = NULL;				\
-	}							\
-	(m)->usb_nextpkt = NULL;				\
-	(ifq)->ifq_len--;					\
-    }								\
-  } while (0)
+#define USB_IF_DEQUEUE(ifq, m)                                              \
+	do {                                                                \
+		(m) = (ifq)->ifq_head;                                      \
+		if (m) {                                                    \
+			if (((ifq)->ifq_head = (m)->usb_nextpkt) == NULL) { \
+				(ifq)->ifq_tail = NULL;                     \
+			}                                                   \
+			(m)->usb_nextpkt = NULL;                            \
+			(ifq)->ifq_len--;                                   \
+		}                                                           \
+	} while (0)
 
-#define	USB_IF_PREPEND(ifq, m) do {		\
-      (m)->usb_nextpkt = (ifq)->ifq_head;	\
-      if ((ifq)->ifq_tail == NULL) {		\
-	  (ifq)->ifq_tail = (m);		\
-      }						\
-      (ifq)->ifq_head = (m);			\
-      (ifq)->ifq_len++;				\
-  } while (0)
+#define USB_IF_PREPEND(ifq, m)                      \
+	do {                                        \
+		(m)->usb_nextpkt = (ifq)->ifq_head; \
+		if ((ifq)->ifq_tail == NULL) {      \
+			(ifq)->ifq_tail = (m);      \
+		}                                   \
+		(ifq)->ifq_head = (m);              \
+		(ifq)->ifq_len++;                   \
+	} while (0)
 
-#define	USB_IF_QFULL(ifq)   ((ifq)->ifq_len >= (ifq)->ifq_maxlen)
-#define	USB_IF_QLEN(ifq)    ((ifq)->ifq_len)
-#define	USB_IF_POLL(ifq, m) ((m) = (ifq)->ifq_head)
+#define USB_IF_QFULL(ifq) ((ifq)->ifq_len >= (ifq)->ifq_maxlen)
+#define USB_IF_QLEN(ifq) ((ifq)->ifq_len)
+#define USB_IF_POLL(ifq, m) ((m) = (ifq)->ifq_head)
 
-#define	USB_MBUF_RESET(m) do {			\
-    (m)->cur_data_ptr = (m)->min_data_ptr;	\
-    (m)->cur_data_len = (m)->max_data_len;	\
-    (m)->last_packet = 0;			\
-  } while (0)
+#define USB_MBUF_RESET(m)                              \
+	do {                                           \
+		(m)->cur_data_ptr = (m)->min_data_ptr; \
+		(m)->cur_data_len = (m)->max_data_len; \
+		(m)->last_packet = 0;                  \
+	} while (0)
 
 /* prototypes */
-void   *usb_alloc_mbufs(struct malloc_type *type, struct usb_ifqueue *ifq,
-	    usb_size_t block_size, uint16_t nblocks);
+void *usb_alloc_mbufs(struct malloc_type *type, struct usb_ifqueue *ifq,
+    usb_size_t block_size, uint16_t nblocks);
 
-#endif					/* _USB_MBUF_H_ */
+#endif /* _USB_MBUF_H_ */

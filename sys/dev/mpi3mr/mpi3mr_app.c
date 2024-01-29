@@ -14,11 +14,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -43,25 +43,27 @@
 
 #include <sys/param.h>
 #include <sys/proc.h>
+
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
-#include "mpi3mr_cam.h"
-#include "mpi3mr_app.h"
-#include "mpi3mr.h"
 
-static d_open_t		mpi3mr_open;
-static d_close_t	mpi3mr_close;
-static d_ioctl_t	mpi3mr_ioctl;
-static d_poll_t		mpi3mr_poll;
+#include "mpi3mr.h"
+#include "mpi3mr_app.h"
+#include "mpi3mr_cam.h"
+
+static d_open_t mpi3mr_open;
+static d_close_t mpi3mr_close;
+static d_ioctl_t mpi3mr_ioctl;
+static d_poll_t mpi3mr_poll;
 
 static struct cdevsw mpi3mr_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	mpi3mr_open,
-	.d_close =	mpi3mr_close,
-	.d_ioctl =	mpi3mr_ioctl,
-	.d_poll =	mpi3mr_poll,
-	.d_name =	"mpi3mr",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = mpi3mr_open,
+	.d_close = mpi3mr_close,
+	.d_ioctl = mpi3mr_ioctl,
+	.d_poll = mpi3mr_poll,
+	.d_name = "mpi3mr",
 };
 
 static struct mpi3mr_mgmt_info mpi3mr_mgmt_info;
@@ -93,9 +95,9 @@ mpi3mr_app_attach(struct mpi3mr_softc *sc)
 {
 
 	/* Create a /dev entry for Avenger controller */
-	sc->mpi3mr_cdev = make_dev(&mpi3mr_cdevsw, device_get_unit(sc->mpi3mr_dev),
-				   UID_ROOT, GID_OPERATOR, 0640, "mpi3mr%d",
-				   device_get_unit(sc->mpi3mr_dev));
+	sc->mpi3mr_cdev = make_dev(&mpi3mr_cdevsw,
+	    device_get_unit(sc->mpi3mr_dev), UID_ROOT, GID_OPERATOR, 0640,
+	    "mpi3mr%d", device_get_unit(sc->mpi3mr_dev));
 
 	if (sc->mpi3mr_cdev == NULL)
 		return (ENOMEM);
@@ -119,7 +121,7 @@ mpi3mr_app_detach(struct mpi3mr_softc *sc)
 
 	if (sc->mpi3mr_cdev == NULL)
 		return;
-	
+
 	destroy_dev(sc->mpi3mr_cdev);
 	for (i = 0; i < mpi3mr_mgmt_info.max_index; i++) {
 		if (mpi3mr_mgmt_info.sc_ptr[i] == sc) {
@@ -138,8 +140,7 @@ mpi3mr_poll(struct cdev *dev, int poll_events, struct thread *td)
 	struct mpi3mr_softc *sc = NULL;
 	sc = dev->si_drv1;
 
-	if ((poll_events & (POLLIN | POLLRDNORM)) &&
-	    (sc->mpi3mr_aen_triggered))
+	if ((poll_events & (POLLIN | POLLRDNORM)) && (sc->mpi3mr_aen_triggered))
 		revents |= poll_events & (POLLIN | POLLRDNORM);
 
 	if (revents == 0) {
@@ -165,7 +166,7 @@ static struct mpi3mr_softc *
 mpi3mr_app_get_adp_instance(U8 mrioc_id)
 {
 	struct mpi3mr_softc *sc = NULL;
-	
+
 	if (mrioc_id >= mpi3mr_mgmt_info.max_index)
 		return NULL;
 
@@ -173,10 +174,10 @@ mpi3mr_app_get_adp_instance(U8 mrioc_id)
 	return sc;
 }
 
-static int 
+static int
 mpi3mr_app_construct_nvme_sgl(struct mpi3mr_softc *sc,
-			      Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request,
-			      struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 bufcnt)
+    Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request,
+    struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 bufcnt)
 {
 	struct mpi3mr_nvme_pt_sge *nvme_sgl;
 	U64 sgl_dma;
@@ -185,15 +186,16 @@ mpi3mr_app_construct_nvme_sgl(struct mpi3mr_softc *sc,
 	U32 sge_element_size = sizeof(struct mpi3mr_nvme_pt_sge);
 	size_t length = 0;
 	struct mpi3mr_ioctl_mpt_dma_buffer *dma_buff = dma_buffers;
-	U64 sgemod_mask = ((U64)((sc->facts.sge_mod_mask) <<
-				 sc->facts.sge_mod_shift) << 32);
-	U64 sgemod_val = ((U64)(sc->facts.sge_mod_value) <<
-				sc->facts.sge_mod_shift) << 32;
+	U64 sgemod_mask =
+	    ((U64)((sc->facts.sge_mod_mask) << sc->facts.sge_mod_shift) << 32);
+	U64 sgemod_val =
+	    ((U64)(sc->facts.sge_mod_value) << sc->facts.sge_mod_shift) << 32;
 
 	U32 size;
 
-	nvme_sgl = (struct mpi3mr_nvme_pt_sge *)
-		    ((U8 *)(nvme_encap_request->Command) + MPI3MR_NVME_CMD_SGL_OFFSET);
+	nvme_sgl =
+	    (struct mpi3mr_nvme_pt_sge *)((U8 *)(nvme_encap_request->Command) +
+		MPI3MR_NVME_CMD_SGL_OFFSET);
 
 	/*
 	 * Not all commands require a data transfer. If no data, just return
@@ -216,7 +218,8 @@ mpi3mr_app_construct_nvme_sgl(struct mpi3mr_softc *sc,
 	sgl_dma = (U64)sc->ioctl_chain_sge.dma_addr;
 
 	if (sgl_dma & sgemod_mask) {
-		printf(IOCNAME "NVMe SGL address collides with SGEModifier\n",sc->name);
+		printf(IOCNAME "NVMe SGL address collides with SGEModifier\n",
+		    sc->name);
 		return -1;
 	}
 
@@ -233,15 +236,15 @@ mpi3mr_app_construct_nvme_sgl(struct mpi3mr_softc *sc,
 	nvme_sgl->length = htole32(size);
 	nvme_sgl->type = MPI3MR_NVMESGL_LAST_SEGMENT;
 
-	nvme_sgl = (struct mpi3mr_nvme_pt_sge *) sc->ioctl_chain_sge.addr;
+	nvme_sgl = (struct mpi3mr_nvme_pt_sge *)sc->ioctl_chain_sge.addr;
 
 build_sges:
 	for (i = 0; i < dma_buff->num_dma_desc; i++) {
 		sgl_dma = htole64(dma_buff->dma_desc[i].dma_addr);
 		if (sgl_dma & sgemod_mask) {
 			printf("%s: SGL address collides with SGE modifier\n",
-			       __func__);
-		return -1;
+			    __func__);
+			return -1;
 		}
 
 		sgl_dma &= ~sgemod_mask;
@@ -259,8 +262,8 @@ build_sges:
 
 static int
 mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
-			  Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request,
-			  struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 bufcnt)
+    Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request,
+    struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 bufcnt)
 {
 	int prp_size = MPI3MR_NVME_PRP_SIZE;
 	U64 *prp_entry, *prp1_entry, *prp2_entry;
@@ -271,38 +274,41 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	size_t length = 0, desc_len;
 	U8 count;
 	struct mpi3mr_ioctl_mpt_dma_buffer *dma_buff = dma_buffers;
-	U64 sgemod_mask = ((U64)((sc->facts.sge_mod_mask) <<
-			    sc->facts.sge_mod_shift) << 32);
-	U64 sgemod_val = ((U64)(sc->facts.sge_mod_value) <<
-			  sc->facts.sge_mod_shift) << 32;
+	U64 sgemod_mask =
+	    ((U64)((sc->facts.sge_mod_mask) << sc->facts.sge_mod_shift) << 32);
+	U64 sgemod_val =
+	    ((U64)(sc->facts.sge_mod_value) << sc->facts.sge_mod_shift) << 32;
 	U16 dev_handle = nvme_encap_request->DevHandle;
 	struct mpi3mr_target *tgtdev;
 	U16 desc_count = 0;
 
 	tgtdev = mpi3mr_find_target_by_dev_handle(sc->cam_sc, dev_handle);
 	if (!tgtdev) {
-		printf(IOCNAME "EncapNVMe Error: Invalid DevHandle 0x%02x\n", sc->name,
-		       dev_handle);
+		printf(IOCNAME "EncapNVMe Error: Invalid DevHandle 0x%02x\n",
+		    sc->name, dev_handle);
 		return -1;
 	}
 	if (tgtdev->dev_spec.pcie_inf.pgsz == 0) {
-		printf(IOCNAME "%s: NVME device page size is zero for handle 0x%04x\n",
-		       sc->name, __func__, dev_handle);
+		printf(IOCNAME
+		    "%s: NVME device page size is zero for handle 0x%04x\n",
+		    sc->name, __func__, dev_handle);
 		return -1;
 	}
 	dev_pgsz = 1 << (tgtdev->dev_spec.pcie_inf.pgsz);
 
 	page_mask = dev_pgsz - 1;
 
-	if (dev_pgsz > MPI3MR_IOCTL_SGE_SIZE){
-		printf("%s: NVMe device page size(%d) is greater than ioctl data sge size(%d) for handle 0x%04x\n",
-		       __func__, dev_pgsz,  MPI3MR_IOCTL_SGE_SIZE, dev_handle);
+	if (dev_pgsz > MPI3MR_IOCTL_SGE_SIZE) {
+		printf(
+		    "%s: NVMe device page size(%d) is greater than ioctl data sge size(%d) for handle 0x%04x\n",
+		    __func__, dev_pgsz, MPI3MR_IOCTL_SGE_SIZE, dev_handle);
 		return -1;
 	}
 
-	if (MPI3MR_IOCTL_SGE_SIZE % dev_pgsz){
-		printf("%s: ioctl data sge size(%d) is not a multiple of NVMe device page size(%d) for handle 0x%04x\n",
-		       __func__, MPI3MR_IOCTL_SGE_SIZE, dev_pgsz, dev_handle);
+	if (MPI3MR_IOCTL_SGE_SIZE % dev_pgsz) {
+		printf(
+		    "%s: ioctl data sge size(%d) is not a multiple of NVMe device page size(%d) for handle 0x%04x\n",
+		    __func__, MPI3MR_IOCTL_SGE_SIZE, dev_pgsz, dev_handle);
 		return -1;
 	}
 
@@ -323,8 +329,9 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	for (count = 0; count < dma_buff->num_dma_desc; count++) {
 		dma_addr = dma_buff->dma_desc[count].dma_addr;
 		if (dma_addr & page_mask) {
-			printf("%s:dma_addr 0x%lu is not aligned with page size 0x%x\n",
-			       __func__,  dma_addr, dev_pgsz);
+			printf(
+			    "%s:dma_addr 0x%lu is not aligned with page size 0x%x\n",
+			    __func__, dma_addr, dev_pgsz);
 			return -1;
 		}
 	}
@@ -333,35 +340,40 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	desc_len = dma_buff->dma_desc[0].size;
 
 	sc->nvme_encap_prp_sz = 0;
-	if (bus_dma_tag_create(sc->mpi3mr_parent_dmat,		/* parent */
-				4, 0,				/* algnmnt, boundary */
-				sc->dma_loaddr,			/* lowaddr */
-				BUS_SPACE_MAXADDR,		/* highaddr */
-				NULL, NULL,			/* filter, filterarg */
-				dev_pgsz,			/* maxsize */
-                                1,				/* nsegments */
-				dev_pgsz,			/* maxsegsize */
-                                0,				/* flags */
-                                NULL, NULL,			/* lockfunc, lockarg */
-				&sc->nvme_encap_prp_list_dmatag)) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Cannot create ioctl NVME kernel buffer dma tag\n");
+	if (bus_dma_tag_create(sc->mpi3mr_parent_dmat, /* parent */
+		4, 0,				       /* algnmnt, boundary */
+		sc->dma_loaddr,			       /* lowaddr */
+		BUS_SPACE_MAXADDR,		       /* highaddr */
+		NULL, NULL,			       /* filter, filterarg */
+		dev_pgsz,			       /* maxsize */
+		1,				       /* nsegments */
+		dev_pgsz,			       /* maxsegsize */
+		0,				       /* flags */
+		NULL, NULL,			       /* lockfunc, lockarg */
+		&sc->nvme_encap_prp_list_dmatag)) {
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Cannot create ioctl NVME kernel buffer dma tag\n");
 		return (ENOMEM);
-        }
+	}
 
-	if (bus_dmamem_alloc(sc->nvme_encap_prp_list_dmatag, (void **)&sc->nvme_encap_prp_list,
-			     BUS_DMA_NOWAIT, &sc->nvme_encap_prp_list_dma_dmamap)) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Cannot allocate ioctl NVME dma memory\n");
+	if (bus_dmamem_alloc(sc->nvme_encap_prp_list_dmatag,
+		(void **)&sc->nvme_encap_prp_list, BUS_DMA_NOWAIT,
+		&sc->nvme_encap_prp_list_dma_dmamap)) {
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Cannot allocate ioctl NVME dma memory\n");
 		return (ENOMEM);
-        }
-	
+	}
+
 	bzero(sc->nvme_encap_prp_list, dev_pgsz);
-	bus_dmamap_load(sc->nvme_encap_prp_list_dmatag, sc->nvme_encap_prp_list_dma_dmamap,
-			sc->nvme_encap_prp_list, dev_pgsz, mpi3mr_memaddr_cb, &sc->nvme_encap_prp_list_dma,
-			BUS_DMA_NOWAIT);
-	
+	bus_dmamap_load(sc->nvme_encap_prp_list_dmatag,
+	    sc->nvme_encap_prp_list_dma_dmamap, sc->nvme_encap_prp_list,
+	    dev_pgsz, mpi3mr_memaddr_cb, &sc->nvme_encap_prp_list_dma,
+	    BUS_DMA_NOWAIT);
+
 	if (!sc->nvme_encap_prp_list) {
-		printf(IOCNAME "%s:%d Cannot load ioctl NVME dma memory for size: %d\n", sc->name,
-		       __func__, __LINE__, dev_pgsz);
+		printf(IOCNAME
+		    "%s:%d Cannot load ioctl NVME dma memory for size: %d\n",
+		    sc->name, __func__, __LINE__, dev_pgsz);
 		goto err_out;
 	}
 	sc->nvme_encap_prp_sz = dev_pgsz;
@@ -371,8 +383,10 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	 * PRP1 is located at a 24 byte offset from the start of the NVMe
 	 * command.  Then set the current PRP entry pointer to PRP1.
 	 */
-	prp1_entry = (U64 *)((U8 *)(nvme_encap_request->Command) + MPI3MR_NVME_CMD_PRP1_OFFSET);
-	prp2_entry = (U64 *)((U8 *)(nvme_encap_request->Command) + MPI3MR_NVME_CMD_PRP2_OFFSET);
+	prp1_entry = (U64 *)((U8 *)(nvme_encap_request->Command) +
+	    MPI3MR_NVME_CMD_PRP1_OFFSET);
+	prp2_entry = (U64 *)((U8 *)(nvme_encap_request->Command) +
+	    MPI3MR_NVME_CMD_PRP2_OFFSET);
 	prp_entry = prp1_entry;
 	/*
 	 * For the PRP entries, use the specially allocated buffer of
@@ -397,12 +411,12 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	 */
 	prp_entry_dma = prp_page_dma;
 
-
 	/* Loop while the length is not zero. */
 	while (length) {
 		page_mask_result = (prp_entry_dma + prp_size) & page_mask;
-		if (!page_mask_result && (length >  dev_pgsz)) {
-			printf(IOCNAME "Single PRP page is not sufficient\n", sc->name);
+		if (!page_mask_result && (length > dev_pgsz)) {
+			printf(IOCNAME "Single PRP page is not sufficient\n",
+			    sc->name);
 			goto err_out;
 		}
 
@@ -417,7 +431,9 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 			 */
 			*prp1_entry = dma_addr;
 			if (*prp1_entry & sgemod_mask) {
-				printf(IOCNAME "PRP1 address collides with SGEModifier\n", sc->name);
+				printf(IOCNAME
+				    "PRP1 address collides with SGEModifier\n",
+				    sc->name);
 				goto err_out;
 			}
 			*prp1_entry &= ~sgemod_mask;
@@ -443,7 +459,9 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 				 */
 				*prp2_entry = prp_entry_dma;
 				if (*prp2_entry & sgemod_mask) {
-					printf(IOCNAME "PRP list address collides with SGEModifier\n", sc->name);
+					printf(IOCNAME
+					    "PRP list address collides with SGEModifier\n",
+					    sc->name);
 					goto err_out;
 				}
 				*prp2_entry &= ~sgemod_mask;
@@ -462,7 +480,9 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 				 */
 				*prp2_entry = dma_addr;
 				if (*prp2_entry & sgemod_mask) {
-					printf(IOCNAME "PRP2 address collides with SGEModifier\n", sc->name);
+					printf(IOCNAME
+					    "PRP2 address collides with SGEModifier\n",
+					    sc->name);
 					goto err_out;
 				}
 				*prp2_entry &= ~sgemod_mask;
@@ -478,7 +498,9 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 			 */
 			*prp_entry = dma_addr;
 			if (*prp_entry & sgemod_mask) {
-				printf(IOCNAME "PRP address collides with SGEModifier\n", sc->name);
+				printf(IOCNAME
+				    "PRP address collides with SGEModifier\n",
+				    sc->name);
 				goto err_out;
 			}
 			*prp_entry &= ~sgemod_mask;
@@ -496,16 +518,15 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 				desc_len -= entry_len;
 			}
 			if (!desc_len) {
-				if ((++desc_count) >=
-				   dma_buff->num_dma_desc) {
-					printf("%s: Invalid len %ld while building PRP\n",
-					       __func__, length);
+				if ((++desc_count) >= dma_buff->num_dma_desc) {
+					printf(
+					    "%s: Invalid len %ld while building PRP\n",
+					    __func__, length);
 					goto err_out;
 				}
 				dma_addr =
 				    dma_buff->dma_desc[desc_count].dma_addr;
-				desc_len =
-				    dma_buff->dma_desc[desc_count].size;
+				desc_len = dma_buff->dma_desc[desc_count].size;
 			}
 			length -= entry_len;
 		}
@@ -513,15 +534,18 @@ mpi3mr_app_build_nvme_prp(struct mpi3mr_softc *sc,
 	return 0;
 err_out:
 	if (sc->nvme_encap_prp_list && sc->nvme_encap_prp_list_dma) {
-		bus_dmamap_unload(sc->nvme_encap_prp_list_dmatag, sc->nvme_encap_prp_list_dma_dmamap);
-		bus_dmamem_free(sc->nvme_encap_prp_list_dmatag, sc->nvme_encap_prp_list, sc->nvme_encap_prp_list_dma_dmamap);
+		bus_dmamap_unload(sc->nvme_encap_prp_list_dmatag,
+		    sc->nvme_encap_prp_list_dma_dmamap);
+		bus_dmamem_free(sc->nvme_encap_prp_list_dmatag,
+		    sc->nvme_encap_prp_list,
+		    sc->nvme_encap_prp_list_dma_dmamap);
 		bus_dma_tag_destroy(sc->nvme_encap_prp_list_dmatag);
 		sc->nvme_encap_prp_list = NULL;
 	}
 	return -1;
 }
 
- /**
+/**
 + * mpi3mr_map_data_buffer_dma - build dma descriptors for data
 + *                              buffers
 + * @sc: Adapter instance reference
@@ -537,25 +561,27 @@ err_out:
 + *
 + * Return: 0 on success, -1 on failure
 + */
-static int mpi3mr_map_data_buffer_dma(struct mpi3mr_softc *sc,
-				      struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers,
-				      U8 desc_count)
+static int
+mpi3mr_map_data_buffer_dma(struct mpi3mr_softc *sc,
+    struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 desc_count)
 {
-	U16 i, needed_desc = (dma_buffers->kern_buf_len / MPI3MR_IOCTL_SGE_SIZE);
+	U16 i,
+	    needed_desc = (dma_buffers->kern_buf_len / MPI3MR_IOCTL_SGE_SIZE);
 	U32 buf_len = dma_buffers->kern_buf_len, copied_len = 0;
 	int error;
-	
+
 	if (dma_buffers->kern_buf_len % MPI3MR_IOCTL_SGE_SIZE)
 		needed_desc++;
 
 	if ((needed_desc + desc_count) > MPI3MR_NUM_IOCTL_SGE) {
-		printf("%s: DMA descriptor mapping error %d:%d:%d\n",
-		       __func__, needed_desc, desc_count, MPI3MR_NUM_IOCTL_SGE);
+		printf("%s: DMA descriptor mapping error %d:%d:%d\n", __func__,
+		    needed_desc, desc_count, MPI3MR_NUM_IOCTL_SGE);
 		return -1;
 	}
 
-	dma_buffers->dma_desc = malloc(sizeof(*dma_buffers->dma_desc) * needed_desc,
-				       M_MPI3MR, M_NOWAIT | M_ZERO);
+	dma_buffers->dma_desc = malloc(sizeof(*dma_buffers->dma_desc) *
+		needed_desc,
+	    M_MPI3MR, M_NOWAIT | M_ZERO);
 	if (!dma_buffers->dma_desc)
 		return -1;
 
@@ -563,20 +589,24 @@ static int mpi3mr_map_data_buffer_dma(struct mpi3mr_softc *sc,
 	for (i = 0; i < needed_desc; i++, desc_count++) {
 
 		dma_buffers->dma_desc[i].addr = sc->ioctl_sge[desc_count].addr;
-		dma_buffers->dma_desc[i].dma_addr = sc->ioctl_sge[desc_count].dma_addr;
+		dma_buffers->dma_desc[i].dma_addr =
+		    sc->ioctl_sge[desc_count].dma_addr;
 
 		if (buf_len < sc->ioctl_sge[desc_count].size)
 			dma_buffers->dma_desc[i].size = buf_len;
 		else
-			dma_buffers->dma_desc[i].size = sc->ioctl_sge[desc_count].size;
+			dma_buffers->dma_desc[i].size =
+			    sc->ioctl_sge[desc_count].size;
 
 		buf_len -= dma_buffers->dma_desc[i].size;
-		memset(dma_buffers->dma_desc[i].addr, 0, sc->ioctl_sge[desc_count].size);
+		memset(dma_buffers->dma_desc[i].addr, 0,
+		    sc->ioctl_sge[desc_count].size);
 
 		if (dma_buffers->data_dir == MPI3MR_APP_DDO) {
-			error = copyin(((U8 *)dma_buffers->user_buf + copied_len),
-			       dma_buffers->dma_desc[i].addr,
-			       dma_buffers->dma_desc[i].size);
+			error = copyin(((U8 *)dma_buffers->user_buf +
+					   copied_len),
+			    dma_buffers->dma_desc[i].addr,
+			    dma_buffers->dma_desc[i].size);
 			if (error != 0)
 				break;
 			copied_len += dma_buffers->dma_desc[i].size;
@@ -593,7 +623,7 @@ static int mpi3mr_map_data_buffer_dma(struct mpi3mr_softc *sc,
 	return 0;
 }
 
-static unsigned int 
+static unsigned int
 mpi3mr_app_get_nvme_data_fmt(Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request)
 {
 	U8 format = 0;
@@ -602,11 +632,12 @@ mpi3mr_app_get_nvme_data_fmt(Mpi3NVMeEncapsulatedRequest_t *nvme_encap_request)
 	return format;
 }
 
-static inline U16 mpi3mr_total_num_ioctl_sges(struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers,
-					      U8 bufcnt)
+static inline U16
+mpi3mr_total_num_ioctl_sges(struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers,
+    U8 bufcnt)
 {
 	U16 i, sge_count = 0;
-	for (i=0; i < bufcnt; i++, dma_buffers++) {
+	for (i = 0; i < bufcnt; i++, dma_buffers++) {
 		if ((dma_buffers->data_dir == MPI3MR_APP_DDN) ||
 		    dma_buffers->kern_buf)
 			continue;
@@ -618,14 +649,14 @@ static inline U16 mpi3mr_total_num_ioctl_sges(struct mpi3mr_ioctl_mpt_dma_buffer
 }
 
 static int
-mpi3mr_app_construct_sgl(struct mpi3mr_softc *sc, U8 *mpi_request, U32 sgl_offset,
-			 struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers,
-			 U8 bufcnt, U8 is_rmc, U8 is_rmr, U8 num_datasges)
+mpi3mr_app_construct_sgl(struct mpi3mr_softc *sc, U8 *mpi_request,
+    U32 sgl_offset, struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers, U8 bufcnt,
+    U8 is_rmc, U8 is_rmr, U8 num_datasges)
 {
 	U8 *sgl = (mpi_request + sgl_offset), count = 0;
 	Mpi3RequestHeader_t *mpi_header = (Mpi3RequestHeader_t *)mpi_request;
-	Mpi3MgmtPassthroughRequest_t *rmgmt_req = 
-		(Mpi3MgmtPassthroughRequest_t *)mpi_request;
+	Mpi3MgmtPassthroughRequest_t *rmgmt_req =
+	    (Mpi3MgmtPassthroughRequest_t *)mpi_request;
 	struct mpi3mr_ioctl_mpt_dma_buffer *dma_buff = dma_buffers;
 	U8 flag, sgl_flags, sgl_flags_eob, sgl_flags_last, last_chain_sgl_flags;
 	U16 available_sges, i, sges_needed;
@@ -633,21 +664,21 @@ mpi3mr_app_construct_sgl(struct mpi3mr_softc *sc, U8 *mpi_request, U32 sgl_offse
 	bool chain_used = false;
 
 	sgl_flags = MPI3_SGE_FLAGS_ELEMENT_TYPE_SIMPLE |
-		MPI3_SGE_FLAGS_DLAS_SYSTEM ;
+	    MPI3_SGE_FLAGS_DLAS_SYSTEM;
 	sgl_flags_eob = sgl_flags | MPI3_SGE_FLAGS_END_OF_BUFFER;
 	sgl_flags_last = sgl_flags_eob | MPI3_SGE_FLAGS_END_OF_LIST;
 	last_chain_sgl_flags = MPI3_SGE_FLAGS_ELEMENT_TYPE_LAST_CHAIN |
 	    MPI3_SGE_FLAGS_DLAS_SYSTEM;
-	
+
 	sges_needed = mpi3mr_total_num_ioctl_sges(dma_buffers, bufcnt);
 
 	if (is_rmc) {
-		mpi3mr_add_sg_single(&rmgmt_req->CommandSGL,
-		    sgl_flags_last, dma_buff->kern_buf_len,
-		    dma_buff->kern_buf_dma);
-		sgl = (U8 *) dma_buff->kern_buf + dma_buff->user_buf_len;
+		mpi3mr_add_sg_single(&rmgmt_req->CommandSGL, sgl_flags_last,
+		    dma_buff->kern_buf_len, dma_buff->kern_buf_dma);
+		sgl = (U8 *)dma_buff->kern_buf + dma_buff->user_buf_len;
 		available_sges = (dma_buff->kern_buf_len -
-		    dma_buff->user_buf_len) / sge_element_size;
+				     dma_buff->user_buf_len) /
+		    sge_element_size;
 		if (sges_needed > available_sges)
 			return -1;
 		chain_used = true;
@@ -660,8 +691,7 @@ mpi3mr_app_construct_sgl(struct mpi3mr_softc *sc, U8 *mpi_request, U32 sgl_offse
 			dma_buff++;
 			count++;
 		} else
-			mpi3mr_build_zero_len_sge(
-			    &rmgmt_req->ResponseSGL);
+			mpi3mr_build_zero_len_sge(&rmgmt_req->ResponseSGL);
 		if (num_datasges) {
 			i = 0;
 			goto build_sges;
@@ -754,7 +784,6 @@ setup_chain:
 	goto build_sges;
 }
 
-
 /**
  * mpi3mr_app_mptcmds - MPI Pass through IOCTL handler
  * @dev: char device
@@ -777,11 +806,12 @@ setup_chain:
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
-		   int flag, struct thread *td)
+mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg, int flag,
+    struct thread *td)
 {
 	long rval = EINVAL;
-	U8 count, bufcnt = 0, is_rmcb = 0, is_rmrb = 0, din_cnt = 0, dout_cnt = 0;
+	U8 count, bufcnt = 0, is_rmcb = 0, is_rmrb = 0, din_cnt = 0,
+		  dout_cnt = 0;
 	U8 invalid_be = 0, erb_offset = 0xFF, mpirep_offset = 0xFF;
 	U16 desc_count = 0;
 	U8 nvme_fmt = 0;
@@ -794,10 +824,10 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 	struct mpi3mr_softc *sc = NULL;
 	struct mpi3mr_ioctl_buf_entry_list *buffer_list = NULL;
 	struct mpi3mr_buf_entry *buf_entries = NULL;
-	struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers = NULL, *dma_buff = NULL;
+	struct mpi3mr_ioctl_mpt_dma_buffer *dma_buffers = NULL,
+					   *dma_buff = NULL;
 	struct mpi3mr_ioctl_mpirepbuf *mpirepbuf = NULL;
 	struct mpi3mr_ioctl_mptcmd *karg = (struct mpi3mr_ioctl_mptcmd *)uarg;
-
 
 	sc = mpi3mr_app_get_adp_instance(karg->mrioc_id);
 	if (!sc)
@@ -810,58 +840,61 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 
 	if (karg->timeout < MPI3MR_IOCTL_DEFAULT_TIMEOUT)
 		karg->timeout = MPI3MR_IOCTL_DEFAULT_TIMEOUT;
-	
+
 	if (!karg->mpi_msg_size || !karg->buf_entry_list_size) {
-		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n",
+		    sc->name, __func__, __LINE__);
 		return rval;
 	}
 	if ((karg->mpi_msg_size * 4) > MPI3MR_AREQ_FRAME_SZ) {
-		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n",
+		    sc->name, __func__, __LINE__);
 		return rval;
 	}
 
 	mpi_request = malloc(MPI3MR_AREQ_FRAME_SZ, M_MPI3MR, M_NOWAIT | M_ZERO);
 	if (!mpi_request) {
-		printf(IOCNAME "%s: memory allocation failed for mpi_request\n", sc->name,
-		       __func__);
+		printf(IOCNAME "%s: memory allocation failed for mpi_request\n",
+		    sc->name, __func__);
 		return ENOMEM;
 	}
-	
+
 	mpi_header = (Mpi3RequestHeader_t *)mpi_request;
-	pel = (Mpi3PELReqActionGetCount_t *)mpi_request;	
+	pel = (Mpi3PELReqActionGetCount_t *)mpi_request;
 	if (copyin(karg->mpi_msg_buf, mpi_request, (karg->mpi_msg_size * 4))) {
-		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-		       __FILE__, __LINE__, __func__);
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
 		rval = EFAULT;
 		goto out;
 	}
 
-	buffer_list = malloc(karg->buf_entry_list_size, M_MPI3MR, M_NOWAIT | M_ZERO);
+	buffer_list = malloc(karg->buf_entry_list_size, M_MPI3MR,
+	    M_NOWAIT | M_ZERO);
 	if (!buffer_list) {
-		printf(IOCNAME "%s: memory allocation failed for buffer_list\n", sc->name,
-		       __func__);
+		printf(IOCNAME "%s: memory allocation failed for buffer_list\n",
+		    sc->name, __func__);
 		rval = ENOMEM;
 		goto out;
 	}
-	if (copyin(karg->buf_entry_list, buffer_list, karg->buf_entry_list_size)) {
-		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-		       __FILE__, __LINE__, __func__);
+	if (copyin(karg->buf_entry_list, buffer_list,
+		karg->buf_entry_list_size)) {
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
 		rval = EFAULT;
 		goto out;
 	}
 	if (!buffer_list->num_of_buf_entries) {
-		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n",
+		    sc->name, __func__, __LINE__);
 		rval = EINVAL;
 		goto out;
 	}
 	bufcnt = buffer_list->num_of_buf_entries;
-	dma_buffers = malloc((sizeof(*dma_buffers) * bufcnt), M_MPI3MR, M_NOWAIT | M_ZERO);
+	dma_buffers = malloc((sizeof(*dma_buffers) * bufcnt), M_MPI3MR,
+	    M_NOWAIT | M_ZERO);
 	if (!dma_buffers) {
-		printf(IOCNAME "%s: memory allocation failed for dma_buffers\n", sc->name,
-		       __func__);
+		printf(IOCNAME "%s: memory allocation failed for dma_buffers\n",
+		    sc->name, __func__);
 		rval = ENOMEM;
 		goto out;
 	}
@@ -919,44 +952,48 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 			break;
 	}
 	if (invalid_be) {
-		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "%s:%d Invalid IOCTL parameters passed\n",
+		    sc->name, __func__, __LINE__);
 		rval = EINVAL;
 		goto out;
 	}
 
 	if (is_rmcb && ((din_sz + dout_sz) > MPI3MR_MAX_IOCTL_TRANSFER_SIZE)) {
-		printf("%s:%d: invalid data transfer size passed for function 0x%x"
-		       "din_sz = %d, dout_size = %d\n", __func__, __LINE__,
-		       mpi_header->Function, din_sz, dout_sz);
+		printf(
+		    "%s:%d: invalid data transfer size passed for function 0x%x"
+		    "din_sz = %d, dout_size = %d\n",
+		    __func__, __LINE__, mpi_header->Function, din_sz, dout_sz);
 		rval = EINVAL;
 		goto out;
 	}
 
- 	if ((din_sz > MPI3MR_MAX_IOCTL_TRANSFER_SIZE) ||
+	if ((din_sz > MPI3MR_MAX_IOCTL_TRANSFER_SIZE) ||
 	    (dout_sz > MPI3MR_MAX_IOCTL_TRANSFER_SIZE)) {
-		printf("%s:%d: invalid data transfer size passed for function 0x%x"
-		       "din_size=%d dout_size=%d\n", __func__, __LINE__,
-		       mpi_header->Function, din_sz, dout_sz);
+		printf(
+		    "%s:%d: invalid data transfer size passed for function 0x%x"
+		    "din_size=%d dout_size=%d\n",
+		    __func__, __LINE__, mpi_header->Function, din_sz, dout_sz);
 		rval = EINVAL;
- 		goto out;
- 	}
-	
+		goto out;
+	}
+
 	if (mpi_header->Function == MPI3_FUNCTION_SMP_PASSTHROUGH) {
 		if ((din_sz > MPI3MR_IOCTL_SGE_SIZE) ||
 		    (dout_sz > MPI3MR_IOCTL_SGE_SIZE)) {
-			printf("%s:%d: invalid message size passed:%d:%d:%d:%d\n",
-			       __func__, __LINE__, din_cnt, dout_cnt, din_sz, dout_sz);
+			printf(
+			    "%s:%d: invalid message size passed:%d:%d:%d:%d\n",
+			    __func__, __LINE__, din_cnt, dout_cnt, din_sz,
+			    dout_sz);
 			rval = EINVAL;
 			goto out;
 		}
 	}
-	
+
 	dma_buff = dma_buffers;
 	for (count = 0; count < bufcnt; count++, dma_buff++) {
-		
+
 		dma_buff->kern_buf_len = dma_buff->user_buf_len;
-		
+
 		if (is_rmcb && !count) {
 			dma_buff->kern_buf = sc->ioctl_chain_sge.addr;
 			dma_buff->kern_buf_len = sc->ioctl_chain_sge.size;
@@ -964,10 +1001,13 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 			dma_buff->dma_desc = NULL;
 			dma_buff->num_dma_desc = 0;
 			memset(dma_buff->kern_buf, 0, dma_buff->kern_buf_len);
-			tmplen = min(dma_buff->kern_buf_len, dma_buff->user_buf_len);
-			if (copyin(dma_buff->user_buf, dma_buff->kern_buf, tmplen)) {
-				mpi3mr_dprint(sc, MPI3MR_ERROR, "failure at %s() line: %d",
-					      __func__, __LINE__);
+			tmplen = min(dma_buff->kern_buf_len,
+			    dma_buff->user_buf_len);
+			if (copyin(dma_buff->user_buf, dma_buff->kern_buf,
+				tmplen)) {
+				mpi3mr_dprint(sc, MPI3MR_ERROR,
+				    "failure at %s() line: %d", __func__,
+				    __LINE__);
 				rval = EFAULT;
 				goto out;
 			}
@@ -978,44 +1018,52 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 			dma_buff->dma_desc = NULL;
 			dma_buff->num_dma_desc = 0;
 			memset(dma_buff->kern_buf, 0, dma_buff->kern_buf_len);
-			tmplen = min(dma_buff->kern_buf_len, dma_buff->user_buf_len);
+			tmplen = min(dma_buff->kern_buf_len,
+			    dma_buff->user_buf_len);
 			dma_buff->kern_buf_len = tmplen;
 		} else {
 			if (!dma_buff->kern_buf_len)
 				continue;
-			if (mpi3mr_map_data_buffer_dma(sc, dma_buff, desc_count)) {
+			if (mpi3mr_map_data_buffer_dma(sc, dma_buff,
+				desc_count)) {
 				rval = ENOMEM;
-				mpi3mr_dprint(sc, MPI3MR_ERROR, "mapping data buffers failed"
-					      "at %s() line: %d\n", __func__, __LINE__);
+				mpi3mr_dprint(sc, MPI3MR_ERROR,
+				    "mapping data buffers failed"
+				    "at %s() line: %d\n",
+				    __func__, __LINE__);
 				goto out;
 			}
 			desc_count += dma_buff->num_dma_desc;
 		}
 	}
-	
+
 	if (erb_offset != 0xFF) {
 		kern_erb = malloc(erbsz, M_MPI3MR, M_NOWAIT | M_ZERO);
 		if (!kern_erb) {
-			printf(IOCNAME "%s:%d Cannot allocate memory for sense buffer\n", sc->name,
-			       __func__, __LINE__);
+			printf(IOCNAME
+			    "%s:%d Cannot allocate memory for sense buffer\n",
+			    sc->name, __func__, __LINE__);
 			rval = ENOMEM;
 			goto out;
 		}
 	}
 
 	if (sc->ioctl_cmds.state & MPI3MR_CMD_PENDING) {
-		printf(IOCNAME "Issue IOCTL: Ioctl command is in use/previous command is pending\n",
-		       sc->name);
+		printf(IOCNAME
+		    "Issue IOCTL: Ioctl command is in use/previous command is pending\n",
+		    sc->name);
 		rval = EAGAIN;
 		goto out;
 	}
-	
+
 	if (sc->unrecoverable) {
-		printf(IOCNAME "Issue IOCTL: controller is in unrecoverable state\n", sc->name);
+		printf(IOCNAME
+		    "Issue IOCTL: controller is in unrecoverable state\n",
+		    sc->name);
 		rval = EFAULT;
 		goto out;
 	}
-	
+
 	if (sc->reset_in_progress) {
 		printf(IOCNAME "Issue IOCTL: reset in progress\n", sc->name);
 		rval = EAGAIN;
@@ -1026,35 +1074,38 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 		rval = EAGAIN;
 		goto out;
 	}
-	
+
 	if (mpi_header->Function != MPI3_FUNCTION_NVME_ENCAPSULATED) {
-		if (mpi3mr_app_construct_sgl(sc, mpi_request, (karg->mpi_msg_size * 4), dma_buffers,
-					     bufcnt, is_rmcb, is_rmrb, (dout_cnt + din_cnt))) {
-			printf(IOCNAME "Issue IOCTL: sgl build failed\n", sc->name);
+		if (mpi3mr_app_construct_sgl(sc, mpi_request,
+			(karg->mpi_msg_size * 4), dma_buffers, bufcnt, is_rmcb,
+			is_rmrb, (dout_cnt + din_cnt))) {
+			printf(IOCNAME "Issue IOCTL: sgl build failed\n",
+			    sc->name);
 			rval = EAGAIN;
 			goto out;
 		}
 
-	} else {	
+	} else {
 		nvme_fmt = mpi3mr_app_get_nvme_data_fmt(
-			   (Mpi3NVMeEncapsulatedRequest_t *)mpi_request);
+		    (Mpi3NVMeEncapsulatedRequest_t *)mpi_request);
 		if (nvme_fmt == MPI3MR_NVME_DATA_FORMAT_PRP) {
 			if (mpi3mr_app_build_nvme_prp(sc,
-			    (Mpi3NVMeEncapsulatedRequest_t *) mpi_request,
-			    dma_buffers, bufcnt)) {
+				(Mpi3NVMeEncapsulatedRequest_t *)mpi_request,
+				dma_buffers, bufcnt)) {
 				rval = ENOMEM;
 				goto out;
 			}
 		} else if (nvme_fmt == MPI3MR_NVME_DATA_FORMAT_SGL1 ||
-			   nvme_fmt == MPI3MR_NVME_DATA_FORMAT_SGL2) {
-			if (mpi3mr_app_construct_nvme_sgl(sc, (Mpi3NVMeEncapsulatedRequest_t *) mpi_request,
-			    dma_buffers, bufcnt)) {
+		    nvme_fmt == MPI3MR_NVME_DATA_FORMAT_SGL2) {
+			if (mpi3mr_app_construct_nvme_sgl(sc,
+				(Mpi3NVMeEncapsulatedRequest_t *)mpi_request,
+				dma_buffers, bufcnt)) {
 				rval = EINVAL;
 				goto out;
 			}
 		} else {
-			printf(IOCNAME "%s: Invalid NVMe Command Format\n", sc->name,
-			       __func__);
+			printf(IOCNAME "%s: Invalid NVMe Command Format\n",
+			    sc->name, __func__);
 			rval = EINVAL;
 			goto out;
 		}
@@ -1074,7 +1125,7 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 		goto out_failed;
 	}
 	wait_for_completion_timeout(&sc->ioctl_cmds.completion, karg->timeout);
-	
+
 	if (!(sc->ioctl_cmds.state & MPI3MR_CMD_COMPLETE)) {
 		sc->ioctl_cmds.is_waiting = 0;
 		printf(IOCNAME "Issue IOCTL: command timed out\n", sc->name);
@@ -1086,51 +1137,59 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 		sc->reset.reason = MPI3MR_RESET_FROM_IOCTL_TIMEOUT;
 		goto out_failed;
 	}
-	
+
 	if (sc->nvme_encap_prp_list && sc->nvme_encap_prp_list_dma) {
-		bus_dmamap_unload(sc->nvme_encap_prp_list_dmatag, sc->nvme_encap_prp_list_dma_dmamap);
-		bus_dmamem_free(sc->nvme_encap_prp_list_dmatag, sc->nvme_encap_prp_list, sc->nvme_encap_prp_list_dma_dmamap);
+		bus_dmamap_unload(sc->nvme_encap_prp_list_dmatag,
+		    sc->nvme_encap_prp_list_dma_dmamap);
+		bus_dmamem_free(sc->nvme_encap_prp_list_dmatag,
+		    sc->nvme_encap_prp_list,
+		    sc->nvme_encap_prp_list_dma_dmamap);
 		bus_dma_tag_destroy(sc->nvme_encap_prp_list_dmatag);
 		sc->nvme_encap_prp_list = NULL;
 	}
-	
-	if (((sc->ioctl_cmds.ioc_status & MPI3_IOCSTATUS_STATUS_MASK)
-	    != MPI3_IOCSTATUS_SUCCESS) &&
+
+	if (((sc->ioctl_cmds.ioc_status & MPI3_IOCSTATUS_STATUS_MASK) !=
+		MPI3_IOCSTATUS_SUCCESS) &&
 	    (sc->mpi3mr_debug & MPI3MR_DEBUG_IOCTL)) {
-		printf(IOCNAME "Issue IOCTL: Failed IOCStatus(0x%04x) Loginfo(0x%08x)\n", sc->name,
-		       (sc->ioctl_cmds.ioc_status & MPI3_IOCSTATUS_STATUS_MASK),
-		       sc->ioctl_cmds.ioc_loginfo);
+		printf(IOCNAME
+		    "Issue IOCTL: Failed IOCStatus(0x%04x) Loginfo(0x%08x)\n",
+		    sc->name,
+		    (sc->ioctl_cmds.ioc_status & MPI3_IOCSTATUS_STATUS_MASK),
+		    sc->ioctl_cmds.ioc_loginfo);
 	}
 
 	if ((mpirep_offset != 0xFF) &&
 	    dma_buffers[mpirep_offset].user_buf_len) {
 		dma_buff = &dma_buffers[mpirep_offset];
 		dma_buff->kern_buf_len = (sizeof(*mpirepbuf) - 1 +
-					   sc->reply_sz);
-		mpirepbuf = malloc(dma_buff->kern_buf_len, M_MPI3MR, M_NOWAIT | M_ZERO);
+		    sc->reply_sz);
+		mpirepbuf = malloc(dma_buff->kern_buf_len, M_MPI3MR,
+		    M_NOWAIT | M_ZERO);
 
 		if (!mpirepbuf) {
-			printf(IOCNAME "%s: failed obtaining a memory for mpi reply\n", sc->name,
-			       __func__);
+			printf(IOCNAME
+			    "%s: failed obtaining a memory for mpi reply\n",
+			    sc->name, __func__);
 			rval = ENOMEM;
 			goto out_failed;
 		}
 		if (sc->ioctl_cmds.state & MPI3MR_CMD_REPLYVALID) {
 			mpirepbuf->mpirep_type =
-				MPI3MR_IOCTL_MPI_REPLY_BUFTYPE_ADDRESS;
-			memcpy(mpirepbuf->repbuf, sc->ioctl_cmds.reply, sc->reply_sz);
+			    MPI3MR_IOCTL_MPI_REPLY_BUFTYPE_ADDRESS;
+			memcpy(mpirepbuf->repbuf, sc->ioctl_cmds.reply,
+			    sc->reply_sz);
 		} else {
 			mpirepbuf->mpirep_type =
-				MPI3MR_IOCTL_MPI_REPLY_BUFTYPE_STATUS;
+			    MPI3MR_IOCTL_MPI_REPLY_BUFTYPE_STATUS;
 			status_desc = (Mpi3StatusReplyDescriptor_t *)
-			    mpirepbuf->repbuf;
+					  mpirepbuf->repbuf;
 			status_desc->IOCStatus = sc->ioctl_cmds.ioc_status;
 			status_desc->IOCLogInfo = sc->ioctl_cmds.ioc_loginfo;
 		}
 		tmplen = min(dma_buff->kern_buf_len, dma_buff->user_buf_len);
 		if (copyout(mpirepbuf, dma_buff->user_buf, tmplen)) {
 			printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-			       __FILE__, __LINE__, __func__);
+			    __FILE__, __LINE__, __func__);
 			rval = EFAULT;
 			goto out_failed;
 		}
@@ -1142,7 +1201,7 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 		tmplen = min(erbsz, dma_buff->user_buf_len);
 		if (copyout(kern_erb, dma_buff->user_buf, tmplen)) {
 			printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-			       __FILE__, __LINE__, __func__);
+			    __FILE__, __LINE__, __func__);
 			rval = EFAULT;
 			goto out_failed;
 		}
@@ -1151,20 +1210,25 @@ mpi3mr_app_mptcmds(struct cdev *dev, u_long cmd, void *uarg,
 	dma_buff = dma_buffers;
 	for (count = 0; count < bufcnt; count++, dma_buff++) {
 		if ((count == 1) && is_rmrb) {
-			if (copyout(dma_buff->kern_buf, dma_buff->user_buf,dma_buff->kern_buf_len)) {
-				printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-				       __FILE__, __LINE__, __func__);
+			if (copyout(dma_buff->kern_buf, dma_buff->user_buf,
+				dma_buff->kern_buf_len)) {
+				printf(IOCNAME "failure at %s:%d/%s()!\n",
+				    sc->name, __FILE__, __LINE__, __func__);
 				rval = EFAULT;
 				goto out_failed;
 			}
 		} else if (dma_buff->data_dir == MPI3MR_APP_DDI) {
 			tmplen = 0;
-			for (desc_count = 0; desc_count < dma_buff->num_dma_desc; desc_count++) {
+			for (desc_count = 0;
+			     desc_count < dma_buff->num_dma_desc;
+			     desc_count++) {
 				if (copyout(dma_buff->dma_desc[desc_count].addr,
-		                    (U8 *)dma_buff->user_buf+tmplen,
-				    dma_buff->dma_desc[desc_count].size)) {
-					printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-					       __FILE__, __LINE__, __func__);
+					(U8 *)dma_buff->user_buf + tmplen,
+					dma_buff->dma_desc[desc_count].size)) {
+					printf(IOCNAME
+					    "failure at %s:%d/%s()!\n",
+					    sc->name, __FILE__, __LINE__,
+					    __func__);
 					rval = EFAULT;
 					goto out_failed;
 				}
@@ -1206,7 +1270,7 @@ out:
  *
  * This function triggers the controller reset from the
  * watchdog context and wait for it to complete. It will
- * come out of wait upon completion or timeout exaustion. 
+ * come out of wait upon completion or timeout exaustion.
  *
  * Return: 0 on success and proper error codes on failure
  */
@@ -1216,11 +1280,12 @@ mpi3mr_soft_reset_from_app(struct mpi3mr_softc *sc)
 
 	U32 timeout;
 
-	/* if reset is not in progress, trigger soft reset from watchdog context */
+	/* if reset is not in progress, trigger soft reset from watchdog context
+	 */
 	if (!sc->reset_in_progress) {
 		sc->reset.type = MPI3MR_TRIGGER_SOFT_RESET;
 		sc->reset.reason = MPI3MR_RESET_FROM_IOCTL;
-		
+
 		/* Wait for soft reset to start */
 		timeout = 50;
 		while (timeout--) {
@@ -1241,21 +1306,21 @@ mpi3mr_soft_reset_from_app(struct mpi3mr_softc *sc)
 		i++;
 		if (!(i % 5)) {
 			mpi3mr_dprint(sc, MPI3MR_INFO,
-			    "[%2ds]waiting for controller reset to be finished from %s\n", i, __func__);
+			    "[%2ds]waiting for controller reset to be finished from %s\n",
+			    i, __func__);
 		}
 		DELAY(1000 * 1000);
 	}
 
-	/* 
-	 * In case of soft reset failure or not completed within stipulated time,
-	 * fail back to application.
+	/*
+	 * In case of soft reset failure or not completed within stipulated
+	 * time, fail back to application.
 	 */
 	if ((!timeout || sc->reset.status))
 		return EFAULT;
-	
+
 	return 0;
 }
-
 
 /**
  * mpi3mr_adp_reset - Issue controller reset
@@ -1270,8 +1335,7 @@ mpi3mr_soft_reset_from_app(struct mpi3mr_softc *sc)
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_adp_reset(struct mpi3mr_softc *sc,
-		 void *data_out_buf, U32 data_out_sz)
+mpi3mr_adp_reset(struct mpi3mr_softc *sc, void *data_out_buf, U32 data_out_sz)
 {
 	long rval = EINVAL;
 	struct mpi3mr_ioctl_adpreset adpreset;
@@ -1279,14 +1343,15 @@ mpi3mr_adp_reset(struct mpi3mr_softc *sc,
 	memset(&adpreset, 0, sizeof(adpreset));
 
 	if (data_out_sz != sizeof(adpreset)) {
-		printf(IOCNAME "Invalid user adpreset buffer size %s() line: %d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME
+		    "Invalid user adpreset buffer size %s() line: %d\n",
+		    sc->name, __func__, __LINE__);
 		goto out;
 	}
-	
+
 	if (copyin(data_out_buf, &adpreset, sizeof(adpreset))) {
-		printf(IOCNAME "failure at %s() line:%d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "failure at %s() line:%d\n", sc->name, __func__,
+		    __LINE__);
 		rval = EFAULT;
 		goto out;
 	}
@@ -1300,13 +1365,14 @@ mpi3mr_adp_reset(struct mpi3mr_softc *sc,
 		break;
 	default:
 		printf(IOCNAME "Unknown reset_type(0x%x) issued\n", sc->name,
-		       adpreset.reset_type);
+		    adpreset.reset_type);
 		goto out;
 	}
 	rval = mpi3mr_soft_reset_from_app(sc);
 	if (rval)
-		printf(IOCNAME "reset handler returned error (0x%lx) for reset type 0x%x\n",
-		       sc->name, rval, adpreset.reset_type);
+		printf(IOCNAME
+		    "reset handler returned error (0x%lx) for reset type 0x%x\n",
+		    sc->name, rval, adpreset.reset_type);
 
 out:
 	return rval;
@@ -1325,27 +1391,30 @@ mpi3mr_app_send_aen(struct mpi3mr_softc *sc)
 
 void
 mpi3mr_pel_wait_complete(struct mpi3mr_softc *sc,
-			 struct mpi3mr_drvr_cmd *drvr_cmd)
+    struct mpi3mr_drvr_cmd *drvr_cmd)
 {
 	U8 retry = 0;
 	Mpi3PELReply_t *pel_reply = NULL;
 	mpi3mr_dprint(sc, MPI3MR_TRACE, "%s() line: %d\n", __func__, __LINE__);
-	
+
 	if (drvr_cmd->state & MPI3MR_CMD_RESET)
 		goto cleanup_drvrcmd;
-	
+
 	if (!(drvr_cmd->state & MPI3MR_CMD_REPLYVALID)) {
-		printf(IOCNAME "%s: PELGetSeqNum Failed, No Reply\n", sc->name, __func__);
+		printf(IOCNAME "%s: PELGetSeqNum Failed, No Reply\n", sc->name,
+		    __func__);
 		goto out_failed;
 	}
 	pel_reply = (Mpi3PELReply_t *)drvr_cmd->reply;
 
-	if (((GET_IOC_STATUS(drvr_cmd->ioc_status)) != MPI3_IOCSTATUS_SUCCESS)
-	    || ((le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_SUCCESS)
-	    && (le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_ABORTED))){
-		printf(IOCNAME "%s: PELGetSeqNum Failed, IOCStatus(0x%04x) Loginfo(0x%08x) PEL_LogStatus(0x%04x)\n",
-		       sc->name, __func__, GET_IOC_STATUS(drvr_cmd->ioc_status), 
-		       drvr_cmd->ioc_loginfo, le16toh(pel_reply->PELogStatus));
+	if (((GET_IOC_STATUS(drvr_cmd->ioc_status)) !=
+		MPI3_IOCSTATUS_SUCCESS) ||
+	    ((le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_SUCCESS) &&
+		(le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_ABORTED))) {
+		printf(IOCNAME
+		    "%s: PELGetSeqNum Failed, IOCStatus(0x%04x) Loginfo(0x%08x) PEL_LogStatus(0x%04x)\n",
+		    sc->name, __func__, GET_IOC_STATUS(drvr_cmd->ioc_status),
+		    drvr_cmd->ioc_loginfo, le16toh(pel_reply->PELogStatus));
 		retry = 1;
 	}
 
@@ -1353,18 +1422,18 @@ mpi3mr_pel_wait_complete(struct mpi3mr_softc *sc,
 		if (drvr_cmd->retry_count < MPI3MR_PELCMDS_RETRYCOUNT) {
 			drvr_cmd->retry_count++;
 			printf(IOCNAME "%s : PELWaitretry=%d\n", sc->name,
-			       __func__,  drvr_cmd->retry_count);
+			    __func__, drvr_cmd->retry_count);
 			mpi3mr_issue_pel_wait(sc, drvr_cmd);
 			return;
 		}
 
-		printf(IOCNAME "%s :PELWait failed after all retries\n", sc->name,
-		    __func__);
+		printf(IOCNAME "%s :PELWait failed after all retries\n",
+		    sc->name, __func__);
 		goto out_failed;
 	}
 
 	mpi3mr_app_send_aen(sc);
-	
+
 	if (!sc->pel_abort_requested) {
 		sc->pel_cmds.retry_count = 0;
 		mpi3mr_send_pel_getseq(sc, &sc->pel_cmds);
@@ -1380,8 +1449,7 @@ cleanup_drvrcmd:
 }
 
 void
-mpi3mr_issue_pel_wait(struct mpi3mr_softc *sc,
-		      struct mpi3mr_drvr_cmd *drvr_cmd)
+mpi3mr_issue_pel_wait(struct mpi3mr_softc *sc, struct mpi3mr_drvr_cmd *drvr_cmd)
 {
 	U8 retry_count = 0;
 	Mpi3PELReqActionWait_t pel_wait;
@@ -1403,10 +1471,11 @@ mpi3mr_issue_pel_wait(struct mpi3mr_softc *sc,
 	pel_wait.Class = htole16(sc->pel_class);
 	pel_wait.WaitTime = MPI3_PEL_WAITTIME_INFINITE_WAIT;
 	printf(IOCNAME "Issuing PELWait: seqnum %u class %u locale 0x%08x\n",
-	       sc->name, sc->newest_seqnum, sc->pel_class, sc->pel_locale);
+	    sc->name, sc->newest_seqnum, sc->pel_class, sc->pel_locale);
 retry_pel_wait:
 	if (mpi3mr_submit_admin_cmd(sc, &pel_wait, sizeof(pel_wait))) {
-		printf(IOCNAME "%s: Issue PELWait IOCTL: Admin Post failed\n", sc->name, __func__);
+		printf(IOCNAME "%s: Issue PELWait IOCTL: Admin Post failed\n",
+		    sc->name, __func__);
 		if (retry_count < MPI3MR_PELCMDS_RETRYCOUNT) {
 			retry_count++;
 			goto retry_pel_wait;
@@ -1422,9 +1491,9 @@ out_failed:
 	return;
 }
 
-void 
+void
 mpi3mr_send_pel_getseq(struct mpi3mr_softc *sc,
-		       struct mpi3mr_drvr_cmd *drvr_cmd)
+    struct mpi3mr_drvr_cmd *drvr_cmd)
 {
 	U8 retry_count = 0;
 	U8 sgl_flags = MPI3MR_SGEFLAGS_SYSTEM_SIMPLE_END_OF_LIST;
@@ -1440,11 +1509,14 @@ mpi3mr_send_pel_getseq(struct mpi3mr_softc *sc,
 	pel_getseq_req.Function = MPI3_FUNCTION_PERSISTENT_EVENT_LOG;
 	pel_getseq_req.Action = MPI3_PEL_ACTION_GET_SEQNUM;
 	mpi3mr_add_sg_single(&pel_getseq_req.SGL, sgl_flags,
-			     sc->pel_seq_number_sz, sc->pel_seq_number_dma);
+	    sc->pel_seq_number_sz, sc->pel_seq_number_dma);
 
 retry_pel_getseq:
-	if (mpi3mr_submit_admin_cmd(sc, &pel_getseq_req, sizeof(pel_getseq_req))) {
-		printf(IOCNAME "%s: Issuing PEL GetSeq IOCTL: Admin Post failed\n", sc->name, __func__);
+	if (mpi3mr_submit_admin_cmd(sc, &pel_getseq_req,
+		sizeof(pel_getseq_req))) {
+		printf(IOCNAME
+		    "%s: Issuing PEL GetSeq IOCTL: Admin Post failed\n",
+		    sc->name, __func__);
 		if (retry_count < MPI3MR_PELCMDS_RETRYCOUNT) {
 			retry_count++;
 			goto retry_pel_getseq;
@@ -1461,7 +1533,7 @@ out_failed:
 
 void
 mpi3mr_pel_getseq_complete(struct mpi3mr_softc *sc,
-			   struct mpi3mr_drvr_cmd *drvr_cmd)
+    struct mpi3mr_drvr_cmd *drvr_cmd)
 {
 	U8 retry = 0;
 	Mpi3PELReply_t *pel_reply = NULL;
@@ -1470,31 +1542,34 @@ mpi3mr_pel_getseq_complete(struct mpi3mr_softc *sc,
 
 	if (drvr_cmd->state & MPI3MR_CMD_RESET)
 		goto cleanup_drvrcmd;
-	
+
 	if (!(drvr_cmd->state & MPI3MR_CMD_REPLYVALID)) {
-		printf(IOCNAME "%s: PELGetSeqNum Failed, No Reply\n", sc->name, __func__);
+		printf(IOCNAME "%s: PELGetSeqNum Failed, No Reply\n", sc->name,
+		    __func__);
 		goto out_failed;
 	}
 	pel_reply = (Mpi3PELReply_t *)drvr_cmd->reply;
 
-	if (((GET_IOC_STATUS(drvr_cmd->ioc_status)) != MPI3_IOCSTATUS_SUCCESS)
-	    || (le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_SUCCESS)){
-		printf(IOCNAME "%s: PELGetSeqNum Failed, IOCStatus(0x%04x) Loginfo(0x%08x) PEL_LogStatus(0x%04x)\n",
-		       sc->name, __func__, GET_IOC_STATUS(drvr_cmd->ioc_status), 
-		       drvr_cmd->ioc_loginfo, le16toh(pel_reply->PELogStatus));
+	if (((GET_IOC_STATUS(drvr_cmd->ioc_status)) !=
+		MPI3_IOCSTATUS_SUCCESS) ||
+	    (le16toh(pel_reply->PELogStatus) != MPI3_PEL_STATUS_SUCCESS)) {
+		printf(IOCNAME
+		    "%s: PELGetSeqNum Failed, IOCStatus(0x%04x) Loginfo(0x%08x) PEL_LogStatus(0x%04x)\n",
+		    sc->name, __func__, GET_IOC_STATUS(drvr_cmd->ioc_status),
+		    drvr_cmd->ioc_loginfo, le16toh(pel_reply->PELogStatus));
 		retry = 1;
 	}
-		
+
 	if (retry) {
 		if (drvr_cmd->retry_count < MPI3MR_PELCMDS_RETRYCOUNT) {
 			drvr_cmd->retry_count++;
-			printf(IOCNAME "%s : PELGetSeqNUM retry=%d\n", sc->name, 
-			       __func__,  drvr_cmd->retry_count);
+			printf(IOCNAME "%s : PELGetSeqNUM retry=%d\n", sc->name,
+			    __func__, drvr_cmd->retry_count);
 			mpi3mr_send_pel_getseq(sc, drvr_cmd);
 			return;
 		}
 		printf(IOCNAME "%s :PELGetSeqNUM failed after all retries\n",
-		       sc->name, __func__);
+		    sc->name, __func__);
 		goto out_failed;
 	}
 
@@ -1517,13 +1592,15 @@ mpi3mr_pel_getseq(struct mpi3mr_softc *sc)
 	U8 sgl_flags = 0;
 	Mpi3PELReqActionGetSequenceNumbers_t pel_getseq_req;
 	mpi3mr_dprint(sc, MPI3MR_TRACE, "%s() line: %d\n", __func__, __LINE__);
-	
+
 	if (sc->reset_in_progress || sc->block_ioctls) {
-		printf(IOCNAME "%s: IOCTL failed: reset in progress: %u ioctls blocked: %u\n",
-		       sc->name, __func__, sc->reset_in_progress, sc->block_ioctls);
+		printf(IOCNAME
+		    "%s: IOCTL failed: reset in progress: %u ioctls blocked: %u\n",
+		    sc->name, __func__, sc->reset_in_progress,
+		    sc->block_ioctls);
 		return -1;
 	}
-	
+
 	memset(&pel_getseq_req, 0, sizeof(pel_getseq_req));
 	sgl_flags = MPI3MR_SGEFLAGS_SYSTEM_SIMPLE_END_OF_LIST;
 	sc->pel_cmds.state = MPI3MR_CMD_PENDING;
@@ -1536,10 +1613,12 @@ mpi3mr_pel_getseq(struct mpi3mr_softc *sc)
 	pel_getseq_req.Function = MPI3_FUNCTION_PERSISTENT_EVENT_LOG;
 	pel_getseq_req.Action = MPI3_PEL_ACTION_GET_SEQNUM;
 	mpi3mr_add_sg_single(&pel_getseq_req.SGL, sgl_flags,
-			     sc->pel_seq_number_sz, sc->pel_seq_number_dma);
+	    sc->pel_seq_number_sz, sc->pel_seq_number_dma);
 
-	if ((rval = mpi3mr_submit_admin_cmd(sc, &pel_getseq_req, sizeof(pel_getseq_req))))
-		printf(IOCNAME "%s: Issue IOCTL: Admin Post failed\n", sc->name, __func__);
+	if ((rval = mpi3mr_submit_admin_cmd(sc, &pel_getseq_req,
+		 sizeof(pel_getseq_req))))
+		printf(IOCNAME "%s: Issue IOCTL: Admin Post failed\n", sc->name,
+		    __func__);
 
 	return rval;
 }
@@ -1553,8 +1632,10 @@ mpi3mr_pel_abort(struct mpi3mr_softc *sc)
 	Mpi3PELReply_t *pel_reply = NULL;
 
 	if (sc->reset_in_progress || sc->block_ioctls) {
-		printf(IOCNAME "%s: IOCTL failed: reset in progress: %u ioctls blocked: %u\n",
-		       sc->name, __func__, sc->reset_in_progress, sc->block_ioctls);
+		printf(IOCNAME
+		    "%s: IOCTL failed: reset in progress: %u ioctls blocked: %u\n",
+		    sc->name, __func__, sc->reset_in_progress,
+		    sc->block_ioctls);
 		return -1;
 	}
 
@@ -1562,7 +1643,8 @@ mpi3mr_pel_abort(struct mpi3mr_softc *sc)
 
 	mtx_lock(&sc->pel_abort_cmd.completion.lock);
 	if (sc->pel_abort_cmd.state & MPI3MR_CMD_PENDING) {
-		printf(IOCNAME "%s: PEL Abort command is in use\n", sc->name,  __func__);
+		printf(IOCNAME "%s: PEL Abort command is in use\n", sc->name,
+		    __func__);
 		mtx_unlock(&sc->pel_abort_cmd.completion.lock);
 		return -1;
 	}
@@ -1578,37 +1660,45 @@ mpi3mr_pel_abort(struct mpi3mr_softc *sc)
 	sc->pel_abort_requested = 1;
 
 	init_completion(&sc->pel_abort_cmd.completion);
-	retval = mpi3mr_submit_admin_cmd(sc, &pel_abort_req, sizeof(pel_abort_req));
+	retval = mpi3mr_submit_admin_cmd(sc, &pel_abort_req,
+	    sizeof(pel_abort_req));
 	if (retval) {
-		printf(IOCNAME "%s: Issue IOCTL: Admin Post failed\n", sc->name, __func__);
+		printf(IOCNAME "%s: Issue IOCTL: Admin Post failed\n", sc->name,
+		    __func__);
 		sc->pel_abort_requested = 0;
 		retval = -1;
 		goto out_unlock;
 	}
-	wait_for_completion_timeout(&sc->pel_abort_cmd.completion, MPI3MR_INTADMCMD_TIMEOUT);
+	wait_for_completion_timeout(&sc->pel_abort_cmd.completion,
+	    MPI3MR_INTADMCMD_TIMEOUT);
 
 	if (!(sc->pel_abort_cmd.state & MPI3MR_CMD_COMPLETE)) {
-		printf(IOCNAME "%s: PEL Abort command timedout\n",sc->name,  __func__);
+		printf(IOCNAME "%s: PEL Abort command timedout\n", sc->name,
+		    __func__);
 		sc->pel_abort_cmd.is_waiting = 0;
 		retval = -1;
 		sc->reset.type = MPI3MR_TRIGGER_SOFT_RESET;
 		sc->reset.reason = MPI3MR_RESET_FROM_PELABORT_TIMEOUT;
 		goto out_unlock;
 	}
-	if (((GET_IOC_STATUS(sc->pel_abort_cmd.ioc_status)) != MPI3_IOCSTATUS_SUCCESS)
-	    || (!(sc->pel_abort_cmd.state & MPI3MR_CMD_REPLYVALID))) {
-		printf(IOCNAME "%s: PEL Abort command failed, ioc_status(0x%04x) log_info(0x%08x)\n",
-		       sc->name, __func__, GET_IOC_STATUS(sc->pel_abort_cmd.ioc_status),
-		       sc->pel_abort_cmd.ioc_loginfo);
+	if (((GET_IOC_STATUS(sc->pel_abort_cmd.ioc_status)) !=
+		MPI3_IOCSTATUS_SUCCESS) ||
+	    (!(sc->pel_abort_cmd.state & MPI3MR_CMD_REPLYVALID))) {
+		printf(IOCNAME
+		    "%s: PEL Abort command failed, ioc_status(0x%04x) log_info(0x%08x)\n",
+		    sc->name, __func__,
+		    GET_IOC_STATUS(sc->pel_abort_cmd.ioc_status),
+		    sc->pel_abort_cmd.ioc_loginfo);
 		retval = -1;
 		goto out_unlock;
 	}
-	
+
 	pel_reply = (Mpi3PELReply_t *)sc->pel_abort_cmd.reply;
 	pel_log_status = le16toh(pel_reply->PELogStatus);
 	if (pel_log_status != MPI3_PEL_STATUS_SUCCESS) {
-		printf(IOCNAME "%s: PEL abort command failed, pel_status(0x%04x)\n",
-		       sc->name, __func__, pel_log_status);
+		printf(IOCNAME
+		    "%s: PEL abort command failed, pel_status(0x%04x)\n",
+		    sc->name, __func__, pel_log_status);
 		retval = -1;
 	}
 
@@ -1632,8 +1722,7 @@ out_unlock:
  * Return: 0 on success and proper error codes on failure.
  */
 static long
-mpi3mr_pel_enable(struct mpi3mr_softc *sc,
-		  void *data_out_buf, U32 data_out_sz)
+mpi3mr_pel_enable(struct mpi3mr_softc *sc, void *data_out_buf, U32 data_out_sz)
 {
 	long rval = EINVAL;
 	U8 tmp_class;
@@ -1641,30 +1730,29 @@ mpi3mr_pel_enable(struct mpi3mr_softc *sc,
 	struct mpi3mr_ioctl_pel_enable pel_enable;
 	mpi3mr_dprint(sc, MPI3MR_TRACE, "%s() line: %d\n", __func__, __LINE__);
 
-
-	if ((data_out_sz != sizeof(pel_enable) || 
-	    (pel_enable.pel_class > MPI3_PEL_CLASS_FAULT))) {
+	if ((data_out_sz != sizeof(pel_enable) ||
+		(pel_enable.pel_class > MPI3_PEL_CLASS_FAULT))) {
 		printf(IOCNAME "%s: Invalid user pel_enable buffer size %u\n",
-		       sc->name, __func__, data_out_sz);
+		    sc->name, __func__, data_out_sz);
 		goto out;
 	}
 	memset(&pel_enable, 0, sizeof(pel_enable));
 	if (copyin(data_out_buf, &pel_enable, sizeof(pel_enable))) {
-		printf(IOCNAME "failure at %s() line:%d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "failure at %s() line:%d\n", sc->name, __func__,
+		    __LINE__);
 		rval = EFAULT;
 		goto out;
 	}
 	if (pel_enable.pel_class > MPI3_PEL_CLASS_FAULT) {
-		printf(IOCNAME "%s: out of range  class %d\n",
-		       sc->name, __func__, pel_enable.pel_class);
+		printf(IOCNAME "%s: out of range  class %d\n", sc->name,
+		    __func__, pel_enable.pel_class);
 		goto out;
 	}
-	
+
 	if (sc->pel_wait_pend) {
 		if ((sc->pel_class <= pel_enable.pel_class) &&
 		    !((sc->pel_locale & pel_enable.pel_locale) ^
-		      pel_enable.pel_locale)) {
+			pel_enable.pel_locale)) {
 			rval = 0;
 			goto out;
 		} else {
@@ -1673,8 +1761,9 @@ mpi3mr_pel_enable(struct mpi3mr_softc *sc,
 				pel_enable.pel_class = sc->pel_class;
 
 			if (mpi3mr_pel_abort(sc)) {
-				printf(IOCNAME "%s: pel_abort failed, status(%ld)\n",
-				       sc->name, __func__, rval);
+				printf(IOCNAME
+				    "%s: pel_abort failed, status(%ld)\n",
+				    sc->name, __func__, rval);
 				goto out;
 			}
 		}
@@ -1690,8 +1779,9 @@ mpi3mr_pel_enable(struct mpi3mr_softc *sc,
 		sc->pel_class = tmp_class;
 		sc->pel_locale = tmp_locale;
 		sc->pel_wait_pend = 0;
-		printf(IOCNAME "%s: pel get sequence number failed, status(%ld)\n",
-		       sc->name, __func__, rval);
+		printf(IOCNAME
+		    "%s: pel get sequence number failed, status(%ld)\n",
+		    sc->name, __func__, rval);
 	}
 
 out:
@@ -1700,7 +1790,7 @@ out:
 
 void
 mpi3mr_app_save_logdata(struct mpi3mr_softc *sc, char *event_data,
-			U16 event_data_size)
+    U16 event_data_size)
 {
 	struct mpi3mr_log_data_entry *entry;
 	U32 index = sc->log_data_buffer_index, sz;
@@ -1708,13 +1798,13 @@ mpi3mr_app_save_logdata(struct mpi3mr_softc *sc, char *event_data,
 	if (!(sc->log_data_buffer))
 		return;
 
-	entry = (struct mpi3mr_log_data_entry *)
-		(sc->log_data_buffer + (index * sc->log_data_entry_size));
+	entry = (struct mpi3mr_log_data_entry *)(sc->log_data_buffer +
+	    (index * sc->log_data_entry_size));
 	entry->valid_entry = 1;
 	sz = min(sc->log_data_entry_size, event_data_size);
 	memcpy(entry->data, event_data, sz);
-	sc->log_data_buffer_index =
-		((++index) % MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES);
+	sc->log_data_buffer_index = ((++index) %
+	    MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES);
 	mpi3mr_app_send_aen(sc);
 }
 
@@ -1730,8 +1820,7 @@ mpi3mr_app_save_logdata(struct mpi3mr_softc *sc, char *event_data,
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_get_logdata(struct mpi3mr_softc *sc,
-		   void *data_in_buf, U32 data_in_sz)
+mpi3mr_get_logdata(struct mpi3mr_softc *sc, void *data_in_buf, U32 data_in_sz)
 {
 	long rval = EINVAL;
 	U16 num_entries = 0;
@@ -1744,7 +1833,8 @@ mpi3mr_get_logdata(struct mpi3mr_softc *sc,
 	if (num_entries > MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES)
 		num_entries = MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES;
 
-        if ((rval = copyout(sc->log_data_buffer, data_in_buf, (num_entries * entry_sz)))) {
+	if ((rval = copyout(sc->log_data_buffer, data_in_buf,
+		 (num_entries * entry_sz)))) {
 		printf(IOCNAME "%s: copy to user failed\n", sc->name, __func__);
 		rval = EFAULT;
 	}
@@ -1765,35 +1855,39 @@ mpi3mr_get_logdata(struct mpi3mr_softc *sc,
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_logdata_enable(struct mpi3mr_softc *sc,
-		      void *data_in_buf, U32 data_in_sz)
+mpi3mr_logdata_enable(struct mpi3mr_softc *sc, void *data_in_buf,
+    U32 data_in_sz)
 {
 	long rval = EINVAL;
 	struct mpi3mr_ioctl_logdata_enable logdata_enable;
-	
+
 	if (data_in_sz < sizeof(logdata_enable))
 		return rval;
 
 	if (sc->log_data_buffer)
 		goto copy_data;
 
-	sc->log_data_entry_size = (sc->reply_sz - (sizeof(Mpi3EventNotificationReply_t) - 4))
-				   + MPI3MR_IOCTL_LOGDATA_ENTRY_HEADER_SZ;
+	sc->log_data_entry_size =
+	    (sc->reply_sz - (sizeof(Mpi3EventNotificationReply_t) - 4)) +
+	    MPI3MR_IOCTL_LOGDATA_ENTRY_HEADER_SZ;
 
-	sc->log_data_buffer = malloc((MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES * sc->log_data_entry_size),
-				     M_MPI3MR, M_NOWAIT | M_ZERO);
+	sc->log_data_buffer = malloc((MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES *
+					 sc->log_data_entry_size),
+	    M_MPI3MR, M_NOWAIT | M_ZERO);
 	if (!sc->log_data_buffer) {
-		printf(IOCNAME "%s log data buffer memory allocation failed\n", sc->name, __func__);
+		printf(IOCNAME "%s log data buffer memory allocation failed\n",
+		    sc->name, __func__);
 		return ENOMEM;
 	}
-	
+
 	sc->log_data_buffer_index = 0;
 
 copy_data:
 	memset(&logdata_enable, 0, sizeof(logdata_enable));
 	logdata_enable.max_entries = MPI3MR_IOCTL_LOGDATA_MAX_ENTRIES;
 
-        if ((rval = copyout(&logdata_enable, data_in_buf, sizeof(logdata_enable)))) {
+	if ((rval = copyout(&logdata_enable, data_in_buf,
+		 sizeof(logdata_enable)))) {
 		printf(IOCNAME "%s: copy to user failed\n", sc->name, __func__);
 		rval = EFAULT;
 	}
@@ -1813,23 +1907,24 @@ copy_data:
  *
  * Return: 0 on success and proper error codes on failure
  */
-static long 
-mpi3mr_get_change_count(struct mpi3mr_softc *sc,
-			void *data_in_buf, U32 data_in_sz)
+static long
+mpi3mr_get_change_count(struct mpi3mr_softc *sc, void *data_in_buf,
+    U32 data_in_sz)
 {
-        long rval = EINVAL;
-        struct mpi3mr_ioctl_chgcnt chg_count;
-        memset(&chg_count, 0, sizeof(chg_count));
+	long rval = EINVAL;
+	struct mpi3mr_ioctl_chgcnt chg_count;
+	memset(&chg_count, 0, sizeof(chg_count));
 
-        chg_count.change_count = sc->change_count;
-        if (data_in_sz >= sizeof(chg_count)) {
-                if ((rval = copyout(&chg_count, data_in_buf, sizeof(chg_count)))) {
-                        printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
-			       __LINE__, __func__);
-                        rval = EFAULT;
-                }
-        }
-        return rval;
+	chg_count.change_count = sc->change_count;
+	if (data_in_sz >= sizeof(chg_count)) {
+		if ((rval = copyout(&chg_count, data_in_buf,
+			 sizeof(chg_count)))) {
+			printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
+			    __FILE__, __LINE__, __func__);
+			rval = EFAULT;
+		}
+	}
+	return rval;
 }
 
 /**
@@ -1846,95 +1941,99 @@ mpi3mr_get_change_count(struct mpi3mr_softc *sc,
  *
  * Return: 0 on success and proper error codes on failure
  */
-static long 
-mpi3mr_get_alltgtinfo(struct mpi3mr_softc *sc,
-		      void *data_in_buf, U32 data_in_sz)
+static long
+mpi3mr_get_alltgtinfo(struct mpi3mr_softc *sc, void *data_in_buf,
+    U32 data_in_sz)
 {
 	long rval = EINVAL;
-        U8 get_count = 0;
+	U8 get_count = 0;
 	U16 i = 0, num_devices = 0;
-        U32 min_entrylen = 0, kern_entrylen = 0, user_entrylen = 0;
+	U32 min_entrylen = 0, kern_entrylen = 0, user_entrylen = 0;
 	struct mpi3mr_target *tgtdev = NULL;
-        struct mpi3mr_device_map_info *devmap_info = NULL;
+	struct mpi3mr_device_map_info *devmap_info = NULL;
 	struct mpi3mr_cam_softc *cam_sc = sc->cam_sc;
-        struct mpi3mr_ioctl_all_tgtinfo *all_tgtinfo = (struct mpi3mr_ioctl_all_tgtinfo *)data_in_buf;
+	struct mpi3mr_ioctl_all_tgtinfo *all_tgtinfo =
+	    (struct mpi3mr_ioctl_all_tgtinfo *)data_in_buf;
 
-        if (data_in_sz < sizeof(uint32_t)) {
-                printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
-		       __LINE__, __func__);
-                goto out;
-        }
-        if (data_in_sz == sizeof(uint32_t))
-                get_count = 1;
-	
+	if (data_in_sz < sizeof(uint32_t)) {
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
+		goto out;
+	}
+	if (data_in_sz == sizeof(uint32_t))
+		get_count = 1;
+
 	if (TAILQ_EMPTY(&cam_sc->tgt_list)) {
-                get_count = 1;
-                goto copy_usrbuf;
+		get_count = 1;
+		goto copy_usrbuf;
 	}
 
 	mtx_lock_spin(&cam_sc->sc->target_lock);
-	TAILQ_FOREACH(tgtdev, &cam_sc->tgt_list, tgt_next) {
+	TAILQ_FOREACH (tgtdev, &cam_sc->tgt_list, tgt_next) {
 		num_devices++;
 	}
 	mtx_unlock_spin(&cam_sc->sc->target_lock);
 
-        if (get_count)
-                goto copy_usrbuf;
+	if (get_count)
+		goto copy_usrbuf;
 
-        kern_entrylen = num_devices * sizeof(*devmap_info);
-	
+	kern_entrylen = num_devices * sizeof(*devmap_info);
+
 	devmap_info = malloc(kern_entrylen, M_MPI3MR, M_NOWAIT | M_ZERO);
-        if (!devmap_info) {
-                printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
-		       __LINE__, __func__);
-                rval = ENOMEM;
-                goto out;
-        }
-        memset((U8*)devmap_info, 0xFF, kern_entrylen);
+	if (!devmap_info) {
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
+		rval = ENOMEM;
+		goto out;
+	}
+	memset((U8 *)devmap_info, 0xFF, kern_entrylen);
 
 	mtx_lock_spin(&cam_sc->sc->target_lock);
-	TAILQ_FOREACH(tgtdev, &cam_sc->tgt_list, tgt_next) {
-                if (i < num_devices) {
-                        devmap_info[i].handle = tgtdev->dev_handle;
-                        devmap_info[i].per_id = tgtdev->per_id;
+	TAILQ_FOREACH (tgtdev, &cam_sc->tgt_list, tgt_next) {
+		if (i < num_devices) {
+			devmap_info[i].handle = tgtdev->dev_handle;
+			devmap_info[i].per_id = tgtdev->per_id;
 			/*n
-			 *  For hidden/ugood device the target_id and bus_id should be 0xFFFFFFFF and 0xFF
+			 *  For hidden/ugood device the target_id and bus_id
+			 * should be 0xFFFFFFFF and 0xFF
 			 */
 			if (!tgtdev->exposed_to_os) {
-                                devmap_info[i].target_id = 0xFFFFFFFF;
-                                devmap_info[i].bus_id = 0xFF;
-                        } else {
-                                devmap_info[i].target_id = tgtdev->tid;
-                                devmap_info[i].bus_id = 0;
+				devmap_info[i].target_id = 0xFFFFFFFF;
+				devmap_info[i].bus_id = 0xFF;
+			} else {
+				devmap_info[i].target_id = tgtdev->tid;
+				devmap_info[i].bus_id = 0;
 			}
-                        i++;
-                }
-        }
-        num_devices = i;
+			i++;
+		}
+	}
+	num_devices = i;
 	mtx_unlock_spin(&cam_sc->sc->target_lock);
 
 copy_usrbuf:
-        if (copyout(&num_devices, &all_tgtinfo->num_devices, sizeof(num_devices))) {
-                printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
-		       __LINE__, __func__);
-                rval = EFAULT;
-                goto out;
-        }
-        user_entrylen = (data_in_sz - sizeof(uint32_t))/sizeof(*devmap_info);
-        user_entrylen *= sizeof(*devmap_info);
-        min_entrylen = min(user_entrylen, kern_entrylen);
-        if (min_entrylen && (copyout(devmap_info, &all_tgtinfo->dmi, min_entrylen))) {
-                printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-		       __FILE__, __LINE__, __func__);
-                rval = EFAULT;
-                goto out;
-        }
+	if (copyout(&num_devices, &all_tgtinfo->num_devices,
+		sizeof(num_devices))) {
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
+		rval = EFAULT;
+		goto out;
+	}
+	user_entrylen = (data_in_sz - sizeof(uint32_t)) / sizeof(*devmap_info);
+	user_entrylen *= sizeof(*devmap_info);
+	min_entrylen = min(user_entrylen, kern_entrylen);
+	if (min_entrylen &&
+	    (copyout(devmap_info, &all_tgtinfo->dmi, min_entrylen))) {
+		printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name, __FILE__,
+		    __LINE__, __func__);
+		rval = EFAULT;
+		goto out;
+	}
 	rval = 0;
 out:
-        if (devmap_info)
-                free(devmap_info, M_MPI3MR);
+	if (devmap_info)
+		free(devmap_info, M_MPI3MR);
 
-        return rval;
+	return rval;
 }
 
 /**
@@ -1948,26 +2047,26 @@ out:
  *
  * Return: 0 on success and proper error codes on failure
  */
-static long 
-mpi3mr_get_tgtinfo(struct mpi3mr_softc *sc,
-		   struct mpi3mr_ioctl_drvcmd *karg)
+static long
+mpi3mr_get_tgtinfo(struct mpi3mr_softc *sc, struct mpi3mr_ioctl_drvcmd *karg)
 {
 	long rval = EINVAL;
 	struct mpi3mr_target *tgtdev = NULL;
 	struct mpi3mr_ioctl_tgtinfo tgtinfo;
-	
+
 	memset(&tgtinfo, 0, sizeof(tgtinfo));
 
 	if ((karg->data_out_size != sizeof(struct mpi3mr_ioctl_tgtinfo)) ||
 	    (karg->data_in_size != sizeof(struct mpi3mr_ioctl_tgtinfo))) {
-		printf(IOCNAME "Invalid user tgtinfo buffer size %s() line: %d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME
+		    "Invalid user tgtinfo buffer size %s() line: %d\n",
+		    sc->name, __func__, __LINE__);
 		goto out;
 	}
-	
+
 	if (copyin(karg->data_out_buf, &tgtinfo, sizeof(tgtinfo))) {
-		printf(IOCNAME "failure at %s() line:%d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "failure at %s() line:%d\n", sc->name, __func__,
+		    __LINE__);
 		rval = EFAULT;
 		goto out;
 	}
@@ -1976,23 +2075,26 @@ mpi3mr_get_tgtinfo(struct mpi3mr_softc *sc,
 		if ((tgtinfo.persistent_id != 0xFFFF) ||
 		    (tgtinfo.dev_handle != 0xFFFF))
 			goto out;
-		tgtdev = mpi3mr_find_target_by_per_id(sc->cam_sc, tgtinfo.target_id);
+		tgtdev = mpi3mr_find_target_by_per_id(sc->cam_sc,
+		    tgtinfo.target_id);
 	} else if (tgtinfo.persistent_id != 0xFFFF) {
 		if ((tgtinfo.bus_id != 0xFF) ||
-		    (tgtinfo.dev_handle !=0xFFFF) ||
+		    (tgtinfo.dev_handle != 0xFFFF) ||
 		    (tgtinfo.target_id != 0xFFFFFFFF))
 			goto out;
-		tgtdev = mpi3mr_find_target_by_per_id(sc->cam_sc, tgtinfo.persistent_id);
-	} else if (tgtinfo.dev_handle !=0xFFFF) {
+		tgtdev = mpi3mr_find_target_by_per_id(sc->cam_sc,
+		    tgtinfo.persistent_id);
+	} else if (tgtinfo.dev_handle != 0xFFFF) {
 		if ((tgtinfo.bus_id != 0xFF) ||
 		    (tgtinfo.target_id != 0xFFFFFFFF) ||
 		    (tgtinfo.persistent_id != 0xFFFF))
 			goto out;
-		tgtdev = mpi3mr_find_target_by_dev_handle(sc->cam_sc, tgtinfo.dev_handle);
+		tgtdev = mpi3mr_find_target_by_dev_handle(sc->cam_sc,
+		    tgtinfo.dev_handle);
 	}
 	if (!tgtdev)
 		goto out;
-	
+
 	tgtinfo.target_id = tgtdev->per_id;
 	tgtinfo.bus_id = 0;
 	tgtinfo.dev_handle = tgtdev->dev_handle;
@@ -2000,8 +2102,8 @@ mpi3mr_get_tgtinfo(struct mpi3mr_softc *sc,
 	tgtinfo.seq_num = 0;
 
 	if (copyout(&tgtinfo, karg->data_in_buf, sizeof(tgtinfo))) {
-		printf(IOCNAME "failure at %s() line:%d\n", sc->name,
-		       __func__, __LINE__);
+		printf(IOCNAME "failure at %s() line:%d\n", sc->name, __func__,
+		    __LINE__);
 		rval = EFAULT;
 	}
 
@@ -2021,21 +2123,21 @@ out:
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_get_pciinfo(struct mpi3mr_softc *sc,
-		   void *data_in_buf, U32 data_in_sz)
+mpi3mr_get_pciinfo(struct mpi3mr_softc *sc, void *data_in_buf, U32 data_in_sz)
 {
 	long rval = EINVAL;
 	U8 i;
 	struct mpi3mr_ioctl_pciinfo pciinfo;
 	memset(&pciinfo, 0, sizeof(pciinfo));
-	
+
 	for (i = 0; i < 64; i++)
-		pciinfo.config_space[i] = pci_read_config(sc->mpi3mr_dev, (i * 4), 4);
+		pciinfo.config_space[i] = pci_read_config(sc->mpi3mr_dev,
+		    (i * 4), 4);
 
 	if (data_in_sz >= sizeof(pciinfo)) {
 		if ((rval = copyout(&pciinfo, data_in_buf, sizeof(pciinfo)))) {
 			printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-			       __FILE__, __LINE__, __func__);
+			    __FILE__, __LINE__, __func__);
 			rval = EFAULT;
 		}
 	}
@@ -2054,8 +2156,7 @@ mpi3mr_get_pciinfo(struct mpi3mr_softc *sc,
  * Return: 0 on success and proper error codes on failure
  */
 static long
-mpi3mr_get_adpinfo(struct mpi3mr_softc *sc,
-		   void *data_in_buf, U32 data_in_sz)
+mpi3mr_get_adpinfo(struct mpi3mr_softc *sc, void *data_in_buf, U32 data_in_sz)
 {
 	long rval = EINVAL;
 	struct mpi3mr_ioctl_adpinfo adpinfo;
@@ -2067,12 +2168,14 @@ mpi3mr_get_adpinfo(struct mpi3mr_softc *sc,
 	adpinfo.pci_dev_hw_rev = pci_read_config(sc->mpi3mr_dev, PCIR_REVID, 1);
 	adpinfo.pci_subsys_dev_id = pci_get_subdevice(sc->mpi3mr_dev);
 	adpinfo.pci_subsys_ven_id = pci_get_subvendor(sc->mpi3mr_dev);
-	adpinfo.pci_bus = pci_get_bus(sc->mpi3mr_dev);;
+	adpinfo.pci_bus = pci_get_bus(sc->mpi3mr_dev);
+	;
 	adpinfo.pci_dev = pci_get_slot(sc->mpi3mr_dev);
 	adpinfo.pci_func = pci_get_function(sc->mpi3mr_dev);
 	adpinfo.pci_seg_id = pci_get_domain(sc->mpi3mr_dev);
 	adpinfo.ioctl_ver = MPI3MR_IOCTL_VERSION;
-	memcpy((U8 *)&adpinfo.driver_info, (U8 *)&sc->driver_info, sizeof(adpinfo.driver_info));
+	memcpy((U8 *)&adpinfo.driver_info, (U8 *)&sc->driver_info,
+	    sizeof(adpinfo.driver_info));
 
 	ioc_state = mpi3mr_get_iocstate(sc);
 
@@ -2082,13 +2185,13 @@ mpi3mr_get_adpinfo(struct mpi3mr_softc *sc,
 		adpinfo.adp_state = MPI3MR_IOCTL_ADP_STATE_IN_RESET;
 	else if (ioc_state == MRIOC_STATE_FAULT)
 		adpinfo.adp_state = MPI3MR_IOCTL_ADP_STATE_FAULT;
-	else	
+	else
 		adpinfo.adp_state = MPI3MR_IOCTL_ADP_STATE_OPERATIONAL;
 
 	if (data_in_sz >= sizeof(adpinfo)) {
 		if ((rval = copyout(&adpinfo, data_in_buf, sizeof(adpinfo)))) {
 			printf(IOCNAME "failure at %s:%d/%s()!\n", sc->name,
-			       __FILE__, __LINE__, __func__);
+			    __FILE__, __LINE__, __func__);
 			rval = EFAULT;
 		}
 	}
@@ -2109,9 +2212,9 @@ mpi3mr_get_adpinfo(struct mpi3mr_softc *sc,
  * Return: 0 on success and proper error codes on failure
  */
 
-static int 
-mpi3mr_app_drvrcmds(struct cdev *dev, u_long cmd,
-		    void *uarg, int flag, struct thread *td)
+static int
+mpi3mr_app_drvrcmds(struct cdev *dev, u_long cmd, void *uarg, int flag,
+    struct thread *td)
 {
 	long rval = EINVAL;
 	struct mpi3mr_softc *sc = NULL;
@@ -2120,35 +2223,43 @@ mpi3mr_app_drvrcmds(struct cdev *dev, u_long cmd,
 	sc = mpi3mr_app_get_adp_instance(karg->mrioc_id);
 	if (!sc)
 		return ENODEV;
-	
+
 	mtx_lock(&sc->ioctl_cmds.completion.lock);
 	switch (karg->opcode) {
 	case MPI3MR_DRVRIOCTL_OPCODE_ADPINFO:
-		rval = mpi3mr_get_adpinfo(sc, karg->data_in_buf, karg->data_in_size);
+		rval = mpi3mr_get_adpinfo(sc, karg->data_in_buf,
+		    karg->data_in_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_GETPCIINFO:
-		rval = mpi3mr_get_pciinfo(sc, karg->data_in_buf, karg->data_in_size);
+		rval = mpi3mr_get_pciinfo(sc, karg->data_in_buf,
+		    karg->data_in_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_TGTDEVINFO:
 		rval = mpi3mr_get_tgtinfo(sc, karg);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_ALLTGTDEVINFO:
-                rval = mpi3mr_get_alltgtinfo(sc, karg->data_in_buf, karg->data_in_size);
-                break;
-        case MPI3MR_DRVRIOCTL_OPCODE_GETCHGCNT:
-                rval = mpi3mr_get_change_count(sc, karg->data_in_buf, karg->data_in_size);
-                break;
+		rval = mpi3mr_get_alltgtinfo(sc, karg->data_in_buf,
+		    karg->data_in_size);
+		break;
+	case MPI3MR_DRVRIOCTL_OPCODE_GETCHGCNT:
+		rval = mpi3mr_get_change_count(sc, karg->data_in_buf,
+		    karg->data_in_size);
+		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_LOGDATAENABLE:
-		rval = mpi3mr_logdata_enable(sc, karg->data_in_buf, karg->data_in_size);
+		rval = mpi3mr_logdata_enable(sc, karg->data_in_buf,
+		    karg->data_in_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_GETLOGDATA:
-		rval = mpi3mr_get_logdata(sc, karg->data_in_buf, karg->data_in_size);
+		rval = mpi3mr_get_logdata(sc, karg->data_in_buf,
+		    karg->data_in_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_PELENABLE:
-		rval = mpi3mr_pel_enable(sc, karg->data_out_buf, karg->data_out_size);
+		rval = mpi3mr_pel_enable(sc, karg->data_out_buf,
+		    karg->data_out_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_ADPRESET:
-		rval = mpi3mr_adp_reset(sc, karg->data_out_buf, karg->data_out_size);
+		rval = mpi3mr_adp_reset(sc, karg->data_out_buf,
+		    karg->data_out_size);
 		break;
 	case MPI3MR_DRVRIOCTL_OPCODE_UNKNOWN:
 	default:
@@ -2171,8 +2282,9 @@ mpi3mr_app_drvrcmds(struct cdev *dev, u_long cmd,
  *
  * Return: 0 on success and proper error codes on failure
  */
-static int 
-mpi3mr_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag, struct thread *td)
+static int
+mpi3mr_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag,
+    struct thread *td)
 {
 	int rval = EINVAL;
 
@@ -2180,16 +2292,15 @@ mpi3mr_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag, struct thread 
 	struct mpi3mr_ioctl_drvcmd *karg = (struct mpi3mr_ioctl_drvcmd *)arg;
 
 	sc = mpi3mr_app_get_adp_instance(karg->mrioc_id);
-	
+
 	if (!sc)
 		return ENODEV;
-	
+
 	mpi3mr_atomic_inc(&sc->pend_ioctls);
 
-	
 	if (sc->mpi3mr_flags & MPI3MR_FLAGS_SHUTDOWN) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"Return back IOCTL, shutdown is in progress\n");
+		    "Return back IOCTL, shutdown is in progress\n");
 		mpi3mr_atomic_dec(&sc->pend_ioctls);
 		return ENODEV;
 	}
@@ -2204,7 +2315,8 @@ mpi3mr_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int flag, struct thread 
 		mtx_unlock(&sc->ioctl_cmds.completion.lock);
 		break;
 	default:
-		printf("%s:Unsupported ioctl cmd (0x%08lx)\n", MPI3MR_DRIVER_NAME, cmd);
+		printf("%s:Unsupported ioctl cmd (0x%08lx)\n",
+		    MPI3MR_DRIVER_NAME, cmd);
 		break;
 	}
 

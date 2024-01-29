@@ -38,38 +38,37 @@
 #include "ldpart.h"
 #include "lmonetary.h"
 
-extern const char * __fix_locale_grouping_str(const char *);
+extern const char *__fix_locale_grouping_str(const char *);
 
 #define LCMONETARY_SIZE_FULL (sizeof(struct lc_monetary_T) / sizeof(char *))
 #define LCMONETARY_SIZE_MIN \
-		(offsetof(struct lc_monetary_T, int_p_cs_precedes) / \
-		    sizeof(char *))
+	(offsetof(struct lc_monetary_T, int_p_cs_precedes) / sizeof(char *))
 
-static char	empty[] = "";
-static char	numempty[] = { CHAR_MAX, '\0'};
+static char empty[] = "";
+static char numempty[] = { CHAR_MAX, '\0' };
 
 static const struct lc_monetary_T _C_monetary_locale = {
-	empty,		/* int_curr_symbol */
-	empty,		/* currency_symbol */
-	empty,		/* mon_decimal_point */
-	empty,		/* mon_thousands_sep */
-	numempty,	/* mon_grouping */
-	empty,		/* positive_sign */
-	empty,		/* negative_sign */
-	numempty,	/* int_frac_digits */
-	numempty,	/* frac_digits */
-	numempty,	/* p_cs_precedes */
-	numempty,	/* p_sep_by_space */
-	numempty,	/* n_cs_precedes */
-	numempty,	/* n_sep_by_space */
-	numempty,	/* p_sign_posn */
-	numempty,	/* n_sign_posn */
-	numempty,	/* int_p_cs_precedes */
-	numempty,	/* int_n_cs_precedes */
-	numempty,	/* int_p_sep_by_space */
-	numempty,	/* int_n_sep_by_space */
-	numempty,	/* int_p_sign_posn */
-	numempty	/* int_n_sign_posn */
+	empty,	  /* int_curr_symbol */
+	empty,	  /* currency_symbol */
+	empty,	  /* mon_decimal_point */
+	empty,	  /* mon_thousands_sep */
+	numempty, /* mon_grouping */
+	empty,	  /* positive_sign */
+	empty,	  /* negative_sign */
+	numempty, /* int_frac_digits */
+	numempty, /* frac_digits */
+	numempty, /* p_cs_precedes */
+	numempty, /* p_sep_by_space */
+	numempty, /* n_cs_precedes */
+	numempty, /* n_sep_by_space */
+	numempty, /* p_sign_posn */
+	numempty, /* n_sign_posn */
+	numempty, /* int_p_cs_precedes */
+	numempty, /* int_n_cs_precedes */
+	numempty, /* int_p_sep_by_space */
+	numempty, /* int_n_sep_by_space */
+	numempty, /* int_p_sign_posn */
+	numempty  /* int_n_sign_posn */
 };
 
 struct xlocale_monetary __xlocale_global_monetary;
@@ -100,16 +99,13 @@ monetary_load_locale_l(struct xlocale_monetary *loc, int *using_locale,
 	int ret;
 	struct lc_monetary_T *l = &loc->locale;
 
-	ret = __part_load_locale(name, using_locale,
-	    &loc->buffer, "LC_MONETARY",
-	    LCMONETARY_SIZE_FULL, LCMONETARY_SIZE_MIN,
+	ret = __part_load_locale(name, using_locale, &loc->buffer,
+	    "LC_MONETARY", LCMONETARY_SIZE_FULL, LCMONETARY_SIZE_MIN,
 	    (const char **)l);
 	if (ret == _LDP_LOADED) {
-		l->mon_grouping =
-		     __fix_locale_grouping_str(l->mon_grouping);
+		l->mon_grouping = __fix_locale_grouping_str(l->mon_grouping);
 
-#define M_ASSIGN_CHAR(NAME) (((char *)l->NAME)[0] = \
-			     cnv(l->NAME))
+#define M_ASSIGN_CHAR(NAME) (((char *)l->NAME)[0] = cnv(l->NAME))
 
 		M_ASSIGN_CHAR(int_frac_digits);
 		M_ASSIGN_CHAR(frac_digits);
@@ -125,14 +121,13 @@ monetary_load_locale_l(struct xlocale_monetary *loc, int *using_locale,
 		 * parameters default to the national parameters when
 		 * reading FreeBSD LC_MONETARY data files.
 		 */
-#define	M_ASSIGN_ICHAR(NAME)						\
-		do {							\
-			if (l->int_##NAME == NULL)	\
-				l->int_##NAME =		\
-				    l->NAME;		\
-			else						\
-				M_ASSIGN_CHAR(int_##NAME);		\
-		} while (0)
+#define M_ASSIGN_ICHAR(NAME)                       \
+	do {                                       \
+		if (l->int_##NAME == NULL)         \
+			l->int_##NAME = l->NAME;   \
+		else                               \
+			M_ASSIGN_CHAR(int_##NAME); \
+	} while (0)
 
 		M_ASSIGN_ICHAR(p_cs_precedes);
 		M_ASSIGN_ICHAR(n_cs_precedes);
@@ -163,7 +158,7 @@ __monetary_load(const char *name, locale_t l)
 		return (NULL);
 	new->header.header.destructor = destruct_monetary;
 	if (monetary_load_locale_l(new, &l->using_monetary_locale,
-	    &l->monetary_locale_changed, name) == _LDP_ERROR) {
+		&l->monetary_locale_changed, name) == _LDP_ERROR) {
 		xlocale_release(new);
 		return (NULL);
 	}
@@ -174,55 +169,51 @@ struct lc_monetary_T *
 __get_current_monetary_locale(locale_t loc)
 {
 	return (loc->using_monetary_locale ?
-	    &((struct xlocale_monetary*)loc->components[XLC_MONETARY])->locale :
-	    (struct lc_monetary_T *)&_C_monetary_locale);
+		&((struct xlocale_monetary *)loc->components[XLC_MONETARY])
+		     ->locale :
+		(struct lc_monetary_T *)&_C_monetary_locale);
 }
 
 #ifdef LOCALE_DEBUG
 void
-monetdebug(void) {
-printf(	"int_curr_symbol = %s\n"
-	"currency_symbol = %s\n"
-	"mon_decimal_point = %s\n"
-	"mon_thousands_sep = %s\n"
-	"mon_grouping = %s\n"
-	"positive_sign = %s\n"
-	"negative_sign = %s\n"
-	"int_frac_digits = %d\n"
-	"frac_digits = %d\n"
-	"p_cs_precedes = %d\n"
-	"p_sep_by_space = %d\n"
-	"n_cs_precedes = %d\n"
-	"n_sep_by_space = %d\n"
-	"p_sign_posn = %d\n"
-	"n_sign_posn = %d\n"
-	"int_p_cs_precedes = %d\n"
-	"int_p_sep_by_space = %d\n"
-	"int_n_cs_precedes = %d\n"
-	"int_n_sep_by_space = %d\n"
-	"int_p_sign_posn = %d\n"
-	"int_n_sign_posn = %d\n",
-	_monetary_locale.int_curr_symbol,
-	_monetary_locale.currency_symbol,
-	_monetary_locale.mon_decimal_point,
-	_monetary_locale.mon_thousands_sep,
-	_monetary_locale.mon_grouping,
-	_monetary_locale.positive_sign,
-	_monetary_locale.negative_sign,
-	_monetary_locale.int_frac_digits[0],
-	_monetary_locale.frac_digits[0],
-	_monetary_locale.p_cs_precedes[0],
-	_monetary_locale.p_sep_by_space[0],
-	_monetary_locale.n_cs_precedes[0],
-	_monetary_locale.n_sep_by_space[0],
-	_monetary_locale.p_sign_posn[0],
-	_monetary_locale.n_sign_posn[0],
-	_monetary_locale.int_p_cs_precedes[0],
-	_monetary_locale.int_p_sep_by_space[0],
-	_monetary_locale.int_n_cs_precedes[0],
-	_monetary_locale.int_n_sep_by_space[0],
-	_monetary_locale.int_p_sign_posn[0],
-	_monetary_locale.int_n_sign_posn[0]
-);
+monetdebug(void)
+{
+	printf("int_curr_symbol = %s\n"
+	       "currency_symbol = %s\n"
+	       "mon_decimal_point = %s\n"
+	       "mon_thousands_sep = %s\n"
+	       "mon_grouping = %s\n"
+	       "positive_sign = %s\n"
+	       "negative_sign = %s\n"
+	       "int_frac_digits = %d\n"
+	       "frac_digits = %d\n"
+	       "p_cs_precedes = %d\n"
+	       "p_sep_by_space = %d\n"
+	       "n_cs_precedes = %d\n"
+	       "n_sep_by_space = %d\n"
+	       "p_sign_posn = %d\n"
+	       "n_sign_posn = %d\n"
+	       "int_p_cs_precedes = %d\n"
+	       "int_p_sep_by_space = %d\n"
+	       "int_n_cs_precedes = %d\n"
+	       "int_n_sep_by_space = %d\n"
+	       "int_p_sign_posn = %d\n"
+	       "int_n_sign_posn = %d\n",
+	    _monetary_locale.int_curr_symbol, _monetary_locale.currency_symbol,
+	    _monetary_locale.mon_decimal_point,
+	    _monetary_locale.mon_thousands_sep, _monetary_locale.mon_grouping,
+	    _monetary_locale.positive_sign, _monetary_locale.negative_sign,
+	    _monetary_locale.int_frac_digits[0],
+	    _monetary_locale.frac_digits[0], _monetary_locale.p_cs_precedes[0],
+	    _monetary_locale.p_sep_by_space[0],
+	    _monetary_locale.n_cs_precedes[0],
+	    _monetary_locale.n_sep_by_space[0], _monetary_locale.p_sign_posn[0],
+	    _monetary_locale.n_sign_posn[0],
+	    _monetary_locale.int_p_cs_precedes[0],
+	    _monetary_locale.int_p_sep_by_space[0],
+	    _monetary_locale.int_n_cs_precedes[0],
+	    _monetary_locale.int_n_sep_by_space[0],
+	    _monetary_locale.int_p_sign_posn[0],
+	    _monetary_locale.int_n_sign_posn[0]);
 }
 #endif /* LOCALE_DEBUG */

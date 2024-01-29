@@ -42,44 +42,43 @@
 #include <machine/atomic.h>
 #include <machine/frame.h>
 #define _MD_WANT_SWAPWORD
+#include <vm/vm.h>
+#include <vm/vm_extern.h>
+
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/undefined.h>
 #include <machine/vmparam.h>
 
-#include <vm/vm.h>
-#include <vm/vm_extern.h>
-
 /* Low bit masked off */
-#define	INSN_COND(insn)	((insn >> 28) & ~0x1)
-#define	INSN_COND_INVERTED(insn)	((insn >> 28) & 0x1)
-#define	INSN_COND_EQ	0x00	/* NE */
-#define	INSN_COND_CS	0x02	/* CC */
-#define	INSN_COND_MI	0x04	/* PL */
-#define	INSN_COND_VS	0x06	/* VC */
-#define	INSN_COND_HI	0x08	/* LS */
-#define	INSN_COND_GE	0x0a	/* LT */
-#define	INSN_COND_GT	0x0c	/* LE */
-#define	INSN_COND_AL	0x0e	/* Always */
+#define INSN_COND(insn) ((insn >> 28) & ~0x1)
+#define INSN_COND_INVERTED(insn) ((insn >> 28) & 0x1)
+#define INSN_COND_EQ 0x00 /* NE */
+#define INSN_COND_CS 0x02 /* CC */
+#define INSN_COND_MI 0x04 /* PL */
+#define INSN_COND_VS 0x06 /* VC */
+#define INSN_COND_HI 0x08 /* LS */
+#define INSN_COND_GE 0x0a /* LT */
+#define INSN_COND_GT 0x0c /* LE */
+#define INSN_COND_AL 0x0e /* Always */
 
 MALLOC_DEFINE(M_UNDEF, "undefhandler", "Undefined instruction handler data");
 
 #ifdef COMPAT_FREEBSD32
 #ifndef EMUL_SWP
-#define	EMUL_SWP	0
+#define EMUL_SWP 0
 #endif
 
 SYSCTL_DECL(_compat_arm);
 
 static bool compat32_emul_swp = EMUL_SWP;
-SYSCTL_BOOL(_compat_arm, OID_AUTO, emul_swp,
-    CTLFLAG_RWTUN | CTLFLAG_MPSAFE, &compat32_emul_swp, 0,
-    "Enable SWP/SWPB emulation");
+SYSCTL_BOOL(_compat_arm, OID_AUTO, emul_swp, CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
+    &compat32_emul_swp, 0, "Enable SWP/SWPB emulation");
 #endif
 
 struct undef_handler {
 	LIST_ENTRY(undef_handler) uh_link;
-	undef_handler_t		uh_handler;
+	undef_handler_t uh_handler;
 };
 
 /*
@@ -98,8 +97,8 @@ id_aa64mmfr2_handler(vm_offset_t va, uint32_t insn, struct trapframe *frame,
 {
 	int reg;
 
-#define	 MRS_ID_AA64MMFR2_EL0_MASK	(MRS_MASK | 0x000fffe0)
-#define	 MRS_ID_AA64MMFR2_EL0_VALUE	(MRS_VALUE | 0x00080740)
+#define MRS_ID_AA64MMFR2_EL0_MASK (MRS_MASK | 0x000fffe0)
+#define MRS_ID_AA64MMFR2_EL0_VALUE (MRS_VALUE | 0x00080740)
 
 	/* mrs xn, id_aa64mfr2_el1 */
 	if ((insn & MRS_ID_AA64MMFR2_EL0_MASK) == MRS_ID_AA64MMFR2_EL0_VALUE) {
@@ -170,11 +169,11 @@ arm_cond_match(uint32_t insn, struct trapframe *frame)
 
 #ifdef COMPAT_FREEBSD32
 /* arm32 GDB breakpoints */
-#define GDB_BREAKPOINT	0xe6000011
-#define GDB5_BREAKPOINT	0xe7ffdefe
+#define GDB_BREAKPOINT 0xe6000011
+#define GDB5_BREAKPOINT 0xe7ffdefe
 static int
 gdb_trapper(vm_offset_t va, uint32_t insn, struct trapframe *frame,
-		uint32_t esr)
+    uint32_t esr)
 {
 	struct thread *td = curthread;
 
@@ -218,7 +217,7 @@ swp_emulate(vm_offset_t va, uint32_t insn, struct trapframe *frame,
 	else if ((insn & 0x0fb00ff0) != 0x01000090)
 		return (0);
 	else if (!arm_cond_match(insn, frame))
-		goto next;	/* Handled, but does nothing */
+		goto next; /* Handled, but does nothing */
 
 	Rn = (insn & 0xf0000) >> 16;
 	Rd = (insn & 0xf000) >> 12;
@@ -261,7 +260,7 @@ swp_emulate(vm_offset_t va, uint32_t insn, struct trapframe *frame,
 
 next:
 	/* No thumb SWP/SWPB */
-	frame->tf_elr += 4; //INSN_SIZE;
+	frame->tf_elr += 4; // INSN_SIZE;
 
 	return (1);
 fault:
@@ -328,7 +327,7 @@ undef_insn(u_int el, struct trapframe *frame)
 		insn = *(uint32_t *)frame->tf_elr;
 	}
 
-	LIST_FOREACH(uh, &undef_handlers[el], uh_link) {
+	LIST_FOREACH (uh, &undef_handlers[el], uh_link) {
 		ret = uh->uh_handler(frame->tf_elr, insn, frame, frame->tf_esr);
 		if (ret)
 			return (1);

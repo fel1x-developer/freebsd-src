@@ -18,10 +18,7 @@
  * NEW command line interface for IP firewall facility
  */
 
-enum cmdline_prog {
-	cmdline_prog_ipfw,
-	cmdline_prog_dnctl
-};
+enum cmdline_prog { cmdline_prog_ipfw, cmdline_prog_dnctl };
 
 /*
  * Options that can be set on the command line.
@@ -34,31 +31,31 @@ enum cmdline_prog {
 
 struct cmdline_opts {
 	/* boolean options: */
-	int	do_value_as_ip;	/* show table value as IP */
-	int	do_resolv;	/* try to resolve all ip to names */
-	int	do_time;	/* Show time stamps */
-	int	do_quiet;	/* Be quiet in add and flush */
-	int	do_pipe;	/* this cmd refers to a pipe/queue/sched */
-	int	do_nat; 	/* this cmd refers to a nat config */
-	int	do_compact;	/* show rules in compact mode */
-	int	do_force;	/* do not ask for confirmation */
-	int	show_sets;	/* display the set each rule belongs to */
-	int	test_only;	/* only check syntax */
-	int	comment_only;	/* only print action and comment */
-	int	verbose;	/* be verbose on some commands */
-	int	debug_only;	/* output ioctl i/o on stdout */
+	int do_value_as_ip; /* show table value as IP */
+	int do_resolv;	    /* try to resolve all ip to names */
+	int do_time;	    /* Show time stamps */
+	int do_quiet;	    /* Be quiet in add and flush */
+	int do_pipe;	    /* this cmd refers to a pipe/queue/sched */
+	int do_nat;	    /* this cmd refers to a nat config */
+	int do_compact;	    /* show rules in compact mode */
+	int do_force;	    /* do not ask for confirmation */
+	int show_sets;	    /* display the set each rule belongs to */
+	int test_only;	    /* only check syntax */
+	int comment_only;   /* only print action and comment */
+	int verbose;	    /* be verbose on some commands */
+	int debug_only;	    /* output ioctl i/o on stdout */
 
 	/* The options below can have multiple values. */
 
-	int	do_dynamic;	/* 1 - display dynamic rules */
-				/* 2 - display/delete only dynamic rules */
-	int	do_sort;	/* field to sort results (0 = no) */
-		/* valid fields are 1 and above */
+	int do_dynamic; /* 1 - display dynamic rules */
+			/* 2 - display/delete only dynamic rules */
+	int do_sort;	/* field to sort results (0 = no) */
+			/* valid fields are 1 and above */
 
-	uint32_t use_set;	/* work with specified set number */
-		/* 0 means all sets, otherwise apply to set use_set - 1 */
+	uint32_t use_set; /* work with specified set number */
+	/* 0 means all sets, otherwise apply to set use_set - 1 */
 
-	enum cmdline_prog	prog;	/* Are we ipfw or dnctl? */
+	enum cmdline_prog prog; /* Are we ipfw or dnctl? */
 };
 
 int is_ipfw(void);
@@ -87,7 +84,7 @@ struct _s_x {
 extern struct _s_x f_ipdscp[];
 
 enum tokens {
-	TOK_NULL=0,
+	TOK_NULL = 0,
 
 	TOK_OR,
 	TOK_NOT,
@@ -194,13 +191,13 @@ enum tokens {
 #ifdef NEW_AQM
 	/* AQM tokens*/
 	TOK_NO_ECN,
-	TOK_CODEL, 
+	TOK_CODEL,
 	TOK_FQ_CODEL,
 	TOK_TARGET,
 	TOK_INTERVAL,
 	TOK_FLOWS,
 	TOK_QUANTUM,
-	
+
 	TOK_PIE,
 	TOK_FQ_PIE,
 	TOK_TUPDATE,
@@ -330,15 +327,23 @@ enum tokens {
  * the following macro returns an error message if we run out of
  * arguments.
  */
-#define NEED(_p, msg)      {if (!_p) errx(EX_USAGE, msg);}
-#define NEED1(msg)      {if (!(*av)) errx(EX_USAGE, msg);}
+#define NEED(_p, msg)                        \
+	{                                    \
+		if (!_p)                     \
+			errx(EX_USAGE, msg); \
+	}
+#define NEED1(msg)                           \
+	{                                    \
+		if (!(*av))                  \
+			errx(EX_USAGE, msg); \
+	}
 
 struct buf_pr {
-	char	*buf;	/* allocated buffer */
-	char	*ptr;	/* current pointer */
-	size_t	size;	/* total buffer size */
-	size_t	avail;	/* available storage */
-	size_t	needed;	/* length needed */
+	char *buf;     /* allocated buffer */
+	char *ptr;     /* current pointer */
+	size_t size;   /* total buffer size */
+	size_t avail;  /* available storage */
+	size_t needed; /* length needed */
 };
 
 int pr_u64(struct buf_pr *bp, void *pd, int width);
@@ -346,14 +351,13 @@ int bp_alloc(struct buf_pr *b, size_t size);
 void bp_free(struct buf_pr *b);
 int bprintf(struct buf_pr *b, const char *format, ...);
 
-
 /* memory allocation support */
 void *safe_calloc(size_t number, size_t size);
 void *safe_realloc(void *ptr, size_t size);
 
 /* string comparison functions used for historical compatibility */
-int _substrcmp(const char *str1, const char* str2);
-int _substrcmp2(const char *str1, const char* str2, const char* str3);
+int _substrcmp(const char *str1, const char *str2);
+int _substrcmp2(const char *str1, const char *str2, const char *str3);
 int stringnum_cmp(const char *a, const char *b);
 
 /* utility functions */
@@ -461,6 +465,5 @@ struct _ipfw_obj_ntlv;
 int table_check_name(const char *tablename);
 void ipfw_list_ta(int ac, char *av[]);
 void ipfw_list_values(int ac, char *av[]);
-void table_fill_ntlv(struct _ipfw_obj_ntlv *ntlv, const char *name,
-    uint8_t set, uint16_t uidx);
-
+void table_fill_ntlv(struct _ipfw_obj_ntlv *ntlv, const char *name, uint8_t set,
+    uint16_t uidx);

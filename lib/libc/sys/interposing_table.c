@@ -30,10 +30,10 @@
  */
 
 #include <sys/types.h>
+
 #include "libc_private.h"
 
-#define	SLOT(a, b) \
-	[INTERPOS_##a] = (interpos_func_t)b
+#define SLOT(a, b) [INTERPOS_##a] = (interpos_func_t)b
 interpos_func_t __libc_interposing[INTERPOS_MAX] = {
 	SLOT(accept, __sys_accept),
 	SLOT(accept4, __sys_accept4),

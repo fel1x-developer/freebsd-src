@@ -45,16 +45,16 @@
 
 #include "extern.h"
 
-#define	cp_pct(x, y)	((y == 0) ? 0 : (int)(100.0 * (x) / (y)))
+#define cp_pct(x, y) ((y == 0) ? 0 : (int)(100.0 * (x) / (y)))
 
 /*
- * Memory strategy threshold, in pages: if physmem is larger then this, use a 
+ * Memory strategy threshold, in pages: if physmem is larger then this, use a
  * large buffer.
  */
-#define PHYSPAGES_THRESHOLD (32*1024)
+#define PHYSPAGES_THRESHOLD (32 * 1024)
 
 /* Maximum buffer size in bytes - do not allow it to grow larger than this. */
-#define BUFSIZE_MAX (2*1024*1024)
+#define BUFSIZE_MAX (2 * 1024 * 1024)
 
 /*
  * Small (default) buffer size in bytes. It's inefficient for this to be
@@ -87,7 +87,7 @@ copy_fallback(int from_fd, int to_fd)
 	rcount = read(from_fd, buf, bufsize);
 	if (rcount <= 0)
 		return (rcount);
-	for (bufp = buf, wresid = rcount; ; bufp += wcount, wresid -= wcount) {
+	for (bufp = buf, wresid = rcount;; bufp += wcount, wresid -= wcount) {
 		wcount = write(to_fd, bufp, wresid);
 		if (wcount <= 0)
 			break;
@@ -130,8 +130,8 @@ copy_file(const FTSENT *entp, int dne)
 			rval = 1;
 			goto done;
 		} else if (iflag) {
-			(void)fprintf(stderr, "overwrite %s? %s", 
-			    to.p_path, YESNO);
+			(void)fprintf(stderr, "overwrite %s? %s", to.p_path,
+			    YESNO);
 			checkch = ch = getchar();
 			while (ch != '\n' && ch != EOF)
 				ch = getchar();
@@ -184,8 +184,8 @@ copy_file(const FTSENT *entp, int dne)
 	wtotal = 0;
 	do {
 		if (use_copy_file_range) {
-			wcount = copy_file_range(from_fd, NULL,
-			    to_fd, NULL, SSIZE_MAX, 0);
+			wcount = copy_file_range(from_fd, NULL, to_fd, NULL,
+			    SSIZE_MAX, 0);
 			if (wcount < 0 && errno == EINVAL) {
 				/* probably a non-seekable descriptor */
 				use_copy_file_range = 0;
@@ -197,8 +197,7 @@ copy_file(const FTSENT *entp, int dne)
 		wtotal += wcount;
 		if (info) {
 			info = 0;
-			(void)fprintf(stderr,
-			    "%s -> %s %3d%%\n",
+			(void)fprintf(stderr, "%s -> %s %3d%%\n",
 			    entp->fts_path, to.p_path,
 			    cp_pct(wtotal, fs->st_size));
 		}
@@ -306,23 +305,24 @@ setfile(struct stat *fs, int fd)
 	rval = 0;
 	fdval = fd != -1;
 	islink = !fdval && S_ISLNK(fs->st_mode);
-	fs->st_mode &= S_ISUID | S_ISGID | S_ISVTX |
-	    S_IRWXU | S_IRWXG | S_IRWXO;
+	fs->st_mode &= S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG |
+	    S_IRWXO;
 
 	tspec[0] = fs->st_atim;
 	tspec[1] = fs->st_mtim;
-	if (fdval ? futimens(fd, tspec) : utimensat(AT_FDCWD, to.p_path, tspec,
-	    islink ? AT_SYMLINK_NOFOLLOW : 0)) {
+	if (fdval ? futimens(fd, tspec) :
+		    utimensat(AT_FDCWD, to.p_path, tspec,
+			islink ? AT_SYMLINK_NOFOLLOW : 0)) {
 		warn("utimensat: %s", to.p_path);
 		rval = 1;
 	}
 	if (fdval ? fstat(fd, &ts) :
-	    (islink ? lstat(to.p_path, &ts) : stat(to.p_path, &ts)))
+		    (islink ? lstat(to.p_path, &ts) : stat(to.p_path, &ts)))
 		gotstat = 0;
 	else {
 		gotstat = 1;
-		ts.st_mode &= S_ISUID | S_ISGID | S_ISVTX |
-		    S_IRWXU | S_IRWXG | S_IRWXO;
+		ts.st_mode &= S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG |
+		    S_IRWXO;
 	}
 	/*
 	 * Changing the ownership probably won't succeed, unless we're root
@@ -331,9 +331,10 @@ setfile(struct stat *fs, int fd)
 	 * chown.  If chown fails, lose setuid/setgid bits.
 	 */
 	if (!gotstat || fs->st_uid != ts.st_uid || fs->st_gid != ts.st_gid)
-		if (fdval ? fchown(fd, fs->st_uid, fs->st_gid) :
-		    (islink ? lchown(to.p_path, fs->st_uid, fs->st_gid) :
-		    chown(to.p_path, fs->st_uid, fs->st_gid))) {
+		if (fdval ?
+			fchown(fd, fs->st_uid, fs->st_gid) :
+			(islink ? lchown(to.p_path, fs->st_uid, fs->st_gid) :
+				  chown(to.p_path, fs->st_uid, fs->st_gid))) {
 			if (errno != EPERM) {
 				warn("chown: %s", to.p_path);
 				rval = 1;
@@ -343,17 +344,16 @@ setfile(struct stat *fs, int fd)
 
 	if (!gotstat || fs->st_mode != ts.st_mode)
 		if (fdval ? fchmod(fd, fs->st_mode) :
-		    (islink ? lchmod(to.p_path, fs->st_mode) :
-		    chmod(to.p_path, fs->st_mode))) {
+			    (islink ? lchmod(to.p_path, fs->st_mode) :
+				      chmod(to.p_path, fs->st_mode))) {
 			warn("chmod: %s", to.p_path);
 			rval = 1;
 		}
 
 	if (!Nflag && (!gotstat || fs->st_flags != ts.st_flags))
-		if (fdval ?
-		    fchflags(fd, fs->st_flags) :
-		    (islink ? lchflags(to.p_path, fs->st_flags) :
-		    chflags(to.p_path, fs->st_flags))) {
+		if (fdval ? fchflags(fd, fs->st_flags) :
+			    (islink ? lchflags(to.p_path, fs->st_flags) :
+				      chflags(to.p_path, fs->st_flags))) {
 			/*
 			 * NFS doesn't support chflags; ignore errors unless
 			 * there's reason to believe we're losing bits.  (Note,
@@ -378,7 +378,7 @@ preserve_fd_acls(int source_fd, int dest_fd)
 	int acl_supported = 0, ret, trivial;
 
 	ret = fpathconf(source_fd, _PC_ACL_NFS4);
-	if (ret > 0 ) {
+	if (ret > 0) {
 		acl_supported = 1;
 		acl_type = ACL_TYPE_NFS4;
 	} else if (ret < 0 && errno != EINVAL) {
@@ -387,7 +387,7 @@ preserve_fd_acls(int source_fd, int dest_fd)
 	}
 	if (acl_supported == 0) {
 		ret = fpathconf(source_fd, _PC_ACL_EXTENDED);
-		if (ret > 0 ) {
+		if (ret > 0) {
 			acl_supported = 1;
 			acl_type = ACL_TYPE_ACCESS;
 		} else if (ret < 0 && errno != EINVAL) {
@@ -477,8 +477,8 @@ preserve_dir_acls(struct stat *fs, char *source_dir, char *dest_dir)
 			return (1);
 		}
 		aclp = &acl->ats_acl;
-		if (aclp->acl_cnt != 0 && aclsetf(dest_dir,
-		    ACL_TYPE_DEFAULT, acl) < 0) {
+		if (aclp->acl_cnt != 0 &&
+		    aclsetf(dest_dir, ACL_TYPE_DEFAULT, acl) < 0) {
 			warn("failed to set default acl entries on %s",
 			    dest_dir);
 			acl_free(acl);

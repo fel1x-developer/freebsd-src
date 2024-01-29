@@ -35,14 +35,15 @@
 
 #ifdef _KERNEL
 #include <sys/pctrie.h>
-#include <vm/vm_page.h>
-#include <vm/vm.h>
 
-void		vm_radix_wait(void);
-void		vm_radix_zinit(void);
-void		*vm_radix_node_alloc(struct pctrie *ptree);
-void		vm_radix_node_free(struct pctrie *ptree, void *node);
-extern smr_t	vm_radix_smr;
+#include <vm/vm.h>
+#include <vm/vm_page.h>
+
+void vm_radix_wait(void);
+void vm_radix_zinit(void);
+void *vm_radix_node_alloc(struct pctrie *ptree);
+void vm_radix_node_free(struct pctrie *ptree, void *node);
+extern smr_t vm_radix_smr;
 
 static __inline void
 vm_radix_init(struct vm_radix *rtree)
@@ -56,8 +57,8 @@ vm_radix_is_empty(struct vm_radix *rtree)
 	return (pctrie_is_empty(&rtree->rt_trie));
 }
 
-PCTRIE_DEFINE_SMR(VM_RADIX, vm_page, pindex, vm_radix_node_alloc, vm_radix_node_free,
-    vm_radix_smr);
+PCTRIE_DEFINE_SMR(VM_RADIX, vm_page, pindex, vm_radix_node_alloc,
+    vm_radix_node_free, vm_radix_smr);
 
 /*
  * Inserts the key-value pair into the trie.

@@ -3,36 +3,37 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "gve.h"
 
 static void
-gve_setup_rxq_sysctl(struct sysctl_ctx_list *ctx,
-    struct sysctl_oid_list *child, struct gve_rx_ring *rxq)
+gve_setup_rxq_sysctl(struct sysctl_ctx_list *ctx, struct sysctl_oid_list *child,
+    struct gve_rx_ring *rxq)
 {
 	struct sysctl_oid *node;
 	struct sysctl_oid_list *list;
@@ -46,11 +47,9 @@ gve_setup_rxq_sysctl(struct sysctl_ctx_list *ctx,
 
 	stats = &rxq->stats;
 
-	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO,
-	    "rx_bytes", CTLFLAG_RD,
+	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO, "rx_bytes", CTLFLAG_RD,
 	    &stats->rbytes, "Bytes received");
-	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO,
-	    "rx_packets", CTLFLAG_RD,
+	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO, "rx_packets", CTLFLAG_RD,
 	    &stats->rpackets, "Packets received");
 	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO, "rx_copybreak_cnt",
 	    CTLFLAG_RD, &stats->rx_copybreak_cnt,
@@ -62,28 +61,23 @@ gve_setup_rxq_sysctl(struct sysctl_ctx_list *ctx,
 	    CTLFLAG_RD, &stats->rx_frag_copy_cnt,
 	    "Total frags with mbuf that copied payload into mbuf");
 	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO, "rx_dropped_pkt",
-	    CTLFLAG_RD, &stats->rx_dropped_pkt,
-	    "Total rx packets dropped");
-	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO,
-	    "rx_dropped_pkt_desc_err", CTLFLAG_RD,
-	    &stats->rx_dropped_pkt_desc_err,
+	    CTLFLAG_RD, &stats->rx_dropped_pkt, "Total rx packets dropped");
+	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO, "rx_dropped_pkt_desc_err",
+	    CTLFLAG_RD, &stats->rx_dropped_pkt_desc_err,
 	    "Packets dropped due to descriptor error");
 	SYSCTL_ADD_COUNTER_U64(ctx, list, OID_AUTO,
 	    "rx_dropped_pkt_mbuf_alloc_fail", CTLFLAG_RD,
 	    &stats->rx_dropped_pkt_mbuf_alloc_fail,
 	    "Packets dropped due to failed mbuf allocation");
-	SYSCTL_ADD_U32(ctx, list, OID_AUTO,
-	    "rx_completed_desc", CTLFLAG_RD,
+	SYSCTL_ADD_U32(ctx, list, OID_AUTO, "rx_completed_desc", CTLFLAG_RD,
 	    &rxq->cnt, 0, "Number of descriptors completed");
-	SYSCTL_ADD_U32(ctx, list, OID_AUTO,
-	    "num_desc_posted", CTLFLAG_RD,
-	    &rxq->fill_cnt, rxq->fill_cnt,
-	    "Toal number of descriptors posted");
+	SYSCTL_ADD_U32(ctx, list, OID_AUTO, "num_desc_posted", CTLFLAG_RD,
+	    &rxq->fill_cnt, rxq->fill_cnt, "Toal number of descriptors posted");
 }
 
 static void
-gve_setup_txq_sysctl(struct sysctl_ctx_list *ctx,
-    struct sysctl_oid_list *child, struct gve_tx_ring *txq)
+gve_setup_txq_sysctl(struct sysctl_ctx_list *ctx, struct sysctl_oid_list *child,
+    struct gve_tx_ring *txq)
 {
 	struct sysctl_oid *node;
 	struct sysctl_oid_list *tx_list;
@@ -97,20 +91,15 @@ gve_setup_txq_sysctl(struct sysctl_ctx_list *ctx,
 
 	stats = &txq->stats;
 
-	SYSCTL_ADD_U32(ctx, tx_list, OID_AUTO,
-	    "tx_posted_desc", CTLFLAG_RD,
+	SYSCTL_ADD_U32(ctx, tx_list, OID_AUTO, "tx_posted_desc", CTLFLAG_RD,
 	    &txq->req, 0, "Number of descriptors posted by NIC");
-	SYSCTL_ADD_U32(ctx, tx_list, OID_AUTO,
-	    "tx_completed_desc", CTLFLAG_RD,
+	SYSCTL_ADD_U32(ctx, tx_list, OID_AUTO, "tx_completed_desc", CTLFLAG_RD,
 	    &txq->done, 0, "Number of descriptors completed");
-	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-	    "tx_packets", CTLFLAG_RD,
+	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "tx_packets", CTLFLAG_RD,
 	    &stats->tpackets, "Packets transmitted");
-	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-	    "tx_tso_packets", CTLFLAG_RD,
-	    &stats->tso_packet_cnt, "TSO Packets transmitted");
-	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-	    "tx_bytes", CTLFLAG_RD,
+	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "tx_tso_packets",
+	    CTLFLAG_RD, &stats->tso_packet_cnt, "TSO Packets transmitted");
+	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "tx_bytes", CTLFLAG_RD,
 	    &stats->tbytes, "Bytes transmitted");
 	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
 	    "tx_dropped_pkt_nospace_device", CTLFLAG_RD,
@@ -120,15 +109,13 @@ gve_setup_txq_sysctl(struct sysctl_ctx_list *ctx,
 	    "tx_dropped_pkt_nospace_bufring", CTLFLAG_RD,
 	    &stats->tx_dropped_pkt_nospace_bufring,
 	    "Packets dropped due to no space in br ring");
-	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO,
-	    "tx_dropped_pkt_vlan", CTLFLAG_RD,
-	    &stats->tx_dropped_pkt_vlan,
-	    "Dropped VLAN packets");
+	SYSCTL_ADD_COUNTER_U64(ctx, tx_list, OID_AUTO, "tx_dropped_pkt_vlan",
+	    CTLFLAG_RD, &stats->tx_dropped_pkt_vlan, "Dropped VLAN packets");
 }
 
 static void
-gve_setup_queue_stat_sysctl(struct sysctl_ctx_list *ctx, struct sysctl_oid_list *child,
-    struct gve_priv *priv)
+gve_setup_queue_stat_sysctl(struct sysctl_ctx_list *ctx,
+    struct sysctl_oid_list *child, struct gve_priv *priv)
 {
 	int i;
 
@@ -213,13 +200,15 @@ gve_setup_main_stat_sysctl(struct sysctl_ctx_list *ctx,
 
 	SYSCTL_ADD_U32(ctx, main_list, OID_AUTO, "interface_up_cnt", CTLFLAG_RD,
 	    &priv->interface_up_cnt, 0, "Times interface was set to up");
-	SYSCTL_ADD_U32(ctx, main_list, OID_AUTO, "interface_down_cnt", CTLFLAG_RD,
-	    &priv->interface_down_cnt, 0, "Times interface was set to down");
+	SYSCTL_ADD_U32(ctx, main_list, OID_AUTO, "interface_down_cnt",
+	    CTLFLAG_RD, &priv->interface_down_cnt, 0,
+	    "Times interface was set to down");
 	SYSCTL_ADD_U32(ctx, main_list, OID_AUTO, "reset_cnt", CTLFLAG_RD,
 	    &priv->reset_cnt, 0, "Times reset");
 }
 
-void gve_setup_sysctl(struct gve_priv *priv)
+void
+gve_setup_sysctl(struct gve_priv *priv)
 {
 	device_t dev;
 	struct sysctl_ctx_list *ctx;
@@ -237,9 +226,9 @@ void gve_setup_sysctl(struct gve_priv *priv)
 }
 
 void
-gve_accum_stats(struct gve_priv *priv, uint64_t *rpackets,
-    uint64_t *rbytes, uint64_t *rx_dropped_pkt, uint64_t *tpackets,
-    uint64_t *tbytes, uint64_t *tx_dropped_pkt)
+gve_accum_stats(struct gve_priv *priv, uint64_t *rpackets, uint64_t *rbytes,
+    uint64_t *rx_dropped_pkt, uint64_t *tpackets, uint64_t *tbytes,
+    uint64_t *tx_dropped_pkt)
 {
 	struct gve_rxq_stats *rxqstats;
 	struct gve_txq_stats *txqstats;

@@ -40,40 +40,40 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_dechanyu.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	size_t	 chlen;
-	char	 ch[4];
+	size_t chlen;
+	char ch[4];
 } _DECHanyuState;
 
 typedef struct {
-	int	 dummy;
+	int dummy;
 } _DECHanyuEncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.__CONCAT(s_,_func_)
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.__CONCAT(s_, _func_)
 
-#define _FUNCNAME(m)			__CONCAT(_citrus_DECHanyu_,m)
-#define _ENCODING_INFO			_DECHanyuEncodingInfo
-#define _ENCODING_STATE			_DECHanyuState
-#define _ENCODING_MB_CUR_MAX(_ei_)		4
-#define _ENCODING_IS_STATE_DEPENDENT		0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) __CONCAT(_citrus_DECHanyu_, m)
+#define _ENCODING_INFO _DECHanyuEncodingInfo
+#define _ENCODING_STATE _DECHanyuState
+#define _ENCODING_MB_CUR_MAX(_ei_) 4
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_DECHanyu_init_state(_DECHanyuEncodingInfo * __restrict ei __unused,
-    _DECHanyuState * __restrict psenc)
+_citrus_DECHanyu_init_state(_DECHanyuEncodingInfo *__restrict ei __unused,
+    _DECHanyuState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -110,8 +110,9 @@ _citrus_DECHanyu_encoding_module_uninit(_DECHanyuEncodingInfo *ei __unused)
 
 static int
 /*ARGSUSED*/
-_citrus_DECHanyu_encoding_module_init(_DECHanyuEncodingInfo * __restrict ei __unused,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_DECHanyu_encoding_module_init(
+    _DECHanyuEncodingInfo *__restrict ei __unused,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 
 	/* ei may be null */
@@ -154,7 +155,7 @@ is_hanyu2(int c)
 	return (c == 0xCB);
 }
 
-#define HANYUBIT	0xC2CB0000
+#define HANYUBIT 0xC2CB0000
 
 static __inline bool
 is_94charset(int c)
@@ -165,9 +166,9 @@ is_94charset(int c)
 
 static int
 /*ARGSUSED*/
-_citrus_DECHanyu_mbrtowc_priv(_DECHanyuEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _DECHanyuState * __restrict psenc, size_t * __restrict nresult)
+_citrus_DECHanyu_mbrtowc_priv(_DECHanyuEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _DECHanyuState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	wchar_t wc;
@@ -202,7 +203,8 @@ _citrus_DECHanyu_mbrtowc_priv(_DECHanyuEncodingInfo * __restrict ei,
 		if (!is_leadbyte(ch))
 			return (EINVAL);
 		break;
-	case 2: case 3:
+	case 2:
+	case 3:
 		ch = psenc->ch[0] & 0xFF;
 		if (is_hanyu1(ch)) {
 			ch = psenc->ch[1] & 0xFF;
@@ -274,9 +276,9 @@ ilseq:
 
 static int
 /*ARGSUSED*/
-_citrus_DECHanyu_wcrtomb_priv(_DECHanyuEncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, wchar_t wc,
-    _DECHanyuState * __restrict psenc, size_t * __restrict nresult)
+_citrus_DECHanyu_wcrtomb_priv(_DECHanyuEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, wchar_t wc, _DECHanyuState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	int ch;
 
@@ -320,8 +322,8 @@ ilseq:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	wchar_t mask;
 	int plane;
@@ -335,8 +337,7 @@ _citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo * __restrict ei __unused,
 				return (EILSEQ);
 			plane += 2;
 		}
-		if (!is_leadbyte((wc >> 8) & 0xFF) ||
-		    !is_trailbyte(wc & 0xFF))
+		if (!is_leadbyte((wc >> 8) & 0xFF) || !is_trailbyte(wc & 0xFF))
 			return (EILSEQ);
 		plane += (wc & 0x80) ? 1 : 2;
 		mask |= 0x7F00;
@@ -349,8 +350,8 @@ _citrus_DECHanyu_stdenc_wctocs(_DECHanyuEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_DECHanyu_stdenc_cstowc(_DECHanyuEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_DECHanyu_stdenc_cstowc(_DECHanyuEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid == 0) {
@@ -375,13 +376,12 @@ _citrus_DECHanyu_stdenc_cstowc(_DECHanyuEncodingInfo * __restrict ei __unused,
 static __inline int
 /*ARGSUSED*/
 _citrus_DECHanyu_stdenc_get_state_desc_generic(
-    _DECHanyuEncodingInfo * __restrict ei __unused,
-    _DECHanyuState * __restrict psenc, int * __restrict rstate)
+    _DECHanyuEncodingInfo *__restrict ei __unused,
+    _DECHanyuState *__restrict psenc, int *__restrict rstate)
 {
 
-	*rstate = (psenc->chlen == 0)
-	    ? _STDENC_SDGEN_INITIAL
-	    : _STDENC_SDGEN_INCOMPLETE_CHAR;
+	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 

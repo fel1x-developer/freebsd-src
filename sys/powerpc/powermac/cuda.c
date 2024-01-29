@@ -32,18 +32,19 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/clock.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/clock.h>
 #include <sys/reboot.h>
+#include <sys/rman.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/openfirm.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
@@ -51,12 +52,9 @@
 #include <machine/pio.h>
 #include <machine/resource.h>
 
-#include <vm/vm.h>
-#include <vm/pmap.h>
-
-#include <sys/rman.h>
-
 #include <dev/adb/adb.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
 
 #include "clock_if.h"
 #include "cudavar.h"
@@ -65,17 +63,17 @@
 /*
  * MacIO interface
  */
-static int	cuda_probe(device_t);
-static int	cuda_attach(device_t);
-static int	cuda_detach(device_t);
+static int cuda_probe(device_t);
+static int cuda_attach(device_t);
+static int cuda_detach(device_t);
 
-static u_int	cuda_adb_send(device_t dev, u_char command_byte, int len, 
+static u_int cuda_adb_send(device_t dev, u_char command_byte, int len,
     u_char *data, u_char poll);
-static u_int	cuda_adb_autopoll(device_t dev, uint16_t mask);
-static u_int	cuda_poll(device_t dev);
-static void	cuda_send_inbound(struct cuda_softc *sc);
-static void	cuda_send_outbound(struct cuda_softc *sc);
-static void	cuda_shutdown(void *xsc, int howto);
+static u_int cuda_adb_autopoll(device_t dev, uint16_t mask);
+static u_int cuda_poll(device_t dev);
+static void cuda_send_inbound(struct cuda_softc *sc);
+static void cuda_send_outbound(struct cuda_softc *sc);
+static void cuda_shutdown(void *xsc, int howto);
 
 /*
  * Clock interface
@@ -83,23 +81,23 @@ static void	cuda_shutdown(void *xsc, int howto);
 static int cuda_gettime(device_t dev, struct timespec *ts);
 static int cuda_settime(device_t dev, struct timespec *ts);
 
-static device_method_t  cuda_methods[] = {
+static device_method_t cuda_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		cuda_probe),
-	DEVMETHOD(device_attach,	cuda_attach),
-        DEVMETHOD(device_detach,        cuda_detach),
-        DEVMETHOD(device_shutdown,      bus_generic_shutdown),
-        DEVMETHOD(device_suspend,       bus_generic_suspend),
-        DEVMETHOD(device_resume,        bus_generic_resume),
+	DEVMETHOD(device_probe, cuda_probe),
+	DEVMETHOD(device_attach, cuda_attach),
+	DEVMETHOD(device_detach, cuda_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* ADB bus interface */
-	DEVMETHOD(adb_hb_send_raw_packet,	cuda_adb_send),
-	DEVMETHOD(adb_hb_controller_poll,	cuda_poll),
-	DEVMETHOD(adb_hb_set_autopoll_mask,	cuda_adb_autopoll),
+	DEVMETHOD(adb_hb_send_raw_packet, cuda_adb_send),
+	DEVMETHOD(adb_hb_controller_poll, cuda_poll),
+	DEVMETHOD(adb_hb_set_autopoll_mask, cuda_adb_autopoll),
 
 	/* Clock interface */
-	DEVMETHOD(clock_gettime,	cuda_gettime),
-	DEVMETHOD(clock_settime,	cuda_settime),
+	DEVMETHOD(clock_gettime, cuda_gettime),
+	DEVMETHOD(clock_settime, cuda_settime),
 
 	DEVMETHOD_END
 };
@@ -131,7 +129,7 @@ cuda_probe(device_t dev)
 	const char *type = ofw_bus_get_type(dev);
 
 	if (strcmp(type, "via-cuda") != 0)
-                return (ENXIO);
+		return (ENXIO);
 
 	device_set_desc(dev, CUDA_DEVSTR);
 	return (0);
@@ -144,13 +142,13 @@ cuda_attach(device_t dev)
 
 	volatile int i;
 	uint8_t reg;
-	phandle_t node,child;
+	phandle_t node, child;
 
 	sc = device_get_softc(dev);
 	sc->sc_dev = dev;
 
 	sc->sc_memrid = 0;
-	sc->sc_memr = bus_alloc_resource_any(dev, SYS_RES_MEMORY, 
+	sc->sc_memr = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
 	    &sc->sc_memrid, RF_ACTIVE);
 
 	if (sc->sc_memr == NULL) {
@@ -160,25 +158,26 @@ cuda_attach(device_t dev)
 
 	sc->sc_irqrid = 0;
 	sc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->sc_irqrid,
-            	RF_ACTIVE);
-        if (sc->sc_irq == NULL) {
-                device_printf(dev, "could not allocate interrupt\n");
-                bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_memrid,
-                    sc->sc_memr);
-                return (ENXIO);
-        }
+	    RF_ACTIVE);
+	if (sc->sc_irq == NULL) {
+		device_printf(dev, "could not allocate interrupt\n");
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_memrid,
+		    sc->sc_memr);
+		return (ENXIO);
+	}
 
-	if (bus_setup_intr(dev, sc->sc_irq, INTR_TYPE_MISC | INTR_MPSAFE 
-	    | INTR_ENTROPY, NULL, cuda_intr, dev, &sc->sc_ih) != 0) {
-                device_printf(dev, "could not setup interrupt\n");
-                bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_memrid,
-                    sc->sc_memr);
-                bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irqrid,
-                    sc->sc_irq);
-                return (ENXIO);
-        }
+	if (bus_setup_intr(dev, sc->sc_irq,
+		INTR_TYPE_MISC | INTR_MPSAFE | INTR_ENTROPY, NULL, cuda_intr,
+		dev, &sc->sc_ih) != 0) {
+		device_printf(dev, "could not setup interrupt\n");
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_memrid,
+		    sc->sc_memr);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irqrid,
+		    sc->sc_irq);
+		return (ENXIO);
+	}
 
-	mtx_init(&sc->sc_mutex,"cuda",NULL,MTX_DEF | MTX_RECURSE);
+	mtx_init(&sc->sc_mutex, "cuda", NULL, MTX_DEF | MTX_RECURSE);
 
 	sc->sc_sent = 0;
 	sc->sc_received = 0;
@@ -198,40 +197,40 @@ cuda_attach(device_t dev)
 	/* Init CUDA */
 
 	reg = cuda_read_reg(sc, vDirB);
-	reg |= 0x30;	/* register B bits 4 and 5: outputs */
+	reg |= 0x30; /* register B bits 4 and 5: outputs */
 	cuda_write_reg(sc, vDirB, reg);
 
 	reg = cuda_read_reg(sc, vDirB);
-	reg &= 0xf7;	/* register B bit 3: input */
+	reg &= 0xf7; /* register B bit 3: input */
 	cuda_write_reg(sc, vDirB, reg);
 
 	reg = cuda_read_reg(sc, vACR);
-	reg &= ~vSR_OUT;	/* make sure SR is set to IN */
+	reg &= ~vSR_OUT; /* make sure SR is set to IN */
 	cuda_write_reg(sc, vACR, reg);
 
 	cuda_write_reg(sc, vACR, (cuda_read_reg(sc, vACR) | 0x0c) & ~0x10);
 
-	sc->sc_state = CUDA_IDLE;	/* used by all types of hardware */
+	sc->sc_state = CUDA_IDLE; /* used by all types of hardware */
 
 	cuda_write_reg(sc, vIER, 0x84); /* make sure VIA interrupts are on */
 
-	cuda_idle(sc);	/* reset ADB */
+	cuda_idle(sc); /* reset ADB */
 
 	/* Reset CUDA */
 
 	i = cuda_read_reg(sc, vSR);	/* clear interrupt */
 	cuda_write_reg(sc, vIER, 0x04); /* no interrupts while clearing */
-	cuda_idle(sc);	/* reset state to idle */
+	cuda_idle(sc);			/* reset state to idle */
 	DELAY(150);
-	cuda_tip(sc);	/* signal start of frame */
+	cuda_tip(sc); /* signal start of frame */
 	DELAY(150);
 	cuda_toggle_ack(sc);
 	DELAY(150);
 	cuda_clear_tip(sc);
 	DELAY(150);
-	cuda_idle(sc);	/* back to idle state */
+	cuda_idle(sc);			/* back to idle state */
 	i = cuda_read_reg(sc, vSR);	/* clear interrupt */
-	cuda_write_reg(sc, vIER, 0x84);	/* ints ok now */
+	cuda_write_reg(sc, vIER, 0x84); /* ints ok now */
 
 	/* Initialize child buses (ADB) */
 	node = ofw_bus_get_node(dev);
@@ -243,10 +242,10 @@ cuda_attach(device_t dev)
 		OF_getprop(child, "name", name, sizeof(name));
 
 		if (bootverbose)
-			device_printf(dev, "CUDA child <%s>\n",name);
+			device_printf(dev, "CUDA child <%s>\n", name);
 
 		if (strncmp(name, "adb", 4) == 0) {
-			sc->adb_bus = device_add_child(dev,"adb",-1);
+			sc->adb_bus = device_add_child(dev, "adb", -1);
 		}
 	}
 
@@ -257,7 +256,9 @@ cuda_attach(device_t dev)
 	return (bus_generic_attach(dev));
 }
 
-static int cuda_detach(device_t dev) {
+static int
+cuda_detach(device_t dev)
+{
 	struct cuda_softc *sc;
 
 	sc = device_get_softc(dev);
@@ -271,12 +272,14 @@ static int cuda_detach(device_t dev) {
 }
 
 static uint8_t
-cuda_read_reg(struct cuda_softc *sc, u_int offset) {
+cuda_read_reg(struct cuda_softc *sc, u_int offset)
+{
 	return (bus_read_1(sc->sc_memr, offset));
 }
 
 static void
-cuda_write_reg(struct cuda_softc *sc, u_int offset, uint8_t value) {
+cuda_write_reg(struct cuda_softc *sc, u_int offset, uint8_t value)
+{
 	bus_write_1(sc->sc_memr, offset, value);
 }
 
@@ -450,17 +453,17 @@ cuda_send_inbound(struct cuda_softc *sc)
 
 		/* check if we have a handler for this message */
 		switch (pkt->type) {
-		   case CUDA_ADB:
+		case CUDA_ADB:
 			if (pkt->len > 2) {
 				adb_receive_raw_packet(sc->adb_bus,
-				    pkt->data[0],pkt->data[1],
-				    pkt->len - 2,&pkt->data[2]);
+				    pkt->data[0], pkt->data[1], pkt->len - 2,
+				    &pkt->data[2]);
 			} else {
 				adb_receive_raw_packet(sc->adb_bus,
-				    pkt->data[0],pkt->data[1],0,NULL);
+				    pkt->data[0], pkt->data[1], 0, NULL);
 			}
 			break;
-		   case CUDA_PSEUDO:
+		case CUDA_PSEUDO:
 			mtx_lock(&sc->sc_mutex);
 			switch (pkt->data[1]) {
 			case CMD_AUTOPOLL:
@@ -476,7 +479,7 @@ cuda_send_inbound(struct cuda_softc *sc)
 			}
 			mtx_unlock(&sc->sc_mutex);
 			break;
-		   case CUDA_ERROR:
+		case CUDA_ERROR:
 			/*
 			 * CUDA will throw errors if we miss a race between
 			 * sending and receiving packets. This is already
@@ -485,8 +488,8 @@ cuda_send_inbound(struct cuda_softc *sc)
 			 * these messages.
 			 */
 			break;
-		   default:
-			device_printf(dev,"unknown CUDA command %d\n",
+		default:
+			device_printf(dev, "unknown CUDA command %d\n",
 			    pkt->type);
 			break;
 		}
@@ -504,7 +507,7 @@ cuda_poll(device_t dev)
 {
 	struct cuda_softc *sc = device_get_softc(dev);
 
-	if (sc->sc_state == CUDA_IDLE && !cuda_intr_state(sc) && 
+	if (sc->sc_state == CUDA_IDLE && !cuda_intr_state(sc) &&
 	    !sc->sc_waiting)
 		return (0);
 
@@ -515,12 +518,12 @@ cuda_poll(device_t dev)
 static void
 cuda_intr(void *arg)
 {
-	device_t        dev;
+	device_t dev;
 	struct cuda_softc *sc;
 	int ending, process_inbound;
 	uint8_t reg;
 
-        dev = (device_t)arg;
+	dev = (device_t)arg;
 	sc = device_get_softc(dev);
 
 	mtx_lock(&sc->sc_mutex);
@@ -532,7 +535,7 @@ cuda_intr(void *arg)
 		return;
 	}
 
-	cuda_write_reg(sc, vIFR, 0x7f);	/* Clear interrupt */
+	cuda_write_reg(sc, vIFR, 0x7f); /* Clear interrupt */
 
 switch_start:
 	switch (sc->sc_state) {
@@ -574,7 +577,7 @@ switch_start:
 		if (sc->sc_received > 255) {
 			/* bitch only once */
 			if (sc->sc_received == 256) {
-				device_printf(dev,"input overflow\n");
+				device_printf(dev, "input overflow\n");
 				ending = 1;
 			}
 		} else
@@ -584,10 +587,10 @@ switch_start:
 		if (cuda_intr_state(sc) == 0) {
 			ending = 1;
 		} else {
-			cuda_toggle_ack(sc);			
+			cuda_toggle_ack(sc);
 		}
-		
-		if (ending == 1) {	/* end of message? */
+
+		if (ending == 1) { /* end of message? */
 			struct cuda_packet *pkt;
 
 			/* reset vars and signal the end of this frame */
@@ -616,7 +619,7 @@ switch_start:
 			 * set everything up and send the first byte.
 			 */
 			if (sc->sc_waiting == 1) {
-				DELAY(1500);	/* required */
+				DELAY(1500); /* required */
 				sc->sc_sent = 0;
 				sc->sc_state = CUDA_OUT;
 
@@ -651,32 +654,32 @@ switch_start:
 		break;
 
 	case CUDA_OUT:
-		cuda_read_reg(sc, vSR);	/* reset SR-intr in IFR */
+		cuda_read_reg(sc, vSR); /* reset SR-intr in IFR */
 
 		sc->sc_sent++;
-		if (cuda_intr_state(sc)) {	/* ADB intr low during write */
-			cuda_in(sc);	/* make sure SR is set to IN */
+		if (cuda_intr_state(sc)) { /* ADB intr low during write */
+			cuda_in(sc);	   /* make sure SR is set to IN */
 			cuda_idle(sc);
-			sc->sc_sent = 0;	/* must start all over */
-			sc->sc_state = CUDA_IDLE;	/* new state */
+			sc->sc_sent = 0;	  /* must start all over */
+			sc->sc_state = CUDA_IDLE; /* new state */
 			sc->sc_received = 0;
-			sc->sc_waiting = 1;	/* must retry when done with
-						 * read */
+			sc->sc_waiting = 1; /* must retry when done with
+					     * read */
 			DELAY(150);
-			goto switch_start;	/* process next state right
-						 * now */
+			goto switch_start; /* process next state right
+					    * now */
 			break;
 		}
-		if (sc->sc_out_length == sc->sc_sent) {	/* check for done */
-			sc->sc_waiting = 0;	/* done writing */
+		if (sc->sc_out_length == sc->sc_sent) { /* check for done */
+			sc->sc_waiting = 0;		/* done writing */
 			sc->sc_state = CUDA_IDLE;	/* signal bus is idle */
 			cuda_in(sc);
 			cuda_idle(sc);
 		} else {
 			/* send next byte */
 			cuda_write_reg(sc, vSR, sc->sc_out[sc->sc_sent]);
-			cuda_toggle_ack(sc);	/* signal byte ready to
-							 * shift */
+			cuda_toggle_ack(sc); /* signal byte ready to
+					      * shift */
 		}
 		break;
 
@@ -698,11 +701,10 @@ switch_start:
 		cuda_send_outbound(sc);
 
 	mtx_unlock(&sc->sc_mutex);
-
 }
 
 static u_int
-cuda_adb_send(device_t dev, u_char command_byte, int len, u_char *data, 
+cuda_adb_send(device_t dev, u_char command_byte, int len, u_char *data,
     u_char poll)
 {
 	struct cuda_softc *sc = device_get_softc(dev);
@@ -720,11 +722,12 @@ cuda_adb_send(device_t dev, u_char command_byte, int len, u_char *data,
 	return (0);
 }
 
-static u_int 
-cuda_adb_autopoll(device_t dev, uint16_t mask) {
+static u_int
+cuda_adb_autopoll(device_t dev, uint16_t mask)
+{
 	struct cuda_softc *sc = device_get_softc(dev);
 
-	uint8_t cmd[] = {CUDA_PSEUDO, CMD_AUTOPOLL, mask != 0};
+	uint8_t cmd[] = { CUDA_PSEUDO, CMD_AUTOPOLL, mask != 0 };
 
 	mtx_lock(&sc->sc_mutex);
 
@@ -745,7 +748,7 @@ static void
 cuda_shutdown(void *xsc, int howto)
 {
 	struct cuda_softc *sc = xsc;
-	uint8_t cmd[] = {CUDA_PSEUDO, 0};
+	uint8_t cmd[] = { CUDA_PSEUDO, 0 };
 
 	if ((howto & RB_POWEROFF) != 0)
 		cmd[1] = CMD_POWEROFF;
@@ -761,13 +764,13 @@ cuda_shutdown(void *xsc, int howto)
 		cuda_poll(sc->sc_dev);
 }
 
-#define DIFF19041970	2082844800
+#define DIFF19041970 2082844800
 
 static int
 cuda_gettime(device_t dev, struct timespec *ts)
 {
 	struct cuda_softc *sc = device_get_softc(dev);
-	uint8_t cmd[] = {CUDA_PSEUDO, CMD_READ_RTC};
+	uint8_t cmd[] = { CUDA_PSEUDO, CMD_READ_RTC };
 
 	mtx_lock(&sc->sc_mutex);
 	sc->sc_rtc = -1;
@@ -786,7 +789,7 @@ static int
 cuda_settime(device_t dev, struct timespec *ts)
 {
 	struct cuda_softc *sc = device_get_softc(dev);
-	uint8_t cmd[] = {CUDA_PSEUDO, CMD_WRITE_RTC, 0, 0, 0, 0};
+	uint8_t cmd[] = { CUDA_PSEUDO, CMD_WRITE_RTC, 0, 0, 0, 0 };
 	uint32_t sec;
 
 	sec = ts->tv_sec + DIFF19041970;

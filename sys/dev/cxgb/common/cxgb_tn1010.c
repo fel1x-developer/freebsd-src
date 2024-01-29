@@ -29,6 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 
 #include <sys/cdefs.h>
+
 #include <cxgb_include.h>
 
 #undef msleep
@@ -40,79 +41,79 @@ enum {
 };
 
 /* IEEE auto-negotiation 10GBASE-T registers */
-enum {
-	ANEG_ADVER    = 16,
-	ANEG_LPA      = 19,
-	ANEG_10G_CTRL = 32,
-	ANEG_10G_STAT = 33
-};
+enum { ANEG_ADVER = 16, ANEG_LPA = 19, ANEG_10G_CTRL = 32, ANEG_10G_STAT = 33 };
 
-#define ADVERTISE_ENPAGE      (1 << 12)
-#define ADVERTISE_10000FULL   (1 << 12)
+#define ADVERTISE_ENPAGE (1 << 12)
+#define ADVERTISE_10000FULL (1 << 12)
 #define ADVERTISE_LOOP_TIMING (1 << 0)
 
 /* vendor specific status register fields */
 #define F_XS_LANE_ALIGN_STAT (1 << 0)
-#define F_PCS_BLK_LOCK       (1 << 1)
-#define F_PMD_SIGNAL_OK      (1 << 2)
-#define F_LINK_STAT          (1 << 3)
-#define F_ANEG_SPEED_1G      (1 << 4)
-#define F_ANEG_MASTER        (1 << 5)
+#define F_PCS_BLK_LOCK (1 << 1)
+#define F_PMD_SIGNAL_OK (1 << 2)
+#define F_LINK_STAT (1 << 3)
+#define F_ANEG_SPEED_1G (1 << 4)
+#define F_ANEG_MASTER (1 << 5)
 
-#define S_ANEG_STAT    6
-#define M_ANEG_STAT    0x3
+#define S_ANEG_STAT 6
+#define M_ANEG_STAT 0x3
 #define G_ANEG_STAT(x) (((x) >> S_ANEG_STAT) & M_ANEG_STAT)
 
-enum {                        /* autonegotiation status */
+enum { /* autonegotiation status */
 	ANEG_IN_PROGR = 0,
 	ANEG_COMPLETE = 1,
-	ANEG_FAILED   = 3
+	ANEG_FAILED = 3
 };
 
 /*
  * Reset the PHY.  May take up to 500ms to complete.
  */
-static int tn1010_reset(struct cphy *phy, int wait)
+static int
+tn1010_reset(struct cphy *phy, int wait)
 {
 	int err = t3_phy_reset(phy, MDIO_DEV_PMA_PMD, wait);
 	msleep(500);
 	return err;
 }
 
-static int tn1010_power_down(struct cphy *phy, int enable)
+static int
+tn1010_power_down(struct cphy *phy, int enable)
 {
-	return t3_mdio_change_bits(phy, MDIO_DEV_PMA_PMD, MII_BMCR,
-				   BMCR_PDOWN, enable ? BMCR_PDOWN : 0);
+	return t3_mdio_change_bits(phy, MDIO_DEV_PMA_PMD, MII_BMCR, BMCR_PDOWN,
+	    enable ? BMCR_PDOWN : 0);
 }
 
-static int tn1010_autoneg_enable(struct cphy *phy)
-{
-	int err;
-
-	err = tn1010_power_down(phy, 0);
-	if (!err)
-		err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, MII_BMCR, 0,
-					  BMCR_ANENABLE | BMCR_ANRESTART);
-	return err;
-}
-
-static int tn1010_autoneg_restart(struct cphy *phy)
+static int
+tn1010_autoneg_enable(struct cphy *phy)
 {
 	int err;
 
 	err = tn1010_power_down(phy, 0);
 	if (!err)
 		err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, MII_BMCR, 0,
-					  BMCR_ANRESTART);
+		    BMCR_ANENABLE | BMCR_ANRESTART);
 	return err;
 }
 
-static int tn1010_advertise(struct cphy *phy, unsigned int advert)
+static int
+tn1010_autoneg_restart(struct cphy *phy)
+{
+	int err;
+
+	err = tn1010_power_down(phy, 0);
+	if (!err)
+		err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, MII_BMCR, 0,
+		    BMCR_ANRESTART);
+	return err;
+}
+
+static int
+tn1010_advertise(struct cphy *phy, unsigned int advert)
 {
 	int err, val;
 
 	if (!(advert & ADVERTISED_1000baseT_Full))
-		return -EINVAL;               /* PHY can't disable 1000BASE-T */
+		return -EINVAL; /* PHY can't disable 1000BASE-T */
 
 	val = ADVERTISE_CSMA | ADVERTISE_ENPAGE | ADVERTISE_NPAGE;
 	if (advert & ADVERTISED_Pause)
@@ -124,12 +125,13 @@ static int tn1010_advertise(struct cphy *phy, unsigned int advert)
 		return err;
 
 	val = (advert & ADVERTISED_10000baseT_Full) ? ADVERTISE_10000FULL : 0;
-	return mdio_write(phy, MDIO_DEV_ANEG, ANEG_10G_CTRL, val |
-			  ADVERTISE_LOOP_TIMING);
+	return mdio_write(phy, MDIO_DEV_ANEG, ANEG_10G_CTRL,
+	    val | ADVERTISE_LOOP_TIMING);
 }
 
-static int tn1010_get_link_status(struct cphy *phy, int *link_state,
-				  int *speed, int *duplex, int *fc)
+static int
+tn1010_get_link_status(struct cphy *phy, int *link_state, int *speed,
+    int *duplex, int *fc)
 {
 	unsigned int status, lpa, adv;
 	int err, sp = -1, pause = 0;
@@ -140,7 +142,7 @@ static int tn1010_get_link_status(struct cphy *phy, int *link_state,
 
 	if (link_state)
 		*link_state = status & F_LINK_STAT ? PHY_LINK_UP :
-		    PHY_LINK_DOWN;
+						     PHY_LINK_DOWN;
 
 	if (G_ANEG_STAT(status) == ANEG_COMPLETE) {
 		sp = (status & F_ANEG_SPEED_1G) ? SPEED_1000 : SPEED_10000;
@@ -149,18 +151,18 @@ static int tn1010_get_link_status(struct cphy *phy, int *link_state,
 			err = mdio_read(phy, MDIO_DEV_ANEG, ANEG_LPA, &lpa);
 			if (!err)
 				err = mdio_read(phy, MDIO_DEV_ANEG, ANEG_ADVER,
-						&adv);
+				    &adv);
 			if (err)
 				return err;
 
 			if (lpa & adv & ADVERTISE_PAUSE_CAP)
 				pause = PAUSE_RX | PAUSE_TX;
 			else if ((lpa & ADVERTISE_PAUSE_CAP) &&
-				 (lpa & ADVERTISE_PAUSE_ASYM) &&
-				 (adv & ADVERTISE_PAUSE_ASYM))
+			    (lpa & ADVERTISE_PAUSE_ASYM) &&
+			    (adv & ADVERTISE_PAUSE_ASYM))
 				pause = PAUSE_TX;
 			else if ((lpa & ADVERTISE_PAUSE_ASYM) &&
-				 (adv & ADVERTISE_PAUSE_CAP))
+			    (adv & ADVERTISE_PAUSE_CAP))
 				pause = PAUSE_RX;
 		}
 	}
@@ -173,9 +175,10 @@ static int tn1010_get_link_status(struct cphy *phy, int *link_state,
 	return 0;
 }
 
-static int tn1010_set_speed_duplex(struct cphy *phy, int speed, int duplex)
+static int
+tn1010_set_speed_duplex(struct cphy *phy, int speed, int duplex)
 {
-	return -EINVAL;    /* require autoneg */
+	return -EINVAL; /* require autoneg */
 }
 
 #ifdef C99_NOT_SUPPORTED
@@ -195,27 +198,29 @@ static struct cphy_ops tn1010_ops = {
 };
 #else
 static struct cphy_ops tn1010_ops = {
-	.reset             = tn1010_reset,
-	.intr_enable       = t3_phy_lasi_intr_enable,
-	.intr_disable      = t3_phy_lasi_intr_disable,
-	.intr_clear        = t3_phy_lasi_intr_clear,
-	.intr_handler      = t3_phy_lasi_intr_handler,
-	.autoneg_enable    = tn1010_autoneg_enable,
-	.autoneg_restart   = tn1010_autoneg_restart,
-	.advertise         = tn1010_advertise,
-	.set_speed_duplex  = tn1010_set_speed_duplex,
-	.get_link_status   = tn1010_get_link_status,
-	.power_down        = tn1010_power_down,
+	.reset = tn1010_reset,
+	.intr_enable = t3_phy_lasi_intr_enable,
+	.intr_disable = t3_phy_lasi_intr_disable,
+	.intr_clear = t3_phy_lasi_intr_clear,
+	.intr_handler = t3_phy_lasi_intr_handler,
+	.autoneg_enable = tn1010_autoneg_enable,
+	.autoneg_restart = tn1010_autoneg_restart,
+	.advertise = tn1010_advertise,
+	.set_speed_duplex = tn1010_set_speed_duplex,
+	.get_link_status = tn1010_get_link_status,
+	.power_down = tn1010_power_down,
 };
 #endif
 
-int t3_tn1010_phy_prep(pinfo_t *pinfo, int phy_addr,
-		       const struct mdio_ops *mdio_ops)
+int
+t3_tn1010_phy_prep(pinfo_t *pinfo, int phy_addr,
+    const struct mdio_ops *mdio_ops)
 {
-	cphy_init(&pinfo->phy, pinfo->adapter, pinfo, phy_addr, &tn1010_ops, mdio_ops,
-		  SUPPORTED_1000baseT_Full | SUPPORTED_10000baseT_Full |
-		  SUPPORTED_Autoneg | SUPPORTED_AUI | SUPPORTED_TP,
-		  "1000/10GBASE-T");
-	msleep(500);    /* PHY needs up to 500ms to start responding to MDIO */
+	cphy_init(&pinfo->phy, pinfo->adapter, pinfo, phy_addr, &tn1010_ops,
+	    mdio_ops,
+	    SUPPORTED_1000baseT_Full | SUPPORTED_10000baseT_Full |
+		SUPPORTED_Autoneg | SUPPORTED_AUI | SUPPORTED_TP,
+	    "1000/10GBASE-T");
+	msleep(500); /* PHY needs up to 500ms to start responding to MDIO */
 	return 0;
 }

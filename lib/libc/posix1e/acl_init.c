@@ -31,20 +31,21 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
+
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 #ifndef CTASSERT
-#define CTASSERT(x)		_CTASSERT(x, __LINE__)
-#define _CTASSERT(x, y)		__CTASSERT(x, y)
-#define __CTASSERT(x, y)	typedef char __assert_ ## y [(x) ? 1 : -1]
+#define CTASSERT(x) _CTASSERT(x, __LINE__)
+#define _CTASSERT(x, y) __CTASSERT(x, y)
+#define __CTASSERT(x, y) typedef char __assert_##y[(x) ? 1 : -1]
 #endif
 
 CTASSERT(1 << _ACL_T_ALIGNMENT_BITS > sizeof(struct acl_t_struct));
@@ -81,7 +82,7 @@ acl_init(int count)
 acl_t
 acl_dup(acl_t acl)
 {
-	acl_t	acl_new;
+	acl_t acl_new;
 
 	acl_new = acl_init(ACL_MAX_ENTRIES);
 	if (acl_new != NULL) {

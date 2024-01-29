@@ -26,12 +26,12 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IWNSTATS_H__
-#define	__IWNSTATS_H__
+#ifndef __IWNSTATS_H__
+#define __IWNSTATS_H__
 
 struct iwnstats {
 	int s;
 	struct iwn_stats st;
 };
 
-#endif	/* __IWNSTATS_H__ */
+#endif /* __IWNSTATS_H__ */

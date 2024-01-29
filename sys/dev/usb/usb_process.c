@@ -28,47 +28,47 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_process.h>
 
-#define	USB_DEBUG_VAR usb_proc_debug
+#define USB_DEBUG_VAR usb_proc_debug
+#include <sys/kthread.h>
+#include <sys/proc.h>
+#include <sys/sched.h>
+
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_util.h>
-
-#include <sys/proc.h>
-#include <sys/kthread.h>
-#include <sys/sched.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 static struct proc *usbproc;
 static int usb_pcount;
-#define	USB_THREAD_CREATE(f, s, p, ...) \
-		kproc_kthread_add((f), (s), &usbproc, (p), RFHIGHPID, \
-		    0, "usb", __VA_ARGS__)
-#define	USB_THREAD_SUSPEND_CHECK() kthread_suspend_check()
-#define	USB_THREAD_SUSPEND(p)   kthread_suspend(p,0)
-#define	USB_THREAD_EXIT(err)	kthread_exit()
+#define USB_THREAD_CREATE(f, s, p, ...)                                 \
+	kproc_kthread_add((f), (s), &usbproc, (p), RFHIGHPID, 0, "usb", \
+	    __VA_ARGS__)
+#define USB_THREAD_SUSPEND_CHECK() kthread_suspend_check()
+#define USB_THREAD_SUSPEND(p) kthread_suspend(p, 0)
+#define USB_THREAD_EXIT(err) kthread_exit()
 
 #ifdef USB_DEBUG
 static int usb_proc_debug;
@@ -154,10 +154,10 @@ usb_process(void *arg)
 		pm = TAILQ_FIRST(&up->up_qhead);
 
 		if (pm) {
-			DPRINTF("Message pm=%p, cb=%p (enter)\n",
-			    pm, pm->pm_callback);
+			DPRINTF("Message pm=%p, cb=%p (enter)\n", pm,
+			    pm->pm_callback);
 
-			(pm->pm_callback) (pm);
+			(pm->pm_callback)(pm);
 
 			if (pm == TAILQ_FIRST(&up->up_qhead)) {
 				/* nothing changed */
@@ -201,8 +201,8 @@ usb_process(void *arg)
  * Else: failure
  *------------------------------------------------------------------------*/
 int
-usb_proc_create(struct usb_process *up, struct mtx *p_mtx,
-    const char *pmesg, uint8_t prio)
+usb_proc_create(struct usb_process *up, struct mtx *p_mtx, const char *pmesg,
+    uint8_t prio)
 {
 	up->up_mtx = p_mtx;
 	up->up_prio = prio;
@@ -212,8 +212,7 @@ usb_proc_create(struct usb_process *up, struct mtx *p_mtx,
 	cv_init(&up->up_cv, "-");
 	cv_init(&up->up_drain, "usbdrain");
 
-	if (USB_THREAD_CREATE(&usb_process, up,
-	    &up->up_ptr, "%s", pmesg)) {
+	if (USB_THREAD_CREATE(&usb_process, up, &up->up_ptr, "%s", pmesg)) {
 		DPRINTFN(0, "Unable to create USB process.");
 		up->up_ptr = NULL;
 		goto error;
@@ -262,7 +261,7 @@ usb_proc_free(struct usb_process *up)
  * function exploits the fact that a process can only do one callback
  * at a time. The message that was queued is returned.
  *------------------------------------------------------------------------*/
-void   *
+void *
 usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 {
 	struct usb_proc_msg *pm0 = _pm0;
@@ -272,8 +271,7 @@ usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 	uint8_t t;
 
 	/* check if gone or in polling mode, return dummy value */
-	if (up->up_gone != 0 ||
-	    USB_IN_POLLING_MODE_FUNC() != 0)
+	if (up->up_gone != 0 || USB_IN_POLLING_MODE_FUNC() != 0)
 		return (_pm0);
 
 	USB_MTX_ASSERT(up->up_mtx, MA_OWNED);
@@ -320,7 +318,7 @@ usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 
 		TAILQ_REMOVE(&up->up_qhead, pm2, pm_qentry);
 	} else {
-		pm2 = NULL;		/* panic - should not happen */
+		pm2 = NULL; /* panic - should not happen */
 	}
 
 	DPRINTF(" t=%u, num=%u\n", t, up->up_msg_num);
@@ -333,7 +331,7 @@ usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 	/* Check if we need to wakeup the USB process. */
 
 	if (up->up_msleep) {
-		up->up_msleep = 0;	/* save "cv_signal()" calls */
+		up->up_msleep = 0; /* save "cv_signal()" calls */
 		cv_signal(&up->up_cv);
 	}
 	return (pm2);
@@ -391,8 +389,7 @@ usb_proc_mwait(struct usb_process *up, void *_pm0, void *_pm1)
 			pm1->pm_qentry.tqe_prev = NULL;
 		}
 	} else
-		while (pm0->pm_qentry.tqe_prev ||
-		    pm1->pm_qentry.tqe_prev) {
+		while (pm0->pm_qentry.tqe_prev || pm1->pm_qentry.tqe_prev) {
 			/* check if config thread is gone */
 			if (up->up_gone)
 				break;
@@ -439,7 +436,7 @@ usb_proc_drain(struct usb_process *up)
 		if (cold) {
 			USB_THREAD_SUSPEND(up->up_ptr);
 			printf("WARNING: A USB process has "
-			    "been left suspended\n");
+			       "been left suspended\n");
 			break;
 		}
 #endif
@@ -451,7 +448,7 @@ usb_proc_drain(struct usb_process *up)
 		up->up_dsleep = 0;
 		cv_broadcast(&up->up_drain);
 		DPRINTF("WARNING: Someone is waiting "
-		    "for USB process drain!\n");
+			"for USB process drain!\n");
 	}
 	USB_MTX_UNLOCK(up->up_mtx);
 }

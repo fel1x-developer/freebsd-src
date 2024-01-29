@@ -29,8 +29,9 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_rss.h"
+
+#include <sys/cdefs.h>
 
 #include "ena_rss.h"
 
@@ -123,7 +124,6 @@ ena_rss_init_default(struct ena_adapter *adapter)
 			goto err_rss_destroy;
 		}
 	}
-
 
 #ifdef RSS
 	uint8_t rss_algo = rss_gethashalgo();

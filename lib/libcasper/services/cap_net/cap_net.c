@@ -30,40 +30,41 @@
 #include <sys/dnv.h>
 #include <sys/nv.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-#include <libcasper_service.h>
-
 #include "cap_net.h"
 
-#define	CAPNET_MASK	(CAPNET_ADDR2NAME | CAPNET_NAME2ADDR	\
-    CAPNET_DEPRECATED_ADDR2NAME | CAPNET_DEPRECATED_NAME2ADDR | \
-    CAPNET_CONNECT | CAPNET_BIND | CAPNET_CONNECTDNS)
+#define CAPNET_MASK                                                        \
+	(CAPNET_ADDR2NAME | CAPNET_NAME2ADDR CAPNET_DEPRECATED_ADDR2NAME | \
+	    CAPNET_DEPRECATED_NAME2ADDR | CAPNET_CONNECT | CAPNET_BIND |   \
+	    CAPNET_CONNECTDNS)
 
 /*
  * Defines for the names of the limits.
  * XXX: we should convert all string constats to this to avoid typos.
  */
-#define	LIMIT_NV_BIND			"bind"
-#define	LIMIT_NV_CONNECT		"connect"
-#define	LIMIT_NV_ADDR2NAME		"addr2name"
-#define	LIMIT_NV_NAME2ADDR		"name2addr"
+#define LIMIT_NV_BIND "bind"
+#define LIMIT_NV_CONNECT "connect"
+#define LIMIT_NV_ADDR2NAME "addr2name"
+#define LIMIT_NV_NAME2ADDR "name2addr"
 
 struct cap_net_limit {
-	cap_channel_t	*cnl_chan;
-	uint64_t	 cnl_mode;
-	nvlist_t	*cnl_addr2name;
-	nvlist_t	*cnl_name2addr;
-	nvlist_t	*cnl_connect;
-	nvlist_t	*cnl_bind;
+	cap_channel_t *cnl_chan;
+	uint64_t cnl_mode;
+	nvlist_t *cnl_addr2name;
+	nvlist_t *cnl_name2addr;
+	nvlist_t *cnl_connect;
+	nvlist_t *cnl_bind;
 };
 
 static struct hostent hent;
@@ -111,8 +112,7 @@ hostent_unpack(const nvlist_t *nvl, struct hostent *hp)
 	for (ii = 0; ii < nitems; ii++) {
 		n = snprintf(nvlname, sizeof(nvlname), "alias%u", ii);
 		assert(n > 0 && n < (int)sizeof(nvlname));
-		hp->h_aliases[ii] =
-		    strdup(nvlist_get_string(nvl, nvlname));
+		hp->h_aliases[ii] = strdup(nvlist_get_string(nvl, nvlname));
 		if (hp->h_aliases[ii] == NULL)
 			goto fail;
 	}
@@ -185,7 +185,6 @@ cap_connect(cap_channel_t *chan, int s, const struct sockaddr *name,
 	return (request_cb(chan, LIMIT_NV_CONNECT, s, name, namelen));
 }
 
-
 struct hostent *
 cap_gethostbyname(cap_channel_t *chan, const char *name)
 {
@@ -220,8 +219,7 @@ cap_gethostbyname2(cap_channel_t *chan, const char *name, int af)
 }
 
 struct hostent *
-cap_gethostbyaddr(cap_channel_t *chan, const void *addr, socklen_t len,
-    int af)
+cap_gethostbyaddr(cap_channel_t *chan, const void *addr, socklen_t len, int af)
 {
 	struct hostent *hp;
 	nvlist_t *nvl;
@@ -317,7 +315,7 @@ cap_getaddrinfo(cap_channel_t *chan, const char *hostname, const char *servname,
 
 	nvlai = NULL;
 	firstai = prevai = curai = NULL;
-	for (ii = 0; ; ii++) {
+	for (ii = 0;; ii++) {
 		n = snprintf(nvlname, sizeof(nvlname), "res%u", ii);
 		assert(n > 0 && n < (int)sizeof(nvlname));
 		if (!nvlist_exists_nvlist(nvl, nvlname))
@@ -501,8 +499,7 @@ cap_net_limit_name2addr(cap_net_limit_t *limit, const char *host,
 		nvl = nvlist_take_nvlist(limit->cnl_name2addr, "hosts");
 	}
 
-	nvlist_add_string(nvl,
-	    host != NULL ? host : "",
+	nvlist_add_string(nvl, host != NULL ? host : "",
 	    serv != NULL ? serv : "");
 
 	nvlist_move_nvlist(limit->cnl_name2addr, "hosts", nvl);
@@ -517,7 +514,6 @@ cap_net_limit_addr2name(cap_net_limit_t *limit, const struct sockaddr *sa,
 	pack_sockaddr(limit->cnl_addr2name, sa, salen);
 	return (limit);
 }
-
 
 cap_net_limit_t *
 cap_net_limit_connect(cap_net_limit_t *limit, const struct sockaddr *sa,
@@ -660,7 +656,7 @@ net_allowed_bsaddr_impl(const nvlist_t *salimits, const void *saddr,
 		 */
 		if (strcmp(cnvlist_name(cookie), "d") != 0 ||
 		    (saddrsize != sizeof(struct sockaddr_in) &&
-		    saddrsize != sizeof(struct sockaddr_in6))) {
+			saddrsize != sizeof(struct sockaddr_in6))) {
 			continue;
 		}
 		if (saddrsize == sizeof(struct sockaddr_in)) {
@@ -905,9 +901,9 @@ net_getnameinfo(const nvlist_t *limits, const nvlist_t *nvlin, nvlist_t *nvlout)
 	salen = (socklen_t)sabinsize;
 
 	if ((sast.ss_family != AF_INET ||
-	     salen != sizeof(struct sockaddr_in)) &&
+		salen != sizeof(struct sockaddr_in)) &&
 	    (sast.ss_family != AF_INET6 ||
-	     salen != sizeof(struct sockaddr_in6))) {
+		salen != sizeof(struct sockaddr_in6))) {
 		error = EAI_FAIL;
 		goto out;
 	}
@@ -1011,8 +1007,8 @@ net_getaddrinfo(const nvlist_t *limits, const nvlist_t *nvlin, nvlist_t *nvlout)
 		assert(n > 0 && n < (int)sizeof(nvlname));
 		nvlist_move_nvlist(nvlout, nvlname, elem);
 		if (dnscache) {
-			net_add_sockaddr_to_cache(cur->ai_addr,
-			    cur->ai_addrlen, false);
+			net_add_sockaddr_to_cache(cur->ai_addr, cur->ai_addrlen,
+			    false);
 		}
 	}
 
@@ -1079,7 +1075,7 @@ net_connect(const nvlist_t *limits, nvlist_t *nvlin, nvlist_t *nvlout)
 		allowed = true;
 	}
 	if (conndns && capdnscache != NULL &&
-	   net_allowed_bsaddr_impl(capdnscache, saddr, len)) {
+	    net_allowed_bsaddr_impl(capdnscache, saddr, len)) {
 		allowed = true;
 	}
 
@@ -1117,7 +1113,7 @@ verify_only_sa_newlimts(const nvlist_t *oldfunclimits,
 
 		sacookie = NULL;
 		while (nvlist_next(cnvlist_get_nvlist(cookie), NULL,
-		    &sacookie) != NULL) {
+			   &sacookie) != NULL) {
 			const void *sa;
 			size_t sasize;
 
@@ -1134,8 +1130,7 @@ verify_only_sa_newlimts(const nvlist_t *oldfunclimits,
 }
 
 static bool
-verify_bind_newlimts(const nvlist_t *oldlimits,
-    const nvlist_t *newfunclimit)
+verify_bind_newlimts(const nvlist_t *oldlimits, const nvlist_t *newfunclimit)
 {
 	const nvlist_t *oldfunclimits;
 
@@ -1147,7 +1142,6 @@ verify_bind_newlimts(const nvlist_t *oldlimits,
 
 	return (verify_only_sa_newlimts(oldfunclimits, newfunclimit));
 }
-
 
 static bool
 verify_connect_newlimits(const nvlist_t *oldlimits,
@@ -1187,7 +1181,7 @@ verify_addr2name_newlimits(const nvlist_t *oldlimits,
 
 			sacookie = NULL;
 			while (nvlist_next(cnvlist_get_nvlist(cookie), NULL,
-			    &sacookie) != NULL) {
+				   &sacookie) != NULL) {
 				const void *sa;
 				size_t sasize;
 
@@ -1196,7 +1190,7 @@ verify_addr2name_newlimits(const nvlist_t *oldlimits,
 
 				sa = cnvlist_get_binary(sacookie, &sasize);
 				if (!net_allowed_bsaddr(oldfunclimits, sa,
-				    sasize)) {
+					sasize)) {
 					return (false);
 				}
 			}
@@ -1210,7 +1204,7 @@ verify_addr2name_newlimits(const nvlist_t *oldlimits,
 			families = cnvlist_get_number_array(cookie, &sfamilies);
 			for (i = 0; i < sfamilies; i++) {
 				if (!net_allowed_family(oldfunclimits,
-				    families[i])) {
+					families[i])) {
 					return (false);
 				}
 			}
@@ -1245,13 +1239,13 @@ verify_name2addr_newlimits(const nvlist_t *oldlimits,
 
 			hostcookie = NULL;
 			while (nvlist_next(cnvlist_get_nvlist(cookie), NULL,
-			    &hostcookie) != NULL) {
+				   &hostcookie) != NULL) {
 				if (cnvlist_type(hostcookie) != NV_TYPE_STRING)
 					return (false);
 
 				if (!net_allowed_hosts(oldfunclimits,
-				    cnvlist_name(hostcookie),
-				    cnvlist_get_string(hostcookie))) {
+					cnvlist_name(hostcookie),
+					cnvlist_get_string(hostcookie))) {
 					return (false);
 				}
 			}
@@ -1265,7 +1259,7 @@ verify_name2addr_newlimits(const nvlist_t *oldlimits,
 			families = cnvlist_get_number_array(cookie, &sfamilies);
 			for (i = 0; i < sfamilies; i++) {
 				if (!net_allowed_family(oldfunclimits,
-				    families[i])) {
+					families[i])) {
 					return (false);
 				}
 			}
@@ -1330,7 +1324,7 @@ net_limit(const nvlist_t *oldlimits, const nvlist_t *newlimits)
 				return (NO_RECOVERY);
 			}
 			if (!net_allowed_mode(oldlimits,
-			    cnvlist_get_number(cookie))) {
+				cnvlist_get_number(cookie))) {
 				return (ENOTCAPABLE);
 			}
 			hasmode = true;
@@ -1344,25 +1338,25 @@ net_limit(const nvlist_t *oldlimits, const nvlist_t *newlimits)
 		if (strcmp(name, LIMIT_NV_BIND) == 0) {
 			hasbind = true;
 			if (!verify_bind_newlimts(oldlimits,
-			    cnvlist_get_nvlist(cookie))) {
+				cnvlist_get_nvlist(cookie))) {
 				return (ENOTCAPABLE);
 			}
 		} else if (strcmp(name, LIMIT_NV_CONNECT) == 0) {
 			hasconnect = true;
 			if (!verify_connect_newlimits(oldlimits,
-			    cnvlist_get_nvlist(cookie))) {
+				cnvlist_get_nvlist(cookie))) {
 				return (ENOTCAPABLE);
 			}
 		} else if (strcmp(name, LIMIT_NV_ADDR2NAME) == 0) {
 			hasaddr2name = true;
 			if (!verify_addr2name_newlimits(oldlimits,
-			    cnvlist_get_nvlist(cookie))) {
+				cnvlist_get_nvlist(cookie))) {
 				return (ENOTCAPABLE);
 			}
 		} else if (strcmp(name, LIMIT_NV_NAME2ADDR) == 0) {
 			hasname2addr = true;
 			if (!verify_name2addr_newlimits(oldlimits,
-			    cnvlist_get_nvlist(cookie))) {
+				cnvlist_get_nvlist(cookie))) {
 				return (ENOTCAPABLE);
 			}
 		}

@@ -39,20 +39,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/acl.h>
-#include <sys/kernel.h>
 #include <sys/jail.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/priv.h>
-#include <sys/systm.h>
-#include <sys/vnode.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/stat.h>
+#include <sys/vnode.h>
 
 #include <security/mac/mac_policy.h>
 #include <security/mac_bsdextended/mac_bsdextended.h>

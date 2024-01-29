@@ -23,5 +23,7 @@
  * SUCH DAMAGE.
  */
 
-void choice_protocol(EFI_HANDLE *handles, UINTN nhandles, EFI_DEVICE_PATH *imgpath);
-EFI_STATUS try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf, size_t loadersize);
+void choice_protocol(EFI_HANDLE *handles, UINTN nhandles,
+    EFI_DEVICE_PATH *imgpath);
+EFI_STATUS try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf,
+    size_t loadersize);

@@ -46,8 +46,7 @@ rotl(const uint64_t x, int k)
  * parallel computations.
  */
 void
-dtrace_xoroshiro128_plus_jump(uint64_t * const state,
-	uint64_t * const jump_state)
+dtrace_xoroshiro128_plus_jump(uint64_t *const state, uint64_t *const jump_state)
 {
 	static const uint64_t JUMP[] = { 0xbeac0467eba5facb,
 		0xd86b048b86aa9922 };
@@ -74,7 +73,7 @@ dtrace_xoroshiro128_plus_jump(uint64_t * const state,
  * xorshift.di.unimi.it
  */
 uint64_t
-dtrace_xoroshiro128_plus_next(uint64_t * const state)
+dtrace_xoroshiro128_plus_next(uint64_t *const state)
 {
 	const uint64_t s0 = state[0];
 	uint64_t s1 = state[1];

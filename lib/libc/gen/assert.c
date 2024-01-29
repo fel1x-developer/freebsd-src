@@ -38,12 +38,12 @@ __assert(const char *func, const char *file, int line, const char *failedexpr)
 {
 	if (func == NULL)
 		(void)fprintf(stderr,
-		     "Assertion failed: (%s), file %s, line %d.\n", failedexpr,
-		     file, line);
+		    "Assertion failed: (%s), file %s, line %d.\n", failedexpr,
+		    file, line);
 	else
 		(void)fprintf(stderr,
-		     "Assertion failed: (%s), function %s, file %s, line %d.\n",
-		     failedexpr, func, file, line);
+		    "Assertion failed: (%s), function %s, file %s, line %d.\n",
+		    failedexpr, func, file, line);
 	abort();
 	/* NOTREACHED */
 }

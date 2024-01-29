@@ -32,9 +32,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <arm64/coresight/coresight.h>
@@ -42,19 +43,17 @@
 
 #include "coresight_if.h"
 
-#define	FUNNEL_DEBUG
+#define FUNNEL_DEBUG
 #undef FUNNEL_DEBUG
-        
+
 #ifdef FUNNEL_DEBUG
-#define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
-#define	dprintf(fmt, ...)
+#define dprintf(fmt, ...)
 #endif
 
-static struct resource_spec funnel_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec funnel_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static int
 funnel_init(device_t dev)
@@ -131,10 +130,9 @@ funnel_attach(device_t dev)
 
 static device_method_t funnel_methods[] = {
 	/* Coresight interface */
-	DEVMETHOD(coresight_init,	funnel_init),
-	DEVMETHOD(coresight_enable,	funnel_enable),
-	DEVMETHOD(coresight_disable,	funnel_disable),
-	DEVMETHOD_END
+	DEVMETHOD(coresight_init, funnel_init),
+	DEVMETHOD(coresight_enable, funnel_enable),
+	DEVMETHOD(coresight_disable, funnel_disable), DEVMETHOD_END
 };
 
 DEFINE_CLASS_0(funnel, funnel_driver, funnel_methods,

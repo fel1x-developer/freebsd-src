@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_csmapper.c,v 1.11 2011/11/20 07:43:52 tnozaki Exp $	*/
+/*	$NetBSD: citrus_csmapper.c,v 1.11 2011/11/20 07:43:52 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -28,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/queue.h>
 
 #include <assert.h>
@@ -40,29 +41,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_region.h"
+#include "citrus_csmapper.h"
+#include "citrus_db.h"
+#include "citrus_db_hash.h"
+#include "citrus_hash.h"
 #include "citrus_lock.h"
+#include "citrus_lookup.h"
+#include "citrus_mapper.h"
 #include "citrus_memstream.h"
 #include "citrus_mmap.h"
 #include "citrus_module.h"
-#include "citrus_hash.h"
-#include "citrus_mapper.h"
-#include "citrus_csmapper.h"
+#include "citrus_namespace.h"
 #include "citrus_pivot_file.h"
-#include "citrus_db.h"
-#include "citrus_db_hash.h"
-#include "citrus_lookup.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
-static struct _citrus_mapper_area	*maparea = NULL;
+static struct _citrus_mapper_area *maparea = NULL;
 
-static pthread_rwlock_t			ma_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t ma_lock = PTHREAD_RWLOCK_INITIALIZER;
 
-#define CS_ALIAS	_PATH_CSMAPPER "/charset.alias"
-#define CS_PIVOT	_PATH_CSMAPPER "/charset.pivot"
-
+#define CS_ALIAS _PATH_CSMAPPER "/charset.alias"
+#define CS_PIVOT _PATH_CSMAPPER "/charset.pivot"
 
 /* ---------------------------------------------------------------------- */
 
@@ -95,8 +95,7 @@ open_subdb(struct _citrus_db **subdb, struct _citrus_db *db, const char *src)
 	return (0);
 }
 
-
-#define NO_SUCH_FILE	EOPNOTSUPP
+#define NO_SUCH_FILE EOPNOTSUPP
 static int
 find_best_pivot_pvdb(const char *src, const char *dst, char *pivot,
     size_t pvlen, unsigned long *rnorm)
@@ -133,8 +132,8 @@ find_best_pivot_pvdb(const char *src, const char *dst, char *pivot,
 		if (ret)
 			goto quit3;
 		norm = val32;
-		snprintf(buf, sizeof(buf), "%.*s",
-			 (int)_region_size(&r1), (char *)_region_head(&r1));
+		snprintf(buf, sizeof(buf), "%.*s", (int)_region_size(&r1),
+		    (char *)_region_head(&r1));
 		/* buf: pivot name */
 		ret = open_subdb(&db3, db1, buf);
 		if (ret)
@@ -152,7 +151,7 @@ find_best_pivot_pvdb(const char *src, const char *dst, char *pivot,
 			*rnorm = norm;
 			strlcpy(pivot, buf, pvlen);
 		}
-quit4:
+	quit4:
 		_db_close(db3);
 		if (ret)
 			goto quit3;
@@ -203,10 +202,9 @@ parse_line(struct parse_arg *pa, struct _region *r)
 	z2.end = _bcs_skip_nonws_len(z2.begin, &len);
 
 	/* z1 : dst name, z2 : norm */
-	snprintf(pa->dst, sizeof(pa->dst),
-	    "%.*s", (int)(z1.end-z1.begin), z1.begin);
-	snprintf(buf, sizeof(buf),
-	    "%.*s", (int)(z2.end-z2.begin), z2.begin);
+	snprintf(pa->dst, sizeof(pa->dst), "%.*s", (int)(z1.end - z1.begin),
+	    z1.begin);
+	snprintf(buf, sizeof(buf), "%.*s", (int)(z2.end - z2.begin), z2.begin);
 	pa->norm = _bcs_strtoul(buf, NULL, 0);
 
 	return (0);
@@ -300,8 +298,8 @@ find_best_pivot(const char *src, const char *dst, char *pivot, size_t pvlen,
 
 static __inline int
 open_serial_mapper(struct _citrus_mapper_area *__restrict ma,
-    struct _citrus_mapper * __restrict * __restrict rcm,
-    const char *src, const char *pivot, const char *dst)
+    struct _citrus_mapper *__restrict *__restrict rcm, const char *src,
+    const char *pivot, const char *dst)
 {
 	char buf[PATH_MAX];
 
@@ -337,8 +335,8 @@ quit:
 }
 
 int
-_citrus_csmapper_open(struct _citrus_csmapper * __restrict * __restrict rcsm,
-    const char * __restrict src, const char * __restrict dst, uint32_t flags,
+_citrus_csmapper_open(struct _citrus_csmapper *__restrict *__restrict rcsm,
+    const char *__restrict src, const char *__restrict dst, uint32_t flags,
     unsigned long *rnorm)
 {
 	const char *realsrc, *realdst;
@@ -371,7 +369,7 @@ _citrus_csmapper_open(struct _citrus_csmapper * __restrict * __restrict rcsm,
 			*rnorm = 0;
 		return (0);
 	}
-	if (ret != ENOENT || (flags & _CSMAPPER_F_PREVENT_PIVOT)!=0)
+	if (ret != ENOENT || (flags & _CSMAPPER_F_PREVENT_PIVOT) != 0)
 		return (ret);
 
 	ret = find_best_pivot(realsrc, realdst, pivot, sizeof(pivot), &norm);

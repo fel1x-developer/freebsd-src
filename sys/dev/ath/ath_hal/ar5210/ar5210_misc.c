@@ -19,16 +19,14 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
-
-#include "ar5210/ar5210.h"
-#include "ar5210/ar5210reg.h"
-#include "ar5210/ar5210phy.h"
-
 #include "ah_eeprom_v1.h"
+#include "ah_internal.h"
+#include "ar5210/ar5210.h"
+#include "ar5210/ar5210phy.h"
+#include "ar5210/ar5210reg.h"
 
-#define	AR_NUM_GPIO	6		/* 6 GPIO bits */
-#define	AR_GPIOD_MASK	0x2f		/* 6-bit mask */
+#define AR_NUM_GPIO 6	   /* 6 GPIO bits */
+#define AR_GPIOD_MASK 0x2f /* 6-bit mask */
 
 void
 ar5210GetMacAddress(struct ath_hal *ah, uint8_t *mac)
@@ -50,8 +48,8 @@ ar5210SetMacAddress(struct ath_hal *ah, const uint8_t *mac)
 void
 ar5210GetBssIdMask(struct ath_hal *ah, uint8_t *mask)
 {
-	static const uint8_t ones[IEEE80211_ADDR_LEN] =
-		{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+	static const uint8_t ones[IEEE80211_ADDR_LEN] = { 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff };
 	OS_MEMCPY(mask, ones, IEEE80211_ADDR_LEN);
 }
 
@@ -67,9 +65,9 @@ ar5210SetBssIdMask(struct ath_hal *ah, const uint8_t *mask)
 HAL_BOOL
 ar5210EepromRead(struct ath_hal *ah, u_int off, uint16_t *data)
 {
-	(void) OS_REG_READ(ah, AR_EP_AIR(off));	/* activate read op */
-	if (!ath_hal_wait(ah, AR_EP_STA,
-	    AR_EP_STA_RDCMPLT | AR_EP_STA_RDERR, AR_EP_STA_RDCMPLT)) {
+	(void)OS_REG_READ(ah, AR_EP_AIR(off)); /* activate read op */
+	if (!ath_hal_wait(ah, AR_EP_STA, AR_EP_STA_RDCMPLT | AR_EP_STA_RDERR,
+		AR_EP_STA_RDCMPLT)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: read failed for entry 0x%x\n",
 		    __func__, AR_EP_AIR(off));
 		return AH_FALSE;
@@ -93,8 +91,8 @@ ar5210EepromWrite(struct ath_hal *ah, u_int off, uint16_t data)
  * Attempt to change the cards operating regulatory domain to the given value
  */
 HAL_BOOL
-ar5210SetRegulatoryDomain(struct ath_hal *ah,
-	uint16_t regDomain, HAL_STATUS *status)
+ar5210SetRegulatoryDomain(struct ath_hal *ah, uint16_t regDomain,
+    HAL_STATUS *status)
 {
 	HAL_STATUS ecode;
 
@@ -111,7 +109,7 @@ ar5210SetRegulatoryDomain(struct ath_hal *ah,
 		ecode = HAL_EEWRITE;
 		goto bad;
 	}
-	ecode = HAL_EIO;		/* disallow all writes */
+	ecode = HAL_EIO; /* disallow all writes */
 bad:
 	if (status)
 		*status = ecode;
@@ -162,9 +160,9 @@ ar5210GpioCfgOutput(struct ath_hal *ah, uint32_t gpio, HAL_GPIO_MUX_TYPE type)
 {
 	HALASSERT(gpio < AR_NUM_GPIO);
 
-	OS_REG_WRITE(ah, AR_GPIOCR, 
-		  (OS_REG_READ(ah, AR_GPIOCR) &~ AR_GPIOCR_ALL(gpio))
-		| AR_GPIOCR_OUT1(gpio));
+	OS_REG_WRITE(ah, AR_GPIOCR,
+	    (OS_REG_READ(ah, AR_GPIOCR) & ~AR_GPIOCR_ALL(gpio)) |
+		AR_GPIOCR_OUT1(gpio));
 
 	return AH_TRUE;
 }
@@ -177,9 +175,9 @@ ar5210GpioCfgInput(struct ath_hal *ah, uint32_t gpio)
 {
 	HALASSERT(gpio < AR_NUM_GPIO);
 
-	OS_REG_WRITE(ah, AR_GPIOCR, 
-		  (OS_REG_READ(ah, AR_GPIOCR) &~ AR_GPIOCR_ALL(gpio))
-		| AR_GPIOCR_IN(gpio));
+	OS_REG_WRITE(ah, AR_GPIOCR,
+	    (OS_REG_READ(ah, AR_GPIOCR) & ~AR_GPIOCR_ALL(gpio)) |
+		AR_GPIOCR_IN(gpio));
 
 	return AH_TRUE;
 }
@@ -194,9 +192,9 @@ ar5210GpioSet(struct ath_hal *ah, uint32_t gpio, uint32_t val)
 
 	HALASSERT(gpio < AR_NUM_GPIO);
 
-	reg =  OS_REG_READ(ah, AR_GPIODO);
+	reg = OS_REG_READ(ah, AR_GPIODO);
 	reg &= ~(1 << gpio);
-	reg |= (val&1) << gpio;
+	reg |= (val & 1) << gpio;
 
 	OS_REG_WRITE(ah, AR_GPIODO, reg);
 	return AH_TRUE;
@@ -212,7 +210,7 @@ ar5210GpioGet(struct ath_hal *ah, uint32_t gpio)
 		uint32_t val = OS_REG_READ(ah, AR_GPIODI);
 		val = ((val & AR_GPIOD_MASK) >> gpio) & 0x1;
 		return val;
-	} else  {
+	} else {
 		return 0xffffffff;
 	}
 }
@@ -226,8 +224,8 @@ ar5210Gpio0SetIntr(struct ath_hal *ah, u_int gpio, uint32_t ilevel)
 	uint32_t val = OS_REG_READ(ah, AR_GPIOCR);
 
 	/* Clear the bits that we will modify. */
-	val &= ~(AR_GPIOCR_INT_SEL(gpio) | AR_GPIOCR_INT_SELH | AR_GPIOCR_INT_ENA |
-			AR_GPIOCR_ALL(gpio));
+	val &= ~(AR_GPIOCR_INT_SEL(gpio) | AR_GPIOCR_INT_SELH |
+	    AR_GPIOCR_INT_ENA | AR_GPIOCR_ALL(gpio));
 
 	val |= AR_GPIOCR_INT_SEL(gpio) | AR_GPIOCR_INT_ENA;
 	if (ilevel)
@@ -273,7 +271,7 @@ u_int
 ar5210GetDefAntenna(struct ath_hal *ah)
 {
 	uint32_t val = OS_REG_READ(ah, AR_STA_ID1);
-	return (val & AR_STA_ID1_DEFAULT_ANTENNA ?  2 : 1);
+	return (val & AR_STA_ID1_DEFAULT_ANTENNA ? 2 : 1);
 }
 
 void
@@ -281,7 +279,7 @@ ar5210SetDefAntenna(struct ath_hal *ah, u_int antenna)
 {
 	uint32_t val = OS_REG_READ(ah, AR_STA_ID1);
 
-	if (antenna != (val & AR_STA_ID1_DEFAULT_ANTENNA ?  2 : 1)) {
+	if (antenna != (val & AR_STA_ID1_DEFAULT_ANTENNA ? 2 : 1)) {
 		/*
 		 * Antenna change requested, force a toggle of the default.
 		 */
@@ -317,8 +315,9 @@ ar5210WriteAssocid(struct ath_hal *ah, const uint8_t *bssid, uint16_t assocId)
 	OS_MEMCPY(ahp->ah_bssid, bssid, IEEE80211_ADDR_LEN);
 	ahp->ah_associd = assocId;
 	OS_REG_WRITE(ah, AR_BSS_ID0, LE_READ_4(ahp->ah_bssid));
-	OS_REG_WRITE(ah, AR_BSS_ID1, LE_READ_2(ahp->ah_bssid+4) |
-				     ((assocId & 0x3fff)<<AR_BSS_ID1_AID_S));
+	OS_REG_WRITE(ah, AR_BSS_ID1,
+	    LE_READ_2(ahp->ah_bssid + 4) |
+		((assocId & 0x3fff) << AR_BSS_ID1_AID_S));
 	if (assocId == 0)
 		OS_REG_SET_BIT(ah, AR_STA_ID1, AR_STA_ID1_NO_PSPOLL);
 	else
@@ -337,7 +336,7 @@ ar5210GetTsf64(struct ath_hal *ah)
 	low1 = OS_REG_READ(ah, AR_TSF_L32);
 	u32 = OS_REG_READ(ah, AR_TSF_U32);
 	low2 = OS_REG_READ(ah, AR_TSF_L32);
-	if (low2 < low1) {	/* roll over */
+	if (low2 < low1) { /* roll over */
 		/*
 		 * If we are not preempted this will work.  If we are
 		 * then we re-reading AR_TSF_U32 does no good as the
@@ -350,7 +349,7 @@ ar5210GetTsf64(struct ath_hal *ah)
 		 */
 		u32++;
 	}
-	return (((uint64_t) u32) << 32) | ((uint64_t) low2);
+	return (((uint64_t)u32) << 32) | ((uint64_t)low2);
 }
 
 /*
@@ -385,8 +384,7 @@ ar5210GetRandomSeed(struct ath_hal *ah)
 	nf = (OS_REG_READ(ah, AR_PHY_BASE + (25 << 2)) >> 19) & 0x1ff;
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	return (OS_REG_READ(ah, AR_TSF_U32) ^
-		OS_REG_READ(ah, AR_TSF_L32) ^ nf);
+	return (OS_REG_READ(ah, AR_TSF_U32) ^ OS_REG_READ(ah, AR_TSF_L32) ^ nf);
 }
 
 /*
@@ -410,10 +408,10 @@ void
 ar5210UpdateMibCounters(struct ath_hal *ah, HAL_MIB_STATS *stats)
 {
 	stats->ackrcv_bad += OS_REG_READ(ah, AR_ACK_FAIL);
-	stats->rts_bad	  += OS_REG_READ(ah, AR_RTS_FAIL);
-	stats->fcs_bad	  += OS_REG_READ(ah, AR_FCS_FAIL);
-	stats->rts_good	  += OS_REG_READ(ah, AR_RTS_OK);
-	stats->beacons	  += OS_REG_READ(ah, AR_BEACON_CNT);
+	stats->rts_bad += OS_REG_READ(ah, AR_RTS_FAIL);
+	stats->fcs_bad += OS_REG_READ(ah, AR_FCS_FAIL);
+	stats->rts_good += OS_REG_READ(ah, AR_RTS_OK);
+	stats->beacons += OS_REG_READ(ah, AR_BEACON_CNT);
 }
 
 HAL_BOOL
@@ -422,9 +420,9 @@ ar5210SetSifsTime(struct ath_hal *ah, u_int us)
 	struct ath_hal_5210 *ahp = AH5210(ah);
 
 	if (us > ath_hal_mac_usec(ah, 0x7ff)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad SIFS time %u\n",
-		    __func__, us);
-		ahp->ah_sifstime = (u_int) -1;	/* restore default handling */
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad SIFS time %u\n", __func__,
+		    us);
+		ahp->ah_sifstime = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
@@ -439,7 +437,7 @@ u_int
 ar5210GetSifsTime(struct ath_hal *ah)
 {
 	u_int clks = OS_REG_READ(ah, AR_IFS0) & 0x7ff;
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 HAL_BOOL
@@ -448,9 +446,9 @@ ar5210SetSlotTime(struct ath_hal *ah, u_int us)
 	struct ath_hal_5210 *ahp = AH5210(ah);
 
 	if (us < HAL_SLOT_TIME_9 || us > ath_hal_mac_usec(ah, 0xffff)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad slot time %u\n",
-		    __func__, us);
-		ahp->ah_slottime = (u_int) -1;	/* restore default handling */
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad slot time %u\n", __func__,
+		    us);
+		ahp->ah_slottime = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
@@ -464,7 +462,7 @@ u_int
 ar5210GetSlotTime(struct ath_hal *ah)
 {
 	u_int clks = OS_REG_READ(ah, AR_SLOT_TIME) & 0xffff;
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 HAL_BOOL
@@ -475,12 +473,12 @@ ar5210SetAckTimeout(struct ath_hal *ah, u_int us)
 	if (us > ath_hal_mac_usec(ah, MS(0xffffffff, AR_TIME_OUT_ACK))) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad ack timeout %u\n",
 		    __func__, us);
-		ahp->ah_acktimeout = (u_int) -1; /* restore default handling */
+		ahp->ah_acktimeout = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
-		OS_REG_RMW_FIELD(ah, AR_TIME_OUT,
-			AR_TIME_OUT_ACK, ath_hal_mac_clks(ah, us));
+		OS_REG_RMW_FIELD(ah, AR_TIME_OUT, AR_TIME_OUT_ACK,
+		    ath_hal_mac_clks(ah, us));
 		ahp->ah_acktimeout = us;
 		return AH_TRUE;
 	}
@@ -490,7 +488,7 @@ u_int
 ar5210GetAckTimeout(struct ath_hal *ah)
 {
 	u_int clks = MS(OS_REG_READ(ah, AR_TIME_OUT), AR_TIME_OUT_ACK);
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 u_int
@@ -522,12 +520,12 @@ ar5210SetCTSTimeout(struct ath_hal *ah, u_int us)
 	if (us > ath_hal_mac_usec(ah, MS(0xffffffff, AR_TIME_OUT_CTS))) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad cts timeout %u\n",
 		    __func__, us);
-		ahp->ah_ctstimeout = (u_int) -1; /* restore default handling */
+		ahp->ah_ctstimeout = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
-		OS_REG_RMW_FIELD(ah, AR_TIME_OUT,
-			AR_TIME_OUT_CTS, ath_hal_mac_clks(ah, us));
+		OS_REG_RMW_FIELD(ah, AR_TIME_OUT, AR_TIME_OUT_CTS,
+		    ath_hal_mac_clks(ah, us));
 		ahp->ah_ctstimeout = us;
 		return AH_TRUE;
 	}
@@ -537,14 +535,14 @@ u_int
 ar5210GetCTSTimeout(struct ath_hal *ah)
 {
 	u_int clks = MS(OS_REG_READ(ah, AR_TIME_OUT), AR_TIME_OUT_CTS);
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 HAL_BOOL
 ar5210SetDecompMask(struct ath_hal *ah, uint16_t keyidx, int en)
 {
 	/* nothing to do */
-        return AH_TRUE;
+	return AH_TRUE;
 }
 
 void
@@ -570,7 +568,7 @@ ar5210AniControl(struct ath_hal *ah, HAL_ANI_CMD cmd, int param)
 
 void
 ar5210RxMonitor(struct ath_hal *ah, const HAL_NODE_STATS *stats,
-	const struct ieee80211_channel *chan)
+    const struct ieee80211_channel *chan)
 {
 }
 
@@ -586,11 +584,11 @@ ar5210MibEvent(struct ath_hal *ah, const HAL_NODE_STATS *stats)
 
 HAL_STATUS
 ar5210GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t *result)
+    uint32_t capability, uint32_t *result)
 {
 
 	switch (type) {
-	case HAL_CAP_CIPHER:		/* cipher handled in hardware */
+	case HAL_CAP_CIPHER: /* cipher handled in hardware */
 #if 0
 		return (capability == HAL_CIPHER_WEP ? HAL_OK : HAL_ENOTSUPP);
 #else
@@ -603,35 +601,34 @@ ar5210GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 
 HAL_BOOL
 ar5210SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t setting, HAL_STATUS *status)
+    uint32_t capability, uint32_t setting, HAL_STATUS *status)
 {
 
 	switch (type) {
-	case HAL_CAP_DIAG:		/* hardware diagnostic support */
-		/*
-		 * NB: could split this up into virtual capabilities,
-		 *     (e.g. 1 => ACK, 2 => CTS, etc.) but it hardly
-		 *     seems worth the additional complexity.
-		 */
+	case HAL_CAP_DIAG: /* hardware diagnostic support */
+			   /*
+			    * NB: could split this up into virtual capabilities,
+			    *     (e.g. 1 => ACK, 2 => CTS, etc.) but it hardly
+			    *     seems worth the additional complexity.
+			    */
 #ifdef AH_DEBUG
 		AH_PRIVATE(ah)->ah_diagreg = setting;
 #else
-		AH_PRIVATE(ah)->ah_diagreg = setting & 0x6;	/* ACK+CTS */
+		AH_PRIVATE(ah)->ah_diagreg = setting & 0x6; /* ACK+CTS */
 #endif
 		ar5210UpdateDiagReg(ah, AH_PRIVATE(ah)->ah_diagreg);
 		return AH_TRUE;
-	case HAL_CAP_RXORN_FATAL:	/* HAL_INT_RXORN treated as fatal  */
-		return AH_FALSE;	/* NB: disallow */
+	case HAL_CAP_RXORN_FATAL: /* HAL_INT_RXORN treated as fatal  */
+		return AH_FALSE;  /* NB: disallow */
 	default:
-		return ath_hal_setcapability(ah, type, capability,
-			setting, status);
+		return ath_hal_setcapability(ah, type, capability, setting,
+		    status);
 	}
 }
 
 HAL_BOOL
-ar5210GetDiagState(struct ath_hal *ah, int request,
-	const void *args, uint32_t argsize,
-	void **result, uint32_t *resultsize)
+ar5210GetDiagState(struct ath_hal *ah, int request, const void *args,
+    uint32_t argsize, void **result, uint32_t *resultsize)
 {
 #ifdef AH_PRIVATE_DIAG
 	uint32_t pcicfg;
@@ -653,8 +650,8 @@ ar5210GetDiagState(struct ath_hal *ah, int request,
 		return ok;
 	}
 #endif
-	return ath_hal_getdiagstate(ah, request,
-		args, argsize, result, resultsize);
+	return ath_hal_getdiagstate(ah, request, args, argsize, result,
+	    resultsize);
 }
 
 /*
@@ -730,4 +727,3 @@ ar5210SetNav(struct ath_hal *ah, u_int val)
 
 	OS_REG_WRITE(ah, AR_NAV, val);
 }
-

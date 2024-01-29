@@ -33,47 +33,45 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
-#include <sys/socket.h>
+#include <sys/bus.h>
 #include <sys/filio.h>
-#include <sys/sockio.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
 #include <sys/time.h>
-#include <sys/malloc.h>
 
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+
+#include <net/bpf.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
-
 #include <net/route.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
-#include <netinet/if_ether.h>
-
-#include <net/bpf.h>
-
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
 
 #include "iicbus_if.h"
 
 #define PCF_MASTER_ADDRESS 0xaa
 
-#define ICHDRLEN	sizeof(u_int32_t)
-#define ICMTU		1500		/* default mtu */
+#define ICHDRLEN sizeof(u_int32_t)
+#define ICMTU 1500 /* default mtu */
 
 struct ic_softc {
 	if_t ic_ifp;
 	device_t ic_dev;
 
-	u_char ic_addr;			/* peer I2C address */
+	u_char ic_addr; /* peer I2C address */
 
 	int ic_flags;
 
@@ -88,28 +86,27 @@ struct ic_softc {
 	struct mtx ic_lock;
 };
 
-#define	IC_SENDING		0x0001
-#define	IC_OBUF_BUSY		0x0002
-#define	IC_IFBUF_BUSY		0x0004
-#define	IC_BUFFERS_BUSY		(IC_OBUF_BUSY | IC_IFBUF_BUSY)
-#define	IC_BUFFER_WAITER	0x0004
+#define IC_SENDING 0x0001
+#define IC_OBUF_BUSY 0x0002
+#define IC_IFBUF_BUSY 0x0004
+#define IC_BUFFERS_BUSY (IC_OBUF_BUSY | IC_IFBUF_BUSY)
+#define IC_BUFFER_WAITER 0x0004
 
 static int icprobe(device_t);
 static int icattach(device_t);
 
 static int icioctl(if_t, u_long, caddr_t);
 static int icoutput(if_t, struct mbuf *, const struct sockaddr *,
-               struct route *);
+    struct route *);
 
 static int icintr(device_t, int, char *);
 
 static device_method_t ic_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		icprobe),
-	DEVMETHOD(device_attach,	icattach),
+	DEVMETHOD(device_probe, icprobe), DEVMETHOD(device_attach, icattach),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_intr,		icintr),
+	DEVMETHOD(iicbus_intr, icintr),
 
 	{ 0, 0 }
 };
@@ -167,7 +164,7 @@ icattach(device_t dev)
 
 	mtx_init(&sc->ic_lock, device_get_nameunit(dev), MTX_NETWORK_LOCK,
 	    MTX_DEF);
-	sc->ic_addr = PCF_MASTER_ADDRESS;	/* XXX only PCF masters */
+	sc->ic_addr = PCF_MASTER_ADDRESS; /* XXX only PCF masters */
 	sc->ic_dev = dev;
 
 	if_setsoftc(ifp, sc);
@@ -227,7 +224,7 @@ icioctl(if_t ifp, u_long cmd, caddr_t data)
 		    (!(if_getdrvflags(ifp) & IFF_DRV_RUNNING))) {
 			mtx_unlock(&sc->ic_lock);
 			if ((error = iicbus_request_bus(parent, icdev,
-			    IIC_WAIT | IIC_INTR)))
+				 IIC_WAIT | IIC_INTR)))
 				return (error);
 			mtx_lock(&sc->ic_lock);
 			iicbus_reset(parent, IIC_FASTEST, 0, NULL);
@@ -249,7 +246,7 @@ icioctl(if_t ifp, u_long cmd, caddr_t data)
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
 		if (ifr == NULL)
-			return (EAFNOSUPPORT);		/* XXX */
+			return (EAFNOSUPPORT); /* XXX */
 		switch (ifr->ifr_addr.sa_family) {
 		case AF_INET:
 			break;
@@ -295,7 +292,7 @@ icintr(device_t dev, int event, char *ptr)
 		if (sc->ic_iferrs)
 			goto err;
 		if ((len = sc->ic_xfercnt) == 0)
-			break;					/* ignore */
+			break; /* ignore */
 		if (len <= ICHDRLEN)
 			goto err;
 		len -= ICHDRLEN;
@@ -316,7 +313,7 @@ icintr(device_t dev, int event, char *ptr)
 		break;
 	err:
 		if_printf(sc->ic_ifp, "errors (%d)!\n", sc->ic_iferrs);
-		sc->ic_iferrs = 0;			/* reset error count */
+		sc->ic_iferrs = 0; /* reset error count */
 		if_inc_counter(sc->ic_ifp, IFCOUNTER_IERRORS, 1);
 		break;
 
@@ -329,12 +326,12 @@ icintr(device_t dev, int event, char *ptr)
 		}
 		break;
 
-	case INTR_NOACK:			/* xfer terminated by master */
+	case INTR_NOACK: /* xfer terminated by master */
 		break;
 
 	case INTR_TRANSMIT:
-		*ptr = 0xff;					/* XXX */
-	  	break;
+		*ptr = 0xff; /* XXX */
+		break;
 
 	case INTR_ERROR:
 		sc->ic_iferrs++;
@@ -352,8 +349,7 @@ icintr(device_t dev, int event, char *ptr)
  * icoutput()
  */
 static int
-icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
-    struct route *ro)
+icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst, struct route *ro)
 {
 	struct ic_softc *sc = if_getsoftc(ifp);
 	device_t icdev = sc->ic_dev;
@@ -363,10 +359,10 @@ icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 	u_char *cp;
 	u_int32_t hdr;
 
-	/* BPF writes need to be handled specially. */ 
+	/* BPF writes need to be handled specially. */
 	if (dst->sa_family == AF_UNSPEC)
 		bcopy(dst->sa_data, &hdr, sizeof(hdr));
-	else 
+	else
 		hdr = RO_GET_FAMILY(ro, dst);
 
 	mtx_lock(&sc->ic_lock);
@@ -377,9 +373,9 @@ icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		goto error;
 	}
-		
+
 	/* insert header */
-	bcopy ((char *)&hdr, sc->ic_obuf, ICHDRLEN);
+	bcopy((char *)&hdr, sc->ic_obuf, ICHDRLEN);
 
 	cp = sc->ic_obuf + ICHDRLEN;
 	len = 0;
@@ -390,8 +386,8 @@ icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 			goto error;
 		}
-			
-		bcopy(mtod(mm,char *), cp, mm->m_len);
+
+		bcopy(mtod(mm, char *), cp, mm->m_len);
 		cp += mm->m_len;
 		len += mm->m_len;
 
@@ -405,14 +401,14 @@ icoutput(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 	mtx_unlock(&sc->ic_lock);
 
 	/* send the packet */
-	if (iicbus_block_write(parent, sc->ic_addr, sc->ic_obuf,
-				len + ICHDRLEN, &sent))
+	if (iicbus_block_write(parent, sc->ic_addr, sc->ic_obuf, len + ICHDRLEN,
+		&sent))
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 	else {
 		if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
 		if_inc_counter(ifp, IFCOUNTER_OBYTES, len);
-	}	
+	}
 
 	mtx_lock(&sc->ic_lock);
 	sc->ic_flags &= ~(IC_SENDING | IC_OBUF_BUSY);
@@ -427,7 +423,7 @@ error:
 	m_freem(m);
 	mtx_unlock(&sc->ic_lock);
 
-	return(0);
+	return (0);
 }
 
 DRIVER_MODULE(ic, iicbus, ic_driver, 0, 0);

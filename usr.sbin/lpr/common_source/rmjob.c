@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/param.h>
 #include <sys/uio.h>
 
@@ -41,8 +40,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #define psignal foil_gcc_psignal
-#define	sys_siglist foil_gcc_siglist
+#define sys_siglist foil_gcc_siglist
 #include <unistd.h>
 #undef psignal
 #undef sys_siglist
@@ -58,14 +59,14 @@
 /*
  * Stuff for handling lprm specifications
  */
-static char	root[] = "root";
-static int	all = 0;		/* eliminate all files (root only) */
-static int	cur_daemon;		/* daemon's pid */
-static char	current[7+MAXHOSTNAMELEN];  /* active control file name */
+static char root[] = "root";
+static int all = 0;			 /* eliminate all files (root only) */
+static int cur_daemon;			 /* daemon's pid */
+static char current[7 + MAXHOSTNAMELEN]; /* active control file name */
 
-static	void	alarmhandler(int _signo);
-static	void	do_unlink(char *_file);
-static int	 isowner(char *_owner, char *_file, const char *_cfhost);
+static void alarmhandler(int _signo);
+static void do_unlink(char *_file);
+static int isowner(char *_owner, char *_file, const char *_cfhost);
 
 void
 rmjob(const char *printer)
@@ -90,7 +91,7 @@ rmjob(const char *printer)
 	 */
 	if (users < 0) {
 		if (getuid() == 0)
-			all = 1;	/* all files in local queue */
+			all = 1; /* all files in local queue */
 		else {
 			user[0] = person;
 			users = 1;
@@ -99,7 +100,7 @@ rmjob(const char *printer)
 	if (!strcmp(person, "-all")) {
 		if (from_host == local_host)
 			fatal(pp, "The login name \"-all\" is reserved");
-		all = 1;	/* all those from 'from_host' */
+		all = 1; /* all those from 'from_host' */
 		person = root;
 	}
 
@@ -154,28 +155,30 @@ lockchk(struct printer *pp, char *slockf)
 		if (errno == EACCES)
 			fatal(pp, "%s: %s", slockf, strerror(errno));
 		else
-			return(0);
+			return (0);
 	}
 	PRIV_END
 	if (!get_line(fp)) {
-		(void) fclose(fp);
-		return(0);		/* no daemon present */
+		(void)fclose(fp);
+		return (0); /* no daemon present */
 	}
 	cur_daemon = atoi(line);
 	if (kill(cur_daemon, 0) < 0 && errno != EPERM) {
-		(void) fclose(fp);
-		return(0);		/* no daemon present */
+		(void)fclose(fp);
+		return (0); /* no daemon present */
 	}
-	for (i = 1; (n = fread(current, sizeof(char), sizeof(current), fp)) <= 0; i++) {
+	for (i = 1;
+	     (n = fread(current, sizeof(char), sizeof(current), fp)) <= 0;
+	     i++) {
 		if (i > 5) {
 			n = 1;
 			break;
 		}
 		sleep(i);
 	}
-	current[n-1] = '\0';
-	(void) fclose(fp);
-	return(1);
+	current[n - 1] = '\0';
+	(void)fclose(fp);
+	return (1);
 }
 
 /*
@@ -194,20 +197,20 @@ process(const struct printer *pp, char *file)
 	PRIV_END
 	while (get_line(cfp)) {
 		switch (line[0]) {
-		case 'U':  /* unlink associated files */
-			if (strchr(line+1, '/') || strncmp(line+1, "df", 2))
+		case 'U': /* unlink associated files */
+			if (strchr(line + 1, '/') || strncmp(line + 1, "df", 2))
 				break;
-			do_unlink(line+1);
+			do_unlink(line + 1);
 		}
 	}
-	(void) fclose(cfp);
+	(void)fclose(cfp);
 	do_unlink(file);
 }
 
 static void
 do_unlink(char *file)
 {
-	int	ret;
+	int ret;
 
 	if (from_host != local_host)
 		printf("%s: ", local_host);
@@ -232,42 +235,43 @@ chk(char *file)
 	 * Check for valid cf file name (mostly checking current).
 	 */
 	if (strlen(file) < 7 || file[0] != 'c' || file[1] != 'f')
-		return(0);
+		return (0);
 
 	jnum = calc_jobnum(file, &cfhost);
 	if (all && (from_host == local_host || !strcmp(from_host, cfhost)))
-		return(1);
+		return (1);
 
 	/*
 	 * get the owner's name from the control file.
 	 */
 	PRIV_START
 	if ((cfp = fopen(file, "r")) == NULL)
-		return(0);
+		return (0);
 	PRIV_END
 	while (get_line(cfp)) {
 		if (line[0] == 'P')
 			break;
 	}
-	(void) fclose(cfp);
+	(void)fclose(cfp);
 	if (line[0] != 'P')
-		return(0);
+		return (0);
 
 	if (users == 0 && requests == 0)
-		return(!strcmp(file, current) && isowner(line+1, file, cfhost));
+		return (
+		    !strcmp(file, current) && isowner(line + 1, file, cfhost));
 	/*
 	 * Check the request list
 	 */
 	for (r = requ; r < &requ[requests]; r++)
-		if (*r == jnum && isowner(line+1, file, cfhost))
-			return(1);
+		if (*r == jnum && isowner(line + 1, file, cfhost))
+			return (1);
 	/*
 	 * Check to see if it's in the user list
 	 */
 	for (u = user; u < &user[users]; u++)
-		if (!strcmp(*u, line+1) && isowner(line+1, file, cfhost))
-			return(1);
-	return(0);
+		if (!strcmp(*u, line + 1) && isowner(line + 1, file, cfhost))
+			return (1);
+	return (0);
 }
 
 /*
@@ -279,15 +283,15 @@ chk(char *file)
 static int
 isowner(char *owner, char *file, const char *cfhost)
 {
-	if (!strcmp(person, root) && (from_host == local_host ||
-	    !strcmp(from_host, cfhost)))
+	if (!strcmp(person, root) &&
+	    (from_host == local_host || !strcmp(from_host, cfhost)))
 		return (1);
 	if (!strcmp(person, owner) && !strcmp(from_host, cfhost))
 		return (1);
 	if (from_host != local_host)
 		printf("%s: ", local_host);
 	printf("%s: Permission denied\n", file);
-	return(0);
+	return (0);
 }
 
 /*
@@ -303,7 +307,7 @@ rmremote(const struct printer *pp)
 	struct iovec *iov;
 
 	if (!pp->remote)
-		return;	/* not sending to a remote machine */
+		return; /* not sending to a remote machine */
 
 	/*
 	 * Flush stdout so the user can see what has been deleted
@@ -361,8 +365,8 @@ rmremote(const struct printer *pp)
 		if (writev(rem, iov, niov) != totlen)
 			fatal(pp, "Lost connection");
 		while ((i = read(rem, buf, sizeof(buf))) > 0)
-			(void) fwrite(buf, 1, i, stdout);
-		(void) close(rem);
+			(void)fwrite(buf, 1, i, stdout);
+		(void)close(rem);
 	}
 	for (i = 0; i < requests; i++)
 		free(iov[firstreq + i].iov_base);
@@ -375,7 +379,7 @@ rmremote(const struct printer *pp)
 int
 iscf(const struct dirent *d)
 {
-	return(d->d_name[0] == 'c' && d->d_name[1] == 'f');
+	return (d->d_name[0] == 'c' && d->d_name[1] == 'f');
 }
 
 void

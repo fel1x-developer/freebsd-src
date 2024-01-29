@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define	ungetchar(c)	ungetc(c, stdin)
+#define ungetchar(c) ungetc(c, stdin)
 
 /*
  * mkstr - create a string error message file by massaging C source
@@ -63,8 +63,8 @@
  * existing error message file for recompilation of single routines.
  */
 
-static FILE	*mesgread, *mesgwrite;
-static char	name[100], *np;
+static FILE *mesgread, *mesgwrite;
+static char name[100], *np;
 
 void copystr(void);
 int fgetNUL(char *, int, FILE *);
@@ -221,7 +221,7 @@ copystr(void)
 				ch = getchar();
 				if (!octdigit(ch))
 					break;
-				c <<= 3, c+= ch - '0', ch = -1;
+				c <<= 3, c += ch - '0', ch = -1;
 				break;
 			}
 		}
@@ -252,12 +252,12 @@ inithash(void)
 	}
 }
 
-#define	NBUCKETS	511
+#define NBUCKETS 511
 
-static struct	hash {
-	long	hval;
+static struct hash {
+	long hval;
 	unsigned hpt;
-	struct	hash *hnext;
+	struct hash *hnext;
 } *bucket[NBUCKETS];
 
 unsigned
@@ -278,31 +278,33 @@ hashit(char *str, int really, unsigned fakept)
 		i += NBUCKETS;
 	if (really != 0)
 		for (hp = bucket[i]; hp != 0; hp = hp->hnext)
-		if (hp->hval == hashval) {
-			fseek(mesgread, (long) hp->hpt, 0);
-			fgetNUL(buf, sizeof buf, mesgread);
-/*
-			fprintf(stderr, "Got (from %d) %s\n", hp->hpt, buf);
-*/
-			if (strcmp(buf, str) == 0)
-				break;
-		}
+			if (hp->hval == hashval) {
+				fseek(mesgread, (long)hp->hpt, 0);
+				fgetNUL(buf, sizeof buf, mesgread);
+				/*
+							fprintf(stderr, "Got
+				   (from %d) %s\n", hp->hpt, buf);
+				*/
+				if (strcmp(buf, str) == 0)
+					break;
+			}
 	if (!really || hp == 0) {
-		hp = (struct hash *) calloc(1, sizeof *hp);
+		hp = (struct hash *)calloc(1, sizeof *hp);
 		if (hp == NULL)
 			err(1, NULL);
 		hp->hnext = bucket[i];
 		hp->hval = hashval;
 		hp->hpt = really ? ftell(mesgwrite) : fakept;
 		if (really) {
-			fwrite(str, sizeof (char), strlen(str) + 1, mesgwrite);
-			fwrite("\n", sizeof (char), 1, mesgwrite);
+			fwrite(str, sizeof(char), strlen(str) + 1, mesgwrite);
+			fwrite("\n", sizeof(char), 1, mesgwrite);
 		}
 		bucket[i] = hp;
 	}
-/*
-	fprintf(stderr, "%s hashed to %ld at %d\n", str, hp->hval, hp->hpt);
-*/
+	/*
+		fprintf(stderr, "%s hashed to %ld at %d\n", str, hp->hval,
+	   hp->hpt);
+	*/
 	return (hp->hpt);
 }
 

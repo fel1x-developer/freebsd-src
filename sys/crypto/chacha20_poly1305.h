@@ -29,26 +29,26 @@
  */
 
 #ifndef __CRYPTO_CHACHA20_POLY1305_H__
-#define	__CRYPTO_CHACHA20_POLY1305_H__
+#define __CRYPTO_CHACHA20_POLY1305_H__
 
 #include <sys/types.h>
 
 /* The Poly1305 tag is appended to the cipher text. */
 
-void	chacha20_poly1305_encrypt(uint8_t *dst, const uint8_t *src,
-	    const size_t src_len, const uint8_t *aad, const size_t aad_len,
-	    const uint8_t *nonce, const size_t nonce_len, const uint8_t *key);
+void chacha20_poly1305_encrypt(uint8_t *dst, const uint8_t *src,
+    const size_t src_len, const uint8_t *aad, const size_t aad_len,
+    const uint8_t *nonce, const size_t nonce_len, const uint8_t *key);
 
-bool	chacha20_poly1305_decrypt(uint8_t *dst, const uint8_t *src,
-	    const size_t src_len, const uint8_t *aad, const size_t aad_len,
-	    const uint8_t *nonce, const size_t nonce_len, const uint8_t *key);
+bool chacha20_poly1305_decrypt(uint8_t *dst, const uint8_t *src,
+    const size_t src_len, const uint8_t *aad, const size_t aad_len,
+    const uint8_t *nonce, const size_t nonce_len, const uint8_t *key);
 
-void	xchacha20_poly1305_encrypt(uint8_t *dst, const uint8_t *src,
-	    const size_t src_len, const uint8_t *aad, const size_t aad_len,
-	    const uint8_t *nonce, const uint8_t *key);
+void xchacha20_poly1305_encrypt(uint8_t *dst, const uint8_t *src,
+    const size_t src_len, const uint8_t *aad, const size_t aad_len,
+    const uint8_t *nonce, const uint8_t *key);
 
-bool	xchacha20_poly1305_decrypt(uint8_t *dst, const uint8_t *src,
-	    const size_t src_len, const uint8_t *aad, const size_t aad_len,
-	    const uint8_t *nonce, const uint8_t *key);
+bool xchacha20_poly1305_decrypt(uint8_t *dst, const uint8_t *src,
+    const size_t src_len, const uint8_t *aad, const size_t aad_len,
+    const uint8_t *nonce, const uint8_t *key);
 
 #endif /* !__CRYPTO_CHACHA20_POLY1305_H__ */

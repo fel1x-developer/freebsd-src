@@ -34,22 +34,22 @@
  * Mimics an Ethernet device so that VLANs can be attached to it etc.
  */
 
-#include <sys/param.h>		/* types, important constants */
-#include <sys/kernel.h>		/* SYSINIT for load-time initializations */
-#include <sys/malloc.h>		/* malloc(9) */
-#include <sys/module.h>		/* module(9) */
-#include <sys/mbuf.h>		/* mbuf(9) */
-#include <sys/socket.h>		/* struct ifreq */
-#include <sys/sockio.h>		/* socket ioctl's */
+#include <sys/param.h>	/* types, important constants */
+#include <sys/kernel.h> /* SYSINIT for load-time initializations */
+#include <sys/malloc.h> /* malloc(9) */
+#include <sys/mbuf.h>	/* mbuf(9) */
+#include <sys/module.h> /* module(9) */
+#include <sys/socket.h> /* struct ifreq */
+#include <sys/sockio.h> /* socket ioctl's */
 /* #include <sys/systm.h> if you need printf(9) or other all-purpose globals */
 
-#include <net/bpf.h>		/* bpf(9) */
-#include <net/ethernet.h>	/* Ethernet related constants and types */
+#include <net/bpf.h>	  /* bpf(9) */
+#include <net/ethernet.h> /* Ethernet related constants and types */
 #include <net/if.h>
-#include <net/if_var.h>		/* basic part of ifnet(9) */
+#include <net/if_clone.h> /* network interface cloning */
 #include <net/if_private.h>
-#include <net/if_clone.h>	/* network interface cloning */
-#include <net/if_types.h>	/* IFT_ETHER and friends */
+#include <net/if_types.h> /* IFT_ETHER and friends */
+#include <net/if_var.h>	  /* basic part of ifnet(9) */
 #include <net/vnet.h>
 
 static const char edscname[] = "edsc";
@@ -58,7 +58,7 @@ static const char edscname[] = "edsc";
  * Software configuration of an interface specific to this device type.
  */
 struct edsc_softc {
-	struct ifnet	*sc_ifp; /* ptr to generic interface configuration */
+	struct ifnet *sc_ifp; /* ptr to generic interface configuration */
 
 	/*
 	 * A non-null driver can keep various things here, for instance,
@@ -70,22 +70,22 @@ struct edsc_softc {
  * Attach to the interface cloning framework.
  */
 VNET_DEFINE_STATIC(struct if_clone *, edsc_cloner);
-#define	V_edsc_cloner	VNET(edsc_cloner)
-static int	edsc_clone_create(struct if_clone *, int, caddr_t);
-static void	edsc_clone_destroy(struct ifnet *);
+#define V_edsc_cloner VNET(edsc_cloner)
+static int edsc_clone_create(struct if_clone *, int, caddr_t);
+static void edsc_clone_destroy(struct ifnet *);
 
 /*
  * Interface driver methods.
  */
-static void	edsc_init(void *dummy);
+static void edsc_init(void *dummy);
 /* static void edsc_input(struct ifnet *ifp, struct mbuf *m); would be here */
-static int	edsc_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data);
-static void	edsc_start(struct ifnet *ifp);
+static int edsc_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data);
+static void edsc_start(struct ifnet *ifp);
 
 /*
  * We'll allocate softc instances from this.
  */
-static		MALLOC_DEFINE(M_EDSC, edscname, "Ethernet discard interface");
+static MALLOC_DEFINE(M_EDSC, edscname, "Ethernet discard interface");
 
 /*
  * Create an interface instance.
@@ -93,9 +93,9 @@ static		MALLOC_DEFINE(M_EDSC, edscname, "Ethernet discard interface");
 static int
 edsc_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 {
-	struct edsc_softc	*sc;
-	struct ifnet		*ifp;
-	struct ether_addr	eaddr;
+	struct edsc_softc *sc;
+	struct ifnet *ifp;
+	struct ether_addr eaddr;
 
 	/*
 	 * Allocate soft and ifnet structures.  Link each to the other.
@@ -126,10 +126,8 @@ edsc_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 	 * However, the features are disabled initially.  They can be
 	 * enabled via edsc_ioctl() when needed.
 	 */
-	ifp->if_capabilities =
-	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM |
-	    IFCAP_HWCSUM | IFCAP_TSO |
-	    IFCAP_JUMBO_MTU;
+	ifp->if_capabilities = IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING |
+	    IFCAP_VLAN_HWCSUM | IFCAP_HWCSUM | IFCAP_TSO | IFCAP_JUMBO_MTU;
 	ifp->if_capenable = 0;
 
 	/*
@@ -171,7 +169,7 @@ edsc_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 static void
 edsc_clone_destroy(struct ifnet *ifp)
 {
-	struct edsc_softc	*sc = ifp->if_softc;
+	struct edsc_softc *sc = ifp->if_softc;
 
 	/*
 	 * Detach from the network interface framework.
@@ -192,7 +190,7 @@ edsc_clone_destroy(struct ifnet *ifp)
 static void
 edsc_init(void *dummy)
 {
-#if 0	/* what a hardware driver would do here... */
+#if 0 /* what a hardware driver would do here... */
 	struct edsc_soft	*sc = (struct edsc_softc *)dummy;
 	struct ifnet		*ifp = sc->sc_ifp;
 
@@ -206,7 +204,7 @@ edsc_init(void *dummy)
 static int
 edsc_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 {
-	struct ifreq		*ifr = (struct ifreq *)data;
+	struct ifreq *ifr = (struct ifreq *)data;
 
 	switch (cmd) {
 	case SIOCSIFCAP:
@@ -229,8 +227,8 @@ edsc_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 
 			if (ifp->if_capenable & IFCAP_VLAN_HWTAGGING)
 				/* blah-blah-blah */
-			else
-				/* etc-etc-etc */
+				else
+			/* etc-etc-etc */
 		}
 #endif
 		break;
@@ -251,7 +249,7 @@ edsc_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 static void
 edsc_start(struct ifnet *ifp)
 {
-	struct mbuf		*m;
+	struct mbuf *m;
 
 	/*
 	 * A hardware interface driver can set IFF_DRV_OACTIVE
@@ -339,8 +337,8 @@ vnet_edsc_uninit(const void *unused __unused)
 	 */
 	if_clone_detach(V_edsc_cloner);
 }
-VNET_SYSUNINIT(vnet_edsc_uninit, SI_SUB_INIT_IF, SI_ORDER_ANY,
-    vnet_edsc_uninit, NULL);
+VNET_SYSUNINIT(vnet_edsc_uninit, SI_SUB_INIT_IF, SI_ORDER_ANY, vnet_edsc_uninit,
+    NULL);
 
 /*
  * This function provides handlers for module events, namely load and unload.
@@ -364,9 +362,9 @@ edsc_modevent(module_t mod, int type, void *data)
 }
 
 static moduledata_t edsc_mod = {
-	"if_edsc",			/* name */
-	edsc_modevent,			/* event handler */
-	NULL				/* additional data */
+	"if_edsc",     /* name */
+	edsc_modevent, /* event handler */
+	NULL	       /* additional data */
 };
 
 DECLARE_MODULE(if_edsc, edsc_mod, SI_SUB_PSEUDO, SI_ORDER_ANY);

@@ -26,16 +26,17 @@
  */
 
 #ifndef _LOADER_EFILIB_H
-#define	_LOADER_EFILIB_H
+#define _LOADER_EFILIB_H
+
+#include <sys/queue.h>
 
 #include <stand.h>
 #include <stdbool.h>
-#include <sys/queue.h>
 
-extern EFI_HANDLE		IH;
-extern EFI_SYSTEM_TABLE		*ST;
-extern EFI_BOOT_SERVICES	*BS;
-extern EFI_RUNTIME_SERVICES	*RS;
+extern EFI_HANDLE IH;
+extern EFI_SYSTEM_TABLE *ST;
+extern EFI_BOOT_SERVICES *BS;
+extern EFI_RUNTIME_SERVICES *RS;
 
 extern struct devsw efipart_fddev;
 extern struct devsw efipart_cddev;
@@ -47,19 +48,18 @@ extern struct netif_driver efinetif;
 /* EFI block device data, included here to help efi_zfs_probe() */
 typedef STAILQ_HEAD(pdinfo_list, pdinfo) pdinfo_list_t;
 
-typedef struct pdinfo
-{
-	STAILQ_ENTRY(pdinfo)	pd_link;	/* link in device list */
-	pdinfo_list_t		pd_part;	/* list of partitions */
-	EFI_HANDLE		pd_handle;
-	EFI_HANDLE		pd_alias;
-	EFI_DEVICE_PATH		*pd_devpath;
-	EFI_BLOCK_IO		*pd_blkio;
-	uint32_t		pd_unit;	/* unit number */
-	uint32_t		pd_open;	/* reference counter */
-	void			*pd_bcache;	/* buffer cache data */
-	struct pdinfo		*pd_parent;	/* Linked items (eg partitions) */
-	struct devsw		*pd_devsw;	/* Back pointer to devsw */
+typedef struct pdinfo {
+	STAILQ_ENTRY(pdinfo) pd_link; /* link in device list */
+	pdinfo_list_t pd_part;	      /* list of partitions */
+	EFI_HANDLE pd_handle;
+	EFI_HANDLE pd_alias;
+	EFI_DEVICE_PATH *pd_devpath;
+	EFI_BLOCK_IO *pd_blkio;
+	uint32_t pd_unit;	  /* unit number */
+	uint32_t pd_open;	  /* reference counter */
+	void *pd_bcache;	  /* buffer cache data */
+	struct pdinfo *pd_parent; /* Linked items (eg partitions) */
+	struct devsw *pd_devsw;	  /* Back pointer to devsw */
 } pdinfo_t;
 
 pdinfo_list_t *efiblk_get_pdinfo_list(struct devsw *dev);
@@ -86,7 +86,7 @@ int efi_getdev(void **vdev, const char *devspec, const char **path);
 
 int efi_register_handles(struct devsw *, EFI_HANDLE *, EFI_HANDLE *, int);
 EFI_HANDLE efi_find_handle(struct devsw *, int);
-int efi_handle_lookup(EFI_HANDLE, struct devsw **, int *,  uint64_t *);
+int efi_handle_lookup(EFI_HANDLE, struct devsw **, int *, uint64_t *);
 int efi_handle_update_dev(EFI_HANDLE, struct devsw *, int, uint64_t);
 
 EFI_DEVICE_PATH *efi_lookup_image_devpath(EFI_HANDLE);
@@ -107,7 +107,8 @@ UINTN efi_devpath_length(EFI_DEVICE_PATH *);
 EFI_DEVICE_PATH *efi_name_to_devpath(const char *path);
 EFI_DEVICE_PATH *efi_name_to_devpath16(CHAR16 *path);
 void efi_devpath_free(EFI_DEVICE_PATH *dp);
-EFI_HANDLE efi_devpath_to_handle(EFI_DEVICE_PATH *path, EFI_HANDLE *handles, unsigned nhandles);
+EFI_HANDLE efi_devpath_to_handle(EFI_DEVICE_PATH *path, EFI_HANDLE *handles,
+    unsigned nhandles);
 
 int efi_status_to_errno(EFI_STATUS);
 EFI_STATUS errno_to_efi_status(int errno);
@@ -116,7 +117,7 @@ void efi_time_init(void);
 void efi_time_fini(void);
 
 int parse_uefi_con_out(void);
-EFI_STATUS efi_main(EFI_HANDLE Ximage, EFI_SYSTEM_TABLE* Xsystab);
+EFI_STATUS efi_main(EFI_HANDLE Ximage, EFI_SYSTEM_TABLE *Xsystab);
 
 EFI_STATUS main(int argc, CHAR16 *argv[]);
 void efi_exit(EFI_STATUS status) __dead2;
@@ -143,7 +144,8 @@ EFI_STATUS efi_freebsd_delenv(const char *varname);
 EFI_STATUS efi_freebsd_getenv(const char *v, void *data, __size_t *len);
 EFI_STATUS efi_getenv(EFI_GUID *g, const char *v, void *data, __size_t *len);
 EFI_STATUS efi_global_getenv(const char *v, void *data, __size_t *len);
-EFI_STATUS efi_setenv(EFI_GUID *guid, const char *varname, UINT32 attr, void *data, __size_t len);
+EFI_STATUS efi_setenv(EFI_GUID *guid, const char *varname, UINT32 attr,
+    void *data, __size_t len);
 EFI_STATUS efi_setenv_freebsd_wcs(const char *varname, CHAR16 *valstr);
 
 /* guids and names */
@@ -153,6 +155,6 @@ bool efi_name_to_guid(const char *, EFI_GUID *);
 bool efi_guid_to_name(EFI_GUID *, char **);
 
 /* efipart.c */
-int	efipart_inithandles(void);
+int efipart_inithandles(void);
 
-#endif	/* _LOADER_EFILIB_H */
+#endif /* _LOADER_EFILIB_H */

@@ -28,9 +28,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/procctl.h>
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <sys/procctl.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stdbool.h>

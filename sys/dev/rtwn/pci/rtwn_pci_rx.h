@@ -17,9 +17,9 @@
 #ifndef RTWN_PCI_RX_H
 #define RTWN_PCI_RX_H
 
-void	rtwn_pci_dma_map_addr(void *, bus_dma_segment_t *, int, int);
-void	rtwn_pci_setup_rx_desc(struct rtwn_pci_softc *,
-	    struct rtwn_rx_stat_pci *, bus_addr_t, size_t, int);
-void	rtwn_pci_intr(void *);
+void rtwn_pci_dma_map_addr(void *, bus_dma_segment_t *, int, int);
+void rtwn_pci_setup_rx_desc(struct rtwn_pci_softc *, struct rtwn_rx_stat_pci *,
+    bus_addr_t, size_t, int);
+void rtwn_pci_intr(void *);
 
-#endif	/* RTWN_PCI_RX_H */
+#endif /* RTWN_PCI_RX_H */

@@ -40,26 +40,27 @@
 #include <sys/socketvar.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysproto.h>
-#include <sys/vnode.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
-
-#include <security/audit/audit.h>
+#include <sys/vnode.h>
 
 #include <net/if.h>
 #include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+
+#include <security/audit/audit.h>
 #ifdef INET6
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
 #endif
 
 #ifdef COMPAT_LINUX32
-#include <compat/freebsd32/freebsd32_util.h>
 #include <machine/../linux32/linux.h>
 #include <machine/../linux32/linux32_proto.h>
+
+#include <compat/freebsd32/freebsd32_util.h>
 #else
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
@@ -73,24 +74,24 @@
 #include <compat/linux/linux_util.h>
 
 _Static_assert(offsetof(struct l_ifreq, ifr_ifru) ==
-    offsetof(struct ifreq, ifr_ifru),
+	offsetof(struct ifreq, ifr_ifru),
     "Linux ifreq members names should be equal to FreeeBSD");
 _Static_assert(offsetof(struct l_ifreq, ifr_index) ==
-    offsetof(struct ifreq, ifr_index),
+	offsetof(struct ifreq, ifr_index),
     "Linux ifreq members names should be equal to FreeeBSD");
 _Static_assert(offsetof(struct l_ifreq, ifr_name) ==
-    offsetof(struct ifreq, ifr_name),
+	offsetof(struct ifreq, ifr_name),
     "Linux ifreq members names should be equal to FreeeBSD");
 
-#define	SECURITY_CONTEXT_STRING	"unconfined"
+#define SECURITY_CONTEXT_STRING "unconfined"
 
 static int linux_sendmsg_common(struct thread *, l_int, struct l_msghdr *,
-					l_uint);
+    l_uint);
 static int linux_recvmsg_common(struct thread *, l_int, struct l_msghdr *,
-					l_uint, struct msghdr *);
+    l_uint, struct msghdr *);
 static int linux_set_socket_flags(int, int *);
 
-#define	SOL_NETLINK	270
+#define SOL_NETLINK 270
 
 static int
 linux_to_bsd_sockopt_level(int level)
@@ -142,7 +143,8 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (IP_BINDANY);
 	case LINUX_IP_IPSEC_POLICY:
 		/* we have this option, but not documented in ip(4) manpage */
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_IPSEC_POLICY");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_IPSEC_POLICY");
 		return (IP_IPSEC_POLICY);
 	case LINUX_IP_MINTTL:
 		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_MINTTL");
@@ -158,28 +160,36 @@ linux_to_bsd_ip_sockopt(int opt)
 	case LINUX_IP_DROP_MEMBERSHIP:
 		return (IP_DROP_MEMBERSHIP);
 	case LINUX_IP_UNBLOCK_SOURCE:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_UNBLOCK_SOURCE");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_UNBLOCK_SOURCE");
 		return (IP_UNBLOCK_SOURCE);
 	case LINUX_IP_BLOCK_SOURCE:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_BLOCK_SOURCE");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_BLOCK_SOURCE");
 		return (IP_BLOCK_SOURCE);
 	case LINUX_IP_ADD_SOURCE_MEMBERSHIP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_ADD_SOURCE_MEMBERSHIP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_ADD_SOURCE_MEMBERSHIP");
 		return (IP_ADD_SOURCE_MEMBERSHIP);
 	case LINUX_IP_DROP_SOURCE_MEMBERSHIP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_DROP_SOURCE_MEMBERSHIP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_DROP_SOURCE_MEMBERSHIP");
 		return (IP_DROP_SOURCE_MEMBERSHIP);
 	case LINUX_MCAST_JOIN_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_MCAST_JOIN_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_MCAST_JOIN_GROUP");
 		return (MCAST_JOIN_GROUP);
 	case LINUX_MCAST_LEAVE_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_MCAST_LEAVE_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_MCAST_LEAVE_GROUP");
 		return (MCAST_LEAVE_GROUP);
 	case LINUX_MCAST_JOIN_SOURCE_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_MCAST_JOIN_SOURCE_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_MCAST_JOIN_SOURCE_GROUP");
 		return (MCAST_JOIN_SOURCE_GROUP);
 	case LINUX_MCAST_LEAVE_SOURCE_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv4 socket option IP_MCAST_LEAVE_SOURCE_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv4 socket option IP_MCAST_LEAVE_SOURCE_GROUP");
 		return (MCAST_LEAVE_SOURCE_GROUP);
 	case LINUX_IP_RECVORIGDSTADDR:
 		return (IP_RECVORIGDSTADDR);
@@ -197,8 +207,7 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (-2);
 	case LINUX_IP_PKTOPTIONS:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_PKTOPTIONS (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_PKTOPTIONS (%d)", opt);
 		return (-2);
 	case LINUX_IP_MTU_DISCOVER:
 		LINUX_RATELIMIT_MSG_OPT1(
@@ -218,8 +227,7 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (-2);
 	case LINUX_IP_XFRM_POLICY:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_XFRM_POLICY (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_XFRM_POLICY (%d)", opt);
 		return (-2);
 	case LINUX_IP_PASSSEC:
 		/* needed by steam */
@@ -235,13 +243,11 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (-2);
 	case LINUX_IP_NODEFRAG:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_NODEFRAG (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_NODEFRAG (%d)", opt);
 		return (-2);
 	case LINUX_IP_CHECKSUM:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_CHECKSUM (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_CHECKSUM (%d)", opt);
 		return (-2);
 	case LINUX_IP_BIND_ADDRESS_NO_PORT:
 		LINUX_RATELIMIT_MSG_OPT1(
@@ -250,8 +256,7 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (-2);
 	case LINUX_IP_RECVFRAGSIZE:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_RECVFRAGSIZE (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_RECVFRAGSIZE (%d)", opt);
 		return (-2);
 	case LINUX_MCAST_MSFILTER:
 		LINUX_RATELIMIT_MSG_OPT1(
@@ -265,8 +270,7 @@ linux_to_bsd_ip_sockopt(int opt)
 		return (-2);
 	case LINUX_IP_UNICAST_IF:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv4 socket option IP_UNICAST_IF (%d)",
-		    opt);
+		    "unsupported IPv4 socket option IP_UNICAST_IF (%d)", opt);
 		return (-2);
 
 	/* unknown sockopts */
@@ -282,25 +286,32 @@ linux_to_bsd_ip6_sockopt(int opt)
 	switch (opt) {
 	/* known and translated sockopts */
 	case LINUX_IPV6_2292PKTINFO:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292PKTINFO");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292PKTINFO");
 		return (IPV6_2292PKTINFO);
 	case LINUX_IPV6_2292HOPOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292HOPOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292HOPOPTS");
 		return (IPV6_2292HOPOPTS);
 	case LINUX_IPV6_2292DSTOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292DSTOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292DSTOPTS");
 		return (IPV6_2292DSTOPTS);
 	case LINUX_IPV6_2292RTHDR:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292RTHDR");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292RTHDR");
 		return (IPV6_2292RTHDR);
 	case LINUX_IPV6_2292PKTOPTIONS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292PKTOPTIONS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292PKTOPTIONS");
 		return (IPV6_2292PKTOPTIONS);
 	case LINUX_IPV6_CHECKSUM:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_CHECKSUM");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_CHECKSUM");
 		return (IPV6_CHECKSUM);
 	case LINUX_IPV6_2292HOPLIMIT:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_2292HOPLIMIT");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_2292HOPLIMIT");
 		return (IPV6_2292HOPLIMIT);
 	case LINUX_IPV6_NEXTHOP:
 		return (IPV6_NEXTHOP);
@@ -320,63 +331,81 @@ linux_to_bsd_ip6_sockopt(int opt)
 		return (IPV6_V6ONLY);
 	case LINUX_IPV6_IPSEC_POLICY:
 		/* we have this option, but not documented in ip6(4) manpage */
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_IPSEC_POLICY");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_IPSEC_POLICY");
 		return (IPV6_IPSEC_POLICY);
 	case LINUX_MCAST_JOIN_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_JOIN_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_JOIN_GROUP");
 		return (IPV6_JOIN_GROUP);
 	case LINUX_MCAST_LEAVE_GROUP:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_LEAVE_GROUP");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_LEAVE_GROUP");
 		return (IPV6_LEAVE_GROUP);
 	case LINUX_IPV6_RECVPKTINFO:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVPKTINFO");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVPKTINFO");
 		return (IPV6_RECVPKTINFO);
 	case LINUX_IPV6_PKTINFO:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_PKTINFO");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_PKTINFO");
 		return (IPV6_PKTINFO);
 	case LINUX_IPV6_RECVHOPLIMIT:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVHOPLIMIT");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVHOPLIMIT");
 		return (IPV6_RECVHOPLIMIT);
 	case LINUX_IPV6_HOPLIMIT:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_HOPLIMIT");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_HOPLIMIT");
 		return (IPV6_HOPLIMIT);
 	case LINUX_IPV6_RECVHOPOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVHOPOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVHOPOPTS");
 		return (IPV6_RECVHOPOPTS);
 	case LINUX_IPV6_HOPOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_HOPOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_HOPOPTS");
 		return (IPV6_HOPOPTS);
 	case LINUX_IPV6_RTHDRDSTOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RTHDRDSTOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RTHDRDSTOPTS");
 		return (IPV6_RTHDRDSTOPTS);
 	case LINUX_IPV6_RECVRTHDR:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVRTHDR");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVRTHDR");
 		return (IPV6_RECVRTHDR);
 	case LINUX_IPV6_RTHDR:
 		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RTHDR");
 		return (IPV6_RTHDR);
 	case LINUX_IPV6_RECVDSTOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVDSTOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVDSTOPTS");
 		return (IPV6_RECVDSTOPTS);
 	case LINUX_IPV6_DSTOPTS:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_DSTOPTS");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_DSTOPTS");
 		return (IPV6_DSTOPTS);
 	case LINUX_IPV6_RECVPATHMTU:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_RECVPATHMTU");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_RECVPATHMTU");
 		return (IPV6_RECVPATHMTU);
 	case LINUX_IPV6_PATHMTU:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_PATHMTU");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_PATHMTU");
 		return (IPV6_PATHMTU);
 	case LINUX_IPV6_DONTFRAG:
 		return (IPV6_DONTFRAG);
 	case LINUX_IPV6_AUTOFLOWLABEL:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_AUTOFLOWLABEL");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_AUTOFLOWLABEL");
 		return (IPV6_AUTOFLOWLABEL);
 	case LINUX_IPV6_ORIGDSTADDR:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_ORIGDSTADDR");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_ORIGDSTADDR");
 		return (IPV6_ORIGDSTADDR);
 	case LINUX_IPV6_FREEBIND:
-		LINUX_RATELIMIT_MSG_NOTTESTED("IPv6 socket option IPV6_FREEBIND");
+		LINUX_RATELIMIT_MSG_NOTTESTED(
+		    "IPv6 socket option IPV6_FREEBIND");
 		return (IPV6_BINDANY);
 
 	/* known but not implemented sockopts */
@@ -447,8 +476,7 @@ linux_to_bsd_ip6_sockopt(int opt)
 		return (-2);
 	case LINUX_IPV6_HDRINCL:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv6 socket option IPV6_HDRINCL (%d)",
-		    opt);
+		    "unsupported IPv6 socket option IPV6_HDRINCL (%d)", opt);
 		return (-2);
 	case LINUX_MCAST_BLOCK_SOURCE:
 		LINUX_RATELIMIT_MSG_OPT1(
@@ -493,8 +521,7 @@ linux_to_bsd_ip6_sockopt(int opt)
 		return (-2);
 	case LINUX_IPV6_UNICAST_IF:
 		LINUX_RATELIMIT_MSG_OPT1(
-		    "unsupported IPv6 socket option IPV6_UNICAST_IF (%d)",
-		    opt);
+		    "unsupported IPv6 socket option IPV6_UNICAST_IF (%d)", opt);
 		return (-2);
 	case LINUX_IPV6_RECVFRAGSIZE:
 		LINUX_RATELIMIT_MSG_OPT1(
@@ -618,22 +645,28 @@ linux_to_bsd_msg_flags(int flags)
 	if (flags & LINUX_MSG_NOSIGNAL)
 		ret_flags |= MSG_NOSIGNAL;
 	if (flags & LINUX_MSG_PROXY)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_PROXY (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_PROXY (%d) not handled",
 		    LINUX_MSG_PROXY);
 	if (flags & LINUX_MSG_FIN)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_FIN (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_FIN (%d) not handled",
 		    LINUX_MSG_FIN);
 	if (flags & LINUX_MSG_SYN)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_SYN (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_SYN (%d) not handled",
 		    LINUX_MSG_SYN);
 	if (flags & LINUX_MSG_CONFIRM)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_CONFIRM (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_CONFIRM (%d) not handled",
 		    LINUX_MSG_CONFIRM);
 	if (flags & LINUX_MSG_RST)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_RST (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_RST (%d) not handled",
 		    LINUX_MSG_RST);
 	if (flags & LINUX_MSG_ERRQUEUE)
-		LINUX_RATELIMIT_MSG_OPT1("socket message flag MSG_ERRQUEUE (%d) not handled",
+		LINUX_RATELIMIT_MSG_OPT1(
+		    "socket message flag MSG_ERRQUEUE (%d) not handled",
 		    LINUX_MSG_ERRQUEUE);
 	return (ret_flags);
 }
@@ -695,11 +728,11 @@ linux_to_bsd_msghdr(struct msghdr *bhdr, const struct l_msghdr *lhdr)
 	if (lhdr->msg_controllen > INT_MAX)
 		return (ENOBUFS);
 
-	bhdr->msg_name		= PTRIN(lhdr->msg_name);
-	bhdr->msg_namelen	= lhdr->msg_namelen;
-	bhdr->msg_iov		= PTRIN(lhdr->msg_iov);
-	bhdr->msg_iovlen	= lhdr->msg_iovlen;
-	bhdr->msg_control	= PTRIN(lhdr->msg_control);
+	bhdr->msg_name = PTRIN(lhdr->msg_name);
+	bhdr->msg_namelen = lhdr->msg_namelen;
+	bhdr->msg_iov = PTRIN(lhdr->msg_iov);
+	bhdr->msg_iovlen = lhdr->msg_iovlen;
+	bhdr->msg_control = PTRIN(lhdr->msg_control);
 
 	/*
 	 * msg_controllen is skipped since BSD and LINUX control messages
@@ -710,18 +743,18 @@ linux_to_bsd_msghdr(struct msghdr *bhdr, const struct l_msghdr *lhdr)
 	 * control messages.
 	 */
 
-	bhdr->msg_flags		= linux_to_bsd_msg_flags(lhdr->msg_flags);
+	bhdr->msg_flags = linux_to_bsd_msg_flags(lhdr->msg_flags);
 	return (0);
 }
 
 static int
 bsd_to_linux_msghdr(const struct msghdr *bhdr, struct l_msghdr *lhdr)
 {
-	lhdr->msg_name		= PTROUT(bhdr->msg_name);
-	lhdr->msg_namelen	= bhdr->msg_namelen;
-	lhdr->msg_iov		= PTROUT(bhdr->msg_iov);
-	lhdr->msg_iovlen	= bhdr->msg_iovlen;
-	lhdr->msg_control	= PTROUT(bhdr->msg_control);
+	lhdr->msg_name = PTROUT(bhdr->msg_name);
+	lhdr->msg_namelen = bhdr->msg_namelen;
+	lhdr->msg_iov = PTROUT(bhdr->msg_iov);
+	lhdr->msg_iovlen = bhdr->msg_iovlen;
+	lhdr->msg_control = PTROUT(bhdr->msg_control);
 
 	/*
 	 * msg_controllen is skipped since BSD and LINUX control messages
@@ -797,8 +830,8 @@ linux_check_hdrincl(struct thread *td, int s)
 	socklen_t size_val;
 
 	size_val = sizeof(optval);
-	error = kern_getsockopt(td, s, IPPROTO_IP, IP_HDRINCL,
-	    &optval, UIO_SYSSPACE, &size_val);
+	error = kern_getsockopt(td, s, IPPROTO_IP, IP_HDRINCL, &optval,
+	    UIO_SYSSPACE, &size_val);
 	if (error != 0)
 		return (error);
 
@@ -817,7 +850,7 @@ linux_sendto_hdrincl(struct thread *td, struct linux_sendto_args *linux_args)
  * from the beginning of the IP packet before we customize it for BSD.
  * It should include all the fields we modify (ip_len and ip_off).
  */
-#define linux_ip_copysize	8
+#define linux_ip_copysize 8
 
 	struct ip *packet;
 	struct msghdr msg;
@@ -832,8 +865,7 @@ linux_sendto_hdrincl(struct thread *td, struct linux_sendto_args *linux_args)
 	packet = (struct ip *)malloc(linux_args->len, M_LINUX, M_WAITOK);
 
 	/* Make kernel copy of the packet to be sent */
-	if ((error = copyin(PTRIN(linux_args->msg), packet,
-	    linux_args->len)))
+	if ((error = copyin(PTRIN(linux_args->msg), packet, linux_args->len)))
 		goto goout;
 
 	/* Convert fields from Linux to BSD raw IP socket format */
@@ -849,8 +881,8 @@ linux_sendto_hdrincl(struct thread *td, struct linux_sendto_args *linux_args)
 	msg.msg_flags = 0;
 	aiov[0].iov_base = (char *)packet;
 	aiov[0].iov_len = linux_args->len;
-	error = linux_sendit(td, linux_args->s, &msg, linux_args->flags,
-	    NULL, UIO_SYSSPACE);
+	error = linux_sendit(td, linux_args->s, &msg, linux_args->flags, NULL,
+	    UIO_SYSSPACE);
 goout:
 	free(packet, M_LINUX);
 	return (error);
@@ -875,8 +907,9 @@ linux_socket(struct thread *td, struct linux_socket_args *args)
 	type = args->type & LINUX_SOCK_TYPE_MASK;
 	if (type < 0 || type > LINUX_SOCK_MAX)
 		return (EINVAL);
-	retval_socket = linux_set_socket_flags(args->type & ~LINUX_SOCK_TYPE_MASK,
-		&type);
+	retval_socket = linux_set_socket_flags(args->type &
+		~LINUX_SOCK_TYPE_MASK,
+	    &type);
 	if (retval_socket != 0)
 		return (retval_socket);
 	domain = linux_to_bsd_domain(args->domain);
@@ -897,15 +930,17 @@ linux_socket(struct thread *td, struct linux_socket_args *args)
 			if (nl_name != NULL)
 				linux_msg(curthread,
 				    "unsupported socket(AF_NETLINK, %d, "
-				    "NETLINK_%s)", type, nl_name);
+				    "NETLINK_%s)",
+				    type, nl_name);
 			else
 				linux_msg(curthread,
 				    "unsupported socket(AF_NETLINK, %d, %d)",
 				    type, args->protocol);
 		} else {
-			linux_msg(curthread, "unsupported socket domain %d, "
-			    "type %d, protocol %d", args->domain, type,
-			    args->protocol);
+			linux_msg(curthread,
+			    "unsupported socket domain %d, "
+			    "type %d, protocol %d",
+			    args->domain, type, args->protocol);
 		}
 		return (EAFNOSUPPORT);
 	}
@@ -914,9 +949,9 @@ linux_socket(struct thread *td, struct linux_socket_args *args)
 	if (retval_socket)
 		return (retval_socket);
 
-	if (type == SOCK_RAW
-	    && (args->protocol == IPPROTO_RAW || args->protocol == 0)
-	    && domain == PF_INET) {
+	if (type == SOCK_RAW &&
+	    (args->protocol == IPPROTO_RAW || args->protocol == 0) &&
+	    domain == PF_INET) {
 		/* It's a raw IP socket: set the IP_HDRINCL option. */
 		int hdrincl;
 
@@ -951,8 +986,7 @@ linux_bind(struct thread *td, struct linux_bind_args *args)
 	struct sockaddr *sa;
 	int error;
 
-	error = linux_to_bsd_sockaddr(PTRIN(args->name), &sa,
-	    &args->namelen);
+	error = linux_to_bsd_sockaddr(PTRIN(args->name), &sa, &args->namelen);
 	if (error != 0)
 		return (error);
 
@@ -960,7 +994,8 @@ linux_bind(struct thread *td, struct linux_bind_args *args)
 	free(sa, M_SONAME);
 
 	/* XXX */
-	if (error == EADDRNOTAVAIL && args->namelen != sizeof(struct sockaddr_in))
+	if (error == EADDRNOTAVAIL &&
+	    args->namelen != sizeof(struct sockaddr_in))
 		return (EINVAL);
 	return (error);
 }
@@ -973,8 +1008,7 @@ linux_connect(struct thread *td, struct linux_connect_args *args)
 	struct file *fp;
 	int error;
 
-	error = linux_to_bsd_sockaddr(PTRIN(args->name), &sa,
-	    &args->namelen);
+	error = linux_to_bsd_sockaddr(PTRIN(args->name), &sa, &args->namelen);
 	if (error != 0)
 		return (error);
 
@@ -1091,16 +1125,15 @@ int
 linux_accept(struct thread *td, struct linux_accept_args *args)
 {
 
-	return (linux_accept_common(td, args->s, args->addr,
-	    args->namelen, 0));
+	return (linux_accept_common(td, args->s, args->addr, args->namelen, 0));
 }
 
 int
 linux_accept4(struct thread *td, struct linux_accept4_args *args)
 {
 
-	return (linux_accept_common(td, args->s, args->addr,
-	    args->namelen, args->flags));
+	return (linux_accept_common(td, args->s, args->addr, args->namelen,
+	    args->flags));
 }
 
 int
@@ -1179,12 +1212,12 @@ linux_socketpair(struct thread *td, struct linux_socketpair_args *args)
 	}
 	error = kern_socketpair(td, domain, type, 0, sv);
 	if (error != 0)
-                return (error);
-        error = copyout(sv, PTRIN(args->rsv), 2 * sizeof(int));
-        if (error != 0) {
-                (void)kern_close(td, sv[0]);
-                (void)kern_close(td, sv[1]);
-        }
+		return (error);
+	error = copyout(sv, PTRIN(args->rsv), 2 * sizeof(int));
+	if (error != 0) {
+		(void)kern_close(td, sv[0]);
+		(void)kern_close(td, sv[1]);
+	}
 	return (error);
 }
 
@@ -1279,7 +1312,7 @@ linux_sendto(struct thread *td, struct linux_sendto_args *args)
 	if (error != 0)
 		return (error);
 	so = fp->f_data;
-	if ((so->so_state & (SS_ISCONNECTED|SS_ISCONNECTING)) == 0) {
+	if ((so->so_state & (SS_ISCONNECTED | SS_ISCONNECTING)) == 0) {
 		msg.msg_name = PTRIN(args->to);
 		msg.msg_namelen = args->tolen;
 	}
@@ -1288,8 +1321,8 @@ linux_sendto(struct thread *td, struct linux_sendto_args *args)
 	aiov.iov_base = PTRIN(args->msg);
 	aiov.iov_len = args->len;
 	fdrop(fp, td);
-	return (linux_sendit(td, args->s, &msg, args->flags, NULL,
-	    UIO_USERSPACE));
+	return (
+	    linux_sendit(td, args->s, &msg, args->flags, NULL, UIO_USERSPACE));
 }
 
 int
@@ -1301,8 +1334,7 @@ linux_recvfrom(struct thread *td, struct linux_recvfrom_args *args)
 	int error, fromlen;
 
 	if (PTRIN(args->fromlen) != NULL) {
-		error = copyin(PTRIN(args->fromlen), &fromlen,
-		    sizeof(fromlen));
+		error = copyin(PTRIN(args->fromlen), &fromlen, sizeof(fromlen));
 		if (error != 0)
 			return (error);
 		if (fromlen < 0)
@@ -1387,8 +1419,8 @@ linux_sendmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 		return (error);
 
 #ifdef COMPAT_LINUX32
-	error = freebsd32_copyiniov(PTRIN(msg.msg_iov), msg.msg_iovlen,
-	    &iov, EMSGSIZE);
+	error = freebsd32_copyiniov(PTRIN(msg.msg_iov), msg.msg_iovlen, &iov,
+	    EMSGSIZE);
 #else
 	error = copyiniov(msg.msg_iov, msg.msg_iovlen, &iov, EMSGSIZE);
 #endif
@@ -1446,15 +1478,16 @@ linux_sendmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 			 * so return EINVAL in any other cmsg_type
 			 */
 			cmsg = data;
-			cmsg->cmsg_type =
-			    linux_to_bsd_cmsg_type(linux_cmsg.cmsg_type);
-			cmsg->cmsg_level =
-			    linux_to_bsd_sockopt_level(linux_cmsg.cmsg_level);
-			if (cmsg->cmsg_type == -1
-			    || cmsg->cmsg_level != SOL_SOCKET) {
+			cmsg->cmsg_type = linux_to_bsd_cmsg_type(
+			    linux_cmsg.cmsg_type);
+			cmsg->cmsg_level = linux_to_bsd_sockopt_level(
+			    linux_cmsg.cmsg_level);
+			if (cmsg->cmsg_type == -1 ||
+			    cmsg->cmsg_level != SOL_SOCKET) {
 				linux_msg(curthread,
 				    "unsupported sendmsg cmsg level %d type %d",
-				    linux_cmsg.cmsg_level, linux_cmsg.cmsg_type);
+				    linux_cmsg.cmsg_level,
+				    linux_cmsg.cmsg_type);
 				goto bad;
 			}
 
@@ -1492,14 +1525,14 @@ linux_sendmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 			data = (char *)data + CMSG_SPACE(len);
 			datalen += CMSG_SPACE(len);
 
-next:
+		next:
 			if (clen <= LINUX_CMSG_ALIGN(linux_cmsg.cmsg_len))
 				break;
 
 			clen -= LINUX_CMSG_ALIGN(linux_cmsg.cmsg_len);
 			ptr_cmsg = (struct l_cmsghdr *)((char *)ptr_cmsg +
 			    LINUX_CMSG_ALIGN(linux_cmsg.cmsg_len));
-		} while(clen >= sizeof(struct l_cmsghdr));
+		} while (clen >= sizeof(struct l_cmsghdr));
 
 		control->m_len = datalen;
 		if (datalen == 0) {
@@ -1523,8 +1556,8 @@ int
 linux_sendmsg(struct thread *td, struct linux_sendmsg_args *args)
 {
 
-	return (linux_sendmsg_common(td, args->s, PTRIN(args->msg),
-	    args->flags));
+	return (
+	    linux_sendmsg_common(td, args->s, PTRIN(args->msg), args->flags));
 }
 
 int
@@ -1573,7 +1606,6 @@ recvmsg_scm_rights(struct thread *td, l_uint flags, socklen_t *datalen,
 	}
 	return (0);
 }
-
 
 static int
 recvmsg_scm_creds(socklen_t *datalen, void **data, void **udata)
@@ -1709,8 +1741,7 @@ recvmsg_scm_sol_socket(struct thread *td, l_int msg_type, l_int lmsg_type,
 	error = 0;
 	switch (msg_type) {
 	case SCM_RIGHTS:
-		error = recvmsg_scm_rights(td, flags, datalen,
-		    data, udata);
+		error = recvmsg_scm_rights(td, flags, datalen, data, udata);
 		break;
 	case SCM_CREDS:
 		error = recvmsg_scm_creds(datalen, data, udata);
@@ -1720,13 +1751,12 @@ recvmsg_scm_sol_socket(struct thread *td, l_int msg_type, l_int lmsg_type,
 		break;
 	case SCM_TIMESTAMP:
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
-		error = recvmsg_scm_timestamp(lmsg_type, datalen,
-		    data, udata);
+		error = recvmsg_scm_timestamp(lmsg_type, datalen, data, udata);
 #endif
 		break;
 	case SCM_BINTIME:
-		error = recvmsg_scm_timestampns(lmsg_type, datalen,
-		    data, udata);
+		error = recvmsg_scm_timestampns(lmsg_type, datalen, data,
+		    udata);
 		break;
 	}
 
@@ -1756,8 +1786,7 @@ recvmsg_scm_ipproto_ip(l_int msg_type, l_int lmsg_type, socklen_t *datalen,
 	error = 0;
 	switch (msg_type) {
 	case IP_ORIGDSTADDR:
-		error = recvmsg_scm_ip_origdstaddr(datalen, data,
-		    udata);
+		error = recvmsg_scm_ip_origdstaddr(datalen, data, udata);
 		break;
 	}
 
@@ -1788,7 +1817,7 @@ linux_recvmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 	/*
 	 * Pass user-supplied recvmsg() flags in msg_flags field,
 	 * following sys_recvmsg() convention.
-	*/
+	 */
 	l_msghdr.msg_flags = flags;
 
 	error = linux_to_bsd_msghdr(msg, &l_msghdr);
@@ -1796,8 +1825,8 @@ linux_recvmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 		return (error);
 
 #ifdef COMPAT_LINUX32
-	error = freebsd32_copyiniov(PTRIN(msg->msg_iov), msg->msg_iovlen,
-	    &iov, EMSGSIZE);
+	error = freebsd32_copyiniov(PTRIN(msg->msg_iov), msg->msg_iovlen, &iov,
+	    EMSGSIZE);
 #else
 	error = copyiniov(msg->msg_iov, msg->msg_iovlen, &iov, EMSGSIZE);
 #endif
@@ -1851,8 +1880,7 @@ linux_recvmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 		    cm->cmsg_level);
 		lcm->cmsg_level = bsd_to_linux_sockopt_level(cm->cmsg_level);
 
-		if (lcm->cmsg_type == -1 ||
-		    cm->cmsg_level == -1) {
+		if (lcm->cmsg_type == -1 || cm->cmsg_level == -1) {
 			LINUX_RATELIMIT_MSG_OPT2(
 			    "unsupported recvmsg cmsg level %d type %d",
 			    cm->cmsg_level, cm->cmsg_type);
@@ -1869,12 +1897,12 @@ linux_recvmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 		case IPPROTO_IP:
 			error = recvmsg_scm_ipproto_ip(cm->cmsg_type,
 			    lcm->cmsg_type, &datalen, &data, &udata);
- 			break;
+			break;
 		case SOL_SOCKET:
 			error = recvmsg_scm_sol_socket(td, cm->cmsg_type,
 			    lcm->cmsg_type, flags, &datalen, &data, &udata);
- 			break;
- 		}
+			break;
+		}
 
 		/* The recvmsg_scm_ is responsible to free udata on error. */
 		if (error != 0)
@@ -1901,7 +1929,7 @@ linux_recvmsg_common(struct thread *td, l_int s, struct l_msghdr *msghdr,
 				outlen += LINUX_CMSG_SPACE(datalen);
 			}
 		}
-err:
+	err:
 		free(udata, M_LINUX);
 		if (error != 0)
 			goto bad;
@@ -1939,8 +1967,8 @@ linux_recvmsg(struct thread *td, struct linux_recvmsg_args *args)
 	if (error != 0)
 		return (error);
 	fdrop(fp, td);
-	return (linux_recvmsg_common(td, args->s, PTRIN(args->msg),
-	    args->flags, &bsd_msg));
+	return (linux_recvmsg_common(td, args->s, PTRIN(args->msg), args->flags,
+	    &bsd_msg));
 }
 
 static int
@@ -2008,16 +2036,17 @@ linux_recvmmsg(struct thread *td, struct linux_recvmmsg_args *args)
 		getnanotime(&tts);
 		timespecadd(&tts, &ts, &tts);
 		ptts = &tts;
-	}
-		else ptts = NULL;
+	} else
+		ptts = NULL;
 
-	return (linux_recvmmsg_common(td, args->s, PTRIN(args->msg),
-	    args->vlen, args->flags, ptts));
+	return (linux_recvmmsg_common(td, args->s, PTRIN(args->msg), args->vlen,
+	    args->flags, ptts));
 }
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 int
-linux_recvmmsg_time64(struct thread *td, struct linux_recvmmsg_time64_args *args)
+linux_recvmmsg_time64(struct thread *td,
+    struct linux_recvmmsg_time64_args *args)
 {
 	struct timespec ts, tts, *ptts;
 	int error;
@@ -2029,11 +2058,11 @@ linux_recvmmsg_time64(struct thread *td, struct linux_recvmmsg_time64_args *args
 		getnanotime(&tts);
 		timespecadd(&tts, &ts, &tts);
 		ptts = &tts;
-	}
-		else ptts = NULL;
+	} else
+		ptts = NULL;
 
-	return (linux_recvmmsg_common(td, args->s, PTRIN(args->msg),
-	    args->vlen, args->flags, ptts));
+	return (linux_recvmmsg_common(td, args->s, PTRIN(args->msg), args->vlen,
+	    args->flags, ptts));
 }
 #endif
 
@@ -2072,14 +2101,14 @@ linux_setsockopt(struct thread *td, struct linux_setsockopt_args *args)
 				return (error);
 			tv.tv_sec = linux_tv.tv_sec;
 			tv.tv_usec = linux_tv.tv_usec;
-			return (kern_setsockopt(td, args->s, level,
-			    name, &tv, UIO_SYSSPACE, sizeof(tv)));
+			return (kern_setsockopt(td, args->s, level, name, &tv,
+			    UIO_SYSSPACE, sizeof(tv)));
 			/* NOTREACHED */
 		case SO_TIMESTAMP:
 			/* overwrite SO_BINTIME */
 			val = 0;
-			error = kern_setsockopt(td, args->s, level,
-			    SO_BINTIME, &val, UIO_SYSSPACE, sizeof(val));
+			error = kern_setsockopt(td, args->s, level, SO_BINTIME,
+			    &val, UIO_SYSSPACE, sizeof(val));
 			if (error != 0)
 				return (error);
 			pem = pem_find(p);
@@ -2137,12 +2166,12 @@ linux_setsockopt(struct thread *td, struct linux_setsockopt_args *args)
 		if (error != 0)
 			return (error);
 
-		error = kern_setsockopt(td, args->s, level,
-		    name, sa, UIO_SYSSPACE, len);
+		error = kern_setsockopt(td, args->s, level, name, sa,
+		    UIO_SYSSPACE, len);
 		free(sa, M_SONAME);
 	} else {
-		error = kern_setsockopt(td, args->s, level,
-		    name, PTRIN(args->optval), UIO_USERSPACE, args->optlen);
+		error = kern_setsockopt(td, args->s, level, name,
+		    PTRIN(args->optval), UIO_USERSPACE, args->optlen);
 	}
 
 	return (error);
@@ -2169,8 +2198,8 @@ linux_getsockopt_so_peergroups(struct thread *td,
 	int error, i;
 
 	xulen = sizeof(xu);
-	error = kern_getsockopt(td, args->s, 0,
-	    LOCAL_PEERCRED, &xu, UIO_SYSSPACE, &xulen);
+	error = kern_getsockopt(td, args->s, 0, LOCAL_PEERCRED, &xu,
+	    UIO_SYSSPACE, &xulen);
 	if (error != 0)
 		return (error);
 
@@ -2212,8 +2241,7 @@ linux_getsockopt_so_peersec(struct thread *td,
 		return (error);
 	}
 
-	return (linux_sockopt_copyout(td, SECURITY_CONTEXT_STRING,
-	    len, args));
+	return (linux_sockopt_copyout(td, SECURITY_CONTEXT_STRING, len, args));
 }
 
 static int
@@ -2225,8 +2253,8 @@ linux_getsockopt_so_linger(struct thread *td,
 	int error;
 
 	len = sizeof(ling);
-	error = kern_getsockopt(td, args->s, SOL_SOCKET,
-	    SO_LINGER, &ling, UIO_SYSSPACE, &len);
+	error = kern_getsockopt(td, args->s, SOL_SOCKET, SO_LINGER, &ling,
+	    UIO_SYSSPACE, &len);
 	if (error != 0)
 		return (error);
 	ling.l_onoff = ((ling.l_onoff & SO_LINGER) != 0);
@@ -2265,8 +2293,8 @@ linux_getsockopt(struct thread *td, struct linux_getsockopt_args *args)
 			/* FALLTHROUGH */
 		case SO_SNDTIMEO:
 			tv_len = sizeof(tv);
-			error = kern_getsockopt(td, args->s, level,
-			    name, &tv, UIO_SYSSPACE, &tv_len);
+			error = kern_getsockopt(td, args->s, level, name, &tv,
+			    UIO_SYSSPACE, &tv_len);
 			if (error != 0)
 				return (error);
 			linux_tv.tv_sec = tv.tv_sec;
@@ -2283,37 +2311,35 @@ linux_getsockopt(struct thread *td, struct linux_getsockopt_args *args)
 			 */
 			level = 0;
 			xulen = sizeof(xu);
-			error = kern_getsockopt(td, args->s, level,
-			    name, &xu, UIO_SYSSPACE, &xulen);
+			error = kern_getsockopt(td, args->s, level, name, &xu,
+			    UIO_SYSSPACE, &xulen);
 			if (error != 0)
 				return (error);
 			lxu.pid = xu.cr_pid;
 			lxu.uid = xu.cr_uid;
 			lxu.gid = xu.cr_gid;
-			return (linux_sockopt_copyout(td, &lxu,
-			    sizeof(lxu), args));
+			return (
+			    linux_sockopt_copyout(td, &lxu, sizeof(lxu), args));
 			/* NOTREACHED */
 		case SO_ERROR:
 			len = sizeof(newval);
-			error = kern_getsockopt(td, args->s, level,
-			    name, &newval, UIO_SYSSPACE, &len);
+			error = kern_getsockopt(td, args->s, level, name,
+			    &newval, UIO_SYSSPACE, &len);
 			if (error != 0)
 				return (error);
 			newval = -bsd_to_linux_errno(newval);
-			return (linux_sockopt_copyout(td, &newval,
-			    len, args));
+			return (linux_sockopt_copyout(td, &newval, len, args));
 			/* NOTREACHED */
 		case SO_DOMAIN:
 			len = sizeof(newval);
-			error = kern_getsockopt(td, args->s, level,
-			    name, &newval, UIO_SYSSPACE, &len);
+			error = kern_getsockopt(td, args->s, level, name,
+			    &newval, UIO_SYSSPACE, &len);
 			if (error != 0)
 				return (error);
 			newval = bsd_to_linux_domain(newval);
 			if (newval == -1)
 				return (ENOPROTOOPT);
-			return (linux_sockopt_copyout(td, &newval,
-			    len, args));
+			return (linux_sockopt_copyout(td, &newval, len, args));
 			/* NOTREACHED */
 		case SO_LINGER:
 			return (linux_getsockopt_so_linger(td, args));
@@ -2345,20 +2371,19 @@ linux_getsockopt(struct thread *td, struct linux_getsockopt_args *args)
 
 	if (name == IPV6_NEXTHOP) {
 		error = copyin(PTRIN(args->optlen), &len, sizeof(len));
-                if (error != 0)
-                        return (error);
+		if (error != 0)
+			return (error);
 		sa = malloc(len, M_SONAME, M_WAITOK);
 
-		error = kern_getsockopt(td, args->s, level,
-		    name, sa, UIO_SYSSPACE, &len);
+		error = kern_getsockopt(td, args->s, level, name, sa,
+		    UIO_SYSSPACE, &len);
 		if (error != 0)
 			goto out;
 
 		error = linux_copyout_sockaddr(sa, PTRIN(args->optval), len);
 		if (error == 0)
-			error = copyout(&len, PTRIN(args->optlen),
-			    sizeof(len));
-out:
+			error = copyout(&len, PTRIN(args->optlen), sizeof(len));
+	out:
 		free(sa, M_SONAME);
 	} else {
 		if (args->optval) {
@@ -2366,11 +2391,10 @@ out:
 			if (error != 0)
 				return (error);
 		}
-		error = kern_getsockopt(td, args->s, level,
-		    name, PTRIN(args->optval), UIO_USERSPACE, &len);
+		error = kern_getsockopt(td, args->s, level, name,
+		    PTRIN(args->optval), UIO_USERSPACE, &len);
 		if (error == 0)
-			error = copyout(&len, PTRIN(args->optlen),
-			    sizeof(len));
+			error = copyout(&len, PTRIN(args->optlen), sizeof(len));
 	}
 
 	return (error);
@@ -2392,7 +2416,7 @@ is_sendfile(struct file *fp, struct file *ofp)
 	 */
 	if ((fp->f_type != DTYPE_SHM && fp->f_type != DTYPE_VNODE) ||
 	    (fp->f_type == DTYPE_VNODE &&
-	    (fp->f_vnode == NULL || fp->f_vnode->v_type != VREG)))
+		(fp->f_vnode == NULL || fp->f_vnode->v_type != VREG)))
 		return (false);
 	/*
 	 * The socket must be a stream socket and connected.
@@ -2420,8 +2444,8 @@ is_regular_file(struct file *fp)
 }
 
 static int
-sendfile_fallback(struct thread *td, struct file *fp, l_int out,
-    off_t *offset, l_size_t count, off_t *sbytes)
+sendfile_fallback(struct thread *td, struct file *fp, l_int out, off_t *offset,
+    l_size_t count, off_t *sbytes)
 {
 	off_t current_offset, out_offset, to_send;
 	l_size_t bytes_sent, n_read;
@@ -2508,8 +2532,8 @@ drop:
 }
 
 static int
-sendfile_sendfile(struct thread *td, struct file *fp, l_int out,
-    off_t *offset, l_size_t count, off_t *sbytes)
+sendfile_sendfile(struct thread *td, struct file *fp, l_int out, off_t *offset,
+    l_size_t count, off_t *sbytes)
 {
 	off_t current_offset;
 	int error;
@@ -2522,8 +2546,8 @@ sendfile_sendfile(struct thread *td, struct file *fp, l_int out,
 		current_offset = td->td_uretoff.tdu_off;
 	} else
 		current_offset = *offset;
-	error = fo_sendfile(fp, out, NULL, NULL, current_offset, count,
-	    sbytes, 0, td);
+	error = fo_sendfile(fp, out, NULL, NULL, current_offset, count, sbytes,
+	    0, td);
 	if (error == 0) {
 		current_offset += *sbytes;
 		if (offset != NULL)
@@ -2535,8 +2559,8 @@ sendfile_sendfile(struct thread *td, struct file *fp, l_int out,
 }
 
 static int
-linux_sendfile_common(struct thread *td, l_int out, l_int in,
-    off_t *offset, l_size_t count)
+linux_sendfile_common(struct thread *td, l_int out, l_int in, off_t *offset,
+    l_size_t count)
 {
 	struct file *fp, *ofp;
 	off_t sbytes;
@@ -2552,7 +2576,7 @@ linux_sendfile_common(struct thread *td, l_int out, l_int in,
 		return (error);
 	if ((fp->f_type != DTYPE_SHM && fp->f_type != DTYPE_VNODE) ||
 	    (fp->f_type == DTYPE_VNODE &&
-	    (fp->f_vnode == NULL || fp->f_vnode->v_type != VREG))) {
+		(fp->f_vnode == NULL || fp->f_vnode->v_type != VREG))) {
 		error = EINVAL;
 		goto drop;
 	}
@@ -2642,7 +2666,7 @@ linux_sendfile64(struct thread *td, struct linux_sendfile64_args *arg)
 	}
 
 	error = linux_sendfile_common(td, arg->out, arg->in,
-		arg->offset != NULL ? &offset : NULL, arg->count);
+	    arg->offset != NULL ? &offset : NULL, arg->count);
 
 	if (error == 0 && arg->offset != NULL)
 		error = copyout(&offset, arg->offset, sizeof(offset));
@@ -2652,20 +2676,15 @@ linux_sendfile64(struct thread *td, struct linux_sendfile64_args *arg)
 
 /* Argument list sizes for linux_socketcall */
 static const unsigned char lxs_args_cnt[] = {
-	0 /* unused*/,		3 /* socket */,
-	3 /* bind */,		3 /* connect */,
-	2 /* listen */,		3 /* accept */,
-	3 /* getsockname */,	3 /* getpeername */,
-	4 /* socketpair */,	4 /* send */,
-	4 /* recv */,		6 /* sendto */,
-	6 /* recvfrom */,	2 /* shutdown */,
-	5 /* setsockopt */,	5 /* getsockopt */,
-	3 /* sendmsg */,	3 /* recvmsg */,
-	4 /* accept4 */,	5 /* recvmmsg */,
-	4 /* sendmmsg */,	4 /* sendfile */
+	0 /* unused*/, 3 /* socket */, 3 /* bind */, 3 /* connect */,
+	2 /* listen */, 3 /* accept */, 3 /* getsockname */,
+	3 /* getpeername */, 4 /* socketpair */, 4 /* send */, 4 /* recv */,
+	6 /* sendto */, 6 /* recvfrom */, 2 /* shutdown */, 5 /* setsockopt */,
+	5 /* getsockopt */, 3 /* sendmsg */, 3 /* recvmsg */, 4 /* accept4 */,
+	5 /* recvmmsg */, 4 /* sendmmsg */, 4 /* sendfile */
 };
-#define	LINUX_ARGS_CNT		(nitems(lxs_args_cnt) - 1)
-#define	LINUX_ARG_SIZE(x)	(lxs_args_cnt[x] * sizeof(l_ulong))
+#define LINUX_ARGS_CNT (nitems(lxs_args_cnt) - 1)
+#define LINUX_ARG_SIZE(x) (lxs_args_cnt[x] * sizeof(l_ulong))
 
 int
 linux_socketcall(struct thread *td, struct linux_socketcall_args *args)

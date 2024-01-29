@@ -36,25 +36,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <util.h>
 
 #include "makefs.h"
 #include "zfs.h"
 
 typedef struct {
-	const char	*name;
-	unsigned int	id;
-	uint16_t	size;
-	sa_bswap_type_t	bs;
+	const char *name;
+	unsigned int id;
+	uint16_t size;
+	sa_bswap_type_t bs;
 } zfs_sattr_t;
 
 typedef struct zfs_fs {
-	zfs_objset_t	*os;
+	zfs_objset_t *os;
 
 	/* Offset table for system attributes, indexed by a zpl_attr_t. */
-	uint16_t	*saoffs;
-	size_t		sacnt;
+	uint16_t *saoffs;
+	size_t sacnt;
 	const zfs_sattr_t *satab;
 } zfs_fs_t;
 
@@ -91,7 +90,10 @@ typedef enum zpl_attr {
  * This table must be kept in sync with zpl_attr_layout[] and zpl_attr_t.
  */
 static const zfs_sattr_t zpl_attrs[] = {
-#define	_ZPL_ATTR(n, s, b)	{ .name = #n, .id = n, .size = s, .bs = b }
+#define _ZPL_ATTR(n, s, b)                              \
+	{                                               \
+		.name = #n, .id = n, .size = s, .bs = b \
+	}
 	_ZPL_ATTR(ZPL_ATIME, sizeof(uint64_t) * 2, SA_UINT64_ARRAY),
 	_ZPL_ATTR(ZPL_MTIME, sizeof(uint64_t) * 2, SA_UINT64_ARRAY),
 	_ZPL_ATTR(ZPL_CTIME, sizeof(uint64_t) * 2, SA_UINT64_ARRAY),
@@ -144,22 +146,22 @@ static const sa_attr_type_t zpl_attr_layout[] = {
  * Keys for the ZPL attribute tables in the SA layout ZAP.  The first two
  * indices are reserved for legacy attribute encoding.
  */
-#define	SA_LAYOUT_INDEX_DEFAULT	2
-#define	SA_LAYOUT_INDEX_SYMLINK	3
+#define SA_LAYOUT_INDEX_DEFAULT 2
+#define SA_LAYOUT_INDEX_SYMLINK 3
 
 struct fs_populate_dir {
 	SLIST_ENTRY(fs_populate_dir) next;
-	int			dirfd;
-	uint64_t		objid;
-	zfs_zap_t		*zap;
+	int dirfd;
+	uint64_t objid;
+	zfs_zap_t *zap;
 };
 
 struct fs_populate_arg {
-	zfs_opt_t	*zfs;
-	zfs_fs_t	*fs;			/* owning filesystem */
-	uint64_t	rootdirid;		/* root directory dnode ID */
-	int		rootdirfd;		/* root directory fd */
-	SLIST_HEAD(, fs_populate_dir) dirs;	/* stack of directories */
+	zfs_opt_t *zfs;
+	zfs_fs_t *fs;			    /* owning filesystem */
+	uint64_t rootdirid;		    /* root directory dnode ID */
+	int rootdirfd;			    /* root directory fd */
+	SLIST_HEAD(, fs_populate_dir) dirs; /* stack of directories */
 };
 
 static void fs_build_one(zfs_opt_t *, zfs_dsl_dir_t *, fsnode *, int);
@@ -252,8 +254,8 @@ fs_populate_varszattr(zfs_fs_t *fs, char *attrbuf, const void *val,
  * dealing with an mtree manifest, so both mechanisms are implemented.
  */
 static void
-fs_populate_path(const fsnode *cur, struct fs_populate_arg *arg,
-    char *path, size_t sz, int *dirfdp)
+fs_populate_path(const fsnode *cur, struct fs_populate_arg *arg, char *path,
+    size_t sz, int *dirfdp)
 {
 	if (cur->contents != NULL) {
 		size_t n;
@@ -271,8 +273,8 @@ fs_populate_path(const fsnode *cur, struct fs_populate_arg *arg,
 		int n;
 
 		*dirfdp = AT_FDCWD;
-		n = snprintf(path, sz, "%s/%s/%s",
-		    cur->root, cur->path, cur->name);
+		n = snprintf(path, sz, "%s/%s/%s", cur->root, cur->path,
+		    cur->name);
 		assert(n >= 0);
 		assert((size_t)n < sz);
 	}
@@ -304,8 +306,8 @@ fs_open_can_fail(const fsnode *cur, struct fs_populate_arg *arg, int flags)
 }
 
 static void
-fs_readlink(const fsnode *cur, struct fs_populate_arg *arg,
-    char *buf, size_t bufsz)
+fs_readlink(const fsnode *cur, struct fs_populate_arg *arg, char *buf,
+    size_t bufsz)
 {
 	char path[PATH_MAX];
 	int fd;
@@ -328,8 +330,8 @@ fs_readlink(const fsnode *cur, struct fs_populate_arg *arg,
 }
 
 static void
-fs_populate_time(zfs_fs_t *fs, char *attrbuf, struct timespec *ts,
-    uint16_t ind, size_t *szp)
+fs_populate_time(zfs_fs_t *fs, char *attrbuf, struct timespec *ts, uint16_t ind,
+    size_t *szp)
 {
 	uint64_t timebuf[2];
 
@@ -371,7 +373,7 @@ fs_populate_sattrs(struct fs_populate_arg *arg, const fsnode *cur,
 		break;
 	case S_IFDIR:
 		layout = SA_LAYOUT_INDEX_DEFAULT;
-		links = 1; /* .. */
+		links = 1;   /* .. */
 		objsize = 1; /* .. */
 
 		/*
@@ -380,7 +382,7 @@ fs_populate_sattrs(struct fs_populate_arg *arg, const fsnode *cur,
 		 * entries which are directories (including "." and "..").
 		 */
 		for (fsnode *c = fsnode_isroot(cur) ? cur->next : cur->child;
-		    c != NULL; c = c->next) {
+		     c != NULL; c = c->next) {
 			if (c->type == S_IFDIR)
 				links++;
 			objsize++;
@@ -388,7 +390,8 @@ fs_populate_sattrs(struct fs_populate_arg *arg, const fsnode *cur,
 
 		/* The root directory is its own parent. */
 		parent = SLIST_EMPTY(&arg->dirs) ?
-		    arg->rootdirid : SLIST_FIRST(&arg->dirs)->objid;
+		    arg->rootdirid :
+		    SLIST_FIRST(&arg->dirs)->objid;
 		break;
 	case S_IFLNK:
 		fs_readlink(cur, arg, target, sizeof(target));
@@ -489,8 +492,8 @@ fs_populate_sattrs(struct fs_populate_arg *arg, const fsnode *cur,
 	fs_populate_time(fs, attrbuf, &sb->st_birthtim, ZPL_CRTIME, &bonussz);
 #endif
 
-	fs_populate_varszattr(fs, attrbuf, aces, sizeof(aces), 0,
-	    ZPL_DACL_ACES, &bonussz);
+	fs_populate_varszattr(fs, attrbuf, aces, sizeof(aces), 0, ZPL_DACL_ACES,
+	    &bonussz);
 	sahdr->sa_lengths[0] = sizeof(aces);
 
 	if (cur->type == S_IFLNK) {
@@ -765,10 +768,10 @@ fs_set_zpl_attrs(zfs_opt_t *zfs, zfs_fs_t *fs)
 	 */
 	salzap = zap_alloc(os, salobj);
 	assert(zpl_attr_layout[nitems(zpl_attr_layout) - 1] == ZPL_SYMLINK);
-	fs_add_zpl_attr_layout(salzap, SA_LAYOUT_INDEX_DEFAULT,
-	    zpl_attr_layout, nitems(zpl_attr_layout) - 1);
-	fs_add_zpl_attr_layout(salzap, SA_LAYOUT_INDEX_SYMLINK,
-	    zpl_attr_layout, nitems(zpl_attr_layout));
+	fs_add_zpl_attr_layout(salzap, SA_LAYOUT_INDEX_DEFAULT, zpl_attr_layout,
+	    nitems(zpl_attr_layout) - 1);
+	fs_add_zpl_attr_layout(salzap, SA_LAYOUT_INDEX_SYMLINK, zpl_attr_layout,
+	    nitems(zpl_attr_layout));
 	zap_write(zfs, salzap);
 
 	sazap = zap_alloc(os, saobj);
@@ -824,8 +827,8 @@ fs_layout_one(zfs_opt_t *zfs, zfs_dsl_dir_t *dsldir, void *arg)
 	/*
 	 * If we were asked to specify a bootfs, set it here.
 	 */
-	if (zfs->bootfs != NULL && strcmp(zfs->bootfs,
-	    dsl_dir_fullname(dsldir)) == 0) {
+	if (zfs->bootfs != NULL &&
+	    strcmp(zfs->bootfs, dsl_dir_fullname(dsldir)) == 0) {
 		zap_add_uint64(zfs->poolprops, "bootfs",
 		    dsl_dir_dataset_id(dsldir));
 	}
@@ -854,7 +857,7 @@ fs_layout_one(zfs_opt_t *zfs, zfs_dsl_dir_t *dsldir, void *arg)
 			name = strsep(&next, "/");
 
 			for (; cur != NULL && strcmp(cur->name, name) != 0;
-			    cur = cur->next)
+			     cur = cur->next)
 				;
 			if (cur == NULL) {
 				if (next == NULL)

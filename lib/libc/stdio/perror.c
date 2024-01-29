@@ -29,17 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <unistd.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 void
 perror(const char *s)

@@ -28,10 +28,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_inet.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/endian.h>
@@ -44,36 +44,34 @@
 #include <sys/sysctl.h>
 
 #ifdef DDB
-#include <ddb/ddb.h>
 #include <ddb/db_lex.h>
+#include <ddb/ddb.h>
 #endif
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_arp.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
-#include <net/vnet.h>
-#include <net/route.h>
-#include <net/route/nhop.h>
-
-#include <netinet/in.h>
-#include <netinet/in_fib.h>
-#include <netinet/in_systm.h>
-#include <netinet/in_var.h>
-#include <netinet/ip.h>
-#include <netinet/ip_var.h>
-#include <netinet/ip_options.h>
-#include <netinet/udp.h>
-#include <netinet/udp_var.h>
 
 #include <machine/in_cksum.h>
 #include <machine/pcb.h>
 
 #include <net/debugnet.h>
-#define	DEBUGNET_INTERNAL
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_private.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/route.h>
+#include <net/route/nhop.h>
+#include <net/vnet.h>
+#include <netinet/in.h>
+#include <netinet/in_fib.h>
+#include <netinet/in_systm.h>
+#include <netinet/in_var.h>
+#include <netinet/ip.h>
+#include <netinet/ip_options.h>
+#include <netinet/ip_var.h>
+#include <netinet/udp.h>
+#include <netinet/udp_var.h>
+#define DEBUGNET_INTERNAL
 #include <net/debugnet_int.h>
 
 FEATURE(debugnet, "Debugnet support");
@@ -82,21 +80,17 @@ SYSCTL_NODE(_net, OID_AUTO, debugnet, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "debugnet parameters");
 
 unsigned debugnet_debug;
-SYSCTL_UINT(_net_debugnet, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &debugnet_debug, 0,
+SYSCTL_UINT(_net_debugnet, OID_AUTO, debug, CTLFLAG_RWTUN, &debugnet_debug, 0,
     "Debug message verbosity (0: off; 1: on; 2: verbose)");
 
 int debugnet_npolls = 2000;
-SYSCTL_INT(_net_debugnet, OID_AUTO, npolls, CTLFLAG_RWTUN,
-    &debugnet_npolls, 0,
+SYSCTL_INT(_net_debugnet, OID_AUTO, npolls, CTLFLAG_RWTUN, &debugnet_npolls, 0,
     "Number of times to poll before assuming packet loss (0.5ms per poll)");
 int debugnet_nretries = 10;
-SYSCTL_INT(_net_debugnet, OID_AUTO, nretries, CTLFLAG_RWTUN,
-    &debugnet_nretries, 0,
-    "Number of retransmit attempts before giving up");
+SYSCTL_INT(_net_debugnet, OID_AUTO, nretries, CTLFLAG_RWTUN, &debugnet_nretries,
+    0, "Number of retransmit attempts before giving up");
 int debugnet_fib = RT_DEFAULT_FIB;
-SYSCTL_INT(_net_debugnet, OID_AUTO, fib, CTLFLAG_RWTUN,
-    &debugnet_fib, 0,
+SYSCTL_INT(_net_debugnet, OID_AUTO, fib, CTLFLAG_RWTUN, &debugnet_fib, 0,
     "Fib to use when sending dump");
 
 static bool g_debugnet_pcb_inuse;
@@ -274,13 +268,14 @@ debugnet_send(struct debugnet_pcb *pcb, uint32_t type, const void *data,
 
 retransmit:
 	/* Chunks can be too big to fit in packets. */
-	for (i = sent_so_far = 0; sent_so_far < datalen ||
-	    (i == 0 && datalen == 0); i++) {
+	for (i = sent_so_far = 0;
+	     sent_so_far < datalen || (i == 0 && datalen == 0); i++) {
 		pktlen = datalen - sent_so_far;
 
 		/* Bound: the interface MTU (assume no IP options). */
-		pktlen = min(pktlen, pcb->dp_ifp->if_mtu -
-		    sizeof(struct udpiphdr) - sizeof(struct debugnet_msg_hdr));
+		pktlen = min(pktlen,
+		    pcb->dp_ifp->if_mtu - sizeof(struct udpiphdr) -
+			sizeof(struct debugnet_msg_hdr));
 
 		/*
 		 * Check if it is retransmitting and this has been ACKed
@@ -309,8 +304,8 @@ retransmit:
 		dn_msg_hdr->mh_len = htonl(pktlen);
 
 		if (auxdata != NULL) {
-			dn_msg_hdr->mh_offset =
-			    htobe64(auxdata->dp_offset_start + sent_so_far);
+			dn_msg_hdr->mh_offset = htobe64(
+			    auxdata->dp_offset_start + sent_so_far);
 			dn_msg_hdr->mh_aux2 = htobe32(auxdata->dp_aux2);
 		} else {
 			dn_msg_hdr->mh_offset = htobe64(sent_so_far);
@@ -342,8 +337,8 @@ retransmit:
 	}
 	if (i >= DEBUGNET_MAX_IN_FLIGHT)
 		printf("Warning: Sent more than %d packets (%d). "
-		    "Acknowledgements will fail unless the size of "
-		    "rcvd_acks/want_acks is increased.\n",
+		       "Acknowledgements will fail unless the size of "
+		       "rcvd_acks/want_acks is increased.\n",
 		    DEBUGNET_MAX_IN_FLIGHT, i);
 
 	/*
@@ -415,7 +410,8 @@ debugnet_handle_rx_msg(struct debugnet_pcb *pcb, struct mbuf **mb)
 				pcb->dp_finish_handler();
 			}
 		} else {
-			DNETDEBUG("Got unexpected debugnet message %u\n", hdr_type);
+			DNETDEBUG("Got unexpected debugnet message %u\n",
+			    hdr_type);
 		}
 		return;
 	}
@@ -430,14 +426,17 @@ debugnet_handle_rx_msg(struct debugnet_pcb *pcb, struct mbuf **mb)
 	dnh = NULL;
 	error = pcb->dp_rx_handler(m);
 	if (error != 0) {
-		DNETDEBUG("RX handler was not able to accept message, error %d. "
-		    "Skipping ack.\n", error);
+		DNETDEBUG(
+		    "RX handler was not able to accept message, error %d. "
+		    "Skipping ack.\n",
+		    error);
 		return;
 	}
 
 	error = debugnet_ack_output(pcb, seqno);
 	if (error != 0) {
-		DNETDEBUG("Couldn't ACK rx packet %u; %d\n", ntohl(seqno), error);
+		DNETDEBUG("Couldn't ACK rx packet %u; %d\n", ntohl(seqno),
+		    error);
 	}
 }
 
@@ -533,7 +532,7 @@ debugnet_handle_udp(struct debugnet_pcb *pcb, struct mbuf **mb)
 			DNETDEBUG("ignoring small ACK packet\n");
 		else
 			DNETDEBUG("ignoring unexpected non-ACK packet on "
-			    "half-duplex connection.\n");
+				  "half-duplex connection.\n");
 		return;
 	}
 
@@ -566,7 +565,7 @@ debugnet_input_one(struct ifnet *ifp, struct mbuf *m)
 	}
 	if (m->m_len < ETHER_HDR_LEN) {
 		DNETDEBUG_IF(ifp,
-	    "discard frame without leading eth header (len %u pktlen %u)\n",
+		    "discard frame without leading eth header (len %u pktlen %u)\n",
 		    m->m_len, m->m_pkthdr.len);
 		goto done;
 	}
@@ -584,8 +583,8 @@ debugnet_input_one(struct ifnet *ifp, struct mbuf *m)
 		DNETDEBUG_IF(ifp, "failed to get hw addr for interface\n");
 		goto done;
 	}
-	if (memcmp(ifr.ifr_addr.sa_data, eh->ether_dhost,
-	    ETHER_ADDR_LEN) != 0 &&
+	if (memcmp(ifr.ifr_addr.sa_data, eh->ether_dhost, ETHER_ADDR_LEN) !=
+		0 &&
 	    (etype != ETHERTYPE_ARP || !ETHER_IS_BROADCAST(eh->ether_dhost))) {
 		DNETDEBUG_IF(ifp,
 		    "discard frame with incorrect destination addr\n");
@@ -684,7 +683,7 @@ debugnet_connect(const struct debugnet_conn_params *dcp,
 		.dp_client = dcp->dc_client,
 		.dp_server = dcp->dc_server,
 		.dp_gateway = dcp->dc_gateway,
-		.dp_server_port = dcp->dc_herald_port,	/* Initially */
+		.dp_server_port = dcp->dc_herald_port, /* Initially */
 		.dp_client_port = dcp->dc_client_port,
 		.dp_seqno = 1,
 		.dp_ifp = dcp->dc_ifp,
@@ -751,12 +750,13 @@ debugnet_connect(const struct debugnet_conn_params *dcp,
 		inet_ntop(AF_INET, &pcb->dp_server, serbuf, sizeof(serbuf));
 		inet_ntop(AF_INET, &pcb->dp_client, clibuf, sizeof(clibuf));
 		if (pcb->dp_gateway != INADDR_ANY)
-			inet_ntop(AF_INET, &pcb->dp_gateway, gwbuf, sizeof(gwbuf));
-		DNETDEBUG("Connecting to %s:%d%s%s from %s:%d on %s\n",
-		    serbuf, pcb->dp_server_port,
+			inet_ntop(AF_INET, &pcb->dp_gateway, gwbuf,
+			    sizeof(gwbuf));
+		DNETDEBUG("Connecting to %s:%d%s%s from %s:%d on %s\n", serbuf,
+		    pcb->dp_server_port,
 		    (pcb->dp_gateway == INADDR_ANY) ? "" : " via ",
-		    (pcb->dp_gateway == INADDR_ANY) ? "" : gwbuf,
-		    clibuf, pcb->dp_client_port, if_name(ifp));
+		    (pcb->dp_gateway == INADDR_ANY) ? "" : gwbuf, clibuf,
+		    pcb->dp_client_port, if_name(ifp));
 	}
 
 	/* Validate iface is online and supported. */
@@ -888,8 +888,9 @@ debugnet_any_ifnet_update(struct ifnet *ifp)
 #ifndef INVARIANTS
 		if (bootverbose)
 #endif
-		printf("%s: Bad dn_init result from %s (ifp %p), ignoring.\n",
-		    __func__, if_name(ifp), ifp);
+			printf(
+			    "%s: Bad dn_init result from %s (ifp %p), ignoring.\n",
+			    __func__, if_name(ifp), ifp);
 		return;
 	}
 	dn_maybe_reinit_mbufs(nmbuf, ncl, clsize);
@@ -955,8 +956,9 @@ dn_parse_optarg_ipv4(struct my_inet_opt *opt)
 		MPASS(db_tok_number >= 0);
 
 		if (db_tok_number > UINT8_MAX) {
-			db_printf("%s:%s: octet %u out of range: %jd\n", __func__,
-			    opt->printname, octet, (intmax_t)db_tok_number);
+			db_printf("%s:%s: octet %u out of range: %jd\n",
+			    __func__, opt->printname, octet,
+			    (intmax_t)db_tok_number);
 			return (EDOM);
 		}
 
@@ -967,8 +969,8 @@ dn_parse_optarg_ipv4(struct my_inet_opt *opt)
 			t = db_read_token_flags(DRT_WSPACE);
 			if (t != tDOT) {
 				db_printf("%s:%s: octet %u expected '.'; found"
-				    " %d\n", __func__, opt->printname, octet,
-				    t);
+					  " %d\n",
+				    __func__, opt->printname, octet, t);
 				return (EINVAL);
 			}
 		}
@@ -1015,8 +1017,8 @@ debugnet_parse_ddb_cmd(const char *cmd, struct debugnet_ddb_config *result)
 
 	while (t != tEOL) {
 		if (t != tMINUS) {
-			db_printf("%s: Bad syntax; expected '-', got %d\n",
-			    cmd, t);
+			db_printf("%s: Bad syntax; expected '-', got %d\n", cmd,
+			    t);
 			goto usage;
 		}
 
@@ -1029,7 +1031,8 @@ debugnet_parse_ddb_cmd(const char *cmd, struct debugnet_ddb_config *result)
 
 		if (strlen(db_tok_string) > 1) {
 			db_printf("%s: Bad syntax; expected single option "
-			    "flag, got '%s'\n", cmd, db_tok_string);
+				  "flag, got '%s'\n",
+			    cmd, db_tok_string);
 			goto usage;
 		}
 
@@ -1058,7 +1061,8 @@ debugnet_parse_ddb_cmd(const char *cmd, struct debugnet_ddb_config *result)
 		t = db_read_token_flags(DRT_WSPACE);
 		if (t != tWSPACE) {
 			db_printf("%s: Bad syntax; expected space after "
-			    "flag %c, got %d\n", cmd, ch, t);
+				  "flag %c, got %d\n",
+			    cmd, ch, t);
 			goto usage;
 		}
 
@@ -1099,7 +1103,8 @@ debugnet_parse_ddb_cmd(const char *cmd, struct debugnet_ddb_config *result)
 			break;
 		if (t != tWSPACE) {
 			db_printf("%s: Bad syntax; expected space after "
-			    "flag %c option; got %d\n", cmd, ch, t);
+				  "flag %c option; got %d\n",
+			    cmd, ch, t);
 			goto usage;
 		}
 		t = db_read_token_flags(DRT_WSPACE);
@@ -1119,7 +1124,8 @@ debugnet_parse_ddb_cmd(const char *cmd, struct debugnet_ddb_config *result)
 
 usage:
 	db_printf("Usage: %s -s <server> [-g <gateway> -c <localip> "
-	    "-i <interface>]\n", cmd);
+		  "-i <interface>]\n",
+	    cmd);
 	error = EINVAL;
 	/* FALLTHROUGH */
 cleanup:

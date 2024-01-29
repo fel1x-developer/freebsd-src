@@ -19,74 +19,68 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/linker.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
+#include <dev/rtwn/if_rtwn_nop.h>
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_nop.h>
-#include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/pci/rtwn_pci_var.h>
-
 #include <dev/rtwn/pci/rtwn_pci_attach.h>
 #include <dev/rtwn/pci/rtwn_pci_reg.h>
 #include <dev/rtwn/pci/rtwn_pci_rx.h>
 #include <dev/rtwn/pci/rtwn_pci_tx.h>
-
+#include <dev/rtwn/pci/rtwn_pci_var.h>
 #include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
 
-static device_probe_t	rtwn_pci_probe;
-static device_attach_t	rtwn_pci_attach;
-static device_detach_t	rtwn_pci_detach;
-static device_shutdown_t rtwn_pci_shutdown;
-static device_suspend_t	rtwn_pci_suspend;
-static device_resume_t	rtwn_pci_resume;
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
-static int	rtwn_pci_alloc_rx_list(struct rtwn_softc *);
-static void	rtwn_pci_reset_rx_list(struct rtwn_softc *);
-static void	rtwn_pci_free_rx_list(struct rtwn_softc *);
-static int	rtwn_pci_alloc_tx_list(struct rtwn_softc *, int);
-static void	rtwn_pci_reset_tx_ring_stopped(struct rtwn_softc *, int);
-static void	rtwn_pci_reset_beacon_ring(struct rtwn_softc *, int);
-static void	rtwn_pci_reset_tx_list(struct rtwn_softc *,
-		    struct ieee80211vap *, int);
-static void	rtwn_pci_free_tx_list(struct rtwn_softc *, int);
-static void	rtwn_pci_reset_lists(struct rtwn_softc *,
-		    struct ieee80211vap *);
-static int	rtwn_pci_fw_write_block(struct rtwn_softc *,
-		    const uint8_t *, uint16_t, int);
-static uint16_t	rtwn_pci_get_qmap(struct rtwn_softc *);
-static void	rtwn_pci_set_desc_addr(struct rtwn_softc *);
-static void	rtwn_pci_beacon_update_begin(struct rtwn_softc *,
-		    struct ieee80211vap *);
-static void	rtwn_pci_beacon_update_end(struct rtwn_softc *,
-		    struct ieee80211vap *);
-static void	rtwn_pci_attach_methods(struct rtwn_softc *);
+static device_probe_t rtwn_pci_probe;
+static device_attach_t rtwn_pci_attach;
+static device_detach_t rtwn_pci_detach;
+static device_shutdown_t rtwn_pci_shutdown;
+static device_suspend_t rtwn_pci_suspend;
+static device_resume_t rtwn_pci_resume;
+
+static int rtwn_pci_alloc_rx_list(struct rtwn_softc *);
+static void rtwn_pci_reset_rx_list(struct rtwn_softc *);
+static void rtwn_pci_free_rx_list(struct rtwn_softc *);
+static int rtwn_pci_alloc_tx_list(struct rtwn_softc *, int);
+static void rtwn_pci_reset_tx_ring_stopped(struct rtwn_softc *, int);
+static void rtwn_pci_reset_beacon_ring(struct rtwn_softc *, int);
+static void rtwn_pci_reset_tx_list(struct rtwn_softc *, struct ieee80211vap *,
+    int);
+static void rtwn_pci_free_tx_list(struct rtwn_softc *, int);
+static void rtwn_pci_reset_lists(struct rtwn_softc *, struct ieee80211vap *);
+static int rtwn_pci_fw_write_block(struct rtwn_softc *, const uint8_t *,
+    uint16_t, int);
+static uint16_t rtwn_pci_get_qmap(struct rtwn_softc *);
+static void rtwn_pci_set_desc_addr(struct rtwn_softc *);
+static void rtwn_pci_beacon_update_begin(struct rtwn_softc *,
+    struct ieee80211vap *);
+static void rtwn_pci_beacon_update_end(struct rtwn_softc *,
+    struct ieee80211vap *);
+static void rtwn_pci_attach_methods(struct rtwn_softc *);
 
 static const struct rtwn_pci_ident *
 rtwn_pci_probe_sub(device_t dev)
@@ -130,8 +124,8 @@ rtwn_pci_alloc_rx_list(struct rtwn_softc *sc)
 	/* Allocate Rx descriptors. */
 	size = sizeof(struct rtwn_rx_stat_pci) * RTWN_PCI_RX_LIST_COUNT;
 	error = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), 1, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    size, 1, size, 0, NULL, NULL, &rx_ring->desc_dmat);
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, size, 1,
+	    size, 0, NULL, NULL, &rx_ring->desc_dmat);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not create rx desc DMA tag\n");
 		goto fail;
@@ -212,8 +206,8 @@ rtwn_pci_reset_rx_list(struct rtwn_softc *sc)
 
 	for (i = 0; i < RTWN_PCI_RX_LIST_COUNT; i++) {
 		rx_data = &rx_ring->rx_data[i];
-		rtwn_pci_setup_rx_desc(pc, &rx_ring->desc[i],
-		    rx_data->paddr, MJUMPAGESIZE, i);
+		rtwn_pci_setup_rx_desc(pc, &rx_ring->desc[i], rx_data->paddr,
+		    MJUMPAGESIZE, i);
 	}
 	rx_ring->cur = 0;
 }
@@ -228,8 +222,7 @@ rtwn_pci_free_rx_list(struct rtwn_softc *sc)
 
 	if (rx_ring->desc_dmat != NULL) {
 		if (rx_ring->desc != NULL) {
-			bus_dmamap_sync(rx_ring->desc_dmat,
-			    rx_ring->desc_map,
+			bus_dmamap_sync(rx_ring->desc_dmat, rx_ring->desc_map,
 			    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 			bus_dmamap_unload(rx_ring->desc_dmat,
 			    rx_ring->desc_map);
@@ -245,8 +238,8 @@ rtwn_pci_free_rx_list(struct rtwn_softc *sc)
 		rx_data = &rx_ring->rx_data[i];
 
 		if (rx_data->m != NULL) {
-			bus_dmamap_sync(rx_ring->data_dmat,
-			    rx_data->map, BUS_DMASYNC_POSTREAD);
+			bus_dmamap_sync(rx_ring->data_dmat, rx_data->map,
+			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(rx_ring->data_dmat, rx_data->map);
 			m_freem(rx_data->m);
 			rx_data->m = NULL;
@@ -270,8 +263,8 @@ rtwn_pci_alloc_tx_list(struct rtwn_softc *sc, int qid)
 
 	size = sc->txdesc_len * RTWN_PCI_TX_LIST_COUNT;
 	error = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), PAGE_SIZE, 0,
-	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    size, 1, size, 0, NULL, NULL, &tx_ring->desc_dmat);
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, size, 1,
+	    size, 0, NULL, NULL, &tx_ring->desc_dmat);
 	if (error != 0) {
 		device_printf(sc->sc_dev, "could not create tx ring DMA tag\n");
 		goto fail;
@@ -351,8 +344,7 @@ rtwn_pci_reset_tx_ring_stopped(struct rtwn_softc *sc, int qid)
 		}
 	}
 
-	bus_dmamap_sync(ring->desc_dmat, ring->desc_map,
-	    BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(ring->desc_dmat, ring->desc_map, BUS_DMASYNC_POSTWRITE);
 
 	sc->qfullmsk &= ~(1 << qid);
 	ring->queued = 0;
@@ -368,8 +360,9 @@ rtwn_pci_reset_beacon_ring(struct rtwn_softc *sc, int id)
 	struct rtwn_pci_softc *pc = RTWN_PCI_SOFTC(sc);
 	struct rtwn_tx_ring *ring = &pc->tx_ring[RTWN_PCI_BEACON_QUEUE];
 	struct rtwn_tx_data *data = &ring->tx_data[id];
-	struct rtwn_tx_desc_common *txd = (struct rtwn_tx_desc_common *)
-	    ((uint8_t *)ring->desc + id * sc->txdesc_len);
+	struct rtwn_tx_desc_common *txd =
+	    (struct rtwn_tx_desc_common *)((uint8_t *)ring->desc +
+		id * sc->txdesc_len);
 
 	bus_dmamap_sync(ring->desc_dmat, ring->desc_map, BUS_DMASYNC_POSTREAD);
 	if (txd->flags0 & RTWN_FLAGS0_OWN) {
@@ -390,8 +383,7 @@ rtwn_pci_reset_beacon_ring(struct rtwn_softc *sc, int id)
  * In case if vap is NULL just free everything and reset cur / last pointers.
  */
 static void
-rtwn_pci_reset_tx_list(struct rtwn_softc *sc, struct ieee80211vap *vap,
-    int qid)
+rtwn_pci_reset_tx_list(struct rtwn_softc *sc, struct ieee80211vap *vap, int qid)
 {
 	int i;
 
@@ -406,8 +398,8 @@ rtwn_pci_reset_tx_list(struct rtwn_softc *sc, struct ieee80211vap *vap,
 				rtwn_pci_reset_beacon_ring(sc, i);
 		}
 	} else if (qid == RTWN_PCI_BEACON_QUEUE &&
-		   (vap->iv_opmode == IEEE80211_M_HOSTAP ||
-		    vap->iv_opmode == IEEE80211_M_IBSS)) {
+	    (vap->iv_opmode == IEEE80211_M_HOSTAP ||
+		vap->iv_opmode == IEEE80211_M_IBSS)) {
 		struct rtwn_vap *uvp = RTWN_VAP(vap);
 
 		rtwn_pci_reset_beacon_ring(sc, uvp->id);
@@ -441,8 +433,8 @@ rtwn_pci_free_tx_list(struct rtwn_softc *sc, int qid)
 
 	if (tx_ring->desc_dmat != NULL) {
 		if (tx_ring->desc != NULL) {
-			bus_dmamap_sync(tx_ring->desc_dmat,
-			    tx_ring->desc_map, BUS_DMASYNC_POSTWRITE);
+			bus_dmamap_sync(tx_ring->desc_dmat, tx_ring->desc_map,
+			    BUS_DMASYNC_POSTWRITE);
 			bus_dmamap_unload(tx_ring->desc_dmat,
 			    tx_ring->desc_map);
 			bus_dmamem_free(tx_ring->desc_dmat, tx_ring->desc,
@@ -487,8 +479,8 @@ rtwn_pci_reset_lists(struct rtwn_softc *sc, struct ieee80211vap *vap)
 }
 
 static int
-rtwn_pci_fw_write_block(struct rtwn_softc *sc, const uint8_t *buf,
-    uint16_t reg, int mlen)
+rtwn_pci_fw_write_block(struct rtwn_softc *sc, const uint8_t *buf, uint16_t reg,
+    int mlen)
 {
 	int i;
 
@@ -514,7 +506,8 @@ rtwn_pci_set_desc_addr(struct rtwn_softc *sc)
 {
 	struct rtwn_pci_softc *pc = RTWN_PCI_SOFTC(sc);
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "%s: addresses:\n"
+	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
+	    "%s: addresses:\n"
 	    "bk: %08jX, be: %08jX, vi: %08jX, vo: %08jX\n"
 	    "bcn: %08jX, mgt: %08jX, high: %08jX, rx: %08jX\n",
 	    __func__, (uintmax_t)pc->tx_ring[RTWN_PCI_BK_QUEUE].paddr,
@@ -573,25 +566,25 @@ rtwn_pci_beacon_update_end(struct rtwn_softc *sc, struct ieee80211vap *vap)
 static void
 rtwn_pci_attach_methods(struct rtwn_softc *sc)
 {
-	sc->sc_write_1		= rtwn_pci_write_1;
-	sc->sc_write_2		= rtwn_pci_write_2;
-	sc->sc_write_4		= rtwn_pci_write_4;
-	sc->sc_read_1		= rtwn_pci_read_1;
-	sc->sc_read_2		= rtwn_pci_read_2;
-	sc->sc_read_4		= rtwn_pci_read_4;
-	sc->sc_delay		= rtwn_pci_delay;
-	sc->sc_tx_start		= rtwn_pci_tx_start;
-	sc->sc_reset_lists	= rtwn_pci_reset_lists;
-	sc->sc_abort_xfers	= rtwn_nop_softc;
-	sc->sc_fw_write_block	= rtwn_pci_fw_write_block;
-	sc->sc_get_qmap		= rtwn_pci_get_qmap;
-	sc->sc_set_desc_addr	= rtwn_pci_set_desc_addr;
+	sc->sc_write_1 = rtwn_pci_write_1;
+	sc->sc_write_2 = rtwn_pci_write_2;
+	sc->sc_write_4 = rtwn_pci_write_4;
+	sc->sc_read_1 = rtwn_pci_read_1;
+	sc->sc_read_2 = rtwn_pci_read_2;
+	sc->sc_read_4 = rtwn_pci_read_4;
+	sc->sc_delay = rtwn_pci_delay;
+	sc->sc_tx_start = rtwn_pci_tx_start;
+	sc->sc_reset_lists = rtwn_pci_reset_lists;
+	sc->sc_abort_xfers = rtwn_nop_softc;
+	sc->sc_fw_write_block = rtwn_pci_fw_write_block;
+	sc->sc_get_qmap = rtwn_pci_get_qmap;
+	sc->sc_set_desc_addr = rtwn_pci_set_desc_addr;
 	sc->sc_drop_incorrect_tx = rtwn_nop_softc;
 	sc->sc_beacon_update_begin = rtwn_pci_beacon_update_begin;
 	sc->sc_beacon_update_end = rtwn_pci_beacon_update_end;
-	sc->sc_beacon_unload	= rtwn_pci_reset_beacon_ring;
+	sc->sc_beacon_unload = rtwn_pci_reset_beacon_ring;
 
-	sc->bcn_check_interval	= 25000;
+	sc->bcn_check_interval = 25000;
 }
 
 static int
@@ -622,8 +615,7 @@ rtwn_pci_attach(device_t dev)
 	pci_enable_busmaster(dev);
 
 	rid = PCIR_BAR(2);
-	pc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE);
+	pc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
 	if (pc->mem == NULL) {
 		device_printf(dev, "can't map mem space\n");
 		return (ENOMEM);
@@ -637,8 +629,8 @@ rtwn_pci_attach(device_t dev)
 		rid = 1;
 	else
 		rid = 0;
-	pc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE |
-	    (rid != 0 ? 0 : RF_SHAREABLE));
+	pc->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE | (rid != 0 ? 0 : RF_SHAREABLE));
 	if (pc->irq == NULL) {
 		device_printf(dev, "can't map interrupt\n");
 		goto detach;
@@ -662,8 +654,7 @@ rtwn_pci_attach(device_t dev)
 	/* Allocate Tx/Rx buffers. */
 	error = rtwn_pci_alloc_rx_list(sc);
 	if (error != 0) {
-		device_printf(dev,
-		    "could not allocate Rx buffers, error %d\n",
+		device_printf(dev, "could not allocate Rx buffers, error %d\n",
 		    error);
 		goto detach;
 	}
@@ -671,8 +662,7 @@ rtwn_pci_attach(device_t dev)
 		error = rtwn_pci_alloc_tx_list(sc, i);
 		if (error != 0) {
 			device_printf(dev,
-			    "could not allocate Tx buffers, error %d\n",
-			    error);
+			    "could not allocate Tx buffers, error %d\n", error);
 			goto detach;
 		}
 	}
@@ -685,8 +675,8 @@ rtwn_pci_attach(device_t dev)
 	/*
 	 * Hook our interrupt after all initialization is complete.
 	 */
-	error = bus_setup_intr(dev, pc->irq, INTR_TYPE_NET | INTR_MPSAFE,
-	    NULL, rtwn_pci_intr, sc, &pc->pc_ih);
+	error = bus_setup_intr(dev, pc->irq, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+	    rtwn_pci_intr, sc, &pc->pc_ih);
 	if (error != 0) {
 		device_printf(dev, "can't establish interrupt, error %d\n",
 		    error);
@@ -696,7 +686,7 @@ rtwn_pci_attach(device_t dev)
 	return (0);
 
 detach:
-	rtwn_pci_detach(dev);		/* failure */
+	rtwn_pci_detach(dev); /* failure */
 	return (ENXIO);
 }
 
@@ -724,8 +714,8 @@ rtwn_pci_detach(device_t dev)
 	rtwn_pci_free_rx_list(sc);
 
 	if (pc->mem != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    rman_get_rid(pc->mem), pc->mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, rman_get_rid(pc->mem),
+		    pc->mem);
 
 	rtwn_detach_private(sc);
 	mtx_destroy(&sc->sc_mtx);
@@ -764,21 +754,18 @@ rtwn_pci_resume(device_t self)
 
 static device_method_t rtwn_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rtwn_pci_probe),
-	DEVMETHOD(device_attach,	rtwn_pci_attach),
-	DEVMETHOD(device_detach,	rtwn_pci_detach),
-	DEVMETHOD(device_shutdown,	rtwn_pci_shutdown),
-	DEVMETHOD(device_suspend,	rtwn_pci_suspend),
-	DEVMETHOD(device_resume,	rtwn_pci_resume),
+	DEVMETHOD(device_probe, rtwn_pci_probe),
+	DEVMETHOD(device_attach, rtwn_pci_attach),
+	DEVMETHOD(device_detach, rtwn_pci_detach),
+	DEVMETHOD(device_shutdown, rtwn_pci_shutdown),
+	DEVMETHOD(device_suspend, rtwn_pci_suspend),
+	DEVMETHOD(device_resume, rtwn_pci_resume),
 
 	DEVMETHOD_END
 };
 
-static driver_t rtwn_pci_driver = {
-	"rtwn",
-	rtwn_pci_methods,
-	sizeof(struct rtwn_pci_softc)
-};
+static driver_t rtwn_pci_driver = { "rtwn", rtwn_pci_methods,
+	sizeof(struct rtwn_pci_softc) };
 
 DRIVER_MODULE(rtwn_pci, pci, rtwn_pci_driver, NULL, NULL);
 MODULE_VERSION(rtwn_pci, 1);

@@ -23,9 +23,9 @@
  * Use is subject to license terms.
  */
 
-#include <umem.h>
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <umem.h>
 
 static umem_nofail_callback_t *nofail_cb = NULL;
 
@@ -39,19 +39,20 @@ struct umem_cache {
 /*
  * Simple stub for umem_alloc(). The callback isn't expected to return.
  */
-void *umem_alloc(size_t size, int flags)
+void *
+umem_alloc(size_t size, int flags)
 {
 	assert(flags == UMEM_DEFAULT || flags == UMEM_NOFAIL);
 
-	if(size == 0)
+	if (size == 0)
 		return NULL;
 
 	void *ret = malloc(size);
-	if(ret == NULL) {
-		if(!(flags & UMEM_NOFAIL))
+	if (ret == NULL) {
+		if (!(flags & UMEM_NOFAIL))
 			return NULL;
 
-		if(nofail_cb != NULL)
+		if (nofail_cb != NULL)
 			nofail_cb();
 		abort();
 	}
@@ -62,19 +63,20 @@ void *umem_alloc(size_t size, int flags)
 /*
  * Simple stub for umem_zalloc().
  */
-void *umem_zalloc(size_t size, int flags)
+void *
+umem_zalloc(size_t size, int flags)
 {
 	assert(flags == UMEM_DEFAULT || flags == UMEM_NOFAIL);
 
-	if(size == 0)
+	if (size == 0)
 		return NULL;
 
 	void *ret = calloc(1, size);
-	if(ret == NULL) {
-		if(!(flags & UMEM_NOFAIL))
+	if (ret == NULL) {
+		if (!(flags & UMEM_NOFAIL))
 			return NULL;
 
-		if(nofail_cb != NULL)
+		if (nofail_cb != NULL)
 			nofail_cb();
 		abort();
 	}
@@ -85,7 +87,8 @@ void *umem_zalloc(size_t size, int flags)
 /*
  * Simple stub for umem_free().
  */
-void umem_free(void *buf, size_t size)
+void
+umem_free(void *buf, size_t size)
 {
 	free(buf);
 }
@@ -93,7 +96,8 @@ void umem_free(void *buf, size_t size)
 /*
  * Simple stub for umem_nofail_callback().
  */
-void umem_nofail_callback(umem_nofail_callback_t *callback)
+void
+umem_nofail_callback(umem_nofail_callback_t *callback)
 {
 	nofail_cb = callback;
 }
@@ -101,12 +105,15 @@ void umem_nofail_callback(umem_nofail_callback_t *callback)
 /*
  * Simple stub for umem_cache_create().
  */
-umem_cache_t *umem_cache_create(char *debug_name, size_t bufsize, size_t align, umem_constructor_t *constructor, umem_destructor_t *destructor, umem_reclaim_t *reclaim, void *callback_data, void *source, int cflags)
+umem_cache_t *
+umem_cache_create(char *debug_name, size_t bufsize, size_t align,
+    umem_constructor_t *constructor, umem_destructor_t *destructor,
+    umem_reclaim_t *reclaim, void *callback_data, void *source, int cflags)
 {
 	assert(source == NULL);
 
 	umem_cache_t *cache = malloc(sizeof(umem_cache_t));
-	if(cache == NULL)
+	if (cache == NULL)
 		return NULL;
 
 	cache->constructor = constructor;
@@ -118,27 +125,29 @@ umem_cache_t *umem_cache_create(char *debug_name, size_t bufsize, size_t align, 
 }
 
 /*
- * Simple stub for umem_cache_alloc(). The nofail callback isn't expected to return.
+ * Simple stub for umem_cache_alloc(). The nofail callback isn't expected to
+ * return.
  */
-void *umem_cache_alloc(umem_cache_t *cache, int flags)
+void *
+umem_cache_alloc(umem_cache_t *cache, int flags)
 {
 	void *buf = malloc(cache->bufsize);
-	if(buf == NULL) {
-		if(!(flags & UMEM_NOFAIL))
+	if (buf == NULL) {
+		if (!(flags & UMEM_NOFAIL))
 			return NULL;
 
-		if(nofail_cb != NULL)
+		if (nofail_cb != NULL)
 			nofail_cb();
 		abort();
 	}
 
-	if(cache->constructor != NULL) {
-		if(cache->constructor(buf, cache->callback_data, flags) != 0) {
+	if (cache->constructor != NULL) {
+		if (cache->constructor(buf, cache->callback_data, flags) != 0) {
 			free(buf);
-			if(!(flags & UMEM_NOFAIL))
+			if (!(flags & UMEM_NOFAIL))
 				return NULL;
 
-			if(nofail_cb != NULL)
+			if (nofail_cb != NULL)
 				nofail_cb();
 			abort();
 		}
@@ -150,9 +159,10 @@ void *umem_cache_alloc(umem_cache_t *cache, int flags)
 /*
  * Simple stub for umem_cache_free().
  */
-void umem_cache_free(umem_cache_t *cache, void *buffer)
+void
+umem_cache_free(umem_cache_t *cache, void *buffer)
 {
-	if(cache->destructor != NULL)
+	if (cache->destructor != NULL)
 		cache->destructor(buffer, cache->callback_data);
 
 	free(buffer);
@@ -161,7 +171,8 @@ void umem_cache_free(umem_cache_t *cache, void *buffer)
 /*
  * Simple stub for umem_cache_destroy().
  */
-void umem_cache_destroy(umem_cache_t *cache)
+void
+umem_cache_destroy(umem_cache_t *cache)
 {
 	free(cache);
 }

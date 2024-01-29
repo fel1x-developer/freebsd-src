@@ -32,9 +32,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -44,32 +45,29 @@
 
 #include "coresight_if.h"
 
-#define	EDPCSR				0x0a0
-#define	EDCIDSR				0x0a4
-#define	EDVIDSR				0x0a8
-#define	EDPCSR_HI			0x0ac
-#define	EDOSLAR				0x300
-#define	EDPRCR				0x310
-#define	 EDPRCR_COREPURQ		(1 << 3)
-#define	 EDPRCR_CORENPDRQ		(1 << 0)
-#define	EDPRSR				0x314
-#define	EDDEVID1			0xfc4
-#define	EDDEVID				0xfc8
+#define EDPCSR 0x0a0
+#define EDCIDSR 0x0a4
+#define EDVIDSR 0x0a8
+#define EDPCSR_HI 0x0ac
+#define EDOSLAR 0x300
+#define EDPRCR 0x310
+#define EDPRCR_COREPURQ (1 << 3)
+#define EDPRCR_CORENPDRQ (1 << 0)
+#define EDPRSR 0x314
+#define EDDEVID1 0xfc4
+#define EDDEVID 0xfc8
 
 static struct ofw_compat_data compat_data[] = {
-	{ "arm,coresight-cpu-debug",		1 },
-	{ NULL,					0 }
+	{ "arm,coresight-cpu-debug", 1 }, { NULL, 0 }
 };
 
 struct debug_softc {
-	struct resource			*res;
-	struct coresight_platform_data	*pdata;
+	struct resource *res;
+	struct coresight_platform_data *pdata;
 };
 
-static struct resource_spec debug_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec debug_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static int
 debug_init(device_t dev)
@@ -140,12 +138,11 @@ debug_attach(device_t dev)
 
 static device_method_t debug_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		debug_probe),
-	DEVMETHOD(device_attach,	debug_attach),
+	DEVMETHOD(device_probe, debug_probe),
+	DEVMETHOD(device_attach, debug_attach),
 
 	/* Coresight interface */
-	DEVMETHOD(coresight_init,	debug_init),
-	DEVMETHOD_END
+	DEVMETHOD(coresight_init, debug_init), DEVMETHOD_END
 };
 
 static driver_t debug_driver = {

@@ -30,10 +30,10 @@
 #include <float.h>
 
 static int map[] = {
-	1,	/* round to nearest */
-	2,	/* round to positive infinity */
-	3,	/* round to negative infinity */
-	0	/* round to zero */
+	1, /* round to nearest */
+	2, /* round to positive infinity */
+	3, /* round to negative infinity */
+	0  /* round to zero */
 };
 
 int
@@ -41,6 +41,6 @@ __flt_rounds(void)
 {
 	uint64_t fpcr;
 
-	asm volatile("mrs	%0, fpcr" : "=r" (fpcr));
+	asm volatile("mrs	%0, fpcr" : "=r"(fpcr));
 	return map[(fpcr >> 22) & 3];
 }

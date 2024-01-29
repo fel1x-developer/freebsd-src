@@ -32,21 +32,22 @@
 
 /* Xilinx AXI DMA controller driver. */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <machine/bus.h>
-
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_page.h>
+
+#include <machine/bus.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -59,20 +60,18 @@
 
 #include "xdma_if.h"
 
-#define	READ4(_sc, _reg)	\
-	bus_space_read_4(_sc->bst, _sc->bsh, _reg)
-#define	WRITE4(_sc, _reg, _val)	\
+#define READ4(_sc, _reg) bus_space_read_4(_sc->bst, _sc->bsh, _reg)
+#define WRITE4(_sc, _reg, _val) \
 	bus_space_write_4(_sc->bst, _sc->bsh, _reg, _val)
-#define	READ8(_sc, _reg)	\
-	bus_space_read_8(_sc->bst, _sc->bsh, _reg)
-#define	WRITE8(_sc, _reg, _val)	\
+#define READ8(_sc, _reg) bus_space_read_8(_sc->bst, _sc->bsh, _reg)
+#define WRITE8(_sc, _reg, _val) \
 	bus_space_write_8(_sc->bst, _sc->bsh, _reg, _val)
 
 #define AXIDMA_DEBUG
 #undef AXIDMA_DEBUG
 
 #ifdef AXIDMA_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
@@ -80,46 +79,43 @@
 extern struct bus_space memmap_bus;
 
 struct axidma_channel {
-	struct axidma_softc	*sc;
-	xdma_channel_t		*xchan;
-	bool			used;
-	int			idx_head;
-	int			idx_tail;
+	struct axidma_softc *sc;
+	xdma_channel_t *xchan;
+	bool used;
+	int idx_head;
+	int idx_tail;
 
-	struct axidma_desc	**descs;
-	vm_paddr_t		*descs_phys;
-	uint32_t		descs_num;
+	struct axidma_desc **descs;
+	vm_paddr_t *descs_phys;
+	uint32_t descs_num;
 
-	vm_size_t		mem_size;
-	vm_offset_t		mem_paddr;
-	vm_offset_t		mem_vaddr;
+	vm_size_t mem_size;
+	vm_offset_t mem_paddr;
+	vm_offset_t mem_vaddr;
 
-	uint32_t		descs_used_count;
+	uint32_t descs_used_count;
 };
 
 struct axidma_softc {
-	device_t		dev;
-	struct resource		*res[3];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	void			*ih[2];
-	struct axidma_desc	desc;
-	struct axidma_channel	channels[AXIDMA_NCHANNELS];
+	device_t dev;
+	struct resource *res[3];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	void *ih[2];
+	struct axidma_desc desc;
+	struct axidma_channel channels[AXIDMA_NCHANNELS];
 };
 
-static struct resource_spec axidma_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec axidma_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { SYS_RES_IRQ, 1, RF_ACTIVE },
+	{ -1, 0 } };
 
-#define	HWTYPE_NONE	0
-#define	HWTYPE_STD	1
+#define HWTYPE_NONE 0
+#define HWTYPE_STD 1
 
 static struct ofw_compat_data compat_data[] = {
-	{ "xlnx,eth-dma",	HWTYPE_STD },
-	{ NULL,			HWTYPE_NONE },
+	{ "xlnx,eth-dma", HWTYPE_STD },
+	{ NULL, HWTYPE_NONE },
 };
 
 static int axidma_probe(device_t dev);
@@ -134,8 +130,7 @@ axidma_next_desc(struct axidma_channel *chan, uint32_t curidx)
 }
 
 static void
-axidma_intr(struct axidma_softc *sc,
-    struct axidma_channel *chan)
+axidma_intr(struct axidma_softc *sc, struct axidma_channel *chan)
 {
 	xdma_transfer_status_t status;
 	xdma_transfer_status_t st;
@@ -154,12 +149,11 @@ axidma_intr(struct axidma_softc *sc,
 	pending = READ4(sc, AXI_DMASR(data->id));
 	WRITE4(sc, AXI_DMASR(data->id), pending);
 
-	errors = (pending & (DMASR_DMAINTERR | DMASR_DMASLVERR
-			| DMASR_DMADECOREERR | DMASR_SGINTERR
-			| DMASR_SGSLVERR | DMASR_SGDECERR));
+	errors = (pending &
+	    (DMASR_DMAINTERR | DMASR_DMASLVERR | DMASR_DMADECOREERR |
+		DMASR_SGINTERR | DMASR_SGSLVERR | DMASR_SGDECERR));
 
-	dprintf("%s: AXI_DMASR %x\n", __func__,
-	    READ4(sc, AXI_DMASR(data->id)));
+	dprintf("%s: AXI_DMASR %x\n", __func__, READ4(sc, AXI_DMASR(data->id)));
 	dprintf("%s: AXI_CURDESC %x\n", __func__,
 	    READ4(sc, AXI_CURDESC(data->id)));
 	dprintf("%s: AXI_TAILDESC %x\n", __func__,
@@ -233,8 +227,8 @@ axidma_reset(struct axidma_softc *sc, int chan_id)
 	if (timeout == 0)
 		return (-1);
 
-	dprintf("%s: read control after reset: %x\n",
-	    __func__, READ4(sc, AXI_DMACR(chan_id)));
+	dprintf("%s: read control after reset: %x\n", __func__,
+	    READ4(sc, AXI_DMACR(chan_id)));
 
 	return (0);
 }
@@ -340,11 +334,11 @@ axidma_desc_alloc(struct axidma_softc *sc, struct xdma_channel *xchan,
 	chan = (struct axidma_channel *)xchan->chan;
 	nsegments = chan->descs_num;
 
-	chan->descs = malloc(nsegments * sizeof(struct axidma_desc *),
-	    M_DEVBUF, M_NOWAIT | M_ZERO);
+	chan->descs = malloc(nsegments * sizeof(struct axidma_desc *), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (chan->descs == NULL) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate memory.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate memory.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -352,19 +346,20 @@ axidma_desc_alloc(struct axidma_softc *sc, struct xdma_channel *xchan,
 	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	chan->mem_size = desc_size * nsegments;
 	if (vmem_alloc(xchan->vmem, chan->mem_size, M_FIRSTFIT | M_NOWAIT,
-	    &chan->mem_paddr)) {
+		&chan->mem_paddr)) {
 		device_printf(sc->dev, "Failed to allocate memory.\n");
 		return (-1);
 	}
 	chan->mem_vaddr = kva_alloc(chan->mem_size);
 	pmap_kenter_device(chan->mem_vaddr, chan->mem_size, chan->mem_paddr);
 
-	device_printf(sc->dev, "Allocated chunk %lx %lu\n",
-	    chan->mem_paddr, chan->mem_size);
+	device_printf(sc->dev, "Allocated chunk %lx %lu\n", chan->mem_paddr,
+	    chan->mem_size);
 
 	for (i = 0; i < nsegments; i++) {
-		chan->descs[i] = (struct axidma_desc *)
-		    ((uint64_t)chan->mem_vaddr + desc_size * i);
+		chan->descs[i] =
+		    (struct axidma_desc *)((uint64_t)chan->mem_vaddr +
+			desc_size * i);
 		chan->descs_phys[i] = chan->mem_paddr + desc_size * i;
 	}
 
@@ -428,8 +423,7 @@ axidma_channel_free(device_t dev, struct xdma_channel *xchan)
 }
 
 static int
-axidma_channel_capacity(device_t dev, xdma_channel_t *xchan,
-    uint32_t *capacity)
+axidma_channel_capacity(device_t dev, xdma_channel_t *xchan, uint32_t *capacity)
 {
 	struct axidma_channel *chan;
 	uint32_t c;
@@ -478,8 +472,8 @@ axidma_channel_submit_sg(device_t dev, struct xdma_channel *xchan,
 		dst_addr = (uint32_t)sg[i].dst_addr;
 		len = (uint32_t)sg[i].len;
 
-		dprintf("%s(%d): src %x dst %x len %d\n", __func__,
-		    data->id, src_addr, dst_addr, len);
+		dprintf("%s(%d): src %x dst %x len %d\n", __func__, data->id,
+		    src_addr, dst_addr, len);
 
 		desc = chan->descs[chan->idx_head];
 		if (sg[i].direction == XDMA_MEM_TO_DEV)
@@ -535,8 +529,8 @@ axidma_channel_prep_sg(device_t dev, struct xdma_channel *xchan)
 
 	ret = axidma_desc_alloc(sc, xchan, sizeof(struct axidma_desc));
 	if (ret != 0) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate descriptors.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate descriptors.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -591,8 +585,8 @@ axidma_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 	if (ncells != 1)
 		return (-1);
 
-	data = malloc(sizeof(struct axidma_fdt_data),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	data = malloc(sizeof(struct axidma_fdt_data), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	data->id = cells[0];
 
 	*ptr = data;
@@ -603,22 +597,22 @@ axidma_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 
 static device_method_t axidma_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			axidma_probe),
-	DEVMETHOD(device_attach,		axidma_attach),
-	DEVMETHOD(device_detach,		axidma_detach),
+	DEVMETHOD(device_probe, axidma_probe),
+	DEVMETHOD(device_attach, axidma_attach),
+	DEVMETHOD(device_detach, axidma_detach),
 
 	/* xDMA Interface */
-	DEVMETHOD(xdma_channel_alloc,		axidma_channel_alloc),
-	DEVMETHOD(xdma_channel_free,		axidma_channel_free),
-	DEVMETHOD(xdma_channel_control,		axidma_channel_control),
+	DEVMETHOD(xdma_channel_alloc, axidma_channel_alloc),
+	DEVMETHOD(xdma_channel_free, axidma_channel_free),
+	DEVMETHOD(xdma_channel_control, axidma_channel_control),
 
 	/* xDMA SG Interface */
-	DEVMETHOD(xdma_channel_capacity,	axidma_channel_capacity),
-	DEVMETHOD(xdma_channel_prep_sg,		axidma_channel_prep_sg),
-	DEVMETHOD(xdma_channel_submit_sg,	axidma_channel_submit_sg),
+	DEVMETHOD(xdma_channel_capacity, axidma_channel_capacity),
+	DEVMETHOD(xdma_channel_prep_sg, axidma_channel_prep_sg),
+	DEVMETHOD(xdma_channel_submit_sg, axidma_channel_submit_sg),
 
 #ifdef FDT
-	DEVMETHOD(xdma_ofw_md_data,		axidma_ofw_md_data),
+	DEVMETHOD(xdma_ofw_md_data, axidma_ofw_md_data),
 #endif
 
 	DEVMETHOD_END

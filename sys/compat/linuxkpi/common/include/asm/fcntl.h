@@ -27,8 +27,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_ASM_FCNTL_H_
-#define	_LINUXKPI_ASM_FCNTL_H_
+#define _LINUXKPI_ASM_FCNTL_H_
 
 #include <sys/fcntl.h>
 
-#endif	/* _LINUXKPI_ASM_FCNTL_H_ */
+#endif /* _LINUXKPI_ASM_FCNTL_H_ */

@@ -25,18 +25,18 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/clock.h>
 #include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/module.h>
-#include <sys/clock.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <xen/xen-os.h>
 #include <xen/error.h>
 #include <xen/hypervisor.h>
+#include <xen/xen-os.h>
 
 #include <contrib/xen/platform.h>
 
@@ -117,13 +117,14 @@ set_time(struct efi_tm *tm)
 
 	error = HYPERVISOR_platform_op(&op);
 
-	return ((error != 0) ? xen_translate_error(error) :
-	    efi_status_to_errno(op.u.efi_runtime_call.status));
+	return ((error != 0) ?
+		xen_translate_error(error) :
+		efi_status_to_errno(op.u.efi_runtime_call.status));
 }
 
 static int
-var_get(efi_char *name, struct uuid *vendor, uint32_t *attrib,
-    size_t *datasize, void *data)
+var_get(efi_char *name, struct uuid *vendor, uint32_t *attrib, size_t *datasize,
+    void *data)
 {
 	struct xen_platform_op op = {
 		.cmd = XENPF_efi_runtime_call,
@@ -135,8 +136,7 @@ var_get(efi_char *name, struct uuid *vendor, uint32_t *attrib,
 
 	CTASSERT(sizeof(*vendor) == sizeof(call->u.get_variable.vendor_guid));
 
-	memcpy(&call->u.get_variable.vendor_guid, vendor,
-	    sizeof(*vendor));
+	memcpy(&call->u.get_variable.vendor_guid, vendor, sizeof(*vendor));
 	set_xen_guest_handle(call->u.get_variable.name, name);
 	set_xen_guest_handle(call->u.get_variable.data, data);
 
@@ -177,8 +177,8 @@ var_nextname(size_t *namesize, efi_char *name, struct uuid *vendor)
 }
 
 static int
-var_set(efi_char *name, struct uuid *vendor, uint32_t attrib,
-    size_t datasize, void *data)
+var_set(efi_char *name, struct uuid *vendor, uint32_t attrib, size_t datasize,
+    void *data)
 {
 	struct xen_platform_op op = {
 		.cmd = XENPF_efi_runtime_call,
@@ -189,15 +189,14 @@ var_set(efi_char *name, struct uuid *vendor, uint32_t attrib,
 	struct xenpf_efi_runtime_call *call = &op.u.efi_runtime_call;
 	int error;
 
-	memcpy(&call->u.set_variable.vendor_guid, vendor,
-	    sizeof(*vendor));
+	memcpy(&call->u.set_variable.vendor_guid, vendor, sizeof(*vendor));
 	set_xen_guest_handle(call->u.set_variable.name, name);
 	set_xen_guest_handle(call->u.set_variable.data, data);
 
 	error = HYPERVISOR_platform_op(&op);
 
 	return ((error != 0) ? xen_translate_error(error) :
-	    efi_status_to_errno(call->status));
+			       efi_status_to_errno(call->status));
 }
 
 const static struct efi_ops pvefi_ops = {
@@ -231,7 +230,7 @@ modevents(module_t m, int event, void *arg __unused)
 
 	case MOD_UNLOAD:
 		if (prev != NULL)
-		    active_efi_ops = prev;
+			active_efi_ops = prev;
 		return (0);
 
 	case MOD_SHUTDOWN:

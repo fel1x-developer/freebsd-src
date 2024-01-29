@@ -29,19 +29,20 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
+
 #include <net/if.h>
 #include <net/if_gre.h>
 
 #include <ctype.h>
+#include <err.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 
 #include "ifconfig.h"
 
-#define	GREBITS	"\020\01ENABLE_CSUM\02ENABLE_SEQ\03UDPENCAP"
+#define GREBITS "\020\01ENABLE_CSUM\02ENABLE_SEQ\03UDPENCAP"
 
 static void
 gre_status(if_ctx *ctx)
@@ -107,20 +108,19 @@ setifgreopts(if_ctx *ctx, const char *val __unused, int d)
 	}
 }
 
-
 static struct cmd gre_cmds[] = {
-	DEF_CMD_ARG("grekey",			setifgrekey),
-	DEF_CMD_ARG("udpport",			setifgreport),
-	DEF_CMD("enable_csum", GRE_ENABLE_CSUM,	setifgreopts),
-	DEF_CMD("-enable_csum",-GRE_ENABLE_CSUM,setifgreopts),
-	DEF_CMD("enable_seq", GRE_ENABLE_SEQ,	setifgreopts),
-	DEF_CMD("-enable_seq",-GRE_ENABLE_SEQ,	setifgreopts),
-	DEF_CMD("udpencap", GRE_UDPENCAP,	setifgreopts),
-	DEF_CMD("-udpencap",-GRE_UDPENCAP,	setifgreopts),
+	DEF_CMD_ARG("grekey", setifgrekey),
+	DEF_CMD_ARG("udpport", setifgreport),
+	DEF_CMD("enable_csum", GRE_ENABLE_CSUM, setifgreopts),
+	DEF_CMD("-enable_csum", -GRE_ENABLE_CSUM, setifgreopts),
+	DEF_CMD("enable_seq", GRE_ENABLE_SEQ, setifgreopts),
+	DEF_CMD("-enable_seq", -GRE_ENABLE_SEQ, setifgreopts),
+	DEF_CMD("udpencap", GRE_UDPENCAP, setifgreopts),
+	DEF_CMD("-udpencap", -GRE_UDPENCAP, setifgreopts),
 };
 static struct afswtch af_gre = {
-	.af_name	= "af_gre",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_gre",
+	.af_af = AF_UNSPEC,
 	.af_other_status = gre_status,
 };
 
@@ -129,7 +129,7 @@ gre_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(gre_cmds);  i++)
+	for (i = 0; i < nitems(gre_cmds); i++)
 		cmd_register(&gre_cmds[i]);
 	af_register(&af_gre);
 }

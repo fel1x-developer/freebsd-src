@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "dhcpd.h"
 
 static int do_hash(const unsigned char *, int, int);
@@ -75,7 +76,8 @@ do_hash(const unsigned char *name, int len, int size)
 	return (accum % size);
 }
 
-void add_hash(struct hash_table *table, const unsigned char *name, int len,
+void
+add_hash(struct hash_table *table, const unsigned char *name, int len,
     unsigned char *pointer)
 {
 	struct hash_bucket *bp;

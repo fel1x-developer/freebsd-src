@@ -1,7 +1,6 @@
 #ifndef CTRS_H_
 #define CTRS_H_
 
-
 #include <sys/time.h>
 
 /* counters to accumulate statistics */
@@ -22,10 +21,12 @@ norm2(char *buf, double val, const char *fmt, int normalize)
 	const char *units[] = { "", "K", "M", "G", "T" };
 	u_int i;
 	if (normalize)
-		for (i = 0; val >=1000 && i < sizeof(units)/sizeof(const char *) - 1; i++)
+		for (i = 0; val >= 1000 &&
+		     i < sizeof(units) / sizeof(const char *) - 1;
+		     i++)
 			val /= 1000;
 	else
-		i=0;
+		i = 0;
 	sprintf(buf, fmt, val, units[i]);
 	return buf;
 }
@@ -55,23 +56,18 @@ timespec_ge(const struct timespec *a, const struct timespec *b)
 static __inline struct timespec
 timeval2spec(const struct timeval *a)
 {
-	struct timespec ts = {
-		.tv_sec = a->tv_sec,
-		.tv_nsec = a->tv_usec * 1000
-	};
+	struct timespec ts = { .tv_sec = a->tv_sec,
+		.tv_nsec = a->tv_usec * 1000 };
 	return ts;
 }
 
 static __inline struct timeval
 timespec2val(const struct timespec *a)
 {
-	struct timeval tv = {
-		.tv_sec = a->tv_sec,
-		.tv_usec = a->tv_nsec / 1000
-	};
+	struct timeval tv = { .tv_sec = a->tv_sec,
+		.tv_usec = a->tv_nsec / 1000 };
 	return tv;
 }
-
 
 static __inline struct timespec
 timespec_add(struct timespec a, struct timespec b)
@@ -97,19 +93,18 @@ timespec_sub(struct timespec a, struct timespec b)
 
 static __inline uint64_t
 wait_for_next_report(struct timeval *prev, struct timeval *cur,
-		int report_interval)
+    int report_interval)
 {
 	struct timeval delta;
 
-	delta.tv_sec = report_interval/1000;
-	delta.tv_usec = (report_interval%1000)*1000;
+	delta.tv_sec = report_interval / 1000;
+	delta.tv_usec = (report_interval % 1000) * 1000;
 	if (select(0, NULL, NULL, NULL, &delta) < 0 && errno != EINTR) {
 		perror("select");
 		abort();
 	}
 	gettimeofday(cur, NULL);
 	timersub(cur, prev, &delta);
-	return delta.tv_sec* 1000000 + delta.tv_usec;
+	return delta.tv_sec * 1000000 + delta.tv_usec;
 }
 #endif /* CTRS_H_ */
-

@@ -35,57 +35,56 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/pci/hdspe.h>
-#include <dev/sound/chip.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+#include <dev/sound/chip.h>
+#include <dev/sound/pci/hdspe.h>
+#include <dev/sound/pcm/sound.h>
 
 #include <mixer_if.h>
 
 static struct hdspe_clock_source hdspe_clock_source_table_rd[] = {
-	{ "internal", 0 << 1 | 1, HDSPE_STATUS1_CLOCK(15),       0,       0 },
-	{ "word",     0 << 1 | 0, HDSPE_STATUS1_CLOCK( 0), 1 << 24, 1 << 25 },
-	{ "aes",      1 << 1 | 0, HDSPE_STATUS1_CLOCK( 1),  1 << 0,  1 << 8 },
-	{ "spdif",    2 << 1 | 0, HDSPE_STATUS1_CLOCK( 2),  1 << 1,  1 << 9 },
-	{ "adat1",    3 << 1 | 0, HDSPE_STATUS1_CLOCK( 3),  1 << 2, 1 << 10 },
-	{ "adat2",    4 << 1 | 0, HDSPE_STATUS1_CLOCK( 4),  1 << 3, 1 << 11 },
-	{ "adat3",    5 << 1 | 0, HDSPE_STATUS1_CLOCK( 5),  1 << 4, 1 << 12 },
-	{ "adat4",    6 << 1 | 0, HDSPE_STATUS1_CLOCK( 6),  1 << 5, 1 << 13 },
-	{ "tco",      9 << 1 | 0, HDSPE_STATUS1_CLOCK( 9), 1 << 26, 1 << 27 },
-	{ "sync_in", 10 << 1 | 0, HDSPE_STATUS1_CLOCK(10),       0,       0 },
-	{ NULL,       0 << 1 | 0, HDSPE_STATUS1_CLOCK( 0),       0,       0 },
+	{ "internal", 0 << 1 | 1, HDSPE_STATUS1_CLOCK(15), 0, 0 },
+	{ "word", 0 << 1 | 0, HDSPE_STATUS1_CLOCK(0), 1 << 24, 1 << 25 },
+	{ "aes", 1 << 1 | 0, HDSPE_STATUS1_CLOCK(1), 1 << 0, 1 << 8 },
+	{ "spdif", 2 << 1 | 0, HDSPE_STATUS1_CLOCK(2), 1 << 1, 1 << 9 },
+	{ "adat1", 3 << 1 | 0, HDSPE_STATUS1_CLOCK(3), 1 << 2, 1 << 10 },
+	{ "adat2", 4 << 1 | 0, HDSPE_STATUS1_CLOCK(4), 1 << 3, 1 << 11 },
+	{ "adat3", 5 << 1 | 0, HDSPE_STATUS1_CLOCK(5), 1 << 4, 1 << 12 },
+	{ "adat4", 6 << 1 | 0, HDSPE_STATUS1_CLOCK(6), 1 << 5, 1 << 13 },
+	{ "tco", 9 << 1 | 0, HDSPE_STATUS1_CLOCK(9), 1 << 26, 1 << 27 },
+	{ "sync_in", 10 << 1 | 0, HDSPE_STATUS1_CLOCK(10), 0, 0 },
+	{ NULL, 0 << 1 | 0, HDSPE_STATUS1_CLOCK(0), 0, 0 },
 };
 
 static struct hdspe_clock_source hdspe_clock_source_table_aio[] = {
-	{ "internal", 0 << 1 | 1, HDSPE_STATUS1_CLOCK(15),       0,       0 },
-	{ "word",     0 << 1 | 0, HDSPE_STATUS1_CLOCK( 0), 1 << 24, 1 << 25 },
-	{ "aes",      1 << 1 | 0, HDSPE_STATUS1_CLOCK( 1),  1 << 0,  1 << 8 },
-	{ "spdif",    2 << 1 | 0, HDSPE_STATUS1_CLOCK( 2),  1 << 1,  1 << 9 },
-	{ "adat",     3 << 1 | 0, HDSPE_STATUS1_CLOCK( 3),  1 << 2, 1 << 10 },
-	{ "tco",      9 << 1 | 0, HDSPE_STATUS1_CLOCK( 9), 1 << 26, 1 << 27 },
-	{ "sync_in", 10 << 1 | 0, HDSPE_STATUS1_CLOCK(10),       0,       0 },
-	{ NULL,       0 << 1 | 0, HDSPE_STATUS1_CLOCK( 0),       0,       0 },
+	{ "internal", 0 << 1 | 1, HDSPE_STATUS1_CLOCK(15), 0, 0 },
+	{ "word", 0 << 1 | 0, HDSPE_STATUS1_CLOCK(0), 1 << 24, 1 << 25 },
+	{ "aes", 1 << 1 | 0, HDSPE_STATUS1_CLOCK(1), 1 << 0, 1 << 8 },
+	{ "spdif", 2 << 1 | 0, HDSPE_STATUS1_CLOCK(2), 1 << 1, 1 << 9 },
+	{ "adat", 3 << 1 | 0, HDSPE_STATUS1_CLOCK(3), 1 << 2, 1 << 10 },
+	{ "tco", 9 << 1 | 0, HDSPE_STATUS1_CLOCK(9), 1 << 26, 1 << 27 },
+	{ "sync_in", 10 << 1 | 0, HDSPE_STATUS1_CLOCK(10), 0, 0 },
+	{ NULL, 0 << 1 | 0, HDSPE_STATUS1_CLOCK(0), 0, 0 },
 };
 
 static struct hdspe_channel chan_map_aio[] = {
-	{ HDSPE_CHAN_AIO_LINE,    "line" },
-	{ HDSPE_CHAN_AIO_PHONE,  "phone" },
-	{ HDSPE_CHAN_AIO_AES,      "aes" },
+	{ HDSPE_CHAN_AIO_LINE, "line" },
+	{ HDSPE_CHAN_AIO_PHONE, "phone" },
+	{ HDSPE_CHAN_AIO_AES, "aes" },
 	{ HDSPE_CHAN_AIO_SPDIF, "s/pdif" },
-	{ HDSPE_CHAN_AIO_ADAT,    "adat" },
-	{ 0,                        NULL },
+	{ HDSPE_CHAN_AIO_ADAT, "adat" },
+	{ 0, NULL },
 };
 
 static struct hdspe_channel chan_map_rd[] = {
-	{ HDSPE_CHAN_RAY_AES,      "aes" },
+	{ HDSPE_CHAN_RAY_AES, "aes" },
 	{ HDSPE_CHAN_RAY_SPDIF, "s/pdif" },
-	{ HDSPE_CHAN_RAY_ADAT1,  "adat1" },
-	{ HDSPE_CHAN_RAY_ADAT2,  "adat2" },
-	{ HDSPE_CHAN_RAY_ADAT3,  "adat3" },
-	{ HDSPE_CHAN_RAY_ADAT4,  "adat4" },
-	{ 0,                        NULL },
+	{ HDSPE_CHAN_RAY_ADAT1, "adat1" },
+	{ HDSPE_CHAN_RAY_ADAT2, "adat2" },
+	{ HDSPE_CHAN_RAY_ADAT3, "adat3" },
+	{ HDSPE_CHAN_RAY_ADAT4, "adat4" },
+	{ 0, NULL },
 };
 
 static void
@@ -105,7 +104,8 @@ hdspe_intr(void *p)
 
 	status = hdspe_read_1(sc, HDSPE_STATUS_REG);
 	if (status & HDSPE_AUDIO_IRQ_PENDING) {
-		if ((err = device_get_children(sc->dev, &devlist, &devcount)) != 0)
+		if ((err = device_get_children(sc->dev, &devlist, &devcount)) !=
+		    0)
 			return;
 
 		for (i = 0; i < devcount; i++) {
@@ -135,8 +135,8 @@ hdspe_alloc_resources(struct sc_info *sc)
 
 	/* Allocate resource. */
 	sc->csid = PCIR_BAR(0);
-	sc->cs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
-	    &sc->csid, RF_ACTIVE);
+	sc->cs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &sc->csid,
+	    RF_ACTIVE);
 
 	if (!sc->cs) {
 		device_printf(sc->dev, "Unable to map SYS_RES_MEMORY.\n");
@@ -152,27 +152,27 @@ hdspe_alloc_resources(struct sc_info *sc)
 	    RF_ACTIVE | RF_SHAREABLE);
 
 	if (!sc->irq ||
-	    bus_setup_intr(sc->dev, sc->irq, INTR_MPSAFE | INTR_TYPE_AV,
-		NULL, hdspe_intr, sc, &sc->ih)) {
+	    bus_setup_intr(sc->dev, sc->irq, INTR_MPSAFE | INTR_TYPE_AV, NULL,
+		hdspe_intr, sc, &sc->ih)) {
 		device_printf(sc->dev, "Unable to alloc interrupt resource.\n");
 		return (ENXIO);
 	}
 
 	/* Allocate DMA resources. */
-	if (bus_dma_tag_create(/*parent*/bus_get_dma_tag(sc->dev),
-		/*alignment*/4,
-		/*boundary*/0,
-		/*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-		/*highaddr*/BUS_SPACE_MAXADDR,
-		/*filter*/NULL,
-		/*filterarg*/NULL,
-		/*maxsize*/2 * HDSPE_DMASEGSIZE,
-		/*nsegments*/2,
-		/*maxsegsz*/HDSPE_DMASEGSIZE,
-		/*flags*/0,
-		/*lockfunc*/NULL,
-		/*lockarg*/NULL,
-		/*dmatag*/&sc->dmat) != 0) {
+	if (bus_dma_tag_create(/*parent*/ bus_get_dma_tag(sc->dev),
+		/*alignment*/ 4,
+		/*boundary*/ 0,
+		/*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+		/*highaddr*/ BUS_SPACE_MAXADDR,
+		/*filter*/ NULL,
+		/*filterarg*/ NULL,
+		/*maxsize*/ 2 * HDSPE_DMASEGSIZE,
+		/*nsegments*/ 2,
+		/*maxsegsz*/ HDSPE_DMASEGSIZE,
+		/*flags*/ 0,
+		/*lockfunc*/ NULL,
+		/*lockarg*/ NULL,
+		/*dmatag*/ &sc->dmat) != 0) {
 		device_printf(sc->dev, "Unable to create dma tag.\n");
 		return (ENXIO);
 	}
@@ -181,26 +181,26 @@ hdspe_alloc_resources(struct sc_info *sc)
 
 	/* pbuf (play buffer). */
 	if (bus_dmamem_alloc(sc->dmat, (void **)&sc->pbuf, BUS_DMA_WAITOK,
-	    &sc->pmap)) {
+		&sc->pmap)) {
 		device_printf(sc->dev, "Can't alloc pbuf.\n");
 		return (ENXIO);
 	}
 
 	if (bus_dmamap_load(sc->dmat, sc->pmap, sc->pbuf, sc->bufsize,
-	    hdspe_dmapsetmap, sc, BUS_DMA_NOWAIT)) {
+		hdspe_dmapsetmap, sc, BUS_DMA_NOWAIT)) {
 		device_printf(sc->dev, "Can't load pbuf.\n");
 		return (ENXIO);
 	}
 
 	/* rbuf (rec buffer). */
 	if (bus_dmamem_alloc(sc->dmat, (void **)&sc->rbuf, BUS_DMA_WAITOK,
-	    &sc->rmap)) {
+		&sc->rmap)) {
 		device_printf(sc->dev, "Can't alloc rbuf.\n");
 		return (ENXIO);
 	}
 
 	if (bus_dmamap_load(sc->dmat, sc->rmap, sc->rbuf, sc->bufsize,
-	    hdspe_dmapsetmap, sc, BUS_DMA_NOWAIT)) {
+		hdspe_dmapsetmap, sc, BUS_DMA_NOWAIT)) {
 		device_printf(sc->dev, "Can't load rbuf.\n");
 		return (ENXIO);
 	}
@@ -222,9 +222,9 @@ hdspe_map_dmabuf(struct sc_info *sc)
 
 	for (i = 0; i < HDSPE_MAX_SLOTS * 16; i++) {
 		hdspe_write_4(sc, HDSPE_PAGE_ADDR_BUF_OUT + 4 * i,
-                    paddr + i * 4096);
+		    paddr + i * 4096);
 		hdspe_write_4(sc, HDSPE_PAGE_ADDR_BUF_IN + 4 * i,
-                    raddr + i * 4096);
+		    raddr + i * 4096);
 	}
 }
 
@@ -493,8 +493,7 @@ hdspe_attach(device_t dev)
 #endif
 
 	sc = device_get_softc(dev);
-	sc->lock = snd_mtxcreate(device_get_nameunit(dev),
-	    "snd_hdspe softc");
+	sc->lock = snd_mtxcreate(device_get_nameunit(dev), "snd_hdspe softc");
 	sc->dev = dev;
 
 	pci_enable_busmaster(dev);
@@ -523,7 +522,8 @@ hdspe_attach(device_t dev)
 		return (ENXIO);
 
 	for (i = 0; i < HDSPE_MAX_CHANS && chan_map[i].descr != NULL; i++) {
-		scp = malloc(sizeof(struct sc_pcminfo), M_DEVBUF, M_NOWAIT | M_ZERO);
+		scp = malloc(sizeof(struct sc_pcminfo), M_DEVBUF,
+		    M_NOWAIT | M_ZERO);
 		scp->hc = &chan_map[i];
 		scp->sc = sc;
 		scp->dev = device_add_child(dev, "pcm", -1);
@@ -534,15 +534,14 @@ hdspe_attach(device_t dev)
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "sync_status", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    sc, 0, hdspe_sysctl_sync_status, "A",
+	    "sync_status", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    hdspe_sysctl_sync_status, "A",
 	    "List clock source signal lock and sync status");
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "clock_source", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    sc, 0, hdspe_sysctl_clock_source, "A",
-	    "Currently effective clock source");
+	    "clock_source", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    hdspe_sysctl_clock_source, "A", "Currently effective clock source");
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
@@ -552,14 +551,13 @@ hdspe_attach(device_t dev)
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "clock_list", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    sc, 0, hdspe_sysctl_clock_list, "A",
-	    "List of supported clock sources");
+	    "clock_list", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, 0,
+	    hdspe_sysctl_clock_list, "A", "List of supported clock sources");
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "period", CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    sc, 0, hdspe_sysctl_period, "A",
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "period",
+	    CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, 0,
+	    hdspe_sysctl_period, "A",
 	    "Force period of samples per interrupt (32, 64, ... 4096)");
 
 	return (bus_generic_attach(dev));
@@ -584,7 +582,7 @@ hdspe_detach(device_t dev)
 
 	sc = device_get_softc(dev);
 	if (sc == NULL) {
-		device_printf(dev,"Can't detach: softc is null.\n");
+		device_printf(dev, "Can't detach: softc is null.\n");
 		return (0);
 	}
 
@@ -608,12 +606,9 @@ hdspe_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t hdspe_methods[] = {
-	DEVMETHOD(device_probe,     hdspe_probe),
-	DEVMETHOD(device_attach,    hdspe_attach),
-	DEVMETHOD(device_detach,    hdspe_detach),
-	{ 0, 0 }
-};
+static device_method_t hdspe_methods[] = { DEVMETHOD(device_probe, hdspe_probe),
+	DEVMETHOD(device_attach, hdspe_attach),
+	DEVMETHOD(device_detach, hdspe_detach), { 0, 0 } };
 
 static driver_t hdspe_driver = {
 	"hdspe",

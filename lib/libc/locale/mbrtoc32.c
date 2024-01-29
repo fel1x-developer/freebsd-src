@@ -28,11 +28,12 @@
 
 #include <uchar.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbrtoc32_l(char32_t * __restrict pc32, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps, locale_t locale)
+mbrtoc32_l(char32_t *__restrict pc32, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps, locale_t locale)
 {
 
 	FIX_LOCALE(locale);
@@ -44,8 +45,8 @@ mbrtoc32_l(char32_t * __restrict pc32, const char * __restrict s, size_t n,
 }
 
 size_t
-mbrtoc32(char32_t * __restrict pc32, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps)
+mbrtoc32(char32_t *__restrict pc32, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 
 	return (mbrtoc32_l(pc32, s, n, ps, __get_locale()));

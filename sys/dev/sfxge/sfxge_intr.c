@@ -33,9 +33,9 @@
  * policies, either expressed or implied, of the FreeBSD Project.
  */
 
-#include <sys/cdefs.h>
 #include "opt_rss.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -56,7 +56,6 @@
 #endif
 
 #include "common/efx.h"
-
 #include "sfxge.h"
 
 static int
@@ -75,8 +74,7 @@ sfxge_intr_line_filter(void *arg)
 	intr = &sc->intr;
 
 	KASSERT(intr != NULL, ("intr == NULL"));
-	KASSERT(intr->type == EFX_INTR_LINE,
-	    ("intr->type != EFX_INTR_LINE"));
+	KASSERT(intr->type == EFX_INTR_LINE, ("intr->type != EFX_INTR_LINE"));
 
 	if (intr->state != SFXGE_INTR_STARTED)
 		return (FILTER_STRAY);
@@ -84,8 +82,8 @@ sfxge_intr_line_filter(void *arg)
 	(void)efx_intr_status_line(enp, &fatal, &qmask);
 
 	if (fatal) {
-		(void) efx_intr_disable(enp);
-		(void) efx_intr_fatal(enp);
+		(void)efx_intr_disable(enp);
+		(void)efx_intr_fatal(enp);
 		return (FILTER_HANDLED);
 	}
 
@@ -189,16 +187,15 @@ sfxge_intr_bus_enable(struct sfxge_softc *sc)
 	/* Try to add the handlers */
 	for (index = 0; index < intr->n_alloc; index++) {
 		if ((err = bus_setup_intr(sc->dev, table[index].eih_res,
-			    INTR_MPSAFE|INTR_TYPE_NET, filter, handler,
-			    sc->evq[index], &table[index].eih_tag)) != 0) {
+			 INTR_MPSAFE | INTR_TYPE_NET, filter, handler,
+			 sc->evq[index], &table[index].eih_tag)) != 0) {
 			goto fail;
 		}
 		if (intr->n_alloc > 1)
 			bus_describe_intr(sc->dev, table[index].eih_res,
 			    table[index].eih_tag, "%d", index);
 #ifdef RSS
-		bus_bind_intr(sc->dev, table[index].eih_res,
-			      rss_getcpu(index));
+		bus_bind_intr(sc->dev, table[index].eih_res, rss_getcpu(index));
 #else
 		bus_bind_intr(sc->dev, table[index].eih_res, index);
 #endif
@@ -227,8 +224,7 @@ sfxge_intr_bus_disable(struct sfxge_softc *sc)
 
 	/* Remove all handlers */
 	for (i = 0; i < intr->n_alloc; i++)
-		bus_teardown_intr(sc->dev, table[i].eih_res,
-		    table[i].eih_tag);
+		bus_teardown_intr(sc->dev, table[i].eih_res, table[i].eih_tag);
 }
 
 static int
@@ -246,8 +242,8 @@ sfxge_intr_alloc(struct sfxge_softc *sc, int count)
 	intr = &sc->intr;
 	error = 0;
 
-	table = malloc(count * sizeof(struct sfxge_intr_hdl),
-	    M_SFXGE, M_WAITOK);
+	table = malloc(count * sizeof(struct sfxge_intr_hdl), M_SFXGE,
+	    M_WAITOK);
 	intr->table = table;
 
 	for (i = 0; i < count; i++) {
@@ -255,8 +251,10 @@ sfxge_intr_alloc(struct sfxge_softc *sc, int count)
 		res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
 		    RF_SHAREABLE | RF_ACTIVE);
 		if (res == NULL) {
-			device_printf(dev, "Couldn't allocate interrupts for "
-			    "message %d\n", rid);
+			device_printf(dev,
+			    "Couldn't allocate interrupts for "
+			    "message %d\n",
+			    rid);
 			error = ENOMEM;
 			break;
 		}
@@ -267,8 +265,8 @@ sfxge_intr_alloc(struct sfxge_softc *sc, int count)
 	if (error != 0) {
 		count = i - 1;
 		for (i = 0; i < count; i++)
-			bus_release_resource(dev, SYS_RES_IRQ,
-			    table[i].eih_rid, table[i].eih_res);
+			bus_release_resource(dev, SYS_RES_IRQ, table[i].eih_rid,
+			    table[i].eih_res);
 	}
 
 	return (error);
@@ -381,7 +379,7 @@ sfxge_intr_setup_fixed(struct sfxge_softc *sc)
 	intr = &sc->intr;
 
 	rid = 0;
-	res =  bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
 	    RF_SHAREABLE | RF_ACTIVE);
 	if (res == NULL)
 		return (ENOMEM);
@@ -397,31 +395,23 @@ sfxge_intr_setup_fixed(struct sfxge_softc *sc)
 	return (0);
 }
 
-static const char *const __sfxge_err[] = {
-	"",
-	"SRAM out-of-bounds",
-	"Buffer ID out-of-bounds",
-	"Internal memory parity",
-	"Receive buffer ownership",
-	"Transmit buffer ownership",
-	"Receive descriptor ownership",
-	"Transmit descriptor ownership",
-	"Event queue ownership",
-	"Event queue FIFO overflow",
-	"Illegal address",
-	"SRAM parity"
-};
+static const char *const __sfxge_err[] = { "", "SRAM out-of-bounds",
+	"Buffer ID out-of-bounds", "Internal memory parity",
+	"Receive buffer ownership", "Transmit buffer ownership",
+	"Receive descriptor ownership", "Transmit descriptor ownership",
+	"Event queue ownership", "Event queue FIFO overflow", "Illegal address",
+	"SRAM parity" };
 
 void
 sfxge_err(efsys_identifier_t *arg, unsigned int code, uint32_t dword0,
-	  uint32_t dword1)
+    uint32_t dword1)
 {
 	struct sfxge_softc *sc = (struct sfxge_softc *)arg;
 	device_t dev = sc->dev;
 
 	log(LOG_WARNING, "[%s%d] FATAL ERROR: %s (0x%08x%08x)",
-	    device_get_name(dev), device_get_unit(dev),
-		__sfxge_err[code], dword1, dword0);
+	    device_get_name(dev), device_get_unit(dev), __sfxge_err[code],
+	    dword1, dword0);
 }
 
 void
@@ -431,8 +421,7 @@ sfxge_intr_stop(struct sfxge_softc *sc)
 
 	intr = &sc->intr;
 
-	KASSERT(intr->state == SFXGE_INTR_STARTED,
-	    ("Interrupts not started"));
+	KASSERT(intr->state == SFXGE_INTR_STARTED, ("Interrupts not started"));
 
 	intr->state = SFXGE_INTR_INITIALIZED;
 
@@ -507,8 +496,8 @@ sfxge_intr_fini(struct sfxge_softc *sc)
 
 	/* Free interrupt handles. */
 	for (i = 0; i < intr->n_alloc; i++)
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    table[i].eih_rid, table[i].eih_res);
+		bus_release_resource(dev, SYS_RES_IRQ, table[i].eih_rid,
+		    table[i].eih_res);
 
 	if (table[0].eih_rid != 0)
 		pci_release_msi(dev);

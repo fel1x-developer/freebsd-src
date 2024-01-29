@@ -29,17 +29,16 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
+#include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include <assert.h>
-
-#include <sys/types.h>
-
-#include "hammer_disk.h"
 
 #include "fstyp.h"
+#include "hammer_disk.h"
 
 extern int fsvtyp_hammer(const char *blkdevs, char *label, size_t size);
 extern int fsvtyp_hammer_partial(const char *blkdevs, char *label, size_t size);

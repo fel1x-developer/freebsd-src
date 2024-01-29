@@ -61,16 +61,13 @@
  *        that are common to both IO requests and task management requests.
  */
 
-
 #include <dev/isci/scil/scic_controller.h>
-
-#include <dev/isci/scil/scif_sas_request.h>
-#include <dev/isci/scil/scif_sas_task_request.h>
 #include <dev/isci/scil/scif_sas_controller.h>
 #include <dev/isci/scil/scif_sas_domain.h>
-#include <dev/isci/scil/scif_sas_remote_device.h>
-
 #include <dev/isci/scil/scif_sas_logger.h>
+#include <dev/isci/scil/scif_sas_remote_device.h>
+#include <dev/isci/scil/scif_sas_request.h>
+#include <dev/isci/scil/scif_sas_task_request.h>
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
@@ -90,31 +87,27 @@
  *
  * @return none
  */
-void scif_sas_request_construct(
-   SCIF_SAS_REQUEST_T       * fw_request,
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device,
-   SCI_BASE_LOGGER_T        * logger,
-   SCI_BASE_STATE_T         * state_table
-)
+void
+scif_sas_request_construct(SCIF_SAS_REQUEST_T *fw_request,
+    SCIF_SAS_REMOTE_DEVICE_T *fw_device, SCI_BASE_LOGGER_T *logger,
+    SCI_BASE_STATE_T *state_table)
 {
-   sci_base_request_construct(&fw_request->parent, logger, state_table);
+	sci_base_request_construct(&fw_request->parent, logger, state_table);
 
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_request_construct(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
-      fw_request, fw_device, logger, state_table
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_request_construct(0x%x, 0x%x, 0x%x, 0x%x) enter\n",
+	    fw_request, fw_device, logger, state_table));
 
-   fw_request->device                    = fw_device;
-   fw_request->is_internal               = FALSE;
-   fw_request->lun                       = 0;
-   fw_request->terminate_requestor       = NULL;
-   fw_request->protocol_complete_handler = NULL;
-   fw_request->is_high_priority          = FALSE;
-   fw_request->is_waiting_for_abort_task_set = FALSE;
+	fw_request->device = fw_device;
+	fw_request->is_internal = FALSE;
+	fw_request->lun = 0;
+	fw_request->terminate_requestor = NULL;
+	fw_request->protocol_complete_handler = NULL;
+	fw_request->is_high_priority = FALSE;
+	fw_request->is_waiting_for_abort_task_set = FALSE;
 
-   sci_fast_list_element_init(fw_request, &fw_request->list_element);
+	sci_fast_list_element_init(fw_request, &fw_request->list_element);
 }
 
 /**
@@ -127,28 +120,22 @@ void scif_sas_request_construct(
  *
  * @return This method returns the status of the core termination operation.
  */
-SCI_STATUS scif_sas_request_terminate_start(
-   SCIF_SAS_REQUEST_T      * fw_request,
-   SCI_IO_REQUEST_HANDLE_T   core_request
-)
+SCI_STATUS
+scif_sas_request_terminate_start(SCIF_SAS_REQUEST_T *fw_request,
+    SCI_IO_REQUEST_HANDLE_T core_request)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_request_terminate_start(0x%x) enter\n",
-      fw_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_request_terminate_start(0x%x) enter\n", fw_request));
 
-   // Only increment the affected request count if this request is being
-   // terminated at the behest of a task management request.
-   if (fw_request->terminate_requestor != NULL)
-      fw_request->terminate_requestor->affected_request_count++;
+	// Only increment the affected request count if this request is being
+	// terminated at the behest of a task management request.
+	if (fw_request->terminate_requestor != NULL)
+		fw_request->terminate_requestor->affected_request_count++;
 
-   return scic_controller_terminate_request(
-             fw_request->device->domain->controller->core_object,
-             fw_request->device->core_object,
-             core_request
-          );
+	return scic_controller_terminate_request(
+	    fw_request->device->domain->controller->core_object,
+	    fw_request->device->core_object, core_request);
 }
 
 /**
@@ -164,20 +151,16 @@ SCI_STATUS scif_sas_request_terminate_start(
  *
  * @return none
  */
-void scif_sas_request_terminate_complete(
-   SCIF_SAS_REQUEST_T * fw_request
-)
+void
+scif_sas_request_terminate_complete(SCIF_SAS_REQUEST_T *fw_request)
 {
-   SCIF_LOG_TRACE((
-      sci_base_object_get_logger(fw_request),
-      SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "scif_sas_request_terminate_complete(0x%x) enter\n",
-      fw_request
-   ));
+	SCIF_LOG_TRACE((sci_base_object_get_logger(fw_request),
+	    SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "scif_sas_request_terminate_complete(0x%x) enter\n", fw_request));
 
-   // For requests that were terminated due to a task management request,
-   // check to see if the task management request has completed.
-   if (fw_request->terminate_requestor != NULL)
-      scif_sas_task_request_operation_complete(fw_request->terminate_requestor);
+	// For requests that were terminated due to a task management request,
+	// check to see if the task management request has completed.
+	if (fw_request->terminate_requestor != NULL)
+		scif_sas_task_request_operation_complete(
+		    fw_request->terminate_requestor);
 }
-

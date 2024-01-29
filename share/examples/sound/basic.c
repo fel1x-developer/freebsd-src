@@ -56,23 +56,15 @@ main()
 
 	printf(
 	    "bytes: %d, fragments: %d, fragsize: %d, fragstotal: %d, samples: %d\n",
-	    bytes,
-	    config.buffer_info.fragments,
-	    config.buffer_info.fragsize,
-	    config.buffer_info.fragstotal,
-	    config.sample_count
-	    );
+	    bytes, config.buffer_info.fragments, config.buffer_info.fragsize,
+	    config.buffer_info.fragstotal, config.sample_count);
 
 	/* Minimal engine: read input and copy it to the output */
 	for (;;) {
 		ret = read(config.fd, ibuf, bytes);
 		if (ret < bytes) {
-			fprintf(
-			    stderr,
-			    "Requested %d bytes, but read %d!\n",
-			    bytes,
-			    ret
-			    );
+			fprintf(stderr, "Requested %d bytes, but read %d!\n",
+			    bytes, ret);
 			break;
 		}
 		oss_split(&config, (sample_t *)ibuf, channels);
@@ -80,12 +72,8 @@ main()
 		oss_merge(&config, channels, (sample_t *)obuf);
 		ret = write(config.fd, obuf, bytes);
 		if (ret < bytes) {
-			fprintf(
-			    stderr,
-			    "Requested %d bytes, but wrote %d!\n",
-			    bytes,
-			    ret
-			    );
+			fprintf(stderr, "Requested %d bytes, but wrote %d!\n",
+			    bytes, ret);
 			break;
 		}
 	}

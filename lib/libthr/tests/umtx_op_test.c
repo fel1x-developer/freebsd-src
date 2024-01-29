@@ -28,9 +28,8 @@
 #include <sys/types.h>
 #include <sys/umtx.h>
 
-#include <pthread.h>
-
 #include <atf-c.h>
+#include <pthread.h>
 
 /*
  * This is an implementation detail of _umtx_op(2), pulled from
@@ -38,8 +37,8 @@
  * batch side would not function as intended, so it's important that this
  * reflects the BATCH_SIZE configured there.
  */
-#define	UMTX_OP_BATCH_SIZE	128
-#define THREAD_COUNT		((UMTX_OP_BATCH_SIZE * 3) / 2)
+#define UMTX_OP_BATCH_SIZE 128
+#define THREAD_COUNT ((UMTX_OP_BATCH_SIZE * 3) / 2)
 
 static pthread_mutex_t static_mutex = PTHREAD_MUTEX_INITIALIZER;
 

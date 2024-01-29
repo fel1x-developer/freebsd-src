@@ -31,36 +31,38 @@
 
 #include <machine/vmm_snapshot.h>
 
+#include <dev/usb/usb.h>
+#include <dev/usb/usbdi.h>
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include "usb_emul.h"
-#include "console.h"
 #include "bhyvegc.h"
+#include "console.h"
 #include "debug.h"
+#include "usb_emul.h"
 
 static int umouse_debug = 0;
-#define	DPRINTF(params) if (umouse_debug) PRINTLN params
-#define	WPRINTF(params) PRINTLN params
+#define DPRINTF(params)   \
+	if (umouse_debug) \
+	PRINTLN params
+#define WPRINTF(params) PRINTLN params
 
 /* USB endpoint context (1-15) for reporting mouse data events*/
-#define	UMOUSE_INTR_ENDPT	1
+#define UMOUSE_INTR_ENDPT 1
 
-#define UMOUSE_REPORT_DESC_TYPE	0x22
+#define UMOUSE_REPORT_DESC_TYPE 0x22
 
-#define	UMOUSE_GET_REPORT	0x01
-#define	UMOUSE_GET_IDLE		0x02
-#define	UMOUSE_GET_PROTOCOL	0x03
-#define	UMOUSE_SET_REPORT	0x09
-#define	UMOUSE_SET_IDLE		0x0A
-#define	UMOUSE_SET_PROTOCOL	0x0B
+#define UMOUSE_GET_REPORT 0x01
+#define UMOUSE_GET_IDLE 0x02
+#define UMOUSE_GET_PROTOCOL 0x03
+#define UMOUSE_SET_REPORT 0x09
+#define UMOUSE_SET_IDLE 0x0A
+#define UMOUSE_SET_PROTOCOL 0x0B
 
-#define HSETW(ptr, val)   ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
+#define HSETW(ptr, val) ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
 
 enum {
 	UMSTR_LANG,
@@ -80,84 +82,83 @@ static const char *umouse_desc_strings[] = {
 };
 
 struct umouse_hid_descriptor {
-	uint8_t	bLength;
-	uint8_t	bDescriptorType;
-	uint8_t	bcdHID[2];
-	uint8_t	bCountryCode;
-	uint8_t	bNumDescriptors;
-	uint8_t	bReportDescriptorType;
-	uint8_t	wItemLength[2];
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint8_t bcdHID[2];
+	uint8_t bCountryCode;
+	uint8_t bNumDescriptors;
+	uint8_t bReportDescriptorType;
+	uint8_t wItemLength[2];
 } __packed;
 
 struct umouse_config_desc {
-	struct usb_config_descriptor		confd;
-	struct usb_interface_descriptor		ifcd;
-	struct umouse_hid_descriptor		hidd;
-	struct usb_endpoint_descriptor		endpd;
-	struct usb_endpoint_ss_comp_descriptor	sscompd;
+	struct usb_config_descriptor confd;
+	struct usb_interface_descriptor ifcd;
+	struct umouse_hid_descriptor hidd;
+	struct usb_endpoint_descriptor endpd;
+	struct usb_endpoint_ss_comp_descriptor sscompd;
 } __packed;
 
-#define MOUSE_MAX_X	0x8000
-#define MOUSE_MAX_Y	0x8000
+#define MOUSE_MAX_X 0x8000
+#define MOUSE_MAX_Y 0x8000
 
 static const uint8_t umouse_report_desc[] = {
-	0x05, 0x01,		/* USAGE_PAGE (Generic Desktop)		*/
-	0x09, 0x02,		/* USAGE (Mouse)			*/
-	0xa1, 0x01,		/* COLLECTION (Application) 		*/
-	0x09, 0x01,		/*   USAGE (Pointer)			*/
-	0xa1, 0x00,		/*   COLLECTION (Physical)		*/
-	0x05, 0x09,		/*     USAGE_PAGE (Button)		*/
-	0x19, 0x01,		/*     USAGE_MINIMUM (Button 1)		*/
-	0x29, 0x03,		/*     USAGE_MAXIMUM (Button 3)		*/
-	0x15, 0x00,		/*     LOGICAL_MINIMUM (0)		*/
-	0x25, 0x01,		/*     LOGICAL_MAXIMUM (1)		*/
-	0x75, 0x01,		/*     REPORT_SIZE (1)			*/
-	0x95, 0x03,		/*     REPORT_COUNT (3)			*/
-	0x81, 0x02,		/*     INPUT (Data,Var,Abs); 3 buttons	*/
-	0x75, 0x05,		/*     REPORT_SIZE (5)			*/
-	0x95, 0x01,		/*     REPORT_COUNT (1)			*/
-	0x81, 0x03,		/*     INPUT (Cnst,Var,Abs); padding	*/
-	0x05, 0x01,		/*     USAGE_PAGE (Generic Desktop)	*/
-	0x09, 0x30,		/*     USAGE (X)			*/
-	0x09, 0x31,		/*     USAGE (Y)			*/
-	0x35, 0x00,		/*     PHYSICAL_MINIMUM (0)		*/
-	0x46, 0xff, 0x7f,	/*     PHYSICAL_MAXIMUM (0x7fff)	*/
-	0x15, 0x00,		/*     LOGICAL_MINIMUM (0)		*/
-	0x26, 0xff, 0x7f,	/*     LOGICAL_MAXIMUM (0x7fff)		*/
-	0x75, 0x10,		/*     REPORT_SIZE (16)			*/
-	0x95, 0x02,		/*     REPORT_COUNT (2)			*/
-	0x81, 0x02,		/*     INPUT (Data,Var,Abs)		*/
-	0x05, 0x01,		/*     USAGE Page (Generic Desktop)	*/
-	0x09, 0x38,		/*     USAGE (Wheel)			*/
-	0x35, 0x00,		/*     PHYSICAL_MINIMUM (0)		*/
-	0x45, 0x00,		/*     PHYSICAL_MAXIMUM (0)		*/
-	0x15, 0x81,		/*     LOGICAL_MINIMUM (-127)		*/
-	0x25, 0x7f,		/*     LOGICAL_MAXIMUM (127)		*/
-	0x75, 0x08,		/*     REPORT_SIZE (8)			*/
-	0x95, 0x01,		/*     REPORT_COUNT (1)			*/
-	0x81, 0x06,		/*     INPUT (Data,Var,Rel)		*/
-	0xc0,			/*   END_COLLECTION			*/
-	0xc0			/* END_COLLECTION			*/
+	0x05, 0x01,	  /* USAGE_PAGE (Generic Desktop)		*/
+	0x09, 0x02,	  /* USAGE (Mouse)			*/
+	0xa1, 0x01,	  /* COLLECTION (Application) 		*/
+	0x09, 0x01,	  /*   USAGE (Pointer)			*/
+	0xa1, 0x00,	  /*   COLLECTION (Physical)		*/
+	0x05, 0x09,	  /*     USAGE_PAGE (Button)		*/
+	0x19, 0x01,	  /*     USAGE_MINIMUM (Button 1)		*/
+	0x29, 0x03,	  /*     USAGE_MAXIMUM (Button 3)		*/
+	0x15, 0x00,	  /*     LOGICAL_MINIMUM (0)		*/
+	0x25, 0x01,	  /*     LOGICAL_MAXIMUM (1)		*/
+	0x75, 0x01,	  /*     REPORT_SIZE (1)			*/
+	0x95, 0x03,	  /*     REPORT_COUNT (3)			*/
+	0x81, 0x02,	  /*     INPUT (Data,Var,Abs); 3 buttons	*/
+	0x75, 0x05,	  /*     REPORT_SIZE (5)			*/
+	0x95, 0x01,	  /*     REPORT_COUNT (1)			*/
+	0x81, 0x03,	  /*     INPUT (Cnst,Var,Abs); padding	*/
+	0x05, 0x01,	  /*     USAGE_PAGE (Generic Desktop)	*/
+	0x09, 0x30,	  /*     USAGE (X)			*/
+	0x09, 0x31,	  /*     USAGE (Y)			*/
+	0x35, 0x00,	  /*     PHYSICAL_MINIMUM (0)		*/
+	0x46, 0xff, 0x7f, /*     PHYSICAL_MAXIMUM (0x7fff)	*/
+	0x15, 0x00,	  /*     LOGICAL_MINIMUM (0)		*/
+	0x26, 0xff, 0x7f, /*     LOGICAL_MAXIMUM (0x7fff)		*/
+	0x75, 0x10,	  /*     REPORT_SIZE (16)			*/
+	0x95, 0x02,	  /*     REPORT_COUNT (2)			*/
+	0x81, 0x02,	  /*     INPUT (Data,Var,Abs)		*/
+	0x05, 0x01,	  /*     USAGE Page (Generic Desktop)	*/
+	0x09, 0x38,	  /*     USAGE (Wheel)			*/
+	0x35, 0x00,	  /*     PHYSICAL_MINIMUM (0)		*/
+	0x45, 0x00,	  /*     PHYSICAL_MAXIMUM (0)		*/
+	0x15, 0x81,	  /*     LOGICAL_MINIMUM (-127)		*/
+	0x25, 0x7f,	  /*     LOGICAL_MAXIMUM (127)		*/
+	0x75, 0x08,	  /*     REPORT_SIZE (8)			*/
+	0x95, 0x01,	  /*     REPORT_COUNT (1)			*/
+	0x81, 0x06,	  /*     INPUT (Data,Var,Rel)		*/
+	0xc0,		  /*   END_COLLECTION			*/
+	0xc0		  /* END_COLLECTION			*/
 };
 
 struct umouse_report {
-	uint8_t	buttons;	/* bits: 0 left, 1 right, 2 middle */
-	int16_t	x;		/* x position */
-	int16_t	y;		/* y position */
-	int8_t	z;		/* z wheel position */
+	uint8_t buttons; /* bits: 0 left, 1 right, 2 middle */
+	int16_t x;	 /* x position */
+	int16_t y;	 /* y position */
+	int8_t z;	 /* z wheel position */
 } __packed;
 
-
-#define	MSETW(ptr, val)	ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
+#define MSETW(ptr, val) ptr = { (uint8_t)(val), (uint8_t)((val) >> 8) }
 
 static struct usb_device_descriptor umouse_dev_desc = {
 	.bLength = sizeof(umouse_dev_desc),
 	.bDescriptorType = UDESC_DEVICE,
 	MSETW(.bcdUSB, UD_USB_3_0),
-	.bMaxPacketSize = 9,			/* max pkt size, 2^9 = 512 */
-	MSETW(.idVendor, 0xFB5D),		/* vendor */
-	MSETW(.idProduct, 0x0001),		/* product */
-	MSETW(.bcdDevice, 0),			/* device version */
+	.bMaxPacketSize = 9,	   /* max pkt size, 2^9 = 512 */
+	MSETW(.idVendor, 0xFB5D),  /* vendor */
+	MSETW(.idProduct, 0x0001), /* product */
+	MSETW(.bcdDevice, 0),	   /* device version */
 	.iManufacturer = UMSTR_MANUFACTURER,
 	.iProduct = UMSTR_PRODUCT,
 	.iSerialNumber = UMSTR_SERIAL,
@@ -209,12 +210,10 @@ static struct umouse_config_desc umouse_confd = {
 	},
 };
 
-
 struct umouse_bos_desc {
-	struct usb_bos_descriptor		bosd;
-	struct usb_devcap_ss_descriptor		usbssd;
+	struct usb_bos_descriptor bosd;
+	struct usb_devcap_ss_descriptor usbssd;
 } __packed;
-
 
 static struct umouse_bos_desc umouse_bosd = {
 	.bosd = {
@@ -235,22 +234,21 @@ static struct umouse_bos_desc umouse_bosd = {
 	}
 };
 
-
 struct umouse_softc {
 	struct usb_hci *hci;
 
 	struct umouse_report um_report;
-	int	newdata;
+	int newdata;
 	struct {
-		uint8_t	idle;
-		uint8_t	protocol;
-		uint8_t	feature;
+		uint8_t idle;
+		uint8_t protocol;
+		uint8_t feature;
 	} hid;
 
-	pthread_mutex_t	mtx;
-	pthread_mutex_t	ev_mtx;
-	int		polling;
-	struct timeval	prev_evt;
+	pthread_mutex_t mtx;
+	pthread_mutex_t ev_mtx;
+	int polling;
+	struct timeval prev_evt;
 };
 
 static void
@@ -273,11 +271,11 @@ umouse_event(uint8_t button, int x, int y, void *arg)
 	sc->um_report.z = 0;
 
 	if (button & 0x01)
-		sc->um_report.buttons |= 0x01;	/* left */
+		sc->um_report.buttons |= 0x01; /* left */
 	if (button & 0x02)
-		sc->um_report.buttons |= 0x04;	/* middle */
+		sc->um_report.buttons |= 0x04; /* middle */
 	if (button & 0x04)
-		sc->um_report.buttons |= 0x02;	/* right */
+		sc->um_report.buttons |= 0x02; /* right */
 	if (button & 0x8)
 		sc->um_report.z = 1;
 	if (button & 0x10)
@@ -302,7 +300,7 @@ umouse_init(struct usb_hci *hci, nvlist_t *nvl __unused)
 	sc = calloc(1, sizeof(struct umouse_softc));
 	sc->hci = hci;
 
-	sc->hid.protocol = 1;	/* REPORT protocol */
+	sc->hid.protocol = 1; /* REPORT protocol */
 	pthread_mutex_init(&sc->mtx, NULL);
 	pthread_mutex_init(&sc->ev_mtx, NULL);
 
@@ -311,7 +309,7 @@ umouse_init(struct usb_hci *hci, nvlist_t *nvl __unused)
 	return (sc);
 }
 
-#define	UREQ(x,y)	((x) | ((y) << 8))
+#define UREQ(x, y) ((x) | ((y) << 8))
 
 static int
 umouse_request(void *scarg, struct usb_data_xfer *xfer)
@@ -324,9 +322,9 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 	uint16_t len;
 	uint16_t slen;
 	uint8_t *udata;
-	int	err;
-	int	i, idx;
-	int	eshort;
+	int err;
+	int i, idx;
+	int eshort;
 
 	sc = scarg;
 
@@ -335,7 +333,7 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 	idx = xfer->head;
 	for (i = 0; i < xfer->ndata; i++) {
 		xfer->data[idx].bdone = 0;
-		if (data == NULL && USB_DATA_OK(xfer,i)) {
+		if (data == NULL && USB_DATA_OK(xfer, i)) {
 			data = &xfer->data[idx];
 			udata = data->buf;
 		}
@@ -357,9 +355,9 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 	len = UGETW(xfer->ureq->wLength);
 
 	DPRINTF(("umouse_request: port %d, type 0x%x, req 0x%x, val 0x%x, "
-	         "idx 0x%x, len %u",
-	         sc->hci->hci_port, xfer->ureq->bmRequestType,
-	         xfer->ureq->bRequest, value, index, len));
+		 "idx 0x%x, len %u",
+	    sc->hci->hci_port, xfer->ureq->bmRequestType, xfer->ureq->bRequest,
+	    value, index, len));
 
 	switch (UREQ(xfer->ureq->bRequest, xfer->ureq->bmRequestType)) {
 	case UREQ(UR_GET_CONFIG, UT_READ_DEVICE):
@@ -375,15 +373,15 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 
 	case UREQ(UR_GET_DESCRIPTOR, UT_READ_DEVICE):
 		DPRINTF(("umouse: (UR_GET_DESCRIPTOR, UT_READ_DEVICE) val %x",
-		        value >> 8));
+		    value >> 8));
 		if (!data)
 			break;
 
 		switch (value >> 8) {
 		case UDESC_DEVICE:
 			DPRINTF(("umouse: (->UDESC_DEVICE) len %u ?= "
-			         "sizeof(umouse_dev_desc) %lu",
-			         len, sizeof(umouse_dev_desc)));
+				 "sizeof(umouse_dev_desc) %lu",
+			    len, sizeof(umouse_dev_desc)));
 			if ((value & 0xFF) != 0) {
 				err = USB_ERR_STALLED;
 				goto done;
@@ -450,7 +448,7 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 				data->blen = 0;
 			for (i = 2; i < len; i += 2) {
 				udata[i] = *str++;
-				udata[i+1] = '\0';
+				udata[i + 1] = '\0';
 			}
 			data->bdone += slen;
 
@@ -477,7 +475,8 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 
 	case UREQ(UR_GET_DESCRIPTOR, UT_READ_INTERFACE):
 		DPRINTF(("umouse: (UR_GET_DESCRIPTOR, UT_READ_INTERFACE) "
-		         "0x%x", (value >> 8)));
+			 "0x%x",
+		    (value >> 8)));
 		if (!data)
 			break;
 
@@ -502,8 +501,8 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 	case UREQ(UR_GET_INTERFACE, UT_READ_INTERFACE):
 		DPRINTF(("umouse: (UR_GET_INTERFACE, UT_READ_INTERFACE)"));
 		if (index != 0) {
-			DPRINTF(("umouse get_interface, invalid index %d",
-			        index));
+			DPRINTF(
+			    ("umouse get_interface, invalid index %d", index));
 			err = USB_ERR_STALLED;
 			goto done;
 		}
@@ -557,15 +556,16 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 		DPRINTF(("umouse set descriptor %u", value));
 		break;
 
-
 	case UREQ(UR_CLEAR_FEATURE, UT_WRITE_DEVICE):
-		DPRINTF(("umouse: (UR_SET_FEATURE, UT_WRITE_DEVICE) %x", value));
+		DPRINTF(
+		    ("umouse: (UR_SET_FEATURE, UT_WRITE_DEVICE) %x", value));
 		if (value == UF_DEVICE_REMOTE_WAKEUP)
 			sc->hid.feature = 0;
 		break;
 
 	case UREQ(UR_SET_FEATURE, UT_WRITE_DEVICE):
-		DPRINTF(("umouse: (UR_SET_FEATURE, UT_WRITE_DEVICE) %x", value));
+		DPRINTF(
+		    ("umouse: (UR_SET_FEATURE, UT_WRITE_DEVICE) %x", value));
 		if (value == UF_DEVICE_REMOTE_WAKEUP)
 			sc->hid.feature = UF_DEVICE_REMOTE_WAKEUP;
 		break;
@@ -594,11 +594,12 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 		DPRINTF(("umouse synch frame"));
 		break;
 
-	/* HID device requests */
+		/* HID device requests */
 
 	case UREQ(UMOUSE_GET_REPORT, UT_READ_CLASS_INTERFACE):
 		DPRINTF(("umouse: (UMOUSE_GET_REPORT, UT_READ_CLASS_INTERFACE) "
-		         "0x%x", (value >> 8)));
+			 "0x%x",
+		    (value >> 8)));
 		if (!data)
 			break;
 
@@ -639,19 +640,22 @@ umouse_request(void *scarg, struct usb_data_xfer *xfer)
 		break;
 
 	case UREQ(UMOUSE_SET_REPORT, UT_WRITE_CLASS_INTERFACE):
-		DPRINTF(("umouse: (UMOUSE_SET_REPORT, UT_WRITE_CLASS_INTERFACE) ignored"));
+		DPRINTF((
+		    "umouse: (UMOUSE_SET_REPORT, UT_WRITE_CLASS_INTERFACE) ignored"));
 		break;
 
 	case UREQ(UMOUSE_SET_IDLE, UT_WRITE_CLASS_INTERFACE):
 		sc->hid.idle = UGETW(xfer->ureq->wValue) >> 8;
-		DPRINTF(("umouse: (UMOUSE_SET_IDLE, UT_WRITE_CLASS_INTERFACE) %x",
-		        sc->hid.idle));
+		DPRINTF(
+		    ("umouse: (UMOUSE_SET_IDLE, UT_WRITE_CLASS_INTERFACE) %x",
+			sc->hid.idle));
 		break;
 
 	case UREQ(UMOUSE_SET_PROTOCOL, UT_WRITE_CLASS_INTERFACE):
 		sc->hid.protocol = UGETW(xfer->ureq->wValue) >> 8;
-		DPRINTF(("umouse: (UR_CLEAR_FEATURE, UT_WRITE_CLASS_INTERFACE) %x",
-		        sc->hid.protocol));
+		DPRINTF(
+		    ("umouse: (UR_CLEAR_FEATURE, UT_WRITE_CLASS_INTERFACE) %x",
+			sc->hid.protocol));
 		break;
 
 	default:
@@ -667,15 +671,14 @@ done:
 	else if (eshort)
 		err = USB_ERR_SHORT_XFER;
 
-	DPRINTF(("umouse request error code %d (0=ok), blen %u txlen %u",
-	        err, (data ? data->blen : 0), (data ? data->bdone : 0)));
+	DPRINTF(("umouse request error code %d (0=ok), blen %u txlen %u", err,
+	    (data ? data->blen : 0), (data ? data->bdone : 0)));
 
 	return (err);
 }
 
 static int
-umouse_data_handler(void *scarg, struct usb_data_xfer *xfer, int dir,
-     int epctx)
+umouse_data_handler(void *scarg, struct usb_data_xfer *xfer, int dir, int epctx)
 {
 	struct umouse_softc *sc;
 	struct usb_data_xfer_block *data;
@@ -684,8 +687,7 @@ umouse_data_handler(void *scarg, struct usb_data_xfer *xfer, int dir,
 	int err;
 
 	DPRINTF(("umouse handle data - DIR=%s|EP=%d, blen %d",
-	        dir ? "IN" : "OUT", epctx, xfer->data[0].blen));
-
+	    dir ? "IN" : "OUT", epctx, xfer->data[0].blen));
 
 	/* find buffer to add data */
 	udata = NULL;
@@ -808,17 +810,17 @@ done:
 #endif
 
 static struct usb_devemu ue_mouse = {
-	.ue_emu =	"tablet",
-	.ue_usbver =	3,
-	.ue_usbspeed =	USB_SPEED_HIGH,
-	.ue_init =	umouse_init,
-	.ue_request =	umouse_request,
-	.ue_data =	umouse_data_handler,
-	.ue_reset =	umouse_reset,
-	.ue_remove =	umouse_remove,
-	.ue_stop =	umouse_stop,
+	.ue_emu = "tablet",
+	.ue_usbver = 3,
+	.ue_usbspeed = USB_SPEED_HIGH,
+	.ue_init = umouse_init,
+	.ue_request = umouse_request,
+	.ue_data = umouse_data_handler,
+	.ue_reset = umouse_reset,
+	.ue_remove = umouse_remove,
+	.ue_stop = umouse_stop,
 #ifdef BHYVE_SNAPSHOT
-	.ue_snapshot =	umouse_snapshot,
+	.ue_snapshot = umouse_snapshot,
 #endif
 };
 USB_EMUL_SET(ue_mouse);

@@ -41,57 +41,46 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/amphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/amphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int amphy_probe(device_t);
 static int amphy_attach(device_t);
 
 static device_method_t amphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		amphy_probe),
-	DEVMETHOD(device_attach,	amphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, amphy_probe),
+	DEVMETHOD(device_attach, amphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t amphy_driver = {
-	"amphy",
-	amphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t amphy_driver = { "amphy", amphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(amphy, miibus, amphy_driver, 0, 0);
 
-static int	amphy_service(struct mii_softc *, struct mii_data *, int);
-static void	amphy_status(struct mii_softc *);
+static int amphy_service(struct mii_softc *, struct mii_data *, int);
+static void amphy_status(struct mii_softc *);
 
-static const struct mii_phydesc amphys[] = {
-	MII_PHY_DESC(xxDAVICOM, DM9102),
-	MII_PHY_DESC(xxDAVICOM, DM9101),
-	MII_PHY_DESC(yyDAVICOM, DM9101),
-	MII_PHY_END
-};
+static const struct mii_phydesc amphys[] = { MII_PHY_DESC(xxDAVICOM, DM9102),
+	MII_PHY_DESC(xxDAVICOM, DM9101), MII_PHY_DESC(yyDAVICOM, DM9101),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs amphy_funcs = {
-	amphy_service,
-	amphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs amphy_funcs = { amphy_service, amphy_status,
+	mii_phy_reset };
 
 static int
 amphy_probe(device_t dev)
@@ -144,8 +133,7 @@ amphy_status(struct mii_softc *sc)
 	mii->mii_media_status = IFM_AVALID;
 	mii->mii_media_active = IFM_ETHER;
 
-	bmsr = PHY_READ(sc, MII_BMSR) |
-	    PHY_READ(sc, MII_BMSR);
+	bmsr = PHY_READ(sc, MII_BMSR) | PHY_READ(sc, MII_BMSR);
 	if (bmsr & BMSR_LINK)
 		mii->mii_media_status |= IFM_ACTIVE;
 
@@ -174,15 +162,15 @@ amphy_status(struct mii_softc *sc)
 			anlpar = PHY_READ(sc, MII_ANAR) &
 			    PHY_READ(sc, MII_ANLPAR);
 			if (anlpar & ANLPAR_TX_FD)
-				mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 			else if (anlpar & ANLPAR_T4)
-				mii->mii_media_active |= IFM_100_T4|IFM_HDX;
+				mii->mii_media_active |= IFM_100_T4 | IFM_HDX;
 			else if (anlpar & ANLPAR_TX)
-				mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 			else if (anlpar & ANLPAR_10_FD)
-				mii->mii_media_active |= IFM_10_T|IFM_FDX;
+				mii->mii_media_active |= IFM_10_T | IFM_FDX;
 			else if (anlpar & ANLPAR_10)
-				mii->mii_media_active |= IFM_10_T|IFM_HDX;
+				mii->mii_media_active |= IFM_10_T | IFM_HDX;
 			else
 				mii->mii_media_active |= IFM_NONE;
 			return;
@@ -193,13 +181,13 @@ amphy_status(struct mii_softc *sc)
 		 */
 		par = PHY_READ(sc, MII_AMPHY_DSCSR);
 		if (par & DSCSR_100FDX)
-			mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+			mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 		else if (par & DSCSR_100HDX)
-			mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+			mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 		else if (par & DSCSR_10FDX)
-			mii->mii_media_active |= IFM_10_T|IFM_HDX;
+			mii->mii_media_active |= IFM_10_T | IFM_HDX;
 		else if (par & DSCSR_10HDX)
-			mii->mii_media_active |= IFM_10_T|IFM_HDX;
+			mii->mii_media_active |= IFM_10_T | IFM_HDX;
 		if ((mii->mii_media_active & IFM_FDX) != 0)
 			mii->mii_media_active |= mii_phy_flowstatus(sc);
 	} else

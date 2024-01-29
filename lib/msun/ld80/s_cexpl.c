@@ -35,12 +35,12 @@
 #endif
 
 #include "fpmath.h"
+#include "k_expl.h"
 #include "math.h"
 #include "math_private.h"
-#include "k_expl.h"
 
 long double complex
-cexpl (long double complex z)
+cexpl(long double complex z)
 {
 	long double c, exp_x, s, x, y;
 	uint64_t lx, ly;
@@ -65,8 +65,9 @@ cexpl (long double complex z)
 	}
 
 	if (hy >= 0x7fff) {
-		if ((hx & 0x7fff) < 0x7fff || ((hx & 0x7fff) == 0x7fff &&
-		    (lx & 0x7fffffffffffffffULL) != 0)) {
+		if ((hx & 0x7fff) < 0x7fff ||
+		    ((hx & 0x7fff) == 0x7fff &&
+			(lx & 0x7fffffffffffffffULL) != 0)) {
 			/* cexp(finite|NaN +- I Inf|NaN) = NaN + I NaN */
 			RETURNI(CMPLXL(y - y, y - y));
 		} else if (hx & 0x8000) {

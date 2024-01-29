@@ -27,26 +27,25 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <err.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
 #include <getopt.h>
+#include <netdb.h>
+#include <nfs/nfssvc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <nfs/nfssvc.h>
-
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfs.h>
 
 static void usage(void) __dead2;
 
-static struct option longopts[] = {
-	{ "force",	no_argument,	NULL,	'f'	},
-	{ NULL,		0,		NULL,	0	}
-};
+static struct option longopts[] = { { "force", no_argument, NULL, 'f' },
+	{ NULL, 0, NULL, 0 } };
 
 /*
  * This program disables use of a DS mirror.  The "dspath" command line
@@ -93,4 +92,3 @@ usage(void)
 	fprintf(stderr, "pnfsdsfile [-f] mounted-on-DS-dir\n");
 	exit(1);
 }
-

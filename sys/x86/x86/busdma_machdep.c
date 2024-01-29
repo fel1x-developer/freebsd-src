@@ -30,27 +30,30 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/memdesc.h>
 #include <sys/mutex.h>
 #include <sys/uio.h>
 #include <sys/vmmeter.h>
+
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
+
 #include <machine/bus.h>
+
 #include <x86/include/busdma_impl.h>
 
 int
@@ -154,9 +157,9 @@ bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 		    flags, lockfunc, lockfuncarg, dmat);
 	} else {
 		tc = (struct bus_dma_tag_common *)parent;
-		error = tc->impl->tag_create(parent, alignment,
-		    boundary, lowaddr, highaddr, maxsize, nsegments, maxsegsz,
-		    flags, lockfunc, lockfuncarg, dmat);
+		error = tc->impl->tag_create(parent, alignment, boundary,
+		    lowaddr, highaddr, maxsize, nsegments, maxsegsz, flags,
+		    lockfunc, lockfuncarg, dmat);
 	}
 	return (error);
 }

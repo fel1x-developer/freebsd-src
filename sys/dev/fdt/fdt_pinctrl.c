@@ -26,13 +26,12 @@
 
 #include <sys/param.h>
 
+#include <dev/fdt/fdt_common.h>
+#include <dev/fdt/fdt_pinctrl.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "fdt_pinctrl_if.h"
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/fdt/fdt_pinctrl.h>
 
 int
 fdt_pinctrl_configure(device_t client, u_int index)
@@ -58,9 +57,9 @@ fdt_pinctrl_configure(device_t client, u_int index)
 }
 
 int
-fdt_pinctrl_configure_by_name(device_t client, const char * name)
+fdt_pinctrl_configure_by_name(device_t client, const char *name)
 {
-	char * names;
+	char *names;
 	int i, offset, nameslen;
 
 	nameslen = OF_getprop_alloc(ofw_bus_get_node(client), "pinctrl-names",
@@ -133,7 +132,8 @@ pinctrl_configure_children(device_t pinctrl, phandle_t parent)
 		if (bootverbose) {
 			char name[32];
 			OF_getprop(node, "name", &name, sizeof(name));
-			printf("Processing %d pin-config node(s) in pinctrl-0 for %s\n",
+			printf(
+			    "Processing %d pin-config node(s) in pinctrl-0 for %s\n",
 			    nconfigs, name);
 		}
 		for (i = 0; i < nconfigs; i++) {
@@ -152,4 +152,3 @@ fdt_pinctrl_configure_tree(device_t pinctrl)
 
 	return (pinctrl_configure_children(pinctrl, OF_peer(0)));
 }
-

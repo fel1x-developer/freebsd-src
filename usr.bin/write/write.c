@@ -162,7 +162,8 @@ main(int argc, char **argv)
 		if (term_chk(devfd, argv[1], &msgsok, &atime, 1))
 			exit(1);
 		if (myuid && !msgsok)
-			errx(1, "%s has messages disabled on %s", argv[0], argv[1]);
+			errx(1, "%s has messages disabled on %s", argv[0],
+			    argv[1]);
 		do_write(devfd, argv[1], mytty, login);
 		break;
 	default:
@@ -193,10 +194,10 @@ utmp_chk(char *user, char *tty)
 		if (u->ut_type == USER_PROCESS &&
 		    strcmp(user, u->ut_user) == 0) {
 			endutxent();
-			return(0);
+			return (0);
 		}
 	endutxent();
-	return(1);
+	return (1);
 }
 
 /*
@@ -226,12 +227,12 @@ search_utmp(int devfd, char *user, char *tty, char *mytty, uid_t myuid)
 		    strcmp(user, u->ut_user) == 0) {
 			++nloggedttys;
 			if (term_chk(devfd, u->ut_line, &msgsok, &atime, 0))
-				continue;	/* bad term? skip */
+				continue; /* bad term? skip */
 			if (myuid && !msgsok)
-				continue;	/* skip ttys with msgs off */
+				continue; /* skip ttys with msgs off */
 			if (strcmp(u->ut_line, mytty) == 0) {
 				user_is_me = 1;
-				continue;	/* don't write to yourself */
+				continue; /* don't write to yourself */
 			}
 			++nttys;
 			if (atime > bestatime) {
@@ -244,13 +245,14 @@ search_utmp(int devfd, char *user, char *tty, char *mytty, uid_t myuid)
 	if (nloggedttys == 0)
 		errx(1, "%s is not logged in", user);
 	if (nttys == 0) {
-		if (user_is_me) {		/* ok, so write to yourself! */
+		if (user_is_me) { /* ok, so write to yourself! */
 			(void)strlcpy(tty, mytty, MAXPATHLEN);
 			return;
 		}
 		errx(1, "%s has messages disabled", user);
 	} else if (nttys > 1) {
-		warnx("%s is logged in more than once; writing to %s", user, tty);
+		warnx("%s is logged in more than once; writing to %s", user,
+		    tty);
 	}
 }
 
@@ -266,11 +268,11 @@ term_chk(int devfd, char *tty, int *msgsokP, time_t *atimeP, int showerror)
 	if (fstatat(devfd, tty, &s, 0) < 0) {
 		if (showerror)
 			warn("%s%s", _PATH_DEV, tty);
-		return(1);
+		return (1);
 	}
-	*msgsokP = (s.st_mode & (S_IWRITE >> 3)) != 0;	/* group write bit */
+	*msgsokP = (s.st_mode & (S_IWRITE >> 3)) != 0; /* group write bit */
 	*atimeP = s.st_atime;
-	return(0);
+	return (0);
 }
 
 /*
@@ -305,7 +307,7 @@ do_write(int devfd, char *tty, char *mytty, const char *login)
 	(void)printf("\r\n\007\007\007Message from %s@%s on %s at %s ...\r\n",
 	    login, host, mytty, nows + 11);
 
-	while (fgetws(line, sizeof(line)/sizeof(wchar_t), stdin) != NULL)
+	while (fgetws(line, sizeof(line) / sizeof(wchar_t), stdin) != NULL)
 		wr_fputs(line);
 }
 
@@ -327,7 +329,9 @@ void
 wr_fputs(wchar_t *s)
 {
 
-#define	PUTC(c)	if (putwchar(c) == WEOF) err(1, NULL);
+#define PUTC(c)                  \
+	if (putwchar(c) == WEOF) \
+		err(1, NULL);
 
 	for (; *s != L'\0'; ++s) {
 		if (*s == L'\n') {

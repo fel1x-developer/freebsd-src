@@ -40,7 +40,7 @@
 #endif
 #include <string.h>
 
-char	*__strtok_r(char *, const char *, char **);
+char *__strtok_r(char *, const char *, char **);
 
 __weak_reference(__strtok_r, strtok_r);
 
@@ -63,7 +63,7 @@ cont:
 			goto cont;
 	}
 
-	if (c == 0) {		/* no non-delimiter characters */
+	if (c == 0) { /* no non-delimiter characters */
 		*last = NULL;
 		return (NULL);
 	}
@@ -118,11 +118,11 @@ main(void)
 	strcpy(test, "This;is.a:test:of=the/string\\tokenizer-function.");
 
 	for (word = strtok_r(test, sep, &brkt); word;
-	    word = strtok_r(NULL, sep, &brkt)) {
+	     word = strtok_r(NULL, sep, &brkt)) {
 		strcpy(blah, "blah:blat:blab:blag");
 
 		for (phrase = strtok_r(blah, sep, &brkb); phrase;
-		    phrase = strtok_r(NULL, sep, &brkb))
+		     phrase = strtok_r(NULL, sep, &brkb))
 			printf("So far we're at %s:%s\n", word, phrase);
 	}
 

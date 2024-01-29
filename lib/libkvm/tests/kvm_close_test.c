@@ -24,12 +24,12 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <kvm.h>
 #include <signal.h>
-
-#include <atf-c.h>
 
 ATF_TC(kvm_close_negative_test_NULL);
 ATF_TC_HEAD(kvm_close_negative_test_NULL, tc)

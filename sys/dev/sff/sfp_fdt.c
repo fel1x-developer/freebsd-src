@@ -30,27 +30,27 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/fdt/simplebus.h>
 
 #include "sff_if.h"
 
 struct sfp_fdt_softc {
-	phandle_t	ofw_node;
-	phandle_t	i2c_bus;
+	phandle_t ofw_node;
+	phandle_t i2c_bus;
 
-	phandle_t	mod_def;
-	phandle_t	los;
-	phandle_t	tx_fault;
-	phandle_t	tx_disable;
-	phandle_t	rx_rate;
-	phandle_t	tx_rate;
-	uint32_t	max_power; /* in mW */
+	phandle_t mod_def;
+	phandle_t los;
+	phandle_t tx_fault;
+	phandle_t tx_disable;
+	phandle_t rx_rate;
+	phandle_t tx_rate;
+	uint32_t max_power; /* in mW */
 };
 
 static int
@@ -66,8 +66,9 @@ sfp_fdt_probe(device_t dev)
 	s = device_get_property(dev, "i2c-bus", &node, sizeof(node),
 	    DEVICE_PROP_HANDLE);
 	if (s == -1) {
-		device_printf(dev, "%s: '%s' has no 'i2c-bus' property, s %zd\n",
-		    __func__, ofw_bus_get_name(dev), s);
+		device_printf(dev,
+		    "%s: '%s' has no 'i2c-bus' property, s %zd\n", __func__,
+		    ofw_bus_get_name(dev), s);
 		return (ENXIO);
 	}
 
@@ -106,8 +107,8 @@ sfp_fdt_attach(device_t dev)
 	    sizeof(sc->rx_rate), DEVICE_PROP_HANDLE);
 	(void)device_get_property(dev, "rate-select1-gpios", &sc->tx_rate,
 	    sizeof(sc->tx_rate), DEVICE_PROP_HANDLE);
-	(void)device_get_property(dev, "maximum-power-milliwatt", &sc->max_power,
-	    sizeof(sc->max_power), DEVICE_PROP_UINT32);
+	(void)device_get_property(dev, "maximum-power-milliwatt",
+	    &sc->max_power, sizeof(sc->max_power), DEVICE_PROP_UINT32);
 
 	error = OF_device_register_xref(OF_xref_from_node(sc->ofw_node), dev);
 	if (error != 0)
@@ -136,12 +137,12 @@ sfp_fdt_get_i2c_bus(device_t dev, device_t *i2c_bus)
 
 static device_method_t sfp_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sfp_fdt_probe),
-	DEVMETHOD(device_attach,	sfp_fdt_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
+	DEVMETHOD(device_probe, sfp_fdt_probe),
+	DEVMETHOD(device_attach, sfp_fdt_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
 
 	/* SFF */
-	DEVMETHOD(sff_get_i2c_bus,	sfp_fdt_get_i2c_bus),
+	DEVMETHOD(sff_get_i2c_bus, sfp_fdt_get_i2c_bus),
 
 	DEVMETHOD_END
 };
@@ -151,5 +152,4 @@ DEFINE_CLASS_0(sfp_fdt, sfp_fdt_driver, sfp_fdt_methods,
 
 EARLY_DRIVER_MODULE(sfp_fdt, simplebus, sfp_fdt_driver, 0, 0,
     BUS_PASS_SUPPORTDEV);
-EARLY_DRIVER_MODULE(sfp_fdt, ofwbus, sfp_fdt_driver, 0, 0,
-    BUS_PASS_SUPPORTDEV);
+EARLY_DRIVER_MODULE(sfp_fdt, ofwbus, sfp_fdt_driver, 0, 0, BUS_PASS_SUPPORTDEV);

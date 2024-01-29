@@ -31,11 +31,11 @@
  * SUCH DAMAGE.
  */
 
-#define	UPDATE_IFINFO_ALL	0
+#define UPDATE_IFINFO_ALL 0
 
 struct sockinfo {
-	int		si_fd;
-	const char	*si_name;
+	int si_fd;
+	const char *si_name;
 };
 
 extern struct sockinfo sock;
@@ -51,12 +51,11 @@ int get_rtm_ifindex(char *);
 int get_prefixlen(char *);
 int prefixlen(unsigned char *, unsigned char *);
 
-struct ifinfo	*update_ifinfo(struct ifilist_head_t *, int);
-int		update_ifinfo_nd_flags(struct ifinfo *);
-struct ifinfo	*update_persist_ifinfo(struct ifilist_head_t *,
-			const char *);
+struct ifinfo *update_ifinfo(struct ifilist_head_t *, int);
+int update_ifinfo_nd_flags(struct ifinfo *);
+struct ifinfo *update_persist_ifinfo(struct ifilist_head_t *, const char *);
 
-int		sock_mc_join(struct sockinfo *, int);
-int		sock_mc_leave(struct sockinfo *, int);
-int		sock_mc_rr_update(struct sockinfo *, char *);
-int		getinet6sysctl(int);
+int sock_mc_join(struct sockinfo *, int);
+int sock_mc_leave(struct sockinfo *, int);
+int sock_mc_rr_update(struct sockinfo *, char *);
+int getinet6sysctl(int);

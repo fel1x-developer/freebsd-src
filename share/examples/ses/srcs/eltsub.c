@@ -25,20 +25,21 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_enc.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "eltsub.h"
 
@@ -127,7 +128,7 @@ geteltnm(int type)
 		sprintf(rbuf, "SAS Connector");
 		break;
 	default:
-		(void) sprintf(rbuf, "<Type 0x%x>", type);
+		(void)sprintf(rbuf, "<Type 0x%x>", type);
 		break;
 	}
 	return (rbuf);
@@ -172,18 +173,16 @@ scode2ascii(u_char code)
 	return (rbuf);
 }
 
-
 char *
 stat2ascii(int eletype __unused, u_char *cstat)
 {
 	static char ebuf[256], *scode;
 
 	scode = scode2ascii(cstat[0]);
-	sprintf(ebuf, "status: %s%s%s%s (0x%02x 0x%02x 0x%02x 0x%02x)",
-	    scode,
+	sprintf(ebuf, "status: %s%s%s%s (0x%02x 0x%02x 0x%02x 0x%02x)", scode,
 	    (cstat[0] & 0x40) ? ", Prd.Fail" : "",
 	    (cstat[0] & 0x20) ? ", Disabled" : "",
-	    (cstat[0] & 0x10) ? ", Swapped" : "",
-	    cstat[0], cstat[1], cstat[2], cstat[3]);
+	    (cstat[0] & 0x10) ? ", Swapped" : "", cstat[0], cstat[1], cstat[2],
+	    cstat[3]);
 	return (ebuf);
 }

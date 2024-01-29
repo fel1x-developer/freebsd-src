@@ -31,7 +31,7 @@
 typedef intptr_t semid_t;
 struct timespec;
 
-#define SEM_VALUE_MAX  __INT_MAX
+#define SEM_VALUE_MAX __INT_MAX
 
 #ifndef _KERNEL
 

@@ -29,6 +29,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/procctl.h>
+
 #include <err.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -69,22 +70,23 @@ str2pid(const char *str)
 }
 
 #ifdef PROC_KPTI_CTL
-#define	KPTI_USAGE "|kpti"
+#define KPTI_USAGE "|kpti"
 #else
-#define	KPTI_USAGE
+#define KPTI_USAGE
 #endif
 #ifdef PROC_LA_CTL
-#define	LA_USAGE "|la48|la57"
+#define LA_USAGE "|la48|la57"
 #else
-#define	LA_USAGE
+#define LA_USAGE
 #endif
 
 static void __dead2
 usage(void)
 {
 
-	fprintf(stderr, "Usage: proccontrol -m (aslr|protmax|trace|trapcap|"
-	    "stackgap|nonewprivs|wxmap"KPTI_USAGE LA_USAGE") [-q] "
+	fprintf(stderr,
+	    "Usage: proccontrol -m (aslr|protmax|trace|trapcap|"
+	    "stackgap|nonewprivs|wxmap" KPTI_USAGE LA_USAGE ") [-q] "
 	    "[-s (enable|disable)] [-p pid | command]\n");
 	exit(1);
 }
@@ -256,8 +258,8 @@ main(int argc, char *argv[])
 				printf(", not active\n");
 			break;
 		case MODE_STACKGAP:
-			switch (arg & (PROC_STACKGAP_ENABLE |
-			    PROC_STACKGAP_DISABLE)) {
+			switch (arg &
+			    (PROC_STACKGAP_ENABLE | PROC_STACKGAP_DISABLE)) {
 			case PROC_STACKGAP_ENABLE:
 				printf("enabled\n");
 				break;
@@ -265,8 +267,9 @@ main(int argc, char *argv[])
 				printf("disabled\n");
 				break;
 			}
-			switch (arg & (PROC_STACKGAP_ENABLE_EXEC |
-			    PROC_STACKGAP_DISABLE_EXEC)) {
+			switch (arg &
+			    (PROC_STACKGAP_ENABLE_EXEC |
+				PROC_STACKGAP_DISABLE_EXEC)) {
 			case PROC_STACKGAP_ENABLE_EXEC:
 				printf("enabled after exec\n");
 				break;
@@ -315,8 +318,8 @@ main(int argc, char *argv[])
 #ifdef PROC_LA_CTL
 		case MODE_LA57:
 		case MODE_LA48:
-			switch (arg & ~(PROC_LA_STATUS_LA48 |
-			    PROC_LA_STATUS_LA57)) {
+			switch (arg &
+			    ~(PROC_LA_STATUS_LA48 | PROC_LA_STATUS_LA57)) {
 			case PROC_LA_CTL_LA48_ON_EXEC:
 				printf("la48 on exec");
 				break;
@@ -338,57 +341,57 @@ main(int argc, char *argv[])
 		switch (mode) {
 		case MODE_ASLR:
 			arg = enable ? PROC_ASLR_FORCE_ENABLE :
-			    PROC_ASLR_FORCE_DISABLE;
+				       PROC_ASLR_FORCE_DISABLE;
 			error = procctl(P_PID, pid, PROC_ASLR_CTL, &arg);
 			break;
 		case MODE_TRACE:
 			arg = enable ? PROC_TRACE_CTL_ENABLE :
-			    PROC_TRACE_CTL_DISABLE;
+				       PROC_TRACE_CTL_DISABLE;
 			error = procctl(P_PID, pid, PROC_TRACE_CTL, &arg);
 			break;
 		case MODE_TRAPCAP:
 			arg = enable ? PROC_TRAPCAP_CTL_ENABLE :
-			    PROC_TRAPCAP_CTL_DISABLE;
+				       PROC_TRAPCAP_CTL_DISABLE;
 			error = procctl(P_PID, pid, PROC_TRAPCAP_CTL, &arg);
 			break;
 		case MODE_PROTMAX:
 			arg = enable ? PROC_PROTMAX_FORCE_ENABLE :
-			    PROC_PROTMAX_FORCE_DISABLE;
+				       PROC_PROTMAX_FORCE_DISABLE;
 			error = procctl(P_PID, pid, PROC_PROTMAX_CTL, &arg);
 			break;
 		case MODE_STACKGAP:
 			arg = enable ? PROC_STACKGAP_ENABLE_EXEC :
-			    (PROC_STACKGAP_DISABLE |
-			    PROC_STACKGAP_DISABLE_EXEC);
+				       (PROC_STACKGAP_DISABLE |
+					   PROC_STACKGAP_DISABLE_EXEC);
 			error = procctl(P_PID, pid, PROC_STACKGAP_CTL, &arg);
 			break;
 		case MODE_NO_NEW_PRIVS:
 			arg = enable ? PROC_NO_NEW_PRIVS_ENABLE :
-			    PROC_NO_NEW_PRIVS_DISABLE;
+				       PROC_NO_NEW_PRIVS_DISABLE;
 			error = procctl(P_PID, pid, PROC_NO_NEW_PRIVS_CTL,
 			    &arg);
 			break;
 		case MODE_WXMAP:
 			arg = enable ? PROC_WX_MAPPINGS_PERMIT :
-			    PROC_WX_MAPPINGS_DISALLOW_EXEC;
+				       PROC_WX_MAPPINGS_DISALLOW_EXEC;
 			error = procctl(P_PID, pid, PROC_WXMAP_CTL, &arg);
 			break;
 #ifdef PROC_KPTI_CTL
 		case MODE_KPTI:
 			arg = enable ? PROC_KPTI_CTL_ENABLE_ON_EXEC :
-			    PROC_KPTI_CTL_DISABLE_ON_EXEC;
+				       PROC_KPTI_CTL_DISABLE_ON_EXEC;
 			error = procctl(P_PID, pid, PROC_KPTI_CTL, &arg);
 			break;
 #endif
 #ifdef PROC_LA_CTL
 		case MODE_LA57:
 			arg = enable ? PROC_LA_CTL_LA57_ON_EXEC :
-			    PROC_LA_CTL_DEFAULT_ON_EXEC;
+				       PROC_LA_CTL_DEFAULT_ON_EXEC;
 			error = procctl(P_PID, pid, PROC_LA_CTL, &arg);
 			break;
 		case MODE_LA48:
 			arg = enable ? PROC_LA_CTL_LA48_ON_EXEC :
-			    PROC_LA_CTL_DEFAULT_ON_EXEC;
+				       PROC_LA_CTL_DEFAULT_ON_EXEC;
 			error = procctl(P_PID, pid, PROC_LA_CTL, &arg);
 			break;
 #endif

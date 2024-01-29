@@ -31,4 +31,4 @@
  * SUCH DAMAGE.
  */
 
-#define _PATH_CH	"/dev/ch0"
+#define _PATH_CH "/dev/ch0"

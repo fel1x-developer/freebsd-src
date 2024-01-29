@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mapper_zone.c,v 1.4 2003/07/12 15:39:21 tshiozak Exp $	*/
+/*	$NetBSD: citrus_mapper_zone.c,v 1.4 2003/07/12 15:39:21 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -37,48 +38,47 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
 #include "citrus_hash.h"
 #include "citrus_mapper.h"
 #include "citrus_mapper_zone.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 /* ---------------------------------------------------------------------- */
 
 _CITRUS_MAPPER_DECLS(mapper_zone);
 _CITRUS_MAPPER_DEF_OPS(mapper_zone);
 
-
 /* ---------------------------------------------------------------------- */
 
 struct _zone {
-	uint32_t	 z_begin;
-	uint32_t	 z_end;
+	uint32_t z_begin;
+	uint32_t z_end;
 };
 
 struct _citrus_mapper_zone {
-	struct _zone	 mz_col;
-	struct _zone	 mz_row;
-	int32_t		 mz_col_offset;
-	int32_t		 mz_row_offset;
-	int		 mz_col_bits;
+	struct _zone mz_col;
+	struct _zone mz_row;
+	int32_t mz_col_offset;
+	int32_t mz_row_offset;
+	int mz_col_bits;
 };
 
 struct _parse_state {
-	enum { S_BEGIN, S_OFFSET }	ps_state;
+	enum { S_BEGIN, S_OFFSET } ps_state;
 	union {
-		uint32_t	u_imm;
-		int32_t		s_imm;
-		struct _zone	zone;
+		uint32_t u_imm;
+		int32_t s_imm;
+		struct _zone zone;
 	} u;
-#define ps_u_imm	u.u_imm
-#define ps_s_imm	u.s_imm
-#define ps_zone		u.zone
+#define ps_u_imm u.u_imm
+#define ps_s_imm u.s_imm
+#define ps_zone u.zone
 	int ps_top;
 };
 
@@ -87,14 +87,14 @@ _citrus_mapper_zone_mapper_getops(struct _citrus_mapper_ops *ops)
 {
 
 	memcpy(ops, &_citrus_mapper_zone_mapper_ops,
-	       sizeof(_citrus_mapper_zone_mapper_ops));
+	    sizeof(_citrus_mapper_zone_mapper_ops));
 
 	return (0);
 }
 
 #define BUFSIZE 20
-#define T_ERR	0x100
-#define T_IMM	0x101
+#define T_ERR 0x100
+#define T_IMM 0x101
 
 static int
 get_imm(struct _memstream *ms, struct _parse_state *ps)
@@ -104,7 +104,7 @@ get_imm(struct _memstream *ms, struct _parse_state *ps)
 	char *p;
 
 	for (i = 0; i < BUFSIZE; i++) {
-retry:
+	retry:
 		c = _memstream_peek(ms);
 		if (i == 0) {
 			if (sign == 0 && (c == '+' || c == '-')) {
@@ -217,7 +217,7 @@ check_rowcol(struct _zone *z, int32_t ofs, uint32_t maxval)
 		if (maxval == 0)
 			/* this should 0x100000000 - z->z_end */
 			remain = (z->z_end == 0) ? 0xFFFFFFFF :
-			    0xFFFFFFFF - z->z_end + 1;
+						   0xFFFFFFFF - z->z_end + 1;
 		else
 			remain = maxval - z->z_end;
 		if ((uint32_t)ofs > remain)
@@ -287,7 +287,7 @@ parse_var(struct _citrus_mapper_zone *mz, struct _memstream *ms)
 
 	/* sanity check */
 	colmax = (mz->mz_col_bits == 32) ? 0 : 1 << mz->mz_col_bits;
-	rowmax = (mz->mz_col_bits == 0) ? 0 : 1 << (32-mz->mz_col_bits);
+	rowmax = (mz->mz_col_bits == 0) ? 0 : 1 << (32 - mz->mz_col_bits);
 	if (check_rowcol(&mz->mz_col, mz->mz_col_offset, colmax))
 		return (-1);
 	if (check_rowcol(&mz->mz_row, mz->mz_row_offset, rowmax))
@@ -298,10 +298,11 @@ parse_var(struct _citrus_mapper_zone *mz, struct _memstream *ms)
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_zone_mapper_init(struct _citrus_mapper_area *__restrict ma __unused,
-    struct _citrus_mapper * __restrict cm, const char * __restrict dir __unused,
-    const void * __restrict var, size_t lenvar,
-    struct _citrus_mapper_traits * __restrict mt, size_t lenmt)
+_citrus_mapper_zone_mapper_init(
+    struct _citrus_mapper_area *__restrict ma __unused,
+    struct _citrus_mapper *__restrict cm, const char *__restrict dir __unused,
+    const void *__restrict var, size_t lenvar,
+    struct _citrus_mapper_traits *__restrict mt, size_t lenmt)
 {
 	struct _citrus_mapper_zone *mz;
 	struct _memstream ms;
@@ -327,8 +328,8 @@ _citrus_mapper_zone_mapper_init(struct _citrus_mapper_area *__restrict ma __unus
 		return (EINVAL);
 	}
 	cm->cm_closure = mz;
-	mt->mt_src_max = mt->mt_dst_max = 1;	/* 1:1 converter */
-	mt->mt_state_size = 0;			/* stateless */
+	mt->mt_src_max = mt->mt_dst_max = 1; /* 1:1 converter */
+	mt->mt_state_size = 0;		     /* stateless */
 
 	return (0);
 }
@@ -337,14 +338,13 @@ static void
 /*ARGSUSED*/
 _citrus_mapper_zone_mapper_uninit(struct _citrus_mapper *cm __unused)
 {
-
 }
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_zone_mapper_convert(struct _citrus_mapper * __restrict cm,
-    _citrus_index_t * __restrict dst, _citrus_index_t src,
-    void * __restrict ps __unused)
+_citrus_mapper_zone_mapper_convert(struct _citrus_mapper *__restrict cm,
+    _citrus_index_t *__restrict dst, _citrus_index_t src,
+    void *__restrict ps __unused)
 {
 	struct _citrus_mapper_zone *mz = cm->cm_closure;
 	uint32_t col, row;
@@ -382,5 +382,4 @@ static void
 /*ARGSUSED*/
 _citrus_mapper_zone_mapper_init_state(void)
 {
-
 }

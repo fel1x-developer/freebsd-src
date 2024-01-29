@@ -16,10 +16,8 @@ read_csr_ring_head(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_head(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    u32 value)
+write_csr_ring_head(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_HEAD(csr_base_addr, bank, ring, value);
 }
@@ -31,10 +29,8 @@ read_csr_ring_tail(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_tail(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    u32 value)
+write_csr_ring_tail(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_TAIL(csr_base_addr, bank, ring, value);
 }
@@ -46,10 +42,8 @@ read_csr_e_stat(struct resource *csr_base_addr, u32 bank)
 }
 
 static void
-write_csr_ring_config(struct resource *csr_base_addr,
-		      u32 bank,
-		      u32 ring,
-		      u32 value)
+write_csr_ring_config(struct resource *csr_base_addr, u32 bank, u32 ring,
+    u32 value)
 {
 	WRITE_CSR_RING_CONFIG(csr_base_addr, bank, ring, value);
 }
@@ -61,10 +55,8 @@ read_csr_ring_base(struct resource *csr_base_addr, u32 bank, u32 ring)
 }
 
 static void
-write_csr_ring_base(struct resource *csr_base_addr,
-		    u32 bank,
-		    u32 ring,
-		    bus_addr_t addr)
+write_csr_ring_base(struct resource *csr_base_addr, u32 bank, u32 ring,
+    bus_addr_t addr)
 {
 	WRITE_CSR_RING_BASE(csr_base_addr, bank, ring, addr);
 }

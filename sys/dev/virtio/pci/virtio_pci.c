@@ -30,61 +30,57 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
-#include <dev/virtio/virtio.h>
-#include <dev/virtio/virtqueue.h>
+#include <dev/pci/pcivar.h>
 #include <dev/virtio/pci/virtio_pci.h>
 #include <dev/virtio/pci/virtio_pci_var.h>
+#include <dev/virtio/virtio.h>
+#include <dev/virtio/virtqueue.h>
 
-#include "virtio_pci_if.h"
 #include "virtio_if.h"
+#include "virtio_pci_if.h"
 
-static void	vtpci_describe_features(struct vtpci_common *, const char *,
-		    uint64_t);
-static int	vtpci_alloc_msix(struct vtpci_common *, int);
-static int	vtpci_alloc_msi(struct vtpci_common *);
-static int	vtpci_alloc_intr_msix_pervq(struct vtpci_common *);
-static int	vtpci_alloc_intr_msix_shared(struct vtpci_common *);
-static int	vtpci_alloc_intr_msi(struct vtpci_common *);
-static int	vtpci_alloc_intr_intx(struct vtpci_common *);
-static int	vtpci_alloc_interrupt(struct vtpci_common *, int, int,
-		    struct vtpci_interrupt *);
-static void	vtpci_free_interrupt(struct vtpci_common *,
-		    struct vtpci_interrupt *);
+static void vtpci_describe_features(struct vtpci_common *, const char *,
+    uint64_t);
+static int vtpci_alloc_msix(struct vtpci_common *, int);
+static int vtpci_alloc_msi(struct vtpci_common *);
+static int vtpci_alloc_intr_msix_pervq(struct vtpci_common *);
+static int vtpci_alloc_intr_msix_shared(struct vtpci_common *);
+static int vtpci_alloc_intr_msi(struct vtpci_common *);
+static int vtpci_alloc_intr_intx(struct vtpci_common *);
+static int vtpci_alloc_interrupt(struct vtpci_common *, int, int,
+    struct vtpci_interrupt *);
+static void vtpci_free_interrupt(struct vtpci_common *,
+    struct vtpci_interrupt *);
 
-static void	vtpci_free_interrupts(struct vtpci_common *);
-static void	vtpci_free_virtqueues(struct vtpci_common *);
-static void	vtpci_cleanup_setup_intr_attempt(struct vtpci_common *);
-static int	vtpci_alloc_intr_resources(struct vtpci_common *);
-static int	vtpci_setup_intx_interrupt(struct vtpci_common *,
-		    enum intr_type);
-static int	vtpci_setup_pervq_msix_interrupts(struct vtpci_common *,
-		    enum intr_type);
-static int	vtpci_set_host_msix_vectors(struct vtpci_common *);
-static int	vtpci_setup_msix_interrupts(struct vtpci_common *,
-		    enum intr_type);
-static int	vtpci_setup_intrs(struct vtpci_common *, enum intr_type);
-static int	vtpci_reinit_virtqueue(struct vtpci_common *, int);
-static void	vtpci_intx_intr(void *);
-static int	vtpci_vq_shared_intr_filter(void *);
-static void	vtpci_vq_shared_intr(void *);
-static int	vtpci_vq_intr_filter(void *);
-static void	vtpci_vq_intr(void *);
-static void	vtpci_config_intr(void *);
+static void vtpci_free_interrupts(struct vtpci_common *);
+static void vtpci_free_virtqueues(struct vtpci_common *);
+static void vtpci_cleanup_setup_intr_attempt(struct vtpci_common *);
+static int vtpci_alloc_intr_resources(struct vtpci_common *);
+static int vtpci_setup_intx_interrupt(struct vtpci_common *, enum intr_type);
+static int vtpci_setup_pervq_msix_interrupts(struct vtpci_common *,
+    enum intr_type);
+static int vtpci_set_host_msix_vectors(struct vtpci_common *);
+static int vtpci_setup_msix_interrupts(struct vtpci_common *, enum intr_type);
+static int vtpci_setup_intrs(struct vtpci_common *, enum intr_type);
+static int vtpci_reinit_virtqueue(struct vtpci_common *, int);
+static void vtpci_intx_intr(void *);
+static int vtpci_vq_shared_intr_filter(void *);
+static void vtpci_vq_shared_intr(void *);
+static int vtpci_vq_intr_filter(void *);
+static void vtpci_vq_intr(void *);
+static void vtpci_config_intr(void *);
 
-static void	vtpci_setup_sysctl(struct vtpci_common *);
+static void vtpci_setup_sysctl(struct vtpci_common *);
 
 #define vtpci_setup_msi_interrupt vtpci_setup_intx_interrupt
 
@@ -245,8 +241,8 @@ vtpci_describe_features(struct vtpci_common *cn, const char *msg,
 }
 
 uint64_t
-vtpci_negotiate_features(struct vtpci_common *cn,
-    uint64_t child_features, uint64_t host_features)
+vtpci_negotiate_features(struct vtpci_common *cn, uint64_t child_features,
+    uint64_t host_features)
 {
 	uint64_t features;
 
@@ -313,7 +309,7 @@ vtpci_write_ivar(struct vtpci_common *cn, int index, uintptr_t value)
 
 	switch (index) {
 	case VIRTIO_IVAR_FEATURE_DESC:
-		cn->vtpci_child_feat_desc = (void *) value;
+		cn->vtpci_child_feat_desc = (void *)value;
 		break;
 	default:
 		error = ENOENT;
@@ -343,8 +339,8 @@ vtpci_alloc_virtqueues(struct vtpci_common *cn, int nvqs,
 	if (nvqs <= 0)
 		return (EINVAL);
 
-	cn->vtpci_vqs = malloc(nvqs * sizeof(struct vtpci_virtqueue),
-	    M_DEVBUF, M_NOWAIT | M_ZERO);
+	cn->vtpci_vqs = malloc(nvqs * sizeof(struct vtpci_virtqueue), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (cn->vtpci_vqs == NULL)
 		return (ENOMEM);
 
@@ -364,8 +360,8 @@ vtpci_alloc_virtqueues(struct vtpci_common *cn, int nvqs,
 		error = virtqueue_alloc(dev, idx, size, notify_offset, align,
 		    ~(vm_paddr_t)0, info, &vq);
 		if (error) {
-			device_printf(dev,
-			    "cannot allocate virtqueue %d: %d\n", idx, error);
+			device_printf(dev, "cannot allocate virtqueue %d: %d\n",
+			    idx, error);
 			break;
 		}
 
@@ -635,7 +631,8 @@ vtpci_alloc_intr_resources(struct vtpci_common *cn)
 	nvq_intrs = cn->vtpci_nmsix_resources - 1;
 
 	cn->vtpci_msix_vq_interrupts = malloc(nvq_intrs *
-	    sizeof(struct vtpci_interrupt), M_DEVBUF, M_NOWAIT | M_ZERO);
+		sizeof(struct vtpci_interrupt),
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (cn->vtpci_msix_vq_interrupts == NULL)
 		return (ENOMEM);
 
@@ -986,8 +983,8 @@ vtpci_setup_sysctl(struct vtpci_common *cn)
 	tree = device_get_sysctl_tree(dev);
 	child = SYSCTL_CHILDREN(tree);
 
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "nvqs",
-	    CTLFLAG_RD, &cn->vtpci_nvqs, 0, "Number of virtqueues");
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "nvqs", CTLFLAG_RD,
+	    &cn->vtpci_nvqs, 0, "Number of virtqueues");
 
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "host_features",
 	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, cn, 0,

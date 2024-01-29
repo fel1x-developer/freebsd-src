@@ -24,42 +24,38 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_rx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-
 #include <dev/rtwn/rtl8192e/r92e.h>
 #include <dev/rtwn/rtl8192e/r92e_reg.h>
 #include <dev/rtwn/rtl8192e/r92e_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static int
 r92e_get_power_group(struct rtwn_softc *sc, struct ieee80211_channel *c)
@@ -69,11 +65,16 @@ r92e_get_power_group(struct rtwn_softc *sc, struct ieee80211_channel *c)
 
 	chan = rtwn_chan2centieee(c);
 	if (IEEE80211_IS_CHAN_2GHZ(c)) {
-		if (chan <= 2)			group = 0;
-		else if (chan <= 5)		group = 1;
-		else if (chan <= 8)		group = 2;
-		else if (chan <= 11)		group = 3;
-		else if (chan <= 14)		group = 4;
+		if (chan <= 2)
+			group = 0;
+		else if (chan <= 5)
+			group = 1;
+		else if (chan <= 8)
+			group = 2;
+		else if (chan <= 11)
+			group = 3;
+		else if (chan <= 14)
+			group = 4;
 		else {
 			KASSERT(0, ("wrong 2GHz channel %d!\n", chan));
 			return (-1);
@@ -95,7 +96,7 @@ r92e_get_txpower(struct rtwn_softc *sc, int chain, struct ieee80211_channel *c,
 
 	/* Determine channel group. */
 	group = r92e_get_power_group(sc, c);
-	if (group == -1) {	/* shouldn't happen */
+	if (group == -1) { /* shouldn't happen */
 		device_printf(sc->sc_dev, "%s: incorrect channel\n", __func__);
 		return;
 	}
@@ -172,17 +173,17 @@ r92e_set_bw40(struct rtwn_softc *sc, uint8_t chan, int prichlo)
 
 	/* Select 40MHz bandwidth. */
 	for (i = 0; i < sc->nrxchains; i++)
-		rtwn_rf_setbits(sc, i, R92C_RF_CHNLBW,
-		    R88E_RF_CHNLBW_BW20, 0x400);
+		rtwn_rf_setbits(sc, i, R92C_RF_CHNLBW, R88E_RF_CHNLBW_BW20,
+		    0x400);
 
 	/* Set CCK side band. */
-	rtwn_bb_setbits(sc, R92C_CCK0_SYSTEM,
-	    R92C_CCK0_SYSTEM_CCK_SIDEBAND, (prichlo ? 0 : 1) << 4);
-		
+	rtwn_bb_setbits(sc, R92C_CCK0_SYSTEM, R92C_CCK0_SYSTEM_CCK_SIDEBAND,
+	    (prichlo ? 0 : 1) << 4);
+
 	rtwn_bb_setbits(sc, R92C_OFDM1_LSTF, 0x0c00, (prichlo ? 1 : 2) << 10);
 
-	rtwn_bb_setbits(sc, R92C_FPGA0_ANAPARAM2,
-	    R92C_FPGA0_ANAPARAM2_CBW20, 0);
+	rtwn_bb_setbits(sc, R92C_FPGA0_ANAPARAM2, R92C_FPGA0_ANAPARAM2_CBW20,
+	    0);
 
 	rtwn_bb_setbits(sc, 0x818, 0x0c000000, (prichlo ? 2 : 1) << 26);
 }
@@ -200,8 +201,8 @@ r92e_set_bw20(struct rtwn_softc *sc, uint8_t chan)
 
 	/* Select 20MHz bandwidth. */
 	for (i = 0; i < sc->nrxchains; i++)
-		rtwn_rf_setbits(sc, i, R92C_RF_CHNLBW,
-		    R88E_RF_CHNLBW_BW20, 0xc00);
+		rtwn_rf_setbits(sc, i, R92C_RF_CHNLBW, R88E_RF_CHNLBW_BW20,
+		    0xc00);
 
 	rtwn_bb_setbits(sc, R92C_OFDM0_TXPSEUDONOISEWGT, 0xc0000000, 0);
 }

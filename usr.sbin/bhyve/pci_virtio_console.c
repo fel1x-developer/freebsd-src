@@ -34,101 +34,102 @@
 #ifndef WITHOUT_CAPSICUM
 #include <sys/capsicum.h>
 #endif
-#include <sys/linker_set.h>
-#include <sys/uio.h>
 #include <sys/types.h>
+#include <sys/linker_set.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <unistd.h>
-#include <assert.h>
-#include <pthread.h>
-#include <libgen.h>
 #include <sysexits.h>
+#include <unistd.h>
 
 #include "bhyverun.h"
 #include "config.h"
 #include "debug.h"
-#include "pci_emul.h"
-#include "virtio.h"
 #include "mevent.h"
+#include "pci_emul.h"
 #include "sockstream.h"
+#include "virtio.h"
 
-#define	VTCON_RINGSZ	64
-#define	VTCON_MAXPORTS	16
-#define	VTCON_MAXQ	(VTCON_MAXPORTS * 2 + 2)
+#define VTCON_RINGSZ 64
+#define VTCON_MAXPORTS 16
+#define VTCON_MAXQ (VTCON_MAXPORTS * 2 + 2)
 
-#define	VTCON_DEVICE_READY	0
-#define	VTCON_DEVICE_ADD	1
-#define	VTCON_DEVICE_REMOVE	2
-#define	VTCON_PORT_READY	3
-#define	VTCON_CONSOLE_PORT	4
-#define	VTCON_CONSOLE_RESIZE	5
-#define	VTCON_PORT_OPEN		6
-#define	VTCON_PORT_NAME		7
+#define VTCON_DEVICE_READY 0
+#define VTCON_DEVICE_ADD 1
+#define VTCON_DEVICE_REMOVE 2
+#define VTCON_PORT_READY 3
+#define VTCON_CONSOLE_PORT 4
+#define VTCON_CONSOLE_RESIZE 5
+#define VTCON_PORT_OPEN 6
+#define VTCON_PORT_NAME 7
 
-#define	VTCON_F_SIZE		0
-#define	VTCON_F_MULTIPORT	1
-#define	VTCON_F_EMERG_WRITE	2
-#define	VTCON_S_HOSTCAPS	\
-    (VTCON_F_SIZE | VTCON_F_MULTIPORT | VTCON_F_EMERG_WRITE)
+#define VTCON_F_SIZE 0
+#define VTCON_F_MULTIPORT 1
+#define VTCON_F_EMERG_WRITE 2
+#define VTCON_S_HOSTCAPS \
+	(VTCON_F_SIZE | VTCON_F_MULTIPORT | VTCON_F_EMERG_WRITE)
 
 static int pci_vtcon_debug;
-#define DPRINTF(params) if (pci_vtcon_debug) PRINTLN params
+#define DPRINTF(params)      \
+	if (pci_vtcon_debug) \
+	PRINTLN params
 #define WPRINTF(params) PRINTLN params
 
 struct pci_vtcon_softc;
 struct pci_vtcon_port;
 struct pci_vtcon_config;
-typedef void (pci_vtcon_cb_t)(struct pci_vtcon_port *, void *, struct iovec *,
-    int);
+typedef void(
+    pci_vtcon_cb_t)(struct pci_vtcon_port *, void *, struct iovec *, int);
 
 struct pci_vtcon_port {
-	struct pci_vtcon_softc * vsp_sc;
-	int                      vsp_id;
-	const char *             vsp_name;
-	bool                     vsp_enabled;
-	bool                     vsp_console;
-	bool                     vsp_rx_ready;
-	bool                     vsp_open;
-	int                      vsp_rxq;
-	int                      vsp_txq;
-	void *                   vsp_arg;
-	pci_vtcon_cb_t *         vsp_cb;
+	struct pci_vtcon_softc *vsp_sc;
+	int vsp_id;
+	const char *vsp_name;
+	bool vsp_enabled;
+	bool vsp_console;
+	bool vsp_rx_ready;
+	bool vsp_open;
+	int vsp_rxq;
+	int vsp_txq;
+	void *vsp_arg;
+	pci_vtcon_cb_t *vsp_cb;
 };
 
-struct pci_vtcon_sock
-{
-	struct pci_vtcon_port *  vss_port;
-	const char *             vss_path;
-	struct mevent *          vss_server_evp;
-	struct mevent *          vss_conn_evp;
-	int                      vss_server_fd;
-	int                      vss_conn_fd;
-	bool                     vss_open;
+struct pci_vtcon_sock {
+	struct pci_vtcon_port *vss_port;
+	const char *vss_path;
+	struct mevent *vss_server_evp;
+	struct mevent *vss_conn_evp;
+	int vss_server_fd;
+	int vss_conn_fd;
+	bool vss_open;
 };
 
 struct pci_vtcon_softc {
-	struct virtio_softc      vsc_vs;
-	struct vqueue_info       vsc_queues[VTCON_MAXQ];
-	pthread_mutex_t          vsc_mtx;
-	uint64_t                 vsc_cfg;
-	uint64_t                 vsc_features;
-	char *                   vsc_rootdir;
-	int                      vsc_kq;
-	bool                     vsc_ready;
-	struct pci_vtcon_port    vsc_control_port;
- 	struct pci_vtcon_port    vsc_ports[VTCON_MAXPORTS];
+	struct virtio_softc vsc_vs;
+	struct vqueue_info vsc_queues[VTCON_MAXQ];
+	pthread_mutex_t vsc_mtx;
+	uint64_t vsc_cfg;
+	uint64_t vsc_features;
+	char *vsc_rootdir;
+	int vsc_kq;
+	bool vsc_ready;
+	struct pci_vtcon_port vsc_control_port;
+	struct pci_vtcon_port vsc_ports[VTCON_MAXPORTS];
 	struct pci_vtcon_config *vsc_config;
 };
 
@@ -156,7 +157,7 @@ static void pci_vtcon_notify_tx(void *, struct vqueue_info *);
 static int pci_vtcon_cfgread(void *, int, int, uint32_t *);
 static int pci_vtcon_cfgwrite(void *, int, int, uint32_t);
 static void pci_vtcon_neg_features(void *, uint64_t);
-static void pci_vtcon_sock_accept(int, enum ev_type,  void *);
+static void pci_vtcon_sock_accept(int, enum ev_type, void *);
 static void pci_vtcon_sock_rx(int, enum ev_type, void *);
 static void pci_vtcon_sock_tx(struct pci_vtcon_port *, void *, struct iovec *,
     int);
@@ -166,14 +167,14 @@ static void pci_vtcon_announce_port(struct pci_vtcon_port *);
 static void pci_vtcon_open_port(struct pci_vtcon_port *, bool);
 
 static struct virtio_consts vtcon_vi_consts = {
-	.vc_name =	"vtcon",
-	.vc_nvq =	VTCON_MAXQ,
-	.vc_cfgsize =	sizeof(struct pci_vtcon_config),
-	.vc_reset =	pci_vtcon_reset,
-	.vc_cfgread =	pci_vtcon_cfgread,
-	.vc_cfgwrite =	pci_vtcon_cfgwrite,
+	.vc_name = "vtcon",
+	.vc_nvq = VTCON_MAXQ,
+	.vc_cfgsize = sizeof(struct pci_vtcon_config),
+	.vc_reset = pci_vtcon_reset,
+	.vc_cfgread = pci_vtcon_cfgread,
+	.vc_cfgwrite = pci_vtcon_cfgwrite,
 	.vc_apply_features = pci_vtcon_neg_features,
-	.vc_hv_caps =	VTCON_S_HOSTCAPS,
+	.vc_hv_caps = VTCON_S_HOSTCAPS,
 };
 
 static void
@@ -352,7 +353,8 @@ pci_vtcon_sock_add(struct pci_vtcon_softc *sc, const char *port_name,
 		error = -1;
 		goto out;
 	}
-	sock->vss_port = pci_vtcon_port_add(sc, port, name, pci_vtcon_sock_tx, sock);
+	sock->vss_port = pci_vtcon_port_add(sc, port, name, pci_vtcon_sock_tx,
+	    sock);
 	if (sock->vss_port == NULL) {
 		error = -1;
 		goto out;
@@ -583,12 +585,12 @@ pci_vtcon_control_send(struct pci_vtcon_softc *sc,
 	memcpy(iov.iov_base, ctrl, sizeof(struct pci_vtcon_control));
 	if (payload != NULL && len > 0)
 		memcpy((uint8_t *)iov.iov_base +
-		    sizeof(struct pci_vtcon_control), payload, len);
+			sizeof(struct pci_vtcon_control),
+		    payload, len);
 
 	vq_relchain(vq, req.idx, sizeof(struct pci_vtcon_control) + len);
 	vq_endchains(vq, 1);
 }
-
 
 static void
 pci_vtcon_notify_tx(void *vsc, struct vqueue_info *vq)
@@ -613,7 +615,7 @@ pci_vtcon_notify_tx(void *vsc, struct vqueue_info *vq)
 		 */
 		vq_relchain(vq, req.idx, 0);
 	}
-	vq_endchains(vq, 1);	/* Generate interrupt if appropriate. */
+	vq_endchains(vq, 1); /* Generate interrupt if appropriate. */
 }
 
 static void
@@ -700,9 +702,8 @@ pci_vtcon_init(struct pci_devinst *pi, nvlist_t *nvl)
 
 	for (i = 0; i < VTCON_MAXQ; i++) {
 		sc->vsc_queues[i].vq_qsize = VTCON_RINGSZ;
-		sc->vsc_queues[i].vq_notify = i % 2 == 0
-		    ? pci_vtcon_notify_rx
-		    : pci_vtcon_notify_tx;
+		sc->vsc_queues[i].vq_notify = i % 2 == 0 ? pci_vtcon_notify_rx :
+							   pci_vtcon_notify_tx;
 	}
 
 	/* initialize config space */
@@ -730,15 +731,15 @@ pci_vtcon_init(struct pci_devinst *pi, nvlist_t *nvl)
 		int type;
 
 		cookie = NULL;
-		while ((name = nvlist_next(ports_nvl, &type, &cookie)) !=
-		    NULL) {
+		while (
+		    (name = nvlist_next(ports_nvl, &type, &cookie)) != NULL) {
 			if (type != NV_TYPE_NVLIST)
 				continue;
 
 			if (pci_vtcon_sock_add(sc, name,
-			    nvlist_get_nvlist(ports_nvl, name)) < 0) {
-				EPRINTLN("cannot create port %s: %s",
-				    name, strerror(errno));
+				nvlist_get_nvlist(ports_nvl, name)) < 0) {
+				EPRINTLN("cannot create port %s: %s", name,
+				    strerror(errno));
 				return (1);
 			}
 		}
@@ -748,10 +749,10 @@ pci_vtcon_init(struct pci_devinst *pi, nvlist_t *nvl)
 }
 
 static const struct pci_devemu pci_de_vcon = {
-	.pe_emu =	"virtio-console",
-	.pe_init =	pci_vtcon_init,
-	.pe_barwrite =	vi_pci_write,
-	.pe_barread =	vi_pci_read,
+	.pe_emu = "virtio-console",
+	.pe_init = pci_vtcon_init,
+	.pe_barwrite = vi_pci_write,
+	.pe_barread = vi_pci_read,
 	.pe_legacy_config = pci_vtcon_legacy_config,
 };
 PCI_EMUL_SET(pci_de_vcon);

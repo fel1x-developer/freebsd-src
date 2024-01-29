@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 #ifndef __FUNCTIONS_H__
-#define	__FUNCTIONS_H__
+#define __FUNCTIONS_H__
 
-int	do_fstat(int argc, char *argv[]);
-int	do_fuser(int argc, char *argv[]);
+int do_fstat(int argc, char *argv[]);
+int do_fuser(int argc, char *argv[]);
 
 #endif /* !__FUNCTIONS_H__ */

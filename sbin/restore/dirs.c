@@ -39,8 +39,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ufs/dir.h>
 #include <protocols/dumprestore.h>
 
 #include <err.h>
@@ -51,21 +49,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 #include <unistd.h>
 
-#include "restore.h"
 #include "extern.h"
+#include "restore.h"
 
 /*
  * Symbol table of directories read from tape.
  */
-#define HASHSIZE	1000
+#define HASHSIZE 1000
 #define INOHASH(val) (val % HASHSIZE)
 struct inotab {
-	struct	inotab *t_next;
-	ino_t	t_ino;
-	int32_t	t_seekpt;
-	int32_t	t_size;
+	struct inotab *t_next;
+	ino_t t_ino;
+	int32_t t_seekpt;
+	int32_t t_size;
 };
 static struct inotab *inotab[HASHSIZE];
 
@@ -89,33 +89,33 @@ struct modeinfo {
 #undef DIRBLKSIZ
 #define DIRBLKSIZ 1024
 struct rstdirdesc {
-	int	dd_fd;
-	int32_t	dd_loc;
-	int32_t	dd_size;
-	char	dd_buf[DIRBLKSIZ];
+	int dd_fd;
+	int32_t dd_loc;
+	int32_t dd_size;
+	char dd_buf[DIRBLKSIZ];
 };
 
 /*
  * Global variables for this file.
  */
-static long	seekpt;
-static FILE	*df, *mf;
-static RST_DIR	*dirp;
-static char	dirfile[MAXPATHLEN] = "#";	/* No file */
-static char	modefile[MAXPATHLEN] = "#";	/* No file */
-static char	dot[2] = ".";			/* So it can be modified */
+static long seekpt;
+static FILE *df, *mf;
+static RST_DIR *dirp;
+static char dirfile[MAXPATHLEN] = "#";	/* No file */
+static char modefile[MAXPATHLEN] = "#"; /* No file */
+static char dot[2] = ".";		/* So it can be modified */
 
-static struct inotab	*allocinotab(struct context *, long);
-static void		 flushent(void);
-static struct inotab	*inotablookup(ino_t);
-static RST_DIR		*opendirfile(const char *);
-static void		 putdir(char *, size_t);
-static void		 putdirattrs(char *, size_t);
-static void		 putent(struct direct *);
-static void		 rst_seekdir(RST_DIR *, long, long);
-static long		 rst_telldir(RST_DIR *);
-static struct direct	*searchdir(ino_t, char *);
-static void		 fail_dirtmp(char *);
+static struct inotab *allocinotab(struct context *, long);
+static void flushent(void);
+static struct inotab *inotablookup(ino_t);
+static RST_DIR *opendirfile(const char *);
+static void putdir(char *, size_t);
+static void putdirattrs(char *, size_t);
+static void putent(struct direct *);
+static void rst_seekdir(RST_DIR *, long, long);
+static long rst_telldir(RST_DIR *);
+static struct direct *searchdir(ino_t, char *);
+static void fail_dirtmp(char *);
 
 /*
  *	Extract directory contents, building up a directory structure
@@ -134,13 +134,13 @@ extractdirs(int genmode)
 	vprintf(stdout, "Extract directories from tape\n");
 	if ((tmpdir = getenv("TMPDIR")) == NULL || tmpdir[0] == '\0')
 		tmpdir = _PATH_TMP;
-	(void) snprintf(dirfile, sizeof(dirfile), "%s/rstdir%jd", tmpdir,
+	(void)snprintf(dirfile, sizeof(dirfile), "%s/rstdir%jd", tmpdir,
 	    (intmax_t)dumpdate);
 	if (command != 'r' && command != 'R') {
-		(void) strcat(dirfile, "-XXXXXX");
+		(void)strcat(dirfile, "-XXXXXX");
 		fd = mkstemp(dirfile);
 	} else
-		fd = open(dirfile, O_RDWR|O_CREAT|O_EXCL, 0666);
+		fd = open(dirfile, O_RDWR | O_CREAT | O_EXCL, 0666);
 	if (fd == -1 || (df = fdopen(fd, "w")) == NULL) {
 		if (fd != -1)
 			close(fd);
@@ -148,13 +148,13 @@ extractdirs(int genmode)
 		done(1);
 	}
 	if (genmode != 0) {
-		(void) snprintf(modefile, sizeof(modefile), "%s/rstmode%jd",
+		(void)snprintf(modefile, sizeof(modefile), "%s/rstmode%jd",
 		    tmpdir, (intmax_t)dumpdate);
 		if (command != 'r' && command != 'R') {
-			(void) strcat(modefile, "-XXXXXX");
+			(void)strcat(modefile, "-XXXXXX");
 			fd = mkstemp(modefile);
 		} else
-			fd = open(modefile, O_RDWR|O_CREAT|O_EXCL, 0666);
+			fd = open(modefile, O_RDWR | O_CREAT | O_EXCL, 0666);
 		if (fd == -1 || (mf = fdopen(fd, "w")) == NULL) {
 			if (fd != -1)
 				close(fd);
@@ -165,7 +165,7 @@ extractdirs(int genmode)
 	nulldir.d_ino = 0;
 	nulldir.d_type = DT_DIR;
 	nulldir.d_namlen = 1;
-	(void) strcpy(nulldir.d_name, "/");
+	(void)strcpy(nulldir.d_name, "/");
 	nulldir.d_reclen = DIRSIZ(0, &nulldir);
 	for (;;) {
 		curfile.name = "<directory file - name unknown>";
@@ -220,7 +220,7 @@ treescan(char *pname, ino_t ino, long (*todo)(char *, ino_t, int))
 		/*
 		 * Pname is name of a simple file or an unchanged directory.
 		 */
-		(void) (*todo)(pname, ino, LEAF);
+		(void)(*todo)(pname, ino, LEAF);
 		return;
 	}
 	/*
@@ -232,8 +232,8 @@ treescan(char *pname, ino_t ino, long (*todo)(char *, ino_t, int))
 	 * begin search through the directory
 	 * skipping over "." and ".."
 	 */
-	(void) strlcpy(locname, pname, sizeof(locname));
-	(void) strlcat(locname, "/", sizeof(locname));
+	(void)strlcpy(locname, pname, sizeof(locname));
+	(void)strlcat(locname, "/", sizeof(locname));
 	namelen = strlen(locname);
 	rst_seekdir(dirp, itp->t_seekpt, itp->t_seekpt);
 	dp = rst_readdir(dirp); /* "." */
@@ -241,12 +241,12 @@ treescan(char *pname, ino_t ino, long (*todo)(char *, ino_t, int))
 		dp = rst_readdir(dirp); /* ".." */
 	else
 		fprintf(stderr, "Warning: `.' missing from directory %s\n",
-			pname);
+		    pname);
 	if (dp != NULL && strcmp(dp->d_name, "..") == 0)
 		dp = rst_readdir(dirp); /* first real entry */
 	else
 		fprintf(stderr, "Warning: `..' missing from directory %s\n",
-			pname);
+		    pname);
 	bpt = rst_telldir(dirp);
 	/*
 	 * a zero inode signals end of directory
@@ -295,7 +295,7 @@ pathsearch(const char *pathname)
  * Return its inode number if found, zero if it does not exist.
  */
 static struct direct *
-searchdir(ino_t	inum, char *name)
+searchdir(ino_t inum, char *name)
 {
 	struct direct *dp;
 	struct inotab *itp;
@@ -323,10 +323,10 @@ putdir(char *buf, size_t size)
 	struct direct *dp;
 	size_t loc, i;
 
-	for (loc = 0; loc < size; ) {
+	for (loc = 0; loc < size;) {
 		dp = (struct direct *)(buf + loc);
 		if (Bcvt)
-			swabst((u_char *)"ls", (u_char *) dp);
+			swabst((u_char *)"ls", (u_char *)dp);
 		if (oldinofmt && dp->d_ino != 0) {
 #if BYTE_ORDER == BIG_ENDIAN
 			if (Bcvt)
@@ -338,26 +338,24 @@ putdir(char *buf, size_t size)
 			dp->d_type = DT_UNKNOWN;
 		}
 		i = DIRBLKSIZ - (loc & (DIRBLKSIZ - 1));
-		if ((dp->d_reclen & 0x3) != 0 ||
-		    dp->d_reclen > i ||
+		if ((dp->d_reclen & 0x3) != 0 || dp->d_reclen > i ||
 		    dp->d_reclen < DIRSIZ(0, dp)
 #if NAME_MAX < 255
 		    || dp->d_namlen > NAME_MAX
 #endif
-		    ) {
+		) {
 			vprintf(stdout, "Mangled directory: ");
 			if ((dp->d_reclen & 0x3) != 0)
-				vprintf(stdout,
-				   "reclen not multiple of 4 ");
+				vprintf(stdout, "reclen not multiple of 4 ");
 			if (dp->d_reclen < DIRSIZ(0, dp))
 				vprintf(stdout,
-				   "reclen less than DIRSIZ (%u < %zu) ",
-				   dp->d_reclen, DIRSIZ(0, dp));
+				    "reclen less than DIRSIZ (%u < %zu) ",
+				    dp->d_reclen, DIRSIZ(0, dp));
 #if NAME_MAX < 255
 			if (dp->d_namlen > NAME_MAX)
 				vprintf(stdout,
-				   "reclen name too big (%u > %u) ",
-				   dp->d_namlen, NAME_MAX);
+				    "reclen name too big (%u > %u) ",
+				    dp->d_namlen, NAME_MAX);
 #endif
 			vprintf(stdout, "\n");
 			loc += i;
@@ -385,8 +383,7 @@ putent(struct direct *dp)
 {
 	dp->d_reclen = DIRSIZ(0, dp);
 	if (dirloc + dp->d_reclen > DIRBLKSIZ) {
-		((struct direct *)(dirbuf + prev))->d_reclen =
-		    DIRBLKSIZ - prev;
+		((struct direct *)(dirbuf + prev))->d_reclen = DIRBLKSIZ - prev;
 		if (fwrite(dirbuf, DIRBLKSIZ, 1, df) != 1)
 			fail_dirtmp(dirfile);
 		dirloc = 0;
@@ -436,7 +433,7 @@ rst_seekdir(RST_DIR *dirp, long loc, long base)
 	loc -= base;
 	if (loc < 0)
 		fprintf(stderr, "bad seek pointer to rst_seekdir %ld\n", loc);
-	(void) lseek(dirp->dd_fd, base + rounddown2(loc, DIRBLKSIZ), SEEK_SET);
+	(void)lseek(dirp->dd_fd, base + rounddown2(loc, DIRBLKSIZ), SEEK_SET);
 	dirp->dd_loc = loc & (DIRBLKSIZ - 1);
 	if (dirp->dd_loc != 0)
 		dirp->dd_size = read(dirp->dd_fd, dirp->dd_buf, DIRBLKSIZ);
@@ -467,7 +464,7 @@ rst_readdir(RST_DIR *dirp)
 		if (dp->d_reclen == 0 ||
 		    dp->d_reclen > DIRBLKSIZ + 1 - dirp->dd_loc) {
 			dprintf(stderr, "corrupted directory: bad reclen %d\n",
-				dp->d_reclen);
+			    dp->d_reclen);
 			return (NULL);
 		}
 		dirp->dd_loc += dp->d_reclen;
@@ -475,7 +472,7 @@ rst_readdir(RST_DIR *dirp)
 			return (NULL);
 		if (dp->d_ino >= maxino) {
 			dprintf(stderr, "corrupted directory: bad inum %d\n",
-				dp->d_ino);
+			    dp->d_ino);
 			continue;
 		}
 		return (dp);
@@ -492,8 +489,7 @@ rst_opendir(const char *name)
 	RST_DIR *dirp;
 	ino_t ino;
 
-	if ((ino = dirlookup(name)) > 0 &&
-	    (itp = inotablookup(ino)) != NULL) {
+	if ((ino = dirlookup(name)) > 0 && (itp = inotablookup(ino)) != NULL) {
 		dirp = opendirfile(dirfile);
 		rst_seekdir(dirp, itp->t_seekpt, itp->t_seekpt);
 		return (dirp);
@@ -521,8 +517,8 @@ rst_closedir(void *arg)
 static long
 rst_telldir(RST_DIR *dirp)
 {
-	return ((long)lseek(dirp->dd_fd,
-	    (off_t)0, SEEK_CUR) - dirp->dd_size + dirp->dd_loc);
+	return ((long)lseek(dirp->dd_fd, (off_t)0, SEEK_CUR) - dirp->dd_size +
+	    dirp->dd_loc);
 }
 
 /*
@@ -563,7 +559,7 @@ setdirmodes(int flags)
 	if ((tmpdir = getenv("TMPDIR")) == NULL || tmpdir[0] == '\0')
 		tmpdir = _PATH_TMP;
 	if (command == 'r' || command == 'R')
-		(void) snprintf(modefile, sizeof(modefile), "%s/rstmode%jd",
+		(void)snprintf(modefile, sizeof(modefile), "%s/rstmode%jd",
 		    tmpdir, (intmax_t)dumpdate);
 	if (modefile[0] == '#') {
 		panic("modefile not defined\n");
@@ -581,7 +577,7 @@ setdirmodes(int flags)
 	bufsize = 0;
 	myuid = getuid();
 	for (;;) {
-		(void) fread((char *)&node, 1, sizeof(struct modeinfo), mf);
+		(void)fread((char *)&node, 1, sizeof(struct modeinfo), mf);
 		if (ferror(mf)) {
 			warn("%s: cannot read modefile.", modefile);
 			fprintf(stderr, "Mode, owner, and times not set.\n");
@@ -600,7 +596,7 @@ setdirmodes(int flags)
 				}
 			}
 			if (bufsize >= node.extsize) {
-				(void) fread(buf, 1, node.extsize, mf);
+				(void)fread(buf, 1, node.extsize, mf);
 				if (ferror(mf)) {
 					warn("%s: cannot read modefile.",
 					    modefile);
@@ -609,7 +605,7 @@ setdirmodes(int flags)
 					break;
 				}
 			} else {
-				(void) fseek(mf, node.extsize, SEEK_CUR);
+				(void)fseek(mf, node.extsize, SEEK_CUR);
 				if (ferror(mf)) {
 					warn("%s: cannot seek in modefile.",
 					    modefile);
@@ -628,7 +624,7 @@ setdirmodes(int flags)
 				continue;
 			}
 			if (node.ino == UFS_ROOTINO &&
-		   	    reply("set owner/mode for '.'") == FAIL)
+			    reply("set owner/mode for '.'") == FAIL)
 				continue;
 		}
 		if (ep == NULL) {
@@ -639,13 +635,14 @@ setdirmodes(int flags)
 		cp = myname(ep);
 		if (!Nflag) {
 			if (myuid != 0)
-				(void) chown(cp, myuid, node.gid);
+				(void)chown(cp, myuid, node.gid);
 			else
-				(void) chown(cp, node.uid, node.gid);
-			(void) chmod(cp, node.mode);
+				(void)chown(cp, node.uid, node.gid);
+			(void)chmod(cp, node.mode);
 			if (node.extsize > 0) {
 				if (bufsize >= node.extsize) {
-					set_extattr(-1, cp, buf, node.extsize, SXA_FILE);
+					set_extattr(-1, cp, buf, node.extsize,
+					    SXA_FILE);
 				} else {
 					fprintf(stderr, "Cannot restore %s%s\n",
 					    "extended attributes for ", cp);
@@ -653,13 +650,13 @@ setdirmodes(int flags)
 			}
 			utimensat(AT_FDCWD, cp, node.ctimep, 0);
 			utimensat(AT_FDCWD, cp, node.mtimep, 0);
-			(void) chflags(cp, node.flags);
+			(void)chflags(cp, node.flags);
 		}
 		ep->e_flags &= ~NEW;
 	}
 	if (bufsize > 0)
 		free(buf);
-	(void) fclose(mf);
+	(void)fclose(mf);
 }
 
 /*
@@ -678,7 +675,7 @@ genliteraldir(char *name, ino_t ino)
 		    (uintmax_t)ino, name);
 	if ((ofile = open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666)) < 0) {
 		fprintf(stderr, "%s: ", name);
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 		fprintf(stderr, "cannot create file: %s\n", strerror(errno));
 		return (FAIL);
 	}
@@ -686,14 +683,14 @@ genliteraldir(char *name, ino_t ino)
 	dp = dup(dirp->dd_fd);
 	for (i = itp->t_size; i > 0; i -= BUFSIZ) {
 		size = MIN(i, BUFSIZ);
-		if (read(dp, buf, (int) size) == -1) {
+		if (read(dp, buf, (int)size) == -1) {
 			fprintf(stderr,
 			    "write error extracting inode %ju, name %s\n",
 			    (uintmax_t)curfile.ino, curfile.name);
 			fprintf(stderr, "read: %s\n", strerror(errno));
 			done(1);
 		}
-		if (!Nflag && write(ofile, buf, (int) size) == -1) {
+		if (!Nflag && write(ofile, buf, (int)size) == -1) {
 			fprintf(stderr,
 			    "write error extracting inode %ju, name %s\n",
 			    (uintmax_t)curfile.ino, curfile.name);
@@ -701,8 +698,8 @@ genliteraldir(char *name, ino_t ino)
 			done(1);
 		}
 	}
-	(void) close(dp);
-	(void) close(ofile);
+	(void)close(dp);
+	(void)close(ofile);
 	return (GOOD);
 }
 
@@ -727,7 +724,7 @@ inodetype(ino_t ino)
 static struct inotab *
 allocinotab(struct context *ctxp, long seekpt)
 {
-	struct inotab	*itp;
+	struct inotab *itp;
 	struct modeinfo node;
 
 	itp = calloc(1, sizeof(struct inotab));
@@ -781,12 +778,12 @@ done(int exitcode)
 
 	closemt();
 	if (modefile[0] != '#') {
-		(void) truncate(modefile, 0);
-		(void) unlink(modefile);
+		(void)truncate(modefile, 0);
+		(void)unlink(modefile);
 	}
 	if (dirfile[0] != '#') {
-		(void) truncate(dirfile, 0);
-		(void) unlink(dirfile);
+		(void)truncate(dirfile, 0);
+		(void)unlink(dirfile);
 	}
 	exit(exitcode);
 }

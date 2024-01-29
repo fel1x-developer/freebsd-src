@@ -33,4 +33,4 @@
  * Just keep track of the date/sid of this version of Mail.
  * Load this file first to get a "total" Mail version.
  */
-const char	*version = "8.1 6/6/93";
+const char *version = "8.1 6/6/93";

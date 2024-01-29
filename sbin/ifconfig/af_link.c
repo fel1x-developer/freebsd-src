@@ -32,18 +32,18 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
 
 #include <err.h>
+#include <ifaddrs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ifaddrs.h>
 #include <unistd.h>
-
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#include <net/ethernet.h>
 
 #include "ifconfig.h"
 #include "ifconfig_netlink.h"
@@ -61,19 +61,20 @@ print_ether(const struct ether_addr *addr, const char *prefix)
 		if (strcmp(f_ether, "dash") == 0) {
 			char *format_char;
 
-			while ((format_char = strchr(ether_format, ':')) != NULL) {
+			while (
+			    (format_char = strchr(ether_format, ':')) != NULL) {
 				*format_char = '-';
 			}
 		} else if (strcmp(f_ether, "dotted") == 0) {
 			/* Indices 0 and 1 is kept as is. */
-			ether_format[ 2] = ether_format[ 3];
-			ether_format[ 3] = ether_format[ 4];
-			ether_format[ 4] = '.';
-			ether_format[ 5] = ether_format[ 6];
-			ether_format[ 6] = ether_format[ 7];
-			ether_format[ 7] = ether_format[ 9];
-			ether_format[ 8] = ether_format[10];
-			ether_format[ 9] = '.';
+			ether_format[2] = ether_format[3];
+			ether_format[3] = ether_format[4];
+			ether_format[4] = '.';
+			ether_format[5] = ether_format[6];
+			ether_format[6] = ether_format[7];
+			ether_format[7] = ether_format[9];
+			ether_format[8] = ether_format[10];
+			ether_format[9] = '.';
 			ether_format[10] = ether_format[12];
 			ether_format[11] = ether_format[13];
 			ether_format[12] = ether_format[15];
@@ -113,7 +114,7 @@ link_status(if_ctx *ctx, const struct ifaddrs *ifa)
 	struct sockaddr_dl *sdl;
 	struct ifreq ifr;
 	int rc, sock_hw;
-	static const u_char laggaddr[6] = {0};
+	static const u_char laggaddr[6] = { 0 };
 
 	sdl = satosdl(ifa->ifa_addr);
 	if (sdl == NULL || sdl->sdl_alen == 0)
@@ -130,7 +131,7 @@ link_status(if_ctx *ctx, const struct ifaddrs *ifa)
 	 * the MAC is zeroed, then it's actually a lagg.
 	 */
 	if ((sdl->sdl_type != IFT_ETHER &&
-	    sdl->sdl_type != IFT_IEEE8023ADLAG) ||
+		sdl->sdl_type != IFT_IEEE8023ADLAG) ||
 	    sdl->sdl_alen != ETHER_ADDR_LEN)
 		return;
 
@@ -171,14 +172,18 @@ link_status_nl(if_ctx *ctx, if_link_t *link, if_addr_t *ifa __unused)
 			.sdl_type = convert_iftype(link->ifi_type),
 			.sdl_alen = NLA_DATA_LEN(link->ifla_address),
 		};
-		memcpy(LLADDR(&sdl), NLA_DATA(link->ifla_address), sdl.sdl_alen);
+		memcpy(LLADDR(&sdl), NLA_DATA(link->ifla_address),
+		    sdl.sdl_alen);
 		print_lladdr(&sdl);
 
 		if (link->iflaf_orig_hwaddr != NULL) {
 			struct nlattr *hwaddr = link->iflaf_orig_hwaddr;
 
-			if (memcmp(NLA_DATA(hwaddr), NLA_DATA(link->ifla_address), sdl.sdl_alen))
-				print_ether((struct ether_addr *)NLA_DATA(hwaddr), "hwaddr");
+			if (memcmp(NLA_DATA(hwaddr),
+				NLA_DATA(link->ifla_address), sdl.sdl_alen))
+				print_ether((struct ether_addr *)NLA_DATA(
+						hwaddr),
+				    "hwaddr");
 		}
 	}
 	if (convert_iftype(link->ifi_type) == IFT_ETHER)
@@ -221,43 +226,43 @@ link_getaddr(const char *addr, int which)
 }
 
 static struct afswtch af_link = {
-	.af_name	= "link",
-	.af_af		= AF_LINK,
+	.af_name = "link",
+	.af_af = AF_LINK,
 #ifdef WITHOUT_NETLINK
-	.af_status	= link_status,
+	.af_status = link_status,
 #else
-	.af_status	= link_status_nl,
+	.af_status = link_status_nl,
 #endif
-	.af_getaddr	= link_getaddr,
-	.af_aifaddr	= SIOCSIFLLADDR,
-	.af_addreq	= &link_ridreq,
-	.af_exec	= af_exec_ioctl,
+	.af_getaddr = link_getaddr,
+	.af_aifaddr = SIOCSIFLLADDR,
+	.af_addreq = &link_ridreq,
+	.af_exec = af_exec_ioctl,
 };
 static struct afswtch af_ether = {
-	.af_name	= "ether",
-	.af_af		= AF_LINK,
+	.af_name = "ether",
+	.af_af = AF_LINK,
 #ifdef WITHOUT_NETLINK
-	.af_status	= link_status,
+	.af_status = link_status,
 #else
-	.af_status	= link_status_nl,
+	.af_status = link_status_nl,
 #endif
-	.af_getaddr	= link_getaddr,
-	.af_aifaddr	= SIOCSIFLLADDR,
-	.af_addreq	= &link_ridreq,
-	.af_exec	= af_exec_ioctl,
+	.af_getaddr = link_getaddr,
+	.af_aifaddr = SIOCSIFLLADDR,
+	.af_addreq = &link_ridreq,
+	.af_exec = af_exec_ioctl,
 };
 static struct afswtch af_lladdr = {
-	.af_name	= "lladdr",
-	.af_af		= AF_LINK,
+	.af_name = "lladdr",
+	.af_af = AF_LINK,
 #ifdef WITHOUT_NETLINK
-	.af_status	= link_status,
+	.af_status = link_status,
 #else
-	.af_status	= link_status_nl,
+	.af_status = link_status_nl,
 #endif
-	.af_getaddr	= link_getaddr,
-	.af_aifaddr	= SIOCSIFLLADDR,
-	.af_addreq	= &link_ridreq,
-	.af_exec	= af_exec_ioctl,
+	.af_getaddr = link_getaddr,
+	.af_aifaddr = SIOCSIFLLADDR,
+	.af_addreq = &link_ridreq,
+	.af_exec = af_exec_ioctl,
 };
 
 static __constructor void

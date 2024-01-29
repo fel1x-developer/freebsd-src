@@ -29,13 +29,14 @@
  * SUCH DAMAGE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * Return the local network address portion of an

@@ -33,8 +33,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#undef	locale_t
-#undef	xlocale_collate
-#undef	xlocale_component
-#undef	xlocale_monetary
-#undef	xlocale_numeric
+#undef locale_t
+#undef xlocale_collate
+#undef xlocale_component
+#undef xlocale_monetary
+#undef xlocale_numeric

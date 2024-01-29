@@ -27,16 +27,16 @@
  *
  */
 
-int	cm_getprop(struct ctrl_msg_pl *);
-int	cm_setprop(struct ctrl_msg_pl *);
+int cm_getprop(struct ctrl_msg_pl *);
+int cm_setprop(struct ctrl_msg_pl *);
 
-int	cm_handler_server(int);
+int cm_handler_server(int);
 
-void	set_do_reload(int);
-void	set_do_reload_ifname(char *);
-void	set_do_shutdown(int);
-void	reset_do_reload(void);
-void	reset_do_shutdown(void);
-int	is_do_reload(void);
-char	*reload_ifname(void);
-int	is_do_shutdown(void);
+void set_do_reload(int);
+void set_do_reload_ifname(char *);
+void set_do_shutdown(int);
+void reset_do_reload(void);
+void reset_do_shutdown(void);
+int is_do_reload(void);
+char *reload_ifname(void);
+int is_do_shutdown(void);

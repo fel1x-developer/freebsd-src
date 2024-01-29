@@ -77,19 +77,18 @@ extern "C" {
  *        necessary for a user that wishes to observe the behavior (i.e.
  *        state changes) of a state machine.
  */
-typedef struct SCI_BASE_STATE_MACHINE_OBSERVER
-{
-   /**
-    * The field specifies that the parent object for the base state
-    * machine observer is the base observer itself.
-    */
-   SCI_BASE_OBSERVER_T parent;
+typedef struct SCI_BASE_STATE_MACHINE_OBSERVER {
+	/**
+	 * The field specifies that the parent object for the base state
+	 * machine observer is the base observer itself.
+	 */
+	SCI_BASE_OBSERVER_T parent;
 
-   /**
-    * This field contains the state recorded during the last state machine
-    * update.
-    */
-   U32  subject_state;
+	/**
+	 * This field contains the state recorded during the last state machine
+	 * update.
+	 */
+	U32 subject_state;
 
 } SCI_BASE_STATE_MACHINE_OBSERVER_T;
 
@@ -106,9 +105,7 @@ typedef struct SCI_BASE_STATE_MACHINE_OBSERVER
  * @return none
  */
 void sci_base_state_machine_observer_default_update(
-   SCI_BASE_OBSERVER_T *this_observer,
-   SCI_BASE_SUBJECT_T  *the_subject
-);
+    SCI_BASE_OBSERVER_T *this_observer, SCI_BASE_SUBJECT_T *the_subject);
 
 /**
  * @brief This method constructs the supplied state machine observer.
@@ -119,8 +116,7 @@ void sci_base_state_machine_observer_default_update(
  * @return none
  */
 void sci_base_state_machine_observer_construct(
-   SCI_BASE_STATE_MACHINE_OBSERVER_T *this_observer
-);
+    SCI_BASE_STATE_MACHINE_OBSERVER_T *this_observer);
 
 #else // defined(SCI_LOGGING)
 

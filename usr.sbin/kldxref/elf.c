@@ -53,7 +53,8 @@ elf_find_reloc(const GElf_Ehdr *hdr)
 {
 	struct elf_reloc_data **erd;
 
-	SET_FOREACH(erd, elf_reloc) {
+	SET_FOREACH(erd, elf_reloc)
+	{
 		if (hdr->e_ident[EI_CLASS] == (*erd)->class &&
 		    hdr->e_ident[EI_DATA] == (*erd)->data &&
 		    hdr->e_machine == (*erd)->machine)
@@ -111,7 +112,8 @@ elf_open_file(struct elf_file *efile, const char *filename, int verbose)
 		error = ef_obj_open(efile, verbose);
 		if (error != 0) {
 			if (verbose)
-				warnc(error, "%s: not a valid DSO or object file",
+				warnc(error,
+				    "%s: not a valid DSO or object file",
 				    filename);
 			elf_close_file(efile);
 			return (error);
@@ -623,7 +625,7 @@ elf_read_mod_metadata(struct elf_file *efile, GElf_Addr addr,
 	offset = roundup(offset, pointer_size);
 	md->md_data = elf_address_from_pointer(efile, p + offset);
 	offset += pointer_size;
- 	md->md_cval = elf_address_from_pointer(efile, p + offset);
+	md->md_cval = elf_address_from_pointer(efile, p + offset);
 	free(p);
 	return (0);
 }

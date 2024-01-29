@@ -32,17 +32,19 @@
 #include "opt_kern_tls.h"
 
 #include <sys/param.h>
-#include <sys/ktr.h>
 #include <sys/ktls.h>
+#include <sys/ktr.h>
 #include <sys/sglist.h>
+#include <sys/sockbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/sockbuf.h>
+
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp_var.h>
+
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
 
@@ -50,14 +52,14 @@
 #include "common/t4_regs.h"
 #include "common/t4_regs_values.h"
 #include "common/t4_tcb.h"
-#include "t4_l2t.h"
-#include "t4_clip.h"
-#include "t4_mp_ring.h"
 #include "crypto/t4_crypto.h"
+#include "t4_clip.h"
+#include "t4_l2t.h"
+#include "t4_mp_ring.h"
 
 #if defined(INET) || defined(INET6)
 
-#define TLS_HEADER_LENGTH		5
+#define TLS_HEADER_LENGTH 5
 
 struct tls_scmd {
 	__be32 seqno_numivs;
@@ -66,11 +68,11 @@ struct tls_scmd {
 
 struct tlspcb {
 	struct m_snd_tag com;
-	struct vi_info *vi;	/* virtual interface */
+	struct vi_info *vi; /* virtual interface */
 	struct adapter *sc;
-	struct l2t_entry *l2te;	/* L2 table entry used by this connection */
+	struct l2t_entry *l2te; /* L2 table entry used by this connection */
 	struct sge_txq *txq;
-	int tid;		/* Connection identifier */
+	int tid; /* Connection identifier */
 
 	int tx_key_addr;
 	bool inline_key;
@@ -92,16 +94,16 @@ struct tlspcb {
 	struct tls_keyctx keyctx;
 
 	/* Fields only used during setup and teardown. */
-	struct inpcb *inp;	/* backpointer to host stack's PCB */
+	struct inpcb *inp; /* backpointer to host stack's PCB */
 	struct sge_wrq *ctrlq;
-	struct clip_entry *ce;	/* CLIP table entry used by this tid */
+	struct clip_entry *ce; /* CLIP table entry used by this tid */
 
 	bool open_pending;
 };
 
 static void t6_tls_tag_free(struct m_snd_tag *mst);
-static int ktls_setup_keys(struct tlspcb *tlsp,
-    const struct ktls_session *tls, struct sge_txq *txq);
+static int ktls_setup_keys(struct tlspcb *tlsp, const struct ktls_session *tls,
+    struct sge_txq *txq);
 
 static const struct if_snd_tag_sw t6_tls_tag_sw = {
 	.snd_tag_free = t6_tls_tag_free,
@@ -160,10 +162,9 @@ mk_ktls_act_open_req(struct adapter *sc, struct vi_info *vi, struct inpcb *inp,
 	INIT_TP_WR(cpl6, 0);
 	qid_atid = V_TID_QID(sc->sge.fwq.abs_id) | V_TID_TID(atid) |
 	    V_TID_COOKIE(CPL_COOKIE_KERN_TLS);
-	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ,
-		qid_atid));
-	inp_4tuple_get(inp, &cpl->local_ip, &cpl->local_port,
-	    &cpl->peer_ip, &cpl->peer_port);
+	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ, qid_atid));
+	inp_4tuple_get(inp, &cpl->local_ip, &cpl->local_port, &cpl->peer_ip,
+	    &cpl->peer_port);
 
 	options = F_TCAM_BYPASS | V_ULP_MODE(ULP_MODE_NONE);
 	options |= V_SMAC_SEL(vi->smt_idx) | V_TX_CHAN(vi->pi->tx_chan);
@@ -177,8 +178,8 @@ mk_ktls_act_open_req(struct adapter *sc, struct vi_info *vi, struct inpcb *inp,
 }
 
 static void
-mk_ktls_act_open_req6(struct adapter *sc, struct vi_info *vi,
-    struct inpcb *inp, struct tlspcb *tlsp, int atid, void *dst)
+mk_ktls_act_open_req6(struct adapter *sc, struct vi_info *vi, struct inpcb *inp,
+    struct tlspcb *tlsp, int atid, void *dst)
 {
 	struct tcpcb *tp = intotcpcb(inp);
 	struct cpl_t6_act_open_req6 *cpl6;
@@ -191,8 +192,7 @@ mk_ktls_act_open_req6(struct adapter *sc, struct vi_info *vi,
 	INIT_TP_WR(cpl6, 0);
 	qid_atid = V_TID_QID(sc->sge.fwq.abs_id) | V_TID_TID(atid) |
 	    V_TID_COOKIE(CPL_COOKIE_KERN_TLS);
-	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ6,
-		qid_atid));
+	OPCODE_TID(cpl) = htobe32(MK_OPCODE_TID(CPL_ACT_OPEN_REQ6, qid_atid));
 	cpl->local_port = inp->inp_lport;
 	cpl->local_ip_hi = *(uint64_t *)&inp->in6p_laddr.s6_addr[0];
 	cpl->local_ip_lo = *(uint64_t *)&inp->in6p_laddr.s6_addr[8];
@@ -266,8 +266,9 @@ ktls_act_open_rpl(struct sge_iq *iq, const struct rss_header *rss,
 }
 
 /* SET_TCB_FIELD sent as a ULP command looks like this */
-#define LEN__SET_TCB_FIELD_ULP (sizeof(struct ulp_txpkt) + \
-    sizeof(struct ulptx_idata) + sizeof(struct cpl_set_tcb_field_core))
+#define LEN__SET_TCB_FIELD_ULP                                   \
+	(sizeof(struct ulp_txpkt) + sizeof(struct ulptx_idata) + \
+	    sizeof(struct cpl_set_tcb_field_core))
 
 _Static_assert((LEN__SET_TCB_FIELD_ULP + sizeof(struct ulptx_idata)) % 16 == 0,
     "CPL_SET_TCB_FIELD ULP command not 16-byte aligned");
@@ -331,12 +332,12 @@ ktls_set_tcb_fields(struct tlspcb *tlsp, struct tcpcb *tp, struct sge_txq *txq)
 	/* FW_ULPTX_WR */
 	wr = mtod(m, void *);
 	wr->op_to_compl = htobe32(V_FW_WR_OP(FW_ULPTX_WR));
-	wr->flowid_len16 = htobe32(F_FW_ULPTX_WR_DATA |
-	    V_FW_WR_LEN16(len / 16));
+	wr->flowid_len16 = htobe32(
+	    F_FW_ULPTX_WR_DATA | V_FW_WR_LEN16(len / 16));
 	wr->cookie = 0;
 	dst = (char *)(wr + 1);
 
-        /* Clear TF_NON_OFFLOAD and set TF_CORE_BYPASS */
+	/* Clear TF_NON_OFFLOAD and set TF_CORE_BYPASS */
 	write_set_tcb_field_ulp(tlsp, dst, txq, W_TCB_T_FLAGS,
 	    V_TCB_T_FLAGS(V_TF_CORE_BYPASS(1) | V_TF_NON_OFFLOAD(1)),
 	    V_TCB_T_FLAGS(V_TF_CORE_BYPASS(1)));
@@ -345,7 +346,7 @@ ktls_set_tcb_fields(struct tlspcb *tlsp, struct tcpcb *tp, struct sge_txq *txq)
 	/* Clear the SND_UNA_RAW, SND_NXT_RAW, and SND_MAX_RAW offsets. */
 	write_set_tcb_field_ulp(tlsp, dst, txq, W_TCB_SND_UNA_RAW,
 	    V_TCB_SND_NXT_RAW(M_TCB_SND_NXT_RAW) |
-	    V_TCB_SND_UNA_RAW(M_TCB_SND_UNA_RAW),
+		V_TCB_SND_UNA_RAW(M_TCB_SND_UNA_RAW),
 	    V_TCB_SND_NXT_RAW(0) | V_TCB_SND_UNA_RAW(0));
 	dst += roundup2(LEN__SET_TCB_FIELD_ULP, 16);
 
@@ -453,8 +454,7 @@ t6_tls_tag_alloc(if_t ifp, union if_snd_tag_alloc_params *params,
 	} else {
 		tlsp->tx_key_addr = keyid;
 		CTR3(KTR_CXGBE, "%s: atid %d allocated TX key addr %#x",
-		    __func__,
-		    atid, tlsp->tx_key_addr);
+		    __func__, atid, tlsp->tx_key_addr);
 	}
 
 	inp = params->tls.inp;
@@ -484,8 +484,7 @@ t6_tls_tag_alloc(if_t ifp, union if_snd_tag_alloc_params *params,
 	}
 
 	/* Wait for reply to active open. */
-	CTR2(KTR_CXGBE, "%s: atid %d sent CPL_ACT_OPEN_REQ", __func__,
-	    atid);
+	CTR2(KTR_CXGBE, "%s: atid %d sent CPL_ACT_OPEN_REQ", __func__, atid);
 	while (tlsp->open_pending) {
 		/*
 		 * XXX: PCATCH?  We would then have to discard the PCB
@@ -553,17 +552,16 @@ t6_tls_tag_alloc(if_t ifp, union if_snd_tag_alloc_params *params,
 	    V_SCMD_HMAC_CTRL(SCMD_HMAC_CTRL_NOP) |
 	    V_SCMD_IV_SIZE(AES_BLOCK_LEN / 2) | V_SCMD_NUM_IVS(0);
 	if (tlsp->enc_mode == SCMD_CIPH_MODE_AES_GCM)
-		tlsp->scmd0_short.seqno_numivs |=
-		    V_SCMD_CIPH_MODE(SCMD_CIPH_MODE_AES_CTR);
+		tlsp->scmd0_short.seqno_numivs |= V_SCMD_CIPH_MODE(
+		    SCMD_CIPH_MODE_AES_CTR);
 	else
-		tlsp->scmd0_short.seqno_numivs |=
-		    V_SCMD_CIPH_MODE(tlsp->enc_mode);
-	tlsp->scmd0_short.seqno_numivs =
-	    htobe32(tlsp->scmd0_short.seqno_numivs);
+		tlsp->scmd0_short.seqno_numivs |= V_SCMD_CIPH_MODE(
+		    tlsp->enc_mode);
+	tlsp->scmd0_short.seqno_numivs = htobe32(
+	    tlsp->scmd0_short.seqno_numivs);
 
 	tlsp->scmd0_short.ivgen_hdrlen = V_SCMD_IV_GEN_CTRL(0) |
-	    V_SCMD_TLS_FRAG_ENABLE(0) |
-	    V_SCMD_AADIVDROP(1);
+	    V_SCMD_TLS_FRAG_ENABLE(0) | V_SCMD_AADIVDROP(1);
 	if (tlsp->inline_key)
 		tlsp->scmd0_short.ivgen_hdrlen |= V_SCMD_KEY_CTX_INLINE(1);
 
@@ -605,7 +603,7 @@ ktls_setup_keys(struct tlspcb *tlsp, const struct ktls_session *tls,
 		return (0);
 
 	/* Populate key work request. */
-        m = alloc_wr_mbuf(TLS_KEY_WR_SZ, M_NOWAIT);
+	m = alloc_wr_mbuf(TLS_KEY_WR_SZ, M_NOWAIT);
 	if (m == NULL) {
 		CTR2(KTR_CXGBE, "%s: tid %d failed to alloc WR mbuf", __func__,
 		    tlsp->tid);
@@ -639,17 +637,17 @@ ktls_base_wr_size(struct tlspcb *tlsp)
 {
 	u_int wr_len;
 
-	wr_len = sizeof(struct fw_ulptx_wr);	// 16
-	wr_len += sizeof(struct ulp_txpkt);	// 8
-	wr_len += sizeof(struct ulptx_idata);	// 8
-	wr_len += sizeof(struct cpl_tx_sec_pdu);// 32
+	wr_len = sizeof(struct fw_ulptx_wr);	 // 16
+	wr_len += sizeof(struct ulp_txpkt);	 // 8
+	wr_len += sizeof(struct ulptx_idata);	 // 8
+	wr_len += sizeof(struct cpl_tx_sec_pdu); // 32
 	if (tlsp->inline_key)
 		wr_len += tlsp->tx_key_info_size;
 	else {
-		wr_len += sizeof(struct ulptx_sc_memrd);// 8
-		wr_len += sizeof(struct ulptx_idata);	// 8
+		wr_len += sizeof(struct ulptx_sc_memrd); // 8
+		wr_len += sizeof(struct ulptx_idata);	 // 8
 	}
-	wr_len += sizeof(struct cpl_tx_data);	// 16
+	wr_len += sizeof(struct cpl_tx_data); // 16
 	return (wr_len);
 }
 
@@ -682,20 +680,19 @@ ktls_tcp_payload_length(struct tlspcb *tlsp, struct mbuf *m_tls)
 	if (mlen > TLS_HEADER_LENGTH + plen - m_tls->m_epg_trllen)
 		mlen = TLS_HEADER_LENGTH + plen - m_tls->m_epg_trllen;
 
-
 	/*
 	 * For AES-CBC adjust the ciphertext length for the block
 	 * size.
 	 */
 	if (tlsp->enc_mode == SCMD_CIPH_MODE_AES_CBC &&
 	    mlen > TLS_HEADER_LENGTH) {
-		mlen = TLS_HEADER_LENGTH + rounddown(mlen - TLS_HEADER_LENGTH,
-		    AES_BLOCK_LEN);
+		mlen = TLS_HEADER_LENGTH +
+		    rounddown(mlen - TLS_HEADER_LENGTH, AES_BLOCK_LEN);
 	}
 
 #ifdef VERBOSE_TRACES
-	CTR4(KTR_CXGBE, "%s: tid %d short TLS record (%u vs %u)",
-	    __func__, tlsp->tid, mlen, TLS_HEADER_LENGTH + plen);
+	CTR4(KTR_CXGBE, "%s: tid %d short TLS record (%u vs %u)", __func__,
+	    tlsp->tid, mlen, TLS_HEADER_LENGTH + plen);
 #endif
 	return (mlen);
 }
@@ -776,7 +773,7 @@ ktls_wr_len(struct tlspcb *tlsp, struct mbuf *m, struct mbuf *m_tls,
 		    roundup2(m->m_len + m_tls->m_len, 16);
 		if (wr_len > SGE_MAX_WR_LEN) {
 			CTR3(KTR_CXGBE,
-		    "%s: tid %d TLS header-only packet too long (len %d)",
+			    "%s: tid %d TLS header-only packet too long (len %d)",
 			    __func__, tlsp->tid, m->m_len + m_tls->m_len);
 		}
 
@@ -940,8 +937,7 @@ t6_ktls_parse_pkt(struct mbuf *m)
 		}
 		m->m_pkthdr.l3hlen = sizeof(struct ip6_hdr);
 	}
-	if (m->m_len < m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen +
-	    sizeof(*tcp)) {
+	if (m->m_len < m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)) {
 		CTR2(KTR_CXGBE, "%s: tid %d header mbuf too short (2)",
 		    __func__, tlsp->tid);
 		return (EINVAL);
@@ -950,12 +946,12 @@ t6_ktls_parse_pkt(struct mbuf *m)
 	m->m_pkthdr.l4hlen = tcp->th_off * 4;
 
 	/* Bail if there is TCP payload before the TLS record. */
-	if (m->m_len != m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen +
-	    m->m_pkthdr.l4hlen) {
+	if (m->m_len !=
+	    m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + m->m_pkthdr.l4hlen) {
 		CTR6(KTR_CXGBE,
 		    "%s: tid %d header mbuf bad length (%d + %d + %d != %d)",
-		    __func__, tlsp->tid, m->m_pkthdr.l2hlen,
-		    m->m_pkthdr.l3hlen, m->m_pkthdr.l4hlen, m->m_len);
+		    __func__, tlsp->tid, m->m_pkthdr.l2hlen, m->m_pkthdr.l3hlen,
+		    m->m_pkthdr.l4hlen, m->m_len);
 		return (EINVAL);
 	}
 
@@ -1029,8 +1025,8 @@ t6_ktls_parse_pkt(struct mbuf *m)
 
 	set_mbuf_len16(m, tot_len / 16);
 #ifdef VERBOSE_TRACES
-	CTR4(KTR_CXGBE, "%s: tid %d len16 %d nsegs %d", __func__,
-	    tlsp->tid, mbuf_len16(m), mbuf_nsegs(m));
+	CTR4(KTR_CXGBE, "%s: tid %d len16 %d nsegs %d", __func__, tlsp->tid,
+	    mbuf_len16(m), mbuf_nsegs(m));
 #endif
 	items[0] = m;
 	return (mp_ring_enqueue(tlsp->txq->r, items, 1, 256));
@@ -1059,8 +1055,8 @@ write_gl_to_buf(struct sglist *gl, caddr_t to)
 	seg = &gl->sg_segs[0];
 	usgl = (void *)flitp;
 
-	usgl->cmd_nsge = htobe32(V_ULPTX_CMD(ULP_TX_SC_DSGL) |
-	    V_ULPTX_NSGE(nsegs));
+	usgl->cmd_nsge = htobe32(
+	    V_ULPTX_CMD(ULP_TX_SC_DSGL) | V_ULPTX_NSGE(nsegs));
 	usgl->len0 = htobe32(seg->ss_len);
 	usgl->addr0 = htobe64(seg->ss_paddr);
 	seg++;
@@ -1088,8 +1084,8 @@ copy_to_txd(struct sge_eq *eq, caddr_t from, caddr_t *to, int len)
 	MPASS((uintptr_t)(*to) >= (uintptr_t)&eq->desc[0]);
 	MPASS((uintptr_t)(*to) < (uintptr_t)&eq->desc[eq->sidx]);
 
-	if (__predict_true((uintptr_t)(*to) + len <=
-	    (uintptr_t)&eq->desc[eq->sidx])) {
+	if (__predict_true(
+		(uintptr_t)(*to) + len <= (uintptr_t)&eq->desc[eq->sidx])) {
 		bcopy(from, *to, len);
 		(*to) += len;
 		if ((uintptr_t)(*to) == (uintptr_t)&eq->desc[eq->sidx])
@@ -1099,7 +1095,7 @@ copy_to_txd(struct sge_eq *eq, caddr_t from, caddr_t *to, int len)
 
 		bcopy(from, *to, portion);
 		from += portion;
-		portion = len - portion;	/* remaining */
+		portion = len - portion; /* remaining */
 		bcopy(from, (void *)eq->desc, portion);
 		(*to) = (caddr_t)eq->desc + portion;
 	}
@@ -1132,8 +1128,8 @@ ktls_write_tcp_options(struct sge_txq *txq, void *dst, struct mbuf *m,
 	MPASS(ndesc <= available);
 
 	/* Firmware work request header */
-	wr->op_immdlen = htobe32(V_FW_WR_OP(FW_ETH_TX_PKT_WR) |
-	    V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
+	wr->op_immdlen = htobe32(
+	    V_FW_WR_OP(FW_ETH_TX_PKT_WR) | V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
 
 	ctrl = V_FW_WR_LEN16(len16);
 	wr->equiq_to_len16 = htobe32(ctrl);
@@ -1184,8 +1180,8 @@ ktls_write_tcp_options(struct sge_txq *txq, void *dst, struct mbuf *m,
 	copy_to_txd(&txq->eq, (caddr_t)&newtcp, &out, sizeof(newtcp));
 
 	/* Copy rest of packet. */
-	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out, pktlen -
-	    (m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
+	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out,
+	    pktlen - (m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
 	txq->imm_wrs++;
 
 	txq->txpkt_wrs++;
@@ -1232,8 +1228,8 @@ ktls_write_tunnel_packet(struct sge_txq *txq, void *dst, struct mbuf *m,
 	MPASS(ndesc <= available);
 
 	/* Firmware work request header */
-	wr->op_immdlen = htobe32(V_FW_WR_OP(FW_ETH_TX_PKT_WR) |
-	    V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
+	wr->op_immdlen = htobe32(
+	    V_FW_WR_OP(FW_ETH_TX_PKT_WR) | V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
 
 	ctrl = V_FW_WR_LEN16(len16);
 	wr->equiq_to_len16 = htobe32(ctrl);
@@ -1284,12 +1280,14 @@ ktls_write_tunnel_packet(struct sge_txq *txq, void *dst, struct mbuf *m,
 	copy_to_txd(&txq->eq, (caddr_t)&newtcp, &out, sizeof(newtcp));
 
 	/* Copy rest of TCP header. */
-	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out, m->m_len -
-	    (m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
+	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out,
+	    m->m_len -
+		(m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
 
 	/* Copy the subset of the TLS header requested. */
-	copy_to_txd(&txq->eq, (char *)m_tls->m_epg_hdr +
-	    mtod(m_tls, vm_offset_t), &out, m_tls->m_len);
+	copy_to_txd(&txq->eq,
+	    (char *)m_tls->m_epg_hdr + mtod(m_tls, vm_offset_t), &out,
+	    m_tls->m_len);
 	txq->imm_wrs++;
 
 	txq->txpkt_wrs++;
@@ -1422,8 +1420,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 	 * start of the current AES block.
 	 */
 	tx_max_offset = mtod(m_tls, vm_offset_t);
-	if (tx_max_offset > TLS_HEADER_LENGTH + ntohs(hdr->tls_length) -
-	    m_tls->m_epg_trllen) {
+	if (tx_max_offset >
+	    TLS_HEADER_LENGTH + ntohs(hdr->tls_length) - m_tls->m_epg_trllen) {
 		/* Always send the full trailer. */
 		tx_max_offset = TLS_HEADER_LENGTH + ntohs(hdr->tls_length) -
 		    m_tls->m_epg_trllen;
@@ -1432,8 +1430,7 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 	    tx_max_offset > TLS_HEADER_LENGTH) {
 		/* Always send all of the first AES block. */
 		tx_max_offset = TLS_HEADER_LENGTH +
-		    rounddown(tx_max_offset - TLS_HEADER_LENGTH,
-		    AES_BLOCK_LEN);
+		    rounddown(tx_max_offset - TLS_HEADER_LENGTH, AES_BLOCK_LEN);
 	}
 	tx_max = tcp_seqno + tx_max_offset;
 
@@ -1481,8 +1478,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 		    ("trying to set TX_MAX for subsequent TLS WR"));
 #ifdef VERBOSE_TRACES
 		CTR4(KTR_CXGBE,
-		    "%s: tid %d setting TX_MAX to %u (tcp_seqno %u)",
-		    __func__, tlsp->tid, tx_max, tcp_seqno);
+		    "%s: tid %d setting TX_MAX to %u (tcp_seqno %u)", __func__,
+		    tlsp->tid, tx_max, tcp_seqno);
 #endif
 		write_set_tcb_field_ulp(tlsp, out, txq, W_TCB_TX_MAX,
 		    V_TCB_TX_MAX(M_TCB_TX_MAX), V_TCB_TX_MAX(tx_max));
@@ -1503,8 +1500,7 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 		    tlsp->tid);
 #endif
 		write_set_tcb_field_ulp(tlsp, out, txq, W_TCB_SND_UNA_RAW,
-		    V_TCB_SND_UNA_RAW(M_TCB_SND_UNA_RAW),
-		    V_TCB_SND_UNA_RAW(0));
+		    V_TCB_SND_UNA_RAW(M_TCB_SND_UNA_RAW), V_TCB_SND_UNA_RAW(0));
 		out += roundup2(LEN__SET_TCB_FIELD_ULP, 16);
 		fields++;
 	}
@@ -1543,8 +1539,9 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 	if (m->m_next == m_tls)
 		nsegs = mbuf_nsegs(m);
 	else
-		nsegs = sglist_count_mbuf_epg(m_tls, m_tls->m_epg_hdrlen +
-		    offset, plen - (m_tls->m_epg_hdrlen + offset));
+		nsegs = sglist_count_mbuf_epg(m_tls,
+		    m_tls->m_epg_hdrlen + offset,
+		    plen - (m_tls->m_epg_hdrlen + offset));
 
 	/* Calculate the size of the TLS work request. */
 	twr_len = ktls_base_wr_size(tlsp);
@@ -1573,8 +1570,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 		} else {
 			wr_len += sizeof(*wr);
 			wr->op_to_compl = htobe32(V_FW_WR_OP(FW_ULPTX_WR));
-			wr->flowid_len16 = htobe32(F_FW_ULPTX_WR_DATA |
-			    V_FW_WR_LEN16(wr_len / 16));
+			wr->flowid_len16 = htobe32(
+			    F_FW_ULPTX_WR_DATA | V_FW_WR_LEN16(wr_len / 16));
 			wr->cookie = 0;
 
 			/*
@@ -1621,8 +1618,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 
 	/* FW_ULPTX_WR */
 	wr->op_to_compl = htobe32(V_FW_WR_OP(FW_ULPTX_WR));
-	wr->flowid_len16 = htobe32(F_FW_ULPTX_WR_DATA |
-	    V_FW_WR_LEN16(wr_len / 16));
+	wr->flowid_len16 = htobe32(
+	    F_FW_ULPTX_WR_DATA | V_FW_WR_LEN16(wr_len / 16));
 	wr->cookie = 0;
 
 	/* ULP_TXPKT */
@@ -1634,8 +1631,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 
 	/* ULPTX_IDATA sub-command */
 	idata = (void *)(txpkt + 1);
-	idata->cmd_more = htobe32(V_ULPTX_CMD(ULP_TX_SC_IMM) |
-	    V_ULP_TX_SC_MORE(1));
+	idata->cmd_more = htobe32(
+	    V_ULPTX_CMD(ULP_TX_SC_IMM) | V_ULP_TX_SC_MORE(1));
 	idata->len = sizeof(struct cpl_tx_sec_pdu);
 
 	/*
@@ -1666,13 +1663,12 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 		cipher_start = AES_BLOCK_LEN + 1;
 		cipher_stop = 0;
 
-		sec_pdu->pldlen = htobe32(16 + plen -
-		    (m_tls->m_epg_hdrlen + offset));
+		sec_pdu->pldlen = htobe32(
+		    16 + plen - (m_tls->m_epg_hdrlen + offset));
 
 		/* These two flits are actually a CPL_TLS_TX_SCMD_FMT. */
 		sec_pdu->seqno_numivs = tlsp->scmd0_short.seqno_numivs;
-		sec_pdu->ivgen_hdrlen = htobe32(
-		    tlsp->scmd0_short.ivgen_hdrlen |
+		sec_pdu->ivgen_hdrlen = htobe32(tlsp->scmd0_short.ivgen_hdrlen |
 		    V_SCMD_HDR_LEN(offset == 0 ? m_tls->m_epg_hdrlen : 0));
 
 		txq->kern_tls_short++;
@@ -1742,8 +1738,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 
 		/* ULPTX_IDATA for CPL_TX_DATA and TLS header. */
 		idata = (void *)(memrd + 1);
-		idata->cmd_more = htobe32(V_ULPTX_CMD(ULP_TX_SC_IMM) |
-		    V_ULP_TX_SC_MORE(1));
+		idata->cmd_more = htobe32(
+		    V_ULPTX_CMD(ULP_TX_SC_IMM) | V_ULP_TX_SC_MORE(1));
 		idata->len = htobe32(sizeof(struct cpl_tx_data) + imm_len);
 
 		out = (void *)(idata + 1);
@@ -1766,7 +1762,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 	} else {
 		tx_data->len = htobe32(V_TX_DATA_MSS(mss) |
 		    V_TX_LENGTH(tlen - (m_tls->m_epg_hdrlen + offset)));
-		tx_data->rsvd = htobe32(tcp_seqno + m_tls->m_epg_hdrlen + offset);
+		tx_data->rsvd = htobe32(
+		    tcp_seqno + m_tls->m_epg_hdrlen + offset);
 	}
 	tx_data->flags = htobe32(F_TX_BYPASS);
 	if (last_wr && tcp->th_flags & TH_PUSH)
@@ -1785,8 +1782,8 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 		if (tlsp->enc_mode == SCMD_CIPH_MODE_AES_GCM) {
 			memcpy(iv, tlsp->keyctx.u.txhdr.txsalt, SALT_SIZE);
 			memcpy(iv + 4, hdr + 1, 8);
-			*(uint32_t *)(iv + 12) = htobe32(2 +
-			    offset / AES_BLOCK_LEN);
+			*(uint32_t *)(iv + 12) = htobe32(
+			    2 + offset / AES_BLOCK_LEN);
 		} else
 			memcpy(iv, hdr + 1, AES_BLOCK_LEN);
 		out += AES_BLOCK_LEN;
@@ -1812,7 +1809,7 @@ ktls_write_tls_wr(struct tlspcb *tlsp, struct sge_txq *txq, void *dst,
 	/* SGL for record payload */
 	sglist_reset(txq->gl);
 	if (sglist_append_mbuf_epg(txq->gl, m_tls, m_tls->m_epg_hdrlen + offset,
-	    plen - (m_tls->m_epg_hdrlen + offset)) != 0) {
+		plen - (m_tls->m_epg_hdrlen + offset)) != 0) {
 #ifdef INVARIANTS
 		panic("%s: failed to append sglist", __func__);
 #endif
@@ -1874,8 +1871,8 @@ ktls_write_tcp_fin(struct sge_txq *txq, void *dst, struct mbuf *m,
 	MPASS(ndesc <= available);
 
 	/* Firmware work request header */
-	wr->op_immdlen = htobe32(V_FW_WR_OP(FW_ETH_TX_PKT_WR) |
-	    V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
+	wr->op_immdlen = htobe32(
+	    V_FW_WR_OP(FW_ETH_TX_PKT_WR) | V_FW_ETH_TX_PKT_WR_IMMDLEN(ctrl));
 
 	ctrl = V_FW_WR_LEN16(len16);
 	wr->equiq_to_len16 = htobe32(ctrl);
@@ -1926,8 +1923,9 @@ ktls_write_tcp_fin(struct sge_txq *txq, void *dst, struct mbuf *m,
 	copy_to_txd(&txq->eq, (caddr_t)&newtcp, &out, sizeof(newtcp));
 
 	/* Copy rest of packet. */
-	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out, m->m_len -
-	    (m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
+	copy_to_txd(&txq->eq, (caddr_t)(tcp + 1), &out,
+	    m->m_len -
+		(m->m_pkthdr.l2hlen + m->m_pkthdr.l3hlen + sizeof(*tcp)));
 	txq->imm_wrs++;
 
 	txq->txpkt_wrs++;

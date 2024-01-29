@@ -27,26 +27,27 @@
  */
 
 #ifndef _DEV_SCC_BUS_H_
-#define	_DEV_SCC_BUS_H_
+#define _DEV_SCC_BUS_H_
 
 #include <sys/serial.h>
+
 #include <serdev_if.h>
 
-#define	SCC_IVAR_CHANNEL	0
-#define	SCC_IVAR_CLASS		1
-#define	SCC_IVAR_CLOCK		2
-#define	SCC_IVAR_MODE		3
-#define	SCC_IVAR_REGSHFT	4
-#define	SCC_IVAR_HWMTX		5
+#define SCC_IVAR_CHANNEL 0
+#define SCC_IVAR_CLASS 1
+#define SCC_IVAR_CLOCK 2
+#define SCC_IVAR_MODE 3
+#define SCC_IVAR_REGSHFT 4
+#define SCC_IVAR_HWMTX 5
 
 /* Hardware class -- the SCC type. */
-#define	SCC_CLASS_UNUSED	0
-#define	SCC_CLASS_Z8530		1
-#define	SCC_CLASS_QUICC		2
+#define SCC_CLASS_UNUSED 0
+#define SCC_CLASS_Z8530 1
+#define SCC_CLASS_QUICC 2
 
 /* The possible modes supported by the SCC. */
-#define	SCC_MODE_ASYNC		0x01
-#define	SCC_MODE_BISYNC		0x02
-#define	SCC_MODE_HDLC		0x04
+#define SCC_MODE_ASYNC 0x01
+#define SCC_MODE_BISYNC 0x02
+#define SCC_MODE_HDLC 0x04
 
 #endif /* _DEV_SCC_BUS_H_ */

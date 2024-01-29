@@ -27,19 +27,19 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_osname.h"
+
 #include <sys/param.h>
 
 #include <bsddialog.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
-#include <stdio.h>
 #include <fetch.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "opt_osname.h"
 
 static int fetch_files(int nfiles, char **urls);
 
@@ -59,7 +59,7 @@ main(void)
 
 	diststring = strdup(getenv("DISTRIBUTIONS"));
 	for (i = 0; diststring[i] != 0; i++)
-		if (isspace(diststring[i]) && !isspace(diststring[i+1]))
+		if (isspace(diststring[i]) && !isspace(diststring[i + 1]))
 			ndists++;
 	ndists++; /* Last one */
 
@@ -98,7 +98,7 @@ main(void)
 	bsddialog_end();
 
 	free(diststring);
-	for (i = 0; i < ndists; i++) 
+	for (i = 0; i < ndists; i++)
 		free(urls[i]);
 	free(urls);
 
@@ -145,8 +145,8 @@ fetch_files(int nfiles, char **urls)
 	}
 
 	bsddialog_initconf(&errconf);
-	bsddialog_infobox(&errconf, "Connecting to server.\nPlease wait...",
-	    0, 0);
+	bsddialog_infobox(&errconf, "Connecting to server.\nPlease wait...", 0,
+	    0);
 
 	/* Try to stat all the files */
 	total_bytes = 0;
@@ -185,8 +185,8 @@ fetch_files(int nfiles, char **urls)
 		file_out = fopen(minilabel[i], "w+");
 		if (file_out == NULL) {
 			snprintf(errormsg, sizeof(errormsg),
-			    "Error (fopen) while fetching %s: %s\n",
-			    urls[i], strerror(errno));
+			    "Error (fopen) while fetching %s: %s\n", urls[i],
+			    strerror(errno));
 			miniperc[i] = BSDDIALOG_MG_FAILED;
 			bsddialog_msgbox(&errconf, errormsg, 0, 0);
 			fclose(fetch_out);
@@ -194,8 +194,8 @@ fetch_files(int nfiles, char **urls)
 			continue;
 		}
 
-		while ((chunk = fread(block, 1, sizeof(block), fetch_out))
-		    > 0) {
+		while (
+		    (chunk = fread(block, 1, sizeof(block), fetch_out)) > 0) {
 			if (fwrite(block, 1, chunk, file_out) < chunk)
 				break;
 
@@ -207,7 +207,8 @@ fetch_files(int nfiles, char **urls)
 				progress = (current_bytes * 100) / total_bytes;
 			} else {
 				file_perc = ustat.size > 0 ?
-				    (fsize * 100) / ustat.size : 0;
+				    (fsize * 100) / ustat.size :
+				    0;
 				progress = (i * mainperc_file) +
 				    ((file_perc * mainperc_file) / 100);
 			}
@@ -219,9 +220,8 @@ fetch_files(int nfiles, char **urls)
 
 			if (progress > last_progress) {
 				bsddialog_mixedgauge(&mgconf,
-				    "\nFetching distribution files...\n",
-				    0, 0, progress, nfiles, minilabel,
-				    miniperc);
+				    "\nFetching distribution files...\n", 0, 0,
+				    progress, nfiles, minilabel, miniperc);
 			}
 		}
 
@@ -246,8 +246,8 @@ fetch_files(int nfiles, char **urls)
 		fclose(file_out);
 	}
 
-	bsddialog_mixedgauge(&mgconf, "\nFetching distribution completed\n",
-	    0, 0, progress, nfiles, minilabel, miniperc);
+	bsddialog_mixedgauge(&mgconf, "\nFetching distribution completed\n", 0,
+	    0, progress, nfiles, minilabel, miniperc);
 
 	free(minilabel);
 	free(miniperc);

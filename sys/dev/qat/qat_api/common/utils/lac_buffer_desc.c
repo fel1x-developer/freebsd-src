@@ -13,15 +13,15 @@
 * Include header files
 *******************************************************************************
 */
-#include "qat_utils.h"
+#include "cpa_cy_common.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
 #include "icp_adf_init.h"
-#include "lac_list.h"
-#include "lac_sal_types.h"
 #include "lac_buffer_desc.h"
+#include "lac_list.h"
 #include "lac_mem.h"
-#include "cpa_cy_common.h"
+#include "lac_sal_types.h"
+#include "qat_utils.h"
 
 /*
 *******************************************************************************
@@ -42,11 +42,9 @@ typedef enum lac_buff_write_op_e {
  * APIs */
 static CpaStatus
 LacBuffDesc_CommonBufferListDescWrite(const CpaBufferList *pUserBufferList,
-				      Cpa64U *pBufListAlignedPhyAddr,
-				      CpaBoolean isPhysicalAddress,
-				      Cpa64U *totalDataLenInBytes,
-				      sal_service_t *pService,
-				      lac_buff_write_op_t operationType)
+    Cpa64U *pBufListAlignedPhyAddr, CpaBoolean isPhysicalAddress,
+    Cpa64U *totalDataLenInBytes, sal_service_t *pService,
+    lac_buff_write_op_t operationType)
 {
 	Cpa32U numBuffers = 0;
 	icp_qat_addr_width_t bufListDescPhyAddr = 0;
@@ -75,19 +73,19 @@ LacBuffDesc_CommonBufferListDescWrite(const CpaBufferList *pUserBufferList,
 		return CPA_STATUS_FAIL;
 	}
 
-	bufListAlignedPhyAddr =
-	    LAC_ALIGN_POW2_ROUNDUP(bufListDescPhyAddr,
-				   ICP_DESCRIPTOR_ALIGNMENT_BYTES);
+	bufListAlignedPhyAddr = LAC_ALIGN_POW2_ROUNDUP(bufListDescPhyAddr,
+	    ICP_DESCRIPTOR_ALIGNMENT_BYTES);
 
-	pBufferListDesc = (icp_buffer_list_desc_t *)(LAC_ARCH_UINT)(
-	    (LAC_ARCH_UINT)pUserBufferList->pPrivateMetaData +
+	pBufferListDesc = (icp_buffer_list_desc_t
+		*)(LAC_ARCH_UINT)((LAC_ARCH_UINT)
+				      pUserBufferList->pPrivateMetaData +
 	    ((LAC_ARCH_UINT)bufListAlignedPhyAddr -
-	     (LAC_ARCH_UINT)bufListDescPhyAddr));
+		(LAC_ARCH_UINT)bufListDescPhyAddr));
 
 	/* Go past the Buffer List descriptor to the list of buffer descriptors
 	 */
-	pCurrFlatBufDesc =
-	    (icp_flat_buffer_desc_t *)((pBufferListDesc->phyBuffers));
+	pCurrFlatBufDesc = (icp_flat_buffer_desc_t *)((
+	    pBufferListDesc->phyBuffers));
 
 	pBufferListDesc->numBuffers = numBuffers;
 
@@ -128,8 +126,8 @@ LacBuffDesc_CommonBufferListDescWrite(const CpaBufferList *pUserBufferList,
 		} else {
 			pCurrFlatBufDesc->phyBuffer =
 			    LAC_MEM_CAST_PTR_TO_UINT64(
-				LAC_OS_VIRT_TO_PHYS_EXTERNAL(
-				    (*pService), pCurrClientFlatBuffer->pData));
+				LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
+				    pCurrClientFlatBuffer->pData));
 
 			if (WRITE_AND_ALLOW_ZERO_BUFFER != operationType) {
 				if (INVALID_PHYSICAL_ADDRESS ==
@@ -156,17 +154,11 @@ LacBuffDesc_CommonBufferListDescWrite(const CpaBufferList *pUserBufferList,
  * GCM aglorithms */
 CpaStatus
 LacBuffDesc_BufferListDescWriteAndAllowZeroBuffer(
-    const CpaBufferList *pUserBufferList,
-    Cpa64U *pBufListAlignedPhyAddr,
-    CpaBoolean isPhysicalAddress,
-    sal_service_t *pService)
+    const CpaBufferList *pUserBufferList, Cpa64U *pBufListAlignedPhyAddr,
+    CpaBoolean isPhysicalAddress, sal_service_t *pService)
 {
-	return LacBuffDesc_CommonBufferListDescWrite(
-	    pUserBufferList,
-	    pBufListAlignedPhyAddr,
-	    isPhysicalAddress,
-	    NULL,
-	    pService,
+	return LacBuffDesc_CommonBufferListDescWrite(pUserBufferList,
+	    pBufListAlignedPhyAddr, isPhysicalAddress, NULL, pService,
 	    WRITE_AND_ALLOW_ZERO_BUFFER);
 }
 
@@ -174,26 +166,20 @@ LacBuffDesc_BufferListDescWriteAndAllowZeroBuffer(
  * APIs */
 CpaStatus
 LacBuffDesc_BufferListDescWrite(const CpaBufferList *pUserBufferList,
-				Cpa64U *pBufListAlignedPhyAddr,
-				CpaBoolean isPhysicalAddress,
-				sal_service_t *pService)
+    Cpa64U *pBufListAlignedPhyAddr, CpaBoolean isPhysicalAddress,
+    sal_service_t *pService)
 {
 	return LacBuffDesc_CommonBufferListDescWrite(pUserBufferList,
-						     pBufListAlignedPhyAddr,
-						     isPhysicalAddress,
-						     NULL,
-						     pService,
-						     WRITE_NORMAL);
+	    pBufListAlignedPhyAddr, isPhysicalAddress, NULL, pService,
+	    WRITE_NORMAL);
 }
 
 /* This function does the same processing as LacBuffDesc_BufferListDescWrite
  * but calculate as well the total length in bytes of the buffer list. */
 CpaStatus
 LacBuffDesc_BufferListDescWriteAndGetSize(const CpaBufferList *pUserBufferList,
-					  Cpa64U *pBufListAlignedPhyAddr,
-					  CpaBoolean isPhysicalAddress,
-					  Cpa64U *totalDataLenInBytes,
-					  sal_service_t *pService)
+    Cpa64U *pBufListAlignedPhyAddr, CpaBoolean isPhysicalAddress,
+    Cpa64U *totalDataLenInBytes, sal_service_t *pService)
 {
 	Cpa32U numBuffers = 0;
 	icp_qat_addr_width_t bufListDescPhyAddr = 0;
@@ -219,19 +205,19 @@ LacBuffDesc_BufferListDescWriteAndGetSize(const CpaBufferList *pUserBufferList,
 		return CPA_STATUS_FAIL;
 	}
 
-	bufListAlignedPhyAddr =
-	    LAC_ALIGN_POW2_ROUNDUP(bufListDescPhyAddr,
-				   ICP_DESCRIPTOR_ALIGNMENT_BYTES);
+	bufListAlignedPhyAddr = LAC_ALIGN_POW2_ROUNDUP(bufListDescPhyAddr,
+	    ICP_DESCRIPTOR_ALIGNMENT_BYTES);
 
-	pBufferListDesc = (icp_buffer_list_desc_t *)(LAC_ARCH_UINT)(
-	    (LAC_ARCH_UINT)pUserBufferList->pPrivateMetaData +
+	pBufferListDesc = (icp_buffer_list_desc_t
+		*)(LAC_ARCH_UINT)((LAC_ARCH_UINT)
+				      pUserBufferList->pPrivateMetaData +
 	    ((LAC_ARCH_UINT)bufListAlignedPhyAddr -
-	     (LAC_ARCH_UINT)bufListDescPhyAddr));
+		(LAC_ARCH_UINT)bufListDescPhyAddr));
 
 	/* Go past the Buffer List descriptor to the list of buffer descriptors
 	 */
-	pCurrFlatBufDesc =
-	    (icp_flat_buffer_desc_t *)((pBufferListDesc->phyBuffers));
+	pCurrFlatBufDesc = (icp_flat_buffer_desc_t *)((
+	    pBufferListDesc->phyBuffers));
 
 	pBufferListDesc->numBuffers = numBuffers;
 
@@ -249,8 +235,8 @@ LacBuffDesc_BufferListDescWriteAndGetSize(const CpaBufferList *pUserBufferList,
 		} else {
 			pCurrFlatBufDesc->phyBuffer =
 			    LAC_MEM_CAST_PTR_TO_UINT64(
-				LAC_OS_VIRT_TO_PHYS_EXTERNAL(
-				    (*pService), pCurrClientFlatBuffer->pData));
+				LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
+				    pCurrClientFlatBuffer->pData));
 
 			if (pCurrFlatBufDesc->phyBuffer == 0) {
 				QAT_UTILS_LOG(
@@ -271,8 +257,7 @@ LacBuffDesc_BufferListDescWriteAndGetSize(const CpaBufferList *pUserBufferList,
 
 CpaStatus
 LacBuffDesc_FlatBufferVerify(const CpaFlatBuffer *pUserFlatBuffer,
-			     Cpa64U *pPktSize,
-			     lac_aligment_shift_t alignmentShiftExpected)
+    Cpa64U *pPktSize, lac_aligment_shift_t alignmentShiftExpected)
 {
 	LAC_CHECK_NULL_PARAM(pUserFlatBuffer);
 	LAC_CHECK_NULL_PARAM(pUserFlatBuffer->pData);
@@ -285,7 +270,7 @@ LacBuffDesc_FlatBufferVerify(const CpaFlatBuffer *pUserFlatBuffer,
 	/* Expected alignment */
 	if (LAC_NO_ALIGNMENT_SHIFT != alignmentShiftExpected) {
 		if (!LAC_ADDRESS_ALIGNED(pUserFlatBuffer->pData,
-					 alignmentShiftExpected)) {
+			alignmentShiftExpected)) {
 			QAT_UTILS_LOG(
 			    "FlatBuffer not aligned correctly - expected alignment of %u bytes.\n",
 			    1 << alignmentShiftExpected);
@@ -303,8 +288,7 @@ LacBuffDesc_FlatBufferVerify(const CpaFlatBuffer *pUserFlatBuffer,
 
 CpaStatus
 LacBuffDesc_FlatBufferVerifyNull(const CpaFlatBuffer *pUserFlatBuffer,
-				 Cpa64U *pPktSize,
-				 lac_aligment_shift_t alignmentShiftExpected)
+    Cpa64U *pPktSize, lac_aligment_shift_t alignmentShiftExpected)
 {
 	LAC_CHECK_NULL_PARAM(pUserFlatBuffer);
 
@@ -315,7 +299,7 @@ LacBuffDesc_FlatBufferVerifyNull(const CpaFlatBuffer *pUserFlatBuffer,
 	/* Expected alignment */
 	if (LAC_NO_ALIGNMENT_SHIFT != alignmentShiftExpected) {
 		if (!LAC_ADDRESS_ALIGNED(pUserFlatBuffer->pData,
-					 alignmentShiftExpected)) {
+			alignmentShiftExpected)) {
 			QAT_UTILS_LOG(
 			    "FlatBuffer not aligned correctly - expected alignment of %u bytes.\n",
 			    1 << alignmentShiftExpected);
@@ -333,8 +317,7 @@ LacBuffDesc_FlatBufferVerifyNull(const CpaFlatBuffer *pUserFlatBuffer,
 
 CpaStatus
 LacBuffDesc_BufferListVerify(const CpaBufferList *pUserBufferList,
-			     Cpa64U *pPktSize,
-			     lac_aligment_shift_t alignmentShiftExpected)
+    Cpa64U *pPktSize, lac_aligment_shift_t alignmentShiftExpected)
 {
 	CpaFlatBuffer *pCurrClientFlatBuffer = NULL;
 	Cpa32U numBuffers = 0;
@@ -356,8 +339,7 @@ LacBuffDesc_BufferListVerify(const CpaBufferList *pUserBufferList,
 	*pPktSize = 0;
 	while (0 != numBuffers && status == CPA_STATUS_SUCCESS) {
 		status = LacBuffDesc_FlatBufferVerify(pCurrClientFlatBuffer,
-						      pPktSize,
-						      alignmentShiftExpected);
+		    pPktSize, alignmentShiftExpected);
 
 		pCurrClientFlatBuffer++;
 		numBuffers--;
@@ -367,8 +349,7 @@ LacBuffDesc_BufferListVerify(const CpaBufferList *pUserBufferList,
 
 CpaStatus
 LacBuffDesc_BufferListVerifyNull(const CpaBufferList *pUserBufferList,
-				 Cpa64U *pPktSize,
-				 lac_aligment_shift_t alignmentShiftExpected)
+    Cpa64U *pPktSize, lac_aligment_shift_t alignmentShiftExpected)
 {
 	CpaFlatBuffer *pCurrClientFlatBuffer = NULL;
 	Cpa32U numBuffers = 0;
@@ -389,10 +370,8 @@ LacBuffDesc_BufferListVerifyNull(const CpaBufferList *pUserBufferList,
 
 	*pPktSize = 0;
 	while (0 != numBuffers && status == CPA_STATUS_SUCCESS) {
-		status =
-		    LacBuffDesc_FlatBufferVerifyNull(pCurrClientFlatBuffer,
-						     pPktSize,
-						     alignmentShiftExpected);
+		status = LacBuffDesc_FlatBufferVerifyNull(pCurrClientFlatBuffer,
+		    pPktSize, alignmentShiftExpected);
 
 		pCurrClientFlatBuffer++;
 		numBuffers--;
@@ -406,7 +385,7 @@ LacBuffDesc_BufferListVerifyNull(const CpaBufferList *pUserBufferList,
  *****************************************************************************/
 void
 LacBuffDesc_BufferListTotalSizeGet(const CpaBufferList *pUserBufferList,
-				   Cpa64U *pPktSize)
+    Cpa64U *pPktSize)
 {
 	CpaFlatBuffer *pCurrClientFlatBuffer = NULL;
 	Cpa32U numBuffers = 0;
@@ -423,9 +402,8 @@ LacBuffDesc_BufferListTotalSizeGet(const CpaBufferList *pUserBufferList,
 }
 
 void
-LacBuffDesc_BufferListZeroFromOffset(CpaBufferList *pBuffList,
-				     Cpa32U offset,
-				     Cpa32U lenToZero)
+LacBuffDesc_BufferListZeroFromOffset(CpaBufferList *pBuffList, Cpa32U offset,
+    Cpa32U lenToZero)
 {
 	Cpa32U zeroLen = 0, sizeLeftToZero = 0;
 	Cpa64U currentBufferSize = 0;
@@ -470,8 +448,8 @@ LacBuffDesc_BufferListZeroFromOffset(CpaBufferList *pBuffList,
 				zeroLen = sizeLeftToZero;
 				if ((zeroLen + offset) >=
 				    pBuffer->dataLenInBytes) {
-					zeroLen =
-					    pBuffer->dataLenInBytes - offset;
+					zeroLen = pBuffer->dataLenInBytes -
+					    offset;
 				}
 			} /* end inner else */
 			memset((void *)pZero, 0, zeroLen);

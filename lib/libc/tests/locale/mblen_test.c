@@ -32,13 +32,12 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(mblen_test);
 ATF_TC_BODY(mblen_test, tc)
@@ -72,7 +71,8 @@ ATF_TC_BODY(mblen_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX > 1);
 
 	/* No shift states in EUC. */

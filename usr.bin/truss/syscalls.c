@@ -37,10 +37,10 @@
  * arguments.
  */
 
+#include <sys/types.h>
 #include <sys/aio.h>
 #include <sys/capsicum.h>
-#include <sys/types.h>
-#define	_WANT_FREEBSD11_KEVENT
+#define _WANT_FREEBSD11_KEVENT
 #include <sys/event.h>
 #include <sys/ioccom.h>
 #include <sys/mman.h>
@@ -57,10 +57,11 @@
 #include <sys/time.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+
 #include <netinet/in.h>
 #include <netinet/sctp.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
@@ -77,9 +78,9 @@
 #include <unistd.h>
 #include <vis.h>
 
-#include "truss.h"
 #include "extern.h"
 #include "syscall.h"
+#include "truss.h"
 
 /*
  * This should probably be in its own file, sorted alphabetically.
@@ -91,543 +92,997 @@
  */
 static const struct syscall_decode decoded_syscalls[] = {
 	/* Native ABI */
-	{ .name = "__acl_aclcheck_fd", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_aclcheck_file", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_aclcheck_link", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_delete_fd", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Acltype, 1 } } },
-	{ .name = "__acl_delete_file", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Acltype, 1 } } },
-	{ .name = "__acl_delete_link", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Acltype, 1 } } },
-	{ .name = "__acl_get_fd", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_get_file", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_get_link", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_set_fd", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_set_file", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__acl_set_link", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
-	{ .name = "__cap_rights_get", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Int, 1 }, { CapRights | OUT, 2 } } },
-	{ .name = "__getcwd", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | OUT, 0 }, { Int, 1 } } },
-	{ .name = "__realpathat", .ret_type = 1, .nargs = 5,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Name | OUT, 2 },
-		    { Sizet, 3 }, { Int, 4} } },
-	{ .name = "_umtx_op", .ret_type = 1, .nargs = 5,
-	  .args = { { Ptr, 0 }, { Umtxop, 1 }, { LongHex, 2 }, { Ptr, 3 },
-		    { Ptr, 4 } } },
-	{ .name = "accept", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
-	{ .name = "access", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Accessmode, 1 } } },
-	{ .name = "aio_cancel", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Aiocb, 1 } } },
-	{ .name = "aio_error", .ret_type = 1, .nargs = 1,
-	  .args = { { Aiocb, 0 } } },
-	{ .name = "aio_fsync", .ret_type = 1, .nargs = 2,
-	  .args = { { AiofsyncOp, 0 }, { Aiocb, 1 } } },
-	{ .name = "aio_mlock", .ret_type = 1, .nargs = 1,
-	  .args = { { Aiocb, 0 } } },
-	{ .name = "aio_read", .ret_type = 1, .nargs = 1,
-	  .args = { { Aiocb, 0 } } },
-	{ .name = "aio_return", .ret_type = 1, .nargs = 1,
-	  .args = { { Aiocb, 0 } } },
-	{ .name = "aio_suspend", .ret_type = 1, .nargs = 3,
-	  .args = { { AiocbArray, 0 }, { Int, 1 }, { Timespec, 2 } } },
-	{ .name = "aio_waitcomplete", .ret_type = 1, .nargs = 2,
-	  .args = { { AiocbPointer | OUT, 0 }, { Timespec, 1 } } },
-	{ .name = "aio_write", .ret_type = 1, .nargs = 1,
-	  .args = { { Aiocb, 0 } } },
-	{ .name = "bind", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Sockaddr | IN, 1 }, { Socklent, 2 } } },
-	{ .name = "bindat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Int, 1 }, { Sockaddr | IN, 2 },
-		    { Int, 3 } } },
-	{ .name = "break", .ret_type = 1, .nargs = 1,
-	  .args = { { Ptr, 0 } } },
-	{ .name = "cap_fcntls_get", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { CapFcntlRights | OUT, 1 } } },
-	{ .name = "cap_fcntls_limit", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { CapFcntlRights, 1 } } },
-	{ .name = "cap_getmode", .ret_type = 1, .nargs = 1,
-	  .args = { { PUInt | OUT, 0 } } },
-	{ .name = "cap_rights_limit", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { CapRights, 1 } } },
-	{ .name = "chdir", .ret_type = 1, .nargs = 1,
-	  .args = { { Name, 0 } } },
-	{ .name = "chflags", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { FileFlags, 1 } } },
-	{ .name = "chflagsat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { FileFlags, 2 },
-		    { Atflags, 3 } } },
-	{ .name = "chmod", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Octal, 1 } } },
-	{ .name = "chown", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Int, 1 }, { Int, 2 } } },
-	{ .name = "chroot", .ret_type = 1, .nargs = 1,
-	  .args = { { Name, 0 } } },
-	{ .name = "clock_gettime", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Timespec | OUT, 1 } } },
-	{ .name = "close", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "closefrom", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "close_range", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Int, 1 }, { Closerangeflags, 2 } } },
-	{ .name = "compat11.fstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Stat11 | OUT, 1 } } },
-	{ .name = "compat11.fstatat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Stat11 | OUT, 2 },
-		    { Atflags, 3 } } },
-	{ .name = "compat11.kevent", .ret_type = 1, .nargs = 6,
-	  .args = { { Int, 0 }, { Kevent11, 1 }, { Int, 2 },
-		    { Kevent11 | OUT, 3 }, { Int, 4 }, { Timespec, 5 } } },
-	{ .name = "compat11.lstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Stat11 | OUT, 1 } } },
-	{ .name = "compat11.mknod", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Octal, 1 }, { Int, 2 } } },
-	{ .name = "compat11.mknodat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 }, { Int, 3 } } },
-	{ .name = "compat11.stat", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Stat11 | OUT, 1 } } },
-	{ .name = "connect", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Sockaddr | IN, 1 }, { Socklent, 2 } } },
-	{ .name = "connectat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Int, 1 }, { Sockaddr | IN, 2 },
-		    { Int, 3 } } },
-	{ .name = "dup", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "dup2", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Int, 1 } } },
-	{ .name = "eaccess", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Accessmode, 1 } } },
-	{ .name = "execve", .ret_type = 1, .nargs = 3,
-	  .args = { { Name | IN, 0 }, { ExecArgs | IN, 1 },
-		    { ExecEnv | IN, 2 } } },
-	{ .name = "exit", .ret_type = 0, .nargs = 1,
-	  .args = { { Hex, 0 } } },
-	{ .name = "extattr_delete_fd", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
-	{ .name = "extattr_delete_file", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
-	{ .name = "extattr_delete_link", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
-	{ .name = "extattr_get_fd", .ret_type = 1, .nargs = 5,
-	  .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | OUT, 3 }, { Sizet, 4 } } },
-	{ .name = "extattr_get_file", .ret_type = 1, .nargs = 5,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | OUT, 3 }, { Sizet, 4 } } },
-	{ .name = "extattr_get_link", .ret_type = 1, .nargs = 5,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | OUT, 3 }, { Sizet, 4 } } },
-	{ .name = "extattr_list_fd", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { Extattrnamespace, 1 }, { BinString | OUT, 2 },
-		    { Sizet, 3 } } },
-	{ .name = "extattr_list_file", .ret_type = 1, .nargs = 4,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { BinString | OUT, 2 },
-		    { Sizet, 3 } } },
-	{ .name = "extattr_list_link", .ret_type = 1, .nargs = 4,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { BinString | OUT, 2 },
-		    { Sizet, 3 } } },
-	{ .name = "extattr_set_fd", .ret_type = 1, .nargs = 5,
-	  .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | IN, 3 }, { Sizet, 4 } } },
-	{ .name = "extattr_set_file", .ret_type = 1, .nargs = 5,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | IN, 3 }, { Sizet, 4 } } },
-	{ .name = "extattr_set_link", .ret_type = 1, .nargs = 5,
-	  .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
-		    { BinString | IN, 3 }, { Sizet, 4 } } },
-	{ .name = "extattrctl", .ret_type = 1, .nargs = 5,
-	  .args = { { Name, 0 }, { Hex, 1 }, { Name, 2 },
-		    { Extattrnamespace, 3 }, { Name, 4 } } },
-	{ .name = "faccessat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Accessmode, 2 },
-		    { Atflags, 3 } } },
-	{ .name = "fchflags", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { FileFlags, 1 } } },
-	{ .name = "fchmod", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Octal, 1 } } },
-	{ .name = "fchmodat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 }, { Atflags, 3 } } },
-	{ .name = "fchown", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Int, 1 }, { Int, 2 } } },
-	{ .name = "fchownat", .ret_type = 1, .nargs = 5,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Int, 2 }, { Int, 3 },
-		    { Atflags, 4 } } },
-	{ .name = "fcntl", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Fcntl, 1 }, { Fcntlflag, 2 } } },
-	{ .name = "fdatasync", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "flock", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Flockop, 1 } } },
-	{ .name = "fstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Stat | OUT, 1 } } },
-	{ .name = "fstatat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Stat | OUT, 2 },
-		    { Atflags, 3 } } },
-	{ .name = "fstatfs", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { StatFs | OUT, 1 } } },
-	{ .name = "fsync", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "ftruncate", .ret_type = 1, .nargs = 2,
-	  .args = { { Int | IN, 0 }, { QuadHex | IN, 1 } } },
-	{ .name = "futimens", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Timespec2 | IN, 1 } } },
-	{ .name = "futimes", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Timeval2 | IN, 1 } } },
-	{ .name = "futimesat", .ret_type = 1, .nargs = 3,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Timeval2 | IN, 2 } } },
-	{ .name = "getdirentries", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { BinString | OUT, 1 }, { Int, 2 },
-		    { PQuadHex | OUT, 3 } } },
-	{ .name = "getfsstat", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { Long, 1 }, { Getfsstatmode, 2 } } },
-	{ .name = "getitimer", .ret_type = 1, .nargs = 2,
-	  .args = { { Itimerwhich, 0 }, { Itimerval | OUT, 2 } } },
-	{ .name = "getpeername", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
-	{ .name = "getpgid", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "getpriority", .ret_type = 1, .nargs = 2,
-	  .args = { { Priowhich, 0 }, { Int, 1 } } },
-	{ .name = "getrandom", .ret_type = 1, .nargs = 3,
-	  .args = { { BinString | OUT, 0 }, { Sizet, 1 }, { UInt, 2 } } },
-	{ .name = "getrlimit", .ret_type = 1, .nargs = 2,
-	  .args = { { Resource, 0 }, { Rlimit | OUT, 1 } } },
-	{ .name = "getrusage", .ret_type = 1, .nargs = 2,
-	  .args = { { RusageWho, 0 }, { Rusage | OUT, 1 } } },
-	{ .name = "getsid", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "getsockname", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
-	{ .name = "getsockopt", .ret_type = 1, .nargs = 5,
-	  .args = { { Int, 0 }, { Sockoptlevel, 1 }, { Sockoptname, 2 },
-		    { Ptr | OUT, 3 }, { Ptr | OUT, 4 } } },
-	{ .name = "gettimeofday", .ret_type = 1, .nargs = 2,
-	  .args = { { Timeval | OUT, 0 }, { Ptr, 1 } } },
-	{ .name = "ioctl", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Ioctl, 1 }, { Ptr, 2 } } },
-	{ .name = "kevent", .ret_type = 1, .nargs = 6,
-	  .args = { { Int, 0 }, { Kevent, 1 }, { Int, 2 }, { Kevent | OUT, 3 },
-		    { Int, 4 }, { Timespec, 5 } } },
-	{ .name = "kill", .ret_type = 1, .nargs = 2,
-	  .args = { { Int | IN, 0 }, { Signal | IN, 1 } } },
-	{ .name = "kldfind", .ret_type = 1, .nargs = 1,
-	  .args = { { Name | IN, 0 } } },
-	{ .name = "kldfirstmod", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "kldload", .ret_type = 1, .nargs = 1,
-	  .args = { { Name | IN, 0 } } },
-	{ .name = "kldnext", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "kldstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Ptr, 1 } } },
-	{ .name = "kldsym", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Kldsymcmd, 1 }, { Ptr, 2 } } },
-	{ .name = "kldunload", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "kldunloadf", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Kldunloadflags, 1 } } },
-	{ .name = "kse_release", .ret_type = 0, .nargs = 1,
-	  .args = { { Timespec, 0 } } },
-	{ .name = "lchflags", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { FileFlags, 1 } } },
-	{ .name = "lchmod", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Octal, 1 } } },
-	{ .name = "lchown", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Int, 1 }, { Int, 2 } } },
-	{ .name = "link", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Name, 1 } } },
-	{ .name = "linkat", .ret_type = 1, .nargs = 5,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Atfd, 2 }, { Name, 3 },
-		    { Atflags, 4 } } },
-	{ .name = "lio_listio", .ret_type = 1, .nargs = 4,
-	  .args = { { LioMode, 0 }, { AiocbArray, 1 }, { Int, 2 },
-		    { Sigevent, 3 } } },
-	{ .name = "listen", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Int, 1 } } },
- 	{ .name = "lseek", .ret_type = 2, .nargs = 3,
-	  .args = { { Int, 0 }, { QuadHex, 1 }, { Whence, 2 } } },
-	{ .name = "lstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Stat | OUT, 1 } } },
-	{ .name = "lutimes", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Timeval2 | IN, 1 } } },
-	{ .name = "madvise", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { Sizet, 1 }, { Madvice, 2 } } },
-	{ .name = "minherit", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { Sizet, 1 }, { Minherit, 2 } } },
-	{ .name = "mkdir", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Octal, 1 } } },
-	{ .name = "mkdirat", .ret_type = 1, .nargs = 3,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 } } },
-	{ .name = "mkfifo", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Octal, 1 } } },
-	{ .name = "mkfifoat", .ret_type = 1, .nargs = 3,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 } } },
-	{ .name = "mknod", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Octal, 1 }, { Quad, 2 } } },
-	{ .name = "mknodat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 }, { Quad, 3 } } },
-	{ .name = "mlock", .ret_type = 1, .nargs = 2,
-	  .args = { { Ptr, 0 }, { Sizet, 1 } } },
-	{ .name = "mlockall", .ret_type = 1, .nargs = 1,
-	  .args = { { Mlockall, 0 } } },
-	{ .name = "mmap", .ret_type = 1, .nargs = 6,
-	  .args = { { Ptr, 0 }, { Sizet, 1 }, { Mprot, 2 }, { Mmapflags, 3 },
-		    { Int, 4 }, { QuadHex, 5 } } },
-	{ .name = "modfind", .ret_type = 1, .nargs = 1,
-	  .args = { { Name | IN, 0 } } },
-	{ .name = "mount", .ret_type = 1, .nargs = 4,
-	  .args = { { Name, 0 }, { Name, 1 }, { Mountflags, 2 }, { Ptr, 3 } } },
-	{ .name = "mprotect", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { Sizet, 1 }, { Mprot, 2 } } },
-	{ .name = "msync", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { Sizet, 1 }, { Msync, 2 } } },
-	{ .name = "munlock", .ret_type = 1, .nargs = 2,
-	  .args = { { Ptr, 0 }, { Sizet, 1 } } },
-	{ .name = "munmap", .ret_type = 1, .nargs = 2,
-	  .args = { { Ptr, 0 }, { Sizet, 1 } } },
-	{ .name = "nanosleep", .ret_type = 1, .nargs = 1,
-	  .args = { { Timespec, 0 } } },
-	{ .name = "nmount", .ret_type = 1, .nargs = 3,
-	  .args = { { Ptr, 0 }, { UInt, 1 }, { Mountflags, 2 } } },
-	{ .name = "open", .ret_type = 1, .nargs = 3,
-	  .args = { { Name | IN, 0 }, { Open, 1 }, { Octal, 2 } } },
-	{ .name = "openat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Open, 2 },
-		    { Octal, 3 } } },
-	{ .name = "pathconf", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Pathconf, 1 } } },
-	{ .name = "pipe", .ret_type = 1, .nargs = 1,
-	  .args = { { PipeFds | OUT, 0 } } },
-	{ .name = "pipe2", .ret_type = 1, .nargs = 2,
-	  .args = { { Ptr, 0 }, { Pipe2, 1 } } },
-	{ .name = "poll", .ret_type = 1, .nargs = 3,
-	  .args = { { Pollfd, 0 }, { Int, 1 }, { Int, 2 } } },
-	{ .name = "posix_fadvise", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { QuadHex, 1 }, { QuadHex, 2 },
-		    { Fadvice, 3 } } },
-	{ .name = "posix_openpt", .ret_type = 1, .nargs = 1,
-	  .args = { { Open, 0 } } },
-	{ .name = "ppoll", .ret_type = 1, .nargs = 4,
-	  .args = { { Pollfd, 0 }, { Int, 1 }, { Timespec | IN, 2 },
- 		    { Sigset | IN, 3 } } },
-	{ .name = "pread", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 },
-		    { QuadHex, 3 } } },
-	{ .name = "preadv", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 },
-		    { QuadHex, 3 } } },
-	{ .name = "procctl", .ret_type = 1, .nargs = 4,
-	  .args = { { Idtype, 0 }, { Quad, 1 }, { Procctl, 2 }, { Ptr, 3 } } },
-	{ .name = "ptrace", .ret_type = 1, .nargs = 4,
-	  .args = { { Ptraceop, 0 }, { Int, 1 }, { Ptr, 2 }, { Int, 3 } } },
-	{ .name = "pwrite", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 },
-		    { QuadHex, 3 } } },
-	{ .name = "pwritev", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 },
-		    { QuadHex, 3 } } },
-	{ .name = "quotactl", .ret_type = 1, .nargs = 4,
-	  .args = { { Name, 0 }, { Quotactlcmd, 1 }, { Int, 2 }, { Ptr, 3 } } },
-	{ .name = "read", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 } } },
-	{ .name = "readlink", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Readlinkres | OUT, 1 }, { Sizet, 2 } } },
-	{ .name = "readlinkat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Readlinkres | OUT, 2 },
-		    { Sizet, 3 } } },
-	{ .name = "readv", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 } } },
-	{ .name = "reboot", .ret_type = 1, .nargs = 1,
-	  .args = { { Reboothowto, 0 } } },
-	{ .name = "recvfrom", .ret_type = 1, .nargs = 6,
-	  .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 },
-	            { Msgflags, 3 }, { Sockaddr | OUT, 4 },
-	            { Ptr | OUT, 5 } } },
-	{ .name = "recvmsg", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Msghdr | OUT, 1 }, { Msgflags, 2 } } },
-	{ .name = "rename", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Name, 1 } } },
-	{ .name = "renameat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Atfd, 2 }, { Name, 3 } } },
-	{ .name = "rfork", .ret_type = 1, .nargs = 1,
-	  .args = { { Rforkflags, 0 } } },
-	{ .name = "rmdir", .ret_type = 1, .nargs = 1,
-	  .args = { { Name, 0 } } },
-	{ .name = "rtprio", .ret_type = 1, .nargs = 3,
-	  .args = { { Rtpriofunc, 0 }, { Int, 1 }, { Ptr, 2 } } },
-	{ .name = "rtprio_thread", .ret_type = 1, .nargs = 3,
-	  .args = { { Rtpriofunc, 0 }, { Int, 1 }, { Ptr, 2 } } },
-	{ .name = "sched_get_priority_max", .ret_type = 1, .nargs = 1,
-	  .args = { { Schedpolicy, 0 } } },
-	{ .name = "sched_get_priority_min", .ret_type = 1, .nargs = 1,
-	  .args = { { Schedpolicy, 0 } } },
-	{ .name = "sched_getparam", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Schedparam | OUT, 1 } } },
-	{ .name = "sched_getscheduler", .ret_type = 1, .nargs = 1,
-	  .args = { { Int, 0 } } },
-	{ .name = "sched_rr_get_interval", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Timespec | OUT, 1 } } },
-	{ .name = "sched_setparam", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Schedparam, 1 } } },
-	{ .name = "sched_setscheduler", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Schedpolicy, 1 }, { Schedparam, 2 } } },
-	{ .name = "sctp_generic_recvmsg", .ret_type = 1, .nargs = 7,
-	  .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 },
-	            { Sockaddr | OUT, 3 }, { Ptr | OUT, 4 },
-	            { Sctpsndrcvinfo | OUT, 5 }, { Ptr | OUT, 6 } } },
-	{ .name = "sctp_generic_sendmsg", .ret_type = 1, .nargs = 7,
-	  .args = { { Int, 0 }, { BinString | IN, 1 }, { Int, 2 },
-	            { Sockaddr | IN, 3 }, { Socklent, 4 },
-	            { Sctpsndrcvinfo | IN, 5 }, { Msgflags, 6 } } },
-	{ .name = "sctp_generic_sendmsg_iov", .ret_type = 1, .nargs = 7,
-	  .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 },
-	            { Sockaddr | IN, 3 }, { Socklent, 4 },
-	            { Sctpsndrcvinfo | IN, 5 }, { Msgflags, 6 } } },
-	{ .name = "sendfile", .ret_type = 1, .nargs = 7,
-	  .args = { { Int, 0 }, { Int, 1 }, { QuadHex, 2 }, { Sizet, 3 },
-		    { Sendfilehdtr, 4 }, { QuadHex | OUT, 5 },
-		    { Sendfileflags, 6 } } },
-	{ .name = "select", .ret_type = 1, .nargs = 5,
-	  .args = { { Int, 0 }, { Fd_set, 1 }, { Fd_set, 2 }, { Fd_set, 3 },
-		    { Timeval, 4 } } },
-	{ .name = "sendmsg", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Msghdr | IN, 1 }, { Msgflags, 2 } } },
-	{ .name = "sendto", .ret_type = 1, .nargs = 6,
-	  .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 },
-	            { Msgflags, 3 }, { Sockaddr | IN, 4 },
-	            { Socklent | IN, 5 } } },
-	{ .name = "setitimer", .ret_type = 1, .nargs = 3,
-	  .args = { { Itimerwhich, 0 }, { Itimerval, 1 },
-		    { Itimerval | OUT, 2 } } },
-	{ .name = "setpriority", .ret_type = 1, .nargs = 3,
-	  .args = { { Priowhich, 0 }, { Int, 1 }, { Int, 2 } } },
-	{ .name = "setrlimit", .ret_type = 1, .nargs = 2,
-	  .args = { { Resource, 0 }, { Rlimit | IN, 1 } } },
-	{ .name = "setsockopt", .ret_type = 1, .nargs = 5,
-	  .args = { { Int, 0 }, { Sockoptlevel, 1 }, { Sockoptname, 2 },
-		    { Ptr | IN, 3 }, { Socklent, 4 } } },
-	{ .name = "shm_open", .ret_type = 1, .nargs = 3,
-	  .args = { { ShmName | IN, 0 }, { Open, 1 }, { Octal, 2 } } },
-	{ .name = "shm_open2", .ret_type = 1, .nargs = 5,
-	  .args = { { ShmName | IN, 0 }, { Open, 1 }, { Octal, 2 },
-		    { ShmFlags, 3 }, { Name | IN, 4 } } },
-	{ .name = "shm_rename", .ret_type = 1, .nargs = 3,
-	  .args = { { Name | IN, 0 }, { Name | IN, 1 }, { Hex, 2 } } },
-	{ .name = "shm_unlink", .ret_type = 1, .nargs = 1,
-	  .args = { { Name | IN, 0 } } },
-	{ .name = "shutdown", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Shutdown, 1 } } },
-	{ .name = "sigaction", .ret_type = 1, .nargs = 3,
-	  .args = { { Signal, 0 }, { Sigaction | IN, 1 },
-		    { Sigaction | OUT, 2 } } },
-	{ .name = "sigpending", .ret_type = 1, .nargs = 1,
-	  .args = { { Sigset | OUT, 0 } } },
-	{ .name = "sigprocmask", .ret_type = 1, .nargs = 3,
-	  .args = { { Sigprocmask, 0 }, { Sigset, 1 }, { Sigset | OUT, 2 } } },
-	{ .name = "sigqueue", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Signal, 1 }, { LongHex, 2 } } },
-	{ .name = "sigreturn", .ret_type = 1, .nargs = 1,
-	  .args = { { Ptr, 0 } } },
-	{ .name = "sigsuspend", .ret_type = 1, .nargs = 1,
-	  .args = { { Sigset | IN, 0 } } },
-	{ .name = "sigtimedwait", .ret_type = 1, .nargs = 3,
-	  .args = { { Sigset | IN, 0 }, { Siginfo | OUT, 1 },
-		    { Timespec | IN, 2 } } },
-	{ .name = "sigwait", .ret_type = 1, .nargs = 2,
-	  .args = { { Sigset | IN, 0 }, { PSig | OUT, 1 } } },
-	{ .name = "sigwaitinfo", .ret_type = 1, .nargs = 2,
-	  .args = { { Sigset | IN, 0 }, { Siginfo | OUT, 1 } } },
-	{ .name = "socket", .ret_type = 1, .nargs = 3,
-	  .args = { { Sockdomain, 0 }, { Socktype, 1 }, { Sockprotocol, 2 } } },
-	{ .name = "stat", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Stat | OUT, 1 } } },
-	{ .name = "statfs", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { StatFs | OUT, 1 } } },
-	{ .name = "symlink", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Name, 1 } } },
-	{ .name = "symlinkat", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Atfd, 1 }, { Name, 2 } } },
-	{ .name = "sysarch", .ret_type = 1, .nargs = 2,
-	  .args = { { Sysarch, 0 }, { Ptr, 1 } } },
-	{ .name = "__sysctl", .ret_type = 1, .nargs = 6,
-	  .args = { { Sysctl, 0 }, { Sizet, 1 }, { Ptr, 2 }, { Ptr, 3 },
-	            { Ptr, 4 }, { Sizet, 5 } } },
-	{ .name = "__sysctlbyname", .ret_type = 1, .nargs = 6,
-	  .args = { { Name, 0 }, { Sizet, 1 }, { Ptr, 2 }, { Ptr, 3 },
-	            { Ptr, 4}, { Sizet, 5 } } },
-	{ .name = "thr_kill", .ret_type = 1, .nargs = 2,
-	  .args = { { Long, 0 }, { Signal, 1 } } },
-	{ .name = "thr_self", .ret_type = 1, .nargs = 1,
-	  .args = { { Ptr, 0 } } },
-	{ .name = "thr_set_name", .ret_type = 1, .nargs = 2,
-	  .args = { { Long, 0 }, { Name, 1 } } },
-	{ .name = "truncate", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { QuadHex | IN, 1 } } },
-	{ .name = "unlink", .ret_type = 1, .nargs = 1,
-	  .args = { { Name, 0 } } },
-	{ .name = "unlinkat", .ret_type = 1, .nargs = 3,
-	  .args = { { Atfd, 0 }, { Name, 1 }, { Atflags, 2 } } },
-	{ .name = "unmount", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Mountflags, 1 } } },
-	{ .name = "utimensat", .ret_type = 1, .nargs = 4,
-	  .args = { { Atfd, 0 }, { Name | IN, 1 }, { Timespec2 | IN, 2 },
-		    { Atflags, 3 } } },
-	{ .name = "utimes", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Timeval2 | IN, 1 } } },
-	{ .name = "utrace", .ret_type = 1, .nargs = 1,
-	  .args = { { Utrace, 0 } } },
-	{ .name = "wait4", .ret_type = 1, .nargs = 4,
-	  .args = { { Int, 0 }, { ExitStatus | OUT, 1 }, { Waitoptions, 2 },
-		    { Rusage | OUT, 3 } } },
-	{ .name = "wait6", .ret_type = 1, .nargs = 6,
-	  .args = { { Idtype, 0 }, { Quad, 1 }, { ExitStatus | OUT, 2 },
-		    { Waitoptions, 3 }, { Rusage | OUT, 4 },
-		    { Siginfo | OUT, 5 } } },
-	{ .name = "write", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 } } },
-	{ .name = "writev", .ret_type = 1, .nargs = 3,
-	  .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 } } },
+	{ .name = "__acl_aclcheck_fd",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_aclcheck_file",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_aclcheck_link",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_delete_fd",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Acltype, 1 } } },
+	{ .name = "__acl_delete_file",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Acltype, 1 } } },
+	{ .name = "__acl_delete_link",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Acltype, 1 } } },
+	{ .name = "__acl_get_fd",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_get_file",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_get_link",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_set_fd",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_set_file",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__acl_set_link",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Acltype, 1 }, { Ptr, 2 } } },
+	{ .name = "__cap_rights_get",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Int, 1 }, { CapRights | OUT, 2 } } },
+	{ .name = "__getcwd",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | OUT, 0 }, { Int, 1 } } },
+	{ .name = "__realpathat",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Name | OUT, 2 },
+		{ Sizet, 3 }, { Int, 4 } } },
+	{ .name = "_umtx_op",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Ptr, 0 }, { Umtxop, 1 }, { LongHex, 2 }, { Ptr, 3 },
+		{ Ptr, 4 } } },
+	{ .name = "accept",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
+	{ .name = "access",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Accessmode, 1 } } },
+	{ .name = "aio_cancel",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Aiocb, 1 } } },
+	{ .name = "aio_error",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Aiocb, 0 } } },
+	{ .name = "aio_fsync",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { AiofsyncOp, 0 }, { Aiocb, 1 } } },
+	{ .name = "aio_mlock",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Aiocb, 0 } } },
+	{ .name = "aio_read",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Aiocb, 0 } } },
+	{ .name = "aio_return",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Aiocb, 0 } } },
+	{ .name = "aio_suspend",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { AiocbArray, 0 }, { Int, 1 }, { Timespec, 2 } } },
+	{ .name = "aio_waitcomplete",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { AiocbPointer | OUT, 0 }, { Timespec, 1 } } },
+	{ .name = "aio_write",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Aiocb, 0 } } },
+	{ .name = "bind",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Sockaddr | IN, 1 }, { Socklent, 2 } } },
+	{ .name = "bindat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Int, 1 }, { Sockaddr | IN, 2 },
+		{ Int, 3 } } },
+	{ .name = "break", .ret_type = 1, .nargs = 1, .args = { { Ptr, 0 } } },
+	{ .name = "cap_fcntls_get",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { CapFcntlRights | OUT, 1 } } },
+	{ .name = "cap_fcntls_limit",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { CapFcntlRights, 1 } } },
+	{ .name = "cap_getmode",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { PUInt | OUT, 0 } } },
+	{ .name = "cap_rights_limit",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { CapRights, 1 } } },
+	{ .name = "chdir", .ret_type = 1, .nargs = 1, .args = { { Name, 0 } } },
+	{ .name = "chflags",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { FileFlags, 1 } } },
+	{ .name = "chflagsat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { FileFlags, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "chmod",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Octal, 1 } } },
+	{ .name = "chown",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Int, 1 }, { Int, 2 } } },
+	{ .name = "chroot",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name, 0 } } },
+	{ .name = "clock_gettime",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Timespec | OUT, 1 } } },
+	{ .name = "close", .ret_type = 1, .nargs = 1, .args = { { Int, 0 } } },
+	{ .name = "closefrom",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "close_range",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Int, 1 }, { Closerangeflags, 2 } } },
+	{ .name = "compat11.fstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Stat11 | OUT, 1 } } },
+	{ .name = "compat11.fstatat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Stat11 | OUT, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "compat11.kevent",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Int, 0 }, { Kevent11, 1 }, { Int, 2 },
+		{ Kevent11 | OUT, 3 }, { Int, 4 }, { Timespec, 5 } } },
+	{ .name = "compat11.lstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Stat11 | OUT, 1 } } },
+	{ .name = "compat11.mknod",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Octal, 1 }, { Int, 2 } } },
+	{ .name = "compat11.mknodat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 }, { Int, 3 } } },
+	{ .name = "compat11.stat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Stat11 | OUT, 1 } } },
+	{ .name = "connect",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Sockaddr | IN, 1 }, { Socklent, 2 } } },
+	{ .name = "connectat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Int, 1 }, { Sockaddr | IN, 2 },
+		{ Int, 3 } } },
+	{ .name = "dup", .ret_type = 1, .nargs = 1, .args = { { Int, 0 } } },
+	{ .name = "dup2",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Int, 1 } } },
+	{ .name = "eaccess",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Accessmode, 1 } } },
+	{ .name = "execve",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name | IN, 0 }, { ExecArgs | IN, 1 },
+		{ ExecEnv | IN, 2 } } },
+	{ .name = "exit", .ret_type = 0, .nargs = 1, .args = { { Hex, 0 } } },
+	{ .name = "extattr_delete_fd",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
+	{ .name = "extattr_delete_file",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
+	{ .name = "extattr_delete_link",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 } } },
+	{ .name = "extattr_get_fd",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | OUT, 3 }, { Sizet, 4 } } },
+	{ .name = "extattr_get_file",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | OUT, 3 }, { Sizet, 4 } } },
+	{ .name = "extattr_get_link",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | OUT, 3 }, { Sizet, 4 } } },
+	{ .name = "extattr_list_fd",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { Extattrnamespace, 1 },
+		{ BinString | OUT, 2 }, { Sizet, 3 } } },
+	{ .name = "extattr_list_file",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 },
+		{ BinString | OUT, 2 }, { Sizet, 3 } } },
+	{ .name = "extattr_list_link",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 },
+		{ BinString | OUT, 2 }, { Sizet, 3 } } },
+	{ .name = "extattr_set_fd",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Int, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | IN, 3 }, { Sizet, 4 } } },
+	{ .name = "extattr_set_file",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | IN, 3 }, { Sizet, 4 } } },
+	{ .name = "extattr_set_link",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Name, 0 }, { Extattrnamespace, 1 }, { Name, 2 },
+		{ BinString | IN, 3 }, { Sizet, 4 } } },
+	{ .name = "extattrctl",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Name, 0 }, { Hex, 1 }, { Name, 2 },
+		{ Extattrnamespace, 3 }, { Name, 4 } } },
+	{ .name = "faccessat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Accessmode, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "fchflags",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { FileFlags, 1 } } },
+	{ .name = "fchmod",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Octal, 1 } } },
+	{ .name = "fchmodat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "fchown",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Int, 1 }, { Int, 2 } } },
+	{ .name = "fchownat",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Int, 2 }, { Int, 3 },
+		{ Atflags, 4 } } },
+	{ .name = "fcntl",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Fcntl, 1 }, { Fcntlflag, 2 } } },
+	{ .name = "fdatasync",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "flock",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Flockop, 1 } } },
+	{ .name = "fstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Stat | OUT, 1 } } },
+	{ .name = "fstatat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Stat | OUT, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "fstatfs",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { StatFs | OUT, 1 } } },
+	{ .name = "fsync", .ret_type = 1, .nargs = 1, .args = { { Int, 0 } } },
+	{ .name = "ftruncate",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int | IN, 0 }, { QuadHex | IN, 1 } } },
+	{ .name = "futimens",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Timespec2 | IN, 1 } } },
+	{ .name = "futimes",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Timeval2 | IN, 1 } } },
+	{ .name = "futimesat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Timeval2 | IN, 2 } } },
+	{ .name = "getdirentries",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { BinString | OUT, 1 }, { Int, 2 },
+		{ PQuadHex | OUT, 3 } } },
+	{ .name = "getfsstat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { Long, 1 }, { Getfsstatmode, 2 } } },
+	{ .name = "getitimer",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Itimerwhich, 0 }, { Itimerval | OUT, 2 } } },
+	{ .name = "getpeername",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
+	{ .name = "getpgid",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "getpriority",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Priowhich, 0 }, { Int, 1 } } },
+	{ .name = "getrandom",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { BinString | OUT, 0 }, { Sizet, 1 }, { UInt, 2 } } },
+	{ .name = "getrlimit",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Resource, 0 }, { Rlimit | OUT, 1 } } },
+	{ .name = "getrusage",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { RusageWho, 0 }, { Rusage | OUT, 1 } } },
+	{ .name = "getsid", .ret_type = 1, .nargs = 1, .args = { { Int, 0 } } },
+	{ .name = "getsockname",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Sockaddr | OUT, 1 }, { Ptr | OUT, 2 } } },
+	{ .name = "getsockopt",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Int, 0 }, { Sockoptlevel, 1 }, { Sockoptname, 2 },
+		{ Ptr | OUT, 3 }, { Ptr | OUT, 4 } } },
+	{ .name = "gettimeofday",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Timeval | OUT, 0 }, { Ptr, 1 } } },
+	{ .name = "ioctl",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Ioctl, 1 }, { Ptr, 2 } } },
+	{ .name = "kevent",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Int, 0 }, { Kevent, 1 }, { Int, 2 },
+		{ Kevent | OUT, 3 }, { Int, 4 }, { Timespec, 5 } } },
+	{ .name = "kill",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int | IN, 0 }, { Signal | IN, 1 } } },
+	{ .name = "kldfind",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name | IN, 0 } } },
+	{ .name = "kldfirstmod",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "kldload",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name | IN, 0 } } },
+	{ .name = "kldnext",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "kldstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Ptr, 1 } } },
+	{ .name = "kldsym",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Kldsymcmd, 1 }, { Ptr, 2 } } },
+	{ .name = "kldunload",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "kldunloadf",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Kldunloadflags, 1 } } },
+	{ .name = "kse_release",
+	    .ret_type = 0,
+	    .nargs = 1,
+	    .args = { { Timespec, 0 } } },
+	{ .name = "lchflags",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { FileFlags, 1 } } },
+	{ .name = "lchmod",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Octal, 1 } } },
+	{ .name = "lchown",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Int, 1 }, { Int, 2 } } },
+	{ .name = "link",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Name, 1 } } },
+	{ .name = "linkat",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Atfd, 2 }, { Name, 3 },
+		{ Atflags, 4 } } },
+	{ .name = "lio_listio",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { LioMode, 0 }, { AiocbArray, 1 }, { Int, 2 },
+		{ Sigevent, 3 } } },
+	{ .name = "listen",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Int, 1 } } },
+	{ .name = "lseek",
+	    .ret_type = 2,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { QuadHex, 1 }, { Whence, 2 } } },
+	{ .name = "lstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Stat | OUT, 1 } } },
+	{ .name = "lutimes",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Timeval2 | IN, 1 } } },
+	{ .name = "madvise",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { Sizet, 1 }, { Madvice, 2 } } },
+	{ .name = "minherit",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { Sizet, 1 }, { Minherit, 2 } } },
+	{ .name = "mkdir",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Octal, 1 } } },
+	{ .name = "mkdirat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 } } },
+	{ .name = "mkfifo",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Octal, 1 } } },
+	{ .name = "mkfifoat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 } } },
+	{ .name = "mknod",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Octal, 1 }, { Quad, 2 } } },
+	{ .name = "mknodat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Octal, 2 }, { Quad, 3 } } },
+	{ .name = "mlock",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Ptr, 0 }, { Sizet, 1 } } },
+	{ .name = "mlockall",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Mlockall, 0 } } },
+	{ .name = "mmap",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Ptr, 0 }, { Sizet, 1 }, { Mprot, 2 }, { Mmapflags, 3 },
+		{ Int, 4 }, { QuadHex, 5 } } },
+	{ .name = "modfind",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name | IN, 0 } } },
+	{ .name = "mount",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Name, 0 }, { Name, 1 }, { Mountflags, 2 },
+		{ Ptr, 3 } } },
+	{ .name = "mprotect",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { Sizet, 1 }, { Mprot, 2 } } },
+	{ .name = "msync",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { Sizet, 1 }, { Msync, 2 } } },
+	{ .name = "munlock",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Ptr, 0 }, { Sizet, 1 } } },
+	{ .name = "munmap",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Ptr, 0 }, { Sizet, 1 } } },
+	{ .name = "nanosleep",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Timespec, 0 } } },
+	{ .name = "nmount",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Ptr, 0 }, { UInt, 1 }, { Mountflags, 2 } } },
+	{ .name = "open",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name | IN, 0 }, { Open, 1 }, { Octal, 2 } } },
+	{ .name = "openat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Open, 2 },
+		{ Octal, 3 } } },
+	{ .name = "pathconf",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Pathconf, 1 } } },
+	{ .name = "pipe",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { PipeFds | OUT, 0 } } },
+	{ .name = "pipe2",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Ptr, 0 }, { Pipe2, 1 } } },
+	{ .name = "poll",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Pollfd, 0 }, { Int, 1 }, { Int, 2 } } },
+	{ .name = "posix_fadvise",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { QuadHex, 1 }, { QuadHex, 2 },
+		{ Fadvice, 3 } } },
+	{ .name = "posix_openpt",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Open, 0 } } },
+	{ .name = "ppoll",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Pollfd, 0 }, { Int, 1 }, { Timespec | IN, 2 },
+		{ Sigset | IN, 3 } } },
+	{ .name = "pread",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 },
+		{ QuadHex, 3 } } },
+	{ .name = "preadv",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 },
+		{ QuadHex, 3 } } },
+	{ .name = "procctl",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Idtype, 0 }, { Quad, 1 }, { Procctl, 2 },
+		{ Ptr, 3 } } },
+	{ .name = "ptrace",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Ptraceop, 0 }, { Int, 1 }, { Ptr, 2 }, { Int, 3 } } },
+	{ .name = "pwrite",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 },
+		{ QuadHex, 3 } } },
+	{ .name = "pwritev",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 },
+		{ QuadHex, 3 } } },
+	{ .name = "quotactl",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Name, 0 }, { Quotactlcmd, 1 }, { Int, 2 },
+		{ Ptr, 3 } } },
+	{ .name = "read",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 } } },
+	{ .name = "readlink",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Readlinkres | OUT, 1 }, { Sizet, 2 } } },
+	{ .name = "readlinkat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Readlinkres | OUT, 2 },
+		{ Sizet, 3 } } },
+	{ .name = "readv",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 } } },
+	{ .name = "reboot",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Reboothowto, 0 } } },
+	{ .name = "recvfrom",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Int, 0 }, { BinString | OUT, 1 }, { Sizet, 2 },
+		{ Msgflags, 3 }, { Sockaddr | OUT, 4 }, { Ptr | OUT, 5 } } },
+	{ .name = "recvmsg",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Msghdr | OUT, 1 }, { Msgflags, 2 } } },
+	{ .name = "rename",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Name, 1 } } },
+	{ .name = "renameat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Atfd, 2 }, { Name, 3 } } },
+	{ .name = "rfork",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Rforkflags, 0 } } },
+	{ .name = "rmdir", .ret_type = 1, .nargs = 1, .args = { { Name, 0 } } },
+	{ .name = "rtprio",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Rtpriofunc, 0 }, { Int, 1 }, { Ptr, 2 } } },
+	{ .name = "rtprio_thread",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Rtpriofunc, 0 }, { Int, 1 }, { Ptr, 2 } } },
+	{ .name = "sched_get_priority_max",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Schedpolicy, 0 } } },
+	{ .name = "sched_get_priority_min",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Schedpolicy, 0 } } },
+	{ .name = "sched_getparam",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Schedparam | OUT, 1 } } },
+	{ .name = "sched_getscheduler",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Int, 0 } } },
+	{ .name = "sched_rr_get_interval",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Timespec | OUT, 1 } } },
+	{ .name = "sched_setparam",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Schedparam, 1 } } },
+	{ .name = "sched_setscheduler",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Schedpolicy, 1 }, { Schedparam, 2 } } },
+	{ .name = "sctp_generic_recvmsg",
+	    .ret_type = 1,
+	    .nargs = 7,
+	    .args = { { Int, 0 }, { Iovec | OUT, 1 }, { Int, 2 },
+		{ Sockaddr | OUT, 3 }, { Ptr | OUT, 4 },
+		{ Sctpsndrcvinfo | OUT, 5 }, { Ptr | OUT, 6 } } },
+	{ .name = "sctp_generic_sendmsg",
+	    .ret_type = 1,
+	    .nargs = 7,
+	    .args = { { Int, 0 }, { BinString | IN, 1 }, { Int, 2 },
+		{ Sockaddr | IN, 3 }, { Socklent, 4 },
+		{ Sctpsndrcvinfo | IN, 5 }, { Msgflags, 6 } } },
+	{ .name = "sctp_generic_sendmsg_iov",
+	    .ret_type = 1,
+	    .nargs = 7,
+	    .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 },
+		{ Sockaddr | IN, 3 }, { Socklent, 4 },
+		{ Sctpsndrcvinfo | IN, 5 }, { Msgflags, 6 } } },
+	{ .name = "sendfile",
+	    .ret_type = 1,
+	    .nargs = 7,
+	    .args = { { Int, 0 }, { Int, 1 }, { QuadHex, 2 }, { Sizet, 3 },
+		{ Sendfilehdtr, 4 }, { QuadHex | OUT, 5 },
+		{ Sendfileflags, 6 } } },
+	{ .name = "select",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Int, 0 }, { Fd_set, 1 }, { Fd_set, 2 }, { Fd_set, 3 },
+		{ Timeval, 4 } } },
+	{ .name = "sendmsg",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Msghdr | IN, 1 }, { Msgflags, 2 } } },
+	{ .name = "sendto",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 },
+		{ Msgflags, 3 }, { Sockaddr | IN, 4 }, { Socklent | IN, 5 } } },
+	{ .name = "setitimer",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Itimerwhich, 0 }, { Itimerval, 1 },
+		{ Itimerval | OUT, 2 } } },
+	{ .name = "setpriority",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Priowhich, 0 }, { Int, 1 }, { Int, 2 } } },
+	{ .name = "setrlimit",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Resource, 0 }, { Rlimit | IN, 1 } } },
+	{ .name = "setsockopt",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { Int, 0 }, { Sockoptlevel, 1 }, { Sockoptname, 2 },
+		{ Ptr | IN, 3 }, { Socklent, 4 } } },
+	{ .name = "shm_open",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { ShmName | IN, 0 }, { Open, 1 }, { Octal, 2 } } },
+	{ .name = "shm_open2",
+	    .ret_type = 1,
+	    .nargs = 5,
+	    .args = { { ShmName | IN, 0 }, { Open, 1 }, { Octal, 2 },
+		{ ShmFlags, 3 }, { Name | IN, 4 } } },
+	{ .name = "shm_rename",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name | IN, 0 }, { Name | IN, 1 }, { Hex, 2 } } },
+	{ .name = "shm_unlink",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name | IN, 0 } } },
+	{ .name = "shutdown",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Shutdown, 1 } } },
+	{ .name = "sigaction",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Signal, 0 }, { Sigaction | IN, 1 },
+		{ Sigaction | OUT, 2 } } },
+	{ .name = "sigpending",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Sigset | OUT, 0 } } },
+	{ .name = "sigprocmask",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Sigprocmask, 0 }, { Sigset, 1 },
+		{ Sigset | OUT, 2 } } },
+	{ .name = "sigqueue",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Signal, 1 }, { LongHex, 2 } } },
+	{ .name = "sigreturn",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Ptr, 0 } } },
+	{ .name = "sigsuspend",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Sigset | IN, 0 } } },
+	{ .name = "sigtimedwait",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Sigset | IN, 0 }, { Siginfo | OUT, 1 },
+		{ Timespec | IN, 2 } } },
+	{ .name = "sigwait",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Sigset | IN, 0 }, { PSig | OUT, 1 } } },
+	{ .name = "sigwaitinfo",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Sigset | IN, 0 }, { Siginfo | OUT, 1 } } },
+	{ .name = "socket",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Sockdomain, 0 }, { Socktype, 1 },
+		{ Sockprotocol, 2 } } },
+	{ .name = "stat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Stat | OUT, 1 } } },
+	{ .name = "statfs",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { StatFs | OUT, 1 } } },
+	{ .name = "symlink",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Name, 1 } } },
+	{ .name = "symlinkat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Atfd, 1 }, { Name, 2 } } },
+	{ .name = "sysarch",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Sysarch, 0 }, { Ptr, 1 } } },
+	{ .name = "__sysctl",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Sysctl, 0 }, { Sizet, 1 }, { Ptr, 2 }, { Ptr, 3 },
+		{ Ptr, 4 }, { Sizet, 5 } } },
+	{ .name = "__sysctlbyname",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Name, 0 }, { Sizet, 1 }, { Ptr, 2 }, { Ptr, 3 },
+		{ Ptr, 4 }, { Sizet, 5 } } },
+	{ .name = "thr_kill",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Long, 0 }, { Signal, 1 } } },
+	{ .name = "thr_self",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Ptr, 0 } } },
+	{ .name = "thr_set_name",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Long, 0 }, { Name, 1 } } },
+	{ .name = "truncate",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { QuadHex | IN, 1 } } },
+	{ .name = "unlink",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Name, 0 } } },
+	{ .name = "unlinkat",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Atfd, 0 }, { Name, 1 }, { Atflags, 2 } } },
+	{ .name = "unmount",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Mountflags, 1 } } },
+	{ .name = "utimensat",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Atfd, 0 }, { Name | IN, 1 }, { Timespec2 | IN, 2 },
+		{ Atflags, 3 } } },
+	{ .name = "utimes",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Timeval2 | IN, 1 } } },
+	{ .name = "utrace",
+	    .ret_type = 1,
+	    .nargs = 1,
+	    .args = { { Utrace, 0 } } },
+	{ .name = "wait4",
+	    .ret_type = 1,
+	    .nargs = 4,
+	    .args = { { Int, 0 }, { ExitStatus | OUT, 1 }, { Waitoptions, 2 },
+		{ Rusage | OUT, 3 } } },
+	{ .name = "wait6",
+	    .ret_type = 1,
+	    .nargs = 6,
+	    .args = { { Idtype, 0 }, { Quad, 1 }, { ExitStatus | OUT, 2 },
+		{ Waitoptions, 3 }, { Rusage | OUT, 4 },
+		{ Siginfo | OUT, 5 } } },
+	{ .name = "write",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { BinString | IN, 1 }, { Sizet, 2 } } },
+	{ .name = "writev",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Iovec | IN, 1 }, { Int, 2 } } },
 
 	/* Linux ABI */
-	{ .name = "linux_access", .ret_type = 1, .nargs = 2,
-	  .args = { { Name, 0 }, { Accessmode, 1 } } },
-	{ .name = "linux_execve", .ret_type = 1, .nargs = 3,
-	  .args = { { Name | IN, 0 }, { ExecArgs | IN, 1 },
-		    { ExecEnv | IN, 2 } } },
-	{ .name = "linux_getitimer", .ret_type = 1, .nargs = 2,
-	  .args = { { Itimerwhich, 0 }, { Itimerval | OUT, 2 } } },
-	{ .name = "linux_lseek", .ret_type = 2, .nargs = 3,
-	  .args = { { Int, 0 }, { Int, 1 }, { Whence, 2 } } },
-	{ .name = "linux_mkdir", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Int, 1 } } },
-	{ .name = "linux_newfstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { Ptr | OUT, 1 } } },
-	{ .name = "linux_newstat", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Ptr | OUT, 1 } } },
-	{ .name = "linux_open", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Hex, 1 }, { Octal, 2 } } },
-	{ .name = "linux_readlink", .ret_type = 1, .nargs = 3,
-	  .args = { { Name, 0 }, { Name | OUT, 1 }, { Sizet, 2 } } },
-	{ .name = "linux_setitimer", .ret_type = 1, .nargs = 3,
-	  .args = { { Itimerwhich, 0 }, { Itimerval, 1 },
-		    { Itimerval | OUT, 2 } } },
-	{ .name = "linux_socketcall", .ret_type = 1, .nargs = 2,
-	  .args = { { Int, 0 }, { LinuxSockArgs, 1 } } },
-	{ .name = "linux_stat64", .ret_type = 1, .nargs = 2,
-	  .args = { { Name | IN, 0 }, { Ptr | OUT, 1 } } },
+	{ .name = "linux_access",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name, 0 }, { Accessmode, 1 } } },
+	{ .name = "linux_execve",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name | IN, 0 }, { ExecArgs | IN, 1 },
+		{ ExecEnv | IN, 2 } } },
+	{ .name = "linux_getitimer",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Itimerwhich, 0 }, { Itimerval | OUT, 2 } } },
+	{ .name = "linux_lseek",
+	    .ret_type = 2,
+	    .nargs = 3,
+	    .args = { { Int, 0 }, { Int, 1 }, { Whence, 2 } } },
+	{ .name = "linux_mkdir",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Int, 1 } } },
+	{ .name = "linux_newfstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { Ptr | OUT, 1 } } },
+	{ .name = "linux_newstat",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Ptr | OUT, 1 } } },
+	{ .name = "linux_open",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Hex, 1 }, { Octal, 2 } } },
+	{ .name = "linux_readlink",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Name, 0 }, { Name | OUT, 1 }, { Sizet, 2 } } },
+	{ .name = "linux_setitimer",
+	    .ret_type = 1,
+	    .nargs = 3,
+	    .args = { { Itimerwhich, 0 }, { Itimerval, 1 },
+		{ Itimerval | OUT, 2 } } },
+	{ .name = "linux_socketcall",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Int, 0 }, { LinuxSockArgs, 1 } } },
+	{ .name = "linux_stat64",
+	    .ret_type = 1,
+	    .nargs = 2,
+	    .args = { { Name | IN, 0 }, { Ptr | OUT, 1 } } },
 };
 static STAILQ_HEAD(, syscall) seen_syscalls;
 
@@ -637,43 +1092,33 @@ struct xlat {
 	const char *str;
 };
 
-#define	X(a)	{ a, #a },
-#define	XEND	{ 0, NULL }
+#define X(a) { a, #a },
+#define XEND            \
+	{               \
+		0, NULL \
+	}
 
-static struct xlat poll_flags[] = {
-	X(POLLSTANDARD) X(POLLIN) X(POLLPRI) X(POLLOUT) X(POLLERR)
-	X(POLLHUP) X(POLLNVAL) X(POLLRDNORM) X(POLLRDBAND)
-	X(POLLWRBAND) X(POLLINIGNEOF) X(POLLRDHUP) XEND
-};
+static struct xlat poll_flags[] = { X(POLLSTANDARD) X(POLLIN) X(POLLPRI)
+	    X(POLLOUT) X(POLLERR) X(POLLHUP) X(POLLNVAL) X(POLLRDNORM)
+		X(POLLRDBAND) X(POLLWRBAND) X(POLLINIGNEOF) X(POLLRDHUP) XEND };
 
-static struct xlat sigaction_flags[] = {
-	X(SA_ONSTACK) X(SA_RESTART) X(SA_RESETHAND) X(SA_NOCLDSTOP)
-	X(SA_NODEFER) X(SA_NOCLDWAIT) X(SA_SIGINFO) XEND
-};
+static struct xlat sigaction_flags[] = { X(SA_ONSTACK) X(SA_RESTART)
+	    X(SA_RESETHAND) X(SA_NOCLDSTOP) X(SA_NODEFER) X(SA_NOCLDWAIT)
+		X(SA_SIGINFO) XEND };
 
-static struct xlat linux_socketcall_ops[] = {
-	X(LINUX_SOCKET) X(LINUX_BIND) X(LINUX_CONNECT) X(LINUX_LISTEN)
-	X(LINUX_ACCEPT) X(LINUX_GETSOCKNAME) X(LINUX_GETPEERNAME)
-	X(LINUX_SOCKETPAIR) X(LINUX_SEND) X(LINUX_RECV) X(LINUX_SENDTO)
-	X(LINUX_RECVFROM) X(LINUX_SHUTDOWN) X(LINUX_SETSOCKOPT)
-	X(LINUX_GETSOCKOPT) X(LINUX_SENDMSG) X(LINUX_RECVMSG)
-	XEND
-};
+static struct xlat linux_socketcall_ops[] = { X(LINUX_SOCKET) X(LINUX_BIND) X(
+    LINUX_CONNECT) X(LINUX_LISTEN) X(LINUX_ACCEPT) X(LINUX_GETSOCKNAME)
+	    X(LINUX_GETPEERNAME) X(LINUX_SOCKETPAIR) X(LINUX_SEND) X(LINUX_RECV)
+		X(LINUX_SENDTO) X(LINUX_RECVFROM) X(LINUX_SHUTDOWN)
+		    X(LINUX_SETSOCKOPT) X(LINUX_GETSOCKOPT) X(LINUX_SENDMSG)
+			X(LINUX_RECVMSG) XEND };
 
-static struct xlat lio_modes[] = {
-	X(LIO_WAIT) X(LIO_NOWAIT)
-	XEND
-};
+static struct xlat lio_modes[] = { X(LIO_WAIT) X(LIO_NOWAIT) XEND };
 
-static struct xlat lio_opcodes[] = {
-	X(LIO_WRITE) X(LIO_READ) X(LIO_READV) X(LIO_WRITEV) X(LIO_NOP)
-	XEND
-};
+static struct xlat lio_opcodes[] = { X(LIO_WRITE) X(LIO_READ) X(LIO_READV)
+	    X(LIO_WRITEV) X(LIO_NOP) XEND };
 
-static struct xlat aio_fsync_ops[] = {
-	X(O_SYNC)
-	XEND
-};
+static struct xlat aio_fsync_ops[] = { X(O_SYNC) XEND };
 
 #undef X
 #undef XEND
@@ -846,7 +1291,7 @@ find_syscall(struct procabi *abi, u_int number)
 
 	if (number < nitems(abi->syscalls))
 		return (abi->syscalls[number]);
-	STAILQ_FOREACH(es, &abi->extra_syscalls, entries) {
+	STAILQ_FOREACH (es, &abi->extra_syscalls, entries) {
 		if (es->number == number)
 			return (es->sc);
 	}
@@ -910,8 +1355,9 @@ get_syscall(struct threadinfo *t, u_int number, u_int nargs)
 
 	/* Also decode compat syscalls arguments by stripping the prefix. */
 	lookup_name = name;
-	if (procabi->compat_prefix != NULL && strncmp(procabi->compat_prefix,
-	    name, strlen(procabi->compat_prefix)) == 0)
+	if (procabi->compat_prefix != NULL &&
+	    strncmp(procabi->compat_prefix, name,
+		strlen(procabi->compat_prefix)) == 0)
 		lookup_name += strlen(procabi->compat_prefix);
 
 	for (i = 0; i < nitems(decoded_syscalls); i++) {
@@ -956,7 +1402,7 @@ get_struct(pid_t pid, psaddr_t offset, void *buf, size_t len)
 	return (0);
 }
 
-#define	MAXSIZE		4096
+#define MAXSIZE 4096
 
 /*
  * Copy a string from the process.  Note that it is
@@ -1116,15 +1562,13 @@ print_sockaddr(FILE *fp, struct trussinfo *trussinfo, uintptr_t arg,
 			goto sockaddr_short;
 		lsin = (struct sockaddr_in *)(void *)sa;
 		inet_ntop(AF_INET, &lsin->sin_addr, addr, sizeof(addr));
-		fprintf(fp, "{ AF_INET %s:%d }", addr,
-		    htons(lsin->sin_port));
+		fprintf(fp, "{ AF_INET %s:%d }", addr, htons(lsin->sin_port));
 		break;
 	case AF_INET6:
 		if (len < sizeof(*lsin6))
 			goto sockaddr_short;
 		lsin6 = (struct sockaddr_in6 *)(void *)sa;
-		inet_ntop(AF_INET6, &lsin6->sin6_addr, addr,
-		    sizeof(addr));
+		inet_ntop(AF_INET6, &lsin6->sin6_addr, addr, sizeof(addr));
 		fprintf(fp, "{ AF_INET6 [%s]:%d }", addr,
 		    htons(lsin6->sin6_port));
 		break;
@@ -1136,14 +1580,11 @@ print_sockaddr(FILE *fp, struct trussinfo *trussinfo, uintptr_t arg,
 		break;
 	default:
 	sockaddr_short:
-		fprintf(fp,
-		    "{ sa_len = %d, sa_family = %d, sa_data = {",
+		fprintf(fp, "{ sa_len = %d, sa_family = %d, sa_data = {",
 		    (int)sa->sa_len, (int)sa->sa_family);
-		for (q = (u_char *)sa->sa_data;
-		     q < (u_char *)sa + len; q++)
+		for (q = (u_char *)sa->sa_data; q < (u_char *)sa + len; q++)
 			fprintf(fp, "%s 0x%02x",
-			    q == (u_char *)sa->sa_data ? "" : ",",
-			    *q);
+			    q == (u_char *)sa->sa_data ? "" : ",", *q);
 		fputs(" } }", fp);
 	}
 	free(sa);
@@ -1187,11 +1628,13 @@ print_iovec(FILE *fp, struct trussinfo *trussinfo, uintptr_t arg, int iovcnt)
 			buf_truncated = false;
 		}
 		fprintf(fp, "%s{", (i > 0) ? "," : "");
-		if (len && get_struct(pid, (uintptr_t)iov[i].iov_base, &tmp2, len) != -1) {
+		if (len &&
+		    get_struct(pid, (uintptr_t)iov[i].iov_base, &tmp2, len) !=
+			-1) {
 			tmp3 = malloc(len * 4 + 1);
 			while (len) {
 				if (strvisx(tmp3, tmp2, len,
-				    VIS_CSTYLE|VIS_TAB|VIS_NL) <=
+					VIS_CSTYLE | VIS_TAB | VIS_NL) <=
 				    (int)max_string)
 					break;
 				len--;
@@ -1224,7 +1667,7 @@ print_sigevent(FILE *fp, struct sigevent *se)
 		break;
 	case SIGEV_SIGNAL:
 		fprintf(fp, "SIGEV_SIGNAL, sigev_signo=%s, sigev_value=",
-				strsig2(se->sigev_signo));
+		    strsig2(se->sigev_signo));
 		print_sigval(fp, &se->sigev_value);
 		break;
 	case SIGEV_THREAD:
@@ -1232,13 +1675,16 @@ print_sigevent(FILE *fp, struct sigevent *se)
 		print_sigval(fp, &se->sigev_value);
 		break;
 	case SIGEV_KEVENT:
-		fprintf(fp, "SIGEV_KEVENT, sigev_notify_kqueue=%d, sigev_notify_kevent_flags=",
-				se->sigev_notify_kqueue);
-		print_mask_arg(sysdecode_kevent_flags, fp, se->sigev_notify_kevent_flags);
+		fprintf(fp,
+		    "SIGEV_KEVENT, sigev_notify_kqueue=%d, sigev_notify_kevent_flags=",
+		    se->sigev_notify_kqueue);
+		print_mask_arg(sysdecode_kevent_flags, fp,
+		    se->sigev_notify_kevent_flags);
 		break;
 	case SIGEV_THREAD_ID:
-		fprintf(fp, "SIGEV_THREAD_ID, sigev_notify_thread_id=%d, sigev_signo=%s, sigev_value=",
-				se->sigev_notify_thread_id, strsig2(se->sigev_signo));
+		fprintf(fp,
+		    "SIGEV_THREAD_ID, sigev_notify_thread_id=%d, sigev_signo=%s, sigev_value=",
+		    se->sigev_notify_thread_id, strsig2(se->sigev_signo));
 		print_sigval(fp, &se->sigev_value);
 		break;
 	default:
@@ -1251,12 +1697,9 @@ print_sigevent(FILE *fp, struct sigevent *se)
 static void
 print_aiocb(FILE *fp, struct aiocb *cb)
 {
-	fprintf(fp, "{ %d,%jd,%p,%zu,%s,",
-			cb->aio_fildes,
-			cb->aio_offset,
-			cb->aio_buf,
-			cb->aio_nbytes,
-			xlookup(lio_opcodes, cb->aio_lio_opcode));
+	fprintf(fp, "{ %d,%jd,%p,%zu,%s,", cb->aio_fildes, cb->aio_offset,
+	    cb->aio_buf, cb->aio_nbytes,
+	    xlookup(lio_opcodes, cb->aio_lio_opcode));
 	print_sigevent(fp, &cb->aio_sigevent);
 	fputs(" }", fp);
 }
@@ -1267,8 +1710,8 @@ print_gen_cmsg(FILE *fp, struct cmsghdr *cmsghdr)
 	u_char *q;
 
 	fputs("{", fp);
-	for (q = CMSG_DATA(cmsghdr);
-	     q < (u_char *)cmsghdr + cmsghdr->cmsg_len; q++) {
+	for (q = CMSG_DATA(cmsghdr); q < (u_char *)cmsghdr + cmsghdr->cmsg_len;
+	     q++) {
 		fprintf(fp, "%s0x%02x", q == CMSG_DATA(cmsghdr) ? "" : ",", *q);
 	}
 	fputs("}", fp);
@@ -1474,7 +1917,8 @@ print_cmsgs(FILE *fp, pid_t pid, bool receive, struct msghdr *msghdr)
 		return;
 	}
 	cmsgbuf = calloc(1, len);
-	if (get_struct(pid, (uintptr_t)msghdr->msg_control, cmsgbuf, len) == -1) {
+	if (get_struct(pid, (uintptr_t)msghdr->msg_control, cmsgbuf, len) ==
+	    -1) {
 		print_pointer(fp, (uintptr_t)msghdr->msg_control);
 		free(cmsgbuf);
 		return;
@@ -1482,9 +1926,8 @@ print_cmsgs(FILE *fp, pid_t pid, bool receive, struct msghdr *msghdr)
 	msghdr->msg_control = cmsgbuf;
 	first = true;
 	fputs("{", fp);
-	for (cmsghdr = CMSG_FIRSTHDR(msghdr);
-	   cmsghdr != NULL;
-	   cmsghdr = CMSG_NXTHDR(msghdr, cmsghdr)) {
+	for (cmsghdr = CMSG_FIRSTHDR(msghdr); cmsghdr != NULL;
+	     cmsghdr = CMSG_NXTHDR(msghdr, cmsghdr)) {
 		if (cmsghdr->cmsg_len < sizeof(*cmsghdr)) {
 			fprintf(fp, "{<invalid cmsg, len=%u>}",
 			    cmsghdr->cmsg_len);
@@ -1597,8 +2040,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case PUInt: {
 		unsigned int val;
 
-		if (get_struct(pid, args[sc->offset], &val,
-		    sizeof(val)) == 0) 
+		if (get_struct(pid, args[sc->offset], &val, sizeof(val)) == 0)
 			fprintf(fp, "{ %u }", val);
 		else
 			print_pointer(fp, args[sc->offset]);
@@ -1654,18 +2096,18 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 			len = max_string;
 			truncated = 1;
 		}
-		if (len && get_struct(pid, args[sc->offset], &tmp2, len)
-		    != -1) {
+		if (len &&
+		    get_struct(pid, args[sc->offset], &tmp2, len) != -1) {
 			tmp3 = malloc(len * 4 + 1);
 			while (len) {
 				if (strvisx(tmp3, tmp2, len,
-				    VIS_CSTYLE|VIS_TAB|VIS_NL) <= max_string)
+					VIS_CSTYLE | VIS_TAB | VIS_NL) <=
+				    max_string)
 					break;
 				len--;
 				truncated = 1;
 			}
-			fprintf(fp, "\"%s\"%s", tmp3, truncated ?
-			    "..." : "");
+			fprintf(fp, "\"%s\"%s", tmp3, truncated ? "..." : "");
 			free(tmp3);
 		} else {
 			print_pointer(fp, args[sc->offset]);
@@ -1692,9 +2134,9 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		 * if requested.
 		 */
 		if (((sc->type & ARG_MASK) == ExecArgs &&
-		    (trussinfo->flags & EXECVEARGS) == 0) ||
+			(trussinfo->flags & EXECVEARGS) == 0) ||
 		    ((sc->type & ARG_MASK) == ExecEnv &&
-		    (trussinfo->flags & EXECVEENVS) == 0)) {
+			(trussinfo->flags & EXECVEENVS) == 0)) {
 			print_pointer(fp, args[sc->offset]);
 			break;
 		}
@@ -1779,8 +2221,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case PQuadHex: {
 		uint64_t val;
 
-		if (get_struct(pid, args[sc->offset], &val,
-		    sizeof(val)) == 0) 
+		if (get_struct(pid, args[sc->offset], &val, sizeof(val)) == 0)
 			fprintf(fp, "{ 0x%jx }", (uintmax_t)val);
 		else
 			print_pointer(fp, args[sc->offset]);
@@ -1890,12 +2331,11 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 			print_pointer(fp, args[sc->offset]);
 		break;
 	}
-	case LinuxSockArgs:
-	{
+	case LinuxSockArgs: {
 		struct linux_socketcall_args largs;
 
 		if (get_struct(pid, args[sc->offset], (void *)&largs,
-		    sizeof(largs)) != -1)
+			sizeof(largs)) != -1)
 			fprintf(fp, "{ %s, 0x%lx }",
 			    lookup(linux_socketcall_ops, largs.what, 10),
 			    (long unsigned int)largs.args);
@@ -1964,7 +2404,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		int i, first;
 
 		if (get_struct(pid, args[sc->offset], (void *)&ss,
-		    sizeof(ss)) == -1) {
+			sizeof(ss)) == -1) {
 			print_pointer(fp, args[sc->offset]);
 			break;
 		}
@@ -1999,7 +2439,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		print_integer_arg(sysdecode_fcntl_cmd, fp, args[sc->offset]);
 		break;
 	case Closerangeflags:
-		print_mask_arg(sysdecode_close_range_flags, fp, args[sc->offset]);
+		print_mask_arg(sysdecode_close_range_flags, fp,
+		    args[sc->offset]);
 		break;
 	case Mprot:
 		print_mask_arg(sysdecode_mmap_prot, fp, args[sc->offset]);
@@ -2026,10 +2467,12 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		print_integer_arg(sysdecode_rlimit, fp, args[sc->offset]);
 		break;
 	case RusageWho:
-		print_integer_arg(sysdecode_getrusage_who, fp, args[sc->offset]);
+		print_integer_arg(sysdecode_getrusage_who, fp,
+		    args[sc->offset]);
 		break;
 	case Pathconf:
-		print_integer_arg(sysdecode_pathconf_name, fp, args[sc->offset]);
+		print_integer_arg(sysdecode_pathconf_name, fp,
+		    args[sc->offset]);
 		break;
 	case Rforkflags:
 		print_mask_arg(sysdecode_rfork_flags, fp, args[sc->offset]);
@@ -2050,7 +2493,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		 */
 		if (sc->type & OUT) {
 			if (get_struct(pid, args[sc->offset + 1], &len,
-			    sizeof(len)) == -1) {
+				sizeof(len)) == -1) {
 				print_pointer(fp, args[sc->offset]);
 				break;
 			}
@@ -2100,7 +2543,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		int i;
 
 		if (sc->offset == 1)
-			numevents = args[sc->offset+1];
+			numevents = args[sc->offset + 1];
 		else if (sc->offset == 3 && retval[0] != -1)
 			numevents = retval[0];
 
@@ -2112,8 +2555,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 				    bytes);
 		} else
 			ke = NULL;
-		if (numevents >= 0 && get_struct(pid, args[sc->offset],
-		    ke, bytes) != -1) {
+		if (numevents >= 0 &&
+		    get_struct(pid, args[sc->offset], ke, bytes) != -1) {
 			fputc('{', fp);
 			for (i = 0; i < numevents; i++) {
 				fputc(' ', fp);
@@ -2134,7 +2577,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		int i;
 
 		if (sc->offset == 1)
-			numevents = args[sc->offset+1];
+			numevents = args[sc->offset + 1];
 		else if (sc->offset == 3 && retval[0] != -1)
 			numevents = retval[0];
 
@@ -2147,8 +2590,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		} else
 			ke11 = NULL;
 		memset(&ke, 0, sizeof(ke));
-		if (numevents >= 0 && get_struct(pid, args[sc->offset],
-		    ke11, bytes) != -1) {
+		if (numevents >= 0 &&
+		    get_struct(pid, args[sc->offset], ke11, bytes) != -1) {
 			fputc('{', fp);
 			for (i = 0; i < numevents; i++) {
 				fputc(' ', fp);
@@ -2170,8 +2613,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Stat: {
 		struct stat st;
 
-		if (get_struct(pid, args[sc->offset], &st, sizeof(st))
-		    != -1) {
+		if (get_struct(pid, args[sc->offset], &st, sizeof(st)) != -1) {
 			char mode[12];
 
 			strmode(st.st_mode, mode);
@@ -2187,8 +2629,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Stat11: {
 		struct freebsd11_stat st;
 
-		if (get_struct(pid, args[sc->offset], &st, sizeof(st))
-		    != -1) {
+		if (get_struct(pid, args[sc->offset], &st, sizeof(st)) != -1) {
 			char mode[12];
 
 			strmode(st.st_mode, mode);
@@ -2205,20 +2646,21 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		unsigned int i;
 		struct statfs buf;
 
-		if (get_struct(pid, args[sc->offset], &buf,
-		    sizeof(buf)) != -1) {
+		if (get_struct(pid, args[sc->offset], &buf, sizeof(buf)) !=
+		    -1) {
 			char fsid[17];
 
 			bzero(fsid, sizeof(fsid));
 			if (buf.f_fsid.val[0] != 0 || buf.f_fsid.val[1] != 0) {
-			        for (i = 0; i < sizeof(buf.f_fsid); i++)
-					snprintf(&fsid[i*2],
-					    sizeof(fsid) - (i*2), "%02x",
+				for (i = 0; i < sizeof(buf.f_fsid); i++)
+					snprintf(&fsid[i * 2],
+					    sizeof(fsid) - (i * 2), "%02x",
 					    ((u_char *)&buf.f_fsid)[i]);
 			}
 			fprintf(fp,
 			    "{ fstypename=%s,mntonname=%s,mntfromname=%s,"
-			    "fsid=%s }", buf.f_fstypename, buf.f_mntonname,
+			    "fsid=%s }",
+			    buf.f_fstypename, buf.f_mntonname,
 			    buf.f_mntfromname, fsid);
 		} else
 			print_pointer(fp, args[sc->offset]);
@@ -2228,8 +2670,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Rusage: {
 		struct rusage ru;
 
-		if (get_struct(pid, args[sc->offset], &ru, sizeof(ru))
-		    != -1) {
+		if (get_struct(pid, args[sc->offset], &ru, sizeof(ru)) != -1) {
 			fprintf(fp,
 			    "{ u=%jd.%06ld,s=%jd.%06ld,in=%ld,out=%ld }",
 			    (intmax_t)ru.ru_utime.tv_sec, ru.ru_utime.tv_usec,
@@ -2242,10 +2683,9 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Rlimit: {
 		struct rlimit rl;
 
-		if (get_struct(pid, args[sc->offset], &rl, sizeof(rl))
-		    != -1) {
-			fprintf(fp, "{ cur=%ju,max=%ju }",
-			    rl.rlim_cur, rl.rlim_max);
+		if (get_struct(pid, args[sc->offset], &rl, sizeof(rl)) != -1) {
+			fprintf(fp, "{ cur=%ju,max=%ju }", rl.rlim_cur,
+			    rl.rlim_max);
 		} else
 			print_pointer(fp, args[sc->offset]);
 		break;
@@ -2254,7 +2694,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		int status;
 
 		if (get_struct(pid, args[sc->offset], &status,
-		    sizeof(status)) != -1) {
+			sizeof(status)) != -1) {
 			fputs("{ ", fp);
 			if (WIFCONTINUED(status))
 				fputs("CONTINUED", fp);
@@ -2286,7 +2726,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		int rem;
 
 		if (print_mask_arg_part(sysdecode_umtx_op_flags, fp,
-		    args[sc->offset], &rem))
+			args[sc->offset], &rem))
 			fprintf(fp, "|");
 		print_integer_arg(sysdecode_umtx_op, fp, rem);
 		break;
@@ -2312,8 +2752,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		memset(name, 0, sizeof(name));
 		len = args[sc->offset + 1];
 		if (get_struct(pid, args[sc->offset], oid,
-		    len * sizeof(oid[0])) != -1) {
-		    	fprintf(fp, "\"");
+			len * sizeof(oid[0])) != -1) {
+			fprintf(fp, "\"");
 			if (oid[0] == CTL_SYSCTL) {
 				fprintf(fp, "sysctl.");
 				switch (oid[1]) {
@@ -2330,7 +2770,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 				case CTL_SYSCTL_NAME2OID:
 					fprintf(fp, "name2oid %s",
 					    get_string(pid,
-					        args[sc->offset + 4],
+						args[sc->offset + 4],
 						args[sc->offset + 5]));
 					break;
 				case CTL_SYSCTL_OIDFMT:
@@ -2354,7 +2794,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 			} else {
 				print_sysctl(fp, oid, len);
 			}
-		    	fprintf(fp, "\"");
+			fprintf(fp, "\"");
 		}
 		break;
 	}
@@ -2379,8 +2819,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 
 		len = args[sc->offset + 1];
 		utrace_addr = calloc(1, len);
-		if (get_struct(pid, args[sc->offset],
-		    (void *)utrace_addr, len) != -1)
+		if (get_struct(pid, args[sc->offset], (void *)utrace_addr,
+			len) != -1)
 			print_utrace(fp, utrace_addr, len);
 		else
 			print_pointer(fp, args[sc->offset]);
@@ -2398,8 +2838,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 			ndescriptors = nitems(descriptors);
 			truncated = true;
 		}
-		if (get_struct(pid, args[sc->offset],
-		    descriptors, ndescriptors * sizeof(descriptors[0])) != -1) {
+		if (get_struct(pid, args[sc->offset], descriptors,
+			ndescriptors * sizeof(descriptors[0])) != -1) {
 			fprintf(fp, "{");
 			for (i = 0; i < ndescriptors; i++)
 				fprintf(fp, i == 0 ? " %d" : ", %d",
@@ -2417,7 +2857,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 
 		if (sc->type & OUT) {
 			if (get_struct(pid, args[sc->offset], &rights,
-			    sizeof(rights)) == -1) {
+				sizeof(rights)) == -1) {
 				print_pointer(fp, args[sc->offset]);
 				break;
 			}
@@ -2510,7 +2950,7 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		cap_rights_t rights;
 
 		if (get_struct(pid, args[sc->offset], &rights,
-		    sizeof(rights)) != -1) {
+			sizeof(rights)) != -1) {
 			fputs("{ ", fp);
 			sysdecode_cap_rights(fp, &rights);
 			fputs(" }", fp);
@@ -2641,14 +3081,16 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 			truncated = true;
 		}
 
-		if (get_struct(pid, args[sc->offset], cbs, sizeof(uintptr_t) * nent) != -1) {
+		if (get_struct(pid, args[sc->offset], cbs,
+			sizeof(uintptr_t) * nent) != -1) {
 			unsigned int i;
 			fputs("[", fp);
 			for (i = 0; i < nent; ++i) {
 				struct aiocb cb;
 				if (i > 0)
 					fputc(',', fp);
-				if (get_struct(pid, cbs[i], &cb, sizeof(cb)) != -1)
+				if (get_struct(pid, cbs[i], &cb, sizeof(cb)) !=
+				    -1)
 					print_aiocb(fp, &cb);
 				else
 					print_pointer(fp, cbs[i]);
@@ -2668,7 +3110,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 		uintptr_t cbp;
 		struct aiocb cb;
 
-		if (get_struct(pid, args[sc->offset], &cbp, sizeof(cbp)) != -1) {
+		if (get_struct(pid, args[sc->offset], &cbp, sizeof(cbp)) !=
+		    -1) {
 			if (get_struct(pid, cbp, &cb, sizeof(cb)) != -1)
 				print_aiocb(fp, &cb);
 			else
@@ -2680,8 +3123,8 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Sctpsndrcvinfo: {
 		struct sctp_sndrcvinfo info;
 
-		if (get_struct(pid, args[sc->offset],
-		    &info, sizeof(struct sctp_sndrcvinfo)) == -1) {
+		if (get_struct(pid, args[sc->offset], &info,
+			sizeof(struct sctp_sndrcvinfo)) == -1) {
 			print_pointer(fp, args[sc->offset]);
 			break;
 		}
@@ -2691,15 +3134,17 @@ print_arg(struct syscall_arg *sc, syscallarg_t *args, syscallarg_t *retval,
 	case Msghdr: {
 		struct msghdr msghdr;
 
-		if (get_struct(pid, args[sc->offset],
-		    &msghdr, sizeof(struct msghdr)) == -1) {
+		if (get_struct(pid, args[sc->offset], &msghdr,
+			sizeof(struct msghdr)) == -1) {
 			print_pointer(fp, args[sc->offset]);
 			break;
 		}
 		fputs("{", fp);
-		print_sockaddr(fp, trussinfo, (uintptr_t)msghdr.msg_name, msghdr.msg_namelen);
+		print_sockaddr(fp, trussinfo, (uintptr_t)msghdr.msg_name,
+		    msghdr.msg_namelen);
 		fprintf(fp, ",%d,", msghdr.msg_namelen);
-		print_iovec(fp, trussinfo, (uintptr_t)msghdr.msg_iov, msghdr.msg_iovlen);
+		print_iovec(fp, trussinfo, (uintptr_t)msghdr.msg_iov,
+		    msghdr.msg_iovlen);
 		fprintf(fp, ",%d,", msghdr.msg_iovlen);
 		print_cmsgs(fp, pid, sc->type & OUT, &msghdr);
 		fprintf(fp, ",%u,", msghdr.msg_controllen);
@@ -2741,8 +3186,8 @@ print_syscall(struct trussinfo *trussinfo)
 		else
 			len += fprintf(trussinfo->outfile,
 			    "<missing argument>");
-		len += fprintf(trussinfo->outfile, "%s", i < (nargs - 1) ?
-		    "," : "");
+		len += fprintf(trussinfo->outfile, "%s",
+		    i < (nargs - 1) ? "," : "");
 	}
 	len += fprintf(trussinfo->outfile, ")");
 	for (i = 0; i < 6 - (len / 8); i++)
@@ -2806,14 +3251,14 @@ print_syscall_ret(struct trussinfo *trussinfo, int error, syscallarg_t *retval)
 void
 print_summary(struct trussinfo *trussinfo)
 {
-	struct timespec total = {0, 0};
+	struct timespec total = { 0, 0 };
 	struct syscall *sc;
 	int ncall, nerror;
 
-	fprintf(trussinfo->outfile, "%-20s%15s%8s%8s\n",
-	    "syscall", "seconds", "calls", "errors");
+	fprintf(trussinfo->outfile, "%-20s%15s%8s%8s\n", "syscall", "seconds",
+	    "calls", "errors");
 	ncall = nerror = 0;
-	STAILQ_FOREACH(sc, &seen_syscalls, entries) {
+	STAILQ_FOREACH (sc, &seen_syscalls, entries) {
 		if (sc->ncalls) {
 			fprintf(trussinfo->outfile, "%-20s%5jd.%09ld%8d%8d\n",
 			    sc->name, (intmax_t)sc->time.tv_sec,
@@ -2823,8 +3268,8 @@ print_summary(struct trussinfo *trussinfo)
 			nerror += sc->nerror;
 		}
 	}
-	fprintf(trussinfo->outfile, "%20s%15s%8s%8s\n",
-	    "", "-------------", "-------", "-------");
-	fprintf(trussinfo->outfile, "%-20s%5jd.%09ld%8d%8d\n",
-	    "", (intmax_t)total.tv_sec, total.tv_nsec, ncall, nerror);
+	fprintf(trussinfo->outfile, "%20s%15s%8s%8s\n", "", "-------------",
+	    "-------", "-------");
+	fprintf(trussinfo->outfile, "%-20s%5jd.%09ld%8d%8d\n", "",
+	    (intmax_t)total.tv_sec, total.tv_nsec, ncall, nerror);
 }

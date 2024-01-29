@@ -29,8 +29,8 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#ifndef	__IF_ATH_CRYPTO_H__
-#define	__IF_ATH_CRYPTO_H__
+#ifndef __IF_ATH_CRYPTO_H__
+#define __IF_ATH_CRYPTO_H__
 
 extern int ath_key_alloc(struct ieee80211vap *, struct ieee80211_key *,
     ieee80211_keyix *, ieee80211_keyix *);

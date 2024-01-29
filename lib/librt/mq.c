@@ -27,30 +27,30 @@
  */
 
 #include <sys/types.h>
-#include <sys/syscall.h>
 #include <sys/mqueue.h>
+#include <sys/syscall.h>
 
-#include "namespace.h"
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <signal.h>
+
+#include "libc_private.h"
+#include "namespace.h"
 #include "sigev_thread.h"
 #include "un-namespace.h"
-#include "libc_private.h"
 
-extern int	__sys_kmq_notify(int, const struct sigevent *);
-extern int	__sys_kmq_open(const char *, int, mode_t,
-		    const struct mq_attr *);
-extern int	__sys_kmq_setattr(int, const struct mq_attr *__restrict,
-		    struct mq_attr *__restrict);
-extern ssize_t	__sys_kmq_timedreceive(int, char *__restrict, size_t,
-		    unsigned *__restrict, const struct timespec *__restrict);
-extern int	__sys_kmq_timedsend(int, const char *, size_t, unsigned,
-		    const struct timespec *);
-extern int	__sys_kmq_unlink(const char *);
-extern int	__sys_close(int fd);
+extern int __sys_kmq_notify(int, const struct sigevent *);
+extern int __sys_kmq_open(const char *, int, mode_t, const struct mq_attr *);
+extern int __sys_kmq_setattr(int, const struct mq_attr *__restrict,
+    struct mq_attr *__restrict);
+extern ssize_t __sys_kmq_timedreceive(int, char *__restrict, size_t,
+    unsigned *__restrict, const struct timespec *__restrict);
+extern int __sys_kmq_timedsend(int, const char *, size_t, unsigned,
+    const struct timespec *);
+extern int __sys_kmq_unlink(const char *);
+extern int __sys_close(int fd);
 
 struct __mq {
 	int oshandle;
@@ -79,8 +79,7 @@ __weak_reference(__mq_receive_cancel, mq_receive);
 __weak_reference(__mq_receive, _mq_receive);
 
 mqd_t
-__mq_open(const char *name, int oflag, mode_t mode,
-	const struct mq_attr *attr)
+__mq_open(const char *name, int oflag, mode_t mode, const struct mq_attr *attr)
 {
 	struct __mq *mq;
 	int err;
@@ -189,16 +188,16 @@ __mq_setattr(mqd_t mqd, const struct mq_attr *newattr, struct mq_attr *oldattr)
 }
 
 ssize_t
-__mq_timedreceive(mqd_t mqd, char *buf, size_t len,
-	unsigned *prio, const struct timespec *timeout)
+__mq_timedreceive(mqd_t mqd, char *buf, size_t len, unsigned *prio,
+    const struct timespec *timeout)
 {
 
 	return __sys_kmq_timedreceive(mqd->oshandle, buf, len, prio, timeout);
 }
 
 ssize_t
-__mq_timedreceive_cancel(mqd_t mqd, char *buf, size_t len,
-	unsigned *prio, const struct timespec *timeout)
+__mq_timedreceive_cancel(mqd_t mqd, char *buf, size_t len, unsigned *prio,
+    const struct timespec *timeout)
 {
 	int ret;
 
@@ -226,16 +225,16 @@ __mq_receive_cancel(mqd_t mqd, char *buf, size_t len, unsigned *prio)
 	return (ret);
 }
 ssize_t
-__mq_timedsend(mqd_t mqd, char *buf, size_t len,
-	unsigned prio, const struct timespec *timeout)
+__mq_timedsend(mqd_t mqd, char *buf, size_t len, unsigned prio,
+    const struct timespec *timeout)
 {
 
 	return __sys_kmq_timedsend(mqd->oshandle, buf, len, prio, timeout);
 }
 
 ssize_t
-__mq_timedsend_cancel(mqd_t mqd, char *buf, size_t len,
-	unsigned prio, const struct timespec *timeout)
+__mq_timedsend_cancel(mqd_t mqd, char *buf, size_t len, unsigned prio,
+    const struct timespec *timeout)
 {
 	int ret;
 
@@ -251,7 +250,6 @@ __mq_send(mqd_t mqd, char *buf, size_t len, unsigned prio)
 
 	return __sys_kmq_timedsend(mqd->oshandle, buf, len, prio, NULL);
 }
-
 
 ssize_t
 __mq_send_cancel(mqd_t mqd, char *buf, size_t len, unsigned prio)

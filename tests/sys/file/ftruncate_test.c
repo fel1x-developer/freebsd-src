@@ -49,9 +49,9 @@
  * Select various potentially interesting lengths at and around power of 2
  * edges.
  */
-static off_t lengths[] = {0, 1, 2, 3, 4, 127, 128, 129, 511, 512, 513, 1023,
-    1024, 1025, 2047, 2048, 2049, 4095, 4096, 4097, 8191, 8192, 8193, 16383,
-    16384, 16385};
+static off_t lengths[] = { 0, 1, 2, 3, 4, 127, 128, 129, 511, 512, 513, 1023,
+	1024, 1025, 2047, 2048, 2049, 4095, 4096, 4097, 8191, 8192, 8193, 16383,
+	16384, 16385 };
 static int lengths_count = sizeof(lengths) / sizeof(off_t);
 
 int
@@ -73,7 +73,7 @@ main(void)
 	 * Save a read-only reference to the file to use later for read-only
 	 * descriptor tests.
 	 */
-	fd = open(path, O_RDWR|O_CREAT, 0600);
+	fd = open(path, O_RDWR | O_CREAT, 0600);
 	if (fd < 0)
 		err(1, "open(%s, O_RDWR|O_CREAT, 0600)", path);
 	read_only_fd = open(path, O_RDONLY);
@@ -107,8 +107,7 @@ main(void)
 				errx(-1, "pread len %jd size %jd up",
 				    (intmax_t)len, (intmax_t)size);
 			if (ch != 0)
-				errx(-1,
-				    "pread length %jd size %jd ch %d up",
+				errx(-1, "pread length %jd size %jd ch %d up",
 				    (intmax_t)len, (intmax_t)size, ch);
 		}
 	}

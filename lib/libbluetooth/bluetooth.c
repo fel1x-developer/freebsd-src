@@ -37,32 +37,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define _PATH_BT_HOSTS		"/etc/bluetooth/hosts"
-#define _PATH_BT_PROTOCOLS	"/etc/bluetooth/protocols"
-#define MAXALIASES		 35
+#define _PATH_BT_HOSTS "/etc/bluetooth/hosts"
+#define _PATH_BT_PROTOCOLS "/etc/bluetooth/protocols"
+#define MAXALIASES 35
 
-static FILE		*hostf = NULL;
-static int		 host_stayopen = 0;
-static struct hostent	 host;
-static bdaddr_t		 host_addr;
-static char		*host_addr_ptrs[2];
-static char		*host_aliases[MAXALIASES];
+static FILE *hostf = NULL;
+static int host_stayopen = 0;
+static struct hostent host;
+static bdaddr_t host_addr;
+static char *host_addr_ptrs[2];
+static char *host_aliases[MAXALIASES];
 
-static FILE		*protof = NULL;
-static int		 proto_stayopen = 0;
-static struct protoent	 proto;
-static char		*proto_aliases[MAXALIASES];
+static FILE *protof = NULL;
+static int proto_stayopen = 0;
+static struct protoent proto;
+static char *proto_aliases[MAXALIASES];
 
-static char		 buf[BUFSIZ + 1];
+static char buf[BUFSIZ + 1];
 
-static int bt_hex_byte   (char const *str);
-static int bt_hex_nibble (char nibble);
+static int bt_hex_byte(char const *str);
+static int bt_hex_nibble(char nibble);
 
 struct hostent *
 bt_gethostbyname(char const *name)
 {
-	struct hostent	*p;
-	char		**cp;
+	struct hostent *p;
+	char **cp;
 
 	bt_sethostent(host_stayopen);
 	while ((p = bt_gethostent()) != NULL) {
@@ -81,7 +81,7 @@ found:
 struct hostent *
 bt_gethostbyaddr(char const *addr, int len, int type)
 {
-	struct hostent	*p;
+	struct hostent *p;
 
 	if (type != AF_BLUETOOTH || len != sizeof(bdaddr_t)) {
 		h_errno = NO_RECOVERY;
@@ -100,7 +100,7 @@ bt_gethostbyaddr(char const *addr, int len, int type)
 struct hostent *
 bt_gethostent(void)
 {
-	char	*p, *cp, **q;
+	char *p, *cp, **q;
 
 	if (hostf == NULL)
 		hostf = fopen(_PATH_BT_HOSTS, "r");
@@ -122,9 +122,9 @@ again:
 	if ((cp = strpbrk(p, " \t")) == NULL)
 		goto again;
 	*cp++ = 0;
-	if (bt_aton(p, &host_addr) == 0) 
+	if (bt_aton(p, &host_addr) == 0)
 		goto again;
-	host_addr_ptrs[0] = (char *) &host_addr;
+	host_addr_ptrs[0] = (char *)&host_addr;
 	host_addr_ptrs[1] = NULL;
 	host.h_addr_list = host_addr_ptrs;
 	host.h_length = sizeof(host_addr);
@@ -166,7 +166,7 @@ void
 bt_endhostent(void)
 {
 	if (hostf != NULL && host_stayopen == 0) {
-		(void) fclose(hostf);
+		(void)fclose(hostf);
 		hostf = NULL;
 	}
 }
@@ -174,8 +174,8 @@ bt_endhostent(void)
 struct protoent *
 bt_getprotobyname(char const *name)
 {
-	struct protoent	 *p;
-	char		**cp;
+	struct protoent *p;
+	char **cp;
 
 	bt_setprotoent(proto_stayopen);
 	while ((p = bt_getprotoent()) != NULL) {
@@ -194,7 +194,7 @@ found:
 struct protoent *
 bt_getprotobynumber(int proto)
 {
-	struct protoent	*p;
+	struct protoent *p;
 
 	bt_setprotoent(proto_stayopen);
 	while ((p = bt_getprotoent()) != NULL)
@@ -208,7 +208,7 @@ bt_getprotobynumber(int proto)
 struct protoent *
 bt_getprotoent(void)
 {
-	char	*p, *cp, **q;
+	char *p, *cp, **q;
 
 	if (protof == NULL)
 		protof = fopen(_PATH_BT_PROTOCOLS, "r");
@@ -266,7 +266,7 @@ void
 bt_endprotoent(void)
 {
 	if (protof != NULL) {
-		(void) fclose(protof);
+		(void)fclose(protof);
 		protof = NULL;
 	}
 }
@@ -274,13 +274,13 @@ bt_endprotoent(void)
 char const *
 bt_ntoa(bdaddr_t const *ba, char *str)
 {
-	static char	buffer[24];
+	static char buffer[24];
 
 	if (str == NULL)
 		str = buffer;
 
-	sprintf(str, "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x",
-		ba->b[5], ba->b[4], ba->b[3], ba->b[2], ba->b[1], ba->b[0]);
+	sprintf(str, "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x", ba->b[5], ba->b[4],
+	    ba->b[3], ba->b[2], ba->b[1], ba->b[0]);
 
 	return (str);
 }
@@ -288,14 +288,14 @@ bt_ntoa(bdaddr_t const *ba, char *str)
 int
 bt_aton(char const *str, bdaddr_t *ba)
 {
-	int	 i, b;
-	char	*end = NULL;
+	int i, b;
+	char *end = NULL;
 
 	memset(ba, 0, sizeof(*ba));
 
 	for (i = 5, end = strchr(str, ':');
 	     i > 0 && *str != '\0' && end != NULL;
-	     i --, str = end + 1, end = strchr(str, ':')) {
+	     i--, str = end + 1, end = strchr(str, ':')) {
 		switch (end - str) {
 		case 1:
 			b = bt_hex_nibble(str[0]);
@@ -309,7 +309,7 @@ bt_aton(char const *str, bdaddr_t *ba)
 			b = -1;
 			break;
 		}
-		
+
 		if (b < 0)
 			return (0);
 
@@ -344,7 +344,7 @@ bt_aton(char const *str, bdaddr_t *ba)
 static int
 bt_hex_byte(char const *str)
 {
-	int	n1, n2;
+	int n1, n2;
 
 	if ((n1 = bt_hex_nibble(str[0])) < 0)
 		return (-1);
@@ -369,4 +369,3 @@ bt_hex_nibble(char nibble)
 
 	return (-1);
 }
-

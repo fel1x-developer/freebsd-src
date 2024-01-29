@@ -27,17 +27,18 @@
  */
 
 #include <sys/param.h>
-#include <string.h>
-#include <sys/queue.h>
 #include <sys/kenv.h>
+#include <sys/queue.h>
+
+#include <manifests.h>
+#include <string.h>
+#include <verify_file.h>
 
 #include "libsecureboot.h"
-#include <verify_file.h>
-#include <manifests.h>
 
 #ifdef UNIT_TEST
-# include <err.h>
-# define panic warn
+#include <err.h>
+#define panic warn
 /*
  * define MANIFEST_SKIP to Skip - in tests/tvo.c so that
  * tvo can control the value we use in find_manifest()
@@ -45,9 +46,9 @@
 extern char *Destdir;
 extern size_t DestdirLen;
 extern char *Skip;
-# undef MANIFEST_SKIP
-# define MANIFEST_SKIP Skip
-# undef VE_DEBUG_LEVEL
+#undef MANIFEST_SKIP
+#define MANIFEST_SKIP Skip
+#undef VE_DEBUG_LEVEL
 #endif
 
 /*
@@ -55,29 +56,29 @@ extern char *Skip;
  * The extra slot is for tracking most recently opened.
  */
 #ifndef SOPEN_MAX
-#define SOPEN_MAX       64
+#define SOPEN_MAX 64
 #endif
-static int ve_status[SOPEN_MAX+1];
+static int ve_status[SOPEN_MAX + 1];
 static int ve_status_state;
 struct verify_status;
 static struct verify_status *verified_files = NULL;
-static int loaded_manifests = 0;	/* have we loaded anything? */
+static int loaded_manifests = 0; /* have we loaded anything? */
 
 enum {
-	VE_VERBOSE_SILENT,		/* only report errors */
-	VE_VERBOSE_UNVERIFIED,		/* all unverified files */
-	VE_VERBOSE_MUST,		/* report VE_MUST */
-	VE_VERBOSE_ALL,			/* report all */
-	VE_VERBOSE_DEBUG,		/* extra noise */
+	VE_VERBOSE_SILENT,     /* only report errors */
+	VE_VERBOSE_UNVERIFIED, /* all unverified files */
+	VE_VERBOSE_MUST,       /* report VE_MUST */
+	VE_VERBOSE_ALL,	       /* report all */
+	VE_VERBOSE_DEBUG,      /* extra noise */
 };
 
 #ifndef VE_VERBOSE_DEFAULT
-# define VE_VERBOSE_DEFAULT VE_VERBOSE_MUST
+#define VE_VERBOSE_DEFAULT VE_VERBOSE_MUST
 #endif
 static int Verbose = VE_VERBOSE_DEFAULT;
 
-#define VE_STATUS_NONE	1
-#define VE_STATUS_VALID	2
+#define VE_STATUS_NONE 1
+#define VE_STATUS_VALID 2
 
 /**
  * @brief set ve status for fd
@@ -108,10 +109,9 @@ ve_status_get(int fd)
 	if (!ve_status_state) {
 		return (VE_NOT_CHECKED);
 	}
-	if (ve_status_state == VE_STATUS_VALID &&
-		fd >= 0 && fd < SOPEN_MAX)
+	if (ve_status_state == VE_STATUS_VALID && fd >= 0 && fd < SOPEN_MAX)
 		return (ve_status[fd]);
-	return (ve_status[SOPEN_MAX]);	/* most recent */
+	return (ve_status[SOPEN_MAX]); /* most recent */
 }
 
 /**
@@ -121,9 +121,9 @@ ve_status_get(int fd)
  * for the same file, we need only check it once.
  */
 struct verify_status {
-	dev_t	vs_dev;
-	ino_t	vs_ino;
-	int	vs_status;
+	dev_t vs_dev;
+	ino_t vs_ino;
+	int vs_status;
 	struct verify_status *vs_next;
 };
 
@@ -158,14 +158,13 @@ add_verify_status(struct stat *stp, int status)
 	}
 }
 
-
 /**
  * @brief
  * load specified manifest if verified
  */
 int
-load_manifest(const char *name, const char *prefix,
-    const char *skip, struct stat *stp)
+load_manifest(const char *name, const char *prefix, const char *skip,
+    struct stat *stp)
 {
 	struct stat st;
 	size_t n;
@@ -200,12 +199,12 @@ load_manifest(const char *name, const char *prefix,
 			fingerprint_info_add(name, prefix, skip, content, stp);
 			add_verify_status(stp, VE_VERIFIED);
 			loaded_manifests = 1; /* we are verifying! */
-			DEBUG_PRINTF(3, ("loaded: %s %s %s\n",
-				name, prefix, skip));
+			DEBUG_PRINTF(3,
+			    ("loaded: %s %s %s\n", name, prefix, skip));
 			rc = VE_VERIFIED;
 		} else {
 			rc = VE_FINGERPRINT_WRONG;
-			add_verify_status(stp, rc);	/* remember */
+			add_verify_status(stp, rc); /* remember */
 		}
 	}
 	return (rc);
@@ -236,18 +235,18 @@ find_manifest(const char *name)
 		}
 		DEBUG_PRINTF(5, ("looking for %s\n", buf));
 		if (stat(buf, &st) == 0 && st.st_size > 0) {
-#ifdef MANIFEST_SKIP_ALWAYS		/* very unlikely */
+#ifdef MANIFEST_SKIP_ALWAYS /* very unlikely */
 			skip = MANIFEST_SKIP_ALWAYS;
 #else
-#ifdef MANIFEST_SKIP			/* rare */
+#ifdef MANIFEST_SKIP /* rare */
 			if (*tp[0] == '.') {
 				skip = MANIFEST_SKIP;
 			} else
 #endif
 				skip = NULL;
 #endif
-			rc = load_manifest(buf, skip ? prefix : NULL,
-			    skip, &st);
+			rc = load_manifest(buf, skip ? prefix : NULL, skip,
+			    &st);
 			break;
 		}
 	}
@@ -255,11 +254,10 @@ find_manifest(const char *name)
 	return (rc);
 }
 
-
 #ifdef LOADER_VERIEXEC_TESTING
-# define ACCEPT_NO_FP_DEFAULT	VE_MUST + 1
+#define ACCEPT_NO_FP_DEFAULT VE_MUST + 1
 #else
-# define ACCEPT_NO_FP_DEFAULT	VE_MUST
+#define ACCEPT_NO_FP_DEFAULT VE_MUST
 #endif
 
 static int
@@ -272,24 +270,21 @@ severity_guess(const char *filename)
 	 * a *.tgz is expected to have its own signed manifest.
 	 */
 	if ((cp = strrchr(filename, '.'))) {
-		if (strcmp(cp, ".conf") == 0 ||
-		    strcmp(cp, ".cookie") == 0 ||
-		    strcmp(cp, ".hints") == 0 ||
-		    strcmp(cp, ".tgz") == 0)
+		if (strcmp(cp, ".conf") == 0 || strcmp(cp, ".cookie") == 0 ||
+		    strcmp(cp, ".hints") == 0 || strcmp(cp, ".tgz") == 0)
 			return (VE_TRY);
-		if (strcmp(cp, ".4th") == 0 ||
-		    strcmp(cp, ".lua") == 0 ||
+		if (strcmp(cp, ".4th") == 0 || strcmp(cp, ".lua") == 0 ||
 		    strcmp(cp, ".rc") == 0)
 			return (VE_MUST);
 	}
 	return (VE_WANT);
 }
 
-static int Verifying = -1;		/* 0 if not verifying */
+static int Verifying = -1; /* 0 if not verifying */
 
 static void
-verify_tweak(int fd, off_t off, struct stat *stp,
-    char *tweak, int *accept_no_fp)
+verify_tweak(int fd, off_t off, struct stat *stp, char *tweak,
+    int *accept_no_fp)
 {
 	if (strcmp(tweak, "off") == 0) {
 		Verifying = 0;
@@ -327,18 +322,17 @@ verify_tweak(int fd, off_t off, struct stat *stp,
 			return;
 		if (strstr(tweak, "revoke")) {
 			num = ve_trust_anchors_revoke(ucp, stp->st_size);
-			DEBUG_PRINTF(3, ("revoked %d trust anchors\n",
-				(int) num));
+			DEBUG_PRINTF(3,
+			    ("revoked %d trust anchors\n", (int)num));
 		} else {
 			num = ve_trust_anchors_add_buf(ucp, stp->st_size);
-			DEBUG_PRINTF(3, ("added %d trust anchors\n",
-				(int) num));
+			DEBUG_PRINTF(3, ("added %d trust anchors\n", (int)num));
 		}
 	}
 }
 
 #ifndef VE_DEBUG_LEVEL
-# define VE_DEBUG_LEVEL 0
+#define VE_DEBUG_LEVEL 0
 #endif
 
 static int
@@ -358,7 +352,6 @@ getenv_int(const char *var, int def)
 	}
 	return (int)val;
 }
-
 
 /**
  * @brief report verification status
@@ -402,8 +395,7 @@ verify_report(const char *path, int severity, int status, struct stat *stp)
 		    status <= VE_FINGERPRINT_WRONG) {
 			if (Verbose == VE_VERBOSE_DEBUG && stp != NULL)
 				printf("Unverified %s %llu,%llu\n",
-				    ve_error_get(),
-				    (long long)stp->st_dev,
+				    ve_error_get(), (long long)stp->st_dev,
 				    (long long)stp->st_ino);
 			else
 				printf("Unverified %s\n", ve_error_get());
@@ -411,8 +403,7 @@ verify_report(const char *path, int severity, int status, struct stat *stp)
 	} else if (status > 0 && Verbose >= VE_VERBOSE_MUST) {
 		if (severity >= VE_MUST || Verbose >= VE_VERBOSE_ALL) {
 			if (Verbose == VE_VERBOSE_DEBUG && stp != NULL)
-				printf("Unverified %s %llu,%llu\n",
-				    path,
+				printf("Unverified %s %llu,%llu\n", path,
 				    (long long)stp->st_dev,
 				    (long long)stp->st_ino);
 			else
@@ -420,7 +411,6 @@ verify_report(const char *path, int severity, int status, struct stat *stp)
 		}
 	}
 }
-
 
 /**
  * @brief prepare to verify an open file
@@ -462,7 +452,7 @@ verify_prep(int fd, const char *filename, off_t off, struct stat *stp,
 		caller, fd, filename, (long long)off, (long long)stp->st_dev,
 		(unsigned long long)stp->st_ino));
 	rc = is_verified(stp);
-	DEBUG_PRINTF(4,("verify_prep: is_verified()->%d\n", rc));
+	DEBUG_PRINTF(4, ("verify_prep: is_verified()->%d\n", rc));
 	if (rc == VE_NOT_CHECKED) {
 		rc = find_manifest(filename);
 	} else {
@@ -545,7 +535,8 @@ verify_file(int fd, const char *filename, off_t off, int severity,
 			if (severity < VE_MUST) { /* not a kernel or module */
 				if ((cp = strrchr(filename, '/'))) {
 					cp++;
-					if (strncmp(cp, "loader.ve.", 10) == 0) {
+					if (strncmp(cp, "loader.ve.", 10) ==
+					    0) {
 						cp += 10;
 						verify_tweak(fd, off, &st, cp,
 						    &accept_no_fp);
@@ -605,11 +596,10 @@ verify_pcr_export(void)
 	if (hlen > 0) {
 		hex = hexdigest(hexbuf, sizeof(hexbuf), hbuf, hlen);
 		if (hex) {
-			hex[hlen*2] = '\0'; /* clobber newline */
+			hex[hlen * 2] = '\0'; /* clobber newline */
 			setenv("loader.ve.pcr", hex, 1);
 			DEBUG_PRINTF(1,
-			    ("%s: setenv(loader.ve.pcr, %s\n", __func__,
-				hex));
+			    ("%s: setenv(loader.ve.pcr, %s\n", __func__, hex));
 			hinfo = ve_pcr_hashed_get(1);
 			if (hinfo) {
 				setenv("loader.ve.hashed", hinfo, 1);
@@ -626,8 +616,10 @@ verify_pcr_export(void)
 					hlen += KENV_MVALLEN -
 					    (hlen % KENV_MVALLEN);
 					if (snprintf(mvallen, sizeof(mvallen),
-						"%d", (int) hlen) < (int)sizeof(mvallen))
-						setenv("kenv_mvallen", mvallen, 1);
+						"%d", (int)hlen) <
+					    (int)sizeof(mvallen))
+						setenv("kenv_mvallen", mvallen,
+						    1);
 				}
 				free(hinfo);
 			}
@@ -667,5 +659,3 @@ hash_string(char *s, size_t n, char *buf, size_t bufsz)
 	md->out(&mctx.vtable, buf);
 	return bufsz;
 }
-
-

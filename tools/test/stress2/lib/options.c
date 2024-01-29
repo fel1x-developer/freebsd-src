@@ -25,13 +25,13 @@
  *
  */
 
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sysexits.h>
 #include <string.h>
+#include <sysexits.h>
 #include <time.h>
-#include <err.h>
+#include <unistd.h>
 
 #include "stress.h"
 
@@ -47,15 +47,16 @@ usage(const char *where)
 
 	if (where != NULL)
 		printf("Error in \"%s\"\n", where);
-	fprintf(stderr, "Usage: %s [-t | -l | -i | -d | -h | -k | -v]\n", getprogname());
-	help =  " t <number><s|m|h|d> : time to run test\n"
-		" l <pct>             : load factor 0 - 100%\n"
-		" i <number>          : max # of parallel incarnations\n"
-		" d <path>            : working directory\n"
-		" h                   : hog resources\n"
-		" k                   : terminate with SIGHUP + SIGKILL\n"
-		" n                   : no startup delay\n"
-		" v                   : verbose\n";
+	fprintf(stderr, "Usage: %s [-t | -l | -i | -d | -h | -k | -v]\n",
+	    getprogname());
+	help = " t <number><s|m|h|d> : time to run test\n"
+	       " l <pct>             : load factor 0 - 100%\n"
+	       " i <number>          : max # of parallel incarnations\n"
+	       " d <path>            : working directory\n"
+	       " h                   : hog resources\n"
+	       " k                   : terminate with SIGHUP + SIGKILL\n"
+	       " n                   : no startup delay\n"
+	       " v                   : verbose\n";
 	printf("%s", help);
 	exit(EX_USAGE);
 }
@@ -67,11 +68,18 @@ time2sec(const char *string)
 	char modifier;
 	r = sscanf(string, "%d%c", &s, &modifier);
 	if (r == 2)
-		switch(modifier) {
-		case 's': break;
-		case 'm': s = s * 60; break;
-		case 'h': s = s * 60 * 60; break;
-		case 'd': s = s * 60 * 60 * 24; break;
+		switch (modifier) {
+		case 's':
+			break;
+		case 'm':
+			s = s * 60;
+			break;
+		case 'h':
+			s = s * 60 * 60;
+			break;
+		case 'd':
+			s = s * 60 * 60 * 24;
+			break;
 		default:
 			usage("-t");
 		}
@@ -80,7 +88,8 @@ time2sec(const char *string)
 	return (s);
 }
 
-static char *gete(const char *name)
+static char *
+gete(const char *name)
 {
 	char *cp;
 	char help[128];
@@ -144,46 +153,46 @@ options(int argc, char **argv)
 
 	op = &opt;
 
-	op->run_time	= 60;
-	op->load	= 100;
-	op->wd		= strdup("/tmp/stressX");
-	op->cd		= strdup("/tmp/stressX.control");
-	op->incarnations	= 1;
-	op->hog		= 0;
-	op->kill	= 0;
-	op->nodelay	= 0;
-	op->verbose	= 0;
-	op->kblocks	= 0;
-	op->inodes	= 0;
+	op->run_time = 60;
+	op->load = 100;
+	op->wd = strdup("/tmp/stressX");
+	op->cd = strdup("/tmp/stressX.control");
+	op->incarnations = 1;
+	op->hog = 0;
+	op->kill = 0;
+	op->nodelay = 0;
+	op->verbose = 0;
+	op->kblocks = 0;
+	op->inodes = 0;
 
 	environment();
 
 	while ((ch = getopt(argc, argv, "t:l:i:d:hknv")) != -1)
-		switch(ch) {
-		case 't':	/* run time */
+		switch (ch) {
+		case 't': /* run time */
 			op->run_time = time2sec(optarg);
 			break;
-		case 'l':	/* load factor in pct */
+		case 'l': /* load factor in pct */
 			if (sscanf(optarg, "%d", &op->load) != 1)
 				usage("-l");
 			break;
-		case 'i':	/* max incarnations */
+		case 'i': /* max incarnations */
 			if (sscanf(optarg, "%d", &op->incarnations) != 1)
 				usage("-i");
 			break;
-		case 'd':	/* working directory */
+		case 'd': /* working directory */
 			op->wd = strdup(optarg);
 			break;
-		case 'h':	/* hog flag */
+		case 'h': /* hog flag */
 			op->hog += 1;
 			break;
-		case 'k':	/* kill flag */
+		case 'k': /* kill flag */
 			op->kill = 1;
 			break;
-		case 'n':	/* no delay flag */
+		case 'n': /* no delay flag */
 			op->nodelay = 1;
 			break;
-		case 'v':	/* verbose flag */
+		case 'v': /* verbose flag */
 			op->verbose += 1;
 			break;
 		default:
@@ -217,9 +226,8 @@ show_status(void)
 		t = t % (60 * 60 * 24);
 		strftime(buf, sizeof(buf), "%T", gmtime(&t));
 		printf("%8s: run time %2d+%s, incarnations %3d, load %3d, "
-			"verbose %d\n",
-			pgname, days, buf, op->incarnations, op->load,
-			op->verbose);
+		       "verbose %d\n",
+		    pgname, days, buf, op->incarnations, op->load, op->verbose);
 		fflush(stdout);
 	}
 }
@@ -227,10 +235,10 @@ show_status(void)
 void
 rmval(void)
 {
-	if (snprintf(path, sizeof(path), "%s/%s.conf", op->cd,
-	    getprogname()) < 0)
+	if (snprintf(path, sizeof(path), "%s/%s.conf", op->cd, getprogname()) <
+	    0)
 		err(1, "snprintf path");
-	(void) unlink(path);
+	(void)unlink(path);
 }
 
 void
@@ -251,15 +259,14 @@ getval(void)
 	unsigned long val;
 	char buf[64];
 
-	if ((n = readlink(path, buf, sizeof(buf) -1)) < 0) {
+	if ((n = readlink(path, buf, sizeof(buf) - 1)) < 0) {
 		for (i = 0; i < 60; i++) {
 			sleep(1);
-			if ((n = readlink(path, buf, sizeof(buf) -1)) > 0)
+			if ((n = readlink(path, buf, sizeof(buf) - 1)) > 0)
 				break;
 		}
 		if (n < 0)
-			err(1, "readlink(%s). %s:%d", path, __FILE__,
-			    __LINE__);
+			err(1, "readlink(%s). %s:%d", path, __FILE__, __LINE__);
 	}
 	buf[n] = '\0';
 	if (sscanf(buf, "%ld", &val) != 1)

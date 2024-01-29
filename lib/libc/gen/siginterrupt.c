@@ -29,10 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <signal.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Set signal state to prevent restart of system calls

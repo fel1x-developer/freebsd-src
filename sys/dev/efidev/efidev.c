@@ -25,15 +25,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/efiio.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 
 #include <machine/efi.h>
-#include <sys/efiio.h>
 
 static d_ioctl_t efidev_ioctl;
 
@@ -42,7 +42,7 @@ static struct cdevsw efi_cdevsw = {
 	.d_version = D_VERSION,
 	.d_ioctl = efidev_ioctl,
 };
-	
+
 static int
 efidev_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t addr,
     int flags __unused, struct thread *td __unused)
@@ -50,10 +50,9 @@ efidev_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t addr,
 	int error;
 
 	switch (cmd) {
-	case EFIIOC_GET_TABLE:
-	{
-		struct efi_get_table_ioc *egtioc =
-		    (struct efi_get_table_ioc *)addr;
+	case EFIIOC_GET_TABLE: {
+		struct efi_get_table_ioc *egtioc = (struct efi_get_table_ioc *)
+		    addr;
 		void *buf = NULL;
 
 		error = efi_copy_table(&egtioc->uuid, egtioc->buf ? &buf : NULL,
@@ -73,37 +72,32 @@ efidev_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t addr,
 
 		break;
 	}
-	case EFIIOC_GET_TIME:
-	{
+	case EFIIOC_GET_TIME: {
 		struct efi_tm *tm = (struct efi_tm *)addr;
 
 		error = efi_get_time(tm);
 		break;
 	}
-	case EFIIOC_SET_TIME:
-	{
+	case EFIIOC_SET_TIME: {
 		struct efi_tm *tm = (struct efi_tm *)addr;
 
 		error = efi_set_time(tm);
 		break;
 	}
-	case EFIIOC_GET_WAKETIME:
-	{
+	case EFIIOC_GET_WAKETIME: {
 		struct efi_waketime_ioc *wt = (struct efi_waketime_ioc *)addr;
 
 		error = efi_get_waketime(&wt->enabled, &wt->pending,
 		    &wt->waketime);
 		break;
 	}
-	case EFIIOC_SET_WAKETIME:
-	{
+	case EFIIOC_SET_WAKETIME: {
 		struct efi_waketime_ioc *wt = (struct efi_waketime_ioc *)addr;
 
 		error = efi_set_waketime(wt->enabled, &wt->waketime);
 		break;
 	}
-	case EFIIOC_VAR_GET:
-	{
+	case EFIIOC_VAR_GET: {
 		struct efi_var_ioc *ev = (struct efi_var_ioc *)addr;
 		void *data;
 		efi_char *name;
@@ -133,13 +127,12 @@ efidev_ioctl(struct cdev *dev __unused, u_long cmd, caddr_t addr,
 			ev->data = NULL;
 			error = 0;
 		}
-vg_out:
+	vg_out:
 		free(data, M_TEMP);
 		free(name, M_TEMP);
 		break;
 	}
-	case EFIIOC_VAR_NEXT:
-	{
+	case EFIIOC_VAR_NEXT: {
 		struct efi_var_ioc *ev = (struct efi_var_ioc *)addr;
 		efi_char *name;
 
@@ -160,8 +153,7 @@ vg_out:
 		free(name, M_TEMP);
 		break;
 	}
-	case EFIIOC_VAR_SET:
-	{
+	case EFIIOC_VAR_SET: {
 		struct efi_var_ioc *ev = (struct efi_var_ioc *)addr;
 		void *data = NULL;
 		efi_char *name;
@@ -185,7 +177,7 @@ vg_out:
 
 		error = efi_var_set(name, &ev->vendor, ev->attrib, ev->datasize,
 		    data);
-vs_out:
+	vs_out:
 		free(data, M_TEMP);
 		free(name, M_TEMP);
 		break;

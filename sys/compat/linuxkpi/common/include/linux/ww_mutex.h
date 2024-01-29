@@ -23,13 +23,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_WW_MUTEX_H_
-#define	_LINUXKPI_LINUX_WW_MUTEX_H_
+#ifndef _LINUXKPI_LINUX_WW_MUTEX_H_
+#define _LINUXKPI_LINUX_WW_MUTEX_H_
 
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/condvar.h>
 #include <sys/kernel.h>
+#include <sys/proc.h>
 
 #include <linux/mutex.h>
 
@@ -37,8 +37,7 @@ struct ww_class {
 	const char *mutex_name;
 };
 
-struct ww_acquire_ctx {
-};
+struct ww_acquire_ctx { };
 
 struct ww_mutex {
 	struct mutex base;
@@ -46,28 +45,24 @@ struct ww_mutex {
 	struct ww_acquire_ctx *ctx;
 };
 
-#define	DEFINE_WW_CLASS(name)					\
-	struct ww_class name = {				\
-		.mutex_name = mutex_name(#name "_mutex")	\
-	}
+#define DEFINE_WW_CLASS(name) \
+	struct ww_class name = { .mutex_name = mutex_name(#name "_mutex") }
 
-#define	DEFINE_WW_MUTEX(name, ww_class)					\
-	struct ww_mutex name;						\
-	static void name##_init(void *arg)				\
-	{								\
-		ww_mutex_init(&name, &ww_class);			\
-	}								\
+#define DEFINE_WW_MUTEX(name, ww_class)          \
+	struct ww_mutex name;                    \
+	static void name##_init(void *arg)       \
+	{                                        \
+		ww_mutex_init(&name, &ww_class); \
+	}                                        \
 	SYSINIT(name, SI_SUB_LOCK, SI_ORDER_SECOND, name##_init, NULL)
 
-#define	DEFINE_WD_CLASS(name)	DEFINE_WW_CLASS(name)
+#define DEFINE_WD_CLASS(name) DEFINE_WW_CLASS(name)
 
-#define	ww_mutex_is_locked(_m) \
-	sx_xlocked(&(_m)->base.sx)
+#define ww_mutex_is_locked(_m) sx_xlocked(&(_m)->base.sx)
 
-#define	ww_mutex_lock_slow(_m, _x) \
-	ww_mutex_lock(_m, _x)
+#define ww_mutex_lock_slow(_m, _x) ww_mutex_lock(_m, _x)
 
-#define	ww_mutex_lock_slow_interruptible(_m, _x) \
+#define ww_mutex_lock_slow_interruptible(_m, _x) \
 	ww_mutex_lock_interruptible(_m, _x)
 
 #if defined(LINUXKPI_VERSION) && LINUXKPI_VERSION >= 51600
@@ -81,8 +76,8 @@ ww_mutex_trylock(struct ww_mutex *lock)
 	return (mutex_trylock(&lock->base));
 }
 
-extern int linux_ww_mutex_lock_sub(struct ww_mutex *,
-    struct ww_acquire_ctx *, int catch_signal);
+extern int linux_ww_mutex_lock_sub(struct ww_mutex *, struct ww_acquire_ctx *,
+    int catch_signal);
 
 static inline int
 ww_mutex_lock(struct ww_mutex *lock, struct ww_acquire_ctx *ctx)
@@ -146,4 +141,4 @@ ww_acquire_done(struct ww_acquire_ctx *ctx)
 {
 }
 
-#endif					/* _LINUXKPI_LINUX_WW_MUTEX_H_ */
+#endif /* _LINUXKPI_LINUX_WW_MUTEX_H_ */

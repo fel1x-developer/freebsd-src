@@ -34,7 +34,7 @@
 #include "sha512c_impl.h"
 
 void __hidden
-SHA512_Transform_arm64_impl(uint64_t * state,
+SHA512_Transform_arm64_impl(uint64_t *state,
     const unsigned char block[SHA512_BLOCK_LENGTH], const uint64_t K[80])
 {
 	uint64x2_t W[8];
@@ -43,9 +43,9 @@ SHA512_Transform_arm64_impl(uint64_t * state,
 	uint64x2_t K_tmp, S_tmp;
 	int i;
 
-#define	A64_LOAD_W(x)							\
-    W[x] = vld1q_u64((const uint64_t *)(&block[(x) * 16]));		\
-    W[x] = vreinterpretq_u64_u8(vrev64q_u8(vreinterpretq_u8_u64(W[x])))
+#define A64_LOAD_W(x)                                           \
+	W[x] = vld1q_u64((const uint64_t *)(&block[(x) * 16])); \
+	W[x] = vreinterpretq_u64_u8(vrev64q_u8(vreinterpretq_u8_u64(W[x])))
 
 	/* 1. Prepare the first part of the message schedule W. */
 	A64_LOAD_W(0);
@@ -90,16 +90,17 @@ SHA512_Transform_arm64_impl(uint64_t * state,
 		 * - Calculate the Sigma 0 and Maj steps and store to gh
 		 * - Add the first part to the cd vector
 		 */
-#define	A64_RNDr(S, W, i, ii)						\
-    K_tmp = vld1q_u64(K + (i * 2) + ii);				\
-    K_tmp = vaddq_u64(W[i], K_tmp);					\
-    K_tmp = vextq_u64(K_tmp, K_tmp, 1);					\
-    K_tmp = vaddq_u64(K_tmp, S[(11 - i) % 4]);				\
-    S_tmp = vsha512hq_u64(K_tmp,					\
-      vextq_u64(S[(10 - i) % 4], S[(11 - i) % 4], 1),			\
-      vextq_u64(S[(9 - i) % 4], S[(10 - i) % 4], 1));			\
-    S[(11 - i) % 4] = vsha512h2q_u64(S_tmp, S[(9 - i) % 4], S[(8 - i) % 4]); \
-    S[(9 - i) % 4] = vaddq_u64(S[(9 - i) % 4], S_tmp)
+#define A64_RNDr(S, W, i, ii)                                   \
+	K_tmp = vld1q_u64(K + (i * 2) + ii);                    \
+	K_tmp = vaddq_u64(W[i], K_tmp);                         \
+	K_tmp = vextq_u64(K_tmp, K_tmp, 1);                     \
+	K_tmp = vaddq_u64(K_tmp, S[(11 - i) % 4]);              \
+	S_tmp = vsha512hq_u64(K_tmp,                            \
+	    vextq_u64(S[(10 - i) % 4], S[(11 - i) % 4], 1),     \
+	    vextq_u64(S[(9 - i) % 4], S[(10 - i) % 4], 1));     \
+	S[(11 - i) % 4] = vsha512h2q_u64(S_tmp, S[(9 - i) % 4], \
+	    S[(8 - i) % 4]);                                    \
+	S[(9 - i) % 4] = vaddq_u64(S[(9 - i) % 4], S_tmp)
 
 		A64_RNDr(S, W, 0, i);
 		A64_RNDr(S, W, 1, i);
@@ -113,19 +114,17 @@ SHA512_Transform_arm64_impl(uint64_t * state,
 		if (i == 64)
 			break;
 
-		/*
-		 * Perform the Message schedule computation:
-		 * - vsha512su0q_u64 performs the sigma 0 half and add it to
-		 *   the old value
-		 * - vextq_u64 fixes the alignment of the vectors
-		 * - vsha512su1q_u64 performs the sigma 1 half and adds it
-		 *   and both the above all together
-		 */
-#define A64_MSCH(x)							\
-    W[x] = vsha512su1q_u64(						\
-      vsha512su0q_u64(W[x], W[(x + 1) % 8]),				\
-      W[(x + 7) % 8],							\
-      vextq_u64(W[(x + 4) % 8], W[(x + 5) % 8], 1))
+			/*
+			 * Perform the Message schedule computation:
+			 * - vsha512su0q_u64 performs the sigma 0 half and add
+			 * it to the old value
+			 * - vextq_u64 fixes the alignment of the vectors
+			 * - vsha512su1q_u64 performs the sigma 1 half and adds
+			 * it and both the above all together
+			 */
+#define A64_MSCH(x)                                                   \
+	W[x] = vsha512su1q_u64(vsha512su0q_u64(W[x], W[(x + 1) % 8]), \
+	    W[(x + 7) % 8], vextq_u64(W[(x + 4) % 8], W[(x + 5) % 8], 1))
 
 		A64_MSCH(0);
 		A64_MSCH(1);

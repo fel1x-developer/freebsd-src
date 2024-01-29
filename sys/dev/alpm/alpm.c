@@ -29,24 +29,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
+
 #include "smbus_if.h"
 
-#define ALPM_DEBUG(x)	if (alpm_debug) (x)
+#define ALPM_DEBUG(x)   \
+	if (alpm_debug) \
+	(x)
 
 #ifdef DEBUG
 static int alpm_debug = 1;
@@ -54,89 +56,89 @@ static int alpm_debug = 1;
 static int alpm_debug = 0;
 #endif
 
-#define ACER_M1543_PMU_ID	0x710110b9
+#define ACER_M1543_PMU_ID 0x710110b9
 
 /*
  * I/O registers offsets - the base address is programmed via the
  * SMBBA PCI configuration register
  */
-#define SMBSTS		0x0	/* SMBus host/slave status register */
-#define SMBCMD		0x1	/* SMBus host/slave command register */
-#define SMBSTART	0x2	/* start to generate programmed cycle */
-#define SMBHADDR	0x3	/* host address register */
-#define SMBHDATA	0x4	/* data A register for host controller */
-#define SMBHDATB	0x5	/* data B register for host controller */
-#define SMBHBLOCK	0x6	/* block register for host controller */
-#define SMBHCMD		0x7	/* command register for host controller */
+#define SMBSTS 0x0    /* SMBus host/slave status register */
+#define SMBCMD 0x1    /* SMBus host/slave command register */
+#define SMBSTART 0x2  /* start to generate programmed cycle */
+#define SMBHADDR 0x3  /* host address register */
+#define SMBHDATA 0x4  /* data A register for host controller */
+#define SMBHDATB 0x5  /* data B register for host controller */
+#define SMBHBLOCK 0x6 /* block register for host controller */
+#define SMBHCMD 0x7   /* command register for host controller */
 
 /* SMBHADDR mask. */
-#define	LSB		0x1	/* XXX: Better name: Read/Write? */
+#define LSB 0x1 /* XXX: Better name: Read/Write? */
 
 /* SMBSTS masks */
-#define TERMINATE	0x80
-#define BUS_COLLI	0x40
-#define DEVICE_ERR	0x20
-#define SMI_I_STS	0x10
-#define HST_BSY		0x08
-#define IDL_STS		0x04
-#define HSTSLV_STS	0x02
-#define HSTSLV_BSY	0x01
+#define TERMINATE 0x80
+#define BUS_COLLI 0x40
+#define DEVICE_ERR 0x20
+#define SMI_I_STS 0x10
+#define HST_BSY 0x08
+#define IDL_STS 0x04
+#define HSTSLV_STS 0x02
+#define HSTSLV_BSY 0x01
 
 /* SMBCMD masks */
-#define SMB_BLK_CLR	0x80
-#define T_OUT_CMD	0x08
-#define ABORT_HOST	0x04
+#define SMB_BLK_CLR 0x80
+#define T_OUT_CMD 0x08
+#define ABORT_HOST 0x04
 
 /* SMBus commands */
-#define SMBQUICK	0x00
-#define SMBSRBYTE	0x10		/* send/receive byte */
-#define SMBWRBYTE	0x20		/* write/read byte */
-#define SMBWRWORD	0x30		/* write/read word */
-#define SMBWRBLOCK	0x40		/* write/read block */
+#define SMBQUICK 0x00
+#define SMBSRBYTE 0x10	/* send/receive byte */
+#define SMBWRBYTE 0x20	/* write/read byte */
+#define SMBWRWORD 0x30	/* write/read word */
+#define SMBWRBLOCK 0x40 /* write/read block */
 
 /* PCI configuration registers and masks
  */
-#define COM		0x4
-#define COM_ENABLE_IO	0x1
+#define COM 0x4
+#define COM_ENABLE_IO 0x1
 
-#define SMBBA		PCIR_BAR(1)
+#define SMBBA PCIR_BAR(1)
 
-#define ATPC		0x5b
-#define ATPC_SMBCTRL	0x04 		/* XX linux has this as 0x6 */
+#define ATPC 0x5b
+#define ATPC_SMBCTRL 0x04 /* XX linux has this as 0x6 */
 
-#define SMBHSI		0xe0
-#define SMBHSI_SLAVE	0x2
-#define SMBHSI_HOST	0x1
+#define SMBHSI 0xe0
+#define SMBHSI_SLAVE 0x2
+#define SMBHSI_HOST 0x1
 
-#define SMBHCBC		0xe2
-#define SMBHCBC_CLOCK	0x70
+#define SMBHCBC 0xe2
+#define SMBHCBC_CLOCK 0x70
 
-#define SMBCLOCK_149K	0x0
-#define SMBCLOCK_74K	0x20
-#define SMBCLOCK_37K	0x40
-#define SMBCLOCK_223K	0x80
-#define SMBCLOCK_111K	0xa0
-#define SMBCLOCK_55K	0xc0
+#define SMBCLOCK_149K 0x0
+#define SMBCLOCK_74K 0x20
+#define SMBCLOCK_37K 0x40
+#define SMBCLOCK_223K 0x80
+#define SMBCLOCK_111K 0xa0
+#define SMBCLOCK_55K 0xc0
 
 struct alpm_softc {
 	int base;
 	struct resource *res;
-        bus_space_tag_t smbst;
-        bus_space_handle_t smbsh;
+	bus_space_tag_t smbst;
+	bus_space_handle_t smbsh;
 	device_t smbus;
 	struct mtx lock;
 };
 
-#define	ALPM_LOCK(alpm)		mtx_lock(&(alpm)->lock)
-#define	ALPM_UNLOCK(alpm)	mtx_unlock(&(alpm)->lock)
-#define	ALPM_LOCK_ASSERT(alpm)	mtx_assert(&(alpm)->lock, MA_OWNED)
+#define ALPM_LOCK(alpm) mtx_lock(&(alpm)->lock)
+#define ALPM_UNLOCK(alpm) mtx_unlock(&(alpm)->lock)
+#define ALPM_LOCK_ASSERT(alpm) mtx_assert(&(alpm)->lock, MA_OWNED)
 
-#define ALPM_SMBINB(alpm,register) \
+#define ALPM_SMBINB(alpm, register) \
 	(bus_space_read_1(alpm->smbst, alpm->smbsh, register))
-#define ALPM_SMBOUTB(alpm,register,value) \
+#define ALPM_SMBOUTB(alpm, register, value) \
 	(bus_space_write_1(alpm->smbst, alpm->smbsh, register, value))
 
-static int	alpm_detach(device_t dev);
+static int alpm_detach(device_t dev);
 
 static int
 alpm_probe(device_t dev)
@@ -175,8 +177,8 @@ alpm_attach(device_t dev)
 	if (bootverbose || alpm_debug) {
 		l = pci_read_config(dev, SMBHSI, 1);
 		device_printf(dev, "%s/%s",
-			(l & SMBHSI_HOST) ? "host":"nohost",
-			(l & SMBHSI_SLAVE) ? "slave":"noslave");
+		    (l & SMBHSI_HOST) ? "host" : "nohost",
+		    (l & SMBHSI_SLAVE) ? "slave" : "noslave");
 
 		l = pci_read_config(dev, SMBHCBC, 1);
 		switch (l & SMBHCBC_CLOCK) {
@@ -210,7 +212,7 @@ alpm_attach(device_t dev)
 	    RF_ACTIVE);
 
 	if (alpm->res == NULL) {
-		device_printf(dev,"Could not allocate Bus space\n");
+		device_printf(dev, "Could not allocate Bus space\n");
 		return (ENXIO);
 	}
 	alpm->smbst = rman_get_bustag(alpm->res);
@@ -356,8 +358,7 @@ alpm_quick(device_t dev, u_char slave, int how)
 		ALPM_SMBOUTB(sc, SMBHADDR, slave | LSB);
 		break;
 	default:
-		panic("%s: unknown QUICK command (%x)!", __func__,
-			how);
+		panic("%s: unknown QUICK command (%x)!", __func__, how);
 	}
 	ALPM_SMBOUTB(sc, SMBCMD, SMBQUICK);
 	ALPM_SMBOUTB(sc, SMBSTART, 0xff);
@@ -390,7 +391,8 @@ alpm_sendb(device_t dev, u_char slave, char byte)
 
 	error = alpm_wait(sc);
 
-	ALPM_DEBUG(printf("alpm: SENDB to 0x%x, byte=0x%x, error=0x%x\n", slave, byte, error));
+	ALPM_DEBUG(printf("alpm: SENDB to 0x%x, byte=0x%x, error=0x%x\n", slave,
+	    byte, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -416,7 +418,8 @@ alpm_recvb(device_t dev, u_char slave, char *byte)
 	if ((error = alpm_wait(sc)) == SMB_ENOERR)
 		*byte = ALPM_SMBINB(sc, SMBHDATA);
 
-	ALPM_DEBUG(printf("alpm: RECVB from 0x%x, byte=0x%x, error=0x%x\n", slave, *byte, error));
+	ALPM_DEBUG(printf("alpm: RECVB from 0x%x, byte=0x%x, error=0x%x\n",
+	    slave, *byte, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -443,7 +446,9 @@ alpm_writeb(device_t dev, u_char slave, char cmd, char byte)
 
 	error = alpm_wait(sc);
 
-	ALPM_DEBUG(printf("alpm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, byte, error));
+	ALPM_DEBUG(
+	    printf("alpm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, byte, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -470,7 +475,9 @@ alpm_readb(device_t dev, u_char slave, char cmd, char *byte)
 	if ((error = alpm_wait(sc)) == SMB_ENOERR)
 		*byte = ALPM_SMBINB(sc, SMBHDATA);
 
-	ALPM_DEBUG(printf("alpm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, *byte, error));
+	ALPM_DEBUG(
+	    printf("alpm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, *byte, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -498,7 +505,9 @@ alpm_writew(device_t dev, u_char slave, char cmd, short word)
 
 	error = alpm_wait(sc);
 
-	ALPM_DEBUG(printf("alpm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, word, error));
+	ALPM_DEBUG(
+	    printf("alpm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, word, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -530,7 +539,9 @@ alpm_readw(device_t dev, u_char slave, char cmd, short *word)
 		*word = ((high & 0xff) << 8) | (low & 0xff);
 	}
 
-	ALPM_DEBUG(printf("alpm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, *word, error));
+	ALPM_DEBUG(
+	    printf("alpm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, *word, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -548,7 +559,7 @@ alpm_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 
 	ALPM_LOCK(sc);
 	alpm_clear(sc);
-	if(!alpm_idle(sc)) {
+	if (!alpm_idle(sc)) {
 		ALPM_UNLOCK(sc);
 		return (SMB_EBUSY);
 	}
@@ -571,7 +582,9 @@ alpm_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 
 	error = alpm_wait(sc);
 
-	ALPM_DEBUG(printf("alpm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, count, cmd, error));
+	ALPM_DEBUG(
+	    printf("alpm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, count, cmd, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -604,7 +617,7 @@ alpm_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	ALPM_SMBOUTB(sc, SMBSTART, 0xff);
 
 	if ((error = alpm_wait(sc)) != SMB_ENOERR)
-			goto error;
+		goto error;
 
 	len = ALPM_SMBINB(sc, SMBHDATA);
 
@@ -618,7 +631,9 @@ alpm_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	*count = len;
 
 error:
-	ALPM_DEBUG(printf("alpm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, *count, cmd, error));
+	ALPM_DEBUG(
+	    printf("alpm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, *count, cmd, error));
 	ALPM_UNLOCK(sc);
 
 	return (error);
@@ -626,29 +641,24 @@ error:
 
 static device_method_t alpm_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		alpm_probe),
-	DEVMETHOD(device_attach,	alpm_attach),
-	DEVMETHOD(device_detach,	alpm_detach),
+	DEVMETHOD(device_probe, alpm_probe),
+	DEVMETHOD(device_attach, alpm_attach),
+	DEVMETHOD(device_detach, alpm_detach),
 
 	/* smbus interface */
-	DEVMETHOD(smbus_callback,	alpm_callback),
-	DEVMETHOD(smbus_quick,		alpm_quick),
-	DEVMETHOD(smbus_sendb,		alpm_sendb),
-	DEVMETHOD(smbus_recvb,		alpm_recvb),
-	DEVMETHOD(smbus_writeb,		alpm_writeb),
-	DEVMETHOD(smbus_readb,		alpm_readb),
-	DEVMETHOD(smbus_writew,		alpm_writew),
-	DEVMETHOD(smbus_readw,		alpm_readw),
-	DEVMETHOD(smbus_bwrite,		alpm_bwrite),
-	DEVMETHOD(smbus_bread,		alpm_bread),
-	{ 0, 0 }
+	DEVMETHOD(smbus_callback, alpm_callback),
+	DEVMETHOD(smbus_quick, alpm_quick), DEVMETHOD(smbus_sendb, alpm_sendb),
+	DEVMETHOD(smbus_recvb, alpm_recvb),
+	DEVMETHOD(smbus_writeb, alpm_writeb),
+	DEVMETHOD(smbus_readb, alpm_readb),
+	DEVMETHOD(smbus_writew, alpm_writew),
+	DEVMETHOD(smbus_readw, alpm_readw),
+	DEVMETHOD(smbus_bwrite, alpm_bwrite),
+	DEVMETHOD(smbus_bread, alpm_bread), { 0, 0 }
 };
 
-static driver_t alpm_driver = {
-	"alpm",
-	alpm_methods,
-	sizeof(struct alpm_softc)
-};
+static driver_t alpm_driver = { "alpm", alpm_methods,
+	sizeof(struct alpm_softc) };
 
 DRIVER_MODULE(alpm, pci, alpm_driver, 0, 0);
 DRIVER_MODULE(smbus, alpm, smbus_driver, 0, 0);

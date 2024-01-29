@@ -65,14 +65,15 @@
  */
 
 #ifdef __linux__
-#include "aic7xxx_osm.h"
-#include "aic7xxx_inline.h"
 #include "aic7xxx_93cx6.h"
+#include "aic7xxx_inline.h"
+#include "aic7xxx_osm.h"
 #else
 #include <sys/cdefs.h>
-#include <dev/aic7xxx/aic7xxx_osm.h>
-#include <dev/aic7xxx/aic7xxx_inline.h>
+
 #include <dev/aic7xxx/aic7xxx_93cx6.h>
+#include <dev/aic7xxx/aic7xxx_inline.h>
+#include <dev/aic7xxx/aic7xxx_osm.h>
 #endif
 
 /*
@@ -80,30 +81,32 @@
  * add other 93Cx6 functions.
  */
 struct seeprom_cmd {
-  	uint8_t len;
- 	uint8_t bits[11];
+	uint8_t len;
+	uint8_t bits[11];
 };
 
 /* Short opcodes for the c46 */
-static struct seeprom_cmd seeprom_ewen = {9, {1, 0, 0, 1, 1, 0, 0, 0, 0}};
-static struct seeprom_cmd seeprom_ewds = {9, {1, 0, 0, 0, 0, 0, 0, 0, 0}};
+static struct seeprom_cmd seeprom_ewen = { 9, { 1, 0, 0, 1, 1, 0, 0, 0, 0 } };
+static struct seeprom_cmd seeprom_ewds = { 9, { 1, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 /* Long opcodes for the C56/C66 */
-static struct seeprom_cmd seeprom_long_ewen = {11, {1, 0, 0, 1, 1, 0, 0, 0, 0}};
-static struct seeprom_cmd seeprom_long_ewds = {11, {1, 0, 0, 0, 0, 0, 0, 0, 0}};
+static struct seeprom_cmd seeprom_long_ewen = { 11,
+	{ 1, 0, 0, 1, 1, 0, 0, 0, 0 } };
+static struct seeprom_cmd seeprom_long_ewds = { 11,
+	{ 1, 0, 0, 0, 0, 0, 0, 0, 0 } };
 
 /* Common opcodes */
-static struct seeprom_cmd seeprom_write = {3, {1, 0, 1}};
-static struct seeprom_cmd seeprom_read  = {3, {1, 1, 0}};
+static struct seeprom_cmd seeprom_write = { 3, { 1, 0, 1 } };
+static struct seeprom_cmd seeprom_read = { 3, { 1, 1, 0 } };
 
 /*
  * Wait for the SEERDY to go high; about 800 ns.
  */
-#define CLOCK_PULSE(sd, rdy)				\
-	while ((SEEPROM_STATUS_INB(sd) & rdy) == 0) {	\
-		;  /* Do nothing */			\
-	}						\
-	(void)SEEPROM_INB(sd);	/* Clear clock */
+#define CLOCK_PULSE(sd, rdy)                          \
+	while ((SEEPROM_STATUS_INB(sd) & rdy) == 0) { \
+		; /* Do nothing */                    \
+	}                                             \
+	(void)SEEPROM_INB(sd); /* Clear clock */
 
 /*
  * Send a START condition and the given command
@@ -153,8 +156,8 @@ reset_seeprom(struct seeprom_descriptor *sd)
  * not successful.
  */
 int
-ahc_read_seeprom(struct seeprom_descriptor *sd, uint16_t *buf,
-		 u_int start_addr, u_int count)
+ahc_read_seeprom(struct seeprom_descriptor *sd, uint16_t *buf, u_int start_addr,
+    u_int count)
 {
 	int i = 0;
 	u_int k = 0;
@@ -211,11 +214,11 @@ ahc_read_seeprom(struct seeprom_descriptor *sd, uint16_t *buf,
 	printf("\nSerial EEPROM:\n\t");
 	for (k = 0; k < count; k = k + 1) {
 		if (((k % 8) == 0) && (k != 0)) {
-			printf ("\n\t");
+			printf("\n\t");
 		}
-		printf (" 0x%x", buf[k]);
+		printf(" 0x%x", buf[k]);
 	}
-	printf ("\n");
+	printf("\n");
 #endif
 	return (1);
 }
@@ -226,7 +229,7 @@ ahc_read_seeprom(struct seeprom_descriptor *sd, uint16_t *buf,
  */
 int
 ahc_write_seeprom(struct seeprom_descriptor *sd, uint16_t *buf,
-		  u_int start_addr, u_int count)
+    u_int start_addr, u_int count)
 {
 	struct seeprom_cmd *ewen, *ewds;
 	uint16_t v;
@@ -242,7 +245,7 @@ ahc_write_seeprom(struct seeprom_descriptor *sd, uint16_t *buf,
 		ewds = &seeprom_long_ewds;
 	} else {
 		printf("ahc_write_seeprom: unsupported seeprom type %d\n",
-		       sd->sd_chip);
+		    sd->sd_chip);
 		return (0);
 	}
 
@@ -310,16 +313,15 @@ ahc_verify_cksum(struct seeprom_config *sc)
 	uint32_t checksum;
 	uint16_t *scarray;
 
-	maxaddr = (sizeof(*sc)/2) - 1;
+	maxaddr = (sizeof(*sc) / 2) - 1;
 	checksum = 0;
 	scarray = (uint16_t *)sc;
 
 	for (i = 0; i < maxaddr; i++)
 		checksum = checksum + scarray[i];
-	if (checksum == 0
-	 || (checksum & 0xFFFF) != sc->checksum) {
+	if (checksum == 0 || (checksum & 0xFFFF) != sc->checksum) {
 		return (0);
 	} else {
-		return(1);
+		return (1);
 	}
 }

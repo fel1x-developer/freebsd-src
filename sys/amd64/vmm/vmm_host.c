@@ -36,7 +36,7 @@
 #include "vmm_host.h"
 
 static uint64_t vmm_host_efer, vmm_host_pat, vmm_host_cr0, vmm_host_cr4,
-	vmm_host_xcr0;
+    vmm_host_xcr0;
 static struct xsave_limits vmm_xsave_limits;
 
 void
@@ -128,7 +128,6 @@ vmm_get_host_datasel(void)
 {
 
 	return (GSEL(GDATA_SEL, SEL_KPL));
-
 }
 
 uint64_t

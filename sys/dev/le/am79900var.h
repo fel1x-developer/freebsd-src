@@ -32,9 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef _DEV_LE_AM79900VAR_H_
-#define	_DEV_LE_AM79900VAR_H_
+#define _DEV_LE_AM79900VAR_H_
 
 /*
  * Ethernet software status per device.
@@ -49,8 +48,8 @@ struct am79900_softc {
 	struct lance_softc lsc;
 };
 
-int	am79900_config(struct am79900_softc *, const char*, int);
-void	am79900_detach(struct am79900_softc *);
-void	am79900_intr(void *);
+int am79900_config(struct am79900_softc *, const char *, int);
+void am79900_detach(struct am79900_softc *);
+void am79900_intr(void *);
 
 #endif /* _DEV_LE_AM79900VAR_H_ */

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003,2004
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,7 +32,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * $Id: dcons.c,v 1.65 2003/10/24 03:24:55 simokawa Exp $
  */
 
@@ -61,8 +61,8 @@ dcons_ischar(struct dcons_softc *dc)
 
 	next_gen = DCONS_NEXT_GEN(ch->gen);
 	/* XXX sanity check */
-	if ((gen != ch->gen && gen != next_gen)
-			|| (gen == ch->gen && pos < ch->pos)) {
+	if ((gen != ch->gen && gen != next_gen) ||
+	    (gen == ch->gen && pos < ch->pos)) {
 		/* generation skipped !! */
 		/* XXX discard */
 		ch->gen = gen;
@@ -90,8 +90,8 @@ dcons_checkc(struct dcons_softc *dc)
 
 	next_gen = DCONS_NEXT_GEN(ch->gen);
 	/* XXX sanity check */
-	if ((gen != ch->gen && gen != next_gen)
-			|| (gen == ch->gen && pos < ch->pos)) {
+	if ((gen != ch->gen && gen != next_gen) ||
+	    (gen == ch->gen && pos < ch->pos)) {
 		/* generation skipped !! */
 		/* XXX discard */
 		ch->gen = gen;
@@ -100,7 +100,7 @@ dcons_checkc(struct dcons_softc *dc)
 	}
 
 	c = ch->buf[ch->pos];
-	ch->pos ++;
+	ch->pos++;
 	if (ch->pos >= ch->size) {
 		ch->gen = next_gen;
 		ch->pos = 0;
@@ -117,7 +117,7 @@ dcons_putc(struct dcons_softc *dc, int c)
 	ch = &dc->o;
 
 	ch->buf[ch->pos] = c;
-	ch->pos ++;
+	ch->pos++;
 	if (ch->pos >= ch->size) {
 		ch->gen = DCONS_NEXT_GEN(ch->gen);
 		ch->pos = 0;
@@ -152,7 +152,7 @@ dcons_init_port(int port, int offset, int size, struct dcons_buf *buf,
 	buf->optr[port] = DCONS_MAKE_PTR(&dc->o);
 	buf->iptr[port] = DCONS_MAKE_PTR(&dc->i);
 
-	return(0);
+	return (0);
 }
 
 int
@@ -165,7 +165,7 @@ dcons_load_buffer(struct dcons_buf *buf, int size, struct dcons_softc *sc)
 		return (-1);
 
 	s = DCONS_HEADER_SIZE;
-	for (port = 0; port < DCONS_NPORT; port ++) {
+	for (port = 0; port < DCONS_NPORT; port++) {
 		dc = &sc[port];
 		dc->o.size = ntohl(buf->osize[port]);
 		dc->i.size = ntohl(buf->isize[port]);
@@ -198,7 +198,7 @@ dcons_init(struct dcons_buf *buf, int size, struct dcons_softc *sc)
 
 	offset = DCONS_HEADER_SIZE;
 	size0 = (size - offset);
-	size1 = size0 * 3 / 4;		/* console port buffer */
+	size1 = size0 * 3 / 4; /* console port buffer */
 
 	dcons_init_port(0, offset, size1, buf, sc);
 	offset += size1;

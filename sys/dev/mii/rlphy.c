@@ -39,69 +39,58 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
-#include <sys/taskqueue.h>	/* XXXGL: if_rlreg.h contamination */
+#include <sys/taskqueue.h> /* XXXGL: if_rlreg.h contamination */
+
+#include <machine/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/rl/if_rlreg.h>
 
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <machine/bus.h>
-#include <dev/rl/if_rlreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int rlphy_probe(device_t);
 static int rlphy_attach(device_t);
 
 static device_method_t rlphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		rlphy_probe),
-	DEVMETHOD(device_attach,	rlphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, rlphy_probe),
+	DEVMETHOD(device_attach, rlphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t rlphy_driver = {
-	"rlphy",
-	rlphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t rlphy_driver = { "rlphy", rlphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(rlphy, miibus, rlphy_driver, 0, 0);
 
-static int	rlphy_service(struct mii_softc *, struct mii_data *, int);
-static void	rlphy_status(struct mii_softc *);
+static int rlphy_service(struct mii_softc *, struct mii_data *, int);
+static void rlphy_status(struct mii_softc *);
 
 /*
  * RealTek internal PHYs don't have vendor/device ID registers;
  * re(4) and rl(4) fake up a return value of all zeros.
  */
 static const struct mii_phydesc rlintphys[] = {
-	{ 0, 0, "RealTek internal media interface" },
-	MII_PHY_END
+	{ 0, 0, "RealTek internal media interface" }, MII_PHY_END
 };
 
-static const struct mii_phydesc rlphys[] = {
-	MII_PHY_DESC(yyREALTEK, RTL8201L),
-	MII_PHY_DESC(REALTEK, RTL8201E),
-	MII_PHY_DESC(xxICPLUS, IP101),
-	MII_PHY_END
-};
+static const struct mii_phydesc rlphys[] = { MII_PHY_DESC(yyREALTEK, RTL8201L),
+	MII_PHY_DESC(REALTEK, RTL8201E), MII_PHY_DESC(xxICPLUS, IP101),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs rlphy_funcs = {
-	rlphy_service,
-	rlphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs rlphy_funcs = { rlphy_service, rlphy_status,
+	mii_phy_reset };
 
 static int
 rlphy_probe(device_t dev)
@@ -124,8 +113,8 @@ rlphy_attach(device_t dev)
 	/*
 	 * The RealTek PHY can never be isolated.
 	 */
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &rlphy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &rlphy_funcs,
+	    1);
 	return (0);
 }
 
@@ -194,22 +183,22 @@ rlphy_status(struct mii_softc *phy)
 		}
 
 		if ((anlpar = PHY_READ(phy, MII_ANAR) &
-		    PHY_READ(phy, MII_ANLPAR))) {
+			    PHY_READ(phy, MII_ANLPAR))) {
 			if (anlpar & ANLPAR_TX_FD)
-				mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 			else if (anlpar & ANLPAR_T4)
-				mii->mii_media_active |= IFM_100_T4|IFM_HDX;
+				mii->mii_media_active |= IFM_100_T4 | IFM_HDX;
 			else if (anlpar & ANLPAR_TX)
-				mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 			else if (anlpar & ANLPAR_10_FD)
-				mii->mii_media_active |= IFM_10_T|IFM_FDX;
+				mii->mii_media_active |= IFM_10_T | IFM_FDX;
 			else if (anlpar & ANLPAR_10)
-				mii->mii_media_active |= IFM_10_T|IFM_HDX;
+				mii->mii_media_active |= IFM_10_T | IFM_HDX;
 			else
 				mii->mii_media_active |= IFM_NONE;
 			if ((mii->mii_media_active & IFM_FDX) != 0)
-				mii->mii_media_active |=
-				    mii_phy_flowstatus(phy);
+				mii->mii_media_active |= mii_phy_flowstatus(
+				    phy);
 			return;
 		}
 		/*
@@ -245,8 +234,7 @@ rlphy_status(struct mii_softc *phy)
 			else
 				mii->mii_media_active |= IFM_10_T;
 		} else {
-			if (PHY_READ(phy, RL_MEDIASTAT) &
-			    RL_MEDIASTAT_SPEED10)
+			if (PHY_READ(phy, RL_MEDIASTAT) & RL_MEDIASTAT_SPEED10)
 				mii->mii_media_active |= IFM_10_T;
 			else
 				mii->mii_media_active |= IFM_100_TX;

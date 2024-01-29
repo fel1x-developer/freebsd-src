@@ -32,6 +32,7 @@
  */
 
 #include <wchar.h>
+
 #include "mblocal.h"
 
 int

@@ -31,20 +31,20 @@
 
 struct mac_veriexec_syscall_params;
 
-int	veriexec_check_fd_mode(int, unsigned int);
-int	veriexec_check_path_mode(const char *, unsigned int);
-int	veriexec_check_fd(int);
-int	veriexec_check_path(const char *);
-int	veriexec_get_pid_params(pid_t, struct mac_veriexec_syscall_params *);
-int	veriexec_get_path_params(const char *,
-	    struct mac_veriexec_syscall_params *);
-int	veriexec_check_path_label(const char *, const char *);
-int	veriexec_check_pid_label(pid_t, const char *);
-char *	veriexec_get_path_label(const char *, char *, size_t);
-char *	veriexec_get_pid_label(pid_t, char *, size_t);
+int veriexec_check_fd_mode(int, unsigned int);
+int veriexec_check_path_mode(const char *, unsigned int);
+int veriexec_check_fd(int);
+int veriexec_check_path(const char *);
+int veriexec_get_pid_params(pid_t, struct mac_veriexec_syscall_params *);
+int veriexec_get_path_params(const char *,
+    struct mac_veriexec_syscall_params *);
+int veriexec_check_path_label(const char *, const char *);
+int veriexec_check_pid_label(pid_t, const char *);
+char *veriexec_get_path_label(const char *, char *, size_t);
+char *veriexec_get_pid_label(pid_t, char *, size_t);
 unsigned int gbl_check_path(const char *);
 unsigned int gbl_check_pid(pid_t);
-int	execv_script(const char *, char * const *);
+int execv_script(const char *, char *const *);
 
 #define HAVE_GBL_CHECK_PID 1
 #define HAVE_VERIEXEC_CHECK_PATH_LABEL 1
@@ -52,4 +52,4 @@ int	execv_script(const char *, char * const *);
 #define HAVE_VERIEXEC_GET_PATH_LABEL 1
 #define HAVE_VERIEXEC_GET_PID_LABEL 1
 
-#endif  /* __LIBVERIEXEC_H__ */
+#endif /* __LIBVERIEXEC_H__ */

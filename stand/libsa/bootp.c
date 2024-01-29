@@ -34,50 +34,50 @@
  */
 
 #include <sys/cdefs.h>
-#include <stddef.h>
 #include <sys/types.h>
-#include <sys/limits.h>
 #include <sys/endian.h>
+#include <sys/limits.h>
+
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
+#include <stddef.h>
 #include <string.h>
 
 #define BOOTP_DEBUGxx
 #define SUPPORT_DHCP
 
-#define	DHCP_ENV_NOVENDOR	1	/* do not parse vendor options */
-#define	DHCP_ENV_PXE		10	/* assume pxe vendor options */
-#define	DHCP_ENV_FREEBSD	11	/* assume freebsd vendor options */
+#define DHCP_ENV_NOVENDOR 1 /* do not parse vendor options */
+#define DHCP_ENV_PXE 10	    /* assume pxe vendor options */
+#define DHCP_ENV_FREEBSD 11 /* assume freebsd vendor options */
 /* set DHCP_ENV to one of the values above to export dhcp options to kenv */
-#define DHCP_ENV		DHCP_ENV_NO_VENDOR
+#define DHCP_ENV DHCP_ENV_NO_VENDOR
 
-#include "stand.h"
+#include "bootp.h"
 #include "net.h"
 #include "netif.h"
-#include "bootp.h"
-
+#include "stand.h"
 
 struct in_addr servip;
 
-static time_t	bot;
+static time_t bot;
 
-static	char vm_rfc1048[4] = VM_RFC1048;
+static char vm_rfc1048[4] = VM_RFC1048;
 #ifdef BOOTP_VEND_CMU
-static	char vm_cmu[4] = VM_CMU;
+static char vm_cmu[4] = VM_CMU;
 #endif
 
 /* Local forwards */
-static	ssize_t bootpsend(struct iodesc *, void *, size_t);
-static	ssize_t bootprecv(struct iodesc *, void **, void **, time_t, void *);
-static	int vend_rfc1048(u_char *, u_int);
+static ssize_t bootpsend(struct iodesc *, void *, size_t);
+static ssize_t bootprecv(struct iodesc *, void **, void **, time_t, void *);
+static int vend_rfc1048(u_char *, u_int);
 #ifdef BOOTP_VEND_CMU
-static	void vend_cmu(u_char *);
+static void vend_cmu(u_char *);
 #endif
 
-#ifdef DHCP_ENV		/* export the dhcp response to kenv */
+#ifdef DHCP_ENV /* export the dhcp response to kenv */
 struct dhcp_opt;
-static void setenv_(u_char *cp,  u_char *ep, struct dhcp_opt *opts);
+static void setenv_(u_char *cp, u_char *ep, struct dhcp_opt *opts);
 #else
 #define setenv_(a, b, c)
 #endif
@@ -132,18 +132,18 @@ bootp(int sock)
 	struct bootp *rbootp;
 
 #ifdef BOOTP_DEBUG
- 	if (debug)
+	if (debug)
 		printf("bootp: socket=%d\n", sock);
 #endif
 	if (!bot)
 		bot = getsecs();
-	
+
 	if (!(d = socktodesc(sock))) {
 		printf("bootp: bad socket. %d\n", sock);
 		return;
 	}
 #ifdef BOOTP_DEBUG
- 	if (debug)
+	if (debug)
 		printf("bootp: d=%lx\n", (long)d);
 #endif
 
@@ -151,7 +151,7 @@ bootp(int sock)
 	bzero(bp, sizeof(*bp));
 
 	bp->bp_op = BOOTREQUEST;
-	bp->bp_htype = 1;		/* 10Mb Ethernet (48 bits) */
+	bp->bp_htype = 1; /* 10Mb Ethernet (48 bits) */
 	bp->bp_hlen = 6;
 	bp->bp_xid = htonl(d->xid);
 	MACPY(d->myea, bp->bp_chaddr);
@@ -177,15 +177,14 @@ bootp(int sock)
 	dhcp_ok = 0;
 #endif
 
-	if(sendrecv(d,
-		    bootpsend, bp, sizeof(*bp),
-		    bootprecv, &pkt, (void **)&rbootp, NULL) == -1) {
-	    printf("bootp: no reply\n");
-	    return;
+	if (sendrecv(d, bootpsend, bp, sizeof(*bp), bootprecv, &pkt,
+		(void **)&rbootp, NULL) == -1) {
+		printf("bootp: no reply\n");
+		return;
 	}
 
 #ifdef SUPPORT_DHCP
-	if(dhcp_ok) {
+	if (dhcp_ok) {
 		uint32_t leasetime;
 		bp->bp_vend[6] = DHCPREQUEST;
 		bp->bp_vend[7] = TAG_REQ_ADDR;
@@ -203,9 +202,8 @@ bootp(int sock)
 		expected_dhcpmsgtype = DHCPACK;
 
 		free(pkt);
-		if(sendrecv(d,
-			    bootpsend, bp, sizeof(*bp),
-			    bootprecv, &pkt, (void **)&rbootp, NULL) == -1) {
+		if (sendrecv(d, bootpsend, bp, sizeof(*bp), bootprecv, &pkt,
+			(void **)&rbootp, NULL) == -1) {
 			printf("DHCPREQUEST failed\n");
 			return;
 		}
@@ -322,12 +320,12 @@ bootprecv(struct iodesc *d, void **pkt, void **payload, time_t tleft,
 	if (bcmp(vm_rfc1048, bp->bp_vend, sizeof(vm_rfc1048)) == 0) {
 		int vsize = n - offsetof(struct bootp, bp_vend);
 		if (vend_rfc1048(bp->bp_vend, vsize) != 0)
-		    goto bad;
+			goto bad;
 
 		/* Save copy of bootp reply or DHCP ACK message */
 		if (bp->bp_op == BOOTREPLY &&
 		    ((dhcp_ok == 1 && expected_dhcpmsgtype == DHCPACK) ||
-		    dhcp_ok == 0)) {
+			dhcp_ok == 0)) {
 			free(bootp_response);
 			bootp_response = malloc(n);
 			if (bootp_response != NULL) {
@@ -409,11 +407,10 @@ vend_rfc1048(u_char *cp, u_int len)
 				 * size, max value of 16-bit word.
 				 */
 				tmp = strtoul(val, &end, 0);
-				if (errno != 0 ||
-				    *val == '\0' || *end != '\0' ||
-				    tmp > USHRT_MAX) {
+				if (errno != 0 || *val == '\0' ||
+				    *end != '\0' || tmp > USHRT_MAX) {
 					printf("%s: bad value: \"%s\", "
-					    "ignoring\n",
+					       "ignoring\n",
 					    "dhcp.interface-mtu", val);
 				} else {
 					intf_mtu = (u_int)tmp;
@@ -424,18 +421,18 @@ vend_rfc1048(u_char *cp, u_int len)
 		}
 #ifdef SUPPORT_DHCP
 		if (tag == TAG_DHCP_MSGTYPE) {
-			if(*cp != expected_dhcpmsgtype)
-			    return(-1);
+			if (*cp != expected_dhcpmsgtype)
+				return (-1);
 			dhcp_ok = 1;
 		}
 		if (tag == TAG_SERVERID) {
 			bcopy(cp, &dhcp_serverip.s_addr,
-			      sizeof(dhcp_serverip.s_addr));
+			    sizeof(dhcp_serverip.s_addr));
 		}
 #endif
 		cp += size;
 	}
-	return(0);
+	return (0);
 }
 
 #ifdef BOOTP_VEND_CMU
@@ -473,159 +470,110 @@ vend_cmu(u_char *cp)
  * Certain vendor-specific tables can be enabled according to DHCP_ENV.
  * Set it to 0 if you don't want any.
  */
-enum opt_fmt { __NONE = 0,
-	__8 = 1, __16 = 2, __32 = 4,	/* Unsigned fields, value=size	*/
-	__IP,				/* IPv4 address			*/
-	__TXT,				/* C string			*/
-	__BYTES,			/* byte sequence, printed %02x	*/
-	__INDIR,			/* name=value			*/
-	__ILIST,			/* name=value;name=value ... */
-	__VE,				/* vendor specific, recurse	*/
+enum opt_fmt {
+	__NONE = 0,
+	__8 = 1,
+	__16 = 2,
+	__32 = 4, /* Unsigned fields, value=size	*/
+	__IP,	  /* IPv4 address			*/
+	__TXT,	  /* C string			*/
+	__BYTES,  /* byte sequence, printed %02x	*/
+	__INDIR,  /* name=value			*/
+	__ILIST,  /* name=value;name=value ... */
+	__VE,	  /* vendor specific, recurse	*/
 };
 
 struct dhcp_opt {
-	uint8_t	tag;
-	uint8_t	fmt;
-	const char	*desc;
+	uint8_t tag;
+	uint8_t fmt;
+	const char *desc;
 };
 
 static struct dhcp_opt vndr_opt[] = { /* Vendor Specific Options */
-#if DHCP_ENV == DHCP_ENV_FREEBSD /* FreeBSD table in the original code */
-	{0,	0,	"FreeBSD"},		/* prefix */
-	{1,	__TXT,	"kernel"},
-	{2,	__TXT,	"kernelname"},
-	{3,	__TXT,	"kernel_options"},
-	{4,	__IP,	"usr-ip"},
-	{5,	__TXT,	"conf-path"},
-	{6,	__TXT,	"rc.conf0"},
-	{7,	__TXT,	"rc.conf1"},
-	{8,	__TXT,	"rc.conf2"},
-	{9,	__TXT,	"rc.conf3"},
-	{10,	__TXT,	"rc.conf4"},
-	{11,	__TXT,	"rc.conf5"},
-	{12,	__TXT,	"rc.conf6"},
-	{13,	__TXT,	"rc.conf7"},
-	{14,	__TXT,	"rc.conf8"},
-	{15,	__TXT,	"rc.conf9"},
+#if DHCP_ENV == DHCP_ENV_FREEBSD      /* FreeBSD table in the original code */
+	{ 0, 0, "FreeBSD" },	      /* prefix */
+	{ 1, __TXT, "kernel" }, { 2, __TXT, "kernelname" },
+	{ 3, __TXT, "kernel_options" }, { 4, __IP, "usr-ip" },
+	{ 5, __TXT, "conf-path" }, { 6, __TXT, "rc.conf0" },
+	{ 7, __TXT, "rc.conf1" }, { 8, __TXT, "rc.conf2" },
+	{ 9, __TXT, "rc.conf3" }, { 10, __TXT, "rc.conf4" },
+	{ 11, __TXT, "rc.conf5" }, { 12, __TXT, "rc.conf6" },
+	{ 13, __TXT, "rc.conf7" }, { 14, __TXT, "rc.conf8" },
+	{ 15, __TXT, "rc.conf9" },
 
-	{20,	__TXT,  "boot.nfsroot.options"},
+	{ 20, __TXT, "boot.nfsroot.options" },
 
-	{245,	__INDIR, ""},
-	{246,	__INDIR, ""},
-	{247,	__INDIR, ""},
-	{248,	__INDIR, ""},
-	{249,	__INDIR, ""},
-	{250,	__INDIR, ""},
-	{251,	__INDIR, ""},
-	{252,	__INDIR, ""},
-	{253,	__INDIR, ""},
-	{254,	__INDIR, ""},
+	{ 245, __INDIR, "" }, { 246, __INDIR, "" }, { 247, __INDIR, "" },
+	{ 248, __INDIR, "" }, { 249, __INDIR, "" }, { 250, __INDIR, "" },
+	{ 251, __INDIR, "" }, { 252, __INDIR, "" }, { 253, __INDIR, "" },
+	{ 254, __INDIR, "" },
 
-#elif DHCP_ENV == DHCP_ENV_PXE		/* some pxe options, RFC4578 */
-	{0,	0,	"pxe"},		/* prefix */
-	{93,	__16,	"system-architecture"},
-	{94,	__BYTES,	"network-interface"},
-	{97,	__BYTES,	"machine-identifier"},
-#else					/* default (empty) table */
-	{0,	0,	"dhcp.vendor."},		/* prefix */
+#elif DHCP_ENV == DHCP_ENV_PXE /* some pxe options, RFC4578 */
+	{ 0, 0, "pxe" }, /* prefix */
+	{ 93, __16, "system-architecture" },
+	{ 94, __BYTES, "network-interface" },
+	{ 97, __BYTES, "machine-identifier" },
+#else			       /* default (empty) table */
+	{ 0, 0, "dhcp.vendor." }, /* prefix */
 #endif
-	{0,	__TXT,	"%soption-%d"}
+	{ 0, __TXT, "%soption-%d" }
 };
 
 static struct dhcp_opt dhcp_opt[] = {
 	/* DHCP Option names, formats and codes, from RFC2132. */
-	{0,	0,	"dhcp."},	// prefix
-	{1,	__IP,	"subnet-mask"},
-	{2,	__32,	"time-offset"}, /* this is signed */
-	{3,	__IP,	"routers"},
-	{4,	__IP,	"time-servers"},
-	{5,	__IP,	"ien116-name-servers"},
-	{6,	__IP,	"domain-name-servers"},
-	{7,	__IP,	"log-servers"},
-	{8,	__IP,	"cookie-servers"},
-	{9,	__IP,	"lpr-servers"},
-	{10,	__IP,	"impress-servers"},
-	{11,	__IP,	"resource-location-servers"},
-	{12,	__TXT,	"host-name"},
-	{13,	__16,	"boot-size"},
-	{14,	__TXT,	"merit-dump"},
-	{15,	__TXT,	"domain-name"},
-	{16,	__IP,	"swap-server"},
-	{17,	__TXT,	"root-path"},
-	{18,	__TXT,	"extensions-path"},
-	{19,	__8,	"ip-forwarding"},
-	{20,	__8,	"non-local-source-routing"},
-	{21,	__IP,	"policy-filter"},
-	{22,	__16,	"max-dgram-reassembly"},
-	{23,	__8,	"default-ip-ttl"},
-	{24,	__32,	"path-mtu-aging-timeout"},
-	{25,	__16,	"path-mtu-plateau-table"},
-	{26,	__16,	"interface-mtu"},
-	{27,	__8,	"all-subnets-local"},
-	{28,	__IP,	"broadcast-address"},
-	{29,	__8,	"perform-mask-discovery"},
-	{30,	__8,	"mask-supplier"},
-	{31,	__8,	"perform-router-discovery"},
-	{32,	__IP,	"router-solicitation-address"},
-	{33,	__IP,	"static-routes"},
-	{34,	__8,	"trailer-encapsulation"},
-	{35,	__32,	"arp-cache-timeout"},
-	{36,	__8,	"ieee802-3-encapsulation"},
-	{37,	__8,	"default-tcp-ttl"},
-	{38,	__32,	"tcp-keepalive-interval"},
-	{39,	__8,	"tcp-keepalive-garbage"},
-	{40,	__TXT,	"nis-domain"},
-	{41,	__IP,	"nis-servers"},
-	{42,	__IP,	"ntp-servers"},
-	{43,	__VE,	"vendor-encapsulated-options"},
-	{44,	__IP,	"netbios-name-servers"},
-	{45,	__IP,	"netbios-dd-server"},
-	{46,	__8,	"netbios-node-type"},
-	{47,	__TXT,	"netbios-scope"},
-	{48,	__IP,	"x-font-servers"},
-	{49,	__IP,	"x-display-managers"},
-	{50,	__IP,	"dhcp-requested-address"},
-	{51,	__32,	"dhcp-lease-time"},
-	{52,	__8,	"dhcp-option-overload"},
-	{53,	__8,	"dhcp-message-type"},
-	{54,	__IP,	"dhcp-server-identifier"},
-	{55,	__8,	"dhcp-parameter-request-list"},
-	{56,	__TXT,	"dhcp-message"},
-	{57,	__16,	"dhcp-max-message-size"},
-	{58,	__32,	"dhcp-renewal-time"},
-	{59,	__32,	"dhcp-rebinding-time"},
-	{60,	__TXT,	"vendor-class-identifier"},
-	{61,	__TXT,	"dhcp-client-identifier"},
-	{64,	__TXT,	"nisplus-domain"},
-	{65,	__IP,	"nisplus-servers"},
-	{66,	__TXT,	"tftp-server-name"},
-	{67,	__TXT,	"bootfile-name"},
-	{68,	__IP,	"mobile-ip-home-agent"},
-	{69,	__IP,	"smtp-server"},
-	{70,	__IP,	"pop-server"},
-	{71,	__IP,	"nntp-server"},
-	{72,	__IP,	"www-server"},
-	{73,	__IP,	"finger-server"},
-	{74,	__IP,	"irc-server"},
-	{75,	__IP,	"streettalk-server"},
-	{76,	__IP,	"streettalk-directory-assistance-server"},
-	{77,	__TXT,	"user-class"},
-	{85,	__IP,	"nds-servers"},
-	{86,	__TXT,	"nds-tree-name"},
-	{87,	__TXT,	"nds-context"},
-	{210,	__TXT,	"authenticate"},
+	{ 0, 0, "dhcp." }, // prefix
+	{ 1, __IP, "subnet-mask" },
+	{ 2, __32, "time-offset" }, /* this is signed */
+	{ 3, __IP, "routers" }, { 4, __IP, "time-servers" },
+	{ 5, __IP, "ien116-name-servers" }, { 6, __IP, "domain-name-servers" },
+	{ 7, __IP, "log-servers" }, { 8, __IP, "cookie-servers" },
+	{ 9, __IP, "lpr-servers" }, { 10, __IP, "impress-servers" },
+	{ 11, __IP, "resource-location-servers" }, { 12, __TXT, "host-name" },
+	{ 13, __16, "boot-size" }, { 14, __TXT, "merit-dump" },
+	{ 15, __TXT, "domain-name" }, { 16, __IP, "swap-server" },
+	{ 17, __TXT, "root-path" }, { 18, __TXT, "extensions-path" },
+	{ 19, __8, "ip-forwarding" }, { 20, __8, "non-local-source-routing" },
+	{ 21, __IP, "policy-filter" }, { 22, __16, "max-dgram-reassembly" },
+	{ 23, __8, "default-ip-ttl" }, { 24, __32, "path-mtu-aging-timeout" },
+	{ 25, __16, "path-mtu-plateau-table" }, { 26, __16, "interface-mtu" },
+	{ 27, __8, "all-subnets-local" }, { 28, __IP, "broadcast-address" },
+	{ 29, __8, "perform-mask-discovery" }, { 30, __8, "mask-supplier" },
+	{ 31, __8, "perform-router-discovery" },
+	{ 32, __IP, "router-solicitation-address" },
+	{ 33, __IP, "static-routes" }, { 34, __8, "trailer-encapsulation" },
+	{ 35, __32, "arp-cache-timeout" },
+	{ 36, __8, "ieee802-3-encapsulation" }, { 37, __8, "default-tcp-ttl" },
+	{ 38, __32, "tcp-keepalive-interval" },
+	{ 39, __8, "tcp-keepalive-garbage" }, { 40, __TXT, "nis-domain" },
+	{ 41, __IP, "nis-servers" }, { 42, __IP, "ntp-servers" },
+	{ 43, __VE, "vendor-encapsulated-options" },
+	{ 44, __IP, "netbios-name-servers" }, { 45, __IP, "netbios-dd-server" },
+	{ 46, __8, "netbios-node-type" }, { 47, __TXT, "netbios-scope" },
+	{ 48, __IP, "x-font-servers" }, { 49, __IP, "x-display-managers" },
+	{ 50, __IP, "dhcp-requested-address" }, { 51, __32, "dhcp-lease-time" },
+	{ 52, __8, "dhcp-option-overload" }, { 53, __8, "dhcp-message-type" },
+	{ 54, __IP, "dhcp-server-identifier" },
+	{ 55, __8, "dhcp-parameter-request-list" },
+	{ 56, __TXT, "dhcp-message" }, { 57, __16, "dhcp-max-message-size" },
+	{ 58, __32, "dhcp-renewal-time" }, { 59, __32, "dhcp-rebinding-time" },
+	{ 60, __TXT, "vendor-class-identifier" },
+	{ 61, __TXT, "dhcp-client-identifier" },
+	{ 64, __TXT, "nisplus-domain" }, { 65, __IP, "nisplus-servers" },
+	{ 66, __TXT, "tftp-server-name" }, { 67, __TXT, "bootfile-name" },
+	{ 68, __IP, "mobile-ip-home-agent" }, { 69, __IP, "smtp-server" },
+	{ 70, __IP, "pop-server" }, { 71, __IP, "nntp-server" },
+	{ 72, __IP, "www-server" }, { 73, __IP, "finger-server" },
+	{ 74, __IP, "irc-server" }, { 75, __IP, "streettalk-server" },
+	{ 76, __IP, "streettalk-directory-assistance-server" },
+	{ 77, __TXT, "user-class" }, { 85, __IP, "nds-servers" },
+	{ 86, __TXT, "nds-tree-name" }, { 87, __TXT, "nds-context" },
+	{ 210, __TXT, "authenticate" },
 
 	/* use the following entries for arbitrary variables */
-	{246,	__ILIST, ""},
-	{247,	__ILIST, ""},
-	{248,	__ILIST, ""},
-	{249,	__ILIST, ""},
-	{250,	__INDIR, ""},
-	{251,	__INDIR, ""},
-	{252,	__INDIR, ""},
-	{253,	__INDIR, ""},
-	{254,	__INDIR, ""},
-	{0,	__TXT,	"%soption-%d"}
+	{ 246, __ILIST, "" }, { 247, __ILIST, "" }, { 248, __ILIST, "" },
+	{ 249, __ILIST, "" }, { 250, __INDIR, "" }, { 251, __INDIR, "" },
+	{ 252, __INDIR, "" }, { 253, __INDIR, "" }, { 254, __INDIR, "" },
+	{ 0, __TXT, "%soption-%d" }
 };
 
 /*
@@ -634,147 +582,155 @@ static struct dhcp_opt dhcp_opt[] = {
  * to the list of selected tags.
  */
 static void
-setenv_(u_char *cp,  u_char *ep, struct dhcp_opt *opts)
+setenv_(u_char *cp, u_char *ep, struct dhcp_opt *opts)
 {
-    u_char	*ncp;
-    u_char	tag;
-    char	tags[512], *tp;	/* the list of tags */
+	u_char *ncp;
+	u_char tag;
+	char tags[512], *tp; /* the list of tags */
 
-#define FLD_SEP	','	/* separator in list of elements */
-    ncp = cp;
-    tp = tags;
-    if (opts == NULL)
-	opts = dhcp_opt;
+#define FLD_SEP ',' /* separator in list of elements */
+	ncp = cp;
+	tp = tags;
+	if (opts == NULL)
+		opts = dhcp_opt;
 
-    while (ncp < ep) {
-	unsigned int	size;		/* option size */
-	char *vp, *endv, buf[256];	/* the value buffer */
-	struct dhcp_opt *op;
+	while (ncp < ep) {
+		unsigned int size;	   /* option size */
+		char *vp, *endv, buf[256]; /* the value buffer */
+		struct dhcp_opt *op;
 
-	tag = *ncp++;			/* extract tag and size */
-	size = *ncp++;
-	cp = ncp;			/* current payload */
-	ncp += size;			/* point to the next option */
+		tag = *ncp++; /* extract tag and size */
+		size = *ncp++;
+		cp = ncp;    /* current payload */
+		ncp += size; /* point to the next option */
 
-	if (tag == TAG_END)
-	    break;
-	if (tag == 0)
-	    continue;
+		if (tag == TAG_END)
+			break;
+		if (tag == 0)
+			continue;
 
-	for (op = opts+1; op->tag && op->tag != tag; op++)
-		;
-	/* if not found we end up on the default entry */
+		for (op = opts + 1; op->tag && op->tag != tag; op++)
+			;
+		/* if not found we end up on the default entry */
 
-	/*
-	 * Copy data into the buffer. While the code uses snprintf, it's also
-	 * careful never to insert strings that would be truncated. inet_ntoa is
-	 * tricky to know the size, so it assumes we can always insert it
-	 * because we reserve 16 bytes at the end of the string for its worst
-	 * case. Other cases are covered because they will write fewer than
-	 * these reserved bytes at the end. Source strings can't overflow (as
-	 * noted below) because buf is 256 bytes and all strings are limited by
-	 * the protocol to be 256 bytes or smaller.
-	 */
-	vp = buf;
-	*vp = '\0';
-	endv = buf + sizeof(buf) - 1 - 16;	/* last valid write position */
+		/*
+		 * Copy data into the buffer. While the code uses snprintf, it's
+		 * also careful never to insert strings that would be truncated.
+		 * inet_ntoa is tricky to know the size, so it assumes we can
+		 * always insert it because we reserve 16 bytes at the end of
+		 * the string for its worst case. Other cases are covered
+		 * because they will write fewer than these reserved bytes at
+		 * the end. Source strings can't overflow (as noted below)
+		 * because buf is 256 bytes and all strings are limited by the
+		 * protocol to be 256 bytes or smaller.
+		 */
+		vp = buf;
+		*vp = '\0';
+		endv = buf + sizeof(buf) - 1 -
+		    16; /* last valid write position */
 
-	switch(op->fmt) {
-	case __NONE:
-	    break;	/* should not happen */
+		switch (op->fmt) {
+		case __NONE:
+			break; /* should not happen */
 
-	case __VE: /* recurse, vendor specific */
-	    setenv_(cp, cp+size, vndr_opt);
-	    break;
+		case __VE: /* recurse, vendor specific */
+			setenv_(cp, cp + size, vndr_opt);
+			break;
 
-	case __IP:	/* ip address */
-	    for (; size > 0 && vp < endv; size -= 4, cp += 4) {
-		struct	in_addr in_ip;		/* ip addresses */
-		if (vp != buf)
-		    *vp++ = FLD_SEP;
-		bcopy(cp, &in_ip.s_addr, sizeof(in_ip.s_addr));
-		snprintf(vp, endv - vp, "%s", inet_ntoa(in_ip));
-		vp += strlen(vp);
-	    }
-	    break;
+		case __IP: /* ip address */
+			for (; size > 0 && vp < endv; size -= 4, cp += 4) {
+				struct in_addr in_ip; /* ip addresses */
+				if (vp != buf)
+					*vp++ = FLD_SEP;
+				bcopy(cp, &in_ip.s_addr, sizeof(in_ip.s_addr));
+				snprintf(vp, endv - vp, "%s", inet_ntoa(in_ip));
+				vp += strlen(vp);
+			}
+			break;
 
-	case __BYTES:	/* opaque byte string */
-	    for (; size > 0 && vp < endv; size -= 1, cp += 1) {
-		snprintf(vp, endv - vp, "%02x", *cp);
-		vp += strlen(vp);
-	    }
-	    break;
+		case __BYTES: /* opaque byte string */
+			for (; size > 0 && vp < endv; size -= 1, cp += 1) {
+				snprintf(vp, endv - vp, "%02x", *cp);
+				vp += strlen(vp);
+			}
+			break;
 
-	case __TXT:
-	    bcopy(cp, buf, size);	/* cannot overflow */
-	    buf[size] = 0;
-	    break;
+		case __TXT:
+			bcopy(cp, buf, size); /* cannot overflow */
+			buf[size] = 0;
+			break;
 
-	case __32:
-	case __16:
-	case __8:	/* op->fmt is also the length of each field */
-	    for (; size > 0 && vp < endv; size -= op->fmt, cp += op->fmt) {
-		uint32_t v;
-		if (op->fmt == __32)
-			v = (cp[0]<<24) + (cp[1]<<16) + (cp[2]<<8) + cp[3];
-		else if (op->fmt == __16)
-			v = (cp[0]<<8) + cp[1];
-		else
-			v = cp[0];
-		if (vp != buf)
-		    *vp++ = FLD_SEP;
-		snprintf(vp, endv - vp, "%u", v);
-		vp += strlen(vp);
-	    }
-	    break;
+		case __32:
+		case __16:
+		case __8: /* op->fmt is also the length of each field */
+			for (; size > 0 && vp < endv;
+			     size -= op->fmt, cp += op->fmt) {
+				uint32_t v;
+				if (op->fmt == __32)
+					v = (cp[0] << 24) + (cp[1] << 16) +
+					    (cp[2] << 8) + cp[3];
+				else if (op->fmt == __16)
+					v = (cp[0] << 8) + cp[1];
+				else
+					v = cp[0];
+				if (vp != buf)
+					*vp++ = FLD_SEP;
+				snprintf(vp, endv - vp, "%u", v);
+				vp += strlen(vp);
+			}
+			break;
 
-	case __INDIR:	/* name=value */
-	case __ILIST:	/* name=value;name=value... */
-	    bcopy(cp, buf, size);	/* cannot overflow */
-	    buf[size] = '\0';
-	    for (endv = buf; endv; endv = vp) {
-		char *s = NULL;	/* semicolon ? */
+		case __INDIR:		      /* name=value */
+		case __ILIST:		      /* name=value;name=value... */
+			bcopy(cp, buf, size); /* cannot overflow */
+			buf[size] = '\0';
+			for (endv = buf; endv; endv = vp) {
+				char *s = NULL; /* semicolon ? */
 
-		/* skip leading whitespace */
-		while (*endv && strchr(" \t\n\r", *endv))
-		    endv++;
-		vp = strchr(endv, '=');	/* find name=value separator */
-		if (!vp)
-		    break;
-		*vp++ = 0;
-		if (op->fmt == __ILIST && (s = strchr(vp, ';')))
-		    *s++ = '\0';
-		setenv(endv, vp, 1);
-		vp = s;	/* prepare for next round */
-	    }
-	    buf[0] = '\0';	/* option already done */
-	    break;
+				/* skip leading whitespace */
+				while (*endv && strchr(" \t\n\r", *endv))
+					endv++;
+				vp = strchr(endv,
+				    '='); /* find name=value separator */
+				if (!vp)
+					break;
+				*vp++ = 0;
+				if (op->fmt == __ILIST && (s = strchr(vp, ';')))
+					*s++ = '\0';
+				setenv(endv, vp, 1);
+				vp = s; /* prepare for next round */
+			}
+			buf[0] = '\0'; /* option already done */
+			break;
+		}
+
+		if (tp - tags < sizeof(tags) - 5) { /* add tag to the list */
+			if (tp != tags)
+				*tp++ = FLD_SEP;
+			snprintf(tp, sizeof(tags) - (tp - tags), "%d", tag);
+			tp += strlen(tp);
+		}
+		if (buf[0]) {
+			char env[128]; /* the string name */
+
+			if (op->tag == 0)
+				snprintf(env, sizeof(env), op->desc,
+				    opts[0].desc, tag);
+			else
+				snprintf(env, sizeof(env), "%s%s", opts[0].desc,
+				    op->desc);
+			/*
+			 * Do not replace existing values in the environment, so
+			 * that locally-obtained values can override
+			 * server-provided values.
+			 */
+			setenv(env, buf, 0);
+		}
 	}
-
-	if (tp - tags < sizeof(tags) - 5) {	/* add tag to the list */
-	    if (tp != tags)
-		*tp++ = FLD_SEP;
-	    snprintf(tp, sizeof(tags) - (tp - tags), "%d", tag);
-	    tp += strlen(tp);
+	if (tp != tags) {
+		char env[128]; /* the string name */
+		snprintf(env, sizeof(env), "%stags", opts[0].desc);
+		setenv(env, tags, 1);
 	}
-	if (buf[0]) {
-	    char	env[128];	/* the string name */
-
-	    if (op->tag == 0)
-		snprintf(env, sizeof(env), op->desc, opts[0].desc, tag);
-	    else
-		snprintf(env, sizeof(env), "%s%s", opts[0].desc, op->desc);
-	    /*
-	     * Do not replace existing values in the environment, so that
-	     * locally-obtained values can override server-provided values.
-	     */
-	    setenv(env, buf, 0);
-	}
-    }
-    if (tp != tags) {
-	char	env[128];	/* the string name */
-	snprintf(env, sizeof(env), "%stags", opts[0].desc);
-	setenv(env, tags, 1);
-    }
 }
 #endif /* additional dhcp */

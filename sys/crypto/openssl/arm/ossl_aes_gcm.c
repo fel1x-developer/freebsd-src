@@ -8,19 +8,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
+#include <sys/endian.h>
 
-#include <crypto/openssl/ossl.h>
-#include <crypto/openssl/ossl_arm.h>
-#include <crypto/openssl/ossl_aes_gcm.h>
-#include <crypto/openssl/ossl_cipher.h>
 #include <crypto/openssl/arm_arch.h>
-
+#include <crypto/openssl/ossl.h>
+#include <crypto/openssl/ossl_aes_gcm.h>
+#include <crypto/openssl/ossl_arm.h>
+#include <crypto/openssl/ossl_cipher.h>
 #include <opencrypto/cryptodev.h>
 
-_Static_assert(
-    sizeof(struct ossl_gcm_context) <= sizeof(struct ossl_cipher_context),
+_Static_assert(sizeof(struct ossl_gcm_context) <=
+	sizeof(struct ossl_cipher_context),
     "ossl_gcm_context too large");
 
 void AES_encrypt(const void *in, void *out, const void *ks);
@@ -185,7 +184,8 @@ gcm_encrypt(struct ossl_gcm_context *ctx, const unsigned char *in,
 	n = mres % 16;
 	if (n) {
 		while (n && len) {
-			ctx->gcm.Xi.c[n] ^= *(out++) = *(in++) ^ ctx->gcm.EKi.c[n];
+			ctx->gcm.Xi.c[n] ^= *(out++) = *(in++) ^
+			    ctx->gcm.EKi.c[n];
 			--len;
 			n = (n + 1) % 16;
 		}
@@ -228,7 +228,8 @@ gcm_encrypt(struct ossl_gcm_context *ctx, const unsigned char *in,
 		ctx->gcm.Yi.d[3] = ctr;
 #endif
 		while (len--) {
-			ctx->gcm.Xi.c[mres++] ^= out[n] = in[n] ^ ctx->gcm.EKi.c[n];
+			ctx->gcm.Xi.c[mres++] ^= out[n] = in[n] ^
+			    ctx->gcm.EKi.c[n];
 			++n;
 		}
 	}

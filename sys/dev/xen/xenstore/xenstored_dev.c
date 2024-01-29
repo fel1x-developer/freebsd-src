@@ -24,27 +24,26 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
 #include <sys/cdefs.h>
-#include <sys/errno.h>
-#include <sys/uio.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/conf.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/conf.h>
 #include <sys/module.h>
-
-#include <xen/xen-os.h>
-
-#include <xen/hypervisor.h>
-#include <xen/xenstore/xenstorevar.h>
+#include <sys/proc.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#define XSD_READ_SIZE		20
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xenstore/xenstorevar.h>
+
+#define XSD_READ_SIZE 20
 
 static int xsd_dev_read(struct cdev *dev, struct uio *uio, int ioflag);
 static int xsd_dev_mmap(struct cdev *dev, vm_ooffset_t offset,
@@ -115,7 +114,7 @@ xsd_dev_identify(driver_t *driver, device_t parent)
  *
  * \return  Always returns 0 indicating success.
  */
-static int 
+static int
 xsd_dev_probe(device_t dev)
 {
 
@@ -147,9 +146,9 @@ xsd_dev_attach(device_t dev)
 /*-------------------- Private Device Attachment Data  -----------------------*/
 static device_method_t xsd_dev_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	xsd_dev_identify),
-	DEVMETHOD(device_probe,         xsd_dev_probe),
-	DEVMETHOD(device_attach,        xsd_dev_attach),
+	DEVMETHOD(device_identify, xsd_dev_identify),
+	DEVMETHOD(device_probe, xsd_dev_probe),
+	DEVMETHOD(device_attach, xsd_dev_attach),
 
 	DEVMETHOD_END
 };

@@ -31,13 +31,12 @@
 #include "math.h"
 #include "math_private.h"
 
-#define	MANT_DIG	FLT_MANT_DIG
-#define	MAX_EXP		FLT_MAX_EXP
-#define	MIN_EXP		FLT_MIN_EXP
+#define MANT_DIG FLT_MANT_DIG
+#define MAX_EXP FLT_MAX_EXP
+#define MIN_EXP FLT_MIN_EXP
 
-static const float
-ln2f_hi =  6.9314575195e-1,		/*  0xb17200.0p-24 */
-ln2f_lo =  1.4286067653e-6;		/*  0xbfbe8e.0p-43 */
+static const float ln2f_hi = 6.9314575195e-1, /*  0xb17200.0p-24 */
+    ln2f_lo = 1.4286067653e-6;		      /*  0xbfbe8e.0p-43 */
 
 float complex
 clogf(float complex z)
@@ -82,14 +81,16 @@ clogf(float complex z)
 	/* Avoid overflow. */
 	if (kx >= MAX_EXP - 1)
 		return (CMPLXF(logf(hypotf(x * 0x1p-126F, y * 0x1p-126F)) +
-		    (MAX_EXP - 2) * ln2f_lo + (MAX_EXP - 2) * ln2f_hi, v));
+			(MAX_EXP - 2) * ln2f_lo + (MAX_EXP - 2) * ln2f_hi,
+		    v));
 	if (kx >= (MAX_EXP - 1) / 2)
 		return (CMPLXF(logf(hypotf(x, y)), v));
 
 	/* Reduce inaccuracies and avoid underflow when ax is denormal. */
 	if (kx <= MIN_EXP - 2)
 		return (CMPLXF(logf(hypotf(x * 0x1p127F, y * 0x1p127F)) +
-		    (MIN_EXP - 2) * ln2f_lo + (MIN_EXP - 2) * ln2f_hi, v));
+			(MIN_EXP - 2) * ln2f_lo + (MIN_EXP - 2) * ln2f_hi,
+		    v));
 
 	/* Avoid remaining underflows (when ax is small but not denormal). */
 	if (ky < (MIN_EXP - 1) / 2 + MANT_DIG)

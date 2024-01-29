@@ -103,7 +103,8 @@ search(bool one, bool quiet, FILE *in)
 	found = false;
 
 	while ((c = getc(in)) != EOF) {
-loop:		if (c != '@')
+	loop:
+		if (c != '@')
 			continue;
 		if ((c = getc(in)) != '(')
 			goto loop;
@@ -113,8 +114,8 @@ loop:		if (c != '@')
 			goto loop;
 		if (!quiet)
 			putchar('\t');
-		while ((c = getc(in)) != EOF && c && c != '"' &&
-		    c != '>' && c != '\\' && c != '\n')
+		while ((c = getc(in)) != EOF && c && c != '"' && c != '>' &&
+		    c != '\\' && c != '\n')
 			putchar(c);
 		putchar('\n');
 		found = true;

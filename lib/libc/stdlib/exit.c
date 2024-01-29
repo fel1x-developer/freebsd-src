@@ -29,13 +29,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdlib.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "atexit.h"
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 void (*__cleanup)(void);
 
@@ -46,7 +46,7 @@ void (*__cleanup)(void);
  * thread-safe, but without a (significant) penalty to non-threaded
  * processes.
  */
-int	__isthreaded	= 0;
+int __isthreaded = 0;
 
 /*
  * Exit, flushing stdio buffers if necessary.
@@ -60,9 +60,9 @@ exit(int status)
 	_thread_autoinit_dummy_decl = 1;
 
 	/*
-	 * We're dealing with cleaning up thread_local destructors in the case of
-	 * the process termination through main() exit.
-	 * Other cases are handled elsewhere.
+	 * We're dealing with cleaning up thread_local destructors in the case
+	 * of the process termination through main() exit. Other cases are
+	 * handled elsewhere.
 	 */
 	__cxa_thread_call_dtors();
 	__cxa_finalize(NULL);

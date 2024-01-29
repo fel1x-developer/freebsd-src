@@ -30,11 +30,13 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <pthread.h>
-#include "un-namespace.h"
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_getprio, pthread_getprio);
 

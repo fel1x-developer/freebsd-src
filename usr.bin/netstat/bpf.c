@@ -27,27 +27,27 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/protosw.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/param.h>
 #include <sys/user.h>
 
-#include <net/if.h>
 #include <net/bpf.h>
 #include <net/bpfdesc.h>
-#include <arpa/inet.h>
+#include <net/if.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
+#include <libxo/xo.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <libxo/xo.h>
 
 #include "netstat.h"
 
@@ -80,7 +80,8 @@ bpf_flags(struct xbpf_d *bd, char *flagbuf)
 	*flagbuf++ = bd->bd_promisc ? 'p' : '-';
 	*flagbuf++ = bd->bd_immediate ? 'i' : '-';
 	*flagbuf++ = bd->bd_hdrcmplt ? '-' : 'f';
-	*flagbuf++ = (bd->bd_direction == BPF_D_IN) ? '-' :
+	*flagbuf++ = (bd->bd_direction == BPF_D_IN) ?
+	    '-' :
 	    ((bd->bd_direction == BPF_D_OUT) ? 'o' : 's');
 	*flagbuf++ = bd->bd_feedback ? 'b' : '-';
 	*flagbuf++ = bd->bd_async ? 'a' : '-';
@@ -93,8 +94,10 @@ bpf_flags(struct xbpf_d *bd, char *flagbuf)
 		xo_emit("{e:immediate/}");
 	if (bd->bd_hdrcmplt)
 		xo_emit("{e:header-complete/}");
-	xo_emit("{e:direction}", (bd->bd_direction == BPF_D_IN) ? "input" :
-	    (bd->bd_direction == BPF_D_OUT) ? "output" : "bidirectional");
+	xo_emit("{e:direction}",
+	    (bd->bd_direction == BPF_D_IN)	? "input" :
+		(bd->bd_direction == BPF_D_OUT) ? "output" :
+						  "bidirectional");
 	if (bd->bd_feedback)
 		xo_emit("{e:feedback/}");
 	if (bd->bd_async)
@@ -112,13 +115,12 @@ bpf_stats(char *ifname)
 
 	if (zflag) {
 		bzero(&zerostat, sizeof(zerostat));
-		if (sysctlbyname("net.bpf.stats", NULL, NULL,
-		    &zerostat, sizeof(zerostat)) < 0)
+		if (sysctlbyname("net.bpf.stats", NULL, NULL, &zerostat,
+			sizeof(zerostat)) < 0)
 			xo_warn("failed to zero bpf counters");
 		return;
 	}
-	if (sysctlbyname("net.bpf.stats", NULL, &size,
-	    NULL, 0) < 0) {
+	if (sysctlbyname("net.bpf.stats", NULL, &size, NULL, 0) < 0) {
 		xo_warn("net.bpf.stats");
 		return;
 	}
@@ -129,16 +131,15 @@ bpf_stats(char *ifname)
 		xo_warn("malloc failed");
 		return;
 	}
-	if (sysctlbyname("net.bpf.stats", bd, &size,
-	    NULL, 0) < 0) {
+	if (sysctlbyname("net.bpf.stats", bd, &size, NULL, 0) < 0) {
 		xo_warn("net.bpf.stats");
 		free(bd);
 		return;
 	}
 	xo_emit("{T:/%5s} {T:/%6s} {T:/%7s} {T:/%9s} {T:/%9s} {T:/%9s} "
-	    "{T:/%5s} {T:/%5s} {T:/%s}\n",
-	    "Pid", "Netif", "Flags", "Recv", "Drop", "Match",
-	    "Sblen", "Hblen", "Command");
+		"{T:/%5s} {T:/%5s} {T:/%s}\n",
+	    "Pid", "Netif", "Flags", "Recv", "Drop", "Match", "Sblen", "Hblen",
+	    "Command");
 	xo_open_container("bpf-statistics");
 	xo_open_list("bpf-entry");
 	for (d = &bd[0]; d < &bd[size / sizeof(*d)]; d++) {
@@ -150,13 +151,13 @@ bpf_stats(char *ifname)
 			continue;
 		xo_open_instance("bpf-entry");
 		pname = bpf_pidname(d->bd_pid);
-		xo_emit("{k:pid/%5d} {k:interface-name/%6s} ",
-		    d->bd_pid, d->bd_ifname);
+		xo_emit("{k:pid/%5d} {k:interface-name/%6s} ", d->bd_pid,
+		    d->bd_ifname);
 		bpf_flags(d, flagbuf);
 		xo_emit("{d:flags/%7s} {:received-packets/%9ju} "
-		    "{:dropped-packets/%9ju} {:filter-packets/%9ju} "
-		    "{:store-buffer-length/%5d} {:hold-buffer-length/%5d} "
-		    "{:process/%s}\n",
+			"{:dropped-packets/%9ju} {:filter-packets/%9ju} "
+			"{:store-buffer-length/%5d} {:hold-buffer-length/%5d} "
+			"{:process/%s}\n",
 		    flagbuf, (uintmax_t)d->bd_rcount, (uintmax_t)d->bd_dcount,
 		    (uintmax_t)d->bd_fcount, d->bd_slen, d->bd_hlen, pname);
 		free(pname);

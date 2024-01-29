@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <float.h>
 #include <math.h>
@@ -49,74 +50,78 @@
  * These are macros instead of functions so that assert provides more
  * meaningful error messages.
  */
-#define	test_tol(func, x, result, tol, excepts) do {			\
-	volatile long double _in = (x), _out = (result);		\
-	ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));		\
-	CHECK_FPEQUAL_TOL(func(_in), _out, (tol), CS_BOTH);		\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, ALL_STD_EXCEPT, "for %s(%s)",	\
-	    #func, #x);							\
-} while (0)
-#define test(func, x, result, excepts)					\
+#define test_tol(func, x, result, tol, excepts)                                \
+	do {                                                                   \
+		volatile long double _in = (x), _out = (result);               \
+		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));               \
+		CHECK_FPEQUAL_TOL(func(_in), _out, (tol), CS_BOTH);            \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, ALL_STD_EXCEPT, "for %s(%s)", \
+		    #func, #x);                                                \
+	} while (0)
+#define test(func, x, result, excepts) \
 	test_tol(func, (x), (result), 0, (excepts))
 
-#define	_testall_tol(prefix, x, result, tol, excepts) do {		\
-	test_tol(prefix, (double)(x), (double)(result),			\
-		 (tol) * ldexp(1.0, 1 - DBL_MANT_DIG), (excepts));	\
-	test_tol(prefix##f, (float)(x), (float)(result),		\
-		 (tol) * ldexpf(1.0, 1 - FLT_MANT_DIG), (excepts));	\
-} while (0)
+#define _testall_tol(prefix, x, result, tol, excepts)                  \
+	do {                                                           \
+		test_tol(prefix, (double)(x), (double)(result),        \
+		    (tol) * ldexp(1.0, 1 - DBL_MANT_DIG), (excepts));  \
+		test_tol(prefix##f, (float)(x), (float)(result),       \
+		    (tol) * ldexpf(1.0, 1 - FLT_MANT_DIG), (excepts)); \
+	} while (0)
 
 #ifdef __i386__
-#define	testall_tol	_testall_tol
+#define testall_tol _testall_tol
 #else
-#define	testall_tol(prefix, x, result, tol, excepts) do {		\
-	_testall_tol(prefix, x, result, tol, excepts);			\
-	test_tol(prefix##l, (x), (result),				\
-		 (tol) * ldexpl(1.0, 1 - LDBL_MANT_DIG), (excepts));	\
-} while (0)
+#define testall_tol(prefix, x, result, tol, excepts)                    \
+	do {                                                            \
+		_testall_tol(prefix, x, result, tol, excepts);          \
+		test_tol(prefix##l, (x), (result),                      \
+		    (tol) * ldexpl(1.0, 1 - LDBL_MANT_DIG), (excepts)); \
+	} while (0)
 #endif
 
-#define testall(prefix, x, result, excepts)				\
+#define testall(prefix, x, result, excepts) \
 	testall_tol(prefix, (x), (result), 0, (excepts))
 
-#define	test2_tol(func, y, x, result, tol, excepts) do {		\
-	volatile long double _iny = (y), _inx = (x), _out = (result);	\
-	ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));		\
-	CHECK_FPEQUAL_TOL(func(_iny, _inx), _out, (tol), CS_BOTH);	\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, ALL_STD_EXCEPT, "for %s(%s)",	\
-	    #func, #x);							\
-} while (0)
-#define test2(func, y, x, result, excepts)				\
+#define test2_tol(func, y, x, result, tol, excepts)                            \
+	do {                                                                   \
+		volatile long double _iny = (y), _inx = (x), _out = (result);  \
+		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));               \
+		CHECK_FPEQUAL_TOL(func(_iny, _inx), _out, (tol), CS_BOTH);     \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, ALL_STD_EXCEPT, "for %s(%s)", \
+		    #func, #x);                                                \
+	} while (0)
+#define test2(func, y, x, result, excepts) \
 	test2_tol(func, (y), (x), (result), 0, (excepts))
 
-#define	_testall2_tol(prefix, y, x, result, tol, excepts) do {		\
-	test2_tol(prefix, (double)(y), (double)(x), (double)(result),	\
-		  (tol) * ldexp(1.0, 1 - DBL_MANT_DIG), (excepts));	\
-	test2_tol(prefix##f, (float)(y), (float)(x), (float)(result),	\
-		  (tol) * ldexpf(1.0, 1 - FLT_MANT_DIG), (excepts));	\
-} while (0)
+#define _testall2_tol(prefix, y, x, result, tol, excepts)                     \
+	do {                                                                  \
+		test2_tol(prefix, (double)(y), (double)(x), (double)(result), \
+		    (tol) * ldexp(1.0, 1 - DBL_MANT_DIG), (excepts));         \
+		test2_tol(prefix##f, (float)(y), (float)(x), (float)(result), \
+		    (tol) * ldexpf(1.0, 1 - FLT_MANT_DIG), (excepts));        \
+	} while (0)
 
 #ifdef __i386__
-#define	testall2_tol	_testall2_tol
+#define testall2_tol _testall2_tol
 #else
-#define	testall2_tol(prefix, y, x, result, tol, excepts) do {		\
-	_testall2_tol(prefix, y, x, result, tol, excepts);		\
-	test2_tol(prefix##l, (y), (x), (result),			\
-		  (tol) * ldexpl(1.0, 1 - LDBL_MANT_DIG), (excepts));	\
-} while (0)
+#define testall2_tol(prefix, y, x, result, tol, excepts)                \
+	do {                                                            \
+		_testall2_tol(prefix, y, x, result, tol, excepts);      \
+		test2_tol(prefix##l, (y), (x), (result),                \
+		    (tol) * ldexpl(1.0, 1 - LDBL_MANT_DIG), (excepts)); \
+	} while (0)
 #endif
 
-#define testall2(prefix, y, x, result, excepts)				\
+#define testall2(prefix, y, x, result, excepts) \
 	testall2_tol(prefix, (y), (x), (result), 0, (excepts))
 
-static long double
-pi =   3.14159265358979323846264338327950280e+00L,
-pio3 = 1.04719755119659774615421446109316766e+00L,
-c3pi = 9.42477796076937971538793014983850839e+00L,
-c7pi = 2.19911485751285526692385036829565196e+01L,
-c5pio3 = 5.23598775598298873077107230546583851e+00L,
-sqrt2m1 = 4.14213562373095048801688724209698081e-01L;
-
+static long double pi = 3.14159265358979323846264338327950280e+00L,
+		   pio3 = 1.04719755119659774615421446109316766e+00L,
+		   c3pi = 9.42477796076937971538793014983850839e+00L,
+		   c7pi = 2.19911485751285526692385036829565196e+01L,
+		   c5pio3 = 5.23598775598298873077107230546583851e+00L,
+		   sqrt2m1 = 4.14213562373095048801688724209698081e-01L;
 
 /*
  * Test special case inputs in asin(), acos() and atan(): signed
@@ -201,29 +206,36 @@ ATF_TC_BODY(special_atan2, tc)
 	/* Tests with one input in the range (0, Inf). */
 	for (e = FLT_MIN_EXP - FLT_MANT_DIG; e <= FLT_MAX_EXP - 1; e++) {
 		test2(atan2f, ldexpf(z, e), INFINITY, 0.0, 0);
-		test2(atan2f, ldexpf(-z,e), INFINITY, -0.0, 0);
+		test2(atan2f, ldexpf(-z, e), INFINITY, -0.0, 0);
 		test2(atan2f, ldexpf(z, e), -INFINITY, (float)pi, FE_INEXACT);
-		test2(atan2f, ldexpf(-z,e), -INFINITY, (float)-pi, FE_INEXACT);
-		test2(atan2f, INFINITY, ldexpf(z,e), (float)pi/2, FE_INEXACT);
-		test2(atan2f, INFINITY, ldexpf(-z,e), (float)pi/2, FE_INEXACT);
-		test2(atan2f, -INFINITY, ldexpf(z,e), (float)-pi/2,FE_INEXACT);
-		test2(atan2f, -INFINITY, ldexpf(-z,e),(float)-pi/2,FE_INEXACT);
+		test2(atan2f, ldexpf(-z, e), -INFINITY, (float)-pi, FE_INEXACT);
+		test2(atan2f, INFINITY, ldexpf(z, e), (float)pi / 2,
+		    FE_INEXACT);
+		test2(atan2f, INFINITY, ldexpf(-z, e), (float)pi / 2,
+		    FE_INEXACT);
+		test2(atan2f, -INFINITY, ldexpf(z, e), (float)-pi / 2,
+		    FE_INEXACT);
+		test2(atan2f, -INFINITY, ldexpf(-z, e), (float)-pi / 2,
+		    FE_INEXACT);
 	}
 	for (e = DBL_MIN_EXP - DBL_MANT_DIG; e <= DBL_MAX_EXP - 1; e++) {
 		test2(atan2, ldexp(z, e), INFINITY, 0.0, 0);
-		test2(atan2, ldexp(-z,e), INFINITY, -0.0, 0);
+		test2(atan2, ldexp(-z, e), INFINITY, -0.0, 0);
 		test2(atan2, ldexp(z, e), -INFINITY, (double)pi, FE_INEXACT);
-		test2(atan2, ldexp(-z,e), -INFINITY, (double)-pi, FE_INEXACT);
-		test2(atan2, INFINITY, ldexp(z,e), (double)pi/2, FE_INEXACT);
-		test2(atan2, INFINITY, ldexp(-z,e), (double)pi/2, FE_INEXACT);
-		test2(atan2, -INFINITY, ldexp(z,e), (double)-pi/2,FE_INEXACT);
-		test2(atan2, -INFINITY, ldexp(-z,e),(double)-pi/2,FE_INEXACT);
+		test2(atan2, ldexp(-z, e), -INFINITY, (double)-pi, FE_INEXACT);
+		test2(atan2, INFINITY, ldexp(z, e), (double)pi / 2, FE_INEXACT);
+		test2(atan2, INFINITY, ldexp(-z, e), (double)pi / 2,
+		    FE_INEXACT);
+		test2(atan2, -INFINITY, ldexp(z, e), (double)-pi / 2,
+		    FE_INEXACT);
+		test2(atan2, -INFINITY, ldexp(-z, e), (double)-pi / 2,
+		    FE_INEXACT);
 	}
 	for (e = LDBL_MIN_EXP - LDBL_MANT_DIG; e <= LDBL_MAX_EXP - 1; e++) {
 		test2(atan2l, ldexpl(z, e), INFINITY, 0.0, 0);
-		test2(atan2l, ldexpl(-z,e), INFINITY, -0.0, 0);
+		test2(atan2l, ldexpl(-z, e), INFINITY, -0.0, 0);
 		test2(atan2l, ldexpl(z, e), -INFINITY, pi, FE_INEXACT);
-		test2(atan2l, ldexpl(-z,e), -INFINITY, -pi, FE_INEXACT);
+		test2(atan2l, ldexpl(-z, e), -INFINITY, -pi, FE_INEXACT);
 		test2(atan2l, INFINITY, ldexpl(z, e), pi / 2, FE_INEXACT);
 		test2(atan2l, INFINITY, ldexpl(-z, e), pi / 2, FE_INEXACT);
 		test2(atan2l, -INFINITY, ldexpl(z, e), -pi / 2, FE_INEXACT);
@@ -313,19 +325,19 @@ ATF_TC_BODY(tiny, tc)
 	test2(atan2f, 0x1.0p-100, 0x1.0p100, 0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2, 0x1.0p-1000, 0x1.0p1000, 0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2l, ldexpl(1.0, 100 - LDBL_MAX_EXP),
-	      ldexpl(1.0, LDBL_MAX_EXP - 100), 0.0, FE_INEXACT | FE_UNDERFLOW);
+	    ldexpl(1.0, LDBL_MAX_EXP - 100), 0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2f, -0x1.0p-100, 0x1.0p100, -0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2, -0x1.0p-1000, 0x1.0p1000, -0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2l, -ldexpl(1.0, 100 - LDBL_MAX_EXP),
-	      ldexpl(1.0, LDBL_MAX_EXP - 100), -0.0, FE_INEXACT | FE_UNDERFLOW);
+	    ldexpl(1.0, LDBL_MAX_EXP - 100), -0.0, FE_INEXACT | FE_UNDERFLOW);
 	test2(atan2f, 0x1.0p-100, -0x1.0p100, (float)pi, FE_INEXACT);
 	test2(atan2, 0x1.0p-1000, -0x1.0p1000, (double)pi, FE_INEXACT);
 	test2(atan2l, ldexpl(1.0, 100 - LDBL_MAX_EXP),
-	      -ldexpl(1.0, LDBL_MAX_EXP - 100), pi, FE_INEXACT);
+	    -ldexpl(1.0, LDBL_MAX_EXP - 100), pi, FE_INEXACT);
 	test2(atan2f, -0x1.0p-100, -0x1.0p100, (float)-pi, FE_INEXACT);
 	test2(atan2, -0x1.0p-1000, -0x1.0p1000, (double)-pi, FE_INEXACT);
 	test2(atan2l, -ldexpl(1.0, 100 - LDBL_MAX_EXP),
-	      -ldexpl(1.0, LDBL_MAX_EXP - 100), -pi, FE_INEXACT);
+	    -ldexpl(1.0, LDBL_MAX_EXP - 100), -pi, FE_INEXACT);
 }
 
 /*
@@ -343,20 +355,20 @@ ATF_TC_BODY(atan_huge, tc)
 	test2(atan2f, 0x1.0p100, 0x1.0p-100, (float)pi / 2, FE_INEXACT);
 	test2(atan2, 0x1.0p1000, 0x1.0p-1000, (double)pi / 2, FE_INEXACT);
 	test2(atan2l, ldexpl(1.0, LDBL_MAX_EXP - 100),
-	      ldexpl(1.0, 100 - LDBL_MAX_EXP), pi / 2, FE_INEXACT);
+	    ldexpl(1.0, 100 - LDBL_MAX_EXP), pi / 2, FE_INEXACT);
 	test2(atan2f, -0x1.0p100, 0x1.0p-100, (float)-pi / 2, FE_INEXACT);
 	test2(atan2, -0x1.0p1000, 0x1.0p-1000, (double)-pi / 2, FE_INEXACT);
 	test2(atan2l, -ldexpl(1.0, LDBL_MAX_EXP - 100),
-	      ldexpl(1.0, 100 - LDBL_MAX_EXP), -pi / 2, FE_INEXACT);
+	    ldexpl(1.0, 100 - LDBL_MAX_EXP), -pi / 2, FE_INEXACT);
 
 	test2(atan2f, 0x1.0p100, -0x1.0p-100, (float)pi / 2, FE_INEXACT);
 	test2(atan2, 0x1.0p1000, -0x1.0p-1000, (double)pi / 2, FE_INEXACT);
 	test2(atan2l, ldexpl(1.0, LDBL_MAX_EXP - 100),
-	      -ldexpl(1.0, 100 - LDBL_MAX_EXP), pi / 2, FE_INEXACT);
+	    -ldexpl(1.0, 100 - LDBL_MAX_EXP), pi / 2, FE_INEXACT);
 	test2(atan2f, -0x1.0p100, -0x1.0p-100, (float)-pi / 2, FE_INEXACT);
 	test2(atan2, -0x1.0p1000, -0x1.0p-1000, (double)-pi / 2, FE_INEXACT);
 	test2(atan2l, -ldexpl(1.0, LDBL_MAX_EXP - 100),
-	      -ldexpl(1.0, 100 - LDBL_MAX_EXP), -pi / 2, FE_INEXACT);
+	    -ldexpl(1.0, 100 - LDBL_MAX_EXP), -pi / 2, FE_INEXACT);
 }
 
 /*

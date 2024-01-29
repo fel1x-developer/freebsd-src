@@ -29,12 +29,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <math.h>
+#include <netdb.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -52,11 +52,11 @@
 #endif
 
 #if defined(INET) && defined(INET6)
-#define	OPTSTR PING6OPTS PING4OPTS
+#define OPTSTR PING6OPTS PING4OPTS
 #elif defined(INET)
-#define	OPTSTR PING4OPTS
+#define OPTSTR PING4OPTS
 #elif defined(INET6)
-#define	OPTSTR PING6OPTS
+#define OPTSTR PING6OPTS
 #else
 #error At least one of INET and INET6 is required
 #endif
@@ -67,21 +67,21 @@ u_int options;
 char *hostname;
 
 /* counters */
-long nreceived;		/* # of packets we got back */
-long nrepeats;		/* number of duplicates */
-long ntransmitted;	/* sequence # for outbound packets = #sent */
-long nrcvtimeout = 0;	/* # of packets we got back after waittime */
+long nreceived;	      /* # of packets we got back */
+long nrepeats;	      /* number of duplicates */
+long ntransmitted;    /* sequence # for outbound packets = #sent */
+long nrcvtimeout = 0; /* # of packets we got back after waittime */
 
 /* nonzero if we've been told to finish up */
 volatile sig_atomic_t seenint;
 volatile sig_atomic_t seeninfo;
 
 /* timing */
-int timing;		/* flag to do timing */
-double tmin = 999999999.0;	/* minimum round trip time */
-double tmax = 0.0;	/* maximum round trip time */
-double tsum = 0.0;	/* sum of all times, for doing average */
-double tsumsq = 0.0;	/* sum of all times squared, for std. dev. */
+int timing;		   /* flag to do timing */
+double tmin = 999999999.0; /* minimum round trip time */
+double tmax = 0.0;	   /* maximum round trip time */
+double tsum = 0.0;	   /* sum of all times, for doing average */
+double tsumsq = 0.0;	   /* sum of all times squared, for std. dev. */
 
 int
 main(int argc, char *argv[])
@@ -155,8 +155,8 @@ main(int argc, char *argv[])
 		hints.ai_family = AF_UNSPEC;
 	error = getaddrinfo(target, NULL, &hints, &res);
 	if (res == NULL)
-		errx(EX_NOHOST, "cannot resolve %s: %s",
-		    target, gai_strerror(error));
+		errx(EX_NOHOST, "cannot resolve %s: %s", target,
+		    gai_strerror(error));
 	for (ai = res; ai != NULL; ai = ai->ai_next) {
 		if (ai->ai_family == AF_INET) {
 			freeaddrinfo(res);
@@ -213,7 +213,7 @@ onsignal(int sig)
  *	Print out summary statistics to the given output stream.
  */
 void
-pr_summary(FILE * restrict stream)
+pr_summary(FILE *restrict stream)
 {
 	fprintf(stream, "\n--- %s ping statistics ---\n", hostname);
 	fprintf(stream, "%ld packets transmitted, ", ntransmitted);
@@ -226,7 +226,7 @@ pr_summary(FILE * restrict stream)
 		else
 			fprintf(stream, "%.1f%% packet loss",
 			    ((((double)ntransmitted - nreceived) * 100.0) /
-			    ntransmitted));
+				ntransmitted));
 	}
 	if (nrcvtimeout)
 		fprintf(stream, ", %ld packets out of wait time", nrcvtimeout);
@@ -293,8 +293,8 @@ usage(void)
 #endif
 	    " [-S sourceaddr] [-s packetsize] [-t timeout]\n"
 	    "\t    [-W waittime] [-z tclass] [IPv6-hops ...] IPv6-host\n"
-#endif	/* INET6 */
-	    );
+#endif /* INET6 */
+	);
 
 	exit(1);
 }

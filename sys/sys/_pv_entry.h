@@ -34,7 +34,7 @@
  */
 
 #ifndef __SYS__PV_ENTRY_H__
-#define	__SYS__PV_ENTRY_H__
+#define __SYS__PV_ENTRY_H__
 
 #include <sys/param.h>
 
@@ -45,8 +45,8 @@ struct pmap;
  * mappings of that page.  An entry is a pv_entry_t, the list is pv_list.
  */
 typedef struct pv_entry {
-	vm_offset_t	pv_va;		/* virtual address for mapping */
-	TAILQ_ENTRY(pv_entry)	pv_next;
+	vm_offset_t pv_va; /* virtual address for mapping */
+	TAILQ_ENTRY(pv_entry) pv_next;
 } *pv_entry_t;
 
 /*
@@ -62,16 +62,16 @@ typedef struct pv_entry {
  */
 #if PAGE_SIZE == 4 * 1024
 #ifdef __LP64__
-#define	_NPCPV	168
-#define	_NPAD	0
+#define _NPCPV 168
+#define _NPAD 0
 #else
-#define	_NPCPV	336
-#define	_NPAD	0
+#define _NPCPV 336
+#define _NPAD 0
 #endif
 #elif PAGE_SIZE == 16 * 1024
 #ifdef __LP64__
-#define	_NPCPV	677
-#define	_NPAD	1
+#define _NPCPV 677
+#define _NPAD 1
 #endif
 #endif
 
@@ -81,18 +81,18 @@ typedef struct pv_entry {
 
 /* Support clang < 14 */
 #ifndef __LONG_WIDTH__
-#define	__LONG_WIDTH__	(__CHAR_BIT__ * __SIZEOF_LONG__)
+#define __LONG_WIDTH__ (__CHAR_BIT__ * __SIZEOF_LONG__)
 #endif
 
-#define	_NPCM		howmany(_NPCPV, __LONG_WIDTH__)
-#define	PC_FREEN	~0ul
-#define	PC_FREEL	((1ul << (_NPCPV % __LONG_WIDTH__)) - 1)
+#define _NPCM howmany(_NPCPV, __LONG_WIDTH__)
+#define PC_FREEN ~0ul
+#define PC_FREEL ((1ul << (_NPCPV % __LONG_WIDTH__)) - 1)
 
-#define	PV_CHUNK_HEADER							\
-	struct pmap		*pc_pmap;				\
-	TAILQ_ENTRY(pv_chunk)	pc_list;				\
-	unsigned long		pc_map[_NPCM];	/* bitmap; 1 = free */	\
-	TAILQ_ENTRY(pv_chunk)	pc_lru;
+#define PV_CHUNK_HEADER                                     \
+	struct pmap *pc_pmap;                               \
+	TAILQ_ENTRY(pv_chunk) pc_list;                      \
+	unsigned long pc_map[_NPCM]; /* bitmap; 1 = free */ \
+	TAILQ_ENTRY(pv_chunk) pc_lru;
 
 struct pv_chunk_header {
 	PV_CHUNK_HEADER
@@ -100,8 +100,8 @@ struct pv_chunk_header {
 
 struct pv_chunk {
 	PV_CHUNK_HEADER
-	struct pv_entry		pc_pventry[_NPCPV];
-	unsigned long		pc_pad[_NPAD];
+	struct pv_entry pc_pventry[_NPCPV];
+	unsigned long pc_pad[_NPAD];
 };
 
 _Static_assert(sizeof(struct pv_chunk) == PAGE_SIZE,

@@ -56,9 +56,7 @@
  * @return 0 on success. otherwise on failure.
  */
 int al_eth_an_lt_execute(struct al_hal_eth_adapter *adapter,
-			 struct al_serdes_grp_obj *serdes_obj,
-			 enum al_serdes_lane	lane,
-			 struct al_eth_an_adv	*an_adv,
-			 struct al_eth_an_adv   *partner_adv);
+    struct al_serdes_grp_obj *serdes_obj, enum al_serdes_lane lane,
+    struct al_eth_an_adv *an_adv, struct al_eth_an_adv *partner_adv);
 
 #endif /*__AL_INIT_ETH_KR_H__*/

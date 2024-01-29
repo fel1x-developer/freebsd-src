@@ -41,12 +41,12 @@
 #include "pwmbus_if.h"
 
 struct ofw_pwmbus_ivars {
-	struct pwmbus_ivars	base;
-	struct ofw_bus_devinfo	devinfo;
+	struct pwmbus_ivars base;
+	struct ofw_bus_devinfo devinfo;
 };
 
 struct ofw_pwmbus_softc {
-	struct pwmbus_softc	base;
+	struct pwmbus_softc base;
 };
 
 /*
@@ -60,11 +60,12 @@ ofw_pwmbus_add_child(device_t dev, u_int order, const char *name, int unit)
 	struct ofw_pwmbus_ivars *ivars;
 
 	if ((ivars = malloc(sizeof(struct ofw_pwmbus_ivars), M_DEVBUF,
-	    M_NOWAIT | M_ZERO)) == NULL) {
+		 M_NOWAIT | M_ZERO)) == NULL) {
 		return (NULL);
 	}
 
-	if ((child = device_add_child_ordered(dev, order, name, unit)) == NULL) {
+	if ((child = device_add_child_ordered(dev, order, name, unit)) ==
+	    NULL) {
 		free(ivars, M_DEVBUF);
 		return (NULL);
 	}
@@ -119,7 +120,7 @@ ofw_pwmbus_attach(device_t dev)
 	struct ofw_pwmbus_ivars *ivars;
 	phandle_t node;
 	device_t child, parent;
-	pcell_t  chan;
+	pcell_t chan;
 	bool any_children;
 
 	sc = device_get_softc(dev);
@@ -175,8 +176,10 @@ ofw_pwmbus_attach(device_t dev)
 		for (chan = 0; chan < sc->base.nchannels; ++chan) {
 			child = ofw_pwmbus_add_child(dev, 0, "pwmc", -1);
 			if (child == NULL) {
-				device_printf(dev, "failed to add pwmc child "
-				    " device for channel %u\n", chan);
+				device_printf(dev,
+				    "failed to add pwmc child "
+				    " device for channel %u\n",
+				    chan);
 				continue;
 			}
 			ivars = device_get_ivars(child);
@@ -191,21 +194,21 @@ ofw_pwmbus_attach(device_t dev)
 
 static device_method_t ofw_pwmbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,           ofw_pwmbus_probe),
-	DEVMETHOD(device_attach,          ofw_pwmbus_attach),
+	DEVMETHOD(device_probe, ofw_pwmbus_probe),
+	DEVMETHOD(device_attach, ofw_pwmbus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_pnpinfo,	  ofw_bus_gen_child_pnpinfo),
-	DEVMETHOD(bus_add_child,          ofw_pwmbus_add_child),
-	DEVMETHOD(bus_child_deleted,      ofw_pwmbus_child_deleted),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_add_child, ofw_pwmbus_add_child),
+	DEVMETHOD(bus_child_deleted, ofw_pwmbus_child_deleted),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,    ofw_pwmbus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,     ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,      ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,       ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,       ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,       ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, ofw_pwmbus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };

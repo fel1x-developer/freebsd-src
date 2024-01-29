@@ -43,27 +43,27 @@
 #include <unistd.h>
 #include <wchar.h>
 
-static int	bflag;
-static int	cflag;
-static wchar_t	dchar;
-static char	dcharmb[MB_LEN_MAX + 1];
-static int	dflag;
-static int	fflag;
-static int	nflag;
-static int	sflag;
-static int	wflag;
+static int bflag;
+static int cflag;
+static wchar_t dchar;
+static char dcharmb[MB_LEN_MAX + 1];
+static int dflag;
+static int fflag;
+static int nflag;
+static int sflag;
+static int wflag;
 
-static size_t	autostart, autostop, maxval;
-static char *	positions;
+static size_t autostart, autostop, maxval;
+static char *positions;
 
-static int	b_cut(FILE *, const char *);
-static int	b_n_cut(FILE *, const char *);
-static int	c_cut(FILE *, const char *);
-static int	f_cut(FILE *, const char *);
-static void	get_list(char *);
-static int	is_delim(wchar_t);
-static void	needpos(size_t);
-static void	usage(void);
+static int b_cut(FILE *, const char *);
+static int b_n_cut(FILE *, const char *);
+static int c_cut(FILE *, const char *);
+static int f_cut(FILE *, const char *);
+static void get_list(char *);
+static int is_delim(wchar_t);
+static void needpos(size_t);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -76,11 +76,11 @@ main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 
 	fcn = NULL;
-	dchar = '\t';			/* default delimiter is \t */
+	dchar = '\t'; /* default delimiter is \t */
 	strcpy(dcharmb, "\t");
 
 	while ((ch = getopt(argc, argv, "b:c:d:f:snw")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'b':
 			get_list(optarg);
 			bflag = 1;
@@ -192,7 +192,8 @@ get_list(char *list)
 			maxval = stop;
 			needpos(maxval + 1);
 		}
-		for (pos = positions + start; start++ <= stop; *pos++ = 1);
+		for (pos = positions + start; start++ <= stop; *pos++ = 1)
+			;
 	}
 
 	/* overlapping ranges */
@@ -253,7 +254,8 @@ b_cut(FILE *fp, const char *fname __unused)
 				while ((ch = getc(fp)) != EOF && ch != '\n')
 					(void)putchar(ch);
 			else
-				while ((ch = getc(fp)) != EOF && ch != '\n');
+				while ((ch = getc(fp)) != EOF && ch != '\n')
+					;
 		}
 		(void)putchar('\n');
 	}
@@ -350,7 +352,8 @@ c_cut(FILE *fp, const char *fname)
 				while ((ch = getwc(fp)) != WEOF && ch != '\n')
 					(void)putwchar(ch);
 			else
-				while ((ch = getwc(fp)) != WEOF && ch != '\n');
+				while ((ch = getwc(fp)) != WEOF && ch != '\n')
+					;
 		}
 		(void)putwchar('\n');
 	}
@@ -459,7 +462,8 @@ f_cut(FILE *fp, const char *fname)
 				for (; (ch = *p) != '\n'; ++p)
 					(void)putchar(ch);
 			} else
-				for (; (ch = *p) != '\n'; ++p);
+				for (; (ch = *p) != '\n'; ++p)
+					;
 		}
 		(void)putchar('\n');
 	}
@@ -471,8 +475,8 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n%s\n",
-		"usage: cut -b list [-n] [file ...]",
-		"       cut -c list [file ...]",
-		"       cut -f list [-s] [-w | -d delim] [file ...]");
+	    "usage: cut -b list [-n] [file ...]",
+	    "       cut -c list [file ...]",
+	    "       cut -f list [-s] [-w | -d delim] [file ...]");
 	exit(1);
 }

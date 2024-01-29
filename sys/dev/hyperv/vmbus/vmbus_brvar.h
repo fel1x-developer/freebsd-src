@@ -30,53 +30,53 @@
 #define _VMBUS_BRVAR_H_
 
 #include <sys/param.h>
+#include <sys/_iovec.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/_iovec.h>
 
 struct vmbus_br {
-	struct vmbus_bufring	*vbr;
-	uint32_t		vbr_dsize;	/* total data size */
+	struct vmbus_bufring *vbr;
+	uint32_t vbr_dsize; /* total data size */
 };
 
-#define vbr_windex		vbr->br_windex
-#define vbr_rindex		vbr->br_rindex
-#define vbr_imask		vbr->br_imask
-#define vbr_psndsz		vbr->br_pending_snd_sz
-#define vbr_fpsndsz		vbr->br_feature_bits.feat_pending_snd_sz
-#define vbr_fvalue		vbr->br_feature_bits.value
-#define vbr_intrcnt		vbr->br_g2h_intr_cnt
-#define vbr_data		vbr->br_data
+#define vbr_windex vbr->br_windex
+#define vbr_rindex vbr->br_rindex
+#define vbr_imask vbr->br_imask
+#define vbr_psndsz vbr->br_pending_snd_sz
+#define vbr_fpsndsz vbr->br_feature_bits.feat_pending_snd_sz
+#define vbr_fvalue vbr->br_feature_bits.value
+#define vbr_intrcnt vbr->br_g2h_intr_cnt
+#define vbr_data vbr->br_data
 
 struct vmbus_rxbr {
-	struct mtx		rxbr_lock;
-	struct vmbus_br		rxbr;
+	struct mtx rxbr_lock;
+	struct vmbus_br rxbr;
 };
 
-#define rxbr_windex		rxbr.vbr_windex
-#define rxbr_rindex		rxbr.vbr_rindex
-#define rxbr_imask		rxbr.vbr_imask
-#define rxbr_psndsz		rxbr.vbr_psndsz
-#define rxbr_fpsndsz		rxbr.vbr_fpsndsz
-#define rxbr_fvalue		rxbr.vbr_fvalue
-#define rxbr_intrcnt		rxbr.vbr_intrcnt
-#define rxbr_data		rxbr.vbr_data
-#define rxbr_dsize		rxbr.vbr_dsize
+#define rxbr_windex rxbr.vbr_windex
+#define rxbr_rindex rxbr.vbr_rindex
+#define rxbr_imask rxbr.vbr_imask
+#define rxbr_psndsz rxbr.vbr_psndsz
+#define rxbr_fpsndsz rxbr.vbr_fpsndsz
+#define rxbr_fvalue rxbr.vbr_fvalue
+#define rxbr_intrcnt rxbr.vbr_intrcnt
+#define rxbr_data rxbr.vbr_data
+#define rxbr_dsize rxbr.vbr_dsize
 
 struct vmbus_txbr {
-	struct mtx		txbr_lock;
-	struct vmbus_br		txbr;
+	struct mtx txbr_lock;
+	struct vmbus_br txbr;
 };
 
-#define txbr_windex		txbr.vbr_windex
-#define txbr_rindex		txbr.vbr_rindex
-#define txbr_imask		txbr.vbr_imask
-#define txbr_psndsz		txbr.vbr_psndsz
-#define txbr_fpsndsz		txbr.vbr_fpsndsz
-#define txbr_fvalue		txbr.vbr_fvalue
-#define txbr_intrcnt		txbr.vbr_intrcnt
-#define txbr_data		txbr.vbr_data
-#define txbr_dsize		txbr.vbr_dsize
+#define txbr_windex txbr.vbr_windex
+#define txbr_rindex txbr.vbr_rindex
+#define txbr_imask txbr.vbr_imask
+#define txbr_psndsz txbr.vbr_psndsz
+#define txbr_fpsndsz txbr.vbr_fpsndsz
+#define txbr_fvalue txbr.vbr_fvalue
+#define txbr_intrcnt txbr.vbr_intrcnt
+#define txbr_data txbr.vbr_data
+#define txbr_dsize txbr.vbr_dsize
 
 struct sysctl_ctx_list;
 struct sysctl_oid;
@@ -98,7 +98,9 @@ vmbus_txbr_empty(const struct vmbus_txbr *tbr)
 {
 
 	return (atomic_load_acq_32(&tbr->txbr_windex) ==
-	    atomic_load_acq_32(&tbr->txbr_rindex) ? true : false);
+		    atomic_load_acq_32(&tbr->txbr_rindex) ?
+		true :
+		false);
 }
 
 static __inline bool
@@ -106,7 +108,9 @@ vmbus_rxbr_empty(const struct vmbus_rxbr *rbr)
 {
 
 	return (atomic_load_acq_32(&rbr->rxbr_windex) ==
-	    atomic_load_acq_32(&rbr->rxbr_rindex) ? true : false);
+		    atomic_load_acq_32(&rbr->rxbr_rindex) ?
+		true :
+		false);
 }
 
 static __inline int
@@ -120,38 +124,34 @@ vmbus_br_nelem(int br_size, int elem_size)
 	return (br_size / elem_size);
 }
 
-void		vmbus_br_sysctl_create(struct sysctl_ctx_list *ctx,
-		    struct sysctl_oid *br_tree, struct vmbus_br *br,
-		    const char *name);
+void vmbus_br_sysctl_create(struct sysctl_ctx_list *ctx,
+    struct sysctl_oid *br_tree, struct vmbus_br *br, const char *name);
 
-void		vmbus_rxbr_init(struct vmbus_rxbr *rbr);
-void		vmbus_rxbr_deinit(struct vmbus_rxbr *rbr);
-void		vmbus_rxbr_setup(struct vmbus_rxbr *rbr, void *buf, int blen);
-int		vmbus_rxbr_peek(struct vmbus_rxbr *rbr, void *data, int dlen);
-int		vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen,
-		    uint32_t skip, boolean_t *need_sig);
-int		vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
-		    boolean_t *need_sig);
-int		vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data,
-		    int dlen, uint32_t idx_adv, boolean_t *need_sig);
-int		vmbus_rxbr_peek_call(struct vmbus_rxbr *rbr, int dlen,
-		    uint32_t skip, vmbus_br_copy_callback_t cb, void *cbarg);
-void		vmbus_rxbr_intr_mask(struct vmbus_rxbr *rbr);
-uint32_t	vmbus_rxbr_intr_unmask(struct vmbus_rxbr *rbr);
-uint32_t	vmbus_rxbr_available(const struct vmbus_rxbr *rbr);
+void vmbus_rxbr_init(struct vmbus_rxbr *rbr);
+void vmbus_rxbr_deinit(struct vmbus_rxbr *rbr);
+void vmbus_rxbr_setup(struct vmbus_rxbr *rbr, void *buf, int blen);
+int vmbus_rxbr_peek(struct vmbus_rxbr *rbr, void *data, int dlen);
+int vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen, uint32_t skip,
+    boolean_t *need_sig);
+int vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
+    boolean_t *need_sig);
+int vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data, int dlen,
+    uint32_t idx_adv, boolean_t *need_sig);
+int vmbus_rxbr_peek_call(struct vmbus_rxbr *rbr, int dlen, uint32_t skip,
+    vmbus_br_copy_callback_t cb, void *cbarg);
+void vmbus_rxbr_intr_mask(struct vmbus_rxbr *rbr);
+uint32_t vmbus_rxbr_intr_unmask(struct vmbus_rxbr *rbr);
+uint32_t vmbus_rxbr_available(const struct vmbus_rxbr *rbr);
 
-void		vmbus_txbr_init(struct vmbus_txbr *tbr);
-void		vmbus_txbr_deinit(struct vmbus_txbr *tbr);
-void		vmbus_txbr_setup(struct vmbus_txbr *tbr, void *buf, int blen);
-int		vmbus_txbr_write(struct vmbus_txbr *tbr,
-		    const struct iovec iov[], int iovlen, boolean_t *need_sig);
-int		vmbus_txbr_write_call(struct vmbus_txbr *tbr,
-		    const struct iovec iov[], int iovlen,
-		    vmbus_br_copy_callback_t cb, void *cbarg,
-		    boolean_t *need_sig);
-uint32_t	vmbus_txbr_available(const struct vmbus_txbr *tbr);
-uint32_t	vmbus_txbr_get_imask(const struct vmbus_txbr *tbr);
-void		vmbus_txbr_set_pending_snd_sz(struct vmbus_txbr *tbr,
-		    uint32_t size);
+void vmbus_txbr_init(struct vmbus_txbr *tbr);
+void vmbus_txbr_deinit(struct vmbus_txbr *tbr);
+void vmbus_txbr_setup(struct vmbus_txbr *tbr, void *buf, int blen);
+int vmbus_txbr_write(struct vmbus_txbr *tbr, const struct iovec iov[],
+    int iovlen, boolean_t *need_sig);
+int vmbus_txbr_write_call(struct vmbus_txbr *tbr, const struct iovec iov[],
+    int iovlen, vmbus_br_copy_callback_t cb, void *cbarg, boolean_t *need_sig);
+uint32_t vmbus_txbr_available(const struct vmbus_txbr *tbr);
+uint32_t vmbus_txbr_get_imask(const struct vmbus_txbr *tbr);
+void vmbus_txbr_set_pending_snd_sz(struct vmbus_txbr *tbr, uint32_t size);
 
-#endif  /* _VMBUS_BRVAR_H_ */
+#endif /* _VMBUS_BRVAR_H_ */

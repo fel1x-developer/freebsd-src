@@ -20,7 +20,7 @@
 
 #include <stddef.h>
 
-/* Open hashing support. 
+/* Open hashing support.
  * Open hashing was chosen because it is much lighter than other hash
  * techniques, and more efficient in most cases.
  */
@@ -28,7 +28,7 @@
 /* user-visible data structure */
 struct ohash_info {
 	ptrdiff_t key_offset;
-	void *data;	/* user data */
+	void *data; /* user data */
 	void *(*calloc)(size_t, size_t, void *);
 	void (*free)(void *, void *);
 	void *(*alloc)(size_t, void *);
@@ -38,11 +38,11 @@ struct _ohash_record;
 
 /* private structure. It's there just so you can do a sizeof */
 struct ohash {
-	struct _ohash_record 	*t;
-	struct ohash_info 	info;
-	unsigned int 		size;
-	unsigned int 		total;
-	unsigned int 		deleted;
+	struct _ohash_record *t;
+	struct ohash_info info;
+	unsigned int size;
+	unsigned int total;
+	unsigned int deleted;
 };
 
 /* For this to be tweakable, we use small primitives, and leave part of the
@@ -55,10 +55,10 @@ __BEGIN_DECLS
 void ohash_init(struct ohash *, unsigned, struct ohash_info *);
 void ohash_delete(struct ohash *);
 
-unsigned int ohash_lookup_interval(struct ohash *, const char *,
-	    const char *, uint32_t);
-unsigned int ohash_lookup_memory(struct ohash *, const char *,
-	    size_t, uint32_t);
+unsigned int ohash_lookup_interval(struct ohash *, const char *, const char *,
+    uint32_t);
+unsigned int ohash_lookup_memory(struct ohash *, const char *, size_t,
+    uint32_t);
 void *ohash_find(struct ohash *, unsigned int);
 void *ohash_remove(struct ohash *, unsigned int);
 void *ohash_insert(struct ohash *, unsigned int, void *);

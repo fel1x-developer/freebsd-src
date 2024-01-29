@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <sys/acl.h>
+#include <sys/bitstring.h>
 #include <sys/capsicum.h>
 #include <sys/event.h>
 #include <sys/extattr.h>
@@ -45,38 +46,47 @@
 #include <sys/stat.h>
 #include <sys/thr.h>
 #include <sys/umtx.h>
+
+#include <vm/vm.h>
+#include <vm/vm_param.h>
+
 #include <machine/sysarch.h>
+
+#include <netgraph/bluetooth/include/ng_btsocket.h>
+#include <netgraph/bluetooth/include/ng_hci.h>
+#include <netgraph/bluetooth/include/ng_l2cap.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/udplite.h>
-#include <nfsserver/nfs.h>
-#include <ufs/ufs/quota.h>
-#include <vm/vm.h>
-#include <vm/vm_param.h>
+
 #include <aio.h>
 #include <fcntl.h>
+#include <nfsserver/nfs.h>
 #include <sched.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <sysdecode.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
-#include <sys/bitstring.h>
-#include <netgraph/bluetooth/include/ng_hci.h>
-#include <netgraph/bluetooth/include/ng_l2cap.h>
-#include <netgraph/bluetooth/include/ng_btsocket.h>
 
 #include "support.h"
 
-#define	X(a)	{ a, #a },
-#define	XEND	{ 0, NULL }
+#define X(a) { a, #a },
+#define XEND            \
+	{               \
+		0, NULL \
+	}
 
-#define	TABLE_START(n)	static struct name_table n[] = {
-#define	TABLE_ENTRY	X
-#define	TABLE_END	XEND };
+#define TABLE_START(n) static struct name_table n[] = {
+#define TABLE_ENTRY X
+#define TABLE_END \
+	XEND      \
+	}         \
+	;
 
 #include "tables.h"
 
@@ -100,10 +110,9 @@ sysdecode_atflags(FILE *fp, int flag, int *rem)
 	return (print_mask_int(fp, atflags, flag, rem));
 }
 
-static struct name_table semctlops[] = {
-	X(GETNCNT) X(GETPID) X(GETVAL) X(GETALL) X(GETZCNT) X(SETVAL) X(SETALL)
-	X(IPC_RMID) X(IPC_SET) X(IPC_STAT) XEND
-};
+static struct name_table semctlops[] = { X(GETNCNT) X(GETPID) X(GETVAL)
+	    X(GETALL) X(GETZCNT) X(SETVAL) X(SETALL) X(IPC_RMID) X(IPC_SET)
+		X(IPC_STAT) XEND };
 
 const char *
 sysdecode_semctl_cmd(int cmd)
@@ -112,9 +121,8 @@ sysdecode_semctl_cmd(int cmd)
 	return (lookup_value(semctlops, cmd));
 }
 
-static struct name_table shmctlops[] = {
-	X(IPC_RMID) X(IPC_SET) X(IPC_STAT) XEND
-};
+static struct name_table shmctlops[] = { X(IPC_RMID) X(IPC_SET) X(IPC_STAT)
+	    XEND };
 
 const char *
 sysdecode_shmctl_cmd(int cmd)
@@ -130,10 +138,9 @@ sysdecode_msgctl_cmd(int cmd)
 	return (sysdecode_shmctl_cmd(cmd));
 }
 
-static struct name_table semgetflags[] = {
-	X(IPC_CREAT) X(IPC_EXCL) X(SEM_R) X(SEM_A) X((SEM_R>>3)) X((SEM_A>>3))
-	X((SEM_R>>6)) X((SEM_A>>6)) XEND
-};
+static struct name_table semgetflags[] = { X(IPC_CREAT) X(IPC_EXCL) X(SEM_R)
+	    X(SEM_A) X((SEM_R >> 3)) X((SEM_A >> 3)) X((SEM_R >> 6))
+		X((SEM_A >> 6)) XEND };
 
 bool
 sysdecode_semget_flags(FILE *fp, int flag, int *rem)
@@ -142,11 +149,9 @@ sysdecode_semget_flags(FILE *fp, int flag, int *rem)
 	return (print_mask_int(fp, semgetflags, flag, rem));
 }
 
-static struct name_table idtypes[] = {
-	X(P_PID) X(P_PPID) X(P_PGID) X(P_SID) X(P_CID) X(P_UID) X(P_GID)
-	X(P_ALL) X(P_LWPID) X(P_TASKID) X(P_PROJID) X(P_POOLID) X(P_JAILID)
-	X(P_CTID) X(P_CPUID) X(P_PSETID) XEND
-};
+static struct name_table idtypes[] = { X(P_PID) X(P_PPID) X(P_PGID) X(P_SID) X(
+    P_CID) X(P_UID) X(P_GID) X(P_ALL) X(P_LWPID) X(P_TASKID) X(P_PROJID)
+	    X(P_POOLID) X(P_JAILID) X(P_CTID) X(P_CPUID) X(P_PSETID) XEND };
 
 /* XXX: idtype is really an idtype_t */
 const char *
@@ -194,9 +199,8 @@ sysdecode_vmprot(FILE *fp, int type, int *rem)
 	return (print_mask_int(fp, vmprot, type, rem));
 }
 
-static struct name_table sockflags[] = {
-	X(SOCK_CLOEXEC) X(SOCK_NONBLOCK) XEND
-};
+static struct name_table sockflags[] = { X(SOCK_CLOEXEC) X(SOCK_NONBLOCK)
+	    XEND };
 
 bool
 sysdecode_socket_type(FILE *fp, int type, int *rem)
@@ -332,9 +336,7 @@ sysdecode_flock_operation(FILE *fp, int operation, int *rem)
 	return (print_mask_int(fp, flockops, operation, rem));
 }
 
-static struct name_table getfsstatmode[] = {
-	X(MNT_WAIT) X(MNT_NOWAIT) XEND
-};
+static struct name_table getfsstatmode[] = { X(MNT_WAIT) X(MNT_NOWAIT) XEND };
 
 const char *
 sysdecode_getfsstat_mode(int mode)
@@ -350,30 +352,22 @@ sysdecode_getrusage_who(int who)
 	return (lookup_value(rusage, who));
 }
 
-static struct name_table kevent_user_ffctrl[] = {
-	X(NOTE_FFNOP) X(NOTE_FFAND) X(NOTE_FFOR) X(NOTE_FFCOPY)
-	XEND
-};
+static struct name_table kevent_user_ffctrl[] = { X(NOTE_FFNOP) X(NOTE_FFAND)
+	    X(NOTE_FFOR) X(NOTE_FFCOPY) XEND };
 
-static struct name_table kevent_rdwr_fflags[] = {
-	X(NOTE_LOWAT) X(NOTE_FILE_POLL) XEND
-};
+static struct name_table kevent_rdwr_fflags[] = { X(NOTE_LOWAT)
+	    X(NOTE_FILE_POLL) XEND };
 
-static struct name_table kevent_vnode_fflags[] = {
-	X(NOTE_DELETE) X(NOTE_WRITE) X(NOTE_EXTEND) X(NOTE_ATTRIB)
-	X(NOTE_LINK) X(NOTE_RENAME) X(NOTE_REVOKE) X(NOTE_OPEN) X(NOTE_CLOSE)
-	X(NOTE_CLOSE_WRITE) X(NOTE_READ) XEND
-};
+static struct name_table kevent_vnode_fflags[] = { X(NOTE_DELETE) X(NOTE_WRITE)
+	    X(NOTE_EXTEND) X(NOTE_ATTRIB) X(NOTE_LINK) X(NOTE_RENAME)
+		X(NOTE_REVOKE) X(NOTE_OPEN) X(NOTE_CLOSE) X(NOTE_CLOSE_WRITE)
+		    X(NOTE_READ) XEND };
 
-static struct name_table kevent_proc_fflags[] = {
-	X(NOTE_EXIT) X(NOTE_FORK) X(NOTE_EXEC) X(NOTE_TRACK) X(NOTE_TRACKERR)
-	X(NOTE_CHILD) XEND
-};
+static struct name_table kevent_proc_fflags[] = { X(NOTE_EXIT) X(NOTE_FORK)
+	    X(NOTE_EXEC) X(NOTE_TRACK) X(NOTE_TRACKERR) X(NOTE_CHILD) XEND };
 
-static struct name_table kevent_timer_fflags[] = {
-	X(NOTE_SECONDS) X(NOTE_MSECONDS) X(NOTE_USECONDS) X(NOTE_NSECONDS)
-	X(NOTE_ABSTIME) XEND
-};
+static struct name_table kevent_timer_fflags[] = { X(NOTE_SECONDS) X(
+    NOTE_MSECONDS) X(NOTE_USECONDS) X(NOTE_NSECONDS) X(NOTE_ABSTIME) XEND };
 
 void
 sysdecode_kevent_fflags(FILE *fp, short filter, int fflags, int base)
@@ -554,9 +548,7 @@ sysdecode_nfssvc_flags(int flags)
 	return (lookup_value(nfssvcflags, flags));
 }
 
-static struct name_table pipe2flags[] = {
-	X(O_CLOEXEC) X(O_NONBLOCK) XEND
-};
+static struct name_table pipe2flags[] = { X(O_CLOEXEC) X(O_NONBLOCK) XEND };
 
 bool
 sysdecode_pipe2_flags(FILE *fp, int flags, int *rem)
@@ -586,9 +578,7 @@ sysdecode_ptrace_request(int request)
 	return (lookup_value(ptraceop, request));
 }
 
-static struct name_table quotatypes[] = {
-	X(GRPQUOTA) X(USRQUOTA) XEND
-};
+static struct name_table quotatypes[] = { X(GRPQUOTA) X(USRQUOTA) XEND };
 
 bool
 sysdecode_quotactl_cmd(FILE *fp, int cmd)
@@ -619,8 +609,9 @@ sysdecode_reboot_howto(FILE *fp, int howto, int *rem)
 	 * requested via RB_HALT, RB_POWERCYCLE, RB_POWEROFF, or
 	 * RB_REROOT.
 	 */
-	if (howto != 0 && (howto & (RB_HALT | RB_POWEROFF | RB_REROOT |
-	    RB_POWERCYCLE)) == 0) {
+	if (howto != 0 &&
+	    (howto & (RB_HALT | RB_POWEROFF | RB_REROOT | RB_POWERCYCLE)) ==
+		0) {
 		fputs("RB_AUTOBOOT|", fp);
 		printed = true;
 	} else
@@ -857,9 +848,7 @@ sysdecode_fcntl_cmd(int cmd)
 	return (lookup_value(fcntlcmd, cmd));
 }
 
-static struct name_table fcntl_fd_arg[] = {
-	X(FD_CLOEXEC) X(0) XEND
-};
+static struct name_table fcntl_fd_arg[] = { X(FD_CLOEXEC) X(0) XEND };
 
 bool
 sysdecode_fcntl_arg_p(int cmd)
@@ -883,7 +872,7 @@ sysdecode_fcntl_arg(FILE *fp, int cmd, uintptr_t arg, int base)
 	switch (cmd) {
 	case F_SETFD:
 		if (!print_value(fp, fcntl_fd_arg, arg))
-		    print_integer(fp, arg, base);
+			print_integer(fp, arg, base);
 		break;
 	case F_SETFL:
 		if (!sysdecode_fcntl_fileflags(fp, arg, &rem))
@@ -960,7 +949,7 @@ sysdecode_sigcode(int sig, int si_code)
 	str = lookup_value(sigcode, si_code);
 	if (str != NULL)
 		return (str);
-	
+
 	switch (sig) {
 	case SIGILL:
 		return (sysdecode_sigill_code(si_code));
@@ -1046,8 +1035,7 @@ sysdecode_cap_rights(FILE *fp, cap_rights_t *rightsp)
  * subset relation.  This lets sysdecode_cap_rights() print a list of minimal
  * length with a single pass over the "caprights" table.
  */
-static void __attribute__((constructor))
-sysdecode_cap_rights_init(void)
+static void __attribute__((constructor)) sysdecode_cap_rights_init(void)
 {
 	cap_rights_t tr, qr;
 	struct name_table *t, *q, tmp;
@@ -1069,11 +1057,9 @@ sysdecode_cap_rights_init(void)
 	} while (swapped);
 }
 
-static struct name_table cmsgtypeip[] = {
-	X(IP_RECVDSTADDR) X(IP_RECVTTL) X(IP_RECVOPTS) X(IP_RECVRETOPTS)
-	X(IP_RECVIF) X(IP_RECVTOS) X(IP_FLOWID) X(IP_FLOWTYPE)
-	X(IP_RSSBUCKETID) XEND
-};
+static struct name_table cmsgtypeip[] = { X(IP_RECVDSTADDR) X(IP_RECVTTL)
+	    X(IP_RECVOPTS) X(IP_RECVRETOPTS) X(IP_RECVIF) X(IP_RECVTOS)
+		X(IP_FLOWID) X(IP_FLOWTYPE) X(IP_RSSBUCKETID) XEND };
 
 static struct name_table cmsgtypeipv6[] = {
 #if 0
@@ -1081,18 +1067,16 @@ static struct name_table cmsgtypeipv6[] = {
 	X(IPV6_2292PKTINFO) X(IPV6_2292HOPLIMIT) X(IPV6_2292HOPOPTS)
 	X(IPV6_2292DSTOPTS) X(IPV6_2292RTHDR) X(IPV6_2292NEXTHOP)
 #endif
-	X(IPV6_PKTINFO)  X(IPV6_HOPLIMIT) X(IPV6_HOPOPTS)
-	X(IPV6_DSTOPTS) X(IPV6_RTHDR) X(IPV6_NEXTHOP)
-	X(IPV6_TCLASS) X(IPV6_FLOWID) X(IPV6_FLOWTYPE) X(IPV6_RSSBUCKETID)
-	X(IPV6_PATHMTU) X(IPV6_RTHDRDSTOPTS) X(IPV6_USE_MIN_MTU)
-	X(IPV6_DONTFRAG) X(IPV6_PREFER_TEMPADDR) XEND
+	X(IPV6_PKTINFO) X(IPV6_HOPLIMIT) X(IPV6_HOPOPTS) X(IPV6_DSTOPTS)
+	    X(IPV6_RTHDR) X(IPV6_NEXTHOP) X(IPV6_TCLASS) X(IPV6_FLOWID)
+		X(IPV6_FLOWTYPE) X(IPV6_RSSBUCKETID) X(IPV6_PATHMTU)
+		    X(IPV6_RTHDRDSTOPTS) X(IPV6_USE_MIN_MTU) X(IPV6_DONTFRAG)
+			X(IPV6_PREFER_TEMPADDR) XEND
 };
 
-static struct name_table cmsgtypesctp[] = {
-	X(SCTP_INIT) X(SCTP_SNDRCV) X(SCTP_EXTRCV) X(SCTP_SNDINFO)
-	X(SCTP_RCVINFO) X(SCTP_NXTINFO) X(SCTP_PRINFO) X(SCTP_AUTHINFO)
-	X(SCTP_DSTADDRV4) X(SCTP_DSTADDRV6) XEND
-};
+static struct name_table cmsgtypesctp[] = { X(SCTP_INIT) X(SCTP_SNDRCV) X(
+    SCTP_EXTRCV) X(SCTP_SNDINFO) X(SCTP_RCVINFO) X(SCTP_NXTINFO) X(SCTP_PRINFO)
+	    X(SCTP_AUTHINFO) X(SCTP_DSTADDRV4) X(SCTP_DSTADDRV6) XEND };
 
 const char *
 sysdecode_cmsg_type(int cmsg_level, int cmsg_type)
@@ -1116,10 +1100,9 @@ sysdecode_sctp_pr_policy(int policy)
 	return (lookup_value(sctpprpolicy, policy));
 }
 
-static struct name_table sctpsndflags[] = {
-	X(SCTP_EOF) X(SCTP_ABORT) X(SCTP_UNORDERED) X(SCTP_ADDR_OVER)
-	X(SCTP_SENDALL) X(SCTP_EOR) X(SCTP_SACK_IMMEDIATELY) XEND
-};
+static struct name_table sctpsndflags[] = { X(SCTP_EOF) X(SCTP_ABORT)
+	    X(SCTP_UNORDERED) X(SCTP_ADDR_OVER) X(SCTP_SENDALL) X(SCTP_EOR)
+		X(SCTP_SACK_IMMEDIATELY) XEND };
 
 bool
 sysdecode_sctp_snd_flags(FILE *fp, int flags, int *rem)
@@ -1128,9 +1111,7 @@ sysdecode_sctp_snd_flags(FILE *fp, int flags, int *rem)
 	return (print_mask_int(fp, sctpsndflags, flags, rem));
 }
 
-static struct name_table sctprcvflags[] = {
-	X(SCTP_UNORDERED) XEND
-};
+static struct name_table sctprcvflags[] = { X(SCTP_UNORDERED) XEND };
 
 bool
 sysdecode_sctp_rcv_flags(FILE *fp, int flags, int *rem)
@@ -1139,9 +1120,8 @@ sysdecode_sctp_rcv_flags(FILE *fp, int flags, int *rem)
 	return (print_mask_int(fp, sctprcvflags, flags, rem));
 }
 
-static struct name_table sctpnxtflags[] = {
-	X(SCTP_UNORDERED) X(SCTP_COMPLETE) X(SCTP_NOTIFICATION) XEND
-};
+static struct name_table sctpnxtflags[] = { X(SCTP_UNORDERED) X(SCTP_COMPLETE)
+	    X(SCTP_NOTIFICATION) XEND };
 
 bool
 sysdecode_sctp_nxt_flags(FILE *fp, int flags, int *rem)
@@ -1150,10 +1130,9 @@ sysdecode_sctp_nxt_flags(FILE *fp, int flags, int *rem)
 	return (print_mask_int(fp, sctpnxtflags, flags, rem));
 }
 
-static struct name_table sctpsinfoflags[] = {
-	X(SCTP_EOF) X(SCTP_ABORT) X(SCTP_UNORDERED) X(SCTP_ADDR_OVER)
-	X(SCTP_SENDALL) X(SCTP_EOR) X(SCTP_SACK_IMMEDIATELY) XEND
-};
+static struct name_table sctpsinfoflags[] = { X(SCTP_EOF) X(SCTP_ABORT)
+	    X(SCTP_UNORDERED) X(SCTP_ADDR_OVER) X(SCTP_SENDALL) X(SCTP_EOR)
+		X(SCTP_SACK_IMMEDIATELY) XEND };
 
 void
 sysdecode_sctp_sinfo_flags(FILE *fp, int sinfo_flags)
@@ -1164,7 +1143,8 @@ sysdecode_sctp_sinfo_flags(FILE *fp, int sinfo_flags)
 
 	printed = print_mask_0(fp, sctpsinfoflags, sinfo_flags, &rem);
 	if (rem & ~SCTP_PR_SCTP_ALL) {
-		fprintf(fp, "%s%#x", printed ? "|" : "", rem & ~SCTP_PR_SCTP_ALL);
+		fprintf(fp, "%s%#x", printed ? "|" : "",
+		    rem & ~SCTP_PR_SCTP_ALL);
 		printed = true;
 		rem &= ~SCTP_PR_SCTP_ALL;
 	}

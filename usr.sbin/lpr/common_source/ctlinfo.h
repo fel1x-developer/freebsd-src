@@ -41,34 +41,34 @@
  * will be the ONLY source file to know what's inside these control-files.
  */
 
-struct cjprivate;			/* used internal to ctl* routines */
+struct cjprivate; /* used internal to ctl* routines */
 
 struct cjobinfo {
-	int	 cji_dfcount;		/* number of data files to print */
-	int	 cji_uncount;		/* number of unlink-file requests */
-	char	*cji_accthost;		/* the host that this job came from,
-					 * for accounting purposes (usually
-					 * the host where the original 'lpr'
-					 * was done) */
-	char	*cji_acctuser;		/* userid who should be charged for
-					 * this job (usually, the userid which
-					 * did the original 'lpr') */
-	char	*cji_class;		/* class-name */
-	char	*cji_curqueue;		/* printer-queue that this cf-file is
-					 * currently sitting in (mainly used
-					 * in syslog error messages) */
-	char	*cji_fname;		/* filename of the control file */
-	char	*cji_jobname;		/* job-name (for banner) */
-	char	*cji_mailto;		/* userid to send email to (or null) */
-	char	*cji_headruser;		/* "literal" user-name (for banner) or
-					 * NULL if no banner-page is wanted */
+	int cji_dfcount;     /* number of data files to print */
+	int cji_uncount;     /* number of unlink-file requests */
+	char *cji_accthost;  /* the host that this job came from,
+			      * for accounting purposes (usually
+			      * the host where the original 'lpr'
+			      * was done) */
+	char *cji_acctuser;  /* userid who should be charged for
+			      * this job (usually, the userid which
+			      * did the original 'lpr') */
+	char *cji_class;     /* class-name */
+	char *cji_curqueue;  /* printer-queue that this cf-file is
+			      * currently sitting in (mainly used
+			      * in syslog error messages) */
+	char *cji_fname;     /* filename of the control file */
+	char *cji_jobname;   /* job-name (for banner) */
+	char *cji_mailto;    /* userid to send email to (or null) */
+	char *cji_headruser; /* "literal" user-name (for banner) or
+			      * NULL if no banner-page is wanted */
 	struct cjprivate *cji_priv;
 };
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 
 __BEGIN_DECLS
-void		 ctl_freeinf(struct cjobinfo *_cjinf);
-struct cjobinfo	*ctl_readcf(const char *_ptrname, const char *_cfname);
-char		*ctl_renametf(const char *_ptrname, const char *_tfname);
+void ctl_freeinf(struct cjobinfo *_cjinf);
+struct cjobinfo *ctl_readcf(const char *_ptrname, const char *_cfname);
+char *ctl_renametf(const char *_ptrname, const char *_tfname);
 __END_DECLS

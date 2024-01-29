@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_ECHO	"/bin/echo"
+#define _PATH_ECHO "/bin/echo"

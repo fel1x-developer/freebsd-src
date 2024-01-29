@@ -26,26 +26,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_COMMON_KVM_H_
-#define	_COMMON_KVM_H_
+#ifndef _COMMON_KVM_H_
+#define _COMMON_KVM_H_
 
-dev_t	dev2udev(kvm_t *kd, struct cdev *dev);
-int	kdevtoname(kvm_t *kd, struct cdev *dev, char *);
-int	kvm_read_all(kvm_t *kd, unsigned long addr, void *buf,
-    size_t nbytes);
+dev_t dev2udev(kvm_t *kd, struct cdev *dev);
+int kdevtoname(kvm_t *kd, struct cdev *dev, char *);
+int kvm_read_all(kvm_t *kd, unsigned long addr, void *buf, size_t nbytes);
 
 /*
  * Filesystems specific access routines.
  */
-int	devfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	isofs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	nfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	smbfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	udf_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	ufs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-int	zfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
-void	*getvnodedata(struct vnode *vp);
-struct mount	*getvnodemount(struct vnode *vp);
+int devfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int isofs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int nfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int smbfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int udf_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int ufs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+int zfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
+void *getvnodedata(struct vnode *vp);
+struct mount *getvnodemount(struct vnode *vp);
 
-#endif	/* _COMMON_KVM_H_ */
+#endif /* _COMMON_KVM_H_ */

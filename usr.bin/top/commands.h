@@ -12,9 +12,9 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-void	show_errors(void);
-int	error_count(void);
-void	show_help(void);
+void show_errors(void);
+int error_count(void);
+void show_help(void);
 
 enum cmd_id {
 	CMD_NONE,
@@ -43,13 +43,13 @@ enum cmd_id {
 	CMD_jail,
 	CMD_swaptog,
 	CMD_order,
-	CMD_pid	,
+	CMD_pid,
 	CMD_toggletid,
 };
 
 struct command {
 	char c;
-	const char * const desc;
+	const char *const desc;
 	bool available_to_dumb;
 	enum cmd_id id;
 };

@@ -40,6 +40,7 @@
 #pragma once
 
 /* posix_spawn_file_actions_t contains a member __used */
-#include "__used_workaround_start.h"
 #include_next <spawn.h>
+
 #include "__used_workaround_end.h"
+#include "__used_workaround_start.h"

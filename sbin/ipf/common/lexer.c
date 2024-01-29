@@ -5,19 +5,21 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <ctype.h>
+
 #include "ipf.h"
-#ifdef	IPFILTER_SCAN
-# include "netinet/ip_scan.h"
+#ifdef IPFILTER_SCAN
+#include "netinet/ip_scan.h"
 #endif
 #include <sys/ioctl.h>
+
 #include <syslog.h>
-#ifdef	TEST_LEXER
-# define	NO_YACC
-union	{
-	int		num;
-	char		*str;
-	struct in_addr	ipa;
-	i6addr_t	ip6;
+#ifdef TEST_LEXER
+#define NO_YACC
+union {
+	int num;
+	char *str;
+	struct in_addr ipa;
+	i6addr_t ip6;
 } yylval;
 #endif
 #include "lexer.h"
@@ -25,39 +27,38 @@ union	{
 
 FILE *yyin;
 
-#define	ishex(c)	(ISDIGIT(c) || ((c) >= 'a' && (c) <= 'f') || \
-			 ((c) >= 'A' && (c) <= 'F'))
-#define	TOOLONG		-3
+#define ishex(c) \
+	(ISDIGIT(c) || ((c) >= 'a' && (c) <= 'f') || ((c) >= 'A' && (c) <= 'F'))
+#define TOOLONG -3
 
-extern int	string_start;
-extern int	string_end;
-extern char	*string_val;
-extern int	pos;
-extern int	yydebug;
+extern int string_start;
+extern int string_end;
+extern char *string_val;
+extern int pos;
+extern int yydebug;
 
-char		*yystr = NULL;
-int		yytext[YYBUFSIZ+1];
-char		yychars[YYBUFSIZ+1];
-int		yylineNum = 1;
-int		yypos = 0;
-int		yylast = -1;
-int		yydictfixed = 0;
-int		yyexpectaddr = 0;
-int		yybreakondot = 0;
-int		yyvarnext = 0;
-int		yytokentype = 0;
-wordtab_t	*yywordtab = NULL;
-int		yysavedepth = 0;
-wordtab_t	*yysavewords[30];
+char *yystr = NULL;
+int yytext[YYBUFSIZ + 1];
+char yychars[YYBUFSIZ + 1];
+int yylineNum = 1;
+int yypos = 0;
+int yylast = -1;
+int yydictfixed = 0;
+int yyexpectaddr = 0;
+int yybreakondot = 0;
+int yyvarnext = 0;
+int yytokentype = 0;
+wordtab_t *yywordtab = NULL;
+int yysavedepth = 0;
+wordtab_t *yysavewords[30];
 
-
-static	wordtab_t	*yyfindkey(char *);
-static	int		yygetc(int);
-static	void		yyunputc(int);
-static	int		yyswallow(int);
-static	char		*yytexttostr(int, int);
-static	void		yystrtotext(char *);
-static	char		*yytexttochar(void);
+static wordtab_t *yyfindkey(char *);
+static int yygetc(int);
+static void yyunputc(int);
+static int yyswallow(int);
+static char *yytexttostr(int, int);
+static void yystrtotext(char *);
+static char *yytexttochar(void);
 
 static int
 yygetc(int docont)
@@ -96,7 +97,6 @@ yygetc(int docont)
 	return (c);
 }
 
-
 static void
 yyunputc(int c)
 {
@@ -104,7 +104,6 @@ yyunputc(int c)
 		yylineNum--;
 	yytext[--yypos] = c;
 }
-
 
 static int
 yyswallow(int last)
@@ -121,7 +120,6 @@ yyswallow(int last)
 	return (-1);
 }
 
-
 static char *
 yytexttochar(void)
 {
@@ -132,7 +130,6 @@ yytexttochar(void)
 	yychars[i] = '\0';
 	return (yychars);
 }
-
 
 static void
 yystrtotext(char *str)
@@ -148,7 +145,6 @@ yystrtotext(char *str)
 		yytext[yylast++] = *s;
 	yytext[yylast] = '\0';
 }
-
 
 static char *
 yytexttostr(int offset, int max)
@@ -173,7 +169,6 @@ yytexttostr(int offset, int max)
 	return (str);
 }
 
-
 int
 yylex(void)
 {
@@ -195,24 +190,23 @@ yylex(void)
 nextchar:
 	c = yygetc(0);
 	if (yydebug > 1)
-		printf("yygetc = (%x) %c [%*.*s]\n",
-		       c, c, yypos, yypos, yytexttochar());
+		printf("yygetc = (%x) %c [%*.*s]\n", c, c, yypos, yypos,
+		    yytexttochar());
 
-	switch (c)
-	{
-	case '\n' :
+	switch (c) {
+	case '\n':
 		lnext = 0;
 		nokey = 0;
-	case '\t' :
-	case '\r' :
-	case ' ' :
+	case '\t':
+	case '\r':
+	case ' ':
 		if (isbuilding == 1) {
 			yyunputc(c);
 			goto done;
 		}
 		if (yylast > yypos) {
 			bcopy(yytext + yypos, yytext,
-			      sizeof(yytext[0]) * (yylast - yypos + 1));
+			    sizeof(yytext[0]) * (yylast - yypos + 1));
 		}
 		yylast -= yypos;
 		if (yyexpectaddr == 2)
@@ -222,7 +216,7 @@ nextchar:
 		nokey = 0;
 		goto nextchar;
 
-	case '\\' :
+	case '\\':
 		if (lnext == 0) {
 			lnext = 1;
 			if (yylast == yypos) {
@@ -246,9 +240,8 @@ nextchar:
 		goto nextchar;
 	}
 
-	switch (c)
-	{
-	case '#' :
+	switch (c) {
+	case '#':
 		if (isbuilding == 1) {
 			yyunputc(c);
 			goto done;
@@ -257,7 +250,7 @@ nextchar:
 		rval = YY_COMMENT;
 		goto done;
 
-	case '$' :
+	case '$':
 		if (isbuilding == 1) {
 			yyunputc(c);
 			goto done;
@@ -268,7 +261,7 @@ nextchar:
 				rval = -2;
 				goto done;
 			}
-			(void) yygetc(0);
+			(void)yygetc(0);
 		} else {
 			if (!ISALPHA(n)) {
 				yyunputc(n);
@@ -280,7 +273,7 @@ nextchar:
 			yyunputc(n);
 		}
 
-		name = yytexttostr(1, yypos);		/* skip $ */
+		name = yytexttostr(1, yypos); /* skip $ */
 
 		if (name != NULL) {
 			string_val = get_variable(name, NULL, yylineNum);
@@ -302,7 +295,7 @@ nextchar:
 		break;
 
 	case '\'':
-	case '"' :
+	case '"':
 		if (isbuilding == 1) {
 			goto done;
 		}
@@ -321,7 +314,7 @@ nextchar:
 		goto done;
 		/* NOTREACHED */
 
-	case EOF :
+	case EOF:
 		yylineNum = 1;
 		yypos = 0;
 		yylast = -1;
@@ -353,9 +346,8 @@ nextchar:
 		}
 	}
 
-	switch (c)
-	{
-	case '-' :
+	switch (c) {
+	case '-':
 		n = yygetc(0);
 		if (n == '>') {
 			isbuilding = 1;
@@ -374,7 +366,7 @@ nextchar:
 		rval = '-';
 		goto done;
 
-	case '!' :
+	case '!':
 		if (isbuilding == 1) {
 			yyunputc(c);
 			goto done;
@@ -388,7 +380,7 @@ nextchar:
 		rval = '!';
 		goto done;
 
-	case '<' :
+	case '<':
 		if (yyexpectaddr)
 			break;
 		if (isbuilding == 1) {
@@ -408,7 +400,7 @@ nextchar:
 		rval = YY_CMP_LT;
 		goto done;
 
-	case '>' :
+	case '>':
 		if (yyexpectaddr)
 			break;
 		if (isbuilding == 1) {
@@ -436,13 +428,13 @@ nextchar:
 	 * not:
 	 * 0000:0000:0000:0000:0000:0000:0000:0000
 	 */
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	if (yyexpectaddr != 0 && isbuilding == 0 &&
 	    (ishex(c) || isdigit(c) || c == ':')) {
 		char ipv6buf[45 + 1], *s, oc;
 		int start;
 
-buildipv6:
+	buildipv6:
 		start = yypos;
 		s = ipv6buf;
 		oc = c;
@@ -460,8 +452,8 @@ buildipv6:
 		do {
 			*s++ = c;
 			c = yygetc(1);
-		} while ((ishex(c) || c == ':' || c == '.') &&
-			 (s - ipv6buf < 46));
+		} while (
+		    (ishex(c) || c == ':' || c == '.') && (s - ipv6buf < 46));
 		yyunputc(c);
 		*s = '\0';
 
@@ -476,7 +468,7 @@ buildipv6:
 #endif
 
 	if ((c == ':') && (rval != YY_IPV6) && (triedv6 == 0)) {
-#ifdef	USE_INET6
+#ifdef USE_INET6
 		yystr = yytexttostr(0, yypos - 1);
 		if (yystr != NULL) {
 			char *s;
@@ -535,7 +527,7 @@ done:
 
 	if (yydebug)
 		printf("isbuilding %d yyvarnext %d nokey %d fixed %d addr %d\n",
-		       isbuilding, yyvarnext, nokey, yydictfixed, yyexpectaddr);
+		    isbuilding, yyvarnext, nokey, yydictfixed, yyexpectaddr);
 	if (isbuilding == 1) {
 		wordtab_t *w;
 
@@ -566,31 +558,30 @@ done:
 	yytokentype = rval;
 
 	if (yydebug)
-		printf("lexed(%s) %d,%d,%d [%d,%d,%d] => %d @%d\n",
-		       yystr, isbuilding, yyexpectaddr, yysavedepth,
-		       string_start, string_end, pos, rval, yysavedepth);
+		printf("lexed(%s) %d,%d,%d [%d,%d,%d] => %d @%d\n", yystr,
+		    isbuilding, yyexpectaddr, yysavedepth, string_start,
+		    string_end, pos, rval, yysavedepth);
 
-	switch (rval)
-	{
-	case YY_NUMBER :
+	switch (rval) {
+	case YY_NUMBER:
 		sscanf(yystr, "%u", &yylval.num);
 		break;
 
-	case YY_HEX :
+	case YY_HEX:
 		sscanf(yystr, "0x%x", (u_int *)&yylval.num);
 		break;
 
-	case YY_STR :
+	case YY_STR:
 		yylval.str = strdup(yystr);
 		break;
 
-	default :
+	default:
 		break;
 	}
 
 	if (yylast > 0) {
 		bcopy(yytext + yypos, yytext,
-		      sizeof(yytext[0]) * (yylast - yypos + 1));
+		    sizeof(yytext[0]) * (yylast - yypos + 1));
 		yylast -= yypos;
 		yypos = 0;
 	}
@@ -601,8 +592,8 @@ done:
 	return (rval);
 }
 
-
-static wordtab_t *yyfindkey(char *key)
+static wordtab_t *
+yyfindkey(char *key)
 {
 	wordtab_t *w;
 
@@ -614,7 +605,6 @@ static wordtab_t *yyfindkey(char *key)
 			return (w);
 	return (NULL);
 }
-
 
 char *
 yykeytostr(int num)
@@ -630,7 +620,6 @@ yykeytostr(int num)
 	return ("<unknown>");
 }
 
-
 wordtab_t *
 yysettab(wordtab_t *words)
 {
@@ -641,7 +630,6 @@ yysettab(wordtab_t *words)
 	return (save);
 }
 
-
 void
 yyerror(char *msg)
 {
@@ -651,9 +639,9 @@ yyerror(char *msg)
 	if (yytokentype < 256) {
 		letter[0] = yytokentype;
 		letter[1] = '\0';
-		txt =  letter;
+		txt = letter;
 	} else if (yytokentype == YY_STR || yytokentype == YY_HEX ||
-		   yytokentype == YY_NUMBER) {
+	    yytokentype == YY_NUMBER) {
 		if (yystr == NULL) {
 			txt = yytexttostr(yypos, YYBUFSIZ);
 			freetxt = 1;
@@ -668,16 +656,14 @@ yyerror(char *msg)
 	exit(1);
 }
 
-
 void
 yysetfixeddict(wordtab_t *newdict)
 {
 	if (yydebug)
 		printf("yysetfixeddict(%lx)\n", (u_long)newdict);
 
-	if (yysavedepth == sizeof(yysavewords)/sizeof(yysavewords[0])) {
-		fprintf(stderr, "%d: at maximum dictionary depth\n",
-			yylineNum);
+	if (yysavedepth == sizeof(yysavewords) / sizeof(yysavewords[0])) {
+		fprintf(stderr, "%d: at maximum dictionary depth\n", yylineNum);
 		return;
 	}
 
@@ -687,16 +673,14 @@ yysetfixeddict(wordtab_t *newdict)
 	yydictfixed = 1;
 }
 
-
 void
 yysetdict(wordtab_t *newdict)
 {
 	if (yydebug)
 		printf("yysetdict(%lx)\n", (u_long)newdict);
 
-	if (yysavedepth == sizeof(yysavewords)/sizeof(yysavewords[0])) {
-		fprintf(stderr, "%d: at maximum dictionary depth\n",
-			yylineNum);
+	if (yysavedepth == sizeof(yysavewords) / sizeof(yysavewords[0])) {
+		fprintf(stderr, "%d: at maximum dictionary depth\n", yylineNum);
 		return;
 	}
 
@@ -718,9 +702,7 @@ yyresetdict(void)
 	yydictfixed = 0;
 }
 
-
-
-#ifdef	TEST_LEXER
+#ifdef TEST_LEXER
 int
 main(int argc, char *argv[])
 {
@@ -729,7 +711,7 @@ main(int argc, char *argv[])
 	yyin = stdin;
 
 	while ((n = yylex()) != 0)
-		printf("%d.n = %d [%s] %d %d\n",
-			yylineNum, n, yystr, yypos, yylast);
+		printf("%d.n = %d [%s] %d %d\n", yylineNum, n, yystr, yypos,
+		    yylast);
 }
 #endif

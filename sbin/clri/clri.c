@@ -35,16 +35,15 @@
 #include <sys/param.h>
 #include <sys/disklabel.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libufs.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
 static void
@@ -70,7 +69,7 @@ main(int argc, char *argv[])
 	fsname = *++argv;
 	if (ufs_disk_fillout(&disk, fsname) == -1) {
 		printf("loading superblock: %s\n", disk.d_error);
-		exit (1);
+		exit(1);
 	}
 
 	/* remaining arguments are inode numbers. */

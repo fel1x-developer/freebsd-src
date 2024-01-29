@@ -1,8 +1,8 @@
 /* Test stack unwinding for libc's sem */
 
 #include <pthread.h>
-#include <stdio.h>
 #include <semaphore.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include "Test.cpp"

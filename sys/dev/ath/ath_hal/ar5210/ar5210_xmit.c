@@ -19,13 +19,12 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_desc.h"
-
+#include "ah_internal.h"
 #include "ar5210/ar5210.h"
-#include "ar5210/ar5210reg.h"
-#include "ar5210/ar5210phy.h"
 #include "ar5210/ar5210desc.h"
+#include "ar5210/ar5210phy.h"
+#include "ar5210/ar5210reg.h"
 
 /*
  * Set the properties of the tx queue with the parameters
@@ -66,7 +65,7 @@ ar5210GetTxQueueProps(struct ath_hal *ah, int q, HAL_TXQ_INFO *qInfo)
  */
 int
 ar5210SetupTxQueue(struct ath_hal *ah, HAL_TX_QUEUE type,
-	const HAL_TXQ_INFO *qInfo)
+    const HAL_TXQ_INFO *qInfo)
 {
 	struct ath_hal_5210 *ahp = AH5210(ah);
 	HAL_TX_QUEUE_INFO *qi;
@@ -100,18 +99,15 @@ ar5210SetupTxQueue(struct ath_hal *ah, HAL_TX_QUEUE type,
 	qi->tqi_type = type;
 	if (qInfo == AH_NULL) {
 		/* by default enable OK+ERR+DESC+URN interrupts */
-		qi->tqi_qflags =
-			  HAL_TXQ_TXOKINT_ENABLE
-			| HAL_TXQ_TXERRINT_ENABLE
-			| HAL_TXQ_TXDESCINT_ENABLE
-			| HAL_TXQ_TXURNINT_ENABLE
-			;
+		qi->tqi_qflags = HAL_TXQ_TXOKINT_ENABLE |
+		    HAL_TXQ_TXERRINT_ENABLE | HAL_TXQ_TXDESCINT_ENABLE |
+		    HAL_TXQ_TXURNINT_ENABLE;
 		qi->tqi_aifs = INIT_AIFS;
-		qi->tqi_cwmin = HAL_TXQ_USEDEFAULT;	/* NB: do at reset */
+		qi->tqi_cwmin = HAL_TXQ_USEDEFAULT; /* NB: do at reset */
 		qi->tqi_shretry = INIT_SH_RETRY;
 		qi->tqi_lgretry = INIT_LG_RETRY;
 	} else
-		(void) ar5210SetTxQueueProps(ah, q, qInfo);
+		(void)ar5210SetTxQueueProps(ah, q, qInfo);
 	/* NB: must be followed by ar5210ResetTxQueue */
 	return q;
 }
@@ -181,34 +177,33 @@ ar5210ResetTxQueue(struct ath_hal *ah, u_int q)
 		OS_REG_WRITE(ah, AR_SLOT_TIME, INIT_SLOT_TIME_TURBO);
 		OS_REG_WRITE(ah, AR_TIME_OUT, INIT_ACK_CTS_TIMEOUT_TURBO);
 		OS_REG_WRITE(ah, AR_USEC, INIT_TRANSMIT_LATENCY_TURBO);
-		OS_REG_WRITE(ah, AR_IFS0, 
-			((INIT_SIFS_TURBO + qi->tqi_aifs * INIT_SLOT_TIME_TURBO)
-				<< AR_IFS0_DIFS_S)
-			| INIT_SIFS_TURBO);
+		OS_REG_WRITE(ah, AR_IFS0,
+		    ((INIT_SIFS_TURBO + qi->tqi_aifs * INIT_SLOT_TIME_TURBO)
+			<< AR_IFS0_DIFS_S) |
+			INIT_SIFS_TURBO);
 		OS_REG_WRITE(ah, AR_IFS1, INIT_PROTO_TIME_CNTRL_TURBO);
 		OS_REG_WRITE(ah, AR_PHY(17),
-			(OS_REG_READ(ah, AR_PHY(17)) & ~0x7F) | 0x38);
+		    (OS_REG_READ(ah, AR_PHY(17)) & ~0x7F) | 0x38);
 		OS_REG_WRITE(ah, AR_PHY_FRCTL,
-			AR_PHY_SERVICE_ERR | AR_PHY_TXURN_ERR |
-			AR_PHY_ILLLEN_ERR | AR_PHY_ILLRATE_ERR |
-			AR_PHY_PARITY_ERR | AR_PHY_TIMING_ERR |
-			0x2020 |
-			AR_PHY_TURBO_MODE | AR_PHY_TURBO_SHORT);
+		    AR_PHY_SERVICE_ERR | AR_PHY_TXURN_ERR | AR_PHY_ILLLEN_ERR |
+			AR_PHY_ILLRATE_ERR | AR_PHY_PARITY_ERR |
+			AR_PHY_TIMING_ERR | 0x2020 | AR_PHY_TURBO_MODE |
+			AR_PHY_TURBO_SHORT);
 	} else {
 		OS_REG_WRITE(ah, AR_SLOT_TIME, INIT_SLOT_TIME);
 		OS_REG_WRITE(ah, AR_TIME_OUT, INIT_ACK_CTS_TIMEOUT);
 		OS_REG_WRITE(ah, AR_USEC, INIT_TRANSMIT_LATENCY);
-		OS_REG_WRITE(ah, AR_IFS0, 
-			((INIT_SIFS + qi->tqi_aifs * INIT_SLOT_TIME)
-				<< AR_IFS0_DIFS_S)
-			| INIT_SIFS);
+		OS_REG_WRITE(ah, AR_IFS0,
+		    ((INIT_SIFS + qi->tqi_aifs * INIT_SLOT_TIME)
+			<< AR_IFS0_DIFS_S) |
+			INIT_SIFS);
 		OS_REG_WRITE(ah, AR_IFS1, INIT_PROTO_TIME_CNTRL);
 		OS_REG_WRITE(ah, AR_PHY(17),
-			(OS_REG_READ(ah, AR_PHY(17)) & ~0x7F) | 0x1C);
+		    (OS_REG_READ(ah, AR_PHY(17)) & ~0x7F) | 0x1C);
 		OS_REG_WRITE(ah, AR_PHY_FRCTL,
-			AR_PHY_SERVICE_ERR | AR_PHY_TXURN_ERR |
-			AR_PHY_ILLLEN_ERR | AR_PHY_ILLRATE_ERR |
-			AR_PHY_PARITY_ERR | AR_PHY_TIMING_ERR | 0x1020);
+		    AR_PHY_SERVICE_ERR | AR_PHY_TXURN_ERR | AR_PHY_ILLLEN_ERR |
+			AR_PHY_ILLRATE_ERR | AR_PHY_PARITY_ERR |
+			AR_PHY_TIMING_ERR | 0x1020);
 	}
 
 	if (qi->tqi_cwmin == HAL_TXQ_USEDEFAULT)
@@ -217,13 +212,12 @@ ar5210ResetTxQueue(struct ath_hal *ah, u_int q)
 		cwMin = qi->tqi_cwmin;
 
 	/* Set cwmin and retry limit values */
-	OS_REG_WRITE(ah, AR_RETRY_LMT, 
-		  (cwMin << AR_RETRY_LMT_CW_MIN_S)
-		 | SM(INIT_SLG_RETRY, AR_RETRY_LMT_SLG_RETRY)
-		 | SM(INIT_SSH_RETRY, AR_RETRY_LMT_SSH_RETRY)
-		 | SM(qi->tqi_lgretry, AR_RETRY_LMT_LG_RETRY)
-		 | SM(qi->tqi_shretry, AR_RETRY_LMT_SH_RETRY)
-	);
+	OS_REG_WRITE(ah, AR_RETRY_LMT,
+	    (cwMin << AR_RETRY_LMT_CW_MIN_S) |
+		SM(INIT_SLG_RETRY, AR_RETRY_LMT_SLG_RETRY) |
+		SM(INIT_SSH_RETRY, AR_RETRY_LMT_SSH_RETRY) |
+		SM(qi->tqi_lgretry, AR_RETRY_LMT_LG_RETRY) |
+		SM(qi->tqi_shretry, AR_RETRY_LMT_SH_RETRY));
 
 	if (qi->tqi_qflags & HAL_TXQ_TXOKINT_ENABLE)
 		ahp->ah_txOkInterruptMask |= 1 << q;
@@ -266,8 +260,8 @@ ar5210GetTxDP(struct ath_hal *ah, u_int q)
 	case HAL_TX_QUEUE_DATA:
 		return OS_REG_READ(ah, AR_TXDP0);
 	case HAL_TX_QUEUE_INACTIVE:
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n",
-		    __func__, q);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n", __func__,
+		    q);
 		/* fall thru... */
 	default:
 		break;
@@ -286,8 +280,8 @@ ar5210SetTxDP(struct ath_hal *ah, u_int q, uint32_t txdp)
 
 	HALASSERT(q < HAL_NUM_TX_QUEUES);
 
-	HALDEBUG(ah, HAL_DEBUG_TXQUEUE, "%s: queue %u 0x%x\n",
-	    __func__, q, txdp);
+	HALDEBUG(ah, HAL_DEBUG_TXQUEUE, "%s: queue %u 0x%x\n", __func__, q,
+	    txdp);
 	qi = &ahp->ah_txq[q];
 	switch (qi->tqi_type) {
 	case HAL_TX_QUEUE_DATA:
@@ -299,7 +293,7 @@ ar5210SetTxDP(struct ath_hal *ah, u_int q, uint32_t txdp)
 		 */
 		if (OS_REG_READ(ah, AR_CR) & AR_CR_TXE0)
 			ath_hal_printf(ah, "%s: TXE asserted; AR_CR=0x%x\n",
-				__func__, OS_REG_READ(ah, AR_CR));
+			    __func__, OS_REG_READ(ah, AR_CR));
 #endif
 		OS_REG_WRITE(ah, AR_TXDP0, txdp);
 		break;
@@ -335,12 +329,12 @@ ar5210UpdateTxTrigLevel(struct ath_hal *ah, HAL_BOOL bIncTrigLevel)
 	 * Disable chip interrupts. This is because halUpdateTxTrigLevel
 	 * is called from both ISR and non-ISR contexts.
 	 */
-	(void) ar5210SetInterrupts(ah, ints &~ HAL_INT_GLOBAL);
+	(void)ar5210SetInterrupts(ah, ints & ~HAL_INT_GLOBAL);
 	curTrigLevel = OS_REG_READ(ah, AR_TRIG_LEV);
-	if (bIncTrigLevel){
+	if (bIncTrigLevel) {
 		/* increase the trigger level */
 		curTrigLevel = curTrigLevel +
-			((MAX_TX_FIFO_THRESHOLD - curTrigLevel) / 2);
+		    ((MAX_TX_FIFO_THRESHOLD - curTrigLevel) / 2);
 	} else {
 		/* decrease the trigger level if not already at the minimum */
 		if (curTrigLevel > MIN_TX_FIFO_THRESHOLD) {
@@ -378,17 +372,17 @@ ar5210StartTxDma(struct ath_hal *ah, u_int q)
 		OS_REG_WRITE(ah, AR_CR, AR_CR_TXE0);
 		break;
 	case HAL_TX_QUEUE_CAB:
-		OS_REG_WRITE(ah, AR_CR, AR_CR_TXE1);	/* enable altq xmit */
+		OS_REG_WRITE(ah, AR_CR, AR_CR_TXE1); /* enable altq xmit */
 		OS_REG_WRITE(ah, AR_BCR,
-			AR_BCR_TQ1V | AR_BCR_BDMAE | AR_BCR_TQ1FV);
+		    AR_BCR_TQ1V | AR_BCR_BDMAE | AR_BCR_TQ1FV);
 		break;
 	case HAL_TX_QUEUE_BEACON:
 		/* XXX add CR_BCR_BCMD if IBSS mode */
 		OS_REG_WRITE(ah, AR_BCR, AR_BCR_TQ1V | AR_BCR_BDMAE);
 		break;
 	case HAL_TX_QUEUE_INACTIVE:
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n",
-		    __func__, q);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n", __func__,
+		    q);
 		/* fal thru... */
 	default:
 		return AH_FALSE;
@@ -412,8 +406,8 @@ ar5210NumTxPending(struct ath_hal *ah, u_int q)
 		v = OS_REG_READ(ah, AR_CFG);
 		return MS(v, AR_CFG_TXCNT);
 	case HAL_TX_QUEUE_INACTIVE:
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n",
-		    __func__, q);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n", __func__,
+		    q);
 		/* fall thru... */
 	default:
 		break;
@@ -449,8 +443,8 @@ ar5210StopTxDma(struct ath_hal *ah, u_int q)
 	case HAL_TX_QUEUE_BEACON:
 		return ath_hal_wait(ah, AR_BSR, AR_BSR_TXQ1F, 0);
 	case HAL_TX_QUEUE_INACTIVE:
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n",
-		    __func__, q);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: inactive queue %u\n", __func__,
+		    q);
 		/* fall thru... */
 	default:
 		break;
@@ -462,38 +456,29 @@ ar5210StopTxDma(struct ath_hal *ah, u_int q)
  * Descriptor Access Functions
  */
 
-#define	VALID_PKT_TYPES \
-	((1<<HAL_PKT_TYPE_NORMAL)|(1<<HAL_PKT_TYPE_ATIM)|\
-	 (1<<HAL_PKT_TYPE_PSPOLL)|(1<<HAL_PKT_TYPE_PROBE_RESP)|\
-	 (1<<HAL_PKT_TYPE_BEACON))
-#define	isValidPktType(_t)	((1<<(_t)) & VALID_PKT_TYPES)
-#define	VALID_TX_RATES \
-	((1<<0x0b)|(1<<0x0f)|(1<<0x0a)|(1<<0x0e)|(1<<0x09)|(1<<0x0d)|\
-	 (1<<0x08)|(1<<0x0c)|(1<<0x1b)|(1<<0x1a)|(1<<0x1e)|(1<<0x19)|\
-	 (1<<0x1d)|(1<<0x18)|(1<<0x1c))
-#define	isValidTxRate(_r)	((1<<(_r)) & VALID_TX_RATES)
+#define VALID_PKT_TYPES                                                   \
+	((1 << HAL_PKT_TYPE_NORMAL) | (1 << HAL_PKT_TYPE_ATIM) |          \
+	    (1 << HAL_PKT_TYPE_PSPOLL) | (1 << HAL_PKT_TYPE_PROBE_RESP) | \
+	    (1 << HAL_PKT_TYPE_BEACON))
+#define isValidPktType(_t) ((1 << (_t)) & VALID_PKT_TYPES)
+#define VALID_TX_RATES                                                         \
+	((1 << 0x0b) | (1 << 0x0f) | (1 << 0x0a) | (1 << 0x0e) | (1 << 0x09) | \
+	    (1 << 0x0d) | (1 << 0x08) | (1 << 0x0c) | (1 << 0x1b) |            \
+	    (1 << 0x1a) | (1 << 0x1e) | (1 << 0x19) | (1 << 0x1d) |            \
+	    (1 << 0x18) | (1 << 0x1c))
+#define isValidTxRate(_r) ((1 << (_r)) & VALID_TX_RATES)
 
 HAL_BOOL
-ar5210SetupTxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	u_int pktLen,
-	u_int hdrLen,
-	HAL_PKT_TYPE type,
-	u_int txPower,
-	u_int txRate0, u_int txTries0,
-	u_int keyIx,
-	u_int antMode,
-	u_int flags,
-	u_int rtsctsRate,
-	u_int rtsctsDuration,
-        u_int compicvLen,
-	u_int compivLen,
-	u_int comp)
+ar5210SetupTxDesc(struct ath_hal *ah, struct ath_desc *ds, u_int pktLen,
+    u_int hdrLen, HAL_PKT_TYPE type, u_int txPower, u_int txRate0,
+    u_int txTries0, u_int keyIx, u_int antMode, u_int flags, u_int rtsctsRate,
+    u_int rtsctsDuration, u_int compicvLen, u_int compivLen, u_int comp)
 {
 	struct ar5210_desc *ads = AR5210DESC(ds);
 	uint32_t frtype;
 
-	(void) txPower;
-	(void) rtsctsDuration;
+	(void)txPower;
+	(void)rtsctsDuration;
 
 	HALASSERT(txTries0 != 0);
 	HALASSERT(isValidPktType(type));
@@ -503,14 +488,11 @@ ar5210SetupTxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		frtype = AR_Frm_NoDelay;
 	else
 		frtype = type << 26;
-	ads->ds_ctl0 = (pktLen & AR_FrameLen)
-		     | (txRate0 << AR_XmitRate_S)
-		     | ((hdrLen << AR_HdrLen_S) & AR_HdrLen)
-		     | frtype
-		     | (flags & HAL_TXDESC_CLRDMASK ? AR_ClearDestMask : 0)
-		     | (flags & HAL_TXDESC_INTREQ ? AR_TxInterReq : 0)
-		     | (antMode ? AR_AntModeXmit : 0)
-		     ;
+	ads->ds_ctl0 = (pktLen & AR_FrameLen) | (txRate0 << AR_XmitRate_S) |
+	    ((hdrLen << AR_HdrLen_S) & AR_HdrLen) | frtype |
+	    (flags & HAL_TXDESC_CLRDMASK ? AR_ClearDestMask : 0) |
+	    (flags & HAL_TXDESC_INTREQ ? AR_TxInterReq : 0) |
+	    (antMode ? AR_AntModeXmit : 0);
 	if (keyIx != HAL_TXKEYIX_INVALID) {
 		ads->ds_ctl1 = (keyIx << AR_EncryptKeyIdx_S) & AR_EncryptKeyIdx;
 		ads->ds_ctl0 |= AR_EncryptKeyValid;
@@ -518,22 +500,25 @@ ar5210SetupTxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		ads->ds_ctl1 = 0;
 	if (flags & HAL_TXDESC_RTSENA) {
 		ads->ds_ctl0 |= AR_RTSCTSEnable;
-		ads->ds_ctl1 |= (rtsctsDuration << AR_RTSDuration_S)
-		    & AR_RTSDuration;
+		ads->ds_ctl1 |= (rtsctsDuration << AR_RTSDuration_S) &
+		    AR_RTSDuration;
 	}
 	return AH_TRUE;
 }
 
 HAL_BOOL
-ar5210SetupXTxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	u_int txRate1, u_int txTries1,
-	u_int txRate2, u_int txTries2,
-	u_int txRate3, u_int txTries3)
+ar5210SetupXTxDesc(struct ath_hal *ah, struct ath_desc *ds, u_int txRate1,
+    u_int txTries1, u_int txRate2, u_int txTries2, u_int txRate3,
+    u_int txTries3)
 {
-	(void) ah; (void) ds;
-	(void) txRate1; (void) txTries1;
-	(void) txRate2; (void) txTries2;
-	(void) txRate3; (void) txTries3;
+	(void)ah;
+	(void)ds;
+	(void)txRate1;
+	(void)txTries1;
+	(void)txRate2;
+	(void)txTries2;
+	(void)txRate3;
+	(void)txTries3;
 	return AH_FALSE;
 }
 
@@ -547,14 +532,13 @@ ar5210IntrReqTxDesc(struct ath_hal *ah, struct ath_desc *ds)
 
 HAL_BOOL
 ar5210FillTxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	HAL_DMA_ADDR *bufAddrList, uint32_t *segLenList, u_int descId,
-	u_int qcuId, HAL_BOOL firstSeg, HAL_BOOL lastSeg,
-	const struct ath_desc *ds0)
+    HAL_DMA_ADDR *bufAddrList, uint32_t *segLenList, u_int descId, u_int qcuId,
+    HAL_BOOL firstSeg, HAL_BOOL lastSeg, const struct ath_desc *ds0)
 {
 	struct ar5210_desc *ads = AR5210DESC(ds);
 	uint32_t segLen = segLenList[0];
 
-	HALASSERT((segLen &~ AR_BufLen) == 0);
+	HALASSERT((segLen & ~AR_BufLen) == 0);
 
 	ds->ds_data = bufAddrList[0];
 
@@ -564,15 +548,15 @@ ar5210FillTxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		 * setup by ar5210SetupTxDesc.
 		 */
 		ads->ds_ctl1 |= segLen | (lastSeg ? 0 : AR_More);
-	} else if (lastSeg) {		/* !firstSeg && lastSeg */
+	} else if (lastSeg) { /* !firstSeg && lastSeg */
 		/*
 		 * Last descriptor in a multi-descriptor frame,
 		 * copy the transmit parameters from the first
-		 * frame for processing on completion. 
+		 * frame for processing on completion.
 		 */
 		ads->ds_ctl0 = AR5210DESC_CONST(ds0)->ds_ctl0;
 		ads->ds_ctl1 = segLen;
-	} else {			/* !firstSeg && !lastSeg */
+	} else { /* !firstSeg && !lastSeg */
 		/*
 		 * Intermediate descriptor in a multi-descriptor frame.
 		 */
@@ -587,8 +571,8 @@ ar5210FillTxDesc(struct ath_hal *ah, struct ath_desc *ds,
  * Processing of HW TX descriptor.
  */
 HAL_STATUS
-ar5210ProcTxDesc(struct ath_hal *ah,
-	struct ath_desc *ds, struct ath_tx_status *ts)
+ar5210ProcTxDesc(struct ath_hal *ah, struct ath_desc *ds,
+    struct ath_tx_status *ts)
 {
 	struct ar5210_desc *ads = AR5210DESC(ds);
 
@@ -604,14 +588,14 @@ ar5210ProcTxDesc(struct ath_hal *ah,
 			ts->ts_status |= HAL_TXERR_XRETRY;
 		if (ads->ds_status0 & AR_Filtered)
 			ts->ts_status |= HAL_TXERR_FILT;
-		if (ads->ds_status0  & AR_FIFOUnderrun)
+		if (ads->ds_status0 & AR_FIFOUnderrun)
 			ts->ts_status |= HAL_TXERR_FIFO;
 	}
 	ts->ts_rate = MS(ads->ds_ctl0, AR_XmitRate);
 	ts->ts_rssi = MS(ads->ds_status1, AR_AckSigStrength);
 	ts->ts_shortretry = MS(ads->ds_status0, AR_ShortRetryCnt);
 	ts->ts_longretry = MS(ads->ds_status0, AR_LongRetryCnt);
-	ts->ts_antenna = 0;		/* NB: don't know */
+	ts->ts_antenna = 0; /* NB: don't know */
 	ts->ts_finaltsi = 0;
 
 	return HAL_OK;
@@ -631,7 +615,8 @@ ar5210GetTxIntrQueue(struct ath_hal *ah, uint32_t *txqs)
  * Retrieve the rate table from the given TX completion descriptor
  */
 HAL_BOOL
-ar5210GetTxCompletionRates(struct ath_hal *ah, const struct ath_desc *ds0, int *rates, int *tries)
+ar5210GetTxCompletionRates(struct ath_hal *ah, const struct ath_desc *ds0,
+    int *rates, int *tries)
 {
 	return AH_FALSE;
 }

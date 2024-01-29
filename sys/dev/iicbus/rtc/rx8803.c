@@ -25,9 +25,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -36,28 +36,27 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
 
 #include "clock_if.h"
 #include "iicbus_if.h"
 
-#define	BIT(x)			(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define RX8803_TIME		0x0
-#define RX8803_FLAGS		0xE
-#define RX8803_CTRL		0xF
+#define RX8803_TIME 0x0
+#define RX8803_FLAGS 0xE
+#define RX8803_CTRL 0xF
 
-#define RX8803_FLAGS_V1F	BIT(0)
-#define RX8803_FLAGS_V2F	BIT(1)
+#define RX8803_FLAGS_V1F BIT(0)
+#define RX8803_FLAGS_V2F BIT(1)
 
-#define RX8803_CTRL_DISABLE	BIT(0)
+#define RX8803_CTRL_DISABLE BIT(0)
 
-#define HALF_OF_SEC_NS		500000000
-#define MAX_WRITE_LEN		16
+#define HALF_OF_SEC_NS 500000000
+#define MAX_WRITE_LEN 16
 
 struct rx8803_time {
 	uint8_t sec;
@@ -70,8 +69,8 @@ struct rx8803_time {
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"epson,rx8803", 1},
-	{NULL,           0},
+	{ "epson,rx8803", 1 },
+	{ NULL, 0 },
 };
 
 static int rx8803_probe(device_t dev);
@@ -112,10 +111,8 @@ rx8803_gettime(device_t dev, struct timespec *ts)
 	if (rc != 0)
 		return (rc);
 
-	rc = iicdev_readfrom(dev,
-	    RX8803_TIME,
-	    &data, sizeof(struct rx8803_time),
-	    IIC_WAIT);
+	rc = iicdev_readfrom(dev, RX8803_TIME, &data,
+	    sizeof(struct rx8803_time), IIC_WAIT);
 	if (rc != 0)
 		return (rc);
 
@@ -169,9 +166,7 @@ rx8803_settime(device_t dev, struct timespec *ts)
 		return (rc);
 
 	/* Update the date. */
-	rc = iicdev_writeto(dev,
-	    RX8803_TIME,
-	    &data, sizeof(struct rx8803_time),
+	rc = iicdev_writeto(dev, RX8803_TIME, &data, sizeof(struct rx8803_time),
 	    IIC_WAIT);
 	if (rc != 0)
 		return (rc);
@@ -183,7 +178,8 @@ rx8803_settime(device_t dev, struct timespec *ts)
 		return (rc);
 
 	/* Clear low voltage flags, as we have just updated the clock. */
-	rc = iicdev_readfrom(dev, RX8803_FLAGS, &reg, sizeof(uint8_t), IIC_WAIT);
+	rc = iicdev_readfrom(dev, RX8803_FLAGS, &reg, sizeof(uint8_t),
+	    IIC_WAIT);
 	if (rc != 0)
 		return (rc);
 
@@ -216,7 +212,6 @@ rx8803_attach(device_t dev)
 	clock_schedule(dev, 1);
 
 	return (0);
-
 }
 
 static int
@@ -240,9 +235,7 @@ static device_method_t rx8803_methods[] = {
 };
 
 static driver_t rx8803_driver = {
-	"rx8803",
-	rx8803_methods,
-	0,			/* We don't need softc for this one. */
+	"rx8803", rx8803_methods, 0, /* We don't need softc for this one. */
 };
 
 DRIVER_MODULE(rx8803, iicbus, rx8803_driver, NULL, NULL);

@@ -25,16 +25,16 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
-#include <sys/types.h>
-#include <sys/bus.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 #include <sys/watchdog.h>
 
 #include <machine/bus.h>
@@ -42,52 +42,49 @@
 
 #include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 /* Registers */
-#define DWWDT_CR		0x00
-#define DWWDT_CR_WDT_EN		(1 << 0)
-#define DWWDT_CR_RESP_MODE	(1 << 1)
-#define DWWDT_TORR		0x04
-#define DWWDT_CCVR		0x08
-#define DWWDT_CRR		0x0C
-#define DWWDT_CRR_KICK		0x76
-#define DWWDT_STAT		0x10
-#define DWWDT_STAT_STATUS	0x01
-#define DWWDT_EOI		0x14
+#define DWWDT_CR 0x00
+#define DWWDT_CR_WDT_EN (1 << 0)
+#define DWWDT_CR_RESP_MODE (1 << 1)
+#define DWWDT_TORR 0x04
+#define DWWDT_CCVR 0x08
+#define DWWDT_CRR 0x0C
+#define DWWDT_CRR_KICK 0x76
+#define DWWDT_STAT 0x10
+#define DWWDT_STAT_STATUS 0x01
+#define DWWDT_EOI 0x14
 
-#define DWWDT_READ4(sc, reg) 		bus_read_4((sc)->sc_mem_res, (reg))
-#define DWWDT_WRITE4(sc, reg, val)	\
-	bus_write_4((sc)->sc_mem_res, (reg), (val))
+#define DWWDT_READ4(sc, reg) bus_read_4((sc)->sc_mem_res, (reg))
+#define DWWDT_WRITE4(sc, reg, val) bus_write_4((sc)->sc_mem_res, (reg), (val))
 
 /*
  * 47 = 16 (timeout shift of dwwdt) + 30 (1s ~= 2 ** 30ns) + 1
  * (pre-restart delay)
  */
-#define DWWDT_EXP_OFFSET	47
+#define DWWDT_EXP_OFFSET 47
 
 struct dwwdt_softc {
-	device_t		 sc_dev;
-	struct resource		*sc_mem_res;
-	struct resource		*sc_irq_res;
-	void			*sc_intr_cookie;
-	clk_t			 sc_clk;
-	uint64_t		 sc_clk_freq;
-	eventhandler_tag	 sc_evtag;
-	int 			 sc_mem_rid;
-	int			 sc_irq_rid;
+	device_t sc_dev;
+	struct resource *sc_mem_res;
+	struct resource *sc_irq_res;
+	void *sc_intr_cookie;
+	clk_t sc_clk;
+	uint64_t sc_clk_freq;
+	eventhandler_tag sc_evtag;
+	int sc_mem_rid;
+	int sc_irq_rid;
 	enum {
 		DWWDT_STOPPED,
 		DWWDT_RUNNING,
-	}			 sc_status;
+	} sc_status;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{ "snps,dw-wdt",		1 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "snps,dw-wdt", 1 },
+	{ NULL, 0 } };
 
 SYSCTL_NODE(_dev, OID_AUTO, dwwdt, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Synopsys Designware watchdog timer");
@@ -103,8 +100,7 @@ SYSCTL_BOOL(_dev_dwwdt, OID_AUTO, debug, CTLFLAG_RW | CTLFLAG_MPSAFE,
 
 static bool dwwdt_panic_first = true;
 SYSCTL_BOOL(_dev_dwwdt, OID_AUTO, panic_first, CTLFLAG_RW | CTLFLAG_MPSAFE,
-    &dwwdt_panic_first, 0,
-    "Try to panic on timeout, reset on another timeout");
+    &dwwdt_panic_first, 0, "Try to panic on timeout, reset on another timeout");
 
 static int dwwdt_probe(device_t);
 static int dwwdt_attach(device_t);
@@ -148,8 +144,7 @@ dwwdt_started(const struct dwwdt_softc *sc)
 	return ((DWWDT_READ4(sc, DWWDT_CR) & DWWDT_CR_WDT_EN) != 0);
 }
 
-static void inline
-dwwdt_start(struct dwwdt_softc *sc)
+static void inline dwwdt_start(struct dwwdt_softc *sc)
 {
 	uint32_t val;
 
@@ -160,16 +155,14 @@ dwwdt_start(struct dwwdt_softc *sc)
 	sc->sc_status = DWWDT_RUNNING;
 }
 
-static void inline
-dwwdt_stop(struct dwwdt_softc *sc)
+static void inline dwwdt_stop(struct dwwdt_softc *sc)
 {
 
 	sc->sc_status = DWWDT_STOPPED;
 	dwwdt_set_timeout(sc, 0x0f);
 }
 
-static void inline
-dwwdt_set_timeout(const struct dwwdt_softc *sc, int val)
+static void inline dwwdt_set_timeout(const struct dwwdt_softc *sc, int val)
 {
 
 	DWWDT_WRITE4(sc, DWWDT_TORR, val);
@@ -264,7 +257,7 @@ dwwdt_attach(device_t dev)
 
 	sc->sc_intr_cookie = NULL;
 	if (bus_setup_intr(dev, sc->sc_irq_res, INTR_MPSAFE | INTR_TYPE_MISC,
-	    NULL, dwwdt_intr, sc, &sc->sc_intr_cookie) != 0) {
+		NULL, dwwdt_intr, sc, &sc->sc_intr_cookie) != 0) {
 		device_printf(dev, "cannot setup interrupt routine\n");
 		goto err_no_intr;
 	}
@@ -353,14 +346,12 @@ dwwdt_shutdown(device_t dev)
 	return (bus_generic_shutdown(dev));
 }
 
-static device_method_t dwwdt_methods[] = {
-	DEVMETHOD(device_probe, dwwdt_probe),
+static device_method_t dwwdt_methods[] = { DEVMETHOD(device_probe, dwwdt_probe),
 	DEVMETHOD(device_attach, dwwdt_attach),
 	DEVMETHOD(device_detach, dwwdt_detach),
 	DEVMETHOD(device_shutdown, dwwdt_shutdown),
 
-	{0, 0}
-};
+	{ 0, 0 } };
 
 static driver_t dwwdt_driver = {
 	"dwwdt",

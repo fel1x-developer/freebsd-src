@@ -26,20 +26,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/mbuf.h>
 #include <sys/socket.h>
+
+#include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_pflog.h>
-#include <net/if_var.h>
 #include <net/if_clone.h>
+#include <net/if_pflog.h>
 #include <net/if_private.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/vnet.h>
-#include <net/bpf.h>
-
 #include <netinet/in.h>
 #include <netinet/ip_fw.h>
 #include <netinet/ip_var.h>
@@ -49,10 +49,10 @@ VNET_DEFINE_STATIC(struct ifnet *, log_if);
 VNET_DEFINE_STATIC(struct ifnet *, pflog_if);
 VNET_DEFINE_STATIC(struct if_clone *, ipfw_cloner);
 VNET_DEFINE_STATIC(struct if_clone *, ipfwlog_cloner);
-#define	V_ipfw_cloner		VNET(ipfw_cloner)
-#define	V_ipfwlog_cloner	VNET(ipfwlog_cloner)
-#define	V_log_if		VNET(log_if)
-#define	V_pflog_if		VNET(pflog_if)
+#define V_ipfw_cloner VNET(ipfw_cloner)
+#define V_ipfwlog_cloner VNET(ipfwlog_cloner)
+#define V_log_if VNET(log_if)
+#define V_pflog_if VNET(pflog_if)
 
 static const char ipfwname[] = "ipfw";
 static const char ipfwlogname[] = "ipfwlog";
@@ -65,8 +65,8 @@ ipfw_bpf_ioctl(struct ifnet *ifp, u_long cmd, caddr_t addr)
 }
 
 static int
-ipfw_bpf_output(struct ifnet *ifp, struct mbuf *m,
-	const struct sockaddr *dst, struct route *ro)
+ipfw_bpf_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
+    struct route *ro)
 {
 
 	if (m != NULL)

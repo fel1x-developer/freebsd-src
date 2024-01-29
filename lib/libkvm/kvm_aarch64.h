@@ -24,34 +24,34 @@
  */
 
 #ifndef __KVM_AARCH64_H__
-#define	__KVM_AARCH64_H__
+#define __KVM_AARCH64_H__
 
 #ifdef __aarch64__
 #include <machine/pte.h>
 #endif
 
-typedef uint64_t	aarch64_physaddr_t;
-typedef uint64_t	aarch64_pte_t;
+typedef uint64_t aarch64_physaddr_t;
+typedef uint64_t aarch64_pte_t;
 
-#define	AARCH64_PAGE_SHIFT_4K	12
-#define	AARCH64_PAGE_SIZE_4K	(1 << AARCH64_PAGE_SHIFT_4K)
+#define AARCH64_PAGE_SHIFT_4K 12
+#define AARCH64_PAGE_SIZE_4K (1 << AARCH64_PAGE_SHIFT_4K)
 
-#define	AARCH64_PAGE_SHIFT_16K	14
-#define	AARCH64_PAGE_SIZE_16K	(1 << AARCH64_PAGE_SHIFT_16K)
+#define AARCH64_PAGE_SHIFT_16K 14
+#define AARCH64_PAGE_SIZE_16K (1 << AARCH64_PAGE_SHIFT_16K)
 
 /* Source: arm64/include/pte.h */
-#define	AARCH64_ATTR_MASK	0xfffc000000000fff
-#define	AARCH64_ATTR_UXN	(1ULL << 54)
-#define	AARCH64_ATTR_PXN	(1ULL << 53)
-#define	AARCH64_ATTR_XN		(AARCH64_ATTR_PXN | AARCH64_ATTR_UXN)
-#define	AARCH64_ATTR_AP(x)	((x) << 6)
-#define	AARCH64_ATTR_AP_RO	(1 << 1)
+#define AARCH64_ATTR_MASK 0xfffc000000000fff
+#define AARCH64_ATTR_UXN (1ULL << 54)
+#define AARCH64_ATTR_PXN (1ULL << 53)
+#define AARCH64_ATTR_XN (AARCH64_ATTR_PXN | AARCH64_ATTR_UXN)
+#define AARCH64_ATTR_AP(x) ((x) << 6)
+#define AARCH64_ATTR_AP_RO (1 << 1)
 
-#define	AARCH64_ATTR_DESCR_MASK	3
+#define AARCH64_ATTR_DESCR_MASK 3
 
-#define	AARCH64_L3_SHIFT_4K	12
-#define	AARCH64_L3_SHIFT_16K	14
-#define	AARCH64_L3_PAGE		0x3
+#define AARCH64_L3_SHIFT_4K 12
+#define AARCH64_L3_SHIFT_16K 14
+#define AARCH64_L3_PAGE 0x3
 
 #ifdef __aarch64__
 _Static_assert(ATTR_MASK == AARCH64_ATTR_MASK, "ATTR_MASK mismatch");

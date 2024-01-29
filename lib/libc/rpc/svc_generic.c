@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -39,23 +39,25 @@
  *
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
-#include <rpc/rpc.h>
-#include <rpc/nettype.h>
-#include <stdio.h>
+
+#include <err.h>
 #include <errno.h>
+#include <rpc/nettype.h>
+#include <rpc/rpc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <err.h>
-#include "un-namespace.h"
 
-#include "rpc_com.h"
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "rpc_com.h"
+#include "un-namespace.h"
 
 extern int __svc_vc_setflag(SVCXPRT *, int);
 
@@ -73,20 +75,20 @@ extern int __svc_vc_setflag(SVCXPRT *, int);
  * nettype - Networktype token
  */
 int
-svc_create(void (*dispatch)(struct svc_req *, SVCXPRT *),
-    rpcprog_t prognum, rpcvers_t versnum, const char *nettype)
+svc_create(void (*dispatch)(struct svc_req *, SVCXPRT *), rpcprog_t prognum,
+    rpcvers_t versnum, const char *nettype)
 {
 	struct xlist {
-		SVCXPRT *xprt;		/* Server handle */
-		struct xlist *next;	/* Next item */
+		SVCXPRT *xprt;	    /* Server handle */
+		struct xlist *next; /* Next item */
 	} *l;
-	static struct xlist *xprtlist;	/* A link list of all the handles */
+	static struct xlist *xprtlist; /* A link list of all the handles */
 	int num = 0;
 	SVCXPRT *xprt;
 	struct netconfig *nconf;
 	void *handle;
 
-/* VARIABLES PROTECTED BY xprtlist_lock: xprtlist */
+	/* VARIABLES PROTECTED BY xprtlist_lock: xprtlist */
 
 	if ((handle = __rpc_setconf(nettype)) == NULL) {
 		warnx("svc_create: unknown protocol");
@@ -97,13 +99,13 @@ svc_create(void (*dispatch)(struct svc_req *, SVCXPRT *),
 		for (l = xprtlist; l; l = l->next) {
 			if (strcmp(l->xprt->xp_netid, nconf->nc_netid) == 0) {
 				/* Found an old one, use it */
-				(void) rpcb_unset(prognum, versnum, nconf);
-				if (svc_reg(l->xprt, prognum, versnum,
-					dispatch, nconf) == FALSE)
+				(void)rpcb_unset(prognum, versnum, nconf);
+				if (svc_reg(l->xprt, prognum, versnum, dispatch,
+					nconf) == FALSE)
 					warnx(
-		"svc_create: could not register prog %u vers %u on %s",
-					(unsigned)prognum, (unsigned)versnum,
-					 nconf->nc_netid);
+					    "svc_create: could not register prog %u vers %u on %s",
+					    (unsigned)prognum,
+					    (unsigned)versnum, nconf->nc_netid);
 				else
 					num++;
 				break;
@@ -113,7 +115,7 @@ svc_create(void (*dispatch)(struct svc_req *, SVCXPRT *),
 			/* It was not found. Now create a new one */
 			xprt = svc_tp_create(dispatch, prognum, versnum, nconf);
 			if (xprt) {
-				l = (struct xlist *)malloc(sizeof (*l));
+				l = (struct xlist *)malloc(sizeof(*l));
 				if (l == NULL) {
 					warnx("svc_create: no memory");
 					mutex_unlock(&xprtlist_lock);
@@ -147,15 +149,15 @@ done:
  * ncofn   - Netconfig structure for the network
  */
 SVCXPRT *
-svc_tp_create(void (*dispatch)(struct svc_req *, SVCXPRT *),
-    rpcprog_t prognum, rpcvers_t versnum, const struct netconfig *nconf)
+svc_tp_create(void (*dispatch)(struct svc_req *, SVCXPRT *), rpcprog_t prognum,
+    rpcvers_t versnum, const struct netconfig *nconf)
 {
 	SVCXPRT *xprt;
 
 	if (nconf == NULL) {
 		warnx(
-	"svc_tp_create: invalid netconfig structure for prog %u vers %u",
-				(unsigned)prognum, (unsigned)versnum);
+		    "svc_tp_create: invalid netconfig structure for prog %u vers %u",
+		    (unsigned)prognum, (unsigned)versnum);
 		return (NULL);
 	}
 	xprt = svc_tli_create(RPC_ANYFD, nconf, NULL, 0, 0);
@@ -163,12 +165,10 @@ svc_tp_create(void (*dispatch)(struct svc_req *, SVCXPRT *),
 		return (NULL);
 	}
 	/*LINTED const castaway*/
-	(void) rpcb_unset(prognum, versnum, (struct netconfig *) nconf);
+	(void)rpcb_unset(prognum, versnum, (struct netconfig *)nconf);
 	if (svc_reg(xprt, prognum, versnum, dispatch, nconf) == FALSE) {
-		warnx(
-		"svc_tp_create: Could not register prog %u vers %u on %s",
-				(unsigned)prognum, (unsigned)versnum,
-				nconf->nc_netid);
+		warnx("svc_tp_create: Could not register prog %u vers %u on %s",
+		    (unsigned)prognum, (unsigned)versnum, nconf->nc_netid);
 		SVC_DESTROY(xprt);
 		return (NULL);
 	}
@@ -194,8 +194,8 @@ SVCXPRT *
 svc_tli_create(int fd, const struct netconfig *nconf,
     const struct t_bind *bindaddr, u_int sendsz, u_int recvsz)
 {
-	SVCXPRT *xprt = NULL;		/* service handle */
-	bool_t madefd = FALSE;		/* whether fd opened here  */
+	SVCXPRT *xprt = NULL;  /* service handle */
+	bool_t madefd = FALSE; /* whether fd opened here  */
 	struct __rpc_sockinfo si;
 	struct sockaddr_storage ss;
 	socklen_t slen;
@@ -209,7 +209,7 @@ svc_tli_create(int fd, const struct netconfig *nconf,
 		if (fd == -1) {
 			warnx(
 			    "svc_tli_create: could not open connection for %s",
-					nconf->nc_netid);
+			    nconf->nc_netid);
 			return (NULL);
 		}
 		__rpc_nconf2sockinfo(nconf, &si);
@@ -220,7 +220,7 @@ svc_tli_create(int fd, const struct netconfig *nconf,
 		 */
 		if (!__rpc_fd2sockinfo(fd, &si)) {
 			warnx(
-		"svc_tli_create: could not get transport information");
+			    "svc_tli_create: could not get transport information");
 			return (NULL);
 		}
 	}
@@ -235,52 +235,50 @@ svc_tli_create(int fd, const struct netconfig *nconf,
 				ss.ss_family = si.si_af;
 				ss.ss_len = si.si_alen;
 				if (_bind(fd, (struct sockaddr *)(void *)&ss,
-				    (socklen_t)si.si_alen) < 0) {
+					(socklen_t)si.si_alen) < 0) {
 					warnx(
-			"svc_tli_create: could not bind to anonymous port");
+					    "svc_tli_create: could not bind to anonymous port");
 					goto freedata;
 				}
 			}
 			_listen(fd, SOMAXCONN);
 		} else {
-			if (_bind(fd,
-			    (struct sockaddr *)bindaddr->addr.buf,
-			    (socklen_t)si.si_alen) < 0) {
+			if (_bind(fd, (struct sockaddr *)bindaddr->addr.buf,
+				(socklen_t)si.si_alen) < 0) {
 				warnx(
-		"svc_tli_create: could not bind to requested address");
+				    "svc_tli_create: could not bind to requested address");
 				goto freedata;
 			}
 			_listen(fd, (int)bindaddr->qlen);
 		}
-			
 	}
 	/*
 	 * call transport specific function.
 	 */
 	switch (si.si_socktype) {
-		case SOCK_STREAM:
-			slen = sizeof ss;
-			if (_getpeername(fd, (struct sockaddr *)(void *)&ss, &slen)
-			    == 0) {
-				/* accepted socket */
-				xprt = svc_fd_create(fd, sendsz, recvsz);
-			} else
-				xprt = svc_vc_create(fd, sendsz, recvsz);
-			if (!nconf || !xprt)
-				break;
+	case SOCK_STREAM:
+		slen = sizeof ss;
+		if (_getpeername(fd, (struct sockaddr *)(void *)&ss, &slen) ==
+		    0) {
+			/* accepted socket */
+			xprt = svc_fd_create(fd, sendsz, recvsz);
+		} else
+			xprt = svc_vc_create(fd, sendsz, recvsz);
+		if (!nconf || !xprt)
+			break;
 #if 0
 			/* XXX fvdl */
 			if (strcmp(nconf->nc_protofmly, "inet") == 0 ||
 			    strcmp(nconf->nc_protofmly, "inet6") == 0)
 				(void) __svc_vc_setflag(xprt, TRUE);
 #endif
-			break;
-		case SOCK_DGRAM:
-			xprt = svc_dg_create(fd, sendsz, recvsz);
-			break;
-		default:
-			warnx("svc_tli_create: bad service type");
-			goto freedata;
+		break;
+	case SOCK_DGRAM:
+		xprt = svc_dg_create(fd, sendsz, recvsz);
+		break;
+	default:
+		warnx("svc_tli_create: bad service type");
+		goto freedata;
 	}
 
 	if (xprt == NULL)

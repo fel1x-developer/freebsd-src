@@ -46,7 +46,7 @@
 #include <machine/reg.h>
 #include <machine/vmparam.h>
 
-#define	SCTLR_PTRAUTH	(SCTLR_EnIA | SCTLR_EnIB | SCTLR_EnDA | SCTLR_EnDB)
+#define SCTLR_PTRAUTH (SCTLR_EnIA | SCTLR_EnIB | SCTLR_EnDA | SCTLR_EnDB)
 
 static bool __read_mostly enable_ptrauth = false;
 
@@ -169,14 +169,13 @@ ptrauth_thread_alloc(struct thread *td)
  * Load the userspace keys. We can't use WRITE_SPECIALREG as we need
  * to set the architecture extension.
  */
-#define	LOAD_KEY(space, name)					\
-__asm __volatile(						\
-	".arch_extension pauth			\n"		\
-	"msr	"#name"keylo_el1, %0		\n"		\
-	"msr	"#name"keyhi_el1, %1		\n"		\
-	".arch_extension nopauth		\n"		\
-	:: "r"(td->td_md.md_ptrauth_##space.name.pa_key_lo),	\
-	   "r"(td->td_md.md_ptrauth_##space.name.pa_key_hi))
+#define LOAD_KEY(space, name)                                               \
+	__asm __volatile(".arch_extension pauth			\n"                       \
+			 "msr	" #name "keylo_el1, %0		\n"                \
+			 "msr	" #name "keyhi_el1, %1		\n"                \
+			 ".arch_extension nopauth		\n" ::"r"( \
+			     td->td_md.md_ptrauth_##space.name.pa_key_lo),  \
+	    "r"(td->td_md.md_ptrauth_##space.name.pa_key_hi))
 
 void
 ptrauth_thread0(struct thread *td)
@@ -238,12 +237,12 @@ ptrauth_mp_start(uint64_t cpu)
 	start_key.pa_key_lo = cpu;
 	start_key.pa_key_hi = ~cpu;
 
-	__asm __volatile(
-	    ".arch_extension pauth		\n"
-	    "msr	apiakeylo_el1, %0	\n"
-	    "msr	apiakeyhi_el1, %1	\n"
-	    ".arch_extension nopauth		\n"
-	    :: "r"(start_key.pa_key_lo), "r"(start_key.pa_key_hi));
+	__asm __volatile(".arch_extension pauth		\n"
+			 "msr	apiakeylo_el1, %0	\n"
+			 "msr	apiakeyhi_el1, %1	\n"
+			 ".arch_extension nopauth		\n" ::"r"(
+			     start_key.pa_key_lo),
+	    "r"(start_key.pa_key_hi));
 
 	/* Enable pointer authentication */
 	sctlr = READ_SPECIALREG(sctlr_el1);

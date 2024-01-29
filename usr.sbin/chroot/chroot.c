@@ -49,22 +49,22 @@ static void usage(void) __dead2;
 int
 main(int argc, char *argv[])
 {
-	struct group	*gp;
-	struct passwd	*pw;
-	char		*endp, *p, *user, *group, *grouplist;
-	const char	*shell;
-	gid_t		gid, *gidlist;
-	uid_t		uid;
-	int		arg, ch, error, gids;
-	long		ngroups_max;
-	bool		nonprivileged;
+	struct group *gp;
+	struct passwd *pw;
+	char *endp, *p, *user, *group, *grouplist;
+	const char *shell;
+	gid_t gid, *gidlist;
+	uid_t uid;
+	int arg, ch, error, gids;
+	long ngroups_max;
+	bool nonprivileged;
 
 	gid = 0;
 	uid = 0;
 	user = group = grouplist = NULL;
 	nonprivileged = false;
 	while ((ch = getopt(argc, argv, "G:g:u:n")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'u':
 			user = optarg;
 			if (*user == '\0')
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 			if (*endp != '\0')
 				goto getgroup;
 		} else {
- getgroup:
+		getgroup:
 			if ((gp = getgrnam(group)) != NULL)
 				gid = gp->gr_gid;
 			else
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 	if ((gidlist = malloc(sizeof(gid_t) * ngroups_max)) == NULL)
 		err(1, "malloc");
 	for (gids = 0;
-	    (p = strsep(&grouplist, ",")) != NULL && gids < ngroups_max; ) {
+	     (p = strsep(&grouplist, ",")) != NULL && gids < ngroups_max;) {
 		if (*p == '\0')
 			continue;
 
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 			if (*endp != '\0')
 				goto getglist;
 		} else {
- getglist:
+		getglist:
 			if ((gp = getgrnam(p)) != NULL)
 				gidlist[gids] = gp->gr_gid;
 			else
@@ -138,7 +138,7 @@ main(int argc, char *argv[])
 			if (*endp != '\0')
 				goto getuser;
 		} else {
- getuser:
+		getuser:
 			if ((pw = getpwnam(user)) != NULL)
 				uid = pw->pw_uid;
 			else
@@ -178,7 +178,8 @@ main(int argc, char *argv[])
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: chroot [-g group] [-G group,group,...] "
+	(void)fprintf(stderr,
+	    "usage: chroot [-g group] [-G group,group,...] "
 	    "[-u user] [-n] newroot [command]\n");
 	exit(1);
 }

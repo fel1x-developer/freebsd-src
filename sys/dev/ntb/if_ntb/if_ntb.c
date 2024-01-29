@@ -38,10 +38,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/buf_ring.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/limits.h>
 #include <sys/module.h>
@@ -50,27 +50,25 @@
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
+#include <machine/bus.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_media.h>
 #include <net/if_var.h>
-#include <net/bpf.h>
-#include <net/ethernet.h>
-
-#include <machine/bus.h>
 
 #include "../ntb_transport.h"
 
 #define KTR_NTB KTR_SPARE3
-#define NTB_MEDIATYPE		 (IFM_ETHER | IFM_AUTO | IFM_FDX)
+#define NTB_MEDIATYPE (IFM_ETHER | IFM_AUTO | IFM_FDX)
 
-#define	NTB_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP)
-#define	NTB_CSUM_FEATURES6	(CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6)
-#define	NTB_CSUM_SET		(CSUM_DATA_VALID | CSUM_DATA_VALID_IPV6 | \
-				    CSUM_PSEUDO_HDR | \
-				    CSUM_IP_CHECKED | CSUM_IP_VALID | \
-				    CSUM_SCTP_VALID)
+#define NTB_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP)
+#define NTB_CSUM_FEATURES6 (CSUM_TCP_IPV6 | CSUM_UDP_IPV6 | CSUM_SCTP_IPV6)
+#define NTB_CSUM_SET                                                \
+	(CSUM_DATA_VALID | CSUM_DATA_VALID_IPV6 | CSUM_PSEUDO_HDR | \
+	    CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_SCTP_VALID)
 
 static SYSCTL_NODE(_hw, OID_AUTO, if_ntb, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "if_ntb");
@@ -80,23 +78,23 @@ SYSCTL_UINT(_hw_if_ntb, OID_AUTO, num_queues, CTLFLAG_RWTUN,
     &g_if_ntb_num_queues, 0, "Number of queues per interface");
 
 struct ntb_net_queue {
-	struct ntb_net_ctx	*sc;
-	if_t			 ifp;
+	struct ntb_net_ctx *sc;
+	if_t ifp;
 	struct ntb_transport_qp *qp;
-	struct buf_ring		*br;
-	struct task		 tx_task;
-	struct taskqueue	*tx_tq;
-	struct mtx		 tx_lock;
-	struct callout		 queue_full;
+	struct buf_ring *br;
+	struct task tx_task;
+	struct taskqueue *tx_tq;
+	struct mtx tx_lock;
+	struct callout queue_full;
 };
 
 struct ntb_net_ctx {
-	if_t			 ifp;
-	struct ifmedia		 media;
-	u_char			 eaddr[ETHER_ADDR_LEN];
-	int			 num_queues;
-	struct ntb_net_queue	*queues;
-	int			 mtu;
+	if_t ifp;
+	struct ifmedia media;
+	u_char eaddr[ETHER_ADDR_LEN];
+	int num_queues;
+	struct ntb_net_queue *queues;
+	int mtu;
 };
 
 static int ntb_net_probe(device_t dev);
@@ -132,7 +130,7 @@ ntb_net_attach(device_t dev)
 	struct ntb_net_queue *q;
 	if_t ifp;
 	struct ntb_queue_handlers handlers = { ntb_net_rx_handler,
-	    ntb_net_tx_handler, ntb_net_event_handler };
+		ntb_net_tx_handler, ntb_net_event_handler };
 	int i;
 
 	ifp = sc->ifp = if_gethandle(IFT_ETHER);
@@ -176,13 +174,13 @@ ntb_net_attach(device_t dev)
 	if_setqflushfn(ifp, ntb_qflush);
 	create_random_local_eui48(sc->eaddr);
 	ether_ifattach(ifp, sc->eaddr);
-	if_setcapabilities(ifp, IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 |
-	    IFCAP_JUMBO_MTU | IFCAP_LINKSTATE);
+	if_setcapabilities(ifp,
+	    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_JUMBO_MTU |
+		IFCAP_LINKSTATE);
 	if_setcapenable(ifp, IFCAP_JUMBO_MTU | IFCAP_LINKSTATE);
 	if_setmtu(ifp, sc->mtu - ETHER_HDR_LEN);
 
-	ifmedia_init(&sc->media, IFM_IMASK, ntb_ifmedia_upd,
-	    ntb_ifmedia_sts);
+	ifmedia_init(&sc->media, IFM_IMASK, ntb_ifmedia_upd, ntb_ifmedia_sts);
 	ifmedia_add(&sc->media, NTB_MEDIATYPE, 0, NULL);
 	ifmedia_set(&sc->media, NTB_MEDIATYPE);
 
@@ -225,8 +223,9 @@ ntb_net_init(void *arg)
 
 	if_setdrvflagbits(ifp, IFF_DRV_RUNNING, IFF_DRV_OACTIVE);
 	if_setbaudrate(ifp, ntb_transport_link_speed(sc->queues[0].qp));
-	if_link_state_change(ifp, ntb_transport_link_query(sc->queues[0].qp) ?
-	    LINK_STATE_UP : LINK_STATE_DOWN);
+	if_link_state_change(ifp,
+	    ntb_transport_link_query(sc->queues[0].qp) ? LINK_STATE_UP :
+							 LINK_STATE_DOWN);
 }
 
 static int
@@ -242,8 +241,7 @@ ntb_ioctl(if_t ifp, u_long command, caddr_t data)
 	case SIOCDELMULTI:
 		break;
 
-	case SIOCSIFMTU:
-	    {
+	case SIOCSIFMTU: {
 		if (ifr->ifr_mtu > sc->mtu - ETHER_HDR_LEN) {
 			error = EINVAL;
 			break;
@@ -251,7 +249,7 @@ ntb_ioctl(if_t ifp, u_long command, caddr_t data)
 
 		if_setmtu(ifp, ifr->ifr_mtu);
 		break;
-	    }
+	}
 
 	case SIOCSIFMEDIA:
 	case SIOCGIFMEDIA:
@@ -333,9 +331,8 @@ ntb_transmit_locked(struct ntb_net_queue *q)
 			CTR2(KTR_NTB, "TX: could not tx mbuf %p: %d", m, rc);
 			if (rc == EAGAIN) {
 				drbr_putback(ifp, q->br, m);
-				callout_reset_sbt(&q->queue_full,
-				    SBT_1MS / 4, SBT_1MS / 4,
-				    ntb_qp_full, q, 0);
+				callout_reset_sbt(&q->queue_full, SBT_1MS / 4,
+				    SBT_1MS / 4, ntb_qp_full, q, 0);
 			} else {
 				m_freem(m);
 				drbr_advance(ifp, q->br);
@@ -396,8 +393,8 @@ ntb_qp_full(void *arg)
 	if (ntb_transport_tx_free_entry(q->qp) > 0)
 		taskqueue_enqueue(q->tx_tq, &q->tx_task);
 	else
-		callout_schedule_sbt(&q->queue_full,
-		    SBT_1MS / 4, SBT_1MS / 4, 0);
+		callout_schedule_sbt(&q->queue_full, SBT_1MS / 4, SBT_1MS / 4,
+		    0);
 }
 
 static void
@@ -476,14 +473,14 @@ ntb_net_event_handler(void *data, enum ntb_link_event status)
 	struct ntb_net_queue *q = data;
 
 	if_setbaudrate(q->ifp, ntb_transport_link_speed(q->qp));
-	if_link_state_change(q->ifp, (status == NTB_LINK_UP) ? LINK_STATE_UP :
-	    LINK_STATE_DOWN);
+	if_link_state_change(q->ifp,
+	    (status == NTB_LINK_UP) ? LINK_STATE_UP : LINK_STATE_DOWN);
 }
 
 /* Helper functions */
 /* TODO: This too should really be part of the kernel */
-#define EUI48_MULTICAST			1 << 0
-#define EUI48_LOCALLY_ADMINISTERED	1 << 1
+#define EUI48_MULTICAST 1 << 0
+#define EUI48_LOCALLY_ADMINISTERED 1 << 1
 static void
 create_random_local_eui48(u_char *eaddr)
 {
@@ -496,10 +493,9 @@ create_random_local_eui48(u_char *eaddr)
 
 static device_method_t ntb_net_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     ntb_net_probe),
-	DEVMETHOD(device_attach,    ntb_net_attach),
-	DEVMETHOD(device_detach,    ntb_net_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ntb_net_probe),
+	DEVMETHOD(device_attach, ntb_net_attach),
+	DEVMETHOD(device_detach, ntb_net_detach), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ntb, ntb_net_driver, ntb_net_methods,

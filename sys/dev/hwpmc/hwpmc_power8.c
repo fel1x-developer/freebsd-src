@@ -28,23 +28,23 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
+#include <machine/cpu.h>
 #include <machine/pmc_mdep.h>
 #include <machine/spr.h>
-#include <machine/cpu.h>
 
 #include "hwpmc_powerpc.h"
 
-#define	POWER8_MAX_PMCS		6
+#define POWER8_MAX_PMCS 6
 
-#define PM_EVENT_CODE(pe)	(pe & 0xffff)
-#define PM_EVENT_COUNTER(pe)	((pe >> 16) & 0xffff)
+#define PM_EVENT_CODE(pe) (pe & 0xffff)
+#define PM_EVENT_COUNTER(pe) ((pe >> 16) & 0xffff)
 
-#define PM_CYC			0x1e
-#define PM_INST_CMPL		0x02
+#define PM_CYC 0x1e
+#define PM_INST_CMPL 0x02
 
 static void
 power8_set_pmc(int cpu, int ri, int config)
@@ -71,11 +71,9 @@ power8_set_pmc(int cpu, int ri, int config)
 	mmcr = mfspr(SPR_MMCR2) | SPR_MMCR2_FCNHSP(ri);
 	if (config != PMCN_NONE) {
 		if (config & POWERPC_PMC_USER_ENABLE)
-			mmcr &= ~(SPR_MMCR2_FCNP0(ri) |
-			    SPR_MMCR2_FCNP1(ri));
+			mmcr &= ~(SPR_MMCR2_FCNP0(ri) | SPR_MMCR2_FCNP1(ri));
 		if (config & POWERPC_PMC_KERNEL_ENABLE)
-			mmcr &= ~(SPR_MMCR2_FCNH(ri) |
-			    SPR_MMCR2_FCNS(ri));
+			mmcr &= ~(SPR_MMCR2_FCNH(ri) | SPR_MMCR2_FCNS(ri));
 	}
 	mtspr(SPR_MMCR2, mmcr);
 }
@@ -111,9 +109,10 @@ power8_pcpu_init(struct pmc_mdep *md, int cpu)
 	mtspr(SPR_MMCR1, mfspr(SPR_MMCR1) & ~SPR_MMCR1_P8_PMCSEL_ALL);
 
 	/* Freeze each counter, in all states */
-	mtspr(SPR_MMCR2, mfspr(SPR_MMCR2) |
-	    SPR_MMCR2_FCNHSP(0) | SPR_MMCR2_FCNHSP(1) | SPR_MMCR2_FCNHSP(2) |
-	    SPR_MMCR2_FCNHSP(3) | SPR_MMCR2_FCNHSP(4) | SPR_MMCR2_FCNHSP(5));
+	mtspr(SPR_MMCR2,
+	    mfspr(SPR_MMCR2) | SPR_MMCR2_FCNHSP(0) | SPR_MMCR2_FCNHSP(1) |
+		SPR_MMCR2_FCNHSP(2) | SPR_MMCR2_FCNHSP(3) |
+		SPR_MMCR2_FCNHSP(4) | SPR_MMCR2_FCNHSP(5));
 
 	/* Enable interrupts, unset global freeze */
 	mmcr0 &= ~SPR_MMCR0_FC;
@@ -151,7 +150,7 @@ power8_resume_pmc(bool ie)
 
 static int
 power8_allocate_pmc(int cpu, int ri, struct pmc *pm,
-	const struct pmc_op_pmcallocate *a)
+    const struct pmc_op_pmcallocate *a)
 {
 	uint32_t caps, config, counter, pe;
 
@@ -198,7 +197,7 @@ power8_allocate_pmc(int cpu, int ri, struct pmc *pm,
 
 	pm->pm_md.pm_powerpc.pm_powerpc_evsel = config;
 
-	PMCDBG3(MDP,ALL,1,"powerpc-allocate cpu=%d ri=%d -> config=0x%x",
+	PMCDBG3(MDP, ALL, 1, "powerpc-allocate cpu=%d ri=%d -> config=0x%x",
 	    cpu, ri, config);
 	return (0);
 }
@@ -211,26 +210,26 @@ pmc_power8_initialize(struct pmc_mdep *pmc_mdep)
 	pmc_mdep->pmd_cputype = PMC_CPU_PPC_POWER8;
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_POWERPC];
-	pcd->pcd_caps  = POWERPC_PMC_CAPS;
+	pcd->pcd_caps = POWERPC_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_POWER8;
-	pcd->pcd_num   = POWER8_MAX_PMCS;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
+	pcd->pcd_num = POWER8_MAX_PMCS;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
 	pcd->pcd_width = 32;
 
-	pcd->pcd_pcpu_init      = power8_pcpu_init;
-	pcd->pcd_pcpu_fini      = power8_pcpu_fini;
-	pcd->pcd_allocate_pmc   = power8_allocate_pmc;
-	pcd->pcd_release_pmc    = powerpc_release_pmc;
-	pcd->pcd_start_pmc      = powerpc_start_pmc;
-	pcd->pcd_stop_pmc       = powerpc_stop_pmc;
-	pcd->pcd_get_config     = powerpc_get_config;
-	pcd->pcd_config_pmc     = powerpc_config_pmc;
-	pcd->pcd_describe       = powerpc_describe;
-	pcd->pcd_read_pmc       = powerpc_read_pmc;
-	pcd->pcd_write_pmc      = powerpc_write_pmc;
+	pcd->pcd_pcpu_init = power8_pcpu_init;
+	pcd->pcd_pcpu_fini = power8_pcpu_fini;
+	pcd->pcd_allocate_pmc = power8_allocate_pmc;
+	pcd->pcd_release_pmc = powerpc_release_pmc;
+	pcd->pcd_start_pmc = powerpc_start_pmc;
+	pcd->pcd_stop_pmc = powerpc_stop_pmc;
+	pcd->pcd_get_config = powerpc_get_config;
+	pcd->pcd_config_pmc = powerpc_config_pmc;
+	pcd->pcd_describe = powerpc_describe;
+	pcd->pcd_read_pmc = powerpc_read_pmc;
+	pcd->pcd_write_pmc = powerpc_write_pmc;
 
-	pmc_mdep->pmd_npmc     += POWER8_MAX_PMCS;
-	pmc_mdep->pmd_intr      = powerpc_pmc_intr;
+	pmc_mdep->pmd_npmc += POWER8_MAX_PMCS;
+	pmc_mdep->pmd_intr = powerpc_pmc_intr;
 
 	ppc_max_pmcs = POWER8_MAX_PMCS;
 

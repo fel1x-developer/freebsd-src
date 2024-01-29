@@ -21,45 +21,43 @@
 #ifdef AH_SUPPORT_AR5312
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-
-#include "ar5312/ar5312.h"
-#include "ar5312/ar5312reg.h"
-#include "ar5312/ar5312phy.h"
-
 #include "ah_eeprom_v3.h"
+#include "ah_internal.h"
+#include "ar5312/ar5312.h"
+#include "ar5312/ar5312phy.h"
+#include "ar5312/ar5312reg.h"
 
 /* Additional Time delay to wait after activiting the Base band */
-#define BASE_ACTIVATE_DELAY	100	/* 100 usec */
-#define PLL_SETTLE_DELAY	300	/* 300 usec */
+#define BASE_ACTIVATE_DELAY 100 /* 100 usec */
+#define PLL_SETTLE_DELAY 300	/* 300 usec */
 
 extern int16_t ar5212GetNf(struct ath_hal *, const struct ieee80211_channel *);
 extern void ar5212SetRateDurationTable(struct ath_hal *,
-		const struct ieee80211_channel *);
+    const struct ieee80211_channel *);
 extern HAL_BOOL ar5212SetTransmitPower(struct ath_hal *ah,
-	         const struct ieee80211_channel *chan, uint16_t *rfXpdGain);
+    const struct ieee80211_channel *chan, uint16_t *rfXpdGain);
 extern void ar5212SetDeltaSlope(struct ath_hal *,
-		 const struct ieee80211_channel *);
+    const struct ieee80211_channel *);
 extern HAL_BOOL ar5212SetBoardValues(struct ath_hal *,
-		 const struct ieee80211_channel *);
+    const struct ieee80211_channel *);
 extern void ar5212SetIFSTiming(struct ath_hal *,
-		 const struct ieee80211_channel *);
-extern HAL_BOOL	ar5212IsSpurChannel(struct ath_hal *,
-		 const struct ieee80211_channel *);
-extern HAL_BOOL	ar5212ChannelChange(struct ath_hal *,
-		 const struct ieee80211_channel *);
+    const struct ieee80211_channel *);
+extern HAL_BOOL ar5212IsSpurChannel(struct ath_hal *,
+    const struct ieee80211_channel *);
+extern HAL_BOOL ar5212ChannelChange(struct ath_hal *,
+    const struct ieee80211_channel *);
 
 static HAL_BOOL ar5312SetResetReg(struct ath_hal *, uint32_t resetMask);
 
 static int
 write_common(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
-	HAL_BOOL bChannelChange, int writes)
+    HAL_BOOL bChannelChange, int writes)
 {
-#define IS_NO_RESET_TIMER_ADDR(x)                      \
-    ( (((x) >= AR_BEACON) && ((x) <= AR_CFP_DUR)) || \
-      (((x) >= AR_SLEEP1) && ((x) <= AR_SLEEP3)))
-#define	V(r, c)	(ia)->data[((r)*(ia)->cols) + (c)]
+#define IS_NO_RESET_TIMER_ADDR(x)                       \
+	((((x) >= AR_BEACON) && ((x) <= AR_CFP_DUR)) || \
+	    (((x) >= AR_SLEEP1) && ((x) <= AR_SLEEP3)))
+#define V(r, c) (ia)->data[((r) * (ia)->cols) + (c)]
 	int i;
 
 	/* Write Common Array Parameters */
@@ -87,13 +85,15 @@ write_common(struct ath_hal *ah, const HAL_INI_ARRAY *ia,
  */
 HAL_BOOL
 ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
-	struct ieee80211_channel *chan,
-	HAL_BOOL bChannelChange,
-	HAL_RESET_TYPE resetType,
-	HAL_STATUS *status)
+    struct ieee80211_channel *chan, HAL_BOOL bChannelChange,
+    HAL_RESET_TYPE resetType, HAL_STATUS *status)
 {
-#define	N(a)	(sizeof (a) / sizeof (a[0]))
-#define	FAIL(_code)	do { ecode = _code; goto bad; } while (0)
+#define N(a) (sizeof(a) / sizeof(a[0]))
+#define FAIL(_code)            \
+	do {                   \
+		ecode = _code; \
+		goto bad;      \
+	} while (0)
 	struct ath_hal_5212 *ahp = AH5212(ah);
 	HAL_CHANNEL_INTERNAL *ichan;
 	const HAL_EEPROM *ee;
@@ -117,8 +117,8 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	ichan = ath_hal_checkchannel(ah, chan);
 	if (ichan == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: invalid channel %u/0x%x; no mapping\n",
-		    __func__, chan->ic_freq, chan->ic_flags);
+		    "%s: invalid channel %u/0x%x; no mapping\n", __func__,
+		    chan->ic_freq, chan->ic_flags);
 		FAIL(HAL_EINVAL);
 	}
 	switch (opmode) {
@@ -159,24 +159,26 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 		 */
 		saveFrameSeqCount = OS_REG_READ(ah, AR_D_SEQNUM);
 	} else
-		saveFrameSeqCount = 0;		/* NB: silence compiler */
+		saveFrameSeqCount = 0; /* NB: silence compiler */
 
-	/* If the channel change is across the same mode - perform a fast channel change */
+	/* If the channel change is across the same mode - perform a fast
+	 * channel change */
 	if ((IS_2413(ah) || IS_5413(ah))) {
 		/*
 		 * Channel change can only be used when:
 		 *  -channel change requested - so it's not the initial reset.
-		 *  -it's not a change to the current channel - often called when switching modes
-		 *   on a channel
-		 *  -the modes of the previous and requested channel are the same - some ugly code for XR
+		 *  -it's not a change to the current channel - often called
+		 * when switching modes on a channel -the modes of the previous
+		 * and requested channel are the same - some ugly code for XR
 		 */
-		if (bChannelChange &&
-		    AH_PRIVATE(ah)->ah_curchan != AH_NULL &&
+		if (bChannelChange && AH_PRIVATE(ah)->ah_curchan != AH_NULL &&
 		    (chan->ic_freq != AH_PRIVATE(ah)->ah_curchan->ic_freq) &&
 		    ((chan->ic_flags & IEEE80211_CHAN_ALLTURBO) ==
-		     (AH_PRIVATE(ah)->ah_curchan->ic_flags & IEEE80211_CHAN_ALLTURBO))) {
+			(AH_PRIVATE(ah)->ah_curchan->ic_flags &
+			    IEEE80211_CHAN_ALLTURBO))) {
 			if (ar5212ChannelChange(ah, chan))
-				/* If ChannelChange completed - skip the rest of reset */
+				/* If ChannelChange completed - skip the rest of
+				 * reset */
 				return AH_TRUE;
 		}
 	}
@@ -185,50 +187,53 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	 * Preserve the antenna on a channel change
 	 */
 	saveDefAntenna = OS_REG_READ(ah, AR_DEF_ANTENNA);
-	if (saveDefAntenna == 0)		/* XXX magic constants */
+	if (saveDefAntenna == 0) /* XXX magic constants */
 		saveDefAntenna = 1;
 
 	/* Save hardware flag before chip reset clears the register */
-	macStaId1 = OS_REG_READ(ah, AR_STA_ID1) & 
-		(AR_STA_ID1_BASE_RATE_11B | AR_STA_ID1_USE_DEFANT);
+	macStaId1 = OS_REG_READ(ah, AR_STA_ID1) &
+	    (AR_STA_ID1_BASE_RATE_11B | AR_STA_ID1_USE_DEFANT);
 
 	/* Save led state from pci config register */
 	if (!IS_5315(ah))
 		saveLedState = OS_REG_READ(ah, AR5312_PCICFG) &
-			(AR_PCICFG_LEDCTL | AR_PCICFG_LEDMODE | AR_PCICFG_LEDBLINK |
-			 AR_PCICFG_LEDSLOW);
+		    (AR_PCICFG_LEDCTL | AR_PCICFG_LEDMODE | AR_PCICFG_LEDBLINK |
+			AR_PCICFG_LEDSLOW);
 
-	ar5312RestoreClock(ah, opmode);		/* move to refclk operation */
+	ar5312RestoreClock(ah, opmode); /* move to refclk operation */
 
 	/*
 	 * Adjust gain parameters before reset if
 	 * there's an outstanding gain updated.
 	 */
-	(void) ar5212GetRfgain(ah);
+	(void)ar5212GetRfgain(ah);
 
 	if (!ar5312ChipReset(ah, chan)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: chip reset failed\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: chip reset failed\n",
+		    __func__);
 		FAIL(HAL_EIO);
 	}
 
 	/* Setup the indices for the next set of register array writes */
 	if (IEEE80211_IS_CHAN_2GHZ(chan)) {
-		freqIndex  = 2;
+		freqIndex = 2;
 		modesIndex = IEEE80211_IS_CHAN_108G(chan) ? 5 :
-			     IEEE80211_IS_CHAN_G(chan) ? 4 : 3;
+		    IEEE80211_IS_CHAN_G(chan)		  ? 4 :
+							    3;
 	} else {
-		freqIndex  = 1;
+		freqIndex = 1;
 		modesIndex = IEEE80211_IS_CHAN_ST(chan) ? 2 : 1;
 	}
 
 	OS_MARK(ah, AH_MARK_RESET_LINE, __LINE__);
 
-	/* Set correct Baseband to analog shift setting to access analog chips. */
+	/* Set correct Baseband to analog shift setting to access analog chips.
+	 */
 	OS_REG_WRITE(ah, AR_PHY(0), 0x00000007);
 
 	regWrites = ath_hal_ini_write(ah, &ahp->ah_ini_modes, modesIndex, 0);
 	regWrites = write_common(ah, &ahp->ah_ini_common, bChannelChange,
-		regWrites);
+	    regWrites);
 	ahp->ah_rfHal->writeRegs(ah, modesIndex, freqIndex, regWrites);
 
 	OS_MARK(ah, AH_MARK_RESET_LINE, __LINE__);
@@ -240,44 +245,48 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	if (AH_PRIVATE(ah)->ah_phyRev >= AR_PHY_CHIP_ID_REV_2) {
 		/* ADC_CTL */
 		OS_REG_WRITE(ah, AR_PHY_ADC_CTL,
-			     SM(2, AR_PHY_ADC_CTL_OFF_INBUFGAIN) |
-			     SM(2, AR_PHY_ADC_CTL_ON_INBUFGAIN) |
-			     AR_PHY_ADC_CTL_OFF_PWDDAC |
-			     AR_PHY_ADC_CTL_OFF_PWDADC);
-		
+		    SM(2, AR_PHY_ADC_CTL_OFF_INBUFGAIN) |
+			SM(2, AR_PHY_ADC_CTL_ON_INBUFGAIN) |
+			AR_PHY_ADC_CTL_OFF_PWDDAC | AR_PHY_ADC_CTL_OFF_PWDADC);
+
 		/* TX_PWR_ADJ */
 		if (chan->channel == 2484) {
-			cckOfdmPwrDelta = SCALE_OC_DELTA(ee->ee_cckOfdmPwrDelta - ee->ee_scaledCh14FilterCckDelta);
+			cckOfdmPwrDelta = SCALE_OC_DELTA(
+			    ee->ee_cckOfdmPwrDelta -
+			    ee->ee_scaledCh14FilterCckDelta);
 		} else {
-			cckOfdmPwrDelta = SCALE_OC_DELTA(ee->ee_cckOfdmPwrDelta);
+			cckOfdmPwrDelta = SCALE_OC_DELTA(
+			    ee->ee_cckOfdmPwrDelta);
 		}
-		
+
 		if (IEEE80211_IS_CHAN_G(chan)) {
 			OS_REG_WRITE(ah, AR_PHY_TXPWRADJ,
-				     SM((ee->ee_cckOfdmPwrDelta*-1), AR_PHY_TXPWRADJ_CCK_GAIN_DELTA) |
-				     SM((cckOfdmPwrDelta*-1), AR_PHY_TXPWRADJ_CCK_PCDAC_INDEX));
+			    SM((ee->ee_cckOfdmPwrDelta * -1),
+				AR_PHY_TXPWRADJ_CCK_GAIN_DELTA) |
+				SM((cckOfdmPwrDelta * -1),
+				    AR_PHY_TXPWRADJ_CCK_PCDAC_INDEX));
 		} else {
 			OS_REG_WRITE(ah, AR_PHY_TXPWRADJ, 0);
 		}
-		
+
 		/* Add barker RSSI thresh enable as disabled */
 		OS_REG_CLR_BIT(ah, AR_PHY_DAG_CTRLCCK,
-			       AR_PHY_DAG_CTRLCCK_EN_RSSI_THR);
+		    AR_PHY_DAG_CTRLCCK_EN_RSSI_THR);
 		OS_REG_RMW_FIELD(ah, AR_PHY_DAG_CTRLCCK,
-				 AR_PHY_DAG_CTRLCCK_RSSI_THR, 2);
-		
+		    AR_PHY_DAG_CTRLCCK_RSSI_THR, 2);
+
 		/* Set the mute mask to the correct default */
 		OS_REG_WRITE(ah, AR_SEQ_MASK, 0x0000000F);
 	}
 
 	if (AH_PRIVATE(ah)->ah_phyRev >= AR_PHY_CHIP_ID_REV_3) {
 		/* Clear reg to alllow RX_CLEAR line debug */
-		OS_REG_WRITE(ah, AR_PHY_BLUETOOTH,  0);
+		OS_REG_WRITE(ah, AR_PHY_BLUETOOTH, 0);
 	}
 	if (AH_PRIVATE(ah)->ah_phyRev >= AR_PHY_CHIP_ID_REV_4) {
 #ifdef notyet
 		/* Enable burst prefetch for the data queues */
-		OS_REG_RMW_FIELD(ah, AR_D_FPCTL, ... );
+		OS_REG_RMW_FIELD(ah, AR_D_FPCTL, ...);
 		/* Enable double-buffering */
 		OS_REG_CLR_BIT(ah, AR_TXCFG, AR_TXCFG_DBL_BUF_DIS);
 #endif
@@ -286,24 +295,27 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	if (IS_5312_2_X(ah)) {
 		/* ADC_CTRL */
 		OS_REG_WRITE(ah, AR_PHY_SIGMA_DELTA,
-			     SM(2, AR_PHY_SIGMA_DELTA_ADC_SEL) |
-			     SM(4, AR_PHY_SIGMA_DELTA_FILT2) |
-			     SM(0x16, AR_PHY_SIGMA_DELTA_FILT1) |
-			     SM(0, AR_PHY_SIGMA_DELTA_ADC_CLIP));
+		    SM(2, AR_PHY_SIGMA_DELTA_ADC_SEL) |
+			SM(4, AR_PHY_SIGMA_DELTA_FILT2) |
+			SM(0x16, AR_PHY_SIGMA_DELTA_FILT1) |
+			SM(0, AR_PHY_SIGMA_DELTA_ADC_CLIP));
 
 		if (IEEE80211_IS_CHAN_2GHZ(chan))
-			OS_REG_RMW_FIELD(ah, AR_PHY_RXGAIN, AR_PHY_RXGAIN_TXRX_RF_MAX, 0x0F);
+			OS_REG_RMW_FIELD(ah, AR_PHY_RXGAIN,
+			    AR_PHY_RXGAIN_TXRX_RF_MAX, 0x0F);
 
 		/* CCK Short parameter adjustment in 11B mode */
 		if (IEEE80211_IS_CHAN_B(chan))
-			OS_REG_RMW_FIELD(ah, AR_PHY_CCK_RXCTRL4, AR_PHY_CCK_RXCTRL4_FREQ_EST_SHORT, 12);
+			OS_REG_RMW_FIELD(ah, AR_PHY_CCK_RXCTRL4,
+			    AR_PHY_CCK_RXCTRL4_FREQ_EST_SHORT, 12);
 
 		/* Set ADC/DAC select values */
 		OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x04);
 
 		/* Increase 11A AGC Settling */
 		if (IEEE80211_IS_CHAN_A(chan))
-			OS_REG_RMW_FIELD(ah, AR_PHY_SETTLING, AR_PHY_SETTLING_AGC, 32);
+			OS_REG_RMW_FIELD(ah, AR_PHY_SETTLING,
+			    AR_PHY_SETTLING_AGC, 32);
 	} else {
 		/* Set ADC/DAC select values */
 		OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0e);
@@ -326,15 +338,15 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	/* Write delta slope for OFDM enabled modes (A, G, Turbo) */
 	if (IEEE80211_IS_CHAN_OFDM(chan)) {
 		if (IS_5413(ah) ||
-		   AH_PRIVATE(ah)->ah_eeversion >= AR_EEPROM_VER5_3)
+		    AH_PRIVATE(ah)->ah_eeversion >= AR_EEPROM_VER5_3)
 			ar5212SetSpurMitigation(ah, chan);
 		ar5212SetDeltaSlope(ah, chan);
 	}
 
 	/* Setup board specific options for EEPROM version 3 */
 	if (!ar5212SetBoardValues(ah, chan)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: error setting board options\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: error setting board options\n",
+		    __func__);
 		FAIL(HAL_EIO);
 	}
 
@@ -345,11 +357,9 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	OS_MARK(ah, AH_MARK_RESET_LINE, __LINE__);
 
 	OS_REG_WRITE(ah, AR_STA_ID0, LE_READ_4(ahp->ah_macaddr));
-	OS_REG_WRITE(ah, AR_STA_ID1, LE_READ_2(ahp->ah_macaddr + 4)
-		| macStaId1
-		| AR_STA_ID1_RTS_USE_DEF
-		| ahp->ah_staId1Defaults
-	);
+	OS_REG_WRITE(ah, AR_STA_ID1,
+	    LE_READ_2(ahp->ah_macaddr + 4) | macStaId1 |
+		AR_STA_ID1_RTS_USE_DEF | ahp->ah_staId1Defaults);
 	ar5212SetOperatingMode(ah, opmode);
 
 	/* Set Venice BSSID mask according to current state */
@@ -358,7 +368,8 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 
 	/* Restore previous led state */
 	if (!IS_5315(ah))
-		OS_REG_WRITE(ah, AR5312_PCICFG, OS_REG_READ(ah, AR_PCICFG) | saveLedState);
+		OS_REG_WRITE(ah, AR5312_PCICFG,
+		    OS_REG_READ(ah, AR_PCICFG) | saveLedState);
 
 	/* Restore previous antenna */
 	OS_REG_WRITE(ah, AR_DEF_ANTENNA, saveDefAntenna);
@@ -370,7 +381,7 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	/* Restore bmiss rssi & count thresholds */
 	OS_REG_WRITE(ah, AR_RSSI_THR, ahp->ah_rssiThr);
 
-	OS_REG_WRITE(ah, AR_ISR, ~0);		/* cleared on write */
+	OS_REG_WRITE(ah, AR_ISR, ~0); /* cleared on write */
 
 	if (!ar5212SetChannel(ah, chan))
 		FAIL(HAL_EIO);
@@ -384,12 +395,11 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	/* Set Tx frame start to tx data start delay */
 	if (IS_RAD5112_ANY(ah) &&
 	    (IEEE80211_IS_CHAN_HALF(chan) || IEEE80211_IS_CHAN_QUARTER(chan))) {
-		txFrm2TxDStart = 
-			IEEE80211_IS_CHAN_HALF(chan) ?
-					TX_FRAME_D_START_HALF_RATE:
-					TX_FRAME_D_START_QUARTER_RATE;
-		OS_REG_RMW_FIELD(ah, AR_PHY_TX_CTL, 
-			AR_PHY_TX_FRAME_TO_TX_DATA_START, txFrm2TxDStart);
+		txFrm2TxDStart = IEEE80211_IS_CHAN_HALF(chan) ?
+		    TX_FRAME_D_START_HALF_RATE :
+		    TX_FRAME_D_START_QUARTER_RATE;
+		OS_REG_RMW_FIELD(ah, AR_PHY_TX_CTL,
+		    AR_PHY_TX_FRAME_TO_TX_DATA_START, txFrm2TxDStart);
 	}
 
 	/*
@@ -411,7 +421,7 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 
 	/* flush SCAL reg */
 	if (IS_5312_2_X(ah)) {
-		(void) OS_REG_READ(ah, AR_PHY_SLEEP_SCAL);
+		(void)OS_REG_READ(ah, AR_PHY_SLEEP_SCAL);
 	}
 
 	/*
@@ -429,7 +439,7 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	/* Activate the PHY (includes baseband activate and synthesizer on) */
 	OS_REG_WRITE(ah, AR_PHY_ACTIVE, AR_PHY_ACTIVE_EN);
 
-	/* 
+	/*
 	 * There is an issue if the AP starts the calibration before
 	 * the base band timeout completes.  This could result in the
 	 * rx_clear false triggering.  As a workaround we add delay an
@@ -453,22 +463,24 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	OS_REG_WRITE(ah, AR_PHY_TESTCTRL, AR_PHY_TESTCTRL_TXHOLD);
 	i = 0;
 	while ((i++ < 20) &&
-	       (OS_REG_READ(ah, 0x9c24) & 0x10)) /* test if baseband not ready */		OS_DELAY(200);
+	    (OS_REG_READ(ah, 0x9c24) & 0x10)) /* test if baseband not ready */
+		OS_DELAY(200);
 	OS_REG_WRITE(ah, AR_PHY_TESTCTRL, testReg);
 
 	/* Calibrate the AGC and start a NF calculation */
 	OS_REG_WRITE(ah, AR_PHY_AGC_CONTROL,
-		  OS_REG_READ(ah, AR_PHY_AGC_CONTROL)
-		| AR_PHY_AGC_CONTROL_CAL
-		| AR_PHY_AGC_CONTROL_NF);
+	    OS_REG_READ(ah, AR_PHY_AGC_CONTROL) | AR_PHY_AGC_CONTROL_CAL |
+		AR_PHY_AGC_CONTROL_NF);
 
-	if (!IEEE80211_IS_CHAN_B(chan) && ahp->ah_bIQCalibration != IQ_CAL_DONE) {
-		/* Start IQ calibration w/ 2^(INIT_IQCAL_LOG_COUNT_MAX+1) samples */
-		OS_REG_RMW_FIELD(ah, AR_PHY_TIMING_CTRL4, 
-			AR_PHY_TIMING_CTRL4_IQCAL_LOG_COUNT_MAX,
-			INIT_IQCAL_LOG_COUNT_MAX);
+	if (!IEEE80211_IS_CHAN_B(chan) &&
+	    ahp->ah_bIQCalibration != IQ_CAL_DONE) {
+		/* Start IQ calibration w/ 2^(INIT_IQCAL_LOG_COUNT_MAX+1)
+		 * samples */
+		OS_REG_RMW_FIELD(ah, AR_PHY_TIMING_CTRL4,
+		    AR_PHY_TIMING_CTRL4_IQCAL_LOG_COUNT_MAX,
+		    INIT_IQCAL_LOG_COUNT_MAX);
 		OS_REG_SET_BIT(ah, AR_PHY_TIMING_CTRL4,
-			AR_PHY_TIMING_CTRL4_DO_IQCAL);
+		    AR_PHY_TIMING_CTRL4_DO_IQCAL);
 		ahp->ah_bIQCalibration = IQ_CAL_RUNNING;
 	} else
 		ahp->ah_bIQCalibration = IQ_CAL_INACTIVE;
@@ -490,17 +502,15 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	 * and disabled.  This is done with RMW ops to insure the
 	 * settings we make here are preserved.
 	 */
-	ahp->ah_maskReg = AR_IMR_TXOK | AR_IMR_TXERR | AR_IMR_TXURN
-			| AR_IMR_RXOK | AR_IMR_RXERR | AR_IMR_RXORN
-			| AR_IMR_HIUERR
-			;
+	ahp->ah_maskReg = AR_IMR_TXOK | AR_IMR_TXERR | AR_IMR_TXURN |
+	    AR_IMR_RXOK | AR_IMR_RXERR | AR_IMR_RXORN | AR_IMR_HIUERR;
 	if (opmode == HAL_M_HOSTAP)
 		ahp->ah_maskReg |= AR_IMR_MIB;
 	OS_REG_WRITE(ah, AR_IMR, ahp->ah_maskReg);
 	/* Enable bus errors that are OR'd to set the HIUERR bit */
 	OS_REG_WRITE(ah, AR_IMR_S2,
-		OS_REG_READ(ah, AR_IMR_S2)
-		| AR_IMR_S2_MCABT | AR_IMR_S2_SSERR | AR_IMR_S2_DPERR);
+	    OS_REG_READ(ah, AR_IMR_S2) | AR_IMR_S2_MCABT | AR_IMR_S2_SSERR |
+		AR_IMR_S2_DPERR);
 
 	if (AH_PRIVATE(ah)->ah_rfkillEnabled)
 		ar5212EnableRfKill(ah);
@@ -508,7 +518,8 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL, 0)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: offset calibration failed to complete in 1ms;"
-		    " noisy environment?\n", __func__);
+		    " noisy environment?\n",
+		    __func__);
 	}
 
 	/*
@@ -524,41 +535,41 @@ ar5312Reset(struct ath_hal *ah, HAL_OPMODE opmode,
 	 * like beaconInterval.
 	 */
 	OS_REG_WRITE(ah, AR_BEACON,
-		(OS_REG_READ(ah, AR_BEACON) &~ (AR_BEACON_EN | AR_BEACON_RESET_TSF)));
+	    (OS_REG_READ(ah, AR_BEACON) &
+		~(AR_BEACON_EN | AR_BEACON_RESET_TSF)));
 
 	/* XXX Setup post reset EAR additions */
 
 	/*  QoS support */
 	if (AH_PRIVATE(ah)->ah_macVersion > AR_SREV_VERSION_VENICE ||
 	    (AH_PRIVATE(ah)->ah_macVersion == AR_SREV_VERSION_VENICE &&
-	     AH_PRIVATE(ah)->ah_macRev >= AR_SREV_GRIFFIN_LITE)) {
-		OS_REG_WRITE(ah, AR_QOS_CONTROL, 0x100aa);	/* XXX magic */
-		OS_REG_WRITE(ah, AR_QOS_SELECT, 0x3210);	/* XXX magic */
+		AH_PRIVATE(ah)->ah_macRev >= AR_SREV_GRIFFIN_LITE)) {
+		OS_REG_WRITE(ah, AR_QOS_CONTROL, 0x100aa); /* XXX magic */
+		OS_REG_WRITE(ah, AR_QOS_SELECT, 0x3210);   /* XXX magic */
 	}
 
 	/* Turn on NOACK Support for QoS packets */
 	OS_REG_WRITE(ah, AR_NOACK,
-		     SM(2, AR_NOACK_2BIT_VALUE) |
-		     SM(5, AR_NOACK_BIT_OFFSET) |
-		     SM(0, AR_NOACK_BYTE_OFFSET));
+	    SM(2, AR_NOACK_2BIT_VALUE) | SM(5, AR_NOACK_BIT_OFFSET) |
+		SM(0, AR_NOACK_BYTE_OFFSET));
 
 	/* Restore user-specified settings */
 	if (ahp->ah_miscMode != 0)
 		OS_REG_WRITE(ah, AR_MISC_MODE, ahp->ah_miscMode);
-	if (ahp->ah_slottime != (u_int) -1)
+	if (ahp->ah_slottime != (u_int)-1)
 		ar5212SetSlotTime(ah, ahp->ah_slottime);
-	if (ahp->ah_acktimeout != (u_int) -1)
+	if (ahp->ah_acktimeout != (u_int)-1)
 		ar5212SetAckTimeout(ah, ahp->ah_acktimeout);
-	if (ahp->ah_ctstimeout != (u_int) -1)
+	if (ahp->ah_ctstimeout != (u_int)-1)
 		ar5212SetCTSTimeout(ah, ahp->ah_ctstimeout);
-	if (ahp->ah_sifstime != (u_int) -1)
+	if (ahp->ah_sifstime != (u_int)-1)
 		ar5212SetSifsTime(ah, ahp->ah_sifstime);
 	if (AH_PRIVATE(ah)->ah_diagreg != 0)
 		OS_REG_WRITE(ah, AR_DIAG_SW, AH_PRIVATE(ah)->ah_diagreg);
 
-	AH_PRIVATE(ah)->ah_opmode = opmode;	/* record operating mode */
+	AH_PRIVATE(ah)->ah_opmode = opmode; /* record operating mode */
 
-	if (bChannelChange && !IEEE80211_IS_CHAN_DFS(chan)) 
+	if (bChannelChange && !IEEE80211_IS_CHAN_DFS(chan))
 		chan->ic_state &= ~IEEE80211_CHANSTATE_CWINT;
 
 	HALDEBUG(ah, HAL_DEBUG_RESET, "%s: done\n", __func__);
@@ -584,7 +595,7 @@ bad:
 HAL_BOOL
 ar5312PhyDisable(struct ath_hal *ah)
 {
-    return ar5312SetResetReg(ah, AR_RC_BB);
+	return ar5312SetResetReg(ah, AR_RC_BB);
 }
 
 /*
@@ -606,7 +617,7 @@ ar5312Disable(struct ath_hal *ah)
  * Places the hardware into reset and then pulls it out of reset
  *
  * TODO: Only write the PLL if we're changing to or from CCK mode
- * 
+ *
  * WARNING: The order of the PLL and mode registers must be correct.
  */
 HAL_BOOL
@@ -616,7 +627,7 @@ ar5312ChipReset(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	OS_MARK(ah, AH_MARK_CHIPRESET, chan ? chan->ic_freq : 0);
 
 	/*
-	 * Reset the HW 
+	 * Reset the HW
 	 */
 	if (!ar5312SetResetReg(ah, AR_RC_MAC | AR_RC_BB)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: ar5312SetResetReg failed\n",
@@ -648,7 +659,7 @@ ar5312ChipReset(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	/*
 	 * Set CCK and Turbo modes correctly.
 	 */
-	if (chan != AH_NULL) {		/* NB: can be null during attach */
+	if (chan != AH_NULL) { /* NB: can be null during attach */
 		uint32_t rfMode, phyPLL = 0, curPhyPLL, turbo;
 
 		if (IS_RAD5112_ANY(ah)) {
@@ -658,9 +669,12 @@ ar5312ChipReset(struct ath_hal *ah, const struct ieee80211_channel *chan)
 					phyPLL = AR_PHY_PLL_CTL_44_5312;
 				} else {
 					if (IEEE80211_IS_CHAN_HALF(chan)) {
-						phyPLL = AR_PHY_PLL_CTL_40_5312_HALF;
-					} else if (IEEE80211_IS_CHAN_QUARTER(chan)) {
-						phyPLL = AR_PHY_PLL_CTL_40_5312_QUARTER;
+						phyPLL =
+						    AR_PHY_PLL_CTL_40_5312_HALF;
+					} else if (IEEE80211_IS_CHAN_QUARTER(
+						       chan)) {
+						phyPLL =
+						    AR_PHY_PLL_CTL_40_5312_QUARTER;
 					} else {
 						phyPLL = AR_PHY_PLL_CTL_40_5312;
 					}
@@ -697,7 +711,8 @@ ar5312ChipReset(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		else
 			rfMode |= AR_PHY_MODE_RF2GHZ;
 		turbo = IEEE80211_IS_CHAN_TURBO(chan) ?
-			(AR_PHY_FC_TURBO_MODE | AR_PHY_FC_TURBO_SHORT) : 0;
+		    (AR_PHY_FC_TURBO_MODE | AR_PHY_FC_TURBO_SHORT) :
+		    0;
 		curPhyPLL = OS_REG_READ(ah, AR_PHY_PLL_CTL);
 		/*
 		 * PLL, Mode, and Turbo values must be written in the correct
@@ -710,13 +725,13 @@ ar5312ChipReset(struct ath_hal *ah, const struct ieee80211_channel *chan)
 			OS_REG_WRITE(ah, AR_PHY_TURBO, turbo);
 			OS_REG_WRITE(ah, AR_PHY_MODE, rfMode);
 			if (curPhyPLL != phyPLL) {
-				OS_REG_WRITE(ah,  AR_PHY_PLL_CTL,  phyPLL);
+				OS_REG_WRITE(ah, AR_PHY_PLL_CTL, phyPLL);
 				/* Wait for the PLL to settle */
 				OS_DELAY(PLL_SETTLE_DELAY);
 			}
 		} else {
 			if (curPhyPLL != phyPLL) {
-				OS_REG_WRITE(ah,  AR_PHY_PLL_CTL,  phyPLL);
+				OS_REG_WRITE(ah, AR_PHY_PLL_CTL, phyPLL);
 				/* Wait for the PLL to settle */
 				OS_DELAY(PLL_SETTLE_DELAY);
 			}
@@ -736,10 +751,10 @@ ar5312SetResetReg(struct ath_hal *ah, uint32_t resetMask)
 	uint32_t mask = resetMask ? resetMask : ~0;
 	HAL_BOOL rt;
 
-        if ((rt = ar5312MacReset(ah, mask)) == AH_FALSE) {
+	if ((rt = ar5312MacReset(ah, mask)) == AH_FALSE) {
 		return rt;
 	}
-        if ((resetMask & AR_RC_MAC) == 0) {
+	if ((resetMask & AR_RC_MAC) == 0) {
 		if (isBigEndian()) {
 			/*
 			 * Set CFG, little-endian for descriptor accesses.
@@ -747,8 +762,7 @@ ar5312SetResetReg(struct ath_hal *ah, uint32_t resetMask)
 #ifdef AH_NEED_DESC_SWAP
 			mask = INIT_CONFIG_STATUS | AR_CFG_SWRD;
 #else
-			mask = INIT_CONFIG_STATUS |
-                                AR_CFG_SWTD | AR_CFG_SWRD;
+			mask = INIT_CONFIG_STATUS | AR_CFG_SWTD | AR_CFG_SWRD;
 #endif
 			OS_REG_WRITE(ah, AR_CFG, mask);
 		} else
@@ -771,116 +785,131 @@ ar5312MacReset(struct ath_hal *ah, unsigned int RCMask)
 	uint32_t reg;
 
 	if (RCMask == 0)
-		return(AH_FALSE);
-#if ( AH_SUPPORT_2316 || AH_SUPPORT_2317 )
-	    if (IS_5315(ah)) {
-			switch(wlanNum) {
-			case 0:
-				resetBB = AR5315_RC_BB0_CRES | AR5315_RC_WBB0_RES; 
-				/* Warm and cold reset bits for wbb */
-				resetBits = AR5315_RC_WMAC0_RES;
-				break;
-			case 1:
-				resetBB = AR5315_RC_BB1_CRES | AR5315_RC_WBB1_RES; 
-				/* Warm and cold reset bits for wbb */
-				resetBits = AR5315_RC_WMAC1_RES;
-				break;
-			default:
-				return(AH_FALSE);
-			}		
-			regMask = ~(resetBB | resetBits);
-
-			/* read before */
-			reg = OS_REG_READ(ah, 
-							  (AR5315_RSTIMER_BASE - ((uint32_t) ah->ah_sh) + AR5315_RESET));
-
-			if (RCMask == AR_RC_BB) {
-				/* Put baseband in reset */
-				reg |= resetBB;    /* Cold and warm reset the baseband bits */
-			} else {
-				/*
-				 * Reset the MAC and baseband.  This is a bit different than
-				 * the PCI version, but holding in reset causes problems.
-				 */
-				reg &= regMask;
-				reg |= (resetBits | resetBB) ;
-			}
-			OS_REG_WRITE(ah, 
-						 (AR5315_RSTIMER_BASE - ((uint32_t) ah->ah_sh)+AR5315_RESET),
-						 reg);
-			/* read after */
-			OS_REG_READ(ah, 
-						(AR5315_RSTIMER_BASE - ((uint32_t) ah->ah_sh) +AR5315_RESET));
-			OS_DELAY(100);
-
-			/* Bring MAC and baseband out of reset */
-			reg &= regMask;
-			/* read before */
-			OS_REG_READ(ah, 
-						(AR5315_RSTIMER_BASE- ((uint32_t) ah->ah_sh) +AR5315_RESET));
-			OS_REG_WRITE(ah, 
-						 (AR5315_RSTIMER_BASE - ((uint32_t) ah->ah_sh)+AR5315_RESET),
-						 reg);
-			/* read after */
-			OS_REG_READ(ah,
-						(AR5315_RSTIMER_BASE- ((uint32_t) ah->ah_sh) +AR5315_RESET));
-
-		} 
-        else 
-#endif
-		{
-			switch(wlanNum) {
-			case 0:
-				resetBB = AR5312_RC_BB0_CRES | AR5312_RC_WBB0_RES;
-				/* Warm and cold reset bits for wbb */
-				resetBits = AR5312_RC_WMAC0_RES;
-				break;
-			case 1:
-				resetBB = AR5312_RC_BB1_CRES | AR5312_RC_WBB1_RES;
-				/* Warm and cold reset bits for wbb */
-				resetBits = AR5312_RC_WMAC1_RES;
-				break;
-			default:
-				return(AH_FALSE);
-			}
-			regMask = ~(resetBB | resetBits);
-
-			/* read before */
-			reg = OS_REG_READ(ah,
-							  (AR5312_RSTIMER_BASE - ((uint32_t) ah->ah_sh) + AR5312_RESET));
-
-			if (RCMask == AR_RC_BB) {
-				/* Put baseband in reset */
-				reg |= resetBB;    /* Cold and warm reset the baseband bits */
-			} else {
-				/*
-				 * Reset the MAC and baseband.  This is a bit different than
-				 * the PCI version, but holding in reset causes problems.
-				 */
-				reg &= regMask;
-				reg |= (resetBits | resetBB) ;
-			}
-			OS_REG_WRITE(ah,
-						 (AR5312_RSTIMER_BASE - ((uint32_t) ah->ah_sh)+AR5312_RESET),
-						 reg);
-			/* read after */
-			OS_REG_READ(ah,
-						(AR5312_RSTIMER_BASE - ((uint32_t) ah->ah_sh) +AR5312_RESET));
-			OS_DELAY(100);
-
-			/* Bring MAC and baseband out of reset */
-			reg &= regMask;
-			/* read before */
-			OS_REG_READ(ah,
-						(AR5312_RSTIMER_BASE- ((uint32_t) ah->ah_sh) +AR5312_RESET));
-			OS_REG_WRITE(ah,
-						 (AR5312_RSTIMER_BASE - ((uint32_t) ah->ah_sh)+AR5312_RESET),
-						 reg);
-			/* read after */
-			OS_REG_READ(ah,
-						(AR5312_RSTIMER_BASE- ((uint32_t) ah->ah_sh) +AR5312_RESET));
+		return (AH_FALSE);
+#if (AH_SUPPORT_2316 || AH_SUPPORT_2317)
+	if (IS_5315(ah)) {
+		switch (wlanNum) {
+		case 0:
+			resetBB = AR5315_RC_BB0_CRES | AR5315_RC_WBB0_RES;
+			/* Warm and cold reset bits for wbb */
+			resetBits = AR5315_RC_WMAC0_RES;
+			break;
+		case 1:
+			resetBB = AR5315_RC_BB1_CRES | AR5315_RC_WBB1_RES;
+			/* Warm and cold reset bits for wbb */
+			resetBits = AR5315_RC_WMAC1_RES;
+			break;
+		default:
+			return (AH_FALSE);
 		}
-	return(AH_TRUE);
+		regMask = ~(resetBB | resetBits);
+
+		/* read before */
+		reg = OS_REG_READ(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET));
+
+		if (RCMask == AR_RC_BB) {
+			/* Put baseband in reset */
+			reg |=
+			    resetBB; /* Cold and warm reset the baseband bits */
+		} else {
+			/*
+			 * Reset the MAC and baseband.  This is a bit different
+			 * than the PCI version, but holding in reset causes
+			 * problems.
+			 */
+			reg &= regMask;
+			reg |= (resetBits | resetBB);
+		}
+		OS_REG_WRITE(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET),
+		    reg);
+		/* read after */
+		OS_REG_READ(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET));
+		OS_DELAY(100);
+
+		/* Bring MAC and baseband out of reset */
+		reg &= regMask;
+		/* read before */
+		OS_REG_READ(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET));
+		OS_REG_WRITE(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET),
+		    reg);
+		/* read after */
+		OS_REG_READ(ah,
+		    (AR5315_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5315_RESET));
+
+	} else
+#endif
+	{
+		switch (wlanNum) {
+		case 0:
+			resetBB = AR5312_RC_BB0_CRES | AR5312_RC_WBB0_RES;
+			/* Warm and cold reset bits for wbb */
+			resetBits = AR5312_RC_WMAC0_RES;
+			break;
+		case 1:
+			resetBB = AR5312_RC_BB1_CRES | AR5312_RC_WBB1_RES;
+			/* Warm and cold reset bits for wbb */
+			resetBits = AR5312_RC_WMAC1_RES;
+			break;
+		default:
+			return (AH_FALSE);
+		}
+		regMask = ~(resetBB | resetBits);
+
+		/* read before */
+		reg = OS_REG_READ(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET));
+
+		if (RCMask == AR_RC_BB) {
+			/* Put baseband in reset */
+			reg |=
+			    resetBB; /* Cold and warm reset the baseband bits */
+		} else {
+			/*
+			 * Reset the MAC and baseband.  This is a bit different
+			 * than the PCI version, but holding in reset causes
+			 * problems.
+			 */
+			reg &= regMask;
+			reg |= (resetBits | resetBB);
+		}
+		OS_REG_WRITE(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET),
+		    reg);
+		/* read after */
+		OS_REG_READ(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET));
+		OS_DELAY(100);
+
+		/* Bring MAC and baseband out of reset */
+		reg &= regMask;
+		/* read before */
+		OS_REG_READ(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET));
+		OS_REG_WRITE(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET),
+		    reg);
+		/* read after */
+		OS_REG_READ(ah,
+		    (AR5312_RSTIMER_BASE - ((uint32_t)ah->ah_sh) +
+			AR5312_RESET));
+	}
+	return (AH_TRUE);
 }
 
 #endif /* AH_SUPPORT_AR5312 */

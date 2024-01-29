@@ -39,11 +39,11 @@ struct csa_card {
 
 /* Resources. */
 struct csa_res {
-	int io_rid; /* io rid */
-	struct resource *io; /* io */
-	int mem_rid; /* memory rid */
+	int io_rid;	      /* io rid */
+	struct resource *io;  /* io */
+	int mem_rid;	      /* memory rid */
 	struct resource *mem; /* memory */
-	int irq_rid; /* irq rid */
+	int irq_rid;	      /* irq rid */
 	struct resource *irq; /* irq */
 };
 typedef struct csa_res csa_res;

@@ -102,58 +102,54 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_config.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_pcie_trans.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_config.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_pcie_trans.h>
 
 /*
  * This is a subset of what's in linux iwlwifi/pcie/trans.c.
@@ -168,8 +164,8 @@
 uint32_t
 iwm_read_prph(struct iwm_softc *sc, uint32_t addr)
 {
-	IWM_WRITE(sc,
-	    IWM_HBUS_TARG_PRPH_RADDR, ((addr & 0x000fffff) | (3 << 24)));
+	IWM_WRITE(sc, IWM_HBUS_TARG_PRPH_RADDR,
+	    ((addr & 0x000fffff) | (3 << 24)));
 	IWM_BARRIER_READ_WRITE(sc);
 	return IWM_READ(sc, IWM_HBUS_TARG_PRPH_RDAT);
 }
@@ -177,8 +173,8 @@ iwm_read_prph(struct iwm_softc *sc, uint32_t addr)
 void
 iwm_write_prph(struct iwm_softc *sc, uint32_t addr, uint32_t val)
 {
-	IWM_WRITE(sc,
-	    IWM_HBUS_TARG_PRPH_WADDR, ((addr & 0x000fffff) | (3 << 24)));
+	IWM_WRITE(sc, IWM_HBUS_TARG_PRPH_WADDR,
+	    ((addr & 0x000fffff) | (3 << 24)));
 	IWM_BARRIER_WRITE(sc);
 	IWM_WRITE(sc, IWM_HBUS_TARG_PRPH_WDAT, val);
 }
@@ -240,8 +236,8 @@ iwm_write_mem(struct iwm_softc *sc, uint32_t addr, const void *buf, int dwords)
 		}
 		iwm_nic_unlock(sc);
 	} else {
-		IWM_DPRINTF(sc, IWM_DEBUG_TRANS,
-		    "%s: write_mem failed\n", __func__);
+		IWM_DPRINTF(sc, IWM_DEBUG_TRANS, "%s: write_mem failed\n",
+		    __func__);
 		return EBUSY;
 	}
 	return 0;
@@ -254,8 +250,8 @@ iwm_write_mem32(struct iwm_softc *sc, uint32_t addr, uint32_t val)
 }
 
 int
-iwm_poll_bit(struct iwm_softc *sc, int reg,
-	uint32_t bits, uint32_t mask, int timo)
+iwm_poll_bit(struct iwm_softc *sc, int reg, uint32_t bits, uint32_t mask,
+    int timo)
 {
 	for (;;) {
 		if ((IWM_READ(sc, reg) & mask) == (bits & mask)) {
@@ -284,9 +280,10 @@ iwm_nic_lock(struct iwm_softc *sc)
 		DELAY(2);
 
 	if (iwm_poll_bit(sc, IWM_CSR_GP_CNTRL,
-	    IWM_CSR_GP_CNTRL_REG_VAL_MAC_ACCESS_EN,
-	    IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY
-	     | IWM_CSR_GP_CNTRL_REG_FLAG_GOING_TO_SLEEP, 15000)) {
+		IWM_CSR_GP_CNTRL_REG_VAL_MAC_ACCESS_EN,
+		IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY |
+		    IWM_CSR_GP_CNTRL_REG_FLAG_GOING_TO_SLEEP,
+		15000)) {
 		rv = 1;
 	} else {
 		/* jolt */
@@ -309,8 +306,8 @@ iwm_nic_unlock(struct iwm_softc *sc)
 }
 
 void
-iwm_set_bits_mask_prph(struct iwm_softc *sc,
-	uint32_t reg, uint32_t bits, uint32_t mask)
+iwm_set_bits_mask_prph(struct iwm_softc *sc, uint32_t reg, uint32_t bits,
+    uint32_t mask)
 {
 	uint32_t val;
 
@@ -372,7 +369,6 @@ iwm_check_rfkill(struct iwm_softc *sc)
 	return rv;
 }
 
-
 #define IWM_HW_READY_TIMEOUT 50
 int
 iwm_set_hw_ready(struct iwm_softc *sc)
@@ -384,8 +380,7 @@ iwm_set_hw_ready(struct iwm_softc *sc)
 
 	ready = iwm_poll_bit(sc, IWM_CSR_HW_IF_CONFIG_REG,
 	    IWM_CSR_HW_IF_CONFIG_REG_BIT_NIC_READY,
-	    IWM_CSR_HW_IF_CONFIG_REG_BIT_NIC_READY,
-	    IWM_HW_READY_TIMEOUT);
+	    IWM_CSR_HW_IF_CONFIG_REG_BIT_NIC_READY, IWM_HW_READY_TIMEOUT);
 	if (ready) {
 		IWM_SETBITS(sc, IWM_CSR_MBOX_SET_REG,
 		    IWM_CSR_MBOX_SET_REG_OS_ALIVE);
@@ -421,7 +416,7 @@ iwm_prepare_card_hw(struct iwm_softc *sc)
 
 	rv = ETIMEDOUT;
 
- out:
+out:
 	IWM_DPRINTF(sc, IWM_DEBUG_RESET, "<-%s\n", __func__);
 	return rv;
 }
@@ -447,7 +442,7 @@ iwm_apm_config(struct iwm_softc *sc)
 		return;
 	lctl = pci_read_config(sc->sc_dev, pcie_ptr + PCIER_LINK_CTL,
 	    sizeof(lctl));
-	if (lctl & PCIEM_LINK_CTL_ASPMC_L1)  {
+	if (lctl & PCIEM_LINK_CTL_ASPMC_L1) {
 		IWM_SETBITS(sc, IWM_CSR_GIO_REG,
 		    IWM_CSR_GIO_REG_VAL_L0S_ENABLED);
 	} else {
@@ -520,8 +515,8 @@ iwm_apm_init(struct iwm_softc *sc)
 	 * and accesses to uCode SRAM.
 	 */
 	if (!iwm_poll_bit(sc, IWM_CSR_GP_CNTRL,
-	    IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY,
-	    IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY, 25000)) {
+		IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY,
+		IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY, 25000)) {
 		device_printf(sc->sc_dev,
 		    "timeout waiting for clock stabilization\n");
 		error = ETIMEDOUT;
@@ -582,7 +577,7 @@ iwm_apm_init(struct iwm_softc *sc)
 			iwm_nic_unlock(sc);
 		}
 	}
- out:
+out:
 	if (error)
 		device_printf(sc->sc_dev, "apm init error %d\n", error);
 	return error;
@@ -596,7 +591,7 @@ iwm_apm_stop(struct iwm_softc *sc)
 	    IWM_CSR_RESET_LINK_PWR_MGMT_DISABLED);
 	IWM_SETBITS(sc, IWM_CSR_HW_IF_CONFIG_REG,
 	    IWM_CSR_HW_IF_CONFIG_REG_PREPARE |
-	    IWM_CSR_HW_IF_CONFIG_REG_ENABLE_PME);
+		IWM_CSR_HW_IF_CONFIG_REG_ENABLE_PME);
 	DELAY(1000);
 	IWM_CLRBITS(sc, IWM_CSR_DBG_LINK_PWR_MGMT_REG,
 	    IWM_CSR_RESET_LINK_PWR_MGMT_DISABLED);
@@ -606,16 +601,15 @@ iwm_apm_stop(struct iwm_softc *sc)
 	IWM_SETBITS(sc, IWM_CSR_RESET, IWM_CSR_RESET_REG_FLAG_STOP_MASTER);
 
 	if (!iwm_poll_bit(sc, IWM_CSR_RESET,
-	    IWM_CSR_RESET_REG_FLAG_MASTER_DISABLED,
-	    IWM_CSR_RESET_REG_FLAG_MASTER_DISABLED, 100))
+		IWM_CSR_RESET_REG_FLAG_MASTER_DISABLED,
+		IWM_CSR_RESET_REG_FLAG_MASTER_DISABLED, 100))
 		device_printf(sc->sc_dev, "timeout waiting for master\n");
 
 	/*
 	 * Clear "initialization complete" bit to move adapter from
 	 * D0A* (powered-up Active) --> D0U* (Uninitialized) state.
 	 */
-	IWM_CLRBITS(sc, IWM_CSR_GP_CNTRL,
-	    IWM_CSR_GP_CNTRL_REG_FLAG_INIT_DONE);
+	IWM_CLRBITS(sc, IWM_CSR_GP_CNTRL, IWM_CSR_GP_CNTRL_REG_FLAG_INIT_DONE);
 
 	IWM_DPRINTF(sc, IWM_DEBUG_TRANS, "%s: iwm apm stop\n", __func__);
 }
@@ -670,8 +664,7 @@ iwm_pcie_rx_stop(struct iwm_softc *sc)
 			IWM_WRITE(sc, IWM_FH_MEM_RCSR_CHNL0_CONFIG_REG, 0);
 			ret = iwm_poll_bit(sc, IWM_FH_MEM_RSSR_RX_STATUS_REG,
 			    IWM_FH_RSSR_CHNL0_RX_STATUS_CHNL_IDLE,
-			    IWM_FH_RSSR_CHNL0_RX_STATUS_CHNL_IDLE,
-			    1000);
+			    IWM_FH_RSSR_CHNL0_RX_STATUS_CHNL_IDLE, 1000);
 		}
 		iwm_nic_unlock(sc);
 	}
@@ -685,8 +678,8 @@ iwm_pcie_clear_cmd_in_flight(struct iwm_softc *sc)
 		return;
 
 	if (!sc->cmd_hold_nic_awake) {
-		device_printf(sc->sc_dev,
-		    "%s: cmd_hold_nic_awake not set\n", __func__);
+		device_printf(sc->sc_dev, "%s: cmd_hold_nic_awake not set\n",
+		    __func__);
 		return;
 	}
 
@@ -706,8 +699,7 @@ iwm_pcie_set_cmd_in_flight(struct iwm_softc *sc)
 	 * returned. This needs to be done only on NICs that have
 	 * apmg_wake_up_wa set.
 	 */
-	if (sc->cfg->apmg_wake_up_wa &&
-	    !sc->cmd_hold_nic_awake) {
+	if (sc->cfg->apmg_wake_up_wa && !sc->cmd_hold_nic_awake) {
 
 		IWM_SETBITS(sc, IWM_CSR_GP_CNTRL,
 		    IWM_CSR_GP_CNTRL_REG_FLAG_MAC_ACCESS_REQ);
@@ -715,7 +707,7 @@ iwm_pcie_set_cmd_in_flight(struct iwm_softc *sc)
 		ret = iwm_poll_bit(sc, IWM_CSR_GP_CNTRL,
 		    IWM_CSR_GP_CNTRL_REG_VAL_MAC_ACCESS_EN,
 		    (IWM_CSR_GP_CNTRL_REG_FLAG_MAC_CLOCK_READY |
-		     IWM_CSR_GP_CNTRL_REG_FLAG_GOING_TO_SLEEP),
+			IWM_CSR_GP_CNTRL_REG_FLAG_GOING_TO_SLEEP),
 		    15000);
 		if (ret == 0) {
 			IWM_CLRBITS(sc, IWM_CSR_GP_CNTRL,

@@ -19,16 +19,16 @@
 
 #include "math.h"
 #define INLINE_REM_PIO2F
-#include "math_private.h"
-#include "e_rem_pio2f.c"
 #include "k_sincosf.h"
+#include "math_private.h"
+
+#include "e_rem_pio2f.c"
 
 /* Small multiples of pi/2 rounded to double precision. */
-static const double
-p1pio2 = 1*M_PI_2,			/* 0x3FF921FB, 0x54442D18 */
-p2pio2 = 2*M_PI_2,			/* 0x400921FB, 0x54442D18 */
-p3pio2 = 3*M_PI_2,			/* 0x4012D97C, 0x7F3321D2 */
-p4pio2 = 4*M_PI_2;			/* 0x401921FB, 0x54442D18 */
+static const double p1pio2 = 1 * M_PI_2, /* 0x3FF921FB, 0x54442D18 */
+    p2pio2 = 2 * M_PI_2,		 /* 0x400921FB, 0x54442D18 */
+    p3pio2 = 3 * M_PI_2,		 /* 0x4012D97C, 0x7F3321D2 */
+    p4pio2 = 4 * M_PI_2;		 /* 0x401921FB, 0x54442D18 */
 
 void
 sincosf(float x, float *sn, float *cs)
@@ -40,10 +40,10 @@ sincosf(float x, float *sn, float *cs)
 	GET_FLOAT_WORD(hx, x);
 	ix = hx & 0x7fffffff;
 
-	if (ix <= 0x3f490fda) {		/* |x| ~<= pi/4 */
-		if (ix < 0x39800000) {	/* |x| < 2**-12 */
+	if (ix <= 0x3f490fda) {	       /* |x| ~<= pi/4 */
+		if (ix < 0x39800000) { /* |x| < 2**-12 */
 			if ((int)x == 0) {
-				*sn = x;	/* x with inexact if x != 0 */
+				*sn = x; /* x with inexact if x != 0 */
 				*cs = 1;
 				return;
 			}
@@ -53,7 +53,7 @@ sincosf(float x, float *sn, float *cs)
 	}
 
 	if (ix <= 0x407b53d1) {		/* |x| ~<= 5*pi/4 */
-		if (ix <= 0x4016cbe3) {	/* |x| ~<= 3pi/4 */
+		if (ix <= 0x4016cbe3) { /* |x| ~<= 3pi/4 */
 			if (hx > 0) {
 				__kernel_sincosdf(x - p1pio2, cs, sn);
 				*cs = -*cs;
@@ -73,7 +73,7 @@ sincosf(float x, float *sn, float *cs)
 	}
 
 	if (ix <= 0x40e231d5) {		/* |x| ~<= 9*pi/4 */
-		if (ix <= 0x40afeddf) {	/* |x| ~<= 7*pi/4 */
+		if (ix <= 0x40afeddf) { /* |x| ~<= 7*pi/4 */
 			if (hx > 0) {
 				__kernel_sincosdf(x - p3pio2, cs, sn);
 				*sn = -*sn;
@@ -101,7 +101,7 @@ sincosf(float x, float *sn, float *cs)
 	n = __ieee754_rem_pio2f(x, &y);
 	__kernel_sincosdf(y, &s, &c);
 
-	switch(n & 3) {
+	switch (n & 3) {
 	case 0:
 		*sn = s;
 		*cs = c;
@@ -119,5 +119,3 @@ sincosf(float x, float *sn, float *cs)
 		*cs = s;
 	}
 }
-
-

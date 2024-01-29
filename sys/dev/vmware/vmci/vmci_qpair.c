@@ -15,6 +15,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "vmci_kernel_api.h"
 #include "vmci_kernel_defs.h"
 #include "vmci_kernel_if.h"
@@ -23,21 +24,21 @@
 
 /* This structure is opaque to the clients. */
 struct vmci_qpair {
-	struct vmci_handle	handle;
-	struct vmci_queue	*produce_q;
-	struct vmci_queue	*consume_q;
-	uint64_t		produce_q_size;
-	uint64_t		consume_q_size;
-	vmci_id			peer;
-	uint32_t		flags;
-	vmci_privilege_flags	priv_flags;
-	uint32_t		blocked;
-	vmci_event		event;
+	struct vmci_handle handle;
+	struct vmci_queue *produce_q;
+	struct vmci_queue *consume_q;
+	uint64_t produce_q_size;
+	uint64_t consume_q_size;
+	vmci_id peer;
+	uint32_t flags;
+	vmci_privilege_flags priv_flags;
+	uint32_t blocked;
+	vmci_event event;
 };
 
-static void	vmci_qpair_get_queue_headers(const struct vmci_qpair *qpair,
-		    struct vmci_queue_header **produce_q_header,
-		    struct vmci_queue_header **consume_q_header);
+static void vmci_qpair_get_queue_headers(const struct vmci_qpair *qpair,
+    struct vmci_queue_header **produce_q_header,
+    struct vmci_queue_header **consume_q_header);
 
 /*
  *------------------------------------------------------------------------------
@@ -57,8 +58,8 @@ static void	vmci_qpair_get_queue_headers(const struct vmci_qpair *qpair,
  */
 
 static inline int
-vmci_queue_add_producer_tail(struct vmci_queue *queue,
-    size_t add, uint64_t queue_size)
+vmci_queue_add_producer_tail(struct vmci_queue *queue, size_t add,
+    uint64_t queue_size)
 {
 
 	vmci_queue_header_add_producer_tail(queue->q_header, add, queue_size);
@@ -83,8 +84,8 @@ vmci_queue_add_producer_tail(struct vmci_queue *queue,
  */
 
 static inline int
-vmci_queue_add_consumer_head(struct vmci_queue *queue,
-    size_t add, uint64_t queue_size)
+vmci_queue_add_consumer_head(struct vmci_queue *queue, size_t add,
+    uint64_t queue_size)
 {
 
 	vmci_queue_header_add_consumer_head(queue->q_header, add, queue_size);
@@ -161,7 +162,7 @@ vmci_qpair_alloc(struct vmci_qpair **qpair, struct vmci_handle *handle,
 	 */
 
 	if (produce_q_size + consume_q_size <
-	    MAX(produce_q_size, consume_q_size) ||
+		MAX(produce_q_size, consume_q_size) ||
 	    produce_q_size + consume_q_size > VMCI_MAX_GUEST_QP_MEMORY)
 		return (VMCI_ERROR_NO_RESOURCES);
 
@@ -352,8 +353,8 @@ vmci_qpair_produce_free_space(const struct vmci_qpair *qpair)
 
 	vmci_qpair_get_queue_headers(qpair, &produce_q_header,
 	    &consume_q_header);
-	result = vmci_queue_header_free_space(produce_q_header, consume_q_header,
-	    qpair->produce_q_size);
+	result = vmci_queue_header_free_space(produce_q_header,
+	    consume_q_header, qpair->produce_q_size);
 
 	return (result);
 }
@@ -390,8 +391,8 @@ vmci_qpair_consume_free_space(const struct vmci_qpair *qpair)
 
 	vmci_qpair_get_queue_headers(qpair, &produce_q_header,
 	    &consume_q_header);
-	result = vmci_queue_header_free_space(consume_q_header, produce_q_header,
-	    qpair->consume_q_size);
+	result = vmci_queue_header_free_space(consume_q_header,
+	    produce_q_header, qpair->consume_q_size);
 
 	return (result);
 }
@@ -508,8 +509,7 @@ enqueue(struct vmci_queue *produce_q, struct vmci_queue *consume_q,
 	ASSERT((produce_q != NULL) && (consume_q != NULL));
 
 	free_space = vmci_queue_header_free_space(produce_q->q_header,
-	    consume_q->q_header,
-	    produce_q_size);
+	    consume_q->q_header, produce_q_size);
 	if (free_space == 0)
 		return (VMCI_ERROR_QUEUEPAIR_NOSPACE);
 
@@ -567,9 +567,8 @@ enqueue(struct vmci_queue *produce_q, struct vmci_queue *consume_q,
  */
 
 static ssize_t
-dequeue(struct vmci_queue *produce_q,
-    struct vmci_queue *consume_q, const uint64_t consume_q_size, void *buf,
-    size_t buf_size, int buf_type,
+dequeue(struct vmci_queue *produce_q, struct vmci_queue *consume_q,
+    const uint64_t consume_q_size, void *buf, size_t buf_size, int buf_type,
     vmci_memcpy_from_queue_func memcpy_from_queue, bool update_consumer,
     bool can_block)
 {
@@ -645,8 +644,8 @@ vmci_qpair_enqueue(struct vmci_qpair *qpair, const void *buf, size_t buf_size,
 
 	result = enqueue(qpair->produce_q, qpair->consume_q,
 	    qpair->produce_q_size, buf, buf_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_to_queue_local : vmci_memcpy_to_queue,
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_to_queue_local :
+					       vmci_memcpy_to_queue,
 	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
@@ -680,9 +679,9 @@ vmci_qpair_dequeue(struct vmci_qpair *qpair, void *buf, size_t buf_size,
 
 	result = dequeue(qpair->produce_q, qpair->consume_q,
 	    qpair->consume_q_size, buf, buf_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_from_queue_local : vmci_memcpy_from_queue, true,
-	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_from_queue_local :
+					       vmci_memcpy_from_queue,
+	    true, !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
 }
@@ -716,9 +715,9 @@ vmci_qpair_peek(struct vmci_qpair *qpair, void *buf, size_t buf_size,
 
 	result = dequeue(qpair->produce_q, qpair->consume_q,
 	    qpair->consume_q_size, buf, buf_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_from_queue_local : vmci_memcpy_from_queue, false,
-	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_from_queue_local :
+					       vmci_memcpy_from_queue,
+	    false, !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
 }
@@ -751,8 +750,8 @@ vmci_qpair_enquev(struct vmci_qpair *qpair, void *iov, size_t iov_size,
 
 	result = enqueue(qpair->produce_q, qpair->consume_q,
 	    qpair->produce_q_size, iov, iov_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_to_queue_v_local : vmci_memcpy_to_queue_v,
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_to_queue_v_local :
+					       vmci_memcpy_to_queue_v,
 	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
@@ -786,9 +785,9 @@ vmci_qpair_dequev(struct vmci_qpair *qpair, void *iov, size_t iov_size,
 
 	result = dequeue(qpair->produce_q, qpair->consume_q,
 	    qpair->consume_q_size, iov, iov_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_from_queue_v_local : vmci_memcpy_from_queue_v, true,
-	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_from_queue_v_local :
+					       vmci_memcpy_from_queue_v,
+	    true, !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
 }
@@ -822,9 +821,9 @@ vmci_qpair_peekv(struct vmci_qpair *qpair, void *iov, size_t iov_size,
 
 	result = dequeue(qpair->produce_q, qpair->consume_q,
 	    qpair->consume_q_size, iov, iov_size, buf_type,
-	    qpair->flags & VMCI_QPFLAG_LOCAL?
-	    vmci_memcpy_from_queue_v_local : vmci_memcpy_from_queue_v, false,
-	    !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
+	    qpair->flags & VMCI_QPFLAG_LOCAL ? vmci_memcpy_from_queue_v_local :
+					       vmci_memcpy_from_queue_v,
+	    false, !(qpair->flags & VMCI_QPFLAG_NONBLOCK));
 
 	return (result);
 }

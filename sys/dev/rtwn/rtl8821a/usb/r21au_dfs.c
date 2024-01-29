@@ -24,41 +24,37 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/usb/rtwn_usb_var.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8812a/r12a_var.h>
-
 #include <dev/rtwn/rtl8821a/usb/r21au.h>
 #include <dev/rtwn/rtl8821a/usb/r21au_reg.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
 
-#define R21AU_RADAR_CHECK_PERIOD	(2 * hz)
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
+
+#define R21AU_RADAR_CHECK_PERIOD (2 * hz)
 
 static void
 r21au_dfs_radar_disable(struct rtwn_softc *sc)
@@ -87,10 +83,11 @@ r21au_dfs_radar_reset(struct rtwn_softc *sc)
 static int
 r21au_dfs_radar_enable(struct rtwn_softc *sc)
 {
-#define RTWN_CHK(res) do {	\
-	if (res != 0)		\
-		return (EIO);	\
-} while(0)
+#define RTWN_CHK(res)                 \
+	do {                          \
+		if (res != 0)         \
+			return (EIO); \
+	} while (0)
 
 	RTWN_ASSERT_LOCKED(sc);
 
@@ -130,7 +127,8 @@ r21au_chan_check(void *arg, int npending __unused)
 			/* should not happen */
 			device_printf(sc->sc_dev,
 			    "%s: radar detection was turned off "
-			    "unexpectedly, resetting...\n", __func__);
+			    "unexpectedly, resetting...\n",
+			    __func__);
 
 			/* XXX something more appropriate? */
 			ieee80211_restart_all(ic);
@@ -155,8 +153,8 @@ r21au_chan_check(void *arg, int npending __unused)
 	}
 
 	if (rs->rs_flags & R12A_RADAR_ENABLED) {
-		taskqueue_enqueue_timeout(taskqueue_thread,
-		    &rs->rs_chan_check, R21AU_RADAR_CHECK_PERIOD);
+		taskqueue_enqueue_timeout(taskqueue_thread, &rs->rs_chan_check,
+		    R21AU_RADAR_CHECK_PERIOD);
 	}
 	RTWN_UNLOCK(sc);
 }
@@ -177,8 +175,7 @@ r21au_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 	RTWN_LOCK(sc);
 
 	error = 0;
-	if (nstate == IEEE80211_S_CAC &&
-	    !(rs->rs_flags & R12A_RADAR_ENABLED)) {
+	if (nstate == IEEE80211_S_CAC && !(rs->rs_flags & R12A_RADAR_ENABLED)) {
 		error = r21au_dfs_radar_enable(sc);
 		if (error != 0) {
 			device_printf(sc->sc_dev,
@@ -190,15 +187,15 @@ r21au_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 		RTWN_DPRINTF(sc, RTWN_DEBUG_RADAR,
 		    "%s: radar detection was enabled\n", __func__);
 
-		taskqueue_enqueue_timeout(taskqueue_thread,
-		    &rs->rs_chan_check, R21AU_RADAR_CHECK_PERIOD);
+		taskqueue_enqueue_timeout(taskqueue_thread, &rs->rs_chan_check,
+		    R21AU_RADAR_CHECK_PERIOD);
 	}
 
 	if ((nstate < IEEE80211_S_CAC || nstate == IEEE80211_S_CSA) &&
 	    (rs->rs_flags & R12A_RADAR_ENABLED) &&
 	    (sc->vaps[!rvp->id] == NULL ||
-	    sc->vaps[!rvp->id]->vap.iv_state < IEEE80211_S_CAC ||
-	    sc->vaps[!rvp->id]->vap.iv_state == IEEE80211_S_CSA)) {
+		sc->vaps[!rvp->id]->vap.iv_state < IEEE80211_S_CAC ||
+		sc->vaps[!rvp->id]->vap.iv_state == IEEE80211_S_CSA)) {
 		taskqueue_cancel_timeout(taskqueue_thread, &rs->rs_chan_check,
 		    NULL);
 
@@ -229,7 +226,7 @@ r21au_scan_start(struct ieee80211com *ic)
 	if (rs->rs_flags & R12A_RADAR_ENABLED) {
 		RTWN_UNLOCK(sc);
 		while (taskqueue_cancel_timeout(taskqueue_thread,
-		    &rs->rs_chan_check, NULL) != 0) {
+			   &rs->rs_chan_check, NULL) != 0) {
 			taskqueue_drain_timeout(taskqueue_thread,
 			    &rs->rs_chan_check);
 		}
@@ -257,8 +254,7 @@ r21au_scan_end(struct ieee80211com *ic)
 		error = r21au_dfs_radar_enable(sc);
 		if (error != 0) {
 			device_printf(sc->sc_dev,
-			    "%s: cannot re-enable radar detection\n",
-			    __func__);
+			    "%s: cannot re-enable radar detection\n", __func__);
 
 			/* XXX */
 			ieee80211_restart_all(ic);
@@ -268,8 +264,8 @@ r21au_scan_end(struct ieee80211com *ic)
 		RTWN_DPRINTF(sc, RTWN_DEBUG_RADAR,
 		    "%s: radar detection was re-enabled\n", __func__);
 
-		taskqueue_enqueue_timeout(taskqueue_thread,
-		    &rs->rs_chan_check, R21AU_RADAR_CHECK_PERIOD);
+		taskqueue_enqueue_timeout(taskqueue_thread, &rs->rs_chan_check,
+		    R21AU_RADAR_CHECK_PERIOD);
 	}
 	RTWN_UNLOCK(sc);
 

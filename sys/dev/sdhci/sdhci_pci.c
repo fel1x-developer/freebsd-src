@@ -25,9 +25,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mmccam.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -40,14 +40,12 @@
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
 
 #include <dev/mmc/bridge.h>
-
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/sdhci/sdhci.h>
 
 #include "mmcbr_if.h"
@@ -56,119 +54,96 @@
 /*
  * PCI registers
  */
-#define	PCI_SDHCI_IFPIO			0x00
-#define	PCI_SDHCI_IFDMA			0x01
-#define	PCI_SDHCI_IFVENDOR		0x02
+#define PCI_SDHCI_IFPIO 0x00
+#define PCI_SDHCI_IFDMA 0x01
+#define PCI_SDHCI_IFVENDOR 0x02
 
-#define	PCI_SLOT_INFO			0x40	/* 8 bits */
-#define	PCI_SLOT_INFO_SLOTS(x)		(((x >> 4) & 7) + 1)
-#define	PCI_SLOT_INFO_FIRST_BAR(x)	((x) & 7)
+#define PCI_SLOT_INFO 0x40 /* 8 bits */
+#define PCI_SLOT_INFO_SLOTS(x) (((x >> 4) & 7) + 1)
+#define PCI_SLOT_INFO_FIRST_BAR(x) ((x) & 7)
 
 /*
  * RICOH specific PCI registers
  */
-#define	SDHC_PCI_MODE_KEY		0xf9
-#define	SDHC_PCI_MODE			0x150
-#define	SDHC_PCI_MODE_SD20		0x10
-#define	SDHC_PCI_BASE_FREQ_KEY		0xfc
-#define	SDHC_PCI_BASE_FREQ		0xe1
+#define SDHC_PCI_MODE_KEY 0xf9
+#define SDHC_PCI_MODE 0x150
+#define SDHC_PCI_MODE_SD20 0x10
+#define SDHC_PCI_BASE_FREQ_KEY 0xfc
+#define SDHC_PCI_BASE_FREQ 0xe1
 
 static const struct sdhci_device {
-	uint32_t	model;
-	uint16_t	subvendor;
-	const char	*desc;
-	u_int		quirks;
-} sdhci_devices[] = {
-	{ 0x08221180,	0xffff,	"RICOH R5C822 SD",
-	    SDHCI_QUIRK_FORCE_DMA },
-	{ 0xe8221180,	0xffff,	"RICOH R5CE822 SD",
-	    SDHCI_QUIRK_FORCE_DMA |
-	    SDHCI_QUIRK_LOWER_FREQUENCY },
-	{ 0xe8231180,	0xffff,	"RICOH R5CE823 SD",
-	    SDHCI_QUIRK_LOWER_FREQUENCY },
-	{ 0x8034104c,	0xffff, "TI XX21/XX11 SD",
-	    SDHCI_QUIRK_FORCE_DMA },
-	{ 0x803c104c,	0xffff, "TI XX12 SD",
-	    SDHCI_QUIRK_FORCE_DMA |
-	    SDHCI_QUIRK_WAITFOR_RESET_ASSERTED },
-	{ 0x05501524,	0xffff, "ENE CB712 SD",
-	    SDHCI_QUIRK_BROKEN_TIMINGS },
-	{ 0x05511524,	0xffff, "ENE CB712 SD 2",
-	    SDHCI_QUIRK_BROKEN_TIMINGS },
-	{ 0x07501524,	0xffff, "ENE CB714 SD",
-	    SDHCI_QUIRK_RESET_ON_IOS |
-	    SDHCI_QUIRK_BROKEN_TIMINGS },
-	{ 0x07511524,	0xffff, "ENE CB714 SD 2",
-	    SDHCI_QUIRK_RESET_ON_IOS |
-	    SDHCI_QUIRK_BROKEN_TIMINGS },
-	{ 0x410111ab,	0xffff, "Marvell CaFe SD",
+	uint32_t model;
+	uint16_t subvendor;
+	const char *desc;
+	u_int quirks;
+} sdhci_devices[] = { { 0x08221180, 0xffff, "RICOH R5C822 SD",
+			  SDHCI_QUIRK_FORCE_DMA },
+	{ 0xe8221180, 0xffff, "RICOH R5CE822 SD",
+	    SDHCI_QUIRK_FORCE_DMA | SDHCI_QUIRK_LOWER_FREQUENCY },
+	{ 0xe8231180, 0xffff, "RICOH R5CE823 SD", SDHCI_QUIRK_LOWER_FREQUENCY },
+	{ 0x8034104c, 0xffff, "TI XX21/XX11 SD", SDHCI_QUIRK_FORCE_DMA },
+	{ 0x803c104c, 0xffff, "TI XX12 SD",
+	    SDHCI_QUIRK_FORCE_DMA | SDHCI_QUIRK_WAITFOR_RESET_ASSERTED },
+	{ 0x05501524, 0xffff, "ENE CB712 SD", SDHCI_QUIRK_BROKEN_TIMINGS },
+	{ 0x05511524, 0xffff, "ENE CB712 SD 2", SDHCI_QUIRK_BROKEN_TIMINGS },
+	{ 0x07501524, 0xffff, "ENE CB714 SD",
+	    SDHCI_QUIRK_RESET_ON_IOS | SDHCI_QUIRK_BROKEN_TIMINGS },
+	{ 0x07511524, 0xffff, "ENE CB714 SD 2",
+	    SDHCI_QUIRK_RESET_ON_IOS | SDHCI_QUIRK_BROKEN_TIMINGS },
+	{ 0x410111ab, 0xffff, "Marvell CaFe SD",
 	    SDHCI_QUIRK_INCR_TIMEOUT_CONTROL },
-	{ 0x2381197B,	0xffff,	"JMicron JMB38X SD",
-	    SDHCI_QUIRK_32BIT_DMA_SIZE |
-	    SDHCI_QUIRK_RESET_AFTER_REQUEST },
-	{ 0x16bc14e4,	0xffff,	"Broadcom BCM577xx SDXC/MMC Card Reader",
+	{ 0x2381197B, 0xffff, "JMicron JMB38X SD",
+	    SDHCI_QUIRK_32BIT_DMA_SIZE | SDHCI_QUIRK_RESET_AFTER_REQUEST },
+	{ 0x16bc14e4, 0xffff, "Broadcom BCM577xx SDXC/MMC Card Reader",
 	    SDHCI_QUIRK_BCM577XX_400KHZ_CLKSRC },
-	{ 0x0f148086,	0xffff,	"Intel Bay Trail eMMC 4.5 Controller",
+	{ 0x0f148086, 0xffff, "Intel Bay Trail eMMC 4.5 Controller",
 	    /* DDR52 is supported but affected by the VLI54 erratum */
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN},
-	{ 0x0f158086,	0xffff,	"Intel Bay Trail SDXC Controller",
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x0f508086,	0xffff,	"Intel Bay Trail eMMC 4.5 Controller",
+	    SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x0f158086, 0xffff, "Intel Bay Trail SDXC Controller",
+	    SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x0f508086, 0xffff, "Intel Bay Trail eMMC 4.5 Controller",
 	    /* DDR52 is supported but affected by the VLI54 erratum */
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x19db8086,	0xffff,	"Intel Denverton eMMC 5.0 Controller",
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_MMC_DDR52 |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x22948086,	0xffff,	"Intel Braswell eMMC 4.5.1 Controller",
-	    SDHCI_QUIRK_DATA_TIMEOUT_1MHZ |
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_MMC_DDR52 |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x22968086,	0xffff,	"Intel Braswell SDXC Controller",
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x5aca8086,	0xffff,	"Intel Apollo Lake SDXC Controller",
-	    SDHCI_QUIRK_BROKEN_DMA |	/* APL18 erratum */
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0x5acc8086,	0xffff,	"Intel Apollo Lake eMMC 5.0 Controller",
-	    SDHCI_QUIRK_BROKEN_DMA |	/* APL18 erratum */
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_MMC_DDR52 |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ 0,		0xffff,	NULL,
-	    0 }
-};
+	    SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x19db8086, 0xffff, "Intel Denverton eMMC 5.0 Controller",
+	    SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_MMC_DDR52 | SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x22948086, 0xffff, "Intel Braswell eMMC 4.5.1 Controller",
+	    SDHCI_QUIRK_DATA_TIMEOUT_1MHZ | SDHCI_QUIRK_INTEL_POWER_UP_RESET |
+		SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_MMC_DDR52 |
+		SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x22968086, 0xffff, "Intel Braswell SDXC Controller",
+	    SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x5aca8086, 0xffff, "Intel Apollo Lake SDXC Controller",
+	    SDHCI_QUIRK_BROKEN_DMA | /* APL18 erratum */
+		SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0x5acc8086, 0xffff, "Intel Apollo Lake eMMC 5.0 Controller",
+	    SDHCI_QUIRK_BROKEN_DMA | /* APL18 erratum */
+		SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_MMC_DDR52 | SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ 0, 0xffff, NULL, 0 } };
 
 struct sdhci_pci_softc {
-	u_int		quirks;		/* Chip specific quirks */
-	struct resource *irq_res;	/* IRQ resource */
-	void		*intrhand;	/* Interrupt handle */
+	u_int quirks;		  /* Chip specific quirks */
+	struct resource *irq_res; /* IRQ resource */
+	void *intrhand;		  /* Interrupt handle */
 
-	int		num_slots;	/* Number of slots on this controller */
+	int num_slots; /* Number of slots on this controller */
 	struct sdhci_slot slots[6];
-	struct resource	*mem_res[6];	/* Memory resource */
-	uint8_t		cfg_freq;	/* Saved frequency */
-	uint8_t		cfg_mode;	/* Saved mode */
+	struct resource *mem_res[6]; /* Memory resource */
+	uint8_t cfg_freq;	     /* Saved frequency */
+	uint8_t cfg_mode;	     /* Saved mode */
 };
 
 static int sdhci_enable_msi = 1;
-SYSCTL_INT(_hw_sdhci, OID_AUTO, enable_msi, CTLFLAG_RDTUN, &sdhci_enable_msi,
-    0, "Enable MSI interrupts");
+SYSCTL_INT(_hw_sdhci, OID_AUTO, enable_msi, CTLFLAG_RDTUN, &sdhci_enable_msi, 0,
+    "Enable MSI interrupts");
 
 static uint8_t
 sdhci_pci_read_1(device_t dev, struct sdhci_slot *slot __unused, bus_size_t off)
@@ -311,7 +286,7 @@ sdhci_pci_probe(device_t dev)
 	for (i = 0; sdhci_devices[i].model != 0; i++) {
 		if (sdhci_devices[i].model == model &&
 		    (sdhci_devices[i].subvendor == 0xffff ||
-		    sdhci_devices[i].subvendor == subvendor)) {
+			sdhci_devices[i].subvendor == subvendor)) {
 			device_set_desc(dev, sdhci_devices[i].desc);
 			result = BUS_PROBE_DEFAULT;
 			break;
@@ -342,7 +317,7 @@ sdhci_pci_attach(device_t dev)
 	for (i = 0; sdhci_devices[i].model != 0; i++) {
 		if (sdhci_devices[i].model == model &&
 		    (sdhci_devices[i].subvendor == 0xffff ||
-		    sdhci_devices[i].subvendor == subvendor)) {
+			sdhci_devices[i].subvendor == subvendor)) {
 			sc->quirks = sdhci_devices[i].quirks;
 			break;
 		}
@@ -368,7 +343,7 @@ sdhci_pci_attach(device_t dev)
 	if (sdhci_enable_msi != 0 && pci_alloc_msi(dev, &i) == 0)
 		rid = 1;
 	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-		RF_ACTIVE | (rid != 0 ? 0 : RF_SHAREABLE));
+	    RF_ACTIVE | (rid != 0 ? 0 : RF_SHAREABLE));
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "Can't allocate IRQ\n");
 		pci_release_msi(dev);
@@ -417,8 +392,8 @@ sdhci_pci_detach(device_t dev)
 	int i;
 
 	bus_teardown_intr(dev, sc->irq_res, sc->intrhand);
-	bus_release_resource(dev, SYS_RES_IRQ,
-	    rman_get_rid(sc->irq_res), sc->irq_res);
+	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(sc->irq_res),
+	    sc->irq_res);
 	pci_release_msi(dev);
 
 	for (i = 0; i < sc->num_slots; i++) {
@@ -483,37 +458,37 @@ sdhci_pci_intr(void *arg)
 
 static device_method_t sdhci_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe,		sdhci_pci_probe),
-	DEVMETHOD(device_attach,	sdhci_pci_attach),
-	DEVMETHOD(device_detach,	sdhci_pci_detach),
-	DEVMETHOD(device_shutdown,	sdhci_pci_shutdown),
-	DEVMETHOD(device_suspend,	sdhci_pci_suspend),
-	DEVMETHOD(device_resume,	sdhci_pci_resume),
+	DEVMETHOD(device_probe, sdhci_pci_probe),
+	DEVMETHOD(device_attach, sdhci_pci_attach),
+	DEVMETHOD(device_detach, sdhci_pci_detach),
+	DEVMETHOD(device_shutdown, sdhci_pci_shutdown),
+	DEVMETHOD(device_suspend, sdhci_pci_suspend),
+	DEVMETHOD(device_resume, sdhci_pci_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	sdhci_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdhci_generic_write_ivar),
+	DEVMETHOD(bus_read_ivar, sdhci_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdhci_generic_write_ivar),
 
 	/* mmcbr_if */
-	DEVMETHOD(mmcbr_update_ios,	sdhci_generic_update_ios),
-	DEVMETHOD(mmcbr_switch_vccq,	sdhci_generic_switch_vccq),
-	DEVMETHOD(mmcbr_tune,		sdhci_generic_tune),
-	DEVMETHOD(mmcbr_retune,		sdhci_generic_retune),
-	DEVMETHOD(mmcbr_request,	sdhci_generic_request),
-	DEVMETHOD(mmcbr_get_ro,		sdhci_generic_get_ro),
-	DEVMETHOD(mmcbr_acquire_host,   sdhci_generic_acquire_host),
-	DEVMETHOD(mmcbr_release_host,   sdhci_generic_release_host),
+	DEVMETHOD(mmcbr_update_ios, sdhci_generic_update_ios),
+	DEVMETHOD(mmcbr_switch_vccq, sdhci_generic_switch_vccq),
+	DEVMETHOD(mmcbr_tune, sdhci_generic_tune),
+	DEVMETHOD(mmcbr_retune, sdhci_generic_retune),
+	DEVMETHOD(mmcbr_request, sdhci_generic_request),
+	DEVMETHOD(mmcbr_get_ro, sdhci_generic_get_ro),
+	DEVMETHOD(mmcbr_acquire_host, sdhci_generic_acquire_host),
+	DEVMETHOD(mmcbr_release_host, sdhci_generic_release_host),
 
 	/* SDHCI accessors */
-	DEVMETHOD(sdhci_read_1,		sdhci_pci_read_1),
-	DEVMETHOD(sdhci_read_2,		sdhci_pci_read_2),
-	DEVMETHOD(sdhci_read_4,		sdhci_pci_read_4),
-	DEVMETHOD(sdhci_read_multi_4,	sdhci_pci_read_multi_4),
-	DEVMETHOD(sdhci_write_1,	sdhci_pci_write_1),
-	DEVMETHOD(sdhci_write_2,	sdhci_pci_write_2),
-	DEVMETHOD(sdhci_write_4,	sdhci_pci_write_4),
-	DEVMETHOD(sdhci_write_multi_4,	sdhci_pci_write_multi_4),
-	DEVMETHOD(sdhci_set_uhs_timing,	sdhci_generic_set_uhs_timing),
+	DEVMETHOD(sdhci_read_1, sdhci_pci_read_1),
+	DEVMETHOD(sdhci_read_2, sdhci_pci_read_2),
+	DEVMETHOD(sdhci_read_4, sdhci_pci_read_4),
+	DEVMETHOD(sdhci_read_multi_4, sdhci_pci_read_multi_4),
+	DEVMETHOD(sdhci_write_1, sdhci_pci_write_1),
+	DEVMETHOD(sdhci_write_2, sdhci_pci_write_2),
+	DEVMETHOD(sdhci_write_4, sdhci_pci_write_4),
+	DEVMETHOD(sdhci_write_multi_4, sdhci_pci_write_multi_4),
+	DEVMETHOD(sdhci_set_uhs_timing, sdhci_generic_set_uhs_timing),
 
 	DEVMETHOD_END
 };

@@ -34,9 +34,10 @@
 #include <string.h>
 
 char *
-stpcpy(char * __restrict to, const char * __restrict from)
+stpcpy(char *__restrict to, const char *__restrict from)
 {
 
-	for (; (*to = *from); ++from, ++to);
-	return(to);
+	for (; (*to = *from); ++from, ++to)
+		;
+	return (to);
 }

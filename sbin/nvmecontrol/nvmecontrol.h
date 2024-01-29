@@ -30,31 +30,36 @@
 #define __NVMECONTROL_H__
 
 #include <dev/nvme/nvme.h>
+
 #include "comnd.h"
 
-typedef void (*print_fn_t)(const struct nvme_controller_data *cdata, void *buf, uint32_t size);
+typedef void (*print_fn_t)(const struct nvme_controller_data *cdata, void *buf,
+    uint32_t size);
 
 struct logpage_function {
-        SLIST_ENTRY(logpage_function)   link;
-	uint8_t		log_page;
-	const char     *vendor;
-	const char     *name;
-	print_fn_t	print_fn;
-	size_t		size;
+	SLIST_ENTRY(logpage_function) link;
+	uint8_t log_page;
+	const char *vendor;
+	const char *name;
+	print_fn_t print_fn;
+	size_t size;
 };
 
-#define NVME_LOGPAGE(unique, lp, vend, nam, fn, sz)			\
-	static struct logpage_function unique ## _lpf = {		\
-		.log_page = lp,						\
-		.vendor = vend,						\
-		.name = nam,						\
-		.print_fn = fn, 					\
-		.size = sz,						\
-	} ;								\
-        static void logpage_reg_##unique(void) __attribute__((constructor)); \
-        static void logpage_reg_##unique(void) { logpage_register(&unique##_lpf); }
+#define NVME_LOGPAGE(unique, lp, vend, nam, fn, sz)                          \
+	static struct logpage_function unique##_lpf = {                      \
+		.log_page = lp,                                              \
+		.vendor = vend,                                              \
+		.name = nam,                                                 \
+		.print_fn = fn,                                              \
+		.size = sz,                                                  \
+	};                                                                   \
+	static void logpage_reg_##unique(void) __attribute__((constructor)); \
+	static void logpage_reg_##unique(void)                               \
+	{                                                                    \
+		logpage_register(&unique##_lpf);                             \
+	}
 
-#define DEFAULT_SIZE	(4096)
+#define DEFAULT_SIZE (4096)
 struct kv_name {
 	uint32_t key;
 	const char *name;
@@ -63,20 +68,22 @@ struct kv_name {
 const char *kv_lookup(const struct kv_name *kv, size_t kv_count, uint32_t key);
 
 void logpage_register(struct logpage_function *p);
-#define NVME_CTRLR_PREFIX	"nvme"
-#define NVME_NS_PREFIX		"ns"
+#define NVME_CTRLR_PREFIX "nvme"
+#define NVME_NS_PREFIX "ns"
 
 int open_dev(const char *str, int *fd, int write, int exit_on_error);
 void get_nsid(int fd, char **ctrlr_str, uint32_t *nsid);
 int read_controller_data(int fd, struct nvme_controller_data *cdata);
-int read_namespace_data(int fd, uint32_t nsid, struct nvme_namespace_data *nsdata);
+int read_namespace_data(int fd, uint32_t nsid,
+    struct nvme_namespace_data *nsdata);
 void print_hex(void *data, uint32_t length);
 void print_namespace(struct nvme_namespace_data *nsdata);
 void read_logpage(int fd, uint8_t log_page, uint32_t nsid, uint8_t lsp,
     uint16_t lsi, uint8_t rae, void *payload, uint32_t payload_size);
 void print_temp_C(uint16_t t);
 void print_temp_K(uint16_t t);
-void print_intel_add_smart(const struct nvme_controller_data *cdata __unused, void *buf, uint32_t size __unused);
+void print_intel_add_smart(const struct nvme_controller_data *cdata __unused,
+    void *buf, uint32_t size __unused);
 
 /* Utility Routines */
 /*
@@ -85,7 +92,7 @@ void print_intel_add_smart(const struct nvme_controller_data *cdata __unused, vo
  * you'll get truncated values until someone implement 128bit
  * ints in software.
  */
-#define UINT128_DIG	39
+#define UINT128_DIG 39
 #ifdef __i386__
 typedef uint64_t uint128_t;
 #else
@@ -99,5 +106,5 @@ to128(void *p)
 }
 
 uint64_t le48dec(const void *pp);
-char * uint128_to_str(uint128_t u, char *buf, size_t buflen);
+char *uint128_to_str(uint128_t u, char *buf, size_t buflen);
 #endif

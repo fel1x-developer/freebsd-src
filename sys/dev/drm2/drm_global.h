@@ -41,8 +41,8 @@ struct drm_global_reference {
 	enum drm_global_types global_type;
 	size_t size;
 	void *object;
-	int (*init) (struct drm_global_reference *);
-	void (*release) (struct drm_global_reference *);
+	int (*init)(struct drm_global_reference *);
+	void (*release)(struct drm_global_reference *);
 };
 
 extern void drm_global_init(void);

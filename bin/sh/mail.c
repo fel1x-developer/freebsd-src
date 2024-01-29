@@ -34,24 +34,22 @@
  * Routines to check for mail.  (Perhaps make part of main.c?)
  */
 
-#include "shell.h"
-#include "mail.h"
-#include "var.h"
-#include "output.h"
-#include "memalloc.h"
-#include "error.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <stdlib.h>
 
+#include "error.h"
+#include "mail.h"
+#include "memalloc.h"
+#include "output.h"
+#include "shell.h"
+#include "var.h"
 
 #define MAXMBOXES 10
 
-
-static int nmboxes;			/* number of mailboxes */
-static time_t mailtime[MAXMBOXES];	/* times of mailboxes */
-
-
+static int nmboxes;		   /* number of mailboxes */
+static time_t mailtime[MAXMBOXES]; /* times of mailboxes */
 
 /*
  * Print appropriate message(s) if mail has arrived.  If the argument is
@@ -74,8 +72,8 @@ chkmail(int silent)
 	if (nmboxes == 0)
 		return;
 	setstackmark(&smark);
-	mpath = stsavestr(mpathset()? mpathval() : mailval());
-	for (i = 0 ; i < nmboxes ; i++) {
+	mpath = stsavestr(mpathset() ? mpathval() : mailval());
+	for (i = 0; i < nmboxes; i++) {
 		p = mpath;
 		if (*p == '\0')
 			break;
@@ -91,16 +89,16 @@ chkmail(int silent)
 #ifdef notdef /* this is what the System V shell claims to do (it lies) */
 		if (stat(p, &statb) < 0)
 			statb.st_mtime = 0;
-		if (statb.st_mtime > mailtime[i] && ! silent) {
-			out2str(msg? msg : "you have mail");
+		if (statb.st_mtime > mailtime[i] && !silent) {
+			out2str(msg ? msg : "you have mail");
 			out2c('\n');
 		}
 		mailtime[i] = statb.st_mtime;
 #else /* this is what it should do */
 		if (stat(p, &statb) < 0)
 			statb.st_size = 0;
-		if (statb.st_size > mailtime[i] && ! silent) {
-			out2str(msg? msg : "you have mail");
+		if (statb.st_size > mailtime[i] && !silent) {
+			out2str(msg ? msg : "you have mail");
 			out2c('\n');
 		}
 		mailtime[i] = statb.st_size;

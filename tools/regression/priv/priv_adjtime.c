@@ -42,8 +42,8 @@
 
 #include "main.h"
 
-static int		initialized;
-static struct timeval	query_tv;
+static int initialized;
+static struct timeval query_tv;
 
 int
 priv_adjtime_setup(int asroot, int injail, struct test *test)
@@ -78,5 +78,4 @@ priv_adjtime_set(int asroot, int injail, struct test *test)
 void
 priv_adjtime_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

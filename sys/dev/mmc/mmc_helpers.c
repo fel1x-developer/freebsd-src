@@ -27,8 +27,8 @@
 
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
 #include <sys/gpio.h>
+#include <sys/kernel.h>
 #include <sys/taskqueue.h>
 
 #include <dev/mmc/bridge.h>
@@ -89,8 +89,8 @@ mmc_parse(device_t dev, struct mmc_helper *helper, struct mmc_host *host)
 	uint32_t bus_width, max_freq;
 
 	bus_width = 0;
-	if (device_get_property(dev, "bus-width", &bus_width,
-	    sizeof(bus_width), DEVICE_PROP_UINT32) <= 0)
+	if (device_get_property(dev, "bus-width", &bus_width, sizeof(bus_width),
+		DEVICE_PROP_UINT32) <= 0)
 		bus_width = 1;
 
 	if (bus_width >= 4)
@@ -104,7 +104,7 @@ mmc_parse(device_t dev, struct mmc_helper *helper, struct mmc_host *host)
 	 * operates on
 	 */
 	if (device_get_property(dev, "max-frequency", &max_freq,
-	    sizeof(max_freq), DEVICE_PROP_UINT32) > 0)
+		sizeof(max_freq), DEVICE_PROP_UINT32) > 0)
 		host->f_max = max_freq;
 
 	if (device_has_property(dev, "broken-cd"))

@@ -28,25 +28,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_AMD64_FRAME_H
-#define	_AMD64_FRAME_H
+#ifndef _AMD64_FRAME_H
+#define _AMD64_FRAME_H
 
 #include <x86/frame.h>
 
 struct pti_frame {
-	register_t	pti_rdx;
-	register_t	pti_rax;
-	register_t	pti_err;
-	register_t	pti_rip;
-	register_t	pti_cs;
-	register_t	pti_rflags;
-	register_t	pti_rsp;
-	register_t	pti_ss;
+	register_t pti_rdx;
+	register_t pti_rax;
+	register_t pti_err;
+	register_t pti_rip;
+	register_t pti_cs;
+	register_t pti_rflags;
+	register_t pti_rsp;
+	register_t pti_ss;
 };
 
 #ifdef _KERNEL
-#define	CS_SECURE(cs)		(ISPL(cs) == SEL_UPL)
-#define	EFL_SECURE(ef, oef)	((((ef) ^ (oef)) & ~PSL_USERCHANGE) == 0)
+#define CS_SECURE(cs) (ISPL(cs) == SEL_UPL)
+#define EFL_SECURE(ef, oef) ((((ef) ^ (oef)) & ~PSL_USERCHANGE) == 0)
 #endif
 
 #endif

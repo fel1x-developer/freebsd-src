@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#define ALIASINUSE	1
+#define ALIASINUSE 1
 
 struct alias {
 	struct alias *next;

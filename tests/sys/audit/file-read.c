@@ -34,12 +34,12 @@ static const char *path = "fileforaudit";
 static const char *successreg = "fileforaudit.*return,success";
 static const char *failurereg = "fileforaudit.*return,failure";
 
-
 ATF_TC_WITH_CLEANUP(readlink_success);
 ATF_TC_HEAD(readlink_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"readlink(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "readlink(2) call");
 }
 
 ATF_TC_BODY(readlink_success, tc)
@@ -47,7 +47,7 @@ ATF_TC_BODY(readlink_success, tc)
 	memset(buff, 0, sizeof(buff));
 	ATF_REQUIRE_EQ(0, symlink("symlink", path));
 	FILE *pipefd = setup(fds, "fr");
-	ATF_REQUIRE(readlink(path, buff, sizeof(buff)-1) != -1);
+	ATF_REQUIRE(readlink(path, buff, sizeof(buff) - 1) != -1);
 	check_audit(fds, successreg, pipefd);
 }
 
@@ -56,12 +56,12 @@ ATF_TC_CLEANUP(readlink_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(readlink_failure);
 ATF_TC_HEAD(readlink_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"readlink(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "readlink(2) call");
 }
 
 ATF_TC_BODY(readlink_failure, tc)
@@ -69,7 +69,7 @@ ATF_TC_BODY(readlink_failure, tc)
 	memset(buff, 0, sizeof(buff));
 	FILE *pipefd = setup(fds, "fr");
 	/* Failure reason: symbolic link does not exist */
-	ATF_REQUIRE_EQ(-1, readlink(path, buff, sizeof(buff)-1));
+	ATF_REQUIRE_EQ(-1, readlink(path, buff, sizeof(buff) - 1));
 	check_audit(fds, failurereg, pipefd);
 }
 
@@ -78,12 +78,12 @@ ATF_TC_CLEANUP(readlink_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(readlinkat_success);
 ATF_TC_HEAD(readlinkat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"readlinkat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "readlinkat(2) call");
 }
 
 ATF_TC_BODY(readlinkat_success, tc)
@@ -91,7 +91,7 @@ ATF_TC_BODY(readlinkat_success, tc)
 	memset(buff, 0, sizeof(buff));
 	ATF_REQUIRE_EQ(0, symlink("symlink", path));
 	FILE *pipefd = setup(fds, "fr");
-	ATF_REQUIRE(readlinkat(AT_FDCWD, path, buff, sizeof(buff)-1) != -1);
+	ATF_REQUIRE(readlinkat(AT_FDCWD, path, buff, sizeof(buff) - 1) != -1);
 	check_audit(fds, successreg, pipefd);
 }
 
@@ -100,12 +100,12 @@ ATF_TC_CLEANUP(readlinkat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(readlinkat_failure);
 ATF_TC_HEAD(readlinkat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"readlinkat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "readlinkat(2) call");
 }
 
 ATF_TC_BODY(readlinkat_failure, tc)
@@ -113,7 +113,7 @@ ATF_TC_BODY(readlinkat_failure, tc)
 	memset(buff, 0, sizeof(buff));
 	FILE *pipefd = setup(fds, "fr");
 	/* Failure reason: symbolic link does not exist */
-	ATF_REQUIRE_EQ(-1, readlinkat(AT_FDCWD, path, buff, sizeof(buff)-1));
+	ATF_REQUIRE_EQ(-1, readlinkat(AT_FDCWD, path, buff, sizeof(buff) - 1));
 	check_audit(fds, failurereg, pipefd);
 }
 
@@ -121,7 +121,6 @@ ATF_TC_CLEANUP(readlinkat_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

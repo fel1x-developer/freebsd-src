@@ -31,6 +31,7 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
@@ -38,8 +39,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(mbsnrtowcs_test);
 ATF_TC_BODY(mbsnrtowcs_test, tc)
@@ -57,8 +56,8 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 5);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 5);
 	ATF_REQUIRE(wcscmp(dstbuf, L"hello") == 0);
 	ATF_REQUIRE(dstbuf[6] == 0xcccc);
 	ATF_REQUIRE(src == NULL);
@@ -69,8 +68,8 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 4, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 4);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 4,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 4);
 	ATF_REQUIRE(wmemcmp(dstbuf, L"hell", 4) == 0);
 	ATF_REQUIRE(dstbuf[5] == 0xcccc);
 	ATF_REQUIRE(src == srcbuf + 4);
@@ -105,8 +104,8 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	strcpy(srcbuf, "hello");
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
 	src = srcbuf;
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6, sizeof(dstbuf) /
-	    sizeof(*dstbuf), NULL) == 5);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6,
+			sizeof(dstbuf) / sizeof(*dstbuf), NULL) == 5);
 	ATF_REQUIRE(wcscmp(dstbuf, L"hello") == 0);
 	ATF_REQUIRE(dstbuf[6] == 0xcccc);
 	ATF_REQUIRE(src == NULL);
@@ -151,7 +150,8 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX > 1);
 
 	memset(srcbuf, 0xcc, sizeof(srcbuf));
@@ -159,10 +159,11 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 8, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 5);
-	ATF_REQUIRE(dstbuf[0] == 0xA3C1 && dstbuf[1] == 0x20 && dstbuf[2] == 0x42 &&
-	    dstbuf[3] == 0x20 && dstbuf[4] == 0xA3C3 && dstbuf[5] == 0);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 8,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 5);
+	ATF_REQUIRE(dstbuf[0] == 0xA3C1 && dstbuf[1] == 0x20 &&
+	    dstbuf[2] == 0x42 && dstbuf[3] == 0x20 && dstbuf[4] == 0xA3C3 &&
+	    dstbuf[5] == 0);
 	ATF_REQUIRE(src == NULL);
 
 	/* Partial character. */
@@ -171,15 +172,15 @@ ATF_TC_BODY(mbsnrtowcs_test, tc)
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 4);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 6,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 4);
 	ATF_REQUIRE(src == srcbuf + 6);
 	ATF_REQUIRE(!mbsinit(&s));
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 1, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 1);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 1,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 1);
 	ATF_REQUIRE(src == srcbuf + 7);
-	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 1, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 0);
+	ATF_REQUIRE(mbsnrtowcs(dstbuf, (const char **)&src, 1,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 0);
 	ATF_REQUIRE(src == NULL);
 }
 

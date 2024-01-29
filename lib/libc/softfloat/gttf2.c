@@ -4,8 +4,8 @@
  * Written by Matt Thomas, 2011.  This file is in the Public Domain.
  */
 
-#include "softfloat-for-gcc.h"
 #include "milieu.h"
+#include "softfloat-for-gcc.h"
 #include "softfloat.h"
 
 #ifdef FLOAT128

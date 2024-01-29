@@ -24,31 +24,29 @@
  * Use is subject to license terms.
  */
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
-#include <sys/stack.h>
 #include <sys/pcpu.h>
-
-#include <machine/frame.h>
-#include <machine/md_var.h>
+#include <sys/stack.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/atomic.h>
 #include <machine/db_machdep.h>
+#include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/stack.h>
+
 #include <ddb/db_sym.h>
 #include <ddb/ddb.h>
-#include <sys/kdb.h>
 
 #include "regset.h"
 
-#define	MAX_USTACK_DEPTH  2048
+#define MAX_USTACK_DEPTH 2048
 
 uint8_t dtrace_fuword8_nocheck(void *);
 uint16_t dtrace_fuword16_nocheck(void *);
@@ -66,7 +64,7 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 	depth = 0;
 
 	if (intrpc != 0) {
-		pcstack[depth++] = (pc_t) intrpc;
+		pcstack[depth++] = (pc_t)intrpc;
 	}
 
 	aframes++;
@@ -90,7 +88,6 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 		} else {
 			pcstack[depth++] = state.pc;
 		}
-
 	}
 
 	for (; depth < pcstack_limit; depth++) {
@@ -130,8 +127,8 @@ dtrace_getustack_common(uint64_t *pcstack, int pcstack_limit, uintptr_t pc,
 		if (fp == 0)
 			break;
 
-		pc = dtrace_fuword64((void *)(fp +
-		    offsetof(struct unwind_state, pc)));
+		pc = dtrace_fuword64(
+		    (void *)(fp + offsetof(struct unwind_state, pc)));
 		fp = dtrace_fuword64((void *)fp);
 
 		if (fp == oldfp) {

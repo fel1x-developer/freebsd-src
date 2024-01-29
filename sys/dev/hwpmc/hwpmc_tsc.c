@@ -27,9 +27,9 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
 #include <machine/specialreg.h>
 
@@ -37,23 +37,17 @@
  * TSC support.
  */
 
-#define	TSC_CAPS	PMC_CAP_READ
+#define TSC_CAPS PMC_CAP_READ
 
 struct tsc_descr {
-	struct pmc_descr pm_descr;  /* "base class" */
+	struct pmc_descr pm_descr; /* "base class" */
 };
 
-static struct tsc_descr tsc_pmcdesc[TSC_NPMCS] =
-{
-    {
-	.pm_descr =
-	{
-		.pd_name  = "TSC",
-		.pd_class = PMC_CLASS_TSC,
-		.pd_caps  = TSC_CAPS,
-		.pd_width = 64
-	}
-    }
+static struct tsc_descr tsc_pmcdesc[TSC_NPMCS] = {
+	{ .pm_descr = { .pd_name = "TSC",
+	      .pd_class = PMC_CLASS_TSC,
+	      .pd_caps = TSC_CAPS,
+	      .pd_width = 64 } }
 };
 
 /*
@@ -61,7 +55,7 @@ static struct tsc_descr tsc_pmcdesc[TSC_NPMCS] =
  */
 
 struct tsc_cpu {
-	struct pmc_hw	tc_hw;
+	struct pmc_hw tc_hw;
 };
 
 static struct tsc_cpu **tsc_pcpu;
@@ -79,8 +73,7 @@ tsc_allocate_pmc(int cpu __diagused, int ri __diagused, struct pmc *pm __unused,
 	if (a->pm_class != PMC_CLASS_TSC)
 		return (EINVAL);
 
-	if (a->pm_ev != PMC_EV_TSC_TSC ||
-	    a->pm_mode != PMC_MODE_SC)
+	if (a->pm_ev != PMC_EV_TSC_TSC || a->pm_mode != PMC_MODE_SC)
 		return (EINVAL);
 
 	return (0);
@@ -91,7 +84,7 @@ tsc_config_pmc(int cpu, int ri, struct pmc *pm)
 {
 	struct pmc_hw *phw;
 
-	PMCDBG3(MDP,CFG,1, "cpu=%d ri=%d pm=%p", cpu, ri, pm);
+	PMCDBG3(MDP, CFG, 1, "cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[tsc,%d] illegal CPU value %d", __LINE__, cpu));
@@ -100,8 +93,8 @@ tsc_config_pmc(int cpu, int ri, struct pmc *pm)
 	phw = &tsc_pcpu[cpu]->tc_hw;
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[tsc,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__,
-	    pm, phw->phw_pmc));
+	    ("[tsc,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__, pm,
+		phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 
@@ -119,17 +112,17 @@ tsc_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 	KASSERT(ri == 0, ("[tsc,%d] illegal row-index %d", __LINE__, ri));
 
 	phw = &tsc_pcpu[cpu]->tc_hw;
-	pd  = &tsc_pmcdesc[ri];
+	pd = &tsc_pmcdesc[ri];
 
 	strlcpy(pi->pm_name, pd->pm_descr.pd_name, sizeof(pi->pm_name));
 	pi->pm_class = pd->pm_descr.pd_class;
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -188,14 +181,12 @@ tsc_pcpu_init(struct pmc_mdep *md, int cpu)
 	struct pmc_cpu *pc;
 	struct tsc_cpu *tsc_pc;
 
-
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[tsc,%d] illegal cpu %d", __LINE__, cpu));
 	KASSERT(tsc_pcpu, ("[tsc,%d] null pcpu", __LINE__));
-	KASSERT(tsc_pcpu[cpu] == NULL, ("[tsc,%d] non-null per-cpu",
-	    __LINE__));
+	KASSERT(tsc_pcpu[cpu] == NULL, ("[tsc,%d] non-null per-cpu", __LINE__));
 
-	tsc_pc = malloc(sizeof(struct tsc_cpu), M_PMC, M_WAITOK|M_ZERO);
+	tsc_pc = malloc(sizeof(struct tsc_cpu), M_PMC, M_WAITOK | M_ZERO);
 
 	tsc_pc->tc_hw.phw_state = PMC_PHW_FLAG_IS_ENABLED |
 	    PMC_PHW_CPU_TO_STATE(cpu) | PMC_PHW_INDEX_TO_STATE(0) |
@@ -230,7 +221,7 @@ tsc_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 	KASSERT(mode == PMC_MODE_SC,
 	    ("[tsc,%d] illegal pmc mode %d", __LINE__, mode));
 
-	PMCDBG1(MDP,REA,1,"tsc-read id=%d", ri);
+	PMCDBG1(MDP, REA, 1, "tsc-read id=%d", ri);
 
 	*v = rdtsc();
 
@@ -244,8 +235,7 @@ tsc_release_pmc(int cpu, int ri __diagused, struct pmc *pmc __unused)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[tsc,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri == 0,
-	    ("[tsc,%d] illegal row-index %d", __LINE__, ri));
+	KASSERT(ri == 0, ("[tsc,%d] illegal row-index %d", __LINE__, ri));
 
 	phw = &tsc_pcpu[cpu]->tc_hw;
 
@@ -266,7 +256,7 @@ tsc_start_pmc(int cpu __diagused, int ri __diagused, struct pmc *pm __unused)
 	    ("[tsc,%d] illegal CPU value %d", __LINE__, cpu));
 	KASSERT(ri == 0, ("[tsc,%d] illegal row-index %d", __LINE__, ri));
 
-	return (0);	/* TSCs are always running. */
+	return (0); /* TSCs are always running. */
 }
 
 static int
@@ -277,7 +267,7 @@ tsc_stop_pmc(int cpu __diagused, int ri __diagused, struct pmc *pm __unused)
 	    ("[tsc,%d] illegal CPU value %d", __LINE__, cpu));
 	KASSERT(ri == 0, ("[tsc,%d] illegal row-index %d", __LINE__, ri));
 
-	return (0);	/* Cannot actually stop a TSC. */
+	return (0); /* Cannot actually stop a TSC. */
 }
 
 static int
@@ -303,32 +293,32 @@ pmc_tsc_initialize(struct pmc_mdep *md, int maxcpu)
 	struct pmc_classdep *pcd;
 
 	KASSERT(md != NULL, ("[tsc,%d] md is NULL", __LINE__));
-	KASSERT(md->pmd_nclass >= 1, ("[tsc,%d] dubious md->nclass %d",
-	    __LINE__, md->pmd_nclass));
+	KASSERT(md->pmd_nclass >= 1,
+	    ("[tsc,%d] dubious md->nclass %d", __LINE__, md->pmd_nclass));
 
 	tsc_pcpu = malloc(sizeof(struct tsc_cpu *) * maxcpu, M_PMC,
-	    M_ZERO|M_WAITOK);
+	    M_ZERO | M_WAITOK);
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_TSC];
 
-	pcd->pcd_caps	= PMC_CAP_READ;
-	pcd->pcd_class	= PMC_CLASS_TSC;
-	pcd->pcd_num	= TSC_NPMCS;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= 64;
+	pcd->pcd_caps = PMC_CAP_READ;
+	pcd->pcd_class = PMC_CLASS_TSC;
+	pcd->pcd_num = TSC_NPMCS;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = 64;
 
 	pcd->pcd_allocate_pmc = tsc_allocate_pmc;
-	pcd->pcd_config_pmc   = tsc_config_pmc;
-	pcd->pcd_describe     = tsc_describe;
-	pcd->pcd_get_config   = tsc_get_config;
-	pcd->pcd_get_msr      = tsc_get_msr;
-	pcd->pcd_pcpu_init    = tsc_pcpu_init;
-	pcd->pcd_pcpu_fini    = tsc_pcpu_fini;
-	pcd->pcd_read_pmc     = tsc_read_pmc;
-	pcd->pcd_release_pmc  = tsc_release_pmc;
-	pcd->pcd_start_pmc    = tsc_start_pmc;
-	pcd->pcd_stop_pmc     = tsc_stop_pmc;
-	pcd->pcd_write_pmc    = tsc_write_pmc;
+	pcd->pcd_config_pmc = tsc_config_pmc;
+	pcd->pcd_describe = tsc_describe;
+	pcd->pcd_get_config = tsc_get_config;
+	pcd->pcd_get_msr = tsc_get_msr;
+	pcd->pcd_pcpu_init = tsc_pcpu_init;
+	pcd->pcd_pcpu_fini = tsc_pcpu_fini;
+	pcd->pcd_read_pmc = tsc_read_pmc;
+	pcd->pcd_release_pmc = tsc_release_pmc;
+	pcd->pcd_start_pmc = tsc_start_pmc;
+	pcd->pcd_stop_pmc = tsc_stop_pmc;
+	pcd->pcd_write_pmc = tsc_write_pmc;
 
 	md->pmd_npmc += TSC_NPMCS;
 
@@ -341,8 +331,8 @@ pmc_tsc_finalize(struct pmc_mdep *md __diagused)
 	PMCDBG0(MDP, INI, 1, "tsc-finalize");
 
 	for (int i = 0; i < pmc_cpu_max(); i++)
-		KASSERT(tsc_pcpu[i] == NULL, ("[tsc,%d] non-null pcpu cpu %d",
-		    __LINE__, i));
+		KASSERT(tsc_pcpu[i] == NULL,
+		    ("[tsc,%d] non-null pcpu cpu %d", __LINE__, i));
 
 	free(tsc_pcpu, M_PMC);
 	tsc_pcpu = NULL;

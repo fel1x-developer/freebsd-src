@@ -67,115 +67,106 @@ extern "C" {
 
 #include <dev/isci/scil/sci_types.h>
 
-#define SCU_VIIT_ENTRY_ID_MASK         (0xC0000000UL)
-#define SCU_VIIT_ENTRY_ID_SHIFT        (30UL)
+#define SCU_VIIT_ENTRY_ID_MASK (0xC0000000UL)
+#define SCU_VIIT_ENTRY_ID_SHIFT (30UL)
 
-#define SCU_VIIT_ENTRY_FUNCTION_MASK   (0x0FF00000UL)
-#define SCU_VIIT_ENTRY_FUNCTION_SHIFT  (20UL)
+#define SCU_VIIT_ENTRY_FUNCTION_MASK (0x0FF00000UL)
+#define SCU_VIIT_ENTRY_FUNCTION_SHIFT (20UL)
 
-#define SCU_VIIT_ENTRY_IPPTMODE_MASK   (0x0001F800UL)
-#define SCU_VIIT_ENTRY_IPPTMODE_SHIFT  (12UL)
+#define SCU_VIIT_ENTRY_IPPTMODE_MASK (0x0001F800UL)
+#define SCU_VIIT_ENTRY_IPPTMODE_SHIFT (12UL)
 
-#define SCU_VIIT_ENTRY_LPVIE_MASK      (0x00000F00UL)
-#define SCU_VIIT_ENTRY_LPVIE_SHIFT     (8UL)
+#define SCU_VIIT_ENTRY_LPVIE_MASK (0x00000F00UL)
+#define SCU_VIIT_ENTRY_LPVIE_SHIFT (8UL)
 
-#define SCU_VIIT_ENTRY_STATUS_MASK     (0x000000FFUL)
-#define SCU_VIIT_ENTRY_STATUS_SHIFT    (0UL)
+#define SCU_VIIT_ENTRY_STATUS_MASK (0x000000FFUL)
+#define SCU_VIIT_ENTRY_STATUS_SHIFT (0UL)
 
-#define SCU_VIIT_ENTRY_ID_INVALID   (0UL << SCU_VIIT_ENTRY_ID_SHIFT)
-#define SCU_VIIT_ENTRY_ID_VIIT      (1UL << SCU_VIIT_ENTRY_ID_SHIFT)
-#define SCU_VIIT_ENTRY_ID_IIT       (2UL << SCU_VIIT_ENTRY_ID_SHIFT)
-#define SCU_VIIT_ENTRY_ID_VIRT_EXP  (3UL << SCU_VIIT_ENTRY_ID_SHIFT)
+#define SCU_VIIT_ENTRY_ID_INVALID (0UL << SCU_VIIT_ENTRY_ID_SHIFT)
+#define SCU_VIIT_ENTRY_ID_VIIT (1UL << SCU_VIIT_ENTRY_ID_SHIFT)
+#define SCU_VIIT_ENTRY_ID_IIT (2UL << SCU_VIIT_ENTRY_ID_SHIFT)
+#define SCU_VIIT_ENTRY_ID_VIRT_EXP (3UL << SCU_VIIT_ENTRY_ID_SHIFT)
 
 #define SCU_VIIT_IPPT_SSP_INITIATOR (0x01UL << SCU_VIIT_ENTRY_IPPTMODE_SHIFT)
 #define SCU_VIIT_IPPT_SMP_INITIATOR (0x02UL << SCU_VIIT_ENTRY_IPPTMODE_SHIFT)
 #define SCU_VIIT_IPPT_STP_INITIATOR (0x04UL << SCU_VIIT_ENTRY_IPPTMODE_SHIFT)
-#define SCU_VIIT_IPPT_INITIATOR     \
-   (                                \
-       SCU_VIIT_IPPT_SSP_INITIATOR  \
-     | SCU_VIIT_IPPT_SMP_INITIATOR  \
-     | SCU_VIIT_IPPT_STP_INITIATOR  \
-   )
+#define SCU_VIIT_IPPT_INITIATOR                                      \
+	(SCU_VIIT_IPPT_SSP_INITIATOR | SCU_VIIT_IPPT_SMP_INITIATOR | \
+	    SCU_VIIT_IPPT_STP_INITIATOR)
 
-#define SCU_VIIT_STATUS_RNC_VALID      (0x01UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
-#define SCU_VIIT_STATUS_ADDRESS_VALID  (0x02UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
-#define SCU_VIIT_STATUS_RNI_VALID      (0x04UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
-#define SCU_VIIT_STATUS_ALL_VALID      \
-   (                                   \
-       SCU_VIIT_STATUS_RNC_VALID       \
-     | SCU_VIIT_STATUS_ADDRESS_VALID   \
-     | SCU_VIIT_STATUS_RNI_VALID       \
-   )
+#define SCU_VIIT_STATUS_RNC_VALID (0x01UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
+#define SCU_VIIT_STATUS_ADDRESS_VALID (0x02UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
+#define SCU_VIIT_STATUS_RNI_VALID (0x04UL << SCU_VIIT_ENTRY_STATUS_SHIFT)
+#define SCU_VIIT_STATUS_ALL_VALID                                    \
+	(SCU_VIIT_STATUS_RNC_VALID | SCU_VIIT_STATUS_ADDRESS_VALID | \
+	    SCU_VIIT_STATUS_RNI_VALID)
 
-#define SCU_VIIT_IPPT_SMP_TARGET    (0x10UL << SCU_VIIT_ENTRY_IPPTMODE_SHIFT)
+#define SCU_VIIT_IPPT_SMP_TARGET (0x10UL << SCU_VIIT_ENTRY_IPPTMODE_SHIFT)
 
 /**
  * @struct SCU_VIIT_ENTRY
  *
  * @brief This is the SCU Virtual Initiator Table Entry
  */
-typedef struct SCU_VIIT_ENTRY
-{
-   /**
-    * This must be encoded as to the type of initiator that is being constructed
-    * for this port.
-    */
-   U32  status;
+typedef struct SCU_VIIT_ENTRY {
+	/**
+	 * This must be encoded as to the type of initiator that is being
+	 * constructed for this port.
+	 */
+	U32 status;
 
-   /**
-    * Virtual initiator high SAS Address
-    */
-   U32  initiator_sas_address_hi;
+	/**
+	 * Virtual initiator high SAS Address
+	 */
+	U32 initiator_sas_address_hi;
 
-   /**
-    * Virtual initiator low SAS Address
-    */
-   U32  initiator_sas_address_lo;
+	/**
+	 * Virtual initiator low SAS Address
+	 */
+	U32 initiator_sas_address_lo;
 
-   /**
-    * This must be 0
-    */
-   U32  reserved;
+	/**
+	 * This must be 0
+	 */
+	U32 reserved;
 
 } SCU_VIIT_ENTRY_T;
 
-
 // IIT Status Defines
-#define SCU_IIT_ENTRY_ID_MASK                (0xC0000000UL)
-#define SCU_IIT_ENTRY_ID_SHIFT               (30UL)
+#define SCU_IIT_ENTRY_ID_MASK (0xC0000000UL)
+#define SCU_IIT_ENTRY_ID_SHIFT (30UL)
 
-#define SCU_IIT_ENTRY_STATUS_UPDATE_MASK     (0x20000000UL)
-#define SCU_IIT_ENTRY_STATUS_UPDATE_SHIFT    (29UL)
+#define SCU_IIT_ENTRY_STATUS_UPDATE_MASK (0x20000000UL)
+#define SCU_IIT_ENTRY_STATUS_UPDATE_SHIFT (29UL)
 
-#define SCU_IIT_ENTRY_LPI_MASK               (0x00000F00UL)
-#define SCU_IIT_ENTRY_LPI_SHIFT              (8UL)
+#define SCU_IIT_ENTRY_LPI_MASK (0x00000F00UL)
+#define SCU_IIT_ENTRY_LPI_SHIFT (8UL)
 
-#define SCU_IIT_ENTRY_STATUS_MASK            (0x000000FFUL)
-#define SCU_IIT_ENTRY_STATUS_SHIFT           (0UL)
+#define SCU_IIT_ENTRY_STATUS_MASK (0x000000FFUL)
+#define SCU_IIT_ENTRY_STATUS_SHIFT (0UL)
 
 // IIT Remote Initiator Defines
-#define SCU_IIT_ENTRY_REMOTE_TAG_MASK  (0x0000FFFFUL)
+#define SCU_IIT_ENTRY_REMOTE_TAG_MASK (0x0000FFFFUL)
 #define SCU_IIT_ENTRY_REMOTE_TAG_SHIFT (0UL)
 
-#define SCU_IIT_ENTRY_REMOTE_RNC_MASK  (0x0FFF0000UL)
+#define SCU_IIT_ENTRY_REMOTE_RNC_MASK (0x0FFF0000UL)
 #define SCU_IIT_ENTRY_REMOTE_RNC_SHIFT (16UL)
 
-#define SCU_IIT_ENTRY_ID_INVALID   (0UL << SCU_IIT_ENTRY_ID_SHIFT)
-#define SCU_IIT_ENTRY_ID_VIIT      (1UL << SCU_IIT_ENTRY_ID_SHIFT)
-#define SCU_IIT_ENTRY_ID_IIT       (2UL << SCU_IIT_ENTRY_ID_SHIFT)
-#define SCU_IIT_ENTRY_ID_VIRT_EXP  (3UL << SCU_IIT_ENTRY_ID_SHIFT)
+#define SCU_IIT_ENTRY_ID_INVALID (0UL << SCU_IIT_ENTRY_ID_SHIFT)
+#define SCU_IIT_ENTRY_ID_VIIT (1UL << SCU_IIT_ENTRY_ID_SHIFT)
+#define SCU_IIT_ENTRY_ID_IIT (2UL << SCU_IIT_ENTRY_ID_SHIFT)
+#define SCU_IIT_ENTRY_ID_VIRT_EXP (3UL << SCU_IIT_ENTRY_ID_SHIFT)
 
 /**
  * @struct SCU_IIT_ENTRY
  *
  * @brief This will be implemented later when we support virtual functions
  */
-typedef struct SCU_IIT_ENTRY
-{
-   U32  status;
-   U32  remote_initiator_sas_address_hi;
-   U32  remote_initiator_sas_address_lo;
-   U32  remote_initiator;
+typedef struct SCU_IIT_ENTRY {
+	U32 status;
+	U32 remote_initiator_sas_address_hi;
+	U32 remote_initiator_sas_address_lo;
+	U32 remote_initiator;
 
 } SCU_IIT_ENTRY_T;
 

@@ -29,7 +29,8 @@
 #ifndef __ECORE_VF_PF_IF_H__
 #define __ECORE_VF_PF_IF_H__
 
-#define T_ETH_INDIRECTION_TABLE_SIZE 128 /* @@@ TBD MichalK this should be HSI? */
+#define T_ETH_INDIRECTION_TABLE_SIZE \
+	128		      /* @@@ TBD MichalK this should be HSI? */
 #define T_ETH_RSS_KEY_SIZE 10 /* @@@ TBD this should be HSI? */
 #ifndef LINUX_REMOVE
 #ifndef ETH_ALEN
@@ -54,8 +55,8 @@ struct vf_pf_resc_request {
 };
 
 struct hw_sb_info {
-	u16 hw_sb_id;    /* aka absolute igu id, used to ack the sb */
-	u8 sb_qid;      /* used to update DHC for sb */
+	u16 hw_sb_id; /* aka absolute igu id, used to ack the sb */
+	u8 sb_qid;    /* used to update DHC for sb */
 	u8 padding[5];
 };
 
@@ -66,7 +67,7 @@ struct hw_sb_info {
  * A.K.A VF-PF mailbox
  *
  **/
-#define TLV_BUFFER_SIZE 		1024
+#define TLV_BUFFER_SIZE 1024
 
 /* vf pf channel tlvs */
 /* general tlv header (used for both vf->pf request and pf->vf response) */
@@ -108,28 +109,28 @@ struct vfpf_acquire_tlv {
 
 	struct vf_pf_vfdev_info {
 #ifndef LINUX_REMOVE
-	/* First bit was used on 8.7.x and 8.8.x versions, which had different
-	 * FWs used but with the same faspath HSI. As this was prior to the
-	 * fastpath versioning, wanted to have ability to override fw matching
-	 * and allow them to interact.
-	 */
+		/* First bit was used on 8.7.x and 8.8.x versions, which had
+		 * different FWs used but with the same faspath HSI. As this was
+		 * prior to the fastpath versioning, wanted to have ability to
+		 * override fw matching and allow them to interact.
+		 */
 #endif
-#define VFPF_ACQUIRE_CAP_PRE_FP_HSI	(1 << 0) /* VF pre-FP hsi version */
-#define VFPF_ACQUIRE_CAP_100G		(1 << 1) /* VF can support 100g */
+#define VFPF_ACQUIRE_CAP_PRE_FP_HSI (1 << 0) /* VF pre-FP hsi version */
+#define VFPF_ACQUIRE_CAP_100G (1 << 1)	     /* VF can support 100g */
 
-	/* A requirement for supporting multi-Tx queues on a single queue-zone,
-	 * VF would pass qids as additional information whenever passing queue
-	 * references.
-	 * TODO - due to the CID limitations in Bar0, VFs currently don't pass
-	 * this, and use the legacy CID scheme.
-	 */
-#define VFPF_ACQUIRE_CAP_QUEUE_QIDS	(1 << 2)
+		/* A requirement for supporting multi-Tx queues on a single
+		 * queue-zone, VF would pass qids as additional information
+		 * whenever passing queue references.
+		 * TODO - due to the CID limitations in Bar0, VFs currently
+		 * don't pass this, and use the legacy CID scheme.
+		 */
+#define VFPF_ACQUIRE_CAP_QUEUE_QIDS (1 << 2)
 
-	/* The VF is using the physical bar. While this is mostly internal
-	 * to the VF, might affect the number of CIDs supported assuming
-	 * QUEUE_QIDS is set.
-	 */
-#define VFPF_ACQUIRE_CAP_PHYSICAL_BAR	(1 << 3)
+		/* The VF is using the physical bar. While this is mostly
+		 * internal to the VF, might affect the number of CIDs supported
+		 * assuming QUEUE_QIDS is set.
+		 */
+#define VFPF_ACQUIRE_CAP_PHYSICAL_BAR (1 << 3)
 		u64 capabilities;
 		u8 fw_major;
 		u8 fw_minor;
@@ -137,7 +138,7 @@ struct vfpf_acquire_tlv {
 		u8 fw_engineering;
 		u32 driver_version;
 		u16 opaque_fid; /* ME register value */
-		u8 os_type; /* VFPF_ACQUIRE_OS_* value */
+		u8 os_type;	/* VFPF_ACQUIRE_OS_* value */
 		u8 eth_fp_hsi_major;
 		u8 eth_fp_hsi_minor;
 		u8 padding[3];
@@ -152,13 +153,13 @@ struct vfpf_acquire_tlv {
 
 /* receive side scaling tlv */
 struct vfpf_vport_update_rss_tlv {
-	struct channel_tlv	tl;
+	struct channel_tlv tl;
 
 	u8 update_rss_flags;
-	#define VFPF_UPDATE_RSS_CONFIG_FLAG	  (1 << 0)
-	#define VFPF_UPDATE_RSS_CAPS_FLAG	  (1 << 1)
-	#define VFPF_UPDATE_RSS_IND_TABLE_FLAG	  (1 << 2)
-	#define VFPF_UPDATE_RSS_KEY_FLAG	  (1 << 3)
+#define VFPF_UPDATE_RSS_CONFIG_FLAG (1 << 0)
+#define VFPF_UPDATE_RSS_CAPS_FLAG (1 << 1)
+#define VFPF_UPDATE_RSS_IND_TABLE_FLAG (1 << 2)
+#define VFPF_UPDATE_RSS_KEY_FLAG (1 << 3)
 
 	u8 rss_enable;
 	u8 rss_caps;
@@ -193,8 +194,8 @@ struct pfvf_acquire_resp_tlv {
 		u16 fw_eng;
 
 		u64 capabilities;
-#define PFVF_ACQUIRE_CAP_DEFAULT_UNTAGGED	(1 << 0)
-#define PFVF_ACQUIRE_CAP_100G			(1 << 1) /* If set, 100g PF */
+#define PFVF_ACQUIRE_CAP_DEFAULT_UNTAGGED (1 << 0)
+#define PFVF_ACQUIRE_CAP_100G (1 << 1) /* If set, 100g PF */
 /* There are old PF versions where the PF might mistakenly override the sanity
  * mechanism [version-based] and allow a VF that can't be supported to pass
  * the acquisition phase.
@@ -206,13 +207,13 @@ struct pfvf_acquire_resp_tlv {
  * the bug since the fix arrived very late in the programs.
  */
 #endif
-#define PFVF_ACQUIRE_CAP_POST_FW_OVERRIDE	(1 << 2)
+#define PFVF_ACQUIRE_CAP_POST_FW_OVERRIDE (1 << 2)
 
-	/* PF expects queues to be received with additional qids */
-#define PFVF_ACQUIRE_CAP_QUEUE_QIDS		(1 << 3)
+		/* PF expects queues to be received with additional qids */
+#define PFVF_ACQUIRE_CAP_QUEUE_QIDS (1 << 3)
 
 		u16 db_size;
-		u8  indices_per_sb;
+		u8 indices_per_sb;
 		u8 os_type;
 
 		/* These should match the PF's ecore_dev values */
@@ -236,24 +237,24 @@ struct pfvf_acquire_resp_tlv {
 	} pfdev_info;
 
 	struct pf_vf_resc {
-		/* in case of status NO_RESOURCE in message hdr, pf will fill
-		 * this struct with suggested amount of resources for next
-		 * acquire request
-		 */
-		#define PFVF_MAX_QUEUES_PER_VF         16
-		#define PFVF_MAX_SBS_PER_VF            16
+/* in case of status NO_RESOURCE in message hdr, pf will fill
+ * this struct with suggested amount of resources for next
+ * acquire request
+ */
+#define PFVF_MAX_QUEUES_PER_VF 16
+#define PFVF_MAX_SBS_PER_VF 16
 		struct hw_sb_info hw_sbs[PFVF_MAX_SBS_PER_VF];
-		u8      hw_qid[PFVF_MAX_QUEUES_PER_VF];
-		u8      cid[PFVF_MAX_QUEUES_PER_VF];
+		u8 hw_qid[PFVF_MAX_QUEUES_PER_VF];
+		u8 cid[PFVF_MAX_QUEUES_PER_VF];
 
-		u8      num_rxqs;
-		u8      num_txqs;
-		u8      num_sbs;
-		u8      num_mac_filters;
-		u8      num_vlan_filters;
-		u8      num_mc_filters;
-		u8	num_cids;
-		u8      padding;
+		u8 num_rxqs;
+		u8 num_txqs;
+		u8 num_sbs;
+		u8 num_mac_filters;
+		u8 num_vlan_filters;
+		u8 num_mc_filters;
+		u8 num_cids;
+		u8 padding;
 	} resc;
 
 	u32 bulletin_size;
@@ -271,53 +272,52 @@ struct pfvf_start_queue_resp_tlv {
  * extended by one such [or have a future base TLV that already contains info].
  */
 struct vfpf_qid_tlv {
-	struct channel_tlv	tl;
-	u8			qid;
-	u8			padding[3];
+	struct channel_tlv tl;
+	u8 qid;
+	u8 padding[3];
 };
 
 /* Setup Queue */
 struct vfpf_start_rxq_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
 	/* physical addresses */
-	u64		rxq_addr;
-	u64		deprecated_sge_addr;
-	u64		cqe_pbl_addr;
+	u64 rxq_addr;
+	u64 deprecated_sge_addr;
+	u64 cqe_pbl_addr;
 
-	u16			cqe_pbl_size;
-	u16			hw_sb;
-	u16			rx_qid;
-	u16			hc_rate; /* desired interrupts per sec. */
+	u16 cqe_pbl_size;
+	u16 hw_sb;
+	u16 rx_qid;
+	u16 hc_rate; /* desired interrupts per sec. */
 
-	u16			bd_max_bytes;
-	u16			stat_id;
-	u8			sb_index;
-	u8			padding[3];
-
+	u16 bd_max_bytes;
+	u16 stat_id;
+	u8 sb_index;
+	u8 padding[3];
 };
 
 struct vfpf_start_txq_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
 	/* physical addresses */
-	u64		pbl_addr;
-	u16			pbl_size;
-	u16			stat_id;
-	u16			tx_qid;
-	u16			hw_sb;
+	u64 pbl_addr;
+	u16 pbl_size;
+	u16 stat_id;
+	u16 tx_qid;
+	u16 hw_sb;
 
-	u32			flags; /* VFPF_QUEUE_FLG_X flags */
-	u16			hc_rate; /* desired interrupts per sec. */
-	u8			sb_index;
-	u8			padding[3];
+	u32 flags;   /* VFPF_QUEUE_FLG_X flags */
+	u16 hc_rate; /* desired interrupts per sec. */
+	u8 sb_index;
+	u8 padding[3];
 };
 
 /* Stop RX Queue */
 struct vfpf_stop_rxqs_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u16			rx_qid;
+	u16 rx_qid;
 
 	/* While the API supports multiple Rx-queues on a single TLV
 	 * message, in practice older VFs always used it as one [ecore].
@@ -325,17 +325,17 @@ struct vfpf_stop_rxqs_tlv {
 	 * would start assuming this is always a '1'. So in practice this
 	 * field should be considered deprecated and *Always* set to '1'.
 	 */
-	u8			num_rxqs;
+	u8 num_rxqs;
 
-	u8			cqe_completion;
-	u8			padding[4];
+	u8 cqe_completion;
+	u8 padding[4];
 };
 
 /* Stop TX Queues */
 struct vfpf_stop_txqs_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u16			tx_qid;
+	u16 tx_qid;
 
 	/* While the API supports multiple Tx-queues on a single TLV
 	 * message, in practice older VFs always used it as one [ecore].
@@ -343,98 +343,98 @@ struct vfpf_stop_txqs_tlv {
 	 * would start assuming this is always a '1'. So in practice this
 	 * field should be considered deprecated and *Always* set to '1'.
 	 */
-	u8			num_txqs;
-	u8			padding[5];
+	u8 num_txqs;
+	u8 padding[5];
 };
 
 struct vfpf_update_rxq_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u64		deprecated_sge_addr[PFVF_MAX_QUEUES_PER_VF];
+	u64 deprecated_sge_addr[PFVF_MAX_QUEUES_PER_VF];
 
-	u16			rx_qid;
-	u8			num_rxqs;
-	u8			flags;
-	#define VFPF_RXQ_UPD_INIT_SGE_DEPRECATE_FLAG	(1 << 0)
-	#define VFPF_RXQ_UPD_COMPLETE_CQE_FLAG		(1 << 1)
-	#define VFPF_RXQ_UPD_COMPLETE_EVENT_FLAG	(1 << 2)
+	u16 rx_qid;
+	u8 num_rxqs;
+	u8 flags;
+#define VFPF_RXQ_UPD_INIT_SGE_DEPRECATE_FLAG (1 << 0)
+#define VFPF_RXQ_UPD_COMPLETE_CQE_FLAG (1 << 1)
+#define VFPF_RXQ_UPD_COMPLETE_EVENT_FLAG (1 << 2)
 
-	u8			padding[4];
+	u8 padding[4];
 };
 
 /* Set Queue Filters */
 struct vfpf_q_mac_vlan_filter {
 	u32 flags;
-	#define VFPF_Q_FILTER_DEST_MAC_VALID    0x01
-	#define VFPF_Q_FILTER_VLAN_TAG_VALID    0x02
-	#define VFPF_Q_FILTER_SET_MAC   	0x100   /* set/clear */
+#define VFPF_Q_FILTER_DEST_MAC_VALID 0x01
+#define VFPF_Q_FILTER_VLAN_TAG_VALID 0x02
+#define VFPF_Q_FILTER_SET_MAC 0x100 /* set/clear */
 
-	u8  mac[ETH_ALEN];
+	u8 mac[ETH_ALEN];
 	u16 vlan_tag;
 
-	u8	padding[4];
+	u8 padding[4];
 };
 
 /* Start a vport */
 struct vfpf_vport_start_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u64		sb_addr[PFVF_MAX_SBS_PER_VF];
+	u64 sb_addr[PFVF_MAX_SBS_PER_VF];
 
-	u32			tpa_mode;
-	u16			dep1;
-	u16			mtu;
+	u32 tpa_mode;
+	u16 dep1;
+	u16 mtu;
 
-	u8			vport_id;
-	u8			inner_vlan_removal;
+	u8 vport_id;
+	u8 inner_vlan_removal;
 
-	u8			only_untagged;
-	u8			max_buffers_per_cqe;
+	u8 only_untagged;
+	u8 max_buffers_per_cqe;
 
-	u8			zero_placement_offset;
-	u8			padding[3];
+	u8 zero_placement_offset;
+	u8 padding[3];
 };
 
 /* Extended tlvs - need to add rss, mcast, accept mode tlvs */
 struct vfpf_vport_update_activate_tlv {
-	struct channel_tlv	tl;
-	u8			update_rx;
-	u8			update_tx;
-	u8			active_rx;
-	u8			active_tx;
+	struct channel_tlv tl;
+	u8 update_rx;
+	u8 update_tx;
+	u8 active_rx;
+	u8 active_tx;
 };
 
 struct vfpf_vport_update_tx_switch_tlv {
-	struct channel_tlv	tl;
-	u8			tx_switching;
-	u8			padding[3];
+	struct channel_tlv tl;
+	u8 tx_switching;
+	u8 padding[3];
 };
 
 struct vfpf_vport_update_vlan_strip_tlv {
-	struct channel_tlv	tl;
-	u8			remove_vlan;
-	u8			padding[3];
+	struct channel_tlv tl;
+	u8 remove_vlan;
+	u8 padding[3];
 };
 
 struct vfpf_vport_update_mcast_bin_tlv {
-	struct channel_tlv	tl;
-	u8			padding[4];
+	struct channel_tlv tl;
+	u8 padding[4];
 
 	/* This was a mistake; There are only 256 approx bins,
 	 * and in HSI they're divided into 32-bit values.
 	 * As old VFs used to set-bit to the values on its side,
 	 * the upper half of the array is never expected to contain any data.
 	 */
-	u64		bins[4];
-	u64		obsolete_bins[4];
+	u64 bins[4];
+	u64 obsolete_bins[4];
 };
 
 struct vfpf_vport_update_accept_param_tlv {
 	struct channel_tlv tl;
-	u8	update_rx_mode;
-	u8	update_tx_mode;
-	u8	rx_accept_filter;
-	u8	tx_accept_filter;
+	u8 update_rx_mode;
+	u8 update_tx_mode;
+	u8 rx_accept_filter;
+	u8 tx_accept_filter;
 };
 
 struct vfpf_vport_update_accept_any_vlan_tlv {
@@ -446,30 +446,29 @@ struct vfpf_vport_update_accept_any_vlan_tlv {
 };
 
 struct vfpf_vport_update_sge_tpa_tlv {
-	struct channel_tlv	tl;
+	struct channel_tlv tl;
 
-	u16			sge_tpa_flags;
-	#define VFPF_TPA_IPV4_EN_FLAG	     (1 << 0)
-	#define VFPF_TPA_IPV6_EN_FLAG        (1 << 1)
-	#define VFPF_TPA_PKT_SPLIT_FLAG      (1 << 2)
-	#define VFPF_TPA_HDR_DATA_SPLIT_FLAG (1 << 3)
-	#define VFPF_TPA_GRO_CONSIST_FLAG    (1 << 4)
+	u16 sge_tpa_flags;
+#define VFPF_TPA_IPV4_EN_FLAG (1 << 0)
+#define VFPF_TPA_IPV6_EN_FLAG (1 << 1)
+#define VFPF_TPA_PKT_SPLIT_FLAG (1 << 2)
+#define VFPF_TPA_HDR_DATA_SPLIT_FLAG (1 << 3)
+#define VFPF_TPA_GRO_CONSIST_FLAG (1 << 4)
 
-	u8			update_sge_tpa_flags;
-	#define VFPF_UPDATE_SGE_DEPRECATED_FLAG	   (1 << 0)
-	#define VFPF_UPDATE_TPA_EN_FLAG    (1 << 1)
-	#define VFPF_UPDATE_TPA_PARAM_FLAG (1 << 2)
+	u8 update_sge_tpa_flags;
+#define VFPF_UPDATE_SGE_DEPRECATED_FLAG (1 << 0)
+#define VFPF_UPDATE_TPA_EN_FLAG (1 << 1)
+#define VFPF_UPDATE_TPA_PARAM_FLAG (1 << 2)
 
-	u8			max_buffers_per_cqe;
+	u8 max_buffers_per_cqe;
 
-	u16			deprecated_sge_buff_size;
-	u16			tpa_max_size;
-	u16			tpa_min_size_to_start;
-	u16			tpa_min_size_to_cont;
+	u16 deprecated_sge_buff_size;
+	u16 tpa_max_size;
+	u16 tpa_min_size_to_start;
+	u16 tpa_min_size_to_cont;
 
-	u8			tpa_max_aggs_num;
-	u8			padding[7];
-
+	u8 tpa_max_aggs_num;
+	u8 padding[7];
 };
 
 /* Primary tlv as a header for various extended tlvs for
@@ -480,52 +479,52 @@ struct vfpf_vport_update_tlv {
 };
 
 struct vfpf_ucast_filter_tlv {
-	struct vfpf_first_tlv	first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u8			opcode;
-	u8			type;
+	u8 opcode;
+	u8 type;
 
-	u8			mac[ETH_ALEN];
+	u8 mac[ETH_ALEN];
 
-	u16			vlan;
-	u16			padding[3];
+	u16 vlan;
+	u16 padding[3];
 };
 
 /* tunnel update param tlv */
 struct vfpf_update_tunn_param_tlv {
-	struct vfpf_first_tlv   first_tlv;
+	struct vfpf_first_tlv first_tlv;
 
-	u8			tun_mode_update_mask;
-	u8			tunn_mode;
-	u8			update_tun_cls;
-	u8			vxlan_clss;
-	u8			l2gre_clss;
-	u8			ipgre_clss;
-	u8			l2geneve_clss;
-	u8			ipgeneve_clss;
-	u8			update_geneve_port;
-	u8			update_vxlan_port;
-	u16			geneve_port;
-	u16			vxlan_port;
-	u8			padding[2];
+	u8 tun_mode_update_mask;
+	u8 tunn_mode;
+	u8 update_tun_cls;
+	u8 vxlan_clss;
+	u8 l2gre_clss;
+	u8 ipgre_clss;
+	u8 l2geneve_clss;
+	u8 ipgeneve_clss;
+	u8 update_geneve_port;
+	u8 update_vxlan_port;
+	u16 geneve_port;
+	u16 vxlan_port;
+	u8 padding[2];
 };
 
 struct pfvf_update_tunn_param_tlv {
 	struct pfvf_tlv hdr;
 
-	u16			tunn_feature_mask;
-	u8			vxlan_mode;
-	u8			l2geneve_mode;
-	u8			ipgeneve_mode;
-	u8			l2gre_mode;
-	u8			ipgre_mode;
-	u8			vxlan_clss;
-	u8			l2gre_clss;
-	u8			ipgre_clss;
-	u8			l2geneve_clss;
-	u8			ipgeneve_clss;
-	u16			vxlan_udp_port;
-	u16			geneve_udp_port;
+	u16 tunn_feature_mask;
+	u8 vxlan_mode;
+	u8 l2geneve_mode;
+	u8 ipgeneve_mode;
+	u8 l2gre_mode;
+	u8 ipgre_mode;
+	u8 vxlan_clss;
+	u8 l2gre_clss;
+	u8 ipgre_clss;
+	u8 l2geneve_clss;
+	u8 ipgeneve_clss;
+	u16 vxlan_udp_port;
+	u16 geneve_udp_port;
 };
 
 struct tlv_buffer_size {
@@ -554,29 +553,29 @@ struct pfvf_read_coal_resp_tlv {
 };
 
 union vfpf_tlvs {
-	struct vfpf_first_tlv			first_tlv;
-	struct vfpf_acquire_tlv			acquire;
-	struct vfpf_start_rxq_tlv		start_rxq;
-	struct vfpf_start_txq_tlv		start_txq;
-	struct vfpf_stop_rxqs_tlv		stop_rxqs;
-	struct vfpf_stop_txqs_tlv		stop_txqs;
-	struct vfpf_update_rxq_tlv		update_rxq;
-	struct vfpf_vport_start_tlv		start_vport;
-	struct vfpf_vport_update_tlv		vport_update;
-	struct vfpf_ucast_filter_tlv		ucast_filter;
-	struct vfpf_update_tunn_param_tlv	tunn_param_update;
-	struct vfpf_update_coalesce		update_coalesce;
-	struct vfpf_read_coal_req_tlv		read_coal_req;
-	struct tlv_buffer_size			tlv_buf_size;
+	struct vfpf_first_tlv first_tlv;
+	struct vfpf_acquire_tlv acquire;
+	struct vfpf_start_rxq_tlv start_rxq;
+	struct vfpf_start_txq_tlv start_txq;
+	struct vfpf_stop_rxqs_tlv stop_rxqs;
+	struct vfpf_stop_txqs_tlv stop_txqs;
+	struct vfpf_update_rxq_tlv update_rxq;
+	struct vfpf_vport_start_tlv start_vport;
+	struct vfpf_vport_update_tlv vport_update;
+	struct vfpf_ucast_filter_tlv ucast_filter;
+	struct vfpf_update_tunn_param_tlv tunn_param_update;
+	struct vfpf_update_coalesce update_coalesce;
+	struct vfpf_read_coal_req_tlv read_coal_req;
+	struct tlv_buffer_size tlv_buf_size;
 };
 
 union pfvf_tlvs {
-	struct pfvf_def_resp_tlv		default_resp;
-	struct pfvf_acquire_resp_tlv		acquire_resp;
-	struct tlv_buffer_size			tlv_buf_size;
-	struct pfvf_start_queue_resp_tlv	queue_start;
-	struct pfvf_update_tunn_param_tlv	tunn_param_resp;
-	struct pfvf_read_coal_resp_tlv		read_coal_resp;
+	struct pfvf_def_resp_tlv default_resp;
+	struct pfvf_acquire_resp_tlv acquire_resp;
+	struct tlv_buffer_size tlv_buf_size;
+	struct pfvf_start_queue_resp_tlv queue_start;
+	struct pfvf_update_tunn_param_tlv tunn_param_resp;
+	struct pfvf_read_coal_resp_tlv read_coal_resp;
 };
 
 /* This is a structure which is allocated in the VF, which the PF may update
@@ -668,7 +667,7 @@ struct ecore_bulletin {
 };
 
 enum {
-/*!!!!! Make sure to update STRINGS structure accordingly !!!!!*/
+	/*!!!!! Make sure to update STRINGS structure accordingly !!!!!*/
 
 	CHANNEL_TLV_NONE, /* ends tlv sequence */
 	CHANNEL_TLV_ACQUIRE,
@@ -704,7 +703,7 @@ enum {
 	 */
 	CHANNEL_TLV_VPORT_UPDATE_MAX = CHANNEL_TLV_VPORT_UPDATE_SGE_TPA + 1,
 
-/*!!!!! Make sure to update STRINGS structure accordingly !!!!!*/
+	/*!!!!! Make sure to update STRINGS structure accordingly !!!!!*/
 };
 extern const char *ecore_channel_tlvs_string[];
 

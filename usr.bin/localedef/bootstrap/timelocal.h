@@ -34,6 +34,6 @@
  * SUCH DAMAGE.
  */
 #include "namespace.h"
-#define	lc_time_T	localedef_bootstrap_lc_time_T
+#define lc_time_T localedef_bootstrap_lc_time_T
 #include "../../../lib/libc/stdtime/timelocal.h"
 #include "un-namespace.h"

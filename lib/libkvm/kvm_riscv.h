@@ -25,37 +25,37 @@
  */
 
 #ifndef __KVM_RISCV_H__
-#define	__KVM_RISCV_H__
+#define __KVM_RISCV_H__
 
 #ifdef __riscv
 #include <machine/pte.h>
 #endif
 
-typedef uint64_t	riscv_physaddr_t;
-typedef uint64_t	riscv_pt_entry_t;
+typedef uint64_t riscv_physaddr_t;
+typedef uint64_t riscv_pt_entry_t;
 
-#define	RISCV_PAGE_SHIFT	12
-#define	RISCV_PAGE_SIZE		(1 << RISCV_PAGE_SHIFT)
-#define	RISCV_PAGE_MASK		(RISCV_PAGE_SIZE - 1)
+#define RISCV_PAGE_SHIFT 12
+#define RISCV_PAGE_SIZE (1 << RISCV_PAGE_SHIFT)
+#define RISCV_PAGE_MASK (RISCV_PAGE_SIZE - 1)
 
 /* Source: sys/riscv/include/pte.h */
-#define	RISCV_L3_SHIFT		12
-#define	RISCV_L3_SIZE		(1 << L3_SHIFT)
-#define	RISCV_L3_OFFSET 	(L3_SIZE - 1)
+#define RISCV_L3_SHIFT 12
+#define RISCV_L3_SIZE (1 << L3_SHIFT)
+#define RISCV_L3_OFFSET (L3_SIZE - 1)
 
-#define	RISCV_PTE_SW_MANAGED	(1 << 9)
-#define	RISCV_PTE_SW_WIRED	(1 << 8)
-#define	RISCV_PTE_D		(1 << 7) /* Dirty */
-#define	RISCV_PTE_A		(1 << 6) /* Accessed */
-#define	RISCV_PTE_G		(1 << 5) /* Global */
-#define	RISCV_PTE_U		(1 << 4) /* User */
-#define	RISCV_PTE_X		(1 << 3) /* Execute */
-#define	RISCV_PTE_W		(1 << 2) /* Write */
-#define	RISCV_PTE_R		(1 << 1) /* Read */
-#define	RISCV_PTE_V		(1 << 0) /* Valid */
-#define	RISCV_PTE_RWX		(RISCV_PTE_R | RISCV_PTE_W | RISCV_PTE_X)
+#define RISCV_PTE_SW_MANAGED (1 << 9)
+#define RISCV_PTE_SW_WIRED (1 << 8)
+#define RISCV_PTE_D (1 << 7) /* Dirty */
+#define RISCV_PTE_A (1 << 6) /* Accessed */
+#define RISCV_PTE_G (1 << 5) /* Global */
+#define RISCV_PTE_U (1 << 4) /* User */
+#define RISCV_PTE_X (1 << 3) /* Execute */
+#define RISCV_PTE_W (1 << 2) /* Write */
+#define RISCV_PTE_R (1 << 1) /* Read */
+#define RISCV_PTE_V (1 << 0) /* Valid */
+#define RISCV_PTE_RWX (RISCV_PTE_R | RISCV_PTE_W | RISCV_PTE_X)
 
-#define	RISCV_PTE_PPN0_S	10
+#define RISCV_PTE_PPN0_S 10
 
 #ifdef __riscv
 _Static_assert(sizeof(pt_entry_t) == sizeof(riscv_pt_entry_t),

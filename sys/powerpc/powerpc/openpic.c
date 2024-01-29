@@ -36,21 +36,20 @@
 #include <sys/sched.h>
 #include <sys/smp.h>
 
-#include <machine/bus.h>
-#include <machine/intr_machdep.h>
-#include <machine/md_var.h>
-#include <machine/pio.h>
-#include <machine/resource.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
+#include <machine/bus.h>
+#include <machine/intr_machdep.h>
+#include <machine/md_var.h>
 #include <machine/openpicreg.h>
 #include <machine/openpicvar.h>
+#include <machine/pio.h>
+#include <machine/resource.h>
 
 #include "pic_if.h"
 
-#define	OPENPIC_NIPIS		4
+#define OPENPIC_NIPIS 4
 
 /*
  * Local routines
@@ -73,7 +72,7 @@ int
 openpic_common_attach(device_t dev, uint32_t node)
 {
 	struct openpic_softc *sc;
-	u_int     cpu, ipi, irq;
+	u_int cpu, ipi, irq;
 	u_int32_t x;
 
 	sc = device_get_softc(dev);
@@ -148,9 +147,11 @@ openpic_common_attach(device_t dev, uint32_t node)
 	}
 
 	sc->sc_ncpu = ((x & OPENPIC_FEATURE_LAST_CPU_MASK) >>
-	    OPENPIC_FEATURE_LAST_CPU_SHIFT) + 1;
+			  OPENPIC_FEATURE_LAST_CPU_SHIFT) +
+	    1;
 	sc->sc_nirq = ((x & OPENPIC_FEATURE_LAST_IRQ_MASK) >>
-	    OPENPIC_FEATURE_LAST_IRQ_SHIFT) + 1;
+			  OPENPIC_FEATURE_LAST_IRQ_SHIFT) +
+	    1;
 
 	/*
 	 * PSIM seems to report 1 too many IRQs and CPUs
@@ -161,13 +162,12 @@ openpic_common_attach(device_t dev, uint32_t node)
 	}
 
 	if (bootverbose)
-		device_printf(dev,
-		    "Version %s, supports %d CPUs and %d irqs\n",
+		device_printf(dev, "Version %s, supports %d CPUs and %d irqs\n",
 		    sc->sc_version, sc->sc_ncpu, sc->sc_nirq);
 
 	/*
-	 * Allow more IRQs than what the PIC says it handles.  Some Freescale PICs
-	 * have MSIs that show up above the PIC's self-described 196 IRQs
+	 * Allow more IRQs than what the PIC says it handles.  Some Freescale
+	 * PICs have MSIs that show up above the PIC's self-described 196 IRQs
 	 * (P5020 starts MSI IRQs at 224).
 	 */
 	if (sc->sc_quirks & OPENPIC_QUIRK_HIDDEN_IRQS)
@@ -178,7 +178,7 @@ openpic_common_attach(device_t dev, uint32_t node)
 
 	/* Reset and disable all interrupts. */
 	for (irq = 0; irq < sc->sc_nirq; irq++) {
-		x = irq;                /* irq == vector. */
+		x = irq; /* irq == vector. */
 		x |= OPENPIC_IMASK;
 		x |= OPENPIC_POLARITY_NEGATIVE;
 		x |= OPENPIC_SENSE_LEVEL;
@@ -247,7 +247,7 @@ openpic_bind(device_t dev, u_int irq, cpuset_t cpumask, void **priv __unused)
 		int cpu, ncpu;
 
 		ncpu = 0;
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			if (!(mask & (1 << cpu)))
 				continue;
 			if (ncpu == i)
@@ -403,23 +403,30 @@ openpic_suspend(device_t dev)
 
 	sc->sc_saved_config = bus_read_4(sc->sc_memr, OPENPIC_CONFIG);
 	for (i = 0; i < OPENPIC_NIPIS; i++) {
-		sc->sc_saved_ipis[i] = bus_read_4(sc->sc_memr, OPENPIC_IPI_VECTOR(i));
+		sc->sc_saved_ipis[i] = bus_read_4(sc->sc_memr,
+		    OPENPIC_IPI_VECTOR(i));
 	}
 
 	for (i = 0; i < 4; i++) {
-		sc->sc_saved_prios[i] = bus_read_4(sc->sc_memr, OPENPIC_PCPU_TPR(i));
+		sc->sc_saved_prios[i] = bus_read_4(sc->sc_memr,
+		    OPENPIC_PCPU_TPR(i));
 	}
 
 	for (i = 0; i < OPENPIC_TIMERS; i++) {
-		sc->sc_saved_timers[i].tcnt = bus_read_4(sc->sc_memr, OPENPIC_TCNT(i));
-		sc->sc_saved_timers[i].tbase = bus_read_4(sc->sc_memr, OPENPIC_TBASE(i));
-		sc->sc_saved_timers[i].tvec = bus_read_4(sc->sc_memr, OPENPIC_TVEC(i));
-		sc->sc_saved_timers[i].tdst = bus_read_4(sc->sc_memr, OPENPIC_TDST(i));
+		sc->sc_saved_timers[i].tcnt = bus_read_4(sc->sc_memr,
+		    OPENPIC_TCNT(i));
+		sc->sc_saved_timers[i].tbase = bus_read_4(sc->sc_memr,
+		    OPENPIC_TBASE(i));
+		sc->sc_saved_timers[i].tvec = bus_read_4(sc->sc_memr,
+		    OPENPIC_TVEC(i));
+		sc->sc_saved_timers[i].tdst = bus_read_4(sc->sc_memr,
+		    OPENPIC_TDST(i));
 	}
 
 	for (i = 0; i < OPENPIC_SRC_VECTOR_COUNT; i++)
-		sc->sc_saved_vectors[i] =
-		    bus_read_4(sc->sc_memr, OPENPIC_SRC_VECTOR(i)) & ~OPENPIC_ACTIVITY;
+		sc->sc_saved_vectors[i] = bus_read_4(sc->sc_memr,
+					      OPENPIC_SRC_VECTOR(i)) &
+		    ~OPENPIC_ACTIVITY;
 
 	return (0);
 }
@@ -427,29 +434,36 @@ openpic_suspend(device_t dev)
 int
 openpic_resume(device_t dev)
 {
-    	struct openpic_softc *sc;
-    	int i;
+	struct openpic_softc *sc;
+	int i;
 
-    	sc = device_get_softc(dev);
+	sc = device_get_softc(dev);
 
 	sc->sc_saved_config = bus_read_4(sc->sc_memr, OPENPIC_CONFIG);
 	for (i = 0; i < OPENPIC_NIPIS; i++) {
-		bus_write_4(sc->sc_memr, OPENPIC_IPI_VECTOR(i), sc->sc_saved_ipis[i]);
+		bus_write_4(sc->sc_memr, OPENPIC_IPI_VECTOR(i),
+		    sc->sc_saved_ipis[i]);
 	}
 
 	for (i = 0; i < 4; i++) {
-		bus_write_4(sc->sc_memr, OPENPIC_PCPU_TPR(i), sc->sc_saved_prios[i]);
+		bus_write_4(sc->sc_memr, OPENPIC_PCPU_TPR(i),
+		    sc->sc_saved_prios[i]);
 	}
 
 	for (i = 0; i < OPENPIC_TIMERS; i++) {
-		bus_write_4(sc->sc_memr, OPENPIC_TCNT(i), sc->sc_saved_timers[i].tcnt);
-		bus_write_4(sc->sc_memr, OPENPIC_TBASE(i), sc->sc_saved_timers[i].tbase);
-		bus_write_4(sc->sc_memr, OPENPIC_TVEC(i), sc->sc_saved_timers[i].tvec);
-		bus_write_4(sc->sc_memr, OPENPIC_TDST(i), sc->sc_saved_timers[i].tdst);
+		bus_write_4(sc->sc_memr, OPENPIC_TCNT(i),
+		    sc->sc_saved_timers[i].tcnt);
+		bus_write_4(sc->sc_memr, OPENPIC_TBASE(i),
+		    sc->sc_saved_timers[i].tbase);
+		bus_write_4(sc->sc_memr, OPENPIC_TVEC(i),
+		    sc->sc_saved_timers[i].tvec);
+		bus_write_4(sc->sc_memr, OPENPIC_TDST(i),
+		    sc->sc_saved_timers[i].tdst);
 	}
 
 	for (i = 0; i < OPENPIC_SRC_VECTOR_COUNT; i++)
-		bus_write_4(sc->sc_memr, OPENPIC_SRC_VECTOR(i), sc->sc_saved_vectors[i]);
+		bus_write_4(sc->sc_memr, OPENPIC_SRC_VECTOR(i),
+		    sc->sc_saved_vectors[i]);
 
 	return (0);
 }

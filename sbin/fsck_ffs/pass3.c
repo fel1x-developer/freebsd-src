@@ -31,11 +31,10 @@
 
 #include <sys/param.h>
 
+#include <string.h>
+#include <ufs/ffs/fs.h>
 #include <ufs/ufs/dinode.h>
 #include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
-
-#include <string.h>
 
 #include "fsck.h"
 
@@ -47,7 +46,7 @@ pass3(void)
 	ino_t orphan;
 	struct inode ip;
 	struct inodesc idesc;
-	char namebuf[UFS_MAXNAMLEN+1];
+	char namebuf[UFS_MAXNAMLEN + 1];
 
 	for (inpindex = inplast - 1; inpindex >= 0; inpindex--) {
 		if (got_siginfo) {
@@ -74,13 +73,13 @@ pass3(void)
 		 * them in DSTATE which will cause them to be pitched
 		 * in pass 4.
 		 */
-		if ((preen || bkgrdflag) &&
-		    resolved && usedsoftdep && S_IS_DUNFOUND(state)) {
+		if ((preen || bkgrdflag) && resolved && usedsoftdep &&
+		    S_IS_DUNFOUND(state)) {
 			if (inp->i_dotdot >= UFS_ROOTINO)
 				inoinfo(inp->i_dotdot)->ino_linkcnt++;
 			continue;
 		}
-		for (loopcnt = 0; ; loopcnt++) {
+		for (loopcnt = 0;; loopcnt++) {
 			orphan = inp->i_number;
 			if (inp->i_parent == 0 ||
 			    !INO_IS_DUNFOUND(inp->i_parent) ||

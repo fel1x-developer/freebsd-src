@@ -35,7 +35,7 @@
 #include "tip.h"
 
 #ifdef ACULOG
-static	FILE *flog = NULL;
+static FILE *flog = NULL;
 
 /*
  * Log file maintenance routines
@@ -62,16 +62,15 @@ logent(char *group, char *num, char *acu, char *message)
 	t = time(0);
 	timestamp = ctime(&t);
 	timestamp[24] = '\0';
-	fprintf(flog, "%s (%s) <%s, %s, %s> %s\n",
-		user, timestamp, group,
+	fprintf(flog, "%s (%s) <%s, %s, %s> %s\n", user, timestamp, group,
 #ifdef PRISTINE
-		"",
+	    "",
 #else
-		num,
+	    num,
 #endif
-		acu, message);
-	(void) fflush(flog);
-	(void) flock(fileno(flog), LOCK_UN);
+	    acu, message);
+	(void)fflush(flog);
+	(void)flock(fileno(flog), LOCK_UN);
 }
 
 void

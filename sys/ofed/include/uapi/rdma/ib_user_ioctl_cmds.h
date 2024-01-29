@@ -36,8 +36,8 @@
 #define UVERBS_ID_NS_MASK 0xF000
 #define UVERBS_ID_NS_SHIFT 12
 
-#define UVERBS_UDATA_DRIVER_DATA_NS	1
-#define UVERBS_UDATA_DRIVER_DATA_FLAG	(1UL << UVERBS_ID_NS_SHIFT)
+#define UVERBS_UDATA_DRIVER_DATA_NS 1
+#define UVERBS_UDATA_DRIVER_DATA_FLAG (1UL << UVERBS_ID_NS_SHIFT)
 
 enum uverbs_default_objects {
 	UVERBS_OBJECT_DEVICE, /* No instances of DEVICE are allowed */
@@ -113,7 +113,7 @@ enum uverbs_attrs_create_flow_action_esp {
 
 enum uverbs_attrs_modify_flow_action_esp {
 	UVERBS_ATTR_MODIFY_FLOW_ACTION_ESP_HANDLE =
-		UVERBS_ATTR_CREATE_FLOW_ACTION_ESP_HANDLE,
+	    UVERBS_ATTR_CREATE_FLOW_ACTION_ESP_HANDLE,
 };
 
 enum uverbs_attrs_destroy_flow_action_esp {

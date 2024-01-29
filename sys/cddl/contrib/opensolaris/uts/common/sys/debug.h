@@ -34,12 +34,12 @@
 /*	  All Rights Reserved	*/
 
 #ifndef _SYS_DEBUG_H
-#define	_SYS_DEBUG_H
+#define _SYS_DEBUG_H
 
 #include <sys/types.h>
 #include <sys/note.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -51,22 +51,22 @@ extern "C" {
  */
 
 extern int assfail(const char *, const char *, int);
-#define	VERIFY(EX) ((void)((EX) || assfail(#EX, __FILE__, __LINE__)))
+#define VERIFY(EX) ((void)((EX) || assfail(#EX, __FILE__, __LINE__)))
 #ifdef DEBUG
-#define	ASSERT(EX) ((void)((EX) || assfail(#EX, __FILE__, __LINE__)))
+#define ASSERT(EX) ((void)((EX) || assfail(#EX, __FILE__, __LINE__)))
 #else
-#define	ASSERT(x)  ((void)0)
+#define ASSERT(x) ((void)0)
 #endif
 
 /*
  * Assertion variants sensitive to the compilation data model
  */
 #if defined(_LP64)
-#define	ASSERT64(x)	ASSERT(x)
-#define	ASSERT32(x)
+#define ASSERT64(x) ASSERT(x)
+#define ASSERT32(x)
 #else
-#define	ASSERT64(x)
-#define	ASSERT32(x)	ASSERT(x)
+#define ASSERT64(x)
+#define ASSERT32(x) ASSERT(x)
 #endif
 
 /*
@@ -77,15 +77,16 @@ extern int assfail(const char *, const char *, int);
  *	if (a) then (b) *AND* if (b) then (a)
  */
 #ifdef DEBUG
-#define	IMPLY(A, B) \
+#define IMPLY(A, B)                \
 	((void)(((!(A)) || (B)) || \
 	    assfail("(" #A ") implies (" #B ")", __FILE__, __LINE__)))
-#define	EQUIV(A, B) \
-	((void)((!!(A) == !!(B)) || \
-	    assfail("(" #A ") is equivalent to (" #B ")", __FILE__, __LINE__)))
+#define EQUIV(A, B)                                                 \
+	((void)((!!(A) == !!(B)) ||                                 \
+	    assfail("(" #A ") is equivalent to (" #B ")", __FILE__, \
+		__LINE__)))
 #else
-#define	IMPLY(A, B) ((void)0)
-#define	EQUIV(A, B) ((void)0)
+#define IMPLY(A, B) ((void)0)
+#define EQUIV(A, B) ((void)0)
 #endif
 
 /*
@@ -98,62 +99,62 @@ extern int assfail(const char *, const char *, int);
  */
 extern void assfail3(const char *, uintmax_t, const char *, uintmax_t,
     const char *, int);
-#define	VERIFY3_IMPL(LEFT, OP, RIGHT, TYPE) do { \
-	const TYPE __left = (TYPE)(LEFT); \
-	const TYPE __right = (TYPE)(RIGHT); \
-	if (!(__left OP __right)) \
-		assfail3(#LEFT " " #OP " " #RIGHT, \
-			(uintmax_t)__left, #OP, (uintmax_t)__right, \
-			__FILE__, __LINE__); \
-_NOTE(CONSTCOND) } while (0)
+#define VERIFY3_IMPL(LEFT, OP, RIGHT, TYPE)                                   \
+	do {                                                                  \
+		const TYPE __left = (TYPE)(LEFT);                             \
+		const TYPE __right = (TYPE)(RIGHT);                           \
+		if (!(__left OP __right))                                     \
+			assfail3(#LEFT " " #OP " " #RIGHT, (uintmax_t)__left, \
+			    #OP, (uintmax_t)__right, __FILE__, __LINE__);     \
+		_NOTE(CONSTCOND)                                              \
+	} while (0)
 
-#define	VERIFY3B(x, y, z)	VERIFY3_IMPL(x, y, z, boolean_t)
-#define	VERIFY3S(x, y, z)	VERIFY3_IMPL(x, y, z, int64_t)
-#define	VERIFY3U(x, y, z)	VERIFY3_IMPL(x, y, z, uint64_t)
-#define	VERIFY3P(x, y, z)	VERIFY3_IMPL(x, y, z, uintptr_t)
-#define	VERIFY0(x)		VERIFY3_IMPL(x, ==, 0, uintmax_t)
+#define VERIFY3B(x, y, z) VERIFY3_IMPL(x, y, z, boolean_t)
+#define VERIFY3S(x, y, z) VERIFY3_IMPL(x, y, z, int64_t)
+#define VERIFY3U(x, y, z) VERIFY3_IMPL(x, y, z, uint64_t)
+#define VERIFY3P(x, y, z) VERIFY3_IMPL(x, y, z, uintptr_t)
+#define VERIFY0(x) VERIFY3_IMPL(x, ==, 0, uintmax_t)
 
 #ifdef DEBUG
-#define	ASSERT3B(x, y, z)	VERIFY3_IMPL(x, y, z, boolean_t)
-#define	ASSERT3S(x, y, z)	VERIFY3_IMPL(x, y, z, int64_t)
-#define	ASSERT3U(x, y, z)	VERIFY3_IMPL(x, y, z, uint64_t)
-#define	ASSERT3P(x, y, z)	VERIFY3_IMPL(x, y, z, uintptr_t)
-#define	ASSERT0(x)		VERIFY3_IMPL(x, ==, 0, uintmax_t)
+#define ASSERT3B(x, y, z) VERIFY3_IMPL(x, y, z, boolean_t)
+#define ASSERT3S(x, y, z) VERIFY3_IMPL(x, y, z, int64_t)
+#define ASSERT3U(x, y, z) VERIFY3_IMPL(x, y, z, uint64_t)
+#define ASSERT3P(x, y, z) VERIFY3_IMPL(x, y, z, uintptr_t)
+#define ASSERT0(x) VERIFY3_IMPL(x, ==, 0, uintmax_t)
 #else
-#define	ASSERT3B(x, y, z)	((void)0)
-#define	ASSERT3S(x, y, z)	((void)0)
-#define	ASSERT3U(x, y, z)	((void)0)
-#define	ASSERT3P(x, y, z)	((void)0)
-#define	ASSERT0(x)		((void)0)
+#define ASSERT3B(x, y, z) ((void)0)
+#define ASSERT3S(x, y, z) ((void)0)
+#define ASSERT3U(x, y, z) ((void)0)
+#define ASSERT3P(x, y, z) ((void)0)
+#define ASSERT0(x) ((void)0)
 #endif
 
 /*
  * Compile-time assertion. The condition 'x' must be constant.
  */
 #ifndef CTASSERT
-#define	CTASSERT(x)		_CTASSERT(x, __LINE__)
-#define	_CTASSERT(x, y)		__CTASSERT(x, y)
-#define	__CTASSERT(x, y) 	\
-	_Static_assert((x), "Static assert failed at " #y)
+#define CTASSERT(x) _CTASSERT(x, __LINE__)
+#define _CTASSERT(x, y) __CTASSERT(x, y)
+#define __CTASSERT(x, y) _Static_assert((x), "Static assert failed at " #y)
 #endif
 
-#ifdef	_KERNEL
+#ifdef _KERNEL
 
 extern void abort_sequence_enter(char *);
 extern void debug_enter(char *);
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
 #if defined(DEBUG) && !defined(__sun)
 /* CSTYLED */
-#define	STATIC
+#define STATIC
 #else
 /* CSTYLED */
-#define	STATIC static
+#define STATIC static
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_DEBUG_H */
+#endif /* _SYS_DEBUG_H */

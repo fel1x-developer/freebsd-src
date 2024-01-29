@@ -29,11 +29,11 @@
 
 #include <sys/param.h>
 #include <sys/proc.h>
-#define	_WANT_SYSVMSG_INTERNALS
+#define _WANT_SYSVMSG_INTERNALS
 #include <sys/msg.h>
-#define	_WANT_SYSVSEM_INTERNALS
+#define _WANT_SYSVSEM_INTERNALS
 #include <sys/sem.h>
-#define	_WANT_SYSVSHM_INTERNALS
+#define _WANT_SYSVSHM_INTERNALS
 #include <sys/shm.h>
 
 #include <err.h>
@@ -49,22 +49,22 @@
 
 #include "ipc.h"
 
-char   *fmt_perm(u_short);
-void	cvt_time(time_t, char *);
-void	usage(void);
-uid_t	user2uid(char *username);
+char *fmt_perm(u_short);
+void cvt_time(time_t, char *);
+void usage(void);
+uid_t user2uid(char *username);
 
-void	print_kmsqtotal(struct msginfo msginfo);
-void	print_kmsqheader(int option);
-void	print_kmsqptr(int i, int option, struct msqid_kernel *kmsqptr);
-void	print_kshmtotal(struct shminfo shminfo);
-void	print_kshmheader(int option);
-void	print_kshmptr(int i, int option, struct shmid_kernel *kshmptr);
-void	print_ksemtotal(struct seminfo seminfo);
-void	print_ksemheader(int option);
-void	print_ksemptr(int i, int option, struct semid_kernel *ksemaptr);
+void print_kmsqtotal(struct msginfo msginfo);
+void print_kmsqheader(int option);
+void print_kmsqptr(int i, int option, struct msqid_kernel *kmsqptr);
+void print_kshmtotal(struct shminfo shminfo);
+void print_kshmheader(int option);
+void print_kshmptr(int i, int option, struct shmid_kernel *kshmptr);
+void print_ksemtotal(struct seminfo seminfo);
+void print_ksemheader(int option);
+void print_ksemptr(int i, int option, struct semid_kernel *ksemaptr);
 
-char   *
+char *
 fmt_perm(u_short mode)
 {
 	static char buffer[100];
@@ -93,27 +93,27 @@ cvt_time(time_t t, char *buf)
 		strcpy(buf, "no-entry");
 	} else {
 		tm = localtime(&t);
-		sprintf(buf, "%2d:%02d:%02d",
-			tm->tm_hour, tm->tm_min, tm->tm_sec);
+		sprintf(buf, "%2d:%02d:%02d", tm->tm_hour, tm->tm_min,
+		    tm->tm_sec);
 	}
 }
 
-#define BIGGEST		1
-#define CREATOR		2
-#define OUTSTANDING	4
-#define PID		8
-#define TIME		16
+#define BIGGEST 1
+#define CREATOR 2
+#define OUTSTANDING 4
+#define PID 8
+#define TIME 16
 
 int
 main(int argc, char *argv[])
 {
-	int     display = SHMINFO | MSGINFO | SEMINFO;
-	int     option = 0;
-	char   *core = NULL, *user = NULL, *namelist = NULL;
-	char	kvmoferr[_POSIX2_LINE_MAX];  /* Error buf for kvm_openfiles. */
-	int     i;
-	u_long  shmidx;
-	uid_t   uid = 0;
+	int display = SHMINFO | MSGINFO | SEMINFO;
+	int option = 0;
+	char *core = NULL, *user = NULL, *namelist = NULL;
+	char kvmoferr[_POSIX2_LINE_MAX]; /* Error buf for kvm_openfiles. */
+	int i;
+	u_long shmidx;
+	uid_t uid = 0;
 
 	while ((i = getopt(argc, argv, "MmQqSsabC:cN:optTu:y")) != -1)
 		switch (i) {
@@ -204,8 +204,8 @@ main(int argc, char *argv[])
 			struct msqid_kernel *kxmsqids;
 			size_t kxmsqids_len;
 
-			kxmsqids_len =
-			    sizeof(struct msqid_kernel) * msginfo.msgmni;
+			kxmsqids_len = sizeof(struct msqid_kernel) *
+			    msginfo.msgmni;
 			kxmsqids = malloc(kxmsqids_len);
 			kget(X_MSQIDS, kxmsqids, kxmsqids_len);
 
@@ -219,7 +219,6 @@ main(int argc, char *argv[])
 
 					print_kmsqptr(i, option, &kxmsqids[i]);
 				}
-
 			}
 
 			printf("\n");
@@ -236,8 +235,8 @@ main(int argc, char *argv[])
 			struct shmid_kernel *kxshmids;
 			size_t kxshmids_len;
 
-			kxshmids_len =
-			    sizeof(struct shmid_kernel) * shminfo.shmmni;
+			kxshmids_len = sizeof(struct shmid_kernel) *
+			    shminfo.shmmni;
 			kxshmids = malloc(kxshmids_len);
 			kget(X_SHMSEGS, kxshmids, kxshmids_len);
 
@@ -246,10 +245,12 @@ main(int argc, char *argv[])
 			for (shmidx = 0; shmidx < shminfo.shmmni; shmidx += 1) {
 				if (kxshmids[shmidx].u.shm_perm.mode & 0x0800) {
 					if (user &&
-					    uid != kxshmids[shmidx].u.shm_perm.uid)
+					    uid !=
+						kxshmids[shmidx].u.shm_perm.uid)
 						continue;
 
-					print_kshmptr(shmidx, option, &kxshmids[shmidx]);
+					print_kshmptr(shmidx, option,
+					    &kxshmids[shmidx]);
 				}
 			}
 			printf("\n");
@@ -265,22 +266,21 @@ main(int argc, char *argv[])
 			print_ksemtotal(seminfo);
 
 		if (display & SEMINFO) {
-			kxsema_len =
-			    sizeof(struct semid_kernel) * seminfo.semmni;
+			kxsema_len = sizeof(struct semid_kernel) *
+			    seminfo.semmni;
 			kxsema = malloc(kxsema_len);
 			kget(X_SEMA, kxsema, kxsema_len);
 
 			print_ksemheader(option);
 
 			for (i = 0; i < seminfo.semmni; i += 1) {
-				if ((kxsema[i].u.sem_perm.mode & SEM_ALLOC)
-				    != 0) {
+				if ((kxsema[i].u.sem_perm.mode & SEM_ALLOC) !=
+				    0) {
 					if (user &&
 					    uid != kxsema[i].u.sem_perm.uid)
 						continue;
 
 					print_ksemptr(i, option, &kxsema[i]);
-
 				}
 			}
 
@@ -301,8 +301,7 @@ print_kmsqtotal(struct msginfo local_msginfo)
 	printf("msginfo:\n");
 	printf("\tmsgmax: %12d\t(max characters in a message)\n",
 	    local_msginfo.msgmax);
-	printf("\tmsgmni: %12d\t(# of message queues)\n",
-	    local_msginfo.msgmni);
+	printf("\tmsgmni: %12d\t(# of message queues)\n", local_msginfo.msgmni);
 	printf("\tmsgmnb: %12d\t(max characters in a message queue)\n",
 	    local_msginfo.msgmnb);
 	printf("\tmsgtql: %12d\t(max # of messages in system)\n",
@@ -313,12 +312,13 @@ print_kmsqtotal(struct msginfo local_msginfo)
 	    local_msginfo.msgseg);
 }
 
-void print_kmsqheader(int option)
+void
+print_kmsqheader(int option)
 {
 
 	printf("Message Queues:\n");
-	printf("T %12s %12s %-11s %-8s %-8s",
-	    "ID", "KEY", "MODE", "OWNER", "GROUP");
+	printf("T %12s %12s %-11s %-8s %-8s", "ID", "KEY", "MODE", "OWNER",
+	    "GROUP");
 	if (option & CREATOR)
 		printf(" %-8s %-8s", "CREATOR", "CGROUP");
 	if (option & OUTSTANDING)
@@ -335,7 +335,7 @@ void print_kmsqheader(int option)
 void
 print_kmsqptr(int i, int option, struct msqid_kernel *kmsqptr)
 {
-	char    stime_buf[100], rtime_buf[100], ctime_buf[100];
+	char stime_buf[100], rtime_buf[100], ctime_buf[100];
 
 	cvt_time(kmsqptr->u.msg_stime, stime_buf);
 	cvt_time(kmsqptr->u.msg_rtime, rtime_buf);
@@ -343,34 +343,27 @@ print_kmsqptr(int i, int option, struct msqid_kernel *kmsqptr)
 
 	printf("q %12d %12d %s %-8s %-8s",
 	    IXSEQ_TO_IPCID(i, kmsqptr->u.msg_perm),
-	    (int)kmsqptr->u.msg_perm.key,
-	    fmt_perm(kmsqptr->u.msg_perm.mode),
+	    (int)kmsqptr->u.msg_perm.key, fmt_perm(kmsqptr->u.msg_perm.mode),
 	    user_from_uid(kmsqptr->u.msg_perm.uid, 0),
 	    group_from_gid(kmsqptr->u.msg_perm.gid, 0));
 
 	if (option & CREATOR)
-		printf(" %-8s %-8s",
-		    user_from_uid(kmsqptr->u.msg_perm.cuid, 0),
+		printf(" %-8s %-8s", user_from_uid(kmsqptr->u.msg_perm.cuid, 0),
 		    group_from_gid(kmsqptr->u.msg_perm.cgid, 0));
 
 	if (option & OUTSTANDING)
-		printf(" %12lu %12lu",
-		    kmsqptr->u.msg_cbytes,
+		printf(" %12lu %12lu", kmsqptr->u.msg_cbytes,
 		    kmsqptr->u.msg_qnum);
 
 	if (option & BIGGEST)
 		printf(" %20lu", kmsqptr->u.msg_qbytes);
 
 	if (option & PID)
-		printf(" %12d %12d",
-		    kmsqptr->u.msg_lspid,
+		printf(" %12d %12d", kmsqptr->u.msg_lspid,
 		    kmsqptr->u.msg_lrpid);
 
 	if (option & TIME)
-		printf(" %s %s %s",
-		    stime_buf,
-		    rtime_buf,
-		    ctime_buf);
+		printf(" %s %s %s", stime_buf, rtime_buf, ctime_buf);
 
 	printf("\n");
 }
@@ -397,8 +390,8 @@ print_kshmheader(int option)
 {
 
 	printf("Shared Memory:\n");
-	printf("T %12s %12s %-11s %-8s %-8s",
-	    "ID", "KEY", "MODE", "OWNER", "GROUP");
+	printf("T %12s %12s %-11s %-8s %-8s", "ID", "KEY", "MODE", "OWNER",
+	    "GROUP");
 	if (option & CREATOR)
 		printf(" %-8s %-8s", "CREATOR", "CGROUP");
 	if (option & OUTSTANDING)
@@ -415,7 +408,7 @@ print_kshmheader(int option)
 void
 print_kshmptr(int i, int option, struct shmid_kernel *kshmptr)
 {
-	char    atime_buf[100], dtime_buf[100], ctime_buf[100];
+	char atime_buf[100], dtime_buf[100], ctime_buf[100];
 
 	cvt_time(kshmptr->u.shm_atime, atime_buf);
 	cvt_time(kshmptr->u.shm_dtime, dtime_buf);
@@ -423,34 +416,25 @@ print_kshmptr(int i, int option, struct shmid_kernel *kshmptr)
 
 	printf("m %12d %12d %s %-8s %-8s",
 	    IXSEQ_TO_IPCID(i, kshmptr->u.shm_perm),
-	    (int)kshmptr->u.shm_perm.key,
-	    fmt_perm(kshmptr->u.shm_perm.mode),
+	    (int)kshmptr->u.shm_perm.key, fmt_perm(kshmptr->u.shm_perm.mode),
 	    user_from_uid(kshmptr->u.shm_perm.uid, 0),
 	    group_from_gid(kshmptr->u.shm_perm.gid, 0));
 
 	if (option & CREATOR)
-		printf(" %-8s %-8s",
-		    user_from_uid(kshmptr->u.shm_perm.cuid, 0),
+		printf(" %-8s %-8s", user_from_uid(kshmptr->u.shm_perm.cuid, 0),
 		    group_from_gid(kshmptr->u.shm_perm.cgid, 0));
 
 	if (option & OUTSTANDING)
-		printf(" %12d",
-		    kshmptr->u.shm_nattch);
+		printf(" %12d", kshmptr->u.shm_nattch);
 
 	if (option & BIGGEST)
-		printf(" %12zu",
-		    kshmptr->u.shm_segsz);
+		printf(" %12zu", kshmptr->u.shm_segsz);
 
 	if (option & PID)
-		printf(" %12d %12d",
-		    kshmptr->u.shm_cpid,
-		    kshmptr->u.shm_lpid);
+		printf(" %12d %12d", kshmptr->u.shm_cpid, kshmptr->u.shm_lpid);
 
 	if (option & TIME)
-		printf(" %s %s %s",
-		    atime_buf,
-		    dtime_buf,
-		    ctime_buf);
+		printf(" %s %s %s", atime_buf, dtime_buf, ctime_buf);
 
 	printf("\n");
 }
@@ -485,8 +469,8 @@ print_ksemheader(int option)
 {
 
 	printf("Semaphores:\n");
-	printf("T %12s %12s %-11s %-8s %-8s",
-	    "ID", "KEY", "MODE", "OWNER", "GROUP");
+	printf("T %12s %12s %-11s %-8s %-8s", "ID", "KEY", "MODE", "OWNER",
+	    "GROUP");
 	if (option & CREATOR)
 		printf(" %-8s %-8s", "CREATOR", "CGROUP");
 	if (option & BIGGEST)
@@ -499,15 +483,14 @@ print_ksemheader(int option)
 void
 print_ksemptr(int i, int option, struct semid_kernel *ksemaptr)
 {
-	char    ctime_buf[100], otime_buf[100];
+	char ctime_buf[100], otime_buf[100];
 
 	cvt_time(ksemaptr->u.sem_otime, otime_buf);
 	cvt_time(ksemaptr->u.sem_ctime, ctime_buf);
 
 	printf("s %12d %12d %s %-8s %-8s",
 	    IXSEQ_TO_IPCID(i, ksemaptr->u.sem_perm),
-	    (int)ksemaptr->u.sem_perm.key,
-	    fmt_perm(ksemaptr->u.sem_perm.mode),
+	    (int)ksemaptr->u.sem_perm.key, fmt_perm(ksemaptr->u.sem_perm.mode),
 	    user_from_uid(ksemaptr->u.sem_perm.uid, 0),
 	    group_from_gid(ksemaptr->u.sem_perm.gid, 0));
 
@@ -517,18 +500,15 @@ print_ksemptr(int i, int option, struct semid_kernel *ksemaptr)
 		    group_from_gid(ksemaptr->u.sem_perm.cgid, 0));
 
 	if (option & BIGGEST)
-		printf(" %12d",
-		    ksemaptr->u.sem_nsems);
+		printf(" %12d", ksemaptr->u.sem_nsems);
 
 	if (option & TIME)
-		printf(" %s %s",
-		    otime_buf,
-		    ctime_buf);
+		printf(" %s %s", otime_buf, ctime_buf);
 
 	printf("\n");
 }
 
-uid_t 
+uid_t
 user2uid(char *username)
 {
 	struct passwd *pwd;

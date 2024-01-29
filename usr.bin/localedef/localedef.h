@@ -35,6 +35,7 @@
 /* Common header files. */
 
 #include <sys/types.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +50,7 @@ extern int verbose;
 extern int yydebug;
 #endif
 extern int lineno;
-extern int undefok;	/* mostly ignore undefined symbols */
+extern int undefok; /* mostly ignore undefined symbols */
 extern int warnok;
 extern int warnings;
 
@@ -123,8 +124,7 @@ void add_subst_collsym(collsym_t *);
 void add_subst_collelem(collelem_t *);
 void add_subst_symbol(char *);
 int32_t get_weight(int32_t, int);
-wchar_t * wsncpy(wchar_t *, const wchar_t *, size_t);
-
+wchar_t *wsncpy(wchar_t *, const wchar_t *, size_t);
 
 /* ctype.c - LC_CTYPE handling */
 void init_ctype(void);
@@ -173,5 +173,5 @@ void werr(const char *, ...);
 const char *get_wide_encoding(void);
 int max_wide(void);
 
-//#define	_(x)	gettext(x)
-#define	INTERR	fprintf(stderr,"internal fault (%s:%d)\n", __FILE__, __LINE__)
+// #define	_(x)	gettext(x)
+#define INTERR fprintf(stderr, "internal fault (%s:%d)\n", __FILE__, __LINE__)

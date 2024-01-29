@@ -32,27 +32,27 @@
  */
 
 #ifndef _UGIDFW_H
-#define	_UGIDFW_H
+#define _UGIDFW_H
 
 __BEGIN_DECLS
-int	bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf,
-	    size_t buflen);
-int	bsde_parse_mode(int argc, char *argv[], mode_t *mode, size_t buflen,
-	    char *errstr);
-int	bsde_parse_rule(int argc, char *argv[],
-	    struct mac_bsdextended_rule *rule, size_t buflen, char *errstr);
-int	bsde_parse_rule_string(const char *string,
-	    struct mac_bsdextended_rule *rule, size_t buflen, char *errstr);
-int	bsde_get_mib(const char *string, int *name, size_t *namelen);
-int	bsde_get_rule_count(size_t buflen, char *errstr);
-int	bsde_get_rule_slots(size_t buflen, char *errstr);
-int	bsde_get_rule(int rulenum, struct mac_bsdextended_rule *rule,
-	    size_t errlen, char *errstr);
-int	bsde_delete_rule(int rulenum, size_t buflen, char *errstr);
-int	bsde_set_rule(int rulenum, struct mac_bsdextended_rule *rule,
-	    size_t buflen, char *errstr);
-int	bsde_add_rule(int *rulename, struct mac_bsdextended_rule *rule,
-	    size_t buflen, char *errstr);
+int bsde_rule_to_string(struct mac_bsdextended_rule *rule, char *buf,
+    size_t buflen);
+int bsde_parse_mode(int argc, char *argv[], mode_t *mode, size_t buflen,
+    char *errstr);
+int bsde_parse_rule(int argc, char *argv[], struct mac_bsdextended_rule *rule,
+    size_t buflen, char *errstr);
+int bsde_parse_rule_string(const char *string,
+    struct mac_bsdextended_rule *rule, size_t buflen, char *errstr);
+int bsde_get_mib(const char *string, int *name, size_t *namelen);
+int bsde_get_rule_count(size_t buflen, char *errstr);
+int bsde_get_rule_slots(size_t buflen, char *errstr);
+int bsde_get_rule(int rulenum, struct mac_bsdextended_rule *rule, size_t errlen,
+    char *errstr);
+int bsde_delete_rule(int rulenum, size_t buflen, char *errstr);
+int bsde_set_rule(int rulenum, struct mac_bsdextended_rule *rule, size_t buflen,
+    char *errstr);
+int bsde_add_rule(int *rulename, struct mac_bsdextended_rule *rule,
+    size_t buflen, char *errstr);
 __END_DECLS
 
 #endif

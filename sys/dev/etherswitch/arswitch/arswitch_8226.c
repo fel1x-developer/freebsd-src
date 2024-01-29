@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -35,33 +36,31 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
+#include <machine/bus.h>
+
+#include <dev/etherswitch/arswitch/arswitch_8226.h>
+#include <dev/etherswitch/arswitch/arswitch_phy.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 
-#include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-#include <dev/etherswitch/arswitch/arswitch_phy.h>
-#include <dev/etherswitch/arswitch/arswitch_8226.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * AR8226 specific functions

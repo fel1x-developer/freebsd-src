@@ -24,9 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -37,32 +37,21 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
-#include <dev/iicbus/iiconf.h>
-
 #include <dev/ichiic/ig4_reg.h>
 #include <dev/ichiic/ig4_var.h>
+#include <dev/iicbus/iiconf.h>
 
-static int	ig4iic_acpi_probe(device_t dev);
-static int	ig4iic_acpi_attach(device_t dev);
-static int	ig4iic_acpi_detach(device_t dev);
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-static char *ig4iic_ids[] = {
-	"INT33C2",
-	"INT33C3",
-	"INT3432",
-	"INT3433",
-	"80860F41",
-	"808622C1",
-	"AMDI0510",
-	"AMDI0010",
-	"AMD0010",
-	"APMC0D0F",
-	NULL
-};
+static int ig4iic_acpi_probe(device_t dev);
+static int ig4iic_acpi_attach(device_t dev);
+static int ig4iic_acpi_detach(device_t dev);
+
+static char *ig4iic_ids[] = { "INT33C2", "INT33C3", "INT3432", "INT3433",
+	"80860F41", "808622C1", "AMDI0510", "AMDI0010", "AMD0010", "APMC0D0F",
+	NULL };
 
 static int
 ig4iic_acpi_probe(device_t dev)
@@ -82,7 +71,7 @@ ig4iic_acpi_probe(device_t dev)
 static int
 ig4iic_acpi_attach(device_t dev)
 {
-	ig4iic_softc_t	*sc;
+	ig4iic_softc_t *sc;
 	char *str;
 	int error;
 
@@ -100,15 +89,15 @@ ig4iic_acpi_attach(device_t dev)
 	}
 	sc->regs_rid = 0;
 	sc->regs_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-					  &sc->regs_rid, RF_ACTIVE);
+	    &sc->regs_rid, RF_ACTIVE);
 	if (sc->regs_res == NULL) {
 		device_printf(dev, "unable to map registers\n");
 		ig4iic_acpi_detach(dev);
 		return (ENXIO);
 	}
 	sc->intr_rid = 0;
-	sc->intr_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-					  &sc->intr_rid, RF_SHAREABLE | RF_ACTIVE);
+	sc->intr_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->intr_rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->intr_res == NULL) {
 		device_printf(dev, "unable to map interrupt\n");
 		ig4iic_acpi_detach(dev);
@@ -137,13 +126,13 @@ ig4iic_acpi_detach(device_t dev)
 	}
 
 	if (sc->intr_res) {
-		bus_release_resource(dev, SYS_RES_IRQ,
-				     sc->intr_rid, sc->intr_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->intr_rid,
+		    sc->intr_res);
 		sc->intr_res = NULL;
 	}
 	if (sc->regs_res) {
-		bus_release_resource(dev, SYS_RES_MEMORY,
-				     sc->regs_rid, sc->regs_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->regs_rid,
+		    sc->regs_res);
 		sc->regs_res = NULL;
 	}
 
@@ -161,7 +150,7 @@ ig4iic_acpi_suspend(device_t dev)
 static int
 ig4iic_acpi_resume(device_t dev)
 {
-	ig4iic_softc_t *sc  = device_get_softc(dev);
+	ig4iic_softc_t *sc = device_get_softc(dev);
 
 	return (ig4iic_resume(sc));
 }

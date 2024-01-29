@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <atf-c.h>
 #include <errno.h>
 #include <signal.h>

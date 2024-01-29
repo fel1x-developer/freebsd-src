@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MXGE_ETH_RUNNING 3
 #define MXGE_ETH_OPEN_FAILED 4
 
-#define MXGE_FW_OFFSET 1024*1024
+#define MXGE_FW_OFFSET 1024 * 1024
 #define MXGE_EEPROM_STRINGS_SIZE 256
 #define MXGE_MAX_SEND_DESC 128
 
@@ -104,11 +104,10 @@ typedef struct {
 	int mask;
 } mxge_rx_done_t;
 
-typedef struct
-{
-  uint32_t data0;
-  uint32_t data1;
-  uint32_t data2;
+typedef struct {
+	uint32_t data0;
+	uint32_t data1;
+	uint32_t data2;
 } mxge_cmd_t;
 
 struct mxge_rx_buffer_state {
@@ -122,10 +121,9 @@ struct mxge_tx_buffer_state {
 	int flag;
 };
 
-typedef struct
-{
-	volatile mcp_kreq_ether_recv_t *lanai;	/* lanai ptr for recv ring */
-	mcp_kreq_ether_recv_t *shadow;	/* host shadow of recv ring */
+typedef struct {
+	volatile mcp_kreq_ether_recv_t *lanai; /* lanai ptr for recv ring */
+	mcp_kreq_ether_recv_t *shadow;	       /* host shadow of recv ring */
 	struct mxge_rx_buffer_state *info;
 	bus_dma_tag_t dmat;
 	bus_dmamap_t extra_map;
@@ -133,35 +131,34 @@ typedef struct
 	int nbufs;
 	int cl_size;
 	int alloc_fail;
-	int mask;			/* number of rx slots -1 */
+	int mask; /* number of rx slots -1 */
 	int mlen;
 } mxge_rx_ring_t;
 
-typedef struct
-{
+typedef struct {
 	struct mtx mtx;
 	struct buf_ring *br;
-	volatile mcp_kreq_ether_send_t *lanai;	/* lanai ptr for sendq	*/
-	volatile uint32_t *send_go;		/* doorbell for sendq */
-	volatile uint32_t *send_stop;		/* doorbell for sendq */
-	mcp_kreq_ether_send_t *req_list;	/* host shadow of sendq */
+	volatile mcp_kreq_ether_send_t *lanai; /* lanai ptr for sendq	*/
+	volatile uint32_t *send_go;	       /* doorbell for sendq */
+	volatile uint32_t *send_stop;	       /* doorbell for sendq */
+	mcp_kreq_ether_send_t *req_list;       /* host shadow of sendq */
 	char *req_bytes;
 	bus_dma_segment_t *seg_list;
 	struct mxge_tx_buffer_state *info;
 	bus_dma_tag_t dmat;
-	int req;			/* transmits submitted	*/
-	int mask;			/* number of transmit slots -1 */
-	int done;			/* transmits completed	*/
-	int pkt_done;			/* packets completed */
-	int max_desc;			/* max descriptors per xmit */
-	int queue_active;		/* fw currently polling this queue*/
+	int req;	  /* transmits submitted	*/
+	int mask;	  /* number of transmit slots -1 */
+	int done;	  /* transmits completed	*/
+	int pkt_done;	  /* packets completed */
+	int max_desc;	  /* max descriptors per xmit */
+	int queue_active; /* fw currently polling this queue*/
 	int activate;
 	int deactivate;
-	int stall;			/* #times hw queue exhausted */
-	int wake;			/* #times irq re-enabled xmit */
-	int watchdog_req;		/* cache of req */
-	int watchdog_done;		/* cache of done */
-	int watchdog_rx_pause;		/* cache of pause rq recvd */
+	int stall;	       /* #times hw queue exhausted */
+	int wake;	       /* #times irq re-enabled xmit */
+	int watchdog_req;      /* cache of req */
+	int watchdog_done;     /* cache of done */
+	int watchdog_rx_pause; /* cache of pause rq recvd */
 	int defrag;
 	char mtx_name[16];
 } mxge_tx_ring_t;
@@ -171,7 +168,7 @@ typedef struct mxge_softc mxge_softc_t;
 
 struct mxge_slice_state {
 	mxge_softc_t *sc;
-	mxge_tx_ring_t tx;		/* transmit ring 	*/
+	mxge_tx_ring_t tx; /* transmit ring 	*/
 	mxge_rx_ring_t rx_small;
 	mxge_rx_ring_t rx_big;
 	mxge_rx_done_t rx_done;
@@ -191,11 +188,11 @@ struct mxge_slice_state {
 };
 
 struct mxge_softc {
-	if_t  ifp;
+	if_t ifp;
 	struct mxge_slice_state *ss;
-	int tx_boundary;		/* boundary transmits cannot cross*/
+	int tx_boundary; /* boundary transmits cannot cross*/
 	int lro_cnt;
-	bus_dma_tag_t	parent_dmat;
+	bus_dma_tag_t parent_dmat;
 	volatile uint8_t *sram;
 	int sram_size;
 	volatile uint32_t *irq_deassert;
@@ -222,7 +219,7 @@ struct mxge_softc {
 	struct resource **msix_irq_res;
 	struct resource *msix_table_res;
 	struct resource *msix_pba_res;
-	void *ih; 
+	void *ih;
 	void **msix_ih;
 	char *fw_name;
 	char eeprom_strings[MXGE_EEPROM_STRINGS_SIZE];
@@ -256,23 +253,23 @@ struct mxge_softc {
 	struct sysctl_oid *slice_sysctl_tree;
 	struct sysctl_ctx_list slice_sysctl_ctx;
 	char *mac_addr_string;
-	uint8_t	mac_addr[6];		/* eeprom mac address */
-	uint16_t pectl;			/* save PCIe CTL state */
+	uint8_t mac_addr[6]; /* eeprom mac address */
+	uint16_t pectl;	     /* save PCIe CTL state */
 	char product_code_string[64];
 	char serial_number_string[64];
 	char cmd_mtx_name[16];
 	char driver_mtx_name[16];
 };
 
-#define MXGE_PCI_VENDOR_MYRICOM 	0x14c1
-#define MXGE_PCI_DEVICE_Z8E 	0x0008
-#define MXGE_PCI_DEVICE_Z8E_9 	0x0009
-#define MXGE_PCI_REV_Z8E	0
-#define MXGE_PCI_REV_Z8ES	1
-#define MXGE_XFP_COMPLIANCE_BYTE	131
-#define MXGE_SFP_COMPLIANCE_BYTE	  3
-#define MXGE_MIN_THROTTLE	416
-#define MXGE_MAX_THROTTLE	4096
+#define MXGE_PCI_VENDOR_MYRICOM 0x14c1
+#define MXGE_PCI_DEVICE_Z8E 0x0008
+#define MXGE_PCI_DEVICE_Z8E_9 0x0009
+#define MXGE_PCI_REV_Z8E 0
+#define MXGE_PCI_REV_Z8ES 1
+#define MXGE_XFP_COMPLIANCE_BYTE 131
+#define MXGE_SFP_COMPLIANCE_BYTE 3
+#define MXGE_MIN_THROTTLE 416
+#define MXGE_MAX_THROTTLE 4096
 
 /* Types of connectors on NICs supported by this driver */
 #define MXGE_CX4 0
@@ -281,11 +278,10 @@ struct mxge_softc {
 #define MXGE_QRF 3
 
 #define MXGE_HIGHPART_TO_U32(X) \
-(sizeof (X) == 8) ? ((uint32_t)((uint64_t)(X) >> 32)) : (0)
+	(sizeof(X) == 8) ? ((uint32_t)((uint64_t)(X) >> 32)) : (0)
 #define MXGE_LOWPART_TO_U32(X) ((uint32_t)(X))
 
-struct mxge_media_type
-{
+struct mxge_media_type {
 	int flag;
 	uint8_t bitmask;
 	char *name;
@@ -302,24 +298,22 @@ struct mxge_pkt_info {
 static inline void
 mxge_pio_copy(volatile void *to_v, void *from_v, size_t size)
 {
-  register volatile uintptr_t *to;
-  volatile uintptr_t *from;
-  size_t i;
+	register volatile uintptr_t *to;
+	volatile uintptr_t *from;
+	size_t i;
 
-  to = (volatile uintptr_t *) to_v;
-  from = from_v;
-  for (i = (size / sizeof (uintptr_t)); i; i--) {
-	  *to = *from;
-	  to++;
-	  from++;
-  }
-
+	to = (volatile uintptr_t *)to_v;
+	from = from_v;
+	for (i = (size / sizeof(uintptr_t)); i; i--) {
+		*to = *from;
+		to++;
+		from++;
+	}
 }
 
 void mxge_lro_flush(struct mxge_slice_state *ss, struct lro_entry *lro);
 int mxge_lro_rx(struct mxge_slice_state *ss, struct mbuf *m_head,
-		uint32_t csum);
-		
+    uint32_t csum);
 
 /*
   This file uses Myri10GE driver indentation.

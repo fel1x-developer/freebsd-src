@@ -37,25 +37,24 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/errno.h>
 #include <sys/rman.h>
-#include <sys/bus.h>
-#include <sys/systm.h>
 #include <sys/slicer.h>
 
 #include <machine/bus.h>
 
 #include <dev/bhnd/bhnd_debug.h>
+#include <dev/cfi/cfi_var.h>
 
 #include "chipc_slicer.h"
-
-#include <dev/cfi/cfi_var.h>
 #include "chipc_spi.h"
 
-static int	chipc_slicer_walk(device_t dev, struct resource *res,
-		    struct flash_slice *slices, int *nslices);
+static int chipc_slicer_walk(device_t dev, struct resource *res,
+    struct flash_slice *slices, int *nslices);
 
 void
 chipc_register_slicer(chipc_flash flash_type)
@@ -64,11 +63,11 @@ chipc_register_slicer(chipc_flash flash_type)
 	case CHIPC_SFLASH_AT:
 	case CHIPC_SFLASH_ST:
 		flash_register_slicer(chipc_slicer_spi, FLASH_SLICES_TYPE_SPI,
-		   TRUE);
+		    TRUE);
 		break;
 	case CHIPC_PFLASH_CFI:
 		flash_register_slicer(chipc_slicer_cfi, FLASH_SLICES_TYPE_CFI,
-		   TRUE);
+		    TRUE);
 		break;
 	default:
 		/* Unsupported */
@@ -80,8 +79,8 @@ int
 chipc_slicer_cfi(device_t dev, const char *provider __unused,
     struct flash_slice *slices, int *nslices)
 {
-	struct cfi_softc	*sc;
-	device_t		 parent;
+	struct cfi_softc *sc;
+	device_t parent;
 
 	/* must be CFI flash */
 	if (device_get_devclass(dev) != devclass_find("cfi"))
@@ -106,8 +105,8 @@ int
 chipc_slicer_spi(device_t dev, const char *provider __unused,
     struct flash_slice *slices, int *nslices)
 {
-	struct chipc_spi_softc	*sc;
-	device_t		 chipc, spi, spibus;
+	struct chipc_spi_softc *sc;
+	device_t chipc, spi, spibus;
 
 	BHND_DEBUG_DEV(dev, "initting SPI slicer: %s", device_get_name(dev));
 
@@ -141,11 +140,11 @@ static int
 chipc_slicer_walk(device_t dev, struct resource *res,
     struct flash_slice *slices, int *nslices)
 {
-	uint32_t	 fw_len;
-	uint32_t	 fs_ofs;
-	uint32_t	 val;
-	uint32_t	 ofs_trx;
-	int		 flash_size;
+	uint32_t fw_len;
+	uint32_t fs_ofs;
+	uint32_t val;
+	uint32_t ofs_trx;
+	int flash_size;
 
 	*nslices = 0;
 
@@ -156,7 +155,7 @@ chipc_slicer_walk(device_t dev, struct resource *res,
 	    flash_size);
 
 	/* Find FW header in flash memory with step=128Kb (0x1000) */
-	for(uint32_t ofs = 0; ofs < flash_size; ofs+= 0x1000){
+	for (uint32_t ofs = 0; ofs < flash_size; ofs += 0x1000) {
 		val = bus_read_4(res, ofs);
 		switch (val) {
 		case TRX_MAGIC:
@@ -178,13 +177,14 @@ chipc_slicer_walk(device_t dev, struct resource *res,
 			 */
 			if (fs_ofs % 0x200 != 0) {
 				BHND_WARN("WARNING! filesystem offset should be"
-				    " aligned on sector size (%d bytes)", 0x200);
+					  " aligned on sector size (%d bytes)",
+				    0x200);
 				BHND_WARN("ignoring TRX firmware image");
 				break;
 			}
 
 			slices[*nslices].base = ofs + fs_ofs;
-			//XXX: fully sized? any other partition?
+			// XXX: fully sized? any other partition?
 			fw_len = bus_read_4(res, ofs + 4);
 			slices[*nslices].size = fw_len - fs_ofs;
 			slices[*nslices].label = "rootfs";

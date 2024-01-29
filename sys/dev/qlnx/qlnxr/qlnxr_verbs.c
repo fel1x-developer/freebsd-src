@@ -29,80 +29,69 @@
  * File: qlnxr_verbs.c
  */
 #include <sys/cdefs.h>
-#include "qlnxr_def.h"
-#include "rdma_common.h"
-#include "qlnxr_roce.h"
+
 #include "qlnxr_cm.h"
+#include "qlnxr_def.h"
+#include "qlnxr_roce.h"
+#include "rdma_common.h"
 
-#define HILO_U64(hi, lo)		((((u64)(hi)) << 32) + (lo))
+#define HILO_U64(hi, lo) ((((u64)(hi)) << 32) + (lo))
 
-#define TYPEPTR_ADDR_SET(type_ptr, field, vaddr)			\
-	do {								\
-		(type_ptr)->field.hi = cpu_to_le32(upper_32_bits(vaddr));\
-		(type_ptr)->field.lo = cpu_to_le32(lower_32_bits(vaddr));\
+#define TYPEPTR_ADDR_SET(type_ptr, field, vaddr)                          \
+	do {                                                              \
+		(type_ptr)->field.hi = cpu_to_le32(upper_32_bits(vaddr)); \
+		(type_ptr)->field.lo = cpu_to_le32(lower_32_bits(vaddr)); \
 	} while (0)
 
-#define RQ_SGE_SET(sge, vaddr, vlength, vflags)			\
-	do {							\
-		TYPEPTR_ADDR_SET(sge, addr, vaddr);		\
-		(sge)->length = cpu_to_le32(vlength);		\
-		(sge)->flags = cpu_to_le32(vflags);		\
+#define RQ_SGE_SET(sge, vaddr, vlength, vflags)       \
+	do {                                          \
+		TYPEPTR_ADDR_SET(sge, addr, vaddr);   \
+		(sge)->length = cpu_to_le32(vlength); \
+		(sge)->flags = cpu_to_le32(vflags);   \
 	} while (0)
 
-#define SRQ_HDR_SET(hdr, vwr_id, num_sge)			\
-	do {							\
-		TYPEPTR_ADDR_SET(hdr, wr_id, vwr_id);		\
-		(hdr)->num_sges = num_sge;			\
+#define SRQ_HDR_SET(hdr, vwr_id, num_sge)             \
+	do {                                          \
+		TYPEPTR_ADDR_SET(hdr, wr_id, vwr_id); \
+		(hdr)->num_sges = num_sge;            \
 	} while (0)
 
-#define SRQ_SGE_SET(sge, vaddr, vlength, vlkey)			\
-	do {							\
-		TYPEPTR_ADDR_SET(sge, addr, vaddr);		\
-		(sge)->length = cpu_to_le32(vlength);		\
-		(sge)->l_key = cpu_to_le32(vlkey);		\
+#define SRQ_SGE_SET(sge, vaddr, vlength, vlkey)       \
+	do {                                          \
+		TYPEPTR_ADDR_SET(sge, addr, vaddr);   \
+		(sge)->length = cpu_to_le32(vlength); \
+		(sge)->l_key = cpu_to_le32(vlkey);    \
 	} while (0)
 
-#define NIPQUAD(addr) \
-	((unsigned char *)&addr)[0], \
-	((unsigned char *)&addr)[1], \
-	((unsigned char *)&addr)[2], \
-	((unsigned char *)&addr)[3]
+#define NIPQUAD(addr)                                             \
+	((unsigned char *)&addr)[0], ((unsigned char *)&addr)[1], \
+	    ((unsigned char *)&addr)[2], ((unsigned char *)&addr)[3]
 
-static int
-qlnxr_check_srq_params(struct qlnxr_dev *dev,
-	struct ib_srq_init_attr *attrs);
+static int qlnxr_check_srq_params(struct qlnxr_dev *dev,
+    struct ib_srq_init_attr *attrs);
 
-static int
-qlnxr_init_srq_user_params(struct ib_ucontext *ib_ctx,
-	struct qlnxr_srq *srq,
-	struct qlnxr_create_srq_ureq *ureq,
-	int access, int dmasync);
+static int qlnxr_init_srq_user_params(struct ib_ucontext *ib_ctx,
+    struct qlnxr_srq *srq, struct qlnxr_create_srq_ureq *ureq, int access,
+    int dmasync);
 
-static int
-qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq,
-	struct qlnxr_dev *dev,
-	struct ib_srq_init_attr *init_attr);
+static int qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq,
+    struct qlnxr_dev *dev, struct ib_srq_init_attr *init_attr);
 
-static int
-qlnxr_copy_srq_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_srq *srq,
-	struct ib_udata *udata);
+static int qlnxr_copy_srq_uresp(struct qlnxr_dev *dev, struct qlnxr_srq *srq,
+    struct ib_udata *udata);
 
-static void
-qlnxr_free_srq_user_params(struct qlnxr_srq *srq);
+static void qlnxr_free_srq_user_params(struct qlnxr_srq *srq);
 
-static void
-qlnxr_free_srq_kernel_params(struct qlnxr_srq *srq);
+static void qlnxr_free_srq_kernel_params(struct qlnxr_srq *srq);
 
-static u32
-qlnxr_srq_elem_left(struct qlnxr_srq_hwq_info *hw_srq);
+static u32 qlnxr_srq_elem_left(struct qlnxr_srq_hwq_info *hw_srq);
 
 int
 qlnxr_iw_query_gid(struct ib_device *ibdev, u8 port, int index,
-	union ib_gid *sgid)
+    union ib_gid *sgid)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -111,7 +100,7 @@ qlnxr_iw_query_gid(struct ib_device *ibdev, u8 port, int index,
 
 	memset(sgid->raw, 0, sizeof(sgid->raw));
 
-	memcpy(sgid->raw, dev->ha->primary_mac, sizeof (dev->ha->primary_mac));
+	memcpy(sgid->raw, dev->ha->primary_mac, sizeof(dev->ha->primary_mac));
 
 	QL_DPRINT12(ha, "exit\n");
 
@@ -119,11 +108,10 @@ qlnxr_iw_query_gid(struct ib_device *ibdev, u8 port, int index,
 }
 
 int
-qlnxr_query_gid(struct ib_device *ibdev, u8 port, int index,
-	union ib_gid *sgid)
+qlnxr_query_gid(struct ib_device *ibdev, u8 port, int index, union ib_gid *sgid)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -157,12 +145,11 @@ qlnxr_query_gid(struct ib_device *ibdev, u8 port, int index,
 }
 
 int
-qlnxr_create_srq(struct ib_srq *ibsrq,
-		 struct ib_srq_init_attr *init_attr,
-		 struct ib_udata *udata)
+qlnxr_create_srq(struct ib_srq *ibsrq, struct ib_srq_init_attr *init_attr,
+    struct ib_udata *udata)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 	struct ecore_rdma_destroy_srq_in_params destroy_in_params;
 	struct ecore_rdma_create_srq_out_params out_params;
 	struct ecore_rdma_create_srq_in_params in_params;
@@ -187,18 +174,20 @@ qlnxr_create_srq(struct ib_srq *ibsrq,
 	memset(&in_params, 0, sizeof(in_params));
 
 	if (udata) {
-		ctx = rdma_udata_to_drv_context(
-		    udata, struct qlnxr_ucontext, ibucontext);
+		ctx = rdma_udata_to_drv_context(udata, struct qlnxr_ucontext,
+		    ibucontext);
 
 		memset(&ureq, 0, sizeof(ureq));
-		if (ib_copy_from_udata(&ureq, udata, min(sizeof(ureq),
-			udata->inlen))) {
-			QL_DPRINT11(ha, "problem"
-				" copying data from user space\n");
+		if (ib_copy_from_udata(&ureq, udata,
+			min(sizeof(ureq), udata->inlen))) {
+			QL_DPRINT11(ha,
+			    "problem"
+			    " copying data from user space\n");
 			goto err0;
 		}
 
-		ret = qlnxr_init_srq_user_params(&ctx->ibucontext, srq, &ureq, 0, 0);
+		ret = qlnxr_init_srq_user_params(&ctx->ibucontext, srq, &ureq,
+		    0, 0);
 		if (ret)
 			goto err0;
 
@@ -260,9 +249,9 @@ err0:
 void
 qlnxr_destroy_srq(struct ib_srq *ibsrq, struct ib_udata *udata)
 {
-	struct qlnxr_dev	*dev;
-	struct qlnxr_srq	*srq;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	struct qlnxr_srq *srq;
+	qlnx_host_t *ha;
 	struct ecore_rdma_destroy_srq_in_params in_params;
 
 	srq = get_qlnxr_srq(ibsrq);
@@ -284,11 +273,11 @@ qlnxr_destroy_srq(struct ib_srq *ibsrq, struct ib_udata *udata)
 
 int
 qlnxr_modify_srq(struct ib_srq *ibsrq, struct ib_srq_attr *attr,
-	enum ib_srq_attr_mask attr_mask, struct ib_udata *udata)
+    enum ib_srq_attr_mask attr_mask, struct ib_udata *udata)
 {
-	struct qlnxr_dev	*dev;
-	struct qlnxr_srq	*srq;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	struct qlnxr_srq *srq;
+	qlnx_host_t *ha;
 	struct ecore_rdma_modify_srq_in_params in_params;
 	int ret = 0;
 
@@ -298,17 +287,20 @@ qlnxr_modify_srq(struct ib_srq *ibsrq, struct ib_srq_attr *attr,
 
 	QL_DPRINT12(ha, "enter\n");
 	if (attr_mask & IB_SRQ_MAX_WR) {
-		QL_DPRINT12(ha, "invalid attribute mask=0x%x"
-			" specified for %p\n", attr_mask, srq);
+		QL_DPRINT12(ha,
+		    "invalid attribute mask=0x%x"
+		    " specified for %p\n",
+		    attr_mask, srq);
 		return -EINVAL;
 	}
 
 	if (attr_mask & IB_SRQ_LIMIT) {
 		if (attr->srq_limit >= srq->hw_srq.max_wr) {
-			QL_DPRINT12(ha, "invalid srq_limit=0x%x"
-				" (max_srq_limit = 0x%x)\n",
-			       attr->srq_limit, srq->hw_srq.max_wr);
-			return -EINVAL;	
+			QL_DPRINT12(ha,
+			    "invalid srq_limit=0x%x"
+			    " (max_srq_limit = 0x%x)\n",
+			    attr->srq_limit, srq->hw_srq.max_wr);
+			return -EINVAL;
 		}
 		memset(&in_params, 0, sizeof(in_params));
 		in_params.srq_id = srq->srq_id;
@@ -325,20 +317,21 @@ qlnxr_modify_srq(struct ib_srq *ibsrq, struct ib_srq_attr *attr,
 int
 qlnxr_query_srq(struct ib_srq *ibsrq, struct ib_srq_attr *srq_attr)
 {
-	struct qlnxr_dev	*dev;
-	struct qlnxr_srq	*srq;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	struct qlnxr_srq *srq;
+	qlnx_host_t *ha;
 	struct ecore_rdma_device *qattr;
 	srq = get_qlnxr_srq(ibsrq);
 	dev = srq->dev;
 	ha = dev->ha;
-	//qattr = &dev->attr;
+	// qattr = &dev->attr;
 	qattr = ecore_rdma_query_device(dev->rdma_ctx);
 	QL_DPRINT12(ha, "enter\n");
 
 	if (!dev->rdma_ctx) {
-		QL_DPRINT12(ha, "called with invalid params"
-			" rdma_ctx is NULL\n");
+		QL_DPRINT12(ha,
+		    "called with invalid params"
+		    " rdma_ctx is NULL\n");
 		return -EINVAL;
 	}
 
@@ -351,17 +344,17 @@ qlnxr_query_srq(struct ib_srq *ibsrq, struct ib_srq_attr *srq_attr)
 }
 
 /* Increment srq wr producer by one */
-static
-void qlnxr_inc_srq_wr_prod (struct qlnxr_srq_hwq_info *info)
+static void
+qlnxr_inc_srq_wr_prod(struct qlnxr_srq_hwq_info *info)
 {
 	info->wr_prod_cnt++;
 }
 
 /* Increment srq wr consumer by one */
-static 
-void qlnxr_inc_srq_wr_cons(struct qlnxr_srq_hwq_info *info)
+static void
+qlnxr_inc_srq_wr_cons(struct qlnxr_srq_hwq_info *info)
 {
-        info->wr_cons_cnt++;
+	info->wr_cons_cnt++;
 }
 
 /* get_port_immutable verb is not available in FreeBSD */
@@ -381,11 +374,11 @@ qlnxr_roce_port_immutable(struct ib_device *ibdev, u8 port_num,
 
 int
 qlnxr_post_srq_recv(struct ib_srq *ibsrq, const struct ib_recv_wr *wr,
-	const struct ib_recv_wr **bad_wr)
+    const struct ib_recv_wr **bad_wr)
 {
-	struct qlnxr_dev	*dev;
-	struct qlnxr_srq	*srq;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	struct qlnxr_srq *srq;
+	qlnx_host_t *ha;
 	struct qlnxr_srq_hwq_info *hw_srq;
 	struct ecore_chain *pbl;
 	unsigned long flags;
@@ -407,7 +400,8 @@ qlnxr_post_srq_recv(struct ib_srq *ibsrq, const struct ib_recv_wr *wr,
 
 		if (!qlnxr_srq_elem_left(hw_srq) ||
 		    wr->num_sge > srq->hw_srq.max_sges) {
-			QL_DPRINT11(ha, "WR cannot be posted"
+			QL_DPRINT11(ha,
+			    "WR cannot be posted"
 			    " (%d, %d) || (%d > %d)\n",
 			    hw_srq->wr_prod_cnt, hw_srq->wr_cons_cnt,
 			    wr->num_sge, srq->hw_srq.max_sges);
@@ -421,26 +415,25 @@ qlnxr_post_srq_recv(struct ib_srq *ibsrq, const struct ib_recv_wr *wr,
 		/* Set number of sge and WR id in header */
 		SRQ_HDR_SET(hdr, wr->wr_id, num_sge);
 
-                /* PBL is maintained in case of WR granularity.
-                 * So increment WR producer in case we post a WR.
-                 */
+		/* PBL is maintained in case of WR granularity.
+		 * So increment WR producer in case we post a WR.
+		 */
 		qlnxr_inc_srq_wr_prod(hw_srq);
 		hw_srq->wqe_prod++;
 		hw_srq->sge_prod++;
 
 		QL_DPRINT12(ha, "SRQ WR : SGEs: %d with wr_id[%d] = %llx\n",
-			wr->num_sge, hw_srq->wqe_prod, wr->wr_id);
+		    wr->num_sge, hw_srq->wqe_prod, wr->wr_id);
 
 		for (i = 0; i < wr->num_sge; i++) {
-			struct rdma_srq_sge *srq_sge = 
-			    ecore_chain_produce(pbl);
+			struct rdma_srq_sge *srq_sge = ecore_chain_produce(pbl);
 			/* Set SGE length, lkey and address */
 			SRQ_SGE_SET(srq_sge, wr->sg_list[i].addr,
-				wr->sg_list[i].length, wr->sg_list[i].lkey);
+			    wr->sg_list[i].length, wr->sg_list[i].lkey);
 
-			QL_DPRINT12(ha, "[%d]: len %d, key %x, addr %x:%x\n",
-				i, srq_sge->length, srq_sge->l_key,
-				srq_sge->addr.hi, srq_sge->addr.lo);
+			QL_DPRINT12(ha, "[%d]: len %d, key %x, addr %x:%x\n", i,
+			    srq_sge->length, srq_sge->l_key, srq_sge->addr.hi,
+			    srq_sge->addr.lo);
 			hw_srq->sge_prod++;
 		}
 		wmb();
@@ -451,28 +444,28 @@ qlnxr_post_srq_recv(struct ib_srq *ibsrq, const struct ib_recv_wr *wr,
 		 */
 		*(srq->hw_srq.virt_prod_pair_addr) = hw_srq->sge_prod;
 		offset = offsetof(struct rdma_srq_producers, wqe_prod);
-		*((u8 *)srq->hw_srq.virt_prod_pair_addr + offset) =
-			hw_srq->wqe_prod;
+		*((u8 *)srq->hw_srq.virt_prod_pair_addr +
+		    offset) = hw_srq->wqe_prod;
 		/* Flush prod after updating it */
 		wmb();
 		wr = wr->next;
-	}	
+	}
 
 	QL_DPRINT12(ha, "Elements in SRQ: %d\n",
-		ecore_chain_get_elem_left(pbl));
+	    ecore_chain_get_elem_left(pbl));
 
-	spin_unlock_irqrestore(&srq->lock, flags);	
+	spin_unlock_irqrestore(&srq->lock, flags);
 	QL_DPRINT12(ha, "exit\n");
 	return status;
 }
 
 int
 qlnxr_query_device(struct ib_device *ibdev, struct ib_device_attr *attr,
-	struct ib_udata *udata)
+    struct ib_udata *udata)
 {
-	struct qlnxr_dev		*dev;
-	struct ecore_rdma_device	*qattr;
-	qlnx_host_t			*ha;
+	struct qlnxr_dev *dev;
+	struct ecore_rdma_device *qattr;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -499,9 +492,8 @@ qlnxr_query_device(struct ib_device *ibdev, struct ib_device_attr *attr,
 	attr->hw_ver = qattr->hw_ver;
 	attr->max_qp = qattr->max_qp;
 	attr->device_cap_flags = IB_DEVICE_CURR_QP_STATE_MOD |
-					IB_DEVICE_RC_RNR_NAK_GEN |
-					IB_DEVICE_LOCAL_DMA_LKEY |
-					IB_DEVICE_MEM_MGT_EXTENSIONS;
+	    IB_DEVICE_RC_RNR_NAK_GEN | IB_DEVICE_LOCAL_DMA_LKEY |
+	    IB_DEVICE_MEM_MGT_EXTENSIONS;
 
 	attr->max_sge = qattr->max_sge;
 	attr->max_sge_rd = qattr->max_sge;
@@ -525,11 +517,11 @@ qlnxr_query_device(struct ib_device *ibdev, struct ib_device_attr *attr,
 	 * of two. This should be fixed in mlx4 driver, but until then ->
 	 * we provide a value that is a power of two in our code.
 	 */
-	attr->max_qp_init_rd_atom =
-		1 << (fls(qattr->max_qp_req_rd_atomic_resc) - 1);
-	attr->max_qp_rd_atom =
-		min(1 << (fls(qattr->max_qp_resp_rd_atomic_resc) - 1),
-		    attr->max_qp_init_rd_atom);
+	attr->max_qp_init_rd_atom = 1
+	    << (fls(qattr->max_qp_req_rd_atomic_resc) - 1);
+	attr->max_qp_rd_atom = min(1
+		<< (fls(qattr->max_qp_resp_rd_atomic_resc) - 1),
+	    attr->max_qp_init_rd_atom);
 
 	attr->max_srq = qattr->max_srq;
 	attr->max_srq_sge = qattr->max_srq_sge;
@@ -537,7 +529,7 @@ qlnxr_query_device(struct ib_device *ibdev, struct ib_device_attr *attr,
 
 	/* TODO: R&D to more properly configure the following */
 	attr->local_ca_ack_delay = qattr->dev_ack_delay;
-	attr->max_fast_reg_page_list_len = qattr->max_mr/8;
+	attr->max_fast_reg_page_list_len = qattr->max_mr / 8;
 	attr->max_pkeys = QLNXR_ROCE_PKEY_MAX;
 	attr->max_ah = qattr->max_ah;
 
@@ -593,11 +585,11 @@ get_link_speed_and_width(int speed, uint8_t *ib_speed, uint8_t *ib_width)
 
 int
 qlnxr_query_port(struct ib_device *ibdev, uint8_t port,
-	struct ib_port_attr *attr)
+    struct ib_port_attr *attr)
 {
-	struct qlnxr_dev	*dev;
-	struct ecore_rdma_port	*rdma_port;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	struct ecore_rdma_port *rdma_port;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -644,20 +636,20 @@ qlnxr_query_port(struct ib_device *ibdev, uint8_t port,
 	attr->bad_pkey_cntr = rdma_port->pkey_bad_counter;
 	attr->qkey_viol_cntr = 0;
 
-	get_link_speed_and_width(rdma_port->link_speed,
-				 &attr->active_speed, &attr->active_width);
+	get_link_speed_and_width(rdma_port->link_speed, &attr->active_speed,
+	    &attr->active_width);
 
 	attr->max_msg_sz = rdma_port->max_msg_size;
 	attr->max_vl_num = 4; /* TODO -> figure this one out... */
 
-	QL_DPRINT12(ha, "state = %d phys_state = %d "
-		" link_speed = %d active_speed = %d active_width = %d"
-		" attr->gid_tbl_len = %d attr->pkey_tbl_len = %d"
-		" max_msg_sz = 0x%x max_vl_num = 0x%x \n",
-		attr->state, attr->phys_state,
-		rdma_port->link_speed, attr->active_speed,
-		attr->active_width, attr->gid_tbl_len, attr->pkey_tbl_len,
-		attr->max_msg_sz, attr->max_vl_num);
+	QL_DPRINT12(ha,
+	    "state = %d phys_state = %d "
+	    " link_speed = %d active_speed = %d active_width = %d"
+	    " attr->gid_tbl_len = %d attr->pkey_tbl_len = %d"
+	    " max_msg_sz = 0x%x max_vl_num = 0x%x \n",
+	    attr->state, attr->phys_state, rdma_port->link_speed,
+	    attr->active_speed, attr->active_width, attr->gid_tbl_len,
+	    attr->pkey_tbl_len, attr->max_msg_sz, attr->max_vl_num);
 
 	QL_DPRINT12(ha, "exit\n");
 	return 0;
@@ -665,10 +657,10 @@ qlnxr_query_port(struct ib_device *ibdev, uint8_t port,
 
 int
 qlnxr_modify_port(struct ib_device *ibdev, uint8_t port, int mask,
-	struct ib_port_modify *props)
+    struct ib_port_modify *props)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -687,26 +679,26 @@ qlnxr_modify_port(struct ib_device *ibdev, uint8_t port, int mask,
 enum rdma_link_layer
 qlnxr_link_layer(struct ib_device *ibdev, uint8_t port_num)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "ibdev = %p port_num = 0x%x\n", ibdev, port_num);
 
-        return IB_LINK_LAYER_ETHERNET;
+	return IB_LINK_LAYER_ETHERNET;
 }
 
 int
 qlnxr_alloc_pd(struct ib_pd *ibpd, struct ib_udata *udata)
 {
 	struct ib_device *ibdev = ibpd->device;
-	struct qlnxr_pd		*pd = get_qlnxr_pd(ibpd);
-	u16			pd_id;
-	int			rc;
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_pd *pd = get_qlnxr_pd(ibpd);
+	u16 pd_id;
+	int rc;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -720,7 +712,7 @@ qlnxr_alloc_pd(struct ib_pd *ibpd, struct ib_udata *udata)
 	}
 
 	rc = ecore_rdma_alloc_pd(dev->rdma_ctx, &pd_id);
-	if (rc)	{
+	if (rc) {
 		QL_DPRINT11(ha, "ecore_rdma_alloc_pd failed\n");
 		goto err;
 	}
@@ -735,14 +727,14 @@ qlnxr_alloc_pd(struct ib_pd *ibpd, struct ib_udata *udata)
 			goto err;
 		}
 
-		pd->uctx = rdma_udata_to_drv_context(
-		    udata, struct qlnxr_ucontext, ibucontext);
+		pd->uctx = rdma_udata_to_drv_context(udata,
+		    struct qlnxr_ucontext, ibucontext);
 		pd->uctx->pd = pd;
 	}
 
 	atomic_add_rel_32(&dev->pd_count, 1);
-	QL_DPRINT12(ha, "exit [pd, pd_id, pd_count] = [%p, 0x%x, %d]\n",
-		pd, pd_id, dev->pd_count);
+	QL_DPRINT12(ha, "exit [pd, pd_id, pd_count] = [%p, 0x%x, %d]\n", pd,
+	    pd_id, dev->pd_count);
 
 	return (0);
 
@@ -754,9 +746,9 @@ err:
 void
 qlnxr_dealloc_pd(struct ib_pd *ibpd, struct ib_udata *udata)
 {
-	struct qlnxr_pd		*pd;
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_pd *pd;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	pd = get_qlnxr_pd(ibpd);
 	dev = get_qlnxr_dev((ibpd->device));
@@ -770,17 +762,17 @@ qlnxr_dealloc_pd(struct ib_pd *ibpd, struct ib_udata *udata)
 		ecore_rdma_free_pd(dev->rdma_ctx, pd->pd_id);
 		atomic_subtract_rel_32(&dev->pd_count, 1);
 		QL_DPRINT12(ha, "exit [pd, pd_id, pd_count] = [%p, 0x%x, %d]\n",
-			pd, pd->pd_id, dev->pd_count);
+		    pd, pd->pd_id, dev->pd_count);
 	}
 
 	QL_DPRINT12(ha, "exit\n");
 }
 
-#define ROCE_WQE_ELEM_SIZE	sizeof(struct rdma_sq_sge)
-#define	RDMA_MAX_SGE_PER_SRQ	(4) /* Should be part of HSI */
+#define ROCE_WQE_ELEM_SIZE sizeof(struct rdma_sq_sge)
+#define RDMA_MAX_SGE_PER_SRQ (4) /* Should be part of HSI */
 /* Should be part of HSI */
-#define RDMA_MAX_SRQ_WQE_SIZE	(RDMA_MAX_SGE_PER_SRQ + 1) /* +1 for header */
-#define DB_ADDR_SHIFT(addr)		((addr) << DB_PWM_ADDR_OFFSET_SHIFT)
+#define RDMA_MAX_SRQ_WQE_SIZE (RDMA_MAX_SGE_PER_SRQ + 1) /* +1 for header */
+#define DB_ADDR_SHIFT(addr) ((addr) << DB_PWM_ADDR_OFFSET_SHIFT)
 
 static void qlnxr_cleanup_user(struct qlnxr_dev *, struct qlnxr_qp *);
 static void qlnxr_cleanup_kernel(struct qlnxr_dev *, struct qlnxr_qp *);
@@ -788,15 +780,15 @@ static void qlnxr_cleanup_kernel(struct qlnxr_dev *, struct qlnxr_qp *);
 int
 qlnxr_query_pkey(struct ib_device *ibdev, u8 port, u16 index, u16 *pkey)
 {
-	struct qlnxr_dev	*dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter index = 0x%x\n", index);
 
-	if (index > QLNXR_ROCE_PKEY_TABLE_LEN) 
+	if (index > QLNXR_ROCE_PKEY_TABLE_LEN)
 		return -EINVAL;
 
 	*pkey = QLNXR_ROCE_PKEY_DEFAULT;
@@ -807,7 +799,7 @@ qlnxr_query_pkey(struct ib_device *ibdev, u8 port, u16 index, u16 *pkey)
 
 static inline bool
 qlnxr_get_vlan_id_qp(qlnx_host_t *ha, struct ib_qp_attr *attr, int attr_mask,
-       u16 *vlan_id)
+    u16 *vlan_id)
 {
 	bool ret = false;
 
@@ -833,29 +825,26 @@ qlnxr_get_vlan_id_qp(qlnx_host_t *ha, struct ib_qp_attr *attr, int attr_mask,
 }
 
 static inline void
-get_gid_info(struct ib_qp *ibqp, struct ib_qp_attr *attr,
-	int attr_mask,
-	struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ecore_rdma_modify_qp_in_params *qp_params)
+get_gid_info(struct ib_qp *ibqp, struct ib_qp_attr *attr, int attr_mask,
+    struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ecore_rdma_modify_qp_in_params *qp_params)
 {
-	int		i;
-	qlnx_host_t	*ha;
+	int i;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
-	memcpy(&qp_params->sgid.bytes[0],
-	       &dev->sgid_tbl[qp->sgid_idx].raw[0],
-	       sizeof(qp_params->sgid.bytes));
-	memcpy(&qp_params->dgid.bytes[0],
-	       &attr->ah_attr.grh.dgid.raw[0],
-	       sizeof(qp_params->dgid));
+	memcpy(&qp_params->sgid.bytes[0], &dev->sgid_tbl[qp->sgid_idx].raw[0],
+	    sizeof(qp_params->sgid.bytes));
+	memcpy(&qp_params->dgid.bytes[0], &attr->ah_attr.grh.dgid.raw[0],
+	    sizeof(qp_params->dgid));
 
 	qlnxr_get_vlan_id_qp(ha, attr, attr_mask, &qp_params->vlan_id);
 
-	for (i = 0; i < (sizeof(qp_params->sgid.dwords)/sizeof(uint32_t)); i++) {
+	for (i = 0; i < (sizeof(qp_params->sgid.dwords) / sizeof(uint32_t));
+	     i++) {
 		qp_params->sgid.dwords[i] = ntohl(qp_params->sgid.dwords[i]);
 		qp_params->dgid.dwords[i] = ntohl(qp_params->dgid.dwords[i]);
 	}
@@ -867,8 +856,8 @@ get_gid_info(struct ib_qp *ibqp, struct ib_qp_attr *attr,
 static int
 qlnxr_add_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 {
-	struct qlnxr_mm	*mm;
-	qlnx_host_t	*ha;
+	struct qlnxr_mm *mm;
+	qlnx_host_t *ha;
 
 	ha = uctx->dev->ha;
 
@@ -897,8 +886,8 @@ qlnxr_add_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 	mutex_unlock(&uctx->mm_list_lock);
 
 	QL_DPRINT12(ha, "added (addr=0x%llx,len=0x%lx) for ctx=%p\n",
-		(unsigned long long)mm->key.phy_addr,
-		(unsigned long)mm->key.len, uctx);
+	    (unsigned long long)mm->key.phy_addr, (unsigned long)mm->key.len,
+	    uctx);
 
 	return 0;
 }
@@ -906,16 +895,17 @@ qlnxr_add_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 static bool
 qlnxr_search_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 {
-	bool		found = false;
-	struct qlnxr_mm	*mm;
-	qlnx_host_t	*ha;
+	bool found = false;
+	struct qlnxr_mm *mm;
+	qlnx_host_t *ha;
 
 	ha = uctx->dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	mutex_lock(&uctx->mm_list_lock);
-	list_for_each_entry(mm, &uctx->mm_head, entry) {
+	list_for_each_entry(mm, &uctx->mm_head, entry)
+	{
 		if (len != mm->key.len || phy_addr != mm->key.phy_addr)
 			continue;
 
@@ -925,8 +915,8 @@ qlnxr_search_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 	mutex_unlock(&uctx->mm_list_lock);
 
 	QL_DPRINT12(ha,
-		"searched for (addr=0x%llx,len=0x%lx) for ctx=%p, found=%d\n",
-		mm->key.phy_addr, mm->key.len, uctx, found);
+	    "searched for (addr=0x%llx,len=0x%lx) for ctx=%p, found=%d\n",
+	    mm->key.phy_addr, mm->key.len, uctx, found);
 
 	return found;
 }
@@ -934,25 +924,26 @@ qlnxr_search_mmap(struct qlnxr_ucontext *uctx, u64 phy_addr, unsigned long len)
 int
 qlnxr_alloc_ucontext(struct ib_ucontext *uctx, struct ib_udata *udata)
 {
-        int rc;
-        struct qlnxr_ucontext *ctx = get_qlnxr_ucontext(uctx);
-        struct qlnxr_alloc_ucontext_resp uresp;
-        struct qlnxr_dev *dev = get_qlnxr_dev(uctx->device);
-        qlnx_host_t *ha = dev->ha;
-        struct ecore_rdma_add_user_out_params oparams;
+	int rc;
+	struct qlnxr_ucontext *ctx = get_qlnxr_ucontext(uctx);
+	struct qlnxr_alloc_ucontext_resp uresp;
+	struct qlnxr_dev *dev = get_qlnxr_dev(uctx->device);
+	qlnx_host_t *ha = dev->ha;
+	struct ecore_rdma_add_user_out_params oparams;
 
-        if (!udata)
-                return -EFAULT;
+	if (!udata)
+		return -EFAULT;
 
 	rc = ecore_rdma_add_user(dev->rdma_ctx, &oparams);
 	if (rc) {
 		QL_DPRINT12(ha,
-			"Failed to allocate a DPI for a new RoCE application "
-			",rc = %d. To overcome this, consider to increase "
-			"the number of DPIs, increase the doorbell BAR size "
-			"or just close unnecessary RoCE applications. In "
-			"order to increase the number of DPIs consult the "
-			"README\n", rc);
+		    "Failed to allocate a DPI for a new RoCE application "
+		    ",rc = %d. To overcome this, consider to increase "
+		    "the number of DPIs, increase the doorbell BAR size "
+		    "or just close unnecessary RoCE applications. In "
+		    "order to increase the number of DPIs consult the "
+		    "README\n",
+		    rc);
 		goto err;
 	}
 
@@ -964,21 +955,27 @@ qlnxr_alloc_ucontext(struct ib_ucontext *uctx, struct ib_udata *udata)
 	mutex_init(&ctx->mm_list_lock);
 
 	memset(&uresp, 0, sizeof(uresp));
-	uresp.dpm_enabled = offsetof(struct qlnxr_alloc_ucontext_resp, dpm_enabled)
-				< udata->outlen ? dev->user_dpm_enabled : 0; //TODO: figure this out
-	uresp.wids_enabled = offsetof(struct qlnxr_alloc_ucontext_resp, wids_enabled)
-				< udata->outlen ? 1 : 0; //TODO: figure this out
-	uresp.wid_count = offsetof(struct qlnxr_alloc_ucontext_resp, wid_count)
-				< udata->outlen ? oparams.wid_count : 0; //TODO: figure this out 
-        uresp.db_pa = ctx->dpi_phys_addr;
-        uresp.db_size = ctx->dpi_size;
-        uresp.max_send_wr = dev->attr.max_sqe;
-        uresp.max_recv_wr = dev->attr.max_rqe;
-        uresp.max_srq_wr = dev->attr.max_srq_wr;
-        uresp.sges_per_send_wr = QLNXR_MAX_SQE_ELEMENTS_PER_SQE;
-        uresp.sges_per_recv_wr = QLNXR_MAX_RQE_ELEMENTS_PER_RQE;
-        uresp.sges_per_srq_wr = dev->attr.max_srq_sge;
-        uresp.max_cqes = QLNXR_MAX_CQES;
+	uresp.dpm_enabled = offsetof(struct qlnxr_alloc_ucontext_resp,
+				dpm_enabled) < udata->outlen ?
+	    dev->user_dpm_enabled :
+	    0; // TODO: figure this out
+	uresp.wids_enabled = offsetof(struct qlnxr_alloc_ucontext_resp,
+				 wids_enabled) < udata->outlen ?
+	    1 :
+	    0; // TODO: figure this out
+	uresp.wid_count = offsetof(struct qlnxr_alloc_ucontext_resp,
+			      wid_count) < udata->outlen ?
+	    oparams.wid_count :
+	    0; // TODO: figure this out
+	uresp.db_pa = ctx->dpi_phys_addr;
+	uresp.db_size = ctx->dpi_size;
+	uresp.max_send_wr = dev->attr.max_sqe;
+	uresp.max_recv_wr = dev->attr.max_rqe;
+	uresp.max_srq_wr = dev->attr.max_srq_wr;
+	uresp.sges_per_send_wr = QLNXR_MAX_SQE_ELEMENTS_PER_SQE;
+	uresp.sges_per_recv_wr = QLNXR_MAX_RQE_ELEMENTS_PER_RQE;
+	uresp.sges_per_srq_wr = dev->attr.max_srq_sge;
+	uresp.max_cqes = QLNXR_MAX_CQES;
 
 	rc = ib_copy_to_udata(udata, &uresp, sizeof(uresp));
 	if (rc)
@@ -989,8 +986,7 @@ qlnxr_alloc_ucontext(struct ib_ucontext *uctx, struct ib_udata *udata)
 	rc = qlnxr_add_mmap(ctx, ctx->dpi_phys_addr, ctx->dpi_size);
 	if (rc)
 		goto err;
-	QL_DPRINT12(ha, "Allocated user context %p\n",
-		&ctx->ibucontext);
+	QL_DPRINT12(ha, "Allocated user context %p\n", &ctx->ibucontext);
 
 	return (0);
 err:
@@ -1000,80 +996,84 @@ err:
 void
 qlnxr_dealloc_ucontext(struct ib_ucontext *ibctx)
 {
-        struct qlnxr_ucontext *uctx = get_qlnxr_ucontext(ibctx);
-        struct qlnxr_dev *dev = uctx->dev;
-        qlnx_host_t *ha = dev->ha;
-        struct qlnxr_mm *mm, *tmp;
+	struct qlnxr_ucontext *uctx = get_qlnxr_ucontext(ibctx);
+	struct qlnxr_dev *dev = uctx->dev;
+	qlnx_host_t *ha = dev->ha;
+	struct qlnxr_mm *mm, *tmp;
 
-        QL_DPRINT12(ha, "Deallocating user context %p\n",
-                        uctx);
+	QL_DPRINT12(ha, "Deallocating user context %p\n", uctx);
 
-        if (dev) {
-                ecore_rdma_remove_user(uctx->dev->rdma_ctx, uctx->dpi);
-        }
+	if (dev) {
+		ecore_rdma_remove_user(uctx->dev->rdma_ctx, uctx->dpi);
+	}
 
-        list_for_each_entry_safe(mm, tmp, &uctx->mm_head, entry) {
-                QL_DPRINT12(ha, "deleted addr= 0x%llx, len = 0x%lx for"
-                                " ctx=%p\n",
-                                mm->key.phy_addr, mm->key.len, uctx);
-                list_del(&mm->entry);
-                kfree(mm);
-        }
+	list_for_each_entry_safe(mm, tmp, &uctx->mm_head, entry)
+	{
+		QL_DPRINT12(ha,
+		    "deleted addr= 0x%llx, len = 0x%lx for"
+		    " ctx=%p\n",
+		    mm->key.phy_addr, mm->key.len, uctx);
+		list_del(&mm->entry);
+		kfree(mm);
+	}
 }
 
 int
 qlnxr_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 {
-	struct qlnxr_ucontext	*ucontext = get_qlnxr_ucontext(context);
-	struct qlnxr_dev	*dev = get_qlnxr_dev((context->device));
-	unsigned long		vm_page = vma->vm_pgoff << PAGE_SHIFT;
-	u64 			unmapped_db;
-	unsigned long 		len = (vma->vm_end - vma->vm_start);
-	int 			rc = 0;
-	bool 			found;
-	qlnx_host_t		*ha;
+	struct qlnxr_ucontext *ucontext = get_qlnxr_ucontext(context);
+	struct qlnxr_dev *dev = get_qlnxr_dev((context->device));
+	unsigned long vm_page = vma->vm_pgoff << PAGE_SHIFT;
+	u64 unmapped_db;
+	unsigned long len = (vma->vm_end - vma->vm_start);
+	int rc = 0;
+	bool found;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	unmapped_db = dev->db_phys_addr + (ucontext->dpi * ucontext->dpi_size);
 
-	QL_DPRINT12(ha, "qedr_mmap enter vm_page=0x%lx"
-		" vm_pgoff=0x%lx unmapped_db=0x%llx db_size=%x, len=%lx\n",
-		vm_page, vma->vm_pgoff, unmapped_db,
-		dev->db_size, len);
+	QL_DPRINT12(ha,
+	    "qedr_mmap enter vm_page=0x%lx"
+	    " vm_pgoff=0x%lx unmapped_db=0x%llx db_size=%x, len=%lx\n",
+	    vm_page, vma->vm_pgoff, unmapped_db, dev->db_size, len);
 
 	if ((vma->vm_start & (PAGE_SIZE - 1)) || (len & (PAGE_SIZE - 1))) {
-		QL_DPRINT11(ha, "Vma_start not page aligned "
-			"vm_start = %ld vma_end = %ld\n", vma->vm_start,
-			vma->vm_end);
+		QL_DPRINT11(ha,
+		    "Vma_start not page aligned "
+		    "vm_start = %ld vma_end = %ld\n",
+		    vma->vm_start, vma->vm_end);
 		return -EINVAL;
 	}
 
 	found = qlnxr_search_mmap(ucontext, vm_page, len);
 	if (!found) {
 		QL_DPRINT11(ha, "Vma_pgoff not found in mapped array = %ld\n",
-			vma->vm_pgoff);
+		    vma->vm_pgoff);
 		return -EINVAL;
 	}
 
 	QL_DPRINT12(ha, "Mapping doorbell bar\n");
 
 	if ((vm_page < unmapped_db) ||
-		((vm_page + len) > (unmapped_db + ucontext->dpi_size))) {
-		QL_DPRINT11(ha, "failed pages are outside of dpi;"
-			"page address=0x%lx, unmapped_db=0x%lx, dpi_size=0x%x\n",
-			vm_page, unmapped_db, ucontext->dpi_size);
+	    ((vm_page + len) > (unmapped_db + ucontext->dpi_size))) {
+		QL_DPRINT11(ha,
+		    "failed pages are outside of dpi;"
+		    "page address=0x%lx, unmapped_db=0x%lx, dpi_size=0x%x\n",
+		    vm_page, unmapped_db, ucontext->dpi_size);
 		return -EINVAL;
 	}
 
 	if (vma->vm_flags & VM_READ) {
-		QL_DPRINT11(ha, "failed mmap, cannot map doorbell bar for read\n");
+		QL_DPRINT11(ha,
+		    "failed mmap, cannot map doorbell bar for read\n");
 		return -EINVAL;
 	}
 
 	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
 	rc = io_remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff, len,
-			vma->vm_page_prot);
+	    vma->vm_page_prot);
 
 	QL_DPRINT12(ha, "exit [%d]\n", rc);
 	return rc;
@@ -1082,18 +1082,19 @@ qlnxr_mmap(struct ib_ucontext *context, struct vm_area_struct *vma)
 struct ib_mr *
 qlnxr_get_dma_mr(struct ib_pd *ibpd, int acc)
 {
-	struct qlnxr_mr		*mr;
-	struct qlnxr_dev	*dev = get_qlnxr_dev((ibpd->device));
-	struct qlnxr_pd		*pd = get_qlnxr_pd(ibpd);
-	int			rc;
-	qlnx_host_t		*ha;
+	struct qlnxr_mr *mr;
+	struct qlnxr_dev *dev = get_qlnxr_dev((ibpd->device));
+	struct qlnxr_pd *pd = get_qlnxr_pd(ibpd);
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	if (acc & IB_ACCESS_MW_BIND) {
-		QL_DPRINT12(ha, "Unsupported access flags received for dma mr\n");
+		QL_DPRINT12(ha,
+		    "Unsupported access flags received for dma mr\n");
 	}
 
 	mr = kzalloc(sizeof(*mr), GFP_KERNEL);
@@ -1130,7 +1131,7 @@ qlnxr_get_dma_mr(struct ib_pd *ibpd, int acc)
 	mr->ibmr.lkey = mr->hw_mr.itid << 8 | mr->hw_mr.key;
 
 	if (mr->hw_mr.remote_write || mr->hw_mr.remote_read ||
-		mr->hw_mr.remote_atomic) {
+	    mr->hw_mr.remote_atomic) {
 		mr->ibmr.rkey = mr->hw_mr.itid << 8 | mr->hw_mr.key;
 	}
 
@@ -1150,10 +1151,10 @@ err0:
 
 static void
 qlnxr_free_pbl(struct qlnxr_dev *dev, struct qlnxr_pbl_info *pbl_info,
-	struct qlnxr_pbl *pbl)
+    struct qlnxr_pbl *pbl)
 {
-	int		i;
-	qlnx_host_t	*ha;
+	int i;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1163,7 +1164,7 @@ qlnxr_free_pbl(struct qlnxr_dev *dev, struct qlnxr_pbl_info *pbl_info,
 		if (!pbl[i].va)
 			continue;
 		qlnx_dma_free_coherent(&dev->ha->cdev, pbl[i].va, pbl[i].pa,
-			pbl_info->pbl_size);
+		    pbl_info->pbl_size);
 	}
 	kfree(pbl);
 
@@ -1171,23 +1172,23 @@ qlnxr_free_pbl(struct qlnxr_dev *dev, struct qlnxr_pbl_info *pbl_info,
 	return;
 }
 
-#define MIN_FW_PBL_PAGE_SIZE (4*1024)
-#define MAX_FW_PBL_PAGE_SIZE (64*1024)
+#define MIN_FW_PBL_PAGE_SIZE (4 * 1024)
+#define MAX_FW_PBL_PAGE_SIZE (64 * 1024)
 
 #define NUM_PBES_ON_PAGE(_page_size) (_page_size / sizeof(u64))
 #define MAX_PBES_ON_PAGE NUM_PBES_ON_PAGE(MAX_FW_PBL_PAGE_SIZE)
-#define MAX_PBES_TWO_LAYER (MAX_PBES_ON_PAGE*MAX_PBES_ON_PAGE)
+#define MAX_PBES_TWO_LAYER (MAX_PBES_ON_PAGE * MAX_PBES_ON_PAGE)
 
 static struct qlnxr_pbl *
-qlnxr_alloc_pbl_tbl(struct qlnxr_dev *dev,
-	struct qlnxr_pbl_info *pbl_info, gfp_t flags)
+qlnxr_alloc_pbl_tbl(struct qlnxr_dev *dev, struct qlnxr_pbl_info *pbl_info,
+    gfp_t flags)
 {
-	void			*va;
-	dma_addr_t		pa;
-	dma_addr_t		*pbl_main_tbl;
-	struct qlnxr_pbl	*pbl_table;
-	int			i;
-	qlnx_host_t		*ha;
+	void *va;
+	dma_addr_t pa;
+	dma_addr_t *pbl_main_tbl;
+	struct qlnxr_pbl *pbl_table;
+	int i;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1201,7 +1202,8 @@ qlnxr_alloc_pbl_tbl(struct qlnxr_dev *dev,
 	}
 
 	for (i = 0; i < pbl_info->num_pbls; i++) {
-		va = qlnx_dma_alloc_coherent(&dev->ha->cdev, &pa, pbl_info->pbl_size);
+		va = qlnx_dma_alloc_coherent(&dev->ha->cdev, &pa,
+		    pbl_info->pbl_size);
 		if (!va) {
 			QL_DPRINT11(ha, "Failed to allocate pbl#%d\n", i);
 			goto err;
@@ -1229,15 +1231,13 @@ err:
 }
 
 static int
-qlnxr_prepare_pbl_tbl(struct qlnxr_dev *dev,
-	struct qlnxr_pbl_info *pbl_info,
-	u32 num_pbes,
-	int two_layer_capable)
+qlnxr_prepare_pbl_tbl(struct qlnxr_dev *dev, struct qlnxr_pbl_info *pbl_info,
+    u32 num_pbes, int two_layer_capable)
 {
-	u32		pbl_capacity;
-	u32		pbl_size;
-	u32		num_pbls;
-	qlnx_host_t	*ha;
+	u32 pbl_capacity;
+	u32 pbl_size;
+	u32 num_pbls;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1245,15 +1245,15 @@ qlnxr_prepare_pbl_tbl(struct qlnxr_dev *dev,
 
 	if ((num_pbes > MAX_PBES_ON_PAGE) && two_layer_capable) {
 		if (num_pbes > MAX_PBES_TWO_LAYER) {
-			QL_DPRINT11(ha, "prepare pbl table: too many pages %d\n",
-				num_pbes);
+			QL_DPRINT11(ha,
+			    "prepare pbl table: too many pages %d\n", num_pbes);
 			return -EINVAL;
 		}
 
 		/* calculate required pbl page size */
 		pbl_size = MIN_FW_PBL_PAGE_SIZE;
 		pbl_capacity = NUM_PBES_ON_PAGE(pbl_size) *
-			NUM_PBES_ON_PAGE(pbl_size);
+		    NUM_PBES_ON_PAGE(pbl_size);
 
 		while (pbl_capacity < num_pbes) {
 			pbl_size *= 2;
@@ -1267,8 +1267,8 @@ qlnxr_prepare_pbl_tbl(struct qlnxr_dev *dev,
 	} else {
 		/* One layered PBL */
 		num_pbls = 1;
-		pbl_size = max_t(u32, MIN_FW_PBL_PAGE_SIZE, \
-				roundup_pow_of_two((num_pbes * sizeof(u64))));
+		pbl_size = max_t(u32, MIN_FW_PBL_PAGE_SIZE,
+		    roundup_pow_of_two((num_pbes * sizeof(u64))));
 		pbl_info->two_layered = false;
 	}
 
@@ -1276,22 +1276,23 @@ qlnxr_prepare_pbl_tbl(struct qlnxr_dev *dev,
 	pbl_info->pbl_size = pbl_size;
 	pbl_info->num_pbes = num_pbes;
 
-	QL_DPRINT12(ha, "prepare pbl table: num_pbes=%d, num_pbls=%d pbl_size=%d\n",
-		pbl_info->num_pbes, pbl_info->num_pbls, pbl_info->pbl_size);
+	QL_DPRINT12(ha,
+	    "prepare pbl table: num_pbes=%d, num_pbls=%d pbl_size=%d\n",
+	    pbl_info->num_pbes, pbl_info->num_pbls, pbl_info->pbl_size);
 
 	return 0;
 }
 
 static void
 qlnxr_populate_pbls(struct qlnxr_dev *dev, struct ib_umem *umem,
-	struct qlnxr_pbl *pbl, struct qlnxr_pbl_info *pbl_info)
+    struct qlnxr_pbl *pbl, struct qlnxr_pbl_info *pbl_info)
 {
-	struct regpair		*pbe;
-	struct qlnxr_pbl	*pbl_tbl;
-	struct scatterlist	*sg;
-	int			shift, pg_cnt, pages, pbe_cnt, total_num_pbes = 0;
-	qlnx_host_t		*ha;
-        int                     entry;
+	struct regpair *pbe;
+	struct qlnxr_pbl *pbl_tbl;
+	struct scatterlist *sg;
+	int shift, pg_cnt, pages, pbe_cnt, total_num_pbes = 0;
+	qlnx_host_t *ha;
+	int entry;
 
 	ha = dev->ha;
 
@@ -1325,27 +1326,25 @@ qlnxr_populate_pbls(struct qlnxr_dev *dev, struct ib_umem *umem,
 
 	shift = ilog2(umem->page_size);
 
-	for_each_sg(umem->sg_head.sgl, sg, umem->nmap, entry) {
+	for_each_sg(umem->sg_head.sgl, sg, umem->nmap, entry)
+	{
 		pages = sg_dma_len(sg) >> shift;
 		for (pg_cnt = 0; pg_cnt < pages; pg_cnt++) {
 			/* store the page address in pbe */
-			pbe->lo =
-			    cpu_to_le32(sg_dma_address(sg) +
-					(umem->page_size * pg_cnt));
-			pbe->hi =
-			    cpu_to_le32(upper_32_bits
-					((sg_dma_address(sg) +
-					  umem->page_size * pg_cnt)));
+			pbe->lo = cpu_to_le32(
+			    sg_dma_address(sg) + (umem->page_size * pg_cnt));
+			pbe->hi = cpu_to_le32(upper_32_bits(
+			    (sg_dma_address(sg) + umem->page_size * pg_cnt)));
 
 			QL_DPRINT12(ha,
-				"Populate pbl table:"
-				" pbe->addr=0x%x:0x%x "
-				" pbe_cnt = %d total_num_pbes=%d"
-				" pbe=%p\n", pbe->lo, pbe->hi, pbe_cnt,
-				total_num_pbes, pbe);
+			    "Populate pbl table:"
+			    " pbe->addr=0x%x:0x%x "
+			    " pbe_cnt = %d total_num_pbes=%d"
+			    " pbe=%p\n",
+			    pbe->lo, pbe->hi, pbe_cnt, total_num_pbes, pbe);
 
-			pbe_cnt ++;
-			total_num_pbes ++;
+			pbe_cnt++;
+			total_num_pbes++;
 			pbe++;
 
 			if (total_num_pbes == pbl_info->num_pbes)
@@ -1354,8 +1353,7 @@ qlnxr_populate_pbls(struct qlnxr_dev *dev, struct ib_umem *umem,
 			/* if the given pbl is full storing the pbes,
 			 * move to next pbl.
 			 */
-			if (pbe_cnt ==
-				(pbl_info->pbl_size / sizeof(u64))) {
+			if (pbe_cnt == (pbl_info->pbl_size / sizeof(u64))) {
 				pbl_tbl++;
 				pbe = (struct regpair *)pbl_tbl->va;
 				pbe_cnt = 0;
@@ -1370,7 +1368,7 @@ static void
 free_mr_info(struct qlnxr_dev *dev, struct mr_info *info)
 {
 	struct qlnxr_pbl *pbl, *tmp;
-	qlnx_host_t		*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1378,12 +1376,13 @@ free_mr_info(struct qlnxr_dev *dev, struct mr_info *info)
 
 	if (info->pbl_table)
 		list_add_tail(&info->pbl_table->list_entry,
-			      &info->free_pbl_list);
+		    &info->free_pbl_list);
 
 	if (!list_empty(&info->inuse_pbl_list))
 		list_splice(&info->inuse_pbl_list, &info->free_pbl_list);
 
-	list_for_each_entry_safe(pbl, tmp, &info->free_pbl_list, list_entry) {
+	list_for_each_entry_safe(pbl, tmp, &info->free_pbl_list, list_entry)
+	{
 		list_del(&pbl->list_entry);
 		qlnxr_free_pbl(dev, &info->pbl_info, pbl);
 	}
@@ -1394,11 +1393,11 @@ free_mr_info(struct qlnxr_dev *dev, struct mr_info *info)
 
 static int
 qlnxr_init_mr_info(struct qlnxr_dev *dev, struct mr_info *info,
-	size_t page_list_len, bool two_layered)
+    size_t page_list_len, bool two_layered)
 {
-	int			rc;
-	struct qlnxr_pbl	*tmp;
-	qlnx_host_t		*ha;
+	int rc;
+	struct qlnxr_pbl *tmp;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1407,8 +1406,8 @@ qlnxr_init_mr_info(struct qlnxr_dev *dev, struct mr_info *info,
 	INIT_LIST_HEAD(&info->free_pbl_list);
 	INIT_LIST_HEAD(&info->inuse_pbl_list);
 
-	rc = qlnxr_prepare_pbl_tbl(dev, &info->pbl_info,
-				  page_list_len, two_layered);
+	rc = qlnxr_prepare_pbl_tbl(dev, &info->pbl_info, page_list_len,
+	    two_layered);
 	if (rc) {
 		QL_DPRINT11(ha, "qlnxr_prepare_pbl_tbl [%d]\n", rc);
 		goto done;
@@ -1448,14 +1447,14 @@ done:
 }
 
 struct ib_mr *
-qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
-	u64 usr_addr, int acc, struct ib_udata *udata)
+qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len, u64 usr_addr, int acc,
+    struct ib_udata *udata)
 {
-	int		rc = -ENOMEM;
+	int rc = -ENOMEM;
 	struct qlnxr_dev *dev = get_qlnxr_dev((ibpd->device));
 	struct qlnxr_mr *mr;
 	struct qlnxr_pd *pd;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1463,14 +1462,15 @@ qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 
 	pd = get_qlnxr_pd(ibpd);
 
-	QL_DPRINT12(ha, "qedr_register user mr pd = %d"
-		" start = %lld, len = %lld, usr_addr = %lld, acc = %d\n",
-		pd->pd_id, start, len, usr_addr, acc);
+	QL_DPRINT12(ha,
+	    "qedr_register user mr pd = %d"
+	    " start = %lld, len = %lld, usr_addr = %lld, acc = %d\n",
+	    pd->pd_id, start, len, usr_addr, acc);
 
 	if (acc & IB_ACCESS_REMOTE_WRITE && !(acc & IB_ACCESS_LOCAL_WRITE)) {
 		QL_DPRINT11(ha,
-			"(acc & IB_ACCESS_REMOTE_WRITE &&"
-			" !(acc & IB_ACCESS_LOCAL_WRITE))\n");
+		    "(acc & IB_ACCESS_REMOTE_WRITE &&"
+		    " !(acc & IB_ACCESS_LOCAL_WRITE))\n");
 		return ERR_PTR(-EINVAL);
 	}
 
@@ -1489,15 +1489,15 @@ qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 		goto err0;
 	}
 
-	rc = qlnxr_init_mr_info(dev, &mr->info, ib_umem_page_count(mr->umem), 1);
+	rc = qlnxr_init_mr_info(dev, &mr->info, ib_umem_page_count(mr->umem),
+	    1);
 	if (rc) {
-		QL_DPRINT11(ha,
-			"qlnxr_init_mr_info failed [%d]\n", rc);
+		QL_DPRINT11(ha, "qlnxr_init_mr_info failed [%d]\n", rc);
 		goto err1;
 	}
 
 	qlnxr_populate_pbls(dev, mr->umem, mr->info.pbl_table,
-			   &mr->info.pbl_info);
+	    &mr->info.pbl_info);
 
 	rc = ecore_rdma_alloc_tid(dev->rdma_ctx, &mr->hw_mr.itid);
 
@@ -1519,12 +1519,13 @@ qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 	mr->hw_mr.pbl_ptr = mr->info.pbl_table[0].pa;
 	mr->hw_mr.pbl_two_level = mr->info.pbl_info.two_layered;
 	mr->hw_mr.pbl_page_size_log = ilog2(mr->info.pbl_info.pbl_size);
-	mr->hw_mr.page_size_log = ilog2(mr->umem->page_size); /* for the MR pages */
+	mr->hw_mr.page_size_log = ilog2(
+	    mr->umem->page_size); /* for the MR pages */
 
 	mr->hw_mr.fbo = ib_umem_offset(mr->umem);
 	mr->hw_mr.length = len;
 	mr->hw_mr.vaddr = usr_addr;
-	mr->hw_mr.zbva = false; /* TBD figure when this should be true */
+	mr->hw_mr.zbva = false;	  /* TBD figure when this should be true */
 	mr->hw_mr.phy_mr = false; /* Fast MR - True, Regular Register False */
 	mr->hw_mr.dma_mr = false;
 
@@ -1536,7 +1537,7 @@ qlnxr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 
 	mr->ibmr.lkey = mr->hw_mr.itid << 8 | mr->hw_mr.key;
 	if (mr->hw_mr.remote_write || mr->hw_mr.remote_read ||
-		mr->hw_mr.remote_atomic)
+	    mr->hw_mr.remote_atomic)
 		mr->ibmr.rkey = mr->hw_mr.itid << 8 | mr->hw_mr.key;
 
 	QL_DPRINT12(ha, "register user mr lkey: %x\n", mr->ibmr.lkey);
@@ -1557,10 +1558,10 @@ err0:
 int
 qlnxr_dereg_mr(struct ib_mr *ib_mr, struct ib_udata *udata)
 {
-	struct qlnxr_mr	*mr = get_qlnxr_mr(ib_mr);
+	struct qlnxr_mr *mr = get_qlnxr_mr(ib_mr);
 	struct qlnxr_dev *dev = get_qlnxr_dev((ib_mr->device));
-	int		rc = 0;
-	qlnx_host_t	*ha;
+	int rc = 0;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1582,12 +1583,12 @@ qlnxr_dereg_mr(struct ib_mr *ib_mr, struct ib_udata *udata)
 }
 
 static int
-qlnxr_copy_cq_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_cq *cq, struct ib_udata *udata)
+qlnxr_copy_cq_uresp(struct qlnxr_dev *dev, struct qlnxr_cq *cq,
+    struct ib_udata *udata)
 {
-	struct qlnxr_create_cq_uresp	uresp;
-	int				rc;
-	qlnx_host_t			*ha;
+	struct qlnxr_create_cq_uresp uresp;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1602,7 +1603,7 @@ qlnxr_copy_cq_uresp(struct qlnxr_dev *dev,
 
 	if (rc) {
 		QL_DPRINT12(ha, "ib_copy_to_udata error cqid=0x%x[%d]\n",
-			cq->icid, rc);
+		    cq->icid, rc);
 	}
 
 	QL_DPRINT12(ha, "exit [%d]\n", rc);
@@ -1649,12 +1650,12 @@ qlnxr_align_cq_entries(int entries)
 
 static inline int
 qlnxr_init_user_queue(struct ib_ucontext *ib_ctx, struct qlnxr_dev *dev,
-	struct qlnxr_userq *q, u64 buf_addr, size_t buf_len,
-	int access, int dmasync, int alloc_and_init)
+    struct qlnxr_userq *q, u64 buf_addr, size_t buf_len, int access,
+    int dmasync, int alloc_and_init)
 {
-	int		page_cnt;
-	int		rc;
-	qlnx_host_t	*ha;
+	int page_cnt;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1663,9 +1664,10 @@ qlnxr_init_user_queue(struct ib_ucontext *ib_ctx, struct qlnxr_dev *dev,
 	q->buf_addr = buf_addr;
 	q->buf_len = buf_len;
 
-	QL_DPRINT12(ha, "buf_addr : %llx, buf_len : %x, access : %x"
-	      " dmasync : %x\n", q->buf_addr, q->buf_len,
-		access, dmasync);	
+	QL_DPRINT12(ha,
+	    "buf_addr : %llx, buf_len : %x, access : %x"
+	    " dmasync : %x\n",
+	    q->buf_addr, q->buf_len, access, dmasync);
 
 	q->umem = ib_umem_get(ib_ctx, q->buf_addr, q->buf_len, access, dmasync);
 
@@ -1716,49 +1718,51 @@ err:
 }
 
 int
-qlnxr_create_cq(struct ib_cq *ibcq,
-		const struct ib_cq_init_attr *attr,
-		struct ib_udata *udata)
+qlnxr_create_cq(struct ib_cq *ibcq, const struct ib_cq_init_attr *attr,
+    struct ib_udata *udata)
 {
-	struct qlnxr_ucontext			*ctx;
+	struct qlnxr_ucontext *ctx;
 	struct ecore_rdma_destroy_cq_out_params destroy_oparams;
-	struct ecore_rdma_destroy_cq_in_params	destroy_iparams;
-	struct qlnxr_dev			*dev;
-	struct ecore_rdma_create_cq_in_params	params;
-	struct qlnxr_create_cq_ureq		ureq;
+	struct ecore_rdma_destroy_cq_in_params destroy_iparams;
+	struct qlnxr_dev *dev;
+	struct ecore_rdma_create_cq_in_params params;
+	struct qlnxr_create_cq_ureq ureq;
 
-	int					vector = attr->comp_vector;
-	int					entries = attr->cqe;
-	struct qlnxr_cq				*cq = get_qlnxr_cq(ibcq);
-	int					chain_entries, rc, page_cnt;
-	u64					pbl_ptr;
-	u16					icid;
-	qlnx_host_t				*ha;
+	int vector = attr->comp_vector;
+	int entries = attr->cqe;
+	struct qlnxr_cq *cq = get_qlnxr_cq(ibcq);
+	int chain_entries, rc, page_cnt;
+	u64 pbl_ptr;
+	u16 icid;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibcq->device);
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "called from %s. entries = %d, "
-		"vector = %d\n",
-		(udata ? "User Lib" : "Kernel"), entries, vector);
+	QL_DPRINT12(ha,
+	    "called from %s. entries = %d, "
+	    "vector = %d\n",
+	    (udata ? "User Lib" : "Kernel"), entries, vector);
 
-        memset(&params, 0, sizeof(struct ecore_rdma_create_cq_in_params));
-        memset(&destroy_iparams, 0, sizeof(struct ecore_rdma_destroy_cq_in_params));
-        memset(&destroy_oparams, 0, sizeof(struct ecore_rdma_destroy_cq_out_params));
+	memset(&params, 0, sizeof(struct ecore_rdma_create_cq_in_params));
+	memset(&destroy_iparams, 0,
+	    sizeof(struct ecore_rdma_destroy_cq_in_params));
+	memset(&destroy_oparams, 0,
+	    sizeof(struct ecore_rdma_destroy_cq_out_params));
 
 	if (entries > QLNXR_MAX_CQES) {
 		QL_DPRINT11(ha,
-			"the number of entries %d is too high. "
-			"Must be equal or below %d.\n",
-			entries, QLNXR_MAX_CQES);
+		    "the number of entries %d is too high. "
+		    "Must be equal or below %d.\n",
+		    entries, QLNXR_MAX_CQES);
 		return -EINVAL;
 	}
 	chain_entries = qlnxr_align_cq_entries(entries);
 	chain_entries = min_t(int, chain_entries, QLNXR_MAX_CQES);
 
 	if (udata) {
-		ctx = rdma_udata_to_drv_context(
-		    udata, struct qlnxr_ucontext, ibucontext);
+		ctx = rdma_udata_to_drv_context(udata, struct qlnxr_ucontext,
+		    ibucontext);
 
 		memset(&ureq, 0, sizeof(ureq));
 
@@ -1775,8 +1779,8 @@ qlnxr_create_cq(struct ib_cq *ibcq,
 
 		cq->cq_type = QLNXR_CQ_TYPE_USER;
 
-		qlnxr_init_user_queue(&ctx->ibucontext, dev, &cq->q, ureq.addr, ureq.len,
-				     IB_ACCESS_LOCAL_WRITE, 1, 1);
+		qlnxr_init_user_queue(&ctx->ibucontext, dev, &cq->q, ureq.addr,
+		    ureq.len, IB_ACCESS_LOCAL_WRITE, 1, 1);
 
 		pbl_ptr = cq->q.pbl_tbl->pa;
 		page_cnt = cq->q.pbl_info.num_pbes;
@@ -1786,13 +1790,10 @@ qlnxr_create_cq(struct ib_cq *ibcq,
 
 		cq->cq_type = QLNXR_CQ_TYPE_KERNEL;
 
-                rc = ecore_chain_alloc(&dev->ha->cdev,
-                           ECORE_CHAIN_USE_TO_CONSUME,
-                           ECORE_CHAIN_MODE_PBL,
-                           ECORE_CHAIN_CNT_TYPE_U32,
-                           chain_entries,
-                           sizeof(union roce_cqe),
-                           &cq->pbl, NULL);
+		rc = ecore_chain_alloc(&dev->ha->cdev,
+		    ECORE_CHAIN_USE_TO_CONSUME, ECORE_CHAIN_MODE_PBL,
+		    ECORE_CHAIN_CNT_TYPE_U32, chain_entries,
+		    sizeof(union roce_cqe), &cq->pbl, NULL);
 
 		if (rc)
 			goto err1;
@@ -1802,18 +1803,18 @@ qlnxr_create_cq(struct ib_cq *ibcq,
 		cq->ibcq.cqe = cq->pbl.capacity;
 	}
 
-        params.cq_handle_hi = upper_32_bits((uintptr_t)cq);
-        params.cq_handle_lo = lower_32_bits((uintptr_t)cq);
-        params.cnq_id = vector;
-        params.cq_size = chain_entries - 1;
-        params.pbl_num_pages = page_cnt;
-        params.pbl_ptr = pbl_ptr;
-        params.pbl_two_level = 0;
+	params.cq_handle_hi = upper_32_bits((uintptr_t)cq);
+	params.cq_handle_lo = lower_32_bits((uintptr_t)cq);
+	params.cnq_id = vector;
+	params.cq_size = chain_entries - 1;
+	params.pbl_num_pages = page_cnt;
+	params.pbl_ptr = pbl_ptr;
+	params.pbl_two_level = 0;
 
 	if (udata) {
-        	params.dpi = ctx->dpi;
+		params.dpi = ctx->dpi;
 	} else {
-        	params.dpi = dev->dpi;
+		params.dpi = dev->dpi;
 	}
 
 	rc = ecore_rdma_create_cq(dev->rdma_ctx, &params, &icid);
@@ -1836,10 +1837,10 @@ qlnxr_create_cq(struct ib_cq *ibcq,
 		 * TODO: add ifdef if plan to support 16 bit.
 		 */
 		cq->db_addr = dev->db_addr +
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_UCM_RDMA_CQ_CONS_32BIT);
+		    DB_ADDR_SHIFT(DQ_PWM_OFFSET_UCM_RDMA_CQ_CONS_32BIT);
 		cq->db.data.icid = cq->icid;
-		cq->db.data.params = DB_AGG_CMD_SET <<
-				     RDMA_PWM_VAL32_DATA_AGG_CMD_SHIFT;
+		cq->db.data.params = DB_AGG_CMD_SET
+		    << RDMA_PWM_VAL32_DATA_AGG_CMD_SHIFT;
 
 		/* point to the very last element, passing it we will toggle */
 		cq->toggle_cqe = ecore_chain_get_last_elem(&cq->pbl);
@@ -1851,15 +1852,17 @@ qlnxr_create_cq(struct ib_cq *ibcq,
 		cq->cq_cons = ecore_chain_get_cons_idx_u32(&cq->pbl);
 	}
 
-	QL_DPRINT12(ha, "exit icid = 0x%0x, addr = %p,"
-		" number of entries = 0x%x\n",
-		cq->icid, cq, params.cq_size);
-	QL_DPRINT12(ha,"cq_addr = %p\n", cq);
+	QL_DPRINT12(ha,
+	    "exit icid = 0x%0x, addr = %p,"
+	    " number of entries = 0x%x\n",
+	    cq->icid, cq, params.cq_size);
+	QL_DPRINT12(ha, "cq_addr = %p\n", cq);
 	return (0);
 
 err3:
 	destroy_iparams.icid = cq->icid;
-	ecore_rdma_destroy_cq(dev->rdma_ctx, &destroy_iparams, &destroy_oparams);
+	ecore_rdma_destroy_cq(dev->rdma_ctx, &destroy_iparams,
+	    &destroy_oparams);
 err2:
 	if (udata)
 		qlnxr_free_pbl(dev, &cq->q.pbl_info, cq->q.pbl_tbl);
@@ -1874,11 +1877,12 @@ err0:
 	return (-EINVAL);
 }
 
-int qlnxr_resize_cq(struct ib_cq *ibcq, int new_cnt, struct ib_udata *udata)
+int
+qlnxr_resize_cq(struct ib_cq *ibcq, int new_cnt, struct ib_udata *udata)
 {
-	int			status = 0;
-	struct qlnxr_dev	*dev = get_qlnxr_dev((ibcq->device));
-	qlnx_host_t		*ha;
+	int status = 0;
+	struct qlnxr_dev *dev = get_qlnxr_dev((ibcq->device));
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1890,12 +1894,12 @@ int qlnxr_resize_cq(struct ib_cq *ibcq, int new_cnt, struct ib_udata *udata)
 void
 qlnxr_destroy_cq(struct ib_cq *ibcq, struct ib_udata *udata)
 {
-	struct qlnxr_dev			*dev = get_qlnxr_dev((ibcq->device));
+	struct qlnxr_dev *dev = get_qlnxr_dev((ibcq->device));
 	struct ecore_rdma_destroy_cq_out_params oparams;
-	struct ecore_rdma_destroy_cq_in_params	iparams;
-	struct qlnxr_cq				*cq = get_qlnxr_cq(ibcq);
-	int					rc = 0;
-	qlnx_host_t				*ha;
+	struct ecore_rdma_destroy_cq_in_params iparams;
+	struct qlnxr_cq *cq = get_qlnxr_cq(ibcq);
+	int rc = 0;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -1916,8 +1920,9 @@ qlnxr_destroy_cq(struct ib_cq *ibcq, struct ib_udata *udata)
 		rc = ecore_rdma_destroy_cq(dev->rdma_ctx, &iparams, &oparams);
 
 		if (rc) {
-			QL_DPRINT12(ha, "ecore_rdma_destroy_cq failed cq_id = %d\n",
-				cq->icid);
+			QL_DPRINT12(ha,
+			    "ecore_rdma_destroy_cq failed cq_id = %d\n",
+			    cq->icid);
 			return;
 		}
 
@@ -1936,13 +1941,11 @@ qlnxr_destroy_cq(struct ib_cq *ibcq, struct ib_udata *udata)
 }
 
 static int
-qlnxr_check_qp_attrs(struct ib_pd *ibpd,
-	struct qlnxr_dev *dev,
-	struct ib_qp_init_attr *attrs,
-	struct ib_udata *udata)
+qlnxr_check_qp_attrs(struct ib_pd *ibpd, struct qlnxr_dev *dev,
+    struct ib_qp_init_attr *attrs, struct ib_udata *udata)
 {
-	struct ecore_rdma_device	*qattr;
-	qlnx_host_t			*ha;
+	struct ecore_rdma_device *qattr;
+	qlnx_host_t *ha;
 
 	qattr = ecore_rdma_query_device(dev->rdma_ctx);
 	ha = dev->ha;
@@ -1954,20 +1957,25 @@ qlnxr_check_qp_attrs(struct ib_pd *ibpd,
 	QL_DPRINT12(ha, "attrs->create_flags = %d\n", attrs->create_flags);
 
 	QL_DPRINT12(ha, "attrs->port_num = %d\n", attrs->port_num);
-	QL_DPRINT12(ha, "attrs->cap.max_send_wr = 0x%x\n", attrs->cap.max_send_wr);
-	QL_DPRINT12(ha, "attrs->cap.max_recv_wr = 0x%x\n", attrs->cap.max_recv_wr);
-	QL_DPRINT12(ha, "attrs->cap.max_send_sge = 0x%x\n", attrs->cap.max_send_sge);
-	QL_DPRINT12(ha, "attrs->cap.max_recv_sge = 0x%x\n", attrs->cap.max_recv_sge);
+	QL_DPRINT12(ha, "attrs->cap.max_send_wr = 0x%x\n",
+	    attrs->cap.max_send_wr);
+	QL_DPRINT12(ha, "attrs->cap.max_recv_wr = 0x%x\n",
+	    attrs->cap.max_recv_wr);
+	QL_DPRINT12(ha, "attrs->cap.max_send_sge = 0x%x\n",
+	    attrs->cap.max_send_sge);
+	QL_DPRINT12(ha, "attrs->cap.max_recv_sge = 0x%x\n",
+	    attrs->cap.max_recv_sge);
 	QL_DPRINT12(ha, "attrs->cap.max_inline_data = 0x%x\n",
-		attrs->cap.max_inline_data);
+	    attrs->cap.max_inline_data);
 
 	QL_DPRINT12(ha, "\n\nqattr->vendor_id = 0x%x\n", qattr->vendor_id);
-	QL_DPRINT12(ha, "qattr->vendor_part_id = 0x%x\n", qattr->vendor_part_id);
+	QL_DPRINT12(ha, "qattr->vendor_part_id = 0x%x\n",
+	    qattr->vendor_part_id);
 	QL_DPRINT12(ha, "qattr->hw_ver = 0x%x\n", qattr->hw_ver);
 	QL_DPRINT12(ha, "qattr->fw_ver = %p\n", (void *)qattr->fw_ver);
 	QL_DPRINT12(ha, "qattr->node_guid = %p\n", (void *)qattr->node_guid);
 	QL_DPRINT12(ha, "qattr->sys_image_guid = %p\n",
-		(void *)qattr->sys_image_guid);
+	    (void *)qattr->sys_image_guid);
 	QL_DPRINT12(ha, "qattr->max_cnq = 0x%x\n", qattr->max_cnq);
 	QL_DPRINT12(ha, "qattr->max_sge = 0x%x\n", qattr->max_sge);
 	QL_DPRINT12(ha, "qattr->max_srq_sge = 0x%x\n", qattr->max_srq_sge);
@@ -1975,36 +1983,37 @@ qlnxr_check_qp_attrs(struct ib_pd *ibpd,
 	QL_DPRINT12(ha, "qattr->max_wqe = 0x%x\n", qattr->max_wqe);
 	QL_DPRINT12(ha, "qattr->max_srq_wqe = 0x%x\n", qattr->max_srq_wqe);
 	QL_DPRINT12(ha, "qattr->max_qp_resp_rd_atomic_resc = 0x%x\n",
-		qattr->max_qp_resp_rd_atomic_resc);
+	    qattr->max_qp_resp_rd_atomic_resc);
 	QL_DPRINT12(ha, "qattr->max_qp_req_rd_atomic_resc = 0x%x\n",
-		qattr->max_qp_req_rd_atomic_resc);
+	    qattr->max_qp_req_rd_atomic_resc);
 	QL_DPRINT12(ha, "qattr->max_dev_resp_rd_atomic_resc = 0x%x\n",
-		qattr->max_dev_resp_rd_atomic_resc);
+	    qattr->max_dev_resp_rd_atomic_resc);
 	QL_DPRINT12(ha, "qattr->max_cq = 0x%x\n", qattr->max_cq);
 	QL_DPRINT12(ha, "qattr->max_qp = 0x%x\n", qattr->max_qp);
 	QL_DPRINT12(ha, "qattr->max_srq = 0x%x\n", qattr->max_srq);
 	QL_DPRINT12(ha, "qattr->max_mr = 0x%x\n", qattr->max_mr);
-	QL_DPRINT12(ha, "qattr->max_mr_size = %p\n", (void *)qattr->max_mr_size);
+	QL_DPRINT12(ha, "qattr->max_mr_size = %p\n",
+	    (void *)qattr->max_mr_size);
 	QL_DPRINT12(ha, "qattr->max_cqe = 0x%x\n", qattr->max_cqe);
 	QL_DPRINT12(ha, "qattr->max_mw = 0x%x\n", qattr->max_mw);
 	QL_DPRINT12(ha, "qattr->max_fmr = 0x%x\n", qattr->max_fmr);
 	QL_DPRINT12(ha, "qattr->max_mr_mw_fmr_pbl = 0x%x\n",
-		qattr->max_mr_mw_fmr_pbl);
+	    qattr->max_mr_mw_fmr_pbl);
 	QL_DPRINT12(ha, "qattr->max_mr_mw_fmr_size = %p\n",
-		(void *)qattr->max_mr_mw_fmr_size);
+	    (void *)qattr->max_mr_mw_fmr_size);
 	QL_DPRINT12(ha, "qattr->max_pd = 0x%x\n", qattr->max_pd);
 	QL_DPRINT12(ha, "qattr->max_ah = 0x%x\n", qattr->max_ah);
 	QL_DPRINT12(ha, "qattr->max_pkey = 0x%x\n", qattr->max_pkey);
 	QL_DPRINT12(ha, "qattr->max_srq_wr = 0x%x\n", qattr->max_srq_wr);
 	QL_DPRINT12(ha, "qattr->max_stats_queues = 0x%x\n",
-		qattr->max_stats_queues);
-	//QL_DPRINT12(ha, "qattr->dev_caps = 0x%x\n", qattr->dev_caps);
+	    qattr->max_stats_queues);
+	// QL_DPRINT12(ha, "qattr->dev_caps = 0x%x\n", qattr->dev_caps);
 	QL_DPRINT12(ha, "qattr->page_size_caps = %p\n",
-		(void *)qattr->page_size_caps);
+	    (void *)qattr->page_size_caps);
 	QL_DPRINT12(ha, "qattr->dev_ack_delay = 0x%x\n", qattr->dev_ack_delay);
 	QL_DPRINT12(ha, "qattr->reserved_lkey = 0x%x\n", qattr->reserved_lkey);
 	QL_DPRINT12(ha, "qattr->bad_pkey_counter = 0x%x\n",
-		qattr->bad_pkey_counter);
+	    qattr->bad_pkey_counter);
 
 	if ((attrs->qp_type == IB_QPT_GSI) && udata) {
 		QL_DPRINT12(ha, "unexpected udata when creating GSI QP\n");
@@ -2018,8 +2027,8 @@ qlnxr_check_qp_attrs(struct ib_pd *ibpd,
 
 	/* QP0... attrs->qp_type == IB_QPT_GSI */
 	if (attrs->qp_type != IB_QPT_RC && attrs->qp_type != IB_QPT_GSI) {
-		QL_DPRINT12(ha, "unsupported qp type=0x%x requested\n", 
-			   attrs->qp_type);
+		QL_DPRINT12(ha, "unsupported qp type=0x%x requested\n",
+		    attrs->qp_type);
 		return -EINVAL;
 	}
 	if (attrs->qp_type == IB_QPT_GSI && attrs->srq) {
@@ -2028,49 +2037,51 @@ qlnxr_check_qp_attrs(struct ib_pd *ibpd,
 	}
 	/* Skip the check for QP1 to support CM size of 128 */
 	if (attrs->cap.max_send_wr > qattr->max_wqe) {
-		QL_DPRINT12(ha, "cannot create a SQ with %d elements "
-			" (max_send_wr=0x%x)\n",
-			attrs->cap.max_send_wr, qattr->max_wqe);
+		QL_DPRINT12(ha,
+		    "cannot create a SQ with %d elements "
+		    " (max_send_wr=0x%x)\n",
+		    attrs->cap.max_send_wr, qattr->max_wqe);
 		return -EINVAL;
 	}
 	if (!attrs->srq && (attrs->cap.max_recv_wr > qattr->max_wqe)) {
-		QL_DPRINT12(ha, "cannot create a RQ with %d elements"
-			" (max_recv_wr=0x%x)\n",
-			attrs->cap.max_recv_wr, qattr->max_wqe);
+		QL_DPRINT12(ha,
+		    "cannot create a RQ with %d elements"
+		    " (max_recv_wr=0x%x)\n",
+		    attrs->cap.max_recv_wr, qattr->max_wqe);
 		return -EINVAL;
 	}
 	if (attrs->cap.max_inline_data > qattr->max_inline) {
 		QL_DPRINT12(ha,
-			"unsupported inline data size=0x%x "
-			"requested (max_inline=0x%x)\n",
-			attrs->cap.max_inline_data, qattr->max_inline);
+		    "unsupported inline data size=0x%x "
+		    "requested (max_inline=0x%x)\n",
+		    attrs->cap.max_inline_data, qattr->max_inline);
 		return -EINVAL;
 	}
 	if (attrs->cap.max_send_sge > qattr->max_sge) {
 		QL_DPRINT12(ha,
-			"unsupported send_sge=0x%x "
-			"requested (max_send_sge=0x%x)\n",
-			attrs->cap.max_send_sge, qattr->max_sge);
+		    "unsupported send_sge=0x%x "
+		    "requested (max_send_sge=0x%x)\n",
+		    attrs->cap.max_send_sge, qattr->max_sge);
 		return -EINVAL;
 	}
 	if (attrs->cap.max_recv_sge > qattr->max_sge) {
 		QL_DPRINT12(ha,
-			"unsupported recv_sge=0x%x requested "
-			" (max_recv_sge=0x%x)\n",
-			attrs->cap.max_recv_sge, qattr->max_sge);
+		    "unsupported recv_sge=0x%x requested "
+		    " (max_recv_sge=0x%x)\n",
+		    attrs->cap.max_recv_sge, qattr->max_sge);
 		return -EINVAL;
 	}
 	/* unprivileged user space cannot create special QP */
 	if (ibpd->uobject && attrs->qp_type == IB_QPT_GSI) {
 		QL_DPRINT12(ha,
-			"userspace can't create special QPs of type=0x%x\n",
-			attrs->qp_type);
+		    "userspace can't create special QPs of type=0x%x\n",
+		    attrs->qp_type);
 		return -EINVAL;
 	}
 	/* allow creating only one GSI type of QP */
 	if (attrs->qp_type == IB_QPT_GSI && dev->gsi_qp_created) {
 		QL_DPRINT12(ha,
-			"create qp: GSI special QPs already created.\n");
+		    "create qp: GSI special QPs already created.\n");
 		return -EINVAL;
 	}
 
@@ -2090,13 +2101,12 @@ qlnxr_check_qp_attrs(struct ib_pd *ibpd,
 }
 
 static int
-qlnxr_copy_srq_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_srq *srq,
-	struct ib_udata *udata)
+qlnxr_copy_srq_uresp(struct qlnxr_dev *dev, struct qlnxr_srq *srq,
+    struct ib_udata *udata)
 {
-	struct qlnxr_create_srq_uresp	uresp;
-	qlnx_host_t			*ha;
-	int				rc;
+	struct qlnxr_create_srq_uresp uresp;
+	qlnx_host_t *ha;
+	int rc;
 
 	ha = dev->ha;
 
@@ -2113,11 +2123,10 @@ qlnxr_copy_srq_uresp(struct qlnxr_dev *dev,
 }
 
 static void
-qlnxr_copy_rq_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_create_qp_uresp *uresp,
-	struct qlnxr_qp *qp)
+qlnxr_copy_rq_uresp(struct qlnxr_dev *dev, struct qlnxr_create_qp_uresp *uresp,
+    struct qlnxr_qp *qp)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2129,17 +2138,17 @@ qlnxr_copy_rq_uresp(struct qlnxr_dev *dev,
 
 	/* iWARP requires two doorbells per RQ. */
 	if (QLNX_IS_IWARP(dev)) {
-		uresp->rq_db_offset =
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_IWARP_RQ_PROD);
-		uresp->rq_db2_offset =
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_FLAGS);
+		uresp->rq_db_offset = DB_ADDR_SHIFT(
+		    DQ_PWM_OFFSET_TCM_IWARP_RQ_PROD);
+		uresp->rq_db2_offset = DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_FLAGS);
 
-		QL_DPRINT12(ha, "uresp->rq_db_offset = 0x%x "
-			"uresp->rq_db2_offset = 0x%x\n",
-			uresp->rq_db_offset, uresp->rq_db2_offset);
+		QL_DPRINT12(ha,
+		    "uresp->rq_db_offset = 0x%x "
+		    "uresp->rq_db2_offset = 0x%x\n",
+		    uresp->rq_db_offset, uresp->rq_db2_offset);
 	} else {
-		uresp->rq_db_offset =
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_ROCE_RQ_PROD);
+		uresp->rq_db_offset = DB_ADDR_SHIFT(
+		    DQ_PWM_OFFSET_TCM_ROCE_RQ_PROD);
 	}
 	uresp->rq_icid = qp->icid;
 
@@ -2148,11 +2157,10 @@ qlnxr_copy_rq_uresp(struct qlnxr_dev *dev,
 }
 
 static void
-qlnxr_copy_sq_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_create_qp_uresp *uresp,
-	struct qlnxr_qp *qp)
+qlnxr_copy_sq_uresp(struct qlnxr_dev *dev, struct qlnxr_create_qp_uresp *uresp,
+    struct qlnxr_qp *qp)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2172,13 +2180,12 @@ qlnxr_copy_sq_uresp(struct qlnxr_dev *dev,
 }
 
 static int
-qlnxr_copy_qp_uresp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ib_udata *udata)
+qlnxr_copy_qp_uresp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ib_udata *udata)
 {
-	int				rc;
-	struct qlnxr_create_qp_uresp	uresp;
-	qlnx_host_t			*ha;
+	int rc;
+	struct qlnxr_create_qp_uresp uresp;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2198,12 +2205,10 @@ qlnxr_copy_qp_uresp(struct qlnxr_dev *dev,
 }
 
 static void
-qlnxr_set_common_qp_params(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_pd *pd,
-	struct ib_qp_init_attr *attrs)
+qlnxr_set_common_qp_params(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_pd *pd, struct ib_qp_init_attr *attrs)
 {
-	qlnx_host_t			*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2227,27 +2232,26 @@ qlnxr_set_common_qp_params(struct qlnxr_dev *dev,
 		/* QP is associated with RQ instead of SRQ */
 		qp->rq.max_sges = attrs->cap.max_recv_sge;
 		QL_DPRINT12(ha, "RQ params:\trq_max_sges = %d, rq_cq_id = %d\n",
-			qp->rq.max_sges, qp->rq_cq->icid);
+		    qp->rq.max_sges, qp->rq_cq->icid);
 	} else {
 		qp->srq = get_qlnxr_srq(attrs->srq);
 	}
 
 	QL_DPRINT12(ha,
-		"QP params:\tpd = %d, qp_type = %d, max_inline_data = %d,"
-		" state = %d, signaled = %d, use_srq=%d\n",
-		pd->pd_id, qp->qp_type, qp->max_inline_data,
-		qp->state, qp->signaled, ((attrs->srq) ? 1 : 0));
+	    "QP params:\tpd = %d, qp_type = %d, max_inline_data = %d,"
+	    " state = %d, signaled = %d, use_srq=%d\n",
+	    pd->pd_id, qp->qp_type, qp->max_inline_data, qp->state,
+	    qp->signaled, ((attrs->srq) ? 1 : 0));
 	QL_DPRINT12(ha, "SQ params:\tsq_max_sges = %d, sq_cq_id = %d\n",
-		qp->sq.max_sges, qp->sq_cq->icid);
+	    qp->sq.max_sges, qp->sq_cq->icid);
 	return;
 }
 
 static int
-qlnxr_check_srq_params(struct qlnxr_dev *dev,
-	struct ib_srq_init_attr *attrs)
+qlnxr_check_srq_params(struct qlnxr_dev *dev, struct ib_srq_init_attr *attrs)
 {
 	struct ecore_rdma_device *qattr;
-	qlnx_host_t		*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 	qattr = ecore_rdma_query_device(dev->rdma_ctx);
@@ -2255,24 +2259,25 @@ qlnxr_check_srq_params(struct qlnxr_dev *dev,
 	QL_DPRINT12(ha, "enter\n");
 
 	if (attrs->attr.max_wr > qattr->max_srq_wqe) {
-		QL_DPRINT12(ha, "unsupported srq_wr=0x%x"
-			" requested (max_srq_wr=0x%x)\n",
-			attrs->attr.max_wr, qattr->max_srq_wr);
+		QL_DPRINT12(ha,
+		    "unsupported srq_wr=0x%x"
+		    " requested (max_srq_wr=0x%x)\n",
+		    attrs->attr.max_wr, qattr->max_srq_wr);
 		return -EINVAL;
 	}
 
 	if (attrs->attr.max_sge > qattr->max_sge) {
 		QL_DPRINT12(ha,
-			"unsupported sge=0x%x requested (max_srq_sge=0x%x)\n",
-			attrs->attr.max_sge, qattr->max_sge);
+		    "unsupported sge=0x%x requested (max_srq_sge=0x%x)\n",
+		    attrs->attr.max_sge, qattr->max_sge);
 		return -EINVAL;
 	}
 
 	if (attrs->attr.srq_limit > attrs->attr.max_wr) {
 		QL_DPRINT12(ha,
-		       "unsupported srq_limit=0x%x requested"
-			" (max_srq_limit=0x%x)\n",
-			attrs->attr.srq_limit, attrs->attr.srq_limit);
+		    "unsupported srq_limit=0x%x requested"
+		    " (max_srq_limit=0x%x)\n",
+		    attrs->attr.srq_limit, attrs->attr.srq_limit);
 		return -EINVAL;
 	}
 
@@ -2283,8 +2288,8 @@ qlnxr_check_srq_params(struct qlnxr_dev *dev,
 static void
 qlnxr_free_srq_user_params(struct qlnxr_srq *srq)
 {
-	struct qlnxr_dev	*dev = srq->dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_dev *dev = srq->dev;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2301,9 +2306,9 @@ qlnxr_free_srq_user_params(struct qlnxr_srq *srq)
 static void
 qlnxr_free_srq_kernel_params(struct qlnxr_srq *srq)
 {
-	struct qlnxr_srq_hwq_info *hw_srq  = &srq->hw_srq;
-	struct qlnxr_dev	*dev = srq->dev;
-	qlnx_host_t		*ha;
+	struct qlnxr_srq_hwq_info *hw_srq = &srq->hw_srq;
+	struct qlnxr_dev *dev = srq->dev;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2311,10 +2316,8 @@ qlnxr_free_srq_kernel_params(struct qlnxr_srq *srq)
 
 	ecore_chain_free(dev->cdev, &hw_srq->pbl);
 
-	qlnx_dma_free_coherent(&dev->cdev,
-		hw_srq->virt_prod_pair_addr,
-		hw_srq->phy_prod_pair_addr,
-		sizeof(struct rdma_srq_producers));
+	qlnx_dma_free_coherent(&dev->cdev, hw_srq->virt_prod_pair_addr,
+	    hw_srq->phy_prod_pair_addr, sizeof(struct rdma_srq_producers));
 
 	QL_DPRINT12(ha, "exit\n");
 
@@ -2322,34 +2325,32 @@ qlnxr_free_srq_kernel_params(struct qlnxr_srq *srq)
 }
 
 static int
-qlnxr_init_srq_user_params(struct ib_ucontext *ib_ctx,
-	struct qlnxr_srq *srq,
-	struct qlnxr_create_srq_ureq *ureq,
-	int access, int dmasync)
+qlnxr_init_srq_user_params(struct ib_ucontext *ib_ctx, struct qlnxr_srq *srq,
+    struct qlnxr_create_srq_ureq *ureq, int access, int dmasync)
 {
-	struct scatterlist	*sg;
-	int			rc;
-	struct qlnxr_dev	*dev = srq->dev;
-	qlnx_host_t		*ha;
+	struct scatterlist *sg;
+	int rc;
+	struct qlnxr_dev *dev = srq->dev;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	rc = qlnxr_init_user_queue(ib_ctx, srq->dev, &srq->usrq, ureq->srq_addr,
-				  ureq->srq_len, access, dmasync, 1);
+	    ureq->srq_len, access, dmasync, 1);
 	if (rc)
 		return rc;
 
 	srq->prod_umem = ib_umem_get(ib_ctx, ureq->prod_pair_addr,
-				     sizeof(struct rdma_srq_producers),
-				     access, dmasync);
+	    sizeof(struct rdma_srq_producers), access, dmasync);
 	if (IS_ERR(srq->prod_umem)) {
-		qlnxr_free_pbl(srq->dev, &srq->usrq.pbl_info, srq->usrq.pbl_tbl);
+		qlnxr_free_pbl(srq->dev, &srq->usrq.pbl_info,
+		    srq->usrq.pbl_tbl);
 		ib_umem_release(srq->usrq.umem);
 
 		QL_DPRINT12(ha, "ib_umem_get failed for producer [%p]\n",
-			PTR_ERR(srq->prod_umem));
+		    PTR_ERR(srq->prod_umem));
 
 		return PTR_ERR(srq->prod_umem);
 	}
@@ -2362,26 +2363,25 @@ qlnxr_init_srq_user_params(struct ib_ucontext *ib_ctx,
 }
 
 static int
-qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq,
-	struct qlnxr_dev *dev,
-	struct ib_srq_init_attr *init_attr)
+qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq, struct qlnxr_dev *dev,
+    struct ib_srq_init_attr *init_attr)
 {
-	struct qlnxr_srq_hwq_info	*hw_srq  = &srq->hw_srq;
-	dma_addr_t			phy_prod_pair_addr;
-	u32				num_elems, max_wr;
-	void				*va;
-	int				rc;
-	qlnx_host_t			*ha;
+	struct qlnxr_srq_hwq_info *hw_srq = &srq->hw_srq;
+	dma_addr_t phy_prod_pair_addr;
+	u32 num_elems, max_wr;
+	void *va;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
-	va = qlnx_dma_alloc_coherent(&dev->cdev,
-			&phy_prod_pair_addr,
-			sizeof(struct rdma_srq_producers));
+	va = qlnx_dma_alloc_coherent(&dev->cdev, &phy_prod_pair_addr,
+	    sizeof(struct rdma_srq_producers));
 	if (!va) {
-		QL_DPRINT11(ha, "qlnx_dma_alloc_coherent failed for produceer\n");
+		QL_DPRINT11(ha,
+		    "qlnx_dma_alloc_coherent failed for produceer\n");
 		return -ENOMEM;
 	}
 
@@ -2392,13 +2392,9 @@ qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq,
 
 	num_elems = max_wr * RDMA_MAX_SRQ_WQE_SIZE;
 
-        rc = ecore_chain_alloc(dev->cdev,
-                   ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-                   ECORE_CHAIN_MODE_PBL,
-                   ECORE_CHAIN_CNT_TYPE_U32,
-                   num_elems,
-                   ECORE_RDMA_SRQ_WQE_ELEM_SIZE,
-                   &hw_srq->pbl, NULL);
+	rc = ecore_chain_alloc(dev->cdev, ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
+	    ECORE_CHAIN_MODE_PBL, ECORE_CHAIN_CNT_TYPE_U32, num_elems,
+	    ECORE_RDMA_SRQ_WQE_ELEM_SIZE, &hw_srq->pbl, NULL);
 
 	if (rc) {
 		QL_DPRINT11(ha, "ecore_chain_alloc failed [%d]\n", rc);
@@ -2414,21 +2410,18 @@ qlnxr_alloc_srq_kernel_params(struct qlnxr_srq *srq,
 
 err0:
 	qlnx_dma_free_coherent(&dev->cdev, va, phy_prod_pair_addr,
-		sizeof(struct rdma_srq_producers));
+	    sizeof(struct rdma_srq_producers));
 
 	QL_DPRINT12(ha, "exit [%d]\n", rc);
 	return rc;
 }
 
 static inline void
-qlnxr_init_common_qp_in_params(struct qlnxr_dev *dev,
-	struct qlnxr_pd *pd,
-	struct qlnxr_qp *qp,
-	struct ib_qp_init_attr *attrs,
-	bool fmr_and_reserved_lkey,
-	struct ecore_rdma_create_qp_in_params *params)
+qlnxr_init_common_qp_in_params(struct qlnxr_dev *dev, struct qlnxr_pd *pd,
+    struct qlnxr_qp *qp, struct ib_qp_init_attr *attrs,
+    bool fmr_and_reserved_lkey, struct ecore_rdma_create_qp_in_params *params)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2452,7 +2445,7 @@ qlnxr_init_common_qp_in_params(struct qlnxr_dev *dev,
 		params->srq_id = qp->srq->srq_id;
 		params->use_srq = true;
 		QL_DPRINT11(ha, "exit srq_id = 0x%x use_srq = 0x%x\n",
-			params->srq_id, params->use_srq);
+		    params->srq_id, params->use_srq);
 		return;
 	}
 
@@ -2464,22 +2457,22 @@ qlnxr_init_common_qp_in_params(struct qlnxr_dev *dev,
 }
 
 static inline void
-qlnxr_qp_user_print( struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp)
+qlnxr_qp_user_print(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 {
-	QL_DPRINT12((dev->ha), "qp=%p. sq_addr=0x%llx, sq_len=%zd, "
-		"rq_addr=0x%llx, rq_len=%zd\n",
-		qp, qp->usq.buf_addr, qp->usq.buf_len, qp->urq.buf_addr,
-		qp->urq.buf_len);
+	QL_DPRINT12((dev->ha),
+	    "qp=%p. sq_addr=0x%llx, sq_len=%zd, "
+	    "rq_addr=0x%llx, rq_len=%zd\n",
+	    qp, qp->usq.buf_addr, qp->usq.buf_len, qp->urq.buf_addr,
+	    qp->urq.buf_len);
 	return;
 }
 
 static int
 qlnxr_idr_add(struct qlnxr_dev *dev, void *ptr, u32 id)
 {
-	u32		newid;
-	int		rc;
-	qlnx_host_t	*ha;
+	u32 newid;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2510,7 +2503,7 @@ qlnxr_idr_add(struct qlnxr_dev *dev, void *ptr, u32 id)
 static void
 qlnxr_idr_remove(struct qlnxr_dev *dev, u32 id)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2529,11 +2522,10 @@ qlnxr_idr_remove(struct qlnxr_dev *dev, u32 id)
 }
 
 static inline void
-qlnxr_iwarp_populate_user_qp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ecore_rdma_create_qp_out_params *out_params)
+qlnxr_iwarp_populate_user_qp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ecore_rdma_create_qp_out_params *out_params)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2543,7 +2535,7 @@ qlnxr_iwarp_populate_user_qp(struct qlnxr_dev *dev,
 	qp->usq.pbl_tbl->pa = out_params->sq_pbl_phys;
 
 	qlnxr_populate_pbls(dev, qp->usq.umem, qp->usq.pbl_tbl,
-			   &qp->usq.pbl_info);
+	    &qp->usq.pbl_info);
 
 	if (qp->srq) {
 		QL_DPRINT11(ha, "qp->srq = %p\n", qp->srq);
@@ -2554,18 +2546,15 @@ qlnxr_iwarp_populate_user_qp(struct qlnxr_dev *dev,
 	qp->urq.pbl_tbl->pa = out_params->rq_pbl_phys;
 
 	qlnxr_populate_pbls(dev, qp->urq.umem, qp->urq.pbl_tbl,
-			   &qp->urq.pbl_info);
+	    &qp->urq.pbl_info);
 
 	QL_DPRINT12(ha, "exit\n");
 	return;
 }
 
 static int
-qlnxr_create_user_qp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ib_pd *ibpd,
-	struct ib_udata *udata,
-	struct ib_qp_init_attr *attrs)
+qlnxr_create_user_qp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ib_pd *ibpd, struct ib_udata *udata, struct ib_qp_init_attr *attrs)
 {
 	struct ecore_rdma_destroy_qp_out_params d_out_params;
 	struct ecore_rdma_create_qp_in_params in_params;
@@ -2575,7 +2564,7 @@ qlnxr_create_user_qp(struct qlnxr_dev *dev,
 	struct qlnxr_create_qp_ureq ureq;
 	int alloc_and_init = QLNX_IS_ROCE(dev);
 	int rc = -EINVAL;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2593,8 +2582,7 @@ qlnxr_create_user_qp(struct qlnxr_dev *dev,
 
 	/* SQ - read access only (0), dma sync not required (0) */
 	rc = qlnxr_init_user_queue(ib_ctx, dev, &qp->usq, ureq.sq_addr,
-				  ureq.sq_len, 0, 0,
-				  alloc_and_init);
+	    ureq.sq_len, 0, 0, alloc_and_init);
 	if (rc) {
 		QL_DPRINT11(ha, "qlnxr_init_user_queue failed [%d]\n", rc);
 		return rc;
@@ -2603,11 +2591,11 @@ qlnxr_create_user_qp(struct qlnxr_dev *dev,
 	if (!qp->srq) {
 		/* RQ - read access only (0), dma sync not required (0) */
 		rc = qlnxr_init_user_queue(ib_ctx, dev, &qp->urq, ureq.rq_addr,
-					  ureq.rq_len, 0, 0,
-					  alloc_and_init);
+		    ureq.rq_len, 0, 0, alloc_and_init);
 
 		if (rc) {
-			QL_DPRINT11(ha, "qlnxr_init_user_queue failed [%d]\n", rc);
+			QL_DPRINT11(ha, "qlnxr_init_user_queue failed [%d]\n",
+			    rc);
 			return rc;
 		}
 	}
@@ -2624,7 +2612,8 @@ qlnxr_create_user_qp(struct qlnxr_dev *dev,
 		in_params.rq_pbl_ptr = qp->urq.pbl_tbl->pa;
 	}
 
-	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, &in_params, &out_params);
+	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, &in_params,
+	    &out_params);
 
 	if (!qp->ecore_qp) {
 		rc = -ENOMEM;
@@ -2663,22 +2652,21 @@ err1:
 }
 
 static void
-qlnxr_set_roce_db_info(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp)
+qlnxr_set_roce_db_info(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter qp = %p qp->srq %p\n", qp, qp->srq);
 
 	qp->sq.db = dev->db_addr +
-		DB_ADDR_SHIFT(DQ_PWM_OFFSET_XCM_RDMA_SQ_PROD);
+	    DB_ADDR_SHIFT(DQ_PWM_OFFSET_XCM_RDMA_SQ_PROD);
 	qp->sq.db_data.data.icid = qp->icid + 1;
 
 	if (!qp->srq) {
 		qp->rq.db = dev->db_addr +
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_ROCE_RQ_PROD);
+		    DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_ROCE_RQ_PROD);
 		qp->rq.db_data.data.icid = qp->icid;
 	}
 
@@ -2687,72 +2675,63 @@ qlnxr_set_roce_db_info(struct qlnxr_dev *dev,
 }
 
 static void
-qlnxr_set_iwarp_db_info(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp)
+qlnxr_set_iwarp_db_info(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter qp = %p qp->srq %p\n", qp, qp->srq);
 
 	qp->sq.db = dev->db_addr +
-		DB_ADDR_SHIFT(DQ_PWM_OFFSET_XCM_RDMA_SQ_PROD);
+	    DB_ADDR_SHIFT(DQ_PWM_OFFSET_XCM_RDMA_SQ_PROD);
 	qp->sq.db_data.data.icid = qp->icid;
 
 	if (!qp->srq) {
 		qp->rq.db = dev->db_addr +
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_IWARP_RQ_PROD);
+		    DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_IWARP_RQ_PROD);
 		qp->rq.db_data.data.icid = qp->icid;
 
 		qp->rq.iwarp_db2 = dev->db_addr +
-			DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_FLAGS);
+		    DB_ADDR_SHIFT(DQ_PWM_OFFSET_TCM_FLAGS);
 		qp->rq.iwarp_db2_data.data.icid = qp->icid;
 		qp->rq.iwarp_db2_data.data.value = DQ_TCM_IWARP_POST_RQ_CF_CMD;
 	}
 
 	QL_DPRINT12(ha,
-		"qp->sq.db = %p qp->sq.db_data.data.icid =0x%x\n"
-		"\t\t\tqp->rq.db = %p qp->rq.db_data.data.icid =0x%x\n"
-		"\t\t\tqp->rq.iwarp_db2 = %p qp->rq.iwarp_db2.data.icid =0x%x"
-		" qp->rq.iwarp_db2.data.prod_val =0x%x\n",
-		qp->sq.db, qp->sq.db_data.data.icid,
-		qp->rq.db, qp->rq.db_data.data.icid,
-		qp->rq.iwarp_db2, qp->rq.iwarp_db2_data.data.icid,
-		qp->rq.iwarp_db2_data.data.value);
+	    "qp->sq.db = %p qp->sq.db_data.data.icid =0x%x\n"
+	    "\t\t\tqp->rq.db = %p qp->rq.db_data.data.icid =0x%x\n"
+	    "\t\t\tqp->rq.iwarp_db2 = %p qp->rq.iwarp_db2.data.icid =0x%x"
+	    " qp->rq.iwarp_db2.data.prod_val =0x%x\n",
+	    qp->sq.db, qp->sq.db_data.data.icid, qp->rq.db,
+	    qp->rq.db_data.data.icid, qp->rq.iwarp_db2,
+	    qp->rq.iwarp_db2_data.data.icid, qp->rq.iwarp_db2_data.data.value);
 
 	QL_DPRINT12(ha, "exit\n");
 	return;
 }
 
 static int
-qlnxr_roce_create_kernel_qp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ecore_rdma_create_qp_in_params *in_params,
-	u32 n_sq_elems,
-	u32 n_rq_elems)
+qlnxr_roce_create_kernel_qp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ecore_rdma_create_qp_in_params *in_params, u32 n_sq_elems,
+    u32 n_rq_elems)
 {
 	struct ecore_rdma_create_qp_out_params out_params;
-	int		rc;
-	qlnx_host_t	*ha;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
-        rc = ecore_chain_alloc(
-                dev->cdev,
-                ECORE_CHAIN_USE_TO_PRODUCE,
-                ECORE_CHAIN_MODE_PBL,
-                ECORE_CHAIN_CNT_TYPE_U32,
-                n_sq_elems,
-                QLNXR_SQE_ELEMENT_SIZE,
-                &qp->sq.pbl,
-                NULL);
+	rc = ecore_chain_alloc(dev->cdev, ECORE_CHAIN_USE_TO_PRODUCE,
+	    ECORE_CHAIN_MODE_PBL, ECORE_CHAIN_CNT_TYPE_U32, n_sq_elems,
+	    QLNXR_SQE_ELEMENT_SIZE, &qp->sq.pbl, NULL);
 
 	if (rc) {
-		QL_DPRINT11(ha, "ecore_chain_alloc qp->sq.pbl failed[%d]\n", rc);
+		QL_DPRINT11(ha, "ecore_chain_alloc qp->sq.pbl failed[%d]\n",
+		    rc);
 		return rc;
 	}
 
@@ -2760,19 +2739,14 @@ qlnxr_roce_create_kernel_qp(struct qlnxr_dev *dev,
 	in_params->sq_pbl_ptr = ecore_chain_get_pbl_phys(&qp->sq.pbl);
 
 	if (!qp->srq) {
-                rc = ecore_chain_alloc(
-                        dev->cdev,
-                        ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-                        ECORE_CHAIN_MODE_PBL,
-                        ECORE_CHAIN_CNT_TYPE_U32,
-                        n_rq_elems,
-                        QLNXR_RQE_ELEMENT_SIZE,
-                        &qp->rq.pbl,
-                        NULL);
+		rc = ecore_chain_alloc(dev->cdev,
+		    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_PBL,
+		    ECORE_CHAIN_CNT_TYPE_U32, n_rq_elems,
+		    QLNXR_RQE_ELEMENT_SIZE, &qp->rq.pbl, NULL);
 
 		if (rc) {
 			QL_DPRINT11(ha,
-				"ecore_chain_alloc qp->rq.pbl failed[%d]\n", rc);
+			    "ecore_chain_alloc qp->rq.pbl failed[%d]\n", rc);
 			return rc;
 		}
 
@@ -2780,7 +2754,8 @@ qlnxr_roce_create_kernel_qp(struct qlnxr_dev *dev,
 		in_params->rq_pbl_ptr = ecore_chain_get_pbl_phys(&qp->rq.pbl);
 	}
 
-	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, in_params, &out_params);
+	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, in_params,
+	    &out_params);
 
 	if (!qp->ecore_qp) {
 		QL_DPRINT11(ha, "qp->ecore_qp == NULL\n");
@@ -2797,73 +2772,61 @@ qlnxr_roce_create_kernel_qp(struct qlnxr_dev *dev,
 }
 
 static int
-qlnxr_iwarp_create_kernel_qp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ecore_rdma_create_qp_in_params *in_params,
-	u32 n_sq_elems,
-	u32 n_rq_elems)
+qlnxr_iwarp_create_kernel_qp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ecore_rdma_create_qp_in_params *in_params, u32 n_sq_elems,
+    u32 n_rq_elems)
 {
 	struct ecore_rdma_destroy_qp_out_params d_out_params;
 	struct ecore_rdma_create_qp_out_params out_params;
 	struct ecore_chain_ext_pbl ext_pbl;
 	int rc;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	in_params->sq_num_pages = ECORE_CHAIN_PAGE_CNT(n_sq_elems,
-						     QLNXR_SQE_ELEMENT_SIZE,
-						     ECORE_CHAIN_MODE_PBL);
+	    QLNXR_SQE_ELEMENT_SIZE, ECORE_CHAIN_MODE_PBL);
 	in_params->rq_num_pages = ECORE_CHAIN_PAGE_CNT(n_rq_elems,
-						     QLNXR_RQE_ELEMENT_SIZE,
-						     ECORE_CHAIN_MODE_PBL);
+	    QLNXR_RQE_ELEMENT_SIZE, ECORE_CHAIN_MODE_PBL);
 
-	QL_DPRINT12(ha, "n_sq_elems = 0x%x"
-		" n_rq_elems = 0x%x in_params\n"
-		"\t\t\tqp_handle_lo\t\t= 0x%08x\n"
-		"\t\t\tqp_handle_hi\t\t= 0x%08x\n"
-		"\t\t\tqp_handle_async_lo\t\t= 0x%08x\n"
-		"\t\t\tqp_handle_async_hi\t\t= 0x%08x\n"
-		"\t\t\tuse_srq\t\t\t= 0x%x\n"
-		"\t\t\tsignal_all\t\t= 0x%x\n"
-		"\t\t\tfmr_and_reserved_lkey\t= 0x%x\n"
-		"\t\t\tpd\t\t\t= 0x%x\n"
-		"\t\t\tdpi\t\t\t= 0x%x\n"
-		"\t\t\tsq_cq_id\t\t\t= 0x%x\n"
-		"\t\t\tsq_num_pages\t\t= 0x%x\n"
-		"\t\t\tsq_pbl_ptr\t\t= %p\n"
-		"\t\t\tmax_sq_sges\t\t= 0x%x\n"
-		"\t\t\trq_cq_id\t\t\t= 0x%x\n"
-		"\t\t\trq_num_pages\t\t= 0x%x\n"
-		"\t\t\trq_pbl_ptr\t\t= %p\n"
-		"\t\t\tsrq_id\t\t\t= 0x%x\n"
-		"\t\t\tstats_queue\t\t= 0x%x\n",
-		n_sq_elems, n_rq_elems,
-		in_params->qp_handle_lo,
-		in_params->qp_handle_hi,
-		in_params->qp_handle_async_lo,
-		in_params->qp_handle_async_hi,
-		in_params->use_srq,
-		in_params->signal_all,
-		in_params->fmr_and_reserved_lkey,
-		in_params->pd,
-		in_params->dpi,
-		in_params->sq_cq_id,
-		in_params->sq_num_pages,
-		(void *)in_params->sq_pbl_ptr,
-		in_params->max_sq_sges,
-		in_params->rq_cq_id,
-		in_params->rq_num_pages,
-		(void *)in_params->rq_pbl_ptr,
-		in_params->srq_id,
-		in_params->stats_queue );
+	QL_DPRINT12(ha,
+	    "n_sq_elems = 0x%x"
+	    " n_rq_elems = 0x%x in_params\n"
+	    "\t\t\tqp_handle_lo\t\t= 0x%08x\n"
+	    "\t\t\tqp_handle_hi\t\t= 0x%08x\n"
+	    "\t\t\tqp_handle_async_lo\t\t= 0x%08x\n"
+	    "\t\t\tqp_handle_async_hi\t\t= 0x%08x\n"
+	    "\t\t\tuse_srq\t\t\t= 0x%x\n"
+	    "\t\t\tsignal_all\t\t= 0x%x\n"
+	    "\t\t\tfmr_and_reserved_lkey\t= 0x%x\n"
+	    "\t\t\tpd\t\t\t= 0x%x\n"
+	    "\t\t\tdpi\t\t\t= 0x%x\n"
+	    "\t\t\tsq_cq_id\t\t\t= 0x%x\n"
+	    "\t\t\tsq_num_pages\t\t= 0x%x\n"
+	    "\t\t\tsq_pbl_ptr\t\t= %p\n"
+	    "\t\t\tmax_sq_sges\t\t= 0x%x\n"
+	    "\t\t\trq_cq_id\t\t\t= 0x%x\n"
+	    "\t\t\trq_num_pages\t\t= 0x%x\n"
+	    "\t\t\trq_pbl_ptr\t\t= %p\n"
+	    "\t\t\tsrq_id\t\t\t= 0x%x\n"
+	    "\t\t\tstats_queue\t\t= 0x%x\n",
+	    n_sq_elems, n_rq_elems, in_params->qp_handle_lo,
+	    in_params->qp_handle_hi, in_params->qp_handle_async_lo,
+	    in_params->qp_handle_async_hi, in_params->use_srq,
+	    in_params->signal_all, in_params->fmr_and_reserved_lkey,
+	    in_params->pd, in_params->dpi, in_params->sq_cq_id,
+	    in_params->sq_num_pages, (void *)in_params->sq_pbl_ptr,
+	    in_params->max_sq_sges, in_params->rq_cq_id,
+	    in_params->rq_num_pages, (void *)in_params->rq_pbl_ptr,
+	    in_params->srq_id, in_params->stats_queue);
 
-	memset(&out_params, 0, sizeof (struct ecore_rdma_create_qp_out_params));
-	memset(&ext_pbl, 0, sizeof (struct ecore_chain_ext_pbl));
+	memset(&out_params, 0, sizeof(struct ecore_rdma_create_qp_out_params));
+	memset(&ext_pbl, 0, sizeof(struct ecore_chain_ext_pbl));
 
-	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, in_params, &out_params);
+	qp->ecore_qp = ecore_rdma_create_qp(dev->rdma_ctx, in_params,
+	    &out_params);
 
 	if (!qp->ecore_qp) {
 		QL_DPRINT11(ha, "ecore_rdma_create_qp failed\n");
@@ -2874,53 +2837,46 @@ qlnxr_iwarp_create_kernel_qp(struct qlnxr_dev *dev,
 	ext_pbl.p_pbl_virt = out_params.sq_pbl_virt;
 	ext_pbl.p_pbl_phys = out_params.sq_pbl_phys;
 
-	QL_DPRINT12(ha, "ext_pbl.p_pbl_virt = %p "
-		"ext_pbl.p_pbl_phys = %p\n",
-		ext_pbl.p_pbl_virt, ext_pbl.p_pbl_phys);
-		
-        rc = ecore_chain_alloc(
-                dev->cdev,
-                ECORE_CHAIN_USE_TO_PRODUCE,
-                ECORE_CHAIN_MODE_PBL,
-                ECORE_CHAIN_CNT_TYPE_U32,
-                n_sq_elems,
-                QLNXR_SQE_ELEMENT_SIZE,
-                &qp->sq.pbl,
-                &ext_pbl);
+	QL_DPRINT12(ha,
+	    "ext_pbl.p_pbl_virt = %p "
+	    "ext_pbl.p_pbl_phys = %p\n",
+	    ext_pbl.p_pbl_virt, ext_pbl.p_pbl_phys);
+
+	rc = ecore_chain_alloc(dev->cdev, ECORE_CHAIN_USE_TO_PRODUCE,
+	    ECORE_CHAIN_MODE_PBL, ECORE_CHAIN_CNT_TYPE_U32, n_sq_elems,
+	    QLNXR_SQE_ELEMENT_SIZE, &qp->sq.pbl, &ext_pbl);
 
 	if (rc) {
-		QL_DPRINT11(ha,
-			"ecore_chain_alloc qp->sq.pbl failed rc = %d\n", rc);
+		QL_DPRINT11(ha, "ecore_chain_alloc qp->sq.pbl failed rc = %d\n",
+		    rc);
 		goto err;
 	}
 
 	ext_pbl.p_pbl_virt = out_params.rq_pbl_virt;
 	ext_pbl.p_pbl_phys = out_params.rq_pbl_phys;
 
-	QL_DPRINT12(ha, "ext_pbl.p_pbl_virt = %p "
-		"ext_pbl.p_pbl_phys = %p\n",
-		ext_pbl.p_pbl_virt, ext_pbl.p_pbl_phys);
+	QL_DPRINT12(ha,
+	    "ext_pbl.p_pbl_virt = %p "
+	    "ext_pbl.p_pbl_phys = %p\n",
+	    ext_pbl.p_pbl_virt, ext_pbl.p_pbl_phys);
 
 	if (!qp->srq) {
-                rc = ecore_chain_alloc(
-                        dev->cdev,
-                        ECORE_CHAIN_USE_TO_CONSUME_PRODUCE,
-                        ECORE_CHAIN_MODE_PBL,
-                        ECORE_CHAIN_CNT_TYPE_U32,
-                        n_rq_elems,
-                        QLNXR_RQE_ELEMENT_SIZE,
-                        &qp->rq.pbl,
-                        &ext_pbl);
+		rc = ecore_chain_alloc(dev->cdev,
+		    ECORE_CHAIN_USE_TO_CONSUME_PRODUCE, ECORE_CHAIN_MODE_PBL,
+		    ECORE_CHAIN_CNT_TYPE_U32, n_rq_elems,
+		    QLNXR_RQE_ELEMENT_SIZE, &qp->rq.pbl, &ext_pbl);
 
 		if (rc) {
-			QL_DPRINT11(ha,, "ecore_chain_alloc qp->rq.pbl"
-				" failed rc = %d\n", rc);
+			QL_DPRINT11(ha, ,
+			    "ecore_chain_alloc qp->rq.pbl"
+			    " failed rc = %d\n",
+			    rc);
 			goto err;
 		}
 	}
 
-	QL_DPRINT12(ha, "qp_id = 0x%x icid =0x%x\n",
-		out_params.qp_id, out_params.icid);
+	QL_DPRINT12(ha, "qp_id = 0x%x icid =0x%x\n", out_params.qp_id,
+	    out_params.icid);
 
 	qp->qp_id = out_params.qp_id;
 	qp->icid = out_params.icid;
@@ -2938,10 +2894,8 @@ err:
 }
 
 static int
-qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct ib_pd *ibpd,
-	struct ib_qp_init_attr *attrs)
+qlnxr_create_kernel_qp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ib_pd *ibpd, struct ib_qp_init_attr *attrs)
 {
 	struct ecore_rdma_create_qp_in_params in_params;
 	struct qlnxr_pd *pd = get_qlnxr_pd(ibpd);
@@ -2949,8 +2903,9 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 	u32 n_rq_elems;
 	u32 n_sq_elems;
 	u32 n_sq_entries;
-	struct ecore_rdma_device *qattr = ecore_rdma_query_device(dev->rdma_ctx);
-	qlnx_host_t	*ha;
+	struct ecore_rdma_device *qattr = ecore_rdma_query_device(
+	    dev->rdma_ctx);
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -2969,10 +2924,10 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 	 * error prints in the dmesg we'd like to avoid.
 	 */
 	qp->sq.max_wr = min_t(u32, attrs->cap.max_send_wr * dev->wq_multiplier,
-			      qattr->max_wqe);
+	    qattr->max_wqe);
 
 	qp->wqe_wr_id = kzalloc(qp->sq.max_wr * sizeof(*qp->wqe_wr_id),
-			GFP_KERNEL);
+	    GFP_KERNEL);
 	if (!qp->wqe_wr_id) {
 		QL_DPRINT11(ha, "failed SQ shadow memory allocation\n");
 		return -ENOMEM;
@@ -2991,7 +2946,7 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 	/* Allocate driver internal RQ array */
 	if (!qp->srq) {
 		qp->rqe_wr_id = kzalloc(qp->rq.max_wr * sizeof(*qp->rqe_wr_id),
-					GFP_KERNEL);
+		    GFP_KERNEL);
 		if (!qp->rqe_wr_id) {
 			QL_DPRINT11(ha, "failed RQ shadow memory allocation\n");
 			kfree(qp->wqe_wr_id);
@@ -2999,28 +2954,28 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 		}
 	}
 
-	//qlnxr_init_common_qp_in_params(dev, pd, qp, attrs, true, &in_params);
+	// qlnxr_init_common_qp_in_params(dev, pd, qp, attrs, true, &in_params);
 
-        in_params.qp_handle_async_lo = lower_32_bits((uintptr_t)qp);
-        in_params.qp_handle_async_hi = upper_32_bits((uintptr_t)qp);
+	in_params.qp_handle_async_lo = lower_32_bits((uintptr_t)qp);
+	in_params.qp_handle_async_hi = upper_32_bits((uintptr_t)qp);
 
-        in_params.signal_all = (attrs->sq_sig_type == IB_SIGNAL_ALL_WR);
-        in_params.fmr_and_reserved_lkey = true;
-        in_params.pd = pd->pd_id;
-        in_params.dpi = pd->uctx ? pd->uctx->dpi : dev->dpi;
-        in_params.sq_cq_id = get_qlnxr_cq(attrs->send_cq)->icid;
-        in_params.stats_queue = 0;
+	in_params.signal_all = (attrs->sq_sig_type == IB_SIGNAL_ALL_WR);
+	in_params.fmr_and_reserved_lkey = true;
+	in_params.pd = pd->pd_id;
+	in_params.dpi = pd->uctx ? pd->uctx->dpi : dev->dpi;
+	in_params.sq_cq_id = get_qlnxr_cq(attrs->send_cq)->icid;
+	in_params.stats_queue = 0;
 
-        in_params.rq_cq_id = get_qlnxr_cq(attrs->recv_cq)->icid;
+	in_params.rq_cq_id = get_qlnxr_cq(attrs->recv_cq)->icid;
 
-        if (qp->srq) {
-                /* QP is associated with SRQ instead of RQ */
-                in_params.srq_id = qp->srq->srq_id;
-                in_params.use_srq = true;
-                QL_DPRINT11(ha, "exit srq_id = 0x%x use_srq = 0x%x\n",
-                        in_params.srq_id, in_params.use_srq);
-        } else {
-        	in_params.srq_id = 0;
+	if (qp->srq) {
+		/* QP is associated with SRQ instead of RQ */
+		in_params.srq_id = qp->srq->srq_id;
+		in_params.use_srq = true;
+		QL_DPRINT11(ha, "exit srq_id = 0x%x use_srq = 0x%x\n",
+		    in_params.srq_id, in_params.use_srq);
+	} else {
+		in_params.srq_id = 0;
 		in_params.use_srq = false;
 	}
 
@@ -3033,10 +2988,10 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 
 	if (QLNX_IS_ROCE(dev)) {
 		rc = qlnxr_roce_create_kernel_qp(dev, qp, &in_params,
-						n_sq_elems, n_rq_elems);
+		    n_sq_elems, n_rq_elems);
 	} else {
 		rc = qlnxr_iwarp_create_kernel_qp(dev, qp, &in_params,
-						 n_sq_elems, n_rq_elems);
+		    n_sq_elems, n_rq_elems);
 	}
 
 	if (rc)
@@ -3047,15 +3002,14 @@ qlnxr_create_kernel_qp(struct qlnxr_dev *dev,
 }
 
 struct ib_qp *
-qlnxr_create_qp(struct ib_pd *ibpd,
-		struct ib_qp_init_attr *attrs,
-		struct ib_udata *udata)
+qlnxr_create_qp(struct ib_pd *ibpd, struct ib_qp_init_attr *attrs,
+    struct ib_udata *udata)
 {
 	struct qlnxr_dev *dev = get_qlnxr_dev(ibpd->device);
 	struct qlnxr_pd *pd = get_qlnxr_pd(ibpd);
 	struct qlnxr_qp *qp;
 	int rc = 0;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -3067,14 +3021,12 @@ qlnxr_create_qp(struct ib_pd *ibpd,
 		return ERR_PTR(rc);
 	}
 
-	QL_DPRINT12(ha, "called from %s, event_handle=%p,"
-		" eepd=%p sq_cq=%p, sq_icid=%d, rq_cq=%p, rq_icid=%d\n",
-		(udata ? "user library" : "kernel"),
-		attrs->event_handler, pd,
-		get_qlnxr_cq(attrs->send_cq),
-		get_qlnxr_cq(attrs->send_cq)->icid,
-		get_qlnxr_cq(attrs->recv_cq),
-		get_qlnxr_cq(attrs->recv_cq)->icid);
+	QL_DPRINT12(ha,
+	    "called from %s, event_handle=%p,"
+	    " eepd=%p sq_cq=%p, sq_icid=%d, rq_cq=%p, rq_icid=%d\n",
+	    (udata ? "user library" : "kernel"), attrs->event_handler, pd,
+	    get_qlnxr_cq(attrs->send_cq), get_qlnxr_cq(attrs->send_cq)->icid,
+	    get_qlnxr_cq(attrs->recv_cq), get_qlnxr_cq(attrs->recv_cq)->icid);
 
 	qp = qlnx_zalloc(sizeof(struct qlnxr_qp));
 
@@ -3161,7 +3113,7 @@ qlnxr_get_ibqp_state(enum ecore_roce_qp_state qp_state)
 }
 
 static enum ecore_roce_qp_state
-qlnxr_get_state_from_ibqp( enum ib_qp_state qp_state)
+qlnxr_get_state_from_ibqp(enum ib_qp_state qp_state)
 {
 	enum ecore_roce_qp_state ecore_qp_state;
 
@@ -3169,31 +3121,31 @@ qlnxr_get_state_from_ibqp( enum ib_qp_state qp_state)
 
 	switch (qp_state) {
 	case IB_QPS_RESET:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_RESET;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_RESET;
 		break;
 
 	case IB_QPS_INIT:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_INIT;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_INIT;
 		break;
 
 	case IB_QPS_RTR:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_RTR;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_RTR;
 		break;
 
 	case IB_QPS_RTS:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_RTS;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_RTS;
 		break;
 
 	case IB_QPS_SQD:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_SQD;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_SQD;
 		break;
 
 	case IB_QPS_ERR:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_ERR;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_ERR;
 		break;
 
 	default:
-		ecore_qp_state =  ECORE_ROCE_QP_STATE_ERR;
+		ecore_qp_state = ECORE_ROCE_QP_STATE_ERR;
 		break;
 	}
 
@@ -3212,20 +3164,19 @@ qlnxr_reset_qp_hwq_info(struct qlnxr_qp_hwq_info *qph)
 }
 
 static int
-qlnxr_update_qp_state(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	enum ecore_roce_qp_state new_state)
+qlnxr_update_qp_state(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    enum ecore_roce_qp_state new_state)
 {
-	int		status = 0;
-	uint32_t	reg_addr;
+	int status = 0;
+	uint32_t reg_addr;
 	struct ecore_dev *cdev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 	cdev = &ha->cdev;
 
-	QL_DPRINT12(ha, "enter qp = %p new_state = 0x%x qp->state = 0x%x\n",
-		qp, new_state, qp->state);
+	QL_DPRINT12(ha, "enter qp = %p new_state = 0x%x qp->state = 0x%x\n", qp,
+	    new_state, qp->state);
 
 	if (new_state == qp->state) {
 		return 0;
@@ -3249,31 +3200,34 @@ qlnxr_update_qp_state(struct qlnxr_dev *dev,
 		/* INIT->XXX */
 		switch (new_state) {
 		case ECORE_ROCE_QP_STATE_RTR:
-		/* Update doorbell (in case post_recv was done before move to RTR) */
+			/* Update doorbell (in case post_recv was done before
+			 * move to RTR) */
 			if (qp->srq)
 				break;
 			wmb();
-			//writel(qp->rq.db_data.raw, qp->rq.db);
-			//if (QLNX_IS_IWARP(dev))
+			// writel(qp->rq.db_data.raw, qp->rq.db);
+			// if (QLNX_IS_IWARP(dev))
 			//	writel(qp->rq.iwarp_db2_data.raw,
 			//	       qp->rq.iwarp_db2);
 
 			reg_addr = (uint32_t)((uint8_t *)qp->rq.db -
-					(uint8_t *)cdev->doorbells);
+			    (uint8_t *)cdev->doorbells);
 
-			bus_write_4(ha->pci_dbells, reg_addr, qp->rq.db_data.raw);
-			bus_barrier(ha->pci_dbells,  0, 0, BUS_SPACE_BARRIER_READ);
+			bus_write_4(ha->pci_dbells, reg_addr,
+			    qp->rq.db_data.raw);
+			bus_barrier(ha->pci_dbells, 0, 0,
+			    BUS_SPACE_BARRIER_READ);
 
 			if (QLNX_IS_IWARP(dev)) {
-				reg_addr = (uint32_t)((uint8_t *)qp->rq.iwarp_db2 -
+				reg_addr =
+				    (uint32_t)((uint8_t *)qp->rq.iwarp_db2 -
 					(uint8_t *)cdev->doorbells);
-				bus_write_4(ha->pci_dbells, reg_addr,\
-					qp->rq.iwarp_db2_data.raw);
-				bus_barrier(ha->pci_dbells,  0, 0,\
-					BUS_SPACE_BARRIER_READ);
+				bus_write_4(ha->pci_dbells, reg_addr,
+				    qp->rq.iwarp_db2_data.raw);
+				bus_barrier(ha->pci_dbells, 0, 0,
+				    BUS_SPACE_BARRIER_READ);
 			}
 
-			
 			mmiowb();
 			break;
 		case ECORE_ROCE_QP_STATE_ERR:
@@ -3330,11 +3284,11 @@ qlnxr_update_qp_state(struct qlnxr_dev *dev,
 			if ((qp->rq.prod != qp->rq.cons) ||
 			    (qp->sq.prod != qp->sq.cons)) {
 				QL_DPRINT11(ha,
-					"Error->Reset with rq/sq "
-					"not empty rq.prod=0x%x rq.cons=0x%x"
-					" sq.prod=0x%x sq.cons=0x%x\n",
-					qp->rq.prod, qp->rq.cons,
-					qp->sq.prod, qp->sq.cons);
+				    "Error->Reset with rq/sq "
+				    "not empty rq.prod=0x%x rq.cons=0x%x"
+				    " sq.prod=0x%x sq.cons=0x%x\n",
+				    qp->rq.prod, qp->rq.cons, qp->sq.prod,
+				    qp->sq.cons);
 				status = -EINVAL;
 			}
 			break;
@@ -3353,24 +3307,23 @@ qlnxr_update_qp_state(struct qlnxr_dev *dev,
 }
 
 int
-qlnxr_modify_qp(struct ib_qp	*ibqp,
-	struct ib_qp_attr	*attr,
-	int			attr_mask,
-	struct ib_udata		*udata)
+qlnxr_modify_qp(struct ib_qp *ibqp, struct ib_qp_attr *attr, int attr_mask,
+    struct ib_udata *udata)
 {
 	int rc = 0;
 	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
 	struct qlnxr_dev *dev = get_qlnxr_dev(&qp->dev->ibdev);
 	struct ecore_rdma_modify_qp_in_params qp_params = { 0 };
 	enum ib_qp_state old_qp_state, new_qp_state;
-	struct ecore_rdma_device *qattr = ecore_rdma_query_device(dev->rdma_ctx);
-	qlnx_host_t	*ha;
+	struct ecore_rdma_device *qattr = ecore_rdma_query_device(
+	    dev->rdma_ctx);
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha,
-		"enter qp = %p attr_mask = 0x%x, state = %d udata = %p\n",
-		qp, attr_mask, attr->qp_state, udata);
+	    "enter qp = %p attr_mask = 0x%x, state = %d udata = %p\n", qp,
+	    attr_mask, attr->qp_state, udata);
 
 	old_qp_state = qlnxr_get_ibqp_state(qp->state);
 	if (attr_mask & IB_QP_STATE)
@@ -3379,16 +3332,14 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 		new_qp_state = old_qp_state;
 
 	if (QLNX_IS_ROCE(dev)) {
-		if (!ib_modify_qp_is_ok(old_qp_state,
-					new_qp_state,
-					ibqp->qp_type,
-					attr_mask )) {
+		if (!ib_modify_qp_is_ok(old_qp_state, new_qp_state,
+			ibqp->qp_type, attr_mask)) {
 			QL_DPRINT12(ha,
-				"invalid attribute mask=0x%x"
-				" specified for qpn=0x%x of type=0x%x \n"
-				" old_qp_state=0x%x, new_qp_state=0x%x\n",
-				attr_mask, qp->qp_id, ibqp->qp_type,
-				old_qp_state, new_qp_state);
+			    "invalid attribute mask=0x%x"
+			    " specified for qpn=0x%x of type=0x%x \n"
+			    " old_qp_state=0x%x, new_qp_state=0x%x\n",
+			    attr_mask, qp->qp_id, ibqp->qp_type, old_qp_state,
+			    new_qp_state);
 			rc = -EINVAL;
 			goto err;
 		}
@@ -3396,7 +3347,7 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 	/* translate the masks... */
 	if (attr_mask & IB_QP_STATE) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_RDMA_MODIFY_QP_VALID_NEW_STATE, 1);
+		    ECORE_RDMA_MODIFY_QP_VALID_NEW_STATE, 1);
 		qp_params.new_state = qlnxr_get_state_from_ibqp(attr->qp_state);
 	}
 
@@ -3406,8 +3357,7 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 
 	if (attr_mask & IB_QP_PKEY_INDEX) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_PKEY,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_PKEY, 1);
 		if (attr->pkey_index >= QLNXR_ROCE_PKEY_TABLE_LEN) {
 			rc = -EINVAL;
 			goto err;
@@ -3423,13 +3373,13 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 	/* tbd consider splitting in ecore.. */
 	if (attr_mask & IB_QP_ACCESS_FLAGS) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_RDMA_MODIFY_QP_VALID_RDMA_OPS_EN, 1);
-		qp_params.incoming_rdma_read_en =
-			attr->qp_access_flags & IB_ACCESS_REMOTE_READ;
-		qp_params.incoming_rdma_write_en =
-			attr->qp_access_flags & IB_ACCESS_REMOTE_WRITE;
-		qp_params.incoming_atomic_en =
-			attr->qp_access_flags & IB_ACCESS_REMOTE_ATOMIC;
+		    ECORE_RDMA_MODIFY_QP_VALID_RDMA_OPS_EN, 1);
+		qp_params.incoming_rdma_read_en = attr->qp_access_flags &
+		    IB_ACCESS_REMOTE_READ;
+		qp_params.incoming_rdma_write_en = attr->qp_access_flags &
+		    IB_ACCESS_REMOTE_WRITE;
+		qp_params.incoming_atomic_en = attr->qp_access_flags &
+		    IB_ACCESS_REMOTE_ATOMIC;
 	}
 
 	if (attr_mask & (IB_QP_AV | IB_QP_PATH_MTU)) {
@@ -3437,29 +3387,28 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 			if (attr->path_mtu < IB_MTU_256 ||
 			    attr->path_mtu > IB_MTU_4096) {
 				QL_DPRINT12(ha,
-					"Only MTU sizes of 256, 512, 1024,"
-					" 2048 and 4096 are supported "
-					" attr->path_mtu = [%d]\n",
-					attr->path_mtu);
+				    "Only MTU sizes of 256, 512, 1024,"
+				    " 2048 and 4096 are supported "
+				    " attr->path_mtu = [%d]\n",
+				    attr->path_mtu);
 
 				rc = -EINVAL;
 				goto err;
 			}
 			qp->mtu = min(ib_mtu_enum_to_int(attr->path_mtu),
-				      ib_mtu_enum_to_int(
-						iboe_get_mtu(if_getmtu(dev->ha->ifp))));
+			    ib_mtu_enum_to_int(
+				iboe_get_mtu(if_getmtu(dev->ha->ifp))));
 		}
 
 		if (qp->mtu == 0) {
 			qp->mtu = ib_mtu_enum_to_int(
-					iboe_get_mtu(if_getmtu(dev->ha->ifp)));
+			    iboe_get_mtu(if_getmtu(dev->ha->ifp)));
 			QL_DPRINT12(ha, "fixing zetoed MTU to qp->mtu = %d\n",
-				qp->mtu);
+			    qp->mtu);
 		}
 
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_ADDRESS_VECTOR,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_ADDRESS_VECTOR, 1);
 
 		qp_params.traffic_class_tos = attr->ah_attr.grh.traffic_class;
 		qp_params.flow_label = attr->ah_attr.grh.flow_label;
@@ -3469,27 +3418,25 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 
 		get_gid_info(ibqp, attr, attr_mask, dev, qp, &qp_params);
 
-		rc = qlnxr_get_dmac(dev, &attr->ah_attr, qp_params.remote_mac_addr);
+		rc = qlnxr_get_dmac(dev, &attr->ah_attr,
+		    qp_params.remote_mac_addr);
 		if (rc)
 			return rc;
 
 		qp_params.use_local_mac = true;
-		memcpy(qp_params.local_mac_addr, dev->ha->primary_mac, ETH_ALEN);
+		memcpy(qp_params.local_mac_addr, dev->ha->primary_mac,
+		    ETH_ALEN);
 
 		QL_DPRINT12(ha, "dgid=0x%x:0x%x:0x%x:0x%x\n",
-		       qp_params.dgid.dwords[0], qp_params.dgid.dwords[1],
-		       qp_params.dgid.dwords[2], qp_params.dgid.dwords[3]);
+		    qp_params.dgid.dwords[0], qp_params.dgid.dwords[1],
+		    qp_params.dgid.dwords[2], qp_params.dgid.dwords[3]);
 		QL_DPRINT12(ha, "sgid=0x%x:0x%x:0x%x:0x%x\n",
-		       qp_params.sgid.dwords[0], qp_params.sgid.dwords[1],
-		       qp_params.sgid.dwords[2], qp_params.sgid.dwords[3]);
-		QL_DPRINT12(ha,
-			"remote_mac=[0x%x:0x%x:0x%x:0x%x:0x%x:0x%x]\n",
-			qp_params.remote_mac_addr[0],
-			qp_params.remote_mac_addr[1],
-			qp_params.remote_mac_addr[2],
-			qp_params.remote_mac_addr[3],
-			qp_params.remote_mac_addr[4],
-			qp_params.remote_mac_addr[5]);
+		    qp_params.sgid.dwords[0], qp_params.sgid.dwords[1],
+		    qp_params.sgid.dwords[2], qp_params.sgid.dwords[3]);
+		QL_DPRINT12(ha, "remote_mac=[0x%x:0x%x:0x%x:0x%x:0x%x:0x%x]\n",
+		    qp_params.remote_mac_addr[0], qp_params.remote_mac_addr[1],
+		    qp_params.remote_mac_addr[2], qp_params.remote_mac_addr[3],
+		    qp_params.remote_mac_addr[4], qp_params.remote_mac_addr[5]);
 
 		qp_params.mtu = qp->mtu;
 	}
@@ -3500,13 +3447,13 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 			qp_params.mtu = qp->mtu;
 		} else {
 			qp_params.mtu = ib_mtu_enum_to_int(
-						iboe_get_mtu(if_getmtu(dev->ha->ifp)));
+			    iboe_get_mtu(if_getmtu(dev->ha->ifp)));
 		}
 	}
 
 	if (attr_mask & IB_QP_TIMEOUT) {
-		SET_FIELD(qp_params.modify_flags, \
-			ECORE_ROCE_MODIFY_QP_VALID_ACK_TIMEOUT, 1);
+		SET_FIELD(qp_params.modify_flags,
+		    ECORE_ROCE_MODIFY_QP_VALID_ACK_TIMEOUT, 1);
 
 		qp_params.ack_timeout = attr->timeout;
 		if (attr->timeout) {
@@ -3522,27 +3469,24 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 			 */
 			temp = 4096 * (1UL << attr->timeout) / 1000 / 1000;
 			qp_params.ack_timeout = temp; /* FW requires [msec] */
-		}
-		else
+		} else
 			qp_params.ack_timeout = 0; /* infinite */
 	}
 	if (attr_mask & IB_QP_RETRY_CNT) {
-		SET_FIELD(qp_params.modify_flags,\
-			 ECORE_ROCE_MODIFY_QP_VALID_RETRY_CNT, 1);
+		SET_FIELD(qp_params.modify_flags,
+		    ECORE_ROCE_MODIFY_QP_VALID_RETRY_CNT, 1);
 		qp_params.retry_cnt = attr->retry_cnt;
 	}
 
 	if (attr_mask & IB_QP_RNR_RETRY) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_RNR_RETRY_CNT,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_RNR_RETRY_CNT, 1);
 		qp_params.rnr_retry_cnt = attr->rnr_retry;
 	}
 
 	if (attr_mask & IB_QP_RQ_PSN) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_RQ_PSN,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_RQ_PSN, 1);
 		qp_params.rq_psn = attr->rq_psn;
 		qp->rq_psn = attr->rq_psn;
 	}
@@ -3551,29 +3495,26 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 		if (attr->max_rd_atomic > qattr->max_qp_req_rd_atomic_resc) {
 			rc = -EINVAL;
 			QL_DPRINT12(ha,
-				"unsupported  max_rd_atomic=%d, supported=%d\n",
-				attr->max_rd_atomic,
-				qattr->max_qp_req_rd_atomic_resc);
+			    "unsupported  max_rd_atomic=%d, supported=%d\n",
+			    attr->max_rd_atomic,
+			    qattr->max_qp_req_rd_atomic_resc);
 			goto err;
 		}
 
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_RDMA_MODIFY_QP_VALID_MAX_RD_ATOMIC_REQ,
-			  1);
+		    ECORE_RDMA_MODIFY_QP_VALID_MAX_RD_ATOMIC_REQ, 1);
 		qp_params.max_rd_atomic_req = attr->max_rd_atomic;
 	}
 
 	if (attr_mask & IB_QP_MIN_RNR_TIMER) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_MIN_RNR_NAK_TIMER,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_MIN_RNR_NAK_TIMER, 1);
 		qp_params.min_rnr_nak_timer = attr->min_rnr_timer;
 	}
 
 	if (attr_mask & IB_QP_SQ_PSN) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_SQ_PSN,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_SQ_PSN, 1);
 		qp_params.sq_psn = attr->sq_psn;
 		qp->sq_psn = attr->sq_psn;
 	}
@@ -3582,25 +3523,23 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 		if (attr->max_dest_rd_atomic >
 		    qattr->max_qp_resp_rd_atomic_resc) {
 			QL_DPRINT12(ha,
-				"unsupported max_dest_rd_atomic=%d, "
-				"supported=%d\n",
-				attr->max_dest_rd_atomic,
-				qattr->max_qp_resp_rd_atomic_resc);
+			    "unsupported max_dest_rd_atomic=%d, "
+			    "supported=%d\n",
+			    attr->max_dest_rd_atomic,
+			    qattr->max_qp_resp_rd_atomic_resc);
 
 			rc = -EINVAL;
 			goto err;
 		}
 
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_RDMA_MODIFY_QP_VALID_MAX_RD_ATOMIC_RESP,
-			  1);
+		    ECORE_RDMA_MODIFY_QP_VALID_MAX_RD_ATOMIC_RESP, 1);
 		qp_params.max_rd_atomic_resp = attr->max_dest_rd_atomic;
 	}
 
- 	if (attr_mask & IB_QP_DEST_QPN) {
+	if (attr_mask & IB_QP_DEST_QPN) {
 		SET_FIELD(qp_params.modify_flags,
-			  ECORE_ROCE_MODIFY_QP_VALID_DEST_QP,
-			  1);
+		    ECORE_ROCE_MODIFY_QP_VALID_DEST_QP, 1);
 
 		qp_params.dest_qp = attr->dest_qp_num;
 		qp->dest_qp_num = attr->dest_qp_num;
@@ -3613,15 +3552,17 @@ qlnxr_modify_qp(struct ib_qp	*ibqp,
 	 * a potential issue if the QP isn't in error state.
 	 */
 	if ((attr_mask & IB_QP_STATE) && (qp->qp_type != IB_QPT_GSI) &&
-		(!udata) && (qp_params.new_state == ECORE_ROCE_QP_STATE_ERR))
+	    (!udata) && (qp_params.new_state == ECORE_ROCE_QP_STATE_ERR))
 		qp->state = ECORE_ROCE_QP_STATE_ERR;
 
 	if (qp->qp_type != IB_QPT_GSI)
-		rc = ecore_rdma_modify_qp(dev->rdma_ctx, qp->ecore_qp, &qp_params);
+		rc = ecore_rdma_modify_qp(dev->rdma_ctx, qp->ecore_qp,
+		    &qp_params);
 
 	if (attr_mask & IB_QP_STATE) {
 		if ((qp->qp_type != IB_QPT_GSI) && (!udata))
-			rc = qlnxr_update_qp_state(dev, qp, qp_params.new_state);
+			rc = qlnxr_update_qp_state(dev, qp,
+			    qp_params.new_state);
 		qp->state = qp_params.new_state;
 	}
 
@@ -3681,16 +3622,14 @@ qlnxr_mtu_int_to_enum(u16 mtu)
 }
 
 int
-qlnxr_query_qp(struct ib_qp *ibqp,
-	struct ib_qp_attr *qp_attr,
-	int attr_mask,
-	struct ib_qp_init_attr *qp_init_attr)
+qlnxr_query_qp(struct ib_qp *ibqp, struct ib_qp_attr *qp_attr, int attr_mask,
+    struct ib_qp_init_attr *qp_init_attr)
 {
 	int rc = 0;
 	struct ecore_rdma_query_qp_out_params params;
 	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
 	struct qlnxr_dev *dev = qp->dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -3722,10 +3661,11 @@ qlnxr_query_qp(struct ib_qp *ibqp,
 
 	qp_attr->qp_access_flags = qlnxr_to_ib_qp_acc_flags(&params);
 
-	QL_DPRINT12(ha, "qp_state = 0x%x cur_qp_state = 0x%x "
-		"path_mtu = %d qp_access_flags = 0x%x\n",
-		qp_attr->qp_state, qp_attr->cur_qp_state, qp_attr->path_mtu,
-		qp_attr->qp_access_flags);
+	QL_DPRINT12(ha,
+	    "qp_state = 0x%x cur_qp_state = 0x%x "
+	    "path_mtu = %d qp_access_flags = 0x%x\n",
+	    qp_attr->qp_state, qp_attr->cur_qp_state, qp_attr->path_mtu,
+	    qp_attr->qp_access_flags);
 
 	qp_attr->cap.max_send_wr = qp->sq.max_wr;
 	qp_attr->cap.max_recv_wr = qp->rq.max_wr;
@@ -3735,7 +3675,7 @@ qlnxr_query_qp(struct ib_qp *ibqp,
 	qp_init_attr->cap = qp_attr->cap;
 
 	memcpy(&qp_attr->ah_attr.grh.dgid.raw[0], &params.dgid.bytes[0],
-	       sizeof(qp_attr->ah_attr.grh.dgid.raw));
+	    sizeof(qp_attr->ah_attr.grh.dgid.raw));
 
 	qp_attr->ah_attr.grh.flow_label = params.flow_label;
 	qp_attr->ah_attr.grh.sgid_index = qp->sgid_idx;
@@ -3744,7 +3684,7 @@ qlnxr_query_qp(struct ib_qp *ibqp,
 
 	qp_attr->ah_attr.ah_flags = IB_AH_GRH;
 	qp_attr->ah_attr.port_num = 1; /* FIXME -> check this */
-	qp_attr->ah_attr.sl = 0;/* FIXME -> check this */
+	qp_attr->ah_attr.sl = 0;       /* FIXME -> check this */
 	qp_attr->timeout = params.timeout;
 	qp_attr->rnr_retry = params.rnr_retry;
 	qp_attr->retry_cnt = params.retry_cnt;
@@ -3758,13 +3698,13 @@ qlnxr_query_qp(struct ib_qp *ibqp,
 	qp_attr->alt_timeout = 0;
 	memset(&qp_attr->alt_ah_attr, 0, sizeof(qp_attr->alt_ah_attr));
 
-	qp_attr->sq_draining = (params.state == ECORE_ROCE_QP_STATE_SQD) ? 1 : 0;
+	qp_attr->sq_draining = (params.state == ECORE_ROCE_QP_STATE_SQD) ? 1 :
+									   0;
 	qp_attr->max_dest_rd_atomic = params.max_dest_rd_atomic;
 	qp_attr->max_rd_atomic = params.max_rd_atomic;
-	qp_attr->en_sqd_async_notify = (params.sqd_async)? 1 : 0;
+	qp_attr->en_sqd_async_notify = (params.sqd_async) ? 1 : 0;
 
-	QL_DPRINT12(ha, "max_inline_data=%d\n",
-		qp_attr->cap.max_inline_data);
+	QL_DPRINT12(ha, "max_inline_data=%d\n", qp_attr->cap.max_inline_data);
 
 err:
 	QL_DPRINT12(ha, "exit\n");
@@ -3774,7 +3714,7 @@ err:
 static void
 qlnxr_cleanup_user(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -3797,7 +3737,7 @@ qlnxr_cleanup_user(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 static void
 qlnxr_cleanup_kernel(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -3806,7 +3746,7 @@ qlnxr_cleanup_kernel(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 	if (qlnxr_qp_has_sq(qp)) {
 		QL_DPRINT12(ha, "freeing SQ\n");
 		ha->qlnxr_debug = 1;
-//		ecore_chain_free(dev->cdev, &qp->sq.pbl);
+		//		ecore_chain_free(dev->cdev, &qp->sq.pbl);
 		ha->qlnxr_debug = 0;
 		kfree(qp->wqe_wr_id);
 	}
@@ -3814,7 +3754,7 @@ qlnxr_cleanup_kernel(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 	if (qlnxr_qp_has_rq(qp)) {
 		QL_DPRINT12(ha, "freeing RQ\n");
 		ha->qlnxr_debug = 1;
-	//	ecore_chain_free(dev->cdev, &qp->rq.pbl);
+		//	ecore_chain_free(dev->cdev, &qp->rq.pbl);
 		ha->qlnxr_debug = 0;
 		kfree(qp->rqe_wr_id);
 	}
@@ -3824,11 +3764,11 @@ qlnxr_cleanup_kernel(struct qlnxr_dev *dev, struct qlnxr_qp *qp)
 }
 
 static int
-qlnxr_free_qp_resources(struct qlnxr_dev *dev,
-    struct qlnxr_qp *qp, struct ib_udata *udata)
+qlnxr_free_qp_resources(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct ib_udata *udata)
 {
-	int		rc = 0;
-	qlnx_host_t	*ha;
+	int rc = 0;
+	qlnx_host_t *ha;
 	struct ecore_rdma_destroy_qp_out_params d_out_params;
 
 	ha = dev->ha;
@@ -3856,7 +3796,7 @@ qlnxr_free_qp_resources(struct qlnxr_dev *dev,
 
 	if (qp->qp_type != IB_QPT_GSI) {
 		rc = ecore_rdma_destroy_qp(dev->rdma_ctx, qp->ecore_qp,
-				&d_out_params);
+		    &d_out_params);
 		if (rc)
 			return rc;
 	}
@@ -3873,7 +3813,7 @@ qlnxr_destroy_qp(struct ib_qp *ibqp, struct ib_udata *udata)
 	int rc = 0;
 	struct ib_qp_attr attr;
 	int attr_mask = 0;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -3881,9 +3821,10 @@ qlnxr_destroy_qp(struct ib_qp *ibqp, struct ib_udata *udata)
 
 	qp->destroyed = 1;
 
-	if (QLNX_IS_ROCE(dev) && (qp->state != (ECORE_ROCE_QP_STATE_RESET |
-				  ECORE_ROCE_QP_STATE_ERR |
-				  ECORE_ROCE_QP_STATE_INIT))) {
+	if (QLNX_IS_ROCE(dev) &&
+	    (qp->state !=
+		(ECORE_ROCE_QP_STATE_RESET | ECORE_ROCE_QP_STATE_ERR |
+		    ECORE_ROCE_QP_STATE_INIT))) {
 		attr.qp_state = IB_QPS_ERR;
 		attr_mask |= IB_QP_STATE;
 
@@ -3932,27 +3873,22 @@ swap_wqe_data64(u64 *p)
 }
 
 static u32
-qlnxr_prepare_sq_inline_data(struct qlnxr_dev *dev,
-	struct qlnxr_qp		*qp,
-	u8			*wqe_size,
-	const struct ib_send_wr	*wr,
-	const struct ib_send_wr	**bad_wr,
-	u8			*bits,
-	u8			bit)
+qlnxr_prepare_sq_inline_data(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    u8 *wqe_size, const struct ib_send_wr *wr, const struct ib_send_wr **bad_wr,
+    u8 *bits, u8 bit)
 {
 	int i, seg_siz;
 	char *seg_prt, *wqe;
 	u32 data_size = sge_data_len(wr->sg_list, wr->num_sge);
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter[%d]\n", data_size);
 
 	if (data_size > ROCE_REQ_MAX_INLINE_DATA_SIZE) {
-		QL_DPRINT12(ha,
-			"Too much inline data in WR:[%d, %d]\n",
-			data_size, ROCE_REQ_MAX_INLINE_DATA_SIZE);
+		QL_DPRINT12(ha, "Too much inline data in WR:[%d, %d]\n",
+		    data_size, ROCE_REQ_MAX_INLINE_DATA_SIZE);
 		*bad_wr = wr;
 		return 0;
 	}
@@ -4009,12 +3945,12 @@ qlnxr_prepare_sq_inline_data(struct qlnxr_dev *dev,
 }
 
 static u32
-qlnxr_prepare_sq_sges(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
-	u8 *wqe_size, const struct ib_send_wr *wr)
+qlnxr_prepare_sq_sges(struct qlnxr_dev *dev, struct qlnxr_qp *qp, u8 *wqe_size,
+    const struct ib_send_wr *wr)
 {
 	int i;
 	u32 data_size = 0;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -4037,15 +3973,12 @@ qlnxr_prepare_sq_sges(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
 }
 
 static u32
-qlnxr_prepare_sq_rdma_data(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct rdma_sq_rdma_wqe_1st *rwqe,
-	struct rdma_sq_rdma_wqe_2nd *rwqe2,
-	const struct ib_send_wr *wr,
-	const struct ib_send_wr **bad_wr)
+qlnxr_prepare_sq_rdma_data(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct rdma_sq_rdma_wqe_1st *rwqe, struct rdma_sq_rdma_wqe_2nd *rwqe2,
+    const struct ib_send_wr *wr, const struct ib_send_wr **bad_wr)
 {
-	qlnx_host_t	*ha;
-	u32             ret = 0;
+	qlnx_host_t *ha;
+	u32 ret = 0;
 
 	ha = dev->ha;
 
@@ -4058,7 +3991,7 @@ qlnxr_prepare_sq_rdma_data(struct qlnxr_dev *dev,
 		u8 flags = 0;
 		SET_FIELD2(flags, RDMA_SQ_RDMA_WQE_1ST_INLINE_FLG, 1);
 		return qlnxr_prepare_sq_inline_data(dev, qp, &rwqe->wqe_size,
-				wr, bad_wr, &rwqe->flags, flags);
+		    wr, bad_wr, &rwqe->flags, flags);
 	}
 
 	ret = qlnxr_prepare_sq_sges(dev, qp, &rwqe->wqe_size, wr);
@@ -4069,15 +4002,12 @@ qlnxr_prepare_sq_rdma_data(struct qlnxr_dev *dev,
 }
 
 static u32
-qlnxr_prepare_sq_send_data(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct rdma_sq_send_wqe *swqe,
-	struct rdma_sq_send_wqe *swqe2,
-	const struct ib_send_wr *wr,
-	const struct ib_send_wr **bad_wr)
+qlnxr_prepare_sq_send_data(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct rdma_sq_send_wqe *swqe, struct rdma_sq_send_wqe *swqe2,
+    const struct ib_send_wr *wr, const struct ib_send_wr **bad_wr)
 {
-	qlnx_host_t	*ha;
-	u32             ret = 0;
+	qlnx_host_t *ha;
+	u32 ret = 0;
 
 	ha = dev->ha;
 
@@ -4089,7 +4019,7 @@ qlnxr_prepare_sq_send_data(struct qlnxr_dev *dev,
 		u8 flags = 0;
 		SET_FIELD2(flags, RDMA_SQ_SEND_WQE_INLINE_FLG, 1);
 		return qlnxr_prepare_sq_inline_data(dev, qp, &swqe->wqe_size,
-				wr, bad_wr, &swqe->flags, flags);
+		    wr, bad_wr, &swqe->flags, flags);
 	}
 
 	ret = qlnxr_prepare_sq_sges(dev, qp, &swqe->wqe_size, wr);
@@ -4102,7 +4032,7 @@ qlnxr_prepare_sq_send_data(struct qlnxr_dev *dev,
 static void
 qlnx_handle_completed_mrs(struct qlnxr_dev *dev, struct mr_info *info)
 {
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -4118,9 +4048,8 @@ qlnx_handle_completed_mrs(struct qlnxr_dev *dev, struct mr_info *info)
 		 * that if an FMR was completed successfully that means that
 		 * if there was an invalidate operation before it also ended
 		 */
-		pbl = list_first_entry(&info->inuse_pbl_list,
-				       struct qlnxr_pbl,
-				       list_entry);
+		pbl = list_first_entry(&info->inuse_pbl_list, struct qlnxr_pbl,
+		    list_entry);
 		list_del(&pbl->list_entry);
 		list_add_tail(&pbl->list_entry, &info->free_pbl_list);
 		info->completed_handled++;
@@ -4130,9 +4059,9 @@ qlnx_handle_completed_mrs(struct qlnxr_dev *dev, struct mr_info *info)
 	return;
 }
 
-static int qlnxr_prepare_reg(struct qlnxr_qp *qp,
-		struct rdma_sq_fmr_wqe_1st *fwqe1,
-		const struct ib_reg_wr *wr)
+static int
+qlnxr_prepare_reg(struct qlnxr_qp *qp, struct rdma_sq_fmr_wqe_1st *fwqe1,
+    const struct ib_reg_wr *wr)
 {
 	struct qlnxr_mr *mr = get_qlnxr_mr(wr->mr);
 	struct rdma_sq_fmr_wqe_2nd *fwqe2;
@@ -4145,18 +4074,18 @@ static int qlnxr_prepare_reg(struct qlnxr_qp *qp,
 	fwqe2->access_ctrl = 0;
 
 	SET_FIELD2(fwqe2->access_ctrl, RDMA_SQ_FMR_WQE_2ND_REMOTE_READ,
-		!!(wr->access & IB_ACCESS_REMOTE_READ));
+	    !!(wr->access & IB_ACCESS_REMOTE_READ));
 	SET_FIELD2(fwqe2->access_ctrl, RDMA_SQ_FMR_WQE_2ND_REMOTE_WRITE,
-		!!(wr->access & IB_ACCESS_REMOTE_WRITE));
+	    !!(wr->access & IB_ACCESS_REMOTE_WRITE));
 	SET_FIELD2(fwqe2->access_ctrl, RDMA_SQ_FMR_WQE_2ND_ENABLE_ATOMIC,
-		!!(wr->access & IB_ACCESS_REMOTE_ATOMIC));
+	    !!(wr->access & IB_ACCESS_REMOTE_ATOMIC));
 	SET_FIELD2(fwqe2->access_ctrl, RDMA_SQ_FMR_WQE_2ND_LOCAL_READ, 1);
 	SET_FIELD2(fwqe2->access_ctrl, RDMA_SQ_FMR_WQE_2ND_LOCAL_WRITE,
-		!!(wr->access & IB_ACCESS_LOCAL_WRITE));
+	    !!(wr->access & IB_ACCESS_LOCAL_WRITE));
 	fwqe2->fmr_ctrl = 0;
 
 	SET_FIELD2(fwqe2->fmr_ctrl, RDMA_SQ_FMR_WQE_2ND_PAGE_SIZE_LOG,
-		ilog2(mr->ibmr.page_size) - 12);
+	    ilog2(mr->ibmr.page_size) - 12);
 
 	fwqe2->length_hi = 0; /* TODO - figure out why length is only 32bit.. */
 	fwqe2->length_lo = mr->ibmr.length;
@@ -4198,7 +4127,7 @@ qlnxr_can_post_send(struct qlnxr_qp *qp, const struct ib_send_wr *wr)
 {
 	int wq_is_full, err_wr, pbl_is_full;
 	struct qlnxr_dev *dev = qp->dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -4208,28 +4137,26 @@ qlnxr_can_post_send(struct qlnxr_qp *qp, const struct ib_send_wr *wr)
 	err_wr = wr->num_sge > qp->sq.max_sges;
 	wq_is_full = qlnxr_wq_is_full(&qp->sq);
 	pbl_is_full = ecore_chain_get_elem_left_u32(&qp->sq.pbl) <
-		      QLNXR_MAX_SQE_ELEMENTS_PER_SQE;
+	    QLNXR_MAX_SQE_ELEMENTS_PER_SQE;
 	if (wq_is_full || err_wr || pbl_is_full) {
-		if (wq_is_full &&
-		    !(qp->err_bitmap & QLNXR_QP_ERR_SQ_FULL)) {
+		if (wq_is_full && !(qp->err_bitmap & QLNXR_QP_ERR_SQ_FULL)) {
 			qp->err_bitmap |= QLNXR_QP_ERR_SQ_FULL;
 
 			QL_DPRINT12(ha,
-				"error: WQ is full. Post send on QP failed"
-				" (this error appears only once) "
-				"[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
-				qp, wr, qp->err_bitmap);
+			    "error: WQ is full. Post send on QP failed"
+			    " (this error appears only once) "
+			    "[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
+			    qp, wr, qp->err_bitmap);
 		}
 
-		if (err_wr &&
-		    !(qp->err_bitmap & QLNXR_QP_ERR_BAD_SR)) {
+		if (err_wr && !(qp->err_bitmap & QLNXR_QP_ERR_BAD_SR)) {
 			qp->err_bitmap |= QLNXR_QP_ERR_BAD_SR;
 
 			QL_DPRINT12(ha,
-				"error: WQ is bad. Post send on QP failed"
-				" (this error appears only once) "
-				"[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
-				qp, wr, qp->err_bitmap);
+			    "error: WQ is bad. Post send on QP failed"
+			    " (this error appears only once) "
+			    "[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
+			    qp, wr, qp->err_bitmap);
 		}
 
 		if (pbl_is_full &&
@@ -4237,10 +4164,10 @@ qlnxr_can_post_send(struct qlnxr_qp *qp, const struct ib_send_wr *wr)
 			qp->err_bitmap |= QLNXR_QP_ERR_SQ_PBL_FULL;
 
 			QL_DPRINT12(ha,
-				"error: WQ PBL is full. Post send on QP failed"
-				" (this error appears only once) "
-				"[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
-				qp, wr, qp->err_bitmap);
+			    "error: WQ PBL is full. Post send on QP failed"
+			    " (this error appears only once) "
+			    "[qp, wr, qp->err_bitmap]=[%p, %p, 0x%x]\n",
+			    qp, wr, qp->err_bitmap);
 		}
 		return false;
 	}
@@ -4249,23 +4176,22 @@ qlnxr_can_post_send(struct qlnxr_qp *qp, const struct ib_send_wr *wr)
 }
 
 int
-qlnxr_post_send(struct ib_qp *ibqp,
-	const struct ib_send_wr *wr,
-	const struct ib_send_wr **bad_wr)
+qlnxr_post_send(struct ib_qp *ibqp, const struct ib_send_wr *wr,
+    const struct ib_send_wr **bad_wr)
 {
-	struct qlnxr_dev	*dev = get_qlnxr_dev(ibqp->device);
-	struct qlnxr_qp		*qp = get_qlnxr_qp(ibqp);
-	unsigned long 		flags;
-	int 			status = 0, rc = 0;
-	bool			comp;
-	qlnx_host_t		*ha;
-	uint32_t		reg_addr;
+	struct qlnxr_dev *dev = get_qlnxr_dev(ibqp->device);
+	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
+	unsigned long flags;
+	int status = 0, rc = 0;
+	bool comp;
+	qlnx_host_t *ha;
+	uint32_t reg_addr;
 
 	*bad_wr = NULL;
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "exit[ibqp, wr, bad_wr] = [%p, %p, %p]\n",
-		ibqp, wr, bad_wr);
+	QL_DPRINT12(ha, "exit[ibqp, wr, bad_wr] = [%p, %p, %p]\n", ibqp, wr,
+	    bad_wr);
 
 	if (!(if_getdrvflags(ha->ifp) & IFF_DRV_RUNNING))
 		return -EINVAL;
@@ -4281,7 +4207,7 @@ qlnxr_post_send(struct ib_qp *ibqp,
 		spin_unlock_irqrestore(&qp->q_lock, flags);
 		*bad_wr = wr;
 		QL_DPRINT11(ha, "QP in wrong state! QP icid=0x%x state %d\n",
-			qp->icid, qp->state);
+		    qp->icid, qp->state);
 		return -EINVAL;
 	}
 
@@ -4290,16 +4216,16 @@ qlnxr_post_send(struct ib_qp *ibqp,
 	}
 
 	while (wr) {
-		struct rdma_sq_common_wqe	*wqe;
-		struct rdma_sq_send_wqe		*swqe;
-		struct rdma_sq_send_wqe		*swqe2;
-		struct rdma_sq_rdma_wqe_1st	*rwqe;
-		struct rdma_sq_rdma_wqe_2nd	*rwqe2;
-		struct rdma_sq_local_inv_wqe	*iwqe;
-		struct rdma_sq_atomic_wqe	*awqe1;
-		struct rdma_sq_atomic_wqe	*awqe2;
-		struct rdma_sq_atomic_wqe	*awqe3;
-		struct rdma_sq_fmr_wqe_1st	*fwqe1;
+		struct rdma_sq_common_wqe *wqe;
+		struct rdma_sq_send_wqe *swqe;
+		struct rdma_sq_send_wqe *swqe2;
+		struct rdma_sq_rdma_wqe_1st *rwqe;
+		struct rdma_sq_rdma_wqe_2nd *rwqe2;
+		struct rdma_sq_local_inv_wqe *iwqe;
+		struct rdma_sq_atomic_wqe *awqe1;
+		struct rdma_sq_atomic_wqe *awqe2;
+		struct rdma_sq_atomic_wqe *awqe3;
+		struct rdma_sq_fmr_wqe_1st *fwqe1;
 
 		if (!qlnxr_can_post_send(qp, wr)) {
 			status = -ENOMEM;
@@ -4309,27 +4235,29 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 		wqe = ecore_chain_produce(&qp->sq.pbl);
 
-		qp->wqe_wr_id[qp->sq.prod].signaled =
-			!!(wr->send_flags & IB_SEND_SIGNALED) || qp->signaled;
+		qp->wqe_wr_id[qp->sq.prod].signaled = !!(wr->send_flags &
+							  IB_SEND_SIGNALED) ||
+		    qp->signaled;
 
 		/* common fields */
 		wqe->flags = 0;
-		wqe->flags |= (RDMA_SQ_SEND_WQE_COMP_FLG_MASK <<
-				RDMA_SQ_SEND_WQE_COMP_FLG_SHIFT);
+		wqe->flags |= (RDMA_SQ_SEND_WQE_COMP_FLG_MASK
+		    << RDMA_SQ_SEND_WQE_COMP_FLG_SHIFT);
 
-		SET_FIELD2(wqe->flags, RDMA_SQ_SEND_WQE_SE_FLG, \
-			!!(wr->send_flags & IB_SEND_SOLICITED));
+		SET_FIELD2(wqe->flags, RDMA_SQ_SEND_WQE_SE_FLG,
+		    !!(wr->send_flags & IB_SEND_SOLICITED));
 
 		comp = (!!(wr->send_flags & IB_SEND_SIGNALED)) ||
-				(qp->signaled);
+		    (qp->signaled);
 
 		SET_FIELD2(wqe->flags, RDMA_SQ_SEND_WQE_COMP_FLG, comp);
-		SET_FIELD2(wqe->flags, RDMA_SQ_SEND_WQE_RD_FENCE_FLG,  \
-			!!(wr->send_flags & IB_SEND_FENCE));
+		SET_FIELD2(wqe->flags, RDMA_SQ_SEND_WQE_RD_FENCE_FLG,
+		    !!(wr->send_flags & IB_SEND_FENCE));
 
 		wqe->prev_wqe_size = qp->prev_wqe_size;
 
-		qp->wqe_wr_id[qp->sq.prod].opcode = qlnxr_ib_to_wc_opcode(wr->opcode);
+		qp->wqe_wr_id[qp->sq.prod].opcode = qlnxr_ib_to_wc_opcode(
+		    wr->opcode);
 
 		switch (wr->opcode) {
 		case IB_WR_SEND_WITH_IMM:
@@ -4337,21 +4265,20 @@ qlnxr_post_send(struct ib_qp *ibqp,
 			wqe->req_type = RDMA_SQ_REQ_TYPE_SEND_WITH_IMM;
 			swqe = (struct rdma_sq_send_wqe *)wqe;
 			swqe->wqe_size = 2;
-			swqe2 = (struct rdma_sq_send_wqe *)
-					ecore_chain_produce(&qp->sq.pbl);
-			swqe->inv_key_or_imm_data =
-				cpu_to_le32(wr->ex.imm_data);
+			swqe2 = (struct rdma_sq_send_wqe *)ecore_chain_produce(
+			    &qp->sq.pbl);
+			swqe->inv_key_or_imm_data = cpu_to_le32(
+			    wr->ex.imm_data);
 			swqe->length = cpu_to_le32(
-						qlnxr_prepare_sq_send_data(dev,
-							qp, swqe, swqe2, wr,
-							bad_wr));
+			    qlnxr_prepare_sq_send_data(dev, qp, swqe, swqe2, wr,
+				bad_wr));
 
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = swqe->wqe_size;
 			qp->prev_wqe_size = swqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = swqe->length;
 
 			QL_DPRINT12(ha, "SEND w/ IMM length = %d imm data=%x\n",
-				swqe->length, wr->ex.imm_data);
+			    swqe->length, wr->ex.imm_data);
 
 			break;
 
@@ -4361,18 +4288,17 @@ qlnxr_post_send(struct ib_qp *ibqp,
 			swqe = (struct rdma_sq_send_wqe *)wqe;
 
 			swqe->wqe_size = 2;
-			swqe2 = (struct rdma_sq_send_wqe *)
-					ecore_chain_produce(&qp->sq.pbl);
+			swqe2 = (struct rdma_sq_send_wqe *)ecore_chain_produce(
+			    &qp->sq.pbl);
 			swqe->length = cpu_to_le32(
-						qlnxr_prepare_sq_send_data(dev,
-							qp, swqe, swqe2, wr,
-							bad_wr));
+			    qlnxr_prepare_sq_send_data(dev, qp, swqe, swqe2, wr,
+				bad_wr));
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = swqe->wqe_size;
 			qp->prev_wqe_size = swqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = swqe->length;
 
 			QL_DPRINT12(ha, "SEND w/o IMM length = %d\n",
-				swqe->length);
+			    swqe->length);
 
 			break;
 
@@ -4380,19 +4306,20 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 			wqe->req_type = RDMA_SQ_REQ_TYPE_SEND_WITH_INVALIDATE;
 			swqe = (struct rdma_sq_send_wqe *)wqe;
-			swqe2 = (struct rdma_sq_send_wqe *)
-					ecore_chain_produce(&qp->sq.pbl);
+			swqe2 = (struct rdma_sq_send_wqe *)ecore_chain_produce(
+			    &qp->sq.pbl);
 			swqe->wqe_size = 2;
-			swqe->inv_key_or_imm_data =
-				cpu_to_le32(wr->ex.invalidate_rkey);
-			swqe->length = cpu_to_le32(qlnxr_prepare_sq_send_data(dev,
-						qp, swqe, swqe2, wr, bad_wr));
+			swqe->inv_key_or_imm_data = cpu_to_le32(
+			    wr->ex.invalidate_rkey);
+			swqe->length = cpu_to_le32(
+			    qlnxr_prepare_sq_send_data(dev, qp, swqe, swqe2, wr,
+				bad_wr));
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = swqe->wqe_size;
 			qp->prev_wqe_size = swqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = swqe->length;
 
 			QL_DPRINT12(ha, "SEND w INVALIDATE length = %d\n",
-				swqe->length);
+			    swqe->length);
 			break;
 
 		case IB_WR_RDMA_WRITE_WITH_IMM:
@@ -4403,16 +4330,17 @@ qlnxr_post_send(struct ib_qp *ibqp,
 			rwqe->wqe_size = 2;
 			rwqe->imm_data = htonl(cpu_to_le32(wr->ex.imm_data));
 			rwqe2 = (struct rdma_sq_rdma_wqe_2nd *)
-					ecore_chain_produce(&qp->sq.pbl);
-			rwqe->length = cpu_to_le32(qlnxr_prepare_sq_rdma_data(dev,
-						qp, rwqe, rwqe2, wr, bad_wr));
+			    ecore_chain_produce(&qp->sq.pbl);
+			rwqe->length = cpu_to_le32(
+			    qlnxr_prepare_sq_rdma_data(dev, qp, rwqe, rwqe2, wr,
+				bad_wr));
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = rwqe->wqe_size;
 			qp->prev_wqe_size = rwqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = rwqe->length;
 
 			QL_DPRINT12(ha,
-				"RDMA WRITE w/ IMM length = %d imm data=%x\n",
-				rwqe->length, rwqe->imm_data);
+			    "RDMA WRITE w/ IMM length = %d imm data=%x\n",
+			    rwqe->length, rwqe->imm_data);
 
 			break;
 
@@ -4423,23 +4351,23 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 			rwqe->wqe_size = 2;
 			rwqe2 = (struct rdma_sq_rdma_wqe_2nd *)
-					ecore_chain_produce(&qp->sq.pbl);
-			rwqe->length = cpu_to_le32(qlnxr_prepare_sq_rdma_data(dev,
-						qp, rwqe, rwqe2, wr, bad_wr));
+			    ecore_chain_produce(&qp->sq.pbl);
+			rwqe->length = cpu_to_le32(
+			    qlnxr_prepare_sq_rdma_data(dev, qp, rwqe, rwqe2, wr,
+				bad_wr));
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = rwqe->wqe_size;
 			qp->prev_wqe_size = rwqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = rwqe->length;
 
-			QL_DPRINT12(ha,
-				"RDMA WRITE w/o IMM length = %d\n",
-				rwqe->length);
+			QL_DPRINT12(ha, "RDMA WRITE w/o IMM length = %d\n",
+			    rwqe->length);
 
 			break;
 
 		case IB_WR_RDMA_READ_WITH_INV:
 
 			QL_DPRINT12(ha,
-				"RDMA READ WITH INVALIDATE not supported\n");
+			    "RDMA READ WITH INVALIDATE not supported\n");
 
 			*bad_wr = wr;
 			rc = -EINVAL;
@@ -4453,57 +4381,59 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 			rwqe->wqe_size = 2;
 			rwqe2 = (struct rdma_sq_rdma_wqe_2nd *)
-					ecore_chain_produce(&qp->sq.pbl);
-			rwqe->length = cpu_to_le32(qlnxr_prepare_sq_rdma_data(dev,
-						qp, rwqe, rwqe2, wr, bad_wr));
+			    ecore_chain_produce(&qp->sq.pbl);
+			rwqe->length = cpu_to_le32(
+			    qlnxr_prepare_sq_rdma_data(dev, qp, rwqe, rwqe2, wr,
+				bad_wr));
 
 			qp->wqe_wr_id[qp->sq.prod].wqe_size = rwqe->wqe_size;
 			qp->prev_wqe_size = rwqe->wqe_size;
 			qp->wqe_wr_id[qp->sq.prod].bytes_len = rwqe->length;
 
 			QL_DPRINT12(ha, "RDMA READ length = %d\n",
-				rwqe->length);
+			    rwqe->length);
 
 			break;
 
 		case IB_WR_ATOMIC_CMP_AND_SWP:
 		case IB_WR_ATOMIC_FETCH_AND_ADD:
 
-			QL_DPRINT12(ha,
-				"ATOMIC operation = %s\n",
-				((wr->opcode == IB_WR_ATOMIC_CMP_AND_SWP) ?
-					"IB_WR_ATOMIC_CMP_AND_SWP" : 
-					"IB_WR_ATOMIC_FETCH_AND_ADD"));
+			QL_DPRINT12(ha, "ATOMIC operation = %s\n",
+			    ((wr->opcode == IB_WR_ATOMIC_CMP_AND_SWP) ?
+				    "IB_WR_ATOMIC_CMP_AND_SWP" :
+				    "IB_WR_ATOMIC_FETCH_AND_ADD"));
 
 			awqe1 = (struct rdma_sq_atomic_wqe *)wqe;
 			awqe1->prev_wqe_size = 4;
 
 			awqe2 = (struct rdma_sq_atomic_wqe *)
-					ecore_chain_produce(&qp->sq.pbl);
+			    ecore_chain_produce(&qp->sq.pbl);
 
-			TYPEPTR_ADDR_SET(awqe2, remote_va, \
-				atomic_wr(wr)->remote_addr);
+			TYPEPTR_ADDR_SET(awqe2, remote_va,
+			    atomic_wr(wr)->remote_addr);
 
 			awqe2->r_key = cpu_to_le32(atomic_wr(wr)->rkey);
 
 			awqe3 = (struct rdma_sq_atomic_wqe *)
-					ecore_chain_produce(&qp->sq.pbl);
+			    ecore_chain_produce(&qp->sq.pbl);
 
 			if (wr->opcode == IB_WR_ATOMIC_FETCH_AND_ADD) {
 				wqe->req_type = RDMA_SQ_REQ_TYPE_ATOMIC_ADD;
 				TYPEPTR_ADDR_SET(awqe3, swap_data,
-						 atomic_wr(wr)->compare_add);
+				    atomic_wr(wr)->compare_add);
 			} else {
-				wqe->req_type = RDMA_SQ_REQ_TYPE_ATOMIC_CMP_AND_SWAP;
+				wqe->req_type =
+				    RDMA_SQ_REQ_TYPE_ATOMIC_CMP_AND_SWAP;
 				TYPEPTR_ADDR_SET(awqe3, swap_data,
-						 atomic_wr(wr)->swap);
+				    atomic_wr(wr)->swap);
 				TYPEPTR_ADDR_SET(awqe3, cmp_data,
-						 atomic_wr(wr)->compare_add);
+				    atomic_wr(wr)->compare_add);
 			}
 
 			qlnxr_prepare_sq_sges(dev, qp, NULL, wr);
 
-			qp->wqe_wr_id[qp->sq.prod].wqe_size = awqe1->prev_wqe_size;
+			qp->wqe_wr_id[qp->sq.prod].wqe_size =
+			    awqe1->prev_wqe_size;
 			qp->prev_wqe_size = awqe1->prev_wqe_size;
 
 			break;
@@ -4511,14 +4441,15 @@ qlnxr_post_send(struct ib_qp *ibqp,
 		case IB_WR_LOCAL_INV:
 
 			QL_DPRINT12(ha,
-				"INVALIDATE length (IB_WR_LOCAL_INV)\n");
+			    "INVALIDATE length (IB_WR_LOCAL_INV)\n");
 
 			iwqe = (struct rdma_sq_local_inv_wqe *)wqe;
 			iwqe->prev_wqe_size = 1;
 
 			iwqe->req_type = RDMA_SQ_REQ_TYPE_LOCAL_INVALIDATE;
 			iwqe->inv_l_key = wr->ex.invalidate_rkey;
-			qp->wqe_wr_id[qp->sq.prod].wqe_size = iwqe->prev_wqe_size;
+			qp->wqe_wr_id[qp->sq.prod].wqe_size =
+			    iwqe->prev_wqe_size;
 			qp->prev_wqe_size = iwqe->prev_wqe_size;
 
 			break;
@@ -4533,7 +4464,8 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 			rc = qlnxr_prepare_reg(qp, fwqe1, reg_wr(wr));
 			if (rc) {
-				QL_DPRINT11(ha, "IB_WR_REG_MR failed rc=%d\n", rc);
+				QL_DPRINT11(ha, "IB_WR_REG_MR failed rc=%d\n",
+				    rc);
 				*bad_wr = wr;
 				break;
 			}
@@ -4554,11 +4486,11 @@ qlnxr_post_send(struct ib_qp *ibqp,
 
 		if (*bad_wr) {
 			/*
-			 * restore prod to its position before this WR was processed
+			 * restore prod to its position before this WR was
+			 * processed
 			 */
 			ecore_chain_set_prod(&qp->sq.pbl,
-			     le16_to_cpu(qp->sq.db_data.data.value),
-			     wqe);
+			    le16_to_cpu(qp->sq.db_data.data.value), wqe);
 			/* restore prev_wqe_size */
 			qp->prev_wqe_size = wqe->prev_wqe_size;
 			status = rc;
@@ -4583,18 +4515,19 @@ qlnxr_post_send(struct ib_qp *ibqp,
 	 * redundant doorbell.
 	 */
 	wmb();
-	//writel(qp->sq.db_data.raw, qp->sq.db);
+	// writel(qp->sq.db_data.raw, qp->sq.db);
 
-	reg_addr = (uint32_t)((uint8_t *)qp->sq.db - (uint8_t *)ha->cdev.doorbells);
-        bus_write_4(ha->pci_dbells, reg_addr, qp->sq.db_data.raw);
-        bus_barrier(ha->pci_dbells,  0, 0, BUS_SPACE_BARRIER_READ);
+	reg_addr = (uint32_t)((uint8_t *)qp->sq.db -
+	    (uint8_t *)ha->cdev.doorbells);
+	bus_write_4(ha->pci_dbells, reg_addr, qp->sq.db_data.raw);
+	bus_barrier(ha->pci_dbells, 0, 0, BUS_SPACE_BARRIER_READ);
 
 	mmiowb();
 
 	spin_unlock_irqrestore(&qp->q_lock, flags);
 
-	QL_DPRINT12(ha, "exit[ibqp, wr, bad_wr] = [%p, %p, %p]\n",
-		ibqp, wr, bad_wr);
+	QL_DPRINT12(ha, "exit[ibqp, wr, bad_wr] = [%p, %p, %p]\n", ibqp, wr,
+	    bad_wr);
 
 	return status;
 }
@@ -4614,16 +4547,15 @@ qlnxr_srq_elem_left(struct qlnxr_srq_hwq_info *hw_srq)
 }
 
 int
-qlnxr_post_recv(struct ib_qp *ibqp,
-	const struct ib_recv_wr *wr,
-	const struct ib_recv_wr **bad_wr)
+qlnxr_post_recv(struct ib_qp *ibqp, const struct ib_recv_wr *wr,
+    const struct ib_recv_wr **bad_wr)
 {
- 	struct qlnxr_qp		*qp = get_qlnxr_qp(ibqp);
-	struct qlnxr_dev	*dev = qp->dev;
-	unsigned long		flags;
-	int			status = 0;
-	qlnx_host_t		*ha;
-	uint32_t		reg_addr;
+	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
+	struct qlnxr_dev *dev = qp->dev;
+	unsigned long flags;
+	int status = 0;
+	qlnx_host_t *ha;
+	uint32_t reg_addr;
 
 	ha = dev->ha;
 
@@ -4638,9 +4570,10 @@ qlnxr_post_recv(struct ib_qp *ibqp,
 	}
 
 	if (qp->srq) {
-		QL_DPRINT11(ha, "qp->srq [%p]"
-			" QP is associated with SRQ, cannot post RQ buffers\n",
-			qp->srq);
+		QL_DPRINT11(ha,
+		    "qp->srq [%p]"
+		    " QP is associated with SRQ, cannot post RQ buffers\n",
+		    qp->srq);
 		return -EINVAL;
 	}
 
@@ -4660,36 +4593,42 @@ qlnxr_post_recv(struct ib_qp *ibqp,
 
 		if ((ecore_chain_get_elem_left_u32(&qp->rq.pbl) <
 			QLNXR_MAX_RQE_ELEMENTS_PER_RQE) ||
-			(wr->num_sge > qp->rq.max_sges)) {
+		    (wr->num_sge > qp->rq.max_sges)) {
 			status = -ENOMEM;
 			*bad_wr = wr;
 			break;
 		}
 		for (i = 0; i < wr->num_sge; i++) {
 			u32 flags = 0;
-			struct rdma_rq_sge *rqe = ecore_chain_produce(&qp->rq.pbl);
+			struct rdma_rq_sge *rqe = ecore_chain_produce(
+			    &qp->rq.pbl);
 
-			/* first one must include the number of SGE in the list */
+			/* first one must include the number of SGE in the list
+			 */
 			if (!i)
-				SET_FIELD(flags, RDMA_RQ_SGE_NUM_SGES, wr->num_sge);
+				SET_FIELD(flags, RDMA_RQ_SGE_NUM_SGES,
+				    wr->num_sge);
 
-			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY, wr->sg_list[i].lkey);
+			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY,
+			    wr->sg_list[i].lkey);
 
-			RQ_SGE_SET(rqe, wr->sg_list[i].addr, \
-				wr->sg_list[i].length, flags);
+			RQ_SGE_SET(rqe, wr->sg_list[i].addr,
+			    wr->sg_list[i].length, flags);
 		}
 		/* Special case of no sges. FW requires between 1-4 sges...
 		 * in this case we need to post 1 sge with length zero. this is
 		 * because rdma write with immediate consumes an RQ. */
 		if (!wr->num_sge) {
 			u32 flags = 0;
-			struct rdma_rq_sge *rqe = ecore_chain_produce(&qp->rq.pbl);
+			struct rdma_rq_sge *rqe = ecore_chain_produce(
+			    &qp->rq.pbl);
 
-			/* first one must include the number of SGE in the list */
+			/* first one must include the number of SGE in the list
+			 */
 			SET_FIELD(flags, RDMA_RQ_SGE_L_KEY, 0);
 			SET_FIELD(flags, RDMA_RQ_SGE_NUM_SGES, 1);
 
-			//RQ_SGE_SET(rqe, 0, 0, flags);
+			// RQ_SGE_SET(rqe, 0, 0, flags);
 			rqe->addr.hi = 0;
 			rqe->addr.lo = 0;
 
@@ -4708,26 +4647,26 @@ qlnxr_post_recv(struct ib_qp *ibqp,
 
 		qp->rq.db_data.data.value++;
 
-	//	writel(qp->rq.db_data.raw, qp->rq.db);
+		//	writel(qp->rq.db_data.raw, qp->rq.db);
 		mmiowb();
-	//	if (QLNX_IS_IWARP(dev)) {
-	//		writel(qp->rq.iwarp_db2_data.raw, qp->rq.iwarp_db2);
-	//		mmiowb(); /* for second doorbell */
-	//	}
+		//	if (QLNX_IS_IWARP(dev)) {
+		//		writel(qp->rq.iwarp_db2_data.raw,
+		//qp->rq.iwarp_db2); 		mmiowb(); /* for second doorbell */
+		//	}
 
 		reg_addr = (uint32_t)((uint8_t *)qp->rq.db -
-				(uint8_t *)ha->cdev.doorbells);
+		    (uint8_t *)ha->cdev.doorbells);
 
 		bus_write_4(ha->pci_dbells, reg_addr, qp->rq.db_data.raw);
-		bus_barrier(ha->pci_dbells,  0, 0, BUS_SPACE_BARRIER_READ);
+		bus_barrier(ha->pci_dbells, 0, 0, BUS_SPACE_BARRIER_READ);
 
 		if (QLNX_IS_IWARP(dev)) {
 			reg_addr = (uint32_t)((uint8_t *)qp->rq.iwarp_db2 -
-						(uint8_t *)ha->cdev.doorbells);
-			bus_write_4(ha->pci_dbells, reg_addr, \
-				qp->rq.iwarp_db2_data.raw);
-			bus_barrier(ha->pci_dbells,  0, 0, \
-				BUS_SPACE_BARRIER_READ);
+			    (uint8_t *)ha->cdev.doorbells);
+			bus_write_4(ha->pci_dbells, reg_addr,
+			    qp->rq.iwarp_db2_data.raw);
+			bus_barrier(ha->pci_dbells, 0, 0,
+			    BUS_SPACE_BARRIER_READ);
 		}
 
 		wr = wr->next;
@@ -4756,17 +4695,12 @@ qlnxr_chk_if_fmr(struct qlnxr_qp *qp)
 }
 
 static int
-process_req(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	int num_entries,
-	struct ib_wc *wc,
-	u16 hw_cons,
-	enum ib_wc_status status,
-	int force)
+process_req(struct qlnxr_dev *dev, struct qlnxr_qp *qp, struct qlnxr_cq *cq,
+    int num_entries, struct ib_wc *wc, u16 hw_cons, enum ib_wc_status status,
+    int force)
 {
-	u16		cnt = 0;
-	qlnx_host_t	*ha = dev->ha;
+	u16 cnt = 0;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -4794,8 +4728,8 @@ process_req(struct qlnxr_dev *dev,
 			wc->byte_len = qp->wqe_wr_id[qp->sq.cons].bytes_len;
 
 			QL_DPRINT12(ha,
-				"opcode = IB_WC_RDMA_WRITE bytes = %d\n",
-				qp->wqe_wr_id[qp->sq.cons].bytes_len);
+			    "opcode = IB_WC_RDMA_WRITE bytes = %d\n",
+			    qp->wqe_wr_id[qp->sq.cons].bytes_len);
 			break;
 
 		case IB_WC_COMP_SWAP:
@@ -4812,14 +4746,13 @@ process_req(struct qlnxr_dev *dev,
 
 			QL_DPRINT12(ha, "opcode = 0x%x \n", wc->opcode);
 			break;
-		default:
-			;//DP_ERR("TBD ERROR");
+		default:; // DP_ERR("TBD ERROR");
 		}
 
 		num_entries--;
 		wc++;
 		cnt++;
-next_cqe:
+	next_cqe:
 		while (qp->wqe_wr_id[qp->sq.cons].wqe_size--)
 			ecore_chain_consume(&qp->sq.pbl);
 		qlnxr_inc_sw_cons(&qp->sq);
@@ -4830,15 +4763,12 @@ next_cqe:
 }
 
 static int
-qlnxr_poll_cq_req(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	int num_entries,
-	struct ib_wc *wc,
-	struct rdma_cqe_requester *req)
+qlnxr_poll_cq_req(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, int num_entries, struct ib_wc *wc,
+    struct rdma_cqe_requester *req)
 {
-	int		cnt = 0;
-	qlnx_host_t	*ha = dev->ha;
+	int cnt = 0;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter req->status = 0x%x\n", req->status);
 
@@ -4846,14 +4776,14 @@ qlnxr_poll_cq_req(struct qlnxr_dev *dev,
 	case RDMA_CQE_REQ_STS_OK:
 
 		cnt = process_req(dev, qp, cq, num_entries, wc, req->sq_cons,
-			IB_WC_SUCCESS, 0);
+		    IB_WC_SUCCESS, 0);
 		break;
 
 	case RDMA_CQE_REQ_STS_WORK_REQUEST_FLUSHED_ERR:
 
 		if (qp->state != ECORE_ROCE_QP_STATE_ERR)
-		cnt = process_req(dev, qp, cq, num_entries, wc, req->sq_cons,
-				  IB_WC_WR_FLUSH_ERR, 1);
+			cnt = process_req(dev, qp, cq, num_entries, wc,
+			    req->sq_cons, IB_WC_WR_FLUSH_ERR, 1);
 		break;
 
 	default: /* other errors case */
@@ -4861,7 +4791,7 @@ qlnxr_poll_cq_req(struct qlnxr_dev *dev,
 		/* process all WQE before the cosumer */
 		qp->state = ECORE_ROCE_QP_STATE_ERR;
 		cnt = process_req(dev, qp, cq, num_entries, wc,
-				req->sq_cons - 1, IB_WC_SUCCESS, 0);
+		    req->sq_cons - 1, IB_WC_SUCCESS, 0);
 		wc += cnt;
 		/* if we have extra WC fill it with actual error info */
 
@@ -4869,34 +4799,34 @@ qlnxr_poll_cq_req(struct qlnxr_dev *dev,
 			enum ib_wc_status wc_status;
 
 			switch (req->status) {
-			case 	RDMA_CQE_REQ_STS_BAD_RESPONSE_ERR:
+			case RDMA_CQE_REQ_STS_BAD_RESPONSE_ERR:
 				wc_status = IB_WC_BAD_RESP_ERR;
 				break;
-			case 	RDMA_CQE_REQ_STS_LOCAL_LENGTH_ERR:
+			case RDMA_CQE_REQ_STS_LOCAL_LENGTH_ERR:
 				wc_status = IB_WC_LOC_LEN_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_LOCAL_QP_OPERATION_ERR:
+			case RDMA_CQE_REQ_STS_LOCAL_QP_OPERATION_ERR:
 				wc_status = IB_WC_LOC_QP_OP_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_LOCAL_PROTECTION_ERR:
+			case RDMA_CQE_REQ_STS_LOCAL_PROTECTION_ERR:
 				wc_status = IB_WC_LOC_PROT_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_MEMORY_MGT_OPERATION_ERR:
+			case RDMA_CQE_REQ_STS_MEMORY_MGT_OPERATION_ERR:
 				wc_status = IB_WC_MW_BIND_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_REMOTE_INVALID_REQUEST_ERR:
+			case RDMA_CQE_REQ_STS_REMOTE_INVALID_REQUEST_ERR:
 				wc_status = IB_WC_REM_INV_REQ_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_REMOTE_ACCESS_ERR:
+			case RDMA_CQE_REQ_STS_REMOTE_ACCESS_ERR:
 				wc_status = IB_WC_REM_ACCESS_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_REMOTE_OPERATION_ERR:
+			case RDMA_CQE_REQ_STS_REMOTE_OPERATION_ERR:
 				wc_status = IB_WC_REM_OP_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_RNR_NAK_RETRY_CNT_ERR:
+			case RDMA_CQE_REQ_STS_RNR_NAK_RETRY_CNT_ERR:
 				wc_status = IB_WC_RNR_RETRY_EXC_ERR;
 				break;
-			case    RDMA_CQE_REQ_STS_TRANSPORT_RETRY_CNT_ERR:
+			case RDMA_CQE_REQ_STS_TRANSPORT_RETRY_CNT_ERR:
 				wc_status = IB_WC_RETRY_EXC_ERR;
 				break;
 			default:
@@ -4904,7 +4834,7 @@ qlnxr_poll_cq_req(struct qlnxr_dev *dev,
 			}
 
 			cnt += process_req(dev, qp, cq, 1, wc, req->sq_cons,
-					wc_status, 1 /* force use of WC */);
+			    wc_status, 1 /* force use of WC */);
 		}
 	}
 
@@ -4913,18 +4843,15 @@ qlnxr_poll_cq_req(struct qlnxr_dev *dev,
 }
 
 static void
-__process_resp_one(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	struct ib_wc *wc,
-	struct rdma_cqe_responder *resp,
-	u64 wr_id)
+__process_resp_one(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, struct ib_wc *wc, struct rdma_cqe_responder *resp,
+    u64 wr_id)
 {
-	enum ib_wc_status	wc_status = IB_WC_SUCCESS;
-	qlnx_host_t		*ha = dev->ha;
+	enum ib_wc_status wc_status = IB_WC_SUCCESS;
+	qlnx_host_t *ha = dev->ha;
 
-	QL_DPRINT12(ha, "enter qp = %p resp->status = 0x%x\n",
-		qp, resp->status);
+	QL_DPRINT12(ha, "enter qp = %p resp->status = 0x%x\n", qp,
+	    resp->status);
 
 	wc->opcode = IB_WC_RECV;
 	wc->wc_flags = 0;
@@ -4956,8 +4883,8 @@ __process_resp_one(struct qlnxr_dev *dev,
 
 	case RDMA_CQE_RESP_STS_OK:
 		if (resp->flags & QLNXR_RESP_IMM) {
-			wc->ex.imm_data =
-				le32_to_cpu(resp->imm_data_or_inv_r_Key);
+			wc->ex.imm_data = le32_to_cpu(
+			    resp->imm_data_or_inv_r_Key);
 			wc->wc_flags |= IB_WC_WITH_IMM;
 
 			if (resp->flags & QLNXR_RESP_RDMA)
@@ -4965,27 +4892,28 @@ __process_resp_one(struct qlnxr_dev *dev,
 
 			if (resp->flags & QLNXR_RESP_INV) {
 				QL_DPRINT11(ha,
-					"Invalid flags QLNXR_RESP_INV [0x%x]"
-					"qp = %p qp->id = 0x%x cq = %p"
-					" cq->icid = 0x%x\n",
-					resp->flags, qp, qp->id, cq, cq->icid );
+				    "Invalid flags QLNXR_RESP_INV [0x%x]"
+				    "qp = %p qp->id = 0x%x cq = %p"
+				    " cq->icid = 0x%x\n",
+				    resp->flags, qp, qp->id, cq, cq->icid);
 			}
 		} else if (resp->flags & QLNXR_RESP_INV) {
-			wc->ex.imm_data =
-				le32_to_cpu(resp->imm_data_or_inv_r_Key);
+			wc->ex.imm_data = le32_to_cpu(
+			    resp->imm_data_or_inv_r_Key);
 			wc->wc_flags |= IB_WC_WITH_INVALIDATE;
 
 			if (resp->flags & QLNXR_RESP_RDMA) {
 				QL_DPRINT11(ha,
-					"Invalid flags QLNXR_RESP_RDMA [0x%x]"
-					"qp = %p qp->id = 0x%x cq = %p"
-					" cq->icid = 0x%x\n",
-					resp->flags, qp, qp->id, cq, cq->icid );
+				    "Invalid flags QLNXR_RESP_RDMA [0x%x]"
+				    "qp = %p qp->id = 0x%x cq = %p"
+				    " cq->icid = 0x%x\n",
+				    resp->flags, qp, qp->id, cq, cq->icid);
 			}
 		} else if (resp->flags & QLNXR_RESP_RDMA) {
-			QL_DPRINT11(ha, "Invalid flags QLNXR_RESP_RDMA [0x%x]"
-				"qp = %p qp->id = 0x%x cq = %p cq->icid = 0x%x\n",
-				resp->flags, qp, qp->id, cq, cq->icid );
+			QL_DPRINT11(ha,
+			    "Invalid flags QLNXR_RESP_RDMA [0x%x]"
+			    "qp = %p qp->id = 0x%x cq = %p cq->icid = 0x%x\n",
+			    resp->flags, qp, qp->id, cq, cq->icid);
 		}
 		break;
 
@@ -5006,15 +4934,12 @@ __process_resp_one(struct qlnxr_dev *dev,
 }
 
 static int
-process_resp_one_srq(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	struct ib_wc *wc,
-	struct rdma_cqe_responder *resp)
+process_resp_one_srq(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, struct ib_wc *wc, struct rdma_cqe_responder *resp)
 {
-	struct qlnxr_srq	*srq = qp->srq;
-	u64			wr_id;
-	qlnx_host_t		*ha = dev->ha;
+	struct qlnxr_srq *srq = qp->srq;
+	u64 wr_id;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5042,14 +4967,11 @@ process_resp_one_srq(struct qlnxr_dev *dev,
 }
 
 static int
-process_resp_one(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	struct ib_wc *wc,
-	struct rdma_cqe_responder *resp)
+process_resp_one(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, struct ib_wc *wc, struct rdma_cqe_responder *resp)
 {
-	qlnx_host_t	*ha = dev->ha;
-	u64		wr_id = qp->rqe_wr_id[qp->rq.cons].wr_id;
+	qlnx_host_t *ha = dev->ha;
+	u64 wr_id = qp->rqe_wr_id[qp->rq.cons].wr_id;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5064,13 +4986,11 @@ process_resp_one(struct qlnxr_dev *dev,
 }
 
 static int
-process_resp_flush(struct qlnxr_qp *qp,
-	int num_entries,
-	struct ib_wc *wc,
-	u16 hw_cons)
+process_resp_flush(struct qlnxr_qp *qp, int num_entries, struct ib_wc *wc,
+    u16 hw_cons)
 {
-	u16		cnt = 0;
-	qlnx_host_t	*ha = qp->dev->ha;
+	u16 cnt = 0;
+	qlnx_host_t *ha = qp->dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5096,10 +5016,8 @@ process_resp_flush(struct qlnxr_qp *qp,
 }
 
 static void
-try_consume_resp_cqe(struct qlnxr_cq *cq,
-	struct qlnxr_qp *qp,
-	struct rdma_cqe_responder *resp,
-	int *update)
+try_consume_resp_cqe(struct qlnxr_cq *cq, struct qlnxr_qp *qp,
+    struct rdma_cqe_responder *resp, int *update)
 {
 	if (le16_to_cpu(resp->rq_cons) == qp->rq.wqe_cons) {
 		consume_cqe(cq);
@@ -5108,16 +5026,12 @@ try_consume_resp_cqe(struct qlnxr_cq *cq,
 }
 
 static int
-qlnxr_poll_cq_resp_srq(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	int num_entries,
-	struct ib_wc *wc,
-	struct rdma_cqe_responder *resp,
-	int *update)
+qlnxr_poll_cq_resp_srq(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, int num_entries, struct ib_wc *wc,
+    struct rdma_cqe_responder *resp, int *update)
 {
-	int		cnt;
-	qlnx_host_t	*ha = dev->ha;
+	int cnt;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5130,22 +5044,17 @@ qlnxr_poll_cq_resp_srq(struct qlnxr_dev *dev,
 }
 
 static int
-qlnxr_poll_cq_resp(struct qlnxr_dev *dev,
-	struct qlnxr_qp *qp,
-	struct qlnxr_cq *cq,
-	int num_entries,
-	struct ib_wc *wc,
-	struct rdma_cqe_responder *resp,
-	int *update)
+qlnxr_poll_cq_resp(struct qlnxr_dev *dev, struct qlnxr_qp *qp,
+    struct qlnxr_cq *cq, int num_entries, struct ib_wc *wc,
+    struct rdma_cqe_responder *resp, int *update)
 {
-	int		cnt;
-	qlnx_host_t	*ha = dev->ha;
+	int cnt;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	if (resp->status == RDMA_CQE_RESP_STS_WORK_REQUEST_FLUSHED_ERR) {
-		cnt = process_resp_flush(qp, num_entries, wc,
-				resp->rq_cons);
+		cnt = process_resp_flush(qp, num_entries, wc, resp->rq_cons);
 		try_consume_resp_cqe(cq, qp, resp, update);
 	} else {
 		cnt = process_resp_one(dev, qp, cq, wc, resp);
@@ -5159,7 +5068,7 @@ qlnxr_poll_cq_resp(struct qlnxr_dev *dev,
 
 static void
 try_consume_req_cqe(struct qlnxr_cq *cq, struct qlnxr_qp *qp,
-	struct rdma_cqe_requester *req, int *update)
+    struct rdma_cqe_requester *req, int *update)
 {
 	if (le16_to_cpu(req->sq_cons) == qp->sq.wqe_cons) {
 		consume_cqe(cq);
@@ -5170,8 +5079,8 @@ try_consume_req_cqe(struct qlnxr_cq *cq, struct qlnxr_qp *qp,
 static void
 doorbell_cq(struct qlnxr_dev *dev, struct qlnxr_cq *cq, u32 cons, u8 flags)
 {
-	uint64_t	reg_addr;
-	qlnx_host_t	*ha = dev->ha;
+	uint64_t reg_addr;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5180,24 +5089,24 @@ doorbell_cq(struct qlnxr_dev *dev, struct qlnxr_cq *cq, u32 cons, u8 flags)
 	cq->db.data.value = cpu_to_le32(cons);
 
 	reg_addr = (uint64_t)((uint8_t *)cq->db_addr -
-				(uint8_t *)(ha->cdev.doorbells));
+	    (uint8_t *)(ha->cdev.doorbells));
 
 	bus_write_8(ha->pci_dbells, reg_addr, cq->db.raw);
-	bus_barrier(ha->pci_dbells,  0, 0, BUS_SPACE_BARRIER_READ);
+	bus_barrier(ha->pci_dbells, 0, 0, BUS_SPACE_BARRIER_READ);
 
 	QL_DPRINT12(ha, "exit\n");
 	return;
 
-//#ifdef __LP64__
-//	writeq(cq->db.raw, cq->db_addr);
-//#else
+	// #ifdef __LP64__
+	//	writeq(cq->db.raw, cq->db_addr);
+	// #else
 	/* Note that since the FW allows 64 bit write only, in 32bit systems
 	 * the value of db_addr must be low enough. This is currently not
 	 * enforced.
 	 */
-//	writel(cq->db.raw & 0xffffffff, cq->db_addr);
-//	mmiowb();
-//#endif
+	//	writel(cq->db.raw & 0xffffffff, cq->db_addr);
+	//	mmiowb();
+	// #endif
 }
 
 static int
@@ -5205,20 +5114,20 @@ is_valid_cqe(struct qlnxr_cq *cq, union rdma_cqe *cqe)
 {
 	struct rdma_cqe_requester *resp_cqe = &cqe->req;
 	return (resp_cqe->flags & RDMA_RESIZE_CQ_RAMROD_DATA_TOGGLE_BIT_MASK) ==
-			cq->pbl_toggle;
+	    cq->pbl_toggle;
 }
 
 int
 qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 {
-	struct qlnxr_cq	*cq = get_qlnxr_cq(ibcq);
+	struct qlnxr_cq *cq = get_qlnxr_cq(ibcq);
 	struct qlnxr_dev *dev = get_qlnxr_dev((ibcq->device));
-	int		done = 0;
-	union rdma_cqe	*cqe = cq->latest_cqe;
-	int 		update = 0;
-	u32		old_cons, new_cons;
-	unsigned long	flags;
-	qlnx_host_t	*ha = dev->ha;
+	int done = 0;
+	union rdma_cqe *cqe = cq->latest_cqe;
+	int update = 0;
+	u32 old_cons, new_cons;
+	unsigned long flags;
+	qlnx_host_t *ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
@@ -5227,7 +5136,7 @@ qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 
 	if (cq->destroyed) {
 		QL_DPRINT11(ha, "called after destroy for cq %p (icid=%d)\n",
-			cq, cq->icid);
+		    cq, cq->icid);
 		return 0;
 	}
 
@@ -5248,8 +5157,8 @@ qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 		rmb();
 
 		resp_cqe = &cqe->req;
-		qp = (struct qlnxr_qp *)(uintptr_t)HILO_U64(resp_cqe->qp_handle.hi,
-						resp_cqe->qp_handle.lo);
+		qp = (struct qlnxr_qp *)(uintptr_t)
+		    HILO_U64(resp_cqe->qp_handle.hi, resp_cqe->qp_handle.lo);
 
 		if (!qp) {
 			QL_DPRINT11(ha, "qp = NULL\n");
@@ -5262,17 +5171,17 @@ qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 
 		switch (cqe_type) {
 		case RDMA_CQE_TYPE_REQUESTER:
-			cnt = qlnxr_poll_cq_req(dev, qp, cq, num_entries,
-					wc, &cqe->req);
+			cnt = qlnxr_poll_cq_req(dev, qp, cq, num_entries, wc,
+			    &cqe->req);
 			try_consume_req_cqe(cq, qp, &cqe->req, &update);
 			break;
 		case RDMA_CQE_TYPE_RESPONDER_RQ:
-			cnt = qlnxr_poll_cq_resp(dev, qp, cq, num_entries,
-					wc, &cqe->resp, &update);
+			cnt = qlnxr_poll_cq_resp(dev, qp, cq, num_entries, wc,
+			    &cqe->resp, &update);
 			break;
 		case RDMA_CQE_TYPE_RESPONDER_SRQ:
 			cnt = qlnxr_poll_cq_resp_srq(dev, qp, cq, num_entries,
-					wc, &cqe->resp, &update);
+			    wc, &cqe->resp, &update);
 			break;
 		case RDMA_CQE_TYPE_INVALID:
 		default:
@@ -5294,9 +5203,10 @@ qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 		 * but chain already point to the next INVALID one
 		 */
 		doorbell_cq(dev, cq, cq->cq_cons - 1, cq->arm_flags);
-		QL_DPRINT12(ha, "cq = %p cons = 0x%x "
-			"arm_flags = 0x%x db.icid = 0x%x\n", cq,
-			(cq->cq_cons - 1), cq->arm_flags, cq->db.data.icid);
+		QL_DPRINT12(ha,
+		    "cq = %p cons = 0x%x "
+		    "arm_flags = 0x%x db.icid = 0x%x\n",
+		    cq, (cq->cq_cons - 1), cq->arm_flags, cq->db.data.icid);
 	}
 
 	spin_unlock_irqrestore(&cq->cq_lock, flags);
@@ -5309,48 +5219,49 @@ qlnxr_poll_cq(struct ib_cq *ibcq, int num_entries, struct ib_wc *wc)
 int
 qlnxr_arm_cq(struct ib_cq *ibcq, enum ib_cq_notify_flags flags)
 {
-        struct qlnxr_cq *cq = get_qlnxr_cq(ibcq);
-        unsigned long sflags;
-        struct qlnxr_dev *dev;
-	qlnx_host_t	*ha;
+	struct qlnxr_cq *cq = get_qlnxr_cq(ibcq);
+	unsigned long sflags;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev((ibcq->device));
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "enter ibcq = %p flags = 0x%x "
-		"cp = %p cons = 0x%x cq_type = 0x%x\n", ibcq,
-		flags, cq, cq->cq_cons, cq->cq_type);
+	QL_DPRINT12(ha,
+	    "enter ibcq = %p flags = 0x%x "
+	    "cp = %p cons = 0x%x cq_type = 0x%x\n",
+	    ibcq, flags, cq, cq->cq_cons, cq->cq_type);
 
 	if (!(if_getdrvflags(ha->ifp) & IFF_DRV_RUNNING))
 		return -EINVAL;
 
 	if (cq->destroyed) {
 		QL_DPRINT11(ha, "cq was already destroyed cq = %p icid=%d\n",
-			cq, cq->icid);
+		    cq, cq->icid);
 		return -EINVAL;
 	}
 
-        if (cq->cq_type == QLNXR_CQ_TYPE_GSI) {
-                return 0;
-        }
+	if (cq->cq_type == QLNXR_CQ_TYPE_GSI) {
+		return 0;
+	}
 
-        spin_lock_irqsave(&cq->cq_lock, sflags);
+	spin_lock_irqsave(&cq->cq_lock, sflags);
 
-        cq->arm_flags = 0;
+	cq->arm_flags = 0;
 
-        if (flags & IB_CQ_SOLICITED) {
-                cq->arm_flags |= DQ_UCM_ROCE_CQ_ARM_SE_CF_CMD;
-        }
-        if (flags & IB_CQ_NEXT_COMP) {
-                cq->arm_flags |= DQ_UCM_ROCE_CQ_ARM_CF_CMD;
-        }
+	if (flags & IB_CQ_SOLICITED) {
+		cq->arm_flags |= DQ_UCM_ROCE_CQ_ARM_SE_CF_CMD;
+	}
+	if (flags & IB_CQ_NEXT_COMP) {
+		cq->arm_flags |= DQ_UCM_ROCE_CQ_ARM_CF_CMD;
+	}
 
-        doorbell_cq(dev, cq, (cq->cq_cons - 1), cq->arm_flags);
+	doorbell_cq(dev, cq, (cq->cq_cons - 1), cq->arm_flags);
 
-        spin_unlock_irqrestore(&cq->cq_lock, sflags);
+	spin_unlock_irqrestore(&cq->cq_lock, sflags);
 
 	QL_DPRINT12(ha, "exit ibcq = %p flags = 0x%x\n", ibcq, flags);
-        return 0;
+	return 0;
 }
 
 static struct qlnxr_mr *
@@ -5359,14 +5270,15 @@ __qlnxr_alloc_mr(struct ib_pd *ibpd, int max_page_list_len)
 	struct qlnxr_pd *pd = get_qlnxr_pd(ibpd);
 	struct qlnxr_dev *dev = get_qlnxr_dev((ibpd->device));
 	struct qlnxr_mr *mr;
-	int		rc = -ENOMEM;
-	qlnx_host_t	*ha;
+	int rc = -ENOMEM;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "enter ibpd = %p pd = %p "
-		" pd_id = %d max_page_list_len = %d\n",
-		ibpd, pd, pd->pd_id, max_page_list_len);
+	QL_DPRINT12(ha,
+	    "enter ibpd = %p pd = %p "
+	    " pd_id = %d max_page_list_len = %d\n",
+	    ibpd, pd, pd->pd_id, max_page_list_len);
 
 	mr = kzalloc(sizeof(*mr), GFP_KERNEL);
 	if (!mr) {
@@ -5378,7 +5290,7 @@ __qlnxr_alloc_mr(struct ib_pd *ibpd, int max_page_list_len)
 	mr->type = QLNXR_MR_FRMR;
 
 	rc = qlnxr_init_mr_info(dev, &mr->info, max_page_list_len,
-				  1 /* allow dual layer pbl */);
+	    1 /* allow dual layer pbl */);
 	if (rc) {
 		QL_DPRINT11(ha, "qlnxr_init_mr_info failed\n");
 		goto err0;
@@ -5400,13 +5312,13 @@ __qlnxr_alloc_mr(struct ib_pd *ibpd, int max_page_list_len)
 	mr->hw_mr.remote_write = 0;
 	mr->hw_mr.remote_atomic = 0;
 	mr->hw_mr.mw_bind = false; /* TBD MW BIND */
-	mr->hw_mr.pbl_ptr = 0; /* Will be supplied during post */
+	mr->hw_mr.pbl_ptr = 0;	   /* Will be supplied during post */
 	mr->hw_mr.pbl_two_level = mr->info.pbl_info.two_layered;
 	mr->hw_mr.pbl_page_size_log = ilog2(mr->info.pbl_info.pbl_size);
 	mr->hw_mr.fbo = 0;
 	mr->hw_mr.length = 0;
 	mr->hw_mr.vaddr = 0;
-	mr->hw_mr.zbva = false; /* TBD figure when this should be true */
+	mr->hw_mr.zbva = false;	 /* TBD figure when this should be true */
 	mr->hw_mr.phy_mr = true; /* Fast MR - True, Regular Register False */
 	mr->hw_mr.dma_mr = false;
 
@@ -5419,8 +5331,8 @@ __qlnxr_alloc_mr(struct ib_pd *ibpd, int max_page_list_len)
 	mr->ibmr.lkey = mr->hw_mr.itid << 8 | mr->hw_mr.key;
 	mr->ibmr.rkey = mr->ibmr.lkey;
 
-	QL_DPRINT12(ha, "exit mr = %p mr->ibmr.lkey = 0x%x\n",
-		mr, mr->ibmr.lkey);
+	QL_DPRINT12(ha, "exit mr = %p mr->ibmr.lkey = 0x%x\n", mr,
+	    mr->ibmr.lkey);
 
 	return mr;
 
@@ -5435,12 +5347,12 @@ err0:
 }
 
 struct ib_mr *
-qlnxr_alloc_mr(struct ib_pd *ibpd, enum ib_mr_type mr_type,
-    u32 max_num_sg, struct ib_udata *udata)
+qlnxr_alloc_mr(struct ib_pd *ibpd, enum ib_mr_type mr_type, u32 max_num_sg,
+    struct ib_udata *udata)
 {
 	struct qlnxr_dev *dev;
 	struct qlnxr_mr *mr;
-	qlnx_host_t     *ha;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibpd->device);
 	ha = dev->ha;
@@ -5467,7 +5379,7 @@ qlnxr_set_page(struct ib_mr *ibmr, u64 addr)
 	struct qlnxr_pbl *pbl_table;
 	struct regpair *pbe;
 	struct qlnxr_dev *dev;
-	qlnx_host_t     *ha;
+	qlnx_host_t *ha;
 	u32 pbes_in_page;
 
 	dev = mr->dev;
@@ -5479,29 +5391,29 @@ qlnxr_set_page(struct ib_mr *ibmr, u64 addr)
 	}
 
 	QL_DPRINT12(ha, "mr->npages %d addr = %p enter\n", mr->npages,
-		((void *)addr));
+	    ((void *)addr));
 
 	pbes_in_page = mr->info.pbl_info.pbl_size / sizeof(u64);
 	pbl_table = mr->info.pbl_table + (mr->npages / pbes_in_page);
 	pbe = (struct regpair *)pbl_table->va;
-	pbe +=  mr->npages % pbes_in_page;
+	pbe += mr->npages % pbes_in_page;
 	pbe->lo = cpu_to_le32((u32)addr);
 	pbe->hi = cpu_to_le32((u32)upper_32_bits(addr));
 
 	mr->npages++;
 
 	QL_DPRINT12(ha, "mr->npages %d addr = %p exit \n", mr->npages,
-		((void *)addr));
+	    ((void *)addr));
 	return 0;
 }
 
 int
-qlnxr_map_mr_sg(struct ib_mr *ibmr, struct scatterlist *sg,
-	int sg_nents, unsigned int *sg_offset)
+qlnxr_map_mr_sg(struct ib_mr *ibmr, struct scatterlist *sg, int sg_nents,
+    unsigned int *sg_offset)
 {
-	int             ret;
+	int ret;
 	struct qlnxr_mr *mr = get_qlnxr_mr(ibmr);
-	qlnx_host_t     *ha;
+	qlnx_host_t *ha;
 
 	if (mr == NULL)
 		return (-1);
@@ -5524,12 +5436,11 @@ qlnxr_map_mr_sg(struct ib_mr *ibmr, struct scatterlist *sg,
 }
 
 int
-qlnxr_create_ah(struct ib_ah *ibah,
-	struct ib_ah_attr *attr, u32 flags,
-	struct ib_udata *udata)
+qlnxr_create_ah(struct ib_ah *ibah, struct ib_ah_attr *attr, u32 flags,
+    struct ib_udata *udata)
 {
 	struct qlnxr_dev *dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 	struct qlnxr_ah *ah = get_qlnxr_ah(ibah);
 
 	dev = get_qlnxr_dev(ibah->device);
@@ -5537,7 +5448,7 @@ qlnxr_create_ah(struct ib_ah *ibah,
 
 	QL_DPRINT12(ha, "in create_ah\n");
 
-	ah->attr = *attr;	
+	ah->attr = *attr;
 
 	return (0);
 }
@@ -5551,7 +5462,7 @@ int
 qlnxr_query_ah(struct ib_ah *ibah, struct ib_ah_attr *attr)
 {
 	struct qlnxr_dev *dev;
-	qlnx_host_t     *ha;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev((ibah->device));
 	ha = dev->ha;
@@ -5563,7 +5474,7 @@ int
 qlnxr_modify_ah(struct ib_ah *ibah, struct ib_ah_attr *attr)
 {
 	struct qlnxr_dev *dev;
-	qlnx_host_t     *ha;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev((ibah->device));
 	ha = dev->ha;
@@ -5572,42 +5483,38 @@ qlnxr_modify_ah(struct ib_ah *ibah, struct ib_ah_attr *attr)
 }
 
 int
-qlnxr_process_mad(struct ib_device *ibdev,
-		int process_mad_flags,
-		u8 port_num,
-		const struct ib_wc *in_wc,
-		const struct ib_grh *in_grh,
-		const struct ib_mad_hdr *mad_hdr,
-		size_t in_mad_size,
-		struct ib_mad_hdr *out_mad,
-		size_t *out_mad_size,
-		u16 *out_mad_pkey_index)
+qlnxr_process_mad(struct ib_device *ibdev, int process_mad_flags, u8 port_num,
+    const struct ib_wc *in_wc, const struct ib_grh *in_grh,
+    const struct ib_mad_hdr *mad_hdr, size_t in_mad_size,
+    struct ib_mad_hdr *out_mad, size_t *out_mad_size, u16 *out_mad_pkey_index)
 {
 	struct qlnxr_dev *dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
 	QL_DPRINT12(ha, "process mad not supported\n");
 
 	return -ENOSYS;
-//	QL_DPRINT12(ha, "qlnxr_process_mad in_mad %x %x %x %x %x %x %x %x\n",
-//               in_mad->mad_hdr.attr_id, in_mad->mad_hdr.base_version,
-//               in_mad->mad_hdr.attr_mod, in_mad->mad_hdr.class_specific,
-//               in_mad->mad_hdr.class_version, in_mad->mad_hdr.method,
-//               in_mad->mad_hdr.mgmt_class, in_mad->mad_hdr.status);
+	//	QL_DPRINT12(ha, "qlnxr_process_mad in_mad %x %x %x %x %x %x %x
+	//%x\n",
+	//               in_mad->mad_hdr.attr_id, in_mad->mad_hdr.base_version,
+	//               in_mad->mad_hdr.attr_mod,
+	//               in_mad->mad_hdr.class_specific,
+	//               in_mad->mad_hdr.class_version, in_mad->mad_hdr.method,
+	//               in_mad->mad_hdr.mgmt_class, in_mad->mad_hdr.status);
 
-//	return IB_MAD_RESULT_SUCCESS;	
+	//	return IB_MAD_RESULT_SUCCESS;
 }
 
 int
 qlnxr_get_port_immutable(struct ib_device *ibdev, u8 port_num,
-	struct ib_port_immutable *immutable)
+    struct ib_port_immutable *immutable)
 {
-	struct qlnxr_dev        *dev;
-	qlnx_host_t             *ha;
-	struct ib_port_attr     attr;
-	int                     err;
+	struct qlnxr_dev *dev;
+	qlnx_host_t *ha;
+	struct ib_port_attr attr;
+	int err;
 
 	dev = get_qlnxr_dev(ibdev);
 	ha = dev->ha;
@@ -5637,16 +5544,16 @@ qlnxr_get_port_immutable(struct ib_device *ibdev, u8 port_num,
 /***** iWARP related functions *************/
 
 static void
-qlnxr_iw_mpa_request(void *context,
-	struct ecore_iwarp_cm_event_params *params)
+qlnxr_iw_mpa_request(void *context, struct ecore_iwarp_cm_event_params *params)
 {
-	struct qlnxr_iw_listener *listener = (struct qlnxr_iw_listener *)context;
+	struct qlnxr_iw_listener *listener = (struct qlnxr_iw_listener *)
+	    context;
 	struct qlnxr_dev *dev = listener->dev;
 	struct qlnxr_iw_ep *ep;
 	struct iw_cm_event event;
 	struct sockaddr_in *laddr;
 	struct sockaddr_in *raddr;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -5654,7 +5561,7 @@ qlnxr_iw_mpa_request(void *context,
 
 	if (params->cm_info->ip_version != ECORE_TCP_IPV4) {
 		QL_DPRINT11(ha, "only IPv4 supported [0x%x]\n",
-			params->cm_info->ip_version);
+		    params->cm_info->ip_version);
 		return;
 	}
 
@@ -5700,15 +5607,13 @@ qlnxr_iw_mpa_request(void *context,
 }
 
 static void
-qlnxr_iw_issue_event(void *context,
-	 struct ecore_iwarp_cm_event_params *params,
-	 enum iw_cm_event_type event_type,
-	 char *str)
+qlnxr_iw_issue_event(void *context, struct ecore_iwarp_cm_event_params *params,
+    enum iw_cm_event_type event_type, char *str)
 {
 	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
 	struct qlnxr_dev *dev = ep->dev;
 	struct iw_cm_event event;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -5727,7 +5632,7 @@ qlnxr_iw_issue_event(void *context,
 		event.private_data_len = params->cm_info->private_data_len;
 		event.private_data = (void *)params->cm_info->private_data;
 		QL_DPRINT12(ha, "private_data_len=[%d] \n",
-			event.private_data_len);
+		    event.private_data_len);
 	}
 
 	QL_DPRINT12(ha, "event=[%d] %s\n", event.event, str);
@@ -5748,22 +5653,19 @@ qlnxr_iw_issue_event(void *context,
 }
 
 static void
-qlnxr_iw_close_event(void *context,
-	 struct ecore_iwarp_cm_event_params *params)
+qlnxr_iw_close_event(void *context, struct ecore_iwarp_cm_event_params *params)
 {
 	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
 	struct qlnxr_dev *dev = ep->dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha, "enter\n");
 
 	if (ep->cm_id) {
-		qlnxr_iw_issue_event(context,
-				    params,
-				    IW_CM_EVENT_CLOSE,
-				    "IW_CM_EVENT_EVENT_CLOSE");
+		qlnxr_iw_issue_event(context, params, IW_CM_EVENT_CLOSE,
+		    "IW_CM_EVENT_EVENT_CLOSE");
 		ep->cm_id->rem_ref(ep->cm_id);
 		ep->cm_id = NULL;
 	}
@@ -5775,123 +5677,120 @@ qlnxr_iw_close_event(void *context,
 
 static void
 qlnxr_iw_passive_complete(void *context,
-        struct ecore_iwarp_cm_event_params *params)
+    struct ecore_iwarp_cm_event_params *params)
 {
-        struct qlnxr_iw_ep      *ep = (struct qlnxr_iw_ep *)context;
-        struct qlnxr_dev        *dev = ep->dev;
-        qlnx_host_t             *ha;
+	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
+	struct qlnxr_dev *dev = ep->dev;
+	qlnx_host_t *ha;
 
-        ha = dev->ha;
+	ha = dev->ha;
 
-        /* We will only reach the following state if MPA_REJECT was called on
-         * passive. In this case there will be no associated QP.
-         */
-        if ((params->status == -ECONNREFUSED) && (ep->qp == NULL)) {
-                QL_DPRINT11(ha, "PASSIVE connection refused releasing ep...\n");
-                kfree(ep);
-                return;
-        }
+	/* We will only reach the following state if MPA_REJECT was called on
+	 * passive. In this case there will be no associated QP.
+	 */
+	if ((params->status == -ECONNREFUSED) && (ep->qp == NULL)) {
+		QL_DPRINT11(ha, "PASSIVE connection refused releasing ep...\n");
+		kfree(ep);
+		return;
+	}
 
-        /* We always issue an established event, however, ofed does not look
-         * at event code for established. So if there was a failure, we follow
-         * with close...
-         */
-        qlnxr_iw_issue_event(context,
-                params,
-                IW_CM_EVENT_ESTABLISHED,
-                "IW_CM_EVENT_ESTABLISHED");
+	/* We always issue an established event, however, ofed does not look
+	 * at event code for established. So if there was a failure, we follow
+	 * with close...
+	 */
+	qlnxr_iw_issue_event(context, params, IW_CM_EVENT_ESTABLISHED,
+	    "IW_CM_EVENT_ESTABLISHED");
 
-        if (params->status < 0) {
-                qlnxr_iw_close_event(context, params);
-        }
+	if (params->status < 0) {
+		qlnxr_iw_close_event(context, params);
+	}
 
-        return;
+	return;
 }
 
 struct qlnxr_discon_work {
-        struct work_struct work;
-        struct qlnxr_iw_ep *ep;
-        enum ecore_iwarp_event_type event;
-        int status;
+	struct work_struct work;
+	struct qlnxr_iw_ep *ep;
+	enum ecore_iwarp_event_type event;
+	int status;
 };
 
 static void
 qlnxr_iw_disconnect_worker(struct work_struct *work)
 {
-        struct qlnxr_discon_work *dwork =
-                container_of(work, struct qlnxr_discon_work, work);
-        struct ecore_rdma_modify_qp_in_params qp_params = { 0 };
-        struct qlnxr_iw_ep *ep = dwork->ep;
-        struct qlnxr_dev *dev = ep->dev;
-        struct qlnxr_qp *qp = ep->qp;
-        struct iw_cm_event event;
+	struct qlnxr_discon_work *dwork = container_of(work,
+	    struct qlnxr_discon_work, work);
+	struct ecore_rdma_modify_qp_in_params qp_params = { 0 };
+	struct qlnxr_iw_ep *ep = dwork->ep;
+	struct qlnxr_dev *dev = ep->dev;
+	struct qlnxr_qp *qp = ep->qp;
+	struct iw_cm_event event;
 
-        if (qp->destroyed) {
-                kfree(dwork);
-                qlnxr_iw_qp_rem_ref(&qp->ibqp);
-                return;
-        }
+	if (qp->destroyed) {
+		kfree(dwork);
+		qlnxr_iw_qp_rem_ref(&qp->ibqp);
+		return;
+	}
 
-        memset(&event, 0, sizeof(event));
-        event.status = dwork->status;
-        event.event = IW_CM_EVENT_DISCONNECT;
+	memset(&event, 0, sizeof(event));
+	event.status = dwork->status;
+	event.event = IW_CM_EVENT_DISCONNECT;
 
-        /* Success means graceful disconnect was requested. modifying
-         * to SQD is translated to graceful disconnect. O/w reset is sent
-         */
-        if (dwork->status)
-                qp_params.new_state = ECORE_ROCE_QP_STATE_ERR;
-        else
-                qp_params.new_state = ECORE_ROCE_QP_STATE_SQD;
+	/* Success means graceful disconnect was requested. modifying
+	 * to SQD is translated to graceful disconnect. O/w reset is sent
+	 */
+	if (dwork->status)
+		qp_params.new_state = ECORE_ROCE_QP_STATE_ERR;
+	else
+		qp_params.new_state = ECORE_ROCE_QP_STATE_SQD;
 
-        kfree(dwork);
+	kfree(dwork);
 
-        if (ep->cm_id)
-                ep->cm_id->event_handler(ep->cm_id, &event);
+	if (ep->cm_id)
+		ep->cm_id->event_handler(ep->cm_id, &event);
 
-        SET_FIELD(qp_params.modify_flags,
-                  ECORE_RDMA_MODIFY_QP_VALID_NEW_STATE, 1);
+	SET_FIELD(qp_params.modify_flags, ECORE_RDMA_MODIFY_QP_VALID_NEW_STATE,
+	    1);
 
-        ecore_rdma_modify_qp(dev->rdma_ctx, qp->ecore_qp, &qp_params);
+	ecore_rdma_modify_qp(dev->rdma_ctx, qp->ecore_qp, &qp_params);
 
-        qlnxr_iw_qp_rem_ref(&qp->ibqp);
+	qlnxr_iw_qp_rem_ref(&qp->ibqp);
 
-        return;
+	return;
 }
 
 void
 qlnxr_iw_disconnect_event(void *context,
-        struct ecore_iwarp_cm_event_params *params)
+    struct ecore_iwarp_cm_event_params *params)
 {
-        struct qlnxr_discon_work *work;
-        struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
-        struct qlnxr_dev *dev = ep->dev;
-        struct qlnxr_qp *qp = ep->qp;
+	struct qlnxr_discon_work *work;
+	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
+	struct qlnxr_dev *dev = ep->dev;
+	struct qlnxr_qp *qp = ep->qp;
 
-        work = kzalloc(sizeof(*work), GFP_ATOMIC);
-        if (!work)
-                return;
+	work = kzalloc(sizeof(*work), GFP_ATOMIC);
+	if (!work)
+		return;
 
-        qlnxr_iw_qp_add_ref(&qp->ibqp);
-        work->ep = ep;
-        work->event = params->event;
-        work->status = params->status;
+	qlnxr_iw_qp_add_ref(&qp->ibqp);
+	work->ep = ep;
+	work->event = params->event;
+	work->status = params->status;
 
-        INIT_WORK(&work->work, qlnxr_iw_disconnect_worker);
-        queue_work(dev->iwarp_wq, &work->work);
+	INIT_WORK(&work->work, qlnxr_iw_disconnect_worker);
+	queue_work(dev->iwarp_wq, &work->work);
 
-        return;
+	return;
 }
 
 static int
-qlnxr_iw_mpa_reply(void *context,
-	struct ecore_iwarp_cm_event_params *params)
+qlnxr_iw_mpa_reply(void *context, struct ecore_iwarp_cm_event_params *params)
 {
-        struct qlnxr_iw_ep	*ep = (struct qlnxr_iw_ep *)context;
-        struct qlnxr_dev	*dev = ep->dev;
-        struct ecore_iwarp_send_rtr_in rtr_in;
-        int			rc;
-	qlnx_host_t		*ha;
+	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
+	struct qlnxr_dev *dev = ep->dev;
+	struct ecore_iwarp_send_rtr_in rtr_in;
+	int rc;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -5901,54 +5800,54 @@ qlnxr_iw_mpa_reply(void *context,
 		return -EINVAL;
 
 	bzero(&rtr_in, sizeof(struct ecore_iwarp_send_rtr_in));
-        rtr_in.ep_context = params->ep_context;
+	rtr_in.ep_context = params->ep_context;
 
-        rc = ecore_iwarp_send_rtr(dev->rdma_ctx, &rtr_in);
+	rc = ecore_iwarp_send_rtr(dev->rdma_ctx, &rtr_in);
 
 	QL_DPRINT12(ha, "exit rc = %d\n", rc);
-        return rc;
+	return rc;
 }
 
 void
-qlnxr_iw_qp_event(void *context,
-	struct ecore_iwarp_cm_event_params *params,
-	enum ib_event_type ib_event,
-	char *str)
+qlnxr_iw_qp_event(void *context, struct ecore_iwarp_cm_event_params *params,
+    enum ib_event_type ib_event, char *str)
 {
-        struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
-        struct qlnxr_dev *dev = ep->dev;
-        struct ib_qp *ibqp = &(ep->qp->ibqp);
-        struct ib_event event;
-	qlnx_host_t	*ha;
+	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
+	struct qlnxr_dev *dev = ep->dev;
+	struct ib_qp *ibqp = &(ep->qp->ibqp);
+	struct ib_event event;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
 	QL_DPRINT12(ha,
-		"[context, event, event_handler] = [%p, 0x%x, %s, %p] enter\n",
-		context, params->event, str, ibqp->event_handler);
+	    "[context, event, event_handler] = [%p, 0x%x, %s, %p] enter\n",
+	    context, params->event, str, ibqp->event_handler);
 
-        if (ibqp->event_handler) {
-                event.event = ib_event;
-                event.device = ibqp->device;
-                event.element.qp = ibqp;
-                ibqp->event_handler(&event, ibqp->qp_context);
-        }
+	if (ibqp->event_handler) {
+		event.event = ib_event;
+		event.device = ibqp->device;
+		event.element.qp = ibqp;
+		ibqp->event_handler(&event, ibqp->qp_context);
+	}
 
 	return;
 }
 
 int
 qlnxr_iw_event_handler(void *context,
-	struct ecore_iwarp_cm_event_params *params)
+    struct ecore_iwarp_cm_event_params *params)
 {
 	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
 	struct qlnxr_dev *dev = ep->dev;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "[context, event] = [%p, 0x%x] "
-		"enter\n", context, params->event);
+	QL_DPRINT12(ha,
+	    "[context, event] = [%p, 0x%x] "
+	    "enter\n",
+	    context, params->event);
 
 	switch (params->event) {
 	/* Passive side request received */
@@ -5956,9 +5855,9 @@ qlnxr_iw_event_handler(void *context,
 		qlnxr_iw_mpa_request(context, params);
 		break;
 
-        case ECORE_IWARP_EVENT_ACTIVE_MPA_REPLY:
-                qlnxr_iw_mpa_reply(context, params);
-                break;
+	case ECORE_IWARP_EVENT_ACTIVE_MPA_REPLY:
+		qlnxr_iw_mpa_reply(context, params);
+		break;
 
 	/* Passive side established ( ack on mpa response ) */
 	case ECORE_IWARP_EVENT_PASSIVE_COMPLETE:
@@ -5969,10 +5868,8 @@ qlnxr_iw_event_handler(void *context,
 	/* Active side reply received */
 	case ECORE_IWARP_EVENT_ACTIVE_COMPLETE:
 		ep->during_connect = 0;
-		qlnxr_iw_issue_event(context,
-				    params,
-				    IW_CM_EVENT_CONNECT_REPLY,
-				    "IW_CM_EVENT_CONNECT_REPLY");
+		qlnxr_iw_issue_event(context, params, IW_CM_EVENT_CONNECT_REPLY,
+		    "IW_CM_EVENT_CONNECT_REPLY");
 		if (params->status < 0) {
 			struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)context;
 
@@ -5990,80 +5887,81 @@ qlnxr_iw_event_handler(void *context,
 		qlnxr_iw_close_event(context, params);
 		break;
 
-        case ECORE_IWARP_EVENT_RQ_EMPTY:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "IWARP_EVENT_RQ_EMPTY");
-                break;
+	case ECORE_IWARP_EVENT_RQ_EMPTY:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "IWARP_EVENT_RQ_EMPTY");
+		break;
 
-        case ECORE_IWARP_EVENT_IRQ_FULL:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "IWARP_EVENT_IRQ_FULL");
-                break;
+	case ECORE_IWARP_EVENT_IRQ_FULL:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "IWARP_EVENT_IRQ_FULL");
+		break;
 
-        case ECORE_IWARP_EVENT_LLP_TIMEOUT:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "IWARP_EVENT_LLP_TIMEOUT");
-                break;
+	case ECORE_IWARP_EVENT_LLP_TIMEOUT:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "IWARP_EVENT_LLP_TIMEOUT");
+		break;
 
-        case ECORE_IWARP_EVENT_REMOTE_PROTECTION_ERROR:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_ACCESS_ERR,
-                                 "IWARP_EVENT_REMOTE_PROTECTION_ERROR");
-                break;
+	case ECORE_IWARP_EVENT_REMOTE_PROTECTION_ERROR:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_ACCESS_ERR,
+		    "IWARP_EVENT_REMOTE_PROTECTION_ERROR");
+		break;
 
-        case ECORE_IWARP_EVENT_CQ_OVERFLOW:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "QED_IWARP_EVENT_CQ_OVERFLOW");
-                break;
+	case ECORE_IWARP_EVENT_CQ_OVERFLOW:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "QED_IWARP_EVENT_CQ_OVERFLOW");
+		break;
 
-        case ECORE_IWARP_EVENT_QP_CATASTROPHIC:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "QED_IWARP_EVENT_QP_CATASTROPHIC");
-                break;
+	case ECORE_IWARP_EVENT_QP_CATASTROPHIC:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "QED_IWARP_EVENT_QP_CATASTROPHIC");
+		break;
 
-        case ECORE_IWARP_EVENT_LOCAL_ACCESS_ERROR:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_ACCESS_ERR,
-                                 "IWARP_EVENT_LOCAL_ACCESS_ERROR");
-                break;
+	case ECORE_IWARP_EVENT_LOCAL_ACCESS_ERROR:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_ACCESS_ERR,
+		    "IWARP_EVENT_LOCAL_ACCESS_ERROR");
+		break;
 
-        case ECORE_IWARP_EVENT_REMOTE_OPERATION_ERROR:
-                qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
-                                 "IWARP_EVENT_REMOTE_OPERATION_ERROR");
-                break;
+	case ECORE_IWARP_EVENT_REMOTE_OPERATION_ERROR:
+		qlnxr_iw_qp_event(context, params, IB_EVENT_QP_FATAL,
+		    "IWARP_EVENT_REMOTE_OPERATION_ERROR");
+		break;
 
-        case ECORE_IWARP_EVENT_TERMINATE_RECEIVED:
-		QL_DPRINT12(ha, "Got terminate message"
-			" ECORE_IWARP_EVENT_TERMINATE_RECEIVED\n");
-                break;
+	case ECORE_IWARP_EVENT_TERMINATE_RECEIVED:
+		QL_DPRINT12(ha,
+		    "Got terminate message"
+		    " ECORE_IWARP_EVENT_TERMINATE_RECEIVED\n");
+		break;
 
 	default:
-		QL_DPRINT12(ha,
-			"Unknown event [0x%x] received \n", params->event);
+		QL_DPRINT12(ha, "Unknown event [0x%x] received \n",
+		    params->event);
 		break;
 	};
 
-	QL_DPRINT12(ha, "[context, event] = [%p, 0x%x] "
-		"exit\n", context, params->event);
+	QL_DPRINT12(ha,
+	    "[context, event] = [%p, 0x%x] "
+	    "exit\n",
+	    context, params->event);
 	return 0;
 }
 
 static int
-qlnxr_addr4_resolve(struct qlnxr_dev *dev,
-			      struct sockaddr_in *src_in,
-			      struct sockaddr_in *dst_in,
-			      u8 *dst_mac)
+qlnxr_addr4_resolve(struct qlnxr_dev *dev, struct sockaddr_in *src_in,
+    struct sockaddr_in *dst_in, u8 *dst_mac)
 {
 	int rc;
 
 	rc = arpresolve(dev->ha->ifp, 0, NULL, (struct sockaddr *)dst_in,
-			dst_mac, NULL, NULL);
+	    dst_mac, NULL, NULL);
 
-	QL_DPRINT12(dev->ha, "rc = %d "
-		"sa_len = 0x%x sa_family = 0x%x IP Address = %d.%d.%d.%d "
-		"Dest MAC %02x:%02x:%02x:%02x:%02x:%02x\n", rc,
-		dst_in->sin_len, dst_in->sin_family,
-		NIPQUAD((dst_in->sin_addr.s_addr)),
-		dst_mac[0], dst_mac[1], dst_mac[2],
-		dst_mac[3], dst_mac[4], dst_mac[5]);
+	QL_DPRINT12(dev->ha,
+	    "rc = %d "
+	    "sa_len = 0x%x sa_family = 0x%x IP Address = %d.%d.%d.%d "
+	    "Dest MAC %02x:%02x:%02x:%02x:%02x:%02x\n",
+	    rc, dst_in->sin_len, dst_in->sin_family,
+	    NIPQUAD((dst_in->sin_addr.s_addr)), dst_mac[0], dst_mac[1],
+	    dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5]);
 
 	return rc;
 }
@@ -6079,13 +5977,15 @@ qlnxr_iw_connect(struct iw_cm_id *cm_id, struct iw_cm_conn_param *conn_param)
 	struct sockaddr_in *laddr;
 	struct sockaddr_in *raddr;
 	int rc = 0;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	dev = get_qlnxr_dev((cm_id->device));
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "[cm_id, conn_param] = [%p, %p] "
-		"enter \n", cm_id, conn_param);
+	QL_DPRINT12(ha,
+	    "[cm_id, conn_param] = [%p, %p] "
+	    "enter \n",
+	    cm_id, conn_param);
 
 	if (!(if_getdrvflags(ha->ifp) & IFF_DRV_RUNNING))
 		return -EINVAL;
@@ -6096,14 +5996,15 @@ qlnxr_iw_connect(struct iw_cm_id *cm_id, struct iw_cm_conn_param *conn_param)
 	raddr = (struct sockaddr_in *)&cm_id->remote_addr;
 
 	QL_DPRINT12(ha,
-		"local = [%d.%d.%d.%d, %d] remote = [%d.%d.%d.%d, %d]\n",
-		NIPQUAD((laddr->sin_addr.s_addr)), laddr->sin_port,
-		NIPQUAD((raddr->sin_addr.s_addr)), raddr->sin_port);
+	    "local = [%d.%d.%d.%d, %d] remote = [%d.%d.%d.%d, %d]\n",
+	    NIPQUAD((laddr->sin_addr.s_addr)), laddr->sin_port,
+	    NIPQUAD((raddr->sin_addr.s_addr)), raddr->sin_port);
 
 	ep = kzalloc(sizeof(*ep), GFP_KERNEL);
 	if (!ep) {
-		QL_DPRINT11(ha, "struct qlnxr_iw_ep "
-			"alloc memory failed\n");
+		QL_DPRINT11(ha,
+		    "struct qlnxr_iw_ep "
+		    "alloc memory failed\n");
 		return -ENOMEM;
 	}
 
@@ -6112,8 +6013,8 @@ qlnxr_iw_connect(struct iw_cm_id *cm_id, struct iw_cm_conn_param *conn_param)
 	cm_id->add_ref(cm_id);
 	ep->cm_id = cm_id;
 
-	memset(&in_params, 0, sizeof (struct ecore_iwarp_connect_in));
-	memset(&out_params, 0, sizeof (struct ecore_iwarp_connect_out));
+	memset(&in_params, 0, sizeof(struct ecore_iwarp_connect_in));
+	memset(&out_params, 0, sizeof(struct ecore_iwarp_connect_out));
 
 	in_params.event_cb = qlnxr_iw_event_handler;
 	in_params.cb_context = ep;
@@ -6127,25 +6028,28 @@ qlnxr_iw_connect(struct iw_cm_id *cm_id, struct iw_cm_conn_param *conn_param)
 	in_params.cm_info.vlan = 0;
 	in_params.mss = if_getmtu(dev->ha->ifp) - 40;
 
-	QL_DPRINT12(ha, "remote_ip = [%d.%d.%d.%d] "
-		"local_ip = [%d.%d.%d.%d] remote_port = %d local_port = %d "
-		"vlan = %d\n",
-		NIPQUAD((in_params.cm_info.remote_ip[0])),
-		NIPQUAD((in_params.cm_info.local_ip[0])),
-		in_params.cm_info.remote_port, in_params.cm_info.local_port,
-		in_params.cm_info.vlan);
+	QL_DPRINT12(ha,
+	    "remote_ip = [%d.%d.%d.%d] "
+	    "local_ip = [%d.%d.%d.%d] remote_port = %d local_port = %d "
+	    "vlan = %d\n",
+	    NIPQUAD((in_params.cm_info.remote_ip[0])),
+	    NIPQUAD((in_params.cm_info.local_ip[0])),
+	    in_params.cm_info.remote_port, in_params.cm_info.local_port,
+	    in_params.cm_info.vlan);
 
-	rc = qlnxr_addr4_resolve(dev, laddr, raddr, (u8 *)in_params.remote_mac_addr);
+	rc = qlnxr_addr4_resolve(dev, laddr, raddr,
+	    (u8 *)in_params.remote_mac_addr);
 
 	if (rc) {
 		QL_DPRINT11(ha, "qlnxr_addr4_resolve failed\n");
 		goto err;
 	}
 
-	QL_DPRINT12(ha, "ord = %d ird=%d private_data=%p"
-		" private_data_len=%d rq_psn=%d\n",
-		conn_param->ord, conn_param->ird, conn_param->private_data,
-		conn_param->private_data_len, qp->rq_psn);
+	QL_DPRINT12(ha,
+	    "ord = %d ird=%d private_data=%p"
+	    " private_data_len=%d rq_psn=%d\n",
+	    conn_param->ord, conn_param->ird, conn_param->private_data,
+	    conn_param->private_data_len, qp->rq_psn);
 
 	in_params.cm_info.ord = conn_param->ord;
 	in_params.cm_info.ird = conn_param->ird;
@@ -6182,7 +6086,7 @@ qlnxr_iw_create_listen(struct iw_cm_id *cm_id, int backlog)
 	struct ecore_iwarp_listen_in iparams;
 	struct ecore_iwarp_listen_out oparams;
 	struct sockaddr_in *laddr;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 	int rc;
 
 	dev = get_qlnxr_dev((cm_id->device));
@@ -6207,8 +6111,8 @@ qlnxr_iw_create_listen(struct iw_cm_id *cm_id, int backlog)
 	listener->cm_id = cm_id;
 	listener->backlog = backlog;
 
-	memset(&iparams, 0, sizeof (struct ecore_iwarp_listen_in));
-	memset(&oparams, 0, sizeof (struct ecore_iwarp_listen_out));
+	memset(&iparams, 0, sizeof(struct ecore_iwarp_listen_in));
+	memset(&oparams, 0, sizeof(struct ecore_iwarp_listen_out));
 
 	iparams.cb_context = listener;
 	iparams.event_cb = qlnxr_iw_event_handler;
@@ -6221,13 +6125,12 @@ qlnxr_iw_create_listen(struct iw_cm_id *cm_id, int backlog)
 	iparams.vlan = 0;
 
 	QL_DPRINT12(ha, "[%d.%d.%d.%d, %d] iparamsport=%d\n",
-		NIPQUAD((laddr->sin_addr.s_addr)),
-		laddr->sin_port, iparams.port);
+	    NIPQUAD((laddr->sin_addr.s_addr)), laddr->sin_port, iparams.port);
 
 	rc = ecore_iwarp_create_listen(dev->rdma_ctx, &iparams, &oparams);
 	if (rc) {
-		QL_DPRINT11(ha,
-			"ecore_iwarp_create_listen failed rc = %d\n", rc);
+		QL_DPRINT11(ha, "ecore_iwarp_create_listen failed rc = %d\n",
+		    rc);
 		goto err;
 	}
 
@@ -6251,7 +6154,7 @@ qlnxr_iw_destroy_listen(struct iw_cm_id *cm_id)
 	struct qlnxr_iw_listener *listener = cm_id->provider_data;
 	struct qlnxr_dev *dev = get_qlnxr_dev((cm_id->device));
 	int rc = 0;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -6259,7 +6162,7 @@ qlnxr_iw_destroy_listen(struct iw_cm_id *cm_id)
 
 	if (listener->ecore_handle)
 		rc = ecore_iwarp_destroy_listen(dev->rdma_ctx,
-				listener->ecore_handle);
+		    listener->ecore_handle);
 
 	cm_id->rem_ref(cm_id);
 
@@ -6268,15 +6171,14 @@ qlnxr_iw_destroy_listen(struct iw_cm_id *cm_id)
 }
 
 int
-qlnxr_iw_accept(struct iw_cm_id *cm_id,
-	struct iw_cm_conn_param *conn_param)
+qlnxr_iw_accept(struct iw_cm_id *cm_id, struct iw_cm_conn_param *conn_param)
 {
 	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)cm_id->provider_data;
 	struct qlnxr_dev *dev = ep->dev;
 	struct qlnxr_qp *qp;
 	struct ecore_iwarp_accept_in params;
 	int rc;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
@@ -6288,7 +6190,7 @@ qlnxr_iw_accept(struct iw_cm_id *cm_id,
 	qp = idr_find(&dev->qpidr, conn_param->qpn);
 	if (!qp) {
 		QL_DPRINT11(ha, "idr_find failed invalid qpn = %d\n",
-			conn_param->qpn);
+		    conn_param->qpn);
 		return -EINVAL;
 	}
 	ep->qp = qp;
@@ -6321,27 +6223,27 @@ err:
 int
 qlnxr_iw_reject(struct iw_cm_id *cm_id, const void *pdata, u8 pdata_len)
 {
-        struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)cm_id->provider_data;
-        struct qlnxr_dev *dev = ep->dev;
-        struct ecore_iwarp_reject_in params;
-        int rc;
+	struct qlnxr_iw_ep *ep = (struct qlnxr_iw_ep *)cm_id->provider_data;
+	struct qlnxr_dev *dev = ep->dev;
+	struct ecore_iwarp_reject_in params;
+	int rc;
 
-        params.ep_context = ep->ecore_context;
-        params.cb_context = ep;
-        params.private_data = pdata;
-        params.private_data_len = pdata_len;
-        ep->qp = NULL;
+	params.ep_context = ep->ecore_context;
+	params.cb_context = ep;
+	params.private_data = pdata;
+	params.private_data_len = pdata_len;
+	ep->qp = NULL;
 
-        rc = ecore_iwarp_reject(dev->rdma_ctx, &params);
+	rc = ecore_iwarp_reject(dev->rdma_ctx, &params);
 
-        return rc;
+	return rc;
 }
 
 void
 qlnxr_iw_qp_add_ref(struct ib_qp *ibqp)
 {
 	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = qp->dev->ha;
 
@@ -6357,7 +6259,7 @@ void
 qlnxr_iw_qp_rem_ref(struct ib_qp *ibqp)
 {
 	struct qlnxr_qp *qp = get_qlnxr_qp(ibqp);
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = qp->dev->ha;
 
@@ -6376,11 +6278,12 @@ qlnxr_iw_get_qp(struct ib_device *ibdev, int qpn)
 {
 	struct qlnxr_dev *dev = get_qlnxr_dev(ibdev);
 	struct ib_qp *qp;
-	qlnx_host_t	*ha;
+	qlnx_host_t *ha;
 
 	ha = dev->ha;
 
-	QL_DPRINT12(ha, "enter dev = %p ibdev = %p qpn = %d\n", dev, ibdev, qpn);
+	QL_DPRINT12(ha, "enter dev = %p ibdev = %p qpn = %d\n", dev, ibdev,
+	    qpn);
 
 	qp = idr_find(&dev->qpidr, qpn);
 

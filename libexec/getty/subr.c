@@ -32,8 +32,8 @@
 /*
  * Melbourne getty.
  */
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/time.h>
 
 #include <poll.h>
@@ -44,9 +44,9 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include "extern.h"
 #include "gettytab.h"
 #include "pathnames.h"
-#include "extern.h"
 
 /*
  * Get a table entry.
@@ -95,7 +95,8 @@ gettable(const char *name)
 
 	switch (cgetent(&buf, dba, name)) {
 	case 1:
-		syslog(LOG_ERR, "getty: couldn't resolve 'tc=' in gettytab '%s'", name);
+		syslog(LOG_ERR,
+		    "getty: couldn't resolve 'tc=' in gettytab '%s'", name);
 		return;
 	case 0:
 		break;
@@ -103,13 +104,17 @@ gettable(const char *name)
 		syslog(LOG_ERR, "getty: unknown gettytab entry '%s'", name);
 		return;
 	case -2:
-		syslog(LOG_ERR, "getty: retrieving gettytab entry '%s': %m", name);
+		syslog(LOG_ERR, "getty: retrieving gettytab entry '%s': %m",
+		    name);
 		return;
 	case -3:
-		syslog(LOG_ERR, "getty: recursive 'tc=' reference gettytab entry '%s'", name);
+		syslog(LOG_ERR,
+		    "getty: recursive 'tc=' reference gettytab entry '%s'",
+		    name);
 		return;
 	default:
-		syslog(LOG_ERR, "getty: unexpected cgetent() error for entry '%s'", name);
+		syslog(LOG_ERR,
+		    "getty: unexpected cgetent() error for entry '%s'", name);
 		return;
 	}
 
@@ -180,8 +185,8 @@ setdefaults(void)
 
 	for (sp = gettystrs; sp->field; sp++)
 		if (!sp->value)
-			sp->value = !sp->defalt ?
-			    sp->defalt : strdup(sp->defalt);
+			sp->value = !sp->defalt ? sp->defalt :
+						  strdup(sp->defalt);
 	for (np = gettynums; np->field; np++)
 		if (!np->set)
 			np->value = np->defalt;
@@ -190,22 +195,14 @@ setdefaults(void)
 			fp->value = fp->defalt;
 }
 
-static char **
-charnames[] = {
-	&ER, &KL, &IN, &QU, &XN, &XF, &ET, &BK,
-	&SU, &DS, &RP, &FL, &WE, &LN, 0
-};
+static char **charnames[] = { &ER, &KL, &IN, &QU, &XN, &XF, &ET, &BK, &SU, &DS,
+	&RP, &FL, &WE, &LN, 0 };
 
 #define CV(a) (char *)(&tmode.c_cc[a])
 
-static char *
-charvars[] = {
-	CV(VERASE), CV(VKILL), CV(VINTR),
-	CV(VQUIT), CV(VSTART), CV(VSTOP),
-	CV(VEOF), CV(VEOL), CV(VSUSP),
-	CV(VDSUSP), CV(VREPRINT), CV(VDISCARD),
-	CV(VWERASE), CV(VLNEXT), 0
-};
+static char *charvars[] = { CV(VERASE), CV(VKILL), CV(VINTR), CV(VQUIT),
+	CV(VSTART), CV(VSTOP), CV(VEOF), CV(VEOL), CV(VSUSP), CV(VDSUSP),
+	CV(VREPRINT), CV(VDISCARD), CV(VWERASE), CV(VLNEXT), 0 };
 
 void
 setchars(void)
@@ -223,15 +220,14 @@ setchars(void)
 }
 
 /* Macros to clear/set/test flags. */
-#define	SET(t, f)	(t) |= (f)
-#define	CLR(t, f)	(t) &= ~(f)
-#define	ISSET(t, f)	((t) & (f))
+#define SET(t, f) (t) |= (f)
+#define CLR(t, f) (t) &= ~(f)
+#define ISSET(t, f) ((t) & (f))
 
 void
 set_flags(int n)
 {
 	tcflag_t iflag, oflag, cflag, lflag;
-
 
 	switch (n) {
 	case 0:
@@ -269,25 +265,25 @@ set_flags(int n)
 	lflag = omode.c_lflag;
 
 	if (NP) {
-		CLR(cflag, CSIZE|PARENB);
+		CLR(cflag, CSIZE | PARENB);
 		SET(cflag, CS8);
-		CLR(iflag, ISTRIP|INPCK|IGNPAR);
+		CLR(iflag, ISTRIP | INPCK | IGNPAR);
 	} else if (AP || EP || OP) {
 		CLR(cflag, CSIZE);
-		SET(cflag, CS7|PARENB);
+		SET(cflag, CS7 | PARENB);
 		SET(iflag, ISTRIP);
 		if (OP && !EP) {
-			SET(iflag, INPCK|IGNPAR);
+			SET(iflag, INPCK | IGNPAR);
 			SET(cflag, PARODD);
 			if (AP)
 				CLR(iflag, INPCK);
 		} else if (EP && !OP) {
-			SET(iflag, INPCK|IGNPAR);
+			SET(iflag, INPCK | IGNPAR);
 			CLR(cflag, PARODD);
 			if (AP)
 				CLR(iflag, INPCK);
 		} else if (AP || (EP && OP)) {
-			CLR(iflag, INPCK|IGNPAR);
+			CLR(iflag, INPCK | IGNPAR);
 			CLR(cflag, PARODD);
 		}
 	} /* else, leave as is */
@@ -314,14 +310,14 @@ set_flags(int n)
 
 	if (NL) {
 		SET(iflag, ICRNL);
-		SET(oflag, ONLCR|OPOST);
+		SET(oflag, ONLCR | OPOST);
 	} else {
 		CLR(iflag, ICRNL);
 		CLR(oflag, ONLCR);
 	}
 
 	if (!HT)
-		SET(oflag, OXTABS|OPOST);
+		SET(oflag, OXTABS | OPOST);
 	else
 		CLR(oflag, OXTABS);
 
@@ -329,11 +325,11 @@ set_flags(int n)
 	SET(f, delaybits());
 #endif
 
-	if (n == 1) {		/* read mode flags */
+	if (n == 1) { /* read mode flags */
 		if (RW) {
 			iflag = 0;
 			CLR(oflag, OPOST);
-			CLR(cflag, CSIZE|PARENB);
+			CLR(cflag, CSIZE | PARENB);
 			SET(cflag, CS8);
 			lflag = 0;
 		} else {
@@ -387,51 +383,50 @@ out:
 	tmode.c_lflag = lflag;
 }
 
-
 #ifdef XXX_DELAY
 struct delayval {
-	unsigned	delay;		/* delay in ms */
-	int		bits;
+	unsigned delay; /* delay in ms */
+	int bits;
 };
 
 /*
  * below are random guesses, I can't be bothered checking
  */
 
-struct delayval	crdelay[] = {
-	{ 1,		CR1 },
-	{ 2,		CR2 },
-	{ 3,		CR3 },
-	{ 83,		CR1 },
-	{ 166,		CR2 },
-	{ 0,		CR3 },
+struct delayval crdelay[] = {
+	{ 1, CR1 },
+	{ 2, CR2 },
+	{ 3, CR3 },
+	{ 83, CR1 },
+	{ 166, CR2 },
+	{ 0, CR3 },
 };
 
 struct delayval nldelay[] = {
-	{ 1,		NL1 },		/* special, calculated */
-	{ 2,		NL2 },
-	{ 3,		NL3 },
-	{ 100,		NL2 },
-	{ 0,		NL3 },
+	{ 1, NL1 }, /* special, calculated */
+	{ 2, NL2 },
+	{ 3, NL3 },
+	{ 100, NL2 },
+	{ 0, NL3 },
 };
 
-struct delayval	bsdelay[] = {
-	{ 1,		BS1 },
-	{ 0,		0 },
+struct delayval bsdelay[] = {
+	{ 1, BS1 },
+	{ 0, 0 },
 };
 
-struct delayval	ffdelay[] = {
-	{ 1,		FF1 },
-	{ 1750,		FF1 },
-	{ 0,		FF1 },
+struct delayval ffdelay[] = {
+	{ 1, FF1 },
+	{ 1750, FF1 },
+	{ 0, FF1 },
 };
 
-struct delayval	tbdelay[] = {
-	{ 1,		TAB1 },
-	{ 2,		TAB2 },
-	{ 3,		XTABS },	/* this is expand tabs */
-	{ 100,		TAB1 },
-	{ 0,		TAB2 },
+struct delayval tbdelay[] = {
+	{ 1, TAB1 },
+	{ 2, TAB2 },
+	{ 3, XTABS }, /* this is expand tabs */
+	{ 100, TAB1 },
+	{ 0, TAB2 },
 };
 
 int
@@ -439,7 +434,7 @@ delaybits(void)
 {
 	int f;
 
-	f  = adelay(CD, crdelay);
+	f = adelay(CD, crdelay);
 	f |= adelay(ND, nldelay);
 	f |= adelay(FD, ffdelay);
 	f |= adelay(TD, tbdelay);
@@ -458,7 +453,7 @@ adelay(int ms, struct delayval *dp)
 }
 #endif
 
-char	editedhost[MAXHOSTNAMELEN];
+char editedhost[MAXHOSTNAMELEN];
 
 void
 edithost(const char *pattern)
@@ -490,8 +485,9 @@ edithost(const char *pattern)
 		 */
 		subex = !!regex.re_nsub;
 		totalsize = match[subex].rm_eo - match[subex].rm_so + 1;
-		strlcpy(editedhost, HN + match[subex].rm_so, totalsize >
-		    sizeof(editedhost) ? sizeof(editedhost) : totalsize);
+		strlcpy(editedhost, HN + match[subex].rm_so,
+		    totalsize > sizeof(editedhost) ? sizeof(editedhost) :
+						     totalsize);
 	}
 	free(match);
 	regfree(&regex);
@@ -506,32 +502,15 @@ copyasis:
 }
 
 static struct speedtab {
-	int	speed;
-	int	uxname;
-} speedtab[] = {
-	{ 50,	B50 },
-	{ 75,	B75 },
-	{ 110,	B110 },
-	{ 134,	B134 },
-	{ 150,	B150 },
-	{ 200,	B200 },
-	{ 300,	B300 },
-	{ 600,	B600 },
-	{ 1200,	B1200 },
-	{ 1800,	B1800 },
-	{ 2400,	B2400 },
-	{ 4800,	B4800 },
-	{ 9600,	B9600 },
-	{ 19200, EXTA },
-	{ 19,	EXTA },		/* for people who say 19.2K */
-	{ 38400, EXTB },
-	{ 38,	EXTB },
-	{ 7200,	EXTB },		/* alternative */
-	{ 57600, B57600 },
-	{ 115200, B115200 },
-	{ 230400, B230400 },
-	{ 0, 0 }
-};
+	int speed;
+	int uxname;
+} speedtab[] = { { 50, B50 }, { 75, B75 }, { 110, B110 }, { 134, B134 },
+	{ 150, B150 }, { 200, B200 }, { 300, B300 }, { 600, B600 },
+	{ 1200, B1200 }, { 1800, B1800 }, { 2400, B2400 }, { 4800, B4800 },
+	{ 9600, B9600 }, { 19200, EXTA },
+	{ 19, EXTA }, /* for people who say 19.2K */
+	{ 38400, EXTB }, { 38, EXTB }, { 7200, EXTB }, /* alternative */
+	{ 57600, B57600 }, { 115200, B115200 }, { 230400, B230400 }, { 0, 0 } };
 
 int
 speed(int val)
@@ -545,7 +524,7 @@ speed(int val)
 		if (sp->speed == val)
 			return (sp->uxname);
 
-	return (B300);		/* default in impossible cases */
+	return (B300); /* default in impossible cases */
 }
 
 void
@@ -579,22 +558,14 @@ makeenv(char *env[])
  * baud rate. This string indicates the user's actual speed.
  * The routine below returns the terminal type mapped from derived speed.
  */
-static struct	portselect {
-	const char	*ps_baud;
-	const char	*ps_type;
-} portspeeds[] = {
-	{ "B110",	"std.110" },
-	{ "B134",	"std.134" },
-	{ "B150",	"std.150" },
-	{ "B300",	"std.300" },
-	{ "B600",	"std.600" },
-	{ "B1200",	"std.1200" },
-	{ "B2400",	"std.2400" },
-	{ "B4800",	"std.4800" },
-	{ "B9600",	"std.9600" },
-	{ "B19200",	"std.19200" },
-	{ NULL, NULL }
-};
+static struct portselect {
+	const char *ps_baud;
+	const char *ps_type;
+} portspeeds[] = { { "B110", "std.110" }, { "B134", "std.134" },
+	{ "B150", "std.150" }, { "B300", "std.300" }, { "B600", "std.600" },
+	{ "B1200", "std.1200" }, { "B2400", "std.2400" },
+	{ "B4800", "std.4800" }, { "B9600", "std.9600" },
+	{ "B19200", "std.19200" }, { NULL, NULL } };
 
 const char *
 portselector(void)
@@ -604,15 +575,15 @@ portselector(void)
 	struct portselect *ps;
 	size_t len;
 
-	alarm(5*60);
-	for (len = 0; len < sizeof (baud) - 1; len++) {
+	alarm(5 * 60);
+	for (len = 0; len < sizeof(baud) - 1; len++) {
 		if (read(STDIN_FILENO, &c, 1) <= 0)
 			break;
 		c &= 0177;
 		if (c == '\n' || c == '\r')
 			break;
 		if (c == 'B')
-			len = 0;	/* in case of leading garbage */
+			len = 0; /* in case of leading garbage */
 		baud[len] = c;
 	}
 	baud[len] = '\0';
@@ -621,7 +592,7 @@ portselector(void)
 			type = ps->ps_type;
 			break;
 		}
-	sleep(2);	/* wait for connection to complete */
+	sleep(2); /* wait for connection to complete */
 	return (type);
 }
 
@@ -651,24 +622,24 @@ autobaud(void)
 	(void)tcflush(0, TCIOFLUSH);
 	switch (c & 0377) {
 
-	case 0200:		/* 300-baud */
+	case 0200: /* 300-baud */
 		type = "300-baud";
 		break;
 
-	case 0346:		/* 1200-baud */
+	case 0346: /* 1200-baud */
 		type = "1200-baud";
 		break;
 
-	case  015:		/* 2400-baud */
+	case 015: /* 2400-baud */
 	case 0215:
 		type = "2400-baud";
 		break;
 
-	default:		/* 4800-baud */
+	default: /* 4800-baud */
 		type = "4800-baud";
 		break;
 
-	case 0377:		/* 9600-baud */
+	case 0377: /* 9600-baud */
 		type = "9600-baud";
 		break;
 	}

@@ -23,17 +23,16 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#include <stdio.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
+#include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <libgpio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-
-#include <sys/ioctl.h>
-#include <sys/types.h>
-
-#include <libgpio.h>
+#include <unistd.h>
 
 gpio_handle_t
 gpio_open(unsigned int unit)

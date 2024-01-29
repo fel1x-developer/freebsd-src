@@ -2,18 +2,21 @@
 /*
  * Copyright (c) 2017, Mellanox Technologies inc.  All rights reserved.
  */
-#include <rdma/uverbs_ioctl.h>
-#include <rdma/rdma_user_ioctl.h>
 #include <linux/bitops.h>
+#include <rdma/rdma_user_ioctl.h>
+#include <rdma/uverbs_ioctl.h>
+
 #include "rdma_core.h"
 #include "uverbs.h"
 
-static int ib_uverbs_notsupp(struct uverbs_attr_bundle *attrs)
+static int
+ib_uverbs_notsupp(struct uverbs_attr_bundle *attrs)
 {
 	return -EOPNOTSUPP;
 }
 
-static void *uapi_add_elm(struct uverbs_api *uapi, u32 key, size_t alloc_size)
+static void *
+uapi_add_elm(struct uverbs_api *uapi, u32 key, size_t alloc_size)
 {
 	void *elm;
 	int rc;
@@ -33,8 +36,9 @@ static void *uapi_add_elm(struct uverbs_api *uapi, u32 key, size_t alloc_size)
 	return elm;
 }
 
-static void *uapi_add_get_elm(struct uverbs_api *uapi, u32 key,
-			      size_t alloc_size, bool *exists)
+static void *
+uapi_add_get_elm(struct uverbs_api *uapi, u32 key, size_t alloc_size,
+    bool *exists)
 {
 	void *elm;
 
@@ -54,11 +58,9 @@ static void *uapi_add_get_elm(struct uverbs_api *uapi, u32 key,
 	return elm;
 }
 
-static int uapi_create_write(struct uverbs_api *uapi,
-			     struct ib_device *ibdev,
-			     const struct uapi_definition *def,
-			     u32 obj_key,
-			     u32 *cur_method_key)
+static int
+uapi_create_write(struct uverbs_api *uapi, struct ib_device *ibdev,
+    const struct uapi_definition *def, u32 obj_key, u32 *cur_method_key)
 {
 	struct uverbs_api_write_method *method_elm;
 	u32 method_key = obj_key;
@@ -70,7 +72,7 @@ static int uapi_create_write(struct uverbs_api *uapi,
 		method_key |= uapi_key_write_method(def->write.command_num);
 
 	method_elm = uapi_add_get_elm(uapi, method_key, sizeof(*method_elm),
-				      &exists);
+	    &exists);
 	if (IS_ERR(method_elm))
 		return PTR_ERR(method_elm);
 
@@ -81,10 +83,10 @@ static int uapi_create_write(struct uverbs_api *uapi,
 	method_elm->handler = def->func_write;
 	if (def->write.is_ex)
 		method_elm->disabled = !(ibdev->uverbs_ex_cmd_mask &
-					 BIT_ULL(def->write.command_num));
+		    BIT_ULL(def->write.command_num));
 	else
-		method_elm->disabled = !(ibdev->uverbs_cmd_mask &
-					 BIT_ULL(def->write.command_num));
+		method_elm->disabled = !(
+		    ibdev->uverbs_cmd_mask & BIT_ULL(def->write.command_num));
 
 	if (!def->write.is_ex && def->func_write) {
 		method_elm->has_udata = def->write.has_udata;
@@ -97,10 +99,9 @@ static int uapi_create_write(struct uverbs_api *uapi,
 	return 0;
 }
 
-static int uapi_merge_method(struct uverbs_api *uapi,
-			     struct uverbs_api_object *obj_elm, u32 obj_key,
-			     const struct uverbs_method_def *method,
-			     bool is_driver)
+static int
+uapi_merge_method(struct uverbs_api *uapi, struct uverbs_api_object *obj_elm,
+    u32 obj_key, const struct uverbs_method_def *method, bool is_driver)
 {
 	u32 method_key = obj_key | uapi_key_ioctl_method(method->id);
 	struct uverbs_api_ioctl_method *method_elm;
@@ -111,7 +112,7 @@ static int uapi_merge_method(struct uverbs_api *uapi,
 		return 0;
 
 	method_elm = uapi_add_get_elm(uapi, method_key, sizeof(*method_elm),
-				      &exists);
+	    &exists);
 	if (IS_ERR(method_elm))
 		return PTR_ERR(method_elm);
 	if (exists) {
@@ -150,13 +151,12 @@ static int uapi_merge_method(struct uverbs_api *uapi,
 			u8 access = attr->attr.u2.objs_arr.access;
 
 			if (WARN_ON(access == UVERBS_ACCESS_NEW ||
-				    access == UVERBS_ACCESS_DESTROY))
+				access == UVERBS_ACCESS_DESTROY))
 				return -EINVAL;
 		}
 
-		attr_slot =
-			uapi_add_elm(uapi, method_key | uapi_key_attr(attr->id),
-				     sizeof(*attr_slot));
+		attr_slot = uapi_add_elm(uapi,
+		    method_key | uapi_key_attr(attr->id), sizeof(*attr_slot));
 		/* Attributes are not allowed to be modified by drivers */
 		if (IS_ERR(attr_slot))
 			return PTR_ERR(attr_slot);
@@ -167,9 +167,9 @@ static int uapi_merge_method(struct uverbs_api *uapi,
 	return 0;
 }
 
-static int uapi_merge_obj_tree(struct uverbs_api *uapi,
-			       const struct uverbs_object_def *obj,
-			       bool is_driver)
+static int
+uapi_merge_obj_tree(struct uverbs_api *uapi,
+    const struct uverbs_object_def *obj, bool is_driver)
 {
 	struct uverbs_api_object *obj_elm;
 	unsigned int i;
@@ -200,8 +200,8 @@ static int uapi_merge_obj_tree(struct uverbs_api *uapi,
 		 * handle disassociation of the device on their own.
 		 */
 		if (WARN_ON(is_driver &&
-			    obj->type_attrs->type_class != &uverbs_idr_class &&
-			    obj->type_attrs->type_class != &uverbs_fd_class))
+			obj->type_attrs->type_class != &uverbs_idr_class &&
+			obj->type_attrs->type_class != &uverbs_fd_class))
 			return -EINVAL;
 	}
 
@@ -215,7 +215,7 @@ static int uapi_merge_obj_tree(struct uverbs_api *uapi,
 			continue;
 
 		rc = uapi_merge_method(uapi, obj_elm, obj_key, method,
-				       is_driver);
+		    is_driver);
 		if (rc)
 			return rc;
 	}
@@ -223,18 +223,17 @@ static int uapi_merge_obj_tree(struct uverbs_api *uapi,
 	return 0;
 }
 
-static int uapi_disable_elm(struct uverbs_api *uapi,
-			    const struct uapi_definition *def,
-			    u32 obj_key,
-			    u32 method_key)
+static int
+uapi_disable_elm(struct uverbs_api *uapi, const struct uapi_definition *def,
+    u32 obj_key, u32 method_key)
 {
 	bool exists;
 
 	if (def->scope == UAPI_SCOPE_OBJECT) {
 		struct uverbs_api_object *obj_elm;
 
-		obj_elm = uapi_add_get_elm(
-			uapi, obj_key, sizeof(*obj_elm), &exists);
+		obj_elm = uapi_add_get_elm(uapi, obj_key, sizeof(*obj_elm),
+		    &exists);
 		if (IS_ERR(obj_elm))
 			return PTR_ERR(obj_elm);
 		obj_elm->disabled = 1;
@@ -246,7 +245,7 @@ static int uapi_disable_elm(struct uverbs_api *uapi,
 		struct uverbs_api_ioctl_method *method_elm;
 
 		method_elm = uapi_add_get_elm(uapi, method_key,
-					      sizeof(*method_elm), &exists);
+		    sizeof(*method_elm), &exists);
 		if (IS_ERR(method_elm))
 			return PTR_ERR(method_elm);
 		method_elm->disabled = 1;
@@ -255,11 +254,11 @@ static int uapi_disable_elm(struct uverbs_api *uapi,
 
 	if (def->scope == UAPI_SCOPE_METHOD &&
 	    (uapi_key_is_write_method(method_key) ||
-	     uapi_key_is_write_ex_method(method_key))) {
+		uapi_key_is_write_ex_method(method_key))) {
 		struct uverbs_api_write_method *write_elm;
 
 		write_elm = uapi_add_get_elm(uapi, method_key,
-					     sizeof(*write_elm), &exists);
+		    sizeof(*write_elm), &exists);
 		if (IS_ERR(write_elm))
 			return PTR_ERR(write_elm);
 		write_elm->disabled = 1;
@@ -270,9 +269,9 @@ static int uapi_disable_elm(struct uverbs_api *uapi,
 	return -EINVAL;
 }
 
-static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
-			  const struct uapi_definition *def_list,
-			  bool is_driver)
+static int
+uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
+    const struct uapi_definition *def_list, bool is_driver)
 {
 	const struct uapi_definition *def = def_list;
 	u32 cur_obj_key = UVERBS_API_KEY_ERR;
@@ -293,12 +292,12 @@ static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
 
 		case UAPI_DEF_CHAIN_OBJ_TREE:
 			if (WARN_ON(def->object_start.object_id !=
-				    def->chain_obj_tree->id))
+				def->chain_obj_tree->id))
 				return -EINVAL;
 
 			cur_obj_key = uapi_key_obj(def->object_start.object_id);
 			rc = uapi_merge_obj_tree(uapi, def->chain_obj_tree,
-						 is_driver);
+			    is_driver);
 			if (rc)
 				return rc;
 			continue;
@@ -307,13 +306,13 @@ static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
 			return 0;
 
 		case UAPI_DEF_IS_SUPPORTED_DEV_FN: {
-			void **ibdev_fn =
-				(void *)((u8 *)ibdev + def->needs_fn_offset);
+			void **ibdev_fn = (void *)((u8 *)ibdev +
+			    def->needs_fn_offset);
 
 			if (*ibdev_fn)
 				continue;
-			rc = uapi_disable_elm(
-				uapi, def, cur_obj_key, cur_method_key);
+			rc = uapi_disable_elm(uapi, def, cur_obj_key,
+			    cur_method_key);
 			if (rc)
 				return rc;
 			continue;
@@ -322,8 +321,8 @@ static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
 		case UAPI_DEF_IS_SUPPORTED_FUNC:
 			if (def->func_is_supported(ibdev))
 				continue;
-			rc = uapi_disable_elm(
-				uapi, def, cur_obj_key, cur_method_key);
+			rc = uapi_disable_elm(uapi, def, cur_obj_key,
+			    cur_method_key);
 			if (rc)
 				return rc;
 			continue;
@@ -333,15 +332,15 @@ static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
 
 			cur_obj_key = uapi_key_obj(def->object_start.object_id);
 			obj_elm = uapi_add_get_elm(uapi, cur_obj_key,
-						   sizeof(*obj_elm), &exists);
+			    sizeof(*obj_elm), &exists);
 			if (IS_ERR(obj_elm))
 				return PTR_ERR(obj_elm);
 			continue;
 		}
 
 		case UAPI_DEF_WRITE:
-			rc = uapi_create_write(
-				uapi, ibdev, def, cur_obj_key, &cur_method_key);
+			rc = uapi_create_write(uapi, ibdev, def, cur_obj_key,
+			    &cur_method_key);
 			if (rc)
 				return rc;
 			continue;
@@ -353,8 +352,7 @@ static int uapi_merge_def(struct uverbs_api *uapi, struct ib_device *ibdev,
 
 static int
 uapi_finalize_ioctl_method(struct uverbs_api *uapi,
-			   struct uverbs_api_ioctl_method *method_elm,
-			   u32 method_key)
+    struct uverbs_api_ioctl_method *method_elm, u32 method_key)
 {
 	struct radix_tree_iter iter;
 	unsigned int num_attrs = 0;
@@ -363,10 +361,11 @@ uapi_finalize_ioctl_method(struct uverbs_api *uapi,
 	void __rcu **slot;
 
 	method_elm->destroy_bkey = UVERBS_API_ATTR_BKEY_LEN;
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter,
-				  uapi_key_attrs_start(method_key)) {
-		struct uverbs_api_attr *elm =
-			rcu_dereference_protected(*slot, true);
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter,
+	    uapi_key_attrs_start(method_key))
+	{
+		struct uverbs_api_attr *elm = rcu_dereference_protected(*slot,
+		    true);
 		u32 attr_key = iter.index & UVERBS_API_ATTR_KEY_MASK;
 		u32 attr_bkey = uapi_bkey_attr(attr_key);
 		u8 type = elm->spec.type;
@@ -415,7 +414,8 @@ uapi_finalize_ioctl_method(struct uverbs_api *uapi,
 	return 0;
 }
 
-static int uapi_finalize(struct uverbs_api *uapi)
+static int
+uapi_finalize(struct uverbs_api *uapi)
 {
 	const struct uverbs_api_write_method **data;
 	unsigned long max_write_ex = 0;
@@ -425,56 +425,59 @@ static int uapi_finalize(struct uverbs_api *uapi)
 	int rc;
 	int i;
 
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, 0) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, 0)
+	{
 		struct uverbs_api_ioctl_method *method_elm =
-			rcu_dereference_protected(*slot, true);
+		    rcu_dereference_protected(*slot, true);
 
 		if (uapi_key_is_ioctl_method(iter.index)) {
 			rc = uapi_finalize_ioctl_method(uapi, method_elm,
-							iter.index);
+			    iter.index);
 			if (rc)
 				return rc;
 		}
 
 		if (uapi_key_is_write_method(iter.index))
 			max_write = max(max_write,
-					iter.index & UVERBS_API_ATTR_KEY_MASK);
+			    iter.index & UVERBS_API_ATTR_KEY_MASK);
 		if (uapi_key_is_write_ex_method(iter.index))
-			max_write_ex =
-				max(max_write_ex,
-				    iter.index & UVERBS_API_ATTR_KEY_MASK);
+			max_write_ex = max(max_write_ex,
+			    iter.index & UVERBS_API_ATTR_KEY_MASK);
 	}
 
 	uapi->notsupp_method.handler = ib_uverbs_notsupp;
 	uapi->num_write = max_write + 1;
 	uapi->num_write_ex = max_write_ex + 1;
 	data = kmalloc_array(uapi->num_write + uapi->num_write_ex,
-			     sizeof(*uapi->write_methods), GFP_KERNEL);
+	    sizeof(*uapi->write_methods), GFP_KERNEL);
 	for (i = 0; i != uapi->num_write + uapi->num_write_ex; i++)
 		data[i] = &uapi->notsupp_method;
 	uapi->write_methods = data;
 	uapi->write_ex_methods = data + uapi->num_write;
 
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, 0) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, 0)
+	{
 		if (uapi_key_is_write_method(iter.index))
 			uapi->write_methods[iter.index &
-					    UVERBS_API_ATTR_KEY_MASK] =
-				rcu_dereference_protected(*slot, true);
+			    UVERBS_API_ATTR_KEY_MASK] =
+			    rcu_dereference_protected(*slot, true);
 		if (uapi_key_is_write_ex_method(iter.index))
 			uapi->write_ex_methods[iter.index &
-					       UVERBS_API_ATTR_KEY_MASK] =
-				rcu_dereference_protected(*slot, true);
+			    UVERBS_API_ATTR_KEY_MASK] =
+			    rcu_dereference_protected(*slot, true);
 	}
 
 	return 0;
 }
 
-static void uapi_remove_range(struct uverbs_api *uapi, u32 start, u32 last)
+static void
+uapi_remove_range(struct uverbs_api *uapi, u32 start, u32 last)
 {
 	struct radix_tree_iter iter;
 	void __rcu **slot;
 
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, start) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, start)
+	{
 		if (iter.index > last)
 			return;
 		kfree(rcu_dereference_protected(*slot, true));
@@ -482,21 +485,22 @@ static void uapi_remove_range(struct uverbs_api *uapi, u32 start, u32 last)
 	}
 }
 
-static void uapi_remove_object(struct uverbs_api *uapi, u32 obj_key)
+static void
+uapi_remove_object(struct uverbs_api *uapi, u32 obj_key)
 {
 	uapi_remove_range(uapi, obj_key,
-			  obj_key | UVERBS_API_METHOD_KEY_MASK |
-				  UVERBS_API_ATTR_KEY_MASK);
+	    obj_key | UVERBS_API_METHOD_KEY_MASK | UVERBS_API_ATTR_KEY_MASK);
 }
 
-static void uapi_remove_method(struct uverbs_api *uapi, u32 method_key)
+static void
+uapi_remove_method(struct uverbs_api *uapi, u32 method_key)
 {
 	uapi_remove_range(uapi, method_key,
-			  method_key | UVERBS_API_ATTR_KEY_MASK);
+	    method_key | UVERBS_API_ATTR_KEY_MASK);
 }
 
-
-static u32 uapi_get_obj_id(struct uverbs_attr_spec *spec)
+static u32
+uapi_get_obj_id(struct uverbs_attr_spec *spec)
 {
 	if (spec->type == UVERBS_ATTR_TYPE_IDR ||
 	    spec->type == UVERBS_ATTR_TYPE_FD)
@@ -506,7 +510,8 @@ static u32 uapi_get_obj_id(struct uverbs_attr_spec *spec)
 	return UVERBS_API_KEY_ERR;
 }
 
-static void uapi_key_okay(u32 key)
+static void
+uapi_key_okay(u32 key)
 {
 	unsigned int count = 0;
 
@@ -523,7 +528,8 @@ static void uapi_key_okay(u32 key)
 	WARN(count != 1, "Bad count %d key=%x", count, key);
 }
 
-static void uapi_finalize_disable(struct uverbs_api *uapi)
+static void
+uapi_finalize_disable(struct uverbs_api *uapi)
 {
 	struct radix_tree_iter iter;
 	u32 starting_key = 0;
@@ -531,12 +537,13 @@ static void uapi_finalize_disable(struct uverbs_api *uapi)
 	void __rcu **slot;
 
 again:
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, starting_key) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, starting_key)
+	{
 		uapi_key_okay(iter.index);
 
 		if (uapi_key_is_object(iter.index)) {
 			struct uverbs_api_object *obj_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			if (obj_elm->disabled) {
 				/* Have to check all the attrs again */
@@ -550,7 +557,7 @@ again:
 
 		if (uapi_key_is_ioctl_method(iter.index)) {
 			struct uverbs_api_ioctl_method *method_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			if (method_elm->disabled) {
 				starting_key = iter.index;
@@ -563,18 +570,19 @@ again:
 		if (uapi_key_is_write_method(iter.index) ||
 		    uapi_key_is_write_ex_method(iter.index)) {
 			struct uverbs_api_write_method *method_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			if (method_elm->disabled) {
 				kfree(method_elm);
-				radix_tree_iter_delete(&uapi->radix, &iter, slot);
+				radix_tree_iter_delete(&uapi->radix, &iter,
+				    slot);
 			}
 			continue;
 		}
 
 		if (uapi_key_is_attr(iter.index)) {
 			struct uverbs_api_attr *attr_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 			const struct uverbs_api_object *tmp_obj;
 			u32 obj_key;
 
@@ -598,10 +606,10 @@ again:
 			}
 
 			starting_key = iter.index;
-			uapi_remove_method(
-				uapi,
-				iter.index & (UVERBS_API_OBJ_KEY_MASK |
-					      UVERBS_API_METHOD_KEY_MASK));
+			uapi_remove_method(uapi,
+			    iter.index &
+				(UVERBS_API_OBJ_KEY_MASK |
+				    UVERBS_API_METHOD_KEY_MASK));
 			goto again;
 		}
 
@@ -615,7 +623,8 @@ again:
 	goto again;
 }
 
-void uverbs_destroy_api(struct uverbs_api *uapi)
+void
+uverbs_destroy_api(struct uverbs_api *uapi)
 {
 	if (!uapi)
 		return;
@@ -638,7 +647,8 @@ static const struct uapi_definition uverbs_core_api[] = {
 	{},
 };
 
-struct uverbs_api *uverbs_alloc_api(struct ib_device *ibdev)
+struct uverbs_api *
+uverbs_alloc_api(struct ib_device *ibdev)
 {
 	struct uverbs_api *uapi;
 	int rc;
@@ -666,8 +676,8 @@ struct uverbs_api *uverbs_alloc_api(struct ib_device *ibdev)
 err:
 	if (rc != -ENOMEM)
 		dev_err(&ibdev->dev,
-			"Setup of uverbs_api failed, kernel parsing tree description is not valid (%d)??\n",
-			rc);
+		    "Setup of uverbs_api failed, kernel parsing tree description is not valid (%d)??\n",
+		    rc);
 
 	uverbs_destroy_api(uapi);
 	return ERR_PTR(rc);
@@ -678,7 +688,8 @@ err:
  * off method access. All methods that require the ib_dev or the module data
  * must test one of these assignments prior to continuing.
  */
-void uverbs_disassociate_api_pre(struct ib_uverbs_device *uverbs_dev)
+void
+uverbs_disassociate_api_pre(struct ib_uverbs_device *uverbs_dev)
 {
 	struct uverbs_api *uapi = uverbs_dev->uapi;
 	struct radix_tree_iter iter;
@@ -686,10 +697,11 @@ void uverbs_disassociate_api_pre(struct ib_uverbs_device *uverbs_dev)
 
 	rcu_assign_pointer(uverbs_dev->ib_dev, NULL);
 
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, 0) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, 0)
+	{
 		if (uapi_key_is_ioctl_method(iter.index)) {
 			struct uverbs_api_ioctl_method *method_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			if (method_elm->driver_method)
 				rcu_assign_pointer(method_elm->handler, NULL);
@@ -704,15 +716,17 @@ void uverbs_disassociate_api_pre(struct ib_uverbs_device *uverbs_dev)
  * assumption is that the driver module will unload after. Replace everything
  * related to the driver with NULL as a safety measure.
  */
-void uverbs_disassociate_api(struct uverbs_api *uapi)
+void
+uverbs_disassociate_api(struct uverbs_api *uapi)
 {
 	struct radix_tree_iter iter;
 	void __rcu **slot;
 
-	radix_tree_for_each_slot (slot, &uapi->radix, &iter, 0) {
+	radix_tree_for_each_slot(slot, &uapi->radix, &iter, 0)
+	{
 		if (uapi_key_is_object(iter.index)) {
 			struct uverbs_api_object *object_elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			/*
 			 * Some type_attrs are in the driver module. We don't
@@ -722,7 +736,7 @@ void uverbs_disassociate_api(struct uverbs_api *uapi)
 			object_elm->type_attrs = NULL;
 		} else if (uapi_key_is_attr(iter.index)) {
 			struct uverbs_api_attr *elm =
-				rcu_dereference_protected(*slot, true);
+			    rcu_dereference_protected(*slot, true);
 
 			if (elm->spec.type == UVERBS_ATTR_TYPE_ENUM_IN)
 				elm->spec.u2.enum_def.ids = NULL;

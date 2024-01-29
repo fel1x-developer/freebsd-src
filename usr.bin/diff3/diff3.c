@@ -62,23 +62,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
-#include <sys/procdesc.h>
 #include <sys/types.h>
+#include <sys/capsicum.h>
 #include <sys/event.h>
+#include <sys/procdesc.h>
 #include <sys/wait.h>
 
 #include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <getopt.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
-
 
 /*
  * "from" is first in range of changed lines; "to" is last+1
@@ -95,17 +94,17 @@ struct diff {
 	int type;
 #if DEBUG
 	char *line;
-#endif	/* DEBUG */
+#endif /* DEBUG */
 
 	/* Ranges as lines */
 	struct range old;
 	struct range new;
 };
 
-#define EFLAG_NONE 	0
-#define EFLAG_OVERLAP 	1
-#define EFLAG_NOOVERLAP	2
-#define EFLAG_UNMERGED	3
+#define EFLAG_NONE 0
+#define EFLAG_OVERLAP 1
+#define EFLAG_NOOVERLAP 2
+#define EFLAG_UNMERGED 3
 
 static size_t szchanges;
 
@@ -119,16 +118,16 @@ static struct diff *d23;
  */
 static struct diff *de;
 static char *overlap;
-static int  overlapcnt;
+static int overlapcnt;
 static FILE *fp[3];
-static int cline[3];		/* # of the last-read line in each file (0-2) */
+static int cline[3]; /* # of the last-read line in each file (0-2) */
 /*
  * The latest known correspondence between line numbers of the 3 files
  * is stored in last[1-3];
  */
 static int last[4];
 static int Aflag, eflag, iflag, mflag, Tflag;
-static int oflag;		/* indicates whether to mark overlaps (-E or -X) */
+static int oflag; /* indicates whether to mark overlaps (-E or -X) */
 static int strip_cr;
 static char *f1mark, *f2mark, *f3mark;
 static const char *oldmark = "<<<<<<<";
@@ -156,36 +155,30 @@ static void printrange(FILE *, struct range *);
 
 static const char diff3_version[] = "FreeBSD diff3 20220517";
 
-enum {
-	DIFFPROG_OPT,
-	STRIPCR_OPT,
-	HELP_OPT,
-	VERSION_OPT
-};
+enum { DIFFPROG_OPT, STRIPCR_OPT, HELP_OPT, VERSION_OPT };
 
 #define DIFF_PATH "/usr/bin/diff"
 
 #define OPTIONS "3aAeEiL:mTxX"
-static struct option longopts[] = {
-	{ "ed",			no_argument,		NULL,	'e' },
-	{ "show-overlap",	no_argument,		NULL,	'E' },
-	{ "overlap-only",	no_argument,		NULL,	'x' },
-	{ "initial-tab",	no_argument,		NULL,	'T' },
-	{ "text",		no_argument,		NULL,	'a' },
-	{ "strip-trailing-cr",	no_argument,		NULL,	STRIPCR_OPT },
-	{ "show-all",		no_argument,		NULL,	'A' },
-	{ "easy-only",		no_argument,		NULL,	'3' },
-	{ "merge",		no_argument,		NULL,	'm' },
-	{ "label",		required_argument,	NULL,	'L' },
-	{ "diff-program",	required_argument,	NULL,	DIFFPROG_OPT },
-	{ "help",		no_argument,		NULL,	HELP_OPT},
-	{ "version",		no_argument,		NULL,	VERSION_OPT}
-};
+static struct option longopts[] = { { "ed", no_argument, NULL, 'e' },
+	{ "show-overlap", no_argument, NULL, 'E' },
+	{ "overlap-only", no_argument, NULL, 'x' },
+	{ "initial-tab", no_argument, NULL, 'T' },
+	{ "text", no_argument, NULL, 'a' },
+	{ "strip-trailing-cr", no_argument, NULL, STRIPCR_OPT },
+	{ "show-all", no_argument, NULL, 'A' },
+	{ "easy-only", no_argument, NULL, '3' },
+	{ "merge", no_argument, NULL, 'm' },
+	{ "label", required_argument, NULL, 'L' },
+	{ "diff-program", required_argument, NULL, DIFFPROG_OPT },
+	{ "help", no_argument, NULL, HELP_OPT },
+	{ "version", no_argument, NULL, VERSION_OPT } };
 
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: diff3 [-3aAeEimTxX] [-L label1] [-L label2] "
+	fprintf(stderr,
+	    "usage: diff3 [-3aAeEimTxX] [-L label1] [-L label2] "
 	    "[-L label3] file1 file2 file3\n");
 }
 
@@ -203,7 +196,7 @@ readin(int fd, struct diff **dd)
 	for (i = 0; (p = getchange(f)); i++) {
 #if DEBUG
 		(*dd)[i].line = strdup(p);
-#endif	/* DEBUG */
+#endif /* DEBUG */
 
 		if (i >= szchanges - 1)
 			increase();
@@ -271,7 +264,6 @@ getchange(FILE *b)
 	return (NULL);
 }
 
-
 static char *
 get_line(FILE *b, size_t *n)
 {
@@ -326,7 +318,8 @@ merge(int m1, int m2)
 				change(3, &d2->new, false);
 				change(2, &d2->old, false);
 			} else if (Aflag || mflag) {
-				// XXX-THJ: What does it mean for the second file to differ?
+				// XXX-THJ: What does it mean for the second
+				// file to differ?
 				if (eflag == EFLAG_UNMERGED)
 					j = edit(d2, dup, j, DIFF_TYPE2);
 			}
@@ -420,7 +413,7 @@ change(int i, struct range *rold, bool dup)
 }
 
 /*
- * Print the range of line numbers, rold.from thru rold.to, as n1,n2 or 
+ * Print the range of line numbers, rold.from thru rold.to, as n1,n2 or
  * n1.
  */
 static void
@@ -474,7 +467,7 @@ skip(int i, int from, const char *pr)
 			printf("%s%s", Tflag == 1 ? "\t" : pr, line);
 		cline[i]++;
 	}
-	return ((int) n);
+	return ((int)n);
 }
 
 /*
@@ -488,7 +481,7 @@ duplicate(struct range *r1, struct range *r2)
 	int nchar;
 	int nline;
 
-	if (r1->to-r1->from != r2->to-r2->from)
+	if (r1->to - r1->from != r2->to - r2->from)
 		return (0);
 	skip(0, r1->from, NULL);
 	skip(1, r2->from, NULL);
@@ -527,8 +520,7 @@ repos(int nchar)
 static int
 edit(struct diff *diff, bool dup, int j, int difftype)
 {
-	if (!(eflag == EFLAG_UNMERGED ||
-		(!dup && eflag == EFLAG_OVERLAP ) ||
+	if (!(eflag == EFLAG_UNMERGED || (!dup && eflag == EFLAG_OVERLAP) ||
 		(dup && eflag == EFLAG_NOOVERLAP))) {
 		return (j);
 	}
@@ -540,7 +532,7 @@ edit(struct diff *diff, bool dup, int j, int difftype)
 	de[j].type = difftype;
 #if DEBUG
 	de[j].line = strdup(diff->line);
-#endif	/* DEBUG */
+#endif /* DEBUG */
 
 	de[j].old.from = diff->old.from;
 	de[j].old.to = diff->old.to;
@@ -603,8 +595,8 @@ edscript(int n)
 				printf(".\n");
 		} else {
 			printf("%s %s\n.\n", newmark, f3mark);
-			printf("%da\n%s %s\n.\n", old->from - 1,
-				oldmark, f1mark);
+			printf("%da\n%s %s\n.\n", old->from - 1, oldmark,
+			    f1mark);
 		}
 	}
 	if (iflag)
@@ -649,8 +641,8 @@ Ascript(int n)
 
 				printf(".\n");
 
-				printf("%da\n", startmark -
-					(new->to - new->from));
+				printf("%da\n",
+				    startmark - (new->to - new->from));
 				printf("%s %s\n", oldmark, f2mark);
 				if (!deleteold)
 					printrange(fp[1], old);
@@ -669,7 +661,7 @@ Ascript(int n)
 
 				if (deleteold) {
 					struct range r;
-					r.from = old->from-1;
+					r.from = old->from - 1;
 					r.to = new->to;
 					printrange(fp[1], &r);
 				} else
@@ -690,8 +682,8 @@ Ascript(int n)
 				 * file and append lines
 				 */
 				printf("%da\n%s %s\n.\n",
-					startmark - (old->to - old->from),
-					oldmark, f1mark);
+				    startmark - (old->to - old->from), oldmark,
+				    f1mark);
 			}
 		}
 	}
@@ -715,7 +707,7 @@ mergescript(int i)
 	r.from = 1;
 	r.to = 1;
 
-	for (n = 1; n < i+1; n++) {
+	for (n = 1; n < i + 1; n++) {
 		new = &de[n].new;
 		old = &de[n].old;
 
@@ -739,10 +731,10 @@ mergescript(int i)
 
 				printf("%s %s\n", orgmark, f2mark);
 				if (old->from == old->to) {
-					struct range or;
+					struct range or ;
 					or.from = old->from - 1;
 					or.to = new->to;
-					printrange(fp[1], &or);
+					printrange(fp[1], & or);
 				} else
 					printrange(fp[1], old);
 
@@ -766,10 +758,9 @@ mergescript(int i)
 	 * If the new range is 0 length (from == to), we need to use the old
 	 * range.
 	 */
-	new = &de[n-1].new;
-	old = &de[n-1].old;
-	if ((old->from == new->from) &&
-		(old->to == new->to))
+	new = &de[n - 1].new;
+	old = &de[n - 1].old;
+	if ((old->from == new->from) && (old->to == new->to))
 		r.from--;
 	else if (new->from == new->to)
 		r.from = old->from;
@@ -778,7 +769,7 @@ mergescript(int i)
 	 * If the range is a 3 way merge then we need to skip a line in the
 	 * trailing output.
 	 */
-	if (de[n-1].type == DIFF_TYPE3)
+	if (de[n - 1].type == DIFF_TYPE3)
 		r.from++;
 
 	r.to = INT_MAX;
@@ -819,7 +810,6 @@ increase(void)
 	overlap = q;
 	szchanges = newsz;
 }
-
 
 int
 main(int argc, char **argv)
@@ -886,7 +876,8 @@ main(int argc, char **argv)
 			break;
 		case STRIPCR_OPT:
 			strip_cr = 1;
-			diffargv[diffargc++] = __DECONST(char *, "--strip-trailing-cr");
+			diffargv[diffargc++] = __DECONST(char *,
+			    "--strip-trailing-cr");
 			break;
 		case HELP_OPT:
 			usage();
@@ -929,16 +920,13 @@ main(int argc, char **argv)
 	file3 = argv[2];
 
 	if (oflag) {
-		asprintf(&f1mark, "%s",
-		    labels[0] != NULL ? labels[0] : file1);
+		asprintf(&f1mark, "%s", labels[0] != NULL ? labels[0] : file1);
 		if (f1mark == NULL)
 			err(2, "asprintf");
-		asprintf(&f2mark, "%s",
-		    labels[1] != NULL ? labels[1] : file2);
+		asprintf(&f2mark, "%s", labels[1] != NULL ? labels[1] : file2);
 		if (f2mark == NULL)
 			err(2, "asprintf");
-		asprintf(&f3mark, "%s",
-		    labels[2] != NULL ? labels[2] : file3);
+		asprintf(&f3mark, "%s", labels[2] != NULL ? labels[2] : file3);
 		if (f3mark == NULL)
 			err(2, "asprintf");
 	}
@@ -971,14 +959,14 @@ main(int argc, char **argv)
 
 	nleft = 0;
 	pd13 = diffexec(diffprog, diffargv, fd13);
-	EV_SET(e + nleft , pd13, EVFILT_PROCDESC, EV_ADD, NOTE_EXIT, 0, NULL);
+	EV_SET(e + nleft, pd13, EVFILT_PROCDESC, EV_ADD, NOTE_EXIT, 0, NULL);
 	if (kevent(kq, e + nleft, 1, NULL, 0, NULL) == -1)
 		err(2, "kevent1");
 	nleft++;
 
 	diffargv[diffargc] = file2;
 	pd23 = diffexec(diffprog, diffargv, fd23);
-	EV_SET(e + nleft , pd23, EVFILT_PROCDESC, EV_ADD, NOTE_EXIT, 0, NULL);
+	EV_SET(e + nleft, pd23, EVFILT_PROCDESC, EV_ADD, NOTE_EXIT, 0, NULL);
 	if (kevent(kq, e + nleft, 1, NULL, 0, NULL) == -1)
 		err(2, "kevent2");
 	nleft++;

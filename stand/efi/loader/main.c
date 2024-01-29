@@ -4,7 +4,7 @@
  * All rights reserved.
  *
  * Copyright (c) 2016-2019 Netflix, Inc. written by M. Warner Losh
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -28,47 +28,43 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-
-#include <sys/disk.h>
 #include <sys/param.h>
-#include <sys/reboot.h>
 #include <sys/boot.h>
+#include <sys/disk.h>
+#include <sys/reboot.h>
+
+#include <stand.h>
 #ifdef EFI_ZFS_BOOT
 #include <sys/zfs_bootenv.h>
 #endif
-#include <paths.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <stdint.h>
-#include <string.h>
-#include <setjmp.h>
-#include <disk.h>
-#include <dev_net.h>
-#include <net.h>
-
-#include <efi.h>
-#include <efilib.h>
-#include <efichar.h>
-#include <efirng.h>
-
-#include <uuid.h>
 
 #include <bootstrap.h>
+#include <dev_net.h>
+#include <disk.h>
+#include <efi.h>
+#include <efichar.h>
+#include <efilib.h>
+#include <efirng.h>
+#include <net.h>
+#include <paths.h>
+#include <setjmp.h>
 #include <smbios.h>
+#include <stdint.h>
+#include <string.h>
+#include <uuid.h>
 
+#include "acconfig.h"
 #include "efizfs.h"
 #include "framebuffer.h"
-
 #include "platform/acfreebsd.h"
-#include "acconfig.h"
 #define ACPI_SYSTEM_XFACE
-#include "actypes.h"
 #include "actbl.h"
-
+#include "actypes.h"
 #include "loader_efi.h"
 
-struct arch_switch archsw;	/* MI/MD interface boundary */
+struct arch_switch archsw; /* MI/MD interface boundary */
 
 EFI_GUID acpi = ACPI_TABLE_GUID;
 EFI_GUID acpi20 = ACPI_20_TABLE_GUID;
@@ -125,8 +121,7 @@ has_keyboard(void)
 	status = BS->LocateHandle(ByProtocol, &inputid, 0, &sz, 0);
 	if (status == EFI_BUFFER_TOO_SMALL) {
 		hin = (EFI_HANDLE *)malloc(sz);
-		status = BS->LocateHandle(ByProtocol, &inputid, 0, &sz,
-		    hin);
+		status = BS->LocateHandle(ByProtocol, &inputid, 0, &sz, hin);
 		if (EFI_ERROR(status))
 			free(hin);
 	}
@@ -156,27 +151,31 @@ has_keyboard(void)
 			if (DevicePathType(path) == ACPI_DEVICE_PATH &&
 			    (DevicePathSubType(path) == ACPI_DP ||
 				DevicePathSubType(path) == ACPI_EXTENDED_DP)) {
-				ACPI_HID_DEVICE_PATH  *acpi;
+				ACPI_HID_DEVICE_PATH *acpi;
 
 				acpi = (ACPI_HID_DEVICE_PATH *)(void *)path;
-				if ((EISA_ID_TO_NUM(acpi->HID) & 0xff00) == 0x300 &&
+				if ((EISA_ID_TO_NUM(acpi->HID) & 0xff00) ==
+					0x300 &&
 				    (acpi->HID & 0xffff) == PNP_EISA_ID_CONST) {
 					retval = true;
 					goto out;
 				}
-			/*
-			 * Check for USB keyboard node, if present. Unlike a
-			 * PS/2 keyboard, these definitely only appear when
-			 * connected to the system.
-			 */
-			} else if (DevicePathType(path) == MESSAGING_DEVICE_PATH &&
+				/*
+				 * Check for USB keyboard node, if present.
+				 * Unlike a PS/2 keyboard, these definitely only
+				 * appear when connected to the system.
+				 */
+			} else if (DevicePathType(path) ==
+				MESSAGING_DEVICE_PATH &&
 			    DevicePathSubType(path) == MSG_USB_CLASS_DP) {
 				USB_CLASS_DEVICE_PATH *usb;
 
 				usb = (USB_CLASS_DEVICE_PATH *)(void *)path;
 				if (usb->DeviceClass == 3 && /* HID */
-				    usb->DeviceSubClass == 1 && /* Boot devices */
-				    usb->DeviceProtocol == 1) { /* Boot keyboards */
+				    usb->DeviceSubClass ==
+					1 && /* Boot devices */
+				    usb->DeviceProtocol ==
+					1) { /* Boot keyboards */
 					retval = true;
 					goto out;
 				}
@@ -335,7 +334,7 @@ fix_dosisms(char *p)
 
 #define SIZE(dp, edp) (size_t)((intptr_t)(void *)edp - (intptr_t)(void *)dp)
 
-enum { BOOT_INFO_OK = 0, BAD_CHOICE = 1, NOT_SPECIFIC = 2  };
+enum { BOOT_INFO_OK = 0, BAD_CHOICE = 1, NOT_SPECIFIC = 2 };
 static int
 match_boot_info(char *boot_info, size_t bisz)
 {
@@ -347,7 +346,7 @@ match_boot_info(char *boot_info, size_t bisz)
 	pdinfo_t *pp;
 	CHAR16 *descr;
 	char *kernel = NULL;
-	FILEPATH_DEVICE_PATH  *fp;
+	FILEPATH_DEVICE_PATH *fp;
 	struct stat st;
 	CHAR16 *text;
 
@@ -418,12 +417,14 @@ match_boot_info(char *boot_info, size_t bisz)
 	 */
 	pp = efiblk_get_pdinfo_by_device_path(last_dp);
 	if (pp == NULL) {
-		printf("Ignoring Boot%04x: Device Path not found\n", boot_current);
+		printf("Ignoring Boot%04x: Device Path not found\n",
+		    boot_current);
 		return BAD_CHOICE;
 	}
 	set_currdev_pdinfo(pp);
 	if (!sanity_check_currdev()) {
-		printf("Ignoring Boot%04x: sanity check failed\n", boot_current);
+		printf("Ignoring Boot%04x: sanity check failed\n",
+		    boot_current);
 		return BAD_CHOICE;
 	}
 
@@ -436,15 +437,16 @@ match_boot_info(char *boot_info, size_t bisz)
 	 * file, so we may need to have a hack override.
 	 */
 	dp = efi_devpath_last_node(last_dp);
-	if (DevicePathType(dp) !=  MEDIA_DEVICE_PATH ||
+	if (DevicePathType(dp) != MEDIA_DEVICE_PATH ||
 	    DevicePathSubType(dp) != MEDIA_FILEPATH_DP) {
 		printf("Using Boot%04x for root partition\n", boot_current);
-		return (BOOT_INFO_OK);		/* use currdir, default kernel */
+		return (BOOT_INFO_OK); /* use currdir, default kernel */
 	}
 	fp = (FILEPATH_DEVICE_PATH *)dp;
 	ucs2_to_utf8(fp->PathName, &kernel);
 	if (kernel == NULL) {
-		printf("Not using Boot%04x: can't decode kernel\n", boot_current);
+		printf("Not using Boot%04x: can't decode kernel\n",
+		    boot_current);
 		return (BAD_CHOICE);
 	}
 	if (*kernel == '\\' || isupper(*kernel))
@@ -459,8 +461,7 @@ match_boot_info(char *boot_info, size_t bisz)
 	free(kernel);
 	text = efi_devpath_name(last_dp);
 	if (text) {
-		printf("Using Boot%04x %S + %s\n", boot_current, text,
-		    kernel);
+		printf("Using Boot%04x %S + %s\n", boot_current, text, kernel);
 		efi_free_devpath_name(text);
 	}
 
@@ -485,8 +486,8 @@ match_boot_info(char *boot_info, size_t bisz)
  * a drop to the OK boot loader prompt is possible.
  */
 static int
-find_currdev(bool do_bootmgr, bool is_last,
-    char *boot_info, size_t boot_info_sz)
+find_currdev(bool do_bootmgr, bool is_last, char *boot_info,
+    size_t boot_info_sz)
 {
 	pdinfo_t *dp, *pp;
 	EFI_DEVICE_PATH *devpath, *copy;
@@ -525,8 +526,7 @@ find_currdev(bool do_bootmgr, bool is_last,
 		efi_devpath_free(devpath);
 		if (dp == NULL)
 			break;
-		printf("    Setting currdev to UEFI path %s\n",
-		    rootdev);
+		printf("    Setting currdev to UEFI path %s\n", rootdev);
 		set_currdev_pdinfo(dp);
 		return (0);
 	} while (0);
@@ -542,10 +542,11 @@ find_currdev(bool do_bootmgr, bool is_last,
 	if (do_bootmgr) {
 		rv = match_boot_info(boot_info, boot_info_sz);
 		switch (rv) {
-		case BOOT_INFO_OK:	/* We found it */
+		case BOOT_INFO_OK: /* We found it */
 			return (0);
-		case BAD_CHOICE:	/* specified file not found -> error */
-			/* XXX do we want to have an escape hatch for last in boot order? */
+		case BAD_CHOICE: /* specified file not found -> error */
+			/* XXX do we want to have an escape hatch for last in
+			 * boot order? */
 			return (ENOENT);
 		} /* Nothing specified, try normal match */
 	}
@@ -595,7 +596,7 @@ find_currdev(bool do_bootmgr, bool is_last,
 		if (dp->pd_parent != NULL) {
 			pdinfo_t *espdp = dp;
 			dp = dp->pd_parent;
-			STAILQ_FOREACH(pp, &dp->pd_part, pd_link) {
+			STAILQ_FOREACH (pp, &dp->pd_part, pd_link) {
 				/* Already tried the ESP */
 				if (espdp == pp)
 					continue;
@@ -621,7 +622,8 @@ find_currdev(bool do_bootmgr, bool is_last,
 	 * any of the nodes in that path match one of the enumerated
 	 * handles. Currently, this handle list is only for netboot.
 	 */
-	if (efi_handle_lookup(boot_img->DeviceHandle, &dev, &unit, &extra) == 0) {
+	if (efi_handle_lookup(boot_img->DeviceHandle, &dev, &unit, &extra) ==
+	    0) {
 		set_currdev_devsw(dev, unit);
 		if (sanity_check_currdev())
 			return (0);
@@ -662,13 +664,14 @@ interactive_interrupt(const char *msg)
 	last = 0;
 	now = then = getsecs();
 	printf("%s\n", msg);
-	if (fail_timeout == -2)		/* Always break to OK */
+	if (fail_timeout == -2) /* Always break to OK */
 		return (true);
-	if (fail_timeout == -1)		/* Never break to OK */
+	if (fail_timeout == -1) /* Never break to OK */
 		return (false);
 	do {
 		if (last != now) {
-			printf("press any key to interrupt reboot in %d seconds\r",
+			printf(
+			    "press any key to interrupt reboot in %d seconds\r",
 			    fail_timeout - (int)(now - then));
 			last = now;
 		}
@@ -689,16 +692,16 @@ parse_args(int argc, CHAR16 *argv[])
 
 	/*
 	 * Parse the args to set the console settings, etc
-	 * boot1.efi passes these in, if it can read /boot.config or /boot/config
-	 * or iPXE may be setup to pass these in. Or the optional argument in the
-	 * boot environment was used to pass these arguments in (in which case
-	 * neither /boot.config nor /boot/config are consulted).
+	 * boot1.efi passes these in, if it can read /boot.config or
+	 * /boot/config or iPXE may be setup to pass these in. Or the optional
+	 * argument in the boot environment was used to pass these arguments in
+	 * (in which case neither /boot.config nor /boot/config are consulted).
 	 *
 	 * Loop through the args, and for each one that contains an '=' that is
 	 * not the first character, add it to the environment.  This allows
 	 * loader and kernel env vars to be passed on the command line.  Convert
-	 * args from UCS-2 to ASCII (16 to 8 bit) as they are copied (though this
-	 * method is flawed for non-ASCII characters).
+	 * args from UCS-2 to ASCII (16 to 8 bit) as they are copied (though
+	 * this method is flawed for non-ASCII characters).
 	 */
 	howto = 0;
 	for (i = 0; i < argc; i++) {
@@ -732,8 +735,8 @@ parse_uefi_con_out(void)
 	size_t sz;
 	char buf[4096], *ep;
 	EFI_DEVICE_PATH *node;
-	ACPI_HID_DEVICE_PATH  *acpi;
-	UART_DEVICE_PATH  *uart;
+	ACPI_HID_DEVICE_PATH *acpi;
+	UART_DEVICE_PATH *uart;
 	bool pci_pending;
 
 	how = 0;
@@ -768,7 +771,7 @@ parse_uefi_con_out(void)
 		pci_pending = false;
 		if (DevicePathType(node) == ACPI_DEVICE_PATH &&
 		    (DevicePathSubType(node) == ACPI_DP ||
-		    DevicePathSubType(node) == ACPI_EXTENDED_DP)) {
+			DevicePathSubType(node) == ACPI_EXTENDED_DP)) {
 			/* Check for Serial node */
 			acpi = (void *)node;
 			if (EISA_ID_TO_NUM(acpi->HID) == 0x501) {
@@ -868,25 +871,28 @@ read_loader_env(const char *name, char *def_fn, bool once)
 				free(fn);
 				fn = NULL;
 				printf(
-			    "Can't fetch FreeBSD::%s we know is there\n", name);
+				    "Can't fetch FreeBSD::%s we know is there\n",
+				    name);
 			} else {
 				/*
-				 * if tagged as 'once' delete the env variable so we
-				 * only use it once.
+				 * if tagged as 'once' delete the env variable
+				 * so we only use it once.
 				 */
 				if (once)
 					efi_freebsd_delenv(name);
 				/*
-				 * We malloced 1 more than len above, then redid the call.
-				 * so now we have room at the end of the string to NUL terminate
-				 * it here, even if the typical idium would have '- 1' here to
-				 * not overflow. len should be the same on return both times.
+				 * We malloced 1 more than len above, then redid
+				 * the call. so now we have room at the end of
+				 * the string to NUL terminate it here, even if
+				 * the typical idium would have '- 1' here to
+				 * not overflow. len should be the same on
+				 * return both times.
 				 */
 				fn[len] = '\0';
 			}
 		} else {
 			printf(
-		    "Can't allocate %d bytes to fetch FreeBSD::%s env var\n",
+			    "Can't allocate %d bytes to fetch FreeBSD::%s env var\n",
 			    len, name);
 		}
 	}
@@ -979,8 +985,8 @@ main(int argc, CHAR16 *argv[])
 	}
 #endif
 
-        /* Get our loaded image protocol interface structure. */
-	(void) OpenProtocolByHandle(IH, &imgid, (void **)&boot_img);
+	/* Get our loaded image protocol interface structure. */
+	(void)OpenProtocolByHandle(IH, &imgid, (void **)&boot_img);
 
 	/* Report the RSDP early. */
 	acpi_detect();
@@ -1022,7 +1028,8 @@ main(int argc, CHAR16 *argv[])
 	i = efipart_inithandles();
 	if (i != 0 && i != ENOENT) {
 		printf("efipart_inithandles failed with ERRNO %d, expect "
-		    "failures\n", i);
+		       "failures\n",
+		    i);
 	}
 
 	devinit();
@@ -1049,8 +1056,9 @@ main(int argc, CHAR16 *argv[])
 	 * loaded off the UFS root drive (when chain booted), or from the ESP
 	 * when directly loaded by the BIOS.
 	 *
-	 * We also read in NextLoaderEnv if it was specified. This allows next boot
-	 * functionality to be implemented and to override anything in LoaderEnv.
+	 * We also read in NextLoaderEnv if it was specified. This allows next
+	 * boot functionality to be implemented and to override anything in
+	 * LoaderEnv.
 	 */
 	read_loader_env("LoaderEnv", "/efi/freebsd/loader.env", false);
 	read_loader_env("NextLoaderEnv", NULL, true);
@@ -1059,28 +1067,32 @@ main(int argc, CHAR16 *argv[])
 	 * We now have two notions of console. howto should be viewed as
 	 * overrides. If console is already set, don't set it again.
 	 */
-#define	VIDEO_ONLY	0
-#define	SERIAL_ONLY	RB_SERIAL
-#define	VID_SER_BOTH	RB_MULTIPLE
-#define	SER_VID_BOTH	(RB_SERIAL | RB_MULTIPLE)
-#define	CON_MASK	(RB_SERIAL | RB_MULTIPLE)
+#define VIDEO_ONLY 0
+#define SERIAL_ONLY RB_SERIAL
+#define VID_SER_BOTH RB_MULTIPLE
+#define SER_VID_BOTH (RB_SERIAL | RB_MULTIPLE)
+#define CON_MASK (RB_SERIAL | RB_MULTIPLE)
 	if (strcmp(getenv("console"), "efi") == 0) {
 		if ((howto & CON_MASK) == 0) {
-			/* No override, uhowto is controlling and efi cons is perfect */
+			/* No override, uhowto is controlling and efi cons is
+			 * perfect */
 			howto = howto | (uhowto & CON_MASK);
 		} else if ((howto & CON_MASK) == (uhowto & CON_MASK)) {
-			/* override matches what UEFI told us, efi console is perfect */
+			/* override matches what UEFI told us, efi console is
+			 * perfect */
 		} else if ((uhowto & (CON_MASK)) != 0) {
 			/*
 			 * We detected a serial console on ConOut. All possible
-			 * overrides include serial. We can't really override what efi
-			 * gives us, so we use it knowing it's the best choice.
+			 * overrides include serial. We can't really override
+			 * what efi gives us, so we use it knowing it's the best
+			 * choice.
 			 */
 			/* Do nothing */
 		} else {
 			/*
-			 * We detected some kind of serial in the override, but ConOut
-			 * has no serial, so we have to sort out which case it really is.
+			 * We detected some kind of serial in the override, but
+			 * ConOut has no serial, so we have to sort out which
+			 * case it really is.
 			 */
 			switch (howto & CON_MASK) {
 			case SERIAL_ONLY:
@@ -1092,7 +1104,8 @@ main(int argc, CHAR16 *argv[])
 			case SER_VID_BOTH:
 				setenv("console", "comconsole efi", 1);
 				break;
-				/* case VIDEO_ONLY can't happen -- it's the first if above */
+				/* case VIDEO_ONLY can't happen -- it's the
+				 * first if above */
 			}
 		}
 	}
@@ -1164,13 +1177,15 @@ main(int argc, CHAR16 *argv[])
 				printf(" %04x%s", boot_order[i],
 				    boot_order[i] == boot_current ? "[*]" : "");
 			printf("\n");
-			is_last = boot_order[(sz / sizeof(boot_order[0])) - 1] == boot_current;
+			is_last =
+			    boot_order[(sz / sizeof(boot_order[0])) - 1] ==
+			    boot_current;
 			bosz = sz;
 		} else if (uefi_boot_mgr) {
 			/*
-			 * u-boot doesn't set BootOrder, but otherwise participates in the
-			 * boot manager protocol. So we fake it here and don't consider it
-			 * a failure.
+			 * u-boot doesn't set BootOrder, but otherwise
+			 * participates in the boot manager protocol. So we fake
+			 * it here and don't consider it a failure.
 			 */
 			bosz = sizeof(boot_order[0]);
 			boot_order[0] = boot_current;
@@ -1228,15 +1243,16 @@ main(int argc, CHAR16 *argv[])
 		    !interactive_interrupt("Failed to find bootable partition"))
 			return (EFI_NOT_FOUND);
 
-	autoload_font(false);	/* Set up the font list for console. */
+	autoload_font(false); /* Set up the font list for console. */
 	efi_init_environment();
 
-	interact();			/* doesn't return */
+	interact(); /* doesn't return */
 
-	return (EFI_SUCCESS);		/* keep compiler happy */
+	return (EFI_SUCCESS); /* keep compiler happy */
 }
 
-COMMAND_SET(efi_seed_entropy, "efi-seed-entropy", "try to get entropy from the EFI RNG", command_seed_entropy);
+COMMAND_SET(efi_seed_entropy, "efi-seed-entropy",
+    "try to get entropy from the EFI RNG", command_seed_entropy);
 
 static int
 command_seed_entropy(int argc, char *argv[])
@@ -1268,7 +1284,8 @@ command_seed_entropy(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	if (file_addbuf("efi_rng_seed", "boot_entropy_platform", size, buf) != 0) {
+	if (file_addbuf("efi_rng_seed", "boot_entropy_platform", size, buf) !=
+	    0) {
 		free(buf);
 		return (CMD_ERROR);
 	}
@@ -1338,16 +1355,15 @@ command_memmap(int argc __unused, char *argv[] __unused)
 	}
 
 	ndesc = sz / dsz;
-	snprintf(line, sizeof(line), "%23s %12s %12s %8s %4s\n",
-	    "Type", "Physical", "Virtual", "#Pages", "Attr");
+	snprintf(line, sizeof(line), "%23s %12s %12s %8s %4s\n", "Type",
+	    "Physical", "Virtual", "#Pages", "Attr");
 	pager_open();
 	if (pager_output(line)) {
 		pager_close();
 		return (CMD_OK);
 	}
 
-	for (i = 0, p = map; i < ndesc;
-	     i++, p = NextMemoryDescriptor(p, dsz)) {
+	for (i = 0, p = map; i < ndesc; i++, p = NextMemoryDescriptor(p, dsz)) {
 		snprintf(line, sizeof(line), "%23s %012jx %012jx %08jx ",
 		    efi_memory_type(p->Type), (uintmax_t)p->PhysicalStart,
 		    (uintmax_t)p->VirtualStart, (uintmax_t)p->NumberOfPages);
@@ -1394,7 +1410,7 @@ command_configuration(int argc, char *argv[])
 	char *name;
 
 	printf("NumberOfTableEntries=%lu\n",
-		(unsigned long)ST->NumberOfTableEntries);
+	    (unsigned long)ST->NumberOfTableEntries);
 
 	for (i = 0; i < ST->NumberOfTableEntries; i++) {
 		EFI_GUID *guid;
@@ -1413,7 +1429,6 @@ command_configuration(int argc, char *argv[])
 
 	return (CMD_OK);
 }
-
 
 COMMAND_SET(mode, "mode", "change or display EFI text modes", command_mode);
 
@@ -1445,7 +1460,7 @@ command_mode(int argc, char *argv[])
 			printf("couldn't set mode %d\n", mode);
 			return (CMD_ERROR);
 		}
-		(void) cons_update_mode(true);
+		(void)cons_update_mode(true);
 		return (CMD_OK);
 	}
 
@@ -1502,7 +1517,7 @@ command_lsefi(int argc __unused, char *argv[] __unused)
 
 	status = BS->LocateHandle(AllHandles, NULL, NULL, &bufsz, buffer);
 	if (status != EFI_BUFFER_TOO_SMALL) {
-		snprintf(command_errbuf, sizeof (command_errbuf),
+		snprintf(command_errbuf, sizeof(command_errbuf),
 		    "unexpected error: %lld", (long long)status);
 		return (CMD_ERROR);
 	}
@@ -1514,13 +1529,13 @@ command_lsefi(int argc __unused, char *argv[] __unused)
 	status = BS->LocateHandle(AllHandles, NULL, NULL, &bufsz, buffer);
 	if (EFI_ERROR(status)) {
 		free(buffer);
-		snprintf(command_errbuf, sizeof (command_errbuf),
+		snprintf(command_errbuf, sizeof(command_errbuf),
 		    "LocateHandle() error: %lld", (long long)status);
 		return (CMD_ERROR);
 	}
 
 	pager_open();
-	for (i = 0; i < (bufsz / sizeof (EFI_HANDLE)); i++) {
+	for (i = 0; i < (bufsz / sizeof(EFI_HANDLE)); i++) {
 		UINTN nproto = 0;
 		EFI_GUID **protocols = NULL;
 
@@ -1532,7 +1547,7 @@ command_lsefi(int argc __unused, char *argv[] __unused)
 
 		status = BS->ProtocolsPerHandle(handle, &protocols, &nproto);
 		if (EFI_ERROR(status)) {
-			snprintf(command_errbuf, sizeof (command_errbuf),
+			snprintf(command_errbuf, sizeof(command_errbuf),
 			    "ProtocolsPerHandle() error: %lld",
 			    (long long)status);
 			continue;
@@ -1647,8 +1662,8 @@ command_chain(int argc, char *argv[])
 		for (i = 2; i < argc; i++)
 			len += strlen(argv[i]) + 1;
 
-		len *= sizeof (*argp);
-		loaded_image->LoadOptions = argp = malloc (len);
+		len *= sizeof(*argp);
+		loaded_image->LoadOptions = argp = malloc(len);
 		loaded_image->LoadOptionsSize = len;
 		for (i = 2; i < argc; i++) {
 			char *ptr = argv[i];
@@ -1670,13 +1685,13 @@ command_chain(int argc, char *argv[])
 #ifdef EFI_ZFS_BOOT
 		case DEVT_ZFS:
 			z_dev = (struct zfs_devdesc *)dev;
-			loaded_image->DeviceHandle =
-			    efizfs_get_handle_by_guid(z_dev->pool_guid);
+			loaded_image->DeviceHandle = efizfs_get_handle_by_guid(
+			    z_dev->pool_guid);
 			break;
 #endif
 		case DEVT_NET:
-			loaded_image->DeviceHandle =
-			    efi_find_handle(dev->d_dev, dev->d_unit);
+			loaded_image->DeviceHandle = efi_find_handle(dev->d_dev,
+			    dev->d_unit);
 			break;
 		default:
 			hd = efiblk_get_pdinfo(dev);
@@ -1685,7 +1700,7 @@ command_chain(int argc, char *argv[])
 				break;
 			}
 			d_dev = (struct disk_devdesc *)dev;
-			STAILQ_FOREACH(pd, &hd->pd_part, pd_link) {
+			STAILQ_FOREACH (pd, &hd->pd_part, pd_link) {
 				/*
 				 * d_partition should be 255
 				 */
@@ -1709,7 +1724,7 @@ command_chain(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	return (CMD_ERROR);	/* not reached */
+	return (CMD_ERROR); /* not reached */
 }
 
 COMMAND_SET(chain, "chain", "chain load file", command_chain);
@@ -1733,13 +1748,12 @@ command_netserver(int argc, char *argv[])
 	}
 	if (argc == 2) {
 		strncpy(rootpath, argv[1], sizeof(rootpath));
-		rootpath[sizeof(rootpath) -1] = '\0';
+		rootpath[sizeof(rootpath) - 1] = '\0';
 		if ((rootaddr = net_parse_rootpath()) != INADDR_NONE)
 			servip.s_addr = rootip.s_addr = rootaddr;
 		return (CMD_OK);
 	}
-	return (CMD_ERROR);	/* not reached */
-
+	return (CMD_ERROR); /* not reached */
 }
 
 COMMAND_SET(netserver, "netserver", "change or display netserver URI",

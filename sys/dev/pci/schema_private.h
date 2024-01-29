@@ -27,9 +27,9 @@
 #ifndef _SCHEMA_PRIVATE_H_
 #define _SCHEMA_PRIVATE_H_
 
-int		pci_iov_validate_schema(const nvlist_t *schema);
+int pci_iov_validate_schema(const nvlist_t *schema);
 
-int		pci_iov_schema_validate_config(const nvlist_t *, nvlist_t *);
-uint16_t	pci_iov_config_get_num_vfs(const nvlist_t *);
+int pci_iov_schema_validate_config(const nvlist_t *, nvlist_t *);
+uint16_t pci_iov_config_get_num_vfs(const nvlist_t *);
 
 #endif

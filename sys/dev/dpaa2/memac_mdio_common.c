@@ -26,21 +26,21 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "memac_mdio.h"
 #include "miibus_if.h"
@@ -80,8 +80,8 @@ memacphy_set_ni_dev(struct memacphy_softc_common *sc, device_t nidev)
 
 #if defined(MEMAC_MDIO_DEBUG)
 	if (bootverbose)
-		device_printf(sc->dev, "setting nidev %p (%s)\n",
-		    nidev, device_get_nameunit(nidev));
+		device_printf(sc->dev, "setting nidev %p (%s)\n", nidev,
+		    device_get_nameunit(nidev));
 #endif
 
 	if (sc->dpnidev != NULL)
@@ -131,16 +131,16 @@ memacphy_get_phy_loc(struct memacphy_softc_common *sc, int *phy_loc)
  * 0x0038	External MDIO Data Register (EMDIO_DATA)
  * 0x003c	External MDIO Register Address Register (EMDIO_ADDR)
  */
-#define	MDIO_CFG			0x00030
-#define	MDIO_CFG_MDIO_RD_ER		(1 << 1)
-#define	MDIO_CFG_ENC45			(1 << 6)
-#define	MDIO_CFG_BUSY			(1 << 31)
-#define	MDIO_CTL			0x00034
-#define	MDIO_CTL_READ			(1 << 15)
-#define	MDIO_CTL_PORT_ADDR(_x)		(((_x) & 0x1f) << 5)
-#define	MDIO_CTL_DEV_ADDR(_x)		((_x) & 0x1f)
-#define	MDIO_DATA			0x00038
-#define	MDIO_ADDR			0x0003c
+#define MDIO_CFG 0x00030
+#define MDIO_CFG_MDIO_RD_ER (1 << 1)
+#define MDIO_CFG_ENC45 (1 << 6)
+#define MDIO_CFG_BUSY (1 << 31)
+#define MDIO_CTL 0x00034
+#define MDIO_CTL_READ (1 << 15)
+#define MDIO_CTL_PORT_ADDR(_x) (((_x) & 0x1f) << 5)
+#define MDIO_CTL_DEV_ADDR(_x) ((_x) & 0x1f)
+#define MDIO_DATA 0x00038
+#define MDIO_ADDR 0x0003c
 
 static uint32_t
 memac_read_4(struct memac_mdio_softc_common *sc, uint32_t reg)
@@ -194,7 +194,7 @@ memac_miibus_readreg(struct memac_mdio_softc_common *sc, int phy, int reg)
 	/* Set proper Clause 45 mode. */
 	cfg = memac_read_4(sc, MDIO_CFG);
 	/* XXX 45 support? */
-	cfg &= ~MDIO_CFG_ENC45;	/* Use Clause 22 */
+	cfg &= ~MDIO_CFG_ENC45; /* Use Clause 22 */
 	memac_write_4(sc, MDIO_CFG, cfg);
 
 	val = memac_miibus_wait_no_busy(sc);
@@ -221,11 +221,12 @@ memac_miibus_readreg(struct memac_mdio_softc_common *sc, int phy, int reg)
 	device_printf(sc->dev, "phy read %d:%d = %#06x\n", phy, reg, val);
 #endif
 
-        return (val);
+	return (val);
 }
 
 int
-memac_miibus_writereg(struct memac_mdio_softc_common *sc, int phy, int reg, int data)
+memac_miibus_writereg(struct memac_mdio_softc_common *sc, int phy, int reg,
+    int data)
 {
 	uint32_t cfg, ctl, val;
 
@@ -236,7 +237,7 @@ memac_miibus_writereg(struct memac_mdio_softc_common *sc, int phy, int reg, int 
 	/* Set proper Clause 45 mode. */
 	cfg = memac_read_4(sc, MDIO_CFG);
 	/* XXX 45 support? */
-	cfg &= ~MDIO_CFG_ENC45;	/* Use Clause 22 */
+	cfg &= ~MDIO_CFG_ENC45; /* Use Clause 22 */
 	memac_write_4(sc, MDIO_CFG, cfg);
 
 	val = memac_miibus_wait_no_busy(sc);
@@ -261,7 +262,8 @@ memac_mdio_get_property(device_t dev, device_t child, const char *propname,
     void *propvalue, size_t size, device_property_type_t type)
 {
 
-	return (bus_generic_get_property(dev, child, propname, propvalue, size, type));
+	return (bus_generic_get_property(dev, child, propname, propvalue, size,
+	    type));
 }
 
 int
@@ -271,15 +273,14 @@ memac_mdio_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 	return (BUS_READ_IVAR(device_get_parent(dev), dev, index, result));
 }
 
-
 int
 memac_mdio_generic_attach(struct memac_mdio_softc_common *sc)
 {
 	int rid;
 
 	rid = 0;
-	sc->mem_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE | RF_SHAREABLE);
+	sc->mem_res = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->mem_res == NULL) {
 		device_printf(sc->dev, "%s: cannot allocate mem resource\n",
 		    __func__);

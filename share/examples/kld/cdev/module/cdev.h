@@ -72,10 +72,10 @@
 #ifndef __CDEV_H_
 #define __CDEV_H_
 
-d_open_t	mydev_open;
-d_close_t	mydev_close;
-d_ioctl_t	mydev_ioctl;
-d_read_t	mydev_read;
-d_write_t	mydev_write;
+d_open_t mydev_open;
+d_close_t mydev_close;
+d_ioctl_t mydev_ioctl;
+d_read_t mydev_read;
+d_write_t mydev_write;
 
-#endif 
+#endif

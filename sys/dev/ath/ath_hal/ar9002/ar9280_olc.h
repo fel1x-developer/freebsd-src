@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__ATH_AR9280_OLC_H__
-#define	__ATH_AR9280_OLC_H__
+#ifndef __ATH_AR9280_OLC_H__
+#define __ATH_AR9280_OLC_H__
 
 extern void ar9280olcInit(struct ath_hal *ah);
 
@@ -35,17 +35,16 @@ extern void ar9280olcGetPDADCs(struct ath_hal *ah, uint32_t initTxGain,
     int txPower, uint8_t *pPDADCValues);
 extern void ar9280olcGetTxGainIndex(struct ath_hal *ah,
     const struct ieee80211_channel *chan,
-    struct calDataPerFreqOpLoop *rawDatasetOpLoop,
-    uint8_t *calChans, uint16_t availPiers, uint8_t *pwr, uint8_t *pcdacIdx);
+    struct calDataPerFreqOpLoop *rawDatasetOpLoop, uint8_t *calChans,
+    uint16_t availPiers, uint8_t *pwr, uint8_t *pcdacIdx);
 extern void ar9280GetGainBoundariesAndPdadcs(struct ath_hal *ah,
-        const struct ieee80211_channel *chan, CAL_DATA_PER_FREQ *pRawDataSet,
-        uint8_t * bChans, uint16_t availPiers,
-        uint16_t tPdGainOverlap, int16_t *pMinCalPower,
-        uint16_t * pPdGainBoundaries, uint8_t * pPDADCValues,
-        uint16_t numXpdGains);
+    const struct ieee80211_channel *chan, CAL_DATA_PER_FREQ *pRawDataSet,
+    uint8_t *bChans, uint16_t availPiers, uint16_t tPdGainOverlap,
+    int16_t *pMinCalPower, uint16_t *pPdGainBoundaries, uint8_t *pPDADCValues,
+    uint16_t numXpdGains);
 extern HAL_BOOL ar9280SetPowerCalTable(struct ath_hal *ah,
-	struct ar5416eeprom *pEepData, const struct ieee80211_channel *chan,
-	int16_t *pTxPowerIndexOffset);
+    struct ar5416eeprom *pEepData, const struct ieee80211_channel *chan,
+    int16_t *pTxPowerIndexOffset);
 
 /* OLC calibration */
 extern void ar9280olcTemperatureCompensation(struct ath_hal *ah);

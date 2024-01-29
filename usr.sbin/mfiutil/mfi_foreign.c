@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -37,6 +38,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
 MFI_TABLE(top, foreign);
@@ -53,9 +55,9 @@ foreign_clear(__unused int ac, __unused char **av)
 		return (error);
 	}
 
-	printf(
-	    "Are you sure you wish to clear ALL foreign configurations"
-	    " on %s? [y/N] ", mfi_device);
+	printf("Are you sure you wish to clear ALL foreign configurations"
+	       " on %s? [y/N] ",
+	    mfi_device);
 
 	ch = getchar();
 	if (ch != 'y' && ch != 'Y') {
@@ -64,8 +66,8 @@ foreign_clear(__unused int ac, __unused char **av)
 		return (0);
 	}
 
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_CLEAR, NULL, 0, NULL,
-	    0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_CLEAR, NULL, 0, NULL, 0,
+		NULL) < 0) {
 		error = errno;
 		warn("Failed to clear foreign configuration");
 		close(fd);
@@ -91,16 +93,15 @@ foreign_scan(__unused int ac, __unused char **av)
 		return (error);
 	}
 
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info,
-	    sizeof(info), NULL, 0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info, sizeof(info),
+		NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to scan foreign configuration");
 		close(fd);
 		return (error);
 	}
 
-	printf("%s: Found %d foreign configurations\n", mfi_device,
-	       info.count);
+	printf("%s: Found %d foreign configurations\n", mfi_device, info.count);
 	close(fd);
 	return (0);
 }
@@ -116,7 +117,8 @@ foreign_show_cfg(int fd, uint32_t opcode, uint8_t cfgidx, int diagnostic)
 
 	bzero(mbox, sizeof(mbox));
 	mbox[0] = cfgidx;
-	if (mfi_config_read_opcode(fd, opcode, &config, mbox, sizeof(mbox)) < 0) {
+	if (mfi_config_read_opcode(fd, opcode, &config, mbox, sizeof(mbox)) <
+	    0) {
 		error = errno;
 		warn("Failed to get foreign config %d", error);
 		close(fd);
@@ -142,12 +144,11 @@ foreign_show_cfg(int fd, uint32_t opcode, uint8_t cfgidx, int diagnostic)
 		ld_list = (char *)(config->array);
 
 		printf("%s: %d arrays, %d volumes, %d spares\n", prefix,
-		       config->array_count, config->log_drv_count,
-		       config->spares_count);
-
+		    config->array_count, config->log_drv_count,
+		    config->spares_count);
 
 		for (i = 0; i < config->array_count; i++)
-			 ld_list += config->array_size;
+			ld_list += config->array_size;
 
 		for (i = 0; i < config->log_drv_count; i++) {
 			const char *level;
@@ -159,45 +160,53 @@ foreign_show_cfg(int fd, uint32_t opcode, uint8_t cfgidx, int diagnostic)
 			format_stripe(stripe, sizeof(stripe),
 			    ld->params.stripe_size);
 			/*
-			 * foreign configs don't seem to have a secondary raid level
-			 * but, we can use span depth here as if a LD spans multiple
-			 * arrays of disks (2 raid 1 sets for example), we will have an
-			 * indication based on the spam depth. swb
+			 * foreign configs don't seem to have a secondary raid
+			 * level but, we can use span depth here as if a LD
+			 * spans multiple arrays of disks (2 raid 1 sets for
+			 * example), we will have an indication based on the
+			 * spam depth. swb
 			 */
 			level = mfi_raid_level(ld->params.primary_raid_level,
 			    (ld->params.span_depth - 1));
 
-			humanize_number(size, sizeof(size), ld->span[0].num_blocks * 512,
-			    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+			humanize_number(size, sizeof(size),
+			    ld->span[0].num_blocks * 512, "", HN_AUTOSCALE,
+			    HN_B | HN_NOSPACE | HN_DECIMAL);
 
 			printf(" ID%d ", i);
-			printf("(%6s) %-8s |",
-				size, level);
-			printf("volume spans %d %s\n",	ld->params.span_depth,
-							(ld->params.span_depth > 1) ? "arrays" : "array");
+			printf("(%6s) %-8s |", size, level);
+			printf("volume spans %d %s\n", ld->params.span_depth,
+			    (ld->params.span_depth > 1) ? "arrays" : "array");
 			for (int j = 0; j < ld->params.span_depth; j++) {
 				char *ar_list;
 				struct mfi_array *ar;
 				uint16_t device_id;
 
-				printf("      array %u @ ", ld->span[j].array_ref);
-				humanize_number(size, sizeof(size), ld->span[j].num_blocks * 512,
-				    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+				printf("      array %u @ ",
+				    ld->span[j].array_ref);
+				humanize_number(size, sizeof(size),
+				    ld->span[j].num_blocks * 512, "",
+				    HN_AUTOSCALE,
+				    HN_B | HN_NOSPACE | HN_DECIMAL);
 
-				printf("(%6s)\n",size);
-				ar_list = (char *)config->array + (ld->span[j].array_ref * config->array_size);
+				printf("(%6s)\n", size);
+				ar_list = (char *)config->array +
+				    (ld->span[j].array_ref *
+					config->array_size);
 
 				ar = (struct mfi_array *)ar_list;
 				for (int k = 0; k < ar->num_drives; k++) {
 					device_id = ar->pd[k].ref.v.device_id;
 					if (device_id == 0xffff)
-						printf("        drive MISSING\n");
+						printf(
+						    "        drive MISSING\n");
 					else {
-						printf("        drive %u %s\n", device_id,
-						    mfi_pdstate(ar->pd[k].fw_state));
+						printf("        drive %u %s\n",
+						    device_id,
+						    mfi_pdstate(
+							ar->pd[k].fw_state));
 					}
 				}
-
 			}
 			ld_list += config->log_drv_size;
 		}
@@ -217,7 +226,7 @@ display_format(int ac, char **av, int diagnostic, mfi_dcmd_t display_cmd)
 
 	if (ac > 2) {
 		warnx("foreign display: extra arguments");
-                return (EINVAL);
+		return (EINVAL);
 	}
 
 	fd = mfi_open(mfi_device, O_RDONLY);
@@ -227,8 +236,8 @@ display_format(int ac, char **av, int diagnostic, mfi_dcmd_t display_cmd)
 		return (error);
 	}
 
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info,
-	    sizeof(info), NULL, 0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info, sizeof(info),
+		NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to scan foreign configuration");
 		close(fd);
@@ -243,9 +252,9 @@ display_format(int ac, char **av, int diagnostic, mfi_dcmd_t display_cmd)
 
 	if (ac == 1) {
 		for (i = 0; i < info.count; i++) {
-			error = foreign_show_cfg(fd,
-				display_cmd, i, diagnostic);
-			if(error != 0) {
+			error = foreign_show_cfg(fd, display_cmd, i,
+			    diagnostic);
+			if (error != 0) {
 				close(fd);
 				return (error);
 			}
@@ -253,8 +262,8 @@ display_format(int ac, char **av, int diagnostic, mfi_dcmd_t display_cmd)
 				printf("\n");
 		}
 	} else if (ac == 2) {
-		error = foreign_show_cfg(fd,
-			display_cmd, atoi(av[1]), diagnostic);
+		error = foreign_show_cfg(fd, display_cmd, atoi(av[1]),
+		    diagnostic);
 		if (error != 0) {
 			close(fd);
 			return (error);
@@ -268,14 +277,16 @@ display_format(int ac, char **av, int diagnostic, mfi_dcmd_t display_cmd)
 static int
 foreign_display(int ac, char **av)
 {
-	return(display_format(ac, av, 1/*diagnostic output*/, MFI_DCMD_CFG_FOREIGN_DISPLAY));
+	return (display_format(ac, av, 1 /*diagnostic output*/,
+	    MFI_DCMD_CFG_FOREIGN_DISPLAY));
 }
 MFI_COMMAND(foreign, diag, foreign_display);
 
 static int
 foreign_preview(int ac, char **av)
 {
-	return(display_format(ac, av, 1/*diagnostic output*/, MFI_DCMD_CFG_FOREIGN_PREVIEW));
+	return (display_format(ac, av, 1 /*diagnostic output*/,
+	    MFI_DCMD_CFG_FOREIGN_PREVIEW));
 }
 MFI_COMMAND(foreign, preview, foreign_preview);
 
@@ -289,7 +300,7 @@ foreign_import(int ac, char **av)
 
 	if (ac > 2) {
 		warnx("foreign preview: extra arguments");
-                return (EINVAL);
+		return (EINVAL);
 	}
 
 	fd = mfi_open(mfi_device, O_RDWR);
@@ -299,8 +310,8 @@ foreign_import(int ac, char **av)
 		return (error);
 	}
 
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info,
-	    sizeof(info), NULL, 0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_SCAN, &info, sizeof(info),
+		NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to scan foreign configuration");
 		close(fd);
@@ -316,7 +327,8 @@ foreign_import(int ac, char **av)
 	if (ac == 1) {
 		cfgidx = 0xff;
 		printf("Are you sure you wish to import ALL foreign "
-		       "configurations on %s? [y/N] ", mfi_device);
+		       "configurations on %s? [y/N] ",
+		    mfi_device);
 	} else {
 		/*
 		 * While this is docmmented for MegaCli this failed with
@@ -327,12 +339,13 @@ foreign_import(int ac, char **av)
 		cfgidx = atoi(av[1]);
 		if (cfgidx >= info.count) {
 			warnx("Invalid foreign config %d specified max is %d",
-			      cfgidx, info.count - 1);
+			    cfgidx, info.count - 1);
 			close(fd);
 			return (EINVAL);
 		}
 		printf("Are you sure you wish to import the foreign "
-		       "configuration %d on %s? [y/N] ", cfgidx, mfi_device);
+		       "configuration %d on %s? [y/N] ",
+		    cfgidx, mfi_device);
 	}
 
 	ch = getchar();
@@ -345,7 +358,7 @@ foreign_import(int ac, char **av)
 	bzero(mbox, sizeof(mbox));
 	mbox[0] = cfgidx;
 	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_FOREIGN_IMPORT, NULL, 0, mbox,
-	    sizeof(mbox), NULL) < 0) {
+		sizeof(mbox), NULL) < 0) {
 		error = errno;
 		warn("Failed to import foreign configuration");
 		close(fd);
@@ -353,11 +366,10 @@ foreign_import(int ac, char **av)
 	}
 
 	if (ac == 1)
-		printf("%s: All foreign configurations imported\n",
-		    mfi_device);
+		printf("%s: All foreign configurations imported\n", mfi_device);
 	else
-		printf("%s: Foreign configuration %d imported\n",
-		    mfi_device, cfgidx);
+		printf("%s: Foreign configuration %d imported\n", mfi_device,
+		    cfgidx);
 	close(fd);
 	return (0);
 }

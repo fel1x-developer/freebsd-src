@@ -27,7 +27,7 @@
  */
 
 #ifndef _LINUXKPI_ASM_SET_MEMORY_H_
-#define	_LINUXKPI_ASM_SET_MEMORY_H_
+#define _LINUXKPI_ASM_SET_MEMORY_H_
 
 #include <linux/page.h>
 
@@ -132,4 +132,4 @@ set_pages_array_uc(struct page **pages, int addrinarray)
 	return (0);
 }
 
-#endif	/* _LINUXKPI_ASM_SET_MEMORY_H_ */
+#endif /* _LINUXKPI_ASM_SET_MEMORY_H_ */

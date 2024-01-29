@@ -83,10 +83,10 @@ enum ice_sw_tunnel_type {
 	ICE_NON_TUN = 0,
 	ICE_SW_TUN_AND_NON_TUN,
 	ICE_SW_TUN_VXLAN_GPE,
-	ICE_SW_TUN_GENEVE,      /* GENEVE matches only non-VLAN pkts */
+	ICE_SW_TUN_GENEVE,	/* GENEVE matches only non-VLAN pkts */
 	ICE_SW_TUN_GENEVE_VLAN, /* GENEVE matches both VLAN and non-VLAN pkts */
 	ICE_SW_TUN_VXLAN,	/* VXLAN matches only non-VLAN pkts */
-	ICE_SW_TUN_VXLAN_VLAN,  /* VXLAN matches both VLAN and non-VLAN pkts */
+	ICE_SW_TUN_VXLAN_VLAN,	/* VXLAN matches both VLAN and non-VLAN pkts */
 	ICE_SW_TUN_NVGRE,
 	ICE_SW_TUN_UDP, /* This means all "UDP" tunnel types: VXLAN-GPE, VXLAN
 			 * and GENEVE
@@ -104,74 +104,74 @@ enum ice_sw_tunnel_type {
  * - S: Single
  */
 enum ice_prot_id {
-	ICE_PROT_ID_INVAL	= 0,
-	ICE_PROT_MAC_OF_OR_S	= 1,
-	ICE_PROT_MAC_O2		= 2,
-	ICE_PROT_MAC_IL		= 4,
-	ICE_PROT_MAC_IN_MAC	= 7,
-	ICE_PROT_ETYPE_OL	= 9,
-	ICE_PROT_ETYPE_IL	= 10,
-	ICE_PROT_PAY		= 15,
-	ICE_PROT_EVLAN_O	= 16,
-	ICE_PROT_VLAN_O		= 17,
-	ICE_PROT_VLAN_IF	= 18,
+	ICE_PROT_ID_INVAL = 0,
+	ICE_PROT_MAC_OF_OR_S = 1,
+	ICE_PROT_MAC_O2 = 2,
+	ICE_PROT_MAC_IL = 4,
+	ICE_PROT_MAC_IN_MAC = 7,
+	ICE_PROT_ETYPE_OL = 9,
+	ICE_PROT_ETYPE_IL = 10,
+	ICE_PROT_PAY = 15,
+	ICE_PROT_EVLAN_O = 16,
+	ICE_PROT_VLAN_O = 17,
+	ICE_PROT_VLAN_IF = 18,
 	ICE_PROT_MPLS_OL_MINUS_1 = 27,
-	ICE_PROT_MPLS_OL_OR_OS	= 28,
-	ICE_PROT_MPLS_IL	= 29,
-	ICE_PROT_IPV4_OF_OR_S	= 32,
-	ICE_PROT_IPV4_IL	= 33,
-	ICE_PROT_IPV4_IL_IL	= 34,
-	ICE_PROT_IPV6_OF_OR_S	= 40,
-	ICE_PROT_IPV6_IL	= 41,
-	ICE_PROT_IPV6_IL_IL	= 42,
+	ICE_PROT_MPLS_OL_OR_OS = 28,
+	ICE_PROT_MPLS_IL = 29,
+	ICE_PROT_IPV4_OF_OR_S = 32,
+	ICE_PROT_IPV4_IL = 33,
+	ICE_PROT_IPV4_IL_IL = 34,
+	ICE_PROT_IPV6_OF_OR_S = 40,
+	ICE_PROT_IPV6_IL = 41,
+	ICE_PROT_IPV6_IL_IL = 42,
 	ICE_PROT_IPV6_NEXT_PROTO = 43,
-	ICE_PROT_IPV6_FRAG	= 47,
-	ICE_PROT_TCP_IL		= 49,
-	ICE_PROT_UDP_OF		= 52,
-	ICE_PROT_UDP_IL_OR_S	= 53,
-	ICE_PROT_GRE_OF		= 64,
-	ICE_PROT_NSH_F		= 84,
-	ICE_PROT_ESP_F		= 88,
-	ICE_PROT_ESP_2		= 89,
-	ICE_PROT_SCTP_IL	= 96,
-	ICE_PROT_ICMP_IL	= 98,
-	ICE_PROT_ICMPV6_IL	= 100,
-	ICE_PROT_VRRP_F		= 101,
-	ICE_PROT_OSPF		= 102,
-	ICE_PROT_ATAOE_OF	= 114,
-	ICE_PROT_CTRL_OF	= 116,
-	ICE_PROT_LLDP_OF	= 117,
-	ICE_PROT_ARP_OF		= 118,
-	ICE_PROT_EAPOL_OF	= 120,
-	ICE_PROT_META_ID	= 255, /* when offset == metaddata */
-	ICE_PROT_INVALID	= 255  /* when offset == ICE_FV_OFFSET_INVAL */
+	ICE_PROT_IPV6_FRAG = 47,
+	ICE_PROT_TCP_IL = 49,
+	ICE_PROT_UDP_OF = 52,
+	ICE_PROT_UDP_IL_OR_S = 53,
+	ICE_PROT_GRE_OF = 64,
+	ICE_PROT_NSH_F = 84,
+	ICE_PROT_ESP_F = 88,
+	ICE_PROT_ESP_2 = 89,
+	ICE_PROT_SCTP_IL = 96,
+	ICE_PROT_ICMP_IL = 98,
+	ICE_PROT_ICMPV6_IL = 100,
+	ICE_PROT_VRRP_F = 101,
+	ICE_PROT_OSPF = 102,
+	ICE_PROT_ATAOE_OF = 114,
+	ICE_PROT_CTRL_OF = 116,
+	ICE_PROT_LLDP_OF = 117,
+	ICE_PROT_ARP_OF = 118,
+	ICE_PROT_EAPOL_OF = 120,
+	ICE_PROT_META_ID = 255, /* when offset == metaddata */
+	ICE_PROT_INVALID = 255	/* when offset == ICE_FV_OFFSET_INVAL */
 };
 
-#define ICE_VNI_OFFSET		12 /* offset of VNI from ICE_PROT_UDP_OF */
+#define ICE_VNI_OFFSET 12 /* offset of VNI from ICE_PROT_UDP_OF */
 
-#define ICE_NAN_OFFSET		511
-#define ICE_MAC_OFOS_HW		1
-#define ICE_MAC_IL_HW		4
-#define ICE_ETYPE_OL_HW		9
-#define ICE_ETYPE_IL_HW		10
-#define ICE_VLAN_OF_HW		16
-#define ICE_VLAN_OL_HW		17
-#define ICE_IPV4_OFOS_HW	32
-#define ICE_IPV4_IL_HW		33
-#define ICE_IPV6_OFOS_HW	40
-#define ICE_IPV6_IL_HW		41
-#define ICE_TCP_IL_HW		49
-#define ICE_UDP_ILOS_HW		53
-#define ICE_SCTP_IL_HW		96
-#define ICE_PPPOE_HW		103
-#define ICE_L2TPV3_HW		104
+#define ICE_NAN_OFFSET 511
+#define ICE_MAC_OFOS_HW 1
+#define ICE_MAC_IL_HW 4
+#define ICE_ETYPE_OL_HW 9
+#define ICE_ETYPE_IL_HW 10
+#define ICE_VLAN_OF_HW 16
+#define ICE_VLAN_OL_HW 17
+#define ICE_IPV4_OFOS_HW 32
+#define ICE_IPV4_IL_HW 33
+#define ICE_IPV6_OFOS_HW 40
+#define ICE_IPV6_IL_HW 41
+#define ICE_TCP_IL_HW 49
+#define ICE_UDP_ILOS_HW 53
+#define ICE_SCTP_IL_HW 96
+#define ICE_PPPOE_HW 103
+#define ICE_L2TPV3_HW 104
 
 /* ICE_UDP_OF is used to identify all 3 tunnel types
  * VXLAN, GENEVE and VXLAN_GPE. To differentiate further
  * need to use flags from the field vector
  */
-#define ICE_UDP_OF_HW	52 /* UDP Tunnels */
-#define ICE_GRE_OF_HW	64 /* NVGRE */
+#define ICE_UDP_OF_HW 52	/* UDP Tunnels */
+#define ICE_GRE_OF_HW 64	/* NVGRE */
 #define ICE_META_DATA_ID_HW 255 /* this is used for tunnel and VLAN type */
 
 #define ICE_MDID_SIZE 2
@@ -266,7 +266,7 @@ struct ice_l4_hdr {
 struct ice_udp_tnl_hdr {
 	__be16 field;
 	__be16 proto_type;
-	__be32 vni;	/* only use lower 24-bits */
+	__be32 vni; /* only use lower 24-bits */
 };
 
 struct ice_udp_gtp_hdr {
@@ -343,7 +343,7 @@ struct ice_prot_lkup_ext {
 };
 
 struct ice_pref_recipe_group {
-	u8 n_val_pairs;		/* Number of valid pairs */
+	u8 n_val_pairs; /* Number of valid pairs */
 	struct ice_fv_word pairs[ICE_NUM_WORDS_RECIPE];
 	u16 mask[ICE_NUM_WORDS_RECIPE];
 };

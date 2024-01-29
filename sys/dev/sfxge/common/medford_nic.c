@@ -29,21 +29,20 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_MEDFORD
 
-static	__checkReturn	efx_rc_t
-medford_nic_get_required_pcie_bandwidth(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *bandwidth_mbpsp)
+static __checkReturn efx_rc_t
+medford_nic_get_required_pcie_bandwidth(__in efx_nic_t *enp,
+    __out uint32_t *bandwidth_mbpsp)
 {
 	uint32_t bandwidth;
 	efx_rc_t rc;
 
-	if ((rc = ef10_nic_get_port_mode_bandwidth(enp,
-						    &bandwidth)) != 0)
+	if ((rc = ef10_nic_get_port_mode_bandwidth(enp, &bandwidth)) != 0)
 		goto fail1;
 
 	*bandwidth_mbpsp = bandwidth;
@@ -56,9 +55,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-medford_board_cfg(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+medford_board_cfg(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t sysclk, dpcpu_clk;
@@ -118,9 +116,11 @@ medford_board_cfg(
 	 * The Medford timer quantum is 1536 dpcpu_clk cycles, documented for
 	 * the EV_TMR_VAL field of EV_TIMER_TBL. Scale for MHz and ns units.
 	 */
-	encp->enc_evq_timer_quantum_ns = 1536000UL / dpcpu_clk; /* 1536 cycles */
-	encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns <<
-		    FRF_CZ_TC_TIMER_VAL_WIDTH) / 1000;
+	encp->enc_evq_timer_quantum_ns = 1536000UL /
+	    dpcpu_clk; /* 1536 cycles */
+	encp->enc_evq_timer_max_us = (encp->enc_evq_timer_quantum_ns
+					 << FRF_CZ_TC_TIMER_VAL_WIDTH) /
+	    1000;
 
 	/* Alignment for receive packet DMA buffers */
 	encp->enc_rx_buf_align_start = 1;
@@ -173,4 +173,4 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */

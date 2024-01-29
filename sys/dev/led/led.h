@@ -10,12 +10,12 @@
 #ifndef _DEV_LED_H
 #define _DEV_LED_H
 
-typedef	void led_t(void *, int);
+typedef void led_t(void *, int);
 
 struct cdev *led_create_state(led_t *, void *, char const *, int);
 struct cdev *led_create(led_t *, void *, char const *);
-void	led_destroy(struct cdev *);
+void led_destroy(struct cdev *);
 
-int	led_set(char const *, char const *);
+int led_set(char const *, char const *);
 
 #endif

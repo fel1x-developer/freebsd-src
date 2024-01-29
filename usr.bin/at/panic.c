@@ -37,9 +37,9 @@
 
 /* Local headers */
 
+#include "at.h"
 #include "panic.h"
 #include "privs.h"
-#include "at.h"
 
 /* External variables */
 
@@ -48,8 +48,8 @@
 void
 panic(const char *a)
 {
-/* Something fatal has happened, print error message and exit.
- */
+	/* Something fatal has happened, print error message and exit.
+	 */
 	if (fcreated) {
 		PRIV_START
 		unlink(atfile);
@@ -62,8 +62,8 @@ panic(const char *a)
 void
 perr(const char *a)
 {
-/* Some operating system error; print error message and exit.
- */
+	/* Some operating system error; print error message and exit.
+	 */
 	int serrno = errno;
 
 	if (fcreated) {
@@ -80,14 +80,15 @@ void
 usage(void)
 {
 	/* Print usage and exit. */
-    fprintf(stderr, "usage: at [-q x] [-f file] [-m] time\n"
-		    "       at -c job [job ...]\n"
-		    "       at [-f file] -t [[CC]YY]MMDDhhmm[.SS]\n"
-		    "       at -r job [job ...]\n"
-		    "       at -l -q queuename\n"
-		    "       at -l [job ...]\n"
-		    "       atq [-q x] [-v]\n"
-		    "       atrm job [job ...]\n"
-		    "       batch [-f file] [-m]\n");
-    exit(EXIT_FAILURE);
+	fprintf(stderr,
+	    "usage: at [-q x] [-f file] [-m] time\n"
+	    "       at -c job [job ...]\n"
+	    "       at [-f file] -t [[CC]YY]MMDDhhmm[.SS]\n"
+	    "       at -r job [job ...]\n"
+	    "       at -l -q queuename\n"
+	    "       at -l [job ...]\n"
+	    "       atq [-q x] [-v]\n"
+	    "       atrm job [job ...]\n"
+	    "       batch [-f file] [-m]\n");
+	exit(EXIT_FAILURE);
 }

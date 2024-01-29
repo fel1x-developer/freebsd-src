@@ -26,18 +26,17 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #include "mech_switch.h"
 #include "name.h"
 
 OM_uint32
-gss_release_name(OM_uint32 *minor_status,
-    gss_name_t *input_name)
+gss_release_name(OM_uint32 *minor_status, gss_name_t *input_name)
 {
-	struct _gss_name *name = (struct _gss_name *) *input_name;
+	struct _gss_name *name = (struct _gss_name *)*input_name;
 
 	*minor_status = 0;
 	if (name) {

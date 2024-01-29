@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 
 #include "bootstrap.h"
@@ -47,7 +48,7 @@ ofw_getdev(void **vdev, const char *devspec, const char **path)
 	 */
 	if (devspec == NULL || strpbrk(devspec, ":@") == NULL) {
 		rv = devparse(dev, getenv("currdev"), NULL);
-		if (rv == 0  && path != NULL)
+		if (rv == 0 && path != NULL)
 			*path = devspec;
 		return (rv);
 	}
@@ -62,7 +63,8 @@ ofw_getdev(void **vdev, const char *devspec, const char **path)
  * Search the OFW (path) for a node that's of (want_type).
  */
 phandle_t
-ofw_path_to_handle(const char *ofwpath, const char *want_type, const char **path)
+ofw_path_to_handle(const char *ofwpath, const char *want_type,
+    const char **path)
 {
 	const char *p, *s;
 	char name[256];
@@ -91,8 +93,8 @@ ofw_path_to_handle(const char *ofwpath, const char *want_type, const char **path
 }
 
 int
-ofw_common_parsedev(struct devdesc **dev, const char *devspec, const char **path,
-    const char *ofwtype)
+ofw_common_parsedev(struct devdesc **dev, const char *devspec,
+    const char **path, const char *ofwtype)
 {
 	const char *rem_path;
 	struct ofw_devdesc *idev;
@@ -104,8 +106,8 @@ ofw_common_parsedev(struct devdesc **dev, const char *devspec, const char **path
 		printf("ofw_parsedev: malloc failed\n");
 		return ENOMEM;
 	};
-	strlcpy(idev->d_path, devspec, min(rem_path - devspec + 1,
-		sizeof(idev->d_path)));
+	strlcpy(idev->d_path, devspec,
+	    min(rem_path - devspec + 1, sizeof(idev->d_path)));
 	*dev = &idev->dd;
 	if (path != NULL)
 		*path = rem_path;

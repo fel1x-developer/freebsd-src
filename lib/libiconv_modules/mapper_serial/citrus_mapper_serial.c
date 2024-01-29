@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mapper_serial.c,v 1.2 2003/07/12 15:39:20 tshiozak Exp $	*/
+/*	$NetBSD: citrus_mapper_serial.c,v 1.2 2003/07/12 15:39:20 tshiozak Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -38,47 +39,45 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_region.h"
-#include "citrus_memstream.h"
-#include "citrus_mmap.h"
 #include "citrus_hash.h"
 #include "citrus_mapper.h"
 #include "citrus_mapper_serial.h"
+#include "citrus_memstream.h"
+#include "citrus_mmap.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
 /* ---------------------------------------------------------------------- */
 
 _CITRUS_MAPPER_DECLS(mapper_serial);
 _CITRUS_MAPPER_DEF_OPS(mapper_serial);
 
-#define _citrus_mapper_parallel_mapper_init		\
-	_citrus_mapper_serial_mapper_init
-#define _citrus_mapper_parallel_mapper_uninit		\
+#define _citrus_mapper_parallel_mapper_init _citrus_mapper_serial_mapper_init
+#define _citrus_mapper_parallel_mapper_uninit \
 	_citrus_mapper_serial_mapper_uninit
-#define _citrus_mapper_parallel_mapper_init_state	\
+#define _citrus_mapper_parallel_mapper_init_state \
 	_citrus_mapper_serial_mapper_init_state
-static int	_citrus_mapper_parallel_mapper_convert(
-		    struct _citrus_mapper * __restrict, _index_t * __restrict,
-		    _index_t, void * __restrict);
+static int
+_citrus_mapper_parallel_mapper_convert(struct _citrus_mapper *__restrict,
+    _index_t *__restrict, _index_t, void *__restrict);
 _CITRUS_MAPPER_DEF_OPS(mapper_parallel);
 #undef _citrus_mapper_parallel_mapper_init
 #undef _citrus_mapper_parallel_mapper_uninit
 #undef _citrus_mapper_parallel_mapper_init_state
 
-
 /* ---------------------------------------------------------------------- */
 
 struct maplink {
-	STAILQ_ENTRY(maplink)	 ml_entry;
-	struct _mapper		*ml_mapper;
+	STAILQ_ENTRY(maplink) ml_entry;
+	struct _mapper *ml_mapper;
 };
 STAILQ_HEAD(maplist, maplink);
 
 struct _citrus_mapper_serial {
-	struct maplist		 sr_mappers;
+	struct maplist sr_mappers;
 };
 
 int
@@ -133,7 +132,7 @@ parse_var(struct _citrus_mapper_area *__restrict ma,
 		snprintf(mapname, sizeof(mapname), "%.*s",
 		    (int)_region_size(&r), (char *)_region_head(&r));
 		/* remove trailing white spaces */
-		mapname[_bcs_skip_nonws(mapname)-mapname] = '\0';
+		mapname[_bcs_skip_nonws(mapname) - mapname] = '\0';
 		/* create a new mapper record */
 		ml = malloc(sizeof(*ml));
 		if (ml == NULL)
@@ -157,10 +156,11 @@ parse_var(struct _citrus_mapper_area *__restrict ma,
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_serial_mapper_init(struct _citrus_mapper_area *__restrict ma __unused,
-    struct _citrus_mapper * __restrict cm, const char * __restrict dir __unused,
-    const void * __restrict var, size_t lenvar,
-    struct _citrus_mapper_traits * __restrict mt, size_t lenmt)
+_citrus_mapper_serial_mapper_init(
+    struct _citrus_mapper_area *__restrict ma __unused,
+    struct _citrus_mapper *__restrict cm, const char *__restrict dir __unused,
+    const void *__restrict var, size_t lenvar,
+    struct _citrus_mapper_traits *__restrict mt, size_t lenmt)
 {
 	struct _citrus_mapper_serial *sr;
 	struct _memstream ms;
@@ -181,8 +181,8 @@ _citrus_mapper_serial_mapper_init(struct _citrus_mapper_area *__restrict ma __un
 		return (EINVAL);
 	}
 	cm->cm_closure = sr;
-	mt->mt_src_max = mt->mt_dst_max = 1;	/* 1:1 converter */
-	mt->mt_state_size = 0;			/* stateless */
+	mt->mt_src_max = mt->mt_dst_max = 1; /* 1:1 converter */
+	mt->mt_state_size = 0;		     /* stateless */
 
 	return (0);
 }
@@ -200,15 +200,15 @@ _citrus_mapper_serial_mapper_uninit(struct _citrus_mapper *cm)
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_serial_mapper_convert(struct _citrus_mapper * __restrict cm,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps __unused)
+_citrus_mapper_serial_mapper_convert(struct _citrus_mapper *__restrict cm,
+    _index_t *__restrict dst, _index_t src, void *__restrict ps __unused)
 {
 	struct _citrus_mapper_serial *sr;
 	struct maplink *ml;
 	int ret;
 
 	sr = cm->cm_closure;
-	STAILQ_FOREACH(ml, &sr->sr_mappers, ml_entry) {
+	STAILQ_FOREACH (ml, &sr->sr_mappers, ml_entry) {
 		ret = _mapper_convert(ml->ml_mapper, &src, src, NULL);
 		if (ret != _MAPPER_CONVERT_SUCCESS)
 			return (ret);
@@ -219,8 +219,8 @@ _citrus_mapper_serial_mapper_convert(struct _citrus_mapper * __restrict cm,
 
 static int
 /*ARGSUSED*/
-_citrus_mapper_parallel_mapper_convert(struct _citrus_mapper * __restrict cm,
-    _index_t * __restrict dst, _index_t src, void * __restrict ps __unused)
+_citrus_mapper_parallel_mapper_convert(struct _citrus_mapper *__restrict cm,
+    _index_t *__restrict dst, _index_t src, void *__restrict ps __unused)
 {
 	struct _citrus_mapper_serial *sr;
 	struct maplink *ml;
@@ -228,7 +228,7 @@ _citrus_mapper_parallel_mapper_convert(struct _citrus_mapper * __restrict cm,
 	int ret;
 
 	sr = cm->cm_closure;
-	STAILQ_FOREACH(ml, &sr->sr_mappers, ml_entry) {
+	STAILQ_FOREACH (ml, &sr->sr_mappers, ml_entry) {
 		ret = _mapper_convert(ml->ml_mapper, &tmp, src, NULL);
 		if (ret == _MAPPER_CONVERT_SUCCESS) {
 			*dst = tmp;
@@ -243,5 +243,4 @@ static void
 /*ARGSUSED*/
 _citrus_mapper_serial_mapper_init_state(void)
 {
-
 }

@@ -34,7 +34,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <signal.h>
@@ -47,10 +46,10 @@
  * in a serialized fashion against a given server.  A timer signal is used
  * to interrupt the loop and assess the cost.
  */
-#define	SECONDS	60
-#define	PORT	6060
+#define SECONDS 60
+#define PORT 6060
 
-static int	timer_fired;
+static int timer_fired;
 
 /*
  * Signal timer, which both interrupts the in-progress socket operation, and
@@ -72,8 +71,7 @@ alarm_handler(__unused int signum)
 static int
 try_connect(struct sockaddr_in *sin)
 {
-	struct 
-	fd_set read_set;
+	struct fd_set read_set;
 	int i, s;
 
 	s = socket(PF_INET, SOCK_STREAM, 0);
@@ -100,7 +98,6 @@ try_connect(struct sockaddr_in *sin)
 	close(s);
 	return (0);
 }
-
 
 int
 main(int argc, char *argv[])

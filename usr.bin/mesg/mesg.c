@@ -89,7 +89,7 @@ main(int argc, char *argv[])
 	}
 
 	usage();
-	return(0);
+	return (0);
 }
 
 static void

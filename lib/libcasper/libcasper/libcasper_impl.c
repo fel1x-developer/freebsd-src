@@ -68,4 +68,3 @@ fd_fix_environment(int *fdp)
 
 	close(nullfd);
 }
-

@@ -31,9 +31,9 @@
  */
 
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/nv.h>
 #include <sys/procdesc.h>
+#include <sys/socket.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -45,24 +45,24 @@
 #include "libcasper.h"
 #include "libcasper_impl.h"
 
-#define	CASPER_VALID_FLAGS	(CASPER_NO_UNIQ)
+#define CASPER_VALID_FLAGS (CASPER_NO_UNIQ)
 
 /*
  * Structure describing communication channel between two separated processes.
  */
-#define	CAP_CHANNEL_MAGIC	0xcac8a31
+#define CAP_CHANNEL_MAGIC 0xcac8a31
 struct cap_channel {
 	/*
 	 * Magic value helps to ensure that a pointer to the right structure is
 	 * passed to our functions.
 	 */
-	int	cch_magic;
+	int cch_magic;
 	/* Socket descriptor for IPC. */
-	int	cch_sock;
+	int cch_sock;
 	/* Process descriptor for casper. */
-	int	cch_pd;
+	int cch_pd;
 	/* Flags to communicate with casper. */
-	int	cch_flags;
+	int cch_flags;
 };
 
 static bool
@@ -90,8 +90,7 @@ cap_init(void)
 	bool ret;
 	cap_channel_t *chan;
 
-	if (socketpair(PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0,
-	    sock) == -1) {
+	if (socketpair(PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0, sock) == -1) {
 		return (NULL);
 	}
 
@@ -290,8 +289,7 @@ cap_recv_nvlist(const cap_channel_t *chan)
 	assert(chan != NULL);
 	assert(chan->cch_magic == CAP_CHANNEL_MAGIC);
 
-	return (nvlist_recv(chan->cch_sock,
-	    channel_nvlist_flags(chan)));
+	return (nvlist_recv(chan->cch_sock, channel_nvlist_flags(chan)));
 }
 
 nvlist_t *
@@ -301,8 +299,7 @@ cap_xfer_nvlist(const cap_channel_t *chan, nvlist_t *nvl)
 	assert(chan != NULL);
 	assert(chan->cch_magic == CAP_CHANNEL_MAGIC);
 
-	return (nvlist_xfer(chan->cch_sock, nvl,
-	    channel_nvlist_flags(chan)));
+	return (nvlist_xfer(chan->cch_sock, nvl, channel_nvlist_flags(chan)));
 }
 
 cap_channel_t *
@@ -344,7 +341,7 @@ fail:
 }
 
 int
-cap_service_limit(const cap_channel_t *chan, const char * const *names,
+cap_service_limit(const cap_channel_t *chan, const char *const *names,
     size_t nnames)
 {
 	nvlist_t *limits;

@@ -35,8 +35,8 @@
  *	Physical memory system definitions
  */
 
-#ifndef	_VM_PHYS_H_
-#define	_VM_PHYS_H_
+#ifndef _VM_PHYS_H_
+#define _VM_PHYS_H_
 
 #ifdef _KERNEL
 
@@ -97,8 +97,7 @@ vm_phys_domain(vm_paddr_t pa)
 	if (vm_ndomains == 1)
 		return (0);
 	for (i = 0; mem_affinity[i].end != 0; i++)
-		if (mem_affinity[i].start <= pa &&
-		    mem_affinity[i].end >= pa)
+		if (mem_affinity[i].start <= pa && mem_affinity[i].end >= pa)
 			return (mem_affinity[i].domain);
 	return (-1);
 #else
@@ -148,5 +147,5 @@ vm_phys_paddr_to_seg(vm_paddr_t pa)
 	return (NULL);
 }
 
-#endif	/* _KERNEL */
-#endif	/* !_VM_PHYS_H_ */
+#endif /* _KERNEL */
+#endif /* !_VM_PHYS_H_ */

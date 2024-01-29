@@ -27,10 +27,12 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <netinet/in.h>
+
+#include <resolv.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <resolv.h>
 
 #include "dns_utils.h"
 
@@ -45,8 +47,8 @@ srv_priority_cmp(const void *a, const void *b)
 	const struct dns_srvinfo *da, *db;
 	unsigned int r, l;
 
-	da = *(struct dns_srvinfo * const *)a;
-	db = *(struct dns_srvinfo * const *)b;
+	da = *(struct dns_srvinfo *const *)a;
+	db = *(struct dns_srvinfo *const *)b;
 
 	l = da->priority;
 	r = db->priority;
@@ -61,8 +63,8 @@ srv_final_cmp(const void *a, const void *b)
 	unsigned int r, l, wr, wl;
 	int res;
 
-	da = *(struct dns_srvinfo * const *)a;
-	db = *(struct dns_srvinfo * const *)b;
+	da = *(struct dns_srvinfo *const *)a;
+	db = *(struct dns_srvinfo *const *)b;
 
 	l = da->priority;
 	r = db->priority;
@@ -96,8 +98,8 @@ compute_weight(struct dns_srvinfo **d, int first, int last)
 
 	for (i = 0; i <= last; i++) {
 		for (;;) {
-			chosen[i] = arc4random_uniform(d[i]->weight * 100 /
-			    totalweight);
+			chosen[i] = arc4random_uniform(
+			    d[i]->weight * 100 / totalweight);
 			for (j = 0; j < i; j++) {
 				if (chosen[i] == chosen[j])
 					break;
@@ -132,9 +134,9 @@ dns_getsrvinfo(const char *zone)
 	end = q.buf + len;
 	p = q.buf + sizeof(HEADER);
 
-	while(qdcount > 0 && p < end) {
+	while (qdcount > 0 && p < end) {
 		qdcount--;
-		if((len = dn_expand(q.buf, end, p, host, MAXHOSTNAMELEN)) < 0)
+		if ((len = dn_expand(q.buf, end, p, host, MAXHOSTNAMELEN)) < 0)
 			return (NULL);
 		p += len + NS_QFIXEDSZ;
 	}

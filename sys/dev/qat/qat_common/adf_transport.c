@@ -1,21 +1,17 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <linux/delay.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
+#include "adf_cfg.h"
+#include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
+#include "adf_transport_access_macros.h"
+#include "adf_transport_internal.h"
 #include "icp_qat_fw.h"
 #include "icp_qat_fw_init_admin.h"
-#include "adf_cfg_strings.h"
-#include "adf_transport_access_macros.h"
-#include "adf_transport_internal.h"
-#include <linux/delay.h>
-#include "adf_accel_devices.h"
-#include "adf_transport_internal.h"
-#include "adf_transport_access_macros.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define QAT_RING_ALIGNMENT 64
 
@@ -81,13 +77,10 @@ adf_enable_ring_irq(struct adf_etr_bank_data *bank, u32 ring)
 	mtx_lock(&bank->lock);
 	bank->irq_mask |= (1 << ring);
 	mtx_unlock(&bank->lock);
-	csr_ops->write_csr_int_col_en(bank->csr_addr,
-				      bank->bank_number,
-				      bank->irq_mask);
-	csr_ops->write_csr_int_col_ctl(bank->csr_addr,
-				       bank->bank_number,
-				       bank->irq_coalesc_timer |
-					   enable_int_col_mask);
+	csr_ops->write_csr_int_col_en(bank->csr_addr, bank->bank_number,
+	    bank->irq_mask);
+	csr_ops->write_csr_int_col_ctl(bank->csr_addr, bank->bank_number,
+	    bank->irq_coalesc_timer | enable_int_col_mask);
 }
 
 static void
@@ -98,9 +91,8 @@ adf_disable_ring_irq(struct adf_etr_bank_data *bank, u32 ring)
 	mtx_lock(&bank->lock);
 	bank->irq_mask &= ~(1 << ring);
 	mtx_unlock(&bank->lock);
-	csr_ops->write_csr_int_col_en(bank->csr_addr,
-				      bank->bank_number,
-				      bank->irq_mask);
+	csr_ops->write_csr_int_col_en(bank->csr_addr, bank->bank_number,
+	    bank->irq_mask);
 }
 
 int
@@ -116,17 +108,14 @@ adf_send_message(struct adf_etr_ring_data *ring, u32 *msg)
 
 	msg_size = ADF_MSG_SIZE_TO_BYTES(ring->msg_size);
 	mtx_lock(&ring->lock);
-	memcpy((void *)((uintptr_t)ring->base_addr + ring->tail),
-	       msg,
-	       msg_size);
+	memcpy((void *)((uintptr_t)ring->base_addr + ring->tail), msg,
+	    msg_size);
 
 	ring->tail = adf_modulo(ring->tail + msg_size,
-				ADF_RING_SIZE_MODULO(ring->ring_size));
+	    ADF_RING_SIZE_MODULO(ring->ring_size));
 
 	csr_ops->write_csr_ring_tail(ring->bank->csr_addr,
-				     ring->bank->bank_number,
-				     ring->ring_number,
-				     ring->tail);
+	    ring->bank->bank_number, ring->ring_number, ring->tail);
 	ring->csr_tail_offset = ring->tail;
 	mtx_unlock(&ring->lock);
 	return 0;
@@ -146,18 +135,15 @@ adf_handle_response(struct adf_etr_ring_data *ring, u32 quota)
 		ring->callback((u32 *)msg);
 		atomic_dec(ring->inflights);
 		*msg = ADF_RING_EMPTY_SIG;
-		ring->head =
-		    adf_modulo(ring->head +
-				   ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
-			       ADF_RING_SIZE_MODULO(ring->ring_size));
+		ring->head = adf_modulo(ring->head +
+			ADF_MSG_SIZE_TO_BYTES(ring->msg_size),
+		    ADF_RING_SIZE_MODULO(ring->ring_size));
 		msg_counter++;
 		msg = (u32 *)((uintptr_t)ring->base_addr + ring->head);
 	}
 	if (msg_counter > 0)
 		csr_ops->write_csr_ring_head(ring->bank->csr_addr,
-					     ring->bank->bank_number,
-					     ring->ring_number,
-					     ring->head);
+		    ring->bank->bank_number, ring->ring_number, ring->head);
 	return msg_counter;
 }
 
@@ -190,8 +176,8 @@ adf_poll_bank(u32 accel_id, u32 bank_num, u32 quota)
 	mtx_lock(&bank->lock);
 
 	/* Read the ring status CSR to determine which rings are empty. */
-	rings_not_empty =
-	    csr_ops->read_csr_e_stat(bank->csr_addr, bank->bank_number);
+	rings_not_empty = csr_ops->read_csr_e_stat(bank->csr_addr,
+	    bank->bank_number);
 	/* Complement to find which rings have data to be processed. */
 	rings_not_empty = (~rings_not_empty) & bank->ring_mask;
 
@@ -287,9 +273,7 @@ adf_configure_tx_ring(struct adf_etr_ring_data *ring)
 	u32 ring_config = BUILD_RING_CONFIG(ring->ring_size);
 
 	csr_ops->write_csr_ring_config(ring->bank->csr_addr,
-				       ring->bank->bank_number,
-				       ring->ring_number,
-				       ring_config);
+	    ring->bank->bank_number, ring->ring_number, ring_config);
 }
 
 static void
@@ -297,13 +281,10 @@ adf_configure_rx_ring(struct adf_etr_ring_data *ring)
 {
 	struct adf_hw_csr_ops *csr_ops = GET_CSR_OPS(ring->bank->accel_dev);
 	u32 ring_config = BUILD_RESP_RING_CONFIG(ring->ring_size,
-						 ADF_RING_NEAR_WATERMARK_512,
-						 ADF_RING_NEAR_WATERMARK_0);
+	    ADF_RING_NEAR_WATERMARK_512, ADF_RING_NEAR_WATERMARK_0);
 
 	csr_ops->write_csr_ring_config(ring->bank->csr_addr,
-				       ring->bank->bank_number,
-				       ring->ring_number,
-				       ring_config);
+	    ring->bank->bank_number, ring->ring_number, ring_config);
 }
 
 static int
@@ -319,12 +300,9 @@ adf_init_ring(struct adf_etr_ring_data *ring)
 	ring_size_bytes = ADF_RING_SIZE_BYTES_MIN(ring_size_bytes);
 	int ret;
 
-	ret = bus_dma_mem_create(&ring->dma_mem,
-				 accel_dev->dma_tag,
-				 ring_size_bytes,
-				 BUS_SPACE_MAXADDR,
-				 ring_size_bytes,
-				 M_WAITOK | M_ZERO);
+	ret = bus_dma_mem_create(&ring->dma_mem, accel_dev->dma_tag,
+	    ring_size_bytes, BUS_SPACE_MAXADDR, ring_size_bytes,
+	    M_WAITOK | M_ZERO);
 	if (ret)
 		return ret;
 	ring->base_addr = ring->dma_mem.dma_vaddr;
@@ -344,12 +322,10 @@ adf_init_ring(struct adf_etr_ring_data *ring)
 	else
 		adf_configure_rx_ring(ring);
 
-	ring_base =
-	    csr_ops->build_csr_ring_base_addr(ring->dma_addr, ring->ring_size);
+	ring_base = csr_ops->build_csr_ring_base_addr(ring->dma_addr,
+	    ring->ring_size);
 	csr_ops->write_csr_ring_base(ring->bank->csr_addr,
-				     ring->bank->bank_number,
-				     ring->ring_number,
-				     ring_base);
+	    ring->bank->bank_number, ring->ring_number, ring_base);
 	mtx_init(&ring->lock, "adf bank", NULL, MTX_DEF);
 	return 0;
 }
@@ -368,15 +344,10 @@ adf_cleanup_ring(struct adf_etr_ring_data *ring)
 }
 
 int
-adf_create_ring(struct adf_accel_dev *accel_dev,
-		const char *section,
-		u32 bank_num,
-		u32 num_msgs,
-		u32 msg_size,
-		const char *ring_name,
-		adf_callback_fn callback,
-		int poll_mode,
-		struct adf_etr_ring_data **ring_ptr)
+adf_create_ring(struct adf_accel_dev *accel_dev, const char *section,
+    u32 bank_num, u32 num_msgs, u32 msg_size, const char *ring_name,
+    adf_callback_fn callback, int poll_mode,
+    struct adf_etr_ring_data **ring_ptr)
 {
 	struct adf_etr_data *transport_data = accel_dev->transport;
 	struct adf_etr_bank_data *bank;
@@ -395,16 +366,14 @@ adf_create_ring(struct adf_accel_dev *accel_dev,
 		return EFAULT;
 	}
 	if (ADF_MAX_INFLIGHTS(adf_verify_ring_size(msg_size, num_msgs),
-			      ADF_BYTES_TO_MSG_SIZE(msg_size)) < 2) {
+		ADF_BYTES_TO_MSG_SIZE(msg_size)) < 2) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid ring size for given msg size\n");
+		    "Invalid ring size for given msg size\n");
 		return EFAULT;
 	}
 	if (adf_cfg_get_param_value(accel_dev, section, ring_name, val)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Section %s, no such entry : %s\n",
-			      section,
-			      ring_name);
+		    "Section %s, no such entry : %s\n", section, ring_name);
 		return EFAULT;
 	}
 	if (compat_strtouint(val, 10, &ring_num)) {
@@ -419,9 +388,7 @@ adf_create_ring(struct adf_accel_dev *accel_dev,
 	bank = &transport_data->banks[bank_num];
 	if (adf_reserve_ring(bank, ring_num)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Ring %d, %s already exists.\n",
-			      ring_num,
-			      ring_name);
+		    "Ring %d, %s already exists.\n", ring_num, ring_name);
 		return EFAULT;
 	}
 	ring = &bank->rings[ring_num];
@@ -430,8 +397,8 @@ adf_create_ring(struct adf_accel_dev *accel_dev,
 	ring->callback = callback;
 	ring->msg_size = ADF_BYTES_TO_MSG_SIZE(msg_size);
 	ring->ring_size = adf_verify_ring_size(msg_size, num_msgs);
-	ring->max_inflights =
-	    ADF_MAX_INFLIGHTS(ring->ring_size, ring->msg_size);
+	ring->max_inflights = ADF_MAX_INFLIGHTS(ring->ring_size,
+	    ring->msg_size);
 	ring->head = 0;
 	ring->tail = 0;
 	ring->csr_tail_offset = 0;
@@ -444,7 +411,7 @@ adf_create_ring(struct adf_accel_dev *accel_dev,
 
 	if (adf_ring_debugfs_add(ring, ring_name)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Couldn't add ring debugfs entry\n");
+		    "Couldn't add ring debugfs entry\n");
 		ret = EFAULT;
 		goto err;
 	}
@@ -471,14 +438,10 @@ adf_remove_ring(struct adf_etr_ring_data *ring)
 	adf_disable_ring_irq(bank, ring->ring_number);
 
 	/* Clear PCI config space */
-	csr_ops->write_csr_ring_config(bank->csr_addr,
-				       bank->bank_number,
-				       ring->ring_number,
-				       0);
-	csr_ops->write_csr_ring_base(bank->csr_addr,
-				     bank->bank_number,
-				     ring->ring_number,
-				     0);
+	csr_ops->write_csr_ring_config(bank->csr_addr, bank->bank_number,
+	    ring->ring_number, 0);
+	csr_ops->write_csr_ring_base(bank->csr_addr, bank->bank_number,
+	    ring->ring_number, 0);
 	adf_ring_debugfs_rm(ring);
 	adf_unreserve_ring(bank, ring->ring_number);
 	/* Disable HW arbitration for the given ring */
@@ -495,8 +458,8 @@ adf_ring_response_handler(struct adf_etr_bank_data *bank)
 	u8 num_rings_per_bank = hw_data->num_rings_per_bank;
 	u32 empty_rings, i;
 
-	empty_rings =
-	    csr_ops->read_csr_e_stat(bank->csr_addr, bank->bank_number);
+	empty_rings = csr_ops->read_csr_e_stat(bank->csr_addr,
+	    bank->bank_number);
 	empty_rings = ~empty_rings & bank->irq_mask;
 
 	for (i = 0; i < num_rings_per_bank; ++i) {
@@ -513,17 +476,13 @@ adf_response_handler(uintptr_t bank_addr)
 
 	/* Handle all the responses and re-enable IRQs */
 	adf_ring_response_handler(bank);
-	csr_ops->write_csr_int_flag_and_col(bank->csr_addr,
-					    bank->bank_number,
-					    bank->irq_mask);
+	csr_ops->write_csr_int_flag_and_col(bank->csr_addr, bank->bank_number,
+	    bank->irq_mask);
 }
 
 static inline int
-adf_get_cfg_int(struct adf_accel_dev *accel_dev,
-		const char *section,
-		const char *format,
-		u32 key,
-		u32 *value)
+adf_get_cfg_int(struct adf_accel_dev *accel_dev, const char *section,
+    const char *format, u32 key, u32 *value)
 {
 	char key_buf[ADF_CFG_MAX_KEY_LEN_IN_BYTES];
 	char val_buf[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
@@ -539,24 +498,20 @@ adf_get_cfg_int(struct adf_accel_dev *accel_dev,
 }
 
 static void
-adf_get_coalesc_timer(struct adf_etr_bank_data *bank,
-		      const char *section,
-		      u32 bank_num_in_accel)
+adf_get_coalesc_timer(struct adf_etr_bank_data *bank, const char *section,
+    u32 bank_num_in_accel)
 {
 	struct adf_accel_dev *accel_dev = bank->accel_dev;
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	u32 coalesc_timer = ADF_COALESCING_DEF_TIME;
 
-	adf_get_cfg_int(accel_dev,
-			section,
-			ADF_ETRMGR_COALESCE_TIMER_FORMAT,
-			bank_num_in_accel,
-			&coalesc_timer);
+	adf_get_cfg_int(accel_dev, section, ADF_ETRMGR_COALESCE_TIMER_FORMAT,
+	    bank_num_in_accel, &coalesc_timer);
 
 	if (hw_data->get_clock_speed)
 		bank->irq_coalesc_timer =
 		    (coalesc_timer *
-		     (hw_data->get_clock_speed(hw_data) / USEC_PER_SEC)) /
+			(hw_data->get_clock_speed(hw_data) / USEC_PER_SEC)) /
 		    NSEC_PER_USEC;
 	else
 		bank->irq_coalesc_timer = coalesc_timer;
@@ -568,10 +523,8 @@ adf_get_coalesc_timer(struct adf_etr_bank_data *bank,
 }
 
 static int
-adf_init_bank(struct adf_accel_dev *accel_dev,
-	      struct adf_etr_bank_data *bank,
-	      u32 bank_num,
-	      struct resource *csr_addr)
+adf_init_bank(struct adf_accel_dev *accel_dev, struct adf_etr_bank_data *bank,
+    u32 bank_num, struct resource *csr_addr)
 {
 	struct adf_hw_device_data *hw_data = accel_dev->hw_device;
 	struct adf_hw_csr_ops *csr_ops = &hw_data->csr_info.csr_ops;
@@ -590,18 +543,15 @@ adf_init_bank(struct adf_accel_dev *accel_dev,
 
 	/* Allocate the rings in the bank */
 	size = num_rings_per_bank * sizeof(struct adf_etr_ring_data);
-	bank->rings = kzalloc_node(size,
-				   M_WAITOK | M_ZERO,
-				   dev_to_node(GET_DEV(accel_dev)));
+	bank->rings = kzalloc_node(size, M_WAITOK | M_ZERO,
+	    dev_to_node(GET_DEV(accel_dev)));
 
 	/* Enable IRQ coalescing always. This will allow to use
 	 * the optimised flag and coalesc register.
 	 * If it is disabled in the config file just use min time value */
-	if ((adf_get_cfg_int(accel_dev,
-			     "Accelerator0",
-			     ADF_ETRMGR_COALESCING_ENABLED_FORMAT,
-			     bank_num,
-			     &coalesc_enabled) == 0) &&
+	if ((adf_get_cfg_int(accel_dev, "Accelerator0",
+		 ADF_ETRMGR_COALESCING_ENABLED_FORMAT, bank_num,
+		 &coalesc_enabled) == 0) &&
 	    coalesc_enabled)
 		adf_get_coalesc_timer(bank, "Accelerator0", bank_num);
 	else
@@ -612,14 +562,12 @@ adf_init_bank(struct adf_accel_dev *accel_dev,
 		csr_ops->write_csr_ring_base(csr_addr, bank_num, i, 0);
 		ring = &bank->rings[i];
 		if (hw_data->tx_rings_mask & (1 << i)) {
-			ring->inflights =
-			    kzalloc_node(sizeof(atomic_t),
-					 M_WAITOK | M_ZERO,
-					 dev_to_node(GET_DEV(accel_dev)));
+			ring->inflights = kzalloc_node(sizeof(atomic_t),
+			    M_WAITOK | M_ZERO, dev_to_node(GET_DEV(accel_dev)));
 		} else {
 			if (i < hw_data->tx_rx_gap) {
 				device_printf(GET_DEV(accel_dev),
-					      "Invalid tx rings mask config\n");
+				    "Invalid tx rings mask config\n");
 				goto err;
 			}
 			tx_ring = &bank->rings[i - hw_data->tx_rx_gap];
@@ -629,7 +577,7 @@ adf_init_bank(struct adf_accel_dev *accel_dev,
 
 	if (adf_bank_debugfs_add(bank)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to add bank debugfs entry\n");
+		    "Failed to add bank debugfs entry\n");
 		goto err;
 	}
 
@@ -668,39 +616,31 @@ adf_init_etr_data(struct adf_accel_dev *accel_dev)
 	u32 num_banks = 0;
 	int i, ret;
 
-	etr_data = kzalloc_node(sizeof(*etr_data),
-				M_WAITOK | M_ZERO,
-				dev_to_node(GET_DEV(accel_dev)));
+	etr_data = kzalloc_node(sizeof(*etr_data), M_WAITOK | M_ZERO,
+	    dev_to_node(GET_DEV(accel_dev)));
 
 	num_banks = GET_MAX_BANKS(accel_dev);
 	size = num_banks * sizeof(struct adf_etr_bank_data);
-	etr_data->banks = kzalloc_node(size,
-				       M_WAITOK | M_ZERO,
-				       dev_to_node(GET_DEV(accel_dev)));
+	etr_data->banks = kzalloc_node(size, M_WAITOK | M_ZERO,
+	    dev_to_node(GET_DEV(accel_dev)));
 
 	accel_dev->transport = etr_data;
 	i = hw_data->get_etr_bar_id(hw_data);
 	csr_addr = accel_dev->accel_pci_dev.pci_bars[i].virt_addr;
 
-	etr_data->debug =
-	    SYSCTL_ADD_NODE(&accel_dev->sysctl_ctx,
-			    SYSCTL_CHILDREN(
-				device_get_sysctl_tree(GET_DEV(accel_dev))),
-			    OID_AUTO,
-			    "transport",
-			    CTLFLAG_RD,
-			    NULL,
-			    "Transport parameters");
+	etr_data->debug = SYSCTL_ADD_NODE(&accel_dev->sysctl_ctx,
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(GET_DEV(accel_dev))),
+	    OID_AUTO, "transport", CTLFLAG_RD, NULL, "Transport parameters");
 	if (!etr_data->debug) {
 		device_printf(GET_DEV(accel_dev),
-			      "Unable to create transport debugfs entry\n");
+		    "Unable to create transport debugfs entry\n");
 		ret = ENOENT;
 		goto err_bank_all;
 	}
 
 	for (i = 0; i < num_banks; i++) {
-		ret =
-		    adf_init_bank(accel_dev, &etr_data->banks[i], i, csr_addr);
+		ret = adf_init_bank(accel_dev, &etr_data->banks[i], i,
+		    csr_addr);
 		if (ret)
 			goto err_bank_all;
 	}

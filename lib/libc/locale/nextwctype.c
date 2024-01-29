@@ -34,6 +34,7 @@
 #include <runetype.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "mblocal.h"
 
 wint_t

@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@
 #endif
 
 int
-devopen(struct open_file *f, const char *fname, const char **file) 
+devopen(struct open_file *f, const char *fname, const char **file)
 {
 	struct devdesc *dev;
 	int result;

@@ -17,9 +17,10 @@
  */
 
 #include <errno.h>
-#include <signal.h>
 #include <histedit.h>
+#include <signal.h>
 #include <termios.h>
+
 #include "extern.h"
 
 struct termios ttysaved, ttyedit;
@@ -29,7 +30,7 @@ settty(struct termios *t)
 {
 	int ret;
 
-	while ((ret = tcsetattr(0, TCSADRAIN,  t)) == -1 && errno == EINTR)
+	while ((ret = tcsetattr(0, TCSADRAIN, t)) == -1 && errno == EINTR)
 		continue;
 	return ret;
 }
@@ -53,10 +54,10 @@ tstpcont(int sig)
 	if (sig == SIGTSTP) {
 		signal(SIGCONT, tstpcont);
 		gettty(&ttyedit);
-		settty(&ttysaved);		
+		settty(&ttysaved);
 	} else {
 		signal(SIGTSTP, tstpcont);
-		settty(&ttyedit);		
+		settty(&ttyedit);
 	}
 	signal(sig, SIG_DFL);
 	kill(0, sig);

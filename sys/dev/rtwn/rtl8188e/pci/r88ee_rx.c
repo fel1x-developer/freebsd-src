@@ -14,41 +14,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/pci/rtwn_pci_var.h>
-
 #include <dev/rtwn/rtl8188e/pci/r88ee.h>
 #include <dev/rtwn/rtl8188e/pci/r88ee_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r88ee_get_intr_status(struct rtwn_pci_softc *pc, int *rings)
@@ -108,12 +105,12 @@ r88ee_get_intr_status(struct rtwn_pci_softc *pc, int *rings)
 	return (ret);
 }
 
-#define	R88E_INT_ENABLE	(R88E_HIMR_ROK | R88E_HIMR_RDU | R88E_HIMR_VODOK | \
-			 R88E_HIMR_VIDOK | R88E_HIMR_BEDOK | \
-			 R88E_HIMR_BKDOK | R88E_HIMR_MGNTDOK | \
-			 R88E_HIMR_HIGHDOK | R88E_HIMR_TXRPT)
+#define R88E_INT_ENABLE                                                      \
+	(R88E_HIMR_ROK | R88E_HIMR_RDU | R88E_HIMR_VODOK | R88E_HIMR_VIDOK | \
+	    R88E_HIMR_BEDOK | R88E_HIMR_BKDOK | R88E_HIMR_MGNTDOK |          \
+	    R88E_HIMR_HIGHDOK | R88E_HIMR_TXRPT)
 
-#define	R88E_INT_ENABLE_EX	(R88E_HIMRE_RXFOVW | R88E_HIMRE_RXERR)
+#define R88E_INT_ENABLE_EX (R88E_HIMRE_RXFOVW | R88E_HIMRE_RXERR)
 
 void
 r88ee_enable_intr(struct rtwn_pci_softc *pc)

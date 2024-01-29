@@ -64,21 +64,19 @@
  *	with 1,156,000 random arguments on a VAX, the maximum observed
  *	error was 0.869 ulps (units in the last place).
  */
-static const double
-    p1 =  1.6666666666666660e-01, /* 0x3fc55555, 0x55555553 */
-    p2 = -2.7777777777564776e-03, /* 0xbf66c16c, 0x16c0ac3c */
-    p3 =  6.6137564717940088e-05, /* 0x3f11566a, 0xb5c2ba0d */
-    p4 = -1.6534060280704225e-06, /* 0xbebbbd53, 0x273e8fb7 */
-    p5 =  4.1437773411069054e-08; /* 0x3e663f2a, 0x09c94b6c */
+static const double p1 = 1.6666666666666660e-01, /* 0x3fc55555, 0x55555553 */
+    p2 = -2.7777777777564776e-03,		 /* 0xbf66c16c, 0x16c0ac3c */
+    p3 = 6.6137564717940088e-05,		 /* 0x3f11566a, 0xb5c2ba0d */
+    p4 = -1.6534060280704225e-06,		 /* 0xbebbbd53, 0x273e8fb7 */
+    p5 = 4.1437773411069054e-08;		 /* 0x3e663f2a, 0x09c94b6c */
 
-static const double
-    ln2hi = 0x1.62e42fee00000p-1,   /* High 32 bits round-down. */
-    ln2lo = 0x1.a39ef35793c76p-33;  /* Next 53 bits round-to-nearst. */
+static const double ln2hi = 0x1.62e42fee00000p-1, /* High 32 bits round-down. */
+    ln2lo = 0x1.a39ef35793c76p-33; /* Next 53 bits round-to-nearst. */
 
-static const double
-    lnhuge =  0x1.6602b15b7ecf2p9,  /* (DBL_MAX_EXP + 9) * log(2.) */
-    lntiny = -0x1.77af8ebeae354p9,  /* (DBL_MIN_EXP - 53 - 10) * log(2.) */
-    invln2 =  0x1.71547652b82fep0;  /* 1 / log(2.) */
+static const double lnhuge =
+			0x1.6602b15b7ecf2p9, /* (DBL_MAX_EXP + 9) * log(2.) */
+    lntiny = -0x1.77af8ebeae354p9, /* (DBL_MIN_EXP - 53 - 10) * log(2.) */
+    invln2 = 0x1.71547652b82fep0;  /* 1 / log(2.) */
 
 /* returns exp(r = x + c) for |c| < |x| with no overlap.  */
 
@@ -88,8 +86,8 @@ __exp__D(double x, double c)
 	double hi, lo, z;
 	int k;
 
-	if (x != x)	/* x is NaN. */
-		return(x);
+	if (x != x) /* x is NaN. */
+		return (x);
 
 	if (x <= lnhuge) {
 		if (x >= lntiny) {
@@ -97,18 +95,18 @@ __exp__D(double x, double c)
 			z = invln2 * x;
 			k = z + copysign(0.5, x);
 
-		    	/*
+			/*
 			 * Express (x + c) - k * ln2 as hi - lo.
 			 * Let x = hi - lo rounded.
 			 */
-			hi = x - k * ln2hi;	/* Exact. */
+			hi = x - k * ln2hi; /* Exact. */
 			lo = k * ln2lo - c;
 			x = hi - lo;
 
 			/* Return 2^k*[1+x+x*c/(2+c)]  */
 			z = x * x;
-			c = x - z * (p1 + z * (p2 + z * (p3 + z * (p4 +
-			    z * p5))));
+			c = x -
+			    z * (p1 + z * (p2 + z * (p3 + z * (p4 + z * p5))));
 			c = (x * c) / (2 - c);
 
 			return (ldexp(1 + (hi - (lo - c)), k));
@@ -117,6 +115,6 @@ __exp__D(double x, double c)
 			return (isfinite(x) ? ldexp(1., -5000) : 0);
 		}
 	} else
-	/* exp(INF) is INF, exp(+big#) overflows to INF */
+		/* exp(INF) is INF, exp(+big#) overflows to INF */
 		return (isfinite(x) ? ldexp(1., 5000) : x);
 }

@@ -25,20 +25,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__AR40XX_DEBUG_H__
-#define	__AR40XX_DEBUG_H__
+#ifndef __AR40XX_DEBUG_H__
+#define __AR40XX_DEBUG_H__
 
-#define	AR40XX_DBG_HW_INIT			0x00000001
-#define	AR40XX_DBG_HW_RESET			0x00000002
-#define	AR40XX_DBG_HW_PORT_INIT			0x00000004
-#define	AR40XX_DBG_VTU_OP			0x00000008
-#define	AR40XX_DBG_ATU_OP			0x00000010
-#define	AR40XX_DBG_PORT_STATUS			0x00000020
+#define AR40XX_DBG_HW_INIT 0x00000001
+#define AR40XX_DBG_HW_RESET 0x00000002
+#define AR40XX_DBG_HW_PORT_INIT 0x00000004
+#define AR40XX_DBG_VTU_OP 0x00000008
+#define AR40XX_DBG_ATU_OP 0x00000010
+#define AR40XX_DBG_PORT_STATUS 0x00000020
 
-#define	AR40XX_DPRINTF(sc, flags, ...)					\
-	do {								\
-		if ((sc)->sc_debug & (flags))				\
-			device_printf((sc)->sc_dev, __VA_ARGS__);	\
+#define AR40XX_DPRINTF(sc, flags, ...)                            \
+	do {                                                      \
+		if ((sc)->sc_debug & (flags))                     \
+			device_printf((sc)->sc_dev, __VA_ARGS__); \
 	} while (0)
 
-#endif	/* __AR40XX_DEBUG_H__ */
+#endif /* __AR40XX_DEBUG_H__ */

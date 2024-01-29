@@ -44,7 +44,6 @@
 *
 *****************************************************************************/
 CpaStatus LacSymQueue_RequestSend(const CpaInstanceHandle instanceHandle,
-				  lac_sym_bulk_cookie_t *pRequest,
-				  lac_session_desc_t *pSessionDesc);
+    lac_sym_bulk_cookie_t *pRequest, lac_session_desc_t *pSessionDesc);
 
 #endif /* LAC_SYM_QUEUE_H */

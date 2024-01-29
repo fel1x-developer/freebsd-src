@@ -24,6 +24,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/ofw/openfirm.h>
 #include <dev/ofw/openfirmio.h>
 
@@ -39,18 +40,18 @@
 #include "ofw_util.h"
 
 /* Constants controlling the layout of the output. */
-#define	LVLINDENT	2
-#define	NAMEINDENT	2
-#define	DUMPINDENT	4
-#define	CHARSPERLINE	60
-#define	BYTESPERLINE	(CHARSPERLINE / 3)
+#define LVLINDENT 2
+#define NAMEINDENT 2
+#define DUMPINDENT 4
+#define CHARSPERLINE 60
+#define BYTESPERLINE (CHARSPERLINE / 3)
 
-static void	usage(void);
-static void	ofw_indent(int);
-static void	ofw_dump_properties(int, phandle_t, int, int, int);
-static void	ofw_dump_property(int fd, phandle_t n, int level,
-		    const char *prop, int raw, int str);
-static void	ofw_dump(int, const char *, int, int, const char *, int, int);
+static void usage(void);
+static void ofw_indent(int);
+static void ofw_dump_properties(int, phandle_t, int, int, int);
+static void ofw_dump_property(int fd, phandle_t n, int level, const char *prop,
+    int raw, int str);
+static void ofw_dump(int, const char *, int, int, const char *, int, int);
 
 static void
 usage(void)
@@ -175,8 +176,7 @@ ofw_dump_property(int fd, phandle_t n, int level, const char *prop, int raw,
 			max = max > BYTESPERLINE ? BYTESPERLINE : max;
 			ofw_indent(level * LVLINDENT + DUMPINDENT);
 			for (j = 0; j < max; j++)
-				printf("%02x ",
-				    ((unsigned char *)pbuf)[i + j]);
+				printf("%02x ", ((unsigned char *)pbuf)[i + j]);
 			printf("\n");
 		}
 		/*
@@ -189,16 +189,13 @@ ofw_dump_property(int fd, phandle_t n, int level, const char *prop, int raw,
 				if (visbuf != NULL)
 					free(visbuf);
 				vblen = (OFIOCMAXVALUE + len) * 4 + 1;
-					if ((visbuf = malloc(vblen)) == NULL)
-						err(EX_OSERR,
-						    "malloc() failed");
+				if ((visbuf = malloc(vblen)) == NULL)
+					err(EX_OSERR, "malloc() failed");
 			}
 			vlen = strvis(visbuf, pbuf, VIS_TAB | VIS_NL);
 			for (i = 0; i < vlen; i += CHARSPERLINE) {
-				ofw_indent(level * LVLINDENT +
-				    DUMPINDENT);
-				strlcpy(printbuf, &visbuf[i],
-				    sizeof(printbuf));
+				ofw_indent(level * LVLINDENT + DUMPINDENT);
+				strlcpy(printbuf, &visbuf[i], sizeof(printbuf));
 				printf("'%s'\n", printbuf);
 			}
 		}
@@ -231,8 +228,8 @@ ofw_dump_node(int fd, phandle_t n, int level, int rec, int prop,
 	}
 	if (rec) {
 		for (c = ofw_child(fd, n); c != 0; c = ofw_peer(fd, c)) {
-			ofw_dump_node(fd, c, level + 1, rec, prop, pmatch,
-			    raw, str);
+			ofw_dump_node(fd, c, level + 1, rec, prop, pmatch, raw,
+			    str);
 		}
 	}
 }

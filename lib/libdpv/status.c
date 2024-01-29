@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <curses.h>
 #include <dialog.h>
 #include <stdarg.h>
@@ -49,7 +50,8 @@ status_printf(const char *fmt, ...)
 {
 	int n, attrs;
 	chtype color = dlg_color_pair(dlg_color_table[BUTTON_ACTIVE_ATTR].fg,
-	    dlg_color_table[SCREEN_ATTR].bg) | A_BOLD;
+			   dlg_color_table[SCREEN_ATTR].bg) |
+	    A_BOLD;
 	va_list args;
 
 	status_row = tty_maxrows() - 1;

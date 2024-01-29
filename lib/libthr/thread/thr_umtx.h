@@ -29,46 +29,65 @@
 #ifndef _THR_FBSD_UMTX_H_
 #define _THR_FBSD_UMTX_H_
 
-#include <strings.h>
 #include <sys/umtx.h>
 
+#include <strings.h>
+
 #ifdef __LP64__
-#define DEFAULT_UMUTEX	{0,0,{0,0},0,{0,0}}
+#define DEFAULT_UMUTEX             \
+	{                          \
+		0, 0, { 0, 0 }, 0, \
+		{                  \
+			0, 0       \
+		}                  \
+	}
 #else
-#define DEFAULT_UMUTEX	{0,0,{0,0},0,0,{0,0}}
+#define DEFAULT_UMUTEX                \
+	{                             \
+		0, 0, { 0, 0 }, 0, 0, \
+		{                     \
+			0, 0          \
+		}                     \
+	}
 #endif
-#define DEFAULT_URWLOCK {0,0,0,0,{0,0,0,0}}
+#define DEFAULT_URWLOCK            \
+	{                          \
+		0, 0, 0, 0,        \
+		{                  \
+			0, 0, 0, 0 \
+		}                  \
+	}
 
 int _umtx_op_err(void *, int op, u_long, void *, void *) __hidden;
 int __thr_umutex_lock(struct umutex *mtx, uint32_t id) __hidden;
 int __thr_umutex_lock_spin(struct umutex *mtx, uint32_t id) __hidden;
 int __thr_umutex_timedlock(struct umutex *mtx, uint32_t id,
-	const struct timespec *timeout) __hidden;
+    const struct timespec *timeout) __hidden;
 int __thr_umutex_unlock(struct umutex *mtx) __hidden;
 int __thr_umutex_trylock(struct umutex *mtx) __hidden;
 int __thr_umutex_set_ceiling(struct umutex *mtx, uint32_t ceiling,
-	uint32_t *oldceiling) __hidden;
+    uint32_t *oldceiling) __hidden;
 
 void _thr_umutex_init(struct umutex *mtx) __hidden;
 void _thr_urwlock_init(struct urwlock *rwl) __hidden;
 
 int _thr_umtx_wait(volatile long *mtx, long exp,
-	const struct timespec *timeout) __hidden;
+    const struct timespec *timeout) __hidden;
 int _thr_umtx_wait_uint(volatile u_int *mtx, u_int exp,
-	const struct timespec *timeout, int shared) __hidden;
+    const struct timespec *timeout, int shared) __hidden;
 int _thr_umtx_timedwait_uint(volatile u_int *mtx, u_int exp, int clockid,
-	const struct timespec *timeout, int shared) __hidden;
+    const struct timespec *timeout, int shared) __hidden;
 int _thr_umtx_wake(volatile void *mtx, int count, int shared) __hidden;
 int _thr_ucond_wait(struct ucond *cv, struct umutex *m,
-        const struct timespec *timeout, int flags) __hidden;
+    const struct timespec *timeout, int flags) __hidden;
 void _thr_ucond_init(struct ucond *cv) __hidden;
 int _thr_ucond_signal(struct ucond *cv) __hidden;
 int _thr_ucond_broadcast(struct ucond *cv) __hidden;
 
 int __thr_rwlock_rdlock(struct urwlock *rwlock, int flags,
-	const struct timespec *tsp) __hidden;
+    const struct timespec *tsp) __hidden;
 int __thr_rwlock_wrlock(struct urwlock *rwlock,
-	const struct timespec *tsp) __hidden;
+    const struct timespec *tsp) __hidden;
 int __thr_rwlock_unlock(struct urwlock *rwlock) __hidden;
 
 /* Internal used only */
@@ -84,7 +103,7 @@ _thr_umutex_trylock(struct umutex *mtx, uint32_t id)
 		return (0);
 	if (__predict_false((uint32_t)mtx->m_owner == UMUTEX_RB_OWNERDEAD) &&
 	    atomic_cmpset_acq_32(&mtx->m_owner, UMUTEX_RB_OWNERDEAD,
-	    id | UMUTEX_CONTESTED))
+		id | UMUTEX_CONTESTED))
 		return (EOWNERDEAD);
 	if (__predict_false((uint32_t)mtx->m_owner == UMUTEX_RB_NOTRECOV))
 		return (ENOTRECOVERABLE);
@@ -100,14 +119,15 @@ _thr_umutex_trylock2(struct umutex *mtx, uint32_t id)
 	if (atomic_cmpset_acq_32(&mtx->m_owner, UMUTEX_UNOWNED, id) != 0)
 		return (0);
 	if ((uint32_t)mtx->m_owner == UMUTEX_CONTESTED &&
-	    __predict_true((mtx->m_flags & (UMUTEX_PRIO_PROTECT |
-	   UMUTEX_PRIO_INHERIT)) == 0) &&
-	   atomic_cmpset_acq_32(&mtx->m_owner, UMUTEX_CONTESTED,
-	   id | UMUTEX_CONTESTED))
+	    __predict_true(
+		(mtx->m_flags & (UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT)) ==
+		0) &&
+	    atomic_cmpset_acq_32(&mtx->m_owner, UMUTEX_CONTESTED,
+		id | UMUTEX_CONTESTED))
 		return (0);
 	if (__predict_false((uint32_t)mtx->m_owner == UMUTEX_RB_OWNERDEAD) &&
 	    atomic_cmpset_acq_32(&mtx->m_owner, UMUTEX_RB_OWNERDEAD,
-	    id | UMUTEX_CONTESTED))
+		id | UMUTEX_CONTESTED))
 		return (EOWNERDEAD);
 	if (__predict_false((uint32_t)mtx->m_owner == UMUTEX_RB_NOTRECOV))
 		return (ENOTRECOVERABLE);
@@ -152,8 +172,8 @@ _thr_umutex_unlock2(struct umutex *mtx, uint32_t id, int *defer)
 	noncst = (flags & UMUTEX_NONCONSISTENT) != 0;
 
 	if ((flags & (UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT)) != 0) {
-		if (atomic_cmpset_rel_32(&mtx->m_owner, id, noncst ?
-		    UMUTEX_RB_NOTRECOV : UMUTEX_UNOWNED))
+		if (atomic_cmpset_rel_32(&mtx->m_owner, id,
+			noncst ? UMUTEX_RB_NOTRECOV : UMUTEX_UNOWNED))
 			return (0);
 		return (__thr_umutex_unlock(mtx));
 	}
@@ -166,8 +186,8 @@ _thr_umutex_unlock2(struct umutex *mtx, uint32_t id, int *defer)
 	    noncst ? UMUTEX_RB_NOTRECOV : UMUTEX_UNOWNED)));
 	if ((owner & UMUTEX_CONTESTED) != 0) {
 		if (defer == NULL || noncst)
-			(void)_umtx_op_err(mtx, UMTX_OP_MUTEX_WAKE2,
-			    flags, 0, 0);
+			(void)_umtx_op_err(mtx, UMTX_OP_MUTEX_WAKE2, flags, 0,
+			    0);
 		else
 			*defer = 1;
 	}
@@ -193,8 +213,8 @@ _thr_rwlock_tryrdlock(struct urwlock *rwlock, int flags)
 		wrflags = URWLOCK_WRITE_OWNER | URWLOCK_WRITE_WAITERS;
 	state = rwlock->rw_state;
 	while (!(state & wrflags)) {
-		if (__predict_false(URWLOCK_READER_COUNT(state) ==
-		    URWLOCK_MAX_READERS))
+		if (__predict_false(
+			URWLOCK_READER_COUNT(state) == URWLOCK_MAX_READERS))
 			return (EAGAIN);
 		if (atomic_cmpset_acq_32(&rwlock->rw_state, state, state + 1))
 			return (0);
@@ -213,7 +233,7 @@ _thr_rwlock_trywrlock(struct urwlock *rwlock)
 	while ((state & URWLOCK_WRITE_OWNER) == 0 &&
 	    URWLOCK_READER_COUNT(state) == 0) {
 		if (atomic_cmpset_acq_32(&rwlock->rw_state, state,
-		    state | URWLOCK_WRITE_OWNER))
+			state | URWLOCK_WRITE_OWNER))
 			return (0);
 		state = rwlock->rw_state;
 	}
@@ -246,25 +266,26 @@ _thr_rwlock_unlock(struct urwlock *rwlock)
 
 	state = rwlock->rw_state;
 	if ((state & URWLOCK_WRITE_OWNER) != 0) {
-		if (atomic_cmpset_rel_32(&rwlock->rw_state,
-		    URWLOCK_WRITE_OWNER, 0))
+		if (atomic_cmpset_rel_32(&rwlock->rw_state, URWLOCK_WRITE_OWNER,
+			0))
 			return (0);
 	} else {
 		for (;;) {
 			if (__predict_false(URWLOCK_READER_COUNT(state) == 0))
 				return (EPERM);
-			if (!((state & (URWLOCK_WRITE_WAITERS |
-			    URWLOCK_READ_WAITERS)) != 0 &&
-			    URWLOCK_READER_COUNT(state) == 1)) {
+			if (!((state &
+				  (URWLOCK_WRITE_WAITERS |
+				      URWLOCK_READ_WAITERS)) != 0 &&
+				URWLOCK_READER_COUNT(state) == 1)) {
 				if (atomic_cmpset_rel_32(&rwlock->rw_state,
-				    state, state - 1))
+					state, state - 1))
 					return (0);
 				state = rwlock->rw_state;
 			} else {
 				break;
 			}
 		}
-    	}
-    	return (__thr_rwlock_unlock(rwlock));
+	}
+	return (__thr_rwlock_unlock(rwlock));
 }
 #endif

@@ -32,20 +32,21 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
+#include <sys/types.h>
+
 #include <err.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
-#include <sys/types.h>
 #ifndef WITHOUT_CAPSICUM
 #include <sys/capsicum.h>
 #endif
@@ -57,7 +58,7 @@
 
 #include "mevent.h"
 
-#define	MEVENT_MAX	64
+#define MEVENT_MAX 64
 
 static pthread_t mevent_tid;
 static pthread_once_t mevent_once = PTHREAD_ONCE_INIT;
@@ -67,16 +68,16 @@ static int mfd;
 static pthread_mutex_t mevent_lmutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct mevent {
-	void	(*me_func)(int, enum ev_type, void *);
+	void (*me_func)(int, enum ev_type, void *);
 #define me_msecs me_fd
-	int	me_fd;
-	int	me_timid;
+	int me_fd;
+	int me_timid;
 	enum ev_type me_type;
-	void    *me_param;
-	int	me_cq;
-	int	me_state; /* Desired kevent flags. */
-	int	me_closefd;
-	int	me_fflags;
+	void *me_param;
+	int me_cq;
+	int me_state; /* Desired kevent flags. */
+	int me_closefd;
+	int me_fflags;
 	LIST_ENTRY(mevent) me_list;
 };
 
@@ -229,7 +230,7 @@ mevent_build(struct kevent *kev)
 
 	mevent_qlock();
 
-	LIST_FOREACH_SAFE(mevp, &change_head, me_list, tmpp) {
+	LIST_FOREACH_SAFE (mevp, &change_head, me_list, tmpp) {
 		if (mevp->me_closefd) {
 			/*
 			 * A close of the file descriptor will remove the
@@ -276,8 +277,7 @@ mevent_handle(struct kevent *kev, int numev)
 
 static struct mevent *
 mevent_add_state(int tfd, enum ev_type type,
-	   void (*func)(int, enum ev_type, void *), void *param,
-	   int state, int fflags)
+    void (*func)(int, enum ev_type, void *), void *param, int state, int fflags)
 {
 	struct kevent kev;
 	struct mevent *lp, *mevp;
@@ -296,14 +296,14 @@ mevent_add_state(int tfd, enum ev_type type,
 	/*
 	 * Verify that the fd/type tuple is not present in any list
 	 */
-	LIST_FOREACH(lp, &global_head, me_list) {
+	LIST_FOREACH (lp, &global_head, me_list) {
 		if (type != EVF_TIMER && lp->me_fd == tfd &&
 		    lp->me_type == type) {
 			goto exit;
 		}
 	}
 
-	LIST_FOREACH(lp, &change_head, me_list) {
+	LIST_FOREACH (lp, &change_head, me_list) {
 		if (type != EVF_TIMER && lp->me_fd == tfd &&
 		    lp->me_type == type) {
 			goto exit;
@@ -351,8 +351,8 @@ exit:
 }
 
 struct mevent *
-mevent_add(int tfd, enum ev_type type,
-	   void (*func)(int, enum ev_type, void *), void *param)
+mevent_add(int tfd, enum ev_type type, void (*func)(int, enum ev_type, void *),
+    void *param)
 {
 
 	return (mevent_add_state(tfd, type, func, param, EV_ADD, 0));
@@ -360,7 +360,7 @@ mevent_add(int tfd, enum ev_type type,
 
 struct mevent *
 mevent_add_flags(int tfd, enum ev_type type, int fflags,
-		 void (*func)(int, enum ev_type, void *), void *param)
+    void (*func)(int, enum ev_type, void *), void *param)
 {
 
 	return (mevent_add_state(tfd, type, func, param, EV_ADD, fflags));
@@ -368,10 +368,11 @@ mevent_add_flags(int tfd, enum ev_type type, int fflags,
 
 struct mevent *
 mevent_add_disabled(int tfd, enum ev_type type,
-		    void (*func)(int, enum ev_type, void *), void *param)
+    void (*func)(int, enum ev_type, void *), void *param)
 {
 
-	return (mevent_add_state(tfd, type, func, param, EV_ADD | EV_DISABLE, 0));
+	return (
+	    mevent_add_state(tfd, type, func, param, EV_ADD | EV_DISABLE, 0));
 }
 
 static int
@@ -438,15 +439,15 @@ mevent_delete_event(struct mevent *evp, int closefd)
 	mevent_qlock();
 
 	/*
-         * Place the entry onto the changed list if not already there, and
+	 * Place the entry onto the changed list if not already there, and
 	 * mark as to be deleted.
-         */
-        if (evp->me_cq == 0) {
+	 */
+	if (evp->me_cq == 0) {
 		evp->me_cq = 1;
 		LIST_REMOVE(evp, me_list);
 		LIST_INSERT_HEAD(&change_head, evp, me_list);
 		mevent_notify();
-        }
+	}
 	evp->me_state = EV_DELETE;
 
 	if (closefd)

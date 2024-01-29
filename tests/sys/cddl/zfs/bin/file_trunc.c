@@ -24,36 +24,37 @@
  * Use is subject to license terms.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <limits.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <sys/errno.h>
 #include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/wait.h>
-#include <sys/param.h>
-#include <string.h>
 
-#define	FSIZE	256*1024*1024
-#define	BSIZE	512
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define FSIZE 256 * 1024 * 1024
+#define BSIZE 512
 
 /* Initialize Globals */
-static long 	fsize = FSIZE;
-static size_t 	bsize = BSIZE;
-static int	count = 0;
-static int	rflag = 0;
-static int	seed = 0;
-static int	vflag = 0;
-static int	errflag = 0;
-static off_t	offset = 0;
-static char	*filename = NULL;
+static long fsize = FSIZE;
+static size_t bsize = BSIZE;
+static int count = 0;
+static int rflag = 0;
+static int seed = 0;
+static int vflag = 0;
+static int errflag = 0;
+static off_t offset = 0;
+static char *filename = NULL;
 
 static void usage(char *execname);
 static void parse_options(int argc, char *argv[]);
@@ -63,10 +64,11 @@ static void do_trunc(int fd);
 static void
 usage(char *execname)
 {
-	(void) fprintf(stderr,
+	(void)fprintf(stderr,
 	    "usage: %s [-b blocksize] [-c count] [-f filesize]"
-	    " [-o offset] [-s seed] [-r] [-v] filename\n", execname);
-	(void) exit(1);
+	    " [-o offset] [-s seed] [-r] [-v] filename\n",
+	    execname);
+	(void)exit(1);
 }
 
 int
@@ -77,20 +79,20 @@ main(int argc, char *argv[])
 
 	parse_options(argc, argv);
 
-	fd = open(filename, O_RDWR|O_CREAT|O_TRUNC, 0666);
+	fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666);
 	if (fd < 0) {
 		perror("open");
 		exit(3);
 	}
 
 	while (i < count) {
-		(void) do_write(fd);
-		(void) do_trunc(fd);
+		(void)do_write(fd);
+		(void)do_trunc(fd);
 
 		i++;
 	}
 
-	(void) close(fd);
+	(void)close(fd);
 	return (0);
 }
 
@@ -106,60 +108,59 @@ parse_options(int argc, char *argv[])
 	seed = time(NULL);
 	while ((c = getopt(argc, argv, "b:c:f:o:rs:v")) != -1) {
 		switch (c) {
-			case 'b':
-				bsize = atoi(optarg);
-				break;
+		case 'b':
+			bsize = atoi(optarg);
+			break;
 
-			case 'c':
-				count = atoi(optarg);
-				break;
+		case 'c':
+			count = atoi(optarg);
+			break;
 
-			case 'f':
-				fsize = atoi(optarg);
-				break;
+		case 'f':
+			fsize = atoi(optarg);
+			break;
 
-			case 'o':
-				offset = atoi(optarg);
-				break;
+		case 'o':
+			offset = atoi(optarg);
+			break;
 
-			case 'r':
-				rflag++;
-				break;
+		case 'r':
+			rflag++;
+			break;
 
-			case 's':
-				seed = atoi(optarg);
-				break;
+		case 's':
+			seed = atoi(optarg);
+			break;
 
-			case 'v':
-				vflag++;
-				break;
+		case 'v':
+			vflag++;
+			break;
 
-			case ':':
-				(void) fprintf(stderr,
-				    "Option -%c requires an operand\n", optopt);
-				errflag++;
-				break;
+		case ':':
+			(void)fprintf(stderr,
+			    "Option -%c requires an operand\n", optopt);
+			errflag++;
+			break;
 
-			case '?':
-				(void) fprintf(stderr,
-				    "Unrecognized option: -%c\n", optopt);
-				errflag++;
-				break;
+		case '?':
+			(void)fprintf(stderr, "Unrecognized option: -%c\n",
+			    optopt);
+			errflag++;
+			break;
 		}
 
 		if (errflag) {
-			(void) usage(argv[0]);
+			(void)usage(argv[0]);
 		}
 	}
 	if (argc <= optind) {
-		(void) fprintf(stderr,
-		    "No filename specified\n");
+		(void)fprintf(stderr, "No filename specified\n");
 		usage(argv[0]);
 	}
 	filename = argv[optind];
 
 	if (vflag) {
-		(void) fprintf(stderr, "Seed = %d\n", seed);
+		(void)fprintf(stderr, "Seed = %d\n", seed);
 	}
 	srandom(seed);
 }
@@ -167,9 +168,9 @@ parse_options(int argc, char *argv[])
 static void
 do_write(int fd)
 {
-	off_t	roffset = 0;
-	char 	*buf = NULL;
-	char 	*rbuf = NULL;
+	off_t roffset = 0;
+	char *buf = NULL;
+	char *rbuf = NULL;
 
 	buf = (char *)calloc(1, bsize);
 	rbuf = (char *)calloc(1, bsize);
@@ -207,32 +208,31 @@ do_write(int fd)
 		}
 	}
 	if (vflag) {
-		(void) fprintf(stderr,
-		    "Wrote to offset %ld\n", (offset + roffset));
+		(void)fprintf(stderr, "Wrote to offset %ld\n",
+		    (offset + roffset));
 		if (rflag) {
-			(void) fprintf(stderr,
-			    "Read back from offset %ld\n", (offset + roffset));
+			(void)fprintf(stderr, "Read back from offset %ld\n",
+			    (offset + roffset));
 		}
 	}
 
-	(void) free(buf);
-	(void) free(rbuf);
+	(void)free(buf);
+	(void)free(rbuf);
 }
 
 static void
 do_trunc(int fd)
 {
-	off_t   roffset = 0;
+	off_t roffset = 0;
 
 	roffset = random() % fsize;
-	if (ftruncate(fd, (offset + roffset))  < 0) {
+	if (ftruncate(fd, (offset + roffset)) < 0) {
 		perror("truncate");
 		exit(7);
 	}
 
 	if (vflag) {
-		(void) fprintf(stderr,
-		    "Truncated at offset %ld\n",
+		(void)fprintf(stderr, "Truncated at offset %ld\n",
 		    (offset + roffset));
 	}
 }

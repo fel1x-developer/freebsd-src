@@ -31,18 +31,19 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
+
+#include <assert.h>
 #include <errno.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Given a uid/gid, return a username/groupname for the text form of an ACL.
@@ -56,11 +57,11 @@ int
 _posix1e_acl_id_to_name(acl_tag_t tag, uid_t id, ssize_t buf_len, char *buf,
     int flags)
 {
-	struct group	*g;
-	struct passwd	*p;
-	int	i;
+	struct group *g;
+	struct passwd *p;
+	int i;
 
-	switch(tag) {
+	switch (tag) {
 	case ACL_USER:
 		if (flags & ACL_TEXT_NUMERIC_IDS)
 			p = NULL;

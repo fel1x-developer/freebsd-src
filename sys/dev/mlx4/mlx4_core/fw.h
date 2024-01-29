@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2004, 2005 Topspin Communications.  All rights reserved.
- * Copyright (c) 2005, 2006, 2007, 2008, 2014 Mellanox Technologies. All rights reserved.
- * Copyright (c) 2006, 2007 Cisco Systems.  All rights reserved.
+ * Copyright (c) 2005, 2006, 2007, 2008, 2014 Mellanox Technologies. All rights
+ * reserved. Copyright (c) 2006, 2007 Cisco Systems.  All rights reserved.
  *
  * This software is available to you under a choice of one of two
  * licenses.  You may choose to be licensed under the terms of the GNU
@@ -35,8 +35,8 @@
 #ifndef MLX4_FW_H
 #define MLX4_FW_H
 
-#include "mlx4.h"
 #include "icm.h"
+#include "mlx4.h"
 
 struct mlx4_mod_stat_cfg {
 	u8 log_pg_sz;
@@ -44,12 +44,12 @@ struct mlx4_mod_stat_cfg {
 };
 
 struct mlx4_port_cap {
-	u8  link_state;
-	u8  supported_port_types;
-	u8  suggested_type;
-	u8  default_sense;
-	u8  log_max_macs;
-	u8  log_max_vlans;
+	u8 link_state;
+	u8 supported_port_types;
+	u8 suggested_type;
+	u8 default_sense;
+	u8 log_max_macs;
+	u8 log_max_vlans;
 	int ib_mtu;
 	int max_port_width;
 	int max_vl;
@@ -133,43 +133,43 @@ struct mlx4_dev_cap {
 };
 
 struct mlx4_func_cap {
-	u8	num_ports;
-	u8	flags;
-	u32	pf_context_behaviour;
-	int	qp_quota;
-	int	cq_quota;
-	int	srq_quota;
-	int	mpt_quota;
-	int	mtt_quota;
-	int	max_eq;
-	int	reserved_eq;
-	int	mcg_quota;
-	u32	qp0_qkey;
-	u32	qp0_tunnel_qpn;
-	u32	qp0_proxy_qpn;
-	u32	qp1_tunnel_qpn;
-	u32	qp1_proxy_qpn;
-	u32	reserved_lkey;
-	u8	physical_port;
-	u8	flags0;
-	u8	flags1;
-	u64	phys_port_id;
-	u32	extra_flags;
+	u8 num_ports;
+	u8 flags;
+	u32 pf_context_behaviour;
+	int qp_quota;
+	int cq_quota;
+	int srq_quota;
+	int mpt_quota;
+	int mtt_quota;
+	int max_eq;
+	int reserved_eq;
+	int mcg_quota;
+	u32 qp0_qkey;
+	u32 qp0_tunnel_qpn;
+	u32 qp0_proxy_qpn;
+	u32 qp1_tunnel_qpn;
+	u32 qp1_proxy_qpn;
+	u32 reserved_lkey;
+	u8 physical_port;
+	u8 flags0;
+	u8 flags1;
+	u64 phys_port_id;
+	u32 extra_flags;
 };
 
 struct mlx4_func {
-	int	bus;
-	int	device;
-	int	function;
-	int	physical_function;
-	int	rsvd_eqs;
-	int	max_eq;
-	int	rsvd_uars;
+	int bus;
+	int device;
+	int function;
+	int physical_function;
+	int rsvd_eqs;
+	int max_eq;
+	int rsvd_uars;
 };
 
 struct mlx4_adapter {
 	char board_id[MLX4_BOARD_ID_LEN];
-	u8   inta_pin;
+	u8 inta_pin;
 };
 
 struct mlx4_init_hca_param {
@@ -188,19 +188,19 @@ struct mlx4_init_hca_param {
 	u16 log_mc_entry_sz;
 	u16 log_mc_hash_sz;
 	u16 hca_core_clock; /* Internal Clock Frequency (in MHz) */
-	u8  log_num_qps;
-	u8  log_num_srqs;
-	u8  log_num_cqs;
-	u8  log_num_eqs;
+	u8 log_num_qps;
+	u8 log_num_srqs;
+	u8 log_num_cqs;
+	u8 log_num_eqs;
 	u16 num_sys_eqs;
-	u8  log_rd_per_qp;
-	u8  log_mc_table_sz;
-	u8  log_mpt_sz;
-	u8  log_uar_sz;
-	u8  mw_enabled;  /* Enable memory windows */
-	u8  uar_page_sz; /* log pg sz in 4k chunks */
-	u8  steering_mode; /* for QUERY_HCA */
-	u8  dmfs_high_steer_mode; /* for QUERY_HCA */
+	u8 log_rd_per_qp;
+	u8 log_mc_table_sz;
+	u8 log_mpt_sz;
+	u8 log_uar_sz;
+	u8 mw_enabled;		 /* Enable memory windows */
+	u8 uar_page_sz;		 /* log pg sz in 4k chunks */
+	u8 steering_mode;	 /* for QUERY_HCA */
+	u8 dmfs_high_steer_mode; /* for QUERY_HCA */
 	u64 dev_cap_enabled;
 	u16 cqe_size; /* For use only when CQE stride feature enabled */
 	u16 eqe_size; /* For use only when EQE stride feature enabled */
@@ -231,14 +231,13 @@ struct mlx4_set_ib_param {
 
 void mlx4_dev_cap_dump(struct mlx4_dev *dev, struct mlx4_dev_cap *dev_cap);
 int mlx4_QUERY_DEV_CAP(struct mlx4_dev *dev, struct mlx4_dev_cap *dev_cap);
-int mlx4_QUERY_PORT(struct mlx4_dev *dev, int port, struct mlx4_port_cap *port_cap);
+int mlx4_QUERY_PORT(struct mlx4_dev *dev, int port,
+    struct mlx4_port_cap *port_cap);
 int mlx4_QUERY_FUNC_CAP(struct mlx4_dev *dev, u8 gen_or_port,
-			struct mlx4_func_cap *func_cap);
+    struct mlx4_func_cap *func_cap);
 int mlx4_QUERY_FUNC_CAP_wrapper(struct mlx4_dev *dev, int slave,
-				struct mlx4_vhcr *vhcr,
-				struct mlx4_cmd_mailbox *inbox,
-				struct mlx4_cmd_mailbox *outbox,
-				struct mlx4_cmd_info *cmd);
+    struct mlx4_vhcr *vhcr, struct mlx4_cmd_mailbox *inbox,
+    struct mlx4_cmd_mailbox *outbox, struct mlx4_cmd_info *cmd);
 int mlx4_QUERY_FUNC(struct mlx4_dev *dev, struct mlx4_func *func, int slave);
 int mlx4_MAP_FA(struct mlx4_dev *dev, struct mlx4_icm *icm);
 int mlx4_UNMAP_FA(struct mlx4_dev *dev);

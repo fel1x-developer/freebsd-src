@@ -29,10 +29,10 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/capsicum.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <capsicum_helpers.h>
 #include <err.h>
@@ -62,11 +62,11 @@ main(int argc, char *argv[])
 	char *bp;
 	int append, ch, exitval;
 	char *buf;
-#define	BSIZE (8 * 1024)
+#define BSIZE (8 * 1024)
 
 	append = 0;
 	while ((ch = getopt(argc, argv, "ai")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'a':
 			append = 1;
 			break;
@@ -89,8 +89,10 @@ main(int argc, char *argv[])
 	add(STDOUT_FILENO, "stdout");
 
 	for (exitval = 0; *argv; ++argv)
-		if ((fd = open(*argv, append ? O_WRONLY|O_CREAT|O_APPEND :
-		    O_WRONLY|O_CREAT|O_TRUNC, DEFFILEMODE)) < 0) {
+		if ((fd = open(*argv,
+			 append ? O_WRONLY | O_CREAT | O_APPEND :
+				  O_WRONLY | O_CREAT | O_TRUNC,
+			 DEFFILEMODE)) < 0) {
 			warn("%s", *argv);
 			exitval = 1;
 		} else
@@ -99,7 +101,7 @@ main(int argc, char *argv[])
 	if (caph_enter() < 0)
 		err(EXIT_FAILURE, "unable to enter capability mode");
 	while ((rval = read(STDIN_FILENO, buf, BSIZE)) > 0)
-		STAILQ_FOREACH(p, &head, entries) {
+		STAILQ_FOREACH (p, &head, entries) {
 			n = rval;
 			bp = buf;
 			do {

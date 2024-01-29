@@ -59,36 +59,36 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	 cleanup(void);
-static void	 do_lineno(const char *);
-static void	 do_rexp(const char *);
-static char	*get_line(void);
-static void	 handlesig(int);
-static FILE	*newfile(void);
-static void	 toomuch(FILE *, long);
-static void	 usage(void);
+static void cleanup(void);
+static void do_lineno(const char *);
+static void do_rexp(const char *);
+static char *get_line(void);
+static void handlesig(int);
+static FILE *newfile(void);
+static void toomuch(FILE *, long);
+static void usage(void);
 
 /*
  * Command line options
  */
-static const char *prefix;	/* File name prefix */
-static long	 sufflen;	/* Number of decimal digits for suffix */
-static int	 sflag;		/* Suppress output of file names */
-static int	 kflag;		/* Keep output if error occurs */
+static const char *prefix; /* File name prefix */
+static long sufflen;	   /* Number of decimal digits for suffix */
+static int sflag;	   /* Suppress output of file names */
+static int kflag;	   /* Keep output if error occurs */
 
 /*
  * Other miscellaneous globals (XXX too many)
  */
-static long	 lineno;	/* Current line number in input file */
-static long	 reps;		/* Number of repetitions for this pattern */
-static long	 nfiles;	/* Number of files output so far */
-static long	 maxfiles;	/* Maximum number of files we can create */
-static char	 currfile[PATH_MAX]; /* Current output file */
+static long lineno;		/* Current line number in input file */
+static long reps;		/* Number of repetitions for this pattern */
+static long nfiles;		/* Number of files output so far */
+static long maxfiles;		/* Maximum number of files we can create */
+static char currfile[PATH_MAX]; /* Current output file */
 static const char *infn;	/* Name of the input file */
-static FILE	*infile;	/* Input file handle */
-static FILE	*overfile;	/* Overflow file for toomuch() */
-static off_t	 truncofs;	/* Offset this file should be truncated at */
-static int	 doclean;	/* Should cleanup() remove output? */
+static FILE *infile;		/* Input file handle */
+static FILE *overfile;		/* Overflow file for toomuch() */
+static off_t truncofs;		/* Offset this file should be truncated at */
+static int doclean;		/* Should cleanup() remove output? */
 
 int
 main(int argc, char *argv[])
@@ -164,8 +164,7 @@ main(int argc, char *argv[])
 	/* Ensure 10^sufflen < LONG_MAX. */
 	for (maxfiles = 1, i = 0; i < sufflen; i++) {
 		if (maxfiles > LONG_MAX / 10)
-			errx(1, "%ld: suffix too long (limit %ld)",
-			    sufflen, i);
+			errx(1, "%ld: suffix too long (limit %ld)", sufflen, i);
 		maxfiles *= 10;
 	}
 
@@ -213,7 +212,7 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: csplit [-ks] [-f prefix] [-n number] file args ...\n");
+	    "usage: csplit [-ks] [-f prefix] [-n number] file args ...\n");
 	exit(1);
 }
 
@@ -234,7 +233,7 @@ newfile(void)
 	FILE *fp;
 
 	if ((size_t)snprintf(currfile, sizeof(currfile), "%s%0*ld", prefix,
-	    (int)sufflen, nfiles) >= sizeof(currfile))
+		(int)sufflen, nfiles) >= sizeof(currfile))
 		errc(1, ENAMETOOLONG, NULL);
 	if ((fp = fopen(currfile, "w+")) == NULL)
 		err(1, "%s", currfile);
@@ -261,8 +260,8 @@ cleanup(void)
 	 */
 
 	for (i = 0; i < nfiles; i++) {
-		snprintf(fnbuf, sizeof(fnbuf), "%s%0*ld", prefix,
-		    (int)sufflen, i);
+		snprintf(fnbuf, sizeof(fnbuf), "%s%0*ld", prefix, (int)sufflen,
+		    i);
 		unlink(fnbuf);
 	}
 }
@@ -276,7 +275,8 @@ get_line(void)
 
 	src = overfile != NULL ? overfile : infile;
 
-again: if (fgets(lbuf, sizeof(lbuf), src) == NULL) {
+again:
+	if (fgets(lbuf, sizeof(lbuf), src) == NULL) {
 		if (src == overfile) {
 			src = infile;
 			goto again;
@@ -376,7 +376,7 @@ do_rexp(const char *expr)
 	} else
 		ofs = 0;
 
-	if (regcomp(&cre, re, REG_BASIC|REG_NOSUB) != 0)
+	if (regcomp(&cre, re, REG_BASIC | REG_NOSUB) != 0)
 		errx(1, "%s: bad regular expression", re);
 
 	if (*expr == '/')
@@ -407,7 +407,7 @@ do_rexp(const char *expr)
 		/*
 		 * Negative (or zero) offset: throw back any lines we should
 		 * not have read yet.
-		  */
+		 */
 		if (p != NULL) {
 			toomuch(ofp, -ofs + 1);
 			nwritten = (intmax_t)truncofs;
@@ -464,5 +464,5 @@ do_lineno(const char *expr)
 		if (reps-- == 0)
 			break;
 		lastline += tgtline;
-	} 
+	}
 }

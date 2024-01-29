@@ -31,23 +31,24 @@
  */
 
 /* Part of struct nlist symbols[] */
-#define X_SEMA		0
-#define X_SEMINFO	1
-#define X_MSGINFO	2
-#define X_MSQIDS	3
-#define X_SHMINFO	4
-#define X_SHMSEGS	5
+#define X_SEMA 0
+#define X_SEMINFO 1
+#define X_MSGINFO 2
+#define X_MSQIDS 3
+#define X_SHMINFO 4
+#define X_SHMSEGS 5
 
-#define	SHMINFO		1
-#define	SHMTOTAL	2
-#define	MSGINFO		4
-#define	MSGTOTAL	8
-#define	SEMINFO		16
-#define	SEMTOTAL	32
+#define SHMINFO 1
+#define SHMTOTAL 2
+#define MSGINFO 4
+#define MSGTOTAL 8
+#define SEMINFO 16
+#define SEMTOTAL 32
 
 #define IPC_TO_STR(x) (x == 'Q' ? "msq" : (x == 'M' ? "shm" : "sem"))
-#define IPC_TO_STRING(x) (x == 'Q' ? "message queue" : \
-	    (x == 'M' ? "shared memory segment" : "semaphore"))
+#define IPC_TO_STRING(x)              \
+	(x == 'Q' ? "message queue" : \
+		    (x == 'M' ? "shared memory segment" : "semaphore"))
 
 /* SysCtlGatherStruct structure. */
 struct scgs_vector {
@@ -56,16 +57,16 @@ struct scgs_vector {
 	size_t size;
 };
 
-void	kget(int idx, void *addr, size_t size);
-void	sysctlgatherstruct(void *addr, size_t size, struct scgs_vector *vec);
+void kget(int idx, void *addr, size_t size);
+void sysctlgatherstruct(void *addr, size_t size, struct scgs_vector *vec);
 
 extern int use_sysctl;
 extern struct nlist symbols[];
 extern kvm_t *kd;
 
-extern struct semid_kernel	*sema;
-extern struct msqid_kernel	*msqids;
-extern struct shmid_kernel	*shmsegs;
-extern struct seminfo		 seminfo;
-extern struct msginfo		 msginfo;
-extern struct shminfo		 shminfo;
+extern struct semid_kernel *sema;
+extern struct msqid_kernel *msqids;
+extern struct shmid_kernel *shmsegs;
+extern struct seminfo seminfo;
+extern struct msginfo msginfo;
+extern struct shminfo shminfo;

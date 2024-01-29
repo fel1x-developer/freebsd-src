@@ -1,9 +1,9 @@
 #ifndef _USR_SBIN_NDP_NDP_H_
 #define _USR_SBIN_NDP_NDP_H_
 
-#define W_ADDR	36
-#define W_LL	17
-#define W_IF	6
+#define W_ADDR 36
+#define W_LL 17
+#define W_IF 6
 
 struct ndp_opts {
 	bool nflag;

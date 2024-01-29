@@ -89,30 +89,29 @@
 #include <sys/mutex.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/sysctl.h>
 #include <sys/sx.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/if_vlan_var.h>
+#include <sys/sysctl.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR axe_debug
+#define USB_DEBUG_VAR axe_debug
+#include <dev/usb/net/if_axereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_axereg.h>
 
 #include "miibus_if.h"
 
@@ -129,9 +128,9 @@
  * a 2K rx buffer and 8K is only slightly faster than 4K on an
  * EHCI port on a T42 so change at your own risk.
  */
-#define AXE_178_MAX_FRAME_BURST	1
+#define AXE_178_MAX_FRAME_BURST 1
 
-#define	AXE_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define AXE_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 
 #ifdef USB_DEBUG
 static int axe_debug = 0;
@@ -146,7 +145,10 @@ SYSCTL_INT(_hw_usb_axe, OID_AUTO, debug, CTLFLAG_RWTUN, &axe_debug, 0,
  * Various supported device vendors/products.
  */
 static const STRUCT_USB_HOST_ID axe_devs[] = {
-#define	AXE_DEV(v,p,i) { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
+#define AXE_DEV(v, p, i)                                          \
+	{                                                         \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) \
+	}
 	AXE_DEV(ABOCOM, UF200, 0),
 	AXE_DEV(ACERCM, EP1427X2, 0),
 	AXE_DEV(APPLE, ETHERNET, AXE_FLAG_772),
@@ -202,21 +204,21 @@ static uether_fn_t axe_tick;
 static uether_fn_t axe_setmulti;
 static uether_fn_t axe_setpromisc;
 
-static int	axe_attach_post_sub(struct usb_ether *);
-static int	axe_ifmedia_upd(if_t);
-static void	axe_ifmedia_sts(if_t, struct ifmediareq *);
-static int	axe_cmd(struct axe_softc *, int, int, int, void *);
-static void	axe_ax88178_init(struct axe_softc *);
-static void	axe_ax88772_init(struct axe_softc *);
-static void	axe_ax88772_phywake(struct axe_softc *);
-static void	axe_ax88772a_init(struct axe_softc *);
-static void	axe_ax88772b_init(struct axe_softc *);
-static int	axe_get_phyno(struct axe_softc *, int);
-static int	axe_ioctl(if_t, u_long, caddr_t);
-static int	axe_rx_frame(struct usb_ether *, struct usb_page_cache *, int);
-static int	axe_rxeof(struct usb_ether *, struct usb_page_cache *,
-		    unsigned offset, unsigned, struct axe_csum_hdr *);
-static void	axe_csum_cfg(struct usb_ether *);
+static int axe_attach_post_sub(struct usb_ether *);
+static int axe_ifmedia_upd(if_t);
+static void axe_ifmedia_sts(if_t, struct ifmediareq *);
+static int axe_cmd(struct axe_softc *, int, int, int, void *);
+static void axe_ax88178_init(struct axe_softc *);
+static void axe_ax88772_init(struct axe_softc *);
+static void axe_ax88772_phywake(struct axe_softc *);
+static void axe_ax88772a_init(struct axe_softc *);
+static void axe_ax88772b_init(struct axe_softc *);
+static int axe_get_phyno(struct axe_softc *, int);
+static int axe_ioctl(if_t, u_long, caddr_t);
+static int axe_rx_frame(struct usb_ether *, struct usb_page_cache *, int);
+static int axe_rxeof(struct usb_ether *, struct usb_page_cache *,
+    unsigned offset, unsigned, struct axe_csum_hdr *);
+static void axe_csum_cfg(struct usb_ether *);
 
 static const struct usb_config axe_config[AXE_N_TRANSFER] = {
 	[AXE_BULK_DT_WR] = {
@@ -242,14 +244,10 @@ static const struct usb_config axe_config[AXE_N_TRANSFER] = {
 };
 
 static const struct ax88772b_mfb ax88772b_mfb_table[] = {
-	{ 0x8000, 0x8001, 2048 },
-	{ 0x8100, 0x8147, 4096},
-	{ 0x8200, 0x81EB, 6144},
-	{ 0x8300, 0x83D7, 8192},
-	{ 0x8400, 0x851E, 16384},
-	{ 0x8500, 0x8666, 20480},
-	{ 0x8600, 0x87AE, 24576},
-	{ 0x8700, 0x8A3D, 32768}
+	{ 0x8000, 0x8001, 2048 }, { 0x8100, 0x8147, 4096 },
+	{ 0x8200, 0x81EB, 6144 }, { 0x8300, 0x83D7, 8192 },
+	{ 0x8400, 0x851E, 16384 }, { 0x8500, 0x8666, 20480 },
+	{ 0x8600, 0x87AE, 24576 }, { 0x8700, 0x8A3D, 32768 }
 };
 
 static device_method_t axe_methods[] = {
@@ -302,9 +300,8 @@ axe_cmd(struct axe_softc *sc, int cmd, int index, int val, void *buf)
 
 	AXE_LOCK_ASSERT(sc, MA_OWNED);
 
-	req.bmRequestType = (AXE_CMD_IS_WRITE(cmd) ?
-	    UT_WRITE_VENDOR_DEVICE :
-	    UT_READ_VENDOR_DEVICE);
+	req.bmRequestType = (AXE_CMD_IS_WRITE(cmd) ? UT_WRITE_VENDOR_DEVICE :
+						     UT_READ_VENDOR_DEVICE);
 	req.bRequest = AXE_CMD_CMD(cmd);
 	USETW(req.wValue, val);
 	USETW(req.wIndex, index);
@@ -411,10 +408,10 @@ axe_miibus_statchg(device_t dev)
 		val |= AXE_MEDIA_FULL_DUPLEX;
 		if (AXE_IS_178_FAMILY(sc)) {
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_TXPAUSE) != 0)
+				IFM_ETH_TXPAUSE) != 0)
 				val |= AXE_178_MEDIA_TXFLOW_CONTROL_EN;
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_RXPAUSE) != 0)
+				IFM_ETH_RXPAUSE) != 0)
 				val |= AXE_178_MEDIA_RXFLOW_CONTROL_EN;
 		}
 	}
@@ -455,7 +452,7 @@ axe_ifmedia_upd(if_t ifp)
 
 	AXE_LOCK_ASSERT(sc, MA_OWNED);
 
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	return (error);
@@ -539,10 +536,11 @@ axe_get_phyno(struct axe_softc *sc, int sel)
 	return (phyno);
 }
 
-#define	AXE_GPIO_WRITE(x, y)	do {				\
-	axe_cmd(sc, AXE_CMD_WRITE_GPIO, 0, (x), NULL);		\
-	uether_pause(ue, (y));					\
-} while (0)
+#define AXE_GPIO_WRITE(x, y)                                   \
+	do {                                                   \
+		axe_cmd(sc, AXE_CMD_WRITE_GPIO, 0, (x), NULL); \
+		uether_pause(ue, (y));                         \
+	} while (0)
 
 static void
 axe_ax88178_init(struct axe_softc *sc)
@@ -586,18 +584,22 @@ axe_ax88178_init(struct axe_softc *sc)
 			    hz / 32);
 		} else {
 			AXE_GPIO_WRITE(AXE_GPIO_RELOAD_EEPROM | AXE_GPIO1 |
-			    AXE_GPIO1_EN, hz / 3);
+				AXE_GPIO1_EN,
+			    hz / 3);
 			if (ledmode == 1) {
 				AXE_GPIO_WRITE(AXE_GPIO1_EN, hz / 3);
 				AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN,
 				    hz / 3);
 			} else {
 				AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN |
-				    AXE_GPIO2 | AXE_GPIO2_EN, hz / 32);
+					AXE_GPIO2 | AXE_GPIO2_EN,
+				    hz / 32);
 				AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN |
-				    AXE_GPIO2_EN, hz / 4);
+					AXE_GPIO2_EN,
+				    hz / 4);
 				AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN |
-				    AXE_GPIO2 | AXE_GPIO2_EN, hz / 32);
+					AXE_GPIO2 | AXE_GPIO2_EN,
+				    hz / 32);
 			}
 		}
 		break;
@@ -606,40 +608,45 @@ axe_ax88178_init(struct axe_softc *sc)
 	case AXE_PHY_MODE_CICADA_V2_ASIX:
 		if (gpio0 == 1)
 			AXE_GPIO_WRITE(AXE_GPIO_RELOAD_EEPROM | AXE_GPIO0 |
-			    AXE_GPIO0_EN, hz / 32);
+				AXE_GPIO0_EN,
+			    hz / 32);
 		else
 			AXE_GPIO_WRITE(AXE_GPIO_RELOAD_EEPROM | AXE_GPIO1 |
-			    AXE_GPIO1_EN, hz / 32);
+				AXE_GPIO1_EN,
+			    hz / 32);
 		break;
 	case AXE_PHY_MODE_AGERE:
 		AXE_GPIO_WRITE(AXE_GPIO_RELOAD_EEPROM | AXE_GPIO1 |
-		    AXE_GPIO1_EN, hz / 32);
+			AXE_GPIO1_EN,
+		    hz / 32);
 		AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN | AXE_GPIO2 |
-		    AXE_GPIO2_EN, hz / 32);
+			AXE_GPIO2_EN,
+		    hz / 32);
 		AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN | AXE_GPIO2_EN, hz / 4);
 		AXE_GPIO_WRITE(AXE_GPIO1 | AXE_GPIO1_EN | AXE_GPIO2 |
-		    AXE_GPIO2_EN, hz / 32);
+			AXE_GPIO2_EN,
+		    hz / 32);
 		break;
 	case AXE_PHY_MODE_REALTEK_8211CL:
 	case AXE_PHY_MODE_REALTEK_8211BN:
 	case AXE_PHY_MODE_REALTEK_8251CL:
 		val = gpio0 == 1 ? AXE_GPIO0 | AXE_GPIO0_EN :
-		    AXE_GPIO1 | AXE_GPIO1_EN;
+				   AXE_GPIO1 | AXE_GPIO1_EN;
 		AXE_GPIO_WRITE(val, hz / 32);
 		AXE_GPIO_WRITE(val | AXE_GPIO2 | AXE_GPIO2_EN, hz / 32);
 		AXE_GPIO_WRITE(val | AXE_GPIO2_EN, hz / 4);
 		AXE_GPIO_WRITE(val | AXE_GPIO2 | AXE_GPIO2_EN, hz / 32);
 		if (phymode == AXE_PHY_MODE_REALTEK_8211CL) {
-			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno,
-			    0x1F, 0x0005);
-			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno,
-			    0x0C, 0x0000);
+			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno, 0x1F,
+			    0x0005);
+			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno, 0x0C,
+			    0x0000);
 			val = axe_miibus_readreg(ue->ue_dev, sc->sc_phyno,
 			    0x0001);
-			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno,
-			    0x01, val | 0x0080);
-			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno,
-			    0x1F, 0x0000);
+			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno, 0x01,
+			    val | 0x0080);
+			axe_miibus_writereg(ue->ue_dev, sc->sc_phyno, 0x1F,
+			    0x0000);
 		}
 		break;
 	default:
@@ -673,8 +680,7 @@ axe_ax88772_init(struct axe_softc *sc)
 		uether_pause(&sc->sc_ue, hz / 64);
 
 		/* power down and reset state, pin reset state */
-		axe_cmd(sc, AXE_CMD_SW_RESET_REG, 0,
-		    AXE_SW_RESET_CLEAR, NULL);
+		axe_cmd(sc, AXE_CMD_SW_RESET_REG, 0, AXE_SW_RESET_CLEAR, NULL);
 		uether_pause(&sc->sc_ue, hz / 16);
 
 		/* power down/reset state, pin operating state */
@@ -707,8 +713,9 @@ axe_ax88772_phywake(struct axe_softc *sc)
 {
 	if (sc->sc_phyno == AXE_772_PHY_NO_EPHY) {
 		/* Manually select internal(embedded) PHY - MAC mode. */
-		axe_cmd(sc, AXE_CMD_SW_PHY_SELECT, 0, AXE_SW_PHY_SELECT_SS_ENB |
-		    AXE_SW_PHY_SELECT_EMBEDDED | AXE_SW_PHY_SELECT_SS_MII,
+		axe_cmd(sc, AXE_CMD_SW_PHY_SELECT, 0,
+		    AXE_SW_PHY_SELECT_SS_ENB | AXE_SW_PHY_SELECT_EMBEDDED |
+			AXE_SW_PHY_SELECT_SS_MII,
 		    NULL);
 		uether_pause(&sc->sc_ue, hz / 32);
 	} else {
@@ -716,13 +723,15 @@ axe_ax88772_phywake(struct axe_softc *sc)
 		 * Manually select external PHY - MAC mode.
 		 * Reverse MII/RMII is for AX88772A PHY mode.
 		 */
-		axe_cmd(sc, AXE_CMD_SW_PHY_SELECT, 0, AXE_SW_PHY_SELECT_SS_ENB |
-		    AXE_SW_PHY_SELECT_EXT | AXE_SW_PHY_SELECT_SS_MII, NULL);
+		axe_cmd(sc, AXE_CMD_SW_PHY_SELECT, 0,
+		    AXE_SW_PHY_SELECT_SS_ENB | AXE_SW_PHY_SELECT_EXT |
+			AXE_SW_PHY_SELECT_SS_MII,
+		    NULL);
 		uether_pause(&sc->sc_ue, hz / 32);
 	}
 	/* Take PHY out of power down. */
-	axe_cmd(sc, AXE_CMD_SW_RESET_REG, 0, AXE_SW_RESET_IPPD |
-	    AXE_SW_RESET_IPRL, NULL);
+	axe_cmd(sc, AXE_CMD_SW_RESET_REG, 0,
+	    AXE_SW_RESET_IPPD | AXE_SW_RESET_IPRL, NULL);
 	uether_pause(&sc->sc_ue, hz / 4);
 	axe_cmd(sc, AXE_CMD_SW_RESET_REG, 0, AXE_SW_RESET_IPRL, NULL);
 	uether_pause(&sc->sc_ue, hz);
@@ -782,7 +791,7 @@ axe_ax88772b_init(struct axe_softc *sc)
 	axe_cmd(sc, AXE_CMD_RXCTL_WRITE, 0, 0, NULL);
 }
 
-#undef	AXE_GPIO_WRITE
+#undef AXE_GPIO_WRITE
 
 static void
 axe_reset(struct axe_softc *sc)
@@ -897,9 +906,9 @@ axe_attach_post_sub(struct usb_ether *ue)
 	else
 		adv_pause = 0;
 	bus_topo_lock();
-	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp,
-	    uether_ifmedia_upd, ue->ue_methods->ue_mii_sts,
-	    BMSR_DEFCAPMASK, sc->sc_phyno, MII_OFFSET_ANY, adv_pause);
+	error = mii_attach(ue->ue_dev, &ue->ue_miibus, ifp, uether_ifmedia_upd,
+	    ue->ue_methods->ue_mii_sts, BMSR_DEFCAPMASK, sc->sc_phyno,
+	    MII_OFFSET_ANY, adv_pause);
 	bus_topo_unlock();
 
 	return (error);
@@ -961,11 +970,11 @@ axe_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	axe_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -1002,13 +1011,13 @@ axe_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("bulk read error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -1069,7 +1078,7 @@ axe_rx_frame(struct usb_ether *ue, struct usb_page_cache *pc, int actlen)
 			csum_hdr.ilen = le16toh(csum_hdr.ilen);
 			csum_hdr.cstatus = le16toh(csum_hdr.cstatus);
 			if ((AXE_CSUM_RXBYTES(csum_hdr.len) ^
-			    AXE_CSUM_RXBYTES(csum_hdr.ilen)) !=
+				AXE_CSUM_RXBYTES(csum_hdr.ilen)) !=
 			    sc->sc_lenmask) {
 				/* we lost sync */
 				error = EINVAL;
@@ -1126,16 +1135,17 @@ axe_rxeof(struct usb_ether *ue, struct usb_page_cache *pc, unsigned offset,
 	m->m_pkthdr.len = m->m_len = len;
 
 	if (csum_hdr != NULL && csum_hdr->cstatus & AXE_CSUM_HDR_L3_TYPE_IPV4) {
-		if ((csum_hdr->cstatus & (AXE_CSUM_HDR_L4_CSUM_ERR |
-		    AXE_CSUM_HDR_L3_CSUM_ERR)) == 0) {
+		if ((csum_hdr->cstatus &
+			(AXE_CSUM_HDR_L4_CSUM_ERR |
+			    AXE_CSUM_HDR_L3_CSUM_ERR)) == 0) {
 			m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED |
 			    CSUM_IP_VALID;
 			if ((csum_hdr->cstatus & AXE_CSUM_HDR_L4_TYPE_MASK) ==
-			    AXE_CSUM_HDR_L4_TYPE_TCP ||
+				AXE_CSUM_HDR_L4_TYPE_TCP ||
 			    (csum_hdr->cstatus & AXE_CSUM_HDR_L4_TYPE_MASK) ==
-			    AXE_CSUM_HDR_L4_TYPE_UDP) {
-				m->m_pkthdr.csum_flags |=
-				    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+				AXE_CSUM_HDR_L4_TYPE_UDP) {
+				m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 		}
@@ -1145,7 +1155,7 @@ axe_rxeof(struct usb_ether *ue, struct usb_page_cache *pc, unsigned offset,
 	return (0);
 }
 
-#if ((AXE_BULK_BUF_SIZE >= 0x10000) || (AXE_BULK_BUF_SIZE < (MCLBYTES+4)))
+#if ((AXE_BULK_BUF_SIZE >= 0x10000) || (AXE_BULK_BUF_SIZE < (MCLBYTES + 4)))
 #error "Please update axe_bulk_write_callback()!"
 #endif
 
@@ -1165,7 +1175,7 @@ axe_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & AXE_FLAG_LINK) == 0 ||
 		    (if_getdrvflags(ifp) & IFF_DRV_OACTIVE) != 0) {
 			/*
@@ -1175,8 +1185,8 @@ tr_setup:
 			return;
 		}
 
-		for (nframes = 0; nframes < 16 &&
-		    !if_sendq_empty(ifp); nframes++) {
+		for (nframes = 0; nframes < 16 && !if_sendq_empty(ifp);
+		     nframes++) {
 			m = if_dequeue(ifp);
 			if (m == NULL)
 				break;
@@ -1195,7 +1205,7 @@ tr_setup:
 				 */
 				if (if_getcapabilities(ifp) & IFCAP_TXCSUM) {
 					if ((m->m_pkthdr.csum_flags &
-					    AXE_CSUM_FEATURES) != 0)
+						AXE_CSUM_FEATURES) != 0)
 						hdr.len |= htole16(
 						    AXE_TX_CSUM_PSEUDO_HDR);
 					else
@@ -1247,9 +1257,8 @@ tr_setup:
 		}
 		return;
 		/* NOTREACHED */
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);

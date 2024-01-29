@@ -60,15 +60,15 @@
 #endif
 
 #include "aicasm.h"
-#include "aicasm_symbol.h"
 #include "aicasm_insformat.h"
+#include "aicasm_symbol.h"
 
 typedef struct patch {
 	STAILQ_ENTRY(patch) links;
-	int		patch_func;
-	u_int		begin;
-	u_int		skip_instr;
-	u_int		skip_patch;
+	int patch_func;
+	u_int begin;
+	u_int skip_instr;
+	u_int skip_patch;
 } patch_t;
 
 STAILQ_HEAD(patch_list, patch) patches;
@@ -80,7 +80,7 @@ static void output_listing(char *ifilename);
 static void dump_scope(scope_t *scope);
 static void emit_patch(scope_t *scope, int patch);
 static int check_patch(patch_t **start_patch, unsigned int start_instr,
-		       unsigned int *skip_addr, int *func_vals);
+    unsigned int *skip_addr, int *func_vals);
 
 struct path_list search_path;
 int includes_search_curdir;
@@ -94,10 +94,10 @@ char *listfilename;
 FILE *listfile;
 char *regdiagfilename;
 FILE *regdiagfile;
-int   src_mode;
-int   dst_mode;
+int src_mode;
+int dst_mode;
 
-static STAILQ_HEAD(,instruction) seq_program;
+static STAILQ_HEAD(, instruction) seq_program;
 struct cs_tailq cs_tailq;
 struct scope_list scope_stack;
 symlist_t patch_functions;
@@ -116,8 +116,8 @@ int main(int argc, char *argv[]);
 int
 main(int argc, char *argv[])
 {
-	int  ch;
-	int  retval;
+	int ch;
+	int retval;
 	char *inputfilename;
 	scope_t *sentinal;
 
@@ -142,7 +142,7 @@ main(int argc, char *argv[])
 	mmdebug = 0;
 #endif
 	while ((ch = getopt(argc, argv, "d:i:l:n:o:p:r:I:X")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'd':
 #if DEBUG
 			if (strcmp(optarg, "s") == 0) {
@@ -152,13 +152,16 @@ main(int argc, char *argv[])
 				yydebug = 1;
 				mmdebug = 1;
 			} else {
-				fprintf(stderr, "%s: -d Requires either an "
-					"'s' or 'p' argument\n", appname);
+				fprintf(stderr,
+				    "%s: -d Requires either an "
+				    "'s' or 'p' argument\n",
+				    appname);
 				usage();
 			}
 #else
 			stop("-d: Assembler not built with debugging "
-			     "information", EX_SOFTWARE);
+			     "information",
+			    EX_SOFTWARE);
 #endif
 			break;
 		case 'i':
@@ -176,7 +179,7 @@ main(int argc, char *argv[])
 			/* Don't complain about the -nostdinc directive */
 			if (strcmp(optarg, "ostdinc")) {
 				fprintf(stderr, "%s: Unknown option -%c%s\n",
-					appname, ch, optarg);
+				    appname, ch, optarg);
 				usage();
 				/* NOTREACHED */
 			}
@@ -203,21 +206,22 @@ main(int argc, char *argv[])
 			}
 			regfilename = optarg;
 			break;
-		case 'I':
-		{
+		case 'I': {
 			path_entry_t include_dir;
 
 			if (strcmp(optarg, "-") == 0) {
 				if (includes_search_curdir == 0) {
-					fprintf(stderr, "%s: Warning - '-I-' "
-							"specified multiple "
-							"times\n", appname);
+					fprintf(stderr,
+					    "%s: Warning - '-I-' "
+					    "specified multiple "
+					    "times\n",
+					    appname);
 				}
 				includes_search_curdir = 0;
 				for (include_dir = SLIST_FIRST(&search_path);
 				     include_dir != NULL;
-				     include_dir = SLIST_NEXT(include_dir,
-							      links))
+				     include_dir =
+					 SLIST_NEXT(include_dir, links))
 					/*
 					 * All entries before a '-I-' only
 					 * apply to includes specified with
@@ -225,8 +229,8 @@ main(int argc, char *argv[])
 					 */
 					include_dir->quoted_includes_only = 1;
 			} else {
-				include_dir =
-				    (path_entry_t)malloc(sizeof(*include_dir));
+				include_dir = (path_entry_t)malloc(
+				    sizeof(*include_dir));
 				if (include_dir == NULL) {
 					perror(optarg);
 					stop(NULL, EX_OSERR);
@@ -238,7 +242,7 @@ main(int argc, char *argv[])
 				}
 				include_dir->quoted_includes_only = 0;
 				SLIST_INSERT_HEAD(&search_path, include_dir,
-						  links);
+				    links);
 			}
 			break;
 		}
@@ -260,11 +264,11 @@ main(int argc, char *argv[])
 		/* NOTREACHED */
 	}
 
-	if (regdiagfile != NULL
-	 && (regfile == NULL || stock_include_file == NULL)) {
+	if (regdiagfile != NULL &&
+	    (regfile == NULL || stock_include_file == NULL)) {
 		fprintf(stderr,
-			"%s: The -p option requires the -r and -i options.\n",
-			appname);
+		    "%s: The -p option requires the -r and -i options.\n",
+		    appname);
 		usage();
 		/* NOTREACHED */
 	}
@@ -273,8 +277,8 @@ main(int argc, char *argv[])
 	include_file(*argv, SOURCE_FILE);
 	retval = yyparse();
 	if (retval == 0) {
-		if (SLIST_FIRST(&scope_stack) == NULL
-		 || SLIST_FIRST(&scope_stack)->type != SCOPE_ROOT) {
+		if (SLIST_FIRST(&scope_stack) == NULL ||
+		    SLIST_FIRST(&scope_stack)->type != SCOPE_ROOT) {
 			stop("Unterminated conditional expression", EX_DATAERR);
 			/* NOTREACHED */
 		}
@@ -310,10 +314,11 @@ usage(void)
 {
 
 	(void)fprintf(stderr,
-"usage: %-16s [-nostdinc|-X] [-I-] [-I directory] [-o output_file]\n"
-"	[-r register_output_file [-p register_diag_file -i includefile]]\n"
-"	[-l program_list_file]\n"
-"	input_file\n", appname);
+	    "usage: %-16s [-nostdinc|-X] [-I-] [-I directory] [-o output_file]\n"
+	    "	[-r register_output_file [-p register_diag_file -i includefile]]\n"
+	    "	[-l program_list_file]\n"
+	    "	input_file\n",
+	    appname);
 	exit(EX_USAGE);
 }
 
@@ -322,8 +327,7 @@ back_patch(void)
 {
 	struct instruction *cur_instr;
 
-	for (cur_instr = STAILQ_FIRST(&seq_program);
-	     cur_instr != NULL;
+	for (cur_instr = STAILQ_FIRST(&seq_program); cur_instr != NULL;
 	     cur_instr = STAILQ_NEXT(cur_instr, links)) {
 		if (cur_instr->patch_label != NULL) {
 			struct ins_format3 *f3_instr;
@@ -332,9 +336,8 @@ back_patch(void)
 			if (cur_instr->patch_label->type != LABEL) {
 				char buf[255];
 
-				snprintf(buf, sizeof(buf),
-					 "Undefined label %s",
-					 cur_instr->patch_label->name);
+				snprintf(buf, sizeof(buf), "Undefined label %s",
+				    cur_instr->patch_label->name);
 				stop(buf, EX_DATAERR);
 				/* NOTREACHED */
 			}
@@ -357,102 +360,90 @@ output_code(void)
 
 	instrcount = 0;
 	fprintf(ofile,
-"/*\n"
-" * DO NOT EDIT - This file is automatically generated\n"
-" *		 from the following source files:\n"
-" *\n"
-"%s */\n", versions);
+	    "/*\n"
+	    " * DO NOT EDIT - This file is automatically generated\n"
+	    " *		 from the following source files:\n"
+	    " *\n"
+	    "%s */\n",
+	    versions);
 
 	fprintf(ofile, "static uint8_t seqprog[] = {\n");
-	for (cur_instr = STAILQ_FIRST(&seq_program);
-	     cur_instr != NULL;
+	for (cur_instr = STAILQ_FIRST(&seq_program); cur_instr != NULL;
 	     cur_instr = STAILQ_NEXT(cur_instr, links)) {
 		fprintf(ofile, "%s\t0x%02x, 0x%02x, 0x%02x, 0x%02x",
-			cur_instr == STAILQ_FIRST(&seq_program) ? "" : ",\n",
+		    cur_instr == STAILQ_FIRST(&seq_program) ? "" : ",\n",
 #if BYTE_ORDER == LITTLE_ENDIAN
-			cur_instr->format.bytes[0],
-			cur_instr->format.bytes[1],
-			cur_instr->format.bytes[2],
-			cur_instr->format.bytes[3]);
+		    cur_instr->format.bytes[0], cur_instr->format.bytes[1],
+		    cur_instr->format.bytes[2], cur_instr->format.bytes[3]);
 #else
-			cur_instr->format.bytes[3],
-			cur_instr->format.bytes[2],
-			cur_instr->format.bytes[1],
-			cur_instr->format.bytes[0]);
+		    cur_instr->format.bytes[3], cur_instr->format.bytes[2],
+		    cur_instr->format.bytes[1], cur_instr->format.bytes[0]);
 #endif
 		instrcount++;
 	}
 	fprintf(ofile, "\n};\n\n");
 
 	if (patch_arg_list == NULL)
-		stop("Patch argument list not defined",
-		     EX_DATAERR);
+		stop("Patch argument list not defined", EX_DATAERR);
 
 	/*
 	 *  Output patch information.  Patch functions first.
 	 */
-	fprintf(ofile,
-"typedef int %spatch_func_t (%s);\n", prefix, patch_arg_list);
+	fprintf(ofile, "typedef int %spatch_func_t (%s);\n", prefix,
+	    patch_arg_list);
 
-	for (cur_node = SLIST_FIRST(&patch_functions);
-	     cur_node != NULL;
-	     cur_node = SLIST_NEXT(cur_node,links)) {
+	for (cur_node = SLIST_FIRST(&patch_functions); cur_node != NULL;
+	     cur_node = SLIST_NEXT(cur_node, links)) {
 		fprintf(ofile,
-"static %spatch_func_t %spatch%d_func;\n"
-"\n"
-"static int\n"
-"%spatch%d_func(%s)\n"
-"{\n"
-"	return (%s);\n"
-"}\n\n",
-			prefix,
-			prefix,
-			cur_node->symbol->info.condinfo->func_num,
-			prefix,
-			cur_node->symbol->info.condinfo->func_num,
-			patch_arg_list,
-			cur_node->symbol->name);
+		    "static %spatch_func_t %spatch%d_func;\n"
+		    "\n"
+		    "static int\n"
+		    "%spatch%d_func(%s)\n"
+		    "{\n"
+		    "	return (%s);\n"
+		    "}\n\n",
+		    prefix, prefix, cur_node->symbol->info.condinfo->func_num,
+		    prefix, cur_node->symbol->info.condinfo->func_num,
+		    patch_arg_list, cur_node->symbol->name);
 	}
 
 	fprintf(ofile,
-"static struct patch {\n"
-"	%spatch_func_t		*patch_func;\n"
-"	uint32_t		 begin		:10,\n"
-"				 skip_instr	:10,\n"
-"				 skip_patch	:12;\n"
-"} patches[] = {\n", prefix);
+	    "static struct patch {\n"
+	    "	%spatch_func_t		*patch_func;\n"
+	    "	uint32_t		 begin		:10,\n"
+	    "				 skip_instr	:10,\n"
+	    "				 skip_patch	:12;\n"
+	    "} patches[] = {\n",
+	    prefix);
 
-	for (cur_patch = STAILQ_FIRST(&patches);
-	     cur_patch != NULL;
-	     cur_patch = STAILQ_NEXT(cur_patch,links)) {
+	for (cur_patch = STAILQ_FIRST(&patches); cur_patch != NULL;
+	     cur_patch = STAILQ_NEXT(cur_patch, links)) {
 		fprintf(ofile, "%s\t{ %spatch%d_func, %d, %d, %d }",
-			cur_patch == STAILQ_FIRST(&patches) ? "" : ",\n",
-			prefix,
-			cur_patch->patch_func, cur_patch->begin,
-			cur_patch->skip_instr, cur_patch->skip_patch);
+		    cur_patch == STAILQ_FIRST(&patches) ? "" : ",\n", prefix,
+		    cur_patch->patch_func, cur_patch->begin,
+		    cur_patch->skip_instr, cur_patch->skip_patch);
 	}
 
 	fprintf(ofile, "\n};\n\n");
 
 	fprintf(ofile,
-"static struct cs {\n"
-"	uint16_t	begin;\n"
-"	uint16_t	end;\n"
-"} critical_sections[] = {\n");
+	    "static struct cs {\n"
+	    "	uint16_t	begin;\n"
+	    "	uint16_t	end;\n"
+	    "} critical_sections[] = {\n");
 
-	for (cs = TAILQ_FIRST(&cs_tailq);
-	     cs != NULL;
+	for (cs = TAILQ_FIRST(&cs_tailq); cs != NULL;
 	     cs = TAILQ_NEXT(cs, links)) {
 		fprintf(ofile, "%s\t{ %d, %d }",
-			cs == TAILQ_FIRST(&cs_tailq) ? "" : ",\n",
-			cs->begin_addr, cs->end_addr);
+		    cs == TAILQ_FIRST(&cs_tailq) ? "" : ",\n", cs->begin_addr,
+		    cs->end_addr);
 	}
 
 	fprintf(ofile, "\n};\n\n");
 
 	fprintf(ofile,
-"static const int num_critical_sections = sizeof(critical_sections)\n"
-"				       / sizeof(*critical_sections);\n");
+	    "static const int num_critical_sections = sizeof(critical_sections)\n"
+	    "				       / sizeof(*critical_sections);\n");
 
 	fprintf(stderr, "%s: %d instructions used\n", appname, instrcount);
 }
@@ -543,8 +534,7 @@ output_listing(char *ifilename)
 	 * Determine which options to apply to this listing.
 	 */
 	for (func_count = 0, cur_func = SLIST_FIRST(&patch_functions);
-	    cur_func != NULL;
-	    cur_func = SLIST_NEXT(cur_func, links))
+	     cur_func != NULL; cur_func = SLIST_NEXT(cur_func, links))
 		func_count++;
 
 	func_values = NULL;
@@ -553,7 +543,7 @@ output_listing(char *ifilename)
 
 		if (func_values == NULL)
 			stop("Could not malloc", EX_OSERR);
-		
+
 		func_values[0] = 0; /* FALSE func */
 		func_count--;
 
@@ -561,17 +551,16 @@ output_listing(char *ifilename)
 		 * Ask the user to fill in the return values for
 		 * the rest of the functions.
 		 */
-		
-		
+
 		for (cur_func = SLIST_FIRST(&patch_functions);
 		     cur_func != NULL && SLIST_NEXT(cur_func, links) != NULL;
 		     cur_func = SLIST_NEXT(cur_func, links), func_count--) {
 			int input;
-			
+
 			fprintf(stdout, "\n(%s)\n", cur_func->symbol->name);
 			fprintf(stdout,
-				"Enter the return value for "
-				"this expression[T/F]:");
+			    "Enter the return value for "
+			    "this expression[T/F]:");
 
 			while (1) {
 				input = getchar();
@@ -593,33 +582,28 @@ output_listing(char *ifilename)
 
 	/* Now output the listing */
 	cur_patch = STAILQ_FIRST(&patches);
-	for (cur_instr = STAILQ_FIRST(&seq_program);
-	     cur_instr != NULL;
+	for (cur_instr = STAILQ_FIRST(&seq_program); cur_instr != NULL;
 	     cur_instr = STAILQ_NEXT(cur_instr, links), instrcount++) {
-		if (check_patch(&cur_patch, instrcount,
-				&skip_addr, func_values) == 0) {
+		if (check_patch(&cur_patch, instrcount, &skip_addr,
+			func_values) == 0) {
 			/* Don't count this instruction as it is in a patch
 			 * that was removed.
 			 */
-                        continue;
+			continue;
 		}
 
 		while (line < cur_instr->srcline) {
 			fgets(buf, sizeof(buf), ifile);
-				fprintf(listfile, "             \t%s", buf);
-				line++;
+			fprintf(listfile, "             \t%s", buf);
+			line++;
 		}
 		fprintf(listfile, "%04x %02x%02x%02x%02x", instrptr,
 #if BYTE_ORDER == LITTLE_ENDIAN
-			cur_instr->format.bytes[0],
-			cur_instr->format.bytes[1],
-			cur_instr->format.bytes[2],
-			cur_instr->format.bytes[3]);
+		    cur_instr->format.bytes[0], cur_instr->format.bytes[1],
+		    cur_instr->format.bytes[2], cur_instr->format.bytes[3]);
 #else
-			cur_instr->format.bytes[3],
-			cur_instr->format.bytes[2],
-			cur_instr->format.bytes[1],
-			cur_instr->format.bytes[0]);
+		    cur_instr->format.bytes[3], cur_instr->format.bytes[2],
+		    cur_instr->format.bytes[1], cur_instr->format.bytes[0]);
 #endif
 		/*
 		 * Macro expansions can cause several instructions
@@ -638,7 +622,7 @@ output_listing(char *ifilename)
 	free(func_values);
 
 	/* Dump the remainder of the file */
-	while(fgets(buf, sizeof(buf), ifile) != NULL)
+	while (fgets(buf, sizeof(buf), ifile) != NULL)
 		fprintf(listfile, "             %s", buf);
 
 	fclose(ifile);
@@ -646,7 +630,7 @@ output_listing(char *ifilename)
 
 static int
 check_patch(patch_t **start_patch, unsigned int start_instr,
-	    unsigned int *skip_addr, int *func_vals)
+    unsigned int *skip_addr, int *func_vals)
 {
 	patch_t *cur_patch;
 
@@ -659,8 +643,7 @@ check_patch(patch_t **start_patch, unsigned int start_instr,
 			/* Start rejecting code */
 			*skip_addr = start_instr + cur_patch->skip_instr;
 			for (skip = cur_patch->skip_patch;
-			     skip > 0 && cur_patch != NULL;
-			     skip--)
+			     skip > 0 && cur_patch != NULL; skip--)
 				cur_patch = STAILQ_NEXT(cur_patch, links);
 		} else {
 			/* Accepted this patch.  Advance to the next
@@ -690,7 +673,7 @@ stop(const char *string, int err_code)
 		fprintf(stderr, "%s: ", appname);
 		if (yyfilename != NULL) {
 			fprintf(stderr, "Stopped at file %s, line %d - ",
-				yyfilename, yylineno);
+			    yyfilename, yylineno);
 		}
 		fprintf(stderr, "%s\n", string);
 	}
@@ -699,7 +682,7 @@ stop(const char *string, int err_code)
 		fclose(ofile);
 		if (err_code != 0) {
 			fprintf(stderr, "%s: Removing %s due to error\n",
-				appname, ofilename);
+			    appname, ofilename);
 			unlink(ofilename);
 		}
 	}
@@ -708,7 +691,7 @@ stop(const char *string, int err_code)
 		fclose(regfile);
 		if (err_code != 0) {
 			fprintf(stderr, "%s: Removing %s due to error\n",
-				appname, regfilename);
+			    appname, regfilename);
 			unlink(regfilename);
 		}
 	}
@@ -717,7 +700,7 @@ stop(const char *string, int err_code)
 		fclose(listfile);
 		if (err_code != 0) {
 			fprintf(stderr, "%s: Removing %s due to error\n",
-				appname, listfilename);
+			    appname, listfilename);
 			unlink(listfilename);
 		}
 	}
@@ -747,7 +730,7 @@ cs_alloc(void)
 {
 	critical_section_t *new_cs;
 
-	new_cs= (critical_section_t *)malloc(sizeof(critical_section_t));
+	new_cs = (critical_section_t *)malloc(sizeof(critical_section_t));
 	if (new_cs == NULL)
 		stop("Unable to malloc critical_section object", EX_SOFTWARE);
 	memset(new_cs, 0, sizeof(*new_cs));
@@ -769,7 +752,7 @@ scope_alloc(void)
 
 	if (SLIST_FIRST(&scope_stack) != NULL) {
 		TAILQ_INSERT_TAIL(&SLIST_FIRST(&scope_stack)->inner_scope,
-				  new_scope, scope_links);
+		    new_scope, scope_links);
 	}
 	/* This patch is now the current scope */
 	SLIST_INSERT_HEAD(&scope_stack, new_scope, scope_stack_links);
@@ -814,8 +797,8 @@ process_scope(scope_t *scope)
 			patch0_patch_skip += cur_scope->inner_scope_patches;
 
 			cur_scope->patches[0].skip_patch = patch0_patch_skip;
-			cur_scope->patches[0].skip_instr =
-			    cur_scope->end_addr - cur_scope->begin_addr;
+			cur_scope->patches[0].skip_instr = cur_scope->end_addr -
+			    cur_scope->begin_addr;
 
 			skip_instr_count += cur_scope->patches[0].skip_instr;
 
@@ -823,15 +806,15 @@ process_scope(scope_t *scope)
 			if (cur_scope->type == SCOPE_IF) {
 				scope->inner_scope_patches += skip_patch_count;
 				skip_patch_count = 0;
-			        skip_instr_count = 0;
+				skip_instr_count = 0;
 			}
 			break;
 		case SCOPE_ELSE:
 			/* Count any patches contained in our innter scope */
 			skip_patch_count += cur_scope->inner_scope_patches;
 
-			skip_instr_count += cur_scope->end_addr
-					  - cur_scope->begin_addr;
+			skip_instr_count += cur_scope->end_addr -
+			    cur_scope->begin_addr;
 			break;
 		case SCOPE_ROOT:
 			stop("Unexpected scope type encountered", EX_SOFTWARE);

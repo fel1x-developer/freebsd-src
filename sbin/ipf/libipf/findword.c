@@ -8,7 +8,6 @@
 
 #include "ipf.h"
 
-
 wordtab_t *
 findword(wordtab_t *words, char *name)
 {

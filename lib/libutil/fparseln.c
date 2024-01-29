@@ -32,12 +32,13 @@
  */
 
 #include <sys/types.h>
+
 #include <assert.h>
 #include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <libutil.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static int isescaped(const char *, const char *, int);
 
@@ -48,8 +49,8 @@ static int isescaped(const char *, const char *, int);
 static int
 isescaped(const char *sp, const char *p, int esc)
 {
-	const char     *cp;
-	size_t		ne;
+	const char *cp;
+	size_t ne;
 
 #if 0
 	_DIAGASSERT(sp != NULL);
@@ -68,7 +69,6 @@ isescaped(const char *sp, const char *p, int esc)
 	return (ne & 1) != 0;
 }
 
-
 /* fparseln():
  *	Read a line from a file parsing continuations ending in \
  *	and eliminating trailing newlines, or comments starting with
@@ -79,11 +79,11 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 {
 	static const char dstr[3] = { '\\', '\\', '#' };
 
-	size_t	s, len;
-	char   *buf;
-	char   *ptr, *cp;
-	int	cnt;
-	char	esc, con, nl, com;
+	size_t s, len;
+	char *buf;
+	char *ptr, *cp;
+	int cnt;
+	char esc, con, nl, com;
 
 #if 0
 	_DIAGASSERT(fp != NULL);
@@ -103,7 +103,7 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 	 * XXX: it would be cool to be able to specify the newline character,
 	 * but unfortunately, fgetln does not let us
 	 */
-	nl  = '\n';
+	nl = '\n';
 
 	while (cnt) {
 		cnt = 0;
@@ -114,7 +114,7 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 		if ((ptr = fgetln(fp, &s)) == NULL)
 			break;
 
-		if (s && com) {		/* Check and eliminate comments */
+		if (s && com) { /* Check and eliminate comments */
 			for (cp = ptr; cp < ptr + s; cp++)
 				if (*cp == com && !isescaped(ptr, cp, esc)) {
 					s = cp - ptr;
@@ -123,18 +123,18 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 				}
 		}
 
-		if (s && nl) { 		/* Check and eliminate newlines */
+		if (s && nl) { /* Check and eliminate newlines */
 			cp = &ptr[s - 1];
 
 			if (*cp == nl)
-				s--;	/* forget newline */
+				s--; /* forget newline */
 		}
 
-		if (s && con) {		/* Check and eliminate continuations */
+		if (s && con) { /* Check and eliminate continuations */
 			cp = &ptr[s - 1];
 
 			if (*cp == con && !isescaped(ptr, cp, esc)) {
-				s--;	/* forget continuation char */
+				s--; /* forget continuation char */
 				cnt = 1;
 			}
 		}
@@ -154,7 +154,7 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 		}
 		buf = cp;
 
-		(void) memcpy(buf + len, ptr, s);
+		(void)memcpy(buf + len, ptr, s);
 		len += s;
 		buf[len] = '\0';
 	}
@@ -200,12 +200,12 @@ fparseln(FILE *fp, size_t *size, size_t *lineno, const char str[3], int flags)
 int
 main(int argc, char *argv[])
 {
-	char   *ptr;
-	size_t	size, line;
+	char *ptr;
+	size_t size, line;
 
 	line = 0;
-	while ((ptr = fparseln(stdin, &size, &line, NULL,
-	    FPARSELN_UNESCALL)) != NULL)
+	while ((ptr = fparseln(stdin, &size, &line, NULL, FPARSELN_UNESCALL)) !=
+	    NULL)
 		printf("line %d (%d) |%s|\n", line, size, ptr);
 	return 0;
 }

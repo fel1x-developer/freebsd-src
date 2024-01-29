@@ -26,13 +26,12 @@
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
-#include <dev/mlx5/mlx5_en/en.h>
+#include <sys/domain.h>
 
+#include <dev/mlx5/device.h>
 #include <dev/mlx5/mlx5_core/fs_core.h>
 #include <dev/mlx5/mlx5_core/fs_tcp.h>
-#include <dev/mlx5/device.h>
-
-#include <sys/domain.h>
+#include <dev/mlx5/mlx5_en/en.h>
 
 #include <netinet/in_pcb.h>
 
@@ -40,15 +39,19 @@
 static void
 accel_fs_tcp_set_ipv4_flow(struct mlx5_flow_spec *spec, struct inpcb *inp)
 {
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.ip_protocol);
-	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_protocol, IPPROTO_TCP);
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.ip_version);
-	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_version, 4);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.ip_protocol);
+	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_protocol,
+	    IPPROTO_TCP);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.ip_version);
+	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_version,
+	    4);
 	memcpy(MLX5_ADDR_OF(fte_match_param, spec->match_value,
-	    outer_headers.src_ipv4_src_ipv6.ipv4_layout.ipv4),
+		   outer_headers.src_ipv4_src_ipv6.ipv4_layout.ipv4),
 	    &inp->inp_faddr, 4);
 	memcpy(MLX5_ADDR_OF(fte_match_param, spec->match_value,
-	    outer_headers.dst_ipv4_dst_ipv6.ipv4_layout.ipv4),
+		   outer_headers.dst_ipv4_dst_ipv6.ipv4_layout.ipv4),
 	    &inp->inp_laddr, 4);
 	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
 	    outer_headers.src_ipv4_src_ipv6.ipv4_layout.ipv4);
@@ -61,21 +64,25 @@ accel_fs_tcp_set_ipv4_flow(struct mlx5_flow_spec *spec, struct inpcb *inp)
 static void
 accel_fs_tcp_set_ipv6_flow(struct mlx5_flow_spec *spec, struct inpcb *inp)
 {
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.ip_protocol);
-	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_protocol, IPPROTO_TCP);
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.ip_version);
-	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_version, 6);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.ip_protocol);
+	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_protocol,
+	    IPPROTO_TCP);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.ip_version);
+	MLX5_SET(fte_match_param, spec->match_value, outer_headers.ip_version,
+	    6);
 	memcpy(MLX5_ADDR_OF(fte_match_param, spec->match_value,
-	    outer_headers.src_ipv4_src_ipv6.ipv6_layout.ipv6),
+		   outer_headers.src_ipv4_src_ipv6.ipv6_layout.ipv6),
 	    &inp->in6p_faddr, 16);
 	memcpy(MLX5_ADDR_OF(fte_match_param, spec->match_value,
-	    outer_headers.dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
+		   outer_headers.dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
 	    &inp->in6p_laddr, 16);
 	memset(MLX5_ADDR_OF(fte_match_param, spec->match_criteria,
-	    outer_headers.src_ipv4_src_ipv6.ipv6_layout.ipv6),
+		   outer_headers.src_ipv4_src_ipv6.ipv6_layout.ipv6),
 	    0xff, 16);
 	memset(MLX5_ADDR_OF(fte_match_param, spec->match_criteria,
-	    outer_headers.dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
+		   outer_headers.dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
 	    0xff, 16);
 }
 #endif
@@ -87,9 +94,8 @@ mlx5e_accel_fs_del_inpcb(struct mlx5_flow_rule *rule)
 }
 
 struct mlx5_flow_rule *
-mlx5e_accel_fs_add_inpcb(struct mlx5e_priv *priv,
-    struct inpcb *inp, uint32_t tirn, uint32_t flow_tag,
-    uint16_t vlan_id)
+mlx5e_accel_fs_add_inpcb(struct mlx5e_priv *priv, struct inpcb *inp,
+    uint32_t tirn, uint32_t flow_tag, uint16_t vlan_id)
 {
 	struct mlx5_flow_destination dest = {};
 	struct mlx5e_flow_table *ft = NULL;
@@ -111,11 +117,15 @@ mlx5e_accel_fs_add_inpcb(struct mlx5e_priv *priv,
 
 	INP_RLOCK(inp);
 	/* Set VLAN ID to match, if any. */
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.cvlan_tag);
-	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria, outer_headers.first_vid);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.cvlan_tag);
+	MLX5_SET_TO_ONES(fte_match_param, spec->match_criteria,
+	    outer_headers.first_vid);
 	if (vlan_id != MLX5E_ACCEL_FS_ADD_INPCB_NO_VLAN) {
-		MLX5_SET_TO_ONES(fte_match_param, spec->match_value, outer_headers.cvlan_tag);
-		MLX5_SET(fte_match_param, spec->match_value, outer_headers.first_vid, vlan_id);
+		MLX5_SET_TO_ONES(fte_match_param, spec->match_value,
+		    outer_headers.cvlan_tag);
+		MLX5_SET(fte_match_param, spec->match_value,
+		    outer_headers.first_vid, vlan_id);
 	}
 
 	/* Set TCP port numbers. */
@@ -162,11 +172,8 @@ mlx5e_accel_fs_add_inpcb(struct mlx5e_priv *priv,
 	dest.tir_num = tirn;
 
 	flow = mlx5_add_flow_rule(ft->t, spec->match_criteria_enable,
-	    spec->match_criteria,
-	    spec->match_value,
-	    MLX5_FLOW_RULE_FWD_ACTION_DEST,
-	    &flow_act,
-	    &dest);
+	    spec->match_criteria, spec->match_value,
+	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 out:
 	kvfree(spec);
 	return (flow);
@@ -197,10 +204,11 @@ accel_fs_tcp_add_default_rule(struct mlx5e_priv *priv, int type)
 	 * of flow tables.
 	 */
 	dest.ft = (type == MLX5E_ACCEL_FS_TCP_NUM_TYPES - 1) ?
-	    priv->fts.vlan.t : fs_tcp->tables[type + 1].t;
+	    priv->fts.vlan.t :
+	    fs_tcp->tables[type + 1].t;
 
-	rule = mlx5_add_flow_rule(fs_tcp->tables[type].t, 0, match_criteria, match_value,
-	    MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
+	rule = mlx5_add_flow_rule(fs_tcp->tables[type].t, 0, match_criteria,
+	    match_value, MLX5_FLOW_RULE_FWD_ACTION_DEST, &flow_act, &dest);
 	if (IS_ERR(rule))
 		return (PTR_ERR(rule));
 
@@ -208,11 +216,11 @@ accel_fs_tcp_add_default_rule(struct mlx5e_priv *priv, int type)
 	return (0);
 }
 
-#define	MLX5E_ACCEL_FS_TCP_NUM_GROUPS	(2)
-#define	MLX5E_ACCEL_FS_TCP_GROUP1_SIZE	(BIT(16) - 1)
-#define	MLX5E_ACCEL_FS_TCP_GROUP2_SIZE	(BIT(0))
-#define	MLX5E_ACCEL_FS_TCP_TABLE_SIZE	(MLX5E_ACCEL_FS_TCP_GROUP1_SIZE +\
-					 MLX5E_ACCEL_FS_TCP_GROUP2_SIZE)
+#define MLX5E_ACCEL_FS_TCP_NUM_GROUPS (2)
+#define MLX5E_ACCEL_FS_TCP_GROUP1_SIZE (BIT(16) - 1)
+#define MLX5E_ACCEL_FS_TCP_GROUP2_SIZE (BIT(0))
+#define MLX5E_ACCEL_FS_TCP_TABLE_SIZE \
+	(MLX5E_ACCEL_FS_TCP_GROUP1_SIZE + MLX5E_ACCEL_FS_TCP_GROUP2_SIZE)
 static int
 accel_fs_tcp_create_groups(struct mlx5e_flow_table *ft, int type)
 {
@@ -223,7 +231,8 @@ accel_fs_tcp_create_groups(struct mlx5e_flow_table *ft, int type)
 	int err;
 	u8 *mc;
 
-	ft->g = kcalloc(MLX5E_ACCEL_FS_TCP_NUM_GROUPS, sizeof(*ft->g), GFP_KERNEL);
+	ft->g = kcalloc(MLX5E_ACCEL_FS_TCP_NUM_GROUPS, sizeof(*ft->g),
+	    GFP_KERNEL);
 	in = kvzalloc(inlen, GFP_KERNEL);
 	if (!in || !ft->g) {
 		kfree(ft->g);
@@ -241,8 +250,10 @@ accel_fs_tcp_create_groups(struct mlx5e_flow_table *ft, int type)
 	switch (type) {
 	case MLX5E_ACCEL_FS_IPV4_TCP:
 	case MLX5E_ACCEL_FS_IPV6_TCP:
-		MLX5_SET_TO_ONES(fte_match_set_lyr_2_4, outer_headers_c, tcp_dport);
-		MLX5_SET_TO_ONES(fte_match_set_lyr_2_4, outer_headers_c, tcp_sport);
+		MLX5_SET_TO_ONES(fte_match_set_lyr_2_4, outer_headers_c,
+		    tcp_dport);
+		MLX5_SET_TO_ONES(fte_match_set_lyr_2_4, outer_headers_c,
+		    tcp_sport);
 		break;
 	default:
 		err = -EINVAL;
@@ -258,10 +269,10 @@ accel_fs_tcp_create_groups(struct mlx5e_flow_table *ft, int type)
 		break;
 	case MLX5E_ACCEL_FS_IPV6_TCP:
 		memset(MLX5_ADDR_OF(fte_match_set_lyr_2_4, outer_headers_c,
-		    src_ipv4_src_ipv6.ipv6_layout.ipv6),
+			   src_ipv4_src_ipv6.ipv6_layout.ipv6),
 		    0xff, 16);
 		memset(MLX5_ADDR_OF(fte_match_set_lyr_2_4, outer_headers_c,
-		    dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
+			   dst_ipv4_dst_ipv6.ipv6_layout.ipv6),
 		    0xff, 16);
 		break;
 	default:
@@ -303,14 +314,14 @@ out:
 static void
 accel_fs_tcp_destroy_groups(struct mlx5e_flow_table *ft)
 {
-        int i;
+	int i;
 
-        for (i = ft->num_groups - 1; i >= 0; i--) {
-                if (!IS_ERR_OR_NULL(ft->g[i]))
-                        mlx5_destroy_flow_group(ft->g[i]);
-                ft->g[i] = NULL;
-        }
-        ft->num_groups = 0;
+	for (i = ft->num_groups - 1; i >= 0; i--) {
+		if (!IS_ERR_OR_NULL(ft->g[i]))
+			mlx5_destroy_flow_group(ft->g[i]);
+		ft->g[i] = NULL;
+	}
+	ft->num_groups = 0;
 }
 
 static int
@@ -361,7 +372,8 @@ mlx5e_accel_fs_tcp_destroy(struct mlx5e_priv *priv)
 {
 	int i;
 
-	if (!MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev, ft_field_support.outer_ip_version))
+	if (!MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev,
+		ft_field_support.outer_ip_version))
 		return;
 
 	for (i = 0; i < MLX5E_ACCEL_FS_TCP_NUM_TYPES; i++) {
@@ -375,12 +387,13 @@ mlx5e_accel_fs_tcp_create(struct mlx5e_priv *priv)
 {
 	int i, err;
 
-	if (!MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev, ft_field_support.outer_ip_version))
+	if (!MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev,
+		ft_field_support.outer_ip_version))
 		return (0);
 
 	/* Setup namespace pointer. */
-	priv->fts.accel_tcp.ns = mlx5_get_flow_namespace(
-	    priv->mdev, MLX5_FLOW_NAMESPACE_OFFLOADS);
+	priv->fts.accel_tcp.ns = mlx5_get_flow_namespace(priv->mdev,
+	    MLX5_FLOW_NAMESPACE_OFFLOADS);
 
 	/*
 	 * Create flow tables first, because the priority level is

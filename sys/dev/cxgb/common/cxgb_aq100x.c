@@ -29,6 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 
 #include <sys/cdefs.h>
+
 #include <cxgb_include.h>
 
 #undef msleep
@@ -36,45 +37,48 @@ POSSIBILITY OF SUCH DAMAGE.
 
 enum {
 	/* MDIO_DEV_PMA_PMD registers */
-	AQ_LINK_STAT	= 0xe800,
+	AQ_LINK_STAT = 0xe800,
 
 	/* MDIO_DEV_XGXS registers */
-	AQ_XAUI_RX_CFG	= 0xc400,
-	AQ_XAUI_KX_CFG	= 0xc440,
-	AQ_XAUI_TX_CFG	= 0xe400,
+	AQ_XAUI_RX_CFG = 0xc400,
+	AQ_XAUI_KX_CFG = 0xc440,
+	AQ_XAUI_TX_CFG = 0xe400,
 
 	/* MDIO_DEV_ANEG registers */
-	AQ_100M_CTRL	= 0x0010,
-	AQ_10G_CTRL	= 0x0020,
-	AQ_1G_CTRL	= 0xc400,
-	AQ_ANEG_STAT	= 0xc800,
+	AQ_100M_CTRL = 0x0010,
+	AQ_10G_CTRL = 0x0020,
+	AQ_1G_CTRL = 0xc400,
+	AQ_ANEG_STAT = 0xc800,
 
 	/* MDIO_DEV_VEND1 registers */
-	AQ_FW_VERSION	= 0x0020,
-	AQ_THERMAL_THR	= 0xc421,
-	AQ_THERMAL1	= 0xc820,
-	AQ_THERMAL2	= 0xc821,
-	AQ_IFLAG_GLOBAL	= 0xfc00,
-	AQ_IMASK_GLOBAL	= 0xff00,
+	AQ_FW_VERSION = 0x0020,
+	AQ_THERMAL_THR = 0xc421,
+	AQ_THERMAL1 = 0xc820,
+	AQ_THERMAL2 = 0xc821,
+	AQ_IFLAG_GLOBAL = 0xfc00,
+	AQ_IMASK_GLOBAL = 0xff00,
 };
 
-#define AQBIT(x)	(1 << (0x##x))
-#define ADV_1G_FULL	AQBIT(f)
-#define ADV_1G_HALF	AQBIT(e)
-#define ADV_10G_FULL	AQBIT(c)
+#define AQBIT(x) (1 << (0x##x))
+#define ADV_1G_FULL AQBIT(f)
+#define ADV_1G_HALF AQBIT(e)
+#define ADV_10G_FULL AQBIT(c)
 
-#define AQ_WRITE_REGS(phy, regs) do { \
-	int i; \
-	for (i = 0; i < ARRAY_SIZE(regs); i++) { \
-		(void) mdio_write(phy, regs[i].mmd, regs[i].reg, regs[i].val); \
-	} \
-} while (0)
-#define AQ_READ_REGS(phy, regs) do { \
-	unsigned i, v; \
-	for (i = 0; i < ARRAY_SIZE(regs); i++) { \
-		(void) mdio_read(phy, regs[i].mmd, regs[i].reg, &v); \
-	} \
-} while (0)
+#define AQ_WRITE_REGS(phy, regs)                                        \
+	do {                                                            \
+		int i;                                                  \
+		for (i = 0; i < ARRAY_SIZE(regs); i++) {                \
+			(void)mdio_write(phy, regs[i].mmd, regs[i].reg, \
+			    regs[i].val);                               \
+		}                                                       \
+	} while (0)
+#define AQ_READ_REGS(phy, regs)                                             \
+	do {                                                                \
+		unsigned i, v;                                              \
+		for (i = 0; i < ARRAY_SIZE(regs); i++) {                    \
+			(void)mdio_read(phy, regs[i].mmd, regs[i].reg, &v); \
+		}                                                           \
+	} while (0)
 
 /*
  * Return value is temperature in celsius, 0xffff for error or don't know.
@@ -84,8 +88,8 @@ aq100x_temperature(struct cphy *phy)
 {
 	unsigned int v;
 
-	if (mdio_read(phy, MDIO_DEV_VEND1, AQ_THERMAL2, &v) ||
-	    v == 0xffff || (v & 1) != 1)
+	if (mdio_read(phy, MDIO_DEV_VEND1, AQ_THERMAL2, &v) || v == 0xffff ||
+	    (v & 1) != 1)
 		return (0xffff);
 
 	if (mdio_read(phy, MDIO_DEV_VEND1, AQ_THERMAL1, &v))
@@ -117,11 +121,9 @@ aq100x_intr_enable(struct cphy *phy)
 		int mmd;
 		int reg;
 		int val;
-	} imasks[] = {
-		{MDIO_DEV_VEND1, 0xd400, AQBIT(e)},
-		{MDIO_DEV_VEND1, 0xff01, AQBIT(2)},
-		{MDIO_DEV_VEND1, AQ_IMASK_GLOBAL, AQBIT(0)}
-	};
+	} imasks[] = { { MDIO_DEV_VEND1, 0xd400, AQBIT(e) },
+		{ MDIO_DEV_VEND1, 0xff01, AQBIT(2) },
+		{ MDIO_DEV_VEND1, AQ_IMASK_GLOBAL, AQBIT(0) } };
 
 	AQ_WRITE_REGS(phy, imasks);
 
@@ -135,11 +137,9 @@ aq100x_intr_disable(struct cphy *phy)
 		int mmd;
 		int reg;
 		int val;
-	} imasks[] = {
-		{MDIO_DEV_VEND1, 0xd400, 0},
-		{MDIO_DEV_VEND1, 0xff01, 0},
-		{MDIO_DEV_VEND1, AQ_IMASK_GLOBAL, 0}
-	};
+	} imasks[] = { { MDIO_DEV_VEND1, 0xd400, 0 },
+		{ MDIO_DEV_VEND1, 0xff01, 0 },
+		{ MDIO_DEV_VEND1, AQ_IMASK_GLOBAL, 0 } };
 
 	AQ_WRITE_REGS(phy, imasks);
 
@@ -153,8 +153,8 @@ aq100x_intr_clear(struct cphy *phy)
 		int mmd;
 		int reg;
 	} iclr[] = {
-		{MDIO_DEV_VEND1, 0xcc00},
-		{MDIO_DEV_VEND1, AQ_IMASK_GLOBAL} /* needed? */
+		{ MDIO_DEV_VEND1, 0xcc00 },
+		{ MDIO_DEV_VEND1, AQ_IMASK_GLOBAL } /* needed? */
 	};
 
 	AQ_READ_REGS(phy, iclr);
@@ -191,11 +191,12 @@ aq100x_vendor_intr(struct cphy *phy, int *rc)
 	}
 
 	if (cause)
-		CH_WARN(phy->adapter, "PHY%d: unhandled vendor interrupt"
-		    " (0x%x)\n", phy->addr, cause);
+		CH_WARN(phy->adapter,
+		    "PHY%d: unhandled vendor interrupt"
+		    " (0x%x)\n",
+		    phy->addr, cause);
 
 	return (0);
-
 }
 
 static int
@@ -280,8 +281,8 @@ aq100x_advertise(struct cphy *phy, unsigned int advertise_map)
 	adv = 0;
 	if (advertise_map & ADVERTISED_10000baseT_Full)
 		adv |= ADV_10G_FULL;
-	err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, AQ_10G_CTRL,
-				  ADV_10G_FULL, adv);
+	err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, AQ_10G_CTRL, ADV_10G_FULL,
+	    adv);
 	if (err)
 		return (err);
 
@@ -292,7 +293,7 @@ aq100x_advertise(struct cphy *phy, unsigned int advertise_map)
 	if (advertise_map & ADVERTISED_1000baseT_Half)
 		adv |= ADV_1G_HALF;
 	err = t3_mdio_change_bits(phy, MDIO_DEV_ANEG, AQ_1G_CTRL,
-				  ADV_1G_FULL | ADV_1G_HALF, adv);
+	    ADV_1G_FULL | ADV_1G_HALF, adv);
 	if (err)
 		return (err);
 
@@ -315,7 +316,7 @@ static int
 aq100x_set_loopback(struct cphy *phy, int mmd, int dir, int enable)
 {
 	return t3_mdio_change_bits(phy, MDIO_DEV_PMA_PMD, MII_BMCR,
-				   BMCR_LOOPBACK, enable ? BMCR_LOOPBACK : 0);
+	    BMCR_LOOPBACK, enable ? BMCR_LOOPBACK : 0);
 }
 
 static int
@@ -349,8 +350,8 @@ aq100x_set_speed_duplex(struct cphy *phy, int speed, int duplex)
 }
 
 static int
-aq100x_get_link_status(struct cphy *phy, int *link_state, int *speed, int *duplex,
-		       int *fc)
+aq100x_get_link_status(struct cphy *phy, int *link_state, int *speed,
+    int *duplex, int *fc)
 {
 	int err;
 	unsigned int v, link = 0;
@@ -380,13 +381,17 @@ aq100x_get_link_status(struct cphy *phy, int *link_state, int *speed, int *duple
 
 		if (speed) {
 			switch (v & 0x6) {
-			case 0x6: *speed = SPEED_10000;
+			case 0x6:
+				*speed = SPEED_10000;
 				break;
-			case 0x4: *speed = SPEED_1000;
+			case 0x4:
+				*speed = SPEED_1000;
 				break;
-			case 0x2: *speed = SPEED_100;
+			case 0x2:
+				*speed = SPEED_100;
 				break;
-			case 0x0: *speed = SPEED_10;
+			case 0x0:
+				*speed = SPEED_10;
 				break;
 			}
 		}
@@ -445,23 +450,23 @@ done:
 }
 
 static struct cphy_ops aq100x_ops = {
-	.reset             = aq100x_reset,
-	.intr_enable       = aq100x_intr_enable,
-	.intr_disable      = aq100x_intr_disable,
-	.intr_clear        = aq100x_intr_clear,
-	.intr_handler      = aq100x_intr_handler,
-	.autoneg_enable    = aq100x_autoneg_enable,
-	.autoneg_restart   = aq100x_autoneg_restart,
-	.advertise         = aq100x_advertise,
-	.set_loopback      = aq100x_set_loopback,
-	.set_speed_duplex  = aq100x_set_speed_duplex,
-	.get_link_status   = aq100x_get_link_status,
-	.power_down        = aq100x_power_down,
+	.reset = aq100x_reset,
+	.intr_enable = aq100x_intr_enable,
+	.intr_disable = aq100x_intr_disable,
+	.intr_clear = aq100x_intr_clear,
+	.intr_handler = aq100x_intr_handler,
+	.autoneg_enable = aq100x_autoneg_enable,
+	.autoneg_restart = aq100x_autoneg_restart,
+	.advertise = aq100x_advertise,
+	.set_loopback = aq100x_set_loopback,
+	.set_speed_duplex = aq100x_set_speed_duplex,
+	.get_link_status = aq100x_get_link_status,
+	.power_down = aq100x_power_down,
 };
 
 int
 t3_aq100x_phy_prep(pinfo_t *pinfo, int phy_addr,
-		       const struct mdio_ops *mdio_ops)
+    const struct mdio_ops *mdio_ops)
 {
 	struct cphy *phy = &pinfo->phy;
 	unsigned int v, v2, gpio, wait;
@@ -469,9 +474,10 @@ t3_aq100x_phy_prep(pinfo_t *pinfo, int phy_addr,
 	adapter_t *adapter = pinfo->adapter;
 
 	cphy_init(&pinfo->phy, adapter, pinfo, phy_addr, &aq100x_ops, mdio_ops,
-		  SUPPORTED_1000baseT_Full | SUPPORTED_10000baseT_Full |
-		  SUPPORTED_TP | SUPPORTED_Autoneg | SUPPORTED_AUI |
-		  SUPPORTED_MISC_IRQ, "1000/10GBASE-T");
+	    SUPPORTED_1000baseT_Full | SUPPORTED_10000baseT_Full |
+		SUPPORTED_TP | SUPPORTED_Autoneg | SUPPORTED_AUI |
+		SUPPORTED_MISC_IRQ,
+	    "1000/10GBASE-T");
 
 	/*
 	 * Hard reset the PHY.
@@ -493,7 +499,7 @@ t3_aq100x_phy_prep(pinfo_t *pinfo, int phy_addr,
 			/* Allow prep_adapter to succeed when ffff is read */
 
 			CH_WARN(adapter, "PHY%d: reset failed (0x%x, 0x%x).\n",
-				phy_addr, err, v);
+			    phy_addr, err, v);
 			goto done;
 		}
 
@@ -502,40 +508,44 @@ t3_aq100x_phy_prep(pinfo_t *pinfo, int phy_addr,
 			msleep(10);
 	} while (v && --wait);
 	if (v) {
-		CH_WARN(adapter, "PHY%d: reset timed out (0x%x).\n",
-			phy_addr, v);
+		CH_WARN(adapter, "PHY%d: reset timed out (0x%x).\n", phy_addr,
+		    v);
 
 		goto done; /* let prep_adapter succeed */
 	}
 
 	/* Firmware version check. */
-	(void) mdio_read(phy, MDIO_DEV_VEND1, AQ_FW_VERSION, &v);
+	(void)mdio_read(phy, MDIO_DEV_VEND1, AQ_FW_VERSION, &v);
 	if (v < 0x115)
 		CH_WARN(adapter, "PHY%d: unknown firmware %d.%d\n", phy_addr,
 		    v >> 8, v & 0xff);
 
 	/* The PHY should start in really-low-power mode. */
-	(void) mdio_read(phy, MDIO_DEV_PMA_PMD, MII_BMCR, &v);
+	(void)mdio_read(phy, MDIO_DEV_PMA_PMD, MII_BMCR, &v);
 	if ((v & BMCR_PDOWN) == 0)
 		CH_WARN(adapter, "PHY%d does not start in low power mode.\n",
-			phy_addr);
+		    phy_addr);
 
 	/*
 	 * Verify XAUI and 1000-X settings, but let prep succeed no matter what.
 	 */
 	v = v2 = 0;
-	(void) mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_RX_CFG, &v);
-	(void) mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_TX_CFG, &v2);
+	(void)mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_RX_CFG, &v);
+	(void)mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_TX_CFG, &v2);
 	if (v != 0x1b || v2 != 0x1b)
-		CH_WARN(adapter, "PHY%d: incorrect XAUI settings "
-		    "(0x%x, 0x%x).\n", phy_addr, v, v2);
+		CH_WARN(adapter,
+		    "PHY%d: incorrect XAUI settings "
+		    "(0x%x, 0x%x).\n",
+		    phy_addr, v, v2);
 	v = 0;
-	(void) mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_KX_CFG, &v);
+	(void)mdio_read(phy, MDIO_DEV_XGXS, AQ_XAUI_KX_CFG, &v);
 	if ((v & 0xf) != 0xf)
-		CH_WARN(adapter, "PHY%d: incorrect 1000-X settings "
-		    "(0x%x).\n", phy_addr, v);
+		CH_WARN(adapter,
+		    "PHY%d: incorrect 1000-X settings "
+		    "(0x%x).\n",
+		    phy_addr, v);
 
-	(void) aq100x_set_defaults(phy);
+	(void)aq100x_set_defaults(phy);
 done:
 	return (err);
 }

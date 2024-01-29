@@ -24,24 +24,24 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_PSCI_H_
-#define	_MACHINE_PSCI_H_
+#ifndef _MACHINE_PSCI_H_
+#define _MACHINE_PSCI_H_
 
 #include <sys/types.h>
+
 #include <dev/psci/smccc.h>
 
 #ifdef _KERNEL
 typedef int (*psci_initfn_t)(device_t dev, int default_version);
 typedef int (*psci_callfn_t)(register_t, register_t, register_t, register_t,
-	register_t, register_t, register_t, register_t,
-	struct arm_smccc_res *res);
+    register_t, register_t, register_t, register_t, struct arm_smccc_res *res);
 
 extern bool psci_present;
 
-int	psci_cpu_on(unsigned long, unsigned long, unsigned long);
-void	psci_reset(void);
-int32_t	psci_features(uint32_t);
-int	psci_get_version(void);
+int psci_cpu_on(unsigned long, unsigned long, unsigned long);
+void psci_reset(void);
+int32_t psci_features(uint32_t);
+int psci_get_version(void);
 
 /* Handler to let us call into the PSCI/SMCCC firmware */
 extern psci_callfn_t psci_callfn;
@@ -56,56 +56,56 @@ psci_call(register_t a, register_t b, register_t c, register_t d)
 /*
  * PSCI return codes.
  */
-#define	PSCI_RETVAL_SUCCESS		0
-#define	PSCI_RETVAL_NOT_SUPPORTED	-1
-#define	PSCI_RETVAL_INVALID_PARAMS	-2
-#define	PSCI_RETVAL_DENIED		-3
-#define	PSCI_RETVAL_ALREADY_ON		-4
-#define	PSCI_RETVAL_ON_PENDING		-5
-#define	PSCI_RETVAL_INTERNAL_FAILURE	-6
-#define	PSCI_RETVAL_NOT_PRESENT		-7
-#define	PSCI_RETVAL_DISABLED		-8
+#define PSCI_RETVAL_SUCCESS 0
+#define PSCI_RETVAL_NOT_SUPPORTED -1
+#define PSCI_RETVAL_INVALID_PARAMS -2
+#define PSCI_RETVAL_DENIED -3
+#define PSCI_RETVAL_ALREADY_ON -4
+#define PSCI_RETVAL_ON_PENDING -5
+#define PSCI_RETVAL_INTERNAL_FAILURE -6
+#define PSCI_RETVAL_NOT_PRESENT -7
+#define PSCI_RETVAL_DISABLED -8
 /*
  * Used to signal PSCI is not available, e.g. to start a CPU.
  */
-#define	PSCI_MISSING			1
+#define PSCI_MISSING 1
 
 /*
  * PSCI function codes (as per PSCI v0.2).
  */
 #ifdef __aarch64__
-#define	PSCI_FNID_VERSION		0x84000000
-#define	PSCI_FNID_CPU_SUSPEND		0xc4000001
-#define	PSCI_FNID_CPU_OFF		0x84000002
-#define	PSCI_FNID_CPU_ON		0xc4000003
-#define	PSCI_FNID_AFFINITY_INFO		0xc4000004
-#define	PSCI_FNID_MIGRATE		0xc4000005
-#define	PSCI_FNID_MIGRATE_INFO_TYPE	0x84000006
-#define	PSCI_FNID_MIGRATE_INFO_UP_CPU	0xc4000007
-#define	PSCI_FNID_SYSTEM_OFF		0x84000008
-#define	PSCI_FNID_SYSTEM_RESET		0x84000009
-#define	PSCI_FNID_FEATURES		0x8400000a
+#define PSCI_FNID_VERSION 0x84000000
+#define PSCI_FNID_CPU_SUSPEND 0xc4000001
+#define PSCI_FNID_CPU_OFF 0x84000002
+#define PSCI_FNID_CPU_ON 0xc4000003
+#define PSCI_FNID_AFFINITY_INFO 0xc4000004
+#define PSCI_FNID_MIGRATE 0xc4000005
+#define PSCI_FNID_MIGRATE_INFO_TYPE 0x84000006
+#define PSCI_FNID_MIGRATE_INFO_UP_CPU 0xc4000007
+#define PSCI_FNID_SYSTEM_OFF 0x84000008
+#define PSCI_FNID_SYSTEM_RESET 0x84000009
+#define PSCI_FNID_FEATURES 0x8400000a
 #else
-#define	PSCI_FNID_VERSION		0x84000000
-#define	PSCI_FNID_CPU_SUSPEND		0x84000001
-#define	PSCI_FNID_CPU_OFF		0x84000002
-#define	PSCI_FNID_CPU_ON		0x84000003
-#define	PSCI_FNID_AFFINITY_INFO		0x84000004
-#define	PSCI_FNID_MIGRATE		0x84000005
-#define	PSCI_FNID_MIGRATE_INFO_TYPE	0x84000006
-#define	PSCI_FNID_MIGRATE_INFO_UP_CPU	0x84000007
-#define	PSCI_FNID_SYSTEM_OFF		0x84000008
-#define	PSCI_FNID_SYSTEM_RESET		0x84000009
-#define	PSCI_FNID_FEATURES		0x8400000a
+#define PSCI_FNID_VERSION 0x84000000
+#define PSCI_FNID_CPU_SUSPEND 0x84000001
+#define PSCI_FNID_CPU_OFF 0x84000002
+#define PSCI_FNID_CPU_ON 0x84000003
+#define PSCI_FNID_AFFINITY_INFO 0x84000004
+#define PSCI_FNID_MIGRATE 0x84000005
+#define PSCI_FNID_MIGRATE_INFO_TYPE 0x84000006
+#define PSCI_FNID_MIGRATE_INFO_UP_CPU 0x84000007
+#define PSCI_FNID_SYSTEM_OFF 0x84000008
+#define PSCI_FNID_SYSTEM_RESET 0x84000009
+#define PSCI_FNID_FEATURES 0x8400000a
 #endif
 
-#define	PSCI_VER_MAJOR(v)		(((v) >> 16) & 0xFF)
-#define	PSCI_VER_MINOR(v)		((v) & 0xFF)
-#define	PSCI_VER(maj, min)		(((maj) << 16) | (min))
+#define PSCI_VER_MAJOR(v) (((v) >> 16) & 0xFF)
+#define PSCI_VER_MINOR(v) ((v) & 0xFF)
+#define PSCI_VER(maj, min) (((maj) << 16) | (min))
 
-#define	PSCI_AFFINITY_INFO_ON		0
-#define	PSCI_AFFINITY_INFO_OFF		1
-#define	PSCI_AFFINITY_INFO_ON_PENDING	2
+#define PSCI_AFFINITY_INFO_ON 0
+#define PSCI_AFFINITY_INFO_OFF 1
+#define PSCI_AFFINITY_INFO_ON_PENDING 2
 
 #ifdef _KERNEL
 enum psci_fn {

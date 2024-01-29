@@ -29,16 +29,14 @@
 #include <sys/param.h>
 
 #include <kvm.h>
-
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "../../sys/powerpc/include/minidump.h"
-#include "kvm_private.h"
 #include "kvm_powerpc64.h"
-
+#include "kvm_private.h"
 
 static int
 _powerpc64_minidump_probe(kvm_t *kd)
@@ -90,36 +88,38 @@ _powerpc64_minidump_initvtop(kvm_t *kd)
 	/* Check version */
 	hdr->version = be32toh(hdr->version);
 	if (hdr->version != MINIDUMP_VERSION && hdr->version != 1) {
-		_kvm_err(kd, kd->program, "wrong minidump version. "
-		    "Expected %d got %d", MINIDUMP_VERSION, hdr->version);
+		_kvm_err(kd, kd->program,
+		    "wrong minidump version. "
+		    "Expected %d got %d",
+		    MINIDUMP_VERSION, hdr->version);
 		goto failed;
 	}
 	/* Convert header fields to host endian */
-	hdr->msgbufsize		= be32toh(hdr->msgbufsize);
-	hdr->bitmapsize		= be32toh(hdr->bitmapsize);
-	hdr->pmapsize		= be32toh(hdr->pmapsize);
-	hdr->kernbase		= be64toh(hdr->kernbase);
-	hdr->kernend		= be64toh(hdr->kernend);
-	hdr->dmapbase		= be64toh(hdr->dmapbase);
-	hdr->dmapend		= be64toh(hdr->dmapend);
-	hdr->hw_direct_map	= be32toh(hdr->hw_direct_map);
-	hdr->startkernel	= be64toh(hdr->startkernel);
-	hdr->endkernel		= be64toh(hdr->endkernel);
-	hdr->dumpavailsize	= hdr->version == MINIDUMP_VERSION ?
-	    be32toh(hdr->dumpavailsize) : 0;
+	hdr->msgbufsize = be32toh(hdr->msgbufsize);
+	hdr->bitmapsize = be32toh(hdr->bitmapsize);
+	hdr->pmapsize = be32toh(hdr->pmapsize);
+	hdr->kernbase = be64toh(hdr->kernbase);
+	hdr->kernend = be64toh(hdr->kernend);
+	hdr->dmapbase = be64toh(hdr->dmapbase);
+	hdr->dmapend = be64toh(hdr->dmapend);
+	hdr->hw_direct_map = be32toh(hdr->hw_direct_map);
+	hdr->startkernel = be64toh(hdr->startkernel);
+	hdr->endkernel = be64toh(hdr->endkernel);
+	hdr->dumpavailsize = hdr->version == MINIDUMP_VERSION ?
+	    be32toh(hdr->dumpavailsize) :
+	    0;
 
 	vmst->kimg_start = PPC64_KERNBASE;
 	vmst->kimg_end = PPC64_KERNBASE + hdr->endkernel - hdr->startkernel;
 
 	/* dump header */
 	dprintf("%s: mmu_name=%s,\n\t"
-	    "msgbufsize=0x%jx, bitmapsize=0x%jx, pmapsize=0x%jx, "
-	    "kernbase=0x%jx, kernend=0x%jx,\n\t"
-	    "dmapbase=0x%jx, dmapend=0x%jx, hw_direct_map=%d, "
-	    "startkernel=0x%jx, endkernel=0x%jx\n\t"
-	    "kimg_start=0x%jx, kimg_end=0x%jx\n",
-	    __func__, hdr->mmu_name,
-	    (uintmax_t)hdr->msgbufsize,
+		"msgbufsize=0x%jx, bitmapsize=0x%jx, pmapsize=0x%jx, "
+		"kernbase=0x%jx, kernend=0x%jx,\n\t"
+		"dmapbase=0x%jx, dmapend=0x%jx, hw_direct_map=%d, "
+		"startkernel=0x%jx, endkernel=0x%jx\n\t"
+		"kimg_start=0x%jx, kimg_end=0x%jx\n",
+	    __func__, hdr->mmu_name, (uintmax_t)hdr->msgbufsize,
 	    (uintmax_t)hdr->bitmapsize, (uintmax_t)hdr->pmapsize,
 	    (uintmax_t)hdr->kernbase, (uintmax_t)hdr->kernend,
 	    (uintmax_t)hdr->dmapbase, (uintmax_t)hdr->dmapend,
@@ -139,20 +139,20 @@ _powerpc64_minidump_initvtop(kvm_t *kd)
 		goto failed;
 
 	/* Get dump parts' offsets */
-	dump_avail_off	= PPC64_PAGE_SIZE + ppc64_round_page(hdr->msgbufsize);
-	bitmap_off	= dump_avail_off + ppc64_round_page(hdr->dumpavailsize);
-	pmap_off	= bitmap_off + ppc64_round_page(hdr->bitmapsize);
-	sparse_off	= pmap_off + ppc64_round_page(hdr->pmapsize);
+	dump_avail_off = PPC64_PAGE_SIZE + ppc64_round_page(hdr->msgbufsize);
+	bitmap_off = dump_avail_off + ppc64_round_page(hdr->dumpavailsize);
+	pmap_off = bitmap_off + ppc64_round_page(hdr->bitmapsize);
+	sparse_off = pmap_off + ppc64_round_page(hdr->pmapsize);
 
 	/* dump offsets */
 	dprintf("%s: msgbuf_off=0x%jx, bitmap_off=0x%jx, pmap_off=0x%jx, "
-	    "sparse_off=0x%jx\n",
+		"sparse_off=0x%jx\n",
 	    __func__, (uintmax_t)PPC64_PAGE_SIZE, (uintmax_t)bitmap_off,
 	    (uintmax_t)pmap_off, (uintmax_t)sparse_off);
 
 	/* build physical address lookup table for sparse pages */
 	if (_kvm_pt_init(kd, hdr->dumpavailsize, dump_avail_off,
-	    hdr->bitmapsize, bitmap_off, sparse_off, PPC64_PAGE_SIZE) == -1)
+		hdr->bitmapsize, bitmap_off, sparse_off, PPC64_PAGE_SIZE) == -1)
 		goto failed;
 
 	if (_kvm_pmap_init(kd, hdr->pmapsize, pmap_off) == -1)
@@ -197,13 +197,13 @@ _powerpc64_minidump_walk_pages(kvm_t *kd, kvm_walk_pages_cb_t *cb, void *arg)
 }
 
 static struct kvm_arch kvm_powerpc64_minidump = {
-	.ka_probe	= _powerpc64_minidump_probe,
-	.ka_initvtop	= _powerpc64_minidump_initvtop,
-	.ka_freevtop	= _powerpc64_minidump_freevtop,
-	.ka_kvatop	= _powerpc64_minidump_kvatop,
-	.ka_walk_pages	= _powerpc64_minidump_walk_pages,
-	.ka_native	= _powerpc64_native,
-	.ka_kerndisp	= _powerpc64_kerndisp,
+	.ka_probe = _powerpc64_minidump_probe,
+	.ka_initvtop = _powerpc64_minidump_initvtop,
+	.ka_freevtop = _powerpc64_minidump_freevtop,
+	.ka_kvatop = _powerpc64_minidump_kvatop,
+	.ka_walk_pages = _powerpc64_minidump_walk_pages,
+	.ka_native = _powerpc64_native,
+	.ka_kerndisp = _powerpc64_kerndisp,
 };
 
 KVM_ARCH(kvm_powerpc64_minidump);

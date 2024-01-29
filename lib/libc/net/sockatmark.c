@@ -24,12 +24,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include "namespace.h"
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
-int sockatmark(int s)
+int
+sockatmark(int s)
 {
 	int atmark;
 

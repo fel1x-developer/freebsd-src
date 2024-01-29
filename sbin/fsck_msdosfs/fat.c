@@ -26,34 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 #ifndef lint
 __RCSID("$NetBSD: fat.c,v 1.18 2006/06/05 16:51:18 christos Exp $");
 #endif /* not lint */
 
+#include <sys/param.h>
 #include <sys/endian.h>
-#include <sys/queue.h>
 #include <sys/limits.h>
 #include <sys/mman.h>
-#include <sys/param.h>
+#include <sys/queue.h>
 
 #include <assert.h>
+#include <ctype.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #include "ext.h"
 #include "fsutil.h"
 
 static int _readfat(struct fat_descriptor *);
-static inline struct bootblock* boot_of_(struct fat_descriptor *);
+static inline struct bootblock *boot_of_(struct fat_descriptor *);
 static inline int fd_of_(struct fat_descriptor *);
 static inline bool valid_cl(struct fat_descriptor *, cl_t);
-
 
 /*
  * Head bitmap for FAT scanning.
@@ -80,8 +78,8 @@ static inline bool valid_cl(struct fat_descriptor *, cl_t);
  */
 
 typedef struct long_bitmap {
-	unsigned long	*map;
-	size_t		 count;		/* Total set bits in the map */
+	unsigned long *map;
+	size_t count; /* Total set bits in the map */
 } long_bitmap_t;
 
 static inline void
@@ -150,36 +148,37 @@ bitmap_dtor(long_bitmap_t *lbp)
  * cache with chunk size of 128 KiB to manage it.
  */
 struct fat32_cache_entry {
-	TAILQ_ENTRY(fat32_cache_entry)	entries;
-	uint8_t			*chunk;		/* pointer to chunk */
-	off_t			 addr;		/* offset */
-	bool			 dirty;		/* dirty bit */
+	TAILQ_ENTRY(fat32_cache_entry) entries;
+	uint8_t *chunk; /* pointer to chunk */
+	off_t addr;	/* offset */
+	bool dirty;	/* dirty bit */
 };
 
-static const size_t	fat32_cache_chunk_size = 131072; /* MAXPHYS */
-static const size_t	fat32_cache_size = 4194304;
-static const size_t	fat32_cache_entries = 32; /* XXXgcc: cache_size / cache_chunk_size */
+static const size_t fat32_cache_chunk_size = 131072; /* MAXPHYS */
+static const size_t fat32_cache_size = 4194304;
+static const size_t fat32_cache_entries =
+    32; /* XXXgcc: cache_size / cache_chunk_size */
 
 /*
  * FAT table descriptor, represents a FAT table that is already loaded
  * into memory.
  */
 struct fat_descriptor {
-	struct bootblock	*boot;
-	uint8_t			*fatbuf;
-	cl_t			(*get)(struct fat_descriptor *, cl_t);
-	int			(*set)(struct fat_descriptor *, cl_t, cl_t);
-	long_bitmap_t		 headbitmap;
-	int			 fd;
-	bool			 is_mmapped;
-	bool			 use_cache;
-	size_t		  	 fatsize;
+	struct bootblock *boot;
+	uint8_t *fatbuf;
+	cl_t (*get)(struct fat_descriptor *, cl_t);
+	int (*set)(struct fat_descriptor *, cl_t, cl_t);
+	long_bitmap_t headbitmap;
+	int fd;
+	bool is_mmapped;
+	bool use_cache;
+	size_t fatsize;
 
-	size_t			 fat32_cached_chunks;
-	TAILQ_HEAD(cachehead, fat32_cache_entry)	fat32_cache_head;
-	struct fat32_cache_entry	*fat32_cache_allentries;
-	off_t			 fat32_offset;
-	off_t			 fat32_lastaddr;
+	size_t fat32_cached_chunks;
+	TAILQ_HEAD(cachehead, fat32_cache_entry) fat32_cache_head;
+	struct fat32_cache_entry *fat32_cache_allentries;
+	off_t fat32_offset;
+	off_t fat32_lastaddr;
 };
 
 void
@@ -220,8 +219,8 @@ fat_get_fat12_ptr(struct fat_descriptor *fat, cl_t cl)
 static cl_t
 fat_get_fat12_next(struct fat_descriptor *fat, cl_t cl)
 {
-	const uint8_t	*p;
-	cl_t	retval;
+	const uint8_t *p;
+	cl_t retval;
 
 	p = fat_get_fat12_ptr(fat, cl);
 	retval = le16dec(p);
@@ -239,7 +238,7 @@ fat_get_fat12_next(struct fat_descriptor *fat, cl_t cl)
 static int
 fat_set_fat12_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 {
-	uint8_t	*p;
+	uint8_t *p;
 
 	/* Truncate 'nextcl' value, if needed */
 	nextcl &= CLUST12_MASK;
@@ -277,8 +276,8 @@ fat_get_fat16_ptr(struct fat_descriptor *fat, cl_t cl)
 static cl_t
 fat_get_fat16_next(struct fat_descriptor *fat, cl_t cl)
 {
-	const uint8_t	*p;
-	cl_t	retval;
+	const uint8_t *p;
+	cl_t retval;
 
 	p = fat_get_fat16_ptr(fat, cl);
 	retval = le16dec(p) & CLUST16_MASK;
@@ -292,7 +291,7 @@ fat_get_fat16_next(struct fat_descriptor *fat, cl_t cl)
 static int
 fat_set_fat16_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 {
-	uint8_t	*p;
+	uint8_t *p;
 
 	/* Truncate 'nextcl' value, if needed */
 	nextcl &= CLUST16_MASK;
@@ -316,8 +315,8 @@ fat_get_fat32_ptr(struct fat_descriptor *fat, cl_t cl)
 static cl_t
 fat_get_fat32_next(struct fat_descriptor *fat, cl_t cl)
 {
-	const uint8_t	*p;
-	cl_t	retval;
+	const uint8_t *p;
+	cl_t retval;
 
 	p = fat_get_fat32_ptr(fat, cl);
 	retval = le32dec(p) & CLUST32_MASK;
@@ -331,7 +330,7 @@ fat_get_fat32_next(struct fat_descriptor *fat, cl_t cl)
 static int
 fat_set_fat32_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 {
-	uint8_t	*p;
+	uint8_t *p;
 
 	/* Truncate 'nextcl' value, if needed */
 	nextcl &= CLUST32_MASK;
@@ -372,8 +371,8 @@ fat_flush_fat32_cache_entry(struct fat_descriptor *fat,
 	fat_addr = fat->fat32_offset + entry->addr;
 	if (lseek(fd, fat_addr, SEEK_SET) != fat_addr ||
 	    (size_t)write(fd, entry->chunk, writesize) != writesize) {
-			pfatal("Unable to write FAT");
-			return (FSFATAL);
+		pfatal("Unable to write FAT");
+		return (FSFATAL);
 	}
 
 	entry->dirty = false;
@@ -381,13 +380,12 @@ fat_flush_fat32_cache_entry(struct fat_descriptor *fat,
 }
 
 static struct fat32_cache_entry *
-fat_get_fat32_cache_entry(struct fat_descriptor *fat, off_t addr,
-    bool writing)
+fat_get_fat32_cache_entry(struct fat_descriptor *fat, off_t addr, bool writing)
 {
 	int fd;
 	struct fat32_cache_entry *entry, *first;
-	off_t	fat_addr;
-	size_t	rwsize;
+	off_t fat_addr;
+	size_t rwsize;
 
 	addr &= ~(fat32_cache_chunk_size - 1);
 
@@ -396,15 +394,17 @@ fat_get_fat32_cache_entry(struct fat_descriptor *fat, off_t addr,
 	/*
 	 * Cache hit: if we already have the chunk, move it to list head
 	 */
-	TAILQ_FOREACH(entry, &fat->fat32_cache_head, entries) {
+	TAILQ_FOREACH (entry, &fat->fat32_cache_head, entries) {
 		if (entry->addr == addr) {
 			if (writing) {
 				entry->dirty = true;
 			}
 			if (entry != first) {
 
-				TAILQ_REMOVE(&fat->fat32_cache_head, entry, entries);
-				TAILQ_INSERT_HEAD(&fat->fat32_cache_head, entry, entries);
+				TAILQ_REMOVE(&fat->fat32_cache_head, entry,
+				    entries);
+				TAILQ_INSERT_HEAD(&fat->fat32_cache_head, entry,
+				    entries);
 			}
 			return (entry);
 		}
@@ -425,7 +425,7 @@ fat_get_fat32_cache_entry(struct fat_descriptor *fat, off_t addr,
 	entry->addr = addr;
 	fd = fd_of_(fat);
 	if (lseek(fd, fat_addr, SEEK_SET) != fat_addr ||
-		(size_t)read(fd, entry->chunk, rwsize) != rwsize) {
+	    (size_t)read(fd, entry->chunk, rwsize) != rwsize) {
 		pfatal("Unable to read FAT");
 		return (NULL);
 	}
@@ -454,12 +454,11 @@ fat_get_fat32_cached_ptr(struct fat_descriptor *fat, cl_t cl, bool writing)
 	}
 }
 
-
 static cl_t
 fat_get_fat32_cached_next(struct fat_descriptor *fat, cl_t cl)
 {
-	const uint8_t	*p;
-	cl_t	retval;
+	const uint8_t *p;
+	cl_t retval;
 
 	p = fat_get_fat32_cached_ptr(fat, cl, false);
 	if (p != NULL) {
@@ -476,7 +475,7 @@ fat_get_fat32_cached_next(struct fat_descriptor *fat, cl_t cl)
 static int
 fat_set_fat32_cached_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 {
-	uint8_t	*p;
+	uint8_t *p;
 
 	/* Truncate 'nextcl' value, if needed */
 	nextcl &= CLUST32_MASK;
@@ -490,7 +489,8 @@ fat_set_fat32_cached_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 	}
 }
 
-cl_t fat_get_cl_next(struct fat_descriptor *fat, cl_t cl)
+cl_t
+fat_get_cl_next(struct fat_descriptor *fat, cl_t cl)
 {
 
 	if (!valid_cl(fat, cl)) {
@@ -501,7 +501,8 @@ cl_t fat_get_cl_next(struct fat_descriptor *fat, cl_t cl)
 	return (fat->get(fat, cl));
 }
 
-int fat_set_cl_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
+int
+fat_set_cl_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 {
 
 	if (rdonly) {
@@ -517,14 +518,16 @@ int fat_set_cl_next(struct fat_descriptor *fat, cl_t cl, cl_t nextcl)
 	return (fat->set(fat, cl, nextcl));
 }
 
-static inline struct bootblock*
-boot_of_(struct fat_descriptor *fat) {
+static inline struct bootblock *
+boot_of_(struct fat_descriptor *fat)
+{
 
 	return (fat->boot);
 }
 
-struct bootblock*
-fat_get_boot(struct fat_descriptor *fat) {
+struct bootblock *
+fat_get_boot(struct fat_descriptor *fat)
+{
 
 	return (boot_of_(fat));
 }
@@ -536,7 +539,7 @@ fd_of_(struct fat_descriptor *fat)
 }
 
 int
-fat_get_fd(struct fat_descriptor * fat)
+fat_get_fd(struct fat_descriptor *fat)
 {
 	return (fd_of_(fat));
 }
@@ -617,9 +620,9 @@ checkdirty(int fs, struct bootblock *boot)
 		if ((buffer[2] & 0xf8) != 0xf8 || (buffer[3] & 0x3f) != 0x3f)
 			goto err;
 	} else {
-		if (buffer[2] != 0xff || (buffer[3] & 0x0f) != 0x0f
-		    || (buffer[4] & 0xf8) != 0xf8 || buffer[5] != 0xff
-		    || buffer[6] != 0xff || (buffer[7] & 0x03) != 0x03)
+		if (buffer[2] != 0xff || (buffer[3] & 0x0f) != 0x0f ||
+		    (buffer[4] & 0xf8) != 0xf8 || buffer[5] != 0xff ||
+		    buffer[6] != 0xff || (buffer[7] & 0x03) != 0x03)
 			goto err;
 	}
 
@@ -712,8 +715,8 @@ _readfat(struct fat_descriptor *fat)
 	/* Attempt to mmap() first */
 	if (allow_mmap) {
 		fat->fatbuf = mmap(NULL, fat->fatsize,
-				PROT_READ | (rdonly ? 0 : PROT_WRITE),
-				MAP_SHARED, fd_of_(fat), off);
+		    PROT_READ | (rdonly ? 0 : PROT_WRITE), MAP_SHARED,
+		    fd_of_(fat), off);
 		if (fat->fatbuf != MAP_FAILED) {
 			fat->is_mmapped = true;
 			return 1;
@@ -769,8 +772,8 @@ _readfat(struct fat_descriptor *fat)
 		for (i = 0; i < fat32_cache_entries; i++) {
 			entry[i].addr = fat32_cache_chunk_size * i;
 			entry[i].chunk = &fat->fatbuf[entry[i].addr];
-			TAILQ_INSERT_TAIL(&fat->fat32_cache_head,
-			    &entry[i], entries);
+			TAILQ_INSERT_TAIL(&fat->fat32_cache_head, &entry[i],
+			    entries);
 		}
 		fat->fat32_cache_allentries = entry;
 	}
@@ -828,7 +831,7 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 	buffer = fat->fatbuf;
 
 	/* Populate accessors */
-	switch(boot->ClustMask) {
+	switch (boot->ClustMask) {
 	case CLUST12_MASK:
 		fat->get = fat_get_fat12_next;
 		fat->set = fat_set_fat12_next;
@@ -853,8 +856,7 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 		return FSFATAL;
 	}
 
-	if (bitmap_ctor(&fat->headbitmap, boot->NumClusters,
-	    true) != FSOK) {
+	if (bitmap_ctor(&fat->headbitmap, boot->NumClusters, true) != FSOK) {
 		perr("No space for head bitmap for FAT clusters (%zu)",
 		    (size_t)boot->NumClusters);
 		releasefat(fat);
@@ -862,13 +864,13 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 		return FSFATAL;
 	}
 
-	if (buffer[0] != boot->bpbMedia
-	    || buffer[1] != 0xff || buffer[2] != 0xff
-	    || (boot->ClustMask == CLUST16_MASK && buffer[3] != 0xff)
-	    || (boot->ClustMask == CLUST32_MASK
-		&& ((buffer[3]&0x0f) != 0x0f
-		    || buffer[4] != 0xff || buffer[5] != 0xff
-		    || buffer[6] != 0xff || (buffer[7]&0x0f) != 0x0f))) {
+	if (buffer[0] != boot->bpbMedia || buffer[1] != 0xff ||
+	    buffer[2] != 0xff ||
+	    (boot->ClustMask == CLUST16_MASK && buffer[3] != 0xff) ||
+	    (boot->ClustMask == CLUST32_MASK &&
+		((buffer[3] & 0x0f) != 0x0f || buffer[4] != 0xff ||
+		    buffer[5] != 0xff || buffer[6] != 0xff ||
+		    (buffer[7] & 0x0f) != 0x0f))) {
 
 		/* Windows 95 OSR2 (and possibly any later) changes
 		 * the FAT signature to 0xXXffff7f for FAT16 and to
@@ -876,13 +878,12 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 		 * file system is dirty if it doesn't reboot cleanly.
 		 * Check this special condition before errorring out.
 		 */
-		if (buffer[0] == boot->bpbMedia && buffer[1] == 0xff
-		    && buffer[2] == 0xff
-		    && ((boot->ClustMask == CLUST16_MASK && buffer[3] == 0x7f)
-			|| (boot->ClustMask == CLUST32_MASK
-			    && buffer[3] == 0x0f && buffer[4] == 0xff
-			    && buffer[5] == 0xff && buffer[6] == 0xff
-			    && buffer[7] == 0x07)))
+		if (buffer[0] == boot->bpbMedia && buffer[1] == 0xff &&
+		    buffer[2] == 0xff &&
+		    ((boot->ClustMask == CLUST16_MASK && buffer[3] == 0x7f) ||
+			(boot->ClustMask == CLUST32_MASK && buffer[3] == 0x0f &&
+			    buffer[4] == 0xff && buffer[5] == 0xff &&
+			    buffer[6] == 0xff && buffer[7] == 0x07)))
 			ret |= FSDIRTY;
 		else {
 			/* just some odd byte sequence in FAT */
@@ -890,9 +891,9 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 			switch (boot->ClustMask) {
 			case CLUST32_MASK:
 				pwarn("%s (%02x%02x%02x%02x%02x%02x%02x%02x)\n",
-				      "FAT starts with odd byte sequence",
-				      buffer[0], buffer[1], buffer[2], buffer[3],
-				      buffer[4], buffer[5], buffer[6], buffer[7]);
+				    "FAT starts with odd byte sequence",
+				    buffer[0], buffer[1], buffer[2], buffer[3],
+				    buffer[4], buffer[5], buffer[6], buffer[7]);
 				break;
 			case CLUST16_MASK:
 				pwarn("%s (%02x%02x%02x%02x)\n",
@@ -981,9 +982,8 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 			boot->NumBad++;
 		} else if (!valid_cl(fat, nextcl) && nextcl < CLUST_RSRVD) {
 			pwarn("Cluster %u continues with out of range "
-			    "cluster number %u\n",
-			    cl,
-			    nextcl & boot->ClustMask);
+			      "cluster number %u\n",
+			    cl, nextcl & boot->ClustMask);
 			if (ask(0, "Truncate")) {
 				ret |= fat_set_cl_next(fat, cl, CLUST_EOF);
 				ret |= FSFATMOD;
@@ -992,15 +992,16 @@ readfat(int fs, struct bootblock *boot, struct fat_descriptor **fp)
 			if (fat_is_cl_head(fat, nextcl)) {
 				fat_clear_cl_head(fat, nextcl);
 			} else {
-				pwarn("Cluster %u crossed another chain at %u\n",
+				pwarn(
+				    "Cluster %u crossed another chain at %u\n",
 				    cl, nextcl);
 				if (ask(0, "Truncate")) {
-					ret |= fat_set_cl_next(fat, cl, CLUST_EOF);
+					ret |= fat_set_cl_next(fat, cl,
+					    CLUST_EOF);
 					ret |= FSFATMOD;
 				}
 			}
 		}
-
 	}
 
 	if (ret & FSFATAL) {
@@ -1066,9 +1067,9 @@ checkchain(struct fat_descriptor *fat, cl_t head, size_t *chainsize)
 	 */
 	*chainsize = 0;
 	prev_cl = current_cl = head;
-	for (next_cl = fat_get_cl_next(fat, current_cl);
-	    valid_cl(fat, next_cl);
-	    prev_cl = current_cl, current_cl = next_cl, next_cl = fat_get_cl_next(fat, current_cl))
+	for (next_cl = fat_get_cl_next(fat, current_cl); valid_cl(fat, next_cl);
+	     prev_cl = current_cl, current_cl = next_cl,
+	    next_cl = fat_get_cl_next(fat, current_cl))
 		(*chainsize)++;
 
 	/* A natural end */
@@ -1089,13 +1090,14 @@ checkchain(struct fat_descriptor *fat, cl_t head, size_t *chainsize)
 	 * the current cluster instead.
 	 */
 	if (next_cl == CLUST_FREE || next_cl >= CLUST_RSRVD) {
-		pwarn("Cluster chain starting at %u ends with cluster marked %s\n",
+		pwarn(
+		    "Cluster chain starting at %u ends with cluster marked %s\n",
 		    head, rsrvdcltype(next_cl));
 		current_cl = prev_cl;
 	} else {
-		pwarn("Cluster chain starting at %u ends with cluster out of range (%u)\n",
-		    head,
-		    next_cl & boot_of_(fat)->ClustMask);
+		pwarn(
+		    "Cluster chain starting at %u ends with cluster out of range (%u)\n",
+		    head, next_cl & boot_of_(fat)->ClustMask);
 		(*chainsize)++;
 	}
 
@@ -1130,7 +1132,6 @@ clearchain(struct fat_descriptor *fat, cl_t head)
 		boot->NumFree++;
 		current_cl = next_cl;
 	}
-
 }
 
 /*
@@ -1139,8 +1140,8 @@ clearchain(struct fat_descriptor *fat, cl_t head)
 static int
 copyfat(struct fat_descriptor *fat, int n)
 {
-	size_t	rwsize, tailsize, blobs, i;
-	off_t	dst_off, src_off;
+	size_t rwsize, tailsize, blobs, i;
+	off_t dst_off, src_off;
 	struct bootblock *boot;
 	int ret, fd;
 
@@ -1160,12 +1161,12 @@ copyfat(struct fat_descriptor *fat, int n)
 	dst_off *= boot->bpbBytesPerSec;
 
 	for (i = 0; i < blobs;
-	    i++, src_off += fat32_cache_size, dst_off += fat32_cache_size) {
+	     i++, src_off += fat32_cache_size, dst_off += fat32_cache_size) {
 		if (i == blobs - 1) {
 			rwsize = tailsize;
 		}
 		if ((lseek(fd, src_off, SEEK_SET) != src_off ||
-		    (size_t)read(fd, fat->fatbuf, rwsize) != rwsize) &&
+			(size_t)read(fd, fat->fatbuf, rwsize) != rwsize) &&
 		    ret == FSOK) {
 			perr("Unable to read FAT0");
 			ret = FSFATAL;
@@ -1173,7 +1174,7 @@ copyfat(struct fat_descriptor *fat, int n)
 		}
 		if ((lseek(fd, dst_off, SEEK_SET) != dst_off ||
 			(size_t)write(fd, fat->fatbuf, rwsize) != rwsize) &&
-			ret == FSOK) {
+		    ret == FSOK) {
 			perr("Unable to write FAT %d", n);
 			ret = FSERROR;
 		}
@@ -1204,7 +1205,7 @@ writefat(struct fat_descriptor *fat)
 		 * message once).  Stop proceeding with copyfat()
 		 * if any flush failed.
 		 */
-		TAILQ_FOREACH(entry, &fat->fat32_cache_head, entries) {
+		TAILQ_FOREACH (entry, &fat->fat32_cache_head, entries) {
 			if (fat_flush_fat32_cache_entry(fat, entry) != FSOK) {
 				if (ret == FSOK) {
 					perr("Unable to write FAT");
@@ -1227,7 +1228,8 @@ writefat(struct fat_descriptor *fat)
 			dst_base = boot->bpbResSectors + i * boot->FATsecs;
 			dst_base *= boot->bpbBytesPerSec;
 			if ((lseek(fd, dst_base, SEEK_SET) != dst_base ||
-			    (size_t)write(fd, fat->fatbuf, writesz) != writesz) &&
+				(size_t)write(fd, fat->fatbuf, writesz) !=
+				    writesz) &&
 			    ret == FSOK) {
 				perr("Unable to write FAT %d", i);
 				ret = ((i == 0) ? FSFATAL : FSERROR);
@@ -1259,9 +1261,7 @@ checklost(struct fat_descriptor *fat)
 	 * chains.
 	 */
 	chains = fat_get_head_count(fat);
-	for (head = CLUST_FIRST;
-	    chains > 0 && head < boot->NumClusters;
-	    ) {
+	for (head = CLUST_FIRST; chains > 0 && head < boot->NumClusters;) {
 		/*
 		 * We expect the bitmap to be very sparse, so skip if
 		 * the range is full of 0's
@@ -1275,10 +1275,9 @@ checklost(struct fat_descriptor *fat)
 			ret = checkchain(fat, head, &chainlength);
 			if (ret != FSERROR && chainlength > 0) {
 				pwarn("Lost cluster chain at cluster %u\n"
-				    "%zd Cluster(s) lost\n",
+				      "%zd Cluster(s) lost\n",
 				    head, chainlength);
-				mod |= ret = reconnect(fat, head,
-				    chainlength);
+				mod |= ret = reconnect(fat, head, chainlength);
 			}
 			if (mod & FSFATAL)
 				break;
@@ -1297,8 +1296,9 @@ checklost(struct fat_descriptor *fat)
 		ret = 0;
 		if (boot->FSFree != 0xffffffffU &&
 		    boot->FSFree != boot->NumFree) {
-			pwarn("Free space in FSInfo block (%u) not correct (%u)\n",
-			      boot->FSFree, boot->NumFree);
+			pwarn(
+			    "Free space in FSInfo block (%u) not correct (%u)\n",
+			    boot->FSFree, boot->NumFree);
 			if (ask(1, "Fix")) {
 				boot->FSFree = boot->NumFree;
 				ret = 1;
@@ -1306,13 +1306,18 @@ checklost(struct fat_descriptor *fat)
 		}
 		if (boot->FSNext != 0xffffffffU &&
 		    (boot->FSNext >= boot->NumClusters ||
-		    (boot->NumFree && fat_get_cl_next(fat, boot->FSNext) != CLUST_FREE))) {
+			(boot->NumFree &&
+			    fat_get_cl_next(fat, boot->FSNext) !=
+				CLUST_FREE))) {
 			pwarn("Next free cluster in FSInfo block (%u) %s\n",
-			      boot->FSNext,
-			      (boot->FSNext >= boot->NumClusters) ? "invalid" : "not free");
+			    boot->FSNext,
+			    (boot->FSNext >= boot->NumClusters) ? "invalid" :
+								  "not free");
 			if (ask(1, "Fix"))
-				for (head = CLUST_FIRST; head < boot->NumClusters; head++)
-					if (fat_get_cl_next(fat, head) == CLUST_FREE) {
+				for (head = CLUST_FIRST;
+				     head < boot->NumClusters; head++)
+					if (fat_get_cl_next(fat, head) ==
+					    CLUST_FREE) {
 						boot->FSNext = head;
 						ret = 1;
 						break;

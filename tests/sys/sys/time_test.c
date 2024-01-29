@@ -30,19 +30,18 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+#include <atf-c.h>
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <atf-c.h>
-
-
 static void
-atf_check_nstosbt(sbintime_t expected, int64_t ns) {
+atf_check_nstosbt(sbintime_t expected, int64_t ns)
+{
 	sbintime_t actual = nstosbt(ns);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != nstosbt(%"PRId64") (%"PRId64")",
-			expected, ns, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != nstosbt(%" PRId64 ") (%" PRId64 ")", expected, ns,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(nstosbt);
@@ -61,16 +60,17 @@ ATF_TC_BODY(nstosbt, tc)
 	atf_check_nstosbt((1ll << 34), 4000000000);
 	/* Max value */
 	atf_check_nstosbt(((1ll << 31) - 1) << 32,
-			  ((1ll << 31) - 1) * 1000000000);
+	    ((1ll << 31) - 1) * 1000000000);
 }
 
 static void
-atf_check_ustosbt(sbintime_t expected, int64_t us) {
+atf_check_ustosbt(sbintime_t expected, int64_t us)
+{
 	sbintime_t actual = ustosbt(us);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != ustosbt(%"PRId64") (%"PRId64")",
-			expected, us, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != ustosbt(%" PRId64 ") (%" PRId64 ")", expected, us,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(ustosbt);
@@ -89,16 +89,17 @@ ATF_TC_BODY(ustosbt, tc)
 	atf_check_ustosbt(1ll << 34, 4000000);
 	/* Max value */
 	atf_check_ustosbt(((1ull << 31) - 1) << 32,
-			  ((1ll << 31) - 1) * 1000000);
+	    ((1ll << 31) - 1) * 1000000);
 }
 
 static void
-atf_check_mstosbt(sbintime_t expected, int64_t ms) {
+atf_check_mstosbt(sbintime_t expected, int64_t ms)
+{
 	sbintime_t actual = mstosbt(ms);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != mstosbt(%"PRId64") (%"PRId64")",
-			expected, ms, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != mstosbt(%" PRId64 ") (%" PRId64 ")", expected, ms,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(mstosbt);
@@ -120,12 +121,13 @@ ATF_TC_BODY(mstosbt, tc)
 }
 
 static void
-atf_check_sbttons(int64_t expected, sbintime_t sbt) {
+atf_check_sbttons(int64_t expected, sbintime_t sbt)
+{
 	int64_t actual = sbttons(sbt);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != sbttons(%"PRId64") (%"PRId64")",
-			expected, sbt, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != sbttons(%" PRId64 ") (%" PRId64 ")", expected, sbt,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(sbttons);
@@ -149,12 +151,13 @@ ATF_TC_BODY(sbttons, tc)
 }
 
 static void
-atf_check_sbttous(int64_t expected, sbintime_t sbt) {
+atf_check_sbttous(int64_t expected, sbintime_t sbt)
+{
 	int64_t actual = sbttous(sbt);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != sbttous(%"PRId64") (%"PRId64")",
-			expected, sbt, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != sbttous(%" PRId64 ") (%" PRId64 ")", expected, sbt,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(sbttous);
@@ -170,7 +173,7 @@ ATF_TC_BODY(sbttous, tc)
 	atf_check_sbttous(1999999, (1ll << 33) - 1);
 	atf_check_sbttous(2000000, 1ll << 33);
 	/* 4 seconds */
-	atf_check_sbttous(3999999, (1ll << 34) -1);
+	atf_check_sbttous(3999999, (1ll << 34) - 1);
 	atf_check_sbttous(4000000, 1ll << 34);
 	/* Overflows (bug 263073) */
 	atf_check_sbttous(1ll << 31, (1ull << 63) / 1000000);
@@ -179,12 +182,13 @@ ATF_TC_BODY(sbttous, tc)
 }
 
 static void
-atf_check_sbttoms(int64_t expected, sbintime_t sbt) {
+atf_check_sbttoms(int64_t expected, sbintime_t sbt)
+{
 	int64_t actual = sbttoms(sbt);
 
-	ATF_CHECK_MSG((expected) - 1 <= (actual) && actual <= (expected) + 1,
-			"%"PRId64" != sbttoms(%"PRId64") (%"PRId64")",
-			expected, sbt, actual);
+	ATF_CHECK_MSG((expected)-1 <= (actual) && actual <= (expected) + 1,
+	    "%" PRId64 " != sbttoms(%" PRId64 ") (%" PRId64 ")", expected, sbt,
+	    actual);
 }
 
 ATF_TC_WITHOUT_HEAD(sbttoms);

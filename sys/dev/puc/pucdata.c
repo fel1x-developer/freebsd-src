@@ -34,22 +34,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
 
-#include <machine/resource.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
+#include <machine/resource.h>
 
 #include <dev/ic/ns16550.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
+#include <dev/puc/puc_bfe.h>
 #include <dev/puc/puc_bus.h>
 #include <dev/puc/puc_cfg.h>
-#include <dev/puc/puc_bfe.h>
 
 static puc_config_f puc_config_advantech;
 static puc_config_f puc_config_amc;
@@ -67,71 +65,82 @@ static puc_config_f puc_config_sunix;
 static puc_config_f puc_config_timedia;
 static puc_config_f puc_config_titan;
 
-const struct puc_cfg puc_pci_devices[] = {
-	{   0x0009, 0x7168, 0xffff, 0,
-	    "Sunix SUN1889",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
-	},
+const struct puc_cfg puc_pci_devices[] = { {
+					       0x0009,
+					       0x7168,
+					       0xffff,
+					       0,
+					       "Sunix SUN1889",
+					       DEFAULT_RCLK * 8,
+					       PUC_PORT_2S,
+					       0x10,
+					       0,
+					       8,
+					   },
 
-	{   0x103c, 0x1048, 0x103c, 0x1049,
-	    "HP Diva Serial [GSP] Multiport UART - Tosca Console",
-	    DEFAULT_RCLK,
-	    PUC_PORT_3S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	{ 0x103c, 0x1048, 0x103c, 0x1049,
+	    "HP Diva Serial [GSP] Multiport UART - Tosca Console", DEFAULT_RCLK,
+	    PUC_PORT_3S, 0x10, 0, -1, .config_function = puc_config_diva },
 
-	{   0x103c, 0x1048, 0x103c, 0x104a,
+	{ 0x103c, 0x1048, 0x103c, 0x104a,
 	    "HP Diva Serial [GSP] Multiport UART - Tosca Secondary",
-	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	    DEFAULT_RCLK, PUC_PORT_2S, 0x10, 0, -1,
+	    .config_function = puc_config_diva },
 
-	{   0x103c, 0x1048, 0x103c, 0x104b,
-	    "HP Diva Serial [GSP] Multiport UART - Maestro SP2",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	{ 0x103c, 0x1048, 0x103c, 0x104b,
+	    "HP Diva Serial [GSP] Multiport UART - Maestro SP2", DEFAULT_RCLK,
+	    PUC_PORT_4S, 0x10, 0, -1, .config_function = puc_config_diva },
 
-	{   0x103c, 0x1048, 0x103c, 0x1223,
+	{ 0x103c, 0x1048, 0x103c, 0x1223,
 	    "HP Diva Serial [GSP] Multiport UART - Superdome Console",
-	    DEFAULT_RCLK,
-	    PUC_PORT_3S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	    DEFAULT_RCLK, PUC_PORT_3S, 0x10, 0, -1,
+	    .config_function = puc_config_diva },
 
-	{   0x103c, 0x1048, 0x103c, 0x1226,
-	    "HP Diva Serial [GSP] Multiport UART - Keystone SP2",
-	    DEFAULT_RCLK,
-	    PUC_PORT_3S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	{ 0x103c, 0x1048, 0x103c, 0x1226,
+	    "HP Diva Serial [GSP] Multiport UART - Keystone SP2", DEFAULT_RCLK,
+	    PUC_PORT_3S, 0x10, 0, -1, .config_function = puc_config_diva },
 
-	{   0x103c, 0x1048, 0x103c, 0x1282,
-	    "HP Diva Serial [GSP] Multiport UART - Everest SP2",
-	    DEFAULT_RCLK,
-	    PUC_PORT_3S, 0x10, 0, -1,
-	    .config_function = puc_config_diva
-	},
+	{ 0x103c, 0x1048, 0x103c, 0x1282,
+	    "HP Diva Serial [GSP] Multiport UART - Everest SP2", DEFAULT_RCLK,
+	    PUC_PORT_3S, 0x10, 0, -1, .config_function = puc_config_diva },
 
-	{   0x10b5, 0x1076, 0x10b5, 0x1076,
+	{
+	    0x10b5,
+	    0x1076,
+	    0x10b5,
+	    0x1076,
 	    "VScom PCI-800",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x10b5, 0x1077, 0x10b5, 0x1077,
+	{
+	    0x10b5,
+	    0x1077,
+	    0x10b5,
+	    0x1077,
 	    "VScom PCI-400",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x10b5, 0x1103, 0x10b5, 0x1103,
+	{
+	    0x10b5,
+	    0x1103,
+	    0x10b5,
+	    0x1103,
 	    "VScom PCI-200",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x18, 4, 0,
+	    PUC_PORT_2S,
+	    0x18,
+	    4,
+	    0,
 	},
 
 	/*
@@ -139,16 +148,30 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * Appears to be the same as Chase Research PLC PCI-FAST8
 	 * and Perle PCI-FAST8 Multi-Port serial cards.
 	 */
-	{   0x10b5, 0x9050, 0x12e0, 0x0021,
+	{
+	    0x10b5,
+	    0x9050,
+	    0x12e0,
+	    0x0021,
 	    "Boca Research Turbo Serial 658",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x10b5, 0x9050, 0x12e0, 0x0031,
+	{
+	    0x10b5,
+	    0x9050,
+	    0x12e0,
+	    0x0031,
 	    "Boca Research Turbo Serial 654",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
 	/*
@@ -157,10 +180,17 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * into the subsystem fields, and claims that it's a
 	 * network/misc (0x02/0x80) device.
 	 */
-	{   0x10b5, 0x9050, 0xd84d, 0x6808,
+	{
+	    0x10b5,
+	    0x9050,
+	    0xd84d,
+	    0x6808,
 	    "Dolphin Peripherals 4035",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x18, 4, 0,
+	    PUC_PORT_2S,
+	    0x18,
+	    4,
+	    0,
 	},
 
 	/*
@@ -169,18 +199,22 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * into the subsystem fields, and claims that it's a
 	 * network/misc (0x02/0x80) device.
 	 */
-	{   0x10b5, 0x9050, 0xd84d, 0x6810,
+	{
+	    0x10b5,
+	    0x9050,
+	    0xd84d,
+	    0x6810,
 	    "Dolphin Peripherals 4014",
 	    0,
-	    PUC_PORT_2P, 0x20, 4, 0,
+	    PUC_PORT_2P,
+	    0x20,
+	    4,
+	    0,
 	},
 
-	{   0x10e8, 0x818e, 0xffff, 0,
-	    "Applied Micro Circuits 8 Port UART",
-	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x14, -1, -1,
-	    .config_function = puc_config_amc
-	},
+	{ 0x10e8, 0x818e, 0xffff, 0, "Applied Micro Circuits 8 Port UART",
+	    DEFAULT_RCLK, PUC_PORT_8S, 0x14, -1, -1,
+	    .config_function = puc_config_amc },
 
 	/*
 	 * The following members of the Digi International Neo series are
@@ -189,106 +223,154 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * PCIe-PCI-bridge.
 	 */
 
-	{   0x114f, 0x00b0, 0xffff, 0,
-	    "Digi Neo PCI 4 Port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00b0, 0xffff, 0, "Digi Neo PCI 4 Port", DEFAULT_RCLK * 8,
+	    PUC_PORT_4S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x114f, 0x00b1, 0xffff, 0,
-	    "Digi Neo PCI 8 Port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00b1, 0xffff, 0, "Digi Neo PCI 8 Port", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x114f, 0x00f0, 0xffff, 0,
-	    "Digi Neo PCIe 8 Port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00f0, 0xffff, 0, "Digi Neo PCIe 8 Port", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x114f, 0x00f1, 0xffff, 0,
-	    "Digi Neo PCIe 4 Port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00f1, 0xffff, 0, "Digi Neo PCIe 4 Port", DEFAULT_RCLK * 8,
+	    PUC_PORT_4S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x114f, 0x00f2, 0xffff, 0,
-	    "Digi Neo PCIe 4 Port RJ45",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00f2, 0xffff, 0, "Digi Neo PCIe 4 Port RJ45",
+	    DEFAULT_RCLK * 8, PUC_PORT_4S, 0x10, 0, -1,
+	    .config_function = puc_config_exar },
 
-	{   0x114f, 0x00f3, 0xffff, 0,
-	    "Digi Neo PCIe 8 Port RJ45",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x114f, 0x00f3, 0xffff, 0, "Digi Neo PCIe 8 Port RJ45",
+	    DEFAULT_RCLK * 8, PUC_PORT_8S, 0x10, 0, -1,
+	    .config_function = puc_config_exar },
 
-	{   0x11fe, 0x8010, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8010,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 RJ11 part A",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8011, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8011,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 RJ11 part B",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8012, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8012,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 Octa part A",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8013, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8013,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 Octa part B",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8014, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8014,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/4 RJ45",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8015, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8015,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/Quad",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8016, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8016,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/16 part A",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8017, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8017,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/16 part B",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_12S, 0x10, 0, 8,
+	    PUC_PORT_12S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8018, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8018,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 part A",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x11fe, 0x8019, 0xffff, 0,
+	{
+	    0x11fe,
+	    0x8019,
+	    0xffff,
+	    0,
 	    "Comtrol RocketPort 550/8 part B",
 	    DEFAULT_RCLK * 4,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
 	/*
@@ -296,11 +378,9 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * Details can be found on the IBM RSS websites
 	 */
 
-	{   0x1014, 0x0297, 0xffff, 0,
-	    "IBM SurePOS 300 Series (481033H) serial ports",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0
-	},
+	{ 0x1014, 0x0297, 0xffff, 0,
+	    "IBM SurePOS 300 Series (481033H) serial ports", DEFAULT_RCLK,
+	    PUC_PORT_4S, 0x10, 4, 0 },
 
 	/*
 	 * SIIG Boards.
@@ -309,405 +389,562 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * <URL:http://www.siig.com/downloads.asp>
 	 */
 
-	{   0x131f, 0x1010, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1010,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C550 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x18, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1011, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1011,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C650 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x18, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1012, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1012,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C850 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x18, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1021, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1021,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Parallel Dual PCI (10x family)",
 	    0,
-	    PUC_PORT_2P, 0x18, 8, 0,
+	    PUC_PORT_2P,
+	    0x18,
+	    8,
+	    0,
 	},
 
-	{   0x131f, 0x1030, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1030,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C550 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x18, 4, 0,
+	    PUC_PORT_2S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1031, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1031,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C650 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x18, 4, 0,
+	    PUC_PORT_2S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1032, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1032,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C850 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x18, 4, 0,
+	    PUC_PORT_2S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1034, 0xffff, 0,	/* XXX really? */
+	{
+	    0x131f,
+	    0x1034,
+	    0xffff,
+	    0, /* XXX really? */
 	    "SIIG Cyber 2S1P PCI 16C550 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x18, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1035, 0xffff, 0,	/* XXX really? */
+	{
+	    0x131f,
+	    0x1035,
+	    0xffff,
+	    0, /* XXX really? */
 	    "SIIG Cyber 2S1P PCI 16C650 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x18, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1036, 0xffff, 0,	/* XXX really? */
+	{
+	    0x131f,
+	    0x1036,
+	    0xffff,
+	    0, /* XXX really? */
 	    "SIIG Cyber 2S1P PCI 16C850 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x18, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1050, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1050,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C550 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x18, 4, 0,
+	    PUC_PORT_4S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1051, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1051,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C650 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x18, 4, 0,
+	    PUC_PORT_4S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x1052, 0xffff, 0,
+	{
+	    0x131f,
+	    0x1052,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C850 (10x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x18, 4, 0,
+	    PUC_PORT_4S,
+	    0x18,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2010, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2010,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C550 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x10, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2011, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2011,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C650 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x10, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2012, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2012,
+	    0xffff,
+	    0,
 	    "SIIG Cyber I/O PCI 16C850 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x10, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2021, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2021,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Parallel Dual PCI (20x family)",
 	    0,
-	    PUC_PORT_2P, 0x10, 8, 0,
+	    PUC_PORT_2P,
+	    0x10,
+	    8,
+	    0,
 	},
 
-	{   0x131f, 0x2030, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2030,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C550 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2031, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2031,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C650 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2032, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2032,
+	    0xffff,
+	    0,
 	    "SIIG Cyber Serial Dual PCI 16C850 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2040, 0xffff, 0,
-	    "SIIG Cyber 2P1S PCI 16C550 (20x family)",
-	    DEFAULT_RCLK,
-	    PUC_PORT_1S2P, 0x10, -1, 0,
-	    .config_function = puc_config_siig
-	},
+	{ 0x131f, 0x2040, 0xffff, 0, "SIIG Cyber 2P1S PCI 16C550 (20x family)",
+	    DEFAULT_RCLK, PUC_PORT_1S2P, 0x10, -1, 0,
+	    .config_function = puc_config_siig },
 
-	{   0x131f, 0x2041, 0xffff, 0,
-	    "SIIG Cyber 2P1S PCI 16C650 (20x family)",
-	    DEFAULT_RCLK,
-	    PUC_PORT_1S2P, 0x10, -1, 0,
-	    .config_function = puc_config_siig
-	},
+	{ 0x131f, 0x2041, 0xffff, 0, "SIIG Cyber 2P1S PCI 16C650 (20x family)",
+	    DEFAULT_RCLK, PUC_PORT_1S2P, 0x10, -1, 0,
+	    .config_function = puc_config_siig },
 
-	{   0x131f, 0x2042, 0xffff, 0,
-	    "SIIG Cyber 2P1S PCI 16C850 (20x family)",
-	    DEFAULT_RCLK,
-	    PUC_PORT_1S2P, 0x10, -1, 0,
-	    .config_function = puc_config_siig
-	},
+	{ 0x131f, 0x2042, 0xffff, 0, "SIIG Cyber 2P1S PCI 16C850 (20x family)",
+	    DEFAULT_RCLK, PUC_PORT_1S2P, 0x10, -1, 0,
+	    .config_function = puc_config_siig },
 
-	{   0x131f, 0x2050, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2050,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C550 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2051, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2051,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C650 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2052, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2052,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 4S PCI 16C850 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2060, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2060,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 2S1P PCI 16C550 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2061, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2061,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 2S1P PCI 16C650 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2062, 0xffff, 0,
+	{
+	    0x131f,
+	    0x2062,
+	    0xffff,
+	    0,
 	    "SIIG Cyber 2S1P PCI 16C850 (20x family)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x131f, 0x2081, 0xffff, 0,
-	    "SIIG PS8000 8S PCI 16C650 (20x family)",
-	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x10, -1, -1,
-	    .config_function = puc_config_siig
-	},
+	{ 0x131f, 0x2081, 0xffff, 0, "SIIG PS8000 8S PCI 16C650 (20x family)",
+	    DEFAULT_RCLK, PUC_PORT_8S, 0x10, -1, -1,
+	    .config_function = puc_config_siig },
 
-	{   0x135c, 0x0010, 0xffff, 0,
-	    "Quatech QSC-100",
-	    -3,	/* max 8x clock rate */
-	    PUC_PORT_4S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
-
-	{   0x135c, 0x0020, 0xffff, 0,
-	    "Quatech DSC-100",
-	    -1, /* max 2x clock rate */
-	    PUC_PORT_2S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
-
-	{   0x135c, 0x0030, 0xffff, 0,
-	    "Quatech DSC-200/300",
-	    -1, /* max 2x clock rate */
-	    PUC_PORT_2S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
-
-	{   0x135c, 0x0040, 0xffff, 0,
-	    "Quatech QSC-200/300",
+	{ 0x135c, 0x0010, 0xffff, 0, "Quatech QSC-100",
 	    -3, /* max 8x clock rate */
-	    PUC_PORT_4S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
+	    PUC_PORT_4S, 0x14, 0, 8, .config_function = puc_config_quatech },
 
-	{   0x135c, 0x0050, 0xffff, 0,
-	    "Quatech ESC-100D",
-	    -3, /* max 8x clock rate */
-	    PUC_PORT_8S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
-
-	{   0x135c, 0x0060, 0xffff, 0,
-	    "Quatech ESC-100M",
-	    -3, /* max 8x clock rate */
-	    PUC_PORT_8S, 0x14, 0, 8,
-	    .config_function = puc_config_quatech
-	},
-
-	{   0x135c, 0x0170, 0xffff, 0,
-	    "Quatech QSCLP-100",
+	{ 0x135c, 0x0020, 0xffff, 0, "Quatech DSC-100",
 	    -1, /* max 2x clock rate */
-	    PUC_PORT_4S, 0x18, 0, 8,
-	    .config_function = puc_config_quatech
-	},
+	    PUC_PORT_2S, 0x14, 0, 8, .config_function = puc_config_quatech },
 
-	{   0x135c, 0x0180, 0xffff, 0,
-	    "Quatech DSCLP-100",
+	{ 0x135c, 0x0030, 0xffff, 0, "Quatech DSC-200/300",
+	    -1, /* max 2x clock rate */
+	    PUC_PORT_2S, 0x14, 0, 8, .config_function = puc_config_quatech },
+
+	{ 0x135c, 0x0040, 0xffff, 0, "Quatech QSC-200/300",
+	    -3, /* max 8x clock rate */
+	    PUC_PORT_4S, 0x14, 0, 8, .config_function = puc_config_quatech },
+
+	{ 0x135c, 0x0050, 0xffff, 0, "Quatech ESC-100D",
+	    -3, /* max 8x clock rate */
+	    PUC_PORT_8S, 0x14, 0, 8, .config_function = puc_config_quatech },
+
+	{ 0x135c, 0x0060, 0xffff, 0, "Quatech ESC-100M",
+	    -3, /* max 8x clock rate */
+	    PUC_PORT_8S, 0x14, 0, 8, .config_function = puc_config_quatech },
+
+	{ 0x135c, 0x0170, 0xffff, 0, "Quatech QSCLP-100",
+	    -1, /* max 2x clock rate */
+	    PUC_PORT_4S, 0x18, 0, 8, .config_function = puc_config_quatech },
+
+	{ 0x135c, 0x0180, 0xffff, 0, "Quatech DSCLP-100",
 	    -1, /* max 3x clock rate */
-	    PUC_PORT_2S, 0x18, 0, 8,
-	    .config_function = puc_config_quatech
-	},
+	    PUC_PORT_2S, 0x18, 0, 8, .config_function = puc_config_quatech },
 
-	{   0x135c, 0x01b0, 0xffff, 0,
-	    "Quatech DSCLP-200/300",
+	{ 0x135c, 0x01b0, 0xffff, 0, "Quatech DSCLP-200/300",
 	    -1, /* max 2x clock rate */
-	    PUC_PORT_2S, 0x18, 0, 8,
-	    .config_function = puc_config_quatech
-	},
+	    PUC_PORT_2S, 0x18, 0, 8, .config_function = puc_config_quatech },
 
-	{   0x135c, 0x01e0, 0xffff, 0,
-	    "Quatech ESCLP-100",
+	{ 0x135c, 0x01e0, 0xffff, 0, "Quatech ESCLP-100",
 	    -3, /* max 8x clock rate */
-	    PUC_PORT_8S, 0x10, 0, 8,
-	    .config_function = puc_config_quatech
-	},
+	    PUC_PORT_8S, 0x10, 0, 8, .config_function = puc_config_quatech },
 
-	{   0x1393, 0x1024, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-102E/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1024, 0xffff, 0, "Moxa Technologies, Smartio CP-102E/PCIe",
+	    DEFAULT_RCLK * 8, PUC_PORT_2S, 0x14, 0, -1,
+	    .config_function = puc_config_moxa },
 
-	{   0x1393, 0x1025, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-102EL/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1025, 0xffff, 0, "Moxa Technologies, Smartio CP-102EL/PCIe",
+	    DEFAULT_RCLK * 8, PUC_PORT_2S, 0x14, 0, -1,
+	    .config_function = puc_config_moxa },
 
-	{   0x1393, 0x1040, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1040,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, Smartio C104H/PCI",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1041, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1041,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, Smartio CP-104UL/PCI",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1042, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1042,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, Smartio CP-104JU/PCI",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1043, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1043,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, Smartio CP-104EL/PCIe",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1045, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-104EL-A/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1045, 0xffff, 0,
+	    "Moxa Technologies, Smartio CP-104EL-A/PCIe", DEFAULT_RCLK * 8,
+	    PUC_PORT_4S, 0x14, 0, -1, .config_function = puc_config_moxa },
 
-	{   0x1393, 0x1120, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1120,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, CP-112UL",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x18, 0, 8,
+	    PUC_PORT_2S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1141, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1141,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, Industio CP-114",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x18, 0, 8,
+	    PUC_PORT_4S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1144, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-114EL/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1144, 0xffff, 0, "Moxa Technologies, Smartio CP-114EL/PCIe",
+	    DEFAULT_RCLK * 8, PUC_PORT_4S, 0x14, 0, -1,
+	    .config_function = puc_config_moxa },
 
-	{   0x1393, 0x1182, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-118EL-A/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1182, 0xffff, 0,
+	    "Moxa Technologies, Smartio CP-118EL-A/PCIe", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x14, 0, -1, .config_function = puc_config_moxa },
 
-	{   0x1393, 0x1680, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1680,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, C168H/PCI",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1681, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1681,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, C168U/PCI",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1682, 0xffff, 0,
+	{
+	    0x1393,
+	    0x1682,
+	    0xffff,
+	    0,
 	    "Moxa Technologies, CP-168EL/PCIe",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
-	{   0x1393, 0x1683, 0xffff, 0,
-	    "Moxa Technologies, Smartio CP-168EL-A/PCIe",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x14, 0, -1,
-	    .config_function = puc_config_moxa
-	},
+	{ 0x1393, 0x1683, 0xffff, 0,
+	    "Moxa Technologies, Smartio CP-168EL-A/PCIe", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x14, 0, -1, .config_function = puc_config_moxa },
 
-	{   0x13a8, 0x0152, 0xffff, 0,
-	    "Exar XR17C/D152",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x13a8, 0x0152, 0xffff, 0, "Exar XR17C/D152", DEFAULT_RCLK * 8,
+	    PUC_PORT_2S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x13a8, 0x0154, 0xffff, 0,
-	    "Exar XR17C154",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x13a8, 0x0154, 0xffff, 0, "Exar XR17C154", DEFAULT_RCLK * 8,
+	    PUC_PORT_4S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x13a8, 0x0158, 0xffff, 0,
-	    "Exar XR17C158",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x13a8, 0x0158, 0xffff, 0, "Exar XR17C158", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x13a8, 0x0258, 0xffff, 0,
-	    "Exar XR17V258IV",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar
-	},
+	{ 0x13a8, 0x0258, 0xffff, 0, "Exar XR17V258IV", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x10, 0, -1, .config_function = puc_config_exar },
 
-	{   0x13a8, 0x0352, 0xffff, 0,
-	    "Exar XR17V352",
-	    125000000,
-	    PUC_PORT_2S, 0x10, 0, -1,
-	    .config_function = puc_config_exar_pcie
-	},
+	{ 0x13a8, 0x0352, 0xffff, 0, "Exar XR17V352", 125000000, PUC_PORT_2S,
+	    0x10, 0, -1, .config_function = puc_config_exar_pcie },
 
-	{   0x13a8, 0x0354, 0xffff, 0,
-	    "Exar XR17V354",
-	    125000000,
-	    PUC_PORT_4S, 0x10, 0, -1,
-	    .config_function = puc_config_exar_pcie
-	},
+	{ 0x13a8, 0x0354, 0xffff, 0, "Exar XR17V354", 125000000, PUC_PORT_4S,
+	    0x10, 0, -1, .config_function = puc_config_exar_pcie },
 
 	/* The XR17V358 uses the 125MHz PCIe clock as its reference clock. */
-	{   0x13a8, 0x0358, 0xffff, 0,
-	    "Exar XR17V358",
-	    125000000,
-	    PUC_PORT_8S, 0x10, 0, -1,
-	    .config_function = puc_config_exar_pcie
-	},
+	{ 0x13a8, 0x0358, 0xffff, 0, "Exar XR17V358", 125000000, PUC_PORT_8S,
+	    0x10, 0, -1, .config_function = puc_config_exar_pcie },
 
 	/*
 	 * The Advantech PCI-1602 Rev. A use the first two ports of an Oxford
@@ -715,75 +952,123 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * that they drive the RS-422/485 transmitters after power-on until a
 	 * driver initializes the UARTs.
 	 */
-	{   0x13fe, 0x1600, 0x1602, 0x0002,
-	    "Advantech PCI-1602 Rev. A",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
-	    .config_function = puc_config_advantech
-	},
+	{ 0x13fe, 0x1600, 0x1602, 0x0002, "Advantech PCI-1602 Rev. A",
+	    DEFAULT_RCLK * 8, PUC_PORT_2S, 0x10, 0, 8,
+	    .config_function = puc_config_advantech },
 
 	/* Advantech PCI-1602 Rev. B1/PCI-1603 are also based on OXuPCI952. */
-	{   0x13fe, 0xa102, 0x13fe, 0xa102,
+	{ 0x13fe, 0xa102, 0x13fe, 0xa102,
 	    "Advantech 2-port PCI (PCI-1602 Rev. B1/PCI-1603)",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 4, 0,
-	    .config_function = puc_config_advantech
-	},
+	    DEFAULT_RCLK * 8, PUC_PORT_2S, 0x10, 4, 0,
+	    .config_function = puc_config_advantech },
 
-	{   0x1407, 0x0100, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0100,
+	    0xffff,
+	    0,
 	    "Lava Computers Dual Serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0101, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0101,
+	    0xffff,
+	    0,
 	    "Lava Computers Quatro A",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0102, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0102,
+	    0xffff,
+	    0,
 	    "Lava Computers Quatro B",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0120, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0120,
+	    0xffff,
+	    0,
 	    "Lava Computers Quattro-PCI A",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0121, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0121,
+	    0xffff,
+	    0,
 	    "Lava Computers Quattro-PCI B",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0180, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0180,
+	    0xffff,
+	    0,
 	    "Lava Computers Octo A",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1407, 0x0181, 0xffff, 0,
+	{
+	    0x1407,
+	    0x0181,
+	    0xffff,
+	    0,
 	    "Lava Computers Octo B",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1409, 0x7268, 0xffff, 0,
+	{
+	    0x1409,
+	    0x7268,
+	    0xffff,
+	    0,
 	    "Sunix SUN1888",
 	    0,
-	    PUC_PORT_2P, 0x10, 0, 8,
+	    PUC_PORT_2P,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1409, 0x7168, 0xffff, 0,
-	    NULL,
-	    DEFAULT_RCLK * 8,
+	{ 0x1409, 0x7168, 0xffff, 0, NULL, DEFAULT_RCLK * 8,
 	    PUC_PORT_NONSTANDARD, 0x10, -1, -1,
-	    .config_function = puc_config_timedia
-	},
+	    .config_function = puc_config_timedia },
 
 	/*
 	 * Boards with an Oxford Semiconductor chip.
@@ -795,83 +1080,163 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * I/O Flex PCI I/O Card Model-223 with 4 serial and 1 parallel ports.
 	 */
 	{
-	    0x1415, 0x9501, 0x10fc, 0xc070,
+	    0x1415,
+	    0x9501,
+	    0x10fc,
+	    0xc070,
 	    "I-O DATA RSA-PCI2/R",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9501, 0x131f, 0x2050,
+	{
+	    0x1415,
+	    0x9501,
+	    0x131f,
+	    0x2050,
 	    "SIIG Cyber 4 PCI 16550",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9501, 0x131f, 0x2051,
+	{
+	    0x1415,
+	    0x9501,
+	    0x131f,
+	    0x2051,
 	    "SIIG Cyber 4S PCI 16C650 (20x family)",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9501, 0x131f, 0x2052,
+	{
+	    0x1415,
+	    0x9501,
+	    0x131f,
+	    0x2052,
 	    "SIIG Quartet Serial 850",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9501, 0x14db, 0x2150,
+	{
+	    0x1415,
+	    0x9501,
+	    0x14db,
+	    0x2150,
 	    "Kuroutoshikou SERIAL4P-LPPCI2",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_4S, 0x10, 0, 8,
-	},
-
-	{   0x1415, 0x9501, 0xffff, 0,
-	    "Oxford Semiconductor OX16PCI954 UARTs",
+	    PUC_PORT_4S,
+	    0x10,
 	    0,
-	    PUC_PORT_4S, 0x10, 0, 8,
-	    .config_function = puc_config_oxford_pci954
+	    8,
 	},
 
-	{   0x1415, 0x950a, 0x131f, 0x2030,
+	{ 0x1415, 0x9501, 0xffff, 0, "Oxford Semiconductor OX16PCI954 UARTs", 0,
+	    PUC_PORT_4S, 0x10, 0, 8,
+	    .config_function = puc_config_oxford_pci954 },
+
+	{
+	    0x1415,
+	    0x950a,
+	    0x131f,
+	    0x2030,
 	    "SIIG Cyber 2S PCIe",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x950a, 0x131f, 0x2032,
+	{
+	    0x1415,
+	    0x950a,
+	    0x131f,
+	    0x2032,
 	    "SIIG Cyber Serial Dual PCI 16C850",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x950a, 0x131f, 0x2061,
+	{
+	    0x1415,
+	    0x950a,
+	    0x131f,
+	    0x2061,
 	    "SIIG Cyber 2SP1 PCIe",
 	    DEFAULT_RCLK * 10,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x950a, 0xffff, 0,
+	{
+	    0x1415,
+	    0x950a,
+	    0xffff,
+	    0,
 	    "Oxford Semiconductor OX16PCI954 UARTs",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9511, 0xffff, 0,
+	{
+	    0x1415,
+	    0x9511,
+	    0xffff,
+	    0,
 	    "Oxford Semiconductor OX9160/OX16PCI954 UARTs (function 1)",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1415, 0x9521, 0xffff, 0,
+	{
+	    0x1415,
+	    0x9521,
+	    0xffff,
+	    0,
 	    "Oxford Semiconductor OX16PCI952 UARTs",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1415, 0x9538, 0xffff, 0,
+	{
+	    0x1415,
+	    0x9538,
+	    0xffff,
+	    0,
 	    "Oxford Semiconductor OX16PCI958 UARTs",
 	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x18, 0, 8,
+	    PUC_PORT_8S,
+	    0x18,
+	    0,
+	    8,
 	},
 
 	/*
@@ -880,34 +1245,69 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * their own device IDs.
 	 */
 
-	{   0x155f, 0x0331, 0xffff, 0,
+	{
+	    0x155f,
+	    0x0331,
+	    0xffff,
+	    0,
 	    "Perle Ultraport4 Express",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x155f, 0xB012, 0xffff, 0,
+	{
+	    0x155f,
+	    0xB012,
+	    0xffff,
+	    0,
 	    "Perle Speed2 LE",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x155f, 0xB022, 0xffff, 0,
+	{
+	    0x155f,
+	    0xB022,
+	    0xffff,
+	    0,
 	    "Perle Speed2 LE",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x155f, 0xB004, 0xffff, 0,
+	{
+	    0x155f,
+	    0xB004,
+	    0xffff,
+	    0,
 	    "Perle Speed4 LE",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x155f, 0xB008, 0xffff, 0,
+	{
+	    0x155f,
+	    0xB008,
+	    0xffff,
+	    0,
 	    "Perle Speed8 LE",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x10, 0, 8,
+	    PUC_PORT_8S,
+	    0x10,
+	    0,
+	    8,
 	},
 
 	/*
@@ -925,78 +1325,78 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * <URL:http://www.startech.com>
 	 */
 
-	{   0x1415, 0xc11b, 0xffff, 0,
-	    "Oxford Semiconductor OXPCIe952 1S1P",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	{ 0x1415, 0xc11b, 0xffff, 0, "Oxford Semiconductor OXPCIe952 1S1P",
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc138, 0xffff, 0,
-	    "Oxford Semiconductor OXPCIe952 UARTs",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	{ 0x1415, 0xc138, 0xffff, 0, "Oxford Semiconductor OXPCIe952 UARTs",
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc158, 0xffff, 0,
-	    "Oxford Semiconductor OXPCIe952 UARTs",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	{ 0x1415, 0xc158, 0xffff, 0, "Oxford Semiconductor OXPCIe952 UARTs",
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc15d, 0xffff, 0,
+	{ 0x1415, 0xc15d, 0xffff, 0,
 	    "Oxford Semiconductor OXPCIe952 UARTs (function 1)",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc208, 0xffff, 0,
-	    "Oxford Semiconductor OXPCIe954 UARTs",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	{ 0x1415, 0xc208, 0xffff, 0, "Oxford Semiconductor OXPCIe954 UARTs",
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc20d, 0xffff, 0,
+	{ 0x1415, 0xc20d, 0xffff, 0,
 	    "Oxford Semiconductor OXPCIe954 UARTs (function 1)",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc308, 0xffff, 0,
-	    "Oxford Semiconductor OXPCIe958 UARTs",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	{ 0x1415, 0xc308, 0xffff, 0, "Oxford Semiconductor OXPCIe958 UARTs",
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x1415, 0xc30d, 0xffff, 0,
+	{ 0x1415, 0xc30d, 0xffff, 0,
 	    "Oxford Semiconductor OXPCIe958 UARTs (function 1)",
-	    DEFAULT_RCLK * 0x22,
-	    PUC_PORT_NONSTANDARD, 0x10, 0, -1,
-	    .config_function = puc_config_oxford_pcie
-	},
+	    DEFAULT_RCLK * 0x22, PUC_PORT_NONSTANDARD, 0x10, 0, -1,
+	    .config_function = puc_config_oxford_pcie },
 
-	{   0x14d2, 0x8010, 0xffff, 0,
+	{
+	    0x14d2,
+	    0x8010,
+	    0xffff,
+	    0,
 	    "VScom PCI-100L",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_1S, 0x14, 0, 0,
+	    PUC_PORT_1S,
+	    0x14,
+	    0,
+	    0,
 	},
 
-	{   0x14d2, 0x8020, 0xffff, 0,
+	{
+	    0x14d2,
+	    0x8020,
+	    0xffff,
+	    0,
 	    "VScom PCI-200L",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x14, 4, 0,
+	    PUC_PORT_2S,
+	    0x14,
+	    4,
+	    0,
 	},
 
-	{   0x14d2, 0x8028, 0xffff, 0,
+	{
+	    0x14d2,
+	    0x8028,
+	    0xffff,
+	    0,
 	    "VScom 200Li",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x20, 0, 8,
+	    PUC_PORT_2S,
+	    0x20,
+	    0,
+	    8,
 	},
 
 	/*
@@ -1008,153 +1408,256 @@ const struct puc_cfg puc_pci_devices[] = {
 	 * one of the ASIC UARTs, and a block of IO addresses
 	 * access the external UARTs.
 	 */
-	{   0x14d2, 0x8080, 0xffff, 0,
-	    "Titan VScom PCI-800L",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, 0x14, -1, -1,
-	    .config_function = puc_config_titan
-	},
+	{ 0x14d2, 0x8080, 0xffff, 0, "Titan VScom PCI-800L", DEFAULT_RCLK * 8,
+	    PUC_PORT_8S, 0x14, -1, -1, .config_function = puc_config_titan },
 
 	/*
 	 * VScom PCI-800H. Uses 8 16950 UART, behind a PCI chips that offers
 	 * 4 com port on PCI device 0 and 4 on PCI device 1. PCI device 0 has
 	 * device ID 3 and PCI device 1 device ID 4.
 	 */
-	{   0x14d2, 0xa003, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xa003,
+	    0xffff,
+	    0,
 	    "Titan PCI-800H",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x14d2, 0xa004, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xa004,
+	    0xffff,
+	    0,
 	    "Titan PCI-800H",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x14d2, 0xa005, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xa005,
+	    0xffff,
+	    0,
 	    "Titan PCI-200H",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x14d2, 0xe020, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xe020,
+	    0xffff,
+	    0,
 	    "Titan VScom PCI-200HV2",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x14d2, 0xa007, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xa007,
+	    0xffff,
+	    0,
 	    "Titan VScom PCIex-800H",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x14d2, 0xa008, 0xffff, 0,
+	{
+	    0x14d2,
+	    0xa008,
+	    0xffff,
+	    0,
 	    "Titan VScom PCIex-800H",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x14db, 0x2130, 0xffff, 0,
+	{
+	    0x14db,
+	    0x2130,
+	    0xffff,
+	    0,
 	    "Avlab Technology, PCI IO 2S",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x14db, 0x2150, 0xffff, 0,
+	{
+	    0x14db,
+	    0x2150,
+	    0xffff,
+	    0,
 	    "Avlab Low Profile PCI 4 Serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x14db, 0x2152, 0xffff, 0,
+	{
+	    0x14db,
+	    0x2152,
+	    0xffff,
+	    0,
 	    "Avlab Low Profile PCI 4 Serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x1592, 0x0781, 0xffff, 0,
-	    "Syba Tech Ltd. PCI-4S2P-550-ECP",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S1P, 0x10, 0, -1,
-	    .config_function = puc_config_syba
-	},
+	{ 0x1592, 0x0781, 0xffff, 0, "Syba Tech Ltd. PCI-4S2P-550-ECP",
+	    DEFAULT_RCLK, PUC_PORT_4S1P, 0x10, 0, -1,
+	    .config_function = puc_config_syba },
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0002,
+	{
+	    0x1fd4,
+	    0x1999,
+	    0x1fd4,
+	    0x0002,
 	    "Sunix SER5xxxx 2-port serial",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0004,
+	{
+	    0x1fd4,
+	    0x1999,
+	    0x1fd4,
+	    0x0004,
 	    "Sunix SER5xxxx 4-port serial",
 	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S, 0x10, 0, 8,
+	    PUC_PORT_4S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0008,
-	    "Sunix SER5xxxx 8-port serial",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_8S, -1, -1, -1,
-	    .config_function = puc_config_sunix
-	},
+	{ 0x1fd4, 0x1999, 0x1fd4, 0x0008, "Sunix SER5xxxx 8-port serial",
+	    DEFAULT_RCLK * 8, PUC_PORT_8S, -1, -1, -1,
+	    .config_function = puc_config_sunix },
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0101,
+	{ 0x1fd4, 0x1999, 0x1fd4, 0x0101,
 	    "Sunix MIO5xxxx 1-port serial and 1284 Printer port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_1S1P, -1, -1, -1,
-	    .config_function = puc_config_sunix
-	},
+	    DEFAULT_RCLK * 8, PUC_PORT_1S1P, -1, -1, -1,
+	    .config_function = puc_config_sunix },
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0102,
+	{ 0x1fd4, 0x1999, 0x1fd4, 0x0102,
 	    "Sunix MIO5xxxx 2-port serial and 1284 Printer port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_2S1P, -1, -1, -1,
-	    .config_function = puc_config_sunix
-	},
+	    DEFAULT_RCLK * 8, PUC_PORT_2S1P, -1, -1, -1,
+	    .config_function = puc_config_sunix },
 
-	{   0x1fd4, 0x1999, 0x1fd4, 0x0104,
+	{ 0x1fd4, 0x1999, 0x1fd4, 0x0104,
 	    "Sunix MIO5xxxx 4-port serial and 1284 Printer port",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_4S1P, -1, -1, -1,
-	    .config_function = puc_config_sunix
-	},
+	    DEFAULT_RCLK * 8, PUC_PORT_4S1P, -1, -1, -1,
+	    .config_function = puc_config_sunix },
 
-	{   0x5372, 0x6872, 0xffff, 0,
+	{
+	    0x5372,
+	    0x6872,
+	    0xffff,
+	    0,
 	    "Feasso PCI FPP-02 2S1P",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x5372, 0x6873, 0xffff, 0,
+	{
+	    0x5372,
+	    0x6873,
+	    0xffff,
+	    0,
 	    "Sun 1040 PCI Quad Serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x6666, 0x0001, 0xffff, 0,
+	{
+	    0x6666,
+	    0x0001,
+	    0xffff,
+	    0,
 	    "Decision Computer Inc, PCCOM 4-port serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x1c, 0, 8,
+	    PUC_PORT_4S,
+	    0x1c,
+	    0,
+	    8,
 	},
 
-	{   0x6666, 0x0002, 0xffff, 0,
+	{
+	    0x6666,
+	    0x0002,
+	    0xffff,
+	    0,
 	    "Decision Computer Inc, PCCOM 8-port serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x1c, 0, 8,
+	    PUC_PORT_8S,
+	    0x1c,
+	    0,
+	    8,
 	},
 
-	{   0x6666, 0x0004, 0xffff, 0,
+	{
+	    0x6666,
+	    0x0004,
+	    0xffff,
+	    0,
 	    "PCCOM dual port RS232/422/485",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x1c, 0, 8,
+	    PUC_PORT_2S,
+	    0x1c,
+	    0,
+	    8,
 	},
 
-	{   0x9710, 0x9815, 0xffff, 0,
+	{
+	    0x9710,
+	    0x9815,
+	    0xffff,
+	    0,
 	    "NetMos NM9815 Dual 1284 Printer port",
 	    0,
-	    PUC_PORT_2P, 0x10, 8, 0,
+	    PUC_PORT_2P,
+	    0x10,
+	    8,
+	    0,
 	},
 
 	/*
@@ -1163,128 +1666,190 @@ const struct puc_cfg puc_pci_devices[] = {
 	 *
 	 * uart(4) will claim this device.
 	 */
-	{   0x9710, 0x9835, 0x1000, 1,
+	{
+	    0x9710,
+	    0x9835,
+	    0x1000,
+	    1,
 	    "NetMos NM9835 based 1-port serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S, 0x10, 4, 0,
+	    PUC_PORT_1S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9835, 0x1000, 2,
+	{
+	    0x9710,
+	    0x9835,
+	    0x1000,
+	    2,
 	    "NetMos NM9835 based 2-port serial",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9835, 0xffff, 0,
+	{
+	    0x9710,
+	    0x9835,
+	    0xffff,
+	    0,
 	    "NetMos NM9835 Dual UART and 1284 Printer port",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9845, 0x1000, 0x0006,
+	{
+	    0x9710,
+	    0x9845,
+	    0x1000,
+	    0x0006,
 	    "NetMos NM9845 6 Port UART",
 	    DEFAULT_RCLK,
-	    PUC_PORT_6S, 0x10, 4, 0,
+	    PUC_PORT_6S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9845, 0xffff, 0,
+	{
+	    0x9710,
+	    0x9845,
+	    0xffff,
+	    0,
 	    "NetMos NM9845 Quad UART and 1284 Printer port",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S1P, 0x10, 4, 0,
+	    PUC_PORT_4S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3002,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3002,
 	    "NetMos NM9865 Dual UART",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 4, 0,
+	    PUC_PORT_2S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3003,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3003,
 	    "NetMos NM9865 Triple UART",
 	    DEFAULT_RCLK,
-	    PUC_PORT_3S, 0x10, 4, 0,
+	    PUC_PORT_3S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3004,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3004,
 	    "NetMos NM9865 Quad UART",
 	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 4, 0,
+	    PUC_PORT_4S,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3011,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3011,
 	    "NetMos NM9865 Single UART and 1284 Printer port",
 	    DEFAULT_RCLK,
-	    PUC_PORT_1S1P, 0x10, 4, 0,
+	    PUC_PORT_1S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3012,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3012,
 	    "NetMos NM9865 Dual UART and 1284 Printer port",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S1P, 0x10, 4, 0,
+	    PUC_PORT_2S1P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0x9710, 0x9865, 0xa000, 0x3020,
+	{
+	    0x9710,
+	    0x9865,
+	    0xa000,
+	    0x3020,
 	    "NetMos NM9865 Dual 1284 Printer port",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2P, 0x10, 4, 0,
+	    PUC_PORT_2P,
+	    0x10,
+	    4,
+	    0,
 	},
 
-	{   0xb00c, 0x021c, 0xffff, 0,
-	    "IC Book Labs Gunboat x4 Lite",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x021c, 0xffff, 0, "IC Book Labs Gunboat x4 Lite",
+	    DEFAULT_RCLK, PUC_PORT_4S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x031c, 0xffff, 0,
-	    "IC Book Labs Gunboat x4 Pro",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x031c, 0xffff, 0, "IC Book Labs Gunboat x4 Pro",
+	    DEFAULT_RCLK, PUC_PORT_4S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x041c, 0xffff, 0,
-	    "IC Book Labs Ironclad x8 Lite",
-	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x041c, 0xffff, 0, "IC Book Labs Ironclad x8 Lite",
+	    DEFAULT_RCLK, PUC_PORT_8S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x051c, 0xffff, 0,
-	    "IC Book Labs Ironclad x8 Pro",
-	    DEFAULT_RCLK,
-	    PUC_PORT_8S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x051c, 0xffff, 0, "IC Book Labs Ironclad x8 Pro",
+	    DEFAULT_RCLK, PUC_PORT_8S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x081c, 0xffff, 0,
-	    "IC Book Labs Dreadnought x16 Pro",
-	    DEFAULT_RCLK * 8,
-	    PUC_PORT_16S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x081c, 0xffff, 0, "IC Book Labs Dreadnought x16 Pro",
+	    DEFAULT_RCLK * 8, PUC_PORT_16S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x091c, 0xffff, 0,
-	    "IC Book Labs Dreadnought x16 Lite",
-	    DEFAULT_RCLK,
-	    PUC_PORT_16S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
+	{ 0xb00c, 0x091c, 0xffff, 0, "IC Book Labs Dreadnought x16 Lite",
+	    DEFAULT_RCLK, PUC_PORT_16S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
 
-	{   0xb00c, 0x0a1c, 0xffff, 0,
+	{
+	    0xb00c,
+	    0x0a1c,
+	    0xffff,
+	    0,
 	    "IC Book Labs Gunboat x2 Low Profile",
 	    DEFAULT_RCLK,
-	    PUC_PORT_2S, 0x10, 0, 8,
+	    PUC_PORT_2S,
+	    0x10,
+	    0,
+	    8,
 	},
 
-	{   0xb00c, 0x0b1c, 0xffff, 0,
-	    "IC Book Labs Gunboat x4 Low Profile",
-	    DEFAULT_RCLK,
-	    PUC_PORT_4S, 0x10, 0, 8,
-	    .config_function = puc_config_icbook
-	},
-	{ 0xffff, 0, 0xffff, 0, NULL, 0 }
-};
+	{ 0xb00c, 0x0b1c, 0xffff, 0, "IC Book Labs Gunboat x4 Low Profile",
+	    DEFAULT_RCLK, PUC_PORT_4S, 0x10, 0, 8,
+	    .config_function = puc_config_icbook },
+	{ 0xffff, 0, 0xffff, 0, NULL, 0 } };
 
 static int
 puc_config_advantech(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
@@ -1344,7 +1909,7 @@ puc_config_advantech(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 			base = 4;
 	}
 
- setup:
+setup:
 	for (i = 0; i < sc->sc_nports; ++i) {
 		device_printf(dev, "port %d: ", i);
 		bar = puc_get_bar(sc, cfg->rid + i * cfg->d_rid);
@@ -1397,9 +1962,9 @@ puc_config_diva(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 	const struct puc_cfg *cfg = sc->sc_cfg;
 
 	if (cmd == PUC_CFG_GET_OFS) {
-		if (cfg->subdevice == 0x1282)		/* Everest SP */
+		if (cfg->subdevice == 0x1282) /* Everest SP */
 			port <<= 1;
-		else if (cfg->subdevice == 0x104b)	/* Maestro SP2 */
+		else if (cfg->subdevice == 0x104b) /* Maestro SP2 */
 			port = (port == 3) ? 4 : port;
 		*res = port * 8 + ((port > 2) ? 0x18 : 0);
 		return (0);
@@ -1408,8 +1973,8 @@ puc_config_diva(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 }
 
 static int
-puc_config_exar(struct puc_softc *sc __unused, enum puc_cfg_cmd cmd,
-    int port, intptr_t *res)
+puc_config_exar(struct puc_softc *sc __unused, enum puc_cfg_cmd cmd, int port,
+    intptr_t *res)
 {
 
 	if (cmd == PUC_CFG_GET_OFS) {
@@ -1450,8 +2015,8 @@ puc_config_moxa(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 	const struct puc_cfg *cfg = sc->sc_cfg;
 
 	if (cmd == PUC_CFG_GET_OFS) {
-		if (port == 3 && (cfg->device == 0x1045 ||
-		    cfg->device == 0x1144))
+		if (port == 3 &&
+		    (cfg->device == 0x1045 || cfg->device == 0x1144))
 			port = 7;
 		*res = port * 0x200;
 
@@ -1489,7 +2054,8 @@ puc_config_quatech(struct puc_softc *sc, enum puc_cfg_cmd cmd,
 			 * The SPR register echoed the two values written
 			 * by us.  This means that the SPAD jumper is set.
 			 */
-			device_printf(sc->sc_dev, "warning: extra features "
+			device_printf(sc->sc_dev,
+			    "warning: extra features "
 			    "not usable -- SPAD compatibility enabled\n");
 			return (0);
 		}
@@ -1500,10 +2066,13 @@ puc_config_quatech(struct puc_softc *sc, enum puc_cfg_cmd cmd,
 			 * standard fixed clock multiplier jumper is set.
 			 */
 			if (bootverbose)
-				device_printf(sc->sc_dev, "fixed clock rate "
-				    "multiplier of %d\n", 1 << v0);
+				device_printf(sc->sc_dev,
+				    "fixed clock rate "
+				    "multiplier of %d\n",
+				    1 << v0);
 			if (v0 < -cfg->clock)
-				device_printf(sc->sc_dev, "warning: "
+				device_printf(sc->sc_dev,
+				    "warning: "
 				    "suboptimal fixed clock rate multiplier "
 				    "setting\n");
 			return (0);
@@ -1515,8 +2084,10 @@ puc_config_quatech(struct puc_softc *sc, enum puc_cfg_cmd cmd,
 		 * we just programmed it to the maximum allowed.
 		 */
 		if (bootverbose)
-			device_printf(sc->sc_dev, "clock rate multiplier of "
-			    "%d selected\n", 1 << -cfg->clock);
+			device_printf(sc->sc_dev,
+			    "clock rate multiplier of "
+			    "%d selected\n",
+			    1 << -cfg->clock);
 		return (0);
 	case PUC_CFG_GET_CLOCK:
 		v0 = (sc->sc_cfg_data >> 8) & 0xff;
@@ -1543,8 +2114,8 @@ puc_config_quatech(struct puc_softc *sc, enum puc_cfg_cmd cmd,
 	case PUC_CFG_GET_ILR:
 		v0 = (sc->sc_cfg_data >> 8) & 0xff;
 		v1 = sc->sc_cfg_data & 0xff;
-		*res = (v0 == 0 && v1 == 0x80 + -cfg->clock) ?
-		    PUC_ILR_NONE : PUC_ILR_QUATECH;
+		*res = (v0 == 0 && v1 == 0x80 + -cfg->clock) ? PUC_ILR_NONE :
+							       PUC_ILR_QUATECH;
 		return (0);
 	default:
 		break;
@@ -1646,9 +2217,15 @@ puc_config_siig(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 		}
 		if (cfg->ports == PUC_PORT_2S1P) {
 			switch (port) {
-			case 0: *res = 0x10; return (0);
-			case 1: *res = 0x14; return (0);
-			case 2: *res = 0x1c; return (0);
+			case 0:
+				*res = 0x10;
+				return (0);
+			case 1:
+				*res = 0x14;
+				return (0);
+			case 2:
+				*res = 0x1c;
+				return (0);
 			}
 		}
 		break;
@@ -1662,32 +2239,21 @@ static int
 puc_config_timedia(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
     intptr_t *res)
 {
-	static const uint16_t dual[] = {
-	    0x0002, 0x4036, 0x4037, 0x4038, 0x4078, 0x4079, 0x4085,
-	    0x4088, 0x4089, 0x5037, 0x5078, 0x5079, 0x5085, 0x6079,
-	    0x7079, 0x8079, 0x8137, 0x8138, 0x8237, 0x8238, 0x9079,
-	    0x9137, 0x9138, 0x9237, 0x9238, 0xA079, 0xB079, 0xC079,
-	    0xD079, 0
-	};
-	static const uint16_t quad[] = {
-	    0x4055, 0x4056, 0x4095, 0x4096, 0x5056, 0x8156, 0x8157,
-	    0x8256, 0x8257, 0x9056, 0x9156, 0x9157, 0x9158, 0x9159,
-	    0x9256, 0x9257, 0xA056, 0xA157, 0xA158, 0xA159, 0xB056,
-	    0xB157, 0
-	};
-	static const uint16_t octa[] = {
-	    0x4065, 0x4066, 0x5065, 0x5066, 0x8166, 0x9066, 0x9166,
-	    0x9167, 0x9168, 0xA066, 0xA167, 0xA168, 0
-	};
+	static const uint16_t dual[] = { 0x0002, 0x4036, 0x4037, 0x4038, 0x4078,
+		0x4079, 0x4085, 0x4088, 0x4089, 0x5037, 0x5078, 0x5079, 0x5085,
+		0x6079, 0x7079, 0x8079, 0x8137, 0x8138, 0x8237, 0x8238, 0x9079,
+		0x9137, 0x9138, 0x9237, 0x9238, 0xA079, 0xB079, 0xC079, 0xD079,
+		0 };
+	static const uint16_t quad[] = { 0x4055, 0x4056, 0x4095, 0x4096, 0x5056,
+		0x8156, 0x8157, 0x8256, 0x8257, 0x9056, 0x9156, 0x9157, 0x9158,
+		0x9159, 0x9256, 0x9257, 0xA056, 0xA157, 0xA158, 0xA159, 0xB056,
+		0xB157, 0 };
+	static const uint16_t octa[] = { 0x4065, 0x4066, 0x5065, 0x5066, 0x8166,
+		0x9066, 0x9166, 0x9167, 0x9168, 0xA066, 0xA167, 0xA168, 0 };
 	static const struct {
 		int ports;
 		const uint16_t *ids;
-	} subdevs[] = {
-	    { 2, dual },
-	    { 4, quad },
-	    { 8, octa },
-	    { 0, NULL }
-	};
+	} subdevs[] = { { 2, dual }, { 4, quad }, { 8, octa }, { 0, NULL } };
 	static char desc[64];
 	int dev, id;
 	uint16_t subdev;
@@ -1768,16 +2334,15 @@ puc_config_oxford_pcie(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 
 	switch (cmd) {
 	case PUC_CFG_SETUP:
-		device_printf(sc->sc_dev, "%d UARTs detected\n",
-			sc->sc_nports);
+		device_printf(sc->sc_dev, "%d UARTs detected\n", sc->sc_nports);
 
 		/* Set UARTs to enhanced mode */
 		bar = puc_get_bar(sc, cfg->rid);
 		if (bar == NULL)
 			return (ENXIO);
 		for (idx = 0; idx < sc->sc_nports; idx++) {
-			value = bus_read_1(bar->b_res, 0x1000 + (idx << 9) +
-			    0x92);
+			value = bus_read_1(bar->b_res,
+			    0x1000 + (idx << 9) + 0x92);
 			bus_write_1(bar->b_res, 0x1000 + (idx << 9) + 0x92,
 			    value | 0x10);
 		}
@@ -1856,8 +2421,8 @@ puc_config_sunix(struct puc_softc *sc, enum puc_cfg_cmd cmd, int port,
 }
 
 static int
-puc_config_titan(struct puc_softc *sc __unused, enum puc_cfg_cmd cmd,
-    int port, intptr_t *res)
+puc_config_titan(struct puc_softc *sc __unused, enum puc_cfg_cmd cmd, int port,
+    intptr_t *res)
 {
 
 	switch (cmd) {

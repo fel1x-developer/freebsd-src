@@ -29,8 +29,8 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#ifndef	__IF_ATH_SYSCTL_H__
-#define	__IF_ATH_SYSCTL_H__
+#ifndef __IF_ATH_SYSCTL_H__
+#define __IF_ATH_SYSCTL_H__
 
 extern void ath_sysctlattach(struct ath_softc *);
 extern void ath_sysctl_stats_attach(struct ath_softc *sc);

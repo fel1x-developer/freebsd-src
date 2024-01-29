@@ -69,50 +69,50 @@
  * BWCT serial adapter driver
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR ubser_debug
+#define USB_DEBUG_VAR ubser_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/serial/usb_serial.h>
-
-#define	UBSER_UNIT_MAX	32
+#define UBSER_UNIT_MAX 32
 
 /* Vendor Interface Requests */
-#define	VENDOR_GET_NUMSER		0x01
-#define	VENDOR_SET_BREAK		0x02
-#define	VENDOR_CLEAR_BREAK		0x03
+#define VENDOR_GET_NUMSER 0x01
+#define VENDOR_SET_BREAK 0x02
+#define VENDOR_CLEAR_BREAK 0x03
 
 #ifdef USB_DEBUG
 static int ubser_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, ubser, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB ubser");
-SYSCTL_INT(_hw_usb_ubser, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &ubser_debug, 0, "ubser debug level");
+SYSCTL_INT(_hw_usb_ubser, OID_AUTO, debug, CTLFLAG_RWTUN, &ubser_debug, 0,
+    "ubser debug level");
 #endif
 
 enum {
@@ -131,10 +131,10 @@ struct ubser_softc {
 
 	uint16_t sc_tx_size;
 
-	uint8_t	sc_numser;
-	uint8_t	sc_iface_no;
-	uint8_t	sc_iface_index;
-	uint8_t	sc_curr_tx_unit;
+	uint8_t sc_numser;
+	uint8_t sc_iface_no;
+	uint8_t sc_iface_index;
+	uint8_t sc_curr_tx_unit;
 };
 
 /* prototypes */
@@ -147,16 +147,15 @@ static void ubser_free_softc(struct ubser_softc *);
 static usb_callback_t ubser_write_callback;
 static usb_callback_t ubser_read_callback;
 
-static void	ubser_free(struct ucom_softc *);
-static int	ubser_pre_param(struct ucom_softc *, struct termios *);
-static void	ubser_cfg_set_break(struct ucom_softc *, uint8_t);
-static void	ubser_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	ubser_start_read(struct ucom_softc *);
-static void	ubser_stop_read(struct ucom_softc *);
-static void	ubser_start_write(struct ucom_softc *);
-static void	ubser_stop_write(struct ucom_softc *);
-static void	ubser_poll(struct ucom_softc *ucom);
+static void ubser_free(struct ucom_softc *);
+static int ubser_pre_param(struct ucom_softc *, struct termios *);
+static void ubser_cfg_set_break(struct ucom_softc *, uint8_t);
+static void ubser_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void ubser_start_read(struct ucom_softc *);
+static void ubser_stop_read(struct ucom_softc *);
+static void ubser_start_write(struct ucom_softc *);
+static void ubser_stop_write(struct ucom_softc *);
+static void ubser_poll(struct ucom_softc *ucom);
 
 static const struct usb_config ubser_config[UBSER_N_TRANSFER] = {
 	[UBSER_BULK_DT_WR] = {
@@ -190,12 +189,9 @@ static const struct ucom_callback ubser_callback = {
 	.ucom_free = &ubser_free,
 };
 
-static device_method_t ubser_methods[] = {
-	DEVMETHOD(device_probe, ubser_probe),
+static device_method_t ubser_methods[] = { DEVMETHOD(device_probe, ubser_probe),
 	DEVMETHOD(device_attach, ubser_attach),
-	DEVMETHOD(device_detach, ubser_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, ubser_detach), DEVMETHOD_END };
 
 static driver_t ubser_driver = {
 	.name = "ubser",
@@ -249,12 +245,12 @@ ubser_attach(device_t dev)
 	req.wIndex[0] = sc->sc_iface_no;
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 1);
-	error = usbd_do_request_flags(uaa->device, NULL,
-	    &req, &sc->sc_numser,
+	error = usbd_do_request_flags(uaa->device, NULL, &req, &sc->sc_numser,
 	    0, NULL, USB_DEFAULT_TIMEOUT);
 
 	if (error || (sc->sc_numser == 0)) {
-		device_printf(dev, "failed to get number "
+		device_printf(dev,
+		    "failed to get number "
 		    "of serial ports: %s\n",
 		    usbd_errstr(error));
 		goto detach;
@@ -281,8 +277,8 @@ ubser_attach(device_t dev)
 		sc->sc_ucom[n].sc_portno = n;
 	}
 
-	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom,
-	    sc->sc_numser, sc, &ubser_callback, &sc->sc_mtx);
+	error = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom, sc->sc_numser, sc,
+	    &ubser_callback, &sc->sc_mtx);
 	if (error) {
 		goto detach;
 	}
@@ -294,11 +290,11 @@ ubser_attach(device_t dev)
 	usbd_transfer_start(sc->sc_xfer[UBSER_BULK_DT_RD]);
 	mtx_unlock(&sc->sc_mtx);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	ubser_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -372,7 +368,7 @@ ubser_pre_param(struct ucom_softc *ucom, struct termios *t)
 
 	/* we can't do any kind of hardware handshaking */
 	if ((t->c_cflag &
-	    (CRTS_IFLOW | CDTR_IFLOW | CDSR_OFLOW | CCAR_OFLOW)) != 0)
+		(CRTS_IFLOW | CDTR_IFLOW | CDSR_OFLOW | CCAR_OFLOW)) != 0)
 		return (EINVAL);
 
 	/*
@@ -405,12 +401,11 @@ ubser_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
 		do {
-			if (ucom_get_data(sc->sc_ucom + sc->sc_curr_tx_unit,
-			    pc, 1, sc->sc_tx_size - 1,
-			    &actlen)) {
+			if (ucom_get_data(sc->sc_ucom + sc->sc_curr_tx_unit, pc,
+				1, sc->sc_tx_size - 1, &actlen)) {
 				buf[0] = sc->sc_curr_tx_unit;
 
 				usbd_copy_in(pc, 0, buf, 1);
@@ -418,7 +413,7 @@ tr_setup:
 				usbd_xfer_set_frame_len(xfer, 0, actlen + 1);
 				usbd_transfer_submit(xfer);
 
-				ubser_inc_tx_unit(sc);	/* round robin */
+				ubser_inc_tx_unit(sc); /* round robin */
 
 				break;
 			}
@@ -428,7 +423,7 @@ tr_setup:
 
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -464,12 +459,12 @@ ubser_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(sc->sc_ucom + buf[0], pc, 1, actlen - 1);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -496,8 +491,8 @@ ubser_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 		req.wIndex[1] = 0;
 		USETW(req.wLength, 0);
 
-		err = ucom_cfg_do_request(sc->sc_udev, ucom, 
-		    &req, NULL, 0, 1000);
+		err = ucom_cfg_do_request(sc->sc_udev, ucom, &req, NULL, 0,
+		    1000);
 		if (err) {
 			DPRINTFN(0, "send break failed, error=%s\n",
 			    usbd_errstr(err));

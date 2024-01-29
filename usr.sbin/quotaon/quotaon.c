@@ -38,21 +38,22 @@
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/mount.h>
-#include <ufs/ufs/quota.h>
+
 #include <err.h>
 #include <fstab.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/quota.h>
 #include <unistd.h>
 
 static const char *qfextension[] = INITQFNAMES;
 
-static int	aflag;		/* all filesystems */
-static int	gflag;		/* operate on group quotas */
-static int	uflag;		/* operate on user quotas */
-static int	vflag;		/* verbose */
+static int aflag; /* all filesystems */
+static int gflag; /* operate on group quotas */
+static int uflag; /* operate on user quotas */
+static int vflag; /* verbose */
 
 static int oneof(char *, char *[], int);
 static int quotaonoff(struct fstab *fs, int, int);
@@ -72,7 +73,7 @@ main(int argc, char **argv)
 	else if (strcmp(whoami, "quotaon") != 0)
 		errx(1, "name must be quotaon or quotaoff");
 	while ((ch = getopt(argc, argv, "avug")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			aflag++;
 			break;
@@ -129,11 +130,10 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "%s\n%s\n%s\n%s\n",
-		"usage: quotaon [-g] [-u] [-v] -a",
-		"       quotaon [-g] [-u] [-v] filesystem ...",
-		"       quotaoff [-g] [-u] [-v] -a",
-		"       quotaoff [-g] [-u] [-v] filesystem ...");
+	fprintf(stderr, "%s\n%s\n%s\n%s\n", "usage: quotaon [-g] [-u] [-v] -a",
+	    "       quotaon [-g] [-u] [-v] filesystem ...",
+	    "       quotaoff [-g] [-u] [-v] -a",
+	    "       quotaoff [-g] [-u] [-v] filesystem ...");
 	exit(1);
 }
 
@@ -152,17 +152,17 @@ quotaonoff(struct fstab *fs, int offmode, int type)
 		if (vflag)
 			printf("%s: quotas turned off\n", quota_fsname(qf));
 		quota_close(qf);
-		return(0);
+		return (0);
 	}
 	if (quota_on(qf) != 0) {
 		warn("using %s on %s", quota_qfname(qf), quota_fsname(qf));
 		return (1);
 	}
 	if (vflag)
-		printf("%s: %s quotas turned on with data file %s\n", 
+		printf("%s: %s quotas turned on with data file %s\n",
 		    quota_fsname(qf), qfextension[type], quota_qfname(qf));
 	quota_close(qf);
-	return(0);
+	return (0);
 }
 
 /*

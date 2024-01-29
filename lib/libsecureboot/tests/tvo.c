@@ -23,11 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include "../libsecureboot-priv.h"
 
-#include <unistd.h>
 #include <err.h>
+#include <unistd.h>
 #include <verify_file.h>
+
+#include "../libsecureboot-priv.h"
 
 /* keep clang quiet */
 extern char *Destdir;
@@ -100,7 +101,7 @@ main(int argc, char *argv[])
 #endif
 		ve_self_tests();
 	}
-	for ( ; optind < argc; optind++) {
+	for (; optind < argc; optind++) {
 		if (Vflag) {
 			/*
 			 * Simulate what loader does.
@@ -113,8 +114,10 @@ main(int argc, char *argv[])
 				 */
 				int x;
 
-				x = verify_file(fd, argv[optind], 0, VE_GUESS, __func__);
-				printf("verify_file(%s) = %d\n", argv[optind], x);
+				x = verify_file(fd, argv[optind], 0, VE_GUESS,
+				    __func__);
+				printf("verify_file(%s) = %d\n", argv[optind],
+				    x);
 				close(fd);
 			}
 			continue;
@@ -123,34 +126,34 @@ main(int argc, char *argv[])
 		if (strstr(argv[optind], "asc")) {
 			cp = (char *)verify_asc(argv[optind], 1);
 			if (cp) {
-				printf("Verified: %s: %.28s...\n",
-				    argv[optind], cp);
-				if (!vflag)
-				    fingerprint_info_add(argv[optind],
-					prefix, Skip, cp, NULL);
-			} else {
-				fprintf(stderr, "%s: %s\n",
-				    argv[optind], ve_error_get());
-			}
-		} else
-#endif
-		if (strstr(argv[optind], "sig")) {
-			cp = (char *)verify_sig(argv[optind], 1);
-			if (cp) {
-				printf("Verified: %s: %.28s...\n",
-				    argv[optind], cp);
+				printf("Verified: %s: %.28s...\n", argv[optind],
+				    cp);
 				if (!vflag)
 					fingerprint_info_add(argv[optind],
 					    prefix, Skip, cp, NULL);
 			} else {
-				fprintf(stderr, "%s: %s\n",
-				    argv[optind], ve_error_get());
+				fprintf(stderr, "%s: %s\n", argv[optind],
+				    ve_error_get());
+			}
+		} else
+#endif
+		    if (strstr(argv[optind], "sig")) {
+			cp = (char *)verify_sig(argv[optind], 1);
+			if (cp) {
+				printf("Verified: %s: %.28s...\n", argv[optind],
+				    cp);
+				if (!vflag)
+					fingerprint_info_add(argv[optind],
+					    prefix, Skip, cp, NULL);
+			} else {
+				fprintf(stderr, "%s: %s\n", argv[optind],
+				    ve_error_get());
 			}
 		} else if (strstr(argv[optind], "manifest")) {
 			cp = (char *)read_file(argv[optind], NULL);
 			if (cp) {
-				fingerprint_info_add(argv[optind],
-				    prefix, Skip, cp, NULL);
+				fingerprint_info_add(argv[optind], prefix, Skip,
+				    cp, NULL);
 			}
 		} else {
 			fd = verify_open(argv[optind], O_RDONLY);
@@ -170,8 +173,8 @@ main(int argc, char *argv[])
 				fstat(fd, &st);
 				lseek(fd, 0, SEEK_SET);
 				off = st.st_size % 512;
-				vp = vectx_open(fd, argv[optind], off,
-				    &st, &error, __func__);
+				vp = vectx_open(fd, argv[optind], off, &st,
+				    &error, __func__);
 				if (!vp) {
 					printf("vectx_open(%s) failed: %d %s\n",
 					    argv[optind], error,
@@ -180,7 +183,8 @@ main(int argc, char *argv[])
 					off = vectx_lseek(vp,
 					    (st.st_size % 1024), SEEK_SET);
 					/* we can seek backwards! */
-					off = vectx_lseek(vp, off/2, SEEK_SET);
+					off = vectx_lseek(vp, off / 2,
+					    SEEK_SET);
 					if (off < st.st_size) {
 						nb = vectx_read(vp, buf,
 						    sizeof(buf));
@@ -190,13 +194,16 @@ main(int argc, char *argv[])
 					off = vectx_lseek(vp, 0, SEEK_END);
 					/* repeating that should be harmless */
 					off = vectx_lseek(vp, 0, SEEK_END);
-					error = vectx_close(vp, VE_MUST, __func__);
+					error = vectx_close(vp, VE_MUST,
+					    __func__);
 					if (error) {
-						printf("vectx_close(%s) == %d %s\n",
+						printf(
+						    "vectx_close(%s) == %d %s\n",
 						    argv[optind], error,
 						    ve_error_get());
 					} else {
-						printf("vectx_close: Verified: %s\n",
+						printf(
+						    "vectx_close: Verified: %s\n",
 						    argv[optind]);
 					}
 				}
@@ -210,4 +217,3 @@ main(int argc, char *argv[])
 #endif
 	return (0);
 }
-

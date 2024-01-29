@@ -75,7 +75,7 @@ umass_attach(device_t dev)
 {
 	struct usb_attach_arg *uaa = device_get_ivars(dev);
 	umass_uaa = *uaa;
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static int

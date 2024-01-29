@@ -28,17 +28,15 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 
 OM_uint32
-gss_verify_mic(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
-    const gss_buffer_t message_buffer,
-    const gss_buffer_t token_buffer,
+gss_verify_mic(OM_uint32 *minor_status, const gss_ctx_id_t context_handle,
+    const gss_buffer_t message_buffer, const gss_buffer_t token_buffer,
     gss_qop_t *qop_state)
 {
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m;
 
 	if (qop_state)
@@ -49,6 +47,6 @@ gss_verify_mic(OM_uint32 *minor_status,
 	}
 	m = ctx->gc_mech;
 
-	return (m->gm_verify_mic(minor_status, ctx->gc_ctx,
-		    message_buffer, token_buffer, qop_state));
+	return (m->gm_verify_mic(minor_status, ctx->gc_ctx, message_buffer,
+	    token_buffer, qop_state));
 }

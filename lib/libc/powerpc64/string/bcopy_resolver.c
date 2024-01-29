@@ -30,28 +30,28 @@
 #include <machine/cpu.h>
 #include <machine/ifunc.h>
 
-#define _CAT(a,b)	a##b
-#define CAT(a,b)	_CAT(a,b)
-#define CAT3(a,b,c)	CAT(CAT(a,b),c)
+#define _CAT(a, b) a##b
+#define CAT(a, b) _CAT(a, b)
+#define CAT3(a, b, c) CAT(CAT(a, b), c)
 
 #ifdef MEMCOPY
-#define FN_NAME		memcpy
-#define FN_RET		void *
-#define FN_PARAMS	(void *dst, const void *src, size_t len)
+#define FN_NAME memcpy
+#define FN_RET void *
+#define FN_PARAMS (void *dst, const void *src, size_t len)
 
 #elif defined(MEMMOVE)
-#define FN_NAME		memmove
-#define FN_RET		void *
-#define FN_PARAMS	(void *dst, const void *src, size_t len)
+#define FN_NAME memmove
+#define FN_RET void *
+#define FN_PARAMS (void *dst, const void *src, size_t len)
 
 #else
-#define FN_NAME		bcopy
-#define FN_RET		void
-#define FN_PARAMS	(const void *src, void *dst, size_t len)
+#define FN_NAME bcopy
+#define FN_RET void
+#define FN_PARAMS (const void *src, void *dst, size_t len)
 #endif
 
-#define FN_NAME_NOVSX	CAT(__, FN_NAME)
-#define FN_NAME_VSX	CAT3(__, FN_NAME, _vsx)
+#define FN_NAME_NOVSX CAT(__, FN_NAME)
+#define FN_NAME_VSX CAT3(__, FN_NAME, _vsx)
 
 FN_RET FN_NAME_NOVSX FN_PARAMS;
 FN_RET FN_NAME_VSX FN_PARAMS;

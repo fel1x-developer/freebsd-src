@@ -48,25 +48,27 @@
  * for use by the NFS open code (NFS/lookup).
  */
 
-#include <machine/stdarg.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+
+#include <machine/stdarg.h>
+
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
+#include <bootp.h>
+#include <bootparam.h>
+#include <net.h>
+#include <netif.h>
 #include <stand.h>
 #include <stddef.h>
 #include <string.h>
-#include <net.h>
-#include <netif.h>
-#include <bootp.h>
-#include <bootparam.h>
 
-#include "dev_net.h"
 #include "bootstrap.h"
+#include "dev_net.h"
 
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 int debug = 0;
 #endif
 
@@ -74,12 +76,12 @@ static char *netdev_name;
 static int netdev_sock = -1;
 static int netdev_opens;
 
-static int	net_init(void);
-static int	net_open(struct open_file *, ...);
-static int	net_close(struct open_file *);
-static void	net_cleanup(void);
-static int	net_strategy(void *, int, daddr_t, size_t, char *, size_t *);
-static int	net_print(int);
+static int net_init(void);
+static int net_open(struct open_file *, ...);
+static int net_close(struct open_file *);
+static void net_cleanup(void);
+static int net_strategy(void *, int, daddr_t, size_t, char *, size_t *);
+static int net_print(int);
 
 static int net_getparams(int sock);
 
@@ -121,7 +123,7 @@ net_open(struct open_file *f, ...)
 	struct iodesc *d;
 	va_list args;
 	struct devdesc *dev;
-	const char *devname;	/* Device part of file name (or NULL). */
+	const char *devname; /* Device part of file name (or NULL). */
 	int error = 0;
 
 	va_start(args, f);
@@ -143,7 +145,7 @@ net_open(struct open_file *f, ...)
 				return (ENXIO);
 			}
 			netdev_name = strdup(devname);
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 			if (debug)
 				printf("%s: netif_open() succeeded\n",
 				    __func__);
@@ -188,7 +190,6 @@ net_open(struct open_file *f, ...)
 			snprintf(mtu, sizeof(mtu), "%u", intf_mtu);
 			setenv("boot.netif.mtu", mtu, 1);
 		}
-
 	}
 	netdev_opens++;
 	dev->d_opendata = &netdev_sock;
@@ -200,7 +201,7 @@ net_close(struct open_file *f)
 {
 	struct devdesc *dev;
 
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 	if (debug)
 		printf("%s: opens=%d\n", __func__, netdev_opens);
 #endif
@@ -216,7 +217,7 @@ net_cleanup(void)
 {
 
 	if (netdev_sock >= 0) {
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 		if (debug)
 			printf("%s: calling netif_close()\n", __func__);
 #endif
@@ -248,7 +249,7 @@ net_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
  * MD code can make try_bootp initialied data,
  * which will override this common definition.
  */
-#ifdef	SUPPORT_BOOTP
+#ifdef SUPPORT_BOOTP
 int try_bootp = 1;
 #endif
 
@@ -260,7 +261,7 @@ net_getparams(int sock)
 	char buf[MAXHOSTNAMELEN];
 	n_long rootaddr, smask;
 
-#ifdef	SUPPORT_BOOTP
+#ifdef SUPPORT_BOOTP
 	/*
 	 * Try to get boot info using BOOTP.  If we succeed, then
 	 * the server IP address, gateway, and root path will all
@@ -271,7 +272,7 @@ net_getparams(int sock)
 		bootp(sock);
 	if (myip.s_addr != 0)
 		goto exit;
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 	if (debug)
 		printf("%s: BOOTP failed, trying RARP/RPC...\n", __func__);
 #endif
@@ -292,7 +293,7 @@ net_getparams(int sock)
 		printf("%s: bootparam/whoami RPC failed\n", __func__);
 		return (EIO);
 	}
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 	if (debug)
 		printf("%s: client name: %s\n", __func__, hostname);
 #endif
@@ -309,13 +310,13 @@ net_getparams(int sock)
 	}
 	if (smask) {
 		netmask = smask;
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 		if (debug)
 			printf("%s: subnet mask: %s\n", __func__,
 			    intoa(netmask));
 #endif
 	}
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 	if (gateip.s_addr && debug)
 		printf("%s: net gateway: %s\n", __func__, inet_ntoa(gateip));
 #endif
@@ -329,7 +330,7 @@ exit:
 	if ((rootaddr = net_parse_rootpath()) != INADDR_NONE)
 		rootip.s_addr = rootaddr;
 
-#ifdef	NETIF_DEBUG
+#ifdef NETIF_DEBUG
 	if (debug) {
 		printf("%s: server addr: %s\n", __func__, inet_ntoa(rootip));
 		printf("%s: server path: %s\n", __func__, rootpath);
@@ -397,7 +398,7 @@ net_parse_rootpath(void)
 
 	for (i = 0; i < nitems(uri_schemes); i++) {
 		if (strncmp(rootpath, uri_schemes[i].scheme,
-		    strlen(uri_schemes[i].scheme)) != 0)
+			strlen(uri_schemes[i].scheme)) != 0)
 			continue;
 
 		netproto = uri_schemes[i].proto;

@@ -28,24 +28,22 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <errno.h>
 #include <fcntl.h>
+#include <libufs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
-
-#include <libufs.h>
 
 int
 getinode(struct uufsd *disk, union dinodep *dp, ino_t inum)
@@ -67,11 +65,11 @@ getinode(struct uufsd *disk, union dinodep *dp, ino_t inum)
 
 	if (inum >= min && inum < max)
 		goto gotit;
-	bread(disk, fsbtodb(fs, ino_to_fsba(fs, inum)), inoblock,
-	    fs->fs_bsize);
+	bread(disk, fsbtodb(fs, ino_to_fsba(fs, inum)), inoblock, fs->fs_bsize);
 	disk->d_inomin = min = inum - (inum % INOPB(fs));
 	disk->d_inomax = max = min + INOPB(fs);
-gotit:	switch (disk->d_ufs) {
+gotit:
+	switch (disk->d_ufs) {
 	case 1:
 		disk->d_dp.dp1 = &((struct ufs1_dinode *)inoblock)[inum - min];
 		if (dp != NULL)
@@ -101,7 +99,7 @@ putinode(struct uufsd *disk)
 	if (disk->d_ufs == 2)
 		ffs_update_dinode_ckhash(fs, disk->d_dp.dp2);
 	if (bwrite(disk, fsbtodb(fs, ino_to_fsba(&disk->d_fs, disk->d_inomin)),
-	    (caddr_t)&disk->d_inos[0], disk->d_fs.fs_bsize) <= 0)
+		(caddr_t)&disk->d_inos[0], disk->d_fs.fs_bsize) <= 0)
 		return (-1);
 	return (0);
 }

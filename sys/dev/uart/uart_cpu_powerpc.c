@@ -28,6 +28,7 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
@@ -168,8 +169,8 @@ uart_cpu_getdev(int devtype, struct uart_devinfo *di)
 		class = &uart_z8530_class;
 		di->bas.regshft = 4;
 		di->bas.chan = 1;
-	} else if (ofw_bus_node_is_compatible(input,"ns16550") ||
-	    ofw_bus_node_is_compatible(input,"ns8250")) {
+	} else if (ofw_bus_node_is_compatible(input, "ns16550") ||
+	    ofw_bus_node_is_compatible(input, "ns8250")) {
 		class = &uart_ns8250_class;
 		di->bas.regshft = 0;
 		di->bas.chan = 0;
@@ -185,11 +186,11 @@ uart_cpu_getdev(int devtype, struct uart_devinfo *di)
 
 	di->ops = uart_getops(class);
 
-	if (OF_getprop(input, "clock-frequency", &di->bas.rclk, 
-	    sizeof(di->bas.rclk)) == -1)
+	if (OF_getprop(input, "clock-frequency", &di->bas.rclk,
+		sizeof(di->bas.rclk)) == -1)
 		di->bas.rclk = 230400;
-	if (OF_getprop(input, "current-speed", &di->baudrate, 
-	    sizeof(di->baudrate)) == -1)
+	if (OF_getprop(input, "current-speed", &di->baudrate,
+		sizeof(di->baudrate)) == -1)
 		di->baudrate = 0;
 	OF_getprop(input, "reg-shift", &di->bas.regshft,
 	    sizeof(di->bas.regshft));

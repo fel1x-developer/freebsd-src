@@ -31,12 +31,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 
 static struct callout callout_free;
 static struct mtx callout_free_mutex;
@@ -65,7 +65,7 @@ callout_free_load(module_t mod, int cmd, void *arg)
 		callout_init_mtx(&callout_free, &callout_free_mutex, 0);
 		printf("callout_free_func = %p\n", callout_free_func);
 		printf("callout_free_arg = %p\n", &callout_free_arg);
-		callout_reset(&callout_free, hz/10, callout_free_func,
+		callout_reset(&callout_free, hz / 10, callout_free_func,
 		    &callout_free_arg);
 		error = 0;
 		break;

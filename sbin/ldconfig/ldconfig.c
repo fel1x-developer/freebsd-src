@@ -30,10 +30,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/stat.h>
+#include <sys/param.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <a.out.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -80,7 +81,7 @@ main(int argc, char **argv)
 		hints_file = __PATH_ELF_HINTS("32");
 	else
 		hints_file = _PATH_ELF_HINTS;
-	while((c = getopt(argc, argv, "Rf:imrsv")) != -1) {
+	while ((c = getopt(argc, argv, "Rf:imrsv")) != -1) {
 		switch (c) {
 		case 'R':
 			rescan = true;
@@ -114,8 +115,8 @@ main(int argc, char **argv)
 	} else {
 		if (argc == optind)
 			rescan = true;
-		update_elf_hints(hints_file, argc - optind,
-		    argv + optind, merge || rescan);
+		update_elf_hints(hints_file, argc - optind, argv + optind,
+		    merge || rescan);
 	}
 	exit(0);
 }

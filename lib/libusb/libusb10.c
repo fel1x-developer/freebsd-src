@@ -29,6 +29,11 @@
 #ifdef LIBUSB_GLOBAL_INCLUDE_FILE
 #include LIBUSB_GLOBAL_INCLUDE_FILE
 #else
+#include <sys/endian.h>
+#include <sys/fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <poll.h>
@@ -37,33 +42,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/queue.h>
-#include <sys/endian.h>
+#include <unistd.h>
 #endif
 
-#define	libusb_device_handle libusb20_device
+#define libusb_device_handle libusb20_device
 
+#include "libusb.h"
+#include "libusb10.h"
 #include "libusb20.h"
 #include "libusb20_desc.h"
 #include "libusb20_int.h"
-#include "libusb.h"
-#include "libusb10.h"
 
-#define	LIBUSB_NUM_SW_ENDPOINTS	(16 * 4)
+#define LIBUSB_NUM_SW_ENDPOINTS (16 * 4)
 
 static pthread_mutex_t default_context_lock = PTHREAD_MUTEX_INITIALIZER;
 struct libusb_context *usbi_default_context = NULL;
 
 /* Prototypes */
 
-static struct libusb20_transfer *libusb10_get_transfer(struct libusb20_device *, uint8_t, uint8_t);
+static struct libusb20_transfer *libusb10_get_transfer(struct libusb20_device *,
+    uint8_t, uint8_t);
 static int libusb10_get_buffsize(struct libusb20_device *, libusb_transfer *);
 static int libusb10_convert_error(uint8_t status);
-static void libusb10_complete_transfer(struct libusb20_transfer *, struct libusb_super_transfer *, int);
+static void libusb10_complete_transfer(struct libusb20_transfer *,
+    struct libusb_super_transfer *, int);
 static void libusb10_isoc_proxy(struct libusb20_transfer *);
 static void libusb10_bulk_intr_proxy(struct libusb20_transfer *);
 static void libusb10_ctrl_proxy(struct libusb20_transfer *);
@@ -71,14 +74,12 @@ static void libusb10_submit_transfer_sub(struct libusb20_device *, uint8_t);
 
 /*  Library initialisation / deinitialisation */
 
-static const struct libusb_version libusb_version = {
-	.major = 1,
+static const struct libusb_version libusb_version = { .major = 1,
 	.minor = 0,
 	.micro = 0,
 	.nano = 2016,
 	.rc = "",
-	.describe = "https://www.freebsd.org"
-};
+	.describe = "https://www.freebsd.org" };
 
 const struct libusb_version *
 libusb_get_version(void)
@@ -128,7 +129,8 @@ libusb_interrupt_event_handler(libusb_context *ctx)
 	err = write(ctx->ctrl_pipe[1], &dummy, sizeof(dummy));
 	if (err < (int)sizeof(dummy)) {
 		/* ignore error, if any */
-		DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION, "Waking up event loop failed!");
+		DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION,
+		    "Waking up event loop failed!");
 	}
 }
 
@@ -245,7 +247,8 @@ libusb_init_context(libusb_context **context,
 	libusb_set_nonblocking(ctx->ctrl_pipe[0]);
 	libusb_set_nonblocking(ctx->ctrl_pipe[1]);
 
-	libusb10_add_pollfd(ctx, &ctx->ctx_poll, NULL, ctx->ctrl_pipe[0], POLLIN);
+	libusb10_add_pollfd(ctx, &ctx->ctx_poll, NULL, ctx->ctrl_pipe[0],
+	    POLLIN);
 
 	pthread_mutex_lock(&default_context_lock);
 	if (usbi_default_context == NULL) {
@@ -382,7 +385,7 @@ libusb_free_device_list(libusb_device **list, int unref_devices)
 	int i;
 
 	if (list == NULL)
-		return;			/* be NULL safe */
+		return; /* be NULL safe */
 
 	if (unref_devices) {
 		for (i = 0; list[i] != NULL; i++)
@@ -395,7 +398,7 @@ uint8_t
 libusb_get_bus_number(libusb_device *dev)
 {
 	if (dev == NULL)
-		return (0);		/* should not happen */
+		return (0); /* should not happen */
 	return (libusb20_dev_get_bus_number(dev->os_priv));
 }
 
@@ -403,7 +406,7 @@ uint8_t
 libusb_get_port_number(libusb_device *dev)
 {
 	if (dev == NULL)
-		return (0);		/* should not happen */
+		return (0); /* should not happen */
 	return (libusb20_dev_get_parent_port(dev->os_priv));
 }
 
@@ -424,7 +427,7 @@ uint8_t
 libusb_get_device_address(libusb_device *dev)
 {
 	if (dev == NULL)
-		return (0);		/* should not happen */
+		return (0); /* should not happen */
 	return (libusb20_dev_get_address(dev->os_priv));
 }
 
@@ -432,7 +435,7 @@ enum libusb_speed
 libusb_get_device_speed(libusb_device *dev)
 {
 	if (dev == NULL)
-		return (LIBUSB_SPEED_UNKNOWN);	/* should not happen */
+		return (LIBUSB_SPEED_UNKNOWN); /* should not happen */
 
 	switch (libusb20_dev_get_speed(dev->os_priv)) {
 	case LIBUSB20_SPEED_LOW:
@@ -516,7 +519,7 @@ libusb_device *
 libusb_ref_device(libusb_device *dev)
 {
 	if (dev == NULL)
-		return (NULL);		/* be NULL safe */
+		return (NULL); /* be NULL safe */
 
 	CTX_LOCK(dev->ctx);
 	dev->refcnt++;
@@ -529,7 +532,7 @@ void
 libusb_unref_device(libusb_device *dev)
 {
 	if (dev == NULL)
-		return;			/* be NULL safe */
+		return; /* be NULL safe */
 
 	CTX_LOCK(dev->ctx);
 	dev->refcnt--;
@@ -572,8 +575,9 @@ libusb_open(libusb_device *dev, libusb_device_handle **devh)
 	dev->device_is_gone = 0;
 	CTX_UNLOCK(ctx);
 
-	libusb10_add_pollfd(ctx, &dev->dev_poll, pdev, libusb20_dev_get_fd(pdev), POLLIN |
-	    POLLOUT | POLLRDNORM | POLLWRNORM);
+	libusb10_add_pollfd(ctx, &dev->dev_poll, pdev,
+	    libusb20_dev_get_fd(pdev),
+	    POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
 
 	/* make sure our event loop detects the new device */
 	libusb_interrupt_event_handler(ctx);
@@ -595,9 +599,10 @@ libusb_open_device_with_vid_pid(libusb_context *ctx, uint16_t vendor_id,
 
 	ctx = GET_CONTEXT(ctx);
 	if (ctx == NULL)
-		return (NULL);		/* be NULL safe */
+		return (NULL); /* be NULL safe */
 
-	DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION, "libusb_open_device_with_vid_pid enter");
+	DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_open_device_with_vid_pid enter");
 
 	if ((i = libusb_get_device_list(ctx, &devs)) < 0)
 		return (NULL);
@@ -621,7 +626,8 @@ libusb_open_device_with_vid_pid(libusb_context *ctx, uint16_t vendor_id,
 	}
 
 	libusb_free_device_list(devs, 1);
-	DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION, "libusb_open_device_with_vid_pid leave");
+	DPRINTF(ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_open_device_with_vid_pid leave");
 	return (pdev);
 }
 
@@ -632,7 +638,7 @@ libusb_close(struct libusb20_device *pdev)
 	struct libusb_device *dev;
 
 	if (pdev == NULL)
-		return;			/* be NULL safe */
+		return; /* be NULL safe */
 
 	dev = libusb_get_device(pdev);
 	ctx = dev->ctx;
@@ -664,7 +670,8 @@ libusb_get_configuration(struct libusb20_device *pdev, int *config)
 	if (pdev == NULL || config == NULL)
 		return (LIBUSB_ERROR_INVALID_PARAM);
 
-	pconf = libusb20_dev_alloc_config(pdev, libusb20_dev_get_config_index(pdev));
+	pconf = libusb20_dev_alloc_config(pdev,
+	    libusb20_dev_get_config_index(pdev));
 	if (pconf == NULL)
 		return (LIBUSB_ERROR_NO_MEM);
 
@@ -697,8 +704,8 @@ libusb_set_configuration(struct libusb20_device *pdev, int configuration)
 			pconf = libusb20_dev_alloc_config(pdev, i);
 			if (pconf == NULL)
 				return (LIBUSB_ERROR_INVALID_PARAM);
-			found = (pconf->desc.bConfigurationValue
-			    == configuration);
+			found = (pconf->desc.bConfigurationValue ==
+			    configuration);
 			free(pconf);
 
 			if (found)
@@ -715,8 +722,9 @@ set_config:
 
 	err = libusb20_dev_set_config_index(pdev, i);
 
-	libusb10_add_pollfd(dev->ctx, &dev->dev_poll, pdev, libusb20_dev_get_fd(pdev), POLLIN |
-	    POLLOUT | POLLRDNORM | POLLWRNORM);
+	libusb10_add_pollfd(dev->ctx, &dev->dev_poll, pdev,
+	    libusb20_dev_get_fd(pdev),
+	    POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
 
 	return (err ? LIBUSB_ERROR_INVALID_PARAM : 0);
 }
@@ -802,21 +810,21 @@ libusb_set_interface_alt_setting(struct libusb20_device *pdev,
 
 	libusb10_remove_pollfd(dev->ctx, &dev->dev_poll);
 
-	err = libusb20_dev_set_alt_index(pdev,
-	    interface_number, alternate_setting);
+	err = libusb20_dev_set_alt_index(pdev, interface_number,
+	    alternate_setting);
 
-	libusb10_add_pollfd(dev->ctx, &dev->dev_poll,
-	    pdev, libusb20_dev_get_fd(pdev),
+	libusb10_add_pollfd(dev->ctx, &dev->dev_poll, pdev,
+	    libusb20_dev_get_fd(pdev),
 	    POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
 
 	return (err ? LIBUSB_ERROR_OTHER : 0);
 }
 
 static struct libusb20_transfer *
-libusb10_get_transfer(struct libusb20_device *pdev,
-    uint8_t endpoint, uint8_t xfer_index)
+libusb10_get_transfer(struct libusb20_device *pdev, uint8_t endpoint,
+    uint8_t xfer_index)
 {
-	xfer_index &= 1;	/* double buffering */
+	xfer_index &= 1; /* double buffering */
 
 	xfer_index |= (endpoint & LIBUSB20_ENDPOINT_ADDRESS_MASK) * 4;
 
@@ -857,7 +865,7 @@ libusb_clear_halt(struct libusb20_device *pdev, uint8_t endpoint)
 		libusb20_tr_close(xfer);
 		CTX_UNLOCK(dev->ctx);
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 int
@@ -876,8 +884,8 @@ libusb_reset_device(struct libusb20_device *pdev)
 
 	err = libusb20_dev_reset(pdev);
 
-	libusb10_add_pollfd(dev->ctx, &dev->dev_poll,
-	    pdev, libusb20_dev_get_fd(pdev),
+	libusb10_add_pollfd(dev->ctx, &dev->dev_poll, pdev,
+	    libusb20_dev_get_fd(pdev),
 	    POLLIN | POLLOUT | POLLRDNORM | POLLWRNORM);
 
 	return (err ? LIBUSB_ERROR_OTHER : 0);
@@ -905,21 +913,21 @@ libusb_kernel_driver_active(struct libusb20_device *pdev, int interface)
 		return (LIBUSB_ERROR_INVALID_PARAM);
 
 	if (libusb20_dev_kernel_driver_active(pdev, interface))
-		return (0);		/* no kernel driver is active */
+		return (0); /* no kernel driver is active */
 	else
-		return (1);		/* kernel driver is active */
+		return (1); /* kernel driver is active */
 }
 
 int
-libusb_get_driver_np(struct libusb20_device *pdev, int interface,
-    char *name, int namelen)
+libusb_get_driver_np(struct libusb20_device *pdev, int interface, char *name,
+    int namelen)
 {
 	return (libusb_get_driver(pdev, interface, name, namelen));
 }
 
 int
-libusb_get_driver(struct libusb20_device *pdev, int interface,
-    char *name, int namelen)
+libusb_get_driver(struct libusb20_device *pdev, int interface, char *name,
+    int namelen)
 {
 	char *ptr;
 	int err;
@@ -931,8 +939,7 @@ libusb_get_driver(struct libusb20_device *pdev, int interface,
 	if (namelen > 255)
 		namelen = 255;
 
-	err = libusb20_dev_get_iface_desc(
-	    pdev, interface, name, namelen);
+	err = libusb20_dev_get_iface_desc(pdev, interface, name, namelen);
 
 	if (err != 0)
 		return (LIBUSB_ERROR_OTHER);
@@ -959,8 +966,7 @@ libusb_detach_kernel_driver(struct libusb20_device *pdev, int interface)
 	if (pdev == NULL)
 		return (LIBUSB_ERROR_INVALID_PARAM);
 
-	err = libusb20_dev_detach_kernel_driver(
-	    pdev, interface);
+	err = libusb20_dev_detach_kernel_driver(pdev, interface);
 
 	return (err ? LIBUSB_ERROR_OTHER : 0);
 }
@@ -1000,8 +1006,7 @@ libusb_alloc_transfer(int iso_packets)
 
 	memset(sxfer, 0, len);
 
-	uxfer = (struct libusb_transfer *)(
-	    ((uint8_t *)sxfer) + sizeof(*sxfer));
+	uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) + sizeof(*sxfer));
 
 	/* set default value */
 	uxfer->num_iso_packets = iso_packets;
@@ -1015,14 +1020,14 @@ libusb_free_transfer(struct libusb_transfer *uxfer)
 	struct libusb_super_transfer *sxfer;
 
 	if (uxfer == NULL)
-		return;			/* be NULL safe */
+		return; /* be NULL safe */
 
 	/* check if we should free the transfer buffer */
 	if (uxfer->flags & LIBUSB_TRANSFER_FREE_BUFFER)
 		free(uxfer->buffer);
 
-	sxfer = (struct libusb_super_transfer *)(
-	    (uint8_t *)uxfer - sizeof(*sxfer));
+	sxfer = (struct libusb_super_transfer *)((uint8_t *)uxfer -
+	    sizeof(*sxfer));
 
 	free(sxfer);
 }
@@ -1034,7 +1039,7 @@ libusb10_get_maxframe(struct libusb20_device *pdev, libusb_transfer *xfer)
 
 	switch (xfer->type) {
 	case LIBUSB_TRANSFER_TYPE_ISOCHRONOUS:
-		ret = 60 | LIBUSB20_MAX_FRAME_PRE_SCALE;	/* 60ms */
+		ret = 60 | LIBUSB20_MAX_FRAME_PRE_SCALE; /* 60ms */
 		break;
 	case LIBUSB_TRANSFER_TYPE_CONTROL:
 		ret = 2;
@@ -1056,7 +1061,7 @@ libusb10_get_buffsize(struct libusb20_device *pdev, libusb_transfer *xfer)
 
 	switch (xfer->type) {
 	case LIBUSB_TRANSFER_TYPE_ISOCHRONOUS:
-		ret = 0;		/* kernel will auto-select */
+		ret = 0; /* kernel will auto-select */
 		break;
 	case LIBUSB_TRANSFER_TYPE_CONTROL:
 		ret = 1024;
@@ -1084,7 +1089,7 @@ libusb10_get_buffsize(struct libusb20_device *pdev, libusb_transfer *xfer)
 static int
 libusb10_convert_error(uint8_t status)
 {
-	;				/* indent fix */
+	; /* indent fix */
 
 	switch (status) {
 	case LIBUSB20_TRANSFER_START:
@@ -1114,8 +1119,7 @@ libusb10_complete_transfer(struct libusb20_transfer *pxfer,
 	struct libusb_transfer *uxfer;
 	struct libusb_device *dev;
 
-	uxfer = (struct libusb_transfer *)(
-	    ((uint8_t *)sxfer) + sizeof(*sxfer));
+	uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) + sizeof(*sxfer));
 
 	if (pxfer != NULL)
 		libusb20_tr_set_priv_sc1(pxfer, NULL);
@@ -1151,8 +1155,7 @@ libusb10_isoc_proxy(struct libusb20_transfer *pxfer)
 	if (sxfer == NULL)
 		return; /* cancelled - nothing to do */
 
-	uxfer = (struct libusb_transfer *)(
-	    ((uint8_t *)sxfer) + sizeof(*sxfer));
+	uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) + sizeof(*sxfer));
 
 	if (iso_packets > uxfer->num_iso_packets)
 		iso_packets = uxfer->num_iso_packets;
@@ -1171,14 +1174,14 @@ libusb10_isoc_proxy(struct libusb20_transfer *pxfer)
 			uxfer->iso_packet_desc[i].actual_length =
 			    libusb20_tr_get_length(pxfer, i);
 		}
-		libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_COMPLETED);
+		libusb10_complete_transfer(pxfer, sxfer,
+		    LIBUSB_TRANSFER_COMPLETED);
 		break;
 	case LIBUSB20_TRANSFER_START:
 		/* setup length(s) */
 		actlen = 0;
 		for (i = 0; i != iso_packets; i++) {
-			libusb20_tr_setup_isoc(pxfer,
-			    &uxfer->buffer[actlen],
+			libusb20_tr_setup_isoc(pxfer, &uxfer->buffer[actlen],
 			    uxfer->iso_packet_desc[i].length, i);
 			actlen += uxfer->iso_packet_desc[i].length;
 		}
@@ -1190,10 +1193,12 @@ libusb10_isoc_proxy(struct libusb20_transfer *pxfer)
 		libusb20_tr_submit(pxfer);
 
 		/* fork another USB transfer, if any */
-		libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(pxfer), uxfer->endpoint);
+		libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(pxfer),
+		    uxfer->endpoint);
 		break;
 	default:
-		libusb10_complete_transfer(pxfer, sxfer, libusb10_convert_error(status));
+		libusb10_complete_transfer(pxfer, sxfer,
+		    libusb10_convert_error(status));
 		break;
 	}
 }
@@ -1216,10 +1221,9 @@ libusb10_bulk_intr_proxy(struct libusb20_transfer *pxfer)
 	actlen = libusb20_tr_get_actual_length(pxfer);
 
 	if (sxfer == NULL)
-		return;			/* cancelled - nothing to do */
+		return; /* cancelled - nothing to do */
 
-	uxfer = (struct libusb_transfer *)(
-	    ((uint8_t *)sxfer) + sizeof(*sxfer));
+	uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) + sizeof(*sxfer));
 
 	flags = uxfer->flags;
 
@@ -1231,15 +1235,18 @@ libusb10_bulk_intr_proxy(struct libusb20_transfer *pxfer)
 		/* check for short packet */
 		if (sxfer->last_len != actlen) {
 			if (flags & LIBUSB_TRANSFER_SHORT_NOT_OK) {
-				libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_ERROR);
+				libusb10_complete_transfer(pxfer, sxfer,
+				    LIBUSB_TRANSFER_ERROR);
 			} else {
-				libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_COMPLETED);
+				libusb10_complete_transfer(pxfer, sxfer,
+				    LIBUSB_TRANSFER_COMPLETED);
 			}
 			break;
 		}
 		/* check for end of data */
 		if (sxfer->rem_len == 0) {
-			libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_COMPLETED);
+			libusb10_complete_transfer(pxfer, sxfer,
+			    LIBUSB_TRANSFER_COMPLETED);
 			break;
 		}
 		/* FALLTHROUGH */
@@ -1249,8 +1256,8 @@ libusb10_bulk_intr_proxy(struct libusb20_transfer *pxfer)
 			max_bulk = sxfer->rem_len;
 		}
 		/* setup new BULK or INTERRUPT transaction */
-		libusb20_tr_setup_bulk(pxfer,
-		    sxfer->curr_data, max_bulk, uxfer->timeout);
+		libusb20_tr_setup_bulk(pxfer, sxfer->curr_data, max_bulk,
+		    uxfer->timeout);
 
 		/* update counters */
 		sxfer->last_len = max_bulk;
@@ -1261,11 +1268,14 @@ libusb10_bulk_intr_proxy(struct libusb20_transfer *pxfer)
 
 		/* check if we can fork another USB transfer */
 		if (sxfer->rem_len == 0)
-			libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(pxfer), uxfer->endpoint);
+			libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(
+							 pxfer),
+			    uxfer->endpoint);
 		break;
 
 	default:
-		libusb10_complete_transfer(pxfer, sxfer, libusb10_convert_error(status));
+		libusb10_complete_transfer(pxfer, sxfer,
+		    libusb10_convert_error(status));
 		break;
 	}
 }
@@ -1288,10 +1298,9 @@ libusb10_ctrl_proxy(struct libusb20_transfer *pxfer)
 	actlen = libusb20_tr_get_actual_length(pxfer);
 
 	if (sxfer == NULL)
-		return;			/* cancelled - nothing to do */
+		return; /* cancelled - nothing to do */
 
-	uxfer = (struct libusb_transfer *)(
-	    ((uint8_t *)sxfer) + sizeof(*sxfer));
+	uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) + sizeof(*sxfer));
 
 	flags = uxfer->flags;
 
@@ -1306,15 +1315,18 @@ libusb10_ctrl_proxy(struct libusb20_transfer *pxfer)
 		/* check for short packet */
 		if (sxfer->last_len != actlen) {
 			if (flags & LIBUSB_TRANSFER_SHORT_NOT_OK) {
-				libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_ERROR);
+				libusb10_complete_transfer(pxfer, sxfer,
+				    LIBUSB_TRANSFER_ERROR);
 			} else {
-				libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_COMPLETED);
+				libusb10_complete_transfer(pxfer, sxfer,
+				    LIBUSB_TRANSFER_COMPLETED);
 			}
 			break;
 		}
 		/* check for end of data */
 		if (sxfer->rem_len == 0) {
-			libusb10_complete_transfer(pxfer, sxfer, LIBUSB_TRANSFER_COMPLETED);
+			libusb10_complete_transfer(pxfer, sxfer,
+			    LIBUSB_TRANSFER_COMPLETED);
 			break;
 		}
 		/* FALLTHROUGH */
@@ -1350,11 +1362,14 @@ libusb10_ctrl_proxy(struct libusb20_transfer *pxfer)
 
 		/* check if we can fork another USB transfer */
 		if (sxfer->rem_len == 0)
-			libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(pxfer), uxfer->endpoint);
+			libusb10_submit_transfer_sub(libusb20_tr_get_priv_sc0(
+							 pxfer),
+			    uxfer->endpoint);
 		break;
 
 	default:
-		libusb10_complete_transfer(pxfer, sxfer, libusb10_convert_error(status));
+		libusb10_complete_transfer(pxfer, sxfer,
+		    libusb10_convert_error(status));
 		break;
 	}
 }
@@ -1380,7 +1395,7 @@ libusb10_submit_transfer_sub(struct libusb20_device *pdev, uint8_t endpoint)
 	pxfer1 = libusb10_get_transfer(pdev, endpoint, 1);
 
 	if (pxfer0 == NULL || pxfer1 == NULL)
-		return;			/* shouldn't happen */
+		return; /* shouldn't happen */
 
 	temp = 0;
 	if (libusb20_tr_pending(pxfer0))
@@ -1395,18 +1410,18 @@ libusb10_submit_transfer_sub(struct libusb20_device *pdev, uint8_t endpoint)
 	case 2:
 		sxfer = libusb20_tr_get_priv_sc1(pxfer1);
 		if (sxfer == NULL)
-			return;		/* cancelling */
+			return; /* cancelling */
 		if (sxfer->rem_len)
-			return;		/* cannot queue another one */
+			return; /* cannot queue another one */
 		/* swap transfers */
 		pxfer1 = pxfer0;
 		break;
 	case 1:
 		sxfer = libusb20_tr_get_priv_sc1(pxfer0);
 		if (sxfer == NULL)
-			return;		/* cancelling */
+			return; /* cancelling */
 		if (sxfer->rem_len)
-			return;		/* cannot queue another one */
+			return; /* cannot queue another one */
 		/* swap transfers */
 		pxfer0 = pxfer1;
 		break;
@@ -1415,10 +1430,10 @@ libusb10_submit_transfer_sub(struct libusb20_device *pdev, uint8_t endpoint)
 	}
 
 	/* find next transfer on same endpoint */
-	TAILQ_FOREACH(sxfer, &dev->tr_head, entry) {
+	TAILQ_FOREACH (sxfer, &dev->tr_head, entry) {
 
-		uxfer = (struct libusb_transfer *)(
-		    ((uint8_t *)sxfer) + sizeof(*sxfer));
+		uxfer = (struct libusb_transfer *)(((uint8_t *)sxfer) +
+		    sizeof(*sxfer));
 
 		if (uxfer->endpoint == endpoint) {
 			TAILQ_REMOVE(&dev->tr_head, sxfer, entry);
@@ -1426,7 +1441,7 @@ libusb10_submit_transfer_sub(struct libusb20_device *pdev, uint8_t endpoint)
 			goto found;
 		}
 	}
-	return;				/* success */
+	return; /* success */
 
 found:
 
@@ -1463,8 +1478,8 @@ found:
 	maxframe = libusb10_get_maxframe(pdev, uxfer);
 
 	/* make sure the transfer is opened */
-	err = libusb20_tr_open_stream(pxfer0, buffsize, maxframe,
-	    endpoint, sxfer->stream_id);
+	err = libusb20_tr_open_stream(pxfer0, buffsize, maxframe, endpoint,
+	    sxfer->stream_id);
 	if (err && (err != LIBUSB20_ERROR_BUSY)) {
 		goto failure;
 	}
@@ -1499,10 +1514,11 @@ libusb_submit_transfer(struct libusb_transfer *uxfer)
 
 	dev = libusb_get_device(uxfer->dev_handle);
 
-	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION, "libusb_submit_transfer enter");
+	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_submit_transfer enter");
 
-	sxfer = (struct libusb_super_transfer *)(
-	    (uint8_t *)uxfer - sizeof(*sxfer));
+	sxfer = (struct libusb_super_transfer *)((uint8_t *)uxfer -
+	    sizeof(*sxfer));
 
 	CTX_LOCK(dev->ctx);
 
@@ -1526,15 +1542,15 @@ libusb_submit_transfer(struct libusb_transfer *uxfer)
 		TAILQ_INSERT_TAIL(&dev->tr_head, sxfer, entry);
 
 		/* start work transfers */
-		libusb10_submit_transfer_sub(
-		    uxfer->dev_handle, endpoint);
+		libusb10_submit_transfer_sub(uxfer->dev_handle, endpoint);
 
-		err = 0;		/* success */
+		err = 0; /* success */
 	}
 
 	CTX_UNLOCK(dev->ctx);
 
-	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION, "libusb_submit_transfer leave %d", err);
+	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_submit_transfer leave %d", err);
 
 	return (err);
 }
@@ -1563,10 +1579,11 @@ libusb_cancel_transfer(struct libusb_transfer *uxfer)
 
 	dev = libusb_get_device(devh);
 
-	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION, "libusb_cancel_transfer enter");
+	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_cancel_transfer enter");
 
-	sxfer = (struct libusb_super_transfer *)(
-	    (uint8_t *)uxfer - sizeof(*sxfer));
+	sxfer = (struct libusb_super_transfer *)((uint8_t *)uxfer -
+	    sizeof(*sxfer));
 
 	retval = 0;
 
@@ -1583,16 +1600,16 @@ libusb_cancel_transfer(struct libusb_transfer *uxfer)
 		/* we are lucky - transfer is on a queue */
 		TAILQ_REMOVE(&dev->tr_head, sxfer, entry);
 		sxfer->entry.tqe_prev = NULL;
-		libusb10_complete_transfer(NULL,
-		    sxfer, LIBUSB_TRANSFER_CANCELLED);
+		libusb10_complete_transfer(NULL, sxfer,
+		    LIBUSB_TRANSFER_CANCELLED);
 		/* make sure our event loop spins the done handler */
 		libusb_interrupt_event_handler(dev->ctx);
 	} else if (pxfer0 == NULL || pxfer1 == NULL) {
 		/* not started */
 		retval = LIBUSB_ERROR_NOT_FOUND;
 	} else if (libusb20_tr_get_priv_sc1(pxfer0) == sxfer) {
-		libusb10_complete_transfer(pxfer0,
-		    sxfer, LIBUSB_TRANSFER_CANCELLED);
+		libusb10_complete_transfer(pxfer0, sxfer,
+		    LIBUSB_TRANSFER_CANCELLED);
 		if (dev->device_is_gone != 0) {
 			/* clear transfer pointer */
 			libusb20_tr_set_priv_sc1(pxfer0, NULL);
@@ -1604,8 +1621,8 @@ libusb_cancel_transfer(struct libusb_transfer *uxfer)
 			libusb10_submit_transfer_sub(devh, endpoint);
 		}
 	} else if (libusb20_tr_get_priv_sc1(pxfer1) == sxfer) {
-		libusb10_complete_transfer(pxfer1,
-		    sxfer, LIBUSB_TRANSFER_CANCELLED);
+		libusb10_complete_transfer(pxfer1, sxfer,
+		    LIBUSB_TRANSFER_CANCELLED);
 		/* check if handle is still active */
 		if (dev->device_is_gone != 0) {
 			/* clear transfer pointer */
@@ -1624,7 +1641,8 @@ libusb_cancel_transfer(struct libusb_transfer *uxfer)
 
 	CTX_UNLOCK(dev->ctx);
 
-	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION, "libusb_cancel_transfer leave");
+	DPRINTF(dev->ctx, LIBUSB_DEBUG_FUNCTION,
+	    "libusb_cancel_transfer leave");
 
 	return (retval);
 }
@@ -1646,7 +1664,8 @@ libusb10_cancel_all_transfer(libusb_device *dev)
 }
 
 UNEXPORTED void
-libusb10_cancel_all_transfer_locked(struct libusb20_device *pdev, struct libusb_device *dev)
+libusb10_cancel_all_transfer_locked(struct libusb20_device *pdev,
+    struct libusb_device *dev)
 {
 	struct libusb_super_transfer *sxfer;
 	unsigned x;

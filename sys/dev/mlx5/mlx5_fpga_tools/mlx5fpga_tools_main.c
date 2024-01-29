@@ -30,9 +30,10 @@
  * SOFTWARE.
  */
 
-#include <linux/module.h>
 #include <dev/mlx5/mlx5_fpga_tools/tools.h>
 #include <dev/mlx5/mlx5_fpga_tools/tools_char.h>
+
+#include <linux/module.h>
 
 MODULE_DEPEND(mlx5fpga_tools, linuxkpi, 1, 1, 1);
 MODULE_DEPEND(mlx5fpga_tools, mlx5, 1, 1, 1);
@@ -44,7 +45,8 @@ static int mlx5_fpga_tools_add(struct mlx5_fpga_device *fdev, u32 vid, u16 pid);
 static void mlx5_fpga_tools_remove(struct mlx5_fpga_device *fdev);
 static void mlx5_fpga_tools_destroy(struct mlx5_fpga_device *fdev);
 
-struct mlx5_fpga_tools_dev *mlx5_fpga_tools_alloc(struct mlx5_fpga_device *fdev);
+struct mlx5_fpga_tools_dev *mlx5_fpga_tools_alloc(
+    struct mlx5_fpga_device *fdev);
 void mlx5_fpga_tools_free(struct mlx5_fpga_tools_dev *tdev);
 
 static struct mlx5_fpga_client mlx5_fpga_tools_client = {
@@ -55,7 +57,8 @@ static struct mlx5_fpga_client mlx5_fpga_tools_client = {
 	.destroy = mlx5_fpga_tools_destroy,
 };
 
-struct mlx5_fpga_tools_dev *mlx5_fpga_tools_alloc(struct mlx5_fpga_device *fdev)
+struct mlx5_fpga_tools_dev *
+mlx5_fpga_tools_alloc(struct mlx5_fpga_device *fdev)
 {
 	int ret;
 	struct mlx5_fpga_tools_dev *tdev;
@@ -80,13 +83,15 @@ out:
 	return tdev;
 }
 
-void mlx5_fpga_tools_free(struct mlx5_fpga_tools_dev *tdev)
+void
+mlx5_fpga_tools_free(struct mlx5_fpga_tools_dev *tdev)
 {
 	mlx5_fpga_tools_char_remove_one(tdev);
 	kfree(tdev);
 }
 
-static void mlx5_fpga_tools_create(struct mlx5_fpga_device *fdev)
+static void
+mlx5_fpga_tools_create(struct mlx5_fpga_device *fdev)
 {
 	struct mlx5_fpga_tools_dev *dev = NULL;
 
@@ -99,16 +104,19 @@ static void mlx5_fpga_tools_create(struct mlx5_fpga_device *fdev)
 	mlx5_fpga_client_data_set(fdev, &mlx5_fpga_tools_client, dev);
 }
 
-static int mlx5_fpga_tools_add(struct mlx5_fpga_device *fdev, u32 vid, u16 pid)
+static int
+mlx5_fpga_tools_add(struct mlx5_fpga_device *fdev, u32 vid, u16 pid)
 {
 	return 0;
 }
 
-static void mlx5_fpga_tools_remove(struct mlx5_fpga_device *fdev)
+static void
+mlx5_fpga_tools_remove(struct mlx5_fpga_device *fdev)
 {
 }
 
-static void mlx5_fpga_tools_destroy(struct mlx5_fpga_device *fdev)
+static void
+mlx5_fpga_tools_destroy(struct mlx5_fpga_device *fdev)
 {
 	struct mlx5_fpga_tools_dev *dev;
 
@@ -119,7 +127,8 @@ static void mlx5_fpga_tools_destroy(struct mlx5_fpga_device *fdev)
 		mlx5_fpga_tools_free(dev);
 }
 
-static int __init mlx5_fpga_tools_init(void)
+static int __init
+mlx5_fpga_tools_init(void)
 {
 	int ret = mlx5_fpga_tools_char_init();
 
@@ -129,7 +138,8 @@ static int __init mlx5_fpga_tools_init(void)
 	return 0;
 }
 
-static void __exit mlx5_fpga_tools_exit(void)
+static void __exit
+mlx5_fpga_tools_exit(void)
 {
 	mlx5_fpga_client_unregister(&mlx5_fpga_tools_client);
 	mlx5_fpga_tools_char_deinit();

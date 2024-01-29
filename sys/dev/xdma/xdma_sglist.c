@@ -28,11 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 

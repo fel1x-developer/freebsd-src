@@ -28,20 +28,20 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/mutex.h>
 
 #include <machine/bus.h>
 
-#include "dpaa2_types.h"
-#include "dpaa2_buf.h"
 #include "dpaa2_bp.h"
+#include "dpaa2_buf.h"
 #include "dpaa2_channel.h"
+#include "dpaa2_ni.h"
 #include "dpaa2_swp.h"
 #include "dpaa2_swp_if.h"
-#include "dpaa2_ni.h"
+#include "dpaa2_types.h"
 
 MALLOC_DEFINE(M_DPAA2_RXB, "dpaa2_rxb", "DPAA2 DMA-mapped buffer (Rx)");
 
@@ -71,8 +71,9 @@ dpaa2_buf_seed_pool(device_t dev, device_t bpdev, void *arg, uint32_t count,
 
 #ifdef _notyet_
 	/* Limit amount of buffers released to the pool */
-	count = (alloc + count > DPAA2_NI_BUFS_MAX)
-	    ? DPAA2_NI_BUFS_MAX - alloc : count;
+	count = (alloc + count > DPAA2_NI_BUFS_MAX) ?
+	    DPAA2_NI_BUFS_MAX - alloc :
+	    count;
 #endif
 
 	/* Release "count" buffers to the pool */
@@ -82,8 +83,10 @@ dpaa2_buf_seed_pool(device_t dev, device_t bpdev, void *arg, uint32_t count,
 			error = DPAA2_SWP_RELEASE_BUFS(ch->io_dev, bpid, paddr,
 			    bufn);
 			if (error) {
-				device_printf(sc->dev, "%s: failed to release "
-				    "buffers to the pool (1)\n", __func__);
+				device_printf(sc->dev,
+				    "%s: failed to release "
+				    "buffers to the pool (1)\n",
+				    __func__);
 				return (error);
 			}
 			DPAA2_ATOMIC_ADD(&sc->buf_num, bufn);
@@ -99,8 +102,10 @@ dpaa2_buf_seed_pool(device_t dev, device_t bpdev, void *arg, uint32_t count,
 
 		error = dpaa2_buf_seed_rxb(dev, buf, size, dma_mtx);
 		if (error != 0) {
-			device_printf(dev, "%s: dpaa2_buf_seed_rxb() failed: "
-			    "error=%d/n", __func__, error);
+			device_printf(dev,
+			    "%s: dpaa2_buf_seed_rxb() failed: "
+			    "error=%d/n",
+			    __func__, error);
 			break;
 		}
 		paddr[bufn] = buf->paddr;
@@ -111,8 +116,10 @@ dpaa2_buf_seed_pool(device_t dev, device_t bpdev, void *arg, uint32_t count,
 	if (bufn > 0) {
 		error = DPAA2_SWP_RELEASE_BUFS(ch->io_dev, bpid, paddr, bufn);
 		if (error) {
-			device_printf(sc->dev, "%s: failed to release "
-			    "buffers to the pool (2)\n", __func__);
+			device_printf(sc->dev,
+			    "%s: failed to release "
+			    "buffers to the pool (2)\n",
+			    __func__);
 			return (error);
 		}
 		DPAA2_ATOMIC_ADD(&sc->buf_num, bufn);
@@ -139,13 +146,15 @@ dpaa2_buf_seed_rxb(device_t dev, struct dpaa2_buf *buf, int size,
 	if (dma_mtx != NULL) {
 		mtx_assert(dma_mtx, MA_OWNED);
 	}
-#endif /* INVARIANTS */	
+#endif /* INVARIANTS */
 
 	if (__predict_false(buf->dmap == NULL)) {
 		error = bus_dmamap_create(buf->dmat, 0, &buf->dmap);
 		if (error != 0) {
-			device_printf(dev, "%s: failed to create DMA map: "
-			    "error=%d\n", __func__, error);
+			device_printf(dev,
+			    "%s: failed to create DMA map: "
+			    "error=%d\n",
+			    __func__, error);
 			goto fail_map_create;
 		}
 		map_created = true;
@@ -165,13 +174,16 @@ dpaa2_buf_seed_rxb(device_t dev, struct dpaa2_buf *buf, int size,
 
 	error = bus_dmamap_load_mbuf_sg(buf->dmat, buf->dmap, buf->m, &buf->seg,
 	    &buf->nseg, BUS_DMA_NOWAIT);
-	KASSERT(buf->nseg == 1, ("%s: one segment expected: nseg=%d", __func__,
-	    buf->nseg));
-	KASSERT(error == 0, ("%s: bus_dmamap_load_mbuf_sg() failed: error=%d",
-	    __func__, error));
+	KASSERT(buf->nseg == 1,
+	    ("%s: one segment expected: nseg=%d", __func__, buf->nseg));
+	KASSERT(error == 0,
+	    ("%s: bus_dmamap_load_mbuf_sg() failed: error=%d", __func__,
+		error));
 	if (__predict_false(error != 0 || buf->nseg != 1)) {
-		device_printf(sc->dev, "%s: bus_dmamap_load_mbuf_sg() failed: "
-		    "error=%d, nsegs=%d\n", __func__, error, buf->nseg);
+		device_printf(sc->dev,
+		    "%s: bus_dmamap_load_mbuf_sg() failed: "
+		    "error=%d, nsegs=%d\n",
+		    __func__, error, buf->nseg);
 		goto fail_mbuf_map;
 	}
 	buf->paddr = buf->seg.ds_addr;
@@ -216,8 +228,10 @@ dpaa2_buf_seed_txb(device_t dev, struct dpaa2_buf *buf)
 	if (buf->dmap == NULL) {
 		error = bus_dmamap_create(buf->dmat, 0, &buf->dmap);
 		if (error != 0) {
-			device_printf(dev, "%s: bus_dmamap_create() failed: "
-			    "error=%d\n", __func__, error);
+			device_printf(dev,
+			    "%s: bus_dmamap_create() failed: "
+			    "error=%d\n",
+			    __func__, error);
 			goto fail_map_create;
 		}
 		map_created = true;
@@ -227,8 +241,10 @@ dpaa2_buf_seed_txb(device_t dev, struct dpaa2_buf *buf)
 		error = bus_dmamem_alloc(sgt->dmat, (void **)&sgt->vaddr,
 		    BUS_DMA_ZERO | BUS_DMA_COHERENT, &sgt->dmap);
 		if (error != 0) {
-			device_printf(dev, "%s: bus_dmamem_alloc() failed: "
-			    "error=%d\n", __func__, error);
+			device_printf(dev,
+			    "%s: bus_dmamem_alloc() failed: "
+			    "error=%d\n",
+			    __func__, error);
 			goto fail_mem_alloc;
 		}
 	}

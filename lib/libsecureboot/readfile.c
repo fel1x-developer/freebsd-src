@@ -23,6 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
+
 #include <libsecureboot.h>
 
 unsigned char *
@@ -33,7 +34,7 @@ read_fd(int fd, size_t len)
 
 	buf = malloc(len + 1);
 	if (buf != NULL) {
-		for (x = 0, m = len; m > 0; ) {
+		for (x = 0, m = len; m > 0;) {
 			n = read(fd, &buf[x], m);
 			if (n < 0)
 				break;
@@ -58,7 +59,7 @@ read_file(const char *path, size_t *len)
 	unsigned char *ucp;
 	int fd;
 
-    	if (len)
+	if (len)
 		*len = 0;
 	if ((fd = open(path, O_RDONLY)) < 0)
 		return (NULL);
@@ -77,4 +78,3 @@ read_file(const char *path, size_t *len)
 
 	return (ucp);
 }
-

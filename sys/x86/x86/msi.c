@@ -36,11 +36,12 @@
  * to the local APICs as if they had come from an I/O APIC.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_iommu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
@@ -49,50 +50,52 @@
 #include <sys/mutex.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <x86/apicreg.h>
+
 #include <machine/cputypes.h>
-#include <machine/md_var.h>
 #include <machine/frame.h>
 #include <machine/intr_machdep.h>
+#include <machine/md_var.h>
+#include <machine/specialreg.h>
+
+#include <x86/apicreg.h>
 #include <x86/apicvar.h>
 #include <x86/iommu/iommu_intrmap.h>
-#include <machine/specialreg.h>
+
 #include <dev/pci/pcivar.h>
 
 /* Fields in address for Intel MSI messages. */
-#define	MSI_INTEL_ADDR_DEST		0x000ff000
-#define	MSI_INTEL_ADDR_RH		0x00000008
-# define MSI_INTEL_ADDR_RH_ON		0x00000008
-# define MSI_INTEL_ADDR_RH_OFF		0x00000000
-#define	MSI_INTEL_ADDR_DM		0x00000004
-# define MSI_INTEL_ADDR_DM_PHYSICAL	0x00000000
-# define MSI_INTEL_ADDR_DM_LOGICAL	0x00000004
+#define MSI_INTEL_ADDR_DEST 0x000ff000
+#define MSI_INTEL_ADDR_RH 0x00000008
+#define MSI_INTEL_ADDR_RH_ON 0x00000008
+#define MSI_INTEL_ADDR_RH_OFF 0x00000000
+#define MSI_INTEL_ADDR_DM 0x00000004
+#define MSI_INTEL_ADDR_DM_PHYSICAL 0x00000000
+#define MSI_INTEL_ADDR_DM_LOGICAL 0x00000004
 
 /* Fields in data for Intel MSI messages. */
-#define	MSI_INTEL_DATA_TRGRMOD		IOART_TRGRMOD	/* Trigger mode. */
-# define MSI_INTEL_DATA_TRGREDG		IOART_TRGREDG
-# define MSI_INTEL_DATA_TRGRLVL		IOART_TRGRLVL
-#define	MSI_INTEL_DATA_LEVEL		0x00004000	/* Polarity. */
-# define MSI_INTEL_DATA_DEASSERT	0x00000000
-# define MSI_INTEL_DATA_ASSERT		0x00004000
-#define	MSI_INTEL_DATA_DELMOD		IOART_DELMOD	/* Delivery mode. */
-# define MSI_INTEL_DATA_DELFIXED	IOART_DELFIXED
-# define MSI_INTEL_DATA_DELLOPRI	IOART_DELLOPRI
-# define MSI_INTEL_DATA_DELSMI		IOART_DELSMI
-# define MSI_INTEL_DATA_DELNMI		IOART_DELNMI
-# define MSI_INTEL_DATA_DELINIT		IOART_DELINIT
-# define MSI_INTEL_DATA_DELEXINT	IOART_DELEXINT
-#define	MSI_INTEL_DATA_INTVEC		IOART_INTVEC	/* Interrupt vector. */
+#define MSI_INTEL_DATA_TRGRMOD IOART_TRGRMOD /* Trigger mode. */
+#define MSI_INTEL_DATA_TRGREDG IOART_TRGREDG
+#define MSI_INTEL_DATA_TRGRLVL IOART_TRGRLVL
+#define MSI_INTEL_DATA_LEVEL 0x00004000 /* Polarity. */
+#define MSI_INTEL_DATA_DEASSERT 0x00000000
+#define MSI_INTEL_DATA_ASSERT 0x00004000
+#define MSI_INTEL_DATA_DELMOD IOART_DELMOD /* Delivery mode. */
+#define MSI_INTEL_DATA_DELFIXED IOART_DELFIXED
+#define MSI_INTEL_DATA_DELLOPRI IOART_DELLOPRI
+#define MSI_INTEL_DATA_DELSMI IOART_DELSMI
+#define MSI_INTEL_DATA_DELNMI IOART_DELNMI
+#define MSI_INTEL_DATA_DELINIT IOART_DELINIT
+#define MSI_INTEL_DATA_DELEXINT IOART_DELEXINT
+#define MSI_INTEL_DATA_INTVEC IOART_INTVEC /* Interrupt vector. */
 
 /*
  * Build Intel MSI message and data values from a source.  AMD64 systems
  * seem to be compatible, so we use the same function for both.
  */
-#define	INTEL_ADDR(msi)							\
-	(MSI_INTEL_ADDR_BASE | (msi)->msi_cpu << 12 |			\
-	    MSI_INTEL_ADDR_RH_OFF | MSI_INTEL_ADDR_DM_PHYSICAL)
-#define	INTEL_DATA(msi)							\
+#define INTEL_ADDR(msi)                                                       \
+	(MSI_INTEL_ADDR_BASE | (msi)->msi_cpu << 12 | MSI_INTEL_ADDR_RH_OFF | \
+	    MSI_INTEL_ADDR_DM_PHYSICAL)
+#define INTEL_DATA(msi) \
 	(MSI_INTEL_DATA_TRGREDG | MSI_INTEL_DATA_DELFIXED | (msi)->msi_vector)
 
 static MALLOC_DEFINE(M_MSI, "msi", "PCI MSI");
@@ -112,30 +115,30 @@ static MALLOC_DEFINE(M_MSI, "msi", "PCI MSI");
  */
 struct msi_intsrc {
 	struct intsrc msi_intsrc;
-	device_t msi_dev;		/* Owning device. (g) */
-	struct msi_intsrc *msi_first;	/* First source in group. */
-	u_int *msi_irqs;		/* Group's IRQ list. (g) */
-	u_int msi_irq;			/* IRQ cookie. */
-	u_int msi_cpu;			/* Local APIC ID. (g) */
-	u_int msi_remap_cookie;		/* IOMMU cookie. */
-	u_int msi_vector:8;		/* IDT vector. */
-	u_int msi_count:8;		/* Messages in this group. (g) */
-	u_int msi_maxcount:8;		/* Alignment for this group. (g) */
-	u_int msi_enabled:8;		/* Enabled messages in this group. (g) */
-	bool msi_msix;			/* MSI-X message. */
+	device_t msi_dev;	      /* Owning device. (g) */
+	struct msi_intsrc *msi_first; /* First source in group. */
+	u_int *msi_irqs;	      /* Group's IRQ list. (g) */
+	u_int msi_irq;		      /* IRQ cookie. */
+	u_int msi_cpu;		      /* Local APIC ID. (g) */
+	u_int msi_remap_cookie;	      /* IOMMU cookie. */
+	u_int msi_vector : 8;	      /* IDT vector. */
+	u_int msi_count : 8;	      /* Messages in this group. (g) */
+	u_int msi_maxcount : 8;	      /* Alignment for this group. (g) */
+	u_int msi_enabled : 8;	      /* Enabled messages in this group. (g) */
+	bool msi_msix;		      /* MSI-X message. */
 };
 
-static void	msi_create_source(void);
-static void	msi_enable_source(struct intsrc *isrc);
-static void	msi_disable_source(struct intsrc *isrc, int eoi);
-static void	msi_eoi_source(struct intsrc *isrc);
-static void	msi_enable_intr(struct intsrc *isrc);
-static void	msi_disable_intr(struct intsrc *isrc);
-static int	msi_vector(struct intsrc *isrc);
-static int	msi_source_pending(struct intsrc *isrc);
-static int	msi_config_intr(struct intsrc *isrc, enum intr_trigger trig,
-		    enum intr_polarity pol);
-static int	msi_assign_cpu(struct intsrc *isrc, u_int apic_id);
+static void msi_create_source(void);
+static void msi_enable_source(struct intsrc *isrc);
+static void msi_disable_source(struct intsrc *isrc, int eoi);
+static void msi_eoi_source(struct intsrc *isrc);
+static void msi_enable_intr(struct intsrc *isrc);
+static void msi_disable_intr(struct intsrc *isrc);
+static int msi_vector(struct intsrc *isrc);
+static int msi_source_pending(struct intsrc *isrc);
+static int msi_config_intr(struct intsrc *isrc, enum intr_trigger trig,
+    enum intr_polarity pol);
+static int msi_assign_cpu(struct intsrc *isrc, u_int apic_id);
 
 struct pic msi_pic = {
 	.pic_enable_source = msi_enable_source,
@@ -296,7 +299,8 @@ msi_assign_cpu(struct intsrc *isrc, u_int apic_id)
 	    msi->msi_irq);
 	if (error == 0) {
 		if (bootverbose) {
-			printf("msi: Assigning %s IRQ %d to local APIC %u vector %u\n",
+			printf(
+			    "msi: Assigning %s IRQ %d to local APIC %u vector %u\n",
 			    msi->msi_msix ? "MSI-X" : "MSI", msi->msi_irq,
 			    msi->msi_cpu, msi->msi_vector);
 		}
@@ -306,7 +310,8 @@ msi_assign_cpu(struct intsrc *isrc, u_int apic_id)
 			sib->msi_cpu = apic_id;
 			sib->msi_vector = vector + i;
 			if (bootverbose)
-				printf("msi: Assigning MSI IRQ %d to local APIC %u vector %u\n",
+				printf(
+				    "msi: Assigning MSI IRQ %d to local APIC %u vector %u\n",
 				    sib->msi_irq, sib->msi_cpu,
 				    sib->msi_vector);
 		}
@@ -498,7 +503,7 @@ again:
 		msi->msi_vector = vector + i;
 		if (bootverbose)
 			printf(
-		    "msi: routing MSI IRQ %d to local APIC %u vector %u\n",
+			    "msi: routing MSI IRQ %d to local APIC %u vector %u\n",
 			    msi->msi_irq, msi->msi_cpu, msi->msi_vector);
 		msi->msi_first = fsrc;
 		KASSERT(msi->msi_intsrc.is_handlers == 0,
@@ -619,24 +624,24 @@ msi_map(int irq, uint64_t *addr, uint32_t *data)
 
 #ifdef IOMMU
 	if (!msi->msi_msix) {
-		for (k = msi->msi_count - 1, i = first_msi_irq; k > 0 &&
-		    i < first_msi_irq + num_msi_irqs; i++) {
+		for (k = msi->msi_count - 1, i = first_msi_irq;
+		     k > 0 && i < first_msi_irq + num_msi_irqs; i++) {
 			if (i == msi->msi_irq)
 				continue;
 			msi1 = (struct msi_intsrc *)intr_lookup_source(i);
 			if (!msi1->msi_msix && msi1->msi_first == msi) {
 				mtx_unlock(&msi_lock);
-				iommu_map_msi_intr(msi1->msi_dev,
-				    msi1->msi_cpu, msi1->msi_vector,
-				    msi1->msi_remap_cookie, NULL, NULL);
+				iommu_map_msi_intr(msi1->msi_dev, msi1->msi_cpu,
+				    msi1->msi_vector, msi1->msi_remap_cookie,
+				    NULL, NULL);
 				k--;
 				mtx_lock(&msi_lock);
 			}
 		}
 	}
 	mtx_unlock(&msi_lock);
-	error = iommu_map_msi_intr(msi->msi_dev, msi->msi_cpu,
-	    msi->msi_vector, msi->msi_remap_cookie, addr, data);
+	error = iommu_map_msi_intr(msi->msi_dev, msi->msi_cpu, msi->msi_vector,
+	    msi->msi_remap_cookie, addr, data);
 #else
 	mtx_unlock(&msi_lock);
 	error = EOPNOTSUPP;

@@ -27,17 +27,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_NET_IP_H_
-#define	_LINUXKPI_NET_IP_H_
+#define _LINUXKPI_NET_IP_H_
 
 #include "opt_inet.h"
 
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <net/if_types.h>
 #include <net/if.h>
+#include <net/if_types.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
 
@@ -50,8 +49,8 @@ inet_get_local_port_range(struct vnet *vnet, int *low, int *high)
 	*high = V_ipport_lastauto;
 	CURVNET_RESTORE();
 #else
-	*low = IPPORT_EPHEMERALFIRST;     /* 10000 */
-	*high = IPPORT_EPHEMERALLAST;     /* 65535 */
+	*low = IPPORT_EPHEMERALFIRST; /* 10000 */
+	*high = IPPORT_EPHEMERALLAST; /* 65535 */
 #endif
 }
 
@@ -98,4 +97,4 @@ ip_ib_mc_map(uint32_t addr, const unsigned char *bcast, char *buf)
 	buf[19] = addr & 0xff;
 }
 
-#endif	/* _LINUXKPI_NET_IP_H_ */
+#endif /* _LINUXKPI_NET_IP_H_ */

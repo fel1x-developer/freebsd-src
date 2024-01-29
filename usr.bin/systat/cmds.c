@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/param.h>
 
 #include <ctype.h>
@@ -39,8 +37,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 void
 command(const char *cmd)
@@ -78,7 +76,8 @@ command(const char *cmd)
 			_len = strlen(p->c_name);
 			if (_col + _len > COLS)
 				break;
-			addstr(p->c_name); _col += _len;
+			addstr(p->c_name);
+			_col += _len;
 			if (_col + 1 < COLS)
 				addch(' ');
 		}
@@ -90,7 +89,7 @@ command(const char *cmd)
 		delay = (unsigned int)t;
 	if ((t <= 0 || t > (double)UINT_MAX) &&
 	    (strcmp(tmpstr1, "start") == 0 ||
-	    strcmp(tmpstr1, "interval") == 0)) {
+		strcmp(tmpstr1, "interval") == 0)) {
 		if (*cp != '\0') {
 			t = strtod(cp, NULL) * 1000000.0;
 			if (t <= 0 || t >= (double)UINT_MAX) {
@@ -152,12 +151,12 @@ lookup(const char *name)
 
 	longest = 0;
 	nmatches = 0;
-	found = (struct cmdtab *) 0;
+	found = (struct cmdtab *)0;
 	for (ct = cmdtab; (p = ct->c_name); ct++) {
 		for (q = name; *q == *p++; q++)
-			if (*q == 0)		/* exact match? */
+			if (*q == 0) /* exact match? */
 				return (ct);
-		if (!*q) {			/* the name was a prefix */
+		if (!*q) { /* the name was a prefix */
 			if (q - name > longest) {
 				longest = q - name;
 				nmatches = 1;
@@ -175,8 +174,8 @@ void
 status(void)
 {
 
-	error("Showing %s, refresh every %d seconds.",
-	  curcmd->c_name, delay / 1000000);
+	error("Showing %s, refresh every %d seconds.", curcmd->c_name,
+	    delay / 1000000);
 }
 
 int

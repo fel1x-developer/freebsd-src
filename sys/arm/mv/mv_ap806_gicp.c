@@ -27,56 +27,51 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
-
 #include <sys/bitset.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr.h>
+#include <machine/resource.h>
 
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include <arm/arm/gic_common.h>
-
 #include <dt-bindings/interrupt-controller/irq.h>
 
 #include "msi_if.h"
 #include "pic_if.h"
 
-#define	MV_AP806_GICP_MAX_NIRQS	207
+#define MV_AP806_GICP_MAX_NIRQS 207
 
 MALLOC_DECLARE(M_GICP);
 MALLOC_DEFINE(M_GICP, "gicp", "Marvell gicp driver");
 
 struct mv_ap806_gicp_softc {
-	device_t		dev;
-	device_t		parent;
-	struct resource		*res;
+	device_t dev;
+	device_t parent;
+	struct resource *res;
 
-	ssize_t			spi_ranges_cnt;
-	uint32_t		*spi_ranges;
+	ssize_t spi_ranges_cnt;
+	uint32_t *spi_ranges;
 	struct intr_map_data_fdt *parent_map_data;
 
-	ssize_t			msi_bitmap_size; /* Nr of bits in the bitmap. */
-	BITSET_DEFINE_VAR()     *msi_bitmap;
+	ssize_t msi_bitmap_size; /* Nr of bits in the bitmap. */
+	BITSET_DEFINE_VAR() * msi_bitmap;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"marvell,ap806-gicp", 1},
-	{NULL,             0}
-};
+static struct ofw_compat_data compat_data[] = { { "marvell,ap806-gicp", 1 },
+	{ NULL, 0 } };
 
-#define	RD4(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	WR4(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define RD4(sc, reg) bus_read_4((sc)->res, (reg))
+#define WR4(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
 static msi_alloc_msi_t mv_ap806_gicp_alloc_msi;
 static msi_release_msi_t mv_ap806_gicp_release_msi;
@@ -110,12 +105,12 @@ mv_ap806_gicp_attach(device_t dev)
 	/* Look for our parent */
 	if ((intr_parent = ofw_bus_find_iparent(node)) == 0) {
 		device_printf(dev,
-		     "Cannot find our parent interrupt controller\n");
+		    "Cannot find our parent interrupt controller\n");
 		return (ENXIO);
 	}
 	if ((sc->parent = OF_device_from_xref(intr_parent)) == NULL) {
 		device_printf(dev,
-		     "cannot find parent interrupt controller device\n");
+		    "cannot find parent interrupt controller device\n");
 		return (ENXIO);
 	}
 
@@ -124,10 +119,11 @@ mv_ap806_gicp_attach(device_t dev)
 	if (sc->res == NULL) {
 		device_printf(dev, "cannot allocate resources for device\n");
 		return (ENXIO);
-        }
+	}
 
-	sc->spi_ranges_cnt = OF_getencprop_alloc_multi(node, "marvell,spi-ranges",
-	    sizeof(*sc->spi_ranges), (void **)&sc->spi_ranges);
+	sc->spi_ranges_cnt = OF_getencprop_alloc_multi(node,
+	    "marvell,spi-ranges", sizeof(*sc->spi_ranges),
+	    (void **)&sc->spi_ranges);
 
 	sc->msi_bitmap_size = 0;
 	for (i = 0; i < sc->spi_ranges_cnt; i += 2)
@@ -139,7 +135,8 @@ mv_ap806_gicp_attach(device_t dev)
 	 * It will be used to dynamically allocate IRQs when requested.
 	 */
 	sc->msi_bitmap = BITSET_ALLOC(sc->msi_bitmap_size, M_GICP, M_WAITOK);
-	BIT_FILL(sc->msi_bitmap_size, sc->msi_bitmap);	/* 1 - available, 0 - used. */
+	BIT_FILL(sc->msi_bitmap_size,
+	    sc->msi_bitmap); /* 1 - available, 0 - used. */
 
 	xref = OF_xref_from_node(node);
 	if (intr_pic_register(dev, xref) == NULL) {
@@ -147,9 +144,10 @@ mv_ap806_gicp_attach(device_t dev)
 		return (ENXIO);
 	}
 	/* Allocate GIC compatible mapping entry (3 cells) */
-	sc->parent_map_data = (struct intr_map_data_fdt *)intr_alloc_map_data(
-	    INTR_MAP_DATA_FDT, sizeof(struct intr_map_data_fdt) +
-	    + 3 * sizeof(phandle_t), M_WAITOK | M_ZERO);
+	sc->parent_map_data = (struct intr_map_data_fdt *)
+	    intr_alloc_map_data(INTR_MAP_DATA_FDT,
+		sizeof(struct intr_map_data_fdt) + +3 * sizeof(phandle_t),
+		M_WAITOK | M_ZERO);
 	OF_device_register_xref(xref, dev);
 
 	return (0);
@@ -360,13 +358,13 @@ mv_ap806_gicp_alloc_msi(device_t dev, device_t child, int count, int maxcount,
 
 		/* Create GIC compatible SPI interrupt description. */
 		sc->parent_map_data->ncells = 3;
-		sc->parent_map_data->cells[0] = 0;	/* SPI */
-		sc->parent_map_data->cells[1] = mv_ap806_gicp_msi_to_spi(sc, vector);
+		sc->parent_map_data->cells[0] = 0; /* SPI */
+		sc->parent_map_data->cells[1] = mv_ap806_gicp_msi_to_spi(sc,
+		    vector);
 		sc->parent_map_data->cells[2] = IRQ_TYPE_LEVEL_HIGH;
 
 		ret = PIC_MAP_INTR(sc->parent,
-		    (struct intr_map_data *)sc->parent_map_data,
-		    &srcs[i]);
+		    (struct intr_map_data *)sc->parent_map_data, &srcs[i]);
 		if (ret != 0)
 			goto fail;
 
@@ -413,26 +411,26 @@ mv_ap806_gicp_map_msi(device_t dev, device_t child, struct intr_irqsrc *isrc,
 
 static device_method_t mv_ap806_gicp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		mv_ap806_gicp_probe),
-	DEVMETHOD(device_attach,	mv_ap806_gicp_attach),
-	DEVMETHOD(device_detach,	mv_ap806_gicp_detach),
+	DEVMETHOD(device_probe, mv_ap806_gicp_probe),
+	DEVMETHOD(device_attach, mv_ap806_gicp_attach),
+	DEVMETHOD(device_detach, mv_ap806_gicp_detach),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_activate_intr,	mv_ap806_gicp_activate_intr),
-	DEVMETHOD(pic_disable_intr,	mv_ap806_gicp_disable_intr),
-	DEVMETHOD(pic_enable_intr,	mv_ap806_gicp_enable_intr),
-	DEVMETHOD(pic_map_intr,		mv_ap806_gicp_map_intr),
-	DEVMETHOD(pic_deactivate_intr,	mv_ap806_gicp_deactivate_intr),
-	DEVMETHOD(pic_setup_intr,	mv_ap806_gicp_setup_intr),
-	DEVMETHOD(pic_teardown_intr,	mv_ap806_gicp_teardown_intr),
-	DEVMETHOD(pic_post_filter,	mv_ap806_gicp_post_filter),
-	DEVMETHOD(pic_post_ithread,	mv_ap806_gicp_post_ithread),
-	DEVMETHOD(pic_pre_ithread,	mv_ap806_gicp_pre_ithread),
+	DEVMETHOD(pic_activate_intr, mv_ap806_gicp_activate_intr),
+	DEVMETHOD(pic_disable_intr, mv_ap806_gicp_disable_intr),
+	DEVMETHOD(pic_enable_intr, mv_ap806_gicp_enable_intr),
+	DEVMETHOD(pic_map_intr, mv_ap806_gicp_map_intr),
+	DEVMETHOD(pic_deactivate_intr, mv_ap806_gicp_deactivate_intr),
+	DEVMETHOD(pic_setup_intr, mv_ap806_gicp_setup_intr),
+	DEVMETHOD(pic_teardown_intr, mv_ap806_gicp_teardown_intr),
+	DEVMETHOD(pic_post_filter, mv_ap806_gicp_post_filter),
+	DEVMETHOD(pic_post_ithread, mv_ap806_gicp_post_ithread),
+	DEVMETHOD(pic_pre_ithread, mv_ap806_gicp_pre_ithread),
 
 	/* MSI interface */
-	DEVMETHOD(msi_alloc_msi,	mv_ap806_gicp_alloc_msi),
-	DEVMETHOD(msi_release_msi,	mv_ap806_gicp_release_msi),
-	DEVMETHOD(msi_map_msi,		mv_ap806_gicp_map_msi),
+	DEVMETHOD(msi_alloc_msi, mv_ap806_gicp_alloc_msi),
+	DEVMETHOD(msi_release_msi, mv_ap806_gicp_release_msi),
+	DEVMETHOD(msi_map_msi, mv_ap806_gicp_map_msi),
 
 	DEVMETHOD_END
 };

@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -36,21 +36,16 @@
  */
 
 #include <err.h>
+#include <netgraph.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <netgraph.h>
 
 #include "ngctl.h"
 
 static int NameCmd(int ac, char **av);
 
-const struct ngcmd name_cmd = {
-	NameCmd,
-	"name <path> <name>",
-	"Assign name <name> to the node at <path>",
-	NULL,
-	{ NULL }
-};
+const struct ngcmd name_cmd = { NameCmd, "name <path> <name>",
+	"Assign name <name> to the node at <path>", NULL, { NULL } };
 
 static int
 NameCmd(int ac, char **av)
@@ -69,11 +64,10 @@ NameCmd(int ac, char **av)
 	}
 
 	/* Send message */
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	    NGM_NAME, &name, sizeof(name)) < 0) {
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_NAME, &name,
+		sizeof(name)) < 0) {
 		warn("send msg");
 		return (CMDRTN_ERROR);
 	}
 	return (CMDRTN_OK);
 }
-

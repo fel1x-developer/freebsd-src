@@ -29,16 +29,15 @@
  */
 
 #ifndef __CRYPTO_CURVE25519_H__
-#define	__CRYPTO_CURVE25519_H__
+#define __CRYPTO_CURVE25519_H__
 
 #include <sys/libkern.h>
 
-#define	CURVE25519_KEY_SIZE	32
+#define CURVE25519_KEY_SIZE 32
 
-bool	curve25519(uint8_t *public, const uint8_t *secret,
+bool curve25519(uint8_t *public, const uint8_t *secret,
     const uint8_t *basepoint);
-bool	curve25519_generate_public(uint8_t *public,
-    const uint8_t *secret);
+bool curve25519_generate_public(uint8_t *public, const uint8_t *secret);
 
 static __inline void
 curve25519_clamp_secret(uint8_t *secret)

@@ -24,41 +24,38 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_ratectl.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8812a/r12a.h>
-#include <dev/rtwn/rtl8812a/r12a_var.h>
 #include <dev/rtwn/rtl8812a/r12a_fw_cmd.h>
 #include <dev/rtwn/rtl8812a/r12a_rx_desc.h>
+#include <dev/rtwn/rtl8812a/r12a_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_var.h>
 
 #ifndef RTWN_WITHOUT_UCODE
 void
@@ -76,8 +73,8 @@ r12a_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 	rpt = (struct r12a_c2h_tx_rpt *)buf;
 	if (len != sizeof(*rpt)) {
 		device_printf(sc->sc_dev,
-		    "%s: wrong report size (%d, must be %zu)\n",
-		    __func__, len, sizeof(*rpt));
+		    "%s: wrong report size (%d, must be %zu)\n", __func__, len,
+		    sizeof(*rpt));
 		return;
 	}
 
@@ -99,17 +96,22 @@ r12a_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 
 	ni = sc->node_list[rpt->macid];
 	if (ni != NULL) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR, "%s: frame for macid %u was"
-		    "%s sent (%d retries)\n", __func__, rpt->macid,
-		    (rpt->txrptb0 & (R12A_TXRPTB0_RETRY_OVER |
-		    R12A_TXRPTB0_LIFE_EXPIRE)) ? " not" : "", ntries);
+		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR,
+		    "%s: frame for macid %u was"
+		    "%s sent (%d retries)\n",
+		    __func__, rpt->macid,
+		    (rpt->txrptb0 &
+			(R12A_TXRPTB0_RETRY_OVER | R12A_TXRPTB0_LIFE_EXPIRE)) ?
+			" not" :
+			"",
+		    ntries);
 
 		txs.flags = IEEE80211_RATECTL_STATUS_LONG_RETRY |
-			    IEEE80211_RATECTL_STATUS_FINAL_RATE;
+		    IEEE80211_RATECTL_STATUS_FINAL_RATE;
 		txs.long_retries = ntries;
-		if (rpt->final_rate > RTWN_RIDX_OFDM54) {	/* MCS */
-			txs.final_rate =
-			    rpt->final_rate - RTWN_RIDX_HT_MCS_SHIFT;
+		if (rpt->final_rate > RTWN_RIDX_OFDM54) { /* MCS */
+			txs.final_rate = rpt->final_rate -
+			    RTWN_RIDX_HT_MCS_SHIFT;
 			txs.final_rate |= IEEE80211_RATE_MCS;
 		} else
 			txs.final_rate = ridx2rate[rpt->final_rate];
@@ -121,8 +123,8 @@ r12a_ratectl_tx_complete(struct rtwn_softc *sc, uint8_t *buf, int len)
 			txs.status = IEEE80211_RATECTL_TX_SUCCESS;
 		ieee80211_ratectl_tx_complete(ni, &txs);
 	} else {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR,
-		    "%s: macid %u, ni is NULL\n", __func__, rpt->macid);
+		RTWN_DPRINTF(sc, RTWN_DEBUG_INTR, "%s: macid %u, ni is NULL\n",
+		    __func__, rpt->macid);
 	}
 }
 
@@ -142,11 +144,11 @@ r12a_handle_c2h_report(struct rtwn_softc *sc, uint8_t *buf, int len)
 	}
 	len -= 2;
 
-	switch (buf[0]) {	/* command id */
+	switch (buf[0]) { /* command id */
 	case R12A_C2H_TX_REPORT:
 		/* NOTREACHED */
-		KASSERT(0, ("use handle_tx_report() instead of %s\n",
-		    __func__));
+		KASSERT(0,
+		    ("use handle_tx_report() instead of %s\n", __func__));
 		break;
 	case R12A_C2H_IQK_FINISHED:
 		RTWN_DPRINTF(sc, RTWN_DEBUG_CALIB,
@@ -154,8 +156,7 @@ r12a_handle_c2h_report(struct rtwn_softc *sc, uint8_t *buf, int len)
 		rs->rs_flags &= ~R12A_IQK_RUNNING;
 		break;
 	default:
-		device_printf(sc->sc_dev,
-		    "%s: C2H report %u was not handled\n",
+		device_printf(sc->sc_dev, "%s: C2H report %u was not handled\n",
 		    __func__, buf[0]);
 	}
 }
@@ -185,9 +186,8 @@ r12a_check_frame_checksum(struct rtwn_softc *sc, struct mbuf *m)
 	stat = mtod(m, struct r92c_rx_stat *);
 	rxdw1 = le32toh(stat->rxdw1);
 	if (rxdw1 & R12A_RXDW1_CKSUM) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV,
-		    "%s: %s/%s checksum is %s\n", __func__,
-		    (rxdw1 & R12A_RXDW1_UDP) ? "UDP" : "TCP",
+		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV, "%s: %s/%s checksum is %s\n",
+		    __func__, (rxdw1 & R12A_RXDW1_UDP) ? "UDP" : "TCP",
 		    (rxdw1 & R12A_RXDW1_IPV6) ? "IPv6" : "IP",
 		    (rxdw1 & R12A_RXDW1_CKSUM_ERR) ? "invalid" : "valid");
 
@@ -195,8 +195,8 @@ r12a_check_frame_checksum(struct rtwn_softc *sc, struct mbuf *m)
 			return (-1);
 
 		if ((rxdw1 & R12A_RXDW1_IPV6) ?
-		    (rs->rs_flags & R12A_RXCKSUM6_EN) :
-		    (rs->rs_flags & R12A_RXCKSUM_EN)) {
+			(rs->rs_flags & R12A_RXCKSUM6_EN) :
+			(rs->rs_flags & R12A_RXCKSUM_EN)) {
 			m->m_pkthdr.csum_flags = CSUM_IP_CHECKED |
 			    CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 			m->m_pkthdr.csum_data = 0xffff;
@@ -293,10 +293,10 @@ r12a_get_rx_stats(struct rtwn_softc *sc, struct ieee80211_rx_stats *rxs,
 			rxs->c_pktflags |= IEEE80211_RX_F_CCK;
 		else
 			rxs->c_pktflags |= IEEE80211_RX_F_OFDM;
-	} else {	/* MCS0~15. */
+	} else { /* MCS0~15. */
 		/* TODO: VHT rates */
-		rxs->c_rate =
-		    IEEE80211_RATE_MCS | (rate - RTWN_RIDX_HT_MCS_SHIFT);
+		rxs->c_rate = IEEE80211_RATE_MCS |
+		    (rate - RTWN_RIDX_HT_MCS_SHIFT);
 		rxs->c_pktflags |= IEEE80211_RX_F_HT;
 	}
 

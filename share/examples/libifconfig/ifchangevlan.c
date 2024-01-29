@@ -2,39 +2,41 @@
  * Copyright (c) 2017, Marie Helene Kvello-Aune
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  * thislist of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include <sys/ioctl.h>
+
+#include <net/if.h>
+#include <net/if_vlan_var.h>
 
 #include <err.h>
 #include <errno.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
+#include <libifconfig.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libifconfig.h>
-
-#include <net/if_vlan_var.h>
 
 int
 main(int argc, char *argv[])
@@ -45,12 +47,14 @@ main(int argc, char *argv[])
 	ifconfig_handle_t *lifh;
 
 	if (argc != 4) {
-		errx(EINVAL, "Invalid number of arguments."
+		errx(EINVAL,
+		    "Invalid number of arguments."
 		    " Should provide exactly three arguments: "
 		    "INTERFACE, PARENT_INTERFACE and VLAN_TAG.");
 	}
 
-	/* We have a static number of arguments. Therefore we can do it simple. */
+	/* We have a static number of arguments. Therefore we can do it simple.
+	 */
 	ifname = strdup(argv[1]);
 	parentif = strdup(argv[2]);
 	vlantag = strtonum(argv[3], 0, USHRT_MAX, &errstr);
@@ -86,16 +90,16 @@ main(int argc, char *argv[])
 		}
 		if (ifconfig_err_ioctlreq(lifh) == SIOCSETVLAN) {
 			warnx(
-				"Couldn't change VLAN properties of interface.\n");
+			    "Couldn't change VLAN properties of interface.\n");
 		}
 		break;
 	default:
 		warnx(
-			"This is a thorough example accommodating for temporary"
-			" 'not implemented yet' errors. That's likely what happened"
-			" now. If not, your guess is as good as mine. ;)"
-			" Error code: %d\n", ifconfig_err_errno(
-				lifh));
+		    "This is a thorough example accommodating for temporary"
+		    " 'not implemented yet' errors. That's likely what happened"
+		    " now. If not, your guess is as good as mine. ;)"
+		    " Error code: %d\n",
+		    ifconfig_err_errno(lifh));
 		break;
 	}
 

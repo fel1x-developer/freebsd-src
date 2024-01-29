@@ -24,17 +24,17 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_SYNCH_H
-#define	_SYS_SYNCH_H
+#ifndef _SYS_SYNCH_H
+#define _SYS_SYNCH_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #ifndef _ASM
 #include <sys/types.h>
 #include <sys/int_types.h>
 #endif /* _ASM */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -56,21 +56,21 @@ extern "C" {
  */
 typedef struct _lwp_mutex {
 	struct {
-		uint16_t	flag1;
-		uint8_t		flag2;
-		uint8_t		ceiling;
+		uint16_t flag1;
+		uint8_t flag2;
+		uint8_t ceiling;
 		union {
 			uint16_t bcptype;
 			struct {
-				uint8_t	count_type1;
-				uint8_t	count_type2;
+				uint8_t count_type1;
+				uint8_t count_type2;
 			} mtype_rcount;
 		} mbcp_type_un;
-		uint16_t	magic;
+		uint16_t magic;
 	} flags;
 	union {
 		struct {
-			uint8_t	pad[8];
+			uint8_t pad[8];
 		} lock64;
 		struct {
 			uint32_t ownerpid;
@@ -90,9 +90,9 @@ typedef struct _lwp_mutex {
  */
 typedef struct _lwp_cond {
 	struct {
-		uint8_t		flag[4];
-		uint16_t 	type;
-		uint16_t 	magic;
+		uint8_t flag[4];
+		uint16_t type;
+		uint16_t magic;
 	} flags;
 	upad64_t data;
 } lwp_cond_t;
@@ -101,11 +101,11 @@ typedef struct _lwp_cond {
  * LWP semaphores
  */
 typedef struct _lwp_sema {
-	uint32_t	count;		/* semaphore count */
-	uint16_t 	type;
-	uint16_t 	magic;
-	uint8_t		flags[8];	/* last byte reserved for waiters */
-	upad64_t	data;		/* optional data */
+	uint32_t count; /* semaphore count */
+	uint16_t type;
+	uint16_t magic;
+	uint8_t flags[8]; /* last byte reserved for waiters */
+	upad64_t data;	  /* optional data */
 } lwp_sema_t;
 
 /*
@@ -116,46 +116,46 @@ typedef struct _lwp_sema {
  * for rwlock_t in head/sync.h that we cannot change.
  */
 typedef struct _lwp_rwlock {
-	int32_t		readers;	/* rwstate word */
-	uint16_t	type;
-	uint16_t	magic;
-	lwp_mutex_t	mutex;		/* used with process-shared rwlocks */
-	lwp_cond_t	readercv;	/* used only to indicate ownership */
-	lwp_cond_t	writercv;	/* used only to indicate ownership */
+	int32_t readers; /* rwstate word */
+	uint16_t type;
+	uint16_t magic;
+	lwp_mutex_t mutex;   /* used with process-shared rwlocks */
+	lwp_cond_t readercv; /* used only to indicate ownership */
+	lwp_cond_t writercv; /* used only to indicate ownership */
 } lwp_rwlock_t;
 
 #endif /* _ASM */
 /*
  * Definitions of synchronization types.
  */
-#define	USYNC_THREAD	0x00		/* private to a process */
-#define	USYNC_PROCESS	0x01		/* shared by processes */
+#define USYNC_THREAD 0x00  /* private to a process */
+#define USYNC_PROCESS 0x01 /* shared by processes */
 
 /* Keep the following values in sync with pthread.h */
-#define	LOCK_NORMAL		0x00		/* same as USYNC_THREAD */
-#define	LOCK_SHARED		0x01		/* same as USYNC_PROCESS */
-#define	LOCK_ERRORCHECK		0x02		/* error check lock */
-#define	LOCK_RECURSIVE		0x04		/* recursive lock */
-#define	LOCK_PRIO_INHERIT	0x10		/* priority inheritance lock */
-#define	LOCK_PRIO_PROTECT	0x20		/* priority ceiling lock */
-#define	LOCK_ROBUST		0x40		/* robust lock */
+#define LOCK_NORMAL 0x00       /* same as USYNC_THREAD */
+#define LOCK_SHARED 0x01       /* same as USYNC_PROCESS */
+#define LOCK_ERRORCHECK 0x02   /* error check lock */
+#define LOCK_RECURSIVE 0x04    /* recursive lock */
+#define LOCK_PRIO_INHERIT 0x10 /* priority inheritance lock */
+#define LOCK_PRIO_PROTECT 0x20 /* priority ceiling lock */
+#define LOCK_ROBUST 0x40       /* robust lock */
 
 /*
  * USYNC_PROCESS_ROBUST is a deprecated historical type.  It is mapped
  * into (USYNC_PROCESS | LOCK_ROBUST) by mutex_init().  Application code
  * should be revised to use (USYNC_PROCESS | LOCK_ROBUST) rather than this.
  */
-#define	USYNC_PROCESS_ROBUST	0x08
+#define USYNC_PROCESS_ROBUST 0x08
 
 /*
  * lwp_mutex_t flags
  */
-#define	LOCK_OWNERDEAD		0x1
-#define	LOCK_NOTRECOVERABLE	0x2
-#define	LOCK_INITED		0x4
-#define	LOCK_UNMAPPED		0x8
+#define LOCK_OWNERDEAD 0x1
+#define LOCK_NOTRECOVERABLE 0x2
+#define LOCK_INITED 0x4
+#define LOCK_UNMAPPED 0x8
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

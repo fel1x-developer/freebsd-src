@@ -27,35 +27,33 @@
  */
 
 #include <sys/queue.h>
-#define	L2CAP_SOCKET_CHECKED
+#define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 
 static int32_t
-audio_source_profile_create_service_class_id_list(
-    uint8_t *buf, uint8_t const *const eob,
-    uint8_t const *data, uint32_t datalen)
+audio_source_profile_create_service_class_id_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
 	static const uint16_t service_classes[] = {
 		SDP_SERVICE_CLASS_AUDIO_SOURCE,
 	};
 
-	return (common_profile_create_service_class_id_list(
-	    buf, eob,
-	    (uint8_t const *)service_classes,
-	    sizeof(service_classes)));
+	return (common_profile_create_service_class_id_list(buf, eob,
+	    (uint8_t const *)service_classes, sizeof(service_classes)));
 }
 
 static int32_t
-audio_source_profile_create_protocol_descriptor_list(
-    uint8_t *buf, uint8_t const *const eob,
-    uint8_t const *data, uint32_t datalen)
+audio_source_profile_create_protocol_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
-	provider_p provider = (provider_p) data;
-	sdp_audio_source_profile_p audio_source = (sdp_audio_source_profile_p) provider->data;
+	provider_p provider = (provider_p)data;
+	sdp_audio_source_profile_p audio_source = (sdp_audio_source_profile_p)
+						      provider->data;
 
 	if (buf + 18 > eob)
 		return (-1);
@@ -85,9 +83,8 @@ audio_source_profile_create_protocol_descriptor_list(
 }
 
 static int32_t
-audio_source_profile_create_browse_group_list(
-    uint8_t *buf, uint8_t const *const eob,
-    uint8_t const *data, uint32_t datalen)
+audio_source_profile_create_browse_group_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
 
 	if (buf + 5 > eob)
@@ -103,40 +100,35 @@ audio_source_profile_create_browse_group_list(
 }
 
 static int32_t
-audio_source_profile_create_bluetooth_profile_descriptor_list(
-    uint8_t *buf, uint8_t const *const eob,
-    uint8_t const *data, uint32_t datalen)
+audio_source_profile_create_bluetooth_profile_descriptor_list(uint8_t *buf,
+    uint8_t const *const eob, uint8_t const *data, uint32_t datalen)
 {
 	static const uint16_t profile_descriptor_list[] = {
-		SDP_SERVICE_CLASS_ADVANCED_AUDIO_DISTRIBUTION,
-		0x0100
+		SDP_SERVICE_CLASS_ADVANCED_AUDIO_DISTRIBUTION, 0x0100
 	};
 
-	return (common_profile_create_bluetooth_profile_descriptor_list(
-	    buf, eob,
-	    (uint8_t const *)profile_descriptor_list,
+	return (common_profile_create_bluetooth_profile_descriptor_list(buf,
+	    eob, (uint8_t const *)profile_descriptor_list,
 	    sizeof(profile_descriptor_list)));
 }
 
 static int32_t
-audio_source_profile_create_service_name(
-    uint8_t *buf, uint8_t const *const eob,
+audio_source_profile_create_service_name(uint8_t *buf, uint8_t const *const eob,
     uint8_t const *data, uint32_t datalen)
 {
 	static const char service_name[] = "Audio SRC";
 
-	return (common_profile_create_string8(
-	    buf, eob,
+	return (common_profile_create_string8(buf, eob,
 	    (uint8_t const *)service_name, strlen(service_name)));
 }
 
 static int32_t
-audio_source_create_supported_features(
-    uint8_t *buf, uint8_t const *const eob,
+audio_source_create_supported_features(uint8_t *buf, uint8_t const *const eob,
     uint8_t const *data, uint32_t datalen)
 {
-	provider_p provider = (provider_p) data;
-	sdp_audio_source_profile_p audio_source = (sdp_audio_source_profile_p) provider->data;
+	provider_p provider = (provider_p)data;
+	sdp_audio_source_profile_p audio_source = (sdp_audio_source_profile_p)
+						      provider->data;
 
 	if (buf + 3 > eob)
 		return (-1);
@@ -157,30 +149,26 @@ audio_source_profile_valid(uint8_t const *data, uint32_t datalen)
 }
 
 static const attr_t audio_source_profile_attrs[] = {
-	{SDP_ATTR_SERVICE_RECORD_HANDLE,
-	common_profile_create_service_record_handle},
-	{SDP_ATTR_SERVICE_CLASS_ID_LIST,
-	audio_source_profile_create_service_class_id_list},
-	{SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-	audio_source_profile_create_protocol_descriptor_list},
-	{SDP_ATTR_BROWSE_GROUP_LIST,
-	audio_source_profile_create_browse_group_list},
-	{SDP_ATTR_LANGUAGE_BASE_ATTRIBUTE_ID_LIST,
-	common_profile_create_language_base_attribute_id_list},
-	{SDP_ATTR_BLUETOOTH_PROFILE_DESCRIPTOR_LIST,
-	audio_source_profile_create_bluetooth_profile_descriptor_list},
-	{SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_NAME_OFFSET,
-	audio_source_profile_create_service_name},
-	{SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_PROVIDER_NAME_OFFSET,
-	common_profile_create_service_provider_name},
-	{SDP_ATTR_SUPPORTED_FEATURES,
-	audio_source_create_supported_features},
-	{}				/* end entry */
+	{ SDP_ATTR_SERVICE_RECORD_HANDLE,
+	    common_profile_create_service_record_handle },
+	{ SDP_ATTR_SERVICE_CLASS_ID_LIST,
+	    audio_source_profile_create_service_class_id_list },
+	{ SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
+	    audio_source_profile_create_protocol_descriptor_list },
+	{ SDP_ATTR_BROWSE_GROUP_LIST,
+	    audio_source_profile_create_browse_group_list },
+	{ SDP_ATTR_LANGUAGE_BASE_ATTRIBUTE_ID_LIST,
+	    common_profile_create_language_base_attribute_id_list },
+	{ SDP_ATTR_BLUETOOTH_PROFILE_DESCRIPTOR_LIST,
+	    audio_source_profile_create_bluetooth_profile_descriptor_list },
+	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_SERVICE_NAME_OFFSET,
+	    audio_source_profile_create_service_name },
+	{ SDP_ATTR_PRIMARY_LANGUAGE_BASE_ID + SDP_ATTR_PROVIDER_NAME_OFFSET,
+	    common_profile_create_service_provider_name },
+	{ SDP_ATTR_SUPPORTED_FEATURES, audio_source_create_supported_features },
+	{} /* end entry */
 };
 
-profile_t audio_source_profile_descriptor = {
-	SDP_SERVICE_CLASS_AUDIO_SOURCE,
-	sizeof(sdp_audio_source_profile_t),
-	audio_source_profile_valid,
-	(attr_t const *const)&audio_source_profile_attrs
-};
+profile_t audio_source_profile_descriptor = { SDP_SERVICE_CLASS_AUDIO_SOURCE,
+	sizeof(sdp_audio_source_profile_t), audio_source_profile_valid,
+	(attr_t const *const)&audio_source_profile_attrs };

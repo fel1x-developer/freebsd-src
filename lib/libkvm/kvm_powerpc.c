@@ -42,11 +42,11 @@
 #include "kvm_private.h"
 
 struct vmstate {
-	void		*map;
-	size_t		mapsz;
-	size_t		dmphdrsz;
-	Elf32_Ehdr	*eh;
-	Elf32_Phdr	*ph;
+	void *map;
+	size_t mapsz;
+	size_t dmphdrsz;
+	Elf32_Ehdr *eh;
+	Elf32_Phdr *ph;
 };
 
 static int
@@ -133,7 +133,7 @@ powerpc_maphdrs(kvm_t *kd)
 	vm->ph = (void *)((uintptr_t)vm->eh + be32toh(vm->eh->e_phoff));
 	return (0);
 
- inval:
+inval:
 	_kvm_err(kd, kd->program, "invalid corefile");
 	return (-1);
 }
@@ -152,8 +152,9 @@ powerpc_va2off(kvm_t *kd, kvaddr_t va, off_t *ofs)
 
 	ph = vm->ph;
 	nph = be16toh(vm->eh->e_phnum);
-	while (nph && (va < be32toh(ph->p_vaddr) ||
-	    va >= be32toh(ph->p_vaddr) + be32toh(ph->p_memsz))) {
+	while (nph &&
+	    (va < be32toh(ph->p_vaddr) ||
+		va >= be32toh(ph->p_vaddr) + be32toh(ph->p_memsz))) {
 		nph--;
 		ph = (void *)((uintptr_t)ph + be16toh(vm->eh->e_phentsize));
 	}

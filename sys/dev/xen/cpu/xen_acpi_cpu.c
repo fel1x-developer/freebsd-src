@@ -26,8 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
@@ -41,19 +42,19 @@
 
 #include <machine/_inttypes.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
+#include <xen/xen-os.h>
 
 #include <dev/acpica/acpivar.h>
 
-#include <xen/xen-os.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #define ACPI_DOMAIN_COORD_TYPE_SW_ALL 0xfc
 #define ACPI_DOMAIN_COORD_TYPE_SW_ANY 0xfd
 #define ACPI_DOMAIN_COORD_TYPE_HW_ALL 0xfe
 
-#define ACPI_NOTIFY_PERF_STATES 0x80	/* _PSS changed. */
-#define ACPI_NOTIFY_CX_STATES	0x81	/* _CST changed. */
+#define ACPI_NOTIFY_PERF_STATES 0x80 /* _PSS changed. */
+#define ACPI_NOTIFY_CX_STATES 0x81   /* _CST changed. */
 
 static MALLOC_DEFINE(M_XENACPI, "xen_acpi", "Xen CPU ACPI forwarder");
 
@@ -74,13 +75,13 @@ struct xen_acpi_cpu_softc {
 	struct xen_psd_package psd;
 };
 
-#define	CPUDEV_DEVICE_ID "ACPI0007"
+#define CPUDEV_DEVICE_ID "ACPI0007"
 
 ACPI_SERIAL_DECL(cpu, "ACPI CPU");
 
-#define device_printf(dev,...) \
+#define device_printf(dev, ...)    \
 	if (!device_is_quiet(dev)) \
-		device_printf((dev), __VA_ARGS__)
+	device_printf((dev), __VA_ARGS__)
 
 static int
 acpi_get_gas(const ACPI_OBJECT *res, unsigned int idx,
@@ -128,10 +129,10 @@ static int
 xen_upload_cx(struct xen_acpi_cpu_softc *sc)
 {
 	struct xen_platform_op op = {
-		.cmd			= XENPF_set_processor_pminfo,
-		.interface_version	= XENPF_INTERFACE_VERSION,
-		.u.set_pminfo.id	= sc->cpu_acpi_id,
-		.u.set_pminfo.type	= XEN_PM_CX,
+		.cmd = XENPF_set_processor_pminfo,
+		.interface_version = XENPF_INTERFACE_VERSION,
+		.u.set_pminfo.id = sc->cpu_acpi_id,
+		.u.set_pminfo.type = XEN_PM_CX,
 		.u.set_pminfo.u.power.count = sc->cpu_cx_count,
 		.u.set_pminfo.u.power.flags.has_cst = 1,
 		/* Ignore bm_check and bm_control, Xen will set those. */
@@ -142,9 +143,8 @@ xen_upload_cx(struct xen_acpi_cpu_softc *sc)
 
 	error = HYPERVISOR_platform_op(&op);
 	if (error != 0)
-		device_printf(sc->cpu_dev,
-		    "ACPI ID %u Cx upload failed: %d\n", sc->cpu_acpi_id,
-		    error);
+		device_printf(sc->cpu_dev, "ACPI ID %u Cx upload failed: %d\n",
+		    sc->cpu_acpi_id, error);
 	return (error);
 }
 
@@ -187,8 +187,7 @@ xen_upload_px(struct xen_acpi_cpu_softc *sc)
 		break;
 
 	case ACPI_DOMAIN_COORD_TYPE_HW_ALL:
-		op.u.set_pminfo.u.perf.shared_type =
-		    XEN_CPUPERF_SHARED_TYPE_HW;
+		op.u.set_pminfo.u.perf.shared_type = XEN_CPUPERF_SHARED_TYPE_HW;
 		break;
 
 	case ACPI_DOMAIN_COORD_TYPE_SW_ANY:
@@ -204,8 +203,8 @@ xen_upload_px(struct xen_acpi_cpu_softc *sc)
 
 	error = HYPERVISOR_platform_op(&op);
 	if (error != 0)
-	    device_printf(sc->cpu_dev,
-		"ACPI ID %u Px upload failed: %d\n", sc->cpu_acpi_id, error);
+		device_printf(sc->cpu_dev, "ACPI ID %u Px upload failed: %d\n",
+		    sc->cpu_acpi_id, error);
 	return (error);
 }
 
@@ -213,12 +212,12 @@ static int
 acpi_set_pdc(const struct xen_acpi_cpu_softc *sc)
 {
 	struct xen_platform_op op = {
-		.cmd			= XENPF_set_processor_pminfo,
-		.interface_version	= XENPF_INTERFACE_VERSION,
-		.u.set_pminfo.id	= -1,
-		.u.set_pminfo.type	= XEN_PM_PDC,
+		.cmd = XENPF_set_processor_pminfo,
+		.interface_version = XENPF_INTERFACE_VERSION,
+		.u.set_pminfo.id = -1,
+		.u.set_pminfo.type = XEN_PM_PDC,
 	};
-	uint32_t pdc[3] = {1, 1};
+	uint32_t pdc[3] = { 1, 1 };
 	ACPI_OBJECT arg = {
 		.Buffer.Type = ACPI_TYPE_BUFFER,
 		.Buffer.Length = sizeof(pdc),
@@ -280,8 +279,8 @@ acpi_fetch_cx(struct xen_acpi_cpu_softc *sc)
 	}
 	if (count != top->Package.Count - 1) {
 		device_printf(sc->cpu_dev,
-		    "invalid _CST state count (%u != %u)\n",
-		    count, top->Package.Count - 1);
+		    "invalid _CST state count (%u != %u)\n", count,
+		    top->Package.Count - 1);
 		count = top->Package.Count - 1;
 	}
 
@@ -302,8 +301,7 @@ acpi_fetch_cx(struct xen_acpi_cpu_softc *sc)
 		    acpi_PkgInt32(pkg, 3, &cx_ptr->power) != 0 ||
 		    acpi_get_gas(pkg, 0, &gas) != 0) {
 			device_printf(sc->cpu_dev,
-			    "skipping invalid _CST %u package\n",
-			    i + 1);
+			    "skipping invalid _CST %u package\n", i + 1);
 			continue;
 		}
 
@@ -614,17 +612,17 @@ xen_acpi_cpu_attach(device_t dev)
 }
 
 static device_method_t xen_acpi_cpu_methods[] = {
-    /* Device interface */
-    DEVMETHOD(device_probe, xen_acpi_cpu_probe),
-    DEVMETHOD(device_attach, xen_acpi_cpu_attach),
+	/* Device interface */
+	DEVMETHOD(device_probe, xen_acpi_cpu_probe),
+	DEVMETHOD(device_attach, xen_acpi_cpu_attach),
 
-    DEVMETHOD_END
+	DEVMETHOD_END
 };
 
 static driver_t xen_acpi_cpu_driver = {
-    "xen cpu",
-    xen_acpi_cpu_methods,
-    sizeof(struct xen_acpi_cpu_softc),
+	"xen cpu",
+	xen_acpi_cpu_methods,
+	sizeof(struct xen_acpi_cpu_softc),
 };
 
 DRIVER_MODULE(xen_cpu, acpi, xen_acpi_cpu_driver, 0, 0);

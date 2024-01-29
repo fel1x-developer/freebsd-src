@@ -45,6 +45,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "dhcpd.h"
 
 /*

@@ -34,13 +34,14 @@
  */
 
 #ifndef _MBLOCAL_H_
-#define	_MBLOCAL_H_
+#define _MBLOCAL_H_
 
 #include <runetype.h>
+
 #include "xlocale_private.h"
 
-#define	SS2	0x008e
-#define SS3	0x008f
+#define SS2 0x008e
+#define SS3 0x008f
 
 /*
  * Conversion function pointers for current encoding.
@@ -48,14 +49,14 @@
 struct xlocale_ctype {
 	struct xlocale_component header;
 	_RuneLocale *runes;
-	size_t (*__mbrtowc)(wchar_t * __restrict, const char * __restrict,
-		size_t, mbstate_t * __restrict);
+	size_t (*__mbrtowc)(wchar_t *__restrict, const char *__restrict, size_t,
+	    mbstate_t *__restrict);
 	int (*__mbsinit)(const mbstate_t *);
-	size_t (*__mbsnrtowcs)(wchar_t * __restrict, const char ** __restrict,
-		size_t, size_t, mbstate_t * __restrict);
-	size_t (*__wcrtomb)(char * __restrict, wchar_t, mbstate_t * __restrict);
-	size_t (*__wcsnrtombs)(char * __restrict, const wchar_t ** __restrict,
-		size_t, size_t, mbstate_t * __restrict);
+	size_t (*__mbsnrtowcs)(wchar_t *__restrict, const char **__restrict,
+	    size_t, size_t, mbstate_t *__restrict);
+	size_t (*__wcrtomb)(char *__restrict, wchar_t, mbstate_t *__restrict);
+	size_t (*__wcsnrtombs)(char *__restrict, const wchar_t **__restrict,
+	    size_t, size_t, mbstate_t *__restrict);
 	int __mb_cur_max;
 	int __mb_sb_limit;
 	/** Persistent state used by mblen() calls. */
@@ -87,32 +88,32 @@ struct xlocale_ctype {
 	/** Persistent state used by wctomb() calls. */
 	__mbstate_t wctomb;
 };
-#define XLOCALE_CTYPE(x) ((struct xlocale_ctype*)(x)->components[XLC_CTYPE])
+#define XLOCALE_CTYPE(x) ((struct xlocale_ctype *)(x)->components[XLC_CTYPE])
 extern struct xlocale_ctype __xlocale_global_ctype;
 
 /*
  * Rune initialization function prototypes.
  */
-int	_none_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_UTF8_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_EUC_CN_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_EUC_JP_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_EUC_KR_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_EUC_TW_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_GB18030_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_GB2312_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_GBK_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_BIG5_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_MSKanji_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
-int	_ascii_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _none_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _UTF8_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _EUC_CN_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _EUC_JP_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _EUC_KR_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _EUC_TW_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _GB18030_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _GB2312_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _GBK_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _BIG5_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _MSKanji_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
+int _ascii_init(struct xlocale_ctype *, _RuneLocale *) __hidden;
 
-typedef size_t (*mbrtowc_pfn_t)(wchar_t * __restrict,
-    const char * __restrict, size_t, mbstate_t * __restrict);
-typedef size_t (*wcrtomb_pfn_t)(char * __restrict, wchar_t,
-    mbstate_t * __restrict);
-size_t __mbsnrtowcs_std(wchar_t * __restrict, const char ** __restrict,
-    size_t, size_t, mbstate_t * __restrict, mbrtowc_pfn_t);
-size_t __wcsnrtombs_std(char * __restrict, const wchar_t ** __restrict,
-    size_t, size_t, mbstate_t * __restrict, wcrtomb_pfn_t);
+typedef size_t (*mbrtowc_pfn_t)(wchar_t *__restrict, const char *__restrict,
+    size_t, mbstate_t *__restrict);
+typedef size_t (
+    *wcrtomb_pfn_t)(char *__restrict, wchar_t, mbstate_t *__restrict);
+size_t __mbsnrtowcs_std(wchar_t *__restrict, const char **__restrict, size_t,
+    size_t, mbstate_t *__restrict, mbrtowc_pfn_t);
+size_t __wcsnrtombs_std(char *__restrict, const wchar_t **__restrict, size_t,
+    size_t, mbstate_t *__restrict, wcrtomb_pfn_t);
 
-#endif	/* _MBLOCAL_H_ */
+#endif /* _MBLOCAL_H_ */

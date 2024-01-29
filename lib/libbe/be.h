@@ -31,35 +31,34 @@
 #include <libnvpair.h>
 #include <stdbool.h>
 
-#define BE_MAXPATHLEN    512
+#define BE_MAXPATHLEN 512
 
 typedef struct libbe_handle libbe_handle_t;
 
 typedef enum be_error {
-	BE_ERR_SUCCESS = 0,     /* No error */
-	BE_ERR_INVALIDNAME,     /* invalid boot env name */
-	BE_ERR_EXISTS,          /* boot env name already taken */
-	BE_ERR_NOENT,           /* boot env doesn't exist */
-	BE_ERR_PERMS,           /* insufficient permissions */
-	BE_ERR_DESTROYACT,      /* cannot destroy active boot env */
-	BE_ERR_DESTROYMNT,      /* destroying a mounted be requires force */
-	BE_ERR_BADPATH,		/* path not suitable for operation */
-	BE_ERR_PATHBUSY,	/* requested path is busy */
-	BE_ERR_PATHLEN,         /* provided name exceeds maximum length limit */
-	BE_ERR_BADMOUNT,        /* mountpoint is not '/' */
-	BE_ERR_NOORIGIN,        /* could not open snapshot's origin */
-	BE_ERR_MOUNTED,         /* boot environment is already mounted */
-	BE_ERR_NOMOUNT,         /* boot environment is not mounted */
-	BE_ERR_ZFSOPEN,         /* calling zfs_open() failed */
-	BE_ERR_ZFSCLONE,        /* error when calling zfs_clone to create be */
-	BE_ERR_IO,		/* error when doing some I/O operation */
-	BE_ERR_NOPOOL,		/* operation not supported on this pool */
-	BE_ERR_NOMEM,		/* insufficient memory */
-	BE_ERR_UNKNOWN,         /* unknown error */
-	BE_ERR_INVORIGIN,       /* invalid origin */
-	BE_ERR_HASCLONES,	/* snapshot has clones */
+	BE_ERR_SUCCESS = 0, /* No error */
+	BE_ERR_INVALIDNAME, /* invalid boot env name */
+	BE_ERR_EXISTS,	    /* boot env name already taken */
+	BE_ERR_NOENT,	    /* boot env doesn't exist */
+	BE_ERR_PERMS,	    /* insufficient permissions */
+	BE_ERR_DESTROYACT,  /* cannot destroy active boot env */
+	BE_ERR_DESTROYMNT,  /* destroying a mounted be requires force */
+	BE_ERR_BADPATH,	    /* path not suitable for operation */
+	BE_ERR_PATHBUSY,    /* requested path is busy */
+	BE_ERR_PATHLEN,	    /* provided name exceeds maximum length limit */
+	BE_ERR_BADMOUNT,    /* mountpoint is not '/' */
+	BE_ERR_NOORIGIN,    /* could not open snapshot's origin */
+	BE_ERR_MOUNTED,	    /* boot environment is already mounted */
+	BE_ERR_NOMOUNT,	    /* boot environment is not mounted */
+	BE_ERR_ZFSOPEN,	    /* calling zfs_open() failed */
+	BE_ERR_ZFSCLONE,    /* error when calling zfs_clone to create be */
+	BE_ERR_IO,	    /* error when doing some I/O operation */
+	BE_ERR_NOPOOL,	    /* operation not supported on this pool */
+	BE_ERR_NOMEM,	    /* insufficient memory */
+	BE_ERR_UNKNOWN,	    /* unknown error */
+	BE_ERR_INVORIGIN,   /* invalid origin */
+	BE_ERR_HASCLONES,   /* snapshot has clones */
 } be_error_t;
-
 
 /* Library handling functions: be.c */
 libbe_handle_t *libbe_init(const char *root);
@@ -96,9 +95,9 @@ int be_rename(libbe_handle_t *, const char *, const char *);
 /* Bootenv removal functions */
 
 typedef enum {
-	BE_DESTROY_FORCE	= 1 << 0,
-	BE_DESTROY_ORIGIN	= 1 << 1,
-	BE_DESTROY_AUTOORIGIN	= 1 << 2,
+	BE_DESTROY_FORCE = 1 << 0,
+	BE_DESTROY_ORIGIN = 1 << 1,
+	BE_DESTROY_AUTOORIGIN = 1 << 2,
 } be_destroy_opt_t;
 
 int be_destroy(libbe_handle_t *, const char *, int);
@@ -106,8 +105,8 @@ int be_destroy(libbe_handle_t *, const char *, int);
 /* Bootenv mounting functions: be_access.c */
 
 typedef enum {
-	BE_MNT_FORCE		= 1 << 0,
-	BE_MNT_DEEP		= 1 << 1,
+	BE_MNT_FORCE = 1 << 0,
+	BE_MNT_DEEP = 1 << 1,
 } be_mount_opt_t;
 
 int be_mount(libbe_handle_t *, const char *, const char *, int, char *);
@@ -121,7 +120,7 @@ void libbe_print_on_error(libbe_handle_t *, bool);
 
 /* Utility Functions */
 int be_root_concat(libbe_handle_t *, const char *, char *);
-int be_validate_name(libbe_handle_t * __unused, const char *);
+int be_validate_name(libbe_handle_t *__unused, const char *);
 int be_validate_snap(libbe_handle_t *, const char *);
 int be_exists(libbe_handle_t *, const char *);
 
@@ -133,4 +132,4 @@ int be_add_child(libbe_handle_t *, const char *, bool);
 #endif
 void be_nicenum(uint64_t num, char *buf, size_t buflen);
 
-#endif  /* _LIBBE_H */
+#endif /* _LIBBE_H */

@@ -33,6 +33,7 @@
  */
 
 #include <sys/types.h>
+
 #include "stand.h"
 
 /* Extra functions from NetBSD standalone printf.c */

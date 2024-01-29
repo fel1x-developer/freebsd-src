@@ -31,12 +31,12 @@
 #include <dev/ofw/openfirm.h>
 
 struct pwm_channel {
-	device_t	dev;
-	u_int		channel;
-	uint64_t	period;
-	uint64_t	duty;
-	uint32_t	flags;
-	bool		enabled;
+	device_t dev;
+	u_int channel;
+	uint64_t period;
+	uint64_t duty;
+	uint32_t flags;
+	bool enabled;
 };
 typedef struct pwm_channel *pwm_channel_t;
 

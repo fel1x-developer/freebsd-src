@@ -26,24 +26,24 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/cpuctl.h>
+#include <sys/ioccom.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
+#include <machine/cpufunc.h>
+#include <machine/specialreg.h>
+
 #include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-#include <errno.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <sys/ioccom.h>
-#include <sys/cpuctl.h>
-
-#include <machine/cpufunc.h>
-#include <machine/specialreg.h>
 
 #include "cpucontrol.h"
 #include "via.h"
@@ -54,7 +54,7 @@ via_probe(int fd)
 	char vendor[13];
 	int error;
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 0,
+		.level = 0,
 	};
 
 	error = ioctl(fd, CPUCTL_CPUID, &idargs);
@@ -91,7 +91,7 @@ via_update(const struct ucode_update_params *params)
 		.msr = MSR_IA32_PLATFORM_ID,
 	};
 	cpuctl_cpuid_args_t idargs = {
-		.level  = 1,	/* Signature. */
+		.level = 1, /* Signature. */
 	};
 	cpuctl_update_args_t args;
 	int error;
@@ -170,21 +170,21 @@ via_update(const struct ucode_update_params *params)
 		goto fail;
 
 	if (fw_header->revision != 0 && revision >= fw_header->revision) {
-		WARNX(1, "skipping %s of rev %#x: up to date",
-		    path, fw_header->revision);
+		WARNX(1, "skipping %s of rev %#x: up to date", path,
+		    fw_header->revision);
 		goto fail;
 	}
-	fprintf(stderr, "%s: updating cpu %s from rev %#x to rev %#x... ",
-			path, dev, revision, fw_header->revision);
+	fprintf(stderr, "%s: updating cpu %s from rev %#x to rev %#x... ", path,
+	    dev, revision, fw_header->revision);
 	args.data = __DECONST(void *, fw_data);
 	args.size = data_size;
 	error = ioctl(devfd, CPUCTL_UPDATE, &args);
 	if (error < 0) {
-               error = errno;
-	       fprintf(stderr, "failed.\n");
-               errno = error;
-	       WARN(0, "ioctl()");
-	       goto fail;
+		error = errno;
+		fprintf(stderr, "failed.\n");
+		errno = error;
+		WARN(0, "ioctl()");
+		goto fail;
 	}
 	fprintf(stderr, "done.\n");
 

@@ -47,54 +47,59 @@
 #include "xlocale_private.h"
 
 /* internal flags */
-#define	NEED_GROUPING		0x01	/* print digits grouped (default) */
-#define	SIGN_POSN_USED		0x02	/* '+' or '(' usage flag */
-#define	LOCALE_POSN		0x04	/* use locale defined +/- (default) */
-#define	PARENTH_POSN		0x08	/* enclose negative amount in () */
-#define	SUPPRESS_CURR_SYMBOL	0x10	/* suppress the currency from output */
-#define	LEFT_JUSTIFY		0x20	/* left justify */
-#define	USE_INTL_CURRENCY	0x40	/* use international currency symbol */
-#define	IS_NEGATIVE		0x80	/* is argument value negative ? */
+#define NEED_GROUPING 0x01	  /* print digits grouped (default) */
+#define SIGN_POSN_USED 0x02	  /* '+' or '(' usage flag */
+#define LOCALE_POSN 0x04	  /* use locale defined +/- (default) */
+#define PARENTH_POSN 0x08	  /* enclose negative amount in () */
+#define SUPPRESS_CURR_SYMBOL 0x10 /* suppress the currency from output */
+#define LEFT_JUSTIFY 0x20	  /* left justify */
+#define USE_INTL_CURRENCY 0x40	  /* use international currency symbol */
+#define IS_NEGATIVE 0x80	  /* is argument value negative ? */
 
 /* internal macros */
-#define	PRINT(CH) do {						\
-	if (dst >= s + maxsize)					\
-		goto e2big_error;				\
-	*dst++ = CH;						\
-} while (0)
+#define PRINT(CH)                         \
+	do {                              \
+		if (dst >= s + maxsize)   \
+			goto e2big_error; \
+		*dst++ = CH;              \
+	} while (0)
 
-#define	PRINTS(STR) do {					\
-	char *tmps = STR;					\
-	while (*tmps != '\0')					\
-		PRINT(*tmps++);					\
-} while (0)
+#define PRINTS(STR)                     \
+	do {                            \
+		char *tmps = STR;       \
+		while (*tmps != '\0')   \
+			PRINT(*tmps++); \
+	} while (0)
 
-#define	GET_NUMBER(VAR, LOC) do {				\
-	VAR = 0;						\
-	while (isdigit_l((unsigned char)*fmt, LOC)) {		\
-		if (VAR > INT_MAX / 10)				\
-			goto e2big_error;			\
-		VAR *= 10;					\
-		VAR += *fmt - '0';				\
-		if (VAR < 0)					\
-			goto e2big_error;			\
-		fmt++;						\
-	}							\
-} while (0)
+#define GET_NUMBER(VAR, LOC)                                  \
+	do {                                                  \
+		VAR = 0;                                      \
+		while (isdigit_l((unsigned char)*fmt, LOC)) { \
+			if (VAR > INT_MAX / 10)               \
+				goto e2big_error;             \
+			VAR *= 10;                            \
+			VAR += *fmt - '0';                    \
+			if (VAR < 0)                          \
+				goto e2big_error;             \
+			fmt++;                                \
+		}                                             \
+	} while (0)
 
-#define	GRPCPY(howmany) do {					\
-	int i = howmany;					\
-	while (i-- > 0) {					\
-		avalue_size--;					\
-		*--bufend = *(avalue + avalue_size + padded);	\
-	}							\
-} while (0)
+#define GRPCPY(howmany)                                               \
+	do {                                                          \
+		int i = howmany;                                      \
+		while (i-- > 0) {                                     \
+			avalue_size--;                                \
+			*--bufend = *(avalue + avalue_size + padded); \
+		}                                                     \
+	} while (0)
 
-#define	GRPSEP do {						\
-	bufend -= thousands_sep_size;				\
-	memcpy(bufend, thousands_sep, thousands_sep_size);	\
-	groups++;						\
-} while (0)
+#define GRPSEP                                                     \
+	do {                                                       \
+		bufend -= thousands_sep_size;                      \
+		memcpy(bufend, thousands_sep, thousands_sep_size); \
+		groups++;                                          \
+	} while (0)
 
 static void __setup_vars(int, char *, char *, char *, char **, struct lconv *);
 static int __calc_left_pad(int, char *, struct lconv *);
@@ -105,28 +110,25 @@ static ssize_t
 vstrfmon_l(char *__restrict s, size_t maxsize, locale_t loc,
     const char *__restrict format, va_list ap)
 {
-	char		*dst;		/* output destination pointer */
-	const char	*fmt;		/* current format poistion pointer */
-	struct lconv	*lc;		/* pointer to lconv structure */
-	char		*asciivalue;	/* formatted double pointer */
+	char *dst;	  /* output destination pointer */
+	const char *fmt;  /* current format poistion pointer */
+	struct lconv *lc; /* pointer to lconv structure */
+	char *asciivalue; /* formatted double pointer */
 
-	int		flags;			/* formatting options */
-	int		pad_char;		/* padding character */
-	int		pad_size;		/* pad size */
-	int		width;			/* field width */
-	int		left_prec;		/* left precision */
-	int		right_prec;		/* right precision */
-	double		value;			/* just value */
-	char		space_char = ' ';	/* space after currency */
+	int flags;	       /* formatting options */
+	int pad_char;	       /* padding character */
+	int pad_size;	       /* pad size */
+	int width;	       /* field width */
+	int left_prec;	       /* left precision */
+	int right_prec;	       /* right precision */
+	double value;	       /* just value */
+	char space_char = ' '; /* space after currency */
 
-	char		cs_precedes,	/* values gathered from struct lconv */
-			sep_by_space,
-			sign_posn,
-			*signstr,
-			*currency_symbol;
+	char cs_precedes, /* values gathered from struct lconv */
+	    sep_by_space, sign_posn, *signstr, *currency_symbol;
 
-	char		*tmpptr;	/* temporary vars */
-	int		sverrno;
+	char *tmpptr; /* temporary vars */
+	int sverrno;
 
 	FIX_LOCALE(loc);
 
@@ -146,44 +148,44 @@ vstrfmon_l(char *__restrict s, size_t maxsize, locale_t loc,
 		/* "%%" mean just '%' */
 		if (*(fmt + 1) == '%') {
 			fmt++;
-literal:
+		literal:
 			PRINT(*fmt++);
 			continue;
 		}
 
 		/* set up initial values */
 		flags = NEED_GROUPING | LOCALE_POSN;
-		pad_char = ' ';		/* padding character is "space" */
-		pad_size = 0;		/* no padding initially */
-		left_prec = -1;		/* no left precision specified */
-		right_prec = -1;	/* no right precision specified */
-		width = -1;		/* no width specified */
+		pad_char = ' ';	 /* padding character is "space" */
+		pad_size = 0;	 /* no padding initially */
+		left_prec = -1;	 /* no left precision specified */
+		right_prec = -1; /* no right precision specified */
+		width = -1;	 /* no width specified */
 
 		/* Flags */
 		while (1) {
 			switch (*++fmt) {
-			case '=':	/* fill character */
+			case '=': /* fill character */
 				pad_char = *++fmt;
 				if (pad_char == '\0')
 					goto format_error;
 				continue;
-			case '^':	/* not group currency */
+			case '^': /* not group currency */
 				flags &= ~(NEED_GROUPING);
 				continue;
-			case '+':	/* use locale defined signs */
+			case '+': /* use locale defined signs */
 				if (flags & SIGN_POSN_USED)
 					goto format_error;
 				flags |= (SIGN_POSN_USED | LOCALE_POSN);
 				continue;
-			case '(':	/* enclose negatives with () */
+			case '(': /* enclose negatives with () */
 				if (flags & SIGN_POSN_USED)
 					goto format_error;
 				flags |= (SIGN_POSN_USED | PARENTH_POSN);
 				continue;
-			case '!':	/* suppress currency symbol */
+			case '!': /* suppress currency symbol */
 				flags |= SUPPRESS_CURR_SYMBOL;
 				continue;
-			case '-':	/* alignment (left) */
+			case '-': /* alignment (left) */
 				flags |= LEFT_JUSTIFY;
 				continue;
 			default:
@@ -224,16 +226,16 @@ literal:
 
 		/* Conversion Characters */
 		switch (*fmt++) {
-		case 'i':	/* use international currency format */
+		case 'i': /* use international currency format */
 			flags |= USE_INTL_CURRENCY;
 			break;
-		case 'n':	/* use national currency format */
+		case 'n': /* use national currency format */
 			flags &= ~(USE_INTL_CURRENCY);
 			break;
-		default:	/*
-				 * required character is missing or
-				 * premature EOS
-				 */
+		default: /*
+			  * required character is missing or
+			  * premature EOS
+			  */
 			goto format_error;
 		}
 
@@ -250,7 +252,7 @@ literal:
 			currency_symbol = strdup(lc->currency_symbol);
 
 		if (currency_symbol == NULL)
-			goto end_error;	/* ENOMEM. */
+			goto end_error; /* ENOMEM. */
 
 		/* value itself */
 		value = va_arg(ap, double);
@@ -264,7 +266,7 @@ literal:
 		/* fill left_prec with amount of padding chars */
 		if (left_prec >= 0) {
 			pad_size = __calc_left_pad((flags ^ IS_NEGATIVE),
-			    currency_symbol, lc) -
+				       currency_symbol, lc) -
 			    __calc_left_pad(flags, currency_symbol, lc);
 			if (pad_size < 0)
 				pad_size = 0;
@@ -275,7 +277,7 @@ literal:
 		asciivalue = __format_grouped_double(value, &flags, left_prec,
 		    right_prec, pad_char, lc, loc);
 		if (asciivalue == NULL)
-			goto end_error;	/*
+			goto end_error; /*
 					 * errno already set to ENOMEM by
 					 * malloc()
 					 */
@@ -360,8 +362,8 @@ literal:
 			if (!(flags & SUPPRESS_CURR_SYMBOL)) {
 				if ((sign_posn == 3 && sep_by_space == 2) ||
 				    (sep_by_space == 1 &&
-				     (sign_posn == 0 || sign_posn == 1 ||
-				      sign_posn == 2 || sign_posn == 4)))
+					(sign_posn == 0 || sign_posn == 1 ||
+					    sign_posn == 2 || sign_posn == 4)))
 					PRINT(space_char);
 				PRINTS(currency_symbol);
 				if (sign_posn == 4) {
@@ -402,7 +404,7 @@ literal:
 	PRINT('\0');
 	free(asciivalue);
 	free(currency_symbol);
-	return (dst - s - 1);	/* size of put data except trailing '\0' */
+	return (dst - s - 1); /* size of put data except trailing '\0' */
 
 e2big_error:
 	errno = E2BIG;
@@ -430,7 +432,7 @@ __setup_vars(int flags, char *cs_precedes, char *sep_by_space, char *sign_posn,
 		*sep_by_space = lc->int_n_sep_by_space;
 		*sign_posn = (flags & PARENTH_POSN) ? 0 : lc->int_n_sign_posn;
 		*signstr = (lc->negative_sign[0] == '\0') ? "-" :
-		    lc->negative_sign;
+							    lc->negative_sign;
 	} else if (flags & USE_INTL_CURRENCY) {
 		*cs_precedes = lc->int_p_cs_precedes;
 		*sep_by_space = lc->int_p_sep_by_space;
@@ -441,7 +443,7 @@ __setup_vars(int flags, char *cs_precedes, char *sep_by_space, char *sign_posn,
 		*sep_by_space = lc->n_sep_by_space;
 		*sign_posn = (flags & PARENTH_POSN) ? 0 : lc->n_sign_posn;
 		*signstr = (lc->negative_sign[0] == '\0') ? "-" :
-		    lc->negative_sign;
+							    lc->negative_sign;
 	} else {
 		*cs_precedes = lc->p_cs_precedes;
 		*sep_by_space = lc->p_sep_by_space;
@@ -492,9 +494,9 @@ __calc_left_pad(int flags, char *cur_symb, struct lconv *lc)
 static int
 get_groups(int size, char *grouping)
 {
-	int	chars = 0;
+	int chars = 0;
 
-	if (*grouping == CHAR_MAX || *grouping <= 0)	/* no grouping ? */
+	if (*grouping == CHAR_MAX || *grouping <= 0) /* no grouping ? */
 		return (0);
 
 	while (size > (int)*grouping) {
@@ -518,22 +520,22 @@ __format_grouped_double(double value, int *flags, int left_prec, int right_prec,
     int pad_char, struct lconv *lc, locale_t loc)
 {
 
-	char		*rslt;
-	char		*avalue;
-	int		avalue_size;
+	char *rslt;
+	char *avalue;
+	int avalue_size;
 
-	size_t		bufsize;
-	char		*bufend;
+	size_t bufsize;
+	char *bufend;
 
-	int		padded;
+	int padded;
 
-	char		*grouping;
-	const char	*decimal_point;
-	const char	*thousands_sep;
-	size_t		decimal_point_size;
-	size_t		thousands_sep_size;
+	char *grouping;
+	const char *decimal_point;
+	const char *thousands_sep;
+	size_t decimal_point_size;
+	size_t thousands_sep_size;
 
-	int		groups = 0;
+	int groups = 0;
 
 	grouping = lc->mon_grouping;
 	decimal_point = lc->mon_decimal_point;
@@ -557,7 +559,7 @@ __format_grouped_double(double value, int *flags, int left_prec, int right_prec,
 		else
 			right_prec = lc->frac_digits;
 
-		if (right_prec == CHAR_MAX)	/* POSIX locale ? */
+		if (right_prec == CHAR_MAX) /* POSIX locale ? */
 			right_prec = 2;
 	}
 
@@ -578,7 +580,7 @@ __format_grouped_double(double value, int *flags, int left_prec, int right_prec,
 		free(avalue);
 		return (NULL);
 	}
-	bufend = rslt + bufsize - 1;	/* reserve space for trailing '\0' */
+	bufend = rslt + bufsize - 1; /* reserve space for trailing '\0' */
 
 	/* skip spaces at beginning */
 	padded = 0;

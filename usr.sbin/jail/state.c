@@ -69,10 +69,11 @@ dep_setup(int docf)
 		 */
 		if ((j = TAILQ_FIRST(&cfjails)) &&
 		    (p = j->intparams[IP_DEPEND])) {
-			TAILQ_FOREACH(s, &p->val, tq) {
+			TAILQ_FOREACH (s, &p->val, tq) {
 				if (running_jail(s->s, 0) == NULL) {
 					warnx("depends on nonexistent jail "
-					    "\"%s\"", s->s);
+					      "\"%s\"",
+					    s->s);
 					j->flags |= JF_FAILED;
 				}
 			}
@@ -81,22 +82,22 @@ dep_setup(int docf)
 	}
 
 	njails = 0;
-	TAILQ_FOREACH(j, &cfjails, tq)
+	TAILQ_FOREACH (j, &cfjails, tq)
 		njails++;
 	jails_byname = emalloc(njails * sizeof(struct cfjail *));
 	njails = 0;
-	TAILQ_FOREACH(j, &cfjails, tq)
+	TAILQ_FOREACH (j, &cfjails, tq)
 		jails_byname[njails++] = j;
 	qsort(jails_byname, njails, sizeof(struct cfjail *), cmp_jailptr);
 	deps = 0;
 	ldeps = 0;
 	plen = 0;
 	pname = NULL;
-	TAILQ_FOREACH(j, &cfjails, tq) {
+	TAILQ_FOREACH (j, &cfjails, tq) {
 		if (j->flags & JF_FAILED)
 			continue;
 		if ((p = j->intparams[IP_DEPEND])) {
-			TAILQ_FOREACH(s, &p->val, tq) {
+			TAILQ_FOREACH (s, &p->val, tq) {
 				dj = find_jail(s->s);
 				if (dj != NULL) {
 					deps++;
@@ -110,8 +111,7 @@ dep_setup(int docf)
 			}
 		}
 		/* A jail has an implied dependency on its parent. */
-		if ((cs = strrchr(j->name, '.')))
-		{
+		if ((cs = strrchr(j->name, '.'))) {
 			if (plen < (size_t)(cs - j->name + 1)) {
 				plen = (cs - j->name) + 1;
 				pname = erealloc(pname, plen);
@@ -140,8 +140,8 @@ dep_setup(int docf)
 				dep_done(j, DF_NOFAIL);
 			} while ((j = TAILQ_FIRST(&ready)));
 		}
-		TAILQ_FOREACH(j, &cfjails, tq)
-			STAILQ_FOREACH(d, &j->dep[DEP_FROM], tq[DEP_FROM])
+		TAILQ_FOREACH (j, &cfjails, tq)
+			STAILQ_FOREACH (d, &j->dep[DEP_FROM], tq[DEP_FROM])
 				d->flags &= ~DF_SEEN;
 	}
 	if (pname != NULL)
@@ -170,7 +170,7 @@ dep_check(struct cfjail *j)
 		depfrom = DEP_FROM;
 		depto = DEP_TO;
 	}
-	STAILQ_FOREACH(d, &j->dep[depfrom], tq[depfrom]) {
+	STAILQ_FOREACH (d, &j->dep[depfrom], tq[depfrom]) {
 		if (d->flags & DF_SEEN)
 			continue;
 		dj = d->j[depto];
@@ -216,7 +216,7 @@ dep_check(struct cfjail *j)
 		if (reset)
 			dep_reset(dj);
 		if (!((d->flags & DF_LIGHT) &&
-		    (rev ? dj->jid < 0 : dj->jid > 0)))
+			(rev ? dj->jid < 0 : dj->jid > 0)))
 			ndeps++;
 	}
 	if (ndeps == 0)
@@ -242,14 +242,14 @@ dep_done(struct cfjail *j, unsigned flags)
 		depfrom = DEP_FROM;
 		depto = DEP_TO;
 	}
-	STAILQ_FOREACH(d, &j->dep[depto], tq[depto]) {
+	STAILQ_FOREACH (d, &j->dep[depto], tq[depto]) {
 		if ((d->flags & DF_SEEN) | (flags & ~d->flags & DF_LIGHT))
 			continue;
 		d->flags |= DF_SEEN;
 		dj = d->j[depfrom];
 		if (!(flags & DF_NOFAIL) && (j->flags & JF_FAILED) &&
 		    (j->flags & (JF_OP_MASK | JF_DEPEND)) !=
-		    (JF_SET | JF_DEPEND)) {
+			(JF_SET | JF_DEPEND)) {
 			if (!(dj->flags & (JF_DEPEND | JF_FAILED)) &&
 			    verbose >= 0)
 				jail_warnx(dj, "skipped");
@@ -271,7 +271,7 @@ dep_reset(struct cfjail *j)
 
 	depfrom = JF_DO_STOP(j->flags) ? DEP_TO : DEP_FROM;
 	j->ndeps = 0;
-	STAILQ_FOREACH(d, &j->dep[depfrom], tq[depfrom])
+	STAILQ_FOREACH (d, &j->dep[depfrom], tq[depfrom])
 		j->ndeps++;
 }
 
@@ -286,7 +286,7 @@ next_jail(void)
 	if (!(j = next_proc(!TAILQ_EMPTY(&ready))) &&
 	    (j = TAILQ_FIRST(&ready)) && JF_DO_STOP(j->flags) &&
 	    (j = TAILQ_LAST(&ready, cfjails)) && !JF_DO_STOP(j->flags)) {
-		TAILQ_FOREACH_REVERSE(j, &ready, cfjails, tq)
+		TAILQ_FOREACH_REVERSE (j, &ready, cfjails, tq)
 			if (JF_DO_STOP(j->flags))
 				break;
 	}
@@ -313,7 +313,7 @@ start_state(const char *target, int docf, unsigned state, int running)
 		 * set the state on all jails and start with those that
 		 * have no dependencies.
 		 */
-		TAILQ_FOREACH_SAFE(j, &cfjails, tq, tj) {
+		TAILQ_FOREACH_SAFE (j, &cfjails, tq, tj) {
 			j->flags = (j->flags & JF_FAILED) | state |
 			    (docf ? JF_WILD : 0);
 			dep_reset(j);
@@ -342,7 +342,7 @@ start_state(const char *target, int docf, unsigned state, int running)
 			jiov[4].iov_len = sizeof("name");
 			jiov[5].iov_base = &namebuf;
 			jiov[5].iov_len = sizeof(namebuf);
-			for (jid = 0; jail_get(jiov, 6, 0) > 0; ) {
+			for (jid = 0; jail_get(jiov, 6, 0) > 0;) {
 				if (wild_jail_match(namebuf, target)) {
 					j = add_jail();
 					j->name = estrdup(namebuf);
@@ -354,7 +354,7 @@ start_state(const char *target, int docf, unsigned state, int running)
 				}
 			}
 		} else {
-			TAILQ_FOREACH_SAFE(j, &cfjails, tq, tj) {
+			TAILQ_FOREACH_SAFE (j, &cfjails, tq, tj) {
 				if (wild_jail_match(j->name, target)) {
 					j->flags = (j->flags & JF_FAILED) |
 					    state | JF_WILD;
@@ -396,9 +396,9 @@ requeue(struct cfjail *j, struct cfjails *queue)
 void
 requeue_head(struct cfjail *j, struct cfjails *queue)
 {
-    TAILQ_REMOVE(j->queue, j, tq);
-    TAILQ_INSERT_HEAD(queue, j, tq);
-    j->queue = queue;
+	TAILQ_REMOVE(j->queue, j, tq);
+	TAILQ_INSERT_HEAD(queue, j, tq);
+	j->queue = queue;
 }
 
 /*
@@ -423,14 +423,14 @@ dep_add(struct cfjail *from, struct cfjail *to, unsigned flags)
 static int
 cmp_jailptr(const void *a, const void *b)
 {
-	return strcmp((*((struct cfjail * const *)a))->name,
-	    ((*(struct cfjail * const *)b))->name);
+	return strcmp((*((struct cfjail *const *)a))->name,
+	    ((*(struct cfjail *const *)b))->name);
 }
 
 static int
 cmp_jailptr_name(const void *a, const void *b)
 {
-	return strcmp((const char *)a, ((*(struct cfjail * const *)b))->name);
+	return strcmp((const char *)a, ((*(struct cfjail *const *)b))->name);
 }
 
 /*
@@ -440,7 +440,7 @@ static struct cfjail *
 find_jail(const char *name)
 {
 	struct cfjail **jp;
-	
+
 	if (jails_byname == NULL)
 		return NULL;
 
@@ -460,16 +460,16 @@ running_jail(const char *name, int flags)
 	char *ep;
 	char jailname[MAXHOSTNAMELEN];
 	int jid, ret, len;
-	
+
 	if ((jid = strtol(name, &ep, 10)) && !*ep) {
-		memset(jailname,0,sizeof(jailname));
+		memset(jailname, 0, sizeof(jailname));
 		len = sizeof(jailname);
 	} else {
-		strncpy(jailname, name,sizeof(jailname));
-		len = strlen(name) + 1; 
+		strncpy(jailname, name, sizeof(jailname));
+		len = strlen(name) + 1;
 		jid = 0;
 	}
-	
+
 	jiov[0].iov_base = __DECONST(char *, "jid");
 	jiov[0].iov_len = sizeof("jid");
 	jiov[1].iov_base = &jid;

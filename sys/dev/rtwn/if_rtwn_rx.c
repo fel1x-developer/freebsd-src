@@ -18,44 +18,41 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_rx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 rtwn_get_rates(struct rtwn_softc *sc, const struct ieee80211_rateset *rs,
-    const struct ieee80211_htrateset *rs_ht, uint32_t *rates_p,
-    int *maxrate_p, int basic_rates)
+    const struct ieee80211_htrateset *rs_ht, uint32_t *rates_p, int *maxrate_p,
+    int basic_rates)
 {
 	uint32_t rates;
 	uint8_t ridx;
@@ -69,7 +66,7 @@ rtwn_get_rates(struct rtwn_softc *sc, const struct ieee80211_rateset *rs,
 	for (i = 0; i < rs->rs_nrates; i++) {
 		/* Convert 802.11 rate to HW rate index. */
 		ridx = rate2ridx(IEEE80211_RV(rs->rs_rates[i]));
-		if (ridx == RTWN_RIDX_UNKNOWN)	/* Unknown rate, skip. */
+		if (ridx == RTWN_RIDX_UNKNOWN) /* Unknown rate, skip. */
 			continue;
 		if (((rs->rs_rates[i] & IEEE80211_RATE_BASIC) != 0) ||
 		    !basic_rates) {
@@ -94,8 +91,8 @@ rtwn_get_rates(struct rtwn_softc *sc, const struct ieee80211_rateset *rs,
 		}
 	}
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_RA,
-	    "%s: rates 0x%08X, maxrate %d\n", __func__, rates, maxrate);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_RA, "%s: rates 0x%08X, maxrate %d\n",
+	    __func__, rates, maxrate);
 
 	if (rates_p != NULL)
 		*rates_p = rates;
@@ -140,15 +137,15 @@ rtwn_update_avgrssi(struct rtwn_softc *sc, struct rtwn_node *un, int8_t rssi,
 			pwdb -= 2;
 	}
 
-	if (un->avg_pwdb == -1)	/* Init. */
+	if (un->avg_pwdb == -1) /* Init. */
 		un->avg_pwdb = pwdb;
 	else if (un->avg_pwdb < pwdb)
 		un->avg_pwdb = ((un->avg_pwdb * 19 + pwdb) / 20) + 1;
 	else
 		un->avg_pwdb = ((un->avg_pwdb * 19 + pwdb) / 20);
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_RSSI,
-	    "MACID %d, PWDB %d, EMA %d\n", un->id, pwdb, un->avg_pwdb);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_RSSI, "MACID %d, PWDB %d, EMA %d\n", un->id,
+	    pwdb, un->avg_pwdb);
 }
 
 static int8_t
@@ -158,7 +155,7 @@ rtwn_get_rssi(struct rtwn_softc *sc, void *physt, int is_cck)
 
 	if (is_cck)
 		rssi = rtwn_get_rssi_cck(sc, physt);
-	else	/* OFDM/HT. */
+	else /* OFDM/HT. */
 		rssi = rtwn_get_rssi_ofdm(sc, physt);
 
 	return (rssi);
@@ -203,8 +200,7 @@ rtwn_extend_rx_tsf(struct rtwn_softc *sc,
 		id >>= 1;
 		tsfl_curr = rtwn_get_tsf_low(sc, id);
 		break;
-	default:
-	{
+	default: {
 		uint32_t tsfl0, tsfl1;
 
 		tsfl0 = rtwn_get_tsf_low(sc, 0);
@@ -284,7 +280,7 @@ rtwn_rx_common(struct rtwn_softc *sc, struct mbuf *m, void *desc)
 	if (rxdw0 & RTWN_RXDW0_CRCERR)
 		rxs.c_pktflags |= IEEE80211_RX_F_FAIL_FCSCRC;
 
-	rxs.r_flags |= IEEE80211_R_TSF_START;	/* XXX undocumented */
+	rxs.r_flags |= IEEE80211_R_TSF_START; /* XXX undocumented */
 	rxs.r_flags |= IEEE80211_R_TSF64;
 	rxs.c_rx_tsf = rtwn_extend_rx_tsf(sc, stat);
 
@@ -293,8 +289,8 @@ rtwn_rx_common(struct rtwn_softc *sc, struct mbuf *m, void *desc)
 	rssi = rtwn_get_rssi(sc, physt, is_cck);
 
 	/* XXX TODO: we really need a rate-to-string method */
-	RTWN_DPRINTF(sc, RTWN_DEBUG_RSSI, "%s: rssi %d, rate %d\n",
-	    __func__, rssi, rxs.c_rate);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_RSSI, "%s: rssi %d, rate %d\n", __func__,
+	    rssi, rxs.c_rate);
 	if (un != NULL && infosz != 0 && (rxdw0 & RTWN_RXDW0_PHYST)) {
 		/* Update our average RSSI. */
 		rtwn_update_avgrssi(sc, un, rssi, is_cck);
@@ -303,7 +299,7 @@ rtwn_rx_common(struct rtwn_softc *sc, struct mbuf *m, void *desc)
 	rxs.r_flags |= IEEE80211_R_NF | IEEE80211_R_RSSI;
 	rxs.c_nf = RTWN_NOISE_FLOOR;
 	rxs.c_rssi = rssi - rxs.c_nf;
-	(void) ieee80211_add_rx_params(m, &rxs);
+	(void)ieee80211_add_rx_params(m, &rxs);
 
 	if (ieee80211_radiotap_active(ic)) {
 		struct rtwn_rx_radiotap_header *tap = &sc->sc_rxtap;
@@ -323,8 +319,7 @@ rtwn_rx_common(struct rtwn_softc *sc, struct mbuf *m, void *desc)
 
 void
 rtwn_adhoc_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
-    const struct ieee80211_rx_stats *rxs,
-    int rssi, int nf)
+    const struct ieee80211_rx_stats *rxs, int rssi, int nf)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct rtwn_softc *sc = vap->iv_ic->ic_softc;
@@ -335,14 +330,14 @@ rtwn_adhoc_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
 
 	if (vap->iv_state == IEEE80211_S_RUN &&
 	    (subtype == IEEE80211_FC0_SUBTYPE_BEACON ||
-	    subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP)) {
+		subtype == IEEE80211_FC0_SUBTYPE_PROBE_RESP)) {
 		ni_tstamp = le64toh(ni->ni_tstamp.tsf);
 		RTWN_LOCK(sc);
 		rtwn_get_tsf(sc, &curr_tstamp, uvp->id);
 		RTWN_UNLOCK(sc);
 
 		if (ni_tstamp >= curr_tstamp)
-			(void) ieee80211_ibss_merge(ni);
+			(void)ieee80211_ibss_merge(ni);
 	}
 }
 
@@ -350,7 +345,7 @@ static uint8_t
 rtwn_get_multi_pos(const uint8_t maddr[])
 {
 	uint64_t mask = 0x00004d101df481b4;
-	uint8_t pos = 0x27;	/* initial value */
+	uint8_t pos = 0x27; /* initial value */
 	int i, j;
 
 	for (i = 0; i < IEEE80211_ADDR_LEN; i++)
@@ -391,7 +386,7 @@ rtwn_set_multi(struct rtwn_softc *sc)
 		 * Merge multicast addresses to form the hardware filter.
 		 */
 		mfilt[0] = mfilt[1] = 0;
-		TAILQ_FOREACH(vap, &ic->ic_vaps, iv_next)
+		TAILQ_FOREACH (vap, &ic->ic_vaps, iv_next)
 			if_foreach_llmaddr(vap->iv_ifp, rtwm_hash_maddr, mfilt);
 	} else
 		mfilt[0] = mfilt[1] = ~0;
@@ -409,13 +404,13 @@ rtwn_rxfilter_update_mgt(struct rtwn_softc *sc)
 	uint16_t filter;
 
 	filter = 0x7f7f;
-	if (sc->bcn_vaps == 0) {	/* STA and/or MONITOR mode vaps */
+	if (sc->bcn_vaps == 0) { /* STA and/or MONITOR mode vaps */
 		filter &= ~(
 		    R92C_RXFLTMAP_SUBTYPE(IEEE80211_FC0_SUBTYPE_ASSOC_REQ) |
 		    R92C_RXFLTMAP_SUBTYPE(IEEE80211_FC0_SUBTYPE_REASSOC_REQ) |
 		    R92C_RXFLTMAP_SUBTYPE(IEEE80211_FC0_SUBTYPE_PROBE_REQ));
 	}
-	if (sc->ap_vaps == sc->nvaps - sc->mon_vaps) {	/* AP vaps only */
+	if (sc->ap_vaps == sc->nvaps - sc->mon_vaps) { /* AP vaps only */
 		filter &= ~(
 		    R92C_RXFLTMAP_SUBTYPE(IEEE80211_FC0_SUBTYPE_ASSOC_RESP) |
 		    R92C_RXFLTMAP_SUBTYPE(IEEE80211_FC0_SUBTYPE_REASSOC_RESP));
@@ -453,8 +448,8 @@ rtwn_rxfilter_init(struct rtwn_softc *sc)
 
 	/* Append generic Rx filter bits. */
 	sc->rcr |= R92C_RCR_AM | R92C_RCR_AB | R92C_RCR_APM |
-	    R92C_RCR_HTC_LOC_CTRL | R92C_RCR_APP_PHYSTS |
-	    R92C_RCR_APP_ICV | R92C_RCR_APP_MIC;
+	    R92C_RCR_HTC_LOC_CTRL | R92C_RCR_APP_PHYSTS | R92C_RCR_APP_ICV |
+	    R92C_RCR_APP_MIC;
 
 	/* Update dynamic Rx filter parts. */
 	rtwn_rxfilter_update(sc);
@@ -497,7 +492,7 @@ rtwn_set_promisc(struct rtwn_softc *sc)
 	if (ic->ic_promisc == 0 && sc->mon_vaps == 0) {
 		if (sc->bcn_vaps != 0)
 			mask_all |= R92C_RCR_CBSSID_BCN;
-		if (sc->ap_vaps != 0)	/* for Null data frames */
+		if (sc->ap_vaps != 0) /* for Null data frames */
 			mask_all |= R92C_RCR_CBSSID_DATA;
 
 		sc->rcr &= ~mask_all;

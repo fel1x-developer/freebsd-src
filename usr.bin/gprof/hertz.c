@@ -32,11 +32,11 @@
 #include <sys/cdefs.h>
 #include <sys/time.h>
 
-    /*
-     *	discover the tick frequency of the machine
-     *	if something goes wrong, we return 0, an impossible hertz.
-     */
-#define	HZ_WRONG	0
+/*
+ *	discover the tick frequency of the machine
+ *	if something goes wrong, we return 0, an impossible hertz.
+ */
+#define HZ_WRONG 0
 
 int hertz(void);
 
@@ -52,6 +52,6 @@ hertz(void)
 	setitimer(ITIMER_REAL, &tim, 0);
 	setitimer(ITIMER_REAL, 0, &tim);
 	if (tim.it_interval.tv_usec < 2)
-		return(HZ_WRONG);
+		return (HZ_WRONG);
 	return (1000000 / tim.it_interval.tv_usec);
 }

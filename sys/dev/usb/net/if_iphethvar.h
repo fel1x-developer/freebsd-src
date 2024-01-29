@@ -32,32 +32,32 @@
  */
 
 #ifndef _IF_IPHETHVAR_H_
-#define	_IF_IPHETHVAR_H_
+#define _IF_IPHETHVAR_H_
 
-#define	IPHETH_USBINTF_CLASS    255
-#define	IPHETH_USBINTF_SUBCLASS 253
-#define	IPHETH_USBINTF_PROTO    1
+#define IPHETH_USBINTF_CLASS 255
+#define IPHETH_USBINTF_SUBCLASS 253
+#define IPHETH_USBINTF_PROTO 1
 
-#define	IPHETH_BUF_SIZE         1514
-#define	IPHETH_TX_TIMEOUT       5000	/* ms */
+#define IPHETH_BUF_SIZE 1514
+#define IPHETH_TX_TIMEOUT 5000 /* ms */
 
-#define	IPHETH_RX_FRAMES_MAX	1
-#define	IPHETH_TX_FRAMES_MAX	8
+#define IPHETH_RX_FRAMES_MAX 1
+#define IPHETH_TX_FRAMES_MAX 8
 
-#define	IPHETH_RX_ADJ		2
+#define IPHETH_RX_ADJ 2
 
-#define	IPHETH_CFG_INDEX	0
-#define	IPHETH_IF_INDEX		2
-#define	IPHETH_ALT_INTFNUM      1
+#define IPHETH_CFG_INDEX 0
+#define IPHETH_IF_INDEX 2
+#define IPHETH_ALT_INTFNUM 1
 
-#define	IPHETH_CTRL_ENDP        0x00
-#define	IPHETH_CTRL_BUF_SIZE    0x40
-#define	IPHETH_CTRL_TIMEOUT     5000	/* ms */
+#define IPHETH_CTRL_ENDP 0x00
+#define IPHETH_CTRL_BUF_SIZE 0x40
+#define IPHETH_CTRL_TIMEOUT 5000 /* ms */
 
-#define	IPHETH_CMD_GET_MACADDR   0x00
-#define	IPHETH_CMD_CARRIER_CHECK 0x45
+#define IPHETH_CMD_GET_MACADDR 0x00
+#define IPHETH_CMD_CARRIER_CHECK 0x45
 
-#define	IPHETH_CARRIER_ON       0x04
+#define IPHETH_CARRIER_ON 0x04
 
 enum {
 	IPHETH_BULK_TX,
@@ -73,13 +73,13 @@ struct ipheth_softc {
 	struct mbuf *sc_rx_buf[IPHETH_RX_FRAMES_MAX];
 	struct mbuf *sc_tx_buf[IPHETH_TX_FRAMES_MAX];
 
-	uint8_t	sc_data[IPHETH_CTRL_BUF_SIZE];
-	uint8_t	sc_iface_no;
-	uint8_t	sc_carrier_on;
+	uint8_t sc_data[IPHETH_CTRL_BUF_SIZE];
+	uint8_t sc_iface_no;
+	uint8_t sc_carrier_on;
 };
 
-#define	IPHETH_LOCK(_sc)			mtx_lock(&(_sc)->sc_mtx)
-#define	IPHETH_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	IPHETH_LOCK_ASSERT(_sc, t)	mtx_assert(&(_sc)->sc_mtx, t)
+#define IPHETH_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define IPHETH_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define IPHETH_LOCK_ASSERT(_sc, t) mtx_assert(&(_sc)->sc_mtx, t)
 
-#endif					/* _IF_IPHETHVAR_H_ */
+#endif /* _IF_IPHETHVAR_H_ */

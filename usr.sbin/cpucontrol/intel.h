@@ -26,45 +26,45 @@
  */
 
 #ifndef INTEL_H
-#define	INTEL_H
+#define INTEL_H
 
 /*
  * Prototypes.
  */
-ucode_probe_t	intel_probe;
-ucode_update_t	intel_update;
+ucode_probe_t intel_probe;
+ucode_update_t intel_update;
 
 typedef struct intel_fw_header {
-	uint32_t	header_version;		/* Version of the header. */
-	int32_t		revision;		/* Unique version number. */
-	uint32_t	date;			/* Date of creation in BCD. */
-	uint32_t	cpu_signature;		/* Extended family, extended
-						   model, type, family, model
-						   and stepping. */
-	uint32_t	checksum;		/* Sum of all DWORDS should
-						   be 0. */
-	uint32_t	loader_revision;	/* Version of the loader
-						   required to load update. */
-	uint32_t	cpu_flags;		/* Platform IDs encoded in
-						   the lower 8 bits. */
-	uint32_t	data_size;
-	uint32_t	total_size;
-	uint8_t		reserved[12];
+	uint32_t header_version;  /* Version of the header. */
+	int32_t revision;	  /* Unique version number. */
+	uint32_t date;		  /* Date of creation in BCD. */
+	uint32_t cpu_signature;	  /* Extended family, extended
+				     model, type, family, model
+				     and stepping. */
+	uint32_t checksum;	  /* Sum of all DWORDS should
+				     be 0. */
+	uint32_t loader_revision; /* Version of the loader
+				     required to load update. */
+	uint32_t cpu_flags;	  /* Platform IDs encoded in
+				     the lower 8 bits. */
+	uint32_t data_size;
+	uint32_t total_size;
+	uint8_t reserved[12];
 } intel_fw_header_t;
 
 typedef struct intel_cpu_signature {
-	uint32_t	cpu_signature;
-	uint32_t	cpu_flags;
-	uint32_t	checksum;
+	uint32_t cpu_signature;
+	uint32_t cpu_flags;
+	uint32_t checksum;
 } intel_cpu_signature_t;
 
 typedef struct intel_ext_header {
-	uint32_t	sig_count;
-	uint32_t	checksum;
-	uint8_t		reserved[12];
+	uint32_t sig_count;
+	uint32_t checksum;
+	uint8_t reserved[12];
 } intel_ext_header_t;
 
-#define	INTEL_HEADER_VERSION	0x00000001
-#define	INTEL_LOADER_REVISION	0x00000001
+#define INTEL_HEADER_VERSION 0x00000001
+#define INTEL_LOADER_REVISION 0x00000001
 
 #endif /* !INTEL_H */

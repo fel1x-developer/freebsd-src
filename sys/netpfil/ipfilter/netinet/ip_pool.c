@@ -4,49 +4,50 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define        KERNEL	1
-# define        _KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
-#include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/file.h>
 #if !defined(_KERNEL) && !defined(__KERNEL__)
-# include <stdio.h>
-# include <stdlib.h>
-# include <string.h>
-# define _KERNEL
-# include <sys/uio.h>
-# undef _KERNEL
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _KERNEL
+#include <sys/uio.h>
+#undef _KERNEL
 #else
-# include <sys/systm.h>
-# if defined(NetBSD) && (__NetBSD_Version__ >= 104000000)
-#  include <sys/proc.h>
-# endif
+#include <sys/systm.h>
+#if defined(NetBSD) && (__NetBSD_Version__ >= 104000000)
+#include <sys/proc.h>
+#endif
 #endif
 #include <sys/time.h>
 #if defined(_KERNEL) && !defined(SOLARIS2)
-# include <sys/mbuf.h>
+#include <sys/mbuf.h>
 #endif
 #if defined(__SVR4)
-# include <sys/byteorder.h>
-# ifdef _KERNEL
-#  include <sys/dditypes.h>
-# endif
-# include <sys/stream.h>
-# include <sys/kmem.h>
+#include <sys/byteorder.h>
+#ifdef _KERNEL
+#include <sys/dditypes.h>
+#endif
+#include <sys/kmem.h>
+#include <sys/stream.h>
 #endif
 #if defined(__FreeBSD__)
-# include <sys/malloc.h>
+#include <sys/malloc.h>
 #endif
 
 #include <sys/socket.h>
+
 #include <net/if.h>
 #include <netinet/in.h>
 #if !defined(_KERNEL)
-# include "ipf.h"
+#include "ipf.h"
 #endif
 
 #include "netinet/ip_compat.h"
@@ -56,41 +57,37 @@
 
 /* END OF INCLUDES */
 
-
 typedef struct ipf_pool_softc_s {
-	void		*ipf_radix;
-	ip_pool_t	*ipf_pool_list[LOOKUP_POOL_SZ];
-	ipf_pool_stat_t	ipf_pool_stats;
-	ip_pool_node_t	*ipf_node_explist;
+	void *ipf_radix;
+	ip_pool_t *ipf_pool_list[LOOKUP_POOL_SZ];
+	ipf_pool_stat_t ipf_pool_stats;
+	ip_pool_node_t *ipf_node_explist;
 } ipf_pool_softc_t;
 
-
 static void ipf_pool_clearnodes(ipf_main_softc_t *, ipf_pool_softc_t *,
-				     ip_pool_t *);
-static int ipf_pool_create(ipf_main_softc_t *, ipf_pool_softc_t *, iplookupop_t *);
+    ip_pool_t *);
+static int ipf_pool_create(ipf_main_softc_t *, ipf_pool_softc_t *,
+    iplookupop_t *);
 static int ipf_pool_deref(ipf_main_softc_t *, void *, void *);
-static int ipf_pool_destroy(ipf_main_softc_t *, ipf_pool_softc_t *, int, char *);
+static int ipf_pool_destroy(ipf_main_softc_t *, ipf_pool_softc_t *, int,
+    char *);
 static void *ipf_pool_exists(ipf_pool_softc_t *, int, char *);
 static void *ipf_pool_find(void *, int, char *);
 static ip_pool_node_t *ipf_pool_findeq(ipf_pool_softc_t *, ip_pool_t *,
-					    addrfamily_t *, addrfamily_t *);
-static void ipf_pool_free(ipf_main_softc_t *, ipf_pool_softc_t *,
-			       ip_pool_t *);
+    addrfamily_t *, addrfamily_t *);
+static void ipf_pool_free(ipf_main_softc_t *, ipf_pool_softc_t *, ip_pool_t *);
 static int ipf_pool_insert_node(ipf_main_softc_t *, ipf_pool_softc_t *,
-				     ip_pool_t *, struct ip_pool_node *);
+    ip_pool_t *, struct ip_pool_node *);
 static int ipf_pool_iter_deref(ipf_main_softc_t *, void *, int, int, void *);
-static int ipf_pool_iter_next(ipf_main_softc_t *,  void *, ipftoken_t *,
-				   ipflookupiter_t *);
+static int ipf_pool_iter_next(ipf_main_softc_t *, void *, ipftoken_t *,
+    ipflookupiter_t *);
 static size_t ipf_pool_flush(ipf_main_softc_t *, void *, iplookupflush_t *);
-static int ipf_pool_node_add(ipf_main_softc_t *, void *, iplookupop_t *,
-				  int);
-static int ipf_pool_node_del(ipf_main_softc_t *, void *, iplookupop_t *,
-				  int);
+static int ipf_pool_node_add(ipf_main_softc_t *, void *, iplookupop_t *, int);
+static int ipf_pool_node_del(ipf_main_softc_t *, void *, iplookupop_t *, int);
 static void ipf_pool_node_deref(ipf_pool_softc_t *, ip_pool_node_t *);
 static int ipf_pool_remove_node(ipf_main_softc_t *, ipf_pool_softc_t *,
-				     ip_pool_t *, ip_pool_node_t *);
-static int ipf_pool_search(ipf_main_softc_t *, void *, int,
-				void *, u_int);
+    ip_pool_t *, ip_pool_node_t *);
+static int ipf_pool_search(ipf_main_softc_t *, void *, int, void *, u_int);
 static void *ipf_pool_soft_create(ipf_main_softc_t *);
 static void ipf_pool_soft_destroy(ipf_main_softc_t *, void *);
 static void ipf_pool_soft_fini(ipf_main_softc_t *, void *);
@@ -101,29 +98,13 @@ static int ipf_pool_table_del(ipf_main_softc_t *, void *, iplookupop_t *);
 static void *ipf_pool_select_add_ref(void *, int, char *);
 static void ipf_pool_expire(ipf_main_softc_t *, void *);
 
-ipf_lookup_t ipf_pool_backend = {
-	IPLT_POOL,
-	ipf_pool_soft_create,
-	ipf_pool_soft_destroy,
-	ipf_pool_soft_init,
-	ipf_pool_soft_fini,
-	ipf_pool_search,
-	ipf_pool_flush,
-	ipf_pool_iter_deref,
-	ipf_pool_iter_next,
-	ipf_pool_node_add,
-	ipf_pool_node_del,
-	ipf_pool_stats_get,
-	ipf_pool_table_add,
-	ipf_pool_table_del,
-	ipf_pool_deref,
-	ipf_pool_find,
-	ipf_pool_select_add_ref,
-	NULL,
-	ipf_pool_expire,
-	NULL
-};
-
+ipf_lookup_t ipf_pool_backend = { IPLT_POOL, ipf_pool_soft_create,
+	ipf_pool_soft_destroy, ipf_pool_soft_init, ipf_pool_soft_fini,
+	ipf_pool_search, ipf_pool_flush, ipf_pool_iter_deref,
+	ipf_pool_iter_next, ipf_pool_node_add, ipf_pool_node_del,
+	ipf_pool_stats_get, ipf_pool_table_add, ipf_pool_table_del,
+	ipf_pool_deref, ipf_pool_find, ipf_pool_select_add_ref, NULL,
+	ipf_pool_expire, NULL };
 
 #ifdef TEST_POOL
 void treeprint(ip_pool_t *);
@@ -179,46 +160,46 @@ main(int argc, char *argv[])
 	node.ipn_mask.adf_addr.in4.s_addr = 0xffffffff;
 	node.ipn_info = 1;
 	ipf_pool_insert_node(ipo, &node);
-#ifdef	DEBUG_POOL
+#ifdef DEBUG_POOL
 	treeprint(ipo);
 #endif
 	ip.in4.s_addr = 0x0a00aabb;
 	printf("search(%#x) = %d (0)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a000001;
 	printf("search(%#x) = %d (0)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a000101;
 	printf("search(%#x) = %d (0)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a010001;
 	printf("search(%#x) = %d (1)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a010101;
 	printf("search(%#x) = %d (1)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a010201;
 	printf("search(%#x) = %d (0)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a010203;
 	printf("search(%#x) = %d (1)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0a01020f;
 	printf("search(%#x) = %d (1)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
 	ip.in4.s_addr = 0x0b00aabb;
 	printf("search(%#x) = %d (-1)\n", ip.in4.s_addr,
-		ipf_pool_search(ipo, 4, &ip, 1));
+	    ipf_pool_search(ipo, 4, &ip, 1));
 
-#ifdef	DEBUG_POOL
+#ifdef DEBUG_POOL
 	treeprint(ipo);
 #endif
 
@@ -227,20 +208,17 @@ main(int argc, char *argv[])
 	return (0);
 }
 
-
 void
 treeprint(ip_pool_t *ipo)
 {
 	ip_pool_node_t *c;
 
 	for (c = ipo->ipo_list; c != NULL; c = c->ipn_next)
-		printf("Node %p(%s) (%#x/%#x) = %d hits %lu\n",
-			c, c->ipn_name, c->ipn_addr.adf_addr.in4.s_addr,
-			c->ipn_mask.adf_addr.in4.s_addr,
-			c->ipn_info, c->ipn_hits);
+		printf("Node %p(%s) (%#x/%#x) = %d hits %lu\n", c, c->ipn_name,
+		    c->ipn_addr.adf_addr.in4.s_addr,
+		    c->ipn_mask.adf_addr.in4.s_addr, c->ipn_info, c->ipn_hits);
 }
 #endif /* TEST_POOL */
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_soft_create                                        */
@@ -272,7 +250,6 @@ ipf_pool_soft_create(ipf_main_softc_t *softc)
 	return (softp);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_soft_init                                          */
 /* Returns:     int     - 0 = success, else error                           */
@@ -290,7 +267,6 @@ ipf_pool_soft_init(ipf_main_softc_t *softc, void *arg)
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_soft_fini                                          */
@@ -313,13 +289,12 @@ ipf_pool_soft_fini(ipf_main_softc_t *softc, void *arg)
 	softc = arg;
 
 	for (i = -1; i <= IPL_LOGMAX; i++) {
-		for (q = softp->ipf_pool_list[i + 1]; (p = q) != NULL; ) {
+		for (q = softp->ipf_pool_list[i + 1]; (p = q) != NULL;) {
 			q = p->ipo_next;
-			(void) ipf_pool_destroy(softc, arg, i, p->ipo_name);
+			(void)ipf_pool_destroy(softc, arg, i, p->ipo_name);
 		}
 	}
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_soft_destroy                                       */
@@ -340,7 +315,6 @@ ipf_pool_soft_destroy(ipf_main_softc_t *softc, void *arg)
 	KFREE(softp);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:   ipf_pool_node_add                                            */
 /* Returns:    int - 0 = success, else error                                */
@@ -353,8 +327,7 @@ ipf_pool_soft_destroy(ipf_main_softc_t *softc, void *arg)
 /* the address prior to calling for the pair to be added.                   */
 /* ------------------------------------------------------------------------ */
 static int
-ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
-	int uid)
+ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op, int uid)
 {
 	ip_pool_node_t node, *m;
 	ip_pool_t *p;
@@ -378,16 +351,17 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 	}
 
 	if (node.ipn_addr.adf_family == AF_INET) {
-		if (node.ipn_addr.adf_len != offsetof(addrfamily_t, adf_addr) +
-					     sizeof(struct in_addr)) {
+		if (node.ipn_addr.adf_len !=
+		    offsetof(addrfamily_t, adf_addr) + sizeof(struct in_addr)) {
 			IPFERROR(70028);
 			return (EINVAL);
 		}
 	}
 #ifdef USE_INET6
 	else if (node.ipn_addr.adf_family == AF_INET6) {
-		if (node.ipn_addr.adf_len != offsetof(addrfamily_t, adf_addr) +
-					     sizeof(struct in6_addr)) {
+		if (node.ipn_addr.adf_len !=
+		    offsetof(addrfamily_t, adf_addr) +
+			sizeof(struct in6_addr)) {
 			IPFERROR(70034);
 			return (EINVAL);
 		}
@@ -403,7 +377,7 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 	 */
 	if (node.ipn_addr.adf_family == AF_INET) {
 		if ((node.ipn_addr.adf_addr.in4.s_addr &
-		     node.ipn_mask.adf_addr.in4.s_addr) !=
+			node.ipn_mask.adf_addr.in4.s_addr) !=
 		    node.ipn_addr.adf_addr.in4.s_addr) {
 			IPFERROR(70035);
 			return (EINVAL);
@@ -412,8 +386,8 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 #ifdef USE_INET6
 	else if (node.ipn_addr.adf_family == AF_INET6) {
 		if (IP6_MASKNEQ(&node.ipn_addr.adf_addr.in6,
-				&node.ipn_mask.adf_addr.in6,
-				&node.ipn_addr.adf_addr.in6)) {
+			&node.ipn_mask.adf_addr.in6,
+			&node.ipn_addr.adf_addr.in6)) {
 			IPFERROR(70036);
 			return (EINVAL);
 		}
@@ -421,7 +395,7 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 #endif
 
 	/*
-	* add an entry to a pool - return an error if it already
+	 * add an entry to a pool - return an error if it already
 	 * exists remove an entry from a pool - if it exists
 	 * - in both cases, the pool *must* exist!
 	 */
@@ -435,7 +409,6 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 	return (err);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:   ipf_pool_node_del                                            */
 /* Returns:    int - 0 = success, else error                                */
@@ -445,13 +418,11 @@ ipf_pool_node_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 /*                                                                          */
 /* ------------------------------------------------------------------------ */
 static int
-ipf_pool_node_del(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
-	int uid)
+ipf_pool_node_del(ipf_main_softc_t *softc, void *arg, iplookupop_t *op, int uid)
 {
 	ip_pool_node_t node, *m;
 	ip_pool_t *p;
 	int err;
-
 
 	if (op->iplo_size != sizeof(node)) {
 		IPFERROR(70019);
@@ -466,16 +437,17 @@ ipf_pool_node_del(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 	}
 
 	if (node.ipn_addr.adf_family == AF_INET) {
-		if (node.ipn_addr.adf_len != offsetof(addrfamily_t, adf_addr) +
-					     sizeof(struct in_addr)) {
+		if (node.ipn_addr.adf_len !=
+		    offsetof(addrfamily_t, adf_addr) + sizeof(struct in_addr)) {
 			IPFERROR(70030);
 			return (EINVAL);
 		}
 	}
 #ifdef USE_INET6
 	else if (node.ipn_addr.adf_family == AF_INET6) {
-		if (node.ipn_addr.adf_len != offsetof(addrfamily_t, adf_addr) +
-					     sizeof(struct in6_addr)) {
+		if (node.ipn_addr.adf_len !=
+		    offsetof(addrfamily_t, adf_addr) +
+			sizeof(struct in6_addr)) {
 			IPFERROR(70037);
 			return (EINVAL);
 		}
@@ -508,7 +480,6 @@ ipf_pool_node_del(ipf_main_softc_t *softc, void *arg, iplookupop_t *op,
 	return (err);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:   ipf_pool_table_add                                           */
 /* Returns:    int - 0 = success, else error                                */
@@ -533,7 +504,6 @@ ipf_pool_table_add(ipf_main_softc_t *softc, void *arg, iplookupop_t *op)
 	return (err);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:   ipf_pool_table_del                                           */
 /* Returns:    int - 0 = success, else error                                */
@@ -547,7 +517,6 @@ ipf_pool_table_del(ipf_main_softc_t *softc, void *arg, iplookupop_t *op)
 {
 	return (ipf_pool_destroy(softc, arg, op->iplo_unit, op->iplo_name));
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_statistics                                         */
@@ -577,10 +546,10 @@ ipf_pool_stats_get(ipf_main_softc_t *softc, void *arg, iplookupop_t *op)
 		for (i = 0; i <= LOOKUP_POOL_MAX; i++)
 			stats.ipls_list[i] = softp->ipf_pool_list[i];
 	} else if (unit >= 0 && unit <= IPL_LOGMAX) {
-		unit++;						/* -1 => 0 */
+		unit++; /* -1 => 0 */
 		if (op->iplo_name[0] != '\0')
 			stats.ipls_list[unit] = ipf_pool_exists(softp, unit - 1,
-								op->iplo_name);
+			    op->iplo_name);
 		else
 			stats.ipls_list[unit] = softp->ipf_pool_list[unit];
 	} else {
@@ -596,7 +565,6 @@ ipf_pool_stats_get(ipf_main_softc_t *softc, void *arg, iplookupop_t *op)
 	}
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_exists                                             */
@@ -619,7 +587,7 @@ ipf_pool_exists(ipf_pool_softc_t *softp, int unit, char *name)
 			for (p = softp->ipf_pool_list[i]; p != NULL;
 			     p = p->ipo_next) {
 				if (strncmp(p->ipo_name, name,
-					    sizeof(p->ipo_name)) == 0)
+					sizeof(p->ipo_name)) == 0)
 					break;
 			}
 			if (p != NULL)
@@ -628,13 +596,12 @@ ipf_pool_exists(ipf_pool_softc_t *softp, int unit, char *name)
 	} else {
 		for (p = softp->ipf_pool_list[unit + 1]; p != NULL;
 		     p = p->ipo_next)
-			if (strncmp(p->ipo_name, name,
-				    sizeof(p->ipo_name)) == 0)
+			if (strncmp(p->ipo_name, name, sizeof(p->ipo_name)) ==
+			    0)
 				break;
 	}
 	return (p);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_find                                               */
@@ -660,7 +627,6 @@ ipf_pool_find(void *arg, int unit, char *name)
 	return (p);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_select_add_ref                                     */
 /* Returns:     int - 0 = success, else error                               */
@@ -683,7 +649,6 @@ ipf_pool_select_add_ref(void *arg, int unit, char *name)
 	return (p);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_findeq                                             */
 /* Returns:     int     - 0 = success, else error                           */
@@ -697,14 +662,13 @@ ipf_pool_select_add_ref(void *arg, int unit, char *name)
 extern void printhostmask(int, u_32_t *, u_32_t *);
 static ip_pool_node_t *
 ipf_pool_findeq(ipf_pool_softc_t *softp, ip_pool_t *ipo, addrfamily_t *addr,
-	addrfamily_t *mask)
+    addrfamily_t *mask)
 {
 	ipf_rdx_node_t *n;
 
 	n = ipo->ipo_head->lookup(ipo->ipo_head, addr, mask);
 	return (ip_pool_node_t *)n;
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_search                                             */
@@ -719,7 +683,7 @@ ipf_pool_findeq(ipf_pool_softc_t *softp, ip_pool_t *ipo, addrfamily_t *addr,
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_search(ipf_main_softc_t *softc, void *tptr, int ipversion, void *dptr,
-	u_int bytes)
+    u_int bytes)
 {
 	ipf_rdx_node_t *rn;
 	ip_pool_node_t *m;
@@ -740,13 +704,13 @@ ipf_pool_search(ipf_main_softc_t *softc, void *tptr, int ipversion, void *dptr,
 	if (ipversion == 4) {
 		v.adf_family = AF_INET;
 		v.adf_len = offsetof(addrfamily_t, adf_addr) +
-			    sizeof(struct in_addr);
+		    sizeof(struct in_addr);
 		v.adf_addr.in4 = addr->in4;
 #ifdef USE_INET6
 	} else if (ipversion == 6) {
 		v.adf_family = AF_INET6;
 		v.adf_len = offsetof(addrfamily_t, adf_addr) +
-			    sizeof(struct in6_addr);
+		    sizeof(struct in6_addr);
 		v.adf_addr.in6 = addr->in6;
 #endif
 	} else
@@ -767,7 +731,6 @@ ipf_pool_search(ipf_main_softc_t *softc, void *tptr, int ipversion, void *dptr,
 	return (rv);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_insert_node                                        */
 /* Returns:     int      - 0 = success, else error                          */
@@ -782,7 +745,7 @@ ipf_pool_search(ipf_main_softc_t *softc, void *tptr, int ipversion, void *dptr,
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_insert_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
-	ip_pool_t *ipo, struct ip_pool_node *node)
+    ip_pool_t *ipo, struct ip_pool_node *node)
 {
 	ipf_rdx_node_t *rn;
 	ip_pool_node_t *x;
@@ -852,8 +815,8 @@ ipf_pool_insert_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 	}
 
 	rn = ipo->ipo_head->addaddr(ipo->ipo_head, &x->ipn_addr, &x->ipn_mask,
-				    x->ipn_nodes);
-#ifdef	DEBUG_POOL
+	    x->ipn_nodes);
+#ifdef DEBUG_POOL
 	printf("Added %p at %p\n", x, rn);
 #endif
 
@@ -872,7 +835,6 @@ ipf_pool_insert_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_create                                             */
@@ -894,7 +856,7 @@ ipf_pool_insert_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_create(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
-	iplookupop_t *op)
+    iplookupop_t *op)
 {
 	char name[FR_GROUPLEN];
 	int poolnum, unit;
@@ -935,11 +897,12 @@ ipf_pool_create(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 
 		(void)snprintf(name, sizeof(name), "%x", poolnum);
 
-		for (p = softp->ipf_pool_list[unit + 1]; p != NULL; ) {
-			if (strncmp(name, p->ipo_name,
-				    sizeof(p->ipo_name)) == 0) {
+		for (p = softp->ipf_pool_list[unit + 1]; p != NULL;) {
+			if (strncmp(name, p->ipo_name, sizeof(p->ipo_name)) ==
+			    0) {
 				poolnum++;
-				(void)snprintf(name, sizeof(name), "%x", poolnum);
+				(void)snprintf(name, sizeof(name), "%x",
+				    poolnum);
 				p = softp->ipf_pool_list[unit + 1];
 			} else
 				p = p->ipo_next;
@@ -967,7 +930,6 @@ ipf_pool_create(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 	return (0);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_remove_node                                        */
 /* Returns:     int      - 0 = success, else error                          */
@@ -980,7 +942,7 @@ ipf_pool_create(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_remove_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
-	ip_pool_t *ipo, ip_pool_node_t *ipe)
+    ip_pool_t *ipo, ip_pool_node_t *ipe)
 {
 	void *ptr;
 
@@ -998,7 +960,7 @@ ipf_pool_remove_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 		ipe->ipn_dnext->ipn_pdnext = ipe->ipn_pdnext;
 
 	ptr = ipo->ipo_head->deladdr(ipo->ipo_head, &ipe->ipn_addr,
-				     &ipe->ipn_mask);
+	    &ipe->ipn_mask);
 
 	if (ptr != NULL) {
 		ipf_pool_node_deref(softp, ipe);
@@ -1007,7 +969,6 @@ ipf_pool_remove_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 	IPFERROR(70027);
 	return (ESRCH);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_destroy                                            */
@@ -1027,8 +988,8 @@ ipf_pool_remove_node(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 /* assertion that one of the two (ipf_poolrw,ipf_global) is held.           */
 /* ------------------------------------------------------------------------ */
 static int
-ipf_pool_destroy(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
-	int unit, char *name)
+ipf_pool_destroy(ipf_main_softc_t *softc, ipf_pool_softc_t *softp, int unit,
+    char *name)
 {
 	ip_pool_t *ipo;
 
@@ -1047,7 +1008,6 @@ ipf_pool_destroy(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
 	ipf_pool_free(softc, softp, ipo);
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_flush                                              */
@@ -1075,7 +1035,7 @@ ipf_pool_flush(ipf_main_softc_t *softc, void *arg, iplookupflush_t *fp)
 	for (i = -1; i <= IPL_LOGMAX; i++) {
 		if (unit != IPLT_ALL && i != unit)
 			continue;
-		for (q = softp->ipf_pool_list[i + 1]; (p = q) != NULL; ) {
+		for (q = softp->ipf_pool_list[i + 1]; (p = q) != NULL;) {
 			q = p->ipo_next;
 			err = ipf_pool_destroy(softc, softp, i, p->ipo_name);
 			if (err == 0)
@@ -1084,7 +1044,6 @@ ipf_pool_flush(ipf_main_softc_t *softc, void *arg, iplookupflush_t *fp)
 	}
 	return (num);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_free                                               */
@@ -1117,7 +1076,6 @@ ipf_pool_free(ipf_main_softc_t *softc, ipf_pool_softc_t *softp, ip_pool_t *ipo)
 	softp->ipf_pool_stats.ipls_pools--;
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_clearnodes                                         */
 /* Returns:     void                                                        */
@@ -1130,16 +1088,15 @@ ipf_pool_free(ipf_main_softc_t *softc, ipf_pool_softc_t *softp, ip_pool_t *ipo)
 /* ------------------------------------------------------------------------ */
 static void
 ipf_pool_clearnodes(ipf_main_softc_t *softc, ipf_pool_softc_t *softp,
-	ip_pool_t *ipo)
+    ip_pool_t *ipo)
 {
 	ip_pool_node_t *n, **next;
 
-	for (next = &ipo->ipo_list; (n = *next) != NULL; )
+	for (next = &ipo->ipo_list; (n = *next) != NULL;)
 		ipf_pool_remove_node(softc, softp, ipo, n);
 
 	ipo->ipo_list = NULL;
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_deref                                              */
@@ -1168,7 +1125,6 @@ ipf_pool_deref(ipf_main_softc_t *softc, void *arg, void *pool)
 	return (0);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_node_deref                                         */
 /* Returns:     void                                                        */
@@ -1191,7 +1147,6 @@ ipf_pool_node_deref(ipf_pool_softc_t *softp, ip_pool_node_t *ipn)
 	}
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_iter_next                                          */
 /* Returns:     void                                                        */
@@ -1203,7 +1158,7 @@ ipf_pool_node_deref(ipf_pool_softc_t *softp, ip_pool_node_t *ipn)
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
-	ipflookupiter_t *ilp)
+    ipflookupiter_t *ilp)
 {
 	ipf_pool_softc_t *softp = arg;
 	ip_pool_node_t *node, zn, *nextnode;
@@ -1219,9 +1174,8 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 
 	READ_ENTER(&softc->ipf_poolrw);
 
-	switch (ilp->ili_otype)
-	{
-	case IPFLOOKUPITER_LIST :
+	switch (ilp->ili_otype) {
+	case IPFLOOKUPITER_LIST:
 		ipo = token->ipt_data;
 		if (ipo == NULL) {
 			nextipo = softp->ipf_pool_list[(int)ilp->ili_unit + 1];
@@ -1240,11 +1194,11 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 		pnext = nextipo->ipo_next;
 		break;
 
-	case IPFLOOKUPITER_NODE :
+	case IPFLOOKUPITER_NODE:
 		node = token->ipt_data;
 		if (node == NULL) {
 			ipo = ipf_pool_exists(arg, ilp->ili_unit,
-					      ilp->ili_name);
+			    ilp->ili_name);
 			if (ipo == NULL) {
 				IPFERROR(70010);
 				err = ESRCH;
@@ -1267,7 +1221,7 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 		pnext = nextnode->ipn_next;
 		break;
 
-	default :
+	default:
 		IPFERROR(70011);
 		pnext = NULL;
 		err = EINVAL;
@@ -1278,11 +1232,10 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 	if (err != 0)
 		return (err);
 
-	switch (ilp->ili_otype)
-	{
-	case IPFLOOKUPITER_LIST :
+	switch (ilp->ili_otype) {
+	case IPFLOOKUPITER_LIST:
 		err = COPYOUT(nextipo, ilp->ili_data, sizeof(*nextipo));
-		if (err != 0)  {
+		if (err != 0) {
 			IPFERROR(70012);
 			err = EFAULT;
 		}
@@ -1293,7 +1246,7 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 		}
 		break;
 
-	case IPFLOOKUPITER_NODE :
+	case IPFLOOKUPITER_NODE:
 		err = COPYOUT(nextnode, ilp->ili_data, sizeof(*nextnode));
 		if (err != 0) {
 			IPFERROR(70013);
@@ -1312,7 +1265,6 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 	return (err);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_iterderef                                          */
 /* Returns:     void                                                        */
@@ -1324,7 +1276,7 @@ ipf_pool_iter_next(ipf_main_softc_t *softc, void *arg, ipftoken_t *token,
 /* ------------------------------------------------------------------------ */
 static int
 ipf_pool_iter_deref(ipf_main_softc_t *softc, void *arg, int otype, int unit,
-	void *data)
+    void *data)
 {
 	ipf_pool_softc_t *softp = arg;
 
@@ -1334,22 +1286,20 @@ ipf_pool_iter_deref(ipf_main_softc_t *softc, void *arg, int otype, int unit,
 	if (unit < 0 || unit > IPL_LOGMAX)
 		return (EINVAL);
 
-	switch (otype)
-	{
-	case IPFLOOKUPITER_LIST :
+	switch (otype) {
+	case IPFLOOKUPITER_LIST:
 		ipf_pool_deref(softc, softp, (ip_pool_t *)data);
 		break;
 
-	case IPFLOOKUPITER_NODE :
+	case IPFLOOKUPITER_NODE:
 		ipf_pool_node_deref(softp, (ip_pool_node_t *)data);
 		break;
-	default :
+	default:
 		break;
 	}
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pool_expire                                             */
@@ -1377,14 +1327,9 @@ ipf_pool_expire(ipf_main_softc_t *softc, void *arg)
 	}
 }
 
-
-
-
 #ifndef _KERNEL
-void
-ipf_pool_dump(softc, arg)
-	ipf_main_softc_t *softc;
-	void *arg;
+void ipf_pool_dump(softc, arg) ipf_main_softc_t *softc;
+void *arg;
 {
 	ipf_pool_softc_t *softp = arg;
 	ip_pool_t *ipl;

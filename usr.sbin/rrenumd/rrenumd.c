@@ -33,31 +33,29 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <sys/uio.h>
 #include <sys/time.h>
-
-#include <string.h>
+#include <sys/uio.h>
 
 #include <net/route.h>
-
-#include <netinet/in_systm.h>
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 
 #include <arpa/inet.h>
+#include <string.h>
 
 #ifdef IPSEC
 #include <netipsec/ipsec.h>
 #endif
 
-#include <stdio.h>
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "rrenumd.h"
 
@@ -67,9 +65,8 @@
 #define RR_MCHLIM_DEFAULT 64
 
 #ifndef IN6_IS_SCOPE_LINKLOCAL
-#define IN6_IS_SCOPE_LINKLOCAL(a)	\
-	((IN6_IS_ADDR_LINKLOCAL(a)) ||	\
-	 (IN6_IS_ADDR_MC_LINKLOCAL(a)))
+#define IN6_IS_SCOPE_LINKLOCAL(a) \
+	((IN6_IS_ADDR_LINKLOCAL(a)) || (IN6_IS_ADDR_MC_LINKLOCAL(a)))
 #endif /* IN6_IS_SCOPE_LINKLOCAL */
 
 struct flags {
@@ -78,7 +75,7 @@ struct flags {
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
 	u_long policy : 1;
-#else /* IPSEC_POLICY_IPSEC */
+#else  /* IPSEC_POLICY_IPSEC */
 	u_long auth : 1;
 	u_long encrypt : 1;
 #endif /* IPSEC_POLICY_IPSEC */
@@ -93,7 +90,7 @@ struct sockaddr_in6 sin6_ll_allrouters;
 int s4, s6;
 int with_v4dest, with_v6dest;
 struct in6_addr prefix; /* ADHOC */
-int prefixlen = 64; /* ADHOC */
+int prefixlen = 64;	/* ADHOC */
 
 extern int parse(FILE **);
 
@@ -119,20 +116,20 @@ static void rrenum_snd_fullsequence(void);
 static void rrenum_input(int);
 int main(int, char *[]);
 
-
 /* Print usage. Don't call this after daemonized. */
 static void
 show_usage()
 {
-	fprintf(stderr, "usage: rrenumd [-c conf_file|-s] [-df"
+	fprintf(stderr,
+	    "usage: rrenumd [-c conf_file|-s] [-df"
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
-		"] [-P policy"
-#else /* IPSEC_POLICY_IPSEC */
-		"AE"
+	    "] [-P policy"
+#else  /* IPSEC_POLICY_IPSEC */
+	    "AE"
 #endif /* IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
-		"]\n");
+	    "]\n");
 	exit(1);
 }
 
@@ -146,7 +143,7 @@ init_sin6(struct sockaddr_in6 *sin6, const char *addr_ascii)
 		; /* XXX do something */
 }
 
-#if 0  /* XXX: not necessary ?? */
+#if 0 /* XXX: not necessary ?? */
 static void
 join_multi(const char *addrname)
 {
@@ -195,7 +192,7 @@ init_globals()
 	rcvmhdr.msg_iov = &rcviov;
 	rcvmhdr.msg_iovlen = 1;
 	rcvcmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-		CMSG_SPACE(sizeof(int));
+	    CMSG_SPACE(sizeof(int));
 	if (rcvcmsgbuf == NULL &&
 	    (rcvcmsgbuf = (u_char *)malloc(rcvcmsglen)) == NULL) {
 		syslog(LOG_ERR, "<%s>: malloc failed", __func__);
@@ -208,7 +205,7 @@ init_globals()
 	sndmhdr.msg_namelen = sizeof(struct sockaddr_in6);
 	sndmhdr.msg_iovlen = 1;
 	sndcmsglen = CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-		CMSG_SPACE(sizeof(int));
+	    CMSG_SPACE(sizeof(int));
 	if (sndcmsgbuf == NULL &&
 	    (sndcmsgbuf = (u_char *)malloc(sndcmsglen)) == NULL) {
 		syslog(LOG_ERR, "<%s>: malloc failed", __func__);
@@ -252,21 +249,21 @@ config(FILE **fpp)
 		 * now we don't support multiple PCOs in a rr message,
 		 * nor multiple use_prefix in one PCO.
 		 */
-		rpm->rpm_len = 4*1 +3;
+		rpm->rpm_len = 4 * 1 + 3;
 		rpm->rpm_ordinal = 0;
 		iov->iov_base = (caddr_t)irr;
-		iov->iov_len =  sizeof(struct icmp6_router_renum)
-			+ sizeof(struct rr_pco_match)
-			+ sizeof(struct rr_pco_use);
+		iov->iov_len = sizeof(struct icmp6_router_renum) +
+		    sizeof(struct rr_pco_match) + sizeof(struct rr_pco_use);
 	}
 }
 
 static void
 sock6_open(struct flags *flags
 #ifdef IPSEC_POLICY_IPSEC
-	   , char *policy
+    ,
+    char *policy
 #endif /* IPSEC_POLICY_IPSEC */
-	   )
+)
 {
 	struct icmp6_filter filt;
 	int on;
@@ -281,7 +278,7 @@ sock6_open(struct flags *flags
 	if (with_v6dest &&
 	    (s6 = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6)) < 0) {
 		syslog(LOG_ERR, "<%s> socket(v6): %s", __func__,
-		       strerror(errno));
+		    strerror(errno));
 		exit(1);
 	}
 
@@ -296,19 +293,19 @@ sock6_open(struct flags *flags
 	/* set icmpv6 filter */
 	ICMP6_FILTER_SETBLOCKALL(&filt);
 	ICMP6_FILTER_SETPASS(ICMP6_ROUTER_RENUMBERING, &filt);
-	if (setsockopt(s6, IPPROTO_ICMPV6, ICMP6_FILTER, &filt,
-		       sizeof(filt)) < 0) {
-		syslog(LOG_ERR, "<%s> IICMP6_FILTER: %s",
-		       __func__, strerror(errno));
+	if (setsockopt(s6, IPPROTO_ICMPV6, ICMP6_FILTER, &filt, sizeof(filt)) <
+	    0) {
+		syslog(LOG_ERR, "<%s> IICMP6_FILTER: %s", __func__,
+		    strerror(errno));
 		exit(1);
 	}
 
 	/* specify to tell receiving interface */
 	on = 1;
-	if (setsockopt(s6, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
-		       sizeof(on)) < 0) {
-		syslog(LOG_ERR, "<%s> IPV6_RECVPKTINFO: %s",
-		       __func__, strerror(errno));
+	if (setsockopt(s6, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on)) <
+	    0) {
+		syslog(LOG_ERR, "<%s> IPV6_RECVPKTINFO: %s", __func__,
+		    strerror(errno));
 		exit(1);
 	}
 
@@ -320,27 +317,27 @@ sock6_open(struct flags *flags
 		if (buf == NULL)
 			errx(1, "%s", ipsec_strerror());
 		/* XXX should handle in/out bound policy. */
-		if (setsockopt(s6, IPPROTO_IPV6, IPV6_IPSEC_POLICY,
-				buf, ipsec_get_policylen(buf)) < 0)
+		if (setsockopt(s6, IPPROTO_IPV6, IPV6_IPSEC_POLICY, buf,
+			ipsec_get_policylen(buf)) < 0)
 			err(1, "setsockopt(IPV6_IPSEC_POLICY)");
 		free(buf);
 	}
-#else /* IPSEC_POLICY_IPSEC */
+#else  /* IPSEC_POLICY_IPSEC */
 	if (flags->auth) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(s6, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
-			       &optval, sizeof(optval)) == -1) {
+		if (setsockopt(s6, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL, &optval,
+			sizeof(optval)) == -1) {
 			syslog(LOG_ERR, "<%s> IPV6_AUTH_TRANS_LEVEL: %s",
-			       __func__, strerror(errno));
+			    __func__, strerror(errno));
 			exit(1);
 		}
 	}
 	if (flags->encrypt) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(s6, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
-				&optval, sizeof(optval)) == -1) {
+		if (setsockopt(s6, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL, &optval,
+			sizeof(optval)) == -1) {
 			syslog(LOG_ERR, "<%s> IPV6_ESP_TRANS_LEVEL: %s",
-			       __func__, strerror(errno));
+			    __func__, strerror(errno));
 			exit(1);
 		}
 	}
@@ -351,9 +348,10 @@ sock6_open(struct flags *flags
 static void
 sock4_open(struct flags *flags
 #ifdef IPSEC_POLICY_IPSEC
-	   , char *policy
+    ,
+    char *policy
 #endif /* IPSEC_POLICY_IPSEC */
-	   )
+)
 {
 #ifdef IPSEC
 #ifndef IPSEC_POLICY_IPSEC
@@ -365,7 +363,7 @@ sock4_open(struct flags *flags
 		return;
 	if ((s4 = socket(AF_INET, SOCK_RAW, IPPROTO_ICMPV6)) < 0) {
 		syslog(LOG_ERR, "<%s> socket(v4): %s", __func__,
-		       strerror(errno));
+		    strerror(errno));
 		exit(1);
 	}
 
@@ -384,27 +382,27 @@ sock4_open(struct flags *flags
 		if (buf == NULL)
 			errx(1, "%s", ipsec_strerror());
 		/* XXX should handle in/out bound policy. */
-		if (setsockopt(s4, IPPROTO_IP, IP_IPSEC_POLICY,
-				buf, ipsec_get_policylen(buf)) < 0)
+		if (setsockopt(s4, IPPROTO_IP, IP_IPSEC_POLICY, buf,
+			ipsec_get_policylen(buf)) < 0)
 			err(1, "setsockopt(IP_IPSEC_POLICY)");
 		free(buf);
 	}
-#else /* IPSEC_POLICY_IPSEC */
+#else  /* IPSEC_POLICY_IPSEC */
 	if (flags->auth) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(s4, IPPROTO_IP, IP_AUTH_TRANS_LEVEL,
-			       &optval, sizeof(optval)) == -1) {
+		if (setsockopt(s4, IPPROTO_IP, IP_AUTH_TRANS_LEVEL, &optval,
+			sizeof(optval)) == -1) {
 			syslog(LOG_ERR, "<%s> IP_AUTH_TRANS_LEVEL: %s",
-			       __func__, strerror(errno));
+			    __func__, strerror(errno));
 			exit(1);
 		}
 	}
 	if (flags->encrypt) {
 		optval = IPSEC_LEVEL_REQUIRE;
-		if (setsockopt(s4, IPPROTO_IP, IP_ESP_TRANS_LEVEL,
-				&optval, sizeof(optval)) == -1) {
-			syslog(LOG_ERR, "<%s> IP_ESP_TRANS_LEVEL: %s",
-			       __func__, strerror(errno));
+		if (setsockopt(s4, IPPROTO_IP, IP_ESP_TRANS_LEVEL, &optval,
+			sizeof(optval)) == -1) {
+			syslog(LOG_ERR, "<%s> IP_ESP_TRANS_LEVEL: %s", __func__,
+			    strerror(errno));
 			exit(1);
 		}
 	}
@@ -424,8 +422,7 @@ rrenum_output(struct payload_list *pl, struct dst_list *dl)
 	if (dl->dl_dst->sa_family == AF_INET6)
 		sin6 = (struct sockaddr_in6 *)dl->dl_dst;
 
-	if (sin6 != NULL &&
-	    IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr)) {
+	if (sin6 != NULL && IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr)) {
 		int hoplimit = RR_MCHLIM_DEFAULT;
 
 		cm = CMSG_FIRSTHDR(&sndmhdr);
@@ -434,7 +431,7 @@ rrenum_output(struct payload_list *pl, struct dst_list *dl)
 		cm->cmsg_type = IPV6_PKTINFO;
 		cm->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		pi = (struct in6_pktinfo *)CMSG_DATA(cm);
-		memset(&pi->ipi6_addr, 0, sizeof(pi->ipi6_addr));	/*XXX*/
+		memset(&pi->ipi6_addr, 0, sizeof(pi->ipi6_addr)); /*XXX*/
 		pi->ipi6_ifindex = sin6->sin6_scope_id;
 		msglen += CMSG_LEN(sizeof(struct in6_pktinfo));
 
@@ -455,8 +452,7 @@ rrenum_output(struct payload_list *pl, struct dst_list *dl)
 	i = sendmsg(dl->dl_dst->sa_family == AF_INET ? s4 : s6, &sndmhdr, 0);
 
 	if (i < 0 || i != sndmhdr.msg_iov->iov_len)
-		syslog(LOG_ERR, "<%s> sendmsg: %s", __func__,
-		       strerror(errno));
+		syslog(LOG_ERR, "<%s> sendmsg: %s", __func__, strerror(errno));
 }
 
 static void
@@ -489,15 +485,14 @@ rrenum_input(int s)
 
 	/* get message */
 	if ((i = recvmsg(s, &rcvmhdr, 0)) < 0) {
-		syslog(LOG_ERR, "<%s> recvmsg: %s", __func__,
-		       strerror(errno));
+		syslog(LOG_ERR, "<%s> recvmsg: %s", __func__, strerror(errno));
 		return;
 	}
 	if (s == s4)
 		i -= sizeof(struct ip);
 	if (i < sizeof(struct icmp6_router_renum)) {
-		syslog(LOG_ERR, "<%s> packet size(%d) is too short",
-		       __func__, i);
+		syslog(LOG_ERR, "<%s> packet size(%d) is too short", __func__,
+		    i);
 		return;
 	}
 	if (s == s4) {
@@ -507,7 +502,7 @@ rrenum_input(int s)
 	} else /* s == s6 */
 		rr = (struct icmp6_router_renum *)rcvmhdr.msg_iov->iov_base;
 
-	switch(rr->rr_code) {
+	switch (rr->rr_code) {
 	case ICMP6_ROUTER_RENUMBERING_COMMAND:
 		/* COMMAND will be processed by rtadvd */
 		break;
@@ -515,8 +510,8 @@ rrenum_input(int s)
 		/* TODO: receiving result message */
 		break;
 	default:
-		syslog(LOG_ERR,	"<%s> received unknown code %d",
-		       __func__, rr->rr_code);
+		syslog(LOG_ERR, "<%s> received unknown code %d", __func__,
+		    rr->rr_code);
 		break;
 	}
 }
@@ -538,21 +533,22 @@ main(int argc, char *argv[])
 	openlog("rrenumd", LOG_PID, LOG_DAEMON);
 
 	/* get options */
-	while ((ch = getopt(argc, argv, "c:sdf"
+	while ((ch = getopt(argc, argv,
+		    "c:sdf"
 #ifdef IPSEC
 #ifdef IPSEC_POLICY_IPSEC
-			    "P:"
-#else /* IPSEC_POLICY_IPSEC */
-			    "AE"
+		    "P:"
+#else  /* IPSEC_POLICY_IPSEC */
+		    "AE"
 #endif /* IPSEC_POLICY_IPSEC */
 #endif /* IPSEC */
-			    )) != -1){
+		    )) != -1) {
 		switch (ch) {
 		case 'c':
-			if((fp = fopen(optarg, "r")) == NULL) {
+			if ((fp = fopen(optarg, "r")) == NULL) {
 				syslog(LOG_ERR,
-				       "<%s> config file %s open failed",
-				       __func__, optarg);
+				    "<%s> config file %s open failed", __func__,
+				    optarg);
 				exit(1);
 			}
 			break;
@@ -571,7 +567,7 @@ main(int argc, char *argv[])
 			flags.policy = 1;
 			policy = strdup(optarg);
 			break;
-#else /* IPSEC_POLICY_IPSEC */
+#else  /* IPSEC_POLICY_IPSEC */
 		case 'A':
 			flags.auth = 1;
 			break;
@@ -600,14 +596,16 @@ main(int argc, char *argv[])
 
 	sock6_open(&flags
 #ifdef IPSEC_POLICY_IPSEC
-		   , policy
+	    ,
+	    policy
 #endif /* IPSEC_POLICY_IPSEC */
-		   );
+	);
 	sock4_open(&flags
 #ifdef IPSEC_POLICY_IPSEC
-		   , policy
+	    ,
+	    policy
 #endif /* IPSEC_POLICY_IPSEC */
-		   );
+	);
 
 	if (!flags.fg)
 		daemon(0, 0);
@@ -633,13 +631,13 @@ main(int argc, char *argv[])
 	while (1) {
 		struct fd_set select_fd = fdset; /* reinitialize */
 
-		if ((i = select(maxfd + 1, &select_fd, NULL, NULL,
-				&timeout)) < 0){
-			syslog(LOG_ERR, "<%s> select: %s",
-			       __func__, strerror(errno));
+		if ((i = select(maxfd + 1, &select_fd, NULL, NULL, &timeout)) <
+		    0) {
+			syslog(LOG_ERR, "<%s> select: %s", __func__,
+			    strerror(errno));
 			continue;
 		}
-		if (i == 0) {	/* timeout */
+		if (i == 0) { /* timeout */
 			if (pl == NULL)
 				exit(0);
 			rrenum_snd_eachdst(pl);

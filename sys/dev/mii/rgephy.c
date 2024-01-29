@@ -39,68 +39,57 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/taskqueue.h>
-#include <sys/bus.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_media.h>
+#include <machine/bus.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include "miidevs.h"
-
 #include <dev/mii/rgephyreg.h>
+#include <dev/rl/if_rlreg.h>
+
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
-
-#include <machine/bus.h>
-#include <dev/rl/if_rlreg.h>
+#include "miidevs.h"
 
 static int rgephy_probe(device_t);
 static int rgephy_attach(device_t);
 
 static device_method_t rgephy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		rgephy_probe),
-	DEVMETHOD(device_attach,	rgephy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, rgephy_probe),
+	DEVMETHOD(device_attach, rgephy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t rgephy_driver = {
-	"rgephy",
-	rgephy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t rgephy_driver = { "rgephy", rgephy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(rgephy, miibus, rgephy_driver, 0, 0);
 
-static int	rgephy_service(struct mii_softc *, struct mii_data *, int);
-static void	rgephy_status(struct mii_softc *);
-static int	rgephy_mii_phy_auto(struct mii_softc *, int);
-static void	rgephy_reset(struct mii_softc *);
-static int	rgephy_linkup(struct mii_softc *);
-static void	rgephy_loop(struct mii_softc *);
-static void	rgephy_load_dspcode(struct mii_softc *);
-static void	rgephy_disable_eee(struct mii_softc *);
+static int rgephy_service(struct mii_softc *, struct mii_data *, int);
+static void rgephy_status(struct mii_softc *);
+static int rgephy_mii_phy_auto(struct mii_softc *, int);
+static void rgephy_reset(struct mii_softc *);
+static int rgephy_linkup(struct mii_softc *);
+static void rgephy_loop(struct mii_softc *);
+static void rgephy_load_dspcode(struct mii_softc *);
+static void rgephy_disable_eee(struct mii_softc *);
 
-static const struct mii_phydesc rgephys[] = {
-	MII_PHY_DESC(REALTEK, RTL8169S),
-	MII_PHY_DESC(REALTEK, RTL8251),
-	MII_PHY_END
-};
+static const struct mii_phydesc rgephys[] = { MII_PHY_DESC(REALTEK, RTL8169S),
+	MII_PHY_DESC(REALTEK, RTL8251), MII_PHY_END };
 
-static const struct mii_phy_funcs rgephy_funcs = {
-	rgephy_service,
-	rgephy_status,
-	rgephy_reset
-};
+static const struct mii_phy_funcs rgephy_funcs = { rgephy_service,
+	rgephy_status, rgephy_reset };
 
 static int
 rgephy_probe(device_t dev)
@@ -156,12 +145,11 @@ rgephy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		break;
 
 	case MII_MEDIACHG:
-		PHY_RESET(sc);	/* XXX hardware bug work-around */
+		PHY_RESET(sc); /* XXX hardware bug work-around */
 
 		anar = PHY_READ(sc, RGEPHY_MII_ANAR);
-		anar &= ~(RGEPHY_ANAR_PC | RGEPHY_ANAR_ASP |
-		    RGEPHY_ANAR_TX_FD | RGEPHY_ANAR_TX |
-		    RGEPHY_ANAR_10_FD | RGEPHY_ANAR_10);
+		anar &= ~(RGEPHY_ANAR_PC | RGEPHY_ANAR_ASP | RGEPHY_ANAR_TX_FD |
+		    RGEPHY_ANAR_TX | RGEPHY_ANAR_10_FD | RGEPHY_ANAR_10);
 
 		switch (IFM_SUBTYPE(ife->ifm_media)) {
 		case IFM_AUTO:
@@ -184,7 +172,7 @@ rgephy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		case IFM_10_T:
 			speed = RGEPHY_S10;
 			anar |= RGEPHY_ANAR_10_FD | RGEPHY_ANAR_10;
-setit:
+		setit:
 			if ((ife->ifm_media & IFM_FLOW) != 0 &&
 			    (mii->mii_media.ifm_media & IFM_FLAG0) != 0)
 				return (EINVAL);
@@ -195,24 +183,24 @@ setit:
 				anar &= ~(RGEPHY_ANAR_TX | RGEPHY_ANAR_10);
 				if ((ife->ifm_media & IFM_FLOW) != 0 ||
 				    (sc->mii_flags & MIIF_FORCEPAUSE) != 0)
-					anar |=
-					    RGEPHY_ANAR_PC | RGEPHY_ANAR_ASP;
+					anar |= RGEPHY_ANAR_PC |
+					    RGEPHY_ANAR_ASP;
 			} else {
 				gig = RGEPHY_1000CTL_AHD;
-				anar &=
-				    ~(RGEPHY_ANAR_TX_FD | RGEPHY_ANAR_10_FD);
+				anar &= ~(
+				    RGEPHY_ANAR_TX_FD | RGEPHY_ANAR_10_FD);
 			}
 			if (IFM_SUBTYPE(ife->ifm_media) == IFM_1000_T) {
 				gig |= RGEPHY_1000CTL_MSE;
 				if ((ife->ifm_media & IFM_ETH_MASTER) != 0)
-				    gig |= RGEPHY_1000CTL_MSC;
+					gig |= RGEPHY_1000CTL_MSC;
 			} else {
 				gig = 0;
 				anar &= ~RGEPHY_ANAR_ASP;
 			}
 			if ((mii->mii_media.ifm_media & IFM_FLAG0) == 0)
-				speed |=
-				    RGEPHY_BMCR_AUTOEN | RGEPHY_BMCR_STARTNEG;
+				speed |= RGEPHY_BMCR_AUTOEN |
+				    RGEPHY_BMCR_STARTNEG;
 			rgephy_loop(sc);
 			PHY_WRITE(sc, RGEPHY_MII_1000CTL, gig);
 			PHY_WRITE(sc, RGEPHY_MII_ANAR, anar);
@@ -452,10 +440,8 @@ rgephy_loop(struct mii_softc *sc)
 	}
 }
 
-#define PHY_SETBIT(x, y, z) \
-	PHY_WRITE(x, y, (PHY_READ(x, y) | (z)))
-#define PHY_CLRBIT(x, y, z) \
-	PHY_WRITE(x, y, (PHY_READ(x, y) & ~(z)))
+#define PHY_SETBIT(x, y, z) PHY_WRITE(x, y, (PHY_READ(x, y) | (z)))
+#define PHY_CLRBIT(x, y, z) PHY_WRITE(x, y, (PHY_READ(x, y) & ~(z)))
 
 /*
  * Initialize RealTek PHY per the datasheet. The DSP in the PHYs of
@@ -561,11 +547,11 @@ rgephy_disable_eee(struct mii_softc *sc)
 	uint16_t anar;
 
 	PHY_WRITE(sc, RGEPHY_F_EPAGSR, 0x0000);
-	PHY_WRITE(sc, MII_MMDACR, MMDACR_FN_ADDRESS |
-	    (MMDACR_DADDRMASK & RGEPHY_F_MMD_DEV_7));
+	PHY_WRITE(sc, MII_MMDACR,
+	    MMDACR_FN_ADDRESS | (MMDACR_DADDRMASK & RGEPHY_F_MMD_DEV_7));
 	PHY_WRITE(sc, MII_MMDAADR, RGEPHY_F_MMD_EEEAR);
-	PHY_WRITE(sc, MII_MMDACR, MMDACR_FN_DATANPI |
-	    (MMDACR_DADDRMASK & RGEPHY_F_MMD_DEV_7));
+	PHY_WRITE(sc, MII_MMDACR,
+	    MMDACR_FN_DATANPI | (MMDACR_DADDRMASK & RGEPHY_F_MMD_DEV_7));
 	PHY_WRITE(sc, MII_MMDAADR, 0x0000);
 	PHY_WRITE(sc, MII_MMDACR, 0x0000);
 	/*
@@ -575,8 +561,8 @@ rgephy_disable_eee(struct mii_softc *sc)
 	 */
 	anar = BMSR_MEDIA_TO_ANAR(sc->mii_capabilities) | ANAR_CSMA;
 	PHY_WRITE(sc, RGEPHY_MII_ANAR, anar);
-	PHY_WRITE(sc, RGEPHY_MII_1000CTL, RGEPHY_1000CTL_AHD |
-	    RGEPHY_1000CTL_AFD);
-	PHY_WRITE(sc, RGEPHY_MII_BMCR, RGEPHY_BMCR_RESET |
-	    RGEPHY_BMCR_AUTOEN | RGEPHY_BMCR_STARTNEG);
+	PHY_WRITE(sc, RGEPHY_MII_1000CTL,
+	    RGEPHY_1000CTL_AHD | RGEPHY_1000CTL_AFD);
+	PHY_WRITE(sc, RGEPHY_MII_BMCR,
+	    RGEPHY_BMCR_RESET | RGEPHY_BMCR_AUTOEN | RGEPHY_BMCR_STARTNEG);
 }

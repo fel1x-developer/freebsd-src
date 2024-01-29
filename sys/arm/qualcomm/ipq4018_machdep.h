@@ -25,12 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	IPQ4018_MACHDEP_H
-#define	IPQ4018_MACHDEP_H
+#ifndef IPQ4018_MACHDEP_H
+#define IPQ4018_MACHDEP_H
 
 #include <sys/types.h>
 
-void	ipq4018_mp_setmaxid(platform_t plat);
-void	ipq4018_mp_start_ap(platform_t plat);
+void ipq4018_mp_setmaxid(platform_t plat);
+void ipq4018_mp_start_ap(platform_t plat);
 
 #endif

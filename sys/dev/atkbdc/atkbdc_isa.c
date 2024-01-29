@@ -26,18 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_kbd.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <machine/resource.h>
+#include <sys/module.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/atkbdc/atkbdc_subr.h>
 #include <dev/atkbdc/atkbdcreg.h>
@@ -45,38 +46,36 @@
 #include <isa/isareg.h>
 #include <isa/isavar.h>
 
-static int	atkbdc_isa_probe(device_t dev);
-static int	atkbdc_isa_attach(device_t dev);
-static device_t	atkbdc_isa_add_child(device_t bus, u_int order, const char *name,
-		    int unit);
+static int atkbdc_isa_probe(device_t dev);
+static int atkbdc_isa_attach(device_t dev);
+static device_t atkbdc_isa_add_child(device_t bus, u_int order,
+    const char *name, int unit);
 static struct resource *atkbdc_isa_alloc_resource(device_t dev, device_t child,
-		    int type, int *rid, rman_res_t start, rman_res_t end,
-		    rman_res_t count, u_int flags);
-static int	atkbdc_isa_release_resource(device_t dev, device_t child,
-		    int type, int rid, struct resource *r);
+    int type, int *rid, rman_res_t start, rman_res_t end, rman_res_t count,
+    u_int flags);
+static int atkbdc_isa_release_resource(device_t dev, device_t child, int type,
+    int rid, struct resource *r);
 
-static device_method_t atkbdc_isa_methods[] = {
-	DEVMETHOD(device_probe,		atkbdc_isa_probe),
-	DEVMETHOD(device_attach,	atkbdc_isa_attach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+static device_method_t atkbdc_isa_methods[] = { DEVMETHOD(device_probe,
+						    atkbdc_isa_probe),
+	DEVMETHOD(device_attach, atkbdc_isa_attach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
-	DEVMETHOD(bus_add_child,	atkbdc_isa_add_child),
-	DEVMETHOD(bus_print_child,	atkbdc_print_child),
-	DEVMETHOD(bus_read_ivar,	atkbdc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	atkbdc_write_ivar),
-	DEVMETHOD(bus_get_resource_list,atkbdc_get_resource_list),
-	DEVMETHOD(bus_alloc_resource,	atkbdc_isa_alloc_resource),
-	DEVMETHOD(bus_release_resource,	atkbdc_isa_release_resource),
+	DEVMETHOD(bus_add_child, atkbdc_isa_add_child),
+	DEVMETHOD(bus_print_child, atkbdc_print_child),
+	DEVMETHOD(bus_read_ivar, atkbdc_read_ivar),
+	DEVMETHOD(bus_write_ivar, atkbdc_write_ivar),
+	DEVMETHOD(bus_get_resource_list, atkbdc_get_resource_list),
+	DEVMETHOD(bus_alloc_resource, atkbdc_isa_alloc_resource),
+	DEVMETHOD(bus_release_resource, atkbdc_isa_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_delete_resource,	bus_generic_rl_delete_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
-	{ 0, 0 }
-};
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr), { 0, 0 } };
 
 static driver_t atkbdc_isa_driver = {
 	ATKBDC_DRIVER_NAME,
@@ -85,26 +84,26 @@ static driver_t atkbdc_isa_driver = {
 };
 
 static struct isa_pnp_id atkbdc_ids[] = {
-	{ 0x0303d041, "Keyboard controller (i8042)" },	/* PNP0303 */
-	{ 0x0b03d041, "Keyboard controller (i8042)" },	/* PNP030B */
-	{ 0x2003d041, "Keyboard controller (i8042)" },	/* PNP0320 */
+	{ 0x0303d041, "Keyboard controller (i8042)" }, /* PNP0303 */
+	{ 0x0b03d041, "Keyboard controller (i8042)" }, /* PNP030B */
+	{ 0x2003d041, "Keyboard controller (i8042)" }, /* PNP0320 */
 	{ 0 }
 };
 
 static int
 atkbdc_isa_probe(device_t dev)
 {
-	struct resource	*port0;
-	struct resource	*port1;
-	rman_res_t	start;
-	rman_res_t	count;
-	int		error;
-	int		rid;
+	struct resource *port0;
+	struct resource *port1;
+	rman_res_t start;
+	rman_res_t count;
+	int error;
+	int rid;
 #if defined(__i386__) || defined(__amd64__)
-	bus_space_tag_t	tag;
+	bus_space_tag_t tag;
 	bus_space_handle_t ioh1;
-	volatile int	i;
-	register_t	flags;
+	volatile int i;
+	register_t flags;
 #endif
 
 	/* check PnP IDs */
@@ -116,7 +115,7 @@ atkbdc_isa_probe(device_t dev)
 	/*
 	 * Adjust I/O port resources.
 	 * The AT keyboard controller uses two ports (a command/data port
-	 * 0x60 and a status port 0x64), which may be given to us in 
+	 * 0x60 and a status port 0x64), which may be given to us in
 	 * one resource (0x60 through 0x64) or as two separate resources
 	 * (0x60 and 0x64). Some brain-damaged ACPI BIOS has reversed
 	 * command/data port and status port. Furthermore, /boot/device.hints
@@ -132,7 +131,7 @@ atkbdc_isa_probe(device_t dev)
 		start = IO_KBD;
 		count++;
 	}
-	if (count > 1)	/* adjust the count and/or start port */
+	if (count > 1) /* adjust the count and/or start port */
 		bus_set_resource(dev, SYS_RES_IOPORT, rid, start, 1);
 	port0 = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid, RF_ACTIVE);
 	if (port0 == NULL)
@@ -140,7 +139,7 @@ atkbdc_isa_probe(device_t dev)
 	rid = 1;
 	if (bus_get_resource(dev, SYS_RES_IOPORT, rid, NULL, NULL) != 0)
 		bus_set_resource(dev, SYS_RES_IOPORT, 1,
-				 start + KBD_STATUS_PORT, 1);
+		    start + KBD_STATUS_PORT, 1);
 	port1 = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid, RF_ACTIVE);
 	if (port1 == NULL) {
 		bus_release_resource(dev, SYS_RES_IOPORT, 0, port0);
@@ -168,7 +167,8 @@ atkbdc_isa_probe(device_t dev)
 		bus_release_resource(dev, SYS_RES_IOPORT, 0, port0);
 		bus_release_resource(dev, SYS_RES_IOPORT, 1, port1);
 		if (bootverbose)
-			device_printf(dev, "AT keyboard controller not found\n");
+			device_printf(dev,
+			    "AT keyboard controller not found\n");
 		return ENXIO;
 	}
 #endif
@@ -186,10 +186,10 @@ atkbdc_isa_probe(device_t dev)
 static int
 atkbdc_isa_attach(device_t dev)
 {
-	atkbdc_softc_t	*sc;
-	int		unit;
-	int		error;
-	int		rid;
+	atkbdc_softc_t *sc;
+	int unit;
+	int error;
+	int rid;
 
 	unit = device_get_unit(dev);
 	sc = *(atkbdc_softc_t **)device_get_softc(dev);
@@ -209,12 +209,12 @@ atkbdc_isa_attach(device_t dev)
 	rid = 0;
 	sc->retry = 5000;
 	sc->port0 = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-					   RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->port0 == NULL)
 		return ENXIO;
 	rid = 1;
 	sc->port1 = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-					   RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->port1 == NULL) {
 		bus_release_resource(dev, SYS_RES_IOPORT, 0, sc->port0);
 		return ENXIO;
@@ -247,14 +247,14 @@ atkbdc_isa_attach(device_t dev)
 static device_t
 atkbdc_isa_add_child(device_t bus, u_int order, const char *name, int unit)
 {
-	atkbdc_device_t	*ivar;
-	atkbdc_softc_t	*sc;
-	device_t	child;
-	int		t;
+	atkbdc_device_t *ivar;
+	atkbdc_softc_t *sc;
+	device_t child;
+	int t;
 
 	sc = *(atkbdc_softc_t **)device_get_softc(bus);
 	ivar = malloc(sizeof(struct atkbdc_device), M_ATKBDDEV,
-		M_NOWAIT | M_ZERO);
+	    M_NOWAIT | M_ZERO);
 	if (!ivar)
 		return NULL;
 
@@ -296,20 +296,20 @@ struct resource *
 atkbdc_isa_alloc_resource(device_t dev, device_t child, int type, int *rid,
     rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
-	atkbdc_softc_t	*sc;
+	atkbdc_softc_t *sc;
 
 	sc = *(atkbdc_softc_t **)device_get_softc(dev);
 	if (type == SYS_RES_IRQ && *rid == KBDC_RID_KBD && sc->irq != NULL)
 		return (sc->irq);
-	return (bus_generic_rl_alloc_resource(dev, child, type, rid, start,
-	    end, count, flags));
+	return (bus_generic_rl_alloc_resource(dev, child, type, rid, start, end,
+	    count, flags));
 }
 
 static int
 atkbdc_isa_release_resource(device_t dev, device_t child, int type, int rid,
     struct resource *r)
 {
-	atkbdc_softc_t	*sc;
+	atkbdc_softc_t *sc;
 
 	sc = *(atkbdc_softc_t **)device_get_softc(dev);
 	if (type == SYS_RES_IRQ && rid == KBDC_RID_KBD && r == sc->irq)

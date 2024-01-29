@@ -28,23 +28,23 @@
  */
 
 #ifndef _MACHINE_TLS_H_
-#define	_MACHINE_TLS_H_
+#define _MACHINE_TLS_H_
 
 #include <sys/_tls_variant_i.h>
 
-#define	TLS_DTV_OFFSET	0x8000
-#define	TLS_TCB_ALIGN	TLS_TCB_SIZE
-#define	TLS_TP_OFFSET	0x7000
+#define TLS_DTV_OFFSET 0x8000
+#define TLS_TCB_ALIGN TLS_TCB_SIZE
+#define TLS_TP_OFFSET 0x7000
 
 static __inline void
 _tcb_set(struct tcb *tcb)
 {
 #ifdef __powerpc64__
-	__asm __volatile("mr 13,%0" ::
-	    "r" ((uint8_t *)tcb + TLS_TP_OFFSET + TLS_TCB_SIZE));
+	__asm __volatile(
+	    "mr 13,%0" ::"r"((uint8_t *)tcb + TLS_TP_OFFSET + TLS_TCB_SIZE));
 #else
-	__asm __volatile("mr 2,%0" ::
-	    "r" ((uint8_t *)tcb + TLS_TP_OFFSET + TLS_TCB_SIZE));
+	__asm __volatile(
+	    "mr 2,%0" ::"r"((uint8_t *)tcb + TLS_TP_OFFSET + TLS_TCB_SIZE));
 #endif
 }
 
@@ -54,11 +54,13 @@ _tcb_get(void)
 	struct tcb *tcb;
 
 #ifdef __powerpc64__
-	__asm __volatile("addi %0,13,%1" : "=r" (tcb) :
-	    "i" (-(TLS_TP_OFFSET + TLS_TCB_SIZE)));
+	__asm __volatile("addi %0,13,%1"
+			 : "=r"(tcb)
+			 : "i"(-(TLS_TP_OFFSET + TLS_TCB_SIZE)));
 #else
-	__asm __volatile("addi %0,2,%1" : "=r" (tcb) :
-	    "i" (-(TLS_TP_OFFSET + TLS_TCB_SIZE)));
+	__asm __volatile("addi %0,2,%1"
+			 : "=r"(tcb)
+			 : "i"(-(TLS_TP_OFFSET + TLS_TCB_SIZE)));
 #endif
 	return (tcb);
 }

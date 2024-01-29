@@ -28,18 +28,19 @@
 #ifdef LIBUSB_GLOBAL_INCLUDE_FILE
 #include LIBUSB_GLOBAL_INCLUDE_FILE
 #else
+#include <sys/queue.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/queue.h>
 #endif
 
 #include "libusb20.h"
 #include "libusb20_desc.h"
 #include "libusb20_int.h"
 
-static const uint32_t libusb20_me_encode_empty[2];	/* dummy */
+static const uint32_t libusb20_me_encode_empty[2]; /* dummy */
 
 LIBUSB20_MAKE_STRUCT_FORMAT(LIBUSB20_DEVICE_DESC);
 LIBUSB20_MAKE_STRUCT_FORMAT(LIBUSB20_ENDPOINT_DESC);
@@ -78,7 +79,7 @@ libusb20_parse_config_desc(const void *config_desc)
 
 	ptr = config_desc;
 	if (ptr[1] != LIBUSB20_DT_CONFIG) {
-		return (NULL);		/* not config descriptor */
+		return (NULL); /* not config descriptor */
 	}
 
 	/*
@@ -93,8 +94,7 @@ libusb20_parse_config_desc(const void *config_desc)
 
 	/* get "wTotalLength" and setup "pcdesc" */
 	pcdesc.ptr = LIBUSB20_ADD_BYTES(config_desc, 0);
-	pcdesc.len =
-	    ((const uint8_t *)config_desc)[2] |
+	pcdesc.len = ((const uint8_t *)config_desc)[2] |
 	    (((const uint8_t *)config_desc)[3] << 8);
 	pcdesc.type = LIBUSB20_ME_IS_RAW;
 
@@ -114,19 +114,17 @@ libusb20_parse_config_desc(const void *config_desc)
 
 	/* sanity checking */
 	if (niface >= 256) {
-		return (NULL);		/* corrupt */
+		return (NULL); /* corrupt */
 	}
 	if (nendpoint >= 256) {
-		return (NULL);		/* corrupt */
+		return (NULL); /* corrupt */
 	}
-	size = sizeof(*lub_config) +
-	    (niface * sizeof(*lub_interface)) +
-	    (nendpoint * sizeof(*lub_endpoint)) +
-	    pcdesc.len;
+	size = sizeof(*lub_config) + (niface * sizeof(*lub_interface)) +
+	    (nendpoint * sizeof(*lub_endpoint)) + pcdesc.len;
 
 	lub_config = malloc(size);
 	if (lub_config == NULL) {
-		return (NULL);		/* out of memory */
+		return (NULL); /* out of memory */
 	}
 	/* make sure memory is initialised */
 	memset(lub_config, 0, size);
@@ -174,12 +172,15 @@ libusb20_parse_config_desc(const void *config_desc)
 				last_ep = lub_endpoint;
 				last_if->num_endpoints++;
 
-				LIBUSB20_INIT(LIBUSB20_ENDPOINT_DESC, &last_ep->desc);
+				LIBUSB20_INIT(LIBUSB20_ENDPOINT_DESC,
+				    &last_ep->desc);
 
-				if (libusb20_me_decode(ptr, ptr[0], &last_ep->desc)) {
+				if (libusb20_me_decode(ptr, ptr[0],
+					&last_ep->desc)) {
 					/* ignore */
 				}
-				last_ep->extra.ptr = LIBUSB20_ADD_BYTES(ptr, ptr[0]);
+				last_ep->extra.ptr = LIBUSB20_ADD_BYTES(ptr,
+				    ptr[0]);
 				last_ep->extra.len = 0;
 				last_ep->extra.type = LIBUSB20_ME_IS_RAW;
 			} else {
@@ -207,12 +208,17 @@ libusb20_parse_config_desc(const void *config_desc)
 				/* ignore */
 			}
 
-			/* detect broken USB descriptors when USB debugging is enabled */
-			if (last_if->desc.bInterfaceNumber != (uint8_t)(niface - 1)) {
+			/* detect broken USB descriptors when USB debugging is
+			 * enabled */
+			if (last_if->desc.bInterfaceNumber !=
+			    (uint8_t)(niface - 1)) {
 				const char *str = getenv("LIBUSB_DEBUG");
-				if (str != NULL && str[0] != '\0' && str[0] != '0') {
-					printf("LIBUSB_DEBUG: bInterfaceNumber(%u) is not sequential(%u)\n",
-					    last_if->desc.bInterfaceNumber, niface - 1);
+				if (str != NULL && str[0] != '\0' &&
+				    str[0] != '0') {
+					printf(
+					    "LIBUSB_DEBUG: bInterfaceNumber(%u) is not sequential(%u)\n",
+					    last_if->desc.bInterfaceNumber,
+					    niface - 1);
 				}
 			}
 			last_if->extra.ptr = LIBUSB20_ADD_BYTES(ptr, ptr[0]);
@@ -271,18 +277,18 @@ libusb20_desc_foreach(const struct libusb20_me_struct *pdesc,
 
 	/* check that the next USB descriptor is within the range */
 	if ((psubdesc < start) || (psubdesc >= end))
-		return (NULL);		/* out of range, or EOD */
+		return (NULL); /* out of range, or EOD */
 
 	/* check start of the second next USB descriptor, if any */
 	desc_next = psubdesc + psubdesc[0];
 	if ((desc_next < start) || (desc_next > end))
-		return (NULL);		/* out of range */
+		return (NULL); /* out of range */
 
 	/* check minimum descriptor length */
 	if (psubdesc[0] < 3)
-		return (NULL);		/* too short descriptor */
+		return (NULL); /* too short descriptor */
 
-	return (psubdesc);		/* return start of next descriptor */
+	return (psubdesc); /* return start of next descriptor */
 }
 
 /*------------------------------------------------------------------------*
@@ -321,13 +327,13 @@ libusb20_me_get_2(const struct libusb20_me_struct *ie, uint16_t offset)
 uint16_t
 libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 {
-	const uint8_t *pf;		/* pointer to format data */
-	uint8_t *buf;			/* pointer to output buffer */
+	const uint8_t *pf; /* pointer to format data */
+	uint8_t *buf;	   /* pointer to output buffer */
 
-	uint32_t pd_offset;		/* decoded structure offset */
-	uint16_t len_old;		/* old length */
-	uint16_t pd_count;		/* decoded element count */
-	uint8_t me;			/* message element */
+	uint32_t pd_offset; /* decoded structure offset */
+	uint16_t len_old;   /* old length */
+	uint16_t pd_count;  /* decoded element count */
+	uint8_t me;	    /* message element */
 
 	/* initialise */
 
@@ -353,11 +359,12 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 			while (pd_count--) {
 				uint8_t temp;
 
-				if (len < 1)	/* overflow */
+				if (len < 1) /* overflow */
 					goto done;
 				if (buf) {
-					temp = *((const uint8_t *)
-					    LIBUSB20_ADD_BYTES(pd, pd_offset));
+					temp = *(
+					    (const uint8_t *)LIBUSB20_ADD_BYTES(
+						pd, pd_offset));
 					buf[0] = temp;
 					buf += 1;
 				}
@@ -367,16 +374,17 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 			break;
 
 		case LIBUSB20_ME_INT16:
-			pd_offset = -((-pd_offset) & ~1);	/* align */
+			pd_offset = -((-pd_offset) & ~1); /* align */
 			while (pd_count--) {
 				uint16_t temp;
 
-				if (len < 2)	/* overflow */
+				if (len < 2) /* overflow */
 					goto done;
 
 				if (buf) {
 					temp = *((const uint16_t *)
-					    LIBUSB20_ADD_BYTES(pd, pd_offset));
+						LIBUSB20_ADD_BYTES(pd,
+						    pd_offset));
 					buf[1] = (temp >> 8) & 0xFF;
 					buf[0] = temp & 0xFF;
 					buf += 2;
@@ -387,15 +395,16 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 			break;
 
 		case LIBUSB20_ME_INT32:
-			pd_offset = -((-pd_offset) & ~3);	/* align */
+			pd_offset = -((-pd_offset) & ~3); /* align */
 			while (pd_count--) {
 				uint32_t temp;
 
-				if (len < 4)	/* overflow */
+				if (len < 4) /* overflow */
 					goto done;
 				if (buf) {
 					temp = *((const uint32_t *)
-					    LIBUSB20_ADD_BYTES(pd, pd_offset));
+						LIBUSB20_ADD_BYTES(pd,
+						    pd_offset));
 					buf[3] = (temp >> 24) & 0xFF;
 					buf[2] = (temp >> 16) & 0xFF;
 					buf[1] = (temp >> 8) & 0xFF;
@@ -408,16 +417,17 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 			break;
 
 		case LIBUSB20_ME_INT64:
-			pd_offset = -((-pd_offset) & ~7);	/* align */
+			pd_offset = -((-pd_offset) & ~7); /* align */
 			while (pd_count--) {
 				uint64_t temp;
 
-				if (len < 8)	/* overflow */
+				if (len < 8) /* overflow */
 					goto done;
 				if (buf) {
 
 					temp = *((const uint64_t *)
-					    LIBUSB20_ADD_BYTES(pd, pd_offset));
+						LIBUSB20_ADD_BYTES(pd,
+						    pd_offset));
 					buf[7] = (temp >> 56) & 0xFF;
 					buf[6] = (temp >> 48) & 0xFF;
 					buf[5] = (temp >> 40) & 0xFF;
@@ -435,7 +445,7 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 
 		case LIBUSB20_ME_STRUCT:
 			pd_offset = -((-pd_offset) &
-			    ~(LIBUSB20_ME_STRUCT_ALIGN - 1));	/* align */
+			    ~(LIBUSB20_ME_STRUCT_ALIGN - 1)); /* align */
 			while (pd_count--) {
 				void *src_ptr;
 				uint16_t src_len;
@@ -460,12 +470,14 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 						ps->len = 0xFFFF;
 					}
 					src_len = libusb20_me_get_1(pd, 0);
-					src_ptr = LIBUSB20_ADD_BYTES(ps->ptr, 1);
+					src_ptr = LIBUSB20_ADD_BYTES(ps->ptr,
+					    1);
 					if (src_len == 0xFF) {
 						/* length is escaped */
-						src_len = libusb20_me_get_2(pd, 1);
-						src_ptr =
-						    LIBUSB20_ADD_BYTES(ps->ptr, 3);
+						src_len = libusb20_me_get_2(pd,
+						    1);
+						src_ptr = LIBUSB20_ADD_BYTES(
+						    ps->ptr, 3);
 					}
 					break;
 
@@ -476,7 +488,7 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 					src_ptr = NULL;
 					break;
 
-				default:	/* empty structure */
+				default: /* empty structure */
 					src_len = 0;
 					src_ptr = NULL;
 					break;
@@ -513,14 +525,15 @@ libusb20_me_encode(void *ptr, uint16_t len, const void *pd)
 				/* check for buffer and non-zero length */
 
 				if (buf && src_len) {
-					if (ps->type == LIBUSB20_ME_IS_DECODED) {
+					if (ps->type ==
+					    LIBUSB20_ME_IS_DECODED) {
 						/*
 						 * Repeat encode
 						 * procedure - we have
 						 * room for the
 						 * complete structure:
 						 */
-						(void) libusb20_me_encode(buf,
+						(void)libusb20_me_encode(buf,
 						    0xFFFF - 3, ps->ptr);
 					} else {
 						bcopy(src_ptr, buf, src_len);
@@ -553,13 +566,13 @@ done:
 uint16_t
 libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 {
-	const uint8_t *pf;		/* pointer to format data */
-	const uint8_t *buf;		/* pointer to input buffer */
+	const uint8_t *pf;  /* pointer to format data */
+	const uint8_t *buf; /* pointer to input buffer */
 
-	uint32_t pd_offset;		/* decoded structure offset */
-	uint16_t len_old;		/* old length */
-	uint16_t pd_count;		/* decoded element count */
-	uint8_t me;			/* message element */
+	uint32_t pd_offset; /* decoded structure offset */
+	uint16_t len_old;   /* old length */
+	uint16_t pd_count;  /* decoded element count */
+	uint8_t me;	    /* message element */
 
 	/* initialise */
 
@@ -600,7 +613,7 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 			break;
 
 		case LIBUSB20_ME_INT16:
-			pd_offset = -((-pd_offset) & ~1);	/* align */
+			pd_offset = -((-pd_offset) & ~1); /* align */
 			while (pd_count--) {
 				uint16_t temp;
 
@@ -620,7 +633,7 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 			break;
 
 		case LIBUSB20_ME_INT32:
-			pd_offset = -((-pd_offset) & ~3);	/* align */
+			pd_offset = -((-pd_offset) & ~3); /* align */
 			while (pd_count--) {
 				uint32_t temp;
 
@@ -643,7 +656,7 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 			break;
 
 		case LIBUSB20_ME_INT64:
-			pd_offset = -((-pd_offset) & ~7);	/* align */
+			pd_offset = -((-pd_offset) & ~7); /* align */
 			while (pd_count--) {
 				uint64_t temp;
 
@@ -671,7 +684,7 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 
 		case LIBUSB20_ME_STRUCT:
 			pd_offset = -((-pd_offset) &
-			    ~(LIBUSB20_ME_STRUCT_ALIGN - 1));	/* align */
+			    ~(LIBUSB20_ME_STRUCT_ALIGN - 1)); /* align */
 			while (pd_count--) {
 				uint16_t temp;
 				struct libusb20_me_struct *ps;
@@ -739,7 +752,8 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 						 * be valid:
 						 */
 						ps->ptr = LIBUSB20_ADD_BYTES(
-						    libusb20_me_encode_empty, 0);
+						    libusb20_me_encode_empty,
+						    0);
 						ps->len = 1;
 					} else {
 						ps->len += temp;
@@ -757,13 +771,14 @@ libusb20_me_decode(const void *ptr, uint16_t len, void *pd)
 					/* check for non-zero length */
 					if (temp != 0) {
 						/* update type */
-						ps->type = LIBUSB20_ME_IS_DECODED;
+						ps->type =
+						    LIBUSB20_ME_IS_DECODED;
 						ps->len = 0;
 						/*
 						 * Recursivly decode
 						 * the next structure
 						 */
-						(void) libusb20_me_decode(buf,
+						(void)libusb20_me_decode(buf,
 						    temp, ps->ptr);
 					} else {
 						/* update type */

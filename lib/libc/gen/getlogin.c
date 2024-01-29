@@ -30,18 +30,19 @@
  */
 
 #include <sys/param.h>
+
 #include <errno.h>
+#include <pthread.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "namespace.h"
-#include <pthread.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-extern int		_getlogin(char *, int);
+extern int _getlogin(char *, int);
 
 char *
 getlogin(void)
@@ -57,7 +58,7 @@ int
 getlogin_r(char *logname, size_t namelen)
 {
 	char tmpname[MAXLOGNAME];
-	int	len;
+	int len;
 
 	if (namelen < 1)
 		return (ERANGE);
@@ -80,4 +81,4 @@ __getlogin_r_fbsd12(char *logname, int namelen)
 		return (ERANGE);
 	return (getlogin_r(logname, namelen));
 }
-__sym_compat(getlogin_r, __getlogin_r_fbsd12, FBSD_1.0);
+__sym_compat(getlogin_r, __getlogin_r_fbsd12, FBSD_1 .0);

@@ -51,8 +51,10 @@ static int ice_ift_txd_encap(void *arg, if_pkt_info_t pi);
 static int ice_ift_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 static void ice_ift_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
 static int ice_ift_txd_credits_update(void *arg, uint16_t txqid, bool clear);
-static int ice_ift_rxd_available(void *arg, uint16_t rxqid, qidx_t pidx, qidx_t budget);
-static void ice_ift_rxd_flush(void *arg, uint16_t rxqid, uint8_t flidx, qidx_t pidx);
+static int ice_ift_rxd_available(void *arg, uint16_t rxqid, qidx_t pidx,
+    qidx_t budget);
+static void ice_ift_rxd_flush(void *arg, uint16_t rxqid, uint8_t flidx,
+    qidx_t pidx);
 static void ice_ift_rxd_refill(void *arg, if_rxd_update_t iru);
 static qidx_t ice_ift_queue_select(void *arg, struct mbuf *m, if_pkt_info_t pi);
 
@@ -128,26 +130,25 @@ ice_ift_txd_encap(void *arg, if_pkt_info_t pi)
 		seglen = segs[j].ds_len;
 
 		txd->buf_addr = htole64(segs[j].ds_addr);
-		txd->cmd_type_offset_bsz =
-		    htole64(ICE_TX_DESC_DTYPE_DATA
-		    | ((u64)cmd  << ICE_TXD_QW1_CMD_S)
-		    | ((u64)off << ICE_TXD_QW1_OFFSET_S)
-		    | ((u64)seglen  << ICE_TXD_QW1_TX_BUF_SZ_S)
-		    | ((u64)htole16(pi->ipi_vtag) << ICE_TXD_QW1_L2TAG1_S));
+		txd->cmd_type_offset_bsz = htole64(ICE_TX_DESC_DTYPE_DATA |
+		    ((u64)cmd << ICE_TXD_QW1_CMD_S) |
+		    ((u64)off << ICE_TXD_QW1_OFFSET_S) |
+		    ((u64)seglen << ICE_TXD_QW1_TX_BUF_SZ_S) |
+		    ((u64)htole16(pi->ipi_vtag) << ICE_TXD_QW1_L2TAG1_S));
 
 		txq->stats.tx_bytes += seglen;
 		pidx_last = i;
-		i = (i+1) & mask;
+		i = (i + 1) & mask;
 	}
 
 	/* Set the last descriptor for report */
 #define ICE_TXD_CMD (ICE_TX_DESC_CMD_EOP | ICE_TX_DESC_CMD_RS)
-	txd->cmd_type_offset_bsz |=
-	    htole64(((u64)ICE_TXD_CMD << ICE_TXD_QW1_CMD_S));
+	txd->cmd_type_offset_bsz |= htole64(
+	    ((u64)ICE_TXD_CMD << ICE_TXD_QW1_CMD_S));
 
 	/* Add to report status array */
 	txq->tx_rsq[txq->tx_rs_pidx] = pidx_last;
-	txq->tx_rs_pidx = (txq->tx_rs_pidx+1) & mask;
+	txq->tx_rs_pidx = (txq->tx_rs_pidx + 1) & mask;
 	MPASS(txq->tx_rs_pidx != txq->tx_rs_cidx);
 
 	pi->ipi_new_pidx = i;
@@ -220,7 +221,7 @@ ice_ift_txd_credits_update(void *arg, uint16_t txqid, bool clear)
 		MPASS(delta > 0);
 		processed += delta;
 		prev = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
 		if (rs_cidx == txq->tx_rs_pidx)
 			break;
 		cur = txq->tx_rsq[rs_cidx];
@@ -299,8 +300,7 @@ ice_ift_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 
 		cur = &rxq->rx_base[cidx];
 		status0 = le16toh(cur->wb.status_error0);
-		plen = le16toh(cur->wb.pkt_len) &
-			ICE_RX_FLX_DESC_PKT_LEN_M;
+		plen = le16toh(cur->wb.pkt_len) & ICE_RX_FLX_DESC_PKT_LEN_M;
 
 		/* we should never be called without a valid descriptor */
 		MPASS((status0 & BIT(ICE_RX_FLEX_DESC_STATUS0_DD_S)) != 0);
@@ -339,11 +339,10 @@ ice_ift_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 	rxq->stats.rx_bytes += ri->iri_len;
 
 	/* Get packet type and set checksum flags */
-	ptype = le16toh(cur->wb.ptype_flex_flags0) &
-		ICE_RX_FLEX_DESC_PTYPE_M;
+	ptype = le16toh(cur->wb.ptype_flex_flags0) & ICE_RX_FLEX_DESC_PTYPE_M;
 	if ((scctx->isc_capenable & IFCAP_RXCSUM) != 0)
-		ice_rx_checksum(rxq, &ri->iri_csum_flags,
-				&ri->iri_csum_data, status0, ptype);
+		ice_rx_checksum(rxq, &ri->iri_csum_flags, &ri->iri_csum_data,
+		    status0, ptype);
 
 	/* Set remaining iflib RX descriptor info fields */
 	ri->iri_flowid = le32toh(RX_FLEX_NIC(&cur->wb, rss_hash));
@@ -397,7 +396,7 @@ ice_ift_rxd_refill(void *arg, if_rxd_update_t iru)
  */
 static void
 ice_ift_rxd_flush(void *arg, uint16_t rxqid, uint8_t flidx __unused,
-		  qidx_t pidx)
+    qidx_t pidx)
 {
 	struct ice_softc *sc = (struct ice_softc *)arg;
 	struct ice_rx_queue *rxq = &sc->pf_vsi.rx_queues[rxqid];
@@ -443,10 +442,10 @@ ice_ift_queue_select(void *arg, struct mbuf *m, if_pkt_info_t pi)
 		tc = local_dcbx_cfg->dscp_map[dscp_val];
 	} else
 #endif /* defined(INET) || defined(INET6) */
-	if (m->m_flags & M_VLANTAG) { /* ICE_QOS_MODE_VLAN */
-		up = EVL_PRIOFTAG(m->m_pkthdr.ether_vtag);
-		tc = local_dcbx_cfg->etscfg.prio_table[up];
-	}
+		if (m->m_flags & M_VLANTAG) { /* ICE_QOS_MODE_VLAN */
+			up = EVL_PRIOFTAG(m->m_pkthdr.ether_vtag);
+			tc = local_dcbx_cfg->etscfg.prio_table[up];
+		}
 
 	tc_base_queue = vsi->tc_info[tc].qoffset;
 	tc_qcount = vsi->tc_info[tc].qcount_tx;

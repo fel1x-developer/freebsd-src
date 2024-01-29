@@ -41,7 +41,7 @@
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt.h>
 
-#define CAM_PATH_ANY (uint32_t)-1
+#define CAM_PATH_ANY (uint32_t) - 1
 
 static MALLOC_DEFINE(M_CAMSIM, "CAM SIM", "CAM SIM buffers");
 
@@ -51,7 +51,7 @@ MTX_SYSINIT(cam_sim_free_init, &cam_sim_free_mtx, "CAM SIM free lock", MTX_DEF);
 struct cam_devq *
 cam_simq_alloc(uint32_t max_sim_transactions)
 {
-	return (cam_devq_alloc(/*size*/0, max_sim_transactions));
+	return (cam_devq_alloc(/*size*/ 0, max_sim_transactions));
 }
 
 void
@@ -59,8 +59,6 @@ cam_simq_free(struct cam_devq *devq)
 {
 	cam_devq_free(devq);
 }
-
-
 
 /**
  * @brief allocate a new sim and fill in the details
@@ -98,9 +96,9 @@ cam_simq_free(struct cam_devq *devq)
  */
 struct cam_sim *
 cam_sim_alloc(sim_action_func sim_action, sim_poll_func sim_poll,
-	      const char *sim_name, void *softc, uint32_t unit,
-	      struct mtx *mtx, int max_dev_transactions,
-	      int max_tagged_dev_transactions, struct cam_devq *queue)
+    const char *sim_name, void *softc, uint32_t unit, struct mtx *mtx,
+    int max_dev_transactions, int max_tagged_dev_transactions,
+    struct cam_devq *queue)
 {
 	struct cam_sim *sim;
 
@@ -114,7 +112,7 @@ cam_sim_alloc(sim_action_func sim_action, sim_poll_func sim_poll,
 	sim->softc = softc;
 	sim->path_id = CAM_PATH_ANY;
 	sim->unit_number = unit;
-	sim->bus_id = 0;	/* set in xpt_bus_register */
+	sim->bus_id = 0; /* set in xpt_bus_register */
 	sim->max_tagged_dev_openings = max_tagged_dev_transactions;
 	sim->max_dev_openings = max_dev_transactions;
 	sim->flags = 0;
@@ -157,7 +155,7 @@ cam_sim_free(struct cam_sim *sim, int free_devq)
 		KASSERT(error == 0, ("invalid error value for msleep(9)"));
 	}
 	KASSERT(sim->refcount == 0, ("sim->refcount == 0"));
-	if (mtx == &cam_sim_free_mtx)	/* sim->mtx == NULL */
+	if (mtx == &cam_sim_free_mtx) /* sim->mtx == NULL */
 		mtx_unlock(mtx);
 
 	if (free_devq)
@@ -175,7 +173,7 @@ cam_sim_release(struct cam_sim *sim)
 	else if (!mtx_owned(sim->mtx))
 		mtx = sim->mtx;
 	else
-		mtx = NULL;	/* We hold the lock. */
+		mtx = NULL; /* We hold the lock. */
 	if (mtx)
 		mtx_lock(mtx);
 	KASSERT(sim->refcount >= 1, ("sim->refcount >= 1"));
@@ -196,7 +194,7 @@ cam_sim_hold(struct cam_sim *sim)
 	else if (!mtx_owned(sim->mtx))
 		mtx = sim->mtx;
 	else
-		mtx = NULL;	/* We hold the lock. */
+		mtx = NULL; /* We hold the lock. */
 	if (mtx)
 		mtx_lock(mtx);
 	KASSERT(sim->refcount >= 1, ("sim->refcount >= 1"));

@@ -6,31 +6,31 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*
- * Copyright (c) 1986-1991 by Sun Microsystems Inc. 
+ * Copyright (c) 1986-1991 by Sun Microsystems Inc.
  */
 
 /*
@@ -45,19 +45,20 @@
  * for the given prognum and procnum.
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/types.h>
-#include <rpc/rpc.h>
+
+#include <err.h>
 #include <rpc/nettype.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include "un-namespace.h"
 
-#include "rpc_com.h"
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "rpc_com.h"
+#include "un-namespace.h"
 
 static void universal(struct svc_req *, SVCXPRT *);
 
@@ -107,20 +108,19 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 	int done = FALSE;
 	void *handle;
 
-
 	if (procnum == NULLPROC) {
 		warnx("%s can't reassign procedure number %u", rpc_reg_msg,
-			NULLPROC);
+		    NULLPROC);
 		return (-1);
 	}
 
 	if (nettype == NULL)
-		nettype = "netpath";		/* The default behavior */
+		nettype = "netpath"; /* The default behavior */
 	if ((handle = __rpc_setconf(nettype)) == NULL) {
 		warnx(rpc_reg_err, rpc_reg_msg, __reg_err1);
 		return (-1);
 	}
-/* VARIABLES PROTECTED BY proglst_lock: proglst */
+	/* VARIABLES PROTECTED BY proglst_lock: proglst */
 	mutex_lock(&proglst_lock);
 	while ((nconf = __rpc_getconf(handle)) != NULL) {
 		struct proglst *pl;
@@ -162,7 +162,7 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 				continue;
 			}
 			if (((xdrbuf = malloc((unsigned)recvsz)) == NULL) ||
-				((netid = strdup(nconf->nc_netid)) == NULL)) {
+			    ((netid = strdup(nconf->nc_netid)) == NULL)) {
 				warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
 				free(xdrbuf);
 				free(netid);
@@ -177,11 +177,11 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 		 */
 		for (pl = proglst; pl; pl = pl->p_nxt)
 			if ((pl->p_prognum == prognum) &&
-				(pl->p_versnum == versnum) &&
-				(strcmp(pl->p_netid, netid) == 0))
+			    (pl->p_versnum == versnum) &&
+			    (strcmp(pl->p_netid, netid) == 0))
 				break;
 		if (pl == NULL) { /* Not yet */
-			(void) rpcb_unset(prognum, versnum, nconf);
+			(void)rpcb_unset(prognum, versnum, nconf);
 		} else {
 			/* so that svc_reg does not call rpcb_set() */
 			nconf = NULL;
@@ -189,8 +189,8 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 
 		if (!svc_reg(svcxprt, prognum, versnum, universal, nconf)) {
 			warnx("%s couldn't register prog %u vers %u for %s",
-				rpc_reg_msg, (unsigned)prognum,
-				(unsigned)versnum, netid);
+			    rpc_reg_msg, (unsigned)prognum, (unsigned)versnum,
+			    netid);
 			if (madenow) {
 				SVC_DESTROY(svcxprt);
 				free(xdrbuf);
@@ -199,7 +199,7 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 			continue;
 		}
 
-		pl = malloc(sizeof (struct proglst));
+		pl = malloc(sizeof(struct proglst));
 		if (pl == NULL) {
 			warnx(rpc_reg_err, rpc_reg_msg, __no_mem_str);
 			if (madenow) {
@@ -227,8 +227,8 @@ rpc_reg(rpcprog_t prognum, rpcvers_t versnum, rpcproc_t procnum,
 	mutex_unlock(&proglst_lock);
 
 	if (done == FALSE) {
-		warnx("%s can't find suitable transport for %s",
-			rpc_reg_msg, nettype);
+		warnx("%s can't find suitable transport for %s", rpc_reg_msg,
+		    nettype);
 		return (-1);
 	}
 	return (0);
@@ -253,8 +253,7 @@ universal(struct svc_req *rqstp, SVCXPRT *transp)
 	 * enforce "procnum 0 is echo" convention
 	 */
 	if (rqstp->rq_proc == NULLPROC) {
-		if (svc_sendreply(transp, (xdrproc_t) xdr_void, NULL) ==
-		    FALSE) {
+		if (svc_sendreply(transp, (xdrproc_t)xdr_void, NULL) == FALSE) {
 			warnx("svc_sendreply failed");
 		}
 		return;
@@ -265,12 +264,12 @@ universal(struct svc_req *rqstp, SVCXPRT *transp)
 	mutex_lock(&proglst_lock);
 	for (pl = proglst; pl; pl = pl->p_nxt)
 		if (pl->p_prognum == prog && pl->p_procnum == proc &&
-			pl->p_versnum == vers &&
-			(strcmp(pl->p_netid, transp->xp_netid) == 0)) {
+		    pl->p_versnum == vers &&
+		    (strcmp(pl->p_netid, transp->xp_netid) == 0)) {
 			/* decode arguments into a CLEAN buffer */
 			xdrbuf = pl->p_xdrbuf;
 			/* Zero the arguments: reqd ! */
-			(void) memset(xdrbuf, 0, (size_t)pl->p_recvsz);
+			(void)memset(xdrbuf, 0, (size_t)pl->p_recvsz);
 			/*
 			 * Assuming that sizeof (xdrbuf) would be enough
 			 * for the arguments; if not then the program
@@ -283,15 +282,15 @@ universal(struct svc_req *rqstp, SVCXPRT *transp)
 			}
 			outdata = (*(pl->p_progname))(xdrbuf);
 			if (outdata == NULL &&
-				pl->p_outproc != (xdrproc_t) xdr_void){
+			    pl->p_outproc != (xdrproc_t)xdr_void) {
 				/* there was an error */
 				mutex_unlock(&proglst_lock);
 				return;
 			}
 			if (!svc_sendreply(transp, pl->p_outproc, outdata)) {
 				warnx(
-			"rpc: rpc_reg trouble replying to prog %u vers %u",
-				(unsigned)prog, (unsigned)vers);
+				    "rpc: rpc_reg trouble replying to prog %u vers %u",
+				    (unsigned)prog, (unsigned)vers);
 				mutex_unlock(&proglst_lock);
 				return;
 			}
@@ -302,7 +301,7 @@ universal(struct svc_req *rqstp, SVCXPRT *transp)
 		}
 	mutex_unlock(&proglst_lock);
 	/* This should never happen */
-	warnx("rpc: rpc_reg: never registered prog %u vers %u",
-		(unsigned)prog, (unsigned)vers);
+	warnx("rpc: rpc_reg: never registered prog %u vers %u", (unsigned)prog,
+	    (unsigned)vers);
 	return;
 }

@@ -27,8 +27,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/eventhandler.h>
 #include <sys/conf.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/proc.h>
 #include <sys/sx.h>
@@ -37,17 +37,17 @@
 #include <fs/devfs/devfs.h>
 #include <fs/devfs/devfs_int.h>
 
-static	d_open_t	cttyopen;
+static d_open_t cttyopen;
 
 static struct cdevsw ctty_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	cttyopen,
-	.d_name =	"ctty",
+	.d_version = D_VERSION,
+	.d_open = cttyopen,
+	.d_name = "ctty",
 };
 
 static struct cdev *ctty;
 
-static	int
+static int
 cttyopen(struct cdev *dev, int flag, int mode, struct thread *td)
 {
 
@@ -91,4 +91,4 @@ ctty_drvinit(void *unused)
 	    GID_WHEEL, 0666, "ctty");
 }
 
-SYSINIT(cttydev,SI_SUB_DRIVERS,SI_ORDER_MIDDLE,ctty_drvinit,NULL);
+SYSINIT(cttydev, SI_SUB_DRIVERS, SI_ORDER_MIDDLE, ctty_drvinit, NULL);

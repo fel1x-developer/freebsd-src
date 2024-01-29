@@ -59,51 +59,52 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *  
+ *
  *
  * Copyright (c) 1990, 1991 Carnegie Mellon University
  * All Rights Reserved.
  *
  * Author: David Golub
- * 
+ *
  * Permission to use, copy, modify and distribute this software and its
  * documentation is hereby granted, provided that both the copyright
  * notice and this permission notice appear in all copies of the
  * software, derivative works or modified versions, and any portions
  * thereof, and that both notices appear in supporting documentation.
- * 
+ *
  * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
  * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
  * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
- * 
+ *
  * Carnegie Mellon requests users of this software to return to
- * 
+ *
  *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
  *  School of Computer Science
  *  Carnegie Mellon University
  *  Pittsburgh PA 15213-3890
- * 
+ *
  * any improvements or extensions that they make and grant Carnegie the
  * rights to redistribute these changes.
  */
 
 #include <sys/param.h>
 #include <sys/time.h>
+
 #include "stand.h"
 #include "string.h"
 
-static int	ext2fs_open(const char *path, struct open_file *f);
-static int	ext2fs_close(struct open_file *f);
-static int	ext2fs_read(struct open_file *f, void *buf,
-			 size_t size, size_t *resid);
-static off_t	ext2fs_seek(struct open_file *f, off_t offset, int where);
-static int	ext2fs_stat(struct open_file *f, struct stat *sb);
-static int	ext2fs_readdir(struct open_file *f, struct dirent *d);
+static int ext2fs_open(const char *path, struct open_file *f);
+static int ext2fs_close(struct open_file *f);
+static int ext2fs_read(struct open_file *f, void *buf, size_t size,
+    size_t *resid);
+static off_t ext2fs_seek(struct open_file *f, off_t offset, int where);
+static int ext2fs_stat(struct open_file *f, struct stat *sb);
+static int ext2fs_readdir(struct open_file *f, struct dirent *d);
 
-static int dtmap[] = { DT_UNKNOWN, DT_REG, DT_DIR, DT_CHR,
-			 DT_BLK, DT_FIFO, DT_SOCK, DT_LNK };
-#define EXTFTODT(x)	(x) > sizeof(dtmap) / sizeof(dtmap[0]) ? \
-			DT_UNKNOWN : dtmap[x]
+static int dtmap[] = { DT_UNKNOWN, DT_REG, DT_DIR, DT_CHR, DT_BLK, DT_FIFO,
+	DT_SOCK, DT_LNK };
+#define EXTFTODT(x) \
+	(x) > sizeof(dtmap) / sizeof(dtmap[0]) ? DT_UNKNOWN : dtmap[x]
 
 struct fs_ops ext2fs_fsops = {
 	.fs_name = "ext2fs",
@@ -116,25 +117,25 @@ struct fs_ops ext2fs_fsops = {
 	.fo_readdir = ext2fs_readdir,
 };
 
-#define	EXT2_SBSIZE	1024
-#define	EXT2_SBLOCK	(1024 / DEV_BSIZE)	/* block offset of superblock */
-#define EXT2_MAGIC	0xef53
-#define EXT2_ROOTINO	2
+#define EXT2_SBSIZE 1024
+#define EXT2_SBLOCK (1024 / DEV_BSIZE) /* block offset of superblock */
+#define EXT2_MAGIC 0xef53
+#define EXT2_ROOTINO 2
 
-#define EXT2_REV0		0	/* original revision of ext2 */
-#define EXT2_R0_ISIZE		128	/* inode size */
-#define EXT2_R0_FIRSTINO	11	/* first inode */
+#define EXT2_REV0 0	    /* original revision of ext2 */
+#define EXT2_R0_ISIZE 128   /* inode size */
+#define EXT2_R0_FIRSTINO 11 /* first inode */
 
-#define EXT2_MINBSHIFT		10	/* minimum block shift */
-#define EXT2_MINFSHIFT		10	/* minimum frag shift */
+#define EXT2_MINBSHIFT 10 /* minimum block shift */
+#define EXT2_MINFSHIFT 10 /* minimum frag shift */
 
-#define EXT2_NDADDR		12	/* # of direct blocks */
-#define EXT2_NIADDR		3	/* # of indirect blocks */
+#define EXT2_NDADDR 12 /* # of direct blocks */
+#define EXT2_NIADDR 3  /* # of indirect blocks */
 
 /*
  * file system block to disk address
  */
-#define fsb_to_db(fs, blk)	((blk) << (fs)->fs_fsbtodb)
+#define fsb_to_db(fs, blk) ((blk) << (fs)->fs_fsbtodb)
 
 /*
  * inode to block group offset
@@ -142,187 +143,183 @@ struct fs_ops ext2fs_fsops = {
  * inode to disk address
  * inode to block offset
  */
-#define ino_to_bgo(fs, ino)	(((ino) - 1) % (fs)->fs_ipg)
-#define ino_to_bg(fs, ino)	(((ino) - 1) / (fs)->fs_ipg)
-#define ino_to_db(fs, bg, ino) \
-	fsb_to_db(fs, ((bg)[ino_to_bg(fs, ino)].bg_inotbl + \
-	    ino_to_bgo(fs, ino) / (fs)->fs_ipb))
-#define ino_to_bo(fs, ino)	(ino_to_bgo(fs, ino) % (fs)->fs_ipb)
+#define ino_to_bgo(fs, ino) (((ino)-1) % (fs)->fs_ipg)
+#define ino_to_bg(fs, ino) (((ino)-1) / (fs)->fs_ipg)
+#define ino_to_db(fs, bg, ino)                    \
+	fsb_to_db(fs,                             \
+	    ((bg)[ino_to_bg(fs, ino)].bg_inotbl + \
+		ino_to_bgo(fs, ino) / (fs)->fs_ipb))
+#define ino_to_bo(fs, ino) (ino_to_bgo(fs, ino) % (fs)->fs_ipb)
 
-#define nindir(fs) \
-	((fs)->fs_bsize / sizeof(uint32_t))
-#define lblkno(fs, loc)				/* loc / bsize */ \
-	((loc) >> (fs)->fs_bshift)
-#define smalllblktosize(fs, blk)		/* blk * bsize */ \
-	((blk) << (fs)->fs_bshift)
-#define blkoff(fs, loc)				/* loc % bsize */ \
-	((loc) & (fs)->fs_bmask)
-#define fragroundup(fs, size)			/* roundup(size, fsize) */ \
+#define nindir(fs) ((fs)->fs_bsize / sizeof(uint32_t))
+#define lblkno(fs, loc) /* loc / bsize */ ((loc) >> (fs)->fs_bshift)
+#define smalllblktosize(fs, blk) /* blk * bsize */ ((blk) << (fs)->fs_bshift)
+#define blkoff(fs, loc) /* loc % bsize */ ((loc) & (fs)->fs_bmask)
+#define fragroundup(fs, size) /* roundup(size, fsize) */ \
 	(((size) + (fs)->fs_fmask) & ~(fs)->fs_fmask)
-#define dblksize(fs, dip, lbn) \
-	(((lbn) >= EXT2_NDADDR || (dip)->di_size >= smalllblktosize(fs, (lbn) + 1)) \
-	    ? (fs)->fs_bsize \
-	    : (fragroundup(fs, blkoff(fs, (dip)->di_size))))
+#define dblksize(fs, dip, lbn)                                   \
+	(((lbn) >= EXT2_NDADDR ||                                \
+	     (dip)->di_size >= smalllblktosize(fs, (lbn) + 1)) ? \
+		(fs)->fs_bsize :                                 \
+		(fragroundup(fs, blkoff(fs, (dip)->di_size))))
 
 /*
  * superblock describing ext2fs
  */
 struct ext2fs_disk {
-	uint32_t	fd_inodes;	/* # of inodes */
-	uint32_t	fd_blocks;	/* # of blocks */
-	uint32_t	fd_resblk;	/* # of reserved blocks */
-	uint32_t	fd_freeblk;	/* # of free blocks */
-	uint32_t	fd_freeino;	/* # of free inodes */
-	uint32_t	fd_firstblk;	/* first data block */
-	uint32_t	fd_bsize;	/* block size */
-	uint32_t	fd_fsize;	/* frag size */
-	uint32_t	fd_bpg;		/* blocks per group */
-	uint32_t	fd_fpg;		/* frags per group */
-	uint32_t	fd_ipg;		/* inodes per group */
-	uint32_t	fd_mtime;	/* mount time */
-	uint32_t	fd_wtime;	/* write time */
-	uint16_t	fd_mount;	/* # of mounts */
-	int16_t		fd_maxmount;	/* max # of mounts */
-	uint16_t	fd_magic;	/* magic number */
-	uint16_t	fd_state;	/* state */
-	uint16_t	fd_eflag;	/* error flags */
-	uint16_t	fd_mnrrev;	/* minor revision */
-	uint32_t	fd_lastchk;	/* last check */
-	uint32_t	fd_chkintvl;	/* maximum check interval */
-	uint32_t	fd_os;		/* os */
-	uint32_t	fd_revision;	/* revision */
-	uint16_t	fd_uid;		/* uid for reserved blocks */
-	uint16_t	fd_gid;		/* gid for reserved blocks */
+	uint32_t fd_inodes;   /* # of inodes */
+	uint32_t fd_blocks;   /* # of blocks */
+	uint32_t fd_resblk;   /* # of reserved blocks */
+	uint32_t fd_freeblk;  /* # of free blocks */
+	uint32_t fd_freeino;  /* # of free inodes */
+	uint32_t fd_firstblk; /* first data block */
+	uint32_t fd_bsize;    /* block size */
+	uint32_t fd_fsize;    /* frag size */
+	uint32_t fd_bpg;      /* blocks per group */
+	uint32_t fd_fpg;      /* frags per group */
+	uint32_t fd_ipg;      /* inodes per group */
+	uint32_t fd_mtime;    /* mount time */
+	uint32_t fd_wtime;    /* write time */
+	uint16_t fd_mount;    /* # of mounts */
+	int16_t fd_maxmount;  /* max # of mounts */
+	uint16_t fd_magic;    /* magic number */
+	uint16_t fd_state;    /* state */
+	uint16_t fd_eflag;    /* error flags */
+	uint16_t fd_mnrrev;   /* minor revision */
+	uint32_t fd_lastchk;  /* last check */
+	uint32_t fd_chkintvl; /* maximum check interval */
+	uint32_t fd_os;	      /* os */
+	uint32_t fd_revision; /* revision */
+	uint16_t fd_uid;      /* uid for reserved blocks */
+	uint16_t fd_gid;      /* gid for reserved blocks */
 
-	uint32_t	fd_firstino;	/* first non-reserved inode */
-	uint16_t	fd_isize;	/* inode size */
-	uint16_t	fd_nblkgrp;	/* block group # of superblock */
-	uint32_t	fd_fcompat;	/* compatible features */
-	uint32_t	fd_fincompat;	/* incompatible features */
-	uint32_t	fd_frocompat;	/* read-only compatibilties */
-	uint8_t		fd_uuid[16];	/* volume uuid */
-	char 		fd_volname[16];	/* volume name */
-	char 		fd_fsmnt[64];	/* name last mounted on */
-	uint32_t	fd_bitmap;	/* compression bitmap */
+	uint32_t fd_firstino;  /* first non-reserved inode */
+	uint16_t fd_isize;     /* inode size */
+	uint16_t fd_nblkgrp;   /* block group # of superblock */
+	uint32_t fd_fcompat;   /* compatible features */
+	uint32_t fd_fincompat; /* incompatible features */
+	uint32_t fd_frocompat; /* read-only compatibilties */
+	uint8_t fd_uuid[16];   /* volume uuid */
+	char fd_volname[16];   /* volume name */
+	char fd_fsmnt[64];     /* name last mounted on */
+	uint32_t fd_bitmap;    /* compression bitmap */
 
-	uint8_t		fd_nblkpa;	/* # of blocks to preallocate */	
-	uint8_t		fd_ndblkpa;	/* # of dir blocks to preallocate */
+	uint8_t fd_nblkpa;  /* # of blocks to preallocate */
+	uint8_t fd_ndblkpa; /* # of dir blocks to preallocate */
 };
 
 struct ext2fs_core {
-	int		fc_bsize;	/* block size */
-	int		fc_bshift;	/* block shift amount */
-	int		fc_bmask;	/* block mask */
-	int		fc_fsize;	/* frag size */
-	int		fc_fshift;	/* frag shift amount */
-	int		fc_fmask;	/* frag mask */
-	int		fc_isize;	/* inode size */
-	int		fc_imask;	/* inode mask */
-	int		fc_firstino;	/* first non-reserved inode */
-	int		fc_ipb;		/* inodes per block */
-	int		fc_fsbtodb;	/* fsb to ds shift */
+	int fc_bsize;	 /* block size */
+	int fc_bshift;	 /* block shift amount */
+	int fc_bmask;	 /* block mask */
+	int fc_fsize;	 /* frag size */
+	int fc_fshift;	 /* frag shift amount */
+	int fc_fmask;	 /* frag mask */
+	int fc_isize;	 /* inode size */
+	int fc_imask;	 /* inode mask */
+	int fc_firstino; /* first non-reserved inode */
+	int fc_ipb;	 /* inodes per block */
+	int fc_fsbtodb;	 /* fsb to ds shift */
 };
 
 struct ext2fs {
-	struct		ext2fs_disk fs_fd;
-	char		fs_pad[EXT2_SBSIZE - sizeof(struct ext2fs_disk)];
-	struct		ext2fs_core fs_fc;
+	struct ext2fs_disk fs_fd;
+	char fs_pad[EXT2_SBSIZE - sizeof(struct ext2fs_disk)];
+	struct ext2fs_core fs_fc;
 
-#define fs_magic	fs_fd.fd_magic
-#define fs_revision	fs_fd.fd_revision
-#define fs_blocks	fs_fd.fd_blocks
-#define fs_firstblk	fs_fd.fd_firstblk
-#define fs_bpg		fs_fd.fd_bpg
-#define fs_ipg		fs_fd.fd_ipg
-	    
-#define fs_bsize	fs_fc.fc_bsize
-#define fs_bshift	fs_fc.fc_bshift
-#define fs_bmask	fs_fc.fc_bmask
-#define fs_fsize	fs_fc.fc_fsize
-#define fs_fshift	fs_fc.fc_fshift
-#define fs_fmask	fs_fc.fc_fmask
-#define fs_isize	fs_fc.fc_isize
-#define fs_imask	fs_fc.fc_imask
-#define fs_firstino	fs_fc.fc_firstino
-#define fs_ipb		fs_fc.fc_ipb
-#define fs_fsbtodb	fs_fc.fc_fsbtodb
+#define fs_magic fs_fd.fd_magic
+#define fs_revision fs_fd.fd_revision
+#define fs_blocks fs_fd.fd_blocks
+#define fs_firstblk fs_fd.fd_firstblk
+#define fs_bpg fs_fd.fd_bpg
+#define fs_ipg fs_fd.fd_ipg
+
+#define fs_bsize fs_fc.fc_bsize
+#define fs_bshift fs_fc.fc_bshift
+#define fs_bmask fs_fc.fc_bmask
+#define fs_fsize fs_fc.fc_fsize
+#define fs_fshift fs_fc.fc_fshift
+#define fs_fmask fs_fc.fc_fmask
+#define fs_isize fs_fc.fc_isize
+#define fs_imask fs_fc.fc_imask
+#define fs_firstino fs_fc.fc_firstino
+#define fs_ipb fs_fc.fc_ipb
+#define fs_fsbtodb fs_fc.fc_fsbtodb
 };
 
 struct ext2blkgrp {
-	uint32_t	bg_blkmap;	/* block bitmap */
-	uint32_t	bg_inomap;	/* inode bitmap */
-	uint32_t	bg_inotbl;	/* inode table */
-	uint16_t	bg_nfblk;	/* # of free blocks */
-	uint16_t	bg_nfino;	/* # of free inodes */
-	uint16_t	bg_ndirs;	/* # of dirs */
-	char		bg_pad[14];
+	uint32_t bg_blkmap; /* block bitmap */
+	uint32_t bg_inomap; /* inode bitmap */
+	uint32_t bg_inotbl; /* inode table */
+	uint16_t bg_nfblk;  /* # of free blocks */
+	uint16_t bg_nfino;  /* # of free inodes */
+	uint16_t bg_ndirs;  /* # of dirs */
+	char bg_pad[14];
 };
 
 struct ext2dinode {
-	uint16_t	di_mode;	/* mode */
-	uint16_t	di_uid;		/* uid */
-	uint32_t	di_size;	/* byte size */
-	uint32_t	di_atime;	/* access time */
-	uint32_t	di_ctime;	/* creation time */
-	uint32_t	di_mtime;	/* modification time */
-	uint32_t	di_dtime;	/* deletion time */
-	uint16_t	di_gid;		/* gid */
-	uint16_t	di_nlink;	/* link count */
-	uint32_t	di_nblk;	/* block count */
-	uint32_t	di_flags;	/* file flags */
+	uint16_t di_mode;  /* mode */
+	uint16_t di_uid;   /* uid */
+	uint32_t di_size;  /* byte size */
+	uint32_t di_atime; /* access time */
+	uint32_t di_ctime; /* creation time */
+	uint32_t di_mtime; /* modification time */
+	uint32_t di_dtime; /* deletion time */
+	uint16_t di_gid;   /* gid */
+	uint16_t di_nlink; /* link count */
+	uint32_t di_nblk;  /* block count */
+	uint32_t di_flags; /* file flags */
 
-	uint32_t	di_osdep1;	/* os dependent stuff */
+	uint32_t di_osdep1; /* os dependent stuff */
 
-	uint32_t	di_db[EXT2_NDADDR]; /* direct blocks */
-	uint32_t	di_ib[EXT2_NIADDR]; /* indirect blocks */
-	uint32_t	di_version;	/* version */
-	uint32_t	di_facl;	/* file acl */
-	uint32_t	di_dacl;	/* dir acl */
-	uint32_t	di_faddr;	/* fragment addr */
+	uint32_t di_db[EXT2_NDADDR]; /* direct blocks */
+	uint32_t di_ib[EXT2_NIADDR]; /* indirect blocks */
+	uint32_t di_version;	     /* version */
+	uint32_t di_facl;	     /* file acl */
+	uint32_t di_dacl;	     /* dir acl */
+	uint32_t di_faddr;	     /* fragment addr */
 
-	uint8_t		di_frag;	/* fragment number */
-	uint8_t		di_fsize;	/* fragment size */
+	uint8_t di_frag;  /* fragment number */
+	uint8_t di_fsize; /* fragment size */
 
-	char		di_pad[10];
+	char di_pad[10];
 
-#define di_shortlink	di_db
+#define di_shortlink di_db
 };
 
-#define EXT2_MAXNAMLEN       255
+#define EXT2_MAXNAMLEN 255
 
 struct ext2dirent {
-	uint32_t	d_ino;		/* inode */
-	uint16_t	d_reclen;	/* directory entry length */
-	uint8_t		d_namlen;	/* name length */
-	uint8_t		d_type;		/* file type */
-	char		d_name[EXT2_MAXNAMLEN];
+	uint32_t d_ino;	   /* inode */
+	uint16_t d_reclen; /* directory entry length */
+	uint8_t d_namlen;  /* name length */
+	uint8_t d_type;	   /* file type */
+	char d_name[EXT2_MAXNAMLEN];
 };
 
 struct file {
-	off_t		f_seekp;		/* seek pointer */
-	struct 		ext2fs *f_fs;		/* pointer to super-block */
-	struct 		ext2blkgrp *f_bg;	/* pointer to blkgrp map */
-	struct 		ext2dinode f_di;	/* copy of on-disk inode */
-	int		f_nindir[EXT2_NIADDR];	/* number of blocks mapped by
-						   indirect block at level i */
-	char		*f_blk[EXT2_NIADDR];	/* buffer for indirect block
-						   at level i */
-	size_t		f_blksize[EXT2_NIADDR];	/* size of buffer */
-	daddr_t		f_blkno[EXT2_NIADDR];	/* disk address of block in
-						   buffer */
-	char		*f_buf;			/* buffer for data block */
-	size_t		f_buf_size;		/* size of data block */
-	daddr_t		f_buf_blkno;		/* block number of data block */
+	off_t f_seekp;		       /* seek pointer */
+	struct ext2fs *f_fs;	       /* pointer to super-block */
+	struct ext2blkgrp *f_bg;       /* pointer to blkgrp map */
+	struct ext2dinode f_di;	       /* copy of on-disk inode */
+	int f_nindir[EXT2_NIADDR];     /* number of blocks mapped by
+					  indirect block at level i */
+	char *f_blk[EXT2_NIADDR];      /* buffer for indirect block
+					  at level i */
+	size_t f_blksize[EXT2_NIADDR]; /* size of buffer */
+	daddr_t f_blkno[EXT2_NIADDR];  /* disk address of block in
+					  buffer */
+	char *f_buf;		       /* buffer for data block */
+	size_t f_buf_size;	       /* size of data block */
+	daddr_t f_buf_blkno;	       /* block number of data block */
 };
 
 /* forward decls */
-static int 	read_inode(ino_t inumber, struct open_file *f);
-static int	block_map(struct open_file *f, daddr_t file_block,
-		    daddr_t *disk_block_p);
-static int	buf_read_file(struct open_file *f, char **buf_p,
-		    size_t *size_p);
-static int	search_directory(char *name, struct open_file *f,
-		    ino_t *inumber_p);
+static int read_inode(ino_t inumber, struct open_file *f);
+static int block_map(struct open_file *f, daddr_t file_block,
+    daddr_t *disk_block_p);
+static int buf_read_file(struct open_file *f, char **buf_p, size_t *size_p);
+static int search_directory(char *name, struct open_file *f, ino_t *inumber_p);
 
 /*
  * Open a file.
@@ -338,7 +335,7 @@ ext2fs_open(const char *upath, struct open_file *f)
 	int nlinks = 0;
 	int error = 0;
 	char *cp, *ncp, *path = NULL, *buf = NULL;
-	char namebuf[MAXPATHLEN+1];
+	char namebuf[MAXPATHLEN + 1];
 	char c;
 
 	/* allocate file system specific data structure */
@@ -352,8 +349,8 @@ ext2fs_open(const char *upath, struct open_file *f)
 	fs = (struct ext2fs *)malloc(sizeof(*fs));
 	fp->f_fs = fs;
 	twiddle(1);
-	error = (f->f_dev->dv_strategy)(f->f_devdata, F_READ,
-	    EXT2_SBLOCK, EXT2_SBSIZE, (char *)fs, &buf_size);
+	error = (f->f_dev->dv_strategy)(f->f_devdata, F_READ, EXT2_SBLOCK,
+	    EXT2_SBSIZE, (char *)fs, &buf_size);
 	if (error)
 		goto out;
 
@@ -395,8 +392,8 @@ ext2fs_open(const char *upath, struct open_file *f)
 	fp->f_bg = malloc(len);
 	twiddle(1);
 	error = (f->f_dev->dv_strategy)(f->f_devdata, F_READ,
-	    EXT2_SBLOCK + EXT2_SBSIZE / DEV_BSIZE, len,
-	    (char *)fp->f_bg, &buf_size);
+	    EXT2_SBLOCK + EXT2_SBSIZE / DEV_BSIZE, len, (char *)fp->f_bg,
+	    &buf_size);
 	if (error)
 		goto out;
 
@@ -436,7 +433,7 @@ ext2fs_open(const char *upath, struct open_file *f)
 		/*
 		 * Check that current node is a directory.
 		 */
-		if (! S_ISDIR(fp->f_di.di_mode)) {
+		if (!S_ISDIR(fp->f_di.di_mode)) {
 			error = ENOTDIR;
 			goto out;
 		}
@@ -489,22 +486,21 @@ ext2fs_open(const char *upath, struct open_file *f)
 
 			bcopy(cp, &namebuf[link_len], len + 1);
 			if (fp->f_di.di_nblk == 0) {
-				bcopy(fp->f_di.di_shortlink,
-				    namebuf, link_len);
+				bcopy(fp->f_di.di_shortlink, namebuf, link_len);
 			} else {
 				/*
 				 * Read file for symbolic link
 				 */
 				struct ext2fs *fs = fp->f_fs;
-				daddr_t	disk_block;
+				daddr_t disk_block;
 				size_t buf_size;
 
-				if (! buf)
+				if (!buf)
 					buf = malloc(fs->fs_bsize);
 				error = block_map(f, (daddr_t)0, &disk_block);
 				if (error)
 					goto out;
-				
+
 				twiddle(1);
 				error = (f->f_dev->dv_strategy)(f->f_devdata,
 				    F_READ, fsb_to_db(fs, disk_block),
@@ -587,7 +583,7 @@ read_inode(ino_t inumber, struct open_file *f)
 
 out:
 	free(buf);
-	return (error);	 
+	return (error);
 }
 
 /*
@@ -655,14 +651,13 @@ block_map(struct open_file *f, daddr_t file_block, daddr_t *disk_block_p)
 
 	for (; level >= 0; level--) {
 		if (ind_block_num == 0) {
-			*disk_block_p = 0;	/* missing */
+			*disk_block_p = 0; /* missing */
 			return (0);
 		}
 
 		if (fp->f_blkno[level] != ind_block_num) {
 			if (fp->f_blk[level] == (char *)0)
-				fp->f_blk[level] =
-					malloc(fs->fs_bsize);
+				fp->f_blk[level] = malloc(fs->fs_bsize);
 			twiddle(1);
 			error = (f->f_dev->dv_strategy)(f->f_devdata, F_READ,
 			    fsb_to_db(fp->f_fs, ind_block_num), fs->fs_bsize,
@@ -701,7 +696,7 @@ buf_read_file(struct open_file *f, char **buf_p, size_t *size_p)
 	struct ext2fs *fs = fp->f_fs;
 	long off;
 	daddr_t file_block;
-	daddr_t	disk_block;
+	daddr_t disk_block;
 	size_t block_size;
 	int error = 0;
 
@@ -723,8 +718,8 @@ buf_read_file(struct open_file *f, char **buf_p, size_t *size_p)
 		} else {
 			twiddle(4);
 			error = (f->f_dev->dv_strategy)(f->f_devdata, F_READ,
-			    fsb_to_db(fs, disk_block), block_size,
-			    fp->f_buf, &fp->f_buf_size);
+			    fsb_to_db(fs, disk_block), block_size, fp->f_buf,
+			    &fp->f_buf_size);
 			if (error)
 				goto done;
 		}

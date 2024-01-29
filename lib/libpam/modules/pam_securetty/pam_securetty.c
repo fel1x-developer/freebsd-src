@@ -38,17 +38,18 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <pwd.h>
-#include <ttyent.h>
 #include <string.h>
+#include <ttyent.h>
 
 #define PAM_SM_ACCOUNT
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define TTY_PREFIX	"/dev/"
+#define TTY_PREFIX "/dev/"
 
 PAM_EXTERN int
 pam_sm_acct_mgmt(pam_handle_t *pamh __unused, int flags __unused,

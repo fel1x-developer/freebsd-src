@@ -8,10 +8,9 @@
 #include <sys/stdint.h>
 #include <sys/sysctl.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <sched.h>
-
-#include <atf-c.h>
 
 static uint32_t maxcpuid;
 static uint32_t maxcpus;
@@ -49,8 +48,8 @@ support_getmaxcpuid(void)
 		set = CPU_ALLOC(i);
 		ATF_REQUIRE(set != NULL);
 		CPU_ZERO_S(setsize, set);
-		rv = cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-		    -1, setsize, set);
+		rv = cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+		    setsize, set);
 		if (rv == 0) {
 			id = __BIT_FLS(i, set) - 1;
 			CPU_FREE(set);
@@ -83,8 +82,8 @@ ATF_TC_BODY(test_setinvalidcpu, tc)
 	CPU_ZERO_S(cpusetsize, set);
 	CPU_SET_S(maxcpuid + 1, cpusetsize, set);
 	CPU_SET_S(maxcpuid - 1, cpusetsize, set);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == -1);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == -1);
 	ATF_REQUIRE_EQ(errno, EINVAL);
 	CPU_FREE(set);
 }
@@ -104,8 +103,8 @@ ATF_TC_BODY(test_setvalidcpu, tc)
 	ATF_REQUIRE(set != NULL);
 	CPU_ZERO_S(cpusetsize, set);
 	CPU_SET_S(cpu, cpusetsize, set);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 	ATF_REQUIRE_EQ(cpu, sched_getcpu());
 	CPU_FREE(set);
 }
@@ -135,8 +134,8 @@ ATF_TC_BODY(test_setzeroset2, tc)
 	set = CPU_ALLOC(maxcpuid + 1);
 	ATF_REQUIRE(set != NULL);
 	CPU_ZERO_S(cpusetsize, set);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == -1);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == -1);
 	ATF_REQUIRE_EQ(errno, EDEADLK);
 	CPU_FREE(set);
 }
@@ -154,18 +153,18 @@ ATF_TC_BODY(test_setmaxsetsize, tc)
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 0);
 	CPU_SET_S(0, cpusetsize, set);
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 1);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 
 	CPU_ZERO_S(cpusetsize, set);
 	CPU_SET_S(maxcpuid, cpusetsize, set);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 
 	CPU_ZERO_S(cpusetsize, set);
 	CPU_SET_S(maxcpuid + 1, cpusetsize, set);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == -1);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == -1);
 	ATF_REQUIRE_EQ(errno, EINVAL);
 	CPU_FREE(set);
 }
@@ -180,11 +179,11 @@ ATF_TC_BODY(test_setminsetsize, tc)
 		return;
 
 	set = 1;
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, (const cpuset_t *)&set) == 0);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, (const cpuset_t *)&set) == 0);
 	set = 0;
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, (const cpuset_t *)&set) == -1);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, (const cpuset_t *)&set) == -1);
 	ATF_REQUIRE_EQ(errno, EDEADLK);
 }
 
@@ -196,8 +195,8 @@ ATF_TC_BODY(test_getminsetsize, tc)
 
 	if (cpus < 9)
 		return;
-	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, (cpuset_t *)&set) == -1);
+	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, (cpuset_t *)&set) == -1);
 	ATF_REQUIRE_EQ(errno, ERANGE);
 }
 
@@ -211,8 +210,8 @@ ATF_TC_BODY(test_getsetsize, tc)
 	set = CPU_ALLOC(maxcpuid + 1);
 	ATF_REQUIRE(set != NULL);
 	CPU_ZERO_S(cpusetsize, set);
-	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 	CPU_FREE(set);
 }
 
@@ -229,20 +228,20 @@ ATF_TC_BODY(test_holes, tc)
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 0);
 	CPU_SET_S(maxcpuid, cpusetsize, set);
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 1);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 
 	CPU_ZERO_S(cpusetsize, set);
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 0);
 	CPU_SET_S(maxcpuid + 1, cpusetsize, set);
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 1);
-	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == -1);
+	ATF_REQUIRE(cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == -1);
 	ATF_REQUIRE_EQ(errno, EINVAL);
 
 	ATF_REQUIRE(CPU_COUNT_S(cpusetsize, set) == 1);
-	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-	    -1, cpusetsize, set) == 0);
+	ATF_REQUIRE(cpuset_getaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1,
+			cpusetsize, set) == 0);
 	ATF_REQUIRE(CPU_ISSET_S(maxcpuid + 1, cpusetsize, set) == false);
 	ATF_REQUIRE(CPU_ISSET_S(maxcpuid, cpusetsize, set) == true);
 	ATF_REQUIRE_EQ(maxcpuid, (uint32_t)sched_getcpu());

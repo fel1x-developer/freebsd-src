@@ -41,36 +41,36 @@
 #include <dev/ofw/openfirm.h>
 
 struct ofiocdesc {
-	phandle_t	of_nodeid;	/* passed or returned node id */
-	int		of_namelen;	/* length of of_name */
-	const char	*of_name;	/* pointer to field name */
-	int		of_buflen;	/* length of of_buf (value-result) */
-	char		*of_buf;	/* pointer to field value */
+	phandle_t of_nodeid; /* passed or returned node id */
+	int of_namelen;	     /* length of of_name */
+	const char *of_name; /* pointer to field name */
+	int of_buflen;	     /* length of of_buf (value-result) */
+	char *of_buf;	     /* pointer to field value */
 };
 
-#define	OFIOC_BASE	'O'
+#define OFIOC_BASE 'O'
 
 /* Get openprom field. */
-#define	OFIOCGET	_IOWR(OFIOC_BASE, 1, struct ofiocdesc)
+#define OFIOCGET _IOWR(OFIOC_BASE, 1, struct ofiocdesc)
 /* Set openprom field. */
-#define	OFIOCSET	_IOWR(OFIOC_BASE, 2, struct ofiocdesc)
+#define OFIOCSET _IOWR(OFIOC_BASE, 2, struct ofiocdesc)
 /* Get next property. */
-#define	OFIOCNEXTPROP	_IOWR(OFIOC_BASE, 3, struct ofiocdesc)
+#define OFIOCNEXTPROP _IOWR(OFIOC_BASE, 3, struct ofiocdesc)
 /* Get options node. */
-#define	OFIOCGETOPTNODE	_IOR(OFIOC_BASE, 4, phandle_t)
+#define OFIOCGETOPTNODE _IOR(OFIOC_BASE, 4, phandle_t)
 /* Get next node of node. */
-#define	OFIOCGETNEXT	_IOWR(OFIOC_BASE, 5, phandle_t)
+#define OFIOCGETNEXT _IOWR(OFIOC_BASE, 5, phandle_t)
 /* Get first child of node. */
-#define	OFIOCGETCHILD	_IOWR(OFIOC_BASE, 6, phandle_t)
+#define OFIOCGETCHILD _IOWR(OFIOC_BASE, 6, phandle_t)
 /* Find a specific device. */
-#define	OFIOCFINDDEVICE	_IOWR(OFIOC_BASE, 7, struct ofiocdesc)
+#define OFIOCFINDDEVICE _IOWR(OFIOC_BASE, 7, struct ofiocdesc)
 /* Retrieve the size of a property. */
-#define	OFIOCGETPROPLEN	_IOWR(OFIOC_BASE, 8, struct ofiocdesc)
+#define OFIOCGETPROPLEN _IOWR(OFIOC_BASE, 8, struct ofiocdesc)
 
 /* Maximum accepted name length. */
-#define	OFIOCMAXNAME	8191
+#define OFIOCMAXNAME 8191
 /* Maximum accepted value length (maximum of nvramrc property). */
-#define	OFIOCMAXVALUE	8192
+#define OFIOCMAXVALUE 8192
 
 /*
  * While IEEE 1275-1994 states in 3.2.2.1.1 that property names are 1-31
@@ -84,6 +84,6 @@ struct ofiocdesc {
  * If a future version of the Devicetree specification updates the property
  * names length requirement, this value will be updated to match.
  */
-#define	OFIOCSUGGPROPNAMELEN	64
+#define OFIOCSUGGPROPNAMELEN 64
 
 #endif /* _DEV_OFW_OPENFIRMIO_H_ */

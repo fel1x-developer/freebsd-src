@@ -24,10 +24,10 @@
  * SUCH DAMAGE.
  *
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -37,28 +37,27 @@
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
 #include <net/bpf.h>
-#include <net/vnet.h>
+#include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
+#include <net/if_lagg.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/infiniband.h>
-#include <net/if_lagg.h>
-
+#include <net/vnet.h>
 #include <netinet/in.h>
-#include <netinet/ip6.h>
-#include <netinet/ip.h>
-#include <netinet/ip_var.h>
 #include <netinet/in_pcb.h>
-#include <netinet6/in6_pcb.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_var.h>
 #include <netinet/tcp.h>
-#include <netinet/tcp_lro.h>
-#include <netinet/tcp_var.h>
 #include <netinet/tcp_hpts.h>
 #include <netinet/tcp_log_buf.h>
+#include <netinet/tcp_lro.h>
+#include <netinet/tcp_var.h>
+#include <netinet6/in6_pcb.h>
 
 static void
 build_ack_entry(struct tcp_ackent *ae, struct tcphdr *th, struct mbuf *m,
@@ -87,7 +86,8 @@ build_ack_entry(struct tcp_ackent *ae, struct tcphdr *th, struct mbuf *m,
 }
 
 static inline bool
-tcp_lro_ack_valid(struct mbuf *m, struct tcphdr *th, uint32_t **ppts, bool *other_opts)
+tcp_lro_ack_valid(struct mbuf *m, struct tcphdr *th, uint32_t **ppts,
+    bool *other_opts)
 {
 	/*
 	 * This function returns two bits of valuable information.
@@ -146,9 +146,8 @@ tcp_lro_check_wake_status(struct tcpcb *tp)
 
 static void
 tcp_lro_log(struct tcpcb *tp, const struct lro_ctrl *lc,
-    const struct lro_entry *le, const struct mbuf *m,
-    int frm, int32_t tcp_data_len, uint32_t th_seq,
-    uint32_t th_ack, uint16_t th_win)
+    const struct lro_entry *le, const struct mbuf *m, int frm,
+    int32_t tcp_data_len, uint32_t th_seq, uint32_t th_ack, uint16_t th_win)
 {
 	if (tcp_bblogging_on(tp)) {
 		union tcp_log_stackspecific log;
@@ -189,8 +188,8 @@ tcp_lro_log(struct tcpcb *tp, const struct lro_ctrl *lc,
 		else
 			log.u_bbr.inhpts = 0;
 		TCP_LOG_EVENTP(tp, NULL, &tptosocket(tp)->so_rcv,
-		    &tptosocket(tp)->so_snd,
-		    TCP_LOG_LRO, 0, 0, &log, false, &tv);
+		    &tptosocket(tp)->so_snd, TCP_LOG_LRO, 0, 0, &log, false,
+		    &tv);
 	}
 }
 
@@ -309,7 +308,7 @@ do_bpf_strip_and_compress(struct tcpcb *tp, struct lro_ctrl *lc,
 
 	th = tcp_lro_get_th(m);
 
-	th->th_sum = 0;		/* TCP checksum is valid. */
+	th->th_sum = 0; /* TCP checksum is valid. */
 
 	/* Check if ACK can be compressed */
 	can_compress = tcp_lro_ack_valid(m, th, &ts_ptr, &other_opts);
@@ -344,12 +343,12 @@ do_bpf_strip_and_compress(struct tcpcb *tp, struct lro_ctrl *lc,
 		iptos = IPV6_TRAFFIC_CLASS(l3.ip6);
 		break;
 	default:
-		iptos = 0;	/* Keep compiler happy. */
+		iptos = 0; /* Keep compiler happy. */
 		break;
 	}
 	/* Now lets get space if we don't have some already */
 	if (*cmp == NULL) {
-new_one:
+	new_one:
 		nm = tcp_lro_get_last_if_ackcmp(lc, le, tp, &n_mbuf,
 		    can_append_old_cmp);
 		if (__predict_false(nm == NULL))
@@ -412,7 +411,7 @@ tcp_queue_pkts(struct tcpcb *tp, struct lro_entry *le)
 	INP_WLOCK_ASSERT(tptoinpcb(tp));
 
 	STAILQ_HEAD(, mbuf) q = { le->m_head,
-	    &STAILQ_NEXT(le->m_last_mbuf, m_stailqpkt) };
+		&STAILQ_NEXT(le->m_last_mbuf, m_stailqpkt) };
 	STAILQ_CONCAT(&tp->t_inqueue, &q);
 	le->m_head = NULL;
 	le->m_last_mbuf = NULL;
@@ -427,24 +426,16 @@ tcp_lro_lookup(struct ifnet *ifp, struct lro_parser *pa)
 	switch (pa->data.lro_type) {
 #ifdef INET6
 	case LRO_TYPE_IPV6_TCP:
-		inp = in6_pcblookup(&V_tcbinfo,
-		    &pa->data.s_addr.v6,
-		    pa->data.s_port,
-		    &pa->data.d_addr.v6,
-		    pa->data.d_port,
-		    INPLOOKUP_WLOCKPCB,
-		    ifp);
+		inp = in6_pcblookup(&V_tcbinfo, &pa->data.s_addr.v6,
+		    pa->data.s_port, &pa->data.d_addr.v6, pa->data.d_port,
+		    INPLOOKUP_WLOCKPCB, ifp);
 		break;
 #endif
 #ifdef INET
 	case LRO_TYPE_IPV4_TCP:
-		inp = in_pcblookup(&V_tcbinfo,
-		    pa->data.s_addr.v4,
-		    pa->data.s_port,
-		    pa->data.d_addr.v4,
-		    pa->data.d_port,
-		    INPLOOKUP_WLOCKPCB,
-		    ifp);
+		inp = in_pcblookup(&V_tcbinfo, pa->data.s_addr.v4,
+		    pa->data.s_port, pa->data.d_addr.v4, pa->data.d_port,
+		    INPLOOKUP_WLOCKPCB, ifp);
 		break;
 #endif
 	default:
@@ -480,16 +471,17 @@ _tcp_lro_flush_tcphpts(struct lro_ctrl *lc, struct lro_entry *le)
 	 * already dropped in ip6_input.
 	 */
 	if (__predict_false(le->outer.data.lro_type == LRO_TYPE_IPV6_TCP &&
-	    IN6_IS_ADDR_UNSPECIFIED(&le->outer.data.s_addr.v6)))
+		IN6_IS_ADDR_UNSPECIFIED(&le->outer.data.s_addr.v6)))
 		return (TCP_LRO_CANNOT);
 
 	if (__predict_false(le->inner.data.lro_type == LRO_TYPE_IPV6_TCP &&
-	    IN6_IS_ADDR_UNSPECIFIED(&le->inner.data.s_addr.v6)))
+		IN6_IS_ADDR_UNSPECIFIED(&le->inner.data.s_addr.v6)))
 		return (TCP_LRO_CANNOT);
 #endif
 	/* Lookup inp, if any.  Returns locked TCP inpcb. */
 	tp = tcp_lro_lookup(lc->ifp,
-	    (le->inner.data.lro_type == LRO_TYPE_NONE) ? &le->outer : &le->inner);
+	    (le->inner.data.lro_type == LRO_TYPE_NONE) ? &le->outer :
+							 &le->inner);
 	if (tp == NULL)
 		return (TCP_LRO_CANNOT);
 
@@ -529,11 +521,11 @@ _tcp_lro_flush_tcphpts(struct lro_ctrl *lc, struct lro_entry *le)
 	/* Strip and compress all the incoming packets. */
 	can_append_old_cmp = true;
 	cmp = NULL;
-	for (pp = &le->m_head; *pp != NULL; ) {
+	for (pp = &le->m_head; *pp != NULL;) {
 		mv_to = NULL;
 		if (do_bpf_strip_and_compress(tp, lc, le, pp, &cmp, &mv_to,
-		    &should_wake, bpf_req, lagg_bpf_req, lagg_ifp,
-		    can_append_old_cmp) == false) {
+			&should_wake, bpf_req, lagg_bpf_req, lagg_ifp,
+			can_append_old_cmp) == false) {
 			/* Advance to next mbuf. */
 			pp = &(*pp)->m_nextpkt;
 			/*
@@ -576,7 +568,7 @@ _tcp_lro_flush_tcphpts(struct lro_ctrl *lc, struct lro_entry *le)
 	}
 	INP_WUNLOCK(tptoinpcb(tp));
 
-	return (0);	/* Success. */
+	return (0); /* Success. */
 }
 
 void

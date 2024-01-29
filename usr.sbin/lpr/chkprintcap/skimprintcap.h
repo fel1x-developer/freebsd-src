@@ -35,11 +35,11 @@
  */
 
 struct skiminfo {
-	int	 comments;
-	int	 entries;
-	int	 fatalerr;		/* fatal error, msg already printed */
-	int	 lines;
-	int	 warnings;
+	int comments;
+	int entries;
+	int fatalerr; /* fatal error, msg already printed */
+	int lines;
+	int warnings;
 };
 
 struct skiminfo *skim_printcap(const char *_pcap, int _verbosity);

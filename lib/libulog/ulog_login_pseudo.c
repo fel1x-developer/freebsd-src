@@ -34,16 +34,17 @@
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
+
 #include "ulog.h"
 
-#define	_PATH_ULOG_HELPER	"/usr/libexec/ulog-helper"
+#define _PATH_ULOG_HELPER "/usr/libexec/ulog-helper"
 
 /*
  * Registering login sessions.
  */
 
 static void
-ulog_exec_helper(int fd, char const * const argv[])
+ulog_exec_helper(int fd, char const *const argv[])
 {
 	sigset_t oblock, nblock;
 	pid_t pid, wpid;
@@ -62,7 +63,7 @@ ulog_exec_helper(int fd, char const * const argv[])
 		if (dup2(fd, STDIN_FILENO) == -1)
 			exit(EX_UNAVAILABLE);
 		sigprocmask(SIG_SETMASK, &oblock, NULL);
-		execv(_PATH_ULOG_HELPER, __DECONST(char * const *, argv));
+		execv(_PATH_ULOG_HELPER, __DECONST(char *const *, argv));
 		exit(EX_UNAVAILABLE);
 	default:
 		/* Wait for helper to finish. */
@@ -78,7 +79,7 @@ ulog_exec_helper(int fd, char const * const argv[])
 void
 ulog_login_pseudo(int fd, const char *host)
 {
-	char const * const args[4] = { "ulog-helper", "login", host, NULL };
+	char const *const args[4] = { "ulog-helper", "login", host, NULL };
 
 	ulog_exec_helper(fd, args);
 }
@@ -86,7 +87,7 @@ ulog_login_pseudo(int fd, const char *host)
 void
 ulog_logout_pseudo(int fd)
 {
-	char const * const args[3] = { "ulog-helper", "logout", NULL };
+	char const *const args[3] = { "ulog-helper", "logout", NULL };
 
 	ulog_exec_helper(fd, args);
 }

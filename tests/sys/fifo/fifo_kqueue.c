@@ -29,6 +29,7 @@
 #include <sys/event.h>
 #include <sys/stat.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -38,8 +39,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 ATF_TC_WITHOUT_HEAD(fifo_kqueue__writes);
 ATF_TC_BODY(fifo_kqueue__writes, tc)
 {
@@ -47,10 +46,10 @@ ATF_TC_BODY(fifo_kqueue__writes, tc)
 
 	ATF_REQUIRE(mkfifo("testfifo", 0600) == 0);
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	int kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
@@ -64,7 +63,7 @@ ATF_TC_BODY(fifo_kqueue__writes, tc)
 	/* A new writer should immediately get a EVFILT_WRITE event. */
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -82,7 +81,7 @@ ATF_TC_BODY(fifo_kqueue__writes, tc)
 	ATF_REQUIRE(errno == EAGAIN || errno == EWOULDBLOCK);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Reading (PIPE_BUF - 1) bytes will not trigger a EVFILT_WRITE yet. */
 
@@ -91,14 +90,14 @@ ATF_TC_BODY(fifo_kqueue__writes, tc)
 	}
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Reading one additional byte triggers the EVFILT_WRITE. */
 
 	ATF_REQUIRE(read(p[0], &c, 1) == 1);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -114,7 +113,7 @@ ATF_TC_BODY(fifo_kqueue__writes, tc)
 	ATF_REQUIRE(read(p[0], &c, 1) == 1);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -148,10 +147,10 @@ ATF_TC_BODY(fifo_kqueue__connecting_reader, tc)
 
 	ATF_REQUIRE(mkfifo("testfifo", 0600) == 0);
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	int kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
@@ -165,11 +164,11 @@ ATF_TC_BODY(fifo_kqueue__connecting_reader, tc)
 	/* A new writer should immediately get a EVFILT_WRITE event. */
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[1]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/*
 	 * Filling the pipe, reading (PIPE_BUF + 1) bytes, then closing the
@@ -193,12 +192,12 @@ ATF_TC_BODY(fifo_kqueue__connecting_reader, tc)
 	ATF_REQUIRE(kev[0].filter == EVFILT_WRITE);
 	ATF_REQUIRE((kev[0].flags & EV_EOF) != 0);
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Opening the reader again must trigger the EVFILT_WRITE. */
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	r = kevent(kq, NULL, 0, kev, nitems(kev), &(struct timespec) { 1, 0 });
 	ATF_REQUIRE(r == 1);
@@ -209,7 +208,7 @@ ATF_TC_BODY(fifo_kqueue__connecting_reader, tc)
 	ATF_REQUIRE(kev[0].data == PIPE_BUF + 1);
 	ATF_REQUIRE(kev[0].udata == 0);
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	ATF_REQUIRE(close(kq) == 0);
 	ATF_REQUIRE(close(p[0]) == 0);
@@ -227,10 +226,10 @@ ATF_TC_BODY(fifo_kqueue__reads, tc)
 
 	ATF_REQUIRE(mkfifo("testfifo", 0600) == 0);
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	bytes = 0;
 	c = 0;
@@ -252,7 +251,7 @@ ATF_TC_BODY(fifo_kqueue__reads, tc)
 	ATF_REQUIRE(kevent(kq, kev, 1, NULL, 0, NULL) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec){ 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);
@@ -267,7 +266,7 @@ ATF_TC_BODY(fifo_kqueue__reads, tc)
 	ATF_REQUIRE(errno == EAGAIN || errno == EWOULDBLOCK);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	ATF_REQUIRE(close(kq) == 0);
 	ATF_REQUIRE(close(p[0]) == 0);
@@ -281,10 +280,10 @@ ATF_TC_BODY(fifo_kqueue__read_eof_wakeups, tc)
 
 	ATF_REQUIRE(mkfifo("testfifo", 0600) == 0);
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	int kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
@@ -295,7 +294,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_wakeups, tc)
 	ATF_REQUIRE(kevent(kq, kev, 1, NULL, 0, NULL) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/*
 	 * Closing the writer must trigger a EVFILT_READ edge with EV_EOF set.
@@ -304,7 +303,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_wakeups, tc)
 	ATF_REQUIRE(close(p[1]) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == (EV_EOF | EV_CLEAR));
@@ -321,7 +320,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_wakeups, tc)
 	ATF_REQUIRE(read(p[0], &c, 1) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	ATF_REQUIRE(close(kq) == 0);
 	ATF_REQUIRE(close(p[0]) == 0);
@@ -334,10 +333,10 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 
 	ATF_REQUIRE(mkfifo("testfifo", 0600) == 0);
 
-	ATF_REQUIRE((p[0] = open("testfifo",
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[0] = open("testfifo", O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	int kq = kqueue();
 	ATF_REQUIRE(kq >= 0);
@@ -348,7 +347,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 	ATF_REQUIRE(kevent(kq, kev, 1, NULL, 0, NULL) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/*
 	 * Closing the writer must trigger a EVFILT_READ edge with EV_EOF set.
@@ -357,7 +356,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 	ATF_REQUIRE(close(p[1]) == 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == (EV_EOF | EV_CLEAR));
@@ -370,7 +369,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 	{
 		int new_reader;
 		ATF_REQUIRE((new_reader = open("testfifo",
-		    O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+				 O_RDONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 		int new_kq = kqueue();
 		ATF_REQUIRE(new_kq >= 0);
@@ -381,7 +380,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 		ATF_REQUIRE(kevent(new_kq, new_kev, 1, NULL, 0, NULL) == 0);
 
 		ATF_REQUIRE(kevent(new_kq, NULL, 0, new_kev, nitems(new_kev),
-		    &(struct timespec) { 0, 0 }) == 0);
+				&(struct timespec) { 0, 0 }) == 0);
 
 		ATF_REQUIRE(close(new_kq) == 0);
 		ATF_REQUIRE(close(new_reader) == 0);
@@ -393,11 +392,11 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 	 * does not trigger.
 	 */
 
-	ATF_REQUIRE((p[1] = open("testfifo",
-	    O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
+	ATF_REQUIRE(
+	    (p[1] = open("testfifo", O_WRONLY | O_CLOEXEC | O_NONBLOCK)) >= 0);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 0);
+			&(struct timespec) { 0, 0 }) == 0);
 
 	/* Writing a byte should trigger a EVFILT_READ. */
 
@@ -405,7 +404,7 @@ ATF_TC_BODY(fifo_kqueue__read_eof_state_when_reconnecting, tc)
 	ATF_REQUIRE(write(p[1], &c, 1) == 1);
 
 	ATF_REQUIRE(kevent(kq, NULL, 0, kev, nitems(kev),
-	    &(struct timespec) { 0, 0 }) == 1);
+			&(struct timespec) { 0, 0 }) == 1);
 	ATF_REQUIRE(kev[0].ident == (uintptr_t)p[0]);
 	ATF_REQUIRE(kev[0].filter == EVFILT_READ);
 	ATF_REQUIRE(kev[0].flags == EV_CLEAR);

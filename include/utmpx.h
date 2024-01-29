@@ -27,61 +27,61 @@
  */
 
 #ifndef _UTMPX_H_
-#define	_UTMPX_H_
+#define _UTMPX_H_
 
 #include <sys/cdefs.h>
 #include <sys/_timeval.h>
 #include <sys/_types.h>
 
 #ifndef _PID_T_DECLARED
-typedef	__pid_t		pid_t;
-#define	_PID_T_DECLARED
+typedef __pid_t pid_t;
+#define _PID_T_DECLARED
 #endif
 
 struct utmpx {
-	short		ut_type;	/* Type of entry. */
-	struct timeval	ut_tv;		/* Time entry was made. */
-	char		ut_id[8];	/* Record identifier. */
-	pid_t		ut_pid;		/* Process ID. */
-	char		ut_user[32];	/* User login name. */
-	char		ut_line[16];	/* Device name. */
+	short ut_type;	      /* Type of entry. */
+	struct timeval ut_tv; /* Time entry was made. */
+	char ut_id[8];	      /* Record identifier. */
+	pid_t ut_pid;	      /* Process ID. */
+	char ut_user[32];     /* User login name. */
+	char ut_line[16];     /* Device name. */
 #if __BSD_VISIBLE
-	char		ut_host[128];	/* Remote hostname. */
+	char ut_host[128]; /* Remote hostname. */
 #else
-	char		__ut_host[128];
+	char __ut_host[128];
 #endif
-	char		__ut_spare[64];
+	char __ut_spare[64];
 };
 
-#define	EMPTY		0	/* No valid user accounting information. */
-#define	BOOT_TIME	1	/* Time of system boot. */
-#define	OLD_TIME	2	/* Time when system clock changed. */
-#define	NEW_TIME	3	/* Time after system clock changed. */
-#define	USER_PROCESS	4	/* A process. */
-#define	INIT_PROCESS	5	/* A process spawned by the init process. */
-#define	LOGIN_PROCESS	6	/* The session leader of a logged-in user. */
-#define	DEAD_PROCESS	7	/* A session leader who has exited. */
+#define EMPTY 0		/* No valid user accounting information. */
+#define BOOT_TIME 1	/* Time of system boot. */
+#define OLD_TIME 2	/* Time when system clock changed. */
+#define NEW_TIME 3	/* Time after system clock changed. */
+#define USER_PROCESS 4	/* A process. */
+#define INIT_PROCESS 5	/* A process spawned by the init process. */
+#define LOGIN_PROCESS 6 /* The session leader of a logged-in user. */
+#define DEAD_PROCESS 7	/* A session leader who has exited. */
 #if __BSD_VISIBLE
-#define	SHUTDOWN_TIME	8	/* Time of system shutdown. */
+#define SHUTDOWN_TIME 8 /* Time of system shutdown. */
 #endif
 
 #if __BSD_VISIBLE
-#define	UTXDB_ACTIVE	0	/* Active login sessions. */
-#define	UTXDB_LASTLOGIN	1	/* Last login sessions. */
-#define	UTXDB_LOG	2	/* Log indexed by time. */
+#define UTXDB_ACTIVE 0	  /* Active login sessions. */
+#define UTXDB_LASTLOGIN 1 /* Last login sessions. */
+#define UTXDB_LOG 2	  /* Log indexed by time. */
 #endif
 
 __BEGIN_DECLS
-void	endutxent(void);
+void endutxent(void);
 struct utmpx *getutxent(void);
 struct utmpx *getutxid(const struct utmpx *);
 struct utmpx *getutxline(const struct utmpx *);
 struct utmpx *pututxline(const struct utmpx *);
-void	setutxent(void);
+void setutxent(void);
 
 #if __BSD_VISIBLE
 struct utmpx *getutxuser(const char *);
-int	setutxdb(int, const char *);
+int setutxdb(int, const char *);
 #endif
 __END_DECLS
 

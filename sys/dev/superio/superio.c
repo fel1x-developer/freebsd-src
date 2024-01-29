@@ -31,9 +31,9 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sbuf.h>
@@ -43,69 +43,69 @@
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
-#include <isa/isavar.h>
-
 #include <dev/superio/superio.h>
 #include <dev/superio/superio_io.h>
 
+#include <isa/isavar.h>
+
 #include "isa_if.h"
 
-typedef void (*sio_conf_enter_f)(struct resource*, uint16_t);
-typedef void (*sio_conf_exit_f)(struct resource*, uint16_t);
+typedef void (*sio_conf_enter_f)(struct resource *, uint16_t);
+typedef void (*sio_conf_exit_f)(struct resource *, uint16_t);
 
 struct sio_conf_methods {
-	sio_conf_enter_f	enter;
-	sio_conf_exit_f		exit;
-	superio_vendor_t	vendor;
+	sio_conf_enter_f enter;
+	sio_conf_exit_f exit;
+	superio_vendor_t vendor;
 };
 
 struct sio_device {
-	uint8_t			ldn;
-	superio_dev_type_t	type;
+	uint8_t ldn;
+	superio_dev_type_t type;
 };
 
 struct superio_devinfo {
 	STAILQ_ENTRY(superio_devinfo) link;
-	struct resource_list	resources;
-	device_t		dev;
-	uint8_t			ldn;
-	superio_dev_type_t	type;
-	uint16_t		iobase;
-	uint16_t		iobase2;
-	uint8_t			irq;
-	uint8_t			dma;
+	struct resource_list resources;
+	device_t dev;
+	uint8_t ldn;
+	superio_dev_type_t type;
+	uint16_t iobase;
+	uint16_t iobase2;
+	uint8_t irq;
+	uint8_t dma;
 };
 
 struct siosc {
-	struct mtx			conf_lock;
-	STAILQ_HEAD(, superio_devinfo)	devlist;
-	struct resource*		io_res;
-	struct cdev			*chardev;
-	int				io_rid;
-	uint16_t			io_port;
-	const struct sio_conf_methods	*methods;
-	const struct sio_device		*known_devices;
-	superio_vendor_t		vendor;
-	uint16_t			devid;
-	uint8_t				revid;
-	int				extid;
-	uint8_t				current_ldn;
-	uint8_t				ldn_reg;
-	uint8_t				enable_reg;
+	struct mtx conf_lock;
+	STAILQ_HEAD(, superio_devinfo) devlist;
+	struct resource *io_res;
+	struct cdev *chardev;
+	int io_rid;
+	uint16_t io_port;
+	const struct sio_conf_methods *methods;
+	const struct sio_device *known_devices;
+	superio_vendor_t vendor;
+	uint16_t devid;
+	uint8_t revid;
+	int extid;
+	uint8_t current_ldn;
+	uint8_t ldn_reg;
+	uint8_t enable_reg;
 };
 
-static	d_ioctl_t	superio_ioctl;
+static d_ioctl_t superio_ioctl;
 
 static struct cdevsw superio_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	superio_ioctl,
-	.d_name =	"superio",
+	.d_version = D_VERSION,
+	.d_ioctl = superio_ioctl,
+	.d_name = "superio",
 };
 
-#define NUMPORTS	2
+#define NUMPORTS 2
 
 static uint8_t
-sio_read(struct resource* res, uint8_t reg)
+sio_read(struct resource *res, uint8_t reg)
 {
 	bus_write_1(res, 0, reg);
 	return (bus_read_1(res, 1));
@@ -113,7 +113,7 @@ sio_read(struct resource* res, uint8_t reg)
 
 /* Read a word from two one-byte registers, big endian. */
 static uint16_t
-sio_readw(struct resource* res, uint8_t reg)
+sio_readw(struct resource *res, uint8_t reg)
 {
 	uint16_t v;
 
@@ -124,7 +124,7 @@ sio_readw(struct resource* res, uint8_t reg)
 }
 
 static void
-sio_write(struct resource* res, uint8_t reg, uint8_t val)
+sio_write(struct resource *res, uint8_t reg, uint8_t val)
 {
 	bus_write_1(res, 0, reg);
 	bus_write_1(res, 1, val);
@@ -191,7 +191,7 @@ sio_conf_exit(struct siosc *sc)
 }
 
 static void
-ite_conf_enter(struct resource* res, uint16_t port)
+ite_conf_enter(struct resource *res, uint16_t port)
 {
 	bus_write_1(res, 0, 0x87);
 	bus_write_1(res, 0, 0x01);
@@ -200,7 +200,7 @@ ite_conf_enter(struct resource* res, uint16_t port)
 }
 
 static void
-ite_conf_exit(struct resource* res, uint16_t port)
+ite_conf_exit(struct resource *res, uint16_t port)
 {
 	sio_write(res, 0x02, 0x02);
 }
@@ -212,14 +212,14 @@ static const struct sio_conf_methods ite_conf_methods = {
 };
 
 static void
-nvt_conf_enter(struct resource* res, uint16_t port)
+nvt_conf_enter(struct resource *res, uint16_t port)
 {
 	bus_write_1(res, 0, 0x87);
 	bus_write_1(res, 0, 0x87);
 }
 
 static void
-nvt_conf_exit(struct resource* res, uint16_t port)
+nvt_conf_exit(struct resource *res, uint16_t port)
 {
 	bus_write_1(res, 0, 0xaa);
 }
@@ -231,14 +231,14 @@ static const struct sio_conf_methods nvt_conf_methods = {
 };
 
 static void
-fintek_conf_enter(struct resource* res, uint16_t port)
+fintek_conf_enter(struct resource *res, uint16_t port)
 {
 	bus_write_1(res, 0, 0x87);
 	bus_write_1(res, 0, 0x87);
 }
 
 static void
-fintek_conf_exit(struct resource* res, uint16_t port)
+fintek_conf_exit(struct resource *res, uint16_t port)
 {
 	bus_write_1(res, 0, 0xaa);
 }
@@ -249,16 +249,11 @@ static const struct sio_conf_methods fintek_conf_methods = {
 	.vendor = SUPERIO_VENDOR_FINTEK
 };
 
-static const struct sio_conf_methods * const methods_table[] = {
-	&ite_conf_methods,
-	&nvt_conf_methods,
-	&fintek_conf_methods,
-	NULL
+static const struct sio_conf_methods *const methods_table[] = {
+	&ite_conf_methods, &nvt_conf_methods, &fintek_conf_methods, NULL
 };
 
-static const uint16_t ports_table[] = {
-	0x2e, 0x4e, 0
-};
+static const uint16_t ports_table[] = { 0x2e, 0x4e, 0 };
 
 const struct sio_device ite_devices[] = {
 	{ .ldn = 4, .type = SUPERIO_DEV_HWM },
@@ -309,186 +304,246 @@ const struct sio_device fintek_devices[] = {
 };
 
 static const struct {
-	superio_vendor_t	vendor;
-	uint16_t		devid;
-	uint16_t		mask;
-	int			extid; /* Extra ID: used to handle conflicting devid. */
-	const char		*descr;
-	const struct sio_device	*devices;
-} superio_table[] = {
+	superio_vendor_t vendor;
+	uint16_t devid;
+	uint16_t mask;
+	int extid; /* Extra ID: used to handle conflicting devid. */
+	const char *descr;
+	const struct sio_device *devices;
+} superio_table[] = { {
+			  .vendor = SUPERIO_VENDOR_ITE,
+			  .devid = 0x8613,
+			  .devices = ite_devices,
+		      },
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8613,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8712,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8712,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8716,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8716,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8718,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8718,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8720,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8720,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8721,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8721,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8726,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8726,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8728,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8728,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_ITE,
+	    .devid = 0x8771,
+	    .devices = ite_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_ITE, .devid = 0x8771,
-		.devices = ite_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x1061,
+	    .mask = 0x00,
+	    .descr = "Nuvoton NCT5104D/NCT6102D/NCT6106D (rev. A)",
+	    .devices = nct5104_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x1061, .mask = 0x00,
-		.descr	= "Nuvoton NCT5104D/NCT6102D/NCT6106D (rev. A)",
-		.devices = nct5104_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x5200,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627HF/F/HG/G",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x5200, .mask = 0xff,
-		.descr = "Winbond 83627HF/F/HG/G",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x5900,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627S",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x5900, .mask = 0xff,
-		.descr = "Winbond 83627S",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x6000,
+	    .mask = 0xff,
+	    .descr = "Winbond 83697HF",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x6000, .mask = 0xff,
-		.descr = "Winbond 83697HF",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x6800,
+	    .mask = 0xff,
+	    .descr = "Winbond 83697UG",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x6800, .mask = 0xff,
-		.descr = "Winbond 83697UG",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x7000,
+	    .mask = 0xff,
+	    .descr = "Winbond 83637HF",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x7000, .mask = 0xff,
-		.descr = "Winbond 83637HF",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x8200,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627THF",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x8200, .mask = 0xff,
-		.descr = "Winbond 83627THF",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x8500,
+	    .mask = 0xff,
+	    .descr = "Winbond 83687THF",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x8500, .mask = 0xff,
-		.descr = "Winbond 83687THF",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0x8800,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627EHF",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0x8800, .mask = 0xff,
-		.descr = "Winbond 83627EHF",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xa000,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627DHG",
+	    .devices = w83627_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xa000, .mask = 0xff,
-		.descr = "Winbond 83627DHG",
-		.devices = w83627_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xa200,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627UHG",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xa200, .mask = 0xff,
-		.descr = "Winbond 83627UHG",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xa500,
+	    .mask = 0xff,
+	    .descr = "Winbond 83667HG",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xa500, .mask = 0xff,
-		.descr = "Winbond 83667HG",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xb000,
+	    .mask = 0xff,
+	    .descr = "Winbond 83627DHG-P",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xb000, .mask = 0xff,
-		.descr = "Winbond 83627DHG-P",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xb300,
+	    .mask = 0xff,
+	    .descr = "Winbond 83667HG-B",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xb300, .mask = 0xff,
-		.descr = "Winbond 83667HG-B",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xb400,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6775",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xb400, .mask = 0xff,
-		.descr = "Nuvoton NCT6775",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xc300,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6776",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xc300, .mask = 0xff,
-		.descr = "Nuvoton NCT6776",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xc400,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT5104D/NCT6102D/NCT6106D (rev. B+)",
+	    .devices = nct5104_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xc400, .mask = 0xff,
-		.descr = "Nuvoton NCT5104D/NCT6102D/NCT6106D (rev. B+)",
-		.devices = nct5104_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xc500,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6779D",
+	    .devices = nct67xx_devices,
 	},
 	{
-		.vendor  = SUPERIO_VENDOR_NUVOTON, .devid = 0xc500, .mask = 0xff,
-		.descr   = "Nuvoton NCT6779D",
-		.devices = nct67xx_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xd42a,
+	    .extid = 1,
+	    .descr = "Nuvoton NCT6796D-E",
+	    .devices = nct67xx_devices,
 	},
 	{
-		.vendor  = SUPERIO_VENDOR_NUVOTON, .devid = 0xd42a, .extid = 1,
-		.descr   = "Nuvoton NCT6796D-E",
-		.devices = nct67xx_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xd42a,
+	    .extid = 2,
+	    .descr = "Nuvoton NCT5585D",
+	    .devices = nct5585_devices,
 	},
 	{
-		.vendor  = SUPERIO_VENDOR_NUVOTON, .devid = 0xd42a, .extid = 2,
-		.descr   = "Nuvoton NCT5585D",
-		.devices = nct5585_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xc800,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6791",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xc800, .mask = 0xff,
-		.descr = "Nuvoton NCT6791",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xc900,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6792",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xc900, .mask = 0xff,
-		.descr = "Nuvoton NCT6792",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xd100,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6793",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xd100, .mask = 0xff,
-		.descr = "Nuvoton NCT6793",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xd200,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6112D/NCT6114D/NCT6116D",
+	    .devices = nct611x_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xd200, .mask = 0xff,
-		.descr = "Nuvoton NCT6112D/NCT6114D/NCT6116D",
-		.devices = nct611x_devices,
+	    .vendor = SUPERIO_VENDOR_NUVOTON,
+	    .devid = 0xd300,
+	    .mask = 0xff,
+	    .descr = "Nuvoton NCT6795",
+	    .devices = nvt_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_NUVOTON, .devid = 0xd300, .mask = 0xff,
-		.descr = "Nuvoton NCT6795",
-		.devices = nvt_devices,
+	    .vendor = SUPERIO_VENDOR_FINTEK,
+	    .devid = 0x1210,
+	    .mask = 0xff,
+	    .descr = "Fintek F81803",
+	    .devices = fintek_devices,
 	},
 	{
-		.vendor = SUPERIO_VENDOR_FINTEK, .devid = 0x1210, .mask = 0xff,
-		.descr = "Fintek F81803",
-		.devices = fintek_devices,
+	    .vendor = SUPERIO_VENDOR_FINTEK,
+	    .devid = 0x0704,
+	    .descr = "Fintek F81865",
+	    .devices = fintek_devices,
 	},
-	{
-		.vendor = SUPERIO_VENDOR_FINTEK, .devid = 0x0704,
-		.descr = "Fintek F81865",
-		.devices = fintek_devices,
-	},
-	{ 0, 0 }
-};
+	{ 0, 0 } };
 
 static const char *
 devtype_to_str(superio_dev_type_t type)
@@ -545,7 +600,8 @@ superio_detect(device_t dev, bool claim, struct siosc *sc)
 	}
 
 	prefer = 0;
-	resource_int_value(device_get_name(dev), device_get_unit(dev), "prefer", &prefer);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "prefer",
+	    &prefer);
 	if (bootverbose && prefer > 0)
 		device_printf(dev, "prefer extid %d\n", prefer);
 
@@ -570,8 +626,7 @@ superio_detect(device_t dev, bool claim, struct siosc *sc)
 			uint16_t mask;
 
 			mask = superio_table[i].mask;
-			if (superio_table[i].vendor !=
-			    methods_table[m]->vendor)
+			if (superio_table[i].vendor != methods_table[m]->vendor)
 				continue;
 			if ((superio_table[i].devid & ~mask) != (devid & ~mask))
 				continue;
@@ -605,12 +660,12 @@ superio_detect(device_t dev, bool claim, struct siosc *sc)
 	sc->extid = superio_table[i].extid;
 
 	KASSERT(sc->vendor == SUPERIO_VENDOR_ITE ||
-	    sc->vendor == SUPERIO_VENDOR_NUVOTON ||
-	    sc->vendor == SUPERIO_VENDOR_FINTEK,
+		sc->vendor == SUPERIO_VENDOR_NUVOTON ||
+		sc->vendor == SUPERIO_VENDOR_FINTEK,
 	    ("Only ITE, Nuvoton and Fintek SuperIO-s are supported"));
 	sc->ldn_reg = 0x07;
 	sc->enable_reg = 0x30;	/* FIXME enable_reg not used by nctgpio(4). */
-	sc->current_ldn = 0xff;	/* no device should have this */
+	sc->current_ldn = 0xff; /* no device should have this */
 
 	if (superio_table[i].descr != NULL) {
 		device_set_desc(dev, superio_table[i].descr);
@@ -618,8 +673,8 @@ superio_detect(device_t dev, bool claim, struct siosc *sc)
 		char descr[64];
 
 		snprintf(descr, sizeof(descr),
-		    "ITE IT%4x SuperIO (revision 0x%02x)",
-		    sc->devid, sc->revid);
+		    "ITE IT%4x SuperIO (revision 0x%02x)", sc->devid,
+		    sc->revid);
 		device_set_desc_copy(dev, descr);
 	}
 	return (0);
@@ -628,7 +683,7 @@ superio_detect(device_t dev, bool claim, struct siosc *sc)
 static void
 superio_identify(driver_t *driver, device_t parent)
 {
-	device_t	child;
+	device_t child;
 	int i;
 
 	/*
@@ -648,13 +703,13 @@ superio_identify(driver_t *driver, device_t parent)
 	 * that this driver fails to probe.
 	 */
 	for (i = 0; ports_table[i] != 0; i++) {
-		child = BUS_ADD_CHILD(parent, ISA_ORDER_SPECULATIVE,
-		    "superio", -1);
+		child = BUS_ADD_CHILD(parent, ISA_ORDER_SPECULATIVE, "superio",
+		    -1);
 		if (child == NULL) {
 			device_printf(parent, "failed to add superio child\n");
 			continue;
 		}
-		bus_set_resource(child, SYS_RES_IOPORT,	0, ports_table[i], 2);
+		bus_set_resource(child, SYS_RES_IOPORT, 0, ports_table[i], 2);
 		if (superio_detect(child, false, NULL) != 0)
 			device_delete_child(parent, child);
 	}
@@ -723,8 +778,8 @@ superio_attach(device_t dev)
 	bus_generic_probe(dev);
 	bus_generic_attach(dev);
 
-	sc->chardev = make_dev(&superio_cdevsw, device_get_unit(dev),
-	    UID_ROOT, GID_WHEEL, 0600, "superio%d", device_get_unit(dev));
+	sc->chardev = make_dev(&superio_cdevsw, device_get_unit(dev), UID_ROOT,
+	    GID_WHEEL, 0600, "superio%d", device_get_unit(dev));
 	if (sc->chardev == NULL)
 		device_printf(dev, "failed to create character device\n");
 	else
@@ -833,8 +888,8 @@ superio_printf(struct superio_devinfo *dinfo, const char *fmt, ...)
 	va_list ap;
 	int retval;
 
-	retval = printf("superio:%s@ldn%0x2x: ",
-	    devtype_to_str(dinfo->type), dinfo->ldn);
+	retval = printf("superio:%s@ldn%0x2x: ", devtype_to_str(dinfo->type),
+	    dinfo->ldn);
 	va_start(ap, fmt);
 	retval += vprintf(fmt, ap);
 	va_end(ap);
@@ -934,9 +989,9 @@ superio_extid(device_t dev)
 uint8_t
 superio_ldn_read(device_t dev, uint8_t ldn, uint8_t reg)
 {
-	device_t      sio_dev = device_get_parent(dev);
-	struct siosc *sc      = device_get_softc(sio_dev);
-	uint8_t       v;
+	device_t sio_dev = device_get_parent(dev);
+	struct siosc *sc = device_get_softc(sio_dev);
+	uint8_t v;
 
 	sio_conf_enter(sc);
 	v = sio_ldn_read(sc, ldn, reg);
@@ -955,8 +1010,8 @@ superio_read(device_t dev, uint8_t reg)
 void
 superio_ldn_write(device_t dev, uint8_t ldn, uint8_t reg, uint8_t val)
 {
-	device_t      sio_dev = device_get_parent(dev);
-	struct siosc *sc      = device_get_softc(sio_dev);
+	device_t sio_dev = device_get_parent(dev);
+	struct siosc *sc = device_get_softc(sio_dev);
 
 	sio_conf_enter(sc);
 	sio_ldn_write(sc, ldn, reg, val);
@@ -983,7 +1038,8 @@ superio_dev_enabled(device_t dev, uint8_t mask)
 	if (sc->vendor == SUPERIO_VENDOR_ITE && dinfo->ldn == 7)
 		return (true);
 
-	v = superio_read(dev, sc->enable_reg); /* FIXME enable_reg not used by nctgpio(4). */
+	v = superio_read(dev,
+	    sc->enable_reg); /* FIXME enable_reg not used by nctgpio(4). */
 	return ((v & mask) != 0);
 }
 
@@ -1032,11 +1088,11 @@ superio_find_dev(device_t superio, superio_dev_type_t type, int ldn)
 	struct superio_devinfo *dinfo;
 
 	if (ldn < -1 || ldn > UINT8_MAX)
-		return (NULL);		/* ERANGE */
+		return (NULL); /* ERANGE */
 	if (type == SUPERIO_DEV_NONE && ldn == -1)
-		return (NULL);		/* EINVAL */
+		return (NULL); /* EINVAL */
 
-	STAILQ_FOREACH(dinfo, &sc->devlist, link) {
+	STAILQ_FOREACH (dinfo, &sc->devlist, link) {
 		if (ldn != -1 && dinfo->ldn != ldn)
 			continue;
 		if (type != SUPERIO_DEV_NONE && dinfo->type != type)
@@ -1071,41 +1127,37 @@ superio_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
 	}
 }
 
-static device_method_t superio_methods[] = {
-	DEVMETHOD(device_identify,	superio_identify),
-	DEVMETHOD(device_probe,		superio_probe),
-	DEVMETHOD(device_attach,	superio_attach),
-	DEVMETHOD(device_detach,	superio_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+static device_method_t superio_methods[] = { DEVMETHOD(device_identify,
+						 superio_identify),
+	DEVMETHOD(device_probe, superio_probe),
+	DEVMETHOD(device_attach, superio_attach),
+	DEVMETHOD(device_detach, superio_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
-	DEVMETHOD(bus_add_child,	superio_add_child),
-	DEVMETHOD(bus_child_detached,	superio_child_detached),
-	DEVMETHOD(bus_child_location,	superio_child_location),
-	DEVMETHOD(bus_child_pnpinfo,	superio_child_pnp),
-	DEVMETHOD(bus_print_child,	superio_print_child),
-	DEVMETHOD(bus_read_ivar,	superio_read_ivar),
-	DEVMETHOD(bus_write_ivar,	superio_write_ivar),
+	DEVMETHOD(bus_add_child, superio_add_child),
+	DEVMETHOD(bus_child_detached, superio_child_detached),
+	DEVMETHOD(bus_child_location, superio_child_location),
+	DEVMETHOD(bus_child_pnpinfo, superio_child_pnp),
+	DEVMETHOD(bus_print_child, superio_print_child),
+	DEVMETHOD(bus_read_ivar, superio_read_ivar),
+	DEVMETHOD(bus_write_ivar, superio_write_ivar),
 	DEVMETHOD(bus_get_resource_list, superio_get_resource_list),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_rl_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rl_release_resource),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
-	DEVMETHOD(bus_delete_resource,	bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rl_release_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t superio_driver = {
-	"superio",
-	superio_methods,
-	sizeof(struct siosc)
-};
+static driver_t superio_driver = { "superio", superio_methods,
+	sizeof(struct siosc) };
 
 DRIVER_MODULE(superio, isa, superio_driver, 0, 0);
 MODULE_VERSION(superio, 1);

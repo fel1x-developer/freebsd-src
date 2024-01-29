@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/ioccom.h>
@@ -41,15 +42,14 @@
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/signalvar.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
+#include <vm/vm_param.h>
 #include <vm/vm_phys.h>
 
 #include <machine/memdev.h>
@@ -59,14 +59,14 @@ static struct cdev *memdev, *kmemdev;
 static d_ioctl_t memioctl;
 
 static struct cdevsw mem_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_MEM,
-	.d_open =	memopen,
-	.d_read =	memrw,
-	.d_write =	memrw,
-	.d_ioctl =	memioctl,
-	.d_mmap =	memmmap,
-	.d_name =	"mem",
+	.d_version = D_VERSION,
+	.d_flags = D_MEM,
+	.d_open = memopen,
+	.d_read = memrw,
+	.d_write = memrw,
+	.d_ioctl = memioctl,
+	.d_mmap = memmmap,
+	.d_name = "mem",
 };
 
 /* ARGSUSED */
@@ -121,7 +121,8 @@ memioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
 		break;
 	case MEM_KERNELDUMP:
 		marg = (const struct mem_livedump_arg *)data;
-		error = livedump_start(marg->fd, marg->flags, marg->compression);
+		error = livedump_start(marg->fd, marg->flags,
+		    marg->compression);
 		break;
 	default:
 		error = memioctl_md(dev, cmd, data, flags, td);
@@ -134,15 +135,15 @@ memioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
 static int
 mem_modevent(module_t mod __unused, int type, void *data __unused)
 {
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		if (bootverbose)
 			printf("mem: <memory>\n");
 		mem_range_init();
-		memdev = make_dev(&mem_cdevsw, CDEV_MINOR_MEM,
-			UID_ROOT, GID_KMEM, 0640, "mem");
-		kmemdev = make_dev(&mem_cdevsw, CDEV_MINOR_KMEM,
-			UID_ROOT, GID_KMEM, 0640, "kmem");
+		memdev = make_dev(&mem_cdevsw, CDEV_MINOR_MEM, UID_ROOT,
+		    GID_KMEM, 0640, "mem");
+		kmemdev = make_dev(&mem_cdevsw, CDEV_MINOR_KMEM, UID_ROOT,
+		    GID_KMEM, 0640, "kmem");
 		break;
 
 	case MOD_UNLOAD:
@@ -155,7 +156,7 @@ mem_modevent(module_t mod __unused, int type, void *data __unused)
 		break;
 
 	default:
-		return(EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 
 	return (0);

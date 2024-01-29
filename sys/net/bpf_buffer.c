@@ -61,23 +61,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bpf.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
 #include <sys/socket.h>
-#include <sys/uio.h>
-#include <sys/kernel.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
 
-#include <net/if.h>
 #include <net/bpf.h>
 #include <net/bpf_buffer.h>
 #include <net/bpfdesc.h>
+#include <net/if.h>
 
 /*
  * Implement historical kernel memory buffering model for BPF: two malloc(9)
@@ -87,18 +87,18 @@
  */
 
 static int bpf_bufsize = 4096;
-SYSCTL_INT(_net_bpf, OID_AUTO, bufsize, CTLFLAG_RW,
-    &bpf_bufsize, 0, "Default capture buffer size in bytes");
+SYSCTL_INT(_net_bpf, OID_AUTO, bufsize, CTLFLAG_RW, &bpf_bufsize, 0,
+    "Default capture buffer size in bytes");
 static int bpf_maxbufsize = BPF_MAXBUFSIZE;
-SYSCTL_INT(_net_bpf, OID_AUTO, maxbufsize, CTLFLAG_RW,
-    &bpf_maxbufsize, 0, "Maximum capture buffer in bytes");
+SYSCTL_INT(_net_bpf, OID_AUTO, maxbufsize, CTLFLAG_RW, &bpf_maxbufsize, 0,
+    "Maximum capture buffer in bytes");
 
 /*
  * Simple data copy to the current kernel buffer.
  */
 void
-bpf_buffer_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset,
-    void *src, u_int len)
+bpf_buffer_append_bytes(struct bpf_d *d, caddr_t buf, u_int offset, void *src,
+    u_int len)
 {
 	u_char *src_bytes;
 

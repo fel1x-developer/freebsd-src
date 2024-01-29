@@ -83,10 +83,8 @@ extern "C" {
  *         to achieve proper alignment, for memory descriptors that
  *         exactly match the supplied memory attributes.
  */
-U32 sci_mdl_decorator_get_memory_size(
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl,
-   U32                                 attributes
-);
+U32 sci_mdl_decorator_get_memory_size(SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl,
+    U32 attributes);
 
 /**
  * @brief This method will assign the supplied memory address values
@@ -114,16 +112,12 @@ U32 sci_mdl_decorator_get_memory_size(
  *
  * @return none
  */
-void sci_mdl_decorator_assign_memory(
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl,
-   U32                                 attributes,
-   POINTER_UINT                        virtual_address,
-   SCI_PHYSICAL_ADDRESS                sci_physical_address
-);
+void sci_mdl_decorator_assign_memory(SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T mdl,
+    U32 attributes, POINTER_UINT virtual_address,
+    SCI_PHYSICAL_ADDRESS sci_physical_address);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_MEMORY_DESCRIPTOR_LIST_DECORATOR_H_
-

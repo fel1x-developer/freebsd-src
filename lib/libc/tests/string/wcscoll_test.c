@@ -26,13 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#include <wchar.h>
+#include <atf-c.h>
+#include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <time.h>
-#include <errno.h>
-
-#include <atf-c.h>
+#include <wchar.h>
 
 static int
 cmp(const void *a, const void *b)
@@ -46,8 +45,10 @@ cmp(const void *a, const void *b)
 ATF_TC_WITHOUT_HEAD(russian_collation);
 ATF_TC_BODY(russian_collation, tc)
 {
-	wchar_t c[] = L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzЁАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяё";
-	wchar_t res[] = L"aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZаАбБвВгГдДеЕёЁжЖзЗиИйЙкКлЛмМнНоОпПрРсСтТуУфФхХцЦчЧшШщЩъЪыЫьЬэЭюЮяЯ";
+	wchar_t c[] =
+	    L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzЁАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюяё";
+	wchar_t res[] =
+	    L"aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZаАбБвВгГдДеЕёЁжЖзЗиИйЙкКлЛмМнНоОпПрРсСтТуУфФхХцЦчЧшШщЩъЪыЫьЬэЭюЮяЯ";
 
 	ATF_CHECK_MSG(setlocale(LC_ALL, "ru_RU.UTF-8") != NULL,
 	    "Fail to set locale to \"ru_RU.UTF-8\"");
@@ -56,34 +57,34 @@ ATF_TC_BODY(russian_collation, tc)
 	    "Bad collation, expected: '%ls' got '%ls'", res, c);
 }
 
-#define	NSTRINGS 2000
-#define	MAXSTRLEN 20
-#define	MAXXFRMLEN (MAXSTRLEN * 20)
+#define NSTRINGS 2000
+#define MAXSTRLEN 20
+#define MAXXFRMLEN (MAXSTRLEN * 20)
 
 typedef struct {
-	char	sval[MAXSTRLEN];
-	char	xval[MAXXFRMLEN];
+	char sval[MAXSTRLEN];
+	char xval[MAXXFRMLEN];
 } cstr;
 
 ATF_TC_WITHOUT_HEAD(strcoll_vs_strxfrm);
 ATF_TC_BODY(strcoll_vs_strxfrm, tc)
 {
-	cstr	data[NSTRINGS];
-	char	*curloc;
-	int	i, j;
+	cstr data[NSTRINGS];
+	char *curloc;
+	int i, j;
 
 	curloc = setlocale(LC_ALL, "en_US.UTF-8");
 	ATF_CHECK_MSG(curloc != NULL, "Fail to set locale");
 
 	/* Ensure new random() values on every run */
-	srandom((unsigned int) time(NULL));
+	srandom((unsigned int)time(NULL));
 
 	/* Generate random UTF8 strings of length less than MAXSTRLEN bytes */
 	for (i = 0; i < NSTRINGS; i++) {
-		char	*p;
-		int	len;
+		char *p;
+		int len;
 
-again:
+	again:
 		p = data[i].sval;
 		len = 1 + (random() % (MAXSTRLEN - 1));
 		while (len > 0) {
@@ -118,10 +119,11 @@ again:
 		*p = '\0';
 		/* strxfrm() each string as we produce it */
 		errno = 0;
-		ATF_CHECK_MSG(strxfrm(data[i].xval, data[i].sval,
-		    MAXXFRMLEN) < MAXXFRMLEN, "strxfrm() result for %d-length "
-		    " string exceeded %d bytes", (int)strlen(data[i].sval),
-		    MAXXFRMLEN);
+		ATF_CHECK_MSG(strxfrm(data[i].xval, data[i].sval, MAXXFRMLEN) <
+			MAXXFRMLEN,
+		    "strxfrm() result for %d-length "
+		    " string exceeded %d bytes",
+		    (int)strlen(data[i].sval), MAXXFRMLEN);
 
 		/*
 		 * Amend strxfrm() failing on certain characters to be fixed and
@@ -137,9 +139,9 @@ again:
 			int sx = strcmp(data[i].xval, data[j].xval);
 
 			ATF_CHECK_MSG(!((sr * sx < 0) ||
-			    (sr * sx == 0 && sr + sx != 0)),
-			    "%s: diff for \"%s\" and \"%s\"",
-			    curloc, data[i].sval, data[j].sval);
+					  (sr * sx == 0 && sr + sx != 0)),
+			    "%s: diff for \"%s\" and \"%s\"", curloc,
+			    data[i].sval, data[j].sval);
 		}
 	}
 }

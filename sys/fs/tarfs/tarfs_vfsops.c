@@ -50,67 +50,80 @@
 
 #include <vm/vm_param.h>
 
-#include <geom/geom.h>
-#include <geom/geom_vfs.h>
-
 #include <fs/tarfs/tarfs.h>
 #include <fs/tarfs/tarfs_dbg.h>
+#include <geom/geom.h>
+#include <geom/geom_vfs.h>
 
 CTASSERT(ZERO_REGION_SIZE > TARFS_BLOCKSIZE);
 
 struct ustar_header {
-	char	name[100];		/* File name */
-	char	mode[8];		/* Mode flags */
-	char	uid[8];			/* User id */
-	char	gid[8];			/* Group id */
-	char	size[12];		/* Size */
-	char	mtime[12];		/* Modified time */
-	char	checksum[8];		/* Checksum */
-	char	typeflag[1];		/* Type */
-	char	linkname[100];		/* "old format" stops here */
-	char	magic[6];		/* POSIX UStar "ustar\0" indicator */
-	char	version[2];		/* POSIX UStar version "00" */
-	char	uname[32];		/* User name */
-	char	gname[32];		/* Group name */
-	char	major[8];		/* Device major number */
-	char	minor[8];		/* Device minor number */
-	char	prefix[155];		/* Path prefix */
+	char name[100];	    /* File name */
+	char mode[8];	    /* Mode flags */
+	char uid[8];	    /* User id */
+	char gid[8];	    /* Group id */
+	char size[12];	    /* Size */
+	char mtime[12];	    /* Modified time */
+	char checksum[8];   /* Checksum */
+	char typeflag[1];   /* Type */
+	char linkname[100]; /* "old format" stops here */
+	char magic[6];	    /* POSIX UStar "ustar\0" indicator */
+	char version[2];    /* POSIX UStar version "00" */
+	char uname[32];	    /* User name */
+	char gname[32];	    /* Group name */
+	char major[8];	    /* Device major number */
+	char minor[8];	    /* Device minor number */
+	char prefix[155];   /* Path prefix */
 };
 
-#define	TAR_EOF			((off_t)-1)
+#define TAR_EOF ((off_t)-1)
 
-#define	TAR_TYPE_FILE		'0'
-#define	TAR_TYPE_HARDLINK	'1'
-#define	TAR_TYPE_SYMLINK	'2'
-#define	TAR_TYPE_CHAR		'3'
-#define	TAR_TYPE_BLOCK		'4'
-#define	TAR_TYPE_DIRECTORY	'5'
-#define	TAR_TYPE_FIFO		'6'
-#define	TAR_TYPE_CONTIG		'7'
-#define	TAR_TYPE_GLOBAL_EXTHDR	'g'
-#define	TAR_TYPE_EXTHDR		'x'
-#define	TAR_TYPE_GNU_SPARSE	'S'
+#define TAR_TYPE_FILE '0'
+#define TAR_TYPE_HARDLINK '1'
+#define TAR_TYPE_SYMLINK '2'
+#define TAR_TYPE_CHAR '3'
+#define TAR_TYPE_BLOCK '4'
+#define TAR_TYPE_DIRECTORY '5'
+#define TAR_TYPE_FIFO '6'
+#define TAR_TYPE_CONTIG '7'
+#define TAR_TYPE_GLOBAL_EXTHDR 'g'
+#define TAR_TYPE_EXTHDR 'x'
+#define TAR_TYPE_GNU_SPARSE 'S'
 
-#define	USTAR_MAGIC		(uint8_t []){ 'u', 's', 't', 'a', 'r', 0 }
-#define	USTAR_VERSION		(uint8_t []){ '0', '0' }
-#define	GNUTAR_MAGIC		(uint8_t []){ 'u', 's', 't', 'a', 'r', ' ' }
-#define	GNUTAR_VERSION		(uint8_t []){ ' ', '\x0' }
+#define USTAR_MAGIC                        \
+	(uint8_t[])                        \
+	{                                  \
+		'u', 's', 't', 'a', 'r', 0 \
+	}
+#define USTAR_VERSION    \
+	(uint8_t[])      \
+	{                \
+		'0', '0' \
+	}
+#define GNUTAR_MAGIC                         \
+	(uint8_t[])                          \
+	{                                    \
+		'u', 's', 't', 'a', 'r', ' ' \
+	}
+#define GNUTAR_VERSION     \
+	(uint8_t[])        \
+	{                  \
+		' ', '\x0' \
+	}
 
-#define	DEFDIRMODE	(S_IRUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
+#define DEFDIRMODE (S_IRUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
 MALLOC_DEFINE(M_TARFSMNT, "tarfs mount", "tarfs mount structures");
 MALLOC_DEFINE(M_TARFSNODE, "tarfs node", "tarfs node structures");
 
-static vfs_mount_t	tarfs_mount;
-static vfs_unmount_t	tarfs_unmount;
-static vfs_root_t	tarfs_root;
-static vfs_statfs_t	tarfs_statfs;
-static vfs_fhtovp_t	tarfs_fhtovp;
+static vfs_mount_t tarfs_mount;
+static vfs_unmount_t tarfs_unmount;
+static vfs_root_t tarfs_root;
+static vfs_statfs_t tarfs_statfs;
+static vfs_fhtovp_t tarfs_fhtovp;
 
-static const char *tarfs_opts[] = {
-	"as", "from", "gid", "mode", "uid", "verify",
-	NULL
-};
+static const char *tarfs_opts[] = { "as", "from", "gid", "mode", "uid",
+	"verify", NULL };
 
 /*
  * Reads a len-width signed octal number from strp.  Returns the value.
@@ -265,7 +278,6 @@ tarfs_checksum(struct ustar_header *hdrp)
 	return (false);
 }
 
-
 /*
  * Looks up a path in the tarfs node tree.
  *
@@ -289,7 +301,7 @@ tarfs_lookup_path(struct tarfs_mount *tmp, char *name, size_t namelen,
     char **endp, char **sepp, struct tarfs_node **retparent,
     struct tarfs_node **retnode, boolean_t create_dirs)
 {
-	struct componentname cn = { };
+	struct componentname cn = {};
 	struct tarfs_node *parent, *tnp;
 	char *sep;
 	size_t len;
@@ -304,8 +316,8 @@ tarfs_lookup_path(struct tarfs_mount *tmp, char *name, size_t namelen,
 	if (tnp == NULL)
 		panic("%s: root node not yet created", __func__);
 
-	TARFS_DPF(LOOKUP, "%s: full path: %.*s\n", __func__,
-	    (int)namelen, name);
+	TARFS_DPF(LOOKUP, "%s: full path: %.*s\n", __func__, (int)namelen,
+	    name);
 
 	sep = NULL;
 	for (;;) {
@@ -322,17 +334,16 @@ tarfs_lookup_path(struct tarfs_mount *tmp, char *name, size_t namelen,
 
 		/* we're not at the end, so we must be in a directory */
 		if (tnp != NULL && tnp->type != VDIR) {
-			TARFS_DPF(LOOKUP, "%s: %.*s is not a directory\n", __func__,
-			    (int)tnp->namelen, tnp->name);
+			TARFS_DPF(LOOKUP, "%s: %.*s is not a directory\n",
+			    __func__, (int)tnp->namelen, tnp->name);
 			error = ENOTDIR;
 			break;
 		}
 
 		/* locate the next separator */
 		for (sep = name, len = 0;
-		     *sep != '\0' && *sep != '/' && len < namelen;
-		     sep++, len++)
-			/* nothing */ ;
+		     *sep != '\0' && *sep != '/' && len < namelen; sep++, len++)
+			/* nothing */;
 
 		/* check for . and .. */
 		if (name[0] == '.' && len == 1) {
@@ -373,8 +384,8 @@ tarfs_lookup_path(struct tarfs_mount *tmp, char *name, size_t namelen,
 		cn.cn_nameptr = name;
 		cn.cn_namelen = len;
 		TARFS_DPF(LOOKUP, "%s: looking up %.*s in %.*s/\n", __func__,
-		    (int)cn.cn_namelen, cn.cn_nameptr,
-		    (int)parent->namelen, parent->name);
+		    (int)cn.cn_namelen, cn.cn_nameptr, (int)parent->namelen,
+		    parent->name);
 		if (do_lookup) {
 			tnp = tarfs_lookup_node(parent, NULL, &cn);
 			if (tnp == NULL) {
@@ -418,7 +429,7 @@ tarfs_free_mount(struct tarfs_mount *tmp)
 	TARFS_DPF(ALLOC, "%s: Freeing mount structure %p\n", __func__, tmp);
 
 	TARFS_DPF(ALLOC, "%s: freeing tarfs_node structures\n", __func__);
-	TAILQ_FOREACH_SAFE(tnp, &tmp->allnodes, entries, tnp_next) {
+	TAILQ_FOREACH_SAFE (tnp, &tmp->allnodes, entries, tnp_next) {
 		tarfs_free_node(tnp);
 	}
 
@@ -466,8 +477,8 @@ tarfs_alloc_one(struct tarfs_mount *tmp, off_t *blknump)
 
 again:
 	/* read next header */
-	res = tarfs_io_read_buf(tmp, false, block,
-	    TARFS_BLOCKSIZE * blknum, TARFS_BLOCKSIZE);
+	res = tarfs_io_read_buf(tmp, false, block, TARFS_BLOCKSIZE * blknum,
+	    TARFS_BLOCKSIZE);
 	if (res < 0) {
 		error = -res;
 		goto bad;
@@ -480,7 +491,8 @@ again:
 	if (memcmp(block, zero_region, TARFS_BLOCKSIZE) == 0) {
 		if (endmarker++) {
 			if (exthdr != NULL) {
-				TARFS_DPF(IO, "%s: orphaned extended header at %zu\n",
+				TARFS_DPF(IO,
+				    "%s: orphaned extended header at %zu\n",
 				    __func__, TARFS_BLOCKSIZE * (blknum - 1));
 				free(exthdr, M_TEMP);
 			}
@@ -497,7 +509,8 @@ again:
 	if (memcmp(hdrp->magic, USTAR_MAGIC, sizeof(USTAR_MAGIC)) == 0 &&
 	    memcmp(hdrp->version, USTAR_VERSION, sizeof(USTAR_VERSION)) == 0) {
 		/* POSIX */
-	} else if (memcmp(hdrp->magic, GNUTAR_MAGIC, sizeof(GNUTAR_MAGIC)) == 0 &&
+	} else if (memcmp(hdrp->magic, GNUTAR_MAGIC, sizeof(GNUTAR_MAGIC)) ==
+		0 &&
 	    memcmp(hdrp->magic, GNUTAR_MAGIC, sizeof(GNUTAR_MAGIC)) == 0) {
 		TARFS_DPF(ALLOC, "%s: GNU tar format at %zu\n", __func__,
 		    TARFS_BLOCKSIZE * (blknum - 1));
@@ -520,17 +533,17 @@ again:
 
 	/* get standard attributes */
 	num = tarfs_str2int64(hdrp->mode, sizeof(hdrp->mode));
-	if (num < 0 || num > (S_IFMT|ALLPERMS)) {
-		TARFS_DPF(ALLOC, "%s: invalid file mode at %zu\n",
-		    __func__, TARFS_BLOCKSIZE * (blknum - 1));
+	if (num < 0 || num > (S_IFMT | ALLPERMS)) {
+		TARFS_DPF(ALLOC, "%s: invalid file mode at %zu\n", __func__,
+		    TARFS_BLOCKSIZE * (blknum - 1));
 		mode = S_IRUSR;
 	} else {
 		mode = num & ALLPERMS;
 	}
 	num = tarfs_str2int64(hdrp->uid, sizeof(hdrp->uid));
 	if (num < 0 || num > UID_MAX) {
-		TARFS_DPF(ALLOC, "%s: UID out of range at %zu\n",
-		    __func__, TARFS_BLOCKSIZE * (blknum - 1));
+		TARFS_DPF(ALLOC, "%s: UID out of range at %zu\n", __func__,
+		    TARFS_BLOCKSIZE * (blknum - 1));
 		uid = tmp->root->uid;
 		mode &= ~S_ISUID;
 	} else {
@@ -538,8 +551,8 @@ again:
 	}
 	num = tarfs_str2int64(hdrp->gid, sizeof(hdrp->gid));
 	if (num < 0 || num > GID_MAX) {
-		TARFS_DPF(ALLOC, "%s: GID out of range at %zu\n",
-		    __func__, TARFS_BLOCKSIZE * (blknum - 1));
+		TARFS_DPF(ALLOC, "%s: GID out of range at %zu\n", __func__,
+		    TARFS_BLOCKSIZE * (blknum - 1));
 		gid = tmp->root->gid;
 		mode &= ~S_ISGID;
 	} else {
@@ -547,8 +560,8 @@ again:
 	}
 	num = tarfs_str2int64(hdrp->size, sizeof(hdrp->size));
 	if (num < 0) {
-		TARFS_DPF(ALLOC, "%s: negative size at %zu\n",
-		    __func__, TARFS_BLOCKSIZE * (blknum - 1));
+		TARFS_DPF(ALLOC, "%s: negative size at %zu\n", __func__,
+		    TARFS_BLOCKSIZE * (blknum - 1));
 		error = EINVAL;
 		goto bad;
 	} else {
@@ -617,8 +630,8 @@ again:
 			}
 			*sep = '\0';
 			value = sep + 1;
-			TARFS_DPF(ALLOC, "%s: exthdr %s=%s\n", __func__,
-			    key, value);
+			TARFS_DPF(ALLOC, "%s: exthdr %s=%s\n", __func__, key,
+			    value);
 			if (strcmp(key, "linkpath") == 0) {
 				link = value;
 				linklen = eol - value;
@@ -669,11 +682,12 @@ again:
 
 	/* sparse file consistency checks */
 	if (sparse) {
-		TARFS_DPF(ALLOC, "%s: %s: sparse %ld.%ld (%zu bytes)\n", __func__,
-		    name, major, minor, realsize);
+		TARFS_DPF(ALLOC, "%s: %s: sparse %ld.%ld (%zu bytes)\n",
+		    __func__, name, major, minor, realsize);
 		if (major != 1 || minor != 0 || name == NULL || realsize == 0 ||
 		    hdrp->typeflag[0] != TAR_TYPE_FILE) {
-			TARFS_DPF(ALLOC, "%s: invalid sparse format\n", __func__);
+			TARFS_DPF(ALLOC, "%s: invalid sparse format\n",
+			    __func__);
 			error = EINVAL;
 			goto bad;
 		}
@@ -695,8 +709,8 @@ again:
 		}
 	}
 
-	error = tarfs_lookup_path(tmp, name, namelen, &namep,
-	    &sep, &parent, &tnp, true);
+	error = tarfs_lookup_path(tmp, name, namelen, &namep, &sep, &parent,
+	    &tnp, true);
 	if (error != 0) {
 		TARFS_DPF(ALLOC, "%s: failed to look up %.*s\n", __func__,
 		    (int)namelen, name);
@@ -715,14 +729,13 @@ again:
 	}
 	switch (hdrp->typeflag[0]) {
 	case TAR_TYPE_DIRECTORY:
-		error = tarfs_alloc_node(tmp, namep, sep - namep, VDIR,
-		    0, 0, mtime, uid, gid, mode, flags, NULL, 0,
-		    parent, &tnp);
+		error = tarfs_alloc_node(tmp, namep, sep - namep, VDIR, 0, 0,
+		    mtime, uid, gid, mode, flags, NULL, 0, parent, &tnp);
 		break;
 	case TAR_TYPE_FILE:
 		error = tarfs_alloc_node(tmp, namep, sep - namep, VREG,
-		    blknum * TARFS_BLOCKSIZE, sz, mtime, uid, gid, mode,
-		    flags, NULL, 0, parent, &tnp);
+		    blknum * TARFS_BLOCKSIZE, sz, mtime, uid, gid, mode, flags,
+		    NULL, 0, parent, &tnp);
 		if (error == 0 && sparse) {
 			error = tarfs_load_blockmap(tnp, realsize);
 		}
@@ -732,15 +745,14 @@ again:
 			link = hdrp->linkname;
 			linklen = strnlen(link, sizeof(hdrp->linkname));
 		}
-		error = tarfs_alloc_node(tmp, namep, sep - namep, VREG,
-		    0, 0, 0, 0, 0, 0, 0, NULL, 0, parent, &tnp);
+		error = tarfs_alloc_node(tmp, namep, sep - namep, VREG, 0, 0, 0,
+		    0, 0, 0, 0, NULL, 0, parent, &tnp);
 		if (error != 0) {
 			goto bad;
 		}
-		error = tarfs_lookup_path(tmp, link, linklen, NULL,
-		    NULL, NULL, &tnp->other, false);
-		if (tnp->other == NULL ||
-		    tnp->other->type != VREG ||
+		error = tarfs_lookup_path(tmp, link, linklen, NULL, NULL, NULL,
+		    &tnp->other, false);
+		if (tnp->other == NULL || tnp->other->type != VREG ||
 		    tnp->other->other != NULL) {
 			TARFS_DPF(ALLOC, "%s: %.*s: dead hard link to %.*s\n",
 			    __func__, (int)namelen, name, (int)linklen, link);
@@ -754,29 +766,27 @@ again:
 			link = hdrp->linkname;
 			linklen = strnlen(link, sizeof(hdrp->linkname));
 		}
-		error = tarfs_alloc_node(tmp, namep, sep - namep, VLNK,
-		    0, linklen, mtime, uid, gid, mode, flags, link, 0,
-		    parent, &tnp);
+		error = tarfs_alloc_node(tmp, namep, sep - namep, VLNK, 0,
+		    linklen, mtime, uid, gid, mode, flags, link, 0, parent,
+		    &tnp);
 		break;
 	case TAR_TYPE_BLOCK:
 		major = tarfs_str2int64(hdrp->major, sizeof(hdrp->major));
 		minor = tarfs_str2int64(hdrp->minor, sizeof(hdrp->minor));
 		rdev = makedev(major, minor);
-		error = tarfs_alloc_node(tmp, namep, sep - namep, VBLK,
-		    0, 0, mtime, uid, gid, mode, flags, NULL, rdev,
-		    parent, &tnp);
+		error = tarfs_alloc_node(tmp, namep, sep - namep, VBLK, 0, 0,
+		    mtime, uid, gid, mode, flags, NULL, rdev, parent, &tnp);
 		break;
 	case TAR_TYPE_CHAR:
 		major = tarfs_str2int64(hdrp->major, sizeof(hdrp->major));
 		minor = tarfs_str2int64(hdrp->minor, sizeof(hdrp->minor));
 		rdev = makedev(major, minor);
-		error = tarfs_alloc_node(tmp, namep, sep - namep, VCHR,
-		    0, 0, mtime, uid, gid, mode, flags, NULL, rdev,
-		    parent, &tnp);
+		error = tarfs_alloc_node(tmp, namep, sep - namep, VCHR, 0, 0,
+		    mtime, uid, gid, mode, flags, NULL, rdev, parent, &tnp);
 		break;
 	default:
-		TARFS_DPF(ALLOC, "%s: unsupported type %c for %.*s\n",
-		    __func__, hdrp->typeflag[0], (int)namelen, name);
+		TARFS_DPF(ALLOC, "%s: unsupported type %c for %.*s\n", __func__,
+		    hdrp->typeflag[0], (int)namelen, name);
 		error = EINVAL;
 		break;
 	}
@@ -815,9 +825,8 @@ bad:
  * failure.
  */
 static int
-tarfs_alloc_mount(struct mount *mp, struct vnode *vp,
-    uid_t root_uid, gid_t root_gid, mode_t root_mode,
-    struct tarfs_mount **tmpp)
+tarfs_alloc_mount(struct mount *mp, struct vnode *vp, uid_t root_uid,
+    gid_t root_gid, mode_t root_mode, struct tarfs_mount **tmpp)
 {
 	struct vattr va;
 	struct thread *td = curthread;
@@ -848,8 +857,7 @@ tarfs_alloc_mount(struct mount *mp, struct vnode *vp,
 	TARFS_DPF(ALLOC, "%s: Allocated mount structure\n", __func__);
 	mp->mnt_data = tmp;
 
-	mtx_init(&tmp->allnode_lock, "tarfs allnode lock", NULL,
-	    MTX_DEF);
+	mtx_init(&tmp->allnode_lock, "tarfs allnode lock", NULL, MTX_DEF);
 	TAILQ_INIT(&tmp->allnodes);
 	tmp->ino_unr = new_unrhdr(TARFS_MININO, INT_MAX, &tmp->allnode_lock);
 	tmp->vp = vp;
@@ -941,12 +949,12 @@ tarfs_mount(struct mount *mp)
 		as = from;
 
 	/* Find the source tarball */
-	TARFS_DPF(FS, "%s(%s%s%s, uid=%u, gid=%u, mode=%o)\n", __func__,
-	    from, (as != from) ? " as " : "", (as != from) ? as : "",
-	    root_uid, root_gid, root_mode);
+	TARFS_DPF(FS, "%s(%s%s%s, uid=%u, gid=%u, mode=%o)\n", __func__, from,
+	    (as != from) ? " as " : "", (as != from) ? as : "", root_uid,
+	    root_gid, root_mode);
 	flags = FREAD;
 	if (vfs_flagopt(mp->mnt_optnew, "verify", NULL, 0)) {
-	    flags |= O_VERIFY;
+		flags |= O_VERIFY;
 	}
 	NDINIT(&nd, LOOKUP, ISOPEN | FOLLOW | LOCKLEAF, UIO_SYSSPACE, from);
 	error = namei(&nd);
@@ -961,8 +969,8 @@ tarfs_mount(struct mount *mp)
 	/* Open the source tarball */
 	error = vn_open_vnode(vp, flags, td->td_ucred, td, NULL);
 	if (error != 0) {
-		TARFS_DPF(FS, "%s: failed to open %s: %d\n", __func__,
-		    from, error);
+		TARFS_DPF(FS, "%s: failed to open %s: %d\n", __func__, from,
+		    error);
 		vput(vp);
 		goto bad;
 	}
@@ -986,8 +994,8 @@ tarfs_mount(struct mount *mp)
 	error = tarfs_alloc_mount(mp, vp, root_uid, root_gid, root_mode, &tmp);
 	/* vp is now held but unlocked */
 	if (error != 0) {
-		TARFS_DPF(FS, "%s: failed to mount %s: %d\n", __func__,
-		    from, error);
+		TARFS_DPF(FS, "%s: failed to mount %s: %d\n", __func__, from,
+		    error);
 		goto bad_open_unlocked;
 	}
 	TARFS_DPF(FS, "%s: M: hold %u use %u lock 0x%x\n", __func__,
@@ -1139,7 +1147,7 @@ tarfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 	}
 
 	/* XXX Should use hash instead? */
-	TAILQ_FOREACH(tnp, &tmp->allnodes, entries) {
+	TAILQ_FOREACH (tnp, &tmp->allnodes, entries) {
 		if (tnp->ino == ino)
 			break;
 	}
@@ -1190,9 +1198,7 @@ tarfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp)
 		return (error);
 	}
 	tnp = VP_TO_TARFS_NODE(nvp);
-	if (tnp->mode == 0 ||
-	    tnp->gen != tfp->gen ||
-	    tnp->nlink <= 0) {
+	if (tnp->mode == 0 || tnp->gen != tfp->gen || tnp->nlink <= 0) {
 		vput(nvp);
 		*vpp = NULLVP;
 		return (ESTALE);
@@ -1202,12 +1208,12 @@ tarfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp)
 }
 
 static struct vfsops tarfs_vfsops = {
-	.vfs_fhtovp =	tarfs_fhtovp,
-	.vfs_mount =	tarfs_mount,
-	.vfs_root =	tarfs_root,
-	.vfs_statfs =	tarfs_statfs,
-	.vfs_unmount =	tarfs_unmount,
-	.vfs_vget =	tarfs_vget,
+	.vfs_fhtovp = tarfs_fhtovp,
+	.vfs_mount = tarfs_mount,
+	.vfs_root = tarfs_root,
+	.vfs_statfs = tarfs_statfs,
+	.vfs_unmount = tarfs_unmount,
+	.vfs_vget = tarfs_vget,
 };
 VFS_SET(tarfs_vfsops, tarfs, VFCF_READONLY);
 MODULE_VERSION(tarfs, 1);

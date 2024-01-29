@@ -54,14 +54,15 @@
  * --Copyright--
  */
 
-
 #include <sys/param.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <ctype.h>
 
-#ifndef	__P
-#  define	__P(x)	x
+#ifndef __P
+#define __P(x) x
 #endif
 int inet_aton(const char *, struct in_addr *);
 
@@ -69,21 +70,21 @@ int inet_aton(const char *, struct in_addr *);
  * Because the ctype(3) posix definition, if used "safely" in code everywhere,
  * would mean all normal code that walks through strings needed casts.  Yuck.
  */
-#define	ISALNUM(x)	isalnum((u_char)(x))
-#define	ISALPHA(x)	isalpha((u_char)(x))
-#define	ISASCII(x)	isascii((u_char)(x))
-#define	ISDIGIT(x)	isdigit((u_char)(x))
-#define	ISPRINT(x)	isprint((u_char)(x))
-#define	ISSPACE(x)	isspace((u_char)(x))
-#define	ISUPPER(x)	isupper((u_char)(x))
-#define	ISXDIGIT(x)	isxdigit((u_char)(x))
-#define	ISLOWER(x)	islower((u_char)(x))
+#define ISALNUM(x) isalnum((u_char)(x))
+#define ISALPHA(x) isalpha((u_char)(x))
+#define ISASCII(x) isascii((u_char)(x))
+#define ISDIGIT(x) isdigit((u_char)(x))
+#define ISPRINT(x) isprint((u_char)(x))
+#define ISSPACE(x) isspace((u_char)(x))
+#define ISUPPER(x) isupper((u_char)(x))
+#define ISXDIGIT(x) isxdigit((u_char)(x))
+#define ISLOWER(x) islower((u_char)(x))
 
 /*
  * Check whether "cp" is a valid ascii representation
  * of an Internet address and convert to a binary address.
  * Returns 1 if the address is valid, 0 if not.
-* This replaces inet_addr, the return value from which
+ * This replaces inet_addr, the return value from which
  * cannot distinguish between failure and a local broadcast address.
  */
 int
@@ -104,7 +105,8 @@ inet_aton(register const char *cp, struct in_addr *addr)
 		 */
 		if (!ISDIGIT(c))
 			return (0);
-		val = 0; base = 10;
+		val = 0;
+		base = 10;
 		if (c == '0') {
 			c = *++cp;
 			if (c == 'x' || c == 'X')
@@ -118,7 +120,7 @@ inet_aton(register const char *cp, struct in_addr *addr)
 				c = *++cp;
 			} else if (base == 16 && ISASCII(c) && ISXDIGIT(c)) {
 				val = (val << 4) |
-					(c + 10 - (ISLOWER(c) ? 'a' : 'A'));
+				    (c + 10 - (ISLOWER(c) ? 'a' : 'A'));
 				c = *++cp;
 			} else
 				break;
@@ -150,24 +152,24 @@ inet_aton(register const char *cp, struct in_addr *addr)
 	switch (n) {
 
 	case 0:
-		return (0);		/* initial nondigit */
+		return (0); /* initial nondigit */
 
-	case 1:				/* a -- 32 bits */
+	case 1: /* a -- 32 bits */
 		break;
 
-	case 2:				/* a.b -- 8.24 bits */
+	case 2: /* a.b -- 8.24 bits */
 		if (val > 0xffffff)
 			return (0);
 		val |= parts[0] << 24;
 		break;
 
-	case 3:				/* a.b.c -- 8.8.16 bits */
+	case 3: /* a.b.c -- 8.8.16 bits */
 		if (val > 0xffff)
 			return (0);
 		val |= (parts[0] << 24) | (parts[1] << 16);
 		break;
 
-	case 4:				/* a.b.c.d -- 8.8.8.8 bits */
+	case 4: /* a.b.c.d -- 8.8.8.8 bits */
 		if (val > 0xff)
 			return (0);
 		val |= (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8);

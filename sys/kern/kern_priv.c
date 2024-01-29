@@ -32,16 +32,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/sx.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/sdt.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <security/mac/mac_framework.h>
 
@@ -78,17 +78,17 @@ sysctl_kern_suser_enabled(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-SYSCTL_PROC(_security_bsd, OID_AUTO, suser_enabled, CTLTYPE_INT |
-    CTLFLAG_RWTUN | CTLFLAG_PRISON | CTLFLAG_MPSAFE, 0, 0,
+SYSCTL_PROC(_security_bsd, OID_AUTO, suser_enabled,
+    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_PRISON | CTLFLAG_MPSAFE, 0, 0,
     &sysctl_kern_suser_enabled, "I", "Processes with uid 0 have privilege");
 
-static int	unprivileged_mlock = 1;
+static int unprivileged_mlock = 1;
 SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_mlock, CTLFLAG_RWTUN,
     &unprivileged_mlock, 0, "Allow non-root users to call mlock(2)");
 
-static int	unprivileged_read_msgbuf = 1;
-SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_read_msgbuf,
-    CTLFLAG_RW, &unprivileged_read_msgbuf, 0,
+static int unprivileged_read_msgbuf = 1;
+SYSCTL_INT(_security_bsd, OID_AUTO, unprivileged_read_msgbuf, CTLFLAG_RW,
+    &unprivileged_read_msgbuf, 0,
     "Unprivileged processes may read the kernel message buffer");
 
 SDT_PROVIDER_DEFINE(priv);
@@ -114,10 +114,10 @@ priv_check_cred_post(struct ucred *cred, int priv, int error, bool handled)
 
 	if (__predict_true(handled))
 		goto out;
-	/*
-	 * Now check with MAC, if enabled, to see if a policy module grants
-	 * privilege.
-	 */
+		/*
+		 * Now check with MAC, if enabled, to see if a policy module
+		 * grants privilege.
+		 */
 #ifdef MAC
 	if (mac_priv_grant(cred, priv) == 0) {
 		error = 0;
@@ -149,8 +149,8 @@ priv_check_cred(struct ucred *cred, int priv)
 {
 	int error;
 
-	KASSERT(PRIV_VALID(priv), ("priv_check_cred: invalid privilege %d",
-	    priv));
+	KASSERT(PRIV_VALID(priv),
+	    ("priv_check_cred: invalid privilege %d", priv));
 
 	switch (priv) {
 	case PRIV_VFS_LOOKUP:
@@ -290,7 +290,6 @@ priv_check_cred_vfs_lookup_slow(struct ucred *cred)
 	return (priv_check_cred_post(cred, PRIV_VFS_LOOKUP, error, false));
 out:
 	return (priv_check_cred_post(cred, PRIV_VFS_LOOKUP, error, true));
-
 }
 
 int
@@ -298,8 +297,8 @@ priv_check_cred_vfs_lookup(struct ucred *cred)
 {
 	int error;
 
-	if (__predict_false(mac_priv_check_fp_flag ||
-	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
+	if (__predict_false(mac_priv_check_fp_flag || mac_priv_grant_fp_flag ||
+		SDT_PROBES_ENABLED()))
 		return (priv_check_cred_vfs_lookup_slow(cred));
 
 	error = EPERM;
@@ -313,8 +312,8 @@ priv_check_cred_vfs_lookup_nomac(struct ucred *cred)
 {
 	int error;
 
-	if (__predict_false(mac_priv_check_fp_flag ||
-	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
+	if (__predict_false(mac_priv_check_fp_flag || mac_priv_grant_fp_flag ||
+		SDT_PROBES_ENABLED()))
 		return (EAGAIN);
 
 	error = EPERM;
@@ -345,7 +344,6 @@ priv_check_cred_vfs_generation_slow(struct ucred *cred)
 	return (priv_check_cred_post(cred, PRIV_VFS_GENERATION, error, false));
 out:
 	return (priv_check_cred_post(cred, PRIV_VFS_GENERATION, error, true));
-
 }
 
 int
@@ -353,8 +351,8 @@ priv_check_cred_vfs_generation(struct ucred *cred)
 {
 	int error;
 
-	if (__predict_false(mac_priv_check_fp_flag ||
-	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
+	if (__predict_false(mac_priv_check_fp_flag || mac_priv_grant_fp_flag ||
+		SDT_PROBES_ENABLED()))
 		return (priv_check_cred_vfs_generation_slow(cred));
 
 	error = EPERM;

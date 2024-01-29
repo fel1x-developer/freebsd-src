@@ -25,11 +25,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <syslog.h>
 #include <unistd.h>
 
-#define	MESSAGE	"This account is currently not available.\n"
+#define MESSAGE "This account is currently not available.\n"
 
 int
 main(__unused int argc, __unused char *argv[])

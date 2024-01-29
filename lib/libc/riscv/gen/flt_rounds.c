@@ -38,8 +38,8 @@
 #include <float.h>
 
 #ifdef __riscv_float_abi_soft
-#include "softfloat-for-gcc.h"
 #include "milieu.h"
+#include "softfloat-for-gcc.h"
 #include "softfloat.h"
 #endif
 
@@ -51,7 +51,7 @@ __flt_rounds(void)
 #ifdef __riscv_float_abi_soft
 	mode = __softfloat_float_rounding_mode;
 #else
-	__asm __volatile("csrr %0, fcsr" : "=r" (mode));
+	__asm __volatile("csrr %0, fcsr" : "=r"(mode));
 #endif
 
 	switch (mode & _ROUND_MASK) {

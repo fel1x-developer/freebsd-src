@@ -27,43 +27,41 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rmlock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/kernel.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_dl.h>
 #include <net/if_private.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/route.h>
-#include <net/route/route_ctl.h>
-#include <net/route/route_var.h>
 #include <net/route/fib_algo.h>
 #include <net/route/nhop.h>
+#include <net/route/route_ctl.h>
+#include <net/route/route_var.h>
 #include <net/toeplitz.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 #include <netinet/in_var.h>
-#include <netinet/ip_mroute.h>
 #include <netinet/ip6.h>
+#include <netinet/ip_mroute.h>
 #include <netinet6/in6_fib.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 #include <netinet6/scope6_var.h>
-
-#include <net/if_types.h>
 
 #ifdef INET6
 
@@ -102,7 +100,7 @@ fib6_calc_software_hash(const struct in6_addr *src, const struct in6_addr *dst,
 	*phashtype = M_HASHTYPE_OPAQUE_HASH;
 
 	return (toeplitz_hash(MPATH_ENTROPY_KEY_LEN, mpath_entropy_key,
-	  sizeof(data), (uint8_t *)&data));
+	    sizeof(data), (uint8_t *)&data));
 }
 #endif
 
@@ -117,12 +115,12 @@ fib6_calc_software_hash(const struct in6_addr *src, const struct in6_addr *dst,
  */
 #ifdef FIB_ALGO
 struct nhop_object *
-fib6_lookup(uint32_t fibnum, const struct in6_addr *dst6,
-    uint32_t scopeid, uint32_t flags, uint32_t flowid)
+fib6_lookup(uint32_t fibnum, const struct in6_addr *dst6, uint32_t scopeid,
+    uint32_t flags, uint32_t flowid)
 {
 	struct nhop_object *nh;
 	struct fib_dp *dp = &V_inet6_dp[fibnum];
-	struct flm_lookup_key key = {.addr6 = dst6 };
+	struct flm_lookup_key key = { .addr6 = dst6 };
 
 	nh = dp->f(dp->arg, key, scopeid);
 	if (nh != NULL) {
@@ -139,8 +137,8 @@ fib6_lookup(uint32_t fibnum, const struct in6_addr *dst6,
 }
 #else
 struct nhop_object *
-fib6_lookup(uint32_t fibnum, const struct in6_addr *dst6,
-    uint32_t scopeid, uint32_t flags, uint32_t flowid)
+fib6_lookup(uint32_t fibnum, const struct in6_addr *dst6, uint32_t scopeid,
+    uint32_t flags, uint32_t flowid)
 {
 	RIB_RLOCK_TRACKER;
 	struct rib_head *rh;
@@ -199,8 +197,7 @@ check_urpf_nhop(const struct nhop_object *nh, uint32_t flags,
 }
 
 static int
-check_urpf(struct nhop_object *nh, uint32_t flags,
-    const struct ifnet *src_if)
+check_urpf(struct nhop_object *nh, uint32_t flags, const struct ifnet *src_if)
 {
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(nh)) {
@@ -219,8 +216,7 @@ check_urpf(struct nhop_object *nh, uint32_t flags,
 
 #ifndef FIB_ALGO
 static struct nhop_object *
-lookup_nhop(uint32_t fibnum, const struct in6_addr *dst6,
-    uint32_t scopeid)
+lookup_nhop(uint32_t fibnum, const struct in6_addr *dst6, uint32_t scopeid)
 {
 	RIB_RLOCK_TRACKER;
 	struct rib_head *rh;
@@ -263,13 +259,13 @@ lookup_nhop(uint32_t fibnum, const struct in6_addr *dst6,
  * Returns 1 if route matching conditions is found, 0 otherwise.
  */
 int
-fib6_check_urpf(uint32_t fibnum, const struct in6_addr *dst6,
-    uint32_t scopeid, uint32_t flags, const struct ifnet *src_if)
+fib6_check_urpf(uint32_t fibnum, const struct in6_addr *dst6, uint32_t scopeid,
+    uint32_t flags, const struct ifnet *src_if)
 {
 	struct nhop_object *nh;
 #ifdef FIB_ALGO
 	struct fib_dp *dp = &V_inet6_dp[fibnum];
-	struct flm_lookup_key key = {.addr6 = dst6 };
+	struct flm_lookup_key key = { .addr6 = dst6 };
 
 	nh = dp->f(dp->arg, key, scopeid);
 #else
@@ -290,8 +286,8 @@ fib6_check_urpf(uint32_t fibnum, const struct in6_addr *dst6,
  * Note: rnd_nhop can actually be the nexthop group.
  */
 struct rtentry *
-fib6_lookup_rt(uint32_t fibnum, const struct in6_addr *dst6,
-    uint32_t scopeid, uint32_t flags, struct route_nhop_data *rnd)
+fib6_lookup_rt(uint32_t fibnum, const struct in6_addr *dst6, uint32_t scopeid,
+    uint32_t flags, struct route_nhop_data *rnd)
 {
 	RIB_RLOCK_TRACKER;
 	struct rib_head *rh;

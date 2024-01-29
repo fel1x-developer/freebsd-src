@@ -34,17 +34,17 @@
 #define RDMA_USER_IOCTL_CMDS_H
 
 #ifdef _KERNEL
-#include <linux/types.h>
 #include <linux/ioctl.h>
+#include <linux/types.h>
 #else
-#include <infiniband/types.h>
 #include <sys/ioccom.h>
+
+#include <infiniband/types.h>
 #endif
 
 /* Documentation/ioctl/ioctl-number.rst */
-#define RDMA_IOCTL_MAGIC	0x1b
-#define RDMA_VERBS_IOCTL \
-	_IOWR(RDMA_IOCTL_MAGIC, 1, struct ib_uverbs_ioctl_hdr)
+#define RDMA_IOCTL_MAGIC 0x1b
+#define RDMA_VERBS_IOCTL _IOWR(RDMA_IOCTL_MAGIC, 1, struct ib_uverbs_ioctl_hdr)
 
 enum {
 	/* User input */
@@ -57,9 +57,9 @@ enum {
 };
 
 struct ib_uverbs_attr {
-	__u16 attr_id;		/* command specific type attribute */
-	__u16 len;		/* only for pointers and IDRs array */
-	__u16 flags;		/* combination of UVERBS_ATTR_F_XXXX */
+	__u16 attr_id; /* command specific type attribute */
+	__u16 len;     /* only for pointers and IDRs array */
+	__u16 flags;   /* combination of UVERBS_ATTR_F_XXXX */
 	union {
 		struct {
 			__u8 elem_id;
@@ -86,7 +86,7 @@ struct ib_uverbs_ioctl_hdr {
 	__aligned_u64 reserved1;
 	__u32 driver_id;
 	__u32 reserved2;
-	struct ib_uverbs_attr  attrs[0];
+	struct ib_uverbs_attr attrs[0];
 };
 
 #endif

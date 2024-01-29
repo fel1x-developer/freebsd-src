@@ -25,13 +25,13 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_SID_H_
-#define	_OPENSOLARIS_SYS_SID_H_
+#define _OPENSOLARIS_SYS_SID_H_
 
 typedef struct ksiddomain {
-	char	*kd_name;	/* Domain part of SID */
-	uint_t	kd_len;
+	char *kd_name; /* Domain part of SID */
+	uint_t kd_len;
 } ksiddomain_t;
-typedef void	ksid_t;
+typedef void ksid_t;
 
 static __inline ksiddomain_t *
 ksid_lookupdomain(const char *domain)
@@ -76,7 +76,7 @@ ksid_getrid(ksid_t *ks)
 	panic("%s has been unexpectedly called", __func__);
 }
 
-#define	kidmap_getsidbyuid(zone, uid, sid_prefix, rid)	(1)
-#define	kidmap_getsidbygid(zone, gid, sid_prefix, rid)	(1)
+#define kidmap_getsidbyuid(zone, uid, sid_prefix, rid) (1)
+#define kidmap_getsidbygid(zone, gid, sid_prefix, rid) (1)
 
-#endif	/* _OPENSOLARIS_SYS_SID_H_ */
+#endif /* _OPENSOLARIS_SYS_SID_H_ */

@@ -34,29 +34,30 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
+#include <sys/time.h>
 #include <sys/uio.h>
-#include "pax.h"
-#include "options.h"
-#include "extern.h"
 
-static int
-mk_link(char *,struct stat *,char *, int);
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "extern.h"
+#include "options.h"
+#include "pax.h"
+
+static int mk_link(char *, struct stat *, char *, int);
 
 /*
  * routines that deal with file operations such as: creating, removing;
  * and setting access modes, uid/gid and times of files
  */
 
-#define FILEBITS		(S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
-#define SETBITS			(S_ISUID | S_ISGID)
-#define ABITS			(FILEBITS | SETBITS)
+#define FILEBITS (S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO)
+#define SETBITS (S_ISUID | S_ISGID)
+#define ABITS (FILEBITS | SETBITS)
 
 /*
  * file_creat()
@@ -85,8 +86,8 @@ file_creat(ARCHD *arcn)
 	 */
 	file_mode = arcn->sb.st_mode & FILEBITS;
 	if ((fd = open(arcn->name, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL,
-	    file_mode)) >= 0)
-		return(fd);
+		 file_mode)) >= 0)
+		return (fd);
 
 	/*
 	 * the file seems to exist. First we try to get rid of it (found to be
@@ -94,7 +95,7 @@ file_creat(ARCHD *arcn)
 	 * then we go to the expense to check and create the path to the file
 	 */
 	if (unlnk_exist(arcn->name, arcn->type) != 0)
-		return(-1);
+		return (-1);
 
 	for (;;) {
 		/*
@@ -103,15 +104,17 @@ file_creat(ARCHD *arcn)
 		 * it cannot fix anything, we will skip the last attempt
 		 */
 		if ((fd = open(arcn->name, O_WRONLY | O_CREAT | O_TRUNC,
-		    file_mode)) >= 0)
+			 file_mode)) >= 0)
 			break;
 		oerrno = errno;
-		if (nodirs || chk_path(arcn->name,arcn->sb.st_uid,arcn->sb.st_gid) < 0) {
+		if (nodirs ||
+		    chk_path(arcn->name, arcn->sb.st_uid, arcn->sb.st_gid) <
+			0) {
 			syswarn(1, oerrno, "Unable to create %s", arcn->name);
-			return(-1);
+			return (-1);
 		}
 	}
-	return(fd);
+	return (fd);
 }
 
 /*
@@ -172,18 +175,18 @@ lnk_creat(ARCHD *arcn)
 	 * is not a directory, so we lstat and check
 	 */
 	if (lstat(arcn->ln_name, &sb) < 0) {
-		syswarn(1,errno,"Unable to link to %s from %s", arcn->ln_name,
+		syswarn(1, errno, "Unable to link to %s from %s", arcn->ln_name,
 		    arcn->name);
-		return(-1);
+		return (-1);
 	}
 
 	if (S_ISDIR(sb.st_mode)) {
 		paxwarn(1, "A hard link to the directory %s is not allowed",
 		    arcn->ln_name);
-		return(-1);
+		return (-1);
 	}
 
-	return(mk_link(arcn->ln_name, &sb, arcn->name, 0));
+	return (mk_link(arcn->ln_name, &sb, arcn->name, 0));
 }
 
 /*
@@ -205,8 +208,8 @@ cross_lnk(ARCHD *arcn)
 	 * (and it might succeed).
 	 */
 	if (arcn->type == PAX_DIR)
-		return(1);
-	return(mk_link(arcn->org_name, &(arcn->sb), arcn->name, 1));
+		return (1);
+	return (mk_link(arcn->org_name, &(arcn->sb), arcn->name, 1));
 }
 
 /*
@@ -230,9 +233,9 @@ chk_same(ARCHD *arcn)
 	 * quietly
 	 */
 	if (lstat(arcn->name, &sb) < 0)
-		return(1);
+		return (1);
 	if (kflag)
-		return(0);
+		return (0);
 
 	/*
 	 * better make sure the user does not have src == dest by mistake
@@ -240,9 +243,9 @@ chk_same(ARCHD *arcn)
 	if ((arcn->sb.st_dev == sb.st_dev) && (arcn->sb.st_ino == sb.st_ino)) {
 		paxwarn(1, "Unable to copy %s, file would overwrite itself",
 		    arcn->name);
-		return(0);
+		return (0);
 	}
-	return(1);
+	return (1);
 }
 
 /*
@@ -258,8 +261,7 @@ chk_same(ARCHD *arcn)
  */
 
 static int
-mk_link(char *to, struct stat *to_sb, char *from,
-	int ign)
+mk_link(char *to, struct stat *to_sb, char *from, int ign)
 {
 	struct stat sb;
 	int oerrno;
@@ -270,14 +272,15 @@ mk_link(char *to, struct stat *to_sb, char *from,
 	 */
 	if (lstat(from, &sb) == 0) {
 		if (kflag)
-			return(0);
+			return (0);
 
 		/*
 		 * make sure it is not the same file, protect the user
 		 */
-		if ((to_sb->st_dev==sb.st_dev)&&(to_sb->st_ino == sb.st_ino)) {
+		if ((to_sb->st_dev == sb.st_dev) &&
+		    (to_sb->st_ino == sb.st_ino)) {
 			paxwarn(1, "Unable to link file %s to itself", to);
-			return(-1);
+			return (-1);
 		}
 
 		/*
@@ -286,14 +289,14 @@ mk_link(char *to, struct stat *to_sb, char *from,
 		if (S_ISDIR(sb.st_mode)) {
 			if (rmdir(from) < 0) {
 				syswarn(1, errno, "Unable to remove %s", from);
-				return(-1);
+				return (-1);
 			}
 		} else if (unlink(from) < 0) {
 			if (!ign) {
 				syswarn(1, errno, "Unable to remove %s", from);
-				return(-1);
+				return (-1);
 			}
-			return(1);
+			return (1);
 		}
 	}
 
@@ -306,20 +309,21 @@ mk_link(char *to, struct stat *to_sb, char *from,
 		if (link(to, from) == 0)
 			break;
 		oerrno = errno;
-		if (!nodirs && chk_path(from, to_sb->st_uid, to_sb->st_gid) == 0)
+		if (!nodirs &&
+		    chk_path(from, to_sb->st_uid, to_sb->st_gid) == 0)
 			continue;
 		if (!ign) {
 			syswarn(1, oerrno, "Could not link to %s from %s", to,
 			    from);
-			return(-1);
+			return (-1);
 		}
-		return(1);
+		return (1);
 	}
 
 	/*
 	 * all right the link was made
 	 */
-	return(0);
+	return (0);
 }
 
 /*
@@ -349,7 +353,7 @@ node_creat(ARCHD *arcn)
 	file_mode = arcn->sb.st_mode & FILEBITS;
 
 	for (;;) {
-		switch(arcn->type) {
+		switch (arcn->type) {
 		case PAX_DIR:
 			res = mkdir(arcn->name, file_mode);
 			if (ign)
@@ -373,7 +377,7 @@ node_creat(ARCHD *arcn)
 			paxwarn(0,
 			    "%s skipped. Sockets cannot be copied or extracted",
 			    arcn->name);
-			return(-1);
+			return (-1);
 		case PAX_SLK:
 			res = symlink(arcn->ln_name, arcn->name);
 			break;
@@ -386,8 +390,8 @@ node_creat(ARCHD *arcn)
 			 * we should never get here
 			 */
 			paxwarn(0, "%s has an unknown file type, skipping",
-				arcn->name);
-			return(-1);
+			    arcn->name);
+			return (-1);
 		}
 
 		/*
@@ -403,14 +407,16 @@ node_creat(ARCHD *arcn)
 		 */
 		oerrno = errno;
 		if ((ign = unlnk_exist(arcn->name, arcn->type)) < 0)
-			return(-1);
+			return (-1);
 
 		if (++pass <= 1)
 			continue;
 
-		if (nodirs || chk_path(arcn->name,arcn->sb.st_uid,arcn->sb.st_gid) < 0) {
+		if (nodirs ||
+		    chk_path(arcn->name, arcn->sb.st_uid, arcn->sb.st_gid) <
+			0) {
 			syswarn(1, oerrno, "Could not create: %s", arcn->name);
-			return(-1);
+			return (-1);
 		}
 	}
 
@@ -444,9 +450,9 @@ node_creat(ARCHD *arcn)
 		 */
 		if (access(arcn->name, R_OK | W_OK | X_OK) < 0) {
 			if (lstat(arcn->name, &sb) < 0) {
-				syswarn(0, errno,"Could not access %s (stat)",
+				syswarn(0, errno, "Could not access %s (stat)",
 				    arcn->name);
-				set_pmode(arcn->name,file_mode | S_IRWXU);
+				set_pmode(arcn->name, file_mode | S_IRWXU);
 			} else {
 				/*
 				 * We have to add rights to the dir, so we make
@@ -471,7 +477,7 @@ node_creat(ARCHD *arcn)
 
 	if (patime || pmtime)
 		set_ftime(arcn->name, arcn->sb.st_mtime, arcn->sb.st_atime, 0);
-	return(0);
+	return (0);
 }
 
 /*
@@ -495,9 +501,9 @@ unlnk_exist(char *name, int type)
 	 * the file does not exist, or -k we are done
 	 */
 	if (lstat(name, &sb) < 0)
-		return(0);
+		return (0);
 	if (kflag)
-		return(-1);
+		return (-1);
 
 	if (S_ISDIR(sb.st_mode)) {
 		/*
@@ -506,11 +512,12 @@ unlnk_exist(char *name, int type)
 		 */
 		if (rmdir(name) < 0) {
 			if (type == PAX_DIR)
-				return(1);
-			syswarn(1,errno,"Unable to remove directory %s", name);
-			return(-1);
+				return (1);
+			syswarn(1, errno, "Unable to remove directory %s",
+			    name);
+			return (-1);
 		}
-		return(0);
+		return (0);
 	}
 
 	/*
@@ -518,9 +525,9 @@ unlnk_exist(char *name, int type)
 	 */
 	if (unlink(name) < 0) {
 		syswarn(1, errno, "Could not unlink %s", name);
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -538,7 +545,7 @@ unlnk_exist(char *name, int type)
  */
 
 int
-chk_path( char *name, uid_t st_uid, gid_t st_gid)
+chk_path(char *name, uid_t st_uid, gid_t st_gid)
 {
 	char *spt = name;
 	struct stat sb;
@@ -550,7 +557,7 @@ chk_path( char *name, uid_t st_uid, gid_t st_gid)
 	if (*spt == '/')
 		++spt;
 
-	for(;;) {
+	for (;;) {
 		/*
 		 * work forward from the first / and check each part of the path
 		 */
@@ -606,7 +613,7 @@ chk_path( char *name, uid_t st_uid, gid_t st_gid)
 		*(spt++) = '/';
 		continue;
 	}
-	return(retval);
+	return (retval);
 }
 
 /*
@@ -624,7 +631,7 @@ chk_path( char *name, uid_t st_uid, gid_t st_gid)
 void
 set_ftime(char *fnm, time_t mtime, time_t atime, int frc)
 {
-	static struct timeval tv[2] = {{0L, 0L}, {0L, 0L}};
+	static struct timeval tv[2] = { { 0L, 0L }, { 0L, 0L } };
 	struct stat sb;
 
 	tv[0].tv_sec = atime;
@@ -640,7 +647,8 @@ set_ftime(char *fnm, time_t mtime, time_t atime, int frc)
 			if (!pmtime)
 				tv[1].tv_sec = sb.st_mtime;
 		} else
-			syswarn(0,errno,"Unable to obtain file stats %s", fnm);
+			syswarn(0, errno, "Unable to obtain file stats %s",
+			    fnm);
 	}
 
 	/*
@@ -671,9 +679,9 @@ set_ids(char *fnm, uid_t uid, gid_t gid)
 		    geteuid() == 0)
 			syswarn(1, errno, "Unable to set file uid/gid of %s",
 			    fnm);
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -740,7 +748,7 @@ set_pmode(char *fnm, mode_t mode)
 
 int
 file_write(int fd, char *str, int cnt, int *rem, int *isempt, int sz,
-	char *name)
+    char *name)
 {
 	char *pt;
 	char *end;
@@ -787,9 +795,9 @@ file_write(int fd, char *str, int cnt, int *rem, int *isempt, int sz,
 				 * skip, buf is empty so far
 				 */
 				if (lseek(fd, (off_t)wcnt, SEEK_CUR) < 0) {
-					syswarn(1,errno,"File seek on %s",
+					syswarn(1, errno, "File seek on %s",
 					    name);
-					return(-1);
+					return (-1);
 				}
 				st = pt;
 				continue;
@@ -805,11 +813,11 @@ file_write(int fd, char *str, int cnt, int *rem, int *isempt, int sz,
 		 */
 		if (write(fd, st, wcnt) != wcnt) {
 			syswarn(1, errno, "Failed write to file %s", name);
-			return(-1);
+			return (-1);
 		}
 		st += wcnt;
 	}
-	return(st - str);
+	return (st - str);
 }
 
 /*
@@ -896,7 +904,7 @@ set_crc(ARCHD *arcn, int fd)
 		 * hmm, no fd, should never happen. well no crc then.
 		 */
 		arcn->crc = 0L;
-		return(0);
+		return (0);
 	}
 
 	if ((size = (u_long)arcn->sb.st_blksize) > (u_long)sizeof(tbuf))
@@ -906,7 +914,7 @@ set_crc(ARCHD *arcn, int fd)
 	 * read all the bytes we think that there are in the file. If the user
 	 * is trying to archive an active file, forget this file.
 	 */
-	for(;;) {
+	for (;;) {
 		if ((res = read(fd, tbuf, size)) <= 0)
 			break;
 		cpcnt += res;
@@ -928,7 +936,7 @@ set_crc(ARCHD *arcn, int fd)
 		syswarn(1, errno, "File rewind failed on: %s", arcn->org_name);
 	else {
 		arcn->crc = crc;
-		return(0);
+		return (0);
 	}
-	return(-1);
+	return (-1);
 }

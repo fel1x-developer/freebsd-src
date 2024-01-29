@@ -24,15 +24,17 @@
  * SUCH DAMAGE.
  */
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/select.h>
 #include <sys/time.h>
-#include <sys/endian.h>
+
+#include <assert.h>
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <err.h>
-#include <assert.h>
+
 #include "w00t.h"
 
 struct client {
@@ -73,7 +75,8 @@ struct params {
 	struct timeval plast;
 };
 
-void usage(char *name)
+void
+usage(char *name)
 {
 	printf("Usage: %s <opts>\n"
 	       "-h\thelp\n"
@@ -82,44 +85,47 @@ void usage(char *name)
 	       "-m\t<mac>\n"
 	       "-w\t<wep key>\n"
 	       "-c\t<chan>\n"
-	       "-t\t<tap>\n"
-	       , name);
+	       "-t\t<tap>\n",
+	    name);
 	exit(0);
 }
 
-void fill_basic(struct ieee80211_frame *wh, struct params *p)
-{       
-        short *seq;
-       
-        wh->i_dur[0] = 0x69;
-        wh->i_dur[1] = 0x00;
-       
-        memcpy(wh->i_addr2, p->mac, 6);
-       
-        seq = (short*)wh->i_seq;
-        *seq = seqfn(p->seq, 0);
+void
+fill_basic(struct ieee80211_frame *wh, struct params *p)
+{
+	short *seq;
+
+	wh->i_dur[0] = 0x69;
+	wh->i_dur[1] = 0x00;
+
+	memcpy(wh->i_addr2, p->mac, 6);
+
+	seq = (short *)wh->i_seq;
+	*seq = seqfn(p->seq, 0);
 }
 
-void send_frame(struct params *p, void *buf, int len)
-{       
-        int rc;
-        
-        rc = inject(p->tx, buf, len);
-        if (rc == -1)
-                err(1, "inject()");
-        if (rc != len) {
-                printf("injected %d/%d\n", rc, len);
-                exit(1);
-        }
-        p->seq++;
+void
+send_frame(struct params *p, void *buf, int len)
+{
+	int rc;
+
+	rc = inject(p->tx, buf, len);
+	if (rc == -1)
+		err(1, "inject()");
+	if (rc != len) {
+		printf("injected %d/%d\n", rc, len);
+		exit(1);
+	}
+	p->seq++;
 }
 
-int fill_beacon(struct params *p, struct ieee80211_frame *wh)
+int
+fill_beacon(struct params *p, struct ieee80211_frame *wh)
 {
 	int len;
 	char *ptr;
 
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	ptr += 8; /* timestamp */
 	ptr += 2; /* bint */
 	*ptr |= IEEE80211_CAPINFO_ESS;
@@ -133,29 +139,30 @@ int fill_beacon(struct params *p, struct ieee80211_frame *wh)
 	ptr += len;
 
 	/* rates */
-        *ptr++ = 1;
-        *ptr++ = 4;
-        *ptr++ = 2 | 0x80;
-        *ptr++ = 4 | 0x80;
-        *ptr++ = 11;
-        *ptr++ = 22;
+	*ptr++ = 1;
+	*ptr++ = 4;
+	*ptr++ = 2 | 0x80;
+	*ptr++ = 4 | 0x80;
+	*ptr++ = 11;
+	*ptr++ = 22;
 
 	/* ds param */
 	*ptr++ = 3;
 	*ptr++ = 1;
 	*ptr++ = p->chan;
-	
-	return ptr - ((char*) wh);
+
+	return ptr - ((char *)wh);
 }
 
-void send_beacon(struct params *p)
+void
+send_beacon(struct params *p)
 {
 	char buf[4096];
 	struct ieee80211_frame *wh;
 	int len;
 	char *ptr;
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 
 	memset(buf, 0, sizeof(buf));
 	fill_basic(wh, p);
@@ -168,27 +175,27 @@ void send_beacon(struct params *p)
 	len = fill_beacon(p, wh);
 
 	/* TIM */
-	ptr = (char*)wh + len;
+	ptr = (char *)wh + len;
 	*ptr++ = 5;
 	*ptr++ = 4;
-	len +=  2+4;
+	len += 2 + 4;
 #if 0
 	printf("sending beacon\n");
-#endif	
+#endif
 	send_frame(p, wh, len);
 
 	if (gettimeofday(&p->blast, NULL) == -1)
 		err(1, "gettimeofday()");
 }
 
-
-void send_pres(struct params *p, char *mac)
+void
+send_pres(struct params *p, char *mac)
 {
 	char buf[4096];
 	struct ieee80211_frame *wh;
 	int len;
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 
 	memset(buf, 0, sizeof(buf));
 	fill_basic(wh, p);
@@ -204,13 +211,14 @@ void send_pres(struct params *p, char *mac)
 	send_frame(p, wh, len);
 }
 
-void read_preq(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_preq(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	unsigned char *ptr;
 	unsigned char *end;
-	unsigned char macs[6*3];
+	unsigned char macs[6 * 3];
 
-	ptr = (unsigned char*) (wh+1);
+	ptr = (unsigned char *)(wh + 1);
 
 	/* ssid */
 	if (*ptr != 0) {
@@ -230,14 +238,15 @@ void read_preq(struct params *p, struct ieee80211_frame *wh, int len)
 		send_pres(p, wh->i_addr2);
 }
 
-void send_auth(struct params* p, char *mac)
+void
+send_auth(struct params *p, char *mac)
 {
 	char buf[4096];
 	struct ieee80211_frame *wh;
 	unsigned short *ptr;
 	int len;
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 
 	memset(buf, 0, sizeof(buf));
 	fill_basic(wh, p);
@@ -247,25 +256,26 @@ void send_auth(struct params* p, char *mac)
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_MGT;
 	wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_AUTH;
 
-	ptr = (unsigned short*) (wh+1);
+	ptr = (unsigned short *)(wh + 1);
 	*ptr++ = htole16(0);
 	*ptr++ = htole16(2);
 	*ptr++ = htole16(0);
 
-	len = ((char*)ptr) - ((char*) wh);
+	len = ((char *)ptr) - ((char *)wh);
 	printf("sending auth\n");
 	send_frame(p, wh, len);
 }
 
-void read_auth(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_auth(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	unsigned short *ptr;
-	char mac[6*3];
+	char mac[6 * 3];
 
 	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
 		return;
 
-	ptr = (unsigned short*) (wh+1);
+	ptr = (unsigned short *)(wh + 1);
 	if (le16toh(*ptr) != 0) {
 		printf("Unknown auth algo %d\n", le16toh(*ptr));
 		return;
@@ -280,14 +290,15 @@ void read_auth(struct params *p, struct ieee80211_frame *wh, int len)
 	}
 }
 
-void send_assoc(struct params *p, char *mac)
+void
+send_assoc(struct params *p, char *mac)
 {
 	char buf[4096];
 	struct ieee80211_frame *wh;
 	char *ptr;
 	int len;
 
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 
 	memset(buf, 0, sizeof(buf));
 	fill_basic(wh, p);
@@ -297,35 +308,36 @@ void send_assoc(struct params *p, char *mac)
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_MGT;
 	wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_ASSOC_RESP;
 
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	*ptr |= IEEE80211_CAPINFO_ESS;
 	ptr += 2; /* cap */
 	ptr += 2; /* status */
 	ptr += 2; /* aid */
-	
-	/* rates */
-        *ptr++ = 1;
-        *ptr++ = 4;
-        *ptr++ = 2 | 0x80;
-        *ptr++ = 4 | 0x80;
-        *ptr++ = 11;
-        *ptr++ = 22;
 
-	len = ptr - ((char*) wh);
+	/* rates */
+	*ptr++ = 1;
+	*ptr++ = 4;
+	*ptr++ = 2 | 0x80;
+	*ptr++ = 4 | 0x80;
+	*ptr++ = 11;
+	*ptr++ = 22;
+
+	len = ptr - ((char *)wh);
 	printf("sending assoc response\n");
 	send_frame(p, wh, len);
 }
 
-void read_assoc(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_assoc(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	unsigned char *ptr;
 	unsigned char *end;
-	unsigned char macs[6*3];
+	unsigned char macs[6 * 3];
 
 	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
 		return;
-	
-	ptr = (unsigned char*) (wh+1);
+
+	ptr = (unsigned char *)(wh + 1);
 	ptr += 2; /* capa */
 	ptr += 2; /* list interval */
 
@@ -347,13 +359,14 @@ void read_assoc(struct params *p, struct ieee80211_frame *wh, int len)
 		send_assoc(p, wh->i_addr2);
 }
 
-void read_mgt(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_mgt(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	switch (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) {
 	case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
 		read_preq(p, wh, len);
 		break;
-		
+
 	case IEEE80211_FC0_SUBTYPE_PROBE_RESP:
 		break;
 
@@ -370,20 +383,22 @@ void read_mgt(struct params *p, struct ieee80211_frame *wh, int len)
 		break;
 
 	default:
-		printf("wtf %d\n", (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
-				   IEEE80211_FC0_SUBTYPE_SHIFT);
+		printf("wtf %d\n",
+		    (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
+			IEEE80211_FC0_SUBTYPE_SHIFT);
 		abort();
 		break;
 	}
 }
 
-void send_cts(struct params *p, char *mac)
+void
+send_cts(struct params *p, char *mac)
 {
 	char buf[64];
 	struct ieee80211_frame *wh;
 
 	memset(buf, 0, sizeof(buf));
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 	wh->i_fc[0] |= IEEE80211_FC0_TYPE_CTL;
 	wh->i_fc[0] |= IEEE80211_FC0_SUBTYPE_CTS;
 	wh->i_dur[0] = 0x69;
@@ -393,7 +408,8 @@ void send_cts(struct params *p, char *mac)
 	send_frame(p, wh, 10);
 }
 
-void read_rts(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_rts(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
 		return;
@@ -401,13 +417,15 @@ void read_rts(struct params *p, struct ieee80211_frame *wh, int len)
 	send_cts(p, wh->i_addr2);
 }
 
-void read_ack(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_ack(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	if (memcmp(wh->i_addr1, p->mac, 6) == 0)
 		p->packet_try = 0;
 }
 
-void read_ctl(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_ctl(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	switch (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) {
 	case IEEE80211_FC0_SUBTYPE_RTS:
@@ -422,17 +440,19 @@ void read_ctl(struct params *p, struct ieee80211_frame *wh, int len)
 		break;
 
 	default:
-		printf("wtf %d\n", (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
-		       IEEE80211_FC0_SUBTYPE_SHIFT);
+		printf("wtf %d\n",
+		    (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
+			IEEE80211_FC0_SUBTYPE_SHIFT);
 		abort();
 		break;
 	}
 #if 0
 	printf("ctl\n");
-#endif	
+#endif
 }
 
-int broadcast(struct ieee80211_frame *wh)
+int
+broadcast(struct ieee80211_frame *wh)
 {
 	/* XXX multicast */
 
@@ -442,7 +462,8 @@ int broadcast(struct ieee80211_frame *wh)
 	return 0;
 }
 
-void enque(struct params *p, struct ieee80211_frame *wh, int len)
+void
+enque(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	if (broadcast(wh))
 		return;
@@ -453,14 +474,15 @@ void enque(struct params *p, struct ieee80211_frame *wh, int len)
 	p->packet_len = len;
 	p->packet_try = 1;
 
-	wh = (struct ieee80211_frame*) p->packet;
+	wh = (struct ieee80211_frame *)p->packet;
 	wh->i_fc[1] |= IEEE80211_FC1_RETRY;
 
 	if (gettimeofday(&p->plast, NULL) == -1)
 		err(1, "gettimeofday()");
 }
 
-void relay_data(struct params *p, struct ieee80211_frame *wh, int len)
+void
+relay_data(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	char seq[2];
 	char fc[2];
@@ -476,9 +498,9 @@ void relay_data(struct params *p, struct ieee80211_frame *wh, int len)
 	memcpy(wh->i_addr1, wh->i_addr3, sizeof(wh->i_addr1));
 	memcpy(wh->i_addr3, wh->i_addr2, sizeof(wh->i_addr3));
 	memcpy(wh->i_addr2, p->mac, sizeof(wh->i_addr2));
-        ps = (unsigned short*)wh->i_seq;
-        *ps = seqfn(p->seq, 0);
-	
+	ps = (unsigned short *)wh->i_seq;
+	*ps = seqfn(p->seq, 0);
+
 	send_frame(p, wh, len);
 	enque(p, wh, len);
 
@@ -490,11 +512,12 @@ void relay_data(struct params *p, struct ieee80211_frame *wh, int len)
 	memcpy(wh->i_seq, seq, sizeof(seq));
 }
 
-void read_real_data(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_real_data(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	char dst[6];
 	int rc;
-	char *ptr = (char*) (wh+1);
+	char *ptr = (char *)(wh + 1);
 
 	/* stuff not for this net */
 	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
@@ -506,14 +529,13 @@ void read_real_data(struct params *p, struct ieee80211_frame *wh, int len)
 
 	memcpy(dst, wh->i_addr3, 6);
 
-
 	if (wh->i_fc[1] & IEEE80211_FC1_PROTECTED) {
 		if (!p->wep_len) {
 			printf("Got wep but i aint wep\n");
 			return;
 		}
-		
-		if (wep_decrypt(wh, len, p->wep_key, p->wep_len) == -1){
+
+		if (wep_decrypt(wh, len, p->wep_key, p->wep_len) == -1) {
 			printf("Can't decrypt\n");
 			return;
 		}
@@ -543,7 +565,8 @@ void read_real_data(struct params *p, struct ieee80211_frame *wh, int len)
 	}
 }
 
-void read_data(struct params *p, struct ieee80211_frame *wh, int len)
+void
+read_data(struct params *p, struct ieee80211_frame *wh, int len)
 {
 	switch (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) {
 	case IEEE80211_FC0_SUBTYPE_DATA:
@@ -554,16 +577,18 @@ void read_data(struct params *p, struct ieee80211_frame *wh, int len)
 		break;
 
 	default:
-		printf("wtf %d\n", (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
-				   IEEE80211_FC0_SUBTYPE_SHIFT);
+		printf("wtf %d\n",
+		    (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) >>
+			IEEE80211_FC0_SUBTYPE_SHIFT);
 		abort();
 		break;
 	}
 }
 
-struct client* client_find(struct params *p, char *mac)
+struct client *
+client_find(struct params *p, char *mac)
 {
-	struct client* c = p->clients;
+	struct client *c = p->clients;
 
 	while (c) {
 		if (memcmp(c->mac, mac, 6) == 0)
@@ -575,28 +600,30 @@ struct client* client_find(struct params *p, char *mac)
 	return NULL;
 }
 
-void client_insert(struct params *p, struct client *c)
+void
+client_insert(struct params *p, struct client *c)
 {
 #if 1
 	do {
-		char mac[6*3];
-		
+		char mac[6 * 3];
+
 		mac2str(mac, c->mac);
 		printf("Adding client %s\n", mac);
-	} while(0);
+	} while (0);
 #endif
 
 	c->next = p->clients;
 	p->clients = c;
 }
 
-int duplicate(struct params *p, struct ieee80211_frame *wh, int rc)
+int
+duplicate(struct params *p, struct ieee80211_frame *wh, int rc)
 {
 	struct client *c;
 	int s;
 
 	if (!frame_type(wh, IEEE80211_FC0_TYPE_DATA,
-			IEEE80211_FC0_SUBTYPE_DATA))
+		IEEE80211_FC0_SUBTYPE_DATA))
 		return 0;
 
 	s = seqno(wh);
@@ -610,19 +637,19 @@ int duplicate(struct params *p, struct ieee80211_frame *wh, int rc)
 		memset(c, 0, sizeof(*c));
 		memcpy(c->mac, wh->i_addr2, 6);
 
-		c->seq = s-1;
+		c->seq = s - 1;
 		client_insert(p, c);
 	}
 
 	if (wh->i_fc[1] & IEEE80211_FC1_RETRY) {
-		if ( (s <= c->seq) && ((c->seq - s ) < 5)) {
+		if ((s <= c->seq) && ((c->seq - s) < 5)) {
 #if 0
 			printf("Dup seq %d prev %d\n",
 			       s, c->seq);
 #endif
 			return 1;
-		}	
-	}	
+		}
+	}
 
 #if 0
 	do {
@@ -632,12 +659,13 @@ int duplicate(struct params *p, struct ieee80211_frame *wh, int rc)
 		printf("%s seq %d prev %d\n", mac, s, c->seq);
 	} while (0);
 #endif
-	
+
 	c->seq = s;
 	return 0;
 }
 
-void ack(struct params *p, struct ieee80211_frame *wh)
+void
+ack(struct params *p, struct ieee80211_frame *wh)
 {
 	if (memcmp(wh->i_addr1, p->mac, 6) != 0)
 		return;
@@ -648,7 +676,8 @@ void ack(struct params *p, struct ieee80211_frame *wh)
 	send_ack(p->tx, wh->i_addr2);
 }
 
-void read_wifi(struct params *p)
+void
+read_wifi(struct params *p)
 {
 	char buf[4096];
 	int rc;
@@ -657,7 +686,7 @@ void read_wifi(struct params *p)
 	rc = sniff(p->rx, buf, sizeof(buf));
 	if (rc == -1)
 		err(1, "sniff()");
-        
+
 	wh = get_wifi(buf, &rc);
 	if (!wh)
 		return;
@@ -677,7 +706,7 @@ void read_wifi(struct params *p)
 	if (duplicate(p, wh, rc)) {
 #if 0
 		printf("Dup\n");
-#endif		
+#endif
 		return;
 	}
 
@@ -685,15 +714,15 @@ void read_wifi(struct params *p)
 	case IEEE80211_FC0_TYPE_MGT:
 		read_mgt(p, wh, rc);
 		break;
-		
+
 	case IEEE80211_FC0_TYPE_CTL:
 		read_ctl(p, wh, rc);
 		break;
-	
+
 	case IEEE80211_FC0_TYPE_DATA:
 		read_data(p, wh, rc);
 		break;
-	
+
 	default:
 		printf("wtf\n");
 		abort();
@@ -701,7 +730,8 @@ void read_wifi(struct params *p)
 	}
 }
 
-void read_tap(struct params *p)
+void
+read_tap(struct params *p)
 {
 	char buf[4096];
 	char *ptr;
@@ -726,9 +756,9 @@ void read_tap(struct params *p)
 		err(1, "read()");
 
 	/* 802.11 header */
-	wh = (struct ieee80211_frame*) buf;
+	wh = (struct ieee80211_frame *)buf;
 	memcpy(dst, ptr, sizeof(dst));
-	memcpy(src, ptr+6, sizeof(src));
+	memcpy(src, ptr + 6, sizeof(src));
 	fill_basic(wh, p);
 	memcpy(wh->i_addr3, src, sizeof(wh->i_addr3));
 	memcpy(wh->i_addr1, dst, sizeof(wh->i_addr1));
@@ -738,7 +768,7 @@ void read_tap(struct params *p)
 		wh->i_fc[1] |= IEEE80211_FC1_PROTECTED;
 
 	/* LLC & SNAP */
-	ptr = (char*) (wh+1);
+	ptr = (char *)(wh + 1);
 	if (p->wep_len)
 		ptr += 4;
 	*ptr++ = 0xAA;
@@ -753,7 +783,7 @@ void read_tap(struct params *p)
 
 	/* WEP */
 	if (p->wep_len) {
-		ptr = (char*) (wh+1);
+		ptr = (char *)(wh + 1);
 		memcpy(ptr, &p->wep_iv, 3);
 		ptr[3] = 0;
 		p->wep_iv++;
@@ -765,7 +795,8 @@ void read_tap(struct params *p)
 	send_frame(p, wh, rd);
 }
 
-int retransmit(struct params *p)
+int
+retransmit(struct params *p)
 {
 #if 0
 	printf("RETRANS %d\n", p->packet_try);
@@ -784,13 +815,14 @@ int retransmit(struct params *p)
 	return p->packet_try;
 }
 
-void next_event(struct params *p)
+void
+next_event(struct params *p)
 {
 	struct timeval to, now;
 	int el;
 	int max;
 	fd_set fds;
-	int rtr = 3*1000;
+	int rtr = 3 * 1000;
 
 	/* figure out select timeout */
 	if (gettimeofday(&now, NULL) == -1)
@@ -803,8 +835,8 @@ void next_event(struct params *p)
 		el = 0;
 	}
 	el = p->bint - el;
-	to.tv_sec = el/1000/1000;
-	to.tv_usec = el - to.tv_sec*1000*1000;
+	to.tv_sec = el / 1000 / 1000;
+	to.tv_usec = el - to.tv_sec * 1000 * 1000;
 
 	/* check tx timeout */
 	if (p->packet_try) {
@@ -813,17 +845,16 @@ void next_event(struct params *p)
 			/* check if we gotta retransmit more */
 			if (retransmit(p)) {
 				el = 0;
-			}
-			else
+			} else
 				el = -1;
 		}
 
 		/* gotta retransmit in future */
 		if (el != -1) {
 			el = rtr - el;
-			if ((to.tv_sec*1000*1000 + to.tv_usec) > el) {
-				to.tv_sec = el/1000/1000;
-				to.tv_usec = el - to.tv_sec*1000*1000;
+			if ((to.tv_sec * 1000 * 1000 + to.tv_usec) > el) {
+				to.tv_sec = el / 1000 / 1000;
+				to.tv_usec = el - to.tv_sec * 1000 * 1000;
 			}
 		}
 	}
@@ -833,7 +864,7 @@ void next_event(struct params *p)
 	FD_SET(p->rx, &fds);
 	FD_SET(p->tap, &fds);
 	max = p->rx > p->tap ? p->rx : p->tap;
-	if (select(max+1, &fds, NULL, NULL, &to) == -1)
+	if (select(max + 1, &fds, NULL, NULL, &to) == -1)
 		err(1, "select()");
 
 	if (FD_ISSET(p->tap, &fds))
@@ -842,7 +873,8 @@ void next_event(struct params *p)
 		read_wifi(p);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	char *iface = "wlan0";
 	char *tap = "tap0";
@@ -853,7 +885,7 @@ int main(int argc, char *argv[])
 	memset(&p, 0, sizeof(p));
 	memcpy(p.mac, "\x00\x00\xde\xfa\xce\x0d", 6);
 	strcpy(p.ssid, "sorbo");
-	p.bint = 500*1000;
+	p.bint = 500 * 1000;
 	p.seq = getpid();
 	if (gettimeofday(&p.blast, NULL) == -1)
 		err(1, "gettimeofday()");
@@ -873,8 +905,8 @@ int main(int argc, char *argv[])
 			break;
 
 		case 's':
-			strncpy(p.ssid, optarg, sizeof(p.ssid)-1);
-			p.ssid[sizeof(p.ssid)-1] = 0; 
+			strncpy(p.ssid, optarg, sizeof(p.ssid) - 1);
+			p.ssid[sizeof(p.ssid) - 1] = 0;
 			break;
 
 		case 'm':

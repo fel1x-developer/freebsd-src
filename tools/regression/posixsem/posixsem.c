@@ -31,8 +31,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/_semaphore.h>
+#include <sys/queue.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/user.h>
@@ -52,14 +52,14 @@
 
 #include "test.h"
 
-#define	TEST_PATH	"/tmp/posixsem_regression_test"
+#define TEST_PATH "/tmp/posixsem_regression_test"
 
-#define	ELAPSED(elapsed, limit)		(abs((elapsed) - (limit)) < 100)
+#define ELAPSED(elapsed, limit) (abs((elapsed) - (limit)) < 100)
 
 /* Macros for passing child status to parent over a pipe. */
-#define	CSTAT(class, error)		((class) << 16 | (error))
-#define	CSTAT_CLASS(stat)		((stat) >> 16)
-#define	CSTAT_ERROR(stat)		((stat) & 0xffff)
+#define CSTAT(class, error) ((class) << 16 | (error))
+#define CSTAT_CLASS(stat) ((stat) >> 16)
+#define CSTAT_ERROR(stat) ((stat) & 0xffff)
 
 /*
  * Helper routine for tests that use a child process.  This routine
@@ -117,8 +117,8 @@ child_worker(int (*func)(void *arg), void *arg, int *stat)
  * 'error'.
  */
 static void
-ksem_open_should_fail(const char *path, int flags, mode_t mode, unsigned int
-    value, int error)
+ksem_open_should_fail(const char *path, int flags, mode_t mode,
+    unsigned int value, int error)
 {
 	semid_t id;
 
@@ -717,7 +717,7 @@ check_alarm(int just_clear)
 		return (-1);
 	}
 	alarm_id = -1;
-	
+
 	return (0);
 }
 
@@ -831,7 +831,7 @@ expired_timedwait(void)
 	}
 	if (!ELAPSED(elapsed, 2500)) {
 		fail_err(
-	    "ksem_timedwait() of locked sem took %ums instead of 2500ms",
+		    "ksem_timedwait() of locked sem took %ums instead of 2500ms",
 		    elapsed);
 		ksem_destroy(id);
 		return;
@@ -876,7 +876,7 @@ locked_timedwait(void)
 	}
 	if (!ELAPSED(elapsed, 1000)) {
 		fail_err(
-	    "ksem_timedwait() with delayed post took %ums instead of 1000ms",
+		    "ksem_timedwait() with delayed post took %ums instead of 1000ms",
 		    elapsed);
 		check_alarm(1);
 		ksem_destroy(id);
@@ -978,7 +978,7 @@ locked_wait(void)
 	}
 	if (!ELAPSED(elapsed, 1000)) {
 		fail_err(
-	    "ksem_wait() with delayed post took %ums instead of 1000ms",
+		    "ksem_wait() with delayed post took %ums instead of 1000ms",
 		    elapsed);
 		check_alarm(1);
 		ksem_destroy(id);
@@ -1031,7 +1031,7 @@ wait_twoproc_test(void)
 		ksem_close(id);
 		ksem_unlink(TEST_PATH);
 		return;
-	}		
+	}
 
 	if (child_worker(wait_twoproc_child, NULL, &stat) < 0) {
 		check_alarm(1);
@@ -1164,7 +1164,7 @@ busy_destroy_test(void)
 		}
 		if (kp->ki_stat == SSLEEP &&
 		    (strcmp(kp->ki_wmesg, "sem") == 0 ||
-		    strcmp(kp->ki_wmesg, "ksem") == 0))
+			strcmp(kp->ki_wmesg, "ksem") == 0))
 			break;
 		usleep(1000);
 	}
@@ -1210,7 +1210,7 @@ exhaust_unnamed_sems(void)
 	}
 
 	if (child_worker(exhaust_unnamed_child, (void *)(uintptr_t)nsems_max,
-	    &stat))
+		&stat))
 		return;
 	errno = CSTAT_ERROR(stat);
 	switch (CSTAT_CLASS(stat)) {
@@ -1265,7 +1265,7 @@ exhaust_named_sems(void)
 	}
 
 	if (child_worker(exhaust_named_child, (void *)(uintptr_t)nsems_max,
-	    &stat) < 0)
+		&stat) < 0)
 		return;
 	errno = CSTAT_ERROR(stat);
 	switch (CSTAT_CLASS(stat)) {
@@ -1324,7 +1324,7 @@ fdlimit_unnamed_sems(void)
 
 	nsems_max = 10;
 	if (child_worker(fdlimit_unnamed_child, (void *)(uintptr_t)nsems_max,
-	    &stat))
+		&stat))
 		return;
 	errno = CSTAT_ERROR(stat);
 	switch (CSTAT_CLASS(stat)) {
@@ -1369,7 +1369,7 @@ fdlimit_named_sems(void)
 
 	nsems_max = 10;
 	if (child_worker(fdlimit_named_child, (void *)(uintptr_t)nsems_max,
-	    &stat) < 0)
+		&stat) < 0)
 		return;
 	errno = CSTAT_ERROR(stat);
 	switch (CSTAT_CLASS(stat)) {

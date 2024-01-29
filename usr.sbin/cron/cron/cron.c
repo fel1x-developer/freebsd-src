@@ -20,32 +20,26 @@
  */
 
 #if !defined(lint) && !defined(LINT)
-static const char rcsid[] =
-    "$Id: cron.c,v 1.3 1998/08/14 00:32:36 vixie Exp $";
+static const char rcsid[] = "$Id: cron.c,v 1.3 1998/08/14 00:32:36 vixie Exp $";
 #endif
 
-#define	MAIN_PROGRAM
+#define MAIN_PROGRAM
 
-#include "cron.h"
 #include <sys/mman.h>
 
-static	void	usage(void),
-		run_reboot_jobs(cron_db *),
-		cron_tick(cron_db *, int),
-		cron_sync(int),
-		cron_sleep(cron_db *, int),
-		cron_clean(cron_db *),
-		sigchld_handler(int),
-		sighup_handler(int),
-		parse_args(int c, char *v[]);
+#include "cron.h"
 
-static int	run_at_secres(cron_db *);
-static void	find_interval_entry(pid_t);
+static void usage(void), run_reboot_jobs(cron_db *), cron_tick(cron_db *, int),
+    cron_sync(int), cron_sleep(cron_db *, int), cron_clean(cron_db *),
+    sigchld_handler(int), sighup_handler(int), parse_args(int c, char *v[]);
 
-static cron_db	database;
-static time_t	last_time = 0;
-static int	dst_enabled = 0;
-static int	dont_daemonize = 0;
+static int run_at_secres(cron_db *);
+static void find_interval_entry(pid_t);
+
+static cron_db database;
+static time_t last_time = 0;
+static int dst_enabled = 0;
+static int dont_daemonize = 0;
 struct pidfh *pfh;
 
 static void
@@ -55,15 +49,16 @@ usage(void)
 	const char **dflags;
 #endif
 
-	fprintf(stderr, "usage: cron [-j jitter] [-J rootjitter] "
-			"[-m mailto] [-n] [-s] [-o] [-x debugflag[,...]]\n");
+	fprintf(stderr,
+	    "usage: cron [-j jitter] [-J rootjitter] "
+	    "[-m mailto] [-n] [-s] [-o] [-x debugflag[,...]]\n");
 #if DEBUGGING
 	fprintf(stderr, "\ndebugflags: ");
 
-        for (dflags = DebugFlagNames; *dflags; dflags++) {
+	for (dflags = DebugFlagNames; *dflags; dflags++) {
 		fprintf(stderr, "%s ", *dflags);
 	}
-        fprintf(stderr, "\n");
+	fprintf(stderr, "\n");
 #endif
 
 	exit(ERROR_EXIT);
@@ -73,8 +68,8 @@ static void
 open_pidfile(void)
 {
 	const char *pidfile = PIDDIR PIDFILE;
-	char	buf[MAX_TEMPSTR];
-	int	otherpid;
+	char buf[MAX_TEMPSTR];
+	int otherpid;
 
 	pfh = pidfile_open(pidfile, 0600, &otherpid);
 	if (pfh == NULL) {
@@ -107,8 +102,8 @@ main(int argc, char *argv[])
 
 	parse_args(argc, argv);
 
-	(void) signal(SIGCHLD, sigchld_handler);
-	(void) signal(SIGHUP, sighup_handler);
+	(void)signal(SIGCHLD, sigchld_handler);
+	(void)signal(SIGHUP, sighup_handler);
 
 	open_pidfile();
 	set_cron_uid();
@@ -118,16 +113,17 @@ main(int argc, char *argv[])
 
 	/* if there are no debug flags turned on, fork as a daemon should.
 	 */
-# if DEBUGGING
+#if DEBUGGING
 	if (DebugFlags) {
-# else
+#else
 	if (0) {
-# endif
-		(void) fprintf(stderr, "[%d] cron started\n", getpid());
+#endif
+		(void)fprintf(stderr, "[%d] cron started\n", getpid());
 	} else if (dont_daemonize == 0) {
 		if (daemon(1, 0) == -1) {
 			pidfile_remove(pfh);
-			log_it("CRON",getpid(),"DEATH","can't become daemon");
+			log_it("CRON", getpid(), "DEATH",
+			    "can't become daemon");
 			exit(0);
 		}
 	}
@@ -138,17 +134,17 @@ main(int argc, char *argv[])
 	pidfile_write(pfh);
 	database.head = NULL;
 	database.tail = NULL;
-	database.mtime = (time_t) 0;
+	database.mtime = (time_t)0;
 	load_database(&database);
 	secres1 = secres2 = run_at_secres(&database);
 	cron_sync(secres1);
 	run_reboot_jobs(&database);
 	runnum = 0;
 	while (TRUE) {
-# if DEBUGGING
-	    /* if (!(DebugFlags & DTEST)) */
-# endif /*DEBUGGING*/
-			cron_sleep(&database, secres1);
+#if DEBUGGING
+		/* if (!(DebugFlags & DTEST)) */
+#endif /*DEBUGGING*/
+		cron_sleep(&database, secres1);
 
 		if (secres1 == 0 || runnum % 60 == 0) {
 			load_database(&database);
@@ -161,11 +157,11 @@ main(int argc, char *argv[])
 					/*
 					 * Going from 1 sec to 60 sec res. If we
 					 * are already at minute's boundary, so
-					 * let it run, otherwise schedule for the
-					 * next minute.
+					 * let it run, otherwise schedule for
+					 * the next minute.
 					 */
 					tm = localtime(&TargetTime);
-					if (tm->tm_sec > 0)  {
+					if (tm->tm_sec > 0) {
 						cron_sync(secres2);
 						continue;
 					}
@@ -200,7 +196,7 @@ run_reboot_jobs(cron_db *db)
 			}
 		}
 	}
-	(void) job_runqueue();
+	(void)job_runqueue();
 }
 
 static void
@@ -221,32 +217,35 @@ cron_tick(cron_db *db, int secres)
 
 	/* make 0-based values out of these so we can use them as indices
 	 */
-	second = (secres == 0) ? 0 : tm->tm_sec -FIRST_SECOND;
-	minute = tm->tm_min -FIRST_MINUTE;
-	hour = tm->tm_hour -FIRST_HOUR;
-	dom = tm->tm_mday -FIRST_DOM;
-	month = tm->tm_mon +1 /* 0..11 -> 1..12 */ -FIRST_MONTH;
-	dow = tm->tm_wday -FIRST_DOW;
+	second = (secres == 0) ? 0 : tm->tm_sec - FIRST_SECOND;
+	minute = tm->tm_min - FIRST_MINUTE;
+	hour = tm->tm_hour - FIRST_HOUR;
+	dom = tm->tm_mday - FIRST_DOM;
+	month = tm->tm_mon + 1 /* 0..11 -> 1..12 */ - FIRST_MONTH;
+	dow = tm->tm_wday - FIRST_DOW;
 
-	Debug(DSCH, ("[%d] tick(%d,%d,%d,%d,%d,%d)\n",
-		getpid(), second, minute, hour, dom, month, dow))
+	Debug(DSCH,
+	    ("[%d] tick(%d,%d,%d,%d,%d,%d)\n", getpid(), second, minute, hour,
+		dom, month, dow))
 
-	if (dst_enabled && last_time != 0 
-	&& TargetTime > last_time /* exclude stepping back */
-	&& tm->tm_gmtoff != lasttm.tm_gmtoff ) {
+	    if (dst_enabled && last_time != 0 &&
+		TargetTime > last_time /* exclude stepping back */
+		&& tm->tm_gmtoff != lasttm.tm_gmtoff)
+	{
 
 		diff = tm->tm_gmtoff - lasttm.tm_gmtoff;
 
-		if ( diff > 0 ) { /* ST->DST */
+		if (diff > 0) { /* ST->DST */
 			/* mark jobs for an earlier run */
 			difflimit = TargetTime + diff;
 			for (u = db->head; u != NULL; u = u->next) {
 				for (e = u->crontab; e != NULL; e = e->next) {
 					e->flags &= ~NOT_UNTIL;
-					if ( e->lastrun >= TargetTime )
+					if (e->lastrun >= TargetTime)
 						e->lastrun = 0;
-					/* not include the ends of hourly ranges */
-					if ( e->lastrun < TargetTime - 3600 )
+					/* not include the ends of hourly ranges
+					 */
+					if (e->lastrun < TargetTime - 3600)
 						e->flags |= RUN_AT;
 					else
 						e->flags &= ~RUN_AT;
@@ -265,14 +264,15 @@ cron_tick(cron_db *db, int secres)
 	}
 
 	if (diff != 0) {
-		/* if the time was reset of the end of special zone is reached */
+		/* if the time was reset of the end of special zone is reached
+		 */
 		if (last_time == 0 || TargetTime >= difflimit) {
 			/* disable the TZ switch checks */
 			diff = 0;
 			difflimit = 0;
 			for (u = db->head; u != NULL; u = u->next) {
 				for (e = u->crontab; e != NULL; e = e->next) {
-					e->flags &= ~(RUN_AT|NOT_UNTIL);
+					e->flags &= ~(RUN_AT | NOT_UNTIL);
 				}
 			}
 		} else {
@@ -280,14 +280,17 @@ cron_tick(cron_db *db, int secres)
 			time_t difftime = TargetTime + tm->tm_gmtoff - diff;
 			gmtime_r(&difftime, &otztm);
 
-			/* make 0-based values out of these so we can use them as indices
+			/* make 0-based values out of these so we can use them
+			 * as indices
 			 */
-			otzsecond = (secres == 0) ? 0 : otztm.tm_sec -FIRST_SECOND;
-			otzminute = otztm.tm_min -FIRST_MINUTE;
-			otzhour = otztm.tm_hour -FIRST_HOUR;
-			otzdom = otztm.tm_mday -FIRST_DOM;
-			otzmonth = otztm.tm_mon +1 /* 0..11 -> 1..12 */ -FIRST_MONTH;
-			otzdow = otztm.tm_wday -FIRST_DOW;
+			otzsecond = (secres == 0) ? 0 :
+						    otztm.tm_sec - FIRST_SECOND;
+			otzminute = otztm.tm_min - FIRST_MINUTE;
+			otzhour = otztm.tm_hour - FIRST_HOUR;
+			otzdom = otztm.tm_mday - FIRST_DOM;
+			otzmonth = otztm.tm_mon + 1 /* 0..11 -> 1..12 */ -
+			    FIRST_MONTH;
+			otzdow = otztm.tm_wday - FIRST_DOW;
 		}
 	}
 
@@ -299,35 +302,38 @@ cron_tick(cron_db *db, int secres)
 	 */
 	for (u = db->head; u != NULL; u = u->next) {
 		for (e = u->crontab; e != NULL; e = e->next) {
-			Debug(DSCH|DEXT, ("user [%s:%d:%d:...] cmd=\"%s\"\n",
-					  env_get("LOGNAME", e->envp),
-					  e->uid, e->gid, e->cmd))
+			Debug(DSCH | DEXT,
+			    ("user [%s:%d:%d:...] cmd=\"%s\"\n",
+				env_get("LOGNAME", e->envp), e->uid, e->gid,
+				e->cmd))
 
-			if (e->flags & INTERVAL) {
+			    if (e->flags & INTERVAL)
+			{
 				if (e->lastexit > 0 &&
 				    TargetTime >= e->lastexit + e->interval)
 					job_add(e, u);
 				continue;
 			}
 
-			if ( diff != 0 && (e->flags & (RUN_AT|NOT_UNTIL)) ) {
+			if (diff != 0 && (e->flags & (RUN_AT | NOT_UNTIL))) {
 				if (bit_test(e->second, otzsecond) &&
 				    bit_test(e->minute, otzminute) &&
 				    bit_test(e->hour, otzhour) &&
 				    bit_test(e->month, otzmonth) &&
-				    ( ((e->flags & DOM_STAR) || (e->flags & DOW_STAR))
-					  ? (bit_test(e->dow,otzdow) && bit_test(e->dom,otzdom))
-					  : (bit_test(e->dow,otzdow) || bit_test(e->dom,otzdom))
-					)
-				   ) {
-					if ( e->flags & RUN_AT ) {
+				    (((e->flags & DOM_STAR) ||
+					 (e->flags & DOW_STAR)) ?
+					    (bit_test(e->dow, otzdow) &&
+						bit_test(e->dom, otzdom)) :
+					    (bit_test(e->dow, otzdow) ||
+						bit_test(e->dom, otzdom)))) {
+					if (e->flags & RUN_AT) {
 						e->flags &= ~RUN_AT;
 						e->lastrun = TargetTime;
 						job_add(e, u);
 						continue;
-					} else 
+					} else
 						e->flags &= ~NOT_UNTIL;
-				} else if ( e->flags & NOT_UNTIL )
+				} else if (e->flags & NOT_UNTIL)
 					continue;
 			}
 
@@ -335,11 +341,11 @@ cron_tick(cron_db *db, int secres)
 			    bit_test(e->minute, minute) &&
 			    bit_test(e->hour, hour) &&
 			    bit_test(e->month, month) &&
-			    ( ((e->flags & DOM_STAR) || (e->flags & DOW_STAR))
-			      ? (bit_test(e->dow,dow) && bit_test(e->dom,dom))
-			      : (bit_test(e->dow,dow) || bit_test(e->dom,dom))
-			    )
-			   ) {
+			    (((e->flags & DOM_STAR) || (e->flags & DOW_STAR)) ?
+				    (bit_test(e->dow, dow) &&
+					bit_test(e->dom, dom)) :
+				    (bit_test(e->dow, dow) ||
+					bit_test(e->dom, dom)))) {
 				e->flags &= ~RUN_AT;
 				e->lastrun = TargetTime;
 				job_add(e, u);
@@ -361,10 +367,11 @@ cron_tick(cron_db *db, int secres)
  * that's something sysadmin's know to expect what with crashing computers..
  */
 static void
-cron_sync(int secres) {
+cron_sync(int secres)
+{
 	struct tm *tm;
 
-	TargetTime = time((time_t*)0);
+	TargetTime = time((time_t *)0);
 	if (secres != 0) {
 		TargetTime += 1;
 	} else {
@@ -414,23 +421,25 @@ cron_sleep(cron_db *db, int secres)
 		}
 
 		seconds_to_wait = (stime.tv_nsec > 0) ? stime.tv_sec + 1 :
-		    stime.tv_sec;
+							stime.tv_sec;
 
-		Debug(DSCH, ("[%d] TargetTime=%ld, sec-to-wait=%d\n",
-			getpid(), (long)TargetTime, seconds_to_wait))
+		Debug(DSCH,
+		    ("[%d] TargetTime=%ld, sec-to-wait=%d\n", getpid(),
+			(long)TargetTime, seconds_to_wait))
 
-		/*
-		 * If we've run out of wait time or there are no jobs left
-		 * to run, break
-		 */
+		    /*
+		     * If we've run out of wait time or there are no jobs left
+		     * to run, break
+		     */
 
-		if (stime.tv_sec < 0)
-			break;
+		    if (stime.tv_sec < 0) break;
 		if (job_runqueue() == 0) {
-			Debug(DSCH, ("[%d] sleeping for %d seconds\n",
-				getpid(), seconds_to_wait))
+			Debug(DSCH,
+			    ("[%d] sleeping for %d seconds\n", getpid(),
+				seconds_to_wait))
 
-			for (;;) {
+			    for (;;)
+			{
 				rval = nanosleep(&stime, &remtime);
 				if (rval == 0 || errno != EINTR)
 					break;
@@ -441,7 +450,6 @@ cron_sleep(cron_db *db, int secres)
 	}
 }
 
-
 /* if the time was changed abruptly, clear the flags related
  * to the daylight time switch handling to avoid strange effects
  */
@@ -449,14 +457,14 @@ cron_sleep(cron_db *db, int secres)
 static void
 cron_clean(cron_db *db)
 {
-	user		*u;
-	entry		*e;
+	user *u;
+	entry *e;
 
 	last_time = 0;
 
-	for (u = db->head;  u != NULL;  u = u->next) {
-		for (e = u->crontab;  e != NULL;  e = e->next) {
-			e->flags &= ~(RUN_AT|NOT_UNTIL);
+	for (u = db->head; u != NULL; u = u->next) {
+		for (e = u->crontab; e != NULL; e = e->next) {
+			e->flags &= ~(RUN_AT | NOT_UNTIL);
 		}
 	}
 }
@@ -472,17 +480,15 @@ sigchld_handler(int x)
 		switch (pid) {
 		case -1:
 			Debug(DPROC,
-				("[%d] sigchld...no children\n", getpid()))
-			return;
+			    ("[%d] sigchld...no children\n", getpid())) return;
 		case 0:
 			Debug(DPROC,
-				("[%d] sigchld...no dead kids\n", getpid()))
-			return;
+			    ("[%d] sigchld...no dead kids\n", getpid())) return;
 		default:
 			find_interval_entry(pid);
 			Debug(DPROC,
-				("[%d] sigchld...pid #%d died, stat=%d\n",
-				getpid(), pid, WEXITSTATUS(waiter)))
+			    ("[%d] sigchld...pid #%d died, stat=%d\n", getpid(),
+				pid, WEXITSTATUS(waiter)))
 		}
 	}
 }
@@ -504,14 +510,14 @@ parse_args(int argc, char *argv[])
 		case 'j':
 			Jitter = strtoul(optarg, &endp, 10);
 			if (*optarg == '\0' || *endp != '\0' || Jitter > 60)
-				errx(ERROR_EXIT,
-				     "bad value for jitter: %s", optarg);
+				errx(ERROR_EXIT, "bad value for jitter: %s",
+				    optarg);
 			break;
 		case 'J':
 			RootJitter = strtoul(optarg, &endp, 10);
 			if (*optarg == '\0' || *endp != '\0' || RootJitter > 60)
 				errx(ERROR_EXIT,
-				     "bad value for root jitter: %s", optarg);
+				    "bad value for root jitter: %s", optarg);
 			break;
 		case 'm':
 			defmailto = optarg;
@@ -541,8 +547,8 @@ run_at_secres(cron_db *db)
 	user *u;
 	entry *e;
 
-	for (u = db->head;  u != NULL;  u = u->next) {
-		for (e = u->crontab;  e != NULL;  e = e->next) {
+	for (u = db->head; u != NULL; u = u->next) {
+		for (e = u->crontab; e != NULL; e = e->next) {
 			if ((e->flags & (SEC_RES | INTERVAL)) != 0)
 				return 1;
 		}
@@ -556,8 +562,8 @@ find_interval_entry(pid_t pid)
 	user *u;
 	entry *e;
 
-	for (u = database.head;  u != NULL;  u = u->next) {
-		for (e = u->crontab;  e != NULL;  e = e->next) {
+	for (u = database.head; u != NULL; u = u->next) {
+		for (e = u->crontab; e != NULL; e = e->next) {
 			if ((e->flags & INTERVAL) && e->child == pid) {
 				e->lastexit = time(NULL);
 				e->child = 0;

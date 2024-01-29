@@ -25,14 +25,13 @@
  */
 
 #ifndef _LINUXKPI_LINUX_MM_TYPES_H_
-#define	_LINUXKPI_LINUX_MM_TYPES_H_
+#define _LINUXKPI_LINUX_MM_TYPES_H_
 
-#include <linux/types.h>
+#include <asm/atomic.h>
 #include <linux/page.h>
 #include <linux/rbtree.h>
 #include <linux/rwsem.h>
-
-#include <asm/atomic.h>
+#include <linux/types.h>
 
 typedef int vm_fault_t;
 
@@ -77,6 +76,6 @@ mmgrab(struct mm_struct *mm)
 }
 
 extern struct mm_struct *linux_get_task_mm(struct task_struct *);
-#define	get_task_mm(task) linux_get_task_mm(task)
+#define get_task_mm(task) linux_get_task_mm(task)
 
-#endif					/* _LINUXKPI_LINUX_MM_TYPES_H_ */
+#endif /* _LINUXKPI_LINUX_MM_TYPES_H_ */

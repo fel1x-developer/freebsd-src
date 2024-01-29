@@ -32,20 +32,20 @@
  * Performance Monitoring Unit
  */
 
-#include <sys/cdefs.h>
 #include "opt_hwpmc_hooks.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/pmc.h>
+#include <sys/pmckern.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
-#include <sys/pmc.h>
-#include <sys/pmckern.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
@@ -59,8 +59,8 @@ int pmu_attched = 0;
 uint32_t ccnt_hi[MAXCPU];
 #endif
 
-#define	PMU_OVSR_C		0x80000000	/* Cycle Counter */
-#define	PMU_IESR_C		0x80000000	/* Cycle Counter */
+#define PMU_OVSR_C 0x80000000 /* Cycle Counter */
+#define PMU_IESR_C 0x80000000 /* Cycle Counter */
 
 static int
 pmu_intr(void *arg)
@@ -154,6 +154,5 @@ fail:
 			bus_release_resource(dev, SYS_RES_IRQ, i,
 			    sc->irq[i].res);
 	}
-	return(err);
+	return (err);
 }
-

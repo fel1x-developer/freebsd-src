@@ -34,15 +34,14 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 
-#include <netdb.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/mount.h>
-#include <nfs/nfssvc.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fstab.h>
+#include <netdb.h>
+#include <nfs/nfssvc.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/mount.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,23 +52,23 @@
 typedef enum { FIND, REMOVE, CHECKUNIQUE } dowhat;
 
 static struct addrinfo *nfshost_ai = NULL;
-static int	fflag, vflag;
-static char	*nfshost;
+static int fflag, vflag;
+static char *nfshost;
 
 struct statfs *checkmntlist(char *);
-int	 checkvfsname (const char *, char **);
+int checkvfsname(const char *, char **);
 struct statfs *getmntentry(const char *fromname, const char *onname,
-	     fsid_t *fsid, dowhat what);
-char   **makevfslist (const char *);
-size_t	 mntinfo (struct statfs **);
-int	 namematch (struct addrinfo *);
-int	 parsehexfsid(const char *hex, fsid_t *fsid);
-int	 sacmp (void *, void *);
-int	 umountall (char **);
-int	 checkname (char *, char **);
-int	 umountfs(struct statfs *sfs);
-void	 usage (void);
-int	 xdr_dir (XDR *, char *);
+    fsid_t *fsid, dowhat what);
+char **makevfslist(const char *);
+size_t mntinfo(struct statfs **);
+int namematch(struct addrinfo *);
+int parsehexfsid(const char *hex, fsid_t *fsid);
+int sacmp(void *, void *);
+int umountall(char **);
+int checkname(char *, char **);
+int umountfs(struct statfs *sfs);
+void usage(void);
+int xdr_dir(XDR *, char *);
 
 int
 main(int argc, char *argv[])
@@ -94,7 +93,7 @@ main(int argc, char *argv[])
 		case 'f':
 			fflag |= MNT_FORCE;
 			break;
-		case 'h':	/* -h implies -A. */
+		case 'h': /* -h implies -A. */
 			all = 2;
 			nfshost = optarg;
 			break;
@@ -284,8 +283,9 @@ checkname(char *mntname, char **typelist)
 	 * mount list and reality.
 	 * We also do this if an ambiguous mount point was specified.
 	 */
-	if (sfs == NULL || (getmntentry(NULL, mntname, NULL, FIND) != NULL &&
-	    getmntentry(NULL, mntname, NULL, CHECKUNIQUE) == NULL)) {
+	if (sfs == NULL ||
+	    (getmntentry(NULL, mntname, NULL, FIND) != NULL &&
+		getmntentry(NULL, mntname, NULL, CHECKUNIQUE) == NULL)) {
 		if (statfs(mntname, &sfsbuf) != 0) {
 			warn("%s: statfs", mntname);
 		} else if (stat(mntname, &sb) != 0) {
@@ -367,8 +367,8 @@ umountfs(struct statfs *sfs)
 		 * A non-NULL return means that this is the last
 		 * mount from mntfromname that is still mounted.
 		 */
-		if (getmntentry(sfs->f_mntfromname, NULL, NULL,
-		    CHECKUNIQUE) != NULL) {
+		if (getmntentry(sfs->f_mntfromname, NULL, NULL, CHECKUNIQUE) !=
+		    NULL) {
 			do_rpc = 1;
 			proto_ptr = "udp";
 			/*
@@ -424,9 +424,8 @@ umountfs(struct statfs *sfs)
 	 */
 	if (ai != NULL && !(fflag & MNT_FORCE) && do_rpc) {
 		clp = clnt_create(hostp, MOUNTPROG, MOUNTVERS3, proto_ptr);
-		if (clp  == NULL) {
-			warnx("%s: %s", hostp,
-			    clnt_spcreateerror("MOUNTPROG"));
+		if (clp == NULL) {
+			warnx("%s: %s", hostp, clnt_spcreateerror("MOUNTPROG"));
 			free(orignfsdirname);
 			return (1);
 		}
@@ -446,7 +445,7 @@ umountfs(struct statfs *sfs)
 		 */
 		if (read_mtab()) {
 			clean_mtab(hostp, nfsdirname, vflag);
-			if(!write_mtab(vflag))
+			if (!write_mtab(vflag))
 				warnx("cannot remove mounttab entry %s:%s",
 				    hostp, nfsdirname);
 			free_mtab();
@@ -486,8 +485,8 @@ getmntentry(const char *fromname, const char *onname, fsid_t *fsid, dowhat what)
 		if (mntcheck[i])
 			continue;
 		sfs = &mntbuf[i];
-		if (fromname != NULL && strcmp(sfs->f_mntfromname,
-		    fromname) != 0)
+		if (fromname != NULL &&
+		    strcmp(sfs->f_mntfromname, fromname) != 0)
 			continue;
 		if (onname != NULL && strcmp(sfs->f_mntonname, onname) != 0)
 			continue;

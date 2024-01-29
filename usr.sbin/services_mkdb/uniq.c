@@ -31,14 +31,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+
+#include <ctype.h>
 #include <db.h>
 #include <err.h>
-#include <libutil.h>
-#include <ctype.h>
 #include <fcntl.h>
+#include <libutil.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "extern.h"
 
@@ -116,7 +117,7 @@ comp(const char *origline, char **compline, size_t *len)
 
 	/* Eat leading space */
 	for (p = (const unsigned char *)origline; l && *p && isspace(*p);
-	    p++, l--)
+	     p++, l--)
 		continue;
 	if (*p == '\0' || l == 0)
 		return 0;

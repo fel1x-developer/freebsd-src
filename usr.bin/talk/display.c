@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * The window 'manager', initializes curses and handles the actual
  * displaying of text
@@ -43,13 +41,13 @@
 
 #include "talk.h"
 
-void	display(xwin_t *, wchar_t *);
+void display(xwin_t *, wchar_t *);
 
-xwin_t	my_win;
-xwin_t	his_win;
-WINDOW	*line_win;
+xwin_t my_win;
+xwin_t his_win;
+WINDOW *line_win;
 
-int	curses_initialized = 0;
+int curses_initialized = 0;
 
 /*
  * max HAS to be a function, it is called with
@@ -117,9 +115,9 @@ display(xwin_t *win, wchar_t *wc)
 		return;
 
 	/* Erase character. */
-	case 010:	/* BS */
-	case 0177:	/* DEL */
-cerase:
+	case 010:  /* BS */
+	case 0177: /* DEL */
+	cerase:
 		wmove(win->x_win, win->x_line, max(--win->x_col, 0));
 		getyx(win->x_win, win->x_line, win->x_col);
 		waddch(win->x_win, ' ');
@@ -128,9 +126,8 @@ cerase:
 		wrefresh(win->x_win);
 		return;
 
-	case 027:	/* ^W */
-werase:
-	    {
+	case 027: /* ^W */
+	werase: {
 		/*
 		 * On word erase search backwards until we find
 		 * the beginning of a word or the beginning of
@@ -159,10 +156,10 @@ werase:
 		getyx(win->x_win, win->x_line, win->x_col);
 		wrefresh(win->x_win);
 		return;
-	    }
+	}
 
-	case 025:	/* ^U */
-kill:
+	case 025: /* ^U */
+	kill:
 		wmove(win->x_win, win->x_line, 0);
 		wclrtoeol(win->x_win);
 		getyx(win->x_win, win->x_line, win->x_col);
@@ -178,7 +175,6 @@ kill:
 		write(STDOUT_FILENO, wc, sizeof(*wc));
 		return;
 	}
-
 
 	if (iswprint(*wc) || *wc == L'\t')
 		wadd_wch(win->x_win, makecchar(*wc));

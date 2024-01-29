@@ -19,41 +19,38 @@
  */
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
+#include <dev/rtwn/if_rtwnvar.h>
+#include <dev/rtwn/usb/rtwn_usb_reg.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 
-#include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_debug.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
-#include <dev/rtwn/usb/rtwn_usb_var.h>
-#include <dev/rtwn/usb/rtwn_usb_reg.h>
-
-static int	rtwn_do_request(struct rtwn_softc *,
-		    struct usb_device_request *, void *);
-static int	rtwn_usb_read_region_1(struct rtwn_softc *,
-		    uint16_t, uint8_t *, int);
+static int rtwn_do_request(struct rtwn_softc *, struct usb_device_request *,
+    void *);
+static int rtwn_usb_read_region_1(struct rtwn_softc *, uint16_t, uint8_t *,
+    int);
 
 /* USB Requests. */
-#define R92C_REQ_REGS		0x05
+#define R92C_REQ_REGS 0x05
 
 static int
 rtwn_do_request(struct rtwn_softc *sc, struct usb_device_request *req,
@@ -66,8 +63,8 @@ rtwn_do_request(struct rtwn_softc *sc, struct usb_device_request *req,
 	RTWN_ASSERT_LOCKED(sc);
 
 	while (ntries--) {
-		err = usbd_do_request_flags(uc->uc_udev, &sc->sc_mtx,
-		    req, data, 0, NULL, 250 /* ms */);
+		err = usbd_do_request_flags(uc->uc_udev, &sc->sc_mtx, req, data,
+		    0, NULL, 250 /* ms */);
 		if (err == USB_ERR_NORMAL_COMPLETION)
 			return (0);
 
@@ -107,14 +104,16 @@ int
 rtwn_usb_write_2(struct rtwn_softc *sc, uint16_t addr, uint16_t val)
 {
 	val = htole16(val);
-	return (rtwn_usb_write_region_1(sc, addr, (uint8_t *)&val, sizeof(val)));
+	return (
+	    rtwn_usb_write_region_1(sc, addr, (uint8_t *)&val, sizeof(val)));
 }
 
 int
 rtwn_usb_write_4(struct rtwn_softc *sc, uint16_t addr, uint32_t val)
 {
 	val = htole32(val);
-	return (rtwn_usb_write_region_1(sc, addr, (uint8_t *)&val, sizeof(val)));
+	return (
+	    rtwn_usb_write_region_1(sc, addr, (uint8_t *)&val, sizeof(val)));
 }
 
 static int

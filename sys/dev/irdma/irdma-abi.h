@@ -47,9 +47,9 @@
 #define IRDMA_ABI_VER 5
 
 enum irdma_memreg_type {
-	IRDMA_MEMREG_TYPE_MEM  = 0,
-	IRDMA_MEMREG_TYPE_QP   = 1,
-	IRDMA_MEMREG_TYPE_CQ   = 2,
+	IRDMA_MEMREG_TYPE_MEM = 0,
+	IRDMA_MEMREG_TYPE_QP = 1,
+	IRDMA_MEMREG_TYPE_CQ = 2,
 };
 
 enum {

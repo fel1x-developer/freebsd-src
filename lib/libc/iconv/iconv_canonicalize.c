@@ -27,7 +27,9 @@
  */
 
 #include <sys/types.h>
+
 #include <iconv.h>
+
 #include "iconv-internal.h"
 
 const char *

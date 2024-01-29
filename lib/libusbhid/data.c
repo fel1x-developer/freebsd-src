@@ -29,10 +29,13 @@
  */
 
 #include <sys/param.h>
+
+#include <dev/usb/usb_ioctl.h>
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dev/usb/usb_ioctl.h>
+
 #include "usbhid.h"
 #include "usbvar.h"
 
@@ -51,8 +54,8 @@ hid_get_data(const void *p, const hid_item_t *h)
 	if (h->report_ID > 0)
 		buf++;
 
-	hpos = h->pos;			/* bit position of data */
-	hsize = h->report_size;		/* bit length of data */
+	hpos = h->pos;		/* bit position of data */
+	hsize = h->report_size; /* bit length of data */
 
 	/* Range check and limit */
 	if (hsize == 0)
@@ -64,7 +67,7 @@ hid_get_data(const void *p, const hid_item_t *h)
 	end = (hpos + hsize) / 8 - offs;
 	data = 0;
 	for (i = 0; i <= end; i++)
-		data |= buf[offs + i] << (i*8);
+		data |= buf[offs + i] << (i * 8);
 
 	/* Correctly shift down data */
 	data >>= hpos % 8;
@@ -96,8 +99,8 @@ hid_set_data(void *p, const hid_item_t *h, int32_t data)
 	if (h->report_ID > 0)
 		*buf++ = h->report_ID & 0xff;
 
-	hpos = h->pos;			/* bit position of data */
-	hsize = h->report_size;		/* bit length of data */
+	hpos = h->pos;		/* bit position of data */
+	hsize = h->report_size; /* bit length of data */
 
 	if (hsize != 32) {
 		mask = (1 << hsize) - 1;
@@ -113,8 +116,8 @@ hid_set_data(void *p, const hid_item_t *h, int32_t data)
 	end = (hpos + hsize) / 8 - offs;
 
 	for (i = 0; i <= end; i++)
-		buf[offs + i] = (buf[offs + i] & (mask >> (i*8))) |
-		    ((data >> (i*8)) & 0xff);
+		buf[offs + i] = (buf[offs + i] & (mask >> (i * 8))) |
+		    ((data >> (i * 8)) & 0xff);
 }
 
 int

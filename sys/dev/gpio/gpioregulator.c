@@ -30,47 +30,45 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/gpio.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <sys/rman.h>
 
 #include <dev/gpio/gpiobusvar.h>
-
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/regulator/regulator.h>
 
 #include "regdev_if.h"
 
 struct gpioregulator_state {
-	int			val;
-	uint32_t		mask;
+	int val;
+	uint32_t mask;
 };
 
 struct gpioregulator_init_def {
-	struct regnode_init_def		reg_init_def;
-	struct gpiobus_pin		*enable_pin;
-	int				enable_pin_valid;
-	int				startup_delay_us;
-	int				nstates;
-	struct gpioregulator_state	*states;
-	int				npins;
-	struct gpiobus_pin		**pins;
+	struct regnode_init_def reg_init_def;
+	struct gpiobus_pin *enable_pin;
+	int enable_pin_valid;
+	int startup_delay_us;
+	int nstates;
+	struct gpioregulator_state *states;
+	int npins;
+	struct gpiobus_pin **pins;
 };
 
 struct gpioregulator_reg_sc {
-	struct regnode			*regnode;
-	device_t			base_dev;
-	struct regnode_std_param	*param;
-	struct gpioregulator_init_def	*def;
+	struct regnode *regnode;
+	device_t base_dev;
+	struct regnode_std_param *param;
+	struct gpioregulator_init_def *def;
 };
 
 struct gpioregulator_softc {
-	device_t			dev;
-	struct gpioregulator_reg_sc	*reg_sc;
-	struct gpioregulator_init_def	init_def;
+	device_t dev;
+	struct gpioregulator_reg_sc *reg_sc;
+	struct gpioregulator_init_def init_def;
 };
 
 static int
@@ -182,8 +180,8 @@ gpioregulator_regnode_get_voltage(struct regnode *regnode, int *uvolt)
 
 static regnode_method_t gpioregulator_regnode_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,	gpioregulator_regnode_init),
-	REGNODEMETHOD(regnode_enable,	gpioregulator_regnode_enable),
+	REGNODEMETHOD(regnode_init, gpioregulator_regnode_init),
+	REGNODEMETHOD(regnode_enable, gpioregulator_regnode_enable),
 	REGNODEMETHOD(regnode_set_voltage, gpioregulator_regnode_set_voltage),
 	REGNODEMETHOD(regnode_get_voltage, gpioregulator_regnode_get_voltage),
 	REGNODEMETHOD_END
@@ -219,7 +217,8 @@ gpioregulator_parse_fdt(struct gpioregulator_softc *sc)
 	}
 	sc->init_def.nstates = len / 2;
 	sc->init_def.states = malloc(sc->init_def.nstates *
-	    sizeof(*sc->init_def.states), M_DEVBUF, M_WAITOK);
+		sizeof(*sc->init_def.states),
+	    M_DEVBUF, M_WAITOK);
 	for (n = 0; n < sc->init_def.nstates; n++) {
 		sc->init_def.states[n].val = pstates[n * 2 + 0];
 		sc->init_def.states[n].mask = pstates[n * 2 + 1];
@@ -242,7 +241,8 @@ gpioregulator_parse_fdt(struct gpioregulator_softc *sc)
 	/* "gpios" property */
 	sc->init_def.npins = 32 - __builtin_clz(mask);
 	sc->init_def.pins = malloc(sc->init_def.npins *
-	    sizeof(sc->init_def.pins), M_DEVBUF, M_WAITOK | M_ZERO);
+		sizeof(sc->init_def.pins),
+	    M_DEVBUF, M_WAITOK | M_ZERO);
 	for (n = 0; n < sc->init_def.npins; n++) {
 		error = gpio_pin_get_by_ofw_idx(sc->dev, node, n,
 		    &sc->init_def.pins[n]);
@@ -261,7 +261,6 @@ done:
 
 		free(sc->init_def.states, M_DEVBUF);
 		free(sc->init_def.pins, M_DEVBUF);
-
 	}
 	OF_prop_free(pstates);
 
@@ -317,14 +316,13 @@ gpioregulator_attach(device_t dev)
 	return (0);
 }
 
-
 static device_method_t gpioregulator_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		gpioregulator_probe),
-	DEVMETHOD(device_attach,	gpioregulator_attach),
+	DEVMETHOD(device_probe, gpioregulator_probe),
+	DEVMETHOD(device_attach, gpioregulator_attach),
 
 	/* Regdev interface */
-	DEVMETHOD(regdev_map,		regdev_default_ofw_map),
+	DEVMETHOD(regdev_map, regdev_default_ofw_map),
 
 	DEVMETHOD_END
 };

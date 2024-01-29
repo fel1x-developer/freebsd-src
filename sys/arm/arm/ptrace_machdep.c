@@ -29,6 +29,7 @@
 #include <sys/proc.h>
 #include <sys/ptrace.h>
 #include <sys/reg.h>
+
 #include <machine/pcb.h>
 #ifdef VFP
 #include <machine/vfp.h>
@@ -48,8 +49,7 @@ get_arm_vfp(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 }
 
 static bool
-set_arm_vfp(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_arm_vfp(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
 	KASSERT(size == sizeof(mcontext_vfp_t), ("%s: invalid size", __func__));
 	set_vfpcontext(td, buf);
@@ -66,8 +66,7 @@ ELF_REGSET(regset_arm_vfp);
 #endif
 
 static bool
-get_arm_tls(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_arm_tls(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	if (buf != NULL) {
 		KASSERT(*sizep == sizeof(td->td_pcb->pcb_regs.sf_tpidrurw),

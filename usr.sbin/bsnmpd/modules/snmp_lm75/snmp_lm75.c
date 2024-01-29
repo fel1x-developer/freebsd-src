@@ -29,7 +29,6 @@
 #include <sys/sysctl.h>
 
 #include <bsnmp/snmpmod.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,11 +37,11 @@
 #include "lm75_oid.h"
 #include "lm75_tree.h"
 
-#ifndef	LM75BUF
-#define	LM75BUF		64
+#ifndef LM75BUF
+#define LM75BUF 64
 #endif
-#define	TZ_ZEROC	2732
-#define	UPDATE_INTERVAL	500	/* update interval in ticks */
+#define TZ_ZEROC 2732
+#define UPDATE_INTERVAL 500 /* update interval in ticks */
 
 static struct lmodule *module;
 
@@ -59,17 +58,16 @@ static int lm75_sensors;
  */
 struct lm75_snmp_sensor {
 	TAILQ_ENTRY(lm75_snmp_sensor) link;
-	int32_t		index;
-	int32_t		sysctlidx;
-	int32_t		temp;
-	char		desc[LM75BUF];
-	char		location[LM75BUF];
-	char		parent[LM75BUF];
-	char		pnpinfo[LM75BUF];
+	int32_t index;
+	int32_t sysctlidx;
+	int32_t temp;
+	char desc[LM75BUF];
+	char location[LM75BUF];
+	char parent[LM75BUF];
+	char pnpinfo[LM75BUF];
 };
 
-static TAILQ_HEAD(, lm75_snmp_sensor) sensors =
-    TAILQ_HEAD_INITIALIZER(sensors);
+static TAILQ_HEAD(, lm75_snmp_sensor) sensors = TAILQ_HEAD_INITIALIZER(sensors);
 
 /* Ticks of the last sensors reading. */
 static uint64_t last_sensors_update;
@@ -81,13 +79,13 @@ static void lm75_start(void);
 static int update_sensors(void);
 
 const struct snmp_module config = {
-    .comment   =
-	"This module implements the BEGEMOT MIB for reading LM75 sensors data.",
-    .init      = lm75_init,
-    .start     = lm75_start,
-    .fini      = lm75_fini,
-    .tree      = lm75_ctree,
-    .tree_size = lm75_CTREE_SIZE,
+	.comment =
+	    "This module implements the BEGEMOT MIB for reading LM75 sensors data.",
+	.init = lm75_init,
+	.start = lm75_start,
+	.fini = lm75_fini,
+	.tree = lm75_ctree,
+	.tree_size = lm75_CTREE_SIZE,
 };
 
 static int
@@ -98,7 +96,7 @@ lm75_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 
 	lm75_sensors = 0;
 
-	return(0);
+	return (0);
 }
 
 static void

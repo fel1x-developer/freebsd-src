@@ -78,24 +78,22 @@
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
+#include <machine/bus.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
-#include <machine/bus.h>
-
 #include <dev/vr/if_vrreg.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
@@ -105,45 +103,36 @@ MODULE_DEPEND(vr, ether, 1, 1, 1);
 MODULE_DEPEND(vr, miibus, 1, 1, 1);
 
 /* Define to show Rx/Tx error status. */
-#undef	VR_SHOW_ERRORS
-#define	VR_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#undef VR_SHOW_ERRORS
+#define VR_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 
 /*
  * Various supported device vendors/types, their names & quirks.
  */
-#define VR_Q_NEEDALIGN		(1<<0)
-#define VR_Q_CSUM		(1<<1)
-#define VR_Q_CAM		(1<<2)
+#define VR_Q_NEEDALIGN (1 << 0)
+#define VR_Q_CSUM (1 << 1)
+#define VR_Q_CAM (1 << 2)
 
 static const struct vr_type {
-	u_int16_t		vr_vid;
-	u_int16_t		vr_did;
-	int			vr_quirks;
-	const char		*vr_name;
-} vr_devs[] = {
-	{ VIA_VENDORID, VIA_DEVICEID_RHINE,
-	    VR_Q_NEEDALIGN,
-	    "VIA VT3043 Rhine I 10/100BaseTX" },
-	{ VIA_VENDORID, VIA_DEVICEID_RHINE_II,
-	    VR_Q_NEEDALIGN,
+	u_int16_t vr_vid;
+	u_int16_t vr_did;
+	int vr_quirks;
+	const char *vr_name;
+} vr_devs[] = { { VIA_VENDORID, VIA_DEVICEID_RHINE, VR_Q_NEEDALIGN,
+		    "VIA VT3043 Rhine I 10/100BaseTX" },
+	{ VIA_VENDORID, VIA_DEVICEID_RHINE_II, VR_Q_NEEDALIGN,
 	    "VIA VT86C100A Rhine II 10/100BaseTX" },
-	{ VIA_VENDORID, VIA_DEVICEID_RHINE_II_2,
-	    0,
+	{ VIA_VENDORID, VIA_DEVICEID_RHINE_II_2, 0,
 	    "VIA VT6102 Rhine II 10/100BaseTX" },
-	{ VIA_VENDORID, VIA_DEVICEID_RHINE_III,
-	    0,
+	{ VIA_VENDORID, VIA_DEVICEID_RHINE_III, 0,
 	    "VIA VT6105 Rhine III 10/100BaseTX" },
-	{ VIA_VENDORID, VIA_DEVICEID_RHINE_III_M,
-	    VR_Q_CSUM,
+	{ VIA_VENDORID, VIA_DEVICEID_RHINE_III_M, VR_Q_CSUM,
 	    "VIA VT6105M Rhine III 10/100BaseTX" },
-	{ DELTA_VENDORID, DELTA_DEVICEID_RHINE_II,
-	    VR_Q_NEEDALIGN,
+	{ DELTA_VENDORID, DELTA_DEVICEID_RHINE_II, VR_Q_NEEDALIGN,
 	    "Delta Electronics Rhine II 10/100BaseTX" },
-	{ ADDTRON_VENDORID, ADDTRON_DEVICEID_RHINE_II,
-	    VR_Q_NEEDALIGN,
+	{ ADDTRON_VENDORID, ADDTRON_DEVICEID_RHINE_II, VR_Q_NEEDALIGN,
 	    "Addtron Technology Rhine II 10/100BaseTX" },
-	{ 0, 0, 0, NULL }
-};
+	{ 0, 0, 0, NULL } };
 
 static int vr_probe(device_t);
 static int vr_attach(device_t);
@@ -201,37 +190,31 @@ static const struct vr_tx_threshold_table {
 	int tx_cfg;
 	int bcr_cfg;
 	int value;
-} vr_tx_threshold_tables[] = {
-	{ VR_TXTHRESH_64BYTES, VR_BCR1_TXTHRESH64BYTES,	64 },
+} vr_tx_threshold_tables[] = { { VR_TXTHRESH_64BYTES, VR_BCR1_TXTHRESH64BYTES,
+				   64 },
 	{ VR_TXTHRESH_128BYTES, VR_BCR1_TXTHRESH128BYTES, 128 },
 	{ VR_TXTHRESH_256BYTES, VR_BCR1_TXTHRESH256BYTES, 256 },
 	{ VR_TXTHRESH_512BYTES, VR_BCR1_TXTHRESH512BYTES, 512 },
 	{ VR_TXTHRESH_1024BYTES, VR_BCR1_TXTHRESH1024BYTES, 1024 },
-	{ VR_TXTHRESH_STORENFWD, VR_BCR1_TXTHRESHSTORENFWD, 2048 }
-};
+	{ VR_TXTHRESH_STORENFWD, VR_BCR1_TXTHRESHSTORENFWD, 2048 } };
 
 static device_method_t vr_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		vr_probe),
-	DEVMETHOD(device_attach,	vr_attach),
-	DEVMETHOD(device_detach, 	vr_detach),
-	DEVMETHOD(device_shutdown,	vr_shutdown),
-	DEVMETHOD(device_suspend,	vr_suspend),
-	DEVMETHOD(device_resume,	vr_resume),
+	DEVMETHOD(device_probe, vr_probe), DEVMETHOD(device_attach, vr_attach),
+	DEVMETHOD(device_detach, vr_detach),
+	DEVMETHOD(device_shutdown, vr_shutdown),
+	DEVMETHOD(device_suspend, vr_suspend),
+	DEVMETHOD(device_resume, vr_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	vr_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	vr_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	vr_miibus_statchg),
+	DEVMETHOD(miibus_readreg, vr_miibus_readreg),
+	DEVMETHOD(miibus_writereg, vr_miibus_writereg),
+	DEVMETHOD(miibus_statchg, vr_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t vr_driver = {
-	"vr",
-	vr_methods,
-	sizeof(struct vr_softc)
-};
+static driver_t vr_driver = { "vr", vr_methods, sizeof(struct vr_softc) };
 
 DRIVER_MODULE(vr, pci, vr_driver, 0, 0);
 DRIVER_MODULE(miibus, vr, miibus_driver, 0, 0);
@@ -239,8 +222,8 @@ DRIVER_MODULE(miibus, vr, miibus_driver, 0, 0);
 static int
 vr_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct vr_softc		*sc;
-	int			i;
+	struct vr_softc *sc;
+	int i;
 
 	sc = device_get_softc(dev);
 
@@ -262,8 +245,8 @@ vr_miibus_readreg(device_t dev, int phy, int reg)
 static int
 vr_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	struct vr_softc		*sc;
-	int			i;
+	struct vr_softc *sc;
+	int i;
 
 	sc = device_get_softc(dev);
 
@@ -292,11 +275,11 @@ vr_miibus_writereg(device_t dev, int phy, int reg, int data)
 static void
 vr_miibus_statchg(device_t dev)
 {
-	struct vr_softc		*sc;
-	struct mii_data		*mii;
-	if_t			ifp;
-	int			lfdx, mfdx;
-	uint8_t			cr0, cr1, fc;
+	struct vr_softc *sc;
+	struct mii_data *mii;
+	if_t ifp;
+	int lfdx, mfdx;
+	uint8_t cr0, cr1, fc;
 
 	sc = device_get_softc(dev);
 	mii = device_get_softc(sc->vr_miibus);
@@ -329,7 +312,8 @@ vr_miibus_statchg(device_t dev)
 				    vr_rx_stop(sc) != 0) {
 					device_printf(sc->vr_dev,
 					    "%s: Tx/Rx shutdown error -- "
-					    "resetting\n", __func__);
+					    "resetting\n",
+					    __func__);
 					sc->vr_flags |= VR_F_RESTART;
 					VR_UNLOCK(sc);
 					return;
@@ -347,10 +331,10 @@ vr_miibus_statchg(device_t dev)
 			fc = CSR_READ_1(sc, VR_FLOWCR1);
 			fc &= ~(VR_FLOWCR1_TXPAUSE | VR_FLOWCR1_RXPAUSE);
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_RXPAUSE) != 0)
+				IFM_ETH_RXPAUSE) != 0)
 				fc |= VR_FLOWCR1_RXPAUSE;
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_TXPAUSE) != 0) {
+				IFM_ETH_TXPAUSE) != 0) {
 				fc |= VR_FLOWCR1_TXPAUSE;
 				sc->vr_flags |= VR_F_TXPAUSE;
 			}
@@ -360,7 +344,7 @@ vr_miibus_statchg(device_t dev)
 			fc = CSR_READ_1(sc, VR_MISC_CR0);
 			fc &= ~VR_MISCCR0_RXPAUSE;
 			if ((IFM_OPTIONS(mii->mii_media_active) &
-			    IFM_ETH_RXPAUSE) != 0)
+				IFM_ETH_RXPAUSE) != 0)
 				fc |= VR_MISCCR0_RXPAUSE;
 			CSR_WRITE_1(sc, VR_MISC_CR0, fc);
 		}
@@ -391,7 +375,7 @@ vr_cam_mask(struct vr_softc *sc, uint32_t mask, int type)
 static int
 vr_cam_data(struct vr_softc *sc, int type, int idx, uint8_t *mac)
 {
-	int	i;
+	int i;
 
 	if (type == VR_MCAST_CAM) {
 		if (idx < 0 || idx >= VR_CAM_MCAST_CNT || mac == NULL)
@@ -471,17 +455,17 @@ vr_hash_maddr(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 vr_set_filter(struct vr_softc *sc)
 {
-	if_t			ifp;
-	uint32_t		hashes[2] = { 0, 0 };
-	uint8_t			rxfilt;
-	int			error, mcnt;
+	if_t ifp;
+	uint32_t hashes[2] = { 0, 0 };
+	uint8_t rxfilt;
+	int error, mcnt;
 
 	VR_LOCK_ASSERT(sc);
 
 	ifp = sc->vr_ifp;
 	rxfilt = CSR_READ_1(sc, VR_RXCFG);
-	rxfilt &= ~(VR_RXCFG_RX_PROMISC | VR_RXCFG_RX_BROAD |
-	    VR_RXCFG_RX_MULTI);
+	rxfilt &= ~(
+	    VR_RXCFG_RX_PROMISC | VR_RXCFG_RX_BROAD | VR_RXCFG_RX_MULTI);
 	if (if_getflags(ifp) & IFF_BROADCAST)
 		rxfilt |= VR_RXCFG_RX_BROAD;
 	if (if_getflags(ifp) & IFF_ALLMULTI || if_getflags(ifp) & IFF_PROMISC) {
@@ -530,7 +514,7 @@ vr_set_filter(struct vr_softc *sc)
 static void
 vr_reset(const struct vr_softc *sc)
 {
-	int		i;
+	int i;
 
 	/*VR_LOCK_ASSERT(sc);*/ /* XXX: Called during attach w/o lock. */
 
@@ -559,7 +543,6 @@ vr_reset(const struct vr_softc *sc)
 			DELAY(2000);
 		}
 	}
-
 }
 
 /*
@@ -569,7 +552,7 @@ vr_reset(const struct vr_softc *sc)
 static const struct vr_type *
 vr_match(device_t dev)
 {
-	const struct vr_type	*t = vr_devs;
+	const struct vr_type *t = vr_devs;
 
 	for (t = vr_devs; t->vr_name != NULL; t++)
 		if ((pci_get_vendor(dev) == t->vr_vid) &&
@@ -585,7 +568,7 @@ vr_match(device_t dev)
 static int
 vr_probe(device_t dev)
 {
-	const struct vr_type	*t;
+	const struct vr_type *t;
 
 	t = vr_match(dev);
 	if (t != NULL) {
@@ -602,12 +585,12 @@ vr_probe(device_t dev)
 static int
 vr_attach(device_t dev)
 {
-	struct vr_softc		*sc;
-	if_t			ifp;
-	const struct vr_type	*t;
-	uint8_t			eaddr[ETHER_ADDR_LEN];
-	int			error, rid;
-	int			i, phy, pmc;
+	struct vr_softc *sc;
+	if_t ifp;
+	const struct vr_type *t;
+	uint8_t eaddr[ETHER_ADDR_LEN];
+	int error, rid;
+	int i, phy, pmc;
 
 	sc = device_get_softc(dev);
 	sc->vr_dev = dev;
@@ -620,9 +603,9 @@ vr_attach(device_t dev)
 	    MTX_DEF);
 	callout_init_mtx(&sc->vr_stat_callout, &sc->vr_mtx, 0);
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "stats", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, vr_sysctl_stats, "I", "Statistics");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "stats",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    vr_sysctl_stats, "I", "Statistics");
 
 	error = 0;
 
@@ -695,7 +678,8 @@ vr_attach(device_t dev)
 
 	if (sc->vr_revid >= REV_ID_VT6102_A &&
 	    pci_find_cap(dev, PCIY_PMG, &pmc) == 0)
-		if_setcapabilitiesbit(ifp, IFCAP_WOL_UCAST | IFCAP_WOL_MAGIC, 0);
+		if_setcapabilitiesbit(ifp, IFCAP_WOL_UCAST | IFCAP_WOL_MAGIC,
+		    0);
 
 	/* Rhine supports oversized VLAN frame. */
 	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU, 0);
@@ -710,7 +694,7 @@ vr_attach(device_t dev)
 	 * up again.
 	 */
 	if (pci_find_cap(dev, PCIY_PMG, &pmc) == 0)
-		VR_CLRBIT(sc, VR_STICKHW, (VR_STICKHW_DS0|VR_STICKHW_DS1));
+		VR_CLRBIT(sc, VR_STICKHW, (VR_STICKHW_DS0 | VR_STICKHW_DS1));
 
 	/*
 	 * Get station address. The way the Rhine chips work,
@@ -743,28 +727,29 @@ vr_attach(device_t dev)
 
 	if (sc->vr_revid < REV_ID_VT6102_A) {
 		pci_write_config(dev, VR_PCI_MODE2,
-		    pci_read_config(dev, VR_PCI_MODE2, 1) |
-		    VR_MODE2_MODE10T, 1);
+		    pci_read_config(dev, VR_PCI_MODE2, 1) | VR_MODE2_MODE10T,
+		    1);
 	} else {
 		/* Report error instead of retrying forever. */
 		pci_write_config(dev, VR_PCI_MODE2,
-		    pci_read_config(dev, VR_PCI_MODE2, 1) |
-		    VR_MODE2_PCEROPT, 1);
-        	/* Detect MII coding error. */
+		    pci_read_config(dev, VR_PCI_MODE2, 1) | VR_MODE2_PCEROPT,
+		    1);
+		/* Detect MII coding error. */
 		pci_write_config(dev, VR_PCI_MODE3,
-		    pci_read_config(dev, VR_PCI_MODE3, 1) |
-		    VR_MODE3_MIION, 1);
+		    pci_read_config(dev, VR_PCI_MODE3, 1) | VR_MODE3_MIION, 1);
 		if (sc->vr_revid >= REV_ID_VT6105_LOM &&
 		    sc->vr_revid < REV_ID_VT6105M_A0)
 			pci_write_config(dev, VR_PCI_MODE2,
 			    pci_read_config(dev, VR_PCI_MODE2, 1) |
-			    VR_MODE2_MODE10T, 1);
+				VR_MODE2_MODE10T,
+			    1);
 		/* Enable Memory-Read-Multiple. */
 		if (sc->vr_revid >= REV_ID_VT6107_A1 &&
 		    sc->vr_revid < REV_ID_VT6105M_A0)
 			pci_write_config(dev, VR_PCI_MODE2,
 			    pci_read_config(dev, VR_PCI_MODE2, 1) |
-			    VR_MODE2_MRDPL, 1);
+				VR_MODE2_MRDPL,
+			    1);
 	}
 	/* Disable MII AUTOPOLL. */
 	VR_CLRBIT(sc, VR_MIICMD, VR_MIICMD_AUTOPOLL);
@@ -823,8 +808,8 @@ fail:
 static int
 vr_detach(device_t dev)
 {
-	struct vr_softc		*sc = device_get_softc(dev);
-	if_t			ifp = sc->vr_ifp;
+	struct vr_softc *sc = device_get_softc(dev);
+	if_t ifp = sc->vr_ifp;
 
 	KASSERT(mtx_initialized(&sc->vr_mtx), ("vr mutex not initialized"));
 
@@ -866,13 +851,13 @@ vr_detach(device_t dev)
 }
 
 struct vr_dmamap_arg {
-	bus_addr_t	vr_busaddr;
+	bus_addr_t vr_busaddr;
 };
 
 static void
 vr_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-	struct vr_dmamap_arg	*ctx;
+	struct vr_dmamap_arg *ctx;
 
 	if (error != 0)
 		return;
@@ -883,41 +868,39 @@ vr_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 static int
 vr_dma_alloc(struct vr_softc *sc)
 {
-	struct vr_dmamap_arg	ctx;
-	struct vr_txdesc	*txd;
-	struct vr_rxdesc	*rxd;
-	bus_size_t		tx_alignment;
-	int			error, i;
+	struct vr_dmamap_arg ctx;
+	struct vr_txdesc *txd;
+	struct vr_rxdesc *rxd;
+	bus_size_t tx_alignment;
+	int error, i;
 
 	/* Create parent DMA tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->vr_dev),	/* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->vr_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->vr_cdata.vr_parent_tag);
 	if (error != 0) {
 		device_printf(sc->vr_dev, "failed to create parent DMA tag\n");
 		goto fail;
 	}
 	/* Create tag for Tx ring. */
-	error = bus_dma_tag_create(
-	    sc->vr_cdata.vr_parent_tag,	/* parent */
-	    VR_RING_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    VR_TX_RING_SIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    VR_TX_RING_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vr_cdata.vr_parent_tag, /* parent */
+	    VR_RING_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    VR_TX_RING_SIZE,   /* maxsize */
+	    1,		       /* nsegments */
+	    VR_TX_RING_SIZE,   /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->vr_cdata.vr_tx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->vr_dev, "failed to create Tx ring DMA tag\n");
@@ -925,17 +908,16 @@ vr_dma_alloc(struct vr_softc *sc)
 	}
 
 	/* Create tag for Rx ring. */
-	error = bus_dma_tag_create(
-	    sc->vr_cdata.vr_parent_tag,	/* parent */
-	    VR_RING_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    VR_RX_RING_SIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    VR_RX_RING_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vr_cdata.vr_parent_tag, /* parent */
+	    VR_RING_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    VR_RX_RING_SIZE,   /* maxsize */
+	    1,		       /* nsegments */
+	    VR_RX_RING_SIZE,   /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->vr_cdata.vr_rx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->vr_dev, "failed to create Rx ring DMA tag\n");
@@ -947,17 +929,16 @@ vr_dma_alloc(struct vr_softc *sc)
 	else
 		tx_alignment = 1;
 	/* Create tag for Tx buffers. */
-	error = bus_dma_tag_create(
-	    sc->vr_cdata.vr_parent_tag,	/* parent */
-	    tx_alignment, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES * VR_MAXFRAGS,	/* maxsize */
-	    VR_MAXFRAGS,		/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vr_cdata.vr_parent_tag, /* parent */
+	    tx_alignment, 0,	    /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	    /* lowaddr */
+	    BUS_SPACE_MAXADDR,	    /* highaddr */
+	    NULL, NULL,		    /* filter, filterarg */
+	    MCLBYTES * VR_MAXFRAGS, /* maxsize */
+	    VR_MAXFRAGS,	    /* nsegments */
+	    MCLBYTES,		    /* maxsegsize */
+	    0,			    /* flags */
+	    NULL, NULL,		    /* lockfunc, lockarg */
 	    &sc->vr_cdata.vr_tx_tag);
 	if (error != 0) {
 		device_printf(sc->vr_dev, "failed to create Tx DMA tag\n");
@@ -965,17 +946,16 @@ vr_dma_alloc(struct vr_softc *sc)
 	}
 
 	/* Create tag for Rx buffers. */
-	error = bus_dma_tag_create(
-	    sc->vr_cdata.vr_parent_tag,	/* parent */
-	    VR_RX_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->vr_cdata.vr_parent_tag, /* parent */
+	    VR_RX_ALIGN, 0,    /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    MCLBYTES,	       /* maxsize */
+	    1,		       /* nsegments */
+	    MCLBYTES,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->vr_cdata.vr_rx_tag);
 	if (error != 0) {
 		device_printf(sc->vr_dev, "failed to create Rx DMA tag\n");
@@ -984,8 +964,9 @@ vr_dma_alloc(struct vr_softc *sc)
 
 	/* Allocate DMA'able memory and load the DMA map for Tx ring. */
 	error = bus_dmamem_alloc(sc->vr_cdata.vr_tx_ring_tag,
-	    (void **)&sc->vr_rdata.vr_tx_ring, BUS_DMA_WAITOK |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &sc->vr_cdata.vr_tx_ring_map);
+	    (void **)&sc->vr_rdata.vr_tx_ring,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &sc->vr_cdata.vr_tx_ring_map);
 	if (error != 0) {
 		device_printf(sc->vr_dev,
 		    "failed to allocate DMA'able memory for Tx ring\n");
@@ -1005,8 +986,9 @@ vr_dma_alloc(struct vr_softc *sc)
 
 	/* Allocate DMA'able memory and load the DMA map for Rx ring. */
 	error = bus_dmamem_alloc(sc->vr_cdata.vr_rx_ring_tag,
-	    (void **)&sc->vr_rdata.vr_rx_ring, BUS_DMA_WAITOK |
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, &sc->vr_cdata.vr_rx_ring_map);
+	    (void **)&sc->vr_rdata.vr_rx_ring,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    &sc->vr_cdata.vr_rx_ring_map);
 	if (error != 0) {
 		device_printf(sc->vr_dev,
 		    "failed to allocate DMA'able memory for Rx ring\n");
@@ -1039,9 +1021,8 @@ vr_dma_alloc(struct vr_softc *sc)
 	}
 	/* Create DMA maps for Rx buffers. */
 	if ((error = bus_dmamap_create(sc->vr_cdata.vr_rx_tag, 0,
-	    &sc->vr_cdata.vr_rx_sparemap)) != 0) {
-		device_printf(sc->vr_dev,
-		    "failed to create spare Rx dmamap\n");
+		 &sc->vr_cdata.vr_rx_sparemap)) != 0) {
+		device_printf(sc->vr_dev, "failed to create spare Rx dmamap\n");
 		goto fail;
 	}
 	for (i = 0; i < VR_RX_RING_CNT; i++) {
@@ -1064,9 +1045,9 @@ fail:
 static void
 vr_dma_free(struct vr_softc *sc)
 {
-	struct vr_txdesc	*txd;
-	struct vr_rxdesc	*rxd;
-	int			i;
+	struct vr_txdesc *txd;
+	struct vr_rxdesc *rxd;
+	int i;
 
 	/* Tx ring. */
 	if (sc->vr_cdata.vr_tx_ring_tag) {
@@ -1140,10 +1121,10 @@ vr_dma_free(struct vr_softc *sc)
 static int
 vr_tx_ring_init(struct vr_softc *sc)
 {
-	struct vr_ring_data	*rd;
-	struct vr_txdesc	*txd;
-	bus_addr_t		addr;
-	int			i;
+	struct vr_ring_data *rd;
+	struct vr_txdesc *txd;
+	bus_addr_t addr;
+	int i;
 
 	sc->vr_cdata.vr_tx_prod = 0;
 	sc->vr_cdata.vr_tx_cons = 0;
@@ -1177,10 +1158,10 @@ vr_tx_ring_init(struct vr_softc *sc)
 static int
 vr_rx_ring_init(struct vr_softc *sc)
 {
-	struct vr_ring_data	*rd;
-	struct vr_rxdesc	*rxd;
-	bus_addr_t		addr;
-	int			i;
+	struct vr_ring_data *rd;
+	struct vr_rxdesc *rxd;
+	bus_addr_t addr;
+	int i;
 
 	sc->vr_cdata.vr_rx_cons = 0;
 
@@ -1209,7 +1190,7 @@ vr_rx_ring_init(struct vr_softc *sc)
 static __inline void
 vr_discard_rxbuf(struct vr_rxdesc *rxd)
 {
-	struct vr_desc	*desc;
+	struct vr_desc *desc;
 
 	desc = rxd->desc;
 	desc->vr_ctl = htole32(VR_RXCTL | (MCLBYTES - sizeof(uint64_t)));
@@ -1226,12 +1207,12 @@ vr_discard_rxbuf(struct vr_rxdesc *rxd)
 static int
 vr_newbuf(struct vr_softc *sc, int idx)
 {
-	struct vr_desc		*desc;
-	struct vr_rxdesc	*rxd;
-	struct mbuf		*m;
-	bus_dma_segment_t	segs[1];
-	bus_dmamap_t		map;
-	int			nsegs;
+	struct vr_desc *desc;
+	struct vr_rxdesc *rxd;
+	struct mbuf *m;
+	bus_dma_segment_t segs[1];
+	bus_dmamap_t map;
+	int nsegs;
 
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 	if (m == NULL)
@@ -1240,7 +1221,7 @@ vr_newbuf(struct vr_softc *sc, int idx)
 	m_adj(m, sizeof(uint64_t));
 
 	if (bus_dmamap_load_mbuf_sg(sc->vr_cdata.vr_rx_tag,
-	    sc->vr_cdata.vr_rx_sparemap, m, segs, &nsegs, 0) != 0) {
+		sc->vr_cdata.vr_rx_sparemap, m, segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -1270,8 +1251,8 @@ vr_newbuf(struct vr_softc *sc, int idx)
 static __inline void
 vr_fixup_rx(struct mbuf *m)
 {
-        uint16_t		*src, *dst;
-        int			i;
+	uint16_t *src, *dst;
+	int i;
 
 	src = mtod(m, uint16_t *);
 	dst = src - 1;
@@ -1290,12 +1271,12 @@ vr_fixup_rx(struct mbuf *m)
 static int
 vr_rxeof(struct vr_softc *sc)
 {
-	struct vr_rxdesc	*rxd;
-	struct mbuf		*m;
-	if_t			ifp;
-	struct vr_desc		*cur_rx;
-	int			cons, prog, total_len, rx_npkts;
-	uint32_t		rxstat, rxctl;
+	struct vr_rxdesc *rxd;
+	struct mbuf *m;
+	if_t ifp;
+	struct vr_desc *cur_rx;
+	int cons, prog, total_len, rx_npkts;
+	uint32_t rxstat, rxctl;
 
 	VR_LOCK_ASSERT(sc);
 	ifp = sc->vr_ifp;
@@ -1334,7 +1315,7 @@ vr_rxeof(struct vr_softc *sc)
 		 */
 		if ((rxstat & VR_RXSTAT_RX_OK) == 0 ||
 		    (rxstat & (VR_RXSTAT_FIRSTFRAG | VR_RXSTAT_LASTFRAG)) !=
-		    (VR_RXSTAT_FIRSTFRAG | VR_RXSTAT_LASTFRAG)) {
+			(VR_RXSTAT_FIRSTFRAG | VR_RXSTAT_LASTFRAG)) {
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			sc->vr_stat.rx_errors++;
 			if (rxstat & VR_RXSTAT_CRCERR)
@@ -1349,7 +1330,7 @@ vr_rxeof(struct vr_softc *sc)
 				sc->vr_stat.rx_runts++;
 			if (rxstat & VR_RXSTAT_BUFFERR)
 				sc->vr_stat.rx_no_buffers++;
-#ifdef	VR_SHOW_ERRORS
+#ifdef VR_SHOW_ERRORS
 			device_printf(sc->vr_dev, "%s: receive error = 0x%b\n",
 			    __func__, rxstat & 0xff, VR_RXSTAT_ERR_BITS);
 #endif
@@ -1375,7 +1356,7 @@ vr_rxeof(struct vr_softc *sc)
 		total_len = VR_RXBYTES(rxstat);
 		total_len -= ETHER_CRC_LEN;
 		m->m_pkthdr.len = m->m_len = total_len;
-#ifndef	__NO_STRICT_ALIGNMENT
+#ifndef __NO_STRICT_ALIGNMENT
 		/*
 		 * RX buffers must be 32-bit aligned.
 		 * Ignore the alignment problems on the non-strict alignment
@@ -1436,11 +1417,11 @@ vr_rxeof(struct vr_softc *sc)
 static void
 vr_txeof(struct vr_softc *sc)
 {
-	struct vr_txdesc	*txd;
-	struct vr_desc		*cur_tx;
-	if_t			ifp;
-	uint32_t		txctl, txstat;
-	int			cons, prod;
+	struct vr_txdesc *txd;
+	struct vr_desc *cur_tx;
+	if_t ifp;
+	uint32_t txctl, txstat;
+	int cons, prod;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -1472,8 +1453,8 @@ vr_txeof(struct vr_softc *sc)
 			continue;
 
 		txd = &sc->vr_cdata.vr_txdesc[cons];
-		KASSERT(txd->tx_m != NULL, ("%s: accessing NULL mbuf!\n",
-		    __func__));
+		KASSERT(txd->tx_m != NULL,
+		    ("%s: accessing NULL mbuf!\n", __func__));
 
 		if ((txstat & VR_TXSTAT_ERRSUM) != 0) {
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
@@ -1492,7 +1473,8 @@ vr_txeof(struct vr_softc *sc)
 				if (vr_tx_stop(sc) != 0) {
 					device_printf(sc->vr_dev,
 					    "%s: Tx shutdown error -- "
-					    "resetting\n", __func__);
+					    "resetting\n",
+					    __func__);
 					sc->vr_flags |= VR_F_RESTART;
 					return;
 				}
@@ -1500,7 +1482,7 @@ vr_txeof(struct vr_softc *sc)
 				break;
 			}
 			if ((sc->vr_revid < REV_ID_VT3071_A &&
-			    (txstat & VR_TXSTAT_UNDERRUN)) ||
+				(txstat & VR_TXSTAT_UNDERRUN)) ||
 			    (txstat & (VR_TXSTAT_UDF | VR_TXSTAT_TBUFF))) {
 				sc->vr_stat.tx_underrun++;
 				/* Retry and restart Tx. */
@@ -1532,10 +1514,12 @@ vr_txeof(struct vr_softc *sc)
 		if (sc->vr_revid < REV_ID_VT3071_A) {
 			if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
 			    (txstat & VR_TXSTAT_COLLCNT) >> 3);
-			sc->vr_stat.tx_collisions +=
-			    (txstat & VR_TXSTAT_COLLCNT) >> 3;
+			sc->vr_stat.tx_collisions += (txstat &
+							 VR_TXSTAT_COLLCNT) >>
+			    3;
 		} else {
-			if_inc_counter(ifp, IFCOUNTER_COLLISIONS, (txstat & 0x0f));
+			if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+			    (txstat & 0x0f));
 			sc->vr_stat.tx_collisions += (txstat & 0x0f);
 		}
 		m_freem(txd->tx_m);
@@ -1550,8 +1534,8 @@ vr_txeof(struct vr_softc *sc)
 static void
 vr_tick(void *xsc)
 {
-	struct vr_softc		*sc;
-	struct mii_data		*mii;
+	struct vr_softc *sc;
+	struct mii_data *mii;
 
 	sc = (struct vr_softc *)xsc;
 
@@ -1620,13 +1604,14 @@ vr_poll_locked(if_t ifp, enum poll_cmd cmd, int count)
 		if ((status & VR_INTRS) == 0)
 			return (rx_npkts);
 
-		if ((status & (VR_ISR_BUSERR | VR_ISR_LINKSTAT2 |
-		    VR_ISR_STATSOFLOW)) != 0) {
+		if ((status &
+			(VR_ISR_BUSERR | VR_ISR_LINKSTAT2 |
+			    VR_ISR_STATSOFLOW)) != 0) {
 			if (vr_error(sc, status) != 0)
 				return (rx_npkts);
 		}
 		if ((status & (VR_ISR_RX_NOBUF | VR_ISR_RX_OFLOW)) != 0) {
-#ifdef	VR_SHOW_ERRORS
+#ifdef VR_SHOW_ERRORS
 			device_printf(sc->vr_dev, "%s: receive error : 0x%b\n",
 			    __func__, status, VR_ISR_ERR_BITS);
 #endif
@@ -1641,7 +1626,7 @@ vr_poll_locked(if_t ifp, enum poll_cmd cmd, int count)
 static void
 vr_tx_underrun(struct vr_softc *sc)
 {
-	int	thresh;
+	int thresh;
 
 	device_printf(sc->vr_dev, "Tx underrun -- ");
 	if (sc->vr_txthresh < VR_TXTHRESH_MAX) {
@@ -1658,8 +1643,10 @@ vr_tx_underrun(struct vr_softc *sc)
 		printf("\n");
 	sc->vr_stat.tx_underrun++;
 	if (vr_tx_stop(sc) != 0) {
-		device_printf(sc->vr_dev, "%s: Tx shutdown error -- "
-		    "resetting\n", __func__);
+		device_printf(sc->vr_dev,
+		    "%s: Tx shutdown error -- "
+		    "resetting\n",
+		    __func__);
 		sc->vr_flags |= VR_F_RESTART;
 		return;
 	}
@@ -1669,8 +1656,8 @@ vr_tx_underrun(struct vr_softc *sc)
 static int
 vr_intr(void *arg)
 {
-	struct vr_softc		*sc;
-	uint16_t		status;
+	struct vr_softc *sc;
+	uint16_t status;
 
 	sc = (struct vr_softc *)arg;
 
@@ -1689,9 +1676,9 @@ vr_intr(void *arg)
 static void
 vr_int_task(void *arg, int npending)
 {
-	struct vr_softc		*sc;
-	if_t			ifp;
-	uint16_t		status;
+	struct vr_softc *sc;
+	if_t ifp;
+	uint16_t status;
 
 	sc = (struct vr_softc *)arg;
 
@@ -1717,8 +1704,9 @@ vr_int_task(void *arg, int npending)
 
 	for (; (status & VR_INTRS) != 0;) {
 		CSR_WRITE_2(sc, VR_ISR, status);
-		if ((status & (VR_ISR_BUSERR | VR_ISR_LINKSTAT2 |
-		    VR_ISR_STATSOFLOW)) != 0) {
+		if ((status &
+			(VR_ISR_BUSERR | VR_ISR_LINKSTAT2 |
+			    VR_ISR_STATSOFLOW)) != 0) {
 			if (vr_error(sc, status) != 0) {
 				VR_UNLOCK(sc);
 				return;
@@ -1726,7 +1714,7 @@ vr_int_task(void *arg, int npending)
 		}
 		vr_rxeof(sc);
 		if ((status & (VR_ISR_RX_NOBUF | VR_ISR_RX_OFLOW)) != 0) {
-#ifdef	VR_SHOW_ERRORS
+#ifdef VR_SHOW_ERRORS
 			device_printf(sc->vr_dev, "%s: receive error = 0x%b\n",
 			    __func__, status, VR_ISR_ERR_BITS);
 #endif
@@ -1760,8 +1748,10 @@ vr_error(struct vr_softc *sc, uint16_t status)
 		/* Disable further interrupts. */
 		CSR_WRITE_2(sc, VR_IMR, 0);
 		pcis = pci_read_config(sc->vr_dev, PCIR_STATUS, 2);
-		device_printf(sc->vr_dev, "PCI bus error(0x%04x) -- "
-		    "resetting\n", pcis);
+		device_printf(sc->vr_dev,
+		    "PCI bus error(0x%04x) -- "
+		    "resetting\n",
+		    pcis);
 		pci_write_config(sc->vr_dev, PCIR_STATUS, pcis, 2);
 		sc->vr_flags |= VR_F_RESTART;
 		return (EAGAIN);
@@ -1790,13 +1780,13 @@ vr_error(struct vr_softc *sc, uint16_t status)
 static int
 vr_encap(struct vr_softc *sc, struct mbuf **m_head)
 {
-	struct vr_txdesc	*txd;
-	struct vr_desc		*desc;
-	struct mbuf		*m;
-	bus_dma_segment_t	txsegs[VR_MAXFRAGS];
-	uint32_t		csum_flags, txctl;
-	int			error, i, nsegs, prod, si;
-	int			padlen;
+	struct vr_txdesc *txd;
+	struct vr_desc *desc;
+	struct mbuf *m;
+	bus_dma_segment_t txsegs[VR_MAXFRAGS];
+	uint32_t csum_flags, txctl;
+	int error, i, nsegs, prod, si;
+	int padlen;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -1953,7 +1943,7 @@ vr_encap(struct vr_softc *sc, struct mbuf **m_head)
 static void
 vr_start(if_t ifp)
 {
-	struct vr_softc		*sc;
+	struct vr_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	VR_LOCK(sc);
@@ -1964,20 +1954,21 @@ vr_start(if_t ifp)
 static void
 vr_start_locked(if_t ifp)
 {
-	struct vr_softc		*sc;
-	struct mbuf		*m_head;
-	int			enq;
+	struct vr_softc *sc;
+	struct mbuf *m_head;
+	int enq;
 
 	sc = if_getsoftc(ifp);
 
 	VR_LOCK_ASSERT(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->vr_flags & VR_F_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->vr_flags & VR_F_LINK) == 0)
 		return;
 
 	for (enq = 0; !if_sendq_empty(ifp) &&
-	    sc->vr_cdata.vr_tx_cnt < VR_TX_RING_CNT - 2; ) {
+	     sc->vr_cdata.vr_tx_cnt < VR_TX_RING_CNT - 2;) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -2013,7 +2004,7 @@ vr_start_locked(if_t ifp)
 static void
 vr_init(void *xsc)
 {
-	struct vr_softc		*sc;
+	struct vr_softc *sc;
 
 	sc = (struct vr_softc *)xsc;
 	VR_LOCK(sc);
@@ -2024,10 +2015,10 @@ vr_init(void *xsc)
 static void
 vr_init_locked(struct vr_softc *sc)
 {
-	if_t			ifp;
-	struct mii_data		*mii;
-	bus_addr_t		addr;
-	int			i;
+	if_t ifp;
+	struct mii_data *mii;
+	bus_addr_t addr;
+	int i;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -2154,10 +2145,10 @@ vr_init_locked(struct vr_softc *sc)
 		CSR_WRITE_2(sc, VR_IMR, 0);
 	else
 #endif
-	/*
-	 * Enable interrupts and disable MII intrs.
-	 */
-	CSR_WRITE_2(sc, VR_IMR, VR_INTRS);
+		/*
+		 * Enable interrupts and disable MII intrs.
+		 */
+		CSR_WRITE_2(sc, VR_IMR, VR_INTRS);
 	if (sc->vr_revid > REV_ID_VT6102_A)
 		CSR_WRITE_2(sc, VR_MII_IMR, 0);
 
@@ -2176,15 +2167,15 @@ vr_init_locked(struct vr_softc *sc)
 static int
 vr_ifmedia_upd(if_t ifp)
 {
-	struct vr_softc		*sc;
-	struct mii_data		*mii;
-	struct mii_softc	*miisc;
-	int			error;
+	struct vr_softc *sc;
+	struct mii_data *mii;
+	struct mii_softc *miisc;
+	int error;
 
 	sc = if_getsoftc(ifp);
 	VR_LOCK(sc);
 	mii = device_get_softc(sc->vr_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	sc->vr_flags &= ~(VR_F_LINK | VR_F_TXPAUSE);
 	error = mii_mediachg(mii);
@@ -2199,8 +2190,8 @@ vr_ifmedia_upd(if_t ifp)
 static void
 vr_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct vr_softc		*sc;
-	struct mii_data		*mii;
+	struct vr_softc *sc;
+	struct mii_data *mii;
 
 	sc = if_getsoftc(ifp);
 	mii = device_get_softc(sc->vr_miibus);
@@ -2218,10 +2209,10 @@ vr_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 vr_ioctl(if_t ifp, u_long command, caddr_t data)
 {
-	struct vr_softc		*sc;
-	struct ifreq		*ifr;
-	struct mii_data		*mii;
-	int			error, mask;
+	struct vr_softc *sc;
+	struct ifreq *ifr;
+	struct mii_data *mii;
+	int error, mask;
 
 	sc = if_getsoftc(ifp);
 	ifr = (struct ifreq *)data;
@@ -2309,7 +2300,7 @@ vr_ioctl(if_t ifp, u_long command, caddr_t data)
 static void
 vr_watchdog(struct vr_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -2326,8 +2317,9 @@ vr_watchdog(struct vr_softc *sc)
 
 	if ((sc->vr_flags & VR_F_LINK) == 0) {
 		if (bootverbose)
-			if_printf(sc->vr_ifp, "watchdog timeout "
-			   "(missed link)\n");
+			if_printf(sc->vr_ifp,
+			    "watchdog timeout "
+			    "(missed link)\n");
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 		vr_init_locked(sc);
@@ -2347,8 +2339,8 @@ vr_watchdog(struct vr_softc *sc)
 static void
 vr_tx_start(struct vr_softc *sc)
 {
-	bus_addr_t	addr;
-	uint8_t		cmd;
+	bus_addr_t addr;
+	uint8_t cmd;
 
 	cmd = CSR_READ_1(sc, VR_CR0);
 	if ((cmd & VR_CR0_TX_ON) == 0) {
@@ -2366,8 +2358,8 @@ vr_tx_start(struct vr_softc *sc)
 static void
 vr_rx_start(struct vr_softc *sc)
 {
-	bus_addr_t	addr;
-	uint8_t		cmd;
+	bus_addr_t addr;
+	uint8_t cmd;
 
 	cmd = CSR_READ_1(sc, VR_CR0);
 	if ((cmd & VR_CR0_RX_ON) == 0) {
@@ -2382,8 +2374,8 @@ vr_rx_start(struct vr_softc *sc)
 static int
 vr_tx_stop(struct vr_softc *sc)
 {
-	int		i;
-	uint8_t		cmd;
+	int i;
+	uint8_t cmd;
 
 	cmd = CSR_READ_1(sc, VR_CR0);
 	if ((cmd & VR_CR0_TX_ON) != 0) {
@@ -2404,8 +2396,8 @@ vr_tx_stop(struct vr_softc *sc)
 static int
 vr_rx_stop(struct vr_softc *sc)
 {
-	int		i;
-	uint8_t		cmd;
+	int i;
+	uint8_t cmd;
 
 	cmd = CSR_READ_1(sc, VR_CR0);
 	if ((cmd & VR_CR0_RX_ON) != 0) {
@@ -2430,10 +2422,10 @@ vr_rx_stop(struct vr_softc *sc)
 static void
 vr_stop(struct vr_softc *sc)
 {
-	struct vr_txdesc	*txd;
-	struct vr_rxdesc	*rxd;
-	if_t			ifp;
-	int			i;
+	struct vr_txdesc *txd;
+	struct vr_rxdesc *rxd;
+	if_t ifp;
+	int i;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -2460,25 +2452,25 @@ vr_stop(struct vr_softc *sc)
 	for (i = 0; i < VR_RX_RING_CNT; i++) {
 		rxd = &sc->vr_cdata.vr_rxdesc[i];
 		if (rxd->rx_m != NULL) {
-			bus_dmamap_sync(sc->vr_cdata.vr_rx_tag,
-			    rxd->rx_dmamap, BUS_DMASYNC_POSTREAD);
+			bus_dmamap_sync(sc->vr_cdata.vr_rx_tag, rxd->rx_dmamap,
+			    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(sc->vr_cdata.vr_rx_tag,
 			    rxd->rx_dmamap);
 			m_freem(rxd->rx_m);
 			rxd->rx_m = NULL;
 		}
-        }
+	}
 	for (i = 0; i < VR_TX_RING_CNT; i++) {
 		txd = &sc->vr_cdata.vr_txdesc[i];
 		if (txd->tx_m != NULL) {
-			bus_dmamap_sync(sc->vr_cdata.vr_tx_tag,
-			    txd->tx_dmamap, BUS_DMASYNC_POSTWRITE);
+			bus_dmamap_sync(sc->vr_cdata.vr_tx_tag, txd->tx_dmamap,
+			    BUS_DMASYNC_POSTWRITE);
 			bus_dmamap_unload(sc->vr_cdata.vr_tx_tag,
 			    txd->tx_dmamap);
 			m_freem(txd->tx_m);
 			txd->tx_m = NULL;
 		}
-        }
+	}
 }
 
 /*
@@ -2495,7 +2487,7 @@ vr_shutdown(device_t dev)
 static int
 vr_suspend(device_t dev)
 {
-	struct vr_softc		*sc;
+	struct vr_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -2511,8 +2503,8 @@ vr_suspend(device_t dev)
 static int
 vr_resume(device_t dev)
 {
-	struct vr_softc		*sc;
-	if_t			ifp;
+	struct vr_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 
@@ -2532,10 +2524,10 @@ vr_resume(device_t dev)
 static void
 vr_setwol(struct vr_softc *sc)
 {
-	if_t			ifp;
-	int			pmc;
-	uint16_t		pmstat;
-	uint8_t			v;
+	if_t ifp;
+	int pmc;
+	uint16_t pmstat;
+	uint8_t v;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -2589,7 +2581,7 @@ vr_setwol(struct vr_softc *sc)
 static void
 vr_clrwol(struct vr_softc *sc)
 {
-	uint8_t			v;
+	uint8_t v;
 
 	VR_LOCK_ASSERT(sc);
 
@@ -2618,10 +2610,10 @@ vr_clrwol(struct vr_softc *sc)
 static int
 vr_sysctl_stats(SYSCTL_HANDLER_ARGS)
 {
-	struct vr_softc		*sc;
-	struct vr_statistics	*stat;
-	int			error;
-	int			result;
+	struct vr_softc *sc;
+	struct vr_statistics *stat;
+	int error;
+	int result;
 
 	result = -1;
 	error = sysctl_handle_int(oidp, &result, 0, req);
@@ -2634,10 +2626,8 @@ vr_sysctl_stats(SYSCTL_HANDLER_ARGS)
 		stat = &sc->vr_stat;
 
 		printf("%s statistics:\n", device_get_nameunit(sc->vr_dev));
-		printf("Outbound good frames : %ju\n",
-		    (uintmax_t)stat->tx_ok);
-		printf("Inbound good frames : %ju\n",
-		    (uintmax_t)stat->rx_ok);
+		printf("Outbound good frames : %ju\n", (uintmax_t)stat->tx_ok);
+		printf("Inbound good frames : %ju\n", (uintmax_t)stat->rx_ok);
 		printf("Outbound errors : %u\n", stat->tx_errors);
 		printf("Inbound errors : %u\n", stat->rx_errors);
 		printf("Inbound no buffers : %u\n", stat->rx_no_buffers);

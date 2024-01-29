@@ -31,17 +31,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_PL_GPROF_H_
-#define	_PMCSTAT_PL_GPROF_H_
+#ifndef _PMCSTAT_PL_GPROF_H_
+#define _PMCSTAT_PL_GPROF_H_
 
 /* Function prototypes */
 void pmcpl_gmon_shutdown(FILE *mf);
-void pmcpl_gmon_process(
-    struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu);
+void pmcpl_gmon_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu);
 void pmcpl_gmon_initimage(struct pmcstat_image *pi);
 void pmcpl_gmon_shutdownimage(struct pmcstat_image *pi);
 void pmcpl_gmon_newpmc(pmcstat_interned_string ps,
-	struct pmcstat_pmcrecord *pr);
+    struct pmcstat_pmcrecord *pr);
 
-#endif	/* _PMCSTAT_PL_GPROF_H_ */
+#endif /* _PMCSTAT_PL_GPROF_H_ */

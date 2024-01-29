@@ -32,9 +32,9 @@
 #include <sys/types.h>
 #include <sys/errno.h>
 
-#define	ACPI_VIDEO_CLASS	"video"
+#define ACPI_VIDEO_CLASS "video"
 
-#define	ACPI_VIDEO_NOTIFY_PROBE	0x81
+#define ACPI_VIDEO_NOTIFY_PROBE 0x81
 
 static inline int
 acpi_video_register(void)
@@ -59,4 +59,4 @@ acpi_video_backlight_use_native(void)
 	return (true);
 }
 
-#endif	/* _LINUXKPI_ACPI_VIDEO_H_ */
+#endif /* _LINUXKPI_ACPI_VIDEO_H_ */

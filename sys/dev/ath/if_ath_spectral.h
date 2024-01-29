@@ -28,13 +28,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_SPECTRAL_H__
-#define	__IF_ATH_SPECTRAL_H__
+#ifndef __IF_ATH_SPECTRAL_H__
+#define __IF_ATH_SPECTRAL_H__
 
-extern	int ath_spectral_attach(struct ath_softc *sc);
-extern	int ath_spectral_detach(struct ath_softc *sc);
-extern	int ath_ioctl_spectral(struct ath_softc *sc, struct ath_diag *ad);
-extern	int ath_spectral_enable(struct ath_softc *sc,
-	    struct ieee80211_channel *ch);
+extern int ath_spectral_attach(struct ath_softc *sc);
+extern int ath_spectral_detach(struct ath_softc *sc);
+extern int ath_ioctl_spectral(struct ath_softc *sc, struct ath_diag *ad);
+extern int ath_spectral_enable(struct ath_softc *sc,
+    struct ieee80211_channel *ch);
 
-#endif	/* __IF_ATH_SPECTRAL_H__ */
+#endif /* __IF_ATH_SPECTRAL_H__ */

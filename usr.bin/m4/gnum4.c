@@ -33,23 +33,24 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
+
 #include <ctype.h>
 #include <err.h>
+#include <errno.h>
+#include <limits.h>
 #include <paths.h>
 #include <regex.h>
 #include <stdarg.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
-#include <limits.h>
+
+#include "extern.h"
 #include "mdef.h"
 #include "stdd.h"
-#include "extern.h"
-
 
 int mimic_gnu = 0;
 
@@ -93,8 +94,7 @@ addtoincludepath(const char *dirname)
 	if (last) {
 		last->next = n;
 		last = n;
-	}
-	else
+	} else
 		last = first = n;
 }
 
@@ -114,14 +114,12 @@ ensure_m4path(void)
 		return;
 	/* for portability: getenv result is read-only */
 	envpath = xstrdup(envpath);
-	for (sweep = envpath;
-	    (path = strsep(&sweep, ":")) != NULL;)
-	    addtoincludepath(path);
+	for (sweep = envpath; (path = strsep(&sweep, ":")) != NULL;)
+		addtoincludepath(path);
 	free(envpath);
 }
 
-static
-struct input_file *
+static struct input_file *
 dopath(struct input_file *i, const char *filename)
 {
 	char path[PATH_MAX];
@@ -167,7 +165,7 @@ doindir(const char *argv[], int argc)
 		m4errx(1, "indir: undefined macro %s.", argv[2]);
 	argv[1] = p->defn;
 
-	eval(argv+1, argc-1, p->type, is_traced(n));
+	eval(argv + 1, argc - 1, p->type, is_traced(n));
 }
 
 void
@@ -178,11 +176,10 @@ dobuiltin(const char *argv[], int argc)
 	argv[1] = NULL;
 	p = macro_getbuiltin(argv[2]);
 	if (p != NULL)
-		eval(argv+1, argc-1, macro_builtin_type(p), is_traced(p));
+		eval(argv + 1, argc - 1, macro_builtin_type(p), is_traced(p));
 	else
 		m4errx(1, "unknown builtin %s.", argv[2]);
 }
-
 
 /* We need some temporary buffer space, as pb pushes BACK and substitution
  * proceeds forward... */
@@ -202,7 +199,7 @@ static void do_regexp(const char *, regex_t *, const char *, const char *,
     regmatch_t *);
 static void add_sub(int, const char *, regex_t *, regmatch_t *);
 static void add_replace(const char *, regex_t *, const char *, regmatch_t *);
-#define addconstantstring(s) addchars((s), sizeof(s)-1)
+#define addconstantstring(s) addchars((s), sizeof(s) - 1)
 
 static void
 addchars(const char *c, size_t n)
@@ -212,21 +209,21 @@ addchars(const char *c, size_t n)
 	while (current + n > bufsize) {
 		if (bufsize == 0)
 			bufsize = 1024;
-		else if (bufsize <= SIZE_MAX/2) {
+		else if (bufsize <= SIZE_MAX / 2) {
 			bufsize *= 2;
 		} else {
 			errx(1, "size overflow");
 		}
 		buffer = xrealloc(buffer, bufsize, NULL);
 	}
-	memcpy(buffer+current, c, n);
+	memcpy(buffer + current, c, n);
 	current += n;
 }
 
 static void
 addchar(int c)
 {
-	if (current +1 > bufsize) {
+	if (current + 1 > bufsize) {
 		if (bufsize == 0)
 			bufsize = 1024;
 		else
@@ -244,16 +241,15 @@ getstring(void)
 	return buffer;
 }
 
-
 static void
 exit_regerror(int er, regex_t *re, const char *source)
 {
-	size_t	errlen;
-	char	*errbuf;
+	size_t errlen;
+	char *errbuf;
 
 	errlen = regerror(er, re, NULL, 0);
-	errbuf = xalloc(errlen,
-	    "malloc in regerror: %lu", (unsigned long)errlen);
+	errbuf = xalloc(errlen, "malloc in regerror: %lu",
+	    (unsigned long)errlen);
 	regerror(er, re, errbuf, errlen);
 	m4errx(1, "regular expression error in %s: %s.", source, errbuf);
 }
@@ -283,10 +279,8 @@ add_sub(int n, const char *string, regex_t *re, regmatch_t *pm)
 		m4_warnx("No subexpression %d", n);
 	/* Subexpressions that did not match are
 	 * not an error.  */
-	else if (pm[n].rm_so != -1 &&
-	    pm[n].rm_eo != -1) {
-		addchars(string + pm[n].rm_so,
-			pm[n].rm_eo - pm[n].rm_so);
+	else if (pm[n].rm_so != -1 && pm[n].rm_eo != -1) {
+		addchars(string + pm[n].rm_so, pm[n].rm_eo - pm[n].rm_so);
 	}
 }
 
@@ -294,7 +288,8 @@ add_sub(int n, const char *string, regex_t *re, regmatch_t *pm)
  * constructs and replacing them with substrings of the original string.
  */
 static void
-add_replace(const char *string, regex_t *re, const char *replace, regmatch_t *pm)
+add_replace(const char *string, regex_t *re, const char *replace,
+    regmatch_t *pm)
 {
 	const char *p;
 
@@ -334,9 +329,9 @@ do_subst(const char *string, regex_t *re, const char *source,
 	int flags = 0;
 	const char *last_match = NULL;
 
-	while ((error = regexec(re, string, re->re_nsub+1, pm, flags)) == 0) {
+	while ((error = regexec(re, string, re->re_nsub + 1, pm, flags)) == 0) {
 		if (pm[0].rm_eo != 0) {
-			if (string[pm[0].rm_eo-1] == '\n')
+			if (string[pm[0].rm_eo - 1] == '\n')
 				flags = 0;
 			else
 				flags = REG_NOTBOL;
@@ -373,7 +368,7 @@ do_regexp(const char *string, regex_t *re, const char *source,
 {
 	int error;
 
-	switch(error = regexec(re, string, re->re_nsub+1, pm, 0)) {
+	switch (error = regexec(re, string, re->re_nsub + 1, pm, 0)) {
 	case 0:
 		add_replace(string, re, replace, pm);
 		pbstr(getstring());
@@ -391,7 +386,7 @@ do_regexpindex(const char *string, regex_t *re, const char *source,
 {
 	int error;
 
-	switch(error = regexec(re, string, re->re_nsub+1, pm, 0)) {
+	switch (error = regexec(re, string, re->re_nsub + 1, pm, 0)) {
 	case 0:
 		pbunsigned(pm[0].rm_so);
 		break;
@@ -420,7 +415,7 @@ twiddle(const char *p)
 	/* This could use strcspn for speed... */
 	while (*p != '\0') {
 		if (*p == '\\') {
-			switch(p[1]) {
+			switch (p[1]) {
 			case '(':
 			case ')':
 			case '|':
@@ -442,7 +437,7 @@ twiddle(const char *p)
 				addchars(p, 2);
 				break;
 			}
-			p+=2;
+			p += 2;
 			continue;
 		}
 		if (*p == '(' || *p == ')' || *p == '|')
@@ -486,9 +481,8 @@ dopatsubst(const char *argv[], int argc)
 		const char *source;
 		size_t l = strlen(argv[3]);
 
-		if (!mimic_gnu ||
-		    (argv[3][0] == '^') ||
-		    (l > 0 && argv[3][l-1] == '$'))
+		if (!mimic_gnu || (argv[3][0] == '^') ||
+		    (l > 0 && argv[3][l - 1] == '$'))
 			mode |= REG_NEWLINE;
 
 		source = mimic_gnu ? twiddle(argv[3]) : argv[3];
@@ -496,7 +490,7 @@ dopatsubst(const char *argv[], int argc)
 		if (error != 0)
 			exit_regerror(error, &re, source);
 
-		pmatch = xreallocarray(NULL, re.re_nsub+1, sizeof(regmatch_t),
+		pmatch = xreallocarray(NULL, re.re_nsub + 1, sizeof(regmatch_t),
 		    NULL);
 		do_subst(argv[2], &re, source,
 		    argc > 4 && argv[4] != NULL ? argv[4] : "", pmatch);
@@ -526,11 +520,11 @@ doregexp(const char *argv[], int argc)
 			pbstr(argv[4]);
 	}
 	source = mimic_gnu ? twiddle(argv[3]) : argv[3];
-	error = regcomp(&re, source, REG_EXTENDED|REG_NEWLINE);
+	error = regcomp(&re, source, REG_EXTENDED | REG_NEWLINE);
 	if (error != 0)
 		exit_regerror(error, &re, source);
 
-	pmatch = xreallocarray(NULL, re.re_nsub+1, sizeof(regmatch_t), NULL);
+	pmatch = xreallocarray(NULL, re.re_nsub + 1, sizeof(regmatch_t), NULL);
 	if (argc == 4 || argv[4] == NULL)
 		do_regexpindex(argv[2], &re, source, pmatch);
 	else
@@ -574,7 +568,7 @@ doformat(const char *argv[], int argc)
 				    "Format with too many format specifiers.");
 			width = strtol(argv[pos++], NULL, 10);
 		} else {
-			width = strtol(format, __DECONST(char **,&format), 10);
+			width = strtol(format, __DECONST(char **, &format), 10);
 		}
 		if (width < 0) {
 			left_padded = 1;
@@ -591,14 +585,15 @@ doformat(const char *argv[], int argc)
 					    "Format with too many format specifiers.");
 				extra = strtol(argv[pos++], NULL, 10);
 			} else {
-				extra = strtol(format, __DECONST(char **, &format), 10);
+				extra = strtol(format,
+				    __DECONST(char **, &format), 10);
 			}
 		} else {
 			extra = LONG_MAX;
 		}
 		if (pos >= argc)
 			m4errx(1, "Format with too many format specifiers.");
-		switch(*format) {
+		switch (*format) {
 		case 's':
 			thisarg = argv[pos++];
 			break;
@@ -648,20 +643,20 @@ doesyscmd(const char *cmd)
 	/* Just set up standard output, share stderr and stdin with m4 */
 	if (pipe(p) == -1)
 		err(1, "bad pipe");
-	switch(cpid = fork()) {
+	switch (cpid = fork()) {
 	case -1:
 		err(1, "bad fork");
 		/* NOTREACHED */
 	case 0:
-		(void) close(p[0]);
-		(void) dup2(p[1], 1);
-		(void) close(p[1]);
+		(void)close(p[0]);
+		(void)dup2(p[1], 1);
+		(void)close(p[1]);
 		execv(_PATH_BSHELL, argv);
 		exit(1);
 	default:
 		/* Read result in two stages, since m4's buffer is
 		 * pushback-only. */
-		(void) close(p[1]);
+		(void)close(p[1]);
 		do {
 			char result[BUFSIZE];
 			cc = read(p[0], result, sizeof result);
@@ -669,7 +664,7 @@ doesyscmd(const char *cmd)
 				addchars(result, cc);
 		} while (cc > 0 || (cc == -1 && errno == EINTR));
 
-		(void) close(p[0]);
+		(void)close(p[0]);
 		while (waitpid(cpid, &status, 0) == -1) {
 			if (errno != EINTR)
 				break;
@@ -688,7 +683,7 @@ getdivfile(const char *name)
 	if (!f)
 		return;
 
-	while ((c = getc(f))!= EOF)
+	while ((c = getc(f)) != EOF)
 		putc(c, active);
-	(void) fclose(f);
+	(void)fclose(f);
 }

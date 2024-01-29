@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	LIBPMC_INTERNAL_H
-#define	LIBPMC_INTERNAL_H	1
+#ifndef LIBPMC_INTERNAL_H
+#define LIBPMC_INTERNAL_H 1
 
 /*
  * Prototypes.
  */
 const char *_pmc_name_of_event(enum pmc_event _ev, enum pmc_cputype _cpu);
 
-#endif	/* LIBPMC_INTERNAL_H */
+#endif /* LIBPMC_INTERNAL_H */

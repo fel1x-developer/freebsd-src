@@ -115,43 +115,43 @@
 #define __XGBE_H__
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/socket.h>
 #include <sys/bitstring.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "xgbe_osdep.h"
 
 /* From linux/dcbnl.h */
-#define IEEE_8021QAZ_MAX_TCS	8
+#define IEEE_8021QAZ_MAX_TCS 8
 
-#define XGBE_DRV_NAME		"amd-xgbe"
-#define XGBE_DRV_VERSION	"1.0.3"
-#define XGBE_DRV_DESC		"AMD 10 Gigabit Ethernet Driver"
+#define XGBE_DRV_NAME "amd-xgbe"
+#define XGBE_DRV_VERSION "1.0.3"
+#define XGBE_DRV_DESC "AMD 10 Gigabit Ethernet Driver"
 
 /* Descriptor related defines */
-#define XGBE_TX_DESC_CNT	512
-#define XGBE_TX_DESC_MIN_FREE	(XGBE_TX_DESC_CNT >> 3)
-#define XGBE_TX_DESC_MAX_PROC	(XGBE_TX_DESC_CNT >> 1)
-#define XGBE_RX_DESC_CNT	512
+#define XGBE_TX_DESC_CNT 512
+#define XGBE_TX_DESC_MIN_FREE (XGBE_TX_DESC_CNT >> 3)
+#define XGBE_TX_DESC_MAX_PROC (XGBE_TX_DESC_CNT >> 1)
+#define XGBE_RX_DESC_CNT 512
 
-#define XGBE_TX_DESC_CNT_MIN	64
-#define XGBE_TX_DESC_CNT_MAX	4096
-#define XGBE_RX_DESC_CNT_MIN	64
-#define XGBE_RX_DESC_CNT_MAX	4096
+#define XGBE_TX_DESC_CNT_MIN 64
+#define XGBE_TX_DESC_CNT_MAX 4096
+#define XGBE_RX_DESC_CNT_MIN 64
+#define XGBE_RX_DESC_CNT_MAX 4096
 #define XGBE_TX_DESC_CNT_DEFAULT 512
 #define XGBE_RX_DESC_CNT_DEFAULT 512
 
-#define XGBE_TX_MAX_BUF_SIZE	(0x3fff & ~(64 - 1))
+#define XGBE_TX_MAX_BUF_SIZE (0x3fff & ~(64 - 1))
 
 /* Descriptors required for maximum contiguous TSO/GSO packet */
-#define XGBE_TX_MAX_SPLIT	((GSO_MAX_SIZE / XGBE_TX_MAX_BUF_SIZE) + 1)
+#define XGBE_TX_MAX_SPLIT ((GSO_MAX_SIZE / XGBE_TX_MAX_BUF_SIZE) + 1)
 
 /* Maximum possible descriptors needed for an SKB:
  * - Maximum number of SKB frags
@@ -159,101 +159,101 @@
  * - Possible context descriptor
  * - Possible TSO header descriptor
  */
-#define XGBE_TX_MAX_DESCS	(MAX_SKB_FRAGS + XGBE_TX_MAX_SPLIT + 2)
+#define XGBE_TX_MAX_DESCS (MAX_SKB_FRAGS + XGBE_TX_MAX_SPLIT + 2)
 
-#define XGBE_RX_MIN_BUF_SIZE	1522
-#define XGBE_RX_BUF_ALIGN	64
-#define XGBE_SKB_ALLOC_SIZE	256
-#define XGBE_SPH_HDSMS_SIZE	2	/* Keep in sync with SKB_ALLOC_SIZ */
+#define XGBE_RX_MIN_BUF_SIZE 1522
+#define XGBE_RX_BUF_ALIGN 64
+#define XGBE_SKB_ALLOC_SIZE 256
+#define XGBE_SPH_HDSMS_SIZE 2 /* Keep in sync with SKB_ALLOC_SIZ */
 
-#define XGBE_MAX_DMA_CHANNELS	16
-#define XGBE_MAX_QUEUES		16
-#define XGBE_PRIORITY_QUEUES	8
-#define XGBE_DMA_STOP_TIMEOUT	5
+#define XGBE_MAX_DMA_CHANNELS 16
+#define XGBE_MAX_QUEUES 16
+#define XGBE_PRIORITY_QUEUES 8
+#define XGBE_DMA_STOP_TIMEOUT 5
 
 /* DMA cache settings - Outer sharable, write-back, write-allocate */
-#define XGBE_DMA_OS_ARCR	0x002b2b2b
-#define XGBE_DMA_OS_AWCR	0x2f2f2f2f
+#define XGBE_DMA_OS_ARCR 0x002b2b2b
+#define XGBE_DMA_OS_AWCR 0x2f2f2f2f
 
 /* DMA cache settings - System, no caches used */
-#define XGBE_DMA_SYS_ARCR	0x00303030
-#define XGBE_DMA_SYS_AWCR	0x30303030
+#define XGBE_DMA_SYS_ARCR 0x00303030
+#define XGBE_DMA_SYS_AWCR 0x30303030
 
 /* DMA cache settings - PCI device */
-#define XGBE_DMA_PCI_ARCR	0x00000003
-#define XGBE_DMA_PCI_AWCR	0x13131313
-#define XGBE_DMA_PCI_AWARCR	0x00000313
+#define XGBE_DMA_PCI_ARCR 0x00000003
+#define XGBE_DMA_PCI_AWCR 0x13131313
+#define XGBE_DMA_PCI_AWARCR 0x00000313
 
 /* DMA channel interrupt modes */
-#define XGBE_IRQ_MODE_EDGE	0
-#define XGBE_IRQ_MODE_LEVEL	1
+#define XGBE_IRQ_MODE_EDGE 0
+#define XGBE_IRQ_MODE_LEVEL 1
 
-#define XGMAC_MIN_PACKET	60
-#define XGMAC_STD_PACKET_MTU	1500
-#define XGMAC_MAX_STD_PACKET	1518
-#define XGMAC_JUMBO_PACKET_MTU	9000
-#define XGMAC_MAX_JUMBO_PACKET	9018
-#define XGMAC_ETH_PREAMBLE	(12 + 8) /* Inter-frame gap + preamble */
+#define XGMAC_MIN_PACKET 60
+#define XGMAC_STD_PACKET_MTU 1500
+#define XGMAC_MAX_STD_PACKET 1518
+#define XGMAC_JUMBO_PACKET_MTU 9000
+#define XGMAC_MAX_JUMBO_PACKET 9018
+#define XGMAC_ETH_PREAMBLE (12 + 8) /* Inter-frame gap + preamble */
 
-#define XGMAC_PFC_DATA_LEN	46
-#define XGMAC_PFC_DELAYS	14000
+#define XGMAC_PFC_DATA_LEN 46
+#define XGMAC_PFC_DELAYS 14000
 
-#define XGMAC_PRIO_QUEUES(_cnt)					\
+#define XGMAC_PRIO_QUEUES(_cnt) \
 	min_t(unsigned int, IEEE_8021QAZ_MAX_TCS, (_cnt))
 
 /* Common property names */
-#define XGBE_MAC_ADDR_PROPERTY	"mac-address"
-#define XGBE_PHY_MODE_PROPERTY	"phy-mode"
-#define XGBE_DMA_IRQS_PROPERTY	"amd,per-channel-interrupt"
-#define XGBE_SPEEDSET_PROPERTY	"amd,speed-set"
-#define XGBE_BLWC_PROPERTY	"amd,serdes-blwc"
-#define XGBE_CDR_RATE_PROPERTY	"amd,serdes-cdr-rate"
-#define XGBE_PQ_SKEW_PROPERTY	"amd,serdes-pq-skew"
-#define XGBE_TX_AMP_PROPERTY	"amd,serdes-tx-amp"
-#define XGBE_DFE_CFG_PROPERTY	"amd,serdes-dfe-tap-config"
-#define XGBE_DFE_ENA_PROPERTY	"amd,serdes-dfe-tap-enable"
+#define XGBE_MAC_ADDR_PROPERTY "mac-address"
+#define XGBE_PHY_MODE_PROPERTY "phy-mode"
+#define XGBE_DMA_IRQS_PROPERTY "amd,per-channel-interrupt"
+#define XGBE_SPEEDSET_PROPERTY "amd,speed-set"
+#define XGBE_BLWC_PROPERTY "amd,serdes-blwc"
+#define XGBE_CDR_RATE_PROPERTY "amd,serdes-cdr-rate"
+#define XGBE_PQ_SKEW_PROPERTY "amd,serdes-pq-skew"
+#define XGBE_TX_AMP_PROPERTY "amd,serdes-tx-amp"
+#define XGBE_DFE_CFG_PROPERTY "amd,serdes-dfe-tap-config"
+#define XGBE_DFE_ENA_PROPERTY "amd,serdes-dfe-tap-enable"
 
 /* Device-tree clock names */
-#define XGBE_DMA_CLOCK		"dma_clk"
-#define XGBE_PTP_CLOCK		"ptp_clk"
+#define XGBE_DMA_CLOCK "dma_clk"
+#define XGBE_PTP_CLOCK "ptp_clk"
 
 /* ACPI property names */
-#define XGBE_ACPI_DMA_FREQ	"amd,dma-freq"
-#define XGBE_ACPI_PTP_FREQ	"amd,ptp-freq"
+#define XGBE_ACPI_DMA_FREQ "amd,dma-freq"
+#define XGBE_ACPI_PTP_FREQ "amd,ptp-freq"
 
 /* PCI BAR mapping */
-#define XGBE_XGMAC_BAR		0
-#define XGBE_XPCS_BAR		1
-#define XGBE_MAC_PROP_OFFSET	0x1d000
-#define XGBE_I2C_CTRL_OFFSET	0x1e000
+#define XGBE_XGMAC_BAR 0
+#define XGBE_XPCS_BAR 1
+#define XGBE_MAC_PROP_OFFSET 0x1d000
+#define XGBE_I2C_CTRL_OFFSET 0x1e000
 
 /* PCI MSI/MSIx support */
-#define XGBE_MSI_BASE_COUNT	4
-#define XGBE_MSI_MIN_COUNT	(XGBE_MSI_BASE_COUNT + 1)
+#define XGBE_MSI_BASE_COUNT 4
+#define XGBE_MSI_MIN_COUNT (XGBE_MSI_BASE_COUNT + 1)
 
 /* PCI clock frequencies */
-#define XGBE_V2_DMA_CLOCK_FREQ	500000000	/* 500 MHz */
-#define XGBE_V2_PTP_CLOCK_FREQ	125000000	/* 125 MHz */
+#define XGBE_V2_DMA_CLOCK_FREQ 500000000 /* 500 MHz */
+#define XGBE_V2_PTP_CLOCK_FREQ 125000000 /* 125 MHz */
 
 /* Timestamp support - values based on 50MHz PTP clock
  *   50MHz => 20 nsec
  */
-#define XGBE_TSTAMP_SSINC	20
-#define XGBE_TSTAMP_SNSINC	0
+#define XGBE_TSTAMP_SSINC 20
+#define XGBE_TSTAMP_SNSINC 0
 
 /* Driver PMT macros */
-#define XGMAC_DRIVER_CONTEXT	1
-#define XGMAC_IOCTL_CONTEXT	2
+#define XGMAC_DRIVER_CONTEXT 1
+#define XGMAC_IOCTL_CONTEXT 2
 
-#define XGMAC_FIFO_MIN_ALLOC	2048
-#define XGMAC_FIFO_UNIT		256
-#define XGMAC_FIFO_ALIGN(_x)				\
+#define XGMAC_FIFO_MIN_ALLOC 2048
+#define XGMAC_FIFO_UNIT 256
+#define XGMAC_FIFO_ALIGN(_x) \
 	(((_x) + XGMAC_FIFO_UNIT - 1) & ~(XGMAC_FIFO_UNIT - 1))
-#define XGMAC_FIFO_FC_OFF	2048
-#define XGMAC_FIFO_FC_MIN	4096
-#define XGBE_FIFO_MAX		81920
+#define XGMAC_FIFO_FC_OFF 2048
+#define XGMAC_FIFO_FC_MIN 4096
+#define XGBE_FIFO_MAX 81920
 
-#define XGBE_TC_MIN_QUANTUM	10
+#define XGBE_TC_MIN_QUANTUM 10
 
 /* Helper macro for descriptor handling
  *  Always use XGBE_GET_DESC_DATA to access the descriptor data
@@ -261,140 +261,129 @@
  *  with the descriptor count value of the ring to index to
  *  the proper descriptor data.
  */
-#define XGBE_GET_DESC_DATA(_ring, _idx)				\
-	((_ring)->rdata +					\
-	 ((_idx) & ((_ring)->rdesc_count - 1)))
+#define XGBE_GET_DESC_DATA(_ring, _idx) \
+	((_ring)->rdata + ((_idx) & ((_ring)->rdesc_count - 1)))
 
 /* Default coalescing parameters */
-#define XGMAC_INIT_DMA_TX_USECS		1000
-#define XGMAC_INIT_DMA_TX_FRAMES	25
+#define XGMAC_INIT_DMA_TX_USECS 1000
+#define XGMAC_INIT_DMA_TX_FRAMES 25
 
-#define XGMAC_MAX_DMA_RIWT		0xff
-#define XGMAC_INIT_DMA_RX_USECS		30
-#define XGMAC_INIT_DMA_RX_FRAMES	25
+#define XGMAC_MAX_DMA_RIWT 0xff
+#define XGMAC_INIT_DMA_RX_USECS 30
+#define XGMAC_INIT_DMA_RX_FRAMES 25
 
 /* Flow control queue count */
-#define XGMAC_MAX_FLOW_CONTROL_QUEUES	8
+#define XGMAC_MAX_FLOW_CONTROL_QUEUES 8
 
 /* Flow control threshold units */
-#define XGMAC_FLOW_CONTROL_UNIT		512
-#define XGMAC_FLOW_CONTROL_ALIGN(_x)				\
+#define XGMAC_FLOW_CONTROL_UNIT 512
+#define XGMAC_FLOW_CONTROL_ALIGN(_x) \
 	(((_x) + XGMAC_FLOW_CONTROL_UNIT - 1) & ~(XGMAC_FLOW_CONTROL_UNIT - 1))
-#define XGMAC_FLOW_CONTROL_VALUE(_x)				\
+#define XGMAC_FLOW_CONTROL_VALUE(_x) \
 	(((_x) < 1024) ? 0 : ((_x) / XGMAC_FLOW_CONTROL_UNIT) - 2)
-#define XGMAC_FLOW_CONTROL_MAX		33280
+#define XGMAC_FLOW_CONTROL_MAX 33280
 
 /* Maximum MAC address hash table size (256 bits = 8 bytes) */
-#define XGBE_MAC_HASH_TABLE_SIZE	8
+#define XGBE_MAC_HASH_TABLE_SIZE 8
 
 /* Receive Side Scaling */
-#define XGBE_RSS_HASH_KEY_SIZE		40
-#define XGBE_RSS_MAX_TABLE_SIZE		256
-#define XGBE_RSS_LOOKUP_TABLE_TYPE	0
-#define XGBE_RSS_HASH_KEY_TYPE		1
+#define XGBE_RSS_HASH_KEY_SIZE 40
+#define XGBE_RSS_MAX_TABLE_SIZE 256
+#define XGBE_RSS_LOOKUP_TABLE_TYPE 0
+#define XGBE_RSS_HASH_KEY_TYPE 1
 
 /* Auto-negotiation */
-#define XGBE_AN_MS_TIMEOUT		500
-#define XGBE_LINK_TIMEOUT		10
+#define XGBE_AN_MS_TIMEOUT 500
+#define XGBE_LINK_TIMEOUT 10
 
-#define XGBE_SGMII_AN_LINK_STATUS	BIT(1)
-#define XGBE_SGMII_AN_LINK_SPEED	(BIT(2) | BIT(3))
-#define XGBE_SGMII_AN_LINK_SPEED_100	0x04
-#define XGBE_SGMII_AN_LINK_SPEED_1000	0x08
-#define XGBE_SGMII_AN_LINK_DUPLEX	BIT(4)
+#define XGBE_SGMII_AN_LINK_STATUS BIT(1)
+#define XGBE_SGMII_AN_LINK_SPEED (BIT(2) | BIT(3))
+#define XGBE_SGMII_AN_LINK_SPEED_100 0x04
+#define XGBE_SGMII_AN_LINK_SPEED_1000 0x08
+#define XGBE_SGMII_AN_LINK_DUPLEX BIT(4)
 
 /* ECC correctable error notification window (seconds) */
-#define XGBE_ECC_LIMIT			60
+#define XGBE_ECC_LIMIT 60
 
-#define XGBE_AN_INT_CMPLT		0x01
-#define XGBE_AN_INC_LINK		0x02
-#define XGBE_AN_PG_RCV			0x04
-#define XGBE_AN_INT_MASK		0x07
+#define XGBE_AN_INT_CMPLT 0x01
+#define XGBE_AN_INC_LINK 0x02
+#define XGBE_AN_PG_RCV 0x04
+#define XGBE_AN_INT_MASK 0x07
 
-#define	XGBE_SGMII_AN_LINK_STATUS	BIT(1)
-#define	XGBE_SGMII_AN_LINK_SPEED	(BIT(2) | BIT(3))
-#define	XGBE_SGMII_AN_LINK_SPEED_100	0x04
-#define	XGBE_SGMII_AN_LINK_SPEED_1000	0x08
-#define	XGBE_SGMII_AN_LINK_DUPLEX	BIT(4)
+#define XGBE_SGMII_AN_LINK_STATUS BIT(1)
+#define XGBE_SGMII_AN_LINK_SPEED (BIT(2) | BIT(3))
+#define XGBE_SGMII_AN_LINK_SPEED_100 0x04
+#define XGBE_SGMII_AN_LINK_SPEED_1000 0x08
+#define XGBE_SGMII_AN_LINK_DUPLEX BIT(4)
 
 /* Rate-change complete wait/retry count */
-#define XGBE_RATECHANGE_COUNT		500
+#define XGBE_RATECHANGE_COUNT 500
 
 /* Default SerDes settings */
-#define XGBE_SPEED_10000_BLWC		0
-#define XGBE_SPEED_10000_CDR		0x7
-#define XGBE_SPEED_10000_PLL		0x1
-#define XGBE_SPEED_10000_PQ		0x12
-#define XGBE_SPEED_10000_RATE		0x0
-#define XGBE_SPEED_10000_TXAMP		0xa
-#define XGBE_SPEED_10000_WORD		0x7
-#define XGBE_SPEED_10000_DFE_TAP_CONFIG	0x1
-#define XGBE_SPEED_10000_DFE_TAP_ENABLE	0x7f
+#define XGBE_SPEED_10000_BLWC 0
+#define XGBE_SPEED_10000_CDR 0x7
+#define XGBE_SPEED_10000_PLL 0x1
+#define XGBE_SPEED_10000_PQ 0x12
+#define XGBE_SPEED_10000_RATE 0x0
+#define XGBE_SPEED_10000_TXAMP 0xa
+#define XGBE_SPEED_10000_WORD 0x7
+#define XGBE_SPEED_10000_DFE_TAP_CONFIG 0x1
+#define XGBE_SPEED_10000_DFE_TAP_ENABLE 0x7f
 
-#define XGBE_SPEED_2500_BLWC		1
-#define XGBE_SPEED_2500_CDR		0x2
-#define XGBE_SPEED_2500_PLL		0x0
-#define XGBE_SPEED_2500_PQ		0xa
-#define XGBE_SPEED_2500_RATE		0x1
-#define XGBE_SPEED_2500_TXAMP		0xf
-#define XGBE_SPEED_2500_WORD		0x1
-#define XGBE_SPEED_2500_DFE_TAP_CONFIG	0x3
-#define XGBE_SPEED_2500_DFE_TAP_ENABLE	0x0
+#define XGBE_SPEED_2500_BLWC 1
+#define XGBE_SPEED_2500_CDR 0x2
+#define XGBE_SPEED_2500_PLL 0x0
+#define XGBE_SPEED_2500_PQ 0xa
+#define XGBE_SPEED_2500_RATE 0x1
+#define XGBE_SPEED_2500_TXAMP 0xf
+#define XGBE_SPEED_2500_WORD 0x1
+#define XGBE_SPEED_2500_DFE_TAP_CONFIG 0x3
+#define XGBE_SPEED_2500_DFE_TAP_ENABLE 0x0
 
-#define XGBE_SPEED_1000_BLWC		1
-#define XGBE_SPEED_1000_CDR		0x2
-#define XGBE_SPEED_1000_PLL		0x0
-#define XGBE_SPEED_1000_PQ		0xa
-#define XGBE_SPEED_1000_RATE		0x3
-#define XGBE_SPEED_1000_TXAMP		0xf
-#define XGBE_SPEED_1000_WORD		0x1
-#define XGBE_SPEED_1000_DFE_TAP_CONFIG	0x3
-#define XGBE_SPEED_1000_DFE_TAP_ENABLE	0x0
+#define XGBE_SPEED_1000_BLWC 1
+#define XGBE_SPEED_1000_CDR 0x2
+#define XGBE_SPEED_1000_PLL 0x0
+#define XGBE_SPEED_1000_PQ 0xa
+#define XGBE_SPEED_1000_RATE 0x3
+#define XGBE_SPEED_1000_TXAMP 0xf
+#define XGBE_SPEED_1000_WORD 0x1
+#define XGBE_SPEED_1000_DFE_TAP_CONFIG 0x3
+#define XGBE_SPEED_1000_DFE_TAP_ENABLE 0x0
 
 /* TSO related macros */
-#define XGBE_TSO_MAX_SIZE		UINT16_MAX
+#define XGBE_TSO_MAX_SIZE UINT16_MAX
 
 /* MDIO port types */
-#define XGMAC_MAX_C22_PORT		3
+#define XGMAC_MAX_C22_PORT 3
 
 /* Link mode bit operations */
-#define XGBE_ZERO_SUP(_phy)	      \
-	((_phy)->supported = 0)
+#define XGBE_ZERO_SUP(_phy) ((_phy)->supported = 0)
 
-#define XGBE_SET_SUP(_phy, _mode)	\
-	((_phy)->supported |= SUPPORTED_##_mode)
+#define XGBE_SET_SUP(_phy, _mode) ((_phy)->supported |= SUPPORTED_##_mode)
 
-#define XGBE_CLR_SUP(_phy, _mode)	\
-	((_phy)->supported &= ~SUPPORTED_##_mode)
+#define XGBE_CLR_SUP(_phy, _mode) ((_phy)->supported &= ~SUPPORTED_##_mode)
 
-#define XGBE_IS_SUP(_phy, _mode) \
-	((_phy)->supported & SUPPORTED_##_mode)
+#define XGBE_IS_SUP(_phy, _mode) ((_phy)->supported & SUPPORTED_##_mode)
 
-#define XGBE_ZERO_ADV(_phy)	      \
-	((_phy)->advertising = 0)
+#define XGBE_ZERO_ADV(_phy) ((_phy)->advertising = 0)
 
-#define XGBE_SET_ADV(_phy, _mode)	\
-	((_phy)->advertising |= ADVERTISED_##_mode)
+#define XGBE_SET_ADV(_phy, _mode) ((_phy)->advertising |= ADVERTISED_##_mode)
 
-#define XGBE_CLR_ADV(_phy, _mode)	\
-	((_phy)->advertising &= ~ADVERTISED_##_mode)
+#define XGBE_CLR_ADV(_phy, _mode) ((_phy)->advertising &= ~ADVERTISED_##_mode)
 
-#define XGBE_ADV(_phy, _mode)	    \
-	((_phy)->advertising & ADVERTISED_##_mode)
+#define XGBE_ADV(_phy, _mode) ((_phy)->advertising & ADVERTISED_##_mode)
 
-#define XGBE_ZERO_LP_ADV(_phy)	   \
-	((_phy)->lp_advertising = 0)
+#define XGBE_ZERO_LP_ADV(_phy) ((_phy)->lp_advertising = 0)
 
-#define XGBE_SET_LP_ADV(_phy, _mode)     \
+#define XGBE_SET_LP_ADV(_phy, _mode) \
 	((_phy)->lp_advertising |= ADVERTISED_##_mode)
 
-#define XGBE_CLR_LP_ADV(_phy, _mode)     \
+#define XGBE_CLR_LP_ADV(_phy, _mode) \
 	((_phy)->lp_advertising &= ~ADVERTISED_##_mode)
 
-#define XGBE_LP_ADV(_phy, _mode)	 \
-	((_phy)->lp_advertising & ADVERTISED_##_mode)
+#define XGBE_LP_ADV(_phy, _mode) ((_phy)->lp_advertising & ADVERTISED_##_mode)
 
-#define XGBE_LM_COPY(_dphy, _dname, _sphy, _sname)	\
+#define XGBE_LM_COPY(_dphy, _dname, _sphy, _sname) \
 	((_dphy)->_dname = (_sphy)->_sname)
 
 struct xgbe_prv_data;
@@ -435,14 +424,14 @@ struct xgbe_ring_desc {
 
 /* Tx-related ring data */
 struct xgbe_tx_ring_data {
-	unsigned int packets;		/* BQL packet count */
-	unsigned int bytes;		/* BQL byte count */
+	unsigned int packets; /* BQL packet count */
+	unsigned int bytes;   /* BQL byte count */
 };
 
 /* Rx-related ring data */
 struct xgbe_rx_ring_data {
-	unsigned short hdr_len;		/* Length of received header */
-	unsigned short len;		/* Length of received packet */
+	unsigned short hdr_len; /* Length of received header */
+	unsigned short len;	/* Length of received packet */
 };
 
 /* Structure used to hold information related to the descriptor
@@ -450,12 +439,11 @@ struct xgbe_rx_ring_data {
  * use the XGBE_GET_DESC_DATA macro to access this data from the ring)
  */
 struct xgbe_ring_data {
-	struct xgbe_ring_desc *rdesc;	/* Virtual address of descriptor */
+	struct xgbe_ring_desc *rdesc; /* Virtual address of descriptor */
 	bus_addr_t rdata_paddr;
 
-	struct xgbe_tx_ring_data tx;	/* Tx-related data */
-	struct xgbe_rx_ring_data rx;	/* Rx-related data */
-
+	struct xgbe_tx_ring_data tx; /* Tx-related data */
+	struct xgbe_rx_ring_data rx; /* Rx-related data */
 
 	/* Incomplete receive save location.  If the budget is exhausted
 	 * or the last descriptor (last normal descriptor or a following
@@ -468,7 +456,6 @@ struct xgbe_ring_data {
 		unsigned int len;
 		unsigned int error;
 	} state;
-
 };
 
 struct xgbe_ring {
@@ -527,7 +514,7 @@ struct xgbe_channel {
 	unsigned int queue_index;
 	bus_space_tag_t dma_tag;
 	bus_space_handle_t dma_handle;
-	int	dma_irq_rid;
+	int dma_irq_rid;
 
 	/* Per channel interrupt irq number */
 	struct resource *dma_irq_res;
@@ -876,8 +863,7 @@ struct xgbe_phy_impl_if {
 	int (*an_config)(struct xgbe_prv_data *);
 
 	/* Set/override auto-negotiation advertisement settings */
-	void (*an_advertising)(struct xgbe_prv_data *,
-	    struct xgbe_phy *);
+	void (*an_advertising)(struct xgbe_prv_data *, struct xgbe_phy *);
 
 	/* Process results of auto-negotiation */
 	enum xgbe_mode (*an_outcome)(struct xgbe_prv_data *);
@@ -939,7 +925,7 @@ struct xgbe_desc_if {
 	void (*free_ring_resources)(struct xgbe_prv_data *);
 	int (*map_tx_skb)(struct xgbe_channel *, struct mbuf *);
 	int (*map_rx_buffer)(struct xgbe_prv_data *, struct xgbe_ring *,
-			     struct xgbe_ring_data *);
+	    struct xgbe_ring_data *);
 	void (*unmap_rdata)(struct xgbe_prv_data *, struct xgbe_ring_data *);
 	void (*wrapper_tx_desc_init)(struct xgbe_prv_data *);
 	void (*wrapper_rx_desc_init)(struct xgbe_prv_data *);
@@ -953,43 +939,43 @@ struct xgbe_hw_features {
 	unsigned int version;
 
 	/* HW Feature Register0 */
-	unsigned int gmii;		/* 1000 Mbps support */
-	unsigned int vlhash;		/* VLAN Hash Filter */
-	unsigned int sma;		/* SMA(MDIO) Interface */
-	unsigned int rwk;		/* PMT remote wake-up packet */
-	unsigned int mgk;		/* PMT magic packet */
-	unsigned int mmc;		/* RMON module */
-	unsigned int aoe;		/* ARP Offload */
-	unsigned int ts;		/* IEEE 1588-2008 Advanced Timestamp */
-	unsigned int eee;		/* Energy Efficient Ethernet */
-	unsigned int tx_coe;		/* Tx Checksum Offload */
-	unsigned int rx_coe;		/* Rx Checksum Offload */
-	unsigned int addn_mac;		/* Additional MAC Addresses */
-	unsigned int ts_src;		/* Timestamp Source */
-	unsigned int sa_vlan_ins;	/* Source Address or VLAN Insertion */
-	unsigned int vxn;		/* VXLAN/NVGRE */
+	unsigned int gmii;	  /* 1000 Mbps support */
+	unsigned int vlhash;	  /* VLAN Hash Filter */
+	unsigned int sma;	  /* SMA(MDIO) Interface */
+	unsigned int rwk;	  /* PMT remote wake-up packet */
+	unsigned int mgk;	  /* PMT magic packet */
+	unsigned int mmc;	  /* RMON module */
+	unsigned int aoe;	  /* ARP Offload */
+	unsigned int ts;	  /* IEEE 1588-2008 Advanced Timestamp */
+	unsigned int eee;	  /* Energy Efficient Ethernet */
+	unsigned int tx_coe;	  /* Tx Checksum Offload */
+	unsigned int rx_coe;	  /* Rx Checksum Offload */
+	unsigned int addn_mac;	  /* Additional MAC Addresses */
+	unsigned int ts_src;	  /* Timestamp Source */
+	unsigned int sa_vlan_ins; /* Source Address or VLAN Insertion */
+	unsigned int vxn;	  /* VXLAN/NVGRE */
 
 	/* HW Feature Register1 */
-	unsigned int rx_fifo_size;	/* MTL Receive FIFO Size */
-	unsigned int tx_fifo_size;	/* MTL Transmit FIFO Size */
-	unsigned int adv_ts_hi;		/* Advance Timestamping High Word */
-	unsigned int dma_width;		/* DMA width */
-	unsigned int dcb;		/* DCB Feature */
-	unsigned int sph;		/* Split Header Feature */
-	unsigned int tso;		/* TCP Segmentation Offload */
-	unsigned int dma_debug;		/* DMA Debug Registers */
-	unsigned int rss;		/* Receive Side Scaling */
-	unsigned int tc_cnt;		/* Number of Traffic Classes */
-	unsigned int hash_table_size;	/* Hash Table Size */
-	unsigned int l3l4_filter_num;	/* Number of L3-L4 Filters */
+	unsigned int rx_fifo_size;    /* MTL Receive FIFO Size */
+	unsigned int tx_fifo_size;    /* MTL Transmit FIFO Size */
+	unsigned int adv_ts_hi;	      /* Advance Timestamping High Word */
+	unsigned int dma_width;	      /* DMA width */
+	unsigned int dcb;	      /* DCB Feature */
+	unsigned int sph;	      /* Split Header Feature */
+	unsigned int tso;	      /* TCP Segmentation Offload */
+	unsigned int dma_debug;	      /* DMA Debug Registers */
+	unsigned int rss;	      /* Receive Side Scaling */
+	unsigned int tc_cnt;	      /* Number of Traffic Classes */
+	unsigned int hash_table_size; /* Hash Table Size */
+	unsigned int l3l4_filter_num; /* Number of L3-L4 Filters */
 
 	/* HW Feature Register2 */
-	unsigned int rx_q_cnt;		/* Number of MTL Receive Queues */
-	unsigned int tx_q_cnt;		/* Number of MTL Transmit Queues */
-	unsigned int rx_ch_cnt;		/* Number of DMA Receive Channels */
-	unsigned int tx_ch_cnt;		/* Number of DMA Transmit Channels */
-	unsigned int pps_out_num;	/* Number of PPS outputs */
-	unsigned int aux_snap_num;	/* Number of Aux snapshot inputs */
+	unsigned int rx_q_cnt;	   /* Number of MTL Receive Queues */
+	unsigned int tx_q_cnt;	   /* Number of MTL Transmit Queues */
+	unsigned int rx_ch_cnt;	   /* Number of DMA Receive Channels */
+	unsigned int tx_ch_cnt;	   /* Number of DMA Transmit Channels */
+	unsigned int pps_out_num;  /* Number of PPS outputs */
+	unsigned int aux_snap_num; /* Number of Aux snapshot inputs */
 };
 
 struct xgbe_version_data {
@@ -1021,11 +1007,11 @@ struct xgbe_prv_data {
 	unsigned int use_acpi;
 
 	/* XGMAC/XPCS related mmio registers */
-	struct resource *xgmac_res;	/* XGMAC CSRs */
-	struct resource *xpcs_res;	/* XPCS MMD registers */
-	struct resource *rxtx_res;	/* SerDes Rx/Tx CSRs */
-	struct resource *sir0_res;	/* SerDes integration registers (1/2) */
-	struct resource *sir1_res;	/* SerDes integration registers (2/2) */
+	struct resource *xgmac_res; /* XGMAC CSRs */
+	struct resource *xpcs_res;  /* XPCS MMD registers */
+	struct resource *rxtx_res;  /* SerDes Rx/Tx CSRs */
+	struct resource *sir0_res;  /* SerDes integration registers (1/2) */
+	struct resource *sir1_res;  /* SerDes integration registers (2/2) */
 
 	/* Port property registers */
 	unsigned int pp0;
@@ -1066,12 +1052,12 @@ struct xgbe_prv_data {
 	unsigned int desc_ded_count;
 	unsigned int desc_sec_count;
 
-	struct if_irq	dev_irq;
+	struct if_irq dev_irq;
 
-	struct resource	*dev_irq_res;
-	struct resource	*ecc_irq_res;
-	struct resource	*i2c_irq_res;
-	struct resource	*an_irq_res;
+	struct resource *dev_irq_res;
+	struct resource *ecc_irq_res;
+	struct resource *i2c_irq_res;
+	struct resource *an_irq_res;
 
 	int ecc_rid;
 	int i2c_rid;
@@ -1223,7 +1209,7 @@ struct xgbe_prv_data {
 	int mdio_mmd;
 	unsigned long link_check;
 	struct mtx mdio_mutex;
-	unsigned int mdio_addr;	
+	unsigned int mdio_addr;
 
 	unsigned int kr_redrv;
 
@@ -1268,7 +1254,7 @@ struct xgbe_prv_data {
 	struct mtx i2c_mutex;
 	bool i2c_complete;
 
-	unsigned int lpm_ctrl;		/* CTRL1 for resume */
+	unsigned int lpm_ctrl; /* CTRL1 for resume */
 	unsigned int an_cdr_track_early;
 
 	uint64_t features;
@@ -1284,9 +1270,9 @@ struct xgbe_prv_data {
 	bool sysctl_an_cdr_workaround;
 	bool sysctl_an_cdr_track_early;
 
-	int pcie_bus;    /* PCIe bus number */
+	int pcie_bus;	 /* PCIe bus number */
 	int pcie_device; /* PCIe device/slot number */
-	int pcie_func;   /* PCIe function number */
+	int pcie_func;	 /* PCIe function number */
 
 	void *sys_op;
 	uint64_t use_adaptive_rx_coalesce;
@@ -1304,13 +1290,13 @@ struct xgbe_prv_data {
 };
 
 struct axgbe_if_softc {
-	struct xgbe_prv_data    pdata;
-	if_softc_ctx_t	  scctx;
-	if_shared_ctx_t	 sctx;
-	if_ctx_t		ctx;
-	if_t			ifp;
-	struct ifmedia	  *media;
-	unsigned int		link_status;
+	struct xgbe_prv_data pdata;
+	if_softc_ctx_t scctx;
+	if_shared_ctx_t sctx;
+	if_ctx_t ctx;
+	if_t ifp;
+	struct ifmedia *media;
+	unsigned int link_status;
 };
 
 /* Function prototypes*/
@@ -1341,22 +1327,28 @@ uint32_t bitrev32(uint32_t);
 #ifdef YDEBUG
 #define DBGPR(x...) device_printf(pdata->dev, x)
 #else
-#define DBGPR(x...) do { } while (0)
+#define DBGPR(x...) \
+	do {        \
+	} while (0)
 #endif
 
 #ifdef YDEBUG_MDIO
 #define DBGPR_MDIO(x...) device_printf(pdata->dev, x)
 #else
-#define DBGPR_MDIO(x...) do { } while (0)
+#define DBGPR_MDIO(x...) \
+	do {             \
+	} while (0)
 #endif
 
-#define axgbe_printf(lvl, ...) do {			\
-	if (lvl <= pdata->debug_level)			\
-		device_printf(pdata->dev, __VA_ARGS__);	\
-} while (0)
+#define axgbe_printf(lvl, ...)                                  \
+	do {                                                    \
+		if (lvl <= pdata->debug_level)                  \
+			device_printf(pdata->dev, __VA_ARGS__); \
+	} while (0)
 
-#define axgbe_error(...) do {		     \
-	device_printf(pdata->dev, __VA_ARGS__);   \
-} while (0)
+#define axgbe_error(...)                                \
+	do {                                            \
+		device_printf(pdata->dev, __VA_ARGS__); \
+	} while (0)
 
 #endif /* __XGBE_H__ */

@@ -46,57 +46,66 @@ extern "C" {
 
 using namespace testing;
 
-class DefaultPermissionsPrivileged: public FuseTest {
-virtual void SetUp() {
-	m_default_permissions = true;
-	FuseTest::SetUp();
-	if (HasFatalFailure() || IsSkipped())
-		return;
+class DefaultPermissionsPrivileged : public FuseTest {
+	virtual void SetUp()
+	{
+		m_default_permissions = true;
+		FuseTest::SetUp();
+		if (HasFatalFailure() || IsSkipped())
+			return;
 
-	if (geteuid() != 0) {
-		GTEST_SKIP() << "This test requires a privileged user";
+		if (geteuid() != 0) {
+			GTEST_SKIP() << "This test requires a privileged user";
+		}
+
+		/* With -o default_permissions, FUSE_ACCESS should never be
+		 * called */
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_ACCESS);
+				},
+				Eq(true)),
+			_))
+		    .Times(0);
 	}
-	
-	/* With -o default_permissions, FUSE_ACCESS should never be called */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_ACCESS);
-		}, Eq(true)),
-		_)
-	).Times(0);
-}
 
-public:
-void expect_getattr(uint64_t ino, mode_t mode, uint64_t attr_valid, int times,
-	uid_t uid = 0, gid_t gid = 0)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr.size = 0;
-		out.body.attr.attr.uid = uid;
-		out.body.attr.attr.gid = gid;
-		out.body.attr.attr_valid = attr_valid;
-	})));
-}
+    public:
+	void expect_getattr(uint64_t ino, mode_t mode, uint64_t attr_valid,
+	    int times, uid_t uid = 0, gid_t gid = 0)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_GETATTR &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused,
+							       auto &out) {
+			    SET_OUT_HEADER_LEN(out, attr);
+			    out.body.attr.attr.ino = ino; // Must match nodeid
+			    out.body.attr.attr.mode = mode;
+			    out.body.attr.attr.size = 0;
+			    out.body.attr.attr.uid = uid;
+			    out.body.attr.attr.gid = gid;
+			    out.body.attr.attr_valid = attr_valid;
+		    })));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
-	uint64_t attr_valid, uid_t uid = 0, gid_t gid = 0)
-{
-	FuseTest::expect_lookup(relpath, ino, mode, 0, 1, attr_valid, uid, gid);
-}
-
+	void expect_lookup(const char *relpath, uint64_t ino, mode_t mode,
+	    uint64_t attr_valid, uid_t uid = 0, gid_t gid = 0)
+	{
+		FuseTest::expect_lookup(relpath, ino, mode, 0, 1, attr_valid,
+		    uid, gid);
+	}
 };
 
-class Setattr: public DefaultPermissionsPrivileged {};
+class Setattr : public DefaultPermissionsPrivileged { };
 
 TEST_F(Setattr, sticky_regular_file)
 {
@@ -108,17 +117,17 @@ TEST_F(Setattr, sticky_regular_file)
 
 	expect_getattr(1, S_IFDIR | 0755, UINT64_MAX, 1);
 	expect_lookup(RELPATH, ino, S_IFREG | oldmode, UINT64_MAX, geteuid());
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	EXPECT_EQ(0, chmod(FULLPATH, newmode)) << strerror(errno);
 }
-
-

@@ -34,15 +34,16 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/errno.h>
-#include <stdlib.h>
-#include <string.h>
+
 #include <pthread.h>
 #include <pthread_np.h>
-#include "un-namespace.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 static void
 thr_set_name_np(struct pthread *thread, char **tmp_name)

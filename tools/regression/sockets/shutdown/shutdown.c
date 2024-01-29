@@ -27,8 +27,8 @@
 #include <sys/socket.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -47,7 +47,8 @@ main(void)
 
 	/* Shutdown(2) on an invalid file descriptor has to return EBADF. */
 	if ((shutdown(listen_sock, SHUT_RDWR) != -1) && (errno != EBADF))
-		errx(-1, "shutdown() for invalid file descriptor does not "
+		errx(-1,
+		    "shutdown() for invalid file descriptor does not "
 		    "return EBADF");
 
 	listen_sock = socket(PF_INET, SOCK_STREAM, 0);
@@ -77,8 +78,10 @@ main(void)
 
 	connect_sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (connect_sock == -1)
-		errx(-1, "socket(PF_INET, SOCK_STREAM, 0) for connect "
-		    "socket: %s", strerror(errno));
+		errx(-1,
+		    "socket(PF_INET, SOCK_STREAM, 0) for connect "
+		    "socket: %s",
+		    strerror(errno));
 
 	bzero(&sock, sizeof(sock));
 	sock.sin_len = sizeof(sock);

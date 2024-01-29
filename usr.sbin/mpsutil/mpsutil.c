@@ -33,6 +33,7 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <inttypes.h>
 #include <paths.h>
@@ -40,6 +41,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mpsutil.h"
 
 SET_DECLARE(MPS_DATASET(top), struct mpsutil_command);
@@ -56,14 +58,15 @@ usage(void)
 
 	fprintf(stderr, "usage: %s [-u unit] <command> ...\n\n", getprogname());
 	fprintf(stderr, "Commands include:\n");
-	SET_FOREACH(cmd, MPS_DATASET(usage)) {
+	SET_FOREACH(cmd, MPS_DATASET(usage))
+	{
 		if (*cmd == NULL) {
 			fprintf(stderr, "\n");
 		} else {
 			(*cmd)->handler(&args, &desc);
 			if (strncmp((*cmd)->set, "top", 3) == 0)
-				fprintf(stderr, "%-16s %-28s%s\n",
-				    (*cmd)->name, args, desc);
+				fprintf(stderr, "%-16s %-28s%s\n", (*cmd)->name,
+				    args, desc);
 			else
 				fprintf(stderr, "%-5s %-10s %-28s%s\n",
 				    (*cmd)->set, (*cmd)->name, args, desc);
@@ -99,15 +102,18 @@ main(int ac, char **av)
 	while ((ch = getopt(ac, av, "u:h?")) != -1) {
 		switch (ch) {
 		case 'u':
-			if (strncmp(optarg, _PATH_DEV, strlen(_PATH_DEV)) == 0) {
+			if (strncmp(optarg, _PATH_DEV, strlen(_PATH_DEV)) ==
+			    0) {
 				optarg += strlen(_PATH_DEV);
-				if (strncmp(optarg, is_mps ? "mps" : "mpr", 3) != 0)
+				if (strncmp(optarg, is_mps ? "mps" : "mpr",
+					3) != 0)
 					errx(1, "Invalid device: %s", optarg);
 			}
 			if (strncmp(optarg, is_mps ? "mps" : "mpr", 3) == 0)
 				optarg += 3;
 			unit = strtoumax(optarg, &end, 10);
-			if (*end != '\0' || unit == UINTMAX_MAX || unit > INT_MAX)
+			if (*end != '\0' || unit == UINTMAX_MAX ||
+			    unit > INT_MAX)
 				errx(1, "Invalid unit: %s", optarg);
 			mps_unit = unit;
 			break;
@@ -127,7 +133,8 @@ main(int ac, char **av)
 		return (1);
 	}
 
-	SET_FOREACH(cmd, MPS_DATASET(top)) {
+	SET_FOREACH(cmd, MPS_DATASET(top))
+	{
 		if (strcmp((*cmd)->name, av[0]) == 0) {
 			if ((*cmd)->handler(ac, av))
 				return (1);
@@ -177,7 +184,7 @@ hexdump(const void *ptr, int length, const char *hdr, int flags)
 		cols = 16;
 
 	cp = ptr;
-	for (i = 0; i < length; i+= cols) {
+	for (i = 0; i < length; i += cols) {
 		if (hdr != NULL)
 			printf("%s", hdr);
 
@@ -217,7 +224,13 @@ hexdump(const void *ptr, int length, const char *hdr, int flags)
 	}
 }
 
-#define PCHAR(c) { if (retval < tmpsz) { *outbuf++ = (c); retval++; } }
+#define PCHAR(c)                         \
+	{                                \
+		if (retval < tmpsz) {    \
+			*outbuf++ = (c); \
+			retval++;        \
+		}                        \
+	}
 
 int
 mps_parse_flags(uintmax_t num, const char *q, char *outbuf, int tmpsz)
@@ -232,7 +245,7 @@ mps_parse_flags(uintmax_t num, const char *q, char *outbuf, int tmpsz)
 	while (*q) {
 		n = *q++;
 		if (num & (1 << (n - 1))) {
-			PCHAR(retval != tmp ?  ',' : '<');
+			PCHAR(retval != tmp ? ',' : '<');
 			for (; (n = *q) > ' '; ++q)
 				PCHAR(n);
 		} else
@@ -244,4 +257,3 @@ mps_parse_flags(uintmax_t num, const char *q, char *outbuf, int tmpsz)
 
 	return (retval);
 }
-

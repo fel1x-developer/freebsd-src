@@ -242,7 +242,8 @@ tpm_crb_thread(void *const arg)
 
 		pthread_mutex_lock(&crb->mutex);
 		memset(crb->regs.data_buffer, 0, TPM_CRB_DATA_BUFFER_SIZE);
-		memcpy(&crb->regs.data_buffer[rsp_off], &rsp[rsp_off], rsp_size);
+		memcpy(&crb->regs.data_buffer[rsp_off], &rsp[rsp_off],
+		    rsp_size);
 
 		crb->regs.ctrl_start.start = false;
 	}
@@ -363,10 +364,10 @@ tpm_crb_mem_handler(struct vcpu *vcpu __unused, const int dir,
 		case offsetof(struct tpm_crb_regs, cmd_addr_hi):
 		case offsetof(struct tpm_crb_regs, rsp_size):
 		case offsetof(struct tpm_crb_regs,
-		    rsp_addr) ... offsetof(struct tpm_crb_regs, rsp_addr) +
+		    rsp_addr)... offsetof(struct tpm_crb_regs, rsp_addr) +
 		    4:
 		case offsetof(struct tpm_crb_regs,
-		    data_buffer) ... offsetof(struct tpm_crb_regs, data_buffer) +
+		    data_buffer)... offsetof(struct tpm_crb_regs, data_buffer) +
 		    TPM_CRB_DATA_BUFFER_SIZE / 4:
 			/*
 			 * Those fields are used to execute a TPM command. The

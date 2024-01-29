@@ -31,33 +31,32 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <util.h>
 
 #include "makefs.h"
 #include "zfs.h"
 
 typedef struct zfs_dsl_dataset {
-	zfs_objset_t	*os;		/* referenced objset, may be null */
-	dsl_dataset_phys_t *phys;	/* on-disk representation */
-	uint64_t	dsid;		/* DSL dataset dnode */
+	zfs_objset_t *os;	  /* referenced objset, may be null */
+	dsl_dataset_phys_t *phys; /* on-disk representation */
+	uint64_t dsid;		  /* DSL dataset dnode */
 
-	struct zfs_dsl_dir *dir;	/* containing parent */
+	struct zfs_dsl_dir *dir; /* containing parent */
 } zfs_dsl_dataset_t;
 
 typedef STAILQ_HEAD(zfs_dsl_dir_list, zfs_dsl_dir) zfs_dsl_dir_list_t;
 
 typedef struct zfs_dsl_dir {
-	char		*fullname;	/* full dataset name */
-	char		*name;		/* basename(fullname) */
-	dsl_dir_phys_t	*phys;		/* on-disk representation */
-	nvlist_t	*propsnv;	/* properties saved in propszap */
+	char *fullname;	      /* full dataset name */
+	char *name;	      /* basename(fullname) */
+	dsl_dir_phys_t *phys; /* on-disk representation */
+	nvlist_t *propsnv;    /* properties saved in propszap */
 
-	zfs_dsl_dataset_t *headds;	/* principal dataset, may be null */
+	zfs_dsl_dataset_t *headds; /* principal dataset, may be null */
 
-	uint64_t	dirid;		/* DSL directory dnode */
-	zfs_zap_t	*propszap;	/* dataset properties */
-	zfs_zap_t	*childzap;	/* child directories */
+	uint64_t dirid;	     /* DSL directory dnode */
+	zfs_zap_t *propszap; /* dataset properties */
+	zfs_zap_t *childzap; /* child directories */
 
 	/* DSL directory tree linkage. */
 	struct zfs_dsl_dir *parent;
@@ -112,15 +111,15 @@ dsl_dir_get_mountpoint(zfs_opt_t *zfs, zfs_dsl_dir_t *dir)
 		 * always set for the root dataset.
 		 */
 		for (pdir = dir->parent, mountpoint = estrdup(dir->name);;
-		    pdir = pdir->parent) {
+		     pdir = pdir->parent) {
 			char *origmountpoint, *tmp;
 
 			origmountpoint = mountpoint;
 
 			if (nvlist_find_string(pdir->propsnv, "mountpoint",
-			    &tmp) == 0) {
+				&tmp) == 0) {
 				easprintf(&mountpoint, "%s%s%s", tmp,
-				    tmp[strlen(tmp) - 1] == '/' ?  "" : "/",
+				    tmp[strlen(tmp) - 1] == '/' ? "" : "/",
 				    origmountpoint);
 				free(tmp);
 				free(origmountpoint);
@@ -170,9 +169,11 @@ dsl_dir_set_prop(zfs_opt_t *zfs, zfs_dsl_dir_t *dir, const char *key,
 			if (strcmp(val, zfs->rootpath) != 0 &&
 			    strcmp(zfs->rootpath, "/") != 0 &&
 			    (strstr(val, zfs->rootpath) != val ||
-			     val[strlen(zfs->rootpath)] != '/')) {
-				errx(1, "mountpoint `%s' is not prefixed by "
-				    "the root path `%s'", val, zfs->rootpath);
+				val[strlen(zfs->rootpath)] != '/')) {
+				errx(1,
+				    "mountpoint `%s' is not prefixed by "
+				    "the root path `%s'",
+				    val, zfs->rootpath);
 			}
 		}
 		nvlist_add_string(nvl, key, val);
@@ -250,7 +251,7 @@ dsl_init(zfs_opt_t *zfs)
 	 * Go through the list of user-specified datasets and create DSL objects
 	 * for them.
 	 */
-	STAILQ_FOREACH(d, &zfs->datasetdescs, next) {
+	STAILQ_FOREACH (d, &zfs->datasetdescs, next) {
 		char *dsname, *next, *params, *param, *nextparam;
 
 		params = d->params;
@@ -315,7 +316,7 @@ dsl_dir_foreach_post(zfs_opt_t *zfs, zfs_dsl_dir_t *dsldir,
 {
 	zfs_dsl_dir_t *cdsldir;
 
-	STAILQ_FOREACH(cdsldir, &dsldir->children, next) {
+	STAILQ_FOREACH (cdsldir, &dsldir->children, next) {
 		dsl_dir_foreach_post(zfs, cdsldir, cb, arg);
 	}
 	cb(zfs, dsldir, arg);
@@ -402,7 +403,7 @@ dsl_dir_alloc(zfs_opt_t *zfs, const char *name)
 		if (nextdir == NULL)
 			break;
 
-		STAILQ_FOREACH(parent, lp, next) {
+		STAILQ_FOREACH (parent, lp, next) {
 			if (strcmp(parent->name, dirname) == 0)
 				break;
 		}
@@ -452,7 +453,7 @@ static void
 dsl_dir_finalize_props(zfs_dsl_dir_t *dir)
 {
 	for (nvp_header_t *nvh = NULL;
-	    (nvh = nvlist_next_nvpair(dir->propsnv, nvh)) != NULL;) {
+	     (nvh = nvlist_next_nvpair(dir->propsnv, nvh)) != NULL;) {
 		nv_string_t *nvname;
 		nv_pair_data_t *nvdata;
 		char *name;
@@ -528,7 +529,7 @@ dsl_dir_finalize(zfs_opt_t *zfs, zfs_dsl_dir_t *dir, void *arg __unused)
 	headds->phys->ds_compressed_bytes = bytes;
 
 	childbytes = 0;
-	STAILQ_FOREACH(cdir, &dir->children, next) {
+	STAILQ_FOREACH (cdir, &dir->children, next) {
 		/*
 		 * The root directory needs a special case: the amount of
 		 * space used for the MOS isn't known until everything else is

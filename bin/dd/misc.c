@@ -60,8 +60,8 @@ secs_elapsed(void)
 		err(1, "clock_gettime");
 	if (clock_getres(CLOCK_MONOTONIC, &ts_res))
 		err(1, "clock_getres");
-	secs = (end.tv_sec - st.start.tv_sec) + \
-	       (end.tv_nsec - st.start.tv_nsec) * 1e-9;
+	secs = (end.tv_sec - st.start.tv_sec) +
+	    (end.tv_nsec - st.start.tv_nsec) * 1e-9;
 	res = ts_res.tv_sec + ts_res.tv_nsec * 1e-9;
 	if (secs < res)
 		secs = res;
@@ -82,15 +82,14 @@ summary(void)
 
 	secs = secs_elapsed();
 
-	(void)fprintf(stderr,
-	    "%ju+%ju records in\n%ju+%ju records out\n",
+	(void)fprintf(stderr, "%ju+%ju records in\n%ju+%ju records out\n",
 	    st.in_full, st.in_part, st.out_full, st.out_part);
 	if (st.swab)
-		(void)fprintf(stderr, "%ju odd length swab %s\n",
-		     st.swab, (st.swab == 1) ? "block" : "blocks");
+		(void)fprintf(stderr, "%ju odd length swab %s\n", st.swab,
+		    (st.swab == 1) ? "block" : "blocks");
 	if (st.trunc)
-		(void)fprintf(stderr, "%ju truncated %s\n",
-		     st.trunc, (st.trunc == 1) ? "block" : "blocks");
+		(void)fprintf(stderr, "%ju truncated %s\n", st.trunc,
+		    (st.trunc == 1) ? "block" : "blocks");
 	if (!(ddflags & C_NOXFER)) {
 		(void)fprintf(stderr,
 		    "%ju bytes transferred in %.6f secs (%.0f bytes/sec)\n",
@@ -103,9 +102,9 @@ void
 progress(void)
 {
 	static int outlen;
-	char si[4 + 1 + 2 + 1];		/* 123 <space> <suffix> NUL */
-	char iec[4 + 1 + 3 + 1];	/* 123 <space> <suffix> NUL */
-	char persec[4 + 1 + 2 + 1];	/* 123 <space> <suffix> NUL */
+	char si[4 + 1 + 2 + 1];	    /* 123 <space> <suffix> NUL */
+	char iec[4 + 1 + 3 + 1];    /* 123 <space> <suffix> NUL */
+	char persec[4 + 1 + 2 + 1]; /* 123 <space> <suffix> NUL */
 	char *buf;
 	double secs;
 

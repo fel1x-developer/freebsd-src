@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '?':
 		default:
 			usage();
@@ -89,7 +89,7 @@ main(int argc, char *argv[])
 			rval = 1;
 		}
 		(void)fclose(fp);
-	} while(*argv);
+	} while (*argv);
 	exit(rval);
 }
 

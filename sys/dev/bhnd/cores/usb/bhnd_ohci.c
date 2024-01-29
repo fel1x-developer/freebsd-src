@@ -43,39 +43,37 @@
  * sharing of code between *BSD's
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
 #include <sys/queue.h>
 #include <sys/rman.h>
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/unistd.h>
-#include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
 #include <dev/usb/controller/ohci.h>
 #include <dev/usb/controller/ohcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 static device_probe_t bhnd_ohci_probe;
 static device_attach_t bhnd_ohci_attach;
@@ -91,9 +89,9 @@ bhnd_ohci_probe(device_t self)
 static int
 bhnd_ohci_attach(device_t self)
 {
-	ohci_softc_t	*sc;
-	int		 rid;
-	int		 err;
+	ohci_softc_t *sc;
+	int rid;
+	int err;
 
 	sc = device_get_softc(self);
 	/* initialise some bus fields */
@@ -104,7 +102,7 @@ bhnd_ohci_attach(device_t self)
 
 	/* get all DMA memory */
 	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
-	    &ohci_iterate_hw_softc)) {
+		&ohci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 	sc->sc_dev = self;
@@ -162,7 +160,7 @@ error:
 static int
 bhnd_ohci_detach(device_t self)
 {
-	ohci_softc_t	*sc;
+	ohci_softc_t *sc;
 
 	sc = device_get_softc(self);
 
@@ -175,7 +173,8 @@ bhnd_ohci_detach(device_t self)
 		 */
 		ohci_detach(sc);
 
-		int err = bus_teardown_intr(self, sc->sc_irq_res, sc->sc_intr_hdl);
+		int err = bus_teardown_intr(self, sc->sc_irq_res,
+		    sc->sc_intr_hdl);
 
 		if (err) {
 			/* XXX or should we panic? */
@@ -189,8 +188,7 @@ bhnd_ohci_detach(device_t self)
 		sc->sc_irq_res = NULL;
 	}
 	if (sc->sc_io_res) {
-		bus_release_resource(self, SYS_RES_MEMORY, 0,
-		    sc->sc_io_res);
+		bus_release_resource(self, SYS_RES_MEMORY, 0, sc->sc_io_res);
 		sc->sc_io_res = NULL;
 	}
 	usb_bus_mem_free_all(&sc->sc_bus, &ohci_iterate_hw_softc);
@@ -200,12 +198,12 @@ bhnd_ohci_detach(device_t self)
 
 static device_method_t bhnd_ohci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bhnd_ohci_probe),
-	DEVMETHOD(device_attach,	bhnd_ohci_attach),
-	DEVMETHOD(device_detach,	bhnd_ohci_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, bhnd_ohci_probe),
+	DEVMETHOD(device_attach, bhnd_ohci_attach),
+	DEVMETHOD(device_detach, bhnd_ohci_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	DEVMETHOD_END
 };

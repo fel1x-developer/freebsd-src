@@ -43,17 +43,16 @@
 #include <string.h>
 #include <unistd.h>
 
-static int		do_conv(FILE *, iconv_t, bool, bool);
-static int		do_list(unsigned int, const char * const *, void *);
-static void		usage(void) __dead2;
+static int do_conv(FILE *, iconv_t, bool, bool);
+static int do_list(unsigned int, const char *const *, void *);
+static void usage(void) __dead2;
 
-static const struct option long_options[] = {
-	{"from-code",		required_argument,	NULL, 'f'},
-	{"list",		no_argument,		NULL, 'l'},
-	{"silent",		no_argument,		NULL, 's'},
-        {"to-code",		required_argument,	NULL, 't'},
-        {NULL,                  no_argument,            NULL, 0}
-};
+static const struct option long_options[] = { { "from-code", required_argument,
+						  NULL, 'f' },
+	{ "list", no_argument, NULL, 'l' },
+	{ "silent", no_argument, NULL, 's' },
+	{ "to-code", required_argument, NULL, 't' },
+	{ NULL, no_argument, NULL, 0 } };
 
 static void
 usage(void)
@@ -62,7 +61,8 @@ usage(void)
 	    "Usage:\t%1$s [-cs] -f <from_code> -t <to_code> [file ...]\n"
 	    "\t%1$s -f <from_code> [-cs] [-t <to_code>] [file ...]\n"
 	    "\t%1$s -t <to_code> [-cs] [-f <from_code>] [file ...]\n"
-	    "\t%1$s -l\n", getprogname());
+	    "\t%1$s -l\n",
+	    getprogname());
 	exit(1);
 }
 
@@ -94,8 +94,8 @@ do_conv(FILE *fp, iconv_t cd, bool silent, bool hide_invalid)
 
 			out = outbuf;
 			outbytes = OUTBUFSIZE;
-			ret = __iconv(cd, &in, &inbytes, &out, &outbytes,
-			    0, &inval);
+			ret = __iconv(cd, &in, &inbytes, &out, &outbytes, 0,
+			    &inval);
 			invalids += inval;
 			if (outbytes < OUTBUFSIZE)
 				(void)fwrite(outbuf, 1, OUTBUFSIZE - outbytes,
@@ -139,11 +139,11 @@ do_conv(FILE *fp, iconv_t cd, bool silent, bool hide_invalid)
 }
 
 static int
-do_list(unsigned int n, const char * const *list, void *data __unused)
+do_list(unsigned int n, const char *const *list, void *data __unused)
 {
 	unsigned int i;
 
-	for(i = 0; i < n; i++) {
+	for (i = 0; i < n; i++) {
 		printf("%s", list[i]);
 		if (i < n - 1)
 			printf(" ");
@@ -167,8 +167,8 @@ main(int argc, char **argv)
 	setlocale(LC_ALL, "");
 	setprogname(argv[0]);
 
-	while ((ch = getopt_long(argc, argv, "csLlf:t:",
-	    long_options, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "csLlf:t:", long_options, NULL)) !=
+	    -1) {
 		switch (ch) {
 		case 'c':
 			opt_c = true;
@@ -227,11 +227,10 @@ main(int argc, char **argv)
 	} else {
 		res = 0;
 		for (i = 0; i < argc; i++) {
-			fp = (strcmp(argv[i], "-") != 0) ?
-			    fopen(argv[i], "r") : stdin;
+			fp = (strcmp(argv[i], "-") != 0) ? fopen(argv[i], "r") :
+							   stdin;
 			if (fp == NULL)
-				err(EXIT_FAILURE, "Cannot open `%s'",
-				    argv[i]);
+				err(EXIT_FAILURE, "Cannot open `%s'", argv[i]);
 			/* Enter Capsicum sandbox for final input file. */
 			if (i + 1 == argc && caph_enter() < 0)
 				err(EXIT_FAILURE,

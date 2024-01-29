@@ -36,19 +36,19 @@
  * of this file that will expand annotations as needed.
  */
 
-#ifndef	_SYS_NOTE_H
-#define	_SYS_NOTE_H
+#ifndef _SYS_NOTE_H
+#define _SYS_NOTE_H
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifndef _NOTE
-#define	_NOTE(s)
+#define _NOTE(s)
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_NOTE_H */
+#endif /* _SYS_NOTE_H */

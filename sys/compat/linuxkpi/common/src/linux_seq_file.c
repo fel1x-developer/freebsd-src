@@ -27,14 +27,14 @@
  */
 
 #include <sys/types.h>
-#include <sys/systm.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/sbuf.h>
 #include <sys/syslog.h>
 #include <sys/vnode.h>
 
-#include <linux/seq_file.h>
 #include <linux/file.h>
+#include <linux/seq_file.h>
 
 #undef file
 MALLOC_DEFINE(M_LSEQ, "seq_file", "seq_file");
@@ -142,12 +142,12 @@ _seq_open_without_sbuf(struct linux_file *f, const struct seq_operations *op)
 {
 	struct seq_file *p;
 
-	if ((p = malloc(sizeof(*p), M_LSEQ, M_NOWAIT|M_ZERO)) == NULL)
+	if ((p = malloc(sizeof(*p), M_LSEQ, M_NOWAIT | M_ZERO)) == NULL)
 		return (-ENOMEM);
 
 	p->file = f;
 	p->op = op;
-	f->private_data = (void *) p;
+	f->private_data = (void *)p;
 	return (0);
 }
 
@@ -164,13 +164,14 @@ seq_open(struct linux_file *f, const struct seq_operations *op)
 }
 
 void *
-__seq_open_private(struct linux_file *f, const struct seq_operations *op, int size)
+__seq_open_private(struct linux_file *f, const struct seq_operations *op,
+    int size)
 {
 	struct seq_file *seq_file;
 	void *private;
 	int error;
 
-	private = malloc(size, M_LSEQ, M_NOWAIT|M_ZERO);
+	private = malloc(size, M_LSEQ, M_NOWAIT | M_ZERO);
 	if (private == NULL)
 		return (NULL);
 
@@ -187,7 +188,8 @@ __seq_open_private(struct linux_file *f, const struct seq_operations *op, int si
 }
 
 static int
-_single_open_without_sbuf(struct linux_file *f, int (*show)(struct seq_file *, void *), void *d)
+_single_open_without_sbuf(struct linux_file *f,
+    int (*show)(struct seq_file *, void *), void *d)
 {
 	struct seq_operations *op;
 	int rc = -ENOMEM;
@@ -208,7 +210,8 @@ _single_open_without_sbuf(struct linux_file *f, int (*show)(struct seq_file *, v
 }
 
 int
-single_open(struct linux_file *f, int (*show)(struct seq_file *, void *), void *d)
+single_open(struct linux_file *f, int (*show)(struct seq_file *, void *),
+    void *d)
 {
 	int ret;
 
@@ -220,14 +223,15 @@ single_open(struct linux_file *f, int (*show)(struct seq_file *, void *), void *
 }
 
 int
-single_open_size(struct linux_file *f, int (*show)(struct seq_file *, void *), void *d, size_t size)
+single_open_size(struct linux_file *f, int (*show)(struct seq_file *, void *),
+    void *d, size_t size)
 {
 	int ret;
 
 	ret = _single_open_without_sbuf(f, show, d);
 	if (ret == 0)
-		((struct seq_file *)f->private_data)->buf = sbuf_new(
-		    NULL, NULL, size, SBUF_AUTOEXTEND);
+		((struct seq_file *)f->private_data)->buf = sbuf_new(NULL, NULL,
+		    size, SBUF_AUTOEXTEND);
 
 	return (ret);
 }

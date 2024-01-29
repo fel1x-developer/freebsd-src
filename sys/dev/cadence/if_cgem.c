@@ -64,18 +64,16 @@
 #include <netinet/ip.h>
 #endif
 
-#include <net/bpf.h>
-#include <net/bpfdesc.h>
-
+#include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/mii_fdt.h>
+#include <dev/mii/miivar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mii/mii_fdt.h>
-
-#include <dev/clk/clk.h>
+#include <net/bpf.h>
+#include <net/bpfdesc.h>
 
 #if BUS_SPACE_MAXADDR > BUS_SPACE_MAXADDR_32BIT
 #define CGEM64
@@ -87,147 +85,147 @@
 
 #define IF_CGEM_NAME "cgem"
 
-#define CGEM_NUM_RX_DESCS	512	/* size of receive descriptor ring */
-#define CGEM_NUM_TX_DESCS	512	/* size of transmit descriptor ring */
+#define CGEM_NUM_RX_DESCS 512 /* size of receive descriptor ring */
+#define CGEM_NUM_TX_DESCS 512 /* size of transmit descriptor ring */
 
 /* Default for sysctl rxbufs.  Must be < CGEM_NUM_RX_DESCS of course. */
-#define DEFAULT_NUM_RX_BUFS	256	/* number of receive bufs to queue. */
+#define DEFAULT_NUM_RX_BUFS 256 /* number of receive bufs to queue. */
 
-#define TX_MAX_DMA_SEGS		8	/* maximum segs in a tx mbuf dma */
+#define TX_MAX_DMA_SEGS 8 /* maximum segs in a tx mbuf dma */
 
-#define CGEM_CKSUM_ASSIST	(CSUM_IP | CSUM_TCP | CSUM_UDP | \
-				 CSUM_TCP_IPV6 | CSUM_UDP_IPV6)
+#define CGEM_CKSUM_ASSIST \
+	(CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_TCP_IPV6 | CSUM_UDP_IPV6)
 
-#define HWQUIRK_NONE		0
-#define HWQUIRK_NEEDNULLQS	1
-#define HWQUIRK_RXHANGWAR	2
+#define HWQUIRK_NONE 0
+#define HWQUIRK_NEEDNULLQS 1
+#define HWQUIRK_RXHANGWAR 2
 
 static struct ofw_compat_data compat_data[] = {
-	{ "cdns,zynq-gem",		HWQUIRK_RXHANGWAR }, /* Deprecated */
-	{ "cdns,zynqmp-gem",		HWQUIRK_NEEDNULLQS }, /* Deprecated */
-	{ "xlnx,zynq-gem",		HWQUIRK_RXHANGWAR },
-	{ "xlnx,zynqmp-gem",		HWQUIRK_NEEDNULLQS },
-	{ "microchip,mpfs-mss-gem",	HWQUIRK_NEEDNULLQS },
-	{ "sifive,fu540-c000-gem",	HWQUIRK_NONE },
-	{ "sifive,fu740-c000-gem",	HWQUIRK_NONE },
-	{ NULL,				0 }
+	{ "cdns,zynq-gem", HWQUIRK_RXHANGWAR },	   /* Deprecated */
+	{ "cdns,zynqmp-gem", HWQUIRK_NEEDNULLQS }, /* Deprecated */
+	{ "xlnx,zynq-gem", HWQUIRK_RXHANGWAR },
+	{ "xlnx,zynqmp-gem", HWQUIRK_NEEDNULLQS },
+	{ "microchip,mpfs-mss-gem", HWQUIRK_NEEDNULLQS },
+	{ "sifive,fu540-c000-gem", HWQUIRK_NONE },
+	{ "sifive,fu740-c000-gem", HWQUIRK_NONE }, { NULL, 0 }
 };
 
 struct cgem_softc {
-	if_t			ifp;
-	struct mtx		sc_mtx;
-	device_t		dev;
-	device_t		miibus;
-	u_int			mii_media_active;	/* last active media */
-	int			if_old_flags;
-	struct resource		*mem_res;
-	struct resource		*irq_res;
-	void			*intrhand;
-	struct callout		tick_ch;
-	uint32_t		net_ctl_shadow;
-	uint32_t		net_cfg_shadow;
-	clk_t			clk_pclk;
-	clk_t			clk_hclk;
-	clk_t			clk_txclk;
-	clk_t			clk_rxclk;
-	clk_t			clk_tsuclk;
-	int			neednullqs;
-	int			phy_contype;
+	if_t ifp;
+	struct mtx sc_mtx;
+	device_t dev;
+	device_t miibus;
+	u_int mii_media_active; /* last active media */
+	int if_old_flags;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	void *intrhand;
+	struct callout tick_ch;
+	uint32_t net_ctl_shadow;
+	uint32_t net_cfg_shadow;
+	clk_t clk_pclk;
+	clk_t clk_hclk;
+	clk_t clk_txclk;
+	clk_t clk_rxclk;
+	clk_t clk_tsuclk;
+	int neednullqs;
+	int phy_contype;
 
-	bus_dma_tag_t		desc_dma_tag;
-	bus_dma_tag_t		mbuf_dma_tag;
+	bus_dma_tag_t desc_dma_tag;
+	bus_dma_tag_t mbuf_dma_tag;
 
 	/* receive descriptor ring */
-	struct cgem_rx_desc	*rxring;
-	bus_addr_t		rxring_physaddr;
-	struct mbuf		*rxring_m[CGEM_NUM_RX_DESCS];
-	bus_dmamap_t		rxring_m_dmamap[CGEM_NUM_RX_DESCS];
-	int			rxring_hd_ptr;	/* where to put rcv bufs */
-	int			rxring_tl_ptr;	/* where to get receives */
-	int			rxring_queued;	/* how many rcv bufs queued */
-	bus_dmamap_t		rxring_dma_map;
-	int			rxbufs;		/* tunable number rcv bufs */
-	int			rxhangwar;	/* rx hang work-around */
-	u_int			rxoverruns;	/* rx overruns */
-	u_int			rxnobufs;	/* rx buf ring empty events */
-	u_int			rxdmamapfails;	/* rx dmamap failures */
-	uint32_t		rx_frames_prev;
+	struct cgem_rx_desc *rxring;
+	bus_addr_t rxring_physaddr;
+	struct mbuf *rxring_m[CGEM_NUM_RX_DESCS];
+	bus_dmamap_t rxring_m_dmamap[CGEM_NUM_RX_DESCS];
+	int rxring_hd_ptr; /* where to put rcv bufs */
+	int rxring_tl_ptr; /* where to get receives */
+	int rxring_queued; /* how many rcv bufs queued */
+	bus_dmamap_t rxring_dma_map;
+	int rxbufs;	     /* tunable number rcv bufs */
+	int rxhangwar;	     /* rx hang work-around */
+	u_int rxoverruns;    /* rx overruns */
+	u_int rxnobufs;	     /* rx buf ring empty events */
+	u_int rxdmamapfails; /* rx dmamap failures */
+	uint32_t rx_frames_prev;
 
 	/* transmit descriptor ring */
-	struct cgem_tx_desc	*txring;
-	bus_addr_t		txring_physaddr;
-	struct mbuf		*txring_m[CGEM_NUM_TX_DESCS];
-	bus_dmamap_t		txring_m_dmamap[CGEM_NUM_TX_DESCS];
-	int			txring_hd_ptr;	/* where to put next xmits */
-	int			txring_tl_ptr;	/* next xmit mbuf to free */
-	int			txring_queued;	/* num xmits segs queued */
-	u_int			txfull;		/* tx ring full events */
-	u_int			txdefrags;	/* tx calls to m_defrag() */
-	u_int			txdefragfails;	/* tx m_defrag() failures */
-	u_int			txdmamapfails;	/* tx dmamap failures */
+	struct cgem_tx_desc *txring;
+	bus_addr_t txring_physaddr;
+	struct mbuf *txring_m[CGEM_NUM_TX_DESCS];
+	bus_dmamap_t txring_m_dmamap[CGEM_NUM_TX_DESCS];
+	int txring_hd_ptr;   /* where to put next xmits */
+	int txring_tl_ptr;   /* next xmit mbuf to free */
+	int txring_queued;   /* num xmits segs queued */
+	u_int txfull;	     /* tx ring full events */
+	u_int txdefrags;     /* tx calls to m_defrag() */
+	u_int txdefragfails; /* tx m_defrag() failures */
+	u_int txdmamapfails; /* tx dmamap failures */
 
 	/* null descriptor rings */
-	void			*null_qs;
-	bus_addr_t		null_qs_physaddr;
+	void *null_qs;
+	bus_addr_t null_qs_physaddr;
 
 	/* hardware provided statistics */
 	struct cgem_hw_stats {
-		uint64_t		tx_bytes;
-		uint32_t		tx_frames;
-		uint32_t		tx_frames_bcast;
-		uint32_t		tx_frames_multi;
-		uint32_t		tx_frames_pause;
-		uint32_t		tx_frames_64b;
-		uint32_t		tx_frames_65to127b;
-		uint32_t		tx_frames_128to255b;
-		uint32_t		tx_frames_256to511b;
-		uint32_t		tx_frames_512to1023b;
-		uint32_t		tx_frames_1024to1536b;
-		uint32_t		tx_under_runs;
-		uint32_t		tx_single_collisn;
-		uint32_t		tx_multi_collisn;
-		uint32_t		tx_excsv_collisn;
-		uint32_t		tx_late_collisn;
-		uint32_t		tx_deferred_frames;
-		uint32_t		tx_carrier_sense_errs;
+		uint64_t tx_bytes;
+		uint32_t tx_frames;
+		uint32_t tx_frames_bcast;
+		uint32_t tx_frames_multi;
+		uint32_t tx_frames_pause;
+		uint32_t tx_frames_64b;
+		uint32_t tx_frames_65to127b;
+		uint32_t tx_frames_128to255b;
+		uint32_t tx_frames_256to511b;
+		uint32_t tx_frames_512to1023b;
+		uint32_t tx_frames_1024to1536b;
+		uint32_t tx_under_runs;
+		uint32_t tx_single_collisn;
+		uint32_t tx_multi_collisn;
+		uint32_t tx_excsv_collisn;
+		uint32_t tx_late_collisn;
+		uint32_t tx_deferred_frames;
+		uint32_t tx_carrier_sense_errs;
 
-		uint64_t		rx_bytes;
-		uint32_t		rx_frames;
-		uint32_t		rx_frames_bcast;
-		uint32_t		rx_frames_multi;
-		uint32_t		rx_frames_pause;
-		uint32_t		rx_frames_64b;
-		uint32_t		rx_frames_65to127b;
-		uint32_t		rx_frames_128to255b;
-		uint32_t		rx_frames_256to511b;
-		uint32_t		rx_frames_512to1023b;
-		uint32_t		rx_frames_1024to1536b;
-		uint32_t		rx_frames_undersize;
-		uint32_t		rx_frames_oversize;
-		uint32_t		rx_frames_jabber;
-		uint32_t		rx_frames_fcs_errs;
-		uint32_t		rx_frames_length_errs;
-		uint32_t		rx_symbol_errs;
-		uint32_t		rx_align_errs;
-		uint32_t		rx_resource_errs;
-		uint32_t		rx_overrun_errs;
-		uint32_t		rx_ip_hdr_csum_errs;
-		uint32_t		rx_tcp_csum_errs;
-		uint32_t		rx_udp_csum_errs;
+		uint64_t rx_bytes;
+		uint32_t rx_frames;
+		uint32_t rx_frames_bcast;
+		uint32_t rx_frames_multi;
+		uint32_t rx_frames_pause;
+		uint32_t rx_frames_64b;
+		uint32_t rx_frames_65to127b;
+		uint32_t rx_frames_128to255b;
+		uint32_t rx_frames_256to511b;
+		uint32_t rx_frames_512to1023b;
+		uint32_t rx_frames_1024to1536b;
+		uint32_t rx_frames_undersize;
+		uint32_t rx_frames_oversize;
+		uint32_t rx_frames_jabber;
+		uint32_t rx_frames_fcs_errs;
+		uint32_t rx_frames_length_errs;
+		uint32_t rx_symbol_errs;
+		uint32_t rx_align_errs;
+		uint32_t rx_resource_errs;
+		uint32_t rx_overrun_errs;
+		uint32_t rx_ip_hdr_csum_errs;
+		uint32_t rx_tcp_csum_errs;
+		uint32_t rx_udp_csum_errs;
 	} stats;
 };
 
-#define RD4(sc, off)		(bus_read_4((sc)->mem_res, (off)))
-#define WR4(sc, off, val)	(bus_write_4((sc)->mem_res, (off), (val)))
+#define RD4(sc, off) (bus_read_4((sc)->mem_res, (off)))
+#define WR4(sc, off, val) (bus_write_4((sc)->mem_res, (off), (val)))
 #define BARRIER(sc, off, len, flags) \
 	(bus_barrier((sc)->mem_res, (off), (len), (flags))
 
-#define CGEM_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)
-#define CGEM_UNLOCK(sc)		mtx_unlock(&(sc)->sc_mtx)
-#define CGEM_LOCK_INIT(sc)	mtx_init(&(sc)->sc_mtx, \
-	    device_get_nameunit((sc)->dev), MTX_NETWORK_LOCK, MTX_DEF)
-#define CGEM_LOCK_DESTROY(sc)	mtx_destroy(&(sc)->sc_mtx)
-#define CGEM_ASSERT_LOCKED(sc)	mtx_assert(&(sc)->sc_mtx, MA_OWNED)
+#define CGEM_LOCK(sc) mtx_lock(&(sc)->sc_mtx)
+#define CGEM_UNLOCK(sc) mtx_unlock(&(sc)->sc_mtx)
+#define CGEM_LOCK_INIT(sc)                                      \
+	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->dev), \
+	    MTX_NETWORK_LOCK, MTX_DEF)
+#define CGEM_LOCK_DESTROY(sc) mtx_destroy(&(sc)->sc_mtx)
+#define CGEM_ASSERT_LOCKED(sc) mtx_assert(&(sc)->sc_mtx, MA_OWNED)
 
 /* Allow platforms to optionally provide a way to set the reference clock. */
 int cgem_set_ref_clk(int unit, int frequency);
@@ -272,14 +270,15 @@ cgem_get_mac(struct cgem_softc *sc, u_char eaddr[])
 		eaddr[4] = (rnd >> 8) & 0xff;
 		eaddr[5] = rnd & 0xff;
 
-		device_printf(sc->dev, "no mac address found, assigning "
-		    "random: %02x:%02x:%02x:%02x:%02x:%02x\n", eaddr[0],
-		    eaddr[1], eaddr[2], eaddr[3], eaddr[4], eaddr[5]);
+		device_printf(sc->dev,
+		    "no mac address found, assigning "
+		    "random: %02x:%02x:%02x:%02x:%02x:%02x\n",
+		    eaddr[0], eaddr[1], eaddr[2], eaddr[3], eaddr[4], eaddr[5]);
 	}
 
 	/* Move address to first slot and zero out the rest. */
-	WR4(sc, CGEM_SPEC_ADDR_LOW(0), (eaddr[3] << 24) |
-	    (eaddr[2] << 16) | (eaddr[1] << 8) | eaddr[0]);
+	WR4(sc, CGEM_SPEC_ADDR_LOW(0),
+	    (eaddr[3] << 24) | (eaddr[2] << 16) | (eaddr[1] << 8) | eaddr[0]);
 	WR4(sc, CGEM_SPEC_ADDR_HI(0), (eaddr[5] << 8) | eaddr[4]);
 
 	for (i = 1; i < 4; i++) {
@@ -382,13 +381,14 @@ cgem_null_qs(struct cgem_softc *sc)
 
 	/* Read design config register 6 to determine number of queues. */
 	queue_mask = (RD4(sc, CGEM_DESIGN_CFG6) &
-	    CGEM_DESIGN_CFG6_DMA_PRIO_Q_MASK) >> 1;
+			 CGEM_DESIGN_CFG6_DMA_PRIO_Q_MASK) >>
+	    1;
 	if (queue_mask == 0)
 		return;
 
 	/* Create empty RX queue and empty TX buf queues. */
-	memset(sc->null_qs, 0, sizeof(struct cgem_rx_desc) +
-	    sizeof(struct cgem_tx_desc));
+	memset(sc->null_qs, 0,
+	    sizeof(struct cgem_rx_desc) + sizeof(struct cgem_tx_desc));
 	rx_desc = sc->null_qs;
 	rx_desc->addr = CGEM_RXDESC_OWN | CGEM_RXDESC_WRAP;
 	tx_desc = (struct cgem_tx_desc *)(rx_desc + 1);
@@ -397,8 +397,8 @@ cgem_null_qs(struct cgem_softc *sc)
 	/* Point all valid ring base pointers to the null queues. */
 	for (n = 1; (queue_mask & 1) != 0; n++, queue_mask >>= 1) {
 		WR4(sc, CGEM_RX_QN_BAR(n), sc->null_qs_physaddr);
-		WR4(sc, CGEM_TX_QN_BAR(n), sc->null_qs_physaddr +
-		    sizeof(struct cgem_rx_desc));
+		WR4(sc, CGEM_TX_QN_BAR(n),
+		    sc->null_qs_physaddr + sizeof(struct cgem_rx_desc));
 	}
 }
 
@@ -420,13 +420,13 @@ cgem_setup_descs(struct cgem_softc *sc)
 	/* Allocate non-cached DMA space for RX and TX descriptors. */
 	err = bus_dma_tag_create(bus_get_dma_tag(sc->dev), 1,
 #ifdef CGEM64
-	    1ULL << 32,	/* Do not cross a 4G boundary. */
+	    1ULL << 32, /* Do not cross a 4G boundary. */
 #else
 	    0,
 #endif
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    desc_rings_size, 1, desc_rings_size, 0,
-	    busdma_lock_mutex, &sc->sc_mtx, &sc->desc_dma_tag);
+	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, desc_rings_size,
+	    1, desc_rings_size, 0, busdma_lock_mutex, &sc->sc_mtx,
+	    &sc->desc_dma_tag);
 	if (err)
 		return (err);
 
@@ -452,8 +452,8 @@ cgem_setup_descs(struct cgem_softc *sc)
 
 	/* Load descriptor DMA memory. */
 	err = bus_dmamap_load(sc->desc_dma_tag, sc->rxring_dma_map,
-	    (void *)sc->rxring, desc_rings_size,
-	    cgem_getaddr, &sc->rxring_physaddr, BUS_DMA_NOWAIT);
+	    (void *)sc->rxring, desc_rings_size, cgem_getaddr,
+	    &sc->rxring_physaddr, BUS_DMA_NOWAIT);
 	if (err)
 		return (err);
 
@@ -471,8 +471,8 @@ cgem_setup_descs(struct cgem_softc *sc)
 	sc->rxring_queued = 0;
 
 	sc->txring = (struct cgem_tx_desc *)(sc->rxring + CGEM_NUM_RX_DESCS);
-	sc->txring_physaddr = sc->rxring_physaddr + CGEM_NUM_RX_DESCS *
-	    sizeof(struct cgem_rx_desc);
+	sc->txring_physaddr = sc->rxring_physaddr +
+	    CGEM_NUM_RX_DESCS * sizeof(struct cgem_rx_desc);
 
 	/* Initialize TX descriptor ring. */
 	for (i = 0; i < CGEM_NUM_TX_DESCS; i++) {
@@ -520,17 +520,17 @@ cgem_fill_rqueue(struct cgem_softc *sc)
 
 		/* Load map and plug in physical address. */
 		if (bus_dmamap_create(sc->mbuf_dma_tag, 0,
-		    &sc->rxring_m_dmamap[sc->rxring_hd_ptr])) {
+			&sc->rxring_m_dmamap[sc->rxring_hd_ptr])) {
 			sc->rxdmamapfails++;
 			m_free(m);
 			break;
 		}
 		if (bus_dmamap_load_mbuf_sg(sc->mbuf_dma_tag,
-		    sc->rxring_m_dmamap[sc->rxring_hd_ptr], m,
-		    segs, &nsegs, BUS_DMA_NOWAIT)) {
+			sc->rxring_m_dmamap[sc->rxring_hd_ptr], m, segs, &nsegs,
+			BUS_DMA_NOWAIT)) {
 			sc->rxdmamapfails++;
 			bus_dmamap_destroy(sc->mbuf_dma_tag,
-				   sc->rxring_m_dmamap[sc->rxring_hd_ptr]);
+			    sc->rxring_m_dmamap[sc->rxring_hd_ptr]);
 			sc->rxring_m_dmamap[sc->rxring_hd_ptr] = NULL;
 			m_free(m);
 			break;
@@ -603,7 +603,7 @@ cgem_recv(struct cgem_softc *sc)
 		 */
 		if ((ctl & CGEM_RXDESC_BAD_FCS) != 0 ||
 		    (ctl & (CGEM_RXDESC_SOF | CGEM_RXDESC_EOF)) !=
-		    (CGEM_RXDESC_SOF | CGEM_RXDESC_EOF)) {
+			(CGEM_RXDESC_SOF | CGEM_RXDESC_EOF)) {
 			/* discard. */
 			m_free(m);
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -623,18 +623,18 @@ cgem_recv(struct cgem_softc *sc)
 		if ((if_getcapenable(ifp) & IFCAP_RXCSUM) != 0) {
 			/* TCP or UDP checks out, IP checks out too. */
 			if ((ctl & CGEM_RXDESC_CKSUM_STAT_MASK) ==
-			    CGEM_RXDESC_CKSUM_STAT_TCP_GOOD ||
+				CGEM_RXDESC_CKSUM_STAT_TCP_GOOD ||
 			    (ctl & CGEM_RXDESC_CKSUM_STAT_MASK) ==
-			    CGEM_RXDESC_CKSUM_STAT_UDP_GOOD) {
-				m->m_pkthdr.csum_flags |=
-				    CSUM_IP_CHECKED | CSUM_IP_VALID |
-				    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+				CGEM_RXDESC_CKSUM_STAT_UDP_GOOD) {
+				m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED |
+				    CSUM_IP_VALID | CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR;
 				m->m_pkthdr.csum_data = 0xffff;
 			} else if ((ctl & CGEM_RXDESC_CKSUM_STAT_MASK) ==
 			    CGEM_RXDESC_CKSUM_STAT_IP_GOOD) {
 				/* Only IP checks out. */
-				m->m_pkthdr.csum_flags |=
-				    CSUM_IP_CHECKED | CSUM_IP_VALID;
+				m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED |
+				    CSUM_IP_VALID;
 				m->m_pkthdr.csum_data = 0xffff;
 			}
 		}
@@ -670,8 +670,8 @@ cgem_clean_tx(struct cgem_softc *sc)
 
 	/* free up finished transmits. */
 	while (sc->txring_queued > 0 &&
-	    ((ctl = sc->txring[sc->txring_tl_ptr].ctl) &
-	    CGEM_TXDESC_USED) != 0) {
+	    ((ctl = sc->txring[sc->txring_tl_ptr].ctl) & CGEM_TXDESC_USED) !=
+		0) {
 		/* Sync cache. */
 		bus_dmamap_sync(sc->mbuf_dma_tag,
 		    sc->txring_m_dmamap[sc->txring_tl_ptr],
@@ -702,8 +702,9 @@ cgem_clean_tx(struct cgem_softc *sc)
 			    "cgem_clean_tx: AHB error, addr=0x%x\n",
 			    sc->txring[sc->txring_tl_ptr].addr);
 #endif
-		} else if ((ctl & (CGEM_TXDESC_RETRY_ERR |
-		    CGEM_TXDESC_LATE_COLL)) != 0) {
+		} else if ((ctl &
+			       (CGEM_TXDESC_RETRY_ERR |
+				   CGEM_TXDESC_LATE_COLL)) != 0) {
 			if_inc_counter(sc->ifp, IFCOUNTER_OERRORS, 1);
 		} else
 			if_inc_counter(sc->ifp, IFCOUNTER_OPACKETS, 1);
@@ -722,8 +723,8 @@ cgem_clean_tx(struct cgem_softc *sc)
 
 			ctl = sc->txring[sc->txring_tl_ptr].ctl;
 
-			sc->txring[sc->txring_tl_ptr].ctl =
-			    ctl | CGEM_TXDESC_USED;
+			sc->txring[sc->txring_tl_ptr].ctl = ctl |
+			    CGEM_TXDESC_USED;
 		}
 
 		/* Next descriptor. */
@@ -741,7 +742,7 @@ cgem_clean_tx(struct cgem_softc *sc)
 static void
 cgem_start_locked(if_t ifp)
 {
-	struct cgem_softc *sc = (struct cgem_softc *) if_getsoftc(ifp);
+	struct cgem_softc *sc = (struct cgem_softc *)if_getsoftc(ifp);
 	struct mbuf *m;
 	bus_dma_segment_t segs[TX_MAX_DMA_SEGS];
 	uint32_t ctl;
@@ -853,8 +854,8 @@ cgem_start_locked(if_t ifp)
 		sc->txring_queued += nsegs;
 
 		/* Kick the transmitter. */
-		WR4(sc, CGEM_NET_CTRL, sc->net_ctl_shadow |
-		    CGEM_NET_CTRL_START_TX);
+		WR4(sc, CGEM_NET_CTRL,
+		    sc->net_ctl_shadow | CGEM_NET_CTRL_START_TX);
 
 		/* If there is a BPF listener, bounce a copy to him. */
 		ETHER_BPF_MTAP(ifp, m);
@@ -864,7 +865,7 @@ cgem_start_locked(if_t ifp)
 static void
 cgem_start(if_t ifp)
 {
-	struct cgem_softc *sc = (struct cgem_softc *) if_getsoftc(ifp);
+	struct cgem_softc *sc = (struct cgem_softc *)if_getsoftc(ifp);
 
 	CGEM_LOCK(sc);
 	cgem_start_locked(ifp);
@@ -960,8 +961,8 @@ cgem_tick(void *arg)
 		 * delay is necessary especially when operating at 100mbps
 		 * and 10mbps speeds.
 		 */
-		WR4(sc, CGEM_NET_CTRL, sc->net_ctl_shadow &
-		    ~CGEM_NET_CTRL_RX_EN);
+		WR4(sc, CGEM_NET_CTRL,
+		    sc->net_ctl_shadow & ~CGEM_NET_CTRL_RX_EN);
 		DELAY(1);
 		WR4(sc, CGEM_NET_CTRL, sc->net_ctl_shadow);
 	}
@@ -1014,8 +1015,8 @@ cgem_intr(void *arg)
 
 	/* Receiver ran out of bufs. */
 	if ((istatus & CGEM_INTR_RX_USED_READ) != 0) {
-		WR4(sc, CGEM_NET_CTRL, sc->net_ctl_shadow |
-		    CGEM_NET_CTRL_FLUSH_DPRAM_PKT);
+		WR4(sc, CGEM_NET_CTRL,
+		    sc->net_ctl_shadow | CGEM_NET_CTRL_FLUSH_DPRAM_PKT);
 		cgem_fill_rqueue(sc);
 		sc->rxnobufs++;
 	}
@@ -1035,8 +1036,8 @@ cgem_reset(struct cgem_softc *sc)
 	CGEM_ASSERT_LOCKED(sc);
 
 	/* Determine data bus width from design configuration register. */
-	switch (RD4(sc, CGEM_DESIGN_CFG1) &
-	    CGEM_DESIGN_CFG1_DMA_BUS_WIDTH_MASK) {
+	switch (
+	    RD4(sc, CGEM_DESIGN_CFG1) & CGEM_DESIGN_CFG1_DMA_BUS_WIDTH_MASK) {
 	case CGEM_DESIGN_CFG1_DMA_BUS_WIDTH_64:
 		sc->net_cfg_shadow = CGEM_NET_CFG_DBUS_WIDTH_64;
 		break;
@@ -1055,7 +1056,7 @@ cgem_reset(struct cgem_softc *sc)
 	WR4(sc, CGEM_INTR_DIS, CGEM_INTR_ALL);
 	WR4(sc, CGEM_HASH_BOT, 0);
 	WR4(sc, CGEM_HASH_TOP, 0);
-	WR4(sc, CGEM_TX_QBAR, 0);	/* manual says do this. */
+	WR4(sc, CGEM_TX_QBAR, 0); /* manual says do this. */
 	WR4(sc, CGEM_RX_QBAR, 0);
 
 	/* Get management port running even if interface is down. */
@@ -1080,9 +1081,9 @@ cgem_config(struct cgem_softc *sc)
 	sc->net_cfg_shadow &= (CGEM_NET_CFG_MDC_CLK_DIV_MASK |
 	    CGEM_NET_CFG_DBUS_WIDTH_MASK);
 	sc->net_cfg_shadow |= (CGEM_NET_CFG_FCS_REMOVE |
-	    CGEM_NET_CFG_RX_BUF_OFFSET(ETHER_ALIGN) |
-	    CGEM_NET_CFG_GIGE_EN | CGEM_NET_CFG_1536RXEN |
-	    CGEM_NET_CFG_FULL_DUPLEX | CGEM_NET_CFG_SPEED100);
+	    CGEM_NET_CFG_RX_BUF_OFFSET(ETHER_ALIGN) | CGEM_NET_CFG_GIGE_EN |
+	    CGEM_NET_CFG_1536RXEN | CGEM_NET_CFG_FULL_DUPLEX |
+	    CGEM_NET_CFG_SPEED100);
 
 	/* Check connection type, enable SGMII bits if necessary. */
 	if (sc->phy_contype == MII_CONTYPE_SGMII) {
@@ -1092,7 +1093,7 @@ cgem_config(struct cgem_softc *sc)
 
 	/* Enable receive checksum offloading? */
 	if ((if_getcapenable(ifp) & IFCAP_RXCSUM) != 0)
-		sc->net_cfg_shadow |=  CGEM_NET_CFG_RX_CHKSUM_OFFLD_EN;
+		sc->net_cfg_shadow |= CGEM_NET_CFG_RX_CHKSUM_OFFLD_EN;
 
 	WR4(sc, CGEM_NET_CFG, sc->net_cfg_shadow);
 
@@ -1125,14 +1126,15 @@ cgem_config(struct cgem_softc *sc)
 	WR4(sc, CGEM_NET_CTRL, sc->net_ctl_shadow);
 
 	/* Set receive address in case it changed. */
-	WR4(sc, CGEM_SPEC_ADDR_LOW(0), (eaddr[3] << 24) |
-	    (eaddr[2] << 16) | (eaddr[1] << 8) | eaddr[0]);
+	WR4(sc, CGEM_SPEC_ADDR_LOW(0),
+	    (eaddr[3] << 24) | (eaddr[2] << 16) | (eaddr[1] << 8) | eaddr[0]);
 	WR4(sc, CGEM_SPEC_ADDR_HI(0), (eaddr[5] << 8) | eaddr[4]);
 
 	/* Set up interrupts. */
-	WR4(sc, CGEM_INTR_EN, CGEM_INTR_RX_COMPLETE | CGEM_INTR_RX_OVERRUN |
-	    CGEM_INTR_TX_USED_READ | CGEM_INTR_RX_USED_READ |
-	    CGEM_INTR_HRESP_NOT_OK);
+	WR4(sc, CGEM_INTR_EN,
+	    CGEM_INTR_RX_COMPLETE | CGEM_INTR_RX_OVERRUN |
+		CGEM_INTR_TX_USED_READ | CGEM_INTR_RX_USED_READ |
+		CGEM_INTR_HRESP_NOT_OK);
 }
 
 /* Turn on interface and load up receive ring with buffers. */
@@ -1243,7 +1245,7 @@ cgem_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
 				if (((if_getflags(ifp) ^ sc->if_old_flags) &
-				    (IFF_PROMISC | IFF_ALLMULTI)) != 0) {
+					(IFF_PROMISC | IFF_ALLMULTI)) != 0) {
 					cgem_rx_filter(sc);
 				}
 			} else {
@@ -1282,36 +1284,36 @@ cgem_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if ((mask & IFCAP_TXCSUM) != 0) {
 			if ((ifr->ifr_reqcap & IFCAP_TXCSUM) != 0) {
 				/* Turn on TX checksumming. */
-				if_setcapenablebit(ifp, IFCAP_TXCSUM |
-				    IFCAP_TXCSUM_IPV6, 0);
+				if_setcapenablebit(ifp,
+				    IFCAP_TXCSUM | IFCAP_TXCSUM_IPV6, 0);
 				if_sethwassistbits(ifp, CGEM_CKSUM_ASSIST, 0);
 
 				WR4(sc, CGEM_DMA_CFG,
 				    RD4(sc, CGEM_DMA_CFG) |
-				    CGEM_DMA_CFG_CHKSUM_GEN_OFFLOAD_EN);
+					CGEM_DMA_CFG_CHKSUM_GEN_OFFLOAD_EN);
 			} else {
 				/* Turn off TX checksumming. */
-				if_setcapenablebit(ifp, 0, IFCAP_TXCSUM |
-				    IFCAP_TXCSUM_IPV6);
+				if_setcapenablebit(ifp, 0,
+				    IFCAP_TXCSUM | IFCAP_TXCSUM_IPV6);
 				if_sethwassistbits(ifp, 0, CGEM_CKSUM_ASSIST);
 
 				WR4(sc, CGEM_DMA_CFG,
 				    RD4(sc, CGEM_DMA_CFG) &
-				    ~CGEM_DMA_CFG_CHKSUM_GEN_OFFLOAD_EN);
+					~CGEM_DMA_CFG_CHKSUM_GEN_OFFLOAD_EN);
 			}
 		}
 		if ((mask & IFCAP_RXCSUM) != 0) {
 			if ((ifr->ifr_reqcap & IFCAP_RXCSUM) != 0) {
 				/* Turn on RX checksumming. */
-				if_setcapenablebit(ifp, IFCAP_RXCSUM |
-				    IFCAP_RXCSUM_IPV6, 0);
+				if_setcapenablebit(ifp,
+				    IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6, 0);
 				sc->net_cfg_shadow |=
 				    CGEM_NET_CFG_RX_CHKSUM_OFFLD_EN;
 				WR4(sc, CGEM_NET_CFG, sc->net_cfg_shadow);
 			} else {
 				/* Turn off RX checksumming. */
-				if_setcapenablebit(ifp, 0, IFCAP_RXCSUM |
-				    IFCAP_RXCSUM_IPV6);
+				if_setcapenablebit(ifp, 0,
+				    IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6);
 				sc->net_cfg_shadow &=
 				    ~CGEM_NET_CFG_RX_CHKSUM_OFFLD_EN;
 				WR4(sc, CGEM_NET_CFG, sc->net_cfg_shadow);
@@ -1338,7 +1340,7 @@ cgem_ioctl(if_t ifp, u_long cmd, caddr_t data)
 static int
 cgem_ifmedia_upd(if_t ifp)
 {
-	struct cgem_softc *sc = (struct cgem_softc *) if_getsoftc(ifp);
+	struct cgem_softc *sc = (struct cgem_softc *)if_getsoftc(ifp);
 	struct mii_data *mii;
 	struct mii_softc *miisc;
 	int error = 0;
@@ -1346,7 +1348,7 @@ cgem_ifmedia_upd(if_t ifp)
 	mii = device_get_softc(sc->miibus);
 	CGEM_LOCK(sc);
 	if ((if_getflags(ifp) & IFF_UP) != 0) {
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 			PHY_RESET(miisc);
 		error = mii_mediachg(mii);
 	}
@@ -1358,7 +1360,7 @@ cgem_ifmedia_upd(if_t ifp)
 static void
 cgem_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct cgem_softc *sc = (struct cgem_softc *) if_getsoftc(ifp);
+	struct cgem_softc *sc = (struct cgem_softc *)if_getsoftc(ifp);
 	struct mii_data *mii;
 
 	mii = device_get_softc(sc->miibus);
@@ -1375,13 +1377,14 @@ cgem_miibus_readreg(device_t dev, int phy, int reg)
 	struct cgem_softc *sc = device_get_softc(dev);
 	int tries, val;
 
-	WR4(sc, CGEM_PHY_MAINT, CGEM_PHY_MAINT_CLAUSE_22 |
-	    CGEM_PHY_MAINT_MUST_10 | CGEM_PHY_MAINT_OP_READ |
-	    (phy << CGEM_PHY_MAINT_PHY_ADDR_SHIFT) |
-	    (reg << CGEM_PHY_MAINT_REG_ADDR_SHIFT));
+	WR4(sc, CGEM_PHY_MAINT,
+	    CGEM_PHY_MAINT_CLAUSE_22 | CGEM_PHY_MAINT_MUST_10 |
+		CGEM_PHY_MAINT_OP_READ |
+		(phy << CGEM_PHY_MAINT_PHY_ADDR_SHIFT) |
+		(reg << CGEM_PHY_MAINT_REG_ADDR_SHIFT));
 
 	/* Wait for completion. */
-	tries=0;
+	tries = 0;
 	while ((RD4(sc, CGEM_NET_STAT) & CGEM_NET_STAT_PHY_MGMT_IDLE) == 0) {
 		DELAY(5);
 		if (++tries > 200) {
@@ -1408,11 +1411,12 @@ cgem_miibus_writereg(device_t dev, int phy, int reg, int data)
 	struct cgem_softc *sc = device_get_softc(dev);
 	int tries;
 
-	WR4(sc, CGEM_PHY_MAINT, CGEM_PHY_MAINT_CLAUSE_22 |
-	    CGEM_PHY_MAINT_MUST_10 | CGEM_PHY_MAINT_OP_WRITE |
-	    (phy << CGEM_PHY_MAINT_PHY_ADDR_SHIFT) |
-	    (reg << CGEM_PHY_MAINT_REG_ADDR_SHIFT) |
-	    (data & CGEM_PHY_MAINT_DATA_MASK));
+	WR4(sc, CGEM_PHY_MAINT,
+	    CGEM_PHY_MAINT_CLAUSE_22 | CGEM_PHY_MAINT_MUST_10 |
+		CGEM_PHY_MAINT_OP_WRITE |
+		(phy << CGEM_PHY_MAINT_PHY_ADDR_SHIFT) |
+		(reg << CGEM_PHY_MAINT_REG_ADDR_SHIFT) |
+		(data & CGEM_PHY_MAINT_DATA_MASK));
 
 	/* Wait for completion. */
 	tries = 0;
@@ -1430,13 +1434,13 @@ cgem_miibus_writereg(device_t dev, int phy, int reg, int data)
 static void
 cgem_miibus_statchg(device_t dev)
 {
-	struct cgem_softc *sc  = device_get_softc(dev);
+	struct cgem_softc *sc = device_get_softc(dev);
 	struct mii_data *mii = device_get_softc(sc->miibus);
 
 	CGEM_ASSERT_LOCKED(sc);
 
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
-	    (IFM_ACTIVE | IFM_AVALID) &&
+		(IFM_ACTIVE | IFM_AVALID) &&
 	    sc->mii_media_active != mii->mii_media_active)
 		cgem_mediachange(sc, mii);
 }
@@ -1444,13 +1448,13 @@ cgem_miibus_statchg(device_t dev)
 static void
 cgem_miibus_linkchg(device_t dev)
 {
-	struct cgem_softc *sc  = device_get_softc(dev);
+	struct cgem_softc *sc = device_get_softc(dev);
 	struct mii_data *mii = device_get_softc(sc->miibus);
 
 	CGEM_ASSERT_LOCKED(sc);
 
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
-	    (IFM_ACTIVE | IFM_AVALID) &&
+		(IFM_ACTIVE | IFM_AVALID) &&
 	    sc->mii_media_active != mii->mii_media_active)
 		cgem_mediachange(sc, mii);
 }
@@ -1469,7 +1473,7 @@ __weak_reference(cgem_default_set_ref_clk, cgem_set_ref_clk);
 
 /* Call to set reference clock and network config bits according to media. */
 static void
-cgem_mediachange(struct cgem_softc *sc,	struct mii_data *mii)
+cgem_mediachange(struct cgem_softc *sc, struct mii_data *mii)
 {
 	int ref_clk_freq;
 
@@ -1520,8 +1524,8 @@ cgem_add_sysctls(device_t dev)
 	ctx = device_get_sysctl_ctx(dev);
 	child = SYSCTL_CHILDREN(device_get_sysctl_tree(dev));
 
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "rxbufs", CTLFLAG_RW,
-	    &sc->rxbufs, 0, "Number receive buffers to provide");
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "rxbufs", CTLFLAG_RW, &sc->rxbufs,
+	    0, "Number receive buffers to provide");
 
 	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "rxhangwar", CTLFLAG_RW,
 	    &sc->rxhangwar, 0, "Enable receive hang work-around");
@@ -1565,9 +1569,8 @@ cgem_add_sysctls(device_t dev)
 	    &sc->stats.tx_frames_multi, 0,
 	    "Number multicast frames transmitted");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_pause",
-	    CTLFLAG_RD, &sc->stats.tx_frames_pause, 0,
-	    "Number pause frames transmitted");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_pause", CTLFLAG_RD,
+	    &sc->stats.tx_frames_pause, 0, "Number pause frames transmitted");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_64b", CTLFLAG_RD,
 	    &sc->stats.tx_frames_64b, 0,
@@ -1577,12 +1580,12 @@ cgem_add_sysctls(device_t dev)
 	    &sc->stats.tx_frames_65to127b, 0,
 	    "Number frames transmitted of size 65-127 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_128to255b",
-	    CTLFLAG_RD, &sc->stats.tx_frames_128to255b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_128to255b", CTLFLAG_RD,
+	    &sc->stats.tx_frames_128to255b, 0,
 	    "Number frames transmitted of size 128-255 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_256to511b",
-	    CTLFLAG_RD, &sc->stats.tx_frames_256to511b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_256to511b", CTLFLAG_RD,
+	    &sc->stats.tx_frames_256to511b, 0,
 	    "Number frames transmitted of size 256-511 bytes");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_frames_512to1023b",
@@ -1593,28 +1596,27 @@ cgem_add_sysctls(device_t dev)
 	    CTLFLAG_RD, &sc->stats.tx_frames_1024to1536b, 0,
 	    "Number frames transmitted of size 1024-1536 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_under_runs",
-	    CTLFLAG_RD, &sc->stats.tx_under_runs, 0,
-	    "Number transmit under-run events");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_under_runs", CTLFLAG_RD,
+	    &sc->stats.tx_under_runs, 0, "Number transmit under-run events");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_single_collisn",
-	    CTLFLAG_RD, &sc->stats.tx_single_collisn, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_single_collisn", CTLFLAG_RD,
+	    &sc->stats.tx_single_collisn, 0,
 	    "Number single-collision transmit frames");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_multi_collisn",
-	    CTLFLAG_RD, &sc->stats.tx_multi_collisn, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_multi_collisn", CTLFLAG_RD,
+	    &sc->stats.tx_multi_collisn, 0,
 	    "Number multi-collision transmit frames");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_excsv_collisn",
-	    CTLFLAG_RD, &sc->stats.tx_excsv_collisn, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_excsv_collisn", CTLFLAG_RD,
+	    &sc->stats.tx_excsv_collisn, 0,
 	    "Number excessive collision transmit frames");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_late_collisn",
-	    CTLFLAG_RD, &sc->stats.tx_late_collisn, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_late_collisn", CTLFLAG_RD,
+	    &sc->stats.tx_late_collisn, 0,
 	    "Number late-collision transmit frames");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_deferred_frames",
-	    CTLFLAG_RD, &sc->stats.tx_deferred_frames, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_deferred_frames", CTLFLAG_RD,
+	    &sc->stats.tx_deferred_frames, 0,
 	    "Number deferred transmit frames");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "tx_carrier_sense_errs",
@@ -1627,32 +1629,29 @@ cgem_add_sysctls(device_t dev)
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames", CTLFLAG_RD,
 	    &sc->stats.rx_frames, 0, "Total frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_bcast",
-	    CTLFLAG_RD, &sc->stats.rx_frames_bcast, 0,
-	    "Number broadcast frames received");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_bcast", CTLFLAG_RD,
+	    &sc->stats.rx_frames_bcast, 0, "Number broadcast frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_multi",
-	    CTLFLAG_RD, &sc->stats.rx_frames_multi, 0,
-	    "Number multicast frames received");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_multi", CTLFLAG_RD,
+	    &sc->stats.rx_frames_multi, 0, "Number multicast frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_pause",
-	    CTLFLAG_RD, &sc->stats.rx_frames_pause, 0,
-	    "Number pause frames received");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_pause", CTLFLAG_RD,
+	    &sc->stats.rx_frames_pause, 0, "Number pause frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_64b",
-	    CTLFLAG_RD, &sc->stats.rx_frames_64b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_64b", CTLFLAG_RD,
+	    &sc->stats.rx_frames_64b, 0,
 	    "Number frames received of size 64 bytes or less");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_65to127b",
-	    CTLFLAG_RD, &sc->stats.rx_frames_65to127b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_65to127b", CTLFLAG_RD,
+	    &sc->stats.rx_frames_65to127b, 0,
 	    "Number frames received of size 65-127 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_128to255b",
-	    CTLFLAG_RD, &sc->stats.rx_frames_128to255b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_128to255b", CTLFLAG_RD,
+	    &sc->stats.rx_frames_128to255b, 0,
 	    "Number frames received of size 128-255 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_256to511b",
-	    CTLFLAG_RD, &sc->stats.rx_frames_256to511b, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_256to511b", CTLFLAG_RD,
+	    &sc->stats.rx_frames_256to511b, 0,
 	    "Number frames received of size 256-511 bytes");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_512to1023b",
@@ -1663,40 +1662,37 @@ cgem_add_sysctls(device_t dev)
 	    CTLFLAG_RD, &sc->stats.rx_frames_1024to1536b, 0,
 	    "Number frames received of size 1024-1536 bytes");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_undersize",
-	    CTLFLAG_RD, &sc->stats.rx_frames_undersize, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_undersize", CTLFLAG_RD,
+	    &sc->stats.rx_frames_undersize, 0,
 	    "Number undersize frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_oversize",
-	    CTLFLAG_RD, &sc->stats.rx_frames_oversize, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_oversize", CTLFLAG_RD,
+	    &sc->stats.rx_frames_oversize, 0,
 	    "Number oversize frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_jabber",
-	    CTLFLAG_RD, &sc->stats.rx_frames_jabber, 0,
-	    "Number jabber frames received");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_jabber", CTLFLAG_RD,
+	    &sc->stats.rx_frames_jabber, 0, "Number jabber frames received");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_fcs_errs",
-	    CTLFLAG_RD, &sc->stats.rx_frames_fcs_errs, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_fcs_errs", CTLFLAG_RD,
+	    &sc->stats.rx_frames_fcs_errs, 0,
 	    "Number frames received with FCS errors");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_length_errs",
 	    CTLFLAG_RD, &sc->stats.rx_frames_length_errs, 0,
 	    "Number frames received with length errors");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_symbol_errs",
-	    CTLFLAG_RD, &sc->stats.rx_symbol_errs, 0,
-	    "Number receive symbol errors");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_symbol_errs", CTLFLAG_RD,
+	    &sc->stats.rx_symbol_errs, 0, "Number receive symbol errors");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_align_errs",
-	    CTLFLAG_RD, &sc->stats.rx_align_errs, 0,
-	    "Number receive alignment errors");
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_align_errs", CTLFLAG_RD,
+	    &sc->stats.rx_align_errs, 0, "Number receive alignment errors");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_resource_errs",
-	    CTLFLAG_RD, &sc->stats.rx_resource_errs, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_resource_errs", CTLFLAG_RD,
+	    &sc->stats.rx_resource_errs, 0,
 	    "Number frames received when no rx buffer available");
 
-	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_overrun_errs",
-	    CTLFLAG_RD, &sc->stats.rx_overrun_errs, 0,
+	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_overrun_errs", CTLFLAG_RD,
+	    &sc->stats.rx_overrun_errs, 0,
 	    "Number frames received but not copied due to receive overrun");
 
 	SYSCTL_ADD_UINT(ctx, child, OID_AUTO, "rx_frames_ip_hdr_csum_errs",
@@ -1751,15 +1747,13 @@ cgem_attach(device_t dev)
 	 * get them.
 	 */
 	if (clk_get_by_ofw_name(dev, 0, "pclk", &sc->clk_pclk) != 0)
-		device_printf(dev,
-		  "could not retrieve pclk.\n");
+		device_printf(dev, "could not retrieve pclk.\n");
 	else {
 		if (clk_enable(sc->clk_pclk) != 0)
 			device_printf(dev, "could not enable pclk.\n");
 	}
 	if (clk_get_by_ofw_name(dev, 0, "hclk", &sc->clk_hclk) != 0)
-		device_printf(dev,
-		  "could not retrieve hclk.\n");
+		device_printf(dev, "could not retrieve hclk.\n");
 	else {
 		if (clk_enable(sc->clk_hclk) != 0)
 			device_printf(dev, "could not enable hclk.\n");
@@ -1803,8 +1797,7 @@ cgem_attach(device_t dev)
 
 	/* Get IRQ resource. */
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "could not allocate interrupt resource.\n");
 		cgem_detach(dev);
@@ -1824,15 +1817,18 @@ cgem_attach(device_t dev)
 	if_setinitfn(ifp, cgem_init);
 	if_setioctlfn(ifp, cgem_ioctl);
 	if_setstartfn(ifp, cgem_start);
-	if_setcapabilitiesbit(ifp, IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 |
-	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWCSUM, 0);
+	if_setcapabilitiesbit(ifp,
+	    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_VLAN_MTU |
+		IFCAP_VLAN_HWCSUM,
+	    0);
 	if_setsendqlen(ifp, CGEM_NUM_TX_DESCS);
 	if_setsendqready(ifp);
 
 	/* Disable hardware checksumming by default. */
 	if_sethwassist(ifp, 0);
-	if_setcapenable(ifp, if_getcapabilities(ifp) &
-	    ~(IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_VLAN_HWCSUM));
+	if_setcapenable(ifp,
+	    if_getcapabilities(ifp) &
+		~(IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_VLAN_HWCSUM));
 
 	sc->if_old_flags = if_getflags(ifp);
 	sc->rxbufs = DEFAULT_NUM_RX_BUFS;
@@ -1843,9 +1839,8 @@ cgem_attach(device_t dev)
 	CGEM_UNLOCK(sc);
 
 	/* Attach phy to mii bus. */
-	err = mii_attach(dev, &sc->miibus, ifp,
-	    cgem_ifmedia_upd, cgem_ifmedia_sts, BMSR_DEFCAPMASK,
-	    MII_PHY_ANY, MII_OFFSET_ANY, 0);
+	err = mii_attach(dev, &sc->miibus, ifp, cgem_ifmedia_upd,
+	    cgem_ifmedia_sts, BMSR_DEFCAPMASK, MII_PHY_ANY, MII_OFFSET_ANY, 0);
 	if (err)
 		device_printf(dev, "warning: attaching PHYs failed\n");
 
@@ -1865,8 +1860,9 @@ cgem_attach(device_t dev)
 
 	ether_ifattach(ifp, eaddr);
 
-	err = bus_setup_intr(dev, sc->irq_res, INTR_TYPE_NET | INTR_MPSAFE |
-	    INTR_EXCL, NULL, cgem_intr, sc, &sc->intrhand);
+	err = bus_setup_intr(dev, sc->irq_res,
+	    INTR_TYPE_NET | INTR_MPSAFE | INTR_EXCL, NULL, cgem_intr, sc,
+	    &sc->intrhand);
 	if (err) {
 		device_printf(dev, "could not set interrupt handler.\n");
 		ether_ifdetach(ifp);
@@ -1936,14 +1932,13 @@ cgem_detach(device_t dev)
 	/* Release DMA resources. */
 	if (sc->rxring != NULL) {
 		if (sc->rxring_physaddr != 0) {
-			bus_dmamap_unload(sc->desc_dma_tag,
-			    sc->rxring_dma_map);
+			bus_dmamap_unload(sc->desc_dma_tag, sc->rxring_dma_map);
 			sc->rxring_physaddr = 0;
 			sc->txring_physaddr = 0;
 			sc->null_qs_physaddr = 0;
 		}
 		bus_dmamem_free(sc->desc_dma_tag, sc->rxring,
-				sc->rxring_dma_map);
+		    sc->rxring_dma_map);
 		sc->rxring = NULL;
 		sc->txring = NULL;
 		sc->null_qs = NULL;
@@ -1990,15 +1985,15 @@ cgem_detach(device_t dev)
 
 static device_method_t cgem_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		cgem_probe),
-	DEVMETHOD(device_attach,	cgem_attach),
-	DEVMETHOD(device_detach,	cgem_detach),
+	DEVMETHOD(device_probe, cgem_probe),
+	DEVMETHOD(device_attach, cgem_attach),
+	DEVMETHOD(device_detach, cgem_detach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	cgem_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	cgem_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	cgem_miibus_statchg),
-	DEVMETHOD(miibus_linkchg,	cgem_miibus_linkchg),
+	DEVMETHOD(miibus_readreg, cgem_miibus_readreg),
+	DEVMETHOD(miibus_writereg, cgem_miibus_writereg),
+	DEVMETHOD(miibus_statchg, cgem_miibus_statchg),
+	DEVMETHOD(miibus_linkchg, cgem_miibus_linkchg),
 
 	DEVMETHOD_END
 };

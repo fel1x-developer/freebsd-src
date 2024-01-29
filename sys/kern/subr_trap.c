@@ -41,23 +41,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_hwpmc_hooks.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/msan.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/ktr.h>
 #include <sys/resourcevar.h>
 #include <sys/sched.h>
 #include <sys/syscall.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysent.h>
-#include <sys/systm.h>
 #include <sys/vmmeter.h>
 
 #include <machine/cpu.h>
@@ -66,7 +66,7 @@
 #include <net/vnet.h>
 #endif
 
-#ifdef	HWPMC_HOOKS
+#ifdef HWPMC_HOOKS
 #include <sys/pmckern.h>
 #endif
 
@@ -74,7 +74,7 @@
 #include <sys/epoch.h>
 #endif
 
-void	(*tcp_hpts_softclock)(void);
+void (*tcp_hpts_softclock)(void);
 
 /*
  * Define the code needed before returning to user mode, for trap and
@@ -86,7 +86,7 @@ userret(struct thread *td, struct trapframe *frame)
 	struct proc *p = td->td_proc;
 
 	CTR3(KTR_SYSC, "userret: thread %p (pid %d, %s)", td, p->p_pid,
-            td->td_name);
+	    td->td_name);
 	KASSERT((p->p_flag & P_WEXIT) == 0,
 	    ("Exiting process returns to usermode"));
 #ifdef DIAGNOSTIC
@@ -103,13 +103,12 @@ userret(struct thread *td, struct trapframe *frame)
 		PROC_LOCK(p);
 		thread_lock(td);
 		if ((p->p_flag & P_PPWAIT) == 0 &&
-		    (td->td_pflags & TDP_SIGFASTBLOCK) == 0 &&
-		    SIGPENDING(td) && !td_ast_pending(td, TDA_AST) &&
+		    (td->td_pflags & TDP_SIGFASTBLOCK) == 0 && SIGPENDING(td) &&
+		    !td_ast_pending(td, TDA_AST) &&
 		    !td_ast_pending(td, TDA_SIG)) {
 			thread_unlock(td);
-			panic(
-			    "failed to set signal flags for ast p %p "
-			    "td %p td_ast %#x fl %#x",
+			panic("failed to set signal flags for ast p %p "
+			      "td %p td_ast %#x fl %#x",
 			    p, td, td->td_ast, td->td_flags);
 		}
 		thread_unlock(td);
@@ -159,13 +158,13 @@ userret(struct thread *td, struct trapframe *frame)
 	    ("userret: Returning with %d locks held", td->td_locks));
 	KASSERT(td->td_rw_rlocks == 0,
 	    ("userret: Returning with %d rwlocks held in read mode",
-	    td->td_rw_rlocks));
+		td->td_rw_rlocks));
 	KASSERT(td->td_sx_slocks == 0,
 	    ("userret: Returning with %d sx locks held in shared mode",
-	    td->td_sx_slocks));
+		td->td_sx_slocks));
 	KASSERT(td->td_lk_slocks == 0,
 	    ("userret: Returning with %d lockmanager locks held in shared mode",
-	    td->td_lk_slocks));
+		td->td_lk_slocks));
 	KASSERT((td->td_pflags & TDP_NOFAULTING) == 0,
 	    ("userret: Returning with pagefaults disabled"));
 	if (__predict_false(!THREAD_CAN_SLEEP())) {
@@ -186,8 +185,8 @@ userret(struct thread *td, struct trapframe *frame)
 	/* Unfortunately td_vnet_lpush needs VNET_DEBUG. */
 	VNET_ASSERT(curvnet == NULL,
 	    ("%s: Returning on td %p (pid %d, %s) with vnet %p set in %s",
-	    __func__, td, p->p_pid, td->td_name, curvnet,
-	    (td->td_vnet_lpush != NULL) ? td->td_vnet_lpush : "N/A"));
+		__func__, td, p->p_pid, td->td_name, curvnet,
+		(td->td_vnet_lpush != NULL) ? td->td_vnet_lpush : "N/A"));
 #endif
 }
 
@@ -198,30 +197,28 @@ ast_prep(struct thread *td, int tda __unused)
 	td->td_pticks = 0;
 	if (td->td_cowgen != atomic_load_int(&td->td_proc->p_cowgen))
 		thread_cow_update(td);
-
 }
 
 struct ast_entry {
-	int	ae_flags;
-	int	ae_tdp;
-	void	(*ae_f)(struct thread *td, int ast);
+	int ae_flags;
+	int ae_tdp;
+	void (*ae_f)(struct thread *td, int ast);
 };
 
 _Static_assert(TDAI(TDA_MAX) <= UINT_MAX, "Too many ASTs");
 
 static struct ast_entry ast_entries[TDA_MAX] __read_mostly = {
-	[TDA_AST] = { .ae_f = ast_prep, .ae_flags = ASTR_UNCOND},
+	[TDA_AST] = { .ae_f = ast_prep, .ae_flags = ASTR_UNCOND },
 };
 
 void
-ast_register(int ast, int flags, int tdp,
-    void (*f)(struct thread *, int asts))
+ast_register(int ast, int flags, int tdp, void (*f)(struct thread *, int asts))
 {
 	struct ast_entry *ae;
 
 	MPASS(ast < TDA_MAX);
-	MPASS((flags & ASTR_TDP) == 0 || ((flags & ASTR_ASTF_REQUIRED) != 0
-	    && __bitcount(tdp) == 1));
+	MPASS((flags & ASTR_TDP) == 0 ||
+	    ((flags & ASTR_ASTF_REQUIRED) != 0 && __bitcount(tdp) == 1));
 	ae = &ast_entries[ast];
 	MPASS(ae->ae_f == NULL);
 	ae->ae_flags = flags;
@@ -337,7 +334,7 @@ ast_handler(struct thread *td, struct trapframe *framep, bool dtor)
 	}
 
 	CTR3(KTR_SYSC, "ast: thread %p (pid %d, %s)", td, td->td_proc->p_pid,
-            td->td_proc->p_comm);
+	    td->td_proc->p_comm);
 	KASSERT(framep == NULL || TRAPF_USERMODE(framep),
 	    ("ast in kernel mode"));
 

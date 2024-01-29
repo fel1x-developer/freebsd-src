@@ -46,11 +46,11 @@
 #include <sys/rwlock.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
+#include <vm/vm_param.h>
 #include <vm/vm_radix.h>
 
 #include <machine/machdep.h>
@@ -58,30 +58,29 @@
 #include <arm64/iommu/iommu_pmap.h>
 #include <arm64/iommu/iommu_pte.h>
 
-#define	IOMMU_PAGE_SIZE		4096
+#define IOMMU_PAGE_SIZE 4096
 
-#define	SMMU_PMAP_LOCK(pmap)	mtx_lock(&(pmap)->sp_mtx)
-#define	SMMU_PMAP_UNLOCK(pmap)	mtx_unlock(&(pmap)->sp_mtx)
-#define	SMMU_PMAP_LOCK_ASSERT(pmap, type) \
-    mtx_assert(&(pmap)->sp_mtx, (type))
+#define SMMU_PMAP_LOCK(pmap) mtx_lock(&(pmap)->sp_mtx)
+#define SMMU_PMAP_UNLOCK(pmap) mtx_unlock(&(pmap)->sp_mtx)
+#define SMMU_PMAP_LOCK_ASSERT(pmap, type) mtx_assert(&(pmap)->sp_mtx, (type))
 
-#define	NL0PG		(IOMMU_PAGE_SIZE/(sizeof (pd_entry_t)))
-#define	NL1PG		(IOMMU_PAGE_SIZE/(sizeof (pd_entry_t)))
-#define	NL2PG		(IOMMU_PAGE_SIZE/(sizeof (pd_entry_t)))
-#define	NL3PG		(IOMMU_PAGE_SIZE/(sizeof (pt_entry_t)))
+#define NL0PG (IOMMU_PAGE_SIZE / (sizeof(pd_entry_t)))
+#define NL1PG (IOMMU_PAGE_SIZE / (sizeof(pd_entry_t)))
+#define NL2PG (IOMMU_PAGE_SIZE / (sizeof(pd_entry_t)))
+#define NL3PG (IOMMU_PAGE_SIZE / (sizeof(pt_entry_t)))
 
-#define	NUL0E		IOMMU_L0_ENTRIES
-#define	NUL1E		(NUL0E * NL1PG)
-#define	NUL2E		(NUL1E * NL2PG)
+#define NUL0E IOMMU_L0_ENTRIES
+#define NUL1E (NUL0E * NL1PG)
+#define NUL2E (NUL1E * NL2PG)
 
-#define	smmu_l0_pindex(v)	(NUL2E + NUL1E + ((v) >> IOMMU_L0_SHIFT))
-#define	smmu_l1_pindex(v)	(NUL2E + ((v) >> IOMMU_L1_SHIFT))
-#define	smmu_l2_pindex(v)	((v) >> IOMMU_L2_SHIFT)
+#define smmu_l0_pindex(v) (NUL2E + NUL1E + ((v) >> IOMMU_L0_SHIFT))
+#define smmu_l1_pindex(v) (NUL2E + ((v) >> IOMMU_L1_SHIFT))
+#define smmu_l2_pindex(v) ((v) >> IOMMU_L2_SHIFT)
 
-#define	smmu_l0_index(va)	(((va) >> IOMMU_L0_SHIFT) & IOMMU_L0_ADDR_MASK)
-#define	smmu_l1_index(va)	(((va) >> IOMMU_L1_SHIFT) & IOMMU_Ln_ADDR_MASK)
-#define	smmu_l2_index(va)	(((va) >> IOMMU_L2_SHIFT) & IOMMU_Ln_ADDR_MASK)
-#define	smmu_l3_index(va)	(((va) >> IOMMU_L3_SHIFT) & IOMMU_Ln_ADDR_MASK)
+#define smmu_l0_index(va) (((va) >> IOMMU_L0_SHIFT) & IOMMU_L0_ADDR_MASK)
+#define smmu_l1_index(va) (((va) >> IOMMU_L1_SHIFT) & IOMMU_Ln_ADDR_MASK)
+#define smmu_l2_index(va) (((va) >> IOMMU_L2_SHIFT) & IOMMU_Ln_ADDR_MASK)
+#define smmu_l3_index(va) (((va) >> IOMMU_L3_SHIFT) & IOMMU_Ln_ADDR_MASK)
 
 static vm_page_t _pmap_alloc_l3(struct smmu_pmap *pmap, vm_pindex_t ptepindex);
 static void _smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va,
@@ -92,9 +91,9 @@ static void _smmu_pmap_unwire_l3(struct smmu_pmap *pmap, vm_offset_t va,
  * They need to be atomic as the System MMU may write to the table at
  * the same time as the CPU.
  */
-#define	smmu_pmap_load(table)		(*table)
-#define	smmu_pmap_clear(table)		atomic_store_64(table, 0)
-#define	smmu_pmap_store(table, entry)	atomic_store_64(table, entry)
+#define smmu_pmap_load(table) (*table)
+#define smmu_pmap_clear(table) atomic_store_64(table, 0)
+#define smmu_pmap_store(table, entry) atomic_store_64(table, entry)
 
 /********************/
 /* Inline functions */
@@ -285,7 +284,7 @@ smmu_pmap_resident_count_dec(struct smmu_pmap *pmap, int count)
 	SMMU_PMAP_LOCK_ASSERT(pmap, MA_OWNED);
 	KASSERT(pmap->sp_resident_count >= count,
 	    ("pmap %p resident count underflow %ld %d", pmap,
-	    pmap->sp_resident_count, count));
+		pmap->sp_resident_count, count));
 	pmap->sp_resident_count -= count;
 }
 #else
@@ -407,8 +406,8 @@ smmu_pmap_pinit(struct smmu_pmap *pmap)
 	/*
 	 * allocate the l0 page
 	 */
-	m = vm_page_alloc_noobj(VM_ALLOC_WAITOK | VM_ALLOC_WIRED |
-	    VM_ALLOC_ZERO);
+	m = vm_page_alloc_noobj(
+	    VM_ALLOC_WAITOK | VM_ALLOC_WIRED | VM_ALLOC_ZERO);
 	pmap->sp_l0_paddr = VM_PAGE_TO_PHYS(m);
 	pmap->sp_l0 = (pd_entry_t *)PHYS_TO_DMAP(pmap->sp_l0_paddr);
 
@@ -484,8 +483,8 @@ _pmap_alloc_l3(struct smmu_pmap *pmap, vm_pindex_t ptepindex)
 		tl0 = smmu_pmap_load(l0);
 		if (tl0 == 0) {
 			/* recurse for allocating page dir */
-			if (_pmap_alloc_l3(pmap, NUL2E + NUL1E + l0index)
-			    == NULL) {
+			if (_pmap_alloc_l3(pmap, NUL2E + NUL1E + l0index) ==
+			    NULL) {
 				vm_page_unwire_noq(m);
 				vm_page_free_zero(m);
 				return (NULL);
@@ -495,7 +494,8 @@ _pmap_alloc_l3(struct smmu_pmap *pmap, vm_pindex_t ptepindex)
 			l1pg->ref_count++;
 		}
 
-		l1 = (pd_entry_t *)PHYS_TO_DMAP(smmu_pmap_load(l0) &~ATTR_MASK);
+		l1 = (pd_entry_t *)PHYS_TO_DMAP(
+		    smmu_pmap_load(l0) & ~ATTR_MASK);
 		l1 = &l1[ptepindex & Ln_ADDR_MASK];
 		smmu_pmap_store(l1, VM_PAGE_TO_PHYS(m) | IOMMU_L1_TABLE);
 	} else {
@@ -524,8 +524,8 @@ _pmap_alloc_l3(struct smmu_pmap *pmap, vm_pindex_t ptepindex)
 			tl1 = smmu_pmap_load(l1);
 			if (tl1 == 0) {
 				/* recurse for allocating page dir */
-				if (_pmap_alloc_l3(pmap, NUL2E + l1index)
-				    == NULL) {
+				if (_pmap_alloc_l3(pmap, NUL2E + l1index) ==
+				    NULL) {
 					vm_page_unwire_noq(m);
 					vm_page_free_zero(m);
 					return (NULL);
@@ -536,7 +536,8 @@ _pmap_alloc_l3(struct smmu_pmap *pmap, vm_pindex_t ptepindex)
 			}
 		}
 
-		l2 = (pd_entry_t *)PHYS_TO_DMAP(smmu_pmap_load(l1) &~ATTR_MASK);
+		l2 = (pd_entry_t *)PHYS_TO_DMAP(
+		    smmu_pmap_load(l1) & ~ATTR_MASK);
 		l2 = &l2[ptepindex & Ln_ADDR_MASK];
 		smmu_pmap_store(l2, VM_PAGE_TO_PHYS(m) | IOMMU_L2_TABLE);
 	}
@@ -562,7 +563,7 @@ smmu_pmap_release(struct smmu_pmap *pmap)
 
 	KASSERT(pmap->sp_resident_count == 0,
 	    ("pmap_release: pmap resident count %ld != 0",
-	    pmap->sp_resident_count));
+		pmap->sp_resident_count));
 
 	m = PHYS_TO_VM_PAGE(pmap->sp_l0_paddr);
 	vm_page_unwire_noq(m);
@@ -766,8 +767,7 @@ smmu_pmap_remove(struct smmu_pmap *pmap, vm_offset_t va)
 	SMMU_PMAP_LOCK(pmap);
 
 	pte = smmu_pmap_pte(pmap, va, &lvl);
-	KASSERT(lvl == 3,
-	    ("Invalid SMMU pagetable level: %d != 3", lvl));
+	KASSERT(lvl == 3, ("Invalid SMMU pagetable level: %d != 3", lvl));
 
 	if (pte != NULL) {
 		smmu_pmap_resident_count_dec(pmap, 1);
@@ -834,7 +834,7 @@ smmu_pmap_remove_pages(struct smmu_pmap *pmap)
 					if ((l3e & ATTR_DESCR_VALID) == 0)
 						continue;
 					panic(
-					  "%s: l3e found (indexes %d %d %d %d)",
+					    "%s: l3e found (indexes %d %d %d %d)",
 					    __func__, i, j, k, l);
 				}
 

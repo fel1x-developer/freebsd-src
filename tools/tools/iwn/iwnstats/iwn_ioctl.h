@@ -26,10 +26,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IWN_IOCTL_H__
-#define	__IWN_IOCTL_H__
+#ifndef __IWN_IOCTL_H__
+#define __IWN_IOCTL_H__
 
-extern	void iwn_zerostats(struct iwnstats *is);
-extern	int iwn_collect(struct iwnstats *is);
+extern void iwn_zerostats(struct iwnstats *is);
+extern int iwn_collect(struct iwnstats *is);
 
-#endif	/* __IWN_IOCTL_H__ */
+#endif /* __IWN_IOCTL_H__ */

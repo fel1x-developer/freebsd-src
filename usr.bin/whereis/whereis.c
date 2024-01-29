@@ -49,9 +49,9 @@
 
 #include "pathnames.h"
 
-#define	NO_BIN_FOUND	1
-#define	NO_MAN_FOUND	2
-#define	NO_SRC_FOUND	4
+#define NO_BIN_FOUND 1
+#define NO_MAN_FOUND 2
+#define NO_SRC_FOUND 4
 
 typedef const char *ccharp;
 
@@ -61,12 +61,12 @@ static char **query;
 
 static const char *sourcepath = PATH_SOURCES;
 
-static char	*colonify(ccharp *);
-static int	 contains(ccharp *, const char *);
-static void	 decolonify(char *, ccharp **, int *);
-static void	 defaults(void);
-static void	 scanopts(int, char **);
-static void	 usage(void);
+static char *colonify(ccharp *);
+static int contains(ccharp *, const char *);
+static void decolonify(char *, ccharp **, int *);
+static void defaults(void);
+static void scanopts(int, char **);
+static void usage(void);
 
 /*
  * Throughout this program, a number of strings are dynamically
@@ -88,7 +88,7 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-	     "usage: whereis [-abmqsux] [-BMS dir ... -f] program ...\n");
+	    "usage: whereis [-abmqsux] [-BMS dir ... -f] program ...\n");
 	exit(EX_USAGE);
 }
 
@@ -116,15 +116,15 @@ scanopts(int argc, char **argv)
 
 		case 'S':
 			dirlist = &sourcedirs;
-		  dolist:
+		dolist:
 			i = 0;
 			*dirlist = realloc(*dirlist, (i + 1) * sizeof(char *));
 			(*dirlist)[i] = NULL;
 			while (optind < argc &&
-			       strcmp(argv[optind], "-f") != 0 &&
-			       strcmp(argv[optind], "-B") != 0 &&
-			       strcmp(argv[optind], "-M") != 0 &&
-			       strcmp(argv[optind], "-S") != 0) {
+			    strcmp(argv[optind], "-f") != 0 &&
+			    strcmp(argv[optind], "-B") != 0 &&
+			    strcmp(argv[optind], "-M") != 0 &&
+			    strcmp(argv[optind], "-S") != 0) {
 				decolonify(argv[optind], dirlist, &i);
 				optind++;
 			}
@@ -164,7 +164,7 @@ scanopts(int argc, char **argv)
 		default:
 			usage();
 		}
-  breakout:
+breakout:
 	if (optind == argc)
 		usage();
 	query = argv + optind;
@@ -240,7 +240,7 @@ colonify(ccharp *cpp)
 		strcat(cp, cpp[i]);
 		strcat(cp, ":");
 	}
-	cp[s - 1] = '\0';		/* eliminate last colon */
+	cp[s - 1] = '\0'; /* eliminate last colon */
 
 	return (cp);
 }
@@ -258,7 +258,7 @@ defaults(void)
 	DIR *dir;
 	struct stat sb;
 	struct dirent *dirp;
-	const int oid[2] = {CTL_USER, USER_CS_PATH};
+	const int oid[2] = { CTL_USER, USER_CS_PATH };
 
 	/* default to -bms if none has been specified */
 	if (!opt_b && !opt_m && !opt_s)
@@ -293,8 +293,7 @@ defaults(void)
 	if (!mandirs) {
 		if ((p = popen(MANPATHCMD, "r")) == NULL)
 			err(EX_OSERR, "cannot execute manpath command");
-		if (fgets(buf, BUFSIZ - 1, p) == NULL ||
-		    pclose(p))
+		if (fgets(buf, BUFSIZ - 1, p) == NULL || pclose(p))
 			err(EX_OSERR, "error processing manpath results");
 		if ((b = strchr(buf, '\n')) != NULL)
 			*b = '\0';
@@ -347,11 +346,12 @@ defaults(void)
 			     * locale instead of the current user's
 			     * locale.
 			     */
-			    (dirp->d_name[0] >= 'A' && dirp->d_name[0] <= 'Z') ||
+			    (dirp->d_name[0] >= 'A' &&
+				dirp->d_name[0] <= 'Z') ||
 			    strcmp(dirp->d_name, "distfiles") == 0)
 				continue;
-			if ((b = malloc(sizeof PATH_PORTS + 1 + dirp->d_namlen))
-			    == NULL)
+			if ((b = malloc(sizeof PATH_PORTS + 1 +
+				 dirp->d_namlen)) == NULL)
 				abort();
 			strcpy(b, PATH_PORTS);
 			strcat(b, "/");
@@ -363,7 +363,7 @@ defaults(void)
 				continue;
 			}
 			sourcedirs = realloc(sourcedirs,
-					     (nele + 2) * sizeof(char *));
+			    (nele + 2) * sizeof(char *));
 			if (sourcedirs == NULL)
 				abort();
 			sourcedirs[nele++] = b;
@@ -405,7 +405,7 @@ main(int argc, char **argv)
 		if ((i = regcomp(&re, MANWHEREISMATCH, REG_EXTENDED)) != 0) {
 			regerror(i, &re, buf, BUFSIZ - 1);
 			errx(EX_UNAVAILABLE, "regcomp(%s) failed: %s",
-			     MANWHEREISMATCH, buf);
+			    MANWHEREISMATCH, buf);
 		}
 	}
 
@@ -422,13 +422,11 @@ main(int argc, char **argv)
 		s = strlen(name);
 		if (s > 2 &&
 		    (strcmp(name + s - 2, ".z") == 0 ||
-		     strcmp(name + s - 2, ".Z") == 0))
+			strcmp(name + s - 2, ".Z") == 0))
 			name[s - 2] = '\0';
-		else if (s > 3 &&
-			 strcmp(name + s - 3, ".gz") == 0)
+		else if (s > 3 && strcmp(name + s - 3, ".gz") == 0)
 			name[s - 3] = '\0';
-		else if (s > 4 &&
-			 strcmp(name + s - 4, ".bz2") == 0)
+		else if (s > 4 && strcmp(name + s - 4, ".bz2") == 0)
 			name[s - 4] = '\0';
 
 		unusual = 0;
@@ -450,16 +448,16 @@ main(int argc, char **argv)
 				strcat(cp, name);
 				if (stat(cp, &sb) == 0 &&
 				    (sb.st_mode & S_IFMT) == S_IFREG &&
-				    (sb.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-				    != 0) {
+				    (sb.st_mode &
+					(S_IXUSR | S_IXGRP | S_IXOTH)) != 0) {
 					unusual = unusual & ~NO_BIN_FOUND;
 					if (bin == NULL) {
 						bin = strdup(cp);
 					} else {
 						olen = strlen(bin);
 						nlen = strlen(cp);
-						bin = realloc(bin, 
-							      olen + nlen + 2);
+						bin = realloc(bin,
+						    olen + nlen + 2);
 						if (bin == NULL)
 							abort();
 						strcat(bin, " ");
@@ -493,16 +491,16 @@ main(int argc, char **argv)
 				sprintf(cp, MANWHEREISCMD, name);
 
 			if ((p = popen(cp, "r")) != NULL) {
-			    
+
 				while (fgets(buf, BUFSIZ - 1, p) != NULL) {
 					unusual = unusual & ~NO_MAN_FOUND;
-				
+
 					if ((cp2 = strchr(buf, '\n')) != NULL)
 						*cp2 = '\0';
-					if (regexec(&re, buf, 2, 
-						    matches, 0) == 0 &&
-					    (rlen = matches[1].rm_eo - 
-					     matches[1].rm_so) > 0) {
+					if (regexec(&re, buf, 2, matches, 0) ==
+						0 &&
+					    (rlen = matches[1].rm_eo -
+						    matches[1].rm_so) > 0) {
 						/*
 						 * man -w found formatted
 						 * page, need to pick up
@@ -511,9 +509,9 @@ main(int argc, char **argv)
 						cp2 = malloc(rlen + 1);
 						if (cp2 == NULL)
 							abort();
-						memcpy(cp2, 
-						       buf + matches[1].rm_so,
-						       rlen);
+						memcpy(cp2,
+						    buf + matches[1].rm_so,
+						    rlen);
 						cp2[rlen] = '\0';
 					} else {
 						/*
@@ -530,8 +528,8 @@ main(int argc, char **argv)
 					} else {
 						olen = strlen(man);
 						nlen = strlen(cp2);
-						man = realloc(man, 
-							      olen + nlen + 2);
+						man = realloc(man,
+						    olen + nlen + 2);
 						if (man == NULL)
 							abort();
 						strcat(man, " ");
@@ -539,7 +537,7 @@ main(int argc, char **argv)
 					}
 
 					free(cp2);
-					
+
 					if (!opt_a)
 						break;
 				}
@@ -569,8 +567,8 @@ main(int argc, char **argv)
 					} else {
 						olen = strlen(src);
 						nlen = strlen(cp);
-						src = realloc(src, 
-							      olen + nlen + 2);
+						src = realloc(src,
+						    olen + nlen + 2);
 						if (src == NULL)
 							abort();
 						strcat(src, " ");
@@ -605,7 +603,7 @@ main(int argc, char **argv)
 			if ((p = popen(cp, "r")) == NULL)
 				goto done_sources;
 			while ((src == NULL || opt_a) &&
-			       (fgets(buf, BUFSIZ - 1, p)) != NULL) {
+			    (fgets(buf, BUFSIZ - 1, p)) != NULL) {
 				if ((cp2 = strchr(buf, '\n')) != NULL)
 					*cp2 = '\0';
 				for (dp = sourcedirs;
@@ -618,28 +616,26 @@ main(int argc, char **argv)
 					strcat(cp2, *dp);
 					strcat(cp2, "/[^/]+/");
 					if ((i = regcomp(&re2, cp2,
-							 REG_EXTENDED|REG_NOSUB))
-					    != 0) {
+						 REG_EXTENDED | REG_NOSUB)) !=
+					    0) {
 						regerror(i, &re, buf,
-							 BUFSIZ - 1);
+						    BUFSIZ - 1);
 						errx(EX_UNAVAILABLE,
-						     "regcomp(%s) failed: %s",
-						     cp2, buf);
+						    "regcomp(%s) failed: %s",
+						    cp2, buf);
 					}
 					free(cp2);
 					if (regexec(&re2, buf, 0,
-						    (regmatch_t *)NULL, 0)
-					    == 0) {
-						unusual = unusual & 
-						          ~NO_SRC_FOUND;
+						(regmatch_t *)NULL, 0) == 0) {
+						unusual = unusual &
+						    ~NO_SRC_FOUND;
 						if (src == NULL) {
 							src = strdup(buf);
 						} else {
 							olen = strlen(src);
 							nlen = strlen(buf);
-							src = realloc(src, 
-								      olen + 
-								      nlen + 2);
+							src = realloc(src,
+							    olen + nlen + 2);
 							if (src == NULL)
 								abort();
 							strcat(src, " ");
@@ -652,7 +648,7 @@ main(int argc, char **argv)
 			pclose(p);
 			free(cp);
 		}
-	  done_sources:
+	done_sources:
 
 		if (opt_u && !unusual)
 			continue;

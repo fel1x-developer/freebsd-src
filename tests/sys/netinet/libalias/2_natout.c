@@ -31,8 +31,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <atf-c.h>
 #include <alias.h>
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -52,8 +52,8 @@ ATF_TC_BODY(1_simplemasq, dummy)
 	NAT_CHECK(pip, prv1, ext, masq);
 	NAT_CHECK(pip, prv2, ext, masq);
 	NAT_CHECK(pip, prv3, ext, masq);
-	NAT_CHECK(pip, cgn,  ext, masq);
-	NAT_CHECK(pip, pub,  ext, masq);
+	NAT_CHECK(pip, cgn, ext, masq);
+	NAT_CHECK(pip, pub, ext, masq);
 
 	free(pip);
 	LibAliasUninit(la);
@@ -73,8 +73,8 @@ ATF_TC_BODY(2_unregistered, dummy)
 	NAT_CHECK(pip, prv1, ext, masq);
 	NAT_CHECK(pip, prv2, ext, masq);
 	NAT_CHECK(pip, prv3, ext, masq);
-	NAT_CHECK(pip, cgn,  ext, cgn);
-	NAT_CHECK(pip, pub,  ext, pub);
+	NAT_CHECK(pip, cgn, ext, cgn);
+	NAT_CHECK(pip, pub, ext, pub);
 
 	/*
 	 * State is only for new connections
@@ -85,8 +85,8 @@ ATF_TC_BODY(2_unregistered, dummy)
 	NAT_CHECK(pip, prv1, ext, masq);
 	NAT_CHECK(pip, prv2, ext, masq);
 	NAT_CHECK(pip, prv3, ext, masq);
-	NAT_CHECK(pip, cgn,  ext, cgn);
-	NAT_CHECK(pip, pub,  ext, pub);
+	NAT_CHECK(pip, cgn, ext, cgn);
+	NAT_CHECK(pip, pub, ext, pub);
 
 	free(pip);
 	LibAliasUninit(la);
@@ -106,8 +106,8 @@ ATF_TC_BODY(3_cgn, dummy)
 	NAT_CHECK(pip, prv1, ext, masq);
 	NAT_CHECK(pip, prv2, ext, masq);
 	NAT_CHECK(pip, prv3, ext, masq);
-	NAT_CHECK(pip, cgn,  ext, masq);
-	NAT_CHECK(pip, pub,  ext, pub);
+	NAT_CHECK(pip, cgn, ext, masq);
+	NAT_CHECK(pip, pub, ext, pub);
 
 	/*
 	 * State is only for new connections
@@ -118,8 +118,8 @@ ATF_TC_BODY(3_cgn, dummy)
 	NAT_CHECK(pip, prv1, ext, masq);
 	NAT_CHECK(pip, prv2, ext, masq);
 	NAT_CHECK(pip, prv3, ext, masq);
-	NAT_CHECK(pip, cgn,  ext, masq);
-	NAT_CHECK(pip, pub,  ext, pub);
+	NAT_CHECK(pip, cgn, ext, masq);
+	NAT_CHECK(pip, pub, ext, pub);
 
 	free(pip);
 	LibAliasUninit(la);
@@ -129,7 +129,7 @@ ATF_TC_WITHOUT_HEAD(4_udp);
 ATF_TC_BODY(4_udp, dummy)
 {
 	struct libalias *la = LibAliasInit(NULL);
-	struct ip  *po, *pi;
+	struct ip *po, *pi;
 	struct udphdr *ui, *uo;
 	uint16_t sport = 0x1234;
 	uint16_t dport = 0x5678;
@@ -157,7 +157,8 @@ ATF_TC_BODY(4_udp, dummy)
 
 	/* Response to prv2 */
 	ui->uh_dport = uo->uh_sport;
-	UDP_UNNAT_CHECK(pi, ui, ext, dport, masq, htons(uo->uh_sport), prv2, sport);
+	UDP_UNNAT_CHECK(pi, ui, ext, dport, masq, htons(uo->uh_sport), prv2,
+	    sport);
 
 	/* Response to prv1 again */
 	UDP_UNNAT_CHECK(pi, ui, ext, dport, masq, aport, prv1, sport);
@@ -171,7 +172,7 @@ ATF_TC_WITHOUT_HEAD(5_sameport);
 ATF_TC_BODY(5_sameport, dummy)
 {
 	struct libalias *la = LibAliasInit(NULL);
-	struct ip  *p;
+	struct ip *p;
 	struct udphdr *u;
 	uint16_t sport = 0x1234;
 	uint16_t dport = 0x5678;
@@ -201,7 +202,7 @@ ATF_TC_WITHOUT_HEAD(6_cleartable);
 ATF_TC_BODY(6_cleartable, dummy)
 {
 	struct libalias *la = LibAliasInit(NULL);
-	struct ip  *po, *pi;
+	struct ip *po, *pi;
 	struct udphdr *ui __unused, *uo;
 	uint16_t sport = 0x1234;
 	uint16_t dport = 0x5678;
@@ -237,7 +238,8 @@ ATF_TC_BODY(6_cleartable, dummy)
 	ATF_CHECK(uo->uh_sport == htons(aport));
 
 	/* Response to prv2 */
-	UDP_UNNAT_CHECK(po, uo, ext, dport, masq, htons(uo->uh_sport), prv2, sport);
+	UDP_UNNAT_CHECK(po, uo, ext, dport, masq, htons(uo->uh_sport), prv2,
+	    sport);
 
 	free(pi);
 	free(po);
@@ -268,35 +270,45 @@ ATF_TC_BODY(7_stress, dummy)
 	for (j = 0; j < rounds; j++) {
 		for (i = 0; i < batch_size; i++) {
 			struct in_addr s, d;
-			switch (i&3) {
-			case 0: s = prv1; d = ext; break;
-			case 1: s = prv2; d = pub; break;
-			case 2: s = prv3; d = ext; break;
-			case 3: s = cgn;  d = pub; break;
+			switch (i & 3) {
+			case 0:
+				s = prv1;
+				d = ext;
+				break;
+			case 1:
+				s = prv2;
+				d = pub;
+				break;
+			case 2:
+				s = prv3;
+				d = ext;
+				break;
+			case 3:
+				s = cgn;
+				d = pub;
+				break;
 			}
 			s.s_addr &= htonl(0xffff0000);
 			d.s_addr &= htonl(0xffff0000);
-			batch[i].src.s_addr = s.s_addr | htonl(rand_range(0, 0xffff));
-			batch[i].dst.s_addr = d.s_addr | htonl(rand_range(0, 0xffff));
+			batch[i].src.s_addr = s.s_addr |
+			    htonl(rand_range(0, 0xffff));
+			batch[i].dst.s_addr = d.s_addr |
+			    htonl(rand_range(0, 0xffff));
 			batch[i].sport = rand_range(1000, 60000);
 			batch[i].dport = rand_range(1000, 60000);
 		}
 
 		for (i = 0; i < batch_size; i++) {
-			UDP_NAT_CHECK(p, u,
-			    batch[i].src, batch[i].sport,
-			    batch[i].dst, batch[i].dport,
-			    masq);
+			UDP_NAT_CHECK(p, u, batch[i].src, batch[i].sport,
+			    batch[i].dst, batch[i].dport, masq);
 			batch[i].aport = htons(u->uh_sport);
 		}
 
 		qsort(batch, batch_size, sizeof(*batch), randcmp);
 
 		for (i = 0; i < batch_size; i++) {
-			UDP_UNNAT_CHECK(p, u,
-			    batch[i].dst,  batch[i].dport,
-			    masq, batch[i].aport,
-			    batch[i].src, batch[i].sport);
+			UDP_UNNAT_CHECK(p, u, batch[i].dst, batch[i].dport,
+			    masq, batch[i].aport, batch[i].src, batch[i].sport);
 		}
 	}
 
@@ -309,7 +321,7 @@ ATF_TC_WITHOUT_HEAD(8_portrange);
 ATF_TC_BODY(8_portrange, dummy)
 {
 	struct libalias *la = LibAliasInit(NULL);
-	struct ip  *po;
+	struct ip *po;
 	struct udphdr *uo;
 	uint16_t sport = 0x1234;
 	uint16_t dport = 0x5678;

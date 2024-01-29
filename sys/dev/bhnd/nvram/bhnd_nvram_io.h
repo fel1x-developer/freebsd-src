@@ -25,7 +25,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_NVRAM_BHND_NVRAM_IO_H_
@@ -37,7 +37,6 @@
 #include <dev/bhnd/bhnd.h>
 #else /* !_KERNEL */
 #include <errno.h>
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -45,45 +44,41 @@
 
 struct bhnd_nvram_io;
 
-struct bhnd_nvram_io	*bhnd_nvram_iobuf_new(const void *buffer, size_t size);
-struct bhnd_nvram_io	*bhnd_nvram_iobuf_empty(size_t size, size_t capacity);
-struct bhnd_nvram_io	*bhnd_nvram_iobuf_copy(struct bhnd_nvram_io *src);
-struct bhnd_nvram_io	*bhnd_nvram_iobuf_copy_range(struct bhnd_nvram_io *src,
-			     size_t offset, size_t size);
+struct bhnd_nvram_io *bhnd_nvram_iobuf_new(const void *buffer, size_t size);
+struct bhnd_nvram_io *bhnd_nvram_iobuf_empty(size_t size, size_t capacity);
+struct bhnd_nvram_io *bhnd_nvram_iobuf_copy(struct bhnd_nvram_io *src);
+struct bhnd_nvram_io *bhnd_nvram_iobuf_copy_range(struct bhnd_nvram_io *src,
+    size_t offset, size_t size);
 
-struct bhnd_nvram_io	*bhnd_nvram_ioptr_new(const void *ptr, size_t size,
-			     size_t capacity, uint32_t flags);
+struct bhnd_nvram_io *bhnd_nvram_ioptr_new(const void *ptr, size_t size,
+    size_t capacity, uint32_t flags);
 
 #ifdef _KERNEL
-struct bhnd_nvram_io	*bhnd_nvram_iores_new(struct bhnd_resource *r,
-			     bus_size_t offset, bus_size_t size,
-			     u_int bus_width);
+struct bhnd_nvram_io *bhnd_nvram_iores_new(struct bhnd_resource *r,
+    bus_size_t offset, bus_size_t size, u_int bus_width);
 #endif /* _KERNEL */
 
-size_t			 bhnd_nvram_io_getsize(struct bhnd_nvram_io *io);
-int			 bhnd_nvram_io_setsize(struct bhnd_nvram_io *io,
-			     size_t size);
+size_t bhnd_nvram_io_getsize(struct bhnd_nvram_io *io);
+int bhnd_nvram_io_setsize(struct bhnd_nvram_io *io, size_t size);
 
-int			 bhnd_nvram_io_read(struct bhnd_nvram_io *io,
-			     size_t offset, void *buffer, size_t nbytes);
-int			 bhnd_nvram_io_read_ptr(struct bhnd_nvram_io *io,
-			     size_t offset, const void **ptr, size_t nbytes,
-			     size_t *navail);
+int bhnd_nvram_io_read(struct bhnd_nvram_io *io, size_t offset, void *buffer,
+    size_t nbytes);
+int bhnd_nvram_io_read_ptr(struct bhnd_nvram_io *io, size_t offset,
+    const void **ptr, size_t nbytes, size_t *navail);
 
-int			 bhnd_nvram_io_write(struct bhnd_nvram_io *io,
-			     size_t offset, void *buffer, size_t nbytes);
-int			 bhnd_nvram_io_write_ptr(struct bhnd_nvram_io *io,
-			     size_t offset, void **ptr, size_t nbytes,
-			     size_t *navail);
+int bhnd_nvram_io_write(struct bhnd_nvram_io *io, size_t offset, void *buffer,
+    size_t nbytes);
+int bhnd_nvram_io_write_ptr(struct bhnd_nvram_io *io, size_t offset, void **ptr,
+    size_t nbytes, size_t *navail);
 
-void			 bhnd_nvram_io_free(struct bhnd_nvram_io *io);
+void bhnd_nvram_io_free(struct bhnd_nvram_io *io);
 
 /**
  * bhnd_nvram_ioptr flags
  */
 enum {
-	BHND_NVRAM_IOPTR_RDONLY	= (1<<0),	/**< read-only */
-	BHND_NVRAM_IOPTR_RDWR	= (1<<1),	/**< read/write */
+	BHND_NVRAM_IOPTR_RDONLY = (1 << 0), /**< read-only */
+	BHND_NVRAM_IOPTR_RDWR = (1 << 1),   /**< read/write */
 };
 
 #endif /* _BHND_NVRAM_BHND_NVRAM_IO_H_ */

@@ -24,9 +24,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
-#include <efivar.h>
 #include <efivar-dp.h>
+#include <efivar.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -38,47 +39,46 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "efiutil.h"
+
 #include "efichar.h"
+#include "efiutil.h"
 
 /* options descriptor */
-static struct option longopts[] = {
-	{ "append",		no_argument,		NULL,	'a' },
-	{ "ascii",		no_argument,		NULL,	'A' },
-	{ "attributes",		required_argument,	NULL,	't' },
-	{ "binary",		no_argument,		NULL,	'b' },
-	{ "delete",		no_argument,		NULL,   'D' },
-	{ "device",		no_argument,		NULL,   'd' },
-	{ "device-path",	no_argument,		NULL,   'd' },
-	{ "fromfile",		required_argument,	NULL,	'f' },
-	{ "guid",		no_argument,		NULL,	'g' },
-	{ "hex",		no_argument,		NULL,	'H' },
-	{ "list-guids",		no_argument,		NULL,	'L' },
-	{ "list",		no_argument,		NULL,	'l' },
-	{ "load-option",	no_argument,		NULL,	'O' },
-	{ "name",		required_argument,	NULL,	'n' },
-	{ "no-name",		no_argument,		NULL,	'N' },
-	{ "print",		no_argument,		NULL,	'p' },
-//	{ "print-decimal",	no_argument,		NULL,	'd' }, /* unimplemnted clash with linux version */
-	{ "quiet",		no_argument,		NULL,	'q' },
-	{ "raw-guid",		no_argument,		NULL,   'R' },
-	{ "utf8",		no_argument,		NULL,	'u' },
-	{ "write",		no_argument,		NULL,	'w' },
-	{ NULL,			0,			NULL,	0 }
-};
+static struct option longopts[] = { { "append", no_argument, NULL, 'a' },
+	{ "ascii", no_argument, NULL, 'A' },
+	{ "attributes", required_argument, NULL, 't' },
+	{ "binary", no_argument, NULL, 'b' },
+	{ "delete", no_argument, NULL, 'D' },
+	{ "device", no_argument, NULL, 'd' },
+	{ "device-path", no_argument, NULL, 'd' },
+	{ "fromfile", required_argument, NULL, 'f' },
+	{ "guid", no_argument, NULL, 'g' }, { "hex", no_argument, NULL, 'H' },
+	{ "list-guids", no_argument, NULL, 'L' },
+	{ "list", no_argument, NULL, 'l' },
+	{ "load-option", no_argument, NULL, 'O' },
+	{ "name", required_argument, NULL, 'n' },
+	{ "no-name", no_argument, NULL, 'N' },
+	{ "print", no_argument, NULL, 'p' },
+	//	{ "print-decimal",	no_argument,		NULL,	'd' },
+	///* unimplemnted clash with linux version */
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "raw-guid", no_argument, NULL, 'R' },
+	{ "utf8", no_argument, NULL, 'u' }, { "write", no_argument, NULL, 'w' },
+	{ NULL, 0, NULL, 0 } };
 
-
-static bool aflag, Aflag, bflag, dflag, Dflag, gflag, Hflag, Nflag,
-	lflag, Lflag, Rflag, wflag, pflag, uflag, load_opt_flag, quiet;
+static bool aflag, Aflag, bflag, dflag, Dflag, gflag, Hflag, Nflag, lflag,
+    Lflag, Rflag, wflag, pflag, uflag, load_opt_flag, quiet;
 static char *varname;
 static char *fromfile;
-static u_long attrib = EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
+static u_long attrib = EFI_VARIABLE_NON_VOLATILE |
+    EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS;
 
 static void
 usage(void)
 {
 
-	errx(1, "efivar [-abdDHlLNpqRtuw] [-n name] [-f file] [--append] [--ascii]\n"
+	errx(1,
+	    "efivar [-abdDHlLNpqRtuw] [-n name] [-f file] [--append] [--ascii]\n"
 	    "\t[--attributes] [--binary] [--delete] [--fromfile file] [--hex]\n"
 	    "\t[--list-guids] [--list] [--load-option] [--name name] [--no-name]\n"
 	    "\t[--print] [--print-decimal] [--raw-guid] [--utf8] [--write]\n"
@@ -138,7 +138,7 @@ breakdown_name(char *name, efi_guid_t *guid, char **vname)
 static uint8_t *
 get_value(char *val, size_t *datalen)
 {
-	static char buffer[16*1024];
+	static char buffer[16 * 1024];
 
 	if (val != NULL) {
 		*datalen = strlen(val);
@@ -194,8 +194,8 @@ devpath_dump(uint8_t *data, size_t datalen)
 {
 	char buffer[1024];
 
-	efidp_format_device_path(buffer, sizeof(buffer),
-	    (const_efidp)data, datalen);
+	efidp_format_device_path(buffer, sizeof(buffer), (const_efidp)data,
+	    datalen);
 	if (!Nflag)
 		printf(": ");
 	printf("%s\n", buffer);
@@ -243,16 +243,17 @@ print_var(efi_guid_t *guid, char *name)
 				rep_errx(1, "empty file");
 			close(fd);
 		} else {
-			rv = efi_get_variable(*guid, name, &data, &datalen, &att);
+			rv = efi_get_variable(*guid, name, &data, &datalen,
+			    &att);
 			if (rv < 0)
 				rep_err(1, "fetching %s-%s", gname, name);
 		}
 
-
 		if (!Nflag)
 			printf("%s-%s\n", gname, name);
 		if (load_opt_flag)
-			efi_print_load_option(data, datalen, Aflag, bflag, uflag);
+			efi_print_load_option(data, datalen, Aflag, bflag,
+			    uflag);
 		else if (Aflag)
 			asciidump(data, datalen);
 		else if (uflag)
@@ -311,8 +312,8 @@ parse_args(int argc, char **argv)
 {
 	int ch, i;
 
-	while ((ch = getopt_long(argc, argv, "aAbdDf:gHlLNn:OpqRt:uw",
-		    longopts, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "aAbdDf:gHlLNn:OpqRt:uw", longopts,
+		    NULL)) != -1) {
 		switch (ch) {
 		case 'a':
 			aflag = true;
@@ -387,13 +388,13 @@ parse_args(int argc, char **argv)
 
 	if ((int)aflag + (int)Dflag + (int)wflag > 1) {
 		warnx("Can only use one of -a (--append), "
-		    "-D (--delete) and -w (--write)");
+		      "-D (--delete) and -w (--write)");
 		usage();
 	}
 
 	if ((int)aflag + (int)Dflag + (int)wflag > 0 && varname == NULL) {
 		warnx("Must specify a variable for -a (--append), "
-		    "-D (--delete) or -w (--write)");
+		      "-D (--delete) or -w (--write)");
 		usage();
 	}
 

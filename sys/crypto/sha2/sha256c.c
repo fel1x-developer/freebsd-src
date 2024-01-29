@@ -25,8 +25,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 
 #ifdef _KERNEL
 #include <sys/systm.h>
@@ -40,17 +40,18 @@
 
 #if defined(ARM64_SHA2)
 #include <sys/auxv.h>
+
 #include <machine/ifunc.h>
 #endif
 
 #if BYTE_ORDER == BIG_ENDIAN
 
 /* Copy a vector of big-endian uint32_t into a vector of bytes */
-#define be32enc_vect(dst, src, len)	\
+#define be32enc_vect(dst, src, len) \
 	memcpy((void *)dst, (const void *)src, (size_t)len)
 
 /* Copy a vector of bytes into a vector of big-endian uint32_t */
-#define be32dec_vect(dst, src, len)	\
+#define be32dec_vect(dst, src, len) \
 	memcpy((void *)dst, (const void *)src, (size_t)len)
 
 #else /* BYTE_ORDER != BIG_ENDIAN */
@@ -84,52 +85,45 @@ be32dec_vect(uint32_t *dst, const unsigned char *src, size_t len)
 #endif /* BYTE_ORDER != BIG_ENDIAN */
 
 /* SHA256 round constants. */
-static const uint32_t K[64] = {
-	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-	0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-	0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-	0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-	0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-	0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-	0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-	0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-	0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-	0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-	0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-	0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-	0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-};
+static const uint32_t K[64] = { 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+	0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+	0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa,
+	0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+	0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138,
+	0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+	0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624,
+	0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+	0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f,
+	0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+	0xc67178f2 };
 
 /* Elementary functions used by SHA256 */
-#define Ch(x, y, z)	((x & (y ^ z)) ^ z)
-#define Maj(x, y, z)	((x & (y | z)) | (y & z))
-#define SHR(x, n)	(x >> n)
-#define ROTR(x, n)	((x >> n) | (x << (32 - n)))
-#define S0(x)		(ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
-#define S1(x)		(ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))
-#define s0(x)		(ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3))
-#define s1(x)		(ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10))
+#define Ch(x, y, z) ((x & (y ^ z)) ^ z)
+#define Maj(x, y, z) ((x & (y | z)) | (y & z))
+#define SHR(x, n) (x >> n)
+#define ROTR(x, n) ((x >> n) | (x << (32 - n)))
+#define S0(x) (ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
+#define S1(x) (ROTR(x, 6) ^ ROTR(x, 11) ^ ROTR(x, 25))
+#define s0(x) (ROTR(x, 7) ^ ROTR(x, 18) ^ SHR(x, 3))
+#define s1(x) (ROTR(x, 17) ^ ROTR(x, 19) ^ SHR(x, 10))
 
 /* SHA256 round function */
-#define RND(a, b, c, d, e, f, g, h, k)			\
-	h += S1(e) + Ch(e, f, g) + k;			\
-	d += h;						\
+#define RND(a, b, c, d, e, f, g, h, k) \
+	h += S1(e) + Ch(e, f, g) + k;  \
+	d += h;                        \
 	h += S0(a) + Maj(a, b, c);
 
 /* Adjusted round function for rotating state */
-#define RNDr(S, W, i, ii)			\
-	RND(S[(64 - i) % 8], S[(65 - i) % 8],	\
-	    S[(66 - i) % 8], S[(67 - i) % 8],	\
-	    S[(68 - i) % 8], S[(69 - i) % 8],	\
-	    S[(70 - i) % 8], S[(71 - i) % 8],	\
-	    W[i + ii] + K[i + ii])
+#define RNDr(S, W, i, ii)                                      \
+	RND(S[(64 - i) % 8], S[(65 - i) % 8], S[(66 - i) % 8], \
+	    S[(67 - i) % 8], S[(68 - i) % 8], S[(69 - i) % 8], \
+	    S[(70 - i) % 8], S[(71 - i) % 8], W[i + ii] + K[i + ii])
 
 /* Message schedule computation */
-#define MSCH(W, ii, i)				\
-	W[i + ii + 16] = s1(W[i + ii + 14]) + W[i + ii + 9] + s0(W[i + ii + 1]) + W[i + ii]
+#define MSCH(W, ii, i)                                        \
+	W[i + ii + 16] = s1(W[i + ii + 14]) + W[i + ii + 9] + \
+	    s0(W[i + ii + 1]) + W[i + ii]
 
 /*
  * SHA256 block compression function.  The 256-bit state is transformed via
@@ -137,9 +131,9 @@ static const uint32_t K[64] = {
  */
 static void
 #if defined(ARM64_SHA2)
-SHA256_Transform_c(uint32_t * state, const unsigned char block[64])
+SHA256_Transform_c(uint32_t *state, const unsigned char block[64])
 #else
-SHA256_Transform(uint32_t * state, const unsigned char block[64])
+SHA256_Transform(uint32_t *state, const unsigned char block[64])
 #endif
 {
 	uint32_t W[64];
@@ -198,7 +192,7 @@ SHA256_Transform(uint32_t * state, const unsigned char block[64])
 
 #if defined(ARM64_SHA2)
 static void
-SHA256_Transform_arm64(uint32_t * state, const unsigned char block[64])
+SHA256_Transform_arm64(uint32_t *state, const unsigned char block[64])
 {
 	SHA256_Transform_arm64_impl(state, block, K);
 }
@@ -217,16 +211,14 @@ DEFINE_UIFUNC(static, void, SHA256_Transform,
 }
 #endif
 
-static unsigned char PAD[64] = {
-	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+static unsigned char PAD[64] = { 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0 };
 
 /* Add padding and terminating bit-count. */
 static void
-SHA256_Pad(SHA256_CTX * ctx)
+SHA256_Pad(SHA256_CTX *ctx)
 {
 	size_t r;
 
@@ -255,7 +247,7 @@ SHA256_Pad(SHA256_CTX * ctx)
 
 /* SHA-256 initialization.  Begins a SHA-256 operation. */
 void
-SHA256_Init(SHA256_CTX * ctx)
+SHA256_Init(SHA256_CTX *ctx)
 {
 
 	/* Zero bits processed so far */
@@ -274,7 +266,7 @@ SHA256_Init(SHA256_CTX * ctx)
 
 /* Add bytes into the hash */
 void
-SHA256_Update(SHA256_CTX * ctx, const void *in, size_t len)
+SHA256_Update(SHA256_CTX *ctx, const void *in, size_t len)
 {
 	uint64_t bitlen;
 	uint32_t r;
@@ -337,7 +329,7 @@ SHA256_Final(unsigned char digest[static SHA256_DIGEST_LENGTH], SHA256_CTX *ctx)
 
 /* SHA-224 initialization.  Begins a SHA-224 operation. */
 void
-SHA224_Init(SHA224_CTX * ctx)
+SHA224_Init(SHA224_CTX *ctx)
 {
 
 	/* Zero bits processed so far */
@@ -356,7 +348,7 @@ SHA224_Init(SHA224_CTX * ctx)
 
 /* Add bytes into the SHA-224 hash */
 void
-SHA224_Update(SHA224_CTX * ctx, const void *in, size_t len)
+SHA224_Update(SHA224_CTX *ctx, const void *in, size_t len)
 {
 
 	SHA256_Update((SHA256_CTX *)ctx, in, len);

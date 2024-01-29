@@ -27,10 +27,10 @@
  * SUCH DAMAGE.
  */
 
-#define	__fenv_static
-#include "fenv.h"
-
+#define __fenv_static
 #include <machine/acle-compat.h>
+
+#include "fenv.h"
 
 #if __ARM_ARCH >= 6
 #define FENV_ARMv6
@@ -41,7 +41,6 @@
 #define SOFTFP_ABI
 #endif
 
-
 #ifndef FENV_MANGLE
 /*
  * Hopefully the system ID byte is immutable, so it's valid to use
@@ -49,7 +48,6 @@
  */
 const fenv_t __fe_dfl_env = 0;
 #endif
-
 
 /* If this is a non-mangled softfp version special processing is required */
 #if defined(FENV_MANGLE) || !defined(SOFTFP_ABI) || !defined(FENV_ARMv6)
@@ -60,13 +58,11 @@ const fenv_t __fe_dfl_env = 0;
  * have rounding control bits, so we stick those in the system ID byte.
  */
 #ifndef __ARM_PCS_VFP
-#define	__set_env(env, flags, mask, rnd) env = ((flags)			\
-						| (mask)<<_FPUSW_SHIFT	\
-						| (rnd) << 24)
-#define	__env_flags(env)		((env) & FE_ALL_EXCEPT)
-#define	__env_mask(env)			(((env) >> _FPUSW_SHIFT)	\
-						& FE_ALL_EXCEPT)
-#define	__env_round(env)		(((env) >> 24) & _ROUND_MASK)
+#define __set_env(env, flags, mask, rnd) \
+	env = ((flags) | (mask) << _FPUSW_SHIFT | (rnd) << 24)
+#define __env_flags(env) ((env) & FE_ALL_EXCEPT)
+#define __env_mask(env) (((env) >> _FPUSW_SHIFT) & FE_ALL_EXCEPT)
+#define __env_round(env) (((env) >> 24) & _ROUND_MASK)
 #include "fenv-softfloat.h"
 #endif
 
@@ -157,7 +153,8 @@ __softfp_round_from_vfp(int round)
 	}
 }
 
-int feclearexcept(int __excepts)
+int
+feclearexcept(int __excepts)
 {
 
 	if (_libc_arm_fpu_present)
@@ -167,7 +164,8 @@ int feclearexcept(int __excepts)
 	return (0);
 }
 
-int fegetexceptflag(fexcept_t *__flagp, int __excepts)
+int
+fegetexceptflag(fexcept_t *__flagp, int __excepts)
 {
 	fexcept_t __vfp_flagp;
 
@@ -181,7 +179,8 @@ int fegetexceptflag(fexcept_t *__flagp, int __excepts)
 	return (0);
 }
 
-int fesetexceptflag(const fexcept_t *__flagp, int __excepts)
+int
+fesetexceptflag(const fexcept_t *__flagp, int __excepts)
 {
 
 	if (_libc_arm_fpu_present)
@@ -191,7 +190,8 @@ int fesetexceptflag(const fexcept_t *__flagp, int __excepts)
 	return (0);
 }
 
-int feraiseexcept(int __excepts)
+int
+feraiseexcept(int __excepts)
 {
 
 	if (_libc_arm_fpu_present)
@@ -201,7 +201,8 @@ int feraiseexcept(int __excepts)
 	return (0);
 }
 
-int fetestexcept(int __excepts)
+int
+fetestexcept(int __excepts)
 {
 	int __got_excepts;
 
@@ -213,7 +214,8 @@ int fetestexcept(int __excepts)
 	return (__got_excepts);
 }
 
-int fegetround(void)
+int
+fegetround(void)
 {
 
 	if (_libc_arm_fpu_present)
@@ -221,7 +223,8 @@ int fegetround(void)
 	return __softfp_fegetround();
 }
 
-int fesetround(int __round)
+int
+fesetround(int __round)
 {
 
 	if (_libc_arm_fpu_present)
@@ -231,7 +234,8 @@ int fesetround(int __round)
 	return (0);
 }
 
-int fegetenv(fenv_t *__envp)
+int
+fegetenv(fenv_t *__envp)
 {
 	fenv_t __vfp_envp;
 
@@ -244,7 +248,8 @@ int fegetenv(fenv_t *__envp)
 	return (0);
 }
 
-int feholdexcept(fenv_t *__envp)
+int
+feholdexcept(fenv_t *__envp)
 {
 	fenv_t __vfp_envp;
 
@@ -257,7 +262,8 @@ int feholdexcept(fenv_t *__envp)
 	return (0);
 }
 
-int fesetenv(const fenv_t *__envp)
+int
+fesetenv(const fenv_t *__envp)
 {
 
 	if (_libc_arm_fpu_present)
@@ -267,7 +273,8 @@ int fesetenv(const fenv_t *__envp)
 	return (0);
 }
 
-int feupdateenv(const fenv_t *__envp)
+int
+feupdateenv(const fenv_t *__envp)
 {
 
 	if (_libc_arm_fpu_present)
@@ -277,7 +284,8 @@ int feupdateenv(const fenv_t *__envp)
 	return (0);
 }
 
-int feenableexcept(int __mask)
+int
+feenableexcept(int __mask)
 {
 	int __unmasked;
 
@@ -289,7 +297,8 @@ int feenableexcept(int __mask)
 	return (__unmasked);
 }
 
-int fedisableexcept(int __mask)
+int
+fedisableexcept(int __mask)
 {
 	int __unmasked;
 
@@ -301,7 +310,8 @@ int fedisableexcept(int __mask)
 	return (__unmasked);
 }
 
-int fegetexcept(void)
+int
+fegetexcept(void)
 {
 	int __unmasked;
 
@@ -314,4 +324,3 @@ int fegetexcept(void)
 }
 
 #endif
-

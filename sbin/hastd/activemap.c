@@ -29,52 +29,51 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>	/* powerof2() */
+#include <sys/param.h> /* powerof2() */
 #include <sys/queue.h>
 
 #include <bitstring.h>
 #include <errno.h>
+#include <pjdlog.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <pjdlog.h>
-
 #include "activemap.h"
 
-#ifndef	PJDLOG_ASSERT
+#ifndef PJDLOG_ASSERT
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
-#define	ACTIVEMAP_MAGIC	0xac71e4
+#define ACTIVEMAP_MAGIC 0xac71e4
 struct activemap {
-	int		 am_magic;	/* Magic value. */
-	off_t		 am_mediasize;	/* Media size in bytes. */
-	uint32_t	 am_extentsize;	/* Extent size in bytes,
-					   must be power of 2. */
-	uint8_t		 am_extentshift;/* 2 ^ extentbits == extentsize */
-	int		 am_nextents;	/* Number of extents. */
-	size_t		 am_mapsize;	/* Bitmap size in bytes. */
-	uint16_t	*am_memtab;	/* An array that holds number of pending
-					   writes per extent. */
-	bitstr_t	*am_diskmap;	/* On-disk bitmap of dirty extents. */
-	bitstr_t	*am_memmap;	/* In-memory bitmap of dirty extents. */
-	size_t		 am_diskmapsize; /* Map size rounded up to sector size. */
-	uint64_t	 am_ndirty;	/* Number of dirty regions. */
-	bitstr_t	*am_syncmap;	/* Bitmap of extents to sync. */
-	off_t		 am_syncoff;	/* Next synchronization offset. */
+	int am_magic;		/* Magic value. */
+	off_t am_mediasize;	/* Media size in bytes. */
+	uint32_t am_extentsize; /* Extent size in bytes,
+				   must be power of 2. */
+	uint8_t am_extentshift; /* 2 ^ extentbits == extentsize */
+	int am_nextents;	/* Number of extents. */
+	size_t am_mapsize;	/* Bitmap size in bytes. */
+	uint16_t *am_memtab;	/* An array that holds number of pending
+				   writes per extent. */
+	bitstr_t *am_diskmap;	/* On-disk bitmap of dirty extents. */
+	bitstr_t *am_memmap;	/* In-memory bitmap of dirty extents. */
+	size_t am_diskmapsize;	/* Map size rounded up to sector size. */
+	uint64_t am_ndirty;	/* Number of dirty regions. */
+	bitstr_t *am_syncmap;	/* Bitmap of extents to sync. */
+	off_t am_syncoff;	/* Next synchronization offset. */
 	TAILQ_HEAD(skeepdirty, keepdirty) am_keepdirty; /* List of extents that
 					   we keep dirty to reduce bitmap
 					   updates. */
-	int		 am_nkeepdirty;	/* Number of am_keepdirty elements. */
-	int		 am_nkeepdirty_limit; /* Maximum number of am_keepdirty
-					         elements. */
+	int am_nkeepdirty;	 /* Number of am_keepdirty elements. */
+	int am_nkeepdirty_limit; /* Maximum number of am_keepdirty
+				    elements. */
 };
 
 struct keepdirty {
-	int	kd_extent;
+	int kd_extent;
 	TAILQ_ENTRY(keepdirty) kd_next;
 };
 
@@ -203,7 +202,7 @@ keepdirty_find(struct activemap *amp, int extent)
 {
 	struct keepdirty *kd;
 
-	TAILQ_FOREACH(kd, &amp->am_keepdirty, kd_next) {
+	TAILQ_FOREACH (kd, &amp->am_keepdirty, kd_next) {
 		if (kd->kd_extent == extent)
 			break;
 	}
@@ -252,7 +251,7 @@ keepdirty_fill(struct activemap *amp)
 {
 	struct keepdirty *kd;
 
-	TAILQ_FOREACH(kd, &amp->am_keepdirty, kd_next)
+	TAILQ_FOREACH (kd, &amp->am_keepdirty, kd_next)
 		bit_set(amp->am_diskmap, kd->kd_extent);
 }
 
@@ -410,8 +409,7 @@ activemap_differ(const struct activemap *amp)
 
 	PJDLOG_ASSERT(amp->am_magic == ACTIVEMAP_MAGIC);
 
-	return (memcmp(amp->am_diskmap, amp->am_memmap,
-	    amp->am_mapsize) != 0);
+	return (memcmp(amp->am_diskmap, amp->am_memmap, amp->am_mapsize) != 0);
 }
 
 /*
@@ -597,8 +595,8 @@ activemap_sync_offset(struct activemap *amp, off_t *lengthp, int *syncextp)
 
 	if (amp->am_syncoff >= 0 &&
 	    (amp->am_syncoff + MAXPHYS >= amp->am_mediasize ||
-	     off2ext(amp, amp->am_syncoff) !=
-	     off2ext(amp, amp->am_syncoff + MAXPHYS))) {
+		off2ext(amp, amp->am_syncoff) !=
+		    off2ext(amp, amp->am_syncoff + MAXPHYS))) {
 		/*
 		 * We are about to change extent, so mark previous one as clean.
 		 */
@@ -630,8 +628,8 @@ activemap_sync_offset(struct activemap *amp, off_t *lengthp, int *syncextp)
 	}
 
 	syncoff = amp->am_syncoff;
-	left = ext2off(amp, off2ext(amp, syncoff)) +
-	    amp->am_extentsize - syncoff;
+	left = ext2off(amp, off2ext(amp, syncoff)) + amp->am_extentsize -
+	    syncoff;
 	if (syncoff + left > amp->am_mediasize)
 		left = amp->am_mediasize - syncoff;
 	if (left > MAXPHYS)
@@ -639,8 +637,8 @@ activemap_sync_offset(struct activemap *amp, off_t *lengthp, int *syncextp)
 
 	PJDLOG_ASSERT(left >= 0 && left <= MAXPHYS);
 	PJDLOG_ASSERT(syncoff >= 0 && syncoff < amp->am_mediasize);
-	PJDLOG_ASSERT(syncoff + left >= 0 &&
-	    syncoff + left <= amp->am_mediasize);
+	PJDLOG_ASSERT(
+	    syncoff + left >= 0 && syncoff + left <= amp->am_mediasize);
 
 	*lengthp = left;
 	return (syncoff);

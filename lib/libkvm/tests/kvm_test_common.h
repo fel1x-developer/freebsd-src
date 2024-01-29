@@ -23,15 +23,16 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__KVM_TEST_COMMON_H__
+#ifndef __KVM_TEST_COMMON_H__
 
 #include <sys/types.h>
+
 #include <limits.h>
 #include <stdbool.h>
 
-extern char	errbuf[_POSIX2_LINE_MAX];
+extern char errbuf[_POSIX2_LINE_MAX];
 
-void	errbuf_clear(void);
-bool	errbuf_has_error(const char *);
+void errbuf_clear(void);
+bool errbuf_has_error(const char *);
 
 #endif

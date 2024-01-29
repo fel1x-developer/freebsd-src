@@ -29,28 +29,28 @@
 struct bundle;
 
 struct server {
-  struct fdescriptor desc;
-  int fd;
+	struct fdescriptor desc;
+	int fd;
 
-  struct {
-    char passwd[50];
+	struct {
+		char passwd[50];
 
-    char sockname[PATH_MAX];		/* Points to local socket path */
-    mode_t mask;
+		char sockname[PATH_MAX]; /* Points to local socket path */
+		mode_t mask;
 
-    u_short port;			/* tcp socket */
-  } cfg;
+		u_short port; /* tcp socket */
+	} cfg;
 };
 
 enum server_stat {
-  SERVER_OK,				/* Diagnostic socket available */
-  SERVER_INVALID,			/* Bad args, can't be set up */
-  SERVER_FAILED,			/* Failed - lack of resources */
-  SERVER_UNSET				/* Not already set up */
+	SERVER_OK,	/* Diagnostic socket available */
+	SERVER_INVALID, /* Bad args, can't be set up */
+	SERVER_FAILED,	/* Failed - lack of resources */
+	SERVER_UNSET	/* Not already set up */
 };
 
 #define descriptor2server(d) \
-  ((d)->type == SERVER_DESCRIPTOR ? (struct server *)(d) : NULL)
+	((d)->type == SERVER_DESCRIPTOR ? (struct server *)(d) : NULL)
 
 extern struct server server;
 

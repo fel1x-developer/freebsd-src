@@ -31,31 +31,30 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <util.h>
 
 #include "zfs.h"
 
-#define	DNODES_PER_CHUNK	(MAXBLOCKSIZE / sizeof(dnode_phys_t))
+#define DNODES_PER_CHUNK (MAXBLOCKSIZE / sizeof(dnode_phys_t))
 
 struct objset_dnode_chunk {
-	dnode_phys_t	buf[DNODES_PER_CHUNK];
-	unsigned int	nextfree;
+	dnode_phys_t buf[DNODES_PER_CHUNK];
+	unsigned int nextfree;
 	STAILQ_ENTRY(objset_dnode_chunk) next;
 };
 
 typedef struct zfs_objset {
 	/* Physical object set. */
-	objset_phys_t	*phys;
-	off_t		osloc;
-	off_t		osblksz;
-	blkptr_t	osbp;		/* set in objset_write() */
+	objset_phys_t *phys;
+	off_t osloc;
+	off_t osblksz;
+	blkptr_t osbp; /* set in objset_write() */
 
 	/* Accounting. */
-	off_t		space;		/* bytes allocated to this objset */
+	off_t space; /* bytes allocated to this objset */
 
 	/* dnode allocator. */
-	uint64_t	dnodecount;
+	uint64_t dnodecount;
 	STAILQ_HEAD(, objset_dnode_chunk) dnodechunks;
 } zfs_objset_t;
 
@@ -97,8 +96,8 @@ objset_alloc(zfs_opt_t *zfs, uint64_t type)
 	os->phys->os_type = type;
 
 	dnode_init(&os->phys->os_meta_dnode, DMU_OT_DNODE, DMU_OT_NONE, 0);
-	os->phys->os_meta_dnode.dn_datablkszsec =
-	    DNODE_BLOCK_SIZE >> MINBLOCKSHIFT;
+	os->phys->os_meta_dnode.dn_datablkszsec = DNODE_BLOCK_SIZE >>
+	    MINBLOCKSHIFT;
 
 	return (os);
 }
@@ -118,7 +117,7 @@ _objset_write(zfs_opt_t *zfs, zfs_objset_t *os, struct dnode_cursor *c,
 	 * data blocks must be 16KB in size no matter how large the array is.
 	 */
 	total = 0;
-	STAILQ_FOREACH_SAFE(chunk, &os->dnodechunks, next, tmp) {
+	STAILQ_FOREACH_SAFE (chunk, &os->dnodechunks, next, tmp) {
 		unsigned int i;
 
 		assert(chunk->nextfree > 0);
@@ -230,7 +229,7 @@ objset_dnode_lookup(zfs_objset_t *os, uint64_t id)
 	assert(id > 0);
 	assert(id < os->dnodecount);
 
-	STAILQ_FOREACH(chunk, &os->dnodechunks, next) {
+	STAILQ_FOREACH (chunk, &os->dnodechunks, next) {
 		if (id < DNODES_PER_CHUNK)
 			return (&chunk->buf[id]);
 		id -= DNODES_PER_CHUNK;

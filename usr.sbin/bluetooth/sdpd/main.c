@@ -32,32 +32,34 @@
 
 #include <sys/select.h>
 #define L2CAP_SOCKET_CHECKED
+#include <sys/queue.h>
+
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <bluetooth.h>
 #include <errno.h>
 #include <grp.h>
 #include <pwd.h>
-#include <signal.h>
 #include <sdp.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "log.h"
-#include "server.h"
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/queue.h>
+#include "log.h"
 #include "profile.h"
 #include "provider.h"
+#include "server.h"
 
-#define	SDPD			"sdpd"
+#define SDPD "sdpd"
 
-static int32_t 	drop_root	(char const *user, char const *group);
-static void	sighandler	(int32_t s);
-static void	usage		(void);
+static int32_t drop_root(char const *user, char const *group);
+static void sighandler(int32_t s);
+static void usage(void);
 
-static int32_t	done;
+static int32_t done;
 
 /*
  * Bluetooth Service Discovery Procotol (SDP) daemon
@@ -66,11 +68,11 @@ static int32_t	done;
 int
 main(int argc, char *argv[])
 {
-	server_t		 server;
-	char const		*control = SDP_LOCAL_PATH;
-	char const		*user = "nobody", *group = "nobody";
-	int32_t			 detach = 1, opt;
-	struct sigaction	 sa;
+	server_t server;
+	char const *control = SDP_LOCAL_PATH;
+	char const *user = "nobody", *group = "nobody";
+	int32_t detach = 1, opt;
+	struct sigaction sa;
 
 	while ((opt = getopt(argc, argv, "c:dg:hu:")) != -1) {
 		switch (opt) {
@@ -101,8 +103,8 @@ main(int argc, char *argv[])
 
 	/* Become daemon if required */
 	if (detach && daemon(0, 0) < 0) {
-		log_crit("Could not become daemon. %s (%d)",
-			strerror(errno), errno);
+		log_crit("Could not become daemon. %s (%d)", strerror(errno),
+		    errno);
 		exit(1);
 	}
 
@@ -111,17 +113,17 @@ main(int argc, char *argv[])
 	sa.sa_handler = sighandler;
 
 	if (sigaction(SIGTERM, &sa, NULL) < 0 ||
-	    sigaction(SIGHUP,  &sa, NULL) < 0 ||
-	    sigaction(SIGINT,  &sa, NULL) < 0) {
+	    sigaction(SIGHUP, &sa, NULL) < 0 ||
+	    sigaction(SIGINT, &sa, NULL) < 0) {
 		log_crit("Could not install signal handlers. %s (%d)",
-			strerror(errno), errno); 
+		    strerror(errno), errno);
 		exit(1);
 	}
 
 	sa.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &sa, NULL) < 0) {
 		log_crit("Could not install signal handlers. %s (%d)",
-			strerror(errno), errno); 
+		    strerror(errno), errno);
 		exit(1);
 	}
 
@@ -132,9 +134,9 @@ main(int argc, char *argv[])
 	if ((user != NULL || group != NULL) && drop_root(user, group) < 0)
 		exit(1);
 
-	for (done = 0; !done; ) {
+	for (done = 0; !done;) {
 		if (server_do(&server) != 0)
-			done ++;
+			done++;
 	}
 
 	server_shutdown(&server);
@@ -150,8 +152,8 @@ main(int argc, char *argv[])
 static int32_t
 drop_root(char const *user, char const *group)
 {
-	int	 uid, gid;
-	char	*ep;
+	int uid, gid;
+	char *ep;
 
 	if ((uid = getuid()) != 0) {
 		log_notice("Cannot set uid/gid. Not a superuser");
@@ -163,11 +165,12 @@ drop_root(char const *user, char const *group)
 	if (user != NULL) {
 		uid = strtol(user, &ep, 10);
 		if (*ep != '\0') {
-			struct passwd	*pwd = getpwnam(user);
+			struct passwd *pwd = getpwnam(user);
 
 			if (pwd == NULL) {
-				log_err("Could not find passwd entry for " \
-					"user %s", user);
+				log_err("Could not find passwd entry for "
+					"user %s",
+				    user);
 				return (-1);
 			}
 
@@ -178,11 +181,12 @@ drop_root(char const *user, char const *group)
 	if (group != NULL) {
 		gid = strtol(group, &ep, 10);
 		if (*ep != '\0') {
-			struct group	*grp = getgrnam(group);
+			struct group *grp = getgrnam(group);
 
 			if (grp == NULL) {
-				log_err("Could not find group entry for " \
-					"group %s", group);
+				log_err("Could not find group entry for "
+					"group %s",
+				    group);
 				return (-1);
 			}
 
@@ -191,14 +195,14 @@ drop_root(char const *user, char const *group)
 	}
 
 	if (setgid(gid) < 0) {
-		log_err("Could not setgid(%s). %s (%d)",
-			group, strerror(errno), errno);
+		log_err("Could not setgid(%s). %s (%d)", group, strerror(errno),
+		    errno);
 		return (-1);
 	}
 
 	if (setuid(uid) < 0) {
-		log_err("Could not setuid(%s). %s (%d)",
-			user, strerror(errno), errno);
+		log_err("Could not setuid(%s). %s (%d)", user, strerror(errno),
+		    errno);
 		return (-1);
 	}
 
@@ -212,8 +216,8 @@ drop_root(char const *user, char const *group)
 static void
 sighandler(int32_t s)
 {
-	log_notice("Got signal %d. Total number of signals received %d",
-		s, ++ done);
+	log_notice("Got signal %d. Total number of signals received %d", s,
+	    ++done);
 }
 
 /*
@@ -224,14 +228,13 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-"Usage: %s [options]\n" \
-"Where options are:\n" \
-"	-c	specify control socket name (default %s)\n" \
-"	-d	do not detach (run in foreground)\n" \
-"	-g grp	specify group\n" \
-"	-h	display usage and exit\n" \
-"	-u usr	specify user\n",
-		SDPD, SDP_LOCAL_PATH);
+	    "Usage: %s [options]\n"
+	    "Where options are:\n"
+	    "	-c	specify control socket name (default %s)\n"
+	    "	-d	do not detach (run in foreground)\n"
+	    "	-g grp	specify group\n"
+	    "	-h	display usage and exit\n"
+	    "	-u usr	specify user\n",
+	    SDPD, SDP_LOCAL_PATH);
 	exit(255);
 }
-

@@ -18,9 +18,9 @@
 #ifndef ICP_ACCEL_DEVICES_H_
 #define ICP_ACCEL_DEVICES_H_
 
+#include "adf_accel_devices.h"
 #include "cpa.h"
 #include "qat_utils.h"
-#include "adf_accel_devices.h"
 
 #define ADF_CFG_NO_INSTANCE 0xFFFFFFFF
 
@@ -115,7 +115,7 @@ typedef enum adf_service_type_s {
 typedef struct accel_dev_s {
 	/* Some generic information */
 	Cpa32U accelId;
-	Cpa8U *pAccelName;	/* Name given to accelerator */
+	Cpa8U *pAccelName;	  /* Name given to accelerator */
 	Cpa32U aeMask;		  /* Acceleration Engine mask */
 	device_type_t deviceType; /* Device Type              */
 	/* Device name for SAL */
@@ -127,12 +127,12 @@ typedef struct accel_dev_s {
 				     shutting down the dev if not 0*/
 	Cpa32U deviceMemAvail; /* Device memory for intermediate buffers */
 	/* Component specific fields - cast to relevent layer */
-	void *pRingInflight;       /* For offload optimization */
-	void *pSalHandle;	  /* For SAL*/
+	void *pRingInflight;	   /* For offload optimization */
+	void *pSalHandle;	   /* For SAL*/
 	void *pQatStats;	   /* For QATAL/SAL stats */
-	void *ringInfoCallBack;    /* Callback for user space
+	void *ringInfoCallBack;	   /* Callback for user space
 				      ring enabling */
-	void *pShramConstants;     /* Virtual address of Shram constants page */
+	void *pShramConstants;	   /* Virtual address of Shram constants page */
 	Cpa64U pShramConstantsDma; /* Bus address of Shram constants page */
 
 	/* Status of ADF and registered subsystems */

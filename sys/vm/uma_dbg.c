@@ -32,26 +32,26 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bitset.h>
 #include <sys/kernel.h>
-#include <sys/types.h>
-#include <sys/queue.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
 
 #include <vm/vm.h>
+#include <vm/memguard.h>
+#include <vm/uma.h>
+#include <vm/uma_dbg.h>
+#include <vm/uma_int.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
-#include <vm/uma.h>
-#include <vm/uma_int.h>
-#include <vm/uma_dbg.h>
-#include <vm/memguard.h>
 
 #include <machine/stack.h>
 
@@ -84,8 +84,8 @@ trash_ctor(void *mem, int size, void *arg, int flags)
 
 dopanic:
 	off = (uintptr_t)p - (uintptr_t)mem;
-	panic("Memory modified after free %p (%d, %s) + %d = %lx\n",
-	    mem, size, zone ? zone->uz_name : "", off,  *p);
+	panic("Memory modified after free %p (%d, %s) + %d = %lx\n", mem, size,
+	    zone ? zone->uz_name : "", off, *p);
 	return (0);
 }
 
@@ -169,12 +169,13 @@ dopanic:
 #ifdef INKERNEL
 	    && INKERNEL((uintptr_t)*ksp)
 #endif
-	    ) {
+	) {
 		/*
 		 * If *ksp is corrupted we may be unable to panic clean,
 		 * so print what we have reliably while we still can.
 		 */
-		printf("Memory modified after free %p (%d, %s, %p) + %d = %lx\n",
+		printf(
+		    "Memory modified after free %p (%d, %s, %p) + %d = %lx\n",
 		    mem, osize, zone ? zone->uz_name : "", *ksp, off, *p);
 		panic("Memory modified after free %p (%d, %s, %s) + %d = %lx\n",
 		    mem, osize, zone ? zone->uz_name : "", (*ksp)->ks_shortdesc,

@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * malloc.c (Caltech) 2/21/82
  * Chris Kingsley, kingsley@cit-20.
@@ -42,8 +41,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/mman.h>
+#include <sys/sysctl.h>
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -51,16 +51,16 @@
 #include <unistd.h>
 #ifdef IN_RTLD
 #include "rtld.h"
-#include "rtld_printf.h"
 #include "rtld_paths.h"
+#include "rtld_printf.h"
 #endif
 #include "rtld_malloc.h"
 
 /*
  * Pre-allocate mmap'ed pages
  */
-#define	NPOOLPAGES	(128*1024/pagesz)
-static caddr_t		pagepool_start, pagepool_end;
+#define NPOOLPAGES (128 * 1024 / pagesz)
+static caddr_t pagepool_start, pagepool_end;
 
 /*
  * The overhead on a block is at least 4 bytes.  When free, this space
@@ -68,33 +68,33 @@ static caddr_t		pagepool_start, pagepool_end;
  * be zero.  When in use, the first byte is set to MAGIC, and the second
  * byte is the size index.  The remaining bytes are for alignment.
  */
-union	overhead {
-	union	overhead *ov_next;	/* when free */
+union overhead {
+	union overhead *ov_next; /* when free */
 	struct {
-		uint16_t ovu_index;	/* bucket # */
-		uint8_t ovu_magic;	/* magic number */
+		uint16_t ovu_index; /* bucket # */
+		uint8_t ovu_magic;  /* magic number */
 	} ovu;
-#define	ov_magic	ovu.ovu_magic
-#define	ov_index	ovu.ovu_index
+#define ov_magic ovu.ovu_magic
+#define ov_index ovu.ovu_index
 };
 
 static void morecore(int bucket);
 static int morepages(int n);
 
-#define	MAGIC		0xef		/* magic # on accounting info */
-#define	AMAGIC		0xdf		/* magic # for aligned alloc */
+#define MAGIC 0xef  /* magic # on accounting info */
+#define AMAGIC 0xdf /* magic # for aligned alloc */
 
 /*
  * nextf[i] is the pointer to the next free block of size
  * (FIRST_BUCKET_SIZE << i).  The overhead information precedes the data
  * area returned to the user.
  */
-#define	LOW_BITS		3
-#define	FIRST_BUCKET_SIZE	(1U << LOW_BITS)
-#define	NBUCKETS 30
-static	union overhead *nextf[NBUCKETS];
+#define LOW_BITS 3
+#define FIRST_BUCKET_SIZE (1U << LOW_BITS)
+#define NBUCKETS 30
+static union overhead *nextf[NBUCKETS];
 
-static	int pagesz;			/* page size */
+static int pagesz; /* page size */
 
 /*
  * The array of supported page sizes is provided by the user, i.e., the
@@ -139,16 +139,16 @@ __crt_malloc(size_t nbytes)
 	 * If nothing in hash bucket right now,
 	 * request more memory from the system.
 	 */
-  	if ((op = nextf[bucket]) == NULL) {
-  		morecore(bucket);
-  		if ((op = nextf[bucket]) == NULL)
-  			return (NULL);
+	if ((op = nextf[bucket]) == NULL) {
+		morecore(bucket);
+		if ((op = nextf[bucket]) == NULL)
+			return (NULL);
 	}
 	/* remove from linked list */
-  	nextf[bucket] = op->ov_next;
+	nextf[bucket] = op->ov_next;
 	op->ov_magic = MAGIC;
 	op->ov_index = bucket;
-  	return ((char *)(op + 1));
+	return ((char *)(op + 1));
 }
 
 void *
@@ -196,14 +196,14 @@ static void
 morecore(int bucket)
 {
 	union overhead *op;
-	int sz;		/* size of desired block */
-  	int amt;			/* amount to allocate */
-  	int nblks;			/* how many blocks we get */
+	int sz;	   /* size of desired block */
+	int amt;   /* amount to allocate */
+	int nblks; /* how many blocks we get */
 
 	sz = FIRST_BUCKET_SIZE << bucket;
 	if (sz < pagesz) {
 		amt = pagesz;
-  		nblks = amt / sz;
+		nblks = amt / sz;
 	} else {
 		amt = sz;
 		nblks = 1;
@@ -220,11 +220,11 @@ morecore(int bucket)
 	 * Add new memory allocated to that on
 	 * free list for this hash bucket.
 	 */
-  	nextf[bucket] = op;
-  	while (--nblks > 0) {
+	nextf[bucket] = op;
+	while (--nblks > 0) {
 		op->ov_next = (union overhead *)((caddr_t)op + sz);
 		op = (union overhead *)((caddr_t)op + sz);
-  	}
+	}
 }
 
 void
@@ -234,17 +234,17 @@ __crt_free(void *cp)
 	void *opx;
 	int size;
 
-  	if (cp == NULL)
-  		return;
+	if (cp == NULL)
+		return;
 	opx = cp2op(cp);
 	memcpy(&op1, opx, sizeof(op1));
 	op = op1.ov_magic == AMAGIC ? (void *)((caddr_t)cp - op1.ov_index) :
-	    opx;
+				      opx;
 	if (op->ov_magic != MAGIC)
-		return;				/* sanity */
-  	size = op->ov_index;
-	op->ov_next = nextf[size];	/* also clobbers ov_magic */
-  	nextf[size] = op;
+		return; /* sanity */
+	size = op->ov_index;
+	op->ov_next = nextf[size]; /* also clobbers ov_magic */
+	nextf[size] = op;
 }
 
 void *
@@ -253,13 +253,13 @@ __crt_realloc(void *cp, size_t nbytes)
 	u_int onb;
 	int i;
 	union overhead *op;
-  	char *res;
+	char *res;
 
-  	if (cp == NULL)
+	if (cp == NULL)
 		return (__crt_malloc(nbytes));
 	op = cp2op(cp);
 	if (op->ov_magic != MAGIC)
-		return (NULL);	/* Double-free or bad argument */
+		return (NULL); /* Double-free or bad argument */
 	i = op->ov_index;
 	onb = 1 << (i + 3);
 	if (onb < (u_int)pagesz)
@@ -276,39 +276,41 @@ __crt_realloc(void *cp, size_t nbytes)
 	}
 	if (nbytes <= onb && nbytes > (size_t)i)
 		return (cp);
-  	if ((res = __crt_malloc(nbytes)) == NULL)
+	if ((res = __crt_malloc(nbytes)) == NULL)
 		return (NULL);
 	bcopy(cp, res, (nbytes < onb) ? nbytes : onb);
 	__crt_free(cp);
-  	return (res);
+	return (res);
 }
 
 static int
 morepages(int n)
 {
-	caddr_t	addr;
+	caddr_t addr;
 	int offset;
 
 	if (pagepool_end - pagepool_start > pagesz) {
 		addr = roundup2(pagepool_start, pagesz);
 		if (munmap(addr, pagepool_end - addr) != 0) {
 #ifdef IN_RTLD
-			rtld_fdprintf(STDERR_FILENO, _BASENAME_RTLD ": "
-			    "morepages: cannot munmap %p: %s\n",
+			rtld_fdprintf(STDERR_FILENO,
+			    _BASENAME_RTLD ": "
+					   "morepages: cannot munmap %p: %s\n",
 			    addr, rtld_strerror(errno));
 #endif
 		}
 	}
 
-	offset = (uintptr_t)pagepool_start - rounddown2(
-	    (uintptr_t)pagepool_start, pagesz);
+	offset = (uintptr_t)pagepool_start -
+	    rounddown2((uintptr_t)pagepool_start, pagesz);
 
 	addr = mmap(0, n * pagesz, PROT_READ | PROT_WRITE,
 	    MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (addr == MAP_FAILED) {
 #ifdef IN_RTLD
-		rtld_fdprintf(STDERR_FILENO, _BASENAME_RTLD ": morepages: "
-		    "cannot mmap anonymous memory: %s\n",
+		rtld_fdprintf(STDERR_FILENO,
+		    _BASENAME_RTLD ": morepages: "
+				   "cannot mmap anonymous memory: %s\n",
 		    rtld_strerror(errno));
 #endif
 		pagepool_start = pagepool_end = NULL;

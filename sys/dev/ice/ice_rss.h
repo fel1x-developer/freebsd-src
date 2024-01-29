@@ -58,23 +58,21 @@ CTASSERT(ICE_AQC_GET_SET_RSS_KEY_DATA_RSS_KEY_SIZE >= RSS_KEYSIZE);
  * The RSS hash configuration will be set to suitable defaults.
  */
 
-#define	RSS_HASHTYPE_RSS_IPV4		(1 << 1)	/* IPv4 2-tuple */
-#define	RSS_HASHTYPE_RSS_TCP_IPV4	(1 << 2)	/* TCPv4 4-tuple */
-#define	RSS_HASHTYPE_RSS_IPV6		(1 << 3)	/* IPv6 2-tuple */
-#define	RSS_HASHTYPE_RSS_TCP_IPV6	(1 << 4)	/* TCPv6 4-tuple */
-#define	RSS_HASHTYPE_RSS_IPV6_EX	(1 << 5)	/* IPv6 2-tuple + ext hdrs */
-#define	RSS_HASHTYPE_RSS_TCP_IPV6_EX	(1 << 6)	/* TCPv6 4-tiple + ext hdrs */
-#define	RSS_HASHTYPE_RSS_UDP_IPV4	(1 << 7)	/* IPv4 UDP 4-tuple */
-#define	RSS_HASHTYPE_RSS_UDP_IPV6	(1 << 9)	/* IPv6 UDP 4-tuple */
-#define	RSS_HASHTYPE_RSS_UDP_IPV6_EX	(1 << 10)	/* IPv6 UDP 4-tuple + ext hdrs */
+#define RSS_HASHTYPE_RSS_IPV4 (1 << 1)	       /* IPv4 2-tuple */
+#define RSS_HASHTYPE_RSS_TCP_IPV4 (1 << 2)     /* TCPv4 4-tuple */
+#define RSS_HASHTYPE_RSS_IPV6 (1 << 3)	       /* IPv6 2-tuple */
+#define RSS_HASHTYPE_RSS_TCP_IPV6 (1 << 4)     /* TCPv6 4-tuple */
+#define RSS_HASHTYPE_RSS_IPV6_EX (1 << 5)      /* IPv6 2-tuple + ext hdrs */
+#define RSS_HASHTYPE_RSS_TCP_IPV6_EX (1 << 6)  /* TCPv6 4-tiple + ext hdrs */
+#define RSS_HASHTYPE_RSS_UDP_IPV4 (1 << 7)     /* IPv4 UDP 4-tuple */
+#define RSS_HASHTYPE_RSS_UDP_IPV6 (1 << 9)     /* IPv6 UDP 4-tuple */
+#define RSS_HASHTYPE_RSS_UDP_IPV6_EX (1 << 10) /* IPv6 UDP 4-tuple + ext hdrs \
+						*/
 
-#define ICE_DEFAULT_RSS_HASH_CONFIG \
-	((u_int)(RSS_HASHTYPE_RSS_IPV4 | \
-		 RSS_HASHTYPE_RSS_TCP_IPV4 | \
-		 RSS_HASHTYPE_RSS_UDP_IPV4 | \
-		 RSS_HASHTYPE_RSS_IPV6 | \
-		 RSS_HASHTYPE_RSS_TCP_IPV6 | \
-		 RSS_HASHTYPE_RSS_UDP_IPV6))
+#define ICE_DEFAULT_RSS_HASH_CONFIG                                  \
+	((u_int)(RSS_HASHTYPE_RSS_IPV4 | RSS_HASHTYPE_RSS_TCP_IPV4 | \
+	    RSS_HASHTYPE_RSS_UDP_IPV4 | RSS_HASHTYPE_RSS_IPV6 |      \
+	    RSS_HASHTYPE_RSS_TCP_IPV6 | RSS_HASHTYPE_RSS_UDP_IPV6))
 
 #define rss_getkey(key) ice_get_default_rss_key(key)
 #define rss_getnumbuckets() (mp_ncpus)

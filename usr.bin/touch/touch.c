@@ -44,12 +44,12 @@
 #include <time.h>
 #include <unistd.h>
 
-static void	stime_arg1(const char *, struct timespec *);
-static void	stime_arg2(const char *, int, struct timespec *);
-static void	stime_darg(const char *, struct timespec *);
-static void	stime_file(const char *, struct timespec *);
-static int	timeoffset(const char *);
-static void	usage(const char *);
+static void stime_arg1(const char *, struct timespec *);
+static void stime_arg2(const char *, int, struct timespec *);
+static void stime_darg(const char *, struct timespec *);
+static void stime_file(const char *, struct timespec *);
+static int timeoffset(const char *);
+static void usage(const char *);
 
 int
 main(int argc, char *argv[])
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 	ts[0].tv_nsec = ts[1].tv_nsec = UTIME_NOW;
 
 	while ((ch = getopt(argc, argv, "A:acd:fhmr:t:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'A':
 			Aflag = timeoffset(optarg);
 			break;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
 				ts[0].tv_sec += Aflag;
 			if (mflag)
 				ts[1].tv_sec += Aflag;
-			Aflag = 0;		/* done our job */
+			Aflag = 0; /* done our job */
 		}
 	} else {
 		/*
@@ -161,8 +161,8 @@ main(int argc, char *argv[])
 			}
 			if (!cflag) {
 				/* Create the file. */
-				fd = open(*argv,
-				    O_WRONLY | O_CREAT, DEFFILEMODE);
+				fd = open(*argv, O_WRONLY | O_CREAT,
+				    DEFFILEMODE);
 				if (fd == -1) {
 					rval = 1;
 					warn("%s", *argv);
@@ -208,7 +208,9 @@ main(int argc, char *argv[])
 	exit(rval);
 }
 
-#define	ATOI2(ar)	((ar)[0] - '0') * 10 + ((ar)[1] - '0'); (ar) += 2;
+#define ATOI2(ar)                               \
+	((ar)[0] - '0') * 10 + ((ar)[1] - '0'); \
+	(ar) += 2;
 
 static void
 stime_arg1(const char *arg, struct timespec *tvp)
@@ -221,9 +223,9 @@ stime_arg1(const char *arg, struct timespec *tvp)
 	now = time(NULL);
 	if ((t = localtime(&now)) == NULL)
 		err(1, "localtime");
-					/* [[CC]YY]MMDDhhmm[.SS] */
+	/* [[CC]YY]MMDDhhmm[.SS] */
 	if ((p = strchr(arg, '.')) == NULL)
-		t->tm_sec = 0;		/* Seconds defaults to 0. */
+		t->tm_sec = 0; /* Seconds defaults to 0. */
 	else {
 		if (strlen(p + 1) != 2)
 			goto terr;
@@ -232,13 +234,13 @@ stime_arg1(const char *arg, struct timespec *tvp)
 	}
 
 	yearset = 0;
-	switch(strlen(arg)) {
-	case 12:			/* CCYYMMDDhhmm */
+	switch (strlen(arg)) {
+	case 12: /* CCYYMMDDhhmm */
 		t->tm_year = ATOI2(arg);
 		t->tm_year *= 100;
 		yearset = 1;
 		/* FALLTHROUGH */
-	case 10:			/* YYMMDDhhmm */
+	case 10: /* YYMMDDhhmm */
 		if (yearset) {
 			yearset = ATOI2(arg);
 			t->tm_year += yearset;
@@ -249,11 +251,11 @@ stime_arg1(const char *arg, struct timespec *tvp)
 			else
 				t->tm_year = yearset + 1900;
 		}
-		t->tm_year -= 1900;	/* Convert to UNIX time. */
-		/* FALLTHROUGH */
-	case 8:				/* MMDDhhmm */
+		t->tm_year -= 1900; /* Convert to UNIX time. */
+				    /* FALLTHROUGH */
+	case 8:			    /* MMDDhhmm */
 		t->tm_mon = ATOI2(arg);
-		--t->tm_mon;		/* Convert from 01-12 to 00-11 */
+		--t->tm_mon; /* Convert from 01-12 to 00-11 */
 		t->tm_mday = ATOI2(arg);
 		t->tm_hour = ATOI2(arg);
 		t->tm_min = ATOI2(arg);
@@ -262,7 +264,7 @@ stime_arg1(const char *arg, struct timespec *tvp)
 		goto terr;
 	}
 
-	t->tm_isdst = -1;		/* Figure out DST. */
+	t->tm_isdst = -1; /* Figure out DST. */
 	tvp[0].tv_sec = tvp[1].tv_sec = mktime(t);
 	if (tvp[0].tv_sec == -1)
 		goto terr;
@@ -271,7 +273,8 @@ stime_arg1(const char *arg, struct timespec *tvp)
 	return;
 
 terr:
-	errx(1, "out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
+	errx(1,
+	    "out of range or illegal time specification: [[CC]YY]MMDDhhmm[.SS]");
 }
 
 static void
@@ -284,22 +287,22 @@ stime_arg2(const char *arg, int year, struct timespec *tvp)
 	if ((t = localtime(&now)) == NULL)
 		err(1, "localtime");
 
-	t->tm_mon = ATOI2(arg);		/* MMDDhhmm[yy] */
-	--t->tm_mon;			/* Convert from 01-12 to 00-11 */
+	t->tm_mon = ATOI2(arg); /* MMDDhhmm[yy] */
+	--t->tm_mon;		/* Convert from 01-12 to 00-11 */
 	t->tm_mday = ATOI2(arg);
 	t->tm_hour = ATOI2(arg);
 	t->tm_min = ATOI2(arg);
 	if (year) {
 		t->tm_year = ATOI2(arg);
-		if (t->tm_year < 39)	/* support 2000-2038 not 1902-1969 */
+		if (t->tm_year < 39) /* support 2000-2038 not 1902-1969 */
 			t->tm_year += 100;
 	}
 
-	t->tm_isdst = -1;		/* Figure out DST. */
+	t->tm_isdst = -1; /* Figure out DST. */
 	tvp[0].tv_sec = tvp[1].tv_sec = mktime(t);
 	if (tvp[0].tv_sec == -1)
 		errx(1,
-	"out of range or illegal time specification: MMDDhhmm[yy]");
+		    "out of range or illegal time specification: MMDDhhmm[yy]");
 
 	tvp[0].tv_nsec = tvp[1].tv_nsec = 0;
 }
@@ -318,7 +321,7 @@ stime_darg(const char *arg, struct timespec *tvp)
 	if (colon == NULL || strchr(colon + 1, ':') == NULL)
 		goto bad;
 	fmt = strchr(arg, 'T') != NULL ? "%Y-%m-%dT%H:%M:%S" :
-	    "%Y-%m-%d %H:%M:%S";
+					 "%Y-%m-%d %H:%M:%S";
 	p = strptime(arg, fmt, &t);
 	if (p == NULL)
 		goto bad;
@@ -345,7 +348,8 @@ stime_darg(const char *arg, struct timespec *tvp)
 	return;
 
 bad:
-	errx(1, "out of range or illegal time specification: YYYY-MM-DDThh:mm:SS[.frac][tz]");
+	errx(1,
+	    "out of range or illegal time specification: YYYY-MM-DDThh:mm:SS[.frac][tz]");
 }
 
 /* Calculate a time offset in seconds, given an arg of the format [-]HHMMSS. */
@@ -360,16 +364,16 @@ timeoffset(const char *arg)
 	if (isneg)
 		arg++;
 	switch (strlen(arg)) {
-	default:				/* invalid */
+	default: /* invalid */
 		errx(1, "Invalid offset spec, must be [-][[HH]MM]SS");
 
-	case 6:					/* HHMMSS */
+	case 6: /* HHMMSS */
 		offset = ATOI2(arg);
 		/* FALLTHROUGH */
-	case 4:					/* MMSS */
+	case 4: /* MMSS */
 		offset = offset * 60 + ATOI2(arg);
 		/* FALLTHROUGH */
-	case 2:					/* SS */
+	case 2: /* SS */
 		offset = offset * 60 + ATOI2(arg);
 	}
 	if (isneg)
@@ -392,9 +396,11 @@ stime_file(const char *fname, struct timespec *tsp)
 static void
 usage(const char *myname)
 {
-	fprintf(stderr, "usage: %s [-A [-][[hh]mm]SS] [-achm] [-r file] "
-		"[-t [[CC]YY]MMDDhhmm[.SS]]\n"
-		"       [-d YYYY-MM-DDThh:mm:SS[.frac][tz]] "
-		"file ...\n", myname);
+	fprintf(stderr,
+	    "usage: %s [-A [-][[hh]mm]SS] [-achm] [-r file] "
+	    "[-t [[CC]YY]MMDDhhmm[.SS]]\n"
+	    "       [-d YYYY-MM-DDThh:mm:SS[.frac][tz]] "
+	    "file ...\n",
+	    myname);
 	exit(1);
 }

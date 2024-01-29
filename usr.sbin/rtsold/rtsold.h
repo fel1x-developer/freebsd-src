@@ -5,7 +5,7 @@
  *
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -17,7 +17,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,7 +32,7 @@
  */
 
 struct script_msg {
-	TAILQ_ENTRY(script_msg)	sm_next;
+	TAILQ_ENTRY(script_msg) sm_next;
 
 	char *sm_msg;
 };
@@ -40,75 +40,75 @@ struct script_msg {
 TAILQ_HEAD(script_msg_head_t, script_msg);
 
 struct ra_opt {
-	TAILQ_ENTRY(ra_opt)	rao_next;
+	TAILQ_ENTRY(ra_opt) rao_next;
 
-	u_int8_t	rao_type;
-	struct timespec	rao_expire;
-	size_t		rao_len;
-	void		*rao_msg;
+	u_int8_t rao_type;
+	struct timespec rao_expire;
+	size_t rao_len;
+	void *rao_msg;
 };
 
 TAILQ_HEAD(rainfo_head, ra_opt);
 
 struct rainfo {
-	TAILQ_ENTRY(rainfo)	rai_next;
+	TAILQ_ENTRY(rainfo) rai_next;
 
-	struct ifinfo		*rai_ifinfo;
-	struct sockaddr_in6	rai_saddr;
-	TAILQ_HEAD(, ra_opt)	rai_ra_opt;
+	struct ifinfo *rai_ifinfo;
+	struct sockaddr_in6 rai_saddr;
+	TAILQ_HEAD(, ra_opt) rai_ra_opt;
 };
 
 /* Per-interface tracking info. */
 struct ifinfo {
-	TAILQ_ENTRY(ifinfo) ifi_next;	/* pointer to the next interface */
+	TAILQ_ENTRY(ifinfo) ifi_next; /* pointer to the next interface */
 
 	struct sockaddr_dl *sdl; /* link-layer address */
-	char ifname[IFNAMSIZ];	/* interface name */
-	uint32_t linkid;	/* link ID of this interface */
-	int active;		/* interface status */
-	int probeinterval;	/* interval of probe timer (if necessary) */
-	int probetimer;		/* rest of probe timer */
-	int mediareqok;		/* whether the IF supports SIOCGIFMEDIA */
-	int managedconfig;	/* need a separate protocol for the "managed"
-				 * configuration */
-	int otherconfig;	/* need a separate protocol for the "other"
-				 * configuration */
-	int alwaysconfig;	/* Have we called the 'always' script? */
+	char ifname[IFNAMSIZ];	 /* interface name */
+	uint32_t linkid;	 /* link ID of this interface */
+	int active;		 /* interface status */
+	int probeinterval;	 /* interval of probe timer (if necessary) */
+	int probetimer;		 /* rest of probe timer */
+	int mediareqok;		 /* whether the IF supports SIOCGIFMEDIA */
+	int managedconfig;	 /* need a separate protocol for the "managed"
+				  * configuration */
+	int otherconfig;	 /* need a separate protocol for the "other"
+				  * configuration */
+	int alwaysconfig;	 /* Have we called the 'always' script? */
 	int state;
 	int probes;
 	int dadcount;
 	struct timespec timer;
 	struct timespec expire;
-#define IFI_DNSOPT_STATE_NOINFO		0
-#define IFI_DNSOPT_STATE_RECEIVED     	1
-	int ifi_rdnss;		/* RDNSS option state */
-	int ifi_dnssl;		/* DNSSL option state */
+#define IFI_DNSOPT_STATE_NOINFO 0
+#define IFI_DNSOPT_STATE_RECEIVED 1
+	int ifi_rdnss; /* RDNSS option state */
+	int ifi_dnssl; /* DNSSL option state */
 
-	int racnt;		/* total # of valid RAs it have got */
-	TAILQ_HEAD(, rainfo)	ifi_rainfo;
+	int racnt; /* total # of valid RAs it have got */
+	TAILQ_HEAD(, rainfo) ifi_rainfo;
 
 	size_t rs_datalen;
 	u_char *rs_data;
 };
 
 /* per interface status */
-#define IFS_IDLE	0
-#define IFS_DELAY	1
-#define IFS_PROBE	2
-#define IFS_DOWN	3
-#define IFS_TENTATIVE	4
+#define IFS_IDLE 0
+#define IFS_DELAY 1
+#define IFS_PROBE 2
+#define IFS_DOWN 3
+#define IFS_TENTATIVE 4
 
 /* Interface list */
 extern TAILQ_HEAD(ifinfo_head_t, ifinfo) ifinfo_head;
 
-#define	DNSINFO_ORIGIN_LABEL	"slaac"
+#define DNSINFO_ORIGIN_LABEL "slaac"
 /*
  * RFC 3542 API deprecates IPV6_PKTINFO in favor of
  * IPV6_RECVPKTINFO
  */
 #ifndef IPV6_RECVPKTINFO
 #ifdef IPV6_PKTINFO
-#define IPV6_RECVPKTINFO	IPV6_PKTINFO
+#define IPV6_RECVPKTINFO IPV6_PKTINFO
 #endif
 #endif
 /*
@@ -117,37 +117,44 @@ extern TAILQ_HEAD(ifinfo_head_t, ifinfo) ifinfo_head;
  */
 #ifndef IPV6_RECVHOPLIMIT
 #ifdef IPV6_HOPLIMIT
-#define IPV6_RECVHOPLIMIT	IPV6_HOPLIMIT
+#define IPV6_RECVHOPLIMIT IPV6_HOPLIMIT
 #endif
 #endif
 
 #ifndef IN6ADDR_LINKLOCAL_ALLROUTERS_INIT
-#define IN6ADDR_LINKLOCAL_ALLROUTERS_INIT			\
-	{{{ 0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	\
-	    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02 }}}
+#define IN6ADDR_LINKLOCAL_ALLROUTERS_INIT                                     \
+	{                                                                     \
+		{                                                             \
+			{                                                     \
+				0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00,     \
+				    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+				    0x00, 0x02                                \
+			}                                                     \
+		}                                                             \
+	}
 #endif
 
-#define	TS_CMP(tsp, usp, cmp)						\
-	(((tsp)->tv_sec == (usp)->tv_sec) ?				\
-	    ((tsp)->tv_nsec cmp (usp)->tv_nsec) :			\
-	    ((tsp)->tv_sec cmp (usp)->tv_sec))
-#define	TS_ADD(tsp, usp, vsp)						\
-	do {								\
-		(vsp)->tv_sec = (tsp)->tv_sec + (usp)->tv_sec;		\
-		(vsp)->tv_nsec = (tsp)->tv_nsec + (usp)->tv_nsec;	\
-		if ((vsp)->tv_nsec >= 1000000000L) {			\
-			(vsp)->tv_sec++;				\
-			(vsp)->tv_nsec -= 1000000000L;			\
-		}							\
+#define TS_CMP(tsp, usp, cmp)                        \
+	(((tsp)->tv_sec == (usp)->tv_sec) ?          \
+		((tsp)->tv_nsec cmp(usp)->tv_nsec) : \
+		((tsp)->tv_sec cmp(usp)->tv_sec))
+#define TS_ADD(tsp, usp, vsp)                                     \
+	do {                                                      \
+		(vsp)->tv_sec = (tsp)->tv_sec + (usp)->tv_sec;    \
+		(vsp)->tv_nsec = (tsp)->tv_nsec + (usp)->tv_nsec; \
+		if ((vsp)->tv_nsec >= 1000000000L) {              \
+			(vsp)->tv_sec++;                          \
+			(vsp)->tv_nsec -= 1000000000L;            \
+		}                                                 \
 	} while (0)
-#define	TS_SUB(tsp, usp, vsp)						\
-	do {								\
-		(vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;		\
-		(vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec;	\
-		if ((vsp)->tv_nsec < 0) {				\
-			(vsp)->tv_sec--;				\
-			(vsp)->tv_nsec += 1000000000L;			\
-		}							\
+#define TS_SUB(tsp, usp, vsp)                                     \
+	do {                                                      \
+		(vsp)->tv_sec = (tsp)->tv_sec - (usp)->tv_sec;    \
+		(vsp)->tv_nsec = (tsp)->tv_nsec - (usp)->tv_nsec; \
+		if ((vsp)->tv_nsec < 0) {                         \
+			(vsp)->tv_sec--;                          \
+			(vsp)->tv_nsec += 1000000000L;            \
+		}                                                 \
 	} while (0)
 
 /* rtsold.c */
@@ -167,7 +174,7 @@ struct ifinfo *find_ifinfo(int);
 struct rainfo *find_rainfo(struct ifinfo *, struct sockaddr_in6 *);
 void rtsol_timer_update(struct ifinfo *);
 extern void warnmsg(int, const char *, const char *, ...)
-     __attribute__((__format__(__printf__, 3, 4)));
+    __attribute__((__format__(__printf__, 3, 4)));
 extern int ra_opt_handler(struct ifinfo *);
 
 /* if.c */

@@ -4,9 +4,8 @@
 #include <paths.h>
 #include <stdio.h>
 
-main(argc, argv)
-	int argc;
-	char *argv[];
+main(argc, argv) int argc;
+char *argv[];
 {
 	char *message;
 
@@ -18,7 +17,7 @@ main(argc, argv)
 
 	if (!printmessage(message)) {
 		fprintf(stderr, "%s: sorry, couldn't print your message\n",
-			argv[0]);
+		    argv[0]);
 		exit(1);
 	}
 	printf("Message delivered!\n");
@@ -28,8 +27,7 @@ main(argc, argv)
  * Print a message to the console.
  * Return a boolean indicating whether the message was actually printed.
  */
-printmessage(msg)
-	char *msg;
+printmessage(msg) char *msg;
 {
 	FILE *f;
 
@@ -39,5 +37,5 @@ printmessage(msg)
 	}
 	fprintf(f, "%s\n", msg);
 	fclose(f);
-	return(1);
+	return (1);
 }

@@ -25,7 +25,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_NVRAM_BHND_NVRAM_PLIST_H_
@@ -41,89 +41,80 @@
 #include "bhnd_nvram.h"
 #include "bhnd_nvram_value.h"
 
-typedef struct bhnd_nvram_prop		bhnd_nvram_prop;
-typedef struct bhnd_nvram_plist		bhnd_nvram_plist;
+typedef struct bhnd_nvram_prop bhnd_nvram_prop;
+typedef struct bhnd_nvram_plist bhnd_nvram_plist;
 
-bhnd_nvram_plist	*bhnd_nvram_plist_new(void);
-bhnd_nvram_plist	*bhnd_nvram_plist_retain(bhnd_nvram_plist *plist);
-void			 bhnd_nvram_plist_release(bhnd_nvram_plist *plist);
+bhnd_nvram_plist *bhnd_nvram_plist_new(void);
+bhnd_nvram_plist *bhnd_nvram_plist_retain(bhnd_nvram_plist *plist);
+void bhnd_nvram_plist_release(bhnd_nvram_plist *plist);
 
-bhnd_nvram_plist	*bhnd_nvram_plist_copy(bhnd_nvram_plist *plist);
+bhnd_nvram_plist *bhnd_nvram_plist_copy(bhnd_nvram_plist *plist);
 
-size_t			 bhnd_nvram_plist_count(bhnd_nvram_plist *plist);
+size_t bhnd_nvram_plist_count(bhnd_nvram_plist *plist);
 
-int			 bhnd_nvram_plist_append_list(bhnd_nvram_plist *plist,
-			     bhnd_nvram_plist *tail);
+int bhnd_nvram_plist_append_list(bhnd_nvram_plist *plist,
+    bhnd_nvram_plist *tail);
 
-int			 bhnd_nvram_plist_append(bhnd_nvram_plist *plist,
-			     bhnd_nvram_prop *prop);
-int			 bhnd_nvram_plist_append_val(bhnd_nvram_plist *plist,
-			     const char *name, bhnd_nvram_val *val);
-int			 bhnd_nvram_plist_append_bytes(bhnd_nvram_plist *plist,
-			     const char *name, const void *inp, size_t ilen,
-			     bhnd_nvram_type itype);
-int			 bhnd_nvram_plist_append_string(bhnd_nvram_plist *plist,
-			     const char *name, const char *val);
+int bhnd_nvram_plist_append(bhnd_nvram_plist *plist, bhnd_nvram_prop *prop);
+int bhnd_nvram_plist_append_val(bhnd_nvram_plist *plist, const char *name,
+    bhnd_nvram_val *val);
+int bhnd_nvram_plist_append_bytes(bhnd_nvram_plist *plist, const char *name,
+    const void *inp, size_t ilen, bhnd_nvram_type itype);
+int bhnd_nvram_plist_append_string(bhnd_nvram_plist *plist, const char *name,
+    const char *val);
 
-int			 bhnd_nvram_plist_replace(bhnd_nvram_plist *plist,
-			     bhnd_nvram_prop *prop);
-int			 bhnd_nvram_plist_replace_val(bhnd_nvram_plist *plist,
-			     const char *name, bhnd_nvram_val *val);
-int			 bhnd_nvram_plist_replace_bytes(bhnd_nvram_plist *plist,
-			     const char *name, const void *inp, size_t ilen,
-			     bhnd_nvram_type itype);
-int			 bhnd_nvram_plist_replace_string(bhnd_nvram_plist *plist,
-			     const char *name, const char *val);
+int bhnd_nvram_plist_replace(bhnd_nvram_plist *plist, bhnd_nvram_prop *prop);
+int bhnd_nvram_plist_replace_val(bhnd_nvram_plist *plist, const char *name,
+    bhnd_nvram_val *val);
+int bhnd_nvram_plist_replace_bytes(bhnd_nvram_plist *plist, const char *name,
+    const void *inp, size_t ilen, bhnd_nvram_type itype);
+int bhnd_nvram_plist_replace_string(bhnd_nvram_plist *plist, const char *name,
+    const char *val);
 
-void			 bhnd_nvram_plist_remove(bhnd_nvram_plist *plist,
-			     const char *name);
+void bhnd_nvram_plist_remove(bhnd_nvram_plist *plist, const char *name);
 
-bool			 bhnd_nvram_plist_contains(bhnd_nvram_plist *plist,
-			     const char *name);
-bhnd_nvram_prop		*bhnd_nvram_plist_next(bhnd_nvram_plist *plist,
-			     bhnd_nvram_prop *prop);
+bool bhnd_nvram_plist_contains(bhnd_nvram_plist *plist, const char *name);
+bhnd_nvram_prop *bhnd_nvram_plist_next(bhnd_nvram_plist *plist,
+    bhnd_nvram_prop *prop);
 
-bhnd_nvram_prop		*bhnd_nvram_plist_get_prop(bhnd_nvram_plist *plist,
-			     const char *name);
-bhnd_nvram_val		*bhnd_nvram_plist_get_val(bhnd_nvram_plist *plist,
-			     const char *name);
-int			 bhnd_nvram_plist_get_encoded(bhnd_nvram_plist *plist,
-			     const char *name, void *outp, size_t olen,
-			     bhnd_nvram_type otype);
+bhnd_nvram_prop *bhnd_nvram_plist_get_prop(bhnd_nvram_plist *plist,
+    const char *name);
+bhnd_nvram_val *bhnd_nvram_plist_get_val(bhnd_nvram_plist *plist,
+    const char *name);
+int bhnd_nvram_plist_get_encoded(bhnd_nvram_plist *plist, const char *name,
+    void *outp, size_t olen, bhnd_nvram_type otype);
 
-int			 bhnd_nvram_plist_get_char(bhnd_nvram_plist *plist,
-			     const char *name, u_char *val);
-int			 bhnd_nvram_plist_get_uint8(bhnd_nvram_plist *plist,
-			     const char *name, uint8_t *val);
-int			 bhnd_nvram_plist_get_uint16(bhnd_nvram_plist *plist,
-			     const char *name, uint16_t *val);
-int			 bhnd_nvram_plist_get_uint32(bhnd_nvram_plist *plist,
-			     const char *name, uint32_t *val);
-int			 bhnd_nvram_plist_get_uint64(bhnd_nvram_plist *plist,
-			     const char *name, uint64_t *val);
-int			 bhnd_nvram_plist_get_string(bhnd_nvram_plist *plist,
-			     const char *name, const char **val);
-int			 bhnd_nvram_plist_get_bool(bhnd_nvram_plist *plist,
-			     const char *name, bool *val);
+int bhnd_nvram_plist_get_char(bhnd_nvram_plist *plist, const char *name,
+    u_char *val);
+int bhnd_nvram_plist_get_uint8(bhnd_nvram_plist *plist, const char *name,
+    uint8_t *val);
+int bhnd_nvram_plist_get_uint16(bhnd_nvram_plist *plist, const char *name,
+    uint16_t *val);
+int bhnd_nvram_plist_get_uint32(bhnd_nvram_plist *plist, const char *name,
+    uint32_t *val);
+int bhnd_nvram_plist_get_uint64(bhnd_nvram_plist *plist, const char *name,
+    uint64_t *val);
+int bhnd_nvram_plist_get_string(bhnd_nvram_plist *plist, const char *name,
+    const char **val);
+int bhnd_nvram_plist_get_bool(bhnd_nvram_plist *plist, const char *name,
+    bool *val);
 
-bhnd_nvram_prop		*bhnd_nvram_prop_new(const char *name,
-			     bhnd_nvram_val *val);
-bhnd_nvram_prop		*bhnd_nvram_prop_bytes_new(const char *name,
-			     const void *inp, size_t ilen,
-			     bhnd_nvram_type itype);
+bhnd_nvram_prop *bhnd_nvram_prop_new(const char *name, bhnd_nvram_val *val);
+bhnd_nvram_prop *bhnd_nvram_prop_bytes_new(const char *name, const void *inp,
+    size_t ilen, bhnd_nvram_type itype);
 
-bhnd_nvram_prop		*bhnd_nvram_prop_retain(bhnd_nvram_prop *prop);
-void			 bhnd_nvram_prop_release(bhnd_nvram_prop *prop);
+bhnd_nvram_prop *bhnd_nvram_prop_retain(bhnd_nvram_prop *prop);
+void bhnd_nvram_prop_release(bhnd_nvram_prop *prop);
 
-const char		*bhnd_nvram_prop_name(bhnd_nvram_prop *prop);
-bhnd_nvram_val		*bhnd_nvram_prop_val(bhnd_nvram_prop *prop);
-bhnd_nvram_type		 bhnd_nvram_prop_type(bhnd_nvram_prop *prop);
+const char *bhnd_nvram_prop_name(bhnd_nvram_prop *prop);
+bhnd_nvram_val *bhnd_nvram_prop_val(bhnd_nvram_prop *prop);
+bhnd_nvram_type bhnd_nvram_prop_type(bhnd_nvram_prop *prop);
 
-bool			 bhnd_nvram_prop_is_null(bhnd_nvram_prop *prop);
+bool bhnd_nvram_prop_is_null(bhnd_nvram_prop *prop);
 
-const void		*bhnd_nvram_prop_bytes(bhnd_nvram_prop *prop,
-			     size_t *olen, bhnd_nvram_type *otype);
-int			 bhnd_nvram_prop_encode(bhnd_nvram_prop *prop,
-			     void *outp, size_t *olen, bhnd_nvram_type otype);
+const void *bhnd_nvram_prop_bytes(bhnd_nvram_prop *prop, size_t *olen,
+    bhnd_nvram_type *otype);
+int bhnd_nvram_prop_encode(bhnd_nvram_prop *prop, void *outp, size_t *olen,
+    bhnd_nvram_type otype);
 
 #endif /* _BHND_NVRAM_BHND_NVRAM_PLIST_H_ */

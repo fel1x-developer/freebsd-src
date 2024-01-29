@@ -34,44 +34,42 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
-#include <ufs/ufs/dinode.h>
-
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-
 #include <protocols/dumprestore.h>
 
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
 #include <stdio.h>
-#include <limits.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ufs/dinode.h>
 #include <unistd.h>
 
-#include "pathnames.h"
 #include "dump.h"
+#include "pathnames.h"
 
-#define	TS_CLOSED	0
-#define	TS_OPEN		1
+#define TS_CLOSED 0
+#define TS_OPEN 1
 
-static	int rmtstate = TS_CLOSED;
-static	int rmtape;
-static	char *rmtpeer;
+static int rmtstate = TS_CLOSED;
+static int rmtape;
+static char *rmtpeer;
 
-static	int okname(const char *);
-static	int rmtcall(const char *, const char *);
-static	void rmtconnaborted(int);
-static	int rmtgetb(void);
-static	void rmtgetconn(void);
-static	void rmtgets(char *, int);
-static	int rmtreply(const char *);
+static int okname(const char *);
+static int rmtcall(const char *, const char *);
+static void rmtconnaborted(int);
+static int rmtgetb(void);
+static void rmtgetconn(void);
+static void rmtgets(char *, int);
+static int rmtreply(const char *);
 
-static	int errfd = -1;
+static int errfd = -1;
 
 int
 rmthost(const char *host)
@@ -106,7 +104,7 @@ rmtconnaborted(int sig __unused)
 			if ((i = read(errfd, buf, sizeof(buf) - 1)) > 0) {
 				buf[i] = '\0';
 				msg("on %s: %s%s", rmtpeer, buf,
-					buf[i - 1] == '\n' ? "" : "\n");
+				    buf[i - 1] == '\n' ? "" : "\n");
 			}
 		}
 	}
@@ -149,28 +147,28 @@ rmtgetconn(void)
 	if ((rmt = getenv("RMT")) == NULL)
 		rmt = _PATH_RMT;
 	msg("%s", "");
-	rmtape = rcmd(&rmtpeer, (u_short)sp->s_port, pwd->pw_name,
-		      tuser, rmt, &errfd);
+	rmtape = rcmd(&rmtpeer, (u_short)sp->s_port, pwd->pw_name, tuser, rmt,
+	    &errfd);
 	if (rmtape < 0) {
 		msg("login to %s as %s failed.\n", rmtpeer, tuser);
 		return;
 	}
 	(void)fprintf(stderr, "Connection to %s established.\n", rmtpeer);
 	size = ntrec * TP_BSIZE;
-	if (size > 60 * 1024)		/* XXX */
+	if (size > 60 * 1024) /* XXX */
 		size = 60 * 1024;
 	/* Leave some space for rmt request/response protocol */
 	size += 2 * 1024;
 	while (size > TP_BSIZE &&
-	    setsockopt(rmtape, SOL_SOCKET, SO_SNDBUF, &size, sizeof (size)) < 0)
-		    size -= TP_BSIZE;
-	(void)setsockopt(rmtape, SOL_SOCKET, SO_RCVBUF, &size, sizeof (size));
+	    setsockopt(rmtape, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size)) < 0)
+		size -= TP_BSIZE;
+	(void)setsockopt(rmtape, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 	throughput = IPTOS_THROUGHPUT;
-	if (setsockopt(rmtape, IPPROTO_IP, IP_TOS,
-	    &throughput, sizeof(throughput)) < 0)
+	if (setsockopt(rmtape, IPPROTO_IP, IP_TOS, &throughput,
+		sizeof(throughput)) < 0)
 		perror("IP_TOS:IPTOS_THROUGHPUT setsockopt");
 	on = 1;
-	if (setsockopt(rmtape, IPPROTO_TCP, TCP_NODELAY, &on, sizeof (on)) < 0)
+	if (setsockopt(rmtape, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) < 0)
 		perror("TCP_NODELAY setsockopt");
 }
 
@@ -195,7 +193,7 @@ rmtopen(const char *tape, int mode)
 {
 	char buf[256];
 
-	(void)snprintf(buf, sizeof (buf), "O%.226s\n%d\n", tape, mode);
+	(void)snprintf(buf, sizeof(buf), "O%.226s\n%d\n", tape, mode);
 	rmtstate = TS_OPEN;
 	return (rmtcall(tape, buf));
 }
@@ -216,13 +214,13 @@ rmtread(char *buf, int count)
 	char line[30];
 	int n, i, cc;
 
-	(void)snprintf(line, sizeof (line), "R%d\n", count);
+	(void)snprintf(line, sizeof(line), "R%d\n", count);
 	n = rmtcall("read", line);
 	if (n < 0)
 		/* rmtcall() properly sets errno for us on errors. */
 		return (n);
 	for (i = 0; i < n; i += cc) {
-		cc = read(rmtape, buf+i, n - i);
+		cc = read(rmtape, buf + i, n - i);
 		if (cc <= 0)
 			rmtconnaborted(0);
 	}
@@ -234,7 +232,7 @@ rmtwrite(const char *buf, int count)
 {
 	char line[30];
 
-	(void)snprintf(line, sizeof (line), "W%d\n", count);
+	(void)snprintf(line, sizeof(line), "W%d\n", count);
 	write(rmtape, line, strlen(line));
 	write(rmtape, buf, count);
 	return (rmtreply("write"));
@@ -245,7 +243,7 @@ rmtwrite0(int count)
 {
 	char line[30];
 
-	(void)snprintf(line, sizeof (line), "W%d\n", count);
+	(void)snprintf(line, sizeof(line), "W%d\n", count);
 	write(rmtape, line, strlen(line));
 }
 
@@ -264,15 +262,15 @@ rmtwrite2(void)
 }
 
 int
-rmtseek(int offset, int pos)	/* XXX off_t ? */
+rmtseek(int offset, int pos) /* XXX off_t ? */
 {
 	char line[80];
 
-	(void)snprintf(line, sizeof (line), "L%d\n%d\n", offset, pos);
+	(void)snprintf(line, sizeof(line), "L%d\n%d\n", offset, pos);
 	return (rmtcall("seek", line));
 }
 
-struct	mtget mts;
+struct mtget mts;
 
 struct mtget *
 rmtstatus(void)
@@ -295,7 +293,7 @@ rmtioctl(int cmd, int count)
 
 	if (count < 0)
 		return (-1);
-	(void)snprintf(buf, sizeof (buf), "I%d\n%d\n", cmd, count);
+	(void)snprintf(buf, sizeof(buf), "I%d\n%d\n", cmd, count);
 	return (rmtcall("ioctl", buf));
 }
 
@@ -314,9 +312,9 @@ rmtreply(const char *cmd)
 	char *cp;
 	char code[30], emsg[BUFSIZ];
 
-	rmtgets(code, sizeof (code));
+	rmtgets(code, sizeof(code));
 	if (*code == 'E' || *code == 'F') {
-		rmtgets(emsg, sizeof (emsg));
+		rmtgets(emsg, sizeof(emsg));
 		msg("%s: %s", cmd, emsg);
 		errno = atoi(code + 1);
 		if (*code == 'F')

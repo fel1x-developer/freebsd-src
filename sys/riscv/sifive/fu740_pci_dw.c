@@ -41,69 +41,69 @@
 #include <machine/resource.h>
 
 #include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
 #include <dev/gpio/gpiobusvar.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
 #include <dev/ofw/ofwpci.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
 #include <dev/pci/pci_dw.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "pcib_if.h"
 #include "pci_dw_if.h"
+#include "pcib_if.h"
 
-#define	FUDW_PHYS		2
-#define	FUDW_LANES_PER_PHY	4
+#define FUDW_PHYS 2
+#define FUDW_LANES_PER_PHY 4
 
-#define	FUDW_MGMT_PERST_N			0x0
-#define	FUDW_MGMT_LTSSM_EN			0x10
-#define	FUDW_MGMT_HOLD_PHY_RST			0x18
-#define	FUDW_MGMT_DEVICE_TYPE			0x708
-#define	 FUDW_MGMT_DEVICE_TYPE_RC			0x4
-#define	FUDW_MGMT_PHY_CR_PARA_REG(_n, _r)	\
-    (0x860 + (_n) * 0x40 + FUDW_MGMT_PHY_CR_PARA_##_r)
-#define	 FUDW_MGMT_PHY_CR_PARA_ADDR			0x0
-#define	 FUDW_MGMT_PHY_CR_PARA_READ_EN			0x10
-#define	 FUDW_MGMT_PHY_CR_PARA_READ_DATA		0x18
-#define	 FUDW_MGMT_PHY_CR_PARA_SEL			0x20
-#define	 FUDW_MGMT_PHY_CR_PARA_WRITE_DATA		0x28
-#define	 FUDW_MGMT_PHY_CR_PARA_WRITE_EN			0x30
-#define	 FUDW_MGMT_PHY_CR_PARA_ACK			0x38
+#define FUDW_MGMT_PERST_N 0x0
+#define FUDW_MGMT_LTSSM_EN 0x10
+#define FUDW_MGMT_HOLD_PHY_RST 0x18
+#define FUDW_MGMT_DEVICE_TYPE 0x708
+#define FUDW_MGMT_DEVICE_TYPE_RC 0x4
+#define FUDW_MGMT_PHY_CR_PARA_REG(_n, _r) \
+	(0x860 + (_n) * 0x40 + FUDW_MGMT_PHY_CR_PARA_##_r)
+#define FUDW_MGMT_PHY_CR_PARA_ADDR 0x0
+#define FUDW_MGMT_PHY_CR_PARA_READ_EN 0x10
+#define FUDW_MGMT_PHY_CR_PARA_READ_DATA 0x18
+#define FUDW_MGMT_PHY_CR_PARA_SEL 0x20
+#define FUDW_MGMT_PHY_CR_PARA_WRITE_DATA 0x28
+#define FUDW_MGMT_PHY_CR_PARA_WRITE_EN 0x30
+#define FUDW_MGMT_PHY_CR_PARA_ACK 0x38
 
-#define	FUDW_MGMT_PHY_LANE(_n)			(0x1008 + (_n) * 0x100)
-#define	 FUDW_MGMT_PHY_LANE_CDR_TRACK_EN		(1 << 0)
-#define	 FUDW_MGMT_PHY_LANE_LOS_THRESH			(1 << 5)
-#define	 FUDW_MGMT_PHY_LANE_TERM_EN			(1 << 9)
-#define	 FUDW_MGMT_PHY_LANE_TERM_ACDC			(1 << 10)
-#define	 FUDW_MGMT_PHY_LANE_EN				(1 << 11)
-#define	 FUDW_MGMT_PHY_LANE_INIT					\
-    (FUDW_MGMT_PHY_LANE_CDR_TRACK_EN | FUDW_MGMT_PHY_LANE_LOS_THRESH |	\
-     FUDW_MGMT_PHY_LANE_TERM_EN | FUDW_MGMT_PHY_LANE_TERM_ACDC |	\
-     FUDW_MGMT_PHY_LANE_EN)
+#define FUDW_MGMT_PHY_LANE(_n) (0x1008 + (_n) * 0x100)
+#define FUDW_MGMT_PHY_LANE_CDR_TRACK_EN (1 << 0)
+#define FUDW_MGMT_PHY_LANE_LOS_THRESH (1 << 5)
+#define FUDW_MGMT_PHY_LANE_TERM_EN (1 << 9)
+#define FUDW_MGMT_PHY_LANE_TERM_ACDC (1 << 10)
+#define FUDW_MGMT_PHY_LANE_EN (1 << 11)
+#define FUDW_MGMT_PHY_LANE_INIT                                            \
+	(FUDW_MGMT_PHY_LANE_CDR_TRACK_EN | FUDW_MGMT_PHY_LANE_LOS_THRESH | \
+	    FUDW_MGMT_PHY_LANE_TERM_EN | FUDW_MGMT_PHY_LANE_TERM_ACDC |    \
+	    FUDW_MGMT_PHY_LANE_EN)
 
-#define	FUDW_DBI_PORT_DBG1			0x72c
-#define	 FUDW_DBI_PORT_DBG1_LINK_UP			(1 << 4)
-#define	 FUDW_DBI_PORT_DBG1_LINK_IN_TRAINING		(1 << 29)
+#define FUDW_DBI_PORT_DBG1 0x72c
+#define FUDW_DBI_PORT_DBG1_LINK_UP (1 << 4)
+#define FUDW_DBI_PORT_DBG1_LINK_IN_TRAINING (1 << 29)
 
 struct fupci_softc {
-	struct pci_dw_softc	dw_sc;
-	device_t		dev;
-	struct resource		*mgmt_res;
-	gpio_pin_t		porst_pin;
-	gpio_pin_t		pwren_pin;
-	clk_t			pcie_aux_clk;
-	hwreset_t		pcie_aux_rst;
+	struct pci_dw_softc dw_sc;
+	device_t dev;
+	struct resource *mgmt_res;
+	gpio_pin_t porst_pin;
+	gpio_pin_t pwren_pin;
+	clk_t pcie_aux_clk;
+	hwreset_t pcie_aux_rst;
 };
 
-#define	FUDW_MGMT_READ(_sc, _o)		bus_read_4((_sc)->mgmt_res, (_o))
-#define	FUDW_MGMT_WRITE(_sc, _o, _v)	bus_write_4((_sc)->mgmt_res, (_o), (_v))
+#define FUDW_MGMT_READ(_sc, _o) bus_read_4((_sc)->mgmt_res, (_o))
+#define FUDW_MGMT_WRITE(_sc, _o, _v) bus_write_4((_sc)->mgmt_res, (_o), (_v))
 
 static struct ofw_compat_data compat_data[] = {
-	{ "sifive,fu740-pcie",	1 },
-	{ NULL,			0 },
+	{ "sifive,fu740-pcie", 1 },
+	{ NULL, 0 },
 };
 
 /* Currently unused; included for completeness */
@@ -200,8 +200,7 @@ fupci_phy_init(struct fupci_softc *sc)
 	/* Assert core power-on reset (active low) */
 	error = gpio_pin_set_active(sc->porst_pin, false);
 	if (error != 0) {
-		device_printf(dev, "Cannot assert power-on reset: %d\n",
-		    error);
+		device_printf(dev, "Cannot assert power-on reset: %d\n", error);
 		return (error);
 	}
 
@@ -386,8 +385,7 @@ fupci_attach(device_t dev)
 	error = gpio_pin_get_by_ofw_property(dev, node, "pwren-gpios",
 	    &sc->pwren_pin);
 	if (error != 0) {
-		device_printf(dev, "Cannot get power enable GPIO: %d\n",
-		    error);
+		device_printf(dev, "Cannot get power enable GPIO: %d\n", error);
 		goto fail;
 	}
 	error = gpio_pin_setflags(sc->pwren_pin, GPIO_PIN_OUTPUT);
@@ -446,15 +444,15 @@ fupci_get_link(device_t dev, bool *status)
 
 static device_method_t fupci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			fupci_probe),
-	DEVMETHOD(device_attach,		fupci_attach),
+	DEVMETHOD(device_probe, fupci_probe),
+	DEVMETHOD(device_attach, fupci_attach),
 
 	/* PCI DW interface  */
-	DEVMETHOD(pci_dw_get_link,		fupci_get_link),
+	DEVMETHOD(pci_dw_get_link, fupci_get_link),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(pcib, fupci_driver, fupci_methods,
-    sizeof(struct fupci_softc), pci_dw_driver);
+DEFINE_CLASS_1(pcib, fupci_driver, fupci_methods, sizeof(struct fupci_softc),
+    pci_dw_driver);
 DRIVER_MODULE(fu740_pci_dw, simplebus, fupci_driver, NULL, NULL);

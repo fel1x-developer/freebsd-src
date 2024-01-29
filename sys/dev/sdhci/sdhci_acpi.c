@@ -38,67 +38,53 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmcreg.h>
-
 #include <dev/sdhci/sdhci.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "mmcbr_if.h"
 #include "sdhci_if.h"
 
-#define	SDHCI_AMD_RESET_DLL_REG	0x908
+#define SDHCI_AMD_RESET_DLL_REG 0x908
 
 static const struct sdhci_acpi_device {
-	const char*	hid;
-	int		uid;
-	const char	*desc;
-	u_int		quirks;
+	const char *hid;
+	int uid;
+	const char *desc;
+	u_int quirks;
 } sdhci_acpi_devices[] = {
-	{ "80860F14",	1, "Intel Bay Trail/Braswell eMMC 4.5/4.5.1 Controller",
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ "80860F14",	3, "Intel Bay Trail/Braswell SDXC Controller",
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ "80860F16",	0, "Intel Bay Trail/Braswell SDXC Controller",
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ "80865ACA",	0, "Intel Apollo Lake SDXC Controller",
-	    SDHCI_QUIRK_BROKEN_DMA |	/* APL18 erratum */
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ "80865ACC",	0, "Intel Apollo Lake eMMC 5.0 Controller",
-	    SDHCI_QUIRK_BROKEN_DMA |	/* APL18 erratum */
-	    SDHCI_QUIRK_INTEL_POWER_UP_RESET |
-	    SDHCI_QUIRK_WAIT_WHILE_BUSY |
-	    SDHCI_QUIRK_MMC_DDR52 |
-	    SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
-	    SDHCI_QUIRK_PRESET_VALUE_BROKEN },
-	{ "AMDI0040",	0, "AMD eMMC 5.0 Controller",
-	    SDHCI_QUIRK_32BIT_DMA_SIZE |
-	    SDHCI_QUIRK_MMC_HS400_IF_CAN_SDR104 },
-	{ NULL, 0, NULL, 0}
+	{ "80860F14", 1, "Intel Bay Trail/Braswell eMMC 4.5/4.5.1 Controller",
+	    SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ "80860F14", 3, "Intel Bay Trail/Braswell SDXC Controller",
+	    SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ "80860F16", 0, "Intel Bay Trail/Braswell SDXC Controller",
+	    SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ "80865ACA", 0, "Intel Apollo Lake SDXC Controller",
+	    SDHCI_QUIRK_BROKEN_DMA | /* APL18 erratum */
+		SDHCI_QUIRK_WAIT_WHILE_BUSY | SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ "80865ACC", 0, "Intel Apollo Lake eMMC 5.0 Controller",
+	    SDHCI_QUIRK_BROKEN_DMA | /* APL18 erratum */
+		SDHCI_QUIRK_INTEL_POWER_UP_RESET | SDHCI_QUIRK_WAIT_WHILE_BUSY |
+		SDHCI_QUIRK_MMC_DDR52 | SDHCI_QUIRK_CAPS_BIT63_FOR_MMC_HS400 |
+		SDHCI_QUIRK_PRESET_VALUE_BROKEN },
+	{ "AMDI0040", 0, "AMD eMMC 5.0 Controller",
+	    SDHCI_QUIRK_32BIT_DMA_SIZE | SDHCI_QUIRK_MMC_HS400_IF_CAN_SDR104 },
+	{ NULL, 0, NULL, 0 }
 };
 
-static char *sdhci_ids[] = {
-	"80860F14",
-	"80860F16",
-	"80865ACA",
-	"80865ACC",
-	"AMDI0040",
-	NULL
-};
+static char *sdhci_ids[] = { "80860F14", "80860F16", "80865ACA", "80865ACC",
+	"AMDI0040", NULL };
 
 struct sdhci_acpi_softc {
 	struct sdhci_slot slot;
-	struct resource	*mem_res;	/* Memory resource */
-	struct resource *irq_res;	/* IRQ resource */
-	void		*intrhand;	/* Interrupt handle */
+	struct resource *mem_res; /* Memory resource */
+	struct resource *irq_res; /* IRQ resource */
+	void *intrhand;		  /* Interrupt handle */
 	const struct sdhci_acpi_device *acpi_dev;
 };
 
@@ -219,13 +205,13 @@ sdhci_acpi_set_uhs_timing(device_t dev, struct sdhci_slot *slot)
 		    timing == bus_timing_hs)
 			SDHCI_WRITE_2(bus, slot, SDHCI_HOST_CONTROL2,
 			    SDHCI_READ_2(bus, slot, SDHCI_HOST_CONTROL2) &
-			    ~SDHCI_CTRL2_SAMPLING_CLOCK);
+				~SDHCI_CTRL2_SAMPLING_CLOCK);
 		if (ios->clock > SD_SDR50_MAX &&
 		    old_timing != SDHCI_CTRL2_MMC_HS400 &&
 		    timing == bus_timing_mmc_hs400) {
 			SDHCI_WRITE_2(bus, slot, SDHCI_HOST_CONTROL2,
 			    SDHCI_READ_2(bus, slot, SDHCI_HOST_CONTROL2) |
-			    SDHCI_CTRL2_SAMPLING_CLOCK);
+				SDHCI_CTRL2_SAMPLING_CLOCK);
 			SDHCI_WRITE_4(bus, slot, SDHCI_AMD_RESET_DLL_REG,
 			    0x40003210);
 			DELAY(20);
@@ -296,16 +282,15 @@ sdhci_acpi_attach(device_t dev)
 
 	/* Allocate IRQ. */
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-		RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "can't allocate IRQ\n");
 		return (ENOMEM);
 	}
 
 	rid = 0;
-	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->mem_res == NULL) {
 		device_printf(dev, "can't allocate memory resource for slot\n");
 		sdhci_acpi_detach(dev);
@@ -418,29 +403,29 @@ static device_method_t sdhci_methods[] = {
 	DEVMETHOD(device_resume, sdhci_acpi_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	sdhci_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdhci_generic_write_ivar),
+	DEVMETHOD(bus_read_ivar, sdhci_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdhci_generic_write_ivar),
 
 	/* mmcbr_if */
-	DEVMETHOD(mmcbr_update_ios,	sdhci_generic_update_ios),
-	DEVMETHOD(mmcbr_switch_vccq,	sdhci_generic_switch_vccq),
-	DEVMETHOD(mmcbr_tune,		sdhci_generic_tune),
-	DEVMETHOD(mmcbr_retune,		sdhci_generic_retune),
-	DEVMETHOD(mmcbr_request,	sdhci_generic_request),
-	DEVMETHOD(mmcbr_get_ro,		sdhci_generic_get_ro),
-	DEVMETHOD(mmcbr_acquire_host,   sdhci_generic_acquire_host),
-	DEVMETHOD(mmcbr_release_host,   sdhci_generic_release_host),
+	DEVMETHOD(mmcbr_update_ios, sdhci_generic_update_ios),
+	DEVMETHOD(mmcbr_switch_vccq, sdhci_generic_switch_vccq),
+	DEVMETHOD(mmcbr_tune, sdhci_generic_tune),
+	DEVMETHOD(mmcbr_retune, sdhci_generic_retune),
+	DEVMETHOD(mmcbr_request, sdhci_generic_request),
+	DEVMETHOD(mmcbr_get_ro, sdhci_generic_get_ro),
+	DEVMETHOD(mmcbr_acquire_host, sdhci_generic_acquire_host),
+	DEVMETHOD(mmcbr_release_host, sdhci_generic_release_host),
 
 	/* SDHCI accessors */
-	DEVMETHOD(sdhci_read_1,		sdhci_acpi_read_1),
-	DEVMETHOD(sdhci_read_2,		sdhci_acpi_read_2),
-	DEVMETHOD(sdhci_read_4,		sdhci_acpi_read_4),
-	DEVMETHOD(sdhci_read_multi_4,	sdhci_acpi_read_multi_4),
-	DEVMETHOD(sdhci_write_1,	sdhci_acpi_write_1),
-	DEVMETHOD(sdhci_write_2,	sdhci_acpi_write_2),
-	DEVMETHOD(sdhci_write_4,	sdhci_acpi_write_4),
-	DEVMETHOD(sdhci_write_multi_4,	sdhci_acpi_write_multi_4),
-	DEVMETHOD(sdhci_set_uhs_timing,	sdhci_acpi_set_uhs_timing),
+	DEVMETHOD(sdhci_read_1, sdhci_acpi_read_1),
+	DEVMETHOD(sdhci_read_2, sdhci_acpi_read_2),
+	DEVMETHOD(sdhci_read_4, sdhci_acpi_read_4),
+	DEVMETHOD(sdhci_read_multi_4, sdhci_acpi_read_multi_4),
+	DEVMETHOD(sdhci_write_1, sdhci_acpi_write_1),
+	DEVMETHOD(sdhci_write_2, sdhci_acpi_write_2),
+	DEVMETHOD(sdhci_write_4, sdhci_acpi_write_4),
+	DEVMETHOD(sdhci_write_multi_4, sdhci_acpi_write_multi_4),
+	DEVMETHOD(sdhci_set_uhs_timing, sdhci_acpi_set_uhs_timing),
 
 	DEVMETHOD_END
 };

@@ -31,9 +31,9 @@
 #ifdef _KERNEL
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #else /* !_KERNEL */
 
@@ -45,17 +45,16 @@
 
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
-#include "bhnd_nvram_datavar.h"
 #include "bhnd_nvram_data_bcmvar.h"
+#include "bhnd_nvram_datavar.h"
+#include "bhnd_nvram_private.h"
 
 /*
  * Broadcom-RAW NVRAM data class.
- * 
+ *
  * The Broadcom NVRAM NUL-delimited ASCII format is used by most
  * Broadcom SoCs.
- * 
+ *
  * The NVRAM data is encoded as a stream of of NUL-terminated 'key=value'
  * strings; the end of the stream is denoted by a single extra NUL character.
  */
@@ -64,10 +63,10 @@ struct bhnd_nvram_bcmraw;
 
 /** BCM-RAW NVRAM data class instance */
 struct bhnd_nvram_bcmraw {
-	struct bhnd_nvram_data		 nv;	/**< common instance state */
-	char				*data;	/**< backing buffer */
-	size_t				 size;	/**< buffer size */
-	size_t				 count;	/**< variable count */
+	struct bhnd_nvram_data nv; /**< common instance state */
+	char *data;		   /**< backing buffer */
+	size_t size;		   /**< buffer size */
+	size_t count;		   /**< variable count */
 };
 
 BHND_NVRAM_DATA_CLASS_DEFN(bcmraw, "Broadcom (RAW)",
@@ -76,10 +75,10 @@ BHND_NVRAM_DATA_CLASS_DEFN(bcmraw, "Broadcom (RAW)",
 static int
 bhnd_nvram_bcmraw_probe(struct bhnd_nvram_io *io)
 {
-	char	 envp[16];
-	size_t	 envp_len;
-	size_t	 io_size;
-	int	 error;
+	char envp[16];
+	size_t envp_len;
+	size_t io_size;
+	int error;
 
 	io_size = bhnd_nvram_io_getsize(io);
 
@@ -122,7 +121,8 @@ bhnd_nvram_bcmraw_probe(struct bhnd_nvram_io *io)
 	if (io_size < envp_len)
 		return (ENXIO);
 
-	if ((error = bhnd_nvram_io_read(io, io_size-envp_len, envp, envp_len)))
+	if ((error = bhnd_nvram_io_read(io, io_size - envp_len, envp,
+		 envp_len)))
 		return (error);
 
 	if (envp[0] != '\0' || envp[1] != '\0')
@@ -143,9 +143,9 @@ static int
 bhnd_nvram_bcmraw_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
     bhnd_nvram_plist *options, void *outp, size_t *olen)
 {
-	bhnd_nvram_prop	*prop;
-	size_t		 limit, nbytes;
-	int		 error;
+	bhnd_nvram_prop *prop;
+	size_t limit, nbytes;
+	int error;
 
 	/* Determine output byte limit */
 	if (outp != NULL)
@@ -158,10 +158,10 @@ bhnd_nvram_bcmraw_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	/* Write all properties */
 	prop = NULL;
 	while ((prop = bhnd_nvram_plist_next(props, prop)) != NULL) {
-		const char	*name;
-		char		*p;
-		size_t		 prop_limit;
-		size_t		 name_len, value_len;
+		const char *name;
+		char *p;
+		size_t prop_limit;
+		size_t name_len, value_len;
 
 		if (outp == NULL || limit < nbytes) {
 			p = NULL;
@@ -202,8 +202,8 @@ bhnd_nvram_bcmraw_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 		 * return immediately */
 		if (error && error != ENOMEM) {
 			BHND_NV_LOG("error serializing %s to required type "
-			    "%s: %d\n", name,
-			    bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
+				    "%s: %d\n",
+			    name, bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
 			    error);
 			return (error);
 		}
@@ -238,15 +238,15 @@ bhnd_nvram_bcmraw_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 
 /**
  * Initialize @p bcm with the provided NVRAM data mapped by @p src.
- * 
+ *
  * @param bcm A newly allocated data instance.
  */
 static int
 bhnd_nvram_bcmraw_init(struct bhnd_nvram_bcmraw *bcm, struct bhnd_nvram_io *src)
 {
-	size_t	 io_size;
-	size_t	 capacity, offset;
-	int	 error;
+	size_t io_size;
+	size_t capacity, offset;
+	int error;
 
 	/* Fetch the input image size */
 	io_size = bhnd_nvram_io_getsize(src);
@@ -269,16 +269,16 @@ bhnd_nvram_bcmraw_init(struct bhnd_nvram_bcmraw *bcm, struct bhnd_nvram_io *src)
 	/* Process the buffer */
 	bcm->count = 0;
 	for (offset = 0; offset < bcm->size; offset++) {
-		char		*envp;
-		const char	*name, *value;
-		size_t		 envp_len;
-		size_t		 name_len, value_len;
+		char *envp;
+		const char *name, *value;
+		size_t envp_len;
+		size_t name_len, value_len;
 
 		/* Parse the key=value string */
-		envp = (char *) (bcm->data + offset);
+		envp = (char *)(bcm->data + offset);
 		envp_len = strnlen(envp, bcm->size - offset);
 		error = bhnd_nvram_parse_env(envp, envp_len, '=', &name,
-					     &name_len, &value, &value_len);
+		    &name_len, &value, &value_len);
 		if (error) {
 			BHND_NV_LOG("error parsing envp at offset %#zx: %d\n",
 			    offset, error);
@@ -329,8 +329,8 @@ bhnd_nvram_bcmraw_init(struct bhnd_nvram_bcmraw *bcm, struct bhnd_nvram_io *src)
 static int
 bhnd_nvram_bcmraw_new(struct bhnd_nvram_data *nv, struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_bcmraw	*bcm;
-	int				 error;
+	struct bhnd_nvram_bcmraw *bcm;
+	int error;
 
 	bcm = (struct bhnd_nvram_bcmraw *)nv;
 
@@ -370,14 +370,14 @@ bhnd_nvram_bcmraw_count(struct bhnd_nvram_data *nv)
 static uint32_t
 bhnd_nvram_bcmraw_caps(struct bhnd_nvram_data *nv)
 {
-	return (BHND_NVRAM_DATA_CAP_READ_PTR|BHND_NVRAM_DATA_CAP_DEVPATHS);
+	return (BHND_NVRAM_DATA_CAP_READ_PTR | BHND_NVRAM_DATA_CAP_DEVPATHS);
 }
 
 static const char *
 bhnd_nvram_bcmraw_next(struct bhnd_nvram_data *nv, void **cookiep)
 {
-	struct bhnd_nvram_bcmraw	*bcm;
-	const char			*envp;
+	struct bhnd_nvram_bcmraw *bcm;
+	const char *envp;
 
 	bcm = (struct bhnd_nvram_bcmraw *)nv;
 
@@ -387,8 +387,8 @@ bhnd_nvram_bcmraw_next(struct bhnd_nvram_data *nv, void **cookiep)
 	} else {
 		/* Seek to next record */
 		envp = *cookiep;
-		envp += strlen(envp) + 1;	/* key + '\0' */
-		envp += strlen(envp) + 1;	/* value + '\0' */
+		envp += strlen(envp) + 1; /* key + '\0' */
+		envp += strlen(envp) + 1; /* value + '\0' */
 	}
 
 	/* EOF? */
@@ -440,8 +440,8 @@ bhnd_nvram_bcmraw_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
 
 	/* Cookie points to key\0value\0 -- get the value address */
 	envp = cookiep;
-	envp += strlen(envp) + 1;	/* key + '\0' */
-	*len = strlen(envp) + 1;	/* value + '\0' */
+	envp += strlen(envp) + 1; /* key + '\0' */
+	*len = strlen(envp) + 1;  /* value + '\0' */
 	*type = BHND_NVRAM_TYPE_STRING;
 
 	return (envp);
@@ -458,8 +458,8 @@ static int
 bhnd_nvram_bcmraw_filter_setvar(struct bhnd_nvram_data *nv, const char *name,
     bhnd_nvram_val *value, bhnd_nvram_val **result)
 {
-	bhnd_nvram_val	*str;
-	int		 error;
+	bhnd_nvram_val *str;
+	int error;
 
 	/* Name (trimmed of any path prefix) must be valid */
 	if (!bhnd_nvram_validate_name(bhnd_nvram_trim_path_name(name)))

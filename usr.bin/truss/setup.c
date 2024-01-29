@@ -55,9 +55,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "truss.h"
-#include "syscall.h"
 #include "extern.h"
+#include "syscall.h"
+#include "truss.h"
 
 struct procabi_table {
 	const char *name;
@@ -66,50 +66,41 @@ struct procabi_table {
 
 static sig_atomic_t detaching;
 
-static void	enter_syscall(struct trussinfo *, struct threadinfo *,
-		    struct ptrace_lwpinfo *);
-static void	new_proc(struct trussinfo *, pid_t, lwpid_t);
+static void enter_syscall(struct trussinfo *, struct threadinfo *,
+    struct ptrace_lwpinfo *);
+static void new_proc(struct trussinfo *, pid_t, lwpid_t);
 
-
-static struct procabi freebsd = {
-	.type = "FreeBSD",
+static struct procabi freebsd = { .type = "FreeBSD",
 	.abi = SYSDECODE_ABI_FREEBSD,
 	.pointer_size = sizeof(void *),
 	.extra_syscalls = STAILQ_HEAD_INITIALIZER(freebsd.extra_syscalls),
-	.syscalls = { NULL }
-};
+	.syscalls = { NULL } };
 
 #if !defined(__SIZEOF_POINTER__)
 #error "Use a modern compiler."
 #endif
 
 #if __SIZEOF_POINTER__ > 4
-static struct procabi freebsd32 = {
-	.type = "FreeBSD32",
+static struct procabi freebsd32 = { .type = "FreeBSD32",
 	.abi = SYSDECODE_ABI_FREEBSD32,
 	.pointer_size = sizeof(uint32_t),
 	.compat_prefix = "freebsd32_",
 	.extra_syscalls = STAILQ_HEAD_INITIALIZER(freebsd32.extra_syscalls),
-	.syscalls = { NULL }
-};
+	.syscalls = { NULL } };
 #endif
 
-static struct procabi linux = {
-	.type = "Linux",
+static struct procabi linux = { .type = "Linux",
 	.abi = SYSDECODE_ABI_LINUX,
 	.pointer_size = sizeof(void *),
 	.extra_syscalls = STAILQ_HEAD_INITIALIZER(linux.extra_syscalls),
-	.syscalls = { NULL }
-};
+	.syscalls = { NULL } };
 
 #if __SIZEOF_POINTER__ > 4
-static struct procabi linux32 = {
-	.type = "Linux32",
+static struct procabi linux32 = { .type = "Linux32",
 	.abi = SYSDECODE_ABI_LINUX32,
 	.pointer_size = sizeof(uint32_t),
 	.extra_syscalls = STAILQ_HEAD_INITIALIZER(linux32.extra_syscalls),
-	.syscalls = { NULL }
-};
+	.syscalls = { NULL } };
 #endif
 
 static struct procabi_table abis[] = {
@@ -152,7 +143,7 @@ setup_and_wait(struct trussinfo *info, char *command[])
 	pid = vfork();
 	if (pid == -1)
 		err(1, "fork failed");
-	if (pid == 0) {	/* Child */
+	if (pid == 0) { /* Child */
 		ptrace(PT_TRACE_ME, 0, 0, 0);
 		execvp(command[0], command);
 		err(1, "execvp %s", command[0]);
@@ -267,7 +258,7 @@ new_thread(struct procinfo *p, lwpid_t lwpid)
 	 * If this happens it means there is a bug in truss.  Unfortunately
 	 * this will kill any processes truss is attached to.
 	 */
-	LIST_FOREACH(nt, &p->threadlist, entries) {
+	LIST_FOREACH (nt, &p->threadlist, entries) {
 		if (nt->tid == lwpid)
 			errx(1, "Duplicate thread for LWP %ld", (long)lwpid);
 	}
@@ -326,7 +317,7 @@ new_proc(struct trussinfo *info, pid_t pid, lwpid_t lwpid)
 	 * If this happens it means there is a bug in truss.  Unfortunately
 	 * this will kill any processes truss is attached to.
 	 */
-	LIST_FOREACH(np, &info->proclist, entries) {
+	LIST_FOREACH (np, &info->proclist, entries) {
 		if (np->pid == pid)
 			errx(1, "Duplicate process for pid %ld", (long)pid);
 	}
@@ -353,7 +344,7 @@ free_proc(struct procinfo *p)
 {
 	struct threadinfo *t, *t2;
 
-	LIST_FOREACH_SAFE(t, &p->threadlist, entries, t2) {
+	LIST_FOREACH_SAFE (t, &p->threadlist, entries, t2) {
 		free(t);
 	}
 	LIST_REMOVE(p, entries);
@@ -365,7 +356,7 @@ detach_all_procs(struct trussinfo *info)
 {
 	struct procinfo *p, *p2;
 
-	LIST_FOREACH_SAFE(p, &info->proclist, entries, p2) {
+	LIST_FOREACH_SAFE (p, &info->proclist, entries, p2) {
 		detach_proc(p->pid);
 		free_proc(p);
 	}
@@ -376,7 +367,7 @@ find_proc(struct trussinfo *info, pid_t pid)
 {
 	struct procinfo *np;
 
-	LIST_FOREACH(np, &info->proclist, entries) {
+	LIST_FOREACH (np, &info->proclist, entries) {
 		if (np->pid == pid)
 			return (np);
 	}
@@ -396,7 +387,7 @@ find_thread(struct trussinfo *info, pid_t pid, lwpid_t lwpid)
 	np = find_proc(info, pid);
 	assert(np != NULL);
 
-	LIST_FOREACH(nt, &np->threadlist, entries) {
+	LIST_FOREACH (nt, &np->threadlist, entries) {
 		if (nt->tid == lwpid) {
 			info->curthread = nt;
 			return;
@@ -458,8 +449,9 @@ enter_syscall(struct trussinfo *info, struct threadinfo *t,
 
 	alloc_syscall(t, pl);
 	narg = MIN(pl->pl_syscall_narg, nitems(t->cs.args));
-	if (narg != 0 && ptrace(PT_GET_SC_ARGS, t->tid, (caddr_t)t->cs.args,
-	    sizeof(t->cs.args)) != 0) {
+	if (narg != 0 &&
+	    ptrace(PT_GET_SC_ARGS, t->tid, (caddr_t)t->cs.args,
+		sizeof(t->cs.args)) != 0) {
 		free_syscall(t);
 		return;
 	}
@@ -559,7 +551,8 @@ exit_syscall(struct trussinfo *info, struct ptrace_lwpinfo *pl)
 			 */
 			if (psr.sr_error != 0) {
 				asprintf(&temp, "0x%lx",
-				    (long)t->cs.args[sc->decode.args[i].offset]);
+				    (long)
+					t->cs.args[sc->decode.args[i].offset]);
 			} else {
 				temp = print_arg(&sc->decode.args[i],
 				    t->cs.args, psr.sr_retval, info);
@@ -654,8 +647,8 @@ report_exit(struct trussinfo *info, siginfo_t *si)
 		    si->si_status);
 	else
 		fprintf(info->outfile, "process killed, signal = %u%s\n",
-		    si->si_status, si->si_code == CLD_DUMPED ?
-		    " (core dumped)" : "");
+		    si->si_status,
+		    si->si_code == CLD_DUMPED ? " (core dumped)" : "");
 }
 
 static void
@@ -740,7 +733,6 @@ report_signal(struct trussinfo *info, siginfo_t *si, struct ptrace_lwpinfo *pl)
 	if (pl->pl_event == PL_EVENT_SIGNAL && pl->pl_flags & PL_FLAG_SI)
 		decode_siginfo(info->outfile, &pl->pl_siginfo);
 	fprintf(info->outfile, "\n");
-	
 }
 
 /*
@@ -783,21 +775,22 @@ eventloop(struct trussinfo *info)
 			break;
 		case CLD_TRAPPED:
 			if (ptrace(PT_LWPINFO, si.si_pid, (caddr_t)&pl,
-			    sizeof(pl)) == -1)
+				sizeof(pl)) == -1)
 				err(1, "ptrace(PT_LWPINFO)");
 
 			if (pl.pl_flags & PL_FLAG_CHILD) {
 				new_proc(info, si.si_pid, pl.pl_lwpid);
-				assert(LIST_FIRST(&info->proclist)->abi !=
-				    NULL);
+				assert(
+				    LIST_FIRST(&info->proclist)->abi != NULL);
 			} else if (pl.pl_flags & PL_FLAG_BORN)
 				new_thread(find_proc(info, si.si_pid),
 				    pl.pl_lwpid);
 			find_thread(info, si.si_pid, pl.pl_lwpid);
 
 			if (si.si_status == SIGTRAP &&
-			    (pl.pl_flags & (PL_FLAG_BORN|PL_FLAG_EXITED|
-			    PL_FLAG_SCE|PL_FLAG_SCX)) != 0) {
+			    (pl.pl_flags &
+				(PL_FLAG_BORN | PL_FLAG_EXITED | PL_FLAG_SCE |
+				    PL_FLAG_SCX)) != 0) {
 				if (pl.pl_flags & PL_FLAG_BORN) {
 					if ((info->flags & COUNTONLY) == 0)
 						report_thread_birth(info);
@@ -807,7 +800,8 @@ eventloop(struct trussinfo *info)
 					free_thread(info->curthread);
 					info->curthread = NULL;
 				} else if (pl.pl_flags & PL_FLAG_SCE)
-					enter_syscall(info, info->curthread, &pl);
+					enter_syscall(info, info->curthread,
+					    &pl);
 				else if (pl.pl_flags & PL_FLAG_SCX)
 					exit_syscall(info, &pl);
 				pending_signal = 0;

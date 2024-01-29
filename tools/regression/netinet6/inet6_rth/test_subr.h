@@ -26,8 +26,8 @@
 
 #include <sys/types.h>
 
-#define LINESIZE	256
-#define FUNCNAMESIZE	32
+#define LINESIZE 256
+#define FUNCNAMESIZE 32
 
 extern int g_total;
 extern int g_pass;
@@ -38,5 +38,5 @@ extern char g_errbuf[LINESIZE];
 
 void set_funcname(char *, size_t);
 void checkptr(caddr_t, caddr_t, const char *);
-void checkstr(const char *, const char *, size_t, const char*);
+void checkstr(const char *, const char *, size_t, const char *);
 void checknum(int, int, int, const char *);

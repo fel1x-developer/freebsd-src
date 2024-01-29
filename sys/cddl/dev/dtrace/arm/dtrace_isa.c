@@ -24,27 +24,25 @@
  * Use is subject to license terms.
  */
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
-#include <sys/stack.h>
 #include <sys/pcpu.h>
-
-#include <machine/frame.h>
-#include <machine/md_var.h>
+#include <sys/stack.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/atomic.h>
 #include <machine/db_machdep.h>
+#include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/stack.h>
+
 #include <ddb/db_sym.h>
 #include <ddb/ddb.h>
-#include <sys/kdb.h>
 
 #include "regset.h"
 
@@ -63,11 +61,11 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 	int depth = 0;
 
 	if (intrpc != 0)
-		pcstack[depth++] = (pc_t) intrpc;
+		pcstack[depth++] = (pc_t)intrpc;
 
 	aframes++;
 
-	__asm __volatile("mov %0, sp" : "=&r" (sp));
+	__asm __volatile("mov %0, sp" : "=&r"(sp));
 
 	state.registers[FP] = (uint32_t)__builtin_frame_address(0);
 	state.registers[SP] = sp;
@@ -122,7 +120,7 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 uint64_t
 dtrace_getarg(int arg, int aframes)
 {
-/*	struct arm_frame *fp = (struct arm_frame *)dtrace_getfp();*/
+	/*	struct arm_frame *fp = (struct arm_frame *)dtrace_getfp();*/
 
 	return (0);
 }
@@ -136,7 +134,7 @@ dtrace_getstackdepth(int aframes)
 	int done = 0;
 	int depth = 1;
 
-	__asm __volatile("mov %0, sp" : "=&r" (sp));
+	__asm __volatile("mov %0, sp" : "=&r"(sp));
 
 	state.registers[FP] = (uint32_t)__builtin_frame_address(0);
 	state.registers[SP] = sp;

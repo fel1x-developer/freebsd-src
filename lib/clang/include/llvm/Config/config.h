@@ -63,7 +63,8 @@
 /* Define if dladdr() is available on this platform. */
 #define HAVE_DLADDR 1
 
-#if !defined(__arm__) || defined(__USING_SJLJ_EXCEPTIONS__) || defined(__ARM_DWARF_EH__)
+#if !defined(__arm__) || defined(__USING_SJLJ_EXCEPTIONS__) || \
+    defined(__ARM_DWARF_EH__)
 /* Define to 1 if we can register EH frames on this platform. */
 #define HAVE_REGISTER_FRAME 1
 

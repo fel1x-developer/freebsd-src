@@ -28,22 +28,20 @@
  * SUCH DAMAGE.
  */
 
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <ctype.h>
 #include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static const struct ypalias {
 	char *alias, *name;
@@ -66,8 +64,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-	    "usage: ypcat [-kt] [-d domainname] mapname",
-	    "       ypcat -x");
+	    "usage: ypcat [-kt] [-d domainname] mapname", "       ypcat -x");
 	exit(1);
 }
 
@@ -134,8 +131,7 @@ main(int argc, char *argv[])
 	case YPERR_YPBIND:
 		errx(1, "not running ypbind");
 	default:
-		errx(1, "no such map %s. Reason: %s",
-		    inmap, yperr_string(r));
+		errx(1, "no such map %s. Reason: %s", inmap, yperr_string(r));
 	}
 	exit(0);
 }

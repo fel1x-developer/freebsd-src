@@ -2,9 +2,9 @@
 #include <sys/types.h>
 #include <sys/cpuset.h>
 
-#include <stdio.h>
-#include <libutil.h>
 #include <atf-c.h>
+#include <libutil.h>
+#include <stdio.h>
 
 ATF_TC(invalid);
 ATF_TC_HEAD(invalid, tc)
@@ -19,7 +19,8 @@ ATF_TC_BODY(invalid, tc)
 
 	snprintf(testvalue, sizeof(testvalue), "%d", CPU_SETSIZE + 1);
 
-	ATF_CHECK_EQ(cpuset_parselist(testvalue,  &mask), CPUSET_PARSE_INVALID_CPU);
+	ATF_CHECK_EQ(cpuset_parselist(testvalue, &mask),
+	    CPUSET_PARSE_INVALID_CPU);
 }
 
 ATF_TC(invalidchar);
@@ -32,7 +33,7 @@ ATF_TC_BODY(invalidchar, tc)
 {
 	cpuset_t mask;
 
-	ATF_CHECK_EQ(cpuset_parselist("1+3",  &mask), CPUSET_PARSE_ERROR);
+	ATF_CHECK_EQ(cpuset_parselist("1+3", &mask), CPUSET_PARSE_ERROR);
 }
 
 ATF_TC(all);
@@ -45,7 +46,7 @@ ATF_TC_BODY(all, tc)
 {
 	cpuset_t mask;
 
-	ATF_CHECK_EQ(cpuset_parselist("all",  &mask), CPUSET_PARSE_OK);
+	ATF_CHECK_EQ(cpuset_parselist("all", &mask), CPUSET_PARSE_OK);
 }
 
 ATF_TC(normalsyntax);
@@ -58,7 +59,7 @@ ATF_TC_BODY(normalsyntax, tc)
 {
 	cpuset_t mask;
 
-	ATF_CHECK_EQ(cpuset_parselist("1-3,6",  &mask), CPUSET_PARSE_OK);
+	ATF_CHECK_EQ(cpuset_parselist("1-3,6", &mask), CPUSET_PARSE_OK);
 }
 
 ATF_TP_ADD_TCS(tp)

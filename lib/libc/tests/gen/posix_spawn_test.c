@@ -30,13 +30,13 @@
  */
 
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <errno.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <spawn.h>
-
-#include <atf-c.h>
 
 char *myenv[2] = { "answer=42", NULL };
 

@@ -30,15 +30,15 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mtio.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
 
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
-#include <sys/sysctl.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -46,25 +46,25 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	MAXREC	(64 * 1024)
-#define	NOCOUNT	(-2)
+#define MAXREC (64 * 1024)
+#define NOCOUNT (-2)
 
-static int	filen, guesslen, maxblk = MAXREC;
-static uint64_t	lastrec, record, size, tsize;
-static FILE	*msg;
+static int filen, guesslen, maxblk = MAXREC;
+static uint64_t lastrec, record, size, tsize;
+static FILE *msg;
 
-static void	*getspace(int);
-static void	 intr(int);
-static void	 usage(void) __dead2;
-static void	 verify(int, int, char *);
-static void	 writeop(int, int);
-static void	 rewind_tape(int);
+static void *getspace(int);
+static void intr(int);
+static void usage(void) __dead2;
+static void verify(int, int, char *);
+static void writeop(int, int);
+static void rewind_tape(int);
 
 int
 main(int argc, char *argv[])
 {
 	int lastnread, nread, nw, inp, outp;
-	enum {READ, VERIFY, COPY, COPYVERIFY} op = READ;
+	enum { READ, VERIFY, COPY, COPYVERIFY } op = READ;
 	sig_t oldsig;
 	int ch, needeof;
 	char *buff;
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
 	guesslen = 1;
 	outp = -1;
 	while ((ch = getopt(argc, argv, "cs:vx")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'c':
 			op = COPYVERIFY;
 			break;
@@ -104,7 +104,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	switch(argc) {
+	switch (argc) {
 	case 0:
 		if (op != READ)
 			usage();
@@ -119,8 +119,11 @@ main(int argc, char *argv[])
 		if (op == READ)
 			op = COPY;
 		inf = argv[0];
-		if ((outp = open(argv[1], op == VERIFY ? O_RDONLY :
-		    op == COPY ? O_WRONLY : O_RDWR, DEFFILEMODE)) < 0)
+		if ((outp = open(argv[1],
+			 op == VERIFY	? O_RDONLY :
+			     op == COPY ? O_WRONLY :
+					  O_RDWR,
+			 DEFFILEMODE)) < 0)
 			err(3, "%s", argv[1]);
 		break;
 	default:
@@ -138,7 +141,7 @@ main(int argc, char *argv[])
 	}
 
 	if ((oldsig = signal(SIGINT, SIG_IGN)) != SIG_IGN)
-		(void) signal(SIGINT, intr);
+		(void)signal(SIGINT, intr);
 
 	needeof = 0;
 	for (lastnread = NOCOUNT;;) {
@@ -148,24 +151,29 @@ main(int argc, char *argv[])
 				if (nread >= 0)
 					goto r1;
 			}
-			err(1, "read error, file %d, record %ju", filen, (intmax_t)record);
+			err(1, "read error, file %d, record %ju", filen,
+			    (intmax_t)record);
 		} else if (nread != lastnread) {
 			if (lastnread != 0 && lastnread != NOCOUNT) {
 				if (lastrec == 0 && nread == 0)
-					fprintf(msg, "%ju records\n", (intmax_t)record);
+					fprintf(msg, "%ju records\n",
+					    (intmax_t)record);
 				else if (record - lastrec > 1)
 					fprintf(msg, "records %ju to %ju\n",
-					    (intmax_t)lastrec, (intmax_t)record);
+					    (intmax_t)lastrec,
+					    (intmax_t)record);
 				else
-					fprintf(msg, "record %ju\n", (intmax_t)lastrec);
+					fprintf(msg, "record %ju\n",
+					    (intmax_t)lastrec);
 			}
 			if (nread != 0)
-				fprintf(msg, "file %d: block size %d: ",
-				    filen, nread);
-			(void) fflush(stdout);
+				fprintf(msg, "file %d: block size %d: ", filen,
+				    nread);
+			(void)fflush(stdout);
 			lastrec = record;
 		}
-r1:		guesslen = 0;
+	r1:
+		guesslen = 0;
 		if (nread > 0) {
 			if (op == COPY || op == COPYVERIFY) {
 				if (needeof) {
@@ -175,12 +183,15 @@ r1:		guesslen = 0;
 				nw = write(outp, buff, nread);
 				if (nw != nread) {
 					if (nw == -1) {
-						warn("write error, file %d, record %ju", filen,
-						    (intmax_t)record);
+						warn(
+						    "write error, file %d, record %ju",
+						    filen, (intmax_t)record);
 					} else {
-						warnx("write error, file %d, record %ju", filen,
-						    (intmax_t)record);
-						warnx("write (%d) != read (%d)", nw, nread);
+						warnx(
+						    "write error, file %d, record %ju",
+						    filen, (intmax_t)record);
+						warnx("write (%d) != read (%d)",
+						    nw, nread);
 					}
 					errx(5, "copy aborted");
 				}
@@ -236,7 +247,8 @@ verify(int inp, int outp, char *outb)
 			warn("read error");
 			break;
 		}
-r1:		if ((outn = read(outp, outb, outmaxblk)) == -1) {
+	r1:
+		if ((outn = read(outp, outb, outmaxblk)) == -1) {
 			if (guesslen)
 				while (errno == EINVAL && (outmaxblk -= 1024)) {
 					outn = read(outp, outb, outmaxblk);
@@ -246,7 +258,8 @@ r1:		if ((outn = read(outp, outb, outmaxblk)) == -1) {
 			warn("read error");
 			break;
 		}
-r2:		if (inn != outn) {
+	r2:
+		if (inn != outn) {
 			fprintf(msg,
 			    "%s: tapes have different block sizes; %d != %d.\n",
 			    "tcopy", inn, outn);
@@ -275,11 +288,13 @@ intr(int signo __unused)
 {
 	if (record) {
 		if (record - lastrec > 1)
-			fprintf(msg, "records %ju to %ju\n", (intmax_t)lastrec, (intmax_t)record);
+			fprintf(msg, "records %ju to %ju\n", (intmax_t)lastrec,
+			    (intmax_t)record);
 		else
 			fprintf(msg, "record %ju\n", (intmax_t)lastrec);
 	}
-	fprintf(msg, "interrupt at file %d: record %ju\n", filen, (intmax_t)record);
+	fprintf(msg, "interrupt at file %d: record %ju\n", filen,
+	    (intmax_t)record);
 	fprintf(msg, "total length: %ju bytes\n", (uintmax_t)(tsize + size));
 	exit(1);
 }
@@ -317,14 +332,14 @@ rewind_tape(int fd)
 {
 	struct stat sp;
 
-	if(fstat(fd, &sp))
+	if (fstat(fd, &sp))
 		errx(12, "fstat in rewind");
 
 	/*
 	 * don't want to do tape ioctl on regular files:
 	 */
-	if( S_ISREG(sp.st_mode) ) {
-		if( lseek(fd, 0, SEEK_SET) == -1 )
+	if (S_ISREG(sp.st_mode)) {
+		if (lseek(fd, 0, SEEK_SET) == -1)
 			errx(13, "lseek");
 	} else
 		/*  assume its a tape	*/

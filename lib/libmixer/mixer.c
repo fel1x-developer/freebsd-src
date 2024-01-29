@@ -33,7 +33,7 @@
 
 #include "mixer.h"
 
-#define	BASEPATH "/dev/mixer"
+#define BASEPATH "/dev/mixer"
 
 static int _mixer_readvol(struct mix_dev *);
 
@@ -77,17 +77,19 @@ mixer_open(const char *name)
 		if (strncmp(name, BASEPATH, strlen(BASEPATH)) != 0) {
 			m->unit = -1;
 		} else {
-			/* `name` is "/dev/mixer" so, we'll use the default unit. */
+			/* `name` is "/dev/mixer" so, we'll use the default
+			 * unit. */
 			if (strncmp(name, BASEPATH, strlen(name)) == 0)
 				goto dunit;
 			m->unit = strtol(name + strlen(BASEPATH), NULL, 10);
 		}
 		(void)strlcpy(m->name, name, sizeof(m->name));
 	} else {
-dunit:
+	dunit:
 		if ((m->unit = mixer_get_dunit()) < 0)
 			goto fail;
-		(void)snprintf(m->name, sizeof(m->name), "/dev/mixer%d", m->unit);
+		(void)snprintf(m->name, sizeof(m->name), "/dev/mixer%d",
+		    m->unit);
 	}
 
 	if ((m->fd = open(m->name, O_RDWR)) < 0)
@@ -178,7 +180,7 @@ mixer_get_dev(struct mixer *m, int dev)
 		errno = ERANGE;
 		return (NULL);
 	}
-	TAILQ_FOREACH(dp, &m->devs, devs) {
+	TAILQ_FOREACH (dp, &m->devs, devs) {
 		if (dp->devno == dev)
 			return (dp);
 	}
@@ -197,7 +199,7 @@ mixer_get_dev_byname(struct mixer *m, const char *name)
 {
 	struct mix_dev *dp;
 
-	TAILQ_FOREACH(dp, &m->devs, devs) {
+	TAILQ_FOREACH (dp, &m->devs, devs) {
 		if (!strncmp(dp->name, name, sizeof(dp->name)))
 			return (dp);
 	}
@@ -232,8 +234,9 @@ mixer_add_ctl(struct mix_dev *parent_dev, int id, const char *name,
 	ctl->print = print;
 	dp = ctl->parent_dev;
 	/* Make sure the same ID or name doesn't exist already. */
-	TAILQ_FOREACH(cp, &dp->ctls, ctls) {
-		if (!strncmp(cp->name, name, sizeof(cp->name)) || cp->id == id) {
+	TAILQ_FOREACH (cp, &dp->ctls, ctls) {
+		if (!strncmp(cp->name, name, sizeof(cp->name)) ||
+		    cp->id == id) {
 			errno = EINVAL;
 			return (-1);
 		}
@@ -253,8 +256,8 @@ mixer_add_ctl_s(mix_ctl_t *ctl)
 	if (ctl == NULL)
 		return (-1);
 
-	return (mixer_add_ctl(ctl->parent_dev, ctl->id, ctl->name,
-	    ctl->mod, ctl->print));
+	return (mixer_add_ctl(ctl->parent_dev, ctl->id, ctl->name, ctl->mod,
+	    ctl->print));
 }
 
 /*
@@ -286,7 +289,7 @@ mixer_get_ctl(struct mix_dev *d, int id)
 {
 	mix_ctl_t *cp;
 
-	TAILQ_FOREACH(cp, &d->ctls, ctls) {
+	TAILQ_FOREACH (cp, &d->ctls, ctls) {
 		if (cp->id == id)
 			return (cp);
 	}
@@ -303,7 +306,7 @@ mixer_get_ctl_byname(struct mix_dev *d, const char *name)
 {
 	mix_ctl_t *cp;
 
-	TAILQ_FOREACH(cp, &d->ctls, ctls) {
+	TAILQ_FOREACH (cp, &d->ctls, ctls) {
 		if (!strncmp(cp->name, name, sizeof(cp->name)))
 			return (cp);
 	}

@@ -28,10 +28,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/proc.h>
+#include <sys/kernel.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sched.h>
 
@@ -45,7 +45,6 @@
 #include <contrib/ncsw/inc/xx_ext.h>
 
 #include "portals.h"
-
 
 int
 dpaa_portal_alloc_res(device_t dev, struct dpaa_portals_devinfo *di, int cpu)
@@ -70,8 +69,8 @@ dpaa_portal_alloc_res(device_t dev, struct dpaa_portals_devinfo *di, int cpu)
 		/* Cache enabled area */
 		rle = resource_list_find(res, SYS_RES_MEMORY, 0);
 		sc->sc_rrid[0] = 0;
-		sc->sc_rres[0] = bus_alloc_resource(dev,
-		    SYS_RES_MEMORY, &sc->sc_rrid[0], rle->start + sc->sc_dp_pa,
+		sc->sc_rres[0] = bus_alloc_resource(dev, SYS_RES_MEMORY,
+		    &sc->sc_rrid[0], rle->start + sc->sc_dp_pa,
 		    rle->end + sc->sc_dp_pa, rle->count, RF_ACTIVE);
 		if (sc->sc_rres[0] == NULL) {
 			device_printf(dev,
@@ -83,8 +82,8 @@ dpaa_portal_alloc_res(device_t dev, struct dpaa_portals_devinfo *di, int cpu)
 		/* Cache inhibited area */
 		rle = resource_list_find(res, SYS_RES_MEMORY, 1);
 		sc->sc_rrid[1] = 1;
-		sc->sc_rres[1] = bus_alloc_resource(dev,
-		    SYS_RES_MEMORY, &sc->sc_rrid[1], rle->start + sc->sc_dp_pa,
+		sc->sc_rres[1] = bus_alloc_resource(dev, SYS_RES_MEMORY,
+		    &sc->sc_rrid[1], rle->start + sc->sc_dp_pa,
 		    rle->end + sc->sc_dp_pa, rle->count, RF_ACTIVE);
 		if (sc->sc_rres[1] == NULL) {
 			device_printf(dev,
@@ -108,9 +107,9 @@ dpaa_portal_alloc_res(device_t dev, struct dpaa_portals_devinfo *di, int cpu)
 	/* Allocate interrupts */
 	rle = resource_list_find(res, SYS_RES_IRQ, 0);
 	sc->sc_dp[cpu].dp_irid = 0;
-	sc->sc_dp[cpu].dp_ires = bus_alloc_resource(dev,
-	    SYS_RES_IRQ, &sc->sc_dp[cpu].dp_irid, rle->start, rle->end,
-	    rle->count, RF_ACTIVE);
+	sc->sc_dp[cpu].dp_ires = bus_alloc_resource(dev, SYS_RES_IRQ,
+	    &sc->sc_dp[cpu].dp_irid, rle->start, rle->end, rle->count,
+	    RF_ACTIVE);
 	/* Save interrupt number for later use */
 	sc->sc_dp[cpu].dp_intr_num = rle->start;
 
@@ -118,12 +117,13 @@ dpaa_portal_alloc_res(device_t dev, struct dpaa_portals_devinfo *di, int cpu)
 		device_printf(dev, "Could not allocate irq.\n");
 		return (ENXIO);
 	}
-	err = XX_PreallocAndBindIntr(dev, (uintptr_t)sc->sc_dp[cpu].dp_ires, cpu);
+	err = XX_PreallocAndBindIntr(dev, (uintptr_t)sc->sc_dp[cpu].dp_ires,
+	    cpu);
 
 	if (err != E_OK) {
 		device_printf(dev, "Could not prealloc and bind interrupt\n");
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    sc->sc_dp[cpu].dp_irid, sc->sc_dp[cpu].dp_ires);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_dp[cpu].dp_irid,
+		    sc->sc_dp[cpu].dp_ires);
 		sc->sc_dp[cpu].dp_ires = NULL;
 		return (ENXIO);
 	}
@@ -154,11 +154,9 @@ dpaa_portal_map_registers(struct dpaa_portals_softc *sc)
 		goto out;
 
 	tlb1_set_entry(rman_get_bushandle(sc->sc_rres[0]),
-	    sc->sc_dp[cpu].dp_ce_pa, sc->sc_dp[cpu].dp_ce_size,
-	    _TLB_ENTRY_MEM);
+	    sc->sc_dp[cpu].dp_ce_pa, sc->sc_dp[cpu].dp_ce_size, _TLB_ENTRY_MEM);
 	tlb1_set_entry(rman_get_bushandle(sc->sc_rres[1]),
-	    sc->sc_dp[cpu].dp_ci_pa, sc->sc_dp[cpu].dp_ci_size,
-	    _TLB_ENTRY_IO);
+	    sc->sc_dp[cpu].dp_ci_pa, sc->sc_dp[cpu].dp_ci_size, _TLB_ENTRY_IO);
 
 	sc->sc_dp[cpu].dp_regs_mapped = 1;
 

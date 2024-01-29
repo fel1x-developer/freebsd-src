@@ -23,9 +23,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -33,9 +33,10 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 /* Hooks for the ACPI CA debugging infrastructure */
 #define _COMPONENT ACPI_BUS
@@ -68,8 +69,7 @@ static device_method_t acpi_ged_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, acpi_ged_probe),
 	DEVMETHOD(device_attach, acpi_ged_attach),
-	DEVMETHOD(device_detach, acpi_ged_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, acpi_ged_detach), DEVMETHOD_END
 };
 
 static driver_t acpi_ged_driver = {
@@ -82,8 +82,7 @@ DRIVER_MODULE(acpi_ged, acpi, acpi_ged_driver, 0, 0);
 MODULE_DEPEND(acpi_ged, acpi, 1, 1, 1);
 
 static int acpi_ged_defer;
-SYSCTL_INT(_debug_acpi, OID_AUTO, ged_defer, CTLFLAG_RWTUN,
-    &acpi_ged_defer, 0,
+SYSCTL_INT(_debug_acpi, OID_AUTO, ged_defer, CTLFLAG_RWTUN, &acpi_ged_defer, 0,
     "Handle ACPI GED via a task, rather than in the ISR");
 
 static void
@@ -128,20 +127,20 @@ acpi_get_trigger(ACPI_RESOURCE *res)
 	switch (res->Type) {
 	case ACPI_RESOURCE_TYPE_IRQ:
 		KASSERT(res->Data.Irq.InterruptCount == 1,
-			("%s: multiple interrupts", __func__));
+		    ("%s: multiple interrupts", __func__));
 		trig = res->Data.Irq.Triggering;
 		break;
 	case ACPI_RESOURCE_TYPE_EXTENDED_IRQ:
 		KASSERT(res->Data.ExtendedIrq.InterruptCount == 1,
-			("%s: multiple interrupts", __func__));
+		    ("%s: multiple interrupts", __func__));
 		trig = res->Data.ExtendedIrq.Triggering;
 		break;
 	default:
 		panic("%s: bad resource type %u", __func__, res->Type);
 	}
 
-	return (trig == ACPI_EDGE_SENSITIVE)
-		? INTR_TRIGGER_EDGE : INTR_TRIGGER_LEVEL;
+	return (trig == ACPI_EDGE_SENSITIVE) ? INTR_TRIGGER_EDGE :
+					       INTR_TRIGGER_LEVEL;
 }
 
 static int
@@ -158,14 +157,14 @@ acpi_ged_attach(device_t dev)
 
 	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
-	if (ACPI_FAILURE(AcpiGetHandle(acpi_get_handle(dev), "_EVT",
-				       &evt_method))) {
+	if (ACPI_FAILURE(
+		AcpiGetHandle(acpi_get_handle(dev), "_EVT", &evt_method))) {
 		device_printf(dev, "_EVT not found\n");
 		evt_method = NULL;
 	}
 
 	rl = BUS_GET_RESOURCE_LIST(device_get_parent(dev), dev);
-	STAILQ_FOREACH(rle, rl, link) {
+	STAILQ_FOREACH (rle, rl, link) {
 		if (rle->type == SYS_RES_IRQ) {
 			sc->numevts++;
 		}
@@ -176,7 +175,7 @@ acpi_ged_attach(device_t dev)
 		sc->evts[i].dev = dev;
 		sc->evts[i].rid = i;
 		sc->evts[i].r = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-		    &sc->evts[i].rid,  RF_ACTIVE | RF_SHAREABLE);
+		    &sc->evts[i].rid, RF_ACTIVE | RF_SHAREABLE);
 		if (sc->evts[i].r == NULL) {
 			device_printf(dev, "Cannot alloc %dth irq\n", i);
 			continue;
@@ -186,13 +185,14 @@ acpi_ged_attach(device_t dev)
 			struct intr_map_data_acpi *ima;
 			ima = rman_get_virtual(sc->evts[i].r);
 			if (ima == NULL) {
-				device_printf(dev, "map not found"
-					      " non-intrng?\n");
+				device_printf(dev,
+				    "map not found"
+				    " non-intrng?\n");
 				rawirq = rman_get_start(sc->evts[i].r);
 				trig = INTR_TRIGGER_LEVEL;
-				if (ACPI_SUCCESS(acpi_lookup_irq_resource
-					(dev, sc->evts[i].rid,
-					 sc->evts[i].r, &ares))) {
+				if (ACPI_SUCCESS(acpi_lookup_irq_resource(dev,
+					sc->evts[i].rid, sc->evts[i].r,
+					&ares))) {
 					trig = acpi_get_trigger(&ares);
 				}
 			} else if (ima->hdr.type == INTR_MAP_DATA_ACPI) {
@@ -200,27 +200,26 @@ acpi_ged_attach(device_t dev)
 				rawirq = ima->irq;
 				trig = ima->trig;
 			} else {
-				device_printf(dev, "Not supported intr"
-					      " type%d\n", ima->hdr.type);
+				device_printf(dev,
+				    "Not supported intr"
+				    " type%d\n",
+				    ima->hdr.type);
 				continue;
 			}
 		}
 #else
 		rawirq = rman_get_start(sc->evts[i].r);
 		trig = INTR_TRIGGER_LEVEL;
-		if (ACPI_SUCCESS(acpi_lookup_irq_resource
-				(dev, sc->evts[i].rid,
-				 sc->evts[i].r, &ares))) {
+		if (ACPI_SUCCESS(acpi_lookup_irq_resource(dev, sc->evts[i].rid,
+			sc->evts[i].r, &ares))) {
 			trig = acpi_get_trigger(&ares);
 		}
 #endif
 		if (rawirq < 0x100) {
 			sprintf(name, "_%c%02X",
-				((trig == INTR_TRIGGER_EDGE) ? 'E' : 'L'),
-				rawirq);
-			if (ACPI_SUCCESS(AcpiGetHandle
-					(acpi_get_handle(dev),
-					 name, &sc->evts[i].ah))) {
+			    ((trig == INTR_TRIGGER_EDGE) ? 'E' : 'L'), rawirq);
+			if (ACPI_SUCCESS(AcpiGetHandle(acpi_get_handle(dev),
+				name, &sc->evts[i].ah))) {
 				sc->evts[i].args.Count = 0; /* ensure */
 			} else {
 				sc->evts[i].ah = NULL; /* ensure */
@@ -234,11 +233,9 @@ acpi_ged_attach(device_t dev)
 				sc->evts[i].arg1.Integer.Value = rawirq;
 				sc->evts[i].args.Count = 1;
 				sc->evts[i].args.Pointer = &sc->evts[i].arg1;
-			} else{
-				device_printf
-					(dev,
-					 "Cannot find handler method %d\n",
-					 i);
+			} else {
+				device_printf(dev,
+				    "Cannot find handler method %d\n", i);
 				continue;
 			}
 		}

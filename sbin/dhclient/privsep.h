@@ -22,10 +22,10 @@
 #include <pwd.h>
 
 struct buf {
-	u_char			*buf;
-	size_t			 size;
-	size_t			 wpos;
-	size_t			 rpos;
+	u_char *buf;
+	size_t size;
+	size_t wpos;
+	size_t rpos;
 };
 
 enum imsg_code {
@@ -39,6 +39,6 @@ enum imsg_code {
 };
 
 struct imsg_hdr {
-	enum imsg_code	code;
-	size_t		len;
+	enum imsg_code code;
+	size_t len;
 };

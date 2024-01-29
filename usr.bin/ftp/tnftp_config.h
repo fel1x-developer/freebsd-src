@@ -22,7 +22,7 @@
 #define HAVE_ALLOCA 1
 
 /* Define to 1 if you have <alloca.h> and it should be used (not on Ultrix).
-   */
+ */
 /* #undef HAVE_ALLOCA_H */
 
 /* Define to 1 if you have the <arpa/ftp.h> header file. */
@@ -47,7 +47,7 @@
 #define HAVE_DECL_DIRNAME 1
 
 /* Define to 1 if you have the declaration of `fclose', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_FCLOSE 1
 
 /* Define to 1 if you have the declaration of `getpass', and to 0 if you
@@ -63,15 +63,15 @@
 #define HAVE_DECL_NS_IN6ADDRSZ 1
 
 /* Define to 1 if you have the declaration of `optarg', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTARG 1
 
 /* Define to 1 if you have the declaration of `optind', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_OPTIND 1
 
 /* Define to 1 if you have the declaration of `pclose', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_PCLOSE 1
 
 /* Define to 1 if you have the declaration of `strptime', and to 0 if you
@@ -79,7 +79,7 @@
 #define HAVE_DECL_STRPTIME 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-   */
+ */
 #define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the `dirname' function. */
@@ -276,7 +276,7 @@
 #define HAVE_STRCHR 1
 
 /* Define to 1 if you have the `strcoll' function and it is properly defined.
-   */
+ */
 #define HAVE_STRCOLL 1
 
 /* Define to 1 if you have the `strcspn' function. */
@@ -352,14 +352,14 @@
 #define HAVE_STRVIS 1
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/ioctl.h> header file. */
 #define HAVE_SYS_IOCTL_H 1
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/param.h> header file. */
@@ -504,7 +504,6 @@
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
-
 
 /* Define if using IPv6 support. */
 /* Commented out so this can be selected fromt he Makefile -gavin */

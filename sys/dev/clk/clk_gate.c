@@ -25,10 +25,10 @@
  */
 
 #include <sys/param.h>
-#include <sys/conf.h>
-#include <sys/bus.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
 
 #include <machine/bus.h>
 
@@ -36,45 +36,41 @@
 
 #include "clkdev_if.h"
 
-#define	WR4(_clk, off, val)						\
-	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	RD4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	MD4(_clk, off, clr, set )					\
+#define WR4(_clk, off, val) CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
+#define RD4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define MD4(_clk, off, clr, set) \
 	CLKDEV_MODIFY_4(clknode_get_device(_clk), off, clr, set)
-#define	DEVICE_LOCK(_clk)							\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int clknode_gate_init(struct clknode *clk, device_t dev);
 static int clknode_gate_set_gate(struct clknode *clk, bool enable);
 static int clknode_gate_get_gate(struct clknode *clk, bool *enable);
 struct clknode_gate_sc {
-	uint32_t	offset;
-	uint32_t	shift;
-	uint32_t	mask;
-	uint32_t	on_value;
-	uint32_t	off_value;
-	int		gate_flags;
+	uint32_t offset;
+	uint32_t shift;
+	uint32_t mask;
+	uint32_t on_value;
+	uint32_t off_value;
+	int gate_flags;
 };
 
 static clknode_method_t clknode_gate_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,	clknode_gate_init),
-	CLKNODEMETHOD(clknode_set_gate,	clknode_gate_set_gate),
-	CLKNODEMETHOD(clknode_get_gate,	clknode_gate_get_gate),
+	CLKNODEMETHOD(clknode_init, clknode_gate_init),
+	CLKNODEMETHOD(clknode_set_gate, clknode_gate_set_gate),
+	CLKNODEMETHOD(clknode_get_gate, clknode_gate_get_gate),
 	CLKNODEMETHOD_END
 };
 DEFINE_CLASS_1(clknode_gate, clknode_gate_class, clknode_gate_methods,
-   sizeof(struct clknode_gate_sc), clknode_class);
+    sizeof(struct clknode_gate_sc), clknode_class);
 
 static int
 clknode_gate_init(struct clknode *clk, device_t dev)
 {
 
 	clknode_init_parent_idx(clk, 0);
-	return(0);
+	return (0);
 }
 
 static int
@@ -94,7 +90,7 @@ clknode_gate_set_gate(struct clknode *clk, bool enable)
 	}
 	RD4(clk, sc->offset, &reg);
 	DEVICE_UNLOCK(clk);
-	return(0);
+	return (0);
 }
 
 static int
@@ -112,7 +108,7 @@ clknode_gate_get_gate(struct clknode *clk, bool *enabled)
 		return (rv);
 	reg = (reg >> sc->shift) & sc->mask;
 	*enabled = reg == sc->on_value;
-	return(0);
+	return (0);
 }
 
 int
@@ -128,7 +124,7 @@ clknode_gate_register(struct clkdom *clkdom, struct clk_gate_def *clkdef)
 	sc = clknode_get_softc(clk);
 	sc->offset = clkdef->offset;
 	sc->shift = clkdef->shift;
-	sc->mask =  clkdef->mask;
+	sc->mask = clkdef->mask;
 	sc->on_value = clkdef->on_value;
 	sc->off_value = clkdef->off_value;
 	sc->gate_flags = clkdef->gate_flags;

@@ -26,17 +26,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PMCSTAT_PL_CALLTREE_H_
-#define	_PMCSTAT_PL_CALLTREE_H_
+#ifndef _PMCSTAT_PL_CALLTREE_H_
+#define _PMCSTAT_PL_CALLTREE_H_
 
 /* Function prototypes */
 int pmcpl_ct_init(void);
 void pmcpl_ct_shutdown(FILE *mf);
-void pmcpl_ct_process(
-    struct pmcstat_process *pp, struct pmcstat_pmcrecord *pmcr,
-    uint32_t nsamples, uintfptr_t *cc, int usermode, uint32_t cpu);
+void pmcpl_ct_process(struct pmcstat_process *pp,
+    struct pmcstat_pmcrecord *pmcr, uint32_t nsamples, uintfptr_t *cc,
+    int usermode, uint32_t cpu);
 int pmcpl_ct_topkeypress(int c, void *w);
 void pmcpl_ct_topdisplay(void);
 int pmcpl_ct_configure(char *opt);
 
-#endif	/* _PMCSTAT_PL_CALLTREE_H_ */
+#endif /* _PMCSTAT_PL_CALLTREE_H_ */

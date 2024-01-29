@@ -1,6 +1,6 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
-  *
+ *
  * Copyright 2019 Pawel Biernacki, Mysterious Code Ltd.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,27 +28,26 @@
 
 #include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <string.h>
 
 extern int __sysctlbyname(const char *name, size_t namelen, void *oldp,
     size_t *oldlenp, const void *newp, size_t newlen);
 
 int
-sysctlbyname(const char *name, void *oldp, size_t *oldlenp,
-    const void *newp, size_t newlen)
+sysctlbyname(const char *name, void *oldp, size_t *oldlenp, const void *newp,
+    size_t newlen)
 {
 	size_t len;
 	int oid[2];
 
 	if (__predict_true(strncmp(name, "user.", 5) != 0)) {
 		len = strlen(name);
-		return (__sysctlbyname(name, len, oldp, oldlenp, newp,
-			newlen));
+		return (__sysctlbyname(name, len, oldp, oldlenp, newp, newlen));
 	} else {
 		len = nitems(oid);
 		if (sysctlnametomib(name, oid, &len) == -1)
 			return (-1);
-		return (sysctl(oid, (u_int)len, oldp, oldlenp, newp,
-		    newlen));
+		return (sysctl(oid, (u_int)len, oldp, oldlenp, newp, newlen));
 	}
 }

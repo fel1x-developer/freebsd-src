@@ -34,38 +34,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/bus.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
-#include <sys/conf.h>
-#include <sys/stat.h>
-#include <sys/endian.h>
-#include <sys/disk.h>
-#include <sys/vnode.h>
-#include <sys/fcntl.h>
-#include <sys/kthread.h>
 #include <sys/buf.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/disk.h>
+#include <sys/endian.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/mdioctl.h>
+#include <sys/module.h>
 #include <sys/namei.h>
+#include <sys/rman.h>
+#include <sys/stat.h>
+#include <sys/vnode.h>
 
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cpu.h>
+#include <machine/fdt.h>
 #include <machine/intr.h>
 
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/altera/pio/pio.h>
 #include <dev/beri/virtio/virtio.h>
 #include <dev/beri/virtio/virtio_mmio_platform.h>
-#include <dev/altera/pio/pio.h>
-#include <dev/virtio/mmio/virtio_mmio.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/virtio/block/virtio_blk.h>
-#include <dev/virtio/virtio_ids.h>
+#include <dev/virtio/mmio/virtio_mmio.h>
 #include <dev/virtio/virtio_config.h>
+#include <dev/virtio/virtio_ids.h>
 #include <dev/virtio/virtio_ring.h>
 
 #include "pio_if.h"
@@ -73,40 +72,38 @@
 #define DPRINTF(fmt, ...)
 
 /* We use indirect descriptors */
-#define	NUM_DESCS	1
-#define	NUM_QUEUES	1
+#define NUM_DESCS 1
+#define NUM_QUEUES 1
 
-#define	VTBLK_BLK_ID_BYTES	20
-#define	VTBLK_MAXSEGS		256
+#define VTBLK_BLK_ID_BYTES 20
+#define VTBLK_MAXSEGS 256
 
 struct beri_vtblk_softc {
-	struct resource		*res[1];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	struct cdev		*cdev;
-	device_t		dev;
-	int			opened;
-	device_t		pio_recv;
-	device_t		pio_send;
-	struct vqueue_info	vs_queues[NUM_QUEUES];
-	char			ident[VTBLK_BLK_ID_BYTES];
-	struct ucred		*cred;
-	struct vnode		*vnode;
-	struct thread		*vtblk_ktd;
-	struct sx		sc_mtx;
-	int			beri_mem_offset;
-	struct md_ioctl		*mdio;
+	struct resource *res[1];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	struct cdev *cdev;
+	device_t dev;
+	int opened;
+	device_t pio_recv;
+	device_t pio_send;
+	struct vqueue_info vs_queues[NUM_QUEUES];
+	char ident[VTBLK_BLK_ID_BYTES];
+	struct ucred *cred;
+	struct vnode *vnode;
+	struct thread *vtblk_ktd;
+	struct sx sc_mtx;
+	int beri_mem_offset;
+	struct md_ioctl *mdio;
 	struct virtio_blk_config *cfg;
 };
 
-static struct resource_spec beri_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec beri_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static int
-vtblk_rdwr(struct beri_vtblk_softc *sc, struct iovec *iov,
-	int cnt, int offset, int operation, int iolen)
+vtblk_rdwr(struct beri_vtblk_softc *sc, struct iovec *iov, int cnt, int offset,
+    int operation, int iolen)
 {
 	struct vnode *vp;
 	struct mount *mp;
@@ -132,7 +129,7 @@ vtblk_rdwr(struct beri_vtblk_softc *sc, struct iovec *iov,
 		error = VOP_READ(vp, &auio, IO_DIRECT, sc->cred);
 		VOP_UNLOCK(vp);
 	} else {
-		(void) vn_start_write(vp, &mp, V_WAIT);
+		(void)vn_start_write(vp, &mp, V_WAIT);
 		vn_lock(vp, LK_EXCLUSIVE | LK_RETRY);
 		error = VOP_WRITE(vp, &auio, IO_SYNC, sc->cred);
 		VOP_UNLOCK(vp);
@@ -156,31 +153,27 @@ vtblk_proc(struct beri_vtblk_softc *sc, struct vqueue_info *vq)
 	int i, n;
 	int err;
 
-	n = vq_getchain(sc->beri_mem_offset, vq, iov,
-		VTBLK_MAXSEGS + 2, flags);
-	KASSERT(n >= 2 && n <= VTBLK_MAXSEGS + 2,
-		("wrong n value %d", n));
+	n = vq_getchain(sc->beri_mem_offset, vq, iov, VTBLK_MAXSEGS + 2, flags);
+	KASSERT(n >= 2 && n <= VTBLK_MAXSEGS + 2, ("wrong n value %d", n));
 
 	tiov = getcopy(iov, n);
 	vbh = iov[0].iov_base;
 
-	status = iov[n-1].iov_base;
-	KASSERT(iov[n-1].iov_len == 1,
-		("iov_len == %d", iov[n-1].iov_len));
+	status = iov[n - 1].iov_base;
+	KASSERT(iov[n - 1].iov_len == 1, ("iov_len == %d", iov[n - 1].iov_len));
 
 	type = be32toh(vbh->type) & ~VIRTIO_BLK_T_BARRIER;
 	offset = be64toh(vbh->sector) * DEV_BSIZE;
 
 	iolen = 0;
-	for (i = 1; i < (n-1); i++) {
+	for (i = 1; i < (n - 1); i++) {
 		iolen += iov[i].iov_len;
 	}
 
 	switch (type) {
 	case VIRTIO_BLK_T_OUT:
 	case VIRTIO_BLK_T_IN:
-		err = vtblk_rdwr(sc, tiov + 1, i - 1,
-			offset, type, iolen);
+		err = vtblk_rdwr(sc, tiov + 1, i - 1, offset, type, iolen);
 		break;
 	case VIRTIO_BLK_T_GET_ID:
 		/* Assume a single buffer */
@@ -216,8 +209,7 @@ close_file(struct beri_vtblk_softc *sc, struct thread *td)
 		vn_lock(sc->vnode, LK_EXCLUSIVE | LK_RETRY);
 		sc->vnode->v_vflag &= ~VV_MD;
 		VOP_UNLOCK(sc->vnode);
-		error = vn_close(sc->vnode, (FREAD|FWRITE),
-				sc->cred, td);
+		error = vn_close(sc->vnode, (FREAD | FWRITE), sc->cred, td);
 		if (error != 0)
 			return (error);
 		sc->vnode = NULL;
@@ -319,8 +311,7 @@ vq_init(struct beri_vtblk_softc *sc)
 	vq->vq_pfn = pfn;
 
 	size = vring_size(vq->vq_qsize, VRING_ALIGN);
-	base = paddr_map(sc->beri_mem_offset,
-		(pfn << PAGE_SHIFT), size);
+	base = paddr_map(sc->beri_mem_offset, (pfn << PAGE_SHIFT), size);
 
 	/* First pages are descriptors */
 	vq->vq_desc = (struct vring_desc *)base;
@@ -378,9 +369,8 @@ backend_info(struct beri_vtblk_softc *sc)
 	WRITE4(sc, VIRTIO_MMIO_QUEUE_NUM_MAX, reg);
 
 	/* Our features */
-	reg = htobe32(VIRTIO_RING_F_INDIRECT_DESC
-	    | VIRTIO_BLK_F_BLK_SIZE
-	    | VIRTIO_BLK_F_SEG_MAX);
+	reg = htobe32(VIRTIO_RING_F_INDIRECT_DESC | VIRTIO_BLK_F_BLK_SIZE |
+	    VIRTIO_BLK_F_SEG_MAX);
 	WRITE4(sc, VIRTIO_MMIO_HOST_FEATURES, reg);
 
 	cfg = sc->cfg;
@@ -391,9 +381,9 @@ backend_info(struct beri_vtblk_softc *sc)
 
 	s = (uint32_t *)cfg;
 
-	for (i = 0; i < sizeof(struct virtio_blk_config); i+=4) {
+	for (i = 0; i < sizeof(struct virtio_blk_config); i += 4) {
 		WRITE4(sc, VIRTIO_MMIO_CONFIG + i, *s);
-		s+=1;
+		s += 1;
 	}
 
 	strncpy(sc->ident, "Virtio block backend", sizeof(sc->ident));
@@ -427,8 +417,8 @@ vtblk_intr(void *arg)
 }
 
 static int
-beri_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
-		int flags, struct thread *td)
+beri_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
+    struct thread *td)
 {
 	struct beri_vtblk_softc *sc;
 	int err;
@@ -471,9 +461,9 @@ beri_ioctl(struct cdev *dev, u_long cmd, caddr_t addr,
 }
 
 static struct cdevsw beri_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	beri_ioctl,
-	.d_name =	"virtio block backend",
+	.d_version = D_VERSION,
+	.d_ioctl = beri_ioctl,
+	.d_name = "virtio block backend",
 };
 
 static int
@@ -508,13 +498,13 @@ beri_vtblk_attach(device_t dev)
 	sc->bst = rman_get_bustag(sc->res[0]);
 	sc->bsh = rman_get_bushandle(sc->res[0]);
 
-	sc->cfg = malloc(sizeof(struct virtio_blk_config),
-		M_DEVBUF, M_NOWAIT|M_ZERO);
+	sc->cfg = malloc(sizeof(struct virtio_blk_config), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 
 	sx_init(&sc->sc_mtx, device_get_nameunit(sc->dev));
 
-	error = kthread_add(vtblk_thread, sc, NULL, &sc->vtblk_ktd,
-		0, 0, "beri_virtio_block");
+	error = kthread_add(vtblk_thread, sc, NULL, &sc->vtblk_ktd, 0, 0,
+	    "beri_virtio_block");
 	if (error) {
 		device_printf(dev, "cannot create kthread\n");
 		return (ENXIO);
@@ -527,8 +517,8 @@ beri_vtblk_attach(device_t dev)
 	if (setup_pio(dev, "pio-recv", &sc->pio_recv) != 0)
 		return (ENXIO);
 
-	sc->cdev = make_dev(&beri_cdevsw, 0, UID_ROOT, GID_WHEEL,
-	    S_IRWXU, "beri_vtblk");
+	sc->cdev = make_dev(&beri_cdevsw, 0, UID_ROOT, GID_WHEEL, S_IRWXU,
+	    "beri_vtblk");
 	if (sc->cdev == NULL) {
 		device_printf(dev, "Failed to create character device.\n");
 		return (ENXIO);
@@ -538,11 +528,9 @@ beri_vtblk_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t beri_vtblk_methods[] = {
-	DEVMETHOD(device_probe,		beri_vtblk_probe),
-	DEVMETHOD(device_attach,	beri_vtblk_attach),
-	{ 0, 0 }
-};
+static device_method_t beri_vtblk_methods[] = { DEVMETHOD(device_probe,
+						    beri_vtblk_probe),
+	DEVMETHOD(device_attach, beri_vtblk_attach), { 0, 0 } };
 
 static driver_t beri_vtblk_driver = {
 	"beri_vtblk",

@@ -66,49 +66,31 @@
  *        - Device Identification
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-void sati_inquiry_standard_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void sati_inquiry_standard_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
-void sati_inquiry_serial_number_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void
+sati_inquiry_serial_number_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
-void sati_inquiry_device_id_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void sati_inquiry_device_id_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
-void sati_inquiry_block_device_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void
+sati_inquiry_block_device_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
 SATI_STATUS sati_inquiry_ata_information_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *ata_input_data, void *scsi_io);
 
-SATI_STATUS sati_inquiry_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * translator_sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_inquiry_translate_command(SATI_TRANSLATOR_SEQUENCE_T *translator_sequence,
+    void *scsi_io, void *ata_io);
 
 void sati_inquiry_ata_information_finish_translation(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io, void *ata_io);
 
 #endif // _SATI_INQUIRY_H_

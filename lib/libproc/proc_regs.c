@@ -33,9 +33,9 @@
 #include <sys/ptrace.h>
 
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
 #include "_libproc.h"
 

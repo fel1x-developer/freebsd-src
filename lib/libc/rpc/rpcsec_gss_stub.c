@@ -30,7 +30,7 @@
 #include <rpc/rpcsec_gss.h>
 
 bool_t
-__rpc_gss_wrap_stub(AUTH *auth, void *header, size_t headerlen, XDR* xdrs,
+__rpc_gss_wrap_stub(AUTH *auth, void *header, size_t headerlen, XDR *xdrs,
     xdrproc_t xdr_args, void *args_ptr)
 {
 
@@ -38,11 +38,11 @@ __rpc_gss_wrap_stub(AUTH *auth, void *header, size_t headerlen, XDR* xdrs,
 }
 
 bool_t
-__rpc_gss_unwrap_stub(AUTH *auth, XDR* xdrs, xdrproc_t xdr_args, void *args_ptr)
+__rpc_gss_unwrap_stub(AUTH *auth, XDR *xdrs, xdrproc_t xdr_args, void *args_ptr)
 {
 
 	return (FALSE);
 }
 
-__weak_reference(__rpc_gss_wrap_stub,	__rpc_gss_wrap);
-__weak_reference(__rpc_gss_unwrap_stub,	__rpc_gss_unwrap);
+__weak_reference(__rpc_gss_wrap_stub, __rpc_gss_wrap);
+__weak_reference(__rpc_gss_unwrap_stub, __rpc_gss_unwrap);

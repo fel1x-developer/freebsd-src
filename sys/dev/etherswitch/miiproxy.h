@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__DEV_ETHERSWITCH_MIIPROXY_H__
-#define	__DEV_ETHERSWITCH_MIIPROXY_H__
+#ifndef __DEV_ETHERSWITCH_MIIPROXY_H__
+#define __DEV_ETHERSWITCH_MIIPROXY_H__
 
 extern driver_t miiproxy_driver;
 
 device_t mii_attach_proxy(device_t dev);
 
-#endif	/* __DEV_ETHERSWITCH_MIIPROXY_H__ */
+#endif /* __DEV_ETHERSWITCH_MIIPROXY_H__ */

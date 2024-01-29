@@ -61,10 +61,10 @@
  *        in the object defined in this file.
  */
 
-#include <dev/isci/scil/sati_device.h>
-#include <dev/isci/scil/sci_util.h>  // Move this file.
-#include <dev/isci/scil/sati_unmap.h>
 #include <dev/isci/scil/intel_scsi.h>
+#include <dev/isci/scil/sati_device.h>
+#include <dev/isci/scil/sati_unmap.h>
+#include <dev/isci/scil/sci_util.h> // Move this file.
 
 /**
  * @brief This method simply initializes the data members in the device
@@ -77,33 +77,30 @@
  * @param[in] max_ncq_depth This parameter specifies the maximum desired
  *            NCQ depth.  Once this value is set it can never be increased.
  * @param[in] ignore_fua This parameter specifies FUA is to be ignored and not
- *            sent to the end device. Some OS (Windows) has quirky behaviors with FUA
- *            and recommend driver developers ignore the bit.
+ *            sent to the end device. Some OS (Windows) has quirky behaviors
+ * with FUA and recommend driver developers ignore the bit.
  *
  * @return none
  */
-void sati_device_construct(
-   SATI_DEVICE_T * device,
-   BOOL            is_ncq_enabled,
-   U8              max_ncq_depth,
-   BOOL            ignore_fua
-)
+void
+sati_device_construct(SATI_DEVICE_T *device, BOOL is_ncq_enabled,
+    U8 max_ncq_depth, BOOL ignore_fua)
 {
-   device->state                   = SATI_DEVICE_STATE_OPERATIONAL;
-   device->capabilities            = 0;
-   device->descriptor_sense_enable = SCSI_MODE_PAGE_CONTROL_D_SENSE_DISABLE;
+	device->state = SATI_DEVICE_STATE_OPERATIONAL;
+	device->capabilities = 0;
+	device->descriptor_sense_enable =
+	    SCSI_MODE_PAGE_CONTROL_D_SENSE_DISABLE;
 
-   // The user requested that NCQ be utilized if it is supported by
-   // the device.
-   if (is_ncq_enabled == TRUE)
-      device->capabilities |= SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE;
+	// The user requested that NCQ be utilized if it is supported by
+	// the device.
+	if (is_ncq_enabled == TRUE)
+		device->capabilities |= SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE;
 
-   device->ncq_depth      = max_ncq_depth;
+	device->ncq_depth = max_ncq_depth;
 
-   // The user requested that FUA is ignored (windows performance issue)
-   if (ignore_fua == TRUE)
-      device->capabilities |= SATI_DEVICE_CAP_IGNORE_FUA;
-
+	// The user requested that FUA is ignored (windows performance issue)
+	if (ignore_fua == TRUE)
+		device->capabilities |= SATI_DEVICE_CAP_IGNORE_FUA;
 }
 
 /**
@@ -118,128 +115,117 @@ void sati_device_construct(
  *
  * @return none
  */
-void sati_device_update_capabilities(
-   SATI_DEVICE_T              * device,
-   ATA_IDENTIFY_DEVICE_DATA_T * identify
-)
+void
+sati_device_update_capabilities(SATI_DEVICE_T *device,
+    ATA_IDENTIFY_DEVICE_DATA_T *identify)
 {
-   U16 capabilities = 0;
+	U16 capabilities = 0;
 
-   if (identify->capabilities1 & ATA_IDENTIFY_CAPABILITIES1_NORMAL_DMA_ENABLE)
-      capabilities |= SATI_DEVICE_CAP_UDMA_ENABLE;
+	if (identify->capabilities1 &
+	    ATA_IDENTIFY_CAPABILITIES1_NORMAL_DMA_ENABLE)
+		capabilities |= SATI_DEVICE_CAP_UDMA_ENABLE;
 
-   if (identify->command_set_supported1
-       & ATA_IDENTIFY_COMMAND_SET_SUPPORTED1_48BIT_ENABLE)
-   {
-      capabilities |= SATI_DEVICE_CAP_48BIT_ENABLE;
-   }
+	if (identify->command_set_supported1 &
+	    ATA_IDENTIFY_COMMAND_SET_SUPPORTED1_48BIT_ENABLE) {
+		capabilities |= SATI_DEVICE_CAP_48BIT_ENABLE;
+	}
 
-   if (identify->command_set_supported0
-       & ATA_IDENTIFY_COMMAND_SET_SUPPORTED0_SMART_ENABLE)
-   {
-      capabilities |= SATI_DEVICE_CAP_SMART_SUPPORT;
-   }
+	if (identify->command_set_supported0 &
+	    ATA_IDENTIFY_COMMAND_SET_SUPPORTED0_SMART_ENABLE) {
+		capabilities |= SATI_DEVICE_CAP_SMART_SUPPORT;
+	}
 
-   if (identify->command_set_enabled0
-       & ATA_IDENTIFY_COMMAND_SET_SUPPORTED0_SMART_ENABLE)
-   {
-       capabilities |= SATI_DEVICE_CAP_SMART_ENABLE;
-   }
+	if (identify->command_set_enabled0 &
+	    ATA_IDENTIFY_COMMAND_SET_SUPPORTED0_SMART_ENABLE) {
+		capabilities |= SATI_DEVICE_CAP_SMART_ENABLE;
+	}
 
-   // Save the NCQ related capabilities information.
-   if (identify->serial_ata_capabilities
-       & ATA_IDENTIFY_SATA_CAPABILITIES_NCQ_ENABLE)
-   {
-      if (device->capabilities & SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE)
-      {
-         capabilities      |= SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE;
-         capabilities      |= SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE;
-         capabilities      |= SATI_DEVICE_CAP_DMA_FUA_ENABLE;
-         device->ncq_depth  = MIN(
-                                 device->ncq_depth,
-                                 (U8) (identify->queue_depth
-                                 & ATA_IDENTIFY_NCQ_QUEUE_DEPTH_ENABLE) + 1
-                              );
-      }
-   }
+	// Save the NCQ related capabilities information.
+	if (identify->serial_ata_capabilities &
+	    ATA_IDENTIFY_SATA_CAPABILITIES_NCQ_ENABLE) {
+		if (device->capabilities &
+		    SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE) {
+			capabilities |= SATI_DEVICE_CAP_NCQ_REQUESTED_ENABLE;
+			capabilities |= SATI_DEVICE_CAP_NCQ_SUPPORTED_ENABLE;
+			capabilities |= SATI_DEVICE_CAP_DMA_FUA_ENABLE;
+			device->ncq_depth = MIN(device->ncq_depth,
+			    (U8)(identify->queue_depth &
+				ATA_IDENTIFY_NCQ_QUEUE_DEPTH_ENABLE) +
+				1);
+		}
+	}
 
-   // if the user requested that FUA is ignored; transfer it so we don't lose on update.
-   if (device->capabilities & SATI_DEVICE_CAP_IGNORE_FUA)
-	   capabilities |= SATI_DEVICE_CAP_IGNORE_FUA;
+	// if the user requested that FUA is ignored; transfer it so we don't
+	// lose on update.
+	if (device->capabilities & SATI_DEVICE_CAP_IGNORE_FUA)
+		capabilities |= SATI_DEVICE_CAP_IGNORE_FUA;
 
-   if (identify->general_config_bits & ATA_IDENTIFY_REMOVABLE_MEDIA_ENABLE)
-      capabilities |= SATI_DEVICE_CAP_REMOVABLE_MEDIA;
+	if (identify->general_config_bits & ATA_IDENTIFY_REMOVABLE_MEDIA_ENABLE)
+		capabilities |= SATI_DEVICE_CAP_REMOVABLE_MEDIA;
 
-   if(identify->command_set_supported2 & ATA_IDENTIFY_WRITE_UNCORRECTABLE_SUPPORT )
-   {
-      capabilities |= SATI_DEVICE_CAP_WRITE_UNCORRECTABLE_ENABLE;
-   }
+	if (identify->command_set_supported2 &
+	    ATA_IDENTIFY_WRITE_UNCORRECTABLE_SUPPORT) {
+		capabilities |= SATI_DEVICE_CAP_WRITE_UNCORRECTABLE_ENABLE;
+	}
 
-   if(identify->physical_logical_sector_info &
-      ATA_IDENTIFY_LOGICAL_SECTOR_PER_PHYSICAL_SECTOR_ENABLE)
-   {
-      capabilities |= SATI_DEVICE_CAP_MULTIPLE_SECTORS_PER_PHYSCIAL_SECTOR;
-   }
+	if (identify->physical_logical_sector_info &
+	    ATA_IDENTIFY_LOGICAL_SECTOR_PER_PHYSICAL_SECTOR_ENABLE) {
+		capabilities |=
+		    SATI_DEVICE_CAP_MULTIPLE_SECTORS_PER_PHYSCIAL_SECTOR;
+	}
 
-   if(identify->command_set_supported_extention &
-      ATA_IDENTIFY_COMMAND_SET_SMART_SELF_TEST_SUPPORTED)
-   {
-      capabilities |= SATI_DEVICE_CAP_SMART_SELF_TEST_SUPPORT;
-   }
+	if (identify->command_set_supported_extention &
+	    ATA_IDENTIFY_COMMAND_SET_SMART_SELF_TEST_SUPPORTED) {
+		capabilities |= SATI_DEVICE_CAP_SMART_SELF_TEST_SUPPORT;
+	}
 
-   if (identify->nominal_media_rotation_rate == 1)
-   {
-       capabilities |= SATI_DEVICE_CAP_SSD;
-   }
+	if (identify->nominal_media_rotation_rate == 1) {
+		capabilities |= SATI_DEVICE_CAP_SSD;
+	}
 
-   // Save off the logical block size reported by the drive
-   // See if Word 106 is valid and reports a logical sector size
-   if ((identify->physical_logical_sector_info & 0x5000) == 0x5000)
-   {
-       device->logical_block_size = (identify->words_per_logical_sector[3] << 24) |
-                                    (identify->words_per_logical_sector[2] << 16) |
-                                    (identify->words_per_logical_sector[1] << 8) |
-                                    (identify->words_per_logical_sector[0]);
-   }
-   else
-   {
-       device->logical_block_size = 512;
-   }
+	// Save off the logical block size reported by the drive
+	// See if Word 106 is valid and reports a logical sector size
+	if ((identify->physical_logical_sector_info & 0x5000) == 0x5000) {
+		device->logical_block_size =
+		    (identify->words_per_logical_sector[3] << 24) |
+		    (identify->words_per_logical_sector[2] << 16) |
+		    (identify->words_per_logical_sector[1] << 8) |
+		    (identify->words_per_logical_sector[0]);
+	} else {
+		device->logical_block_size = 512;
+	}
 
-   // Determine DSM TRIM capabilities
-   // Defend against SSDs which report TRIM support, but set
-   //  max_lba_range_entry_blocks to zero, by disabling TRIM for
-   //  those SSDs.
-   if (
-     (identify->data_set_management & ATA_IDENTIFY_COMMAND_SET_DSM_TRIM_SUPPORTED)
-     && (identify->max_lba_range_entry_blocks > 0)
-      )
-   {
-      capabilities |= SATI_DEVICE_CAP_DSM_TRIM_SUPPORT;
-      device->max_lba_range_entry_blocks = identify->max_lba_range_entry_blocks;
-   }
+	// Determine DSM TRIM capabilities
+	// Defend against SSDs which report TRIM support, but set
+	//  max_lba_range_entry_blocks to zero, by disabling TRIM for
+	//  those SSDs.
+	if ((identify->data_set_management &
+		ATA_IDENTIFY_COMMAND_SET_DSM_TRIM_SUPPORTED) &&
+	    (identify->max_lba_range_entry_blocks > 0)) {
+		capabilities |= SATI_DEVICE_CAP_DSM_TRIM_SUPPORT;
+		device->max_lba_range_entry_blocks =
+		    identify->max_lba_range_entry_blocks;
+	}
 
-   if (identify->additional_supported
-       & ATA_IDENTIFY_COMMAND_ADDL_SUPPORTED_DETERMINISTIC_READ)
-   {
-      capabilities |= SATI_DEVICE_CAP_DETERMINISTIC_READ_AFTER_TRIM;
-   }
+	if (identify->additional_supported &
+	    ATA_IDENTIFY_COMMAND_ADDL_SUPPORTED_DETERMINISTIC_READ) {
+		capabilities |= SATI_DEVICE_CAP_DETERMINISTIC_READ_AFTER_TRIM;
+	}
 
-   if (identify->additional_supported
-       & ATA_IDENTIFY_COMMAND_ADDL_SUPPORTED_READ_ZERO)
-   {
-      capabilities |= SATI_DEVICE_CAP_READ_ZERO_AFTER_TRIM;
-   }
+	if (identify->additional_supported &
+	    ATA_IDENTIFY_COMMAND_ADDL_SUPPORTED_READ_ZERO) {
+		capabilities |= SATI_DEVICE_CAP_READ_ZERO_AFTER_TRIM;
+	}
 
-   if (identify->capabilities1
-       & ATA_IDENTIFY_CAPABILITIES1_STANDBY_ENABLE)
-   {
-       capabilities |= SATI_DEVICE_CAP_STANDBY_ENABLE;
-   }
+	if (identify->capabilities1 &
+	    ATA_IDENTIFY_CAPABILITIES1_STANDBY_ENABLE) {
+		capabilities |= SATI_DEVICE_CAP_STANDBY_ENABLE;
+	}
 
-   device->min_blocks_per_microcode_command = identify->min_num_blocks_per_microcode;
-   device->max_blocks_per_microcode_command = identify->max_num_blocks_per_microcode;
+	device->min_blocks_per_microcode_command =
+	    identify->min_num_blocks_per_microcode;
+	device->max_blocks_per_microcode_command =
+	    identify->max_num_blocks_per_microcode;
 
-   device->capabilities = capabilities;
+	device->capabilities = capabilities;
 }
-

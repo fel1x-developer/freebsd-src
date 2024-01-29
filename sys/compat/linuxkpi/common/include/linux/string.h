@@ -26,22 +26,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_STRING_H_
-#define	_LINUXKPI_LINUX_STRING_H_
+#ifndef _LINUXKPI_LINUX_STRING_H_
+#define _LINUXKPI_LINUX_STRING_H_
 
 #include <sys/ctype.h>
-
-#include <linux/types.h>
-#include <linux/gfp.h>
-#include <linux/slab.h>
-#include <linux/uaccess.h>
-#include <linux/err.h>
-#include <linux/bitops.h> /* for BITS_PER_LONG */
-#include <linux/stdarg.h>
-
 #include <sys/libkern.h>
 
-#define	strnicmp(...) strncasecmp(__VA_ARGS__)
+#include <linux/bitops.h> /* for BITS_PER_LONG */
+#include <linux/err.h>
+#include <linux/gfp.h>
+#include <linux/slab.h>
+#include <linux/stdarg.h>
+#include <linux/types.h>
+#include <linux/uaccess.h>
+
+#define strnicmp(...) strncasecmp(__VA_ARGS__)
 
 static inline int
 match_string(const char *const *table, int n, const char *key)
@@ -190,7 +189,7 @@ strreplace(char *str, char old, char new)
 }
 
 static inline ssize_t
-strscpy(char* dst, const char* src, size_t len)
+strscpy(char *dst, const char *src, size_t len)
 {
 	size_t i;
 
@@ -206,7 +205,7 @@ strscpy(char* dst, const char* src, size_t len)
 }
 
 static inline ssize_t
-strscpy_pad(char* dst, const char* src, size_t len)
+strscpy_pad(char *dst, const char *src, size_t len)
 {
 
 	bzero(dst, len);
@@ -257,12 +256,12 @@ memcpy_and_pad(void *dst, size_t dstlen, const void *src, size_t len, int ch)
 	}
 }
 
-#define	memset_startat(ptr, bytepat, smember)				\
-({									\
-	uint8_t *_ptr = (uint8_t *)(ptr);				\
-	int _c = (int)(bytepat);					\
-	size_t _o = offsetof(typeof(*(ptr)), smember);			\
-	memset(_ptr + _o, _c, sizeof(*(ptr)) - _o);			\
-})
+#define memset_startat(ptr, bytepat, smember)                  \
+	({                                                     \
+		uint8_t *_ptr = (uint8_t *)(ptr);              \
+		int _c = (int)(bytepat);                       \
+		size_t _o = offsetof(typeof(*(ptr)), smember); \
+		memset(_ptr + _o, _c, sizeof(*(ptr)) - _o);    \
+	})
 
-#endif	/* _LINUXKPI_LINUX_STRING_H_ */
+#endif /* _LINUXKPI_LINUX_STRING_H_ */

@@ -48,6 +48,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
@@ -55,41 +56,37 @@
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/vnet.h>
 
 #include <net/route.h>
 #include <net/route/nhop.h>
-
-#include <netinet/in_pcb.h>
-#include <netinet/tcp.h>
-#include <netinet/tcp_seq.h>
-#include <netinet/tcp_timer.h>
-#include <netinet/tcp_var.h>
-#include <netinet/tcp_log_buf.h>
-#include <netinet/tcp_hpts.h>
+#include <net/vnet.h>
 #include <netinet/cc/cc.h>
 #include <netinet/cc/cc_cubic.h>
 #include <netinet/cc/cc_module.h>
+#include <netinet/in_pcb.h>
+#include <netinet/tcp.h>
+#include <netinet/tcp_hpts.h>
+#include <netinet/tcp_log_buf.h>
+#include <netinet/tcp_seq.h>
+#include <netinet/tcp_timer.h>
+#include <netinet/tcp_var.h>
 
-static void	cubic_ack_received(struct cc_var *ccv, uint16_t type);
-static void	cubic_cb_destroy(struct cc_var *ccv);
-static int	cubic_cb_init(struct cc_var *ccv, void *ptr);
-static void	cubic_cong_signal(struct cc_var *ccv, uint32_t type);
-static void	cubic_conn_init(struct cc_var *ccv);
-static int	cubic_mod_init(void);
-static void	cubic_post_recovery(struct cc_var *ccv);
-static void	cubic_record_rtt(struct cc_var *ccv);
-static void	cubic_ssthresh_update(struct cc_var *ccv, uint32_t maxseg);
-static void	cubic_after_idle(struct cc_var *ccv);
-static size_t	cubic_data_sz(void);
-static void	cubic_newround(struct cc_var *ccv, uint32_t round_cnt);
-static void	cubic_rttsample(struct cc_var *ccv, uint32_t usec_rtt,
-       uint32_t rxtcnt, uint32_t fas);
+static void cubic_ack_received(struct cc_var *ccv, uint16_t type);
+static void cubic_cb_destroy(struct cc_var *ccv);
+static int cubic_cb_init(struct cc_var *ccv, void *ptr);
+static void cubic_cong_signal(struct cc_var *ccv, uint32_t type);
+static void cubic_conn_init(struct cc_var *ccv);
+static int cubic_mod_init(void);
+static void cubic_post_recovery(struct cc_var *ccv);
+static void cubic_record_rtt(struct cc_var *ccv);
+static void cubic_ssthresh_update(struct cc_var *ccv, uint32_t maxseg);
+static void cubic_after_idle(struct cc_var *ccv);
+static size_t cubic_data_sz(void);
+static void cubic_newround(struct cc_var *ccv, uint32_t round_cnt);
+static void cubic_rttsample(struct cc_var *ccv, uint32_t usec_rtt,
+    uint32_t rxtcnt, uint32_t fas);
 
-struct cc_algo cubic_cc_algo = {
-	.name = "cubic",
+struct cc_algo cubic_cc_algo = { .name = "cubic",
 	.ack_received = cubic_ack_received,
 	.cb_destroy = cubic_cb_destroy,
 	.cb_init = cubic_cb_init,
@@ -100,11 +97,11 @@ struct cc_algo cubic_cc_algo = {
 	.after_idle = cubic_after_idle,
 	.cc_data_sz = cubic_data_sz,
 	.rttsample = cubic_rttsample,
-	.newround = cubic_newround
-};
+	.newround = cubic_newround };
 
 static void
-cubic_log_hystart_event(struct cc_var *ccv, struct cubic *cubicd, uint8_t mod, uint32_t flex1)
+cubic_log_hystart_event(struct cc_var *ccv, struct cubic *cubicd, uint8_t mod,
+    uint32_t flex1)
 {
 	/*
 	 * Types of logs (mod value)
@@ -146,11 +143,9 @@ cubic_log_hystart_event(struct cc_var *ccv, struct cubic *cubicd, uint8_t mod, u
 		log.u_bbr.pkts_out = cubicd->css_last_fas;
 		log.u_bbr.delivered = cubicd->css_lowrtt_fas;
 		log.u_bbr.pkt_epoch = ccv->flags;
-		TCP_LOG_EVENTP(tp, NULL,
-		    &tptosocket(tp)->so_rcv,
-		    &tptosocket(tp)->so_snd,
-		    TCP_HYSTART, 0,
-		    0, &log, false, &tv);
+		TCP_LOG_EVENTP(tp, NULL, &tptosocket(tp)->so_rcv,
+		    &tptosocket(tp)->so_snd, TCP_HYSTART, 0, 0, &log, false,
+		    &tv);
 	}
 }
 
@@ -197,27 +192,33 @@ cubic_does_slow_start(struct cc_var *ccv, struct cubic *cubicd)
 				rtt_thresh = hystart_maxrtt_thresh;
 			cubic_log_hystart_event(ccv, cubicd, 1, rtt_thresh);
 
-			if (cubicd->css_current_round_minrtt >= (cubicd->css_lastround_minrtt + rtt_thresh)) {
+			if (cubicd->css_current_round_minrtt >=
+			    (cubicd->css_lastround_minrtt + rtt_thresh)) {
 				/* Enter CSS */
 				cubicd->flags |= CUBICFLAG_HYSTART_IN_CSS;
-				cubicd->css_fas_at_css_entry = cubicd->css_lowrtt_fas;
-				/* 
-				 * The draft (v4) calls for us to set baseline to css_current_round_min
-				 * but that can cause an oscillation. We probably shoudl be using
-				 * css_lastround_minrtt, but the authors insist that will cause
-				 * issues on exiting early. We will leave the draft version for now
-				 * but I suspect this is incorrect.
+				cubicd->css_fas_at_css_entry =
+				    cubicd->css_lowrtt_fas;
+				/*
+				 * The draft (v4) calls for us to set baseline
+				 * to css_current_round_min but that can cause
+				 * an oscillation. We probably shoudl be using
+				 * css_lastround_minrtt, but the authors insist
+				 * that will cause issues on exiting early. We
+				 * will leave the draft version for now but I
+				 * suspect this is incorrect.
 				 */
-				cubicd->css_baseline_minrtt = cubicd->css_current_round_minrtt;
-				cubicd->css_entered_at_round = cubicd->css_current_round;
-				cubic_log_hystart_event(ccv, cubicd, 2, rtt_thresh);
+				cubicd->css_baseline_minrtt =
+				    cubicd->css_current_round_minrtt;
+				cubicd->css_entered_at_round =
+				    cubicd->css_current_round;
+				cubic_log_hystart_event(ccv, cubicd, 2,
+				    rtt_thresh);
 			}
 		}
 	}
 	if (CCV(ccv, snd_nxt) == CCV(ccv, snd_max))
 		incr = min(ccv->bytes_this_ack,
-			   ccv->nsegs * abc_val *
-			   CCV(ccv, t_maxseg));
+		    ccv->nsegs * abc_val * CCV(ccv, t_maxseg));
 	else
 		incr = min(ccv->bytes_this_ack, CCV(ccv, t_maxseg));
 
@@ -229,7 +230,7 @@ cubic_does_slow_start(struct cc_var *ccv, struct cubic *cubicd)
 	/* ABC is on by default, so incr equals 0 frequently. */
 	if (incr > 0)
 		CCV(ccv, snd_cwnd) = min((cw + incr),
-					 TCP_MAXWIN << CCV(ccv, snd_scale));
+		    TCP_MAXWIN << CCV(ccv, snd_scale));
 }
 
 static void
@@ -248,7 +249,7 @@ cubic_ack_received(struct cc_var *ccv, uint16_t type)
 	 */
 	if (type == CC_ACK && !IN_RECOVERY(CCV(ccv, t_flags)) &&
 	    (ccv->flags & CCF_CWND_LIMITED)) {
-		 /* Use the logic in NewReno ack_received() for slow start. */
+		/* Use the logic in NewReno ack_received() for slow start. */
 		if (CCV(ccv, snd_cwnd) <= CCV(ccv, snd_ssthresh) ||
 		    cubic_data->min_rtt_usecs == TCPTV_SRTTBASE) {
 			cubic_does_slow_start(ccv, cubic_data);
@@ -260,26 +261,29 @@ cubic_ack_received(struct cc_var *ccv, uint16_t type)
 				 */
 				/* Turn off the CSS flag */
 				cubic_data->flags &= ~CUBICFLAG_HYSTART_IN_CSS;
-				/* Disable use of CSS in the future except long idle  */
+				/* Disable use of CSS in the future except long
+				 * idle  */
 				cubic_data->flags &= ~CUBICFLAG_HYSTART_ENABLED;
-				cubic_log_hystart_event(ccv, cubic_data, 11, CCV(ccv, snd_ssthresh));
+				cubic_log_hystart_event(ccv, cubic_data, 11,
+				    CCV(ccv, snd_ssthresh));
 			}
 			if ((cubic_data->flags & CUBICFLAG_RTO_EVENT) &&
 			    (cubic_data->flags & CUBICFLAG_IN_SLOWSTART)) {
 				/* RFC8312 Section 4.7 */
 				cubic_data->flags &= ~(CUBICFLAG_RTO_EVENT |
-						       CUBICFLAG_IN_SLOWSTART);
+				    CUBICFLAG_IN_SLOWSTART);
 				cubic_data->W_max = CCV(ccv, snd_cwnd);
 				cubic_data->K = 0;
-			} else if (cubic_data->flags & (CUBICFLAG_IN_SLOWSTART |
-						 CUBICFLAG_IN_APPLIMIT)) {
+			} else if (cubic_data->flags &
+			    (CUBICFLAG_IN_SLOWSTART | CUBICFLAG_IN_APPLIMIT)) {
 				cubic_data->flags &= ~(CUBICFLAG_IN_SLOWSTART |
-						       CUBICFLAG_IN_APPLIMIT);
+				    CUBICFLAG_IN_APPLIMIT);
 				cubic_data->t_epoch = ticks;
-				cubic_data->K = cubic_k(cubic_data->W_max /
-							CCV(ccv, t_maxseg));
+				cubic_data->K = cubic_k(
+				    cubic_data->W_max / CCV(ccv, t_maxseg));
 			}
-			usecs_since_epoch = (ticks - cubic_data->t_epoch) * tick;
+			usecs_since_epoch = (ticks - cubic_data->t_epoch) *
+			    tick;
 			if (usecs_since_epoch < 0) {
 				/*
 				 * dragging t_epoch along
@@ -290,18 +294,18 @@ cubic_ack_received(struct cc_var *ccv, uint16_t type)
 			/*
 			 * The mean RTT is used to best reflect the equations in
 			 * the I-D. Using min_rtt in the tf_cwnd calculation
-			 * causes W_est to grow much faster than it should if the
-			 * RTT is dominated by network buffering rather than
+			 * causes W_est to grow much faster than it should if
+			 * the RTT is dominated by network buffering rather than
 			 * propagation delay.
 			 */
-			W_est = tf_cwnd(usecs_since_epoch, cubic_data->mean_rtt_usecs,
-				       cubic_data->W_max, CCV(ccv, t_maxseg));
+			W_est = tf_cwnd(usecs_since_epoch,
+			    cubic_data->mean_rtt_usecs, cubic_data->W_max,
+			    CCV(ccv, t_maxseg));
 
 			W_cubic = cubic_cwnd(usecs_since_epoch +
-					     cubic_data->mean_rtt_usecs,
-					     cubic_data->W_max,
-					     CCV(ccv, t_maxseg),
-					     cubic_data->K);
+				cubic_data->mean_rtt_usecs,
+			    cubic_data->W_max, CCV(ccv, t_maxseg),
+			    cubic_data->K);
 
 			ccv->flags &= ~CCF_ABC_SENTAWND;
 
@@ -311,7 +315,8 @@ cubic_ack_received(struct cc_var *ccv, uint16_t type)
 				 * cwnd growth.
 				 */
 				if (CCV(ccv, snd_cwnd) < W_est)
-					CCV(ccv, snd_cwnd) = ulmin(W_est, INT_MAX);
+					CCV(ccv, snd_cwnd) = ulmin(W_est,
+					    INT_MAX);
 			} else if (CCV(ccv, snd_cwnd) < W_cubic) {
 				/*
 				 * Concave or convex region, follow CUBIC
@@ -331,8 +336,8 @@ cubic_ack_received(struct cc_var *ccv, uint16_t type)
 			if (((cubic_data->flags & CUBICFLAG_CONG_EVENT) == 0) &&
 			    cubic_data->W_max < CCV(ccv, snd_cwnd)) {
 				cubic_data->W_max = CCV(ccv, snd_cwnd);
-				cubic_data->K = cubic_k(cubic_data->W_max /
-				    CCV(ccv, t_maxseg));
+				cubic_data->K = cubic_k(
+				    cubic_data->W_max / CCV(ccv, t_maxseg));
 			}
 		}
 	} else if (type == CC_ACK && !IN_RECOVERY(CCV(ccv, t_flags)) &&
@@ -361,7 +366,8 @@ cubic_after_idle(struct cc_var *ccv)
 		 */
 		cubic_data->flags &= ~CUBICFLAG_HYSTART_IN_CSS;
 		cubic_data->flags |= CUBICFLAG_HYSTART_ENABLED;
-		cubic_log_hystart_event(ccv, cubic_data, 12, CCV(ccv, snd_ssthresh));
+		cubic_log_hystart_event(ccv, cubic_data, 12,
+		    CCV(ccv, snd_ssthresh));
 	}
 	newreno_cc_after_idle(ccv);
 	cubic_data->t_epoch = ticks;
@@ -386,7 +392,8 @@ cubic_cb_init(struct cc_var *ccv, void *ptr)
 
 	INP_WLOCK_ASSERT(tptoinpcb(ccv->ccvc.tcp));
 	if (ptr == NULL) {
-		cubic_data = malloc(sizeof(struct cubic), M_CC_MEM, M_NOWAIT|M_ZERO);
+		cubic_data = malloc(sizeof(struct cubic), M_CC_MEM,
+		    M_NOWAIT | M_ZERO);
 		if (cubic_data == NULL)
 			return (ENOMEM);
 	} else
@@ -431,14 +438,16 @@ cubic_cong_signal(struct cc_var *ccv, uint32_t type)
 			/* Make sure the flags are all off we had a loss */
 			cubic_data->flags &= ~CUBICFLAG_HYSTART_ENABLED;
 			cubic_data->flags &= ~CUBICFLAG_HYSTART_IN_CSS;
-			cubic_log_hystart_event(ccv, cubic_data, 10, CCV(ccv, snd_ssthresh));
+			cubic_log_hystart_event(ccv, cubic_data, 10,
+			    CCV(ccv, snd_ssthresh));
 		}
 		if (!IN_FASTRECOVERY(CCV(ccv, t_flags))) {
 			if (!IN_CONGRECOVERY(CCV(ccv, t_flags))) {
 				cubic_ssthresh_update(ccv, mss);
 				cubic_data->flags |= CUBICFLAG_CONG_EVENT;
 				cubic_data->t_epoch = ticks;
-				cubic_data->K = cubic_k(cubic_data->W_max / mss);
+				cubic_data->K = cubic_k(
+				    cubic_data->W_max / mss);
 			}
 			ENTER_RECOVERY(CCV(ccv, t_flags));
 		}
@@ -449,7 +458,8 @@ cubic_cong_signal(struct cc_var *ccv, uint32_t type)
 			/* Make sure the flags are all off we had a loss */
 			cubic_data->flags &= ~CUBICFLAG_HYSTART_ENABLED;
 			cubic_data->flags &= ~CUBICFLAG_HYSTART_IN_CSS;
-			cubic_log_hystart_event(ccv, cubic_data, 9, CCV(ccv, snd_ssthresh));
+			cubic_log_hystart_event(ccv, cubic_data, 9,
+			    CCV(ccv, snd_ssthresh));
 		}
 		if (!IN_CONGRECOVERY(CCV(ccv, t_flags))) {
 			cubic_ssthresh_update(ccv, mss);
@@ -480,13 +490,15 @@ cubic_cong_signal(struct cc_var *ccv, uint32_t type)
 		cubic_data->flags |= CUBICFLAG_CONG_EVENT | CUBICFLAG_RTO_EVENT;
 		cubic_data->undo_W_max = cubic_data->W_max;
 		cubic_data->num_cong_events++;
-			CCV(ccv, snd_ssthresh) = ((uint64_t)CCV(ccv, snd_cwnd) *
-					  CUBIC_BETA) >> CUBIC_SHIFT;
+		CCV(ccv, snd_ssthresh) = ((uint64_t)CCV(ccv, snd_cwnd) *
+					     CUBIC_BETA) >>
+		    CUBIC_SHIFT;
 		CCV(ccv, snd_cwnd) = mss;
 		break;
 
 	case CC_RTO_ERR:
-		cubic_data->flags &= ~(CUBICFLAG_CONG_EVENT | CUBICFLAG_RTO_EVENT);
+		cubic_data->flags &= ~(
+		    CUBICFLAG_CONG_EVENT | CUBICFLAG_RTO_EVENT);
 		cubic_data->num_cong_events--;
 		cubic_data->K = cubic_data->undo_K;
 		cubic_data->cwnd_prior = cubic_data->undo_cwnd_prior;
@@ -554,7 +566,8 @@ cubic_post_recovery(struct cc_var *ccv)
 		else
 			/* Update cwnd based on beta and adjusted W_max. */
 			CCV(ccv, snd_cwnd) = max(((uint64_t)cubic_data->W_max *
-			    CUBIC_BETA) >> CUBIC_SHIFT,
+						     CUBIC_BETA) >>
+				CUBIC_SHIFT,
 			    2 * CCV(ccv, t_maxseg));
 	}
 
@@ -582,7 +595,7 @@ cubic_record_rtt(struct cc_var *ccv)
 	if (CCV(ccv, t_rttupdated) >= CUBIC_MIN_RTT_SAMPLES) {
 		cubic_data = ccv->cc_data;
 		t_srtt_usecs = tcp_get_srtt(ccv->ccvc.tcp,
-					    TCP_TMR_GRANULARITY_USEC);
+		    TCP_TMR_GRANULARITY_USEC);
 		/*
 		 * Record the current SRTT as our minrtt if it's the smallest
 		 * we've seen or minrtt is currently equal to its initialised
@@ -591,11 +604,11 @@ cubic_record_rtt(struct cc_var *ccv)
 		 * XXXLAS: Should there be some hysteresis for minrtt?
 		 */
 		if ((t_srtt_usecs < cubic_data->min_rtt_usecs ||
-		    cubic_data->min_rtt_usecs == TCPTV_SRTTBASE)) {
+			cubic_data->min_rtt_usecs == TCPTV_SRTTBASE)) {
 			/* A minimal rtt is a single unshifted tick of a ticks
 			 * timer. */
 			cubic_data->min_rtt_usecs = max(tick >> TCP_RTT_SHIFT,
-							t_srtt_usecs);
+			    t_srtt_usecs);
 
 			/*
 			 * If the connection is within its first congestion
@@ -643,17 +656,17 @@ cubic_ssthresh_update(struct cc_var *ccv, uint32_t maxseg)
 	 */
 	if ((cubic_data->flags & CUBICFLAG_CONG_EVENT) == 0) {
 		ssthresh = cwnd >> 1;
-		cubic_data->W_max = ((uint64_t)cwnd *
-		    CUBIC_BETA) >> CUBIC_SHIFT;
+		cubic_data->W_max = ((uint64_t)cwnd * CUBIC_BETA) >>
+		    CUBIC_SHIFT;
 	} else {
-		ssthresh = ((uint64_t)cwnd *
-		    CUBIC_BETA) >> CUBIC_SHIFT;
+		ssthresh = ((uint64_t)cwnd * CUBIC_BETA) >> CUBIC_SHIFT;
 	}
 	CCV(ccv, snd_ssthresh) = max(ssthresh, 2 * maxseg);
 }
 
 static void
-cubic_rttsample(struct cc_var *ccv, uint32_t usec_rtt, uint32_t rxtcnt, uint32_t fas)
+cubic_rttsample(struct cc_var *ccv, uint32_t usec_rtt, uint32_t rxtcnt,
+    uint32_t fas)
 {
 	struct cubic *cubicd;
 
@@ -679,7 +692,8 @@ cubic_rttsample(struct cc_var *ccv, uint32_t usec_rtt, uint32_t rxtcnt, uint32_t
 		 * entered CSS erroneously.
 		 */
 		cubicd->flags &= ~CUBICFLAG_HYSTART_IN_CSS;
-		cubic_log_hystart_event(ccv, cubicd, 8, cubicd->css_baseline_minrtt);
+		cubic_log_hystart_event(ccv, cubicd, 8,
+		    cubicd->css_baseline_minrtt);
 		cubicd->css_baseline_minrtt = 0xffffffff;
 	}
 	if (cubicd->flags & CUBICFLAG_HYSTART_ENABLED)
@@ -698,7 +712,8 @@ cubic_newround(struct cc_var *ccv, uint32_t round_cnt)
 	cubicd->css_rttsample_count = 0;
 	cubicd->css_current_round = round_cnt;
 	if ((cubicd->flags & CUBICFLAG_HYSTART_IN_CSS) &&
-	    ((round_cnt - cubicd->css_entered_at_round) >= hystart_css_rounds)) {
+	    ((round_cnt - cubicd->css_entered_at_round) >=
+		hystart_css_rounds)) {
 		/* Enter CA */
 		if (ccv->flags & CCF_HYSTART_CAN_SH_CWND) {
 			/*
@@ -708,7 +723,10 @@ cubic_newround(struct cc_var *ccv, uint32_t round_cnt)
 			 * and give us hystart_css_rounds more rounds.
 			 */
 			if (ccv->flags & CCF_HYSTART_CONS_SSTH) {
-				CCV(ccv, snd_ssthresh) = ((cubicd->css_lowrtt_fas + cubicd->css_fas_at_css_entry) / 2);
+				CCV(ccv, snd_ssthresh) =
+				    ((cubicd->css_lowrtt_fas +
+					 cubicd->css_fas_at_css_entry) /
+					2);
 			} else {
 				CCV(ccv, snd_ssthresh) = cubicd->css_lowrtt_fas;
 			}

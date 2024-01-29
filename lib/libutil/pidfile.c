@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/capsicum.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -45,12 +45,12 @@
 #include <unistd.h>
 
 struct pidfh {
-	int	pf_dirfd;
-	int	pf_fd;
-	char	pf_dir[MAXPATHLEN + 1];
-	char	pf_filename[MAXPATHLEN + 1];
-	dev_t	pf_dev;
-	ino_t	pf_ino;
+	int pf_dirfd;
+	int pf_fd;
+	char pf_dir[MAXPATHLEN + 1];
+	char pf_filename[MAXPATHLEN + 1];
+	dev_t pf_dev;
+	ino_t pf_ino;
 };
 
 static int _pidfile_remove(struct pidfh *pfh, int freeit);
@@ -83,7 +83,7 @@ pidfile_read_impl(int dirfd, const char *filename, pid_t *pidptr)
 		return (errno);
 
 	i = read(fd, buf, sizeof(buf) - 1);
-	error = errno;	/* Remember errno in case close() wants to change it. */
+	error = errno; /* Remember errno in case close() wants to change it. */
 	close(fd);
 	if (i == -1)
 		return (error);
@@ -177,8 +177,8 @@ pidfile_open(const char *pathp, mode_t mode, pid_t *pidptr)
 			if (pidptr == NULL) {
 				errno = EEXIST;
 			} else {
-				errno = pidfile_read(dirfd,
-				    pfh->pf_filename, pidptr);
+				errno = pidfile_read(dirfd, pfh->pf_filename,
+				    pidptr);
 				if (errno == 0 || errno == EAGAIN)
 					errno = EEXIST;
 			}
@@ -198,13 +198,15 @@ pidfile_open(const char *pathp, mode_t mode, pid_t *pidptr)
 		goto failed;
 	}
 
-	if (cap_rights_limit(dirfd,
-	    cap_rights_init(&caprights, CAP_UNLINKAT)) < 0 && errno != ENOSYS) {
+	if (cap_rights_limit(dirfd, cap_rights_init(&caprights, CAP_UNLINKAT)) <
+		0 &&
+	    errno != ENOSYS) {
 		goto failed;
 	}
 
-	if (cap_rights_limit(fd, cap_rights_init(&caprights, CAP_PWRITE,
-	    CAP_FSTAT, CAP_FTRUNCATE, CAP_EVENT)) < 0 &&
+	if (cap_rights_limit(fd,
+		cap_rights_init(&caprights, CAP_PWRITE, CAP_FSTAT,
+		    CAP_FTRUNCATE, CAP_EVENT)) < 0 &&
 	    errno != ENOSYS) {
 		goto failed;
 	}
@@ -345,8 +347,7 @@ pidfile_signal(const char *pathp, int sig, pid_t *pidptr)
 	pid_t pid;
 	int fd;
 
-	fd = flopenat(AT_FDCWD, pathp,
-	    O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+	fd = flopenat(AT_FDCWD, pathp, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 	if (fd >= 0) {
 		/*
 		 * The file exists but is not locked,

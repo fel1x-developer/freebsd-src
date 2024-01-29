@@ -32,19 +32,18 @@
 #elif defined(_STANDALONE)
 #include "stand.h"
 #else
+#include <assert.h>
+#include <errno.h>
+#include <openssl/evp.h>
 #include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <errno.h>
-#include <assert.h>
-#include <openssl/evp.h>
-#define	_OpenSSL_
+#define _OpenSSL_
 #endif
 #include <geom/eli/g_eli.h>
 
 void
-g_eli_crypto_hmac_init(struct hmac_ctx *ctx, const char *hkey,
-    size_t hkeylen)
+g_eli_crypto_hmac_init(struct hmac_ctx *ctx, const char *hkey, size_t hkeylen)
 {
 	u_char k_ipad[128], k_opad[128], key[128];
 	SHA512_CTX lctx;
@@ -56,7 +55,8 @@ g_eli_crypto_hmac_init(struct hmac_ctx *ctx, const char *hkey,
 	else if (hkeylen <= 128)
 		bcopy(hkey, key, hkeylen);
 	else {
-		/* If key is longer than 128 bytes reset it to key = SHA512(key). */
+		/* If key is longer than 128 bytes reset it to key =
+		 * SHA512(key). */
 		SHA512_Init(&lctx);
 		SHA512_Update(&lctx, hkey, hkeylen);
 		SHA512_Final(key, &lctx);
@@ -136,8 +136,7 @@ g_eli_crypto_ivgen(struct g_eli_softc *sc, off_t offset, u_char *iv,
 		bcopy(off, iv, sizeof(off));
 		bzero(iv + sizeof(off), size - sizeof(off));
 		break;
-	default:
-	    {
+	default: {
 		u_char hash[SHA256_DIGEST_LENGTH];
 		SHA256_CTX ctx;
 
@@ -147,6 +146,6 @@ g_eli_crypto_ivgen(struct g_eli_softc *sc, off_t offset, u_char *iv,
 		SHA256_Final(hash, &ctx);
 		bcopy(hash, iv, MIN(sizeof(hash), size));
 		break;
-	    }
+	}
 	}
 }

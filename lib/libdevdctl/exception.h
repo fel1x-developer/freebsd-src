@@ -36,12 +36,11 @@
  * Definition of the ZfsdException class hierarchy.  All exceptions
  * explicitly thrown by Zfsd are defined here.
  */
-#ifndef	_DEVDCTL_EXCEPTION_H_
-#define	_DEVDCTL_EXCEPTION_H_
+#ifndef _DEVDCTL_EXCEPTION_H_
+#define _DEVDCTL_EXCEPTION_H_
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*============================= Class Definitions ============================*/
 
@@ -49,9 +48,8 @@ namespace DevdCtl
 /**
  * \brief Class allowing unified reporting/logging of exceptional events.
  */
-class Exception
-{
-public:
+class Exception {
+    public:
 	/**
 	 * \brief Exception constructor allowing arbitrary string
 	 *        data to be reported.
@@ -63,14 +61,14 @@ public:
 	/**
 	 * \brief Augment/Modify a Exception's string data.
 	 */
-	std::string& GetString();
+	std::string &GetString();
 
 	/**
 	 * \brief Emit exception data to syslog(3).
 	 */
 	virtual void Log() const;
 
-protected:
+    protected:
 	Exception();
 
 	/**
@@ -79,7 +77,7 @@ protected:
 	 */
 	void FormatLog(const char *fmt, va_list ap);
 
-	std::string   m_log;
+	std::string m_log;
 };
 
 inline std::string &
@@ -93,11 +91,9 @@ Exception::GetString()
  * Exception thrown when an event string is not converted to an actionable
  * Event object.
  */
-class ParseException : public Exception
-{
-public:
-	enum Type
-	{
+class ParseException : public Exception {
+    public:
+	enum Type {
 		/** Improperly formatted event string encountered. */
 		INVALID_FORMAT,
 
@@ -118,14 +114,14 @@ public:
 	 *                      exception occurred.
 	 */
 	ParseException(Type type, const std::string &parsedBuffer,
-		       size_t offset = 0);
+	    size_t offset = 0);
 
 	/**
 	 * Accessor
 	 *
 	 * \return  The classification for this exception.
 	 */
-	Type        GetType()   const;
+	Type GetType() const;
 
 	/**
 	 * Accessor
@@ -133,11 +129,11 @@ public:
 	 * \return  The offset into the event string where this exception
 	 *          occurred.
 	 */
-	size_t      GetOffset() const;
+	size_t GetOffset() const;
 
-private:
+    private:
 	/** The type of this exception. */
-	Type              m_type;
+	Type m_type;
 
 	/** The parsing buffer that was active at the time of the exception. */
 	const std::string m_parsedBuffer;
@@ -146,7 +142,7 @@ private:
 	 * The offset into the event string buffer from where this
 	 * exception was triggered.
 	 */
-	size_t            m_offset;
+	size_t m_offset;
 };
 
 //- ParseException Inline Const Public Methods ---------------------------------

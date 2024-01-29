@@ -28,16 +28,16 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/random.h>
-#include <sys/systm.h>
 
+#include <dev/random/live_entropy_sources.h>
+#include <dev/random/random_adaptors.h>
 #include <dev/random/randomdev.h>
 #include <dev/random/randomdev_soft.h>
-#include <dev/random/random_adaptors.h>
-#include <dev/random/live_entropy_sources.h>
 
 static void live_random_example_init(void);
 static void live_random_example_deinit(void);
@@ -57,7 +57,7 @@ struct random_adaptor live_random_example = {
 static uint8_t
 getRandomNumber(void)
 {
-	return 4;   /* chosen by fair dice roll, guaranteed to be random */
+	return 4; /* chosen by fair dice roll, guaranteed to be random */
 }
 
 static void
@@ -95,7 +95,8 @@ live_random_example_read(void *buf, u_int c)
 
 /* ARGSUSED */
 static int
-live_random_example_modevent(module_t mod __unused, int type, void *unused __unused)
+live_random_example_modevent(module_t mod __unused, int type,
+    void *unused __unused)
 {
 	int error = 0;
 

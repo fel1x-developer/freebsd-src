@@ -51,10 +51,10 @@ struct pcicfg_iov {
 	uint32_t iov_page_size;
 };
 
-#define	IOV_RMAN_INITED		0x0001
-#define	IOV_BUSY		0x0002
+#define IOV_RMAN_INITED 0x0001
+#define IOV_BUSY 0x0002
 
-void	pci_iov_cfg_restore(device_t dev, struct pci_devinfo *dinfo);
-void	pci_iov_cfg_save(device_t dev, struct pci_devinfo *dinfo);
+void pci_iov_cfg_restore(device_t dev, struct pci_devinfo *dinfo);
+void pci_iov_cfg_save(device_t dev, struct pci_devinfo *dinfo);
 
 #endif

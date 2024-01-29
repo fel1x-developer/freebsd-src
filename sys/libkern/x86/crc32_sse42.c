@@ -46,7 +46,7 @@ _mm_crc32_u8(uint32_t x, uint8_t y)
 	 * the latter.  This costs a register and an instruction but
 	 * not a uop.
 	 */
-	__asm("crc32b %1,%0" : "+r" (x) : "r" (y));
+	__asm("crc32b %1,%0" : "+r"(x) : "r"(y));
 	return (x);
 }
 
@@ -54,29 +54,29 @@ _mm_crc32_u8(uint32_t x, uint8_t y)
 static __inline uint64_t
 _mm_crc32_u64(uint64_t x, uint64_t y)
 {
-	__asm("crc32q %1,%0" : "+r" (x) : "r" (y));
+	__asm("crc32q %1,%0" : "+r"(x) : "r"(y));
 	return (x);
 }
 #else
 static __inline uint32_t
 _mm_crc32_u32(uint32_t x, uint32_t y)
 {
-	__asm("crc32l %1,%0" : "+r" (x) : "r" (y));
+	__asm("crc32l %1,%0" : "+r"(x) : "r"(y));
 	return (x);
 }
 #endif
 
 /* CRC-32C (iSCSI) polynomial in reversed bit order. */
-#define POLY	0x82f63b78
+#define POLY 0x82f63b78
 
 /*
  * Block sizes for three-way parallel crc computation.  LONG and SHORT must
  * both be powers of two.
  */
-#define LONG	128
-#define SHORT	64
+#define LONG 128
+#define SHORT 64
 
-/* 
+/*
  * Tables for updating a crc for LONG, 2 * LONG, SHORT and 2 * SHORT bytes
  * of value 0 later in the input stream, in the same way that the hardware
  * would, but in software without calculating intermediate steps.
@@ -130,12 +130,12 @@ gf2_matrix_square(uint32_t *square, uint32_t *mat)
 static void
 crc32c_zeros_op(uint32_t *even, size_t len)
 {
-	uint32_t odd[32];       /* odd-power-of-two zeros operator */
+	uint32_t odd[32]; /* odd-power-of-two zeros operator */
 	uint32_t row;
 	int n;
 
 	/* put operator for one zero bit in odd */
-	odd[0] = POLY;              /* CRC-32C polynomial */
+	odd[0] = POLY; /* CRC-32C polynomial */
 	row = 1;
 	for (n = 1; n < 32; n++) {
 		odd[n] = row;
@@ -198,9 +198,9 @@ crc32c_shift(uint32_t zeros[][256], uint32_t crc)
 /* Initialize tables for shifting crcs. */
 static void
 #ifndef _KERNEL
-__attribute__((__constructor__))
+    __attribute__((__constructor__))
 #endif
-crc32c_init_hw(void)
+    crc32c_init_hw(void)
 {
 	crc32c_zeros(crc32c_long, LONG);
 	crc32c_zeros(crc32c_2long, 2 * LONG);

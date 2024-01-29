@@ -38,6 +38,7 @@
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -47,12 +48,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 struct lopacket {
-	u_int		family;
-	struct ip	hdr;
-	char		payload[];
+	u_int family;
+	struct ip hdr;
+	char payload[];
 };
 
 static void
@@ -119,8 +118,8 @@ write_lopacket(int bpffd, struct lopacket *packet)
 	len = sizeof(packet->family) + ntohs(packet->hdr.ip_len);
 	n = write(bpffd, packet, len);
 	ATF_REQUIRE_MSG(n >= 0, "packet write failed: %s", strerror(errno));
-	ATF_REQUIRE_MSG((size_t)n == len, "wrote %zd bytes instead of %zu",
-	    n, len);
+	ATF_REQUIRE_MSG((size_t)n == len, "wrote %zd bytes instead of %zu", n,
+	    len);
 
 	/*
 	 * Loopback packets are dispatched asynchronously, give netisr some
@@ -178,10 +177,10 @@ get_ipstat(struct ipstat *stat)
 	ATF_REQUIRE(len == sizeof(*stat));
 }
 
-#define	CHECK_IP_COUNTER(oldp, newp, counter)				\
-	ATF_REQUIRE_MSG((oldp)->ips_ ## counter < (newp)->ips_ ## counter, \
-	    "ips_" #counter " wasn't incremented (%ju vs. %ju)",	\
-	    (uintmax_t)old.ips_ ## counter, (uintmax_t)new.ips_## counter);
+#define CHECK_IP_COUNTER(oldp, newp, counter)                          \
+	ATF_REQUIRE_MSG((oldp)->ips_##counter < (newp)->ips_##counter, \
+	    "ips_" #counter " wasn't incremented (%ju vs. %ju)",       \
+	    (uintmax_t)old.ips_##counter, (uintmax_t) new.ips_##counter);
 
 /*
  * Make sure a fragment with MF set doesn't come after the last fragment of a

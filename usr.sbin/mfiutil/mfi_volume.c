@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <libutil.h>
@@ -38,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
 MFI_TABLE(top, volume);
@@ -77,7 +79,7 @@ mfi_ld_get_list(int fd, struct mfi_ld_list *list, uint8_t *statusp)
 {
 
 	return (mfi_dcmd_command(fd, MFI_DCMD_LD_GET_LIST, list,
-		sizeof(struct mfi_ld_list), NULL, 0, statusp));
+	    sizeof(struct mfi_ld_list), NULL, 0, statusp));
 }
 
 int
@@ -125,24 +127,25 @@ update_cache_policy(int fd, struct mfi_ld_props *old, struct mfi_ld_props *new)
 	if (changes & MR_LD_CACHE_ALLOW_WRITE_CACHE)
 		printf("%s caching of I/O writes\n",
 		    policy & MR_LD_CACHE_ALLOW_WRITE_CACHE ? "Enabling" :
-		    "Disabling");
+							     "Disabling");
 	if (changes & MR_LD_CACHE_ALLOW_READ_CACHE)
 		printf("%s caching of I/O reads\n",
 		    policy & MR_LD_CACHE_ALLOW_READ_CACHE ? "Enabling" :
-		    "Disabling");
+							    "Disabling");
 	if (changes & MR_LD_CACHE_WRITE_BACK)
 		printf("Setting write cache policy to %s\n",
 		    policy & MR_LD_CACHE_WRITE_BACK ? "write-back" :
-		    "write-through");
+						      "write-through");
 	if (changes & (MR_LD_CACHE_READ_AHEAD | MR_LD_CACHE_READ_ADAPTIVE))
 		printf("Setting read ahead policy to %s\n",
 		    policy & MR_LD_CACHE_READ_AHEAD ?
-		    (policy & MR_LD_CACHE_READ_ADAPTIVE ?
-		    "adaptive" : "always") : "none");
+			(policy & MR_LD_CACHE_READ_ADAPTIVE ? "adaptive" :
+							      "always") :
+			"none");
 	if (changes & MR_LD_CACHE_WRITE_CACHE_BAD_BBU)
 		printf("%s write caching with bad BBU\n",
 		    policy & MR_LD_CACHE_WRITE_CACHE_BAD_BBU ? "Enabling" :
-		    "Disabling");
+							       "Disabling");
 	if (old->disk_cache_policy != new->disk_cache_policy) {
 		switch (new->disk_cache_policy) {
 		case MR_PD_CACHE_ENABLE:
@@ -152,7 +155,8 @@ update_cache_policy(int fd, struct mfi_ld_props *old, struct mfi_ld_props *new)
 			printf("Disabling write-cache on physical drives\n");
 			break;
 		case MR_PD_CACHE_UNCHANGED:
-			printf("Using default write-cache setting on physical drives\n");
+			printf(
+			    "Using default write-cache setting on physical drives\n");
 			break;
 		}
 	}
@@ -186,27 +190,29 @@ process_cache_command(int ac, char **av, struct mfi_ld_props *props)
 
 	/* I/O cache settings. */
 	if (strcmp(av[0], "all") == 0 || strcmp(av[0], "enable") == 0) {
-		stage_cache_setting(props, MR_LD_CACHE_ALLOW_READ_CACHE |
-		    MR_LD_CACHE_ALLOW_WRITE_CACHE,
+		stage_cache_setting(props,
 		    MR_LD_CACHE_ALLOW_READ_CACHE |
-		    MR_LD_CACHE_ALLOW_WRITE_CACHE);
+			MR_LD_CACHE_ALLOW_WRITE_CACHE,
+		    MR_LD_CACHE_ALLOW_READ_CACHE |
+			MR_LD_CACHE_ALLOW_WRITE_CACHE);
 		return (1);
 	}
 	if (strcmp(av[0], "none") == 0 || strcmp(av[0], "disable") == 0) {
-		stage_cache_setting(props, 0, MR_LD_CACHE_ALLOW_READ_CACHE |
-		    MR_LD_CACHE_ALLOW_WRITE_CACHE);
+		stage_cache_setting(props, 0,
+		    MR_LD_CACHE_ALLOW_READ_CACHE |
+			MR_LD_CACHE_ALLOW_WRITE_CACHE);
 		return (1);
 	}
 	if (strcmp(av[0], "reads") == 0) {
- 		stage_cache_setting(props, MR_LD_CACHE_ALLOW_READ_CACHE,
+		stage_cache_setting(props, MR_LD_CACHE_ALLOW_READ_CACHE,
 		    MR_LD_CACHE_ALLOW_READ_CACHE |
-		    MR_LD_CACHE_ALLOW_WRITE_CACHE);
+			MR_LD_CACHE_ALLOW_WRITE_CACHE);
 		return (1);
 	}
 	if (strcmp(av[0], "writes") == 0) {
 		stage_cache_setting(props, MR_LD_CACHE_ALLOW_WRITE_CACHE,
 		    MR_LD_CACHE_ALLOW_READ_CACHE |
-		    MR_LD_CACHE_ALLOW_WRITE_CACHE);
+			MR_LD_CACHE_ALLOW_WRITE_CACHE);
 		return (1);
 	}
 
@@ -255,8 +261,8 @@ process_cache_command(int ac, char **av, struct mfi_ld_props *props)
 			warnx("cache: invalid read-ahead setting");
 			return (-1);
 		}
-		stage_cache_setting(props, policy, MR_LD_CACHE_READ_AHEAD |
-			    MR_LD_CACHE_READ_ADAPTIVE);
+		stage_cache_setting(props, policy,
+		    MR_LD_CACHE_READ_AHEAD | MR_LD_CACHE_READ_ADAPTIVE);
 		return (2);
 	}
 
@@ -322,7 +328,7 @@ volume_cache(int ac, char **av)
 		printf("             I/O caching: ");
 		switch (props.default_cache_policy &
 		    (MR_LD_CACHE_ALLOW_WRITE_CACHE |
-		    MR_LD_CACHE_ALLOW_READ_CACHE)) {
+			MR_LD_CACHE_ALLOW_READ_CACHE)) {
 		case 0:
 			printf("disabled\n");
 			break;
@@ -339,14 +345,20 @@ volume_cache(int ac, char **av)
 		}
 		printf("           write caching: %s\n",
 		    props.default_cache_policy & MR_LD_CACHE_WRITE_BACK ?
-		    "write-back" : "write-through");
+			"write-back" :
+			"write-through");
 		printf("write cache with bad BBU: %s\n",
 		    props.default_cache_policy &
-		    MR_LD_CACHE_WRITE_CACHE_BAD_BBU ? "enabled" : "disabled");
+			    MR_LD_CACHE_WRITE_CACHE_BAD_BBU ?
+			"enabled" :
+			"disabled");
 		printf("              read ahead: %s\n",
 		    props.default_cache_policy & MR_LD_CACHE_READ_AHEAD ?
-		    (props.default_cache_policy & MR_LD_CACHE_READ_ADAPTIVE ?
-		    "adaptive" : "always") : "none");
+			(props.default_cache_policy &
+				    MR_LD_CACHE_READ_ADAPTIVE ?
+				"adaptive" :
+				"always") :
+			"none");
 		printf("       drive write cache: ");
 		switch (props.disk_cache_policy) {
 		case MR_PD_CACHE_UNCHANGED:
@@ -364,7 +376,7 @@ volume_cache(int ac, char **av)
 		}
 		if (props.default_cache_policy != props.current_cache_policy)
 			printf(
-	"Cache disabled due to dead battery or ongoing battery relearn\n");
+			    "Cache disabled due to dead battery or ongoing battery relearn\n");
 		error = 0;
 	} else {
 		new = props;
@@ -450,8 +462,8 @@ volume_progress(int ac, char **av)
 	uint8_t target_id;
 
 	if (ac != 2) {
-		warnx("volume progress: %s", ac > 2 ? "extra arguments" :
-		    "volume required");
+		warnx("volume progress: %s",
+		    ac > 2 ? "extra arguments" : "volume required");
 		return (EINVAL);
 	}
 
@@ -487,8 +499,9 @@ volume_progress(int ac, char **av)
 		mfi_display_progress("Foreground Init", &info.progress.fgi);
 	if (info.progress.active & MFI_LD_PROGRESS_RECON)
 		mfi_display_progress("Reconstruction", &info.progress.recon);
-	if ((info.progress.active & (MFI_LD_PROGRESS_CC | MFI_LD_PROGRESS_BGI |
-	    MFI_LD_PROGRESS_FGI | MFI_LD_PROGRESS_RECON)) == 0)
+	if ((info.progress.active &
+		(MFI_LD_PROGRESS_CC | MFI_LD_PROGRESS_BGI |
+		    MFI_LD_PROGRESS_FGI | MFI_LD_PROGRESS_RECON)) == 0)
 		printf("No activity in progress for volume %s.\n",
 		    mfi_volume_name(fd, target_id));
 	close(fd);

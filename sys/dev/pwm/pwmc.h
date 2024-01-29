@@ -26,22 +26,22 @@
  */
 
 #ifndef _PWM_H_
-#define	_PWM_H_
+#define _PWM_H_
 
-#define	PWM_POLARITY_INVERTED	(1 << 0)
+#define PWM_POLARITY_INVERTED (1 << 0)
 
 struct pwm_state {
-	u_int		period;
-	u_int		duty;
-	uint32_t	flags;
-	bool		enable;
+	u_int period;
+	u_int duty;
+	uint32_t flags;
+	bool enable;
 };
 
 /*
  * ioctls
  */
 
-#define	PWMGETSTATE	_IOWR('G', 0, struct pwm_state)
-#define	PWMSETSTATE	_IOWR('G', 1, struct pwm_state)
+#define PWMGETSTATE _IOWR('G', 0, struct pwm_state)
+#define PWMSETSTATE _IOWR('G', 1, struct pwm_state)
 
 #endif /* _PWM_H_ */

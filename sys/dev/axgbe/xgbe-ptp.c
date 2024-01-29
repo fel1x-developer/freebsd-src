@@ -114,13 +114,14 @@
  *     THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
+
 #include "xgbe.h"
 
-static u64 xgbe_cc_read(const struct cyclecounter *cc)
+static u64
+xgbe_cc_read(const struct cyclecounter *cc)
 {
-	struct xgbe_prv_data *pdata = container_of(cc,
-						   struct xgbe_prv_data,
-						   tstamp_cc);
+	struct xgbe_prv_data *pdata = container_of(cc, struct xgbe_prv_data,
+	    tstamp_cc);
 	u64 nsec;
 
 	nsec = pdata->hw_if.get_tstamp_time(pdata);
@@ -128,11 +129,11 @@ static u64 xgbe_cc_read(const struct cyclecounter *cc)
 	return (nsec);
 }
 
-static int xgbe_adjfreq(struct ptp_clock_info *info, s32 delta)
+static int
+xgbe_adjfreq(struct ptp_clock_info *info, s32 delta)
 {
-	struct xgbe_prv_data *pdata = container_of(info,
-						   struct xgbe_prv_data,
-						   ptp_clock_info);
+	struct xgbe_prv_data *pdata = container_of(info, struct xgbe_prv_data,
+	    ptp_clock_info);
 	unsigned long flags;
 	u64 adjust;
 	u32 addend, diff;
@@ -159,11 +160,11 @@ static int xgbe_adjfreq(struct ptp_clock_info *info, s32 delta)
 	return (0);
 }
 
-static int xgbe_adjtime(struct ptp_clock_info *info, s64 delta)
+static int
+xgbe_adjtime(struct ptp_clock_info *info, s64 delta)
 {
-	struct xgbe_prv_data *pdata = container_of(info,
-						   struct xgbe_prv_data,
-						   ptp_clock_info);
+	struct xgbe_prv_data *pdata = container_of(info, struct xgbe_prv_data,
+	    ptp_clock_info);
 	unsigned long flags;
 
 	spin_lock_irqsave(&pdata->tstamp_lock, flags);
@@ -173,11 +174,11 @@ static int xgbe_adjtime(struct ptp_clock_info *info, s64 delta)
 	return (0);
 }
 
-static int xgbe_gettime(struct ptp_clock_info *info, struct timespec64 *ts)
+static int
+xgbe_gettime(struct ptp_clock_info *info, struct timespec64 *ts)
 {
-	struct xgbe_prv_data *pdata = container_of(info,
-						   struct xgbe_prv_data,
-						   ptp_clock_info);
+	struct xgbe_prv_data *pdata = container_of(info, struct xgbe_prv_data,
+	    ptp_clock_info);
 	unsigned long flags;
 	u64 nsec;
 
@@ -192,12 +193,11 @@ static int xgbe_gettime(struct ptp_clock_info *info, struct timespec64 *ts)
 	return (0);
 }
 
-static int xgbe_settime(struct ptp_clock_info *info,
-			const struct timespec64 *ts)
+static int
+xgbe_settime(struct ptp_clock_info *info, const struct timespec64 *ts)
 {
-	struct xgbe_prv_data *pdata = container_of(info,
-						   struct xgbe_prv_data,
-						   ptp_clock_info);
+	struct xgbe_prv_data *pdata = container_of(info, struct xgbe_prv_data,
+	    ptp_clock_info);
 	unsigned long flags;
 	u64 nsec;
 
@@ -212,21 +212,22 @@ static int xgbe_settime(struct ptp_clock_info *info,
 	return (0);
 }
 
-static int xgbe_enable(struct ptp_clock_info *info,
-    void *request, int on)
+static int
+xgbe_enable(struct ptp_clock_info *info, void *request, int on)
 {
 	return (-EOPNOTSUPP);
 }
 
-void xgbe_ptp_register(struct xgbe_prv_data *pdata)
+void
+xgbe_ptp_register(struct xgbe_prv_data *pdata)
 {
 	struct ptp_clock_info *info = &pdata->ptp_clock_info;
-	//struct ptp_clock *clock;
+	// struct ptp_clock *clock;
 	struct cyclecounter *cc = &pdata->tstamp_cc;
 	u64 dividend;
 
 	snprintf(info->name, sizeof(info->name), "axgbe-ptp");
-	//info->owner = THIS_MODULE;
+	// info->owner = THIS_MODULE;
 	info->max_adj = pdata->ptpclk_rate;
 	info->adjfreq = xgbe_adjfreq;
 	info->adjtime = xgbe_adjtime;
@@ -257,7 +258,7 @@ void xgbe_ptp_register(struct xgbe_prv_data *pdata)
 	cc->shift = 0;
 
 	timecounter_init(&pdata->tstamp_tc, &pdata->tstamp_cc,
-			 ktime_to_ns(ktime_get_real()));
+	    ktime_to_ns(ktime_get_real()));
 
 	/* Disable all timestamping to start */
 	XGMAC_IOWRITE(pdata, MAC_TSCR, 0);
@@ -265,7 +266,8 @@ void xgbe_ptp_register(struct xgbe_prv_data *pdata)
 	pdata->tstamp_config.rx_filter = HWTSTAMP_FILTER_NONE;
 }
 
-void xgbe_ptp_unregister(struct xgbe_prv_data *pdata)
+void
+xgbe_ptp_unregister(struct xgbe_prv_data *pdata)
 {
 #if 0
 	if (pdata->ptp_clock)

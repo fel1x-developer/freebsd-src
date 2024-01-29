@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -97,13 +97,14 @@ bangexp(char *str, size_t strsize)
 	while (*cp != '\0') {
 		if (*cp == '!') {
 			if (n < (int)strlen(lastbang)) {
-overf:
+			overf:
 				printf("Command buffer overflow\n");
 				return (-1);
 			}
 			changed++;
-			if (strlcpy(cp2, lastbang, sizeof(bangbuf) - (cp2 - bangbuf))
-			    >= sizeof(bangbuf) - (cp2 - bangbuf))
+			if (strlcpy(cp2, lastbang,
+				sizeof(bangbuf) - (cp2 - bangbuf)) >=
+			    sizeof(bangbuf) - (cp2 - bangbuf))
 				goto overf;
 			cp2 += strlen(lastbang);
 			n -= strlen(lastbang);
@@ -166,9 +167,8 @@ schdir(void *v)
 		if (homedir == NULL)
 			return (1);
 		cp = homedir;
-	} else
-		if ((cp = expand(*arglist)) == NULL)
-			return (1);
+	} else if ((cp = expand(*arglist)) == NULL)
+		return (1);
 	if (chdir(cp) < 0) {
 		warn("%s", cp);
 		return (1);
@@ -264,8 +264,7 @@ reedit(char *subj)
 	if (subj == NULL)
 		return (NULL);
 	if ((subj[0] == 'r' || subj[0] == 'R') &&
-	    (subj[1] == 'e' || subj[1] == 'E') &&
-	    subj[2] == ':')
+	    (subj[1] == 'e' || subj[1] == 'E') && subj[2] == ':')
 		return (subj);
 	newsubj = salloc(strlen(subj) + 5);
 	sprintf(newsubj, "Re: %s", subj);
@@ -289,7 +288,7 @@ preserve(void *v)
 	}
 	for (ip = msgvec; *ip != 0; ip++) {
 		mesg = *ip;
-		mp = &message[mesg-1];
+		mp = &message[mesg - 1];
 		mp->m_flag |= MPRESERVE;
 		mp->m_flag &= ~MBOX;
 		dot = mp;
@@ -307,8 +306,8 @@ unread(void *v)
 	int *ip;
 
 	for (ip = msgvec; *ip != 0; ip++) {
-		dot = &message[*ip-1];
-		dot->m_flag &= ~(MREAD|MTOUCH);
+		dot = &message[*ip - 1];
+		dot->m_flag &= ~(MREAD | MTOUCH);
 		dot->m_flag |= MSTATUS;
 	}
 	return (0);
@@ -326,7 +325,7 @@ messize(void *v)
 
 	for (ip = msgvec; *ip != 0; ip++) {
 		mesg = *ip;
-		mp = &message[mesg-1];
+		mp = &message[mesg - 1];
 		printf("%d: %ld/%ld\n", mesg, mp->m_lines, mp->m_size);
 	}
 	return (0);
@@ -376,7 +375,8 @@ set(void *v)
 	for (ap = arglist; *ap != NULL; ap++) {
 		cp = *ap;
 		cp2 = varbuf;
-		while (cp2 < varbuf + sizeof(varbuf) - 1 && *cp != '=' && *cp != '\0')
+		while (cp2 < varbuf + sizeof(varbuf) - 1 && *cp != '=' &&
+		    *cp != '\0')
 			*cp2++ = *cp++;
 		*cp2 = '\0';
 		if (*cp == '\0')
@@ -407,7 +407,7 @@ unset(void *v)
 	errs = 0;
 	for (ap = arglist; *ap != NULL; ap++) {
 		if ((vp2 = lookup(*ap)) == NULL) {
-			if (getenv(*ap)) 
+			if (getenv(*ap))
 				unsetenv(*ap);
 			else if (!sourcing) {
 				printf("\"%s\": undefined variable\n", *ap);
@@ -480,7 +480,7 @@ group(void *v)
 	 * later anyway.
 	 */
 
-	for (ap = argv+1; *ap != NULL; ap++) {
+	for (ap = argv + 1; *ap != NULL; ap++) {
 		if ((gp = calloc(1, sizeof(*gp))) == NULL)
 			err(1, "Out of memory");
 		gp->ge_name = vcopy(*ap);
@@ -501,9 +501,9 @@ sort(char **list)
 
 	for (ap = list; *ap != NULL; ap++)
 		;
-	if (ap-list < 2)
+	if (ap - list < 2)
 		return;
-	qsort(list, ap-list, sizeof(*list), diction);
+	qsort(list, ap - list, sizeof(*list), diction);
 }
 
 /*
@@ -631,11 +631,13 @@ ifcmd(void *arg)
 	cond = CANY;
 	cp = argv[0];
 	switch (*cp) {
-	case 'r': case 'R':
+	case 'r':
+	case 'R':
 		cond = CRCV;
 		break;
 
-	case 's': case 'S':
+	case 's':
+	case 'S':
 		cond = CSEND;
 		break;
 

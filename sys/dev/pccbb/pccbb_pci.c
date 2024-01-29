@@ -74,137 +74,148 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sysctl.h>
-#include <sys/kthread.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
-#include <machine/resource.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcib_private.h>
-
-#include <dev/pccard/pccardreg.h>
-#include <dev/pccard/pccardvar.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/exca/excareg.h>
 #include <dev/exca/excavar.h>
-
+#include <dev/pccard/pccardreg.h>
+#include <dev/pccard/pccardvar.h>
 #include <dev/pccbb/pccbbreg.h>
 #include <dev/pccbb/pccbbvar.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "power_if.h"
 #include "card_if.h"
 #include "pcib_if.h"
+#include "power_if.h"
 
-#define	DPRINTF(x) do { if (cbb_debug) printf x; } while (0)
-#define	DEVPRINTF(x) do { if (cbb_debug) device_printf x; } while (0)
+#define DPRINTF(x)                \
+	do {                      \
+		if (cbb_debug)    \
+			printf x; \
+	} while (0)
+#define DEVPRINTF(x)                     \
+	do {                             \
+		if (cbb_debug)           \
+			device_printf x; \
+	} while (0)
 
-#define	PCI_MASK_CONFIG(DEV,REG,MASK,SIZE)				\
+#define PCI_MASK_CONFIG(DEV, REG, MASK, SIZE) \
 	pci_write_config(DEV, REG, pci_read_config(DEV, REG, SIZE) MASK, SIZE)
-#define	PCI_MASK2_CONFIG(DEV,REG,MASK1,MASK2,SIZE)			\
-	pci_write_config(DEV, REG, (					\
-		pci_read_config(DEV, REG, SIZE) MASK1) MASK2, SIZE)
+#define PCI_MASK2_CONFIG(DEV, REG, MASK1, MASK2, SIZE) \
+	pci_write_config(DEV, REG,                     \
+	    (pci_read_config(DEV, REG, SIZE) MASK1)MASK2, SIZE)
 
 static void cbb_chipinit(struct cbb_softc *sc);
 static int cbb_pci_filt(void *arg);
 
 static struct yenta_chipinfo {
 	uint32_t yc_id;
-	const	char *yc_name;
-	int	yc_chiptype;
+	const char *yc_name;
+	int yc_chiptype;
 } yc_chipsets[] = {
 	/* Texas Instruments chips */
-	{PCIC_ID_TI1031, "TI1031 PCI-PC Card Bridge", CB_TI113X},
-	{PCIC_ID_TI1130, "TI1130 PCI-CardBus Bridge", CB_TI113X},
-	{PCIC_ID_TI1131, "TI1131 PCI-CardBus Bridge", CB_TI113X},
+	{ PCIC_ID_TI1031, "TI1031 PCI-PC Card Bridge", CB_TI113X },
+	{ PCIC_ID_TI1130, "TI1130 PCI-CardBus Bridge", CB_TI113X },
+	{ PCIC_ID_TI1131, "TI1131 PCI-CardBus Bridge", CB_TI113X },
 
-	{PCIC_ID_TI1210, "TI1210 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1211, "TI1211 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1220, "TI1220 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1221, "TI1221 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1225, "TI1225 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1250, "TI1250 PCI-CardBus Bridge", CB_TI125X},
-	{PCIC_ID_TI1251, "TI1251 PCI-CardBus Bridge", CB_TI125X},
-	{PCIC_ID_TI1251B,"TI1251B PCI-CardBus Bridge",CB_TI125X},
-	{PCIC_ID_TI1260, "TI1260 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1260B,"TI1260B PCI-CardBus Bridge",CB_TI12XX},
-	{PCIC_ID_TI1410, "TI1410 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1420, "TI1420 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1421, "TI1421 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1450, "TI1450 PCI-CardBus Bridge", CB_TI125X}, /*SIC!*/
-	{PCIC_ID_TI1451, "TI1451 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1510, "TI1510 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI1520, "TI1520 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI4410, "TI4410 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI4450, "TI4450 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI4451, "TI4451 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI4510, "TI4510 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI6411, "TI6411 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI6420, "TI6420 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI6420SC, "TI6420 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7410, "TI7410 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7510, "TI7510 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7610, "TI7610 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7610M, "TI7610 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7610SD, "TI7610 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_TI7610MS, "TI7610 PCI-CardBus Bridge", CB_TI12XX},
+	{ PCIC_ID_TI1210, "TI1210 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1211, "TI1211 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1220, "TI1220 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1221, "TI1221 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1225, "TI1225 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1250, "TI1250 PCI-CardBus Bridge", CB_TI125X },
+	{ PCIC_ID_TI1251, "TI1251 PCI-CardBus Bridge", CB_TI125X },
+	{ PCIC_ID_TI1251B, "TI1251B PCI-CardBus Bridge", CB_TI125X },
+	{ PCIC_ID_TI1260, "TI1260 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1260B, "TI1260B PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1410, "TI1410 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1420, "TI1420 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1421, "TI1421 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1450, "TI1450 PCI-CardBus Bridge", CB_TI125X }, /*SIC!*/
+	{ PCIC_ID_TI1451, "TI1451 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1510, "TI1510 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI1520, "TI1520 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI4410, "TI4410 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI4450, "TI4450 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI4451, "TI4451 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI4510, "TI4510 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI6411, "TI6411 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI6420, "TI6420 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI6420SC, "TI6420 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7410, "TI7410 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7510, "TI7510 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7610, "TI7610 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7610M, "TI7610 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7610SD, "TI7610 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_TI7610MS, "TI7610 PCI-CardBus Bridge", CB_TI12XX },
 
 	/* ENE */
-	{PCIC_ID_ENE_CB710, "ENE CB710 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_ENE_CB720, "ENE CB720 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_ENE_CB1211, "ENE CB1211 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_ENE_CB1225, "ENE CB1225 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_ENE_CB1410, "ENE CB1410 PCI-CardBus Bridge", CB_TI12XX},
-	{PCIC_ID_ENE_CB1420, "ENE CB1420 PCI-CardBus Bridge", CB_TI12XX},
+	{ PCIC_ID_ENE_CB710, "ENE CB710 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_ENE_CB720, "ENE CB720 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_ENE_CB1211, "ENE CB1211 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_ENE_CB1225, "ENE CB1225 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_ENE_CB1410, "ENE CB1410 PCI-CardBus Bridge", CB_TI12XX },
+	{ PCIC_ID_ENE_CB1420, "ENE CB1420 PCI-CardBus Bridge", CB_TI12XX },
 
 	/* Ricoh chips */
-	{PCIC_ID_RICOH_RL5C465, "RF5C465 PCI-CardBus Bridge", CB_RF5C46X},
-	{PCIC_ID_RICOH_RL5C466, "RF5C466 PCI-CardBus Bridge", CB_RF5C46X},
-	{PCIC_ID_RICOH_RL5C475, "RF5C475 PCI-CardBus Bridge", CB_RF5C47X},
-	{PCIC_ID_RICOH_RL5C476, "RF5C476 PCI-CardBus Bridge", CB_RF5C47X},
-	{PCIC_ID_RICOH_RL5C477, "RF5C477 PCI-CardBus Bridge", CB_RF5C47X},
-	{PCIC_ID_RICOH_RL5C478, "RF5C478 PCI-CardBus Bridge", CB_RF5C47X},
+	{ PCIC_ID_RICOH_RL5C465, "RF5C465 PCI-CardBus Bridge", CB_RF5C46X },
+	{ PCIC_ID_RICOH_RL5C466, "RF5C466 PCI-CardBus Bridge", CB_RF5C46X },
+	{ PCIC_ID_RICOH_RL5C475, "RF5C475 PCI-CardBus Bridge", CB_RF5C47X },
+	{ PCIC_ID_RICOH_RL5C476, "RF5C476 PCI-CardBus Bridge", CB_RF5C47X },
+	{ PCIC_ID_RICOH_RL5C477, "RF5C477 PCI-CardBus Bridge", CB_RF5C47X },
+	{ PCIC_ID_RICOH_RL5C478, "RF5C478 PCI-CardBus Bridge", CB_RF5C47X },
 
 	/* Toshiba products */
-	{PCIC_ID_TOPIC95, "ToPIC95 PCI-CardBus Bridge", CB_TOPIC95},
-	{PCIC_ID_TOPIC95B, "ToPIC95B PCI-CardBus Bridge", CB_TOPIC95},
-	{PCIC_ID_TOPIC97, "ToPIC97 PCI-CardBus Bridge", CB_TOPIC97},
-	{PCIC_ID_TOPIC100, "ToPIC100 PCI-CardBus Bridge", CB_TOPIC97},
+	{ PCIC_ID_TOPIC95, "ToPIC95 PCI-CardBus Bridge", CB_TOPIC95 },
+	{ PCIC_ID_TOPIC95B, "ToPIC95B PCI-CardBus Bridge", CB_TOPIC95 },
+	{ PCIC_ID_TOPIC97, "ToPIC97 PCI-CardBus Bridge", CB_TOPIC97 },
+	{ PCIC_ID_TOPIC100, "ToPIC100 PCI-CardBus Bridge", CB_TOPIC97 },
 
 	/* Cirrus Logic */
-	{PCIC_ID_CLPD6832, "CLPD6832 PCI-CardBus Bridge", CB_CIRRUS},
-	{PCIC_ID_CLPD6833, "CLPD6833 PCI-CardBus Bridge", CB_CIRRUS},
-	{PCIC_ID_CLPD6834, "CLPD6834 PCI-CardBus Bridge", CB_CIRRUS},
+	{ PCIC_ID_CLPD6832, "CLPD6832 PCI-CardBus Bridge", CB_CIRRUS },
+	{ PCIC_ID_CLPD6833, "CLPD6833 PCI-CardBus Bridge", CB_CIRRUS },
+	{ PCIC_ID_CLPD6834, "CLPD6834 PCI-CardBus Bridge", CB_CIRRUS },
 
 	/* 02Micro */
-	{PCIC_ID_OZ6832, "O2Micro OZ6832/6833 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ6860, "O2Micro OZ6836/6860 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ6872, "O2Micro OZ6812/6872 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ6912, "O2Micro OZ6912/6972 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ6922, "O2Micro OZ6922 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ6933, "O2Micro OZ6933 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711E1, "O2Micro OZ711E1 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711EC1, "O2Micro OZ711EC1/M1 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711E2, "O2Micro OZ711E2 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711M1, "O2Micro OZ711M1 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711M2, "O2Micro OZ711M2 PCI-CardBus Bridge", CB_O2MICRO},
-	{PCIC_ID_OZ711M3, "O2Micro OZ711M3 PCI-CardBus Bridge", CB_O2MICRO},
+	{ PCIC_ID_OZ6832, "O2Micro OZ6832/6833 PCI-CardBus Bridge",
+	    CB_O2MICRO },
+	{ PCIC_ID_OZ6860, "O2Micro OZ6836/6860 PCI-CardBus Bridge",
+	    CB_O2MICRO },
+	{ PCIC_ID_OZ6872, "O2Micro OZ6812/6872 PCI-CardBus Bridge",
+	    CB_O2MICRO },
+	{ PCIC_ID_OZ6912, "O2Micro OZ6912/6972 PCI-CardBus Bridge",
+	    CB_O2MICRO },
+	{ PCIC_ID_OZ6922, "O2Micro OZ6922 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ6933, "O2Micro OZ6933 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ711E1, "O2Micro OZ711E1 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ711EC1, "O2Micro OZ711EC1/M1 PCI-CardBus Bridge",
+	    CB_O2MICRO },
+	{ PCIC_ID_OZ711E2, "O2Micro OZ711E2 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ711M1, "O2Micro OZ711M1 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ711M2, "O2Micro OZ711M2 PCI-CardBus Bridge", CB_O2MICRO },
+	{ PCIC_ID_OZ711M3, "O2Micro OZ711M3 PCI-CardBus Bridge", CB_O2MICRO },
 
 	/* SMC */
-	{PCIC_ID_SMC_34C90, "SMC 34C90 PCI-CardBus Bridge", CB_CIRRUS},
+	{ PCIC_ID_SMC_34C90, "SMC 34C90 PCI-CardBus Bridge", CB_CIRRUS },
 
 	/* sentinel */
-	{0 /* null id */, "unknown", CB_UNKNOWN},
+	{ 0 /* null id */, "unknown", CB_UNKNOWN },
 };
 
 /************************************************************************/
@@ -248,8 +259,8 @@ cbb_pci_probe(device_t brdev)
 	baseclass = pci_get_class(brdev);
 	subclass = pci_get_subclass(brdev);
 	progif = pci_get_progif(brdev);
-	if (baseclass == PCIC_BRIDGE &&
-	    subclass == PCIS_BRIDGE_CARDBUS && progif == 0) {
+	if (baseclass == PCIC_BRIDGE && subclass == PCIS_BRIDGE_CARDBUS &&
+	    progif == 0) {
 		device_set_desc(brdev, "PCI-CardBus Bridge");
 		return (BUS_PROBE_GENERIC);
 	}
@@ -364,8 +375,8 @@ cbb_pci_attach(device_t brdev)
 		if (curr_bus_number <= sc->pribus)
 			curr_bus_number = sc->pribus + 1;
 		if (pribus != sc->pribus) {
-			DEVPRINTF((brdev, "Setting primary bus to %d\n",
-			    sc->pribus));
+			DEVPRINTF(
+			    (brdev, "Setting primary bus to %d\n", sc->pribus));
 			pci_write_config(brdev, PCIR_PRIBUS_2, sc->pribus, 1);
 		}
 		sc->bus.sec = curr_bus_number++;
@@ -387,7 +398,7 @@ cbb_pci_attach(device_t brdev)
 	}
 
 	if (bus_setup_intr(brdev, sc->irq_res, INTR_TYPE_AV | INTR_MPSAFE,
-	    cbb_pci_filt, NULL, sc, &sc->intrhand)) {
+		cbb_pci_filt, NULL, sc, &sc->intrhand)) {
 		device_printf(brdev, "couldn't establish interrupt\n");
 		goto err;
 	}
@@ -409,7 +420,7 @@ cbb_pci_attach(device_t brdev)
 
 	/* Start the thread */
 	if (kproc_create(cbb_event_thread, sc, &sc->event_thread, 0, 0,
-	    "%s event thread", device_get_nameunit(brdev))) {
+		"%s event thread", device_get_nameunit(brdev))) {
 		device_printf(brdev, "unable to create event thread.\n");
 		panic("cbb_create_event_thread");
 	}
@@ -455,7 +466,8 @@ cbb_chipinit(struct cbb_softc *sc)
 	if (pci_read_config(sc->dev, PCIR_LATTIMER, 1) < 0x20)
 		pci_write_config(sc->dev, PCIR_LATTIMER, 0x20, 1);
 
-	/* Enable DMA, memory access for this card and I/O access for children */
+	/* Enable DMA, memory access for this card and I/O access for children
+	 */
 	pci_enable_busmaster(sc->dev);
 	pci_enable_io(sc->dev, SYS_RES_IOPORT);
 	pci_enable_io(sc->dev, SYS_RES_MEMORY);
@@ -464,8 +476,8 @@ cbb_chipinit(struct cbb_softc *sc)
 	switch (sc->chipset) {
 	case CB_RF5C46X:
 		PCI_MASK_CONFIG(sc->dev, CBBR_BRIDGECTRL,
-		    & ~(CBBM_BRIDGECTRL_RL_3E0_EN |
-		    CBBM_BRIDGECTRL_RL_3E2_EN), 2);
+		    &~(CBBM_BRIDGECTRL_RL_3E0_EN | CBBM_BRIDGECTRL_RL_3E2_EN),
+		    2);
 		break;
 	default:
 		pci_write_config(sc->dev, CBBR_LEGACY, 0x0, 4);
@@ -474,10 +486,8 @@ cbb_chipinit(struct cbb_softc *sc)
 
 	/* Use PCI interrupt for interrupt routing */
 	PCI_MASK2_CONFIG(sc->dev, CBBR_BRIDGECTRL,
-	    & ~(CBBM_BRIDGECTRL_MASTER_ABORT |
-	    CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN),
-	    | CBBM_BRIDGECTRL_WRITE_POST_EN,
-	    2);
+	    &~(CBBM_BRIDGECTRL_MASTER_ABORT | CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN),
+	    | CBBM_BRIDGECTRL_WRITE_POST_EN, 2);
 
 	/*
 	 * XXX this should be a function table, ala OLDCARD.  This means
@@ -493,12 +503,11 @@ cbb_chipinit(struct cbb_softc *sc)
 		 * want routed.
 		 */
 		PCI_MASK_CONFIG(sc->dev, CBBR_CBCTRL,
-		    | CBBM_CBCTRL_113X_PCI_INTR |
-		    CBBM_CBCTRL_113X_PCI_CSC | CBBM_CBCTRL_113X_PCI_IRQ_EN,
+		    | CBBM_CBCTRL_113X_PCI_INTR | CBBM_CBCTRL_113X_PCI_CSC |
+			CBBM_CBCTRL_113X_PCI_IRQ_EN,
 		    1);
 		PCI_MASK_CONFIG(sc->dev, CBBR_DEVCTRL,
-		    & ~(CBBM_DEVCTRL_INT_SERIAL |
-		    CBBM_DEVCTRL_INT_PCI), 1);
+		    &~(CBBM_DEVCTRL_INT_SERIAL | CBBM_DEVCTRL_INT_PCI), 1);
 		break;
 	case CB_TI12XX:
 		/*
@@ -529,8 +538,7 @@ cbb_chipinit(struct cbb_softc *sc)
 		mux = pci_read_config(sc->dev, CBBR_MFUNC, 4);
 		sysctrl = pci_read_config(sc->dev, CBBR_SYSCTRL, 4);
 		if ((mux & (CBBM_MFUNC_PIN0 | CBBM_MFUNC_PIN1)) == 0) {
-			mux = (mux & ~CBBM_MFUNC_PIN0) |
-			    CBBM_MFUNC_PIN0_INTA;
+			mux = (mux & ~CBBM_MFUNC_PIN0) | CBBM_MFUNC_PIN0_INTA;
 			if ((sysctrl & CBBM_SYSCTRL_INTRTIE) == 0)
 				mux = (mux & ~CBBM_MFUNC_PIN1) |
 				    CBBM_MFUNC_PIN1_INTB;
@@ -571,8 +579,8 @@ cbb_chipinit(struct cbb_softc *sc)
 		 * selected (ExCA regs 03h or 05h are cleared).
 		 */
 		reg = exca_getb(&sc->exca, EXCA_O2MICRO_CTRL_C);
-		reg = (reg & 0x0f) |
-		    EXCA_O2CC_IREQ_INTC | EXCA_O2CC_STSCHG_INTC;
+		reg = (reg & 0x0f) | EXCA_O2CC_IREQ_INTC |
+		    EXCA_O2CC_STSCHG_INTC;
 		exca_putb(&sc->exca, EXCA_O2MICRO_CTRL_C, reg);
 		break;
 	case CB_TOPIC97:
@@ -613,18 +621,17 @@ cbb_chipinit(struct cbb_softc *sc)
 		 * mode is determined elsewhere)
 		 */
 		pci_write_config(sc->dev, TOPIC_SLOTCTRL,
-		    TOPIC_SLOTCTRL_SLOTON |
-		    TOPIC_SLOTCTRL_SLOTEN |
-		    TOPIC_SLOTCTRL_ID_LOCK |
-		    TOPIC_SLOTCTRL_ID_WP, 1);
+		    TOPIC_SLOTCTRL_SLOTON | TOPIC_SLOTCTRL_SLOTEN |
+			TOPIC_SLOTCTRL_ID_LOCK | TOPIC_SLOTCTRL_ID_WP,
+		    1);
 
 		/*
 		 * At offset 0xa3 Card Detect Control Register
 		 * 0x80 CARDBUS enbale
 		 * 0x01 Cleared for hardware change detect
 		 */
-		PCI_MASK2_CONFIG(sc->dev, TOPIC_CDC,
-		    | TOPIC_CDC_CARDBUS, & ~TOPIC_CDC_SWDETECT, 4);
+		PCI_MASK2_CONFIG(sc->dev, TOPIC_CDC, | TOPIC_CDC_CARDBUS,
+		    &~TOPIC_CDC_SWDETECT, 4);
 		break;
 	}
 
@@ -666,20 +673,20 @@ cbb_pci_shutdown(device_t brdev)
 	/*
 	 * We're about to pull the rug out from the card, so mark it as
 	 * gone to prevent harm.
-         */
-        sc->cardok = 0;
+	 */
+	sc->cardok = 0;
 
 	/*
 	 * Place the cards in reset, turn off the interrupts and power
 	 * down the socket.
 	 */
-	PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL, |CBBM_BRIDGECTRL_RESET, 2);
+	PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL, | CBBM_BRIDGECTRL_RESET, 2);
 	exca_clrb(&sc->exca, EXCA_INTR, EXCA_INTR_RESET);
 	cbb_set(sc, CBB_SOCKET_MASK, 0);
 	cbb_set(sc, CBB_SOCKET_EVENT, 0xffffffff);
 	cbb_power(brdev, CARD_OFF);
 
-	/* 
+	/*
 	 * For paranoia, turn off all address decoding.  Really not needed,
 	 * it seems, but it can't hurt
 	 */
@@ -855,39 +862,39 @@ cbb_read_config(device_t brdev, u_int b, u_int s, u_int f, u_int reg, int width)
 	/*
 	 * Pass through to the next ppb up the chain (i.e. our grandparent).
 	 */
-	return (PCIB_READ_CONFIG(device_get_parent(device_get_parent(brdev)),
-	    b, s, f, reg, width));
+	return (PCIB_READ_CONFIG(device_get_parent(device_get_parent(brdev)), b,
+	    s, f, reg, width));
 }
 
 static void
-cbb_write_config(device_t brdev, u_int b, u_int s, u_int f, u_int reg, uint32_t val,
-    int width)
+cbb_write_config(device_t brdev, u_int b, u_int s, u_int f, u_int reg,
+    uint32_t val, int width)
 {
 	/*
 	 * Pass through to the next ppb up the chain (i.e. our grandparent).
 	 */
-	PCIB_WRITE_CONFIG(device_get_parent(device_get_parent(brdev)),
-	    b, s, f, reg, val, width);
+	PCIB_WRITE_CONFIG(device_get_parent(device_get_parent(brdev)), b, s, f,
+	    reg, val, width);
 }
 
 static int
 cbb_pci_suspend(device_t brdev)
 {
-	int			error = 0;
-	struct cbb_softc	*sc = device_get_softc(brdev);
+	int error = 0;
+	struct cbb_softc *sc = device_get_softc(brdev);
 
 	error = bus_generic_suspend(brdev);
 	if (error != 0)
 		return (error);
-	cbb_set(sc, CBB_SOCKET_MASK, 0);	/* Quiet hardware */
-	sc->cardok = 0;				/* Card is bogus now */
+	cbb_set(sc, CBB_SOCKET_MASK, 0); /* Quiet hardware */
+	sc->cardok = 0;			 /* Card is bogus now */
 	return (0);
 }
 
 static int
 cbb_pci_resume(device_t brdev)
 {
-	int	error = 0;
+	int error = 0;
 	struct cbb_softc *sc = (struct cbb_softc *)device_get_softc(brdev);
 	uint32_t tmp;
 
@@ -922,54 +929,50 @@ cbb_pci_resume(device_t brdev)
 
 static device_method_t cbb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			cbb_pci_probe),
-	DEVMETHOD(device_attach,		cbb_pci_attach),
-	DEVMETHOD(device_detach,		cbb_pci_detach),
-	DEVMETHOD(device_shutdown,		cbb_pci_shutdown),
-	DEVMETHOD(device_suspend,		cbb_pci_suspend),
-	DEVMETHOD(device_resume,		cbb_pci_resume),
+	DEVMETHOD(device_probe, cbb_pci_probe),
+	DEVMETHOD(device_attach, cbb_pci_attach),
+	DEVMETHOD(device_detach, cbb_pci_detach),
+	DEVMETHOD(device_shutdown, cbb_pci_shutdown),
+	DEVMETHOD(device_suspend, cbb_pci_suspend),
+	DEVMETHOD(device_resume, cbb_pci_resume),
 
 	/* bus methods */
-	DEVMETHOD(bus_read_ivar,		cbb_read_ivar),
-	DEVMETHOD(bus_write_ivar,		cbb_write_ivar),
+	DEVMETHOD(bus_read_ivar, cbb_read_ivar),
+	DEVMETHOD(bus_write_ivar, cbb_write_ivar),
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
-	DEVMETHOD(bus_alloc_resource,		cbb_pci_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,		cbb_pci_adjust_resource),
-	DEVMETHOD(bus_release_resource,		cbb_pci_release_resource),
+	DEVMETHOD(bus_alloc_resource, cbb_pci_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, cbb_pci_adjust_resource),
+	DEVMETHOD(bus_release_resource, cbb_pci_release_resource),
 #else
-	DEVMETHOD(bus_alloc_resource,		cbb_alloc_resource),
-	DEVMETHOD(bus_release_resource,		cbb_release_resource),
+	DEVMETHOD(bus_alloc_resource, cbb_alloc_resource),
+	DEVMETHOD(bus_release_resource, cbb_release_resource),
 #endif
-	DEVMETHOD(bus_activate_resource,	cbb_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	cbb_deactivate_resource),
-	DEVMETHOD(bus_driver_added,		cbb_driver_added),
-	DEVMETHOD(bus_child_detached,		cbb_child_detached),
-	DEVMETHOD(bus_setup_intr,		cbb_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		cbb_teardown_intr),
-	DEVMETHOD(bus_child_present,		cbb_child_present),
+	DEVMETHOD(bus_activate_resource, cbb_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, cbb_deactivate_resource),
+	DEVMETHOD(bus_driver_added, cbb_driver_added),
+	DEVMETHOD(bus_child_detached, cbb_child_detached),
+	DEVMETHOD(bus_setup_intr, cbb_setup_intr),
+	DEVMETHOD(bus_teardown_intr, cbb_teardown_intr),
+	DEVMETHOD(bus_child_present, cbb_child_present),
 
 	/* 16-bit card interface */
-	DEVMETHOD(card_set_res_flags,		cbb_pcic_set_res_flags),
-	DEVMETHOD(card_set_memory_offset,	cbb_pcic_set_memory_offset),
+	DEVMETHOD(card_set_res_flags, cbb_pcic_set_res_flags),
+	DEVMETHOD(card_set_memory_offset, cbb_pcic_set_memory_offset),
 
 	/* power interface */
-	DEVMETHOD(power_enable_socket,		cbb_power_enable_socket),
-	DEVMETHOD(power_disable_socket,		cbb_power_disable_socket),
+	DEVMETHOD(power_enable_socket, cbb_power_enable_socket),
+	DEVMETHOD(power_disable_socket, cbb_power_disable_socket),
 
 	/* pcib compatibility interface */
-	DEVMETHOD(pcib_maxslots,		cbb_maxslots),
-	DEVMETHOD(pcib_read_config,		cbb_read_config),
-	DEVMETHOD(pcib_write_config,		cbb_write_config),
-	DEVMETHOD(pcib_route_interrupt,		cbb_route_interrupt),
+	DEVMETHOD(pcib_maxslots, cbb_maxslots),
+	DEVMETHOD(pcib_read_config, cbb_read_config),
+	DEVMETHOD(pcib_write_config, cbb_write_config),
+	DEVMETHOD(pcib_route_interrupt, cbb_route_interrupt),
 
 	DEVMETHOD_END
 };
 
-static driver_t cbb_driver = {
-	"cbb",
-	cbb_methods,
-	sizeof(struct cbb_softc)
-};
+static driver_t cbb_driver = { "cbb", cbb_methods, sizeof(struct cbb_softc) };
 
 DRIVER_MODULE(cbb, pci, cbb_driver, 0, 0);
 MODULE_PNP_INFO("W32:vendor/device;D:#", pci, cbb, yc_chipsets,

@@ -27,14 +27,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "uc_common.h"
 #include "t_generic.h"
 #include "t_sockcred.h"
+#include "uc_common.h"
 
 static int
 t_sockcred_client(int type, int fd)

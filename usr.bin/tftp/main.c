@@ -41,9 +41,9 @@
 #include <sys/sysctl.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/tftp.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <histedit.h>
@@ -57,49 +57,49 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "tftp-utils.h"
 #include "tftp-io.h"
 #include "tftp-options.h"
+#include "tftp-utils.h"
 #include "tftp.h"
 
-#define	MAXLINE		(2 * MAXPATHLEN)
-#define	TIMEOUT		5		/* secs between rexmt's */
+#define MAXLINE (2 * MAXPATHLEN)
+#define TIMEOUT 5 /* secs between rexmt's */
 
-typedef struct	sockaddr_storage peeraddr;
-static int	connected;
-static char	mode[32];
-static jmp_buf	toplevel;
-static int	txrx_error;
-static int	peer;
+typedef struct sockaddr_storage peeraddr;
+static int connected;
+static char mode[32];
+static jmp_buf toplevel;
+static int txrx_error;
+static int peer;
 
-#define	MAX_MARGV	20
-static int	margc;
-static char	*margv[MAX_MARGV];
+#define MAX_MARGV 20
+static int margc;
+static char *margv[MAX_MARGV];
 
-int		verbose;
-static char	*port = NULL;
+int verbose;
+static char *port = NULL;
 
-static void	get(int, char **);
-static void	help(int, char **);
-static void	intr(int);
-static void	modecmd(int, char **);
-static void	put(int, char **);
-static void	quit(int, char **);
-static void	setascii(int, char **);
-static void	setbinary(int, char **);
-static void	setpeer0(char *, const char *);
-static void	setpeer(int, char **);
-static void	settimeoutpacket(int, char **);
-static void	settimeoutnetwork(int, char **);
-static void	setdebug(int, char **);
-static void	setverbose(int, char **);
-static void	showstatus(int, char **);
-static void	setblocksize(int, char **);
-static void	setblocksize2(int, char **);
-static void	setoptions(int, char **);
-static void	setrollover(int, char **);
-static void	setpacketdrop(int, char **);
-static void	setwindowsize(int, char **);
+static void get(int, char **);
+static void help(int, char **);
+static void intr(int);
+static void modecmd(int, char **);
+static void put(int, char **);
+static void quit(int, char **);
+static void setascii(int, char **);
+static void setbinary(int, char **);
+static void setpeer0(char *, const char *);
+static void setpeer(int, char **);
+static void settimeoutpacket(int, char **);
+static void settimeoutnetwork(int, char **);
+static void setdebug(int, char **);
+static void setverbose(int, char **);
+static void showstatus(int, char **);
+static void setblocksize(int, char **);
+static void setblocksize2(int, char **);
+static void setoptions(int, char **);
+static void setrollover(int, char **);
+static void setpacketdrop(int, char **);
+static void setwindowsize(int, char **);
 
 static void command(bool, EditLine *, History *, HistEvent *) __dead2;
 static const char *command_prompt(void);
@@ -110,56 +110,45 @@ static void makeargv(char *line);
 static void putusage(char *);
 static void settftpmode(const char *);
 
-static char	*tail(char *);
+static char *tail(char *);
 static const struct cmd *getcmd(const char *);
 
 #define HELPINDENT (sizeof("connect"))
 
 struct cmd {
-	const char	*name;
-	void	(*handler)(int, char **);
-	const char	*help;
+	const char *name;
+	void (*handler)(int, char **);
+	const char *help;
 };
 
-static struct cmd cmdtab[] = {
-	{ "connect",	setpeer,	"connect to remote tftp"	},
-	{ "mode",	modecmd,	"set file transfer mode"	},
-	{ "put",	put,		"send file"			},
-	{ "get",	get,		"receive file"			},
-	{ "quit",	quit,		"exit tftp"			},
-	{ "verbose",	setverbose,	"toggle verbose mode"		},
-	{ "status",	showstatus,	"show current status"		},
-	{ "binary",     setbinary,	"set mode to octet"		},
-	{ "ascii",      setascii,	"set mode to netascii"		},
-	{ "rexmt",	settimeoutpacket,
-	  "set per-packet retransmission timeout[-]" },
-	{ "timeout",	settimeoutnetwork,
-	  "set total retransmission timeout" },
-	{ "trace",	setdebug,	"enable 'debug packet'[-]"	},
-	{ "debug",	setdebug,	"enable verbose output"		},
-	{ "blocksize",	setblocksize,	"set blocksize[*]"		},
-	{ "blocksize2",	setblocksize2,	"set blocksize as a power of 2[**]" },
-	{ "rollover",	setrollover,	"rollover after 64K packets[**]" },
-	{ "options",	setoptions,
-	  "enable or disable RFC2347 style options" },
-	{ "help",	help,		"print help information"	},
-	{ "packetdrop",	setpacketdrop,	"artificial packetloss feature"	},
-	{ "windowsize",	setwindowsize,	"set windowsize[*]"		},
-	{ "?",		help,		"print help information"	},
-	{ NULL,		NULL,		NULL				}
-};
+static struct cmd cmdtab[] = { { "connect", setpeer, "connect to remote tftp" },
+	{ "mode", modecmd, "set file transfer mode" },
+	{ "put", put, "send file" }, { "get", get, "receive file" },
+	{ "quit", quit, "exit tftp" },
+	{ "verbose", setverbose, "toggle verbose mode" },
+	{ "status", showstatus, "show current status" },
+	{ "binary", setbinary, "set mode to octet" },
+	{ "ascii", setascii, "set mode to netascii" },
+	{ "rexmt", settimeoutpacket,
+	    "set per-packet retransmission timeout[-]" },
+	{ "timeout", settimeoutnetwork, "set total retransmission timeout" },
+	{ "trace", setdebug, "enable 'debug packet'[-]" },
+	{ "debug", setdebug, "enable verbose output" },
+	{ "blocksize", setblocksize, "set blocksize[*]" },
+	{ "blocksize2", setblocksize2, "set blocksize as a power of 2[**]" },
+	{ "rollover", setrollover, "rollover after 64K packets[**]" },
+	{ "options", setoptions, "enable or disable RFC2347 style options" },
+	{ "help", help, "print help information" },
+	{ "packetdrop", setpacketdrop, "artificial packetloss feature" },
+	{ "windowsize", setwindowsize, "set windowsize[*]" },
+	{ "?", help, "print help information" }, { NULL, NULL, NULL } };
 
-static struct	modes {
+static struct modes {
 	const char *m_name;
 	const char *m_mode;
-} modes[] = {
-	{ "ascii",	"netascii" },
-	{ "netascii",	"netascii" },
-	{ "binary",	"octet" },
-	{ "image",	"octet" },
-	{ "octet",	"octet" },
-	{ NULL,		NULL }
-};
+} modes[] = { { "ascii", "netascii" }, { "netascii", "netascii" },
+	{ "binary", "octet" }, { "image", "octet" }, { "octet", "octet" },
+	{ NULL, NULL } };
 
 int
 main(int argc, char *argv[])
@@ -225,14 +214,14 @@ main(int argc, char *argv[])
 static void
 urihandling(char *URI)
 {
-	char	uri[ARG_MAX];
-	char	*host = NULL;
-	char	*path = NULL;
-	char	*opts = NULL;
+	char uri[ARG_MAX];
+	char *host = NULL;
+	char *path = NULL;
+	char *opts = NULL;
 	const char *tmode = "octet";
-	char	*s;
-	char	line[MAXLINE];
-	int	i;
+	char *s;
+	char line[MAXLINE];
+	int i;
 
 	strlcpy(uri, URI, ARG_MAX);
 	host = uri + 7;
@@ -274,7 +263,7 @@ urihandling(char *URI)
 	get(margc, margv);
 }
 
-static char    hostname[MAXHOSTNAMELEN];
+static char hostname[MAXHOSTNAMELEN];
 
 static void
 setpeer0(char *host, const char *lport)
@@ -306,7 +295,7 @@ setpeer0(char *host, const char *lport)
 		if (res->ai_addrlen > sizeof(peeraddr))
 			continue;
 		peer = socket(res->ai_family, res->ai_socktype,
-			res->ai_protocol);
+		    res->ai_protocol);
 		if (peer < 0) {
 			cause = "socket";
 			continue;
@@ -315,7 +304,8 @@ setpeer0(char *host, const char *lport)
 		memset(&peer_sock, 0, sizeof(peer_sock));
 		peer_sock.ss_family = res->ai_family;
 		peer_sock.ss_len = res->ai_addrlen;
-		if (bind(peer, (struct sockaddr *)&peer_sock, peer_sock.ss_len) < 0) {
+		if (bind(peer, (struct sockaddr *)&peer_sock,
+			peer_sock.ss_len) < 0) {
 			cause = "bind";
 			close(peer);
 			peer = -1;
@@ -331,10 +321,10 @@ setpeer0(char *host, const char *lport)
 		/* res->ai_addr <= sizeof(peeraddr) is guaranteed */
 		memcpy(&peer_sock, res->ai_addr, res->ai_addrlen);
 		if (res->ai_canonname) {
-			(void) strlcpy(hostname, res->ai_canonname,
-				sizeof(hostname));
+			(void)strlcpy(hostname, res->ai_canonname,
+			    sizeof(hostname));
 		} else
-			(void) strlcpy(hostname, host, sizeof(hostname));
+			(void)strlcpy(hostname, host, sizeof(hostname));
 		connected = 1;
 	}
 
@@ -344,7 +334,7 @@ setpeer0(char *host, const char *lport)
 static void
 setpeer(int argc, char *argv[])
 {
-	char	line[MAXLINE];
+	char line[MAXLINE];
 
 	if (argc < 2) {
 		strcpy(line, "Connect ");
@@ -421,17 +411,16 @@ settftpmode(const char *newmode)
 		printf("mode set to %s\n", mode);
 }
 
-
 /*
  * Send file(s).
  */
 static void
 put(int argc, char *argv[])
 {
-	int	fd;
-	int	n;
-	char	*cp, *targ, *path;
-	char	line[MAXLINE];
+	int fd;
+	int n;
+	char *cp, *targ, *path;
+	char line[MAXLINE];
 	struct stat sb;
 
 	if (argc < 2) {
@@ -484,15 +473,15 @@ put(int argc, char *argv[])
 		options_set_request(OPT_TSIZE, "%ju", (uintmax_t)sb.st_size);
 
 		if (verbose)
-			printf("putting %s to %s:%s [%s]\n",
-			    cp, hostname, targ, mode);
+			printf("putting %s to %s:%s [%s]\n", cp, hostname, targ,
+			    mode);
 		if (xmitfile(peer, port, fd, targ, mode))
 			txrx_error = 1;
 		close(fd);
 		return;
 	}
-				/* this assumes the target is a directory */
-				/* on a remote unix system.  hmmmm.  */
+	/* this assumes the target is a directory */
+	/* on a remote unix system.  hmmmm.  */
 	for (n = 1; n < argc - 1; n++) {
 		if (asprintf(&path, "%s/%s", targ, tail(argv[n])) < 0)
 			err(1, "malloc");
@@ -513,8 +502,8 @@ put(int argc, char *argv[])
 		options_set_request(OPT_TSIZE, "%ju", (uintmax_t)sb.st_size);
 
 		if (verbose)
-			printf("putting %s to %s:%s [%s]\n",
-			    argv[n], hostname, path, mode);
+			printf("putting %s to %s:%s [%s]\n", argv[n], hostname,
+			    path, mode);
 		if (xmitfile(peer, port, fd, path, mode) != 0)
 			txrx_error = 1;
 		close(fd);
@@ -529,7 +518,8 @@ putusage(char *s)
 
 	printf("usage: %s file [remotename]\n", s);
 	printf("       %s file host:remotename\n", s);
-	printf("       %s file1 file2 ... fileN [[host:]remote-directory]\n", s);
+	printf("       %s file1 file2 ... fileN [[host:]remote-directory]\n",
+	    s);
 }
 
 /*
@@ -542,7 +532,7 @@ get(int argc, char *argv[])
 	int n;
 	char *cp;
 	char *src;
-	char	line[MAXLINE];
+	char line[MAXLINE];
 
 	if (argc < 2) {
 		strcpy(line, "get ");
@@ -557,15 +547,16 @@ get(int argc, char *argv[])
 		return;
 	}
 	if (!connected) {
-		for (n = 1; n < argc ; n++)
+		for (n = 1; n < argc; n++)
 			if (strrchr(argv[n], ':') == 0) {
 				printf("No remote host specified and "
-				    "no host given for file '%s'\n", argv[n]);
+				       "no host given for file '%s'\n",
+				    argv[n]);
 				getusage(argv[0]);
 				return;
 			}
 	}
-	for (n = 1; n < argc ; n++) {
+	for (n = 1; n < argc; n++) {
 		src = strrchr(argv[n], ':');
 		if (src == NULL)
 			src = argv[n];
@@ -596,15 +587,15 @@ get(int argc, char *argv[])
 				txrx_error = 1;
 			break;
 		}
-		cp = tail(src);         /* new .. jdg */
+		cp = tail(src); /* new .. jdg */
 		fd = creat(cp, 0644);
 		if (fd < 0) {
 			warn("%s", cp);
 			continue;
 		}
 		if (verbose)
-			printf("getting from %s:%s to %s [%s]\n",
-			    hostname, src, cp, mode);
+			printf("getting from %s:%s to %s [%s]\n", hostname, src,
+			    cp, mode);
 		if (recvfile(peer, port, fd, src, mode) != 0)
 			txrx_error = 1;
 	}
@@ -623,7 +614,7 @@ static void
 settimeoutpacket(int argc, char *argv[])
 {
 	int t;
-	char	line[MAXLINE];
+	char line[MAXLINE];
 
 	if (argc < 2) {
 		strcpy(line, "Packet timeout ");
@@ -650,7 +641,7 @@ static void
 settimeoutnetwork(int argc, char *argv[])
 {
 	int t;
-	char	line[MAXLINE];
+	char line[MAXLINE];
 
 	if (argc < 2) {
 		strcpy(line, "Network timeout ");
@@ -736,7 +727,7 @@ command(bool interactive, EditLine *el, History *hist, HistEvent *hep)
 	const char *bp;
 	char *cp;
 	int len, num;
-	char	line[MAXLINE];
+	char line[MAXLINE];
 
 	for (;;) {
 		if (interactive) {
@@ -748,7 +739,7 @@ command(bool interactive, EditLine *el, History *hist, HistEvent *hep)
 			history(hist, hep, H_ENTER, bp);
 		} else {
 			line[0] = 0;
-			if (fgets(line, sizeof line , stdin) == NULL) {
+			if (fgets(line, sizeof line, stdin) == NULL) {
 				if (feof(stdin)) {
 					exit(txrx_error);
 				} else {
@@ -789,9 +780,9 @@ getcmd(const char *name)
 	found = 0;
 	for (c = cmdtab; (p = c->name) != NULL; c++) {
 		for (q = name; *q == *p++; q++)
-			if (*q == '\0')		/* exact match? */
+			if (*q == '\0') /* exact match? */
 				return (c);
-		if (*q == '\0') {		/* the name was a prefix */
+		if (*q == '\0') { /* the name was a prefix */
 			if (q - name > longest) {
 				longest = q - name;
 				nmatches = 1;
@@ -902,11 +893,11 @@ setoptions(int argc, char *argv[])
 	printf("Support for non-RFC defined options are now %s.\n",
 	    options_extra_enabled ? "enabled" : "disabled");
 
-	printf("\nThe following options are available:\n"
+	printf(
+	    "\nThe following options are available:\n"
 	    "\toptions on	: enable support for RFC2347 style options\n"
 	    "\toptions off	: disable support for RFC2347 style options\n"
-	    "\toptions extra	: toggle support for non-RFC defined options\n"
-	);
+	    "\toptions extra	: toggle support for non-RFC defined options\n");
 }
 
 static void
@@ -931,13 +922,11 @@ setrollover(int argc, char *argv[])
 		printf("Block rollover will be to block %s.\n",
 		    options[OPT_ROLLOVER].o_request);
 
-
 	printf("\nThe following rollover options are available:\n"
-	    "\trollover 0	: rollover to block zero (default)\n"
-	    "\trollover 1	: rollover to block one\n"
-	    "\trollover never	: do not support the rollover option\n"
-	    "\trollover none	: do not support the rollover option\n"
-	);
+	       "\trollover 0	: rollover to block zero (default)\n"
+	       "\trollover 1	: rollover to block one\n"
+	       "\trollover never	: do not support the rollover option\n"
+	       "\trollover none	: do not support the rollover option\n");
 }
 
 static void
@@ -966,7 +955,7 @@ setblocksize(int argc, char *argv[])
 
 	if (!options_rfc_enabled)
 		printf("RFC2347 style options are not enabled "
-		    "(but proceeding anyway)\n");
+		       "(but proceeding anyway)\n");
 
 	if (argc != 1) {
 		int size = atoi(argv[1]);
@@ -974,18 +963,19 @@ setblocksize(int argc, char *argv[])
 		u_long maxdgram;
 
 		max = sizeof(maxdgram);
-		if (sysctlbyname("net.inet.udp.maxdgram",
-			&maxdgram, &max, NULL, 0) < 0) {
+		if (sysctlbyname("net.inet.udp.maxdgram", &maxdgram, &max, NULL,
+			0) < 0) {
 			perror("sysctl: net.inet.udp.maxdgram");
 			return;
 		}
 
 		if (size < BLKSIZE_MIN || size > BLKSIZE_MAX) {
 			printf("Blocksize should be between %d and %d bytes.\n",
-				BLKSIZE_MIN, BLKSIZE_MAX);
+			    BLKSIZE_MIN, BLKSIZE_MAX);
 			return;
 		} else if (size > (int)maxdgram - 4) {
-			printf("Blocksize can't be bigger than %ld bytes due "
+			printf(
+			    "Blocksize can't be bigger than %ld bytes due "
 			    "to the net.inet.udp.maxdgram sysctl limitation.\n",
 			    maxdgram - 4);
 			options_set_request(OPT_BLKSIZE, "%ld", maxdgram - 4);
@@ -1011,37 +1001,39 @@ setblocksize2(int argc, char *argv[])
 		size_t max;
 		u_long maxdgram;
 
-		int sizes[] = {
-			8, 16, 32, 64, 128, 256, 512, 1024,
-			2048, 4096, 8192, 16384, 32768, 0
-		};
+		int sizes[] = { 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096,
+			8192, 16384, 32768, 0 };
 
 		max = sizeof(maxdgram);
-		if (sysctlbyname("net.inet.udp.maxdgram",
-			&maxdgram, &max, NULL, 0) < 0) {
+		if (sysctlbyname("net.inet.udp.maxdgram", &maxdgram, &max, NULL,
+			0) < 0) {
 			perror("sysctl: net.inet.udp.maxdgram");
 			return;
 		}
 
 		for (i = 0; sizes[i] != 0; i++) {
-			if (sizes[i] == size) break;
+			if (sizes[i] == size)
+				break;
 		}
 		if (sizes[i] == 0) {
 			printf("Blocksize2 should be a power of two between "
-			    "8 and 32768.\n");
+			       "8 and 32768.\n");
 			return;
 		}
 
 		if (size < BLKSIZE_MIN || size > BLKSIZE_MAX) {
 			printf("Blocksize2 should be between "
-			    "%d and %d bytes.\n", BLKSIZE_MIN, BLKSIZE_MAX);
+			       "%d and %d bytes.\n",
+			    BLKSIZE_MIN, BLKSIZE_MAX);
 			return;
 		} else if (size > (int)maxdgram - 4) {
-			printf("Blocksize2 can't be bigger than %ld bytes due "
+			printf(
+			    "Blocksize2 can't be bigger than %ld bytes due "
 			    "to the net.inet.udp.maxdgram sysctl limitation.\n",
 			    maxdgram - 4);
-			for (i = 0; sizes[i+1] != 0; i++) {
-				if ((int)maxdgram < sizes[i+1]) break;
+			for (i = 0; sizes[i + 1] != 0; i++) {
+				if ((int)maxdgram < sizes[i + 1])
+					break;
 			}
 			options_set_request(OPT_BLKSIZE2, "%d", sizes[i]);
 		} else {
@@ -1069,14 +1061,15 @@ setwindowsize(int argc, char *argv[])
 
 	if (!options_rfc_enabled)
 		printf("RFC2347 style options are not enabled "
-		    "(but proceeding anyway)\n");
+		       "(but proceeding anyway)\n");
 
 	if (argc != 1) {
 		int size = atoi(argv[1]);
 
 		if (size < WINDOWSIZE_MIN || size > WINDOWSIZE_MAX) {
 			printf("Windowsize should be between %d and %d "
-			    "blocks.\n", WINDOWSIZE_MIN, WINDOWSIZE_MAX);
+			       "blocks.\n",
+			    WINDOWSIZE_MIN, WINDOWSIZE_MAX);
 			return;
 		} else {
 			options_set_request(OPT_WINDOWSIZE, "%d", size);

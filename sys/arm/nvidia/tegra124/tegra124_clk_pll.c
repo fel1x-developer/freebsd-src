@@ -36,6 +36,7 @@
 #include <dev/clk/clk.h>
 
 #include <dt-bindings/clock/tegra124-car.h>
+
 #include "tegra124_car.h"
 
 /* #define TEGRA_PLL_DEBUG */
@@ -60,65 +61,64 @@ enum pll_type {
 	PLL_D2,
 	PLL_DP,
 	PLL_E,
-	PLL_REFE};
+	PLL_REFE
+};
 
 /* Common base register bits. */
-#define	PLL_BASE_BYPASS		(1U << 31)
-#define	PLL_BASE_ENABLE		(1  << 30)
-#define	PLL_BASE_REFDISABLE	(1  << 29)
-#define	PLL_BASE_LOCK		(1  << 27)
-#define	PLL_BASE_DIVM_SHIFT	0
-#define	PLL_BASE_DIVN_SHIFT	8
+#define PLL_BASE_BYPASS (1U << 31)
+#define PLL_BASE_ENABLE (1 << 30)
+#define PLL_BASE_REFDISABLE (1 << 29)
+#define PLL_BASE_LOCK (1 << 27)
+#define PLL_BASE_DIVM_SHIFT 0
+#define PLL_BASE_DIVN_SHIFT 8
 
-#define	PLLRE_MISC_LOCK		(1 << 24)
+#define PLLRE_MISC_LOCK (1 << 24)
 
-#define	PLL_MISC_LOCK_ENABLE	(1 << 18)
-#define	PLLC_MISC_LOCK_ENABLE	(1 << 24)
-#define	PLLDU_MISC_LOCK_ENABLE	(1 << 22)
-#define	PLLRE_MISC_LOCK_ENABLE	(1 << 30)
-#define	PLLSS_MISC_LOCK_ENABLE	(1 << 30)
+#define PLL_MISC_LOCK_ENABLE (1 << 18)
+#define PLLC_MISC_LOCK_ENABLE (1 << 24)
+#define PLLDU_MISC_LOCK_ENABLE (1 << 22)
+#define PLLRE_MISC_LOCK_ENABLE (1 << 30)
+#define PLLSS_MISC_LOCK_ENABLE (1 << 30)
 
-#define	PLLC_IDDQ_BIT		26
-#define	PLLX_IDDQ_BIT		3
-#define	PLLRE_IDDQ_BIT		16
-#define	PLLSS_IDDQ_BIT		19
+#define PLLC_IDDQ_BIT 26
+#define PLLX_IDDQ_BIT 3
+#define PLLRE_IDDQ_BIT 16
+#define PLLSS_IDDQ_BIT 19
 
-#define	PLL_LOCK_TIMEOUT	5000
+#define PLL_LOCK_TIMEOUT 5000
 
 /* Post divider <-> register value mapping. */
 struct pdiv_table {
-	uint32_t divider;	/* real divider */
-	uint32_t value;		/* register value */
+	uint32_t divider; /* real divider */
+	uint32_t value;	  /* register value */
 };
 
 /* Bits definition of M, N and P fields. */
 struct mnp_bits {
-	uint32_t	m_width;
-	uint32_t	n_width;
-	uint32_t	p_width;
-	uint32_t	p_shift;
+	uint32_t m_width;
+	uint32_t n_width;
+	uint32_t p_width;
+	uint32_t p_shift;
 };
 
 struct clk_pll_def {
-	struct clknode_init_def	clkdef;
-	enum pll_type		type;
-	uint32_t		base_reg;
-	uint32_t		misc_reg;
-	uint32_t		lock_mask;
-	uint32_t		lock_enable;
-	uint32_t		iddq_reg;
-	uint32_t		iddq_mask;
-	uint32_t		flags;
-	struct pdiv_table 	*pdiv_table;
-	struct mnp_bits		mnp_bits;
+	struct clknode_init_def clkdef;
+	enum pll_type type;
+	uint32_t base_reg;
+	uint32_t misc_reg;
+	uint32_t lock_mask;
+	uint32_t lock_enable;
+	uint32_t iddq_reg;
+	uint32_t iddq_mask;
+	uint32_t flags;
+	struct pdiv_table *pdiv_table;
+	struct mnp_bits mnp_bits;
 };
 
-#define	PLL(_id, cname, pname)					\
-	.clkdef.id = _id,					\
-	.clkdef.name = cname,					\
-	.clkdef.parent_names = (const char *[]){pname},		\
-	.clkdef.parent_cnt = 1,				\
-	.clkdef.flags = CLK_NODE_STATIC_STRINGS
+#define PLL(_id, cname, pname)                             \
+	.clkdef.id = _id, .clkdef.name = cname,            \
+	.clkdef.parent_names = (const char *[]) { pname }, \
+	.clkdef.parent_cnt = 1, .clkdef.flags = CLK_NODE_STATIC_STRINGS
 
 /* Tegra K1 PLLs
  PLLM: Clock source for EMC 2x clock
@@ -140,240 +140,195 @@ struct clk_pll_def {
  GPCPLL: Clock source for the GPU
 */
 
-static struct pdiv_table pllm_map[] = {
-	{1, 0},
-	{2, 1},
-	{0, 0}
-};
+static struct pdiv_table pllm_map[] = { { 1, 0 }, { 2, 1 }, { 0, 0 } };
 
-static struct pdiv_table pllxc_map[] = {
-	{ 1,  0},
-	{ 2,  1},
-	{ 3,  2},
-	{ 4,  3},
-	{ 5,  4},
-	{ 6,  5},
-	{ 8,  6},
-	{10,  7},
-	{12,  8},
-	{16,  9},
-	{12, 10},
-	{16, 11},
-	{20, 12},
-	{24, 13},
-	{32, 14},
-	{ 0,  0}
-};
+static struct pdiv_table pllxc_map[] = { { 1, 0 }, { 2, 1 }, { 3, 2 }, { 4, 3 },
+	{ 5, 4 }, { 6, 5 }, { 8, 6 }, { 10, 7 }, { 12, 8 }, { 16, 9 },
+	{ 12, 10 }, { 16, 11 }, { 20, 12 }, { 24, 13 }, { 32, 14 }, { 0, 0 } };
 
-static struct pdiv_table pllc_map[] = {
-	{ 1, 0},
-	{ 2, 1},
-	{ 3, 2},
-	{ 4, 3},
-	{ 6, 4},
-	{ 8, 5},
-	{12, 6},
-	{16, 7},
-	{ 0,  0}
-};
+static struct pdiv_table pllc_map[] = { { 1, 0 }, { 2, 1 }, { 3, 2 }, { 4, 3 },
+	{ 6, 4 }, { 8, 5 }, { 12, 6 }, { 16, 7 }, { 0, 0 } };
 
-static struct pdiv_table pll12g_ssd_esd_map[] = {
-	{ 1,  0},
-	{ 2,  1},
-	{ 3,  2},
-	{ 4,  3},
-	{ 5,  4},
-	{ 6,  5},
-	{ 8,  6},
-	{10,  7},
-	{12,  8},
-	{16,  9},
-	{12, 10},
-	{16, 11},
-	{20, 12},
-	{24, 13},
-	{32, 14},
-	{ 0,  0}
-};
+static struct pdiv_table pll12g_ssd_esd_map[] = { { 1, 0 }, { 2, 1 }, { 3, 2 },
+	{ 4, 3 }, { 5, 4 }, { 6, 5 }, { 8, 6 }, { 10, 7 }, { 12, 8 }, { 16, 9 },
+	{ 12, 10 }, { 16, 11 }, { 20, 12 }, { 24, 13 }, { 32, 14 }, { 0, 0 } };
 
-static struct pdiv_table pllu_map[] = {
-	{1, 1},
-	{2, 0},
-	{0, 0}
-};
+static struct pdiv_table pllu_map[] = { { 1, 1 }, { 2, 0 }, { 0, 0 } };
 
 static struct pdiv_table pllrefe_map[] = {
-	{1, 0},
-	{2, 1},
-	{3, 2},
-	{4, 3},
-	{5, 4},
-	{6, 5},
-	{0, 0},
+	{ 1, 0 },
+	{ 2, 1 },
+	{ 3, 2 },
+	{ 4, 3 },
+	{ 5, 4 },
+	{ 6, 5 },
+	{ 0, 0 },
 };
 
 static struct clk_pll_def pll_clks[] = {
-/* PLLM: 880 MHz Clock source for EMC 2x clock */
+	/* PLLM: 880 MHz Clock source for EMC 2x clock */
 	{
-		PLL(TEGRA124_CLK_PLL_M, "pllM_out0", "osc_div_clk"),
-		.type = PLL_M,
-		.base_reg = PLLM_BASE,
-		.misc_reg = PLLM_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.pdiv_table = pllm_map,
-		.mnp_bits = {8, 8, 1, 20},
+	    PLL(TEGRA124_CLK_PLL_M, "pllM_out0", "osc_div_clk"),
+	    .type = PLL_M,
+	    .base_reg = PLLM_BASE,
+	    .misc_reg = PLLM_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .pdiv_table = pllm_map,
+	    .mnp_bits = { 8, 8, 1, 20 },
 	},
-/* PLLX: 1GHz Clock source for the fast CPU cluster and the shadow CPU */
+	/* PLLX: 1GHz Clock source for the fast CPU cluster and the shadow CPU
+	 */
 	{
-		PLL(TEGRA124_CLK_PLL_X, "pllX_out", "osc_div_clk"),
-		.type = PLL_X,
-		.base_reg = PLLX_BASE,
-		.misc_reg = PLLX_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLX_MISC3,
-		.iddq_mask = 1 << PLLX_IDDQ_BIT,
-		.pdiv_table = pllxc_map,
-		.mnp_bits = {8, 8, 4, 20},
+	    PLL(TEGRA124_CLK_PLL_X, "pllX_out", "osc_div_clk"),
+	    .type = PLL_X,
+	    .base_reg = PLLX_BASE,
+	    .misc_reg = PLLX_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLX_MISC3,
+	    .iddq_mask = 1 << PLLX_IDDQ_BIT,
+	    .pdiv_table = pllxc_map,
+	    .mnp_bits = { 8, 8, 4, 20 },
 	},
-/* PLLC: 600 MHz Clock source for general use */
+	/* PLLC: 600 MHz Clock source for general use */
 	{
-		PLL(TEGRA124_CLK_PLL_C, "pllC_out0", "osc_div_clk"),
-		.type = PLL_C,
-		.base_reg = PLLC_BASE,
-		.misc_reg = PLLC_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLLC_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLC_MISC,
-		.iddq_mask = 1 << PLLC_IDDQ_BIT,
-		.pdiv_table = pllc_map,
-		.mnp_bits = {8, 8, 4, 20},
+	    PLL(TEGRA124_CLK_PLL_C, "pllC_out0", "osc_div_clk"),
+	    .type = PLL_C,
+	    .base_reg = PLLC_BASE,
+	    .misc_reg = PLLC_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLLC_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLC_MISC,
+	    .iddq_mask = 1 << PLLC_IDDQ_BIT,
+	    .pdiv_table = pllc_map,
+	    .mnp_bits = { 8, 8, 4, 20 },
 	},
-/* PLLC2: 600 MHz Clock source for engine scaling */
+	/* PLLC2: 600 MHz Clock source for engine scaling */
 	{
-		PLL(TEGRA124_CLK_PLL_C2, "pllC2_out0", "osc_div_clk"),
-		.type = PLL_C2,
-		.base_reg = PLLC2_BASE,
-		.misc_reg = PLLC2_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.pdiv_table = pllc_map,
-		.mnp_bits = {2, 8, 3, 20},
+	    PLL(TEGRA124_CLK_PLL_C2, "pllC2_out0", "osc_div_clk"),
+	    .type = PLL_C2,
+	    .base_reg = PLLC2_BASE,
+	    .misc_reg = PLLC2_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .pdiv_table = pllc_map,
+	    .mnp_bits = { 2, 8, 3, 20 },
 	},
-/* PLLC3: 600 MHz Clock source for engine scaling */
+	/* PLLC3: 600 MHz Clock source for engine scaling */
 	{
-		PLL(TEGRA124_CLK_PLL_C3, "pllC3_out0", "osc_div_clk"),
-		.type = PLL_C3,
-		.base_reg = PLLC3_BASE,
-		.misc_reg = PLLC3_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.pdiv_table = pllc_map,
-		.mnp_bits = {2, 8, 3, 20},
+	    PLL(TEGRA124_CLK_PLL_C3, "pllC3_out0", "osc_div_clk"),
+	    .type = PLL_C3,
+	    .base_reg = PLLC3_BASE,
+	    .misc_reg = PLLC3_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .pdiv_table = pllc_map,
+	    .mnp_bits = { 2, 8, 3, 20 },
 	},
-/* PLLC4: 600 MHz Clock source for ISP/VI units */
+	/* PLLC4: 600 MHz Clock source for ISP/VI units */
 	{
-		PLL(TEGRA124_CLK_PLL_C4, "pllC4_out0", "pllC4_src"),
-		.type = PLL_C4,
-		.base_reg = PLLC4_BASE,
-		.misc_reg = PLLC4_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLLSS_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLC4_BASE,
-		.iddq_mask = 1 << PLLSS_IDDQ_BIT,
-		.pdiv_table = pll12g_ssd_esd_map,
-		.mnp_bits = {8, 8, 4, 20},
+	    PLL(TEGRA124_CLK_PLL_C4, "pllC4_out0", "pllC4_src"),
+	    .type = PLL_C4,
+	    .base_reg = PLLC4_BASE,
+	    .misc_reg = PLLC4_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLLSS_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLC4_BASE,
+	    .iddq_mask = 1 << PLLSS_IDDQ_BIT,
+	    .pdiv_table = pll12g_ssd_esd_map,
+	    .mnp_bits = { 8, 8, 4, 20 },
 	},
-/* PLLP: 408 MHz Clock source for most peripherals */
+	/* PLLP: 408 MHz Clock source for most peripherals */
 	{
-		PLL(TEGRA124_CLK_PLL_P, "pllP_out0", "osc_div_clk"),
-		.type = PLL_P,
-		.base_reg = PLLP_BASE,
-		.misc_reg = PLLP_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.mnp_bits = {5, 10, 3,  20},
+	    PLL(TEGRA124_CLK_PLL_P, "pllP_out0", "osc_div_clk"),
+	    .type = PLL_P,
+	    .base_reg = PLLP_BASE,
+	    .misc_reg = PLLP_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .mnp_bits = { 5, 10, 3, 20 },
 	},
-/* PLLA: Audio clock sources: (11.2896 MHz, 12.288 MHz, 24.576 MHz) */
+	/* PLLA: Audio clock sources: (11.2896 MHz, 12.288 MHz, 24.576 MHz) */
 	{
-		PLL(TEGRA124_CLK_PLL_A, "pllA_out", "pllP_out1"),
-		.type = PLL_A,
-		.base_reg = PLLA_BASE,
-		.misc_reg = PLLA_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.mnp_bits = {5, 10, 3,  20},
+	    PLL(TEGRA124_CLK_PLL_A, "pllA_out", "pllP_out1"),
+	    .type = PLL_A,
+	    .base_reg = PLLA_BASE,
+	    .misc_reg = PLLA_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .mnp_bits = { 5, 10, 3, 20 },
 	},
-/* PLLU: 480 MHz Clock source for USB PHY, provides 12/60/480 MHz */
+	/* PLLU: 480 MHz Clock source for USB PHY, provides 12/60/480 MHz */
 	{
-		PLL(TEGRA124_CLK_PLL_U, "pllU_out", "osc_div_clk"),
-		.type = PLL_U,
-		.base_reg = PLLU_BASE,
-		.misc_reg = PLLU_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLLDU_MISC_LOCK_ENABLE,
-		.pdiv_table = pllu_map,
-		.mnp_bits = {5, 10, 1, 20},
+	    PLL(TEGRA124_CLK_PLL_U, "pllU_out", "osc_div_clk"),
+	    .type = PLL_U,
+	    .base_reg = PLLU_BASE,
+	    .misc_reg = PLLU_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLLDU_MISC_LOCK_ENABLE,
+	    .pdiv_table = pllu_map,
+	    .mnp_bits = { 5, 10, 1, 20 },
 	},
-/* PLLD: 600 MHz Clock sources for the DSI and display subsystem */
+	/* PLLD: 600 MHz Clock sources for the DSI and display subsystem */
 	{
-		PLL(TEGRA124_CLK_PLL_D, "pllD_out", "osc_div_clk"),
-		.type = PLL_D,
-		.base_reg = PLLD_BASE,
-		.misc_reg = PLLD_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLL_MISC_LOCK_ENABLE,
-		.mnp_bits = {5, 11, 3, 20},
+	    PLL(TEGRA124_CLK_PLL_D, "pllD_out", "osc_div_clk"),
+	    .type = PLL_D,
+	    .base_reg = PLLD_BASE,
+	    .misc_reg = PLLD_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLL_MISC_LOCK_ENABLE,
+	    .mnp_bits = { 5, 11, 3, 20 },
 	},
-/* PLLD2: 600 MHz Clock sources for the DSI and display subsystem */
+	/* PLLD2: 600 MHz Clock sources for the DSI and display subsystem */
 	{
-		PLL(TEGRA124_CLK_PLL_D2, "pllD2_out", "pllD2_src"),
-		.type = PLL_D2,
-		.base_reg = PLLD2_BASE,
-		.misc_reg = PLLD2_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLLSS_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLD2_BASE,
-		.iddq_mask =  1 << PLLSS_IDDQ_BIT,
-		.pdiv_table = pll12g_ssd_esd_map,
-		.mnp_bits = {8, 8, 4, 20},
+	    PLL(TEGRA124_CLK_PLL_D2, "pllD2_out", "pllD2_src"),
+	    .type = PLL_D2,
+	    .base_reg = PLLD2_BASE,
+	    .misc_reg = PLLD2_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLLSS_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLD2_BASE,
+	    .iddq_mask = 1 << PLLSS_IDDQ_BIT,
+	    .pdiv_table = pll12g_ssd_esd_map,
+	    .mnp_bits = { 8, 8, 4, 20 },
 	},
-/* refPLLe:  */
+	/* refPLLe:  */
 	{
-		PLL(0, "pllREFE_out", "osc_div_clk"),
-		.type = PLL_REFE,
-		.base_reg = PLLRE_BASE,
-		.misc_reg = PLLRE_MISC,
-		.lock_mask = PLLRE_MISC_LOCK,
-		.lock_enable = PLLRE_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLRE_MISC,
-		.iddq_mask = 1 << PLLRE_IDDQ_BIT,
-		.pdiv_table = pllrefe_map,
-		.mnp_bits = {8, 8, 4, 16},
+	    PLL(0, "pllREFE_out", "osc_div_clk"),
+	    .type = PLL_REFE,
+	    .base_reg = PLLRE_BASE,
+	    .misc_reg = PLLRE_MISC,
+	    .lock_mask = PLLRE_MISC_LOCK,
+	    .lock_enable = PLLRE_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLRE_MISC,
+	    .iddq_mask = 1 << PLLRE_IDDQ_BIT,
+	    .pdiv_table = pllrefe_map,
+	    .mnp_bits = { 8, 8, 4, 16 },
 	},
-/* PLLE: generate the 100 MHz reference clock for USB 3.0 (spread spectrum) */
+	/* PLLE: generate the 100 MHz reference clock for USB 3.0 (spread
+	   spectrum) */
 	{
-		PLL(TEGRA124_CLK_PLL_E, "pllE_out0", "pllE_src"),
-		.type = PLL_E,
-		.base_reg = PLLE_BASE,
-		.misc_reg = PLLE_MISC,
-		.lock_mask = PLLE_MISC_LOCK,
-		.lock_enable = PLLE_MISC_LOCK_ENABLE,
-		.mnp_bits = {8, 8, 4, 24},
+	    PLL(TEGRA124_CLK_PLL_E, "pllE_out0", "pllE_src"),
+	    .type = PLL_E,
+	    .base_reg = PLLE_BASE,
+	    .misc_reg = PLLE_MISC,
+	    .lock_mask = PLLE_MISC_LOCK,
+	    .lock_enable = PLLE_MISC_LOCK_ENABLE,
+	    .mnp_bits = { 8, 8, 4, 24 },
 	},
-/* PLLDP: 600 MHz Clock source for eDP/LVDS (spread spectrum) */
+	/* PLLDP: 600 MHz Clock source for eDP/LVDS (spread spectrum) */
 	{
-		PLL(0, "pllDP_out0", "pllDP_src"),
-		.type = PLL_DP,
-		.base_reg = PLLDP_BASE,
-		.misc_reg = PLLDP_MISC,
-		.lock_mask = PLL_BASE_LOCK,
-		.lock_enable = PLLSS_MISC_LOCK_ENABLE,
-		.iddq_reg = PLLDP_BASE,
-		.iddq_mask =  1 << PLLSS_IDDQ_BIT,
-		.pdiv_table = pll12g_ssd_esd_map,
-		.mnp_bits = {8, 8, 4, 20},
+	    PLL(0, "pllDP_out0", "pllDP_src"),
+	    .type = PLL_DP,
+	    .base_reg = PLLDP_BASE,
+	    .misc_reg = PLLDP_MISC,
+	    .lock_mask = PLL_BASE_LOCK,
+	    .lock_enable = PLLSS_MISC_LOCK_ENABLE,
+	    .iddq_reg = PLLDP_BASE,
+	    .iddq_mask = 1 << PLLSS_IDDQ_BIT,
+	    .pdiv_table = pll12g_ssd_esd_map,
+	    .mnp_bits = { 8, 8, 4, 20 },
 	},
 };
 
@@ -384,30 +339,30 @@ static int tegra124_pll_recalc(struct clknode *clk, uint64_t *freq);
 static int tegra124_pll_set_freq(struct clknode *clknode, uint64_t fin,
     uint64_t *fout, int flags, int *stop);
 struct pll_sc {
-	device_t		clkdev;
-	enum pll_type		type;
-	uint32_t		base_reg;
-	uint32_t		misc_reg;
-	uint32_t		lock_mask;
-	uint32_t		lock_enable;
-	uint32_t		iddq_reg;
-	uint32_t		iddq_mask;
-	uint32_t		flags;
-	struct pdiv_table 	*pdiv_table;
-	struct mnp_bits		mnp_bits;
+	device_t clkdev;
+	enum pll_type type;
+	uint32_t base_reg;
+	uint32_t misc_reg;
+	uint32_t lock_mask;
+	uint32_t lock_enable;
+	uint32_t iddq_reg;
+	uint32_t iddq_mask;
+	uint32_t flags;
+	struct pdiv_table *pdiv_table;
+	struct mnp_bits mnp_bits;
 };
 
 static clknode_method_t tegra124_pll_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		tegra124_pll_init),
-	CLKNODEMETHOD(clknode_set_gate,		tegra124_pll_set_gate),
-	CLKNODEMETHOD(clknode_get_gate,		tegra124_pll_get_gate),
-	CLKNODEMETHOD(clknode_recalc_freq,	tegra124_pll_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		tegra124_pll_set_freq),
+	CLKNODEMETHOD(clknode_init, tegra124_pll_init),
+	CLKNODEMETHOD(clknode_set_gate, tegra124_pll_set_gate),
+	CLKNODEMETHOD(clknode_get_gate, tegra124_pll_get_gate),
+	CLKNODEMETHOD(clknode_recalc_freq, tegra124_pll_recalc),
+	CLKNODEMETHOD(clknode_set_freq, tegra124_pll_set_freq),
 	CLKNODEMETHOD_END
 };
 DEFINE_CLASS_1(tegra124_pll, tegra124_pll_class, tegra124_pll_methods,
-   sizeof(struct pll_sc), clknode_class);
+    sizeof(struct pll_sc), clknode_class);
 
 static int
 pll_enable(struct pll_sc *sc)
@@ -519,7 +474,7 @@ is_locked(struct pll_sc *sc)
 	switch (sc->type) {
 	case PLL_REFE:
 		RD4(sc, sc->misc_reg, &reg);
-		reg &=  PLLRE_MISC_LOCK;
+		reg &= PLLRE_MISC_LOCK;
 		break;
 
 	case PLL_E:
@@ -645,13 +600,13 @@ plle_enable(struct pll_sc *sc)
 	RD4(sc, SATA_PLL_CFG0, &reg);
 	reg &= ~SATA_PLL_CFG0_PADPLL_RESET_SWCTL;
 	reg &= ~SATA_PLL_CFG0_PADPLL_RESET_OVERRIDE_VALUE;
-	reg |=  SATA_PLL_CFG0_PADPLL_USE_LOCKDET;
+	reg |= SATA_PLL_CFG0_PADPLL_USE_LOCKDET;
 	reg &= ~SATA_PLL_CFG0_SEQ_IN_SWCTL;
 	reg &= ~SATA_PLL_CFG0_SEQ_RESET_INPUT_VALUE;
 	reg &= ~SATA_PLL_CFG0_SEQ_LANE_PD_INPUT_VALUE;
 	reg &= ~SATA_PLL_CFG0_SEQ_PADPLL_PD_INPUT_VALUE;
 	reg &= ~SATA_PLL_CFG0_SEQ_ENABLE;
-	reg |=  SATA_PLL_CFG0_SEQ_START_STATE;
+	reg |= SATA_PLL_CFG0_SEQ_START_STATE;
 	WR4(sc, SATA_PLL_CFG0, reg);
 	DELAY(10);
 	reg |= SATA_PLL_CFG0_SEQ_ENABLE;
@@ -674,7 +629,7 @@ tegra124_pll_set_gate(struct clknode *clknode, bool enable)
 	sc = clknode_get_softc(clknode);
 	if (enable == 0) {
 		rv = pll_disable(sc);
-		return(rv);
+		return (rv);
 	}
 
 	if (sc->type == PLL_E)
@@ -692,7 +647,7 @@ tegra124_pll_get_gate(struct clknode *clknode, bool *enabled)
 
 	sc = clknode_get_softc(clknode);
 	RD4(sc, sc->base_reg, &reg);
-	*enabled = reg & PLL_BASE_ENABLE ? true: false;
+	*enabled = reg & PLL_BASE_ENABLE ? true : false;
 	WR4(sc, sc->base_reg, reg);
 	return (0);
 }
@@ -715,10 +670,10 @@ pll_set_std(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags,
 
 	if (flags & CLK_SET_DRYRUN) {
 		if (((flags & (CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN)) == 0) &&
-		    (*fout != (((fin / m) * n) /p)))
+		    (*fout != (((fin / m) * n) / p)))
 			return (ERANGE);
 
-		*fout = ((fin / m) * n) /p;
+		*fout = ((fin / m) * n) / p;
 
 		return (0);
 	}
@@ -768,9 +723,9 @@ plla_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
 
 	p = 1;
 	m = 5;
-	n = (*fout * p * m + fin / 2)/ fin;
+	n = (*fout * p * m + fin / 2) / fin;
 	dprintf("%s: m: %d, n: %d, p: %d\n", __func__, m, n, p);
-	return (pll_set_std(sc,  fin, fout, flags, m, n, p));
+	return (pll_set_std(sc, fin, fout, flags, m, n, p));
 }
 
 static int
@@ -780,9 +735,9 @@ pllc_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
 
 	p = 2;
 	m = 1;
-	n = (*fout * p * m + fin / 2)/ fin;
+	n = (*fout * p * m + fin / 2) / fin;
 	dprintf("%s: m: %d, n: %d, p: %d\n", __func__, m, n, p);
-	return (pll_set_std( sc, fin, fout, flags, m, n, p));
+	return (pll_set_std(sc, fin, fout, flags, m, n, p));
 }
 
 /*
@@ -794,10 +749,10 @@ pllc_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
  * Fortunately, thanks to early cycle terminations, performance
  * is within acceptable limits.
  */
-#define	PLLD2_PFD_MIN		  12000000 	/*  12 MHz */
-#define	PLLD2_PFD_MAX		  38000000	/*  38 MHz */
-#define	PLLD2_VCO_MIN	  	 600000000	/* 600 MHz */
-#define	PLLD2_VCO_MAX		1200000000	/* 1.2 GHz */
+#define PLLD2_PFD_MIN 12000000	 /*  12 MHz */
+#define PLLD2_PFD_MAX 38000000	 /*  38 MHz */
+#define PLLD2_VCO_MIN 600000000	 /* 600 MHz */
+#define PLLD2_VCO_MAX 1200000000 /* 1.2 GHz */
 
 static int
 plld2_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
@@ -892,7 +847,7 @@ pllx_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
 
 	p = 1;
 	m = 1;
-	n = (*fout * p * m + fin / 2)/ fin;
+	n = (*fout * p * m + fin / 2) / fin;
 	dprintf("%s: m: %d, n: %d, p: %d\n", __func__, m, n, p);
 
 	if (m >= (1 << mnp_bits->m_width))
@@ -904,9 +859,9 @@ pllx_set_freq(struct pll_sc *sc, uint64_t fin, uint64_t *fout, int flags)
 
 	if (flags & CLK_SET_DRYRUN) {
 		if (((flags & (CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN)) == 0) &&
-		    (*fout != (((fin / m) * n) /p)))
+		    (*fout != (((fin / m) * n) / p)))
 			return (ERANGE);
-		*fout = ((fin / m) * n) /p;
+		*fout = ((fin / m) * n) / p;
 		return (0);
 	}
 
@@ -959,7 +914,7 @@ tegra124_pll_set_freq(struct clknode *clknode, uint64_t fin, uint64_t *fout,
 
 	sc = clknode_get_softc(clknode);
 	dprintf("%s: %s requested freq: %llu, input freq: %llu\n", __func__,
-	   clknode_get_name(clknode), *fout, fin);
+	    clknode_get_name(clknode), *fout, fin);
 	switch (sc->type) {
 	case PLL_A:
 		rv = plla_set_freq(sc, fin, fout, flags);
@@ -980,7 +935,7 @@ tegra124_pll_set_freq(struct clknode *clknode, uint64_t fin, uint64_t *fout,
 		break;
 
 	case PLL_U:
-		if (*fout == 480000000)  /* PLLU is fixed to 480 MHz */
+		if (*fout == 480000000) /* PLLU is fixed to 480 MHz */
 			rv = 0;
 		else
 			rv = ERANGE;
@@ -1010,12 +965,12 @@ tegra124_pll_init(struct clknode *clk, device_t dev)
 	}
 	if (sc->type == PLL_REFE) {
 		RD4(sc, sc->misc_reg, &reg);
-		reg &= ~(1 << 29);	/* Diasble lock override */
+		reg &= ~(1 << 29); /* Diasble lock override */
 		WR4(sc, sc->misc_reg, reg);
 	}
 
 	clknode_init_parent_idx(clk, 0);
-	return(0);
+	return (0);
 }
 
 static int
@@ -1037,8 +992,8 @@ tegra124_pll_recalc(struct clknode *clk, uint64_t *freq)
 		p = 2 * (pr - 1);
 
 	dprintf("%s: %s (0x%08x, 0x%08x) - m: %d, n: %d, p: %d (%d): "
-	    "e: %d, r: %d, o: %d - %s\n", __func__,
-	    clknode_get_name(clk), reg, misc_reg, m, n, p, pr,
+		"e: %d, r: %d, o: %d - %s\n",
+	    __func__, clknode_get_name(clk), reg, misc_reg, m, n, p, pr,
 	    (reg >> 30) & 1, (reg >> 29) & 1, (reg >> 28) & 1,
 	    is_locked(sc) ? "locked" : "unlocked");
 
@@ -1076,16 +1031,17 @@ pll_register(struct clkdom *clkdom, struct clk_pll_def *clkdef)
 	return (0);
 }
 
-static void config_utmi_pll(struct tegra124_car_softc *sc)
+static void
+config_utmi_pll(struct tegra124_car_softc *sc)
 {
 	uint32_t reg;
 	/*
 	 * XXX Simplified UTMIP settings for 12MHz base clock.
 	 */
-#define	ENABLE_DELAY_COUNT 	0x02
-#define	STABLE_COUNT		0x2F
-#define	ACTIVE_DELAY_COUNT	0x04
-#define	XTAL_FREQ_COUNT		0x76
+#define ENABLE_DELAY_COUNT 0x02
+#define STABLE_COUNT 0x2F
+#define ACTIVE_DELAY_COUNT 0x04
+#define XTAL_FREQ_COUNT 0x76
 
 	CLKDEV_READ_4(sc->dev, UTMIP_PLL_CFG2, &reg);
 	reg &= ~UTMIP_PLL_CFG2_STABLE_COUNT(~0);
@@ -1146,5 +1102,4 @@ tegra124_init_plls(struct tegra124_car_softc *sc)
 			panic("pll_register failed");
 	}
 	config_utmi_pll(sc);
-
 }

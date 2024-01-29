@@ -13,7 +13,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,18 +29,18 @@
 
 #include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/utsname.h>
 #include <sys/sysctl.h>
+#include <sys/utsname.h>
 
+#include <ctype.h>
 #include <dirent.h>
-#include <ucl.h>
 #include <err.h>
 #include <errno.h>
 #include <libutil.h>
 #include <paths.h>
 #include <stdbool.h>
+#include <ucl.h>
 #include <unistd.h>
-#include <ctype.h>
 
 #include "config.h"
 
@@ -56,7 +56,7 @@ struct config_entry {
 	char *value;
 	STAILQ_HEAD(, config_value) *list;
 	bool envset;
-	bool main_only;				/* Only set in pkg.conf. */
+	bool main_only; /* Only set in pkg.conf. */
 };
 
 static struct config_entry c[] = {
@@ -166,8 +166,8 @@ pkg_get_myabi(void)
 	 * Use __FreeBSD_version rather than kernel version (uts.release) for
 	 * use in jails. This is equivalent to the value of uname -U.
 	 */
-	error = asprintf(&abi, "%s:%d:%s", uts.sysname, __FreeBSD_version/100000,
-	    machine_arch);
+	error = asprintf(&abi, "%s:%d:%s", uts.sysname,
+	    __FreeBSD_version / 100000, machine_arch);
 	if (error < 0)
 		return (NULL);
 
@@ -189,9 +189,8 @@ subst_packagesite(const char *abi)
 	if ((variable_string = strstr(oldval, "${ABI}")) == NULL)
 		return;
 
-	asprintf(&newval, "%.*s%s%s",
-	    (int)(variable_string - oldval), oldval, abi,
-	    variable_string + strlen("${ABI}"));
+	asprintf(&newval, "%.*s%s%s", (int)(variable_string - oldval), oldval,
+	    abi, variable_string + strlen("${ABI}"));
 	if (newval == NULL)
 		errx(EXIT_FAILURE, "asprintf");
 
@@ -202,9 +201,9 @@ subst_packagesite(const char *abi)
 static int
 boolstr_to_bool(const char *str)
 {
-	if (str != NULL && (strcasecmp(str, "true") == 0 ||
-	    strcasecmp(str, "yes") == 0 || strcasecmp(str, "on") == 0 ||
-	    str[0] == '1'))
+	if (str != NULL &&
+	    (strcasecmp(str, "true") == 0 || strcasecmp(str, "yes") == 0 ||
+		strcasecmp(str, "on") == 0 || str[0] == '1'))
 		return (true);
 
 	return (false);
@@ -280,34 +279,37 @@ config_parse(const ucl_object_t *obj, pkg_conf_file_t conftype)
 		case PKG_CONFIG_LIST:
 			if (cur->type != UCL_ARRAY) {
 				warnx("Skipping invalid array "
-				    "value for %s.\n", c[i].key);
+				      "value for %s.\n",
+				    c[i].key);
 				continue;
 			}
-			temp_config[i].list =
-			    malloc(sizeof(*temp_config[i].list));
+			temp_config[i].list = malloc(
+			    sizeof(*temp_config[i].list));
 			STAILQ_INIT(temp_config[i].list);
 
 			while ((seq = ucl_iterate_object(cur, &itseq, true))) {
 				if (seq->type != UCL_STRING)
 					continue;
 				cv = malloc(sizeof(struct config_value));
-				cv->value =
-				    strdup(ucl_object_tostring(seq));
+				cv->value = strdup(ucl_object_tostring(seq));
 				STAILQ_INSERT_TAIL(temp_config[i].list, cv,
 				    next);
 			}
 			break;
 		case PKG_CONFIG_BOOL:
-			temp_config[i].value =
-			    strdup(ucl_object_toboolean(cur) ? "yes" : "no");
+			temp_config[i].value = strdup(
+			    ucl_object_toboolean(cur) ? "yes" : "no");
 			break;
 		case PKG_CONFIG_OBJECT:
 			if (strcmp(c[i].key, "PKG_ENV") == 0) {
-				while ((tmp =
-				    ucl_iterate_object(cur, &it_obj, true))) {
+				while ((tmp = ucl_iterate_object(cur, &it_obj,
+					    true))) {
 					evkey = ucl_object_key(tmp);
 					if (evkey != NULL && *evkey != '\0') {
-						setenv(evkey, ucl_object_tostring_forced(tmp), 1);
+						setenv(evkey,
+						    ucl_object_tostring_forced(
+							tmp),
+						    1);
 					}
 				}
 			}
@@ -372,7 +374,6 @@ parse_repo_file(ucl_object_t *obj, const char *requested_repo)
 	}
 }
 
-
 static int
 read_conf_file(const char *confpath, const char *requested_repo,
     pkg_conf_file_t conftype)
@@ -384,17 +385,20 @@ read_conf_file(const char *confpath, const char *requested_repo,
 
 	if (!ucl_parser_add_file(p, confpath)) {
 		if (errno != ENOENT)
-			errx(EXIT_FAILURE, "Unable to parse configuration "
-			    "file %s: %s", confpath, ucl_parser_get_error(p));
+			errx(EXIT_FAILURE,
+			    "Unable to parse configuration "
+			    "file %s: %s",
+			    confpath, ucl_parser_get_error(p));
 		ucl_parser_free(p);
 		/* no configuration present */
 		return (1);
 	}
 
 	obj = ucl_parser_get_object(p);
-	if (obj->type != UCL_OBJECT) 
+	if (obj->type != UCL_OBJECT)
 		warnx("Invalid configuration format, ignoring the "
-		    "configuration file %s", confpath);
+		      "configuration file %s",
+		    confpath);
 	else {
 		if (conftype == CONFFILE_PKG)
 			config_parse(obj, conftype);
@@ -429,14 +433,13 @@ load_repositories(const char *repodir, const char *requested_repo)
 			continue;
 		p = &ent->d_name[n - 5];
 		if (strcmp(p, ".conf") == 0) {
-			snprintf(path, sizeof(path), "%s%s%s",
-			    repodir,
+			snprintf(path, sizeof(path), "%s%s%s", repodir,
 			    repodir[strlen(repodir) - 1] == '/' ? "" : "/",
 			    ent->d_name);
 			if (access(path, F_OK) != 0)
 				continue;
 			if (read_conf_file(path, requested_repo,
-			    CONFFILE_REPO)) {
+				CONFFILE_REPO)) {
 				ret = 1;
 				goto cleanup;
 			}
@@ -469,14 +472,12 @@ config_init(const char *requested_repo)
 				c[i].list = malloc(sizeof(*c[i].list));
 				STAILQ_INIT(c[i].list);
 				for (env_list_item = strtok(val, ",");
-				    env_list_item != NULL;
-				    env_list_item = strtok(NULL, ",")) {
-					cv =
-					    malloc(sizeof(struct config_value));
-					cv->value =
-					    strdup(env_list_item);
-					STAILQ_INSERT_TAIL(c[i].list, cv,
-					    next);
+				     env_list_item != NULL;
+				     env_list_item = strtok(NULL, ",")) {
+					cv = malloc(
+					    sizeof(struct config_value));
+					cv->value = strdup(env_list_item);
+					STAILQ_INSERT_TAIL(c[i].list, cv, next);
 				}
 				break;
 			default:
@@ -490,8 +491,8 @@ config_init(const char *requested_repo)
 	localbase = getlocalbase();
 	snprintf(confpath, sizeof(confpath), "%s/etc/pkg.conf", localbase);
 
-	if (access(confpath, F_OK) == 0 && read_conf_file(confpath, NULL,
-	    CONFFILE_PKG))
+	if (access(confpath, F_OK) == 0 &&
+	    read_conf_file(confpath, NULL, CONFFILE_PKG))
 		goto finalize;
 
 	/* Then read in all repos from REPOS_DIR list of directories. */
@@ -507,7 +508,7 @@ config_init(const char *requested_repo)
 		STAILQ_INSERT_TAIL(c[REPOS_DIR].list, cv, next);
 	}
 
-	STAILQ_FOREACH(cv, c[REPOS_DIR].list, next)
+	STAILQ_FOREACH (cv, c[REPOS_DIR].list, next)
 		if (load_repositories(cv->value, requested_repo))
 			goto finalize;
 
@@ -515,7 +516,8 @@ finalize:
 	if (c[ABI].val == NULL && c[ABI].value == NULL) {
 		abi = pkg_get_myabi();
 		if (abi == NULL)
-			errx(EXIT_FAILURE, "Failed to determine the system "
+			errx(EXIT_FAILURE,
+			    "Failed to determine the system "
 			    "ABI");
 		c[ABI].val = abi;
 	}
@@ -561,7 +563,8 @@ config_bool(pkg_config_key k, bool *val)
 }
 
 void
-config_finish(void) {
+config_finish(void)
+{
 	int i;
 
 	for (i = 0; i < CONFIG_SIZE; i++)

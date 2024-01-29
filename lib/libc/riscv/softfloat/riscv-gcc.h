@@ -67,7 +67,7 @@ name for the 64-bit integer type.  Some compilers may allow `LIT64' to be
 defined as the identity macro:  `#define LIT64( a ) a'.
 -------------------------------------------------------------------------------
 */
-#define LIT64( a ) a##LL
+#define LIT64(a) a##LL
 #endif
 
 /*
@@ -80,6 +80,6 @@ to be `static'.
 #define INLINE static __inline
 
 #if defined(SOFTFLOAT_FOR_GCC)
-#define FLOAT64_DEMANGLE(a)	(a)
-#define FLOAT64_MANGLE(a)	(a)
+#define FLOAT64_DEMANGLE(a) (a)
+#define FLOAT64_MANGLE(a) (a)
 #endif

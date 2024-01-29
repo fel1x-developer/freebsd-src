@@ -35,7 +35,7 @@ mod_event(module_t mod, int cmd, void *arg)
 
 	return (0);
 }
-static moduledata_t if_ccv_mod = {"if_ccv", mod_event};
+static moduledata_t if_ccv_mod = { "if_ccv", mod_event };
 DECLARE_MODULE(if_ccv, if_ccv_mod, SI_SUB_EXEC, SI_ORDER_ANY);
 MODULE_VERSION(if_ccv, 1);
 MODULE_DEPEND(if_ccv, ccv, 1, 1, 1);

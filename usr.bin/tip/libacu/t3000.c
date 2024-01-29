@@ -36,25 +36,26 @@
  * Routines for calling up on a Telebit T3000 modem.
  * Derived from Courier driver.
  */
-#include "tip.h"
-
 #include <sys/ioctl.h>
+
 #include <stdio.h>
 
-#define	MAXRETRY	5
+#include "tip.h"
 
-static	int dialtimeout = 0;
-static	int connected = 0;
-static	jmp_buf timeoutbuf;
+#define MAXRETRY 5
 
-static void	sigALRM(int);
-static int	t3000_swallow(char *);
-static int	t3000_connect(void);
-static int	t3000_sync(void);
-static void	t3000_write(int, char *, int);
-static void	t3000_nap(void);
+static int dialtimeout = 0;
+static int connected = 0;
+static jmp_buf timeoutbuf;
+
+static void sigALRM(int);
+static int t3000_swallow(char *);
+static int t3000_connect(void);
+static int t3000_sync(void);
+static void t3000_write(int, char *, int);
+static void t3000_nap(void);
 #ifdef DEBUG
-static void	t3000_verbose_read(void);
+static void t3000_verbose_read(void);
 #endif
 
 int
@@ -76,14 +77,14 @@ t3000_dialer(char *num, char *acu)
 	 * Get in synch.
 	 */
 	if (!t3000_sync()) {
-badsynch:
+	badsynch:
 		printf("can't synchronize with t3000\n");
 #ifdef ACULOG
 		logent(value(HOST), num, "t3000", "can't synch up");
 #endif
 		return (0);
 	}
-	t3000_write(FD, "AT E0\r", 6);	/* turn off echoing */
+	t3000_write(FD, "AT E0\r", 6); /* turn off echoing */
 	sleep(1);
 #ifdef DEBUG
 	if (boolean(value(VERBOSE)))
@@ -104,7 +105,7 @@ badsynch:
 #ifdef ACULOG
 	if (dialtimeout) {
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "t3000", line);
 	}
 #endif
@@ -116,18 +117,18 @@ badsynch:
 void
 t3000_disconnect(void)
 {
-	 /* first hang up the modem*/
+	/* first hang up the modem*/
 	ioctl(FD, TIOCCDTR, 0);
 	sleep(1);
 	ioctl(FD, TIOCSDTR, 0);
-	t3000_sync();				/* reset */
+	t3000_sync(); /* reset */
 	close(FD);
 }
 
 void
 t3000_abort(void)
 {
-	t3000_write(FD, "\r", 1);	/* send anything to abort the call */
+	t3000_write(FD, "\r", 1); /* send anything to abort the call */
 	t3000_disconnect();
 }
 
@@ -149,7 +150,7 @@ t3000_swallow(char *match)
 	f = signal(SIGALRM, sigALRM);
 	dialtimeout = 0;
 	do {
-		if (*match =='\0') {
+		if (*match == '\0') {
 			signal(SIGALRM, f);
 			return (1);
 		}
@@ -174,9 +175,9 @@ t3000_swallow(char *match)
 	return (0);
 }
 
-#ifndef B19200		/* XXX */
-#define	B19200	EXTA
-#define	B38400	EXTB
+#ifndef B19200 /* XXX */
+#define B19200 EXTA
+#define B38400 EXTB
 #endif
 
 struct tbaud_msg {
@@ -184,20 +185,20 @@ struct tbaud_msg {
 	int baud;
 	int baud2;
 } tbaud_msg[] = {
-	{ "",		B300,	0 },
-	{ " 1200",	B1200,	0 },
-	{ " 2400",	B2400,	0 },
-	{ " 4800",	B4800,	0 },
-	{ " 9600",	B9600,	0 },
-	{ " 14400",	B19200,	B9600 },
-	{ " 19200",	B19200,	B9600 },
-	{ " 38400",	B38400,	B9600 },
-	{ " 57600",	B38400,	B9600 },
-	{ " 7512",	B9600,	0 },
-	{ " 1275",	B2400,	0 },
-	{ " 7200",	B9600,	0 },
-	{ " 12000",	B19200,	B9600 },
-	{ 0,		0,	0 },
+	{ "", B300, 0 },
+	{ " 1200", B1200, 0 },
+	{ " 2400", B2400, 0 },
+	{ " 4800", B4800, 0 },
+	{ " 9600", B9600, 0 },
+	{ " 14400", B19200, B9600 },
+	{ " 19200", B19200, B9600 },
+	{ " 38400", B38400, B9600 },
+	{ " 57600", B38400, B9600 },
+	{ " 7512", B9600, 0 },
+	{ " 1275", B2400, 0 },
+	{ " 7200", B9600, 0 },
+	{ " 12000", B19200, B9600 },
+	{ 0, 0, 0 },
 };
 
 static int
@@ -213,10 +214,11 @@ t3000_connect(void)
 		return (0);
 	f = signal(SIGALRM, sigALRM);
 again:
-	nc = 0; nl = sizeof(dialer_buf)-1;
+	nc = 0;
+	nl = sizeof(dialer_buf) - 1;
 	bzero(dialer_buf, sizeof(dialer_buf));
 	dialtimeout = 0;
-	for (nc = 0, nl = sizeof(dialer_buf)-1 ; nl > 0 ; nc++, nl--) {
+	for (nc = 0, nl = sizeof(dialer_buf) - 1; nl > 0; nc++, nl--) {
 		if (setjmp(timeoutbuf))
 			break;
 		alarm(number(value(DIALTIMEOUT)));
@@ -238,12 +240,13 @@ again:
 				goto again;
 			}
 			if (strncmp(dialer_buf, "CONNECT",
-				    sizeof("CONNECT")-1) != 0)
+				sizeof("CONNECT") - 1) != 0)
 				break;
-			for (bm = tbaud_msg ; bm->msg ; bm++)
+			for (bm = tbaud_msg; bm->msg; bm++)
 				if (strcmp(bm->msg,
-				    dialer_buf+sizeof("CONNECT")-1) == 0) {
-					struct termios	cntrl;
+					dialer_buf + sizeof("CONNECT") - 1) ==
+				    0) {
+					struct termios cntrl;
 
 					tcgetattr(FD, &cntrl);
 					cfsetospeed(&cntrl, bm->baud);
@@ -282,12 +285,13 @@ t3000_sync(void)
 
 	while (already++ < MAXRETRY) {
 		tcflush(FD, TCIOFLUSH);
-		t3000_write(FD, "\rAT Z\r", 6);	/* reset modem */
+		t3000_write(FD, "\rAT Z\r", 6); /* reset modem */
 		bzero(buf, sizeof(buf));
 		sleep(2);
 		ioctl(FD, FIONREAD, &len);
 #if 1
-if (len == 0) len = 1;
+		if (len == 0)
+			len = 1;
 #endif
 		if (len) {
 			len = read(FD, buf, sizeof(buf));
@@ -295,9 +299,9 @@ if (len == 0) len = 1;
 			buf[len] = '\0';
 			printf("t3000_sync: (\"%s\")\n\r", buf);
 #endif
-			if (strchr(buf, '0') || 
-		   	   (strchr(buf, 'O') && strchr(buf, 'K')))
-				return(1);
+			if (strchr(buf, '0') ||
+			    (strchr(buf, 'O') && strchr(buf, 'K')))
+				return (1);
 		}
 		/*
 		 * If not strapped for DTR control,
@@ -327,7 +331,7 @@ t3000_write(int fd, char *cp, int n)
 #endif
 	tcdrain(fd);
 	t3000_nap();
-	for ( ; n-- ; cp++) {
+	for (; n--; cp++) {
 		write(fd, cp, 1);
 		tcdrain(fd);
 		t3000_nap();

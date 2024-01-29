@@ -25,6 +25,7 @@
  */
 
 #include <sys/param.h>
+
 #include <stand.h>
 #include <string.h>
 
@@ -33,14 +34,14 @@
  * Core console support
  */
 
-static int	cons_set(struct env_var *ev, int flags, const void *value);
-static int	cons_find(const char *name);
-static int	cons_check(const char *string);
-static int	cons_change(const char *string);
-static int	twiddle_set(struct env_var *ev, int flags, const void *value);
+static int cons_set(struct env_var *ev, int flags, const void *value);
+static int cons_find(const char *name);
+static int cons_check(const char *string);
+static int cons_change(const char *string);
+static int twiddle_set(struct env_var *ev, int flags, const void *value);
 
 #ifndef MODULE_VERBOSE
-# define MODULE_VERBOSE MODULE_VERBOSE_TWIDDLE
+#define MODULE_VERBOSE MODULE_VERBOSE_TWIDDLE
 #endif
 int module_verbose = MODULE_VERBOSE;
 
@@ -73,14 +74,15 @@ module_verbose_set(struct env_var *ev, int flags, const void *value)
 void
 cons_probe(void)
 {
-	int	cons;
-	int	active;
-	char	*prefconsole;
-	char	module_verbose_buf[8];
+	int cons;
+	int active;
+	char *prefconsole;
+	char module_verbose_buf[8];
 
 	TSENTER();
 
-	/* We want a callback to install the new value when these vars change. */
+	/* We want a callback to install the new value when these vars change.
+	 */
 	snprintf(module_verbose_buf, sizeof(module_verbose_buf), "%d",
 	    module_verbose);
 	env_setenv("module_verbose", EV_VOLATILE, module_verbose_buf,
@@ -110,7 +112,7 @@ cons_probe(void)
 	if (prefconsole != NULL)
 		prefconsole = strdup(prefconsole);
 	if (prefconsole != NULL) {
-		unsetenv("console");		/* we want to replace this */
+		unsetenv("console"); /* we want to replace this */
 		cons_change(prefconsole);
 	} else {
 		consoles[active]->c_flags |= C_ACTIVEIN | C_ACTIVEOUT;
@@ -136,15 +138,15 @@ cons_probe(void)
 int
 getchar(void)
 {
-	int	cons;
-	int	rv;
+	int cons;
+	int rv;
 
 	/* Loop forever polling all active consoles */
 	for (;;) {
 		for (cons = 0; consoles[cons] != NULL; cons++) {
 			if ((consoles[cons]->c_flags &
-			    (C_PRESENTIN | C_ACTIVEIN)) ==
-			    (C_PRESENTIN | C_ACTIVEIN) &&
+				(C_PRESENTIN | C_ACTIVEIN)) ==
+				(C_PRESENTIN | C_ACTIVEIN) &&
 			    ((rv = consoles[cons]->c_in()) != -1))
 				return (rv);
 		}
@@ -154,11 +156,11 @@ getchar(void)
 int
 ischar(void)
 {
-	int	cons;
+	int cons;
 
 	for (cons = 0; consoles[cons] != NULL; cons++)
 		if ((consoles[cons]->c_flags & (C_PRESENTIN | C_ACTIVEIN)) ==
-		    (C_PRESENTIN | C_ACTIVEIN) &&
+			(C_PRESENTIN | C_ACTIVEIN) &&
 		    (consoles[cons]->c_ready() != 0))
 			return (1);
 	return (0);
@@ -167,7 +169,7 @@ ischar(void)
 void
 putchar(int c)
 {
-	int	cons;
+	int cons;
 
 	/* Expand newlines */
 	if (c == '\n')
@@ -186,7 +188,7 @@ putchar(int c)
 static int
 cons_find(const char *name)
 {
-	int	cons;
+	int cons;
 
 	for (cons = 0; consoles[cons] != NULL; cons++)
 		if (strcmp(consoles[cons]->c_name, name) == 0)
@@ -200,7 +202,7 @@ cons_find(const char *name)
 static int
 cons_set(struct env_var *ev, int flags, const void *value)
 {
-	int	ret;
+	int ret;
 
 	if ((value == NULL) || (cons_check(value) == 0)) {
 		/*
@@ -225,8 +227,8 @@ cons_set(struct env_var *ev, int flags, const void *value)
 static int
 cons_check(const char *string)
 {
-	int	cons, found, failed;
-	char	*curpos, *dup, *next;
+	int cons, found, failed;
+	char *curpos, *dup, *next;
 
 	dup = next = strdup(string);
 	found = failed = 0;
@@ -263,8 +265,8 @@ cons_check(const char *string)
 static int
 cons_change(const char *string)
 {
-	int	cons, active;
-	char	*curpos, *dup, *next;
+	int cons, active;
+	char *curpos, *dup, *next;
 
 	/* Disable all consoles */
 	for (cons = 0; consoles[cons] != NULL; cons++) {
@@ -283,7 +285,7 @@ cons_change(const char *string)
 			consoles[cons]->c_flags |= C_ACTIVEIN | C_ACTIVEOUT;
 			consoles[cons]->c_init(0);
 			if ((consoles[cons]->c_flags &
-			    (C_PRESENTIN | C_PRESENTOUT)) ==
+				(C_PRESENTIN | C_PRESENTOUT)) ==
 			    (C_PRESENTIN | C_PRESENTOUT)) {
 				active++;
 				continue;
@@ -311,7 +313,7 @@ cons_change(const char *string)
 			consoles[cons]->c_flags |= C_ACTIVEIN | C_ACTIVEOUT;
 			consoles[cons]->c_init(0);
 			if ((consoles[cons]->c_flags &
-			    (C_PRESENTIN | C_PRESENTOUT)) ==
+				(C_PRESENTIN | C_PRESENTOUT)) ==
 			    (C_PRESENTIN | C_PRESENTOUT))
 				active++;
 		}

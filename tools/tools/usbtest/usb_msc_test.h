@@ -24,7 +24,7 @@
  */
 
 #ifndef _USB_MSC_TEST_H_
-#define	_USB_MSC_TEST_H_
+#define _USB_MSC_TEST_H_
 
 enum {
 	USB_MSC_IO_MODE_READ_ONLY,
@@ -96,25 +96,25 @@ struct usb_msc_params {
 
 	/* See "USB_MSC_XXX" enums */
 
-	uint8_t	io_mode;
-	uint8_t	io_size;
-	uint8_t	io_delay;
-	uint8_t	io_offset;
-	uint8_t	io_area;
-	uint8_t	io_pattern;
-	uint8_t	io_lun;
+	uint8_t io_mode;
+	uint8_t io_size;
+	uint8_t io_delay;
+	uint8_t io_offset;
+	uint8_t io_area;
+	uint8_t io_pattern;
+	uint8_t io_lun;
 
 	/* booleans */
-	uint8_t	try_invalid_scsi_command;
-	uint8_t	try_invalid_wrapper_block;
-	uint8_t	try_invalid_max_packet_size;
+	uint8_t try_invalid_scsi_command;
+	uint8_t try_invalid_wrapper_block;
+	uint8_t try_invalid_max_packet_size;
 	uint8_t try_shorter_wrapper_block;
-	uint8_t	try_last_lba;
-	uint8_t	try_abort_data_write;
+	uint8_t try_last_lba;
+	uint8_t try_abort_data_write;
 	uint8_t try_sense_on_error;
 	uint8_t try_all_lun;
 
-	uint8_t	done;
+	uint8_t done;
 };
 
-#endif					/* _USB_MSC_TEST_H_ */
+#endif /* _USB_MSC_TEST_H_ */

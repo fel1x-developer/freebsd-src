@@ -31,16 +31,15 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 
+#include <sys/cdefs.h>
 #include <sys/ktr.h>
 
+#include <linux/idr.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-
 #include <rdma/ib_verbs.h>
-#include <linux/idr.h>
 
 #ifdef TCP_OFFLOAD
 #include "iw_cxgbe.h"
@@ -53,12 +52,13 @@ c4iw_release_dev_ucontext(struct c4iw_rdev *rdev,
 	struct c4iw_qid_list *entry;
 
 	mutex_lock(&uctx->lock);
-	list_for_each_safe(pos, nxt, &uctx->qpids) {
+	list_for_each_safe(pos, nxt, &uctx->qpids)
+	{
 		entry = list_entry(pos, struct c4iw_qid_list, entry);
 		list_del_init(&entry->entry);
 		if (!(entry->qid & rdev->qpmask)) {
 			c4iw_put_resource(&rdev->resource.qid_table,
-					  entry->qid);
+			    entry->qid);
 			mutex_lock(&rdev->stats.lock);
 			rdev->stats.qid.cur -= rdev->qpmask + 1;
 			mutex_unlock(&rdev->stats.lock);
@@ -66,7 +66,8 @@ c4iw_release_dev_ucontext(struct c4iw_rdev *rdev,
 		kfree(entry);
 	}
 
-	list_for_each_safe(pos, nxt, &uctx->cqids) {
+	list_for_each_safe(pos, nxt, &uctx->cqids)
+	{
 		entry = list_entry(pos, struct c4iw_qid_list, entry);
 		list_del_init(&entry->entry);
 		kfree(entry);
@@ -92,7 +93,6 @@ c4iw_rdev_open(struct c4iw_rdev *rdev)
 	unsigned short ucq_density = 1 << sp->iq_s_qpp; /* # of user CQs/page */
 	unsigned short udb_density = 1 << sp->eq_s_qpp; /* # of user DB/page */
 
-
 	c4iw_init_dev_ucontext(rdev, &rdev->uctx);
 
 	/*
@@ -108,10 +108,11 @@ c4iw_rdev_open(struct c4iw_rdev *rdev)
 	}
 	if (sc->vres.qp.start != sc->vres.cq.start ||
 	    sc->vres.qp.size != sc->vres.cq.size) {
-		device_printf(sc->dev, "%s: unsupported qp and cq id ranges "
-			"qp start %u size %u cq start %u size %u\n", __func__,
-			sc->vres.qp.start, sc->vres.qp.size, sc->vres.cq.start,
-			sc->vres.cq.size);
+		device_printf(sc->dev,
+		    "%s: unsupported qp and cq id ranges "
+		    "qp start %u size %u cq start %u size %u\n",
+		    __func__, sc->vres.qp.start, sc->vres.qp.size,
+		    sc->vres.cq.start, sc->vres.cq.size);
 		rc = -EINVAL;
 		goto err1;
 	}
@@ -147,8 +148,8 @@ c4iw_rdev_open(struct c4iw_rdev *rdev)
 		device_printf(sc->dev, "error %d initializing rqt pool\n", rc);
 		goto err3;
 	}
-	rdev->status_page = (struct t4_dev_status_page *)
-				__get_free_page(GFP_KERNEL);
+	rdev->status_page = (struct t4_dev_status_page *)__get_free_page(
+	    GFP_KERNEL);
 	if (!rdev->status_page) {
 		rc = -ENOMEM;
 		goto err4;
@@ -183,7 +184,8 @@ err1:
 	return (rc);
 }
 
-static void c4iw_rdev_close(struct c4iw_rdev *rdev)
+static void
+c4iw_rdev_close(struct c4iw_rdev *rdev)
 {
 	free_page((unsigned long)rdev->status_page);
 	c4iw_pblpool_destroy(rdev);
@@ -216,19 +218,19 @@ c4iw_alloc(struct adapter *sc)
 	iwsc->rdev.adap = sc;
 
 	/* init various hw-queue params based on lld info */
-	iwsc->rdev.hw_queue.t4_eq_status_entries =
-		sc->params.sge.spg_len / EQ_ESIZE;
+	iwsc->rdev.hw_queue.t4_eq_status_entries = sc->params.sge.spg_len /
+	    EQ_ESIZE;
 	iwsc->rdev.hw_queue.t4_max_eq_size = 65520;
 	iwsc->rdev.hw_queue.t4_max_iq_size = 65520;
 	iwsc->rdev.hw_queue.t4_max_rq_size = 8192 -
-		iwsc->rdev.hw_queue.t4_eq_status_entries - 1;
+	    iwsc->rdev.hw_queue.t4_eq_status_entries - 1;
 	iwsc->rdev.hw_queue.t4_max_sq_size =
-		iwsc->rdev.hw_queue.t4_max_eq_size -
-		iwsc->rdev.hw_queue.t4_eq_status_entries - 1;
+	    iwsc->rdev.hw_queue.t4_max_eq_size -
+	    iwsc->rdev.hw_queue.t4_eq_status_entries - 1;
 	iwsc->rdev.hw_queue.t4_max_qp_depth =
-		iwsc->rdev.hw_queue.t4_max_rq_size;
+	    iwsc->rdev.hw_queue.t4_max_rq_size;
 	iwsc->rdev.hw_queue.t4_max_cq_depth =
-		iwsc->rdev.hw_queue.t4_max_iq_size - 2;
+	    iwsc->rdev.hw_queue.t4_max_iq_size - 2;
 	iwsc->rdev.hw_queue.t4_stat_len = iwsc->rdev.adap->params.sge.spg_len;
 
 	/* As T5 and above devices support BAR2 kernel doorbells & WC, we map
@@ -277,8 +279,9 @@ c4iw_activate(struct adapter *sc)
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	if (is_t4(sc)) {
-		device_printf(sc->dev, "No iWARP support for T4 devices, "
-				"please install T5 or above devices.\n");
+		device_printf(sc->dev,
+		    "No iWARP support for T4 devices, "
+		    "please install T5 or above devices.\n");
 		return (ENOSYS);
 	}
 
@@ -332,12 +335,12 @@ c4iw_async_event(struct adapter *sc)
 	struct c4iw_dev *iwsc = sc->iwarp_softc;
 
 	if (iwsc) {
-		struct ib_event event = {0};
+		struct ib_event event = { 0 };
 
 		device_printf(sc->dev,
-			      "iWARP driver received FATAL ERROR event.\n");
+		    "iWARP driver received FATAL ERROR event.\n");
 		iwsc->rdev.flags |= T4_FATAL_ERROR;
-		event.event  = IB_EVENT_DEVICE_FATAL;
+		event.event = IB_EVENT_DEVICE_FATAL;
 		event.device = &iwsc->ibdev;
 		ib_dispatch_event(&event);
 	}
@@ -352,7 +355,7 @@ c4iw_activate_all(struct adapter *sc, void *arg __unused)
 
 	/* Activate iWARP if any port on this adapter has IFCAP_TOE enabled. */
 	if (sc->offload_map && !uld_active(sc, ULD_IWARP))
-		(void) t4_activate_uld(sc, ULD_IWARP);
+		(void)t4_activate_uld(sc, ULD_IWARP);
 
 	end_synchronized_op(sc, 0);
 }
@@ -365,7 +368,7 @@ c4iw_deactivate_all(struct adapter *sc, void *arg __unused)
 		return;
 
 	if (uld_active(sc, ULD_IWARP))
-	    (void) t4_deactivate_uld(sc, ULD_IWARP);
+		(void)t4_deactivate_uld(sc, ULD_IWARP);
 
 	end_synchronized_op(sc, 0);
 }
@@ -438,11 +441,7 @@ c4iw_modevent(module_t mod, int cmd, void *arg)
 	return (rc);
 }
 
-static moduledata_t c4iw_mod_data = {
-	"iw_cxgbe",
-	c4iw_modevent,
-	0
-};
+static moduledata_t c4iw_mod_data = { "iw_cxgbe", c4iw_modevent, 0 };
 
 MODULE_VERSION(iw_cxgbe, 1);
 MODULE_DEPEND(iw_cxgbe, t4nex, 1, 1, 1);

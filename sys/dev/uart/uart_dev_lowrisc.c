@@ -31,26 +31,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kdb.h>
+
 #include <machine/bus.h>
 #include <machine/sbi.h>
 
 #include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_fdt.h>
-#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_dev_lowrisc.h>
 
 #include "uart_if.h"
 
-#define	DEFAULT_BAUD_RATE	115200
+#define DEFAULT_BAUD_RATE 115200
 
 /*
  * Low-level UART interface.
@@ -86,7 +87,7 @@ lowrisc_uart_getbaud(struct uart_bas *bas)
 }
 
 static void
-lowrisc_uart_init(struct uart_bas *bas, int baudrate, int databits, 
+lowrisc_uart_init(struct uart_bas *bas, int baudrate, int databits,
     int stopbits, int parity)
 {
 
@@ -154,36 +155,30 @@ static int lowrisc_uart_bus_transmit(struct uart_softc *);
 static void lowrisc_uart_bus_grab(struct uart_softc *);
 static void lowrisc_uart_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t lowrisc_uart_methods[] = {
-	KOBJMETHOD(uart_attach,		lowrisc_uart_bus_attach),
-	KOBJMETHOD(uart_detach,		lowrisc_uart_bus_detach),
-	KOBJMETHOD(uart_flush,		lowrisc_uart_bus_flush),
-	KOBJMETHOD(uart_getsig,		lowrisc_uart_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		lowrisc_uart_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		lowrisc_uart_bus_ipend),
-	KOBJMETHOD(uart_param,		lowrisc_uart_bus_param),
-	KOBJMETHOD(uart_probe,		lowrisc_uart_bus_probe),
-	KOBJMETHOD(uart_receive,	lowrisc_uart_bus_receive),
-	KOBJMETHOD(uart_setsig,		lowrisc_uart_bus_setsig),
-	KOBJMETHOD(uart_transmit,	lowrisc_uart_bus_transmit),
-	KOBJMETHOD(uart_grab,		lowrisc_uart_bus_grab),
-	KOBJMETHOD(uart_ungrab,		lowrisc_uart_bus_ungrab),
-	{ 0, 0 }
-};
+static kobj_method_t lowrisc_uart_methods[] = { KOBJMETHOD(uart_attach,
+						    lowrisc_uart_bus_attach),
+	KOBJMETHOD(uart_detach, lowrisc_uart_bus_detach),
+	KOBJMETHOD(uart_flush, lowrisc_uart_bus_flush),
+	KOBJMETHOD(uart_getsig, lowrisc_uart_bus_getsig),
+	KOBJMETHOD(uart_ioctl, lowrisc_uart_bus_ioctl),
+	KOBJMETHOD(uart_ipend, lowrisc_uart_bus_ipend),
+	KOBJMETHOD(uart_param, lowrisc_uart_bus_param),
+	KOBJMETHOD(uart_probe, lowrisc_uart_bus_probe),
+	KOBJMETHOD(uart_receive, lowrisc_uart_bus_receive),
+	KOBJMETHOD(uart_setsig, lowrisc_uart_bus_setsig),
+	KOBJMETHOD(uart_transmit, lowrisc_uart_bus_transmit),
+	KOBJMETHOD(uart_grab, lowrisc_uart_bus_grab),
+	KOBJMETHOD(uart_ungrab, lowrisc_uart_bus_ungrab), { 0, 0 } };
 
-static struct uart_class uart_lowrisc_class = {
-	"lowrisc",
-	lowrisc_uart_methods,
-	sizeof(struct lowrisc_uart_softc),
-	.uc_ops = &uart_lowrisc_uart_ops,
+static struct uart_class uart_lowrisc_class = { "lowrisc", lowrisc_uart_methods,
+	sizeof(struct lowrisc_uart_softc), .uc_ops = &uart_lowrisc_uart_ops,
 	.uc_range = 0x100,
 	.uc_rclk = 12500000, /* TODO: get value from clock manager */
-	.uc_rshift = 0
-};
+	.uc_rshift = 0 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"lowrisc-fake",	(uintptr_t)&uart_lowrisc_class},
-	{NULL,			(uintptr_t)NULL},
+	{ "lowrisc-fake", (uintptr_t)&uart_lowrisc_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(compat_data);
 
@@ -249,7 +244,7 @@ lowrisc_uart_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 		/* TODO */
 		break;
 	case UART_IOCTL_BAUD:
-		*(u_int*)data = lowrisc_uart_getbaud(bas);
+		*(u_int *)data = lowrisc_uart_getbaud(bas);
 		break;
 	default:
 		error = EINVAL;

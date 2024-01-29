@@ -17,20 +17,21 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "extern.h"
 
-static __inline bool	 stack_empty(const struct stack *);
-static void		 stack_grow(struct stack *);
-static struct array	*array_new(void);
-static __inline void	 array_free(struct array *);
-static struct array	*array_dup(const struct array *);
-static __inline void	 array_grow(struct array *, size_t);
-static __inline void	 array_assign(struct array *, size_t, const struct value *);
-static __inline struct value	*array_retrieve(const struct array *, size_t);
+static __inline bool stack_empty(const struct stack *);
+static void stack_grow(struct stack *);
+static struct array *array_new(void);
+static __inline void array_free(struct array *);
+static struct array *array_dup(const struct array *);
+static __inline void array_grow(struct array *, size_t);
+static __inline void array_assign(struct array *, size_t, const struct value *);
+static __inline struct value *array_retrieve(const struct array *, size_t);
 
 void
 stack_init(struct stack *stack)
@@ -126,8 +127,8 @@ stack_swap(struct stack *stack)
 		return;
 	}
 	copy = stack->stack[stack->sp];
-	stack->stack[stack->sp] = stack->stack[stack->sp-1];
-	stack->stack[stack->sp-1] = copy;
+	stack->stack[stack->sp] = stack->stack[stack->sp - 1];
+	stack->stack[stack->sp - 1] = copy;
 }
 
 static void
@@ -137,8 +138,8 @@ stack_grow(struct stack *stack)
 
 	if (++stack->sp == stack->size) {
 		new_size = stack->size * 2 + 1;
-		stack->stack = breallocarray(stack->stack,
-		    new_size, sizeof(*stack->stack));
+		stack->stack = breallocarray(stack->stack, new_size,
+		    sizeof(*stack->stack));
 		stack->size = new_size;
 	}
 }
@@ -179,8 +180,8 @@ stack_push(struct stack *stack, struct value *v)
 		stack_pushstring(stack, v->u.string);
 		break;
 	}
-	stack->stack[stack->sp].array = v->array == NULL ?
-	    NULL : array_dup(v->array);
+	stack->stack[stack->sp].array = v->array == NULL ? NULL :
+							   array_dup(v->array);
 }
 
 struct value *
@@ -202,7 +203,8 @@ stack_set_tos(struct stack *stack, struct value *v)
 		stack_free_value(&stack->stack[stack->sp]);
 		stack->stack[stack->sp] = *v;
 		stack->stack[stack->sp].array = v->array == NULL ?
-		    NULL : array_dup(v->array);
+		    NULL :
+		    array_dup(v->array);
 	}
 }
 
@@ -265,7 +267,6 @@ stack_print(FILE *f, const struct stack *stack, const char *prefix, u_int base)
 		putc('\n', f);
 	}
 }
-
 
 static struct array *
 array_new(void)

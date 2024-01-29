@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -49,15 +49,13 @@
  * Now go hang yourself.
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/types.h>
 #include <sys/poll.h>
-#include <sys/syslog.h>
 #include <sys/socket.h>
+#include <sys/syslog.h>
 #include <sys/tree.h>
-#include <sys/un.h>
 #include <sys/uio.h>
+#include <sys/un.h>
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -65,24 +63,26 @@
 #include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
-#include <stdio.h>
+#include <rpc/rpc.h>
+#include <rpc/rpcsec_gss.h>
+#include <signal.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 
-#include <rpc/rpc.h>
-#include <rpc/rpcsec_gss.h>
-#include "un-namespace.h"
-#include "rpc_com.h"
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "rpc_com.h"
+#include "un-namespace.h"
 
 #define MCALL_MSG_SIZE 24
 
 struct cmessage {
-        struct cmsghdr cmsg;
-        struct cmsgcred cmcred;
+	struct cmsghdr cmsg;
+	struct cmsgcred cmcred;
 };
 
 static enum clnt_stat clnt_vc_call(CLIENT *, rpcproc_t, xdrproc_t, void *,
@@ -100,18 +100,18 @@ static int __msgwrite(int, void *, size_t);
 static int __msgread(int, void *, size_t);
 
 struct ct_data {
-	int		ct_fd;		/* connection's fd */
-	bool_t		ct_closeit;	/* close it on destroy */
-	struct timeval	ct_wait;	/* wait interval in milliseconds */
-	bool_t          ct_waitset;	/* wait set by clnt_control? */
-	struct netbuf	ct_addr;	/* remote addr */
-	struct rpc_err	ct_error;
+	int ct_fd;		/* connection's fd */
+	bool_t ct_closeit;	/* close it on destroy */
+	struct timeval ct_wait; /* wait interval in milliseconds */
+	bool_t ct_waitset;	/* wait set by clnt_control? */
+	struct netbuf ct_addr;	/* remote addr */
+	struct rpc_err ct_error;
 	union {
-		char	ct_mcallc[MCALL_MSG_SIZE];	/* marshalled callmsg */
+		char ct_mcallc[MCALL_MSG_SIZE]; /* marshalled callmsg */
 		u_int32_t ct_mcalli;
 	} ct_u;
-	u_int		ct_mpos;	/* pos after marshal */
-	XDR		ct_xdrs;	/* XDR stream */
+	u_int ct_mpos; /* pos after marshal */
+	XDR ct_xdrs;   /* XDR stream */
 };
 
 /*
@@ -134,13 +134,13 @@ struct vc_fd {
 static inline int
 cmp_vc_fd(struct vc_fd *a, struct vc_fd *b)
 {
-       if (a->fd > b->fd) {
-               return (1);
-       } else if (a->fd < b->fd) {
-               return (-1);
-       } else {
-               return (0);
-       }
+	if (a->fd > b->fd) {
+		return (1);
+	} else if (a->fd < b->fd) {
+		return (-1);
+	} else {
+		return (0);
+	}
 }
 RB_HEAD(vc_fd_list, vc_fd);
 RB_PROTOTYPE(vc_fd_list, vc_fd, vc_link, cmp_vc_fd);
@@ -200,8 +200,8 @@ CLIENT *
 clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
     const rpcvers_t vers, u_int sendsz, u_int recvsz)
 {
-	CLIENT *cl;			/* client handle */
-	struct ct_data *ct = NULL;	/* client handle */
+	CLIENT *cl;		   /* client handle */
+	struct ct_data *ct = NULL; /* client handle */
 	struct timeval now;
 	struct rpc_msg call_msg;
 	static u_int32_t disrupt;
@@ -212,11 +212,11 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 	if (disrupt == 0)
 		disrupt = (u_int32_t)(long)raddr;
 
-	cl = (CLIENT *)mem_alloc(sizeof (*cl));
-	ct = (struct ct_data *)mem_alloc(sizeof (*ct));
+	cl = (CLIENT *)mem_alloc(sizeof(*cl));
+	ct = (struct ct_data *)mem_alloc(sizeof(*ct));
 	if ((cl == (CLIENT *)NULL) || (ct == (struct ct_data *)NULL)) {
-		(void) syslog(LOG_ERR, clnt_vc_errstr,
-		    clnt_vc_str, __no_mem_str);
+		(void)syslog(LOG_ERR, clnt_vc_errstr, clnt_vc_str,
+		    __no_mem_str);
 		rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 		rpc_createerr.cf_error.re_errno = errno;
 		goto err;
@@ -234,7 +234,8 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 			mutex_unlock(&clnt_fd_lock);
 			goto err;
 		}
-		if (_connect(fd, (struct sockaddr *)raddr->buf, raddr->len) < 0){
+		if (_connect(fd, (struct sockaddr *)raddr->buf, raddr->len) <
+		    0) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
 			mutex_unlock(&clnt_fd_lock);
@@ -275,7 +276,7 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 	 */
 	xdrmem_create(&(ct->ct_xdrs), ct->ct_u.ct_mcallc, MCALL_MSG_SIZE,
 	    XDR_ENCODE);
-	if (! xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
+	if (!xdr_callhdr(&(ct->ct_xdrs), &call_msg)) {
 		if (ct->ct_closeit) {
 			(void)_close(fd);
 		}
@@ -294,18 +295,18 @@ clnt_vc_create(int fd, const struct netbuf *raddr, const rpcprog_t prog,
 	cl->cl_auth = authnone_create();
 	sendsz = __rpc_get_t_size(si.si_af, si.si_proto, (int)sendsz);
 	recvsz = __rpc_get_t_size(si.si_af, si.si_proto, (int)recvsz);
-	xdrrec_create(&(ct->ct_xdrs), sendsz, recvsz,
-	    cl->cl_private, read_vc, write_vc);
+	xdrrec_create(&(ct->ct_xdrs), sendsz, recvsz, cl->cl_private, read_vc,
+	    write_vc);
 	return (cl);
 
 err:
 	if (ct) {
 		if (ct->ct_addr.len)
 			mem_free(ct->ct_addr.buf, ct->ct_addr.len);
-		mem_free(ct, sizeof (struct ct_data));
+		mem_free(ct, sizeof(struct ct_data));
 	}
 	if (cl)
-		mem_free(cl, sizeof (CLIENT));
+		mem_free(cl, sizeof(CLIENT));
 	return ((CLIENT *)NULL);
 }
 
@@ -313,12 +314,12 @@ static enum clnt_stat
 clnt_vc_call(CLIENT *cl, rpcproc_t proc, xdrproc_t xdr_args, void *args_ptr,
     xdrproc_t xdr_results, void *results_ptr, struct timeval timeout)
 {
-	struct ct_data *ct = (struct ct_data *) cl->cl_private;
+	struct ct_data *ct = (struct ct_data *)cl->cl_private;
 	XDR *xdrs = &(ct->ct_xdrs);
 	struct rpc_msg reply_msg;
 	struct vc_fd *elem;
 	u_int32_t x_id;
-	u_int32_t *msg_x_id = &ct->ct_u.ct_mcalli;    /* yuk */
+	u_int32_t *msg_x_id = &ct->ct_u.ct_mcalli; /* yuk */
 	bool_t shipnow;
 	int refreshes = 2;
 	sigset_t mask, newmask;
@@ -338,9 +339,10 @@ clnt_vc_call(CLIENT *cl, rpcproc_t proc, xdrproc_t xdr_args, void *args_ptr,
 			ct->ct_wait = timeout;
 	}
 
-	shipnow =
-	    (xdr_results == NULL && timeout.tv_sec == 0
-	    && timeout.tv_usec == 0) ? FALSE : TRUE;
+	shipnow = (xdr_results == NULL && timeout.tv_sec == 0 &&
+		      timeout.tv_usec == 0) ?
+	    FALSE :
+	    TRUE;
 
 call_again:
 	xdrs->x_op = XDR_ENCODE;
@@ -348,10 +350,10 @@ call_again:
 	x_id = ntohl(--(*msg_x_id));
 
 	if (cl->cl_auth->ah_cred.oa_flavor != RPCSEC_GSS) {
-		if ((! XDR_PUTBYTES(xdrs, ct->ct_u.ct_mcallc, ct->ct_mpos)) ||
-		    (! XDR_PUTINT32(xdrs, &proc)) ||
-		    (! AUTH_MARSHALL(cl->cl_auth, xdrs)) ||
-		    (! (*xdr_args)(xdrs, args_ptr))) {
+		if ((!XDR_PUTBYTES(xdrs, ct->ct_u.ct_mcallc, ct->ct_mpos)) ||
+		    (!XDR_PUTINT32(xdrs, &proc)) ||
+		    (!AUTH_MARSHALL(cl->cl_auth, xdrs)) ||
+		    (!(*xdr_args)(xdrs, args_ptr))) {
 			if (ct->ct_error.re_status == RPC_SUCCESS)
 				ct->ct_error.re_status = RPC_CANTENCODEARGS;
 			(void)xdrrec_endofrecord(xdrs, TRUE);
@@ -359,10 +361,10 @@ call_again:
 			return (ct->ct_error.re_status);
 		}
 	} else {
-		*(uint32_t *) &ct->ct_u.ct_mcallc[ct->ct_mpos] = htonl(proc);
-		if (! __rpc_gss_wrap(cl->cl_auth, ct->ct_u.ct_mcallc,
-			ct->ct_mpos + sizeof(uint32_t),
-			xdrs, xdr_args, args_ptr)) {
+		*(uint32_t *)&ct->ct_u.ct_mcallc[ct->ct_mpos] = htonl(proc);
+		if (!__rpc_gss_wrap(cl->cl_auth, ct->ct_u.ct_mcallc,
+			ct->ct_mpos + sizeof(uint32_t), xdrs, xdr_args,
+			args_ptr)) {
 			if (ct->ct_error.re_status == RPC_SUCCESS)
 				ct->ct_error.re_status = RPC_CANTENCODEARGS;
 			(void)xdrrec_endofrecord(xdrs, TRUE);
@@ -370,11 +372,11 @@ call_again:
 			return (ct->ct_error.re_status);
 		}
 	}
-	if (! xdrrec_endofrecord(xdrs, shipnow)) {
+	if (!xdrrec_endofrecord(xdrs, shipnow)) {
 		release_fd_lock(elem, mask);
 		return (ct->ct_error.re_status = RPC_CANTSEND);
 	}
-	if (! shipnow) {
+	if (!shipnow) {
 		release_fd_lock(elem, mask);
 		return (RPC_SUCCESS);
 	}
@@ -383,9 +385,8 @@ call_again:
 	 */
 	if (timeout.tv_sec == 0 && timeout.tv_usec == 0) {
 		release_fd_lock(elem, mask);
-		return(ct->ct_error.re_status = RPC_TIMEDOUT);
+		return (ct->ct_error.re_status = RPC_TIMEDOUT);
 	}
-
 
 	/*
 	 * Keep receiving until we get a valid transaction id
@@ -395,12 +396,12 @@ call_again:
 		reply_msg.acpted_rply.ar_verf = _null_auth;
 		reply_msg.acpted_rply.ar_results.where = NULL;
 		reply_msg.acpted_rply.ar_results.proc = (xdrproc_t)xdr_void;
-		if (! xdrrec_skiprecord(xdrs)) {
+		if (!xdrrec_skiprecord(xdrs)) {
 			release_fd_lock(elem, mask);
 			return (ct->ct_error.re_status);
 		}
 		/* now decode and validate the response header */
-		if (! xdr_replymsg(xdrs, &reply_msg)) {
+		if (!xdr_replymsg(xdrs, &reply_msg)) {
 			if (ct->ct_error.re_status == RPC_SUCCESS)
 				continue;
 			release_fd_lock(elem, mask);
@@ -415,21 +416,21 @@ call_again:
 	 */
 	_seterr_reply(&reply_msg, &(ct->ct_error));
 	if (ct->ct_error.re_status == RPC_SUCCESS) {
-		if (! AUTH_VALIDATE(cl->cl_auth,
-		    &reply_msg.acpted_rply.ar_verf)) {
+		if (!AUTH_VALIDATE(cl->cl_auth,
+			&reply_msg.acpted_rply.ar_verf)) {
 			ct->ct_error.re_status = RPC_AUTHERROR;
 			ct->ct_error.re_why = AUTH_INVALIDRESP;
 		} else {
 			if (cl->cl_auth->ah_cred.oa_flavor != RPCSEC_GSS) {
 				reply_stat = (*xdr_results)(xdrs, results_ptr);
 			} else {
-				reply_stat = __rpc_gss_unwrap(cl->cl_auth,
-				    xdrs, xdr_results, results_ptr);
+				reply_stat = __rpc_gss_unwrap(cl->cl_auth, xdrs,
+				    xdr_results, results_ptr);
 			}
-			if (! reply_stat) {
+			if (!reply_stat) {
 				if (ct->ct_error.re_status == RPC_SUCCESS)
 					ct->ct_error.re_status =
-						RPC_CANTDECODERES;
+					    RPC_CANTDECODERES;
 			}
 		}
 		/* free verifier ... */
@@ -438,12 +439,12 @@ call_again:
 			(void)xdr_opaque_auth(xdrs,
 			    &(reply_msg.acpted_rply.ar_verf));
 		}
-	}  /* end successful completion */
+	} /* end successful completion */
 	else {
 		/* maybe our credentials need to be refreshed ... */
 		if (refreshes-- && AUTH_REFRESH(cl->cl_auth, &reply_msg))
 			goto call_again;
-	}  /* end of unsuccessful completion */
+	} /* end of unsuccessful completion */
 	release_fd_lock(elem, mask);
 	return (ct->ct_error.re_status);
 }
@@ -456,7 +457,7 @@ clnt_vc_geterr(CLIENT *cl, struct rpc_err *errp)
 	assert(cl != NULL);
 	assert(errp != NULL);
 
-	ct = (struct ct_data *) cl->cl_private;
+	ct = (struct ct_data *)cl->cl_private;
 	*errp = ct->ct_error;
 }
 
@@ -559,7 +560,7 @@ clnt_vc_control(CLIENT *cl, u_int request, void *info)
 		*(struct timeval *)infop = ct->ct_wait;
 		break;
 	case CLGET_SERVER_ADDR:
-		(void) memcpy(info, ct->ct_addr.buf, (size_t)ct->ct_addr.len);
+		(void)memcpy(info, ct->ct_addr.buf, (size_t)ct->ct_addr.len);
 		break;
 	case CLGET_FD:
 		*(int *)info = ct->ct_fd;
@@ -568,7 +569,7 @@ clnt_vc_control(CLIENT *cl, u_int request, void *info)
 		/* The caller should not free this memory area */
 		*(struct netbuf *)info = ct->ct_addr;
 		break;
-	case CLSET_SVC_ADDR:		/* set to new address */
+	case CLSET_SVC_ADDR: /* set to new address */
 		release_fd_lock(elem, mask);
 		return (FALSE);
 	case CLGET_XID:
@@ -620,11 +621,10 @@ clnt_vc_control(CLIENT *cl, u_int request, void *info)
 	return (TRUE);
 }
 
-
 static void
 clnt_vc_destroy(CLIENT *cl)
 {
-	struct ct_data *ct = (struct ct_data *) cl->cl_private;
+	struct ct_data *ct = (struct ct_data *)cl->cl_private;
 	struct vc_fd *elem;
 	int ct_fd = ct->ct_fd;
 	sigset_t mask;
@@ -632,7 +632,7 @@ clnt_vc_destroy(CLIENT *cl)
 
 	assert(cl != NULL);
 
-	ct = (struct ct_data *) cl->cl_private;
+	ct = (struct ct_data *)cl->cl_private;
 
 	sigfillset(&newmask);
 	thr_sigsetmask(SIG_SETMASK, &newmask, &mask);
@@ -646,9 +646,9 @@ clnt_vc_destroy(CLIENT *cl)
 	free(ct->ct_addr.buf);
 	mem_free(ct, sizeof(struct ct_data));
 	if (cl->cl_netid && cl->cl_netid[0])
-		mem_free(cl->cl_netid, strlen(cl->cl_netid) +1);
+		mem_free(cl->cl_netid, strlen(cl->cl_netid) + 1);
 	if (cl->cl_tp && cl->cl_tp[0])
-		mem_free(cl->cl_tp, strlen(cl->cl_tp) +1);
+		mem_free(cl->cl_tp, strlen(cl->cl_tp) + 1);
 	mem_free(cl, sizeof(CLIENT));
 	mutex_unlock(&clnt_fd_lock);
 	release_fd_lock(elem, mask);
@@ -702,7 +702,7 @@ read_vc(void *ctp, void *buf, int len)
 		/* premature eof */
 		ct->ct_error.re_errno = ECONNRESET;
 		ct->ct_error.re_status = RPC_CANTRECV;
-		len = -1;  /* it's really an error */
+		len = -1; /* it's really an error */
 		break;
 
 	case -1:
@@ -725,8 +725,8 @@ write_vc(void *ctp, void *buf, int len)
 	if ((_getpeername(ct->ct_fd, &sa, &sal) == 0) &&
 	    (sa.sa_family == AF_LOCAL)) {
 		for (cnt = len; cnt > 0; cnt -= i, buf = (char *)buf + i) {
-			if ((i = __msgwrite(ct->ct_fd, buf,
-			     (size_t)cnt)) == -1) {
+			if ((i = __msgwrite(ct->ct_fd, buf, (size_t)cnt)) ==
+			    -1) {
 				ct->ct_error.re_errno = errno;
 				ct->ct_error.re_status = RPC_CANTSEND;
 				return (-1);
@@ -775,8 +775,8 @@ clnt_vc_ops(void)
 static bool_t
 time_not_ok(struct timeval *t)
 {
-	return (t->tv_sec <= -1 || t->tv_sec > 100000000 ||
-		t->tv_usec <= -1 || t->tv_usec > 1000000);
+	return (t->tv_sec <= -1 || t->tv_sec > 100000000 || t->tv_usec <= -1 ||
+	    t->tv_usec > 1000000);
 }
 
 static int
@@ -788,11 +788,11 @@ __msgread(int sock, void *buf, size_t cnt)
 		struct cmsghdr cmsg;
 		char control[CMSG_SPACE(sizeof(struct cmsgcred))];
 	} cm;
- 
+
 	bzero((char *)&cm, sizeof(cm));
 	iov[0].iov_base = buf;
 	iov[0].iov_len = cnt;
- 
+
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_name = NULL;
@@ -800,8 +800,8 @@ __msgread(int sock, void *buf, size_t cnt)
 	msg.msg_control = (caddr_t)&cm;
 	msg.msg_controllen = CMSG_SPACE(sizeof(struct cmsgcred));
 	msg.msg_flags = 0;
- 
-	return(_recvmsg(sock, &msg, 0));
+
+	return (_recvmsg(sock, &msg, 0));
 }
 
 static int
@@ -813,15 +813,15 @@ __msgwrite(int sock, void *buf, size_t cnt)
 		struct cmsghdr cmsg;
 		char control[CMSG_SPACE(sizeof(struct cmsgcred))];
 	} cm;
- 
+
 	bzero((char *)&cm, sizeof(cm));
 	iov[0].iov_base = buf;
 	iov[0].iov_len = cnt;
- 
+
 	cm.cmsg.cmsg_type = SCM_CREDS;
 	cm.cmsg.cmsg_level = SOL_SOCKET;
 	cm.cmsg.cmsg_len = CMSG_LEN(sizeof(struct cmsgcred));
- 
+
 	msg.msg_iov = iov;
 	msg.msg_iovlen = 1;
 	msg.msg_name = NULL;
@@ -830,5 +830,5 @@ __msgwrite(int sock, void *buf, size_t cnt)
 	msg.msg_controllen = CMSG_SPACE(sizeof(struct cmsgcred));
 	msg.msg_flags = 0;
 
-	return(_sendmsg(sock, &msg, 0));
+	return (_sendmsg(sock, &msg, 0));
 }

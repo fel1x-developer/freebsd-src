@@ -37,46 +37,43 @@
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_llc.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
 
 #include <machine/bus.h>
 #include <machine/in_cksum.h>
 
 #include <dev/ale/if_alereg.h>
 #include <dev/ale/if_alevar.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_llc.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 
 /* For more information about Tx checksum offload issues see ale_encap(). */
-#define	ALE_CSUM_FEATURES	(CSUM_TCP | CSUM_UDP)
+#define ALE_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 
 MODULE_DEPEND(ale, pci, 1, 1, 1);
 MODULE_DEPEND(ale, ether, 1, 1, 1);
@@ -92,85 +89,81 @@ TUNABLE_INT("hw.ale.msix_disable", &msix_disable);
  * Devices supported by this driver.
  */
 static const struct ale_dev {
-	uint16_t	ale_vendorid;
-	uint16_t	ale_deviceid;
-	const char	*ale_name;
+	uint16_t ale_vendorid;
+	uint16_t ale_deviceid;
+	const char *ale_name;
 } ale_devs[] = {
-    { VENDORID_ATHEROS, DEVICEID_ATHEROS_AR81XX,
-    "Atheros AR8121/AR8113/AR8114 PCIe Ethernet" },
+	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR81XX,
+	    "Atheros AR8121/AR8113/AR8114 PCIe Ethernet" },
 };
 
-static int	ale_attach(device_t);
-static int	ale_check_boundary(struct ale_softc *);
-static int	ale_detach(device_t);
-static int	ale_dma_alloc(struct ale_softc *);
-static void	ale_dma_free(struct ale_softc *);
-static void	ale_dmamap_cb(void *, bus_dma_segment_t *, int, int);
-static int	ale_encap(struct ale_softc *, struct mbuf **);
-static void	ale_get_macaddr(struct ale_softc *);
-static void	ale_init(void *);
-static void	ale_init_locked(struct ale_softc *);
-static void	ale_init_rx_pages(struct ale_softc *);
-static void	ale_init_tx_ring(struct ale_softc *);
-static void	ale_int_task(void *, int);
-static int	ale_intr(void *);
-static int	ale_ioctl(if_t, u_long, caddr_t);
-static void	ale_mac_config(struct ale_softc *);
-static int	ale_miibus_readreg(device_t, int, int);
-static void	ale_miibus_statchg(device_t);
-static int	ale_miibus_writereg(device_t, int, int, int);
-static int	ale_mediachange(if_t);
-static void	ale_mediastatus(if_t, struct ifmediareq *);
-static void	ale_phy_reset(struct ale_softc *);
-static int	ale_probe(device_t);
-static void	ale_reset(struct ale_softc *);
-static int	ale_resume(device_t);
-static void	ale_rx_update_page(struct ale_softc *, struct ale_rx_page **,
+static int ale_attach(device_t);
+static int ale_check_boundary(struct ale_softc *);
+static int ale_detach(device_t);
+static int ale_dma_alloc(struct ale_softc *);
+static void ale_dma_free(struct ale_softc *);
+static void ale_dmamap_cb(void *, bus_dma_segment_t *, int, int);
+static int ale_encap(struct ale_softc *, struct mbuf **);
+static void ale_get_macaddr(struct ale_softc *);
+static void ale_init(void *);
+static void ale_init_locked(struct ale_softc *);
+static void ale_init_rx_pages(struct ale_softc *);
+static void ale_init_tx_ring(struct ale_softc *);
+static void ale_int_task(void *, int);
+static int ale_intr(void *);
+static int ale_ioctl(if_t, u_long, caddr_t);
+static void ale_mac_config(struct ale_softc *);
+static int ale_miibus_readreg(device_t, int, int);
+static void ale_miibus_statchg(device_t);
+static int ale_miibus_writereg(device_t, int, int, int);
+static int ale_mediachange(if_t);
+static void ale_mediastatus(if_t, struct ifmediareq *);
+static void ale_phy_reset(struct ale_softc *);
+static int ale_probe(device_t);
+static void ale_reset(struct ale_softc *);
+static int ale_resume(device_t);
+static void ale_rx_update_page(struct ale_softc *, struct ale_rx_page **,
     uint32_t, uint32_t *);
-static void	ale_rxcsum(struct ale_softc *, struct mbuf *, uint32_t);
-static int	ale_rxeof(struct ale_softc *sc, int);
-static void	ale_rxfilter(struct ale_softc *);
-static void	ale_rxvlan(struct ale_softc *);
-static void	ale_setlinkspeed(struct ale_softc *);
-static void	ale_setwol(struct ale_softc *);
-static int	ale_shutdown(device_t);
-static void	ale_start(if_t);
-static void	ale_start_locked(if_t);
-static void	ale_stats_clear(struct ale_softc *);
-static void	ale_stats_update(struct ale_softc *);
-static void	ale_stop(struct ale_softc *);
-static void	ale_stop_mac(struct ale_softc *);
-static int	ale_suspend(device_t);
-static void	ale_sysctl_node(struct ale_softc *);
-static void	ale_tick(void *);
-static void	ale_txeof(struct ale_softc *);
-static void	ale_watchdog(struct ale_softc *);
-static int	sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
-static int	sysctl_hw_ale_proc_limit(SYSCTL_HANDLER_ARGS);
-static int	sysctl_hw_ale_int_mod(SYSCTL_HANDLER_ARGS);
+static void ale_rxcsum(struct ale_softc *, struct mbuf *, uint32_t);
+static int ale_rxeof(struct ale_softc *sc, int);
+static void ale_rxfilter(struct ale_softc *);
+static void ale_rxvlan(struct ale_softc *);
+static void ale_setlinkspeed(struct ale_softc *);
+static void ale_setwol(struct ale_softc *);
+static int ale_shutdown(device_t);
+static void ale_start(if_t);
+static void ale_start_locked(if_t);
+static void ale_stats_clear(struct ale_softc *);
+static void ale_stats_update(struct ale_softc *);
+static void ale_stop(struct ale_softc *);
+static void ale_stop_mac(struct ale_softc *);
+static int ale_suspend(device_t);
+static void ale_sysctl_node(struct ale_softc *);
+static void ale_tick(void *);
+static void ale_txeof(struct ale_softc *);
+static void ale_watchdog(struct ale_softc *);
+static int sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
+static int sysctl_hw_ale_proc_limit(SYSCTL_HANDLER_ARGS);
+static int sysctl_hw_ale_int_mod(SYSCTL_HANDLER_ARGS);
 
 static device_method_t ale_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		ale_probe),
-	DEVMETHOD(device_attach,	ale_attach),
-	DEVMETHOD(device_detach,	ale_detach),
-	DEVMETHOD(device_shutdown,	ale_shutdown),
-	DEVMETHOD(device_suspend,	ale_suspend),
-	DEVMETHOD(device_resume,	ale_resume),
+	DEVMETHOD(device_probe, ale_probe),
+	DEVMETHOD(device_attach, ale_attach),
+	DEVMETHOD(device_detach, ale_detach),
+	DEVMETHOD(device_shutdown, ale_shutdown),
+	DEVMETHOD(device_suspend, ale_suspend),
+	DEVMETHOD(device_resume, ale_resume),
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	ale_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	ale_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	ale_miibus_statchg),
+	DEVMETHOD(miibus_readreg, ale_miibus_readreg),
+	DEVMETHOD(miibus_writereg, ale_miibus_writereg),
+	DEVMETHOD(miibus_statchg, ale_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t ale_driver = {
-	"ale",
-	ale_methods,
-	sizeof(struct ale_softc)
-};
+static driver_t ale_driver = { "ale", ale_methods, sizeof(struct ale_softc) };
 
 DRIVER_MODULE(ale, pci, ale_driver, NULL, NULL);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, ale, ale_devs,
@@ -178,23 +171,19 @@ MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, ale, ale_devs,
 DRIVER_MODULE(miibus, ale, miibus_driver, NULL, NULL);
 
 static struct resource_spec ale_res_spec_mem[] = {
-	{ SYS_RES_MEMORY,	PCIR_BAR(0),	RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_MEMORY, PCIR_BAR(0), RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec ale_irq_spec_legacy[] = {
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 }
 };
 
 static struct resource_spec ale_irq_spec_msi[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec ale_irq_spec_msix[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static int
@@ -206,8 +195,9 @@ ale_miibus_readreg(device_t dev, int phy, int reg)
 
 	sc = device_get_softc(dev);
 
-	CSR_WRITE_4(sc, ALE_MDIO, MDIO_OP_EXECUTE | MDIO_OP_READ |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, ALE_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_READ | MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 |
+		MDIO_REG_ADDR(reg));
 	for (i = ALE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALE_MDIO);
@@ -232,9 +222,10 @@ ale_miibus_writereg(device_t dev, int phy, int reg, int val)
 
 	sc = device_get_softc(dev);
 
-	CSR_WRITE_4(sc, ALE_MDIO, MDIO_OP_EXECUTE | MDIO_OP_WRITE |
-	    (val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, ALE_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_WRITE |
+		(val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT | MDIO_SUP_PREAMBLE |
+		MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
 	for (i = ALE_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALE_MDIO);
@@ -324,7 +315,7 @@ ale_mediachange(if_t ifp)
 	sc = if_getsoftc(ifp);
 	ALE_LOCK(sc);
 	mii = device_get_softc(sc->ale_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	ALE_UNLOCK(sc);
@@ -343,8 +334,7 @@ ale_probe(device_t dev)
 	devid = pci_get_device(dev);
 	sp = ale_devs;
 	for (i = 0; i < nitems(ale_devs); i++) {
-		if (vendor == sp->ale_vendorid &&
-		    devid == sp->ale_deviceid) {
+		if (vendor == sp->ale_vendorid && devid == sp->ale_deviceid) {
 			device_set_desc(dev, sp->ale_name);
 			return (BUS_PROBE_DEFAULT);
 		}
@@ -371,8 +361,8 @@ ale_get_macaddr(struct ale_softc *sc)
 		 * PCI VPD capability found, let TWSI reload EEPROM.
 		 * This will set ethernet address of controller.
 		 */
-		CSR_WRITE_4(sc, ALE_TWSI_CTRL, CSR_READ_4(sc, ALE_TWSI_CTRL) |
-		    TWSI_CTRL_SW_LD_START);
+		CSR_WRITE_4(sc, ALE_TWSI_CTRL,
+		    CSR_READ_4(sc, ALE_TWSI_CTRL) | TWSI_CTRL_SW_LD_START);
 		for (i = 100; i > 0; i--) {
 			DELAY(1000);
 			reg = CSR_READ_4(sc, ALE_TWSI_CTRL);
@@ -405,44 +395,39 @@ ale_phy_reset(struct ale_softc *sc)
 	/* Reset magic from Linux. */
 	CSR_WRITE_2(sc, ALE_GPHY_CTRL,
 	    GPHY_CTRL_HIB_EN | GPHY_CTRL_HIB_PULSE | GPHY_CTRL_SEL_ANA_RESET |
-	    GPHY_CTRL_PHY_PLL_ON);
+		GPHY_CTRL_PHY_PLL_ON);
 	DELAY(1000);
 	CSR_WRITE_2(sc, ALE_GPHY_CTRL,
 	    GPHY_CTRL_EXT_RESET | GPHY_CTRL_HIB_EN | GPHY_CTRL_HIB_PULSE |
-	    GPHY_CTRL_SEL_ANA_RESET | GPHY_CTRL_PHY_PLL_ON);
+		GPHY_CTRL_SEL_ANA_RESET | GPHY_CTRL_PHY_PLL_ON);
 	DELAY(1000);
 
-#define	ATPHY_DBG_ADDR		0x1D
-#define	ATPHY_DBG_DATA		0x1E
+#define ATPHY_DBG_ADDR 0x1D
+#define ATPHY_DBG_DATA 0x1E
 
 	/* Enable hibernation mode. */
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x0B);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_DATA, 0xBC00);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR, 0x0B);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_DATA,
+	    0xBC00);
 	/* Set Class A/B for all modes. */
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x00);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_DATA, 0x02EF);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR, 0x00);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_DATA,
+	    0x02EF);
 	/* Enable 10BT power saving. */
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x12);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_DATA, 0x4C04);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR, 0x12);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_DATA,
+	    0x4C04);
 	/* Adjust 1000T power. */
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x04);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x8BBB);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR, 0x04);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR,
+	    0x8BBB);
 	/* 10BT center tap voltage. */
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x05);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    ATPHY_DBG_ADDR, 0x2C46);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR, 0x05);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, ATPHY_DBG_ADDR,
+	    0x2C46);
 
-#undef	ATPHY_DBG_ADDR
-#undef	ATPHY_DBG_DATA
+#undef ATPHY_DBG_ADDR
+#undef ATPHY_DBG_DATA
 	DELAY(1000);
 }
 
@@ -531,9 +516,10 @@ ale_attach(device_t dev)
 	 */
 	if (sc->ale_chip_rev == 0xFFFF || txf_len == 0xFFFFFFFF ||
 	    rxf_len == 0xFFFFFFF) {
-		device_printf(dev,"chip revision : 0x%04x, %u Tx FIFO "
-		    "%u Rx FIFO -- not initialized?\n", sc->ale_chip_rev,
-		    txf_len, rxf_len);
+		device_printf(dev,
+		    "chip revision : 0x%04x, %u Tx FIFO "
+		    "%u Rx FIFO -- not initialized?\n",
+		    sc->ale_chip_rev, txf_len, rxf_len);
 		error = ENXIO;
 		goto fail;
 	}
@@ -583,11 +569,11 @@ ale_attach(device_t dev)
 		sc->ale_flags |= ALE_FLAG_PCIE;
 		burst = pci_read_config(dev, i + 0x08, 2);
 		/* Max read request size. */
-		sc->ale_dma_rd_burst = ((burst >> 12) & 0x07) <<
-		    DMA_CFG_RD_BURST_SHIFT;
+		sc->ale_dma_rd_burst = ((burst >> 12) & 0x07)
+		    << DMA_CFG_RD_BURST_SHIFT;
 		/* Max payload size. */
-		sc->ale_dma_wr_burst = ((burst >> 5) & 0x07) <<
-		    DMA_CFG_WR_BURST_SHIFT;
+		sc->ale_dma_wr_burst = ((burst >> 5) & 0x07)
+		    << DMA_CFG_WR_BURST_SHIFT;
 		if (bootverbose) {
 			device_printf(dev, "Read request size : %d bytes.\n",
 			    128 << ((burst >> 12) & 0x07));
@@ -627,7 +613,8 @@ ale_attach(device_t dev)
 	if_sethwassist(ifp, ALE_CSUM_FEATURES | CSUM_TSO);
 	if (pci_find_cap(dev, PCIY_PMG, &pmc) == 0) {
 		sc->ale_flags |= ALE_FLAG_PMCAP;
-		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST, 0);
+		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST,
+		    0);
 	}
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
@@ -643,8 +630,10 @@ ale_attach(device_t dev)
 	ether_ifattach(ifp, sc->ale_eaddr);
 
 	/* VLAN capability setup. */
-	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING |
-	    IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO, 0);
+	if_setcapabilitiesbit(ifp,
+	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM |
+		IFCAP_VLAN_HWTSO,
+	    0);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 	/*
 	 * Even though controllers supported by ale(3) have Rx checksum
@@ -758,11 +747,11 @@ ale_detach(device_t dev)
 	return (0);
 }
 
-#define	ALE_SYSCTL_STAT_ADD32(c, h, n, p, d)	\
-	    SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
+#define ALE_SYSCTL_STAT_ADD32(c, h, n, p, d) \
+	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
 
-#define	ALE_SYSCTL_STAT_ADD64(c, h, n, p, d)	\
-	    SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
+#define ALE_SYSCTL_STAT_ADD64(c, h, n, p, d) \
+	SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
 
 static void
 ale_sysctl_node(struct ale_softc *sc)
@@ -790,7 +779,8 @@ ale_sysctl_node(struct ale_softc *sc)
 	if (error == 0) {
 		if (sc->ale_int_rx_mod < ALE_IM_TIMER_MIN ||
 		    sc->ale_int_rx_mod > ALE_IM_TIMER_MAX) {
-			device_printf(sc->ale_dev, "int_rx_mod value out of "
+			device_printf(sc->ale_dev,
+			    "int_rx_mod value out of "
 			    "range; using default: %d\n",
 			    ALE_IM_RX_TIMER_DEFAULT);
 			sc->ale_int_rx_mod = ALE_IM_RX_TIMER_DEFAULT;
@@ -802,7 +792,8 @@ ale_sysctl_node(struct ale_softc *sc)
 	if (error == 0) {
 		if (sc->ale_int_tx_mod < ALE_IM_TIMER_MIN ||
 		    sc->ale_int_tx_mod > ALE_IM_TIMER_MAX) {
-			device_printf(sc->ale_dev, "int_tx_mod value out of "
+			device_printf(sc->ale_dev,
+			    "int_tx_mod value out of "
 			    "range; using default: %d\n",
 			    ALE_IM_TX_TIMER_DEFAULT);
 			sc->ale_int_tx_mod = ALE_IM_TX_TIMER_DEFAULT;
@@ -822,7 +813,8 @@ ale_sysctl_node(struct ale_softc *sc)
 		    sc->ale_process_limit > ALE_PROC_MAX) {
 			device_printf(sc->ale_dev,
 			    "process_limit value out of range; "
-			    "using default: %d\n", ALE_PROC_DEFAULT);
+			    "using default: %d\n",
+			    ALE_PROC_DEFAULT);
 			sc->ale_process_limit = ALE_PROC_DEFAULT;
 		}
 	}
@@ -840,8 +832,8 @@ ale_sysctl_node(struct ale_softc *sc)
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "rx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Rx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->rx_frames, "Good frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->rx_frames,
+	    "Good frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_bcast_frames",
 	    &stats->rx_bcast_frames, "Good broadcast frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_mcast_frames",
@@ -850,22 +842,22 @@ ale_sysctl_node(struct ale_softc *sc)
 	    &stats->rx_pause_frames, "Pause control frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "control_frames",
 	    &stats->rx_control_frames, "Control frames");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "crc_errs",
-	    &stats->rx_crcerrs, "CRC errors");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "len_errs",
-	    &stats->rx_lenerrs, "Frames with length mismatched");
-	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_octets",
-	    &stats->rx_bytes, "Good octets");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "crc_errs", &stats->rx_crcerrs,
+	    "CRC errors");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "len_errs", &stats->rx_lenerrs,
+	    "Frames with length mismatched");
+	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_octets", &stats->rx_bytes,
+	    "Good octets");
 	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_bcast_octets",
 	    &stats->rx_bcast_bytes, "Good broadcast octets");
 	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_mcast_octets",
 	    &stats->rx_mcast_bytes, "Good multicast octets");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "runts",
-	    &stats->rx_runts, "Too short frames");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "fragments",
-	    &stats->rx_fragments, "Fragmented frames");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_64",
-	    &stats->rx_pkts_64, "64 bytes frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "runts", &stats->rx_runts,
+	    "Too short frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "fragments", &stats->rx_fragments,
+	    "Fragmented frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_64", &stats->rx_pkts_64,
+	    "64 bytes frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_65_127",
 	    &stats->rx_pkts_65_127, "65 to 127 bytes frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_128_255",
@@ -880,22 +872,21 @@ ale_sysctl_node(struct ale_softc *sc)
 	    &stats->rx_pkts_1519_max, "1519 to max frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "trunc_errs",
 	    &stats->rx_pkts_truncated, "Truncated frames due to MTU size");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "fifo_oflows",
-	    &stats->rx_fifo_oflows, "FIFO overflows");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "rrs_errs",
-	    &stats->rx_rrs_errs, "Return status write-back errors");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "align_errs",
-	    &stats->rx_alignerrs, "Alignment errors");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "filtered",
-	    &stats->rx_pkts_filtered,
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "fifo_oflows", &stats->rx_fifo_oflows,
+	    "FIFO overflows");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "rrs_errs", &stats->rx_rrs_errs,
+	    "Return status write-back errors");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "align_errs", &stats->rx_alignerrs,
+	    "Alignment errors");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "filtered", &stats->rx_pkts_filtered,
 	    "Frames dropped due to address filtering");
 
 	/* Tx statistics. */
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "tx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Tx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->tx_frames, "Good frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->tx_frames,
+	    "Good frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_bcast_frames",
 	    &stats->tx_bcast_frames, "Good broadcast frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "good_mcast_frames",
@@ -906,16 +897,16 @@ ale_sysctl_node(struct ale_softc *sc)
 	    &stats->tx_control_frames, "Control frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "excess_defers",
 	    &stats->tx_excess_defer, "Frames with excessive derferrals");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "defers",
-	    &stats->tx_excess_defer, "Frames with derferrals");
-	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_octets",
-	    &stats->tx_bytes, "Good octets");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "defers", &stats->tx_excess_defer,
+	    "Frames with derferrals");
+	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_octets", &stats->tx_bytes,
+	    "Good octets");
 	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_bcast_octets",
 	    &stats->tx_bcast_bytes, "Good broadcast octets");
 	ALE_SYSCTL_STAT_ADD64(ctx, child, "good_mcast_octets",
 	    &stats->tx_mcast_bytes, "Good multicast octets");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_64",
-	    &stats->tx_pkts_64, "64 bytes frames");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_64", &stats->tx_pkts_64,
+	    "64 bytes frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_65_127",
 	    &stats->tx_pkts_65_127, "65 to 127 bytes frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "frames_128_255",
@@ -930,18 +921,18 @@ ale_sysctl_node(struct ale_softc *sc)
 	    &stats->tx_pkts_1519_max, "1519 to max frames");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "single_colls",
 	    &stats->tx_single_colls, "Single collisions");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "multi_colls",
-	    &stats->tx_multi_colls, "Multiple collisions");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "late_colls",
-	    &stats->tx_late_colls, "Late collisions");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "multi_colls", &stats->tx_multi_colls,
+	    "Multiple collisions");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "late_colls", &stats->tx_late_colls,
+	    "Late collisions");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "excess_colls",
 	    &stats->tx_excess_colls, "Excessive collisions");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "underruns",
-	    &stats->tx_underrun, "FIFO underruns");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "underruns", &stats->tx_underrun,
+	    "FIFO underruns");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "desc_underruns",
 	    &stats->tx_desc_underrun, "Descriptor write-back errors");
-	ALE_SYSCTL_STAT_ADD32(ctx, child, "len_errs",
-	    &stats->tx_lenerrs, "Frames with length mismatched");
+	ALE_SYSCTL_STAT_ADD32(ctx, child, "len_errs", &stats->tx_lenerrs,
+	    "Frames with length mismatched");
 	ALE_SYSCTL_STAT_ADD32(ctx, child, "trunc_errs",
 	    &stats->tx_pkts_truncated, "Truncated frames due to MTU size");
 }
@@ -950,7 +941,7 @@ ale_sysctl_node(struct ale_softc *sc)
 #undef ALE_SYSCTL_STAT_ADD64
 
 struct ale_dmamap_arg {
-	bus_addr_t	ale_busaddr;
+	bus_addr_t ale_busaddr;
 };
 
 static void
@@ -989,17 +980,17 @@ ale_check_boundary(struct ale_softc *sc)
 	rx_cmb_end[1] = sc->ale_cdata.ale_rx_page[1].cmb_paddr + ALE_RX_CMB_SZ;
 
 	if ((ALE_ADDR_HI(tx_ring_end) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_tx_ring_paddr)) ||
+		ALE_ADDR_HI(sc->ale_cdata.ale_tx_ring_paddr)) ||
 	    (ALE_ADDR_HI(rx_page_end[0]) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[0].page_paddr)) ||
+		ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[0].page_paddr)) ||
 	    (ALE_ADDR_HI(rx_page_end[1]) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[1].page_paddr)) ||
+		ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[1].page_paddr)) ||
 	    (ALE_ADDR_HI(tx_cmb_end) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_tx_cmb_paddr)) ||
+		ALE_ADDR_HI(sc->ale_cdata.ale_tx_cmb_paddr)) ||
 	    (ALE_ADDR_HI(rx_cmb_end[0]) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[0].cmb_paddr)) ||
+		ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[0].cmb_paddr)) ||
 	    (ALE_ADDR_HI(rx_cmb_end[1]) !=
-	    ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[1].cmb_paddr)))
+		ALE_ADDR_HI(sc->ale_cdata.ale_rx_page[1].cmb_paddr)))
 		return (EFBIG);
 
 	if ((ALE_ADDR_HI(tx_ring_end) != ALE_ADDR_HI(rx_page_end[0])) ||
@@ -1029,17 +1020,16 @@ ale_dma_alloc(struct ale_softc *sc)
 	lowaddr = BUS_SPACE_MAXADDR;
 again:
 	/* Create parent DMA tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->ale_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    lowaddr,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->ale_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    lowaddr,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->ale_cdata.ale_parent_tag);
 	if (error != 0) {
 		device_printf(sc->ale_dev,
@@ -1048,17 +1038,16 @@ again:
 	}
 
 	/* Create DMA tag for Tx descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->ale_cdata.ale_parent_tag, /* parent */
-	    ALE_TX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALE_TX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    ALE_TX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->ale_cdata.ale_parent_tag, /* parent */
+	    ALE_TX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    ALE_TX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    ALE_TX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->ale_cdata.ale_tx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->ale_dev,
@@ -1070,15 +1059,15 @@ again:
 	for (i = 0; i < ALE_RX_PAGES; i++) {
 		error = bus_dma_tag_create(
 		    sc->ale_cdata.ale_parent_tag, /* parent */
-		    ALE_RX_PAGE_ALIGN, 0,	/* alignment, boundary */
-		    BUS_SPACE_MAXADDR,		/* lowaddr */
-		    BUS_SPACE_MAXADDR,		/* highaddr */
-		    NULL, NULL,			/* filter, filterarg */
-		    sc->ale_pagesize,		/* maxsize */
-		    1,				/* nsegments */
-		    sc->ale_pagesize,		/* maxsegsize */
-		    0,				/* flags */
-		    NULL, NULL,			/* lockfunc, lockarg */
+		    ALE_RX_PAGE_ALIGN, 0,	  /* alignment, boundary */
+		    BUS_SPACE_MAXADDR,		  /* lowaddr */
+		    BUS_SPACE_MAXADDR,		  /* highaddr */
+		    NULL, NULL,			  /* filter, filterarg */
+		    sc->ale_pagesize,		  /* maxsize */
+		    1,				  /* nsegments */
+		    sc->ale_pagesize,		  /* maxsegsize */
+		    0,				  /* flags */
+		    NULL, NULL,			  /* lockfunc, lockarg */
 		    &sc->ale_cdata.ale_rx_page[i].page_tag);
 		if (error != 0) {
 			device_printf(sc->ale_dev,
@@ -1088,17 +1077,16 @@ again:
 	}
 
 	/* Create DMA tag for Tx coalescing message block. */
-	error = bus_dma_tag_create(
-	    sc->ale_cdata.ale_parent_tag, /* parent */
-	    ALE_CMB_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALE_TX_CMB_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    ALE_TX_CMB_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->ale_cdata.ale_parent_tag, /* parent */
+	    ALE_CMB_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    ALE_TX_CMB_SZ,     /* maxsize */
+	    1,		       /* nsegments */
+	    ALE_TX_CMB_SZ,     /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->ale_cdata.ale_tx_cmb_tag);
 	if (error != 0) {
 		device_printf(sc->ale_dev,
@@ -1110,15 +1098,15 @@ again:
 	for (i = 0; i < ALE_RX_PAGES; i++) {
 		error = bus_dma_tag_create(
 		    sc->ale_cdata.ale_parent_tag, /* parent */
-		    ALE_CMB_ALIGN, 0,		/* alignment, boundary */
-		    BUS_SPACE_MAXADDR,		/* lowaddr */
-		    BUS_SPACE_MAXADDR,		/* highaddr */
-		    NULL, NULL,			/* filter, filterarg */
-		    ALE_RX_CMB_SZ,		/* maxsize */
-		    1,				/* nsegments */
-		    ALE_RX_CMB_SZ,		/* maxsegsize */
-		    0,				/* flags */
-		    NULL, NULL,			/* lockfunc, lockarg */
+		    ALE_CMB_ALIGN, 0,		  /* alignment, boundary */
+		    BUS_SPACE_MAXADDR,		  /* lowaddr */
+		    BUS_SPACE_MAXADDR,		  /* highaddr */
+		    NULL, NULL,			  /* filter, filterarg */
+		    ALE_RX_CMB_SZ,		  /* maxsize */
+		    1,				  /* nsegments */
+		    ALE_RX_CMB_SZ,		  /* maxsegsize */
+		    0,				  /* flags */
+		    NULL, NULL,			  /* lockfunc, lockarg */
 		    &sc->ale_cdata.ale_rx_page[i].cmb_tag);
 		if (error != 0) {
 			device_printf(sc->ale_dev,
@@ -1157,18 +1145,20 @@ again:
 		if (error != 0) {
 			device_printf(sc->ale_dev,
 			    "could not allocate DMA'able memory for "
-			    "Rx page %d.\n", i);
+			    "Rx page %d.\n",
+			    i);
 			goto fail;
 		}
 		ctx.ale_busaddr = 0;
 		error = bus_dmamap_load(sc->ale_cdata.ale_rx_page[i].page_tag,
 		    sc->ale_cdata.ale_rx_page[i].page_map,
-		    sc->ale_cdata.ale_rx_page[i].page_addr,
-		    sc->ale_pagesize, ale_dmamap_cb, &ctx, 0);
+		    sc->ale_cdata.ale_rx_page[i].page_addr, sc->ale_pagesize,
+		    ale_dmamap_cb, &ctx, 0);
 		if (error != 0 || ctx.ale_busaddr == 0) {
 			device_printf(sc->ale_dev,
 			    "could not load DMA'able memory for "
-			    "Rx page %d.\n", i);
+			    "Rx page %d.\n",
+			    i);
 			goto fail;
 		}
 		sc->ale_cdata.ale_rx_page[i].page_paddr = ctx.ale_busaddr;
@@ -1202,18 +1192,22 @@ again:
 		    BUS_DMA_WAITOK | BUS_DMA_ZERO | BUS_DMA_COHERENT,
 		    &sc->ale_cdata.ale_rx_page[i].cmb_map);
 		if (error != 0) {
-			device_printf(sc->ale_dev, "could not allocate "
-			    "DMA'able memory for Rx page %d CMB.\n", i);
+			device_printf(sc->ale_dev,
+			    "could not allocate "
+			    "DMA'able memory for Rx page %d CMB.\n",
+			    i);
 			goto fail;
 		}
 		ctx.ale_busaddr = 0;
 		error = bus_dmamap_load(sc->ale_cdata.ale_rx_page[i].cmb_tag,
 		    sc->ale_cdata.ale_rx_page[i].cmb_map,
-		    sc->ale_cdata.ale_rx_page[i].cmb_addr,
-		    ALE_RX_CMB_SZ, ale_dmamap_cb, &ctx, 0);
+		    sc->ale_cdata.ale_rx_page[i].cmb_addr, ALE_RX_CMB_SZ,
+		    ale_dmamap_cb, &ctx, 0);
 		if (error != 0 || ctx.ale_busaddr == 0) {
-			device_printf(sc->ale_dev, "could not load DMA'able "
-			    "memory for Rx page %d CMB.\n", i);
+			device_printf(sc->ale_dev,
+			    "could not load DMA'able "
+			    "memory for Rx page %d CMB.\n",
+			    i);
 			goto fail;
 		}
 		sc->ale_cdata.ale_rx_page[i].cmb_paddr = ctx.ale_busaddr;
@@ -1225,7 +1219,8 @@ again:
 	 */
 	if (lowaddr != BUS_SPACE_MAXADDR_32BIT &&
 	    (error = ale_check_boundary(sc)) != 0) {
-		device_printf(sc->ale_dev, "4GB boundary crossed, "
+		device_printf(sc->ale_dev,
+		    "4GB boundary crossed, "
 		    "switching to 32bit DMA addressing mode.\n");
 		ale_dma_free(sc);
 		/*
@@ -1243,17 +1238,16 @@ again:
 	 * could be restricted to be within 32bit address space by
 	 * 4GB boundary crossing.
 	 */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->ale_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->ale_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->ale_cdata.ale_buffer_tag);
 	if (error != 0) {
 		device_printf(sc->ale_dev,
@@ -1262,17 +1256,16 @@ again:
 	}
 
 	/* Create DMA tag for Tx buffers. */
-	error = bus_dma_tag_create(
-	    sc->ale_cdata.ale_buffer_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALE_TSO_MAXSIZE,		/* maxsize */
-	    ALE_MAXTXSEGS,		/* nsegments */
-	    ALE_TSO_MAXSEGSIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->ale_cdata.ale_buffer_tag, /* parent */
+	    1, 0,		/* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	/* lowaddr */
+	    BUS_SPACE_MAXADDR,	/* highaddr */
+	    NULL, NULL,		/* filter, filterarg */
+	    ALE_TSO_MAXSIZE,	/* maxsize */
+	    ALE_MAXTXSEGS,	/* nsegments */
+	    ALE_TSO_MAXSEGSIZE, /* maxsegsize */
+	    0,			/* flags */
+	    NULL, NULL,		/* lockfunc, lockarg */
 	    &sc->ale_cdata.ale_tx_tag);
 	if (error != 0) {
 		device_printf(sc->ale_dev, "could not create Tx DMA tag.\n");
@@ -1426,22 +1419,24 @@ ale_setlinkspeed(struct ale_softc *sc)
 	aneg = 0;
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
 	    (IFM_ACTIVE | IFM_AVALID)) {
-		switch IFM_SUBTYPE(mii->mii_media_active) {
-		case IFM_10_T:
-		case IFM_100_TX:
-			return;
-		case IFM_1000_T:
-			aneg++;
-			break;
-		default:
-			break;
-		}
+		switch
+			IFM_SUBTYPE(mii->mii_media_active)
+			{
+			case IFM_10_T:
+			case IFM_100_TX:
+				return;
+			case IFM_1000_T:
+				aneg++;
+				break;
+			default:
+				break;
+			}
 	}
 	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, MII_100T2CR, 0);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    MII_ANAR, ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
-	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr,
-	    MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, MII_ANAR,
+	    ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
+	ale_miibus_writereg(sc->ale_dev, sc->ale_phyaddr, MII_BMCR,
+	    BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
 	DELAY(1000);
 	if (aneg != 0) {
 		/*
@@ -1449,10 +1444,10 @@ ale_setlinkspeed(struct ale_softc *sc)
 		 */
 		for (i = 0; i < MII_ANEGTICKS_GIGE; i++) {
 			mii_pollstat(mii);
-			if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID))
-			    == (IFM_ACTIVE | IFM_AVALID)) {
-				switch (IFM_SUBTYPE(
-				    mii->mii_media_active)) {
+			if ((mii->mii_media_status &
+				(IFM_ACTIVE | IFM_AVALID)) ==
+			    (IFM_ACTIVE | IFM_AVALID)) {
+				switch (IFM_SUBTYPE(mii->mii_media_active)) {
 				case IFM_10_T:
 				case IFM_100_TX:
 					ale_mac_config(sc);
@@ -1497,9 +1492,9 @@ ale_setwol(struct ale_softc *sc)
 		/* Force PHY power down. */
 		CSR_WRITE_2(sc, ALE_GPHY_CTRL,
 		    GPHY_CTRL_EXT_RESET | GPHY_CTRL_HIB_EN |
-		    GPHY_CTRL_HIB_PULSE | GPHY_CTRL_PHY_PLL_ON |
-		    GPHY_CTRL_SEL_ANA_RESET | GPHY_CTRL_PHY_IDDQ |
-		    GPHY_CTRL_PCLK_SEL_DIS | GPHY_CTRL_PWDOWN_HW);
+			GPHY_CTRL_HIB_PULSE | GPHY_CTRL_PHY_PLL_ON |
+			GPHY_CTRL_SEL_ANA_RESET | GPHY_CTRL_PHY_IDDQ |
+			GPHY_CTRL_PCLK_SEL_DIS | GPHY_CTRL_PWDOWN_HW);
 		return;
 	}
 
@@ -1514,8 +1509,8 @@ ale_setwol(struct ale_softc *sc)
 		pmcs |= WOL_CFG_MAGIC | WOL_CFG_MAGIC_ENB;
 	CSR_WRITE_4(sc, ALE_WOL_CFG, pmcs);
 	reg = CSR_READ_4(sc, ALE_MAC_CFG);
-	reg &= ~(MAC_CFG_DBG | MAC_CFG_PROMISC | MAC_CFG_ALLMULTI |
-	    MAC_CFG_BCAST);
+	reg &= ~(
+	    MAC_CFG_DBG | MAC_CFG_PROMISC | MAC_CFG_ALLMULTI | MAC_CFG_BCAST);
 	if ((if_getcapenable(ifp) & IFCAP_WOL_MCAST) != 0)
 		reg |= MAC_CFG_ALLMULTI | MAC_CFG_BCAST;
 	if ((if_getcapenable(ifp) & IFCAP_WOL) != 0)
@@ -1529,9 +1524,9 @@ ale_setwol(struct ale_softc *sc)
 		CSR_WRITE_4(sc, ALE_PCIE_PHYMISC, reg);
 		CSR_WRITE_2(sc, ALE_GPHY_CTRL,
 		    GPHY_CTRL_EXT_RESET | GPHY_CTRL_HIB_EN |
-		    GPHY_CTRL_HIB_PULSE | GPHY_CTRL_SEL_ANA_RESET |
-		    GPHY_CTRL_PHY_IDDQ | GPHY_CTRL_PCLK_SEL_DIS |
-		    GPHY_CTRL_PWDOWN_HW);
+			GPHY_CTRL_HIB_PULSE | GPHY_CTRL_SEL_ANA_RESET |
+			GPHY_CTRL_PHY_IDDQ | GPHY_CTRL_PCLK_SEL_DIS |
+			GPHY_CTRL_PWDOWN_HW);
 	}
 	/* Request PME. */
 	pmstat = pci_read_config(sc->ale_dev, pmc + PCIR_POWER_STATUS, 2);
@@ -1569,12 +1564,12 @@ ale_resume(device_t dev)
 	ALE_LOCK(sc);
 	if (pci_find_cap(sc->ale_dev, PCIY_PMG, &pmc) == 0) {
 		/* Disable PME and clear PME status. */
-		pmstat = pci_read_config(sc->ale_dev,
-		    pmc + PCIR_POWER_STATUS, 2);
+		pmstat = pci_read_config(sc->ale_dev, pmc + PCIR_POWER_STATUS,
+		    2);
 		if ((pmstat & PCIM_PSTAT_PMEENABLE) != 0) {
 			pmstat &= ~PCIM_PSTAT_PMEENABLE;
-			pci_write_config(sc->ale_dev,
-			    pmc + PCIR_POWER_STATUS, pmstat, 2);
+			pci_write_config(sc->ale_dev, pmc + PCIR_POWER_STATUS,
+			    pmstat, 2);
 		}
 	}
 	/* Reset PHY. */
@@ -1725,8 +1720,8 @@ ale_encap(struct ale_softc *sc, struct mbuf **m_head)
 	txd_last = txd;
 	map = txd->tx_dmamap;
 
-	error =  bus_dmamap_load_mbuf_sg(sc->ale_cdata.ale_tx_tag, map,
-	    *m_head, txsegs, &nsegs, 0);
+	error = bus_dmamap_load_mbuf_sg(sc->ale_cdata.ale_tx_tag, map, *m_head,
+	    txsegs, &nsegs, 0);
 	if (error == EFBIG) {
 		m = m_collapse(*m_head, M_NOWAIT, ALE_MAXTXSEGS);
 		if (m == NULL) {
@@ -1792,8 +1787,8 @@ ale_encap(struct ale_softc *sc, struct mbuf **m_head)
 		/* Set checksum start offset. */
 		cflags |= (poff << ALE_TD_CSUM_PLOADOFFSET_SHIFT);
 		/* Set checksum insertion position of TCP/UDP. */
-		cflags |= ((poff + m->m_pkthdr.csum_data) <<
-		    ALE_TD_CSUM_XSUMOFFSET_SHIFT);
+		cflags |= ((poff + m->m_pkthdr.csum_data)
+		    << ALE_TD_CSUM_XSUMOFFSET_SHIFT);
 	}
 
 	/* Configure VLAN hardware tag insertion. */
@@ -1809,7 +1804,7 @@ ale_encap(struct ale_softc *sc, struct mbuf **m_head)
 		 * Make sure the first fragment contains
 		 * only ethernet and IP/TCP header with options.
 		 */
-		hdrlen =  poff + (tcp->th_off << 2);
+		hdrlen = poff + (tcp->th_off << 2);
 		desc = &sc->ale_cdata.ale_tx_ring[prod];
 		desc->addr = htole64(txsegs[i].ds_addr);
 		desc->len = htole32(ALE_TX_BYTES(hdrlen) | vtag);
@@ -1820,8 +1815,8 @@ ale_encap(struct ale_softc *sc, struct mbuf **m_head)
 			/* Handle remaining payload of the first fragment. */
 			desc = &sc->ale_cdata.ale_tx_ring[prod];
 			desc->addr = htole64(txsegs[i].ds_addr + hdrlen);
-			desc->len = htole32(ALE_TX_BYTES(m->m_len - hdrlen) |
-			    vtag);
+			desc->len = htole32(
+			    ALE_TX_BYTES(m->m_len - hdrlen) | vtag);
 			desc->flags = htole32(cflags);
 			sc->ale_cdata.ale_tx_cnt++;
 			ALE_DESC_INC(prod, ALE_TX_RING_CNT);
@@ -1867,7 +1862,7 @@ ale_encap(struct ale_softc *sc, struct mbuf **m_head)
 static void
 ale_start(if_t ifp)
 {
-        struct ale_softc *sc;
+	struct ale_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	ALE_LOCK(sc);
@@ -1878,8 +1873,8 @@ ale_start(if_t ifp)
 static void
 ale_start_locked(if_t ifp)
 {
-        struct ale_softc *sc;
-        struct mbuf *m_head;
+	struct ale_softc *sc;
+	struct mbuf *m_head;
 	int enq;
 
 	sc = if_getsoftc(ifp);
@@ -1891,10 +1886,11 @@ ale_start_locked(if_t ifp)
 		ale_txeof(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->ale_flags & ALE_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->ale_flags & ALE_FLAG_LINK) == 0)
 		return;
 
-	for (enq = 0; !if_sendq_empty(ifp); ) {
+	for (enq = 0; !if_sendq_empty(ifp);) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -1969,7 +1965,7 @@ ale_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	case SIOCSIFMTU:
 		if (ifr->ifr_mtu < ETHERMIN || ifr->ifr_mtu > ALE_JUMBO_MTU ||
 		    ((sc->ale_flags & ALE_FLAG_JUMBO) == 0 &&
-		    ifr->ifr_mtu > ETHERMTU))
+			ifr->ifr_mtu > ETHERMTU))
 			error = EINVAL;
 		else if (if_getmtu(ifp) != ifr->ifr_mtu) {
 			ALE_LOCK(sc);
@@ -1985,8 +1981,8 @@ ale_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		ALE_LOCK(sc);
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
-				if (((if_getflags(ifp) ^ sc->ale_if_flags)
-				    & (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				if (((if_getflags(ifp) ^ sc->ale_if_flags) &
+					(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 					ale_rxfilter(sc);
 			} else {
 				ale_init_locked(sc);
@@ -2195,20 +2191,21 @@ ale_stats_update(struct ale_softc *sc)
 	/* Update counters in ifnet. */
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, smb->tx_frames);
 
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, smb->tx_single_colls +
-	    smb->tx_multi_colls * 2 + smb->tx_late_colls +
-	    smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    smb->tx_single_colls + smb->tx_multi_colls * 2 +
+		smb->tx_late_colls +
+		smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
 
-	if_inc_counter(ifp, IFCOUNTER_OERRORS, smb->tx_late_colls +
-	    smb->tx_excess_colls + smb->tx_underrun + smb->tx_pkts_truncated);
+	if_inc_counter(ifp, IFCOUNTER_OERRORS,
+	    smb->tx_late_colls + smb->tx_excess_colls + smb->tx_underrun +
+		smb->tx_pkts_truncated);
 
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, smb->rx_frames);
 
 	if_inc_counter(ifp, IFCOUNTER_IERRORS,
-	    smb->rx_crcerrs + smb->rx_lenerrs +
-	    smb->rx_runts + smb->rx_pkts_truncated +
-	    smb->rx_fifo_oflows + smb->rx_rrs_errs +
-	    smb->rx_alignerrs);
+	    smb->rx_crcerrs + smb->rx_lenerrs + smb->rx_runts +
+		smb->rx_pkts_truncated + smb->rx_fifo_oflows +
+		smb->rx_rrs_errs + smb->rx_alignerrs);
 }
 
 static int
@@ -2323,8 +2320,8 @@ ale_txeof(struct ale_softc *sc)
 	 * Go through our Tx list and free mbufs for those
 	 * frames which have been transmitted.
 	 */
-	for (prog = 0; cons != prod; prog++,
-	    ALE_DESC_INC(cons, ALE_TX_RING_CNT)) {
+	for (prog = 0; cons != prod;
+	     prog++, ALE_DESC_INC(cons, ALE_TX_RING_CNT)) {
 		if (sc->ale_cdata.ale_tx_cnt <= 0)
 			break;
 		prog++;
@@ -2415,8 +2412,8 @@ ale_rxcsum(struct ale_softc *sc, struct mbuf *m, uint32_t status)
 		if (((status & ALE_RD_IPV4_FRAG) == 0) &&
 		    ((status & (ALE_RD_TCP | ALE_RD_UDP)) != 0) &&
 		    ((status & ALE_RD_TCP_UDPCSUM_NOK) == 0)) {
-			m->m_pkthdr.csum_flags |=
-			    CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
+			m->m_pkthdr.csum_flags |= CSUM_DATA_VALID |
+			    CSUM_PSEUDO_HDR;
 			m->m_pkthdr.csum_data = 0xffff;
 		}
 	} else {
@@ -2426,7 +2423,8 @@ ale_rxcsum(struct ale_softc *sc, struct mbuf *m, uint32_t status)
 			p += ETHER_HDR_LEN;
 			if ((status & ALE_RD_802_3) != 0)
 				p += LLC_SNAPFRAMELEN;
-			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) == 0 &&
+			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) ==
+				0 &&
 			    (status & ALE_RD_VLAN) != 0)
 				p += ETHER_VLAN_ENCAP_LEN;
 			ip = (struct ip *)p;
@@ -2492,8 +2490,8 @@ ale_rxeof(struct ale_softc *sc, int count)
 			if (bootverbose)
 				device_printf(sc->ale_dev,
 				    "garbled seq: %u, expected: %u -- "
-				    "resetting!\n", seqno,
-				    sc->ale_cdata.ale_rx_seqno);
+				    "resetting!\n",
+				    seqno, sc->ale_cdata.ale_rx_seqno);
 			return (EIO);
 		}
 		/* Frame received. */
@@ -2510,9 +2508,10 @@ ale_rxeof(struct ale_softc *sc, int count)
 			 *  o frame length and protocol specific length
 			 *     does not match.
 			 */
-			if ((status & (ALE_RD_CRC | ALE_RD_CODE |
-			    ALE_RD_DRIBBLE | ALE_RD_RUNT | ALE_RD_OFLOW |
-			    ALE_RD_TRUNC)) != 0) {
+			if ((status &
+				(ALE_RD_CRC | ALE_RD_CODE | ALE_RD_DRIBBLE |
+				    ALE_RD_RUNT | ALE_RD_OFLOW |
+				    ALE_RD_TRUNC)) != 0) {
 				ale_rx_update_page(sc, &rx_page, length, &prod);
 				continue;
 			}
@@ -2690,8 +2689,8 @@ ale_init_locked(struct ale_softc *sc)
 	CSR_WRITE_4(sc, ALE_DMA_BLOCK, DMA_BLOCK_LOAD);
 
 	/* Set Rx/Tx interrupt trigger threshold. */
-	CSR_WRITE_4(sc, ALE_INT_TRIG_THRESH, (1 << INT_TRIG_RX_THRESH_SHIFT) |
-	    (4 << INT_TRIG_TX_THRESH_SHIFT));
+	CSR_WRITE_4(sc, ALE_INT_TRIG_THRESH,
+	    (1 << INT_TRIG_RX_THRESH_SHIFT) | (4 << INT_TRIG_TX_THRESH_SHIFT));
 	/*
 	 * XXX
 	 * Set interrupt trigger timer, its purpose and relation
@@ -2699,7 +2698,7 @@ ale_init_locked(struct ale_softc *sc)
 	 */
 	CSR_WRITE_4(sc, ALE_INT_TRIG_TIMER,
 	    ((ALE_USECS(10) << INT_TRIG_RX_TIMER_SHIFT) |
-	    (ALE_USECS(1000) << INT_TRIG_TX_TIMER_SHIFT)));
+		(ALE_USECS(1000) << INT_TRIG_TX_TIMER_SHIFT)));
 
 	/* Configure interrupt moderation timer. */
 	reg = ALE_USECS(sc->ale_int_rx_mod) << IM_TIMER_RX_SHIFT;
@@ -2726,19 +2725,23 @@ ale_init_locked(struct ale_softc *sc)
 	/* Configure IPG/IFG parameters. */
 	CSR_WRITE_4(sc, ALE_IPG_IFG_CFG,
 	    ((IPG_IFG_IPGT_DEFAULT << IPG_IFG_IPGT_SHIFT) & IPG_IFG_IPGT_MASK) |
-	    ((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) & IPG_IFG_MIFG_MASK) |
-	    ((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) & IPG_IFG_IPG1_MASK) |
-	    ((IPG_IFG_IPG2_DEFAULT << IPG_IFG_IPG2_SHIFT) & IPG_IFG_IPG2_MASK));
+		((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) &
+		    IPG_IFG_MIFG_MASK) |
+		((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) &
+		    IPG_IFG_IPG1_MASK) |
+		((IPG_IFG_IPG2_DEFAULT << IPG_IFG_IPG2_SHIFT) &
+		    IPG_IFG_IPG2_MASK));
 	/* Set parameters for half-duplex media. */
 	CSR_WRITE_4(sc, ALE_HDPX_CFG,
 	    ((HDPX_CFG_LCOL_DEFAULT << HDPX_CFG_LCOL_SHIFT) &
-	    HDPX_CFG_LCOL_MASK) |
-	    ((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
-	    HDPX_CFG_RETRY_MASK) | HDPX_CFG_EXC_DEF_EN |
-	    ((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
-	    HDPX_CFG_ABEBT_MASK) |
-	    ((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
-	    HDPX_CFG_JAMIPG_MASK));
+		HDPX_CFG_LCOL_MASK) |
+		((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
+		    HDPX_CFG_RETRY_MASK) |
+		HDPX_CFG_EXC_DEF_EN |
+		((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
+		    HDPX_CFG_ABEBT_MASK) |
+		((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
+		    HDPX_CFG_JAMIPG_MASK));
 
 	/* Configure Tx jumbo frame parameters. */
 	if ((sc->ale_flags & ALE_FLAG_JUMBO) != 0) {
@@ -2750,7 +2753,7 @@ ale_init_locked(struct ale_softc *sc)
 			reg = sc->ale_max_frame_size / 2;
 		CSR_WRITE_4(sc, ALE_TX_JUMBO_THRESH,
 		    roundup(reg, TX_JUMBO_THRESH_UNIT) >>
-		    TX_JUMBO_THRESH_UNIT_SHIFT);
+			TX_JUMBO_THRESH_UNIT_SHIFT);
 	}
 	/* Configure TxQ. */
 	reg = (128 << (sc->ale_dma_rd_burst >> DMA_CFG_RD_BURST_SHIFT))
@@ -2763,18 +2766,19 @@ ale_init_locked(struct ale_softc *sc)
 	if ((sc->ale_flags & ALE_FLAG_JUMBO) != 0) {
 		reg = roundup(sc->ale_max_frame_size, RX_JUMBO_THRESH_UNIT);
 		CSR_WRITE_4(sc, ALE_RX_JUMBO_THRESH,
-		    (((reg >> RX_JUMBO_THRESH_UNIT_SHIFT) <<
-		    RX_JUMBO_THRESH_MASK_SHIFT) & RX_JUMBO_THRESH_MASK) |
-		    ((RX_JUMBO_LKAH_DEFAULT << RX_JUMBO_LKAH_SHIFT) &
-		    RX_JUMBO_LKAH_MASK));
+		    (((reg >> RX_JUMBO_THRESH_UNIT_SHIFT)
+			 << RX_JUMBO_THRESH_MASK_SHIFT) &
+			RX_JUMBO_THRESH_MASK) |
+			((RX_JUMBO_LKAH_DEFAULT << RX_JUMBO_LKAH_SHIFT) &
+			    RX_JUMBO_LKAH_MASK));
 		reg = CSR_READ_4(sc, ALE_SRAM_RX_FIFO_LEN);
 		rxf_hi = (reg * 7) / 10;
-		rxf_lo = (reg * 3)/ 10;
+		rxf_lo = (reg * 3) / 10;
 		CSR_WRITE_4(sc, ALE_RX_FIFO_PAUSE_THRESH,
 		    ((rxf_lo << RX_FIFO_PAUSE_THRESH_LO_SHIFT) &
-		    RX_FIFO_PAUSE_THRESH_LO_MASK) |
-		    ((rxf_hi << RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
-		    RX_FIFO_PAUSE_THRESH_HI_MASK));
+			RX_FIFO_PAUSE_THRESH_LO_MASK) |
+			((rxf_hi << RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
+			    RX_FIFO_PAUSE_THRESH_HI_MASK));
 	}
 
 	/* Disable RSS. */
@@ -2791,12 +2795,12 @@ ale_init_locked(struct ale_softc *sc)
 		reg |= DMA_CFG_TXCMB_ENB;
 	CSR_WRITE_4(sc, ALE_DMA_CFG,
 	    DMA_CFG_OUT_ORDER | DMA_CFG_RD_REQ_PRI | DMA_CFG_RCB_64 |
-	    sc->ale_dma_rd_burst | reg |
-	    sc->ale_dma_wr_burst | DMA_CFG_RXCMB_ENB |
-	    ((DMA_CFG_RD_DELAY_CNT_DEFAULT << DMA_CFG_RD_DELAY_CNT_SHIFT) &
-	    DMA_CFG_RD_DELAY_CNT_MASK) |
-	    ((DMA_CFG_WR_DELAY_CNT_DEFAULT << DMA_CFG_WR_DELAY_CNT_SHIFT) &
-	    DMA_CFG_WR_DELAY_CNT_MASK));
+		sc->ale_dma_rd_burst | reg | sc->ale_dma_wr_burst |
+		DMA_CFG_RXCMB_ENB |
+		((DMA_CFG_RD_DELAY_CNT_DEFAULT << DMA_CFG_RD_DELAY_CNT_SHIFT) &
+		    DMA_CFG_RD_DELAY_CNT_MASK) |
+		((DMA_CFG_WR_DELAY_CNT_DEFAULT << DMA_CFG_WR_DELAY_CNT_SHIFT) &
+		    DMA_CFG_WR_DELAY_CNT_MASK));
 
 	/*
 	 * Hardware can be configured to issue SMB interrupt based
@@ -2821,7 +2825,7 @@ ale_init_locked(struct ale_softc *sc)
 	 */
 	reg = MAC_CFG_TX_CRC_ENB | MAC_CFG_TX_AUTO_PAD | MAC_CFG_FULL_DUPLEX |
 	    ((MAC_CFG_PREAMBLE_DEFAULT << MAC_CFG_PREAMBLE_SHIFT) &
-	    MAC_CFG_PREAMBLE_MASK);
+		MAC_CFG_PREAMBLE_MASK);
 	if ((sc->ale_flags & ALE_FLAG_FASTETHER) != 0)
 		reg |= MAC_CFG_SPEED_10_100;
 	else
@@ -2897,7 +2901,7 @@ ale_stop(struct ale_softc *sc)
 			m_freem(txd->tx_m);
 			txd->tx_m = NULL;
 		}
-        }
+	}
 }
 
 static void
@@ -3052,22 +3056,22 @@ sysctl_int_range(SYSCTL_HANDLER_ARGS, int low, int high)
 		return (error);
 	if (value < low || value > high)
 		return (EINVAL);
-        *(int *)arg1 = value;
+	*(int *)arg1 = value;
 
-        return (0);
+	return (0);
 }
 
 static int
 sysctl_hw_ale_proc_limit(SYSCTL_HANDLER_ARGS)
 {
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    ALE_PROC_MIN, ALE_PROC_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, ALE_PROC_MIN,
+	    ALE_PROC_MAX));
 }
 
 static int
 sysctl_hw_ale_int_mod(SYSCTL_HANDLER_ARGS)
 {
 
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    ALE_IM_TIMER_MIN, ALE_IM_TIMER_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, ALE_IM_TIMER_MIN,
+	    ALE_IM_TIMER_MAX));
 }

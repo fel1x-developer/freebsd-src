@@ -27,24 +27,22 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/clock.h>
 
+#include <dev/clk/clk.h>
+#include <dev/iicbus/pmic/rockchip/rk8xx.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/clk/clk.h>
-
-#include <dev/iicbus/pmic/rockchip/rk8xx.h>
-
 /* Clock class and method */
 struct rk8xx_clk_sc {
-	device_t		base_dev;
+	device_t base_dev;
 };
 
-#define	CLK32OUT_REG		0x20
-#define	CLK32OUT_CLKOUT2_EN	1
+#define CLK32OUT_REG 0x20
+#define CLK32OUT_CLKOUT2_EN 1
 
 static int
 rk8xx_clk_set_gate_1(struct clknode *clk, bool enable)
@@ -73,17 +71,14 @@ rk8xx_clk_recalc(struct clknode *clk, uint64_t *freq)
 }
 
 static clknode_method_t rk8xx_clk_clknode_methods_0[] = {
-	CLKNODEMETHOD(clknode_recalc_freq,	rk8xx_clk_recalc),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_recalc_freq, rk8xx_clk_recalc), CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(rk8xx_clk_clknode_0, rk8xx_clk_clknode_class_0,
-    rk8xx_clk_clknode_methods_0, sizeof(struct rk8xx_clk_sc),
-    clknode_class);
+    rk8xx_clk_clknode_methods_0, sizeof(struct rk8xx_clk_sc), clknode_class);
 
 static clknode_method_t rk8xx_clk_clknode_methods_1[] = {
-	CLKNODEMETHOD(clknode_set_gate,		rk8xx_clk_set_gate_1),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_set_gate, rk8xx_clk_set_gate_1), CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(rk8xx_clk_clknode_1, rk8xx_clk_clknode_class_1,
@@ -135,8 +130,10 @@ rk8xx_attach_clocks(struct rk8xx_softc *sc)
 
 	rv = clkdom_finit(clkdom);
 	if (rv != 0) {
-		device_printf(sc->dev, "Cannot finalize clkdom initialization: "
-		    "%d\n", rv);
+		device_printf(sc->dev,
+		    "Cannot finalize clkdom initialization: "
+		    "%d\n",
+		    rv);
 		return (ENXIO);
 	}
 

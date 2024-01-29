@@ -32,21 +32,23 @@
 
 #include <sys/ioctl.h>
 #define L2CAP_SOCKET_CHECKED
+#include <netgraph/ng_message.h>
+
 #include <bluetooth.h>
 #include <errno.h>
-#include <netgraph/ng_message.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <uuid.h>
+
 #include "hccontrol.h"
 
 /* Send Read_Node_State command to the node */
 static int
 hci_read_node_state(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_state	r;
+	struct ng_btsocket_hci_raw_node_state r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_STATE, &r, sizeof(r)) < 0)
@@ -71,7 +73,7 @@ hci_node_initialize(int s, int argc, char **argv)
 static int
 hci_read_debug_level(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_debug	r;
+	struct ng_btsocket_hci_raw_node_debug r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_DEBUG, &r, sizeof(r)) < 0)
@@ -86,14 +88,14 @@ hci_read_debug_level(int s, int argc, char **argv)
 static int
 hci_write_debug_level(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_debug	r;
-  
+	struct ng_btsocket_hci_raw_node_debug r;
+
 	memset(&r, 0, sizeof(r));
 	switch (argc) {
 	case 1:
 		r.debug = atoi(argv[0]);
 		break;
- 
+
 	default:
 		return (USAGE);
 	}
@@ -108,26 +110,20 @@ hci_write_debug_level(int s, int argc, char **argv)
 static int
 hci_read_node_buffer_size(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_buffer	r;
+	struct ng_btsocket_hci_raw_node_buffer r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_BUFFER, &r, sizeof(r)) < 0)
 		return (ERROR);
 
 	fprintf(stdout, "Number of free command buffers: %d\n",
-		r.buffer.cmd_free);
-	fprintf(stdout, "Max. ACL packet size: %d\n",
-		r.buffer.acl_size);
-	fprintf(stdout, "Numbef of free ACL buffers: %d\n",
-		r.buffer.acl_free);
-	fprintf(stdout, "Total number of ACL buffers: %d\n",
-		r.buffer.acl_pkts);
-	fprintf(stdout, "Max. SCO packet size: %d\n",
-		r.buffer.sco_size);
-	fprintf(stdout, "Numbef of free SCO buffers: %d\n",
-		r.buffer.sco_free);
-	fprintf(stdout, "Total number of SCO buffers: %d\n",
-		r.buffer.sco_pkts);
+	    r.buffer.cmd_free);
+	fprintf(stdout, "Max. ACL packet size: %d\n", r.buffer.acl_size);
+	fprintf(stdout, "Numbef of free ACL buffers: %d\n", r.buffer.acl_free);
+	fprintf(stdout, "Total number of ACL buffers: %d\n", r.buffer.acl_pkts);
+	fprintf(stdout, "Max. SCO packet size: %d\n", r.buffer.sco_size);
+	fprintf(stdout, "Numbef of free SCO buffers: %d\n", r.buffer.sco_free);
+	fprintf(stdout, "Total number of SCO buffers: %d\n", r.buffer.sco_pkts);
 
 	return (OK);
 } /* hci_read_node_buffer_size */
@@ -136,7 +132,7 @@ hci_read_node_buffer_size(int s, int argc, char **argv)
 static int
 hci_read_node_bd_addr(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_bdaddr	r;
+	struct ng_btsocket_hci_raw_node_bdaddr r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_BDADDR, &r, sizeof(r)) < 0)
@@ -151,19 +147,19 @@ hci_read_node_bd_addr(int s, int argc, char **argv)
 static int
 hci_read_node_features(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_features	r;
-	int						n;
-	char						buffer[2048];
+	struct ng_btsocket_hci_raw_node_features r;
+	int n;
+	char buffer[2048];
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_FEATURES, &r, sizeof(r)) < 0)
 		return (ERROR);
 
 	fprintf(stdout, "Features: ");
-	for (n = 0; n < sizeof(r.features)/sizeof(r.features[0]); n++)
+	for (n = 0; n < sizeof(r.features) / sizeof(r.features[0]); n++)
 		fprintf(stdout, "%#02x ", r.features[n]);
-	fprintf(stdout, "\n%s\n", hci_features2str(r.features, 
-		buffer, sizeof(buffer)));
+	fprintf(stdout, "\n%s\n",
+	    hci_features2str(r.features, buffer, sizeof(buffer)));
 
 	return (OK);
 } /* hci_read_node_features */
@@ -172,7 +168,7 @@ hci_read_node_features(int s, int argc, char **argv)
 static int
 hci_read_node_stat(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_stat	r;
+	struct ng_btsocket_hci_raw_node_stat r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_STAT, &r, sizeof(r)) < 0)
@@ -214,54 +210,55 @@ hci_flush_neighbor_cache(int s, int argc, char **argv)
 static int
 hci_read_neighbor_cache(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_neighbor_cache	r;
-	int						n, error = OK;
-	const char  *addrtype2str[] = {"B", "P", "R", "E"};
+	struct ng_btsocket_hci_raw_node_neighbor_cache r;
+	int n, error = OK;
+	const char *addrtype2str[] = { "B", "P", "R", "E" };
 
 	memset(&r, 0, sizeof(r));
 	r.num_entries = NG_HCI_MAX_NEIGHBOR_NUM;
 	r.entries = calloc(NG_HCI_MAX_NEIGHBOR_NUM,
-				sizeof(ng_hci_node_neighbor_cache_entry_ep));
+	    sizeof(ng_hci_node_neighbor_cache_entry_ep));
 	if (r.entries == NULL) {
 		errno = ENOMEM;
 		return (ERROR);
 	}
 
-	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_NEIGHBOR_CACHE, &r,
-			sizeof(r)) < 0) {
+	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_NEIGHBOR_CACHE, &r, sizeof(r)) < 0) {
 		error = ERROR;
 		goto out;
 	}
 
 	fprintf(stdout,
-"T " \
-"BD_ADDR           " \
-"Features                " \
-"Clock offset " \
-"Page scan " \
-"Rep. scan\n");
+	    "T "
+	    "BD_ADDR           "
+	    "Features                "
+	    "Clock offset "
+	    "Page scan "
+	    "Rep. scan\n");
 
 	for (n = 0; n < r.num_entries; n++) {
-	        uint8_t addrtype = r.entries[n].addrtype;
-		if(addrtype >= sizeof(addrtype2str)/sizeof(addrtype2str[0]))
-			addrtype = sizeof(addrtype2str)/sizeof(addrtype2str[0]) - 1;
-		fprintf(stdout, 
-"%1s %-17.17s " \
-"%02x %02x %02x %02x %02x %02x %02x %02x " \
-"%#12x " \
-"%#9x " \
-"%#9x\n",
-			addrtype2str[addrtype],
-			hci_bdaddr2str(&r.entries[n].bdaddr),
-			r.entries[n].features[0], r.entries[n].features[1],
-			r.entries[n].features[2], r.entries[n].features[3],
-			r.entries[n].features[4], r.entries[n].features[5],
-			r.entries[n].features[6], r.entries[n].features[7],
-			r.entries[n].clock_offset, r.entries[n].page_scan_mode,
-			r.entries[n].page_scan_rep_mode);
+		uint8_t addrtype = r.entries[n].addrtype;
+		if (addrtype >= sizeof(addrtype2str) / sizeof(addrtype2str[0]))
+			addrtype = sizeof(addrtype2str) /
+				sizeof(addrtype2str[0]) -
+			    1;
+		fprintf(stdout,
+		    "%1s %-17.17s "
+		    "%02x %02x %02x %02x %02x %02x %02x %02x "
+		    "%#12x "
+		    "%#9x "
+		    "%#9x\n",
+		    addrtype2str[addrtype],
+		    hci_bdaddr2str(&r.entries[n].bdaddr),
+		    r.entries[n].features[0], r.entries[n].features[1],
+		    r.entries[n].features[2], r.entries[n].features[3],
+		    r.entries[n].features[4], r.entries[n].features[5],
+		    r.entries[n].features[6], r.entries[n].features[7],
+		    r.entries[n].clock_offset, r.entries[n].page_scan_mode,
+		    r.entries[n].page_scan_rep_mode);
 		print_adv_data(r.entries[n].extinq_size,
-			r.entries[n].extinq_data);
-		fprintf(stdout,"\n");
+		    r.entries[n].extinq_data);
+		fprintf(stdout, "\n");
 	}
 out:
 	free(r.entries);
@@ -273,8 +270,8 @@ out:
 static int
 hci_read_connection_list(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_con_list	r;
-	int					n, error = OK;
+	struct ng_btsocket_hci_raw_con_list r;
+	int n, error = OK;
 
 	memset(&r, 0, sizeof(r));
 	r.num_connections = NG_HCI_MAX_CON_NUM;
@@ -290,38 +287,37 @@ hci_read_connection_list(int s, int argc, char **argv)
 	}
 
 	fprintf(stdout,
-"Remote BD_ADDR    " \
-"Handle " \
-"Type " \
-"Mode " \
-"Role " \
-"Encrypt " \
-"Pending " \
-"Queue " \
-"State\n");
+	    "Remote BD_ADDR    "
+	    "Handle "
+	    "Type "
+	    "Mode "
+	    "Role "
+	    "Encrypt "
+	    "Pending "
+	    "Queue "
+	    "State\n");
 
 	for (n = 0; n < r.num_connections; n++) {
 		fprintf(stdout,
-"%-17.17s " \
-"%6d " \
-"%4.4s " \
-"%4d " \
-"%4.4s " \
-"%7.7s " \
-"%7d " \
-"%5d " \
-"%s\n",
-			hci_bdaddr2str(&r.connections[n].bdaddr),
-			r.connections[n].con_handle,
-			(r.connections[n].link_type == NG_HCI_LINK_ACL)?
-				"ACL" : "SCO",
-			r.connections[n].mode,
-			(r.connections[n].role == NG_HCI_ROLE_MASTER)?
-				"MAST" : "SLAV",
-			hci_encrypt2str(r.connections[n].encryption_mode, 1),
-			r.connections[n].pending,
-			r.connections[n].queue_len,
-			hci_con_state2str(r.connections[n].state));
+		    "%-17.17s "
+		    "%6d "
+		    "%4.4s "
+		    "%4d "
+		    "%4.4s "
+		    "%7.7s "
+		    "%7d "
+		    "%5d "
+		    "%s\n",
+		    hci_bdaddr2str(&r.connections[n].bdaddr),
+		    r.connections[n].con_handle,
+		    (r.connections[n].link_type == NG_HCI_LINK_ACL) ? "ACL" :
+								      "SCO",
+		    r.connections[n].mode,
+		    (r.connections[n].role == NG_HCI_ROLE_MASTER) ? "MAST" :
+								    "SLAV",
+		    hci_encrypt2str(r.connections[n].encryption_mode, 1),
+		    r.connections[n].pending, r.connections[n].queue_len,
+		    hci_con_state2str(r.connections[n].state));
 	}
 out:
 	free(r.connections);
@@ -333,7 +329,7 @@ out:
 int
 hci_read_node_link_policy_settings_mask(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_link_policy_mask	r;
+	struct ng_btsocket_hci_raw_node_link_policy_mask r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_LINK_POLICY_MASK, &r, sizeof(r)) < 0)
@@ -348,8 +344,8 @@ hci_read_node_link_policy_settings_mask(int s, int argc, char **argv)
 int
 hci_write_node_link_policy_settings_mask(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_link_policy_mask	r;
-	int							m;
+	struct ng_btsocket_hci_raw_node_link_policy_mask r;
+	int m;
 
 	memset(&r, 0, sizeof(r));
 
@@ -375,7 +371,7 @@ hci_write_node_link_policy_settings_mask(int s, int argc, char **argv)
 int
 hci_read_node_packet_mask(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_packet_mask	r;
+	struct ng_btsocket_hci_raw_node_packet_mask r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_PACKET_MASK, &r, sizeof(r)) < 0)
@@ -390,8 +386,8 @@ hci_read_node_packet_mask(int s, int argc, char **argv)
 int
 hci_write_node_packet_mask(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_packet_mask	r;
-	int						m;
+	struct ng_btsocket_hci_raw_node_packet_mask r;
+	int m;
 
 	memset(&r, 0, sizeof(r));
 
@@ -417,7 +413,7 @@ hci_write_node_packet_mask(int s, int argc, char **argv)
 int
 hci_read_node_role_switch(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_role_switch	r;
+	struct ng_btsocket_hci_raw_node_role_switch r;
 
 	memset(&r, 0, sizeof(r));
 	if (ioctl(s, SIOC_HCI_RAW_NODE_GET_ROLE_SWITCH, &r, sizeof(r)) < 0)
@@ -432,8 +428,8 @@ hci_read_node_role_switch(int s, int argc, char **argv)
 int
 hci_write_node_role_switch(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_role_switch	r;
-	int						m;
+	struct ng_btsocket_hci_raw_node_role_switch r;
+	int m;
 
 	memset(&r, 0, sizeof(r));
 
@@ -442,7 +438,7 @@ hci_write_node_role_switch(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &m) != 1)
 			return (USAGE);
 
-		r.role_switch = m? 1 : 0;
+		r.role_switch = m ? 1 : 0;
 		break;
 
 	default:
@@ -459,11 +455,12 @@ hci_write_node_role_switch(int s, int argc, char **argv)
 int
 hci_read_node_list(int s, int argc, char **argv)
 {
-	struct ng_btsocket_hci_raw_node_list_names	r;
-	int						i;
+	struct ng_btsocket_hci_raw_node_list_names r;
+	int i;
 
 	r.num_names = MAX_NODE_NUM;
-	r.names = (struct nodeinfo*)calloc(MAX_NODE_NUM, sizeof(struct nodeinfo));
+	r.names = (struct nodeinfo *)calloc(MAX_NODE_NUM,
+	    sizeof(struct nodeinfo));
 	if (r.names == NULL)
 		return (ERROR);
 
@@ -474,146 +471,100 @@ hci_read_node_list(int s, int argc, char **argv)
 
 	fprintf(stdout, "Name            ID       Num hooks\n");
 	for (i = 0; i < r.num_names; ++i)
-		fprintf(stdout, "%-15s %08x %9d\n",
-		    r.names[i].name, r.names[i].id, r.names[i].hooks);
+		fprintf(stdout, "%-15s %08x %9d\n", r.names[i].name,
+		    r.names[i].id, r.names[i].hooks);
 
 	free(r.names);
 
 	return (OK);
 } /* hci_read_node_list */
 
-struct hci_command	node_commands[] = {
-{
-"read_node_state",
-"Get the HCI node state",
-&hci_read_node_state
-},
-{
-"initialize",
-"Initialize the HCI node",
-&hci_node_initialize
-},
-{
-"read_debug_level",
-"Read the HCI node debug level",
-&hci_read_debug_level
-},
-{
-"write_debug_level <level>",
-"Write the HCI node debug level",
-&hci_write_debug_level
-},
-{
-"read_node_buffer_size",
-"Read the HCI node buffer information. This will return current state of the\n"\
-"HCI buffer for the HCI node",
-&hci_read_node_buffer_size
-},
-{
-"read_node_bd_addr",
-"Read the HCI node BD_ADDR. Returns device BD_ADDR as cached by the HCI node",
-&hci_read_node_bd_addr
-},
-{
-"read_node_features",
-"Read the HCI node features. This will return list of supported features as\n" \
-"cached by the HCI node",
-&hci_read_node_features
-},
-{
-"read_node_stat",
-"Read packets and bytes counters for the HCI node",
-&hci_read_node_stat
-},
-{
-"reset_node_stat",
-"Reset packets and bytes counters for the HCI node",
-&hci_reset_node_stat
-},
-{
-"flush_neighbor_cache",
-"Flush content of the HCI node neighbor cache",
-&hci_flush_neighbor_cache
-},
-{
-"read_neighbor_cache",
-"Read content of the HCI node neighbor cache",
-&hci_read_neighbor_cache
-},
-{
-"read_connection_list",
-"Read the baseband connection descriptors list for the HCI node",
-&hci_read_connection_list
-},
-{
-"read_node_link_policy_settings_mask",
-"Read the value of the Link Policy Settinngs mask for the HCI node",
-&hci_read_node_link_policy_settings_mask
-},
-{
-"write_node_link_policy_settings_mask <policy_mask>",
-"Write the value of the Link Policy Settings mask for the HCI node. By default\n" \
-"all supported Link Policy modes (as reported by the local device features) are\n"\
-"enabled. The particular Link Policy mode is enabled if local device supports\n"\
-"it and correspinding bit in the mask was set\n\n" \
-"\t<policy_mask> - xxxx; Link Policy mask\n" \
-"\t\t0x0000 - Disable All LM Modes\n" \
-"\t\t0x0001 - Enable Master Slave Switch\n" \
-"\t\t0x0002 - Enable Hold Mode\n" \
-"\t\t0x0004 - Enable Sniff Mode\n" \
-"\t\t0x0008 - Enable Park Mode\n",
-&hci_write_node_link_policy_settings_mask
-},
-{
-"read_node_packet_mask",
-"Read the value of the Packet mask for the HCI node",
-&hci_read_node_packet_mask
-},
-{
-"write_node_packet_mask <packet_mask>",
-"Write the value of the Packet mask for the HCI node. By default all supported\n" \
-"packet types (as reported by the local device features) are enabled. The\n" \
-"particular packet type is enabled if local device supports it and corresponding\n" \
-"bit in the mask was set\n\n" \
-"\t<packet_mask> - xxxx; packet type mask\n" \
-"" \
-"\t\tACL packets\n" \
-"\t\t-----------\n" \
-"\t\t0x0008 DM1\n" \
-"\t\t0x0010 DH1\n" \
-"\t\t0x0400 DM3\n" \
-"\t\t0x0800 DH3\n" \
-"\t\t0x4000 DM5\n" \
-"\t\t0x8000 DH5\n" \
-"\n" \
-"\t\tSCO packets\n" \
-"\t\t-----------\n" \
-"\t\t0x0020 HV1\n" \
-"\t\t0x0040 HV2\n" \
-"\t\t0x0080 HV3\n",
-&hci_write_node_packet_mask
-},
-{
-"read_node_role_switch",
-"Read the value of the Role Switch parameter for the HCI node",
-&hci_read_node_role_switch
-},
-{
-"write_node_role_switch {0|1}",
-"Write the value of the Role Switch parameter for the HCI node. By default,\n" \
-"if Role Switch is supported, local device will try to perform Role Switch\n" \
-"and become Master on incoming connection. Some devices do not support Role\n" \
-"Switch and thus incoming connections from such devices will fail. Setting\n" \
-"this parameter to zero will prevent Role Switch and thus accepting device\n" \
-"will remain Slave",
-&hci_write_node_role_switch
-},
-{
-"read_node_list",
-"Get a list of HCI nodes, their Netgraph IDs and connected hooks.",
-&hci_read_node_list
-},
-{
-NULL,
-}};
-
+struct hci_command node_commands[] = {
+	{ "read_node_state", "Get the HCI node state", &hci_read_node_state },
+	{ "initialize", "Initialize the HCI node", &hci_node_initialize },
+	{ "read_debug_level", "Read the HCI node debug level",
+	    &hci_read_debug_level },
+	{ "write_debug_level <level>", "Write the HCI node debug level",
+	    &hci_write_debug_level },
+	{ "read_node_buffer_size",
+	    "Read the HCI node buffer information. This will return current state of the\n"
+	    "HCI buffer for the HCI node",
+	    &hci_read_node_buffer_size },
+	{ "read_node_bd_addr",
+	    "Read the HCI node BD_ADDR. Returns device BD_ADDR as cached by the HCI node",
+	    &hci_read_node_bd_addr },
+	{ "read_node_features",
+	    "Read the HCI node features. This will return list of supported features as\n"
+	    "cached by the HCI node",
+	    &hci_read_node_features },
+	{ "read_node_stat", "Read packets and bytes counters for the HCI node",
+	    &hci_read_node_stat },
+	{ "reset_node_stat",
+	    "Reset packets and bytes counters for the HCI node",
+	    &hci_reset_node_stat },
+	{ "flush_neighbor_cache",
+	    "Flush content of the HCI node neighbor cache",
+	    &hci_flush_neighbor_cache },
+	{ "read_neighbor_cache", "Read content of the HCI node neighbor cache",
+	    &hci_read_neighbor_cache },
+	{ "read_connection_list",
+	    "Read the baseband connection descriptors list for the HCI node",
+	    &hci_read_connection_list },
+	{ "read_node_link_policy_settings_mask",
+	    "Read the value of the Link Policy Settinngs mask for the HCI node",
+	    &hci_read_node_link_policy_settings_mask },
+	{ "write_node_link_policy_settings_mask <policy_mask>",
+	    "Write the value of the Link Policy Settings mask for the HCI node. By default\n"
+	    "all supported Link Policy modes (as reported by the local device features) are\n"
+	    "enabled. The particular Link Policy mode is enabled if local device supports\n"
+	    "it and correspinding bit in the mask was set\n\n"
+	    "\t<policy_mask> - xxxx; Link Policy mask\n"
+	    "\t\t0x0000 - Disable All LM Modes\n"
+	    "\t\t0x0001 - Enable Master Slave Switch\n"
+	    "\t\t0x0002 - Enable Hold Mode\n"
+	    "\t\t0x0004 - Enable Sniff Mode\n"
+	    "\t\t0x0008 - Enable Park Mode\n",
+	    &hci_write_node_link_policy_settings_mask },
+	{ "read_node_packet_mask",
+	    "Read the value of the Packet mask for the HCI node",
+	    &hci_read_node_packet_mask },
+	{ "write_node_packet_mask <packet_mask>",
+	    "Write the value of the Packet mask for the HCI node. By default all supported\n"
+	    "packet types (as reported by the local device features) are enabled. The\n"
+	    "particular packet type is enabled if local device supports it and corresponding\n"
+	    "bit in the mask was set\n\n"
+	    "\t<packet_mask> - xxxx; packet type mask\n"
+	    ""
+	    "\t\tACL packets\n"
+	    "\t\t-----------\n"
+	    "\t\t0x0008 DM1\n"
+	    "\t\t0x0010 DH1\n"
+	    "\t\t0x0400 DM3\n"
+	    "\t\t0x0800 DH3\n"
+	    "\t\t0x4000 DM5\n"
+	    "\t\t0x8000 DH5\n"
+	    "\n"
+	    "\t\tSCO packets\n"
+	    "\t\t-----------\n"
+	    "\t\t0x0020 HV1\n"
+	    "\t\t0x0040 HV2\n"
+	    "\t\t0x0080 HV3\n",
+	    &hci_write_node_packet_mask },
+	{ "read_node_role_switch",
+	    "Read the value of the Role Switch parameter for the HCI node",
+	    &hci_read_node_role_switch },
+	{ "write_node_role_switch {0|1}",
+	    "Write the value of the Role Switch parameter for the HCI node. By default,\n"
+	    "if Role Switch is supported, local device will try to perform Role Switch\n"
+	    "and become Master on incoming connection. Some devices do not support Role\n"
+	    "Switch and thus incoming connections from such devices will fail. Setting\n"
+	    "this parameter to zero will prevent Role Switch and thus accepting device\n"
+	    "will remain Slave",
+	    &hci_write_node_role_switch },
+	{ "read_node_list",
+	    "Get a list of HCI nodes, their Netgraph IDs and connected hooks.",
+	    &hci_read_node_list },
+	{
+	    NULL,
+	}
+};

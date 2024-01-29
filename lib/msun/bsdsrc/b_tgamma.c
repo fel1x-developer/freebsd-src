@@ -53,8 +53,8 @@ struct Double {
 	double b;
 };
 
-#include "b_log.c"
 #include "b_exp.c"
+#include "b_log.c"
 
 /*
  * The range is broken into several subranges.  Each is handled by its
@@ -102,17 +102,16 @@ static const volatile double tiny = 1e-300;
  *
  * Accurate to max(ulp(1/128) absolute, 2^-66 relative) error.
  */
-static const double
-    ln2pi_hi =  0.41894531250000000,
-    ln2pi_lo = -6.7792953272582197e-6,
-    Pa0 =  8.3333333333333329e-02, /* 0x3fb55555, 0x55555555 */
-    Pa1 = -2.7777777777735404e-03, /* 0xbf66c16c, 0x16c145ec */
-    Pa2 =  7.9365079044114095e-04, /* 0x3f4a01a0, 0x183de82d */
-    Pa3 = -5.9523715464225254e-04, /* 0xbf438136, 0x0e681f62 */
-    Pa4 =  8.4161391899445698e-04, /* 0x3f4b93f8, 0x21042a13 */
-    Pa5 = -1.9065246069191080e-03, /* 0xbf5f3c8b, 0x357cb64e */
-    Pa6 =  5.9047708485785158e-03, /* 0x3f782f99, 0xdaf5d65f */
-    Pa7 = -1.6484018705183290e-02; /* 0xbf90e12f, 0xc4fb4df0 */
+static const double ln2pi_hi = 0.41894531250000000,
+		    ln2pi_lo = -6.7792953272582197e-6,
+		    Pa0 = 8.3333333333333329e-02, /* 0x3fb55555, 0x55555555 */
+    Pa1 = -2.7777777777735404e-03,		  /* 0xbf66c16c, 0x16c145ec */
+    Pa2 = 7.9365079044114095e-04,		  /* 0x3f4a01a0, 0x183de82d */
+    Pa3 = -5.9523715464225254e-04,		  /* 0xbf438136, 0x0e681f62 */
+    Pa4 = 8.4161391899445698e-04,		  /* 0x3f4b93f8, 0x21042a13 */
+    Pa5 = -1.9065246069191080e-03,		  /* 0xbf5f3c8b, 0x357cb64e */
+    Pa6 = 5.9047708485785158e-03,		  /* 0x3f782f99, 0xdaf5d65f */
+    Pa7 = -1.6484018705183290e-02;		  /* 0xbf90e12f, 0xc4fb4df0 */
 
 static struct Double
 large_gam(double x)
@@ -121,8 +120,16 @@ large_gam(double x)
 	struct Double u;
 
 	z = 1 / (x * x);
-	p = Pa0 + z * (Pa1 + z * (Pa2 + z * (Pa3 + z * (Pa4 + z * (Pa5 +
-	    z * (Pa6 + z * Pa7))))));
+	p = Pa0 +
+	    z *
+		(Pa1 +
+		    z *
+			(Pa2 +
+			    z *
+				(Pa3 +
+				    z *
+					(Pa4 +
+					    z * (Pa5 + z * (Pa6 + z * Pa7))))));
 	p = p / x;
 
 	u = __log__D(x);
@@ -158,23 +165,16 @@ static const double
     a0_hi =  8.8560319441088875e-1,
     a0_lo = -4.9964270364690197e-17,
 #else
-    a0_hi =  8.8560319441088875e-01, /* 0x3fec56dc, 0x82a74aef */
+    a0_hi = 8.8560319441088875e-01,  /* 0x3fec56dc, 0x82a74aef */
     a0_lo = -4.9642368725563397e-17, /* 0xbc8c9deb, 0xaa64afc3 */
 #endif
-    P0 =  6.2138957182182086e-1,
-    P1 =  2.6575719865153347e-1,
-    P2 =  5.5385944642991746e-3,
-    P3 =  1.3845669830409657e-3,
-    P4 =  2.4065995003271137e-3,
-    Q0 =  1.4501953125000000e+0,
-    Q1 =  1.0625852194801617e+0,
-    Q2 = -2.0747456194385994e-1,
-    Q3 = -1.4673413178200542e-1,
-    Q4 =  3.0787817615617552e-2,
-    Q5 =  5.1244934798066622e-3,
-    Q6 = -1.7601274143166700e-3,
-    Q7 =  9.3502102357378894e-5,
-    Q8 =  6.1327550747244396e-6;
+    P0 = 6.2138957182182086e-1, P1 = 2.6575719865153347e-1,
+    P2 = 5.5385944642991746e-3, P3 = 1.3845669830409657e-3,
+    P4 = 2.4065995003271137e-3, Q0 = 1.4501953125000000e+0,
+    Q1 = 1.0625852194801617e+0, Q2 = -2.0747456194385994e-1,
+    Q3 = -1.4673413178200542e-1, Q4 = 3.0787817615617552e-2,
+    Q5 = 5.1244934798066622e-3, Q6 = -1.7601274143166700e-3,
+    Q7 = 9.3502102357378894e-5, Q8 = 6.1327550747244396e-6;
 
 static struct Double
 ratfun_gam(double z, double c)
@@ -182,8 +182,22 @@ ratfun_gam(double z, double c)
 	double p, q, thi, tlo;
 	struct Double r;
 
-	q = Q0 + z * (Q1 + z * (Q2 + z * (Q3 + z * (Q4 + z * (Q5 + 
-	    z * (Q6 + z * (Q7 + z * Q8)))))));
+	q = Q0 +
+	    z *
+		(Q1 +
+		    z *
+			(Q2 +
+			    z *
+				(Q3 +
+				    z *
+					(Q4 +
+					    z *
+						(Q5 +
+						    z *
+							(Q6 +
+							    z *
+								(Q7 +
+								    z * Q8)))))));
 	p = P0 + z * (P1 + z * (P2 + z * (P3 + z * P4)));
 	p = p / q;
 
@@ -203,10 +217,10 @@ ratfun_gam(double z, double c)
 	r.b = p - r.a;
 
 	tlo = tlo * p + thi * r.b + a0_lo;
-	thi *= r.a;				/* t = (z+c)^2*(P/Q) */
+	thi *= r.a; /* t = (z+c)^2*(P/Q) */
 	r.a = (float)(thi + a0_hi);
 	r.b = ((a0_hi - r.a) + thi) + tlo;
-	return (r);				/* r = a0 + t */
+	return (r); /* r = a0 + t */
 }
 /*
  * x < 6
@@ -218,9 +232,8 @@ ratfun_gam(double z, double c)
  * Good to < 1 ulp.  (provably .90 ulp; .87 ulp on 1,000,000 runs.)
  * It also has correct monotonicity.
  */
-static const double
-    left = -0.3955078125,	/* left boundary for rat. approx */
-    x0 = 4.6163214496836236e-1;	/* xmin - 1 */
+static const double left = -0.3955078125, /* left boundary for rat. approx */
+    x0 = 4.6163214496836236e-1;		  /* xmin - 1 */
 
 static double
 small_gam(double x)
@@ -236,7 +249,7 @@ small_gam(double x)
 
 	r.a = (float)y;
 	yy.a = r.a - 1;
-	y = y - 1 ;
+	y = y - 1;
 	r.b = yy.b = y - yy.a;
 
 	/* Argument reduction: G(x+1) = x*G(x) */
@@ -280,7 +293,7 @@ smaller_gam(double x)
 		xhi = (float)x;
 		xlo = x - xhi;
 		t = x - x0;
-		d = - x0 - t;
+		d = -x0 - t;
 		d += x;
 	}
 
@@ -306,7 +319,7 @@ neg_gam(double x)
 	double y, z;
 
 	y = ceil(x);
-	if (y == x)		/* Negative integer. */
+	if (y == x) /* Negative integer. */
 		return ((x - x) / zero);
 
 	z = y - x;
@@ -328,25 +341,27 @@ neg_gam(double x)
 		if (x < -190)
 			return (sgn * tiny * tiny);
 
-		y = 1 - x;			/* exact: 128 < |x| < 255 */
+		y = 1 - x; /* exact: 128 < |x| < 255 */
 		lg = large_gam(y);
-		lsine = __log__D(M_PI / z);	/* = TRUNC(log(u)) + small */
-		lg.a -= lsine.a;		/* exact (opposite signs) */
+		lsine = __log__D(M_PI / z); /* = TRUNC(log(u)) + small */
+		lg.a -= lsine.a;	    /* exact (opposite signs) */
 		lg.b -= lsine.b;
 		y = -(lg.a + lg.b);
 		z = (y + lg.a) + lg.b;
 		y = __exp__D(y, z);
-		if (sgn < 0) y = -y;
+		if (sgn < 0)
+			y = -y;
 		return (y);
 	}
 
 	y = 1 - x;
 	if (1 - y == x)
 		y = tgamma(y);
-	else		/* 1-x is inexact */
-		y = - x * tgamma(-x);
+	else /* 1-x is inexact */
+		y = -x * tgamma(-x);
 
-	if (sgn < 0) y = -y;
+	if (sgn < 0)
+		y = -y;
 	return (M_PI / (y * z));
 }
 /*
@@ -381,12 +396,12 @@ tgamma(double x)
 
 	if (x > -iota) {
 		if (x != 0.)
-			u.a = 1 - tiny;	/* raise inexact */
+			u.a = 1 - tiny; /* raise inexact */
 		return (1 / x);
 	}
 
 	if (!isfinite(x))
-		return (x - x);		/* x is NaN or -Inf */
+		return (x - x); /* x is NaN or -Inf */
 
 	return (neg_gam(x));
 }

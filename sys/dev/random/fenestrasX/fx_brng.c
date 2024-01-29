@@ -26,28 +26,27 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/fail.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sdt.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/vdso.h>
 
 #include <machine/cpu.h>
-
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-#include <dev/random/uint128.h>
 
 #include <dev/random/fenestrasX/fx_brng.h>
 #include <dev/random/fenestrasX/fx_priv.h>
 #include <dev/random/fenestrasX/fx_pub.h>
 #include <dev/random/fenestrasX/fx_rng.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
+#include <dev/random/uint128.h>
 
 /*
  * Implementation of a buffered RNG, described in § 1.2-1.4 of the whitepaper.
@@ -189,9 +188,10 @@ fxrng_brng_getbytes_internal(struct fxrng_buffered_rng *rng, void *buf,
 			rem = sizeof(rng->brng_buffer) - rng->brng_avail_idx;
 			ASSERT_DEBUG(nbytes > rem, "invariant");
 
-			memcpy(buf, &rng->brng_buffer[rng->brng_avail_idx], rem);
+			memcpy(buf, &rng->brng_buffer[rng->brng_avail_idx],
+			    rem);
 
-			buf = (uint8_t*)buf + rem;
+			buf = (uint8_t *)buf + rem;
 			nbytes -= rem;
 			ASSERT_DEBUG(nbytes != 0, "invariant");
 		}
@@ -231,8 +231,8 @@ out:
  * per-CPU generators from root.)
  */
 void
-fxrng_brng_produce_seed_data_internal(struct fxrng_buffered_rng *rng,
-    void *buf, size_t keysz, uint64_t *seed_generation)
+fxrng_brng_produce_seed_data_internal(struct fxrng_buffered_rng *rng, void *buf,
+    size_t keysz, uint64_t *seed_generation)
 {
 	FXRNG_BRNG_ASSERT(rng);
 	ASSERT_DEBUG(keysz == FX_CHACHA20_KEYSIZE, "keysz: %zu", keysz);
@@ -276,7 +276,7 @@ fxrng_brng_read(struct fxrng_buffered_rng *rng, void *buf, size_t nbytes)
 	 * duplicate work.
 	 */
 	if (__predict_false(rng->brng_generation ==
-	    atomic_load_acq_64(&fxrng_root_generation))) {
+		atomic_load_acq_64(&fxrng_root_generation))) {
 		FXRNG_BRNG_UNLOCK(&fxrng_root);
 		goto done_reseeding;
 	}

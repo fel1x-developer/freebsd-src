@@ -11,7 +11,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,8 +28,8 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern int main_quotedprintable(int, char *[]);
 
@@ -41,13 +41,11 @@ hexval(int c)
 	return (10 + c - 'A');
 }
 
-
 static int
 decode_char(const char *s)
 {
 	return (16 * hexval(toupper(s[1])) + hexval(toupper(s[2])));
 }
-
 
 static void
 decode_quoted_printable(const char *body, FILE *fpo)
@@ -99,16 +97,14 @@ encode_quoted_printable(const char *body, FILE *fpo)
 			fputs("=\r\n", fpo);
 			linelen = 0;
 		}
-		if (!isascii(*body) ||
-		    *body == '=' ||
+		if (!isascii(*body) || *body == '=' ||
 		    (*body == '.' && body + 1 < end &&
-		      (body[1] == '\n' || body[1] == '\r'))) {
+			(body[1] == '\n' || body[1] == '\r'))) {
 			fprintf(fpo, "=%02X", (unsigned char)*body);
 			linelen += 2;
 			prev = *body;
 		} else if (*body < 33 && *body != '\n') {
-			if ((*body == ' ' || *body == '\t') &&
-			    body + 1 < end &&
+			if ((*body == ' ' || *body == '\t') && body + 1 < end &&
 			    (body[1] != '\n' && body[1] != '\r')) {
 				fputc(*body, fpo);
 				prev = *body;
@@ -141,7 +137,7 @@ qp(FILE *fp, FILE *fpo, bool encode)
 	ssize_t linelen;
 	void (*codec)(const char *line, FILE *f);
 
-	codec = encode ? encode_quoted_printable : decode_quoted_printable ;
+	codec = encode ? encode_quoted_printable : decode_quoted_printable;
 
 	while ((linelen = getline(&line, &linecap, fp)) > 0)
 		codec(line, fpo);
@@ -152,7 +148,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
-	   "usage: bintrans qp [-u] [-o outputfile] [file name]\n");
+	    "usage: bintrans qp [-u] [-o outputfile] [file name]\n");
 }
 
 int
@@ -168,7 +164,8 @@ main_quotedprintable(int argc, char *argv[])
 			switch (argv[i][1]) {
 			case 'o':
 				if (++i >= argc) {
-					fprintf(stderr, "qp: -o requires a file name.\n");
+					fprintf(stderr,
+					    "qp: -o requires a file name.\n");
 					exit(EXIT_FAILURE);
 				}
 				fpo = fopen(argv[i], "w");

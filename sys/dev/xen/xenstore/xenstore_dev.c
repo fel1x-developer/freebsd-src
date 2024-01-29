@@ -1,25 +1,25 @@
 /*
  * xenstore_dev.c
- * 
+ *
  * Driver giving user-space access to the kernel's connection to the
  * XenStore service.
- * 
+ *
  * Copyright (c) 2005, Christian Limpach
  * Copyright (c) 2005, Rusty Russell, IBM Corporation
- * 
+ *
  * This file may be distributed separately from the Linux kernel, or
  * incorporated into other software packages, subject to the following license:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this source file (the "Software"), to deal in the Software without
  * restriction, including without limitation the rights to use, copy, modify,
  * merge, publish, distribute, sublicense, and/or sell copies of the Software,
  * and to permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,26 +29,25 @@
  * IN THE SOFTWARE.
  */
 
-#include <sys/types.h>
 #include <sys/cdefs.h>
-#include <sys/errno.h>
-#include <sys/uio.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/conf.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/conf.h>
 #include <sys/module.h>
+#include <sys/poll.h>
+#include <sys/proc.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <sys/poll.h>
-
-#include <xen/xen-os.h>
+#include <sys/uio.h>
 
 #include <xen/hypervisor.h>
-#include <xen/xenstore/xenstorevar.h>
+#include <xen/xen-os.h>
 #include <xen/xenstore/xenstore_internal.h>
+#include <xen/xenstore/xenstorevar.h>
 
 static unsigned int max_pending_watches = 1000;
 
@@ -79,7 +78,7 @@ struct xs_dev_data {
 	} u;
 
 	/* Response queue. */
-#define MASK_READ_IDX(idx) ((idx)&(PAGE_SIZE-1))
+#define MASK_READ_IDX(idx) ((idx) & (PAGE_SIZE - 1))
 	char read_buffer[PAGE_SIZE];
 	unsigned int read_cons, read_prod;
 
@@ -152,7 +151,7 @@ xs_dev_watch_message_parse_string(const char **p, const char *end,
 		return (EINVAL);
 
 	*string_r = *p;
-	*p = nul+1;
+	*p = nul + 1;
 
 	return (0);
 }
@@ -183,7 +182,7 @@ xs_dev_find_watch(struct xs_dev_data *u, const char *token)
 {
 	struct xs_dev_watch *watch;
 
-	LIST_FOREACH(watch, &u->watches, list)
+	LIST_FOREACH (watch, &u->watches, list)
 		if (strcmp(watch->token, token) == 0)
 			return (watch);
 
@@ -217,14 +216,14 @@ xs_dev_find_transaction(struct xs_dev_data *u, uint32_t tx_id)
 {
 	struct xs_dev_transaction *trans;
 
-	LIST_FOREACH(trans, &u->transactions, list)
+	LIST_FOREACH (trans, &u->transactions, list)
 		if (trans->handle.id == tx_id)
 			return (trans);
 
 	return (NULL);
 }
 
-static int 
+static int
 xs_dev_read(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	int error;
@@ -235,7 +234,7 @@ xs_dev_read(struct cdev *dev, struct uio *uio, int ioflag)
 		return (error);
 
 	while (u->read_prod == u->read_cons) {
-		error = tsleep(u, PCATCH, "xsdread", hz/10);
+		error = tsleep(u, PCATCH, "xsdread", hz / 10);
 		if (error && error != EWOULDBLOCK)
 			return (error);
 	}
@@ -243,8 +242,8 @@ xs_dev_read(struct cdev *dev, struct uio *uio, int ioflag)
 	while (uio->uio_resid > 0) {
 		if (u->read_cons == u->read_prod)
 			break;
-		error = uiomove(&u->read_buffer[MASK_READ_IDX(u->read_cons)],
-		    1, uio);
+		error = uiomove(&u->read_buffer[MASK_READ_IDX(u->read_cons)], 1,
+		    uio);
 		if (error)
 			return (error);
 		u->read_cons++;
@@ -252,7 +251,7 @@ xs_dev_read(struct cdev *dev, struct uio *uio, int ioflag)
 	return (0);
 }
 
-static int 
+static int
 xs_dev_write(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	int error;
@@ -422,13 +421,13 @@ xs_dev_dtor(void *arg)
 
 	seldrain(&u->ev_rsel);
 
-	LIST_FOREACH_SAFE(trans, &u->transactions, list, tmpt) {
+	LIST_FOREACH_SAFE (trans, &u->transactions, list, tmpt) {
 		xs_transaction_end(trans->handle, 1);
 		LIST_REMOVE(trans, list);
 		free(trans, M_XENSTORE);
 	}
 
-	LIST_FOREACH_SAFE(watch, &u->watches, list, tmpw) {
+	LIST_FOREACH_SAFE (watch, &u->watches, list, tmpw) {
 		LIST_REMOVE(watch, list);
 		xs_unregister_watch(&watch->watch);
 		free(watch->watch.node, M_XENSTORE);
@@ -446,7 +445,7 @@ xs_dev_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	struct xs_dev_data *u;
 	int error;
 
-	u = malloc(sizeof(*u), M_XENSTORE, M_WAITOK|M_ZERO);
+	u = malloc(sizeof(*u), M_XENSTORE, M_WAITOK | M_ZERO);
 	mtx_init(&u->lock, "xsdev_lock", NULL, MTX_DEF);
 	LIST_INIT(&u->transactions);
 	LIST_INIT(&u->watches);
@@ -458,7 +457,7 @@ xs_dev_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 }
 
 static struct cdevsw xs_dev_cdevsw = {
-	.d_version = D_VERSION,	
+	.d_version = D_VERSION,
 	.d_read = xs_dev_read,
 	.d_write = xs_dev_write,
 	.d_open = xs_dev_open,
@@ -490,7 +489,7 @@ xs_dev_identify(driver_t *driver, device_t parent)
  *
  * \return  Always returns 0 indicating success.
  */
-static int 
+static int
 xs_dev_probe(device_t dev)
 {
 
@@ -516,7 +515,7 @@ xs_dev_attach(device_t dev)
 	sysctl_ctx = device_get_sysctl_ctx(dev);
 	sysctl_tree = device_get_sysctl_tree(dev);
 	if (sysctl_ctx == NULL || sysctl_tree == NULL)
-	    return (EINVAL);
+		return (EINVAL);
 
 	SYSCTL_ADD_UINT(sysctl_ctx, SYSCTL_CHILDREN(sysctl_tree), OID_AUTO,
 	    "max_pending_watch_events", CTLFLAG_RW, &max_pending_watches, 0,
@@ -533,9 +532,9 @@ xs_dev_attach(device_t dev)
 /*-------------------- Private Device Attachment Data  -----------------------*/
 static device_method_t xs_dev_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	xs_dev_identify),
-	DEVMETHOD(device_probe,         xs_dev_probe),
-	DEVMETHOD(device_attach,        xs_dev_attach),
+	DEVMETHOD(device_identify, xs_dev_identify),
+	DEVMETHOD(device_probe, xs_dev_probe),
+	DEVMETHOD(device_attach, xs_dev_attach),
 
 	DEVMETHOD_END
 };

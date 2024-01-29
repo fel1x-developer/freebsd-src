@@ -32,6 +32,7 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
@@ -39,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(mbsrtowcs_test);
 ATF_TC_BODY(mbsrtowcs_test, tc)
@@ -60,8 +59,8 @@ ATF_TC_BODY(mbsrtowcs_test, tc)
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 5);
+	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 5);
 	ATF_REQUIRE(wcscmp(dstbuf, L"hello") == 0);
 	ATF_REQUIRE(dstbuf[6] == 0xcccc);
 	ATF_REQUIRE(src == NULL);
@@ -89,8 +88,8 @@ ATF_TC_BODY(mbsrtowcs_test, tc)
 	strcpy(srcbuf, "hello");
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
 	src = srcbuf;
-	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src, sizeof(dstbuf) /
-	    sizeof(*dstbuf), NULL) == 5);
+	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src,
+			sizeof(dstbuf) / sizeof(*dstbuf), NULL) == 5);
 	ATF_REQUIRE(wcscmp(dstbuf, L"hello") == 0);
 	ATF_REQUIRE(dstbuf[6] == 0xcccc);
 	ATF_REQUIRE(src == NULL);
@@ -126,7 +125,8 @@ ATF_TC_BODY(mbsrtowcs_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX > 1);
 
 	memset(srcbuf, 0xcc, sizeof(srcbuf));
@@ -134,10 +134,11 @@ ATF_TC_BODY(mbsrtowcs_test, tc)
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
 	wmemset(dstbuf, 0xcccc, sizeof(dstbuf) / sizeof(*dstbuf));
-	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src, sizeof(dstbuf) /
-	    sizeof(*dstbuf), &s) == 5);
-	ATF_REQUIRE(dstbuf[0] == 0xA3C1 && dstbuf[1] == 0x20 && dstbuf[2] == 0x42 &&
-	    dstbuf[3] == 0x20 && dstbuf[4] == 0xA3C3 && dstbuf[5] == 0);
+	ATF_REQUIRE(mbsrtowcs(dstbuf, (const char **)&src,
+			sizeof(dstbuf) / sizeof(*dstbuf), &s) == 5);
+	ATF_REQUIRE(dstbuf[0] == 0xA3C1 && dstbuf[1] == 0x20 &&
+	    dstbuf[2] == 0x42 && dstbuf[3] == 0x20 && dstbuf[4] == 0xA3C3 &&
+	    dstbuf[5] == 0);
 	ATF_REQUIRE(src == NULL);
 }
 

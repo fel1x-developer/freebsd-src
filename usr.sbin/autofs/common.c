@@ -30,15 +30,16 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
@@ -57,16 +58,15 @@
 #include <unistd.h>
 
 #include "autofs_ioctl.h"
-
 #include "common.h"
 
 extern FILE *yyin;
 extern char *yytext;
 extern int yylex(void);
 
-static void	parse_master_yyin(struct node *root, const char *master);
-static void	parse_map_yyin(struct node *parent, const char *map,
-		    const char *executable_key);
+static void parse_master_yyin(struct node *root, const char *master);
+static void parse_map_yyin(struct node *parent, const char *map,
+    const char *executable_key);
 
 char *
 checked_strdup(const char *s)
@@ -119,7 +119,8 @@ concat(const char *s1, char separator, const char *s2)
 	if (ret < 0)
 		log_err(1, "asprintf");
 
-	//log_debugx("%s: got %s and %s, returning %s", __func__, s1, s2, result);
+	// log_debugx("%s: got %s and %s, returning %s", __func__, s1, s2,
+	// result);
 
 	return (result);
 }
@@ -145,7 +146,7 @@ create_directory(const char *path)
 		tmp = concat(partial, '/', component);
 		free(partial);
 		partial = tmp;
-		//log_debugx("creating \"%s\"", partial);
+		// log_debugx("creating \"%s\"", partial);
 		error = mkdir(partial, 0755);
 		if (error != 0 && errno != EEXIST) {
 			log_warn("cannot create %s", partial);
@@ -247,7 +248,7 @@ node_duplicate(const struct node *o, struct node *parent)
 	n = node_new(parent, o->n_key, o->n_options, o->n_location,
 	    o->n_config_file, o->n_config_line);
 
-	TAILQ_FOREACH(child, &o->n_children, n_next)
+	TAILQ_FOREACH (child, &o->n_children, n_next)
 		node_duplicate(child, n);
 
 	return (n);
@@ -258,9 +259,9 @@ node_delete(struct node *n)
 {
 	struct node *child, *tmp;
 
-	assert (n != NULL);
+	assert(n != NULL);
 
-	TAILQ_FOREACH_SAFE(child, &n->n_children, n_next, tmp)
+	TAILQ_FOREACH_SAFE (child, &n->n_children, n_next, tmp)
 		node_delete(child);
 
 	if (n->n_parent != NULL)
@@ -279,7 +280,8 @@ node_move_after(struct node *n, struct node *previous)
 
 	TAILQ_REMOVE(&n->n_parent->n_children, n, n_next);
 	n->n_parent = previous->n_parent;
-	TAILQ_INSERT_AFTER(&previous->n_parent->n_children, previous, n, n_next);
+	TAILQ_INSERT_AFTER(&previous->n_parent->n_children, previous, n,
+	    n_next);
 }
 
 static void
@@ -288,14 +290,16 @@ node_expand_includes(struct node *root, bool is_master)
 	struct node *n, *n2, *tmp, *tmp2, *tmproot;
 	int error;
 
-	TAILQ_FOREACH_SAFE(n, &root->n_children, n_next, tmp) {
+	TAILQ_FOREACH_SAFE (n, &root->n_children, n_next, tmp) {
 		if (n->n_key[0] != '+')
 			continue;
 
 		error = access(AUTO_INCLUDE_PATH, F_OK);
 		if (error != 0) {
-			log_errx(1, "directory services not configured; "
-			    "%s does not exist", AUTO_INCLUDE_PATH);
+			log_errx(1,
+			    "directory services not configured; "
+			    "%s does not exist",
+			    AUTO_INCLUDE_PATH);
 		}
 
 		/*
@@ -321,8 +325,8 @@ node_expand_includes(struct node *root, bool is_master)
 		 * Entries to be included are now in tmproot.  We need to merge
 		 * them with the rest, preserving their place and ordering.
 		 */
-		TAILQ_FOREACH_REVERSE_SAFE(n2,
-		    &tmproot->n_children, nodehead, n_next, tmp2) {
+		TAILQ_FOREACH_REVERSE_SAFE (n2, &tmproot->n_children, nodehead,
+		    n_next, tmp2) {
 			node_move_after(n2, n);
 		}
 
@@ -361,15 +365,15 @@ expand_ampersand(char *string, const char *key)
 		 * of characters before the '&'.
 		 */
 		before_len = i;
-		//assert(i < (int)strlen(string));
+		// assert(i < (int)strlen(string));
 
-		ret = asprintf(&expanded, "%.*s%s%s",
-		    before_len, string, key, string + before_len + 1);
+		ret = asprintf(&expanded, "%.*s%s%s", before_len, string, key,
+		    string + before_len + 1);
 		if (ret < 0)
 			log_err(1, "asprintf");
 
-		//log_debugx("\"%s\" expanded with key \"%s\" to \"%s\"",
-		//    string, key, expanded);
+		// log_debugx("\"%s\" expanded with key \"%s\" to \"%s\"",
+		//     string, key, expanded);
 
 		/*
 		 * Figure out where to start searching for next variable.
@@ -379,7 +383,7 @@ expand_ampersand(char *string, const char *key)
 		if (i == (int)strlen(string))
 			break;
 		backslashed = false;
-		//assert(i < (int)strlen(string));
+		// assert(i < (int)strlen(string));
 	}
 
 	return (expanded);
@@ -410,7 +414,7 @@ node_expand_ampersand(struct node *n, const char *key)
 		}
 	}
 
-	TAILQ_FOREACH(child, &n->n_children, n_next)
+	TAILQ_FOREACH (child, &n->n_children, n_next)
 		node_expand_ampersand(child, key);
 }
 
@@ -430,7 +434,7 @@ node_expand_wildcard(struct node *n, const char *key)
 		node_move_after(expanded, n);
 	}
 
-	TAILQ_FOREACH(child, &n->n_children, n_next)
+	TAILQ_FOREACH (child, &n->n_children, n_next)
 		node_expand_wildcard(child, key);
 }
 
@@ -449,7 +453,7 @@ node_expand_defined(struct node *n)
 		}
 	}
 
-	TAILQ_FOREACH(child, &n->n_children, n_next) {
+	TAILQ_FOREACH (child, &n->n_children, n_next) {
 		error = node_expand_defined(child);
 		if (error != 0 && cumulated_error == 0)
 			cumulated_error = error;
@@ -489,7 +493,7 @@ node_has_wildcards(const struct node *n)
 {
 	const struct node *child;
 
-	TAILQ_FOREACH(child, &n->n_children, n_next) {
+	TAILQ_FOREACH (child, &n->n_children, n_next) {
 		if (strcmp(child->n_key, "*") == 0)
 			return (true);
 	}
@@ -502,7 +506,7 @@ node_expand_maps(struct node *n, bool indirect)
 {
 	struct node *child, *tmp;
 
-	TAILQ_FOREACH_SAFE(child, &n->n_children, n_next, tmp) {
+	TAILQ_FOREACH_SAFE (child, &n->n_children, n_next, tmp) {
 		if (node_is_direct_map(child)) {
 			if (indirect)
 				continue;
@@ -614,8 +618,7 @@ node_options(const struct node *n)
 }
 
 static void
-node_print_indent(const struct node *n, const char *cmdline_options,
-    int indent)
+node_print_indent(const struct node *n, const char *cmdline_options, int indent)
 {
 	const struct node *child, *first_child;
 	char *path, *options, *tmp;
@@ -636,24 +639,21 @@ node_print_indent(const struct node *n, const char *cmdline_options,
 	if (first_child == NULL || TAILQ_NEXT(first_child, n_next) != NULL ||
 	    strcmp(path, node_path(first_child)) != 0) {
 		assert(n->n_location == NULL || n->n_map == NULL);
-		printf("%*.s%-*s %s%-*s %-*s # %s map %s at %s:%d\n",
-		    indent, "",
-		    25 - indent,
-		    path,
-		    options[0] != '\0' ? "-" : " ",
-		    20,
-		    options[0] != '\0' ? options : "",
-		    20,
-		    n->n_location != NULL ? n->n_location : n->n_map != NULL ? n->n_map : "",
+		printf("%*.s%-*s %s%-*s %-*s # %s map %s at %s:%d\n", indent,
+		    "", 25 - indent, path, options[0] != '\0' ? "-" : " ", 20,
+		    options[0] != '\0' ? options : "", 20,
+		    n->n_location != NULL ? n->n_location :
+			n->n_map != NULL  ? n->n_map :
+					    "",
 		    node_is_direct_map(n) ? "direct" : "indirect",
-		    indent == 0 ? "referenced" : "defined",
-		    n->n_config_file, n->n_config_line);
+		    indent == 0 ? "referenced" : "defined", n->n_config_file,
+		    n->n_config_line);
 	}
 
 	free(path);
 	free(options);
 
-	TAILQ_FOREACH(child, &n->n_children, n_next)
+	TAILQ_FOREACH (child, &n->n_children, n_next)
 		node_print_indent(child, cmdline_options, indent + 2);
 }
 
@@ -667,7 +667,7 @@ node_print(const struct node *n, const char *cmdline_options)
 {
 	const struct node *child;
 
-	TAILQ_FOREACH(child, &n->n_children, n_next)
+	TAILQ_FOREACH (child, &n->n_children, n_next)
 		node_print_indent(child, cmdline_options, 0);
 }
 
@@ -678,7 +678,7 @@ node_find_x(struct node *node, const char *path)
 	char *tmp;
 	size_t tmplen;
 
-	//log_debugx("looking up %s in %s", path, node_path(node));
+	// log_debugx("looking up %s in %s", path, node_path(node));
 
 	if (!node_is_direct_key(node)) {
 		tmp = node_path(node);
@@ -689,8 +689,9 @@ node_find_x(struct node *node, const char *path)
 		}
 		if (path[tmplen] != '/' && path[tmplen] != '\0') {
 			/*
-			 * If we have two map entries like 'foo' and 'foobar', make
-			 * sure the search for 'foobar' won't match 'foo' instead.
+			 * If we have two map entries like 'foo' and 'foobar',
+			 * make sure the search for 'foobar' won't match 'foo'
+			 * instead.
 			 */
 			free(tmp);
 			return (NULL);
@@ -698,7 +699,7 @@ node_find_x(struct node *node, const char *path)
 		free(tmp);
 	}
 
-	TAILQ_FOREACH(child, &node->n_children, n_next) {
+	TAILQ_FOREACH (child, &node->n_children, n_next) {
 		found = node_find_x(child, path);
 		if (found != NULL)
 			return (found);
@@ -739,8 +740,8 @@ node_find(struct node *root, const char *path)
 static void
 parse_map_yyin(struct node *parent, const char *map, const char *executable_key)
 {
-	char *key = NULL, *options = NULL, *mountpoint = NULL,
-	    *options2 = NULL, *location = NULL;
+	char *key = NULL, *options = NULL, *mountpoint = NULL, *options2 = NULL,
+	     *location = NULL;
 	int ret;
 	struct node *node;
 
@@ -803,7 +804,8 @@ parse_map_yyin(struct node *parent, const char *map, const char *executable_key)
 		 */
 		if (strcmp(key, "/") == 0) {
 			log_warnx("nonsensical map key \"/\" at %s, line %d; "
-			    "ignoring map entry ", map, lineno);
+				  "ignoring map entry ",
+			    map, lineno);
 
 			/*
 			 * Skip the rest of the entry.
@@ -816,19 +818,23 @@ parse_map_yyin(struct node *parent, const char *map, const char *executable_key)
 			continue;
 		}
 
-		//log_debugx("adding map node, %s", key);
+		// log_debugx("adding map node, %s", key);
 		node = node_new(parent, key, options, NULL, map, lineno);
 		key = options = NULL;
 
 		for (;;) {
 			if (yytext[0] == '/') {
 				if (mountpoint != NULL) {
-					log_errx(1, "duplicated mountpoint "
-					    "in %s, line %d", map, lineno);
+					log_errx(1,
+					    "duplicated mountpoint "
+					    "in %s, line %d",
+					    map, lineno);
 				}
 				if (options2 != NULL || location != NULL) {
-					log_errx(1, "mountpoint out of order "
-					    "in %s, line %d", map, lineno);
+					log_errx(1,
+					    "mountpoint out of order "
+					    "in %s, line %d",
+					    map, lineno);
 				}
 				mountpoint = checked_strdup(yytext);
 				goto again;
@@ -836,31 +842,39 @@ parse_map_yyin(struct node *parent, const char *map, const char *executable_key)
 
 			if (yytext[0] == '-') {
 				if (options2 != NULL) {
-					log_errx(1, "duplicated options "
-					    "in %s, line %d", map, lineno);
+					log_errx(1,
+					    "duplicated options "
+					    "in %s, line %d",
+					    map, lineno);
 				}
 				if (location != NULL) {
-					log_errx(1, "options out of order "
-					    "in %s, line %d", map, lineno);
+					log_errx(1,
+					    "options out of order "
+					    "in %s, line %d",
+					    map, lineno);
 				}
 				options2 = checked_strdup(yytext + 1);
 				goto again;
 			}
 
 			if (location != NULL) {
-				log_errx(1, "too many arguments "
-				    "in %s, line %d", map, lineno);
+				log_errx(1,
+				    "too many arguments "
+				    "in %s, line %d",
+				    map, lineno);
 			}
 
 			/*
-			 * If location field starts with colon, e.g. ":/dev/cd0",
-			 * then strip it.
+			 * If location field starts with colon, e.g.
+			 * ":/dev/cd0", then strip it.
 			 */
 			if (yytext[0] == ':') {
 				location = checked_strdup(yytext + 1);
 				if (location[0] == '\0') {
-					log_errx(1, "empty location in %s, "
-					    "line %d", map, lineno);
+					log_errx(1,
+					    "empty location in %s, "
+					    "line %d",
+					    map, lineno);
 				}
 			} else {
 				location = checked_strdup(yytext);
@@ -875,16 +889,18 @@ parse_map_yyin(struct node *parent, const char *map, const char *executable_key)
 			log_debugx("adding map node, %s %s %s",
 			    mountpoint, options2, location);
 #endif
-			node_new(node, mountpoint, options2, location,
-			    map, lineno);
+			node_new(node, mountpoint, options2, location, map,
+			    lineno);
 			mountpoint = options2 = location = NULL;
-again:
+		again:
 			ret = yylex();
 			if (ret == 0 || ret == NEWLINE) {
 				if (mountpoint != NULL || options2 != NULL ||
 				    location != NULL) {
-					log_errx(1, "truncated entry "
-					    "in %s, line %d", map, lineno);
+					log_errx(1,
+					    "truncated entry "
+					    "in %s, line %d",
+					    map, lineno);
 				}
 				break;
 			}
@@ -1004,8 +1020,10 @@ parse_included_map(struct node *parent, const char *map)
 
 	error = access(AUTO_INCLUDE_PATH, F_OK);
 	if (error != 0) {
-		log_errx(1, "directory services not configured;"
-		    " %s does not exist", AUTO_INCLUDE_PATH);
+		log_errx(1,
+		    "directory services not configured;"
+		    " %s does not exist",
+		    AUTO_INCLUDE_PATH);
 	}
 
 	yyin = auto_popen(AUTO_INCLUDE_PATH, map, NULL);
@@ -1059,7 +1077,8 @@ parse_map(struct node *parent, const char *map, const char *key,
 		error = access(path, F_OK);
 		if (error != 0) {
 			log_debugx("map file \"%s\" does not exist; falling "
-			    "back to directory services", path);
+				   "back to directory services",
+			    path);
 			return (parse_included_map(parent, map));
 		}
 	}
@@ -1122,7 +1141,7 @@ parse_master_yyin(struct node *root, const char *master)
 		ret = yylex();
 		if (ret == 0 || ret == NEWLINE) {
 			if (mountpoint != NULL) {
-				//log_debugx("adding map for %s", mountpoint);
+				// log_debugx("adding map for %s", mountpoint);
 				node_new_map(root, mountpoint, options, map,
 				    master, lineno);
 			}
@@ -1143,8 +1162,8 @@ parse_master_yyin(struct node *root, const char *master)
 			 */
 			options = checked_strdup(yytext + 1);
 		} else {
-			log_errx(1, "too many arguments at %s, line %d",
-			    master, lineno);
+			log_errx(1, "too many arguments at %s, line %d", master,
+			    lineno);
 		}
 	}
 }
@@ -1231,6 +1250,7 @@ main(int argc, char **argv)
 	else if (strcmp(cmdname, "autounmountd") == 0)
 		return (main_autounmountd(argc, argv));
 	else
-		log_errx(1, "binary name should be either \"automount\", "
+		log_errx(1,
+		    "binary name should be either \"automount\", "
 		    "\"automountd\", or \"autounmountd\"");
 }

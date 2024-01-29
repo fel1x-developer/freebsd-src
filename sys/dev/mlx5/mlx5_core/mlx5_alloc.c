@@ -23,16 +23,17 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <linux/errno.h>
-#include <linux/slab.h>
-#include <linux/mm.h>
-#include <linux/dma-mapping.h>
-#include <linux/vmalloc.h>
 #include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
+
+#include <linux/dma-mapping.h>
+#include <linux/errno.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <linux/vmalloc.h>
 
 /* Handling for queue buffers -- we allocate a bunch of memory and
  * register it in a memory region at HCA virtual address 0.  If the
@@ -56,7 +57,8 @@ mlx5_buf_load_mem_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 	if (error == 0) {
 		for (x = 0; x != nseg; x++) {
 			buf->page_list[x] = segs[x].ds_addr;
-			KASSERT(segs[x].ds_len == PAGE_SIZE, ("Invalid segment size"));
+			KASSERT(segs[x].ds_len == PAGE_SIZE,
+			    ("Invalid segment size"));
 		}
 		buf->load_done = MLX5_LOAD_ST_SUCCESS;
 	} else {
@@ -69,8 +71,8 @@ mlx5_buf_load_mem_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 }
 
 int
-mlx5_buf_alloc(struct mlx5_core_dev *dev, int size,
-    int max_direct, struct mlx5_buf *buf)
+mlx5_buf_alloc(struct mlx5_core_dev *dev, int size, int max_direct,
+    struct mlx5_buf *buf)
 {
 	int err;
 
@@ -81,18 +83,17 @@ mlx5_buf_alloc(struct mlx5_core_dev *dev, int size,
 	buf->page_list = kcalloc(buf->npages, sizeof(*buf->page_list),
 	    GFP_KERNEL);
 
-	err = -bus_dma_tag_create(
-	    bus_get_dma_tag(dev->pdev->dev.bsddev),
-	    PAGE_SIZE,		/* alignment */
-	    0,			/* no boundary */
-	    BUS_SPACE_MAXADDR,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,	/* highaddr */
-	    NULL, NULL,		/* filter, filterarg */
-	    PAGE_SIZE * buf->npages,	/* maxsize */
-	    buf->npages,	/* nsegments */
-	    PAGE_SIZE,		/* maxsegsize */
-	    0,			/* flags */
-	    NULL, NULL,		/* lockfunc, lockfuncarg */
+	err = -bus_dma_tag_create(bus_get_dma_tag(dev->pdev->dev.bsddev),
+	    PAGE_SIZE,		     /* alignment */
+	    0,			     /* no boundary */
+	    BUS_SPACE_MAXADDR,	     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    PAGE_SIZE * buf->npages, /* maxsize */
+	    buf->npages,	     /* nsegments */
+	    PAGE_SIZE,		     /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockfuncarg */
 	    &buf->dma_tag);
 
 	if (err != 0)
@@ -106,10 +107,9 @@ mlx5_buf_alloc(struct mlx5_core_dev *dev, int size,
 
 	/* load memory into DMA */
 	MLX5_DMA_LOCK(dev);
-	err = bus_dmamap_load(
-	    buf->dma_tag, buf->dma_map, buf->direct.buf,
-	    PAGE_SIZE * buf->npages, &mlx5_buf_load_mem_cb,
-	    buf, BUS_DMA_WAITOK | BUS_DMA_COHERENT);
+	err = bus_dmamap_load(buf->dma_tag, buf->dma_map, buf->direct.buf,
+	    PAGE_SIZE * buf->npages, &mlx5_buf_load_mem_cb, buf,
+	    BUS_DMA_WAITOK | BUS_DMA_COHERENT);
 
 	while (buf->load_done == MLX5_LOAD_ST_NONE)
 		MLX5_DMA_WAIT(dev);
@@ -125,7 +125,8 @@ mlx5_buf_alloc(struct mlx5_core_dev *dev, int size,
 	memset(buf->direct.buf, 0, PAGE_SIZE * buf->npages);
 
 	/* flush memory to RAM */
-	bus_dmamap_sync(buf->dev->cmd.dma_tag, buf->dma_map, BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(buf->dev->cmd.dma_tag, buf->dma_map,
+	    BUS_DMASYNC_PREWRITE);
 	return (0);
 
 err_dma_load:
@@ -137,7 +138,8 @@ err_dma_tag:
 	return (err);
 }
 
-void mlx5_buf_free(struct mlx5_core_dev *dev, struct mlx5_buf *buf)
+void
+mlx5_buf_free(struct mlx5_core_dev *dev, struct mlx5_buf *buf)
 {
 
 	bus_dmamap_unload(buf->dma_tag, buf->dma_map);
@@ -147,7 +149,8 @@ void mlx5_buf_free(struct mlx5_core_dev *dev, struct mlx5_buf *buf)
 }
 EXPORT_SYMBOL_GPL(mlx5_buf_free);
 
-static struct mlx5_db_pgdir *mlx5_alloc_db_pgdir(struct mlx5_core_dev *dev)
+static struct mlx5_db_pgdir *
+mlx5_alloc_db_pgdir(struct mlx5_core_dev *dev)
 {
 	struct mlx5_db_pgdir *pgdir;
 
@@ -174,8 +177,8 @@ static struct mlx5_db_pgdir *mlx5_alloc_db_pgdir(struct mlx5_core_dev *dev)
 	return pgdir;
 }
 
-static int mlx5_alloc_db_from_pgdir(struct mlx5_db_pgdir *pgdir,
-				    struct mlx5_db *db)
+static int
+mlx5_alloc_db_from_pgdir(struct mlx5_db_pgdir *pgdir, struct mlx5_db *db)
 {
 	int offset;
 	int i;
@@ -187,10 +190,10 @@ static int mlx5_alloc_db_from_pgdir(struct mlx5_db_pgdir *pgdir,
 	__clear_bit(i, pgdir->bitmap);
 
 	db->u.pgdir = pgdir;
-	db->index   = i;
+	db->index = i;
 	offset = db->index * L1_CACHE_BYTES;
-	db->db      = pgdir->db_page + offset / sizeof(*pgdir->db_page);
-	db->dma     = pgdir->db_dma  + offset;
+	db->db = pgdir->db_page + offset / sizeof(*pgdir->db_page);
+	db->dma = pgdir->db_dma + offset;
 
 	db->db[0] = 0;
 	db->db[1] = 0;
@@ -198,16 +201,16 @@ static int mlx5_alloc_db_from_pgdir(struct mlx5_db_pgdir *pgdir,
 	return 0;
 }
 
-int mlx5_db_alloc(struct mlx5_core_dev *dev, struct mlx5_db *db)
+int
+mlx5_db_alloc(struct mlx5_core_dev *dev, struct mlx5_db *db)
 {
 	struct mlx5_db_pgdir *pgdir;
 	int ret = 0;
 
 	mutex_lock(&dev->priv.pgdir_mutex);
 
-	list_for_each_entry(pgdir, &dev->priv.pgdir_list, list)
-		if (!mlx5_alloc_db_from_pgdir(pgdir, db))
-			goto out;
+	list_for_each_entry(pgdir, &dev->priv.pgdir_list,
+	    list) if (!mlx5_alloc_db_from_pgdir(pgdir, db)) goto out;
 
 	pgdir = mlx5_alloc_db_pgdir(dev);
 	if (!pgdir) {
@@ -227,7 +230,8 @@ out:
 }
 EXPORT_SYMBOL_GPL(mlx5_db_alloc);
 
-void mlx5_db_free(struct mlx5_core_dev *dev, struct mlx5_db *db)
+void
+mlx5_db_free(struct mlx5_core_dev *dev, struct mlx5_db *db)
 {
 	mutex_lock(&dev->priv.pgdir_mutex);
 

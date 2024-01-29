@@ -37,8 +37,8 @@
 
 #include <geom/geom.h>
 #include <geom/geom_dbg.h>
-#include <geom/vinum/geom_vinum_var.h>
 #include <geom/vinum/geom_vinum.h>
+#include <geom/vinum/geom_vinum_var.h>
 
 void
 gv_rename(struct g_geom *gp, struct gctl_req *req)
@@ -75,7 +75,7 @@ gv_rename(struct g_geom *gp, struct gctl_req *req)
 	switch (type) {
 	case GV_TYPE_VOL:
 		v = gv_find_vol(sc, object);
-		if (v == NULL) 	{
+		if (v == NULL) {
 			gctl_error(req, "unknown volume '%s'", object);
 			return;
 		}
@@ -134,9 +134,10 @@ gv_rename_drive(struct gv_softc *sc, struct gv_drive *d, char *newname,
 
 	strlcpy(d->name, newname, sizeof(d->name));
 	if (d->hdr != NULL)
-		strlcpy(d->hdr->label.name, newname, sizeof(d->hdr->label.name));
+		strlcpy(d->hdr->label.name, newname,
+		    sizeof(d->hdr->label.name));
 
-	LIST_FOREACH(s, &d->subdisks, from_drive)
+	LIST_FOREACH (s, &d->subdisks, from_drive)
 		strlcpy(s->drive, d->name, sizeof(s->drive));
 
 	return (0);
@@ -163,15 +164,17 @@ gv_rename_plex(struct gv_softc *sc, struct gv_plex *p, char *newname, int flags)
 	 */
 	ptr = strrchr(newname, '.');
 	if (ptr == NULL) {
-		G_VINUM_DEBUG(0, "proposed plex name '%s' is not a valid plex "
-		    "name", newname);
+		G_VINUM_DEBUG(0,
+		    "proposed plex name '%s' is not a valid plex "
+		    "name",
+		    newname);
 		return (GV_ERR_INVNAME);
 	}
 
 	strlcpy(p->name, newname, sizeof(p->name));
 
 	/* Fix up references and potentially rename subdisks. */
-	LIST_FOREACH(s, &p->subdisks, in_plex) {
+	LIST_FOREACH (s, &p->subdisks, in_plex) {
 		strlcpy(s->plex, p->name, sizeof(s->plex));
 		if (flags & GV_FLAG_R) {
 			/*
@@ -210,7 +213,7 @@ gv_rename_sd(struct gv_softc *sc, struct gv_sd *s, char *newname, int flags)
 
 	/* Locate the sd number part of the sd names. */
 	dot1 = strchr(newname, '.');
-	if (dot1 == NULL || (dot2 = strchr(dot1 +  1, '.')) == NULL) {
+	if (dot1 == NULL || (dot2 = strchr(dot1 + 1, '.')) == NULL) {
 		G_VINUM_DEBUG(0, "proposed sd name '%s' is not a valid sd name",
 		    newname);
 		return (GV_ERR_INVNAME);
@@ -241,7 +244,7 @@ gv_rename_vol(struct gv_softc *sc, struct gv_volume *v, char *newname,
 	strlcpy(v->name, newname, sizeof(v->name));
 
 	/* Fix up references and potentially rename plexes. */
-	LIST_FOREACH(p, &v->plexes, in_volume) {
+	LIST_FOREACH (p, &v->plexes, in_volume) {
 		strlcpy(p->volume, v->name, sizeof(p->volume));
 		if (flags & GV_FLAG_R) {
 			/*
@@ -250,7 +253,8 @@ gv_rename_vol(struct gv_softc *sc, struct gv_volume *v, char *newname,
 			 */
 			ptr = strrchr(p->name, '.');
 			ptr++;
-			snprintf(newplex, sizeof(newplex), "%s.%s", v->name, ptr);
+			snprintf(newplex, sizeof(newplex), "%s.%s", v->name,
+			    ptr);
 			err = gv_rename_plex(sc, p, newplex, flags);
 			if (err)
 				return (err);

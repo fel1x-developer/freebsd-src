@@ -35,6 +35,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
@@ -42,16 +43,15 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/cpufunc.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
 
-#include <dev/pci/pcivar.h>
 #include <x86/pci_cfgreg.h>
 
 #include <dev/amdsmn/amdsmn.h>
+#include <dev/pci/pcivar.h>
 
 typedef enum {
 	CORE0_SENSOR0,
@@ -74,19 +74,19 @@ typedef enum {
 } amdsensor_t;
 
 struct amdtemp_softc {
-	int		sc_ncores;
-	int		sc_ntemps;
-	int		sc_flags;
-#define	AMDTEMP_FLAG_CS_SWAP	0x01	/* ThermSenseCoreSel is inverted. */
-#define	AMDTEMP_FLAG_CT_10BIT	0x02	/* CurTmp is 10-bit wide. */
-#define	AMDTEMP_FLAG_ALT_OFFSET	0x04	/* CurTmp starts at -28C. */
-	int32_t		sc_offset;
-	int32_t		sc_temp_base;
-	int32_t		(*sc_gettemp)(device_t, amdsensor_t);
+	int sc_ncores;
+	int sc_ntemps;
+	int sc_flags;
+#define AMDTEMP_FLAG_CS_SWAP 0x01    /* ThermSenseCoreSel is inverted. */
+#define AMDTEMP_FLAG_CT_10BIT 0x02   /* CurTmp is 10-bit wide. */
+#define AMDTEMP_FLAG_ALT_OFFSET 0x04 /* CurTmp starts at -28C. */
+	int32_t sc_offset;
+	int32_t sc_temp_base;
+	int32_t (*sc_gettemp)(device_t, amdsensor_t);
 	struct sysctl_oid *sc_sysctl_cpu[MAXCPU];
 	struct intr_config_hook sc_ich;
-	device_t	sc_smn;
-	struct mtx	sc_lock;
+	device_t sc_smn;
+	struct mtx sc_lock;
 };
 
 /*
@@ -94,58 +94,58 @@ struct amdtemp_softc {
  * family and model numbers.  Do not make up fictitious family or model numbers
  * when adding support for new devices.
  */
-#define	VENDORID_AMD		0x1022
-#define	DEVICEID_AMD_MISC0F	0x1103
-#define	DEVICEID_AMD_MISC10	0x1203
-#define	DEVICEID_AMD_MISC11	0x1303
-#define	DEVICEID_AMD_MISC14	0x1703
-#define	DEVICEID_AMD_MISC15	0x1603
-#define	DEVICEID_AMD_MISC15_M10H	0x1403
-#define	DEVICEID_AMD_MISC15_M30H	0x141d
-#define	DEVICEID_AMD_MISC15_M60H_ROOT	0x1576
-#define	DEVICEID_AMD_MISC16	0x1533
-#define	DEVICEID_AMD_MISC16_M30H	0x1583
-#define	DEVICEID_AMD_HOSTB17H_ROOT	0x1450
-#define	DEVICEID_AMD_HOSTB17H_M10H_ROOT	0x15d0
-#define	DEVICEID_AMD_HOSTB17H_M30H_ROOT	0x1480	/* Also M70H, F19H M00H/M20H */
-#define	DEVICEID_AMD_HOSTB17H_M60H_ROOT	0x1630
-#define	DEVICEID_AMD_HOSTB19H_M60H_ROOT	0x14d8
+#define VENDORID_AMD 0x1022
+#define DEVICEID_AMD_MISC0F 0x1103
+#define DEVICEID_AMD_MISC10 0x1203
+#define DEVICEID_AMD_MISC11 0x1303
+#define DEVICEID_AMD_MISC14 0x1703
+#define DEVICEID_AMD_MISC15 0x1603
+#define DEVICEID_AMD_MISC15_M10H 0x1403
+#define DEVICEID_AMD_MISC15_M30H 0x141d
+#define DEVICEID_AMD_MISC15_M60H_ROOT 0x1576
+#define DEVICEID_AMD_MISC16 0x1533
+#define DEVICEID_AMD_MISC16_M30H 0x1583
+#define DEVICEID_AMD_HOSTB17H_ROOT 0x1450
+#define DEVICEID_AMD_HOSTB17H_M10H_ROOT 0x15d0
+#define DEVICEID_AMD_HOSTB17H_M30H_ROOT 0x1480 /* Also M70H, F19H M00H/M20H */
+#define DEVICEID_AMD_HOSTB17H_M60H_ROOT 0x1630
+#define DEVICEID_AMD_HOSTB19H_M60H_ROOT 0x14d8
 
 static const struct amdtemp_product {
-	uint16_t	amdtemp_vendorid;
-	uint16_t	amdtemp_deviceid;
+	uint16_t amdtemp_vendorid;
+	uint16_t amdtemp_deviceid;
 	/*
 	 * 0xFC register is only valid on the D18F3 PCI device; SMN temp
 	 * drivers do not attach to that device.
 	 */
-	bool		amdtemp_has_cpuid;
+	bool amdtemp_has_cpuid;
 } amdtemp_products[] = {
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC0F, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC10, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC11, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC14, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC15, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC15_M10H, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC15_M30H, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC15_M60H_ROOT, false },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC16, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_MISC16_M30H, true },
-	{ VENDORID_AMD,	DEVICEID_AMD_HOSTB17H_ROOT, false },
-	{ VENDORID_AMD,	DEVICEID_AMD_HOSTB17H_M10H_ROOT, false },
-	{ VENDORID_AMD,	DEVICEID_AMD_HOSTB17H_M30H_ROOT, false },
-	{ VENDORID_AMD,	DEVICEID_AMD_HOSTB17H_M60H_ROOT, false },
-	{ VENDORID_AMD,	DEVICEID_AMD_HOSTB19H_M60H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC0F, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC10, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC11, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC14, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC15, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC15_M10H, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC15_M30H, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC15_M60H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC16, true },
+	{ VENDORID_AMD, DEVICEID_AMD_MISC16_M30H, true },
+	{ VENDORID_AMD, DEVICEID_AMD_HOSTB17H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_HOSTB17H_M10H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_HOSTB17H_M30H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_HOSTB17H_M60H_ROOT, false },
+	{ VENDORID_AMD, DEVICEID_AMD_HOSTB19H_M60H_ROOT, false },
 };
 
 /*
  * Reported Temperature Control Register, family 0Fh-15h (some models), 16h.
  */
-#define	AMDTEMP_REPTMP_CTRL	0xa4
+#define AMDTEMP_REPTMP_CTRL 0xa4
 
-#define	AMDTEMP_REPTMP10H_CURTMP_MASK	0x7ff
-#define	AMDTEMP_REPTMP10H_CURTMP_SHIFT	21
-#define	AMDTEMP_REPTMP10H_TJSEL_MASK	0x3
-#define	AMDTEMP_REPTMP10H_TJSEL_SHIFT	16
+#define AMDTEMP_REPTMP10H_CURTMP_MASK 0x7ff
+#define AMDTEMP_REPTMP10H_CURTMP_SHIFT 21
+#define AMDTEMP_REPTMP10H_TJSEL_MASK 0x3
+#define AMDTEMP_REPTMP10H_TJSEL_SHIFT 16
 
 /*
  * Reported Temperature, Family 15h, M60+
@@ -153,7 +153,7 @@ static const struct amdtemp_product {
  * Same register bit definitions as other Family 15h CPUs, but access is
  * indirect via SMN, like Family 17h.
  */
-#define	AMDTEMP_15H_M60H_REPTMP_CTRL	0xd8200ca4
+#define AMDTEMP_15H_M60H_REPTMP_CTRL 0xd8200ca4
 
 /*
  * Reported Temperature, Family 17h
@@ -163,70 +163,70 @@ static const struct amdtemp_product {
  * a range 0.."225C" (probable typo for 255C), and when set changes the range
  * to -49..206C.
  */
-#define	AMDTEMP_17H_CUR_TMP		0x59800
-#define	AMDTEMP_17H_CUR_TMP_RANGE_SEL	(1u << 19)
+#define AMDTEMP_17H_CUR_TMP 0x59800
+#define AMDTEMP_17H_CUR_TMP_RANGE_SEL (1u << 19)
 /*
  * Bits 16-17, when set, mean that CUR_TMP is read-write. When it is, the
  * 49 degree offset should apply as well. This was revealed in a Linux
  * patch from an AMD employee.
  */
-#define	AMDTEMP_17H_CUR_TMP_TJ_SEL	((1u << 17) | (1u << 16))
+#define AMDTEMP_17H_CUR_TMP_TJ_SEL ((1u << 17) | (1u << 16))
 /*
  * The following register set was discovered experimentally by Ondrej Čerman
  * and collaborators, but is not (yet) documented in a PPR/OSRR (other than
  * the M70H PPR SMN memory map showing [0x59800, +0x314] as allocated to
  * SMU::THM).  It seems plausible and the Linux sensor folks have adopted it.
  */
-#define	AMDTEMP_17H_CCD_TMP_BASE	0x59954
-#define	AMDTEMP_17H_CCD_TMP_VALID	(1u << 11)
+#define AMDTEMP_17H_CCD_TMP_BASE 0x59954
+#define AMDTEMP_17H_CCD_TMP_VALID (1u << 11)
 
-#define	AMDTEMP_ZEN4_CCD_TMP_BASE	0x59b08
+#define AMDTEMP_ZEN4_CCD_TMP_BASE 0x59b08
 
 /*
  * AMD temperature range adjustment, in deciKelvins (i.e., 49.0 Celsius).
  */
-#define	AMDTEMP_CURTMP_RANGE_ADJUST	490
+#define AMDTEMP_CURTMP_RANGE_ADJUST 490
 
 /*
  * Thermaltrip Status Register (Family 0Fh only)
  */
-#define	AMDTEMP_THERMTP_STAT	0xe4
-#define	AMDTEMP_TTSR_SELCORE	0x04
-#define	AMDTEMP_TTSR_SELSENSOR	0x40
+#define AMDTEMP_THERMTP_STAT 0xe4
+#define AMDTEMP_TTSR_SELCORE 0x04
+#define AMDTEMP_TTSR_SELSENSOR 0x40
 
 /*
  * DRAM Configuration High Register
  */
-#define	AMDTEMP_DRAM_CONF_HIGH	0x94	/* Function 2 */
-#define	AMDTEMP_DRAM_MODE_DDR3	0x0100
+#define AMDTEMP_DRAM_CONF_HIGH 0x94 /* Function 2 */
+#define AMDTEMP_DRAM_MODE_DDR3 0x0100
 
 /*
  * CPU Family/Model Register
  */
-#define	AMDTEMP_CPUID		0xfc
+#define AMDTEMP_CPUID 0xfc
 
 /*
  * Device methods.
  */
-static void 	amdtemp_identify(driver_t *driver, device_t parent);
-static int	amdtemp_probe(device_t dev);
-static int	amdtemp_attach(device_t dev);
-static void	amdtemp_intrhook(void *arg);
-static int	amdtemp_detach(device_t dev);
-static int32_t	amdtemp_gettemp0f(device_t dev, amdsensor_t sensor);
-static int32_t	amdtemp_gettemp(device_t dev, amdsensor_t sensor);
-static int32_t	amdtemp_gettemp15hm60h(device_t dev, amdsensor_t sensor);
-static int32_t	amdtemp_gettemp17h(device_t dev, amdsensor_t sensor);
-static void	amdtemp_probe_ccd_sensors17h(device_t dev, uint32_t model);
-static void	amdtemp_probe_ccd_sensors19h(device_t dev, uint32_t model);
-static int	amdtemp_sysctl(SYSCTL_HANDLER_ARGS);
+static void amdtemp_identify(driver_t *driver, device_t parent);
+static int amdtemp_probe(device_t dev);
+static int amdtemp_attach(device_t dev);
+static void amdtemp_intrhook(void *arg);
+static int amdtemp_detach(device_t dev);
+static int32_t amdtemp_gettemp0f(device_t dev, amdsensor_t sensor);
+static int32_t amdtemp_gettemp(device_t dev, amdsensor_t sensor);
+static int32_t amdtemp_gettemp15hm60h(device_t dev, amdsensor_t sensor);
+static int32_t amdtemp_gettemp17h(device_t dev, amdsensor_t sensor);
+static void amdtemp_probe_ccd_sensors17h(device_t dev, uint32_t model);
+static void amdtemp_probe_ccd_sensors19h(device_t dev, uint32_t model);
+static int amdtemp_sysctl(SYSCTL_HANDLER_ARGS);
 
 static device_method_t amdtemp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	amdtemp_identify),
-	DEVMETHOD(device_probe,		amdtemp_probe),
-	DEVMETHOD(device_attach,	amdtemp_attach),
-	DEVMETHOD(device_detach,	amdtemp_detach),
+	DEVMETHOD(device_identify, amdtemp_identify),
+	DEVMETHOD(device_probe, amdtemp_probe),
+	DEVMETHOD(device_attach, amdtemp_attach),
+	DEVMETHOD(device_detach, amdtemp_detach),
 
 	DEVMETHOD_END
 };
@@ -352,8 +352,8 @@ amdtemp_attach(device_t dev)
 	 * The ancient 0x0F family of devices only supports this register from
 	 * models 40h+.
 	 */
-	if (product->amdtemp_has_cpuid && (family > 0x0f ||
-	    (family == 0x0f && model >= 0x40))) {
+	if (product->amdtemp_has_cpuid &&
+	    (family > 0x0f || (family == 0x0f && model >= 0x40))) {
 		cpuid = pci_read_config(device_get_parent(dev), AMDTEMP_CPUID,
 		    4);
 		family = CPUID_TO_FAMILY(cpuid);
@@ -399,15 +399,12 @@ amdtemp_attach(device_t dev)
 				break;
 			case 0x6b: /* Socket AM2 and ASB1 (2 cores) */
 				if (bid != 0x0b && bid != 0x0c)
-					sc->sc_flags |=
-					    AMDTEMP_FLAG_ALT_OFFSET;
+					sc->sc_flags |= AMDTEMP_FLAG_ALT_OFFSET;
 				break;
 			case 0x6f: /* Socket AM2 and ASB1 (1 core) */
 			case 0x7f:
-				if (bid != 0x07 && bid != 0x09 &&
-				    bid != 0x0c)
-					sc->sc_flags |=
-					    AMDTEMP_FLAG_ALT_OFFSET;
+				if (bid != 0x07 && bid != 0x09 && bid != 0x0c)
+					sc->sc_flags |= AMDTEMP_FLAG_ALT_OFFSET;
 				break;
 			default:
 				sc->sc_flags |= AMDTEMP_FLAG_ALT_OFFSET;
@@ -430,14 +427,15 @@ amdtemp_attach(device_t dev)
 		 */
 		do_cpuid(0x80000001, regs);
 		switch ((regs[1] >> 28) & 0xf) {
-		case 0:	/* Socket F */
+		case 0: /* Socket F */
 			erratum319 = 1;
 			break;
-		case 1:	/* Socket AM2+ or AM3 */
+		case 1: /* Socket AM2+ or AM3 */
 			if ((pci_cfgregread(pci_get_domain(dev),
-			    pci_get_bus(dev), pci_get_slot(dev), 2,
-			    AMDTEMP_DRAM_CONF_HIGH, 2) &
-			    AMDTEMP_DRAM_MODE_DDR3) != 0 || model > 0x04 ||
+				 pci_get_bus(dev), pci_get_slot(dev), 2,
+				 AMDTEMP_DRAM_CONF_HIGH, 2) &
+				AMDTEMP_DRAM_MODE_DDR3) != 0 ||
+			    model > 0x04 ||
 			    (model == 0x04 && (cpuid & CPUID_STEPPING) >= 3))
 				break;
 			/* XXX 00100F42h (RB-C2) exists in both formats. */
@@ -475,8 +473,8 @@ amdtemp_attach(device_t dev)
 	}
 
 	if (needsmn) {
-		sc->sc_smn = device_find_child(
-		    device_get_parent(dev), "amdsmn", -1);
+		sc->sc_smn = device_find_child(device_get_parent(dev), "amdsmn",
+		    -1);
 		if (sc->sc_smn == NULL) {
 			if (bootverbose)
 				device_printf(dev, "No SMN device found\n");
@@ -486,7 +484,8 @@ amdtemp_attach(device_t dev)
 
 	/* Find number of cores per package. */
 	sc->sc_ncores = (amd_feature2 & AMDID2_CMP) != 0 ?
-	    (cpu_procinfo2 & AMDID_CMP_CORES) + 1 : 1;
+	    (cpu_procinfo2 & AMDID_CMP_CORES) + 1 :
+	    1;
 	if (sc->sc_ncores > MAXCPU)
 		return (ENXIO);
 
@@ -507,19 +506,16 @@ amdtemp_attach(device_t dev)
 	TUNABLE_INT_FETCH(tn, &sc->sc_offset);
 
 	sysctlctx = device_get_sysctl_ctx(dev);
-	SYSCTL_ADD_INT(sysctlctx,
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "sensor_offset", CTLFLAG_RW, &sc->sc_offset, 0,
+	SYSCTL_ADD_INT(sysctlctx, SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
+	    OID_AUTO, "sensor_offset", CTLFLAG_RW, &sc->sc_offset, 0,
 	    "Temperature sensor offset");
 	sysctlnode = SYSCTL_ADD_NODE(sysctlctx,
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "core0", CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "Core 0");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "core0",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "Core 0");
 
-	SYSCTL_ADD_PROC(sysctlctx,
-	    SYSCTL_CHILDREN(sysctlnode),
-	    OID_AUTO, "sensor0",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    dev, CORE0_SENSOR0, amdtemp_sysctl, "IK",
+	SYSCTL_ADD_PROC(sysctlctx, SYSCTL_CHILDREN(sysctlnode), OID_AUTO,
+	    "sensor0", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+	    CORE0_SENSOR0, amdtemp_sysctl, "IK",
 	    "Core 0 / Sensor 0 temperature");
 
 	sc->sc_temp_base = AMDTEMP_17H_CCD_TMP_BASE;
@@ -529,31 +525,28 @@ amdtemp_attach(device_t dev)
 	else if (family == 0x19)
 		amdtemp_probe_ccd_sensors19h(dev, model);
 	else if (sc->sc_ntemps > 1) {
-		SYSCTL_ADD_PROC(sysctlctx,
-		    SYSCTL_CHILDREN(sysctlnode),
+		SYSCTL_ADD_PROC(sysctlctx, SYSCTL_CHILDREN(sysctlnode),
 		    OID_AUTO, "sensor1",
-		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    dev, CORE0_SENSOR1, amdtemp_sysctl, "IK",
+		    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+		    CORE0_SENSOR1, amdtemp_sysctl, "IK",
 		    "Core 0 / Sensor 1 temperature");
 
 		if (sc->sc_ncores > 1) {
 			sysctlnode = SYSCTL_ADD_NODE(sysctlctx,
 			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-			    OID_AUTO, "core1", CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    0, "Core 1");
+			    OID_AUTO, "core1", CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
+			    "Core 1");
 
-			SYSCTL_ADD_PROC(sysctlctx,
-			    SYSCTL_CHILDREN(sysctlnode),
+			SYSCTL_ADD_PROC(sysctlctx, SYSCTL_CHILDREN(sysctlnode),
 			    OID_AUTO, "sensor0",
-			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    dev, CORE1_SENSOR0, amdtemp_sysctl, "IK",
+			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+			    CORE1_SENSOR0, amdtemp_sysctl, "IK",
 			    "Core 1 / Sensor 0 temperature");
 
-			SYSCTL_ADD_PROC(sysctlctx,
-			    SYSCTL_CHILDREN(sysctlnode),
+			SYSCTL_ADD_PROC(sysctlctx, SYSCTL_CHILDREN(sysctlnode),
 			    OID_AUTO, "sensor1",
-			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    dev, CORE1_SENSOR1, amdtemp_sysctl, "IK",
+			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+			    CORE1_SENSOR1, amdtemp_sysctl, "IK",
 			    "Core 1 / Sensor 1 temperature");
 		}
 	}
@@ -600,13 +593,13 @@ amdtemp_intrhook(void *arg)
 		if (cpu != NULL) {
 			sysctlctx = device_get_sysctl_ctx(cpu);
 
-			sensor = sc->sc_ntemps > 1 ?
-			    (i == 0 ? CORE0 : CORE1) : CORE0_SENSOR0;
+			sensor = sc->sc_ntemps > 1 ? (i == 0 ? CORE0 : CORE1) :
+						     CORE0_SENSOR0;
 			sc->sc_sysctl_cpu[i] = SYSCTL_ADD_PROC(sysctlctx,
 			    SYSCTL_CHILDREN(device_get_sysctl_tree(cpu)),
 			    OID_AUTO, "temperature",
-			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    dev, sensor, amdtemp_sysctl, "IK",
+			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+			    sensor, amdtemp_sysctl, "IK",
 			    "Current temparature");
 		}
 	}
@@ -659,7 +652,7 @@ amdtemp_sysctl(SYSCTL_HANDLER_ARGS)
 	return (error);
 }
 
-#define	AMDTEMP_ZERO_C_TO_K	2731
+#define AMDTEMP_ZERO_C_TO_K 2731
 
 static int32_t
 amdtemp_gettemp0f(device_t dev, amdsensor_t sensor)
@@ -731,7 +724,7 @@ amdtemp_decode_fam10h_to_16h(int32_t sc_offset, uint32_t val)
 	 */
 	minus49 = (CPUID_TO_FAMILY(cpu_id) >= 0x15 &&
 	    ((val >> AMDTEMP_REPTMP10H_TJSEL_SHIFT) &
-	    AMDTEMP_REPTMP10H_TJSEL_MASK) == 0x3);
+		AMDTEMP_REPTMP10H_TJSEL_MASK) == 0x3);
 
 	return (amdtemp_decode_fam10h_to_17h(sc_offset,
 	    val >> AMDTEMP_REPTMP10H_CURTMP_SHIFT, minus49));
@@ -742,8 +735,8 @@ amdtemp_decode_fam17h_tctl(int32_t sc_offset, uint32_t val)
 {
 	bool minus49;
 
-	minus49 = ((val & AMDTEMP_17H_CUR_TMP_RANGE_SEL) != 0)
-	    || ((val & AMDTEMP_17H_CUR_TMP_TJ_SEL) == AMDTEMP_17H_CUR_TMP_TJ_SEL);
+	minus49 = ((val & AMDTEMP_17H_CUR_TMP_RANGE_SEL) != 0) ||
+	    ((val & AMDTEMP_17H_CUR_TMP_TJ_SEL) == AMDTEMP_17H_CUR_TMP_TJ_SEL);
 	return (amdtemp_decode_fam10h_to_17h(sc_offset,
 	    val >> AMDTEMP_REPTMP10H_CURTMP_SHIFT, minus49));
 }
@@ -785,8 +778,9 @@ amdtemp_gettemp17h(device_t dev, amdsensor_t sensor)
 		return (amdtemp_decode_fam17h_tctl(sc->sc_offset, val));
 	case CCD_BASE ... CCD_MAX:
 		/* Tccd<N> */
-		error = amdsmn_read(sc->sc_smn, sc->sc_temp_base +
-		    (((int)sensor - CCD_BASE) * sizeof(val)), &val);
+		error = amdsmn_read(sc->sc_smn,
+		    sc->sc_temp_base + (((int)sensor - CCD_BASE) * sizeof(val)),
+		    &val);
 		KASSERT(error == 0, ("amdsmn_read2"));
 		KASSERT((val & AMDTEMP_17H_CCD_TMP_VALID) != 0,
 		    ("sensor %d: not valid", (int)sensor));
@@ -806,8 +800,8 @@ amdtemp_probe_ccd_sensors(device_t dev, uint32_t maxreg)
 
 	sc = device_get_softc(dev);
 	for (i = 0; i < maxreg; i++) {
-		error = amdsmn_read(sc->sc_smn, sc->sc_temp_base +
-		    (i * sizeof(val)), &val);
+		error = amdsmn_read(sc->sc_smn,
+		    sc->sc_temp_base + (i * sizeof(val)), &val);
 		if (error != 0)
 			continue;
 		if ((val & AMDTEMP_17H_CCD_TMP_VALID) == 0)
@@ -819,8 +813,8 @@ amdtemp_probe_ccd_sensors(device_t dev, uint32_t maxreg)
 
 		SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
 		    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-		    sensor_name, CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-		    dev, CCD_BASE + i, amdtemp_sysctl, "IK", sensor_descr);
+		    sensor_name, CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+		    CCD_BASE + i, amdtemp_sysctl, "IK", sensor_descr);
 	}
 }
 
@@ -840,8 +834,8 @@ amdtemp_probe_ccd_sensors17h(device_t dev, uint32_t model)
 		_Static_assert((int)NUM_CCDS >= 8, "");
 		break;
 	default:
-		device_printf(dev,
-		    "Unrecognized Family 17h Model: %02xh\n", model);
+		device_printf(dev, "Unrecognized Family 17h Model: %02xh\n",
+		    model);
 		return;
 	}
 
@@ -866,8 +860,8 @@ amdtemp_probe_ccd_sensors19h(device_t dev, uint32_t model)
 		_Static_assert((int)NUM_CCDS >= 8, "");
 		break;
 	default:
-		device_printf(dev,
-		    "Unrecognized Family 19h Model: %02xh\n", model);
+		device_printf(dev, "Unrecognized Family 19h Model: %02xh\n",
+		    model);
 		return;
 	}
 

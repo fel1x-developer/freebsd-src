@@ -1,40 +1,41 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
-#include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
-#include "adf_cfg_strings.h"
-#include "adf_uio_control.h"
-#include "adf_uio_cleanup.h"
-#include "adf_uio.h"
-#include "adf_transport_access_macros.h"
-#include "adf_transport_internal.h"
-#include <sys/bus.h>
-#include <sys/lock.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sx.h>
-#include <sys/malloc.h>
-#include <machine/atomic.h>
-#include <dev/pci/pcivar.h>
-#include <sys/conf.h>
-#include <sys/systm.h>
-#include <sys/queue.h>
-#include <sys/proc.h>
 #include <sys/types.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sx.h>
+
+#include <machine/atomic.h>
+
+#include <dev/pci/pcivar.h>
+
 #include <linux/list.h>
+
 #include "adf_accel_devices.h"
-#include "adf_common_drv.h"
 #include "adf_cfg.h"
 #include "adf_cfg_common.h"
-#include "adf_cfg_user.h"
-#include "adf_heartbeat.h"
 #include "adf_cfg_device.h"
+#include "adf_cfg_strings.h"
+#include "adf_cfg_user.h"
+#include "adf_common_drv.h"
+#include "adf_heartbeat.h"
+#include "adf_transport_access_macros.h"
+#include "adf_transport_internal.h"
+#include "adf_uio.h"
+#include "adf_uio_cleanup.h"
+#include "adf_uio_control.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define DEVICE_NAME "qat_adf_ctl"
 
@@ -52,7 +53,8 @@ static struct cdevsw adf_ctl_cdevsw = {
 
 static struct cdev *adf_ctl_dev;
 
-static void adf_chr_drv_destroy(void)
+static void
+adf_chr_drv_destroy(void)
 {
 	destroy_dev(adf_ctl_dev);
 }
@@ -62,10 +64,11 @@ struct adf_user_addr_info {
 	void *user_addr;
 };
 
-static int adf_chr_drv_create(void)
+static int
+adf_chr_drv_create(void)
 {
 	adf_ctl_dev = make_dev(&adf_ctl_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
-			       DEVICE_NAME);
+	    DEVICE_NAME);
 
 	if (!adf_ctl_dev) {
 		printf("QAT: failed to create device\n");
@@ -76,61 +79,61 @@ err_cdev_del:
 	return EFAULT;
 }
 
-static int adf_ctl_alloc_resources(struct adf_user_cfg_ctl_data **ctl_data,
-				   caddr_t arg)
+static int
+adf_ctl_alloc_resources(struct adf_user_cfg_ctl_data **ctl_data, caddr_t arg)
 {
 	*ctl_data = (struct adf_user_cfg_ctl_data *)arg;
 	return 0;
 }
 
-static int adf_copy_keyval_to_user(struct adf_accel_dev *accel_dev,
-				   struct adf_user_cfg_ctl_data *ctl_data)
+static int
+adf_copy_keyval_to_user(struct adf_accel_dev *accel_dev,
+    struct adf_user_cfg_ctl_data *ctl_data)
 {
 	struct adf_user_cfg_key_val key_val;
 	struct adf_user_cfg_section section;
-	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES] = {0};
+	char val[ADF_CFG_MAX_VAL_LEN_IN_BYTES] = { 0 };
 	char *user_ptr;
 
 	if (copyin(ctl_data->config_section, &section,
-		   sizeof(struct adf_user_cfg_section))) {
+		sizeof(struct adf_user_cfg_section))) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to copy section info\n");
+		    "failed to copy section info\n");
 		return EFAULT;
 	}
 
 	if (copyin(section.params, &key_val,
-		   sizeof(struct adf_user_cfg_key_val))) {
+		sizeof(struct adf_user_cfg_key_val))) {
 		device_printf(GET_DEV(accel_dev), "failed to copy key val\n");
 		return EFAULT;
 	}
 
 	user_ptr = ((char *)section.params) + ADF_CFG_MAX_KEY_LEN_IN_BYTES;
 
-	if (adf_cfg_get_param_value(
-		accel_dev, section.name, key_val.key, val)) {
+	if (adf_cfg_get_param_value(accel_dev, section.name, key_val.key,
+		val)) {
 		return EFAULT;
 	}
 
-	if (copyout(val, user_ptr,
-		    ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
+	if (copyout(val, user_ptr, ADF_CFG_MAX_VAL_LEN_IN_BYTES)) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to copy keyvalue to user!\n");
+		    "failed to copy keyvalue to user!\n");
 		return EFAULT;
 	}
 
 	return 0;
 }
 
-static int adf_ctl_ioctl_get_num_devices(unsigned int cmd,
-					 caddr_t arg)
+static int
+adf_ctl_ioctl_get_num_devices(unsigned int cmd, caddr_t arg)
 {
 	adf_devmgr_get_num_dev((uint32_t *)arg);
 
 	return 0;
 }
 
-static int adf_ctl_ioctl_get_status(unsigned int cmd,
-				    caddr_t arg)
+static int
+adf_ctl_ioctl_get_status(unsigned int cmd, caddr_t arg)
 {
 	struct adf_hw_device_data *hw_data;
 	struct adf_dev_status_info *dev_info;
@@ -147,10 +150,10 @@ static int adf_ctl_ioctl_get_status(unsigned int cmd,
 	dev_info->num_ae = hw_data->get_num_aes(hw_data);
 	dev_info->num_accel = hw_data->get_num_accels(hw_data);
 	dev_info->num_logical_accel = hw_data->num_logical_accel;
-	dev_info->banks_per_accel = hw_data->num_banks
-	/ hw_data->num_logical_accel;
+	dev_info->banks_per_accel = hw_data->num_banks /
+	    hw_data->num_logical_accel;
 	strlcpy(dev_info->name, hw_data->dev_class->name,
-		sizeof(dev_info->name));
+	    sizeof(dev_info->name));
 	dev_info->instance_id = hw_data->instance_id;
 	dev_info->type = hw_data->dev_class->type;
 	dev_info->bus = pci_get_bus(accel_to_pci_dev(accel_dev));
@@ -164,13 +167,14 @@ static int adf_ctl_ioctl_get_status(unsigned int cmd,
 	dev_info->sku = accel_dev->accel_pci_dev.sku;
 
 	dev_info->device_mem_available = accel_dev->aram_info ?
-		accel_dev->aram_info->inter_buff_aram_region_size : 0;
+	    accel_dev->aram_info->inter_buff_aram_region_size :
+	    0;
 
 	return 0;
 }
 
-static int adf_ctl_ioctl_heartbeat(unsigned int cmd,
-				   caddr_t arg)
+static int
+adf_ctl_ioctl_heartbeat(unsigned int cmd, caddr_t arg)
 {
 	int ret = 0;
 	struct adf_accel_dev *accel_dev;
@@ -184,14 +188,14 @@ static int adf_ctl_ioctl_heartbeat(unsigned int cmd,
 
 	if (adf_heartbeat_status(accel_dev, &hb_status->status)) {
 		device_printf(GET_DEV(accel_dev),
-			      "failed to get heartbeat status\n");
+		    "failed to get heartbeat status\n");
 		return EAGAIN;
 	}
 	return ret;
 }
 
-static int adf_ctl_ioctl_dev_get_value(unsigned int cmd,
-				       caddr_t arg)
+static int
+adf_ctl_ioctl_dev_get_value(unsigned int cmd, caddr_t arg)
 {
 	int ret = 0;
 	struct adf_user_cfg_ctl_data *ctl_data;
@@ -217,8 +221,8 @@ out:
 	return ret;
 }
 
-static struct adf_uio_control_bundle
-	*adf_ctl_ioctl_bundle(struct adf_user_reserve_ring reserve)
+static struct adf_uio_control_bundle *
+adf_ctl_ioctl_bundle(struct adf_user_reserve_ring reserve)
 {
 	struct adf_accel_dev *accel_dev;
 	struct adf_uio_control_accel *accel;
@@ -255,9 +259,10 @@ static struct adf_uio_control_bundle
 	return bundle;
 }
 
-static int adf_ctl_ioctl_reserve_ring(caddr_t arg)
+static int
+adf_ctl_ioctl_reserve_ring(caddr_t arg)
 {
-	struct adf_user_reserve_ring reserve = {0};
+	struct adf_user_reserve_ring reserve = { 0 };
 	struct adf_uio_control_bundle *bundle;
 	struct adf_uio_instance_rings *instance_rings;
 	int pid_entry_found = 0;
@@ -273,15 +278,15 @@ static int adf_ctl_ioctl_reserve_ring(caddr_t arg)
 	mutex_lock(&bundle->lock);
 	if (bundle->rings_used & reserve.ring_mask) {
 		pr_err("QAT: Bundle %d, rings 0x%04X already reserved\n",
-		       reserve.bank_nr,
-		       reserve.ring_mask);
+		    reserve.bank_nr, reserve.ring_mask);
 		mutex_unlock(&bundle->lock);
 		return -EINVAL;
 	}
 
 	/* Find the list entry for this process */
 	mutex_lock(&bundle->list_lock);
-	list_for_each_entry(instance_rings, &bundle->list, list) {
+	list_for_each_entry(instance_rings, &bundle->list, list)
+	{
 		if (instance_rings->user_pid == curproc->p_pid) {
 			pid_entry_found = 1;
 			break;
@@ -302,7 +307,8 @@ static int adf_ctl_ioctl_reserve_ring(caddr_t arg)
 	return 0;
 }
 
-static int adf_ctl_ioctl_release_ring(caddr_t arg)
+static int
+adf_ctl_ioctl_release_ring(caddr_t arg)
 {
 	struct adf_user_reserve_ring reserve;
 	struct adf_uio_control_bundle *bundle;
@@ -320,7 +326,8 @@ static int adf_ctl_ioctl_release_ring(caddr_t arg)
 	/* Find the list entry for this process */
 	pid_entry_found = 0;
 	mutex_lock(&bundle->list_lock);
-	list_for_each_entry(instance_rings, &bundle->list, list) {
+	list_for_each_entry(instance_rings, &bundle->list, list)
+	{
 		if (instance_rings->user_pid == curproc->p_pid) {
 			pid_entry_found = 1;
 			break;
@@ -330,13 +337,14 @@ static int adf_ctl_ioctl_release_ring(caddr_t arg)
 
 	if (!pid_entry_found) {
 		pr_err("QAT: No ring reservation found for PID %d\n",
-		       curproc->p_pid);
+		    curproc->p_pid);
 		return -EINVAL;
 	}
 
 	if ((instance_rings->ring_mask & reserve.ring_mask) !=
 	    reserve.ring_mask) {
-		pr_err("QAT: Attempt to release rings not reserved by this process\n");
+		pr_err(
+		    "QAT: Attempt to release rings not reserved by this process\n");
 		return -EINVAL;
 	}
 
@@ -348,7 +356,8 @@ static int adf_ctl_ioctl_release_ring(caddr_t arg)
 	return 0;
 }
 
-static int adf_ctl_ioctl_enable_ring(caddr_t arg)
+static int
+adf_ctl_ioctl_enable_ring(caddr_t arg)
 {
 	struct adf_user_reserve_ring reserve;
 	struct adf_uio_control_bundle *bundle;
@@ -369,7 +378,8 @@ static int adf_ctl_ioctl_enable_ring(caddr_t arg)
 	return 0;
 }
 
-static int adf_ctl_ioctl_disable_ring(caddr_t arg)
+static int
+adf_ctl_ioctl_disable_ring(caddr_t arg)
 {
 	struct adf_user_reserve_ring reserve;
 	struct adf_uio_control_bundle *bundle;
@@ -390,20 +400,22 @@ static int adf_ctl_ioctl_disable_ring(caddr_t arg)
 	return 0;
 }
 
-static int adf_ctl_ioctl(struct cdev *dev,
-			 u_long cmd,
-			 caddr_t arg,
-			 int fflag,
-			 struct thread *td)
+static int
+adf_ctl_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int fflag,
+    struct thread *td)
 {
 	int ret = 0;
 	bool allowed = false;
 	int i;
 	static const unsigned int unrestricted_cmds[] = {
-		IOCTL_GET_NUM_DEVICES,     IOCTL_STATUS_ACCEL_DEV,
-		IOCTL_HEARTBEAT_ACCEL_DEV, IOCTL_GET_CFG_VAL,
-		IOCTL_RESERVE_RING,	IOCTL_RELEASE_RING,
-		IOCTL_ENABLE_RING,	 IOCTL_DISABLE_RING,
+		IOCTL_GET_NUM_DEVICES,
+		IOCTL_STATUS_ACCEL_DEV,
+		IOCTL_HEARTBEAT_ACCEL_DEV,
+		IOCTL_GET_CFG_VAL,
+		IOCTL_RESERVE_RING,
+		IOCTL_RELEASE_RING,
+		IOCTL_ENABLE_RING,
+		IOCTL_DISABLE_RING,
 	};
 
 	if (priv_check(curthread, PRIV_DRIVER)) {

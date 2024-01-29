@@ -35,8 +35,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_PCB_H_
-#define	_MACHINE_PCB_H_
+#ifndef _MACHINE_PCB_H_
+#define _MACHINE_PCB_H_
 
 #include <machine/frame.h>
 #include <machine/vfp.h>
@@ -46,29 +46,29 @@
  * Keep pcb_regs first for faster access in switch.S
  */
 struct pcb {
-	struct switchframe pcb_regs;		/* CPU state */
-	u_int	pcb_flags;
-#define	PCB_OWNFPU	0x00000001
-#define PCB_NOALIGNFLT	0x00000002
-	caddr_t	pcb_onfault;			/* On fault handler */
-	vm_offset_t	pcb_pagedir;		/* TTB0 value */
+	struct switchframe pcb_regs; /* CPU state */
+	u_int pcb_flags;
+#define PCB_OWNFPU 0x00000001
+#define PCB_NOALIGNFLT 0x00000002
+	caddr_t pcb_onfault;	 /* On fault handler */
+	vm_offset_t pcb_pagedir; /* TTB0 value */
 	/*
 	 * XXX:
 	 * Variables pcb_pl1vec, pcb_l1vec, pcb_dacr are used solely
 	 * by old PMAP. Keep them here for PCB binary compatibility
 	 * between old and new PMAP.
 	 */
-	uint32_t *pcb_pl1vec;			/* PTR to vector_base L1 entry*/
-	uint32_t pcb_l1vec;			/* Value to stuff on ctx sw */
-	u_int	pcb_dacr;			/* Domain Access Control Reg */
+	uint32_t *pcb_pl1vec; /* PTR to vector_base L1 entry*/
+	uint32_t pcb_l1vec;   /* Value to stuff on ctx sw */
+	u_int pcb_dacr;	      /* Domain Access Control Reg */
 
-	struct vfp_state pcb_vfpstate;          /* VP/NEON state */
-	u_int pcb_vfpcpu;                       /* VP/NEON last cpu */
-#define	PCB_FP_STARTED	0x01
-#define	PCB_FP_KERN	0x02
-#define	PCB_FP_NOSAVE	0x04
-	struct vfp_state *pcb_vfpsaved;          /* VP/NEON state */
-	int		pcb_fpflags;
+	struct vfp_state pcb_vfpstate; /* VP/NEON state */
+	u_int pcb_vfpcpu;	       /* VP/NEON last cpu */
+#define PCB_FP_STARTED 0x01
+#define PCB_FP_KERN 0x02
+#define PCB_FP_NOSAVE 0x04
+	struct vfp_state *pcb_vfpsaved; /* VP/NEON state */
+	int pcb_fpflags;
 } __aligned(8); /*
 		 * We need the PCB to be aligned on 8 bytes, as we may
 		 * access it using ldrd/strd, and ARM ABI require it
@@ -79,14 +79,14 @@ struct pcb {
  * No additional data for core dumps.
  */
 struct md_coredump {
-	int	md_empty;
+	int md_empty;
 };
 
-void	makectx(struct trapframe *tf, struct pcb *pcb);
+void makectx(struct trapframe *tf, struct pcb *pcb);
 
 #ifdef _KERNEL
 
-void    savectx(struct pcb *) __returns_twice;
-#endif	/* _KERNEL */
+void savectx(struct pcb *) __returns_twice;
+#endif /* _KERNEL */
 
-#endif	/* !_MACHINE_PCB_H_ */
+#endif /* !_MACHINE_PCB_H_ */

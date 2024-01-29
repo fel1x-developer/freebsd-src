@@ -62,29 +62,14 @@ static int32_t *xdrmem_inline_aligned(XDR *, u_int);
 static int32_t *xdrmem_inline_unaligned(XDR *, u_int);
 static bool_t xdrmem_control(XDR *xdrs, int request, void *info);
 
-static const struct	xdr_ops xdrmem_ops_aligned = {
-	xdrmem_getlong_aligned,
-	xdrmem_putlong_aligned,
-	xdrmem_getbytes,
-	xdrmem_putbytes,
-	xdrmem_getpos,
-	xdrmem_setpos,
-	xdrmem_inline_aligned,
-	xdrmem_destroy,
-	xdrmem_control
-};
+static const struct xdr_ops xdrmem_ops_aligned = { xdrmem_getlong_aligned,
+	xdrmem_putlong_aligned, xdrmem_getbytes, xdrmem_putbytes, xdrmem_getpos,
+	xdrmem_setpos, xdrmem_inline_aligned, xdrmem_destroy, xdrmem_control };
 
-static const struct	xdr_ops xdrmem_ops_unaligned = {
-	xdrmem_getlong_unaligned,
-	xdrmem_putlong_unaligned,
-	xdrmem_getbytes,
-	xdrmem_putbytes,
-	xdrmem_getpos,
-	xdrmem_setpos,
-	xdrmem_inline_unaligned,
-	xdrmem_destroy,
-	xdrmem_control
-};
+static const struct xdr_ops xdrmem_ops_unaligned = { xdrmem_getlong_unaligned,
+	xdrmem_putlong_unaligned, xdrmem_getbytes, xdrmem_putbytes,
+	xdrmem_getpos, xdrmem_setpos, xdrmem_inline_unaligned, xdrmem_destroy,
+	xdrmem_control };
 
 /*
  * The procedure xdrmem_create initializes a stream descriptor for a
@@ -95,8 +80,9 @@ xdrmem_create(XDR *xdrs, char *addr, u_int size, enum xdr_op op)
 {
 
 	xdrs->x_op = op;
-	xdrs->x_ops = ((unsigned long)addr & (sizeof(int32_t) - 1))
-	    ? &xdrmem_ops_unaligned : &xdrmem_ops_aligned;
+	xdrs->x_ops = ((unsigned long)addr & (sizeof(int32_t) - 1)) ?
+	    &xdrmem_ops_unaligned :
+	    &xdrmem_ops_aligned;
 	xdrs->x_private = xdrs->x_base = addr;
 	xdrs->x_handy = size;
 }
@@ -105,7 +91,6 @@ xdrmem_create(XDR *xdrs, char *addr, u_int size, enum xdr_op op)
 static void
 xdrmem_destroy(XDR *xdrs)
 {
-
 }
 
 static bool_t
@@ -201,7 +186,8 @@ xdrmem_setpos(XDR *xdrs, u_int pos)
 	if (newaddr > lastaddr)
 		return (FALSE);
 	xdrs->x_private = newaddr;
-	xdrs->x_handy = (u_int)(lastaddr - newaddr); /* XXX sizeof(u_int) <? sizeof(ptrdiff_t) */
+	xdrs->x_handy = (u_int)(lastaddr -
+	    newaddr); /* XXX sizeof(u_int) <? sizeof(ptrdiff_t) */
 	return (TRUE);
 }
 
@@ -244,11 +230,11 @@ xdrmem_control(XDR *xdrs, int request, void *info)
 		/*
 		 * Return the next 4 byte unit in the XDR stream.
 		 */
-		if (xdrs->x_handy < sizeof (int32_t))
+		if (xdrs->x_handy < sizeof(int32_t))
 			return (FALSE);
 		l = (int32_t *)info;
-		*l = (int32_t)ntohl((uint32_t)
-		    (*((int32_t *)(xdrs->x_private))));
+		*l = (int32_t)ntohl(
+		    (uint32_t)(*((int32_t *)(xdrs->x_private))));
 		return (TRUE);
 
 	case XDR_SKIPBYTES:

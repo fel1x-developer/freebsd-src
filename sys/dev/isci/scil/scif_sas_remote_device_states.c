@@ -60,17 +60,15 @@
  */
 
 #include <dev/isci/scil/scic_remote_device.h>
-
-#include <dev/isci/scil/scif_sas_remote_device.h>
 #include <dev/isci/scil/scif_sas_domain.h>
 #include <dev/isci/scil/scif_sas_logger.h>
-
+#include <dev/isci/scil/scif_sas_remote_device.h>
 
 /**
  * This constant indicates the number of milliseconds to wait for the core
  * to start/stop it's remote device object.
  */
-//#define SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT 1000
+// #define SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT 1000
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
@@ -87,24 +85,18 @@
  *
  * @return none
  */
-static
-void scif_sas_remote_device_initial_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_initial_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_INITIAL
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_INITIAL);
 
-   // Initial state is a transitional state to the stopped state
-   sci_base_state_machine_change_state(
-      &fw_device->parent.state_machine,
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-   );
+	// Initial state is a transitional state to the stopped state
+	sci_base_state_machine_change_state(&fw_device->parent.state_machine,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
 }
 
 /**
@@ -120,35 +112,29 @@ void scif_sas_remote_device_initial_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_stopped_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_stopped_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPED
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STOPPED);
 
-   // There should be no outstanding requests for this device in the
-   // stopped state.
-   ASSERT(fw_device->request_count == 0);
+	// There should be no outstanding requests for this device in the
+	// stopped state.
+	ASSERT(fw_device->request_count == 0);
 
-   // If we are entering the stopped state as a result of a destruct
-   // request, then let's perform the actual destruct operation now.
-   if (fw_device->destruct_when_stopped == TRUE)
-      fw_device->operation_status
-         = fw_device->state_handlers->parent.destruct_handler(
-              &fw_device->parent
-           );
+	// If we are entering the stopped state as a result of a destruct
+	// request, then let's perform the actual destruct operation now.
+	if (fw_device->destruct_when_stopped == TRUE)
+		fw_device->operation_status =
+		    fw_device->state_handlers->parent.destruct_handler(
+			&fw_device->parent);
 
-   /// @todo What should we do if this call fails?
-   fw_device->domain->state_handlers->device_stop_complete_handler(
-      &fw_device->domain->parent, &fw_device->parent
-   );
+	/// @todo What should we do if this call fails?
+	fw_device->domain->state_handlers->device_stop_complete_handler(
+	    &fw_device->domain->parent, &fw_device->parent);
 }
 
 /**
@@ -163,45 +149,37 @@ void scif_sas_remote_device_stopped_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_starting_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_starting_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_STARTING
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STARTING);
 
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
-      "RemoteDevice:0x%x starting/configuring\n",
-      fw_device
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+		SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
+	    "RemoteDevice:0x%x starting/configuring\n", fw_device));
 
-   fw_device->destination_state =
-      SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_READY;
+	fw_device->destination_state =
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_READY;
 
-   sci_base_state_machine_start(&fw_device->starting_substate_machine);
+	sci_base_state_machine_start(&fw_device->starting_substate_machine);
 
-   fw_device->operation_status = scic_remote_device_start(
-                                    fw_device->core_object,
-                                    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT
-                                 );
+	fw_device->operation_status = scic_remote_device_start(
+	    fw_device->core_object, SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
 
-   if (fw_device->operation_status != SCI_SUCCESS)
-   {
-      fw_device->state_handlers->parent.fail_handler(&fw_device->parent);
+	if (fw_device->operation_status != SCI_SUCCESS) {
+		fw_device->state_handlers->parent.fail_handler(
+		    &fw_device->parent);
 
-      // Something is seriously wrong.  Starting the core remote device
-      // shouldn't fail in anyway in this state.
-      scif_cb_controller_error(fw_device->domain->controller,
-              SCI_CONTROLLER_REMOTE_DEVICE_ERROR);
-   }
+		// Something is seriously wrong.  Starting the core remote
+		// device shouldn't fail in anyway in this state.
+		scif_cb_controller_error(fw_device->domain->controller,
+		    SCI_CONTROLLER_REMOTE_DEVICE_ERROR);
+	}
 }
 
 /**
@@ -215,18 +193,17 @@ void scif_sas_remote_device_starting_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_starting_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_starting_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   fw_device->destination_state =
-      SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_UNSPECIFIED;
+	fw_device->destination_state =
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_UNSPECIFIED;
 
-   // Transition immediately into the operational sub-state.
-   sci_base_state_machine_stop(&fw_device->starting_substate_machine);
+	// Transition immediately into the operational sub-state.
+	sci_base_state_machine_stop(&fw_device->starting_substate_machine);
 }
 
 /**
@@ -240,18 +217,18 @@ void scif_sas_remote_device_starting_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_ready_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_ready_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   // Transition immediately into the operational sub-state.
-   sci_base_state_machine_start(&fw_device->ready_substate_machine);
+	// Transition immediately into the operational sub-state.
+	sci_base_state_machine_start(&fw_device->ready_substate_machine);
 
 #if defined(DISABLE_WIDE_PORTED_TARGETS)
-   scif_sas_domain_remote_device_start_complete(fw_device->domain,fw_device);
+	scif_sas_domain_remote_device_start_complete(fw_device->domain,
+	    fw_device);
 #endif
 }
 
@@ -266,15 +243,14 @@ void scif_sas_remote_device_ready_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_ready_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_ready_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   // Transition immediately into the operational sub-state.
-   sci_base_state_machine_stop(&fw_device->ready_substate_machine);
+	// Transition immediately into the operational sub-state.
+	sci_base_state_machine_stop(&fw_device->ready_substate_machine);
 }
 
 /**
@@ -288,37 +264,30 @@ void scif_sas_remote_device_ready_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_stopping_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_stopping_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPING
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_STOPPING);
 
-   fw_device->operation_status = scic_remote_device_stop(
-                                    fw_device->core_object,
-                                    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT
-                                 );
+	fw_device->operation_status = scic_remote_device_stop(
+	    fw_device->core_object, SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
 
-   // If there was a failure, then transition directly to the stopped state.
-   if (fw_device->operation_status != SCI_SUCCESS)
-   {
-      /**
-       * @todo We may want to consider adding handling to reset the
-       *       structure data for the framework and core devices here
-       *       in order to help aid recovery.
-       */
+	// If there was a failure, then transition directly to the stopped
+	// state.
+	if (fw_device->operation_status != SCI_SUCCESS) {
+		/**
+		 * @todo We may want to consider adding handling to reset the
+		 *       structure data for the framework and core devices here
+		 *       in order to help aid recovery.
+		 */
 
-      fw_device->state_handlers->stop_complete_handler(
-         fw_device, fw_device->operation_status
-      );
-   }
+		fw_device->state_handlers->stop_complete_handler(fw_device,
+		    fw_device->operation_status);
+	}
 }
 
 /**
@@ -331,15 +300,14 @@ void scif_sas_remote_device_stopping_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_stopping_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_stopping_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   // Let the domain know that the device has stopped
-   fw_device->domain->device_start_count--;
+	// Let the domain know that the device has stopped
+	fw_device->domain->device_start_count--;
 }
 
 /**
@@ -354,39 +322,31 @@ void scif_sas_remote_device_stopping_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_failed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_failed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_FAILED
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_FAILED);
 
-   SCIF_LOG_INFO((
-      sci_base_object_get_logger(fw_device),
-      SCIF_LOG_OBJECT_REMOTE_DEVICE | SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
-      "Domain:0x%x Device:0x%x Status:0x%x device failed\n",
-      fw_device->domain, fw_device, fw_device->operation_status
-   ));
+	SCIF_LOG_INFO((sci_base_object_get_logger(fw_device),
+	    SCIF_LOG_OBJECT_REMOTE_DEVICE |
+		SCIF_LOG_OBJECT_REMOTE_DEVICE_CONFIG,
+	    "Domain:0x%x Device:0x%x Status:0x%x device failed\n",
+	    fw_device->domain, fw_device, fw_device->operation_status));
 
-   // Notify the user that the device has failed.
-   scif_cb_remote_device_failed(
-      fw_device->domain->controller,
-      fw_device->domain,
-      fw_device,
-      fw_device->operation_status
-   );
+	// Notify the user that the device has failed.
+	scif_cb_remote_device_failed(fw_device->domain->controller,
+	    fw_device->domain, fw_device, fw_device->operation_status);
 
-   // Only call start_complete for the remote device if the device failed
-   // from the STARTING state.
-   if (fw_device->parent.state_machine.previous_state_id
-       == SCI_BASE_REMOTE_DEVICE_STATE_STARTING)
-      scif_sas_domain_remote_device_start_complete(fw_device->domain,fw_device);
+	// Only call start_complete for the remote device if the device failed
+	// from the STARTING state.
+	if (fw_device->parent.state_machine.previous_state_id ==
+	    SCI_BASE_REMOTE_DEVICE_STATE_STARTING)
+		scif_sas_domain_remote_device_start_complete(fw_device->domain,
+		    fw_device);
 }
 
 /**
@@ -399,10 +359,8 @@ void scif_sas_remote_device_failed_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_resetting_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_resetting_state_enter(SCI_BASE_OBJECT_T *object)
 {
 }
 
@@ -417,33 +375,30 @@ void scif_sas_remote_device_resetting_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_updating_port_width_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_updating_port_width_state_enter(
+    SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH);
 
-   fw_device->destination_state = SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_READY;
+	fw_device->destination_state =
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_READY;
 
-   //If the request count is zero, go ahead to update the RNC.
-   //If not, don't do anything for now. The IO complete handler of this state
-   //will update the RNC whenever the request count goes down to zero.
-   if (fw_device->request_count == 0)
-   {
-      //stop the device, upon the stop complete callback, start the device again
-      //with the updated port width.
-      scic_remote_device_stop(
-         fw_device->core_object, SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
-   }
+	// If the request count is zero, go ahead to update the RNC.
+	// If not, don't do anything for now. The IO complete handler of this
+	// state will update the RNC whenever the request count goes down to
+	// zero.
+	if (fw_device->request_count == 0) {
+		// stop the device, upon the stop complete callback, start the
+		// device again with the updated port width.
+		scic_remote_device_stop(fw_device->core_object,
+		    SCIF_SAS_REMOTE_DEVICE_CORE_OP_TIMEOUT);
+	}
 }
-
 
 /**
  * @brief This method implements the actions taken when exiting the
@@ -455,19 +410,17 @@ void scif_sas_remote_device_updating_port_width_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_updating_port_width_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_updating_port_width_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   fw_device->destination_state =
-      SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_UNSPECIFIED;
+	fw_device->destination_state =
+	    SCIF_SAS_REMOTE_DEVICE_DESTINATION_STATE_UNSPECIFIED;
 }
 
-
-#endif //#if !defined(DISABLE_WIDE_PORTED_TARGETS)
+#endif // #if !defined(DISABLE_WIDE_PORTED_TARGETS)
 
 /**
  * @brief This method implements the actions taken when entering the
@@ -480,70 +433,40 @@ void scif_sas_remote_device_updating_port_width_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_final_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_final_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_state_handler_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_FINAL
-   );
+	SET_STATE_HANDLER(fw_device, scif_sas_remote_device_state_handler_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_FINAL);
 }
 
-
 SCI_BASE_STATE_T
-   scif_sas_remote_device_state_table[SCI_BASE_REMOTE_DEVICE_MAX_STATES] =
-{
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_INITIAL,
-      scif_sas_remote_device_initial_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPED,
-      scif_sas_remote_device_stopped_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_STARTING,
-      scif_sas_remote_device_starting_state_enter,
-      scif_sas_remote_device_starting_state_exit
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_READY,
-      scif_sas_remote_device_ready_state_enter,
-      scif_sas_remote_device_ready_state_exit
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_STOPPING,
-      scif_sas_remote_device_stopping_state_enter,
-      scif_sas_remote_device_stopping_state_exit
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_FAILED,
-      scif_sas_remote_device_failed_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_RESETTING,
-      scif_sas_remote_device_resetting_state_enter,
-      NULL
-   },
+scif_sas_remote_device_state_table[SCI_BASE_REMOTE_DEVICE_MAX_STATES] = {
+	{ SCI_BASE_REMOTE_DEVICE_STATE_INITIAL,
+	    scif_sas_remote_device_initial_state_enter, NULL },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_STOPPED,
+	    scif_sas_remote_device_stopped_state_enter, NULL },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_STARTING,
+	    scif_sas_remote_device_starting_state_enter,
+	    scif_sas_remote_device_starting_state_exit },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_READY,
+	    scif_sas_remote_device_ready_state_enter,
+	    scif_sas_remote_device_ready_state_exit },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_STOPPING,
+	    scif_sas_remote_device_stopping_state_enter,
+	    scif_sas_remote_device_stopping_state_exit },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_FAILED,
+	    scif_sas_remote_device_failed_state_enter, NULL },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_RESETTING,
+	    scif_sas_remote_device_resetting_state_enter, NULL },
 #if !defined(DISABLE_WIDE_PORTED_TARGETS)
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH,
-      scif_sas_remote_device_updating_port_width_state_enter,
-      scif_sas_remote_device_updating_port_width_state_exit
-   },
-#endif //#if !defined(DISABLE_WIDE_PORTED_TARGETS)
-   {
-      SCI_BASE_REMOTE_DEVICE_STATE_FINAL,
-      scif_sas_remote_device_final_state_enter,
-      NULL
-   },
+	{ SCI_BASE_REMOTE_DEVICE_STATE_UPDATING_PORT_WIDTH,
+	    scif_sas_remote_device_updating_port_width_state_enter,
+	    scif_sas_remote_device_updating_port_width_state_exit },
+#endif // #if !defined(DISABLE_WIDE_PORTED_TARGETS)
+	{ SCI_BASE_REMOTE_DEVICE_STATE_FINAL,
+	    scif_sas_remote_device_final_state_enter, NULL },
 };
-

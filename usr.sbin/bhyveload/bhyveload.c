@@ -53,19 +53,20 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
 #include <sys/disk.h>
+#include <sys/ioctl.h>
 #include <sys/queue.h>
+#include <sys/stat.h>
 
 #include <machine/specialreg.h>
 #include <machine/vmm.h>
 
 #include <assert.h>
+#include <capsicum_helpers.h>
 #include <dirent.h>
 #include <dlfcn.h>
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <libgen.h>
@@ -77,17 +78,15 @@
 #include <sysexits.h>
 #include <termios.h>
 #include <unistd.h>
-
-#include <capsicum_helpers.h>
 #include <vmmapi.h>
 
 #include "userboot.h"
 
-#define	MB	(1024 * 1024UL)
-#define	GB	(1024 * 1024 * 1024UL)
-#define	BSP	0
+#define MB (1024 * 1024UL)
+#define GB (1024 * 1024 * 1024UL)
+#define BSP 0
 
-#define	NDISKS	32
+#define NDISKS 32
 
 /*
  * Reason for our loader reload and reentry, though these aren't really used
@@ -127,7 +126,7 @@ cb_putc(void *arg __unused, int ch)
 {
 	char c = ch;
 
-	(void) write(consout_fd, &c, 1);
+	(void)write(consout_fd, &c, 1);
 }
 
 static int
@@ -314,7 +313,7 @@ cb_stat(void *arg __unused, void *h, struct stat *sbp)
 	sbp->st_mtime = cf->cf_stat.st_mtime;
 	sbp->st_dev = cf->cf_stat.st_dev;
 	sbp->st_ino = cf->cf_stat.st_ino;
-	
+
 	return (0);
 }
 
@@ -369,7 +368,7 @@ cb_diskioctl(void *arg __unused, int unit, u_long cmd, void *data)
 			return (ENOTTY);
 		if (S_ISCHR(sb.st_mode) &&
 		    ioctl(disk_fd[unit], DIOCGMEDIASIZE, &sb.st_size) != 0)
-				return (ENOTTY);
+			return (ENOTTY);
 		*(off_t *)data = sb.st_size;
 		break;
 	default:
@@ -446,7 +445,7 @@ cb_setmsr(void *arg __unused, int r, uint64_t v)
 {
 	int error;
 	enum vm_reg_name vmreg;
-	
+
 	vmreg = VM_REG_LAST;
 
 	switch (r) {
@@ -474,7 +473,7 @@ cb_setcr(void *arg __unused, int r, uint64_t v)
 {
 	int error;
 	enum vm_reg_name vmreg;
-	
+
 	vmreg = VM_REG_LAST;
 
 	switch (r) {
@@ -567,7 +566,7 @@ cb_getmem(void *arg __unused, uint64_t *ret_lowmem, uint64_t *ret_highmem)
 }
 
 struct env {
-	char *str;	/* name=value */
+	char *str; /* name=value */
 	SLIST_ENTRY(env) next;
 };
 
@@ -594,7 +593,7 @@ cb_getenv(void *arg __unused, int num)
 	struct env *env;
 
 	i = 0;
-	SLIST_FOREACH(env, &envhead, next) {
+	SLIST_FOREACH (env, &envhead, next) {
 		if (i == num)
 			return (env->str);
 		i++;
@@ -630,7 +629,8 @@ cb_swap_interpreter(void *arg __unused, const char *interp_req)
 	 */
 	free(loader);
 	if (explicit_loader_fd != -1) {
-		perror("requested loader interpreter does not match guest userboot");
+		perror(
+		    "requested loader interpreter does not match guest userboot");
 		cb_exit(NULL, 1);
 	}
 	if (interp_req == NULL || *interp_req == '\0') {
@@ -738,8 +738,7 @@ usage(void)
 	fprintf(stderr,
 	    "usage: %s [-S][-c <console-device>] [-d <disk-path>] [-e <name=value>]\n"
 	    "       %*s [-h <host-path>] [-m memsize[K|k|M|m|G|g|T|t]] <vmname>\n",
-	    progname,
-	    (int)strlen(progname), "");
+	    progname, (int)strlen(progname), "");
 	exit(1);
 }
 
@@ -754,8 +753,9 @@ hostbase_open(const char *base)
 	if (hostbase_fd == -1)
 		err(EX_OSERR, "open");
 
-	if (caph_rights_limit(hostbase_fd, cap_rights_init(&rights, CAP_FSTATAT,
-	    CAP_LOOKUP, CAP_PREAD)) < 0)
+	if (caph_rights_limit(hostbase_fd,
+		cap_rights_init(&rights, CAP_FSTATAT, CAP_LOOKUP, CAP_PREAD)) <
+	    0)
 		err(EX_OSERR, "caph_rights_limit");
 }
 
@@ -786,7 +786,7 @@ loader_open(int bootfd)
 }
 
 int
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
 	void (*func)(struct loader_callbacks *, void *, int, int);
 	uint64_t mem_size;
@@ -886,8 +886,9 @@ main(int argc, char** argv)
 		 * fdlopen(3) on the loader; thus, we need mmap(2) in addition
 		 * to the more usual lookup rights.
 		 */
-		if (caph_rights_limit(bootfd, cap_rights_init(&rights,
-		    CAP_FSTATAT, CAP_LOOKUP, CAP_MMAP_RX, CAP_PREAD)) < 0)
+		if (caph_rights_limit(bootfd,
+			cap_rights_init(&rights, CAP_FSTATAT, CAP_LOOKUP,
+			    CAP_MMAP_RX, CAP_PREAD)) < 0)
 			err(1, "caph_rights_limit");
 	}
 

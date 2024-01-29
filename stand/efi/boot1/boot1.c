@@ -20,22 +20,23 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/elf.h>
 #include <machine/stdarg.h>
-#include <stand.h>
 
 #include <efi.h>
-#include <eficonsctl.h>
 #include <efichar.h>
+#include <eficonsctl.h>
+#include <stand.h>
 
 #include "boot_module.h"
 #include "paths.h"
 #include "proto.h"
 
-static void efi_panic(EFI_STATUS s, const char *fmt, ...) __dead2 __printflike(2, 3);
+static void efi_panic(EFI_STATUS s, const char *fmt, ...) __dead2
+    __printflike(2, 3);
 
-const boot_module_t *boot_modules[] =
-{
+const boot_module_t *boot_modules[] = {
 #ifdef EFI_ZFS_BOOT
 	&zfs_module,
 #endif
@@ -58,7 +59,8 @@ static UINTN heapsize;
  * it simply boots, otherwise it returns the status of last EFI call.
  */
 EFI_STATUS
-try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf, size_t loadersize)
+try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf,
+    size_t loadersize)
 {
 	size_t bufsize, cmdsize;
 	void *buf;
@@ -72,10 +74,11 @@ try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf, size_t load
 	 * if present. We'll pass it the next stage via a simple ASCII
 	 * string. loader.efi has a hack for ASCII strings, so we'll use that to
 	 * keep the size down here. We only try to read the alternate file if
-	 * we get EFI_NOT_FOUND because all other errors mean that the boot_module
-	 * had troubles with the filesystem. We could return early, but we'll let
-	 * loading the actual kernel sort all that out. Since these files are
-	 * optional, we don't report errors in trying to read them.
+	 * we get EFI_NOT_FOUND because all other errors mean that the
+	 * boot_module had troubles with the filesystem. We could return early,
+	 * but we'll let loading the actual kernel sort all that out. Since
+	 * these files are optional, we don't report errors in trying to read
+	 * them.
 	 */
 	cmd = NULL;
 	cmdsize = 0;
@@ -113,10 +116,12 @@ try_boot(const boot_module_t *mod, dev_info_t *dev, void *loaderbuf, size_t load
 		}
 	}
 
-	if ((status = BS->LoadImage(TRUE, IH, efi_devpath_last_node(dev->devpath),
-	    loaderbuf, loadersize, &loaderhandle)) != EFI_SUCCESS) {
-		printf("Failed to load image provided by %s, size: %zu, (%lu)\n",
-		     mod->name, loadersize, EFI_ERROR_CODE(status));
+	if ((status = BS->LoadImage(TRUE, IH,
+		 efi_devpath_last_node(dev->devpath), loaderbuf, loadersize,
+		 &loaderhandle)) != EFI_SUCCESS) {
+		printf(
+		    "Failed to load image provided by %s, size: %zu, (%lu)\n",
+		    mod->name, loadersize, EFI_ERROR_CODE(status));
 		goto errout;
 	}
 
@@ -190,7 +195,7 @@ efi_main(EFI_HANDLE Ximage, EFI_SYSTEM_TABLE *Xsystab)
 	if (status != EFI_SUCCESS) {
 		ST->ConOut->OutputString(ST->ConOut,
 		    __DECONST(CHAR16 *,
-		    L"Failed to allocate memory for heap.\r\n"));
+			L"Failed to allocate memory for heap.\r\n"));
 		BS->Exit(IH, status, 0, NULL);
 	}
 
@@ -223,16 +228,16 @@ efi_main(EFI_HANDLE Ximage, EFI_SYSTEM_TABLE *Xsystab)
 	}
 	putchar('\n');
 
-	/* Fetch all the block I/O handles, we have to search through them later */
+	/* Fetch all the block I/O handles, we have to search through them later
+	 */
 	hsize = 0;
-	BS->LocateHandle(ByProtocol, &BlockIoProtocolGUID, NULL,
-	    &hsize, NULL);
+	BS->LocateHandle(ByProtocol, &BlockIoProtocolGUID, NULL, &hsize, NULL);
 	handles = malloc(hsize);
 	if (handles == NULL)
-		efi_panic(EFI_OUT_OF_RESOURCES, "Failed to allocate %d handles\n",
-		    hsize);
-	status = BS->LocateHandle(ByProtocol, &BlockIoProtocolGUID,
-	    NULL, &hsize, handles);
+		efi_panic(EFI_OUT_OF_RESOURCES,
+		    "Failed to allocate %d handles\n", hsize);
+	status = BS->LocateHandle(ByProtocol, &BlockIoProtocolGUID, NULL,
+	    &hsize, handles);
 	if (status != EFI_SUCCESS)
 		efi_panic(status, "Failed to get device handles\n");
 	nhandles = hsize / sizeof(*handles);
@@ -320,7 +325,8 @@ efi_panic(EFI_STATUS s, const char *fmt, ...)
 	efi_exit(s);
 }
 
-int getchar(void)
+int
+getchar(void)
 {
 	return (-1);
 }

@@ -41,57 +41,46 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/xmphyreg.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/xmphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int xmphy_probe(device_t);
 static int xmphy_attach(device_t);
 
 static device_method_t xmphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		xmphy_probe),
-	DEVMETHOD(device_attach,	xmphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, xmphy_probe),
+	DEVMETHOD(device_attach, xmphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t xmphy_driver = {
-	"xmphy",
-	xmphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t xmphy_driver = { "xmphy", xmphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(xmphy, miibus, xmphy_driver, 0, 0);
 
-static int	xmphy_service(struct mii_softc *, struct mii_data *, int);
-static void	xmphy_status(struct mii_softc *);
-static int	xmphy_mii_phy_auto(struct mii_softc *);
+static int xmphy_service(struct mii_softc *, struct mii_data *, int);
+static void xmphy_status(struct mii_softc *);
+static int xmphy_mii_phy_auto(struct mii_softc *);
 
-static const struct mii_phydesc xmphys[] = {
-	MII_PHY_DESC(xxJATO, BASEX),
-	MII_PHY_DESC(xxXAQTI, XMACII),
-	MII_PHY_END
-};
+static const struct mii_phydesc xmphys[] = { MII_PHY_DESC(xxJATO, BASEX),
+	MII_PHY_DESC(xxXAQTI, XMACII), MII_PHY_END };
 
-static const struct mii_phy_funcs xmphy_funcs = {
-	xmphy_service,
-	xmphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs xmphy_funcs = { xmphy_service, xmphy_status,
+	mii_phy_reset };
 
 static int
 xmphy_probe(device_t dev)
@@ -108,14 +97,16 @@ xmphy_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &xmphy_funcs, 0);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &xmphy_funcs,
+	    0);
 	sc->mii_anegticks = MII_ANEGTICKS;
 
 	PHY_RESET(sc);
 
-#define	ADD(m)		ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
-#define PRINT(s)	printf("%s%s", sep, s); sep = ", "
+#define ADD(m) ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
+#define PRINT(s)                \
+	printf("%s%s", sep, s); \
+	sep = ", "
 
 	device_printf(dev, " ");
 	ADD(IFM_MAKEWORD(IFM_ETHER, IFM_1000_SX, 0, sc->mii_inst));
@@ -215,8 +206,7 @@ xmphy_status(struct mii_softc *sc)
 	mii->mii_media_status = IFM_AVALID;
 	mii->mii_media_active = IFM_ETHER;
 
-	bmsr = PHY_READ(sc, XMPHY_MII_BMSR) |
-	    PHY_READ(sc, XMPHY_MII_BMSR);
+	bmsr = PHY_READ(sc, XMPHY_MII_BMSR) | PHY_READ(sc, XMPHY_MII_BMSR);
 	if (bmsr & XMPHY_BMSR_LINK)
 		mii->mii_media_status |= IFM_ACTIVE;
 
@@ -231,7 +221,7 @@ xmphy_status(struct mii_softc *sc)
 	if (bmcr & XMPHY_BMCR_AUTOEN) {
 		if ((bmsr & XMPHY_BMSR_ACOMP) == 0) {
 			if (bmsr & XMPHY_BMSR_LINK) {
-				mii->mii_media_active |= IFM_1000_SX|IFM_HDX;
+				mii->mii_media_active |= IFM_1000_SX | IFM_HDX;
 				return;
 			}
 			/* Erg, still trying, I guess... */
@@ -262,11 +252,10 @@ xmphy_mii_phy_auto(struct mii_softc *mii)
 	int anar = 0;
 
 	anar = PHY_READ(mii, XMPHY_MII_ANAR);
-	anar |= XMPHY_ANAR_FDX|XMPHY_ANAR_HDX;
+	anar |= XMPHY_ANAR_FDX | XMPHY_ANAR_HDX;
 	PHY_WRITE(mii, XMPHY_MII_ANAR, anar);
 	DELAY(1000);
-	PHY_WRITE(mii, XMPHY_MII_BMCR,
-	    XMPHY_BMCR_AUTOEN | XMPHY_BMCR_STARTNEG);
+	PHY_WRITE(mii, XMPHY_MII_BMCR, XMPHY_BMCR_AUTOEN | XMPHY_BMCR_STARTNEG);
 
 	return (EJUSTRETURN);
 }

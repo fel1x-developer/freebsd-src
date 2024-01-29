@@ -30,14 +30,15 @@
  * SOFTWARE.
  */
 
+#include <linux/bitmap.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
-#include <linux/bitmap.h>
 
 #include "mthca_dev.h"
 
 /* Trivial bitmap-based allocator */
-u32 mthca_alloc(struct mthca_alloc *alloc)
+u32
+mthca_alloc(struct mthca_alloc *alloc)
 {
 	unsigned long flags;
 	u32 obj;
@@ -61,7 +62,8 @@ u32 mthca_alloc(struct mthca_alloc *alloc)
 	return obj;
 }
 
-void mthca_free(struct mthca_alloc *alloc, u32 obj)
+void
+mthca_free(struct mthca_alloc *alloc, u32 obj)
 {
 	unsigned long flags;
 
@@ -76,8 +78,8 @@ void mthca_free(struct mthca_alloc *alloc, u32 obj)
 	spin_unlock_irqrestore(&alloc->lock, flags);
 }
 
-int mthca_alloc_init(struct mthca_alloc *alloc, u32 num, u32 mask,
-		     u32 reserved)
+int
+mthca_alloc_init(struct mthca_alloc *alloc, u32 num, u32 mask, u32 reserved)
 {
 	int i;
 
@@ -86,12 +88,11 @@ int mthca_alloc_init(struct mthca_alloc *alloc, u32 num, u32 mask,
 		return -EINVAL;
 
 	alloc->last = 0;
-	alloc->top  = 0;
-	alloc->max  = num;
+	alloc->top = 0;
+	alloc->max = num;
 	alloc->mask = mask;
 	spin_lock_init(&alloc->lock);
-	alloc->table = kmalloc(BITS_TO_LONGS(num) * sizeof (long),
-			       GFP_KERNEL);
+	alloc->table = kmalloc(BITS_TO_LONGS(num) * sizeof(long), GFP_KERNEL);
 	if (!alloc->table)
 		return -ENOMEM;
 
@@ -102,7 +103,8 @@ int mthca_alloc_init(struct mthca_alloc *alloc, u32 num, u32 mask,
 	return 0;
 }
 
-void mthca_alloc_cleanup(struct mthca_alloc *alloc)
+void
+mthca_alloc_cleanup(struct mthca_alloc *alloc)
 {
 	kfree(alloc->table);
 }
@@ -113,11 +115,12 @@ void mthca_alloc_cleanup(struct mthca_alloc *alloc)
  * serialize access to the array.
  */
 
-#define MTHCA_ARRAY_MASK (PAGE_SIZE / sizeof (void *) - 1)
+#define MTHCA_ARRAY_MASK (PAGE_SIZE / sizeof(void *) - 1)
 
-void *mthca_array_get(struct mthca_array *array, int index)
+void *
+mthca_array_get(struct mthca_array *array, int index)
 {
-	int p = (index * sizeof (void *)) >> PAGE_SHIFT;
+	int p = (index * sizeof(void *)) >> PAGE_SHIFT;
 
 	if (array->page_list[p].page)
 		return array->page_list[p].page[index & MTHCA_ARRAY_MASK];
@@ -125,13 +128,14 @@ void *mthca_array_get(struct mthca_array *array, int index)
 		return NULL;
 }
 
-int mthca_array_set(struct mthca_array *array, int index, void *value)
+int
+mthca_array_set(struct mthca_array *array, int index, void *value)
 {
-	int p = (index * sizeof (void *)) >> PAGE_SHIFT;
+	int p = (index * sizeof(void *)) >> PAGE_SHIFT;
 
 	/* Allocate with GFP_ATOMIC because we'll be called with locks held. */
 	if (!array->page_list[p].page)
-		array->page_list[p].page = (void **) get_zeroed_page(GFP_ATOMIC);
+		array->page_list[p].page = (void **)get_zeroed_page(GFP_ATOMIC);
 
 	if (!array->page_list[p].page)
 		return -ENOMEM;
@@ -142,27 +146,30 @@ int mthca_array_set(struct mthca_array *array, int index, void *value)
 	return 0;
 }
 
-void mthca_array_clear(struct mthca_array *array, int index)
+void
+mthca_array_clear(struct mthca_array *array, int index)
 {
-	int p = (index * sizeof (void *)) >> PAGE_SHIFT;
+	int p = (index * sizeof(void *)) >> PAGE_SHIFT;
 
 	if (--array->page_list[p].used == 0) {
-		free_page((unsigned long) array->page_list[p].page);
+		free_page((unsigned long)array->page_list[p].page);
 		array->page_list[p].page = NULL;
 	} else
 		array->page_list[p].page[index & MTHCA_ARRAY_MASK] = NULL;
 
 	if (array->page_list[p].used < 0)
 		pr_debug("Array %p index %d page %d with ref count %d < 0\n",
-			 array, index, p, array->page_list[p].used);
+		    array, index, p, array->page_list[p].used);
 }
 
-int mthca_array_init(struct mthca_array *array, int nent)
+int
+mthca_array_init(struct mthca_array *array, int nent)
 {
-	int npage = (nent * sizeof (void *) + PAGE_SIZE - 1) / PAGE_SIZE;
+	int npage = (nent * sizeof(void *) + PAGE_SIZE - 1) / PAGE_SIZE;
 	int i;
 
-	array->page_list = kmalloc(npage * sizeof *array->page_list, GFP_KERNEL);
+	array->page_list = kmalloc(npage * sizeof *array->page_list,
+	    GFP_KERNEL);
 	if (!array->page_list)
 		return -ENOMEM;
 
@@ -174,12 +181,14 @@ int mthca_array_init(struct mthca_array *array, int nent)
 	return 0;
 }
 
-void mthca_array_cleanup(struct mthca_array *array, int nent)
+void
+mthca_array_cleanup(struct mthca_array *array, int nent)
 {
 	int i;
 
-	for (i = 0; i < (nent * sizeof (void *) + PAGE_SIZE - 1) / PAGE_SIZE; ++i)
-		free_page((unsigned long) array->page_list[i].page);
+	for (i = 0; i < (nent * sizeof(void *) + PAGE_SIZE - 1) / PAGE_SIZE;
+	     ++i)
+		free_page((unsigned long)array->page_list[i].page);
 
 	kfree(array->page_list);
 }
@@ -191,9 +200,10 @@ void mthca_array_cleanup(struct mthca_array *array, int nent)
  * multiple pages, so we don't require too much contiguous memory.
  */
 
-int mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
-		    union mthca_buf *buf, int *is_direct, struct mthca_pd *pd,
-		    int hca_write, struct mthca_mr *mr)
+int
+mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
+    union mthca_buf *buf, int *is_direct, struct mthca_pd *pd, int hca_write,
+    struct mthca_mr *mr)
 {
 	int err = -ENOMEM;
 	int npages, shift;
@@ -203,11 +213,11 @@ int mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
 
 	if (size <= max_direct) {
 		*is_direct = 1;
-		npages     = 1;
-		shift      = get_order(size) + PAGE_SHIFT;
+		npages = 1;
+		shift = get_order(size) + PAGE_SHIFT;
 
-		buf->direct.buf = dma_alloc_coherent(&dev->pdev->dev,
-						     size, &t, GFP_KERNEL);
+		buf->direct.buf = dma_alloc_coherent(&dev->pdev->dev, size, &t,
+		    GFP_KERNEL);
 		if (!buf->direct.buf)
 			return -ENOMEM;
 
@@ -228,15 +238,15 @@ int mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
 			dma_list[i] = t + i * (1 << shift);
 	} else {
 		*is_direct = 0;
-		npages     = (size + PAGE_SIZE - 1) / PAGE_SIZE;
-		shift      = PAGE_SHIFT;
+		npages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+		shift = PAGE_SHIFT;
 
 		dma_list = kmalloc(npages * sizeof *dma_list, GFP_KERNEL);
 		if (!dma_list)
 			return -ENOMEM;
 
 		buf->page_list = kmalloc(npages * sizeof *buf->page_list,
-					 GFP_KERNEL);
+		    GFP_KERNEL);
 		if (!buf->page_list)
 			goto err_out;
 
@@ -244,9 +254,8 @@ int mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
 			buf->page_list[i].buf = NULL;
 
 		for (i = 0; i < npages; ++i) {
-			buf->page_list[i].buf =
-				dma_alloc_coherent(&dev->pdev->dev, PAGE_SIZE,
-						   &t, GFP_KERNEL);
+			buf->page_list[i].buf = dma_alloc_coherent(
+			    &dev->pdev->dev, PAGE_SIZE, &t, GFP_KERNEL);
 			if (!buf->page_list[i].buf)
 				goto err_free;
 
@@ -257,12 +266,11 @@ int mthca_buf_alloc(struct mthca_dev *dev, int size, int max_direct,
 		}
 	}
 
-	err = mthca_mr_alloc_phys(dev, pd->pd_num,
-				  dma_list, shift, npages,
-				  0, size,
-				  MTHCA_MPT_FLAG_LOCAL_READ |
-				  (hca_write ? MTHCA_MPT_FLAG_LOCAL_WRITE : 0),
-				  mr);
+	err = mthca_mr_alloc_phys(dev, pd->pd_num, dma_list, shift, npages, 0,
+	    size,
+	    MTHCA_MPT_FLAG_LOCAL_READ |
+		(hca_write ? MTHCA_MPT_FLAG_LOCAL_WRITE : 0),
+	    mr);
 	if (err)
 		goto err_free;
 
@@ -279,8 +287,9 @@ err_out:
 	return err;
 }
 
-void mthca_buf_free(struct mthca_dev *dev, int size, union mthca_buf *buf,
-		    int is_direct, struct mthca_mr *mr)
+void
+mthca_buf_free(struct mthca_dev *dev, int size, union mthca_buf *buf,
+    int is_direct, struct mthca_mr *mr)
 {
 	int i;
 
@@ -289,13 +298,12 @@ void mthca_buf_free(struct mthca_dev *dev, int size, union mthca_buf *buf,
 
 	if (is_direct)
 		dma_free_coherent(&dev->pdev->dev, size, buf->direct.buf,
-				  dma_unmap_addr(&buf->direct, mapping));
+		    dma_unmap_addr(&buf->direct, mapping));
 	else {
 		for (i = 0; i < (size + PAGE_SIZE - 1) / PAGE_SIZE; ++i)
 			dma_free_coherent(&dev->pdev->dev, PAGE_SIZE,
-					  buf->page_list[i].buf,
-					  dma_unmap_addr(&buf->page_list[i],
-							 mapping));
+			    buf->page_list[i].buf,
+			    dma_unmap_addr(&buf->page_list[i], mapping));
 		kfree(buf->page_list);
 	}
 }

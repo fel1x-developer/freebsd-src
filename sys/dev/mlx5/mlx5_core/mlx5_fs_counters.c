@@ -28,10 +28,11 @@
 
 #include <dev/mlx5/driver.h>
 #include <dev/mlx5/fs.h>
-#include <linux/rbtree.h>
-#include <dev/mlx5/mlx5_core/mlx5_core.h>
 #include <dev/mlx5/mlx5_core/fs_core.h>
+#include <dev/mlx5/mlx5_core/mlx5_core.h>
 #include <dev/mlx5/mlx5_core/mlx5_fc_cmd.h>
+
+#include <linux/rbtree.h>
 
 #define MLX5_FC_STATS_PERIOD msecs_to_jiffies(1000)
 #define MLX5_FC_BULK_QUERY_ALLOC_PERIOD msecs_to_jiffies(180 * 1000)
@@ -65,10 +66,13 @@ struct mlx5_fc {
 	struct mlx5_fc_cache cache ____cacheline_aligned_in_smp;
 };
 
-static void mlx5_fc_pool_init(struct mlx5_fc_pool *fc_pool, struct mlx5_core_dev *dev);
+static void mlx5_fc_pool_init(struct mlx5_fc_pool *fc_pool,
+    struct mlx5_core_dev *dev);
 static void mlx5_fc_pool_cleanup(struct mlx5_fc_pool *fc_pool);
-static struct mlx5_fc *mlx5_fc_pool_acquire_counter(struct mlx5_fc_pool *fc_pool);
-static void mlx5_fc_pool_release_counter(struct mlx5_fc_pool *fc_pool, struct mlx5_fc *fc);
+static struct mlx5_fc *mlx5_fc_pool_acquire_counter(
+    struct mlx5_fc_pool *fc_pool);
+static void mlx5_fc_pool_release_counter(struct mlx5_fc_pool *fc_pool,
+    struct mlx5_fc *fc);
 
 /* locking scheme:
  *
@@ -102,8 +106,8 @@ static void mlx5_fc_pool_release_counter(struct mlx5_fc_pool *fc_pool, struct ml
  *   elapsed, the thread will actually query the hardware.
  */
 
-static struct list_head *mlx5_fc_counters_lookup_next(struct mlx5_core_dev *dev,
-						      u32 id)
+static struct list_head *
+mlx5_fc_counters_lookup_next(struct mlx5_core_dev *dev, u32 id)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	struct mlx5_fc *counter;
@@ -111,24 +115,25 @@ static struct list_head *mlx5_fc_counters_lookup_next(struct mlx5_core_dev *dev,
 
 	rcu_read_lock();
 	/* skip counters that are in idr, but not yet in counters list */
-	while ((counter = idr_get_next(&fc_stats->counters_idr, &next_id)) != NULL &&
-		list_empty(&counter->list))
+	while ((counter = idr_get_next(&fc_stats->counters_idr, &next_id)) !=
+		NULL &&
+	    list_empty(&counter->list))
 		next_id++;
 	rcu_read_unlock();
 
 	return counter ? &counter->list : &fc_stats->counters;
 }
 
-static void mlx5_fc_stats_insert(struct mlx5_core_dev *dev,
-				 struct mlx5_fc *counter)
+static void
+mlx5_fc_stats_insert(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 {
 	struct list_head *next = mlx5_fc_counters_lookup_next(dev, counter->id);
 
 	list_add_tail(&counter->list, next);
 }
 
-static void mlx5_fc_stats_remove(struct mlx5_core_dev *dev,
-				 struct mlx5_fc *counter)
+static void
+mlx5_fc_stats_remove(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 
@@ -139,23 +144,25 @@ static void mlx5_fc_stats_remove(struct mlx5_core_dev *dev,
 	spin_unlock(&fc_stats->counters_idr_lock);
 }
 
-static int get_init_bulk_query_len(struct mlx5_core_dev *dev)
+static int
+get_init_bulk_query_len(struct mlx5_core_dev *dev)
 {
 	return min_t(int, MLX5_INIT_COUNTERS_BULK,
-		     (1 << MLX5_CAP_GEN(dev, log_max_flow_counter_bulk)));
+	    (1 << MLX5_CAP_GEN(dev, log_max_flow_counter_bulk)));
 }
 
-static int get_max_bulk_query_len(struct mlx5_core_dev *dev)
+static int
+get_max_bulk_query_len(struct mlx5_core_dev *dev)
 {
 	return min_t(int, MLX5_SW_MAX_COUNTERS_BULK,
-		     (1 << MLX5_CAP_GEN(dev, log_max_flow_counter_bulk)));
+	    (1 << MLX5_CAP_GEN(dev, log_max_flow_counter_bulk)));
 }
 
-static void update_counter_cache(int index, u32 *bulk_raw_data,
-				 struct mlx5_fc_cache *cache)
+static void
+update_counter_cache(int index, u32 *bulk_raw_data, struct mlx5_fc_cache *cache)
 {
 	void *stats = MLX5_ADDR_OF(query_flow_counter_out, bulk_raw_data,
-			     flow_statistics[index]);
+	    flow_statistics[index]);
 	u64 packets = MLX5_GET64(traffic_counter, stats, packets);
 	u64 bytes = MLX5_GET64(traffic_counter, stats, octets);
 
@@ -167,9 +174,9 @@ static void update_counter_cache(int index, u32 *bulk_raw_data,
 	cache->lastuse = jiffies;
 }
 
-static void mlx5_fc_stats_query_counter_range(struct mlx5_core_dev *dev,
-					      struct mlx5_fc *first,
-					      u32 last_id)
+static void
+mlx5_fc_stats_query_counter_range(struct mlx5_core_dev *dev,
+    struct mlx5_fc *first, u32 last_id)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	bool query_more_counters = (first->id <= last_id);
@@ -186,17 +193,17 @@ static void mlx5_fc_stats_query_counter_range(struct mlx5_core_dev *dev,
 
 		/* number of counters to query inc. the last counter */
 		bulk_len = min_t(int, cur_bulk_len,
-				 ALIGN(last_id - bulk_base_id + 1, 4));
+		    ALIGN(last_id - bulk_base_id + 1, 4));
 
-		err = mlx5_cmd_fc_bulk_query(dev, bulk_base_id, bulk_len,
-					     data);
+		err = mlx5_cmd_fc_bulk_query(dev, bulk_base_id, bulk_len, data);
 		if (err) {
 			mlx5_core_err(dev, "Error doing bulk query: %d\n", err);
 			return;
 		}
 		query_more_counters = false;
 
-		list_for_each_entry_from(counter, &fc_stats->counters, list) {
+		list_for_each_entry_from(counter, &fc_stats->counters, list)
+		{
 			int counter_index = counter->id - bulk_base_id;
 			struct mlx5_fc_cache *cache = &counter->cache;
 
@@ -210,13 +217,15 @@ static void mlx5_fc_stats_query_counter_range(struct mlx5_core_dev *dev,
 	}
 }
 
-static void mlx5_fc_free(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
+static void
+mlx5_fc_free(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 {
 	mlx5_cmd_fc_free(dev, counter->id);
 	kfree(counter);
 }
 
-static void mlx5_fc_release(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
+static void
+mlx5_fc_release(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 
@@ -226,7 +235,8 @@ static void mlx5_fc_release(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 		mlx5_fc_free(dev, counter);
 }
 
-static void mlx5_fc_stats_bulk_query_size_increase(struct mlx5_core_dev *dev)
+static void
+mlx5_fc_stats_bulk_query_size_increase(struct mlx5_core_dev *dev)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	int max_bulk_len = get_max_bulk_query_len(dev);
@@ -242,11 +252,11 @@ static void mlx5_fc_stats_bulk_query_size_increase(struct mlx5_core_dev *dev)
 	bulk_query_out_tmp = kzalloc(max_out_len, GFP_KERNEL);
 	if (!bulk_query_out_tmp) {
 		mlx5_core_warn(dev,
-			       "Can't increase flow counters bulk query buffer size, insufficient memory, bulk_size(%d)\n",
-			       max_bulk_len);
+		    "Can't increase flow counters bulk query buffer size, insufficient memory, bulk_size(%d)\n",
+		    max_bulk_len);
 		fc_stats->bulk_query_alloc_failed = true;
-		fc_stats->next_bulk_query_alloc =
-			now + MLX5_FC_BULK_QUERY_ALLOC_PERIOD;
+		fc_stats->next_bulk_query_alloc = now +
+		    MLX5_FC_BULK_QUERY_ALLOC_PERIOD;
 		return;
 	}
 
@@ -255,16 +265,17 @@ static void mlx5_fc_stats_bulk_query_size_increase(struct mlx5_core_dev *dev)
 	fc_stats->bulk_query_len = max_bulk_len;
 	if (fc_stats->bulk_query_alloc_failed) {
 		mlx5_core_info(dev,
-			       "Flow counters bulk query buffer size increased, bulk_size(%d)\n",
-			       max_bulk_len);
+		    "Flow counters bulk query buffer size increased, bulk_size(%d)\n",
+		    max_bulk_len);
 		fc_stats->bulk_query_alloc_failed = false;
 	}
 }
 
-static void mlx5_fc_stats_work(struct work_struct *work)
+static void
+mlx5_fc_stats_work(struct work_struct *work)
 {
 	struct mlx5_core_dev *dev = container_of(work, struct mlx5_core_dev,
-						 priv.fc_stats.work.work);
+	    priv.fc_stats.work.work);
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	/* Take dellist first to ensure that counters cannot be deleted before
 	 * they are inserted.
@@ -276,14 +287,16 @@ static void mlx5_fc_stats_work(struct work_struct *work)
 
 	if (addlist || !list_empty(&fc_stats->counters))
 		queue_delayed_work(fc_stats->wq, &fc_stats->work,
-				   fc_stats->sampling_interval);
+		    fc_stats->sampling_interval);
 
-	llist_for_each_entry(counter, addlist, addlist) {
+	llist_for_each_entry(counter, addlist, addlist)
+	{
 		mlx5_fc_stats_insert(dev, counter);
 		fc_stats->num_counters++;
 	}
 
-	llist_for_each_entry_safe(counter, tmp, dellist, dellist) {
+	llist_for_each_entry_safe(counter, tmp, dellist, dellist)
+	{
 		mlx5_fc_stats_remove(dev, counter);
 
 		mlx5_fc_release(dev, counter);
@@ -299,15 +312,15 @@ static void mlx5_fc_stats_work(struct work_struct *work)
 		return;
 	last = list_last_entry(&fc_stats->counters, struct mlx5_fc, list);
 
-	counter = list_first_entry(&fc_stats->counters, struct mlx5_fc,
-				   list);
+	counter = list_first_entry(&fc_stats->counters, struct mlx5_fc, list);
 	if (counter)
 		mlx5_fc_stats_query_counter_range(dev, counter, last->id);
 
 	fc_stats->next_query = now + fc_stats->sampling_interval;
 }
 
-static struct mlx5_fc *mlx5_fc_single_alloc(struct mlx5_core_dev *dev)
+static struct mlx5_fc *
+mlx5_fc_single_alloc(struct mlx5_core_dev *dev)
 {
 	struct mlx5_fc *counter;
 	int err;
@@ -325,7 +338,8 @@ static struct mlx5_fc *mlx5_fc_single_alloc(struct mlx5_core_dev *dev)
 	return counter;
 }
 
-static struct mlx5_fc *mlx5_fc_acquire(struct mlx5_core_dev *dev, bool aging)
+static struct mlx5_fc *
+mlx5_fc_acquire(struct mlx5_core_dev *dev, bool aging)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	struct mlx5_fc *counter;
@@ -339,7 +353,8 @@ static struct mlx5_fc *mlx5_fc_acquire(struct mlx5_core_dev *dev, bool aging)
 	return mlx5_fc_single_alloc(dev);
 }
 
-struct mlx5_fc *mlx5_fc_create_ex(struct mlx5_core_dev *dev, bool aging)
+struct mlx5_fc *
+mlx5_fc_create_ex(struct mlx5_core_dev *dev, bool aging)
 {
 	struct mlx5_fc *counter = mlx5_fc_acquire(dev, aging);
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
@@ -362,7 +377,7 @@ struct mlx5_fc *mlx5_fc_create_ex(struct mlx5_core_dev *dev, bool aging)
 		spin_lock(&fc_stats->counters_idr_lock);
 
 		err = idr_alloc(&fc_stats->counters_idr, counter, id, id + 1,
-				GFP_NOWAIT);
+		    GFP_NOWAIT);
 
 		spin_unlock(&fc_stats->counters_idr_lock);
 		idr_preload_end();
@@ -379,7 +394,8 @@ err_out_alloc:
 	return ERR_PTR(err);
 }
 
-struct mlx5_fc *mlx5_fc_create(struct mlx5_core_dev *dev, bool aging)
+struct mlx5_fc *
+mlx5_fc_create(struct mlx5_core_dev *dev, bool aging)
 {
 	struct mlx5_fc *counter = mlx5_fc_create_ex(dev, aging);
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
@@ -390,13 +406,15 @@ struct mlx5_fc *mlx5_fc_create(struct mlx5_core_dev *dev, bool aging)
 }
 EXPORT_SYMBOL(mlx5_fc_create);
 
-u32 mlx5_fc_id(struct mlx5_fc *counter)
+u32
+mlx5_fc_id(struct mlx5_fc *counter)
 {
 	return counter->id;
 }
 EXPORT_SYMBOL(mlx5_fc_id);
 
-void mlx5_fc_destroy(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
+void
+mlx5_fc_destroy(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 
@@ -413,7 +431,8 @@ void mlx5_fc_destroy(struct mlx5_core_dev *dev, struct mlx5_fc *counter)
 }
 EXPORT_SYMBOL(mlx5_fc_destroy);
 
-int mlx5_init_fc_stats(struct mlx5_core_dev *dev)
+int
+mlx5_init_fc_stats(struct mlx5_core_dev *dev)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	int init_bulk_len;
@@ -447,7 +466,8 @@ err_wq_create:
 	return -ENOMEM;
 }
 
-void mlx5_cleanup_fc_stats(struct mlx5_core_dev *dev)
+void
+mlx5_cleanup_fc_stats(struct mlx5_core_dev *dev)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 	struct llist_node *tmplist;
@@ -463,30 +483,33 @@ void mlx5_cleanup_fc_stats(struct mlx5_core_dev *dev)
 
 	tmplist = llist_del_all(&fc_stats->addlist);
 	llist_for_each_entry_safe(counter, tmp, tmplist, addlist)
-		mlx5_fc_release(dev, counter);
+	    mlx5_fc_release(dev, counter);
 
 	list_for_each_entry_safe(counter, tmp, &fc_stats->counters, list)
-		mlx5_fc_release(dev, counter);
+	    mlx5_fc_release(dev, counter);
 
 	mlx5_fc_pool_cleanup(&fc_stats->fc_pool);
 	idr_destroy(&fc_stats->counters_idr);
 	kfree(fc_stats->bulk_query_out);
 }
 
-int mlx5_fc_query(struct mlx5_core_dev *dev, struct mlx5_fc *counter,
-		  u64 *packets, u64 *bytes)
+int
+mlx5_fc_query(struct mlx5_core_dev *dev, struct mlx5_fc *counter, u64 *packets,
+    u64 *bytes)
 {
 	return mlx5_cmd_fc_query(dev, counter->id, packets, bytes);
 }
 EXPORT_SYMBOL(mlx5_fc_query);
 
-u64 mlx5_fc_query_lastuse(struct mlx5_fc *counter)
+u64
+mlx5_fc_query_lastuse(struct mlx5_fc *counter)
 {
 	return counter->cache.lastuse;
 }
 
-void mlx5_fc_query_cached(struct mlx5_fc *counter,
-			  u64 *bytes, u64 *packets, u64 *lastuse)
+void
+mlx5_fc_query_cached(struct mlx5_fc *counter, u64 *bytes, u64 *packets,
+    u64 *lastuse)
 {
 	struct mlx5_fc_cache c;
 
@@ -500,22 +523,23 @@ void mlx5_fc_query_cached(struct mlx5_fc *counter,
 	counter->lastpackets = c.packets;
 }
 
-void mlx5_fc_queue_stats_work(struct mlx5_core_dev *dev,
-			      struct delayed_work *dwork,
-			      unsigned long delay)
+void
+mlx5_fc_queue_stats_work(struct mlx5_core_dev *dev, struct delayed_work *dwork,
+    unsigned long delay)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 
 	queue_delayed_work(fc_stats->wq, dwork, delay);
 }
 
-void mlx5_fc_update_sampling_interval(struct mlx5_core_dev *dev,
-				      unsigned long interval)
+void
+mlx5_fc_update_sampling_interval(struct mlx5_core_dev *dev,
+    unsigned long interval)
 {
 	struct mlx5_fc_stats *fc_stats = &dev->priv.fc_stats;
 
 	fc_stats->sampling_interval = min_t(unsigned long, interval,
-					    fc_stats->sampling_interval);
+	    fc_stats->sampling_interval);
 }
 
 /* Flow counter bluks */
@@ -528,19 +552,21 @@ struct mlx5_fc_bulk {
 	struct mlx5_fc fcs[];
 };
 
-static void mlx5_fc_init(struct mlx5_fc *counter, struct mlx5_fc_bulk *bulk,
-			 u32 id)
+static void
+mlx5_fc_init(struct mlx5_fc *counter, struct mlx5_fc_bulk *bulk, u32 id)
 {
 	counter->bulk = bulk;
 	counter->id = id;
 }
 
-static int mlx5_fc_bulk_get_free_fcs_amount(struct mlx5_fc_bulk *bulk)
+static int
+mlx5_fc_bulk_get_free_fcs_amount(struct mlx5_fc_bulk *bulk)
 {
 	return bitmap_weight(bulk->bitmask, bulk->bulk_len);
 }
 
-static struct mlx5_fc_bulk *mlx5_fc_bulk_create(struct mlx5_core_dev *dev)
+static struct mlx5_fc_bulk *
+mlx5_fc_bulk_create(struct mlx5_core_dev *dev)
 {
 	enum mlx5_fc_bulk_alloc_bitmask alloc_bitmask;
 	struct mlx5_fc_bulk *bulk;
@@ -557,7 +583,7 @@ static struct mlx5_fc_bulk *mlx5_fc_bulk_create(struct mlx5_core_dev *dev)
 		goto err_alloc_bulk;
 
 	bulk->bitmask = kvcalloc(BITS_TO_LONGS(bulk_len), sizeof(unsigned long),
-				 GFP_KERNEL);
+	    GFP_KERNEL);
 	if (!bulk->bitmask)
 		goto err_alloc_bitmask;
 
@@ -586,7 +612,8 @@ static int
 mlx5_fc_bulk_destroy(struct mlx5_core_dev *dev, struct mlx5_fc_bulk *bulk)
 {
 	if (mlx5_fc_bulk_get_free_fcs_amount(bulk) < bulk->bulk_len) {
-		mlx5_core_err(dev, "Freeing bulk before all counters were released\n");
+		mlx5_core_err(dev,
+		    "Freeing bulk before all counters were released\n");
 		return -EBUSY;
 	}
 
@@ -597,7 +624,8 @@ mlx5_fc_bulk_destroy(struct mlx5_core_dev *dev, struct mlx5_fc_bulk *bulk)
 	return 0;
 }
 
-static struct mlx5_fc *mlx5_fc_bulk_acquire_fc(struct mlx5_fc_bulk *bulk)
+static struct mlx5_fc *
+mlx5_fc_bulk_acquire_fc(struct mlx5_fc_bulk *bulk)
 {
 	int free_fc_index = find_first_bit(bulk->bitmask, bulk->bulk_len);
 
@@ -608,7 +636,8 @@ static struct mlx5_fc *mlx5_fc_bulk_acquire_fc(struct mlx5_fc_bulk *bulk)
 	return &bulk->fcs[free_fc_index];
 }
 
-static int mlx5_fc_bulk_release_fc(struct mlx5_fc_bulk *bulk, struct mlx5_fc *fc)
+static int
+mlx5_fc_bulk_release_fc(struct mlx5_fc_bulk *bulk, struct mlx5_fc *fc)
 {
 	int fc_index = fc->id - bulk->base_id;
 
@@ -621,7 +650,8 @@ static int mlx5_fc_bulk_release_fc(struct mlx5_fc_bulk *bulk, struct mlx5_fc *fc
 
 /* Flow counters pool API */
 
-static void mlx5_fc_pool_init(struct mlx5_fc_pool *fc_pool, struct mlx5_core_dev *dev)
+static void
+mlx5_fc_pool_init(struct mlx5_fc_pool *fc_pool, struct mlx5_core_dev *dev)
 {
 	fc_pool->dev = dev;
 	mutex_init(&fc_pool->pool_lock);
@@ -633,24 +663,26 @@ static void mlx5_fc_pool_init(struct mlx5_fc_pool *fc_pool, struct mlx5_core_dev
 	fc_pool->threshold = 0;
 }
 
-static void mlx5_fc_pool_cleanup(struct mlx5_fc_pool *fc_pool)
+static void
+mlx5_fc_pool_cleanup(struct mlx5_fc_pool *fc_pool)
 {
 	struct mlx5_core_dev *dev = fc_pool->dev;
 	struct mlx5_fc_bulk *bulk;
 	struct mlx5_fc_bulk *tmp;
 
 	list_for_each_entry_safe(bulk, tmp, &fc_pool->fully_used, pool_list)
-		mlx5_fc_bulk_destroy(dev, bulk);
+	    mlx5_fc_bulk_destroy(dev, bulk);
 	list_for_each_entry_safe(bulk, tmp, &fc_pool->partially_used, pool_list)
-		mlx5_fc_bulk_destroy(dev, bulk);
+	    mlx5_fc_bulk_destroy(dev, bulk);
 	list_for_each_entry_safe(bulk, tmp, &fc_pool->unused, pool_list)
-		mlx5_fc_bulk_destroy(dev, bulk);
+	    mlx5_fc_bulk_destroy(dev, bulk);
 }
 
-static void mlx5_fc_pool_update_threshold(struct mlx5_fc_pool *fc_pool)
+static void
+mlx5_fc_pool_update_threshold(struct mlx5_fc_pool *fc_pool)
 {
 	fc_pool->threshold = min_t(int, MLX5_FC_POOL_MAX_THRESHOLD,
-				   fc_pool->used_fcs / MLX5_FC_POOL_USED_BUFF_RATIO);
+	    fc_pool->used_fcs / MLX5_FC_POOL_USED_BUFF_RATIO);
 }
 
 static struct mlx5_fc_bulk *
@@ -678,8 +710,7 @@ mlx5_fc_pool_free_bulk(struct mlx5_fc_pool *fc_pool, struct mlx5_fc_bulk *bulk)
 
 static struct mlx5_fc *
 mlx5_fc_pool_acquire_from_list(struct list_head *src_list,
-			       struct list_head *next_list,
-			       bool move_non_full_bulk)
+    struct list_head *next_list, bool move_non_full_bulk)
 {
 	struct mlx5_fc_bulk *bulk;
 	struct mlx5_fc *fc;
@@ -703,11 +734,10 @@ mlx5_fc_pool_acquire_counter(struct mlx5_fc_pool *fc_pool)
 	mutex_lock(&fc_pool->pool_lock);
 
 	fc = mlx5_fc_pool_acquire_from_list(&fc_pool->partially_used,
-					    &fc_pool->fully_used, false);
+	    &fc_pool->fully_used, false);
 	if (IS_ERR(fc))
 		fc = mlx5_fc_pool_acquire_from_list(&fc_pool->unused,
-						    &fc_pool->partially_used,
-						    true);
+		    &fc_pool->partially_used, true);
 	if (IS_ERR(fc)) {
 		new_bulk = mlx5_fc_pool_alloc_new_bulk(fc_pool);
 		if (IS_ERR(new_bulk)) {
@@ -735,7 +765,8 @@ mlx5_fc_pool_release_counter(struct mlx5_fc_pool *fc_pool, struct mlx5_fc *fc)
 	mutex_lock(&fc_pool->pool_lock);
 
 	if (mlx5_fc_bulk_release_fc(bulk, fc)) {
-		mlx5_core_warn(dev, "Attempted to release a counter which is not acquired\n");
+		mlx5_core_warn(dev,
+		    "Attempted to release a counter which is not acquired\n");
 		goto unlock;
 	}
 

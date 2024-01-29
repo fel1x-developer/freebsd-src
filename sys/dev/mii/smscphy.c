@@ -31,59 +31,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/socket.h>
 
 #include <machine/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include "miibus_if.h"
 #include "miidevs.h"
 
-#include "miibus_if.h"
+static int smscphy_probe(device_t);
+static int smscphy_attach(device_t);
 
-static int	smscphy_probe(device_t);
-static int	smscphy_attach(device_t);
-
-static int	smscphy_service(struct mii_softc *, struct mii_data *, int);
-static void	smscphy_auto(struct mii_softc *, int);
-static void	smscphy_status(struct mii_softc *);
+static int smscphy_service(struct mii_softc *, struct mii_data *, int);
+static void smscphy_auto(struct mii_softc *, int);
+static void smscphy_status(struct mii_softc *);
 
 static device_method_t smscphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		smscphy_probe),
-	DEVMETHOD(device_attach,	smscphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, smscphy_probe),
+	DEVMETHOD(device_attach, smscphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t smscphy_driver = {
-	"smscphy",
-	smscphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t smscphy_driver = { "smscphy", smscphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(smscphy, miibus, smscphy_driver, 0, 0);
 
-static const struct mii_phydesc smscphys[] = {
-	MII_PHY_DESC(SMC, LAN8710A),
-	MII_PHY_DESC(SMC, LAN8700),
-	MII_PHY_END
-};
+static const struct mii_phydesc smscphys[] = { MII_PHY_DESC(SMC, LAN8710A),
+	MII_PHY_DESC(SMC, LAN8700), MII_PHY_END };
 
-static const struct mii_phy_funcs smscphy_funcs = {
-	smscphy_service,
-	smscphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs smscphy_funcs = { smscphy_service,
+	smscphy_status, mii_phy_reset };
 
 static int
 smscphy_probe(device_t dev)
@@ -109,29 +99,29 @@ smscphy_attach(device_t dev)
 static int
 smscphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 {
-        struct	ifmedia_entry *ife;
-        int	reg;
+	struct ifmedia_entry *ife;
+	int reg;
 
 	ife = mii->mii_media.ifm_cur;
 
-        switch (cmd) {
-        case MII_POLLSTAT:
-                break;
+	switch (cmd) {
+	case MII_POLLSTAT:
+		break;
 
-        case MII_MEDIACHG:
+	case MII_MEDIACHG:
 		switch (IFM_SUBTYPE(ife->ifm_media)) {
 		case IFM_AUTO:
 			smscphy_auto(sc, ife->ifm_media);
 			break;
 
 		default:
-                	mii_phy_setmedia(sc);
+			mii_phy_setmedia(sc);
 			break;
 		}
 
-                break;
+		break;
 
-        case MII_TICK:
+	case MII_TICK:
 		if (IFM_SUBTYPE(ife->ifm_media) != IFM_AUTO) {
 			break;
 		}
@@ -155,21 +145,21 @@ smscphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		sc->mii_ticks = 0;
 		PHY_RESET(sc);
 		smscphy_auto(sc, ife->ifm_media);
-                break;
-        }
+		break;
+	}
 
-        /* Update the media status. */
-        PHY_STATUS(sc);
+	/* Update the media status. */
+	PHY_STATUS(sc);
 
-        /* Callback if something changed. */
-        mii_phy_update(sc, cmd);
-        return (0);
+	/* Callback if something changed. */
+	mii_phy_update(sc, cmd);
+	return (0);
 }
 
 static void
 smscphy_auto(struct mii_softc *sc, int media)
 {
-	uint16_t	anar;
+	uint16_t anar;
 
 	anar = BMSR_MEDIA_TO_ANAR(sc->mii_capabilities) | ANAR_CSMA;
 	if ((media & IFM_FLOW) != 0 || (sc->mii_flags & MIIF_FORCEPAUSE) != 0)

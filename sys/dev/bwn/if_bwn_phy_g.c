@@ -27,9 +27,10 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bwn.h"
 #include "opt_wlan.h"
+
+#include <sys/cdefs.h>
 
 /*
  * The Broadcom Wireless LAN controller driver.
@@ -37,97 +38,90 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/errno.h>
 #include <sys/firmware.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <sys/bus.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/bwn/if_bwn_debug.h>
+#include <dev/bwn/if_bwn_misc.h>
+#include <dev/bwn/if_bwn_phy_g.h>
+#include <dev/bwn/if_bwnreg.h>
+#include <dev/bwn/if_bwnvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_regdomain.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_phy.h>
+#include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
-
-#include <dev/bwn/if_bwnreg.h>
-#include <dev/bwn/if_bwnvar.h>
-
-#include <dev/bwn/if_bwn_debug.h>
-#include <dev/bwn/if_bwn_misc.h>
-#include <dev/bwn/if_bwn_phy_g.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 
 #include "bhnd_nvram_map.h"
 
-static void	bwn_phy_g_init_sub(struct bwn_mac *);
-static uint8_t	bwn_has_hwpctl(struct bwn_mac *);
-static void	bwn_phy_init_b5(struct bwn_mac *);
-static void	bwn_phy_init_b6(struct bwn_mac *);
-static void	bwn_phy_init_a(struct bwn_mac *);
-static void	bwn_loopback_calcgain(struct bwn_mac *);
-static uint16_t	bwn_rf_init_bcm2050(struct bwn_mac *);
-static void	bwn_lo_g_init(struct bwn_mac *);
-static void	bwn_lo_g_adjust(struct bwn_mac *);
-static void	bwn_lo_get_powervector(struct bwn_mac *);
+static void bwn_phy_g_init_sub(struct bwn_mac *);
+static uint8_t bwn_has_hwpctl(struct bwn_mac *);
+static void bwn_phy_init_b5(struct bwn_mac *);
+static void bwn_phy_init_b6(struct bwn_mac *);
+static void bwn_phy_init_a(struct bwn_mac *);
+static void bwn_loopback_calcgain(struct bwn_mac *);
+static uint16_t bwn_rf_init_bcm2050(struct bwn_mac *);
+static void bwn_lo_g_init(struct bwn_mac *);
+static void bwn_lo_g_adjust(struct bwn_mac *);
+static void bwn_lo_get_powervector(struct bwn_mac *);
 static struct bwn_lo_calib *bwn_lo_calibset(struct bwn_mac *,
-		    const struct bwn_bbatt *, const struct bwn_rfatt *);
-static void	bwn_lo_write(struct bwn_mac *, struct bwn_loctl *);
-static void	bwn_phy_hwpctl_init(struct bwn_mac *);
-static void	bwn_phy_g_switch_chan(struct bwn_mac *, int, uint8_t);
-static void	bwn_phy_g_set_txpwr_sub(struct bwn_mac *,
-		    const struct bwn_bbatt *, const struct bwn_rfatt *,
-		    uint8_t);
-static void	bwn_phy_g_set_bbatt(struct bwn_mac *, uint16_t);
-static uint16_t	bwn_rf_2050_rfoverval(struct bwn_mac *, uint16_t, uint32_t);
-static void	bwn_spu_workaround(struct bwn_mac *, uint8_t);
-static void	bwn_wa_init(struct bwn_mac *);
-static void	bwn_ofdmtab_write_2(struct bwn_mac *, uint16_t, uint16_t,
-		    uint16_t);
-static void	bwn_ofdmtab_write_4(struct bwn_mac *, uint16_t, uint16_t,
-		    uint32_t);
-static void	bwn_gtab_write(struct bwn_mac *, uint16_t, uint16_t,
-		    uint16_t);
-static int16_t	bwn_nrssi_read(struct bwn_mac *, uint16_t);
-static void	bwn_nrssi_offset(struct bwn_mac *);
-static void	bwn_nrssi_threshold(struct bwn_mac *);
-static void	bwn_nrssi_slope_11g(struct bwn_mac *);
-static void	bwn_set_all_gains(struct bwn_mac *, int16_t, int16_t,
-		    int16_t);
-static void	bwn_set_original_gains(struct bwn_mac *);
-static void	bwn_hwpctl_early_init(struct bwn_mac *);
-static void	bwn_hwpctl_init_gphy(struct bwn_mac *);
-static uint16_t	bwn_phy_g_chan2freq(uint8_t);
-static void	bwn_phy_g_dc_lookup_init(struct bwn_mac *, uint8_t);
+    const struct bwn_bbatt *, const struct bwn_rfatt *);
+static void bwn_lo_write(struct bwn_mac *, struct bwn_loctl *);
+static void bwn_phy_hwpctl_init(struct bwn_mac *);
+static void bwn_phy_g_switch_chan(struct bwn_mac *, int, uint8_t);
+static void bwn_phy_g_set_txpwr_sub(struct bwn_mac *, const struct bwn_bbatt *,
+    const struct bwn_rfatt *, uint8_t);
+static void bwn_phy_g_set_bbatt(struct bwn_mac *, uint16_t);
+static uint16_t bwn_rf_2050_rfoverval(struct bwn_mac *, uint16_t, uint32_t);
+static void bwn_spu_workaround(struct bwn_mac *, uint8_t);
+static void bwn_wa_init(struct bwn_mac *);
+static void bwn_ofdmtab_write_2(struct bwn_mac *, uint16_t, uint16_t, uint16_t);
+static void bwn_ofdmtab_write_4(struct bwn_mac *, uint16_t, uint16_t, uint32_t);
+static void bwn_gtab_write(struct bwn_mac *, uint16_t, uint16_t, uint16_t);
+static int16_t bwn_nrssi_read(struct bwn_mac *, uint16_t);
+static void bwn_nrssi_offset(struct bwn_mac *);
+static void bwn_nrssi_threshold(struct bwn_mac *);
+static void bwn_nrssi_slope_11g(struct bwn_mac *);
+static void bwn_set_all_gains(struct bwn_mac *, int16_t, int16_t, int16_t);
+static void bwn_set_original_gains(struct bwn_mac *);
+static void bwn_hwpctl_early_init(struct bwn_mac *);
+static void bwn_hwpctl_init_gphy(struct bwn_mac *);
+static uint16_t bwn_phy_g_chan2freq(uint8_t);
+static void bwn_phy_g_dc_lookup_init(struct bwn_mac *, uint8_t);
 
 /* Stuff we need */
 
-static uint16_t	bwn_phy_g_txctl(struct bwn_mac *mac);
-static int	bwn_phy_shm_tssi_read(struct bwn_mac *mac, uint16_t shm_offset);
-static void	bwn_phy_g_setatt(struct bwn_mac *mac, int *bbattp, int *rfattp);
-static void	bwn_phy_lock(struct bwn_mac *mac);
-static void	bwn_phy_unlock(struct bwn_mac *mac);
-static void	bwn_rf_lock(struct bwn_mac *mac);
-static void	bwn_rf_unlock(struct bwn_mac *mac);
+static uint16_t bwn_phy_g_txctl(struct bwn_mac *mac);
+static int bwn_phy_shm_tssi_read(struct bwn_mac *mac, uint16_t shm_offset);
+static void bwn_phy_g_setatt(struct bwn_mac *mac, int *bbattp, int *rfattp);
+static void bwn_phy_lock(struct bwn_mac *mac);
+static void bwn_phy_unlock(struct bwn_mac *mac);
+static void bwn_rf_lock(struct bwn_mac *mac);
+static void bwn_rf_unlock(struct bwn_mac *mac);
 
 static const uint16_t bwn_tab_noise_g1[] = BWN_TAB_NOISE_G1;
 static const uint16_t bwn_tab_noise_g2[] = BWN_TAB_NOISE_G2;
@@ -158,15 +152,17 @@ bwn_phy_g_attach(struct bwn_mac *mac)
 	int error;
 
 	/* Fetch SPROM configuration */
-#define	BWN_PHY_G_READVAR(_dev, _type, _name, _result)		\
-do {									\
-	error = bhnd_nvram_getvar_ ##_type((_dev), (_name), (_result));	\
-	if (error) {							\
-		device_printf((_dev), "NVRAM variable %s unreadable: "	\
-		    "%d\n", (_name), error);				\
-		return (error);						\
-	}								\
-} while(0)
+#define BWN_PHY_G_READVAR(_dev, _type, _name, _result)                         \
+	do {                                                                   \
+		error = bhnd_nvram_getvar_##_type((_dev), (_name), (_result)); \
+		if (error) {                                                   \
+			device_printf((_dev),                                  \
+			    "NVRAM variable %s unreadable: "                   \
+			    "%d\n",                                            \
+			    (_name), error);                                   \
+			return (error);                                        \
+		}                                                              \
+	} while (0)
 
 	BWN_PHY_G_READVAR(sc->sc_dev, int8, BHND_NVAR_PA0ITSSIT, &bg);
 	BWN_PHY_G_READVAR(sc->sc_dev, int16, BHND_NVAR_PA0B0, &pab0);
@@ -175,7 +171,7 @@ do {									\
 	BWN_PHY_G_READVAR(sc->sc_dev, int16, BHND_NVAR_PA0MAXPWR,
 	    &pg->pg_pa0maxpwr);
 
-#undef	BWN_PHY_G_READVAR
+#undef BWN_PHY_G_READVAR
 
 	pg->pg_flags = 0;
 	if (pab0 == 0 || pab1 == 0 || pab2 == 0 || pab0 == -1 || pab1 == -1 ||
@@ -206,8 +202,9 @@ do {									\
 				free(pg->pg_tssi2dbm, M_DEVBUF);
 				return (ENOMEM);
 			}
-			q = BWN_TSSI2DBM(f * 4096 - BWN_TSSI2DBM(m2 * f, 16) *
-			    f, 2048);
+			q = BWN_TSSI2DBM(f * 4096 -
+				BWN_TSSI2DBM(m2 * f, 16) * f,
+			    2048);
 			delta = abs(q - f);
 			f = q;
 			j++;
@@ -273,22 +270,15 @@ bwn_phy_g_prepare_hw(struct bwn_mac *mac)
 	struct bwn_phy_g *pg = &phy->phy_g;
 	struct bwn_softc *sc = mac->mac_sc;
 	struct bwn_txpwr_loctl *lo = &pg->pg_loctl;
-	static const struct bwn_rfatt rfatt0[] = {
-		{ 3, 0 }, { 1, 0 }, { 5, 0 }, { 7, 0 },	{ 9, 0 }, { 2, 0 },
-		{ 0, 0 }, { 4, 0 }, { 6, 0 }, { 8, 0 }, { 1, 1 }, { 2, 1 },
-		{ 3, 1 }, { 4, 1 }
-	};
-	static const struct bwn_rfatt rfatt1[] = {
-		{ 2, 1 }, { 4, 1 }, { 6, 1 }, { 8, 1 }, { 10, 1 }, { 12, 1 },
-		{ 14, 1 }
-	};
-	static const struct bwn_rfatt rfatt2[] = {
-		{ 0, 1 }, { 2, 1 }, { 4, 1 }, { 6, 1 }, { 8, 1 }, { 9, 1 },
-		{ 9, 1 }
-	};
-	static const struct bwn_bbatt bbatt_0[] = {
-		{ 0 }, { 1 }, { 2 }, { 3 }, { 4 }, { 5 }, { 6 }, { 7 }, { 8 }
-	};
+	static const struct bwn_rfatt rfatt0[] = { { 3, 0 }, { 1, 0 }, { 5, 0 },
+		{ 7, 0 }, { 9, 0 }, { 2, 0 }, { 0, 0 }, { 4, 0 }, { 6, 0 },
+		{ 8, 0 }, { 1, 1 }, { 2, 1 }, { 3, 1 }, { 4, 1 } };
+	static const struct bwn_rfatt rfatt1[] = { { 2, 1 }, { 4, 1 }, { 6, 1 },
+		{ 8, 1 }, { 10, 1 }, { 12, 1 }, { 14, 1 } };
+	static const struct bwn_rfatt rfatt2[] = { { 0, 1 }, { 2, 1 }, { 4, 1 },
+		{ 6, 1 }, { 8, 1 }, { 9, 1 }, { 9, 1 } };
+	static const struct bwn_bbatt bbatt_0[] = { { 0 }, { 1 }, { 2 }, { 3 },
+		{ 4 }, { 5 }, { 6 }, { 7 }, { 8 } };
 
 	KASSERT(phy->type == BWN_PHYTYPE_G, ("%s fail", __func__));
 
@@ -325,23 +315,23 @@ bwn_phy_g_prepare_hw(struct bwn_mac *mac)
 		case 1:
 			if (phy->type == BWN_PHYTYPE_G) {
 				if (sc->sc_board_info.board_vendor ==
-				    PCI_VENDOR_BROADCOM &&
+					PCI_VENDOR_BROADCOM &&
 				    sc->sc_board_info.board_type ==
-				    BHND_BOARD_BCM94309G &&
+					BHND_BOARD_BCM94309G &&
 				    sc->sc_board_info.board_rev >= 30)
 					pg->pg_rfatt.att = 3;
 				else if (sc->sc_board_info.board_vendor ==
-				    PCI_VENDOR_BROADCOM &&
+					PCI_VENDOR_BROADCOM &&
 				    sc->sc_board_info.board_type ==
-				    BHND_BOARD_BU4306)
+					BHND_BOARD_BU4306)
 					pg->pg_rfatt.att = 3;
 				else
 					pg->pg_rfatt.att = 1;
 			} else {
 				if (sc->sc_board_info.board_vendor ==
-				    PCI_VENDOR_BROADCOM &&
+					PCI_VENDOR_BROADCOM &&
 				    sc->sc_board_info.board_type ==
-				    BHND_BOARD_BCM94309G &&
+					BHND_BOARD_BCM94309G &&
 				    sc->sc_board_info.board_rev >= 30)
 					pg->pg_rfatt.att = 7;
 				else
@@ -351,15 +341,15 @@ bwn_phy_g_prepare_hw(struct bwn_mac *mac)
 		case 2:
 			if (phy->type == BWN_PHYTYPE_G) {
 				if (sc->sc_board_info.board_vendor ==
-				    PCI_VENDOR_BROADCOM &&
+					PCI_VENDOR_BROADCOM &&
 				    sc->sc_board_info.board_type ==
-				    BHND_BOARD_BCM94309G &&
+					BHND_BOARD_BCM94309G &&
 				    sc->sc_board_info.board_rev >= 30)
 					pg->pg_rfatt.att = 3;
 				else if (sc->sc_board_info.board_vendor ==
-				    PCI_VENDOR_BROADCOM &&
+					PCI_VENDOR_BROADCOM &&
 				    sc->sc_board_info.board_type ==
-				    BHND_BOARD_BU4306)
+					BHND_BOARD_BU4306)
 					pg->pg_rfatt.att = 5;
 				else if (sc->sc_cid.chip_id ==
 				    BHND_CHIPID_BCM4320)
@@ -469,7 +459,7 @@ bwn_phy_g_exit(struct bwn_mac *mac)
 
 	if (lo == NULL)
 		return;
-	TAILQ_FOREACH_SAFE(cal, &lo->calib_list, list, tmp) {
+	TAILQ_FOREACH_SAFE (cal, &lo->calib_list, list, tmp) {
 		TAILQ_REMOVE(&lo->calib_list, cal, list);
 		free(cal, M_DEVBUF);
 	}
@@ -587,8 +577,8 @@ bwn_phy_g_set_antenna(struct bwn_mac *mac, int antenna)
 
 	BWN_PHY_WRITE(mac, BWN_PHY_BBANDCFG,
 	    (BWN_PHY_READ(mac, BWN_PHY_BBANDCFG) & ~BWN_PHY_BBANDCFG_RXANT) |
-	    ((autodiv ? BWN_ANTAUTO1 : antenna)
-		<< BWN_PHY_BBANDCFG_RXANT_SHIFT));
+		((autodiv ? BWN_ANTAUTO1 : antenna)
+		    << BWN_PHY_BBANDCFG_RXANT_SHIFT));
 
 	if (autodiv) {
 		tmp = BWN_PHY_READ(mac, BWN_PHY_ANTDWELL);
@@ -609,13 +599,13 @@ bwn_phy_g_set_antenna(struct bwn_mac *mac, int antenna)
 		    BWN_PHY_READ(mac, BWN_PHY_OFDM61) | BWN_PHY_OFDM61_10);
 		BWN_PHY_WRITE(mac, BWN_PHY_DIVSRCHGAINBACK,
 		    (BWN_PHY_READ(mac, BWN_PHY_DIVSRCHGAINBACK) & 0xff00) |
-		    0x15);
+			0x15);
 		if (phy->rev == 2)
 			BWN_PHY_WRITE(mac, BWN_PHY_ADIVRELATED, 8);
 		else
 			BWN_PHY_WRITE(mac, BWN_PHY_ADIVRELATED,
 			    (BWN_PHY_READ(mac, BWN_PHY_ADIVRELATED) & 0xff00) |
-			    8);
+				8);
 	}
 	if (phy->rev >= 6)
 		BWN_PHY_WRITE(mac, BWN_PHY_OFDM9B, 0xdc);
@@ -678,8 +668,8 @@ bwn_phy_g_recalc_txpwr(struct bwn_mac *mac, int ignore_tssi)
 	}
 
 	power = MIN(MAX((phy->txpower < 0) ? 0 : (phy->txpower << 2), 0), max) -
-	    (pg->pg_tssi2dbm[MIN(MAX(pg->pg_idletssi - pg->pg_curtssi +
-	     tssi, 0x00), 0x3f)]);
+	    (pg->pg_tssi2dbm[MIN(
+		MAX(pg->pg_idletssi - pg->pg_curtssi + tssi, 0x00), 0x3f)]);
 	if (power == 0)
 		return (BWN_TXPWR_RES_DONE);
 
@@ -778,7 +768,7 @@ bwn_phy_g_task_15s(struct bwn_mac *mac)
 	}
 
 	expire = now - BWN_LO_CALIB_EXPIRE;
-	TAILQ_FOREACH_SAFE(cal, &lo->calib_list, list, tmp) {
+	TAILQ_FOREACH_SAFE (cal, &lo->calib_list, list, tmp) {
 		if (!ieee80211_time_before(cal->calib_time, expire))
 			continue;
 		if (BWN_BBATTCMP(&cal->bbatt, &pg->pg_bbatt) &&
@@ -795,11 +785,9 @@ bwn_phy_g_task_15s(struct bwn_mac *mac)
 		free(cal, M_DEVBUF);
 	}
 	if (expired || TAILQ_EMPTY(&lo->calib_list)) {
-		cal = bwn_lo_calibset(mac, &pg->pg_bbatt,
-		    &pg->pg_rfatt);
+		cal = bwn_lo_calibset(mac, &pg->pg_bbatt, &pg->pg_rfatt);
 		if (cal == NULL) {
-			device_printf(sc->sc_dev,
-			    "failed to recalibrate LO\n");
+			device_printf(sc->sc_dev, "failed to recalibrate LO\n");
 			goto fail;
 		}
 		TAILQ_INSERT_TAIL(&lo->calib_list, cal, list);
@@ -894,9 +882,8 @@ bwn_phy_g_init_sub(struct bwn_mac *mac)
 	bwn_lo_g_init(mac);
 	if (BWN_HAS_TXMAG(phy)) {
 		BWN_RF_WRITE(mac, 0x52,
-		    (BWN_RF_READ(mac, 0x52) & 0xff00)
-		    | pg->pg_loctl.tx_bias |
-		    pg->pg_loctl.tx_magn);
+		    (BWN_RF_READ(mac, 0x52) & 0xff00) | pg->pg_loctl.tx_bias |
+			pg->pg_loctl.tx_magn);
 	} else {
 		BWN_RF_SETMASK(mac, 0x52, 0xfff0, pg->pg_loctl.tx_bias);
 	}
@@ -922,7 +909,8 @@ bwn_phy_g_init_sub(struct bwn_mac *mac)
 			BWN_PHY_WRITE(mac, BWN_PHY_NRSSI_CTRL, i);
 			BWN_PHY_WRITE(mac, BWN_PHY_NRSSI_DATA,
 			    (uint16_t)MIN(MAX(bwn_nrssi_read(mac, i) - 0xffff,
-			    -32), 31));
+					      -32),
+				31));
 		}
 		bwn_nrssi_threshold(mac);
 	} else if (phy->gmode || phy->rev >= 2) {
@@ -936,8 +924,9 @@ bwn_phy_g_init_sub(struct bwn_mac *mac)
 	if (phy->rf_rev == 8)
 		BWN_PHY_WRITE(mac, BWN_PHY_EXTG(0x05), 0x3230);
 	bwn_phy_hwpctl_init(mac);
-	if ((sc->sc_cid.chip_id == BHND_CHIPID_BCM4306
-	     && sc->sc_cid.chip_pkg == 2) || 0) {
+	if ((sc->sc_cid.chip_id == BHND_CHIPID_BCM4306 &&
+		sc->sc_cid.chip_pkg == 2) ||
+	    0) {
 		BWN_PHY_MASK(mac, BWN_PHY_CRS0, 0xbfff);
 		BWN_PHY_MASK(mac, BWN_PHY_OFDM(0xc3), 0x7fff);
 	}
@@ -1191,8 +1180,8 @@ done1:
 	BWN_PHY_WRITE(mac, BWN_PHY_CRS0, backup_phy[0]);
 	BWN_PHY_WRITE(mac, BWN_PHY_CCKBBANDCFG, backup_phy[1]);
 
-	pg->pg_max_lb_gain =
-	    ((loop1_inner_done * 6) - (loop1_outer_done * 4)) - 11;
+	pg->pg_max_lb_gain = ((loop1_inner_done * 6) - (loop1_outer_done * 4)) -
+	    11;
 	pg->pg_trsw_rx_gain = trsw_rx * 2;
 }
 
@@ -1205,10 +1194,22 @@ bwn_rf_init_bcm2050(struct bwn_mac *mac)
 	    analogover, analogoverval, crs0, classctl, lomask, loctl, syncctl,
 	    radio0, radio1, radio2, reg0, reg1, reg2, radio78, reg, index;
 	static const uint8_t rcc_table[] = {
-		0x02, 0x03, 0x01, 0x0f,
-		0x06, 0x07, 0x05, 0x0f,
-		0x0a, 0x0b, 0x09, 0x0f,
-		0x0e, 0x0f, 0x0d, 0x0f,
+		0x02,
+		0x03,
+		0x01,
+		0x0f,
+		0x06,
+		0x07,
+		0x05,
+		0x0f,
+		0x0a,
+		0x0b,
+		0x09,
+		0x0f,
+		0x0e,
+		0x0f,
+		0x0d,
+		0x0f,
 	};
 
 	loctl = lomask = reg0 = classctl = crs0 = analogoverval = analogover =
@@ -1305,22 +1306,22 @@ bwn_rf_init_bcm2050(struct bwn_mac *mac)
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x58), 0x000d);
 		if (phy->gmode || phy->rev >= 2) {
 			BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL,
-			    bwn_rf_2050_rfoverval(mac,
-				BWN_PHY_RFOVERVAL, BWN_LPD(1, 0, 1)));
+			    bwn_rf_2050_rfoverval(mac, BWN_PHY_RFOVERVAL,
+				BWN_LPD(1, 0, 1)));
 		}
 		BWN_PHY_WRITE(mac, BWN_PHY_PGACTL, 0xafb0);
 		DELAY(10);
 		if (phy->gmode || phy->rev >= 2) {
 			BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL,
-			    bwn_rf_2050_rfoverval(mac,
-				BWN_PHY_RFOVERVAL, BWN_LPD(1, 0, 1)));
+			    bwn_rf_2050_rfoverval(mac, BWN_PHY_RFOVERVAL,
+				BWN_LPD(1, 0, 1)));
 		}
 		BWN_PHY_WRITE(mac, BWN_PHY_PGACTL, 0xefb0);
 		DELAY(10);
 		if (phy->gmode || phy->rev >= 2) {
 			BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL,
-			    bwn_rf_2050_rfoverval(mac,
-				BWN_PHY_RFOVERVAL, BWN_LPD(1, 0, 0)));
+			    bwn_rf_2050_rfoverval(mac, BWN_PHY_RFOVERVAL,
+				BWN_LPD(1, 0, 0)));
 		}
 		BWN_PHY_WRITE(mac, BWN_PHY_PGACTL, 0xfff0);
 		DELAY(20);
@@ -1328,8 +1329,8 @@ bwn_rf_init_bcm2050(struct bwn_mac *mac)
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x58), 0);
 		if (phy->gmode || phy->rev >= 2) {
 			BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL,
-			    bwn_rf_2050_rfoverval(mac,
-				BWN_PHY_RFOVERVAL, BWN_LPD(1, 0, 1)));
+			    bwn_rf_2050_rfoverval(mac, BWN_PHY_RFOVERVAL,
+				BWN_LPD(1, 0, 1)));
 		}
 		BWN_PHY_WRITE(mac, BWN_PHY_PGACTL, 0xafb0);
 	}
@@ -1400,13 +1401,11 @@ bwn_rf_init_bcm2050(struct bwn_mac *mac)
 		BWN_WRITE_2(mac, 0x3ec, reg0);
 	} else if (phy->gmode) {
 		BWN_WRITE_2(mac, BWN_PHY_RADIO,
-			    BWN_READ_2(mac, BWN_PHY_RADIO)
-			    & 0x7fff);
+		    BWN_READ_2(mac, BWN_PHY_RADIO) & 0x7fff);
 		BWN_PHY_WRITE(mac, BWN_PHY_RFOVER, rfover);
 		BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL, rfoverval);
 		BWN_PHY_WRITE(mac, BWN_PHY_ANALOGOVER, analogover);
-		BWN_PHY_WRITE(mac, BWN_PHY_ANALOGOVERVAL,
-			      analogoverval);
+		BWN_PHY_WRITE(mac, BWN_PHY_ANALOGOVERVAL, analogoverval);
 		BWN_PHY_WRITE(mac, BWN_PHY_CRS0, crs0);
 		BWN_PHY_WRITE(mac, BWN_PHY_CLASSCTL, classctl);
 		if (BWN_HAS_LOOPBACK(phy)) {
@@ -1693,8 +1692,7 @@ bwn_wa_grev1(struct bwn_mac *mac)
 
 	/* XXX support PHY-A??? */
 	if (phy->rev >= 6) {
-		if (BWN_PHY_READ(mac, BWN_PHY_ENCORE) &
-		    BWN_PHY_ENCORE_EN)
+		if (BWN_PHY_READ(mac, BWN_PHY_ENCORE) & BWN_PHY_ENCORE_EN)
 			bwn_wa_write_noisescale(mac, bwn_tab_noisescale_g3);
 		else
 			bwn_wa_write_noisescale(mac, bwn_tab_noisescale_g2);
@@ -1707,8 +1705,8 @@ bwn_wa_grev1(struct bwn_mac *mac)
 
 	if (phy->rev == 1) {
 		for (i = 0; i < 16; i++)
-			bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_WRSSI_R1,
-			    i, 0x0020);
+			bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_WRSSI_R1, i,
+			    0x0020);
 	} else {
 		for (i = 0; i < 32; i++)
 			bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_WRSSI, i, 0x0820);
@@ -1758,8 +1756,7 @@ bwn_wa_grev26789(struct bwn_mac *mac)
 
 	/* XXX support PHY-A??? */
 	if (phy->rev >= 6) {
-		if (BWN_PHY_READ(mac, BWN_PHY_ENCORE) &
-		    BWN_PHY_ENCORE_EN)
+		if (BWN_PHY_READ(mac, BWN_PHY_ENCORE) & BWN_PHY_ENCORE_EN)
 			bwn_wa_write_noisescale(mac, bwn_tab_noisescale_g3);
 		else
 			bwn_wa_write_noisescale(mac, bwn_tab_noisescale_g2);
@@ -1831,8 +1828,7 @@ bwn_wa_init(struct bwn_mac *mac)
 		} else {
 			bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_GAINX, 1, 0x0002);
 			bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_GAINX, 2, 0x0001);
-			if ((sc->sc_board_info.board_flags &
-			     BHND_BFL_EXTLNA) &&
+			if ((sc->sc_board_info.board_flags & BHND_BFL_EXTLNA) &&
 			    (phy->rev >= 7)) {
 				BWN_PHY_MASK(mac, BWN_PHY_EXTG(0x11), 0xf7ff);
 				bwn_ofdmtab_write_2(mac, BWN_OFDMTAB_GAINX,
@@ -1912,14 +1908,14 @@ bwn_lo_write(struct bwn_mac *mac, struct bwn_loctl *ctl)
 	KASSERT(mac->mac_phy.type == BWN_PHYTYPE_G,
 	    ("%s:%d: fail", __func__, __LINE__));
 
-	value = (uint8_t) (ctl->q);
-	value |= ((uint8_t) (ctl->i)) << 8;
+	value = (uint8_t)(ctl->q);
+	value |= ((uint8_t)(ctl->i)) << 8;
 	BWN_PHY_WRITE(mac, BWN_PHY_LO_CTL, value);
 }
 
 static uint16_t
-bwn_lo_calcfeed(struct bwn_mac *mac,
-    uint16_t lna, uint16_t pga, uint16_t trsw_rx)
+bwn_lo_calcfeed(struct bwn_mac *mac, uint16_t lna, uint16_t pga,
+    uint16_t trsw_rx)
 {
 	struct bwn_phy *phy = &mac->mac_phy;
 	struct bwn_softc *sc = mac->mac_sc;
@@ -1969,8 +1965,8 @@ bwn_lo_calcfeed(struct bwn_mac *mac,
 }
 
 static uint16_t
-bwn_lo_txctl_regtable(struct bwn_mac *mac,
-    uint16_t *value, uint16_t *pad_mix_gain)
+bwn_lo_txctl_regtable(struct bwn_mac *mac, uint16_t *value,
+    uint16_t *pad_mix_gain)
 {
 	struct bwn_phy *phy = &mac->mac_phy;
 	uint16_t reg, v, padmix;
@@ -2014,11 +2010,19 @@ bwn_lo_measure_txctl_values(struct bwn_mac *mac)
 	uint16_t rf_pctl_reg;
 
 	static const uint8_t tx_bias_values[] = {
-		0x09, 0x08, 0x0a, 0x01, 0x00,
-		0x02, 0x05, 0x04, 0x06,
+		0x09,
+		0x08,
+		0x0a,
+		0x01,
+		0x00,
+		0x02,
+		0x05,
+		0x04,
+		0x06,
 	};
 	static const uint8_t tx_magn_values[] = {
-		0x70, 0x40,
+		0x70,
+		0x40,
 	};
 
 	if (!BWN_HAS_LOOPBACK(phy)) {
@@ -2040,8 +2044,8 @@ bwn_lo_measure_txctl_values(struct bwn_mac *mac)
 
 			pga = 0;
 			cmp_val = 0x24;
-			if ((phy->rev >= 2) &&
-			    (phy->rf_ver == 0x2050) && (phy->rf_rev == 8))
+			if ((phy->rev >= 2) && (phy->rf_ver == 0x2050) &&
+			    (phy->rf_rev == 8))
 				cmp_val = 0x3c;
 			tmp = lb_gain;
 			if ((10 - lb_gain) < cmp_val)
@@ -2088,9 +2092,8 @@ bwn_lo_measure_txctl_values(struct bwn_mac *mac)
 					break;
 			}
 			BWN_RF_WRITE(mac, 0x52,
-					  (BWN_RF_READ(mac, 0x52)
-					   & 0xff00) | lo->tx_bias | lo->
-					  tx_magn);
+			    (BWN_RF_READ(mac, 0x52) & 0xff00) | lo->tx_bias |
+				lo->tx_magn);
 		}
 	} else {
 		lo->tx_magn = 0;
@@ -2204,15 +2207,15 @@ bwn_lo_save(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 		BWN_PHY_SET(mac, BWN_PHY_DACCTL, 0x40);
 		BWN_PHY_SET(mac, BWN_PHY_CCK(0x14), 0x200);
 	}
-	if (phy->type == BWN_PHYTYPE_B &&
-	    phy->rf_ver == 0x2050 && phy->rf_rev < 6) {
+	if (phy->type == BWN_PHYTYPE_B && phy->rf_ver == 0x2050 &&
+	    phy->rf_rev < 6) {
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x16), 0x410);
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x17), 0x820);
 	}
 	if (phy->rev >= 2) {
 		sav->phy_analogover = BWN_PHY_READ(mac, BWN_PHY_ANALOGOVER);
-		sav->phy_analogoverval =
-		    BWN_PHY_READ(mac, BWN_PHY_ANALOGOVERVAL);
+		sav->phy_analogoverval = BWN_PHY_READ(mac,
+		    BWN_PHY_ANALOGOVERVAL);
 		sav->phy_rfover = BWN_PHY_READ(mac, BWN_PHY_RFOVER);
 		sav->phy_rfoverval = BWN_PHY_READ(mac, BWN_PHY_RFOVERVAL);
 		sav->phy_classctl = BWN_PHY_READ(mac, BWN_PHY_CLASSCTL);
@@ -2225,8 +2228,7 @@ bwn_lo_save(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 		BWN_PHY_MASK(mac, BWN_PHY_ANALOGOVERVAL, 0xfffc);
 		if (phy->type == BWN_PHYTYPE_G) {
 			if ((phy->rev >= 7) &&
-			    (sc->sc_board_info.board_flags &
-			     BHND_BFL_EXTLNA)) {
+			    (sc->sc_board_info.board_flags & BHND_BFL_EXTLNA)) {
 				BWN_PHY_WRITE(mac, BWN_PHY_RFOVER, 0x933);
 			} else {
 				BWN_PHY_WRITE(mac, BWN_PHY_RFOVER, 0x133);
@@ -2255,14 +2257,12 @@ bwn_lo_save(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x30), 0x00ff);
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x06), 0x3f3f);
 	} else {
-		BWN_WRITE_2(mac, 0x3e2, BWN_READ_2(mac, 0x3e2)
-			    | 0x8000);
+		BWN_WRITE_2(mac, 0x3e2, BWN_READ_2(mac, 0x3e2) | 0x8000);
 	}
-	BWN_WRITE_2(mac, 0x3f4, BWN_READ_2(mac, 0x3f4)
-		    & 0xf000);
+	BWN_WRITE_2(mac, 0x3f4, BWN_READ_2(mac, 0x3f4) & 0xf000);
 
-	tmp =
-	    (phy->type == BWN_PHYTYPE_G) ? BWN_PHY_LO_MASK : BWN_PHY_CCK(0x2e);
+	tmp = (phy->type == BWN_PHYTYPE_G) ? BWN_PHY_LO_MASK :
+					     BWN_PHY_CCK(0x2e);
 	BWN_PHY_WRITE(mac, tmp, 0x007f);
 
 	tmp = sav->phy_syncctl;
@@ -2272,8 +2272,8 @@ bwn_lo_save(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 
 	BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x2a), 0x8a3);
 	if (phy->type == BWN_PHYTYPE_G ||
-	    (phy->type == BWN_PHYTYPE_B &&
-	     phy->rf_ver == 0x2050 && phy->rf_rev >= 6)) {
+	    (phy->type == BWN_PHYTYPE_B && phy->rf_ver == 0x2050 &&
+		phy->rf_rev >= 6)) {
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x2b), 0x1003);
 	} else
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x2b), 0x0802);
@@ -2286,7 +2286,8 @@ bwn_lo_save(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 
 	nanouptime(&ts);
 	if (ieee80211_time_before(lo->txctl_measured_time,
-	    (ts.tv_nsec / 1000000 + ts.tv_sec * 1000) - BWN_LO_TXCTL_EXPIRE))
+		(ts.tv_nsec / 1000000 + ts.tv_sec * 1000) -
+		    BWN_LO_TXCTL_EXPIRE))
 		bwn_lo_measure_txctl_values(mac);
 
 	if (phy->type == BWN_PHYTYPE_G && phy->rev >= 3)
@@ -2340,15 +2341,15 @@ bwn_lo_restore(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 		BWN_RF_SETMASK(mac, 0x52, 0xff0f, tmp);
 	}
 	BWN_WRITE_2(mac, 0x3e2, sav->reg1);
-	if (phy->type == BWN_PHYTYPE_B &&
-	    phy->rf_ver == 0x2050 && phy->rf_rev <= 5) {
+	if (phy->type == BWN_PHYTYPE_B && phy->rf_ver == 0x2050 &&
+	    phy->rf_rev <= 5) {
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x30), sav->phy_cck0);
 		BWN_PHY_WRITE(mac, BWN_PHY_CCK(0x06), sav->phy_cck1);
 	}
 	if (phy->rev >= 2) {
 		BWN_PHY_WRITE(mac, BWN_PHY_ANALOGOVER, sav->phy_analogover);
 		BWN_PHY_WRITE(mac, BWN_PHY_ANALOGOVERVAL,
-			      sav->phy_analogoverval);
+		    sav->phy_analogoverval);
 		BWN_PHY_WRITE(mac, BWN_PHY_CLASSCTL, sav->phy_classctl);
 		BWN_PHY_WRITE(mac, BWN_PHY_RFOVER, sav->phy_rfover);
 		BWN_PHY_WRITE(mac, BWN_PHY_RFOVERVAL, sav->phy_rfoverval);
@@ -2367,17 +2368,45 @@ bwn_lo_restore(struct bwn_mac *mac, struct bwn_lo_g_value *sav)
 }
 
 static int
-bwn_lo_probe_loctl(struct bwn_mac *mac,
-    struct bwn_loctl *probe, struct bwn_lo_g_sm *d)
+bwn_lo_probe_loctl(struct bwn_mac *mac, struct bwn_loctl *probe,
+    struct bwn_lo_g_sm *d)
 {
 	struct bwn_phy *phy = &mac->mac_phy;
 	struct bwn_phy_g *pg = &phy->phy_g;
 	struct bwn_loctl orig, test;
 	struct bwn_loctl prev = { -100, -100 };
-	static const struct bwn_loctl modifiers[] = {
-		{  1,  1,}, {  1,  0,}, {  1, -1,}, {  0, -1,},
-		{ -1, -1,}, { -1,  0,}, { -1,  1,}, {  0,  1,}
-	};
+	static const struct bwn_loctl modifiers[] = { {
+							  1,
+							  1,
+						      },
+		{
+		    1,
+		    0,
+		},
+		{
+		    1,
+		    -1,
+		},
+		{
+		    0,
+		    -1,
+		},
+		{
+		    -1,
+		    -1,
+		},
+		{
+		    -1,
+		    0,
+		},
+		{
+		    -1,
+		    1,
+		},
+		{
+		    0,
+		    1,
+		} };
 	int begin, end, lower = 0, i;
 	uint16_t feedth;
 
@@ -2410,8 +2439,7 @@ bwn_lo_probe_loctl(struct bwn_mac *mac,
 			feedth = bwn_lo_calcfeed(mac, pg->pg_lna_gain,
 			    pg->pg_pga_gain, pg->pg_trsw_rx_gain);
 			if (feedth < d->feedth) {
-				memcpy(probe, &test,
-				    sizeof(struct bwn_loctl));
+				memcpy(probe, &test, sizeof(struct bwn_loctl));
 				lower = 1;
 				d->feedth = feedth;
 				if (d->nmeasure < 2 && !BWN_HAS_LOOPBACK(phy))
@@ -2451,8 +2479,8 @@ bwn_lo_probe_sm(struct bwn_mac *mac, struct bwn_loctl *loctl, int *rxgain)
 
 	do {
 		bwn_lo_write(mac, &d.loctl);
-		feedth = bwn_lo_calcfeed(mac, pg->pg_lna_gain,
-		    pg->pg_pga_gain, pg->pg_trsw_rx_gain);
+		feedth = bwn_lo_calcfeed(mac, pg->pg_lna_gain, pg->pg_pga_gain,
+		    pg->pg_trsw_rx_gain);
 		if (feedth < 0x258) {
 			if (feedth >= 0x12c)
 				*rxgain += 6;
@@ -2466,8 +2494,7 @@ bwn_lo_probe_sm(struct bwn_mac *mac, struct bwn_loctl *loctl, int *rxgain)
 		do {
 			KASSERT(d.curstate >= 0 && d.curstate <= 8,
 			    ("%s:%d: fail", __func__, __LINE__));
-			memcpy(&probe, &d.loctl,
-			       sizeof(struct bwn_loctl));
+			memcpy(&probe, &d.loctl, sizeof(struct bwn_loctl));
 			lower = bwn_lo_probe_loctl(mac, &probe, &d);
 			if (!lower)
 				break;
@@ -2497,8 +2524,8 @@ bwn_lo_probe_sm(struct bwn_mac *mac, struct bwn_loctl *loctl, int *rxgain)
 }
 
 static struct bwn_lo_calib *
-bwn_lo_calibset(struct bwn_mac *mac,
-    const struct bwn_bbatt *bbatt, const struct bwn_rfatt *rfatt)
+bwn_lo_calibset(struct bwn_mac *mac, const struct bwn_bbatt *bbatt,
+    const struct bwn_rfatt *rfatt)
 {
 	struct bwn_phy *phy = &mac->mac_phy;
 	struct bwn_phy_g *pg = &phy->phy_g;
@@ -2514,7 +2541,7 @@ bwn_lo_calibset(struct bwn_mac *mac,
 
 	reg = bwn_lo_txctl_regtable(mac, &value, &pad);
 	BWN_RF_SETMASK(mac, 0x43, 0xfff0, rfatt->att);
-	BWN_RF_SETMASK(mac, reg, ~value, (rfatt->padmix ? value :0));
+	BWN_RF_SETMASK(mac, reg, ~value, (rfatt->padmix ? value : 0));
 
 	rxgain = (rfatt->att * 2) + (bbatt->att / 2);
 	if (rfatt->padmix)
@@ -2549,7 +2576,7 @@ bwn_lo_get_calib(struct bwn_mac *mac, const struct bwn_bbatt *bbatt,
 	struct bwn_txpwr_loctl *lo = &mac->mac_phy.phy_g.pg_loctl;
 	struct bwn_lo_calib *c;
 
-	TAILQ_FOREACH(c, &lo->calib_list, list) {
+	TAILQ_FOREACH (c, &lo->calib_list, list) {
 		if (!BWN_BBATTCMP(&c->bbatt, bbatt))
 			continue;
 		if (!BWN_RFATTCMP(&c->rfatt, rfatt))
@@ -2603,7 +2630,8 @@ bwn_phy_g_dc_lookup_init(struct bwn_mac *mac, uint8_t update)
 
 		cal = bwn_lo_calibset(mac, bbatt, rfatt);
 		if (!cal) {
-			device_printf(sc->sc_dev, "LO: Could not "
+			device_printf(sc->sc_dev,
+			    "LO: Could not "
 			    "calibrate DC table entry\n");
 			continue;
 		}
@@ -2613,11 +2641,11 @@ bwn_phy_g_dc_lookup_init(struct bwn_mac *mac, uint8_t update)
 
 		idx = i / 2;
 		if (i % 2)
-			lo->dc_lt[idx] = (lo->dc_lt[idx] & 0x00ff)
-			    | ((val & 0x00ff) << 8);
+			lo->dc_lt[idx] = (lo->dc_lt[idx] & 0x00ff) |
+			    ((val & 0x00ff) << 8);
 		else
-			lo->dc_lt[idx] = (lo->dc_lt[idx] & 0xff00)
-			    | (val & 0x00ff);
+			lo->dc_lt[idx] = (lo->dc_lt[idx] & 0xff00) |
+			    (val & 0x00ff);
 		changed = 1;
 	}
 	if (changed) {
@@ -2724,17 +2752,14 @@ bwn_nrssi_threshold(struct bwn_mac *mac)
 static void
 bwn_nrssi_slope_11g(struct bwn_mac *mac)
 {
-#define	SAVE_RF_MAX		3
-#define	SAVE_PHY_COMM_MAX	4
-#define	SAVE_PHY3_MAX		8
-	static const uint16_t save_rf_regs[SAVE_RF_MAX] =
-		{ 0x7a, 0x52, 0x43 };
-	static const uint16_t save_phy_comm_regs[SAVE_PHY_COMM_MAX] =
-		{ 0x15, 0x5a, 0x59, 0x58 };
-	static const uint16_t save_phy3_regs[SAVE_PHY3_MAX] = {
-		0x002e, 0x002f, 0x080f, BWN_PHY_G_LOCTL,
-		0x0801, 0x0060, 0x0014, 0x0478
-	};
+#define SAVE_RF_MAX 3
+#define SAVE_PHY_COMM_MAX 4
+#define SAVE_PHY3_MAX 8
+	static const uint16_t save_rf_regs[SAVE_RF_MAX] = { 0x7a, 0x52, 0x43 };
+	static const uint16_t save_phy_comm_regs[SAVE_PHY_COMM_MAX] = { 0x15,
+		0x5a, 0x59, 0x58 };
+	static const uint16_t save_phy3_regs[SAVE_PHY3_MAX] = { 0x002e, 0x002f,
+		0x080f, BWN_PHY_G_LOCTL, 0x0801, 0x0060, 0x0014, 0x0478 };
 	struct bwn_phy *phy = &mac->mac_phy;
 	struct bwn_phy_g *pg = &phy->phy_g;
 	int32_t i, tmp32, phy3_idx = 0;
@@ -2801,7 +2826,7 @@ bwn_nrssi_slope_11g(struct bwn_mac *mac)
 	BWN_RF_SET(mac, 0x007a, 0x0080);
 	DELAY(20);
 
-	nrssi0 = (int16_t) ((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
+	nrssi0 = (int16_t)((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
 	if (nrssi0 >= 0x0020)
 		nrssi0 -= 0x0040;
 
@@ -2834,7 +2859,7 @@ bwn_nrssi_slope_11g(struct bwn_mac *mac)
 	BWN_PHY_WRITE(mac, 0x0059, 0x0810);
 	BWN_PHY_WRITE(mac, 0x0058, 0x000d);
 	DELAY(20);
-	nrssi1 = (int16_t) ((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
+	nrssi1 = (int16_t)((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
 
 	/*
 	 * Install calculated narrow RSSI values
@@ -2901,20 +2926,15 @@ bwn_nrssi_slope_11g(struct bwn_mac *mac)
 static void
 bwn_nrssi_offset(struct bwn_mac *mac)
 {
-#define	SAVE_RF_MAX		2
-#define	SAVE_PHY_COMM_MAX	10
-#define	SAVE_PHY6_MAX		8
-	static const uint16_t save_rf_regs[SAVE_RF_MAX] =
-		{ 0x7a, 0x43 };
-	static const uint16_t save_phy_comm_regs[SAVE_PHY_COMM_MAX] = {
-		0x0001, 0x0811, 0x0812, 0x0814,
-		0x0815, 0x005a, 0x0059, 0x0058,
-		0x000a, 0x0003
-	};
-	static const uint16_t save_phy6_regs[SAVE_PHY6_MAX] = {
-		0x002e, 0x002f, 0x080f, 0x0810,
-		0x0801, 0x0060, 0x0014, 0x0478
-	};
+#define SAVE_RF_MAX 2
+#define SAVE_PHY_COMM_MAX 10
+#define SAVE_PHY6_MAX 8
+	static const uint16_t save_rf_regs[SAVE_RF_MAX] = { 0x7a, 0x43 };
+	static const uint16_t save_phy_comm_regs[SAVE_PHY_COMM_MAX] = { 0x0001,
+		0x0811, 0x0812, 0x0814, 0x0815, 0x005a, 0x0059, 0x0058, 0x000a,
+		0x0003 };
+	static const uint16_t save_phy6_regs[SAVE_PHY6_MAX] = { 0x002e, 0x002f,
+		0x080f, 0x0810, 0x0801, 0x0060, 0x0014, 0x0478 };
 	struct bwn_phy *phy = &mac->mac_phy;
 	int i, phy6_idx = 0;
 	uint16_t save_rf[SAVE_RF_MAX];
@@ -2950,14 +2970,14 @@ bwn_nrssi_offset(struct bwn_mac *mac)
 	BWN_RF_SET(mac, 0x007a, 0x0080);
 	DELAY(30);
 
-	nrssi = (int16_t) ((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
+	nrssi = (int16_t)((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
 	if (nrssi >= 0x20)
 		nrssi -= 0x40;
 	if (nrssi == 31) {
 		for (i = 7; i >= 4; i--) {
 			BWN_RF_WRITE(mac, 0x007b, i);
 			DELAY(20);
-			nrssi = (int16_t) ((BWN_PHY_READ(mac, 0x047f) >> 8) &
+			nrssi = (int16_t)((BWN_PHY_READ(mac, 0x047f) >> 8) &
 			    0x003f);
 			if (nrssi >= 0x20)
 				nrssi -= 0x40;
@@ -2992,15 +3012,16 @@ bwn_nrssi_offset(struct bwn_mac *mac)
 		bwn_set_all_gains(mac, 3, 0, 1);
 		BWN_RF_SETMASK(mac, 0x0043, 0x00f0, 0x000f);
 		DELAY(30);
-		nrssi = (int16_t) ((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
+		nrssi = (int16_t)((BWN_PHY_READ(mac, 0x047f) >> 8) & 0x003f);
 		if (nrssi >= 0x20)
 			nrssi -= 0x40;
 		if (nrssi == -32) {
 			for (i = 0; i < 4; i++) {
 				BWN_RF_WRITE(mac, 0x007b, i);
 				DELAY(20);
-				nrssi = (int16_t)((BWN_PHY_READ(mac,
-				    0x047f) >> 8) & 0x003f);
+				nrssi = (int16_t)((BWN_PHY_READ(mac, 0x047f) >>
+						      8) &
+				    0x003f);
 				if (nrssi >= 0x20)
 					nrssi -= 0x40;
 				if (nrssi > -31 && saved == 0xffff)
@@ -3073,7 +3094,7 @@ bwn_set_all_gains(struct bwn_mac *mac, int16_t first, int16_t second,
 		bwn_ofdmtab_write_2(mac, table, i, second);
 
 	if (third != -1) {
-		tmp = ((uint16_t) third << 14) | ((uint16_t) third << 6);
+		tmp = ((uint16_t)third << 14) | ((uint16_t)third << 6);
 		BWN_PHY_SETMASK(mac, 0x04a0, 0xbfbf, tmp);
 		BWN_PHY_SETMASK(mac, 0x04a1, 0xbfbf, tmp);
 		BWN_PHY_SETMASK(mac, 0x04a2, 0xbfbf, tmp);
@@ -3161,8 +3182,8 @@ bwn_phy_hwpctl_init(struct bwn_mac *mac)
 		if (phy->rf_ver == 0x2050 && phy->analog == 0)
 			BWN_RF_MASK(mac, 0x0076, 0xff7b);
 		else
-			bwn_phy_g_set_txpwr_sub(mac, &old_bbatt,
-			    &old_rfatt, old_txctl);
+			bwn_phy_g_set_txpwr_sub(mac, &old_bbatt, &old_rfatt,
+			    old_txctl);
 	}
 	bwn_hwpctl_init_gphy(mac);
 
@@ -3229,8 +3250,8 @@ bwn_hwpctl_init_gphy(struct bwn_mac *mac)
 	for (i = 32; i < 64; i++)
 		bwn_ofdmtab_write_2(mac, 0x3c00, i - 32, pg->pg_tssi2dbm[i]);
 	for (i = 0; i < 64; i += 2) {
-		value = (uint16_t) pg->pg_tssi2dbm[i];
-		value |= ((uint16_t) pg->pg_tssi2dbm[i + 1]) << 8;
+		value = (uint16_t)pg->pg_tssi2dbm[i];
+		value |= ((uint16_t)pg->pg_tssi2dbm[i + 1]) << 8;
 		BWN_PHY_WRITE(mac, 0x380 + (i / 2), value);
 	}
 
@@ -3265,8 +3286,8 @@ bwn_hwpctl_init_gphy(struct bwn_mac *mac)
 static void
 bwn_phy_g_switch_chan(struct bwn_mac *mac, int channel, uint8_t spu)
 {
-	struct bwn_softc	*sc = mac->mac_sc;
-	int			 error;
+	struct bwn_softc *sc = mac->mac_sc;
+	int error;
 
 	if (spu != 0)
 		bwn_spu_workaround(mac, channel);
@@ -3278,7 +3299,8 @@ bwn_phy_g_switch_chan(struct bwn_mac *mac, int channel, uint8_t spu)
 
 		error = bhnd_nvram_getvar_uint8(sc->sc_dev, BHND_NVAR_CC, &cc);
 		if (error) {
-			device_printf(sc->sc_dev, "error reading country code "
+			device_printf(sc->sc_dev,
+			    "error reading country code "
 			    "from NVRAM, assuming channel 14 unavailable: %d\n",
 			    error);
 			cc = BWN_SPROM1_CC_WORLDWIDE;
@@ -3347,8 +3369,7 @@ bwn_phy_g_set_txpwr_sub(struct bwn_mac *mac, const struct bwn_bbatt *bbatt,
 }
 
 static void
-bwn_phy_g_set_bbatt(struct bwn_mac *mac,
-    uint16_t bbatt)
+bwn_phy_g_set_bbatt(struct bwn_mac *mac, uint16_t bbatt)
 {
 	struct bwn_phy *phy = &mac->mac_phy;
 
@@ -3459,8 +3480,7 @@ bwn_rf_2050_rfoverval(struct bwn_mac *mac, uint16_t reg, uint32_t lpd)
 			case BWN_LPD(1, 0, 0):
 				return (0x30b3);
 			}
-			KASSERT(0 == 1,
-			    ("%s:%d: fail", __func__, __LINE__));
+			KASSERT(0 == 1, ("%s:%d: fail", __func__, __LINE__));
 		}
 		KASSERT(0 == 1, ("%s:%d: fail", __func__, __LINE__));
 	} else {
@@ -3477,8 +3497,7 @@ bwn_rf_2050_rfoverval(struct bwn_mac *mac, uint16_t reg, uint32_t lpd)
 			case BWN_LPD(1, 0, 0):
 				return (0x20b3);
 			}
-			KASSERT(0 == 1,
-			    ("%s:%d: fail", __func__, __LINE__));
+			KASSERT(0 == 1, ("%s:%d: fail", __func__, __LINE__));
 		}
 		KASSERT(0 == 1, ("%s:%d: fail", __func__, __LINE__));
 	}
@@ -3491,8 +3510,9 @@ bwn_spu_workaround(struct bwn_mac *mac, uint8_t channel)
 
 	if (mac->mac_phy.rf_ver != 0x2050 || mac->mac_phy.rf_rev >= 6)
 		return;
-	BWN_WRITE_2(mac, BWN_CHANNEL, (channel <= 10) ?
-	    bwn_phy_g_chan2freq(channel + 4) : bwn_phy_g_chan2freq(1));
+	BWN_WRITE_2(mac, BWN_CHANNEL,
+	    (channel <= 10) ? bwn_phy_g_chan2freq(channel + 4) :
+			      bwn_phy_g_chan2freq(1));
 	DELAY(1000);
 	BWN_WRITE_2(mac, BWN_CHANNEL, bwn_phy_g_chan2freq(channel));
 }
@@ -3514,8 +3534,8 @@ bwn_phy_shm_tssi_read(struct bwn_mac *mac, uint16_t shm_offset)
 	    c == 0 || c == BWN_TSSI_MAX || d == 0 || d == BWN_TSSI_MAX)
 		return (ENOENT);
 	bwn_shm_write_4(mac, BWN_SHARED, shm_offset,
-	    BWN_TSSI_MAX | (BWN_TSSI_MAX << 8) |
-	    (BWN_TSSI_MAX << 16) | (BWN_TSSI_MAX << 24));
+	    BWN_TSSI_MAX | (BWN_TSSI_MAX << 8) | (BWN_TSSI_MAX << 16) |
+		(BWN_TSSI_MAX << 24));
 
 	if (ofdm) {
 		a = (a + 32) & 0x3f;
@@ -3526,8 +3546,8 @@ bwn_phy_shm_tssi_read(struct bwn_mac *mac, uint16_t shm_offset)
 
 	avg = (a + b + c + d + 2) / 4;
 	if (ofdm) {
-		if (bwn_shm_read_2(mac, BWN_SHARED, BWN_SHARED_HFLO)
-		    & BWN_HF_4DB_CCK_POWERBOOST)
+		if (bwn_shm_read_2(mac, BWN_SHARED, BWN_SHARED_HFLO) &
+		    BWN_HF_4DB_CCK_POWERBOOST)
 			avg = (avg >= 13) ? (avg - 13) : 0;
 	}
 	return (avg);

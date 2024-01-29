@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/smp.h>
 
@@ -42,19 +42,19 @@
 #include "bman.h"
 #include "portals.h"
 
-#define	FBMAN_DEVSTR	"Freescale Buffer Manager"
+#define FBMAN_DEVSTR "Freescale Buffer Manager"
 
 static int bman_fdt_probe(device_t);
 
 static device_method_t bman_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bman_fdt_probe),
-	DEVMETHOD(device_attach,	bman_attach),
-	DEVMETHOD(device_detach,	bman_detach),
+	DEVMETHOD(device_probe, bman_fdt_probe),
+	DEVMETHOD(device_attach, bman_attach),
+	DEVMETHOD(device_detach, bman_detach),
 
-	DEVMETHOD(device_suspend,	bman_suspend),
-	DEVMETHOD(device_resume,	bman_resume),
-	DEVMETHOD(device_shutdown,	bman_shutdown),
+	DEVMETHOD(device_suspend, bman_suspend),
+	DEVMETHOD(device_resume, bman_resume),
+	DEVMETHOD(device_shutdown, bman_shutdown),
 
 	{ 0, 0 }
 };
@@ -82,16 +82,16 @@ bman_fdt_probe(device_t dev)
 /*
  * BMAN Portals
  */
-#define	BMAN_PORT_DEVSTR	"Freescale Buffer Manager - Portals"
+#define BMAN_PORT_DEVSTR "Freescale Buffer Manager - Portals"
 
 static device_probe_t bman_portals_fdt_probe;
 static device_attach_t bman_portals_fdt_attach;
 
 static device_method_t bm_portals_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bman_portals_fdt_probe),
-	DEVMETHOD(device_attach,	bman_portals_fdt_attach),
-	DEVMETHOD(device_detach,	bman_portals_detach),
+	DEVMETHOD(device_probe, bman_portals_fdt_probe),
+	DEVMETHOD(device_attach, bman_portals_fdt_attach),
+	DEVMETHOD(device_detach, bman_portals_detach),
 
 	{ 0, 0 }
 };
@@ -185,14 +185,15 @@ bman_portals_fdt_attach(device_t dev)
 		}
 		/* Checkout related cpu */
 		if (OF_getprop(child, "cpu-handle", (void *)&cpu,
-		    sizeof(cpu)) <= 0) {
+			sizeof(cpu)) <= 0) {
 			cpu = bman_portal_find_cpu(cpus);
 			if (cpu <= 0)
 				continue;
 		}
 		/* Acquire cpu number */
 		cpu_node = OF_instance_to_package(cpu);
-		if (OF_getencprop(cpu_node, "reg", &cpu_num, sizeof(cpu_num)) <= 0) {
+		if (OF_getencprop(cpu_node, "reg", &cpu_num, sizeof(cpu_num)) <=
+		    0) {
 			device_printf(dev, "Could not retrieve CPU number.\n");
 			return (ENXIO);
 		}
@@ -206,20 +207,24 @@ bman_portals_fdt_attach(device_t dev)
 
 		resource_list_init(&di.di_res);
 		if (ofw_bus_reg_to_rl(dev, child, addr, size, &di.di_res)) {
-			device_printf(dev, "%s: could not process 'reg' "
-			    "property\n", ofw_di.obd_name);
+			device_printf(dev,
+			    "%s: could not process 'reg' "
+			    "property\n",
+			    ofw_di.obd_name);
 			ofw_bus_gen_destroy_devinfo(&ofw_di);
 			continue;
 		}
 		if (ofw_bus_intr_to_rl(dev, child, &di.di_res, &intr_rid)) {
-			device_printf(dev, "%s: could not process "
-			    "'interrupts' property\n", ofw_di.obd_name);
+			device_printf(dev,
+			    "%s: could not process "
+			    "'interrupts' property\n",
+			    ofw_di.obd_name);
 			resource_list_free(&di.di_res);
 			ofw_bus_gen_destroy_devinfo(&ofw_di);
 			continue;
 		}
 		di.di_intr_rid = intr_rid;
-		
+
 		ofw_reg_to_paddr(child, 0, &portal_pa, &portal_size, NULL);
 		rle = resource_list_find(&di.di_res, SYS_RES_MEMORY, 0);
 

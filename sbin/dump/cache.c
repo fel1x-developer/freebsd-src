@@ -5,8 +5,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 #ifdef sunos
 #include <sys/vnode.h>
@@ -15,9 +15,9 @@
 #include <ufs/fsdir.h>
 #include <ufs/inode.h>
 #else
-#include <ufs/ufs/dir.h>
-#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 #endif
 
 #include <protocols/dumprestore.h>
@@ -26,26 +26,26 @@
 #include <stdio.h>
 #ifdef __STDC__
 #include <errno.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #endif
 #include "dump.h"
 
 typedef struct Block {
-	struct Block	*b_HNext;	/* must be first field */
-	off_t		b_Offset;
-	char		*b_Data;
+	struct Block *b_HNext; /* must be first field */
+	off_t b_Offset;
+	char *b_Data;
 } Block;
 
-#define HFACTOR		4
-#define BLKFACTOR	4
+#define HFACTOR 4
+#define BLKFACTOR 4
 
-static char  *DataBase;
+static char *DataBase;
 static Block **BlockHash;
-static int   BlockSize;
-static int   HSize;
-static int   NBlocks;
+static int BlockSize;
+static int HSize;
+static int NBlocks;
 
 static void
 cinit(void)
@@ -59,13 +59,13 @@ cinit(void)
 	NBlocks = cachesize / BlockSize;
 	HSize = NBlocks / HFACTOR;
 
-	msg("Cache %d MB, blocksize = %d\n", 
+	msg("Cache %d MB, blocksize = %d\n",
 	    NBlocks * BlockSize / (1024 * 1024), BlockSize);
 
 	base = calloc(sizeof(Block), NBlocks);
 	BlockHash = calloc(sizeof(Block *), HSize);
-	DataBase = mmap(NULL, NBlocks * BlockSize, 
-			PROT_READ|PROT_WRITE, MAP_ANON, -1, 0);
+	DataBase = mmap(NULL, NBlocks * BlockSize, PROT_READ | PROT_WRITE,
+	    MAP_ANON, -1, 0);
 	for (i = 0; i < NBlocks; ++i) {
 		base[i].b_Data = DataBase + i * BlockSize;
 		base[i].b_Offset = (off_t)-1;
@@ -91,7 +91,7 @@ cread(int fd, void *buf, size_t nbytes, off_t offset)
 	 * cache as necessary and continue.
 	 */
 	if (cachesize <= 0 || sblock->fs_bsize == 0)
-		return(pread(fd, buf, nbytes, offset));
+		return (pread(fd, buf, nbytes, offset));
 	if (DataBase == NULL)
 		cinit();
 
@@ -104,7 +104,7 @@ cread(int fd, void *buf, size_t nbytes, off_t offset)
 	mask = ~(off_t)(BlockSize - 1);
 	if (nbytes >= BlockSize ||
 	    ((offset ^ (offset + nbytes - 1)) & mask) != 0) {
-		return(pread(fd, buf, nbytes, offset));
+		return (pread(fd, buf, nbytes, offset));
 	}
 
 	/*
@@ -136,9 +136,8 @@ cread(int fd, void *buf, size_t nbytes, off_t offset)
 		*pblk = blk->b_HNext;
 		blk->b_HNext = BlockHash[hi];
 		BlockHash[hi] = blk;
-		return(nbytes);
+		return (nbytes);
 	} else {
-		return(pread(fd, buf, nbytes, offset));
+		return (pread(fd, buf, nbytes, offset));
 	}
 }
-

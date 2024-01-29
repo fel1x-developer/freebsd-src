@@ -1,4 +1,4 @@
-/*- 
+/*-
  * Copyright (c) 2007-2014, Juniper Networks, Inc.
  * All rights reserved.
  *
@@ -25,25 +25,26 @@
  */
 
 #include <sys/cdefs.h>
-#include "stand.h"
-
 #include <sys/stat.h>
 #include <sys/stdint.h>
+
 #include <string.h>
 #include <zlib.h>
 
+#include "stand.h"
+
 #ifdef PKGFS_DEBUG
-#define	DBG(x)	printf x
+#define DBG(x) printf x
 #else
-#define	DBG(x)
+#define DBG(x)
 #endif
 
-static int   pkg_open(const char *, struct open_file *);
-static int   pkg_close(struct open_file *);
-static int   pkg_read(struct open_file *, void *, size_t, size_t *);
+static int pkg_open(const char *, struct open_file *);
+static int pkg_close(struct open_file *);
+static int pkg_read(struct open_file *, void *, size_t, size_t *);
 static off_t pkg_seek(struct open_file *, off_t, int);
-static int   pkg_stat(struct open_file *, struct stat *);
-static int   pkg_readdir(struct open_file *, struct dirent *);
+static int pkg_stat(struct open_file *, struct stat *);
+static int pkg_readdir(struct open_file *, struct dirent *);
 static off_t pkg_atol(const char *, unsigned);
 
 struct fs_ops pkgfs_fsops = {
@@ -57,46 +58,46 @@ struct fs_ops pkgfs_fsops = {
 	.fo_readdir = pkg_readdir,
 };
 
-#define PKG_BUFSIZE	512
-#define	PKG_MAXCACHESZ	(512 * 1024)
+#define PKG_BUFSIZE 512
+#define PKG_MAXCACHESZ (512 * 1024)
 
-#define	PKG_FILEEXT	".tgz"
+#define PKG_FILEEXT ".tgz"
 
 /*
  * Layout of POSIX 'ustar' header.
  */
 struct ustar_hdr {
-	char	ut_name[100];
-	char	ut_mode[8];
-	char	ut_uid[8];
-	char	ut_gid[8];
-	char	ut_size[12];
-	char	ut_mtime[12];
-	char	ut_checksum[8];
-	char	ut_typeflag[1];
-	char	ut_linkname[100];
-	char	ut_magic[6];		/* For POSIX: "ustar\0" */
-	char	ut_version[2];		/* For POSIX: "00" */
-	char	ut_uname[32];
-	char	ut_gname[32];
-	char	ut_rdevmajor[8];
-	char	ut_rdevminor[8];
+	char ut_name[100];
+	char ut_mode[8];
+	char ut_uid[8];
+	char ut_gid[8];
+	char ut_size[12];
+	char ut_mtime[12];
+	char ut_checksum[8];
+	char ut_typeflag[1];
+	char ut_linkname[100];
+	char ut_magic[6];   /* For POSIX: "ustar\0" */
+	char ut_version[2]; /* For POSIX: "00" */
+	char ut_uname[32];
+	char ut_gname[32];
+	char ut_rdevmajor[8];
+	char ut_rdevminor[8];
 	union {
 		struct {
-			char	prefix[155];
+			char prefix[155];
 		} posix;
 		struct {
-			char	atime[12];
-			char	ctime[12];
-			char	offset[12];
-			char	longnames[4];
-			char	unused[1];
+			char atime[12];
+			char ctime[12];
+			char offset[12];
+			char longnames[4];
+			char unused[1];
 			struct gnu_sparse {
-				char	offset[12];
-				char	numbytes[12];
+				char offset[12];
+				char numbytes[12];
 			} sparse[4];
-			char	isextended[1];
-			char	realsize[12];
+			char isextended[1];
+			char realsize[12];
 		} gnu;
 	} u;
 	u_char __padding[12];
@@ -104,27 +105,25 @@ struct ustar_hdr {
 
 struct package;
 
-struct tarfile
-{
+struct tarfile {
 	struct package *tf_pkg;
 	struct tarfile *tf_next;
 	struct ustar_hdr tf_hdr;
-	off_t	tf_ofs;
-	off_t	tf_size;
-	off_t	tf_fp;
-	size_t	tf_cachesz;
-	void	*tf_cache;
+	off_t tf_ofs;
+	off_t tf_size;
+	off_t tf_fp;
+	size_t tf_cachesz;
+	void *tf_cache;
 };
 
-struct package
-{
+struct package {
 	struct package *pkg_chain;
-	int	pkg_fd;
-	off_t	pkg_ofs;
+	int pkg_fd;
+	off_t pkg_ofs;
 	z_stream pkg_zs;
 	struct tarfile *pkg_first;
 	struct tarfile *pkg_last;
-	u_char	pkg_buf[PKG_BUFSIZE];
+	u_char pkg_buf[PKG_BUFSIZE];
 };
 
 static struct package *package = NULL;
@@ -239,17 +238,17 @@ pkg_open_follow(const char *fn, struct open_file *f, int lnks)
 	while (tf != NULL) {
 		if (strcmp(fn, tf->tf_hdr.ut_name) == 0) {
 			f->f_fsdata = tf;
-			tf->tf_fp = 0;	/* Reset the file pointer. */
-			DBG(("%s: found %s type %c\n", __func__,
-			     fn, tf->tf_hdr.ut_typeflag[0]));
+			tf->tf_fp = 0; /* Reset the file pointer. */
+			DBG(("%s: found %s type %c\n", __func__, fn,
+			    tf->tf_hdr.ut_typeflag[0]));
 			if (tf->tf_hdr.ut_typeflag[0] == '2') {
-			    /* we have a symlink
-			     * Note: ut_linkname is only 100 chars!
-			     */
-			    if (lnks++ >= 8)
-				return (EMLINK);
-			    return pkg_open_follow(tf->tf_hdr.ut_linkname,
-				f, lnks);
+				/* we have a symlink
+				 * Note: ut_linkname is only 100 chars!
+				 */
+				if (lnks++ >= 8)
+					return (EMLINK);
+				return pkg_open_follow(tf->tf_hdr.ut_linkname,
+				    f, lnks);
 			}
 			return (0);
 		}
@@ -261,7 +260,7 @@ pkg_open_follow(const char *fn, struct open_file *f, int lnks)
 static int
 pkg_open(const char *fn, struct open_file *f)
 {
-    return pkg_open_follow(fn, f, 0);
+	return pkg_open_follow(fn, f, 0);
 }
 
 static int
@@ -415,7 +414,7 @@ pkg_stat(struct open_file *f, struct stat *sb)
 	sb->st_blocks = (tf->tf_size + 511) / 512;
 	sb->st_mtime = pkg_atol(tf->tf_hdr.ut_mtime, 12);
 	sb->st_dev = (off_t)((uintptr_t)tf->tf_pkg);
-	sb->st_ino = tf->tf_ofs;	/* unique per tf_pkg */
+	sb->st_ino = tf->tf_ofs; /* unique per tf_pkg */
 	return (0);
 }
 
@@ -531,14 +530,14 @@ cache_data(struct tarfile *tf, int force)
 	}
 
 	if (tf->tf_ofs != pkg->pkg_ofs) {
-		DBG(("%s: caching after force read of file %s?\n",
-		    __func__, tf->tf_hdr.ut_name));
+		DBG(("%s: caching after force read of file %s?\n", __func__,
+		    tf->tf_hdr.ut_name));
 		errno = EINVAL;
 		return (-1);
 	}
 
 	/* We don't cache everything... */
-	if (tf->tf_size > PKG_MAXCACHESZ && !force)  {
+	if (tf->tf_size > PKG_MAXCACHESZ && !force) {
 		errno = ENOBUFS;
 		return (-1);
 	}
@@ -566,32 +565,32 @@ cache_data(struct tarfile *tf, int force)
 static off_t
 pkg_atol8(const char *p, unsigned char_cnt)
 {
-        int64_t l, limit, last_digit_limit;
-        int digit, sign, base;
+	int64_t l, limit, last_digit_limit;
+	int digit, sign, base;
 
-        base = 8;
-        limit = INT64_MAX / base;
-        last_digit_limit = INT64_MAX % base;
+	base = 8;
+	limit = INT64_MAX / base;
+	last_digit_limit = INT64_MAX % base;
 
-        while (*p == ' ' || *p == '\t')
-                p++;
-        if (*p == '-') {
-                sign = -1;
-                p++;
-        } else
-                sign = 1;
+	while (*p == ' ' || *p == '\t')
+		p++;
+	if (*p == '-') {
+		sign = -1;
+		p++;
+	} else
+		sign = 1;
 
-        l = 0;
-        digit = *p - '0';
-        while (digit >= 0 && digit < base  && char_cnt-- > 0) {
-                if (l>limit || (l == limit && digit > last_digit_limit)) {
-                        l = UINT64_MAX; /* Truncate on overflow. */
-                        break;
-                }
-                l = (l * base) + digit;
-                digit = *++p - '0';
-        }
-        return (sign < 0) ? -l : l;
+	l = 0;
+	digit = *p - '0';
+	while (digit >= 0 && digit < base && char_cnt-- > 0) {
+		if (l > limit || (l == limit && digit > last_digit_limit)) {
+			l = UINT64_MAX; /* Truncate on overflow. */
+			break;
+		}
+		l = (l * base) + digit;
+		digit = *++p - '0';
+	}
+	return (sign < 0) ? -l : l;
 }
 
 /*
@@ -605,29 +604,29 @@ pkg_atol8(const char *p, unsigned char_cnt)
 static int64_t
 pkg_atol256(const char *_p, unsigned char_cnt)
 {
-        int64_t l, upper_limit, lower_limit;
-        const unsigned char *p = (const unsigned char *)_p;
+	int64_t l, upper_limit, lower_limit;
+	const unsigned char *p = (const unsigned char *)_p;
 
-        upper_limit = INT64_MAX / 256;
-        lower_limit = INT64_MIN / 256;
+	upper_limit = INT64_MAX / 256;
+	lower_limit = INT64_MIN / 256;
 
-        /* Pad with 1 or 0 bits, depending on sign. */
-        if ((0x40 & *p) == 0x40)
-                l = (int64_t)-1;
-        else
-                l = 0;
-        l = (l << 6) | (0x3f & *p++);
-        while (--char_cnt > 0) {
-                if (l > upper_limit) {
-                        l = INT64_MAX; /* Truncate on overflow */
-                        break;
-                } else if (l < lower_limit) {
-                        l = INT64_MIN;
-                        break;
-                }
-                l = (l << 8) | (0xff & (int64_t)*p++);
-        }
-        return (l);
+	/* Pad with 1 or 0 bits, depending on sign. */
+	if ((0x40 & *p) == 0x40)
+		l = (int64_t)-1;
+	else
+		l = 0;
+	l = (l << 6) | (0x3f & *p++);
+	while (--char_cnt > 0) {
+		if (l > upper_limit) {
+			l = INT64_MAX; /* Truncate on overflow */
+			break;
+		} else if (l < lower_limit) {
+			l = INT64_MIN;
+			break;
+		}
+		l = (l << 8) | (0xff & (int64_t)*p++);
+	}
+	return (l);
 }
 
 static off_t
@@ -649,12 +648,12 @@ get_mode(struct tarfile *tf)
 }
 
 /* GZip flag byte */
-#define ASCII_FLAG	0x01 /* bit 0 set: file probably ascii text */
-#define HEAD_CRC	0x02 /* bit 1 set: header CRC present */
-#define EXTRA_FIELD	0x04 /* bit 2 set: extra field present */
-#define ORIG_NAME	0x08 /* bit 3 set: original file name present */
-#define COMMENT		0x10 /* bit 4 set: file comment present */
-#define RESERVED	0xE0 /* bits 5..7: reserved */
+#define ASCII_FLAG 0x01	 /* bit 0 set: file probably ascii text */
+#define HEAD_CRC 0x02	 /* bit 1 set: header CRC present */
+#define EXTRA_FIELD 0x04 /* bit 2 set: extra field present */
+#define ORIG_NAME 0x08	 /* bit 3 set: original file name present */
+#define COMMENT 0x10	 /* bit 4 set: file comment present */
+#define RESERVED 0xE0	 /* bits 5..7: reserved */
 
 static int
 new_package(int fd, struct package **pp)
@@ -742,7 +741,7 @@ new_package(int fd, struct package **pp)
 	*pp = pkg;
 	return (0);
 
- fail:
+fail:
 	free(pkg);
 	return (error);
 }
@@ -758,7 +757,7 @@ scan_tarfile(struct package *pkg, struct tarfile *last)
 	cur = (last != NULL) ? last->tf_next : pkg->pkg_first;
 	if (cur == NULL) {
 		ofs = (last != NULL) ? last->tf_ofs + last->tf_size :
-		    pkg->pkg_ofs;
+				       pkg->pkg_ofs;
 		ofs = (ofs + 0x1ff) & ~0x1ff;
 
 		/* Check if we've reached EOF. */
@@ -791,7 +790,7 @@ scan_tarfile(struct package *pkg, struct tarfile *last)
 
 		while (1) {
 			if (get_zipped(pkg, &cur->tf_hdr,
-			    sizeof(cur->tf_hdr)) == -1) {
+				sizeof(cur->tf_hdr)) == -1) {
 				free(cur);
 				return (NULL);
 			}

@@ -36,22 +36,22 @@
 #endif
 
 #include <sys/param.h>
+#include <sys/dnv.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/nv.h>
-#include <sys/dnv.h>
 #include <sys/sx.h>
 #ifdef COMPAT_FREEBSD32
 #include <sys/sysent.h>
 #endif
 
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/pcm.h>
+#include <dev/sound/pcm/sound.h>
 #include <dev/sound/version.h>
 
-#define	SS_TYPE_PCM		1
-#define	SS_TYPE_MIDI		2
-#define	SS_TYPE_SEQUENCER	3
+#define SS_TYPE_PCM 1
+#define SS_TYPE_MIDI 2
+#define SS_TYPE_SEQUENCER 3
 
 static d_open_t sndstat_open;
 static void sndstat_close(void *);
@@ -60,13 +60,13 @@ static d_write_t sndstat_write;
 static d_ioctl_t sndstat_ioctl;
 
 static struct cdevsw sndstat_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	sndstat_open,
-	.d_read =	sndstat_read,
-	.d_write =	sndstat_write,
-	.d_ioctl =	sndstat_ioctl,
-	.d_name =	"sndstat",
-	.d_flags =	D_TRACKCLOSE,
+	.d_version = D_VERSION,
+	.d_open = sndstat_open,
+	.d_read = sndstat_read,
+	.d_write = sndstat_write,
+	.d_ioctl = sndstat_ioctl,
+	.d_name = "sndstat",
+	.d_flags = D_TRACKCLOSE,
 };
 
 struct sndstat_entry {
@@ -99,28 +99,30 @@ struct sndstat_file {
 	TAILQ_ENTRY(sndstat_file) entry;
 	struct sbuf sbuf;
 	struct sx lock;
-	void *devs_nvlbuf;	/* (l) */
-	size_t devs_nbytes;	/* (l) */
-	TAILQ_HEAD(, sndstat_userdev) userdev_list;	/* (l) */
+	void *devs_nvlbuf;			    /* (l) */
+	size_t devs_nbytes;			    /* (l) */
+	TAILQ_HEAD(, sndstat_userdev) userdev_list; /* (l) */
 	int out_offset;
-  	int in_offset;
+	int in_offset;
 	int fflags;
 };
 
 static struct sx sndstat_lock;
 static struct cdev *sndstat_dev;
 
-#define	SNDSTAT_LOCK() sx_xlock(&sndstat_lock)
-#define	SNDSTAT_UNLOCK() sx_xunlock(&sndstat_lock)
+#define SNDSTAT_LOCK() sx_xlock(&sndstat_lock)
+#define SNDSTAT_UNLOCK() sx_xunlock(&sndstat_lock)
 
-static TAILQ_HEAD(, sndstat_entry) sndstat_devlist = TAILQ_HEAD_INITIALIZER(sndstat_devlist);
-static TAILQ_HEAD(, sndstat_file) sndstat_filelist = TAILQ_HEAD_INITIALIZER(sndstat_filelist);
+static TAILQ_HEAD(, sndstat_entry) sndstat_devlist = TAILQ_HEAD_INITIALIZER(
+    sndstat_devlist);
+static TAILQ_HEAD(, sndstat_file) sndstat_filelist = TAILQ_HEAD_INITIALIZER(
+    sndstat_filelist);
 
 int snd_verbose = 0;
 
 static int sndstat_prepare(struct sndstat_file *);
-static struct sndstat_userdev *
-sndstat_line2userdev(struct sndstat_file *, const char *, int);
+static struct sndstat_userdev *sndstat_line2userdev(struct sndstat_file *,
+    const char *, int);
 
 static int
 sysctl_hw_sndverbose(SYSCTL_HANDLER_ARGS)
@@ -139,8 +141,7 @@ sysctl_hw_sndverbose(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_hw_snd, OID_AUTO, verbose,
     CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, sizeof(int),
-    sysctl_hw_sndverbose, "I",
-    "verbosity level");
+    sysctl_hw_sndverbose, "I", "verbosity level");
 
 static int
 sndstat_open(struct cdev *i_dev, int flags, int mode, struct thread *td)
@@ -177,8 +178,8 @@ sndstat_remove_all_userdevs(struct sndstat_file *pf)
 {
 	struct sndstat_userdev *ud;
 
-	KASSERT(
-	    sx_xlocked(&pf->lock), ("%s: Called without pf->lock", __func__));
+	KASSERT(sx_xlocked(&pf->lock),
+	    ("%s: Called without pf->lock", __func__));
 	while ((ud = TAILQ_FIRST(&pf->userdev_list)) != NULL) {
 		TAILQ_REMOVE(&pf->userdev_list, ud, link);
 		free(ud->provider, M_DEVBUF);
@@ -302,7 +303,8 @@ sndstat_write(struct cdev *i_dev, struct uio *buf, int flag)
 			while ((line = strsep(&str, "\n")) != NULL) {
 				struct sndstat_userdev *ud;
 
-				ud = sndstat_line2userdev(pf, line, strlen(line));
+				ud = sndstat_line2userdev(pf, line,
+				    strlen(line));
 				if (ud == NULL)
 					continue;
 
@@ -348,7 +350,8 @@ sndstat_get_caps(struct snddev_info *d, bool play, uint32_t *min_rate,
 	*minchn = UINT32_MAX;
 	*maxchn = 0;
 	encoding = 0;
-	CHN_FOREACH(c, d, channels.pcm) {
+	CHN_FOREACH(c, d, channels.pcm)
+	{
 		struct pcmchan_caps *caps;
 		int i;
 
@@ -374,7 +377,7 @@ sndstat_get_caps(struct snddev_info *d, bool play, uint32_t *min_rate,
 
 static nvlist_t *
 sndstat_create_diinfo_nv(uint32_t min_rate, uint32_t max_rate, uint32_t formats,
-	    uint32_t min_chn, uint32_t max_chn)
+    uint32_t min_chn, uint32_t max_chn)
 {
 	nvlist_t *nv;
 
@@ -409,11 +412,10 @@ sndstat_build_sound4_nvlist(struct snddev_info *d, nvlist_t **dip)
 
 	nvlist_add_bool(di, SNDST_DSPS_FROM_USER, false);
 	nvlist_add_stringf(di, SNDST_DSPS_NAMEUNIT, "%s",
-			device_get_nameunit(d->dev));
+	    device_get_nameunit(d->dev));
 	nvlist_add_stringf(di, SNDST_DSPS_DEVNODE, "dsp%d",
-			device_get_unit(d->dev));
-	nvlist_add_string(
-			di, SNDST_DSPS_DESC, device_get_desc(d->dev));
+	    device_get_unit(d->dev));
+	nvlist_add_string(di, SNDST_DSPS_DESC, device_get_desc(d->dev));
 
 	PCM_ACQUIRE_QUICK(d);
 	nvlist_add_number(di, SNDST_DSPS_PCHAN, d->playcount);
@@ -446,9 +448,9 @@ sndstat_build_sound4_nvlist(struct snddev_info *d, nvlist_t **dip)
 	}
 
 	nvlist_add_number(sound4di, SNDST_DSPS_SOUND4_UNIT,
-			device_get_unit(d->dev)); // XXX: I want signed integer here
-	nvlist_add_bool(
-	    sound4di, SNDST_DSPS_SOUND4_BITPERFECT, d->flags & SD_F_BITPERFECT);
+	    device_get_unit(d->dev)); // XXX: I want signed integer here
+	nvlist_add_bool(sound4di, SNDST_DSPS_SOUND4_BITPERFECT,
+	    d->flags & SD_F_BITPERFECT);
 	nvlist_add_number(sound4di, SNDST_DSPS_SOUND4_PVCHAN, d->pvchancount);
 	nvlist_add_number(sound4di, SNDST_DSPS_SOUND4_RVCHAN, d->rvchancount);
 	nvlist_move_nvlist(di, SNDST_DSPS_PROVIDER_INFO, sound4di);
@@ -486,16 +488,12 @@ sndstat_build_userland_nvlist(struct sndstat_userdev *ud, nvlist_t **dip)
 	nvlist_add_number(di, SNDST_DSPS_PCHAN, ud->pchan);
 	nvlist_add_number(di, SNDST_DSPS_RCHAN, ud->rchan);
 	nvlist_add_string(di, SNDST_DSPS_NAMEUNIT, ud->nameunit);
-	nvlist_add_string(
-			di, SNDST_DSPS_DEVNODE, ud->devnode);
+	nvlist_add_string(di, SNDST_DSPS_DEVNODE, ud->devnode);
 	nvlist_add_string(di, SNDST_DSPS_DESC, ud->desc);
 	if (ud->pchan != 0) {
-		nvlist_add_number(di, "pminrate",
-		    ud->info_play.min_rate);
-		nvlist_add_number(di, "pmaxrate",
-		    ud->info_play.max_rate);
-		nvlist_add_number(di, "pfmts",
-		    ud->info_play.formats);
+		nvlist_add_number(di, "pminrate", ud->info_play.min_rate);
+		nvlist_add_number(di, "pmaxrate", ud->info_play.max_rate);
+		nvlist_add_number(di, "pfmts", ud->info_play.formats);
 		diinfo = sndstat_create_diinfo_nv(ud->info_play.min_rate,
 		    ud->info_play.max_rate, ud->info_play.formats,
 		    ud->info_play.min_chn, ud->info_play.max_chn);
@@ -505,12 +503,9 @@ sndstat_build_userland_nvlist(struct sndstat_userdev *ud, nvlist_t **dip)
 			nvlist_move_nvlist(di, SNDST_DSPS_INFO_PLAY, diinfo);
 	}
 	if (ud->rchan != 0) {
-		nvlist_add_number(di, "rminrate",
-		    ud->info_rec.min_rate);
-		nvlist_add_number(di, "rmaxrate",
-		    ud->info_rec.max_rate);
-		nvlist_add_number(di, "rfmts",
-		    ud->info_rec.formats);
+		nvlist_add_number(di, "rminrate", ud->info_rec.min_rate);
+		nvlist_add_number(di, "rmaxrate", ud->info_rec.max_rate);
+		nvlist_add_number(di, "rfmts", ud->info_rec.formats);
 		diinfo = sndstat_create_diinfo_nv(ud->info_rec.min_rate,
 		    ud->info_rec.max_rate, ud->info_rec.formats,
 		    ud->info_rec.min_chn, ud->info_rec.max_chn);
@@ -522,8 +517,8 @@ sndstat_build_userland_nvlist(struct sndstat_userdev *ud, nvlist_t **dip)
 	nvlist_add_string(di, SNDST_DSPS_PROVIDER,
 	    (ud->provider != NULL) ? ud->provider : "");
 	if (ud->provider_nvl != NULL)
-		nvlist_add_nvlist(
-		    di, SNDST_DSPS_PROVIDER_INFO, ud->provider_nvl);
+		nvlist_add_nvlist(di, SNDST_DSPS_PROVIDER_INFO,
+		    ud->provider_nvl);
 
 	err = nvlist_error(di);
 	if (err)
@@ -553,7 +548,7 @@ sndstat_create_devs_nvlist(nvlist_t **nvlp)
 	if (nvl == NULL)
 		return (ENOMEM);
 
-	TAILQ_FOREACH(ent, &sndstat_devlist, link) {
+	TAILQ_FOREACH (ent, &sndstat_devlist, link) {
 		struct snddev_info *d;
 		nvlist_t *di;
 
@@ -572,12 +567,12 @@ sndstat_create_devs_nvlist(nvlist_t **nvlp)
 			goto done;
 	}
 
-	TAILQ_FOREACH(pf, &sndstat_filelist, entry) {
+	TAILQ_FOREACH (pf, &sndstat_filelist, entry) {
 		struct sndstat_userdev *ud;
 
 		sx_xlock(&pf->lock);
 
-		TAILQ_FOREACH(ud, &pf->userdev_list, link) {
+		TAILQ_FOREACH (ud, &pf->userdev_list, link) {
 			nvlist_t *di;
 
 			err = sndstat_build_userland_nvlist(ud, &di);
@@ -712,10 +707,10 @@ static bool
 sndstat_diinfo_is_sane(const nvlist_t *diinfo)
 {
 	if (!(nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MIN_RATE) &&
-	    nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MAX_RATE) &&
-	    nvlist_exists_number(diinfo, SNDST_DSPS_INFO_FORMATS) &&
-	    nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MIN_CHN) &&
-	    nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MAX_CHN)))
+		nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MAX_RATE) &&
+		nvlist_exists_number(diinfo, SNDST_DSPS_INFO_FORMATS) &&
+		nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MIN_CHN) &&
+		nvlist_exists_number(diinfo, SNDST_DSPS_INFO_MAX_CHN)))
 		return (false);
 	return (true);
 }
@@ -724,41 +719,39 @@ static bool
 sndstat_dsp_nvlist_is_sane(const nvlist_t *nvlist)
 {
 	if (!(nvlist_exists_string(nvlist, SNDST_DSPS_DEVNODE) &&
-	    nvlist_exists_string(nvlist, SNDST_DSPS_DESC) &&
-	    nvlist_exists_number(nvlist, SNDST_DSPS_PCHAN) &&
-	    nvlist_exists_number(nvlist, SNDST_DSPS_RCHAN)))
+		nvlist_exists_string(nvlist, SNDST_DSPS_DESC) &&
+		nvlist_exists_number(nvlist, SNDST_DSPS_PCHAN) &&
+		nvlist_exists_number(nvlist, SNDST_DSPS_RCHAN)))
 		return (false);
 
 	if (nvlist_get_number(nvlist, SNDST_DSPS_PCHAN) > 0) {
 		if (nvlist_exists_nvlist(nvlist, SNDST_DSPS_INFO_PLAY)) {
 			if (!sndstat_diinfo_is_sane(nvlist_get_nvlist(nvlist,
-			    SNDST_DSPS_INFO_PLAY)))
+				SNDST_DSPS_INFO_PLAY)))
 				return (false);
 		} else if (!(nvlist_exists_number(nvlist, "pminrate") &&
-		    nvlist_exists_number(nvlist, "pmaxrate") &&
-		    nvlist_exists_number(nvlist, "pfmts")))
+			       nvlist_exists_number(nvlist, "pmaxrate") &&
+			       nvlist_exists_number(nvlist, "pfmts")))
 			return (false);
 	}
 
 	if (nvlist_get_number(nvlist, SNDST_DSPS_RCHAN) > 0) {
 		if (nvlist_exists_nvlist(nvlist, SNDST_DSPS_INFO_REC)) {
-			if (!sndstat_diinfo_is_sane(nvlist_get_nvlist(nvlist,
-			    SNDST_DSPS_INFO_REC)))
+			if (!sndstat_diinfo_is_sane(
+				nvlist_get_nvlist(nvlist, SNDST_DSPS_INFO_REC)))
 				return (false);
 		} else if (!(nvlist_exists_number(nvlist, "rminrate") &&
-		    nvlist_exists_number(nvlist, "rmaxrate") &&
-		    nvlist_exists_number(nvlist, "rfmts")))
+			       nvlist_exists_number(nvlist, "rmaxrate") &&
+			       nvlist_exists_number(nvlist, "rfmts")))
 			return (false);
 	}
-	
-	return (true);
 
+	return (true);
 }
 
 static void
 sndstat_get_diinfo_nv(const nvlist_t *nv, uint32_t *min_rate,
-	    uint32_t *max_rate, uint32_t *formats, uint32_t *min_chn,
-	    uint32_t *max_chn)
+    uint32_t *max_rate, uint32_t *formats, uint32_t *min_chn, uint32_t *max_chn)
 {
 	*min_rate = nvlist_get_number(nv, SNDST_DSPS_INFO_MIN_RATE);
 	*max_rate = nvlist_get_number(nv, SNDST_DSPS_INFO_MAX_RATE);
@@ -803,8 +796,7 @@ sndstat_dsp_unpack_nvlist(const nvlist_t *nvlist, struct sndstat_userdev *ud)
 	}
 	if (rchan != 0) {
 		if (nvlist_exists_nvlist(nvlist, SNDST_DSPS_INFO_REC)) {
-			diinfo = nvlist_get_nvlist(nvlist,
-			    SNDST_DSPS_INFO_REC);
+			diinfo = nvlist_get_nvlist(nvlist, SNDST_DSPS_INFO_REC);
 			sndstat_get_diinfo_nv(diinfo, &rminrate, &rmaxrate,
 			    &rfmts, &rminchn, &rmaxchn);
 		} else {
@@ -851,7 +843,7 @@ sndstat_add_user_devs(struct sndstat_file *pf, caddr_t data)
 {
 	int err;
 	nvlist_t *nvl = NULL;
-	const nvlist_t * const *dsps;
+	const nvlist_t *const *dsps;
 	size_t i, ndsps;
 	struct sndstioc_nv_arg *arg = (struct sndstioc_nv_arg *)data;
 
@@ -877,8 +869,8 @@ sndstat_add_user_devs(struct sndstat_file *pf, caddr_t data)
 	}
 	sx_xlock(&pf->lock);
 	for (i = 0; i < ndsps; i++) {
-		struct sndstat_userdev *ud =
-		    malloc(sizeof(*ud), M_DEVBUF, M_WAITOK);
+		struct sndstat_userdev *ud = malloc(sizeof(*ud), M_DEVBUF,
+		    M_WAITOK);
 		err = sndstat_dsp_unpack_nvlist(dsps[i], ud);
 		if (err) {
 			sx_unlock(&pf->lock);
@@ -947,8 +939,8 @@ compat_sndstat_add_user_devs32(struct sndstat_file *pf, caddr_t data)
 #endif
 
 static int
-sndstat_ioctl(
-    struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+sndstat_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	int err;
 	struct sndstat_file *pf;
@@ -1001,7 +993,7 @@ sndstat_line2userdev(struct sndstat_file *pf, const char *line, int n)
 	struct sndstat_userdev *ud;
 	const char *e, *m;
 
-	ud = malloc(sizeof(*ud), M_DEVBUF, M_WAITOK|M_ZERO);
+	ud = malloc(sizeof(*ud), M_DEVBUF, M_WAITOK | M_ZERO);
 
 	ud->provider = NULL;
 	ud->provider_nvl = NULL;
@@ -1077,7 +1069,7 @@ sndstat_register(device_t dev, char *str, sndstat_handler handler)
 
 	SNDSTAT_LOCK();
 	/* sorted list insertion */
-	TAILQ_FOREACH(pre, &sndstat_devlist, link) {
+	TAILQ_FOREACH (pre, &sndstat_devlist, link) {
 		if (pre->unit > unit)
 			break;
 		else if (pre->unit < unit)
@@ -1104,7 +1096,7 @@ sndstat_unregister(device_t dev)
 	int error = ENXIO;
 
 	SNDSTAT_LOCK();
-	TAILQ_FOREACH(ent, &sndstat_devlist, link) {
+	TAILQ_FOREACH (ent, &sndstat_devlist, link) {
 		if (ent->dev == dev) {
 			TAILQ_REMOVE(&sndstat_devlist, ent, link);
 			free(ent, M_DEVBUF);
@@ -1126,7 +1118,7 @@ sndstat_prepare(struct sndstat_file *pf_self)
 	struct sndstat_entry *ent;
 	struct snddev_info *d;
 	struct sndstat_file *pf;
-    	int k;
+	int k;
 
 	/* make sure buffer is reset */
 	sbuf_clear(s);
@@ -1139,7 +1131,7 @@ sndstat_prepare(struct sndstat_file *pf_self)
 
 	/* generate list of installed devices */
 	k = 0;
-	TAILQ_FOREACH(ent, &sndstat_devlist, link) {
+	TAILQ_FOREACH (ent, &sndstat_devlist, link) {
 		d = device_get_softc(ent->dev);
 		if (!PCM_REGISTERED(d))
 			continue;
@@ -1162,7 +1154,7 @@ sndstat_prepare(struct sndstat_file *pf_self)
 
 	/* append any input from userspace */
 	k = 0;
-	TAILQ_FOREACH(pf, &sndstat_filelist, entry) {
+	TAILQ_FOREACH (pf, &sndstat_filelist, entry) {
 		struct sndstat_userdev *ud;
 
 		if (pf == pf_self)
@@ -1174,7 +1166,7 @@ sndstat_prepare(struct sndstat_file *pf_self)
 		}
 		if (!k++)
 			sbuf_printf(s, "Installed devices from userspace:\n");
-		TAILQ_FOREACH(ud, &pf->userdev_list, link) {
+		TAILQ_FOREACH (ud, &pf->userdev_list, link) {
 			const char *caps = (ud->pchan && ud->rchan) ?
 			    "play/rec" :
 			    (ud->pchan ? "play" : (ud->rchan ? "rec" : ""));
@@ -1188,15 +1180,15 @@ sndstat_prepare(struct sndstat_file *pf_self)
 		sbuf_printf(s, "No devices installed from userspace.\n");
 
 	sbuf_finish(s);
-    	return (sbuf_len(s));
+	return (sbuf_len(s));
 }
 
 static void
 sndstat_sysinit(void *p)
 {
 	sx_init(&sndstat_lock, "sndstat lock");
-	sndstat_dev = make_dev(&sndstat_cdevsw, SND_DEV_STATUS,
-	    UID_ROOT, GID_WHEEL, 0644, "sndstat");
+	sndstat_dev = make_dev(&sndstat_cdevsw, SND_DEV_STATUS, UID_ROOT,
+	    GID_WHEEL, 0644, "sndstat");
 }
 SYSINIT(sndstat_sysinit, SI_SUB_DRIVERS, SI_ORDER_FIRST, sndstat_sysinit, NULL);
 
@@ -1209,4 +1201,5 @@ sndstat_sysuninit(void *p)
 	}
 	sx_destroy(&sndstat_lock);
 }
-SYSUNINIT(sndstat_sysuninit, SI_SUB_DRIVERS, SI_ORDER_FIRST, sndstat_sysuninit, NULL);
+SYSUNINIT(sndstat_sysuninit, SI_SUB_DRIVERS, SI_ORDER_FIRST, sndstat_sysuninit,
+    NULL);

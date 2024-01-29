@@ -34,10 +34,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_quota.h"
 #include "opt_ufs.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -49,10 +49,10 @@
 #include <sys/vnode.h>
 
 #include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
 #include <ufs/ufs/inode.h>
-#include <ufs/ufs/ufsmount.h>
+#include <ufs/ufs/quota.h>
 #include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufsmount.h>
 #ifdef UFS_DIRHASH
 #include <ufs/ufs/dir.h>
 #include <ufs/ufs/dirhash.h>
@@ -115,8 +115,7 @@ ufs_quotactl(struct mount *mp, int cmds, uid_t id, void *arg, bool *mp_busy)
 
 	case Q_QUOTAOFF:
 		vfs_ref(mp);
-		KASSERT(*mp_busy,
-		    ("%s called without busied mount", __func__));
+		KASSERT(*mp_busy, ("%s called without busied mount", __func__));
 		vn_start_write(NULL, &mp, V_WAIT);
 		vfs_unbusy(mp);
 		*mp_busy = false;

@@ -42,14 +42,14 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define	DEFLINEWIDTH	80
+#define DEFLINEWIDTH 80
 
 void fold(int);
 static int newpos(int, wint_t);
 static void usage(void) __dead2;
 
-static int bflag;		/* Count bytes, not columns */
-static int sflag;		/* Split on word boundaries */
+static int bflag; /* Count bytes, not columns */
+static int sflag; /* Split on word boundaries */
 
 int
 main(int argc, char **argv)
@@ -57,7 +57,7 @@ main(int argc, char **argv)
 	int ch, previous_ch;
 	int rval, width;
 
-	(void) setlocale(LC_CTYPE, "");
+	(void)setlocale(LC_CTYPE, "");
 
 	width = -1;
 	previous_ch = 0;
@@ -74,14 +74,30 @@ main(int argc, char **argv)
 				errx(1, "illegal width value");
 			}
 			break;
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			/* Accept a width as eg. -30. Note that a width
 			 * specified using the -w option is always used prior
 			 * to this undocumented option. */
 			switch (previous_ch) {
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
 				/* The width is a number with multiple digits:
 				 * add the last one. */
 				width = width * 10 + (ch - '0');
@@ -111,12 +127,13 @@ main(int argc, char **argv)
 	rval = 0;
 	if (!*argv)
 		fold(width);
-	else for (; *argv; ++argv)
-		if (!freopen(*argv, "r", stdin)) {
-			warn("%s", *argv);
-			rval = 1;
-		} else
-			fold(width);
+	else
+		for (; *argv; ++argv)
+			if (!freopen(*argv, "r", stdin)) {
+				warn("%s", *argv);
+				rval = 1;
+			} else
+				fold(width);
 	exit(rval);
 }
 

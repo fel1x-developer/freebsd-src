@@ -28,13 +28,12 @@
 #ifndef _LINUXKPI_CRYPTO_HASH_H
 #define _LINUXKPI_CRYPTO_HASH_H
 
-#include <linux/kernel.h>	/* for pr_debug */
+#include <linux/kernel.h> /* for pr_debug */
 
-struct crypto_shash {
-};
+struct crypto_shash { };
 
 struct shash_desc {
-	struct crypto_shash	*tfm;
+	struct crypto_shash *tfm;
 };
 
 static inline struct crypto_shash *
@@ -87,8 +86,8 @@ shash_desc_zero(struct shash_desc *desc)
 }
 
 /* XXX review this. */
-#define	SHASH_DESC_ON_STACK(desc, tfm)					\
-	uint8_t ___ ## desc ## _desc[sizeof(struct shash_desc)];	\
-	struct shash_desc *desc = (struct shash_desc *)___ ## desc ## _desc
+#define SHASH_DESC_ON_STACK(desc, tfm)                       \
+	uint8_t ___##desc##_desc[sizeof(struct shash_desc)]; \
+	struct shash_desc *desc = (struct shash_desc *)___##desc##_desc
 
 #endif /* _LINUXKPI_CRYPTO_HASH_H */

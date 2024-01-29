@@ -4,14 +4,14 @@
  * All rights reserved.
  *
  * As long as the above copyright statement and this notice remain
- * unchanged, you can do what ever you want with this file. 
+ * unchanged, you can do what ever you want with this file.
  */
-#define	_SEARCH_PRIVATE
+#define _SEARCH_PRIVATE
 #include <search.h>
 #ifdef DEBUG
 #include <stdio.h>
 #else
-#include <stdlib.h>	/* for NULL */
+#include <stdlib.h> /* for NULL */
 #endif
 
 void
@@ -31,7 +31,8 @@ insque(void *element, void *pred)
 	if (next != NULL) {
 #ifdef DEBUG
 		if (next->prev != prev) {
-			fprintf(stderr, "insque: Inconsistency detected:"
+			fprintf(stderr,
+			    "insque: Inconsistency detected:"
 			    " next(%p)->prev(%p) != prev(%p)\n",
 			    next, next->prev, prev);
 		}

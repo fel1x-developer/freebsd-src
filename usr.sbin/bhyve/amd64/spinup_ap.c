@@ -26,15 +26,15 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 
 #include <machine/vmm.h>
-#include <vmmapi.h>
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
+#include <vmmapi.h>
 
 #include "bhyverun.h"
 #include "spinup_ap.h"
@@ -56,13 +56,13 @@ spinup_ap_realmode(struct vcpu *newcpu, uint64_t rip)
 	error = vm_set_register(newcpu, VM_REG_GUEST_RIP, 0);
 	assert(error == 0);
 
-	error = vm_get_desc(newcpu, VM_REG_GUEST_CS, &desc_base,
-			    &desc_limit, &desc_access);
+	error = vm_get_desc(newcpu, VM_REG_GUEST_CS, &desc_base, &desc_limit,
+	    &desc_access);
 	assert(error == 0);
 
 	desc_base = vector << PAGE_SHIFT;
-	error = vm_set_desc(newcpu, VM_REG_GUEST_CS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(newcpu, VM_REG_GUEST_CS, desc_base, desc_limit,
+	    desc_access);
 	assert(error == 0);
 
 	cs = (vector << PAGE_SHIFT) >> 4;

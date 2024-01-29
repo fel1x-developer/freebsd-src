@@ -37,9 +37,10 @@
  * Local routines that are installation dependent.
  */
 
-#include "rcv.h"
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Locate the user's mailbox file (ie, the place where new, unread

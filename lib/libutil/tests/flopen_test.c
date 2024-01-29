@@ -29,14 +29,13 @@
 #include <sys/fcntl.h>
 
 #include <errno.h>
+#include <libutil.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 /*
  * Test that flopen() can create a file.
@@ -49,7 +48,7 @@ test_flopen_create(void)
 	int fd;
 
 	unlink(fn);
-	fd = flopen(fn, O_RDWR|O_CREAT, 0640);
+	fd = flopen(fn, O_RDWR | O_CREAT, 0640);
 	if (fd < 0) {
 		result = strerror(errno);
 	} else {
@@ -69,7 +68,7 @@ test_flopen_open(void)
 	const char *result = NULL;
 	int fd;
 
-	fd = open(fn, O_RDWR|O_CREAT, 0640);
+	fd = open(fn, O_RDWR | O_CREAT, 0640);
 	if (fd < 0) {
 		result = strerror(errno);
 	} else {
@@ -96,11 +95,11 @@ test_flopen_lock_self(void)
 	int fd1, fd2;
 
 	unlink(fn);
-	fd1 = flopen(fn, O_RDWR|O_CREAT, 0640);
+	fd1 = flopen(fn, O_RDWR | O_CREAT, 0640);
 	if (fd1 < 0) {
 		result = strerror(errno);
 	} else {
-		fd2 = flopen(fn, O_RDWR|O_NONBLOCK);
+		fd2 = flopen(fn, O_RDWR | O_NONBLOCK);
 		if (fd2 >= 0) {
 			result = "second open succeeded";
 			close(fd2);
@@ -122,13 +121,13 @@ test_flopen_lock_other(void)
 	volatile int fd1, fd2;
 
 	unlink(fn);
-	fd1 = flopen(fn, O_RDWR|O_CREAT, 0640);
+	fd1 = flopen(fn, O_RDWR | O_CREAT, 0640);
 	if (fd1 < 0) {
 		result = strerror(errno);
 	} else {
 		fd2 = -42;
 		if (vfork() == 0) {
-			fd2 = flopen(fn, O_RDWR|O_NONBLOCK);
+			fd2 = flopen(fn, O_RDWR | O_NONBLOCK);
 			close(fd2);
 			_exit(0);
 		}
@@ -154,7 +153,7 @@ test_flopen_lock_child(void)
 	volatile int fd1, fd2;
 
 	unlink(fn);
-	fd1 = flopen(fn, O_RDWR|O_CREAT, 0640);
+	fd1 = flopen(fn, O_RDWR | O_CREAT, 0640);
 	if (fd1 < 0) {
 		result = strerror(errno);
 	} else {
@@ -166,7 +165,7 @@ test_flopen_lock_child(void)
 			_exit(0);
 		}
 		close(fd1);
-		if ((fd2 = flopen(fn, O_RDWR|O_NONBLOCK)) != -1) {
+		if ((fd2 = flopen(fn, O_RDWR | O_NONBLOCK)) != -1) {
 			result = "second open succeeded";
 			close(fd2);
 		}
@@ -197,11 +196,10 @@ main(void)
 	printf("1..%d\n", nt);
 	for (i = 0; i < nt; ++i) {
 		if ((result = t[i].func()) != NULL)
-			printf("not ok %d - %s # %s\n", i + 1,
-			    t[i].name, result);
+			printf("not ok %d - %s # %s\n", i + 1, t[i].name,
+			    result);
 		else
-			printf("ok %d - %s\n", i + 1,
-			    t[i].name);
+			printf("ok %d - %s\n", i + 1, t[i].name);
 	}
 	exit(0);
 }

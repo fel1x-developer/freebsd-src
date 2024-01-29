@@ -37,7 +37,7 @@
 #include "ocs.h"
 #include "ocs_os.h"
 
-#define DEFAULT_SLAB_LEN		(64*1024)
+#define DEFAULT_SLAB_LEN (64 * 1024)
 
 struct ocs_array_s {
 	ocs_os_handle_t os;
@@ -88,8 +88,8 @@ ocs_array_alloc(ocs_os_handle_t os, uint32_t size, uint32_t count)
 	ocs_array_t *array = NULL;
 	uint32_t i;
 
-	/* Fail if the item size exceeds slab_len - caller should increase slab_size,
-	 * or not use this API.
+	/* Fail if the item size exceeds slab_len - caller should increase
+	 * slab_size, or not use this API.
 	 */
 	if (size > slab_len) {
 		ocs_log_err(NULL, "Error: size exceeds slab length\n");
@@ -105,17 +105,20 @@ ocs_array_alloc(ocs_os_handle_t os, uint32_t size, uint32_t count)
 	array->size = size;
 	array->count = count;
 	array->elems_per_row = slab_len / size;
-	array->n_rows = (count + array->elems_per_row - 1) / array->elems_per_row;
+	array->n_rows = (count + array->elems_per_row - 1) /
+	    array->elems_per_row;
 	array->bytes_per_row = array->elems_per_row * array->size;
 
 	array->array_rows_len = array->n_rows * sizeof(*array->array_rows);
-	array->array_rows = ocs_malloc(os, array->array_rows_len, OCS_M_ZERO | OCS_M_NOWAIT);
+	array->array_rows = ocs_malloc(os, array->array_rows_len,
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 	if (array->array_rows == NULL) {
 		ocs_array_free(array);
 		return NULL;
 	}
 	for (i = 0; i < array->n_rows; i++) {
-		array->array_rows[i] = ocs_malloc(os, array->bytes_per_row, OCS_M_ZERO | OCS_M_NOWAIT);
+		array->array_rows[i] = ocs_malloc(os, array->bytes_per_row,
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (array->array_rows[i] == NULL) {
 			ocs_array_free(array);
 			return NULL;
@@ -143,10 +146,13 @@ ocs_array_free(ocs_array_t *array)
 		if (array->array_rows != NULL) {
 			for (i = 0; i < array->n_rows; i++) {
 				if (array->array_rows[i] != NULL) {
-					ocs_free(array->os, array->array_rows[i], array->bytes_per_row);
+					ocs_free(array->os,
+					    array->array_rows[i],
+					    array->bytes_per_row);
 				}
 			}
-			ocs_free(array->os, array->array_rows, array->array_rows_len);
+			ocs_free(array->os, array->array_rows,
+			    array->array_rows_len);
 		}
 		ocs_free(array->os, array, sizeof(*array));
 	}
@@ -162,14 +168,16 @@ ocs_array_free(ocs_array_t *array)
  *
  * @return rointer to array element, or NULL if index out of range
  */
-void *ocs_array_get(ocs_array_t *array, uint32_t idx)
+void *
+ocs_array_get(ocs_array_t *array, uint32_t idx)
 {
 	void *entry = NULL;
 
 	if (idx < array->count) {
 		uint32_t row = idx / array->elems_per_row;
 		uint32_t offset = idx % array->elems_per_row;
-		entry = ((uint8_t*)array->array_rows[row]) + (offset * array->size);
+		entry = ((uint8_t *)array->array_rows[row]) +
+		    (offset * array->size);
 	}
 	return entry;
 }
@@ -216,11 +224,11 @@ ocs_array_get_size(ocs_array_t *array)
  */
 struct ocs_varray_s {
 	ocs_os_handle_t os;
-	uint32_t array_count;			/*>> maximum entry count in array */
-	void **array;				/*>> pointer to allocated array memory */
-	uint32_t entry_count;			/*>> number of entries added to the array */
-	uint32_t next_index;			/*>> iterator next index */
-	ocs_lock_t lock;			/*>> iterator lock */
+	uint32_t array_count; /*>> maximum entry count in array */
+	void **array;	      /*>> pointer to allocated array memory */
+	uint32_t entry_count; /*>> number of entries added to the array */
+	uint32_t next_index;  /*>> iterator next index */
+	ocs_lock_t lock;      /*>> iterator lock */
 };
 
 /**
@@ -242,7 +250,8 @@ ocs_varray_alloc(ocs_os_handle_t os, uint32_t array_count)
 	if (va != NULL) {
 		va->os = os;
 		va->array_count = array_count;
-		va->array = ocs_malloc(os, sizeof(*va->array) * va->array_count, OCS_M_ZERO | OCS_M_NOWAIT);
+		va->array = ocs_malloc(os, sizeof(*va->array) * va->array_count,
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (va->array != NULL) {
 			va->next_index = 0;
 			ocs_lock_init(os, &va->lock, "varray:%p", va);
@@ -269,7 +278,8 @@ ocs_varray_free(ocs_varray_t *va)
 	if (va != NULL) {
 		ocs_lock_free(&va->lock);
 		if (va->array != NULL) {
-			ocs_free(va->os, va->array, sizeof(*va->array) * va->array_count);
+			ocs_free(va->os, va->array,
+			    sizeof(*va->array) * va->array_count);
 		}
 		ocs_free(va->os, va, sizeof(*va));
 	}
@@ -283,7 +293,8 @@ ocs_varray_free(ocs_varray_t *va)
  * @param va Pointer to void pointer array
  * @param entry Pointer to entry to add
  *
- * @return returns 0 if entry was added, -1 if there is no more space in the array
+ * @return returns 0 if entry was added, -1 if there is no more space in the
+ * array
  */
 int32_t
 ocs_varray_add(ocs_varray_t *va, void *entry)
@@ -291,10 +302,10 @@ ocs_varray_add(ocs_varray_t *va, void *entry)
 	uint32_t rc = -1;
 
 	ocs_lock(&va->lock);
-		if (va->entry_count < va->array_count) {
-			va->array[va->entry_count++] = entry;
-			rc = 0;
-		}
+	if (va->entry_count < va->array_count) {
+		va->array[va->entry_count++] = entry;
+		rc = 0;
+	}
 	ocs_unlock(&va->lock);
 
 	return rc;
@@ -313,7 +324,7 @@ void
 ocs_varray_iter_reset(ocs_varray_t *va)
 {
 	ocs_lock(&va->lock);
-		va->next_index = 0;
+	va->next_index = 0;
 	ocs_unlock(&va->lock);
 }
 
@@ -335,7 +346,7 @@ ocs_varray_iter_next(ocs_varray_t *va)
 
 	if (va != NULL) {
 		ocs_lock(&va->lock);
-			rval = _ocs_varray_iter_next(va);
+		rval = _ocs_varray_iter_next(va);
 		ocs_unlock(&va->lock);
 	}
 	return rval;
@@ -409,21 +420,21 @@ ocs_varray_get_count(ocs_varray_t *va)
 	uint32_t rc;
 
 	ocs_lock(&va->lock);
-		rc = va->entry_count;
+	rc = va->entry_count;
 	ocs_unlock(&va->lock);
 	return rc;
 }
 
 struct ocs_cbuf_s {
-	ocs_os_handle_t os;		/*<< OS handle */
-	uint32_t entry_count;		/*<< entry count */
-	void **array;			/*<< pointer to array of cbuf pointers */
-	uint32_t pidx;			/*<< producer index */
-	uint32_t cidx;			/*<< consumer index */
-	ocs_lock_t cbuf_plock;		/*<< idx lock */
-	ocs_lock_t cbuf_clock;		/*<< idx lock */
-	ocs_sem_t cbuf_psem;		/*<< cbuf producer counting semaphore */
-	ocs_sem_t cbuf_csem;		/*<< cbuf consumer counting semaphore */
+	ocs_os_handle_t os;    /*<< OS handle */
+	uint32_t entry_count;  /*<< entry count */
+	void **array;	       /*<< pointer to array of cbuf pointers */
+	uint32_t pidx;	       /*<< producer index */
+	uint32_t cidx;	       /*<< consumer index */
+	ocs_lock_t cbuf_plock; /*<< idx lock */
+	ocs_lock_t cbuf_clock; /*<< idx lock */
+	ocs_sem_t cbuf_psem;   /*<< cbuf producer counting semaphore */
+	ocs_sem_t cbuf_csem;   /*<< cbuf consumer counting semaphore */
 };
 
 /**
@@ -436,7 +447,7 @@ struct ocs_cbuf_s {
  *
  * @return returns pointer to circular buffer, or NULL
  */
-ocs_cbuf_t*
+ocs_cbuf_t *
 ocs_cbuf_alloc(ocs_os_handle_t os, uint32_t entry_count)
 {
 	ocs_cbuf_t *cbuf;
@@ -456,7 +467,8 @@ ocs_cbuf_alloc(ocs_os_handle_t os, uint32_t entry_count)
 	ocs_sem_init(&cbuf->cbuf_csem, 0, "cbuf:%p", cbuf);
 	ocs_sem_init(&cbuf->cbuf_psem, cbuf->entry_count, "cbuf:%p", cbuf);
 
-	cbuf->array = ocs_malloc(os, entry_count * sizeof(*cbuf->array), OCS_M_NOWAIT | OCS_M_ZERO);
+	cbuf->array = ocs_malloc(os, entry_count * sizeof(*cbuf->array),
+	    OCS_M_NOWAIT | OCS_M_ZERO);
 	if (cbuf->array == NULL) {
 		ocs_cbuf_free(cbuf);
 		return NULL;
@@ -479,7 +491,8 @@ ocs_cbuf_free(ocs_cbuf_t *cbuf)
 {
 	if (cbuf != NULL) {
 		if (cbuf->array != NULL) {
-			ocs_free(cbuf->os, cbuf->array, sizeof(*cbuf->array) * cbuf->entry_count);
+			ocs_free(cbuf->os, cbuf->array,
+			    sizeof(*cbuf->array) * cbuf->entry_count);
 		}
 		ocs_lock_free(&cbuf->cbuf_clock);
 		ocs_lock_free(&cbuf->cbuf_plock);
@@ -497,17 +510,17 @@ ocs_cbuf_free(ocs_cbuf_t *cbuf)
  *
  * @return pointer to buffer, or NULL if timeout
  */
-void*
+void *
 ocs_cbuf_get(ocs_cbuf_t *cbuf, int32_t timeout_usec)
 {
 	void *ret = NULL;
 
 	if (likely(ocs_sem_p(&cbuf->cbuf_csem, timeout_usec) == 0)) {
 		ocs_lock(&cbuf->cbuf_clock);
-			ret = cbuf->array[cbuf->cidx];
-			if (unlikely(++cbuf->cidx >= cbuf->entry_count)) {
-				cbuf->cidx = 0;
-			}
+		ret = cbuf->array[cbuf->cidx];
+		if (unlikely(++cbuf->cidx >= cbuf->entry_count)) {
+			cbuf->cidx = 0;
+		}
 		ocs_unlock(&cbuf->cbuf_clock);
 		ocs_sem_v(&cbuf->cbuf_psem);
 	}
@@ -531,10 +544,10 @@ ocs_cbuf_put(ocs_cbuf_t *cbuf, void *elem)
 
 	if (likely(ocs_sem_p(&cbuf->cbuf_psem, -1) == 0)) {
 		ocs_lock(&cbuf->cbuf_plock);
-			cbuf->array[cbuf->pidx] = elem;
-			if (unlikely(++cbuf->pidx >= cbuf->entry_count)) {
-				cbuf->pidx = 0;
-			}
+		cbuf->array[cbuf->pidx] = elem;
+		if (unlikely(++cbuf->pidx >= cbuf->entry_count)) {
+			cbuf->pidx = 0;
+		}
 		ocs_unlock(&cbuf->cbuf_plock);
 		ocs_sem_v(&cbuf->cbuf_csem);
 	} else {
@@ -578,7 +591,8 @@ ocs_cbuf_prime(ocs_cbuf_t *cbuf, ocs_array_t *array)
 void
 ocs_ddump_startfile(ocs_textbuf_t *textbuf)
 {
-	ocs_textbuf_printf(textbuf, "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n");
+	ocs_textbuf_printf(textbuf,
+	    "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n");
 }
 
 /**
@@ -611,7 +625,8 @@ ocs_ddump_endfile(ocs_textbuf_t *textbuf)
 void
 ocs_ddump_section(ocs_textbuf_t *textbuf, const char *name, uint32_t instance)
 {
-	ocs_textbuf_printf(textbuf, "<%s type=\"section\" instance=\"%d\">\n", name, instance);
+	ocs_textbuf_printf(textbuf, "<%s type=\"section\" instance=\"%d\">\n",
+	    name, instance);
 }
 
 /**
@@ -627,7 +642,8 @@ ocs_ddump_section(ocs_textbuf_t *textbuf, const char *name, uint32_t instance)
  */
 
 void
-ocs_ddump_endsection(ocs_textbuf_t *textbuf, const char *name, uint32_t instance)
+ocs_ddump_endsection(ocs_textbuf_t *textbuf, const char *name,
+    uint32_t instance)
 {
 	ocs_textbuf_printf(textbuf, "</%s>\n", name);
 }
@@ -672,7 +688,8 @@ ocs_ddump_value(ocs_textbuf_t *textbuf, const char *name, const char *fmt, ...)
  */
 
 void
-ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name, uint32_t instance, void *buffer, uint32_t size)
+ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name, uint32_t instance,
+    void *buffer, uint32_t size)
 {
 	uint32_t *dword;
 	uint32_t i;
@@ -684,11 +701,12 @@ ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name, uint32_t instance, vo
 		return;
 	}
 
-	ocs_textbuf_printf(textbuf, "<%s type=\"buffer\" instance=\"%d\">\n", name, instance);
+	ocs_textbuf_printf(textbuf, "<%s type=\"buffer\" instance=\"%d\">\n",
+	    name, instance);
 
 	dword = buffer;
 	for (i = 0; i < count; i++) {
-#define OCS_NEWLINE_MOD	8
+#define OCS_NEWLINE_MOD 8
 		ocs_textbuf_printf(textbuf, "%08x ", *dword++);
 		if ((i % OCS_NEWLINE_MOD) == (OCS_NEWLINE_MOD - 1)) {
 			ocs_textbuf_printf(textbuf, "\n");
@@ -715,7 +733,7 @@ ocs_ddump_buffer(ocs_textbuf_t *textbuf, const char *name, uint32_t instance, vo
 
 void
 ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size,
-			uint32_t length, int32_t index, uint32_t qentries)
+    uint32_t length, int32_t index, uint32_t qentries)
 {
 	uint32_t i;
 	uint32_t j;
@@ -725,7 +743,8 @@ ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size,
 	uint32_t entry_words = size / sizeof(uint32_t);
 
 	if ((qentries == (uint32_t)-1) || (qentries > length)) {
-		/* if qentries is -1 or larger than queue size, dump entire queue */
+		/* if qentries is -1 or larger than queue size, dump entire
+		 * queue */
 		entry_count = length;
 		index = 0;
 	} else {
@@ -736,9 +755,9 @@ ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size,
 			index += length;
 		}
 	}
-#define OCS_NEWLINE_MOD	8
+#define OCS_NEWLINE_MOD 8
 	ocs_textbuf_printf(textbuf, "<qentries>\n");
-	for (i = 0; i < entry_count; i++){
+	for (i = 0; i < entry_count; i++) {
 		entry = q_addr;
 		entry += index * size;
 		dword = (uint32_t *)entry;
@@ -746,10 +765,10 @@ ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size,
 		ocs_textbuf_printf(textbuf, "[%04x] ", index);
 		for (j = 0; j < entry_words; j++) {
 			ocs_textbuf_printf(textbuf, "%08x ", *dword++);
-			if (((j+1) == entry_words) ||
+			if (((j + 1) == entry_words) ||
 			    ((j % OCS_NEWLINE_MOD) == (OCS_NEWLINE_MOD - 1))) {
 				ocs_textbuf_printf(textbuf, "\n");
-				if ((j+1) < entry_words) {
+				if ((j + 1) < entry_words) {
 					ocs_textbuf_printf(textbuf, "       ");
 				}
 			}
@@ -763,20 +782,21 @@ ocs_ddump_queue_entries(ocs_textbuf_t *textbuf, void *q_addr, uint32_t size,
 	ocs_textbuf_printf(textbuf, "</qentries>\n");
 }
 
-#define OCS_DEBUG_ENABLE(x)	(x ? ~0 : 0)
+#define OCS_DEBUG_ENABLE(x) (x ? ~0 : 0)
 
-#define OCS_DEBUG_MASK \
-	(OCS_DEBUG_ENABLE(1)	& OCS_DEBUG_ALWAYS)  | \
-	(OCS_DEBUG_ENABLE(0)	& OCS_DEBUG_ENABLE_MQ_DUMP) | \
-	(OCS_DEBUG_ENABLE(0)	& OCS_DEBUG_ENABLE_CQ_DUMP) | \
-	(OCS_DEBUG_ENABLE(0)	& OCS_DEBUG_ENABLE_WQ_DUMP) | \
-	(OCS_DEBUG_ENABLE(0)	& OCS_DEBUG_ENABLE_EQ_DUMP) | \
-	(OCS_DEBUG_ENABLE(0)	& OCS_DEBUG_ENABLE_SPARAM_DUMP)
+#define OCS_DEBUG_MASK                                         \
+	(OCS_DEBUG_ENABLE(1) & OCS_DEBUG_ALWAYS) |             \
+	    (OCS_DEBUG_ENABLE(0) & OCS_DEBUG_ENABLE_MQ_DUMP) | \
+	    (OCS_DEBUG_ENABLE(0) & OCS_DEBUG_ENABLE_CQ_DUMP) | \
+	    (OCS_DEBUG_ENABLE(0) & OCS_DEBUG_ENABLE_WQ_DUMP) | \
+	    (OCS_DEBUG_ENABLE(0) & OCS_DEBUG_ENABLE_EQ_DUMP) | \
+	    (OCS_DEBUG_ENABLE(0) & OCS_DEBUG_ENABLE_SPARAM_DUMP)
 
 static uint32_t ocs_debug_mask = OCS_DEBUG_MASK;
 
 static int
-_isprint(int c) {
+_isprint(int c)
+{
 	return ((c > 32) && (c < 127));
 }
 
@@ -792,7 +812,9 @@ _isprint(int c) {
  * @return none
  */
 
-void ocs_debug_enable(uint32_t mask) {
+void
+ocs_debug_enable(uint32_t mask)
+{
 	ocs_debug_mask |= mask;
 }
 
@@ -800,15 +822,17 @@ void ocs_debug_enable(uint32_t mask) {
  * @ingroup debug
  * @brief disable debug options
  *
- * Disables debug options by clearing bits in <b>mask</b> into the currently enabled
- * debug mask.
+ * Disables debug options by clearing bits in <b>mask</b> into the currently
+ * enabled debug mask.
  *
  * @param mask mask bits to enable
  *
  * @return none
  */
 
-void ocs_debug_disable(uint32_t mask) {
+void
+ocs_debug_disable(uint32_t mask)
+{
 	ocs_debug_mask &= ~mask;
 }
 
@@ -825,7 +849,9 @@ void ocs_debug_disable(uint32_t mask) {
  * @note Passing in a mask value of zero always returns true
  */
 
-int ocs_debug_is_enabled(uint32_t mask) {
+int
+ocs_debug_is_enabled(uint32_t mask)
+{
 	return (ocs_debug_mask & mask) == mask;
 }
 
@@ -846,7 +872,8 @@ int ocs_debug_is_enabled(uint32_t mask) {
  */
 
 void
-ocs_dump32(uint32_t mask, ocs_os_handle_t os, const char *label, void *buf, uint32_t buf_length)
+ocs_dump32(uint32_t mask, ocs_os_handle_t os, const char *label, void *buf,
+    uint32_t buf_length)
 {
 	uint32_t word_count = buf_length / sizeof(uint32_t);
 	uint32_t i;
@@ -867,54 +894,67 @@ ocs_dump32(uint32_t mask, ocs_os_handle_t os, const char *label, void *buf, uint
 	wbuf = buf;
 	while (word_count > 0) {
 		pbuf = linebuf;
-		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "%08X:  ", addr);
+		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf - linebuf),
+		    "%08X:  ", addr);
 
 		n = word_count;
 		if (n > columns)
 			n = columns;
 
-		for (i = 0; i < n; i ++)
-			pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "%08X ", wbuf[i]);
+		for (i = 0; i < n; i++)
+			pbuf += ocs_snprintf(pbuf,
+			    sizeof(linebuf) - (pbuf - linebuf), "%08X ",
+			    wbuf[i]);
 
-		for (; i < columns; i ++)
-			pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "%8s ", "");
+		for (; i < columns; i++)
+			pbuf += ocs_snprintf(pbuf,
+			    sizeof(linebuf) - (pbuf - linebuf), "%8s ", "");
 
-		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "    ");
-		cbuf = (char*)wbuf;
-		for (i = 0; i < n*sizeof(uint32_t); i ++)
-			pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "%c", _isprint(cbuf[i]) ? cbuf[i] : '.');
-		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf-linebuf), "\n");
+		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf - linebuf),
+		    "    ");
+		cbuf = (char *)wbuf;
+		for (i = 0; i < n * sizeof(uint32_t); i++)
+			pbuf += ocs_snprintf(pbuf,
+			    sizeof(linebuf) - (pbuf - linebuf), "%c",
+			    _isprint(cbuf[i]) ? cbuf[i] : '.');
+		pbuf += ocs_snprintf(pbuf, sizeof(linebuf) - (pbuf - linebuf),
+		    "\n");
 
 		ocs_log_debug(os, "%s", linebuf);
 
 		wbuf += n;
 		word_count -= n;
-		addr += n*sizeof(uint32_t);
+		addr += n * sizeof(uint32_t);
 	}
 }
 
 #if defined(OCS_DEBUG_QUEUE_HISTORY)
 
 /* each bit corresponds to word to capture */
-#define OCS_Q_HIST_WQE_WORD_MASK_DEFAULT	(BIT(4) | BIT(6) | BIT(7) | BIT(9) | BIT(12))
-#define OCS_Q_HIST_TRECV_CONT_WQE_WORD_MASK	(BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(9) | BIT(12))
-#define OCS_Q_HIST_IWRITE_WQE_WORD_MASK		(BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(9))
-#define OCS_Q_HIST_IREAD_WQE_WORD_MASK		(BIT(4) | BIT(6) | BIT(7) | BIT(9))
-#define OCS_Q_HIST_ABORT_WQE_WORD_MASK		(BIT(3) | BIT(7) | BIT(8) | BIT(9))
-#define OCS_Q_HIST_WCQE_WORD_MASK		(BIT(0) | BIT(3))
-#define OCS_Q_HIST_WCQE_WORD_MASK_ERR		(BIT(0) | BIT(1) | BIT(2) | BIT(3))
-#define OCS_Q_HIST_CQXABT_WORD_MASK		(BIT(0) | BIT(1) | BIT(2) | BIT(3))
+#define OCS_Q_HIST_WQE_WORD_MASK_DEFAULT \
+	(BIT(4) | BIT(6) | BIT(7) | BIT(9) | BIT(12))
+#define OCS_Q_HIST_TRECV_CONT_WQE_WORD_MASK \
+	(BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(9) | BIT(12))
+#define OCS_Q_HIST_IWRITE_WQE_WORD_MASK \
+	(BIT(4) | BIT(5) | BIT(6) | BIT(7) | BIT(9))
+#define OCS_Q_HIST_IREAD_WQE_WORD_MASK (BIT(4) | BIT(6) | BIT(7) | BIT(9))
+#define OCS_Q_HIST_ABORT_WQE_WORD_MASK (BIT(3) | BIT(7) | BIT(8) | BIT(9))
+#define OCS_Q_HIST_WCQE_WORD_MASK (BIT(0) | BIT(3))
+#define OCS_Q_HIST_WCQE_WORD_MASK_ERR (BIT(0) | BIT(1) | BIT(2) | BIT(3))
+#define OCS_Q_HIST_CQXABT_WORD_MASK (BIT(0) | BIT(1) | BIT(2) | BIT(3))
 
 /* if set, will provide extra queue information in each entry */
-#define OCS_Q_HIST_ENABLE_Q_INFO	0
-uint8_t ocs_queue_history_q_info_enabled(void)
+#define OCS_Q_HIST_ENABLE_Q_INFO 0
+uint8_t
+ocs_queue_history_q_info_enabled(void)
 {
 	return OCS_Q_HIST_ENABLE_Q_INFO;
 }
 
 /* if set, will provide timestamps in each entry */
-#define OCS_Q_HIST_ENABLE_TIMESTAMPS	0
-uint8_t ocs_queue_history_timestamp_enabled(void)
+#define OCS_Q_HIST_ENABLE_TIMESTAMPS 0
+uint8_t
+ocs_queue_history_timestamp_enabled(void)
 {
 	return OCS_Q_HIST_ENABLE_TIMESTAMPS;
 }
@@ -922,20 +962,24 @@ uint8_t ocs_queue_history_timestamp_enabled(void)
 /* Add WQEs and masks to override default WQE mask */
 ocs_q_hist_wqe_mask_t ocs_q_hist_wqe_masks[] = {
 	/* WQE command   Word mask */
-	{SLI4_WQE_ABORT, OCS_Q_HIST_ABORT_WQE_WORD_MASK},
-	{SLI4_WQE_FCP_IREAD64, OCS_Q_HIST_IREAD_WQE_WORD_MASK},
-	{SLI4_WQE_FCP_IWRITE64, OCS_Q_HIST_IWRITE_WQE_WORD_MASK},
-	{SLI4_WQE_FCP_CONT_TRECEIVE64, OCS_Q_HIST_TRECV_CONT_WQE_WORD_MASK},
+	{ SLI4_WQE_ABORT, OCS_Q_HIST_ABORT_WQE_WORD_MASK },
+	{ SLI4_WQE_FCP_IREAD64, OCS_Q_HIST_IREAD_WQE_WORD_MASK },
+	{ SLI4_WQE_FCP_IWRITE64, OCS_Q_HIST_IWRITE_WQE_WORD_MASK },
+	{ SLI4_WQE_FCP_CONT_TRECEIVE64, OCS_Q_HIST_TRECV_CONT_WQE_WORD_MASK },
 };
 
 /* CQE masks */
 ocs_q_hist_cqe_mask_t ocs_q_hist_cqe_masks[] = {
-	/* CQE type     Q_hist_type		mask (success) 	mask (non-success) */
-	{SLI_QENTRY_WQ, OCS_Q_HIST_TYPE_CWQE, 	OCS_Q_HIST_WCQE_WORD_MASK, OCS_Q_HIST_WCQE_WORD_MASK_ERR},
-	{SLI_QENTRY_XABT, OCS_Q_HIST_TYPE_CXABT, OCS_Q_HIST_CQXABT_WORD_MASK, OCS_Q_HIST_WCQE_WORD_MASK},
+	/* CQE type     Q_hist_type		mask (success) 	mask
+	   (non-success) */
+	{ SLI_QENTRY_WQ, OCS_Q_HIST_TYPE_CWQE, OCS_Q_HIST_WCQE_WORD_MASK,
+	    OCS_Q_HIST_WCQE_WORD_MASK_ERR },
+	{ SLI_QENTRY_XABT, OCS_Q_HIST_TYPE_CXABT, OCS_Q_HIST_CQXABT_WORD_MASK,
+	    OCS_Q_HIST_WCQE_WORD_MASK },
 };
 
-static uint32_t ocs_q_hist_get_wqe_mask(sli4_generic_wqe_t *wqe)
+static uint32_t
+ocs_q_hist_get_wqe_mask(sli4_generic_wqe_t *wqe)
 {
 	uint32_t i;
 	for (i = 0; i < ARRAY_SIZE(ocs_q_hist_wqe_masks); i++) {
@@ -966,12 +1010,15 @@ ocs_queue_history_init(ocs_t *ocs, ocs_hw_q_hist_t *q_hist)
 		return;
 	}
 
-	q_hist->q_hist = ocs_malloc(ocs, sizeof(*q_hist->q_hist)*OCS_Q_HIST_SIZE, OCS_M_ZERO | OCS_M_NOWAIT);
+	q_hist->q_hist = ocs_malloc(ocs,
+	    sizeof(*q_hist->q_hist) * OCS_Q_HIST_SIZE,
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 
 	if (q_hist->q_hist == NULL) {
 		ocs_log_err(ocs, "Could not allocate queue history buffer\n");
 	} else {
-		ocs_lock_init(ocs, &q_hist->q_hist_lock, "queue history lock[%d]", ocs_instance(ocs));
+		ocs_lock_init(ocs, &q_hist->q_hist_lock,
+		    "queue history lock[%d]", ocs_instance(ocs));
 	}
 
 	q_hist->q_hist_index = 0;
@@ -991,14 +1038,16 @@ ocs_queue_history_free(ocs_hw_q_hist_t *q_hist)
 	ocs_t *ocs = q_hist->ocs;
 
 	if (q_hist->q_hist != NULL) {
-		ocs_free(ocs, q_hist->q_hist, sizeof(*q_hist->q_hist)*OCS_Q_HIST_SIZE);
+		ocs_free(ocs, q_hist->q_hist,
+		    sizeof(*q_hist->q_hist) * OCS_Q_HIST_SIZE);
 		ocs_lock_free(&q_hist->q_hist_lock);
 		q_hist->q_hist = NULL;
 	}
 }
 
 static void
-ocs_queue_history_add_q_info(ocs_hw_q_hist_t *q_hist, uint32_t qid, uint32_t qindex)
+ocs_queue_history_add_q_info(ocs_hw_q_hist_t *q_hist, uint32_t qid,
+    uint32_t qindex)
 {
 	if (ocs_queue_history_q_info_enabled()) {
 		/* write qid, index */
@@ -1015,7 +1064,8 @@ ocs_queue_history_add_timestamp(ocs_hw_q_hist_t *q_hist)
 		/* write tsc */
 		uint64_t tsc_value;
 		tsc_value = get_cyclecount();
-		q_hist->q_hist[q_hist->q_hist_index] = ((tsc_value >> 32 ) & 0xFFFFFFFF);
+		q_hist->q_hist[q_hist->q_hist_index] = ((tsc_value >> 32) &
+		    0xFFFFFFFF);
 		q_hist->q_hist_index++;
 		q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
 		q_hist->q_hist[q_hist->q_hist_index] = (tsc_value & 0xFFFFFFFF);
@@ -1036,11 +1086,13 @@ ocs_queue_history_add_timestamp(ocs_hw_q_hist_t *q_hist)
  * @return none
  */
 void
-ocs_queue_history_wq(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t qid, uint32_t qindex)
+ocs_queue_history_wq(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t qid,
+    uint32_t qindex)
 {
 	int i;
 	ocs_q_hist_ftr_t ftr;
-	uint32_t wqe_word_mask = ocs_q_hist_get_wqe_mask((sli4_generic_wqe_t *)entryw);
+	uint32_t wqe_word_mask = ocs_q_hist_get_wqe_mask(
+	    (sli4_generic_wqe_t *)entryw);
 
 	if (q_hist->q_hist == NULL) {
 		/* Can't save anything */
@@ -1050,25 +1102,27 @@ ocs_queue_history_wq(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t qid, ui
 	ftr.word = 0;
 	ftr.s.type = OCS_Q_HIST_TYPE_WQE;
 	ocs_lock(&q_hist->q_hist_lock);
-		/* Capture words in reverse order since we'll be interpretting them LIFO */
-		for (i = ((sizeof(wqe_word_mask)*8) - 1); i >= 0; i--){
-			if ((wqe_word_mask >> i) & 1) {
-				q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
-				q_hist->q_hist_index++;
-				q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
-			}
-		}
-
-		ocs_queue_history_add_q_info(q_hist, qid, qindex);
-		ocs_queue_history_add_timestamp(q_hist);
-
-		/* write footer */
-		if (wqe_word_mask) {
-			ftr.s.mask = wqe_word_mask;
-			q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
+	/* Capture words in reverse order since we'll be interpretting them LIFO
+	 */
+	for (i = ((sizeof(wqe_word_mask) * 8) - 1); i >= 0; i--) {
+		if ((wqe_word_mask >> i) & 1) {
+			q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
 			q_hist->q_hist_index++;
-			q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+			q_hist->q_hist_index = q_hist->q_hist_index %
+			    OCS_Q_HIST_SIZE;
 		}
+	}
+
+	ocs_queue_history_add_q_info(q_hist, qid, qindex);
+	ocs_queue_history_add_timestamp(q_hist);
+
+	/* write footer */
+	if (wqe_word_mask) {
+		ftr.s.mask = wqe_word_mask;
+		q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
+		q_hist->q_hist_index++;
+		q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+	}
 
 	ocs_unlock(&q_hist->q_hist_lock);
 }
@@ -1084,7 +1138,8 @@ ocs_queue_history_wq(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t qid, ui
  * @return none
  */
 void
-ocs_queue_history_misc(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t num_words)
+ocs_queue_history_misc(ocs_hw_q_hist_t *q_hist, uint32_t *entryw,
+    uint32_t num_words)
 {
 	int i;
 	ocs_q_hist_ftr_t ftr;
@@ -1098,23 +1153,24 @@ ocs_queue_history_misc(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t num_w
 	ftr.word = 0;
 	ftr.s.type = OCS_Q_HIST_TYPE_MISC;
 	ocs_lock(&q_hist->q_hist_lock);
-		/* Capture words in reverse order since we'll be interpretting them LIFO */
-		for (i = num_words-1; i >= 0; i--) {
-			q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
-			q_hist->q_hist_index++;
-			q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
-			mask |= BIT(i);
-		}
+	/* Capture words in reverse order since we'll be interpretting them LIFO
+	 */
+	for (i = num_words - 1; i >= 0; i--) {
+		q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
+		q_hist->q_hist_index++;
+		q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+		mask |= BIT(i);
+	}
 
-		ocs_queue_history_add_timestamp(q_hist);
+	ocs_queue_history_add_timestamp(q_hist);
 
-		/* write footer */
-		if (num_words) {
-			ftr.s.mask = mask;
-			q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
-			q_hist->q_hist_index++;
-			q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
-		}
+	/* write footer */
+	if (num_words) {
+		ftr.s.mask = mask;
+		q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
+		q_hist->q_hist_index++;
+		q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+	}
 
 	ocs_unlock(&q_hist->q_hist_lock);
 }
@@ -1134,7 +1190,8 @@ ocs_queue_history_misc(ocs_hw_q_hist_t *q_hist, uint32_t *entryw, uint32_t num_w
  * @return none
  */
 void
-ocs_queue_history_cqe(ocs_hw_q_hist_t *q_hist, uint8_t ctype, uint32_t *entryw, uint8_t status, uint32_t qid, uint32_t qindex)
+ocs_queue_history_cqe(ocs_hw_q_hist_t *q_hist, uint8_t ctype, uint32_t *entryw,
+    uint8_t status, uint32_t qid, uint32_t qindex)
 {
 	int i;
 	unsigned j;
@@ -1151,31 +1208,34 @@ ocs_queue_history_cqe(ocs_hw_q_hist_t *q_hist, uint8_t ctype, uint32_t *entryw, 
 		if (ocs_q_hist_cqe_masks[j].ctype == ctype) {
 			ftr.s.type = ocs_q_hist_cqe_masks[j].type;
 			if (status != 0) {
-				cqe_word_mask = ocs_q_hist_cqe_masks[j].mask_err;
+				cqe_word_mask =
+				    ocs_q_hist_cqe_masks[j].mask_err;
 			} else {
 				cqe_word_mask = ocs_q_hist_cqe_masks[j].mask;
 			}
 		}
 	}
 	ocs_lock(&q_hist->q_hist_lock);
-		/* Capture words in reverse order since we'll be interpretting them LIFO */
-		for (i = ((sizeof(cqe_word_mask)*8) - 1); i >= 0; i--){
-			if ((cqe_word_mask >> i) & 1) {
-				q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
-				q_hist->q_hist_index++;
-				q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
-			}
-		}
-		ocs_queue_history_add_q_info(q_hist, qid, qindex);
-		ocs_queue_history_add_timestamp(q_hist);
-
-		/* write footer */
-		if (cqe_word_mask) {
-			ftr.s.mask = cqe_word_mask;
-			q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
+	/* Capture words in reverse order since we'll be interpretting them LIFO
+	 */
+	for (i = ((sizeof(cqe_word_mask) * 8) - 1); i >= 0; i--) {
+		if ((cqe_word_mask >> i) & 1) {
+			q_hist->q_hist[q_hist->q_hist_index] = entryw[i];
 			q_hist->q_hist_index++;
-			q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+			q_hist->q_hist_index = q_hist->q_hist_index %
+			    OCS_Q_HIST_SIZE;
 		}
+	}
+	ocs_queue_history_add_q_info(q_hist, qid, qindex);
+	ocs_queue_history_add_timestamp(q_hist);
+
+	/* write footer */
+	if (cqe_word_mask) {
+		ftr.s.mask = cqe_word_mask;
+		q_hist->q_hist[q_hist->q_hist_index] = ftr.word;
+		q_hist->q_hist_index++;
+		q_hist->q_hist_index = q_hist->q_hist_index % OCS_Q_HIST_SIZE;
+	}
 
 	ocs_unlock(&q_hist->q_hist_lock);
 }
@@ -1212,7 +1272,8 @@ ocs_queue_history_prev_index(uint32_t index)
  */
 
 void
-ocs_display_sparams(const char *prelabel, const char *reqlabel, int dest, void *textbuf, void *sparams)
+ocs_display_sparams(const char *prelabel, const char *reqlabel, int dest,
+    void *textbuf, void *sparams)
 {
 	char label[64];
 
@@ -1220,18 +1281,22 @@ ocs_display_sparams(const char *prelabel, const char *reqlabel, int dest, void *
 		return;
 	}
 
-	switch(dest) {
+	switch (dest) {
 	case 0:
 		if (prelabel != NULL) {
-			ocs_snprintf(label, sizeof(label), "[%s] sparam: %s", prelabel, reqlabel);
+			ocs_snprintf(label, sizeof(label), "[%s] sparam: %s",
+			    prelabel, reqlabel);
 		} else {
-			ocs_snprintf(label, sizeof(label), "sparam: %s", reqlabel);
+			ocs_snprintf(label, sizeof(label), "sparam: %s",
+			    reqlabel);
 		}
 
-		ocs_dump32(OCS_DEBUG_ENABLE_SPARAM_DUMP, NULL, label, sparams, sizeof(fc_plogi_payload_t));
+		ocs_dump32(OCS_DEBUG_ENABLE_SPARAM_DUMP, NULL, label, sparams,
+		    sizeof(fc_plogi_payload_t));
 		break;
 	case 1:
-		ocs_ddump_buffer((ocs_textbuf_t*) textbuf, reqlabel, 0, sparams, sizeof(fc_plogi_payload_t));
+		ocs_ddump_buffer((ocs_textbuf_t *)textbuf, reqlabel, 0, sparams,
+		    sizeof(fc_plogi_payload_t));
 		break;
 	}
 }
@@ -1243,7 +1308,8 @@ ocs_display_sparams(const char *prelabel, const char *reqlabel, int dest, void *
  * @param size Number of bytes.
  * @param crc Previously-calculated CRC, or 0 for a new block.
  *
- * @return Returns the calculated CRC, which may be passed back in for partial blocks.
+ * @return Returns the calculated CRC, which may be passed back in for partial
+ * blocks.
  *
  */
 
@@ -1268,11 +1334,13 @@ ocs_scsi_dif_calc_crc(const uint8_t *buffer, uint32_t size, uint16_t crc)
  */
 
 uint16_t
-ocs_scsi_dif_calc_checksum(ocs_scsi_vaddr_len_t addrlen[], uint32_t addrlen_count)
+ocs_scsi_dif_calc_checksum(ocs_scsi_vaddr_len_t addrlen[],
+    uint32_t addrlen_count)
 {
 	uint32_t i, j;
 	uint16_t checksum;
-	uint32_t intermediate; /* Use an intermediate to hold more than 16 bits during calculations */
+	uint32_t intermediate; /* Use an intermediate to hold more than 16 bits
+				  during calculations */
 	uint32_t count;
 	uint16_t *buffer;
 
@@ -1280,7 +1348,7 @@ ocs_scsi_dif_calc_checksum(ocs_scsi_vaddr_len_t addrlen[], uint32_t addrlen_coun
 	for (j = 0; j < addrlen_count; j++) {
 		buffer = addrlen[j].vaddr;
 		count = addrlen[j].length / 2;
-		for (i=0; i < count; i++) {
+		for (i = 0; i < count; i++) {
 			intermediate += buffer[i];
 		}
 	}
@@ -1312,13 +1380,25 @@ ocs_scsi_dif_blocksize(ocs_scsi_dif_info_t *dif_info)
 {
 	uint32_t blocksize = 0;
 
-	switch(dif_info->blk_size) {
-	case OCS_SCSI_DIF_BK_SIZE_512:	blocksize = 512; break;
-	case OCS_SCSI_DIF_BK_SIZE_1024:	blocksize = 1024; break;
-	case OCS_SCSI_DIF_BK_SIZE_2048:	blocksize = 2048; break;
-	case OCS_SCSI_DIF_BK_SIZE_4096:	blocksize = 4096; break;
-	case OCS_SCSI_DIF_BK_SIZE_520:	blocksize = 520; break;
-	case OCS_SCSI_DIF_BK_SIZE_4104:	blocksize = 4104; break;
+	switch (dif_info->blk_size) {
+	case OCS_SCSI_DIF_BK_SIZE_512:
+		blocksize = 512;
+		break;
+	case OCS_SCSI_DIF_BK_SIZE_1024:
+		blocksize = 1024;
+		break;
+	case OCS_SCSI_DIF_BK_SIZE_2048:
+		blocksize = 2048;
+		break;
+	case OCS_SCSI_DIF_BK_SIZE_4096:
+		blocksize = 4096;
+		break;
+	case OCS_SCSI_DIF_BK_SIZE_520:
+		blocksize = 520;
+		break;
+	case OCS_SCSI_DIF_BK_SIZE_4104:
+		blocksize = 4104;
+		break;
 	default:
 		break;
 	}
@@ -1343,62 +1423,71 @@ ocs_scsi_dif_set_blocksize(ocs_scsi_dif_info_t *dif_info, uint32_t blocksize)
 {
 	int32_t rc = 0;
 
-	switch(blocksize) {
-	case 512:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_512; break;
-	case 1024:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_1024; break;
-	case 2048:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_2048; break;
-	case 4096:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_4096; break;
-	case 520:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_520; break;
-	case 4104:	dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_4104; break;
+	switch (blocksize) {
+	case 512:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_512;
+		break;
+	case 1024:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_1024;
+		break;
+	case 2048:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_2048;
+		break;
+	case 4096:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_4096;
+		break;
+	case 520:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_520;
+		break;
+	case 4104:
+		dif_info->blk_size = OCS_SCSI_DIF_BK_SIZE_4104;
+		break;
 	default:
 		rc = -1;
 		break;
 	}
 	return rc;
-
 }
 
 /**
  * @brief Return memory block size given SCSI DIF API
  *
- * The blocksize in memory for the DIF transfer is returned, given the SCSI DIF info
- * block and the direction of transfer.
+ * The blocksize in memory for the DIF transfer is returned, given the SCSI DIF
+ * info block and the direction of transfer.
  *
  * @param dif_info Pointer to DIF info block
  * @param wiretomem Transfer direction, 1 is wire to memory, 0 is memory to wire
  *
  * @return Memory blocksize, or negative error value
  *
- * WARNING: the order of initialization of the adj[] arrays MUST match the declarations
- * of OCS_SCSI_DIF_OPER_*
+ * WARNING: the order of initialization of the adj[] arrays MUST match the
+ * declarations of OCS_SCSI_DIF_OPER_*
  */
 
 int32_t
 ocs_scsi_dif_mem_blocksize(ocs_scsi_dif_info_t *dif_info, int wiretomem)
 {
 	uint32_t blocksize;
-	uint8_t wiretomem_adj[] = {
-		0,		/* OCS_SCSI_DIF_OPER_DISABLED, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
-	uint8_t memtowire_adj[] = {
-		0,		/* OCS_SCSI_DIF_OPER_DISABLED, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t wiretomem_adj[] = { 0, /* OCS_SCSI_DIF_OPER_DISABLED, */
+		DIF_SIZE,	       /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
+		0,		       /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		0,	    /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t memtowire_adj[] = { 0, /* OCS_SCSI_DIF_OPER_DISABLED, */
+		0,		       /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
+		DIF_SIZE,	       /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
+		0,	    /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
 
 	blocksize = ocs_scsi_dif_blocksize(dif_info);
 	if (blocksize == 0) {
@@ -1408,7 +1497,7 @@ ocs_scsi_dif_mem_blocksize(ocs_scsi_dif_info_t *dif_info, int wiretomem)
 	if (wiretomem) {
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(wiretomem_adj), 0);
 		blocksize += wiretomem_adj[dif_info->dif_oper];
-	} else {	/* mem to wire */
+	} else { /* mem to wire */
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(memtowire_adj), 0);
 		blocksize += memtowire_adj[dif_info->dif_oper];
 	}
@@ -1418,44 +1507,42 @@ ocs_scsi_dif_mem_blocksize(ocs_scsi_dif_info_t *dif_info, int wiretomem)
 /**
  * @brief Return wire block size given SCSI DIF API
  *
- * The blocksize on the wire for the DIF transfer is returned, given the SCSI DIF info
- * block and the direction of transfer.
+ * The blocksize on the wire for the DIF transfer is returned, given the SCSI
+ * DIF info block and the direction of transfer.
  *
  * @param dif_info Pointer to DIF info block
  * @param wiretomem Transfer direction, 1 is wire to memory, 0 is memory to wire
  *
  * @return Wire blocksize or negative error value
  *
- * WARNING: the order of initialization of the adj[] arrays MUST match the declarations
- * of OCS_SCSI_DIF_OPER_*
+ * WARNING: the order of initialization of the adj[] arrays MUST match the
+ * declarations of OCS_SCSI_DIF_OPER_*
  */
 
 int32_t
 ocs_scsi_dif_wire_blocksize(ocs_scsi_dif_info_t *dif_info, int wiretomem)
 {
 	uint32_t blocksize;
-	uint8_t wiretomem_adj[] = {
-		0,		/* OCS_SCSI_DIF_OPER_DISABLED, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
-	uint8_t memtowire_adj[] = {
-		0,		/* OCS_SCSI_DIF_OPER_DISABLED, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		0,		/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t wiretomem_adj[] = { 0, /* OCS_SCSI_DIF_OPER_DISABLED, */
+		0,		       /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
+		DIF_SIZE,	       /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
+		0,	    /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t memtowire_adj[] = { 0, /* OCS_SCSI_DIF_OPER_DISABLED, */
+		DIF_SIZE,	       /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CRC, */
+		0,		       /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		0,	    /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_SCSI_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_SCSI_DIF_OPER_IN_RAW_OUT_RAW, */
 
 	blocksize = ocs_scsi_dif_blocksize(dif_info);
 	if (blocksize == 0) {
@@ -1465,7 +1552,7 @@ ocs_scsi_dif_wire_blocksize(ocs_scsi_dif_info_t *dif_info, int wiretomem)
 	if (wiretomem) {
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(wiretomem_adj), 0);
 		blocksize += wiretomem_adj[dif_info->dif_oper];
-	} else {	/* mem to wire */
+	} else { /* mem to wire */
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(memtowire_adj), 0);
 		blocksize += memtowire_adj[dif_info->dif_oper];
 	}
@@ -1488,13 +1575,25 @@ ocs_hw_dif_blocksize(ocs_hw_dif_info_t *dif_info)
 {
 	uint32_t blocksize = 0;
 
-	switch(dif_info->blk_size) {
-	case OCS_HW_DIF_BK_SIZE_512:	blocksize = 512; break;
-	case OCS_HW_DIF_BK_SIZE_1024:	blocksize = 1024; break;
-	case OCS_HW_DIF_BK_SIZE_2048:	blocksize = 2048; break;
-	case OCS_HW_DIF_BK_SIZE_4096:	blocksize = 4096; break;
-	case OCS_HW_DIF_BK_SIZE_520:	blocksize = 520; break;
-	case OCS_HW_DIF_BK_SIZE_4104:	blocksize = 4104; break;
+	switch (dif_info->blk_size) {
+	case OCS_HW_DIF_BK_SIZE_512:
+		blocksize = 512;
+		break;
+	case OCS_HW_DIF_BK_SIZE_1024:
+		blocksize = 1024;
+		break;
+	case OCS_HW_DIF_BK_SIZE_2048:
+		blocksize = 2048;
+		break;
+	case OCS_HW_DIF_BK_SIZE_4096:
+		blocksize = 4096;
+		break;
+	case OCS_HW_DIF_BK_SIZE_520:
+		blocksize = 520;
+		break;
+	case OCS_HW_DIF_BK_SIZE_4104:
+		blocksize = 4104;
+		break;
 	default:
 		break;
 	}
@@ -1505,44 +1604,42 @@ ocs_hw_dif_blocksize(ocs_hw_dif_info_t *dif_info)
 /**
  * @brief Return memory block size given HW DIF API
  *
- * The blocksize in memory for the DIF transfer is returned, given the HW DIF info
- * block and the direction of transfer.
+ * The blocksize in memory for the DIF transfer is returned, given the HW DIF
+ * info block and the direction of transfer.
  *
  * @param dif_info Pointer to DIF info block
  * @param wiretomem Transfer direction, 1 is wire to memory, 0 is memory to wire
  *
  * @return Memory blocksize, or negative error value
  *
- * WARNING: the order of initialization of the adj[] arrays MUST match the declarations
- * of OCS_HW_DIF_OPER_*
+ * WARNING: the order of initialization of the adj[] arrays MUST match the
+ * declarations of OCS_HW_DIF_OPER_*
  */
 
 int32_t
 ocs_hw_dif_mem_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 {
 	uint32_t blocksize;
-	uint8_t wiretomem_adj[] = {
-		0,		/* OCS_HW_DIF_OPER_DISABLED, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
-		0,		/* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		0,		/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
-	uint8_t memtowire_adj[] = {
-		0,		/* OCS_HW_DIF_OPER_DISABLED, */
-		0,		/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
-		0,		/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t wiretomem_adj[] = { 0, /* OCS_HW_DIF_OPER_DISABLED, */
+		DIF_SIZE,	       /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
+		0,		       /* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		0,	    /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t memtowire_adj[] = { 0, /* OCS_HW_DIF_OPER_DISABLED, */
+		0,		       /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
+		DIF_SIZE,	       /* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
+		0,	    /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
 
 	blocksize = ocs_hw_dif_blocksize(dif_info);
 	if (blocksize == 0) {
@@ -1552,7 +1649,7 @@ ocs_hw_dif_mem_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 	if (wiretomem) {
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(wiretomem_adj), 0);
 		blocksize += wiretomem_adj[dif_info->dif_oper];
-	} else {	/* mem to wire */
+	} else { /* mem to wire */
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(memtowire_adj), 0);
 		blocksize += memtowire_adj[dif_info->dif_oper];
 	}
@@ -1562,44 +1659,42 @@ ocs_hw_dif_mem_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 /**
  * @brief Return wire block size given HW DIF API
  *
- * The blocksize on the wire for the DIF transfer is returned, given the HW DIF info
- * block and the direction of transfer.
+ * The blocksize on the wire for the DIF transfer is returned, given the HW DIF
+ * info block and the direction of transfer.
  *
  * @param dif_info Pointer to DIF info block
  * @param wiretomem Transfer direction, 1 is wire to memory, 0 is memory to wire
  *
  * @return Wire blocksize or negative error value
  *
- * WARNING: the order of initialization of the adj[] arrays MUST match the declarations
- * of OCS_HW_DIF_OPER_*
+ * WARNING: the order of initialization of the adj[] arrays MUST match the
+ * declarations of OCS_HW_DIF_OPER_*
  */
 
 int32_t
 ocs_hw_dif_wire_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 {
 	uint32_t blocksize;
-	uint8_t wiretomem_adj[] = {
-		0,		/* OCS_HW_DIF_OPER_DISABLED, */
-		0,		/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
-		0,		/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
-	uint8_t memtowire_adj[] = {
-		0,		/* OCS_HW_DIF_OPER_DISABLED, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
-		0,		/* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
-		0,		/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
-		DIF_SIZE,	/* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
-		DIF_SIZE};	/* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t wiretomem_adj[] = { 0, /* OCS_HW_DIF_OPER_DISABLED, */
+		0,		       /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
+		DIF_SIZE,	       /* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
+		0,	    /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
+	uint8_t memtowire_adj[] = { 0, /* OCS_HW_DIF_OPER_DISABLED, */
+		DIF_SIZE,	       /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CRC, */
+		0,		       /* OCS_HW_DIF_OPER_IN_CRC_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_NODIF_OUT_CHKSUM, */
+		0,	    /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_NODIF, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CRC, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CRC_OUT_CHKSUM, */
+		DIF_SIZE,   /* OCS_HW_DIF_OPER_IN_CHKSUM_OUT_CRC, */
+		DIF_SIZE }; /* OCS_HW_DIF_OPER_IN_RAW_OUT_RAW, */
 
 	blocksize = ocs_hw_dif_blocksize(dif_info);
 	if (blocksize == 0) {
@@ -1609,7 +1704,7 @@ ocs_hw_dif_wire_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 	if (wiretomem) {
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(wiretomem_adj), 0);
 		blocksize += wiretomem_adj[dif_info->dif_oper];
-	} else {	/* mem to wire */
+	} else { /* mem to wire */
 		ocs_assert(dif_info->dif_oper < ARRAY_SIZE(memtowire_adj), 0);
 		blocksize += memtowire_adj[dif_info->dif_oper];
 	}
@@ -1619,8 +1714,10 @@ ocs_hw_dif_wire_blocksize(ocs_hw_dif_info_t *dif_info, int wiretomem)
 
 static int32_t ocs_segment_remaining(ocs_textbuf_segment_t *segment);
 static ocs_textbuf_segment_t *ocs_textbuf_segment_alloc(ocs_textbuf_t *textbuf);
-static void ocs_textbuf_segment_free(ocs_t *ocs, ocs_textbuf_segment_t *segment);
-static ocs_textbuf_segment_t *ocs_textbuf_get_segment(ocs_textbuf_t *textbuf, uint32_t idx);
+static void ocs_textbuf_segment_free(ocs_t *ocs,
+    ocs_textbuf_segment_t *segment);
+static ocs_textbuf_segment_t *ocs_textbuf_get_segment(ocs_textbuf_t *textbuf,
+    uint32_t idx);
 
 uint8_t *
 ocs_textbuf_get_buffer(ocs_textbuf_t *textbuf)
@@ -1641,13 +1738,15 @@ ocs_textbuf_get_written(ocs_textbuf_t *textbuf)
 	int32_t n;
 	int32_t total = 0;
 
-	for (idx = 0; (n = ocs_textbuf_ext_get_written(textbuf, idx)) >= 0; idx++) {
+	for (idx = 0; (n = ocs_textbuf_ext_get_written(textbuf, idx)) >= 0;
+	     idx++) {
 		total += n;
 	}
 	return total;
 }
 
-uint8_t *ocs_textbuf_ext_get_buffer(ocs_textbuf_t *textbuf, uint32_t idx)
+uint8_t *
+ocs_textbuf_ext_get_buffer(ocs_textbuf_t *textbuf, uint32_t idx)
 {
 	ocs_textbuf_segment_t *segment = ocs_textbuf_get_segment(textbuf, idx);
 	if (segment == NULL) {
@@ -1656,7 +1755,8 @@ uint8_t *ocs_textbuf_ext_get_buffer(ocs_textbuf_t *textbuf, uint32_t idx)
 	return segment->buffer;
 }
 
-int32_t ocs_textbuf_ext_get_length(ocs_textbuf_t *textbuf, uint32_t idx)
+int32_t
+ocs_textbuf_ext_get_length(ocs_textbuf_t *textbuf, uint32_t idx)
 {
 	ocs_textbuf_segment_t *segment = ocs_textbuf_get_segment(textbuf, idx);
 	if (segment == NULL) {
@@ -1665,7 +1765,8 @@ int32_t ocs_textbuf_ext_get_length(ocs_textbuf_t *textbuf, uint32_t idx)
 	return segment->buffer_length;
 }
 
-int32_t ocs_textbuf_ext_get_written(ocs_textbuf_t *textbuf, uint32_t idx)
+int32_t
+ocs_textbuf_ext_get_written(ocs_textbuf_t *textbuf, uint32_t idx)
 {
 	ocs_textbuf_segment_t *segment = ocs_textbuf_get_segment(textbuf, idx);
 	if (segment == NULL) {
@@ -1710,17 +1811,25 @@ ocs_textbuf_segment_alloc(ocs_textbuf_t *textbuf)
 	ocs_textbuf_segment_t *segment = NULL;
 
 	if (textbuf->extendable) {
-		segment = ocs_malloc(textbuf->ocs, sizeof(*segment), OCS_M_ZERO | OCS_M_NOWAIT);
+		segment = ocs_malloc(textbuf->ocs, sizeof(*segment),
+		    OCS_M_ZERO | OCS_M_NOWAIT);
 		if (segment != NULL) {
-			segment->buffer = ocs_malloc(textbuf->ocs, textbuf->allocation_length, OCS_M_ZERO | OCS_M_NOWAIT);
+			segment->buffer = ocs_malloc(textbuf->ocs,
+			    textbuf->allocation_length,
+			    OCS_M_ZERO | OCS_M_NOWAIT);
 			if (segment->buffer != NULL) {
-				segment->buffer_length = textbuf->allocation_length;
+				segment->buffer_length =
+				    textbuf->allocation_length;
 				segment->buffer_written = 0;
-				ocs_list_add_tail(&textbuf->segment_list, segment);
-				textbuf->total_allocation_length += textbuf->allocation_length;
+				ocs_list_add_tail(&textbuf->segment_list,
+				    segment);
+				textbuf->total_allocation_length +=
+				    textbuf->allocation_length;
 
-				/* If we've allocated our limit, then mark as not extendable */
-				if (textbuf->total_allocation_length >= textbuf->max_allocation_length) {
+				/* If we've allocated our limit, then mark as
+				 * not extendable */
+				if (textbuf->total_allocation_length >=
+				    textbuf->max_allocation_length) {
 					textbuf->extendable = 0;
 				}
 
@@ -1752,7 +1861,8 @@ ocs_textbuf_get_segment(ocs_textbuf_t *textbuf, uint32_t idx)
 
 	if (ocs_textbuf_initialized(textbuf)) {
 		i = 0;
-		ocs_list_foreach(&textbuf->segment_list, segment) {
+		ocs_list_foreach(&textbuf->segment_list, segment)
+		{
 			if (i == idx) {
 				return segment;
 			}
@@ -1763,7 +1873,8 @@ ocs_textbuf_get_segment(ocs_textbuf_t *textbuf, uint32_t idx)
 }
 
 int32_t
-ocs_textbuf_init(ocs_t *ocs, ocs_textbuf_t *textbuf, void *buffer, uint32_t length)
+ocs_textbuf_init(ocs_t *ocs, ocs_textbuf_t *textbuf, void *buffer,
+    uint32_t length)
 {
 	int32_t rc = -1;
 	ocs_textbuf_segment_t *segment;
@@ -1792,7 +1903,8 @@ ocs_textbuf_free(ocs_t *ocs, ocs_textbuf_t *textbuf)
 	ocs_textbuf_segment_t *n;
 
 	if (ocs_textbuf_initialized(textbuf)) {
-		ocs_list_foreach_safe(&textbuf->segment_list, segment, n) {
+		ocs_list_foreach_safe(&textbuf->segment_list, segment, n)
+		{
 			ocs_list_remove(&textbuf->segment_list, segment);
 			ocs_textbuf_segment_free(ocs, segment);
 		}
@@ -1838,7 +1950,8 @@ ocs_textbuf_vprintf(ocs_textbuf_t *textbuf, const char *fmt, va_list ap)
 		avail = ocs_segment_remaining(segment);
 	}
 
-	written = ocs_vsnprintf(segment->buffer + segment->buffer_written, avail, fmt, ap);
+	written = ocs_vsnprintf(segment->buffer + segment->buffer_written,
+	    avail, fmt, ap);
 
 	/* See if data was truncated */
 	if (written >= avail) {
@@ -1849,14 +1962,18 @@ ocs_textbuf_vprintf(ocs_textbuf_t *textbuf, const char *fmt, va_list ap)
 			*(segment->buffer + segment->buffer_written) = 0;
 
 			/* Allocate a new segment */
-			if ((segment = ocs_textbuf_segment_alloc(textbuf)) == NULL) {
-				ocs_log_err(textbuf->ocs, "alloc segment failed\n");
+			if ((segment = ocs_textbuf_segment_alloc(textbuf)) ==
+			    NULL) {
+				ocs_log_err(textbuf->ocs,
+				    "alloc segment failed\n");
 				goto out;
 			}
 			avail = ocs_segment_remaining(segment);
 
 			/* Retry the write */
-			written = ocs_vsnprintf(segment->buffer + segment->buffer_written, avail, fmt, save_ap);
+			written = ocs_vsnprintf(segment->buffer +
+				segment->buffer_written,
+			    avail, fmt, save_ap);
 		}
 	}
 	segment->buffer_written += written;
@@ -1886,14 +2003,15 @@ void
 ocs_textbuf_puts(ocs_textbuf_t *textbuf, char *s)
 {
 	if (ocs_textbuf_initialized(textbuf)) {
-		while(*s) {
+		while (*s) {
 			ocs_textbuf_putc(textbuf, *s++);
 		}
 	}
 }
 
 void
-ocs_textbuf_buffer(ocs_textbuf_t *textbuf, uint8_t *buffer, uint32_t buffer_length)
+ocs_textbuf_buffer(ocs_textbuf_t *textbuf, uint8_t *buffer,
+    uint32_t buffer_length)
 {
 	char *s;
 
@@ -1901,8 +2019,8 @@ ocs_textbuf_buffer(ocs_textbuf_t *textbuf, uint8_t *buffer, uint32_t buffer_leng
 		return;
 	}
 
-	s = (char*) buffer;
-	while(*s) {
+	s = (char *)buffer;
+	while (*s) {
 		/*
 		 * XML escapes
 		 *
@@ -1913,21 +2031,33 @@ ocs_textbuf_buffer(ocs_textbuf_t *textbuf, uint8_t *buffer, uint32_t buffer_leng
 		 * &   &amp;
 		 */
 
-		switch(*s) {
-		case '"':	ocs_textbuf_puts(textbuf, "&quot;"); break;
-		case '\'':	ocs_textbuf_puts(textbuf, "&apos;"); break;
-		case '<':	ocs_textbuf_puts(textbuf, "&lt;"); break;
-		case '>':	ocs_textbuf_puts(textbuf, "&gt;"); break;
-		case '&':	ocs_textbuf_puts(textbuf, "&amp;"); break;
-		default:	ocs_textbuf_putc(textbuf, *s); break;
+		switch (*s) {
+		case '"':
+			ocs_textbuf_puts(textbuf, "&quot;");
+			break;
+		case '\'':
+			ocs_textbuf_puts(textbuf, "&apos;");
+			break;
+		case '<':
+			ocs_textbuf_puts(textbuf, "&lt;");
+			break;
+		case '>':
+			ocs_textbuf_puts(textbuf, "&gt;");
+			break;
+		case '&':
+			ocs_textbuf_puts(textbuf, "&amp;");
+			break;
+		default:
+			ocs_textbuf_putc(textbuf, *s);
+			break;
 		}
 		s++;
 	}
-
 }
 
 void
-ocs_textbuf_copy(ocs_textbuf_t *textbuf, uint8_t *buffer, uint32_t buffer_length)
+ocs_textbuf_copy(ocs_textbuf_t *textbuf, uint8_t *buffer,
+    uint32_t buffer_length)
 {
 	char *s;
 
@@ -1935,18 +2065,18 @@ ocs_textbuf_copy(ocs_textbuf_t *textbuf, uint8_t *buffer, uint32_t buffer_length
 		return;
 	}
 
-	s = (char*) buffer;
-	while(*s) {
+	s = (char *)buffer;
+	while (*s) {
 		ocs_textbuf_putc(textbuf, *s++);
 	}
-
 }
 
 int32_t
 ocs_textbuf_remaining(ocs_textbuf_t *textbuf)
 {
 	if (ocs_textbuf_initialized(textbuf)) {
-		return ocs_segment_remaining(ocs_list_get_head(&textbuf->segment_list));
+		return ocs_segment_remaining(
+		    ocs_list_get_head(&textbuf->segment_list));
 	} else {
 		return 0;
 	}
@@ -1967,11 +2097,13 @@ ocs_textbuf_reset(ocs_textbuf_t *textbuf)
 
 	if (ocs_textbuf_initialized(textbuf)) {
 		/* zero written on the first segment, free the rest */
-		ocs_list_foreach_safe(&textbuf->segment_list, segment, n) {
+		ocs_list_foreach_safe(&textbuf->segment_list, segment, n)
+		{
 			if (i++ == 0) {
 				segment->buffer_written = 0;
 			} else {
-				ocs_list_remove(&textbuf->segment_list, segment);
+				ocs_list_remove(&textbuf->segment_list,
+				    segment);
 				ocs_textbuf_segment_free(textbuf->ocs, segment);
 			}
 		}
@@ -1986,10 +2118,10 @@ ocs_textbuf_reset(ocs_textbuf_t *textbuf)
  * 8-bit values. These values are used to index up to three 256 element arrays.
  * Arrays are allocated, only when needed. @n @n
  * The lookup can complete in constant time (3 indexed array references). @n @n
- * A typical use case would be that the fabric/directory FC_IDs would cause two rows to be
- * allocated, and the fabric assigned remote nodes would cause two rows to be allocated, with
- * the root row always allocated. This gives five rows of 256 x sizeof(void*),
- * resulting in 10k.
+ * A typical use case would be that the fabric/directory FC_IDs would cause two
+ * rows to be allocated, and the fabric assigned remote nodes would cause two
+ * rows to be allocated, with the root row always allocated. This gives five
+ * rows of 256 x sizeof(void*), resulting in 10k.
  */
 
 /**
@@ -2006,10 +2138,11 @@ ocs_textbuf_reset(ocs_textbuf_t *textbuf)
  *
  * @return Returns the pointer to a row.
  */
-static void
-**spv_new_row(ocs_os_handle_t os, uint32_t rowcount)
+static void **
+spv_new_row(ocs_os_handle_t os, uint32_t rowcount)
 {
-	return ocs_malloc(os, sizeof(void*) * rowcount, OCS_M_ZERO | OCS_M_NOWAIT);
+	return ocs_malloc(os, sizeof(void *) * rowcount,
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 }
 
 /**
@@ -2033,11 +2166,11 @@ _spv_del(ocs_os_handle_t os, void **a, uint32_t n, uint32_t depth)
 		if (depth) {
 			uint32_t i;
 
-			for (i = 0; i < n; i ++) {
-				_spv_del(os, a[i], n, depth-1);
+			for (i = 0; i < n; i++) {
+				_spv_del(os, a[i], n, depth - 1);
 			}
 
-			ocs_free(os, a, SPV_ROWLEN*sizeof(*a));
+			ocs_free(os, a, SPV_ROWLEN * sizeof(*a));
 		}
 	}
 }
@@ -2084,7 +2217,7 @@ spv_new(ocs_os_handle_t os)
 
 	spv->os = os;
 	spv->max_idx = 1;
-	for (i = 0; i < SPV_DIM; i ++) {
+	for (i = 0; i < SPV_DIM; i++) {
 		spv->max_idx *= SPV_ROWLEN;
 	}
 
@@ -2106,12 +2239,12 @@ spv_new(ocs_os_handle_t os)
  *
  * @return Returns the pointer to the cell, or NULL.
  */
-static void
-*spv_new_cell(sparse_vector_t sv, uint32_t idx, uint8_t alloc_new_rows)
+static void *
+spv_new_cell(sparse_vector_t sv, uint32_t idx, uint8_t alloc_new_rows)
 {
 	uint32_t a = (idx >> 16) & 0xff;
-	uint32_t b = (idx >>  8) & 0xff;
-	uint32_t c = (idx >>  0) & 0xff;
+	uint32_t b = (idx >> 8) & 0xff;
+	uint32_t c = (idx >> 0) & 0xff;
 	void **p;
 
 	if (idx >= sv->max_idx) {
@@ -2119,21 +2252,24 @@ static void
 	}
 
 	if (sv->array == NULL) {
-		sv->array = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) : NULL);
+		sv->array = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) :
+					      NULL);
 		if (sv->array == NULL) {
 			return NULL;
 		}
 	}
 	p = sv->array;
 	if (p[a] == NULL) {
-		p[a] = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) : NULL);
+		p[a] = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) :
+					 NULL);
 		if (p[a] == NULL) {
 			return NULL;
 		}
 	}
 	p = p[a];
 	if (p[b] == NULL) {
-		p[b] = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) : NULL);
+		p[b] = (alloc_new_rows ? spv_new_row(sv->os, SPV_ROWLEN) :
+					 NULL);
 		if (p[b] == NULL) {
 			return NULL;
 		}
@@ -2177,8 +2313,8 @@ spv_set(sparse_vector_t sv, uint32_t idx, void *value)
  *
  * @return Returns the cell value, or NULL.
  */
-void
-*spv_get(sparse_vector_t sv, uint32_t idx)
+void *
+spv_get(sparse_vector_t sv, uint32_t idx)
 {
 	void **ref = spv_new_cell(sv, idx, FALSE);
 	if (ref) {
@@ -2212,45 +2348,39 @@ void
  *   C compilers, and OCS SDK API
  * - crctable[] generated using Rocksoft public domain code
  *
- * Used in the Emulex SDK, the generated file crctable.out is cut and pasted into
- * applicable SDK sources.
+ * Used in the Emulex SDK, the generated file crctable.out is cut and pasted
+ * into applicable SDK sources.
  */
 
-static unsigned short crctable[256] =
-{
- 0x0000, 0x8BB7, 0x9CD9, 0x176E, 0xB205, 0x39B2, 0x2EDC, 0xA56B,
- 0xEFBD, 0x640A, 0x7364, 0xF8D3, 0x5DB8, 0xD60F, 0xC161, 0x4AD6,
- 0x54CD, 0xDF7A, 0xC814, 0x43A3, 0xE6C8, 0x6D7F, 0x7A11, 0xF1A6,
- 0xBB70, 0x30C7, 0x27A9, 0xAC1E, 0x0975, 0x82C2, 0x95AC, 0x1E1B,
- 0xA99A, 0x222D, 0x3543, 0xBEF4, 0x1B9F, 0x9028, 0x8746, 0x0CF1,
- 0x4627, 0xCD90, 0xDAFE, 0x5149, 0xF422, 0x7F95, 0x68FB, 0xE34C,
- 0xFD57, 0x76E0, 0x618E, 0xEA39, 0x4F52, 0xC4E5, 0xD38B, 0x583C,
- 0x12EA, 0x995D, 0x8E33, 0x0584, 0xA0EF, 0x2B58, 0x3C36, 0xB781,
- 0xD883, 0x5334, 0x445A, 0xCFED, 0x6A86, 0xE131, 0xF65F, 0x7DE8,
- 0x373E, 0xBC89, 0xABE7, 0x2050, 0x853B, 0x0E8C, 0x19E2, 0x9255,
- 0x8C4E, 0x07F9, 0x1097, 0x9B20, 0x3E4B, 0xB5FC, 0xA292, 0x2925,
- 0x63F3, 0xE844, 0xFF2A, 0x749D, 0xD1F6, 0x5A41, 0x4D2F, 0xC698,
- 0x7119, 0xFAAE, 0xEDC0, 0x6677, 0xC31C, 0x48AB, 0x5FC5, 0xD472,
- 0x9EA4, 0x1513, 0x027D, 0x89CA, 0x2CA1, 0xA716, 0xB078, 0x3BCF,
- 0x25D4, 0xAE63, 0xB90D, 0x32BA, 0x97D1, 0x1C66, 0x0B08, 0x80BF,
- 0xCA69, 0x41DE, 0x56B0, 0xDD07, 0x786C, 0xF3DB, 0xE4B5, 0x6F02,
- 0x3AB1, 0xB106, 0xA668, 0x2DDF, 0x88B4, 0x0303, 0x146D, 0x9FDA,
- 0xD50C, 0x5EBB, 0x49D5, 0xC262, 0x6709, 0xECBE, 0xFBD0, 0x7067,
- 0x6E7C, 0xE5CB, 0xF2A5, 0x7912, 0xDC79, 0x57CE, 0x40A0, 0xCB17,
- 0x81C1, 0x0A76, 0x1D18, 0x96AF, 0x33C4, 0xB873, 0xAF1D, 0x24AA,
- 0x932B, 0x189C, 0x0FF2, 0x8445, 0x212E, 0xAA99, 0xBDF7, 0x3640,
- 0x7C96, 0xF721, 0xE04F, 0x6BF8, 0xCE93, 0x4524, 0x524A, 0xD9FD,
- 0xC7E6, 0x4C51, 0x5B3F, 0xD088, 0x75E3, 0xFE54, 0xE93A, 0x628D,
- 0x285B, 0xA3EC, 0xB482, 0x3F35, 0x9A5E, 0x11E9, 0x0687, 0x8D30,
- 0xE232, 0x6985, 0x7EEB, 0xF55C, 0x5037, 0xDB80, 0xCCEE, 0x4759,
- 0x0D8F, 0x8638, 0x9156, 0x1AE1, 0xBF8A, 0x343D, 0x2353, 0xA8E4,
- 0xB6FF, 0x3D48, 0x2A26, 0xA191, 0x04FA, 0x8F4D, 0x9823, 0x1394,
- 0x5942, 0xD2F5, 0xC59B, 0x4E2C, 0xEB47, 0x60F0, 0x779E, 0xFC29,
- 0x4BA8, 0xC01F, 0xD771, 0x5CC6, 0xF9AD, 0x721A, 0x6574, 0xEEC3,
- 0xA415, 0x2FA2, 0x38CC, 0xB37B, 0x1610, 0x9DA7, 0x8AC9, 0x017E,
- 0x1F65, 0x94D2, 0x83BC, 0x080B, 0xAD60, 0x26D7, 0x31B9, 0xBA0E,
- 0xF0D8, 0x7B6F, 0x6C01, 0xE7B6, 0x42DD, 0xC96A, 0xDE04, 0x55B3
-};
+static unsigned short crctable[256] = { 0x0000, 0x8BB7, 0x9CD9, 0x176E, 0xB205,
+	0x39B2, 0x2EDC, 0xA56B, 0xEFBD, 0x640A, 0x7364, 0xF8D3, 0x5DB8, 0xD60F,
+	0xC161, 0x4AD6, 0x54CD, 0xDF7A, 0xC814, 0x43A3, 0xE6C8, 0x6D7F, 0x7A11,
+	0xF1A6, 0xBB70, 0x30C7, 0x27A9, 0xAC1E, 0x0975, 0x82C2, 0x95AC, 0x1E1B,
+	0xA99A, 0x222D, 0x3543, 0xBEF4, 0x1B9F, 0x9028, 0x8746, 0x0CF1, 0x4627,
+	0xCD90, 0xDAFE, 0x5149, 0xF422, 0x7F95, 0x68FB, 0xE34C, 0xFD57, 0x76E0,
+	0x618E, 0xEA39, 0x4F52, 0xC4E5, 0xD38B, 0x583C, 0x12EA, 0x995D, 0x8E33,
+	0x0584, 0xA0EF, 0x2B58, 0x3C36, 0xB781, 0xD883, 0x5334, 0x445A, 0xCFED,
+	0x6A86, 0xE131, 0xF65F, 0x7DE8, 0x373E, 0xBC89, 0xABE7, 0x2050, 0x853B,
+	0x0E8C, 0x19E2, 0x9255, 0x8C4E, 0x07F9, 0x1097, 0x9B20, 0x3E4B, 0xB5FC,
+	0xA292, 0x2925, 0x63F3, 0xE844, 0xFF2A, 0x749D, 0xD1F6, 0x5A41, 0x4D2F,
+	0xC698, 0x7119, 0xFAAE, 0xEDC0, 0x6677, 0xC31C, 0x48AB, 0x5FC5, 0xD472,
+	0x9EA4, 0x1513, 0x027D, 0x89CA, 0x2CA1, 0xA716, 0xB078, 0x3BCF, 0x25D4,
+	0xAE63, 0xB90D, 0x32BA, 0x97D1, 0x1C66, 0x0B08, 0x80BF, 0xCA69, 0x41DE,
+	0x56B0, 0xDD07, 0x786C, 0xF3DB, 0xE4B5, 0x6F02, 0x3AB1, 0xB106, 0xA668,
+	0x2DDF, 0x88B4, 0x0303, 0x146D, 0x9FDA, 0xD50C, 0x5EBB, 0x49D5, 0xC262,
+	0x6709, 0xECBE, 0xFBD0, 0x7067, 0x6E7C, 0xE5CB, 0xF2A5, 0x7912, 0xDC79,
+	0x57CE, 0x40A0, 0xCB17, 0x81C1, 0x0A76, 0x1D18, 0x96AF, 0x33C4, 0xB873,
+	0xAF1D, 0x24AA, 0x932B, 0x189C, 0x0FF2, 0x8445, 0x212E, 0xAA99, 0xBDF7,
+	0x3640, 0x7C96, 0xF721, 0xE04F, 0x6BF8, 0xCE93, 0x4524, 0x524A, 0xD9FD,
+	0xC7E6, 0x4C51, 0x5B3F, 0xD088, 0x75E3, 0xFE54, 0xE93A, 0x628D, 0x285B,
+	0xA3EC, 0xB482, 0x3F35, 0x9A5E, 0x11E9, 0x0687, 0x8D30, 0xE232, 0x6985,
+	0x7EEB, 0xF55C, 0x5037, 0xDB80, 0xCCEE, 0x4759, 0x0D8F, 0x8638, 0x9156,
+	0x1AE1, 0xBF8A, 0x343D, 0x2353, 0xA8E4, 0xB6FF, 0x3D48, 0x2A26, 0xA191,
+	0x04FA, 0x8F4D, 0x9823, 0x1394, 0x5942, 0xD2F5, 0xC59B, 0x4E2C, 0xEB47,
+	0x60F0, 0x779E, 0xFC29, 0x4BA8, 0xC01F, 0xD771, 0x5CC6, 0xF9AD, 0x721A,
+	0x6574, 0xEEC3, 0xA415, 0x2FA2, 0x38CC, 0xB37B, 0x1610, 0x9DA7, 0x8AC9,
+	0x017E, 0x1F65, 0x94D2, 0x83BC, 0x080B, 0xAD60, 0x26D7, 0x31B9, 0xBA0E,
+	0xF0D8, 0x7B6F, 0x6C01, 0xE7B6, 0x42DD, 0xC96A, 0xDE04, 0x55B3 };
 
 /*****************************************************************/
 /*                   End of CRC Lookup Table                     */
@@ -2267,16 +2397,19 @@ static unsigned short crctable[256] =
  * @param blk_len Number of bytes.
  * @param crc Previously-calculated CRC, or crcseed for a new block.
  *
- * @return Returns the calculated CRC, which may be passed back in for partial blocks.
+ * @return Returns the calculated CRC, which may be passed back in for partial
+ * blocks.
  *
  */
 
 unsigned short
-t10crc16(const unsigned char *blk_adr, unsigned long blk_len, unsigned short crc)
+t10crc16(const unsigned char *blk_adr, unsigned long blk_len,
+    unsigned short crc)
 {
 	if (blk_len > 0) {
 		while (blk_len--) {
-			crc = crctable[((crc>>8) ^ *blk_adr++) & 0xFFL] ^ (crc << 8);
+			crc = crctable[((crc >> 8) ^ *blk_adr++) & 0xFFL] ^
+			    (crc << 8);
 		}
 	}
 	return crc;
@@ -2301,7 +2434,8 @@ static uint32_t ocs_ramlog_next_idx(ocs_ramlog_t *ramlog, uint32_t idx);
  *
  * @param ocs Pointer to driver structure.
  * @param buffer_len Total length of RAM log buffers.
- * @param buffer_count Number of text buffers to allocate (totalling buffer-len).
+ * @param buffer_count Number of text buffers to allocate (totalling
+ * buffer-len).
  *
  * @return Returns pointer to ocs_ramlog_t instance, or NULL.
  */
@@ -2320,14 +2454,16 @@ ocs_ramlog_init(ocs_t *ocs, uint32_t buffer_len, uint32_t buffer_count)
 
 	ramlog->textbuf_count = buffer_count;
 
-	ramlog->textbufs = ocs_malloc(ocs, sizeof(*ramlog->textbufs)*buffer_count, OCS_M_ZERO | OCS_M_NOWAIT);
+	ramlog->textbufs = ocs_malloc(ocs,
+	    sizeof(*ramlog->textbufs) * buffer_count,
+	    OCS_M_ZERO | OCS_M_NOWAIT);
 	if (ramlog->textbufs == NULL) {
 		ocs_log_err(ocs, "ocs_malloc textbufs failed\n");
 		ocs_ramlog_free(ocs, ramlog);
 		return NULL;
 	}
 
-	for (i = 0; i < buffer_count; i ++) {
+	for (i = 0; i < buffer_count; i++) {
 		rc = ocs_textbuf_alloc(ocs, &ramlog->textbufs[i], buffer_len);
 		if (rc) {
 			ocs_log_err(ocs, "ocs_textbuf_alloc failed\n");
@@ -2363,11 +2499,12 @@ ocs_ramlog_free(ocs_t *ocs, ocs_ramlog_t *ramlog)
 	if (ramlog != NULL) {
 		ocs_lock_free(&ramlog->lock);
 		if (ramlog->textbufs) {
-			for (i = 0; i < ramlog->textbuf_count; i ++) {
+			for (i = 0; i < ramlog->textbuf_count; i++) {
 				ocs_textbuf_free(ocs, &ramlog->textbufs[i]);
 			}
 
-			ocs_free(ocs, ramlog->textbufs, ramlog->textbuf_count*sizeof(*ramlog->textbufs));
+			ocs_free(ocs, ramlog->textbufs,
+			    ramlog->textbuf_count * sizeof(*ramlog->textbufs));
 			ramlog->textbufs = NULL;
 		}
 		ocs_free(ocs, ramlog, sizeof(*ramlog));
@@ -2381,19 +2518,21 @@ ocs_ramlog_free(ocs_t *ocs, ocs_ramlog_t *ramlog)
  *
  * @param ocs Pointer to driver structure.
  * @param ramlog Pointer to RAM logging buffer structure.
- * @param clear_start_of_day Clear the start of day (driver init) portion of the ramlog.
+ * @param clear_start_of_day Clear the start of day (driver init) portion of the
+ * ramlog.
  * @param clear_recent Clear the recent messages portion of the ramlog.
  *
  * @return None.
  */
 
 void
-ocs_ramlog_clear(ocs_t *ocs, ocs_ramlog_t *ramlog, int clear_start_of_day, int clear_recent)
+ocs_ramlog_clear(ocs_t *ocs, ocs_ramlog_t *ramlog, int clear_start_of_day,
+    int clear_recent)
 {
 	uint32_t i;
 
 	if (clear_recent) {
-		for (i = ramlog->textbuf_base; i < ramlog->textbuf_count; i ++) {
+		for (i = ramlog->textbuf_base; i < ramlog->textbuf_count; i++) {
 			ocs_textbuf_reset(&ramlog->textbufs[i]);
 		}
 		ramlog->cur_textbuf_idx = 1;
@@ -2439,7 +2578,8 @@ ocs_ramlog_printf(void *os, const char *fmt, ...)
 /**
  * @brief Append formatted text to a ramlog using variable arguments.
  *
- * Formatted data is appended to the RAM logging buffer, using variable arguments.
+ * Formatted data is appended to the RAM logging buffer, using variable
+ * arguments.
  *
  * @param ramlog Pointer to RAM logging buffer.
  * @param fmt Pointer to printf style formatting string.
@@ -2455,13 +2595,15 @@ ocs_ramlog_vprintf(ocs_ramlog_t *ramlog, const char *fmt, va_list ap)
 		return -1;
 	}
 
-	/* check the current text buffer, if it is almost full (less than 120 characaters), then
-	 * roll to the next one.
+	/* check the current text buffer, if it is almost full (less than 120
+	 * characaters), then roll to the next one.
 	 */
 	ocs_lock(&ramlog->lock);
 	if (ocs_textbuf_remaining(ramlog->cur_textbuf) < 120) {
-		ramlog->cur_textbuf_idx = ocs_ramlog_next_idx(ramlog, ramlog->cur_textbuf_idx);
-		ramlog->cur_textbuf = &ramlog->textbufs[ramlog->cur_textbuf_idx];
+		ramlog->cur_textbuf_idx = ocs_ramlog_next_idx(ramlog,
+		    ramlog->cur_textbuf_idx);
+		ramlog->cur_textbuf =
+		    &ramlog->textbufs[ramlog->cur_textbuf_idx];
 		ocs_textbuf_reset(ramlog->cur_textbuf);
 	}
 
@@ -2523,7 +2665,8 @@ ocs_ddump_ramlog(ocs_textbuf_t *textbuf, ocs_ramlog_t *ramlog)
 	/* If textbuf_base is 0, then all buffers are used for recent */
 	if (ramlog->textbuf_base) {
 		rltextbuf = &ramlog->textbufs[0];
-		ocs_textbuf_buffer(textbuf, ocs_textbuf_get_buffer(rltextbuf), ocs_textbuf_get_written(rltextbuf));
+		ocs_textbuf_buffer(textbuf, ocs_textbuf_get_buffer(rltextbuf),
+		    ocs_textbuf_get_written(rltextbuf));
 	}
 	ocs_ddump_endsection(textbuf, "startofday", 0);
 
@@ -2533,9 +2676,10 @@ ocs_ddump_ramlog(ocs_textbuf_t *textbuf, ocs_ramlog_t *ramlog)
 	/* start with the next textbuf */
 	idx = ocs_ramlog_next_idx(ramlog, ramlog->textbuf_count);
 
-	for (i = ramlog->textbuf_base; i < ramlog->textbuf_count; i ++) {
+	for (i = ramlog->textbuf_base; i < ramlog->textbuf_count; i++) {
 		rltextbuf = &ramlog->textbufs[idx];
-		ocs_textbuf_buffer(textbuf, ocs_textbuf_get_buffer(rltextbuf), ocs_textbuf_get_written(rltextbuf));
+		ocs_textbuf_buffer(textbuf, ocs_textbuf_get_buffer(rltextbuf),
+		    ocs_textbuf_get_written(rltextbuf));
 		idx = ocs_ramlog_next_idx(ramlog, idx);
 	}
 	ocs_ddump_endsection(textbuf, "recent", 0);
@@ -2548,7 +2692,7 @@ struct ocs_pool_s {
 	ocs_os_handle_t os;
 	ocs_array_t *a;
 	ocs_list_t freelist;
-	uint32_t use_lock:1;
+	uint32_t use_lock : 1;
 	ocs_lock_t lock;
 };
 
@@ -2569,7 +2713,8 @@ typedef struct {
  * @return Returns pointer to allocated memory pool, or NULL.
  */
 ocs_pool_t *
-ocs_pool_alloc(ocs_os_handle_t os, uint32_t size, uint32_t count, uint32_t use_lock)
+ocs_pool_alloc(ocs_os_handle_t os, uint32_t size, uint32_t count,
+    uint32_t use_lock)
 {
 	ocs_pool_t *pool;
 	uint32_t i;
@@ -2582,8 +2727,8 @@ ocs_pool_alloc(ocs_os_handle_t os, uint32_t size, uint32_t count, uint32_t use_l
 	pool->os = os;
 	pool->use_lock = use_lock;
 
-	/* Allocate an array where each array item is the size of a pool_hdr_t plus
-	 * the requested memory item size (size)
+	/* Allocate an array where each array item is the size of a pool_hdr_t
+	 * plus the requested memory item size (size)
 	 */
 	pool->a = ocs_array_alloc(os, size + sizeof(pool_hdr_t), count);
 	if (pool->a == NULL) {
@@ -2636,13 +2781,13 @@ ocs_pool_reset(ocs_pool_t *pool)
 
 	/* Return all elements to the free list and zero the elements */
 	for (i = 0; i < count; i++) {
-		ocs_memset(ocs_pool_get_instance(pool, i), 0, size - sizeof(pool_hdr_t));
+		ocs_memset(ocs_pool_get_instance(pool, i), 0,
+		    size - sizeof(pool_hdr_t));
 		ocs_list_add_tail(&pool->freelist, ocs_array_get(pool->a, i));
 	}
 	if (pool->use_lock) {
 		ocs_unlock(&pool->lock);
 	}
-
 }
 
 /**
@@ -2691,7 +2836,8 @@ ocs_pool_get(ocs_pool_t *pool)
 	h = ocs_list_remove_head(&pool->freelist);
 
 	if (h != NULL) {
-		/* Return the array item address offset by the size of pool_hdr_t */
+		/* Return the array item address offset by the size of
+		 * pool_hdr_t */
 		item = &h[1];
 	}
 
@@ -2720,17 +2866,16 @@ ocs_pool_put(ocs_pool_t *pool, void *item)
 		ocs_lock(&pool->lock);
 	}
 
-	/* Fetch the address of the array item, which is the item address negatively offset
-	 * by size of pool_hdr_t (note the index of [-1]
+	/* Fetch the address of the array item, which is the item address
+	 * negatively offset by size of pool_hdr_t (note the index of [-1]
 	 */
-	h = &((pool_hdr_t*)item)[-1];
+	h = &((pool_hdr_t *)item)[-1];
 
 	ocs_list_add_tail(&pool->freelist, h);
 
 	if (pool->use_lock) {
 		ocs_unlock(&pool->lock);
 	}
-
 }
 
 /**
@@ -2796,7 +2941,8 @@ ocs_pool_get_freelist_count(ocs_pool_t *pool)
 		ocs_lock(&pool->lock);
 	}
 
-	ocs_list_foreach(&pool->freelist, item) {
+	ocs_list_foreach(&pool->freelist, item)
+	{
 		count++;
 	}
 

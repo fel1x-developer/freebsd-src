@@ -36,6 +36,13 @@
 #include <sys/sysctl.h>
 #include <sys/wait.h>
 
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/route.h>
+#include <netinet/in.h>
+#include <netinet/netdump/netdump.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
 #include <capsicum_helpers.h>
 #include <err.h>
@@ -52,15 +59,6 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
-
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/route.h>
-
-#include <netinet/in.h>
-#include <netinet/netdump/netdump.h>
-
 #ifdef HAVE_CRYPTO
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -68,17 +66,16 @@
 #include <openssl/rsa.h>
 #endif
 
-static int	verbose;
+static int verbose;
 
-static void _Noreturn
-usage(void)
+static void _Noreturn usage(void)
 {
 	fprintf(stderr,
-    "usage: dumpon [-i index] [-r] [-v] [-k <pubkey>] [-Zz] <device>\n"
-    "       dumpon [-i index] [-r] [-v] [-k <pubkey>] [-Zz]\n"
-    "              [-g <gateway>] -s <server> -c <client> <iface>\n"
-    "       dumpon [-v] off\n"
-    "       dumpon [-v] -l\n");
+	    "usage: dumpon [-i index] [-r] [-v] [-k <pubkey>] [-Zz] <device>\n"
+	    "       dumpon [-i index] [-r] [-v] [-k <pubkey>] [-Zz]\n"
+	    "              [-g <gateway>] -s <server> -c <client> <iface>\n"
+	    "       dumpon [-v] off\n"
+	    "       dumpon [-v] -l\n");
 	exit(EX_USAGE);
 }
 
@@ -231,11 +228,11 @@ _genkey(const char *pubkeyfile, struct diocskerneldump_arg *kdap)
 	if (fp == NULL)
 		err(1, "Unable to open %s", pubkeyfile);
 
-	/*
-	 * Obsolescent OpenSSL only knows about /dev/random, and needs to
-	 * pre-seed before entering cap mode.  For whatever reason,
-	 * RSA_pub_encrypt uses the internal PRNG.
-	 */
+		/*
+		 * Obsolescent OpenSSL only knows about /dev/random, and needs
+		 * to pre-seed before entering cap mode.  For whatever reason,
+		 * RSA_pub_encrypt uses the internal PRNG.
+		 */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 	{
 		unsigned char c[1];
@@ -259,27 +256,28 @@ _genkey(const char *pubkeyfile, struct diocskerneldump_arg *kdap)
 		errx(1, "Unable to read data from %s: %s", pubkeyfile,
 		    ERR_error_string(ERR_get_error(), NULL));
 
-	/*
-	 * RSA keys under ~1024 bits are trivially factorable (2018).  OpenSSL
-	 * provides an API for RSA keys to estimate the symmetric-cipher
-	 * "equivalent" bits of security (defined in NIST SP800-57), which as
-	 * of this writing equates a 2048-bit RSA key to 112 symmetric cipher
-	 * bits.
-	 *
-	 * Use this API as a seatbelt to avoid suggesting to users that their
-	 * privacy is protected by encryption when the key size is insufficient
-	 * to prevent compromise via factoring.
-	 *
-	 * Future work: Sanity check for weak 'e', and sanity check for absence
-	 * of 'd' (i.e., the supplied key is a public key rather than a full
-	 * keypair).
-	 */
+		/*
+		 * RSA keys under ~1024 bits are trivially factorable (2018).
+		 * OpenSSL provides an API for RSA keys to estimate the
+		 * symmetric-cipher "equivalent" bits of security (defined in
+		 * NIST SP800-57), which as of this writing equates a 2048-bit
+		 * RSA key to 112 symmetric cipher bits.
+		 *
+		 * Use this API as a seatbelt to avoid suggesting to users that
+		 * their privacy is protected by encryption when the key size is
+		 * insufficient to prevent compromise via factoring.
+		 *
+		 * Future work: Sanity check for weak 'e', and sanity check for
+		 * absence of 'd' (i.e., the supplied key is a public key rather
+		 * than a full keypair).
+		 */
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	if (RSA_security_bits(pubkey) < 112)
 #else
 	if (RSA_size(pubkey) * 8 < 2048)
 #endif
-		errx(1, "Small RSA keys (you provided: %db) can be "
+		errx(1,
+		    "Small RSA keys (you provided: %db) can be "
 		    "factored cheaply.  Please generate a larger key.",
 		    RSA_size(pubkey) * 8);
 
@@ -300,13 +298,14 @@ _genkey(const char *pubkeyfile, struct diocskerneldump_arg *kdap)
 		kdap->kda_encryption = KERNELDUMP_ENC_CHACHA20;
 	else if (kdap->kda_encryption == KERNELDUMP_ENC_AES_256_CBC &&
 	    kdap->kda_compression != KERNELDUMP_COMP_NONE)
-		errx(EX_USAGE, "Unpadded AES256-CBC mode cannot be used "
+		errx(EX_USAGE,
+		    "Unpadded AES256-CBC mode cannot be used "
 		    "with compression.");
 
 	arc4random_buf(kdap->kda_key, sizeof(kdap->kda_key));
 	if (RSA_public_encrypt(sizeof(kdap->kda_key), kdap->kda_key,
-	    kdap->kda_encryptedkey, pubkey,
-	    RSA_PKCS1_OAEP_PADDING) != (int)kdap->kda_encryptedkeysize) {
+		kdap->kda_encryptedkey, pubkey,
+		RSA_PKCS1_OAEP_PADDING) != (int)kdap->kda_encryptedkeysize) {
 		errx(1, "Unable to encrypt the one-time key: %s",
 		    ERR_error_string(ERR_get_error(), NULL));
 	}
@@ -366,8 +365,7 @@ genkey(const char *pubkeyfile, struct diocskerneldump_arg *kdap)
 		errx(1, "genkey child exited with status %d",
 		    WEXITSTATUS(status));
 	else if (WIFSIGNALED(status))
-		errx(1, "genkey child exited with signal %d",
-		    WTERMSIG(status));
+		errx(1, "genkey child exited with signal %d", WTERMSIG(status));
 	close(filedes[0]);
 }
 #endif
@@ -386,8 +384,9 @@ listdumpdev(void)
 	len = sizeof(dumpdev);
 	if (sysctlbyname(sysctlname, &dumpdev, &len, NULL, 0) != 0) {
 		if (errno == ENOMEM) {
-			err(EX_OSERR, "Kernel returned too large of a buffer for '%s'\n",
-				sysctlname);
+			err(EX_OSERR,
+			    "Kernel returned too large of a buffer for '%s'\n",
+			    sysctlname);
 		} else {
 			err(EX_OSERR, "Sysctl get '%s'\n", sysctlname);
 		}
@@ -484,8 +483,10 @@ main(int argc, char *argv[])
 			    strcasecmp(optarg, "aes256-cbc") == 0)
 				cipher = KERNELDUMP_ENC_AES_256_CBC;
 			else
-				errx(EX_USAGE, "Unrecognized cipher algorithm "
-				    "'%s'", optarg);
+				errx(EX_USAGE,
+				    "Unrecognized cipher algorithm "
+				    "'%s'",
+				    optarg);
 			break;
 		case 'c':
 			client = optarg;
@@ -493,8 +494,7 @@ main(int argc, char *argv[])
 		case 'g':
 			gateway = optarg;
 			break;
-		case 'i':
-			{
+		case 'i': {
 			int i;
 
 			i = atoi(optarg);
@@ -504,8 +504,7 @@ main(int argc, char *argv[])
 				    (int)KDA_APPEND - 2);
 			insert = true;
 			ins_idx = i;
-			}
-			break;
+		} break;
 		case 'k':
 			pubkeyfile = optarg;
 			break;
@@ -561,8 +560,9 @@ main(int argc, char *argv[])
 	}
 #else
 	if (pubkeyfile != NULL)
-		errx(EX_UNAVAILABLE,"Unable to use the public key."
-				    " Recompile dumpon with OpenSSL support.");
+		errx(EX_UNAVAILABLE,
+		    "Unable to use the public key."
+		    " Recompile dumpon with OpenSSL support.");
 #endif
 
 	if (server != NULL && client != NULL) {
@@ -630,7 +630,7 @@ main(int argc, char *argv[])
 		freeaddrinfo(res);
 
 		if (strlcpy(ndconf.kda_iface, argv[0],
-		    sizeof(ndconf.kda_iface)) >= sizeof(ndconf.kda_iface))
+			sizeof(ndconf.kda_iface)) >= sizeof(ndconf.kda_iface))
 			errx(EX_USAGE, "invalid interface name '%s'", argv[0]);
 		if (inet_aton(server, &ndconf.kda_server.in4) == 0)
 			errx(EX_USAGE, "invalid server address '%s'", server);
@@ -642,7 +642,7 @@ main(int argc, char *argv[])
 			if (gateway == NULL) {
 				if (verbose)
 					printf(
-				    "failed to look up gateway for %s\n",
+					    "failed to look up gateway for %s\n",
 					    server);
 				gateway = server;
 			}
@@ -666,7 +666,8 @@ main(int argc, char *argv[])
 		kdap->kda_compression = KERNELDUMP_COMP_NONE;
 		error = ioctl(fd, DIOCSKERNELDUMP, kdap);
 		if (error == 0)
-			warnx("Compression disabled; kernel may lack gzip or zstd support.");
+			warnx(
+			    "Compression disabled; kernel may lack gzip or zstd support.");
 		else
 			error = errno;
 	}
@@ -684,7 +685,8 @@ main(int argc, char *argv[])
 			 * discoverability into which NICs support netdump.
 			 */
 			if (error == ENODEV)
-				errx(EX_OSERR, "Unable to configure netdump "
+				errx(EX_OSERR,
+				    "Unable to configure netdump "
 				    "because the interface driver does not yet "
 				    "support netdump.");
 		}

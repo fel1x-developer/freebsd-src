@@ -8,7 +8,6 @@
 #include "ipf.h"
 #include "kmem.h"
 
-
 ipstate_t *
 printstate(ipstate_t *sp, int opts, u_long now)
 {
@@ -54,19 +53,18 @@ printstate(ipstate_t *sp, int opts, u_long now)
 	putchar('\n');
 
 	if (sp->is_p == IPPROTO_TCP) {
-		PRINTF("\t%x:%x %hu<<%d:%hu<<%d\n",
-			sp->is_send, sp->is_dend,
-			sp->is_maxswin, sp->is_swinscale,
-			sp->is_maxdwin, sp->is_dwinscale);
+		PRINTF("\t%x:%x %hu<<%d:%hu<<%d\n", sp->is_send, sp->is_dend,
+		    sp->is_maxswin, sp->is_swinscale, sp->is_maxdwin,
+		    sp->is_dwinscale);
 		if ((opts & OPT_VERBOSE) != 0) {
 			PRINTF("\tcmsk %04x smsk %04x isc %p s0 %08x/%08x\n",
-				sp->is_smsk[0], sp->is_smsk[1], sp->is_isc,
-				sp->is_s0[0], sp->is_s0[1]);
-			PRINTF("\tFWD: ISN inc %x sumd %x\n",
-				sp->is_isninc[0], sp->is_sumd[0]);
-			PRINTF("\tREV: ISN inc %x sumd %x\n",
-				sp->is_isninc[1], sp->is_sumd[1]);
-#ifdef	IPFILTER_SCAN
+			    sp->is_smsk[0], sp->is_smsk[1], sp->is_isc,
+			    sp->is_s0[0], sp->is_s0[1]);
+			PRINTF("\tFWD: ISN inc %x sumd %x\n", sp->is_isninc[0],
+			    sp->is_sumd[0]);
+			PRINTF("\tREV: ISN inc %x sumd %x\n", sp->is_isninc[1],
+			    sp->is_sumd[1]);
+#ifdef IPFILTER_SCAN
 			PRINTF("\tsbuf[0] [");
 			printsbuf(sp->is_sbuf[0]);
 			PRINTF("] sbuf[1] [");
@@ -76,28 +74,27 @@ printstate(ipstate_t *sp, int opts, u_long now)
 		}
 	} else if (sp->is_p == IPPROTO_GRE) {
 		PRINTF("\tcall %hx/%hx\n", ntohs(sp->is_gre.gs_call[0]),
-		       ntohs(sp->is_gre.gs_call[1]));
+		    ntohs(sp->is_gre.gs_call[1]));
 	} else if (sp->is_p == IPPROTO_ICMP
-#ifdef	USE_INET6
-		 || sp->is_p == IPPROTO_ICMPV6
+#ifdef USE_INET6
+	    || sp->is_p == IPPROTO_ICMPV6
 #endif
-		) {
+	) {
 		PRINTF("\tid %hu seq %hu type %d\n", sp->is_icmp.ici_id,
-			sp->is_icmp.ici_seq, sp->is_icmp.ici_type);
+		    sp->is_icmp.ici_seq, sp->is_icmp.ici_type);
 	}
 
-#ifdef        USE_QUAD_T
-	PRINTF("\tFWD: IN pkts %"PRIu64" bytes %"PRIu64" OUT pkts %"PRIu64" bytes %"PRIu64"\n\tREV: IN pkts %"PRIu64" bytes %"PRIu64" OUT pkts %"PRIu64" bytes %"PRIu64"\n",
-		sp->is_pkts[0], sp->is_bytes[0],
-		sp->is_pkts[1], sp->is_bytes[1],
-		sp->is_pkts[2], sp->is_bytes[2],
-		sp->is_pkts[3], sp->is_bytes[3]);
+#ifdef USE_QUAD_T
+	PRINTF("\tFWD: IN pkts %" PRIu64 " bytes %" PRIu64 " OUT pkts %" PRIu64
+	       " bytes %" PRIu64 "\n\tREV: IN pkts %" PRIu64 " bytes %" PRIu64
+	       " OUT pkts %" PRIu64 " bytes %" PRIu64 "\n",
+	    sp->is_pkts[0], sp->is_bytes[0], sp->is_pkts[1], sp->is_bytes[1],
+	    sp->is_pkts[2], sp->is_bytes[2], sp->is_pkts[3], sp->is_bytes[3]);
 #else
-	PRINTF("\tFWD: IN pkts %lu bytes %lu OUT pkts %lu bytes %lu\n\tREV: IN pkts %lu bytes %lu OUT pkts %lu bytes %lu\n",
-		sp->is_pkts[0], sp->is_bytes[0],
-		sp->is_pkts[1], sp->is_bytes[1],
-		sp->is_pkts[2], sp->is_bytes[2],
-		sp->is_pkts[3], sp->is_bytes[3]);
+	PRINTF(
+	    "\tFWD: IN pkts %lu bytes %lu OUT pkts %lu bytes %lu\n\tREV: IN pkts %lu bytes %lu OUT pkts %lu bytes %lu\n",
+	    sp->is_pkts[0], sp->is_bytes[0], sp->is_pkts[1], sp->is_bytes[1],
+	    sp->is_pkts[2], sp->is_bytes[2], sp->is_pkts[3], sp->is_bytes[3]);
 #endif
 
 	PRINTF("\ttag %u pass %#x = ", sp->is_tag, sp->is_pass);
@@ -110,22 +107,21 @@ printstate(ipstate_t *sp, int opts, u_long now)
 		PRINTF("pass");
 	} else if (FR_ISBLOCK(sp->is_pass)) {
 		PRINTF("block");
-		switch (sp->is_pass & FR_RETMASK)
-		{
-		case FR_RETICMP :
+		switch (sp->is_pass & FR_RETMASK) {
+		case FR_RETICMP:
 			PRINTF(" return-icmp");
 			break;
-		case FR_FAKEICMP :
+		case FR_FAKEICMP:
 			PRINTF(" return-icmp-as-dest");
 			break;
-		case FR_RETRST :
+		case FR_RETRST:
 			PRINTF(" return-rst");
 			break;
-		default :
+		default:
 			break;
 		}
 	} else if ((sp->is_pass & FR_LOGMASK) == FR_LOG) {
-			PRINTF("log");
+		PRINTF("log");
 		if (sp->is_pass & FR_LOGBODY)
 			PRINTF(" body");
 		if (sp->is_pass & FR_LOGFIRST)
@@ -158,7 +154,7 @@ printstate(ipstate_t *sp, int opts, u_long now)
 	/* a given; no? */
 	if (sp->is_pass & FR_KEEPSTATE) {
 		PRINTF(" keep state");
-		if (sp->is_pass & (FR_STATESYNC|FR_STSTRICT|FR_STLOOSE)) {
+		if (sp->is_pass & (FR_STATESYNC | FR_STSTRICT | FR_STLOOSE)) {
 			PRINTF(" (");
 			if (sp->is_pass & FR_STATESYNC)
 				PRINTF(" sync");
@@ -173,15 +169,14 @@ printstate(ipstate_t *sp, int opts, u_long now)
 
 	if ((opts & OPT_VERBOSE) != 0) {
 		PRINTF("\tref %d", sp->is_ref);
-		PRINTF(" pkt_flags & %x(%x) = %x\n",
-			sp->is_flags & 0xf, sp->is_flags, sp->is_flags >> 4);
+		PRINTF(" pkt_flags & %x(%x) = %x\n", sp->is_flags & 0xf,
+		    sp->is_flags, sp->is_flags >> 4);
 		PRINTF("\tpkt_options & %x = %x, %x = %x \n", sp->is_optmsk[0],
-			sp->is_opt[0], sp->is_optmsk[1], sp->is_opt[1]);
+		    sp->is_opt[0], sp->is_optmsk[1], sp->is_opt[1]);
 		PRINTF("\tpkt_security & %x = %x, pkt_auth & %x = %x\n",
-			sp->is_secmsk, sp->is_sec, sp->is_authmsk,
-			sp->is_auth);
+		    sp->is_secmsk, sp->is_sec, sp->is_authmsk, sp->is_auth);
 		PRINTF("\tis_flx %#x %#x %#x %#x\n", sp->is_flx[0][0],
-			sp->is_flx[0][1], sp->is_flx[1][0], sp->is_flx[1][1]);
+		    sp->is_flx[0][1], sp->is_flx[1][0], sp->is_flx[1][1]);
 	}
 	PRINTF("\tinterfaces: in %s", FORMAT_IF(sp->is_ifname[0]));
 	if (opts & OPT_DEBUG)
@@ -200,14 +195,13 @@ printstate(ipstate_t *sp, int opts, u_long now)
 	PRINTF("\tSync status: ");
 	if (sp->is_sync != NULL) {
 		if (kmemcpy((char *)&ipsync, (u_long)sp->is_sync,
-			    sizeof(ipsync))) {
+			sizeof(ipsync))) {
 			PRINTF("status could not be retrieved\n");
 			return (NULL);
 		}
 
-		PRINTF("idx %d num %d v %d pr %d rev %d\n",
-			ipsync.sl_idx, ipsync.sl_num, ipsync.sl_v,
-			ipsync.sl_p, ipsync.sl_rev);
+		PRINTF("idx %d num %d v %d pr %d rev %d\n", ipsync.sl_idx,
+		    ipsync.sl_num, ipsync.sl_v, ipsync.sl_p, ipsync.sl_rev);
 	} else {
 		PRINTF("not synchronized\n");
 	}

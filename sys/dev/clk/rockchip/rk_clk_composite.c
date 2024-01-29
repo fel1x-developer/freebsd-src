@@ -30,44 +30,39 @@
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-#include <dev/syscon/syscon.h>
-
 #include <dev/clk/rockchip/rk_clk_composite.h>
+#include <dev/syscon/syscon.h>
 
 #include "clkdev_if.h"
 #include "syscon_if.h"
 
 struct rk_clk_composite_sc {
-	uint32_t	muxdiv_offset;
-	uint32_t	mux_shift;
-	uint32_t	mux_width;
-	uint32_t	mux_mask;
+	uint32_t muxdiv_offset;
+	uint32_t mux_shift;
+	uint32_t mux_width;
+	uint32_t mux_mask;
 
-	uint32_t	div_shift;
-	uint32_t	div_width;
-	uint32_t	div_mask;
+	uint32_t div_shift;
+	uint32_t div_width;
+	uint32_t div_mask;
 
-	uint32_t	flags;
+	uint32_t flags;
 
-	struct syscon	*grf;
+	struct syscon *grf;
 };
 
-#define	WRITE4(_clk, off, val)						\
-	rk_clk_composite_write_4(_clk, off, val)
-#define	READ4(_clk, off, val)						\
-	rk_clk_composite_read_4(_clk, off, val)
-#define	DEVICE_LOCK(_clk)						\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define WRITE4(_clk, off, val) rk_clk_composite_write_4(_clk, off, val)
+#define READ4(_clk, off, val) rk_clk_composite_read_4(_clk, off, val)
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
-#define	RK_CLK_COMPOSITE_MASK_SHIFT	16
+#define RK_CLK_COMPOSITE_MASK_SHIFT 16
 
 #if 0
-#define	dprintf(format, arg...)						\
+#define dprintf(format, arg...) \
 	printf("%s:(%s)" format, __func__, clknode_get_name(clk), arg)
 #else
-#define	dprintf(format, arg...)
+#define dprintf(format, arg...)
 #endif
 
 static void
@@ -105,10 +100,9 @@ rk_clk_composite_get_grf(struct clknode *clk)
 	dev = clknode_get_device(clk);
 	node = ofw_bus_get_node(dev);
 	if (OF_hasprop(node, "rockchip,grf") &&
-	    syscon_get_by_ofw_property(dev, node,
-	    "rockchip,grf", &grf) != 0) {
+	    syscon_get_by_ofw_property(dev, node, "rockchip,grf", &grf) != 0) {
 		return (NULL);
-        }
+	}
 
 	return (grf);
 }
@@ -123,7 +117,8 @@ rk_clk_composite_init(struct clknode *clk, device_t dev)
 	if ((sc->flags & RK_CLK_COMPOSITE_GRF) != 0) {
 		sc->grf = rk_clk_composite_get_grf(clk);
 		if (sc->grf == NULL)
-			panic("clock %s has GRF flag set but no syscon is available",
+			panic(
+			    "clock %s has GRF flag set but no syscon is available",
 			    clknode_get_name(clk));
 	}
 
@@ -201,8 +196,8 @@ rk_clk_composite_find_best(struct rk_clk_composite_sc *sc, uint64_t fparent,
 	best_div = 0;
 	best_div_reg = 0;
 
-	for (div_reg = 0;  div_reg <= ((sc->div_mask >> sc->div_shift) + 1);
-	    div_reg++) {
+	for (div_reg = 0; div_reg <= ((sc->div_mask >> sc->div_shift) + 1);
+	     div_reg++) {
 		if (sc->flags == RK_CLK_COMPOSITE_DIV_EXP)
 			div = 1 << div_reg;
 		else
@@ -247,7 +242,8 @@ rk_clk_composite_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 			best_div_reg = div_reg;
 			best_parent = p_idx;
 			dprintf("Best parent so far %s (%d) with best freq at "
-			    "%ju\n", clknode_get_name(p_clk), p_idx, best);
+				"%ju\n",
+			    clknode_get_name(p_clk), p_idx, best);
 		}
 	}
 
@@ -291,10 +287,10 @@ rk_clk_composite_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 
 static clknode_method_t rk_clk_composite_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		rk_clk_composite_init),
-	CLKNODEMETHOD(clknode_set_mux,		rk_clk_composite_set_mux),
-	CLKNODEMETHOD(clknode_recalc_freq,	rk_clk_composite_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		rk_clk_composite_set_freq),
+	CLKNODEMETHOD(clknode_init, rk_clk_composite_init),
+	CLKNODEMETHOD(clknode_set_mux, rk_clk_composite_set_mux),
+	CLKNODEMETHOD(clknode_recalc_freq, rk_clk_composite_recalc),
+	CLKNODEMETHOD(clknode_set_freq, rk_clk_composite_set_freq),
 	CLKNODEMETHOD_END
 };
 

@@ -52,12 +52,12 @@
 #include <sys/cdefs.h>
 #else
 #ifndef nitems
-#define	nitems(x)	(sizeof((x)) / sizeof((x)[0]))
+#define nitems(x) (sizeof((x)) / sizeof((x)[0]))
 #endif
 
 #ifndef __unused
 #ifdef __GNUC__
-#define	__unused	__attribute__((__unused__))
+#define __unused __attribute__((__unused__))
 #else
 #define __unused
 #endif
@@ -125,16 +125,19 @@ safe_waitpid(pid_t pid)
 	return (status);
 }
 
-#define FAIL(test)					\
-	do {						\
-		if (test) {				\
-			printf("FAIL (%s)\n", #test);	\
-			return -1;			\
-		}					\
+#define FAIL(test)                                    \
+	do {                                          \
+		if (test) {                           \
+			printf("FAIL (%s)\n", #test); \
+			return -1;                    \
+		}                                     \
 	} while (0)
 
-#define SUCCEED \
-	do { printf("SUCCEED\n"); return 0; } while (0)
+#define SUCCEED                      \
+	do {                         \
+		printf("SUCCEED\n"); \
+		return 0;            \
+	} while (0)
 
 /*
  * Test 1 - F_GETLK on unlocked region
@@ -460,7 +463,7 @@ test5(int fd, __unused int argc, const __unused char **argv)
 	res = fcntl(fd, F_SETLKW, &fl);
 	kill(pid, SIGTERM);
 	safe_waitpid(pid);
-	
+
 	FAIL(res == 0);
 	FAIL(errno != EDEADLK);
 
@@ -1017,7 +1020,7 @@ test12(int fd, __unused int argc, const __unused char **argv)
 	 */
 	printf("12 - F_SETLKW on locked region which is then unlocked: ");
 
-	//alarm(1);
+	// alarm(1);
 
 	res = fcntl(fd, F_SETLKW, &fl);
 	kill(pid, SIGTERM);
@@ -1206,12 +1209,14 @@ test14(int fd, int argc, const char **argv)
 						snprintf(outbuf, sizeof(outbuf),
 						    "%d[%d]: %s [%d .. %d] %s\n",
 						    id, j,
-						    set ? (wrlock ? "write lock"
-							: "read lock")
-						    : "unlock", start, end,
-						    errno == EDEADLK
-						    ? "deadlock"
-						    : "interrupted");
+						    set ?
+							(wrlock ? "write lock" :
+								  "read lock") :
+							"unlock",
+						    start, end,
+						    errno == EDEADLK ?
+							"deadlock" :
+							"interrupted");
 						write(1, outbuf,
 						    strlen(outbuf));
 					}
@@ -1229,10 +1234,11 @@ test14(int fd, int argc, const char **argv)
 
 			if (verbose) {
 				snprintf(outbuf, sizeof(outbuf),
-				    "%d[%d]: %s [%d .. %d] succeeded\n",
-				    id, j,
-				    set ? (wrlock ? "write lock" : "read lock")
-				    : "unlock", start, end);
+				    "%d[%d]: %s [%d .. %d] succeeded\n", id, j,
+				    set ?
+					(wrlock ? "write lock" : "read lock") :
+					"unlock",
+				    start, end);
 				write(1, outbuf, strlen(outbuf));
 			}
 
@@ -1288,7 +1294,8 @@ test14(int fd, int argc, const char **argv)
 				if (map[i] != F_UNLCK && buf[i] != tbuf[i]) {
 					snprintf(outbuf, sizeof(outbuf),
 					    "%d: byte %d expected %d, "
-					    "got %d\n", id, i, buf[i], tbuf[i]);
+					    "got %d\n",
+					    id, i, buf[i], tbuf[i]);
 					write(1, outbuf, strlen(outbuf));
 					exit(1);
 				}
@@ -1517,28 +1524,29 @@ test16(int fd, __unused int argc, const __unused char **argv)
 }
 
 struct test {
-	int (*testfn)(int, int, const char **);	/* function to perform the test */
-	int num;		/* test number */
-	int intr;		/* non-zero if the test interrupts a lock */
+	int (*testfn)(int, int,
+	    const char **); /* function to perform the test */
+	int num;	    /* test number */
+	int intr;	    /* non-zero if the test interrupts a lock */
 };
 
 static struct test tests[] = {
-	{	test1,		1,	0	},
-	{	test2,		2,	0	},
-	{	test3,		3,	1	},
-	{	test4,		4,	0	},
-	{	test5,		5,	1	},
-	{	test6,		6,	1	},
-	{	test7,		7,	0	},
-	{	test8,		8,	0	},
-	{	test9,		9,	0	},
-	{	test10,		10,	0	},
-	{	test11,		11,	1	},
-	{	test12,		12,	0	},
-	{	test13,		13,	1	},
-	{	test14,		14,	0	},
-	{	test15,		15,	1	},
-	{	test16,		16,	1	},
+	{ test1, 1, 0 },
+	{ test2, 2, 0 },
+	{ test3, 3, 1 },
+	{ test4, 4, 0 },
+	{ test5, 5, 1 },
+	{ test6, 6, 1 },
+	{ test7, 7, 0 },
+	{ test8, 8, 0 },
+	{ test9, 9, 0 },
+	{ test10, 10, 0 },
+	{ test11, 11, 1 },
+	{ test12, 12, 0 },
+	{ test13, 13, 1 },
+	{ test14, 14, 0 },
+	{ test15, 15, 1 },
+	{ test16, 16, 1 },
 };
 
 int

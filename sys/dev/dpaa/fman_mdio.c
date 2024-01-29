@@ -26,8 +26,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
@@ -35,38 +35,37 @@
 
 #include <machine/bus.h>
 
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
 
 #include <contrib/ncsw/inc/Peripherals/fm_ext.h>
 
 #include "fman.h"
 #include "miibus_if.h"
 
-#define MDIO_LOCK()	mtx_lock(&sc->sc_lock)
-#define MDIO_UNLOCK()	mtx_unlock(&sc->sc_lock)
-#define	MDIO_WRITE4(sc,r,v) \
+#define MDIO_LOCK() mtx_lock(&sc->sc_lock)
+#define MDIO_UNLOCK() mtx_unlock(&sc->sc_lock)
+#define MDIO_WRITE4(sc, r, v) \
 	bus_space_write_4(&bs_be_tag, sc->sc_handle, sc->sc_offset + r, v)
-#define	MDIO_READ4(sc, r) \
+#define MDIO_READ4(sc, r) \
 	bus_space_read_4(&bs_be_tag, sc->sc_handle, sc->sc_offset + r)
 
-#define	MDIO_MIIMCFG	0x0
-#define	MDIO_MIIMCOM	0x4
-#define	  MIIMCOM_SCAN_CYCLE	  0x00000002
-#define	  MIIMCOM_READ_CYCLE	  0x00000001
-#define	MDIO_MIIMADD	0x8
-#define	MDIO_MIIMCON	0xc
-#define	MDIO_MIIMSTAT	0x10
-#define	MDIO_MIIMIND	0x14
-#define	  MIIMIND_BUSY	  0x1
+#define MDIO_MIIMCFG 0x0
+#define MDIO_MIIMCOM 0x4
+#define MIIMCOM_SCAN_CYCLE 0x00000002
+#define MIIMCOM_READ_CYCLE 0x00000001
+#define MDIO_MIIMADD 0x8
+#define MDIO_MIIMCON 0xc
+#define MDIO_MIIMSTAT 0x10
+#define MDIO_MIIMIND 0x14
+#define MIIMIND_BUSY 0x1
 
 static int pqmdio_fdt_probe(device_t dev);
 static int pqmdio_fdt_attach(device_t dev);
@@ -82,21 +81,19 @@ struct pqmdio_softc {
 
 static device_method_t pqmdio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pqmdio_fdt_probe),
-	DEVMETHOD(device_attach,	pqmdio_fdt_attach),
-	DEVMETHOD(device_detach,	pqmdio_detach),
+	DEVMETHOD(device_probe, pqmdio_fdt_probe),
+	DEVMETHOD(device_attach, pqmdio_fdt_attach),
+	DEVMETHOD(device_detach, pqmdio_detach),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	pqmdio_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	pqmdio_miibus_writereg),
+	DEVMETHOD(miibus_readreg, pqmdio_miibus_readreg),
+	DEVMETHOD(miibus_writereg, pqmdio_miibus_writereg),
 
 	{ 0, 0 }
 };
 
-static struct ofw_compat_data mdio_compat_data[] = {
-	{"fsl,fman-mdio", 0},
-	{NULL, 0}
-};
+static struct ofw_compat_data mdio_compat_data[] = { { "fsl,fman-mdio", 0 },
+	{ NULL, 0 } };
 
 static driver_t pqmdio_driver = {
 	"pq_mdio",
@@ -155,7 +152,7 @@ int
 pqmdio_miibus_readreg(device_t dev, int phy, int reg)
 {
 	struct pqmdio_softc *sc;
-	int                  rv;
+	int rv;
 
 	sc = device_get_softc(dev);
 
@@ -203,8 +200,6 @@ pqmdio_miibus_writereg(device_t dev, int phy, int reg, int value)
 	return (0);
 }
 
-EARLY_DRIVER_MODULE(pqmdio, fman, pqmdio_driver, 0, 0,
-    BUS_PASS_SUPPORTDEV);
+EARLY_DRIVER_MODULE(pqmdio, fman, pqmdio_driver, 0, 0, BUS_PASS_SUPPORTDEV);
 DRIVER_MODULE(miibus, pqmdio, miibus_driver, 0, 0);
 MODULE_DEPEND(pqmdio, miibus, 1, 1, 1);
-

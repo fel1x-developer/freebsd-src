@@ -36,13 +36,13 @@
 #include "../plugins/wtap_plugin.h"
 #include "handler.h"
 
-#define	HAL_TIMER_INTVAL	50 /* in msecs */
+#define HAL_TIMER_INTVAL 50 /* in msecs */
 
 struct wtap_hal {
-	struct wtap_medium	*hal_md;
-	struct mtx		hal_mtx;
-	struct wtap_plugin	*plugin;
-	struct wtap_softc 	*hal_devs[MAX_NBR_WTAP];
+	struct wtap_medium *hal_md;
+	struct mtx hal_mtx;
+	struct wtap_plugin *plugin;
+	struct wtap_softc *hal_devs[MAX_NBR_WTAP];
 	/* hardware information */
 	struct hw {
 		struct callout timer_intr;

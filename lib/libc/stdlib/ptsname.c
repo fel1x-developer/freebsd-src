@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/ioctl.h>
 
@@ -37,6 +36,8 @@
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*

@@ -26,14 +26,17 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_inet.h"
+#include "opt_inet6.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
@@ -43,18 +46,15 @@
 
 #include <machine/atomic.h>
 
-#include "opt_inet.h"
-#include "opt_inet6.h"
-
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <netinet/in.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_lro.h>
 
@@ -71,110 +71,113 @@
 
 #include <sys/sockio.h>
 
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
 #include <al_hal_common.h>
+#include <al_hal_eth.h>
 #include <al_hal_plat_services.h>
 #include <al_hal_udma_config.h>
-#include <al_hal_udma_iofic.h>
 #include <al_hal_udma_debug.h>
-#include <al_hal_eth.h>
+#include <al_hal_udma_iofic.h>
 
 #include "al_eth.h"
 #include "al_init_eth_lm.h"
 #include "arm/annapurna/alpine/alpine_serdes.h"
-
 #include "miibus_if.h"
 
-#define	device_printf_dbg(fmt, ...) do {				\
-	if (AL_DBG_LEVEL >= AL_DBG_LEVEL_DBG) { AL_DBG_LOCK();		\
-	    device_printf(fmt, __VA_ARGS__); AL_DBG_UNLOCK();}		\
+#define device_printf_dbg(fmt, ...)                      \
+	do {                                             \
+		if (AL_DBG_LEVEL >= AL_DBG_LEVEL_DBG) {  \
+			AL_DBG_LOCK();                   \
+			device_printf(fmt, __VA_ARGS__); \
+			AL_DBG_UNLOCK();                 \
+		}                                        \
 	} while (0)
 
 MALLOC_DEFINE(M_IFAL, "if_al_malloc", "All allocated data for AL ETH driver");
 
 /* move out to some pci header file */
-#define	PCI_VENDOR_ID_ANNAPURNA_LABS	0x1c36
-#define	PCI_DEVICE_ID_AL_ETH		0x0001
-#define	PCI_DEVICE_ID_AL_ETH_ADVANCED	0x0002
-#define	PCI_DEVICE_ID_AL_ETH_NIC	0x0003
-#define	PCI_DEVICE_ID_AL_ETH_FPGA_NIC	0x0030
-#define	PCI_DEVICE_ID_AL_CRYPTO		0x0011
-#define	PCI_DEVICE_ID_AL_CRYPTO_VF	0x8011
-#define	PCI_DEVICE_ID_AL_RAID_DMA	0x0021
-#define	PCI_DEVICE_ID_AL_RAID_DMA_VF	0x8021
-#define	PCI_DEVICE_ID_AL_USB		0x0041
+#define PCI_VENDOR_ID_ANNAPURNA_LABS 0x1c36
+#define PCI_DEVICE_ID_AL_ETH 0x0001
+#define PCI_DEVICE_ID_AL_ETH_ADVANCED 0x0002
+#define PCI_DEVICE_ID_AL_ETH_NIC 0x0003
+#define PCI_DEVICE_ID_AL_ETH_FPGA_NIC 0x0030
+#define PCI_DEVICE_ID_AL_CRYPTO 0x0011
+#define PCI_DEVICE_ID_AL_CRYPTO_VF 0x8011
+#define PCI_DEVICE_ID_AL_RAID_DMA 0x0021
+#define PCI_DEVICE_ID_AL_RAID_DMA_VF 0x8021
+#define PCI_DEVICE_ID_AL_USB 0x0041
 
-#define	MAC_ADDR_STR "%02x:%02x:%02x:%02x:%02x:%02x"
-#define	MAC_ADDR(addr) addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
+#define MAC_ADDR_STR "%02x:%02x:%02x:%02x:%02x:%02x"
+#define MAC_ADDR(addr) addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
 
-#define	AL_ETH_MAC_TABLE_UNICAST_IDX_BASE	0
-#define	AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT	4
-#define	AL_ETH_MAC_TABLE_ALL_MULTICAST_IDX	(AL_ETH_MAC_TABLE_UNICAST_IDX_BASE + \
-						 AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT)
+#define AL_ETH_MAC_TABLE_UNICAST_IDX_BASE 0
+#define AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT 4
+#define AL_ETH_MAC_TABLE_ALL_MULTICAST_IDX \
+	(AL_ETH_MAC_TABLE_UNICAST_IDX_BASE + AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT)
 
-#define	AL_ETH_MAC_TABLE_DROP_IDX		(AL_ETH_FWD_MAC_NUM - 1)
-#define	AL_ETH_MAC_TABLE_BROADCAST_IDX		(AL_ETH_MAC_TABLE_DROP_IDX - 1)
+#define AL_ETH_MAC_TABLE_DROP_IDX (AL_ETH_FWD_MAC_NUM - 1)
+#define AL_ETH_MAC_TABLE_BROADCAST_IDX (AL_ETH_MAC_TABLE_DROP_IDX - 1)
 
-#define	AL_ETH_THASH_UDMA_SHIFT		0
-#define	AL_ETH_THASH_UDMA_MASK		(0xF << AL_ETH_THASH_UDMA_SHIFT)
+#define AL_ETH_THASH_UDMA_SHIFT 0
+#define AL_ETH_THASH_UDMA_MASK (0xF << AL_ETH_THASH_UDMA_SHIFT)
 
-#define	AL_ETH_THASH_Q_SHIFT		4
-#define	AL_ETH_THASH_Q_MASK		(0x3 << AL_ETH_THASH_Q_SHIFT)
+#define AL_ETH_THASH_Q_SHIFT 4
+#define AL_ETH_THASH_Q_MASK (0x3 << AL_ETH_THASH_Q_SHIFT)
 
 /* the following defines should be moved to hal */
-#define	AL_ETH_FSM_ENTRY_IPV4_TCP		0
-#define	AL_ETH_FSM_ENTRY_IPV4_UDP		1
-#define	AL_ETH_FSM_ENTRY_IPV6_TCP		2
-#define	AL_ETH_FSM_ENTRY_IPV6_UDP		3
-#define	AL_ETH_FSM_ENTRY_IPV6_NO_UDP_TCP	4
-#define	AL_ETH_FSM_ENTRY_IPV4_NO_UDP_TCP	5
+#define AL_ETH_FSM_ENTRY_IPV4_TCP 0
+#define AL_ETH_FSM_ENTRY_IPV4_UDP 1
+#define AL_ETH_FSM_ENTRY_IPV6_TCP 2
+#define AL_ETH_FSM_ENTRY_IPV6_UDP 3
+#define AL_ETH_FSM_ENTRY_IPV6_NO_UDP_TCP 4
+#define AL_ETH_FSM_ENTRY_IPV4_NO_UDP_TCP 5
 
 /* FSM DATA format */
-#define	AL_ETH_FSM_DATA_OUTER_2_TUPLE	0
-#define	AL_ETH_FSM_DATA_OUTER_4_TUPLE	1
-#define	AL_ETH_FSM_DATA_INNER_2_TUPLE	2
-#define	AL_ETH_FSM_DATA_INNER_4_TUPLE	3
+#define AL_ETH_FSM_DATA_OUTER_2_TUPLE 0
+#define AL_ETH_FSM_DATA_OUTER_4_TUPLE 1
+#define AL_ETH_FSM_DATA_INNER_2_TUPLE 2
+#define AL_ETH_FSM_DATA_INNER_4_TUPLE 3
 
-#define	AL_ETH_FSM_DATA_HASH_SEL	(1 << 2)
+#define AL_ETH_FSM_DATA_HASH_SEL (1 << 2)
 
-#define	AL_ETH_FSM_DATA_DEFAULT_Q	0
-#define	AL_ETH_FSM_DATA_DEFAULT_UDMA	0
+#define AL_ETH_FSM_DATA_DEFAULT_Q 0
+#define AL_ETH_FSM_DATA_DEFAULT_UDMA 0
 
-#define	AL_BR_SIZE	512
-#define	AL_TSO_SIZE	65500
-#define	AL_DEFAULT_MTU	1500
+#define AL_BR_SIZE 512
+#define AL_TSO_SIZE 65500
+#define AL_DEFAULT_MTU 1500
 
-#define	CSUM_OFFLOAD		(CSUM_IP|CSUM_TCP|CSUM_UDP|CSUM_SCTP)
+#define CSUM_OFFLOAD (CSUM_IP | CSUM_TCP | CSUM_UDP | CSUM_SCTP)
 
-#define	AL_IP_ALIGNMENT_OFFSET	2
+#define AL_IP_ALIGNMENT_OFFSET 2
 
-#define	SFP_I2C_ADDR		0x50
+#define SFP_I2C_ADDR 0x50
 
-#define	AL_MASK_GROUP_A_INT	0x7
-#define	AL_MASK_GROUP_B_INT	0xF
-#define	AL_MASK_GROUP_C_INT	0xF
-#define	AL_MASK_GROUP_D_INT	0xFFFFFFFF
+#define AL_MASK_GROUP_A_INT 0x7
+#define AL_MASK_GROUP_B_INT 0xF
+#define AL_MASK_GROUP_C_INT 0xF
+#define AL_MASK_GROUP_D_INT 0xFFFFFFFF
 
-#define	AL_REG_OFFSET_FORWARD_INTR	(0x1800000 + 0x1210)
-#define	AL_EN_FORWARD_INTR	0x1FFFF
-#define	AL_DIS_FORWARD_INTR	0
+#define AL_REG_OFFSET_FORWARD_INTR (0x1800000 + 0x1210)
+#define AL_EN_FORWARD_INTR 0x1FFFF
+#define AL_DIS_FORWARD_INTR 0
 
-#define	AL_M2S_MASK_INIT	0x480
-#define	AL_S2M_MASK_INIT	0x1E0
-#define	AL_M2S_S2M_MASK_NOT_INT	(0x3f << 25)
+#define AL_M2S_MASK_INIT 0x480
+#define AL_S2M_MASK_INIT 0x1E0
+#define AL_M2S_S2M_MASK_NOT_INT (0x3f << 25)
 
-#define	AL_10BASE_T_SPEED	10
-#define	AL_100BASE_TX_SPEED	100
-#define	AL_1000BASE_T_SPEED	1000
+#define AL_10BASE_T_SPEED 10
+#define AL_100BASE_TX_SPEED 100
+#define AL_1000BASE_T_SPEED 1000
 
-#define	AL_RX_LOCK_INIT(_sc)	mtx_init(&((_sc)->if_rx_lock), "ALRXL", "ALRXL", MTX_DEF)
-#define	AL_RX_LOCK(_sc)		mtx_lock(&((_sc)->if_rx_lock))
-#define	AL_RX_UNLOCK(_sc)	mtx_unlock(&((_sc)->if_rx_lock))
+#define AL_RX_LOCK_INIT(_sc) \
+	mtx_init(&((_sc)->if_rx_lock), "ALRXL", "ALRXL", MTX_DEF)
+#define AL_RX_LOCK(_sc) mtx_lock(&((_sc)->if_rx_lock))
+#define AL_RX_UNLOCK(_sc) mtx_unlock(&((_sc)->if_rx_lock))
 
 /* helper functions */
 static int al_is_device_supported(device_t);
@@ -225,7 +228,7 @@ static int al_miibus_writereg(device_t, int, int, int);
 static void al_miibus_statchg(device_t);
 static void al_miibus_linkchg(device_t);
 
-struct al_eth_adapter* g_adapters[16];
+struct al_eth_adapter *g_adapters[16];
 uint32_t g_adapters_count;
 
 /* flag for napi-like mbuf processing, controlled from sysctl */
@@ -233,16 +236,14 @@ static int napi = 0;
 
 static device_method_t al_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		al_probe),
-	DEVMETHOD(device_attach,	al_attach),
-	DEVMETHOD(device_detach,	al_detach),
-	DEVMETHOD(device_shutdown,	al_shutdown),
+	DEVMETHOD(device_probe, al_probe), DEVMETHOD(device_attach, al_attach),
+	DEVMETHOD(device_detach, al_detach),
+	DEVMETHOD(device_shutdown, al_shutdown),
 
-	DEVMETHOD(miibus_readreg,	al_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	al_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	al_miibus_statchg),
-	DEVMETHOD(miibus_linkchg,	al_miibus_linkchg),
-	{ 0, 0 }
+	DEVMETHOD(miibus_readreg, al_miibus_readreg),
+	DEVMETHOD(miibus_writereg, al_miibus_writereg),
+	DEVMETHOD(miibus_statchg, al_miibus_statchg),
+	DEVMETHOD(miibus_linkchg, al_miibus_linkchg), { 0, 0 }
 };
 
 static driver_t al_driver = {
@@ -287,8 +288,8 @@ al_attach(device_t dev)
 	child = SYSCTL_CHILDREN(tree);
 
 	if (g_adapters_count == 0) {
-		SYSCTL_ADD_INT(ctx, child, OID_AUTO, "napi",
-		    CTLFLAG_RW, &napi, 0, "Use pseudo-napi mechanism");
+		SYSCTL_ADD_INT(ctx, child, OID_AUTO, "napi", CTLFLAG_RW, &napi,
+		    0, "Use pseudo-napi mechanism");
 	}
 	adapter = device_get_softc(dev);
 	adapter->dev = dev;
@@ -308,11 +309,12 @@ al_attach(device_t dev)
 		err = ENOMEM;
 		goto err_res_dma;
 	}
-	adapter->udma_base = al_bus_dma_to_va(rman_get_bustag(adapter->udma_res),
+	adapter->udma_base = al_bus_dma_to_va(rman_get_bustag(
+						  adapter->udma_res),
 	    rman_get_bushandle(adapter->udma_res));
 	bar_mac = PCIR_BAR(AL_ETH_MAC_BAR);
-	adapter->mac_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &bar_mac, RF_ACTIVE);
+	adapter->mac_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &bar_mac,
+	    RF_ACTIVE);
 	if (adapter->mac_res == NULL) {
 		device_printf(adapter->dev,
 		    "could not allocate memory resources for MAC.\n");
@@ -340,7 +342,8 @@ al_attach(device_t dev)
 	if_initname(ifp, device_get_name(dev), device_get_unit(dev));
 	if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 	if_setflags(ifp, if_getdrvflags(ifp));
-	if_setflagbits(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_ALLMULTI, 0);
+	if_setflagbits(ifp,
+	    IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST | IFF_ALLMULTI, 0);
 	if_settransmitfn(ifp, al_mq_start);
 	if_setqflushfn(ifp, al_qflush);
 	if_setioctlfn(ifp, al_ioctl);
@@ -350,11 +353,12 @@ al_attach(device_t dev)
 
 	adapter->if_flags = if_getflags(ifp);
 
-	if_setcapabilities(ifp, if_getcapenable(ifp) );
+	if_setcapabilities(ifp, if_getcapenable(ifp));
 
-	if_setcapabilitiesbit(ifp, IFCAP_HWCSUM |
-	    IFCAP_HWCSUM_IPV6 | IFCAP_TSO |
-	    IFCAP_LRO | IFCAP_JUMBO_MTU, 0);
+	if_setcapabilitiesbit(ifp,
+	    IFCAP_HWCSUM | IFCAP_HWCSUM_IPV6 | IFCAP_TSO | IFCAP_LRO |
+		IFCAP_JUMBO_MTU,
+	    0);
 
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 
@@ -382,21 +386,22 @@ al_attach(device_t dev)
 	adapter->num_tx_queues = AL_ETH_NUM_QUEUES;
 	adapter->num_rx_queues = AL_ETH_NUM_QUEUES;
 
-	adapter->small_copy_len	= AL_ETH_DEFAULT_SMALL_PACKET_LEN;
+	adapter->small_copy_len = AL_ETH_DEFAULT_SMALL_PACKET_LEN;
 	adapter->link_poll_interval = AL_ETH_DEFAULT_LINK_POLL_INTERVAL;
 	adapter->max_rx_buff_alloc_size = AL_ETH_DEFAULT_MAX_RX_BUFF_ALLOC_SIZE;
 
 	al_eth_req_rx_buff_size(adapter, if_getmtu(adapter->netdev));
 
-	adapter->link_config.force_1000_base_x = AL_ETH_DEFAULT_FORCE_1000_BASEX;
+	adapter->link_config.force_1000_base_x =
+	    AL_ETH_DEFAULT_FORCE_1000_BASEX;
 
 	err = al_eth_board_params_init(adapter);
 	if (err != 0)
 		goto err;
 
 	if (adapter->mac_mode == AL_ETH_MAC_MODE_10GbE_Serial) {
-		ifmedia_init(&adapter->media, IFM_IMASK,
-		    al_media_update, al_media_status);
+		ifmedia_init(&adapter->media, IFM_IMASK, al_media_update,
+		    al_media_status);
 		ifmedia_add(&adapter->media, IFM_ETHER | IFM_1000_LX, 0, NULL);
 		ifmedia_add(&adapter->media, IFM_ETHER | IFM_10G_LR, 0, NULL);
 		ifmedia_add(&adapter->media, IFM_ETHER | IFM_AUTO, 0, NULL);
@@ -425,9 +430,9 @@ al_attach(device_t dev)
 		al_eth_hw_init(adapter);
 
 		/* Attach PHY(s) */
-		err = mii_attach(adapter->dev, &adapter->miibus, adapter->netdev,
-		    al_media_update, al_media_status, BMSR_DEFCAPMASK, 0,
-		    MII_OFFSET_ANY, 0);
+		err = mii_attach(adapter->dev, &adapter->miibus,
+		    adapter->netdev, al_media_update, al_media_status,
+		    BMSR_DEFCAPMASK, 0, MII_OFFSET_ANY, 0);
 		if (err != 0) {
 			device_printf(adapter->dev, "attaching PHYs failed\n");
 			return (err);
@@ -461,7 +466,7 @@ al_detach(device_t dev)
 
 	al_eth_down(adapter);
 
-	bus_release_resource(dev, SYS_RES_IRQ,    0, adapter->irq_res);
+	bus_release_resource(dev, SYS_RES_IRQ, 0, adapter->irq_res);
 	bus_release_resource(dev, SYS_RES_MEMORY, 0, adapter->ec_res);
 	bus_release_resource(dev, SYS_RES_MEMORY, 0, adapter->mac_res);
 	bus_release_resource(dev, SYS_RES_MEMORY, 0, adapter->udma_res);
@@ -474,7 +479,7 @@ al_eth_fpga_read_pci_config(void *handle, int where, uint32_t *val)
 {
 
 	/* handle is the base address of the adapter */
-	*val = al_reg_read32((void*)((u_long)handle + where));
+	*val = al_reg_read32((void *)((u_long)handle + where));
 
 	return (0);
 }
@@ -484,7 +489,7 @@ al_eth_fpga_write_pci_config(void *handle, int where, uint32_t val)
 {
 
 	/* handle is the base address of the adapter */
-	al_reg_write32((void*)((u_long)handle + where), val);
+	al_reg_write32((void *)((u_long)handle + where), val);
 	return (0);
 }
 
@@ -523,7 +528,7 @@ al_eth_forward_int_config(uint32_t *offset, uint32_t value)
 static void
 al_eth_serdes_init(struct al_eth_adapter *adapter)
 {
-	void __iomem	*serdes_base;
+	void __iomem *serdes_base;
 
 	adapter->serdes_init = false;
 
@@ -555,27 +560,26 @@ al_dma_alloc_coherent(device_t dev, bus_dma_tag_t *tag, bus_dmamap_t *map,
     bus_addr_t *baddr, void **vaddr, uint32_t size)
 {
 	int ret;
-	uint32_t maxsize = ((size - 1)/PAGE_SIZE + 1) * PAGE_SIZE;
+	uint32_t maxsize = ((size - 1) / PAGE_SIZE + 1) * PAGE_SIZE;
 
-	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 8, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    maxsize, 1, maxsize, BUS_DMA_COHERENT, NULL, NULL, tag);
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 8, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, maxsize, 1, maxsize,
+	    BUS_DMA_COHERENT, NULL, NULL, tag);
 	if (ret != 0) {
-		device_printf(dev,
-		    "failed to create bus tag, ret = %d\n", ret);
+		device_printf(dev, "failed to create bus tag, ret = %d\n", ret);
 		return (ret);
 	}
 
-	ret = bus_dmamem_alloc(*tag, vaddr,
-	    BUS_DMA_COHERENT | BUS_DMA_ZERO, map);
+	ret = bus_dmamem_alloc(*tag, vaddr, BUS_DMA_COHERENT | BUS_DMA_ZERO,
+	    map);
 	if (ret != 0) {
-		device_printf(dev,
-		    "failed to allocate dmamem, ret = %d\n", ret);
+		device_printf(dev, "failed to allocate dmamem, ret = %d\n",
+		    ret);
 		return (ret);
 	}
 
-	ret = bus_dmamap_load(*tag, *map, *vaddr,
-	    size, al_dma_map_addr, baddr, 0);
+	ret = bus_dmamap_load(*tag, *map, *vaddr, size, al_dma_map_addr, baddr,
+	    0);
 	if (ret != 0) {
 		device_printf(dev,
 		    "failed to allocate bus_dmamap_load, ret = %d\n", ret);
@@ -595,8 +599,8 @@ al_dma_free_coherent(bus_dma_tag_t tag, bus_dmamap_t map, void *vaddr)
 }
 
 static void
-al_eth_mac_table_unicast_add(struct al_eth_adapter *adapter,
-    uint8_t idx, uint8_t udma_mask)
+al_eth_mac_table_unicast_add(struct al_eth_adapter *adapter, uint8_t idx,
+    uint8_t udma_mask)
 {
 	struct al_eth_fwd_mac_table_entry entry = { { 0 } };
 
@@ -609,8 +613,8 @@ al_eth_mac_table_unicast_add(struct al_eth_adapter *adapter,
 	entry.filter = false;
 
 	device_printf_dbg(adapter->dev,
-	    "%s: [%d]: addr "MAC_ADDR_STR" mask "MAC_ADDR_STR"\n",
-	    __func__, idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
+	    "%s: [%d]: addr " MAC_ADDR_STR " mask " MAC_ADDR_STR "\n", __func__,
+	    idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
 
 	al_eth_fwd_mac_table_set(&adapter->hal_adapter, idx, &entry);
 }
@@ -632,15 +636,15 @@ al_eth_mac_table_all_multicast_add(struct al_eth_adapter *adapter, uint8_t idx,
 	entry.filter = false;
 
 	device_printf_dbg(adapter->dev,
-	    "%s: [%d]: addr "MAC_ADDR_STR" mask "MAC_ADDR_STR"\n",
-	    __func__, idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
+	    "%s: [%d]: addr " MAC_ADDR_STR " mask " MAC_ADDR_STR "\n", __func__,
+	    idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
 
 	al_eth_fwd_mac_table_set(&adapter->hal_adapter, idx, &entry);
 }
 
 static void
-al_eth_mac_table_broadcast_add(struct al_eth_adapter *adapter,
-    uint8_t idx, uint8_t udma_mask)
+al_eth_mac_table_broadcast_add(struct al_eth_adapter *adapter, uint8_t idx,
+    uint8_t udma_mask)
 {
 	struct al_eth_fwd_mac_table_entry entry = { { 0 } };
 
@@ -653,8 +657,8 @@ al_eth_mac_table_broadcast_add(struct al_eth_adapter *adapter,
 	entry.filter = false;
 
 	device_printf_dbg(adapter->dev,
-	    "%s: [%d]: addr "MAC_ADDR_STR" mask "MAC_ADDR_STR"\n",
-	    __func__, idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
+	    "%s: [%d]: addr " MAC_ADDR_STR " mask " MAC_ADDR_STR "\n", __func__,
+	    idx, MAC_ADDR(entry.addr), MAC_ADDR(entry.mask));
 
 	al_eth_fwd_mac_table_set(&adapter->hal_adapter, idx, &entry);
 }
@@ -673,8 +677,8 @@ al_eth_mac_table_promiscuous_set(struct al_eth_adapter *adapter,
 	entry.udma_mask = (promiscuous) ? 1 : 0;
 	entry.filter = (promiscuous) ? false : true;
 
-	device_printf_dbg(adapter->dev, "%s: %s promiscuous mode\n",
-	    __func__, (promiscuous) ? "enter" : "exit");
+	device_printf_dbg(adapter->dev, "%s: %s promiscuous mode\n", __func__,
+	    (promiscuous) ? "enter" : "exit");
 
 	al_eth_fwd_mac_table_set(&adapter->hal_adapter,
 	    AL_ETH_MAC_TABLE_DROP_IDX, &entry);
@@ -694,7 +698,8 @@ al_eth_set_thash_table_entry(struct al_eth_adapter *adapter, uint8_t idx,
 	al_eth_thash_table_set(&adapter->hal_adapter, idx, udma, queue);
 }
 
-/* init FSM, no tunneling supported yet, if packet is tcp/udp over ipv4/ipv6, use 4 tuple hash */
+/* init FSM, no tunneling supported yet, if packet is tcp/udp over ipv4/ipv6,
+ * use 4 tuple hash */
 static void
 al_eth_fsm_table_init(struct al_eth_adapter *adapter)
 {
@@ -725,8 +730,7 @@ al_eth_fsm_table_init(struct al_eth_adapter *adapter)
 }
 
 static void
-al_eth_mac_table_entry_clear(struct al_eth_adapter *adapter,
-    uint8_t idx)
+al_eth_mac_table_entry_clear(struct al_eth_adapter *adapter, uint8_t idx)
 {
 	struct al_eth_fwd_mac_table_entry entry = { { 0 } };
 
@@ -745,9 +749,12 @@ al_eth_hw_init_adapter(struct al_eth_adapter *adapter)
 	params->rev_id = adapter->rev_id;
 	params->udma_id = 0;
 	params->enable_rx_parser = 1; /* enable rx epe parser*/
-	params->udma_regs_base = adapter->udma_base; /* UDMA register base address */
-	params->ec_regs_base = adapter->ec_base; /* Ethernet controller registers base address */
-	params->mac_regs_base = adapter->mac_base; /* Ethernet MAC registers base address */
+	params->udma_regs_base =
+	    adapter->udma_base; /* UDMA register base address */
+	params->ec_regs_base =
+	    adapter->ec_base; /* Ethernet controller registers base address */
+	params->mac_regs_base =
+	    adapter->mac_base; /* Ethernet MAC registers base address */
 	params->name = adapter->name;
 	params->serdes_lane = adapter->serdes_lane;
 
@@ -758,16 +765,19 @@ al_eth_hw_init_adapter(struct al_eth_adapter *adapter)
 
 	if ((adapter->board_type == ALPINE_NIC) ||
 	    (adapter->board_type == ALPINE_FPGA_NIC)) {
-		/* in pcie NIC mode, force eth UDMA to access PCIE0 using the vmid */
+		/* in pcie NIC mode, force eth UDMA to access PCIE0 using the
+		 * vmid */
 		struct al_udma_gen_tgtid_conf conf;
 		int i;
 		for (i = 0; i < DMA_MAX_Q; i++) {
 			conf.tx_q_conf[i].queue_en = AL_TRUE;
 			conf.tx_q_conf[i].desc_en = AL_FALSE;
-			conf.tx_q_conf[i].tgtid = 0x100; /* for access from PCIE0 */
+			conf.tx_q_conf[i].tgtid =
+			    0x100; /* for access from PCIE0 */
 			conf.rx_q_conf[i].queue_en = AL_TRUE;
 			conf.rx_q_conf[i].desc_en = AL_FALSE;
-			conf.rx_q_conf[i].tgtid = 0x100; /* for access from PCIE0 */
+			conf.rx_q_conf[i].tgtid =
+			    0x100; /* for access from PCIE0 */
 		}
 		al_udma_gen_tgtid_conf_set(adapter->udma_base, &conf);
 	}
@@ -778,7 +788,7 @@ al_eth_hw_init_adapter(struct al_eth_adapter *adapter)
 static void
 al_eth_lm_config(struct al_eth_adapter *adapter)
 {
-	struct al_eth_lm_init_params params = {0};
+	struct al_eth_lm_init_params params = { 0 };
 
 	params.adapter = &adapter->hal_adapter;
 	params.serdes_obj = &adapter->serdes_obj;
@@ -865,7 +875,8 @@ al_eth_board_params_init(struct al_eth_adapter *adapter)
 		adapter->dont_override_serdes = params.dont_override_serdes;
 		adapter->link_config.active_duplex = !params.half_duplex;
 		adapter->link_config.autoneg = !params.an_disable;
-		adapter->link_config.force_1000_base_x = params.force_1000_base_x;
+		adapter->link_config.force_1000_base_x =
+		    params.force_1000_base_x;
 		adapter->retimer.exist = params.retimer_exist;
 		adapter->retimer.bus_id = params.retimer_bus_id;
 		adapter->retimer.i2c_addr = params.retimer_i2c_addr;
@@ -873,8 +884,8 @@ al_eth_board_params_init(struct al_eth_adapter *adapter)
 
 		switch (params.speed) {
 		default:
-			device_printf(adapter->dev,
-			    "%s: invalid speed (%d)\n", __func__, params.speed);
+			device_printf(adapter->dev, "%s: invalid speed (%d)\n",
+			    __func__, params.speed);
 		case AL_ETH_BOARD_1G_SPEED_1000M:
 			adapter->link_config.active_speed = 1000;
 			break;
@@ -932,16 +943,16 @@ al_eth_board_params_init(struct al_eth_adapter *adapter)
 			break;
 		default:
 			device_printf(adapter->dev,
-			    "%s: unsupported media type %d\n",
-			    __func__, params.media_type);
+			    "%s: unsupported media type %d\n", __func__,
+			    params.media_type);
 			return (-1);
 		}
 
 		device_printf(adapter->dev,
 		    "Board info: phy exist %s. phy addr %d. mdio freq %u Khz. "
 		    "SFP connected %s. media %d\n",
-		    params.phy_exist ? "Yes" : "No",
-		    params.phy_mdio_addr, adapter->mdio_freq,
+		    params.phy_exist ? "Yes" : "No", params.phy_mdio_addr,
+		    adapter->mdio_freq,
 		    params.sfp_plus_module_exist ? "Yes" : "No",
 		    params.media_type);
 	}
@@ -962,12 +973,11 @@ al_eth_function_reset(struct al_eth_adapter *adapter)
 	al_eth_mac_addr_read(adapter->ec_base, 0, adapter->mac_addr);
 	if (adapter->board_type == ALPINE_INTEGRATED)
 		rc = al_eth_flr_rmn(&al_eth_read_pci_config,
-		    &al_eth_write_pci_config,
-		    adapter->dev, adapter->mac_base);
+		    &al_eth_write_pci_config, adapter->dev, adapter->mac_base);
 	else
 		rc = al_eth_flr_rmn(&al_eth_fpga_read_pci_config,
-		    &al_eth_fpga_write_pci_config,
-		    adapter->internal_pcie_base, adapter->mac_base);
+		    &al_eth_fpga_write_pci_config, adapter->internal_pcie_base,
+		    adapter->mac_base);
 
 	/* restore params */
 	al_eth_board_params_set(adapter->mac_base, &params);
@@ -992,7 +1002,9 @@ al_eth_init_rings(struct al_eth_adapter *adapter)
 		    &ring->dma_q);
 		ring->sw_count = adapter->tx_ring_count;
 		ring->hw_count = adapter->tx_descs_count;
-		ring->unmask_reg_offset = al_udma_iofic_unmask_offset_get((struct unit_regs *)adapter->udma_base, AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_C);
+		ring->unmask_reg_offset = al_udma_iofic_unmask_offset_get(
+		    (struct unit_regs *)adapter->udma_base,
+		    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_C);
 		ring->unmask_val = ~(1 << i);
 	}
 
@@ -1003,7 +1015,8 @@ al_eth_init_rings(struct al_eth_adapter *adapter)
 		ring->dev = adapter->dev;
 		ring->adapter = adapter;
 		ring->netdev = adapter->netdev;
-		al_udma_q_handle_get(&adapter->hal_adapter.rx_udma, i, &ring->dma_q);
+		al_udma_q_handle_get(&adapter->hal_adapter.rx_udma, i,
+		    &ring->dma_q);
 		ring->sw_count = adapter->rx_ring_count;
 		ring->hw_count = adapter->rx_descs_count;
 		ring->unmask_reg_offset = al_udma_iofic_unmask_offset_get(
@@ -1037,8 +1050,7 @@ al_init(void *arg)
 }
 
 static inline int
-al_eth_alloc_rx_buf(struct al_eth_adapter *adapter,
-    struct al_eth_ring *rx_ring,
+al_eth_alloc_rx_buf(struct al_eth_adapter *adapter, struct al_eth_ring *rx_ring,
     struct al_eth_rx_buffer *rx_info)
 {
 	struct al_buf *al_buf;
@@ -1054,8 +1066,7 @@ al_eth_alloc_rx_buf(struct al_eth_adapter *adapter,
 	AL_RX_LOCK(adapter);
 
 	/* Get mbuf using UMA allocator */
-	rx_info->m = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR,
-	    rx_info->data_size);
+	rx_info->m = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR, rx_info->data_size);
 	AL_RX_UNLOCK(adapter);
 
 	if (rx_info->m == NULL)
@@ -1096,15 +1107,15 @@ al_eth_refill_rx_bufs(struct al_eth_adapter *adapter, unsigned int qid,
 		struct al_eth_rx_buffer *rx_info =
 		    &rx_ring->rx_buffer_info[next_to_use];
 
-		if (__predict_false(al_eth_alloc_rx_buf(adapter,
-		    rx_ring, rx_info) < 0)) {
+		if (__predict_false(
+			al_eth_alloc_rx_buf(adapter, rx_ring, rx_info) < 0)) {
 			device_printf(adapter->dev,
 			    "failed to alloc buffer for rx queue %d\n", qid);
 			break;
 		}
 
-		rc = al_eth_rx_buffer_add(rx_ring->dma_q,
-		    &rx_info->al_buf, AL_ETH_RX_FLAGS_INT, NULL);
+		rc = al_eth_rx_buffer_add(rx_ring->dma_q, &rx_info->al_buf,
+		    AL_ETH_RX_FLAGS_INT, NULL);
 		if (__predict_false(rc)) {
 			device_printf(adapter->dev,
 			    "failed to add buffer for rx queue %d\n", qid);
@@ -1202,8 +1213,8 @@ al_eth_tx_csum(struct al_eth_ring *tx_ring, struct al_eth_tx_buffer *tx_info,
 	struct ip6_hdr *ip6;
 #endif
 	struct tcphdr *th = NULL;
-	int	ehdrlen, ip_hlen = 0;
-	uint8_t	ipproto = 0;
+	int ehdrlen, ip_hlen = 0;
+	uint8_t ipproto = 0;
 	uint32_t offload = 0;
 
 	if (mss != 0)
@@ -1276,15 +1287,16 @@ al_eth_tx_csum(struct al_eth_ring *tx_ring, struct al_eth_tx_buffer *tx_info,
 		meta->l3_header_len = ip_hlen;
 		meta->l3_header_offset = ehdrlen;
 		if (th != NULL)
-			meta->l4_header_len = th->th_off; /* this param needed only for TSO */
-		meta->mss_idx_sel = 0;			/* check how to select MSS */
+			meta->l4_header_len =
+			    th->th_off; /* this param needed only for TSO */
+		meta->mss_idx_sel = 0;	/* check how to select MSS */
 		meta->mss_val = mss;
 		hal_pkt->meta = meta;
 	} else
 		hal_pkt->meta = NULL;
 }
 
-#define	XMIT_QUEUE_TIMEOUT	100
+#define XMIT_QUEUE_TIMEOUT 100
 
 static void
 al_eth_xmit_mbuf(struct al_eth_ring *tx_ring, struct mbuf *m)
@@ -1303,7 +1315,7 @@ al_eth_xmit_mbuf(struct al_eth_ring *tx_ring, struct mbuf *m)
 		for (a = 0; a < XMIT_QUEUE_TIMEOUT; a++) {
 			if (al_udma_available_get(tx_ring->dma_q) >=
 			    (AL_ETH_DEFAULT_TX_HW_DESCS -
-			    AL_ETH_TX_WAKEUP_THRESH)) {
+				AL_ETH_TX_WAKEUP_THRESH)) {
 				tx_ring->stall = 0;
 				break;
 			}
@@ -1315,8 +1327,8 @@ al_eth_xmit_mbuf(struct al_eth_ring *tx_ring, struct mbuf *m)
 			    tx_ring->ring_id);
 			return;
 		} else {
-			device_printf_dbg(tx_ring->dev,
-			    "queue %d is ready!\n", tx_ring->ring_id);
+			device_printf_dbg(tx_ring->dev, "queue %d is ready!\n",
+			    tx_ring->ring_id);
 		}
 	}
 
@@ -1387,7 +1399,7 @@ retry:
 	 * to AL_ETH_PKT_MAX_BUFS + 1 buffers and a meta descriptor
 	 */
 	if (unlikely(al_udma_available_get(tx_ring->dma_q) <
-	    (AL_ETH_PKT_MAX_BUFS + 2))) {
+		(AL_ETH_PKT_MAX_BUFS + 2))) {
 		tx_ring->stall = 1;
 		device_printf_dbg(tx_ring->dev, "stall, stopping queue %d...\n",
 		    tx_ring->ring_id);
@@ -1473,36 +1485,38 @@ al_eth_rx_recv_irq_filter(void *arg)
  * @mbuf: mbuf currently being received and modified
  */
 static inline void
-al_eth_rx_checksum(struct al_eth_adapter *adapter,
-    struct al_eth_pkt *hal_pkt, struct mbuf *mbuf)
+al_eth_rx_checksum(struct al_eth_adapter *adapter, struct al_eth_pkt *hal_pkt,
+    struct mbuf *mbuf)
 {
 
 	/* if IPv4 and error */
 	if (unlikely((if_getcapenable(adapter->netdev) & IFCAP_RXCSUM) &&
-	    (hal_pkt->l3_proto_idx == AL_ETH_PROTO_ID_IPv4) &&
-	    (hal_pkt->flags & AL_ETH_RX_FLAGS_L3_CSUM_ERR))) {
-		device_printf(adapter->dev,"rx ipv4 header checksum error\n");
+		(hal_pkt->l3_proto_idx == AL_ETH_PROTO_ID_IPv4) &&
+		(hal_pkt->flags & AL_ETH_RX_FLAGS_L3_CSUM_ERR))) {
+		device_printf(adapter->dev, "rx ipv4 header checksum error\n");
 		return;
 	}
 
 	/* if IPv6 and error */
 	if (unlikely((if_getcapenable(adapter->netdev) & IFCAP_RXCSUM_IPV6) &&
-	    (hal_pkt->l3_proto_idx == AL_ETH_PROTO_ID_IPv6) &&
-	    (hal_pkt->flags & AL_ETH_RX_FLAGS_L3_CSUM_ERR))) {
-		device_printf(adapter->dev,"rx ipv6 header checksum error\n");
+		(hal_pkt->l3_proto_idx == AL_ETH_PROTO_ID_IPv6) &&
+		(hal_pkt->flags & AL_ETH_RX_FLAGS_L3_CSUM_ERR))) {
+		device_printf(adapter->dev, "rx ipv6 header checksum error\n");
 		return;
 	}
 
 	/* if TCP/UDP */
 	if (likely((hal_pkt->l4_proto_idx == AL_ETH_PROTO_ID_TCP) ||
-	   (hal_pkt->l4_proto_idx == AL_ETH_PROTO_ID_UDP))) {
+		(hal_pkt->l4_proto_idx == AL_ETH_PROTO_ID_UDP))) {
 		if (unlikely(hal_pkt->flags & AL_ETH_RX_FLAGS_L4_CSUM_ERR)) {
-			device_printf_dbg(adapter->dev, "rx L4 checksum error\n");
+			device_printf_dbg(adapter->dev,
+			    "rx L4 checksum error\n");
 
 			/* TCP/UDP checksum error */
 			mbuf->m_pkthdr.csum_flags = 0;
 		} else {
-			device_printf_dbg(adapter->dev, "rx checksum correct\n");
+			device_printf_dbg(adapter->dev,
+			    "rx checksum correct\n");
 
 			/* IP Checksum Good */
 			mbuf->m_pkthdr.csum_flags = CSUM_IP_CHECKED;
@@ -1511,10 +1525,9 @@ al_eth_rx_checksum(struct al_eth_adapter *adapter,
 	}
 }
 
-static struct mbuf*
-al_eth_rx_mbuf(struct al_eth_adapter *adapter,
-    struct al_eth_ring *rx_ring, struct al_eth_pkt *hal_pkt,
-    unsigned int descs, uint16_t *next_to_clean)
+static struct mbuf *
+al_eth_rx_mbuf(struct al_eth_adapter *adapter, struct al_eth_ring *rx_ring,
+    struct al_eth_pkt *hal_pkt, unsigned int descs, uint16_t *next_to_clean)
 {
 	struct mbuf *mbuf;
 	struct al_eth_rx_buffer *rx_info =
@@ -1523,7 +1536,7 @@ al_eth_rx_mbuf(struct al_eth_adapter *adapter,
 
 	len = hal_pkt->bufs[0].len;
 	device_printf_dbg(adapter->dev, "rx_info %p data %p\n", rx_info,
-	   rx_info->m);
+	    rx_info->m);
 
 	if (rx_info->m == NULL) {
 		*next_to_clean = AL_ETH_RX_RING_IDX_NEXT(rx_ring,
@@ -1539,7 +1552,8 @@ al_eth_rx_mbuf(struct al_eth_adapter *adapter,
 
 	if (len <= adapter->small_copy_len) {
 		struct mbuf *smbuf;
-		device_printf_dbg(adapter->dev, "rx small packet. len %d\n", len);
+		device_printf_dbg(adapter->dev, "rx small packet. len %d\n",
+		    len);
 
 		AL_RX_LOCK(adapter);
 		smbuf = m_gethdr(M_NOWAIT, MT_DATA);
@@ -1550,7 +1564,8 @@ al_eth_rx_mbuf(struct al_eth_adapter *adapter,
 		}
 
 		smbuf->m_data = smbuf->m_data + AL_IP_ALIGNMENT_OFFSET;
-		memcpy(smbuf->m_data, mbuf->m_data + AL_IP_ALIGNMENT_OFFSET, len);
+		memcpy(smbuf->m_data, mbuf->m_data + AL_IP_ALIGNMENT_OFFSET,
+		    len);
 
 		smbuf->m_len = len;
 		smbuf->m_pkthdr.rcvif = rx_ring->netdev;
@@ -1600,17 +1615,23 @@ al_eth_rx_recv_work(void *arg, int pending)
 		if (unlikely(descs == 0))
 			break;
 
-		device_printf_dbg(rx_ring->dev, "rx_poll: q %d got packet "
-		    "from hal. descs %d\n", qid, descs);
-		device_printf_dbg(rx_ring->dev, "rx_poll: q %d flags %x. "
-		    "l3 proto %d l4 proto %d\n", qid, hal_pkt->flags,
-		    hal_pkt->l3_proto_idx, hal_pkt->l4_proto_idx);
+		device_printf_dbg(rx_ring->dev,
+		    "rx_poll: q %d got packet "
+		    "from hal. descs %d\n",
+		    qid, descs);
+		device_printf_dbg(rx_ring->dev,
+		    "rx_poll: q %d flags %x. "
+		    "l3 proto %d l4 proto %d\n",
+		    qid, hal_pkt->flags, hal_pkt->l3_proto_idx,
+		    hal_pkt->l4_proto_idx);
 
 		/* ignore if detected dma or eth controller errors */
-		if ((hal_pkt->flags & (AL_ETH_RX_ERROR |
-		    AL_UDMA_CDESC_ERROR)) != 0) {
-			device_printf(rx_ring->dev, "receive packet with error. "
-			    "flags = 0x%x\n", hal_pkt->flags);
+		if ((hal_pkt->flags &
+			(AL_ETH_RX_ERROR | AL_UDMA_CDESC_ERROR)) != 0) {
+			device_printf(rx_ring->dev,
+			    "receive packet with error. "
+			    "flags = 0x%x\n",
+			    hal_pkt->flags);
 			next_to_clean = AL_ETH_RX_RING_IDX_ADD(rx_ring,
 			    next_to_clean, descs);
 			continue;
@@ -1627,8 +1648,9 @@ al_eth_rx_recv_work(void *arg, int pending)
 			break;
 		}
 
-		if (__predict_true(if_getcapenable(rx_ring->netdev) & IFCAP_RXCSUM ||
-		    if_getcapenable(rx_ring->netdev) & IFCAP_RXCSUM_IPV6)) {
+		if (__predict_true(
+			if_getcapenable(rx_ring->netdev) & IFCAP_RXCSUM ||
+			if_getcapenable(rx_ring->netdev) & IFCAP_RXCSUM_IPV6)) {
 			al_eth_rx_checksum(rx_ring->adapter, hal_pkt, mbuf);
 		}
 
@@ -1667,8 +1689,8 @@ al_eth_rx_recv_work(void *arg, int pending)
 	    refill_required);
 
 	if (unlikely(refill_actual < refill_required)) {
-		device_printf_dbg(rx_ring->dev,
-		    "%s: not filling rx queue %d\n", __func__, qid);
+		device_printf_dbg(rx_ring->dev, "%s: not filling rx queue %d\n",
+		    __func__, qid);
 	}
 
 	while (((queued = LIST_FIRST(&rx_ring->lro.lro_active)) != NULL)) {
@@ -1734,15 +1756,17 @@ al_mq_start(if_t ifp, struct mbuf *m)
 	else
 		i = curcpu % adapter->num_tx_queues;
 
-	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING|IFF_DRV_OACTIVE)) !=
+	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
 	    IFF_DRV_RUNNING) {
 		return (EFAULT);
 	}
 
 	tx_ring = &adapter->tx_ring[i];
 
-	device_printf_dbg(adapter->dev, "dgb start() - assuming link is active, "
-	    "sending packet to queue %d\n", i);
+	device_printf_dbg(adapter->dev,
+	    "dgb start() - assuming link is active, "
+	    "sending packet to queue %d\n",
+	    i);
 
 	ret = drbr_enqueue(ifp, tx_ring->br, m);
 
@@ -1784,10 +1808,10 @@ al_eth_flow_ctrl_config(struct al_eth_adapter *adapter)
 	flow_ctrl_params = &adapter->flow_ctrl_params;
 
 	flow_ctrl_params->type = AL_ETH_FLOW_CONTROL_TYPE_LINK_PAUSE;
-	flow_ctrl_params->obay_enable =
-	    ((active & AL_ETH_FLOW_CTRL_RX_PAUSE) != 0);
-	flow_ctrl_params->gen_enable =
-	    ((active & AL_ETH_FLOW_CTRL_TX_PAUSE) != 0);
+	flow_ctrl_params->obay_enable = ((active & AL_ETH_FLOW_CTRL_RX_PAUSE) !=
+	    0);
+	flow_ctrl_params->gen_enable = ((active & AL_ETH_FLOW_CTRL_TX_PAUSE) !=
+	    0);
 
 	flow_ctrl_params->rx_fifo_th_high = AL_ETH_FLOW_CTRL_RX_FIFO_TH_HIGH;
 	flow_ctrl_params->rx_fifo_th_low = AL_ETH_FLOW_CTRL_RX_FIFO_TH_LOW;
@@ -1796,7 +1820,7 @@ al_eth_flow_ctrl_config(struct al_eth_adapter *adapter)
 
 	/* map priority to queue index, queue id = priority/2 */
 	for (i = 0; i < AL_ETH_FWD_PRIO_TABLE_NUM; i++)
-		flow_ctrl_params->prio_q_map[0][i] =  1 << (i >> 1);
+		flow_ctrl_params->prio_q_map[0][i] = 1 << (i >> 1);
 
 	al_eth_flow_control_config(&adapter->hal_adapter, flow_ctrl_params);
 
@@ -1843,7 +1867,7 @@ al_eth_hw_init(struct al_eth_adapter *adapter)
 
 	if ((adapter->mac_mode == AL_ETH_MAC_MODE_SGMII) ||
 	    (adapter->mac_mode == AL_ETH_MAC_MODE_RGMII &&
-	     adapter->phy_exist == false)) {
+		adapter->phy_exist == false)) {
 		rc = al_eth_mac_link_config(&adapter->hal_adapter,
 		    adapter->link_config.force_1000_base_x,
 		    adapter->link_config.autoneg,
@@ -1904,8 +1928,8 @@ al_eth_intr_intx_all(void *data)
 {
 	struct al_eth_adapter *adapter = data;
 
-	struct unit_regs __iomem *regs_base =
-	    (struct unit_regs __iomem *)adapter->udma_base;
+	struct unit_regs __iomem *regs_base = (struct unit_regs __iomem *)
+						  adapter->udma_base;
 	uint32_t reg;
 
 	reg = al_udma_iofic_read_cause(regs_base, AL_UDMA_IOFIC_LEVEL_PRIMARY,
@@ -1916,7 +1940,7 @@ al_eth_intr_intx_all(void *data)
 
 	if (unlikely(reg & AL_INT_GROUP_A_GROUP_D_SUM)) {
 		struct al_iofic_grp_ctrl __iomem *sec_ints_base;
-		uint32_t cause_d =  al_udma_iofic_read_cause(regs_base,
+		uint32_t cause_d = al_udma_iofic_read_cause(regs_base,
 		    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_D);
 
 		sec_ints_base =
@@ -1927,8 +1951,8 @@ al_eth_intr_intx_all(void *data)
 
 			cause_d = al_iofic_read_cause(sec_ints_base,
 			    AL_INT_GROUP_A);
-			device_printf(adapter->dev,
-			    "secondary A cause %x\n", cause_d);
+			device_printf(adapter->dev, "secondary A cause %x\n",
+			    cause_d);
 
 			cause_d = al_iofic_read_cause(sec_ints_base,
 			    AL_INT_GROUP_B);
@@ -1937,7 +1961,7 @@ al_eth_intr_intx_all(void *data)
 			    "secondary B cause %x\n", cause_d);
 		}
 	}
-	if ((reg & AL_INT_GROUP_A_GROUP_B_SUM) != 0 ) {
+	if ((reg & AL_INT_GROUP_A_GROUP_B_SUM) != 0) {
 		uint32_t cause_b = al_udma_iofic_read_cause(regs_base,
 		    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_B);
 		int qid;
@@ -1946,10 +1970,10 @@ al_eth_intr_intx_all(void *data)
 		for (qid = 0; qid < adapter->num_rx_queues; qid++) {
 			if (cause_b & (1 << qid)) {
 				/* mask */
-				al_udma_iofic_mask(
-				    (struct unit_regs __iomem *)adapter->udma_base,
-				    AL_UDMA_IOFIC_LEVEL_PRIMARY,
-				    AL_INT_GROUP_B, 1 << qid);
+				al_udma_iofic_mask((struct unit_regs __iomem *)
+						       adapter->udma_base,
+				    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_B,
+				    1 << qid);
 			}
 		}
 	}
@@ -1957,13 +1981,14 @@ al_eth_intr_intx_all(void *data)
 		uint32_t cause_c = al_udma_iofic_read_cause(regs_base,
 		    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_C);
 		int qid;
-		device_printf_dbg(adapter->dev, "secondary C cause %x\n", cause_c);
+		device_printf_dbg(adapter->dev, "secondary C cause %x\n",
+		    cause_c);
 		for (qid = 0; qid < adapter->num_tx_queues; qid++) {
 			if ((cause_c & (1 << qid)) != 0) {
-				al_udma_iofic_mask(
-				    (struct unit_regs __iomem *)adapter->udma_base,
-				    AL_UDMA_IOFIC_LEVEL_PRIMARY,
-				    AL_INT_GROUP_C, 1 << qid);
+				al_udma_iofic_mask((struct unit_regs __iomem *)
+						       adapter->udma_base,
+				    AL_UDMA_IOFIC_LEVEL_PRIMARY, AL_INT_GROUP_C,
+				    1 << qid);
 			}
 		}
 	}
@@ -2002,12 +2027,15 @@ al_eth_enable_msix(struct al_eth_adapter *adapter)
 	device_printf_dbg(adapter->dev,
 	    "Try to enable MSIX, vector numbers = %d\n", msix_vecs);
 
-	adapter->msix_entries = malloc(msix_vecs*sizeof(*adapter->msix_entries),
+	adapter->msix_entries = malloc(msix_vecs *
+		sizeof(*adapter->msix_entries),
 	    M_IFAL, M_ZERO | M_WAITOK);
 
 	if (adapter->msix_entries == NULL) {
-		device_printf_dbg(adapter->dev, "failed to allocate"
-		    " msix_entries %d\n", msix_vecs);
+		device_printf_dbg(adapter->dev,
+		    "failed to allocate"
+		    " msix_entries %d\n",
+		    msix_vecs);
 		rc = ENOMEM;
 		goto exit;
 	}
@@ -2036,24 +2064,30 @@ al_eth_enable_msix(struct al_eth_adapter *adapter)
 	rc = pci_alloc_msix(adapter->dev, &count);
 
 	if (rc != 0) {
-		device_printf_dbg(adapter->dev, "failed to allocate MSIX "
-		    "vectors %d\n", msix_vecs+2);
+		device_printf_dbg(adapter->dev,
+		    "failed to allocate MSIX "
+		    "vectors %d\n",
+		    msix_vecs + 2);
 		device_printf_dbg(adapter->dev, "ret = %d\n", rc);
 		goto msix_entries_exit;
 	}
 
 	if (count != msix_vecs + 2) {
-		device_printf_dbg(adapter->dev, "failed to allocate all MSIX "
-		    "vectors %d, allocated %d\n", msix_vecs+2, count);
+		device_printf_dbg(adapter->dev,
+		    "failed to allocate all MSIX "
+		    "vectors %d, allocated %d\n",
+		    msix_vecs + 2, count);
 		rc = ENOSPC;
 		goto msix_entries_exit;
 	}
 
 	for (i = 0; i < msix_vecs; i++)
-	    adapter->msix_entries[i].vector = 2 + 1 + i;
+		adapter->msix_entries[i].vector = 2 + 1 + i;
 
-	device_printf_dbg(adapter->dev, "successfully enabled MSIX,"
-	    " vectors %d\n", msix_vecs);
+	device_printf_dbg(adapter->dev,
+	    "successfully enabled MSIX,"
+	    " vectors %d\n",
+	    msix_vecs);
 
 	adapter->msix_vecs = msix_vecs;
 	adapter->flags |= AL_ETH_FLAG_MSIX_ENABLED;
@@ -2110,8 +2144,9 @@ al_eth_setup_int_mode(struct al_eth_adapter *adapter)
 		return (0);
 	}
 	/* MSI-X per queue */
-	snprintf(adapter->irq_tbl[AL_ETH_MGMT_IRQ_IDX].name, AL_ETH_IRQNAME_SIZE,
-	    "al-eth-msix-mgmt@pci:%s", device_get_name(adapter->dev));
+	snprintf(adapter->irq_tbl[AL_ETH_MGMT_IRQ_IDX].name,
+	    AL_ETH_IRQNAME_SIZE, "al-eth-msix-mgmt@pci:%s",
+	    device_get_name(adapter->dev));
 	adapter->irq_tbl[AL_ETH_MGMT_IRQ_IDX].handler = al_eth_intr_msix_mgmt;
 
 	adapter->irq_tbl[AL_ETH_MGMT_IRQ_IDX].data = adapter;
@@ -2133,8 +2168,8 @@ al_eth_setup_int_mode(struct al_eth_adapter *adapter)
 	for (i = 0; i < adapter->num_tx_queues; i++) {
 		int irq_idx = AL_ETH_TXQ_IRQ_IDX(adapter, i);
 
-		snprintf(adapter->irq_tbl[irq_idx].name,
-		    AL_ETH_IRQNAME_SIZE, "al-eth-tx-comp-%d@pci:%s", i,
+		snprintf(adapter->irq_tbl[irq_idx].name, AL_ETH_IRQNAME_SIZE,
+		    "al-eth-tx-comp-%d@pci:%s", i,
 		    device_get_name(adapter->dev));
 		adapter->irq_tbl[irq_idx].handler = al_eth_tx_cmlp_irq_filter;
 		adapter->irq_tbl[irq_idx].data = &adapter->tx_ring[i];
@@ -2159,8 +2194,10 @@ __al_eth_free_irq(struct al_eth_adapter *adapter)
 			rc = bus_teardown_intr(adapter->dev, irq->res,
 			    irq->cookie);
 			if (rc != 0)
-				device_printf(adapter->dev, "failed to tear "
-				    "down irq: %d\n", irq->vector);
+				device_printf(adapter->dev,
+				    "failed to tear "
+				    "down irq: %d\n",
+				    irq->vector);
 		}
 		irq->requested = 0;
 	}
@@ -2186,12 +2223,14 @@ al_eth_free_irq(struct al_eth_adapter *adapter)
 			continue;
 		device_printf_dbg(adapter->dev, "release resource irq: %d\n",
 		    irq->vector);
-		rc = bus_release_resource(adapter->dev, SYS_RES_IRQ, irq->vector,
-		    irq->res);
+		rc = bus_release_resource(adapter->dev, SYS_RES_IRQ,
+		    irq->vector, irq->res);
 		irq->res = NULL;
 		if (rc != 0)
-			device_printf(adapter->dev, "dev has no parent while "
-			    "releasing res for irq: %d\n", irq->vector);
+			device_printf(adapter->dev,
+			    "dev has no parent while "
+			    "releasing res for irq: %d\n",
+			    irq->vector);
 	}
 
 	pci_release_msi(adapter->dev);
@@ -2224,16 +2263,19 @@ al_eth_request_irq(struct al_eth_adapter *adapter)
 		irq->res = bus_alloc_resource_any(adapter->dev, SYS_RES_IRQ,
 		    &irq->vector, flags);
 		if (irq->res == NULL) {
-			device_printf(adapter->dev, "could not allocate "
-			    "irq vector=%d\n", irq->vector);
+			device_printf(adapter->dev,
+			    "could not allocate "
+			    "irq vector=%d\n",
+			    irq->vector);
 			rc = ENXIO;
 			goto exit_res;
 		}
 
 		if ((rc = bus_setup_intr(adapter->dev, irq->res,
-		    INTR_TYPE_NET | INTR_MPSAFE, irq->handler,
-		    NULL, irq->data, &irq->cookie)) != 0) {
-			device_printf(adapter->dev, "failed to register "
+			 INTR_TYPE_NET | INTR_MPSAFE, irq->handler, NULL,
+			 irq->data, &irq->cookie)) != 0) {
+			device_printf(adapter->dev,
+			    "failed to register "
 			    "interrupt handler for irq %ju: %d\n",
 			    (uintmax_t)rman_get_start(irq->res), rc);
 			goto exit_intr;
@@ -2249,8 +2291,10 @@ exit_intr:
 		irq = &adapter->irq_tbl[v];
 		bti = bus_teardown_intr(adapter->dev, irq->res, irq->cookie);
 		if (bti != 0) {
-			device_printf(adapter->dev, "failed to tear "
-			    "down irq: %d\n", irq->vector);
+			device_printf(adapter->dev,
+			    "failed to tear "
+			    "down irq: %d\n",
+			    irq->vector);
 		}
 
 		irq->requested = 0;
@@ -2263,13 +2307,17 @@ exit_res:
 	while (v-- >= 0) {
 		int brr;
 		irq = &adapter->irq_tbl[v];
-		device_printf_dbg(adapter->dev, "exit_res: releasing resource"
-		    " for irq %d\n", irq->vector);
+		device_printf_dbg(adapter->dev,
+		    "exit_res: releasing resource"
+		    " for irq %d\n",
+		    irq->vector);
 		brr = bus_release_resource(adapter->dev, SYS_RES_IRQ,
 		    irq->vector, irq->res);
 		if (brr != 0)
-			device_printf(adapter->dev, "dev has no parent while "
-			    "releasing res for irq: %d\n", irq->vector);
+			device_printf(adapter->dev,
+			    "dev has no parent while "
+			    "releasing res for irq: %d\n",
+			    irq->vector);
 		irq->res = NULL;
 	}
 
@@ -2308,10 +2356,12 @@ al_eth_setup_tx_resources(struct al_eth_adapter *adapter, int qid)
 	ret = al_dma_alloc_coherent(dev, &q_params->desc_phy_base_tag,
 	    (bus_dmamap_t *)&q_params->desc_phy_base_map,
 	    (bus_addr_t *)&q_params->desc_phy_base,
-	    (void**)&q_params->desc_base, tx_ring->descs_size);
+	    (void **)&q_params->desc_base, tx_ring->descs_size);
 	if (ret != 0) {
-		device_printf(dev, "failed to al_dma_alloc_coherent,"
-		    " ret = %d\n", ret);
+		device_printf(dev,
+		    "failed to al_dma_alloc_coherent,"
+		    " ret = %d\n",
+		    ret);
 		return (ENOMEM);
 	}
 
@@ -2342,21 +2392,21 @@ al_eth_setup_tx_resources(struct al_eth_adapter *adapter, int qid)
 	    device_get_nameunit(adapter->dev));
 
 	/* Setup DMA descriptor areas. */
-	ret = bus_dma_tag_create(bus_get_dma_tag(dev),
-	    1, 0,			/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AL_TSO_SIZE,		/* maxsize */
-	    AL_ETH_PKT_MAX_BUFS,	/* nsegments */
-	    PAGE_SIZE,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockfuncarg */
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 1,
+	    0,			 /* alignment, bounds */
+	    BUS_SPACE_MAXADDR,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,	 /* highaddr */
+	    NULL, NULL,		 /* filter, filterarg */
+	    AL_TSO_SIZE,	 /* maxsize */
+	    AL_ETH_PKT_MAX_BUFS, /* nsegments */
+	    PAGE_SIZE,		 /* maxsegsize */
+	    0,			 /* flags */
+	    NULL,		 /* lockfunc */
+	    NULL,		 /* lockfuncarg */
 	    &tx_ring->dma_buf_tag);
 
 	if (ret != 0) {
-		device_printf(dev,"Unable to allocate dma_buf_tag, ret = %d\n",
+		device_printf(dev, "Unable to allocate dma_buf_tag, ret = %d\n",
 		    ret);
 		return (ret);
 	}
@@ -2365,8 +2415,10 @@ al_eth_setup_tx_resources(struct al_eth_adapter *adapter, int qid)
 		ret = bus_dmamap_create(tx_ring->dma_buf_tag, 0,
 		    &tx_ring->tx_buffer_info[size].dma_map);
 		if (ret != 0) {
-			device_printf(dev, "Unable to map DMA TX "
-			    "buffer memory [iter=%d]\n", size);
+			device_printf(dev,
+			    "Unable to map DMA TX "
+			    "buffer memory [iter=%d]\n",
+			    size);
 			return (ret);
 		}
 	}
@@ -2400,8 +2452,8 @@ al_eth_free_tx_resources(struct al_eth_adapter *adapter, int qid)
 		taskqueue_drain(tx_ring->cmpl_tq, &tx_ring->cmpl_task);
 
 	taskqueue_free(tx_ring->cmpl_tq);
-	while (taskqueue_cancel(tx_ring->enqueue_tq,
-	    &tx_ring->enqueue_task, NULL)) {
+	while (taskqueue_cancel(tx_ring->enqueue_tq, &tx_ring->enqueue_task,
+	    NULL)) {
 		taskqueue_drain(tx_ring->enqueue_tq, &tx_ring->enqueue_task);
 	}
 
@@ -2472,7 +2524,8 @@ al_eth_setup_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 
 	size = sizeof(struct al_eth_rx_buffer) * rx_ring->sw_count;
 
-	/* alloc extra element so in rx path we can always prefetch rx_info + 1 */
+	/* alloc extra element so in rx path we can always prefetch rx_info + 1
+	 */
 	size += 1;
 
 	rx_ring->rx_buffer_info = malloc(size, M_IFAL, M_ZERO | M_WAITOK);
@@ -2485,7 +2538,7 @@ al_eth_setup_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 	ret = al_dma_alloc_coherent(dev, &q_params->desc_phy_base_tag,
 	    &q_params->desc_phy_base_map,
 	    (bus_addr_t *)&q_params->desc_phy_base,
-	    (void**)&q_params->desc_base, rx_ring->descs_size);
+	    (void **)&q_params->desc_base, rx_ring->descs_size);
 
 	if ((q_params->desc_base == NULL) || (ret != 0))
 		return (ENOMEM);
@@ -2496,7 +2549,7 @@ al_eth_setup_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 	ret = al_dma_alloc_coherent(dev, &q_params->cdesc_phy_base_tag,
 	    &q_params->cdesc_phy_base_map,
 	    (bus_addr_t *)&q_params->cdesc_phy_base,
-	    (void**)&q_params->cdesc_base, rx_ring->cdescs_size);
+	    (void **)&q_params->cdesc_base, rx_ring->cdescs_size);
 
 	if ((q_params->cdesc_base == NULL) || (ret != 0))
 		return (ENOMEM);
@@ -2509,21 +2562,21 @@ al_eth_setup_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 	    device_get_nameunit(adapter->dev));
 
 	/* Setup DMA descriptor areas. */
-	ret = bus_dma_tag_create(bus_get_dma_tag(dev),
-	    1, 0,			/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    AL_TSO_SIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    AL_TSO_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL,			/* lockfunc */
-	    NULL,			/* lockfuncarg */
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 1,
+	    0,		       /* alignment, bounds */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    AL_TSO_SIZE,       /* maxsize */
+	    1,		       /* nsegments */
+	    AL_TSO_SIZE,       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockfuncarg */
 	    &rx_ring->dma_buf_tag);
 
 	if (ret != 0) {
-		device_printf(dev,"Unable to allocate RX dma_buf_tag\n");
+		device_printf(dev, "Unable to allocate RX dma_buf_tag\n");
 		return (ret);
 	}
 
@@ -2531,7 +2584,8 @@ al_eth_setup_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 		ret = bus_dmamap_create(rx_ring->dma_buf_tag, 0,
 		    &rx_ring->rx_buffer_info[size].dma_map);
 		if (ret != 0) {
-			device_printf(dev,"Unable to map DMA RX buffer memory\n");
+			device_printf(dev,
+			    "Unable to map DMA RX buffer memory\n");
 			return (ret);
 		}
 	}
@@ -2574,8 +2628,8 @@ al_eth_free_rx_resources(struct al_eth_adapter *adapter, unsigned int qid)
 	int size;
 
 	/* At this point interrupts' handlers must be deactivated */
-	while (taskqueue_cancel(rx_ring->enqueue_tq,
-	    &rx_ring->enqueue_task, NULL)) {
+	while (taskqueue_cancel(rx_ring->enqueue_tq, &rx_ring->enqueue_task,
+	    NULL)) {
 		taskqueue_drain(rx_ring->enqueue_tq, &rx_ring->enqueue_task);
 	}
 
@@ -2648,7 +2702,8 @@ al_eth_setup_all_rx_resources(struct al_eth_adapter *adapter)
 		if (rc == 0)
 			continue;
 
-		device_printf(adapter->dev, "Allocation for Rx Queue %u failed\n", i);
+		device_printf(adapter->dev,
+		    "Allocation for Rx Queue %u failed\n", i);
 		goto err_setup_rx;
 	}
 	return (0);
@@ -2698,8 +2753,10 @@ al_eth_disable_int_sync(struct al_eth_adapter *adapter)
 	/* disable forwarding interrupts from eth through pci end point */
 	if ((adapter->board_type == ALPINE_FPGA_NIC) ||
 	    (adapter->board_type == ALPINE_NIC)) {
-		al_eth_forward_int_config((uint32_t*)adapter->internal_pcie_base +
-		    AL_REG_OFFSET_FORWARD_INTR, AL_DIS_FORWARD_INTR);
+		al_eth_forward_int_config((uint32_t *)
+					      adapter->internal_pcie_base +
+			AL_REG_OFFSET_FORWARD_INTR,
+		    AL_DIS_FORWARD_INTR);
 	}
 
 	/* mask hw interrupts */
@@ -2709,17 +2766,19 @@ al_eth_disable_int_sync(struct al_eth_adapter *adapter)
 static void
 al_eth_interrupts_unmask(struct al_eth_adapter *adapter)
 {
-	uint32_t group_a_mask = AL_INT_GROUP_A_GROUP_D_SUM; /* enable group D summery */
-	uint32_t group_b_mask = (1 << adapter->num_rx_queues) - 1;/* bit per Rx q*/
-	uint32_t group_c_mask = (1 << adapter->num_tx_queues) - 1;/* bit per Tx q*/
+	uint32_t group_a_mask =
+	    AL_INT_GROUP_A_GROUP_D_SUM; /* enable group D summery */
+	uint32_t group_b_mask = (1 << adapter->num_rx_queues) -
+	    1; /* bit per Rx q*/
+	uint32_t group_c_mask = (1 << adapter->num_tx_queues) -
+	    1; /* bit per Tx q*/
 	uint32_t group_d_mask = 3 << 8;
-	struct unit_regs __iomem *regs_base =
-	    (struct unit_regs __iomem *)adapter->udma_base;
+	struct unit_regs __iomem *regs_base = (struct unit_regs __iomem *)
+						  adapter->udma_base;
 
 	if (adapter->int_mode == AL_IOFIC_MODE_LEGACY)
 		group_a_mask |= AL_INT_GROUP_A_GROUP_B_SUM |
-		    AL_INT_GROUP_A_GROUP_C_SUM |
-		    AL_INT_GROUP_A_GROUP_D_SUM;
+		    AL_INT_GROUP_A_GROUP_C_SUM | AL_INT_GROUP_A_GROUP_D_SUM;
 
 	al_udma_iofic_unmask(regs_base, AL_UDMA_IOFIC_LEVEL_PRIMARY,
 	    AL_INT_GROUP_A, group_a_mask);
@@ -2734,8 +2793,8 @@ al_eth_interrupts_unmask(struct al_eth_adapter *adapter)
 static void
 al_eth_interrupts_mask(struct al_eth_adapter *adapter)
 {
-	struct unit_regs __iomem *regs_base =
-	    (struct unit_regs __iomem *)adapter->udma_base;
+	struct unit_regs __iomem *regs_base = (struct unit_regs __iomem *)
+						  adapter->udma_base;
 
 	/* mask all interrupts */
 	al_udma_iofic_mask(regs_base, AL_UDMA_IOFIC_LEVEL_PRIMARY,
@@ -2776,19 +2835,24 @@ al_eth_configure_int_mode(struct al_eth_adapter *adapter)
 	}
 
 	if (al_udma_iofic_config((struct unit_regs __iomem *)adapter->udma_base,
-	    int_mode, m2s_errors_disable, m2s_aborts_disable,
-	    s2m_errors_disable, s2m_aborts_disable)) {
+		int_mode, m2s_errors_disable, m2s_aborts_disable,
+		s2m_errors_disable, s2m_aborts_disable)) {
 		device_printf(adapter->dev,
 		    "al_udma_unit_int_config failed!.\n");
 		return (EIO);
 	}
 	adapter->int_mode = int_mode;
 	device_printf_dbg(adapter->dev, "using %s interrupt mode\n",
-	    int_mode == AL_IOFIC_MODE_LEGACY ? "INTx" :
-	    int_mode == AL_IOFIC_MODE_MSIX_PER_Q ? "MSI-X per Queue" : "Unknown");
+	    int_mode == AL_IOFIC_MODE_LEGACY	     ? "INTx" :
+		int_mode == AL_IOFIC_MODE_MSIX_PER_Q ? "MSI-X per Queue" :
+						       "Unknown");
 	/* set interrupt moderation resolution to 15us */
-	al_iofic_moder_res_config(&((struct unit_regs *)(adapter->udma_base))->gen.interrupt_regs.main_iofic, AL_INT_GROUP_B, 15);
-	al_iofic_moder_res_config(&((struct unit_regs *)(adapter->udma_base))->gen.interrupt_regs.main_iofic, AL_INT_GROUP_C, 15);
+	al_iofic_moder_res_config(&((struct unit_regs *)(adapter->udma_base))
+				       ->gen.interrupt_regs.main_iofic,
+	    AL_INT_GROUP_B, 15);
+	al_iofic_moder_res_config(&((struct unit_regs *)(adapter->udma_base))
+				       ->gen.interrupt_regs.main_iofic,
+	    AL_INT_GROUP_C, 15);
 	/* by default interrupt coalescing is disabled */
 	adapter->tx_usecs = 0;
 	adapter->rx_usecs = 0;
@@ -2810,7 +2874,7 @@ ethtool_rxfh_indir_default(uint32_t index, uint32_t n_rx_rings)
 	return (index % n_rx_rings);
 }
 
-static void*
+static void *
 al_eth_update_stats(struct al_eth_adapter *adapter)
 {
 	struct al_eth_mac_stats *mac_stats = &adapter->mac_stats;
@@ -2835,7 +2899,8 @@ al_get_counter(if_t ifp, ift_counter cnt)
 
 	switch (cnt) {
 	case IFCOUNTER_IPACKETS:
-		return (mac_stats->aFramesReceivedOK); /* including pause frames */
+		return (
+		    mac_stats->aFramesReceivedOK); /* including pause frames */
 	case IFCOUNTER_OPACKETS:
 		return (mac_stats->aFramesTransmittedOK);
 	case IFCOUNTER_IBYTES:
@@ -2853,8 +2918,8 @@ al_get_counter(if_t ifp, ift_counter cnt)
 	case IFCOUNTER_IERRORS:
 		rv = mac_stats->ifInErrors +
 		    mac_stats->etherStatsUndersizePkts + /* good but short */
-		    mac_stats->etherStatsFragments + /* short and bad*/
-		    mac_stats->etherStatsJabbers + /* with crc errors */
+		    mac_stats->etherStatsFragments +	 /* short and bad*/
+		    mac_stats->etherStatsJabbers +	 /* with crc errors */
 		    mac_stats->etherStatsOversizePkts +
 		    mac_stats->aFrameCheckSequenceErrors +
 		    mac_stats->aAlignmentErrors;
@@ -2913,7 +2978,8 @@ al_eth_set_rx_mode(struct al_eth_adapter *adapter)
 		al_eth_mac_table_promiscuous_set(adapter, true);
 	} else {
 		if ((if_getflags(ifp) & IFF_ALLMULTI) != 0) {
-			/* This interface is in all-multicasts mode (used by multicast routers). */
+			/* This interface is in all-multicasts mode (used by
+			 * multicast routers). */
 			al_eth_mac_table_all_multicast_add(adapter,
 			    AL_ETH_MAC_TABLE_ALL_MULTICAST_IDX, 1);
 		} else {
@@ -2938,7 +3004,7 @@ al_eth_set_rx_mode(struct al_eth_adapter *adapter)
 
 			/* clear the last configuration */
 			while (i < (AL_ETH_MAC_TABLE_UNICAST_IDX_BASE +
-				    AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT)) {
+				       AL_ETH_MAC_TABLE_UNICAST_MAX_COUNT)) {
 				al_eth_mac_table_entry_clear(adapter, i);
 				i++;
 			}
@@ -2978,12 +3044,14 @@ al_eth_config_rx_fwd(struct al_eth_adapter *adapter)
 	 */
 	al_eth_mac_table_unicast_add(adapter, AL_ETH_MAC_TABLE_UNICAST_IDX_BASE,
 	    1);
-	al_eth_mac_table_broadcast_add(adapter, AL_ETH_MAC_TABLE_BROADCAST_IDX, 1);
+	al_eth_mac_table_broadcast_add(adapter, AL_ETH_MAC_TABLE_BROADCAST_IDX,
+	    1);
 	al_eth_mac_table_promiscuous_set(adapter, false);
 
 	/* set toeplitz hash keys */
 	for (i = 0; i < sizeof(adapter->toeplitz_hash_key); i++)
-		*((uint8_t*)adapter->toeplitz_hash_key + i) = (uint8_t)random();
+		*((uint8_t *)adapter->toeplitz_hash_key +
+		    i) = (uint8_t)random();
 
 	for (i = 0; i < AL_ETH_RX_HASH_KEY_NUM; i++)
 		al_eth_hash_key_set(&adapter->hal_adapter, i,
@@ -3004,10 +3072,10 @@ al_eth_req_rx_buff_size(struct al_eth_adapter *adapter, int size)
 {
 
 	/*
-	* Determine the correct mbuf pool
-	* for doing jumbo frames
-	* Try from the smallest up to maximum supported
-	*/
+	 * Determine the correct mbuf pool
+	 * for doing jumbo frames
+	 * Try from the smallest up to maximum supported
+	 */
 	adapter->rx_mbuf_sz = MCLBYTES;
 	if (size > 2048) {
 		if (adapter->max_rx_buff_alloc_size > 2048)
@@ -3038,8 +3106,8 @@ al_eth_change_mtu(struct al_eth_adapter *adapter, int new_mtu)
 	al_eth_req_rx_buff_size(adapter, new_mtu);
 
 	device_printf_dbg(adapter->dev, "set MTU to %d\n", new_mtu);
-	al_eth_rx_pkt_limit_config(&adapter->hal_adapter,
-	    AL_ETH_MIN_FRAME_LEN, max_frame);
+	al_eth_rx_pkt_limit_config(&adapter->hal_adapter, AL_ETH_MIN_FRAME_LEN,
+	    max_frame);
 
 	al_eth_tso_mss_config(&adapter->hal_adapter, 0, new_mtu - 100);
 
@@ -3049,7 +3117,8 @@ al_eth_change_mtu(struct al_eth_adapter *adapter, int new_mtu)
 static int
 al_eth_check_mtu(struct al_eth_adapter *adapter, int new_mtu)
 {
-	int max_frame = new_mtu + ETHER_HDR_LEN + ETHER_CRC_LEN + ETHER_VLAN_ENCAP_LEN;
+	int max_frame = new_mtu + ETHER_HDR_LEN + ETHER_CRC_LEN +
+	    ETHER_VLAN_ENCAP_LEN;
 
 	if ((new_mtu < AL_ETH_MIN_FRAME_LEN) ||
 	    (max_frame > AL_ETH_MAX_FRAME_LEN)) {
@@ -3109,14 +3178,17 @@ al_eth_up_complete(struct al_eth_adapter *adapter)
 	/* enable forwarding interrupts from eth through pci end point */
 	if ((adapter->board_type == ALPINE_FPGA_NIC) ||
 	    (adapter->board_type == ALPINE_NIC)) {
-		al_eth_forward_int_config((uint32_t*)adapter->internal_pcie_base +
-		    AL_REG_OFFSET_FORWARD_INTR, AL_EN_FORWARD_INTR);
+		al_eth_forward_int_config((uint32_t *)
+					      adapter->internal_pcie_base +
+			AL_REG_OFFSET_FORWARD_INTR,
+		    AL_EN_FORWARD_INTR);
 	}
 
 	al_eth_flow_ctrl_enable(adapter);
 
 	mtx_lock(&adapter->stats_mtx);
-	callout_reset(&adapter->stats_callout, hz, al_tick_stats, (void*)adapter);
+	callout_reset(&adapter->stats_callout, hz, al_tick_stats,
+	    (void *)adapter);
 	mtx_unlock(&adapter->stats_mtx);
 
 	al_eth_mac_start(&adapter->hal_adapter);
@@ -3295,13 +3367,12 @@ al_eth_down(struct al_eth_adapter *adapter)
 static int
 al_ioctl(if_t ifp, u_long command, caddr_t data)
 {
-	struct al_eth_adapter	*adapter = if_getsoftc(ifp);
-	struct ifreq		*ifr = (struct ifreq *)data;
-	int			error = 0;
+	struct al_eth_adapter *adapter = if_getsoftc(ifp);
+	struct ifreq *ifr = (struct ifreq *)data;
+	int error = 0;
 
 	switch (command) {
-	case SIOCSIFMTU:
-	{
+	case SIOCSIFMTU: {
 		error = al_eth_check_mtu(adapter, ifr->ifr_mtu);
 		if (error != 0) {
 			device_printf(adapter->dev, "ioctl wrong mtu %u\n",
@@ -3318,7 +3389,7 @@ al_ioctl(if_t ifp, u_long command, caddr_t data)
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
 				if (((if_getflags(ifp) ^ adapter->if_flags) &
-				    (IFF_PROMISC | IFF_ALLMULTI)) != 0) {
+					(IFF_PROMISC | IFF_ALLMULTI)) != 0) {
 					device_printf_dbg(adapter->dev,
 					    "ioctl promisc/allmulti\n");
 					al_eth_set_rx_mode(adapter);
@@ -3326,7 +3397,8 @@ al_ioctl(if_t ifp, u_long command, caddr_t data)
 			} else {
 				error = al_eth_up(adapter);
 				if (error == 0)
-					if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
+					if_setdrvflagbits(ifp, IFF_DRV_RUNNING,
+					    0);
 			}
 		} else {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
@@ -3355,11 +3427,10 @@ al_ioctl(if_t ifp, u_long command, caddr_t data)
 			error = ifmedia_ioctl(ifp, ifr,
 			    &adapter->mii->mii_media, command);
 		else
-			error = ifmedia_ioctl(ifp, ifr,
-			    &adapter->media, command);
+			error = ifmedia_ioctl(ifp, ifr, &adapter->media,
+			    command);
 		break;
-	case SIOCSIFCAP:
-	    {
+	case SIOCSIFCAP: {
 		int mask, reinit;
 
 		reinit = 0;
@@ -3406,12 +3477,11 @@ al_ioctl(if_t ifp, u_long command, caddr_t data)
 			reinit = 1;
 		}
 		if ((reinit != 0) &&
-		    ((if_getdrvflags(ifp) & IFF_DRV_RUNNING)) != 0)
-		{
+		    ((if_getdrvflags(ifp) & IFF_DRV_RUNNING)) != 0) {
 			al_init(adapter);
 		}
 		break;
-	    }
+	}
 
 	default:
 		error = ether_ioctl(ifp, command, data);
@@ -3429,14 +3499,14 @@ al_is_device_supported(device_t dev)
 
 	return (pci_vendor_id == PCI_VENDOR_ID_ANNAPURNA_LABS &&
 	    (pci_device_id == PCI_DEVICE_ID_AL_ETH ||
-	    pci_device_id == PCI_DEVICE_ID_AL_ETH_ADVANCED ||
-	    pci_device_id == PCI_DEVICE_ID_AL_ETH_NIC ||
-	    pci_device_id == PCI_DEVICE_ID_AL_ETH_FPGA_NIC));
+		pci_device_id == PCI_DEVICE_ID_AL_ETH_ADVANCED ||
+		pci_device_id == PCI_DEVICE_ID_AL_ETH_NIC ||
+		pci_device_id == PCI_DEVICE_ID_AL_ETH_FPGA_NIC));
 }
 
 /* Time in mSec to keep trying to read / write from MDIO in case of error */
-#define	MDIO_TIMEOUT_MSEC	100
-#define	MDIO_PAUSE_MSEC		10
+#define MDIO_TIMEOUT_MSEC 100
+#define MDIO_PAUSE_MSEC 10
 
 static int
 al_miibus_readreg(device_t dev, int phy, int reg)

@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -30,12 +30,12 @@
 #include <sys/cdefs.h>
 
 /* dialog(3) dlg_color_table[] attributes */
-#define SCREEN_ATTR		0 /* entry used for status line bg */
-#define BUTTON_ACTIVE_ATTR	5 /* entry used for status line fg */
+#define SCREEN_ATTR 0	     /* entry used for status line bg */
+#define BUTTON_ACTIVE_ATTR 5 /* entry used for status line fg */
 
 __BEGIN_DECLS
-void	status_free(void);
-void	status_printf(const char *_format, ...);
+void status_free(void);
+void status_printf(const char *_format, ...);
 __END_DECLS
 
 #endif /* !_STATUS_H_ */

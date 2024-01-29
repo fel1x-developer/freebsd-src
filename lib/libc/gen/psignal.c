@@ -33,10 +33,11 @@
  * Print the name of the signal indicated
  * along with the supplied message.
  */
-#include "namespace.h"
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 void

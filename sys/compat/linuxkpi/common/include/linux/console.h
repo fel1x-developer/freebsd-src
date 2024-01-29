@@ -25,7 +25,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_CONSOLE_H_
-#define	_LINUXKPI_LINUX_CONSOLE_H_
+#define _LINUXKPI_LINUX_CONSOLE_H_
 
 #include <linux/types.h>
 
@@ -52,4 +52,4 @@ vgacon_text_force(void)
 	return (false);
 }
 
-#endif	/* _LINUXKPI_LINUX_CONSOLE_H_ */
+#endif /* _LINUXKPI_LINUX_CONSOLE_H_ */

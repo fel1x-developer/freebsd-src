@@ -48,17 +48,17 @@
 #include <geom/geom.h>
 #include <geom/geom_int.h>
 #define GCTL_TABLE 1
-#include <geom/geom_ctl.h>
-
 #include <machine/stdarg.h>
+
+#include <geom/geom_ctl.h>
 
 static d_ioctl_t g_ctl_ioctl;
 
 static struct cdevsw g_ctl_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_ioctl =	g_ctl_ioctl,
-	.d_name =	"g_ctl",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_ioctl = g_ctl_ioctl,
+	.d_name = "g_ctl",
 };
 
 CTASSERT(GCTL_PARAM_RD == VM_PROT_READ);
@@ -68,8 +68,8 @@ void
 g_ctl_init(void)
 {
 
-	make_dev_credf(MAKEDEV_ETERNAL, &g_ctl_cdevsw, 0, NULL,
-	    UID_ROOT, GID_OPERATOR, 0640, PATH_GEOM_CTL);
+	make_dev_credf(MAKEDEV_ETERNAL, &g_ctl_cdevsw, 0, NULL, UID_ROOT,
+	    GID_OPERATOR, 0640, PATH_GEOM_CTL);
 }
 
 /*
@@ -202,15 +202,15 @@ gctl_copyin(struct gctl_req *req)
 
 	/* Nothing have been copyin()'ed yet */
 	for (i = 0; i < req->narg; i++) {
-		ap[i].flag &= ~(GCTL_PARAM_NAMEKERNEL|GCTL_PARAM_VALUEKERNEL);
+		ap[i].flag &= ~(GCTL_PARAM_NAMEKERNEL | GCTL_PARAM_VALUEKERNEL);
 		ap[i].flag &= ~GCTL_PARAM_CHANGED;
 		ap[i].kvalue = NULL;
 	}
 
 	for (i = 0; i < req->narg; i++) {
 		if (ap[i].nlen < 1 || ap[i].nlen > SPECNAMELEN) {
-			gctl_error(req,
-			    "wrong param name length %d: %d", i, ap[i].nlen);
+			gctl_error(req, "wrong param name length %d: %d", i,
+			    ap[i].nlen);
 			break;
 		}
 		p = geom_alloc_copyin(req, ap[i].name, ap[i].nlen);
@@ -308,10 +308,8 @@ gctl_dump(struct gctl_req *req, const char *what)
 			printf("  param:\t%d@%p", ap->nlen, ap->name);
 		else
 			printf("  param:\t\"%s\"", ap->name);
-		printf(" [%s%s%d] = ",
-		    ap->flag & GCTL_PARAM_RD ? "R" : "",
-		    ap->flag & GCTL_PARAM_WR ? "W" : "",
-		    ap->len);
+		printf(" [%s%s%d] = ", ap->flag & GCTL_PARAM_RD ? "R" : "",
+		    ap->flag & GCTL_PARAM_WR ? "W" : "", ap->len);
 		if (!(ap->flag & GCTL_PARAM_VALUEKERNEL)) {
 			printf(" =@ %p", ap->value);
 		} else if (ap->flag & GCTL_PARAM_ASCII) {
@@ -369,7 +367,8 @@ gctl_set_param_err(struct gctl_req *req, const char *param, void const *ptr,
 }
 
 void *
-gctl_get_param_flags(struct gctl_req *req, const char *param, int flags, int *len)
+gctl_get_param_flags(struct gctl_req *req, const char *param, int flags,
+    int *len)
 {
 	u_int i;
 	void *p;
@@ -452,7 +451,7 @@ gctl_get_class(struct gctl_req *req, char const *arg)
 		gctl_error(req, "Missing %s argument", arg);
 		return (NULL);
 	}
-	LIST_FOREACH(cp, &g_classes, class) {
+	LIST_FOREACH (cp, &g_classes, class) {
 		if (!strcmp(p, cp->name))
 			return (cp);
 	}
@@ -472,7 +471,7 @@ gctl_get_geom(struct gctl_req *req, struct g_class *mp, char const *arg)
 		gctl_error(req, "Missing %s argument", arg);
 		return (NULL);
 	}
-	LIST_FOREACH(gp, &mp->geom, geom)
+	LIST_FOREACH (gp, &mp->geom, geom)
 		if (!strcmp(p, gp->name))
 			return (gp);
 	gctl_error(req, "Geom not found: \"%s\"", p);
@@ -512,30 +511,29 @@ g_ctl_getxml(struct gctl_req *req, struct g_class *mp)
 		return;
 	name = gctl_get_asciiparam(req, "arg0");
 	n = 0;
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (name && strcmp(gp->name, name) != 0)
 			continue;
 		n++;
 		if (*parents) {
-			LIST_FOREACH(cp, &gp->consumer, consumer)
+			LIST_FOREACH (cp, &gp->consumer, consumer)
 				n++;
 		}
 	}
 	gps = g_malloc((n + 1) * sizeof(*gps), M_WAITOK);
 	i = 0;
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (name && strcmp(gp->name, name) != 0)
 			continue;
 		gps[i++] = gp;
 		if (*parents) {
-			LIST_FOREACH(cp, &gp->consumer, consumer) {
+			LIST_FOREACH (cp, &gp->consumer, consumer) {
 				if (cp->provider != NULL)
 					gps[i++] = cp->provider->geom;
 			}
 		}
 	}
-	KASSERT(i == n, ("different number of geoms found (%d != %d)",
-	    i, n));
+	KASSERT(i == n, ("different number of geoms found (%d != %d)", i, n));
 	gps[i] = 0;
 
 	buf = gctl_get_param_flags(req, "output", GCTL_PARAM_WR, &len);
@@ -581,7 +579,8 @@ g_ctl_req(void *arg, int flag __unused)
 }
 
 static int
-g_ctl_ioctl_ctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+g_ctl_ioctl_ctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct gctl_req *req;
 	int nerror;
@@ -628,11 +627,12 @@ g_ctl_ioctl_ctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct th
 }
 
 static int
-g_ctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+g_ctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	int error;
 
-	switch(cmd) {
+	switch (cmd) {
 	case GEOM_CTL:
 		error = g_ctl_ioctl_ctl(dev, cmd, data, fflag, td);
 		break;
@@ -641,5 +641,4 @@ g_ctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 		break;
 	}
 	return (error);
-
 }

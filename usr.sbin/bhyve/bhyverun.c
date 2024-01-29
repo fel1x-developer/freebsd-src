@@ -45,27 +45,26 @@
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
+#include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
-#include <errno.h>
 #ifdef BHYVE_SNAPSHOT
 #include <fcntl.h>
 #endif
-#include <libgen.h>
-#include <unistd.h>
 #include <assert.h>
+#include <libgen.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include <sysexits.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sysexits.h>
+#include <unistd.h>
 #ifdef BHYVE_SNAPSHOT
+#include <libxo/xo.h>
 #include <ucl.h>
 #include <unistd.h>
-
-#include <libxo/xo.h>
 #endif
 
 #include <vmmapi.h>
@@ -89,11 +88,11 @@
 #include "snapshot.h"
 #endif
 #include "tpm_device.h"
-#include "vmgenc.h"
 #include "vmexit.h"
+#include "vmgenc.h"
 
-#define MB		(1024UL * 1024)
-#define GB		(1024UL * MB)
+#define MB (1024UL * 1024)
+#define GB (1024UL * MB)
 
 int guest_ncpus;
 uint16_t cpu_cores, cpu_sockets, cpu_threads;
@@ -108,9 +107,9 @@ static cpuset_t cpumask;
 static void vm_loop(struct vmctx *ctx, struct vcpu *vcpu);
 
 static struct vcpu_info {
-	struct vmctx	*ctx;
-	struct vcpu	*vcpu;
-	int		vcpuid;
+	struct vmctx *ctx;
+	struct vcpu *vcpu;
+	int vcpuid;
 } *vcpu_info;
 
 static cpuset_t **vcpumap;
@@ -120,39 +119,39 @@ usage(int code)
 {
 
 	fprintf(stderr,
-		"Usage: %s [-AaCDeHhPSuWwxY]\n"
-		"       %*s [-c [[cpus=]numcpus][,sockets=n][,cores=n][,threads=n]]\n"
-		"       %*s [-G port] [-k config_file] [-l lpc] [-m mem] [-o var=value]\n"
-		"       %*s [-p vcpu:hostcpu] [-r file] [-s pci] [-U uuid] vmname\n"
-		"       -A: create ACPI tables\n"
-		"       -a: local apic is in xAPIC mode (deprecated)\n"
-		"       -C: include guest memory in core file\n"
-		"       -c: number of CPUs and/or topology specification\n"
-		"       -D: destroy on power-off\n"
-		"       -e: exit on unhandled I/O access\n"
-		"       -G: start a debug server\n"
-		"       -H: vmexit from the guest on HLT\n"
-		"       -h: help\n"
-		"       -k: key=value flat config file\n"
-		"       -K: PS2 keyboard layout\n"
-		"       -l: LPC device configuration\n"
-		"       -m: memory size\n"
-		"       -o: set config 'var' to 'value'\n"
-		"       -P: vmexit from the guest on pause\n"
-		"       -p: pin 'vcpu' to 'hostcpu'\n"
+	    "Usage: %s [-AaCDeHhPSuWwxY]\n"
+	    "       %*s [-c [[cpus=]numcpus][,sockets=n][,cores=n][,threads=n]]\n"
+	    "       %*s [-G port] [-k config_file] [-l lpc] [-m mem] [-o var=value]\n"
+	    "       %*s [-p vcpu:hostcpu] [-r file] [-s pci] [-U uuid] vmname\n"
+	    "       -A: create ACPI tables\n"
+	    "       -a: local apic is in xAPIC mode (deprecated)\n"
+	    "       -C: include guest memory in core file\n"
+	    "       -c: number of CPUs and/or topology specification\n"
+	    "       -D: destroy on power-off\n"
+	    "       -e: exit on unhandled I/O access\n"
+	    "       -G: start a debug server\n"
+	    "       -H: vmexit from the guest on HLT\n"
+	    "       -h: help\n"
+	    "       -k: key=value flat config file\n"
+	    "       -K: PS2 keyboard layout\n"
+	    "       -l: LPC device configuration\n"
+	    "       -m: memory size\n"
+	    "       -o: set config 'var' to 'value'\n"
+	    "       -P: vmexit from the guest on pause\n"
+	    "       -p: pin 'vcpu' to 'hostcpu'\n"
 #ifdef BHYVE_SNAPSHOT
-		"       -r: path to checkpoint file\n"
+	    "       -r: path to checkpoint file\n"
 #endif
-		"       -S: guest memory cannot be swapped\n"
-		"       -s: <slot,driver,configinfo> PCI slot config\n"
-		"       -U: UUID\n"
-		"       -u: RTC keeps UTC time\n"
-		"       -W: force virtio to use single-vector MSI\n"
-		"       -w: ignore unimplemented MSRs\n"
-		"       -x: local APIC is in x2APIC mode\n"
-		"       -Y: disable MPtable generation\n",
-		progname, (int)strlen(progname), "", (int)strlen(progname), "",
-		(int)strlen(progname), "");
+	    "       -S: guest memory cannot be swapped\n"
+	    "       -s: <slot,driver,configinfo> PCI slot config\n"
+	    "       -U: UUID\n"
+	    "       -u: RTC keeps UTC time\n"
+	    "       -W: force virtio to use single-vector MSI\n"
+	    "       -w: ignore unimplemented MSRs\n"
+	    "       -x: local APIC is in x2APIC mode\n"
+	    "       -Y: disable MPtable generation\n",
+	    progname, (int)strlen(progname), "", (int)strlen(progname), "",
+	    (int)strlen(progname), "");
 
 	exit(code);
 }
@@ -267,10 +266,10 @@ calc_topology(void)
 
 	if (explicit_cpus) {
 		if (guest_ncpus != (int)ncpus)
-			errx(4, "Topology (%d sockets, %d cores, %d threads) "
+			errx(4,
+			    "Topology (%d sockets, %d cores, %d threads) "
 			    "does not match %d vCPUs",
-			    cpu_sockets, cpu_cores, cpu_threads,
-			    guest_ncpus);
+			    cpu_sockets, cpu_cores, cpu_threads, guest_ncpus);
 	} else
 		guest_ncpus = ncpus;
 }
@@ -294,8 +293,10 @@ pincpu_parse(const char *opt)
 	}
 
 	if (pcpu < 0 || pcpu >= CPU_SETSIZE) {
-		fprintf(stderr, "hostcpu '%d' outside valid range from "
-		    "0 to %d\n", pcpu, CPU_SETSIZE - 1);
+		fprintf(stderr,
+		    "hostcpu '%d' outside valid range from "
+		    "0 to %d\n",
+		    pcpu, CPU_SETSIZE - 1);
 		return (-1);
 	}
 
@@ -303,7 +304,7 @@ pincpu_parse(const char *opt)
 	value = get_config_value(key);
 
 	if (asprintf(&newval, "%s%s%d", value != NULL ? value : "",
-	    value != NULL ? "," : "", pcpu) == -1) {
+		value != NULL ? "," : "", pcpu) == -1) {
 		perror("failed to build new cpuset string");
 		return (-1);
 	}
@@ -418,8 +419,8 @@ fbsdrun_start_thread(void *param)
 	pthread_set_name_np(pthread_self(), tname);
 
 	if (vcpumap[vi->vcpuid] != NULL) {
-		error = pthread_setaffinity_np(pthread_self(),
-		    sizeof(cpuset_t), vcpumap[vi->vcpuid]);
+		error = pthread_setaffinity_np(pthread_self(), sizeof(cpuset_t),
+		    vcpumap[vi->vcpuid]);
 		assert(error == 0);
 	}
 
@@ -732,14 +733,18 @@ main(int argc, char *argv[])
 			break;
 		case 'p':
 			if (pincpu_parse(optarg) != 0) {
-				errx(EX_USAGE, "invalid vcpu pinning "
-				    "configuration '%s'", optarg);
+				errx(EX_USAGE,
+				    "invalid vcpu pinning "
+				    "configuration '%s'",
+				    optarg);
 			}
 			break;
 		case 'c':
 			if (topology_parse(optarg) != 0) {
-			    errx(EX_USAGE, "invalid cpu topology "
-				"'%s'", optarg);
+				errx(EX_USAGE,
+				    "invalid cpu topology "
+				    "'%s'",
+				    optarg);
 			}
 			break;
 		case 'C':
@@ -747,7 +752,8 @@ main(int argc, char *argv[])
 			break;
 		case 'f':
 			if (qemu_fwcfg_parse_cmdline_arg(optarg) != 0) {
-			    errx(EX_USAGE, "invalid fwcfg item '%s'", optarg);
+				errx(EX_USAGE, "invalid fwcfg item '%s'",
+				    optarg);
 			}
 			break;
 #ifdef BHYVE_GDB
@@ -767,8 +773,10 @@ main(int argc, char *argv[])
 				lpc_print_supported_devices();
 				exit(0);
 			} else if (lpc_device_parse(optarg) != 0) {
-				errx(EX_USAGE, "invalid lpc device "
-				    "configuration '%s'", optarg);
+				errx(EX_USAGE,
+				    "invalid lpc device "
+				    "configuration '%s'",
+				    optarg);
 			}
 			break;
 #endif
@@ -793,7 +801,9 @@ main(int argc, char *argv[])
 			break;
 		case 'o':
 			if (!parse_config_option(optarg))
-				errx(EX_USAGE, "invalid configuration option '%s'", optarg);
+				errx(EX_USAGE,
+				    "invalid configuration option '%s'",
+				    optarg);
 			break;
 #ifdef __amd64__
 		case 'H':
@@ -853,8 +863,10 @@ main(int argc, char *argv[])
 	if (restore_file != NULL) {
 		error = load_restore_file(restore_file, &rstate);
 		if (error) {
-			fprintf(stderr, "Failed to read checkpoint info from "
-					"file: '%s'.\n", restore_file);
+			fprintf(stderr,
+			    "Failed to read checkpoint info from "
+			    "file: '%s'.\n",
+			    restore_file);
 			exit(1);
 		}
 		vmname = lookup_vmname(&rstate);
@@ -902,7 +914,7 @@ main(int argc, char *argv[])
 	max_vcpus = num_vcpus_allowed(ctx, bsp);
 	if (guest_ncpus > max_vcpus) {
 		fprintf(stderr, "%d vCPUs requested but only %d available\n",
-			guest_ncpus, max_vcpus);
+		    guest_ncpus, max_vcpus);
 		exit(4);
 	}
 
@@ -942,7 +954,7 @@ main(int argc, char *argv[])
 	}
 
 	if (qemu_fwcfg_add_file("opt/bhyve/hw.ncpu", sizeof(guest_ncpus),
-	    &guest_ncpus) != 0) {
+		&guest_ncpus) != 0) {
 		fprintf(stderr, "Could not add qemu fwcfg opt/bhyve/hw.ncpu\n");
 		exit(4);
 	}

@@ -31,9 +31,8 @@
 #include <sys/queue.h>
 #include <sys/sx.h>
 
-
-#include <dev/phy/phy_usb.h>
 #include <dev/phy/phy_internal.h>
+#include <dev/phy/phy_usb.h>
 
 /*
  * USB phy controller methods.
@@ -42,8 +41,8 @@ static phynode_usb_method_t phynode_usb_methods[] = {
 
 	PHYNODEUSBMETHOD_END
 };
-DEFINE_CLASS_1(phynode_usb, phynode_usb_class, phynode_usb_methods,
-    0, phynode_class);
+DEFINE_CLASS_1(phynode_usb, phynode_usb_class, phynode_usb_methods, 0,
+    phynode_class);
 
 /*
  * Create and initialize phy object, but do not register it.
@@ -64,8 +63,8 @@ phynode_usb_create(device_t pdev, phynode_class_t phynode_class,
 	return (phynode);
 }
 
-struct phynode
-*phynode_usb_register(struct phynode *phynode)
+struct phynode *
+phynode_usb_register(struct phynode *phynode)
 {
 
 	return (phynode_register(phynode));
@@ -109,19 +108,20 @@ phynode_usb_get_mode(struct phynode *phynode, int *usb_mode)
 	return (rv);
 }
 
- /* --------------------------------------------------------------------------
+/* --------------------------------------------------------------------------
  *
  * USB phy consumers interface.
  *
  */
-int phy_usb_set_mode(phy_t phy, int usb_mode)
+int
+phy_usb_set_mode(phy_t phy, int usb_mode)
 {
 	int rv;
 	struct phynode *phynode;
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	rv = phynode_usb_set_mode(phynode, usb_mode);
@@ -129,14 +129,15 @@ int phy_usb_set_mode(phy_t phy, int usb_mode)
 	return (rv);
 }
 
-int phy_usb_get_mode(phy_t phy, int *usb_mode)
+int
+phy_usb_get_mode(phy_t phy, int *usb_mode)
 {
 	int rv;
 	struct phynode *phynode;
 
 	phynode = phy->phynode;
 	KASSERT(phynode->ref_cnt > 0,
-	   ("Attempt to access unreferenced phy.\n"));
+	    ("Attempt to access unreferenced phy.\n"));
 
 	PHY_TOPO_SLOCK();
 	rv = phynode_usb_get_mode(phynode, usb_mode);

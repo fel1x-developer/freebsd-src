@@ -31,7 +31,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -40,8 +39,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	PORT1	10001
-#define	PORT2	10002
+#define PORT1 10001
+#define PORT2 10002
 
 static void
 try_0send(const char *test, int fd)

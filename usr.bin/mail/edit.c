@@ -29,9 +29,10 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -135,10 +136,9 @@ run_editor(FILE *fp, off_t size, int type, int readonly)
 	char *edit, tempname[PATHSIZE];
 	struct stat statb;
 
-	(void)snprintf(tempname, sizeof(tempname),
-	    "%s/mail.ReXXXXXXXXXX", tmpdir);
-	if ((t = mkstemp(tempname)) == -1 ||
-	    (nf = Fdopen(t, "w")) == NULL) {
+	(void)snprintf(tempname, sizeof(tempname), "%s/mail.ReXXXXXXXXXX",
+	    tmpdir);
+	if ((t = mkstemp(tempname)) == -1 || (nf = Fdopen(t, "w")) == NULL) {
 		warn("%s", tempname);
 		goto out;
 	}

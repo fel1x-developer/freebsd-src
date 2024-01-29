@@ -32,41 +32,46 @@
 #include <sys/param.h>
 #include <sys/endian.h>
 #include <sys/ioctl.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/utsname.h>
-#include <sys/queue.h>
-#include <net/if.h>
-#include <net/bpf.h>
+
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_pf.h>
 #include <dev/usb/usbdi.h>
+
+#include <net/bpf.h>
+#include <net/if.h>
+
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
+#include <sysexits.h>
 #include <time.h>
 #include <unistd.h>
-#include <sysexits.h>
-#include <err.h>
 
-#define	BPF_STORE_JUMP(x,_c,_k,_jt,_jf) do {	\
-  (x).code = (_c);				\
-  (x).k = (_k);					\
-  (x).jt = (_jt);				\
-  (x).jf = (_jf);				\
-} while (0)
+#define BPF_STORE_JUMP(x, _c, _k, _jt, _jf) \
+	do {                                \
+		(x).code = (_c);            \
+		(x).k = (_k);               \
+		(x).jt = (_jt);             \
+		(x).jf = (_jf);             \
+	} while (0)
 
-#define	BPF_STORE_STMT(x,_c,_k) do {		\
-  (x).code = (_c);				\
-  (x).k = (_k);					\
-  (x).jt = 0;					\
-  (x).jf = 0;					\
-} while (0)
+#define BPF_STORE_STMT(x, _c, _k) \
+	do {                      \
+		(x).code = (_c);  \
+		(x).k = (_k);     \
+		(x).jt = 0;       \
+		(x).jf = 0;       \
+	} while (0)
 
 struct usb_filt {
 	STAILQ_ENTRY(usb_filt) entry;
@@ -75,24 +80,24 @@ struct usb_filt {
 };
 
 struct usbcap {
-	int		fd;		/* fd for /dev/usbpf */
-	uint32_t	bufsize;
-	uint8_t		*buffer;
+	int fd; /* fd for /dev/usbpf */
+	uint32_t bufsize;
+	uint8_t *buffer;
 
 	/* for -w option */
-	int		wfd;
+	int wfd;
 	/* for -r option */
-	int		rfd;
+	int rfd;
 	/* for -b option */
-	int		bfd;
+	int bfd;
 };
 
 struct usbcap_filehdr {
-	uint32_t	magic;
-#define	USBCAP_FILEHDR_MAGIC	0x9a90000e
-	uint8_t   	major;
-	uint8_t		minor;
-	uint8_t		reserved[26];
+	uint32_t magic;
+#define USBCAP_FILEHDR_MAGIC 0x9a90000e
+	uint8_t major;
+	uint8_t minor;
+	uint8_t reserved[26];
 } __packed;
 
 struct header_32 {
@@ -116,45 +121,43 @@ static char *w_arg;
 static char *b_arg;
 static struct usbcap uc;
 static const char *errstr_table[USB_ERR_MAX] = {
-	[USB_ERR_NORMAL_COMPLETION]	= "0",
-	[USB_ERR_PENDING_REQUESTS]	= "PENDING_REQUESTS",
-	[USB_ERR_NOT_STARTED]		= "NOT_STARTED",
-	[USB_ERR_INVAL]			= "INVAL",
-	[USB_ERR_NOMEM]			= "NOMEM",
-	[USB_ERR_CANCELLED]		= "CANCELLED",
-	[USB_ERR_BAD_ADDRESS]		= "BAD_ADDRESS",
-	[USB_ERR_BAD_BUFSIZE]		= "BAD_BUFSIZE",
-	[USB_ERR_BAD_FLAG]		= "BAD_FLAG",
-	[USB_ERR_NO_CALLBACK]		= "NO_CALLBACK",
-	[USB_ERR_IN_USE]		= "IN_USE",
-	[USB_ERR_NO_ADDR]		= "NO_ADDR",
-	[USB_ERR_NO_PIPE]		= "NO_PIPE",
-	[USB_ERR_ZERO_NFRAMES]		= "ZERO_NFRAMES",
-	[USB_ERR_ZERO_MAXP]		= "ZERO_MAXP",
-	[USB_ERR_SET_ADDR_FAILED]	= "SET_ADDR_FAILED",
-	[USB_ERR_NO_POWER]		= "NO_POWER",
-	[USB_ERR_TOO_DEEP]		= "TOO_DEEP",
-	[USB_ERR_IOERROR]		= "IOERROR",
-	[USB_ERR_NOT_CONFIGURED]	= "NOT_CONFIGURED",
-	[USB_ERR_TIMEOUT]		= "TIMEOUT",
-	[USB_ERR_SHORT_XFER]		= "SHORT_XFER",
-	[USB_ERR_STALLED]		= "STALLED",
-	[USB_ERR_INTERRUPTED]		= "INTERRUPTED",
-	[USB_ERR_DMA_LOAD_FAILED]	= "DMA_LOAD_FAILED",
-	[USB_ERR_BAD_CONTEXT]		= "BAD_CONTEXT",
-	[USB_ERR_NO_ROOT_HUB]		= "NO_ROOT_HUB",
-	[USB_ERR_NO_INTR_THREAD]	= "NO_INTR_THREAD",
-	[USB_ERR_NOT_LOCKED]		= "NOT_LOCKED",
+	[USB_ERR_NORMAL_COMPLETION] = "0",
+	[USB_ERR_PENDING_REQUESTS] = "PENDING_REQUESTS",
+	[USB_ERR_NOT_STARTED] = "NOT_STARTED",
+	[USB_ERR_INVAL] = "INVAL",
+	[USB_ERR_NOMEM] = "NOMEM",
+	[USB_ERR_CANCELLED] = "CANCELLED",
+	[USB_ERR_BAD_ADDRESS] = "BAD_ADDRESS",
+	[USB_ERR_BAD_BUFSIZE] = "BAD_BUFSIZE",
+	[USB_ERR_BAD_FLAG] = "BAD_FLAG",
+	[USB_ERR_NO_CALLBACK] = "NO_CALLBACK",
+	[USB_ERR_IN_USE] = "IN_USE",
+	[USB_ERR_NO_ADDR] = "NO_ADDR",
+	[USB_ERR_NO_PIPE] = "NO_PIPE",
+	[USB_ERR_ZERO_NFRAMES] = "ZERO_NFRAMES",
+	[USB_ERR_ZERO_MAXP] = "ZERO_MAXP",
+	[USB_ERR_SET_ADDR_FAILED] = "SET_ADDR_FAILED",
+	[USB_ERR_NO_POWER] = "NO_POWER",
+	[USB_ERR_TOO_DEEP] = "TOO_DEEP",
+	[USB_ERR_IOERROR] = "IOERROR",
+	[USB_ERR_NOT_CONFIGURED] = "NOT_CONFIGURED",
+	[USB_ERR_TIMEOUT] = "TIMEOUT",
+	[USB_ERR_SHORT_XFER] = "SHORT_XFER",
+	[USB_ERR_STALLED] = "STALLED",
+	[USB_ERR_INTERRUPTED] = "INTERRUPTED",
+	[USB_ERR_DMA_LOAD_FAILED] = "DMA_LOAD_FAILED",
+	[USB_ERR_BAD_CONTEXT] = "BAD_CONTEXT",
+	[USB_ERR_NO_ROOT_HUB] = "NO_ROOT_HUB",
+	[USB_ERR_NO_INTR_THREAD] = "NO_INTR_THREAD",
+	[USB_ERR_NOT_LOCKED] = "NOT_LOCKED",
 };
 
-#define	USB_XFERTYPE_MAX 4
+#define USB_XFERTYPE_MAX 4
 
-static const char *xfertype_table[USB_XFERTYPE_MAX] = {
-	[UE_CONTROL]			= "CTRL",
-	[UE_ISOCHRONOUS]		= "ISOC",
-	[UE_BULK]			= "BULK",
-	[UE_INTERRUPT]			= "INTR"
-};
+static const char *xfertype_table[USB_XFERTYPE_MAX] = { [UE_CONTROL] = "CTRL",
+	[UE_ISOCHRONOUS] = "ISOC",
+	[UE_BULK] = "BULK",
+	[UE_INTERRUPT] = "INTR" };
 
 static const char *speed_table[USB_SPEED_MAX] = {
 	[USB_SPEED_FULL] = "FULL",
@@ -164,8 +167,8 @@ static const char *speed_table[USB_SPEED_MAX] = {
 	[USB_SPEED_SUPER] = "SUPER",
 };
 
-static STAILQ_HEAD(,usb_filt) usb_filt_head =
-    STAILQ_HEAD_INITIALIZER(usb_filt_head);
+static STAILQ_HEAD(, usb_filt) usb_filt_head = STAILQ_HEAD_INITIALIZER(
+    usb_filt_head);
 
 static void
 add_filter(int usb_filt_unit, int usb_filt_ep)
@@ -191,7 +194,7 @@ make_filter(struct bpf_program *pprog, int snapshot)
 
 	len = 0;
 
-	STAILQ_FOREACH(puf, &usb_filt_head, entry)
+	STAILQ_FOREACH (puf, &usb_filt_head, entry)
 		len++;
 
 	dynamic_insn = malloc(((len * 5) + 1) * sizeof(struct bpf_insn));
@@ -211,30 +214,35 @@ make_filter(struct bpf_program *pprog, int snapshot)
 
 	len = 0;
 
-	STAILQ_FOREACH(puf, &usb_filt_head, entry) {
-		const int addr_off = (uintptr_t)&((struct usbpf_pkthdr *)0)->up_address;
-		const int addr_ep = (uintptr_t)&((struct usbpf_pkthdr *)0)->up_endpoint;
-		
+	STAILQ_FOREACH (puf, &usb_filt_head, entry) {
+		const int addr_off = (uintptr_t) &
+		    ((struct usbpf_pkthdr *)0)->up_address;
+		const int addr_ep = (uintptr_t) &
+		    ((struct usbpf_pkthdr *)0)->up_endpoint;
+
 		if (puf->unit != -1) {
 			if (puf->endpoint != -1) {
 				BPF_STORE_STMT(dynamic_insn[len],
 				    BPF_LD | BPF_B | BPF_ABS, addr_off);
 				len++;
 				BPF_STORE_JUMP(dynamic_insn[len],
-				    BPF_JMP | BPF_JEQ | BPF_K, (uint8_t)puf->unit, 0, 3);
+				    BPF_JMP | BPF_JEQ | BPF_K,
+				    (uint8_t)puf->unit, 0, 3);
 				len++;
 				BPF_STORE_STMT(dynamic_insn[len],
 				    BPF_LD | BPF_W | BPF_ABS, addr_ep);
 				len++;
 				BPF_STORE_JUMP(dynamic_insn[len],
-				    BPF_JMP | BPF_JEQ | BPF_K, htobe32(puf->endpoint), 0, 1);
+				    BPF_JMP | BPF_JEQ | BPF_K,
+				    htobe32(puf->endpoint), 0, 1);
 				len++;
 			} else {
 				BPF_STORE_STMT(dynamic_insn[len],
 				    BPF_LD | BPF_B | BPF_ABS, addr_off);
 				len++;
 				BPF_STORE_JUMP(dynamic_insn[len],
-				    BPF_JMP | BPF_JEQ | BPF_K, (uint8_t)puf->unit, 0, 1);
+				    BPF_JMP | BPF_JEQ | BPF_K,
+				    (uint8_t)puf->unit, 0, 1);
 				len++;
 			}
 		} else {
@@ -243,12 +251,12 @@ make_filter(struct bpf_program *pprog, int snapshot)
 				    BPF_LD | BPF_W | BPF_ABS, addr_ep);
 				len++;
 				BPF_STORE_JUMP(dynamic_insn[len],
-				    BPF_JMP | BPF_JEQ | BPF_K, htobe32(puf->endpoint), 0, 1);
+				    BPF_JMP | BPF_JEQ | BPF_K,
+				    htobe32(puf->endpoint), 0, 1);
 				len++;
 			}
 		}
-		BPF_STORE_STMT(dynamic_insn[len],
-		    BPF_RET | BPF_K, snapshot);
+		BPF_STORE_STMT(dynamic_insn[len], BPF_RET | BPF_K, snapshot);
 		len++;
 	}
 
@@ -268,7 +276,7 @@ match_filter(int unit, int endpoint)
 	if (STAILQ_FIRST(&usb_filt_head) == NULL)
 		return (1);
 
-	STAILQ_FOREACH(puf, &usb_filt_head, entry) {
+	STAILQ_FOREACH (puf, &usb_filt_head, entry) {
 		if ((puf->unit == -1 || puf->unit == unit) &&
 		    (puf->endpoint == -1 || puf->endpoint == endpoint))
 			return (1);
@@ -296,11 +304,9 @@ handle_sigint(int sig)
 	doexit = 1;
 }
 
-#define	FLAGS(x, name)	\
-	(((x) & USBPF_FLAG_##name) ? #name "|" : "")
+#define FLAGS(x, name) (((x) & USBPF_FLAG_##name) ? #name "|" : "")
 
-#define	STATUS(x, name) \
-	(((x) & USBPF_STATUS_##name) ? #name "|" : "")
+#define STATUS(x, name) (((x) & USBPF_STATUS_##name) ? #name "|" : "")
 
 static const char *
 usb_errstr(uint32_t error)
@@ -314,7 +320,7 @@ usb_errstr(uint32_t error)
 static const char *
 usb_speedstr(uint8_t speed)
 {
-	if (speed >= USB_SPEED_MAX  || speed_table[speed] == NULL)
+	if (speed >= USB_SPEED_MAX || speed_table[speed] == NULL)
 		return ("UNKNOWN");
 	else
 		return (speed_table[speed]);
@@ -323,7 +329,7 @@ usb_speedstr(uint8_t speed)
 static const char *
 usb_xferstr(uint8_t type)
 {
-	if (type >= USB_XFERTYPE_MAX  || xfertype_table[type] == NULL)
+	if (type >= USB_XFERTYPE_MAX || xfertype_table[type] == NULL)
 		return ("UNKN");
 	else
 		return (xfertype_table[type]);
@@ -332,16 +338,11 @@ usb_xferstr(uint8_t type)
 static void
 print_flags(uint32_t flags)
 {
-	printf(" flags %#x <%s%s%s%s%s%s%s%s%s0>\n",
-	    flags,
-	    FLAGS(flags, FORCE_SHORT_XFER),
-	    FLAGS(flags, SHORT_XFER_OK),
-	    FLAGS(flags, SHORT_FRAMES_OK),
-	    FLAGS(flags, PIPE_BOF),
-	    FLAGS(flags, PROXY_BUFFER),
-	    FLAGS(flags, EXT_BUFFER),
-	    FLAGS(flags, MANUAL_STATUS),
-	    FLAGS(flags, NO_PIPE_OK),
+	printf(" flags %#x <%s%s%s%s%s%s%s%s%s0>\n", flags,
+	    FLAGS(flags, FORCE_SHORT_XFER), FLAGS(flags, SHORT_XFER_OK),
+	    FLAGS(flags, SHORT_FRAMES_OK), FLAGS(flags, PIPE_BOF),
+	    FLAGS(flags, PROXY_BUFFER), FLAGS(flags, EXT_BUFFER),
+	    FLAGS(flags, MANUAL_STATUS), FLAGS(flags, NO_PIPE_OK),
 	    FLAGS(flags, STALL_PIPE));
 }
 
@@ -349,27 +350,16 @@ static void
 print_status(uint32_t status)
 {
 	printf(" status %#x <%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s0>\n",
-	    status, 
-	    STATUS(status, OPEN),
-	    STATUS(status, TRANSFERRING),
-	    STATUS(status, DID_DMA_DELAY),
-	    STATUS(status, DID_CLOSE),
-	    STATUS(status, DRAINING),
-	    STATUS(status, STARTED),
-	    STATUS(status, BW_RECLAIMED),
-	    STATUS(status, CONTROL_XFR),
-	    STATUS(status, CONTROL_HDR),
-	    STATUS(status, CONTROL_ACT),
-	    STATUS(status, CONTROL_STALL),
-	    STATUS(status, SHORT_FRAMES_OK),
-	    STATUS(status, SHORT_XFER_OK),
-	    STATUS(status, BDMA_ENABLE),
-	    STATUS(status, BDMA_NO_POST_SYNC),
-	    STATUS(status, BDMA_SETUP),
-	    STATUS(status, ISOCHRONOUS_XFR),
-	    STATUS(status, CURR_DMA_SET),
-	    STATUS(status, CAN_CANCEL_IMMED),
-	    STATUS(status, DOING_CALLBACK));
+	    status, STATUS(status, OPEN), STATUS(status, TRANSFERRING),
+	    STATUS(status, DID_DMA_DELAY), STATUS(status, DID_CLOSE),
+	    STATUS(status, DRAINING), STATUS(status, STARTED),
+	    STATUS(status, BW_RECLAIMED), STATUS(status, CONTROL_XFR),
+	    STATUS(status, CONTROL_HDR), STATUS(status, CONTROL_ACT),
+	    STATUS(status, CONTROL_STALL), STATUS(status, SHORT_FRAMES_OK),
+	    STATUS(status, SHORT_XFER_OK), STATUS(status, BDMA_ENABLE),
+	    STATUS(status, BDMA_NO_POST_SYNC), STATUS(status, BDMA_SETUP),
+	    STATUS(status, ISOCHRONOUS_XFR), STATUS(status, CURR_DMA_SET),
+	    STATUS(status, CAN_CANCEL_IMMED), STATUS(status, DOING_CALLBACK));
 }
 
 /*
@@ -419,19 +409,19 @@ hexdump(const uint8_t *region, uint32_t len)
 		i += 7;
 
 		for (x = 0; x < 16; x++) {
-		  if ((line + x) < (region + len)) {
-			hexbyte(linebuf + i,
-			    *(const u_int8_t *)(line + x));
-		  } else {
-			  linebuf[i] = '-';
-			  linebuf[i + 1] = '-';
+			if ((line + x) < (region + len)) {
+				hexbyte(linebuf + i,
+				    *(const u_int8_t *)(line + x));
+			} else {
+				linebuf[i] = '-';
+				linebuf[i + 1] = '-';
 			}
 			linebuf[i + 2] = ' ';
 			if (x == 7) {
-			  linebuf[i + 3] = ' ';
-			  i += 4;
+				linebuf[i + 3] = ' ';
+				i += 4;
 			} else {
-			  i += 3;
+				i += 3;
 			}
 		}
 		linebuf[i] = ' ';
@@ -501,20 +491,20 @@ print_apacket(const struct header_32 *hdr, const uint8_t *ptr, int ptr_len)
 	len = strftime(buf, sizeof(buf), "%H:%M:%S", tm);
 
 	if (verbose >= 0) {
-		printf("%.*s.%06ld usbus%d.%d %s-%s-EP=%08x,SPD=%s,NFR=%d,SLEN=%d,IVAL=%d%s%s\n",
-		    (int)len, buf, tv.tv_usec,
-		    (int)up->up_busunit, (int)up->up_address,
+		printf(
+		    "%.*s.%06ld usbus%d.%d %s-%s-EP=%08x,SPD=%s,NFR=%d,SLEN=%d,IVAL=%d%s%s\n",
+		    (int)len, buf, tv.tv_usec, (int)up->up_busunit,
+		    (int)up->up_address,
 		    (up->up_type == USBPF_XFERTAP_SUBMIT) ? "SUBM" : "DONE",
-		    usb_xferstr(up->up_xfertype),
-		    (unsigned int)up->up_endpoint,
-		    usb_speedstr(up->up_speed),
-		    (int)up->up_frames,
+		    usb_xferstr(up->up_xfertype), (unsigned int)up->up_endpoint,
+		    usb_speedstr(up->up_speed), (int)up->up_frames,
 		    (int)(up->up_totlen - USBPF_HDR_LEN -
-		    (USBPF_FRAME_HDR_LEN * up->up_frames)),
+			(USBPF_FRAME_HDR_LEN * up->up_frames)),
 		    (int)up->up_interval,
 		    (up->up_type == USBPF_XFERTAP_DONE) ? ",ERR=" : "",
 		    (up->up_type == USBPF_XFERTAP_DONE) ?
-		    usb_errstr(up->up_error) : "");
+			usb_errstr(up->up_error) :
+			"");
 	}
 
 	if (verbose >= 1 || b_arg != NULL) {
@@ -535,7 +525,8 @@ print_apacket(const struct header_32 *hdr, const uint8_t *ptr, int ptr_len)
 			if (verbose >= 1) {
 				printf(" frame[%u] %s %d bytes\n",
 				    (unsigned int)x,
-				    (flags & USBPF_FRAMEFLAG_READ) ? "READ" : "WRITE",
+				    (flags & USBPF_FRAMEFLAG_READ) ? "READ" :
+								     "WRITE",
 				    (int)framelen);
 			}
 
@@ -547,8 +538,8 @@ print_apacket(const struct header_32 *hdr, const uint8_t *ptr, int ptr_len)
 
 				ptr_len -= tot_frame_len;
 
-				if (tot_frame_len < 0 ||
-				    (int)framelen < 0 || (int)ptr_len < 0)
+				if (tot_frame_len < 0 || (int)framelen < 0 ||
+				    (int)ptr_len < 0)
 					break;
 
 				if (b_arg != NULL) {
@@ -556,7 +547,8 @@ print_apacket(const struct header_32 *hdr, const uint8_t *ptr, int ptr_len)
 					int ret;
 					ret = write(p->bfd, ptr, framelen);
 					if (ret != (int)framelen)
-						err(EXIT_FAILURE, "Could not write binary data");
+						err(EXIT_FAILURE,
+						    "Could not write binary data");
 				}
 				if (verbose >= 1)
 					hexdump(ptr, framelen);
@@ -637,8 +629,7 @@ print_packets(uint8_t *data, const int datalen)
 			err(EXIT_FAILURE, "Invalid length");
 
 		if (verbose >= 0 || r_arg != NULL || b_arg != NULL) {
-			print_apacket(&temp, ptr +
-			    temp.hdrlen, temp.caplen);
+			print_apacket(&temp, ptr + temp.hdrlen, temp.caplen);
 		}
 		pkt_captured++;
 	}
@@ -652,12 +643,14 @@ write_packets(struct usbcap *p, const uint8_t *data, const int datalen)
 
 	ret = write(p->wfd, &len, sizeof(int));
 	if (ret != sizeof(int)) {
-		err(EXIT_FAILURE, "Could not write length "
+		err(EXIT_FAILURE,
+		    "Could not write length "
 		    "field of USB data payload");
 	}
 	ret = write(p->wfd, data, datalen);
 	if (ret != datalen) {
-		err(EXIT_FAILURE, "Could not write "
+		err(EXIT_FAILURE,
+		    "Could not write "
 		    "complete USB data payload");
 	}
 }
@@ -676,7 +669,8 @@ read_file(struct usbcap *p)
 			errx(EX_SOFTWARE, "Out of memory.");
 		ret = read(p->rfd, data, datalen);
 		if (ret != datalen) {
-			err(EXIT_FAILURE, "Could not read complete "
+			err(EXIT_FAILURE,
+			    "Could not read complete "
 			    "USB data payload");
 		}
 		if (uf_minor == 2)
@@ -723,29 +717,37 @@ init_rfile(struct usbcap *p)
 
 	p->rfd = open(r_arg, O_RDONLY);
 	if (p->rfd < 0) {
-		err(EXIT_FAILURE, "Could not open "
-		    "'%s' for read", r_arg);
+		err(EXIT_FAILURE,
+		    "Could not open "
+		    "'%s' for read",
+		    r_arg);
 	}
 	ret = read(p->rfd, &uf, sizeof(uf));
 	if (ret != sizeof(uf)) {
-		err(EXIT_FAILURE, "Could not read USB capture "
+		err(EXIT_FAILURE,
+		    "Could not read USB capture "
 		    "file header");
 	}
 	if (le32toh(uf.magic) != USBCAP_FILEHDR_MAGIC) {
-		errx(EX_SOFTWARE, "Invalid magic field(0x%08x) "
+		errx(EX_SOFTWARE,
+		    "Invalid magic field(0x%08x) "
 		    "in USB capture file header.",
 		    (unsigned int)le32toh(uf.magic));
 	}
 	if (uf.major != 0) {
-		errx(EX_SOFTWARE, "Invalid major version(%d) "
-		    "field in USB capture file header.", (int)uf.major);
+		errx(EX_SOFTWARE,
+		    "Invalid major version(%d) "
+		    "field in USB capture file header.",
+		    (int)uf.major);
 	}
 
 	uf_minor = uf.minor;
 
 	if (uf.minor != 3 && uf.minor != 2) {
-		errx(EX_SOFTWARE, "Invalid minor version(%d) "
-		    "field in USB capture file header.", (int)uf.minor);
+		errx(EX_SOFTWARE,
+		    "Invalid minor version(%d) "
+		    "field in USB capture file header.",
+		    (int)uf.minor);
 	}
 }
 
@@ -757,8 +759,10 @@ init_wfile(struct usbcap *p)
 
 	p->wfd = open(w_arg, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
 	if (p->wfd < 0) {
-		err(EXIT_FAILURE, "Could not open "
-		    "'%s' for write", w_arg);
+		err(EXIT_FAILURE,
+		    "Could not open "
+		    "'%s' for write",
+		    w_arg);
 	}
 	memset(&uf, 0, sizeof(uf));
 	uf.magic = htole32(USBCAP_FILEHDR_MAGIC);
@@ -766,7 +770,8 @@ init_wfile(struct usbcap *p)
 	uf.minor = 3;
 	ret = write(p->wfd, (const void *)&uf, sizeof(uf));
 	if (ret != sizeof(uf)) {
-		err(EXIT_FAILURE, "Could not write "
+		err(EXIT_FAILURE,
+		    "Could not write "
 		    "USB capture header");
 	}
 }
@@ -779,13 +784,16 @@ usage(void)
 	fprintf(stderr, "usage: usbdump [options]\n");
 	fprintf(stderr, FMT, "-d [ugen]B", "Listen on bus, B");
 	fprintf(stderr, FMT, "-d [ugen]B.D", "Listen on bus, B and device, D");
-	fprintf(stderr, FMT, "-d [ugen]B.D.E", "Listen on bus, B, device, D, and endpoint E");
+	fprintf(stderr, FMT, "-d [ugen]B.D.E",
+	    "Listen on bus, B, device, D, and endpoint E");
 	fprintf(stderr, FMT, "-i <usbusX>", "Listen on this bus interface");
-	fprintf(stderr, FMT, "-f <unit[.endpoint]>", "Specify a device and endpoint filter");
+	fprintf(stderr, FMT, "-f <unit[.endpoint]>",
+	    "Specify a device and endpoint filter");
 	fprintf(stderr, FMT, "-r <file>", "Read the raw packets from file");
 	fprintf(stderr, FMT, "-s <snaplen>", "Snapshot bytes from each packet");
 	fprintf(stderr, FMT, "-v", "Increase the verbose level");
-	fprintf(stderr, FMT, "-b <file>", "Save raw version of all recorded data to file");
+	fprintf(stderr, FMT, "-b <file>",
+	    "Save raw version of all recorded data to file");
 	fprintf(stderr, FMT, "-w <file>", "Write the raw packets to file");
 	fprintf(stderr, FMT, "-h", "Display summary of command line options");
 #undef FMT
@@ -801,8 +809,7 @@ check_usb_pf_sysctl(void)
 
 	/* check "hw.usb.no_pf" sysctl for 8- and 9- stable */
 
-	error = sysctlbyname("hw.usb.no_pf", &no_pf_val,
-	    &no_pf_len, NULL, 0);
+	error = sysctlbyname("hw.usb.no_pf", &no_pf_val, &no_pf_len, NULL, 0);
 	if (error == 0 && no_pf_val != 0) {
 		warnx("The USB packet filter might be disabled.");
 		warnx("See the \"hw.usb.no_pf\" sysctl for more information.");
@@ -837,7 +844,8 @@ main(int argc, char *argv[])
 			break;
 		case 'd':
 			pp = optarg;
-			if (pp[0] == 'u' && pp[1] == 'g' && pp[2] == 'e' && pp[3] == 'n')
+			if (pp[0] == 'u' && pp[1] == 'g' && pp[2] == 'e' &&
+			    pp[3] == 'n')
 				pp += 4;
 			ifindex = strtol(pp, &pp, 10);
 			/* Must be same bus when using -d option. */
@@ -854,8 +862,10 @@ main(int argc, char *argv[])
 					filt_ep = -1;
 					if (pp != NULL) {
 						if (*pp == '.') {
-							filt_ep = strtol(pp + 1, &pp, 10);
-							if (pp != NULL && *pp != 0)
+							filt_ep = strtol(pp + 1,
+							    &pp, 10);
+							if (pp != NULL &&
+							    *pp != 0)
 								usage();
 						} else if (*pp != 0) {
 							usage();
@@ -916,11 +926,13 @@ main(int argc, char *argv[])
 		i_arg = "usbus0";
 
 	if (b_arg != NULL) {
-		p->bfd = open(b_arg, O_CREAT | O_TRUNC |
-		    O_WRONLY, S_IRUSR | S_IWUSR);
+		p->bfd = open(b_arg, O_CREAT | O_TRUNC | O_WRONLY,
+		    S_IRUSR | S_IWUSR);
 		if (p->bfd < 0) {
-			err(EXIT_FAILURE, "Could not open "
-			    "'%s' for write", b_arg);
+			err(EXIT_FAILURE,
+			    "Could not open "
+			    "'%s' for write",
+			    b_arg);
 		}
 	}
 
@@ -945,8 +957,7 @@ main(int argc, char *argv[])
 	if (ioctl(fd, BIOCVERSION, (caddr_t)&bv) < 0)
 		err(EXIT_FAILURE, "BIOCVERSION ioctl failed");
 
-	if (bv.bv_major != BPF_MAJOR_VERSION ||
-	    bv.bv_minor < BPF_MINOR_VERSION)
+	if (bv.bv_major != BPF_MAJOR_VERSION || bv.bv_minor < BPF_MINOR_VERSION)
 		errx(EXIT_FAILURE, "Kernel BPF filter out of date");
 
 	/* USB transfers can be greater than 64KByte */
@@ -966,7 +977,7 @@ main(int argc, char *argv[])
 			errx(EXIT_FAILURE, "Invalid bus interface: %s", i_arg);
 	}
 
-	for ( ; v >= USBPF_HDR_LEN; v >>= 1) {
+	for (; v >= USBPF_HDR_LEN; v >>= 1) {
 		(void)ioctl(fd, BIOCSBLEN, (caddr_t)&v);
 		(void)strlcpy(ifr.ifr_name, i_arg, sizeof(ifr.ifr_name));
 		if (ioctl(fd, BIOCSETIF, (caddr_t)&ifr) >= 0)

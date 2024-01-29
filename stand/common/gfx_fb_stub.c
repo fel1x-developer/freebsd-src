@@ -30,7 +30,9 @@
  */
 
 #include <sys/types.h>
+
 #include <pnglite.h>
+
 #include "bootstrap.h"
 #include "gfx_fb.h"
 
@@ -55,15 +57,15 @@ gfx_term_drawrect(uint32_t x1 __unused, uint32_t y1 __unused,
 }
 
 void
-gfx_fb_line(uint32_t x0 __unused, uint32_t y0 __unused,
-    uint32_t x1 __unused, uint32_t y1 __unused, uint32_t w __unused)
+gfx_fb_line(uint32_t x0 __unused, uint32_t y0 __unused, uint32_t x1 __unused,
+    uint32_t y1 __unused, uint32_t w __unused)
 {
 }
 
 void
-gfx_fb_bezier(uint32_t x0 __unused, uint32_t y0 __unused,
-    uint32_t x1 __unused, uint32_t y1 __unused, uint32_t x2 __unused,
-    uint32_t y2 __unused, uint32_t w __unused)
+gfx_fb_bezier(uint32_t x0 __unused, uint32_t y0 __unused, uint32_t x1 __unused,
+    uint32_t y1 __unused, uint32_t x2 __unused, uint32_t y2 __unused,
+    uint32_t w __unused)
 {
 }
 

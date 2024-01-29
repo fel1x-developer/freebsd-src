@@ -31,26 +31,24 @@
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
+
 #include <machine/bus.h>
 
 #include <dev/ic/quicc.h>
-
 #include <dev/uart/uart.h>
-#include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_bus.h>
+#include <dev/uart/uart_cpu.h>
 
 #include "uart_if.h"
 
-#define	DEFAULT_RCLK	((266000000 * 2) / 16)
+#define DEFAULT_RCLK ((266000000 * 2) / 16)
 
-#define	quicc_read2(bas, reg)		\
-	bus_space_read_2((bas)->bst, (bas)->bsh, reg)
-#define	quicc_read4(bas, reg)		\
-	bus_space_read_4((bas)->bst, (bas)->bsh, reg)
+#define quicc_read2(bas, reg) bus_space_read_2((bas)->bst, (bas)->bsh, reg)
+#define quicc_read4(bas, reg) bus_space_read_4((bas)->bst, (bas)->bsh, reg)
 
-#define	quicc_write2(bas, reg, val)	\
+#define quicc_write2(bas, reg, val) \
 	bus_space_write_2((bas)->bst, (bas)->bsh, reg, val)
-#define	quicc_write4(bas, reg, val)	\
+#define quicc_write4(bas, reg, val) \
 	bus_space_write_4((bas)->bst, (bas)->bsh, reg, val)
 
 static int
@@ -97,24 +95,49 @@ quicc_param(struct uart_bas *bas, int baudrate, int databits, int stopbits,
 
 	psmr = 0;
 	switch (databits) {
-	case 5:		psmr |= 0x0000; break;
-	case 6:		psmr |= 0x1000; break;
-	case 7:		psmr |= 0x2000; break;
-	case 8:		psmr |= 0x3000; break;
-	default:	return (EINVAL);
+	case 5:
+		psmr |= 0x0000;
+		break;
+	case 6:
+		psmr |= 0x1000;
+		break;
+	case 7:
+		psmr |= 0x2000;
+		break;
+	case 8:
+		psmr |= 0x3000;
+		break;
+	default:
+		return (EINVAL);
 	}
 	switch (stopbits) {
-	case 1:		psmr |= 0x0000; break;
-	case 2:		psmr |= 0x4000; break;
-	default:	return (EINVAL);
+	case 1:
+		psmr |= 0x0000;
+		break;
+	case 2:
+		psmr |= 0x4000;
+		break;
+	default:
+		return (EINVAL);
 	}
 	switch (parity) {
-	case UART_PARITY_EVEN:	psmr |= 0x1a; break;
-	case UART_PARITY_MARK:	psmr |= 0x1f; break;
-	case UART_PARITY_NONE:	psmr |= 0x00; break;
-	case UART_PARITY_ODD:	psmr |= 0x10; break;
-	case UART_PARITY_SPACE:	psmr |= 0x15; break;
-	default:		return (EINVAL);
+	case UART_PARITY_EVEN:
+		psmr |= 0x1a;
+		break;
+	case UART_PARITY_MARK:
+		psmr |= 0x1f;
+		break;
+	case UART_PARITY_NONE:
+		psmr |= 0x00;
+		break;
+	case UART_PARITY_ODD:
+		psmr |= 0x10;
+		break;
+	case UART_PARITY_SPACE:
+		psmr |= 0x15;
+		break;
+	default:
+		return (EINVAL);
 	}
 	quicc_write2(bas, QUICC_REG_SCC_PSMR(bas->chan - 1), psmr);
 	return (0);
@@ -247,38 +270,30 @@ static int quicc_bus_transmit(struct uart_softc *);
 static void quicc_bus_grab(struct uart_softc *);
 static void quicc_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t quicc_methods[] = {
-	KOBJMETHOD(uart_attach,		quicc_bus_attach),
-	KOBJMETHOD(uart_detach,		quicc_bus_detach),
-	KOBJMETHOD(uart_flush,		quicc_bus_flush),
-	KOBJMETHOD(uart_getsig,		quicc_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		quicc_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		quicc_bus_ipend),
-	KOBJMETHOD(uart_param,		quicc_bus_param),
-	KOBJMETHOD(uart_probe,		quicc_bus_probe),
-	KOBJMETHOD(uart_receive,	quicc_bus_receive),
-	KOBJMETHOD(uart_setsig,		quicc_bus_setsig),
-	KOBJMETHOD(uart_transmit,	quicc_bus_transmit),
-	KOBJMETHOD(uart_grab,		quicc_bus_grab),
-	KOBJMETHOD(uart_ungrab,		quicc_bus_ungrab),
-	{ 0, 0 }
-};
+static kobj_method_t quicc_methods[] = { KOBJMETHOD(uart_attach,
+					     quicc_bus_attach),
+	KOBJMETHOD(uart_detach, quicc_bus_detach),
+	KOBJMETHOD(uart_flush, quicc_bus_flush),
+	KOBJMETHOD(uart_getsig, quicc_bus_getsig),
+	KOBJMETHOD(uart_ioctl, quicc_bus_ioctl),
+	KOBJMETHOD(uart_ipend, quicc_bus_ipend),
+	KOBJMETHOD(uart_param, quicc_bus_param),
+	KOBJMETHOD(uart_probe, quicc_bus_probe),
+	KOBJMETHOD(uart_receive, quicc_bus_receive),
+	KOBJMETHOD(uart_setsig, quicc_bus_setsig),
+	KOBJMETHOD(uart_transmit, quicc_bus_transmit),
+	KOBJMETHOD(uart_grab, quicc_bus_grab),
+	KOBJMETHOD(uart_ungrab, quicc_bus_ungrab), { 0, 0 } };
 
-struct uart_class uart_quicc_class = {
-	"quicc",
-	quicc_methods,
-	sizeof(struct quicc_softc),
-	.uc_ops = &uart_quicc_ops,
-	.uc_range = 2,
-	.uc_rclk = DEFAULT_RCLK,
-	.uc_rshift = 0
-};
+struct uart_class uart_quicc_class = { "quicc", quicc_methods,
+	sizeof(struct quicc_softc), .uc_ops = &uart_quicc_ops, .uc_range = 2,
+	.uc_rclk = DEFAULT_RCLK, .uc_rshift = 0 };
 
-#define	SIGCHG(c, i, s, d)				\
-	if (c) {					\
-		i |= (i & s) ? s : s | d;		\
-	} else {					\
-		i = (i & s) ? (i & ~s) | d : i;		\
+#define SIGCHG(c, i, s, d)                      \
+	if (c) {                                \
+		i |= (i & s) ? s : s | d;       \
+	} else {                                \
+		i = (i & s) ? (i & ~s) | d : i; \
 	}
 
 static int
@@ -359,7 +374,7 @@ quicc_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 		brg = quicc_read4(bas, QUICC_REG_BRG(bas->chan - 1)) & 0x1fff;
 		brg = (brg & 1) ? (brg + 1) << 3 : (brg + 2) >> 1;
 		baudrate = bas->rclk / (brg * 16);
-		*(int*)data = baudrate;
+		*(int *)data = baudrate;
 		break;
 	default:
 		error = EINVAL;
@@ -396,14 +411,13 @@ quicc_bus_ipend(struct uart_softc *sc)
 }
 
 static int
-quicc_bus_param(struct uart_softc *sc, int baudrate, int databits,
-    int stopbits, int parity)
+quicc_bus_param(struct uart_softc *sc, int baudrate, int databits, int stopbits,
+    int parity)
 {
 	int error;
 
 	uart_lock(sc->sc_hwmtx);
-	error = quicc_param(&sc->sc_bas, baudrate, databits, stopbits,
-	    parity);
+	error = quicc_param(&sc->sc_bas, baudrate, databits, stopbits, parity);
 	uart_unlock(sc->sc_hwmtx);
 	return (error);
 }
@@ -453,12 +467,10 @@ quicc_bus_setsig(struct uart_softc *sc, int sig)
 		old = sc->sc_hwsig;
 		new = old;
 		if (sig & SER_DDTR) {
-			SIGCHG(sig & SER_DTR, new, SER_DTR,
-			    SER_DDTR);
+			SIGCHG(sig & SER_DTR, new, SER_DTR, SER_DDTR);
 		}
 		if (sig & SER_DRTS) {
-			SIGCHG(sig & SER_RTS, new, SER_RTS,
-			    SER_DRTS);
+			SIGCHG(sig & SER_RTS, new, SER_RTS, SER_DRTS);
 		}
 	} while (!atomic_cmpset_32(&sc->sc_hwsig, old, new));
 

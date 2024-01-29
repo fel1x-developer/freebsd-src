@@ -45,52 +45,51 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #include "clock_if.h"
 #include "iicbus_if.h"
 
 /* Registers */
-#define	HYM8563_CTRL1		0x00
-#define	 HYM8563_CTRL1_TEST		(1 << 7)
-#define	 HYM8563_CTRL1_STOP		(1 << 5)
-#define	 HYM8563_CTRL1_TESTC		(1 << 3)
+#define HYM8563_CTRL1 0x00
+#define HYM8563_CTRL1_TEST (1 << 7)
+#define HYM8563_CTRL1_STOP (1 << 5)
+#define HYM8563_CTRL1_TESTC (1 << 3)
 
-#define	HYM8563_CTRL2		0x01
-#define	 HYM8563_CTRL2_TI_TP		(1 << 4)
-#define	 HYM8563_CTRL2_AF		(1 << 3)
-#define	 HYM8563_CTRL2_TF		(1 << 2)
-#define	 HYM8563_CTRL2_AIE		(1 << 1)
-#define	 HYM8563_CTRL2_TIE		(1 << 0)
+#define HYM8563_CTRL2 0x01
+#define HYM8563_CTRL2_TI_TP (1 << 4)
+#define HYM8563_CTRL2_AF (1 << 3)
+#define HYM8563_CTRL2_TF (1 << 2)
+#define HYM8563_CTRL2_AIE (1 << 1)
+#define HYM8563_CTRL2_TIE (1 << 0)
 
-#define	HYM8563_SEC		0x02	/* plus battery low bit */
-#define	 HYM8563_SEC_VL			(1 << 7)
+#define HYM8563_SEC 0x02 /* plus battery low bit */
+#define HYM8563_SEC_VL (1 << 7)
 
-#define	HYM8563_MIN		0x03
-#define	HYM8563_HOUR		0x04
-#define	HYM8563_DAY		0x05
-#define	HYM8563_WEEKDAY		0x06
-#define	HYM8563_MONTH		0x07	/* plus 1 bit for century */
-#define	 HYM8563_MONTH_CENTURY		(1 << 7)
-#define HYM8563_YEAR		0x08
+#define HYM8563_MIN 0x03
+#define HYM8563_HOUR 0x04
+#define HYM8563_DAY 0x05
+#define HYM8563_WEEKDAY 0x06
+#define HYM8563_MONTH 0x07 /* plus 1 bit for century */
+#define HYM8563_MONTH_CENTURY (1 << 7)
+#define HYM8563_YEAR 0x08
 
 struct hym8563_softc {
-	device_t			dev;
-	struct intr_config_hook		init_hook;
+	device_t dev;
+	struct intr_config_hook init_hook;
 };
 
 #ifdef FDT
 static struct ofw_compat_data compat_data[] = {
-	{"haoyu,hym8563", 1},
-	{NULL,           0},
+	{ "haoyu,hym8563", 1 },
+	{ NULL, 0 },
 };
 #endif
 
-
 static inline int
 hym8563_read_buf(struct hym8563_softc *sc, uint8_t reg, uint8_t *buf,
-    uint16_t buflen) 
+    uint16_t buflen)
 {
 
 	return (iicdev_readfrom(sc->dev, reg, buf, buflen, IIC_WAIT));
@@ -98,21 +97,21 @@ hym8563_read_buf(struct hym8563_softc *sc, uint8_t reg, uint8_t *buf,
 
 static inline int
 hym8563_write_buf(struct hym8563_softc *sc, uint8_t reg, uint8_t *buf,
-    uint16_t buflen) 
+    uint16_t buflen)
 {
 
 	return (iicdev_writeto(sc->dev, reg, buf, buflen, IIC_WAIT));
 }
 
 static inline int
-hym8563_read_1(struct hym8563_softc *sc, uint8_t reg, uint8_t *data) 
+hym8563_read_1(struct hym8563_softc *sc, uint8_t reg, uint8_t *data)
 {
 
 	return (iicdev_readfrom(sc->dev, reg, data, 1, IIC_WAIT));
 }
 
 static inline int
-hym8563_write_1(struct hym8563_softc *sc, uint8_t reg, uint8_t val) 
+hym8563_write_1(struct hym8563_softc *sc, uint8_t reg, uint8_t val)
 {
 
 	return (iicdev_writeto(sc->dev, reg, &val, 1, IIC_WAIT));
@@ -121,10 +120,10 @@ hym8563_write_1(struct hym8563_softc *sc, uint8_t reg, uint8_t val)
 static int
 hym8563_gettime(device_t dev, struct timespec *ts)
 {
-	struct hym8563_softc	*sc;
-	struct bcd_clocktime	 bct;
-	uint8_t			 buf[7];
-	int 			 rv;
+	struct hym8563_softc *sc;
+	struct bcd_clocktime bct;
+	uint8_t buf[7];
+	int rv;
 
 	sc = device_get_softc(dev);
 
@@ -136,42 +135,41 @@ hym8563_gettime(device_t dev, struct timespec *ts)
 	}
 
 	/* Check for low voltage flag */
-	if (buf[0] & HYM8563_SEC_VL)
-	{
+	if (buf[0] & HYM8563_SEC_VL) {
 		device_printf(sc->dev,
 		    "WARNING: RTC battery failed; time is invalid\n");
 		return (EINVAL);
 	}
 
 	bzero(&bct, sizeof(bct));
-	bct.sec  = buf[0] & 0x7F;
-	bct.min  = buf[1] & 0x7F;
+	bct.sec = buf[0] & 0x7F;
+	bct.min = buf[1] & 0x7F;
 	bct.hour = buf[2] & 0x3f;
-	bct.day  = buf[3] & 0x3f;
+	bct.day = buf[3] & 0x3f;
 	/* buf[4] is  weekday */
-	bct.mon  = buf[5] & 0x1f;
+	bct.mon = buf[5] & 0x1f;
 	bct.year = buf[6] & 0xff;
 	if (buf[5] & HYM8563_MONTH_CENTURY)
 		bct.year += 0x100;
 
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct);
 	return (clock_bcd_to_ts(&bct, ts, false));
 }
 
 static int
 hym8563_settime(device_t dev, struct timespec *ts)
 {
-	struct hym8563_softc	*sc;
-	struct bcd_clocktime 	 bct;
-	uint8_t			 buf[7];
-	int 			 rv;
+	struct hym8563_softc *sc;
+	struct bcd_clocktime bct;
+	uint8_t buf[7];
+	int rv;
 
 	sc = device_get_softc(dev);
 	ts->tv_sec -= utc_offset();
 	clock_ts_to_bcd(ts, &bct, false);
 	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_WRITE, &bct);
 
-	buf[0] = bct.sec;	/* Also clear VL flag */
+	buf[0] = bct.sec; /* Also clear VL flag */
 	buf[1] = bct.min;
 	buf[2] = bct.hour;
 	buf[3] = bct.day;
@@ -213,7 +211,7 @@ hym8563_init(void *arg)
 	uint8_t reg;
 	int rv;
 
-	sc = (struct hym8563_softc*)arg;
+	sc = (struct hym8563_softc *)arg;
 	config_intrhook_disestablish(&sc->init_hook);
 
 	/* Clear CTL1 register (stop and test bits) */
@@ -222,7 +220,7 @@ hym8563_init(void *arg)
 		device_printf(sc->dev, "Cannot init CTRL1 register: %d\n", rv);
 		return;
 	}
-	
+
 	/* Disable interrupts and alarms */
 	rv = hym8563_read_1(sc, HYM8563_CTRL2, &reg);
 	if (rv != 0) {
@@ -266,7 +264,7 @@ static int
 hym8563_attach(device_t dev)
 {
 	struct hym8563_softc *sc;
-	
+
 	sc = device_get_softc(dev);
 	sc->dev = dev;
 
@@ -291,14 +289,14 @@ hym8563_detach(device_t dev)
 }
 
 static device_method_t hym8563_methods[] = {
-        /* device_if methods */
-	DEVMETHOD(device_probe,		hym8563_probe),
-	DEVMETHOD(device_attach,	hym8563_attach),
-	DEVMETHOD(device_detach,	hym8563_detach),
+	/* device_if methods */
+	DEVMETHOD(device_probe, hym8563_probe),
+	DEVMETHOD(device_attach, hym8563_attach),
+	DEVMETHOD(device_detach, hym8563_detach),
 
-        /* clock_if methods */
-	DEVMETHOD(clock_gettime,	hym8563_gettime),
-	DEVMETHOD(clock_settime,	hym8563_settime),
+	/* clock_if methods */
+	DEVMETHOD(clock_gettime, hym8563_gettime),
+	DEVMETHOD(clock_settime, hym8563_settime),
 
 	DEVMETHOD_END,
 };

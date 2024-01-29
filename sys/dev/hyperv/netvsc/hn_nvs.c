@@ -30,68 +30,59 @@
  * Network Virtualization Service.
  */
 
-#include <sys/cdefs.h>
-#include "opt_inet6.h"
 #include "opt_inet.h"
+#include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/socket.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp_lro.h>
+#include <vm/vm_extern.h>
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus.h>
 #include <dev/hyperv/include/vmbus_xact.h>
-
-#include <dev/hyperv/netvsc/ndis.h>
+#include <dev/hyperv/netvsc/hn_nvs.h>
 #include <dev/hyperv/netvsc/if_hnreg.h>
 #include <dev/hyperv/netvsc/if_hnvar.h>
-#include <dev/hyperv/netvsc/hn_nvs.h>
+#include <dev/hyperv/netvsc/ndis.h>
 
-static int			hn_nvs_conn_chim(struct hn_softc *);
-static int			hn_nvs_conn_rxbuf(struct hn_softc *);
-static void			hn_nvs_disconn_chim(struct hn_softc *);
-static void			hn_nvs_disconn_rxbuf(struct hn_softc *);
-static int			hn_nvs_conf_ndis(struct hn_softc *, int);
-static int			hn_nvs_init_ndis(struct hn_softc *);
-static int			hn_nvs_doinit(struct hn_softc *, uint32_t);
-static int			hn_nvs_init(struct hn_softc *);
-static const void		*hn_nvs_xact_execute(struct hn_softc *,
-				    struct vmbus_xact *, void *, int,
-				    size_t *, uint32_t);
-static void			hn_nvs_sent_none(struct hn_nvs_sendctx *,
-				    struct hn_softc *, struct vmbus_channel *,
-				    const void *, int);
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <netinet/in.h>
+#include <netinet/tcp_lro.h>
 
-struct hn_nvs_sendctx		hn_nvs_sendctx_none =
+static int hn_nvs_conn_chim(struct hn_softc *);
+static int hn_nvs_conn_rxbuf(struct hn_softc *);
+static void hn_nvs_disconn_chim(struct hn_softc *);
+static void hn_nvs_disconn_rxbuf(struct hn_softc *);
+static int hn_nvs_conf_ndis(struct hn_softc *, int);
+static int hn_nvs_init_ndis(struct hn_softc *);
+static int hn_nvs_doinit(struct hn_softc *, uint32_t);
+static int hn_nvs_init(struct hn_softc *);
+static const void *hn_nvs_xact_execute(struct hn_softc *, struct vmbus_xact *,
+    void *, int, size_t *, uint32_t);
+static void hn_nvs_sent_none(struct hn_nvs_sendctx *, struct hn_softc *,
+    struct vmbus_channel *, const void *, int);
+
+struct hn_nvs_sendctx hn_nvs_sendctx_none =
     HN_NVS_SENDCTX_INITIALIZER(hn_nvs_sent_none, NULL);
 
-static const uint32_t		hn_nvs_version[] = {
-	HN_NVS_VERSION_61,
-	HN_NVS_VERSION_6,
-	HN_NVS_VERSION_5,
-	HN_NVS_VERSION_4,
-	HN_NVS_VERSION_2,
-	HN_NVS_VERSION_1
-};
+static const uint32_t hn_nvs_version[] = { HN_NVS_VERSION_61, HN_NVS_VERSION_6,
+	HN_NVS_VERSION_5, HN_NVS_VERSION_4, HN_NVS_VERSION_2,
+	HN_NVS_VERSION_1 };
 
 static const void *
-hn_nvs_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact,
-    void *req, int reqlen, size_t *resplen0, uint32_t type)
+hn_nvs_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact, void *req,
+    int reqlen, size_t *resplen0, uint32_t type)
 {
 	struct hn_nvs_sendctx sndc;
 	size_t resplen, min_resplen = *resplen0;
@@ -107,8 +98,8 @@ hn_nvs_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact,
 	hn_nvs_sendctx_init(&sndc, hn_nvs_sent_xact, xact);
 
 	vmbus_xact_activate(xact);
-	error = hn_nvs_send(sc->hn_prichan, VMBUS_CHANPKT_FLAG_RC,
-	    req, reqlen, &sndc);
+	error = hn_nvs_send(sc->hn_prichan, VMBUS_CHANPKT_FLAG_RC, req, reqlen,
+	    &sndc);
 	if (error) {
 		vmbus_xact_deactivate(xact);
 		return (NULL);
@@ -124,8 +115,10 @@ hn_nvs_xact_execute(struct hn_softc *sc, struct vmbus_xact *xact,
 		return (NULL);
 	}
 	if (hdr->nvs_type != type) {
-		if_printf(sc->hn_ifp, "unexpected NVS resp 0x%08x, "
-		    "expect 0x%08x\n", hdr->nvs_type, type);
+		if_printf(sc->hn_ifp,
+		    "unexpected NVS resp 0x%08x, "
+		    "expect 0x%08x\n",
+		    hdr->nvs_type, type);
 		return (NULL);
 	}
 	/* All pass! */
@@ -137,11 +130,11 @@ static __inline int
 hn_nvs_req_send(struct hn_softc *sc, void *req, int reqlen)
 {
 
-	return (hn_nvs_send(sc->hn_prichan, VMBUS_CHANPKT_FLAG_NONE,
-	    req, reqlen, &hn_nvs_sendctx_none));
+	return (hn_nvs_send(sc->hn_prichan, VMBUS_CHANPKT_FLAG_NONE, req,
+	    reqlen, &hn_nvs_sendctx_none));
 }
 
-static int 
+static int
 hn_nvs_conn_rxbuf(struct hn_softc *sc)
 {
 	struct vmbus_xact *xact = NULL;
@@ -170,8 +163,7 @@ hn_nvs_conn_rxbuf(struct hn_softc *sc)
 	    pmap_kextract((vm_offset_t)sc->hn_rxbuf), rxbuf_size,
 	    &sc->hn_rxbuf_gpadl);
 	if (error) {
-		if_printf(sc->hn_ifp, "rxbuf gpadl conn failed: %d\n",
-		    error);
+		if_printf(sc->hn_ifp, "rxbuf gpadl conn failed: %d\n", error);
 		goto cleanup;
 	}
 
@@ -219,7 +211,7 @@ cleanup:
 	return (error);
 }
 
-static int 
+static int
 hn_nvs_conn_chim(struct hn_softc *sc)
 {
 	struct vmbus_xact *xact = NULL;
@@ -283,11 +275,14 @@ hn_nvs_conn_chim(struct hn_softc *sc)
 		 * Can't use chimney sending buffer; done!
 		 */
 		if (sectsz == 0) {
-			if_printf(sc->hn_ifp, "zero chimney sending buffer "
+			if_printf(sc->hn_ifp,
+			    "zero chimney sending buffer "
 			    "section size\n");
 		} else {
-			if_printf(sc->hn_ifp, "misaligned chimney sending "
-			    "buffers, section size: %u\n", sectsz);
+			if_printf(sc->hn_ifp,
+			    "misaligned chimney sending "
+			    "buffers, section size: %u\n",
+			    sectsz);
 		}
 		sc->hn_chim_szmax = 0;
 		sc->hn_chim_cnt = 0;
@@ -298,7 +293,8 @@ hn_nvs_conn_chim(struct hn_softc *sc)
 	sc->hn_chim_szmax = sectsz;
 	sc->hn_chim_cnt = HN_CHIM_SIZE / sc->hn_chim_szmax;
 	if (HN_CHIM_SIZE % sc->hn_chim_szmax != 0) {
-		if_printf(sc->hn_ifp, "chimney sending sections are "
+		if_printf(sc->hn_ifp,
+		    "chimney sending sections are "
 		    "not properly aligned\n");
 	}
 	if (sc->hn_chim_cnt % LONG_BIT != 0) {
@@ -370,7 +366,8 @@ hn_nvs_disconn_rxbuf(struct hn_softc *sc)
 		pause("lingtx", (200 * hz) / 1000);
 	}
 
-	if (vmbus_current_version < VMBUS_VERSION_WIN10 && sc->hn_rxbuf_gpadl != 0) {
+	if (vmbus_current_version < VMBUS_VERSION_WIN10 &&
+	    sc->hn_rxbuf_gpadl != 0) {
 		/*
 		 * Disconnect RXBUF from primary channel.
 		 */
@@ -431,15 +428,16 @@ hn_nvs_disconn_chim(struct hn_softc *sc)
 		pause("lingtx", (200 * hz) / 1000);
 	}
 
-	if (vmbus_current_version < VMBUS_VERSION_WIN10 && sc->hn_chim_gpadl != 0) {
+	if (vmbus_current_version < VMBUS_VERSION_WIN10 &&
+	    sc->hn_chim_gpadl != 0) {
 		/*
 		 * Disconnect chimney sending buffer from primary channel.
 		 */
 		error = vmbus_chan_gpadl_disconnect(sc->hn_prichan,
 		    sc->hn_chim_gpadl);
 		if (error) {
-			if_printf(sc->hn_ifp,
-			    "chim gpadl disconn failed: %d\n", error);
+			if_printf(sc->hn_ifp, "chim gpadl disconn failed: %d\n",
+			    error);
 			sc->hn_flags |= HN_FLAG_CHIM_REF;
 		}
 		sc->hn_chim_gpadl = 0;
@@ -516,7 +514,6 @@ hn_nvs_conf_ndis(struct hn_softc *sc, int mtu)
 	if (sc->hn_nvs_ver >= HN_NVS_VERSION_61)
 		conf.nvs_caps |= HN_NVS_NDIS_CONF_RSC;
 
-
 	/* NOTE: No response. */
 	error = hn_nvs_req_send(sc, &conf, sizeof(conf));
 	if (error) {
@@ -558,16 +555,20 @@ hn_nvs_init(struct hn_softc *sc)
 		 * NVS version and NDIS version MUST NOT be changed.
 		 */
 		if (bootverbose) {
-			if_printf(sc->hn_ifp, "reinit NVS version 0x%x, "
-			    "NDIS version %u.%u\n", sc->hn_nvs_ver,
+			if_printf(sc->hn_ifp,
+			    "reinit NVS version 0x%x, "
+			    "NDIS version %u.%u\n",
+			    sc->hn_nvs_ver,
 			    HN_NDIS_VERSION_MAJOR(sc->hn_ndis_ver),
 			    HN_NDIS_VERSION_MINOR(sc->hn_ndis_ver));
 		}
 
 		error = hn_nvs_doinit(sc, sc->hn_nvs_ver);
 		if (error) {
-			if_printf(sc->hn_ifp, "reinit NVS version 0x%x "
-			    "failed: %d\n", sc->hn_nvs_ver, error);
+			if_printf(sc->hn_ifp,
+			    "reinit NVS version 0x%x "
+			    "failed: %d\n",
+			    sc->hn_nvs_ver, error);
 			return (error);
 		}
 		goto done;
@@ -587,8 +588,10 @@ hn_nvs_init(struct hn_softc *sc)
 				sc->hn_ndis_ver = HN_NDIS_VERSION_6_1;
 
 			if (bootverbose) {
-				if_printf(sc->hn_ifp, "NVS version 0x%x, "
-				    "NDIS version %u.%u\n", sc->hn_nvs_ver,
+				if_printf(sc->hn_ifp,
+				    "NVS version 0x%x, "
+				    "NDIS version %u.%u\n",
+				    sc->hn_nvs_ver,
 				    HN_NDIS_VERSION_MAJOR(sc->hn_ndis_ver),
 				    HN_NDIS_VERSION_MINOR(sc->hn_ndis_ver));
 			}
@@ -665,9 +668,8 @@ hn_nvs_detach(struct hn_softc *sc)
 }
 
 void
-hn_nvs_sent_xact(struct hn_nvs_sendctx *sndc,
-    struct hn_softc *sc __unused, struct vmbus_channel *chan __unused,
-    const void *data, int dlen)
+hn_nvs_sent_xact(struct hn_nvs_sendctx *sndc, struct hn_softc *sc __unused,
+    struct vmbus_channel *chan __unused, const void *data, int dlen)
 {
 
 	vmbus_xact_wakeup(sndc->hn_cbarg, data, dlen);
@@ -721,8 +723,10 @@ hn_nvs_alloc_subchans(struct hn_softc *sc, int *nsubch0)
 
 	nsubch = resp->nvs_nsubch;
 	if (nsubch > nsubch_req) {
-		if_printf(sc->hn_ifp, "%u subchans are allocated, "
-		    "requested %d\n", nsubch, nsubch_req);
+		if_printf(sc->hn_ifp,
+		    "%u subchans are allocated, "
+		    "requested %d\n",
+		    nsubch, nsubch_req);
 		nsubch = nsubch_req;
 	}
 	*nsubch0 = nsubch;
@@ -733,12 +737,12 @@ done:
 }
 
 int
-hn_nvs_send_rndis_ctrl(struct vmbus_channel *chan,
-    struct hn_nvs_sendctx *sndc, struct vmbus_gpa *gpa, int gpa_cnt)
+hn_nvs_send_rndis_ctrl(struct vmbus_channel *chan, struct hn_nvs_sendctx *sndc,
+    struct vmbus_gpa *gpa, int gpa_cnt)
 {
 
-	return hn_nvs_send_rndis_sglist(chan, HN_NVS_RNDIS_MTYPE_CTRL,
-	    sndc, gpa, gpa_cnt);
+	return hn_nvs_send_rndis_sglist(chan, HN_NVS_RNDIS_MTYPE_CTRL, sndc,
+	    gpa, gpa_cnt);
 }
 
 void

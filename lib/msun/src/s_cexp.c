@@ -32,9 +32,9 @@
 
 #include "math_private.h"
 
-static const uint32_t
-exp_ovfl  = 0x40862e42,			/* high bits of MAX_EXP * ln2 ~= 710 */
-cexp_ovfl = 0x4096b8e4;			/* (MAX_EXP - MIN_DENORM_EXP) * ln2 */
+static const uint32_t exp_ovfl =
+			  0x40862e42, /* high bits of MAX_EXP * ln2 ~= 710 */
+    cexp_ovfl = 0x4096b8e4;	      /* (MAX_EXP - MIN_DENORM_EXP) * ln2 */
 
 double complex
 cexp(double complex z)

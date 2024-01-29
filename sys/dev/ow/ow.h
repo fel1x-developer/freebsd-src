@@ -26,16 +26,12 @@
 #ifndef DEV_OW_OW_H
 #define DEV_OW_OW_H 1
 
-enum ow_device_ivars {
-	OW_IVAR_FAMILY,
-	OW_IVAR_ROMID
-};
+enum ow_device_ivars { OW_IVAR_FAMILY, OW_IVAR_ROMID };
 
-#define OW_ACCESSOR(var, ivar, type)					\
-	__BUS_ACCESSOR(ow, var, OW, ivar, type);
+#define OW_ACCESSOR(var, ivar, type) __BUS_ACCESSOR(ow, var, OW, ivar, type);
 
-OW_ACCESSOR(family,	FAMILY,	uint8_t)
-OW_ACCESSOR(romid,	ROMID, uint8_t *)
+OW_ACCESSOR(family, FAMILY, uint8_t)
+OW_ACCESSOR(romid, ROMID, uint8_t *)
 
 #undef OW_ACCSSOR
 
@@ -51,22 +47,22 @@ OW_ACCESSOR(romid,	ROMID, uint8_t *)
  * general transactions from userland. A lower-level interface to the link
  * layer is also provided.
  */
-#define MAX_ROM		10
-#define MAX_XPT		32
-#define MAX_READ	32
-struct ow_cmd 
-{
-	uint32_t	flags;		/* Various flags */
-#define OW_FLAG_OVERDRIVE	1	/* Send xpt stuff overdrive speed */
-#define OW_FLAG_READ_BIT	2	/* Read a single bit after xpt_cmd */
-	uint8_t		rom_len;	/* Number of ROM bytes to send */
-	uint8_t		rom_cmd[MAX_ROM]; /* Rom command to send */
-	uint8_t		rom_read_len;	/* Number of bytes to read */
-	uint8_t		rom_read[MAX_ROM]; /* Extra bytes read */
-	uint8_t		xpt_len;	/* Total transport bytes to send */
-	uint8_t		xpt_cmd[MAX_XPT]; /* Device specific command to send, if flagged */
-	uint8_t		xpt_read_len;	/* Number of bytes to read after */
-	uint8_t		xpt_read[MAX_READ]; /* Buffer for read bytes */
+#define MAX_ROM 10
+#define MAX_XPT 32
+#define MAX_READ 32
+struct ow_cmd {
+	uint32_t flags;		   /* Various flags */
+#define OW_FLAG_OVERDRIVE 1	   /* Send xpt stuff overdrive speed */
+#define OW_FLAG_READ_BIT 2	   /* Read a single bit after xpt_cmd */
+	uint8_t rom_len;	   /* Number of ROM bytes to send */
+	uint8_t rom_cmd[MAX_ROM];  /* Rom command to send */
+	uint8_t rom_read_len;	   /* Number of bytes to read */
+	uint8_t rom_read[MAX_ROM]; /* Extra bytes read */
+	uint8_t xpt_len;	   /* Total transport bytes to send */
+	uint8_t
+	    xpt_cmd[MAX_XPT]; /* Device specific command to send, if flagged */
+	uint8_t xpt_read_len; /* Number of bytes to read after */
+	uint8_t xpt_read[MAX_READ]; /* Buffer for read bytes */
 };
 
 typedef uint64_t romid_t;

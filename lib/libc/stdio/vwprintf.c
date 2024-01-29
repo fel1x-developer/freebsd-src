@@ -37,12 +37,12 @@
 #include <xlocale.h>
 
 int
-vwprintf(const wchar_t * __restrict fmt, va_list ap)
+vwprintf(const wchar_t *__restrict fmt, va_list ap)
 {
 	return (vfwprintf(stdout, fmt, ap));
 }
 int
-vwprintf_l(locale_t locale, const wchar_t * __restrict fmt, va_list ap)
+vwprintf_l(locale_t locale, const wchar_t *__restrict fmt, va_list ap)
 {
 	return (vfwprintf_l(stdout, locale, fmt, ap));
 }

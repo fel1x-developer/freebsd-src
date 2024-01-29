@@ -40,9 +40,8 @@
 
 #include "fdutil.h"
 
-
-static	int format, verbose, show = 1, showfmt;
-static	char *fmtstring;
+static int format, verbose, show = 1, showfmt;
+static char *fmtstring;
 
 static void showdev(enum fd_drivetype, const char *);
 static void usage(void) __dead2;
@@ -51,7 +50,7 @@ static void
 usage(void)
 {
 	errx(EX_USAGE,
-	     "usage: fdcontrol [-F] [-d dbg] [-f fmt] [-s fmtstr] [-v] device");
+	    "usage: fdcontrol [-F] [-d dbg] [-f fmt] [-s fmtstr] [-v] device");
 }
 
 void
@@ -75,8 +74,8 @@ main(int argc, char **argv)
 	int fd, i, autofmt;
 
 	autofmt = 0;
-	while((i = getopt(argc, argv, "aFf:s:v")) != -1)
-		switch(i) {
+	while ((i = getopt(argc, argv, "aFf:s:v")) != -1)
+		switch (i) {
 
 		case 'a':
 			autofmt = 1;
@@ -91,8 +90,8 @@ main(int argc, char **argv)
 				format = -1;
 			} else if (getnum(optarg, &format)) {
 				fprintf(stderr,
-			"Bad argument %s to -f option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -f option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			show = 0;
@@ -114,10 +113,10 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if(argc != 1)
+	if (argc != 1)
 		usage();
 
-	if((fd = open(argv[0], O_RDONLY | O_NONBLOCK)) < 0)
+	if ((fd = open(argv[0], O_RDONLY | O_NONBLOCK)) < 0)
 		err(EX_UNAVAILABLE, "open(%s)", argv[0]);
 
 	if (ioctl(fd, FD_GDTYPE, &type) == -1)
@@ -139,8 +138,7 @@ main(int argc, char **argv)
 		getname(type, &name, &descr);
 		fdtp = get_fmt(format, type);
 		if (fdtp == 0)
-			errx(EX_USAGE,
-			    "unknown format %d KB for drive type %s",
+			errx(EX_USAGE, "unknown format %d KB for drive type %s",
 			    format, name);
 		ft = *fdtp;
 	}
@@ -166,10 +164,18 @@ main(int argc, char **argv)
 			printf("\tHeads/cylinder:\t%d\n", ft.heads);
 			printf("\tCylinders/disk:\t%d\n", ft.tracks);
 			switch (ft.trans) {
-			case 0: printf("\tTransfer rate:\t500 kbps\n"); break;
-			case 1: printf("\tTransfer rate:\t300 kbps\n"); break;
-			case 2: printf("\tTransfer rate:\t250 kbps\n"); break;
-			case 3: printf("\tTransfer rate:\t1 Mbps\n"); break;
+			case 0:
+				printf("\tTransfer rate:\t500 kbps\n");
+				break;
+			case 1:
+				printf("\tTransfer rate:\t300 kbps\n");
+				break;
+			case 2:
+				printf("\tTransfer rate:\t250 kbps\n");
+				break;
+			case 3:
+				printf("\tTransfer rate:\t1 Mbps\n");
+				break;
 			}
 			printf("\tSector gap:\t%d\n", ft.gap);
 			printf("\tFormat gap:\t%d\n", ft.f_gap);

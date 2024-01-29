@@ -31,9 +31,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
 
 #include <libutil.h>
+#include <stdlib.h>
 
 char *
 auth_getval(const char *name)

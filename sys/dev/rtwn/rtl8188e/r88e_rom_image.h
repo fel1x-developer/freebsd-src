@@ -23,49 +23,49 @@
  * RTL8188EU ROM image.
  */
 struct r88e_rom {
-	uint8_t		reserved1[16];
-	uint8_t		cck_tx_pwr[R88E_GROUP_2G];
-	uint8_t		ht40_tx_pwr[R88E_GROUP_2G - 1];
-	uint8_t		tx_pwr_diff;
-	uint8_t		reserved2[156];
-	uint8_t		channel_plan;
-	uint8_t		crystalcap;
-#define R88E_ROM_CRYSTALCAP_DEF		0x20
+	uint8_t reserved1[16];
+	uint8_t cck_tx_pwr[R88E_GROUP_2G];
+	uint8_t ht40_tx_pwr[R88E_GROUP_2G - 1];
+	uint8_t tx_pwr_diff;
+	uint8_t reserved2[156];
+	uint8_t channel_plan;
+	uint8_t crystalcap;
+#define R88E_ROM_CRYSTALCAP_DEF 0x20
 
-	uint8_t		thermal_meter;
-	uint8_t		reserved3[6];
-	uint8_t		rf_board_opt;
-	uint8_t		rf_feature_opt;
-	uint8_t		rf_bt_opt;
-	uint8_t		version;
-	uint8_t		customer_id;
-	uint8_t		reserved4[3];
-	uint8_t		rf_ant_opt;
-	uint8_t		reserved5[6];
+	uint8_t thermal_meter;
+	uint8_t reserved3[6];
+	uint8_t rf_board_opt;
+	uint8_t rf_feature_opt;
+	uint8_t rf_bt_opt;
+	uint8_t version;
+	uint8_t customer_id;
+	uint8_t reserved4[3];
+	uint8_t rf_ant_opt;
+	uint8_t reserved5[6];
 
 	union {
 		struct {
-			uint16_t	vid;
-			uint16_t	pid;
-			uint8_t		usb_opt;
-			uint8_t		reserved6[2];
-			uint8_t		macaddr[IEEE80211_ADDR_LEN];
+			uint16_t vid;
+			uint16_t pid;
+			uint8_t usb_opt;
+			uint8_t reserved6[2];
+			uint8_t macaddr[IEEE80211_ADDR_LEN];
 		} __packed usb;
 
 		struct {
-			uint8_t		macaddr[IEEE80211_ADDR_LEN];
-			uint16_t	vid;
-			uint16_t	pid;
-			uint8_t		reserved6[3];
+			uint8_t macaddr[IEEE80211_ADDR_LEN];
+			uint16_t vid;
+			uint16_t pid;
+			uint8_t reserved6[3];
 		} __packed pci;
 	} __packed diff_d0;
 
-	uint8_t		reserved7[2];
-	uint8_t		string[33];	/* "realtek 802.11n NIC" */
-	uint8_t		reserved8[256];
+	uint8_t reserved7[2];
+	uint8_t string[33]; /* "realtek 802.11n NIC" */
+	uint8_t reserved8[256];
 } __packed;
 
 _Static_assert(sizeof(struct r88e_rom) == R88E_EFUSE_MAP_LEN,
     "R88E_EFUSE_MAP_LEN must be equal to sizeof(struct r88e_rom)!");
 
-#endif	/* R88E_ROM_IMAGE_H */
+#endif /* R88E_ROM_IMAGE_H */

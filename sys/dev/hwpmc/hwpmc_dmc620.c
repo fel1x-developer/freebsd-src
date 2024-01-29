@@ -33,72 +33,71 @@
 /* Support for ARM DMC-620 Memory Controller PMU */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
 #include <dev/hwpmc/pmu_dmc620_reg.h>
 
-#define	DMC620_TYPE_CLKDIV2	0
-#define	DMC620_TYPE_CLK		1
-#define CLASS2TYPE(c)	((c) - PMC_CLASS_DMC620_PMU_CD2)
+#define DMC620_TYPE_CLKDIV2 0
+#define DMC620_TYPE_CLK 1
+#define CLASS2TYPE(c) ((c)-PMC_CLASS_DMC620_PMU_CD2)
 
 /* Create wrapper for each class. */
-#define	CLASSDEP_FN2(fn, t1, a1, t2, a2)				\
-	static int fn(int class, t1 a1, t2 a2);				\
-	static int fn ## _cd2(t1 a1, t2 a2)				\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2));		\
-	}								\
-	static int fn ## _c(t1 a1, t2 a2)				\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2));		\
-	}								\
+#define CLASSDEP_FN2(fn, t1, a1, t2, a2)                       \
+	static int fn(int class, t1 a1, t2 a2);                \
+	static int fn##_cd2(t1 a1, t2 a2)                      \
+	{                                                      \
+		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2)); \
+	}                                                      \
+	static int fn##_c(t1 a1, t2 a2)                        \
+	{                                                      \
+		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2));   \
+	}                                                      \
 	static int fn(int class, t1 a1, t2 a2)
 
-#define	CLASSDEP_FN3(fn, t1, a1, t2, a2, t3, a3)			\
-	static int fn(int class, t1 a1, t2 a2, t3 a3);			\
-	static int fn ## _cd2(t1 a1, t2 a2, t3 a3)			\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2, a3));	\
-	}								\
-	static int fn ## _c(t1 a1, t2 a2, t3 a3)			\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2, a3));	\
-	}								\
+#define CLASSDEP_FN3(fn, t1, a1, t2, a2, t3, a3)                   \
+	static int fn(int class, t1 a1, t2 a2, t3 a3);             \
+	static int fn##_cd2(t1 a1, t2 a2, t3 a3)                   \
+	{                                                          \
+		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2, a3)); \
+	}                                                          \
+	static int fn##_c(t1 a1, t2 a2, t3 a3)                     \
+	{                                                          \
+		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2, a3));   \
+	}                                                          \
 	static int fn(int class, t1 a1, t2 a2, t3 a3)
 
-#define	CLASSDEP_FN4(fn, t1, a1, t2, a2, t3, a3, t4, a4)		\
-	static int fn(int class, t1 a1, t2 a2, t3 a3, t4 a4);		\
-	static int fn ## _cd2(t1 a1, t2 a2, t3 a3, t4 a4)		\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2, a3, a4));	\
-	}								\
-	static int fn ## _c(t1 a1, t2 a2, t3 a3, t4 a4)			\
-	{								\
-		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2, a3, a4));	\
-	}								\
+#define CLASSDEP_FN4(fn, t1, a1, t2, a2, t3, a3, t4, a4)               \
+	static int fn(int class, t1 a1, t2 a2, t3 a3, t4 a4);          \
+	static int fn##_cd2(t1 a1, t2 a2, t3 a3, t4 a4)                \
+	{                                                              \
+		return (fn(PMC_CLASS_DMC620_PMU_CD2, a1, a2, a3, a4)); \
+	}                                                              \
+	static int fn##_c(t1 a1, t2 a2, t3 a3, t4 a4)                  \
+	{                                                              \
+		return (fn(PMC_CLASS_DMC620_PMU_C, a1, a2, a3, a4));   \
+	}                                                              \
 	static int fn(int class, t1 a1, t2 a2, t3 a3, t4 a4)
 
 struct dmc620_pmc {
-	void	*arg;
-	int	domain;
+	void *arg;
+	int domain;
 };
 
 struct dmc620_descr {
-	struct pmc_descr pd_descr;  /* "base class" */
-	void		*pd_rw_arg; /* Argument to use with read/write */
-	struct pmc	*pd_pmc;
-	struct pmc_hw	*pd_phw;
-	uint32_t	pd_config;
-	uint32_t	pd_match;
-	uint32_t	pd_mask;
-	uint32_t	pd_evsel;   /* address of EVSEL register */
-	uint32_t	pd_perfctr; /* address of PERFCTR register */
-
+	struct pmc_descr pd_descr; /* "base class" */
+	void *pd_rw_arg;	   /* Argument to use with read/write */
+	struct pmc *pd_pmc;
+	struct pmc_hw *pd_phw;
+	uint32_t pd_config;
+	uint32_t pd_match;
+	uint32_t pd_mask;
+	uint32_t pd_evsel;   /* address of EVSEL register */
+	uint32_t pd_perfctr; /* address of PERFCTR register */
 };
 
 static struct dmc620_descr **dmc620_pmcdesc[2];
@@ -142,8 +141,10 @@ dmc620desc(int class, int cpu, int ri)
 	int c;
 
 	c = CLASS2TYPE(class);
-	KASSERT((c & 0xfffffffe) == 0, ("[dmc620,%d] 'c' can only be 0 or 1. "
-	    "now %d", __LINE__, c));
+	KASSERT((c & 0xfffffffe) == 0,
+	    ("[dmc620,%d] 'c' can only be 0 or 1. "
+	     "now %d",
+		__LINE__, c));
 
 	return (dmc620_pmcdesc[c][ri]);
 }
@@ -154,8 +155,10 @@ cntr(int class, int ri)
 	int c;
 
 	c = CLASS2TYPE(class);
-	KASSERT((c & 0xfffffffe) == 0, ("[dmc620,%d] 'c' can only be 0 or 1. "
-	    "now %d", __LINE__, c));
+	KASSERT((c & 0xfffffffe) == 0,
+	    ("[dmc620,%d] 'c' can only be 0 or 1. "
+	     "now %d",
+		__LINE__, c));
 
 	if (c == DMC620_TYPE_CLKDIV2)
 		return (ri % DMC620_CLKDIV2_COUNTERS_N);
@@ -196,12 +199,12 @@ CLASSDEP_FN4(dmc620_read_pmc, int, cpu, int, ri, struct pmc *, pm,
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = dmc620desc(class, cpu, ri);
 
-	PMCDBG3(MDP,REA,1,"%s id=%d class=%d", __func__, ri, class);
+	PMCDBG3(MDP, REA, 1, "%s id=%d class=%d", __func__, ri, class);
 
 	/*
 	 * Should emulate 64bits, because 32 bits counter overflows faster than
@@ -210,7 +213,7 @@ CLASSDEP_FN4(dmc620_read_pmc, int, cpu, int, ri, struct pmc *, pm,
 	/* Always CPU0. Single controller for all CPUs. */
 	*v = ((uint64_t)pm->pm_pcpu_state[0].pps_overflowcnt << 32) |
 	    pmu_dmc620_rd4(desc->pd_rw_arg, cntr(class, ri),
-	    DMC620_COUNTER_VALUE_LO);
+		DMC620_COUNTER_VALUE_LO);
 
 	PMCDBG3(MDP, REA, 2, "%s id=%d -> %jd", __func__, ri, *v);
 
@@ -221,15 +224,15 @@ CLASSDEP_FN4(dmc620_read_pmc, int, cpu, int, ri, struct pmc *, pm,
  * Write a pmc register.
  */
 
-CLASSDEP_FN4(dmc620_write_pmc, int, cpu, int, ri, struct pmc *, pm,
-    pmc_value_t, v)
+CLASSDEP_FN4(dmc620_write_pmc, int, cpu, int, ri, struct pmc *, pm, pmc_value_t,
+    v)
 {
 	struct dmc620_descr *desc;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = dmc620desc(class, cpu, ri);
 
@@ -253,14 +256,14 @@ CLASSDEP_FN3(dmc620_config_pmc, int, cpu, int, ri, struct pmc *, pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	phw = dmc620desc(class, cpu, ri)->pd_phw;
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[dmc620,%d] pm=%p phw->pm=%p hwpmc not unconfigured",
-		__LINE__, pm, phw->phw_pmc));
+	    ("[dmc620,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__,
+		pm, phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 	return (0);
@@ -282,7 +285,7 @@ CLASSDEP_FN3(dmc620_get_config, int, cpu, int, ri, struct pmc **, ppm)
  * Check if a given allocation is feasible.
  */
 
-CLASSDEP_FN4(dmc620_allocate_pmc, int, cpu, int, ri, struct pmc *,pm,
+CLASSDEP_FN4(dmc620_allocate_pmc, int, cpu, int, ri, struct pmc *, pm,
     const struct pmc_op_pmcallocate *, a)
 {
 	const struct pmc_descr *pd;
@@ -290,12 +293,12 @@ CLASSDEP_FN4(dmc620_allocate_pmc, int, cpu, int, ri, struct pmc *,pm,
 	enum pmc_event pe;
 	uint8_t e;
 
-	(void) cpu;
+	(void)cpu;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	pd = &dmc620desc(class, cpu, ri)->pd_descr;
 	if (dmc620_pmcs[class_ri2unit(class, ri)].domain !=
@@ -342,12 +345,12 @@ CLASSDEP_FN3(dmc620_release_pmc, int, cpu, int, ri, struct pmc *, pmc)
 {
 	struct pmc_hw *phw __diagused;
 
-	(void) pmc;
+	(void)pmc;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	phw = dmc620desc(class, cpu, ri)->pd_phw;
 
@@ -368,28 +371,29 @@ CLASSDEP_FN3(dmc620_start_pmc, int, cpu, int, ri, struct pmc *, pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = dmc620desc(class, cpu, ri);
 
 	PMCDBG3(MDP, STA, 1, "%s cpu=%d ri=%d", __func__, cpu, ri);
 
-	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
-	    DMC620_COUNTER_MASK_LO, pm->pm_md.pm_dmc620.pm_mask & 0xffffffff);
-	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
-	    DMC620_COUNTER_MASK_HI, pm->pm_md.pm_dmc620.pm_mask >> 32);
+	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri), DMC620_COUNTER_MASK_LO,
+	    pm->pm_md.pm_dmc620.pm_mask & 0xffffffff);
+	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri), DMC620_COUNTER_MASK_HI,
+	    pm->pm_md.pm_dmc620.pm_mask >> 32);
 	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
 	    DMC620_COUNTER_MATCH_LO, pm->pm_md.pm_dmc620.pm_match & 0xffffffff);
 	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
 	    DMC620_COUNTER_MATCH_HI, pm->pm_md.pm_dmc620.pm_match >> 32);
 	/* turn on the PMC ENABLE bit */
-	control = pm->pm_md.pm_dmc620.pm_control | DMC620_COUNTER_CONTROL_ENABLE;
+	control = pm->pm_md.pm_dmc620.pm_control |
+	    DMC620_COUNTER_CONTROL_ENABLE;
 
 	PMCDBG2(MDP, STA, 2, "%s control=0x%x", __func__, control);
 
-	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
-	    DMC620_COUNTER_CONTROL, control);
+	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri), DMC620_COUNTER_CONTROL,
+	    control);
 	return (0);
 }
 
@@ -404,17 +408,18 @@ CLASSDEP_FN3(dmc620_stop_pmc, int, cpu, int, ri, struct pmc *, pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = dmc620desc(class, cpu, ri);
 
 	PMCDBG2(MDP, STO, 1, "%s ri=%d", __func__, ri);
 
 	/* turn off the PMC ENABLE bit */
-	control = pm->pm_md.pm_dmc620.pm_control & ~DMC620_COUNTER_CONTROL_ENABLE;
-	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri),
-	    DMC620_COUNTER_CONTROL, control);
+	control = pm->pm_md.pm_dmc620.pm_control &
+	    ~DMC620_COUNTER_CONTROL_ENABLE;
+	pmu_dmc620_wr4(desc->pd_rw_arg, cntr(class, ri), DMC620_COUNTER_CONTROL,
+	    control);
 
 	return (0);
 }
@@ -430,8 +435,8 @@ CLASSDEP_FN4(dmc620_describe, int, cpu, int, ri, struct pmc_info *, pi,
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] illegal CPU %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[dmc620,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[dmc620,%d] row-index %d out of range", __LINE__, ri));
 
 	phw = dmc620desc(class, cpu, ri)->pd_phw;
 	pd = &dmc620desc(class, cpu, ri)->pd_descr;
@@ -441,10 +446,10 @@ CLASSDEP_FN4(dmc620_describe, int, cpu, int, ri, struct pmc_info *, pi,
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -457,13 +462,13 @@ CLASSDEP_FN4(dmc620_describe, int, cpu, int, ri, struct pmc_info *, pi,
 CLASSDEP_FN2(dmc620_pcpu_init, struct pmc_mdep *, md, int, cpu)
 {
 	int first_ri, n, npmc;
-	struct pmc_hw  *phw;
+	struct pmc_hw *phw;
 	struct pmc_cpu *pc;
 	int mdep_class;
 
 	mdep_class = class2mdep(class);
-	KASSERT(mdep_class != -1, ("[dmc620,%d] wrong class %d", __LINE__,
-	    class));
+	KASSERT(mdep_class != -1,
+	    ("[dmc620,%d] wrong class %d", __LINE__, class));
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] insane cpu number %d", __LINE__, cpu));
 
@@ -510,8 +515,11 @@ dmc620_intr(struct trapframe *tf, int class, int unit, int i)
 	struct pmc *pm;
 	int error, cpu, ri;
 
-	ri = i + unit * ((class == PMC_CLASS_DMC620_PMU_CD2) ?
-	    DMC620_CLKDIV2_COUNTERS_N : DMC620_CLK_COUNTERS_N);
+	ri = i +
+	    unit *
+		((class == PMC_CLASS_DMC620_PMU_CD2) ?
+			DMC620_CLKDIV2_COUNTERS_N :
+			DMC620_CLK_COUNTERS_N);
 	cpu = curcpu;
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[dmc620,%d] CPU %d out of range", __LINE__, cpu));
@@ -520,7 +528,7 @@ dmc620_intr(struct trapframe *tf, int class, int unit, int i)
 
 	phw = dmc620desc(class, cpu, ri)->pd_phw;
 	KASSERT(phw != NULL, ("phw != NULL"));
-	pm  = phw->phw_pmc;
+	pm = phw->phw_pmc;
 	if (pm == NULL)
 		return (0);
 
@@ -557,38 +565,39 @@ pmc_dmc620_initialize_cd2(struct pmc_mdep *md)
 	KASSERT(dmc620_npmcs <= DMC620_UNIT_MAX,
 	    ("[dmc620,%d] dmc620_npmcs too big", __LINE__));
 
-	PMCDBG0(MDP,INI,1, "dmc620-initialize");
+	PMCDBG0(MDP, INI, 1, "dmc620-initialize");
 
 	npmc = DMC620_CLKDIV2_COUNTERS_N * dmc620_npmcs;
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_CD2];
 
-	pcd->pcd_caps		= PMC_CAP_SYSTEM | PMC_CAP_READ |
-	    PMC_CAP_WRITE | PMC_CAP_INVERT | PMC_CAP_QUALIFIER |
-	    PMC_CAP_INTERRUPT | PMC_CAP_DOMWIDE;
-	pcd->pcd_class	= PMC_CLASS_DMC620_PMU_CD2;
-	pcd->pcd_num	= npmc;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= 32;
+	pcd->pcd_caps = PMC_CAP_SYSTEM | PMC_CAP_READ | PMC_CAP_WRITE |
+	    PMC_CAP_INVERT | PMC_CAP_QUALIFIER | PMC_CAP_INTERRUPT |
+	    PMC_CAP_DOMWIDE;
+	pcd->pcd_class = PMC_CLASS_DMC620_PMU_CD2;
+	pcd->pcd_num = npmc;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc	= dmc620_allocate_pmc_cd2;
-	pcd->pcd_config_pmc	= dmc620_config_pmc_cd2;
-	pcd->pcd_describe	= dmc620_describe_cd2;
-	pcd->pcd_get_config	= dmc620_get_config_cd2;
-	pcd->pcd_get_msr	= NULL;
-	pcd->pcd_pcpu_fini	= dmc620_pcpu_fini_cd2;
-	pcd->pcd_pcpu_init	= dmc620_pcpu_init_cd2;
-	pcd->pcd_read_pmc	= dmc620_read_pmc_cd2;
-	pcd->pcd_release_pmc	= dmc620_release_pmc_cd2;
-	pcd->pcd_start_pmc	= dmc620_start_pmc_cd2;
-	pcd->pcd_stop_pmc	= dmc620_stop_pmc_cd2;
-	pcd->pcd_write_pmc	= dmc620_write_pmc_cd2;
+	pcd->pcd_allocate_pmc = dmc620_allocate_pmc_cd2;
+	pcd->pcd_config_pmc = dmc620_config_pmc_cd2;
+	pcd->pcd_describe = dmc620_describe_cd2;
+	pcd->pcd_get_config = dmc620_get_config_cd2;
+	pcd->pcd_get_msr = NULL;
+	pcd->pcd_pcpu_fini = dmc620_pcpu_fini_cd2;
+	pcd->pcd_pcpu_init = dmc620_pcpu_init_cd2;
+	pcd->pcd_read_pmc = dmc620_read_pmc_cd2;
+	pcd->pcd_release_pmc = dmc620_release_pmc_cd2;
+	pcd->pcd_start_pmc = dmc620_start_pmc_cd2;
+	pcd->pcd_stop_pmc = dmc620_stop_pmc_cd2;
+	pcd->pcd_write_pmc = dmc620_write_pmc_cd2;
 
-	md->pmd_npmc	       += npmc;
+	md->pmd_npmc += npmc;
 	dmc620_pmcdesc[0] = malloc(sizeof(struct dmc620_descr *) * npmc *
-	    DMC620_PMU_DEFAULT_UNITS_N, M_PMC, M_WAITOK|M_ZERO);
+		DMC620_PMU_DEFAULT_UNITS_N,
+	    M_PMC, M_WAITOK | M_ZERO);
 	for (i = 0; i < npmc; i++) {
 		dmc620_pmcdesc[0][i] = malloc(sizeof(struct dmc620_descr),
-		    M_PMC, M_WAITOK|M_ZERO);
+		    M_PMC, M_WAITOK | M_ZERO);
 
 		unit = i / DMC620_CLKDIV2_COUNTERS_N;
 		KASSERT(unit >= 0, ("unit >= 0"));
@@ -599,7 +608,7 @@ pmc_dmc620_initialize_cd2(struct pmc_mdep *md)
 		    PMC_CLASS_DMC620_PMU_CD2;
 		dmc620_pmcdesc[0][i]->pd_descr.pd_caps = pcd->pcd_caps;
 		dmc620_pmcdesc[0][i]->pd_phw = malloc(sizeof(struct pmc_hw),
-		    M_PMC, M_WAITOK|M_ZERO);
+		    M_PMC, M_WAITOK | M_ZERO);
 		snprintf(dmc620_pmcdesc[0][i]->pd_descr.pd_name, 63,
 		    "DMC620_CD2_%d", i);
 	}
@@ -617,48 +626,50 @@ pmc_dmc620_initialize_c(struct pmc_mdep *md)
 	KASSERT(dmc620_npmcs <= DMC620_UNIT_MAX,
 	    ("[dmc620,%d] dmc620_npmcs too big", __LINE__));
 
-	PMCDBG0(MDP,INI,1, "dmc620-initialize");
+	PMCDBG0(MDP, INI, 1, "dmc620-initialize");
 
 	npmc = DMC620_CLK_COUNTERS_N * dmc620_npmcs;
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_C];
 
-	pcd->pcd_caps		= PMC_CAP_SYSTEM | PMC_CAP_READ |
-	    PMC_CAP_WRITE | PMC_CAP_INVERT | PMC_CAP_QUALIFIER |
-	    PMC_CAP_INTERRUPT | PMC_CAP_DOMWIDE;
-	pcd->pcd_class	= PMC_CLASS_DMC620_PMU_C;
-	pcd->pcd_num	= npmc;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= 32;
+	pcd->pcd_caps = PMC_CAP_SYSTEM | PMC_CAP_READ | PMC_CAP_WRITE |
+	    PMC_CAP_INVERT | PMC_CAP_QUALIFIER | PMC_CAP_INTERRUPT |
+	    PMC_CAP_DOMWIDE;
+	pcd->pcd_class = PMC_CLASS_DMC620_PMU_C;
+	pcd->pcd_num = npmc;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc	= dmc620_allocate_pmc_c;
-	pcd->pcd_config_pmc	= dmc620_config_pmc_c;
-	pcd->pcd_describe	= dmc620_describe_c;
-	pcd->pcd_get_config	= dmc620_get_config_c;
-	pcd->pcd_get_msr	= NULL;
-	pcd->pcd_pcpu_fini	= dmc620_pcpu_fini_c;
-	pcd->pcd_pcpu_init	= dmc620_pcpu_init_c;
-	pcd->pcd_read_pmc	= dmc620_read_pmc_c;
-	pcd->pcd_release_pmc	= dmc620_release_pmc_c;
-	pcd->pcd_start_pmc	= dmc620_start_pmc_c;
-	pcd->pcd_stop_pmc	= dmc620_stop_pmc_c;
-	pcd->pcd_write_pmc	= dmc620_write_pmc_c;
+	pcd->pcd_allocate_pmc = dmc620_allocate_pmc_c;
+	pcd->pcd_config_pmc = dmc620_config_pmc_c;
+	pcd->pcd_describe = dmc620_describe_c;
+	pcd->pcd_get_config = dmc620_get_config_c;
+	pcd->pcd_get_msr = NULL;
+	pcd->pcd_pcpu_fini = dmc620_pcpu_fini_c;
+	pcd->pcd_pcpu_init = dmc620_pcpu_init_c;
+	pcd->pcd_read_pmc = dmc620_read_pmc_c;
+	pcd->pcd_release_pmc = dmc620_release_pmc_c;
+	pcd->pcd_start_pmc = dmc620_start_pmc_c;
+	pcd->pcd_stop_pmc = dmc620_stop_pmc_c;
+	pcd->pcd_write_pmc = dmc620_write_pmc_c;
 
-	md->pmd_npmc	       += npmc;
+	md->pmd_npmc += npmc;
 	dmc620_pmcdesc[1] = malloc(sizeof(struct dmc620_descr *) * npmc *
-	    DMC620_PMU_DEFAULT_UNITS_N, M_PMC, M_WAITOK|M_ZERO);
+		DMC620_PMU_DEFAULT_UNITS_N,
+	    M_PMC, M_WAITOK | M_ZERO);
 	for (i = 0; i < npmc; i++) {
 		dmc620_pmcdesc[1][i] = malloc(sizeof(struct dmc620_descr),
-		    M_PMC, M_WAITOK|M_ZERO);
+		    M_PMC, M_WAITOK | M_ZERO);
 
 		unit = i / DMC620_CLK_COUNTERS_N;
 		KASSERT(unit >= 0, ("unit >= 0"));
 		KASSERT(dmc620_pmcs[unit].arg != NULL, ("arg != NULL"));
 
 		dmc620_pmcdesc[1][i]->pd_rw_arg = dmc620_pmcs[unit].arg;
-		dmc620_pmcdesc[1][i]->pd_descr.pd_class = PMC_CLASS_DMC620_PMU_C;
+		dmc620_pmcdesc[1][i]->pd_descr.pd_class =
+		    PMC_CLASS_DMC620_PMU_C;
 		dmc620_pmcdesc[1][i]->pd_descr.pd_caps = pcd->pcd_caps;
 		dmc620_pmcdesc[1][i]->pd_phw = malloc(sizeof(struct pmc_hw),
-		    M_PMC, M_WAITOK|M_ZERO);
+		    M_PMC, M_WAITOK | M_ZERO);
 		snprintf(dmc620_pmcdesc[1][i]->pd_descr.pd_name, 63,
 		    "DMC620_C_%d", i);
 	}
@@ -673,8 +684,8 @@ pmc_dmc620_finalize_cd2(struct pmc_mdep *md)
 	int i, npmc;
 
 	KASSERT(md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_CD2].pcd_class ==
-	    PMC_CLASS_DMC620_PMU_CD2, ("[dmc620,%d] pmc class mismatch",
-	    __LINE__));
+		PMC_CLASS_DMC620_PMU_CD2,
+	    ("[dmc620,%d] pmc class mismatch", __LINE__));
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_CD2];
 
@@ -694,8 +705,8 @@ pmc_dmc620_finalize_c(struct pmc_mdep *md)
 	int i, npmc;
 
 	KASSERT(md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_C].pcd_class ==
-	    PMC_CLASS_DMC620_PMU_C, ("[dmc620,%d] pmc class mismatch",
-	    __LINE__));
+		PMC_CLASS_DMC620_PMU_C,
+	    ("[dmc620,%d] pmc class mismatch", __LINE__));
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_DMC620_C];
 

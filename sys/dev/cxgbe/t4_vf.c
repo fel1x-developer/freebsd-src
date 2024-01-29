@@ -25,16 +25,17 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/priv.h>
+
 #include <dev/pci/pcivar.h>
 #if defined(__i386__) || defined(__amd64__)
 #include <vm/vm.h>
@@ -58,10 +59,10 @@
  */
 
 struct intrs_and_queues {
-	uint16_t intr_type;	/* MSI, or MSI-X */
-	uint16_t nirq;		/* Total # of vectors */
-	uint16_t ntxq;		/* # of NIC txq's for each port */
-	uint16_t nrxq;		/* # of NIC rxq's for each port */
+	uint16_t intr_type; /* MSI, or MSI-X */
+	uint16_t nirq;	    /* Total # of vectors */
+	uint16_t ntxq;	    /* # of NIC txq's for each port */
+	uint16_t nrxq;	    /* # of NIC rxq's for each port */
 };
 
 struct {
@@ -130,9 +131,9 @@ struct {
 static d_ioctl_t t4vf_ioctl;
 
 static struct cdevsw t4vf_cdevsw = {
-       .d_version = D_VERSION,
-       .d_ioctl = t4vf_ioctl,
-       .d_name = "t4vf",
+	.d_version = D_VERSION,
+	.d_ioctl = t4vf_ioctl,
+	.d_name = "t4vf",
 };
 
 static int
@@ -183,12 +184,12 @@ t6vf_probe(device_t dev)
 	return (ENXIO);
 }
 
-#define FW_PARAM_DEV(param) \
+#define FW_PARAM_DEV(param)                     \
 	(V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_DEV) | \
-	 V_FW_PARAMS_PARAM_X(FW_PARAMS_PARAM_DEV_##param))
-#define FW_PARAM_PFVF(param) \
+	    V_FW_PARAMS_PARAM_X(FW_PARAMS_PARAM_DEV_##param))
+#define FW_PARAM_PFVF(param)                     \
 	(V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_PFVF) | \
-	 V_FW_PARAMS_PARAM_X(FW_PARAMS_PARAM_PFVF_##param))
+	    V_FW_PARAMS_PARAM_X(FW_PARAMS_PARAM_PFVF_##param))
 
 static int
 get_params__pre_init(struct adapter *sc)
@@ -444,7 +445,7 @@ cfg_itype_and_nqueues(struct adapter *sc, struct intrs_and_queues *iaq)
 				rc = pci_alloc_msi(sc->dev, &navail);
 			if (rc != 0) {
 				device_printf(sc->dev,
-		    "failed to allocate vectors:%d, type=%d, req=%d, rcvd=%d\n",
+				    "failed to allocate vectors:%d, type=%d, req=%d, rcvd=%d\n",
 				    itype, rc, iaq->nirq, navail);
 				return (rc);
 			}
@@ -463,15 +464,15 @@ cfg_itype_and_nqueues(struct adapter *sc, struct intrs_and_queues *iaq)
 			rc = pci_alloc_msi(sc->dev, &navail);
 		if (rc != 0)
 			device_printf(sc->dev,
-		    "failed to allocate vectors:%d, type=%d, req=%d, rcvd=%d\n",
+			    "failed to allocate vectors:%d, type=%d, req=%d, rcvd=%d\n",
 			    itype, rc, iaq->nirq, navail);
 		return (rc);
 	}
 
 	device_printf(sc->dev,
 	    "failed to find a usable interrupt type.  "
-	    "allowed=%d, msi-x=%d, msi=%d, intx=1", t4_intr_types,
-	    pci_msix_count(sc->dev), pci_msi_count(sc->dev));
+	    "allowed=%d, msi-x=%d, msi=%d, intx=1",
+	    t4_intr_types, pci_msix_count(sc->dev), pci_msi_count(sc->dev));
 
 	return (ENXIO);
 }
@@ -619,7 +620,8 @@ t4vf_attach(device_t dev)
 	 * basic parameters like mac address, port type, etc.
 	 */
 	pmask = sc->params.vfres.pmask;
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		struct port_info *pi;
 		uint8_t mac[ETHER_ADDR_LEN];
 
@@ -691,9 +693,9 @@ t4vf_attach(device_t dev)
 	s = &sc->sge;
 	s->nrxq = sc->params.nports * iaq.nrxq;
 	s->ntxq = sc->params.nports * iaq.ntxq;
-	s->neq = s->ntxq + s->nrxq;	/* the free list in an rxq is an eq */
-	s->neq += sc->params.nports;	/* ctrl queues: 1 per port */
-	s->niq = s->nrxq + 1;		/* 1 extra for firmware event queue */
+	s->neq = s->ntxq + s->nrxq;  /* the free list in an rxq is an eq */
+	s->neq += sc->params.nports; /* ctrl queues: 1 per port */
+	s->niq = s->nrxq + 1;	     /* 1 extra for firmware event queue */
 
 	s->iqmap_sz = s->niq;
 	s->eqmap_sz = s->neq;
@@ -715,14 +717,16 @@ t4vf_attach(device_t dev)
 	 * tx queues that each port should get.
 	 */
 	rqidx = tqidx = 0;
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		struct port_info *pi = sc->port[i];
 		struct vi_info *vi;
 
 		if (pi == NULL)
 			continue;
 
-		for_each_vi(pi, j, vi) {
+		for_each_vi(pi, j, vi)
+		{
 			vi->pi = pi;
 			vi->adapter = sc;
 			vi->qsize_rxq = t4_qsize_rxq;
@@ -732,8 +736,8 @@ t4vf_attach(device_t dev)
 			vi->first_txq = tqidx;
 			vi->tmr_idx = t4_tmr_idx;
 			vi->pktc_idx = t4_pktc_idx;
-			vi->nrxq = j == 0 ? iaq.nrxq: 1;
-			vi->ntxq = j == 0 ? iaq.ntxq: 1;
+			vi->nrxq = j == 0 ? iaq.nrxq : 1;
+			vi->ntxq = j == 0 ? iaq.ntxq : 1;
 
 			rqidx += vi->nrxq;
 			tqidx += vi->ntxq;
@@ -744,23 +748,22 @@ t4vf_attach(device_t dev)
 
 	rc = t4_setup_intr_handlers(sc);
 	if (rc != 0) {
-		device_printf(dev,
-		    "failed to setup interrupt handlers: %d\n", rc);
+		device_printf(dev, "failed to setup interrupt handlers: %d\n",
+		    rc);
 		goto done;
 	}
 
 	rc = bus_generic_attach(dev);
 	if (rc != 0) {
-		device_printf(dev,
-		    "failed to attach all child ports: %d\n", rc);
+		device_printf(dev, "failed to attach all child ports: %d\n",
+		    rc);
 		goto done;
 	}
 
-	device_printf(dev,
-	    "%d ports, %d %s interrupt%s, %d eq, %d iq\n",
-	    sc->params.nports, sc->intr_count, sc->intr_type == INTR_MSIX ?
-	    "MSI-X" : "MSI", sc->intr_count > 1 ? "s" : "", sc->sge.neq,
-	    sc->sge.niq);
+	device_printf(dev, "%d ports, %d %s interrupt%s, %d eq, %d iq\n",
+	    sc->params.nports, sc->intr_count,
+	    sc->intr_type == INTR_MSIX ? "MSI-X" : "MSI",
+	    sc->intr_count > 1 ? "s" : "", sc->sge.neq, sc->sge.niq);
 
 done:
 	if (rc != 0)
@@ -826,7 +829,7 @@ t4vf_ioctl(struct cdev *dev, unsigned long cmd, caddr_t data, int fflag,
 		if (edata->size == 4) {
 			if (edata->val & 0xffffffff00000000)
 				return (EINVAL);
-			t4_write_reg(sc, edata->addr, (uint32_t) edata->val);
+			t4_write_reg(sc, edata->addr, (uint32_t)edata->val);
 		} else if (edata->size == 8)
 			t4_write_reg64(sc, edata->addr, edata->val);
 		else
@@ -868,12 +871,14 @@ t4vf_ioctl(struct cdev *dev, unsigned long cmd, caddr_t data, int fflag,
 		 * Since this command accepts a port, clear stats for
 		 * all VIs on this port.
 		 */
-		for_each_vi(pi, v, vi) {
+		for_each_vi(pi, v, vi)
+		{
 			if (vi->flags & VI_INIT_DONE) {
 				struct sge_rxq *rxq;
 				struct sge_txq *txq;
 
-				for_each_rxq(vi, i, rxq) {
+				for_each_rxq(vi, i, rxq)
+				{
 #if defined(INET) || defined(INET6)
 					rxq->lro.lro_queued = 0;
 					rxq->lro.lro_flushed = 0;
@@ -882,7 +887,8 @@ t4vf_ioctl(struct cdev *dev, unsigned long cmd, caddr_t data, int fflag,
 					rxq->vlan_extraction = 0;
 				}
 
-				for_each_txq(vi, i, txq) {
+				for_each_txq(vi, i, txq)
+				{
 					txq->txcsum = 0;
 					txq->tso_wrs = 0;
 					txq->vlan_insertion = 0;
@@ -913,65 +919,37 @@ t4vf_ioctl(struct cdev *dev, unsigned long cmd, caddr_t data, int fflag,
 	return (rc);
 }
 
-static device_method_t t4vf_methods[] = {
-	DEVMETHOD(device_probe,		t4vf_probe),
-	DEVMETHOD(device_attach,	t4vf_attach),
-	DEVMETHOD(device_detach,	t4_detach_common),
+static device_method_t t4vf_methods[] = { DEVMETHOD(device_probe, t4vf_probe),
+	DEVMETHOD(device_attach, t4vf_attach),
+	DEVMETHOD(device_detach, t4_detach_common),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t4vf_driver = {
-	"t4vf",
-	t4vf_methods,
-	sizeof(struct adapter)
-};
+static driver_t t4vf_driver = { "t4vf", t4vf_methods, sizeof(struct adapter) };
 
-static device_method_t t5vf_methods[] = {
-	DEVMETHOD(device_probe,		t5vf_probe),
-	DEVMETHOD(device_attach,	t4vf_attach),
-	DEVMETHOD(device_detach,	t4_detach_common),
+static device_method_t t5vf_methods[] = { DEVMETHOD(device_probe, t5vf_probe),
+	DEVMETHOD(device_attach, t4vf_attach),
+	DEVMETHOD(device_detach, t4_detach_common),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t5vf_driver = {
-	"t5vf",
-	t5vf_methods,
-	sizeof(struct adapter)
-};
+static driver_t t5vf_driver = { "t5vf", t5vf_methods, sizeof(struct adapter) };
 
-static device_method_t t6vf_methods[] = {
-	DEVMETHOD(device_probe,		t6vf_probe),
-	DEVMETHOD(device_attach,	t4vf_attach),
-	DEVMETHOD(device_detach,	t4_detach_common),
+static device_method_t t6vf_methods[] = { DEVMETHOD(device_probe, t6vf_probe),
+	DEVMETHOD(device_attach, t4vf_attach),
+	DEVMETHOD(device_detach, t4_detach_common),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t6vf_driver = {
-	"t6vf",
-	t6vf_methods,
-	sizeof(struct adapter)
-};
+static driver_t t6vf_driver = { "t6vf", t6vf_methods, sizeof(struct adapter) };
 
-static driver_t cxgbev_driver = {
-	"cxgbev",
-	cxgbe_methods,
-	sizeof(struct port_info)
-};
+static driver_t cxgbev_driver = { "cxgbev", cxgbe_methods,
+	sizeof(struct port_info) };
 
-static driver_t cxlv_driver = {
-	"cxlv",
-	cxgbe_methods,
-	sizeof(struct port_info)
-};
+static driver_t cxlv_driver = { "cxlv", cxgbe_methods,
+	sizeof(struct port_info) };
 
-static driver_t ccv_driver = {
-	"ccv",
-	cxgbe_methods,
-	sizeof(struct port_info)
-};
+static driver_t ccv_driver = { "ccv", cxgbe_methods, sizeof(struct port_info) };
 
 DRIVER_MODULE(t4vf, pci, t4vf_driver, 0, 0);
 MODULE_VERSION(t4vf, 1);

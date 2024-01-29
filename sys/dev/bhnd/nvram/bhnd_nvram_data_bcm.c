@@ -32,10 +32,10 @@
 
 #ifdef _KERNEL
 
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/ctype.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #else /* !_KERNEL */
 
@@ -47,19 +47,17 @@
 
 #endif /* _KERNEL */
 
-#include "bhnd_nvram_private.h"
-
-#include "bhnd_nvram_datavar.h"
-
 #include "bhnd_nvram_data_bcmreg.h"
 #include "bhnd_nvram_data_bcmvar.h"
+#include "bhnd_nvram_datavar.h"
+#include "bhnd_nvram_private.h"
 
 /*
  * Broadcom NVRAM data class.
- * 
+ *
  * The Broadcom NVRAM NUL-delimited ASCII format is used by most
  * Broadcom SoCs.
- * 
+ *
  * The NVRAM data is encoded as a standard header, followed by series of
  * NUL-terminated 'key=value' strings; the end of the stream is denoted
  * by a single extra NUL character.
@@ -67,15 +65,12 @@
 
 struct bhnd_nvram_bcm;
 
-static struct bhnd_nvram_bcm_hvar	*bhnd_nvram_bcm_gethdrvar(
-					     struct bhnd_nvram_bcm *bcm,
-					     const char *name);
-static struct bhnd_nvram_bcm_hvar	*bhnd_nvram_bcm_to_hdrvar(
-					     struct bhnd_nvram_bcm *bcm,
-					     void *cookiep);
-static size_t				 bhnd_nvram_bcm_hdrvar_index(
-					     struct bhnd_nvram_bcm *bcm,
-					     struct bhnd_nvram_bcm_hvar *hvar);
+static struct bhnd_nvram_bcm_hvar *
+bhnd_nvram_bcm_gethdrvar(struct bhnd_nvram_bcm *bcm, const char *name);
+static struct bhnd_nvram_bcm_hvar *
+bhnd_nvram_bcm_to_hdrvar(struct bhnd_nvram_bcm *bcm, void *cookiep);
+static size_t bhnd_nvram_bcm_hdrvar_index(struct bhnd_nvram_bcm *bcm,
+    struct bhnd_nvram_bcm_hvar *hvar);
 /*
  * Set of BCM NVRAM header values that are required to be mirrored in the
  * NVRAM data itself.
@@ -89,41 +84,41 @@ static size_t				 bhnd_nvram_bcm_hdrvar_index(
  */
 static const struct bhnd_nvram_bcm_hvar bhnd_nvram_bcm_hvars[] = {
 	{
-		.name	= BCM_NVRAM_CFG0_SDRAM_INIT_VAR,
-		.type	= BHND_NVRAM_TYPE_UINT16,
-		.len	= sizeof(uint16_t),
-		.nelem	= 1,
+	    .name = BCM_NVRAM_CFG0_SDRAM_INIT_VAR,
+	    .type = BHND_NVRAM_TYPE_UINT16,
+	    .len = sizeof(uint16_t),
+	    .nelem = 1,
 	},
 	{
-		.name	= BCM_NVRAM_CFG1_SDRAM_CFG_VAR,
-		.type	= BHND_NVRAM_TYPE_UINT16,
-		.len	= sizeof(uint16_t),
-		.nelem	= 1,
+	    .name = BCM_NVRAM_CFG1_SDRAM_CFG_VAR,
+	    .type = BHND_NVRAM_TYPE_UINT16,
+	    .len = sizeof(uint16_t),
+	    .nelem = 1,
 	},
 	{
-		.name	= BCM_NVRAM_CFG1_SDRAM_REFRESH_VAR,
-		.type	= BHND_NVRAM_TYPE_UINT16,
-		.len	= sizeof(uint16_t),
-		.nelem	= 1,
+	    .name = BCM_NVRAM_CFG1_SDRAM_REFRESH_VAR,
+	    .type = BHND_NVRAM_TYPE_UINT16,
+	    .len = sizeof(uint16_t),
+	    .nelem = 1,
 	},
 	{
-		.name	= BCM_NVRAM_SDRAM_NCDL_VAR,
-		.type	= BHND_NVRAM_TYPE_UINT32,
-		.len	= sizeof(uint32_t),
-		.nelem	= 1,
+	    .name = BCM_NVRAM_SDRAM_NCDL_VAR,
+	    .type = BHND_NVRAM_TYPE_UINT32,
+	    .len = sizeof(uint32_t),
+	    .nelem = 1,
 	},
 };
 
 /** BCM NVRAM data class instance */
 struct bhnd_nvram_bcm {
-	struct bhnd_nvram_data		 nv;	/**< common instance state */
-	struct bhnd_nvram_io		*data;	/**< backing buffer */
-	bhnd_nvram_plist		*opts;	/**< serialization options */
+	struct bhnd_nvram_data nv;  /**< common instance state */
+	struct bhnd_nvram_io *data; /**< backing buffer */
+	bhnd_nvram_plist *opts;	    /**< serialization options */
 
 	/** BCM header values */
-	struct bhnd_nvram_bcm_hvar	 hvars[nitems(bhnd_nvram_bcm_hvars)];
+	struct bhnd_nvram_bcm_hvar hvars[nitems(bhnd_nvram_bcm_hvars)];
 
-	size_t				 count;	/**< total variable count */
+	size_t count; /**< total variable count */
 };
 
 BHND_NVRAM_DATA_CLASS_DEFN(bcm, "Broadcom", BHND_NVRAM_DATA_CAP_DEVPATHS,
@@ -132,8 +127,8 @@ BHND_NVRAM_DATA_CLASS_DEFN(bcm, "Broadcom", BHND_NVRAM_DATA_CAP_DEVPATHS,
 static int
 bhnd_nvram_bcm_probe(struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_bcmhdr	hdr;
-	int				error;
+	struct bhnd_nvram_bcmhdr hdr;
+	int error;
 
 	if ((error = bhnd_nvram_io_read(io, 0x0, &hdr, sizeof(hdr))))
 		return (error);
@@ -174,14 +169,14 @@ int
 bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
     void *outp, size_t *olen, bhnd_nvram_type otype, bool have_header)
 {
-	struct bhnd_nvram_bcmhdr	 hdr;
-	char				 buf[512];
-	bcm_parse_state			 pstate;
-	size_t				 limit, offset;
-	size_t				 buflen, bufpos;
-	size_t				 namelen, namepos;
-	size_t				 vlen;
-	int				 error;
+	struct bhnd_nvram_bcmhdr hdr;
+	char buf[512];
+	bcm_parse_state pstate;
+	size_t limit, offset;
+	size_t buflen, bufpos;
+	size_t namelen, namepos;
+	size_t vlen;
+	int error;
 
 	limit = bhnd_nvram_io_getsize(io);
 	offset = 0;
@@ -247,7 +242,8 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 			nleft = namelen - namepos;
 			navail = bhnd_nv_ummin(buflen - bufpos, nleft);
 
-			if (strncmp(name+namepos, buf+bufpos, navail) == 0) {
+			if (strncmp(name + namepos, buf + bufpos, navail) ==
+			    0) {
 				/* Matched */
 				namepos += navail;
 				bufpos += navail;
@@ -285,7 +281,7 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 			const char *p;
 
 			/* Scan for a '\0' terminator */
-			p = memchr(buf+bufpos, '\0', buflen - bufpos);
+			p = memchr(buf + bufpos, '\0', buflen - bufpos);
 
 			if (p != NULL) {
 				/* Found entry terminator; restart name
@@ -293,7 +289,7 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 				pstate = BCM_PARSE_KEY_START;
 				bufpos = (p - buf) + 1 /* skip '\0' */;
 			} else {
-				/* Consumed full buffer looking for '\0'; 
+				/* Consumed full buffer looking for '\0';
 				 * force repopulation of the buffer and
 				 * retry */
 				bufpos = buflen;
@@ -306,7 +302,7 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 			const char *p;
 
 			/* Scan for a '\0' terminator */
-			p = memchr(buf+bufpos, '\0', buflen - bufpos);
+			p = memchr(buf + bufpos, '\0', buflen - bufpos);
 
 			if (p != NULL) {
 				/* Found entry terminator; parse the value */
@@ -320,11 +316,11 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 				pstate = BCM_PARSE_VALUE;
 
 			} else if (p == NULL && bufpos > 0) {
-				size_t	nread;
+				size_t nread;
 
 				/* Move existing value data to start of
 				 * buffer */
-				memmove(buf, buf+bufpos, buflen - bufpos);
+				memmove(buf, buf + bufpos, buflen - bufpos);
 				buflen = bufpos;
 				bufpos = 0;
 
@@ -334,7 +330,7 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 				    limit - offset);
 
 				error = bhnd_nvram_io_read(io, offset,
-				    buf+buflen, nread);
+				    buf + buflen, nread);
 				if (error)
 					return (error);
 
@@ -343,8 +339,8 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 			} else {
 				/* Value exceeds our buffer capacity */
 				BHND_NV_LOG("cannot parse value for '%s' "
-				    "(exceeds %zu byte limit)\n", name,
-				    sizeof(buf));
+					    "(exceeds %zu byte limit)\n",
+				    name, sizeof(buf));
 
 				return (ENXIO);
 			}
@@ -355,7 +351,7 @@ bhnd_nvram_bcm_getvar_direct_common(struct bhnd_nvram_io *io, const char *name,
 		case BCM_PARSE_VALUE:
 			BHND_NV_ASSERT(vlen <= buflen, ("value buf overrun"));
 
-			return (bhnd_nvram_value_coerce(buf+bufpos, vlen,
+			return (bhnd_nvram_value_coerce(buf + bufpos, vlen,
 			    BHND_NVRAM_TYPE_STRING, outp, olen, otype));
 		}
 	}
@@ -368,13 +364,13 @@ static int
 bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
     bhnd_nvram_plist *options, void *outp, size_t *olen)
 {
-	struct bhnd_nvram_bcmhdr	 hdr;
-	bhnd_nvram_prop			*prop;
-	size_t				 limit, nbytes;
-	uint32_t			 sdram_ncdl;
-	uint16_t			 sdram_init, sdram_cfg, sdram_refresh;
-	uint8_t				 bcm_ver, crc8;
-	int				 error;
+	struct bhnd_nvram_bcmhdr hdr;
+	bhnd_nvram_prop *prop;
+	size_t limit, nbytes;
+	uint32_t sdram_ncdl;
+	uint16_t sdram_init, sdram_cfg, sdram_refresh;
+	uint8_t bcm_ver, crc8;
+	int error;
 
 	/* Determine output byte limit */
 	if (outp != NULL)
@@ -382,36 +378,35 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	else
 		limit = 0;
 
-	/* Fetch required header variables */
-#define	PROPS_GET_HDRVAR(_name, _dest, _type)	do {			\
-		const char *name = BCM_NVRAM_ ## _name ## _VAR;	\
-		if (!bhnd_nvram_plist_contains(props, name)) {		\
-			BHND_NV_LOG("missing required property: %s\n",	\
-			    name);					\
-			return (EFTYPE);				\
-		}							\
-									\
-		error = bhnd_nvram_plist_get_encoded(props, name,	\
-		    (_dest), sizeof(*(_dest)),				\
-		    BHND_NVRAM_TYPE_ ##_type);				\
-		if (error) {						\
-			BHND_NV_LOG("error reading required header "	\
-			    "%s property: %d\n", name, error);		\
-			return (EFTYPE);				\
-		}							\
-} while (0)
+		/* Fetch required header variables */
+#define PROPS_GET_HDRVAR(_name, _dest, _type)                                 \
+	do {                                                                  \
+		const char *name = BCM_NVRAM_##_name##_VAR;                   \
+		if (!bhnd_nvram_plist_contains(props, name)) {                \
+			BHND_NV_LOG("missing required property: %s\n", name); \
+			return (EFTYPE);                                      \
+		}                                                             \
+                                                                              \
+		error = bhnd_nvram_plist_get_encoded(props, name, (_dest),    \
+		    sizeof(*(_dest)), BHND_NVRAM_TYPE_##_type);               \
+		if (error) {                                                  \
+			BHND_NV_LOG("error reading required header "          \
+				    "%s property: %d\n",                      \
+			    name, error);                                     \
+			return (EFTYPE);                                      \
+		}                                                             \
+	} while (0)
 
-	PROPS_GET_HDRVAR(SDRAM_NCDL,		&sdram_ncdl,	UINT32);
-	PROPS_GET_HDRVAR(CFG0_SDRAM_INIT,	&sdram_init,	UINT16);
-	PROPS_GET_HDRVAR(CFG1_SDRAM_CFG,	&sdram_cfg,	UINT16);
-	PROPS_GET_HDRVAR(CFG1_SDRAM_REFRESH,	&sdram_refresh,	UINT16);
+	PROPS_GET_HDRVAR(SDRAM_NCDL, &sdram_ncdl, UINT32);
+	PROPS_GET_HDRVAR(CFG0_SDRAM_INIT, &sdram_init, UINT16);
+	PROPS_GET_HDRVAR(CFG1_SDRAM_CFG, &sdram_cfg, UINT16);
+	PROPS_GET_HDRVAR(CFG1_SDRAM_REFRESH, &sdram_refresh, UINT16);
 
-#undef	PROPS_GET_HDRVAR
+#undef PROPS_GET_HDRVAR
 
 	/* Fetch BCM nvram version from options */
 	if (options != NULL &&
-	    bhnd_nvram_plist_contains(options, BCM_NVRAM_ENCODE_OPT_VERSION))
-	{
+	    bhnd_nvram_plist_contains(options, BCM_NVRAM_ENCODE_OPT_VERSION)) {
 		error = bhnd_nvram_plist_get_uint8(options,
 		    BCM_NVRAM_ENCODE_OPT_VERSION, &bcm_ver);
 		if (error) {
@@ -424,13 +419,11 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	}
 
 	/* Construct our header */
-	hdr = (struct bhnd_nvram_bcmhdr) {
-		.magic = htole32(BCM_NVRAM_MAGIC),
+	hdr = (struct bhnd_nvram_bcmhdr) { .magic = htole32(BCM_NVRAM_MAGIC),
 		.size = 0,
 		.cfg0 = 0,
 		.cfg1 = 0,
-		.sdram_ncdl = htole32(sdram_ncdl)
-	};
+		.sdram_ncdl = htole32(sdram_ncdl) };
 
 	hdr.cfg0 = BCM_NVRAM_SET_BITS(hdr.cfg0, BCM_NVRAM_CFG0_CRC, 0x0);
 	hdr.cfg0 = BCM_NVRAM_SET_BITS(hdr.cfg0, BCM_NVRAM_CFG0_VER, bcm_ver);
@@ -450,10 +443,10 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 	/* Write all properties */
 	prop = NULL;
 	while ((prop = bhnd_nvram_plist_next(props, prop)) != NULL) {
-		const char	*name;
-		char		*p;
-		size_t		 prop_limit;
-		size_t		 name_len, value_len;
+		const char *name;
+		char *p;
+		size_t prop_limit;
+		size_t name_len, value_len;
 
 		if (outp == NULL || limit < nbytes) {
 			p = NULL;
@@ -494,8 +487,8 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 		 * return immediately */
 		if (error && error != ENOMEM) {
 			BHND_NV_LOG("error serializing %s to required type "
-			    "%s: %d\n", name,
-			    bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
+				    "%s: %d\n",
+			    name, bhnd_nvram_type_name(BHND_NVRAM_TYPE_STRING),
 			    error);
 			return (error);
 		}
@@ -522,7 +515,8 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 		hdr.size = (uint32_t)nbytes;
 	} else {
 		BHND_NV_LOG("size %zu exceeds maximum supported size of %u "
-		    "bytes\n", nbytes, UINT32_MAX);
+			    "bytes\n",
+		    nbytes, UINT32_MAX);
 		return (EFTYPE);
 	}
 
@@ -550,18 +544,18 @@ bhnd_nvram_bcm_serialize(bhnd_nvram_data_class *cls, bhnd_nvram_plist *props,
 
 /**
  * Initialize @p bcm with the provided NVRAM data mapped by @p src.
- * 
+ *
  * @param bcm A newly allocated data instance.
  */
 static int
 bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 {
-	struct bhnd_nvram_bcmhdr	 hdr;
-	uint8_t				*p;
-	void				*ptr;
-	size_t				 io_offset, io_size;
-	uint8_t				 crc, valid, bcm_ver;
-	int				 error;
+	struct bhnd_nvram_bcmhdr hdr;
+	uint8_t *p;
+	void *ptr;
+	size_t io_offset, io_size;
+	uint8_t crc, valid, bcm_ver;
+	int error;
 
 	if ((error = bhnd_nvram_io_read(src, 0x0, &hdr, sizeof(hdr))))
 		return (error);
@@ -578,8 +572,8 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 	}
 
 	if (io_size > bhnd_nvram_io_getsize(src)) {
-		BHND_NV_LOG("header size %zu exceeds input size %zu\n",
-		    io_size, bhnd_nvram_io_getsize(src));
+		BHND_NV_LOG("header size %zu exceeds input size %zu\n", io_size,
+		    bhnd_nvram_io_getsize(src));
 		return (EINVAL);
 	}
 
@@ -610,27 +604,29 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 
 	if (crc != valid) {
 		BHND_NV_LOG("warning: NVRAM CRC error (crc=%#hhx, "
-		    "expected=%hhx)\n", crc, valid);
+			    "expected=%hhx)\n",
+		    crc, valid);
 	}
 
 	/* Populate header variable definitions */
-#define	BCM_READ_HDR_VAR(_name, _dest, _swap) do {		\
-	struct bhnd_nvram_bcm_hvar *data;				\
-	data = bhnd_nvram_bcm_gethdrvar(bcm, _name ##_VAR);		\
-	BHND_NV_ASSERT(data != NULL,						\
-	    ("no such header variable: " __STRING(_name)));		\
-									\
-									\
-	data->value. _dest = _swap(BCM_NVRAM_GET_BITS(			\
-	    hdr. _name ## _FIELD, _name));				\
-} while(0)
+#define BCM_READ_HDR_VAR(_name, _dest, _swap)                       \
+	do {                                                        \
+		struct bhnd_nvram_bcm_hvar *data;                   \
+		data = bhnd_nvram_bcm_gethdrvar(bcm, _name##_VAR);  \
+		BHND_NV_ASSERT(data != NULL,                        \
+		    ("no such header variable: " __STRING(_name))); \
+                                                                    \
+		data->value._dest = _swap(                          \
+		    BCM_NVRAM_GET_BITS(hdr._name##_FIELD, _name));  \
+	} while (0)
 
-	BCM_READ_HDR_VAR(BCM_NVRAM_CFG0_SDRAM_INIT,	u16, le16toh);
-	BCM_READ_HDR_VAR(BCM_NVRAM_CFG1_SDRAM_CFG,	u16, le16toh);
-	BCM_READ_HDR_VAR(BCM_NVRAM_CFG1_SDRAM_REFRESH,	u16, le16toh);
-	BCM_READ_HDR_VAR(BCM_NVRAM_SDRAM_NCDL,		u32, le32toh);
+	BCM_READ_HDR_VAR(BCM_NVRAM_CFG0_SDRAM_INIT, u16, le16toh);
+	BCM_READ_HDR_VAR(BCM_NVRAM_CFG1_SDRAM_CFG, u16, le16toh);
+	BCM_READ_HDR_VAR(BCM_NVRAM_CFG1_SDRAM_REFRESH, u16, le16toh);
+	BCM_READ_HDR_VAR(BCM_NVRAM_SDRAM_NCDL, u32, le32toh);
 
-	_Static_assert(nitems(bcm->hvars) == 4, "missing initialization for"
+	_Static_assert(nitems(bcm->hvars) == 4,
+	    "missing initialization for"
 	    "NVRAM header variable(s)");
 
 #undef BCM_READ_HDR_VAR
@@ -639,16 +635,16 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 	bcm->count = 0;
 	io_offset = sizeof(hdr);
 	while (io_offset < io_size) {
-		char		*envp;
-		const char	*name, *value;
-		size_t		 envp_len;
-		size_t		 name_len, value_len;
+		char *envp;
+		const char *name, *value;
+		size_t envp_len;
+		size_t name_len, value_len;
 
 		/* Parse the key=value string */
-		envp = (char *) (p + io_offset);
+		envp = (char *)(p + io_offset);
 		envp_len = strnlen(envp, io_size - io_offset);
 		error = bhnd_nvram_parse_env(envp, envp_len, '=', &name,
-					     &name_len, &value, &value_len);
+		    &name_len, &value, &value_len);
 		if (error) {
 			BHND_NV_LOG("error parsing envp at offset %#zx: %d\n",
 			    io_offset, error);
@@ -664,9 +660,9 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 		 * This is a brute-force search -- for the amount of data we're
 		 * operating on, it shouldn't be an issue. */
 		for (size_t i = 0; i < nitems(bcm->hvars); i++) {
-			struct bhnd_nvram_bcm_hvar	*hvar;
-			union bhnd_nvram_bcm_hvar_value	 hval;
-			size_t				 hval_len;
+			struct bhnd_nvram_bcm_hvar *hvar;
+			union bhnd_nvram_bcm_hvar_value hval;
+			size_t hval_len;
 
 			hvar = &bcm->hvars[i];
 
@@ -691,7 +687,8 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 				 * things worse by trying to synchronize the
 				 * variables */
 				BHND_NV_LOG("error parsing header variable "
-				    "'%s=%s': %d\n", name, value, error);
+					    "'%s=%s': %d\n",
+				    name, value, error);
 			} else if (hval_len != hvar->len) {
 				hvar->stale = true;
 			} else if (memcmp(&hval, &hvar->value, hval_len) != 0) {
@@ -709,7 +706,8 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 
 		if (*(p + io_offset) != '\0') {
 			BHND_NV_LOG("invalid terminator '%#hhx' at offset "
-			    "%#zx\n", *(p + io_offset), io_offset);
+				    "%#zx\n",
+			    *(p + io_offset), io_offset);
 			return (EINVAL);
 		}
 
@@ -729,7 +727,7 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 
 			/* Write NUL byte */
 			ch = '\0';
-			error = bhnd_nvram_io_write(bcm->data, io_size-1, &ch,
+			error = bhnd_nvram_io_write(bcm->data, io_size - 1, &ch,
 			    sizeof(ch));
 			if (error)
 				return (error);
@@ -761,8 +759,8 @@ bhnd_nvram_bcm_init(struct bhnd_nvram_bcm *bcm, struct bhnd_nvram_io *src)
 static int
 bhnd_nvram_bcm_new(struct bhnd_nvram_data *nv, struct bhnd_nvram_io *io)
 {
-	struct bhnd_nvram_bcm	*bcm;
-	int			 error;
+	struct bhnd_nvram_bcm *bcm;
+	int error;
 
 	bcm = (struct bhnd_nvram_bcm *)nv;
 
@@ -816,18 +814,18 @@ bhnd_nvram_bcm_options(struct bhnd_nvram_data *nv)
 static uint32_t
 bhnd_nvram_bcm_caps(struct bhnd_nvram_data *nv)
 {
-	return (BHND_NVRAM_DATA_CAP_READ_PTR|BHND_NVRAM_DATA_CAP_DEVPATHS);
+	return (BHND_NVRAM_DATA_CAP_READ_PTR | BHND_NVRAM_DATA_CAP_DEVPATHS);
 }
 
 static const char *
 bhnd_nvram_bcm_next(struct bhnd_nvram_data *nv, void **cookiep)
 {
-	struct bhnd_nvram_bcm		*bcm;
-	struct bhnd_nvram_bcm_hvar	*hvar, *hvar_next;
-	const void			*ptr;
-	const char			*envp, *basep;
-	size_t				 io_size, io_offset;
-	int				 error;
+	struct bhnd_nvram_bcm *bcm;
+	struct bhnd_nvram_bcm_hvar *hvar, *hvar_next;
+	const void *ptr;
+	const char *envp, *basep;
+	size_t io_size, io_offset;
+	int error;
 
 	bcm = (struct bhnd_nvram_bcm *)nv;
 
@@ -876,18 +874,18 @@ bhnd_nvram_bcm_next(struct bhnd_nvram_data *nv, void **cookiep)
 	} else {
 		/* Seek to next record */
 		envp = *cookiep;
-		envp += strlen(envp) + 1;	/* key + '\0' */
-		envp += strlen(envp) + 1;	/* value + '\0' */
+		envp += strlen(envp) + 1; /* key + '\0' */
+		envp += strlen(envp) + 1; /* value + '\0' */
 	}
 
 	/*
 	 * Skip entries that have an existing header variable entry that takes
 	 * precedence over the NVRAM data value.
-	 * 
+	 *
 	 * The header's value will be provided when performing header variable
 	 * iteration
 	 */
-	 while ((size_t)(envp - basep) < io_size && *envp != '\0') {
+	while ((size_t)(envp - basep) < io_size && *envp != '\0') {
 		/* Locate corresponding header variable */
 		hvar = NULL;
 		for (size_t i = 0; i < nitems(bcm->hvars); i++) {
@@ -905,9 +903,9 @@ bhnd_nvram_bcm_next(struct bhnd_nvram_data *nv, void **cookiep)
 			break;
 
 		/* Seek to next record */
-		envp += strlen(envp) + 1;	/* key + '\0' */
-		envp += strlen(envp) + 1;	/* value + '\0' */
-	 }
+		envp += strlen(envp) + 1; /* key + '\0' */
+		envp += strlen(envp) + 1; /* value + '\0' */
+	}
 
 	/* On NVRAM data EOF, try switching to header variables */
 	if ((size_t)(envp - basep) == io_size || *envp == '\0') {
@@ -915,7 +913,7 @@ bhnd_nvram_bcm_next(struct bhnd_nvram_data *nv, void **cookiep)
 		for (size_t i = 0; i < nitems(bcm->hvars); i++) {
 			if (bcm->hvars[i].envp != NULL)
 				continue;
-			
+
 			*cookiep = &bcm->hvars[i];
 			return (bcm->hvars[i].name);
 		}
@@ -938,8 +936,8 @@ static int
 bhnd_nvram_bcm_getvar_order(struct bhnd_nvram_data *nv, void *cookiep1,
     void *cookiep2)
 {
-	struct bhnd_nvram_bcm		*bcm;
-	struct bhnd_nvram_bcm_hvar	*hvar1, *hvar2;
+	struct bhnd_nvram_bcm *bcm;
+	struct bhnd_nvram_bcm_hvar *hvar1, *hvar2;
 
 	bcm = (struct bhnd_nvram_bcm *)nv;
 
@@ -949,9 +947,9 @@ bhnd_nvram_bcm_getvar_order(struct bhnd_nvram_data *nv, void *cookiep1,
 	/* Header variables are always ordered below any variables defined
 	 * in the BCM data */
 	if (hvar1 != NULL && hvar2 == NULL) {
-		return (1);	/* hvar follows non-hvar */
+		return (1); /* hvar follows non-hvar */
 	} else if (hvar1 == NULL && hvar2 != NULL) {
-		return (-1);	/* non-hvar precedes hvar */
+		return (-1); /* non-hvar precedes hvar */
 	}
 
 	/* Otherwise, both cookies are either hvars or non-hvars. We can
@@ -985,16 +983,17 @@ static const void *
 bhnd_nvram_bcm_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
     size_t *len, bhnd_nvram_type *type)
 {
-	struct bhnd_nvram_bcm		*bcm;
-	struct bhnd_nvram_bcm_hvar	*hvar;
-	const char			*envp;
+	struct bhnd_nvram_bcm *bcm;
+	struct bhnd_nvram_bcm_hvar *hvar;
+	const char *envp;
 
 	bcm = (struct bhnd_nvram_bcm *)nv;
 
 	/* Handle header variables */
 	if ((hvar = bhnd_nvram_bcm_to_hdrvar(bcm, cookiep)) != NULL) {
 		BHND_NV_ASSERT(bhnd_nvram_value_check_aligned(&hvar->value,
-		    hvar->len, hvar->type) == 0, ("value misaligned"));
+				   hvar->len, hvar->type) == 0,
+		    ("value misaligned"));
 
 		*type = hvar->type;
 		*len = hvar->len;
@@ -1005,8 +1004,8 @@ bhnd_nvram_bcm_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
 	BHND_NV_ASSERT(cookiep != NULL, ("NULL cookiep"));
 
 	envp = cookiep;
-	envp += strlen(envp) + 1;	/* key + '\0' */
-	*len = strlen(envp) + 1;	/* value + '\0' */
+	envp += strlen(envp) + 1; /* key + '\0' */
+	*len = strlen(envp) + 1;  /* value + '\0' */
 	*type = BHND_NVRAM_TYPE_STRING;
 
 	return (envp);
@@ -1015,8 +1014,8 @@ bhnd_nvram_bcm_getvar_ptr(struct bhnd_nvram_data *nv, void *cookiep,
 static const char *
 bhnd_nvram_bcm_getvar_name(struct bhnd_nvram_data *nv, void *cookiep)
 {
-	struct bhnd_nvram_bcm		*bcm;
-	struct bhnd_nvram_bcm_hvar	*hvar;
+	struct bhnd_nvram_bcm *bcm;
+	struct bhnd_nvram_bcm_hvar *hvar;
 
 	bcm = (struct bhnd_nvram_bcm *)nv;
 
@@ -1033,8 +1032,8 @@ static int
 bhnd_nvram_bcm_filter_setvar(struct bhnd_nvram_data *nv, const char *name,
     bhnd_nvram_val *value, bhnd_nvram_val **result)
 {
-	bhnd_nvram_val	*str;
-	int		 error;
+	bhnd_nvram_val *str;
+	int error;
 
 	/* Name (trimmed of any path prefix) must be valid */
 	if (!bhnd_nvram_validate_name(bhnd_nvram_trim_path_name(name)))
@@ -1081,7 +1080,7 @@ bhnd_nvram_bcm_gethdrvar(struct bhnd_nvram_bcm *bcm, const char *name)
 static struct bhnd_nvram_bcm_hvar *
 bhnd_nvram_bcm_to_hdrvar(struct bhnd_nvram_bcm *bcm, void *cookiep)
 {
-#ifdef BHND_NVRAM_INVARIANTS                                                                                                                                                                                                                                
+#ifdef BHND_NVRAM_INVARIANTS
 	uintptr_t base, ptr;
 #endif
 
@@ -1093,7 +1092,7 @@ bhnd_nvram_bcm_to_hdrvar(struct bhnd_nvram_bcm *bcm, void *cookiep)
 	if (cookiep < (void *)&bcm->hvars[0])
 		return (NULL);
 
-	if (cookiep > (void *)&bcm->hvars[nitems(bcm->hvars)-1])
+	if (cookiep > (void *)&bcm->hvars[nitems(bcm->hvars) - 1])
 		return (NULL);
 
 #ifdef BHND_NVRAM_INVARIANTS

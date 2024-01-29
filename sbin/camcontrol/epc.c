@@ -34,77 +34,66 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-#include <sys/endian.h>
-#include <sys/sbuf.h>
-#include <sys/queue.h>
 #include <sys/ata.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <limits.h>
-#include <err.h>
-#include <locale.h>
+#include <sys/endian.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stdint.h>
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_da.h>
-#include <cam/scsi/scsi_pass.h>
 #include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
 #include <camlib.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+
 #include "camcontrol.h"
 
 typedef enum {
-	EPC_ACTION_NONE		= 0x00,
-	EPC_ACTION_LIST		= 0x01,
-	EPC_ACTION_TIMER_SET	= 0x02,
-	EPC_ACTION_IMMEDIATE	= 0x03,
-	EPC_ACTION_GETMODE	= 0x04
+	EPC_ACTION_NONE = 0x00,
+	EPC_ACTION_LIST = 0x01,
+	EPC_ACTION_TIMER_SET = 0x02,
+	EPC_ACTION_IMMEDIATE = 0x03,
+	EPC_ACTION_GETMODE = 0x04
 } epc_action;
 
-static struct scsi_nv epc_flags[] = {
-	{ "Supported", ATA_PCL_COND_SUPPORTED },
+static struct scsi_nv epc_flags[] = { { "Supported", ATA_PCL_COND_SUPPORTED },
 	{ "Saveable", ATA_PCL_COND_SUPPORTED },
 	{ "Changeable", ATA_PCL_COND_CHANGEABLE },
 	{ "Default Timer Enabled", ATA_PCL_DEFAULT_TIMER_EN },
 	{ "Saved Timer Enabled", ATA_PCL_SAVED_TIMER_EN },
 	{ "Current Timer Enabled", ATA_PCL_CURRENT_TIMER_EN },
-	{ "Hold Power Condition Not Supported", ATA_PCL_HOLD_PC_NOT_SUP }
-};
+	{ "Hold Power Condition Not Supported", ATA_PCL_HOLD_PC_NOT_SUP } };
 
 static struct scsi_nv epc_power_cond_map[] = {
-	{ "Standby_z", ATA_EPC_STANDBY_Z },
-	{ "z", ATA_EPC_STANDBY_Z },
-	{ "Standby_y", ATA_EPC_STANDBY_Y },
-	{ "y", ATA_EPC_STANDBY_Y },
-	{ "Idle_a", ATA_EPC_IDLE_A },
-	{ "a", ATA_EPC_IDLE_A },
-	{ "Idle_b", ATA_EPC_IDLE_B },
-	{ "b", ATA_EPC_IDLE_B },
-	{ "Idle_c", ATA_EPC_IDLE_C },
-	{ "c", ATA_EPC_IDLE_C }
+	{ "Standby_z", ATA_EPC_STANDBY_Z }, { "z", ATA_EPC_STANDBY_Z },
+	{ "Standby_y", ATA_EPC_STANDBY_Y }, { "y", ATA_EPC_STANDBY_Y },
+	{ "Idle_a", ATA_EPC_IDLE_A }, { "a", ATA_EPC_IDLE_A },
+	{ "Idle_b", ATA_EPC_IDLE_B }, { "b", ATA_EPC_IDLE_B },
+	{ "Idle_c", ATA_EPC_IDLE_C }, { "c", ATA_EPC_IDLE_C }
 };
 
-static struct scsi_nv epc_rst_val[] = {
-	{ "default", ATA_SF_EPC_RST_DFLT },
-	{ "saved", 0}
-};
+static struct scsi_nv epc_rst_val[] = { { "default", ATA_SF_EPC_RST_DFLT },
+	{ "saved", 0 } };
 
-static struct scsi_nv epc_ps_map[] = {
-	{ "unknown", ATA_SF_EPC_SRC_UNKNOWN },
+static struct scsi_nv epc_ps_map[] = { { "unknown", ATA_SF_EPC_SRC_UNKNOWN },
 	{ "battery", ATA_SF_EPC_SRC_BAT },
-	{ "notbattery", ATA_SF_EPC_SRC_NOT_BAT }
-};
+	{ "notbattery", ATA_SF_EPC_SRC_NOT_BAT } };
 
 /*
  * These aren't subcommands of the EPC SET FEATURES subcommand, but rather
@@ -112,40 +101,31 @@ static struct scsi_nv epc_ps_map[] = {
  * The EPC subcommands are limited to 4 bits, so we won't collide with any
  * future values.
  */
-#define	CCTL_EPC_GET_STATUS	0x8001
-#define	CCTL_EPC_LIST		0x8002
+#define CCTL_EPC_GET_STATUS 0x8001
+#define CCTL_EPC_LIST 0x8002
 
-static struct scsi_nv epc_cmd_map[] = {
-	{ "restore", ATA_SF_EPC_RESTORE },
-	{ "goto", ATA_SF_EPC_GOTO },
-	{ "timer", ATA_SF_EPC_SET_TIMER },
-	{ "state", ATA_SF_EPC_SET_STATE },
-	{ "enable", ATA_SF_EPC_ENABLE },
-	{ "disable", ATA_SF_EPC_DISABLE },
-	{ "source", ATA_SF_EPC_SET_SOURCE },
-	{ "status", CCTL_EPC_GET_STATUS },
-	{ "list", CCTL_EPC_LIST }
-};
+static struct scsi_nv epc_cmd_map[] = { { "restore", ATA_SF_EPC_RESTORE },
+	{ "goto", ATA_SF_EPC_GOTO }, { "timer", ATA_SF_EPC_SET_TIMER },
+	{ "state", ATA_SF_EPC_SET_STATE }, { "enable", ATA_SF_EPC_ENABLE },
+	{ "disable", ATA_SF_EPC_DISABLE }, { "source", ATA_SF_EPC_SET_SOURCE },
+	{ "status", CCTL_EPC_GET_STATUS }, { "list", CCTL_EPC_LIST } };
 
 static int epc_list(struct cam_device *device, camcontrol_devtype devtype,
-		    union ccb *ccb, int retry_count, int timeout);
+    union ccb *ccb, int retry_count, int timeout);
 static void epc_print_pcl_desc(struct ata_power_cond_log_desc *desc,
-			       const char *prefix);
+    const char *prefix);
 static int epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
-		       union ccb *ccb, int retry_count, int timeout,
-		       int power_only);
+    union ccb *ccb, int retry_count, int timeout, int power_only);
 static int epc_set_features(struct cam_device *device,
-			    camcontrol_devtype devtype, union ccb *ccb,
-			    int retry_count, int timeout, int action,
-			    int power_cond, int timer, int enable, int save,
-			    int delayed_entry, int hold, int power_src,
-			    int restore_src);
+    camcontrol_devtype devtype, union ccb *ccb, int retry_count, int timeout,
+    int action, int power_cond, int timer, int enable, int save,
+    int delayed_entry, int hold, int power_src, int restore_src);
 
 static void
 epc_print_pcl_desc(struct ata_power_cond_log_desc *desc, const char *prefix)
 {
 	int first;
-	unsigned int i,	num_printed, max_chars;
+	unsigned int i, num_printed, max_chars;
 
 	first = 1;
 	max_chars = 75;
@@ -188,7 +168,7 @@ epc_print_pcl_desc(struct ata_power_cond_log_desc *desc, const char *prefix)
 
 static int
 epc_list(struct cam_device *device, camcontrol_devtype devtype, union ccb *ccb,
-	 int retry_count, int timeout)
+    int retry_count, int timeout)
 {
 	struct ata_power_cond_log_idle *idle_log;
 	struct ata_power_cond_log_standby *standby_log;
@@ -199,17 +179,15 @@ epc_list(struct cam_device *device, camcontrol_devtype devtype, union ccb *ccb,
 	int error = 0;
 
 	lba = (((uint64_t)page_number & 0xff00) << 32) |
-	      ((page_number & 0x00ff) << 8) |
-	      (log_addr & 0xff);
+	    ((page_number & 0x00ff) << 8) | (log_addr & 0xff);
 
 	error = build_ata_cmd(ccb,
 	    /*retry_count*/ retry_count,
 	    /*flags*/ CAM_DIR_IN | CAM_DEV_QFRZDIS,
 	    /*tag_action*/ MSG_SIMPLE_Q_TAG,
 	    /*protocol*/ AP_PROTO_DMA | AP_EXTEND,
-	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS |
-			  AP_FLAG_TLEN_SECT_CNT |
-			  AP_FLAG_TDIR_FROM_DEV,
+	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS | AP_FLAG_TLEN_SECT_CNT |
+		AP_FLAG_TDIR_FROM_DEV,
 	    /*features*/ 0,
 	    /*sector_count*/ 2,
 	    /*lba*/ lba,
@@ -241,7 +219,7 @@ epc_list(struct cam_device *device, camcontrol_devtype devtype, union ccb *ccb,
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		error = 1;
 		goto bailout;
 	}
@@ -269,7 +247,7 @@ bailout:
 
 static int
 epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
-	    union ccb *ccb, int retry_count, int timeout, int power_only)
+    union ccb *ccb, int retry_count, int timeout, int power_only)
 {
 	struct ata_params *ident = NULL;
 	struct ata_identify_log_sup_cap sup_cap;
@@ -304,8 +282,7 @@ epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
 	log_address = ATA_IDENTIFY_DATA_LOG;
 	page_number = ATA_IDL_SUP_CAP;
 	lba = (((uint64_t)page_number & 0xff00) << 32) |
-	       ((page_number & 0x00ff) << 8) |
-	       (log_address & 0xff);
+	    ((page_number & 0x00ff) << 8) | (log_address & 0xff);
 
 	bzero(&sup_cap, sizeof(sup_cap));
 	/*
@@ -315,18 +292,16 @@ epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
 	    /*retry_count*/ retry_count,
 	    /*flags*/ CAM_DIR_IN | CAM_DEV_QFRZDIS,
 	    /*tag_action*/ MSG_SIMPLE_Q_TAG,
-	    /*protocol*/ AP_PROTO_DMA |
-			 AP_EXTEND,
-	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS |
-			  AP_FLAG_TLEN_SECT_CNT |
-			  AP_FLAG_TDIR_FROM_DEV,
+	    /*protocol*/ AP_PROTO_DMA | AP_EXTEND,
+	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS | AP_FLAG_TLEN_SECT_CNT |
+		AP_FLAG_TDIR_FROM_DEV,
 	    /*features*/ 0,
 	    /*sector_count*/ 1,
 	    /*lba*/ lba,
 	    /*command*/ ATA_READ_LOG_DMA_EXT,
 	    /*auxiliary*/ 0,
 	    /*data_ptr*/ (uint8_t *)&sup_cap,
-	    /*dxfer_len*/ sizeof(sup_cap), 
+	    /*dxfer_len*/ sizeof(sup_cap),
 	    /*cdb_storage*/ NULL,
 	    /*cdb_storage_len*/ 0,
 	    /*sense_len*/ SSD_FULL_SIZE,
@@ -351,7 +326,7 @@ epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		retval = 1;
 		goto bailout;
 	}
@@ -363,7 +338,8 @@ epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
 	}
 	if (avail_bytes < (int)sizeof(sup_cap)) {
 		warnx("Couldn't get enough of the ATA Supported "
-		    "Capabilities log, %d bytes returned", avail_bytes);
+		      "Capabilities log, %d bytes returned",
+		    avail_bytes);
 		retval = 1;
 		goto bailout;
 	}
@@ -384,7 +360,6 @@ epc_getmode(struct cam_device *device, camcontrol_devtype devtype,
 	    (caps & ATA_SC_LP_STANDBY_SUP) ? "" : "NOT ");
 	printf("Set EPC Power Source %sSupported\n",
 	    (caps & ATA_SC_SET_EPC_PS_SUP) ? "" : "NOT ");
-	
 
 check_power_mode:
 
@@ -392,18 +367,16 @@ check_power_mode:
 	    /*retry_count*/ retry_count,
 	    /*flags*/ CAM_DIR_NONE | CAM_DEV_QFRZDIS,
 	    /*tag_action*/ MSG_SIMPLE_Q_TAG,
-	    /*protocol*/ AP_PROTO_NON_DATA |
-			 AP_EXTEND,
-	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS |
-			  AP_FLAG_TLEN_NO_DATA |
-			  AP_FLAG_CHK_COND,
+	    /*protocol*/ AP_PROTO_NON_DATA | AP_EXTEND,
+	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS | AP_FLAG_TLEN_NO_DATA |
+		AP_FLAG_CHK_COND,
 	    /*features*/ ATA_SF_EPC,
 	    /*sector_count*/ 0,
 	    /*lba*/ 0,
 	    /*command*/ ATA_CHECK_POWER_MODE,
 	    /*auxiliary*/ 0,
 	    /*data_ptr*/ NULL,
-	    /*dxfer_len*/ 0, 
+	    /*dxfer_len*/ 0,
 	    /*cdb_storage*/ NULL,
 	    /*cdb_storage_len*/ 0,
 	    /*sense_len*/ SSD_FULL_SIZE,
@@ -431,28 +404,26 @@ check_power_mode:
 	 * Check to see whether we got the requested ATA result if this
 	 * is an SCSI ATA PASS-THROUGH command.
 	 */
-	if (((ccb->ccb_h.status & CAM_STATUS_MASK) == CAM_SCSI_STATUS_ERROR)
-	 && (ccb->csio.scsi_status == SCSI_STATUS_CHECK_COND)) {
+	if (((ccb->ccb_h.status & CAM_STATUS_MASK) == CAM_SCSI_STATUS_ERROR) &&
+	    (ccb->csio.scsi_status == SCSI_STATUS_CHECK_COND)) {
 		int error_code, sense_key, asc, ascq;
 
-		retval = scsi_extract_sense_ccb(ccb, &error_code,
-		    &sense_key, &asc, &ascq);
+		retval = scsi_extract_sense_ccb(ccb, &error_code, &sense_key,
+		    &asc, &ascq);
 		if (retval == 0) {
 			cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,
 			    stderr);
 			retval = 1;
 			goto bailout;
 		}
-		if ((sense_key == SSD_KEY_RECOVERED_ERROR)
-		 && (asc == 0x00)
-		 && (ascq == 0x1d)) {
+		if ((sense_key == SSD_KEY_RECOVERED_ERROR) && (asc == 0x00) &&
+		    (ascq == 0x1d)) {
 			res_available = 1;
 		}
-		
 	}
-	if (((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP)
-	 && (res_available == 0)) {
-		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,stderr);
+	if (((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) &&
+	    (res_available == 0)) {
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		retval = 1;
 		goto bailout;
 	}
@@ -469,8 +440,7 @@ check_power_mode:
 	    sizeof(epc_power_cond_map) / sizeof(epc_power_cond_map[0]), count);
 	printf("Current power state: ");
 	/* Note: ident can be null in power_only mode */
-	if ((ident == NULL)
-	 || (ident->enabled2 & ATA_ENABLED_EPC)) {
+	if ((ident == NULL) || (ident->enabled2 & ATA_ENABLED_EPC)) {
 		if (mode_name != NULL)
 			printf("%s", mode_name);
 		else if (count == ATA_PM_ACTIVE_IDLE) {
@@ -500,11 +470,12 @@ check_power_mode:
 		wait_mode = (lba >> 20) & 0xff;
 		if (wait_mode == 0xff) {
 			printf("Device not waiting to enter lower power "
-			    "condition");
+			       "condition");
 		} else {
 			mode_name = scsi_nv_to_str(epc_power_cond_map,
 			    sizeof(epc_power_cond_map) /
-			    sizeof(epc_power_cond_map[0]), wait_mode);
+				sizeof(epc_power_cond_map[0]),
+			    wait_mode);
 			printf("Device waiting to enter mode %s (0x%02x)\n",
 			    (mode_name != NULL) ? mode_name : "Unknown",
 			    wait_mode);
@@ -514,14 +485,13 @@ check_power_mode:
 	}
 bailout:
 	return (retval);
-
 }
 
 static int
 epc_set_features(struct cam_device *device, camcontrol_devtype devtype,
-		 union ccb *ccb, int retry_count, int timeout, int action,
-		 int power_cond, int timer, int enable, int save,
-		 int delayed_entry, int hold, int power_src, int restore_src)
+    union ccb *ccb, int retry_count, int timeout, int action, int power_cond,
+    int timer, int enable, int save, int delayed_entry, int hold, int power_src,
+    int restore_src)
 {
 	uint64_t lba;
 	uint16_t count = 0;
@@ -534,21 +504,20 @@ epc_set_features(struct cam_device *device, camcontrol_devtype devtype,
 	switch (action) {
 	case ATA_SF_EPC_SET_TIMER:
 		lba |= ((timer << ATA_SF_EPC_TIMER_SHIFT) &
-			 ATA_SF_EPC_TIMER_MASK);
+		    ATA_SF_EPC_TIMER_MASK);
 		/* FALLTHROUGH */
 	case ATA_SF_EPC_SET_STATE:
 		lba |= (enable ? ATA_SF_EPC_TIMER_EN : 0) |
-		       (save ? ATA_SF_EPC_TIMER_SAVE : 0);
+		    (save ? ATA_SF_EPC_TIMER_SAVE : 0);
 		count = power_cond;
 		break;
 	case ATA_SF_EPC_GOTO:
 		count = power_cond;
 		lba |= (delayed_entry ? ATA_SF_EPC_GOTO_DELAY : 0) |
-		       (hold ? ATA_SF_EPC_GOTO_HOLD : 0);
+		    (hold ? ATA_SF_EPC_GOTO_HOLD : 0);
 		break;
 	case ATA_SF_EPC_RESTORE:
-		lba |= restore_src |
-		       (save ? ATA_SF_EPC_RST_SAVE : 0);
+		lba |= restore_src | (save ? ATA_SF_EPC_RST_SAVE : 0);
 		break;
 	case ATA_SF_EPC_ENABLE:
 	case ATA_SF_EPC_DISABLE:
@@ -563,16 +532,15 @@ epc_set_features(struct cam_device *device, camcontrol_devtype devtype,
 	    /*flags*/ CAM_DIR_NONE | CAM_DEV_QFRZDIS,
 	    /*tag_action*/ MSG_SIMPLE_Q_TAG,
 	    /*protocol*/ AP_PROTO_NON_DATA | AP_EXTEND,
-	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS |
-			  AP_FLAG_TLEN_NO_DATA |
-			  AP_FLAG_TDIR_FROM_DEV,
+	    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS | AP_FLAG_TLEN_NO_DATA |
+		AP_FLAG_TDIR_FROM_DEV,
 	    /*features*/ ATA_SF_EPC,
 	    /*sector_count*/ count,
 	    /*lba*/ lba,
 	    /*command*/ ATA_SETFEATURES,
 	    /*auxiliary*/ 0,
 	    /*data_ptr*/ NULL,
-	    /*dxfer_len*/ 0, 
+	    /*dxfer_len*/ 0,
 	    /*cdb_storage*/ NULL,
 	    /*cdb_storage_len*/ 0,
 	    /*sense_len*/ SSD_FULL_SIZE,
@@ -597,7 +565,7 @@ epc_set_features(struct cam_device *device, camcontrol_devtype devtype,
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		error = 1;
 		goto bailout;
 	}
@@ -623,7 +591,6 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 	int power_src = -1;
 	int power_only = 0;
 
-
 	ccb = cam_getccb(device);
 	if (ccb == NULL) {
 		warnx("%s: error allocating CCB", __func__);
@@ -645,8 +612,9 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "epc command",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "epc command", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -670,15 +638,17 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 
 			status = scsi_get_nv(epc_power_cond_map,
 			    (sizeof(epc_power_cond_map) /
-			     sizeof(epc_power_cond_map[0])), optarg,
-			     &entry_num, SCSI_NV_FLAG_IG_CASE);
+				sizeof(epc_power_cond_map[0])),
+			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
-				power_cond =epc_power_cond_map[entry_num].value;
+				power_cond =
+				    epc_power_cond_map[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "power condition",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "power condition", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -692,15 +662,15 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			int entry_num;
 
 			status = scsi_get_nv(epc_rst_val,
-			    (sizeof(epc_rst_val) /
-			     sizeof(epc_rst_val[0])), optarg,
-			     &entry_num, SCSI_NV_FLAG_IG_CASE);
+			    (sizeof(epc_rst_val) / sizeof(epc_rst_val[0])),
+			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				restore_src = epc_rst_val[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid",
+					"ambiguous" :
+					"invalid",
 				    "restore value source", optarg);
 				error = 1;
 				goto bailout;
@@ -713,7 +683,7 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		case 'S': {
 			scsi_nv_status status;
 			int entry_num;
-			
+
 			status = scsi_get_nv(epc_ps_map,
 			    (sizeof(epc_ps_map) / sizeof(epc_ps_map[0])),
 			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
@@ -722,8 +692,9 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "power source",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "power source", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -755,7 +726,7 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		error = 1;
 		goto bailout;
 	}
-	
+
 	error = get_device_type(device, retry_count, timeout,
 	    /*printerrors*/ 1, &devtype);
 	if (error != 0)
@@ -767,7 +738,7 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		break;
 	default:
 		warnx("The epc subcommand only works with ATA protocol "
-		    "devices");
+		      "devices");
 		error = 1;
 		goto bailout;
 		break; /*NOTREACHED*/
@@ -797,7 +768,7 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 	case ATA_SF_EPC_SET_SOURCE:
 		if (power_src == -1) {
 			warnx("Must specify a power source (-S battery or "
-			    "-S notbattery) value");
+			      "-S notbattery) value");
 			error = 1;
 			goto bailout;
 		}
@@ -805,7 +776,7 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 	case ATA_SF_EPC_RESTORE:
 		if (restore_src == -1) {
 			warnx("Must specify a source for restored value, "
-			    "-r default or -r saved");
+			      "-r default or -r saved");
 			error = 1;
 			goto bailout;
 		}
@@ -843,7 +814,6 @@ epc(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		goto bailout;
 		break;
 	}
-
 
 bailout:
 	if (ccb != NULL)

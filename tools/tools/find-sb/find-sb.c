@@ -6,8 +6,8 @@
 #ifdef __FreeBSD__
 #include <sys/param.h>
 
-#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 #else
 #include "mini_ufs.h"
 #endif
@@ -77,13 +77,13 @@ main(int argc, char **argv)
 		if (justread != DEV_BSIZE) {
 			if (justread == 0) {
 				printf("reached end-of-file at %jd\n",
-				       (intmax_t)end);
-				exit (0);
+				    (intmax_t)end);
+				exit(0);
 			}
 			if (justread < 0)
 				err(1, "read");
 			errx(1, "short read %jd (wanted %d) at %jd",
-			     (intmax_t)justread, DEV_BSIZE, (intmax_t)end);
+			    (intmax_t)justread, DEV_BSIZE, (intmax_t)end);
 		}
 		len += DEV_BSIZE;
 		end += DEV_BSIZE;
@@ -93,14 +93,14 @@ main(int argc, char **argv)
 			if (u.sblock.fs_magic == FS_UFS1_MAGIC) {
 				intmax_t fsbegin = offset - SBLOCK_UFS1;
 				printf("Found UFS1 superblock at offset %jd, "
-				       "block %jd\n", offset,
-				       offset / DEV_BSIZE);
+				       "block %jd\n",
+				    offset, offset / DEV_BSIZE);
 				printf("Filesystem might begin at offset %jd, "
-				       "block %jd\n", fsbegin,
-				       fsbegin / DEV_BSIZE);
+				       "block %jd\n",
+				    fsbegin, fsbegin / DEV_BSIZE);
 				if (last1 >= 0) {
 					printf("%jd blocks from last guess\n",
-					       fsbegin / DEV_BSIZE - last1);
+					    fsbegin / DEV_BSIZE - last1);
 				}
 				last1 = fsbegin / DEV_BSIZE;
 				len -= DEV_BSIZE;
@@ -108,14 +108,14 @@ main(int argc, char **argv)
 			} else if (u.sblock.fs_magic == FS_UFS2_MAGIC) {
 				intmax_t fsbegin = offset - SBLOCK_UFS2;
 				printf("Found UFS2 superblock at offset %jd, "
-				       "block %jd\n", offset,
-				       offset / DEV_BSIZE);
+				       "block %jd\n",
+				    offset, offset / DEV_BSIZE);
 				printf("Filesystem might begin at offset %jd, "
-				       "block %jd\n", fsbegin,
-				       fsbegin / DEV_BSIZE);
+				       "block %jd\n",
+				    fsbegin, fsbegin / DEV_BSIZE);
 				if (last2 >= 0) {
 					printf("%jd blocks from last guess\n",
-					       fsbegin / DEV_BSIZE - last2);
+					    fsbegin / DEV_BSIZE - last2);
 				}
 				last2 = fsbegin / DEV_BSIZE;
 				len -= DEV_BSIZE;
@@ -123,8 +123,8 @@ main(int argc, char **argv)
 			}
 		}
 		if (len >= SBLOCKSIZE) {
-			memmove(u.buf, &u.buf[DEV_BSIZE], 
-				SBLOCKSIZE - DEV_BSIZE);
+			memmove(u.buf, &u.buf[DEV_BSIZE],
+			    SBLOCKSIZE - DEV_BSIZE);
 			len -= DEV_BSIZE;
 		}
 	}

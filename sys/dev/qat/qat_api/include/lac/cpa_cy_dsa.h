@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -118,10 +118,10 @@ extern "C" {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaPParamGenOpData {
-    CpaFlatBuffer X;
-    /**< 2^(L-1) <= X < 2^L (from FIPS 186-3) */
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
+	CpaFlatBuffer X;
+	/**< 2^(L-1) <= X < 2^L (from FIPS 186-3) */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
 } CpaCyDsaPParamGenOpData;
 
 /**
@@ -152,12 +152,12 @@ typedef struct _CpaCyDsaPParamGenOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaGParamGenOpData {
-    CpaFlatBuffer P;
-    /**< DSA group parameter p */
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
-    CpaFlatBuffer H;
-    /**< any integer with 1 < h < p - 1 */
+	CpaFlatBuffer P;
+	/**< DSA group parameter p */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
+	CpaFlatBuffer H;
+	/**< any integer with 1 < h < p - 1 */
 } CpaCyDsaGParamGenOpData;
 
 /**
@@ -188,12 +188,12 @@ typedef struct _CpaCyDsaGParamGenOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaYParamGenOpData {
-    CpaFlatBuffer P;
-    /**< DSA group parameter p */
-    CpaFlatBuffer G;
-    /**< DSA group parameter g */
-    CpaFlatBuffer X;
-    /**< DSA private key x */
+	CpaFlatBuffer P;
+	/**< DSA group parameter p */
+	CpaFlatBuffer G;
+	/**< DSA group parameter g */
+	CpaFlatBuffer X;
+	/**< DSA private key x */
 } CpaCyDsaYParamGenOpData;
 
 /**
@@ -224,14 +224,14 @@ typedef struct _CpaCyDsaYParamGenOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaRSignOpData {
-    CpaFlatBuffer P;
-    /**< DSA group parameter p */
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
-    CpaFlatBuffer G;
-    /**< DSA group parameter g */
-    CpaFlatBuffer K;
-    /**< DSA secret parameter k for signing */
+	CpaFlatBuffer P;
+	/**< DSA group parameter p */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
+	CpaFlatBuffer G;
+	/**< DSA group parameter g */
+	CpaFlatBuffer K;
+	/**< DSA secret parameter k for signing */
 } CpaCyDsaRSignOpData;
 
 /**
@@ -262,20 +262,20 @@ typedef struct _CpaCyDsaRSignOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaSSignOpData {
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
-    CpaFlatBuffer X;
-    /**< DSA private key x */
-    CpaFlatBuffer K;
-    /**< DSA secret parameter k for signing */
-    CpaFlatBuffer R;
-    /**< DSA message signature r */
-    CpaFlatBuffer Z;
-    /**< The leftmost min(N, outlen) bits of Hash(M), where:
-     * - N is the bit length of q
-     * - outlen is the bit length of the hash function output block
-     * - M is the message to be signed
-     */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
+	CpaFlatBuffer X;
+	/**< DSA private key x */
+	CpaFlatBuffer K;
+	/**< DSA secret parameter k for signing */
+	CpaFlatBuffer R;
+	/**< DSA message signature r */
+	CpaFlatBuffer Z;
+	/**< The leftmost min(N, outlen) bits of Hash(M), where:
+	 * - N is the bit length of q
+	 * - outlen is the bit length of the hash function output block
+	 * - M is the message to be signed
+	 */
 } CpaCyDsaSSignOpData;
 
 /**
@@ -306,22 +306,22 @@ typedef struct _CpaCyDsaSSignOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaRSSignOpData {
-    CpaFlatBuffer P;
-    /**< DSA group parameter p */
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
-    CpaFlatBuffer G;
-    /**< DSA group parameter g */
-    CpaFlatBuffer X;
-    /**< DSA private key x */
-    CpaFlatBuffer K;
-    /**< DSA secret parameter k for signing */
-    CpaFlatBuffer Z;
-    /**< The leftmost min(N, outlen) bits of Hash(M), where:
-     * - N is the bit length of q
-     * - outlen is the bit length of the hash function output block
-     * - M is the message to be signed
-     */
+	CpaFlatBuffer P;
+	/**< DSA group parameter p */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
+	CpaFlatBuffer G;
+	/**< DSA group parameter g */
+	CpaFlatBuffer X;
+	/**< DSA private key x */
+	CpaFlatBuffer K;
+	/**< DSA secret parameter k for signing */
+	CpaFlatBuffer Z;
+	/**< The leftmost min(N, outlen) bits of Hash(M), where:
+	 * - N is the bit length of q
+	 * - outlen is the bit length of the hash function output block
+	 * - M is the message to be signed
+	 */
 } CpaCyDsaRSSignOpData;
 
 /**
@@ -352,24 +352,24 @@ typedef struct _CpaCyDsaRSSignOpData {
  *
  *****************************************************************************/
 typedef struct _CpaCyDsaVerifyOpData {
-    CpaFlatBuffer P;
-    /**< DSA group parameter p */
-    CpaFlatBuffer Q;
-    /**< DSA group parameter q */
-    CpaFlatBuffer G;
-    /**< DSA group parameter g */
-    CpaFlatBuffer Y;
-    /**< DSA public key y */
-    CpaFlatBuffer Z;
-    /**< The leftmost min(N, outlen) bits of Hash(M'), where:
-     * - N is the bit length of q
-     * - outlen is the bit length of the hash function output block
-     * - M is the message to be signed
-     */
-    CpaFlatBuffer R;
-    /**< DSA message signature r */
-    CpaFlatBuffer S;
-    /**< DSA message signature s */
+	CpaFlatBuffer P;
+	/**< DSA group parameter p */
+	CpaFlatBuffer Q;
+	/**< DSA group parameter q */
+	CpaFlatBuffer G;
+	/**< DSA group parameter g */
+	CpaFlatBuffer Y;
+	/**< DSA public key y */
+	CpaFlatBuffer Z;
+	/**< The leftmost min(N, outlen) bits of Hash(M'), where:
+	 * - N is the bit length of q
+	 * - outlen is the bit length of the hash function output block
+	 * - M is the message to be signed
+	 */
+	CpaFlatBuffer R;
+	/**< DSA message signature r */
+	CpaFlatBuffer S;
+	/**< DSA message signature s */
 } CpaCyDsaVerifyOpData;
 
 /**
@@ -385,87 +385,87 @@ typedef struct _CpaCyDsaVerifyOpData {
  *      initialized, and are collected per instance.
  ****************************************************************************/
 typedef struct _CpaCyDsaStats {
-    Cpa32U numDsaPParamGenRequests;
-    /**< Total number of successful DSA P parameter generation requests. */
-    Cpa32U numDsaPParamGenRequestErrors;
-    /**< Total number of DSA P parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa32U numDsaPParamGenCompleted;
-    /**< Total number of DSA P parameter generation operations that
-     * completed successfully. */
-    Cpa32U numDsaPParamGenCompletedErrors;
-    /**< Total number of DSA P parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa32U numDsaGParamGenRequests;
-    /**< Total number of successful DSA G parameter generation requests. */
-    Cpa32U numDsaGParamGenRequestErrors;
-    /**< Total number of DSA G parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa32U numDsaGParamGenCompleted;
-    /**< Total number of DSA G parameter generation operations that
-     * completed successfully. */
-    Cpa32U numDsaGParamGenCompletedErrors;
-    /**< Total number of DSA G parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa32U numDsaYParamGenRequests;
-    /**< Total number of successful DSA Y parameter generation requests. */
-    Cpa32U numDsaYParamGenRequestErrors;
-    /**< Total number of DSA Y parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa32U numDsaYParamGenCompleted;
-    /**< Total number of DSA Y parameter generation operations that
-     * completed successfully. */
-    Cpa32U numDsaYParamGenCompletedErrors;
-    /**< Total number of DSA Y parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa32U numDsaRSignRequests;
-    /**< Total number of successful DSA R sign generation requests. */
-    Cpa32U numDsaRSignRequestErrors;
-    /**< Total number of DSA R sign requests that had an error and could
-     * not be processed. */
-    Cpa32U numDsaRSignCompleted;
-    /**< Total number of DSA R sign operations that completed
-     * successfully. */
-    Cpa32U numDsaRSignCompletedErrors;
-    /**< Total number of DSA R sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa32U numDsaSSignRequests;
-    /**< Total number of successful DSA S sign generation requests. */
-    Cpa32U numDsaSSignRequestErrors;
-    /**< Total number of DSA S sign requests that had an error and could
-     * not be processed. */
-    Cpa32U numDsaSSignCompleted;
-    /**< Total number of DSA S sign operations that completed
-     * successfully. */
-    Cpa32U numDsaSSignCompletedErrors;
-    /**< Total number of DSA S sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa32U numDsaRSSignRequests;
-    /**< Total number of successful DSA RS sign generation requests. */
-    Cpa32U numDsaRSSignRequestErrors;
-    /**< Total number of DSA RS sign requests that had an error and could
-     * not be processed. */
-    Cpa32U numDsaRSSignCompleted;
-    /**< Total number of DSA RS sign operations that completed
-     * successfully. */
-    Cpa32U numDsaRSSignCompletedErrors;
-    /**< Total number of DSA RS sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa32U numDsaVerifyRequests;
-    /**< Total number of successful DSA verify generation requests. */
-    Cpa32U numDsaVerifyRequestErrors;
-    /**< Total number of DSA verify requests that had an error and could
-     * not be processed. */
-    Cpa32U numDsaVerifyCompleted;
-    /**< Total number of DSA verify operations that completed
-     * successfully. */
-    Cpa32U numDsaVerifyCompletedErrors;
-    /**< Total number of DSA verify operations that could not be completed
-     * successfully due to errors. */
-    Cpa32U numDsaVerifyFailures;
-    /**< Total number of DSA verify operations that executed successfully
-     * but the outcome of the test was that the verification failed.
-     * Note that this does not indicate an error. */
+	Cpa32U numDsaPParamGenRequests;
+	/**< Total number of successful DSA P parameter generation requests. */
+	Cpa32U numDsaPParamGenRequestErrors;
+	/**< Total number of DSA P parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa32U numDsaPParamGenCompleted;
+	/**< Total number of DSA P parameter generation operations that
+	 * completed successfully. */
+	Cpa32U numDsaPParamGenCompletedErrors;
+	/**< Total number of DSA P parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa32U numDsaGParamGenRequests;
+	/**< Total number of successful DSA G parameter generation requests. */
+	Cpa32U numDsaGParamGenRequestErrors;
+	/**< Total number of DSA G parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa32U numDsaGParamGenCompleted;
+	/**< Total number of DSA G parameter generation operations that
+	 * completed successfully. */
+	Cpa32U numDsaGParamGenCompletedErrors;
+	/**< Total number of DSA G parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa32U numDsaYParamGenRequests;
+	/**< Total number of successful DSA Y parameter generation requests. */
+	Cpa32U numDsaYParamGenRequestErrors;
+	/**< Total number of DSA Y parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa32U numDsaYParamGenCompleted;
+	/**< Total number of DSA Y parameter generation operations that
+	 * completed successfully. */
+	Cpa32U numDsaYParamGenCompletedErrors;
+	/**< Total number of DSA Y parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa32U numDsaRSignRequests;
+	/**< Total number of successful DSA R sign generation requests. */
+	Cpa32U numDsaRSignRequestErrors;
+	/**< Total number of DSA R sign requests that had an error and could
+	 * not be processed. */
+	Cpa32U numDsaRSignCompleted;
+	/**< Total number of DSA R sign operations that completed
+	 * successfully. */
+	Cpa32U numDsaRSignCompletedErrors;
+	/**< Total number of DSA R sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa32U numDsaSSignRequests;
+	/**< Total number of successful DSA S sign generation requests. */
+	Cpa32U numDsaSSignRequestErrors;
+	/**< Total number of DSA S sign requests that had an error and could
+	 * not be processed. */
+	Cpa32U numDsaSSignCompleted;
+	/**< Total number of DSA S sign operations that completed
+	 * successfully. */
+	Cpa32U numDsaSSignCompletedErrors;
+	/**< Total number of DSA S sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa32U numDsaRSSignRequests;
+	/**< Total number of successful DSA RS sign generation requests. */
+	Cpa32U numDsaRSSignRequestErrors;
+	/**< Total number of DSA RS sign requests that had an error and could
+	 * not be processed. */
+	Cpa32U numDsaRSSignCompleted;
+	/**< Total number of DSA RS sign operations that completed
+	 * successfully. */
+	Cpa32U numDsaRSSignCompletedErrors;
+	/**< Total number of DSA RS sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa32U numDsaVerifyRequests;
+	/**< Total number of successful DSA verify generation requests. */
+	Cpa32U numDsaVerifyRequestErrors;
+	/**< Total number of DSA verify requests that had an error and could
+	 * not be processed. */
+	Cpa32U numDsaVerifyCompleted;
+	/**< Total number of DSA verify operations that completed
+	 * successfully. */
+	Cpa32U numDsaVerifyCompletedErrors;
+	/**< Total number of DSA verify operations that could not be completed
+	 * successfully due to errors. */
+	Cpa32U numDsaVerifyFailures;
+	/**< Total number of DSA verify operations that executed successfully
+	 * but the outcome of the test was that the verification failed.
+	 * Note that this does not indicate an error. */
 } CpaCyDsaStats CPA_DEPRECATED;
 
 /**
@@ -479,87 +479,87 @@ typedef struct _CpaCyDsaStats {
  *      initialized, and are collected per instance.
  ****************************************************************************/
 typedef struct _CpaCyDsaStats64 {
-    Cpa64U numDsaPParamGenRequests;
-    /**< Total number of successful DSA P parameter generation requests. */
-    Cpa64U numDsaPParamGenRequestErrors;
-    /**< Total number of DSA P parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa64U numDsaPParamGenCompleted;
-    /**< Total number of DSA P parameter generation operations that
-     * completed successfully. */
-    Cpa64U numDsaPParamGenCompletedErrors;
-    /**< Total number of DSA P parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa64U numDsaGParamGenRequests;
-    /**< Total number of successful DSA G parameter generation requests. */
-    Cpa64U numDsaGParamGenRequestErrors;
-    /**< Total number of DSA G parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa64U numDsaGParamGenCompleted;
-    /**< Total number of DSA G parameter generation operations that
-     * completed successfully. */
-    Cpa64U numDsaGParamGenCompletedErrors;
-    /**< Total number of DSA G parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa64U numDsaYParamGenRequests;
-    /**< Total number of successful DSA Y parameter generation requests. */
-    Cpa64U numDsaYParamGenRequestErrors;
-    /**< Total number of DSA Y parameter generation requests that had an
-     * error and could not be processed. */
-    Cpa64U numDsaYParamGenCompleted;
-    /**< Total number of DSA Y parameter generation operations that
-     * completed successfully. */
-    Cpa64U numDsaYParamGenCompletedErrors;
-    /**< Total number of DSA Y parameter generation operations that could
-     * not be completed successfully due to errors. */
-    Cpa64U numDsaRSignRequests;
-    /**< Total number of successful DSA R sign generation requests. */
-    Cpa64U numDsaRSignRequestErrors;
-    /**< Total number of DSA R sign requests that had an error and could
-     * not be processed. */
-    Cpa64U numDsaRSignCompleted;
-    /**< Total number of DSA R sign operations that completed
-     * successfully. */
-    Cpa64U numDsaRSignCompletedErrors;
-    /**< Total number of DSA R sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa64U numDsaSSignRequests;
-    /**< Total number of successful DSA S sign generation requests. */
-    Cpa64U numDsaSSignRequestErrors;
-    /**< Total number of DSA S sign requests that had an error and could
-     * not be processed. */
-    Cpa64U numDsaSSignCompleted;
-    /**< Total number of DSA S sign operations that completed
-     * successfully. */
-    Cpa64U numDsaSSignCompletedErrors;
-    /**< Total number of DSA S sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa64U numDsaRSSignRequests;
-    /**< Total number of successful DSA RS sign generation requests. */
-    Cpa64U numDsaRSSignRequestErrors;
-    /**< Total number of DSA RS sign requests that had an error and could
-     * not be processed. */
-    Cpa64U numDsaRSSignCompleted;
-    /**< Total number of DSA RS sign operations that completed
-     * successfully. */
-    Cpa64U numDsaRSSignCompletedErrors;
-    /**< Total number of DSA RS sign operations that could not be completed
-     * successfully due to errors. */
-    Cpa64U numDsaVerifyRequests;
-    /**< Total number of successful DSA verify generation requests. */
-    Cpa64U numDsaVerifyRequestErrors;
-    /**< Total number of DSA verify requests that had an error and could
-     * not be processed. */
-    Cpa64U numDsaVerifyCompleted;
-    /**< Total number of DSA verify operations that completed
-     * successfully. */
-    Cpa64U numDsaVerifyCompletedErrors;
-    /**< Total number of DSA verify operations that could not be completed
-     * successfully due to errors. */
-    Cpa64U numDsaVerifyFailures;
-    /**< Total number of DSA verify operations that executed successfully
-     * but the outcome of the test was that the verification failed.
-     * Note that this does not indicate an error. */
+	Cpa64U numDsaPParamGenRequests;
+	/**< Total number of successful DSA P parameter generation requests. */
+	Cpa64U numDsaPParamGenRequestErrors;
+	/**< Total number of DSA P parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa64U numDsaPParamGenCompleted;
+	/**< Total number of DSA P parameter generation operations that
+	 * completed successfully. */
+	Cpa64U numDsaPParamGenCompletedErrors;
+	/**< Total number of DSA P parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa64U numDsaGParamGenRequests;
+	/**< Total number of successful DSA G parameter generation requests. */
+	Cpa64U numDsaGParamGenRequestErrors;
+	/**< Total number of DSA G parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa64U numDsaGParamGenCompleted;
+	/**< Total number of DSA G parameter generation operations that
+	 * completed successfully. */
+	Cpa64U numDsaGParamGenCompletedErrors;
+	/**< Total number of DSA G parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa64U numDsaYParamGenRequests;
+	/**< Total number of successful DSA Y parameter generation requests. */
+	Cpa64U numDsaYParamGenRequestErrors;
+	/**< Total number of DSA Y parameter generation requests that had an
+	 * error and could not be processed. */
+	Cpa64U numDsaYParamGenCompleted;
+	/**< Total number of DSA Y parameter generation operations that
+	 * completed successfully. */
+	Cpa64U numDsaYParamGenCompletedErrors;
+	/**< Total number of DSA Y parameter generation operations that could
+	 * not be completed successfully due to errors. */
+	Cpa64U numDsaRSignRequests;
+	/**< Total number of successful DSA R sign generation requests. */
+	Cpa64U numDsaRSignRequestErrors;
+	/**< Total number of DSA R sign requests that had an error and could
+	 * not be processed. */
+	Cpa64U numDsaRSignCompleted;
+	/**< Total number of DSA R sign operations that completed
+	 * successfully. */
+	Cpa64U numDsaRSignCompletedErrors;
+	/**< Total number of DSA R sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa64U numDsaSSignRequests;
+	/**< Total number of successful DSA S sign generation requests. */
+	Cpa64U numDsaSSignRequestErrors;
+	/**< Total number of DSA S sign requests that had an error and could
+	 * not be processed. */
+	Cpa64U numDsaSSignCompleted;
+	/**< Total number of DSA S sign operations that completed
+	 * successfully. */
+	Cpa64U numDsaSSignCompletedErrors;
+	/**< Total number of DSA S sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa64U numDsaRSSignRequests;
+	/**< Total number of successful DSA RS sign generation requests. */
+	Cpa64U numDsaRSSignRequestErrors;
+	/**< Total number of DSA RS sign requests that had an error and could
+	 * not be processed. */
+	Cpa64U numDsaRSSignCompleted;
+	/**< Total number of DSA RS sign operations that completed
+	 * successfully. */
+	Cpa64U numDsaRSSignCompletedErrors;
+	/**< Total number of DSA RS sign operations that could not be completed
+	 * successfully due to errors. */
+	Cpa64U numDsaVerifyRequests;
+	/**< Total number of successful DSA verify generation requests. */
+	Cpa64U numDsaVerifyRequestErrors;
+	/**< Total number of DSA verify requests that had an error and could
+	 * not be processed. */
+	Cpa64U numDsaVerifyCompleted;
+	/**< Total number of DSA verify operations that completed
+	 * successfully. */
+	Cpa64U numDsaVerifyCompletedErrors;
+	/**< Total number of DSA verify operations that could not be completed
+	 * successfully due to errors. */
+	Cpa64U numDsaVerifyFailures;
+	/**< Total number of DSA verify operations that executed successfully
+	 * but the outcome of the test was that the verification failed.
+	 * Note that this does not indicate an error. */
 } CpaCyDsaStats64;
 
 /**
@@ -608,11 +608,8 @@ typedef struct _CpaCyDsaStats64 {
  *         cpaCyDsaSignS()
  *
  *****************************************************************************/
-typedef void (*CpaCyDsaGenCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData,
-        CpaBoolean protocolStatus,
-        CpaFlatBuffer *pOut);
+typedef void (*CpaCyDsaGenCbFunc)(void *pCallbackTag, CpaStatus status,
+    void *pOpData, CpaBoolean protocolStatus, CpaFlatBuffer *pOut);
 
 /**
  *****************************************************************************
@@ -659,12 +656,9 @@ typedef void (*CpaCyDsaGenCbFunc)(void *pCallbackTag,
  *      cpaCyDsaSignRS()
  *
  *****************************************************************************/
-typedef void (*CpaCyDsaRSSignCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData,
-        CpaBoolean protocolStatus,
-        CpaFlatBuffer *pR,
-        CpaFlatBuffer *pS);
+typedef void (*CpaCyDsaRSSignCbFunc)(void *pCallbackTag, CpaStatus status,
+    void *pOpData, CpaBoolean protocolStatus, CpaFlatBuffer *pR,
+    CpaFlatBuffer *pS);
 
 /**
  *****************************************************************************
@@ -706,10 +700,8 @@ typedef void (*CpaCyDsaRSSignCbFunc)(void *pCallbackTag,
  *      cpaCyDsaVerify()
  *
  *****************************************************************************/
-typedef void (*CpaCyDsaVerifyCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData,
-        CpaBoolean verifyStatus);
+typedef void (*CpaCyDsaVerifyCbFunc)(void *pCallbackTag, CpaStatus status,
+    void *pOpData, CpaBoolean verifyStatus);
 
 /**
  *****************************************************************************
@@ -797,13 +789,10 @@ typedef void (*CpaCyDsaVerifyCbFunc)(void *pCallbackTag,
  *      CpaCyDsaGenCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaGenPParam(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaGenCbFunc pCb,
-        void * pCallbackTag,
-        const CpaCyDsaPParamGenOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pP);
+CpaStatus cpaCyDsaGenPParam(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaGenCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaPParamGenOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pP);
 
 /**
  *****************************************************************************
@@ -886,13 +875,10 @@ cpaCyDsaGenPParam(const CpaInstanceHandle instanceHandle,
  *      CpaCyDsaGenCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaGenGParam(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaGenCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaGParamGenOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pG);
+CpaStatus cpaCyDsaGenGParam(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaGenCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaGParamGenOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pG);
 
 /**
  *****************************************************************************
@@ -961,13 +947,10 @@ cpaCyDsaGenGParam(const CpaInstanceHandle instanceHandle,
  *      CpaCyDsaGenCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaGenYParam(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaGenCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaYParamGenOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pY);
+CpaStatus cpaCyDsaGenYParam(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaGenCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaYParamGenOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pY);
 
 /**
  *****************************************************************************
@@ -1050,13 +1033,10 @@ cpaCyDsaGenYParam(const CpaInstanceHandle instanceHandle,
  *      cpaCyDsaSignRS()
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaSignR(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaGenCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaRSignOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pR);
+CpaStatus cpaCyDsaSignR(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaGenCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaRSignOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pR);
 
 /**
  *****************************************************************************
@@ -1141,13 +1121,10 @@ cpaCyDsaSignR(const CpaInstanceHandle instanceHandle,
  *      cpaCyDsaSignRS()
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaSignS(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaGenCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaSSignOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pS);
+CpaStatus cpaCyDsaSignS(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaGenCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaSSignOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pS);
 
 /**
  *****************************************************************************
@@ -1231,14 +1208,10 @@ cpaCyDsaSignS(const CpaInstanceHandle instanceHandle,
  *      cpaCyDsaSignS()
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaSignRS(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaRSSignCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaRSSignOpData *pOpData,
-        CpaBoolean *pProtocolStatus,
-        CpaFlatBuffer *pR,
-        CpaFlatBuffer *pS);
+CpaStatus cpaCyDsaSignRS(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaRSSignCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaRSSignOpData *pOpData, CpaBoolean *pProtocolStatus,
+    CpaFlatBuffer *pR, CpaFlatBuffer *pS);
 
 /**
  *****************************************************************************
@@ -1311,12 +1284,9 @@ cpaCyDsaSignRS(const CpaInstanceHandle instanceHandle,
  *      CpaCyDsaVerifyCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyDsaVerify(const CpaInstanceHandle instanceHandle,
-        const CpaCyDsaVerifyCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyDsaVerifyOpData *pOpData,
-        CpaBoolean *pVerifyStatus);
+CpaStatus cpaCyDsaVerify(const CpaInstanceHandle instanceHandle,
+    const CpaCyDsaVerifyCbFunc pCb, void *pCallbackTag,
+    const CpaCyDsaVerifyOpData *pOpData, CpaBoolean *pVerifyStatus);
 
 /**
  *****************************************************************************
@@ -1374,9 +1344,8 @@ cpaCyDsaVerify(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyDsaStats
  *****************************************************************************/
-CpaStatus CPA_DEPRECATED
-cpaCyDsaQueryStats(const CpaInstanceHandle instanceHandle,
-        struct _CpaCyDsaStats *pDsaStats);
+CpaStatus CPA_DEPRECATED cpaCyDsaQueryStats(
+    const CpaInstanceHandle instanceHandle, struct _CpaCyDsaStats *pDsaStats);
 
 /**
  *****************************************************************************
@@ -1430,9 +1399,8 @@ cpaCyDsaQueryStats(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyDsaStats
  *****************************************************************************/
-CpaStatus
-cpaCyDsaQueryStats64(const CpaInstanceHandle instanceHandle,
-        CpaCyDsaStats64 *pDsaStats);
+CpaStatus cpaCyDsaQueryStats64(const CpaInstanceHandle instanceHandle,
+    CpaCyDsaStats64 *pDsaStats);
 
 /*****************************************************************************/
 

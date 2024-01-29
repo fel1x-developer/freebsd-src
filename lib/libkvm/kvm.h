@@ -30,9 +30,10 @@
  */
 
 #ifndef _KVM_H_
-#define	_KVM_H_
+#define _KVM_H_
 
 #include <sys/types.h>
+
 #include <nlist.h>
 
 /*
@@ -44,17 +45,17 @@ typedef u_char vm_prot_t;
 #endif
 
 /* Default version symbol. */
-#define	VRS_SYM		"_version"
-#define	VRS_KEY		"VERSION"
+#define VRS_SYM "_version"
+#define VRS_KEY "VERSION"
 
 #ifndef _SIZE_T_DECLARED
-typedef	__size_t	size_t;
-#define	_SIZE_T_DECLARED
+typedef __size_t size_t;
+#define _SIZE_T_DECLARED
 #endif
 
 #ifndef _SSIZE_T_DECLARED
-typedef	__ssize_t	ssize_t;
-#define	_SSIZE_T_DECLARED
+typedef __ssize_t ssize_t;
+#define _SSIZE_T_DECLARED
 #endif
 
 struct kvm_nlist {
@@ -69,58 +70,54 @@ struct kinfo_proc;
 struct proc;
 
 struct kvm_swap {
-	char	ksw_devname[32];
-	u_int	ksw_used;
-	u_int	ksw_total;
-	int	ksw_flags;
-	u_int	ksw_reserved1;
-	u_int	ksw_reserved2;
+	char ksw_devname[32];
+	u_int ksw_used;
+	u_int ksw_total;
+	int ksw_flags;
+	u_int ksw_reserved1;
+	u_int ksw_reserved2;
 };
 
 struct kvm_page {
-	u_int		kp_version;
-	kpaddr_t	kp_paddr;
-	kvaddr_t	kp_kmap_vaddr;
-	kvaddr_t	kp_dmap_vaddr;
-	vm_prot_t	kp_prot;
-	off_t		kp_offset;
-	size_t		kp_len;
+	u_int kp_version;
+	kpaddr_t kp_paddr;
+	kvaddr_t kp_kmap_vaddr;
+	kvaddr_t kp_dmap_vaddr;
+	vm_prot_t kp_prot;
+	off_t kp_offset;
+	size_t kp_len;
 	/* end of version 2 */
 };
 
-#define SWIF_DEV_PREFIX	0x0002
-#define	LIBKVM_WALK_PAGES_VERSION	2
+#define SWIF_DEV_PREFIX 0x0002
+#define LIBKVM_WALK_PAGES_VERSION 2
 
 __BEGIN_DECLS
-int	  kvm_close(kvm_t *);
-int	  kvm_dpcpu_setcpu(kvm_t *, unsigned int);
-char	**kvm_getargv(kvm_t *, const struct kinfo_proc *, int);
-int	  kvm_getcptime(kvm_t *, long *);
-char	**kvm_getenvv(kvm_t *, const struct kinfo_proc *, int);
-char	 *kvm_geterr(kvm_t *);
-int	  kvm_getloadavg(kvm_t *, double [], int);
-int	  kvm_getmaxcpu(kvm_t *);
-int	  kvm_getncpus(kvm_t *);
-void	 *kvm_getpcpu(kvm_t *, int);
-uint64_t  kvm_counter_u64_fetch(kvm_t *, u_long);
-struct kinfo_proc *
-	  kvm_getprocs(kvm_t *, int, int, int *);
-int	  kvm_getswapinfo(kvm_t *, struct kvm_swap *, int, int);
-int	  kvm_native(kvm_t *);
-int	  kvm_nlist(kvm_t *, struct nlist *);
-int	  kvm_nlist2(kvm_t *, struct kvm_nlist *);
-kvm_t	 *kvm_open
-	    (const char *, const char *, const char *, int, const char *);
-kvm_t	 *kvm_openfiles
-	    (const char *, const char *, const char *, int, char *);
-kvm_t	 *kvm_open2
-	    (const char *, const char *, int, char *,
-	    int (*)(const char *, kvaddr_t *));
-ssize_t	  kvm_read(kvm_t *, unsigned long, void *, size_t);
-ssize_t	  kvm_read_zpcpu(kvm_t *, unsigned long, void *, size_t, int);
-ssize_t	  kvm_read2(kvm_t *, kvaddr_t, void *, size_t);
-ssize_t	  kvm_write(kvm_t *, unsigned long, const void *, size_t);
-kssize_t  kvm_kerndisp(kvm_t *);
+int kvm_close(kvm_t *);
+int kvm_dpcpu_setcpu(kvm_t *, unsigned int);
+char **kvm_getargv(kvm_t *, const struct kinfo_proc *, int);
+int kvm_getcptime(kvm_t *, long *);
+char **kvm_getenvv(kvm_t *, const struct kinfo_proc *, int);
+char *kvm_geterr(kvm_t *);
+int kvm_getloadavg(kvm_t *, double[], int);
+int kvm_getmaxcpu(kvm_t *);
+int kvm_getncpus(kvm_t *);
+void *kvm_getpcpu(kvm_t *, int);
+uint64_t kvm_counter_u64_fetch(kvm_t *, u_long);
+struct kinfo_proc *kvm_getprocs(kvm_t *, int, int, int *);
+int kvm_getswapinfo(kvm_t *, struct kvm_swap *, int, int);
+int kvm_native(kvm_t *);
+int kvm_nlist(kvm_t *, struct nlist *);
+int kvm_nlist2(kvm_t *, struct kvm_nlist *);
+kvm_t *kvm_open(const char *, const char *, const char *, int, const char *);
+kvm_t *kvm_openfiles(const char *, const char *, const char *, int, char *);
+kvm_t *kvm_open2(const char *, const char *, int, char *,
+    int (*)(const char *, kvaddr_t *));
+ssize_t kvm_read(kvm_t *, unsigned long, void *, size_t);
+ssize_t kvm_read_zpcpu(kvm_t *, unsigned long, void *, size_t, int);
+ssize_t kvm_read2(kvm_t *, kvaddr_t, void *, size_t);
+ssize_t kvm_write(kvm_t *, unsigned long, const void *, size_t);
+kssize_t kvm_kerndisp(kvm_t *);
 
 typedef int kvm_walk_pages_cb_t(struct kvm_page *, void *);
 int kvm_walk_pages(kvm_t *, kvm_walk_pages_cb_t *, void *);

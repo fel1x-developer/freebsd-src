@@ -31,17 +31,17 @@
  */
 
 #ifndef _ZYGOTE_H_
-#define	_ZYGOTE_H_
+#define _ZYGOTE_H_
 
 typedef void zygote_func_t(int);
 
-int	zygote_init(void);
-int	zygote_clone(uint64_t funcidx, int *chanfdp, int *procfdp);
-int	zygote_clone_service_execute(int *chanfdp, int *procfdp);
+int zygote_init(void);
+int zygote_clone(uint64_t funcidx, int *chanfdp, int *procfdp);
+int zygote_clone_service_execute(int *chanfdp, int *procfdp);
 
 /*
  * Functions reachable via zygote_clone().
  */
-zygote_func_t	service_execute;
+zygote_func_t service_execute;
 
-#endif	/* !_ZYGOTE_H_ */
+#endif /* !_ZYGOTE_H_ */

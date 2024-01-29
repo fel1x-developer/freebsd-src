@@ -67,9 +67,9 @@ extern "C" {
 #include <dev/isci/scil/sci_controller_constants.h>
 
 #if !defined(ENABLE_MINIMUM_MEMORY_MODE)
-#define SCIF_SAS_SMP_PHY_COUNT        SCI_MAX_SMP_PHYS
+#define SCIF_SAS_SMP_PHY_COUNT SCI_MAX_SMP_PHYS
 #else
-#define SCIF_SAS_SMP_PHY_COUNT        SCI_MIN_SMP_PHYS
+#define SCIF_SAS_SMP_PHY_COUNT SCI_MIN_SMP_PHYS
 #endif // !defined(ENABLE_MINIMUM_MEMORY_OPERATION)
 
 #ifdef __cplusplus

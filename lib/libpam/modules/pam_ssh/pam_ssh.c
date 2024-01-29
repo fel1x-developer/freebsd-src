@@ -50,11 +50,10 @@
 #define PAM_SM_AUTH
 #define PAM_SM_SESSION
 
+#include <openssl/evp.h>
+#include <security/openpam.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
-#include <security/openpam.h>
-
-#include <openssl/evp.h>
 
 #define __bounded__(x, y, z)
 #include "authfd.h"
@@ -67,20 +66,18 @@
 extern char **environ;
 
 struct pam_ssh_key {
-	struct sshkey	*key;
-	char		*comment;
+	struct sshkey *key;
+	char *comment;
 };
 
 static const char *pam_ssh_prompt = "SSH passphrase: ";
 static const char *pam_ssh_have_keys = "pam_ssh_have_keys";
 
-static const char *pam_ssh_keyfiles[] = {
-	".ssh/id_rsa",		/* SSH2 RSA key */
-	".ssh/id_dsa",		/* SSH2 DSA key */
-	".ssh/id_ecdsa",	/* SSH2 ECDSA key */
-	".ssh/id_ed25519",	/* SSH2 Ed25519 key */
-	NULL
-};
+static const char *pam_ssh_keyfiles[] = { ".ssh/id_rsa", /* SSH2 RSA key */
+	".ssh/id_dsa",					 /* SSH2 DSA key */
+	".ssh/id_ecdsa",				 /* SSH2 ECDSA key */
+	".ssh/id_ed25519",				 /* SSH2 Ed25519 key */
+	NULL };
 
 static const char *pam_ssh_agent = "/usr/bin/ssh-agent";
 static char str_ssh_agent[] = "ssh-agent";
@@ -140,8 +137,7 @@ pam_ssh_load_key(const char *dir, const char *kfn, const char *passphrase,
  * Wipes a private key and frees the associated resources.
  */
 static void
-pam_ssh_free_key(pam_handle_t *pamh __unused,
-    void *data, int pam_err __unused)
+pam_ssh_free_key(pam_handle_t *pamh __unused, void *data, int pam_err __unused)
 {
 	struct pam_ssh_key *psk;
 
@@ -152,8 +148,8 @@ pam_ssh_free_key(pam_handle_t *pamh __unused,
 }
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	const char **kfn, *passphrase, *user;
 	const void *item;
@@ -179,10 +175,10 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 	nkeys = 0;
 	pass = (pam_get_item(pamh, PAM_AUTHTOK, &item) == PAM_SUCCESS &&
 	    item != NULL);
- load_keys:
+load_keys:
 	/* get passphrase */
-	pam_err = pam_get_authtok(pamh, PAM_AUTHTOK,
-	    &passphrase, pam_ssh_prompt);
+	pam_err = pam_get_authtok(pamh, PAM_AUTHTOK, &passphrase,
+	    pam_ssh_prompt);
 	if (pam_err != PAM_SUCCESS)
 		return (pam_err);
 
@@ -351,8 +347,10 @@ pam_ssh_add_keys_to_agent(pam_handle_t *pamh)
 				openpam_log(PAM_LOG_DEBUG,
 				    "added %s to ssh agent", psk->comment);
 			else
-				openpam_log(PAM_LOG_DEBUG, "failed "
-				    "to add %s to ssh agent", psk->comment);
+				openpam_log(PAM_LOG_DEBUG,
+				    "failed "
+				    "to add %s to ssh agent",
+				    psk->comment);
 			/* we won't need the key again, so wipe it */
 			pam_set_data(pamh, *kfn, NULL, NULL);
 		}
@@ -362,7 +360,7 @@ pam_ssh_add_keys_to_agent(pam_handle_t *pamh)
 	/* disconnect from agent */
 	ssh_close_authentication_socket(fd);
 
- end:
+end:
 	/* switch back to original environment */
 	for (env = environ; *env != NULL; ++env)
 		free(*env);
@@ -373,8 +371,8 @@ pam_ssh_add_keys_to_agent(pam_handle_t *pamh)
 }
 
 PAM_EXTERN int
-pam_sm_open_session(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_open_session(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct passwd *pwd;
 	const char *user;
@@ -415,8 +413,8 @@ pam_sm_open_session(pam_handle_t *pamh, int flags __unused,
 }
 
 PAM_EXTERN int
-pam_sm_close_session(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_close_session(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	const char *ssh_agent_pid;
 	char *end;

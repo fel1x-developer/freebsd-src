@@ -70,13 +70,15 @@
 #include <sys/mount.h>
 #include <sys/refcount.h>
 #include <sys/sx.h>
-#include <sys/sysctl.h>
 #include <sys/syscallsubr.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 #include <sys/vnode.h>
-#include <machine/atomic.h>
+
 #include <vm/uma.h>
+
+#include <machine/atomic.h>
 
 #include <fs/autofs/autofs.h>
 #include <fs/autofs/autofs_ioctl.h>
@@ -86,53 +88,45 @@ MALLOC_DEFINE(M_AUTOFS, "autofs", "Automounter filesystem");
 uma_zone_t autofs_request_zone;
 uma_zone_t autofs_node_zone;
 
-static int	autofs_open(struct cdev *dev, int flags, int fmt,
-		    struct thread *td);
-static int	autofs_close(struct cdev *dev, int flag, int fmt,
-		    struct thread *td);
-static int	autofs_ioctl(struct cdev *dev, u_long cmd, caddr_t arg,
-		    int mode, struct thread *td);
+static int autofs_open(struct cdev *dev, int flags, int fmt, struct thread *td);
+static int autofs_close(struct cdev *dev, int flag, int fmt, struct thread *td);
+static int autofs_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int mode,
+    struct thread *td);
 
 static struct cdevsw autofs_cdevsw = {
-     .d_version = D_VERSION,
-     .d_open   = autofs_open,
-     .d_close   = autofs_close,
-     .d_ioctl   = autofs_ioctl,
-     .d_name    = "autofs",
+	.d_version = D_VERSION,
+	.d_open = autofs_open,
+	.d_close = autofs_close,
+	.d_ioctl = autofs_ioctl,
+	.d_name = "autofs",
 };
 
 /*
  * List of signals that can interrupt an autofs trigger.  Might be a good
  * idea to keep it synchronised with list in sys/fs/nfs/nfs_commonkrpc.c.
  */
-int autofs_sig_set[] = {
-	SIGINT,
-	SIGTERM,
-	SIGHUP,
-	SIGKILL,
-	SIGQUIT
-};
+int autofs_sig_set[] = { SIGINT, SIGTERM, SIGHUP, SIGKILL, SIGQUIT };
 
-struct autofs_softc	*autofs_softc;
+struct autofs_softc *autofs_softc;
 
 SYSCTL_NODE(_vfs, OID_AUTO, autofs, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Automounter filesystem");
 int autofs_debug = 1;
 TUNABLE_INT("vfs.autofs.debug", &autofs_debug);
-SYSCTL_INT(_vfs_autofs, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &autofs_debug, 1, "Enable debug messages");
+SYSCTL_INT(_vfs_autofs, OID_AUTO, debug, CTLFLAG_RWTUN, &autofs_debug, 1,
+    "Enable debug messages");
 int autofs_mount_on_stat = 0;
 TUNABLE_INT("vfs.autofs.mount_on_stat", &autofs_mount_on_stat);
 SYSCTL_INT(_vfs_autofs, OID_AUTO, mount_on_stat, CTLFLAG_RWTUN,
     &autofs_mount_on_stat, 0, "Trigger mount on stat(2) on mountpoint");
 int autofs_timeout = 30;
 TUNABLE_INT("vfs.autofs.timeout", &autofs_timeout);
-SYSCTL_INT(_vfs_autofs, OID_AUTO, timeout, CTLFLAG_RWTUN,
-    &autofs_timeout, 30, "Number of seconds to wait for automountd(8)");
+SYSCTL_INT(_vfs_autofs, OID_AUTO, timeout, CTLFLAG_RWTUN, &autofs_timeout, 30,
+    "Number of seconds to wait for automountd(8)");
 int autofs_cache = 600;
 TUNABLE_INT("vfs.autofs.cache", &autofs_cache);
-SYSCTL_INT(_vfs_autofs, OID_AUTO, cache, CTLFLAG_RWTUN,
-    &autofs_cache, 600, "Number of seconds to wait before reinvoking "
+SYSCTL_INT(_vfs_autofs, OID_AUTO, cache, CTLFLAG_RWTUN, &autofs_cache, 600,
+    "Number of seconds to wait before reinvoking "
     "automountd(8) for any given file or directory");
 int autofs_retry_attempts = 3;
 TUNABLE_INT("vfs.autofs.retry_attempts", &autofs_retry_attempts);
@@ -171,8 +165,8 @@ autofs_init(struct vfsconf *vfsp)
 	    sizeof(struct autofs_request), NULL, NULL, NULL, NULL,
 	    UMA_ALIGN_PTR, 0);
 	autofs_node_zone = uma_zcreate("autofs_node",
-	    sizeof(struct autofs_node), NULL, NULL, NULL, NULL,
-	    UMA_ALIGN_PTR, 0);
+	    sizeof(struct autofs_node), NULL, NULL, NULL, NULL, UMA_ALIGN_PTR,
+	    0);
 
 	TAILQ_INIT(&autofs_softc->sc_requests);
 	cv_init(&autofs_softc->sc_cv, "autofscv");
@@ -247,8 +241,8 @@ autofs_path(struct autofs_node *anp)
 
 	path = strdup("", M_AUTOFS);
 	for (; anp->an_parent != NULL; anp = anp->an_parent) {
-		tmp = malloc(strlen(anp->an_name) + strlen(path) + 2,
-		    M_AUTOFS, M_WAITOK);
+		tmp = malloc(strlen(anp->an_name) + strlen(path) + 2, M_AUTOFS,
+		    M_WAITOK);
 		strcpy(tmp, anp->an_name);
 		strcat(tmp, "/");
 		strcat(tmp, path);
@@ -256,8 +250,8 @@ autofs_path(struct autofs_node *anp)
 		path = tmp;
 	}
 
-	tmp = malloc(strlen(amp->am_mountpoint) + strlen(path) + 2,
-	    M_AUTOFS, M_WAITOK);
+	tmp = malloc(strlen(amp->am_mountpoint) + strlen(path) + 2, M_AUTOFS,
+	    M_WAITOK);
 	strcpy(tmp, amp->am_mountpoint);
 	strcat(tmp, "/");
 	strcat(tmp, path);
@@ -275,8 +269,8 @@ autofs_task(void *context, int pending)
 	ar = context;
 
 	sx_xlock(&autofs_softc->sc_lock);
-	AUTOFS_WARN("request %d for %s timed out after %d seconds",
-	    ar->ar_id, ar->ar_path, autofs_timeout);
+	AUTOFS_WARN("request %d for %s timed out after %d seconds", ar->ar_id,
+	    ar->ar_path, autofs_timeout);
 	/*
 	 * XXX: EIO perhaps?
 	 */
@@ -351,7 +345,7 @@ autofs_set_sigmask(sigset_t *oldset)
 	/* Remove the autofs set of signals from newset */
 	PROC_LOCK(curproc);
 	mtx_lock(&curproc->p_sigacts->ps_mtx);
-	for (i = 0 ; i < nitems(autofs_sig_set); i++) {
+	for (i = 0; i < nitems(autofs_sig_set); i++) {
 		/*
 		 * But make sure we leave the ones already masked
 		 * by the process, i.e. remove the signal from the
@@ -360,7 +354,7 @@ autofs_set_sigmask(sigset_t *oldset)
 		 */
 		if (!SIGISMEMBER(curthread->td_sigmask, autofs_sig_set[i]) &&
 		    !SIGISMEMBER(curproc->p_sigacts->ps_sigignore,
-		    autofs_sig_set[i])) {
+			autofs_sig_set[i])) {
 			SIGDELSET(newset, autofs_sig_set[i]);
 		}
 	}
@@ -378,8 +372,8 @@ autofs_restore_sigmask(sigset_t *set)
 }
 
 static int
-autofs_trigger_one(struct autofs_node *anp,
-    const char *component, int componentlen)
+autofs_trigger_one(struct autofs_node *anp, const char *component,
+    int componentlen)
 {
 	sigset_t oldset;
 	struct autofs_mount *amp;
@@ -397,14 +391,14 @@ autofs_trigger_one(struct autofs_node *anp,
 		key = strndup(component, componentlen, M_AUTOFS);
 	} else {
 		for (firstanp = anp; firstanp->an_parent->an_parent != NULL;
-		    firstanp = firstanp->an_parent)
+		     firstanp = firstanp->an_parent)
 			continue;
 		key = strdup(firstanp->an_name, M_AUTOFS);
 	}
 
 	path = autofs_path(anp);
 
-	TAILQ_FOREACH(ar, &autofs_softc->sc_requests, ar_next) {
+	TAILQ_FOREACH (ar, &autofs_softc->sc_requests, ar_next) {
 		if (strcmp(ar->ar_path, path) != 0)
 			continue;
 		if (strcmp(ar->ar_key, key) != 0)
@@ -413,11 +407,11 @@ autofs_trigger_one(struct autofs_node *anp,
 		KASSERT(strcmp(ar->ar_from, amp->am_from) == 0,
 		    ("from changed; %s != %s", ar->ar_from, amp->am_from));
 		KASSERT(strcmp(ar->ar_prefix, amp->am_prefix) == 0,
-		    ("prefix changed; %s != %s",
-		     ar->ar_prefix, amp->am_prefix));
+		    ("prefix changed; %s != %s", ar->ar_prefix,
+			amp->am_prefix));
 		KASSERT(strcmp(ar->ar_options, amp->am_options) == 0,
-		    ("options changed; %s != %s",
-		     ar->ar_options, amp->am_options));
+		    ("options changed; %s != %s", ar->ar_options,
+			amp->am_options));
 
 		break;
 	}
@@ -434,8 +428,8 @@ autofs_trigger_one(struct autofs_node *anp,
 		strlcpy(ar->ar_path, path, sizeof(ar->ar_path));
 		strlcpy(ar->ar_prefix, amp->am_prefix, sizeof(ar->ar_prefix));
 		strlcpy(ar->ar_key, key, sizeof(ar->ar_key));
-		strlcpy(ar->ar_options,
-		    amp->am_options, sizeof(ar->ar_options));
+		strlcpy(ar->ar_options, amp->am_options,
+		    sizeof(ar->ar_options));
 
 		TIMEOUT_TASK_INIT(taskqueue_thread, &ar->ar_task, 0,
 		    autofs_task, ar);
@@ -454,7 +448,8 @@ autofs_trigger_one(struct autofs_node *anp,
 			autofs_restore_sigmask(&oldset);
 			if (error != 0) {
 				AUTOFS_WARN("cv_wait_sig for %s failed "
-				    "with error %d", ar->ar_path, error);
+					    "with error %d",
+				    ar->ar_path, error);
 				break;
 			}
 		} else {
@@ -465,8 +460,9 @@ autofs_trigger_one(struct autofs_node *anp,
 	request_error = ar->ar_error;
 	if (request_error != 0) {
 		AUTOFS_WARN("request for %s completed with error %d, "
-		    "pid %d (%s)", ar->ar_path, request_error,
-		    curproc->p_pid, curproc->p_comm);
+			    "pid %d (%s)",
+		    ar->ar_path, request_error, curproc->p_pid,
+		    curproc->p_comm);
 	}
 
 	wildcards = ar->ar_wildcards;
@@ -508,8 +504,7 @@ autofs_trigger_one(struct autofs_node *anp,
  * Send request to automountd(8) and wait for completion.
  */
 int
-autofs_trigger(struct autofs_node *anp,
-    const char *component, int componentlen)
+autofs_trigger(struct autofs_node *anp, const char *component, int componentlen)
 {
 	int error;
 
@@ -521,19 +516,21 @@ autofs_trigger(struct autofs_node *anp,
 		}
 		if (error == EINTR || error == ERESTART) {
 			AUTOFS_DEBUG("trigger interrupted by signal, "
-			    "not retrying");
+				     "not retrying");
 			anp->an_retries = 0;
 			return (error);
 		}
 		anp->an_retries++;
 		if (anp->an_retries >= autofs_retry_attempts) {
 			AUTOFS_DEBUG("trigger failed %d times; returning "
-			    "error %d", anp->an_retries, error);
+				     "error %d",
+			    anp->an_retries, error);
 			anp->an_retries = 0;
 			return (error);
 		}
 		AUTOFS_DEBUG("trigger failed with error %d; will retry in "
-		    "%d seconds, %d attempts left", error, autofs_retry_delay,
+			     "%d seconds, %d attempts left",
+		    error, autofs_retry_delay,
 		    autofs_retry_attempts - anp->an_retries);
 		sx_xunlock(&autofs_softc->sc_lock);
 		pause("autofs_retry", autofs_retry_delay * hz);
@@ -549,7 +546,7 @@ autofs_ioctl_request(struct autofs_daemon_request *adr)
 
 	sx_xlock(&autofs_softc->sc_lock);
 	for (;;) {
-		TAILQ_FOREACH(ar, &autofs_softc->sc_requests, ar_next) {
+		TAILQ_FOREACH (ar, &autofs_softc->sc_requests, ar_next) {
 			if (ar->ar_done)
 				continue;
 			if (ar->ar_in_progress)
@@ -592,7 +589,7 @@ autofs_ioctl_done_101(struct autofs_daemon_done_101 *add)
 	struct autofs_request *ar;
 
 	sx_xlock(&autofs_softc->sc_lock);
-	TAILQ_FOREACH(ar, &autofs_softc->sc_requests, ar_next) {
+	TAILQ_FOREACH (ar, &autofs_softc->sc_requests, ar_next) {
 		if (ar->ar_id == add->add_id)
 			break;
 	}
@@ -620,7 +617,7 @@ autofs_ioctl_done(struct autofs_daemon_done *add)
 	struct autofs_request *ar;
 
 	sx_xlock(&autofs_softc->sc_lock);
-	TAILQ_FOREACH(ar, &autofs_softc->sc_requests, ar_next) {
+	TAILQ_FOREACH (ar, &autofs_softc->sc_requests, ar_next) {
 		if (ar->ar_id == add->add_id)
 			break;
 	}
@@ -687,14 +684,13 @@ autofs_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int mode,
 
 	switch (cmd) {
 	case AUTOFSREQUEST:
-		return (autofs_ioctl_request(
-		    (struct autofs_daemon_request *)arg));
+		return (
+		    autofs_ioctl_request((struct autofs_daemon_request *)arg));
 	case AUTOFSDONE101:
 		return (autofs_ioctl_done_101(
 		    (struct autofs_daemon_done_101 *)arg));
 	case AUTOFSDONE:
-		return (autofs_ioctl_done(
-		    (struct autofs_daemon_done *)arg));
+		return (autofs_ioctl_done((struct autofs_daemon_done *)arg));
 	default:
 		AUTOFS_DEBUG("invalid cmd %lx", cmd);
 		return (EINVAL);

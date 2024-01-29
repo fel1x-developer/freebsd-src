@@ -48,45 +48,41 @@ char dpath[1024];
 int dpath_initialized;
 
 int
-priv_vfs_stickyfile_dir_fowner_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_stickyfile_dir_fowner_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_dir("priv_vfs_stickyfile_fowner_setup: dpath", dpath,
-	    UID_OWNER, GID_OWNER, 0700);
+	setup_dir("priv_vfs_stickyfile_fowner_setup: dpath", dpath, UID_OWNER,
+	    GID_OWNER, 0700);
 	dpath_initialized = 1;
 	return (0);
 }
 
 int
-priv_vfs_stickyfile_dir_fother_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_stickyfile_dir_fother_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_dir("priv_vfs_stickyfile_fother_setup: dpath", dpath,
-	    UID_OTHER, GID_OTHER, 0700);
+	setup_dir("priv_vfs_stickyfile_fother_setup: dpath", dpath, UID_OTHER,
+	    GID_OTHER, 0700);
 	dpath_initialized = 1;
 	return (0);
 }
 
 int
-priv_vfs_stickyfile_file_fowner_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_stickyfile_file_fowner_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_stickyfile_fowner_setup: fpath", fpath,
-	    UID_OWNER, GID_OWNER, 0600);
+	setup_file("priv_vfs_stickyfile_fowner_setup: fpath", fpath, UID_OWNER,
+	    GID_OWNER, 0600);
 	fpath_initialized = 1;
 	return (0);
 }
 
 int
-priv_vfs_stickyfile_file_fother_setup(int asroot, int injail,
-    struct test *test)
+priv_vfs_stickyfile_file_fother_setup(int asroot, int injail, struct test *test)
 {
 
-	setup_file("priv_vfs_stickyfile_fother_setup: fpath", fpath,
-	    UID_OTHER, GID_OTHER, 0600);
+	setup_file("priv_vfs_stickyfile_fother_setup: fpath", fpath, UID_OTHER,
+	    GID_OTHER, 0600);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -98,17 +94,17 @@ priv_vfs_stickyfile_dir_fowner(int asroot, int injail, struct test *test)
 
 	error = chmod(dpath, 0700 | S_ISTXT);
 	if (asroot && injail)
-		expect("priv_vfs_stickyfile_dir_fowner(root, jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fowner(root, jail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_vfs_stickyfile_dir_fowner(root, !jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fowner(root, !jail)", error, 0,
+		    0);
 	if (!asroot && injail)
-		expect("priv_vfs_stickyfile_dir_fowner(!root, jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fowner(!root, jail)", error, 0,
+		    0);
 	if (!asroot && !injail)
-		expect("priv_vfs_stickyfile_dir_fowner(!root, !jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fowner(!root, !jail)", error, 0,
+		    0);
 }
 
 void
@@ -118,14 +114,14 @@ priv_vfs_stickyfile_dir_fother(int asroot, int injail, struct test *test)
 
 	error = chmod(dpath, 0700 | S_ISTXT);
 	if (asroot && injail)
-		expect("priv_vfs_stickyfile_dir_fother(root, jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fother(root, jail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_vfs_stickyfile_dir_fother(root, !jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_dir_fother(root, !jail)", error, 0,
+		    0);
 	if (!asroot && injail)
-		expect("priv_vfs_stickyfile_dir_fother(!root, jail)", error,
-		    -1, EPERM);
+		expect("priv_vfs_stickyfile_dir_fother(!root, jail)", error, -1,
+		    EPERM);
 	if (!asroot && !injail)
 		expect("priv_vfs_stickyfile_dir_fother(!root, !jail)", error,
 		    -1, EPERM);
@@ -138,11 +134,11 @@ priv_vfs_stickyfile_file_fowner(int asroot, int injail, struct test *test)
 
 	error = chmod(fpath, 0600 | S_ISTXT);
 	if (asroot && injail)
-		expect("priv_vfs_stickyfile_file_fowner(root, jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_file_fowner(root, jail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_vfs_stickyfile_file_fowner(root, !jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_file_fowner(root, !jail)", error, 0,
+		    0);
 	if (!asroot && injail)
 		expect("priv_vfs_stickyfile_file_fowner(!root, jail)", error,
 		    -1, EFTYPE);
@@ -158,11 +154,11 @@ priv_vfs_stickyfile_file_fother(int asroot, int injail, struct test *test)
 
 	error = chmod(fpath, 0600 | S_ISTXT);
 	if (asroot && injail)
-		expect("priv_vfs_stickyfile_file_fother(root, jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_file_fother(root, jail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_vfs_stickyfile_file_fother(root, !jail)", error,
-		    0, 0);
+		expect("priv_vfs_stickyfile_file_fother(root, !jail)", error, 0,
+		    0);
 	if (!asroot && injail)
 		expect("priv_vfs_stickyfile_file_fother(!root, jail)", error,
 		    -1, EPERM);

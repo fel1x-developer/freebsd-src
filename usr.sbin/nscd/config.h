@@ -29,28 +29,28 @@
 
 #include "cachelib.h"
 
-#define DEFAULT_QUERY_TIMEOUT		8
-#define DEFAULT_THREADS_NUM		8
+#define DEFAULT_QUERY_TIMEOUT 8
+#define DEFAULT_THREADS_NUM 8
 
-#define DEFAULT_COMMON_ENTRY_TIMEOUT	10
-#define DEFAULT_MP_ENTRY_TIMEOUT	60
-#define DEFAULT_CACHE_HT_SIZE		257
+#define DEFAULT_COMMON_ENTRY_TIMEOUT 10
+#define DEFAULT_MP_ENTRY_TIMEOUT 60
+#define DEFAULT_CACHE_HT_SIZE 257
 
-#define INITIAL_ENTRIES_CAPACITY	8
-#define DEFAULT_SOCKET_PATH		"/var/run/nscd"
-#define DEFAULT_PIDFILE_PATH		"/var/run/nscd.pid"
+#define INITIAL_ENTRIES_CAPACITY 8
+#define DEFAULT_SOCKET_PATH "/var/run/nscd"
+#define DEFAULT_PIDFILE_PATH "/var/run/nscd.pid"
 
-#define DEFAULT_POSITIVE_ELEMENTS_SIZE	(2048)
-#define DEFAULT_POSITIVE_LIFETIME 	(3600)
-#define DEFAULT_POSITIVE_CONF_THRESH 	(1)
+#define DEFAULT_POSITIVE_ELEMENTS_SIZE (2048)
+#define DEFAULT_POSITIVE_LIFETIME (3600)
+#define DEFAULT_POSITIVE_CONF_THRESH (1)
 
-#define DEFAULT_NEGATIVE_ELEMENTS_SIZE	(2048)
-#define DEFAULT_NEGATIVE_LIFETIME	(60)
-#define DEFAULT_NEGATIVE_CONF_THRESH 	(1) /* (2) ??? */
+#define DEFAULT_NEGATIVE_ELEMENTS_SIZE (2048)
+#define DEFAULT_NEGATIVE_LIFETIME (60)
+#define DEFAULT_NEGATIVE_CONF_THRESH (1) /* (2) ??? */
 
-#define DEFAULT_MULTIPART_ELEMENTS_SIZE	(1024 * 8)
-#define DEFAULT_MULITPART_SESSIONS_SIZE	(1024)
-#define DEFAULT_MULITPART_LIFETIME	(3600)
+#define DEFAULT_MULTIPART_ELEMENTS_SIZE (1024 * 8)
+#define DEFAULT_MULITPART_SESSIONS_SIZE (1024)
+#define DEFAULT_MULITPART_LIFETIME (3600)
 
 extern const char *c_default_entries[6];
 
@@ -80,69 +80,66 @@ struct configuration_entry {
 	struct timeval common_query_timeout;
 	struct timeval mp_query_timeout;
 
-	char	*name;
+	char *name;
 	pthread_mutex_t positive_cache_lock;
 	pthread_mutex_t negative_cache_lock;
 	pthread_mutex_t mp_cache_lock;
 
-	int	perform_actual_lookups;
-	int	enabled;
+	int perform_actual_lookups;
+	int enabled;
 };
 
 /*
  * Contains global configuration options and array of all configuration entries
  */
 struct configuration {
-	char	*pidfile_path;
-	char	*socket_path;
+	char *pidfile_path;
+	char *socket_path;
 
 	struct configuration_entry **entries;
-	size_t	entries_capacity;
-	size_t	entries_size;
+	size_t entries_capacity;
+	size_t entries_size;
 
 	pthread_rwlock_t rwlock;
 
-	mode_t	socket_mode;
-	int	force_unlink;
-	int	query_timeout;
+	mode_t socket_mode;
+	int force_unlink;
+	int query_timeout;
 
-	int	threads_num;
+	int threads_num;
 };
 
-enum config_entry_lock_type {
-	CELT_POSITIVE,
-	CELT_NEGATIVE,
-	CELT_MULTIPART
-};
+enum config_entry_lock_type { CELT_POSITIVE, CELT_NEGATIVE, CELT_MULTIPART };
 
 struct configuration *init_configuration(void);
 void destroy_configuration(struct configuration *);
 void fill_configuration_defaults(struct configuration *);
 
 int add_configuration_entry(struct configuration *,
-	struct configuration_entry *);
+    struct configuration_entry *);
 struct configuration_entry *create_def_configuration_entry(const char *);
 void destroy_configuration_entry(struct configuration_entry *);
 size_t configuration_get_entries_size(struct configuration *);
 struct configuration_entry *configuration_get_entry(struct configuration *,
-	size_t);
+    size_t);
 struct configuration_entry *configuration_find_entry(struct configuration *,
-	const char *);
+    const char *);
 
 int configuration_entry_add_mp_cache_entry(struct configuration_entry *,
-	cache_entry);
-cache_entry configuration_entry_find_mp_cache_entry(
-	struct configuration_entry *, const char *);
+    cache_entry);
+cache_entry
+configuration_entry_find_mp_cache_entry(struct configuration_entry *,
+    const char *);
 int configuration_entry_find_mp_cache_entries(struct configuration_entry *,
-	const char *, cache_entry **, cache_entry **);
+    const char *, cache_entry **, cache_entry **);
 
 void configuration_lock_rdlock(struct configuration *config);
 void configuration_lock_wrlock(struct configuration *config);
 void configuration_unlock(struct configuration *config);
 
 void configuration_lock_entry(struct configuration_entry *,
-	enum config_entry_lock_type);
+    enum config_entry_lock_type);
 void configuration_unlock_entry(struct configuration_entry *,
-	enum config_entry_lock_type);
+    enum config_entry_lock_type);
 
 #endif

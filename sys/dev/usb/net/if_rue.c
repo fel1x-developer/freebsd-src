@@ -65,44 +65,43 @@
  * ftp://ftp.realtek.com.tw/lancard/data_sheet/8150/.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR rue_debug
+#define USB_DEBUG_VAR rue_debug
+#include <dev/usb/net/if_ruereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_ruereg.h>
 
 #include "miibus_if.h"
 
@@ -111,8 +110,8 @@ static int rue_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, rue, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB rue");
-SYSCTL_INT(_hw_usb_rue, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &rue_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_rue, OID_AUTO, debug, CTLFLAG_RWTUN, &rue_debug, 0,
+    "Debug level");
 #endif
 
 /*
@@ -120,9 +119,9 @@ SYSCTL_INT(_hw_usb_rue, OID_AUTO, debug, CTLFLAG_RWTUN,
  */
 
 static const STRUCT_USB_HOST_ID rue_devs[] = {
-	{USB_VPI(USB_VENDOR_MELCO, USB_PRODUCT_MELCO_LUAKTX, 0)},
-	{USB_VPI(USB_VENDOR_REALTEK, USB_PRODUCT_REALTEK_USBKR100, 0)},
-	{USB_VPI(USB_VENDOR_OQO, USB_PRODUCT_OQO_ETHER01, 0)},
+	{ USB_VPI(USB_VENDOR_MELCO, USB_PRODUCT_MELCO_LUAKTX, 0) },
+	{ USB_VPI(USB_VENDOR_REALTEK, USB_PRODUCT_REALTEK_USBKR100, 0) },
+	{ USB_VPI(USB_VENDOR_OQO, USB_PRODUCT_OQO_ETHER01, 0) },
 };
 
 /* prototypes */
@@ -147,17 +146,17 @@ static uether_fn_t rue_tick;
 static uether_fn_t rue_setmulti;
 static uether_fn_t rue_setpromisc;
 
-static int	rue_read_mem(struct rue_softc *, uint16_t, void *, int);
-static int	rue_write_mem(struct rue_softc *, uint16_t, void *, int);
-static uint8_t	rue_csr_read_1(struct rue_softc *, uint16_t);
-static uint16_t	rue_csr_read_2(struct rue_softc *, uint16_t);
-static int	rue_csr_write_1(struct rue_softc *, uint16_t, uint8_t);
-static int	rue_csr_write_2(struct rue_softc *, uint16_t, uint16_t);
-static int	rue_csr_write_4(struct rue_softc *, int, uint32_t);
+static int rue_read_mem(struct rue_softc *, uint16_t, void *, int);
+static int rue_write_mem(struct rue_softc *, uint16_t, void *, int);
+static uint8_t rue_csr_read_1(struct rue_softc *, uint16_t);
+static uint16_t rue_csr_read_2(struct rue_softc *, uint16_t);
+static int rue_csr_write_1(struct rue_softc *, uint16_t, uint8_t);
+static int rue_csr_write_2(struct rue_softc *, uint16_t, uint16_t);
+static int rue_csr_write_4(struct rue_softc *, int, uint32_t);
 
-static void	rue_reset(struct rue_softc *);
-static int	rue_ifmedia_upd(if_t);
-static void	rue_ifmedia_sts(if_t, struct ifmediareq *);
+static void rue_reset(struct rue_softc *);
+static int rue_ifmedia_upd(if_t);
+static void rue_ifmedia_sts(if_t, struct ifmediareq *);
 
 static const struct usb_config rue_config[RUE_N_TRANSFER] = {
 	[RUE_BULK_DT_WR] = {
@@ -231,10 +230,10 @@ static const struct usb_ether_methods rue_ue_methods = {
 	.ue_mii_sts = rue_ifmedia_sts,
 };
 
-#define	RUE_SETBIT(sc, reg, x) \
+#define RUE_SETBIT(sc, reg, x) \
 	rue_csr_write_1(sc, reg, rue_csr_read_1(sc, reg) | (x))
 
-#define	RUE_CLRBIT(sc, reg, x) \
+#define RUE_CLRBIT(sc, reg, x) \
 	rue_csr_write_1(sc, reg, rue_csr_read_1(sc, reg) & ~(x))
 
 static int
@@ -315,7 +314,7 @@ rue_miibus_readreg(device_t dev, int phy, int reg)
 	uint16_t ruereg;
 	int locked;
 
-	if (phy != 0)		/* RTL8150 supports PHY == 0, only */
+	if (phy != 0) /* RTL8150 supports PHY == 0, only */
 		return (0);
 
 	locked = mtx_owned(&sc->sc_mtx);
@@ -366,7 +365,7 @@ rue_miibus_writereg(device_t dev, int phy, int reg, int data)
 	uint16_t ruereg;
 	int locked;
 
-	if (phy != 0)		/* RTL8150 supports PHY == 0, only */
+	if (phy != 0) /* RTL8150 supports PHY == 0, only */
 		return (0);
 
 	locked = mtx_owned(&sc->sc_mtx);
@@ -593,9 +592,8 @@ rue_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	iface_index = RUE_IFACE_IDX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, rue_config, RUE_N_TRANSFER,
-	    sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    rue_config, RUE_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
 		goto detach;
@@ -612,11 +610,11 @@ rue_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	rue_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -651,18 +649,21 @@ rue_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			pc = usbd_xfer_get_frame(xfer, 0);
 			usbd_copy_out(pc, 0, &pkt, sizeof(pkt));
 
-			if_inc_counter(ifp, IFCOUNTER_IERRORS, pkt.rue_rxlost_cnt);
-			if_inc_counter(ifp, IFCOUNTER_IERRORS, pkt.rue_crcerr_cnt);
-			if_inc_counter(ifp, IFCOUNTER_COLLISIONS, pkt.rue_col_cnt);
+			if_inc_counter(ifp, IFCOUNTER_IERRORS,
+			    pkt.rue_rxlost_cnt);
+			if_inc_counter(ifp, IFCOUNTER_IERRORS,
+			    pkt.rue_crcerr_cnt);
+			if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+			    pkt.rue_col_cnt);
 		}
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -704,15 +705,14 @@ rue_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		uether_rxbuf(ue, pc, 0, actlen);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
 		return;
 
-	default:			/* Error */
-		DPRINTF("bulk read error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("bulk read error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
@@ -739,7 +739,7 @@ rue_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & RUE_FLAG_LINK) == 0) {
 			/*
 			 * don't send anything if there is no link !
@@ -781,9 +781,8 @@ tr_setup:
 
 		return;
 
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 
@@ -805,8 +804,8 @@ rue_tick(struct usb_ether *ue)
 	RUE_LOCK_ASSERT(sc, MA_OWNED);
 
 	mii_tick(mii);
-	if ((sc->sc_flags & RUE_FLAG_LINK) == 0
-	    && mii->mii_media_status & IFM_ACTIVE &&
+	if ((sc->sc_flags & RUE_FLAG_LINK) == 0 &&
+	    mii->mii_media_status & IFM_ACTIVE &&
 	    IFM_SUBTYPE(mii->mii_media_active) != IFM_NONE) {
 		sc->sc_flags |= RUE_FLAG_LINK;
 		rue_start(ue);
@@ -848,7 +847,7 @@ rue_init(struct usb_ether *ue)
 	 * Set the initial TX and RX configuration.
 	 */
 	rue_csr_write_1(sc, RUE_TCR, RUE_TCR_CONFIG);
-	rue_csr_write_2(sc, RUE_RCR, RUE_RCR_CONFIG|RUE_RCR_AB);
+	rue_csr_write_2(sc, RUE_RCR, RUE_RCR_CONFIG | RUE_RCR_AB);
 
 	/* Load the multicast filter */
 	rue_setpromisc(ue);
@@ -877,8 +876,8 @@ rue_ifmedia_upd(if_t ifp)
 
 	RUE_LOCK_ASSERT(sc, MA_OWNED);
 
-        sc->sc_flags &= ~RUE_FLAG_LINK;
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	sc->sc_flags &= ~RUE_FLAG_LINK;
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	return (error);

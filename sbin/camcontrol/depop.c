@@ -52,20 +52,20 @@
 
 #include <sys/types.h>
 
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_message.h>
+#include <camlib.h>
 #include <err.h>
 #include <inttypes.h>
+#include <scsi_wrap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <cam/cam.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_ccb.h>
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_message.h>
-#include <camlib.h>
-#include <scsi_wrap.h>
 #include "camcontrol.h"
 
 enum depop_action {
@@ -84,10 +84,12 @@ depop_list(struct cam_device *device, int task_attr, int retry_count,
 	struct scsi_get_physical_element_hdr *hdr;
 	struct scsi_get_physical_element_descriptor *dtor_ptr;
 
-	hdr = scsi_wrap_get_physical_element_status(device, task_attr, retry_count, timeout,
+	hdr = scsi_wrap_get_physical_element_status(device, task_attr,
+	    retry_count, timeout,
 	    SCSI_GPES_FILTER_ALL | SCSI_GPES_REPORT_TYPE_PHYS, 1);
 	if (hdr == NULL)
-		errx(1, "scsi_wrap_get_physical_element_status returned an error");
+		errx(1,
+		    "scsi_wrap_get_physical_element_status returned an error");
 
 	/*
 	 * OK, we have the data, not report it out.
@@ -104,7 +106,8 @@ depop_list(struct cam_device *device, int task_attr, int retry_count,
 		if (type != GPED_TYPE_STORAGE)
 			printf("0x%08x -- type unknown %d\n", id, type);
 		else
-			printf("0x%08x %c 0x%02x   %jd\n", id, ralwd ? '*' : ' ', health, cap);
+			printf("0x%08x %c 0x%02x   %jd\n", id,
+			    ralwd ? '*' : ' ', health, cap);
 	}
 	printf("* -- Element can be restored\n");
 
@@ -124,14 +127,8 @@ depop_remove(struct cam_device *device, int task_attr, int retry_count,
 		warnx("Can't allocate ccb");
 		return (1);
 	}
-	scsi_remove_element_and_truncate(&ccb->csio,
-	    retry_count,
-	    NULL,
-	    task_attr,
-	    capacity,
-	    elem,
-	    SSD_FULL_SIZE,
-	    timeout);
+	scsi_remove_element_and_truncate(&ccb->csio, retry_count, NULL,
+	    task_attr, capacity, elem, SSD_FULL_SIZE, timeout);
 	/* Disable freezing the device queue */
 	ccb->ccb_h.flags |= CAM_DEV_QFRZDIS;
 	if (cam_send_ccb(device, ccb) < 0) {
@@ -141,8 +138,7 @@ depop_remove(struct cam_device *device, int task_attr, int retry_count,
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL,
-				CAM_EPF_ALL, stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		error = 1;
 	}
 
@@ -163,12 +159,8 @@ depop_restore(struct cam_device *device, int task_attr, int retry_count,
 		warnx("Can't allocate ccb");
 		return (1);
 	}
-	scsi_restore_elements_and_rebuild(&ccb->csio,
-	    retry_count,
-	    NULL,
-	    task_attr,
-	    SSD_FULL_SIZE,
-	    timeout);
+	scsi_restore_elements_and_rebuild(&ccb->csio, retry_count, NULL,
+	    task_attr, SSD_FULL_SIZE, timeout);
 
 	/* Disable freezing the device queue */
 	ccb->ccb_h.flags |= CAM_DEV_QFRZDIS;
@@ -179,8 +171,7 @@ depop_restore(struct cam_device *device, int task_attr, int retry_count,
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL,
-				CAM_EPF_ALL, stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		error = 1;
 	}
 
@@ -189,11 +180,11 @@ out:
 	return (error);
 }
 
-#define MUST_BE_NONE() \
-	if (action != DEPOP_NONE) { \
+#define MUST_BE_NONE()                                  \
+	if (action != DEPOP_NONE) {                     \
 		warnx("Use only one of -d, -l, or -r"); \
-		error = 1; \
-		goto bailout; \
+		error = 1;                              \
+		goto bailout;                           \
 	}
 
 int
@@ -231,11 +222,11 @@ depop(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			break;
 		case 'l':
 			MUST_BE_NONE();
-			action  = DEPOP_LIST;
+			action = DEPOP_LIST;
 			break;
 		case 'r':
 			MUST_BE_NONE();
-			action  = DEPOP_RESTORE;
+			action = DEPOP_RESTORE;
 			break;
 		default:
 			break;
@@ -255,8 +246,9 @@ depop(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		} else {
 			struct scsi_vpd_block_device_characteristics *bdc;
 
-			timeout = 24 * 60 * 60 * 1000;	/* 1 day */
-			bdc = scsi_wrap_vpd_block_device_characteristics(device);
+			timeout = 24 * 60 * 60 * 1000; /* 1 day */
+			bdc = scsi_wrap_vpd_block_device_characteristics(
+			    device);
 			if (bdc != NULL) {
 				timeout = scsi_4btoul(bdc->depopulation_time);
 			}

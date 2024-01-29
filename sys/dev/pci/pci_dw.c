@@ -32,12 +32,12 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/devmap.h>
-#include <sys/proc.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 
 #include <machine/bus.h>
@@ -48,43 +48,46 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
 #include <dev/ofw/ofwpci.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
 #include <dev/pci/pci_dw.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "pcib_if.h"
 #include "pci_dw_if.h"
+#include "pcib_if.h"
 
 #ifdef DEBUG
-#define	debugf(fmt, args...) do { printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)         \
+	do {                         \
+		printf(fmt, ##args); \
+	} while (0)
 #else
-#define	debugf(fmt, args...)
+#define debugf(fmt, args...)
 #endif
 
-#define	DBI_WR1(sc, reg, val)	pci_dw_dbi_wr1((sc)->dev, reg, val)
-#define	DBI_WR2(sc, reg, val)	pci_dw_dbi_wr2((sc)->dev, reg, val)
-#define	DBI_WR4(sc, reg, val)	pci_dw_dbi_wr4((sc)->dev, reg, val)
-#define	DBI_RD1(sc, reg)	pci_dw_dbi_rd1((sc)->dev, reg)
-#define	DBI_RD2(sc, reg)	pci_dw_dbi_rd2((sc)->dev, reg)
-#define	DBI_RD4(sc, reg)	pci_dw_dbi_rd4((sc)->dev, reg)
+#define DBI_WR1(sc, reg, val) pci_dw_dbi_wr1((sc)->dev, reg, val)
+#define DBI_WR2(sc, reg, val) pci_dw_dbi_wr2((sc)->dev, reg, val)
+#define DBI_WR4(sc, reg, val) pci_dw_dbi_wr4((sc)->dev, reg, val)
+#define DBI_RD1(sc, reg) pci_dw_dbi_rd1((sc)->dev, reg)
+#define DBI_RD2(sc, reg) pci_dw_dbi_rd2((sc)->dev, reg)
+#define DBI_RD4(sc, reg) pci_dw_dbi_rd4((sc)->dev, reg)
 
-#define	IATU_UR_WR4(sc, reg, val)	\
-    bus_write_4((sc)->iatu_ur_res, (sc)->iatu_ur_offset + (reg), (val))
-#define	IATU_UR_RD4(sc, reg)		\
-    bus_read_4((sc)->iatu_ur_res, (sc)->iatu_ur_offset + (reg))
+#define IATU_UR_WR4(sc, reg, val) \
+	bus_write_4((sc)->iatu_ur_res, (sc)->iatu_ur_offset + (reg), (val))
+#define IATU_UR_RD4(sc, reg) \
+	bus_read_4((sc)->iatu_ur_res, (sc)->iatu_ur_offset + (reg))
 
-#define	PCI_BUS_SHIFT		20
-#define	PCI_SLOT_SHIFT		15
-#define	PCI_FUNC_SHIFT		12
-#define	PCI_BUS_MASK		0xFF
-#define	PCI_SLOT_MASK		0x1F
-#define	PCI_FUNC_MASK		0x07
-#define	PCI_REG_MASK		0xFFF
+#define PCI_BUS_SHIFT 20
+#define PCI_SLOT_SHIFT 15
+#define PCI_FUNC_SHIFT 12
+#define PCI_BUS_MASK 0xFF
+#define PCI_SLOT_MASK 0x1F
+#define PCI_FUNC_MASK 0x07
+#define PCI_REG_MASK 0xFFF
 
-#define	IATU_CFG_BUS(bus)	((uint64_t)((bus)  & 0xff) << 24)
-#define	IATU_CFG_SLOT(slot)	((uint64_t)((slot) & 0x1f) << 19)
-#define	IATU_CFG_FUNC(func)	((uint64_t)((func) & 0x07) << 16)
+#define IATU_CFG_BUS(bus) ((uint64_t)((bus) & 0xff) << 24)
+#define IATU_CFG_SLOT(slot) ((uint64_t)((slot) & 0x1f) << 19)
+#define IATU_CFG_FUNC(func) ((uint64_t)((func) & 0x07) << 16)
 
 static uint32_t
 pci_dw_dbi_read(device_t dev, u_int reg, int width)
@@ -184,8 +187,7 @@ pci_dw_detect_out_atu_regions_unroll(struct pci_dw_softc *sc)
 	num_regions = sc->iatu_ur_size / DW_IATU_UR_STEP;
 
 	for (i = 0; i < num_regions; ++i) {
-		IATU_UR_WR4(sc, DW_IATU_UR_REG(i, LWR_TARGET_ADDR),
-		    0x12340000);
+		IATU_UR_WR4(sc, DW_IATU_UR_REG(i, LWR_TARGET_ADDR), 0x12340000);
 		reg = IATU_UR_RD4(sc, DW_IATU_UR_REG(i, LWR_TARGET_ADDR));
 		if (reg != 0x12340000)
 			break;
@@ -250,8 +252,7 @@ pci_dw_map_out_atu_unroll(struct pci_dw_softc *sc, int idx, int type,
 	if (size == 0)
 		return (0);
 
-	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, LWR_BASE_ADDR),
-	    pa & 0xFFFFFFFF);
+	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, LWR_BASE_ADDR), pa & 0xFFFFFFFF);
 	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, UPPER_BASE_ADDR),
 	    (pa >> 32) & 0xFFFFFFFF);
 	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, LIMIT_ADDR),
@@ -259,11 +260,9 @@ pci_dw_map_out_atu_unroll(struct pci_dw_softc *sc, int idx, int type,
 	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, LWR_TARGET_ADDR),
 	    pci_addr & 0xFFFFFFFF);
 	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, UPPER_TARGET_ADDR),
-	    (pci_addr  >> 32) & 0xFFFFFFFF);
-	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, CTRL1),
-	    IATU_CTRL1_TYPE(type));
-	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, CTRL2),
-	    IATU_CTRL2_REGION_EN);
+	    (pci_addr >> 32) & 0xFFFFFFFF);
+	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, CTRL1), IATU_CTRL1_TYPE(type));
+	IATU_UR_WR4(sc, DW_IATU_UR_REG(idx, CTRL2), IATU_CTRL2_REGION_EN);
 
 	/* Wait until setup becomes valid */
 	for (i = 10; i > 0; i--) {
@@ -293,7 +292,7 @@ pci_dw_map_out_atu_legacy(struct pci_dw_softc *sc, int idx, int type,
 	DBI_WR4(sc, DW_IATU_UPPER_BASE_ADDR, (pa >> 32) & 0xFFFFFFFF);
 	DBI_WR4(sc, DW_IATU_LIMIT_ADDR, (pa + size - 1) & 0xFFFFFFFF);
 	DBI_WR4(sc, DW_IATU_LWR_TARGET_ADDR, pci_addr & 0xFFFFFFFF);
-	DBI_WR4(sc, DW_IATU_UPPER_TARGET_ADDR, (pci_addr  >> 32) & 0xFFFFFFFF);
+	DBI_WR4(sc, DW_IATU_UPPER_TARGET_ADDR, (pci_addr >> 32) & 0xFFFFFFFF);
 	DBI_WR4(sc, DW_IATU_CTRL1, IATU_CTRL1_TYPE(type));
 	DBI_WR4(sc, DW_IATU_CTRL2, IATU_CTRL2_REGION_EN);
 
@@ -312,15 +311,15 @@ pci_dw_map_out_atu_legacy(struct pci_dw_softc *sc, int idx, int type,
 
 /* Map one outbound ATU region */
 static int
-pci_dw_map_out_atu(struct pci_dw_softc *sc, int idx, int type,
-    uint64_t pa, uint64_t pci_addr, uint32_t size)
+pci_dw_map_out_atu(struct pci_dw_softc *sc, int idx, int type, uint64_t pa,
+    uint64_t pci_addr, uint32_t size)
 {
 	if (sc->iatu_ur_res)
-		return (pci_dw_map_out_atu_unroll(sc, idx, type, pa,
-		    pci_addr, size));
+		return (pci_dw_map_out_atu_unroll(sc, idx, type, pa, pci_addr,
+		    size));
 	else
-		return (pci_dw_map_out_atu_legacy(sc, idx, type, pa,
-		    pci_addr, size));
+		return (pci_dw_map_out_atu_legacy(sc, idx, type, pa, pci_addr,
+		    size));
 }
 
 static int
@@ -341,8 +340,8 @@ pci_dw_setup_hw(struct pci_dw_softc *sc)
 	DBI_WR1(sc, PCIR_SECBUS_1, sc->sub_bus);
 	DBI_WR1(sc, PCIR_SUBBUS_1, sc->bus_end);
 	DBI_WR2(sc, PCIR_COMMAND,
-	   PCIM_CMD_PORTEN | PCIM_CMD_MEMEN |
-	   PCIM_CMD_BUSMASTEREN | PCIM_CMD_SERRESPEN);
+	    PCIM_CMD_PORTEN | PCIM_CMD_MEMEN | PCIM_CMD_BUSMASTEREN |
+		PCIM_CMD_SERRESPEN);
 	pci_dw_dbi_protect(sc, true);
 
 	/* Setup outbound memory windows */
@@ -429,7 +428,7 @@ pci_dw_setup_hw(struct pci_dw_softc *sc)
 
 static int
 pci_dw_decode_ranges(struct pci_dw_softc *sc, struct ofw_pci_range *ranges,
-     int nranges)
+    int nranges)
 {
 	int i, nmem, rv;
 
@@ -446,7 +445,7 @@ pci_dw_decode_ranges(struct pci_dw_softc *sc, struct ofw_pci_range *ranges,
 
 	nmem = 0;
 	for (i = 0; i < nranges; i++) {
-		if ((ranges[i].pci_hi & OFW_PCI_PHYS_HI_SPACEMASK)  ==
+		if ((ranges[i].pci_hi & OFW_PCI_PHYS_HI_SPACEMASK) ==
 		    OFW_PCI_PHYS_HI_SPACE_IO) {
 			if (sc->io_range.size != 0) {
 				device_printf(sc->dev,
@@ -482,8 +481,7 @@ pci_dw_decode_ranges(struct pci_dw_softc *sc, struct ofw_pci_range *ranges,
 	MPASS(nmem == sc->num_mem_ranges);
 
 	if (nmem == 0) {
-		device_printf(sc->dev,
-		    "Missing required memory range in DT\n");
+		device_printf(sc->dev, "Missing required memory range in DT\n");
 		return (ENXIO);
 	}
 
@@ -500,11 +498,11 @@ out:
  */
 
 static uint32_t
-pci_dw_read_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, int bytes)
+pci_dw_read_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
+    int bytes)
 {
 	struct pci_dw_softc *sc;
-	struct resource	*res;
+	struct resource *res;
 	uint32_t data;
 	uint64_t addr;
 	int type, rv;
@@ -523,8 +521,8 @@ pci_dw_read_config(device_t dev, u_int bus, u_int slot,
 			type = IATU_CTRL1_TYPE_CFG0;
 		else
 			type = IATU_CTRL1_TYPE_CFG1;
-		rv = pci_dw_map_out_atu(sc, 0, type,
-		    sc->cfg_pa, addr, sc->cfg_size);
+		rv = pci_dw_map_out_atu(sc, 0, type, sc->cfg_pa, addr,
+		    sc->cfg_size);
 		if (rv != 0)
 			return (0xFFFFFFFFU);
 		res = sc->cfg_res;
@@ -541,19 +539,18 @@ pci_dw_read_config(device_t dev, u_int bus, u_int slot,
 		data = bus_read_4(res, reg);
 		break;
 	default:
-		data =  0xFFFFFFFFU;
+		data = 0xFFFFFFFFU;
 	}
 
 	return (data);
-
 }
 
 static void
-pci_dw_write_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, uint32_t val, int bytes)
+pci_dw_write_config(device_t dev, u_int bus, u_int slot, u_int func, u_int reg,
+    uint32_t val, int bytes)
 {
 	struct pci_dw_softc *sc;
-	struct resource	*res;
+	struct resource *res;
 	uint64_t addr;
 	int type, rv;
 
@@ -570,10 +567,10 @@ pci_dw_write_config(device_t dev, u_int bus, u_int slot,
 			type = IATU_CTRL1_TYPE_CFG0;
 		else
 			type = IATU_CTRL1_TYPE_CFG1;
-		rv = pci_dw_map_out_atu(sc, 0, type,
-		    sc->cfg_pa, addr, sc->cfg_size);
+		rv = pci_dw_map_out_atu(sc, 0, type, sc->cfg_pa, addr,
+		    sc->cfg_size);
 		if (rv != 0)
-			return ;
+			return;
 		res = sc->cfg_res;
 	}
 
@@ -593,8 +590,8 @@ pci_dw_write_config(device_t dev, u_int bus, u_int slot,
 }
 
 static int
-pci_dw_alloc_msi(device_t pci, device_t child, int count,
-    int maxcount, int *irqs)
+pci_dw_alloc_msi(device_t pci, device_t child, int count, int maxcount,
+    int *irqs)
 {
 	phandle_t msi_parent;
 	int rv;
@@ -604,8 +601,7 @@ pci_dw_alloc_msi(device_t pci, device_t child, int count,
 	if (rv != 0)
 		return (rv);
 
-	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount,
-	    irqs));
+	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount, irqs));
 }
 
 static int
@@ -725,10 +721,10 @@ pci_dw_init(device_t dev)
 	    sizeof(sc->num_lanes));
 	if (rv != sizeof(sc->num_lanes))
 		sc->num_lanes = 1;
-	if (sc->num_lanes != 1 && sc->num_lanes != 2 &&
-	    sc->num_lanes != 4 && sc->num_lanes != 8) {
-		device_printf(dev,
-		    "invalid number of lanes: %d\n",sc->num_lanes);
+	if (sc->num_lanes != 1 && sc->num_lanes != 2 && sc->num_lanes != 4 &&
+	    sc->num_lanes != 8) {
+		device_printf(dev, "invalid number of lanes: %d\n",
+		    sc->num_lanes);
 		sc->num_lanes = 0;
 		rv = ENXIO;
 		goto out;
@@ -752,21 +748,21 @@ pci_dw_init(device_t dev)
 
 	/* Fill up config region related variables */
 	sc->cfg_size = rman_get_size(sc->cfg_res);
-	sc->cfg_pa = rman_get_start(sc->cfg_res) ;
+	sc->cfg_pa = rman_get_start(sc->cfg_res);
 
 	if (bootverbose)
 		device_printf(dev, "Bus is%s cache-coherent\n",
 		    sc->coherent ? "" : " not");
 	rv = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
-	    1, 0,				/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE,			/* maxsize */
-	    BUS_SPACE_UNRESTRICTED,		/* nsegments */
-	    BUS_SPACE_MAXSIZE,			/* maxsegsize */
-	    sc->coherent ? BUS_DMA_COHERENT : 0, /* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	    1, 0,				      /* alignment, bounds */
+	    BUS_SPACE_MAXADDR,			      /* lowaddr */
+	    BUS_SPACE_MAXADDR,			      /* highaddr */
+	    NULL, NULL,				      /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE,			      /* maxsize */
+	    BUS_SPACE_UNRESTRICTED,		      /* nsegments */
+	    BUS_SPACE_MAXSIZE,			      /* maxsegsize */
+	    sc->coherent ? BUS_DMA_COHERENT : 0,      /* flags */
+	    NULL, NULL,				      /* lockfunc, lockarg */
 	    &sc->dmat);
 	if (rv != 0)
 		goto out;
@@ -785,7 +781,8 @@ pci_dw_init(device_t dev)
 		    unroll_mode ? "unroll" : "legacy");
 	if (unroll_mode) {
 		rid = 0;
-		rv = ofw_bus_find_string_index(sc->node, "reg-names", "atu", &rid);
+		rv = ofw_bus_find_string_index(sc->node, "reg-names", "atu",
+		    &rid);
 		if (rv == 0) {
 			sc->iatu_ur_res = bus_alloc_resource_any(dev,
 			    SYS_RES_MEMORY, &rid, RF_ACTIVE);
@@ -831,30 +828,29 @@ out:
 
 static device_method_t pci_dw_methods[] = {
 	/* Bus interface */
-	DEVMETHOD(bus_get_dma_tag,	pci_dw_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, pci_dw_get_dma_tag),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_read_config,	pci_dw_read_config),
-	DEVMETHOD(pcib_write_config,	pci_dw_write_config),
-	DEVMETHOD(pcib_alloc_msi,	pci_dw_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	pci_dw_release_msi),
-	DEVMETHOD(pcib_alloc_msix,	pci_dw_alloc_msix),
-	DEVMETHOD(pcib_release_msix,	pci_dw_release_msix),
-	DEVMETHOD(pcib_map_msi,		pci_dw_map_msi),
-	DEVMETHOD(pcib_get_id,		pci_dw_get_id),
+	DEVMETHOD(pcib_read_config, pci_dw_read_config),
+	DEVMETHOD(pcib_write_config, pci_dw_write_config),
+	DEVMETHOD(pcib_alloc_msi, pci_dw_alloc_msi),
+	DEVMETHOD(pcib_release_msi, pci_dw_release_msi),
+	DEVMETHOD(pcib_alloc_msix, pci_dw_alloc_msix),
+	DEVMETHOD(pcib_release_msix, pci_dw_release_msix),
+	DEVMETHOD(pcib_map_msi, pci_dw_map_msi),
+	DEVMETHOD(pcib_get_id, pci_dw_get_id),
 
 	/* OFW bus interface */
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	/* PCI DW interface  */
-	DEVMETHOD(pci_dw_dbi_read,	pci_dw_dbi_read),
-	DEVMETHOD(pci_dw_dbi_write,	pci_dw_dbi_write),
-	DEVMETHOD_END
+	DEVMETHOD(pci_dw_dbi_read, pci_dw_dbi_read),
+	DEVMETHOD(pci_dw_dbi_write, pci_dw_dbi_write), DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(pcib, pci_dw_driver, pci_dw_methods,
-    sizeof(struct pci_dw_softc), ofw_pcib_driver);
+DEFINE_CLASS_1(pcib, pci_dw_driver, pci_dw_methods, sizeof(struct pci_dw_softc),
+    ofw_pcib_driver);

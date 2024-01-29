@@ -29,12 +29,12 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/cons.h>
-#include <sys/kbio.h>
 #include <sys/consio.h>
+#include <sys/kbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
 
 #include <dev/syscons/syscons.h>

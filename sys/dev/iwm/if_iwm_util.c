@@ -102,60 +102,56 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_binding.h>
+#include <dev/iwm/if_iwm_config.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_pcie_trans.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_config.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_binding.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_pcie_trans.h>
 
 /*
  * Send a command to the firmware.  We try to implement the Linux
@@ -198,8 +194,8 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 		while (sc->sc_wantresp != -1)
 			msleep(&sc->sc_wantresp, &sc->sc_mtx, 0, "iwmcmdsl", 0);
 		sc->sc_wantresp = ring->qid << 16 | ring->cur;
-		IWM_DPRINTF(sc, IWM_DEBUG_CMD,
-		    "wantresp is %x\n", sc->sc_wantresp);
+		IWM_DPRINTF(sc, IWM_DEBUG_CMD, "wantresp is %x\n",
+		    sc->sc_wantresp);
 	}
 
 	/*
@@ -224,14 +220,12 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 
 	if (paylen > datasz) {
 		IWM_DPRINTF(sc, IWM_DEBUG_CMD,
-		    "large command paylen=%u len0=%u\n",
-			paylen, hcmd->len[0]);
+		    "large command paylen=%u len0=%u\n", paylen, hcmd->len[0]);
 		/* Command is too large */
 		size_t totlen = hdrlen + paylen;
 		if (paylen > IWM_MAX_CMD_PAYLOAD_SIZE) {
 			device_printf(sc->sc_dev,
-			    "firmware command too long (%zd bytes)\n",
-			    totlen);
+			    "firmware command too long (%zd bytes)\n", totlen);
 			error = EINVAL;
 			goto out;
 		}
@@ -242,8 +236,8 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 		}
 
 		m->m_len = m->m_pkthdr.len = m->m_ext.ext_size;
-		error = bus_dmamap_load_mbuf_sg(ring->data_dmat,
-		    txdata->map, m, &seg, &nsegs, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_mbuf_sg(ring->data_dmat, txdata->map, m,
+		    &seg, &nsegs, BUS_DMA_NOWAIT);
 		if (error != 0) {
 			device_printf(sc->sc_dev,
 			    "%s: can't map mbuf, error %d\n", __func__, error);
@@ -285,14 +279,12 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 	/* lo field is not aligned */
 	addr_lo = htole32((uint32_t)paddr);
 	memcpy(&desc->tbs[0].lo, &addr_lo, sizeof(uint32_t));
-	desc->tbs[0].hi_n_len  = htole16(iwm_get_dma_hi_addr(paddr)
-	    | ((hdrlen + paylen) << 4));
+	desc->tbs[0].hi_n_len = htole16(
+	    iwm_get_dma_hi_addr(paddr) | ((hdrlen + paylen) << 4));
 	desc->num_tbs = 1;
 
-	IWM_DPRINTF(sc, IWM_DEBUG_CMD,
-	    "iwm_send_cmd 0x%x size=%lu %s\n",
-	    code,
-	    (unsigned long) (hcmd->len[0] + hcmd->len[1] + hdrlen),
+	IWM_DPRINTF(sc, IWM_DEBUG_CMD, "iwm_send_cmd 0x%x size=%lu %s\n", code,
+	    (unsigned long)(hcmd->len[0] + hcmd->len[1] + hdrlen),
 	    async ? " (async)" : "");
 
 	if (paylen > datasz) {
@@ -313,8 +305,7 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 #if 0
 	iwm_update_sched(sc, ring->qid, ring->cur, 0, 0);
 #endif
-	IWM_DPRINTF(sc, IWM_DEBUG_CMD,
-	    "sending command 0x%x qid %d, idx %d\n",
+	IWM_DPRINTF(sc, IWM_DEBUG_CMD, "sending command 0x%x qid %d, idx %d\n",
 	    code, ring->qid, ring->cur);
 
 	/* Kick command ring. */
@@ -334,7 +325,7 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 			}
 		}
 	}
- out:
+out:
 	if (wantresp && error != 0) {
 		iwm_free_resp(sc, hcmd);
 	}
@@ -344,8 +335,8 @@ iwm_send_cmd(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 
 /* iwlwifi: mvm/utils.c */
 int
-iwm_send_cmd_pdu(struct iwm_softc *sc, uint32_t id,
-	uint32_t flags, uint16_t len, const void *data)
+iwm_send_cmd_pdu(struct iwm_softc *sc, uint32_t id, uint32_t flags,
+    uint16_t len, const void *data)
 {
 	struct iwm_host_cmd cmd = {
 		.id = id,
@@ -359,15 +350,14 @@ iwm_send_cmd_pdu(struct iwm_softc *sc, uint32_t id,
 
 /* iwlwifi: mvm/utils.c */
 int
-iwm_send_cmd_status(struct iwm_softc *sc,
-	struct iwm_host_cmd *cmd, uint32_t *status)
+iwm_send_cmd_status(struct iwm_softc *sc, struct iwm_host_cmd *cmd,
+    uint32_t *status)
 {
 	struct iwm_rx_packet *pkt;
 	struct iwm_cmd_response *resp;
 	int error, resp_len;
 
-	KASSERT((cmd->flags & IWM_CMD_WANT_SKB) == 0,
-	    ("invalid command"));
+	KASSERT((cmd->flags & IWM_CMD_WANT_SKB) == 0, ("invalid command"));
 	cmd->flags |= IWM_CMD_SYNC | IWM_CMD_WANT_SKB;
 
 	if ((error = iwm_send_cmd(sc, cmd)) != 0)
@@ -393,15 +383,15 @@ iwm_send_cmd_status(struct iwm_softc *sc,
 
 	resp = (void *)pkt->data;
 	*status = le32toh(resp->status);
- out_free_resp:
+out_free_resp:
 	iwm_free_resp(sc, cmd);
 	return error;
 }
 
 /* iwlwifi/mvm/utils.c */
 int
-iwm_send_cmd_pdu_status(struct iwm_softc *sc, uint32_t id,
-	uint16_t len, const void *data, uint32_t *status)
+iwm_send_cmd_pdu_status(struct iwm_softc *sc, uint32_t id, uint16_t len,
+    const void *data, uint32_t *status)
 {
 	struct iwm_host_cmd cmd = {
 		.id = id,
@@ -416,8 +406,9 @@ void
 iwm_free_resp(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 {
 	KASSERT(sc->sc_wantresp != -1, ("already freed"));
-	KASSERT((hcmd->flags & (IWM_CMD_WANT_SKB|IWM_CMD_SYNC))
-	    == (IWM_CMD_WANT_SKB|IWM_CMD_SYNC), ("invalid flags"));
+	KASSERT((hcmd->flags & (IWM_CMD_WANT_SKB | IWM_CMD_SYNC)) ==
+		(IWM_CMD_WANT_SKB | IWM_CMD_SYNC),
+	    ("invalid flags"));
 	sc->sc_wantresp = -1;
 	wakeup(&sc->sc_wantresp);
 }
@@ -425,8 +416,8 @@ iwm_free_resp(struct iwm_softc *sc, struct iwm_host_cmd *hcmd)
 static void
 iwm_dma_map_addr(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
-        if (error != 0)
-                return;
+	if (error != 0)
+		return;
 	KASSERT(nsegs == 1, ("too many DMA segments, %d should be 1", nsegs));
 	*(bus_addr_t *)arg = segs[0].ds_addr;
 }
@@ -442,20 +433,20 @@ iwm_dma_contig_alloc(bus_dma_tag_t tag, struct iwm_dma_info *dma,
 	dma->size = size;
 	dma->vaddr = NULL;
 
-	error = bus_dma_tag_create(tag, alignment,
-            0, BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL, size,
-            1, size, 0, NULL, NULL, &dma->tag);
-        if (error != 0)
-                goto fail;
+	error = bus_dma_tag_create(tag, alignment, 0, BUS_SPACE_MAXADDR_32BIT,
+	    BUS_SPACE_MAXADDR, NULL, NULL, size, 1, size, 0, NULL, NULL,
+	    &dma->tag);
+	if (error != 0)
+		goto fail;
 
-        error = bus_dmamem_alloc(dma->tag, (void **)&dma->vaddr,
-            BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT, &dma->map);
-        if (error != 0)
-                goto fail;
+	error = bus_dmamem_alloc(dma->tag, (void **)&dma->vaddr,
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT, &dma->map);
+	if (error != 0)
+		goto fail;
 
-        error = bus_dmamap_load(dma->tag, dma->map, dma->vaddr, size,
-            iwm_dma_map_addr, &dma->paddr, BUS_DMA_NOWAIT);
-        if (error != 0) {
+	error = bus_dmamap_load(dma->tag, dma->map, dma->vaddr, size,
+	    iwm_dma_map_addr, &dma->paddr, BUS_DMA_NOWAIT);
+	if (error != 0) {
 		bus_dmamem_free(dma->tag, dma->vaddr, dma->map);
 		dma->vaddr = NULL;
 		goto fail;

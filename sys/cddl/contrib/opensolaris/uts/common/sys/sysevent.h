@@ -23,79 +23,79 @@
  * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
  */
 
-#ifndef	_SYS_SYSEVENT_H
-#define	_SYS_SYSEVENT_H
+#ifndef _SYS_SYSEVENT_H
+#define _SYS_SYSEVENT_H
 
 #include <sys/nvpair.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef	NULL
+#ifndef NULL
 #if defined(_LP64) && !defined(__cplusplus)
-#define	NULL    0L
+#define NULL 0L
 #else
-#define	NULL	0
+#define NULL 0
 #endif
 #endif
 
 /* Internal registration class and subclass */
-#define	EC_ALL		"register_all_classes"
-#define	EC_SUB_ALL	"register_all_subclasses"
+#define EC_ALL "register_all_classes"
+#define EC_SUB_ALL "register_all_subclasses"
 
 /*
  * Event allocation/enqueuing sleep/nosleep flags
  */
-#define	SE_SLEEP		0
-#define	SE_NOSLEEP		1
+#define SE_SLEEP 0
+#define SE_NOSLEEP 1
 
 /* Framework error codes */
-#define	SE_EINVAL		1	/* Invalid argument */
-#define	SE_ENOMEM		2	/* Unable to allocate memory */
-#define	SE_EQSIZE		3	/* Maximum event q size exceeded */
-#define	SE_EFAULT		4	/* Copy fault */
-#define	SE_NOTFOUND		5	/* Attribute not found */
-#define	SE_NO_TRANSPORT		6	/* sysevent transport down */
+#define SE_EINVAL 1	  /* Invalid argument */
+#define SE_ENOMEM 2	  /* Unable to allocate memory */
+#define SE_EQSIZE 3	  /* Maximum event q size exceeded */
+#define SE_EFAULT 4	  /* Copy fault */
+#define SE_NOTFOUND 5	  /* Attribute not found */
+#define SE_NO_TRANSPORT 6 /* sysevent transport down */
 
 /* Internal data types */
 
-#define	SE_DATA_TYPE_BYTE	DATA_TYPE_BYTE
-#define	SE_DATA_TYPE_INT16	DATA_TYPE_INT16
-#define	SE_DATA_TYPE_UINT16	DATA_TYPE_UINT16
-#define	SE_DATA_TYPE_INT32	DATA_TYPE_INT32
-#define	SE_DATA_TYPE_UINT32	DATA_TYPE_UINT32
-#define	SE_DATA_TYPE_INT64	DATA_TYPE_INT64
-#define	SE_DATA_TYPE_UINT64	DATA_TYPE_UINT64
-#define	SE_DATA_TYPE_STRING	DATA_TYPE_STRING
-#define	SE_DATA_TYPE_BYTES	DATA_TYPE_BYTE_ARRAY
-#define	SE_DATA_TYPE_TIME	DATA_TYPE_HRTIME
+#define SE_DATA_TYPE_BYTE DATA_TYPE_BYTE
+#define SE_DATA_TYPE_INT16 DATA_TYPE_INT16
+#define SE_DATA_TYPE_UINT16 DATA_TYPE_UINT16
+#define SE_DATA_TYPE_INT32 DATA_TYPE_INT32
+#define SE_DATA_TYPE_UINT32 DATA_TYPE_UINT32
+#define SE_DATA_TYPE_INT64 DATA_TYPE_INT64
+#define SE_DATA_TYPE_UINT64 DATA_TYPE_UINT64
+#define SE_DATA_TYPE_STRING DATA_TYPE_STRING
+#define SE_DATA_TYPE_BYTES DATA_TYPE_BYTE_ARRAY
+#define SE_DATA_TYPE_TIME DATA_TYPE_HRTIME
 
-#define	SE_KERN_PID	0
+#define SE_KERN_PID 0
 
-#define	SUNW_VENDOR	"SUNW"
-#define	SE_USR_PUB	"usr:"
-#define	SE_KERN_PUB	"kern:"
-#define	SUNW_KERN_PUB	SUNW_VENDOR ":" SE_KERN_PUB
-#define	SUNW_USR_PUB	SUNW_VENDOR ":" SE_USR_PUB
+#define SUNW_VENDOR "SUNW"
+#define SE_USR_PUB "usr:"
+#define SE_KERN_PUB "kern:"
+#define SUNW_KERN_PUB SUNW_VENDOR ":" SE_KERN_PUB
+#define SUNW_USR_PUB SUNW_VENDOR ":" SE_USR_PUB
 
 /*
  * Event header and attribute value limits
  */
-#define	MAX_ATTR_NAME	1024
-#define	MAX_STRING_SZ	1024
-#define	MAX_BYTE_ARRAY	1024
+#define MAX_ATTR_NAME 1024
+#define MAX_STRING_SZ 1024
+#define MAX_BYTE_ARRAY 1024
 
-#define	MAX_CLASS_LEN		64
-#define	MAX_SUBCLASS_LEN	64
-#define	MAX_PUB_LEN		128
-#define	MAX_CHNAME_LEN		128
-#define	MAX_SUBID_LEN		16
+#define MAX_CLASS_LEN 64
+#define MAX_SUBCLASS_LEN 64
+#define MAX_PUB_LEN 128
+#define MAX_CHNAME_LEN 128
+#define MAX_SUBID_LEN 16
 
 /*
  * Limit for the event payload size
  */
-#define	MAX_EV_SIZE_LEN		(SHRT_MAX/4)
+#define MAX_EV_SIZE_LEN (SHRT_MAX / 4)
 
 /* Opaque sysevent_t data type */
 typedef void *sysevent_t;
@@ -117,23 +117,23 @@ typedef struct sysevent_id {
 
 /* Event attribute value structures */
 typedef struct sysevent_bytes {
-	int32_t	size;
-	uchar_t	*data;
+	int32_t size;
+	uchar_t *data;
 } sysevent_bytes_t;
 
 typedef struct sysevent_value {
-	int32_t		value_type;		/* data type */
+	int32_t value_type; /* data type */
 	union {
-		uchar_t		sv_byte;
-		int16_t		sv_int16;
-		uint16_t	sv_uint16;
-		int32_t		sv_int32;
-		uint32_t	sv_uint32;
-		int64_t		sv_int64;
-		uint64_t	sv_uint64;
-		hrtime_t	sv_time;
-		char		*sv_string;
-		sysevent_bytes_t	sv_bytes;
+		uchar_t sv_byte;
+		int16_t sv_int16;
+		uint16_t sv_uint16;
+		int32_t sv_int32;
+		uint32_t sv_uint32;
+		int64_t sv_int64;
+		uint64_t sv_uint64;
+		hrtime_t sv_time;
+		char *sv_string;
+		sysevent_bytes_t sv_bytes;
 	} value;
 } sysevent_value_t;
 
@@ -155,10 +155,10 @@ typedef struct sysevent_value {
  * EVCH_NOSLEEP or EVCH_TRYHARD (kernel-only).
  */
 
-#define	EVCH_NOSLEEP	0x0001	/* No sleep on kmem_alloc() */
-#define	EVCH_SLEEP	0x0002	/* Sleep on kmem_alloc() */
-#define	EVCH_TRYHARD	0x0004	/* May use alternate kmem cache for alloc */
-#define	EVCH_QWAIT	0x0008	/* Wait for slot in event queue */
+#define EVCH_NOSLEEP 0x0001 /* No sleep on kmem_alloc() */
+#define EVCH_SLEEP 0x0002   /* Sleep on kmem_alloc() */
+#define EVCH_TRYHARD 0x0004 /* May use alternate kmem cache for alloc */
+#define EVCH_QWAIT 0x0008   /* Wait for slot in event queue */
 
 /*
  * Meaning of flags for subscribe. Bits 8 to 15 are dedicated to
@@ -170,18 +170,18 @@ typedef struct sysevent_value {
  * queued (up to a limit) and will be delivered if/when we restart again
  * with the same subscriber id.
  */
-#define	EVCH_SUB_KEEP		0x01
+#define EVCH_SUB_KEEP 0x01
 
 /*
  * Subscriptions may be wildcarded, but we limit the number of
  * wildcards permitted.
  */
-#define	EVCH_WILDCARD_MAX	10
+#define EVCH_WILDCARD_MAX 10
 
 /*
  * Used in unsubscribe to indicate all subscriber ids for a channel.
  */
-#define	EVCH_ALLSUB		"all_subs"
+#define EVCH_ALLSUB "all_subs"
 
 /*
  * Meaning of flags parameter of channel bind function
@@ -201,18 +201,18 @@ typedef struct sysevent_value {
  * use with short-lived event producers that may bind to (create) the
  * channel and exit before the intended consumer has started.
  */
-#define	EVCH_CREAT		0x0001
-#define	EVCH_HOLD_PEND		0x0002
-#define	EVCH_HOLD_PEND_INDEF	0x0004
-#define	EVCH_B_FLAGS		0x0007	/* All valid bits */
+#define EVCH_CREAT 0x0001
+#define EVCH_HOLD_PEND 0x0002
+#define EVCH_HOLD_PEND_INDEF 0x0004
+#define EVCH_B_FLAGS 0x0007 /* All valid bits */
 
 /*
  * Meaning of commands of evc_control function
  */
-#define	EVCH_GET_CHAN_LEN_MAX	 1	/* Get event queue length limit */
-#define	EVCH_GET_CHAN_LEN	 2	/* Get event queue length */
-#define	EVCH_SET_CHAN_LEN	 3	/* Set event queue length */
-#define	EVCH_CMD_LAST		 EVCH_SET_CHAN_LEN	/* Last command */
+#define EVCH_GET_CHAN_LEN_MAX 1		/* Get event queue length limit */
+#define EVCH_GET_CHAN_LEN 2		/* Get event queue length */
+#define EVCH_SET_CHAN_LEN 3		/* Set event queue length */
+#define EVCH_CMD_LAST EVCH_SET_CHAN_LEN /* Last command */
 
 #ifdef illumos
 /*
@@ -228,9 +228,9 @@ extern int sysevent_evc_publish(evchan_t *, const char *, const char *,
 extern int sysevent_evc_control(evchan_t *, int, ...);
 extern int sysevent_evc_setpropnvl(evchan_t *, nvlist_t *);
 extern int sysevent_evc_getpropnvl(evchan_t *, nvlist_t **);
-#endif	/* illumos */
+#endif /* illumos */
 
-#ifndef	_KERNEL
+#ifndef _KERNEL
 
 #ifdef illumos
 /*
@@ -254,7 +254,7 @@ extern void sysevent_subattr_thrsetup(sysevent_subattr_t *,
 
 extern int sysevent_evc_xsubscribe(evchan_t *, const char *, const char *,
     int (*)(sysevent_t *, void *), void *, uint32_t, sysevent_subattr_t *);
-#endif	/* illumos */
+#endif /* illumos */
 
 #else
 
@@ -278,12 +278,12 @@ extern void sysevent_get_time(sysevent_t *, hrtime_t *);
 extern size_t sysevent_get_size(sysevent_t *);
 extern char *sysevent_get_pub(sysevent_t *);
 extern int sysevent_get_attr_list(sysevent_t *, nvlist_t **);
-#endif	/* illumos */
+#endif /* illumos */
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_SYSEVENT_H */
+#endif /* _SYS_SYSEVENT_H */

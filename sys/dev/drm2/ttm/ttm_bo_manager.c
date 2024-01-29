@@ -29,11 +29,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
-#include <dev/drm2/ttm/ttm_module.h>
-#include <dev/drm2/ttm/ttm_bo_driver.h>
-#include <dev/drm2/ttm/ttm_placement.h>
 #include <dev/drm2/drm_mm.h>
+#include <dev/drm2/ttm/ttm_bo_driver.h>
+#include <dev/drm2/ttm/ttm_module.h>
+#include <dev/drm2/ttm/ttm_placement.h>
 
 /**
  * Currently we use a spinlock for the lock, but a mutex *may* be
@@ -48,12 +49,12 @@ struct ttm_range_manager {
 
 MALLOC_DEFINE(M_TTM_RMAN, "ttm_rman", "TTM Range Manager");
 
-static int ttm_bo_man_get_node(struct ttm_mem_type_manager *man,
-			       struct ttm_buffer_object *bo,
-			       struct ttm_placement *placement,
-			       struct ttm_mem_reg *mem)
+static int
+ttm_bo_man_get_node(struct ttm_mem_type_manager *man,
+    struct ttm_buffer_object *bo, struct ttm_placement *placement,
+    struct ttm_mem_reg *mem)
 {
-	struct ttm_range_manager *rman = (struct ttm_range_manager *) man->priv;
+	struct ttm_range_manager *rman = (struct ttm_range_manager *)man->priv;
 	struct drm_mm *mm = &rman->mm;
 	struct drm_mm_node *node = NULL;
 	unsigned long lpfn;
@@ -68,17 +69,14 @@ static int ttm_bo_man_get_node(struct ttm_mem_type_manager *man,
 			return ret;
 
 		mtx_lock(&rman->lock);
-		node = drm_mm_search_free_in_range(mm,
-					mem->num_pages, mem->page_alignment,
-					placement->fpfn, lpfn, 1);
+		node = drm_mm_search_free_in_range(mm, mem->num_pages,
+		    mem->page_alignment, placement->fpfn, lpfn, 1);
 		if (unlikely(node == NULL)) {
 			mtx_unlock(&rman->lock);
 			return 0;
 		}
 		node = drm_mm_get_block_atomic_range(node, mem->num_pages,
-						     mem->page_alignment,
-						     placement->fpfn,
-						     lpfn);
+		    mem->page_alignment, placement->fpfn, lpfn);
 		mtx_unlock(&rman->lock);
 	} while (node == NULL);
 
@@ -87,10 +85,10 @@ static int ttm_bo_man_get_node(struct ttm_mem_type_manager *man,
 	return 0;
 }
 
-static void ttm_bo_man_put_node(struct ttm_mem_type_manager *man,
-				struct ttm_mem_reg *mem)
+static void
+ttm_bo_man_put_node(struct ttm_mem_type_manager *man, struct ttm_mem_reg *mem)
 {
-	struct ttm_range_manager *rman = (struct ttm_range_manager *) man->priv;
+	struct ttm_range_manager *rman = (struct ttm_range_manager *)man->priv;
 
 	if (mem->mm_node) {
 		mtx_lock(&rman->lock);
@@ -100,8 +98,8 @@ static void ttm_bo_man_put_node(struct ttm_mem_type_manager *man,
 	}
 }
 
-static int ttm_bo_man_init(struct ttm_mem_type_manager *man,
-			   unsigned long p_size)
+static int
+ttm_bo_man_init(struct ttm_mem_type_manager *man, unsigned long p_size)
 {
 	struct ttm_range_manager *rman;
 	int ret;
@@ -118,9 +116,10 @@ static int ttm_bo_man_init(struct ttm_mem_type_manager *man,
 	return 0;
 }
 
-static int ttm_bo_man_takedown(struct ttm_mem_type_manager *man)
+static int
+ttm_bo_man_takedown(struct ttm_mem_type_manager *man)
 {
-	struct ttm_range_manager *rman = (struct ttm_range_manager *) man->priv;
+	struct ttm_range_manager *rman = (struct ttm_range_manager *)man->priv;
 	struct drm_mm *mm = &rman->mm;
 
 	mtx_lock(&rman->lock);
@@ -136,20 +135,16 @@ static int ttm_bo_man_takedown(struct ttm_mem_type_manager *man)
 	return -EBUSY;
 }
 
-static void ttm_bo_man_debug(struct ttm_mem_type_manager *man,
-			     const char *prefix)
+static void
+ttm_bo_man_debug(struct ttm_mem_type_manager *man, const char *prefix)
 {
-	struct ttm_range_manager *rman = (struct ttm_range_manager *) man->priv;
+	struct ttm_range_manager *rman = (struct ttm_range_manager *)man->priv;
 
 	mtx_lock(&rman->lock);
 	drm_mm_debug_table(&rman->mm, prefix);
 	mtx_unlock(&rman->lock);
 }
 
-const struct ttm_mem_type_manager_func ttm_bo_manager_func = {
-	ttm_bo_man_init,
-	ttm_bo_man_takedown,
-	ttm_bo_man_get_node,
-	ttm_bo_man_put_node,
-	ttm_bo_man_debug
-};
+const struct ttm_mem_type_manager_func ttm_bo_manager_func = { ttm_bo_man_init,
+	ttm_bo_man_takedown, ttm_bo_man_get_node, ttm_bo_man_put_node,
+	ttm_bo_man_debug };

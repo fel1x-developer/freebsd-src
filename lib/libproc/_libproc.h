@@ -27,7 +27,7 @@
  */
 
 #ifndef __LIBPROC_H_
-#define	__LIBPROC_H_
+#define __LIBPROC_H_
 
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -41,15 +41,15 @@ struct procstat;
 
 struct symtab {
 	Elf_Data *data;
-	u_int	nsyms;
-	u_int	*index;
-	u_long	stridx;
+	u_int nsyms;
+	u_int *index;
+	u_long stridx;
 };
 
 struct file_info {
-	Elf	*elf;
-	int	fd;
-	u_int	refs;
+	Elf *elf;
+	int fd;
+	u_int refs;
 	GElf_Ehdr ehdr;
 
 	/* Symbol tables, sorted by value. */
@@ -58,32 +58,36 @@ struct file_info {
 };
 
 struct map_info {
-	prmap_t	map;
+	prmap_t map;
 	struct file_info *file;
 };
 
 struct proc_handle {
 	struct proc_handle_public public; /* Public fields. */
-	int	flags;			/* Process flags. */
-	int	status;			/* Process status (PS_*). */
-	int	wstat;			/* Process wait status. */
-	int	model;			/* Process data model. */
-	rd_agent_t *rdap;		/* librtld_db agent */
-	struct map_info *mappings;	/* File mappings for proc. */
-	size_t	maparrsz;		/* Map array size. */
-	size_t	nmappings;		/* Number of mappings. */
-	size_t	exec_map;		/* Executable text mapping index. */
-	lwpstatus_t lwps;		/* Process status. */
-	struct procstat *procstat;	/* libprocstat handle. */
-	char	execpath[PATH_MAX];	/* Path to program executable. */
+	int flags;			  /* Process flags. */
+	int status;			  /* Process status (PS_*). */
+	int wstat;			  /* Process wait status. */
+	int model;			  /* Process data model. */
+	rd_agent_t *rdap;		  /* librtld_db agent */
+	struct map_info *mappings;	  /* File mappings for proc. */
+	size_t maparrsz;		  /* Map array size. */
+	size_t nmappings;		  /* Number of mappings. */
+	size_t exec_map;		  /* Executable text mapping index. */
+	lwpstatus_t lwps;		  /* Process status. */
+	struct procstat *procstat;	  /* libprocstat handle. */
+	char execpath[PATH_MAX];	  /* Path to program executable. */
 };
 
 #ifdef DEBUG
-#define	DPRINTF(...) 	warn(__VA_ARGS__)
-#define	DPRINTFX(...)	warnx(__VA_ARGS__)
+#define DPRINTF(...) warn(__VA_ARGS__)
+#define DPRINTFX(...) warnx(__VA_ARGS__)
 #else
-#define	DPRINTF(...)    do { } while (0)
-#define	DPRINTFX(...)   do { } while (0)
+#define DPRINTF(...) \
+	do {         \
+	} while (0)
+#define DPRINTFX(...) \
+	do {          \
+	} while (0)
 #endif
 
 #endif /* __LIBPROC_H_ */

@@ -33,6 +33,7 @@
 #include <sys/event.h>
 #include <sys/mount.h>
 #include <sys/time.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <libutil.h>
@@ -45,24 +46,24 @@
 
 #include "common.h"
 
-#define AUTOUNMOUNTD_PIDFILE	"/var/run/autounmountd.pid"
+#define AUTOUNMOUNTD_PIDFILE "/var/run/autounmountd.pid"
 
 struct automounted_fs {
-	TAILQ_ENTRY(automounted_fs)	af_next;
-	time_t				af_mount_time;
-	bool				af_mark;
-	fsid_t				af_fsid;
-	char				af_mountpoint[MNAMELEN];
+	TAILQ_ENTRY(automounted_fs) af_next;
+	time_t af_mount_time;
+	bool af_mark;
+	fsid_t af_fsid;
+	char af_mountpoint[MNAMELEN];
 };
 
-static TAILQ_HEAD(, automounted_fs)	automounted;
+static TAILQ_HEAD(, automounted_fs) automounted;
 
 static struct automounted_fs *
 automounted_find(fsid_t fsid)
 {
 	struct automounted_fs *af;
 
-	TAILQ_FOREACH(af, &automounted, af_next) {
+	TAILQ_FOREACH (af, &automounted, af_next) {
 		if (fsidcmp(&af->af_fsid, &fsid) == 0)
 			return (af);
 	}
@@ -108,7 +109,7 @@ refresh_automounted(void)
 
 	log_debugx("refreshing list of automounted filesystems");
 
-	TAILQ_FOREACH(af, &automounted, af_next)
+	TAILQ_FOREACH (af, &automounted, af_next)
 		af->af_mark = false;
 
 	for (i = 0; i < nitems; i++) {
@@ -127,19 +128,21 @@ refresh_automounted(void)
 		af = automounted_find(mntbuf[i].f_fsid);
 		if (af == NULL) {
 			log_debugx("new automounted filesystem found on %s "
-			    "(FSID:%d:%d)", mntbuf[i].f_mntonname,
-			    mntbuf[i].f_fsid.val[0], mntbuf[i].f_fsid.val[1]);
+				   "(FSID:%d:%d)",
+			    mntbuf[i].f_mntonname, mntbuf[i].f_fsid.val[0],
+			    mntbuf[i].f_fsid.val[1]);
 			af = automounted_add(mntbuf[i].f_fsid,
 			    mntbuf[i].f_mntonname);
 		} else {
 			log_debugx("already known automounted filesystem "
-			    "found on %s (FSID:%d:%d)", mntbuf[i].f_mntonname,
-			    mntbuf[i].f_fsid.val[0], mntbuf[i].f_fsid.val[1]);
+				   "found on %s (FSID:%d:%d)",
+			    mntbuf[i].f_mntonname, mntbuf[i].f_fsid.val[0],
+			    mntbuf[i].f_fsid.val[1]);
 		}
 		af->af_mark = true;
 	}
 
-	TAILQ_FOREACH_SAFE(af, &automounted, af_next, tmpaf) {
+	TAILQ_FOREACH_SAFE (af, &automounted, af_next, tmpaf) {
 		if (af->af_mark)
 			continue;
 		log_debugx("lost filesystem mounted on %s (FSID:%d:%d)",
@@ -161,11 +164,11 @@ unmount_by_fsid(const fsid_t fsid, const char *mountpoint)
 	error = unmount(fsid_str, MNT_NONBUSY | MNT_BYFSID);
 	if (error != 0) {
 		if (errno == EBUSY) {
-			log_debugx("cannot unmount %s (%s): %s",
-			    mountpoint, fsid_str, strerror(errno));
+			log_debugx("cannot unmount %s (%s): %s", mountpoint,
+			    fsid_str, strerror(errno));
 		} else {
-			log_warn("cannot unmount %s (%s)",
-			    mountpoint, fsid_str);
+			log_warn("cannot unmount %s (%s)", mountpoint,
+			    fsid_str);
 		}
 	} else
 		rpc_umntall();
@@ -187,14 +190,14 @@ expire_automounted(time_t expiration_time)
 
 	log_debugx("expiring automounted filesystems");
 
-	TAILQ_FOREACH_SAFE(af, &automounted, af_next, tmpaf) {
+	TAILQ_FOREACH_SAFE (af, &automounted, af_next, tmpaf) {
 		mounted_for = difftime(now, af->af_mount_time);
 
 		if (mounted_for < expiration_time) {
 			log_debugx("skipping %s (FSID:%d:%d), mounted "
-			    "for %jd  seconds", af->af_mountpoint,
-			    af->af_fsid.val[0], af->af_fsid.val[1],
-			    (intmax_t)mounted_for);
+				   "for %jd  seconds",
+			    af->af_mountpoint, af->af_fsid.val[0],
+			    af->af_fsid.val[1], (intmax_t)mounted_for);
 
 			if (mounted_for > mounted_max)
 				mounted_max = mounted_for;
@@ -203,7 +206,7 @@ expire_automounted(time_t expiration_time)
 		}
 
 		log_debugx("filesystem mounted on %s (FSID:%d:%d), "
-		    "was mounted for %ld seconds; unmounting",
+			   "was mounted for %ld seconds; unmounting",
 		    af->af_mountpoint, af->af_fsid.val[0], af->af_fsid.val[1],
 		    (long)mounted_for);
 		error = unmount_by_fsid(af->af_fsid, af->af_mountpoint);
@@ -325,7 +328,8 @@ main_autounmountd(int argc, char **argv)
 	if (kq < 0)
 		log_err(1, "kqueue");
 
-	EV_SET(&event, 0, EVFILT_FS, EV_ADD | EV_CLEAR, VQ_MOUNT | VQ_UNMOUNT, 0, NULL);
+	EV_SET(&event, 0, EVFILT_FS, EV_ADD | EV_CLEAR, VQ_MOUNT | VQ_UNMOUNT,
+	    0, NULL);
 	error = kevent(kq, &event, 1, NULL, 0, NULL);
 	if (error < 0)
 		log_err(1, "kevent");
@@ -343,7 +347,8 @@ main_autounmountd(int argc, char **argv)
 		} else {
 			sleep_time = retry_time;
 			log_debugx("some expired filesystems remain mounted, "
-			    "will retry in %ld  seconds", (long)sleep_time);
+				   "will retry in %ld  seconds",
+			    (long)sleep_time);
 		}
 
 		do_wait(kq, sleep_time);

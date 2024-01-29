@@ -29,21 +29,22 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 
-#ifdef  __i386__
+#ifdef __i386__
 #include <ieeefp.h>
 #endif
 
-#define	ALL_STD_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | \
-			 FE_OVERFLOW | FE_UNDERFLOW)
+#define ALL_STD_EXCEPT \
+	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
 
-#define	TWICE(x)		((x) + (x))
-#define	test(desc, pass)	test1((desc), (pass), 0)
-#define	skiptest(desc, pass)	test1((desc), (pass), 1)
+#define TWICE(x) ((x) + (x))
+#define test(desc, pass) test1((desc), (pass), 0)
+#define skiptest(desc, pass) test1((desc), (pass), 1)
 
 #pragma STDC FENV_ACCESS ON
 
@@ -58,7 +59,7 @@ test1(const char *testdesc, int pass, int skip)
 {
 
 	testnum++;
-	printf("%sok %d - %s%s\n", pass || skip ? "" : "not ", testnum, 
+	printf("%sok %d - %s%s\n", pass || skip ? "" : "not ", testnum,
 	    skip ? "(SKIPPED) " : "", testdesc);
 	if (!pass && !skip)
 		failures++;
@@ -81,11 +82,9 @@ run_zero_opt_test(double d1, double d2)
 {
 
 	test("optimizations don't break the sign of 0",
-	     fpequal(d1 - d2, 0.0)
-	     && fpequal(-d1 + 0.0, 0.0)
-	     && fpequal(-d1 - d2, -0.0)
-	     && fpequal(-(d1 - d2), -0.0)
-	     && fpequal(-d1 - (-d2), 0.0));
+	    fpequal(d1 - d2, 0.0) && fpequal(-d1 + 0.0, 0.0) &&
+		fpequal(-d1 - d2, -0.0) && fpequal(-(d1 - d2), -0.0) &&
+		fpequal(-d1 - (-d2), 0.0));
 }
 
 void
@@ -93,7 +92,7 @@ run_inf_opt_test(double d)
 {
 
 	test("optimizations don't break infinities",
-	     fpequal(d / d, NAN) && fpequal(0.0 * d, NAN));
+	    fpequal(d / d, NAN) && fpequal(0.0 * d, NAN));
 }
 
 static inline double
@@ -153,13 +152,13 @@ run_tests(void)
 	vd = 0.75;
 	x = (int)vd;
 	test("0.75->int conversion rounds toward 0, raises inexact exception",
-	     x == 0 && fetestexcept(ALL_STD_EXCEPT) == FE_INEXACT);
+	    x == 0 && fetestexcept(ALL_STD_EXCEPT) == FE_INEXACT);
 
 	feclearexcept(ALL_STD_EXCEPT);
 	vd = -42.0;
 	x = (int)vd;
 	test("-42.0->int conversion is exact, raises no exception",
-	     x == -42 && fetestexcept(ALL_STD_EXCEPT) == 0);
+	    x == -42 && fetestexcept(ALL_STD_EXCEPT) == 0);
 
 	feclearexcept(ALL_STD_EXCEPT);
 	x = (int)INFINITY;
@@ -171,39 +170,38 @@ run_tests(void)
 	x = (int)0.5;
 	/* XXX disabled; gcc doesn't support FENV_ACCESS */
 	skiptest("FENV_ACCESS: const double->int conversion raises inexact",
-	     x == 0 && fetestexcept(ALL_STD_EXCEPT) == FE_INEXACT);
+	    x == 0 && fetestexcept(ALL_STD_EXCEPT) == FE_INEXACT);
 
 	test("compile-time constants don't have too much precision",
-	     one_f == 1.0L && one_d == 1.0L && one_ld == 1.0L);
+	    one_f == 1.0L && one_d == 1.0L && one_ld == 1.0L);
 
 	test("const minimum rounding precision",
-	     1.0F + FLT_EPSILON != 1.0F &&
-	     1.0 + DBL_EPSILON != 1.0 &&
-	     1.0L + LDBL_EPSILON != 1.0L);
+	    1.0F + FLT_EPSILON != 1.0F && 1.0 + DBL_EPSILON != 1.0 &&
+		1.0L + LDBL_EPSILON != 1.0L);
 
 	/* It isn't the compiler's fault if this fails on FreeBSD/i386. */
 	vf = FLT_EPSILON;
 	vd = DBL_EPSILON;
 	vld = LDBL_EPSILON;
 	test("runtime minimum rounding precision",
-	     1.0F + vf != 1.0F && 1.0 + vd != 1.0 && 1.0L + vld != 1.0L);
+	    1.0F + vf != 1.0F && 1.0 + vd != 1.0 && 1.0L + vld != 1.0L);
 
 	test("explicit float to float conversion discards extra precision",
-	     (float)(1.0F + FLT_EPSILON * 0.5F) == 1.0F &&
-	     (float)(1.0F + vf * 0.5F) == 1.0F);
+	    (float)(1.0F + FLT_EPSILON * 0.5F) == 1.0F &&
+		(float)(1.0F + vf * 0.5F) == 1.0F);
 	test("explicit double to float conversion discards extra precision",
-	     (float)(1.0 + FLT_EPSILON * 0.5) == 1.0F &&
-	     (float)(1.0 + vf * 0.5) == 1.0F);
+	    (float)(1.0 + FLT_EPSILON * 0.5) == 1.0F &&
+		(float)(1.0 + vf * 0.5) == 1.0F);
 	test("explicit ldouble to float conversion discards extra precision",
-	     (float)(1.0L + FLT_EPSILON * 0.5L) == 1.0F &&
-	     (float)(1.0L + vf * 0.5L) == 1.0F);
+	    (float)(1.0L + FLT_EPSILON * 0.5L) == 1.0F &&
+		(float)(1.0L + vf * 0.5L) == 1.0F);
 
 	test("explicit double to double conversion discards extra precision",
-	     (double)(1.0 + DBL_EPSILON * 0.5) == 1.0 &&
-	     (double)(1.0 + vd * 0.5) == 1.0);
+	    (double)(1.0 + DBL_EPSILON * 0.5) == 1.0 &&
+		(double)(1.0 + vd * 0.5) == 1.0);
 	test("explicit ldouble to double conversion discards extra precision",
-	     (double)(1.0L + DBL_EPSILON * 0.5L) == 1.0 &&
-	     (double)(1.0L + vd * 0.5L) == 1.0);
+	    (double)(1.0L + DBL_EPSILON * 0.5L) == 1.0 &&
+		(double)(1.0L + vd * 0.5L) == 1.0);
 
 	/*
 	 * FLT_EVAL_METHOD > 1 implies that float expressions are always
@@ -213,45 +211,46 @@ run_tests(void)
 	 */
 	test("implicit promption to double or higher precision is consistent",
 #if FLT_EVAL_METHOD == 1 || FLT_EVAL_METHOD == 2 || defined(__i386__)
-	       TWICE(TWICE(TWICE(TWICE(TWICE(
-	           TWICE(TWICE(TWICE(TWICE(1.0F + vf * 0.5F)))))))))
-	     == (1.0 + FLT_EPSILON * 0.5) * 512.0
+	    TWICE(TWICE(TWICE(
+		TWICE(TWICE(TWICE(TWICE(TWICE(TWICE(1.0F + vf * 0.5F))))))))) ==
+		(1.0 + FLT_EPSILON * 0.5) * 512.0
 #else
-	     1
+	    1
 #endif
-	    );
+	);
 
 	f = 1.0 + FLT_EPSILON * 0.5;
 	d = 1.0L + DBL_EPSILON * 0.5L;
-	test("const assignment discards extra precision", f == 1.0F && d == 1.0);
+	test("const assignment discards extra precision",
+	    f == 1.0F && d == 1.0);
 
 	f = 1.0 + vf * 0.5;
 	d = 1.0L + vd * 0.5L;
 	test("variable assignment discards explicit extra precision",
-	     f == 1.0F && d == 1.0);
+	    f == 1.0F && d == 1.0);
 	f = 1.0F + vf * 0.5F;
 	d = 1.0 + vd * 0.5;
 	test("variable assignment discards implicit extra precision",
-	     f == 1.0F && d == 1.0);
+	    f == 1.0F && d == 1.0);
 
 	test("return discards extra precision",
-	     tofloat(1.0 + vf * 0.5) == 1.0F &&
-	     todouble(1.0L + vd * 0.5L) == 1.0);
+	    tofloat(1.0 + vf * 0.5) == 1.0F &&
+		todouble(1.0L + vd * 0.5L) == 1.0);
 
 	fesetround(FE_UPWARD);
 	/* XXX disabled (works with -frounding-math) */
 	skiptest("FENV_ACCESS: constant arithmetic respects rounding mode",
 	    1.0F + FLT_MIN == 1.0F + FLT_EPSILON &&
-	    1.0 + DBL_MIN == 1.0 + DBL_EPSILON &&
-	    1.0L + LDBL_MIN == 1.0L + LDBL_EPSILON);
+		1.0 + DBL_MIN == 1.0 + DBL_EPSILON &&
+		1.0L + LDBL_MIN == 1.0L + LDBL_EPSILON);
 	fesetround(FE_TONEAREST);
 
 	ld = vld * 0.5;
 	test("associativity is respected",
-	     1.0L + ld + (LDBL_EPSILON * 0.5) == 1.0L &&
-	     1.0L + (LDBL_EPSILON * 0.5) + ld == 1.0L &&
-	     ld + 1.0 + (LDBL_EPSILON * 0.5) == 1.0L &&
-	     ld + (LDBL_EPSILON * 0.5) + 1.0 == 1.0L + LDBL_EPSILON);
+	    1.0L + ld + (LDBL_EPSILON * 0.5) == 1.0L &&
+		1.0L + (LDBL_EPSILON * 0.5) + ld == 1.0L &&
+		ld + 1.0 + (LDBL_EPSILON * 0.5) == 1.0L &&
+		ld + (LDBL_EPSILON * 0.5) + 1.0 == 1.0L + LDBL_EPSILON);
 }
 
 int
@@ -260,7 +259,7 @@ main(int argc, char *argv[])
 
 	printf("1..26\n");
 
-#ifdef  __i386__
+#ifdef __i386__
 	fpsetprec(FP_PE);
 #endif
 	run_tests();

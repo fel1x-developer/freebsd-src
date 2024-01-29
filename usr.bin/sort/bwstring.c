@@ -28,9 +28,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <langinfo.h>
 #include <math.h>
 #include <stdlib.h>
@@ -92,7 +93,7 @@ populate_wmonth(wchar_t **field, const nl_item item, int idx)
 		return (0);
 	len = strlen(tmp);
 	m = sort_malloc(SIZEOF_WCHAR_STRING(len + 1));
-	if (mbstowcs(m, tmp, len) == ((size_t) - 1)) {
+	if (mbstowcs(m, tmp, len) == ((size_t)-1)) {
 		sort_free(m);
 		return (0);
 	}
@@ -107,16 +108,15 @@ populate_wmonth(wchar_t **field, const nl_item item, int idx)
 void
 initialise_months(void)
 {
-	const nl_item mon_item[12] = { MON_1, MON_2, MON_3, MON_4,
-	    MON_5, MON_6, MON_7, MON_8, MON_9, MON_10,
-	    MON_11, MON_12 };
+	const nl_item mon_item[12] = { MON_1, MON_2, MON_3, MON_4, MON_5, MON_6,
+		MON_7, MON_8, MON_9, MON_10, MON_11, MON_12 };
 	const nl_item ab_item[12] = { ABMON_1, ABMON_2, ABMON_3, ABMON_4,
-	    ABMON_5, ABMON_6, ABMON_7, ABMON_8, ABMON_9, ABMON_10,
-	    ABMON_11, ABMON_12 };
+		ABMON_5, ABMON_6, ABMON_7, ABMON_8, ABMON_9, ABMON_10, ABMON_11,
+		ABMON_12 };
 #ifdef ALTMON_1
 	const nl_item alt_item[12] = { ALTMON_1, ALTMON_2, ALTMON_3, ALTMON_4,
-	    ALTMON_5, ALTMON_6, ALTMON_7, ALTMON_8, ALTMON_9, ALTMON_10,
-	    ALTMON_11, ALTMON_12 };
+		ALTMON_5, ALTMON_6, ALTMON_7, ALTMON_8, ALTMON_9, ALTMON_10,
+		ALTMON_11, ALTMON_12 };
 #endif
 	int i;
 
@@ -129,14 +129,14 @@ initialise_months(void)
 			cmonths = sort_malloc(sizeof(struct cmonth) * 12);
 			for (i = 0; i < 12; i++) {
 				if (!populate_cmonth(&cmonths[i].mon,
-				    mon_item[i], i))
+					mon_item[i], i))
 					continue;
-				if (!populate_cmonth(&cmonths[i].ab,
-				    ab_item[i], i))
+				if (!populate_cmonth(&cmonths[i].ab, ab_item[i],
+					i))
 					continue;
 #ifdef ALTMON_1
 				if (!populate_cmonth(&cmonths[i].alt,
-				    alt_item[i], i))
+					alt_item[i], i))
 					continue;
 #else
 				cmonths[i].alt = NULL;
@@ -149,14 +149,14 @@ initialise_months(void)
 			wmonths = sort_malloc(sizeof(struct wmonth) * 12);
 			for (i = 0; i < 12; i++) {
 				if (!populate_wmonth(&wmonths[i].mon,
-				    mon_item[i], i))
+					mon_item[i], i))
 					continue;
-				if (!populate_wmonth(&wmonths[i].ab,
-				    ab_item[i], i))
+				if (!populate_wmonth(&wmonths[i].ab, ab_item[i],
+					i))
 					continue;
 #ifdef ALTMON_1
 				if (!populate_wmonth(&wmonths[i].alt,
-				    alt_item[i], i))
+					alt_item[i], i))
 					continue;
 #else
 				wmonths[i].alt = NULL;
@@ -180,7 +180,7 @@ wide_str_coll(const wchar_t *s1, const wchar_t *s2)
 		errno = 0;
 		ret = wcscmp(s1, s2);
 		if (errno != 0) {
-			for (size_t i = 0; ; ++i) {
+			for (size_t i = 0;; ++i) {
 				wchar_t c1 = s1[i];
 				wchar_t c2 = s2[i];
 				if (c1 == L'\0')
@@ -208,17 +208,19 @@ bwsprintf(FILE *f, struct bwstring *bws, const char *prefix, const char *suffix)
 		fprintf(f, "%s%S%s", prefix, bws->wdata.str, suffix);
 }
 
-const void* bwsrawdata(const struct bwstring *bws)
+const void *
+bwsrawdata(const struct bwstring *bws)
 {
 
 	return (bws->wdata.str);
 }
 
-size_t bwsrawlen(const struct bwstring *bws)
+size_t
+bwsrawlen(const struct bwstring *bws)
 {
 
 	return ((mb_cur_max == 1) ? bws->cdata.len :
-	    SIZEOF_WCHAR_STRING(bws->wdata.len));
+				    SIZEOF_WCHAR_STRING(bws->wdata.len));
 }
 
 size_t
@@ -226,8 +228,9 @@ bws_memsize(const struct bwstring *bws)
 {
 
 	return ((mb_cur_max == 1) ?
-	    (bws->cdata.len + 2 + sizeof(struct bwstring)) :
-	    (SIZEOF_WCHAR_STRING(bws->wdata.len + 1) + sizeof(struct bwstring)));
+		(bws->cdata.len + 2 + sizeof(struct bwstring)) :
+		(SIZEOF_WCHAR_STRING(bws->wdata.len + 1) +
+		    sizeof(struct bwstring)));
 }
 
 void
@@ -238,7 +241,8 @@ bws_setlen(struct bwstring *bws, size_t newlen)
 	    newlen <= bws->cdata.len) {
 		bws->cdata.len = newlen;
 		bws->cdata.str[newlen] = '\0';
-	} else if (bws && newlen != bws->wdata.len && newlen <= bws->wdata.len) {
+	} else if (bws && newlen != bws->wdata.len &&
+	    newlen <= bws->wdata.len) {
 		bws->wdata.len = newlen;
 		bws->wdata.str[newlen] = L'\0';
 	}
@@ -333,7 +337,7 @@ bwscsbdup(const unsigned char *str, size_t len)
 
 			chars = 0;
 			cptr = 0;
-			s = (const char *) str;
+			s = (const char *)str;
 
 			memset(&mbs, 0, sizeof(mbs));
 
@@ -346,17 +350,18 @@ bwscsbdup(const unsigned char *str, size_t len)
 				switch (charlen) {
 				case 0:
 					/* FALLTHROUGH */
-				case (size_t) -1:
+				case (size_t)-1:
 					/* FALLTHROUGH */
-				case (size_t) -2:
+				case (size_t)-2:
 					ret->wdata.str[chars++] =
-					    (unsigned char) s[cptr];
+					    (unsigned char)s[cptr];
 					++cptr;
 					break;
 				default:
 					n = mbrtowc(ret->wdata.str + (chars++),
 					    s + cptr, charlen, &mbs);
-					if ((n == (size_t)-1) || (n == (size_t)-2))
+					if ((n == (size_t)-1) ||
+					    (n == (size_t)-2))
 						/* NOTREACHED */
 						err(2, "mbrtowc error");
 					cptr += charlen;
@@ -473,8 +478,8 @@ bwsfwrite(struct bwstring *bws, FILE *f, bool zero_ended)
 }
 
 int
-bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2,
-    size_t offset, size_t len)
+bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset,
+    size_t len)
 {
 	size_t cmp_len, len1, len2;
 	int res;
@@ -513,7 +518,8 @@ bwsncmp(const struct bwstring *bws1, const struct bwstring *bws2,
 				s1 = bws1->wdata.str + offset;
 				s2 = bws2->wdata.str + offset;
 
-				res = memcmp(s1, s2, SIZEOF_WCHAR_STRING(cmp_len));
+				res = memcmp(s1, s2,
+				    SIZEOF_WCHAR_STRING(cmp_len));
 			}
 		}
 	}
@@ -548,7 +554,7 @@ bwscmp(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 	res = bwsncmp(bws1, bws2, offset, cmp_len);
 
 	if (res == 0) {
-		if( len1 < len2)
+		if (len1 < len2)
 			res = -1;
 		else if (len2 < len1)
 			res = +1;
@@ -626,8 +632,8 @@ bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 
 					while (i < maxlen) {
 						/* goto next non-zero part: */
-						while ((i < maxlen) &&
-						    !s1[i] && !s2[i])
+						while ((i < maxlen) && !s1[i] &&
+						    !s2[i])
 							++i;
 
 						if (i >= maxlen)
@@ -636,18 +642,21 @@ bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 						if (s1[i] == 0) {
 							if (s2[i] == 0)
 								/* NOTREACHED */
-								err(2, "bwscoll error 01");
+								err(2,
+								    "bwscoll error 01");
 							else
 								return (-1);
 						} else if (s2[i] == 0)
 							return (+1);
 
-						res = strcoll((const char*)(s1 + i), (const char*)(s2 + i));
+						res = strcoll(
+						    (const char *)(s1 + i),
+						    (const char *)(s2 + i));
 						if (res)
 							return (res);
 
-						while ((i < maxlen) &&
-						    s1[i] && s2[i])
+						while ((i < maxlen) && s1[i] &&
+						    s2[i])
 							++i;
 
 						if (i >= maxlen)
@@ -663,7 +672,8 @@ bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 							return (+1);
 						else
 							/* NOTREACHED */
-							err(2, "bwscoll error 02");
+							err(2,
+							    "bwscoll error 02");
 					}
 
 					if (len1 < len2)
@@ -690,8 +700,7 @@ bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 				while (i < maxlen) {
 
 					/* goto next non-zero part: */
-					while ((i < maxlen) &&
-					    !s1[i] && !s2[i])
+					while ((i < maxlen) && !s1[i] && !s2[i])
 						++i;
 
 					if (i >= maxlen)
@@ -700,7 +709,8 @@ bwscoll(const struct bwstring *bws1, const struct bwstring *bws2, size_t offset)
 					if (s1[i] == 0) {
 						if (s2[i] == 0)
 							/* NOTREACHED */
-							err(2, "bwscoll error 1");
+							err(2,
+							    "bwscoll error 1");
 						else
 							return (-1);
 					} else if (s2[i] == 0)
@@ -764,7 +774,7 @@ bwstod(struct bwstring *s0, bool *empty)
 			return (0);
 		}
 
-		ret = strtod((char*)s, &ep);
+		ret = strtod((char *)s, &ep);
 		if (ep == s) {
 			*empty = true;
 			return (0);
@@ -894,7 +904,6 @@ ignore_leading_blanks(struct bwstring *str)
 				++src;
 			}
 			bws_setlen(str, newlen);
-
 		}
 	}
 	return (str);

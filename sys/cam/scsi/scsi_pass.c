@@ -27,186 +27,169 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/types.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/devicestat.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/proc.h>
 #include <sys/poll.h>
-#include <sys/selinfo.h>
+#include <sys/proc.h>
 #include <sys/sdt.h>
+#include <sys/selinfo.h>
 #include <sys/sysent.h>
 #include <sys/taskqueue.h>
-#include <vm/uma.h>
+
 #include <vm/vm.h>
+#include <vm/uma.h>
 #include <vm/vm_extern.h>
 
 #include <machine/bus.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_compat.h>
+#include <cam/cam_debug.h>
 #include <cam/cam_periph.h>
 #include <cam/cam_queue.h>
 #include <cam/cam_xpt.h>
 #include <cam/cam_xpt_periph.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_compat.h>
-#include <cam/cam_xpt_periph.h>
-
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_pass.h>
 
 typedef enum {
-	PASS_FLAG_OPEN			= 0x01,
-	PASS_FLAG_LOCKED		= 0x02,
-	PASS_FLAG_INVALID		= 0x04,
-	PASS_FLAG_INITIAL_PHYSPATH	= 0x08,
-	PASS_FLAG_ZONE_INPROG		= 0x10,
-	PASS_FLAG_ZONE_VALID		= 0x20,
-	PASS_FLAG_UNMAPPED_CAPABLE	= 0x40,
-	PASS_FLAG_ABANDONED_REF_SET	= 0x80
+	PASS_FLAG_OPEN = 0x01,
+	PASS_FLAG_LOCKED = 0x02,
+	PASS_FLAG_INVALID = 0x04,
+	PASS_FLAG_INITIAL_PHYSPATH = 0x08,
+	PASS_FLAG_ZONE_INPROG = 0x10,
+	PASS_FLAG_ZONE_VALID = 0x20,
+	PASS_FLAG_UNMAPPED_CAPABLE = 0x40,
+	PASS_FLAG_ABANDONED_REF_SET = 0x80
 } pass_flags;
 
-typedef enum {
-	PASS_STATE_NORMAL
-} pass_state;
+typedef enum { PASS_STATE_NORMAL } pass_state;
 
-typedef enum {
-	PASS_CCB_BUFFER_IO,
-	PASS_CCB_QUEUED_IO
-} pass_ccb_types;
+typedef enum { PASS_CCB_BUFFER_IO, PASS_CCB_QUEUED_IO } pass_ccb_types;
 
-#define ccb_type	ppriv_field0
-#define ccb_ioreq	ppriv_ptr1
+#define ccb_type ppriv_field0
+#define ccb_ioreq ppriv_ptr1
 
 /*
  * The maximum number of memory segments we preallocate.
  */
-#define	PASS_MAX_SEGS	16
+#define PASS_MAX_SEGS 16
 
 typedef enum {
-	PASS_IO_NONE		= 0x00,
-	PASS_IO_USER_SEG_MALLOC	= 0x01,
-	PASS_IO_KERN_SEG_MALLOC	= 0x02,
-	PASS_IO_ABANDONED	= 0x04
-} pass_io_flags; 
+	PASS_IO_NONE = 0x00,
+	PASS_IO_USER_SEG_MALLOC = 0x01,
+	PASS_IO_KERN_SEG_MALLOC = 0x02,
+	PASS_IO_ABANDONED = 0x04
+} pass_io_flags;
 
 struct pass_io_req {
-	union ccb			 ccb;
-	union ccb			*alloced_ccb;
-	union ccb			*user_ccb_ptr;
-	camq_entry			 user_periph_links;
-	ccb_ppriv_area			 user_periph_priv;
-	struct cam_periph_map_info	 mapinfo;
-	pass_io_flags			 flags;
-	ccb_flags			 data_flags;
-	int				 num_user_segs;
-	bus_dma_segment_t		 user_segs[PASS_MAX_SEGS];
-	int				 num_kern_segs;
-	bus_dma_segment_t		 kern_segs[PASS_MAX_SEGS];
-	bus_dma_segment_t		*user_segptr;
-	bus_dma_segment_t		*kern_segptr;
-	int				 num_bufs;
-	uint32_t			 dirs[CAM_PERIPH_MAXMAPS];
-	uint32_t			 lengths[CAM_PERIPH_MAXMAPS];
-	uint8_t				*user_bufs[CAM_PERIPH_MAXMAPS];
-	uint8_t				*kern_bufs[CAM_PERIPH_MAXMAPS];
-	struct bintime			 start_time;
-	TAILQ_ENTRY(pass_io_req)	 links;
+	union ccb ccb;
+	union ccb *alloced_ccb;
+	union ccb *user_ccb_ptr;
+	camq_entry user_periph_links;
+	ccb_ppriv_area user_periph_priv;
+	struct cam_periph_map_info mapinfo;
+	pass_io_flags flags;
+	ccb_flags data_flags;
+	int num_user_segs;
+	bus_dma_segment_t user_segs[PASS_MAX_SEGS];
+	int num_kern_segs;
+	bus_dma_segment_t kern_segs[PASS_MAX_SEGS];
+	bus_dma_segment_t *user_segptr;
+	bus_dma_segment_t *kern_segptr;
+	int num_bufs;
+	uint32_t dirs[CAM_PERIPH_MAXMAPS];
+	uint32_t lengths[CAM_PERIPH_MAXMAPS];
+	uint8_t *user_bufs[CAM_PERIPH_MAXMAPS];
+	uint8_t *kern_bufs[CAM_PERIPH_MAXMAPS];
+	struct bintime start_time;
+	TAILQ_ENTRY(pass_io_req) links;
 };
 
 struct pass_softc {
-	pass_state		  state;
-	pass_flags		  flags;
-	uint8_t		  pd_type;
-	int			  open_count;
-	u_int		 	  maxio;
-	struct devstat		 *device_stats;
-	struct cdev		 *dev;
-	struct cdev		 *alias_dev;
-	struct task		  add_physpath_task;
-	struct task		  shutdown_kqueue_task;
-	struct selinfo		  read_select;
+	pass_state state;
+	pass_flags flags;
+	uint8_t pd_type;
+	int open_count;
+	u_int maxio;
+	struct devstat *device_stats;
+	struct cdev *dev;
+	struct cdev *alias_dev;
+	struct task add_physpath_task;
+	struct task shutdown_kqueue_task;
+	struct selinfo read_select;
 	TAILQ_HEAD(, pass_io_req) incoming_queue;
 	TAILQ_HEAD(, pass_io_req) active_queue;
 	TAILQ_HEAD(, pass_io_req) abandoned_queue;
 	TAILQ_HEAD(, pass_io_req) done_queue;
-	struct cam_periph	 *periph;
-	char			  zone_name[12];
-	char			  io_zone_name[12];
-	uma_zone_t		  pass_zone;
-	uma_zone_t		  pass_io_zone;
-	size_t			  io_zone_size;
+	struct cam_periph *periph;
+	char zone_name[12];
+	char io_zone_name[12];
+	uma_zone_t pass_zone;
+	uma_zone_t pass_io_zone;
+	size_t io_zone_size;
 };
 
-static	d_open_t	passopen;
-static	d_close_t	passclose;
-static	d_ioctl_t	passioctl;
-static	d_ioctl_t	passdoioctl;
-static	d_poll_t	passpoll;
-static	d_kqfilter_t	passkqfilter;
-static	void		passreadfiltdetach(struct knote *kn);
-static	int		passreadfilt(struct knote *kn, long hint);
+static d_open_t passopen;
+static d_close_t passclose;
+static d_ioctl_t passioctl;
+static d_ioctl_t passdoioctl;
+static d_poll_t passpoll;
+static d_kqfilter_t passkqfilter;
+static void passreadfiltdetach(struct knote *kn);
+static int passreadfilt(struct knote *kn, long hint);
 
-static	periph_init_t	passinit;
-static	periph_ctor_t	passregister;
-static	periph_oninv_t	passoninvalidate;
-static	periph_dtor_t	passcleanup;
-static	periph_start_t	passstart;
-static	void		pass_shutdown_kqueue(void *context, int pending);
-static	void		pass_add_physpath(void *context, int pending);
-static	void		passasync(void *callback_arg, uint32_t code,
-				  struct cam_path *path, void *arg);
-static	void		passdone(struct cam_periph *periph, 
-				 union ccb *done_ccb);
-static	int		passcreatezone(struct cam_periph *periph);
-static	void		passiocleanup(struct pass_softc *softc, 
-				      struct pass_io_req *io_req);
-static	int		passcopysglist(struct cam_periph *periph,
-				       struct pass_io_req *io_req,
-				       ccb_flags direction);
-static	int		passmemsetup(struct cam_periph *periph,
-				     struct pass_io_req *io_req);
-static	int		passmemdone(struct cam_periph *periph,
-				    struct pass_io_req *io_req);
-static	int		passerror(union ccb *ccb, uint32_t cam_flags, 
-				  uint32_t sense_flags);
-static 	int		passsendccb(struct cam_periph *periph, union ccb *ccb,
-				    union ccb *inccb);
-static	void		passflags(union ccb *ccb, uint32_t *cam_flags,
-				  uint32_t *sense_flags);
+static periph_init_t passinit;
+static periph_ctor_t passregister;
+static periph_oninv_t passoninvalidate;
+static periph_dtor_t passcleanup;
+static periph_start_t passstart;
+static void pass_shutdown_kqueue(void *context, int pending);
+static void pass_add_physpath(void *context, int pending);
+static void passasync(void *callback_arg, uint32_t code, struct cam_path *path,
+    void *arg);
+static void passdone(struct cam_periph *periph, union ccb *done_ccb);
+static int passcreatezone(struct cam_periph *periph);
+static void passiocleanup(struct pass_softc *softc, struct pass_io_req *io_req);
+static int passcopysglist(struct cam_periph *periph, struct pass_io_req *io_req,
+    ccb_flags direction);
+static int passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req);
+static int passmemdone(struct cam_periph *periph, struct pass_io_req *io_req);
+static int passerror(union ccb *ccb, uint32_t cam_flags, uint32_t sense_flags);
+static int passsendccb(struct cam_periph *periph, union ccb *ccb,
+    union ccb *inccb);
+static void passflags(union ccb *ccb, uint32_t *cam_flags,
+    uint32_t *sense_flags);
 
-static struct periph_driver passdriver =
-{
-	passinit, "pass",
-	TAILQ_HEAD_INITIALIZER(passdriver.units), /* generation */ 0
-};
+static struct periph_driver passdriver = { passinit, "pass",
+	TAILQ_HEAD_INITIALIZER(passdriver.units), /* generation */ 0 };
 
 PERIPHDRIVER_DECLARE(pass, passdriver);
 
 static struct cdevsw pass_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_TRACKCLOSE,
-	.d_open =	passopen,
-	.d_close =	passclose,
-	.d_ioctl =	passioctl,
-	.d_poll = 	passpoll,
-	.d_kqfilter = 	passkqfilter,
-	.d_name =	"pass",
+	.d_version = D_VERSION,
+	.d_flags = D_TRACKCLOSE,
+	.d_open = passopen,
+	.d_close = passclose,
+	.d_ioctl = passioctl,
+	.d_poll = passpoll,
+	.d_kqfilter = passkqfilter,
+	.d_name = "pass",
 };
 
-static struct filterops passread_filtops = {
-	.f_isfd	=	1,
-	.f_detach =	passreadfiltdetach,
-	.f_event =	passreadfilt
-};
+static struct filterops passread_filtops = { .f_isfd = 1,
+	.f_detach = passreadfiltdetach,
+	.f_event = passreadfilt };
 
 static MALLOC_DEFINE(M_SCSIPASS, "scsi_pass", "scsi passthrough buffers");
 
@@ -223,9 +206,9 @@ passinit(void)
 
 	if (status != CAM_REQ_CMP) {
 		printf("pass: Failed to attach master async callback "
-		       "due to status 0x%x!\n", status);
+		       "due to status 0x%x!\n",
+		    status);
 	}
-
 }
 
 static void
@@ -240,7 +223,7 @@ passrejectios(struct cam_periph *periph)
 	 * The user can no longer get status for I/O on the done queue, so
 	 * clean up all outstanding I/O on the done queue.
 	 */
-	TAILQ_FOREACH_SAFE(io_req, &softc->done_queue, links, io_req2) {
+	TAILQ_FOREACH_SAFE (io_req, &softc->done_queue, links, io_req2) {
 		TAILQ_REMOVE(&softc->done_queue, io_req, links);
 		passiocleanup(softc, io_req);
 		uma_zfree(softc->pass_zone, io_req);
@@ -251,7 +234,7 @@ passrejectios(struct cam_periph *periph)
 	 * The devfs node has been shut down, so we can't return status to
 	 * the user.  Free any I/O left on the incoming queue.
 	 */
-	TAILQ_FOREACH_SAFE(io_req, &softc->incoming_queue, links, io_req2) {
+	TAILQ_FOREACH_SAFE (io_req, &softc->incoming_queue, links, io_req2) {
 		TAILQ_REMOVE(&softc->incoming_queue, io_req, links);
 		passiocleanup(softc, io_req);
 		uma_zfree(softc->pass_zone, io_req);
@@ -266,7 +249,7 @@ passrejectios(struct cam_periph *periph)
 	 * them on the abandoned queue.  When the abandoned queue is empty,
 	 * we'll release the remaining reference (see below) to the peripheral.
 	 */
-	TAILQ_FOREACH_SAFE(io_req, &softc->active_queue, links, io_req2) {
+	TAILQ_FOREACH_SAFE (io_req, &softc->active_queue, links, io_req2) {
 		TAILQ_REMOVE(&softc->active_queue, io_req, links);
 		io_req->flags |= PASS_IO_ABANDONED;
 		TAILQ_INSERT_TAIL(&softc->abandoned_queue, io_req, links);
@@ -275,8 +258,8 @@ passrejectios(struct cam_periph *periph)
 	/*
 	 * If we put any I/O on the abandoned queue, acquire a reference.
 	 */
-	if ((!TAILQ_EMPTY(&softc->abandoned_queue))
-	 && ((softc->flags & PASS_FLAG_ABANDONED_REF_SET) == 0)) {
+	if ((!TAILQ_EMPTY(&softc->abandoned_queue)) &&
+	    ((softc->flags & PASS_FLAG_ABANDONED_REF_SET) == 0)) {
 		cam_periph_doacquire(periph);
 		softc->flags |= PASS_FLAG_ABANDONED_REF_SET;
 	}
@@ -295,8 +278,8 @@ passdevgonecb(void *arg)
 	mtx_lock(mtx);
 
 	softc = (struct pass_softc *)periph->softc;
-	KASSERT(softc->open_count >= 0, ("Negative open count %d",
-		softc->open_count));
+	KASSERT(softc->open_count >= 0,
+	    ("Negative open count %d", softc->open_count));
 
 	/*
 	 * When we get this callback, we will get no more close calls from
@@ -362,16 +345,16 @@ passcleanup(struct cam_periph *periph)
 
 	cam_periph_assert(periph, MA_OWNED);
 	KASSERT(TAILQ_EMPTY(&softc->active_queue),
-		("%s called when there are commands on the active queue!\n",
+	    ("%s called when there are commands on the active queue!\n",
 		__func__));
 	KASSERT(TAILQ_EMPTY(&softc->abandoned_queue),
-		("%s called when there are commands on the abandoned queue!\n",
+	    ("%s called when there are commands on the abandoned queue!\n",
 		__func__));
 	KASSERT(TAILQ_EMPTY(&softc->incoming_queue),
-		("%s called when there are commands on the incoming queue!\n",
+	    ("%s called when there are commands on the incoming queue!\n",
 		__func__));
 	KASSERT(TAILQ_EMPTY(&softc->done_queue),
-		("%s called when there are commands on the done queue!\n",
+	    ("%s called when there are commands on the done queue!\n",
 		__func__));
 
 	devstat_remove_entry(softc->device_stats);
@@ -384,7 +367,7 @@ passcleanup(struct cam_periph *periph)
 	 * sleep.  XXX KDM that is bad.  Need a way to get a callback when
 	 * a taskqueue is drained.
 	 *
- 	 * Note that we don't drain the kqueue shutdown task queue.  This
+	 * Note that we don't drain the kqueue shutdown task queue.  This
 	 * is because we hold a reference on the periph for kqueue, and
 	 * release that reference from the kqueue shutdown task queue.  So
 	 * we cannot come into this routine unless we've released that
@@ -452,13 +435,12 @@ pass_add_physpath(void *context, int pending)
 	if (periph->flags & CAM_PERIPH_INVALID)
 		goto out;
 
-	if (xpt_getattr(physpath, MAXPATHLEN,
-			"GEOM::physpath", periph->path) == 0
-	 && strlen(physpath) != 0) {
+	if (xpt_getattr(physpath, MAXPATHLEN, "GEOM::physpath", periph->path) ==
+		0 &&
+	    strlen(physpath) != 0) {
 		mtx_unlock(mtx);
 		make_dev_physpath_alias(MAKEDEV_WAITOK | MAKEDEV_CHECKNAME,
-				&softc->alias_dev, softc->dev,
-				softc->alias_dev, physpath);
+		    &softc->alias_dev, softc->dev, softc->alias_dev, physpath);
 		mtx_lock(mtx);
 	}
 
@@ -482,16 +464,14 @@ out:
 }
 
 static void
-passasync(void *callback_arg, uint32_t code,
-	  struct cam_path *path, void *arg)
+passasync(void *callback_arg, uint32_t code, struct cam_path *path, void *arg)
 {
 	struct cam_periph *periph;
 
 	periph = (struct cam_periph *)callback_arg;
 
 	switch (code) {
-	case AC_FOUND_DEVICE:
-	{
+	case AC_FOUND_DEVICE: {
 		struct ccb_getdev *cgd;
 		cam_status status;
 
@@ -505,25 +485,22 @@ passasync(void *callback_arg, uint32_t code,
 		 * process.
 		 */
 		status = cam_periph_alloc(passregister, passoninvalidate,
-					  passcleanup, passstart, "pass",
-					  CAM_PERIPH_BIO, path,
-					  passasync, AC_FOUND_DEVICE, cgd);
+		    passcleanup, passstart, "pass", CAM_PERIPH_BIO, path,
+		    passasync, AC_FOUND_DEVICE, cgd);
 
-		if (status != CAM_REQ_CMP
-		 && status != CAM_REQ_INPROG) {
+		if (status != CAM_REQ_CMP && status != CAM_REQ_INPROG) {
 			const struct cam_status_entry *entry;
 
 			entry = cam_fetch_status_entry(status);
 
 			printf("passasync: Unable to attach new device "
-			       "due to status %#x: %s\n", status, entry ?
-			       entry->status_text : "Unknown");
+			       "due to status %#x: %s\n",
+			    status, entry ? entry->status_text : "Unknown");
 		}
 
 		break;
 	}
-	case AC_ADVINFO_CHANGED:
-	{
+	case AC_ADVINFO_CHANGED: {
 		uintptr_t buftype;
 
 		buftype = (uintptr_t)arg;
@@ -541,7 +518,7 @@ passasync(void *callback_arg, uint32_t code,
 				break;
 
 			taskqueue_enqueue(taskqueue_thread,
-					  &softc->add_physpath_task);
+			    &softc->add_physpath_task);
 		}
 		break;
 	}
@@ -563,16 +540,16 @@ passregister(struct cam_periph *periph, void *arg)
 	cgd = (struct ccb_getdev *)arg;
 	if (cgd == NULL) {
 		printf("%s: no getdev CCB, can't register device\n", __func__);
-		return(CAM_REQ_CMP_ERR);
+		return (CAM_REQ_CMP_ERR);
 	}
 
-	softc = (struct pass_softc *)malloc(sizeof(*softc),
-					    M_DEVBUF, M_NOWAIT);
+	softc = (struct pass_softc *)malloc(sizeof(*softc), M_DEVBUF, M_NOWAIT);
 
 	if (softc == NULL) {
 		printf("%s: Unable to probe new device. "
-		       "Unable to allocate softc\n", __func__);
-		return(CAM_REQ_CMP_ERR);
+		       "Unable to allocate softc\n",
+		    __func__);
+		return (CAM_REQ_CMP_ERR);
 	}
 
 	bzero(softc, sizeof(*softc));
@@ -591,53 +568,52 @@ passregister(struct cam_periph *periph, void *arg)
 	TAILQ_INIT(&softc->abandoned_queue);
 	TAILQ_INIT(&softc->done_queue);
 	snprintf(softc->zone_name, sizeof(softc->zone_name), "%s%d",
-		 periph->periph_name, periph->unit_number);
+	    periph->periph_name, periph->unit_number);
 	snprintf(softc->io_zone_name, sizeof(softc->io_zone_name), "%s%dIO",
-		 periph->periph_name, periph->unit_number);
+	    periph->periph_name, periph->unit_number);
 	softc->io_zone_size = maxphys;
 	knlist_init_mtx(&softc->read_select.si_note, cam_periph_mtx(periph));
 
 	xpt_path_inq(&cpi, periph->path);
 
 	if (cpi.maxio == 0)
-		softc->maxio = DFLTPHYS;	/* traditional default */
+		softc->maxio = DFLTPHYS; /* traditional default */
 	else if (cpi.maxio > maxphys)
-		softc->maxio = maxphys;		/* for safety */
+		softc->maxio = maxphys; /* for safety */
 	else
-		softc->maxio = cpi.maxio;	/* real value */
+		softc->maxio = cpi.maxio; /* real value */
 
 	if (cpi.hba_misc & PIM_UNMAPPED)
 		softc->flags |= PASS_FLAG_UNMAPPED_CAPABLE;
 
 	/*
-	 * We pass in 0 for a blocksize, since we don't 
-	 * know what the blocksize of this device is, if 
+	 * We pass in 0 for a blocksize, since we don't
+	 * know what the blocksize of this device is, if
 	 * it even has a blocksize.
 	 */
 	cam_periph_unlock(periph);
 	no_tags = (cgd->inq_data.flags & SID_CmdQue) == 0;
-	softc->device_stats = devstat_new_entry("pass",
-			  periph->unit_number, 0,
-			  DEVSTAT_NO_BLOCKSIZE
-			  | (no_tags ? DEVSTAT_NO_ORDERED_TAGS : 0),
-			  softc->pd_type |
-			  XPORT_DEVSTAT_TYPE(cpi.transport) |
-			  DEVSTAT_TYPE_PASS,
-			  DEVSTAT_PRIORITY_PASS);
+	softc->device_stats = devstat_new_entry("pass", periph->unit_number, 0,
+	    DEVSTAT_NO_BLOCKSIZE | (no_tags ? DEVSTAT_NO_ORDERED_TAGS : 0),
+	    softc->pd_type | XPORT_DEVSTAT_TYPE(cpi.transport) |
+		DEVSTAT_TYPE_PASS,
+	    DEVSTAT_PRIORITY_PASS);
 
 	/*
 	 * Initialize the taskqueue handler for shutting down kqueue.
 	 */
 	TASK_INIT(&softc->shutdown_kqueue_task, /*priority*/ 0,
-		  pass_shutdown_kqueue, periph);
+	    pass_shutdown_kqueue, periph);
 
 	/*
 	 * Acquire a reference to the periph that we can release once we've
 	 * cleaned up the kqueue.
 	 */
 	if (cam_periph_acquire(periph) != 0) {
-		xpt_print(periph->path, "%s: lost periph during "
-			  "registration!\n", __func__);
+		xpt_print(periph->path,
+		    "%s: lost periph during "
+		    "registration!\n",
+		    __func__);
 		cam_periph_lock(periph);
 		return (CAM_REQ_CMP_ERR);
 	}
@@ -648,8 +624,10 @@ passregister(struct cam_periph *periph, void *arg)
 	 * instance has been freed.
 	 */
 	if (cam_periph_acquire(periph) != 0) {
-		xpt_print(periph->path, "%s: lost periph during "
-			  "registration!\n", __func__);
+		xpt_print(periph->path,
+		    "%s: lost periph during "
+		    "registration!\n",
+		    __func__);
 		cam_periph_lock(periph);
 		return (CAM_REQ_CMP_ERR);
 	}
@@ -676,16 +654,18 @@ passregister(struct cam_periph *periph, void *arg)
 	 * path alias so it can't go away.
 	 */
 	if (cam_periph_acquire(periph) != 0) {
-		xpt_print(periph->path, "%s: lost periph during "
-			  "registration!\n", __func__);
+		xpt_print(periph->path,
+		    "%s: lost periph during "
+		    "registration!\n",
+		    __func__);
 		cam_periph_lock(periph);
 		return (CAM_REQ_CMP_ERR);
 	}
 
 	cam_periph_lock(periph);
 
-	TASK_INIT(&softc->add_physpath_task, /*priority*/0,
-		  pass_add_physpath, periph);
+	TASK_INIT(&softc->add_physpath_task, /*priority*/ 0, pass_add_physpath,
+	    periph);
 
 	/*
 	 * See if physical path information is already available.
@@ -698,13 +678,13 @@ passregister(struct cam_periph *periph, void *arg)
 	 * (stored in the advanced info data of the EDT) has
 	 * changed.
 	 */
-	xpt_register_async(AC_LOST_DEVICE | AC_ADVINFO_CHANGED,
-			   passasync, periph, periph->path);
+	xpt_register_async(AC_LOST_DEVICE | AC_ADVINFO_CHANGED, passasync,
+	    periph, periph->path);
 
 	if (bootverbose)
 		xpt_announce_periph(periph, NULL);
 
-	return(CAM_REQ_CMP);
+	return (CAM_REQ_CMP);
 }
 
 static int
@@ -725,7 +705,7 @@ passopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	if (softc->flags & PASS_FLAG_INVALID) {
 		cam_periph_release_locked(periph);
 		cam_periph_unlock(periph);
-		return(ENXIO);
+		return (ENXIO);
 	}
 
 	/*
@@ -735,7 +715,7 @@ passopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	if (error) {
 		cam_periph_release_locked(periph);
 		cam_periph_unlock(periph);
-		return(error);
+		return (error);
 	}
 
 	/*
@@ -744,7 +724,7 @@ passopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	if (((flags & FWRITE) == 0) || ((flags & FREAD) == 0)) {
 		cam_periph_release_locked(periph);
 		cam_periph_unlock(periph);
-		return(EPERM);
+		return (EPERM);
 	}
 
 	/*
@@ -754,7 +734,7 @@ passopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 		xpt_print(periph->path, "can't do nonblocking access\n");
 		cam_periph_release_locked(periph);
 		cam_periph_unlock(periph);
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	softc->open_count++;
@@ -767,8 +747,8 @@ passopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 static int
 passclose(struct cdev *dev, int flag, int fmt, struct thread *td)
 {
-	struct 	cam_periph *periph;
-	struct  pass_softc *softc;
+	struct cam_periph *periph;
+	struct pass_softc *softc;
 	struct mtx *mtx;
 
 	periph = (struct cam_periph *)dev->si_drv1;
@@ -781,14 +761,15 @@ passclose(struct cdev *dev, int flag, int fmt, struct thread *td)
 	if (softc->open_count == 0) {
 		struct pass_io_req *io_req, *io_req2;
 
-		TAILQ_FOREACH_SAFE(io_req, &softc->done_queue, links, io_req2) {
+		TAILQ_FOREACH_SAFE (io_req, &softc->done_queue, links,
+		    io_req2) {
 			TAILQ_REMOVE(&softc->done_queue, io_req, links);
 			passiocleanup(softc, io_req);
 			uma_zfree(softc->pass_zone, io_req);
 		}
 
-		TAILQ_FOREACH_SAFE(io_req, &softc->incoming_queue, links,
-				   io_req2) {
+		TAILQ_FOREACH_SAFE (io_req, &softc->incoming_queue, links,
+		    io_req2) {
 			TAILQ_REMOVE(&softc->incoming_queue, io_req, links);
 			passiocleanup(softc, io_req);
 			uma_zfree(softc->pass_zone, io_req);
@@ -801,8 +782,8 @@ passclose(struct cdev *dev, int flag, int fmt, struct thread *td)
 		 * the abandoned queue is empty.
 		 */
 		io_req = TAILQ_FIRST(&softc->active_queue);
-		if ((io_req != NULL)
-		 && (softc->flags & PASS_FLAG_ABANDONED_REF_SET) == 0) {
+		if ((io_req != NULL) &&
+		    (softc->flags & PASS_FLAG_ABANDONED_REF_SET) == 0) {
 			cam_periph_doacquire(periph);
 			softc->flags |= PASS_FLAG_ABANDONED_REF_SET;
 		}
@@ -815,12 +796,12 @@ passclose(struct cdev *dev, int flag, int fmt, struct thread *td)
 		 * event that the device is opened again before these I/Os
 		 * complete.
 		 */
-		TAILQ_FOREACH_SAFE(io_req, &softc->active_queue, links,
-				   io_req2) {
+		TAILQ_FOREACH_SAFE (io_req, &softc->active_queue, links,
+		    io_req2) {
 			TAILQ_REMOVE(&softc->active_queue, io_req, links);
 			io_req->flags |= PASS_IO_ABANDONED;
 			TAILQ_INSERT_TAIL(&softc->abandoned_queue, io_req,
-					  links);
+			    links);
 		}
 	}
 
@@ -875,7 +856,7 @@ passstart(struct cam_periph *periph, union ccb *start_ccb)
 		io_req->alloced_ccb = start_ccb;
 		binuptime(&io_req->start_time);
 		devstat_start_transaction(softc->device_stats,
-					  &io_req->start_time);
+		    &io_req->start_time);
 
 		xpt_action(start_ccb);
 
@@ -893,7 +874,7 @@ passstart(struct cam_periph *periph, union ccb *start_ccb)
 
 static void
 passdone(struct cam_periph *periph, union ccb *done_ccb)
-{ 
+{
 	struct pass_softc *softc;
 	struct ccb_scsiio *csio;
 
@@ -911,7 +892,8 @@ passdone(struct cam_periph *periph, union ccb *done_ccb)
 		xpt_print(periph->path, "%s: called for user CCB %p\n",
 			  __func__, io_req->user_ccb_ptr);
 #endif
-		if (((done_ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) &&
+		if (((done_ccb->ccb_h.status & CAM_STATUS_MASK) !=
+			CAM_REQ_CMP) &&
 		    ((io_req->flags & PASS_IO_ABANDONED) == 0)) {
 			int error;
 			uint32_t cam_flags, sense_flags;
@@ -941,25 +923,29 @@ passdone(struct cam_periph *periph, union ccb *done_ccb)
 			    done_ccb->csio.dxfer_len - done_ccb->csio.resid,
 			    done_ccb->csio.tag_action & 0x3,
 			    ((done_ccb->ccb_h.flags & CAM_DIR_MASK) ==
-			    CAM_DIR_NONE) ? DEVSTAT_NO_DATA :
-			    (done_ccb->ccb_h.flags & CAM_DIR_OUT) ?
-			    DEVSTAT_WRITE : DEVSTAT_READ, NULL,
-			    &io_req->start_time);
+				CAM_DIR_NONE) ?
+				DEVSTAT_NO_DATA :
+				(done_ccb->ccb_h.flags & CAM_DIR_OUT) ?
+				DEVSTAT_WRITE :
+				DEVSTAT_READ,
+			    NULL, &io_req->start_time);
 			break;
 		case XPT_ATA_IO:
 			devstat_end_transaction(softc->device_stats,
 			    done_ccb->ataio.dxfer_len - done_ccb->ataio.resid,
 			    0, /* Not used in ATA */
 			    ((done_ccb->ccb_h.flags & CAM_DIR_MASK) ==
-			    CAM_DIR_NONE) ? DEVSTAT_NO_DATA : 
-			    (done_ccb->ccb_h.flags & CAM_DIR_OUT) ?
-			    DEVSTAT_WRITE : DEVSTAT_READ, NULL,
-			    &io_req->start_time);
+				CAM_DIR_NONE) ?
+				DEVSTAT_NO_DATA :
+				(done_ccb->ccb_h.flags & CAM_DIR_OUT) ?
+				DEVSTAT_WRITE :
+				DEVSTAT_READ,
+			    NULL, &io_req->start_time);
 			break;
 		case XPT_SMP_IO:
 			/*
 			 * XXX KDM this isn't quite right, but there isn't
-			 * currently an easy way to represent a bidirectional 
+			 * currently an easy way to represent a bidirectional
 			 * transfer in devstat.  The only way to do it
 			 * and have the byte counts come out right would
 			 * mean that we would have to record two
@@ -969,7 +955,7 @@ passdone(struct cam_periph *periph, union ccb *done_ccb)
 			 */
 			devstat_end_transaction(softc->device_stats,
 			    done_ccb->smpio.smp_request_len +
-			    done_ccb->smpio.smp_response_len,
+				done_ccb->smpio.smp_response_len,
 			    DEVSTAT_TAG_SIMPLE, DEVSTAT_READ, NULL,
 			    &io_req->start_time);
 			break;
@@ -1012,8 +998,8 @@ passdone(struct cam_periph *periph, union ccb *done_ccb)
 			 * our reference to the periph since we won't have
 			 * any more completions coming.
 			 */
-			if ((TAILQ_EMPTY(&softc->abandoned_queue))
-			 && (softc->flags & PASS_FLAG_ABANDONED_REF_SET)) {
+			if ((TAILQ_EMPTY(&softc->abandoned_queue)) &&
+			    (softc->flags & PASS_FLAG_ABANDONED_REF_SET)) {
 				softc->flags &= ~PASS_FLAG_ABANDONED_REF_SET;
 				cam_periph_release_locked(periph);
 			}
@@ -1040,10 +1026,10 @@ passcreatezone(struct cam_periph *periph)
 	softc = (struct pass_softc *)periph->softc;
 
 	cam_periph_assert(periph, MA_OWNED);
-	KASSERT(((softc->flags & PASS_FLAG_ZONE_VALID) == 0), 
-		("%s called when the pass(4) zone is valid!\n", __func__));
-	KASSERT((softc->pass_zone == NULL), 
-		("%s called when the pass(4) zone is allocated!\n", __func__));
+	KASSERT(((softc->flags & PASS_FLAG_ZONE_VALID) == 0),
+	    ("%s called when the pass(4) zone is valid!\n", __func__));
+	KASSERT((softc->pass_zone == NULL),
+	    ("%s called when the pass(4) zone is allocated!\n", __func__));
 
 	if ((softc->flags & PASS_FLAG_ZONE_INPROG) == 0) {
 		/*
@@ -1068,13 +1054,15 @@ passcreatezone(struct cam_periph *periph)
 
 		cam_periph_lock(periph);
 
-		if ((softc->pass_zone == NULL)
-		 || (softc->pass_io_zone == NULL)) {
+		if ((softc->pass_zone == NULL) ||
+		    (softc->pass_io_zone == NULL)) {
 			if (softc->pass_zone == NULL)
-				xpt_print(periph->path, "unable to allocate "
+				xpt_print(periph->path,
+				    "unable to allocate "
 				    "IO Req UMA zone\n");
 			else
-				xpt_print(periph->path, "unable to allocate "
+				xpt_print(periph->path,
+				    "unable to allocate "
 				    "IO UMA zone\n");
 			softc->flags &= ~PASS_FLAG_ZONE_INPROG;
 			goto bailout;
@@ -1093,18 +1081,17 @@ passcreatezone(struct cam_periph *periph)
 		 * need to sleep until the creation is either done or has
 		 * failed.
 		 */
-		while ((softc->flags & PASS_FLAG_ZONE_INPROG)
-		    && ((softc->flags & PASS_FLAG_ZONE_VALID) == 0)) {
+		while ((softc->flags & PASS_FLAG_ZONE_INPROG) &&
+		    ((softc->flags & PASS_FLAG_ZONE_VALID) == 0)) {
 			error = msleep(&softc->pass_zone,
-				       cam_periph_mtx(periph), PRIBIO,
-				       "paszon", 0);
+			    cam_periph_mtx(periph), PRIBIO, "paszon", 0);
 			if (error != 0)
 				goto bailout;
 		}
 		/*
 		 * If the zone creation failed, no luck for the user.
 		 */
-		if ((softc->flags & PASS_FLAG_ZONE_VALID) == 0){
+		if ((softc->flags & PASS_FLAG_ZONE_VALID) == 0) {
 			error = ENOMEM;
 			goto bailout;
 		}
@@ -1159,7 +1146,7 @@ passiocleanup(struct pass_softc *softc, struct pass_io_req *io_req)
 	default:
 		/* allow ourselves to be swapped once again */
 		return;
-		break; /* NOTREACHED */ 
+		break; /* NOTREACHED */
 	}
 
 	if (io_req->flags & PASS_IO_USER_SEG_MALLOC) {
@@ -1180,12 +1167,13 @@ passiocleanup(struct pass_softc *softc, struct pass_io_req *io_req)
 		}
 	} else if (io_req->data_flags == CAM_DATA_SG) {
 		for (i = 0; i < io_req->num_kern_segs; i++) {
-			if ((uint8_t *)(uintptr_t)
-			    io_req->kern_segptr[i].ds_addr == NULL)
+			if ((uint8_t *)(uintptr_t)io_req->kern_segptr[i]
+				.ds_addr == NULL)
 				continue;
 
-			uma_zfree(softc->pass_io_zone, (uint8_t *)(uintptr_t)
-			    io_req->kern_segptr[i].ds_addr);
+			uma_zfree(softc->pass_io_zone,
+			    (uint8_t *)(uintptr_t)io_req->kern_segptr[i]
+				.ds_addr);
 			io_req->kern_segptr[i].ds_addr = 0;
 		}
 	}
@@ -1205,12 +1193,11 @@ passiocleanup(struct pass_softc *softc, struct pass_io_req *io_req)
 				*data_ptrs[i] = io_req->user_bufs[i];
 		}
 	}
-
 }
 
 static int
 passcopysglist(struct cam_periph *periph, struct pass_io_req *io_req,
-	       ccb_flags direction)
+    ccb_flags direction)
 {
 	bus_size_t kern_watermark, user_watermark, len_to_copy;
 	bus_dma_segment_t *user_sglist, *kern_sglist;
@@ -1223,11 +1210,11 @@ passcopysglist(struct cam_periph *periph, struct pass_io_req *io_req,
 	user_sglist = io_req->user_segptr;
 	kern_sglist = io_req->kern_segptr;
 
-	for (i = 0, j = 0; i < io_req->num_user_segs &&
-	     j < io_req->num_kern_segs;) {
+	for (i = 0, j = 0;
+	     i < io_req->num_user_segs && j < io_req->num_kern_segs;) {
 		uint8_t *user_ptr, *kern_ptr;
 
-		len_to_copy = min(user_sglist[i].ds_len -user_watermark,
+		len_to_copy = min(user_sglist[i].ds_len - user_watermark,
 		    kern_sglist[j].ds_len - kern_watermark);
 
 		user_ptr = (uint8_t *)(uintptr_t)user_sglist[i].ds_addr;
@@ -1241,19 +1228,23 @@ passcopysglist(struct cam_periph *periph, struct pass_io_req *io_req,
 		if (direction == CAM_DIR_IN) {
 			error = copyout(kern_ptr, user_ptr, len_to_copy);
 			if (error != 0) {
-				xpt_print(periph->path, "%s: copyout of %u "
-					  "bytes from %p to %p failed with "
-					  "error %d\n", __func__, len_to_copy,
-					  kern_ptr, user_ptr, error);
+				xpt_print(periph->path,
+				    "%s: copyout of %u "
+				    "bytes from %p to %p failed with "
+				    "error %d\n",
+				    __func__, len_to_copy, kern_ptr, user_ptr,
+				    error);
 				goto bailout;
 			}
 		} else {
 			error = copyin(user_ptr, kern_ptr, len_to_copy);
 			if (error != 0) {
-				xpt_print(periph->path, "%s: copyin of %u "
-					  "bytes from %p to %p failed with "
-					  "error %d\n", __func__, len_to_copy,
-					  user_ptr, kern_ptr, error);
+				xpt_print(periph->path,
+				    "%s: copyin of %u "
+				    "bytes from %p to %p failed with "
+				    "error %d\n",
+				    __func__, len_to_copy, user_ptr, kern_ptr,
+				    error);
 				goto bailout;
 			}
 		}
@@ -1298,11 +1289,11 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 	num_segs = 0;
 	seg_cnt_ptr = NULL;
 
-	switch(ccb->ccb_h.func_code) {
+	switch (ccb->ccb_h.func_code) {
 	case XPT_DEV_MATCH:
 		if (ccb->cdm.match_buf_len == 0) {
 			printf("%s: invalid match buffer length 0\n", __func__);
-			return(EINVAL);
+			return (EINVAL);
 		}
 		if (ccb->cdm.pattern_buf_len > 0) {
 			data_ptrs[0] = (uint8_t **)&ccb->cdm.patterns;
@@ -1323,7 +1314,7 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 	case XPT_SCSI_IO:
 	case XPT_CONT_TARGET_IO:
 		if ((ccb->ccb_h.flags & CAM_DIR_MASK) == CAM_DIR_NONE)
-			return(0);
+			return (0);
 
 		/*
 		 * The user shouldn't be able to supply a bio.
@@ -1343,7 +1334,7 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		break;
 	case XPT_ATA_IO:
 		if ((ccb->ccb_h.flags & CAM_DIR_MASK) == CAM_DIR_NONE)
-			return(0);
+			return (0);
 
 		/*
 		 * We only support a single virtual address for ATA I/O.
@@ -1398,7 +1389,7 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		maxmap = softc->maxio;
 		break;
 	default:
-		return(EINVAL);
+		return (EINVAL);
 		break; /* NOTREACHED */
 	}
 
@@ -1421,8 +1412,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		if (lengths[i] <= maxmap)
 			continue;
 
-		xpt_print(periph->path, "%s: data length %u > max allowed %u "
-			  "bytes\n", __func__, lengths[i], maxmap);
+		xpt_print(periph->path,
+		    "%s: data length %u > max allowed %u "
+		    "bytes\n",
+		    __func__, lengths[i], maxmap);
 		error = EINVAL;
 		goto bailout;
 	}
@@ -1441,7 +1434,7 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 				continue;
 
 			tmp_buf = malloc(lengths[i], M_SCSIPASS,
-					 M_WAITOK | M_ZERO);
+			    M_WAITOK | M_ZERO);
 			io_req->kern_bufs[i] = tmp_buf;
 			*data_ptrs[i] = tmp_buf;
 
@@ -1458,13 +1451,14 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 				continue;
 
 			error = copyin(io_req->user_bufs[i],
-				       io_req->kern_bufs[i], lengths[i]);
+			    io_req->kern_bufs[i], lengths[i]);
 			if (error != 0) {
-				xpt_print(periph->path, "%s: copy of user "
-					  "buffer from %p to %p failed with "
-					  "error %d\n", __func__,
-					  io_req->user_bufs[i],
-					  io_req->kern_bufs[i], error);
+				xpt_print(periph->path,
+				    "%s: copy of user "
+				    "buffer from %p to %p failed with "
+				    "error %d\n",
+				    __func__, io_req->user_bufs[i],
+				    io_req->kern_bufs[i], error);
 				goto bailout;
 			}
 		}
@@ -1484,8 +1478,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 * We shouldn't see this, but check just in case.
 		 */
 		if (numbufs != 1) {
-			xpt_print(periph->path, "%s: cannot currently handle "
-				  "more than one S/G list per CCB\n", __func__);
+			xpt_print(periph->path,
+			    "%s: cannot currently handle "
+			    "more than one S/G list per CCB\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1494,8 +1490,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 * We have to have at least one segment.
 		 */
 		if (num_segs == 0) {
-			xpt_print(periph->path, "%s: CAM_DATA_SG flag set, "
-				  "but sglist_cnt=0!\n", __func__);
+			xpt_print(periph->path,
+			    "%s: CAM_DATA_SG flag set, "
+			    "but sglist_cnt=0!\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1505,8 +1503,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 * just leave it to us to decode the S/G list.
 		 */
 		if (lengths[0] == 0) {
-			xpt_print(periph->path, "%s: no dxfer_len specified, "
-				  "but CAM_DATA_SG flag is set!\n", __func__);
+			xpt_print(periph->path,
+			    "%s: no dxfer_len specified, "
+			    "but CAM_DATA_SG flag is set!\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1537,23 +1537,26 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 */
 		if (num_segs > PASS_MAX_SEGS) {
 			io_req->user_segptr = malloc(sizeof(bus_dma_segment_t) *
-			    num_segs, M_SCSIPASS, M_WAITOK | M_ZERO);
+				num_segs,
+			    M_SCSIPASS, M_WAITOK | M_ZERO);
 			io_req->flags |= PASS_IO_USER_SEG_MALLOC;
 		} else
 			io_req->user_segptr = io_req->user_segs;
 
 		error = copyin(*data_ptrs[0], io_req->user_segptr, sg_length);
 		if (error != 0) {
-			xpt_print(periph->path, "%s: copy of user S/G list "
-				  "from %p to %p failed with error %d\n",
-				  __func__, *data_ptrs[0], io_req->user_segptr,
-				  error);
+			xpt_print(periph->path,
+			    "%s: copy of user S/G list "
+			    "from %p to %p failed with error %d\n",
+			    __func__, *data_ptrs[0], io_req->user_segptr,
+			    error);
 			goto bailout;
 		}
 
 		if (num_segs_needed > PASS_MAX_SEGS) {
 			io_req->kern_segptr = malloc(sizeof(bus_dma_segment_t) *
-			    num_segs_needed, M_SCSIPASS, M_WAITOK | M_ZERO);
+				num_segs_needed,
+			    M_SCSIPASS, M_WAITOK | M_ZERO);
 			io_req->flags |= PASS_IO_KERN_SEG_MALLOC;
 		} else {
 			io_req->kern_segptr = io_req->kern_segs;
@@ -1569,13 +1572,13 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 
 			alloc_size = min(size_to_go, softc->io_zone_size);
 			kern_ptr = uma_zalloc(softc->pass_io_zone, M_WAITOK);
-			io_req->kern_segptr[i].ds_addr =
-			    (bus_addr_t)(uintptr_t)kern_ptr;
+			io_req->kern_segptr[i].ds_addr = (bus_addr_t)(uintptr_t)
+			    kern_ptr;
 			io_req->kern_segptr[i].ds_len = alloc_size;
 		}
 		if (size_to_go > 0) {
 			printf("%s: size_to_go = %zu, software error!\n",
-			       __func__, size_to_go);
+			    __func__, size_to_go);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1598,7 +1601,8 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 */
 		if (numbufs != 1) {
 			printf("%s: cannot currently handle more than one "
-			       "S/G list per CCB\n", __func__);
+			       "S/G list per CCB\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1607,8 +1611,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 * We have to have at least one segment.
 		 */
 		if (num_segs == 0) {
-			xpt_print(periph->path, "%s: CAM_DATA_SG_PADDR flag "
-				  "set, but sglist_cnt=0!\n", __func__);
+			xpt_print(periph->path,
+			    "%s: CAM_DATA_SG_PADDR flag "
+			    "set, but sglist_cnt=0!\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1618,8 +1624,10 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 		 * just leave it to us to decode the S/G list.
 		 */
 		if (lengths[0] == 0) {
-			xpt_print(periph->path, "%s: no dxfer_len specified, "
-				  "but CAM_DATA_SG flag is set!\n", __func__);
+			xpt_print(periph->path,
+			    "%s: no dxfer_len specified, "
+			    "but CAM_DATA_SG flag is set!\n",
+			    __func__);
 			error = EINVAL;
 			goto bailout;
 		}
@@ -1634,7 +1642,8 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 
 		if (num_segs > PASS_MAX_SEGS) {
 			io_req->user_segptr = malloc(sizeof(bus_dma_segment_t) *
-			    num_segs, M_SCSIPASS, M_WAITOK | M_ZERO);
+				num_segs,
+			    M_SCSIPASS, M_WAITOK | M_ZERO);
 			io_req->flags |= PASS_IO_USER_SEG_MALLOC;
 		} else
 			io_req->user_segptr = io_req->user_segs;
@@ -1643,10 +1652,11 @@ passmemsetup(struct cam_periph *periph, struct pass_io_req *io_req)
 
 		error = copyin(*data_ptrs[0], io_req->user_segptr, sg_length);
 		if (error != 0) {
-			xpt_print(periph->path, "%s: copy of user S/G list "
-				  "from %p to %p failed with error %d\n",
-				  __func__, *data_ptrs[0], io_req->user_segptr,
-				  error);
+			xpt_print(periph->path,
+			    "%s: copy of user S/G list "
+			    "from %p to %p failed with error %d\n",
+			    __func__, *data_ptrs[0], io_req->user_segptr,
+			    error);
 			goto bailout;
 		}
 		break;
@@ -1690,11 +1700,11 @@ passmemdone(struct cam_periph *periph, struct pass_io_req *io_req)
 			error = copyout(io_req->kern_bufs[i],
 			    io_req->user_bufs[i], io_req->lengths[i]);
 			if (error != 0) {
-				xpt_print(periph->path, "Unable to copy %u "
-					  "bytes from %p to user address %p\n",
-					  io_req->lengths[i],
-					  io_req->kern_bufs[i],
-					  io_req->user_bufs[i]);
+				xpt_print(periph->path,
+				    "Unable to copy %u "
+				    "bytes from %p to user address %p\n",
+				    io_req->lengths[i], io_req->kern_bufs[i],
+				    io_req->user_bufs[i]);
 				goto bailout;
 			}
 		}
@@ -1733,7 +1743,8 @@ bailout:
 }
 
 static int
-passioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread *td)
+passioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
+    struct thread *td)
 {
 	int error;
 
@@ -1744,11 +1755,12 @@ passioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread *t
 }
 
 static int
-passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread *td)
+passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
+    struct thread *td)
 {
-	struct	cam_periph *periph;
-	struct	pass_softc *softc;
-	int	error;
+	struct cam_periph *periph;
+	struct pass_softc *softc;
+	int error;
 	uint32_t priority;
 
 	periph = (struct cam_periph *)dev->si_drv1;
@@ -1758,8 +1770,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 	error = 0;
 
 	switch (cmd) {
-	case CAMIOCOMMAND:
-	{
+	case CAMIOCOMMAND: {
 		union ccb *inccb;
 		union ccb *ccb;
 		int ccb_malloced;
@@ -1780,7 +1791,8 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * through the transport layer device.
 		 */
 		if (inccb->ccb_h.func_code & XPT_FC_XPT_ONLY) {
-			xpt_print(periph->path, "CCB function code %#x is "
+			xpt_print(periph->path,
+			    "CCB function code %#x is "
 			    "restricted to the XPT device\n",
 			    inccb->ccb_h.func_code);
 			error = ENODEV;
@@ -1790,7 +1802,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		/* Compatibility for RL/priority-unaware code. */
 		priority = inccb->ccb_h.pinfo.priority;
 		if (priority <= CAM_PRIORITY_OOB)
-		    priority += CAM_PRIORITY_OOB + 1;
+			priority += CAM_PRIORITY_OOB + 1;
 
 		/*
 		 * Non-immediate CCBs need a CCB from the per-device pool
@@ -1798,8 +1810,8 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * Immediate CCBs and user-supplied CCBs should just be
 		 * malloced.
 		 */
-		if ((inccb->ccb_h.func_code & XPT_FC_QUEUED)
-		 && ((inccb->ccb_h.func_code & XPT_FC_USER_CCB) == 0)) {
+		if ((inccb->ccb_h.func_code & XPT_FC_QUEUED) &&
+		    ((inccb->ccb_h.func_code & XPT_FC_USER_CCB) == 0)) {
 			ccb = cam_periph_getccb(periph, priority);
 			ccb_malloced = 0;
 		} else {
@@ -1807,7 +1819,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 
 			if (ccb != NULL)
 				xpt_setup_ccb(&ccb->ccb_h, periph->path,
-					      priority);
+				    priority);
 			ccb_malloced = 1;
 		}
 
@@ -1826,8 +1838,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 
 		break;
 	}
-	case CAMIOQUEUE:
-	{
+	case CAMIOQUEUE: {
 		struct pass_io_req *io_req;
 		union ccb **user_ccb, *ccb;
 		xpt_opcode fc;
@@ -1871,9 +1882,10 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 #endif
 		error = copyin(*user_ccb, ccb, sizeof(*ccb));
 		if (error != 0) {
-			xpt_print(periph->path, "Copy of user CCB %p to "
-				  "kernel address %p failed with error %d\n",
-				  *user_ccb, ccb, error);
+			xpt_print(periph->path,
+			    "Copy of user CCB %p to "
+			    "kernel address %p failed with error %d\n",
+			    *user_ccb, ccb, error);
 			goto camioqueue_error;
 		}
 #if defined(BUF_TRACKING) || defined(FULL_BUF_TRACKING)
@@ -1903,7 +1915,8 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * through the transport layer device.
 		 */
 		if (ccb->ccb_h.func_code & XPT_FC_XPT_ONLY) {
-			xpt_print(periph->path, "CCB function code %#x is "
+			xpt_print(periph->path,
+			    "CCB function code %#x is "
 			    "restricted to the XPT device\n",
 			    ccb->ccb_h.func_code);
 			error = ENODEV;
@@ -1928,7 +1941,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		/* Compatibility for RL/priority-unaware code. */
 		priority = ccb->ccb_h.pinfo.priority;
 		if (priority <= CAM_PRIORITY_OOB)
-		    priority += CAM_PRIORITY_OOB + 1;
+			priority += CAM_PRIORITY_OOB + 1;
 
 		/*
 		 * Setup fields in the CCB like the path and the priority.
@@ -1936,7 +1949,7 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * it is a pointer to a kernel data structure.
 		 */
 		xpt_setup_ccb_flags(&ccb->ccb_h, periph->path, priority,
-				    ccb->ccb_h.flags);
+		    ccb->ccb_h.flags);
 
 		/*
 		 * Setup our done routine.  There is no way for the user to
@@ -1949,10 +1962,10 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * If this function code has memory that can be mapped in
 		 * or out, we need to call passmemsetup().
 		 */
-		if ((fc == XPT_SCSI_IO) || (fc == XPT_ATA_IO)
-		 || (fc == XPT_SMP_IO) || (fc == XPT_DEV_MATCH)
-		 || (fc == XPT_DEV_ADVINFO)
-		 || (fc == XPT_NVME_ADMIN) || (fc == XPT_NVME_IO)) {
+		if ((fc == XPT_SCSI_IO) || (fc == XPT_ATA_IO) ||
+		    (fc == XPT_SMP_IO) || (fc == XPT_DEV_MATCH) ||
+		    (fc == XPT_DEV_ADVINFO) || (fc == XPT_NVME_ADMIN) ||
+		    (fc == XPT_NVME_IO)) {
 			error = passmemsetup(periph, io_req);
 			if (error != 0)
 				goto camioqueue_error;
@@ -1972,11 +1985,10 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		 * so that our start routine will get called when a CCB is
 		 * available.
 		 */
-		if ((fc & XPT_FC_QUEUED)
-		 && ((fc & XPT_FC_USER_CCB) == 0)) {
+		if ((fc & XPT_FC_QUEUED) && ((fc & XPT_FC_USER_CCB) == 0)) {
 			xpt_schedule(periph, priority);
 			break;
-		} 
+		}
 
 		/*
 		 * At this point, the CCB in question is either an
@@ -2001,13 +2013,12 @@ passdoioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, struct thread 
 		}
 		break;
 
-camioqueue_error:
+	camioqueue_error:
 		uma_zfree(softc->pass_zone, io_req);
 		cam_periph_lock(periph);
 		break;
 	}
-	case CAMIOGET:
-	{
+	case CAMIOGET: {
 		union ccb **user_ccb;
 		struct pass_io_req *io_req;
 		int old_error;
@@ -2056,9 +2067,10 @@ camioqueue_error:
 
 		error = copyout(&io_req->ccb, *user_ccb, sizeof(union ccb));
 		if (error != 0) {
-			xpt_print(periph->path, "Copy to user CCB %p from "
-				  "kernel address %p failed with error %d\n",
-				  *user_ccb, &io_req->ccb, error);
+			xpt_print(periph->path,
+			    "Copy to user CCB %p from "
+			    "kernel address %p failed with error %d\n",
+			    *user_ccb, &io_req->ccb, error);
 		}
 
 		/*
@@ -2087,7 +2099,7 @@ camioqueue_error:
 bailout:
 	cam_periph_unlock(periph);
 
-	return(error);
+	return (error);
 }
 
 static int
@@ -2186,7 +2198,8 @@ passsendccb(struct cam_periph *periph, union ccb *ccb, union ccb *inccb)
 
 	if (ccb->ccb_h.flags & CAM_CDB_POINTER) {
 		cmd = __builtin_alloca(ccb->csio.cdb_len);
-		error = copyin(ccb->csio.cdb_io.cdb_ptr, cmd, ccb->csio.cdb_len);
+		error = copyin(ccb->csio.cdb_io.cdb_ptr, cmd,
+		    ccb->csio.cdb_len);
 		if (error)
 			return (error);
 		ccb->csio.cdb_io.cdb_ptr = cmd;
@@ -2198,9 +2211,10 @@ passsendccb(struct cam_periph *periph, union ccb *ccb, union ccb *inccb)
 	 * simplifies the code.
 	 */
 	fc = ccb->ccb_h.func_code;
-	if ((fc == XPT_SCSI_IO) || (fc == XPT_ATA_IO) || (fc == XPT_SMP_IO)
-            || (fc == XPT_DEV_MATCH) || (fc == XPT_DEV_ADVINFO) || (fc == XPT_MMC_IO)
-            || (fc == XPT_NVME_ADMIN) || (fc == XPT_NVME_IO)) {
+	if ((fc == XPT_SCSI_IO) || (fc == XPT_ATA_IO) || (fc == XPT_SMP_IO) ||
+	    (fc == XPT_DEV_MATCH) || (fc == XPT_DEV_ADVINFO) ||
+	    (fc == XPT_MMC_IO) || (fc == XPT_NVME_ADMIN) ||
+	    (fc == XPT_NVME_IO)) {
 		bzero(&mapinfo, sizeof(mapinfo));
 
 		/*
@@ -2217,7 +2231,7 @@ passsendccb(struct cam_periph *periph, union ccb *ccb, union ccb *inccb)
 		 * Return the error to the user.
 		 */
 		if (error)
-			return(error);
+			return (error);
 	} else
 		/* Ensure that the unmap call later on is a no-op. */
 		mapinfo.num_bufs_used = 0;
@@ -2231,8 +2245,8 @@ passsendccb(struct cam_periph *periph, union ccb *ccb, union ccb *inccb)
 		uint32_t cam_flags, sense_flags;
 
 		passflags(ccb, &cam_flags, &sense_flags);
-		cam_periph_runccb(ccb,  passerror, cam_flags,
-		    sense_flags, softc->device_stats);
+		cam_periph_runccb(ccb, passerror, cam_flags, sense_flags,
+		    softc->device_stats);
 	}
 
 	cam_periph_unlock(periph);
@@ -2269,5 +2283,5 @@ static int
 passerror(union ccb *ccb, uint32_t cam_flags, uint32_t sense_flags)
 {
 
-	return(cam_periph_error(ccb, cam_flags, sense_flags));
+	return (cam_periph_error(ccb, cam_flags, sense_flags));
 }

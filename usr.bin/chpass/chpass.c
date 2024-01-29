@@ -53,15 +53,15 @@
 #include <ypclnt.h>
 #endif
 
-#include <pw_scan.h>
 #include <libutil.h>
+#include <pw_scan.h>
 
 #include "chpass.h"
 
 int master_mode;
 
-static void	baduser(void);
-static void	usage(void);
+static void baduser(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -140,21 +140,19 @@ main(int argc, char *argv[])
 		}
 
 		/* Make a copy for later verification */
-		if ((pw = pw_dup(pw)) == NULL ||
-		    (old_pw = pw_dup(pw)) == NULL)
+		if ((pw = pw_dup(pw)) == NULL || (old_pw = pw_dup(pw)) == NULL)
 			err(1, "pw_dup");
 	}
 
 #ifdef YP
 	if (pw != NULL && (pw->pw_fields & _PWF_SOURCE) == _PWF_NIS) {
 		ypclnt = ypclnt_new(yp_domain, "passwd.byname", yp_host);
-		master_mode = (ypclnt != NULL &&
-		    ypclnt_connect(ypclnt) != -1 &&
+		master_mode = (ypclnt != NULL && ypclnt_connect(ypclnt) != -1 &&
 		    ypclnt_havepasswdd(ypclnt) == 1);
 		ypclnt_free(ypclnt);
 	} else
 #endif
-	master_mode = (uid == 0);
+		master_mode = (uid == 0);
 
 	if (op == NEWSH) {
 		/* protect p_shell -- it thinks NULL is /bin/sh */
@@ -165,7 +163,7 @@ main(int argc, char *argv[])
 	}
 
 	if (op == NEWEXP) {
-		if (uid)	/* only root can change expire */
+		if (uid) /* only root can change expire */
 			baduser();
 		if (p_expire(arg, pw, (ENTRY *)NULL) == -1)
 			exit(1);
@@ -176,7 +174,7 @@ main(int argc, char *argv[])
 			baduser();
 		pw = &lpw;
 		old_pw = NULL;
-		if (!__pw_scan(arg, pw, _PWSCAN_WARN|_PWSCAN_MASTER))
+		if (!__pw_scan(arg, pw, _PWSCAN_WARN | _PWSCAN_MASTER))
 			exit(1);
 	}
 
@@ -205,11 +203,11 @@ main(int argc, char *argv[])
 		pw_fini();
 		if (pw == NULL)
 			err(1, "edit()");
-		/* 
+		/*
 		 * pw_equal does not check for crypted passwords, so we
 		 * should do it explicitly
 		 */
-		if (pw_equal(old_pw, pw) && 
+		if (pw_equal(old_pw, pw) &&
 		    strcmp(old_pw->pw_passwd, pw->pw_passwd) == 0)
 			errx(0, "user information unchanged");
 	}
@@ -281,8 +279,7 @@ static void
 usage(void)
 {
 
-	(void)fprintf(stderr,
-	    "usage: chpass%s %s [user]\n",
+	(void)fprintf(stderr, "usage: chpass%s %s [user]\n",
 #ifdef YP
 	    " [-d domain] [-h host]",
 #else

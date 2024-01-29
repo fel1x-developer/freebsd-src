@@ -16,12 +16,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef	__AR9287_RESET_H__
-#define	__AR9287_RESET_H__
+#ifndef __AR9287_RESET_H__
+#define __AR9287_RESET_H__
 
-extern	HAL_BOOL ar9287SetTransmitPower(struct ath_hal *ah,
-	const struct ieee80211_channel *chan, uint16_t *rfXpdGain);
-extern	HAL_BOOL ar9287SetBoardValues(struct ath_hal *ah,
-	const struct ieee80211_channel *chan);
+extern HAL_BOOL ar9287SetTransmitPower(struct ath_hal *ah,
+    const struct ieee80211_channel *chan, uint16_t *rfXpdGain);
+extern HAL_BOOL ar9287SetBoardValues(struct ath_hal *ah,
+    const struct ieee80211_channel *chan);
 
-#endif	/* __AR9287_RESET_H__ */
+#endif /* __AR9287_RESET_H__ */

@@ -68,9 +68,9 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @struct SCIC_IO_SSP_PARAMETERS
@@ -80,27 +80,24 @@ extern "C" {
  *
  * @todo Add Block-guard/DIF, TLR
  */
-typedef struct SCIC_IO_SSP_PARAMETERS
-{
-   /**
-    * Data Integrity Format (DIF) is also known as protection information
-    * or block-guard.  This sub-structure contains DIF specific feature
-    * information for SSP IO requests.
-    */
-   struct
-   {
-      void * placeholder;
-   } dif;
+typedef struct SCIC_IO_SSP_PARAMETERS {
+	/**
+	 * Data Integrity Format (DIF) is also known as protection information
+	 * or block-guard.  This sub-structure contains DIF specific feature
+	 * information for SSP IO requests.
+	 */
+	struct {
+		void *placeholder;
+	} dif;
 
-   /**
-    * Transport Layer Retries (TLR) is an SSP protocol specific feature.
-    * This sub-structure contains Transport Layer Retries (TLR) specific
-    * feature information for SSP IO requests.
-    */
-   struct
-   {
-      void * placeholder;
-   } tlr;
+	/**
+	 * Transport Layer Retries (TLR) is an SSP protocol specific feature.
+	 * This sub-structure contains Transport Layer Retries (TLR) specific
+	 * feature information for SSP IO requests.
+	 */
+	struct {
+		void *placeholder;
+	} tlr;
 
 } SCIC_IO_SSP_PARAMETERS_T;
 
@@ -110,15 +107,14 @@ typedef struct SCIC_IO_SSP_PARAMETERS
  *         STP/SATA IO requests.  These parameters are utilized with the
  *         scic_io_request_construct_advanced_sata() method.
  */
-typedef struct SCIC_IO_SATA_PARAMETERS
-{
-   /**
-    * This field indicates whether or not to construct the Scatter-Gather
-    * List elements for the SATA request.  This is used in scenarios
-    * where Scatter-gather-list processing/translation is done by the
-    * user.
-    */
-   BOOL do_translate_sgl;
+typedef struct SCIC_IO_SATA_PARAMETERS {
+	/**
+	 * This field indicates whether or not to construct the Scatter-Gather
+	 * List elements for the SATA request.  This is used in scenarios
+	 * where Scatter-gather-list processing/translation is done by the
+	 * user.
+	 */
+	BOOL do_translate_sgl;
 
 } SCIC_IO_SATA_PARAMETERS_T;
 
@@ -126,36 +122,36 @@ typedef struct SCIC_IO_SATA_PARAMETERS
  * @struct SCIC_PASSTHRU_REQUEST_CALLBACKS
  * @brief  This structure contains the pointer to the callback functions
  *         for constructing the passthrough request common to SSP, SMP and STP.
- *         This structure must be set by the win sci layer before the passthrough
- *         build is called
+ *         This structure must be set by the win sci layer before the
+ * passthrough build is called
  *
  */
-typedef struct SCIC_PASSTHRU_REQUEST_CALLBACKS
-{
-   /**
-   * Function pointer to get the phy identifier for passthrough request.
-   */
-   U32 (*scic_cb_passthru_get_phy_identifier) ( void * , U8 *);
-   /**
-   * Function pointer to get the port identifier for passthrough request.
-   */
-   U32 (*scic_cb_passthru_get_port_identifier) ( void * , U8 *);
-   /**
-   * Function pointer to get the connection rate for passthrough request.
-   */
-   U32 (*scic_cb_passthru_get_connection_rate) ( void * , void *);
-   /**
-   * Function pointer to get the destination sas address for passthrough request.
-   */
-   void (*scic_cb_passthru_get_destination_sas_address) (void *, U8 **);
-   /**
-   * Function pointer to get the transfer length for passthrough request.
-   */
-   U32 (*scic_cb_passthru_get_transfer_length) (void *);
-   /**
-   * Function pointer to get the data direction for passthrough request.
-   */
-   U32 (*scic_cb_passthru_get_data_direction) (void *);
+typedef struct SCIC_PASSTHRU_REQUEST_CALLBACKS {
+	/**
+	 * Function pointer to get the phy identifier for passthrough request.
+	 */
+	U32 (*scic_cb_passthru_get_phy_identifier)(void *, U8 *);
+	/**
+	 * Function pointer to get the port identifier for passthrough request.
+	 */
+	U32 (*scic_cb_passthru_get_port_identifier)(void *, U8 *);
+	/**
+	 * Function pointer to get the connection rate for passthrough request.
+	 */
+	U32 (*scic_cb_passthru_get_connection_rate)(void *, void *);
+	/**
+	 * Function pointer to get the destination sas address for passthrough
+	 * request.
+	 */
+	void (*scic_cb_passthru_get_destination_sas_address)(void *, U8 **);
+	/**
+	 * Function pointer to get the transfer length for passthrough request.
+	 */
+	U32 (*scic_cb_passthru_get_transfer_length)(void *);
+	/**
+	 * Function pointer to get the data direction for passthrough request.
+	 */
+	U32 (*scic_cb_passthru_get_data_direction)(void *);
 
 } SCIC_PASSTHRU_REQUEST_CALLBACKS_T;
 
@@ -163,76 +159,81 @@ typedef struct SCIC_PASSTHRU_REQUEST_CALLBACKS
  * @struct SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS
  * @brief  This structure contains the pointer to the callback functions
  *         for constructing the passthrough request specific to SSP.
- *         This structure must be set by the win sci layer before the passthrough
- *         build is called
+ *         This structure must be set by the win sci layer before the
+ * passthrough build is called
  *
  */
-typedef struct SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS
-{
-   /**
-   * Common callbacks for all Passthru requests
-   */
-   SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
-   /**
-   * Function pointer to get the lun for passthrough request.
-   */
-   void (* scic_cb_ssp_passthru_get_lun) (void *, U8 **);
-   /**
-   * Function pointer to get the cdb
-   */
-   void (* scic_cb_ssp_passthru_get_cdb) ( void *, U32 *, U8 **, U32 *, U8 ** );
-   /**
-   * Function pointer to get the task attribute for passthrough request.
-   */
-   U32 (*scic_cb_ssp_passthru_get_task_attribute) (void *);
+typedef struct SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS {
+	/**
+	 * Common callbacks for all Passthru requests
+	 */
+	SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
+	/**
+	 * Function pointer to get the lun for passthrough request.
+	 */
+	void (*scic_cb_ssp_passthru_get_lun)(void *, U8 **);
+	/**
+	 * Function pointer to get the cdb
+	 */
+	void (
+	    *scic_cb_ssp_passthru_get_cdb)(void *, U32 *, U8 **, U32 *, U8 **);
+	/**
+	 * Function pointer to get the task attribute for passthrough request.
+	 */
+	U32 (*scic_cb_ssp_passthru_get_task_attribute)(void *);
 } SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS_T;
 
 /**
  * @struct SCIC_STP_PASSTHRU_REQUEST_CALLBACKS
  * @brief  This structure contains the pointer to the callback functions
  *         for constructing the passthrough request specific to STP.
- *         This structure must be set by the win sci layer before the passthrough
- *         build is called
+ *         This structure must be set by the win sci layer before the
+ * passthrough build is called
  *
  */
-typedef struct SCIC_STP_PASSTHRU_REQUEST_CALLBACKS
-{
-   /**
-   * Common callbacks for all Passthru requests
-   */
-   SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
-   /**
-   * Function pointer to get the protocol for passthrough request.
-   */
-   U8 (* scic_cb_stp_passthru_get_protocol) (void *);
-   /**
-   * Function pointer to get the resgister fis
-   */
-   void (* scic_cb_stp_passthru_get_register_fis) ( void *, U8 ** );
-   /**
-   * Function pointer to get the MULTIPLE_COUNT (bits 5,6,7 in Byte 1 in the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_multiplecount) ( void *);
-   /**
-   * Function pointer to get the EXTEND (bit 0 in Byte 1 the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_extend) ( void *);
-   /**
-   * Function pointer to get the CK_COND (bit 5 in Byte 2 the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_ckcond) ( void *);
-   /**
-   * Function pointer to get the T_DIR (bit 3 in Byte 2 the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_tdir) ( void *);
-   /**
-   * Function pointer to get the BYTE_BLOCK (bit 2 in Byte 2 the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_byteblock) ( void *);
-   /**
-   * Function pointer to get the T_LENGTH (bits 0,1 in Byte 2 the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
-   */
-   U8 (* scic_cb_stp_passthru_get_tlength) ( void *);
+typedef struct SCIC_STP_PASSTHRU_REQUEST_CALLBACKS {
+	/**
+	 * Common callbacks for all Passthru requests
+	 */
+	SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
+	/**
+	 * Function pointer to get the protocol for passthrough request.
+	 */
+	U8 (*scic_cb_stp_passthru_get_protocol)(void *);
+	/**
+	 * Function pointer to get the resgister fis
+	 */
+	void (*scic_cb_stp_passthru_get_register_fis)(void *, U8 **);
+	/**
+	 * Function pointer to get the MULTIPLE_COUNT (bits 5,6,7 in Byte 1 in
+	 * the SAT-specific SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_multiplecount)(void *);
+	/**
+	 * Function pointer to get the EXTEND (bit 0 in Byte 1 the SAT-specific
+	 * SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_extend)(void *);
+	/**
+	 * Function pointer to get the CK_COND (bit 5 in Byte 2 the SAT-specific
+	 * SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_ckcond)(void *);
+	/**
+	 * Function pointer to get the T_DIR (bit 3 in Byte 2 the SAT-specific
+	 * SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_tdir)(void *);
+	/**
+	 * Function pointer to get the BYTE_BLOCK (bit 2 in Byte 2 the
+	 * SAT-specific SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_byteblock)(void *);
+	/**
+	 * Function pointer to get the T_LENGTH (bits 0,1 in Byte 2 the
+	 * SAT-specific SCSI extenstion in ATA Pass-through (0x85))
+	 */
+	U8 (*scic_cb_stp_passthru_get_tlength)(void *);
 
 } SCIC_STP_PASSTHRU_REQUEST_CALLBACKS_T;
 
@@ -240,34 +241,34 @@ typedef struct SCIC_STP_PASSTHRU_REQUEST_CALLBACKS
  * @struct SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS
  * @brief  This structure contains the pointer to the callback functions
  *         for constructing the passthrough request specific to SMP.
- *         This structure must be set by the win sci layer before the passthrough
- *         build is called
+ *         This structure must be set by the win sci layer before the
+ * passthrough build is called
  *
  */
-typedef struct SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS
-{
-   /**
-   * Common callbacks for all Passthru requests
-   */
-   SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
+typedef struct SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS {
+	/**
+	 * Common callbacks for all Passthru requests
+	 */
+	SCIC_PASSTHRU_REQUEST_CALLBACKS_T common_callbacks;
 
-   /**
-   * Function pointer to get the length of the smp request and its length
-   */
-   U32 (* scic_cb_smp_passthru_get_request) ( void *, U8 ** );
-   /**
-   * Function pointer to get the frame type of the smp request
-   */
-   U8 (* scic_cb_smp_passthru_get_frame_type) ( void *);
-   /**
-   * Function pointer to get the function in the smp request
-   */
-   U8 (* scic_cb_smp_passthru_get_function) ( void * );
+	/**
+	 * Function pointer to get the length of the smp request and its length
+	 */
+	U32 (*scic_cb_smp_passthru_get_request)(void *, U8 **);
+	/**
+	 * Function pointer to get the frame type of the smp request
+	 */
+	U8 (*scic_cb_smp_passthru_get_frame_type)(void *);
+	/**
+	 * Function pointer to get the function in the smp request
+	 */
+	U8 (*scic_cb_smp_passthru_get_function)(void *);
 
-   /**
-   * Function pointer to get the "allocated response length" in the smp request
-   */
-   U8 (* scic_cb_smp_passthru_get_allocated_response_length) ( void * );
+	/**
+	 * Function pointer to get the "allocated response length" in the smp
+	 * request
+	 */
+	U8 (*scic_cb_smp_passthru_get_allocated_response_length)(void *);
 
 } SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS_T;
 
@@ -275,34 +276,32 @@ typedef struct SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS
  * @brief This enumeration specifies the transport protocol utilized
  *        for the request.
  */
-typedef enum
-{
-   /**
-    * This enumeration constant indicates that no protocol has yet been
-    * set.
-    */
-   SCIC_NO_PROTOCOL,
+typedef enum {
+	/**
+	 * This enumeration constant indicates that no protocol has yet been
+	 * set.
+	 */
+	SCIC_NO_PROTOCOL,
 
-   /**
-    * This enumeration constant indicates that the protocol utilized
-    * is the Serial Management Protocol.
-    */
-   SCIC_SMP_PROTOCOL,
+	/**
+	 * This enumeration constant indicates that the protocol utilized
+	 * is the Serial Management Protocol.
+	 */
+	SCIC_SMP_PROTOCOL,
 
-   /**
-    * This enumeration constant indicates that the protocol utilized
-    * is the Serial SCSI Protocol.
-    */
-   SCIC_SSP_PROTOCOL,
+	/**
+	 * This enumeration constant indicates that the protocol utilized
+	 * is the Serial SCSI Protocol.
+	 */
+	SCIC_SSP_PROTOCOL,
 
-   /**
-    * This enumeration constant indicates that the protocol utilized
-    * is the Serial-ATA Tunneling Protocol.
-    */
-   SCIC_STP_PROTOCOL
+	/**
+	 * This enumeration constant indicates that the protocol utilized
+	 * is the Serial-ATA Tunneling Protocol.
+	 */
+	SCIC_STP_PROTOCOL
 
 } SCIC_TRANSPORT_PROTOCOL;
-
 
 /**
  * @brief This method simply returns the size required to build an SCI
@@ -310,9 +309,7 @@ typedef enum
  *
  * @return Return the size of the SCI IO request object.
  */
-U32 scic_io_request_get_object_size(
-   void
-);
+U32 scic_io_request_get_object_size(void);
 
 /**
  * @brief This method is called by the SCI user to construct all SCI Core
@@ -346,14 +343,10 @@ U32 scic_io_request_get_object_size(
  * @retval SCI_SUCCESS This value is returned if the IO request was
  *         successfully built.
  */
-SCI_STATUS scic_io_request_construct(
-   SCI_CONTROLLER_HANDLE_T      scic_controller,
-   SCI_REMOTE_DEVICE_HANDLE_T   scic_remote_device,
-   U16                          io_tag,
-   void                       * user_io_request_object,
-   void                       * scic_io_request_memory,
-   SCI_IO_REQUEST_HANDLE_T    * new_scic_io_request_handle
-);
+SCI_STATUS scic_io_request_construct(SCI_CONTROLLER_HANDLE_T scic_controller,
+    SCI_REMOTE_DEVICE_HANDLE_T scic_remote_device, U16 io_tag,
+    void *user_io_request_object, void *scic_io_request_memory,
+    SCI_IO_REQUEST_HANDLE_T *new_scic_io_request_handle);
 
 /**
  * @brief This method is called by the SCI user to build an SSP
@@ -378,8 +371,7 @@ SCI_STATUS scic_io_request_construct(
  *         information.
  */
 SCI_STATUS scic_io_request_construct_basic_ssp(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method is called by the SCI user to build an SSP
@@ -409,10 +401,9 @@ SCI_STATUS scic_io_request_construct_basic_ssp(
  *
  * @todo Determine the failure situations and return values.
  */
-SCI_STATUS scic_io_request_construct_advanced_ssp(
-   SCI_IO_REQUEST_HANDLE_T    scic_io_request,
-   SCIC_IO_SSP_PARAMETERS_T * io_parameters
-);
+SCI_STATUS
+scic_io_request_construct_advanced_ssp(SCI_IO_REQUEST_HANDLE_T scic_io_request,
+    SCIC_IO_SSP_PARAMETERS_T *io_parameters);
 
 #if !defined(DISABLE_PASS_THROUGH)
 
@@ -437,10 +428,9 @@ SCI_STATUS scic_io_request_construct_advanced_ssp(
  *         sci_object_set_association() routine for more
  *         information.
  */
-SCI_STATUS scic_io_request_construct_ssp_pass_through(
-   void                       * scic_io_request_memory,
-   SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS_T *ssp_passthru_cb
-);
+SCI_STATUS
+scic_io_request_construct_ssp_pass_through(void *scic_io_request_memory,
+    SCIC_SSP_PASSTHRU_REQUEST_CALLBACKS_T *ssp_passthru_cb);
 
 #else // !defined(DISABLE_PASS_THROUGH)
 
@@ -471,8 +461,7 @@ SCI_STATUS scic_io_request_construct_ssp_pass_through(
  *         information.
  */
 SCI_STATUS scic_io_request_construct_basic_sata(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method is called by the SCI Core user to build an STP
@@ -496,10 +485,9 @@ SCI_STATUS scic_io_request_construct_basic_sata(
  *         sci_object_set_association() routine for more
  *         information.
  */
-SCI_STATUS scic_io_request_construct_advanced_sata(
-   SCI_IO_REQUEST_HANDLE_T     scic_io_request,
-   SCIC_IO_SATA_PARAMETERS_T * io_parameters
-);
+SCI_STATUS
+scic_io_request_construct_advanced_sata(SCI_IO_REQUEST_HANDLE_T scic_io_request,
+    SCIC_IO_SATA_PARAMETERS_T *io_parameters);
 
 #if !defined(DISABLE_PASS_THROUGH)
 
@@ -520,8 +508,8 @@ SCI_STATUS scic_io_request_construct_advanced_sata(
  * @return Indicate if the controller successfully built the IO request.
  */
 SCI_STATUS scic_io_request_construct_sata_pass_through(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request,
-   SCIC_STP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb
+    SCI_IO_REQUEST_HANDLE_T scic_io_request,
+    SCIC_STP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb
 
 );
 
@@ -554,9 +542,7 @@ SCI_STATUS scic_io_request_construct_sata_pass_through(
  *         information.
  */
 SCI_STATUS scic_io_request_construct_smp(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
-
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method is called by the SCI user to build an SMP pass-through
@@ -575,9 +561,8 @@ SCI_STATUS scic_io_request_construct_smp(
  * @return Indicate if the controller successfully built the IO request.
  */
 SCI_STATUS scic_io_request_construct_smp_pass_through(
-   SCI_IO_REQUEST_HANDLE_T  scic_smp_request,
-   SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb
-);
+    SCI_IO_REQUEST_HANDLE_T scic_smp_request,
+    SCIC_SMP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb);
 
 /**
  * @brief This method returns the controller specific IO/Task request status.
@@ -590,9 +575,7 @@ SCI_STATUS scic_io_request_construct_smp_pass_through(
  * @return This method returns a value indicating the controller specific
  *         request status.
  */
-U32 scic_request_get_controller_status(
-   SCI_IO_REQUEST_HANDLE_T  io_request
-);
+U32 scic_request_get_controller_status(SCI_IO_REQUEST_HANDLE_T io_request);
 
 /**
  * @brief This method returns the user specific IO/Task request status.
@@ -603,10 +586,7 @@ U32 scic_request_get_controller_status(
  * @return This method returns a value indicating the user specific
  *         request status.
  */
-U32 scic_request_get_sci_status(
-   SCI_IO_REQUEST_HANDLE_T  io_request
-);
-
+U32 scic_request_get_sci_status(SCI_IO_REQUEST_HANDLE_T io_request);
 
 /**
  * @brief This method will return the address to the command information
@@ -617,9 +597,8 @@ U32 scic_request_get_sci_status(
  *
  * @return The address of the SSP/SMP command information unit.
  */
-void * scic_io_request_get_command_iu_address(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+void *scic_io_request_get_command_iu_address(
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will return the address to the response information
@@ -631,9 +610,8 @@ void * scic_io_request_get_command_iu_address(
  *
  * @return The address of the SSP/SMP response information unit.
  */
-void * scic_io_request_get_response_iu_address(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+void *scic_io_request_get_response_iu_address(
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will return the IO tag utilized by the IO request.
@@ -646,9 +624,7 @@ void * scic_io_request_get_response_iu_address(
  *         does not currently have an IO tag allocated to it.
  * @retval All return other values indicate a legitimate tag.
  */
-U16 scic_io_request_get_io_tag(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+U16 scic_io_request_get_io_tag(SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will inform the user of the protocol with which
@@ -662,8 +638,7 @@ U16 scic_io_request_get_io_tag(
  *         for more information.
  */
 SCIC_TRANSPORT_PROTOCOL scic_io_request_get_protocol(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will assign an NCQ tag to the io request object.  The
@@ -680,10 +655,8 @@ SCIC_TRANSPORT_PROTOCOL scic_io_request_get_protocol(
  *
  * @note This function is only valid for SATA NCQ requests.
  */
-void scic_stp_io_request_set_ncq_tag(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request,
-   U16                      ncq_tag
-);
+void scic_stp_io_request_set_ncq_tag(SCI_IO_REQUEST_HANDLE_T scic_io_request,
+    U16 ncq_tag);
 
 /**
  * @brief This method will return the address of the host to device register
@@ -698,9 +671,8 @@ void scic_stp_io_request_set_ncq_tag(
  *
  * @note This function is only valid for SATA requests.
  */
-void * scic_stp_io_request_get_h2d_reg_address(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+void *scic_stp_io_request_get_h2d_reg_address(
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will return the address of the device to host register
@@ -715,9 +687,8 @@ void * scic_stp_io_request_get_h2d_reg_address(
  *
  * @note This function is only valid for SATA requests.
  */
-void * scic_stp_io_request_get_d2h_reg_address(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+void *scic_stp_io_request_get_d2h_reg_address(
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 /**
  * @brief This method will return the rx frame for the io request object that
@@ -732,30 +703,27 @@ void * scic_stp_io_request_get_d2h_reg_address(
  * @note Frame buffers are only 1024 bytes in size.  Reading past the end of a
  *       frame will have unexpected results.
  */
-void * scic_io_request_get_rx_frame(
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request,
-   U32                      offset
-);
+void *scic_io_request_get_rx_frame(SCI_IO_REQUEST_HANDLE_T scic_io_request,
+    U32 offset);
 
 /**
  * @brief This method will return the number of bytes transferred from the SCU
  *
- * @param[in] scic_io_request This parameter specifies the handle to the io request
- *            whose data length was not eqaul to the data length specified in the request.
- *            When the driver gets an early io completion status from the hardware,
- *            this routine should be called to get the actual number of bytes transferred
+ * @param[in] scic_io_request This parameter specifies the handle to the io
+ * request whose data length was not eqaul to the data length specified in the
+ * request. When the driver gets an early io completion status from the
+ * hardware, this routine should be called to get the actual number of bytes
+ * transferred
  *
- * @return The return is the number of bytes transferred when the data legth is not equal to
- *         the specified length in the io request
+ * @return The return is the number of bytes transferred when the data legth is
+ * not equal to the specified length in the io request
  *
  */
-U32 scic_io_request_get_number_of_bytes_transferred (
-   SCI_IO_REQUEST_HANDLE_T  scic_io_request
-);
+U32 scic_io_request_get_number_of_bytes_transferred(
+    SCI_IO_REQUEST_HANDLE_T scic_io_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_IO_REQUEST_H_
-

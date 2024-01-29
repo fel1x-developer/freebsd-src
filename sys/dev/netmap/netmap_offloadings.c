@@ -26,22 +26,22 @@
  * SUCH DAMAGE.
  */
 
-
 #if defined(__FreeBSD__)
 #include <sys/cdefs.h> /* prerequisite */
-
 #include <sys/types.h>
+#include <sys/param.h> /* defines used in kernel.h */
+#include <sys/endian.h>
 #include <sys/errno.h>
-#include <sys/param.h>	/* defines used in kernel.h */
-#include <sys/kernel.h>	/* types used in module initialization */
-#include <sys/sockio.h>
+#include <sys/kernel.h> /* types used in module initialization */
 #include <sys/malloc.h>
-#include <sys/socketvar.h>	/* struct socket */
-#include <sys/socket.h> /* sockaddrs */
+#include <sys/socket.h>	   /* sockaddrs */
+#include <sys/socketvar.h> /* struct socket */
+#include <sys/sockio.h>
+
+#include <machine/bus.h> /* bus_dmamap_* */
+
 #include <net/if.h>
 #include <net/if_var.h>
-#include <machine/bus.h>	/* bus_dmamap_* */
-#include <sys/endian.h>
 
 #elif defined(linux)
 
@@ -54,14 +54,13 @@
 
 #else
 
-#error	Unsupported platform
+#error Unsupported platform
 
 #endif /* unsupported */
 
-#include <net/netmap.h>
 #include <dev/netmap/netmap_kern.h>
 
-
+#include <net/netmap.h>
 
 /* This routine is called by bdg_mismatch_datapath() when it finishes
  * accumulating bytes for a segment, in order to fix some fields in the
@@ -71,7 +70,7 @@
  */
 static void
 gso_fix_segment(uint8_t *pkt, size_t len, u_int ipv4, u_int iphlen, u_int tcp,
-		u_int idx, u_int segmented_bytes, u_int last_segment)
+    u_int idx, u_int segmented_bytes, u_int last_segment)
 {
 	struct nm_iphdr *iph = (struct nm_iphdr *)(pkt);
 	struct nm_ipv6hdr *ip6h = (struct nm_ipv6hdr *)(pkt);
@@ -93,7 +92,7 @@ gso_fix_segment(uint8_t *pkt, size_t len, u_int ipv4, u_int iphlen, u_int tcp,
 		nm_prdis("IP csum %x", be16toh(iph->check));
 	} else {
 		/* Set the IPv6 "Payload Len" field. */
-		ip6h->payload_len = htobe16(len-iphlen);
+		ip6h->payload_len = htobe16(len - iphlen);
 	}
 
 	if (tcp) {
@@ -115,7 +114,7 @@ gso_fix_segment(uint8_t *pkt, size_t len, u_int ipv4, u_int iphlen, u_int tcp,
 		struct nm_udphdr *udph = (struct nm_udphdr *)(pkt + iphlen);
 
 		/* Set the UDP 'Length' field. */
-		udph->len = htobe16(len-iphlen);
+		udph->len = htobe16(len - iphlen);
 
 		check = &udph->check;
 		check_data = (uint8_t *)udph;
@@ -124,9 +123,9 @@ gso_fix_segment(uint8_t *pkt, size_t len, u_int ipv4, u_int iphlen, u_int tcp,
 	/* Compute and insert TCP/UDP checksum. */
 	*check = 0;
 	if (ipv4)
-		nm_os_csum_tcpudp_ipv4(iph, check_data, len-iphlen, check);
+		nm_os_csum_tcpudp_ipv4(iph, check_data, len - iphlen, check);
 	else
-		nm_os_csum_tcpudp_ipv6(ip6h, check_data, len-iphlen, check);
+		nm_os_csum_tcpudp_ipv6(ip6h, check_data, len - iphlen, check);
 
 	nm_prdis("TCP/UDP csum %x", be16toh(*check));
 }
@@ -136,24 +135,19 @@ vnet_hdr_is_bad(struct nm_vnet_hdr *vh)
 {
 	uint8_t gso_type = vh->gso_type & ~VIRTIO_NET_HDR_GSO_ECN;
 
-	return (
-		(gso_type != VIRTIO_NET_HDR_GSO_NONE &&
-		 gso_type != VIRTIO_NET_HDR_GSO_TCPV4 &&
-		 gso_type != VIRTIO_NET_HDR_GSO_UDP &&
-		 gso_type != VIRTIO_NET_HDR_GSO_TCPV6)
-		||
-		 (vh->flags & ~(VIRTIO_NET_HDR_F_NEEDS_CSUM
-			       | VIRTIO_NET_HDR_F_DATA_VALID))
-	       );
+	return ((gso_type != VIRTIO_NET_HDR_GSO_NONE &&
+		    gso_type != VIRTIO_NET_HDR_GSO_TCPV4 &&
+		    gso_type != VIRTIO_NET_HDR_GSO_UDP &&
+		    gso_type != VIRTIO_NET_HDR_GSO_TCPV6) ||
+	    (vh->flags &
+		~(VIRTIO_NET_HDR_F_NEEDS_CSUM | VIRTIO_NET_HDR_F_DATA_VALID)));
 }
 
 /* The VALE mismatch datapath implementation. */
 void
 bdg_mismatch_datapath(struct netmap_vp_adapter *na,
-		      struct netmap_vp_adapter *dst_na,
-		      const struct nm_bdg_fwd *ft_p,
-		      struct netmap_ring *dst_ring,
-		      u_int *j, u_int lim, u_int *howmany)
+    struct netmap_vp_adapter *dst_na, const struct nm_bdg_fwd *ft_p,
+    struct netmap_ring *dst_ring, u_int *j, u_int lim, u_int *howmany)
 {
 	struct netmap_slot *dst_slot = NULL;
 	struct nm_vnet_hdr *vh = NULL;
@@ -215,9 +209,9 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 	 *   0 |  10 | zero
 	 *   0 |  12 | zero
 	 *  10 |   0 | doesn't exist
-	 *  10 |  12 | first 10 bytes are copied from source header, last 2 are zero
-	 *  12 |   0 | doesn't exist
-	 *  12 |  10 | copied from the first 10 bytes of source header
+	 *  10 |  12 | first 10 bytes are copied from source header, last 2 are
+	 *zero 12 |   0 | doesn't exist 12 |  10 | copied from the first 10
+	 *bytes of source header
 	 */
 	bzero(dst, dst_na->up.virt_hdr_len);
 	if (na->up.virt_hdr_len && dst_na->up.virt_hdr_len)
@@ -242,7 +236,8 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 		u_int gso_bytes = 0;
 		/* Length of the GSO packet header. */
 		u_int gso_hdr_len = 0;
-		/* Pointer to the GSO packet header. Assume it is in a single fragment. */
+		/* Pointer to the GSO packet header. Assume it is in a single
+		 * fragment. */
 		uint8_t *gso_hdr = NULL;
 		/* Index of the current segment. */
 		u_int gso_idx = 0;
@@ -252,20 +247,26 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 		u_int ipv4 = 0;
 		/* Length of the IP header (20 if IPv4, 40 if IPv6). */
 		u_int iphlen = 0;
-		/* Length of the Ethernet header (18 if 802.1q, otherwise 14). */
+		/* Length of the Ethernet header (18 if 802.1q, otherwise 14).
+		 */
 		u_int ethhlen = 14;
 		/* Is this a TCP or an UDP GSO packet? */
-		u_int tcp = ((vh->gso_type & ~VIRTIO_NET_HDR_GSO_ECN)
-				== VIRTIO_NET_HDR_GSO_UDP) ? 0 : 1;
+		u_int tcp = ((vh->gso_type & ~VIRTIO_NET_HDR_GSO_ECN) ==
+				VIRTIO_NET_HDR_GSO_UDP) ?
+		    0 :
+		    1;
 
-		/* Segment the GSO packet contained into the input slots (frags). */
+		/* Segment the GSO packet contained into the input slots
+		 * (frags). */
 		for (;;) {
 			size_t copy;
 
 			if (dst_slots >= *howmany) {
-				/* We still have work to do, but we've run out of
-				 * dst slots, so we have to drop the packet. */
-				nm_prdis(1, "Not enough slots, dropping GSO packet");
+				/* We still have work to do, but we've run out
+				 * of dst slots, so we have to drop the packet.
+				 */
+				nm_prdis(1,
+				    "Not enough slots, dropping GSO packet");
 				return;
 			}
 
@@ -275,76 +276,87 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 
 				gso_hdr = src;
 
-				/* Look at the 'Ethertype' field to see if this packet
-				 * is IPv4 or IPv6, taking into account VLAN
-				 * encapsulation. */
+				/* Look at the 'Ethertype' field to see if this
+				 * packet is IPv4 or IPv6, taking into account
+				 * VLAN encapsulation. */
 				for (;;) {
 					if (src_len < ethhlen) {
-						nm_prlim(1, "Short GSO fragment [eth], dropping");
+						nm_prlim(1,
+						    "Short GSO fragment [eth], dropping");
 						return;
 					}
-					ethertype = be16toh(*((uint16_t *)
-							    (gso_hdr + ethhlen - 2)));
-					if (ethertype != 0x8100) /* not 802.1q */
+					ethertype = be16toh(
+					    *((uint16_t *)(gso_hdr + ethhlen -
+						2)));
+					if (ethertype !=
+					    0x8100) /* not 802.1q */
 						break;
 					ethhlen += 4;
 				}
 				switch (ethertype) {
-					case 0x0800:  /* IPv4 */
-					{
-						struct nm_iphdr *iph = (struct nm_iphdr *)
-									(gso_hdr + ethhlen);
+				case 0x0800: /* IPv4 */
+				{
+					struct nm_iphdr *iph =
+					    (struct nm_iphdr *)(gso_hdr +
+						ethhlen);
 
-						if (src_len < ethhlen + 20) {
-							nm_prlim(1, "Short GSO fragment "
-							      "[IPv4], dropping");
-							return;
-						}
-						ipv4 = 1;
-						iphlen = 4 * (iph->version_ihl & 0x0F);
-						break;
-					}
-					case 0x86DD:  /* IPv6 */
-						ipv4 = 0;
-						iphlen = 40;
-						break;
-					default:
-						nm_prlim(1, "Unsupported ethertype, "
-						      "dropping GSO packet");
+					if (src_len < ethhlen + 20) {
+						nm_prlim(1,
+						    "Short GSO fragment "
+						    "[IPv4], dropping");
 						return;
+					}
+					ipv4 = 1;
+					iphlen = 4 * (iph->version_ihl & 0x0F);
+					break;
+				}
+				case 0x86DD: /* IPv6 */
+					ipv4 = 0;
+					iphlen = 40;
+					break;
+				default:
+					nm_prlim(1,
+					    "Unsupported ethertype, "
+					    "dropping GSO packet");
+					return;
 				}
 				nm_prdis(3, "type=%04x", ethertype);
 
 				if (src_len < ethhlen + iphlen) {
-					nm_prlim(1, "Short GSO fragment [IP], dropping");
+					nm_prlim(1,
+					    "Short GSO fragment [IP], dropping");
 					return;
 				}
 
-				/* Compute gso_hdr_len. For TCP we need to read the
-				 * content of the 'Data Offset' field.
+				/* Compute gso_hdr_len. For TCP we need to read
+				 * the content of the 'Data Offset' field.
 				 */
 				if (tcp) {
-					struct nm_tcphdr *tcph = (struct nm_tcphdr *)
-								(gso_hdr + ethhlen + iphlen);
+					struct nm_tcphdr *tcph =
+					    (struct nm_tcphdr *)(gso_hdr +
+						ethhlen + iphlen);
 
 					if (src_len < ethhlen + iphlen + 20) {
-						nm_prlim(1, "Short GSO fragment "
-								"[TCP], dropping");
+						nm_prlim(1,
+						    "Short GSO fragment "
+						    "[TCP], dropping");
 						return;
 					}
 					gso_hdr_len = ethhlen + iphlen +
-						      4 * (tcph->doff >> 4);
+					    4 * (tcph->doff >> 4);
 				} else {
-					gso_hdr_len = ethhlen + iphlen + 8; /* UDP */
+					gso_hdr_len = ethhlen + iphlen +
+					    8; /* UDP */
 				}
 
 				if (src_len < gso_hdr_len) {
-					nm_prlim(1, "Short GSO fragment [TCP/UDP], dropping");
+					nm_prlim(1,
+					    "Short GSO fragment [TCP/UDP], dropping");
 					return;
 				}
 
-				nm_prdis(3, "gso_hdr_len %u gso_mtu %d", gso_hdr_len,
-								   dst_na->mfs);
+				nm_prdis(3, "gso_hdr_len %u gso_mtu %d",
+				    gso_hdr_len, dst_na->mfs);
 
 				/* Advance source pointers. */
 				src += gso_hdr_len;
@@ -376,16 +388,17 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 			/* A segment is complete or we have processed all the
 			   the GSO payload bytes. */
 			if (gso_bytes >= dst_na->mfs ||
-				(src_len == 0 && ft_p + 1 == ft_end)) {
-				/* After raw segmentation, we must fix some header
-				 * fields and compute checksums, in a protocol dependent
-				 * way. */
-				gso_fix_segment(dst + ethhlen, gso_bytes - ethhlen,
-						ipv4, iphlen, tcp,
-						gso_idx, segmented_bytes,
-						src_len == 0 && ft_p + 1 == ft_end);
+			    (src_len == 0 && ft_p + 1 == ft_end)) {
+				/* After raw segmentation, we must fix some
+				 * header fields and compute checksums, in a
+				 * protocol dependent way. */
+				gso_fix_segment(dst + ethhlen,
+				    gso_bytes - ethhlen, ipv4, iphlen, tcp,
+				    gso_idx, segmented_bytes,
+				    src_len == 0 && ft_p + 1 == ft_end);
 
-				nm_prdis("frame %u completed with %d bytes", gso_idx, (int)gso_bytes);
+				nm_prdis("frame %u completed with %d bytes",
+				    gso_idx, (int)gso_bytes);
 				dst_slot->len = gso_bytes;
 				dst_slot->flags = 0;
 				dst_slots++;
@@ -421,21 +434,24 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 
 		/* Init 'check' if necessary. */
 		if (vh && (vh->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)) {
-			if (unlikely(vh->csum_offset + vh->csum_start > src_len))
+			if (unlikely(
+				vh->csum_offset + vh->csum_start > src_len))
 				nm_prerr("invalid checksum request");
 			else
 				check = (uint16_t *)(dst + vh->csum_start +
-						vh->csum_offset);
+				    vh->csum_offset);
 		}
 
 		while (ft_p != ft_end) {
 			/* Init/update the packet checksum if needed. */
 			if (vh && (vh->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)) {
 				if (!dst_slots)
-					csum = nm_os_csum_raw(src + vh->csum_start,
-								src_len - vh->csum_start, 0);
+					csum = nm_os_csum_raw(src +
+						vh->csum_start,
+					    src_len - vh->csum_start, 0);
 				else
-					csum = nm_os_csum_raw(src, src_len, csum);
+					csum = nm_os_csum_raw(src, src_len,
+					    csum);
 			}
 
 			/* Round to a multiple of 64 */
@@ -443,7 +459,8 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 
 			if (ft_p->ft_flags & NS_INDIRECT) {
 				if (copyin(src, dst, src_len)) {
-					/* Invalid user pointer, pretend len is 0. */
+					/* Invalid user pointer, pretend len is
+					 * 0. */
 					dst_len = 0;
 				}
 			} else {
@@ -474,7 +491,7 @@ bdg_mismatch_datapath(struct netmap_vp_adapter *na,
 		 */
 		while (j_start != j_cur) {
 			dst_slot = &dst_ring->slot[j_start];
-			dst_slot->flags = (dst_slots << 8)| NS_MOREFRAG;
+			dst_slot->flags = (dst_slots << 8) | NS_MOREFRAG;
 			j_start = nm_next(j_start, lim);
 		}
 		/* Clear NS_MOREFRAG flag on last entry. */

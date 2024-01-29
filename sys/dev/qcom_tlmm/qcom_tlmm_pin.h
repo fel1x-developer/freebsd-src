@@ -27,22 +27,20 @@
  *
  */
 
-#ifndef	__QCOM_TLMM_PIN_H__
-#define	__QCOM_TLMM_PIN_H__
+#ifndef __QCOM_TLMM_PIN_H__
+#define __QCOM_TLMM_PIN_H__
 
-extern	device_t qcom_tlmm_get_bus(device_t dev);
-extern	int qcom_tlmm_pin_max(device_t dev, int *maxpin);
-extern	int qcom_tlmm_pin_getcaps(device_t dev, uint32_t pin, uint32_t *caps);
-extern	int qcom_tlmm_pin_getflags(device_t dev, uint32_t pin,
-	    uint32_t *flags);
-extern	int qcom_tlmm_pin_getname(device_t dev, uint32_t pin, char *name);
-extern	int qcom_tlmm_pin_setflags(device_t dev, uint32_t pin,
-	    uint32_t flags);
-extern	int qcom_tlmm_pin_set(device_t dev, uint32_t pin, unsigned int value);
-extern	int qcom_tlmm_pin_get(device_t dev, uint32_t pin, unsigned int *val);
-extern	int qcom_tlmm_pin_toggle(device_t dev, uint32_t pin);
-extern	int qcom_tlmm_filter(void *arg);
-extern	void qcom_tlmm_intr(void *arg);
-extern	phandle_t qcom_tlmm_pin_get_node(device_t dev, device_t bus);
+extern device_t qcom_tlmm_get_bus(device_t dev);
+extern int qcom_tlmm_pin_max(device_t dev, int *maxpin);
+extern int qcom_tlmm_pin_getcaps(device_t dev, uint32_t pin, uint32_t *caps);
+extern int qcom_tlmm_pin_getflags(device_t dev, uint32_t pin, uint32_t *flags);
+extern int qcom_tlmm_pin_getname(device_t dev, uint32_t pin, char *name);
+extern int qcom_tlmm_pin_setflags(device_t dev, uint32_t pin, uint32_t flags);
+extern int qcom_tlmm_pin_set(device_t dev, uint32_t pin, unsigned int value);
+extern int qcom_tlmm_pin_get(device_t dev, uint32_t pin, unsigned int *val);
+extern int qcom_tlmm_pin_toggle(device_t dev, uint32_t pin);
+extern int qcom_tlmm_filter(void *arg);
+extern void qcom_tlmm_intr(void *arg);
+extern phandle_t qcom_tlmm_pin_get_node(device_t dev, device_t bus);
 
-#endif	/* __QCOM_TLMM_PIN_H__ */
+#endif /* __QCOM_TLMM_PIN_H__ */

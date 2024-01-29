@@ -32,56 +32,53 @@
 #include <sys/_lock.h>
 #include <sys/_mutex.h>
 
-#define IICBUS_IVAR(d) (struct iicbus_ivar *) device_get_ivars(d)
-#define IICBUS_SOFTC(d) (struct iicbus_softc *) device_get_softc(d)
+#define IICBUS_IVAR(d) (struct iicbus_ivar *)device_get_ivars(d)
+#define IICBUS_SOFTC(d) (struct iicbus_softc *)device_get_softc(d)
 
-struct iicbus_softc
-{
-	device_t dev;		/* Myself */
-	device_t owner;		/* iicbus owner device structure */
-	device_t busydev;	/* iicbus_release_bus calls unbusy on this */
-	u_int owncount;		/* iicbus ownership nesting count */
-	u_char started;		/* address of the 'started' slave
-				 * 0 if no start condition succeeded */
-	u_char strict;		/* deny operations that violate the
-				 * I2C protocol */
+struct iicbus_softc {
+	device_t dev;	  /* Myself */
+	device_t owner;	  /* iicbus owner device structure */
+	device_t busydev; /* iicbus_release_bus calls unbusy on this */
+	u_int owncount;	  /* iicbus ownership nesting count */
+	u_char started;	  /* address of the 'started' slave
+			   * 0 if no start condition succeeded */
+	u_char strict;	  /* deny operations that violate the
+			   * I2C protocol */
 	struct mtx lock;
-	u_int bus_freq;		/* Configured bus Hz. */
+	u_int bus_freq; /* Configured bus Hz. */
 };
 
-struct iicbus_ivar
-{
-	uint32_t	addr;
-	struct resource_list	rl;
+struct iicbus_ivar {
+	uint32_t addr;
+	struct resource_list rl;
 };
 
 /* Value of 0x100 is reserved for ACPI_IVAR_HANDLE used by acpi_iicbus */
 enum {
-	IICBUS_IVAR_ADDR		/* Address or base address */
+	IICBUS_IVAR_ADDR /* Address or base address */
 };
 
-#define IICBUS_ACCESSOR(A, B, T)					\
-	__BUS_ACCESSOR(iicbus, A, IICBUS, B, T)
-	
-IICBUS_ACCESSOR(addr,		ADDR,		uint32_t)
+#define IICBUS_ACCESSOR(A, B, T) __BUS_ACCESSOR(iicbus, A, IICBUS, B, T)
 
-#define	IICBUS_LOCK(sc)			mtx_lock(&(sc)->lock)
-#define	IICBUS_UNLOCK(sc)      		mtx_unlock(&(sc)->lock)
-#define	IICBUS_ASSERT_LOCKED(sc)       	mtx_assert(&(sc)->lock, MA_OWNED)
+IICBUS_ACCESSOR(addr, ADDR, uint32_t)
+
+#define IICBUS_LOCK(sc) mtx_lock(&(sc)->lock)
+#define IICBUS_UNLOCK(sc) mtx_unlock(&(sc)->lock)
+#define IICBUS_ASSERT_LOCKED(sc) mtx_assert(&(sc)->lock, MA_OWNED)
 
 #ifdef FDT
-#define	IICBUS_FDT_PNP_INFO(t)	FDTCOMPAT_PNP_INFO(t, iicbus)
+#define IICBUS_FDT_PNP_INFO(t) FDTCOMPAT_PNP_INFO(t, iicbus)
 #else
-#define	IICBUS_FDT_PNP_INFO(t)
+#define IICBUS_FDT_PNP_INFO(t)
 #endif
 
 #ifdef DEV_ACPI
-#define	IICBUS_ACPI_PNP_INFO(t)	ACPICOMPAT_PNP_INFO(t, iicbus)
+#define IICBUS_ACPI_PNP_INFO(t) ACPICOMPAT_PNP_INFO(t, iicbus)
 #else
-#define	IICBUS_ACPI_PNP_INFO(t)
+#define IICBUS_ACPI_PNP_INFO(t)
 #endif
 
-int  iicbus_generic_intr(device_t dev, int event, char *buf);
+int iicbus_generic_intr(device_t dev, int event, char *buf);
 void iicbus_init_frequency(device_t dev, u_int bus_freq);
 
 int iicbus_attach_common(device_t dev, u_int bus_freq);
@@ -91,8 +88,7 @@ int iicbus_detach(device_t dev);
 void iicbus_probe_nomatch(device_t bus, device_t child);
 int iicbus_read_ivar(device_t bus, device_t child, int which,
     uintptr_t *result);
-int iicbus_write_ivar(device_t bus, device_t child, int which,
-    uintptr_t value);
+int iicbus_write_ivar(device_t bus, device_t child, int which, uintptr_t value);
 int iicbus_child_location(device_t bus, device_t child, struct sbuf *sb);
 int iicbus_child_pnpinfo(device_t bus, device_t child, struct sbuf *sb);
 

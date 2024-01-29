@@ -30,157 +30,155 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_PCI_H_
-#define	_LINUXKPI_LINUX_PCI_H_
+#ifndef _LINUXKPI_LINUX_PCI_H_
+#define _LINUXKPI_LINUX_PCI_H_
 
-#define	CONFIG_PCI_MSI
-
-#include <linux/types.h>
+#define CONFIG_PCI_MSI
 
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/module.h>
 #include <sys/nv.h>
 #include <sys/pciio.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pci_private.h>
 
 #include <machine/resource.h>
 
-#include <linux/list.h>
-#include <linux/dmapool.h>
-#include <linux/dma-mapping.h>
-#include <linux/compiler.h>
-#include <linux/errno.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <asm/atomic.h>
 #include <asm/memtype.h>
+#include <linux/compiler.h>
 #include <linux/device.h>
+#include <linux/dma-mapping.h>
+#include <linux/dmapool.h>
+#include <linux/errno.h>
+#include <linux/list.h>
 #include <linux/pci_ids.h>
 #include <linux/pm.h>
+#include <linux/types.h>
 
 struct pci_device_id {
-	uint32_t	vendor;
-	uint32_t	device;
-	uint32_t	subvendor;
-	uint32_t	subdevice;
-	uint32_t	class;
-	uint32_t	class_mask;
-	uintptr_t	driver_data;
+	uint32_t vendor;
+	uint32_t device;
+	uint32_t subvendor;
+	uint32_t subdevice;
+	uint32_t class;
+	uint32_t class_mask;
+	uintptr_t driver_data;
 };
 
 /* Linux has an empty element at the end of the ID table -> nitems() - 1. */
-#define	MODULE_DEVICE_TABLE(_bus, _table)				\
-									\
-static device_method_t _ ## _bus ## _ ## _table ## _methods[] = {	\
-	DEVMETHOD_END							\
-};									\
-									\
-static driver_t _ ## _bus ## _ ## _table ## _driver = {			\
-	"lkpi_" #_bus #_table,						\
-	_ ## _bus ## _ ## _table ## _methods,				\
-	0								\
-};									\
-									\
-DRIVER_MODULE(lkpi_ ## _table, pci, _ ## _bus ## _ ## _table ## _driver,\
-	0, 0);								\
-									\
-MODULE_PNP_INFO("U32:vendor;U32:device;V32:subvendor;V32:subdevice",	\
-    _bus, lkpi_ ## _table, _table, nitems(_table) - 1)
+#define MODULE_DEVICE_TABLE(_bus, _table)                                      \
+                                                                               \
+	static device_method_t _##_bus##_##_table##_methods[] = {              \
+		DEVMETHOD_END                                                  \
+	};                                                                     \
+                                                                               \
+	static driver_t _##_bus##_##_table##_driver = { "lkpi_" #_bus #_table, \
+		_##_bus##_##_table##_methods, 0 };                             \
+                                                                               \
+	DRIVER_MODULE(lkpi_##_table, pci, _##_bus##_##_table##_driver, 0, 0);  \
+                                                                               \
+	MODULE_PNP_INFO("U32:vendor;U32:device;V32:subvendor;V32:subdevice",   \
+	    _bus, lkpi_##_table, _table, nitems(_table) - 1)
 
-#define	PCI_ANY_ID			-1U
+#define PCI_ANY_ID -1U
 
-#define PCI_DEVFN(slot, func)   ((((slot) & 0x1f) << 3) | ((func) & 0x07))
-#define PCI_SLOT(devfn)		(((devfn) >> 3) & 0x1f)
-#define PCI_FUNC(devfn)		((devfn) & 0x07)
-#define	PCI_BUS_NUM(devfn)	(((devfn) >> 8) & 0xff)
+#define PCI_DEVFN(slot, func) ((((slot) & 0x1f) << 3) | ((func) & 0x07))
+#define PCI_SLOT(devfn) (((devfn) >> 3) & 0x1f)
+#define PCI_FUNC(devfn) ((devfn) & 0x07)
+#define PCI_BUS_NUM(devfn) (((devfn) >> 8) & 0xff)
 
-#define PCI_VDEVICE(_vendor, _device)					\
-	    .vendor = PCI_VENDOR_ID_##_vendor, .device = (_device),	\
-	    .subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
-#define	PCI_DEVICE(_vendor, _device)					\
-	    .vendor = (_vendor), .device = (_device),			\
-	    .subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
+#define PCI_VDEVICE(_vendor, _device)                           \
+	.vendor = PCI_VENDOR_ID_##_vendor, .device = (_device), \
+	.subvendor = PCI_ANY_ID, .subdevice = PCI_ANY_ID
+#define PCI_DEVICE(_vendor, _device)                                       \
+	.vendor = (_vendor), .device = (_device), .subvendor = PCI_ANY_ID, \
+	.subdevice = PCI_ANY_ID
 
-#define	to_pci_dev(n)	container_of(n, struct pci_dev, dev)
+#define to_pci_dev(n) container_of(n, struct pci_dev, dev)
 
-#define	PCI_STD_NUM_BARS	6
-#define	PCI_VENDOR_ID		PCIR_VENDOR
-#define	PCI_DEVICE_ID		PCIR_DEVICE
-#define	PCI_COMMAND		PCIR_COMMAND
-#define	PCI_COMMAND_INTX_DISABLE	PCIM_CMD_INTxDIS
-#define	PCI_COMMAND_MEMORY	PCIM_CMD_MEMEN
-#define	PCI_EXP_DEVCTL		PCIER_DEVICE_CTL		/* Device Control */
-#define	PCI_EXP_LNKCTL		PCIER_LINK_CTL			/* Link Control */
-#define	PCI_EXP_LNKCTL_ASPM_L0S	PCIEM_LINK_CTL_ASPMC_L0S
-#define	PCI_EXP_LNKCTL_ASPM_L1	PCIEM_LINK_CTL_ASPMC_L1
-#define PCI_EXP_LNKCTL_ASPMC	PCIEM_LINK_CTL_ASPMC
-#define	PCI_EXP_LNKCTL_CLKREQ_EN PCIEM_LINK_CTL_ECPM		/* Enable clock PM */
-#define PCI_EXP_LNKCTL_HAWD	PCIEM_LINK_CTL_HAWD
-#define	PCI_EXP_FLAGS_TYPE	PCIEM_FLAGS_TYPE		/* Device/Port type */
-#define	PCI_EXP_DEVCAP		PCIER_DEVICE_CAP		/* Device capabilities */
-#define	PCI_EXP_DEVSTA		PCIER_DEVICE_STA		/* Device Status */
-#define	PCI_EXP_LNKCAP		PCIER_LINK_CAP			/* Link Capabilities */
-#define	PCI_EXP_LNKSTA		PCIER_LINK_STA			/* Link Status */
-#define	PCI_EXP_SLTCAP		PCIER_SLOT_CAP			/* Slot Capabilities */
-#define	PCI_EXP_SLTCTL		PCIER_SLOT_CTL			/* Slot Control */
-#define	PCI_EXP_SLTSTA		PCIER_SLOT_STA			/* Slot Status */
-#define	PCI_EXP_RTCTL		PCIER_ROOT_CTL			/* Root Control */
-#define	PCI_EXP_RTCAP		PCIER_ROOT_CAP			/* Root Capabilities */
-#define	PCI_EXP_RTSTA		PCIER_ROOT_STA			/* Root Status */
-#define	PCI_EXP_DEVCAP2		PCIER_DEVICE_CAP2		/* Device Capabilities 2 */
-#define	PCI_EXP_DEVCTL2		PCIER_DEVICE_CTL2		/* Device Control 2 */
-#define	PCI_EXP_DEVCTL2_LTR_EN	PCIEM_CTL2_LTR_ENABLE
-#define	PCI_EXP_DEVCTL2_COMP_TMOUT_DIS	PCIEM_CTL2_COMP_TIMO_DISABLE
-#define	PCI_EXP_LNKCAP2		PCIER_LINK_CAP2			/* Link Capabilities 2 */
-#define	PCI_EXP_LNKCTL2		PCIER_LINK_CTL2			/* Link Control 2 */
-#define	PCI_EXP_LNKSTA2		PCIER_LINK_STA2			/* Link Status 2 */
-#define	PCI_EXP_FLAGS		PCIER_FLAGS			/* Capabilities register */
-#define	PCI_EXP_FLAGS_VERS	PCIEM_FLAGS_VERSION		/* Capability version */
-#define	PCI_EXP_TYPE_ROOT_PORT	PCIEM_TYPE_ROOT_PORT		/* Root Port */
-#define	PCI_EXP_TYPE_ENDPOINT	PCIEM_TYPE_ENDPOINT		/* Express Endpoint */
-#define	PCI_EXP_TYPE_LEG_END	PCIEM_TYPE_LEGACY_ENDPOINT	/* Legacy Endpoint */
-#define	PCI_EXP_TYPE_DOWNSTREAM PCIEM_TYPE_DOWNSTREAM_PORT	/* Downstream Port */
-#define	PCI_EXP_FLAGS_SLOT	PCIEM_FLAGS_SLOT		/* Slot implemented */
-#define	PCI_EXP_TYPE_RC_EC	PCIEM_TYPE_ROOT_EC		/* Root Complex Event Collector */
-#define	PCI_EXP_LNKSTA_CLS	PCIEM_LINK_STA_SPEED
-#define	PCI_EXP_LNKSTA_CLS_8_0GB	0x0003	/* Current Link Speed 8.0GT/s */
-#define	PCI_EXP_LNKCAP_SLS_2_5GB 0x01	/* Supported Link Speed 2.5GT/s */
-#define	PCI_EXP_LNKCAP_SLS_5_0GB 0x02	/* Supported Link Speed 5.0GT/s */
-#define	PCI_EXP_LNKCAP_SLS_8_0GB 0x03	/* Supported Link Speed 8.0GT/s */
-#define	PCI_EXP_LNKCAP_SLS_16_0GB 0x04	/* Supported Link Speed 16.0GT/s */
-#define	PCI_EXP_LNKCAP_SLS_32_0GB 0x05	/* Supported Link Speed 32.0GT/s */
-#define	PCI_EXP_LNKCAP_SLS_64_0GB 0x06	/* Supported Link Speed 64.0GT/s */
-#define	PCI_EXP_LNKCAP_MLW	0x03f0	/* Maximum Link Width */
-#define	PCI_EXP_LNKCAP2_SLS_2_5GB 0x02	/* Supported Link Speed 2.5GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_5_0GB 0x04	/* Supported Link Speed 5.0GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_8_0GB 0x08	/* Supported Link Speed 8.0GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_16_0GB 0x10	/* Supported Link Speed 16.0GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_32_0GB 0x20	/* Supported Link Speed 32.0GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_64_0GB 0x40	/* Supported Link Speed 64.0GT/s */
-#define	PCI_EXP_LNKCTL2_TLS		0x000f
-#define	PCI_EXP_LNKCTL2_TLS_2_5GT	0x0001	/* Supported Speed 2.5GT/s */
-#define	PCI_EXP_LNKCTL2_TLS_5_0GT	0x0002	/* Supported Speed 5GT/s */
-#define	PCI_EXP_LNKCTL2_TLS_8_0GT	0x0003	/* Supported Speed 8GT/s */
-#define	PCI_EXP_LNKCTL2_TLS_16_0GT	0x0004	/* Supported Speed 16GT/s */
-#define	PCI_EXP_LNKCTL2_TLS_32_0GT	0x0005	/* Supported Speed 32GT/s */
-#define	PCI_EXP_LNKCTL2_TLS_64_0GT	0x0006	/* Supported Speed 64GT/s */
-#define	PCI_EXP_LNKCTL2_ENTER_COMP	0x0010	/* Enter Compliance */
-#define	PCI_EXP_LNKCTL2_TX_MARGIN	0x0380	/* Transmit Margin */
+#define PCI_STD_NUM_BARS 6
+#define PCI_VENDOR_ID PCIR_VENDOR
+#define PCI_DEVICE_ID PCIR_DEVICE
+#define PCI_COMMAND PCIR_COMMAND
+#define PCI_COMMAND_INTX_DISABLE PCIM_CMD_INTxDIS
+#define PCI_COMMAND_MEMORY PCIM_CMD_MEMEN
+#define PCI_EXP_DEVCTL PCIER_DEVICE_CTL /* Device Control */
+#define PCI_EXP_LNKCTL PCIER_LINK_CTL	/* Link Control */
+#define PCI_EXP_LNKCTL_ASPM_L0S PCIEM_LINK_CTL_ASPMC_L0S
+#define PCI_EXP_LNKCTL_ASPM_L1 PCIEM_LINK_CTL_ASPMC_L1
+#define PCI_EXP_LNKCTL_ASPMC PCIEM_LINK_CTL_ASPMC
+#define PCI_EXP_LNKCTL_CLKREQ_EN PCIEM_LINK_CTL_ECPM /* Enable clock PM */
+#define PCI_EXP_LNKCTL_HAWD PCIEM_LINK_CTL_HAWD
+#define PCI_EXP_FLAGS_TYPE PCIEM_FLAGS_TYPE /* Device/Port type */
+#define PCI_EXP_DEVCAP PCIER_DEVICE_CAP	    /* Device capabilities */
+#define PCI_EXP_DEVSTA PCIER_DEVICE_STA	    /* Device Status */
+#define PCI_EXP_LNKCAP PCIER_LINK_CAP	    /* Link Capabilities */
+#define PCI_EXP_LNKSTA PCIER_LINK_STA	    /* Link Status */
+#define PCI_EXP_SLTCAP PCIER_SLOT_CAP	    /* Slot Capabilities */
+#define PCI_EXP_SLTCTL PCIER_SLOT_CTL	    /* Slot Control */
+#define PCI_EXP_SLTSTA PCIER_SLOT_STA	    /* Slot Status */
+#define PCI_EXP_RTCTL PCIER_ROOT_CTL	    /* Root Control */
+#define PCI_EXP_RTCAP PCIER_ROOT_CAP	    /* Root Capabilities */
+#define PCI_EXP_RTSTA PCIER_ROOT_STA	    /* Root Status */
+#define PCI_EXP_DEVCAP2 PCIER_DEVICE_CAP2   /* Device Capabilities 2 */
+#define PCI_EXP_DEVCTL2 PCIER_DEVICE_CTL2   /* Device Control 2 */
+#define PCI_EXP_DEVCTL2_LTR_EN PCIEM_CTL2_LTR_ENABLE
+#define PCI_EXP_DEVCTL2_COMP_TMOUT_DIS PCIEM_CTL2_COMP_TIMO_DISABLE
+#define PCI_EXP_LNKCAP2 PCIER_LINK_CAP2		    /* Link Capabilities 2 */
+#define PCI_EXP_LNKCTL2 PCIER_LINK_CTL2		    /* Link Control 2 */
+#define PCI_EXP_LNKSTA2 PCIER_LINK_STA2		    /* Link Status 2 */
+#define PCI_EXP_FLAGS PCIER_FLAGS		    /* Capabilities register */
+#define PCI_EXP_FLAGS_VERS PCIEM_FLAGS_VERSION	    /* Capability version */
+#define PCI_EXP_TYPE_ROOT_PORT PCIEM_TYPE_ROOT_PORT /* Root Port */
+#define PCI_EXP_TYPE_ENDPOINT PCIEM_TYPE_ENDPOINT   /* Express Endpoint */
+#define PCI_EXP_TYPE_LEG_END PCIEM_TYPE_LEGACY_ENDPOINT	   /* Legacy Endpoint */
+#define PCI_EXP_TYPE_DOWNSTREAM PCIEM_TYPE_DOWNSTREAM_PORT /* Downstream Port \
+							    */
+#define PCI_EXP_FLAGS_SLOT PCIEM_FLAGS_SLOT   /* Slot implemented */
+#define PCI_EXP_TYPE_RC_EC PCIEM_TYPE_ROOT_EC /* Root Complex Event Collector \
+					       */
+#define PCI_EXP_LNKSTA_CLS PCIEM_LINK_STA_SPEED
+#define PCI_EXP_LNKSTA_CLS_8_0GB 0x0003 /* Current Link Speed 8.0GT/s */
+#define PCI_EXP_LNKCAP_SLS_2_5GB 0x01	/* Supported Link Speed 2.5GT/s */
+#define PCI_EXP_LNKCAP_SLS_5_0GB 0x02	/* Supported Link Speed 5.0GT/s */
+#define PCI_EXP_LNKCAP_SLS_8_0GB 0x03	/* Supported Link Speed 8.0GT/s */
+#define PCI_EXP_LNKCAP_SLS_16_0GB 0x04	/* Supported Link Speed 16.0GT/s */
+#define PCI_EXP_LNKCAP_SLS_32_0GB 0x05	/* Supported Link Speed 32.0GT/s */
+#define PCI_EXP_LNKCAP_SLS_64_0GB 0x06	/* Supported Link Speed 64.0GT/s */
+#define PCI_EXP_LNKCAP_MLW 0x03f0	/* Maximum Link Width */
+#define PCI_EXP_LNKCAP2_SLS_2_5GB 0x02	/* Supported Link Speed 2.5GT/s */
+#define PCI_EXP_LNKCAP2_SLS_5_0GB 0x04	/* Supported Link Speed 5.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_8_0GB 0x08	/* Supported Link Speed 8.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_16_0GB 0x10 /* Supported Link Speed 16.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_32_0GB 0x20 /* Supported Link Speed 32.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_64_0GB 0x40 /* Supported Link Speed 64.0GT/s */
+#define PCI_EXP_LNKCTL2_TLS 0x000f
+#define PCI_EXP_LNKCTL2_TLS_2_5GT 0x0001  /* Supported Speed 2.5GT/s */
+#define PCI_EXP_LNKCTL2_TLS_5_0GT 0x0002  /* Supported Speed 5GT/s */
+#define PCI_EXP_LNKCTL2_TLS_8_0GT 0x0003  /* Supported Speed 8GT/s */
+#define PCI_EXP_LNKCTL2_TLS_16_0GT 0x0004 /* Supported Speed 16GT/s */
+#define PCI_EXP_LNKCTL2_TLS_32_0GT 0x0005 /* Supported Speed 32GT/s */
+#define PCI_EXP_LNKCTL2_TLS_64_0GT 0x0006 /* Supported Speed 64GT/s */
+#define PCI_EXP_LNKCTL2_ENTER_COMP 0x0010 /* Enter Compliance */
+#define PCI_EXP_LNKCTL2_TX_MARGIN 0x0380  /* Transmit Margin */
 
-#define	PCI_MSI_ADDRESS_LO	PCIR_MSI_ADDR
-#define	PCI_MSI_ADDRESS_HI	PCIR_MSI_ADDR_HIGH
-#define	PCI_MSI_FLAGS		PCIR_MSI_CTRL
-#define	PCI_MSI_FLAGS_ENABLE	PCIM_MSICTRL_MSI_ENABLE
-#define	PCI_MSIX_FLAGS		PCIR_MSIX_CTRL
-#define	PCI_MSIX_FLAGS_ENABLE	PCIM_MSIXCTRL_MSIX_ENABLE
+#define PCI_MSI_ADDRESS_LO PCIR_MSI_ADDR
+#define PCI_MSI_ADDRESS_HI PCIR_MSI_ADDR_HIGH
+#define PCI_MSI_FLAGS PCIR_MSI_CTRL
+#define PCI_MSI_FLAGS_ENABLE PCIM_MSICTRL_MSI_ENABLE
+#define PCI_MSIX_FLAGS PCIR_MSIX_CTRL
+#define PCI_MSIX_FLAGS_ENABLE PCIM_MSIXCTRL_MSIX_ENABLE
 
-#define PCI_EXP_LNKCAP_CLKPM	0x00040000
-#define PCI_EXP_DEVSTA_TRPND	0x0020
+#define PCI_EXP_LNKCAP_CLKPM 0x00040000
+#define PCI_EXP_DEVSTA_TRPND 0x0020
 
-#define	IORESOURCE_MEM	(1 << SYS_RES_MEMORY)
-#define	IORESOURCE_IO	(1 << SYS_RES_IOPORT)
-#define	IORESOURCE_IRQ	(1 << SYS_RES_IRQ)
+#define IORESOURCE_MEM (1 << SYS_RES_MEMORY)
+#define IORESOURCE_IO (1 << SYS_RES_IOPORT)
+#define IORESOURCE_IRQ (1 << SYS_RES_IRQ)
 
 enum pci_bus_speed {
 	PCI_SPEED_UNKNOWN = -1,
@@ -193,116 +191,115 @@ enum pci_bus_speed {
 };
 
 enum pcie_link_width {
-	PCIE_LNK_WIDTH_RESRV	= 0x00,
-	PCIE_LNK_X1		= 0x01,
-	PCIE_LNK_X2		= 0x02,
-	PCIE_LNK_X4		= 0x04,
-	PCIE_LNK_X8		= 0x08,
-	PCIE_LNK_X12		= 0x0c,
-	PCIE_LNK_X16		= 0x10,
-	PCIE_LNK_X32		= 0x20,
-	PCIE_LNK_WIDTH_UNKNOWN	= 0xff,
+	PCIE_LNK_WIDTH_RESRV = 0x00,
+	PCIE_LNK_X1 = 0x01,
+	PCIE_LNK_X2 = 0x02,
+	PCIE_LNK_X4 = 0x04,
+	PCIE_LNK_X8 = 0x08,
+	PCIE_LNK_X12 = 0x0c,
+	PCIE_LNK_X16 = 0x10,
+	PCIE_LNK_X32 = 0x20,
+	PCIE_LNK_WIDTH_UNKNOWN = 0xff,
 };
 
-#define	PCIE_LINK_STATE_L0S		0x00000001
-#define	PCIE_LINK_STATE_L1		0x00000002
-#define	PCIE_LINK_STATE_CLKPM		0x00000004
+#define PCIE_LINK_STATE_L0S 0x00000001
+#define PCIE_LINK_STATE_L1 0x00000002
+#define PCIE_LINK_STATE_CLKPM 0x00000004
 
 typedef int pci_power_t;
 
-#define PCI_D0	PCI_POWERSTATE_D0
-#define PCI_D1	PCI_POWERSTATE_D1
-#define PCI_D2	PCI_POWERSTATE_D2
-#define PCI_D3hot	PCI_POWERSTATE_D3
-#define PCI_D3cold	4
+#define PCI_D0 PCI_POWERSTATE_D0
+#define PCI_D1 PCI_POWERSTATE_D1
+#define PCI_D2 PCI_POWERSTATE_D2
+#define PCI_D3hot PCI_POWERSTATE_D3
+#define PCI_D3cold 4
 
-#define PCI_POWER_ERROR	PCI_POWERSTATE_UNKNOWN
+#define PCI_POWER_ERROR PCI_POWERSTATE_UNKNOWN
 
 extern const char *pci_power_names[6];
 
-#define	PCI_ERR_ROOT_COMMAND		PCIR_AER_ROOTERR_CMD
-#define	PCI_ERR_ROOT_ERR_SRC		PCIR_AER_COR_SOURCE_ID
+#define PCI_ERR_ROOT_COMMAND PCIR_AER_ROOTERR_CMD
+#define PCI_ERR_ROOT_ERR_SRC PCIR_AER_COR_SOURCE_ID
 
-#define	PCI_EXT_CAP_ID_ERR		PCIZ_AER
-#define	PCI_EXT_CAP_ID_L1SS		PCIZ_L1PM
+#define PCI_EXT_CAP_ID_ERR PCIZ_AER
+#define PCI_EXT_CAP_ID_L1SS PCIZ_L1PM
 
-#define	PCI_L1SS_CTL1			0x8
-#define	PCI_L1SS_CTL1_L1SS_MASK		0xf
+#define PCI_L1SS_CTL1 0x8
+#define PCI_L1SS_CTL1_L1SS_MASK 0xf
 
-#define	PCI_IRQ_LEGACY			0x01
-#define	PCI_IRQ_MSI			0x02
-#define	PCI_IRQ_MSIX			0x04
-#define	PCI_IRQ_ALL_TYPES		(PCI_IRQ_MSIX|PCI_IRQ_MSI|PCI_IRQ_LEGACY)
+#define PCI_IRQ_LEGACY 0x01
+#define PCI_IRQ_MSI 0x02
+#define PCI_IRQ_MSIX 0x04
+#define PCI_IRQ_ALL_TYPES (PCI_IRQ_MSIX | PCI_IRQ_MSI | PCI_IRQ_LEGACY)
 
 struct pci_dev;
 
 struct pci_driver {
-	struct list_head		node;
-	char				*name;
-	const struct pci_device_id		*id_table;
-	int  (*probe)(struct pci_dev *dev, const struct pci_device_id *id);
+	struct list_head node;
+	char *name;
+	const struct pci_device_id *id_table;
+	int (*probe)(struct pci_dev *dev, const struct pci_device_id *id);
 	void (*remove)(struct pci_dev *dev);
-	int  (*suspend) (struct pci_dev *dev, pm_message_t state);	/* Device suspended */
-	int  (*resume) (struct pci_dev *dev);		/* Device woken up */
-	void (*shutdown) (struct pci_dev *dev);		/* Device shutdown */
-	driver_t			bsddriver;
-	devclass_t			bsdclass;
-	struct device_driver		driver;
-	const struct pci_error_handlers       *err_handler;
-	bool				isdrm;
-	int				bsd_probe_return;
-	int  (*bsd_iov_init)(device_t dev, uint16_t num_vfs,
+	int (*suspend)(struct pci_dev *dev,
+	    pm_message_t state);	       /* Device suspended */
+	int (*resume)(struct pci_dev *dev);    /* Device woken up */
+	void (*shutdown)(struct pci_dev *dev); /* Device shutdown */
+	driver_t bsddriver;
+	devclass_t bsdclass;
+	struct device_driver driver;
+	const struct pci_error_handlers *err_handler;
+	bool isdrm;
+	int bsd_probe_return;
+	int (*bsd_iov_init)(device_t dev, uint16_t num_vfs,
 	    const nvlist_t *pf_config);
-	void  (*bsd_iov_uninit)(device_t dev);
-	int  (*bsd_iov_add_vf)(device_t dev, uint16_t vfnum,
+	void (*bsd_iov_uninit)(device_t dev);
+	int (*bsd_iov_add_vf)(device_t dev, uint16_t vfnum,
 	    const nvlist_t *vf_config);
 };
 
 struct pci_bus {
-	struct pci_dev	*self;
+	struct pci_dev *self;
 	/* struct pci_bus	*parent */
-	int		domain;
-	int		number;
+	int domain;
+	int number;
 };
 
 extern struct list_head pci_drivers;
 extern struct list_head pci_devices;
 extern spinlock_t pci_lock;
 
-#define	__devexit_p(x)	x
+#define __devexit_p(x) x
 
-#define module_pci_driver(_driver)					\
-									\
-static inline int							\
-_pci_init(void)								\
-{									\
-									\
-	return (linux_pci_register_driver(&_driver));			\
-}									\
-									\
-static inline void							\
-_pci_exit(void)								\
-{									\
-									\
-	linux_pci_unregister_driver(&_driver);				\
-}									\
-									\
-module_init(_pci_init);							\
-module_exit(_pci_exit)
+#define module_pci_driver(_driver)                            \
+                                                              \
+	static inline int _pci_init(void)                     \
+	{                                                     \
+                                                              \
+		return (linux_pci_register_driver(&_driver)); \
+	}                                                     \
+                                                              \
+	static inline void _pci_exit(void)                    \
+	{                                                     \
+                                                              \
+		linux_pci_unregister_driver(&_driver);        \
+	}                                                     \
+                                                              \
+	module_init(_pci_init);                               \
+	module_exit(_pci_exit)
 
 struct msi_msg {
-	uint32_t			data;
+	uint32_t data;
 };
 
 struct pci_msi_desc {
 	struct {
-		bool			is_64;
+		bool is_64;
 	} msi_attrib;
 };
 
 struct msi_desc {
-	struct msi_msg			msg;
-	struct pci_msi_desc		pci;
+	struct msi_msg msg;
+	struct pci_msi_desc pci;
 };
 
 struct msix_entry {
@@ -316,40 +313,40 @@ struct msix_entry {
  */
 struct resource;
 struct pci_mmio_region {
-	TAILQ_ENTRY(pci_mmio_region)	next;
-	struct resource			*res;
-	int				rid;
-	int				type;
+	TAILQ_ENTRY(pci_mmio_region) next;
+	struct resource *res;
+	int rid;
+	int type;
 };
 
 struct pci_dev {
-	struct device		dev;
-	struct list_head	links;
-	struct pci_driver	*pdrv;
-	struct pci_bus		*bus;
-	struct pci_dev		*root;
-	pci_power_t		current_state;
-	uint16_t		device;
-	uint16_t		vendor;
-	uint16_t		subsystem_vendor;
-	uint16_t		subsystem_device;
-	unsigned int		irq;
-	unsigned int		devfn;
-	uint32_t		class;
-	uint8_t			revision;
-	uint8_t			msi_cap;
-	uint8_t			msix_cap;
-	bool			managed;	/* devres "pcim_*(). */
-	bool			want_iomap_res;
-	bool			msi_enabled;
-	bool			msix_enabled;
-	phys_addr_t		rom;
-	size_t			romlen;
-	struct msi_desc		**msi_desc;
-	char			*path_name;
-	spinlock_t		pcie_cap_lock;
+	struct device dev;
+	struct list_head links;
+	struct pci_driver *pdrv;
+	struct pci_bus *bus;
+	struct pci_dev *root;
+	pci_power_t current_state;
+	uint16_t device;
+	uint16_t vendor;
+	uint16_t subsystem_vendor;
+	uint16_t subsystem_device;
+	unsigned int irq;
+	unsigned int devfn;
+	uint32_t class;
+	uint8_t revision;
+	uint8_t msi_cap;
+	uint8_t msix_cap;
+	bool managed; /* devres "pcim_*(). */
+	bool want_iomap_res;
+	bool msi_enabled;
+	bool msix_enabled;
+	phys_addr_t rom;
+	size_t romlen;
+	struct msi_desc **msi_desc;
+	char *path_name;
+	spinlock_t pcie_cap_lock;
 
-	TAILQ_HEAD(, pci_mmio_region)	mmio;
+	TAILQ_HEAD(, pci_mmio_region) mmio;
 };
 
 int pci_request_region(struct pci_dev *pdev, int bar, const char *res_name);
@@ -532,9 +529,9 @@ done:
 	return (pdev->bus->self);
 }
 
-#define	pci_release_region(pdev, bar)	linuxkpi_pci_release_region(pdev, bar)
-#define	pci_release_regions(pdev)	linuxkpi_pci_release_regions(pdev)
-#define	pci_request_regions(pdev, res_name) \
+#define pci_release_region(pdev, bar) linuxkpi_pci_release_region(pdev, bar)
+#define pci_release_regions(pdev) linuxkpi_pci_release_regions(pdev)
+#define pci_request_regions(pdev, res_name) \
 	linuxkpi_pci_request_regions(pdev, res_name)
 
 static inline void
@@ -554,7 +551,7 @@ lkpi_pci_disable_msix(struct pci_dev *pdev)
 	pdev->msix_enabled = false;
 }
 /* Only for consistency. No conflict on that one. */
-#define	pci_disable_msix(pdev)		lkpi_pci_disable_msix(pdev)
+#define pci_disable_msix(pdev) lkpi_pci_disable_msix(pdev)
 
 static inline void
 lkpi_pci_disable_msi(struct pci_dev *pdev)
@@ -567,11 +564,11 @@ lkpi_pci_disable_msi(struct pci_dev *pdev)
 	pdev->irq = pdev->dev.irq;
 	pdev->msi_enabled = false;
 }
-#define	pci_disable_msi(pdev)		lkpi_pci_disable_msi(pdev)
-#define	pci_free_irq_vectors(pdev)	lkpi_pci_disable_msi(pdev)
+#define pci_disable_msi(pdev) lkpi_pci_disable_msi(pdev)
+#define pci_free_irq_vectors(pdev) lkpi_pci_disable_msi(pdev)
 
-unsigned long	pci_resource_start(struct pci_dev *pdev, int bar);
-unsigned long	pci_resource_len(struct pci_dev *pdev, int bar);
+unsigned long pci_resource_start(struct pci_dev *pdev, int bar);
+unsigned long pci_resource_len(struct pci_dev *pdev, int bar);
 
 static inline bus_addr_t
 pci_bus_address(struct pci_dev *pdev, int bar)
@@ -580,16 +577,16 @@ pci_bus_address(struct pci_dev *pdev, int bar)
 	return (pci_resource_start(pdev, bar));
 }
 
-#define	PCI_CAP_ID_EXP	PCIY_EXPRESS
-#define	PCI_CAP_ID_PCIX	PCIY_PCIX
-#define PCI_CAP_ID_AGP  PCIY_AGP
-#define PCI_CAP_ID_PM   PCIY_PMG
+#define PCI_CAP_ID_EXP PCIY_EXPRESS
+#define PCI_CAP_ID_PCIX PCIY_PCIX
+#define PCI_CAP_ID_AGP PCIY_AGP
+#define PCI_CAP_ID_PM PCIY_PMG
 
-#define PCI_EXP_DEVCTL		PCIER_DEVICE_CTL
-#define PCI_EXP_DEVCTL_PAYLOAD	PCIEM_CTL_MAX_PAYLOAD
-#define PCI_EXP_DEVCTL_READRQ	PCIEM_CTL_MAX_READ_REQUEST
-#define PCI_EXP_LNKCTL		PCIER_LINK_CTL
-#define PCI_EXP_LNKSTA		PCIER_LINK_STA
+#define PCI_EXP_DEVCTL PCIER_DEVICE_CTL
+#define PCI_EXP_DEVCTL_PAYLOAD PCIEM_CTL_MAX_PAYLOAD
+#define PCI_EXP_DEVCTL_READRQ PCIEM_CTL_MAX_READ_REQUEST
+#define PCI_EXP_LNKCTL PCIER_LINK_CTL
+#define PCI_EXP_LNKSTA PCIER_LINK_STA
 
 static inline int
 pci_find_capability(struct pci_dev *pdev, int capid)
@@ -601,7 +598,8 @@ pci_find_capability(struct pci_dev *pdev, int capid)
 	return (reg);
 }
 
-static inline int pci_pcie_cap(struct pci_dev *dev)
+static inline int
+pci_pcie_cap(struct pci_dev *dev)
 {
 	return pci_find_capability(dev, PCI_CAP_ID_EXP);
 }
@@ -616,7 +614,7 @@ pci_find_ext_capability(struct pci_dev *pdev, int capid)
 	return (reg);
 }
 
-#define	PCIM_PCAP_PME_SHIFT	11
+#define PCIM_PCAP_PME_SHIFT 11
 static __inline bool
 pci_pme_capable(struct pci_dev *pdev, uint32_t flag)
 {
@@ -696,13 +694,13 @@ pci_write_config_dword(const struct pci_dev *pdev, int where, u32 val)
 	return (0);
 }
 
-int	linux_pci_register_driver(struct pci_driver *pdrv);
-int	linux_pci_register_drm_driver(struct pci_driver *pdrv);
-void	linux_pci_unregister_driver(struct pci_driver *pdrv);
-void	linux_pci_unregister_drm_driver(struct pci_driver *pdrv);
+int linux_pci_register_driver(struct pci_driver *pdrv);
+int linux_pci_register_drm_driver(struct pci_driver *pdrv);
+void linux_pci_unregister_driver(struct pci_driver *pdrv);
+void linux_pci_unregister_drm_driver(struct pci_driver *pdrv);
 
-#define	pci_register_driver(pdrv)	linux_pci_register_driver(pdrv)
-#define	pci_unregister_driver(pdrv)	linux_pci_unregister_driver(pdrv)
+#define pci_register_driver(pdrv) linux_pci_register_driver(pdrv)
+#define pci_unregister_driver(pdrv) linux_pci_unregister_driver(pdrv)
 
 /*
  * Enable msix, positive errors indicate actual number of available
@@ -711,10 +709,9 @@ void	linux_pci_unregister_drm_driver(struct pci_driver *pdrv);
  * NB: define added to prevent this definition of pci_enable_msix from
  * clashing with the native FreeBSD version.
  */
-#define	pci_enable_msix(...)	linuxkpi_pci_enable_msix(__VA_ARGS__)
+#define pci_enable_msix(...) linuxkpi_pci_enable_msix(__VA_ARGS__)
 
-#define	pci_enable_msix_range(...) \
-  linux_pci_enable_msix_range(__VA_ARGS__)
+#define pci_enable_msix_range(...) linux_pci_enable_msix_range(__VA_ARGS__)
 
 static inline int
 pci_enable_msix_range(struct pci_dev *dev, struct msix_entry *entries,
@@ -739,8 +736,7 @@ pci_enable_msix_range(struct pci_dev *dev, struct msix_entry *entries,
 	return (nvec);
 }
 
-#define	pci_enable_msi(pdev) \
-  linux_pci_enable_msi(pdev)
+#define pci_enable_msi(pdev) linux_pci_enable_msi(pdev)
 
 static inline int
 pci_enable_msi(struct pci_dev *pdev)
@@ -753,21 +749,24 @@ static inline int
 pci_channel_offline(struct pci_dev *pdev)
 {
 
-	return (pci_read_config(pdev->dev.bsddev, PCIR_VENDOR, 2) == PCIV_INVALID);
+	return (
+	    pci_read_config(pdev->dev.bsddev, PCIR_VENDOR, 2) == PCIV_INVALID);
 }
 
-static inline int pci_enable_sriov(struct pci_dev *dev, int nr_virtfn)
+static inline int
+pci_enable_sriov(struct pci_dev *dev, int nr_virtfn)
 {
 	return -ENODEV;
 }
 
-static inline void pci_disable_sriov(struct pci_dev *dev)
+static inline void
+pci_disable_sriov(struct pci_dev *dev)
 {
 }
 
-#define	pci_iomap(pdev, mmio_bar, mmio_size) \
+#define pci_iomap(pdev, mmio_bar, mmio_size) \
 	linuxkpi_pci_iomap(pdev, mmio_bar, mmio_size)
-#define	pci_iounmap(pdev, res)	linuxkpi_pci_iounmap(pdev, res)
+#define pci_iounmap(pdev, res) linuxkpi_pci_iounmap(pdev, res)
 
 static inline void
 lkpi_pci_save_state(struct pci_dev *pdev)
@@ -783,8 +782,8 @@ lkpi_pci_restore_state(struct pci_dev *pdev)
 	pci_restore_state(pdev->dev.bsddev);
 }
 
-#define pci_save_state(dev)	lkpi_pci_save_state(dev)
-#define pci_restore_state(dev)	lkpi_pci_restore_state(dev)
+#define pci_save_state(dev) lkpi_pci_save_state(dev)
+#define pci_restore_state(dev) lkpi_pci_restore_state(dev)
 
 static inline int
 pci_reset_function(struct pci_dev *pdev)
@@ -797,53 +796,53 @@ pci_reset_function(struct pci_dev *pdev)
 	const struct pci_device_id _table[] __devinitdata
 
 /* XXX This should not be necessary. */
-#define	pcix_set_mmrbc(d, v)	0
-#define	pcix_get_max_mmrbc(d)	0
-#define	pcie_set_readrq(d, v)	pci_set_max_read_req((d)->dev.bsddev, (v))
+#define pcix_set_mmrbc(d, v) 0
+#define pcix_get_max_mmrbc(d) 0
+#define pcie_set_readrq(d, v) pci_set_max_read_req((d)->dev.bsddev, (v))
 
-#define	PCI_DMA_BIDIRECTIONAL	0
-#define	PCI_DMA_TODEVICE	1
-#define	PCI_DMA_FROMDEVICE	2
-#define	PCI_DMA_NONE		3
+#define PCI_DMA_BIDIRECTIONAL 0
+#define PCI_DMA_TODEVICE 1
+#define PCI_DMA_FROMDEVICE 2
+#define PCI_DMA_NONE 3
 
-#define	pci_pool		dma_pool
-#define	pci_pool_destroy(...)	dma_pool_destroy(__VA_ARGS__)
-#define	pci_pool_alloc(...)	dma_pool_alloc(__VA_ARGS__)
-#define	pci_pool_free(...)	dma_pool_free(__VA_ARGS__)
-#define	pci_pool_create(_name, _pdev, _size, _align, _alloc)		\
-	    dma_pool_create(_name, &(_pdev)->dev, _size, _align, _alloc)
-#define	pci_free_consistent(_hwdev, _size, _vaddr, _dma_handle)		\
-	    dma_free_coherent((_hwdev) == NULL ? NULL : &(_hwdev)->dev,	\
-		_size, _vaddr, _dma_handle)
-#define	pci_map_sg(_hwdev, _sg, _nents, _dir)				\
-	    dma_map_sg((_hwdev) == NULL ? NULL : &(_hwdev->dev),	\
-		_sg, _nents, (enum dma_data_direction)_dir)
-#define	pci_map_single(_hwdev, _ptr, _size, _dir)			\
-	    dma_map_single((_hwdev) == NULL ? NULL : &(_hwdev->dev),	\
-		(_ptr), (_size), (enum dma_data_direction)_dir)
-#define	pci_unmap_single(_hwdev, _addr, _size, _dir)			\
-	    dma_unmap_single((_hwdev) == NULL ? NULL : &(_hwdev)->dev,	\
-		_addr, _size, (enum dma_data_direction)_dir)
-#define	pci_unmap_sg(_hwdev, _sg, _nents, _dir)				\
-	    dma_unmap_sg((_hwdev) == NULL ? NULL : &(_hwdev)->dev,	\
-		_sg, _nents, (enum dma_data_direction)_dir)
-#define	pci_map_page(_hwdev, _page, _offset, _size, _dir)		\
-	    dma_map_page((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _page,\
-		_offset, _size, (enum dma_data_direction)_dir)
-#define	pci_unmap_page(_hwdev, _dma_address, _size, _dir)		\
-	    dma_unmap_page((_hwdev) == NULL ? NULL : &(_hwdev)->dev,	\
-		_dma_address, _size, (enum dma_data_direction)_dir)
-#define	pci_set_dma_mask(_pdev, mask)	dma_set_mask(&(_pdev)->dev, (mask))
-#define	pci_dma_mapping_error(_pdev, _dma_addr)				\
-	    dma_mapping_error(&(_pdev)->dev, _dma_addr)
-#define	pci_set_consistent_dma_mask(_pdev, _mask)			\
-	    dma_set_coherent_mask(&(_pdev)->dev, (_mask))
-#define	DECLARE_PCI_UNMAP_ADDR(x)	DEFINE_DMA_UNMAP_ADDR(x);
-#define	DECLARE_PCI_UNMAP_LEN(x)	DEFINE_DMA_UNMAP_LEN(x);
-#define	pci_unmap_addr		dma_unmap_addr
-#define	pci_unmap_addr_set	dma_unmap_addr_set
-#define	pci_unmap_len		dma_unmap_len
-#define	pci_unmap_len_set	dma_unmap_len_set
+#define pci_pool dma_pool
+#define pci_pool_destroy(...) dma_pool_destroy(__VA_ARGS__)
+#define pci_pool_alloc(...) dma_pool_alloc(__VA_ARGS__)
+#define pci_pool_free(...) dma_pool_free(__VA_ARGS__)
+#define pci_pool_create(_name, _pdev, _size, _align, _alloc) \
+	dma_pool_create(_name, &(_pdev)->dev, _size, _align, _alloc)
+#define pci_free_consistent(_hwdev, _size, _vaddr, _dma_handle)            \
+	dma_free_coherent((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _size, \
+	    _vaddr, _dma_handle)
+#define pci_map_sg(_hwdev, _sg, _nents, _dir)                             \
+	dma_map_sg((_hwdev) == NULL ? NULL : &(_hwdev->dev), _sg, _nents, \
+	    (enum dma_data_direction)_dir)
+#define pci_map_single(_hwdev, _ptr, _size, _dir)                        \
+	dma_map_single((_hwdev) == NULL ? NULL : &(_hwdev->dev), (_ptr), \
+	    (_size), (enum dma_data_direction)_dir)
+#define pci_unmap_single(_hwdev, _addr, _size, _dir)                      \
+	dma_unmap_single((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _addr, \
+	    _size, (enum dma_data_direction)_dir)
+#define pci_unmap_sg(_hwdev, _sg, _nents, _dir)                             \
+	dma_unmap_sg((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _sg, _nents, \
+	    (enum dma_data_direction)_dir)
+#define pci_map_page(_hwdev, _page, _offset, _size, _dir)                      \
+	dma_map_page((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _page, _offset, \
+	    _size, (enum dma_data_direction)_dir)
+#define pci_unmap_page(_hwdev, _dma_address, _size, _dir)                      \
+	dma_unmap_page((_hwdev) == NULL ? NULL : &(_hwdev)->dev, _dma_address, \
+	    _size, (enum dma_data_direction)_dir)
+#define pci_set_dma_mask(_pdev, mask) dma_set_mask(&(_pdev)->dev, (mask))
+#define pci_dma_mapping_error(_pdev, _dma_addr) \
+	dma_mapping_error(&(_pdev)->dev, _dma_addr)
+#define pci_set_consistent_dma_mask(_pdev, _mask) \
+	dma_set_coherent_mask(&(_pdev)->dev, (_mask))
+#define DECLARE_PCI_UNMAP_ADDR(x) DEFINE_DMA_UNMAP_ADDR(x);
+#define DECLARE_PCI_UNMAP_LEN(x) DEFINE_DMA_UNMAP_LEN(x);
+#define pci_unmap_addr dma_unmap_addr
+#define pci_unmap_addr_set dma_unmap_addr_set
+#define pci_unmap_len dma_unmap_len
+#define pci_unmap_len_set dma_unmap_len_set
 
 typedef unsigned int __bitwise pci_channel_state_t;
 typedef unsigned int __bitwise pci_ers_result_t;
@@ -864,8 +863,8 @@ enum pci_ers_result {
 
 /* PCI bus error event callbacks */
 struct pci_error_handlers {
-	pci_ers_result_t (*error_detected)(struct pci_dev *dev,
-	    enum pci_channel_state error);
+	pci_ers_result_t (
+	    *error_detected)(struct pci_dev *dev, enum pci_channel_state error);
 	pci_ers_result_t (*mmio_enabled)(struct pci_dev *dev);
 	pci_ers_result_t (*link_reset)(struct pci_dev *dev);
 	pci_ers_result_t (*slot_reset)(struct pci_dev *dev);
@@ -873,17 +872,20 @@ struct pci_error_handlers {
 };
 
 /* FreeBSD does not support SRIOV - yet */
-static inline struct pci_dev *pci_physfn(struct pci_dev *dev)
+static inline struct pci_dev *
+pci_physfn(struct pci_dev *dev)
 {
 	return dev;
 }
 
-static inline bool pci_is_pcie(struct pci_dev *dev)
+static inline bool
+pci_is_pcie(struct pci_dev *dev)
 {
 	return !!pci_pcie_cap(dev);
 }
 
-static inline u16 pcie_flags_reg(struct pci_dev *dev)
+static inline u16
+pcie_flags_reg(struct pci_dev *dev)
 {
 	int pos;
 	u16 reg16;
@@ -897,41 +899,45 @@ static inline u16 pcie_flags_reg(struct pci_dev *dev)
 	return reg16;
 }
 
-static inline int pci_pcie_type(struct pci_dev *dev)
+static inline int
+pci_pcie_type(struct pci_dev *dev)
 {
 	return (pcie_flags_reg(dev) & PCI_EXP_FLAGS_TYPE) >> 4;
 }
 
-static inline int pcie_cap_version(struct pci_dev *dev)
+static inline int
+pcie_cap_version(struct pci_dev *dev)
 {
 	return pcie_flags_reg(dev) & PCI_EXP_FLAGS_VERS;
 }
 
-static inline bool pcie_cap_has_lnkctl(struct pci_dev *dev)
+static inline bool
+pcie_cap_has_lnkctl(struct pci_dev *dev)
 {
 	int type = pci_pcie_type(dev);
 
-	return pcie_cap_version(dev) > 1 ||
-	       type == PCI_EXP_TYPE_ROOT_PORT ||
-	       type == PCI_EXP_TYPE_ENDPOINT ||
-	       type == PCI_EXP_TYPE_LEG_END;
+	return pcie_cap_version(dev) > 1 || type == PCI_EXP_TYPE_ROOT_PORT ||
+	    type == PCI_EXP_TYPE_ENDPOINT || type == PCI_EXP_TYPE_LEG_END;
 }
 
-static inline bool pcie_cap_has_devctl(const struct pci_dev *dev)
+static inline bool
+pcie_cap_has_devctl(const struct pci_dev *dev)
 {
-		return true;
+	return true;
 }
 
-static inline bool pcie_cap_has_sltctl(struct pci_dev *dev)
+static inline bool
+pcie_cap_has_sltctl(struct pci_dev *dev)
 {
 	int type = pci_pcie_type(dev);
 
 	return pcie_cap_version(dev) > 1 || type == PCI_EXP_TYPE_ROOT_PORT ||
 	    (type == PCI_EXP_TYPE_DOWNSTREAM &&
-	    pcie_flags_reg(dev) & PCI_EXP_FLAGS_SLOT);
+		pcie_flags_reg(dev) & PCI_EXP_FLAGS_SLOT);
 }
 
-static inline bool pcie_cap_has_rtctl(struct pci_dev *dev)
+static inline bool
+pcie_cap_has_rtctl(struct pci_dev *dev)
 {
 	int type = pci_pcie_type(dev);
 
@@ -939,7 +945,8 @@ static inline bool pcie_cap_has_rtctl(struct pci_dev *dev)
 	    type == PCI_EXP_TYPE_RC_EC;
 }
 
-static bool pcie_capability_reg_implemented(struct pci_dev *dev, int pos)
+static bool
+pcie_capability_reg_implemented(struct pci_dev *dev, int pos)
 {
 	if (!pci_is_pcie(dev))
 		return false;
@@ -1013,8 +1020,8 @@ pcie_capability_write_word(struct pci_dev *dev, int pos, u16 val)
 }
 
 static inline int
-pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos,
-    uint16_t clear, uint16_t set)
+pcie_capability_clear_and_set_word(struct pci_dev *dev, int pos, uint16_t clear,
+    uint16_t set)
 {
 	int error;
 	uint16_t v;
@@ -1047,8 +1054,9 @@ pcie_capability_clear_word(struct pci_dev *dev, int pos, uint16_t val)
 	return (pcie_capability_clear_and_set_word(dev, pos, val, 0));
 }
 
-static inline int pcie_get_minimum_link(struct pci_dev *dev,
-    enum pci_bus_speed *speed, enum pcie_link_width *width)
+static inline int
+pcie_get_minimum_link(struct pci_dev *dev, enum pci_bus_speed *speed,
+    enum pcie_link_width *width)
 {
 	*speed = PCI_SPEED_UNKNOWN;
 	*width = PCIE_LNK_WIDTH_UNKNOWN;
@@ -1087,7 +1095,7 @@ pcie_get_speed_cap(struct pci_dev *dev)
 
 	lnkcap2 = pci_read_config(root, pos + PCIER_LINK_CAP2, 4);
 
-	if (lnkcap2) {	/* PCIe r3.0-compliant */
+	if (lnkcap2) { /* PCIe r3.0-compliant */
 		if (lnkcap2 & PCI_EXP_LNKCAP2_SLS_2_5GB)
 			return (PCIE_SPEED_2_5GT);
 		if (lnkcap2 & PCI_EXP_LNKCAP2_SLS_5_0GB)
@@ -1100,7 +1108,7 @@ pcie_get_speed_cap(struct pci_dev *dev)
 			return (PCIE_SPEED_32_0GT);
 		if (lnkcap2 & PCI_EXP_LNKCAP2_SLS_64_0GB)
 			return (PCIE_SPEED_64_0GT);
-	} else {	/* pre-r3.0 */
+	} else { /* pre-r3.0 */
 		lnkcap = pci_read_config(root, pos + PCIER_LINK_CAP, 4);
 		if (lnkcap & PCI_EXP_LNKCAP_SLS_2_5GB)
 			return (PCIE_SPEED_2_5GT);
@@ -1140,7 +1148,7 @@ static inline uint32_t
 PCIE_SPEED2MBS_ENC(enum pci_bus_speed spd)
 {
 
-	switch(spd) {
+	switch (spd) {
 	case PCIE_SPEED_64_0GT:
 		return (64000 * 128 / 130);
 	case PCIE_SPEED_32_0GT:
@@ -1159,10 +1167,8 @@ PCIE_SPEED2MBS_ENC(enum pci_bus_speed spd)
 }
 
 static inline uint32_t
-pcie_bandwidth_available(struct pci_dev *pdev,
-    struct pci_dev **limiting,
-    enum pci_bus_speed *speed,
-    enum pcie_link_width *width)
+pcie_bandwidth_available(struct pci_dev *pdev, struct pci_dev **limiting,
+    enum pci_bus_speed *speed, enum pcie_link_width *width)
 {
 	enum pci_bus_speed nspeed = pcie_get_speed_cap(pdev);
 	enum pcie_link_width nwidth = pcie_get_width_cap(pdev);
@@ -1259,9 +1265,9 @@ pci_dev_present(const struct pci_device_id *cur)
 	return (0);
 }
 
-struct pci_dev *lkpi_pci_get_domain_bus_and_slot(int domain,
-    unsigned int bus, unsigned int devfn);
-#define	pci_get_domain_bus_and_slot(domain, bus, devfn)	\
+struct pci_dev *lkpi_pci_get_domain_bus_and_slot(int domain, unsigned int bus,
+    unsigned int devfn);
+#define pci_get_domain_bus_and_slot(domain, bus, devfn) \
 	lkpi_pci_get_domain_bus_and_slot(domain, bus, devfn)
 
 static inline int
@@ -1272,8 +1278,8 @@ pci_domain_nr(struct pci_bus *pbus)
 }
 
 static inline int
-pci_bus_read_config(struct pci_bus *bus, unsigned int devfn,
-                    int pos, uint32_t *val, int len)
+pci_bus_read_config(struct pci_bus *bus, unsigned int devfn, int pos,
+    uint32_t *val, int len)
 {
 
 	*val = pci_read_config(bus->self->dev.bsddev, pos, len);
@@ -1281,7 +1287,8 @@ pci_bus_read_config(struct pci_bus *bus, unsigned int devfn,
 }
 
 static inline int
-pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn, int pos, u16 *val)
+pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn, int pos,
+    u16 *val)
 {
 	uint32_t tmp;
 	int ret;
@@ -1292,7 +1299,8 @@ pci_bus_read_config_word(struct pci_bus *bus, unsigned int devfn, int pos, u16 *
 }
 
 static inline int
-pci_bus_read_config_byte(struct pci_bus *bus, unsigned int devfn, int pos, u8 *val)
+pci_bus_read_config_byte(struct pci_bus *bus, unsigned int devfn, int pos,
+    u8 *val)
 {
 	uint32_t tmp;
 	int ret;
@@ -1326,14 +1334,14 @@ pci_bus_write_config_word(struct pci_bus *bus, unsigned int devfn, int pos,
 }
 
 struct pci_dev *lkpi_pci_get_class(unsigned int class, struct pci_dev *from);
-#define	pci_get_class(class, from)	lkpi_pci_get_class(class, from)
+#define pci_get_class(class, from) lkpi_pci_get_class(class, from)
 
 /* -------------------------------------------------------------------------- */
 
-#define	pcim_enable_device(pdev)	linuxkpi_pcim_enable_device(pdev)
-#define	pcim_iomap_table(pdev)	 linuxkpi_pcim_iomap_table(pdev)
-#define	pcim_iomap_regions(pdev, mask, name) \
-	linuxkpi_pcim_iomap_regions(pdev,  mask, name)
+#define pcim_enable_device(pdev) linuxkpi_pcim_enable_device(pdev)
+#define pcim_iomap_table(pdev) linuxkpi_pcim_iomap_table(pdev)
+#define pcim_iomap_regions(pdev, mask, name) \
+	linuxkpi_pcim_iomap_regions(pdev, mask, name)
 
 static inline int
 pcim_iomap_regions_request_all(struct pci_dev *pdev, uint32_t mask, char *name)
@@ -1433,7 +1441,7 @@ pci_is_enabled(struct pci_dev *pdev)
 {
 
 	return ((pci_read_config(pdev->dev.bsddev, PCIR_COMMAND, 2) &
-	    PCIM_CMD_BUSMASTEREN) != 0);
+		    PCIM_CMD_BUSMASTEREN) != 0);
 }
 
 static inline int
@@ -1466,7 +1474,7 @@ pci_irq_vector(struct pci_dev *pdev, unsigned int vector)
 		return (pdev->dev.irq_start + vector);
 	}
 
-        return (-ENXIO);
+	return (-ENXIO);
 }
 
-#endif	/* _LINUXKPI_LINUX_PCI_H_ */
+#endif /* _LINUXKPI_LINUX_PCI_H_ */

@@ -29,8 +29,9 @@
 
 #include <sys/param.h>
 #include <sys/module.h>
-#include <errno.h>
+
 #include <atf-c.h>
+#include <errno.h>
 
 ATF_TC_WITHOUT_HEAD(modfind);
 ATF_TC_BODY(modfind, tc)
@@ -123,10 +124,10 @@ ATF_TC_WITHOUT_HEAD(modstat_v1);
 ATF_TC_BODY(modstat_v1, tc)
 {
 	struct module_stat_v1 {
-		int	version;
-		char	name[32];
-		int	refs;
-		int	id;
+		int version;
+		char name[32];
+		int refs;
+		int id;
 	} ms;
 	int modid;
 
@@ -155,10 +156,10 @@ ATF_TC_WITHOUT_HEAD(modstat_v2);
 ATF_TC_BODY(modstat_v2, tc)
 {
 	struct module_stat_v2 {
-		int	version;
-		char	name[32];
-		int	refs;
-		int	id;
+		int version;
+		char name[32];
+		int refs;
+		int id;
 		modspecific_t data;
 	} ms;
 	int modid;

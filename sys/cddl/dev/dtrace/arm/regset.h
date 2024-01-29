@@ -30,8 +30,8 @@
 /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T		*/
 /*	All Rights Reserved	*/
 
-#ifndef	_REGSET_H
-#define	_REGSET_H
+#ifndef _REGSET_H
+#define _REGSET_H
 
 /*
  */
@@ -41,15 +41,15 @@ extern "C" {
 #endif
 
 #if 0
-#define REG_LINK  R14
-#define REG_SP  R12
-#define REG_PS  R0
-#define REG_R0  R0
-#define REG_R1  R1
-#endif 
+#define REG_LINK R14
+#define REG_SP R12
+#define REG_PS R0
+#define REG_R0 R0
+#define REG_R1 R1
+#endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _REGSET_H */
+#endif /* _REGSET_H */

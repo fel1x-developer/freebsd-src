@@ -27,7 +27,6 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 
 #include <machine/atomic.h>
@@ -47,8 +46,9 @@ int swapueword8_lse(volatile uint8_t *, uint8_t *);
 int swapueword32_llsc(volatile uint32_t *, uint32_t *);
 int swapueword32_lse(volatile uint32_t *, uint32_t *);
 
-DEFINE_IFUNC(, int, casueword32, (volatile uint32_t *base, uint32_t oldval,
-    uint32_t *oldvalp, uint32_t newval))
+DEFINE_IFUNC(, int, casueword32,
+    (volatile uint32_t * base, uint32_t oldval, uint32_t *oldvalp,
+	uint32_t newval))
 {
 	if (lse_supported)
 		return (casueword32_lse);
@@ -56,8 +56,8 @@ DEFINE_IFUNC(, int, casueword32, (volatile uint32_t *base, uint32_t oldval,
 	return (casueword32_llsc);
 }
 
-DEFINE_IFUNC(, int, casueword, (volatile u_long *base, u_long oldval,
-    u_long *oldvalp, u_long newval))
+DEFINE_IFUNC(, int, casueword,
+    (volatile u_long * base, u_long oldval, u_long *oldvalp, u_long newval))
 {
 	if (lse_supported)
 		return (casueword_lse);
@@ -65,7 +65,7 @@ DEFINE_IFUNC(, int, casueword, (volatile u_long *base, u_long oldval,
 	return (casueword_llsc);
 }
 
-DEFINE_IFUNC(, int, swapueword8, (volatile uint8_t *base, uint8_t *val))
+DEFINE_IFUNC(, int, swapueword8, (volatile uint8_t * base, uint8_t *val))
 {
 	if (lse_supported)
 		return (swapueword8_lse);
@@ -73,7 +73,7 @@ DEFINE_IFUNC(, int, swapueword8, (volatile uint8_t *base, uint8_t *val))
 	return (swapueword8_llsc);
 }
 
-DEFINE_IFUNC(, int, swapueword32, (volatile uint32_t *base, uint32_t *val))
+DEFINE_IFUNC(, int, swapueword32, (volatile uint32_t * base, uint32_t *val))
 {
 	if (lse_supported)
 		return (swapueword32_lse);

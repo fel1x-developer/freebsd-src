@@ -27,14 +27,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <libgen.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 #include <atf-c.h>
 #include <libelf.h>
+#include <libgen.h>
 #include <libproc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static const char *aout_object = "a.out";
 static const char *ldelf_object = "ld-elf.so.1";
@@ -88,8 +88,8 @@ remove_bkpt(struct proc_handle *phdl, uintptr_t addr, u_long val)
 	int error;
 
 	error = proc_bkptdel(phdl, addr, val);
-	ATF_REQUIRE_EQ_MSG(error, 0,
-	    "failed to delete breakpoint at 0x%jx", (uintmax_t)addr);
+	ATF_REQUIRE_EQ_MSG(error, 0, "failed to delete breakpoint at 0x%jx",
+	    (uintmax_t)addr);
 
 	error = proc_regset(phdl, REG_PC, addr);
 	ATF_REQUIRE_EQ_MSG(error, 0, "failed to reset program counter");
@@ -123,8 +123,8 @@ verify_bkpt(struct proc_handle *phdl, GElf_Sym *sym, const char *symname,
 	 * definition we looked up earlier.
 	 */
 	ATF_CHECK_EQ_MSG(addr, sym->st_value,
-	    "program counter 0x%lx doesn't match expected value 0x%jx",
-	    addr, (uintmax_t)sym->st_value);
+	    "program counter 0x%lx doesn't match expected value 0x%jx", addr,
+	    (uintmax_t)sym->st_value);
 
 	/*
 	 * Ensure we can look up the r_debug_state symbol using its starting

@@ -17,67 +17,63 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 
 #include <netinet/in.h>
-#include <arpa/nameser.h>
 
-#include <errno.h>
-#include <resolv.h>
-#include <string.h>
+#include <arpa/nameser.h>
 #include <ctype.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <limits.h>
+#include <resolv.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
-#define NS_TYPE_ELT			0x40 /*%< EDNS0 extended label type */
-#define DNS_LABELTYPE_BITSTRING		0x41
+#define NS_TYPE_ELT 0x40 /*%< EDNS0 extended label type */
+#define DNS_LABELTYPE_BITSTRING 0x41
 
 /* Data. */
 
-static const char	digits[] = "0123456789";
+static const char digits[] = "0123456789";
 
 static const char digitvalue[256] = {
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,	/*16*/
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*16*/
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*32*/
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*48*/
-	 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1, /*64*/
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1, -1,		/*64*/
 	-1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*80*/
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*96*/
 	-1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*112*/
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*128*/
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /*256*/
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	-1, -1, /*256*/
 };
 
 /* Forward. */
 
-static int		special(int);
-static int		printable(int);
-static int		dn_find(const u_char *, const u_char *,
-				const u_char * const *,
-				const u_char * const *);
-static int		encode_bitsring(const char **, const char *,
-					unsigned char **, unsigned char **,
-					unsigned const char *);
-static int		labellen(const u_char *);
-static int		decode_bitstring(const unsigned char **,
-					 char *, const char *);
+static int special(int);
+static int printable(int);
+static int dn_find(const u_char *, const u_char *, const u_char *const *,
+    const u_char *const *);
+static int encode_bitsring(const char **, const char *, unsigned char **,
+    unsigned char **, unsigned const char *);
+static int labellen(const u_char *);
+static int decode_bitstring(const unsigned char **, char *, const char *);
 
 /* Public. */
 
@@ -133,12 +129,11 @@ ns_name_ntop(const u_char *src, char *dst, size_t dstsiz)
 				errno = EINVAL;
 				return (-1);
 			}
-			if ((m = decode_bitstring(&cp, dn, eom)) < 0)
-			{
+			if ((m = decode_bitstring(&cp, dn, eom)) < 0) {
 				errno = EMSGSIZE;
 				return (-1);
 			}
-			dn += m; 
+			dn += m;
 			continue;
 		}
 		for ((void)NULL; l > 0; l--) {
@@ -196,7 +191,8 @@ ns_name_ntop(const u_char *src, char *dst, size_t dstsiz)
  *\li	Enforces label and domain length limits.
  */
 int
-ns_name_pton(const char *src, u_char *dst, size_t dstsiz) {
+ns_name_pton(const char *src, u_char *dst, size_t dstsiz)
+{
 	return (ns_name_pton2(src, dst, dstsiz, NULL));
 }
 
@@ -213,7 +209,8 @@ ns_name_pton(const char *src, u_char *dst, size_t dstsiz) {
  *	Enforces label and domain length limits.
  */
 int
-ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
+ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen)
+{
 	u_char *label, *bp, *eom;
 	int c, n, escaped, e = 0;
 	char *cp;
@@ -230,9 +227,8 @@ ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
 					errno = EINVAL; /*%< ??? */
 					return (-1);
 				}
-				if ((e = encode_bitsring(&src, cp + 2,
-							 &label, &bp, eom))
-				    != 0) {
+				if ((e = encode_bitsring(&src, cp + 2, &label,
+					 &bp, eom)) != 0) {
 					errno = e;
 					return (-1);
 				}
@@ -242,11 +238,10 @@ ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
 					goto done;
 				else if (c != '.') {
 					errno = EINVAL;
-					return	(-1);
+					return (-1);
 				}
 				continue;
-			}
-			else if ((cp = strchr(digits, c)) != NULL) {
+			} else if ((cp = strchr(digits, c)) != NULL) {
 				n = (cp - digits) * 100;
 				if ((c = *src++) == 0 ||
 				    (cp = strchr(digits, c)) == NULL) {
@@ -272,7 +267,7 @@ ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
 			continue;
 		} else if (c == '.') {
 			c = (bp - label - 1);
-			if ((c & NS_CMPRSFLGS) != 0) {	/*%< Label too big. */
+			if ((c & NS_CMPRSFLGS) != 0) { /*%< Label too big. */
 				errno = EMSGSIZE;
 				return (-1);
 			}
@@ -312,11 +307,11 @@ ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
 		*bp++ = (u_char)c;
 	}
 	c = (bp - label - 1);
-	if ((c & NS_CMPRSFLGS) != 0) {		/*%< Label too big. */
+	if ((c & NS_CMPRSFLGS) != 0) { /*%< Label too big. */
 		errno = EMSGSIZE;
 		return (-1);
 	}
-  done:
+done:
 	if (label >= eom) {
 		errno = EMSGSIZE;
 		return (-1);
@@ -329,7 +324,7 @@ ns_name_pton2(const char *src, u_char *dst, size_t dstsiz, size_t *dstlen) {
 		}
 		*bp++ = 0;
 	}
-	if ((bp - dst) > MAXCDNAME) {	/*%< src too big */
+	if ((bp - dst) > MAXCDNAME) { /*%< src too big */
 		errno = EMSGSIZE;
 		return (-1);
 	}
@@ -400,7 +395,7 @@ ns_name_ntol(const u_char *src, u_char *dst, size_t dstsiz)
  */
 int
 ns_name_unpack(const u_char *msg, const u_char *eom, const u_char *src,
-	       u_char *dst, size_t dstsiz)
+    u_char *dst, size_t dstsiz)
 {
 	return (ns_name_unpack2(msg, eom, src, dst, dstsiz, NULL));
 }
@@ -415,7 +410,7 @@ ns_name_unpack(const u_char *msg, const u_char *eom, const u_char *src,
  */
 int
 ns_name_unpack2(const u_char *msg, const u_char *eom, const u_char *src,
-		u_char *dst, size_t dstsiz, size_t *dstlen)
+    u_char *dst, size_t dstsiz, size_t *dstlen)
 {
 	const u_char *srcp, *dstlim;
 	u_char *dstp;
@@ -460,7 +455,7 @@ ns_name_unpack2(const u_char *msg, const u_char *eom, const u_char *src,
 			if (len < 0)
 				len = srcp - src + 1;
 			l = ((n & 0x3f) << 8) | (*srcp & 0xff);
-			if (l >= eom - msg) {  /*%< Out of range. */
+			if (l >= eom - msg) { /*%< Out of range. */
 				errno = EMSGSIZE;
 				return (-1);
 			}
@@ -479,7 +474,7 @@ ns_name_unpack2(const u_char *msg, const u_char *eom, const u_char *src,
 
 		default:
 			errno = EMSGSIZE;
-			return (-1);			/*%< flag error */
+			return (-1); /*%< flag error */
 		}
 	}
 	*dstp++ = 0;
@@ -510,8 +505,8 @@ ns_name_unpack2(const u_char *msg, const u_char *eom, const u_char *src,
  *	list.
  */
 int
-ns_name_pack(const u_char *src, u_char *dst, int dstsiz,
-	     const u_char **dnptrs, const u_char **lastdnptr)
+ns_name_pack(const u_char *src, u_char *dst, int dstsiz, const u_char **dnptrs,
+    const u_char **lastdnptr)
 {
 	u_char *dstp;
 	const u_char **cpp, **lpp, *eob, *msg;
@@ -526,7 +521,7 @@ ns_name_pack(const u_char *src, u_char *dst, int dstsiz,
 		if ((msg = *dnptrs++) != NULL) {
 			for (cpp = dnptrs; *cpp != NULL; cpp++)
 				(void)NULL;
-			lpp = cpp;	/*%< end of list to search */
+			lpp = cpp; /*%< end of list to search */
 		}
 	} else
 		msg = NULL;
@@ -559,8 +554,8 @@ ns_name_pack(const u_char *src, u_char *dst, int dstsiz,
 		/* Look to see if we can use pointers. */
 		n = *srcp;
 		if (n != 0 && msg != NULL) {
-			l = dn_find(srcp, msg, (const u_char * const *)dnptrs,
-				    (const u_char * const *)lpp);
+			l = dn_find(srcp, msg, (const u_char *const *)dnptrs,
+			    (const u_char *const *)lpp);
 			if (l >= 0) {
 				if (dstp + 1 >= eob) {
 					goto cleanup;
@@ -592,12 +587,12 @@ ns_name_pack(const u_char *src, u_char *dst, int dstsiz,
 	} while (n != 0);
 
 	if (dstp > eob) {
-cleanup:
+	cleanup:
 		if (msg != NULL)
 			*lpp = NULL;
 		errno = EMSGSIZE;
 		return (-1);
-	} 
+	}
 	return (dstp - dst);
 }
 
@@ -612,11 +607,11 @@ cleanup:
  */
 int
 ns_name_uncompress(const u_char *msg, const u_char *eom, const u_char *src,
-		   char *dst, size_t dstsiz)
+    char *dst, size_t dstsiz)
 {
 	u_char tmp[NS_MAXCDNAME];
 	int n;
-	
+
 	if ((n = ns_name_unpack(msg, eom, src, tmp, sizeof tmp)) == -1)
 		return (-1);
 	if (ns_name_ntop(tmp, dst, dstsiz) == -1)
@@ -641,7 +636,7 @@ ns_name_uncompress(const u_char *msg, const u_char *eom, const u_char *src,
  */
 int
 ns_name_compress(const char *src, u_char *dst, size_t dstsiz,
-		 const u_char **dnptrs, const u_char **lastdnptr)
+    const u_char **dnptrs, const u_char **lastdnptr)
 {
 	u_char tmp[NS_MAXCDNAME];
 
@@ -656,7 +651,7 @@ ns_name_compress(const char *src, u_char *dst, size_t dstsiz,
  */
 void
 ns_name_rollback(const u_char *src, const u_char **dnptrs,
-		 const u_char **lastdnptr)
+    const u_char **lastdnptr)
 {
 	while (dnptrs < lastdnptr && *dnptrs != NULL) {
 		if (*dnptrs >= src) {
@@ -684,7 +679,7 @@ ns_name_skip(const u_char **ptrptr, const u_char *eom)
 	while (cp < eom && (n = *cp++) != 0) {
 		/* Check for indirection. */
 		switch (n & NS_CMPRSFLGS) {
-		case 0:			/*%< normal case, n == len */
+		case 0: /*%< normal case, n == len */
 			cp += n;
 			continue;
 		case NS_TYPE_ELT: /*%< EDNS0 extended label */
@@ -694,10 +689,10 @@ ns_name_skip(const u_char **ptrptr, const u_char *eom)
 			}
 			cp += l;
 			continue;
-		case NS_CMPRSFLGS:	/*%< indirection */
+		case NS_CMPRSFLGS: /*%< indirection */
 			cp++;
 			break;
-		default:		/*%< illegal type */
+		default: /*%< illegal type */
 			errno = EMSGSIZE;
 			return (-1);
 		}
@@ -716,7 +711,8 @@ ns_name_skip(const u_char **ptrptr, const u_char *eom)
  * ((NOTE: can only return zero if passed-in namesiz argument is zero.))
  */
 ssize_t
-ns_name_length(ns_nname_ct nname, size_t namesiz) {
+ns_name_length(ns_nname_ct nname, size_t namesiz)
+{
 	ns_nname_ct orig = nname;
 	u_int n;
 
@@ -738,7 +734,8 @@ ns_name_length(ns_nname_ct nname, size_t namesiz) {
 /* Compare two nname's for equality.  Return -1 on error (setting errno).
  */
 int
-ns_name_eq(ns_nname_ct a, size_t as, ns_nname_ct b, size_t bs) {
+ns_name_eq(ns_nname_ct a, size_t as, ns_nname_ct b, size_t bs)
+{
 	ns_nname_ct ae = a + as, be = b + bs;
 	int ac, bc;
 
@@ -751,8 +748,8 @@ ns_name_eq(ns_nname_ct a, size_t as, ns_nname_ct b, size_t bs) {
 			errno = EMSGSIZE;
 			return (-1);
 		}
-		if (ac != bc || strncasecmp((const char *) ++a,
-					    (const char *) ++b, ac) != 0)
+		if (ac != bc ||
+		    strncasecmp((const char *)++a, (const char *)++b, ac) != 0)
 			return (0);
 		a += ac, b += bc;
 	}
@@ -762,7 +759,8 @@ ns_name_eq(ns_nname_ct a, size_t as, ns_nname_ct b, size_t bs) {
 /* Is domain "A" owned by (at or below) domain "B"?
  */
 int
-ns_name_owned(ns_namemap_ct a, int an, ns_namemap_ct b, int bn) {
+ns_name_owned(ns_namemap_ct a, int an, ns_namemap_ct b, int bn)
+{
 	/* If A is shorter, it cannot be owned by B. */
 	if (an < bn)
 		return (0);
@@ -770,8 +768,8 @@ ns_name_owned(ns_namemap_ct a, int an, ns_namemap_ct b, int bn) {
 	/* If they are unequal before the length of the shorter, A cannot... */
 	while (bn > 0) {
 		if (a->len != b->len ||
-		    strncasecmp((const char *) a->base,
-				(const char *) b->base, a->len) != 0)
+		    strncasecmp((const char *)a->base, (const char *)b->base,
+			a->len) != 0)
 			return (0);
 		a++, an--;
 		b++, bn--;
@@ -785,7 +783,8 @@ ns_name_owned(ns_namemap_ct a, int an, ns_namemap_ct b, int bn) {
  * Return the number of tuples (labels) thus discovered.
  */
 int
-ns_name_map(ns_nname_ct nname, size_t namelen, ns_namemap_t map, int mapsize) {
+ns_name_map(ns_nname_ct nname, size_t namelen, ns_namemap_t map, int mapsize)
+{
 	u_int n;
 	int l;
 
@@ -835,7 +834,8 @@ ns_name_map(ns_nname_ct nname, size_t namelen, ns_namemap_t map, int mapsize) {
  * is to make the result comparable to the result of ns_name_map().
  */
 int
-ns_name_labels(ns_nname_ct nname, size_t namesiz) {
+ns_name_labels(ns_nname_ct nname, size_t namesiz)
+{
 	int ret = 0;
 	u_int n;
 
@@ -865,7 +865,8 @@ ns_name_labels(ns_nname_ct nname, size_t namesiz) {
  *\li	boolean.
  */
 static int
-special(int ch) {
+special(int ch)
+{
 	switch (ch) {
 	case 0x22: /*%< '"' */
 	case 0x2E: /*%< '.' */
@@ -890,7 +891,8 @@ special(int ch) {
  *\li	boolean.
  */
 static int
-printable(int ch) {
+printable(int ch)
+{
 	return (ch > 0x20 && ch < 0x7f);
 }
 
@@ -899,7 +901,8 @@ printable(int ch) {
  *	convert this character to lower case if it's upper case.
  */
 static int
-mklower(int ch) {
+mklower(int ch)
+{
 	if (ch >= 0x41 && ch <= 0x5A)
 		return (ch + 0x20);
 	return (ch);
@@ -916,12 +919,11 @@ mklower(int ch) {
  *\li	not the pointer to the start of the message.
  */
 static int
-dn_find(const u_char *domain, const u_char *msg,
-	const u_char * const *dnptrs,
-	const u_char * const *lastdnptr)
+dn_find(const u_char *domain, const u_char *msg, const u_char *const *dnptrs,
+    const u_char *const *lastdnptr)
 {
 	const u_char *dn, *cp, *sp;
-	const u_char * const *cpp;
+	const u_char *const *cpp;
 	u_int n;
 
 	for (cpp = dnptrs; cpp < lastdnptr; cpp++) {
@@ -933,7 +935,7 @@ dn_find(const u_char *domain, const u_char *msg,
 		 * unusable offset
 		 */
 		while (*sp != 0 && (*sp & NS_CMPRSFLGS) == 0 &&
-		       (sp - msg) < 0x4000) {
+		    (sp - msg) < 0x4000) {
 			dn = domain;
 			cp = sp;
 			while ((n = *cp++) != 0) {
@@ -941,7 +943,7 @@ dn_find(const u_char *domain, const u_char *msg,
 				 * check for indirection
 				 */
 				switch (n & NS_CMPRSFLGS) {
-				case 0:		/*%< normal case, n == len */
+				case 0: /*%< normal case, n == len */
 					n = labellen(cp - 1); /*%< XXX */
 					if (n != *dn++)
 						goto next;
@@ -956,16 +958,16 @@ dn_find(const u_char *domain, const u_char *msg,
 					if (*dn)
 						continue;
 					goto next;
-				case NS_CMPRSFLGS:	/*%< indirection */
+				case NS_CMPRSFLGS: /*%< indirection */
 					cp = msg + (((n & 0x3f) << 8) | *cp);
 					break;
 
-				default:	/*%< illegal type */
+				default: /*%< illegal type */
 					errno = EMSGSIZE;
 					return (-1);
 				}
 			}
- next: ;
+		next:;
 			sp += *sp + 1;
 		}
 	}
@@ -1006,8 +1008,8 @@ decode_bitstring(const unsigned char **cpp, char *dn, const char *eom)
 		dn += i;
 	} else if (b > 0) {
 		tc = *cp++;
-		i = SPRINTF((dn, "%1x",
-			       ((tc >> 4) & 0x0f) & (0x0f << (4 - b)))); 
+		i = SPRINTF(
+		    (dn, "%1x", ((tc >> 4) & 0x0f) & (0x0f << (4 - b))));
 		if (i < 0)
 			return (-1);
 		dn += i;
@@ -1023,7 +1025,7 @@ decode_bitstring(const unsigned char **cpp, char *dn, const char *eom)
 
 static int
 encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
-		unsigned char ** dst, unsigned const char *eom)
+    unsigned char **dst, unsigned const char *eom)
 {
 	int afterslash = 0;
 	const char *cp = *bp;
@@ -1046,8 +1048,8 @@ encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
 		return (EINVAL);
 
 	for (tp = *dst + 1; cp < end && tp < eom; cp++) {
-		switch((c = *cp)) {
-		case ']':	/*%< end of the bitstring */
+		switch ((c = *cp)) {
+		case ']': /*%< end of the bitstring */
 			if (afterslash) {
 				if (beg_blen == NULL)
 					return (EINVAL);
@@ -1057,17 +1059,17 @@ encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
 			}
 			if (count)
 				*tp++ = ((value << 4) & 0xff);
-			cp++;	/*%< skip ']' */
+			cp++; /*%< skip ']' */
 			goto done;
 		case '/':
 			afterslash = 1;
 			break;
 		default:
 			if (afterslash) {
-				if (!isdigit(c&0xff))
+				if (!isdigit(c & 0xff))
 					return (EINVAL);
 				if (beg_blen == NULL) {
-					
+
 					if (c == '0') {
 						/* blen never begings with 0 */
 						return (EINVAL);
@@ -1075,7 +1077,7 @@ encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
 					beg_blen = cp;
 				}
 			} else {
-				if (!isxdigit(c&0xff))
+				if (!isxdigit(c & 0xff))
 					return (EINVAL);
 				value <<= 4;
 				value += digitvalue[(int)c];
@@ -1091,7 +1093,7 @@ encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
 			break;
 		}
 	}
-  done:
+done:
 	if (cp >= end || tp >= eom)
 		return (EMSGSIZE);
 
@@ -1111,8 +1113,7 @@ encode_bitsring(const char **bp, const char *end, unsigned char **labelp,
 		traillen = tbcount - blen; /*%< between 0 and 3 */
 		if (((value << (8 - traillen)) & 0xff) != 0)
 			return (EINVAL);
-	}
-	else
+	} else
 		blen = tbcount;
 	if (blen == 256)
 		blen = 0;
@@ -1142,9 +1143,9 @@ labellen(const u_char *lp)
 		if (l == DNS_LABELTYPE_BITSTRING) {
 			if ((bitlen = *(lp + 1)) == 0)
 				bitlen = 256;
-			return ((bitlen + 7 ) / 8 + 1);
+			return ((bitlen + 7) / 8 + 1);
 		}
-		return (-1);	/*%< unknown ELT */
+		return (-1); /*%< unknown ELT */
 	}
 	return (l);
 }

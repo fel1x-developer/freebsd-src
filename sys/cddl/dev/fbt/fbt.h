@@ -32,8 +32,8 @@
 
 #include "fbt_isa.h"
 
-#define	FBT_ENTRY	"entry"
-#define	FBT_RETURN	"return"
+#define FBT_ENTRY "entry"
+#define FBT_RETURN "return"
 
 /*
  * fbt_probe is a bit of a misnomer.  One of these structures is created for
@@ -42,38 +42,38 @@
  * might have a trace point at the same address (e.g., GNU ifuncs).
  */
 typedef struct fbt_probe {
-	struct fbt_probe *fbtp_hashnext;	/* global hash table linkage */
-	struct fbt_probe *fbtp_tracenext;	/* next probe for tracepoint */
-	struct fbt_probe *fbtp_probenext;	/* next tracepoint for probe */
-	int		fbtp_enabled;
-	fbt_patchval_t  *fbtp_patchpoint;
-	int8_t		fbtp_rval;
-	fbt_patchval_t	fbtp_patchval;
-	fbt_patchval_t	fbtp_savedval;
-	uintptr_t	fbtp_roffset;
-	dtrace_id_t	fbtp_id;
-	const char	*fbtp_name;
-	modctl_t	*fbtp_ctl;
-	int		fbtp_loadcnt;
-	int		fbtp_symindx;
+	struct fbt_probe *fbtp_hashnext;  /* global hash table linkage */
+	struct fbt_probe *fbtp_tracenext; /* next probe for tracepoint */
+	struct fbt_probe *fbtp_probenext; /* next tracepoint for probe */
+	int fbtp_enabled;
+	fbt_patchval_t *fbtp_patchpoint;
+	int8_t fbtp_rval;
+	fbt_patchval_t fbtp_patchval;
+	fbt_patchval_t fbtp_savedval;
+	uintptr_t fbtp_roffset;
+	dtrace_id_t fbtp_id;
+	const char *fbtp_name;
+	modctl_t *fbtp_ctl;
+	int fbtp_loadcnt;
+	int fbtp_symindx;
 } fbt_probe_t;
 
 struct linker_file;
 struct linker_symval;
 struct trapframe;
 
-int	fbt_invop(uintptr_t, struct trapframe *, uintptr_t);
-void	fbt_patch_tracepoint(fbt_probe_t *, fbt_patchval_t);
-int	fbt_provide_module_function(struct linker_file *, int,
-	    struct linker_symval *, void *);
-int	fbt_excluded(const char *name);
+int fbt_invop(uintptr_t, struct trapframe *, uintptr_t);
+void fbt_patch_tracepoint(fbt_probe_t *, fbt_patchval_t);
+int fbt_provide_module_function(struct linker_file *, int,
+    struct linker_symval *, void *);
+int fbt_excluded(const char *name);
 
-extern dtrace_provider_id_t	fbt_id;
-extern fbt_probe_t		**fbt_probetab;
-extern int			fbt_probetab_mask;
+extern dtrace_provider_id_t fbt_id;
+extern fbt_probe_t **fbt_probetab;
+extern int fbt_probetab_mask;
 
-#define	FBT_ADDR2NDX(addr)	((((uintptr_t)(addr)) >> 4) & fbt_probetab_mask)
-#define	FBT_PROBETAB_SIZE	0x8000		/* 32k entries -- 128K total */
+#define FBT_ADDR2NDX(addr) ((((uintptr_t)(addr)) >> 4) & fbt_probetab_mask)
+#define FBT_PROBETAB_SIZE 0x8000 /* 32k entries -- 128K total */
 
 #ifdef MALLOC_DECLARE
 MALLOC_DECLARE(M_FBT);

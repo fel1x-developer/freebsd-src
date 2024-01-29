@@ -43,17 +43,17 @@
  */
 
 #if !defined(_LP_CDEFS_H_)
-#define	_LP_CDEFS_H_
+#define _LP_CDEFS_H_
 
 /*
  * For non-BSD platforms, you can compile lpr with -DHAVE_SYS_CDEFS_H
  * if <sys/cdefs.h> should be included.
  */
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#  define HAVE_SYS_CDEFS_H
+#define HAVE_SYS_CDEFS_H
 #endif
 #if defined(HAVE_SYS_CDEFS_H)
-#  include <sys/cdefs.h>
+#include <sys/cdefs.h>
 #endif
 
 /*
@@ -61,14 +61,14 @@
  * `lpr' on other platforms you might want to include bsd-closefrom.c
  * from the portable-openssh project.
  */
-#ifndef	USE_CLOSEFROM
-#  if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
-#    define	USE_CLOSEFROM	1
-#  endif
+#ifndef USE_CLOSEFROM
+#if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#define USE_CLOSEFROM 1
+#endif
 #endif
 /* The macro USE_CLOSEFROM must be defined with a value of 0 or 1. */
-#ifndef	USE_CLOSEFROM
-#  define	USE_CLOSEFROM	0
+#ifndef USE_CLOSEFROM
+#define USE_CLOSEFROM 0
 #endif
 
 /*
@@ -78,20 +78,20 @@
  * defined by <sys/cdefs.h>.
  */
 #if !defined(__unused)
-#  define	__unused
+#define __unused
 #endif
 
 /*
  * Some lpr include files use __BEGIN_DECLS and __END_DECLS.
  */
 #if !defined(__BEGIN_DECLS)
-#  if defined(__cplusplus)
-#    define	__BEGIN_DECLS	extern "C" {
-#    define	__END_DECLS	}
-#  else
-#    define	__BEGIN_DECLS
-#    define	__END_DECLS
-#  endif
+#if defined(__cplusplus)
+#define __BEGIN_DECLS extern "C" {
+#define __END_DECLS }
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
+#endif
 #endif
 
 /*
@@ -100,10 +100,10 @@
  * routines wrt the args that will be formatted.
  */
 #if !defined(__printflike)
-#  define	__printflike(fmtarg, firstvararg)
+#define __printflike(fmtarg, firstvararg)
 #endif
 #if !defined(__printf0like)
-#  define	__printf0like(fmtarg, firstvararg)
+#define __printf0like(fmtarg, firstvararg)
 #endif
 
 #endif /* !_LP_CDEFS_H_ */

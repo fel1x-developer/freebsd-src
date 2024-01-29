@@ -23,29 +23,33 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <err.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/endian.h>
 #include <sys/ioctl.h>
-#include <sys/uio.h>
-#include <net/bpf.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+
+#include <net/bpf.h>
 #include <net/if.h>
 #include <net/if_media.h>
-#include <string.h>
 #include <net80211/ieee80211.h>
-#include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211_freebsd.h>
+#include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211_radiotap.h>
-#include <sys/endian.h>
-#include <assert.h>
 
-void setup_if(char *dev, int chan) {
+#include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+void
+setup_if(char *dev, int chan)
+{
 	int s;
 	struct ifreq ifr;
 	unsigned int flags;
@@ -79,7 +83,8 @@ void setup_if(char *dev, int chan) {
 	close(s);
 }
 
-int open_bpf(char *dev)
+int
+open_bpf(char *dev)
 {
 	char buf[64];
 	int i;
@@ -116,7 +121,8 @@ int open_bpf(char *dev)
 	return fd;
 }
 
-void inject(int fd, void *buf, int buflen, struct ieee80211_bpf_params *p)
+void
+inject(int fd, void *buf, int buflen, struct ieee80211_bpf_params *p)
 {
 	struct iovec iov[2];
 	int totlen;
@@ -129,7 +135,7 @@ void inject(int fd, void *buf, int buflen, struct ieee80211_bpf_params *p)
 	iov[1].iov_len = buflen;
 	totlen = iov[0].iov_len + iov[1].iov_len;
 
-	rc = writev(fd, iov, sizeof(iov)/sizeof(struct iovec));
+	rc = writev(fd, iov, sizeof(iov) / sizeof(struct iovec));
 	if (rc == -1)
 		err(1, "writev()");
 	if (rc != totlen) {
@@ -138,53 +144,55 @@ void inject(int fd, void *buf, int buflen, struct ieee80211_bpf_params *p)
 	}
 }
 
-void usage(char *progname)
+void
+usage(char *progname)
 {
 	printf("Usage: %s <opts>\n"
-		"Physical:\n"
-		"\t-i\t<iface>\n"
-		"\t-c\t<chan>\n"
-		"\t-N\tno ack\n"
-		"\t-V\t<iface> [verify via iface whether packet was mangled]\n"
-		"\t-W\tWME AC\n"
-		"\t-X\ttransmit rate (Mbps)\n"
-		"\t-P\ttransmit power (device units)\n"
-		"802.11:\n"
-		"\t-h\tthis lame message\n"
-		"\t-v\t<version>\n"
-		"\t-t\t<type>\n"
-		"\t-s\t<subtype>\n"
-		"\t-T\tto ds\n"
-		"\t-F\tfrom ds\n"
-		"\t-m\tmore frags\n"
-		"\t-r\tretry\n"
-		"\t-p\tpower\n"
-		"\t-d\tmore data\n"
-		"\t-w\twep\n"
-		"\t-o\torder\n"
-		"\t-u\t<duration>\n"
-		"\t-1\t<addr 1>\n"
-		"\t-2\t<addr 2>\n"
-		"\t-3\t<addr 3>\n"
-		"\t-n\t<seqno>\n"
-		"\t-f\t<fragno>\n"
-		"\t-4\t<addr 4>\n"
-		"\t-b\t<payload file>\n"
-		"\t-l\t<len>\n"
-		"Management:\n"
-		"\t-e\t<info element [hex digits 010203... first is type]>\n"
-		"\t-S\t<SSID>\n"
-		"\t-a\t<algo no>\n"
-		"\t-A\t<transaction>\n"
-		"\t-C\t<status code>\n"
-		"\t-R\tstandard rates\n"
-	       , progname);	
-	exit(1);	
+	       "Physical:\n"
+	       "\t-i\t<iface>\n"
+	       "\t-c\t<chan>\n"
+	       "\t-N\tno ack\n"
+	       "\t-V\t<iface> [verify via iface whether packet was mangled]\n"
+	       "\t-W\tWME AC\n"
+	       "\t-X\ttransmit rate (Mbps)\n"
+	       "\t-P\ttransmit power (device units)\n"
+	       "802.11:\n"
+	       "\t-h\tthis lame message\n"
+	       "\t-v\t<version>\n"
+	       "\t-t\t<type>\n"
+	       "\t-s\t<subtype>\n"
+	       "\t-T\tto ds\n"
+	       "\t-F\tfrom ds\n"
+	       "\t-m\tmore frags\n"
+	       "\t-r\tretry\n"
+	       "\t-p\tpower\n"
+	       "\t-d\tmore data\n"
+	       "\t-w\twep\n"
+	       "\t-o\torder\n"
+	       "\t-u\t<duration>\n"
+	       "\t-1\t<addr 1>\n"
+	       "\t-2\t<addr 2>\n"
+	       "\t-3\t<addr 3>\n"
+	       "\t-n\t<seqno>\n"
+	       "\t-f\t<fragno>\n"
+	       "\t-4\t<addr 4>\n"
+	       "\t-b\t<payload file>\n"
+	       "\t-l\t<len>\n"
+	       "Management:\n"
+	       "\t-e\t<info element [hex digits 010203... first is type]>\n"
+	       "\t-S\t<SSID>\n"
+	       "\t-a\t<algo no>\n"
+	       "\t-A\t<transaction>\n"
+	       "\t-C\t<status code>\n"
+	       "\t-R\tstandard rates\n",
+	    progname);
+	exit(1);
 }
 
-int str2type(const char *type)
+int
+str2type(const char *type)
 {
-#define	equal(a,b)	(strcasecmp(a,b) == 0)
+#define equal(a, b) (strcasecmp(a, b) == 0)
 	if (equal(type, "mgt"))
 		return IEEE80211_FC0_TYPE_MGT >> IEEE80211_FC0_TYPE_SHIFT;
 	else if (equal(type, "ctl"))
@@ -196,45 +204,47 @@ int str2type(const char *type)
 #undef equal
 }
 
-int str2subtype(const char *subtype)
+int
+str2subtype(const char *subtype)
 {
-#define	equal(a,b)	(strcasecmp(a,b) == 0)
+#define equal(a, b) (strcasecmp(a, b) == 0)
 	if (equal(subtype, "preq") || equal(subtype, "probereq"))
 		return IEEE80211_FC0_SUBTYPE_PROBE_REQ >>
-		       IEEE80211_FC0_SUBTYPE_SHIFT;
+		    IEEE80211_FC0_SUBTYPE_SHIFT;
 	else if (equal(subtype, "auth"))
 		return IEEE80211_FC0_SUBTYPE_AUTH >>
-		       IEEE80211_FC0_SUBTYPE_SHIFT;
+		    IEEE80211_FC0_SUBTYPE_SHIFT;
 	else if (equal(subtype, "areq") || equal(subtype, "assocreq"))
 		return IEEE80211_FC0_SUBTYPE_ASSOC_REQ >>
-		       IEEE80211_FC0_SUBTYPE_SHIFT;
+		    IEEE80211_FC0_SUBTYPE_SHIFT;
 	else if (equal(subtype, "data"))
 		return IEEE80211_FC0_SUBTYPE_DATA >>
-		       IEEE80211_FC0_SUBTYPE_SHIFT;
+		    IEEE80211_FC0_SUBTYPE_SHIFT;
 
 	return atoi(subtype) & 0xf;
 #undef equal
 }
 
-void str2mac(unsigned char *mac, char *str)
+void
+str2mac(unsigned char *mac, char *str)
 {
 	unsigned int macf[6];
 	int i;
-        
-	if (sscanf(str, "%x:%x:%x:%x:%x:%x",
-		   &macf[0], &macf[1], &macf[2],
-		   &macf[3], &macf[4], &macf[5]) != 6) {
-		   printf("can't parse mac %s\n", str);
-		   exit(1);
+
+	if (sscanf(str, "%x:%x:%x:%x:%x:%x", &macf[0], &macf[1], &macf[2],
+		&macf[3], &macf[4], &macf[5]) != 6) {
+		printf("can't parse mac %s\n", str);
+		exit(1);
 	}
-	
+
 	for (i = 0; i < 6; i++)
-		*mac++ = (unsigned char) macf[i];
+		*mac++ = (unsigned char)macf[i];
 }
 
-int str2wmeac(const char *ac)
+int
+str2wmeac(const char *ac)
 {
-#define	equal(a,b)	(strcasecmp(a,b) == 0)
+#define equal(a, b) (strcasecmp(a, b) == 0)
 	if (equal(ac, "ac_be") || equal(ac, "be"))
 		return WME_AC_BE;
 	if (equal(ac, "ac_bk") || equal(ac, "bk"))
@@ -247,36 +257,51 @@ int str2wmeac(const char *ac)
 #undef equal
 }
 
-int str2rate(const char *rate)
+int
+str2rate(const char *rate)
 {
 	switch (atoi(rate)) {
-	case 54: return 54*2;
-	case 48: return 48*2;
-	case 36: return 36*2;
-	case 24: return 24*2;
-	case 18: return 18*2;
-	case 12: return 12*2;
-	case 9: return 9*2;
-	case 6: return 6*2;
-	case 11: return 11*2;
-	case 5: return 11;
-	case 2: return 2*2;
-	case 1: return 1*2;
+	case 54:
+		return 54 * 2;
+	case 48:
+		return 48 * 2;
+	case 36:
+		return 36 * 2;
+	case 24:
+		return 24 * 2;
+	case 18:
+		return 18 * 2;
+	case 12:
+		return 12 * 2;
+	case 9:
+		return 9 * 2;
+	case 6:
+		return 6 * 2;
+	case 11:
+		return 11 * 2;
+	case 5:
+		return 11;
+	case 2:
+		return 2 * 2;
+	case 1:
+		return 1 * 2;
 	}
 	errx(1, "unknown transmit rate %s", rate);
 }
 
-const char *rate2str(int rate)
+const char *
+rate2str(int rate)
 {
 	static char buf[30];
 
 	if (rate == 11)
 		return "5.5";
-	snprintf(buf, sizeof(buf), "%u", rate/2);
+	snprintf(buf, sizeof(buf), "%u", rate / 2);
 	return buf;
 }
 
-int load_payload(char *fname, void *buf, int len)
+int
+load_payload(char *fname, void *buf, int len)
 {
 	int fd;
 	int rc;
@@ -292,7 +317,8 @@ int load_payload(char *fname, void *buf, int len)
 	return rc;
 }
 
-int header_len(struct ieee80211_frame *wh)
+int
+header_len(struct ieee80211_frame *wh)
 {
 	int len = sizeof(*wh);
 
@@ -314,7 +340,7 @@ int header_len(struct ieee80211_frame *wh)
 		case IEEE80211_FC0_SUBTYPE_REASSOC_RESP:
 			len += 2 + 2 + 2; /* capa & status & assoc */
 			break;
-			
+
 		case IEEE80211_FC0_SUBTYPE_PROBE_REQ:
 		case IEEE80211_FC0_SUBTYPE_ATIM:
 			break;
@@ -338,39 +364,39 @@ int header_len(struct ieee80211_frame *wh)
 
 		default:
 			errx(1, "Unknown MGT subtype 0x%x",
-				wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
+			    wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
 		}
 		break;
-	
+
 	case IEEE80211_FC0_TYPE_CTL:
 		switch (wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) {
 		case IEEE80211_FC0_SUBTYPE_PS_POLL:
 			len = sizeof(struct ieee80211_frame_pspoll);
 			break;
-		
+
 		case IEEE80211_FC0_SUBTYPE_RTS:
 			len = sizeof(struct ieee80211_frame_rts);
 			break;
-		
+
 		case IEEE80211_FC0_SUBTYPE_CTS:
 			len = sizeof(struct ieee80211_frame_cts);
 			break;
-		
+
 		case IEEE80211_FC0_SUBTYPE_ACK:
 			len = sizeof(struct ieee80211_frame_ack);
 			break;
-		
+
 		case IEEE80211_FC0_SUBTYPE_CF_END_ACK:
 		case IEEE80211_FC0_SUBTYPE_CF_END:
 			len = sizeof(struct ieee80211_frame_cfend);
 			break;
-		
+
 		default:
 			errx(1, "Unknown CTL subtype 0x%x",
-				wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
+			    wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK);
 		}
 		break;
-	
+
 	case IEEE80211_FC0_TYPE_DATA:
 		if (wh->i_fc[1] & IEEE80211_FC1_DIR_DSTODS)
 			len += sizeof(wh->i_addr1);
@@ -378,21 +404,22 @@ int header_len(struct ieee80211_frame *wh)
 
 	default:
 		errx(1, "Unknown type 0x%x",
-			wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
+		    wh->i_fc[0] & IEEE80211_FC0_TYPE_MASK);
 		exit(1);
 	}
 
 	return len;
 }
 
-int parse_ie(char *str, unsigned char *ie, int len)
+int
+parse_ie(char *str, unsigned char *ie, int len)
 {
 	int digits = 0;
 	char num[3];
 	int conv = 0;
 	int ielen;
 
-	ielen = strlen(str)/2;
+	ielen = strlen(str) / 2;
 	if (ielen < 1 || (strlen(str) % 2)) {
 		printf("Invalid IE %s\n", str);
 		exit(1);
@@ -412,7 +439,7 @@ int parse_ie(char *str, unsigned char *ie, int len)
 				exit(1);
 			}
 
-			*ie++ = (unsigned char) x;
+			*ie++ = (unsigned char)x;
 			len--;
 			ielen--;
 
@@ -422,7 +449,7 @@ int parse_ie(char *str, unsigned char *ie, int len)
 					printf("No space for IE\n");
 					exit(1);
 				}
-				*ie++ = (unsigned char) ielen;
+				*ie++ = (unsigned char)ielen;
 				len--;
 				conv++;
 			}
@@ -434,8 +461,9 @@ int parse_ie(char *str, unsigned char *ie, int len)
 	return conv;
 }
 
-int possible_match(struct ieee80211_frame *sent, int slen,
-		   struct ieee80211_frame *got, int glen)
+int
+possible_match(struct ieee80211_frame *sent, int slen,
+    struct ieee80211_frame *got, int glen)
 {
 	if (slen != glen)
 		return 0;
@@ -457,14 +485,15 @@ int possible_match(struct ieee80211_frame *sent, int slen,
 
 	if (memcmp(sent->i_addr2, got->i_addr2, 6) == 0 &&
 	    memcmp(sent->i_addr3, got->i_addr3, 6) == 0)
-	    	return 1;
+		return 1;
 
 	return 0;
 }
 
-int do_verify(struct ieee80211_frame *sent, int slen, void *got, int glen)
+int
+do_verify(struct ieee80211_frame *sent, int slen, void *got, int glen)
 {
-#define BIT(n)  (1<<(n))
+#define BIT(n) (1 << (n))
 	struct bpf_hdr *bpfh = got;
 	struct ieee80211_frame *wh;
 	struct ieee80211_radiotap_header *rth;
@@ -479,25 +508,25 @@ int do_verify(struct ieee80211_frame *sent, int slen, void *got, int glen)
 	if (bpfh->bh_caplen != glen) {
 		abort();
 	}
-	rth = (struct ieee80211_radiotap_header*)
-	      ((char*) bpfh + bpfh->bh_hdrlen);
+	rth = (struct ieee80211_radiotap_header *)((char *)bpfh +
+	    bpfh->bh_hdrlen);
 	glen -= rth->it_len;
 	assert(glen > 0);
-	wh = (struct ieee80211_frame*) ((char*)rth + rth->it_len);
+	wh = (struct ieee80211_frame *)((char *)rth + rth->it_len);
 
-        /* check if FCS/CRC is included in packet */
+	/* check if FCS/CRC is included in packet */
 	present = le32toh(rth->it_present);
 	if (present & BIT(IEEE80211_RADIOTAP_FLAGS)) {
 		if (present & BIT(IEEE80211_RADIOTAP_TSFT))
 			rflags = ((const uint8_t *)rth)[8];
 		else
 			rflags = ((const uint8_t *)rth)[0];
-	} else  
+	} else
 		rflags = 0;
 	if (rflags & IEEE80211_RADIOTAP_F_FCS)
 		glen -= IEEE80211_CRC_LEN;
 	assert(glen > 0);
-	
+
 	/* did we receive the packet we sent? */
 	if (!possible_match(sent, slen, wh, glen))
 		return 0;
@@ -510,18 +539,19 @@ int do_verify(struct ieee80211_frame *sent, int slen, void *got, int glen)
 
 	/* print differences */
 	printf("Got mangled:\n");
-	ptr = (unsigned char*) sent;
-	ptr2 = (unsigned char *) wh;
+	ptr = (unsigned char *)sent;
+	ptr2 = (unsigned char *)wh;
 	for (i = 0; i < slen; i++, ptr++, ptr2++) {
 		if (*ptr != *ptr2)
-			printf("Position: %d Was: %.2X Got: %.2X\n",
-			       i, *ptr, *ptr2);
+			printf("Position: %d Was: %.2X Got: %.2X\n", i, *ptr,
+			    *ptr2);
 	}
 	return -1;
 #undef BIT
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	int fd, fd2;
 	char *iface = "wlan0";
@@ -541,34 +571,37 @@ int main(int argc, char *argv[])
 	memset(&params, 0, sizeof(params));
 	params.ibp_vers = IEEE80211_BPF_VERSION;
 	params.ibp_len = sizeof(struct ieee80211_bpf_params) - 6,
-	params.ibp_rate0 = 2;		/* 1 MB/s XXX */
-	params.ibp_try0 = 1;		/* no retransmits */
-	params.ibp_power = 100;		/* nominal max */
-	params.ibp_pri = WME_AC_VO;	/* high priority */
-	
-	while ((ch = getopt(argc, argv,
-	    "hv:t:s:TFmpdwou:1:2:3:4:b:i:c:l:n:f:e:S:a:A:C:NRV:W:X:P:")) != -1) {
+	params.ibp_rate0 = 2;	    /* 1 MB/s XXX */
+	params.ibp_try0 = 1;	    /* no retransmits */
+	params.ibp_power = 100;	    /* nominal max */
+	params.ibp_pri = WME_AC_VO; /* high priority */
+
+	while (
+	    (ch = getopt(argc, argv,
+		 "hv:t:s:TFmpdwou:1:2:3:4:b:i:c:l:n:f:e:S:a:A:C:NRV:W:X:P:")) !=
+	    -1) {
 		switch (ch) {
 		case 'i':
 			iface = optarg;
 			break;
-		
+
 		case 'c':
 			chan = atoi(optarg);
 			break;
 
 		case 'v':
-			wh->i_fc[0] |= atoi(optarg)& IEEE80211_FC0_VERSION_MASK;
+			wh->i_fc[0] |= atoi(optarg) &
+			    IEEE80211_FC0_VERSION_MASK;
 			break;
 
 		case 't':
-			wh->i_fc[0] |= str2type(optarg) <<
-				       IEEE80211_FC0_TYPE_SHIFT;
+			wh->i_fc[0] |= str2type(optarg)
+			    << IEEE80211_FC0_TYPE_SHIFT;
 			break;
-		
+
 		case 's':
-			wh->i_fc[0] |= str2subtype(optarg) <<
-				       IEEE80211_FC0_SUBTYPE_SHIFT;
+			wh->i_fc[0] |= str2subtype(optarg)
+			    << IEEE80211_FC0_SUBTYPE_SHIFT;
 			len = header_len(wh);
 			body += len;
 			break;
@@ -576,7 +609,7 @@ int main(int argc, char *argv[])
 		case 'T':
 			wh->i_fc[1] |= IEEE80211_FC1_DIR_TODS;
 			break;
-		
+
 		case 'F':
 			wh->i_fc[1] |= IEEE80211_FC1_DIR_FROMDS;
 			break;
@@ -606,13 +639,13 @@ int main(int argc, char *argv[])
 			break;
 
 		case 'u':
-			*(uint16_t*)wh->i_dur = htole16(atoi(optarg));
+			*(uint16_t *)wh->i_dur = htole16(atoi(optarg));
 			break;
 
 		case '1':
 			str2mac(wh->i_addr1, optarg);
 			break;
-		
+
 		case '2':
 			str2mac(wh->i_addr2, optarg);
 			break;
@@ -620,14 +653,14 @@ int main(int argc, char *argv[])
 		case '3':
 			str2mac(wh->i_addr3, optarg);
 			break;
-		
+
 		case '4':
 			str2mac(body, optarg);
 			break;
 
 		case 'n':
-			*(uint16_t*)wh->i_seq |= htole16((atoi(optarg) & 0xfff)
-				<< IEEE80211_SEQ_SEQ_SHIFT);
+			*(uint16_t *)wh->i_seq |= htole16(
+			    (atoi(optarg) & 0xfff) << IEEE80211_SEQ_SEQ_SHIFT);
 			break;
 
 		case 'f':
@@ -636,7 +669,7 @@ int main(int argc, char *argv[])
 
 		case 'b':
 			len += load_payload(optarg, body,
-					    u.buf + sizeof(u.buf) - body);
+			    u.buf + sizeof(u.buf) - body);
 			break;
 
 		case 'l':
@@ -648,10 +681,10 @@ int main(int argc, char *argv[])
 				int ln;
 
 				ln = parse_ie(optarg, body,
-					      u.buf + sizeof(u.buf) - body);
+				    u.buf + sizeof(u.buf) - body);
 				len += ln;
 				body += ln;
-			} while(0);
+			} while (0);
 			break;
 
 		case 'S':
@@ -670,9 +703,9 @@ int main(int argc, char *argv[])
 				memcpy(body, optarg, ln);
 				body += ln;
 				len += ln + 2;
-			} while(0);
+			} while (0);
 			break;
-		
+
 		case 'R':
 			do {
 				unsigned char rates[] = "\x1\x4\x82\x84\xb\x16";
@@ -682,38 +715,39 @@ int main(int argc, char *argv[])
 					printf("No space for rates\n");
 					exit(1);
 				}
-				
+
 				memcpy(body, rates, sizeof(rates) - 1);
 				body += sizeof(rates) - 1;
 				len += sizeof(rates) - 1;
-			} while(0);
+			} while (0);
 			break;
 
 		case 'a':
 			do {
-				uint16_t *x = (uint16_t*) (wh+1);
+				uint16_t *x = (uint16_t *)(wh + 1);
 				*x = htole16(atoi(optarg));
-			} while(0);
+			} while (0);
 			break;
-		
+
 		case 'A':
 			do {
-				uint16_t *x = (uint16_t*) (wh+1);
+				uint16_t *x = (uint16_t *)(wh + 1);
 				x += 1;
 				*x = htole16(atoi(optarg));
-			} while(0);
+			} while (0);
 			break;
 
 		case 'C':
 			do {
-				uint16_t *x = (uint16_t*) (wh+1);
+				uint16_t *x = (uint16_t *)(wh + 1);
 
-				if ((wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK)
-				    == IEEE80211_FC0_SUBTYPE_AUTH)
-				    x += 1;
+				if ((wh->i_fc[0] &
+					IEEE80211_FC0_SUBTYPE_MASK) ==
+				    IEEE80211_FC0_SUBTYPE_AUTH)
+					x += 1;
 				x += 1;
 				*x = htole16(atoi(optarg));
-			} while(0);
+			} while (0);
 			break;
 
 		case 'N':
@@ -748,8 +782,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("Using interface %s on chan %d, transmit at %s Mbp/s\n",
-		iface, chan, rate2str(params.ibp_rate0));
+	printf("Using interface %s on chan %d, transmit at %s Mbp/s\n", iface,
+	    chan, rate2str(params.ibp_rate0));
 	setup_if(iface, chan);
 	fd = open_bpf(iface);
 	printf("Dose: %db\n", len);
@@ -782,7 +816,7 @@ int main(int argc, char *argv[])
 				break;
 			}
 			tv.tv_sec = timeout - tv.tv_sec;
-			if (select(fd2+1, &fds, NULL, NULL, &tv) == -1)
+			if (select(fd2 + 1, &fds, NULL, NULL, &tv) == -1)
 				err(1, "select()");
 			if (!FD_ISSET(fd2, &fds))
 				continue;

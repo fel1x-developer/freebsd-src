@@ -36,13 +36,12 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-
 #include <sys/ctype.h>
 
-#include <dev/sound/pci/hda/hdac.h>
-#include <dev/sound/pci/hda/hdaa.h>
 #include <dev/sound/pci/hda/hda_reg.h>
+#include <dev/sound/pci/hda/hdaa.h>
+#include <dev/sound/pci/hda/hdac.h>
+#include <dev/sound/pcm/sound.h>
 
 #include "pin_patch.h"
 #include "pin_patch_realtek.h"
@@ -60,101 +59,76 @@ static const struct {
 	 *     perhaps unsupported.
 	 */
 	{ HDA_MATCH_ALL, HDA_MATCH_ALL, HDA_MATCH_ALL,
-	    HDAA_QUIRK_FORCESTEREO | HDAA_QUIRK_IVREF, 0,
-	    0 },
-	{ ACER_ALL_SUBVENDOR, HDA_MATCH_ALL, HDA_MATCH_ALL,
-	    0, 0,
+	    HDAA_QUIRK_FORCESTEREO | HDAA_QUIRK_IVREF, 0, 0 },
+	{ ACER_ALL_SUBVENDOR, HDA_MATCH_ALL, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ ASUS_G2K_SUBVENDOR, HDA_CODEC_ALC660, HDA_MATCH_ALL,
-	    0, 0,
+	{ ASUS_G2K_SUBVENDOR, HDA_CODEC_ALC660, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ ASUS_M5200_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL,
-	    0, 0,
+	{ ASUS_M5200_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ ASUS_A7M_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL,
-	    0, 0,
+	{ ASUS_A7M_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ ASUS_A7T_SUBVENDOR, HDA_CODEC_ALC882, HDA_MATCH_ALL,
-	    0, 0,
+	{ ASUS_A7T_SUBVENDOR, HDA_CODEC_ALC882, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ ASUS_W2J_SUBVENDOR, HDA_CODEC_ALC882, HDA_MATCH_ALL,
-	    0, 0,
+	{ ASUS_W2J_SUBVENDOR, HDA_CODEC_ALC882, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
 	{ ASUS_U5F_SUBVENDOR, HDA_CODEC_AD1986A, HDA_MATCH_ALL,
-	    HDAA_QUIRK_EAPDINV, 0,
-	    0 },
+	    HDAA_QUIRK_EAPDINV, 0, 0 },
 	{ ASUS_A8X_SUBVENDOR, HDA_CODEC_AD1986A, HDA_MATCH_ALL,
-	    HDAA_QUIRK_EAPDINV, 0,
-	    0 },
+	    HDAA_QUIRK_EAPDINV, 0, 0 },
 	{ ASUS_F3JC_SUBVENDOR, HDA_CODEC_ALC861, HDA_MATCH_ALL,
-	    HDAA_QUIRK_OVREF, 0,
-	    0 },
+	    HDAA_QUIRK_OVREF, 0, 0 },
 	{ UNIWILL_9075_SUBVENDOR, HDA_CODEC_ALC861, HDA_MATCH_ALL,
-	    HDAA_QUIRK_OVREF, 0,
-	    0 },
+	    HDAA_QUIRK_OVREF, 0, 0 },
 	/*{ ASUS_M2N_SUBVENDOR, HDA_CODEC_AD1988, HDA_MATCH_ALL,
 	    HDAA_QUIRK_IVREF80, HDAA_QUIRK_IVREF50 | HDAA_QUIRK_IVREF100,
 	    0 },*/
-	{ MEDION_MD95257_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL,
-	    0, 0,
+	{ MEDION_MD95257_SUBVENDOR, HDA_CODEC_ALC880, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(1) },
 	{ LENOVO_3KN100_SUBVENDOR, HDA_CODEC_AD1986A, HDA_MATCH_ALL,
-	    HDAA_QUIRK_EAPDINV | HDAA_QUIRK_SENSEINV, 0,
-	    0 },
+	    HDAA_QUIRK_EAPDINV | HDAA_QUIRK_SENSEINV, 0, 0 },
 	{ SAMSUNG_Q1_SUBVENDOR, HDA_CODEC_AD1986A, HDA_MATCH_ALL,
-	    HDAA_QUIRK_EAPDINV, 0,
-	    0 },
+	    HDAA_QUIRK_EAPDINV, 0, 0 },
 	{ APPLE_MB3_SUBVENDOR, HDA_CODEC_ALC885, HDA_MATCH_ALL,
-	    HDAA_QUIRK_OVREF50, 0,
-	    HDAA_GPIO_SET(0) },
-	{ APPLE_INTEL_MAC, HDA_CODEC_STAC9221, HDA_MATCH_ALL,
-	    0, 0,
+	    HDAA_QUIRK_OVREF50, 0, HDAA_GPIO_SET(0) },
+	{ APPLE_INTEL_MAC, HDA_CODEC_STAC9221, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) | HDAA_GPIO_SET(1) },
-	{ APPLE_MACBOOKAIR31, HDA_CODEC_CS4206, HDA_MATCH_ALL,
-	    0, 0,
+	{ APPLE_MACBOOKAIR31, HDA_CODEC_CS4206, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(1) | HDAA_GPIO_SET(3) },
-	{ APPLE_MACBOOKPRO55, HDA_CODEC_CS4206, HDA_MATCH_ALL,
-	    0, 0,
+	{ APPLE_MACBOOKPRO55, HDA_CODEC_CS4206, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(1) | HDAA_GPIO_SET(3) },
-	{ APPLE_MACBOOKPRO71, HDA_CODEC_CS4206, HDA_MATCH_ALL,
-	    0, 0,
+	{ APPLE_MACBOOKPRO71, HDA_CODEC_CS4206, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(1) | HDAA_GPIO_SET(3) },
-	{ HDA_INTEL_MACBOOKPRO92, HDA_CODEC_CS4206, HDA_MATCH_ALL,
-	    0, 0,
+	{ HDA_INTEL_MACBOOKPRO92, HDA_CODEC_CS4206, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(1) | HDAA_GPIO_SET(3) },
-	{ DELL_D630_SUBVENDOR, HDA_CODEC_STAC9205X, HDA_MATCH_ALL,
-	    0, 0,
+	{ DELL_D630_SUBVENDOR, HDA_CODEC_STAC9205X, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ DELL_V1400_SUBVENDOR, HDA_CODEC_STAC9228X, HDA_MATCH_ALL,
-	    0, 0,
+	{ DELL_V1400_SUBVENDOR, HDA_CODEC_STAC9228X, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(2) },
-	{ DELL_V1500_SUBVENDOR, HDA_CODEC_STAC9205X, HDA_MATCH_ALL,
-	    0, 0,
+	{ DELL_V1500_SUBVENDOR, HDA_CODEC_STAC9205X, HDA_MATCH_ALL, 0, 0,
 	    HDAA_GPIO_SET(0) },
-	{ HDA_MATCH_ALL, HDA_CODEC_AD1988, HDA_MATCH_ALL,
-	    HDAA_QUIRK_IVREF80, HDAA_QUIRK_IVREF50 | HDAA_QUIRK_IVREF100,
-	    0 },
-	{ HDA_MATCH_ALL, HDA_CODEC_AD1988B, HDA_MATCH_ALL,
-	    HDAA_QUIRK_IVREF80, HDAA_QUIRK_IVREF50 | HDAA_QUIRK_IVREF100,
-	    0 },
-	{ HDA_MATCH_ALL, HDA_CODEC_CX20549, HDA_MATCH_ALL,
-	    0, HDAA_QUIRK_FORCESTEREO,
-	    0 },
+	{ HDA_MATCH_ALL, HDA_CODEC_AD1988, HDA_MATCH_ALL, HDAA_QUIRK_IVREF80,
+	    HDAA_QUIRK_IVREF50 | HDAA_QUIRK_IVREF100, 0 },
+	{ HDA_MATCH_ALL, HDA_CODEC_AD1988B, HDA_MATCH_ALL, HDAA_QUIRK_IVREF80,
+	    HDAA_QUIRK_IVREF50 | HDAA_QUIRK_IVREF100, 0 },
+	{ HDA_MATCH_ALL, HDA_CODEC_CX20549, HDA_MATCH_ALL, 0,
+	    HDAA_QUIRK_FORCESTEREO, 0 },
 	/* Mac Pro 1,1 requires ovref for proper volume level. */
-	{ 0x00000000, HDA_CODEC_ALC885, 0x106b0c00,
-	    0, HDAA_QUIRK_OVREF,
-	    0 }
+	{ 0x00000000, HDA_CODEC_ALC885, 0x106b0c00, 0, HDAA_QUIRK_OVREF, 0 }
 };
 
 static struct pin_patch_t *
 match_pin_patches(int vendor_id, int vendor_subid)
 {
 	for (int ci = 0; ci < nitems(realtek_model_pin_patches); ci++) {
-		struct hdaa_model_pin_patch_t *p = &realtek_model_pin_patches[ci];
+		struct hdaa_model_pin_patch_t *p =
+		    &realtek_model_pin_patches[ci];
 		if (vendor_id != p->id)
 			continue;
-		for (struct model_pin_patch_t *pp =  p->patches; pp->models; pp++) {
-			for (struct pin_machine_model_t *model = pp->models; model->id != 0; model++) {
+		for (struct model_pin_patch_t *pp = p->patches; pp->models;
+		     pp++) {
+			for (struct pin_machine_model_t *model = pp->models;
+			     model->id != 0; model++) {
 				if (HDA_DEV_MATCH(model->id, vendor_subid))
 					return (pp->pin_patches);
 			}
@@ -175,7 +149,8 @@ hdac_pin_patch(struct hdaa_widget *w)
 	id = hdaa_codec_id(w->devinfo);
 	subid = hdaa_card_id(w->devinfo);
 
-	if (id == HDA_CODEC_ALC883 && HDA_DEV_MATCH(ACER_ALL_SUBVENDOR, subid)) {
+	if (id == HDA_CODEC_ALC883 &&
+	    HDA_DEV_MATCH(ACER_ALL_SUBVENDOR, subid)) {
 		switch (nid) {
 		case 25:
 			config &= ~(HDA_CONFIG_DEFAULTCONF_DEVICE_MASK |
@@ -190,8 +165,7 @@ hdac_pin_patch(struct hdaa_widget *w)
 			    HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_FIXED);
 			break;
 		}
-	} else if (id == HDA_CODEC_CX20549 && subid ==
-	    HP_V3000_SUBVENDOR) {
+	} else if (id == HDA_CODEC_CX20549 && subid == HP_V3000_SUBVENDOR) {
 		switch (nid) {
 		case 18:
 			config &= ~HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_MASK;
@@ -210,8 +184,7 @@ hdac_pin_patch(struct hdaa_widget *w)
 			    HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_FIXED);
 			break;
 		}
-	} else if (id == HDA_CODEC_CX20551 && subid ==
-	    HP_DV5000_SUBVENDOR) {
+	} else if (id == HDA_CODEC_CX20551 && subid == HP_DV5000_SUBVENDOR) {
 		switch (nid) {
 		case 20:
 		case 21:
@@ -222,8 +195,7 @@ hdac_pin_patch(struct hdaa_widget *w)
 	}
 
 	/* New patches */
-	if (id == HDA_CODEC_AD1984A &&
-	    subid == LENOVO_X300_SUBVENDOR) {
+	if (id == HDA_CODEC_AD1984A && subid == LENOVO_X300_SUBVENDOR) {
 		switch (nid) {
 		case 17: /* Headphones with redirection */
 			patch_str = "as=1 seq=15";
@@ -234,8 +206,8 @@ hdac_pin_patch(struct hdaa_widget *w)
 		}
 	} else if (id == HDA_CODEC_AD1986A &&
 	    (subid == ASUS_M2NPVMX_SUBVENDOR ||
-	    subid == ASUS_A8NVMCSM_SUBVENDOR ||
-	    subid == ASUS_P5PL2_SUBVENDOR)) {
+		subid == ASUS_A8NVMCSM_SUBVENDOR ||
+		subid == ASUS_P5PL2_SUBVENDOR)) {
 		switch (nid) {
 		case 26: /* Headphones with redirection */
 			patch_str = "as=1 seq=15";
@@ -262,15 +234,13 @@ hdac_pin_patch(struct hdaa_widget *w)
 			patch_str = "as=8 seq=6";
 			break;
 		}
-	} else if (id == HDA_CODEC_CX20561 &&
-	    subid == LENOVO_B450_SUBVENDOR) {
+	} else if (id == HDA_CODEC_CX20561 && subid == LENOVO_B450_SUBVENDOR) {
 		switch (nid) {
 		case 22:
 			patch_str = "as=1 seq=15";
 			break;
 		}
-	} else if (id == HDA_CODEC_CX20561 &&
-	    subid == LENOVO_T400_SUBVENDOR) {
+	} else if (id == HDA_CODEC_CX20561 && subid == LENOVO_T400_SUBVENDOR) {
 		switch (nid) {
 		case 22:
 			patch_str = "as=1 seq=15";
@@ -280,11 +250,10 @@ hdac_pin_patch(struct hdaa_widget *w)
 			break;
 		}
 	} else if (id == HDA_CODEC_CX20590 &&
-	    (subid == LENOVO_X1_SUBVENDOR ||
-	    subid == LENOVO_X220_SUBVENDOR ||
-	    subid == LENOVO_T420_SUBVENDOR ||
-	    subid == LENOVO_T520_SUBVENDOR ||
-	    subid == LENOVO_G580_SUBVENDOR)) {
+	    (subid == LENOVO_X1_SUBVENDOR || subid == LENOVO_X220_SUBVENDOR ||
+		subid == LENOVO_T420_SUBVENDOR ||
+		subid == LENOVO_T520_SUBVENDOR ||
+		subid == LENOVO_G580_SUBVENDOR)) {
 		switch (nid) {
 		case 25:
 			patch_str = "as=1 seq=15";
@@ -306,8 +275,8 @@ hdac_pin_patch(struct hdaa_widget *w)
 			patch_str = "as=1 seq=15";
 			break;
 		}
-	} else if (id == HDA_CODEC_ALC256 && (subid == DELL_I7577_SUBVENDOR ||
-	    subid == DELL_L7480_SUBVENDOR)) {
+	} else if (id == HDA_CODEC_ALC256 &&
+	    (subid == DELL_I7577_SUBVENDOR || subid == DELL_L7480_SUBVENDOR)) {
 		switch (nid) {
 		case 20:
 			patch_str = "as=1 seq=0";
@@ -318,7 +287,7 @@ hdac_pin_patch(struct hdaa_widget *w)
 		}
 	} else if (id == HDA_CODEC_ALC257 &&
 	    (subid == LENOVO_L5AMD_SUBVENDOR ||
-	    subid == LENOVO_L5INTEL_SUBVENDOR)) {
+		subid == LENOVO_L5INTEL_SUBVENDOR)) {
 		switch (nid) {
 		case 20:
 			patch_str = "as=1 seq=0";
@@ -329,7 +298,7 @@ hdac_pin_patch(struct hdaa_widget *w)
 		}
 	} else if (id == HDA_CODEC_IDT92HD95B &&
 	    (subid == FRAMEWORK_LAPTOP_0001_SUBVENDOR ||
-	    subid == FRAMEWORK_LAPTOP_0002_SUBVENDOR)) {
+		subid == FRAMEWORK_LAPTOP_0002_SUBVENDOR)) {
 		switch (nid) {
 		case 10:
 			patch_str = "as=1 seq=15 color=Black loc=Left";
@@ -347,7 +316,8 @@ hdac_pin_patch(struct hdaa_widget *w)
 		pin_patches = match_pin_patches(id, subid);
 
 		if (pin_patches != NULL) {
-			for (struct pin_patch_t *patch = pin_patches; patch->type; patch++) {
+			for (struct pin_patch_t *patch = pin_patches;
+			     patch->type; patch++) {
 				if (nid == patch->nid) {
 					switch (patch->type) {
 					case PIN_PATCH_TYPE_STRING:
@@ -372,12 +342,9 @@ hdac_pin_patch(struct hdaa_widget *w)
 
 	if (patch_str != NULL)
 		config = hdaa_widget_pin_patch(config, patch_str);
-	HDA_BOOTVERBOSE(
-		if (config != orig)
-			device_printf(w->devinfo->dev,
-			    "Patching pin config nid=%u 0x%08x -> 0x%08x\n",
-			    nid, orig, config);
-	);
+	HDA_BOOTVERBOSE(if (config != orig) device_printf(w->devinfo->dev,
+	    "Patching pin config nid=%u 0x%08x -> 0x%08x\n", nid, orig,
+	    config););
 	w->wclass.pin.config = config;
 }
 
@@ -413,24 +380,22 @@ hdaa_widget_patch(struct hdaa_widget *w)
 		beeper = 29;
 	if (w->nid == beeper) {
 		w->param.widget_cap &= ~HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_MASK;
-		w->param.widget_cap |= HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_BEEP_WIDGET <<
-		    HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT;
+		w->param.widget_cap |=
+		    HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_BEEP_WIDGET
+		    << HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT;
 		w->waspin = 1;
 	}
 	/*
 	 * Clear "digital" flag from digital mic input, as its signal then goes
 	 * to "analog" mixer and this separation just limits functionaity.
 	 */
-	if (hdaa_codec_id(devinfo) == HDA_CODEC_AD1984A &&
-	    w->nid == 23)
+	if (hdaa_codec_id(devinfo) == HDA_CODEC_AD1984A && w->nid == 23)
 		w->param.widget_cap &= ~HDA_PARAM_AUDIO_WIDGET_CAP_DIGITAL_MASK;
-	HDA_BOOTVERBOSE(
-		if (w->param.widget_cap != orig) {
-			device_printf(w->devinfo->dev,
-			    "Patching widget caps nid=%u 0x%08x -> 0x%08x\n",
-			    w->nid, orig, w->param.widget_cap);
-		}
-	);
+	HDA_BOOTVERBOSE(if (w->param.widget_cap != orig) {
+		device_printf(w->devinfo->dev,
+		    "Patching widget caps nid=%u 0x%08x -> 0x%08x\n", w->nid,
+		    orig, w->param.widget_cap);
+	});
 
 	if (w->type == HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_PIN_COMPLEX)
 		hdac_pin_patch(w);
@@ -452,8 +417,8 @@ hdaa_patch(struct hdaa_devinfo *devinfo)
 	 */
 	for (i = 0; i < nitems(hdac_quirks); i++) {
 		if (!(HDA_DEV_MATCH(hdac_quirks[i].model, subid) &&
-		    HDA_DEV_MATCH(hdac_quirks[i].id, id) &&
-		    HDA_DEV_MATCH(hdac_quirks[i].subsystemid, subsystemid)))
+			HDA_DEV_MATCH(hdac_quirks[i].id, id) &&
+			HDA_DEV_MATCH(hdac_quirks[i].subsystemid, subsystemid)))
 			continue;
 		devinfo->quirks |= hdac_quirks[i].set;
 		devinfo->quirks &= ~(hdac_quirks[i].unset);
@@ -526,29 +491,29 @@ hdaa_patch(struct hdaa_devinfo *devinfo)
 		w = hdaa_widget_get(devinfo, 31);
 		if (w != NULL) {
 			if ((w->wclass.pin.config &
-			    HDA_CONFIG_DEFAULTCONF_DEVICE_MASK) ==
+				HDA_CONFIG_DEFAULTCONF_DEVICE_MASK) ==
 			    HDA_CONFIG_DEFAULTCONF_DEVICE_MIC_IN) {
 				w = hdaa_widget_get(devinfo, 16);
 				if (w != NULL)
-				    w->connsenable[2] = 0;
+					w->connsenable[2] = 0;
 			} else {
 				w = hdaa_widget_get(devinfo, 15);
 				if (w != NULL)
-				    w->connsenable[0] = 0;
+					w->connsenable[0] = 0;
 			}
 		}
 		w = hdaa_widget_get(devinfo, 32);
 		if (w != NULL) {
 			if ((w->wclass.pin.config &
-			    HDA_CONFIG_DEFAULTCONF_DEVICE_MASK) ==
+				HDA_CONFIG_DEFAULTCONF_DEVICE_MASK) ==
 			    HDA_CONFIG_DEFAULTCONF_DEVICE_MIC_IN) {
 				w = hdaa_widget_get(devinfo, 16);
 				if (w != NULL)
-				    w->connsenable[0] = 0;
+					w->connsenable[0] = 0;
 			} else {
 				w = hdaa_widget_get(devinfo, 15);
 				if (w != NULL)
-				    w->connsenable[1] = 0;
+					w->connsenable[1] = 0;
 			}
 		}
 
@@ -559,13 +524,13 @@ hdaa_patch(struct hdaa_devinfo *devinfo)
 			 * pci id but works differently (EAPD).
 			 */
 			w = hdaa_widget_get(devinfo, 26);
-			if (w != NULL && w->type ==
-			    HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_PIN_COMPLEX &&
+			if (w != NULL &&
+			    w->type ==
+				HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_PIN_COMPLEX &&
 			    (w->wclass.pin.config &
-			    HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_MASK) !=
-			    HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_NONE)
-				devinfo->quirks &=
-				    ~HDAA_QUIRK_EAPDINV;
+				HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_MASK) !=
+				HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_NONE)
+				devinfo->quirks &= ~HDAA_QUIRK_EAPDINV;
 		}
 		break;
 	case HDA_CODEC_AD1981HD:
@@ -691,13 +656,11 @@ hdaa_patch_direct(struct hdaa_devinfo *devinfo)
 	case HDA_CODEC_VT1708S_6:
 	case HDA_CODEC_VT1708S_7:
 		/* Enable Mic Boost Volume controls. */
-		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid,
-		    0xf98, 0x01));
+		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid, 0xf98, 0x01));
 		/* Fall though */
 	case HDA_CODEC_VT1818S:
 		/* Don't bypass mixer. */
-		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid,
-		    0xf88, 0xc0));
+		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid, 0xf88, 0xc0));
 		break;
 	case HDA_CODEC_ALC1150:
 		if (subid == 0xd9781462) {
@@ -708,11 +671,10 @@ hdaa_patch_direct(struct hdaa_devinfo *devinfo)
 	}
 	if (id == HDA_CODEC_ALC255 || id == HDA_CODEC_ALC256) {
 		val = hdaa_read_coef(dev, 0x20, 0x46);
-		hdaa_write_coef(dev, 0x20, 0x46, val|0x3000);
+		hdaa_write_coef(dev, 0x20, 0x46, val | 0x3000);
 	}
 	if (subid == APPLE_INTEL_MAC)
-		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid,
-		    0x7e7, 0));
+		hda_command(dev, HDA_CMD_12BIT(0, devinfo->nid, 0x7e7, 0));
 	if (id == HDA_CODEC_ALC269) {
 		if (subid == 0x16e31043 || subid == 0x831a1043 ||
 		    subid == 0x834a1043 || subid == 0x83981043 ||
@@ -724,7 +686,7 @@ hdaa_patch_direct(struct hdaa_devinfo *devinfo)
 			 * To workaround, make codec handle the signal as mono.
 			 */
 			val = hdaa_read_coef(dev, 0x20, 0x07);
-			hdaa_write_coef(dev, 0x20, 0x07, val|0x80);
+			hdaa_write_coef(dev, 0x20, 0x07, val | 0x80);
 		}
 		if (subid == 0x15171043) {
 			/* Increase output amp on ASUS UX31A by +5dB. */

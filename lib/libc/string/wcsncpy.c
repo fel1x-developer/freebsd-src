@@ -39,7 +39,7 @@
  * Return dst.
  */
 wchar_t *
-wcsncpy(wchar_t * __restrict dst, const wchar_t * __restrict src, size_t n)
+wcsncpy(wchar_t *__restrict dst, const wchar_t *__restrict src, size_t n)
 {
 	if (n != 0) {
 		wchar_t *d = dst;

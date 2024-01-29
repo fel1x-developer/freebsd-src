@@ -34,15 +34,15 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libgeom.h>
 #include <libutil.h>
+#include <limits.h>
 #include <paths.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <inttypes.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
@@ -51,9 +51,9 @@
 #include "misc/subr.h"
 
 #ifdef STATIC_GEOM_CLASSES
-#define	PUBSYM(x)	gpart_##x
+#define PUBSYM(x) gpart_##x
 #else
-#define	PUBSYM(x)	x
+#define PUBSYM(x) x
 #endif
 
 uint32_t PUBSYM(lib_version) = G_LIB_VERSION;
@@ -63,16 +63,16 @@ static char sstart[32];
 static char ssize[32];
 volatile sig_atomic_t undo_restore;
 
-#define	GPART_AUTOFILL	"*"
-#define	GPART_FLAGS	"C"
+#define GPART_AUTOFILL "*"
+#define GPART_FLAGS "C"
 
-#define	GPART_PARAM_BOOTCODE	"bootcode"
-#define	GPART_PARAM_INDEX	"index"
-#define	GPART_PARAM_PARTCODE	"partcode"
-#define	GPART_PARAM_SKIP_DSN	"skip_dsn"
+#define GPART_PARAM_BOOTCODE "bootcode"
+#define GPART_PARAM_INDEX "index"
+#define GPART_PARAM_PARTCODE "partcode"
+#define GPART_PARAM_SKIP_DSN "skip_dsn"
 
 static struct gclass *find_class(struct gmesh *, const char *);
-static struct ggeom * find_geom(struct gclass *, const char *);
+static struct ggeom *find_geom(struct gclass *, const char *);
 static int geom_is_withered(struct ggeom *);
 static const char *find_geomcfg(struct ggeom *, const char *);
 static const char *find_provcfg(struct gprovider *, const char *);
@@ -92,104 +92,75 @@ static void gpart_backup(struct gctl_req *, unsigned int);
 static void gpart_restore(struct gctl_req *, unsigned int);
 
 struct g_command PUBSYM(class_commands)[] = {
-	{ "add", 0, gpart_issue, {
-		{ 'a', "alignment", GPART_AUTOFILL, G_TYPE_STRING },
+	{ "add", 0, gpart_issue,
+	    { { 'a', "alignment", GPART_AUTOFILL, G_TYPE_STRING },
 		{ 'b', "start", GPART_AUTOFILL, G_TYPE_STRING },
 		{ 's', "size", GPART_AUTOFILL, G_TYPE_STRING },
 		{ 't', "type", NULL, G_TYPE_STRING },
 		{ 'i', GPART_PARAM_INDEX, G_VAL_OPTIONAL, G_TYPE_NUMBER },
 		{ 'l', "label", G_VAL_OPTIONAL, G_TYPE_STRING },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
 	    "-t type [-a alignment] [-b start] [-s size] [-i index] "
-		"[-l label] [-f flags] geom"
-	},
-	{ "backup", 0, gpart_backup, G_NULL_OPTS,
-	    "geom"
-	},
-	{ "bootcode", 0, gpart_bootcode, {
-		{ 'b', GPART_PARAM_BOOTCODE, G_VAL_OPTIONAL, G_TYPE_STRING },
+	    "[-l label] [-f flags] geom" },
+	{ "backup", 0, gpart_backup, G_NULL_OPTS, "geom" },
+	{ "bootcode", 0, gpart_bootcode,
+	    { { 'b', GPART_PARAM_BOOTCODE, G_VAL_OPTIONAL, G_TYPE_STRING },
 		{ 'p', GPART_PARAM_PARTCODE, G_VAL_OPTIONAL, G_TYPE_STRING },
 		{ 'i', GPART_PARAM_INDEX, G_VAL_OPTIONAL, G_TYPE_NUMBER },
 		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
 		{ 'N', GPART_PARAM_SKIP_DSN, NULL, G_TYPE_BOOL },
 		G_OPT_SENTINEL },
-	    "[-N] [-b bootcode] [-p partcode -i index] [-f flags] geom"
-	},
-	{ "commit", 0, gpart_issue, G_NULL_OPTS,
-	    "geom"
-	},
-	{ "create", 0, gpart_issue, {
-		{ 's', "scheme", NULL, G_TYPE_STRING },
+	    "[-N] [-b bootcode] [-p partcode -i index] [-f flags] geom" },
+	{ "commit", 0, gpart_issue, G_NULL_OPTS, "geom" },
+	{ "create", 0, gpart_issue,
+	    { { 's', "scheme", NULL, G_TYPE_STRING },
 		{ 'n', "entries", G_VAL_OPTIONAL, G_TYPE_NUMBER },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-s scheme [-n entries] [-f flags] provider"
-	},
-	{ "delete", 0, gpart_issue, {
-		{ 'i', GPART_PARAM_INDEX, NULL, G_TYPE_NUMBER },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-i index [-f flags] geom"
-	},
-	{ "destroy", 0, gpart_issue, {
-		{ 'F', "force", NULL, G_TYPE_BOOL },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "[-F] [-f flags] geom"
-	},
-	{ "modify", 0, gpart_issue, {
-		{ 'i', GPART_PARAM_INDEX, NULL, G_TYPE_NUMBER },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-s scheme [-n entries] [-f flags] provider" },
+	{ "delete", 0, gpart_issue,
+	    { { 'i', GPART_PARAM_INDEX, NULL, G_TYPE_NUMBER },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-i index [-f flags] geom" },
+	{ "destroy", 0, gpart_issue,
+	    { { 'F', "force", NULL, G_TYPE_BOOL },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "[-F] [-f flags] geom" },
+	{ "modify", 0, gpart_issue,
+	    { { 'i', GPART_PARAM_INDEX, NULL, G_TYPE_NUMBER },
 		{ 'l', "label", G_VAL_OPTIONAL, G_TYPE_STRING },
 		{ 't', "type", G_VAL_OPTIONAL, G_TYPE_STRING },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-i index [-l label] [-t type] [-f flags] geom"
-	},
-	{ "set", 0, gpart_issue, {
-		{ 'a', "attrib", NULL, G_TYPE_STRING },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-i index [-l label] [-t type] [-f flags] geom" },
+	{ "set", 0, gpart_issue,
+	    { { 'a', "attrib", NULL, G_TYPE_STRING },
 		{ 'i', GPART_PARAM_INDEX, G_VAL_OPTIONAL, G_TYPE_NUMBER },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-a attrib [-i index] [-f flags] geom"
-	},
-	{ "show", 0, gpart_show, {
-		{ 'l', "show_label", NULL, G_TYPE_BOOL },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-a attrib [-i index] [-f flags] geom" },
+	{ "show", 0, gpart_show,
+	    { { 'l', "show_label", NULL, G_TYPE_BOOL },
 		{ 'r', "show_rawtype", NULL, G_TYPE_BOOL },
-		{ 'p', "show_providers", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL },
-	    "[-l | -r] [-p] [geom ...]"
-	},
-	{ "undo", 0, gpart_issue, G_NULL_OPTS,
-	    "geom"
-	},
-	{ "unset", 0, gpart_issue, {
-		{ 'a', "attrib", NULL, G_TYPE_STRING },
+		{ 'p', "show_providers", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-l | -r] [-p] [geom ...]" },
+	{ "undo", 0, gpart_issue, G_NULL_OPTS, "geom" },
+	{ "unset", 0, gpart_issue,
+	    { { 'a', "attrib", NULL, G_TYPE_STRING },
 		{ 'i', GPART_PARAM_INDEX, G_VAL_OPTIONAL, G_TYPE_NUMBER },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-a attrib [-i index] [-f flags] geom"
-	},
-	{ "resize", 0, gpart_issue, {
-		{ 'a', "alignment", GPART_AUTOFILL, G_TYPE_STRING },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-a attrib [-i index] [-f flags] geom" },
+	{ "resize", 0, gpart_issue,
+	    { { 'a', "alignment", GPART_AUTOFILL, G_TYPE_STRING },
 		{ 's', "size", GPART_AUTOFILL, G_TYPE_STRING },
 		{ 'i', GPART_PARAM_INDEX, NULL, G_TYPE_NUMBER },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "-i index [-a alignment] [-s size] [-f flags] geom"
-	},
-	{ "restore", 0, gpart_restore, {
-		{ 'F', "force", NULL, G_TYPE_BOOL },
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "-i index [-a alignment] [-s size] [-f flags] geom" },
+	{ "restore", 0, gpart_restore,
+	    { { 'F', "force", NULL, G_TYPE_BOOL },
 		{ 'l', "restore_labels", NULL, G_TYPE_BOOL },
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "[-lF] [-f flags] provider [...]"
-	},
-	{ "recover", 0, gpart_issue, {
-		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING },
-		G_OPT_SENTINEL },
-	    "[-f flags] geom"
-	},
+		{ 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "[-lF] [-f flags] provider [...]" },
+	{ "recover", 0, gpart_issue,
+	    { { 'f', "flags", GPART_FLAGS, G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "[-f flags] geom" },
 	G_CMD_SENTINEL
 };
 
@@ -198,7 +169,7 @@ find_class(struct gmesh *mesh, const char *name)
 {
 	struct gclass *classp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, name) == 0)
 			return (classp);
 	}
@@ -213,7 +184,7 @@ find_geom(struct gclass *classp, const char *name)
 	if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
 		name += sizeof(_PATH_DEV) - 1;
 	wgp = NULL;
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		if (strcmp(gp->lg_name, name) != 0)
 			continue;
 		if (!geom_is_withered(gp))
@@ -229,7 +200,7 @@ geom_is_withered(struct ggeom *gp)
 {
 	struct gconfig *gc;
 
-	LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 		if (!strcmp(gc->lg_name, "wither"))
 			return (1);
 	}
@@ -241,7 +212,7 @@ find_geomcfg(struct ggeom *gp, const char *cfg)
 {
 	struct gconfig *gc;
 
-	LIST_FOREACH(gc, &gp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &gp->lg_config, lg_config) {
 		if (!strcmp(gc->lg_name, cfg))
 			return (gc->lg_val);
 	}
@@ -253,7 +224,7 @@ find_provcfg(struct gprovider *pp, const char *cfg)
 {
 	struct gconfig *gc;
 
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (!strcmp(gc->lg_name, cfg))
 			return (gc->lg_val);
 	}
@@ -269,7 +240,7 @@ find_provider(struct ggeom *gp, off_t minsector)
 
 	bestpp = NULL;
 	bestsector = 0;
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		s = find_provcfg(pp, "start");
 		sector = (off_t)strtoimax(s, NULL, 0);
 		if (sector < minsector)
@@ -302,7 +273,7 @@ fmtattrib(struct gprovider *pp)
 
 	buf[0] = '\0';
 	idx = 0;
-	LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+	LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 		if (strcmp(gc->lg_name, "attrib") != 0)
 			continue;
 		idx += snprintf(buf + idx, sizeof(buf) - idx, "%s%s",
@@ -313,8 +284,8 @@ fmtattrib(struct gprovider *pp)
 	return (buf);
 }
 
-#define	ALIGNDOWN(d, a)	((d) - (d) % (a))
-#define	ALIGNUP(d, a)	((d) % (a) ? (d) - (d) % (a) + (a): (d))
+#define ALIGNDOWN(d, a) ((d) - (d) % (a))
+#define ALIGNUP(d, a) ((d) % (a) ? (d) - (d) % (a) + (a) : (d))
 
 static int
 gpart_autofill_resize(struct gctl_req *req)
@@ -387,7 +358,7 @@ gpart_autofill_resize(struct gctl_req *req)
 		errx(EXIT_FAILURE, "Final block not found for geom %s",
 		    gp->lg_name);
 	last = (off_t)strtoimax(s, NULL, 0);
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		s = find_provcfg(pp, "index");
 		if (s == NULL)
 			continue;
@@ -408,13 +379,13 @@ gpart_autofill_resize(struct gctl_req *req)
 		/* The start offset may be not aligned, so we align the end
 		 * offset and then calculate the size.
 		 */
-		new_size = ALIGNDOWN(start + offset + new_size,
-		    alignment) - start - offset;
+		new_size = ALIGNDOWN(start + offset + new_size, alignment) -
+		    start - offset;
 		goto done;
 	}
 	if (pp == NULL) {
-		new_size = ALIGNDOWN(last + offset + 1, alignment) -
-		    start - offset;
+		new_size = ALIGNDOWN(last + offset + 1, alignment) - start -
+		    offset;
 		if (new_size < size)
 			return (ENOSPC);
 	} else {
@@ -586,8 +557,7 @@ gpart_autofill(struct gctl_req *req)
 		/* Free space [first-last] */
 		len = ALIGNDOWN(last - a_first + 1, alignment);
 		if (has_size) {
-			if (len >= size &&
-			    (uintmax_t)(len - size) < grade) {
+			if (len >= size && (uintmax_t)(len - size) < grade) {
 				start = a_first;
 				grade = len - size;
 			}
@@ -608,7 +578,7 @@ gpart_autofill(struct gctl_req *req)
 		geom_deletetree(&mesh);
 		return (ENOSPC);
 	}
-	start -= offset;	/* Return back to real offset */
+	start -= offset; /* Return back to real offset */
 done:
 	snprintf(ssize, sizeof(ssize), "%jd", (intmax_t)size);
 	gctl_change_param(req, "size", -1, ssize);
@@ -650,7 +620,7 @@ gpart_show_geom(struct ggeom *gp, const char *element, int show_providers)
 		s = NULL;
 	wmax = strlen(gp->lg_name);
 	if (show_providers) {
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 			wname = strlen(pp->lg_name);
 			if (wname > wmax)
 				wmax = wname;
@@ -659,11 +629,9 @@ gpart_show_geom(struct ggeom *gp, const char *element, int show_providers)
 	wname = wmax;
 	pp = LIST_FIRST(&gp->lg_consumer)->lg_provider;
 	secsz = pp->lg_sectorsize;
-	printf("=>%*jd  %*jd  %*s  %s  (%s)%s\n",
-	    wblocks, (intmax_t)first, wblocks, (intmax_t)(last - first + 1),
-	    wname, gp->lg_name,
-	    scheme, fmtsize(pp->lg_mediasize),
-	    s ? " [CORRUPT]": "");
+	printf("=>%*jd  %*jd  %*s  %s  (%s)%s\n", wblocks, (intmax_t)first,
+	    wblocks, (intmax_t)(last - first + 1), wname, gp->lg_name, scheme,
+	    fmtsize(pp->lg_mediasize), s ? " [CORRUPT]" : "");
 
 	while ((pp = find_provider(gp, first)) != NULL) {
 		s = find_provcfg(pp, "start");
@@ -676,30 +644,27 @@ gpart_show_geom(struct ggeom *gp, const char *element, int show_providers)
 		s = find_provcfg(pp, "index");
 		idx = atoi(s);
 		if (first < sector) {
-			printf("  %*jd  %*jd  %*s  - free -  (%s)\n",
-			    wblocks, (intmax_t)first, wblocks,
+			printf("  %*jd  %*jd  %*s  - free -  (%s)\n", wblocks,
+			    (intmax_t)first, wblocks,
 			    (intmax_t)(sector - first), wname, "",
 			    fmtsize((sector - first) * secsz));
 		}
 		if (show_providers) {
-			printf("  %*jd  %*jd  %*s  %s %s (%s)\n",
-			    wblocks, (intmax_t)sector, wblocks,
-			    (intmax_t)length, wname, pp->lg_name,
-			    find_provcfg(pp, element), fmtattrib(pp),
-			    fmtsize(pp->lg_mediasize));
+			printf("  %*jd  %*jd  %*s  %s %s (%s)\n", wblocks,
+			    (intmax_t)sector, wblocks, (intmax_t)length, wname,
+			    pp->lg_name, find_provcfg(pp, element),
+			    fmtattrib(pp), fmtsize(pp->lg_mediasize));
 		} else
-			printf("  %*jd  %*jd  %*d  %s %s (%s)\n",
-			    wblocks, (intmax_t)sector, wblocks,
-			    (intmax_t)length, wname, idx,
-			    find_provcfg(pp, element), fmtattrib(pp),
+			printf("  %*jd  %*jd  %*d  %s %s (%s)\n", wblocks,
+			    (intmax_t)sector, wblocks, (intmax_t)length, wname,
+			    idx, find_provcfg(pp, element), fmtattrib(pp),
 			    fmtsize(pp->lg_mediasize));
 		first = end + 1;
 	}
 	if (first <= last) {
 		length = last - first + 1;
-		printf("  %*jd  %*jd  %*s  - free -  (%s)\n",
-		    wblocks, (intmax_t)first, wblocks, (intmax_t)length,
-		    wname, "",
+		printf("  %*jd  %*jd  %*s  - free -  (%s)\n", wblocks,
+		    (intmax_t)first, wblocks, (intmax_t)length, wname, "",
 		    fmtsize(length * secsz));
 	}
 	printf("\n");
@@ -762,7 +727,7 @@ gpart_show(struct gctl_req *req, unsigned int fl __unused)
 				errx(EXIT_FAILURE, "No such geom: %s.", name);
 		}
 	} else {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			gpart_show_geom(gp, element, show_providers);
 		}
 	}
@@ -808,7 +773,7 @@ gpart_backup(struct gctl_req *req, unsigned int fl __unused)
 		abort();
 	wblocks = strlen(s);
 	wtype = 0;
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		s = find_provcfg(pp, "type");
 		i = strlen(s);
 		if (i > wtype)
@@ -819,7 +784,7 @@ gpart_backup(struct gctl_req *req, unsigned int fl __unused)
 		abort();
 	windex = strlen(s);
 	printf("%s %s\n", scheme, s);
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		s = find_provcfg(pp, "start");
 		sector = (off_t)strtoimax(s, NULL, 0);
 
@@ -828,12 +793,10 @@ gpart_backup(struct gctl_req *req, unsigned int fl __unused)
 		length = end - sector + 1;
 
 		s = find_provcfg(pp, "label");
-		printf("%-*s %*s %*jd %*jd %s %s\n",
-		    windex, find_provcfg(pp, "index"),
-		    wtype, find_provcfg(pp, "type"),
-		    wblocks, (intmax_t)sector,
-		    wblocks, (intmax_t)length,
-		    (s != NULL) ? s: "", fmtattrib(pp));
+		printf("%-*s %*s %*jd %*jd %s %s\n", windex,
+		    find_provcfg(pp, "index"), wtype, find_provcfg(pp, "type"),
+		    wblocks, (intmax_t)sector, wblocks, (intmax_t)length,
+		    (s != NULL) ? s : "", fmtattrib(pp));
 	}
 	geom_deletetree(&mesh);
 }
@@ -903,8 +866,7 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 			gp = find_geom(classp, s);
 			if (gp != NULL) {
 				r = gctl_get_handle();
-				gctl_ro_param(r, "class", -1,
-				    classp->lg_name);
+				gctl_ro_param(r, "class", -1, classp->lg_name);
 				gctl_ro_param(r, "verb", -1, "destroy");
 				gctl_ro_param(r, "flags", -1, "restore");
 				gctl_ro_param(r, "force", sizeof(forced),
@@ -921,8 +883,8 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 		}
 	}
 	created = 0;
-	while (undo_restore == 0 &&
-	    fgets(line, sizeof(line) - 1, stdin) != NULL) {
+	while (
+	    undo_restore == 0 && fgets(line, sizeof(line) - 1, stdin) != NULL) {
 		/* Format of backup entries:
 		 * <scheme name> <number of entries>
 		 * <index> <type> <start> <size> [label] ['['attrib[,attrib]']']
@@ -931,8 +893,7 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 		pline[strlen(line) - 1] = 0;
 		if (skip_line(pline))
 			continue;
-		for (ap = argv;
-		    (*ap = strsep(&pline, " \t")) != NULL;)
+		for (ap = argv; (*ap = strsep(&pline, " \t")) != NULL;)
 			if (**ap != '\0' && ++ap >= &argv[6])
 				break;
 		l = ap - &argv[0];
@@ -945,13 +906,12 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 			for (i = 0; i < nargs; i++) {
 				s = gctl_get_ascii(req, "arg%d", i);
 				r = gctl_get_handle();
-				gctl_ro_param(r, "class", -1,
-				    classp->lg_name);
+				gctl_ro_param(r, "class", -1, classp->lg_name);
 				gctl_ro_param(r, "verb", -1, "create");
 				gctl_ro_param(r, "scheme", -1, argv[0]);
 				if (l == 2)
-					gctl_ro_param(r, "entries",
-					    sizeof(n), &n);
+					gctl_ro_param(r, "entries", sizeof(n),
+					    &n);
 				gctl_ro_param(r, "flags", -1, "restore");
 				gctl_ro_param(r, "arg0", -1, s);
 				errstr = gctl_issue(r);
@@ -1006,8 +966,7 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 			continue;
 		/* set attributes */
 		pline++;
-		for (ap = argv;
-		    (*ap = strsep(&pline, ",]")) != NULL;)
+		for (ap = argv; (*ap = strsep(&pline, ",]")) != NULL;)
 			if (**ap != '\0' && ++ap >= &argv[6])
 				break;
 		for (i = 0; i < nargs; i++) {
@@ -1018,8 +977,8 @@ gpart_restore(struct gctl_req *req, unsigned int fl __unused)
 				gctl_ro_param(r, "class", -1, classp->lg_name);
 				gctl_ro_param(r, "verb", -1, "set");
 				gctl_ro_param(r, "flags", -1, "restore");
-				gctl_ro_param(r, GPART_PARAM_INDEX,
-				    sizeof(n), &n);
+				gctl_ro_param(r, GPART_PARAM_INDEX, sizeof(n),
+				    &n);
 				gctl_ro_param(r, "attrib", -1, argv[--l]);
 				gctl_ro_param(r, "arg0", -1, s);
 				errstr = gctl_issue(r);
@@ -1136,7 +1095,7 @@ gpart_write_partcode(struct gctl_req *req, int idx, void *code, ssize_t size)
 	if (s == NULL)
 		errx(EXIT_FAILURE, "Scheme not found for geom %s", gp->lg_name);
 
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		s = find_provcfg(pp, "index");
 		if (s == NULL)
 			continue;
@@ -1156,8 +1115,8 @@ gpart_write_partcode(struct gctl_req *req, int idx, void *code, ssize_t size)
 		 * sector aligned and not write to any partial sectors,
 		 * so round up the buffer size to the next sector and zero it.
 		 */
-		bsize = (size + pp->lg_sectorsize - 1) /
-		    pp->lg_sectorsize * pp->lg_sectorsize;
+		bsize = (size + pp->lg_sectorsize - 1) / pp->lg_sectorsize *
+		    pp->lg_sectorsize;
 		buf = calloc(1, bsize);
 		if (buf == NULL)
 			err(EXIT_FAILURE, "%s", dsf);
@@ -1186,7 +1145,7 @@ gpart_bootcode(struct gctl_req *req, unsigned int fl)
 
 	if (gctl_has_param(req, GPART_PARAM_BOOTCODE)) {
 		s = gctl_get_ascii(req, GPART_PARAM_BOOTCODE);
-		bootsize = 800 * 1024;		/* Arbitrary limit. */
+		bootsize = 800 * 1024; /* Arbitrary limit. */
 		bootcode = gpart_bootfile_read(s, &bootsize);
 		error = gctl_change_param(req, GPART_PARAM_BOOTCODE, bootsize,
 		    bootcode);
@@ -1215,7 +1174,7 @@ gpart_bootcode(struct gctl_req *req, unsigned int fl)
 
 	if (gctl_has_param(req, GPART_PARAM_PARTCODE)) {
 		s = gctl_get_ascii(req, GPART_PARAM_PARTCODE);
-		partsize = 1024 * 1024;		/* Arbitrary limit. */
+		partsize = 1024 * 1024; /* Arbitrary limit. */
 		partcode = gpart_bootfile_read(s, &partsize);
 		error = gctl_delete_param(req, GPART_PARAM_PARTCODE);
 		if (error)
@@ -1282,7 +1241,7 @@ gpart_issue(struct gctl_req *req, unsigned int fl __unused)
 	gpart_print_error(errstr);
 	status = EXIT_FAILURE;
 
- done:
+done:
 	gctl_free(req);
 	exit(status);
 }

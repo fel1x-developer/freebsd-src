@@ -36,6 +36,7 @@ __RCSID("$NetBSD: wcslcpy.c,v 1.1 2000/12/23 23:14:36 itojun Exp $");
 #endif /* LIBC_SCCS and not lint */
 #endif
 #include <sys/types.h>
+
 #include <wchar.h>
 
 /*
@@ -61,10 +62,10 @@ wcslcpy(wchar_t *dst, const wchar_t *src, size_t siz)
 	/* Not enough room in dst, add NUL and traverse rest of src */
 	if (n == 0) {
 		if (siz != 0)
-			*d = '\0';		/* NUL-terminate dst */
+			*d = '\0'; /* NUL-terminate dst */
 		while (*s++)
 			;
 	}
 
-	return(s - src - 1);	/* count does not include NUL */
+	return (s - src - 1); /* count does not include NUL */
 }

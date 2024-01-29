@@ -53,26 +53,25 @@ extern "C" {
 /* #undef HAVE_FOPEN_S */
 /* #undef HAVE__O_BINARY */
 #ifndef HAVE__SETMODE
-# if HAVE_SETMODE
-#  define _setmode setmode
-#  define HAVE__SETMODE 1
-# endif
-# if HAVE__SETMODE && !HAVE__O_BINARY
-#  define _O_BINARY 0
-#  define HAVE__O_BINARY 1
-# endif
+#if HAVE_SETMODE
+#define _setmode setmode
+#define HAVE__SETMODE 1
+#endif
+#if HAVE__SETMODE && !HAVE__O_BINARY
+#define _O_BINARY 0
+#define HAVE__O_BINARY 1
+#endif
 #endif
 
 /** for inline **/
 #ifndef INLINE
-# define INLINE inline
+#define INLINE inline
 #endif
 
 /** for VC++ warning **/
 #ifdef _MSC_VER
-#pragma warning(disable: 4127)
+#pragma warning(disable : 4127)
 #endif
-
 
 #ifdef __cplusplus
 } /* extern "C" */

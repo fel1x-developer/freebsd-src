@@ -27,8 +27,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -37,10 +38,9 @@
 
 #include "ar.h"
 
-static void	bsdar_vwarnc(struct bsdar *, int code,
-		    const char *fmt, va_list ap);
-static void	bsdar_verrc(struct bsdar *bsdar, int code,
-		    const char *fmt, va_list ap);
+static void bsdar_vwarnc(struct bsdar *, int code, const char *fmt, va_list ap);
+static void bsdar_verrc(struct bsdar *bsdar, int code, const char *fmt,
+    va_list ap);
 
 static void
 bsdar_vwarnc(struct bsdar *bsdar, int code, const char *fmt, va_list ap)

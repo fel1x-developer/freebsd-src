@@ -28,11 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cpu.h"
 #include "opt_isa.h"
 #include "opt_npx.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -41,31 +41,32 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
 #ifdef NPX_DEBUG
 #include <sys/syslog.h>
 #endif
 #include <sys/signalvar.h>
+
 #include <vm/uma.h>
 
 #include <machine/asmacros.h>
 #include <machine/cputypes.h>
 #include <machine/frame.h>
+#include <machine/intr_machdep.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/resource.h>
-#include <machine/specialreg.h>
 #include <machine/segments.h>
+#include <machine/specialreg.h>
 #include <machine/ucontext.h>
-#include <x86/ifunc.h>
 
-#include <machine/intr_machdep.h>
+#include <x86/ifunc.h>
 
 #ifdef DEV_ISA
 #include <isa/isavar.h>
@@ -75,19 +76,18 @@
  * 387 and 287 Numeric Coprocessor Extension (NPX) Driver.
  */
 
-#define	fldcw(cw)		__asm __volatile("fldcw %0" : : "m" (cw))
-#define	fnclex()		__asm __volatile("fnclex")
-#define	fninit()		__asm __volatile("fninit")
-#define	fnsave(addr)		__asm __volatile("fnsave %0" : "=m" (*(addr)))
-#define	fnstcw(addr)		__asm __volatile("fnstcw %0" : "=m" (*(addr)))
-#define	fnstsw(addr)		__asm __volatile("fnstsw %0" : "=am" (*(addr)))
-#define	fp_divide_by_0()	__asm __volatile( \
-				    "fldz; fld1; fdiv %st,%st(1); fnop")
-#define	frstor(addr)		__asm __volatile("frstor %0" : : "m" (*(addr)))
-#define	fxrstor(addr)		__asm __volatile("fxrstor %0" : : "m" (*(addr)))
-#define	fxsave(addr)		__asm __volatile("fxsave %0" : "=m" (*(addr)))
-#define	ldmxcsr(csr)		__asm __volatile("ldmxcsr %0" : : "m" (csr))
-#define	stmxcsr(addr)		__asm __volatile("stmxcsr %0" : : "m" (*(addr)))
+#define fldcw(cw) __asm __volatile("fldcw %0" : : "m"(cw))
+#define fnclex() __asm __volatile("fnclex")
+#define fninit() __asm __volatile("fninit")
+#define fnsave(addr) __asm __volatile("fnsave %0" : "=m"(*(addr)))
+#define fnstcw(addr) __asm __volatile("fnstcw %0" : "=m"(*(addr)))
+#define fnstsw(addr) __asm __volatile("fnstsw %0" : "=am"(*(addr)))
+#define fp_divide_by_0() __asm __volatile("fldz; fld1; fdiv %st,%st(1); fnop")
+#define frstor(addr) __asm __volatile("frstor %0" : : "m"(*(addr)))
+#define fxrstor(addr) __asm __volatile("fxrstor %0" : : "m"(*(addr)))
+#define fxsave(addr) __asm __volatile("fxsave %0" : "=m"(*(addr)))
+#define ldmxcsr(csr) __asm __volatile("ldmxcsr %0" : : "m"(csr))
+#define stmxcsr(addr) __asm __volatile("stmxcsr %0" : : "m"(*(addr)))
 
 static __inline void
 xrstor(char *addr, uint64_t mask)
@@ -96,7 +96,7 @@ xrstor(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xrstor %0" : : "m" (*addr), "a" (low), "d" (hi));
+	__asm __volatile("xrstor %0" : : "m"(*addr), "a"(low), "d"(hi));
 }
 
 static __inline void
@@ -106,8 +106,10 @@ xsave(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsave %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsave %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
 static __inline void
@@ -117,24 +119,25 @@ xsaveopt(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsaveopt %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsaveopt %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
-#define GET_FPU_CW(thread) \
-	(cpu_fxsr ? \
-		(thread)->td_pcb->pcb_save->sv_xmm.sv_env.en_cw : \
-		(thread)->td_pcb->pcb_save->sv_87.sv_env.en_cw)
-#define GET_FPU_SW(thread) \
-	(cpu_fxsr ? \
-		(thread)->td_pcb->pcb_save->sv_xmm.sv_env.en_sw : \
-		(thread)->td_pcb->pcb_save->sv_87.sv_env.en_sw)
-#define SET_FPU_CW(savefpu, value) do { \
-	if (cpu_fxsr) \
-		(savefpu)->sv_xmm.sv_env.en_cw = (value); \
-	else \
-		(savefpu)->sv_87.sv_env.en_cw = (value); \
-} while (0)
+#define GET_FPU_CW(thread)                                            \
+	(cpu_fxsr ? (thread)->td_pcb->pcb_save->sv_xmm.sv_env.en_cw : \
+		    (thread)->td_pcb->pcb_save->sv_87.sv_env.en_cw)
+#define GET_FPU_SW(thread)                                            \
+	(cpu_fxsr ? (thread)->td_pcb->pcb_save->sv_xmm.sv_env.en_sw : \
+		    (thread)->td_pcb->pcb_save->sv_87.sv_env.en_sw)
+#define SET_FPU_CW(savefpu, value)                                \
+	do {                                                      \
+		if (cpu_fxsr)                                     \
+			(savefpu)->sv_xmm.sv_env.en_cw = (value); \
+		else                                              \
+			(savefpu)->sv_87.sv_env.en_cw = (value);  \
+	} while (0)
 
 CTASSERT(sizeof(union savefpu) == 512);
 CTASSERT(sizeof(struct xstate_hdr) == 64);
@@ -154,32 +157,31 @@ CTASSERT(sizeof(struct pcb) % XSAVE_AREA_ALIGN == 0);
 CTASSERT(X86_XSTATE_XCR0_OFFSET >= offsetof(struct savexmm, sv_pad) &&
     X86_XSTATE_XCR0_OFFSET + sizeof(uint64_t) <= sizeof(struct savexmm));
 
-static	void	fpu_clean_state(void);
+static void fpu_clean_state(void);
 
-static	void	fpurstor(union savefpu *);
+static void fpurstor(union savefpu *);
 
-int	hw_float;
+int hw_float;
 
-SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD,
-    &hw_float, 0, "Floating point instructions executed in hardware");
+SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD, &hw_float, 0,
+    "Floating point instructions executed in hardware");
 
 int lazy_fpu_switch = 0;
 SYSCTL_INT(_hw, OID_AUTO, lazy_fpu_switch, CTLFLAG_RWTUN | CTLFLAG_NOFETCH,
-    &lazy_fpu_switch, 0,
-    "Lazily load FPU context after context switch");
+    &lazy_fpu_switch, 0, "Lazily load FPU context after context switch");
 
-u_int cpu_fxsr;		/* SSE enabled */
+u_int cpu_fxsr; /* SSE enabled */
 int use_xsave;
 uint64_t xsave_mask;
-static	uma_zone_t fpu_save_area_zone;
-static	union savefpu *npx_initialstate;
+static uma_zone_t fpu_save_area_zone;
+static union savefpu *npx_initialstate;
 
 static struct xsave_area_elm_descr {
-	u_int	offset;
-	u_int	size;
+	u_int offset;
+	u_int size;
 } *xsave_area_desc;
 
-static	volatile u_int		npx_traps_while_probing;
+static volatile u_int npx_traps_while_probing;
 
 alias_for_inthand_t probetrap;
 __asm("								\n\
@@ -233,11 +235,11 @@ npx_probe(void)
 	 * Don't use fwait here because it might hang.
 	 * Don't use fnop here because it usually hangs if there is no FPU.
 	 */
-	DELAY(1000);		/* wait for any IRQ13 */
+	DELAY(1000); /* wait for any IRQ13 */
 #ifdef DIAGNOSTIC
 	if (npx_traps_while_probing != 0)
 		printf("fninit caused %u bogus npx trap(s)\n",
-		       npx_traps_while_probing);
+		    npx_traps_while_probing);
 #endif
 	/*
 	 * Check for a status of mostly zero.
@@ -255,7 +257,7 @@ npx_probe(void)
 			 * We have an npx, now divide by 0 to see if exception
 			 * 16 works.
 			 */
-			control &= ~(1 << 2);	/* enable divide by 0 trap */
+			control &= ~(1 << 2); /* enable divide by 0 trap */
 			fldcw(control);
 			npx_traps_while_probing = 0;
 			fp_divide_by_0();
@@ -267,7 +269,7 @@ npx_probe(void)
 				goto cleanup;
 			}
 			printf(
-	"FPU does not use exception 16 for error reporting\n");
+			    "FPU does not use exception 16 for error reporting\n");
 			goto cleanup;
 		}
 	}
@@ -277,8 +279,10 @@ npx_probe(void)
 	 * Notify user and disable FPU/MMX/SSE instruction execution.
 	 */
 	printf("WARNING: no FPU!\n");
-	__asm __volatile("smsw %%ax; orb %0,%%al; lmsw %%ax" : :
-	    "n" (CR0_EM | CR0_MP) : "ax");
+	__asm __volatile("smsw %%ax; orb %0,%%al; lmsw %%ax"
+			 :
+			 : "n"(CR0_EM | CR0_MP)
+			 : "ax");
 
 cleanup:
 	idt[IDT_MF] = save_idt_npxtrap;
@@ -317,7 +321,8 @@ DEFINE_IFUNC(, void, fpusave, (union savefpu *))
 {
 	if (use_xsave)
 		return ((cpu_stdext_feature & CPUID_EXTSTATE_XSAVEOPT) != 0 ?
-		    fpusave_xsaveopt : fpusave_xsave);
+			fpusave_xsaveopt :
+			fpusave_xsave);
 	if (cpu_fxsr)
 		return (fpusave_fxsave);
 	return (fpusave_fnsave);
@@ -448,8 +453,9 @@ npxinitstate(void *arg __unused)
 			max_ext_n = fls(xsave_mask >> 32) + 32;
 		else
 			max_ext_n = fls(xsave_mask);
-		xsave_area_desc = malloc(max_ext_n * sizeof(struct
-		    xsave_area_elm_descr), M_DEVBUF, M_WAITOK | M_ZERO);
+		xsave_area_desc = malloc(max_ext_n *
+			sizeof(struct xsave_area_elm_descr),
+		    M_DEVBUF, M_WAITOK | M_ZERO);
 	}
 
 	saveintr = intr_disable();
@@ -461,7 +467,7 @@ npxinitstate(void *arg __unused)
 		fpusave_fnsave(npx_initialstate);
 	if (cpu_fxsr) {
 		if (npx_initialstate->sv_xmm.sv_env.en_mxcsr_mask)
-			cpu_mxcsr_mask = 
+			cpu_mxcsr_mask =
 			    npx_initialstate->sv_xmm.sv_env.en_mxcsr_mask;
 		else
 			cpu_mxcsr_mask = 0xFFBF;
@@ -532,7 +538,7 @@ npxexit(struct thread *td)
 	critical_exit();
 #ifdef NPX_DEBUG
 	if (hw_float) {
-		u_int	masked_exceptions;
+		u_int masked_exceptions;
 
 		masked_exceptions = GET_FPU_CW(td) & GET_FPU_SW(td) & 0x7f;
 		/*
@@ -541,7 +547,7 @@ npxexit(struct thread *td)
 		 */
 		if (masked_exceptions & 0x0d)
 			log(LOG_ERR,
-	"pid %d (%s) exited with masked floating point exceptions 0x%02x\n",
+			    "pid %d (%s) exited with masked floating point exceptions 0x%02x\n",
 			    td->td_proc->p_pid, td->td_proc->p_comm,
 			    masked_exceptions);
 	}
@@ -597,137 +603,136 @@ npxformat(void)
  *      (FP_X_INV, FP_X_DZ)
  * 4  Denormal operand (FP_X_DNML)
  * 5  Numeric over/underflow (FP_X_OFL, FP_X_UFL)
- * 6  Inexact result (FP_X_IMP) 
+ * 6  Inexact result (FP_X_IMP)
  */
 static char fpetable[128] = {
-	0,
-	FPE_FLTINV,	/*  1 - INV */
-	FPE_FLTUND,	/*  2 - DNML */
-	FPE_FLTINV,	/*  3 - INV | DNML */
-	FPE_FLTDIV,	/*  4 - DZ */
-	FPE_FLTINV,	/*  5 - INV | DZ */
-	FPE_FLTDIV,	/*  6 - DNML | DZ */
-	FPE_FLTINV,	/*  7 - INV | DNML | DZ */
-	FPE_FLTOVF,	/*  8 - OFL */
-	FPE_FLTINV,	/*  9 - INV | OFL */
-	FPE_FLTUND,	/*  A - DNML | OFL */
-	FPE_FLTINV,	/*  B - INV | DNML | OFL */
-	FPE_FLTDIV,	/*  C - DZ | OFL */
-	FPE_FLTINV,	/*  D - INV | DZ | OFL */
-	FPE_FLTDIV,	/*  E - DNML | DZ | OFL */
-	FPE_FLTINV,	/*  F - INV | DNML | DZ | OFL */
-	FPE_FLTUND,	/* 10 - UFL */
-	FPE_FLTINV,	/* 11 - INV | UFL */
-	FPE_FLTUND,	/* 12 - DNML | UFL */
-	FPE_FLTINV,	/* 13 - INV | DNML | UFL */
-	FPE_FLTDIV,	/* 14 - DZ | UFL */
-	FPE_FLTINV,	/* 15 - INV | DZ | UFL */
-	FPE_FLTDIV,	/* 16 - DNML | DZ | UFL */
-	FPE_FLTINV,	/* 17 - INV | DNML | DZ | UFL */
-	FPE_FLTOVF,	/* 18 - OFL | UFL */
-	FPE_FLTINV,	/* 19 - INV | OFL | UFL */
-	FPE_FLTUND,	/* 1A - DNML | OFL | UFL */
-	FPE_FLTINV,	/* 1B - INV | DNML | OFL | UFL */
-	FPE_FLTDIV,	/* 1C - DZ | OFL | UFL */
-	FPE_FLTINV,	/* 1D - INV | DZ | OFL | UFL */
-	FPE_FLTDIV,	/* 1E - DNML | DZ | OFL | UFL */
-	FPE_FLTINV,	/* 1F - INV | DNML | DZ | OFL | UFL */
-	FPE_FLTRES,	/* 20 - IMP */
-	FPE_FLTINV,	/* 21 - INV | IMP */
-	FPE_FLTUND,	/* 22 - DNML | IMP */
-	FPE_FLTINV,	/* 23 - INV | DNML | IMP */
-	FPE_FLTDIV,	/* 24 - DZ | IMP */
-	FPE_FLTINV,	/* 25 - INV | DZ | IMP */
-	FPE_FLTDIV,	/* 26 - DNML | DZ | IMP */
-	FPE_FLTINV,	/* 27 - INV | DNML | DZ | IMP */
-	FPE_FLTOVF,	/* 28 - OFL | IMP */
-	FPE_FLTINV,	/* 29 - INV | OFL | IMP */
-	FPE_FLTUND,	/* 2A - DNML | OFL | IMP */
-	FPE_FLTINV,	/* 2B - INV | DNML | OFL | IMP */
-	FPE_FLTDIV,	/* 2C - DZ | OFL | IMP */
-	FPE_FLTINV,	/* 2D - INV | DZ | OFL | IMP */
-	FPE_FLTDIV,	/* 2E - DNML | DZ | OFL | IMP */
-	FPE_FLTINV,	/* 2F - INV | DNML | DZ | OFL | IMP */
-	FPE_FLTUND,	/* 30 - UFL | IMP */
-	FPE_FLTINV,	/* 31 - INV | UFL | IMP */
-	FPE_FLTUND,	/* 32 - DNML | UFL | IMP */
-	FPE_FLTINV,	/* 33 - INV | DNML | UFL | IMP */
-	FPE_FLTDIV,	/* 34 - DZ | UFL | IMP */
-	FPE_FLTINV,	/* 35 - INV | DZ | UFL | IMP */
-	FPE_FLTDIV,	/* 36 - DNML | DZ | UFL | IMP */
-	FPE_FLTINV,	/* 37 - INV | DNML | DZ | UFL | IMP */
-	FPE_FLTOVF,	/* 38 - OFL | UFL | IMP */
-	FPE_FLTINV,	/* 39 - INV | OFL | UFL | IMP */
-	FPE_FLTUND,	/* 3A - DNML | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3B - INV | DNML | OFL | UFL | IMP */
-	FPE_FLTDIV,	/* 3C - DZ | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3D - INV | DZ | OFL | UFL | IMP */
-	FPE_FLTDIV,	/* 3E - DNML | DZ | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3F - INV | DNML | DZ | OFL | UFL | IMP */
-	FPE_FLTSUB,	/* 40 - STK */
-	FPE_FLTSUB,	/* 41 - INV | STK */
-	FPE_FLTUND,	/* 42 - DNML | STK */
-	FPE_FLTSUB,	/* 43 - INV | DNML | STK */
-	FPE_FLTDIV,	/* 44 - DZ | STK */
-	FPE_FLTSUB,	/* 45 - INV | DZ | STK */
-	FPE_FLTDIV,	/* 46 - DNML | DZ | STK */
-	FPE_FLTSUB,	/* 47 - INV | DNML | DZ | STK */
-	FPE_FLTOVF,	/* 48 - OFL | STK */
-	FPE_FLTSUB,	/* 49 - INV | OFL | STK */
-	FPE_FLTUND,	/* 4A - DNML | OFL | STK */
-	FPE_FLTSUB,	/* 4B - INV | DNML | OFL | STK */
-	FPE_FLTDIV,	/* 4C - DZ | OFL | STK */
-	FPE_FLTSUB,	/* 4D - INV | DZ | OFL | STK */
-	FPE_FLTDIV,	/* 4E - DNML | DZ | OFL | STK */
-	FPE_FLTSUB,	/* 4F - INV | DNML | DZ | OFL | STK */
-	FPE_FLTUND,	/* 50 - UFL | STK */
-	FPE_FLTSUB,	/* 51 - INV | UFL | STK */
-	FPE_FLTUND,	/* 52 - DNML | UFL | STK */
-	FPE_FLTSUB,	/* 53 - INV | DNML | UFL | STK */
-	FPE_FLTDIV,	/* 54 - DZ | UFL | STK */
-	FPE_FLTSUB,	/* 55 - INV | DZ | UFL | STK */
-	FPE_FLTDIV,	/* 56 - DNML | DZ | UFL | STK */
-	FPE_FLTSUB,	/* 57 - INV | DNML | DZ | UFL | STK */
-	FPE_FLTOVF,	/* 58 - OFL | UFL | STK */
-	FPE_FLTSUB,	/* 59 - INV | OFL | UFL | STK */
-	FPE_FLTUND,	/* 5A - DNML | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5B - INV | DNML | OFL | UFL | STK */
-	FPE_FLTDIV,	/* 5C - DZ | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5D - INV | DZ | OFL | UFL | STK */
-	FPE_FLTDIV,	/* 5E - DNML | DZ | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5F - INV | DNML | DZ | OFL | UFL | STK */
-	FPE_FLTRES,	/* 60 - IMP | STK */
-	FPE_FLTSUB,	/* 61 - INV | IMP | STK */
-	FPE_FLTUND,	/* 62 - DNML | IMP | STK */
-	FPE_FLTSUB,	/* 63 - INV | DNML | IMP | STK */
-	FPE_FLTDIV,	/* 64 - DZ | IMP | STK */
-	FPE_FLTSUB,	/* 65 - INV | DZ | IMP | STK */
-	FPE_FLTDIV,	/* 66 - DNML | DZ | IMP | STK */
-	FPE_FLTSUB,	/* 67 - INV | DNML | DZ | IMP | STK */
-	FPE_FLTOVF,	/* 68 - OFL | IMP | STK */
-	FPE_FLTSUB,	/* 69 - INV | OFL | IMP | STK */
-	FPE_FLTUND,	/* 6A - DNML | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6B - INV | DNML | OFL | IMP | STK */
-	FPE_FLTDIV,	/* 6C - DZ | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6D - INV | DZ | OFL | IMP | STK */
-	FPE_FLTDIV,	/* 6E - DNML | DZ | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6F - INV | DNML | DZ | OFL | IMP | STK */
-	FPE_FLTUND,	/* 70 - UFL | IMP | STK */
-	FPE_FLTSUB,	/* 71 - INV | UFL | IMP | STK */
-	FPE_FLTUND,	/* 72 - DNML | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 73 - INV | DNML | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 74 - DZ | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 75 - INV | DZ | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 76 - DNML | DZ | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 77 - INV | DNML | DZ | UFL | IMP | STK */
-	FPE_FLTOVF,	/* 78 - OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 79 - INV | OFL | UFL | IMP | STK */
-	FPE_FLTUND,	/* 7A - DNML | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7B - INV | DNML | OFL | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 7C - DZ | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7D - INV | DZ | OFL | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 7E - DNML | DZ | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7F - INV | DNML | DZ | OFL | UFL | IMP | STK */
+	0, FPE_FLTINV, /*  1 - INV */
+	FPE_FLTUND,    /*  2 - DNML */
+	FPE_FLTINV,    /*  3 - INV | DNML */
+	FPE_FLTDIV,    /*  4 - DZ */
+	FPE_FLTINV,    /*  5 - INV | DZ */
+	FPE_FLTDIV,    /*  6 - DNML | DZ */
+	FPE_FLTINV,    /*  7 - INV | DNML | DZ */
+	FPE_FLTOVF,    /*  8 - OFL */
+	FPE_FLTINV,    /*  9 - INV | OFL */
+	FPE_FLTUND,    /*  A - DNML | OFL */
+	FPE_FLTINV,    /*  B - INV | DNML | OFL */
+	FPE_FLTDIV,    /*  C - DZ | OFL */
+	FPE_FLTINV,    /*  D - INV | DZ | OFL */
+	FPE_FLTDIV,    /*  E - DNML | DZ | OFL */
+	FPE_FLTINV,    /*  F - INV | DNML | DZ | OFL */
+	FPE_FLTUND,    /* 10 - UFL */
+	FPE_FLTINV,    /* 11 - INV | UFL */
+	FPE_FLTUND,    /* 12 - DNML | UFL */
+	FPE_FLTINV,    /* 13 - INV | DNML | UFL */
+	FPE_FLTDIV,    /* 14 - DZ | UFL */
+	FPE_FLTINV,    /* 15 - INV | DZ | UFL */
+	FPE_FLTDIV,    /* 16 - DNML | DZ | UFL */
+	FPE_FLTINV,    /* 17 - INV | DNML | DZ | UFL */
+	FPE_FLTOVF,    /* 18 - OFL | UFL */
+	FPE_FLTINV,    /* 19 - INV | OFL | UFL */
+	FPE_FLTUND,    /* 1A - DNML | OFL | UFL */
+	FPE_FLTINV,    /* 1B - INV | DNML | OFL | UFL */
+	FPE_FLTDIV,    /* 1C - DZ | OFL | UFL */
+	FPE_FLTINV,    /* 1D - INV | DZ | OFL | UFL */
+	FPE_FLTDIV,    /* 1E - DNML | DZ | OFL | UFL */
+	FPE_FLTINV,    /* 1F - INV | DNML | DZ | OFL | UFL */
+	FPE_FLTRES,    /* 20 - IMP */
+	FPE_FLTINV,    /* 21 - INV | IMP */
+	FPE_FLTUND,    /* 22 - DNML | IMP */
+	FPE_FLTINV,    /* 23 - INV | DNML | IMP */
+	FPE_FLTDIV,    /* 24 - DZ | IMP */
+	FPE_FLTINV,    /* 25 - INV | DZ | IMP */
+	FPE_FLTDIV,    /* 26 - DNML | DZ | IMP */
+	FPE_FLTINV,    /* 27 - INV | DNML | DZ | IMP */
+	FPE_FLTOVF,    /* 28 - OFL | IMP */
+	FPE_FLTINV,    /* 29 - INV | OFL | IMP */
+	FPE_FLTUND,    /* 2A - DNML | OFL | IMP */
+	FPE_FLTINV,    /* 2B - INV | DNML | OFL | IMP */
+	FPE_FLTDIV,    /* 2C - DZ | OFL | IMP */
+	FPE_FLTINV,    /* 2D - INV | DZ | OFL | IMP */
+	FPE_FLTDIV,    /* 2E - DNML | DZ | OFL | IMP */
+	FPE_FLTINV,    /* 2F - INV | DNML | DZ | OFL | IMP */
+	FPE_FLTUND,    /* 30 - UFL | IMP */
+	FPE_FLTINV,    /* 31 - INV | UFL | IMP */
+	FPE_FLTUND,    /* 32 - DNML | UFL | IMP */
+	FPE_FLTINV,    /* 33 - INV | DNML | UFL | IMP */
+	FPE_FLTDIV,    /* 34 - DZ | UFL | IMP */
+	FPE_FLTINV,    /* 35 - INV | DZ | UFL | IMP */
+	FPE_FLTDIV,    /* 36 - DNML | DZ | UFL | IMP */
+	FPE_FLTINV,    /* 37 - INV | DNML | DZ | UFL | IMP */
+	FPE_FLTOVF,    /* 38 - OFL | UFL | IMP */
+	FPE_FLTINV,    /* 39 - INV | OFL | UFL | IMP */
+	FPE_FLTUND,    /* 3A - DNML | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3B - INV | DNML | OFL | UFL | IMP */
+	FPE_FLTDIV,    /* 3C - DZ | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3D - INV | DZ | OFL | UFL | IMP */
+	FPE_FLTDIV,    /* 3E - DNML | DZ | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3F - INV | DNML | DZ | OFL | UFL | IMP */
+	FPE_FLTSUB,    /* 40 - STK */
+	FPE_FLTSUB,    /* 41 - INV | STK */
+	FPE_FLTUND,    /* 42 - DNML | STK */
+	FPE_FLTSUB,    /* 43 - INV | DNML | STK */
+	FPE_FLTDIV,    /* 44 - DZ | STK */
+	FPE_FLTSUB,    /* 45 - INV | DZ | STK */
+	FPE_FLTDIV,    /* 46 - DNML | DZ | STK */
+	FPE_FLTSUB,    /* 47 - INV | DNML | DZ | STK */
+	FPE_FLTOVF,    /* 48 - OFL | STK */
+	FPE_FLTSUB,    /* 49 - INV | OFL | STK */
+	FPE_FLTUND,    /* 4A - DNML | OFL | STK */
+	FPE_FLTSUB,    /* 4B - INV | DNML | OFL | STK */
+	FPE_FLTDIV,    /* 4C - DZ | OFL | STK */
+	FPE_FLTSUB,    /* 4D - INV | DZ | OFL | STK */
+	FPE_FLTDIV,    /* 4E - DNML | DZ | OFL | STK */
+	FPE_FLTSUB,    /* 4F - INV | DNML | DZ | OFL | STK */
+	FPE_FLTUND,    /* 50 - UFL | STK */
+	FPE_FLTSUB,    /* 51 - INV | UFL | STK */
+	FPE_FLTUND,    /* 52 - DNML | UFL | STK */
+	FPE_FLTSUB,    /* 53 - INV | DNML | UFL | STK */
+	FPE_FLTDIV,    /* 54 - DZ | UFL | STK */
+	FPE_FLTSUB,    /* 55 - INV | DZ | UFL | STK */
+	FPE_FLTDIV,    /* 56 - DNML | DZ | UFL | STK */
+	FPE_FLTSUB,    /* 57 - INV | DNML | DZ | UFL | STK */
+	FPE_FLTOVF,    /* 58 - OFL | UFL | STK */
+	FPE_FLTSUB,    /* 59 - INV | OFL | UFL | STK */
+	FPE_FLTUND,    /* 5A - DNML | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5B - INV | DNML | OFL | UFL | STK */
+	FPE_FLTDIV,    /* 5C - DZ | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5D - INV | DZ | OFL | UFL | STK */
+	FPE_FLTDIV,    /* 5E - DNML | DZ | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5F - INV | DNML | DZ | OFL | UFL | STK */
+	FPE_FLTRES,    /* 60 - IMP | STK */
+	FPE_FLTSUB,    /* 61 - INV | IMP | STK */
+	FPE_FLTUND,    /* 62 - DNML | IMP | STK */
+	FPE_FLTSUB,    /* 63 - INV | DNML | IMP | STK */
+	FPE_FLTDIV,    /* 64 - DZ | IMP | STK */
+	FPE_FLTSUB,    /* 65 - INV | DZ | IMP | STK */
+	FPE_FLTDIV,    /* 66 - DNML | DZ | IMP | STK */
+	FPE_FLTSUB,    /* 67 - INV | DNML | DZ | IMP | STK */
+	FPE_FLTOVF,    /* 68 - OFL | IMP | STK */
+	FPE_FLTSUB,    /* 69 - INV | OFL | IMP | STK */
+	FPE_FLTUND,    /* 6A - DNML | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6B - INV | DNML | OFL | IMP | STK */
+	FPE_FLTDIV,    /* 6C - DZ | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6D - INV | DZ | OFL | IMP | STK */
+	FPE_FLTDIV,    /* 6E - DNML | DZ | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6F - INV | DNML | DZ | OFL | IMP | STK */
+	FPE_FLTUND,    /* 70 - UFL | IMP | STK */
+	FPE_FLTSUB,    /* 71 - INV | UFL | IMP | STK */
+	FPE_FLTUND,    /* 72 - DNML | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 73 - INV | DNML | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 74 - DZ | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 75 - INV | DZ | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 76 - DNML | DZ | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 77 - INV | DNML | DZ | UFL | IMP | STK */
+	FPE_FLTOVF,    /* 78 - OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 79 - INV | OFL | UFL | IMP | STK */
+	FPE_FLTUND,    /* 7A - DNML | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7B - INV | DNML | OFL | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 7C - DZ | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7D - INV | DZ | OFL | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 7E - DNML | DZ | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7F - INV | DNML | DZ | OFL | UFL | IMP | STK */
 };
 
 /*
@@ -754,8 +759,8 @@ npxtrap_x87(void)
 
 	if (!hw_float) {
 		printf(
-	"npxtrap_x87: fpcurthread = %p, curthread = %p, hw_float = %d\n",
-		       PCPU_GET(fpcurthread), curthread, hw_float);
+		    "npxtrap_x87: fpcurthread = %p, curthread = %p, hw_float = %d\n",
+		    PCPU_GET(fpcurthread), curthread, hw_float);
 		panic("npxtrap from nowhere");
 	}
 	critical_enter();
@@ -783,8 +788,8 @@ npxtrap_sse(void)
 
 	if (!hw_float) {
 		printf(
-	"npxtrap_sse: fpcurthread = %p, curthread = %p, hw_float = %d\n",
-		       PCPU_GET(fpcurthread), curthread, hw_float);
+		    "npxtrap_sse: fpcurthread = %p, curthread = %p, hw_float = %d\n",
+		    PCPU_GET(fpcurthread), curthread, hw_float);
 		panic("npxtrap from nowhere");
 	}
 	critical_enter();
@@ -862,10 +867,10 @@ npxdna(void)
 	} else {
 		if (__predict_false(PCPU_GET(fpcurthread) != NULL)) {
 			printf(
-		    "npxdna: fpcurthread = %p (%d), curthread = %p (%d)\n",
+			    "npxdna: fpcurthread = %p (%d), curthread = %p (%d)\n",
 			    PCPU_GET(fpcurthread),
-			    PCPU_GET(fpcurthread)->td_proc->p_pid,
-			    td, td->td_proc->p_pid);
+			    PCPU_GET(fpcurthread)->td_proc->p_pid, td,
+			    td->td_proc->p_pid);
 			panic("npxdna");
 		}
 		restore_npx_curthread(td, td->td_pcb);
@@ -1016,7 +1021,7 @@ npxgetregs(struct thread *td)
 			if ((xsave_mask & bit) == 0 || (*xstate_bv & bit) != 0)
 				continue;
 			bcopy((char *)npx_initialstate +
-			    xsave_area_desc[i].offset,
+				xsave_area_desc[i].offset,
 			    sa + xsave_area_desc[i].offset,
 			    xsave_area_desc[i].size);
 			*xstate_bv |= bit;
@@ -1070,15 +1075,15 @@ npxsetxstate(struct thread *td, char *xfpustate, size_t xfpustate_size)
 	hdr = (struct xstate_hdr *)(get_pcb_user_save_td(td) + 1);
 
 	hdr->xstate_bv = bv;
-	bcopy(xfpustate + sizeof(struct xstate_hdr),
-	    (char *)(hdr + 1), len - sizeof(struct xstate_hdr));
+	bcopy(xfpustate + sizeof(struct xstate_hdr), (char *)(hdr + 1),
+	    len - sizeof(struct xstate_hdr));
 
 	return (0);
 }
 
 int
 npxsetregs(struct thread *td, union savefpu *addr, char *xfpustate,
-	size_t xfpustate_size)
+    size_t xfpustate_size)
 {
 	struct pcb *pcb;
 	int error;
@@ -1095,7 +1100,7 @@ npxsetregs(struct thread *td, union savefpu *addr, char *xfpustate,
 		error = npxsetxstate(td, xfpustate, xfpustate_size);
 		if (error == 0) {
 			if (!cpu_fxsr)
-				fnclex();	/* As in npxdrop(). */
+				fnclex(); /* As in npxdrop(). */
 			bcopy(addr, get_pcb_user_save_td(td), sizeof(*addr));
 			fpurstor(get_pcb_user_save_td(td));
 			pcb->pcb_flags |= PCB_NPXUSERINITDONE | PCB_NPXINITDONE;
@@ -1150,9 +1155,9 @@ npx_fill_fpregs_xmm1(struct savexmm *sv_xmm, struct save87 *sv_87)
 			/* The first 64 bits contain the mantissa. */
 			mantissa = *((uint64_t *)fx_reg->fp_bytes);
 			/*
-			 * The final 16 bits contain the sign bit and the exponent.
-			 * Mask the sign bit since it is of no consequence to these
-			 * tests.
+			 * The final 16 bits contain the sign bit and the
+			 * exponent. Mask the sign bit since it is of no
+			 * consequence to these tests.
 			 */
 			exp = *((uint16_t *)&fx_reg->fp_bytes[8]) & 0x7fff;
 			if (exp == 0) {
@@ -1222,8 +1227,8 @@ npx_get_fsave(void *addr)
 	if (cpu_fxsr)
 		npx_fill_fpregs_xmm1(&sv->sv_xmm, addr);
 	else
-		bcopy(sv, addr, sizeof(struct env87) +
-		    sizeof(struct fpacc87[8]));
+		bcopy(sv, addr,
+		    sizeof(struct env87) + sizeof(struct fpacc87[8]));
 }
 
 int
@@ -1236,8 +1241,8 @@ npx_set_fsave(void *addr)
 	if (cpu_fxsr)
 		npx_set_fpregs_xmm(addr, &sv.sv_xmm);
 	else
-		bcopy(addr, &sv, sizeof(struct env87) +
-		    sizeof(struct fpacc87[8]));
+		bcopy(addr, &sv,
+		    sizeof(struct env87) + sizeof(struct fpacc87[8]));
 	error = npxsetregs(curthread, &sv, NULL, 0);
 	return (error);
 }
@@ -1270,7 +1275,7 @@ fpu_clean_state(void)
 	 * the x87 stack, but we don't care since we're about to call
 	 * fxrstor() anyway.
 	 */
-	__asm __volatile("ffree %%st(7); flds %0" : : "m" (dummy_variable));
+	__asm __volatile("ffree %%st(7); flds %0" : : "m"(dummy_variable));
 }
 
 static void
@@ -1298,10 +1303,11 @@ static int
 npxisa_probe(device_t dev)
 {
 	int result;
-	if ((result = ISA_PNP_PROBE(device_get_parent(dev), dev, npxisa_ids)) <= 0) {
+	if ((result = ISA_PNP_PROBE(device_get_parent(dev), dev, npxisa_ids)) <=
+	    0) {
 		device_quiet(dev);
 	}
-	return(result);
+	return (result);
 }
 
 static int
@@ -1312,19 +1318,16 @@ npxisa_attach(device_t dev)
 
 static device_method_t npxisa_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		npxisa_probe),
-	DEVMETHOD(device_attach,	npxisa_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, npxisa_probe),
+	DEVMETHOD(device_attach, npxisa_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume), { 0, 0 }
 };
 
 static driver_t npxisa_driver = {
-	"npxisa",
-	npxisa_methods,
-	1,			/* no softc */
+	"npxisa", npxisa_methods, 1, /* no softc */
 };
 
 DRIVER_MODULE(npxisa, isa, npxisa_driver, 0, 0);
@@ -1335,9 +1338,9 @@ ISA_PNP_INFO(npxisa_ids);
 static MALLOC_DEFINE(M_FPUKERN_CTX, "fpukern_ctx",
     "Kernel contexts for FPU state");
 
-#define	FPU_KERN_CTX_NPXINITDONE 0x01
-#define	FPU_KERN_CTX_DUMMY	 0x02
-#define	FPU_KERN_CTX_INUSE	 0x04
+#define FPU_KERN_CTX_NPXINITDONE 0x01
+#define FPU_KERN_CTX_DUMMY 0x02
+#define FPU_KERN_CTX_INUSE 0x04
 
 struct fpu_kern_ctx {
 	union savefpu *prev;
@@ -1353,8 +1356,8 @@ fpu_kern_alloc_ctx(u_int flags)
 
 	sz = sizeof(struct fpu_kern_ctx) + XSAVE_AREA_ALIGN +
 	    cpu_max_ext_state_size;
-	res = malloc(sz, M_FPUKERN_CTX, ((flags & FPU_KERN_NOWAIT) ?
-	    M_NOWAIT : M_WAITOK) | M_ZERO);
+	res = malloc(sz, M_FPUKERN_CTX,
+	    ((flags & FPU_KERN_NOWAIT) ? M_NOWAIT : M_WAITOK) | M_ZERO);
 	return (res);
 }
 
@@ -1416,8 +1419,9 @@ fpu_kern_enter(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags)
 	}
 	pcb = td->td_pcb;
 	critical_enter();
-	KASSERT(!PCB_USER_FPU(pcb) || pcb->pcb_save ==
-	    get_pcb_user_save_pcb(pcb), ("mangled pcb_save"));
+	KASSERT(!PCB_USER_FPU(pcb) ||
+		pcb->pcb_save == get_pcb_user_save_pcb(pcb),
+	    ("mangled pcb_save"));
 	ctx->flags = FPU_KERN_CTX_INUSE;
 	if ((pcb->pcb_flags & PCB_NPXINITDONE) != 0)
 		ctx->flags |= FPU_KERN_CTX_NPXINITDONE;
@@ -1452,8 +1456,7 @@ fpu_kern_leave(struct thread *td, struct fpu_kern_ctx *ctx)
 		if (is_fpu_kern_thread(0) &&
 		    (ctx->flags & FPU_KERN_CTX_DUMMY) != 0)
 			return (0);
-		KASSERT((ctx->flags & FPU_KERN_CTX_DUMMY) == 0,
-		    ("dummy ctx"));
+		KASSERT((ctx->flags & FPU_KERN_CTX_DUMMY) == 0, ("dummy ctx"));
 		critical_enter();
 		if (curthread == PCPU_GET(fpcurthread))
 			npxdrop();

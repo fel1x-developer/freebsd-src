@@ -32,23 +32,23 @@
 #include <sys/cdefs.h>
 #define _WANT_FREEBSD_BITSET
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
+#include <sys/param.h>
 #include <sys/cpuset.h>
 #include <sys/domainset.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <jail.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
 static int Cflag;
 static int cflag;
@@ -70,20 +70,19 @@ static cpuwhich_t which;
 static void usage(void) __dead2;
 
 struct numa_policy {
-	const char 	*name;
-	int		policy;
+	const char *name;
+	int policy;
 };
 
-static struct numa_policy policies[] = {
-	{ "round-robin", DOMAINSET_POLICY_ROUNDROBIN },
+static struct numa_policy policies[] = { { "round-robin",
+					     DOMAINSET_POLICY_ROUNDROBIN },
 	{ "rr", DOMAINSET_POLICY_ROUNDROBIN },
 	{ "first-touch", DOMAINSET_POLICY_FIRSTTOUCH },
 	{ "ft", DOMAINSET_POLICY_FIRSTTOUCH },
 	{ "prefer", DOMAINSET_POLICY_PREFER },
-	{ "interleave", DOMAINSET_POLICY_INTERLEAVE},
-	{ "il", DOMAINSET_POLICY_INTERLEAVE},
-	{ NULL, DOMAINSET_POLICY_INVALID }
-};
+	{ "interleave", DOMAINSET_POLICY_INTERLEAVE },
+	{ "il", DOMAINSET_POLICY_INTERLEAVE },
+	{ NULL, DOMAINSET_POLICY_INVALID } };
 
 static void printset(struct bitset *mask, int size);
 
@@ -147,13 +146,13 @@ parselist(char *list, struct bitset *mask, int size)
 		l++;
 	}
 	switch (state) {
-		case NONE:
-			break;
-		case NUM:
-			BIT_SET(size, curnum, mask);
-			break;
-		case DASH:
-			goto parserr;
+	case NONE:
+		break;
+	case NUM:
+		BIT_SET(size, curnum, mask);
+		break;
+	case DASH:
+		goto parserr;
 	}
 	return;
 parserr:
@@ -166,7 +165,7 @@ parsecpulist(char *list, cpuset_t *mask)
 
 	if (strcasecmp(list, "all") == 0) {
 		if (cpuset_getaffinity(CPU_LEVEL_ROOT, CPU_WHICH_PID, -1,
-		    sizeof(*mask), mask) != 0)
+			sizeof(*mask), mask) != 0)
 			err(EXIT_FAILURE, "getaffinity");
 		return;
 	}
@@ -194,7 +193,7 @@ parsedomainlist(char *list, domainset_t *mask, int *policyp)
 	 * Use the rootset's policy as the default for unspecified policies.
 	 */
 	if (cpuset_getdomain(CPU_LEVEL_ROOT, CPU_WHICH_PID, -1,
-	    sizeof(rootmask), &rootmask, &p) != 0)
+		sizeof(rootmask), &rootmask, &p) != 0)
 		err(EXIT_FAILURE, "getdomain");
 
 	l = list;
@@ -236,10 +235,10 @@ printset(struct bitset *mask, int size)
 }
 
 static const char *whichnames[] = { NULL, "tid", "pid", "cpuset", "irq", "jail",
-				    "domain" };
+	"domain" };
 static const char *levelnames[] = { NULL, " root", " cpuset", "" };
 static const char *policynames[] = { "invalid", "round-robin", "first-touch",
-				    "prefer", "interleave" };
+	"prefer", "interleave" };
 
 static void
 printaffinity(void)
@@ -256,7 +255,7 @@ printaffinity(void)
 	if (dflag || xflag)
 		goto out;
 	if (cpuset_getdomain(level, which, id, sizeof(domain), &domain,
-	    &policy) != 0)
+		&policy) != 0)
 		err(EXIT_FAILURE, "getdomain");
 	printf("%s %jd%s domain policy: %s mask: ", whichnames[which],
 	    (intmax_t)id, levelnames[level], policynames[policy]);
@@ -392,13 +391,13 @@ main(int argc, char *argv[])
 				err(argc, "newid");
 		}
 		if (lflag) {
-			if (cpuset_setaffinity(level, CPU_WHICH_PID,
-			    -1, sizeof(mask), &mask) != 0)
+			if (cpuset_setaffinity(level, CPU_WHICH_PID, -1,
+				sizeof(mask), &mask) != 0)
 				err(EXIT_FAILURE, "setaffinity");
 		}
 		if (nflag) {
-			if (cpuset_setdomain(level, CPU_WHICH_PID,
-			    -1, sizeof(domains), &domains, policy) != 0)
+			if (cpuset_setdomain(level, CPU_WHICH_PID, -1,
+				sizeof(domains), &domains, policy) != 0)
 				err(EXIT_FAILURE, "setdomain");
 		}
 		errno = 0;
@@ -440,13 +439,13 @@ main(int argc, char *argv[])
 		id = pid;
 	}
 	if (lflag) {
-		if (cpuset_setaffinity(level, which, id, sizeof(mask),
-		    &mask) != 0)
+		if (cpuset_setaffinity(level, which, id, sizeof(mask), &mask) !=
+		    0)
 			err(EXIT_FAILURE, "setaffinity");
 	}
 	if (nflag) {
 		if (cpuset_setdomain(level, which, id, sizeof(domains),
-		    &domains, policy) != 0)
+			&domains, policy) != 0)
 			err(EXIT_FAILURE, "setdomain");
 	}
 
@@ -458,16 +457,16 @@ usage(void)
 {
 
 	fprintf(stderr,
-    "usage: cpuset [-l cpu-list] [-n policy:domain-list] [-s setid] cmd ...\n");
+	    "usage: cpuset [-l cpu-list] [-n policy:domain-list] [-s setid] cmd ...\n");
 	fprintf(stderr,
-    "       cpuset [-l cpu-list] [-n policy:domain-list] [-s setid] -p pid\n");
+	    "       cpuset [-l cpu-list] [-n policy:domain-list] [-s setid] -p pid\n");
 	fprintf(stderr,
-    "       cpuset [-c] [-l cpu-list] [-n policy:domain-list] -C -p pid\n");
+	    "       cpuset [-c] [-l cpu-list] [-n policy:domain-list] -C -p pid\n");
 	fprintf(stderr,
-    "       cpuset [-c] [-l cpu-list] [-n policy:domain-list]\n"
-    "              [-j jailid | -p pid | -t tid | -s setid | -x irq]\n");
+	    "       cpuset [-c] [-l cpu-list] [-n policy:domain-list]\n"
+	    "              [-j jailid | -p pid | -t tid | -s setid | -x irq]\n");
 	fprintf(stderr,
-    "       cpuset -g [-cir]\n"
-    "              [-d domain | -j jailid | -p pid | -t tid | -s setid | -x irq]\n");
+	    "       cpuset -g [-cir]\n"
+	    "              [-d domain | -j jailid | -p pid | -t tid | -s setid | -x irq]\n");
 	exit(1);
 }

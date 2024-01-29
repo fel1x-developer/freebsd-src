@@ -35,9 +35,10 @@
 #include <sys/types.h>
 
 #include <db.h>
+
+#include "extern.h"
 #include "hash.h"
 #include "page.h"
-#include "extern.h"
 
 #ifdef notdef
 static u_int32_t hash1(const void *, size_t) __unused;
@@ -56,8 +57,8 @@ u_int32_t (*__default_hash)(const void *, size_t) = hash4;
  *
  * EJB's original hsearch hash.
  */
-#define PRIME1		37
-#define PRIME2		1048583
+#define PRIME1 37
+#define PRIME2 1048583
 
 u_int32_t
 hash1(const void *key, size_t len)
@@ -77,7 +78,7 @@ hash1(const void *key, size_t len)
 /*
  * Phong Vo's linear congruential hash
  */
-#define dcharhash(h, c)	((h) = 0x63c63cd9*(h) + 0x9c39c33d + (c))
+#define dcharhash(h, c) ((h) = 0x63c63cd9 * (h) + 0x9c39c33d + (c))
 
 u_int32_t
 hash2(const void *key, size_t len)
@@ -111,7 +112,7 @@ hash3(const void *key, size_t len)
 	u_int32_t n, loop;
 	u_int8_t *k;
 
-#define HASHC   n = *k++ + 65599 * n
+#define HASHC n = *k++ + 65599 * n
 
 	n = 0;
 	k = (u_int8_t *)key;
@@ -120,25 +121,24 @@ hash3(const void *key, size_t len)
 
 		switch (len & (8 - 1)) {
 		case 0:
-			do {	/* All fall throughs */
+			do { /* All fall throughs */
 				HASHC;
-		case 7:
+			case 7:
 				HASHC;
-		case 6:
+			case 6:
 				HASHC;
-		case 5:
+			case 5:
 				HASHC;
-		case 4:
+			case 4:
 				HASHC;
-		case 3:
+			case 3:
 				HASHC;
-		case 2:
+			case 2:
 				HASHC;
-		case 1:
+			case 1:
 				HASHC;
 			} while (--loop);
 		}
-
 	}
 	return (n);
 }
@@ -151,8 +151,8 @@ hash4(const void *key, size_t len)
 	u_int32_t h, loop;
 	const u_int8_t *k;
 
-#define HASH4a   h = (h << 5) - h + *k++;
-#define HASH4b   h = (h << 5) + h + *k++;
+#define HASH4a h = (h << 5) - h + *k++;
+#define HASH4b h = (h << 5) + h + *k++;
 #define HASH4 HASH4b
 
 	h = 0;
@@ -162,25 +162,24 @@ hash4(const void *key, size_t len)
 
 		switch (len & (8 - 1)) {
 		case 0:
-			do {	/* All fall throughs */
+			do { /* All fall throughs */
 				HASH4;
-		case 7:
+			case 7:
 				HASH4;
-		case 6:
+			case 6:
 				HASH4;
-		case 5:
+			case 5:
 				HASH4;
-		case 4:
+			case 4:
 				HASH4;
-		case 3:
+			case 3:
 				HASH4;
-		case 2:
+			case 2:
 				HASH4;
-		case 1:
+			case 1:
 				HASH4;
 			} while (--loop);
 		}
-
 	}
 	return (h);
 }

@@ -42,11 +42,11 @@
 #include "kvm_private.h"
 
 struct vmstate {
-	void		*map;
-	size_t		mapsz;
-	size_t		dmphdrsz;
-	Elf64_Ehdr	*eh;
-	Elf64_Phdr	*ph;
+	void *map;
+	size_t mapsz;
+	size_t dmphdrsz;
+	Elf64_Ehdr *eh;
+	Elf64_Phdr *ph;
 };
 
 static int
@@ -121,7 +121,8 @@ powerpc_maphdrs(kvm_t *kd)
 			goto inval;
 	}
 	mapsz = _kvm16toh(kd, vm->eh->e_phentsize) *
-	    _kvm16toh(kd, vm->eh->e_phnum) + _kvm64toh(kd, vm->eh->e_phoff);
+		_kvm16toh(kd, vm->eh->e_phnum) +
+	    _kvm64toh(kd, vm->eh->e_phoff);
 	munmap(vm->map, vm->mapsz);
 
 	/* Map all headers. */
@@ -136,7 +137,7 @@ powerpc_maphdrs(kvm_t *kd)
 	    (uintptr_t)_kvm64toh(kd, vm->eh->e_phoff));
 	return (0);
 
- inval:
+inval:
 	_kvm_err(kd, kd->program, "invalid corefile");
 	return (-1);
 }
@@ -155,8 +156,10 @@ powerpc64_va2off(kvm_t *kd, kvaddr_t va, off_t *ofs)
 
 	ph = vm->ph;
 	nph = _kvm16toh(kd, vm->eh->e_phnum);
-	while (nph && (va < _kvm64toh(kd, ph->p_vaddr) ||
-	    va >= _kvm64toh(kd, ph->p_vaddr) + _kvm64toh(kd, ph->p_memsz))) {
+	while (nph &&
+	    (va < _kvm64toh(kd, ph->p_vaddr) ||
+		va >=
+		    _kvm64toh(kd, ph->p_vaddr) + _kvm64toh(kd, ph->p_memsz))) {
 		nph--;
 		ph = (void *)((uintptr_t)ph +
 		    _kvm16toh(kd, vm->eh->e_phentsize));
@@ -167,8 +170,7 @@ powerpc64_va2off(kvm_t *kd, kvaddr_t va, off_t *ofs)
 	/* Segment found. Return file offset and range. */
 	*ofs = vm->dmphdrsz + _kvm64toh(kd, ph->p_offset) +
 	    (va - _kvm64toh(kd, ph->p_vaddr));
-	return (_kvm64toh(kd, ph->p_memsz) -
-	    (va - _kvm64toh(kd, ph->p_vaddr)));
+	return (_kvm64toh(kd, ph->p_memsz) - (va - _kvm64toh(kd, ph->p_vaddr)));
 }
 
 static void

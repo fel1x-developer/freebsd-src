@@ -29,11 +29,11 @@
 #define _HCONF_H_
 
 enum hconf_input_mode {
-	HCONF_INPUT_MODE_MOUSE		= 0x0,
-	HCONF_INPUT_MODE_MT_TOUCHSCREEN	= 0x2,
-	HCONF_INPUT_MODE_MT_TOUCHPAD	= 0x3,
+	HCONF_INPUT_MODE_MOUSE = 0x0,
+	HCONF_INPUT_MODE_MT_TOUCHSCREEN = 0x2,
+	HCONF_INPUT_MODE_MT_TOUCHPAD = 0x3,
 };
 
-int	hconf_set_input_mode(device_t, enum hconf_input_mode);
+int hconf_set_input_mode(device_t, enum hconf_input_mode);
 
-#endif	/* _HCONF_H_ */
+#endif /* _HCONF_H_ */

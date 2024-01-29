@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 1998 Michael Smith.
  * All rights reserved.
  *
@@ -31,20 +31,20 @@
  * variables in order to allow some type strength.
  */
 
-#include "stand.h"
-
 #include <string.h>
 
-struct env_var	*environ = NULL;
+#include "stand.h"
+
+struct env_var *environ = NULL;
 
 /*
  * Look up (name) and return it's env_var structure.
  */
-struct env_var	*
+struct env_var *
 env_getenv(const char *name)
 {
-	struct env_var	*ev;
-    
+	struct env_var *ev;
+
 	for (ev = environ; ev != NULL; ev = ev->ev_next)
 		if (!strcmp(ev->ev_name, name))
 			break;
@@ -60,10 +60,10 @@ env_getenv(const char *name)
  * If (value) is NULL, the variable is set but has no value.
  */
 int
-env_setenv(const char *name, int flags, const void *value,
-    ev_sethook_t sethook, ev_unsethook_t unsethook)
+env_setenv(const char *name, int flags, const void *value, ev_sethook_t sethook,
+    ev_unsethook_t unsethook)
 {
-	struct env_var	*ev, *curr, *last;
+	struct env_var *ev, *curr, *last;
 
 	if ((ev = env_getenv(name)) != NULL) {
 		/*
@@ -97,7 +97,7 @@ env_setenv(const char *name, int flags, const void *value,
 		ev->ev_next = NULL;
 		/* Search for the record to insert before */
 		for (last = NULL, curr = environ; curr != NULL;
-		    last = curr, curr = curr->ev_next) {
+		     last = curr, curr = curr->ev_next) {
 
 			if (strcmp(ev->ev_name, curr->ev_name) < 0) {
 				if (curr->ev_prev) {
@@ -137,7 +137,7 @@ env_setenv(const char *name, int flags, const void *value,
 char *
 getenv(const char *name)
 {
-	struct env_var	*ev;
+	struct env_var *ev;
 
 	/* Set but no value gives empty string */
 	if ((ev = env_getenv(name)) != NULL) {
@@ -160,8 +160,8 @@ setenv(const char *name, const char *value, int overwrite)
 int
 putenv(char *string)
 {
-	char	*value, *copy;
-	int	result;
+	char *value, *copy;
+	int result;
 
 	copy = strdup(string);
 	if ((value = strchr(copy, '=')) != NULL)
@@ -174,8 +174,8 @@ putenv(char *string)
 int
 unsetenv(const char *name)
 {
-	struct env_var	*ev;
-	int		err;
+	struct env_var *ev;
+	int err;
 
 	err = 0;
 	if ((ev = env_getenv(name)) == NULL) {

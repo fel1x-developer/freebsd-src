@@ -33,10 +33,7 @@
 #define _ICE_ALLOC_H_
 
 /* Memory types */
-enum ice_memset_type {
-	ICE_NONDMA_MEM = 0,
-	ICE_DMA_MEM
-};
+enum ice_memset_type { ICE_NONDMA_MEM = 0, ICE_DMA_MEM };
 
 /* Memcpy types */
 enum ice_memcpy_type {

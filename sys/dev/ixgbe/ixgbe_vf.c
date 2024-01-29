@@ -32,7 +32,6 @@
 
 ******************************************************************************/
 
-
 #include "ixgbe.h"
 
 #define IXGBE_VFWRITE_REG IXGBE_WRITE_REG
@@ -47,7 +46,8 @@
  * their own adapter-specific function pointers.
  * Does not touch the hardware.
  **/
-s32 ixgbe_init_ops_vf(struct ixgbe_hw *hw)
+s32
+ixgbe_init_ops_vf(struct ixgbe_hw *hw)
 {
 	/* MAC */
 	hw->mac.ops.init_hw = ixgbe_init_hw_vf;
@@ -90,7 +90,8 @@ s32 ixgbe_init_ops_vf(struct ixgbe_hw *hw)
 /* ixgbe_virt_clr_reg - Set register to default (power on) state.
  * @hw: pointer to hardware structure
  */
-static void ixgbe_virt_clr_reg(struct ixgbe_hw *hw)
+static void
+ixgbe_virt_clr_reg(struct ixgbe_hw *hw)
 {
 	int i;
 	u32 vfsrrctl;
@@ -103,13 +104,11 @@ static void ixgbe_virt_clr_reg(struct ixgbe_hw *hw)
 
 	/* DCA_RXCTRL default value */
 	vfdca_rxctrl = IXGBE_DCA_RXCTRL_DESC_RRO_EN |
-		       IXGBE_DCA_RXCTRL_DATA_WRO_EN |
-		       IXGBE_DCA_RXCTRL_HEAD_WRO_EN;
+	    IXGBE_DCA_RXCTRL_DATA_WRO_EN | IXGBE_DCA_RXCTRL_HEAD_WRO_EN;
 
 	/* DCA_TXCTRL default value */
 	vfdca_txctrl = IXGBE_DCA_TXCTRL_DESC_RRO_EN |
-		       IXGBE_DCA_TXCTRL_DESC_WRO_EN |
-		       IXGBE_DCA_TXCTRL_DATA_RRO_EN;
+	    IXGBE_DCA_TXCTRL_DESC_WRO_EN | IXGBE_DCA_TXCTRL_DATA_RRO_EN;
 
 	IXGBE_WRITE_REG(hw, IXGBE_VFPSRTYPE, 0);
 
@@ -139,7 +138,8 @@ static void ixgbe_virt_clr_reg(struct ixgbe_hw *hw)
  * table, VLAN filter table, calls routine to set up link and flow control
  * settings, and leaves transmit and receive units disabled and uninitialized
  **/
-s32 ixgbe_start_hw_vf(struct ixgbe_hw *hw)
+s32
+ixgbe_start_hw_vf(struct ixgbe_hw *hw)
 {
 	/* Clear adapter stopped flag */
 	hw->adapter_stopped = false;
@@ -154,7 +154,8 @@ s32 ixgbe_start_hw_vf(struct ixgbe_hw *hw)
  * Initialize the hardware by resetting the hardware and then starting
  * the hardware
  **/
-s32 ixgbe_init_hw_vf(struct ixgbe_hw *hw)
+s32
+ixgbe_init_hw_vf(struct ixgbe_hw *hw)
 {
 	s32 status = hw->mac.ops.start_hw(hw);
 
@@ -170,7 +171,8 @@ s32 ixgbe_init_hw_vf(struct ixgbe_hw *hw)
  * Resets the hardware by resetting the transmit and receive units, masks and
  * clears all interrupts.
  **/
-s32 ixgbe_reset_hw_vf(struct ixgbe_hw *hw)
+s32
+ixgbe_reset_hw_vf(struct ixgbe_hw *hw)
 {
 	struct ixgbe_mbx_info *mbx = &hw->mbx;
 	u32 timeout = IXGBE_VF_INIT_TIMEOUT;
@@ -218,8 +220,8 @@ s32 ixgbe_reset_hw_vf(struct ixgbe_hw *hw)
 	 * also set up the mc_filter_type which is piggy backed
 	 * on the mac address in word 3
 	 */
-	ret_val = mbx->ops.read_posted(hw, msgbuf,
-			IXGBE_VF_PERMADDR_MSG_LEN, 0);
+	ret_val = mbx->ops.read_posted(hw, msgbuf, IXGBE_VF_PERMADDR_MSG_LEN,
+	    0);
 	if (ret_val)
 		return ret_val;
 
@@ -244,7 +246,8 @@ s32 ixgbe_reset_hw_vf(struct ixgbe_hw *hw)
  * the shared code and drivers to determine if the adapter is in a stopped
  * state and should not touch the hardware.
  **/
-s32 ixgbe_stop_adapter_vf(struct ixgbe_hw *hw)
+s32
+ixgbe_stop_adapter_vf(struct ixgbe_hw *hw)
 {
 	u32 reg_val;
 	u16 i;
@@ -293,24 +296,25 @@ s32 ixgbe_stop_adapter_vf(struct ixgbe_hw *hw)
  * by the MO field of the MCSTCTRL. The MO field is set during initialization
  * to mc_filter_type.
  **/
-static s32 ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
+static s32
+ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
 {
 	u32 vector = 0;
 
 	switch (hw->mac.mc_filter_type) {
-	case 0:   /* use bits [47:36] of the address */
+	case 0: /* use bits [47:36] of the address */
 		vector = ((mc_addr[4] >> 4) | (((u16)mc_addr[5]) << 4));
 		break;
-	case 1:   /* use bits [46:35] of the address */
+	case 1: /* use bits [46:35] of the address */
 		vector = ((mc_addr[4] >> 3) | (((u16)mc_addr[5]) << 5));
 		break;
-	case 2:   /* use bits [45:34] of the address */
+	case 2: /* use bits [45:34] of the address */
 		vector = ((mc_addr[4] >> 2) | (((u16)mc_addr[5]) << 6));
 		break;
-	case 3:   /* use bits [43:32] of the address */
+	case 3: /* use bits [43:32] of the address */
 		vector = ((mc_addr[4]) | (((u16)mc_addr[5]) << 8));
 		break;
-	default:  /* Invalid mc_filter_type */
+	default: /* Invalid mc_filter_type */
 		DEBUGOUT("MC filter type param set incorrectly\n");
 		ASSERT(0);
 		break;
@@ -321,8 +325,8 @@ static s32 ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
 	return vector;
 }
 
-static s32 ixgbevf_write_msg_read_ack(struct ixgbe_hw *hw, u32 *msg,
-				      u32 *retmsg, u16 size)
+static s32
+ixgbevf_write_msg_read_ack(struct ixgbe_hw *hw, u32 *msg, u32 *retmsg, u16 size)
 {
 	struct ixgbe_mbx_info *mbx = &hw->mbx;
 	s32 retval = mbx->ops.write_posted(hw, msg, size, 0);
@@ -341,8 +345,9 @@ static s32 ixgbevf_write_msg_read_ack(struct ixgbe_hw *hw, u32 *msg,
  * @vmdq: VMDq "set" or "pool" index
  * @enable_addr: set flag that address is active
  **/
-s32 ixgbe_set_rar_vf(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
-		     u32 enable_addr)
+s32
+ixgbe_set_rar_vf(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
+    u32 enable_addr)
 {
 	u32 msgbuf[3];
 	u8 *msg_addr = (u8 *)(&msgbuf[1]);
@@ -376,9 +381,9 @@ s32 ixgbe_set_rar_vf(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
  *
  * Updates the Multicast Table Array.
  **/
-s32 ixgbe_update_mc_addr_list_vf(struct ixgbe_hw *hw, u8 *mc_addr_list,
-				 u32 mc_addr_count, ixgbe_mc_addr_itr next,
-				 bool clear)
+s32
+ixgbe_update_mc_addr_list_vf(struct ixgbe_hw *hw, u8 *mc_addr_list,
+    u32 mc_addr_count, ixgbe_mc_addr_itr next, bool clear)
 {
 	struct ixgbe_mbx_info *mbx = &hw->mbx;
 	u32 msgbuf[IXGBE_VFMAILBOX_SIZE];
@@ -422,7 +427,8 @@ s32 ixgbe_update_mc_addr_list_vf(struct ixgbe_hw *hw, u8 *mc_addr_list,
  *
  * Updates the Multicast Mode of VF.
  **/
-s32 ixgbevf_update_xcast_mode(struct ixgbe_hw *hw, int xcast_mode)
+s32
+ixgbevf_update_xcast_mode(struct ixgbe_hw *hw, int xcast_mode)
 {
 	u32 msgbuf[2];
 	s32 err;
@@ -459,7 +465,8 @@ s32 ixgbevf_update_xcast_mode(struct ixgbe_hw *hw, int xcast_mode)
  *
  * Returns state of the operation error or success.
  **/
-s32 ixgbe_get_link_state_vf(struct ixgbe_hw *hw, bool *link_state)
+s32
+ixgbe_get_link_state_vf(struct ixgbe_hw *hw, bool *link_state)
 {
 	u32 msgbuf[2];
 	s32 err;
@@ -490,8 +497,9 @@ s32 ixgbe_get_link_state_vf(struct ixgbe_hw *hw, bool *link_state)
  *
  * Turn on/off specified VLAN in the VLAN filter table.
  **/
-s32 ixgbe_set_vfta_vf(struct ixgbe_hw *hw, u32 vlan, u32 vind,
-		      bool vlan_on, bool vlvf_bypass)
+s32
+ixgbe_set_vfta_vf(struct ixgbe_hw *hw, u32 vlan, u32 vind, bool vlan_on,
+    bool vlvf_bypass)
 {
 	u32 msgbuf[2];
 	s32 ret_val;
@@ -515,7 +523,8 @@ s32 ixgbe_set_vfta_vf(struct ixgbe_hw *hw, u32 vlan, u32 vind,
  *
  * Returns the number of transmit queues for the given adapter.
  **/
-u32 ixgbe_get_num_of_tx_queues_vf(struct ixgbe_hw *hw)
+u32
+ixgbe_get_num_of_tx_queues_vf(struct ixgbe_hw *hw)
 {
 	UNREFERENCED_1PARAMETER(hw);
 	return IXGBE_VF_MAX_TX_QUEUES;
@@ -527,7 +536,8 @@ u32 ixgbe_get_num_of_tx_queues_vf(struct ixgbe_hw *hw)
  *
  * Returns the number of receive queues for the given adapter.
  **/
-u32 ixgbe_get_num_of_rx_queues_vf(struct ixgbe_hw *hw)
+u32
+ixgbe_get_num_of_rx_queues_vf(struct ixgbe_hw *hw)
 {
 	UNREFERENCED_1PARAMETER(hw);
 	return IXGBE_VF_MAX_RX_QUEUES;
@@ -538,7 +548,8 @@ u32 ixgbe_get_num_of_rx_queues_vf(struct ixgbe_hw *hw)
  * @hw: pointer to the HW structure
  * @mac_addr: the MAC address
  **/
-s32 ixgbe_get_mac_addr_vf(struct ixgbe_hw *hw, u8 *mac_addr)
+s32
+ixgbe_get_mac_addr_vf(struct ixgbe_hw *hw, u8 *mac_addr)
 {
 	int i;
 
@@ -548,7 +559,8 @@ s32 ixgbe_get_mac_addr_vf(struct ixgbe_hw *hw, u8 *mac_addr)
 	return IXGBE_SUCCESS;
 }
 
-s32 ixgbevf_set_uc_addr_vf(struct ixgbe_hw *hw, u32 index, u8 *addr)
+s32
+ixgbevf_set_uc_addr_vf(struct ixgbe_hw *hw, u32 index, u8 *addr)
 {
 	u32 msgbuf[3], msgbuf_chk;
 	u8 *msg_addr = (u8 *)(&msgbuf[1]);
@@ -586,8 +598,9 @@ s32 ixgbevf_set_uc_addr_vf(struct ixgbe_hw *hw, u32 index, u8 *addr)
  *
  * Set the link speed in the AUTOC register and restarts link.
  **/
-s32 ixgbe_setup_mac_link_vf(struct ixgbe_hw *hw, ixgbe_link_speed speed,
-			    bool autoneg_wait_to_complete)
+s32
+ixgbe_setup_mac_link_vf(struct ixgbe_hw *hw, ixgbe_link_speed speed,
+    bool autoneg_wait_to_complete)
 {
 	UNREFERENCED_3PARAMETER(hw, speed, autoneg_wait_to_complete);
 	return IXGBE_SUCCESS;
@@ -602,8 +615,9 @@ s32 ixgbe_setup_mac_link_vf(struct ixgbe_hw *hw, ixgbe_link_speed speed,
  *
  * Reads the links register to determine if link is up and the current speed
  **/
-s32 ixgbe_check_mac_link_vf(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
-			    bool *link_up, bool autoneg_wait_to_complete)
+s32
+ixgbe_check_mac_link_vf(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
+    bool *link_up, bool autoneg_wait_to_complete)
 {
 	struct ixgbe_mbx_info *mbx = &hw->mbx;
 	struct ixgbe_mac_info *mac = &hw->mac;
@@ -701,7 +715,8 @@ out:
  * @hw: pointer to the HW structure
  * @max_size: value to assign to max frame size
  **/
-s32 ixgbevf_rlpml_set_vf(struct ixgbe_hw *hw, u16 max_size)
+s32
+ixgbevf_rlpml_set_vf(struct ixgbe_hw *hw, u16 max_size)
 {
 	u32 msgbuf[2];
 	s32 retval;
@@ -724,7 +739,8 @@ s32 ixgbevf_rlpml_set_vf(struct ixgbe_hw *hw, u16 max_size)
  * @hw: pointer to the HW structure
  * @api: integer containing requested API version
  **/
-int ixgbevf_negotiate_api_version(struct ixgbe_hw *hw, int api)
+int
+ixgbevf_negotiate_api_version(struct ixgbe_hw *hw, int api)
 {
 	int err;
 	u32 msg[3];
@@ -750,8 +766,9 @@ int ixgbevf_negotiate_api_version(struct ixgbe_hw *hw, int api)
 	return err;
 }
 
-int ixgbevf_get_queues(struct ixgbe_hw *hw, unsigned int *num_tcs,
-		       unsigned int *default_tc)
+int
+ixgbevf_get_queues(struct ixgbe_hw *hw, unsigned int *num_tcs,
+    unsigned int *default_tc)
 {
 	int err;
 	u32 msg[5];

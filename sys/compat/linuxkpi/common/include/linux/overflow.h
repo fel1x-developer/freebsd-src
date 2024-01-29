@@ -27,16 +27,14 @@
  */
 
 #ifndef __LINUXKPI_LINUX_OVERFLOW_H__
-#define	__LINUXKPI_LINUX_OVERFLOW_H__
+#define __LINUXKPI_LINUX_OVERFLOW_H__
 
-#include <sys/stdint.h>
 #include <sys/types.h>
+#include <sys/stdint.h>
 
-#define check_add_overflow(a, b, c)		\
-	__builtin_add_overflow(a, b, c)
+#define check_add_overflow(a, b, c) __builtin_add_overflow(a, b, c)
 
-#define check_mul_overflow(a, b, c)	\
-	__builtin_mul_overflow(a, b, c)
+#define check_mul_overflow(a, b, c) __builtin_mul_overflow(a, b, c)
 
 static inline size_t
 array_size(size_t x, size_t y)
@@ -48,4 +46,4 @@ array_size(size_t x, size_t y)
 	return (retval);
 }
 
-#endif	/* __LINUXKPI_LINUX_OVERFLOW_H__ */
+#endif /* __LINUXKPI_LINUX_OVERFLOW_H__ */

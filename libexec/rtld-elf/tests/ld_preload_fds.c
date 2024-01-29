@@ -74,8 +74,7 @@ ATF_TC_BODY(single_library, tc)
 
 	setup(tc);
 
-	ATF_REQUIRE(
-	    asprintf(&senv, "LD_PRELOAD_FDS=%d", libraryfd) > 0);
+	ATF_REQUIRE(asprintf(&senv, "LD_PRELOAD_FDS=%d", libraryfd) > 0);
 
 	expect_success(binaryfd, senv);
 }

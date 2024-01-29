@@ -29,52 +29,54 @@
  * Myson fast ethernet PCI NIC driver, available at: http://www.myson.com.tw/
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/queue.h>
-#include <sys/types.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
 
-#define NBPFILTER	1
+#define NBPFILTER 1
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_dl.h>
-#include <net/bpf.h>
-
-#include <vm/vm.h>		/* for vtophys */
-#include <vm/pmap.h>		/* for vtophys */
-#include <machine/bus.h>
-#include <machine/resource.h>
 #include <sys/bus.h>
 #include <sys/rman.h>
 
+#include <vm/vm.h>   /* for vtophys */
+#include <vm/pmap.h> /* for vtophys */
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 /*
  * #define MY_USEIOSPACE
  */
 
-static int      MY_USEIOSPACE = 1;
+static int MY_USEIOSPACE = 1;
 
 #ifdef MY_USEIOSPACE
-#define MY_RES                  SYS_RES_IOPORT
-#define MY_RID                  MY_PCI_LOIO
+#define MY_RES SYS_RES_IOPORT
+#define MY_RID MY_PCI_LOIO
 #else
-#define MY_RES                  SYS_RES_MEMORY
-#define MY_RID                  MY_PCI_LOMEM
+#define MY_RES SYS_RES_MEMORY
+#define MY_RID MY_PCI_LOMEM
 #endif
 
 #include <dev/my/if_myreg.h>
@@ -84,10 +86,10 @@ static int      MY_USEIOSPACE = 1;
  */
 struct my_type *my_info_tmp;
 static struct my_type my_devs[] = {
-	{MYSONVENDORID, MTD800ID, "Myson MTD80X Based Fast Ethernet Card"},
-	{MYSONVENDORID, MTD803ID, "Myson MTD80X Based Fast Ethernet Card"},
-	{MYSONVENDORID, MTD891ID, "Myson MTD89X Based Giga Ethernet Card"},
-	{0, 0, NULL}
+	{ MYSONVENDORID, MTD800ID, "Myson MTD80X Based Fast Ethernet Card" },
+	{ MYSONVENDORID, MTD803ID, "Myson MTD80X Based Fast Ethernet Card" },
+	{ MYSONVENDORID, MTD891ID, "Myson MTD89X Based Giga Ethernet Card" },
+	{ 0, 0, NULL }
 };
 
 /*
@@ -95,66 +97,60 @@ static struct my_type my_devs[] = {
  * will work with pretty much any MII-compliant PHY, so failure to positively
  * identify the chip is not a fatal error.
  */
-static struct my_type my_phys[] = {
-	{MysonPHYID0, MysonPHYID0, "<MYSON MTD981>"},
-	{SeeqPHYID0, SeeqPHYID0, "<SEEQ 80225>"},
-	{AhdocPHYID0, AhdocPHYID0, "<AHDOC 101>"},
-	{MarvellPHYID0, MarvellPHYID0, "<MARVELL 88E1000>"},
-	{LevelOnePHYID0, LevelOnePHYID0, "<LevelOne LXT1000>"},
-	{0, 0, "<MII-compliant physical interface>"}
-};
+static struct my_type my_phys[] = { { MysonPHYID0, MysonPHYID0,
+					"<MYSON MTD981>" },
+	{ SeeqPHYID0, SeeqPHYID0, "<SEEQ 80225>" },
+	{ AhdocPHYID0, AhdocPHYID0, "<AHDOC 101>" },
+	{ MarvellPHYID0, MarvellPHYID0, "<MARVELL 88E1000>" },
+	{ LevelOnePHYID0, LevelOnePHYID0, "<LevelOne LXT1000>" },
+	{ 0, 0, "<MII-compliant physical interface>" } };
 
-static int      my_probe(device_t);
-static int      my_attach(device_t);
-static int      my_detach(device_t);
-static int      my_newbuf(struct my_softc *, struct my_chain_onefrag *);
-static int      my_encap(struct my_softc *, struct my_chain *, struct mbuf *);
-static void     my_rxeof(struct my_softc *);
-static void     my_txeof(struct my_softc *);
-static void     my_txeoc(struct my_softc *);
-static void     my_intr(void *);
-static void     my_start(if_t);
-static void     my_start_locked(if_t);
-static int      my_ioctl(if_t, u_long, caddr_t);
-static void     my_init(void *);
-static void     my_init_locked(struct my_softc *);
-static void     my_stop(struct my_softc *);
-static void     my_autoneg_timeout(void *);
-static void     my_watchdog(void *);
-static int      my_shutdown(device_t);
-static int      my_ifmedia_upd(if_t);
-static void     my_ifmedia_sts(if_t, struct ifmediareq *);
+static int my_probe(device_t);
+static int my_attach(device_t);
+static int my_detach(device_t);
+static int my_newbuf(struct my_softc *, struct my_chain_onefrag *);
+static int my_encap(struct my_softc *, struct my_chain *, struct mbuf *);
+static void my_rxeof(struct my_softc *);
+static void my_txeof(struct my_softc *);
+static void my_txeoc(struct my_softc *);
+static void my_intr(void *);
+static void my_start(if_t);
+static void my_start_locked(if_t);
+static int my_ioctl(if_t, u_long, caddr_t);
+static void my_init(void *);
+static void my_init_locked(struct my_softc *);
+static void my_stop(struct my_softc *);
+static void my_autoneg_timeout(void *);
+static void my_watchdog(void *);
+static int my_shutdown(device_t);
+static int my_ifmedia_upd(if_t);
+static void my_ifmedia_sts(if_t, struct ifmediareq *);
 static u_int16_t my_phy_readreg(struct my_softc *, int);
-static void     my_phy_writereg(struct my_softc *, int, int);
-static void     my_autoneg_xmit(struct my_softc *);
-static void     my_autoneg_mii(struct my_softc *, int, int);
-static void     my_setmode_mii(struct my_softc *, int);
-static void     my_getmode_mii(struct my_softc *);
-static void     my_setcfg(struct my_softc *, int);
-static void     my_setmulti(struct my_softc *);
-static void     my_reset(struct my_softc *);
-static int      my_list_rx_init(struct my_softc *);
-static int      my_list_tx_init(struct my_softc *);
-static long     my_send_cmd_to_phy(struct my_softc *, int, int);
+static void my_phy_writereg(struct my_softc *, int, int);
+static void my_autoneg_xmit(struct my_softc *);
+static void my_autoneg_mii(struct my_softc *, int, int);
+static void my_setmode_mii(struct my_softc *, int);
+static void my_getmode_mii(struct my_softc *);
+static void my_setcfg(struct my_softc *, int);
+static void my_setmulti(struct my_softc *);
+static void my_reset(struct my_softc *);
+static int my_list_rx_init(struct my_softc *);
+static int my_list_tx_init(struct my_softc *);
+static long my_send_cmd_to_phy(struct my_softc *, int, int);
 
 #define MY_SETBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | (x))
 #define MY_CLRBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~(x))
 
 static device_method_t my_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe, my_probe),
-	DEVMETHOD(device_attach, my_attach),
+	DEVMETHOD(device_probe, my_probe), DEVMETHOD(device_attach, my_attach),
 	DEVMETHOD(device_detach, my_detach),
 	DEVMETHOD(device_shutdown, my_shutdown),
 
 	DEVMETHOD_END
 };
 
-static driver_t my_driver = {
-	"my",
-	my_methods,
-	sizeof(struct my_softc)
-};
+static driver_t my_driver = { "my", my_methods, sizeof(struct my_softc) };
 
 DRIVER_MODULE(my, pci, my_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, my, my_devs,
@@ -163,11 +159,11 @@ MODULE_DEPEND(my, pci, 1, 1, 1);
 MODULE_DEPEND(my, ether, 1, 1, 1);
 
 static long
-my_send_cmd_to_phy(struct my_softc * sc, int opcode, int regad)
+my_send_cmd_to_phy(struct my_softc *sc, int opcode, int regad)
 {
-	long            miir;
-	int             i;
-	int             mask, data;
+	long miir;
+	int i;
+	int mask, data;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -215,10 +211,10 @@ my_send_cmd_to_phy(struct my_softc * sc, int opcode, int regad)
 }
 
 static u_int16_t
-my_phy_readreg(struct my_softc * sc, int reg)
+my_phy_readreg(struct my_softc *sc, int reg)
 {
-	long            miir;
-	int             mask, data;
+	long miir;
+	int mask, data;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -254,14 +250,14 @@ my_phy_readreg(struct my_softc * sc, int reg)
 		CSR_WRITE_4(sc, MY_MANAGEMENT, miir);
 	}
 
-	return (u_int16_t) data;
+	return (u_int16_t)data;
 }
 
 static void
-my_phy_writereg(struct my_softc * sc, int reg, int data)
+my_phy_writereg(struct my_softc *sc, int reg, int data)
 {
-	long            miir;
-	int             mask;
+	long miir;
+	int mask;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -314,11 +310,11 @@ my_hash_maddr(void *arg, struct sockaddr_dl *sdl, u_int cnt)
  * Program the 64-bit multicast hash filter.
  */
 static void
-my_setmulti(struct my_softc * sc)
+my_setmulti(struct my_softc *sc)
 {
-	if_t		ifp;
-	u_int32_t       hashes[2] = {0, 0};
-	u_int32_t       rxfilt;
+	if_t ifp;
+	u_int32_t hashes[2] = { 0, 0 };
+	u_int32_t rxfilt;
 
 	MY_LOCK_ASSERT(sc);
 
@@ -352,15 +348,16 @@ my_setmulti(struct my_softc * sc)
  * Initiate an autonegotiation session.
  */
 static void
-my_autoneg_xmit(struct my_softc * sc)
+my_autoneg_xmit(struct my_softc *sc)
 {
-	u_int16_t       phy_sts = 0;
+	u_int16_t phy_sts = 0;
 
 	MY_LOCK_ASSERT(sc);
 
 	my_phy_writereg(sc, PHY_BMCR, PHY_BMCR_RESET);
 	DELAY(500);
-	while (my_phy_readreg(sc, PHY_BMCR) & PHY_BMCR_RESET);
+	while (my_phy_readreg(sc, PHY_BMCR) & PHY_BMCR_RESET)
+		;
 
 	phy_sts = my_phy_readreg(sc, PHY_BMCR);
 	phy_sts |= PHY_BMCR_AUTONEGENBL | PHY_BMCR_AUTONEGRSTR;
@@ -383,11 +380,11 @@ my_autoneg_timeout(void *arg)
  * Invoke autonegotiation on a PHY.
  */
 static void
-my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
+my_autoneg_mii(struct my_softc *sc, int flag, int verbose)
 {
-	u_int16_t       phy_sts = 0, media, advert, ability;
-	u_int16_t       ability2 = 0;
-	if_t		ifp;
+	u_int16_t phy_sts = 0, media, advert, ability;
+	u_int16_t ability2 = 0;
+	if_t ifp;
 	struct ifmedia *ifm;
 
 	MY_LOCK_ASSERT(sc);
@@ -477,8 +474,8 @@ my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
 				 * ifm->ifm_media =
 				 * IFM_ETHER|IFM_1000_T|IFM_FDX;
 				 */
-				ifm->ifm_media =
-				    IFM_ETHER | IFM_100_TX | IFM_FDX;
+				ifm->ifm_media = IFM_ETHER | IFM_100_TX |
+				    IFM_FDX;
 				media &= ~PHY_BMCR_SPEEDSEL;
 				media |= PHY_BMCR_1000;
 				media |= PHY_BMCR_DUPLEX;
@@ -503,19 +500,19 @@ my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
 			media &= ~PHY_BMCR_DUPLEX;
 			printf("(100baseT4)\n");
 		} else if (advert & PHY_ANAR_100BTXFULL &&
-			   ability & PHY_ANAR_100BTXFULL) {
+		    ability & PHY_ANAR_100BTXFULL) {
 			ifm->ifm_media = IFM_ETHER | IFM_100_TX | IFM_FDX;
 			media |= PHY_BMCR_SPEEDSEL;
 			media |= PHY_BMCR_DUPLEX;
 			printf("(full-duplex, 100Mbps)\n");
 		} else if (advert & PHY_ANAR_100BTXHALF &&
-			   ability & PHY_ANAR_100BTXHALF) {
+		    ability & PHY_ANAR_100BTXHALF) {
 			ifm->ifm_media = IFM_ETHER | IFM_100_TX | IFM_HDX;
 			media |= PHY_BMCR_SPEEDSEL;
 			media &= ~PHY_BMCR_DUPLEX;
 			printf("(half-duplex, 100Mbps)\n");
 		} else if (advert & PHY_ANAR_10BTFULL &&
-			   ability & PHY_ANAR_10BTFULL) {
+		    ability & PHY_ANAR_10BTFULL) {
 			ifm->ifm_media = IFM_ETHER | IFM_10_T | IFM_FDX;
 			media &= ~PHY_BMCR_SPEEDSEL;
 			media |= PHY_BMCR_DUPLEX;
@@ -549,10 +546,10 @@ my_autoneg_mii(struct my_softc * sc, int flag, int verbose)
  * To get PHY ability.
  */
 static void
-my_getmode_mii(struct my_softc * sc)
+my_getmode_mii(struct my_softc *sc)
 {
-	u_int16_t       bmsr;
-	if_t		ifp;
+	u_int16_t bmsr;
+	if_t ifp;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;
@@ -567,8 +564,8 @@ my_getmode_mii(struct my_softc * sc)
 		if (bootverbose)
 			device_printf(sc->my_dev,
 			    "10Mbps half-duplex mode supported\n");
-		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T | IFM_HDX,
-		    0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T | IFM_HDX, 0,
+		    NULL);
 		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T, 0, NULL);
 	}
 	if (bmsr & PHY_BMSR_10BTFULL) {
@@ -576,8 +573,8 @@ my_getmode_mii(struct my_softc * sc)
 			device_printf(sc->my_dev,
 			    "10Mbps full-duplex mode supported\n");
 
-		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T | IFM_FDX,
-		    0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_10_T | IFM_FDX, 0,
+		    NULL);
 		sc->ifmedia.ifm_media = IFM_ETHER | IFM_10_T | IFM_FDX;
 	}
 	if (bmsr & PHY_BMSR_100BTXHALF) {
@@ -586,8 +583,8 @@ my_getmode_mii(struct my_softc * sc)
 			    "100Mbps half-duplex mode supported\n");
 		if_setbaudrate(ifp, 100000000);
 		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_TX, 0, NULL);
-		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_TX | IFM_HDX,
-			    0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_TX | IFM_HDX, 0,
+		    NULL);
 		sc->ifmedia.ifm_media = IFM_ETHER | IFM_100_TX | IFM_HDX;
 	}
 	if (bmsr & PHY_BMSR_100BTXFULL) {
@@ -595,8 +592,8 @@ my_getmode_mii(struct my_softc * sc)
 			device_printf(sc->my_dev,
 			    "100Mbps full-duplex mode supported\n");
 		if_setbaudrate(ifp, 100000000);
-		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_TX | IFM_FDX,
-		    0, NULL);
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_100_TX | IFM_FDX, 0,
+		    NULL);
 		sc->ifmedia.ifm_media = IFM_ETHER | IFM_100_TX | IFM_FDX;
 	}
 	/* Some also support 100BaseT4. */
@@ -610,11 +607,11 @@ my_getmode_mii(struct my_softc * sc)
 		if (bootverbose)
 			device_printf(sc->my_dev,
 			    "forcing on autoneg support for BT4\n");
-		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_AUTO, 0 NULL):
-		sc->ifmedia.ifm_media = IFM_ETHER | IFM_AUTO;
+		ifmedia_add(&sc->ifmedia, IFM_ETHER | IFM_AUTO, 0 NULL)
+		    : sc->ifmedia.ifm_media = IFM_ETHER | IFM_AUTO;
 #endif
 	}
-#if 0				/* this version did not support 1000M, */
+#if 0 /* this version did not support 1000M, */
 	if (sc->my_pinfo->my_vid == MarvellPHYID0) {
 		if (bootverbose)
 			device_printf(sc->my_dev,
@@ -646,9 +643,9 @@ my_getmode_mii(struct my_softc * sc)
  * Set speed and duplex mode.
  */
 static void
-my_setmode_mii(struct my_softc * sc, int media)
+my_setmode_mii(struct my_softc *sc, int media)
 {
-	u_int16_t       bmcr;
+	u_int16_t bmcr;
 
 	MY_LOCK_ASSERT(sc);
 	/*
@@ -665,9 +662,9 @@ my_setmode_mii(struct my_softc * sc, int media)
 	device_printf(sc->my_dev, "selecting MII, ");
 	bmcr = my_phy_readreg(sc, PHY_BMCR);
 	bmcr &= ~(PHY_BMCR_AUTONEGENBL | PHY_BMCR_SPEEDSEL | PHY_BMCR_1000 |
-		  PHY_BMCR_DUPLEX | PHY_BMCR_LOOPBK);
+	    PHY_BMCR_DUPLEX | PHY_BMCR_LOOPBK);
 
-#if 0				/* this version did not support 1000M, */
+#if 0 /* this version did not support 1000M, */
 	if (IFM_SUBTYPE(media) == IFM_1000_T) {
 		printf("1000Mbps/T4, half-duplex\n");
 		bmcr &= ~PHY_BMCR_SPEEDSEL;
@@ -706,9 +703,9 @@ my_setmode_mii(struct my_softc * sc, int media)
  * transmit and/or receive logic in the idle state.
  */
 static void
-my_setcfg(struct my_softc * sc, int bmcr)
+my_setcfg(struct my_softc *sc, int bmcr)
 {
-	int             i, restart = 0;
+	int i, restart = 0;
 
 	MY_LOCK_ASSERT(sc);
 	if (CSR_READ_4(sc, MY_TCRRCR) & (MY_TE | MY_RE)) {
@@ -717,7 +714,7 @@ my_setcfg(struct my_softc * sc, int bmcr)
 		for (i = 0; i < MY_TIMEOUT; i++) {
 			DELAY(10);
 			if (!(CSR_READ_4(sc, MY_TCRRCR) &
-			    (MY_TXRUN | MY_RXRUN)))
+				(MY_TXRUN | MY_RXRUN)))
 				break;
 		}
 		if (i == MY_TIMEOUT)
@@ -740,9 +737,9 @@ my_setcfg(struct my_softc * sc, int bmcr)
 }
 
 static void
-my_reset(struct my_softc * sc)
+my_reset(struct my_softc *sc)
 {
-	int    i;
+	int i;
 
 	MY_LOCK_ASSERT(sc);
 	MY_SETBIT(sc, MY_BCR, MY_SWR);
@@ -788,17 +785,17 @@ my_probe(device_t dev)
 static int
 my_attach(device_t dev)
 {
-	int             i;
-	u_char          eaddr[ETHER_ADDR_LEN];
-	u_int32_t       iobase;
+	int i;
+	u_char eaddr[ETHER_ADDR_LEN];
+	u_int32_t iobase;
 	struct my_softc *sc;
-	if_t		ifp;
-	int             media = IFM_ETHER | IFM_100_TX | IFM_FDX;
-	unsigned int    round;
-	caddr_t         roundptr;
+	if_t ifp;
+	int media = IFM_ETHER | IFM_100_TX | IFM_FDX;
+	unsigned int round;
+	caddr_t roundptr;
 	struct my_type *p;
-	u_int16_t       phy_vid, phy_did, phy_sts = 0;
-	int             rid, error = 0;
+	u_int16_t phy_vid, phy_did, phy_sts = 0;
+	int rid, error = 0;
 
 	sc = device_get_softc(dev);
 	sc->my_dev = dev;
@@ -831,7 +828,7 @@ my_attach(device_t dev)
 
 	rid = 0;
 	sc->my_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-					    RF_SHAREABLE | RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 
 	if (sc->my_irq == NULL) {
 		device_printf(dev, "couldn't map interrupt\n");
@@ -852,14 +849,14 @@ my_attach(device_t dev)
 	for (i = 0; i < ETHER_ADDR_LEN; ++i)
 		eaddr[i] = CSR_READ_1(sc, MY_PAR0 + i);
 
-	sc->my_ldata_ptr = malloc(sizeof(struct my_list_data) + 8,
-				  M_DEVBUF, M_NOWAIT);
+	sc->my_ldata_ptr = malloc(sizeof(struct my_list_data) + 8, M_DEVBUF,
+	    M_NOWAIT);
 	if (sc->my_ldata_ptr == NULL) {
 		device_printf(dev, "no memory for list buffers!\n");
 		error = ENXIO;
 		goto release_irq;
 	}
-	sc->my_ldata = (struct my_list_data *) sc->my_ldata_ptr;
+	sc->my_ldata = (struct my_list_data *)sc->my_ldata_ptr;
 	round = (uintptr_t)sc->my_ldata_ptr & 0xF;
 	roundptr = sc->my_ldata_ptr;
 	for (i = 0; i < 8; i++) {
@@ -869,7 +866,7 @@ my_attach(device_t dev)
 		} else
 			break;
 	}
-	sc->my_ldata = (struct my_list_data *) roundptr;
+	sc->my_ldata = (struct my_list_data *)roundptr;
 	bzero(sc->my_ldata, sizeof(struct my_list_data));
 
 	ifp = sc->my_ifp = if_alloc(IFT_ETHER);
@@ -910,8 +907,8 @@ my_attach(device_t dev)
 			if (bootverbose) {
 				device_printf(dev, "found PHY at address %d, ",
 				    sc->my_phy_addr);
-				printf("vendor id: %x device id: %x\n",
-				    phy_vid, phy_did);
+				printf("vendor id: %x device id: %x\n", phy_vid,
+				    phy_did);
 			}
 			p = my_phys;
 			while (p->my_vid) {
@@ -925,7 +922,7 @@ my_attach(device_t dev)
 				sc->my_pinfo = &my_phys[PHY_UNKNOWN];
 			if (bootverbose)
 				device_printf(dev, "PHY type: %s\n",
-				       sc->my_pinfo->my_name);
+				    sc->my_pinfo->my_name);
 		} else {
 			MY_UNLOCK(sc);
 			device_printf(dev, "MII without any phy!\n");
@@ -948,13 +945,13 @@ my_attach(device_t dev)
 	ether_ifattach(ifp, eaddr);
 
 	error = bus_setup_intr(dev, sc->my_irq, INTR_TYPE_NET | INTR_MPSAFE,
-			       NULL, my_intr, sc, &sc->my_intrhand);
+	    NULL, my_intr, sc, &sc->my_intrhand);
 
 	if (error) {
 		device_printf(dev, "couldn't set up irq\n");
 		goto detach_if;
 	}
-	 
+
 	return (0);
 
 detach_if:
@@ -976,7 +973,7 @@ static int
 my_detach(device_t dev)
 {
 	struct my_softc *sc;
-	if_t		ifp;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	ifp = sc->my_ifp;
@@ -1001,11 +998,11 @@ my_detach(device_t dev)
  * Initialize the transmit descriptors.
  */
 static int
-my_list_tx_init(struct my_softc * sc)
+my_list_tx_init(struct my_softc *sc)
 {
 	struct my_chain_data *cd;
 	struct my_list_data *ld;
-	int             i;
+	int i;
 
 	MY_LOCK_ASSERT(sc);
 	cd = &sc->my_cdata;
@@ -1029,18 +1026,18 @@ my_list_tx_init(struct my_softc * sc)
  * points back to the first.
  */
 static int
-my_list_rx_init(struct my_softc * sc)
+my_list_rx_init(struct my_softc *sc)
 {
 	struct my_chain_data *cd;
 	struct my_list_data *ld;
-	int             i;
+	int i;
 
 	MY_LOCK_ASSERT(sc);
 	cd = &sc->my_cdata;
 	ld = sc->my_ldata;
 	for (i = 0; i < MY_RX_LIST_CNT; i++) {
 		cd->my_rx_chain[i].my_ptr =
-		    (struct my_desc *) & ld->my_rx_list[i];
+		    (struct my_desc *)&ld->my_rx_list[i];
 		if (my_newbuf(sc, &cd->my_rx_chain[i]) == ENOBUFS) {
 			MY_UNLOCK(sc);
 			return (ENOBUFS);
@@ -1051,8 +1048,8 @@ my_list_rx_init(struct my_softc * sc)
 		} else {
 			cd->my_rx_chain[i].my_nextdesc =
 			    &cd->my_rx_chain[i + 1];
-			ld->my_rx_list[i].my_next =
-			    vtophys(&ld->my_rx_list[i + 1]);
+			ld->my_rx_list[i].my_next = vtophys(
+			    &ld->my_rx_list[i + 1]);
 		}
 	}
 	cd->my_rx_head = &cd->my_rx_chain[0];
@@ -1063,9 +1060,9 @@ my_list_rx_init(struct my_softc * sc)
  * Initialize an RX descriptor and attach an MBUF cluster.
  */
 static int
-my_newbuf(struct my_softc * sc, struct my_chain_onefrag * c)
+my_newbuf(struct my_softc *sc, struct my_chain_onefrag *c)
 {
-	struct mbuf    *m_new = NULL;
+	struct mbuf *m_new = NULL;
 
 	MY_LOCK_ASSERT(sc);
 	MGETHDR(m_new, M_NOWAIT, MT_DATA);
@@ -1092,23 +1089,23 @@ my_newbuf(struct my_softc * sc, struct my_chain_onefrag * c)
  * level protocols.
  */
 static void
-my_rxeof(struct my_softc * sc)
+my_rxeof(struct my_softc *sc)
 {
 	struct ether_header *eh;
-	struct mbuf    *m;
-	if_t		ifp;
+	struct mbuf *m;
+	if_t ifp;
 	struct my_chain_onefrag *cur_rx;
-	int             total_len = 0;
-	u_int32_t       rxstat;
+	int total_len = 0;
+	u_int32_t rxstat;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;
-	while (!((rxstat = sc->my_cdata.my_rx_head->my_ptr->my_status)
-	    & MY_OWNByNIC)) {
+	while (!((rxstat = sc->my_cdata.my_rx_head->my_ptr->my_status) &
+	    MY_OWNByNIC)) {
 		cur_rx = sc->my_cdata.my_rx_head;
 		sc->my_cdata.my_rx_head = cur_rx->my_nextdesc;
 
-		if (rxstat & MY_ES) {	/* error summary: give up this rx pkt */
+		if (rxstat & MY_ES) { /* error summary: give up this rx pkt */
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			cur_rx->my_ptr->my_status = MY_OWNByNIC;
 			continue;
@@ -1118,8 +1115,8 @@ my_rxeof(struct my_softc * sc)
 		total_len -= ETHER_CRC_LEN;
 
 		if (total_len < MINCLSIZE) {
-			m = m_devget(mtod(cur_rx->my_mbuf, char *),
-			    total_len, 0, ifp, NULL);
+			m = m_devget(mtod(cur_rx->my_mbuf, char *), total_len,
+			    0, ifp, NULL);
 			cur_rx->my_ptr->my_status = MY_OWNByNIC;
 			if (m == NULL) {
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -1155,8 +1152,8 @@ my_rxeof(struct my_softc * sc)
 			bpf_mtap_if(ifp, m);
 			if (if_getflags(ifp) & IFF_PROMISC &&
 			    (bcmp(eh->ether_dhost, if_getlladdr(sc->my_ifp),
-				ETHER_ADDR_LEN) &&
-			     (eh->ether_dhost[0] & 1) == 0)) {
+				 ETHER_ADDR_LEN) &&
+				(eh->ether_dhost[0] & 1) == 0)) {
 				m_freem(m);
 				continue;
 			}
@@ -1174,10 +1171,10 @@ my_rxeof(struct my_softc * sc)
  * buffers.
  */
 static void
-my_txeof(struct my_softc * sc)
+my_txeof(struct my_softc *sc)
 {
 	struct my_chain *cur_tx;
-	if_t		ifp;
+	if_t ifp;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;
@@ -1191,7 +1188,7 @@ my_txeof(struct my_softc * sc)
 	 * been transmitted.
 	 */
 	while (sc->my_cdata.my_tx_head->my_mbuf != NULL) {
-		u_int32_t       txstat;
+		u_int32_t txstat;
 
 		cur_tx = sc->my_cdata.my_tx_head;
 		txstat = MY_TXSTATUS(cur_tx);
@@ -1201,9 +1198,11 @@ my_txeof(struct my_softc * sc)
 			if (txstat & MY_TXERR) {
 				if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 				if (txstat & MY_EC) /* excessive collision */
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
-				if (txstat & MY_LC)	/* late collision */
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
+				if (txstat & MY_LC) /* late collision */
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
 			}
 			if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
 			    (txstat & MY_NCRMASK) >> MY_NCRShift);
@@ -1219,7 +1218,8 @@ my_txeof(struct my_softc * sc)
 		sc->my_cdata.my_tx_head = cur_tx->my_nextdesc;
 	}
 	if (CSR_READ_4(sc, MY_TCRRCR) & MY_Enhanced) {
-		if_inc_counter(ifp, IFCOUNTER_COLLISIONS, (CSR_READ_4(sc, MY_TSR) & MY_NCRMask));
+		if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+		    (CSR_READ_4(sc, MY_TSR) & MY_NCRMask));
 	}
 	return;
 }
@@ -1228,9 +1228,9 @@ my_txeof(struct my_softc * sc)
  * TX 'end of channel' interrupt handler.
  */
 static void
-my_txeoc(struct my_softc * sc)
+my_txeoc(struct my_softc *sc)
 {
-	if_t		ifp;
+	if_t ifp;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;
@@ -1254,8 +1254,8 @@ static void
 my_intr(void *arg)
 {
 	struct my_softc *sc;
-	if_t		ifp;
-	u_int32_t       status;
+	if_t ifp;
+	u_int32_t status;
 
 	sc = arg;
 	MY_LOCK(sc);
@@ -1275,7 +1275,7 @@ my_intr(void *arg)
 		else
 			break;
 
-		if (status & MY_RI)	/* receive interrupt */
+		if (status & MY_RI) /* receive interrupt */
 			my_rxeof(sc);
 
 		if ((status & MY_RBU) || (status & MY_RxErr)) {
@@ -1287,14 +1287,14 @@ my_intr(void *arg)
 			my_init_locked(sc);
 #endif
 		}
-		if (status & MY_TI)	/* tx interrupt */
+		if (status & MY_TI) /* tx interrupt */
 			my_txeof(sc);
-		if (status & MY_ETI)	/* tx early interrupt */
+		if (status & MY_ETI) /* tx early interrupt */
 			my_txeof(sc);
-		if (status & MY_TBU)	/* tx buffer unavailable */
+		if (status & MY_TBU) /* tx buffer unavailable */
 			my_txeoc(sc);
 
-#if 0				/* 90/1/18 delete */
+#if 0 /* 90/1/18 delete */
 		if (status & MY_FBE) {
 			my_reset(sc);
 			my_init_locked(sc);
@@ -1315,11 +1315,11 @@ my_intr(void *arg)
  * pointers to the fragment pointers.
  */
 static int
-my_encap(struct my_softc * sc, struct my_chain * c, struct mbuf * m_head)
+my_encap(struct my_softc *sc, struct my_chain *c, struct mbuf *m_head)
 {
 	struct my_desc *f = NULL;
-	int             total_len;
-	struct mbuf    *m, *m_new = NULL;
+	int total_len;
+	struct mbuf *m, *m_new = NULL;
 
 	MY_LOCK_ASSERT(sc);
 	/* calculate the total tx pkt length */
@@ -1353,9 +1353,9 @@ my_encap(struct my_softc * sc, struct my_chain * c, struct mbuf * m_head)
 	f->my_data = vtophys(mtod(m_new, caddr_t));
 	total_len = m_new->m_len;
 	f->my_ctl = MY_TXFD | MY_TXLD | MY_CRCEnable | MY_PADEnable;
-	f->my_ctl |= total_len << MY_PKTShift;	/* pkt size */
-	f->my_ctl |= total_len;	/* buffer size */
-	/* 89/12/29 add, for mtd891 *//* [ 89? ] */
+	f->my_ctl |= total_len << MY_PKTShift; /* pkt size */
+	f->my_ctl |= total_len;		       /* buffer size */
+	/* 89/12/29 add, for mtd891 */	       /* [ 89? ] */
 	if (sc->my_info->my_did == MTD891ID)
 		f->my_ctl |= MY_ETIControl | MY_RetryTxLC;
 	c->my_mbuf = m_head;
@@ -1385,7 +1385,7 @@ static void
 my_start_locked(if_t ifp)
 {
 	struct my_softc *sc;
-	struct mbuf    *m_head = NULL;
+	struct mbuf *m_head = NULL;
 	struct my_chain *cur_tx = NULL, *start_tx;
 
 	sc = if_getsoftc(ifp);
@@ -1442,7 +1442,7 @@ my_start_locked(if_t ifp)
 	if (sc->my_cdata.my_tx_head == NULL)
 		sc->my_cdata.my_tx_head = start_tx;
 	MY_TXOWN(start_tx) = MY_OWNByNIC;
-	CSR_WRITE_4(sc, MY_TXPDR, 0xFFFFFFFF);	/* tx polling demand */
+	CSR_WRITE_4(sc, MY_TXPDR, 0xFFFFFFFF); /* tx polling demand */
 
 	/*
 	 * Set a timeout in case the chip goes out to lunch.
@@ -1464,8 +1464,8 @@ my_init(void *xsc)
 static void
 my_init_locked(struct my_softc *sc)
 {
-	if_t		ifp = sc->my_ifp;
-	u_int16_t       phy_bmcr = 0;
+	if_t ifp = sc->my_ifp;
+	u_int16_t phy_bmcr = 0;
 
 	MY_LOCK_ASSERT(sc);
 	if (sc->my_autoneg) {
@@ -1482,7 +1482,7 @@ my_init_locked(struct my_softc *sc)
 	/*
 	 * Set cache alignment and burst length.
 	 */
-#if 0				/* 89/9/1 modify,  */
+#if 0 /* 89/9/1 modify,  */
 	CSR_WRITE_4(sc, MY_BCR, MY_RPBLE512);
 	CSR_WRITE_4(sc, MY_TCRRCR, MY_TFTSF);
 #endif
@@ -1498,7 +1498,8 @@ my_init_locked(struct my_softc *sc)
 	my_setcfg(sc, phy_bmcr);
 	/* Init circular RX list. */
 	if (my_list_rx_init(sc) == ENOBUFS) {
-		device_printf(sc->my_dev, "init failed: no memory for rx buffers\n");
+		device_printf(sc->my_dev,
+		    "init failed: no memory for rx buffers\n");
 		my_stop(sc);
 		return;
 	}
@@ -1582,7 +1583,7 @@ my_ifmedia_upd(if_t ifp)
  */
 
 static void
-my_ifmedia_sts(if_t ifp, struct ifmediareq * ifmr)
+my_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct my_softc *sc;
 	u_int16_t advert = 0, ability = 0;
@@ -1591,7 +1592,7 @@ my_ifmedia_sts(if_t ifp, struct ifmediareq * ifmr)
 	MY_LOCK(sc);
 	ifmr->ifm_active = IFM_ETHER;
 	if (!(my_phy_readreg(sc, PHY_BMCR) & PHY_BMCR_AUTONEGENBL)) {
-#if 0				/* this version did not support 1000M, */
+#if 0 /* this version did not support 1000M, */
 		if (my_phy_readreg(sc, PHY_BMCR) & PHY_BMCR_1000)
 			ifmr->ifm_active = IFM_ETHER | IFM_1000TX;
 #endif
@@ -1610,7 +1611,7 @@ my_ifmedia_sts(if_t ifp, struct ifmediareq * ifmr)
 	ability = my_phy_readreg(sc, PHY_LPAR);
 	advert = my_phy_readreg(sc, PHY_ANAR);
 
-#if 0				/* this version did not support 1000M, */
+#if 0 /* this version did not support 1000M, */
 	if (sc->my_pinfo->my_vid = MarvellPHYID0) {
 		ability2 = my_phy_readreg(sc, PHY_1000SR);
 		if (ability2 & PHY_1000SR_1000BTXFULL) {
@@ -1642,8 +1643,8 @@ static int
 my_ioctl(if_t ifp, u_long command, caddr_t data)
 {
 	struct my_softc *sc = if_getsoftc(ifp);
-	struct ifreq   *ifr = (struct ifreq *) data;
-	int             error;
+	struct ifreq *ifr = (struct ifreq *)data;
+	int error;
 
 	switch (command) {
 	case SIOCSIFFLAGS:
@@ -1677,7 +1678,7 @@ static void
 my_watchdog(void *arg)
 {
 	struct my_softc *sc;
-	if_t		ifp;
+	if_t ifp;
 
 	sc = arg;
 	MY_LOCK_ASSERT(sc);
@@ -1701,10 +1702,10 @@ my_watchdog(void *arg)
  * Stop the adapter and free any mbufs allocated to the RX and TX lists.
  */
 static void
-my_stop(struct my_softc * sc)
+my_stop(struct my_softc *sc)
 {
-	int    i;
-	if_t   ifp;
+	int i;
+	if_t ifp;
 
 	MY_LOCK_ASSERT(sc);
 	ifp = sc->my_ifp;

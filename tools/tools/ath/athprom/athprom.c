@@ -26,37 +26,36 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
+#include "ah.h"
+#include "ah_eeprom_v1.h"
+#include "ah_eeprom_v14.h"
+#include "ah_eeprom_v3.h"
+#include "ah_internal.h"
 #include "diag.h"
 
-#include "ah.h"
-#include "ah_internal.h"
-#include "ah_eeprom_v1.h"
-#include "ah_eeprom_v3.h"
-#include "ah_eeprom_v14.h"
+#define IS_VERS(op, v) (eeprom.ee_version op(v))
 
-#define	IS_VERS(op, v)		(eeprom.ee_version op (v))
-
-#include <getopt.h>
-#include <errno.h>
+#include <ctype.h>
 #include <err.h>
+#include <errno.h>
+#include <getopt.h>
 #include <paths.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #ifndef DIR_TEMPLATE
-#define	DIR_TEMPLATE	_PATH_LOCALBASE "/libdata/athprom"
+#define DIR_TEMPLATE _PATH_LOCALBASE "/libdata/athprom"
 #endif
 
-struct	ath_diag atd;
-int	s;
+struct ath_diag atd;
+int s;
 const char *progname;
 union {
-	HAL_EEPROM legacy;		/* format v3.x ... v5.x */
-	struct ar5416eeprom v14;	/* 11n format v14.x ... */
+	HAL_EEPROM legacy;	 /* format v3.x ... v5.x */
+	struct ar5416eeprom v14; /* 11n format v14.x ... */
 } eep;
-#define	eeprom	eep.legacy
-#define	eepromN	eep.v14
+#define eeprom eep.legacy
+#define eepromN eep.v14
 
 static void parseTemplate(FILE *ftemplate, FILE *fd);
 static uint16_t eeread(uint16_t);
@@ -65,7 +64,9 @@ static void eewrite(uint16_t, uint16_t);
 static void
 usage()
 {
-	fprintf(stderr, "usage: %s [-i ifname] [-t pathname] [offset | offset=value]\n", progname);
+	fprintf(stderr,
+	    "usage: %s [-i ifname] [-t pathname] [offset | offset=value]\n",
+	    progname);
 	exit(-1);
 }
 
@@ -76,15 +77,15 @@ opentemplate(const char *dir)
 	FILE *fd;
 
 	/* find the template using the eeprom version */
-	snprintf(filename, sizeof(filename), "%s/eeprom-%d.%d",
-	    dir, eeprom.ee_version >> 12, eeprom.ee_version & 0xfff);
+	snprintf(filename, sizeof(filename), "%s/eeprom-%d.%d", dir,
+	    eeprom.ee_version >> 12, eeprom.ee_version & 0xfff);
 	fd = fopen(filename, "r");
 	if (fd == NULL && errno == ENOENT) {
 		/* retry with just the major version */
-		snprintf(filename, sizeof(filename), "%s/eeprom-%d",
-		    dir, eeprom.ee_version >> 12);
+		snprintf(filename, sizeof(filename), "%s/eeprom-%d", dir,
+		    eeprom.ee_version >> 12);
 		fd = fopen(filename, "r");
-		if (fd != NULL)		/* XXX verbose */
+		if (fd != NULL) /* XXX verbose */
 			warnx("Using template file %s", filename);
 	}
 	return fd;
@@ -122,7 +123,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	if (argc != 0) {
 		for (; argc > 0; argc--, argv++) {
@@ -133,20 +134,20 @@ main(int argc, char *argv[])
 			cp = strchr(argv[0], '=');
 			if (cp != NULL)
 				*cp = '\0';
-			off = (uint16_t) strtoul(argv[0], NULL, 0);
+			off = (uint16_t)strtoul(argv[0], NULL, 0);
 			if (off == 0 && errno == EINVAL)
 				errx(1, "%s: invalid eeprom offset %s",
-					progname, argv[0]);
+				    progname, argv[0]);
 			if (cp == NULL) {
 				printf("%04x: %04x\n", off, eeread(off));
 			} else {
-				val = (uint16_t) strtoul(cp+1, NULL, 0);
+				val = (uint16_t)strtoul(cp + 1, NULL, 0);
 				if (val == 0 && errno == EINVAL)
-				errx(1, "%s: invalid eeprom value %s",
-					progname, cp+1);
+					errx(1, "%s: invalid eeprom value %s",
+					    progname, cp + 1);
 				oval = eeread(off);
-				printf("Write %04x: %04x = %04x? ",
-					off, oval, val);
+				printf("Write %04x: %04x = %04x? ", off, oval,
+				    val);
 				fflush(stdout);
 				if (fgets(line, sizeof(line), stdin) != NULL &&
 				    line[0] == 'y')
@@ -155,7 +156,7 @@ main(int argc, char *argv[])
 		}
 	} else {
 		atd.ad_id = HAL_DIAG_EEPROM;
-		atd.ad_out_data = (caddr_t) &eep;
+		atd.ad_out_data = (caddr_t)&eep;
 		atd.ad_out_size = sizeof(eep);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);
@@ -164,8 +165,10 @@ main(int argc, char *argv[])
 			if (fd == NULL)
 				fd = opentemplate(".");
 			if (fd == NULL)
-				errx(-1, "Cannot locate template file for "
-				    "v%d.%d EEPROM", eeprom.ee_version >> 12,
+				errx(-1,
+				    "Cannot locate template file for "
+				    "v%d.%d EEPROM",
+				    eeprom.ee_version >> 12,
 				    eeprom.ee_version & 0xfff);
 		}
 		parseTemplate(fd, stdout);
@@ -181,9 +184,9 @@ eeread(u_int16_t off)
 
 	atd.ad_id = HAL_DIAG_EEREAD | ATH_DIAG_IN | ATH_DIAG_DYN;
 	atd.ad_in_size = sizeof(off);
-	atd.ad_in_data = (caddr_t) &off;
+	atd.ad_in_data = (caddr_t)&off;
 	atd.ad_out_size = sizeof(eedata);
-	atd.ad_out_data = (caddr_t) &eedata;
+	atd.ad_out_data = (caddr_t)&eedata;
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 		err(1, "ioctl: %s", atd.ad_name);
 	return eedata;
@@ -199,28 +202,28 @@ eewrite(uint16_t off, uint16_t value)
 
 	atd.ad_id = HAL_DIAG_EEWRITE | ATH_DIAG_IN;
 	atd.ad_in_size = sizeof(eeval);
-	atd.ad_in_data = (caddr_t) &eeval;
+	atd.ad_in_data = (caddr_t)&eeval;
 	atd.ad_out_size = 0;
 	atd.ad_out_data = NULL;
 	if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 		err(1, "ioctl: %s", atd.ad_name);
 }
 
-#define	MAXID	128
-int	lineno;
-int	bol;
-int	curmode = -1;
-int	curchan;
-int	curpdgain;	/* raw pdgain index */
-int	curlpdgain;	/* logical pdgain index */
-int	curpcdac;
-int	curctl;
-int	numChannels;
+#define MAXID 128
+int lineno;
+int bol;
+int curmode = -1;
+int curchan;
+int curpdgain;	/* raw pdgain index */
+int curlpdgain; /* logical pdgain index */
+int curpcdac;
+int curctl;
+int numChannels;
 const RAW_DATA_STRUCT_2413 *pRaw;
 const TRGT_POWER_INFO *pPowerInfo;
 const DATA_PER_CHANNEL *pDataPerChannel;
 const EEPROM_POWER_EXPN_5112 *pExpnPower;
-int	singleXpd;
+int singleXpd;
 
 static int
 token(FILE *fd, char id[], int maxid, const char *what)
@@ -236,7 +239,7 @@ token(FILE *fd, char id[], int maxid, const char *what)
 			ungetc(c, fd);
 			break;
 		}
-		if (i == maxid-1) {
+		if (i == maxid - 1) {
 			warnx("line %d, %s too long", lineno, what);
 			break;
 		}
@@ -258,14 +261,14 @@ skipto(FILE *fd, const char *what)
 		c = getc(fd);
 		if (c == EOF)
 			goto bad;
-		if (c == '.' && bol) {		/* .directive */
+		if (c == '.' && bol) { /* .directive */
 			if (token(fd, id, MAXID, ".directive") == EOF)
 				goto bad;
 			if (strcasecmp(id, what) == 0)
 				break;
 			continue;
 		}
-		if (c == '\\') {		/* escape next character */
+		if (c == '\\') { /* escape next character */
 			c = getc(fd);
 			if (c == EOF)
 				goto bad;
@@ -320,26 +323,28 @@ setmode(int mode)
 		pDataPerChannel = eeprom.ee_dataPerChannel11g;
 		break;
 	}
-	if (IS_VERS(<, AR_EEPROM_VER4_0))		/* nothing to do */
+	if (IS_VERS(<, AR_EEPROM_VER4_0)) /* nothing to do */
 		return;
 	if (IS_VERS(<, AR_EEPROM_VER5_0)) {
 		exp = &eeprom.ee_modePowerArray5112[curmode];
 		/* fetch indirect data*/
-		atd.ad_id = HAL_DIAG_EEPROM_EXP_11A+curmode;
-		atd.ad_out_size = roundup(
-			sizeof(u_int16_t) * exp->numChannels, sizeof(u_int32_t))
-		    + sizeof(EXPN_DATA_PER_CHANNEL_5112) * exp->numChannels;
-		atd.ad_out_data = (caddr_t) malloc(atd.ad_out_size);
+		atd.ad_id = HAL_DIAG_EEPROM_EXP_11A + curmode;
+		atd.ad_out_size = roundup(sizeof(u_int16_t) * exp->numChannels,
+				      sizeof(u_int32_t)) +
+		    sizeof(EXPN_DATA_PER_CHANNEL_5112) * exp->numChannels;
+		atd.ad_out_data = (caddr_t)malloc(atd.ad_out_size);
 		if (ioctl(s, SIOCGATHDIAG, &atd) < 0)
 			err(1, "ioctl: %s", atd.ad_name);
-		exp->pChannels = (void *) atd.ad_out_data;
+		exp->pChannels = (void *)atd.ad_out_data;
 		exp->pDataPerChannel = (void *)((char *)atd.ad_out_data +
-		   roundup(sizeof(u_int16_t) * exp->numChannels, sizeof(u_int32_t)));
+		    roundup(sizeof(u_int16_t) * exp->numChannels,
+			sizeof(u_int32_t)));
 		pExpnPower = exp;
 		numChannels = pExpnPower->numChannels;
 		if (exp->xpdMask != 0x9) {
-			for (singleXpd = 0; singleXpd < NUM_XPD_PER_CHANNEL; singleXpd++)
-				if (exp->xpdMask == (1<<singleXpd))
+			for (singleXpd = 0; singleXpd < NUM_XPD_PER_CHANNEL;
+			     singleXpd++)
+				if (exp->xpdMask == (1 << singleXpd))
 					break;
 		} else
 			singleXpd = 0;
@@ -356,7 +361,8 @@ nextctl(int start)
 
 	for (i = start; i < eeprom.ee_numCtls && eeprom.ee_ctl[i]; i++) {
 		switch (eeprom.ee_ctl[i] & 3) {
-		case 0: case 3:
+		case 0:
+		case 3:
 			if (curmode != headerInfo11A)
 				continue;
 			break;
@@ -384,7 +390,7 @@ static void
 printEdge(FILE *fd, int edge)
 {
 	const RD_EDGES_POWER *pRdEdgePwrInfo =
-	    &eeprom.ee_rdEdgesPower[curctl*NUM_EDGES];
+	    &eeprom.ee_rdEdgesPower[curctl * NUM_EDGES];
 
 	if (pRdEdgePwrInfo[edge].rdEdge == 0)
 		fprintf(fd, " -- ");
@@ -396,26 +402,26 @@ static void
 printEdgePower(FILE *fd, int edge)
 {
 	const RD_EDGES_POWER *pRdEdgePwrInfo =
-	    &eeprom.ee_rdEdgesPower[curctl*NUM_EDGES];
+	    &eeprom.ee_rdEdgesPower[curctl * NUM_EDGES];
 
 	if (pRdEdgePwrInfo[edge].rdEdge == 0)
 		fprintf(fd, " -- ");
 	else
-                fprintf(fd, "%2d.%d",
+		fprintf(fd, "%2d.%d",
 		    pRdEdgePwrInfo[edge].twice_rdEdgePower / 2,
-                    (pRdEdgePwrInfo[edge].twice_rdEdgePower % 2) * 5);
+		    (pRdEdgePwrInfo[edge].twice_rdEdgePower % 2) * 5);
 }
 
 static void
 printEdgeFlag(FILE *fd, int edge)
 {
 	const RD_EDGES_POWER *pRdEdgePwrInfo =
-	    &eeprom.ee_rdEdgesPower[curctl*NUM_EDGES];
+	    &eeprom.ee_rdEdgesPower[curctl * NUM_EDGES];
 
 	if (pRdEdgePwrInfo[edge].rdEdge == 0)
 		fprintf(fd, "--");
 	else
-                fprintf(fd, " %1d", pRdEdgePwrInfo[edge].flag);
+		fprintf(fd, " %1d", pRdEdgePwrInfo[edge].flag);
 }
 
 static int16_t
@@ -427,7 +433,7 @@ getMaxPowerV5(const RAW_DATA_PER_CHANNEL_2413 *data)
 	for (i = 0; i < MAX_NUM_PDGAINS_PER_CHANNEL; i++) {
 		numVpd = data->pDataPerPDGain[i].numVpd;
 		if (numVpd > 0)
-			return data->pDataPerPDGain[i].pwr_t4[numVpd-1];
+			return data->pDataPerPDGain[i].pwr_t4[numVpd - 1];
 	}
 	return 0;
 }
@@ -480,19 +486,20 @@ pdgain(int lpdgain)
 	return -1;
 }
 
-#define	COUNTRY_ERD_FLAG        0x8000
-#define WORLDWIDE_ROAMING_FLAG  0x4000
+#define COUNTRY_ERD_FLAG 0x8000
+#define WORLDWIDE_ROAMING_FLAG 0x4000
 
 void
 eevar(FILE *fd, const char *var)
 {
-#define	streq(a,b)	(strcasecmp(a,b) == 0)
-#define	strneq(a,b,n)	(strncasecmp(a,b,n) == 0)
+#define streq(a, b) (strcasecmp(a, b) == 0)
+#define strneq(a, b, n) (strncasecmp(a, b, n) == 0)
 	if (streq(var, "mode")) {
 		fprintf(fd, "%s",
-		    curmode == headerInfo11A ? "11a" :
-		    curmode == headerInfo11B ? "11b" :
-		    curmode == headerInfo11G ? "11g" : "???");
+		    curmode == headerInfo11A	 ? "11a" :
+			curmode == headerInfo11B ? "11b" :
+			curmode == headerInfo11G ? "11g" :
+						   "???");
 	} else if (streq(var, "version")) {
 		fprintf(fd, "%04x", eeprom.ee_version);
 	} else if (streq(var, "V_major")) {
@@ -508,13 +515,13 @@ eevar(FILE *fd, const char *var)
 	} else if (streq(var, "exist32KHzCrystal")) {
 		fprintf(fd, "%3d", eeprom.ee_exist32kHzCrystal);
 	} else if (streq(var, "eepMap2PowerCalStart")) {
-		fprintf(fd , "%3d", eeprom.ee_eepMap2PowerCalStart);
+		fprintf(fd, "%3d", eeprom.ee_eepMap2PowerCalStart);
 	} else if (streq(var, "Amode")) {
-		fprintf(fd , "%1d", eeprom.ee_Amode);
+		fprintf(fd, "%1d", eeprom.ee_Amode);
 	} else if (streq(var, "Bmode")) {
-		fprintf(fd , "%1d", eeprom.ee_Bmode);
+		fprintf(fd, "%1d", eeprom.ee_Bmode);
 	} else if (streq(var, "Gmode")) {
-		fprintf(fd , "%1d", eeprom.ee_Gmode);
+		fprintf(fd, "%1d", eeprom.ee_Gmode);
 	} else if (streq(var, "regdomain")) {
 		if ((eeprom.ee_regdomain & COUNTRY_ERD_FLAG) == 0)
 			fprintf(fd, "%03X ", eeprom.ee_regdomain >> 15);
@@ -545,14 +552,17 @@ eevar(FILE *fd, const char *var)
 		fprintf(fd, "%1x", eeprom.ee_deviceType);
 	} else if (streq(var, "switchSettling")) {
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
-			fprintf(fd, "0x%02x", eeprom.ee_switchSettling[curmode]);
+			fprintf(fd, "0x%02x",
+			    eeprom.ee_switchSettling[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].switchSettling);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].switchSettling);
 	} else if (streq(var, "adcDesiredSize")) {
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
 			fprintf(fd, "%2d", eeprom.ee_adcDesiredSize[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].adcDesiredSize);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].adcDesiredSize);
 	} else if (streq(var, "xlnaGain")) {
 		fprintf(fd, "0x%02x", eeprom.ee_xlnaGain[curmode]);
 	} else if (streq(var, "txEndToXLNAOn")) {
@@ -561,30 +571,38 @@ eevar(FILE *fd, const char *var)
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
 			fprintf(fd, "0x%02x", eeprom.ee_thresh62[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].thresh62);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].thresh62);
 	} else if (streq(var, "txEndToRxOn")) {
 		fprintf(fd, "%3d", eepromN.modalHeader[curmode].txEndToRxOn);
 	} else if (streq(var, "txEndToXPAOff")) {
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
 			fprintf(fd, "0x%02x", eeprom.ee_txEndToXPAOff[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].txEndToXpaOff);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].txEndToXpaOff);
 	} else if (streq(var, "txFrameToXPAOn")) {
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
-			fprintf(fd, "0x%02x", eeprom.ee_txFrameToXPAOn[curmode]);
+			fprintf(fd, "0x%02x",
+			    eeprom.ee_txFrameToXPAOn[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].txEndToRxOn);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].txEndToRxOn);
 	} else if (streq(var, "pgaDesiredSize")) {
 		if (IS_VERS(<, AR_EEPROM_VER14_2))
 			fprintf(fd, "%2d", eeprom.ee_pgaDesiredSize[curmode]);
 		else
-			fprintf(fd, "%3d", eepromN.modalHeader[curmode].pgaDesiredSize);
+			fprintf(fd, "%3d",
+			    eepromN.modalHeader[curmode].pgaDesiredSize);
 	} else if (streq(var, "noiseFloorThresh")) {
 		fprintf(fd, "%3d", eeprom.ee_noiseFloorThresh[curmode]);
 	} else if (strneq(var, "noiseFloorThreshCh", 18)) {
-		fprintf(fd, "%3d", eepromN.modalHeader[curmode].noiseFloorThreshCh[atoi(var+18)]);
+		fprintf(fd, "%3d",
+		    eepromN.modalHeader[curmode]
+			.noiseFloorThreshCh[atoi(var + 18)]);
 	} else if (strneq(var, "xlnaGainCh", 10)) {
-		fprintf(fd, "%3d", eepromN.modalHeader[curmode].xlnaGainCh[atoi(var+10)]);
+		fprintf(fd, "%3d",
+		    eepromN.modalHeader[curmode].xlnaGainCh[atoi(var + 10)]);
 	} else if (streq(var, "xgain")) {
 		fprintf(fd, "0x%02x", eeprom.ee_xgain[curmode]);
 	} else if (streq(var, "xpd")) {
@@ -612,29 +630,30 @@ eevar(FILE *fd, const char *var)
 		fprintf(fd, "0x%02x",
 		    eeprom.ee_rxtxMarginTurbo[curmode != headerInfo11A]);
 	} else if (strneq(var, "antennaControl", 14)) {
-		printAntennaControl(fd, atoi(var+14));
+		printAntennaControl(fd, atoi(var + 14));
 	} else if (strneq(var, "antCtrlChain", 12)) {
 		fprintf(fd, "0x%08X",
-		    eepromN.modalHeader[curmode].antCtrlChain[atoi(var+12)]);
+		    eepromN.modalHeader[curmode].antCtrlChain[atoi(var + 12)]);
 	} else if (strneq(var, "antGainCh", 9)) {
 		fprintf(fd, "%3d",
-		    eepromN.modalHeader[curmode].antennaGainCh[atoi(var+9)]);
+		    eepromN.modalHeader[curmode].antennaGainCh[atoi(var + 9)]);
 	} else if (strneq(var, "txRxAttenCh", 11)) {
 		fprintf(fd, "%3d",
-		    eepromN.modalHeader[curmode].txRxAttenCh[atoi(var+11)]);
+		    eepromN.modalHeader[curmode].txRxAttenCh[atoi(var + 11)]);
 	} else if (strneq(var, "rxTxMarginCh", 12)) {
 		fprintf(fd, "%3d",
-		    eepromN.modalHeader[curmode].rxTxMarginCh[atoi(var+12)]);
+		    eepromN.modalHeader[curmode].rxTxMarginCh[atoi(var + 12)]);
 	} else if (streq(var, "xpdGain")) {
 		fprintf(fd, "%3d", eepromN.modalHeader[curmode].xpdGain);
 	} else if (strneq(var, "iqCalICh", 8)) {
 		fprintf(fd, "%3d",
-		    eepromN.modalHeader[curmode].iqCalICh[atoi(var+8)]);
+		    eepromN.modalHeader[curmode].iqCalICh[atoi(var + 8)]);
 	} else if (strneq(var, "iqCalQCh", 8)) {
 		fprintf(fd, "%3d",
-		    eepromN.modalHeader[curmode].iqCalQCh[atoi(var+8)]);
+		    eepromN.modalHeader[curmode].iqCalQCh[atoi(var + 8)]);
 	} else if (streq(var, "pdGainOverlap")) {
-		printHalfDbmPower(fd, eepromN.modalHeader[curmode].pdGainOverlap);
+		printHalfDbmPower(fd,
+		    eepromN.modalHeader[curmode].pdGainOverlap);
 	} else if (streq(var, "ob1")) {
 		fprintf(fd, "%1d", eeprom.ee_ob1);
 	} else if (streq(var, "ob2")) {
@@ -652,21 +671,21 @@ eevar(FILE *fd, const char *var)
 	} else if (streq(var, "db4")) {
 		fprintf(fd, "%1d", eeprom.ee_db4);
 	} else if (streq(var, "obFor24")) {
-                fprintf(fd, "%1d", eeprom.ee_obFor24);
+		fprintf(fd, "%1d", eeprom.ee_obFor24);
 	} else if (streq(var, "ob2GHz0")) {
-                fprintf(fd, "%1d", eeprom.ee_ob2GHz[0]);
+		fprintf(fd, "%1d", eeprom.ee_ob2GHz[0]);
 	} else if (streq(var, "dbFor24")) {
-                fprintf(fd, "%1d", eeprom.ee_dbFor24);
+		fprintf(fd, "%1d", eeprom.ee_dbFor24);
 	} else if (streq(var, "db2GHz0")) {
-                fprintf(fd, "%1d", eeprom.ee_db2GHz[0]);
+		fprintf(fd, "%1d", eeprom.ee_db2GHz[0]);
 	} else if (streq(var, "obFor24g")) {
-                fprintf(fd, "%1d", eeprom.ee_obFor24g);
+		fprintf(fd, "%1d", eeprom.ee_obFor24g);
 	} else if (streq(var, "ob2GHz1")) {
-                fprintf(fd, "%1d", eeprom.ee_ob2GHz[1]);
+		fprintf(fd, "%1d", eeprom.ee_ob2GHz[1]);
 	} else if (streq(var, "dbFor24g")) {
-                fprintf(fd, "%1d", eeprom.ee_dbFor24g);
+		fprintf(fd, "%1d", eeprom.ee_dbFor24g);
 	} else if (streq(var, "db2GHz1")) {
-                fprintf(fd, "%1d", eeprom.ee_db2GHz[1]);
+		fprintf(fd, "%1d", eeprom.ee_db2GHz[1]);
 	} else if (streq(var, "ob")) {
 		fprintf(fd, "%3d", eepromN.modalHeader[curmode].ob);
 	} else if (streq(var, "db")) {
@@ -674,46 +693,51 @@ eevar(FILE *fd, const char *var)
 	} else if (streq(var, "xpaBiasLvl")) {
 		fprintf(fd, "%3d", eepromN.modalHeader[curmode].xpaBiasLvl);
 	} else if (streq(var, "pwrDecreaseFor2Chain")) {
-		printHalfDbmPower(fd, eepromN.modalHeader[curmode].pwrDecreaseFor2Chain);
+		printHalfDbmPower(fd,
+		    eepromN.modalHeader[curmode].pwrDecreaseFor2Chain);
 	} else if (streq(var, "pwrDecreaseFor3Chain")) {
-		printHalfDbmPower(fd, eepromN.modalHeader[curmode].pwrDecreaseFor3Chain);
+		printHalfDbmPower(fd,
+		    eepromN.modalHeader[curmode].pwrDecreaseFor3Chain);
 	} else if (streq(var, "txFrameToDataStart")) {
-		fprintf(fd, "%3d", eepromN.modalHeader[curmode].txFrameToDataStart);
+		fprintf(fd, "%3d",
+		    eepromN.modalHeader[curmode].txFrameToDataStart);
 	} else if (streq(var, "txFrameToPaOn")) {
 		fprintf(fd, "%3d", eepromN.modalHeader[curmode].txFrameToPaOn);
 	} else if (streq(var, "ht40PowerIncForPdadc")) {
-		fprintf(fd, "%3d", eepromN.modalHeader[curmode].ht40PowerIncForPdadc);
+		fprintf(fd, "%3d",
+		    eepromN.modalHeader[curmode].ht40PowerIncForPdadc);
 	} else if (streq(var, "checksum")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.checksum);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.checksum);
 	} else if (streq(var, "length")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.length);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.length);
 	} else if (streq(var, "regDmn0")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.regDmn[0]);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.regDmn[0]);
 	} else if (streq(var, "regDmn1")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.regDmn[1]);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.regDmn[1]);
 	} else if (streq(var, "txMask")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.txMask);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.txMask);
 	} else if (streq(var, "rxMask")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.rxMask);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.rxMask);
 	} else if (streq(var, "rfSilent")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.rfSilent);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.rfSilent);
 	} else if (streq(var, "btOptions")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.blueToothOptions);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.blueToothOptions);
 	} else if (streq(var, "deviceCap")) {
-                fprintf(fd, "0x%04X", eepromN.baseEepHeader.deviceCap);
+		fprintf(fd, "0x%04X", eepromN.baseEepHeader.deviceCap);
 	} else if (strneq(var, "macaddr", 7)) {
-                fprintf(fd, "%02X",
-		    eepromN.baseEepHeader.macAddr[atoi(var+7)]);
+		fprintf(fd, "%02X",
+		    eepromN.baseEepHeader.macAddr[atoi(var + 7)]);
 	} else if (streq(var, "opCapFlags")) {
-                fprintf(fd, "0x%02X", eepromN.baseEepHeader.opCapFlags);
+		fprintf(fd, "0x%02X", eepromN.baseEepHeader.opCapFlags);
 	} else if (streq(var, "eepMisc")) {
-                fprintf(fd, "0x%02X", eepromN.baseEepHeader.eepMisc);
+		fprintf(fd, "0x%02X", eepromN.baseEepHeader.eepMisc);
 	} else if (strneq(var, "binBuildNumber", 14)) {
-                fprintf(fd, "%3d",
-		    (eepromN.baseEepHeader.binBuildNumber >> (8*atoi(var+14)))
-		    & 0xff);
+		fprintf(fd, "%3d",
+		    (eepromN.baseEepHeader.binBuildNumber >>
+			(8 * atoi(var + 14))) &
+			0xff);
 	} else if (strneq(var, "custData", 8)) {
-		fprintf(fd, "%2.2X", eepromN.custData[atoi(var+8)]);
+		fprintf(fd, "%2.2X", eepromN.custData[atoi(var + 8)]);
 	} else if (streq(var, "xpd_mask")) {
 		if (IS_VERS(<, AR_EEPROM_VER5_0))
 			fprintf(fd, "0x%02x", pExpnPower->xpdMask);
@@ -732,83 +756,112 @@ eevar(FILE *fd, const char *var)
 	} else if (streq(var, "maxpow")) {
 		int16_t maxPower_t4;
 		if (IS_VERS(<, AR_EEPROM_VER5_0)) {
-			maxPower_t4 = pExpnPower->pDataPerChannel[curchan].maxPower_t4;
+			maxPower_t4 =
+			    pExpnPower->pDataPerChannel[curchan].maxPower_t4;
 		} else {
-			maxPower_t4 = pRaw->pDataPerChannel[curchan].maxPower_t4;
+			maxPower_t4 =
+			    pRaw->pDataPerChannel[curchan].maxPower_t4;
 			if (maxPower_t4 == 0)
-				maxPower_t4 = getMaxPowerV5(&pRaw->pDataPerChannel[curchan]);
+				maxPower_t4 = getMaxPowerV5(
+				    &pRaw->pDataPerChannel[curchan]);
 		}
 		printQuarterDbmPower(fd, maxPower_t4);
 	} else if (streq(var, "pd_gain")) {
-		fprintf(fd, "%4d", pRaw->pDataPerChannel[curchan].
-		    pDataPerPDGain[curpdgain].pd_gain);
+		fprintf(fd, "%4d",
+		    pRaw->pDataPerChannel[curchan]
+			.pDataPerPDGain[curpdgain]
+			.pd_gain);
 	} else if (strneq(var, "maxpwr", 6)) {
-		int vpd = atoi(var+6);
-		if (vpd < pRaw->pDataPerChannel[curchan].pDataPerPDGain[curpdgain].numVpd)
-			printQuarterDbmPower(fd, pRaw->pDataPerChannel[curchan].
-			    pDataPerPDGain[curpdgain].pwr_t4[vpd]);
+		int vpd = atoi(var + 6);
+		if (vpd < pRaw->pDataPerChannel[curchan]
+			      .pDataPerPDGain[curpdgain]
+			      .numVpd)
+			printQuarterDbmPower(fd,
+			    pRaw->pDataPerChannel[curchan]
+				.pDataPerPDGain[curpdgain]
+				.pwr_t4[vpd]);
 		else
 			fprintf(fd, "     ");
 	} else if (strneq(var, "pwr_t4_", 7)) {
-		printQuarterDbmPower(fd, pExpnPower->pDataPerChannel[curchan].
-		    pDataPerXPD[singleXpd].pwr_t4[atoi(var+7)]);
+		printQuarterDbmPower(fd,
+		    pExpnPower->pDataPerChannel[curchan]
+			.pDataPerXPD[singleXpd]
+			.pwr_t4[atoi(var + 7)]);
 	} else if (strneq(var, "Vpd", 3)) {
-		int vpd = atoi(var+3);
-		if (vpd < pRaw->pDataPerChannel[curchan].pDataPerPDGain[curpdgain].numVpd)
-			printVpd(fd, pRaw->pDataPerChannel[curchan].
-			    pDataPerPDGain[curpdgain].Vpd[vpd]);
+		int vpd = atoi(var + 3);
+		if (vpd < pRaw->pDataPerChannel[curchan]
+			      .pDataPerPDGain[curpdgain]
+			      .numVpd)
+			printVpd(fd,
+			    pRaw->pDataPerChannel[curchan]
+				.pDataPerPDGain[curpdgain]
+				.Vpd[vpd]);
 		else
 			fprintf(fd, "     ");
 	} else if (streq(var, "CTL")) {
 		fprintf(fd, "0x%2x", eeprom.ee_ctl[curctl] & 0xff);
 	} else if (streq(var, "ctlType")) {
 		static const char *ctlType[16] = {
-		    "11a base", "11b", "11g", "11a TURBO", "108g",
-		    "2GHT20", "5GHT20", "2GHT40", "5GHT40",
-		    "0x9", "0xa", "0xb", "0xc", "0xd", "0xe", "0xf",
+			"11a base",
+			"11b",
+			"11g",
+			"11a TURBO",
+			"108g",
+			"2GHT20",
+			"5GHT20",
+			"2GHT40",
+			"5GHT40",
+			"0x9",
+			"0xa",
+			"0xb",
+			"0xc",
+			"0xd",
+			"0xe",
+			"0xf",
 		};
 		fprintf(fd, "%8s", ctlType[eeprom.ee_ctl[curctl] & CTL_MODE_M]);
 	} else if (streq(var, "ctlRD")) {
-		static const char *ctlRD[8] = {
-		    "0x00", " FCC", "0x20", "ETSI",
-		    " MKK", "0x50", "0x60", "0x70"
-		};
+		static const char *ctlRD[8] = { "0x00", " FCC", "0x20", "ETSI",
+			" MKK", "0x50", "0x60", "0x70" };
 		fprintf(fd, "%s", ctlRD[(eeprom.ee_ctl[curctl] >> 4) & 7]);
 	} else if (strneq(var, "rdEdgePower", 11)) {
-		printEdgePower(fd, atoi(var+11));
+		printEdgePower(fd, atoi(var + 11));
 	} else if (strneq(var, "rdEdgeFlag", 10)) {
-		printEdgeFlag(fd, atoi(var+10));
+		printEdgeFlag(fd, atoi(var + 10));
 	} else if (strneq(var, "rdEdge", 6)) {
-		printEdge(fd, atoi(var+6));
+		printEdge(fd, atoi(var + 6));
 	} else if (strneq(var, "testChannel", 11)) {
-		fprintf(fd, "%4d", pPowerInfo[atoi(var+11)].testChannel);
+		fprintf(fd, "%4d", pPowerInfo[atoi(var + 11)].testChannel);
 	} else if (strneq(var, "pwr6_24_", 8)) {
-		printHalfDbmPower(fd, pPowerInfo[atoi(var+8)].twicePwr6_24);
+		printHalfDbmPower(fd, pPowerInfo[atoi(var + 8)].twicePwr6_24);
 	} else if (strneq(var, "pwr36_", 6)) {
-		printHalfDbmPower(fd, pPowerInfo[atoi(var+6)].twicePwr36);
+		printHalfDbmPower(fd, pPowerInfo[atoi(var + 6)].twicePwr36);
 	} else if (strneq(var, "pwr48_", 6)) {
-		printHalfDbmPower(fd, pPowerInfo[atoi(var+6)].twicePwr48);
+		printHalfDbmPower(fd, pPowerInfo[atoi(var + 6)].twicePwr48);
 	} else if (strneq(var, "pwr54_", 6)) {
-		printHalfDbmPower(fd, pPowerInfo[atoi(var+6)].twicePwr54);
+		printHalfDbmPower(fd, pPowerInfo[atoi(var + 6)].twicePwr54);
 	} else if (strneq(var, "channelValue", 12)) {
-		fprintf(fd, "%4d", pDataPerChannel[atoi(var+12)].channelValue);
+		fprintf(fd, "%4d",
+		    pDataPerChannel[atoi(var + 12)].channelValue);
 	} else if (strneq(var, "pcdacMin", 8)) {
-		fprintf(fd, "%02d", pDataPerChannel[atoi(var+8)].pcdacMin);
+		fprintf(fd, "%02d", pDataPerChannel[atoi(var + 8)].pcdacMin);
 	} else if (strneq(var, "pcdacMax", 8)) {
-		fprintf(fd, "%02d", pDataPerChannel[atoi(var+8)].pcdacMax);
+		fprintf(fd, "%02d", pDataPerChannel[atoi(var + 8)].pcdacMax);
 	} else if (strneq(var, "pcdac", 5)) {
 		if (IS_VERS(<, AR_EEPROM_VER4_0)) {
-			fprintf(fd, "%02d", pDataPerChannel[atoi(var+5)].
-			    PcdacValues[curpcdac]);
+			fprintf(fd, "%02d",
+			    pDataPerChannel[atoi(var + 5)]
+				.PcdacValues[curpcdac]);
 		} else if (IS_VERS(<, AR_EEPROM_VER5_0)) {
 			fprintf(fd, "%02d",
-			    pExpnPower->pDataPerChannel[curchan].
-				pDataPerXPD[singleXpd].pcdac[atoi(var+5)]);
+			    pExpnPower->pDataPerChannel[curchan]
+				.pDataPerXPD[singleXpd]
+				.pcdac[atoi(var + 5)]);
 		} else
 			undef("pcdac");
 	} else if (strneq(var, "pwrValue", 8)) {
 		printPcdacValue(fd,
-		    pDataPerChannel[atoi(var+8)].PwrValues[curpcdac]);
+		    pDataPerChannel[atoi(var + 8)].PwrValues[curpcdac]);
 	} else if (streq(var, "singleXpd")) {
 		fprintf(fd, "%2d", singleXpd);
 	} else
@@ -829,7 +882,8 @@ ifmode(FILE *ftemplate, const char *mode)
 			return;
 		}
 		if (IS_VERS(>=, AR_EEPROM_VER14_2)) {
-			if (eepromN.baseEepHeader.opCapFlags & AR5416_OPFLAGS_11A)
+			if (eepromN.baseEepHeader.opCapFlags &
+			    AR5416_OPFLAGS_11A)
 				setmode(headerInfo11A);
 			else
 				skipto(ftemplate, "endmode");
@@ -844,8 +898,9 @@ ifmode(FILE *ftemplate, const char *mode)
 			return;
 		}
 		if (IS_VERS(>=, AR_EEPROM_VER14_2)) {
-			if (eepromN.baseEepHeader.opCapFlags & AR5416_OPFLAGS_11G)
-				setmode(headerInfo11B);		/* NB: 2.4GHz */
+			if (eepromN.baseEepHeader.opCapFlags &
+			    AR5416_OPFLAGS_11G)
+				setmode(headerInfo11B); /* NB: 2.4GHz */
 			else
 				skipto(ftemplate, "endmode");
 			return;
@@ -859,8 +914,7 @@ ifmode(FILE *ftemplate, const char *mode)
 			return;
 		}
 	}
-	warnx("line %d, unknown/unexpected mode \"%s\" ignored",
-	    lineno, mode);
+	warnx("line %d, unknown/unexpected mode \"%s\" ignored", lineno, mode);
 	skipto(ftemplate, "endmode");
 }
 
@@ -874,8 +928,8 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 	lineno = 1;
 	bol = 1;
 	while ((c = getc(ftemplate)) != EOF) {
-		if (c == '#') {			/* comment */
-	skiptoeol:
+		if (c == '#') { /* comment */
+		skiptoeol:
 			while ((c = getc(ftemplate)) != EOF && c != '\n')
 				;
 			if (c == EOF)
@@ -884,7 +938,7 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 			bol = 1;
 			continue;
 		}
-		if (c == '.' && bol) {		/* .directive */
+		if (c == '.' && bol) { /* .directive */
 			if (token(ftemplate, id, MAXID, ".directive") == EOF)
 				return;
 			/* process directive */
@@ -895,7 +949,7 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 				ifmode(ftemplate, id);
 			} else if (strcasecmp(id, "endmode") == 0) {
 				/* XXX free malloc'd indirect data */
-				curmode = -1;	/* NB: undefined */
+				curmode = -1; /* NB: undefined */
 			} else if (strcasecmp(id, "forchan") == 0) {
 				forchan = ftell(ftemplate) - sizeof("forchan");
 				if (curchan == -1)
@@ -907,10 +961,12 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 					curchan = -1;
 			} else if (strcasecmp(id, "ifpdgain") == 0) {
 				skipws(ftemplate);
-				if (token(ftemplate, id, MAXID, "pdgain") == EOF)
+				if (token(ftemplate, id, MAXID, "pdgain") ==
+				    EOF)
 					return;
 				curlpdgain = strtoul(id, NULL, 0);
-				if (curlpdgain >= pRaw->pDataPerChannel[curchan].numPdGains) {
+				if (curlpdgain >=
+				    pRaw->pDataPerChannel[curchan].numPdGains) {
 					skipto(ftemplate, "endpdgain");
 					curlpdgain = -1;
 				} else
@@ -918,29 +974,37 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 			} else if (strcasecmp(id, "endpdgain") == 0) {
 				curlpdgain = curpdgain = -1;
 			} else if (strcasecmp(id, "forpdgain") == 0) {
-				forpdgain = ftell(ftemplate) - sizeof("forpdgain");
+				forpdgain = ftell(ftemplate) -
+				    sizeof("forpdgain");
 				if (curlpdgain == -1) {
 					skipws(ftemplate);
-					if (token(ftemplate, id, MAXID, "pdgain") == EOF)
+					if (token(ftemplate, id, MAXID,
+						"pdgain") == EOF)
 						return;
 					curlpdgain = strtoul(id, NULL, 0);
-					if (curlpdgain >= pRaw->pDataPerChannel[curchan].numPdGains) {
-						skipto(ftemplate, "endforpdgain");
+					if (curlpdgain >=
+					    pRaw->pDataPerChannel[curchan]
+						.numPdGains) {
+						skipto(ftemplate,
+						    "endforpdgain");
 						curlpdgain = -1;
 					} else
 						curpdgain = pdgain(curlpdgain);
 				}
 			} else if (strcasecmp(id, "endforpdgain") == 0) {
-				if (++curpdgain < pRaw->pDataPerChannel[curchan].numPdGains)
+				if (++curpdgain <
+				    pRaw->pDataPerChannel[curchan].numPdGains)
 					fseek(ftemplate, forpdgain, SEEK_SET);
 				else
 					curpdgain = -1;
 			} else if (strcasecmp(id, "forpcdac") == 0) {
-				forpcdac = ftell(ftemplate) - sizeof("forpcdac");
+				forpcdac = ftell(ftemplate) -
+				    sizeof("forpcdac");
 				if (curpcdac == -1)
 					curpcdac = 0;
 			} else if (strcasecmp(id, "endforpcdac") == 0) {
-				if (++curpcdac < pDataPerChannel[0].numPcdacValues)
+				if (++curpcdac <
+				    pDataPerChannel[0].numPcdacValues)
 					fseek(ftemplate, forpcdac, SEEK_SET);
 				else
 					curpcdac = -1;
@@ -949,7 +1013,7 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 				if (curctl == -1)
 					curctl = nextctl(0);
 			} else if (strcasecmp(id, "endforctl") == 0) {
-				curctl = nextctl(curctl+1);
+				curctl = nextctl(curctl + 1);
 				if (curctl != -1)
 					fseek(ftemplate, forctl, SEEK_SET);
 			} else {
@@ -958,14 +1022,14 @@ parseTemplate(FILE *ftemplate, FILE *fd)
 			}
 			goto skiptoeol;
 		}
-		if (c == '$') {			/* $variable reference */
+		if (c == '$') { /* $variable reference */
 			if (token(ftemplate, id, MAXID, "$var") == EOF)
 				return;
 			/* XXX not valid if variable depends on curmode */
 			eevar(fd, id);
 			continue;
 		}
-		if (c == '\\') {		/* escape next character */
+		if (c == '\\') { /* escape next character */
 			c = getc(ftemplate);
 			if (c == EOF)
 				return;

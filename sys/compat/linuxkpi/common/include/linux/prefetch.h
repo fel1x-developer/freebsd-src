@@ -27,8 +27,8 @@
  */
 
 #ifndef _LINUXKPI_LINUX_PREFETCH_H_
-#define	_LINUXKPI_LINUX_PREFETCH_H_
+#define _LINUXKPI_LINUX_PREFETCH_H_
 
-#define prefetchw(x) __builtin_prefetch(x,1)
+#define prefetchw(x) __builtin_prefetch(x, 1)
 
 #endif /* _LINUXKPI_LINUX_PREFETCH_H_ */

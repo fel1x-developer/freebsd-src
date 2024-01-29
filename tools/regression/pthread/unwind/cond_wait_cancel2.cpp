@@ -6,8 +6,8 @@
  */
 
 #include <pthread.h>
-#include <stdio.h>
 #include <semaphore.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include "Test.cpp"
@@ -15,7 +15,8 @@
 static pthread_mutex_t mtx;
 static pthread_cond_t cv;
 
-static void f()
+static void
+f()
 {
 	Test t;
 
@@ -25,7 +26,8 @@ static void f()
 	printf("Bug, thread shouldn't be here.\n");
 }
 
-static void g()
+static void
+g()
 {
 	f();
 }

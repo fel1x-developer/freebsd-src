@@ -41,8 +41,8 @@
  *    #include <list>
  *    #include <string>
  */
-#ifndef	_ZPOOL_LIST_H_
-#define	_ZPOOL_LIST_H_
+#ifndef _ZPOOL_LIST_H_
+#define _ZPOOL_LIST_H_
 
 /*============================ Namespace Control =============================*/
 using std::string;
@@ -60,7 +60,7 @@ class Vdev;
 /*--------------------------------- ZpoolList --------------------------------*/
 class ZpoolList;
 typedef bool PoolFilter_t(zpool_handle_t *pool, nvlist_t *poolConfig,
-			  void *filterArg);
+    void *filterArg);
 
 /**
  * \brief Container of imported ZFS pool data.
@@ -68,9 +68,8 @@ typedef bool PoolFilter_t(zpool_handle_t *pool, nvlist_t *poolConfig,
  * ZpoolList is a convenience class that converts libzfs's ZFS
  * pool methods into a standard list container.
  */
-class ZpoolList : public std::list<zpool_handle_t *>
-{
-public:
+class ZpoolList : public std::list<zpool_handle_t *> {
+    public:
 	/**
 	 * \brief Utility ZpoolList construction filter that causes all
 	 *        pools known to the system to be included in the
@@ -105,7 +104,7 @@ public:
 	ZpoolList(PoolFilter_t *filter = ZpoolAll, void *filterArg = NULL);
 	~ZpoolList();
 
-private:
+    private:
 	/**
 	 * \brief Helper routine used to populate the internal
 	 *        data store of ZFS pool objects using libzfs's
@@ -125,7 +124,7 @@ private:
 	 * \brief The filter argument with which this ZpoolList was
 	 *        constructed.
 	 */
-	void	     *m_filterArg;
+	void *m_filterArg;
 };
 
-#endif	/* _ZPOOL_ITERATOR_H_ */
+#endif /* _ZPOOL_ITERATOR_H_ */

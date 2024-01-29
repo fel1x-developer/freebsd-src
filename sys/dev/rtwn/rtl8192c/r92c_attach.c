@@ -18,36 +18,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8192c/r92c.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
 #include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92c_detach_private(struct rtwn_softc *sc)
@@ -66,7 +64,7 @@ r92c_read_chipid_vendor(struct rtwn_softc *sc, uint32_t reg_sys_cfg)
 		rs->chip |= R92C_CHIP_92C;
 		/* Check if it is a castrated 8192C. */
 		if (MS(rtwn_read_4(sc, R92C_HPON_FSM),
-		    R92C_HPON_FSM_CHIP_BONDING_ID) ==
+			R92C_HPON_FSM_CHIP_BONDING_ID) ==
 		    R92C_HPON_FSM_CHIP_BONDING_ID_92C_1T2R)
 			rs->chip |= R92C_CHIP_92C_1T2R;
 	}

@@ -2,13 +2,13 @@
  * rsort.c
  * Client side application which sorts argc, argv.
  */
-#include <stdio.h>
 #include <rpc/rpc.h>
+#include <stdio.h>
+
 #include "sort.h"
 
-main(argc, argv)
-	int argc;
-	char **argv;
+main(argc, argv) int argc;
+char **argv;
 {
 	char *machinename;
 	struct sortstrings args, res;
@@ -19,17 +19,16 @@ main(argc, argv)
 		exit(1);
 	}
 	machinename = argv[1];
-	args.ss.ss_len = argc - 2;     /* substract off progname, machinename */
+	args.ss.ss_len = argc - 2; /* substract off progname, machinename */
 	args.ss.ss_val = &argv[2];
 	res.ss.ss_val = (char **)NULL;
 
-	if ((i = callrpc(machinename, SORTPROG, SORTVERS, SORT,
-	    xdr_sortstrings, &args, xdr_sortstrings, &res)))
-	{
-	    fprintf(stderr, "%s: call to sort service failed. ", argv[0]);
-	    clnt_perrno(i);
-	    fprintf(stderr, "\n");
-	    exit(1);
+	if ((i = callrpc(machinename, SORTPROG, SORTVERS, SORT, xdr_sortstrings,
+		 &args, xdr_sortstrings, &res))) {
+		fprintf(stderr, "%s: call to sort service failed. ", argv[0]);
+		clnt_perrno(i);
+		fprintf(stderr, "\n");
+		exit(1);
 	}
 
 	for (i = 0; i < res.ss.ss_len; i++) {
@@ -39,4 +38,3 @@ main(argc, argv)
 	/* should free res here */
 	exit(0);
 }
-

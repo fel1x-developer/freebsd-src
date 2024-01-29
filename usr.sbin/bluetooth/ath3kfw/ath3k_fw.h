@@ -26,29 +26,29 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__ATH3K_FW_H__
-#define	__ATH3K_FW_H__
+#ifndef __ATH3K_FW_H__
+#define __ATH3K_FW_H__
 
 /*
  * XXX TODO: ensure that the endian-ness of this stuff is
  * correct!
  */
 struct ath3k_version {
-	unsigned int	rom_version;
-	unsigned int	build_version;
-	unsigned int	ram_version;
-	unsigned char	ref_clock;
-	unsigned char	reserved[0x07];
+	unsigned int rom_version;
+	unsigned int build_version;
+	unsigned int ram_version;
+	unsigned char ref_clock;
+	unsigned char reserved[0x07];
 };
 
 struct ath3k_firmware {
 	char *fwname;
-	int len;		/* firmware length */
-	int size;		/* buffer size */
+	int len;  /* firmware length */
+	int size; /* buffer size */
 	unsigned char *buf;
 };
 
-extern	int ath3k_fw_read(struct ath3k_firmware *fw, const char *fwname);
-extern	void ath3k_fw_free(struct ath3k_firmware *fw);
+extern int ath3k_fw_read(struct ath3k_firmware *fw, const char *fwname);
+extern void ath3k_fw_free(struct ath3k_firmware *fw);
 
 #endif

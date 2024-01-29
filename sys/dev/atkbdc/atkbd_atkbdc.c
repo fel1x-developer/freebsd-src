@@ -26,43 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_kbd.h"
 #include "opt_evdev.h"
+#include "opt_kbd.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kbio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <sys/kbio.h>
-#include <dev/kbd/kbdreg.h>
-#include <dev/atkbdc/atkbdreg.h>
 #include <dev/atkbdc/atkbdcreg.h>
+#include <dev/atkbdc/atkbdreg.h>
+#include <dev/kbd/kbdreg.h>
 
 typedef struct {
-	struct resource	*intr;
-	void		*ih;
+	struct resource *intr;
+	void *ih;
 } atkbd_softc_t;
 
-static void	atkbdidentify(driver_t *driver, device_t dev);
-static int	atkbdprobe(device_t dev);
-static int	atkbdattach(device_t dev);
-static int	atkbdresume(device_t dev);
-static void	atkbdintr(void *arg);
+static void atkbdidentify(driver_t *driver, device_t dev);
+static int atkbdprobe(device_t dev);
+static int atkbdattach(device_t dev);
+static int atkbdresume(device_t dev);
+static void atkbdintr(void *arg);
 
-static device_method_t atkbd_methods[] = {
-	DEVMETHOD(device_identify,	atkbdidentify),
-	DEVMETHOD(device_probe,		atkbdprobe),
-	DEVMETHOD(device_attach,	atkbdattach),
-	DEVMETHOD(device_resume,	atkbdresume),
-	{ 0, 0 }
-};
+static device_method_t atkbd_methods[] = { DEVMETHOD(device_identify,
+					       atkbdidentify),
+	DEVMETHOD(device_probe, atkbdprobe),
+	DEVMETHOD(device_attach, atkbdattach),
+	DEVMETHOD(device_resume, atkbdresume), { 0, 0 } };
 
 static driver_t atkbd_driver = {
 	ATKBD_DRIVER_NAME,
@@ -75,7 +73,8 @@ atkbdidentify(driver_t *driver, device_t parent)
 {
 
 	/* always add at least one child */
-	BUS_ADD_CHILD(parent, KBDC_RID_KBD, driver->name, device_get_unit(parent));
+	BUS_ADD_CHILD(parent, KBDC_RID_KBD, driver->name,
+	    device_get_unit(parent));
 }
 
 static int
@@ -130,7 +129,7 @@ atkbdattach(device_t dev)
 	if (sc->intr == NULL)
 		return ENXIO;
 	error = bus_setup_intr(dev, sc->intr, INTR_TYPE_TTY, NULL, atkbdintr,
-			       kbd, &sc->ih);
+	    kbd, &sc->ih);
 	if (error)
 		bus_release_resource(dev, SYS_RES_IRQ, rid, sc->intr);
 
@@ -145,8 +144,8 @@ atkbdresume(device_t dev)
 	int args[2];
 
 	sc = device_get_softc(dev);
-	kbd = kbd_get_keyboard(kbd_find_keyboard(ATKBD_DRIVER_NAME,
-						 device_get_unit(dev)));
+	kbd = kbd_get_keyboard(
+	    kbd_find_keyboard(ATKBD_DRIVER_NAME, device_get_unit(dev)));
 	if (kbd) {
 		kbd->kb_flags &= ~KB_INITIALIZED;
 		args[0] = device_get_unit(device_get_parent(dev));

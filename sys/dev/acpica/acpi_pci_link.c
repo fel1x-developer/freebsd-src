@@ -24,8 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -33,24 +34,25 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
-#include <dev/acpica/acpivar.h>
-#include <dev/acpica/acpi_pcibvar.h>
-
 #include <machine/pci_cfgreg.h>
+
+#include <dev/acpica/acpi_pcibvar.h>
+#include <dev/acpica/acpivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
+
 #include "pcib_if.h"
 
 /* Hooks for the ACPI CA debugging infrastructure. */
-#define _COMPONENT	ACPI_BUS
+#define _COMPONENT ACPI_BUS
 ACPI_MODULE_NAME("PCI_LINK")
 
 ACPI_SERIAL_DECL(pci_link, "ACPI PCI link");
 
-#define NUM_ISA_INTERRUPTS	16
-#define NUM_ACPI_INTERRUPTS	256
+#define NUM_ISA_INTERRUPTS 16
+#define NUM_ACPI_INTERRUPTS 256
 
 /*
  * An ACPI PCI link device may contain multiple links.  Each link has its
@@ -79,44 +81,44 @@ ACPI_SERIAL_DECL(pci_link, "ACPI PCI link");
  */
 
 /* States during DPF processing. */
-#define	DPF_OUTSIDE	0
-#define	DPF_FIRST	1
-#define	DPF_IGNORE	2
+#define DPF_OUTSIDE 0
+#define DPF_FIRST 1
+#define DPF_IGNORE 2
 
 struct link;
 
 struct acpi_pci_link_softc {
-	int	pl_num_links;
-	int	pl_crs_bad;
+	int pl_num_links;
+	int pl_crs_bad;
 	struct link *pl_links;
 	device_t pl_dev;
 };
 
 struct link {
 	struct acpi_pci_link_softc *l_sc;
-	uint8_t	l_bios_irq;
-	uint8_t	l_irq;
-	uint8_t	l_initial_irq;
-	UINT32	l_crs_type;
-	int	l_res_index;
-	int	l_num_irqs;
-	int	*l_irqs;
-	int	l_references;
-	bool	l_routed:1;
-	bool	l_isa_irq:1;
+	uint8_t l_bios_irq;
+	uint8_t l_irq;
+	uint8_t l_initial_irq;
+	UINT32 l_crs_type;
+	int l_res_index;
+	int l_num_irqs;
+	int *l_irqs;
+	int l_references;
+	bool l_routed : 1;
+	bool l_isa_irq : 1;
 	ACPI_RESOURCE l_prs_template;
 };
 
 struct link_count_request {
-	int	in_dpf;
-	int	count;
+	int in_dpf;
+	int count;
 };
 
 struct link_res_request {
 	struct acpi_pci_link_softc *sc;
-	int	in_dpf;
-	int	res_index;
-	int	link_index;
+	int in_dpf;
+	int res_index;
+	int link_index;
 };
 
 static MALLOC_DEFINE(M_PCI_LINK, "pci_link", "ACPI PCI Link structures");
@@ -151,13 +153,13 @@ acpi_pci_link_probe(device_t dev)
 	 * sensible values.
 	 */
 	if (acpi_disabled("pci_link"))
-	    return (ENXIO);
+		return (ENXIO);
 	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, pci_link_ids, NULL);
 	if (rv > 0)
-	  return (rv);
+		return (rv);
 
-	if (ACPI_SUCCESS(acpi_short_name(acpi_get_handle(dev), name,
-	    sizeof(name)))) {
+	if (ACPI_SUCCESS(
+		acpi_short_name(acpi_get_handle(dev), name, sizeof(name)))) {
 		snprintf(descr, sizeof(descr), "ACPI PCI Link %s", name);
 		device_set_desc_copy(dev, descr);
 	} else
@@ -221,7 +223,7 @@ link_add_crs(ACPI_RESOURCE *res, void *context)
 		case DPF_FIRST:
 			/* We've started the second DPF. */
 			panic(
-		"%s: Multiple dependent functions within a current resource",
+			    "%s: Multiple dependent functions within a current resource",
 			    __func__);
 			break;
 		}
@@ -337,8 +339,7 @@ link_add_prs(ACPI_RESOURCE *res, void *context)
 			    sizeof(tmp->Data.ExtendedIrq.ResourceSource));
 			tmp->Length = ACPI_RS_SIZE(tmp->Data.ExtendedIrq);
 
-			link->l_num_irqs =
-			    res->Data.ExtendedIrq.InterruptCount;
+			link->l_num_irqs = res->Data.ExtendedIrq.InterruptCount;
 			ext_irqs = res->Data.ExtendedIrq.Interrupts;
 		} else {
 			bcopy(res, tmp, ACPI_RS_SIZE(tmp->Data.Irq));
@@ -381,7 +382,7 @@ link_add_prs(ACPI_RESOURCE *res, void *context)
 			break;
 		if (req->sc->pl_crs_bad)
 			device_printf(req->sc->pl_dev,
-		    "Warning: possible resource %d will be lost during _SRS\n",
+			    "Warning: possible resource %d will be lost during _SRS\n",
 			    req->res_index);
 		req->res_index++;
 	}
@@ -402,7 +403,7 @@ link_valid_irq(struct link *link, int irq)
 	/* Any interrupt in the list of possible interrupts is valid. */
 	for (i = 0; i < link->l_num_irqs; i++)
 		if (link->l_irqs[i] == irq)
-			 return (true);
+			return (true);
 
 	/*
 	 * For links routed via an ISA interrupt, if the SCI is routed via
@@ -425,8 +426,8 @@ acpi_pci_link_dump(struct acpi_pci_link_softc *sc, int header, const char *tag)
 
 	ACPI_SERIAL_ASSERT(pci_link);
 	if (header) {
-		snprintf(buf, sizeof(buf), "%s:",
-		    device_get_nameunit(sc->pl_dev));
+		snprintf(buf, sizeof(buf),
+		    "%s:", device_get_nameunit(sc->pl_dev));
 		printf("%-16.16s  Index  IRQ  Rtd  Ref  IRQs\n", buf);
 	}
 	for (i = 0; i < sc->pl_num_links; i++) {
@@ -436,8 +437,9 @@ acpi_pci_link_dump(struct acpi_pci_link_softc *sc, int header, const char *tag)
 		    link->l_references);
 		if (link->l_num_irqs == 0)
 			printf(" none");
-		else for (j = 0; j < link->l_num_irqs; j++)
-			printf(" %d", link->l_irqs[j]);
+		else
+			for (j = 0; j < link->l_num_irqs; j++)
+				printf(" %d", link->l_irqs[j]);
 		printf("\n");
 	}
 }
@@ -471,8 +473,7 @@ acpi_pci_link_attach(device_t dev)
 		status = AcpiWalkResources(acpi_get_handle(dev), "_PRS",
 		    acpi_count_irq_resources, &creq);
 		if (ACPI_FAILURE(status)) {
-			device_printf(dev,
-			    "Unable to parse _CRS or _PRS: %s\n",
+			device_printf(dev, "Unable to parse _CRS or _PRS: %s\n",
 			    AcpiFormatException(status));
 			ACPI_SERIAL_END(pci_link);
 			return (ENXIO);
@@ -519,8 +520,8 @@ acpi_pci_link_attach(device_t dev)
 	rreq.link_index = 0;
 	rreq.res_index = 0;
 	rreq.sc = sc;
-	status = AcpiWalkResources(acpi_get_handle(dev), "_PRS",
-	    link_add_prs, &rreq);
+	status = AcpiWalkResources(acpi_get_handle(dev), "_PRS", link_add_prs,
+	    &rreq);
 	if (ACPI_FAILURE(status) &&
 	    (status != AE_NOT_FOUND || sc->pl_crs_bad)) {
 		device_printf(dev, "Unable to parse _PRS: %s\n",
@@ -534,7 +535,7 @@ acpi_pci_link_attach(device_t dev)
 	if (status != AE_NOT_FOUND)
 		for (i = 0; i < sc->pl_num_links; i++)
 			if (!link_valid_irq(&sc->pl_links[i],
-			    sc->pl_links[i].l_irq))
+				sc->pl_links[i].l_irq))
 				sc->pl_links[i].l_irq = PCI_INVALID_IRQ;
 	if (bootverbose)
 		acpi_pci_link_dump(sc, 0, "Validation");
@@ -549,8 +550,8 @@ acpi_pci_link_attach(device_t dev)
 	 * run _DIS (i.e., the method doesn't exist), assume the initial
 	 * IRQ was routed by the BIOS.
 	 */
-	if (ACPI_SUCCESS(AcpiEvaluateObject(acpi_get_handle(dev), "_DIS", NULL,
-	    NULL)))
+	if (ACPI_SUCCESS(
+		AcpiEvaluateObject(acpi_get_handle(dev), "_DIS", NULL, NULL)))
 		for (i = 0; i < sc->pl_num_links; i++)
 			sc->pl_links[i].l_irq = PCI_INVALID_IRQ;
 	else
@@ -609,7 +610,7 @@ acpi_pci_link_search_irq(int domain, int bus, int device, int pin)
 		    1);
 		if (bootverbose)
 			printf(
-		"ACPI: Found matching pin for %d.%d.INT%c at func %d: %d\n",
+			    "ACPI: Found matching pin for %d.%d.INT%c at func %d: %d\n",
 			    bus, device, pin + 'A', func, value);
 		if (value != PCI_INVALID_IRQ)
 			return (value);
@@ -657,7 +658,7 @@ acpi_pci_link_add_reference(device_t dev, int index, device_t pcib, int slot,
 		device_printf(pcib, "Unable to read PCI domain number");
 		panic("PCI bridge without a domain number");
 	}
-		
+
 	/* Bump the reference count. */
 	ACPI_SERIAL_BEGIN(pci_link);
 	link = acpi_pci_link_lookup(dev, index);
@@ -712,9 +713,8 @@ acpi_pci_link_add_reference(device_t dev, int index, device_t pcib, int slot,
 			    bios_irq, link->l_initial_irq);
 	} else if (bios_irq != link->l_bios_irq)
 		device_printf(dev,
-	    "BIOS IRQ %u for %d.%d.INT%c does not match previous BIOS IRQ %u\n",
-		    bios_irq, (int)bus, slot, pin + 'A',
-		    link->l_bios_irq);
+		    "BIOS IRQ %u for %d.%d.INT%c does not match previous BIOS IRQ %u\n",
+		    bios_irq, (int)bus, slot, pin + 'A', link->l_bios_irq);
 	ACPI_SERIAL_END(pci_link);
 }
 
@@ -758,7 +758,7 @@ acpi_pci_link_srs_from_crs(struct acpi_pci_link_softc *sc, ACPI_BUFFER *srsbuf)
 			case DPF_FIRST:
 				/* We've started the second DPF. */
 				panic(
-		"%s: Multiple dependent functions within a current resource",
+				    "%s: Multiple dependent functions within a current resource",
 				    __func__);
 				break;
 			}
@@ -774,8 +774,8 @@ acpi_pci_link_srs_from_crs(struct acpi_pci_link_softc *sc, ACPI_BUFFER *srsbuf)
 			res->Data.Irq.InterruptCount = 1;
 			if (PCI_INTERRUPT_VALID(link->l_irq)) {
 				KASSERT(link->l_irq < NUM_ISA_INTERRUPTS,
-		("%s: can't put non-ISA IRQ %d in legacy IRQ resource type",
-				    __func__, link->l_irq));
+				    ("%s: can't put non-ISA IRQ %d in legacy IRQ resource type",
+					__func__, link->l_irq));
 				res->Data.Irq.Interrupts[0] = link->l_irq;
 			} else
 				res->Data.Irq.Interrupts[0] = 0;
@@ -825,8 +825,8 @@ acpi_pci_link_srs_from_links(struct acpi_pci_link_softc *sc,
 			newres.Data.Irq.InterruptCount = 1;
 			if (PCI_INTERRUPT_VALID(link->l_irq)) {
 				KASSERT(link->l_irq < NUM_ISA_INTERRUPTS,
-		("%s: can't put non-ISA IRQ %d in legacy IRQ resource type",
-				    __func__, link->l_irq));
+				    ("%s: can't put non-ISA IRQ %d in legacy IRQ resource type",
+					__func__, link->l_irq));
 				newres.Data.Irq.Interrupts[0] = link->l_irq;
 			} else
 				newres.Data.Irq.Interrupts[0] = 0;
@@ -972,7 +972,7 @@ acpi_pci_link_choose_irq(device_t dev, struct link *link)
 
 	/* Check for a tunable override. */
 	if (ACPI_SUCCESS(acpi_short_name(acpi_get_handle(dev), link_name,
-	    sizeof(link_name)))) {
+		sizeof(link_name)))) {
 		snprintf(tunable_buffer, sizeof(tunable_buffer),
 		    "hw.pci.link.%s.%d.irq", link_name, link->l_res_index);
 		if (getenv_int(tunable_buffer, &i) && PCI_INTERRUPT_VALID(i)) {
@@ -1114,10 +1114,10 @@ acpi_pci_link_identify(driver_t *driver, device_t parent)
 
 static device_method_t acpi_pci_link_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	acpi_pci_link_identify),
-	DEVMETHOD(device_probe,		acpi_pci_link_probe),
-	DEVMETHOD(device_attach,	acpi_pci_link_attach),
-	DEVMETHOD(device_resume,	acpi_pci_link_resume),
+	DEVMETHOD(device_identify, acpi_pci_link_identify),
+	DEVMETHOD(device_probe, acpi_pci_link_probe),
+	DEVMETHOD(device_attach, acpi_pci_link_attach),
+	DEVMETHOD(device_resume, acpi_pci_link_resume),
 
 	DEVMETHOD_END
 };

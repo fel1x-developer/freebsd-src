@@ -4,6 +4,7 @@
 #define ADF_PFVF_UTILS_H
 
 #include <linux/types.h>
+
 #include "adf_pfvf_msg.h"
 
 /* How long to wait for far side to acknowledge receipt */
@@ -23,11 +24,9 @@ struct pfvf_csr_format {
 };
 
 u32 adf_pfvf_csr_msg_of(struct adf_accel_dev *accel_dev,
-			struct pfvf_message msg,
-			const struct pfvf_csr_format *fmt);
+    struct pfvf_message msg, const struct pfvf_csr_format *fmt);
 struct pfvf_message adf_pfvf_message_of(struct adf_accel_dev *accel_dev,
-					u32 raw_msg,
-					const struct pfvf_csr_format *fmt);
+    u32 raw_msg, const struct pfvf_csr_format *fmt);
 
 static inline struct resource *
 adf_get_pmisc_base(struct adf_accel_dev *accel_dev)

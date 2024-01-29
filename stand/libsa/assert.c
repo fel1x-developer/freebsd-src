@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 
 #include "stand.h"
@@ -33,10 +34,9 @@ void
 __assert(const char *func, const char *file, int line, const char *expression)
 {
 	if (func == NULL)
-		panic("Assertion failed: (%s), file %s, line %d.",
-		    expression, file, line);
+		panic("Assertion failed: (%s), file %s, line %d.", expression,
+		    file, line);
 	else
-		panic(
-		    "Assertion failed: (%s), function %s, file %s, line %d.",
+		panic("Assertion failed: (%s), function %s, file %s, line %d.",
 		    expression, func, file, line);
 }

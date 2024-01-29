@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,34 +32,34 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * $Id: dcons_crom.c,v 1.8 2003/10/23 15:47:21 simokawa Exp $
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/cons.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/conf.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
 
+#include <dev/dcons/dcons.h>
+#include <dev/dcons/dcons_os.h>
 #include <dev/firewire/firewire.h>
 #include <dev/firewire/firewirereg.h>
 #include <dev/firewire/iec13213.h>
-#include <dev/dcons/dcons.h>
-#include <dev/dcons/dcons_os.h>
-
-#include <sys/cons.h>
 
 #if (defined(__i386__) || defined(__amd64__))
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
+
 #include <machine/segments.h> /* for idt */
 #endif
 
@@ -68,11 +68,11 @@ static bus_addr_t dcons_paddr;
 static int force_console = 0;
 TUNABLE_INT("hw.firewire.dcons_crom.force_console", &force_console);
 
-#define ADDR_HI(x)	(((x) >> 24) & 0xffffff)
-#define ADDR_LO(x)	((x) & 0xffffff)
+#define ADDR_HI(x) (((x) >> 24) & 0xffffff)
+#define ADDR_LO(x) ((x) & 0xffffff)
 
 struct dcons_crom_softc {
-        struct firewire_dev_comm fd;
+	struct firewire_dev_comm fd;
 	struct crom_chunk unit;
 	struct crom_chunk spec;
 	struct crom_chunk ver;
@@ -94,8 +94,8 @@ dcons_crom_probe(device_t dev)
 	device_t pa;
 
 	pa = device_get_parent(dev);
-	if(device_get_unit(dev) != device_get_unit(pa)){
-		return(ENXIO);
+	if (device_get_unit(dev) != device_get_unit(pa)) {
+		return (ENXIO);
 	}
 
 	device_set_desc(dev, "dcons configuration ROM");
@@ -127,7 +127,7 @@ dcons_crom_post_busreset(void *arg)
 	struct crom_src *src;
 	struct crom_chunk *root;
 
-	sc = (struct dcons_crom_softc *) arg;
+	sc = (struct dcons_crom_softc *)arg;
 	src = sc->fd.fc->crom_src;
 	root = sc->fd.fc->crom_root;
 
@@ -157,8 +157,7 @@ dmamap_cb(void *arg, bus_dma_segment_t *segments, int seg, int error)
 	sc->bus_addr = segments[0].ds_addr;
 
 	bus_dmamap_sync(sc->dma_tag, sc->dma_map, BUS_DMASYNC_PREWRITE);
-	device_printf(sc->fd.dev,
-	    "bus_addr 0x%jx\n", (uintmax_t)sc->bus_addr);
+	device_printf(sc->fd.dev, "bus_addr 0x%jx\n", (uintmax_t)sc->bus_addr);
 	if (dcons_paddr != 0) {
 		/* XXX */
 		device_printf(sc->fd.dev, "dcons_paddr is already set\n");
@@ -176,7 +175,7 @@ dmamap_cb(void *arg, bus_dma_segment_t *segments, int seg, int error)
 static void
 dcons_crom_poll(void *p, int arg)
 {
-	struct dcons_crom_softc *sc = (struct dcons_crom_softc *) p;
+	struct dcons_crom_softc *sc = (struct dcons_crom_softc *)p;
 
 	sc->fd.fc->poll(sc->fd.fc, -1, -1);
 }
@@ -189,39 +188,37 @@ dcons_crom_attach(device_t dev)
 
 	if (dcons_conf->buf == NULL)
 		return (ENXIO);
-        sc = (struct dcons_crom_softc *) device_get_softc(dev);
+	sc = (struct dcons_crom_softc *)device_get_softc(dev);
 	sc->fd.fc = device_get_ivars(dev);
 	sc->fd.dev = dev;
 	sc->fd.post_explore = NULL;
-	sc->fd.post_busreset = (void *) dcons_crom_post_busreset;
+	sc->fd.post_busreset = (void *)dcons_crom_post_busreset;
 
 	/* map dcons buffer */
 	error = bus_dma_tag_create(
-		/*parent*/ sc->fd.fc->dmat,
-		/*alignment*/ sizeof(u_int32_t),
-		/*boundary*/ 0,
-		/*lowaddr*/ BUS_SPACE_MAXADDR,
-		/*highaddr*/ BUS_SPACE_MAXADDR,
-		/*filter*/NULL, /*filterarg*/NULL,
-		/*maxsize*/ dcons_conf->size,
-		/*nsegments*/ 1,
-		/*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
-		/*flags*/ BUS_DMA_ALLOCNOW,
-		/*lockfunc*/busdma_lock_mutex,
-		/*lockarg*/&Giant,
-		&sc->dma_tag);
+	    /*parent*/ sc->fd.fc->dmat,
+	    /*alignment*/ sizeof(u_int32_t),
+	    /*boundary*/ 0,
+	    /*lowaddr*/ BUS_SPACE_MAXADDR,
+	    /*highaddr*/ BUS_SPACE_MAXADDR,
+	    /*filter*/ NULL, /*filterarg*/ NULL,
+	    /*maxsize*/ dcons_conf->size,
+	    /*nsegments*/ 1,
+	    /*maxsegsz*/ BUS_SPACE_MAXSIZE_32BIT,
+	    /*flags*/ BUS_DMA_ALLOCNOW,
+	    /*lockfunc*/ busdma_lock_mutex,
+	    /*lockarg*/ &Giant, &sc->dma_tag);
 	if (error != 0)
 		return (error);
 	error = bus_dmamap_create(sc->dma_tag, BUS_DMA_COHERENT, &sc->dma_map);
 	if (error != 0)
 		return (error);
 	error = bus_dmamap_load(sc->dma_tag, sc->dma_map,
-	    (void *)dcons_conf->buf, dcons_conf->size,
-	    dmamap_cb, sc, 0);
+	    (void *)dcons_conf->buf, dcons_conf->size, dmamap_cb, sc, 0);
 	if (error != 0)
 		return (error);
 	sc->ehand = EVENTHANDLER_REGISTER(dcons_poll, dcons_crom_poll,
-			 (void *)sc, 0);
+	    (void *)sc, 0);
 	return (0);
 }
 
@@ -230,7 +227,7 @@ dcons_crom_detach(device_t dev)
 {
 	struct dcons_crom_softc *sc;
 
-        sc = (struct dcons_crom_softc *) device_get_softc(dev);
+	sc = (struct dcons_crom_softc *)device_get_softc(dev);
 	sc->fd.post_busreset = NULL;
 
 	if (sc->ehand)
@@ -249,11 +246,10 @@ dcons_crom_detach(device_t dev)
 
 static device_method_t dcons_crom_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	dcons_crom_identify),
-	DEVMETHOD(device_probe,		dcons_crom_probe),
-	DEVMETHOD(device_attach,	dcons_crom_attach),
-	DEVMETHOD(device_detach,	dcons_crom_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, dcons_crom_identify),
+	DEVMETHOD(device_probe, dcons_crom_probe),
+	DEVMETHOD(device_attach, dcons_crom_attach),
+	DEVMETHOD(device_detach, dcons_crom_detach), { 0, 0 }
 };
 
 static driver_t dcons_crom_driver = {
@@ -264,6 +260,5 @@ static driver_t dcons_crom_driver = {
 
 DRIVER_MODULE(dcons_crom, firewire, dcons_crom_driver, 0, 0);
 MODULE_VERSION(dcons_crom, 1);
-MODULE_DEPEND(dcons_crom, dcons,
-	DCONS_VERSION, DCONS_VERSION, DCONS_VERSION);
+MODULE_DEPEND(dcons_crom, dcons, DCONS_VERSION, DCONS_VERSION, DCONS_VERSION);
 MODULE_DEPEND(dcons_crom, firewire, 1, 1, 1);

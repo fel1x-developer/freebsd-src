@@ -28,46 +28,45 @@
  * Test utility for IPv4 broadcast sockets.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <libgen.h>
+#include <netdb.h>
+#include <pwd.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#include <err.h>
-#include <errno.h>
-#include <getopt.h>
-#include <pwd.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <libgen.h>
 
 #ifndef IP_SENDIF
-#define IP_SENDIF	24		/* XXX */
+#define IP_SENDIF 24 /* XXX */
 #endif
 
 #ifndef IPPROTO_ZEROHOP
-#define IPPROTO_ZEROHOP	114		/* any 0-hop protocol */
+#define IPPROTO_ZEROHOP 114 /* any 0-hop protocol */
 #endif
 
-#define DEFAULT_PORT		6698
-#define DEFAULT_PAYLOAD_SIZE	24
-#define DEFAULT_TTL		1
+#define DEFAULT_PORT 6698
+#define DEFAULT_PAYLOAD_SIZE 24
+#define DEFAULT_TTL 1
 
-#define MY_CMSG_SIZE				\
-	CMSG_SPACE(sizeof(struct in_addr)) +	\
-	CMSG_SPACE(sizeof(struct sockaddr_dl))
+#define MY_CMSG_SIZE                         \
+	CMSG_SPACE(sizeof(struct in_addr)) + \
+	    CMSG_SPACE(sizeof(struct sockaddr_dl))
 
 static char *progname = NULL;
 
@@ -75,11 +74,13 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "IPv4 broadcast test program. Sends a %d byte UDP "
-	        "datagram to <dest>:<port>.\n\n", DEFAULT_PAYLOAD_SIZE);
 	fprintf(stderr,
-"usage: %s [-1] [-A laddr] [-b] [-B] [-d] [-i iface] [-l len]\n"
-"                   [-p port] [-R] [-s srcaddr] [-t ttl] <dest>\n",
+	    "IPv4 broadcast test program. Sends a %d byte UDP "
+	    "datagram to <dest>:<port>.\n\n",
+	    DEFAULT_PAYLOAD_SIZE);
+	fprintf(stderr,
+	    "usage: %s [-1] [-A laddr] [-b] [-B] [-d] [-i iface] [-l len]\n"
+	    "                   [-p port] [-R] [-s srcaddr] [-t ttl] <dest>\n",
 	    progname);
 	fprintf(stderr, "-1: Set IP_ONESBCAST\n");
 	fprintf(stderr, "-A: specify laddr (default: INADDR_ANY)\n");
@@ -103,34 +104,34 @@ usage(void)
 int
 main(int argc, char *argv[])
 {
-	char			*buf;
-	char			 cmsgbuf[MY_CMSG_SIZE];
-	struct iovec		 iov[1];
-	struct msghdr		 msg;
-	struct sockaddr_in	 dsin;
-	struct sockaddr_in	 laddr;
-	struct sockaddr_dl	*sdl;
-	struct cmsghdr		*cmsgp;
-	struct in_addr		 dstaddr;
-	struct in_addr		*srcaddrp;
-	char			*ifname;
-	char			*laddr_s;
-	char			*srcaddr_s;
-	int			 ch;
-	int			 dobind;
-	int			 dobroadcast;
-	int			 dontroute;
-	int			 doonesbcast;
-	int			 dorandom;
-	int			 dorawip;
-	size_t			 buflen;
-	ssize_t			 nbytes;
-	int			 portno;
-	int			 ret;
-	int			 s;
-	socklen_t		 soptlen;
-	int			 soptval;
-	int			 ttl;
+	char *buf;
+	char cmsgbuf[MY_CMSG_SIZE];
+	struct iovec iov[1];
+	struct msghdr msg;
+	struct sockaddr_in dsin;
+	struct sockaddr_in laddr;
+	struct sockaddr_dl *sdl;
+	struct cmsghdr *cmsgp;
+	struct in_addr dstaddr;
+	struct in_addr *srcaddrp;
+	char *ifname;
+	char *laddr_s;
+	char *srcaddr_s;
+	int ch;
+	int dobind;
+	int dobroadcast;
+	int dontroute;
+	int doonesbcast;
+	int dorandom;
+	int dorawip;
+	size_t buflen;
+	ssize_t nbytes;
+	int portno;
+	int ret;
+	int s;
+	socklen_t soptlen;
+	int soptval;
+	int ttl;
 
 	dobind = 0;
 	dobroadcast = 0;
@@ -337,8 +338,7 @@ main(int argc, char *argv[])
 #ifdef DIAGNOSTIC
 		fprintf(stderr, "DEBUG: sdl->sdl_family is %d\n",
 		    sdl->sdl_family);
-		fprintf(stderr, "DEBUG: sdl->sdl_len is %d\n",
-		    sdl->sdl_len);
+		fprintf(stderr, "DEBUG: sdl->sdl_len is %d\n", sdl->sdl_len);
 		fprintf(stderr, "DEBUG: sdl->sdl_index is %d\n",
 		    sdl->sdl_index);
 #endif

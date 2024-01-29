@@ -34,35 +34,35 @@
 /* $NetBSD: preen.c,v 1.18 1998/07/26 20:02:36 mycroft Exp $ */
 
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <sys/queue.h>
 
-#include <err.h>
 #include <ctype.h>
+#include <err.h>
 #include <fstab.h>
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "fsutil.h"
 
 struct partentry {
-	TAILQ_ENTRY(partentry)	 p_entries;
-	char		  	*p_devname;	/* device name */
-	char			*p_mntpt;	/* mount point */
-	char		  	*p_type;	/* file system type */
-	int			 p_failok;	/* failok option set */
+	TAILQ_ENTRY(partentry) p_entries;
+	char *p_devname; /* device name */
+	char *p_mntpt;	 /* mount point */
+	char *p_type;	 /* file system type */
+	int p_failok;	 /* failok option set */
 };
 
 static TAILQ_HEAD(part, partentry) badh;
 
 struct diskentry {
-	TAILQ_ENTRY(diskentry) 	    d_entries;
-	char		       	   *d_name;	/* disk base name */
-	TAILQ_HEAD(prt, partentry)  d_part;	/* list of partitions on disk */
-	int			    d_pid;	/* 0 or pid of fsck proc */
+	TAILQ_ENTRY(diskentry) d_entries;
+	char *d_name;			   /* disk base name */
+	TAILQ_HEAD(prt, partentry) d_part; /* list of partitions on disk */
+	int d_pid;			   /* 0 or pid of fsck proc */
 };
 
 static TAILQ_HEAD(disk, diskentry) diskh;
@@ -71,13 +71,14 @@ static int nrun = 0, ndisks = 0;
 
 static struct diskentry *finddisk(const char *);
 static void addpart(const char *, const char *, const char *, const int);
-static int startdisk(struct diskentry *, 
+static int startdisk(struct diskentry *,
     int (*)(const char *, const char *, const char *, const char *, pid_t *));
 static void printpart(void);
 
 int
-checkfstab(int flags, int (*docheck)(struct fstab *), 
-    int (*checkit)(const char *, const char *, const char *, const char *, pid_t *))
+checkfstab(int flags, int (*docheck)(struct fstab *),
+    int (*checkit)(const char *, const char *, const char *, const char *,
+	pid_t *))
 {
 	struct fstab *fs;
 	struct diskentry *d, *nextdisk;
@@ -94,7 +95,7 @@ checkfstab(int flags, int (*docheck)(struct fstab *),
 	for (passno = 1; nextpass != INT_MAX; passno = nextpass) {
 		if (flags & CHECK_DEBUG)
 			printf("pass %d\n", passno);
-		
+
 		nextpass = INT_MAX;
 		if (setfsent() == 0) {
 			warnx("Can't open checklist file: %s\n", _PATH_FSTAB);
@@ -122,15 +123,15 @@ checkfstab(int flags, int (*docheck)(struct fstab *),
 					else
 						continue;
 				}
-				sumstatus = (*checkit)(fs->fs_vfstype,
-				    name, fs->fs_file, NULL, NULL);
+				sumstatus = (*checkit)(fs->fs_vfstype, name,
+				    fs->fs_file, NULL, NULL);
 				if (sumstatus)
 					return (sumstatus);
 				continue;
-			} 
+			}
 			if (name == NULL) {
-				(void) fprintf(stderr,
-				    "BAD DISK NAME %s\n", fs->fs_spec);
+				(void)fprintf(stderr, "BAD DISK NAME %s\n",
+				    fs->fs_spec);
 				sumstatus |= 8;
 				continue;
 			}
@@ -146,16 +147,16 @@ checkfstab(int flags, int (*docheck)(struct fstab *),
 			printf("Parallel start\n");
 			printpart();
 		}
-		
-		TAILQ_FOREACH(nextdisk, &diskh, d_entries) {
+
+		TAILQ_FOREACH (nextdisk, &diskh, d_entries) {
 			if ((ret = startdisk(nextdisk, checkit)) != 0)
 				return ret;
 		}
 
-		if (flags & CHECK_DEBUG) 
+		if (flags & CHECK_DEBUG)
 			printf("Parallel wait\n");
 		while ((pid = wait(&status)) != -1) {
-			TAILQ_FOREACH(d, &diskh, d_entries) 
+			TAILQ_FOREACH (d, &diskh, d_entries)
 				if (d->d_pid == pid)
 					break;
 
@@ -172,17 +173,19 @@ checkfstab(int flags, int (*docheck)(struct fstab *),
 				retcode = WEXITSTATUS(status);
 			} else {
 				retcode = 0;
-				fprintf(stderr, "%s: failok SPECIFIED, FSCK "
-				    "ERROR(S) IGNORED\n", p->p_devname);
+				fprintf(stderr,
+				    "%s: failok SPECIFIED, FSCK "
+				    "ERROR(S) IGNORED\n",
+				    p->p_devname);
 			}
 
-			if (flags & (CHECK_DEBUG|CHECK_VERBOSE))
-				(void) printf("done %s: %s (%s) = 0x%x\n",
+			if (flags & (CHECK_DEBUG | CHECK_VERBOSE))
+				(void)printf("done %s: %s (%s) = 0x%x\n",
 				    p->p_type, p->p_devname, p->p_mntpt,
 				    status);
 
 			if (WIFSIGNALED(status)) {
-				(void) fprintf(stderr,
+				(void)fprintf(stderr,
 				    "%s: %s (%s): EXITED WITH SIGNAL %d\n",
 				    p->p_type, p->p_devname, p->p_mntpt,
 				    WTERMSIG(status));
@@ -217,26 +220,26 @@ checkfstab(int flags, int (*docheck)(struct fstab *),
 	}
 
 	if (!(flags & CHECK_PREEN))
-			return 0;
+		return 0;
 
 	if (sumstatus) {
 		p = TAILQ_FIRST(&badh);
 		if (p == NULL)
 			return (sumstatus);
 
-		(void) fprintf(stderr,
-			"THE FOLLOWING FILE SYSTEM%s HAD AN %s\n\t",
-			TAILQ_NEXT(p, p_entries) ? "S" : "",
-			"UNEXPECTED INCONSISTENCY:");
+		(void)fprintf(stderr,
+		    "THE FOLLOWING FILE SYSTEM%s HAD AN %s\n\t",
+		    TAILQ_NEXT(p, p_entries) ? "S" : "",
+		    "UNEXPECTED INCONSISTENCY:");
 
 		for (; p; p = TAILQ_NEXT(p, p_entries))
-			(void) fprintf(stderr,
-			    "%s: %s (%s)%s", p->p_type, p->p_devname,
-			    p->p_mntpt, TAILQ_NEXT(p, p_entries) ? ", " : "\n");
+			(void)fprintf(stderr, "%s: %s (%s)%s", p->p_type,
+			    p->p_devname, p->p_mntpt,
+			    TAILQ_NEXT(p, p_entries) ? ", " : "\n");
 
 		return sumstatus;
 	}
-	(void) endfsent();
+	(void)endfsent();
 	return (0);
 }
 
@@ -260,7 +263,7 @@ finddisk(const char *name)
 	if (len == 0)
 		len = strlen(name);
 
-	TAILQ_FOREACH(d, &diskh, d_entries) 
+	TAILQ_FOREACH (d, &diskh, d_entries)
 		if (strncmp(d->d_name, name, len) == 0 && d->d_name[len] == 0)
 			return d;
 
@@ -276,21 +279,19 @@ finddisk(const char *name)
 	return d;
 }
 
-
 static void
 printpart(void)
 {
 	struct diskentry *d;
 	struct partentry *p;
 
-	TAILQ_FOREACH(d, &diskh, d_entries) {
-		(void) printf("disk %s: ", d->d_name);
-		TAILQ_FOREACH(p, &d->d_part, p_entries)
-			(void) printf("%s ", p->p_devname);
-		(void) printf("\n");
+	TAILQ_FOREACH (d, &diskh, d_entries) {
+		(void)printf("disk %s: ", d->d_name);
+		TAILQ_FOREACH (p, &d->d_part, p_entries)
+			(void)printf("%s ", p->p_devname);
+		(void)printf("\n");
 	}
 }
-
 
 static void
 addpart(const char *type, const char *dev, const char *mntpt, const int failok)
@@ -298,7 +299,7 @@ addpart(const char *type, const char *dev, const char *mntpt, const int failok)
 	struct diskentry *d = finddisk(dev);
 	struct partentry *p;
 
-	TAILQ_FOREACH(p, &d->d_part, p_entries)
+	TAILQ_FOREACH (p, &d->d_part, p_entries)
 		if (strcmp(p->p_devname, dev) == 0) {
 			warnx("%s in fstab more than once!\n", dev);
 			return;
@@ -313,16 +314,17 @@ addpart(const char *type, const char *dev, const char *mntpt, const int failok)
 	TAILQ_INSERT_TAIL(&d->d_part, p, p_entries);
 }
 
-
 static int
-startdisk(struct diskentry *d, int (*checkit)(const char *, const char *,
-    const char *, const char *, pid_t *))
+startdisk(struct diskentry *d,
+    int (*checkit)(const char *, const char *, const char *, const char *,
+	pid_t *))
 {
 	struct partentry *p = TAILQ_FIRST(&d->d_part);
 	int rv;
 
-	while ((rv = (*checkit)(p->p_type, p->p_devname, p->p_mntpt,
-	    NULL, &d->d_pid)) != 0 && nrun > 0)
+	while ((rv = (*checkit)(p->p_type, p->p_devname, p->p_mntpt, NULL,
+		    &d->d_pid)) != 0 &&
+	    nrun > 0)
 		sleep(10);
 
 	if (rv == 0)

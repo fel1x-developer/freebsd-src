@@ -24,12 +24,13 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
-#include <err.h>
+#include <unistd.h>
 
 #include "eeprom.h"
 
@@ -51,12 +52,11 @@ load_eeprom_dump(const char *file, uint16_t *buf)
 		if (feof(fp))
 			break;
 		if (strlen(b) > 0)
-			b[strlen(b)-1] = '\0';
+			b[strlen(b) - 1] = '\0';
 		if (strlen(b) == 0)
 			break;
-		sscanf(b, "%x: %x %x %x %x %x %x %x %x\n",
-		    &i, &r[0], &r[1], &r[2], &r[3], &r[4],
-		    &r[5], &r[6], &r[7]);
+		sscanf(b, "%x: %x %x %x %x %x %x %x %x\n", &i, &r[0], &r[1],
+		    &r[2], &r[3], &r[4], &r[5], &r[6], &r[7]);
 		buf[i++] = r[0];
 		buf[i++] = r[1];
 		buf[i++] = r[2];

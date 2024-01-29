@@ -25,14 +25,16 @@
  * SUCH DAMAGE.
  */
 
-#include <tests/ktest.h>
 #include <sys/cdefs.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
+
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
-#include <netlink/netlink_var.h>
 #include <netlink/netlink_message_writer.h>
+#include <netlink/netlink_var.h>
+
+#include <tests/ktest.h>
 
 #define KTEST_CALLER
 #include <netlink/ktest_netlink_message_writer.h>
@@ -40,12 +42,12 @@
 #ifdef INVARIANTS
 
 struct test_nlbuf_attrs {
-	uint32_t	size;
-	uint32_t	expected_avail;
-	int		waitok;
+	uint32_t size;
+	uint32_t expected_avail;
+	int waitok;
 };
 
-#define	_OUT(_field)	offsetof(struct test_nlbuf_attrs, _field)
+#define _OUT(_field) offsetof(struct test_nlbuf_attrs, _field)
 static const struct nlattr_parser nla_p_nlbuf_w[] = {
 	{ .type = 1, .off = _OUT(size), .cb = nlattr_get_uint32 },
 	{ .type = 2, .off = _OUT(expected_avail), .cb = nlattr_get_uint32 },
@@ -84,15 +86,16 @@ test_nlbuf_writer_allocation(struct ktest_test_context *ctx)
 	nw.enomem = true;
 
 	if (nlmsg_reserve_data(&nw, alloc_len, void *) == NULL) {
-		KTEST_LOG(ctx, "unable to get %d bytes from the writer", alloc_len);
+		KTEST_LOG(ctx, "unable to get %d bytes from the writer",
+		    alloc_len);
 		return (EINVAL);
 	}
 
 	nl_buf_free(nw.buf);
 
 	if (alloc_len < attrs->expected_avail) {
-		KTEST_LOG(ctx, "alloc_len %d, expected %u",
-		    alloc_len, attrs->expected_avail);
+		KTEST_LOG(ctx, "alloc_len %d, expected %u", alloc_len,
+		    attrs->expected_avail);
 		return (EINVAL);
 	}
 
@@ -103,10 +106,10 @@ test_nlbuf_writer_allocation(struct ktest_test_context *ctx)
 static const struct ktest_test_info tests[] = {
 #ifdef INVARIANTS
 	{
-		.name = "test_nlbuf_writer_allocation",
-		.desc = "test different buffer sizes in the netlink writer",
-		.func = &test_nlbuf_writer_allocation,
-		.parse = &test_nlbuf_parser,
+	    .name = "test_nlbuf_writer_allocation",
+	    .desc = "test different buffer sizes in the netlink writer",
+	    .func = &test_nlbuf_writer_allocation,
+	    .parse = &test_nlbuf_parser,
 	},
 #endif
 };

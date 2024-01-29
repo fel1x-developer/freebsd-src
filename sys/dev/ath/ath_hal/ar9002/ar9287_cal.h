@@ -24,10 +24,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR9287_CAL_H__
-#define	__AR9287_CAL_H__
+#ifndef __AR9287_CAL_H__
+#define __AR9287_CAL_H__
 
 extern void ar9287PACal(struct ath_hal *ah, HAL_BOOL is_reset);
-extern HAL_BOOL ar9287InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan);
+extern HAL_BOOL ar9287InitCalHardware(struct ath_hal *ah,
+    const struct ieee80211_channel *chan);
 
-#endif	/* __AR9287_CAL_H__ */
+#endif /* __AR9287_CAL_H__ */

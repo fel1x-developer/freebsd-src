@@ -25,19 +25,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 
-#include <dev/aacraid/aacraid_reg.h>
 #include <dev/aacraid/aacraid_endian.h>
+#include <dev/aacraid/aacraid_reg.h>
 
 #if _BYTE_ORDER != _LITTLE_ENDIAN
 
-#define TOH2(field, bits)	field = le##bits##toh(field)
-#define TOH(field, bits)	TOH2(field, bits)
+#define TOH2(field, bits) field = le##bits##toh(field)
+#define TOH(field, bits) TOH2(field, bits)
 
-#define TOLE2(field, bits)	field = htole##bits(field)
-#define TOLE(field, bits)	TOLE2(field, bits)
+#define TOLE2(field, bits) field = htole##bits(field)
+#define TOLE(field, bits) TOLE2(field, bits)
 
 /* Convert from Little-Endian to host order (TOH) */
 

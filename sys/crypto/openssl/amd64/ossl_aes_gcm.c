@@ -16,17 +16,16 @@
  * blocks, ported from gcm128.c with OPENSSL_SMALL_FOOTPRINT defined.
  */
 
-#include <sys/endian.h>
 #include <sys/systm.h>
+#include <sys/endian.h>
 
 #include <crypto/openssl/ossl.h>
 #include <crypto/openssl/ossl_aes_gcm.h>
 #include <crypto/openssl/ossl_cipher.h>
-
 #include <opencrypto/cryptodev.h>
 
-_Static_assert(
-    sizeof(struct ossl_gcm_context) <= sizeof(struct ossl_cipher_context),
+_Static_assert(sizeof(struct ossl_gcm_context) <=
+	sizeof(struct ossl_cipher_context),
     "ossl_gcm_context too large");
 
 void aesni_set_encrypt_key(const void *key, int bits, void *ctx);
@@ -77,12 +76,12 @@ gcm_setiv_avx512(struct ossl_gcm_context *ctx, const unsigned char *iv,
 	KASSERT(len == AES_GCM_IV_LEN,
 	    ("%s: invalid IV length %zu", __func__, len));
 
-	ctx->gcm.Yi.u[0] = 0;		/* Current counter */
+	ctx->gcm.Yi.u[0] = 0; /* Current counter */
 	ctx->gcm.Yi.u[1] = 0;
-	ctx->gcm.Xi.u[0] = 0;		/* AAD hash */
+	ctx->gcm.Xi.u[0] = 0; /* AAD hash */
 	ctx->gcm.Xi.u[1] = 0;
-	ctx->gcm.len.u[0] = 0;		/* AAD length */
-	ctx->gcm.len.u[1] = 0;		/* Message length */
+	ctx->gcm.len.u[0] = 0; /* AAD length */
+	ctx->gcm.len.u[1] = 0; /* Message length */
 	ctx->gcm.ares = 0;
 	ctx->gcm.mres = 0;
 
@@ -220,10 +219,10 @@ static const struct ossl_aes_gcm_ops gcm_ops_avx512 = {
 	.tag = gcm_tag,
 };
 
-size_t aesni_gcm_encrypt(const unsigned char *in, unsigned char *out, size_t len,
-    const void *key, unsigned char ivec[16], uint64_t *Xi);
-size_t aesni_gcm_decrypt(const unsigned char *in, unsigned char *out, size_t len,
-    const void *key, unsigned char ivec[16], uint64_t *Xi);
+size_t aesni_gcm_encrypt(const unsigned char *in, unsigned char *out,
+    size_t len, const void *key, unsigned char ivec[16], uint64_t *Xi);
+size_t aesni_gcm_decrypt(const unsigned char *in, unsigned char *out,
+    size_t len, const void *key, unsigned char ivec[16], uint64_t *Xi);
 void aesni_encrypt(const unsigned char *in, unsigned char *out, void *ks);
 void aesni_ctr32_encrypt_blocks(const unsigned char *in, unsigned char *out,
     size_t blocks, void *ks, const unsigned char *iv);
@@ -403,7 +402,8 @@ gcm_encrypt_ctr32(struct ossl_gcm_context *ctx, const unsigned char *in,
 	n = mres % 16;
 	if (n) {
 		while (n && len) {
-			ctx->gcm.Xi.c[n] ^= *(out++) = *(in++) ^ ctx->gcm.EKi.c[n];
+			ctx->gcm.Xi.c[n] ^= *(out++) = *(in++) ^
+			    ctx->gcm.EKi.c[n];
 			--len;
 			n = (n + 1) % 16;
 		}
@@ -418,7 +418,8 @@ gcm_encrypt_ctr32(struct ossl_gcm_context *ctx, const unsigned char *in,
 	if ((i = (len & (size_t)-16))) {
 		size_t j = i / 16;
 
-		aesni_ctr32_encrypt_blocks(in, out, j, &ctx->aes_ks, ctx->gcm.Yi.c);
+		aesni_ctr32_encrypt_blocks(in, out, j, &ctx->aes_ks,
+		    ctx->gcm.Yi.c);
 		ctr += (unsigned int)j;
 #if BYTE_ORDER == LITTLE_ENDIAN
 		ctx->gcm.Yi.d[3] = bswap32(ctr);
@@ -443,7 +444,8 @@ gcm_encrypt_ctr32(struct ossl_gcm_context *ctx, const unsigned char *in,
 		ctx->gcm.Yi.d[3] = ctr;
 #endif
 		while (len--) {
-			ctx->gcm.Xi.c[mres++] ^= out[n] = in[n] ^ ctx->gcm.EKi.c[n];
+			ctx->gcm.Xi.c[mres++] ^= out[n] = in[n] ^
+			    ctx->gcm.EKi.c[n];
 			++n;
 		}
 	}
@@ -463,13 +465,13 @@ gcm_encrypt_aesni(struct ossl_gcm_context *ctx, const unsigned char *in,
 	if ((error = gcm_encrypt(ctx, in, out, res)) != 0)
 		return error;
 
-	bulk = aesni_gcm_encrypt(in + res, out + res, len - res,
-	    &ctx->aes_ks, ctx->gcm.Yi.c, ctx->gcm.Xi.u);
+	bulk = aesni_gcm_encrypt(in + res, out + res, len - res, &ctx->aes_ks,
+	    ctx->gcm.Yi.c, ctx->gcm.Xi.u);
 	ctx->gcm.len.u[1] += bulk;
 	bulk += res;
 
 	if ((error = gcm_encrypt_ctr32(ctx, in + bulk, out + bulk,
-	    len - bulk)) != 0)
+		 len - bulk)) != 0)
 		return error;
 
 	return 0;
@@ -583,7 +585,8 @@ gcm_decrypt_ctr32(struct ossl_gcm_context *ctx, const unsigned char *in,
 		}
 		j = i / 16;
 		in -= i;
-		aesni_ctr32_encrypt_blocks(in, out, j, &ctx->aes_ks, ctx->gcm.Yi.c);
+		aesni_ctr32_encrypt_blocks(in, out, j, &ctx->aes_ks,
+		    ctx->gcm.Yi.c);
 		ctr += (unsigned int)j;
 #if BYTE_ORDER == LITTLE_ENDIAN
 		ctx->gcm.Yi.d[3] = bswap32(ctr);
@@ -630,7 +633,8 @@ gcm_decrypt_aesni(struct ossl_gcm_context *ctx, const unsigned char *in,
 	ctx->gcm.len.u[1] += bulk;
 	bulk += res;
 
-	if ((error = gcm_decrypt_ctr32(ctx, in + bulk, out + bulk, len - bulk)) != 0)
+	if ((error = gcm_decrypt_ctr32(ctx, in + bulk, out + bulk,
+		 len - bulk)) != 0)
 		return error;
 
 	return 0;
@@ -676,8 +680,7 @@ static const struct ossl_aes_gcm_ops gcm_ops_aesni = {
 int ossl_aes_gcm_setkey_aesni(const unsigned char *key, int klen, void *_ctx);
 
 int
-ossl_aes_gcm_setkey_aesni(const unsigned char *key, int klen,
-    void *_ctx)
+ossl_aes_gcm_setkey_aesni(const unsigned char *key, int klen, void *_ctx)
 {
 	struct ossl_gcm_context *ctx;
 
@@ -690,8 +693,7 @@ ossl_aes_gcm_setkey_aesni(const unsigned char *key, int klen,
 int ossl_aes_gcm_setkey_avx512(const unsigned char *key, int klen, void *_ctx);
 
 int
-ossl_aes_gcm_setkey_avx512(const unsigned char *key, int klen,
-    void *_ctx)
+ossl_aes_gcm_setkey_avx512(const unsigned char *key, int klen, void *_ctx)
 {
 	struct ossl_gcm_context *ctx;
 

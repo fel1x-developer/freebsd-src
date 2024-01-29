@@ -23,35 +23,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+
 #include <machine/intr.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "pic_if.h"
 
 struct aw_r_intc_gicp_softc {
-	device_t		dev;
-	device_t		parent;
-	struct resource		*res;
+	device_t dev;
+	device_t parent;
+	struct resource *res;
 
 	struct intr_map_data_fdt *parent_map_data;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"allwinner,sun6i-a31-r-intc",	1},
-	{"allwinner,sun6i-a64-r-intc",	1},
-	{"allwinner,sun50i-h6-r-intc",	1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "allwinner,sun6i-a31-r-intc",
+						    1 },
+	{ "allwinner,sun6i-a64-r-intc", 1 },
+	{ "allwinner,sun50i-h6-r-intc", 1 }, { NULL, 0 } };
 
 static int
 aw_r_intc_gicp_probe(device_t dev)
@@ -80,12 +79,12 @@ aw_r_intc_gicp_attach(device_t dev)
 	/* Look for our parent */
 	if ((intr_parent = ofw_bus_find_iparent(node)) == 0) {
 		device_printf(dev,
-		     "Cannot find our parent interrupt controller\n");
+		    "Cannot find our parent interrupt controller\n");
 		return (ENXIO);
 	}
 	if ((sc->parent = OF_device_from_xref(intr_parent)) == NULL) {
 		device_printf(dev,
-		     "cannot find parent interrupt controller device\n");
+		    "cannot find parent interrupt controller device\n");
 		return (ENXIO);
 	}
 
@@ -97,9 +96,10 @@ aw_r_intc_gicp_attach(device_t dev)
 	}
 
 	/* Allocate GIC compatible mapping */
-	sc->parent_map_data = (struct intr_map_data_fdt *)intr_alloc_map_data(
-	    INTR_MAP_DATA_FDT, sizeof(struct intr_map_data_fdt) +
-	    + 3 * sizeof(phandle_t), M_WAITOK | M_ZERO);
+	sc->parent_map_data = (struct intr_map_data_fdt *)
+	    intr_alloc_map_data(INTR_MAP_DATA_FDT,
+		sizeof(struct intr_map_data_fdt) + +3 * sizeof(phandle_t),
+		M_WAITOK | M_ZERO);
 
 	/* Register ourself to device can find us */
 	OF_device_register_xref(xref, dev);
@@ -190,7 +190,7 @@ aw_r_intc_gicp_map_intr(device_t dev, struct intr_map_data *data,
 
 	ret = PIC_MAP_INTR(sc->parent, data, isrcp);
 	(*isrcp)->isrc_dev = sc->dev;
-	return(ret);
+	return (ret);
 }
 
 static int
@@ -268,21 +268,21 @@ aw_r_intc_gicp_post_filter(device_t dev, struct intr_irqsrc *isrc)
 
 static device_method_t aw_r_intc_gicp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		aw_r_intc_gicp_probe),
-	DEVMETHOD(device_attach,	aw_r_intc_gicp_attach),
-	DEVMETHOD(device_detach,	aw_r_intc_gicp_detach),
+	DEVMETHOD(device_probe, aw_r_intc_gicp_probe),
+	DEVMETHOD(device_attach, aw_r_intc_gicp_attach),
+	DEVMETHOD(device_detach, aw_r_intc_gicp_detach),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_activate_intr,	aw_r_intc_gicp_activate_intr),
-	DEVMETHOD(pic_disable_intr,	aw_r_intc_gicp_disable_intr),
-	DEVMETHOD(pic_enable_intr,	aw_r_intc_gicp_enable_intr),
-	DEVMETHOD(pic_map_intr,		aw_r_intc_gicp_map_intr),
-	DEVMETHOD(pic_deactivate_intr,	aw_r_intc_gicp_deactivate_intr),
-	DEVMETHOD(pic_setup_intr,	aw_r_intc_gicp_setup_intr),
-	DEVMETHOD(pic_teardown_intr,	aw_r_intc_gicp_teardown_intr),
-	DEVMETHOD(pic_post_filter,	aw_r_intc_gicp_post_filter),
-	DEVMETHOD(pic_post_ithread,	aw_r_intc_gicp_post_ithread),
-	DEVMETHOD(pic_pre_ithread,	aw_r_intc_gicp_pre_ithread),
+	DEVMETHOD(pic_activate_intr, aw_r_intc_gicp_activate_intr),
+	DEVMETHOD(pic_disable_intr, aw_r_intc_gicp_disable_intr),
+	DEVMETHOD(pic_enable_intr, aw_r_intc_gicp_enable_intr),
+	DEVMETHOD(pic_map_intr, aw_r_intc_gicp_map_intr),
+	DEVMETHOD(pic_deactivate_intr, aw_r_intc_gicp_deactivate_intr),
+	DEVMETHOD(pic_setup_intr, aw_r_intc_gicp_setup_intr),
+	DEVMETHOD(pic_teardown_intr, aw_r_intc_gicp_teardown_intr),
+	DEVMETHOD(pic_post_filter, aw_r_intc_gicp_post_filter),
+	DEVMETHOD(pic_post_ithread, aw_r_intc_gicp_post_ithread),
+	DEVMETHOD(pic_pre_ithread, aw_r_intc_gicp_pre_ithread),
 
 	DEVMETHOD_END
 };

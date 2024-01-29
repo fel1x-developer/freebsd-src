@@ -26,18 +26,19 @@
  */
 
 #ifndef _LINUXKPI_LINUX_MATH64_H
-#define	_LINUXKPI_LINUX_MATH64_H
+#define _LINUXKPI_LINUX_MATH64_H
 
-#include <sys/stdint.h>
 #include <sys/systm.h>
+#include <sys/stdint.h>
 
-#define	do_div(n, base) ({			\
-	uint32_t __base = (base);		\
-	uint32_t __rem;				\
-	__rem = ((uint64_t)(n)) % __base;	\
-	(n) = ((uint64_t)(n)) / __base;		\
-	__rem;					\
-})
+#define do_div(n, base)                           \
+	({                                        \
+		uint32_t __base = (base);         \
+		uint32_t __rem;                   \
+		__rem = ((uint64_t)(n)) % __base; \
+		(n) = ((uint64_t)(n)) / __base;   \
+		__rem;                            \
+	})
 
 static inline uint64_t
 div64_u64_rem(uint64_t dividend, uint64_t divisor, uint64_t *remainder)
@@ -96,8 +97,7 @@ div64_u64_round_up(uint64_t dividend, uint64_t divisor)
 	return ((dividend + divisor - 1) / divisor);
 }
 
-#define	DIV64_U64_ROUND_UP(...) \
-	div64_u64_round_up(__VA_ARGS__)
+#define DIV64_U64_ROUND_UP(...) div64_u64_round_up(__VA_ARGS__)
 
 static inline uint64_t
 mul_u64_u32_div(uint64_t x, uint32_t y, uint32_t div)
@@ -146,11 +146,13 @@ mul_u64_u64_div_u64(uint64_t x, uint64_t y, uint64_t z)
 		}
 	}
 
-	KASSERT(res * z + rem == x * y, ("%s: res %ju * z %ju + rem %ju != "
-	    "x %ju * y %ju", __func__, (uintmax_t)res, (uintmax_t)z,
-	    (uintmax_t)rem, (uintmax_t)x, (uintmax_t)y));
-	KASSERT(rem < z, ("%s: rem %ju >= z %ju\n", __func__,
-	    (uintmax_t)rem, (uintmax_t)z));
+	KASSERT(res * z + rem == x * y,
+	    ("%s: res %ju * z %ju + rem %ju != "
+	     "x %ju * y %ju",
+		__func__, (uintmax_t)res, (uintmax_t)z, (uintmax_t)rem,
+		(uintmax_t)x, (uintmax_t)y));
+	KASSERT(rem < z,
+	    ("%s: rem %ju >= z %ju\n", __func__, (uintmax_t)rem, (uintmax_t)z));
 
 	return (res);
 }
@@ -163,7 +165,7 @@ mul_u64_u32_shr(uint64_t x, uint32_t y, unsigned int shift)
 	lo = x & 0xffffffff;
 
 	return (mul_u32_u32(lo, y) >> shift) +
-		(mul_u32_u32(hi, y) << (32 - shift));
+	    (mul_u32_u32(hi, y) << (32 - shift));
 }
 
 #endif /* _LINUXKPI_LINUX_MATH64_H */

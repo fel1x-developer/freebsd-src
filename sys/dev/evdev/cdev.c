@@ -28,17 +28,17 @@
 #include "opt_evdev.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bitstring.h>
 #include <sys/conf.h>
 #include <sys/epoch.h>
-#include <sys/filio.h>
 #include <sys/fcntl.h>
+#include <sys/filio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/poll.h>
 #include <sys/proc.h>
 #include <sys/selinfo.h>
-#include <sys/systm.h>
 #include <sys/time.h>
 #include <sys/uio.h>
 
@@ -49,29 +49,30 @@
 #ifdef COMPAT_FREEBSD32
 #include <sys/mount.h>
 #include <sys/sysent.h>
+
 #include <compat/freebsd32/freebsd32.h>
 struct input_event32 {
-	struct timeval32	time;
-	uint16_t		type;
-	uint16_t		code;
-	int32_t			value;
+	struct timeval32 time;
+	uint16_t type;
+	uint16_t code;
+	int32_t value;
 };
 #endif
 
 #ifdef EVDEV_DEBUG
-#define	debugf(client, fmt, args...)	printf("evdev cdev: "fmt"\n", ##args)
+#define debugf(client, fmt, args...) printf("evdev cdev: " fmt "\n", ##args)
 #else
-#define	debugf(client, fmt, args...)
+#define debugf(client, fmt, args...)
 #endif
 
-#define	DEF_RING_REPORTS	8
+#define DEF_RING_REPORTS 8
 
-static d_open_t		evdev_open;
-static d_read_t		evdev_read;
-static d_write_t	evdev_write;
-static d_ioctl_t	evdev_ioctl;
-static d_poll_t		evdev_poll;
-static d_kqfilter_t	evdev_kqfilter;
+static d_open_t evdev_open;
+static d_read_t evdev_read;
+static d_write_t evdev_write;
+static d_ioctl_t evdev_ioctl;
+static d_poll_t evdev_poll;
+static d_kqfilter_t evdev_kqfilter;
 
 static int evdev_kqread(struct knote *kn, long hint);
 static void evdev_kqdetach(struct knote *kn);
@@ -112,7 +113,7 @@ evdev_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	/* Initialize client structure */
 	buffer_size = evdev->ev_report_size * DEF_RING_REPORTS;
 	client = malloc(offsetof(struct evdev_client, ec_buffer) +
-	    sizeof(struct input_event) * buffer_size,
+		sizeof(struct input_event) * buffer_size,
 	    M_EVDEV, M_WAITOK | M_ZERO);
 
 	/* Initialize ring buffer */
@@ -235,8 +236,8 @@ evdev_read(struct cdev *dev, struct uio *uio, int ioflag)
 #endif
 			bcopy(head, &event.t, evsize);
 
-		client->ec_buffer_head =
-		    (client->ec_buffer_head + 1) % client->ec_buffer_size;
+		client->ec_buffer_head = (client->ec_buffer_head + 1) %
+		    client->ec_buffer_size;
 		remaining--;
 
 		EVDEV_CLIENT_UNLOCKQ(client);
@@ -345,12 +346,12 @@ evdev_kqfilter(struct cdev *dev, struct knote *kn)
 	if (client->ec_revoked)
 		return (ENODEV);
 
-	switch(kn->kn_filter) {
+	switch (kn->kn_filter) {
 	case EVFILT_READ:
 		kn->kn_fop = &evdev_cdev_filterops;
 		break;
 	default:
-		return(EINVAL);
+		return (EINVAL);
 	}
 	kn->kn_hook = (caddr_t)client;
 
@@ -446,8 +447,8 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 
 	case FIONREAD:
 		EVDEV_CLIENT_LOCKQ(client);
-		*(int *)data =
-		    EVDEV_CLIENT_SIZEQ(client) * sizeof(struct input_event);
+		*(int *)data = EVDEV_CLIENT_SIZEQ(client) *
+		    sizeof(struct input_event);
 		EVDEV_CLIENT_UNLOCKQ(client);
 		return (0);
 	}
@@ -480,8 +481,7 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 			return (ENOTSUP);
 
 		evdev_inject_event(evdev, EV_REP, REP_DELAY, ((int *)data)[0]);
-		evdev_inject_event(evdev, EV_REP, REP_PERIOD,
-		    ((int *)data)[1]);
+		evdev_inject_event(evdev, EV_REP, REP_PERIOD, ((int *)data)[1]);
 		return (0);
 
 	case EVIOCGKEYCODE:
@@ -510,7 +510,7 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		evdev->ev_methods->ev_set_keycode(evdev, ke);
 		return (0);
 
-	case EVIOCGABS(0) ... EVIOCGABS(ABS_MAX):
+	case EVIOCGABS(0)... EVIOCGABS(ABS_MAX):
 		if (evdev->ev_absinfo == NULL)
 			return (EINVAL);
 
@@ -518,7 +518,7 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		    sizeof(struct input_absinfo));
 		return (0);
 
-	case EVIOCSABS(0) ... EVIOCSABS(ABS_MAX):
+	case EVIOCSABS(0)... EVIOCSABS(ABS_MAX):
 		if (evdev->ev_absinfo == NULL)
 			return (EINVAL);
 
@@ -615,11 +615,11 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		if (!ABS_IS_MT(code))
 			return (EINVAL);
 
-		nvalues =
-		    MIN(len / sizeof(int32_t) - 1, MAXIMAL_MT_SLOT(evdev) + 1);
+		nvalues = MIN(len / sizeof(int32_t) - 1,
+		    MAXIMAL_MT_SLOT(evdev) + 1);
 		for (int i = 0; i < nvalues; i++)
-			((int32_t *)data)[i + 1] =
-			    evdev_mt_get_value(evdev, i, code);
+			((int32_t *)data)[i + 1] = evdev_mt_get_value(evdev, i,
+			    code);
 		return (0);
 
 	case EVIOCGKEY(0):
@@ -658,10 +658,10 @@ evdev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		td->td_retval[0] = limit;
 		return (0);
 
-	case EVIOCGBIT(0, 0) ... EVIOCGBIT(EV_MAX, 0):
+	case EVIOCGBIT(0, 0)... EVIOCGBIT(EV_MAX, 0):
 		type_num = IOCBASECMD(cmd) - EVIOCGBIT(0, 0);
-		debugf(client, "EVIOCGBIT(%d): data=%p, len=%d", type_num,
-		    data, len);
+		debugf(client, "EVIOCGBIT(%d): data=%p, len=%d", type_num, data,
+		    len);
 		return (evdev_ioctl_eviocgbit(evdev, type_num, len, data, td));
 	}
 
@@ -777,8 +777,8 @@ evdev_cdev_create(struct evdev_dev *evdev)
 	mda.mda_si_drv1 = evdev;
 
 	/* Try to coexist with cuse-backed input/event devices */
-	while ((ret = make_dev_s(&mda, &evdev->ev_cdev, "input/event%d", unit))
-	    == EEXIST)
+	while ((ret = make_dev_s(&mda, &evdev->ev_cdev, "input/event%d",
+		    unit)) == EEXIST)
 		unit++;
 
 	if (ret == 0)
@@ -834,11 +834,9 @@ evdev_client_push(struct evdev_client *client, uint16_t type, uint16_t code,
 		debugf(client, "client %p: buffer overflow", client);
 
 		head = (tail + count - 1) % count;
-		client->ec_buffer[head] = (struct input_event) {
-			.type = EV_SYN,
+		client->ec_buffer[head] = (struct input_event) { .type = EV_SYN,
 			.code = SYN_DROPPED,
-			.value = 0
-		};
+			.value = 0 };
 		/*
 		 * XXX: Here is a small race window from now till the end of
 		 *      report. The queue is empty but client has been already
@@ -860,7 +858,7 @@ evdev_client_push(struct evdev_client *client, uint16_t type, uint16_t code,
 	if (type == EV_SYN && code == SYN_REPORT) {
 		evdev_client_gettime(client, &time);
 		for (; ready != client->ec_buffer_tail;
-		    ready = (ready + 1) % count)
+		     ready = (ready + 1) % count)
 			client->ec_buffer[ready].time = time;
 		client->ec_buffer_ready = client->ec_buffer_tail;
 	}
@@ -878,8 +876,8 @@ evdev_client_dumpqueue(struct evdev_client *client)
 	size = client->ec_buffer_size;
 
 	printf("evdev client: %p\n", client);
-	printf("event queue: head=%zu ready=%zu tail=%zu size=%zu\n",
-	    head, ready, tail, size);
+	printf("event queue: head=%zu ready=%zu tail=%zu size=%zu\n", head,
+	    ready, tail, size);
 
 	printf("queue contents:\n");
 

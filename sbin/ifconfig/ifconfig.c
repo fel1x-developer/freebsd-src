@@ -34,8 +34,8 @@
 #ifdef JAIL
 #include <sys/jail.h>
 #endif
-#include <sys/module.h>
 #include <sys/linker.h>
+#include <sys/module.h>
 #include <sys/nv.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
@@ -51,51 +51,50 @@
 /* IP */
 #include <netinet/in.h>
 #include <netinet/in_var.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
-#include <fnmatch.h>
-#include <ifaddrs.h>
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fnmatch.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 #ifdef JAIL
 #include <jail.h>
 #endif
+#include <libifconfig.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libifconfig.h>
-
 #include "ifconfig.h"
 
 ifconfig_handle_t *lifh;
 
 #ifdef WITHOUT_NETLINK
-static char	*descr = NULL;
-static size_t	descrlen = 64;
+static char *descr = NULL;
+static size_t descrlen = 64;
 #endif
-static int	setaddr;
-static int	setmask;
-static int	doalias;
-static int	clearaddr;
-static int	newaddr = 1;
+static int setaddr;
+static int setmask;
+static int doalias;
+static int clearaddr;
+static int newaddr = 1;
 
-int	exit_code = 0;
+int exit_code = 0;
 
 static char ifname_to_print[IFNAMSIZ]; /* Helper for printifnamemaybe() */
 
 /* Formatter Strings */
-char	*f_inet, *f_inet6, *f_ether, *f_addr;
+char *f_inet, *f_inet6, *f_ether, *f_addr;
 
 #ifdef WITHOUT_NETLINK
 static void list_interfaces_ioctl(if_ctx *ctx);
-static	void status(if_ctx *ctx, const struct sockaddr_dl *sdl,
-		struct ifaddrs *ifa);
+static void status(if_ctx *ctx, const struct sockaddr_dl *sdl,
+    struct ifaddrs *ifa);
 #endif
 static _Noreturn void usage(void);
 static void Perrorc(const char *cmd, int error);
@@ -120,33 +119,32 @@ static struct module_map_entry {
 	const char *kldname;
 } module_map[] = {
 	{
-		.ifname = "tun",
-		.kldname = "if_tuntap",
+	    .ifname = "tun",
+	    .kldname = "if_tuntap",
 	},
 	{
-		.ifname = "tap",
-		.kldname = "if_tuntap",
+	    .ifname = "tap",
+	    .kldname = "if_tuntap",
 	},
 	{
-		.ifname = "vmnet",
-		.kldname = "if_tuntap",
+	    .ifname = "vmnet",
+	    .kldname = "if_tuntap",
 	},
 	{
-		.ifname = "ipsec",
-		.kldname = "ipsec",
+	    .ifname = "ipsec",
+	    .kldname = "ipsec",
 	},
 	{
-		/*
-		 * This mapping exists because there is a conflicting enc module
-		 * in CAM.  ifconfig's guessing behavior will attempt to match
-		 * the ifname to a module as well as if_${ifname} and clash with
-		 * CAM enc.  This is an assertion of the correct module to load.
-		 */
-		.ifname = "enc",
-		.kldname = "if_enc",
+	    /*
+	     * This mapping exists because there is a conflicting enc module
+	     * in CAM.  ifconfig's guessing behavior will attempt to match
+	     * the ifname to a module as well as if_${ifname} and clash with
+	     * CAM enc.  This is an assertion of the correct module to load.
+	     */
+	    .ifname = "enc",
+	    .kldname = "if_enc",
 	},
 };
-
 
 void
 opt_register(struct option *p)
@@ -169,20 +167,21 @@ usage(void)
 	}
 
 	fprintf(stderr,
-	"usage: ifconfig [-j jail] [-f type:format] %sinterface address_family\n"
-	"                [address [dest_address]] [parameters]\n"
-	"       ifconfig [-j jail] interface create\n"
-	"       ifconfig [-j jail] -a %s[-d] [-m] [-u] [-v] [address_family]\n"
-	"       ifconfig [-j jail] -l [-d] [-u] [address_family]\n"
-	"       ifconfig [-j jail] %s[-d] [-m] [-u] [-v]\n",
-		options, options, options);
+	    "usage: ifconfig [-j jail] [-f type:format] %sinterface address_family\n"
+	    "                [address [dest_address]] [parameters]\n"
+	    "       ifconfig [-j jail] interface create\n"
+	    "       ifconfig [-j jail] -a %s[-d] [-m] [-u] [-v] [address_family]\n"
+	    "       ifconfig [-j jail] -l [-d] [-u] [address_family]\n"
+	    "       ifconfig [-j jail] %s[-d] [-m] [-u] [-v]\n",
+	    options, options, options);
 	exit(1);
 }
 
 static void
 ifname_update(if_ctx *ctx, const char *name)
 {
-	strlcpy(ctx->_ifname_storage_ioctl, name, sizeof(ctx->_ifname_storage_ioctl));
+	strlcpy(ctx->_ifname_storage_ioctl, name,
+	    sizeof(ctx->_ifname_storage_ioctl));
 	ctx->ifname = ctx->_ifname_storage_ioctl;
 
 	strlcpy(ifname_to_print, name, sizeof(ifname_to_print));
@@ -243,7 +242,7 @@ calcorders(struct ifaddrs *ifa, struct ifa_queue *q)
 				return (-1);
 
 			TAILQ_INSERT_TAIL(q, cur, link);
-			cur->if_order = ifa_ord ++;
+			cur->if_order = ifa_ord++;
 			cur->ifa = ifa;
 			ord = 0;
 		}
@@ -273,7 +272,7 @@ cmpifaddrs(struct ifaddrs *a, struct ifaddrs *b, struct ifa_queue *q)
 
 	ret = strcmp(a->ifa_name, b->ifa_name);
 	if (ret != 0) {
-		TAILQ_FOREACH(cur, q, link) {
+		TAILQ_FOREACH (cur, q, link) {
 			if (e1 && e2)
 				break;
 
@@ -289,7 +288,7 @@ cmpifaddrs(struct ifaddrs *a, struct ifaddrs *b, struct ifa_queue *q)
 			return (e1->if_order - e2->if_order);
 
 	} else if (a->ifa_addr != NULL && b->ifa_addr != NULL) {
-		TAILQ_FOREACH(cur, q, link) {
+		TAILQ_FOREACH (cur, q, link) {
 			if (strcmp(cur->ifa->ifa_name, a->ifa_name) == 0) {
 				e1 = cur;
 				break;
@@ -310,7 +309,8 @@ cmpifaddrs(struct ifaddrs *a, struct ifaddrs *b, struct ifa_queue *q)
 }
 #endif
 
-static void freeformat(void)
+static void
+freeformat(void)
 {
 
 	if (f_inet != NULL)
@@ -323,9 +323,10 @@ static void freeformat(void)
 		free(f_addr);
 }
 
-static void setformat(char *input)
+static void
+setformat(char *input)
 {
-	char	*formatstr, *category, *modifier; 
+	char *formatstr, *category, *modifier;
 
 	formatstr = strdup(input);
 	while ((category = strsep(&formatstr, ",")) != NULL) {
@@ -359,7 +360,7 @@ sortifaddrs(struct ifaddrs *list,
     struct ifa_queue *q)
 {
 	struct ifaddrs *right, *temp, *last, *result, *next, *tail;
-	
+
 	right = list;
 	temp = list;
 	last = list;
@@ -461,13 +462,13 @@ args_parse(struct ifconfig_args *args, int argc, char *argv[])
 		strlcat(options, p->opt, sizeof(options));
 	while ((c = getopt(argc, argv, options)) != -1) {
 		switch (c) {
-		case 'a':	/* scan all interfaces */
+		case 'a': /* scan all interfaces */
 			args->all = true;
 			break;
-		case 'd':	/* restrict scan to "down" interfaces */
+		case 'd': /* restrict scan to "down" interfaces */
 			args->downonly = true;
 			break;
-		case 'D':	/* Print driver name */
+		case 'D': /* Print driver name */
 			args->drivername = true;
 			break;
 		case 'f':
@@ -492,16 +493,16 @@ args_parse(struct ifconfig_args *args, int argc, char *argv[])
 		case 'k':
 			args->printkeys = true;
 			break;
-		case 'l':	/* scan interface names only */
+		case 'l': /* scan interface names only */
 			args->namesonly = true;
 			break;
-		case 'm':	/* show media choices in status */
+		case 'm': /* show media choices in status */
 			args->supmedia = true;
 			break;
-		case 'n':	/* suppress module loading */
+		case 'n': /* suppress module loading */
 			args->noload = true;
 			break;
-		case 'u':	/* restrict scan to "up" interfaces */
+		case 'u': /* restrict scan to "up" interfaces */
 			args->uponly = true;
 			break;
 		case 'v':
@@ -705,7 +706,8 @@ main(int ac, char *av[])
 	 */
 	if ((args->argc > 0) && (args->ifname != NULL)) {
 		if (isnametoolong(args->ifname))
-			warnx("%s: interface name too long, skipping", args->ifname);
+			warnx("%s: interface name too long, skipping",
+			    args->ifname);
 		else {
 			flags = getifflags(args->ifname, -1, false);
 			if (!(((flags & IFF_CANTCONFIG) != 0) ||
@@ -730,13 +732,13 @@ bool
 match_ether(const struct sockaddr_dl *sdl)
 {
 	switch (sdl->sdl_type) {
-		case IFT_ETHER:
-		case IFT_L2VLAN:
-		case IFT_BRIDGE:
-			if (sdl->sdl_alen == ETHER_ADDR_LEN)
-				return (true);
-		default:
-			return (false);
+	case IFT_ETHER:
+	case IFT_L2VLAN:
+	case IFT_BRIDGE:
+		if (sdl->sdl_alen == ETHER_ADDR_LEN)
+			return (true);
+	default:
+		return (false);
 	}
 }
 
@@ -754,7 +756,8 @@ match_if_flags(struct ifconfig_args *args, int if_flags)
 
 #ifdef WITHOUT_NETLINK
 static bool
-match_afp(const struct afswtch *afp, int sa_family, const struct sockaddr_dl *sdl)
+match_afp(const struct afswtch *afp, int sa_family,
+    const struct sockaddr_dl *sdl)
 {
 	if (afp == NULL)
 		return (true);
@@ -781,13 +784,13 @@ list_interfaces_ioctl(if_ctx *ctx)
 		err(EXIT_FAILURE, "getifaddrs");
 
 	char *cp = NULL;
-	
+
 	if (calcorders(ifap, &q) != 0)
 		err(EXIT_FAILURE, "calcorders");
-		
+
 	sifap = sortifaddrs(ifap, cmpifaddrs, &q);
 
-	TAILQ_FOREACH_SAFE(cur, &q, link, tmp)
+	TAILQ_FOREACH_SAFE (cur, &q, link, tmp)
 		free(cur);
 
 	ifindex = 0;
@@ -801,13 +804,15 @@ list_interfaces_ioctl(if_ctx *ctx)
 			    ifa->ifa_addr->sa_len);
 		}
 
-		if (args->ifname != NULL && strcmp(args->ifname, ifa->ifa_name) != 0)
+		if (args->ifname != NULL &&
+		    strcmp(args->ifname, ifa->ifa_name) != 0)
 			continue;
 		if (ifa->ifa_addr->sa_family == AF_LINK)
 			sdl = satosdl_c(ifa->ifa_addr);
 		else
 			sdl = NULL;
-		if (cp != NULL && strcmp(cp, ifa->ifa_name) == 0 && !args->namesonly)
+		if (cp != NULL && strcmp(cp, ifa->ifa_name) == 0 &&
+		    !args->namesonly)
 			continue;
 		if (isnametoolong(ifa->ifa_name)) {
 			warnx("%s: interface name too long, skipping",
@@ -818,7 +823,8 @@ list_interfaces_ioctl(if_ctx *ctx)
 
 		if (!match_if_flags(args, ifa->ifa_flags))
 			continue;
-		if (!group_member(ifa->ifa_name, args->matchgroup, args->nogroup))
+		if (!group_member(ifa->ifa_name, args->matchgroup,
+			args->nogroup))
 			continue;
 		ctx->ifname = cp;
 		/*
@@ -827,7 +833,8 @@ list_interfaces_ioctl(if_ctx *ctx)
 		if (args->namesonly) {
 			if (namecp == cp)
 				continue;
-			if (!match_afp(args->afp, ifa->ifa_addr->sa_family, sdl))
+			if (!match_afp(args->afp, ifa->ifa_addr->sa_family,
+				sdl))
 				continue;
 			namecp = cp;
 			ifindex++;
@@ -857,12 +864,12 @@ list_interfaces_ioctl(if_ctx *ctx)
 bool
 group_member(const char *ifname, const char *match, const char *nomatch)
 {
-	static int		 sock = -1;
+	static int sock = -1;
 
-	struct ifgroupreq	 ifgr;
-	struct ifg_req		*ifg;
-	unsigned int		 len;
-	bool			 matched, nomatched;
+	struct ifgroupreq ifgr;
+	struct ifg_req *ifg;
+	unsigned int len;
+	bool matched, nomatched;
 
 	/* Sanity checks. */
 	if (match == NULL && nomatch == NULL)
@@ -876,8 +883,8 @@ group_member(const char *ifname, const char *match, const char *nomatch)
 	/* The socket is opened once. Let _exit() close it. */
 	if (sock == -1) {
 		sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
-    		if (sock == -1)
-            	    errx(1, "%s: socket(AF_LOCAL,SOCK_DGRAM)", __func__);
+		if (sock == -1)
+			errx(1, "%s: socket(AF_LOCAL,SOCK_DGRAM)", __func__);
 	}
 
 	/* Determine amount of memory for the list of groups. */
@@ -890,8 +897,8 @@ group_member(const char *ifname, const char *match, const char *nomatch)
 
 	/* Obtain the list of groups. */
 	len = ifgr.ifgr_len;
-	ifgr.ifgr_groups =
-	    (struct ifg_req *)calloc(len / sizeof(*ifg), sizeof(*ifg));
+	ifgr.ifgr_groups = (struct ifg_req *)calloc(len / sizeof(*ifg),
+	    sizeof(*ifg));
 
 	if (ifgr.ifgr_groups == NULL)
 		errx(1, "%s: no memory", __func__);
@@ -931,7 +938,7 @@ af_getbyname(const char *name)
 {
 	struct afswtch *afp;
 
-	for (afp = afs; afp !=  NULL; afp = afp->af_next)
+	for (afp = afs; afp != NULL; afp = afp->af_next)
 		if (strcmp(afp->af_name, name) == 0)
 			return afp;
 	return NULL;
@@ -1011,7 +1018,7 @@ cmd_lookup(const char *name, int iscreate)
 
 struct callback {
 	callback_func *cb_func;
-	void	*cb_arg;
+	void *cb_arg;
 	struct callback *cb_next;
 };
 static struct callback *callbacks = NULL;
@@ -1035,8 +1042,8 @@ static void setifaddr(if_ctx *ctx, const char *addr, int param);
 static const struct cmd setifaddr_cmd = DEF_CMD("ifaddr", 0, setifaddr);
 
 static void setifdstaddr(if_ctx *ctx, const char *addr, int param __unused);
-static const struct cmd setifdstaddr_cmd =
-	DEF_CMD("ifdstaddr", 0, setifdstaddr);
+static const struct cmd setifdstaddr_cmd = DEF_CMD("ifdstaddr", 0,
+    setifdstaddr);
 
 int
 af_exec_ioctl(if_ctx *ctx, unsigned long action, void *data)
@@ -1055,8 +1062,8 @@ delifaddr(if_ctx *ctx, const struct afswtch *afp)
 	int error;
 
 	if (afp->af_exec == NULL) {
-		warnx("interface %s cannot change %s addresses!",
-		    ctx->ifname, afp->af_name);
+		warnx("interface %s cannot change %s addresses!", ctx->ifname,
+		    afp->af_name);
 		clearaddr = 0;
 		return;
 	}
@@ -1074,8 +1081,8 @@ static void
 addifaddr(if_ctx *ctx, const struct afswtch *afp)
 {
 	if (afp->af_exec == NULL) {
-		warnx("interface %s cannot change %s addresses!",
-		      ctx->ifname, afp->af_name);
+		warnx("interface %s cannot change %s addresses!", ctx->ifname,
+		    afp->af_name);
 		newaddr = 0;
 		return;
 	}
@@ -1108,15 +1115,16 @@ ifconfig_ioctl(if_ctx *orig_ctx, int iscreate, const struct afswtch *uafp)
 	afp = NULL;
 	if (uafp != NULL)
 		afp = uafp;
-	/*
-	 * This is the historical "accident" allowing users to configure IPv4
-	 * addresses without the "inet" keyword which while a nice feature has
-	 * proven to complicate other things.  We cannot remove this but only
-	 * make sure we will never have a similar implicit default for IPv6 or
-	 * any other address familiy.  We need a fallback though for
-	 * ifconfig IF up/down etc. to work without INET support as people
-	 * never used ifconfig IF link up/down, etc. either.
-	 */
+		/*
+		 * This is the historical "accident" allowing users to configure
+		 * IPv4 addresses without the "inet" keyword which while a nice
+		 * feature has proven to complicate other things.  We cannot
+		 * remove this but only make sure we will never have a similar
+		 * implicit default for IPv6 or any other address familiy.  We
+		 * need a fallback though for ifconfig IF up/down etc. to work
+		 * without INET support as people never used ifconfig IF link
+		 * up/down, etc. either.
+		 */
 #ifndef RESCUE
 #ifdef INET
 	if (afp == NULL && feature_present("inet"))
@@ -1131,13 +1139,14 @@ ifconfig_ioctl(if_ctx *orig_ctx, int iscreate, const struct afswtch *uafp)
 	}
 
 top:
-	ifr.ifr_addr.sa_family =
-		afp->af_af == AF_LINK || afp->af_af == AF_UNSPEC ?
-		AF_LOCAL : afp->af_af;
+	ifr.ifr_addr.sa_family = afp->af_af == AF_LINK ||
+		afp->af_af == AF_UNSPEC ?
+	    AF_LOCAL :
+	    afp->af_af;
 
 	if ((s = socket(ifr.ifr_addr.sa_family, SOCK_DGRAM, 0)) < 0 &&
 	    (uafp != NULL || errno != EAFNOSUPPORT ||
-	     (s = socket(AF_LOCAL, SOCK_DGRAM, 0)) < 0))
+		(s = socket(AF_LOCAL, SOCK_DGRAM, 0)) < 0))
 		err(1, "socket(family %u,SOCK_DGRAM)", ifr.ifr_addr.sa_family);
 
 	ctx->io_s = s;
@@ -1185,8 +1194,7 @@ top:
 		}
 		if (p->c_parameter == NEXTARG && p->c_u.c_func) {
 			if (argv[1] == NULL)
-				errx(1, "'%s' requires argument",
-				    p->c_name);
+				errx(1, "'%s' requires argument", p->c_name);
 			p->c_u.c_func(ctx, argv[1], 0);
 			argc--, argv++;
 		} else if (p->c_parameter == OPTARG && p->c_u.c_func) {
@@ -1195,8 +1203,7 @@ top:
 				argc--, argv++;
 		} else if (p->c_parameter == NEXTARG2 && p->c_u.c_func2) {
 			if (argc < 3)
-				errx(1, "'%s' requires 2 arguments",
-				    p->c_name);
+				errx(1, "'%s' requires 2 arguments", p->c_name);
 			p->c_u.c_func2(ctx, argv[1], argv[2]);
 			argc -= 2, argv += 2;
 		} else if (p->c_parameter == SPARAM && p->c_u.c_func3) {
@@ -1210,7 +1217,8 @@ top:
 	 * Do any post argument processing required by the address family.
 	 */
 	if (afp->af_postproc != NULL)
-		afp->af_postproc(ctx, newaddr, getifflags(ctx->ifname, s, true));
+		afp->af_postproc(ctx, newaddr,
+		    getifflags(ctx->ifname, s, true));
 	/*
 	 * Do deferred callbacks registered while processing
 	 * command-line arguments.
@@ -1226,7 +1234,7 @@ top:
 		addifaddr(ctx, afp);
 
 	close(s);
-	return(0);
+	return (0);
 }
 
 static void
@@ -1256,7 +1264,7 @@ settunnel(if_ctx *ctx, const char *src, const char *dst)
 
 	if (afp->af_settunnel == NULL) {
 		warn("address family %s does not support tunnel setup",
-			afp->af_name);
+		    afp->af_name);
 		return;
 	}
 
@@ -1269,8 +1277,7 @@ settunnel(if_ctx *ctx, const char *src, const char *dst)
 		    gai_strerror(ecode));
 
 	if (srcres->ai_addr->sa_family != dstres->ai_addr->sa_family)
-		errx(1,
-		    "source and destination address families do not match");
+		errx(1, "source and destination address families do not match");
 
 	afp->af_settunnel(ctx, srcres, dstres);
 
@@ -1364,20 +1371,20 @@ getifflags(const char *ifname, int us, bool err_ok)
 {
 	struct ifreq my_ifr;
 	int s;
-	
+
 	memset(&my_ifr, 0, sizeof(my_ifr));
-	(void) strlcpy(my_ifr.ifr_name, ifname, sizeof(my_ifr.ifr_name));
+	(void)strlcpy(my_ifr.ifr_name, ifname, sizeof(my_ifr.ifr_name));
 	if (us < 0) {
 		if ((s = socket(AF_LOCAL, SOCK_DGRAM, 0)) < 0)
 			err(1, "socket(family AF_LOCAL,SOCK_DGRAM");
 	} else
 		s = us;
- 	if (ioctl(s, SIOCGIFFLAGS, (caddr_t)&my_ifr) < 0) {
+	if (ioctl(s, SIOCGIFFLAGS, (caddr_t)&my_ifr) < 0) {
 		if (!err_ok) {
 			Perror("ioctl (SIOCGIFFLAGS)");
 			exit(1);
 		}
- 	}
+	}
 	if (us < 0)
 		close(s);
 	return ((my_ifr.ifr_flags & 0xffff) | (my_ifr.ifr_flagshigh << 16));
@@ -1391,7 +1398,7 @@ getifflags(const char *ifname, int us, bool err_ok)
 static void
 clearifflags(if_ctx *ctx, const char *vname, int value)
 {
-	struct ifreq		my_ifr;
+	struct ifreq my_ifr;
 	int flags;
 
 	flags = getifflags(ctx->ifname, ctx->io_s, false);
@@ -1407,7 +1414,7 @@ clearifflags(if_ctx *ctx, const char *vname, int value)
 static void
 setifflags(if_ctx *ctx, const char *vname, int value)
 {
-	struct ifreq		my_ifr;
+	struct ifreq my_ifr;
 	int flags;
 
 	flags = getifflags(ctx->ifname, ctx->io_s, false);
@@ -1427,9 +1434,9 @@ clearifcap(if_ctx *ctx, const char *vname, int value)
 	int flags;
 
 	if (ioctl_ctx_ifr(ctx, SIOCGIFCAP, &ifr) < 0) {
- 		Perror("ioctl (SIOCGIFCAP)");
- 		exit(1);
- 	}
+		Perror("ioctl (SIOCGIFCAP)");
+		exit(1);
+	}
 	flags = ifr.ifr_curcap;
 	flags &= ~value;
 	flags &= ifr.ifr_reqcap;
@@ -1448,9 +1455,9 @@ setifcap(if_ctx *ctx, const char *vname, int value)
 	int flags;
 
 	if (ioctl_ctx_ifr(ctx, SIOCGIFCAP, &ifr) < 0) {
- 		Perror("ioctl (SIOCGIFCAP)");
- 		exit(1);
- 	}
+		Perror("ioctl (SIOCGIFCAP)");
+		exit(1);
+	}
 	flags = ifr.ifr_curcap;
 	flags |= value;
 	flags &= ifr.ifr_reqcap;
@@ -1609,17 +1616,17 @@ unsetifdescr(if_ctx *ctx, const char *val __unused, int value __unused)
 
 #ifdef WITHOUT_NETLINK
 
-#define	IFFBITS \
-"\020\1UP\2BROADCAST\3DEBUG\4LOOPBACK\5POINTOPOINT\7RUNNING" \
-"\10NOARP\11PROMISC\12ALLMULTI\13OACTIVE\14SIMPLEX\15LINK0\16LINK1\17LINK2" \
-"\20MULTICAST\22PPROMISC\23MONITOR\24STATICARP\25STICKYARP"
+#define IFFBITS                                                                     \
+	"\020\1UP\2BROADCAST\3DEBUG\4LOOPBACK\5POINTOPOINT\7RUNNING"                \
+	"\10NOARP\11PROMISC\12ALLMULTI\13OACTIVE\14SIMPLEX\15LINK0\16LINK1\17LINK2" \
+	"\20MULTICAST\22PPROMISC\23MONITOR\24STATICARP\25STICKYARP"
 
-#define	IFCAPBITS \
-"\020\1RXCSUM\2TXCSUM\3NETCONS\4VLAN_MTU\5VLAN_HWTAGGING\6JUMBO_MTU\7POLLING" \
-"\10VLAN_HWCSUM\11TSO4\12TSO6\13LRO\14WOL_UCAST\15WOL_MCAST\16WOL_MAGIC" \
-"\17TOE4\20TOE6\21VLAN_HWFILTER\23VLAN_HWTSO\24LINKSTATE\25NETMAP" \
-"\26RXCSUM_IPV6\27TXCSUM_IPV6\31TXRTLMT\32HWRXTSTMP\33NOMAP\34TXTLS4\35TXTLS6" \
-"\36VXLAN_HWCSUM\37VXLAN_HWTSO\40TXTLS_RTLMT"
+#define IFCAPBITS                                                                      \
+	"\020\1RXCSUM\2TXCSUM\3NETCONS\4VLAN_MTU\5VLAN_HWTAGGING\6JUMBO_MTU\7POLLING"  \
+	"\10VLAN_HWCSUM\11TSO4\12TSO6\13LRO\14WOL_UCAST\15WOL_MCAST\16WOL_MAGIC"       \
+	"\17TOE4\20TOE6\21VLAN_HWFILTER\23VLAN_HWTSO\24LINKSTATE\25NETMAP"             \
+	"\26RXCSUM_IPV6\27TXCSUM_IPV6\31TXRTLMT\32HWRXTSTMP\33NOMAP\34TXTLS4\35TXTLS6" \
+	"\36VXLAN_HWCSUM\37VXLAN_HWTSO\40TXTLS_RTLMT"
 
 static void
 print_ifcap_nv(if_ctx *ctx)
@@ -1638,8 +1645,7 @@ print_ifcap_nv(if_ctx *ctx)
 	ifr.ifr_cap_nv.buf_length = IFR_CAP_NV_MAXBUFSIZE;
 	if (ioctl_ctx_ifr(ctx, SIOCGIFCAPNV, &ifr) != 0)
 		Perror("ioctl (SIOCGIFCAPNV)");
-	nvcap = nvlist_unpack(ifr.ifr_cap_nv.buffer,
-	    ifr.ifr_cap_nv.length, 0);
+	nvcap = nvlist_unpack(ifr.ifr_cap_nv.buffer, ifr.ifr_cap_nv.length, 0);
 	if (nvcap == NULL)
 		Perror("nvlist_unpack");
 	printf("\toptions");
@@ -1653,8 +1659,7 @@ print_ifcap_nv(if_ctx *ctx)
 		if (type == NV_TYPE_BOOL) {
 			val = nvlist_get_bool(nvcap, nvname);
 			if (val) {
-				printf("%c%s",
-				    first ? ' ' : ',', nvname);
+				printf("%c%s", first ? ' ' : ',', nvname);
 			}
 		}
 	}
@@ -1662,15 +1667,13 @@ print_ifcap_nv(if_ctx *ctx)
 		printf("\tcapabilities");
 		cookie = NULL;
 		for (first = true;; first = false) {
-			nvname = nvlist_next(nvcap, &type,
-			    &cookie);
+			nvname = nvlist_next(nvcap, &type, &cookie);
 			if (nvname == NULL) {
 				printf("\n");
 				break;
 			}
 			if (type == NV_TYPE_BOOL)
-				printf("%c%s", first ? ' ' :
-				    ',', nvname);
+				printf("%c%s", first ? ' ' : ',', nvname);
 		}
 	}
 	nvlist_destroy(nvcap);
@@ -1752,7 +1755,7 @@ print_description(if_ctx *ctx)
 			}
 		} else
 			warn("unable to allocate memory for interface"
-			    "description");
+			     "description");
 		break;
 	}
 }
@@ -1773,8 +1776,9 @@ status(if_ctx *ctx, const struct sockaddr_dl *sdl __unused, struct ifaddrs *ifa)
 	if (args->afp == NULL)
 		ifr.ifr_addr.sa_family = AF_LOCAL;
 	else
-		ifr.ifr_addr.sa_family =
-		   args->afp->af_af == AF_LINK ? AF_LOCAL : args->afp->af_af;
+		ifr.ifr_addr.sa_family = args->afp->af_af == AF_LINK ?
+		    AF_LOCAL :
+		    args->afp->af_af;
 
 	s = socket(ifr.ifr_addr.sa_family, SOCK_DGRAM, 0);
 	if (s < 0)
@@ -1886,7 +1890,7 @@ printb(const char *s, unsigned v, const char *bits)
 		bits++;
 		putchar('<');
 		while ((i = *bits++) != '\0') {
-			if (v & (1u << (i-1))) {
+			if (v & (1u << (i - 1))) {
 				if (any)
 					putchar(',');
 				any = 1;
@@ -1911,14 +1915,14 @@ print_vhid(const struct ifaddrs *ifa)
 	ifd = ifa->ifa_data;
 	if (ifd->ifi_vhid == 0)
 		return;
-	
+
 	printf(" vhid %d", ifd->ifi_vhid);
 }
 
 void
 ifmaybeload(struct ifconfig_args *args, const char *name)
 {
-#define MOD_PREFIX_LEN		3	/* "if_" */
+#define MOD_PREFIX_LEN 3 /* "if_" */
 	struct module_stat mstat;
 	int fileid, modid;
 	char ifkind[IFNAMSIZ + MOD_PREFIX_LEN], ifname[IFNAMSIZ], *dp;
@@ -1954,9 +1958,9 @@ ifmaybeload(struct ifconfig_args *args, const char *name)
 
 	/* We didn't have an alias for it... we'll guess. */
 	if (!found) {
-	    /* turn interface and unit into module name */
-	    strlcpy(ifkind, "if_", sizeof(ifkind));
-	    strlcat(ifkind, ifname, sizeof(ifkind));
+		/* turn interface and unit into module name */
+		strlcpy(ifkind, "if_", sizeof(ifkind));
+		strlcat(ifkind, ifname, sizeof(ifkind));
 	}
 
 	/* scan files in kernel */
@@ -1988,105 +1992,105 @@ ifmaybeload(struct ifconfig_args *args, const char *name)
 	 * Try to load the module.  But ignore failures, because ifconfig can't
 	 * infer the names of all drivers (eg mlx4en(4)).
 	 */
-	(void) kldload(ifkind);
+	(void)kldload(ifkind);
 }
 
 static struct cmd basic_cmds[] = {
-	DEF_CMD("up",		IFF_UP,		setifflags),
-	DEF_CMD("down",		IFF_UP,		clearifflags),
-	DEF_CMD("arp",		IFF_NOARP,	clearifflags),
-	DEF_CMD("-arp",		IFF_NOARP,	setifflags),
-	DEF_CMD("debug",	IFF_DEBUG,	setifflags),
-	DEF_CMD("-debug",	IFF_DEBUG,	clearifflags),
-	DEF_CMD_ARG("description",		setifdescr),
-	DEF_CMD_ARG("descr",			setifdescr),
-	DEF_CMD("-description",	0,		unsetifdescr),
-	DEF_CMD("-descr",	0,		unsetifdescr),
-	DEF_CMD("promisc",	IFF_PPROMISC,	setifflags),
-	DEF_CMD("-promisc",	IFF_PPROMISC,	clearifflags),
-	DEF_CMD("add",		IFF_UP,		notealias),
-	DEF_CMD("alias",	IFF_UP,		notealias),
-	DEF_CMD("-alias",	-IFF_UP,	notealias),
-	DEF_CMD("delete",	-IFF_UP,	notealias),
-	DEF_CMD("remove",	-IFF_UP,	notealias),
+	DEF_CMD("up", IFF_UP, setifflags),
+	DEF_CMD("down", IFF_UP, clearifflags),
+	DEF_CMD("arp", IFF_NOARP, clearifflags),
+	DEF_CMD("-arp", IFF_NOARP, setifflags),
+	DEF_CMD("debug", IFF_DEBUG, setifflags),
+	DEF_CMD("-debug", IFF_DEBUG, clearifflags),
+	DEF_CMD_ARG("description", setifdescr),
+	DEF_CMD_ARG("descr", setifdescr),
+	DEF_CMD("-description", 0, unsetifdescr),
+	DEF_CMD("-descr", 0, unsetifdescr),
+	DEF_CMD("promisc", IFF_PPROMISC, setifflags),
+	DEF_CMD("-promisc", IFF_PPROMISC, clearifflags),
+	DEF_CMD("add", IFF_UP, notealias),
+	DEF_CMD("alias", IFF_UP, notealias),
+	DEF_CMD("-alias", -IFF_UP, notealias),
+	DEF_CMD("delete", -IFF_UP, notealias),
+	DEF_CMD("remove", -IFF_UP, notealias),
 #ifdef notdef
-#define	EN_SWABIPS	0x1000
-	DEF_CMD("swabips",	EN_SWABIPS,	setifflags),
-	DEF_CMD("-swabips",	EN_SWABIPS,	clearifflags),
+#define EN_SWABIPS 0x1000
+	DEF_CMD("swabips", EN_SWABIPS, setifflags),
+	DEF_CMD("-swabips", EN_SWABIPS, clearifflags),
 #endif
-	DEF_CMD_ARG("netmask",			setifnetmask),
-	DEF_CMD_ARG("metric",			setifmetric),
-	DEF_CMD_ARG("broadcast",		setifbroadaddr),
-	DEF_CMD_ARG2("tunnel",			settunnel),
-	DEF_CMD("-tunnel", 0,			deletetunnel),
-	DEF_CMD("deletetunnel", 0,		deletetunnel),
+	DEF_CMD_ARG("netmask", setifnetmask),
+	DEF_CMD_ARG("metric", setifmetric),
+	DEF_CMD_ARG("broadcast", setifbroadaddr),
+	DEF_CMD_ARG2("tunnel", settunnel),
+	DEF_CMD("-tunnel", 0, deletetunnel),
+	DEF_CMD("deletetunnel", 0, deletetunnel),
 #ifdef JAIL
-	DEF_CMD_ARG("vnet",			setifvnet),
-	DEF_CMD_ARG("-vnet",			setifrvnet),
+	DEF_CMD_ARG("vnet", setifvnet),
+	DEF_CMD_ARG("-vnet", setifrvnet),
 #endif
-	DEF_CMD("link0",	IFF_LINK0,	setifflags),
-	DEF_CMD("-link0",	IFF_LINK0,	clearifflags),
-	DEF_CMD("link1",	IFF_LINK1,	setifflags),
-	DEF_CMD("-link1",	IFF_LINK1,	clearifflags),
-	DEF_CMD("link2",	IFF_LINK2,	setifflags),
-	DEF_CMD("-link2",	IFF_LINK2,	clearifflags),
-	DEF_CMD("monitor",	IFF_MONITOR,	setifflags),
-	DEF_CMD("-monitor",	IFF_MONITOR,	clearifflags),
-	DEF_CMD("mextpg",	IFCAP_MEXTPG,	setifcap),
-	DEF_CMD("-mextpg",	IFCAP_MEXTPG,	clearifcap),
-	DEF_CMD("staticarp",	IFF_STATICARP,	setifflags),
-	DEF_CMD("-staticarp",	IFF_STATICARP,	clearifflags),
-	DEF_CMD("stickyarp",	IFF_STICKYARP,	setifflags),
-	DEF_CMD("-stickyarp",	IFF_STICKYARP,	clearifflags),
-	DEF_CMD("rxcsum6",	IFCAP_RXCSUM_IPV6,	setifcap),
-	DEF_CMD("-rxcsum6",	IFCAP_RXCSUM_IPV6,	clearifcap),
-	DEF_CMD("txcsum6",	IFCAP_TXCSUM_IPV6,	setifcap),
-	DEF_CMD("-txcsum6",	IFCAP_TXCSUM_IPV6,	clearifcap),
-	DEF_CMD("rxcsum",	IFCAP_RXCSUM,	setifcap),
-	DEF_CMD("-rxcsum",	IFCAP_RXCSUM,	clearifcap),
-	DEF_CMD("txcsum",	IFCAP_TXCSUM,	setifcap),
-	DEF_CMD("-txcsum",	IFCAP_TXCSUM,	clearifcap),
-	DEF_CMD("netcons",	IFCAP_NETCONS,	setifcap),
-	DEF_CMD("-netcons",	IFCAP_NETCONS,	clearifcap),
-	DEF_CMD_ARG("pcp",			setifpcp),
-	DEF_CMD("-pcp", 0,			disableifpcp),
-	DEF_CMD("polling",	IFCAP_POLLING,	setifcap),
-	DEF_CMD("-polling",	IFCAP_POLLING,	clearifcap),
-	DEF_CMD("tso6",		IFCAP_TSO6,	setifcap),
-	DEF_CMD("-tso6",	IFCAP_TSO6,	clearifcap),
-	DEF_CMD("tso4",		IFCAP_TSO4,	setifcap),
-	DEF_CMD("-tso4",	IFCAP_TSO4,	clearifcap),
-	DEF_CMD("tso",		IFCAP_TSO,	setifcap),
-	DEF_CMD("-tso",		IFCAP_TSO,	clearifcap),
-	DEF_CMD("toe",		IFCAP_TOE,	setifcap),
-	DEF_CMD("-toe",		IFCAP_TOE,	clearifcap),
-	DEF_CMD("lro",		IFCAP_LRO,	setifcap),
-	DEF_CMD("-lro",		IFCAP_LRO,	clearifcap),
-	DEF_CMD("txtls",	IFCAP_TXTLS,	setifcap),
-	DEF_CMD("-txtls",	IFCAP_TXTLS,	clearifcap),
-	DEF_CMD_SARG("rxtls",	IFCAP2_RXTLS4_NAME "," IFCAP2_RXTLS6_NAME,
+	DEF_CMD("link0", IFF_LINK0, setifflags),
+	DEF_CMD("-link0", IFF_LINK0, clearifflags),
+	DEF_CMD("link1", IFF_LINK1, setifflags),
+	DEF_CMD("-link1", IFF_LINK1, clearifflags),
+	DEF_CMD("link2", IFF_LINK2, setifflags),
+	DEF_CMD("-link2", IFF_LINK2, clearifflags),
+	DEF_CMD("monitor", IFF_MONITOR, setifflags),
+	DEF_CMD("-monitor", IFF_MONITOR, clearifflags),
+	DEF_CMD("mextpg", IFCAP_MEXTPG, setifcap),
+	DEF_CMD("-mextpg", IFCAP_MEXTPG, clearifcap),
+	DEF_CMD("staticarp", IFF_STATICARP, setifflags),
+	DEF_CMD("-staticarp", IFF_STATICARP, clearifflags),
+	DEF_CMD("stickyarp", IFF_STICKYARP, setifflags),
+	DEF_CMD("-stickyarp", IFF_STICKYARP, clearifflags),
+	DEF_CMD("rxcsum6", IFCAP_RXCSUM_IPV6, setifcap),
+	DEF_CMD("-rxcsum6", IFCAP_RXCSUM_IPV6, clearifcap),
+	DEF_CMD("txcsum6", IFCAP_TXCSUM_IPV6, setifcap),
+	DEF_CMD("-txcsum6", IFCAP_TXCSUM_IPV6, clearifcap),
+	DEF_CMD("rxcsum", IFCAP_RXCSUM, setifcap),
+	DEF_CMD("-rxcsum", IFCAP_RXCSUM, clearifcap),
+	DEF_CMD("txcsum", IFCAP_TXCSUM, setifcap),
+	DEF_CMD("-txcsum", IFCAP_TXCSUM, clearifcap),
+	DEF_CMD("netcons", IFCAP_NETCONS, setifcap),
+	DEF_CMD("-netcons", IFCAP_NETCONS, clearifcap),
+	DEF_CMD_ARG("pcp", setifpcp),
+	DEF_CMD("-pcp", 0, disableifpcp),
+	DEF_CMD("polling", IFCAP_POLLING, setifcap),
+	DEF_CMD("-polling", IFCAP_POLLING, clearifcap),
+	DEF_CMD("tso6", IFCAP_TSO6, setifcap),
+	DEF_CMD("-tso6", IFCAP_TSO6, clearifcap),
+	DEF_CMD("tso4", IFCAP_TSO4, setifcap),
+	DEF_CMD("-tso4", IFCAP_TSO4, clearifcap),
+	DEF_CMD("tso", IFCAP_TSO, setifcap),
+	DEF_CMD("-tso", IFCAP_TSO, clearifcap),
+	DEF_CMD("toe", IFCAP_TOE, setifcap),
+	DEF_CMD("-toe", IFCAP_TOE, clearifcap),
+	DEF_CMD("lro", IFCAP_LRO, setifcap),
+	DEF_CMD("-lro", IFCAP_LRO, clearifcap),
+	DEF_CMD("txtls", IFCAP_TXTLS, setifcap),
+	DEF_CMD("-txtls", IFCAP_TXTLS, clearifcap),
+	DEF_CMD_SARG("rxtls", IFCAP2_RXTLS4_NAME "," IFCAP2_RXTLS6_NAME,
 	    setifcapnv),
-	DEF_CMD_SARG("-rxtls",	"-"IFCAP2_RXTLS4_NAME ",-" IFCAP2_RXTLS6_NAME,
+	DEF_CMD_SARG("-rxtls", "-" IFCAP2_RXTLS4_NAME ",-" IFCAP2_RXTLS6_NAME,
 	    setifcapnv),
-	DEF_CMD("wol",		IFCAP_WOL,	setifcap),
-	DEF_CMD("-wol",		IFCAP_WOL,	clearifcap),
-	DEF_CMD("wol_ucast",	IFCAP_WOL_UCAST,	setifcap),
-	DEF_CMD("-wol_ucast",	IFCAP_WOL_UCAST,	clearifcap),
-	DEF_CMD("wol_mcast",	IFCAP_WOL_MCAST,	setifcap),
-	DEF_CMD("-wol_mcast",	IFCAP_WOL_MCAST,	clearifcap),
-	DEF_CMD("wol_magic",	IFCAP_WOL_MAGIC,	setifcap),
-	DEF_CMD("-wol_magic",	IFCAP_WOL_MAGIC,	clearifcap),
-	DEF_CMD("txrtlmt",	IFCAP_TXRTLMT,	setifcap),
-	DEF_CMD("-txrtlmt",	IFCAP_TXRTLMT,	clearifcap),
-	DEF_CMD("txtlsrtlmt",	IFCAP_TXTLS_RTLMT,	setifcap),
-	DEF_CMD("-txtlsrtlmt",	IFCAP_TXTLS_RTLMT,	clearifcap),
-	DEF_CMD("hwrxtstmp",	IFCAP_HWRXTSTMP,	setifcap),
-	DEF_CMD("-hwrxtstmp",	IFCAP_HWRXTSTMP,	clearifcap),
-	DEF_CMD("normal",	IFF_LINK0,	clearifflags),
-	DEF_CMD("compress",	IFF_LINK0,	setifflags),
-	DEF_CMD("noicmp",	IFF_LINK1,	setifflags),
-	DEF_CMD_ARG("mtu",			setifmtu),
-	DEF_CMD_ARG("name",			setifname),
+	DEF_CMD("wol", IFCAP_WOL, setifcap),
+	DEF_CMD("-wol", IFCAP_WOL, clearifcap),
+	DEF_CMD("wol_ucast", IFCAP_WOL_UCAST, setifcap),
+	DEF_CMD("-wol_ucast", IFCAP_WOL_UCAST, clearifcap),
+	DEF_CMD("wol_mcast", IFCAP_WOL_MCAST, setifcap),
+	DEF_CMD("-wol_mcast", IFCAP_WOL_MCAST, clearifcap),
+	DEF_CMD("wol_magic", IFCAP_WOL_MAGIC, setifcap),
+	DEF_CMD("-wol_magic", IFCAP_WOL_MAGIC, clearifcap),
+	DEF_CMD("txrtlmt", IFCAP_TXRTLMT, setifcap),
+	DEF_CMD("-txrtlmt", IFCAP_TXRTLMT, clearifcap),
+	DEF_CMD("txtlsrtlmt", IFCAP_TXTLS_RTLMT, setifcap),
+	DEF_CMD("-txtlsrtlmt", IFCAP_TXTLS_RTLMT, clearifcap),
+	DEF_CMD("hwrxtstmp", IFCAP_HWRXTSTMP, setifcap),
+	DEF_CMD("-hwrxtstmp", IFCAP_HWRXTSTMP, clearifcap),
+	DEF_CMD("normal", IFF_LINK0, clearifflags),
+	DEF_CMD("compress", IFF_LINK0, setifflags),
+	DEF_CMD("noicmp", IFF_LINK1, setifflags),
+	DEF_CMD_ARG("mtu", setifmtu),
+	DEF_CMD_ARG("name", setifname),
 };
 
 static __constructor void
@@ -2094,6 +2098,6 @@ ifconfig_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(basic_cmds);  i++)
+	for (i = 0; i < nitems(basic_cmds); i++)
 		cmd_register(&basic_cmds[i]);
 }

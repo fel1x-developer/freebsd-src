@@ -25,14 +25,14 @@
  */
 
 #ifndef _LEGACY_STRINGS_H_
-#define	_LEGACY_STRINGS_H_
+#define _LEGACY_STRINGS_H_
 
 #include_next <strings.h>
 
 __BEGIN_DECLS
 
 #if __BSD_VISIBLE
-void	 explicit_bzero(void *, size_t);
+void explicit_bzero(void *, size_t);
 #endif /* __BSD_VISIBLE */
 
 __END_DECLS

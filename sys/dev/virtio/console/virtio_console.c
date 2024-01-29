@@ -27,30 +27,29 @@
 /* Driver for VirtIO console devices. */
 
 #include <sys/param.h>
-#include <sys/ctype.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/cons.h>
+#include <sys/ctype.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/kdb.h>
-#include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/sglist.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/queue.h>
-
-#include <sys/conf.h>
-#include <sys/cons.h>
 #include <sys/tty.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
 
+#include <dev/virtio/console/virtio_console.h>
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
-#include <dev/virtio/console/virtio_console.h>
 
 #include "virtio_if.h"
 
@@ -73,191 +72,183 @@ struct vtcon_softc;
 struct vtcon_softc_port;
 
 struct vtcon_port {
-	struct mtx			 vtcport_mtx;
-	struct vtcon_softc		*vtcport_sc;
-	struct vtcon_softc_port		*vtcport_scport;
-	struct tty			*vtcport_tty;
-	struct virtqueue		*vtcport_invq;
-	struct virtqueue		*vtcport_outvq;
-	int				 vtcport_id;
-	int				 vtcport_flags;
-#define VTCON_PORT_FLAG_GONE	0x01
-#define VTCON_PORT_FLAG_CONSOLE	0x02
-#define VTCON_PORT_FLAG_ALIAS	0x04
+	struct mtx vtcport_mtx;
+	struct vtcon_softc *vtcport_sc;
+	struct vtcon_softc_port *vtcport_scport;
+	struct tty *vtcport_tty;
+	struct virtqueue *vtcport_invq;
+	struct virtqueue *vtcport_outvq;
+	int vtcport_id;
+	int vtcport_flags;
+#define VTCON_PORT_FLAG_GONE 0x01
+#define VTCON_PORT_FLAG_CONSOLE 0x02
+#define VTCON_PORT_FLAG_ALIAS 0x04
 
 #if defined(KDB)
-	int				 vtcport_alt_break_state;
+	int vtcport_alt_break_state;
 #endif
 };
 
-#define VTCON_PORT_LOCK(_port)		mtx_lock(&(_port)->vtcport_mtx)
-#define VTCON_PORT_UNLOCK(_port)	mtx_unlock(&(_port)->vtcport_mtx)
+#define VTCON_PORT_LOCK(_port) mtx_lock(&(_port)->vtcport_mtx)
+#define VTCON_PORT_UNLOCK(_port) mtx_unlock(&(_port)->vtcport_mtx)
 
 struct vtcon_softc_port {
-	struct vtcon_softc	*vcsp_sc;
-	struct vtcon_port	*vcsp_port;
-	struct virtqueue	*vcsp_invq;
-	struct virtqueue	*vcsp_outvq;
+	struct vtcon_softc *vcsp_sc;
+	struct vtcon_port *vcsp_port;
+	struct virtqueue *vcsp_invq;
+	struct virtqueue *vcsp_outvq;
 };
 
 struct vtcon_softc {
-	device_t		 vtcon_dev;
-	struct mtx		 vtcon_mtx;
-	uint64_t		 vtcon_features;
-	uint32_t		 vtcon_max_ports;
-	uint32_t		 vtcon_flags;
-#define VTCON_FLAG_DETACHED	0x01
-#define VTCON_FLAG_SIZE		0x02
-#define VTCON_FLAG_MULTIPORT	0x04
+	device_t vtcon_dev;
+	struct mtx vtcon_mtx;
+	uint64_t vtcon_features;
+	uint32_t vtcon_max_ports;
+	uint32_t vtcon_flags;
+#define VTCON_FLAG_DETACHED 0x01
+#define VTCON_FLAG_SIZE 0x02
+#define VTCON_FLAG_MULTIPORT 0x04
 
 	/*
 	 * Ports can be added and removed during runtime, but we have
 	 * to allocate all the virtqueues during attach. This array is
 	 * indexed by the port ID.
 	 */
-	struct vtcon_softc_port	*vtcon_ports;
+	struct vtcon_softc_port *vtcon_ports;
 
-	struct task		 vtcon_ctrl_task;
-	struct virtqueue	*vtcon_ctrl_rxvq;
-	struct virtqueue	*vtcon_ctrl_txvq;
-	struct mtx		 vtcon_ctrl_tx_mtx;
+	struct task vtcon_ctrl_task;
+	struct virtqueue *vtcon_ctrl_rxvq;
+	struct virtqueue *vtcon_ctrl_txvq;
+	struct mtx vtcon_ctrl_tx_mtx;
 };
 
-#define VTCON_LOCK(_sc)			mtx_lock(&(_sc)->vtcon_mtx)
-#define VTCON_UNLOCK(_sc)		mtx_unlock(&(_sc)->vtcon_mtx)
-#define VTCON_LOCK_ASSERT(_sc)		\
-    mtx_assert(&(_sc)->vtcon_mtx, MA_OWNED)
-#define VTCON_LOCK_ASSERT_NOTOWNED(_sc)	\
-    mtx_assert(&(_sc)->vtcon_mtx, MA_NOTOWNED)
+#define VTCON_LOCK(_sc) mtx_lock(&(_sc)->vtcon_mtx)
+#define VTCON_UNLOCK(_sc) mtx_unlock(&(_sc)->vtcon_mtx)
+#define VTCON_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->vtcon_mtx, MA_OWNED)
+#define VTCON_LOCK_ASSERT_NOTOWNED(_sc) \
+	mtx_assert(&(_sc)->vtcon_mtx, MA_NOTOWNED)
 
-#define VTCON_CTRL_TX_LOCK(_sc)		mtx_lock(&(_sc)->vtcon_ctrl_tx_mtx)
-#define VTCON_CTRL_TX_UNLOCK(_sc)	mtx_unlock(&(_sc)->vtcon_ctrl_tx_mtx)
+#define VTCON_CTRL_TX_LOCK(_sc) mtx_lock(&(_sc)->vtcon_ctrl_tx_mtx)
+#define VTCON_CTRL_TX_UNLOCK(_sc) mtx_unlock(&(_sc)->vtcon_ctrl_tx_mtx)
 
-#define VTCON_ASSERT_VALID_PORTID(_sc, _id)			\
-    KASSERT((_id) >= 0 && (_id) < (_sc)->vtcon_max_ports,	\
-        ("%s: port ID %d out of range", __func__, _id))
+#define VTCON_ASSERT_VALID_PORTID(_sc, _id)                   \
+	KASSERT((_id) >= 0 && (_id) < (_sc)->vtcon_max_ports, \
+	    ("%s: port ID %d out of range", __func__, _id))
 
-#define VTCON_FEATURES  VIRTIO_CONSOLE_F_MULTIPORT
+#define VTCON_FEATURES VIRTIO_CONSOLE_F_MULTIPORT
 
 static struct virtio_feature_desc vtcon_feature_desc[] = {
-	{ VIRTIO_CONSOLE_F_SIZE,	"ConsoleSize"	},
-	{ VIRTIO_CONSOLE_F_MULTIPORT,	"MultiplePorts"	},
-	{ VIRTIO_CONSOLE_F_EMERG_WRITE,	"EmergencyWrite" },
-	{ 0, NULL }
+	{ VIRTIO_CONSOLE_F_SIZE, "ConsoleSize" },
+	{ VIRTIO_CONSOLE_F_MULTIPORT, "MultiplePorts" },
+	{ VIRTIO_CONSOLE_F_EMERG_WRITE, "EmergencyWrite" }, { 0, NULL }
 };
 
-static int	 vtcon_modevent(module_t, int, void *);
-static void	 vtcon_drain_all(void);
+static int vtcon_modevent(module_t, int, void *);
+static void vtcon_drain_all(void);
 
-static int	 vtcon_probe(device_t);
-static int	 vtcon_attach(device_t);
-static int	 vtcon_detach(device_t);
-static int	 vtcon_config_change(device_t);
+static int vtcon_probe(device_t);
+static int vtcon_attach(device_t);
+static int vtcon_detach(device_t);
+static int vtcon_config_change(device_t);
 
-static int	 vtcon_setup_features(struct vtcon_softc *);
-static int	 vtcon_negotiate_features(struct vtcon_softc *);
-static int	 vtcon_alloc_scports(struct vtcon_softc *);
-static int	 vtcon_alloc_virtqueues(struct vtcon_softc *);
-static void	 vtcon_read_config(struct vtcon_softc *,
-		     struct virtio_console_config *);
+static int vtcon_setup_features(struct vtcon_softc *);
+static int vtcon_negotiate_features(struct vtcon_softc *);
+static int vtcon_alloc_scports(struct vtcon_softc *);
+static int vtcon_alloc_virtqueues(struct vtcon_softc *);
+static void vtcon_read_config(struct vtcon_softc *,
+    struct virtio_console_config *);
 
-static void	 vtcon_determine_max_ports(struct vtcon_softc *,
-		     struct virtio_console_config *);
-static void	 vtcon_destroy_ports(struct vtcon_softc *);
-static void	 vtcon_stop(struct vtcon_softc *);
+static void vtcon_determine_max_ports(struct vtcon_softc *,
+    struct virtio_console_config *);
+static void vtcon_destroy_ports(struct vtcon_softc *);
+static void vtcon_stop(struct vtcon_softc *);
 
-static int	 vtcon_ctrl_event_enqueue(struct vtcon_softc *,
-		     struct virtio_console_control *);
-static int	 vtcon_ctrl_event_create(struct vtcon_softc *);
-static void	 vtcon_ctrl_event_requeue(struct vtcon_softc *,
-		     struct virtio_console_control *);
-static int	 vtcon_ctrl_event_populate(struct vtcon_softc *);
-static void	 vtcon_ctrl_event_drain(struct vtcon_softc *);
-static int	 vtcon_ctrl_init(struct vtcon_softc *);
-static void	 vtcon_ctrl_deinit(struct vtcon_softc *);
-static void	 vtcon_ctrl_port_add_event(struct vtcon_softc *, int);
-static void	 vtcon_ctrl_port_remove_event(struct vtcon_softc *, int);
-static void	 vtcon_ctrl_port_console_event(struct vtcon_softc *, int);
-static void	 vtcon_ctrl_port_open_event(struct vtcon_softc *, int);
-static void	 vtcon_ctrl_port_name_event(struct vtcon_softc *, int,
-		     const char *, size_t);
-static void	 vtcon_ctrl_process_event(struct vtcon_softc *,
-		     struct virtio_console_control *, void *, size_t);
-static void	 vtcon_ctrl_task_cb(void *, int);
-static void	 vtcon_ctrl_event_intr(void *);
-static void	 vtcon_ctrl_poll(struct vtcon_softc *,
-		     struct virtio_console_control *control);
-static void	 vtcon_ctrl_send_control(struct vtcon_softc *, uint32_t,
-		     uint16_t, uint16_t);
+static int vtcon_ctrl_event_enqueue(struct vtcon_softc *,
+    struct virtio_console_control *);
+static int vtcon_ctrl_event_create(struct vtcon_softc *);
+static void vtcon_ctrl_event_requeue(struct vtcon_softc *,
+    struct virtio_console_control *);
+static int vtcon_ctrl_event_populate(struct vtcon_softc *);
+static void vtcon_ctrl_event_drain(struct vtcon_softc *);
+static int vtcon_ctrl_init(struct vtcon_softc *);
+static void vtcon_ctrl_deinit(struct vtcon_softc *);
+static void vtcon_ctrl_port_add_event(struct vtcon_softc *, int);
+static void vtcon_ctrl_port_remove_event(struct vtcon_softc *, int);
+static void vtcon_ctrl_port_console_event(struct vtcon_softc *, int);
+static void vtcon_ctrl_port_open_event(struct vtcon_softc *, int);
+static void vtcon_ctrl_port_name_event(struct vtcon_softc *, int, const char *,
+    size_t);
+static void vtcon_ctrl_process_event(struct vtcon_softc *,
+    struct virtio_console_control *, void *, size_t);
+static void vtcon_ctrl_task_cb(void *, int);
+static void vtcon_ctrl_event_intr(void *);
+static void vtcon_ctrl_poll(struct vtcon_softc *,
+    struct virtio_console_control *control);
+static void vtcon_ctrl_send_control(struct vtcon_softc *, uint32_t, uint16_t,
+    uint16_t);
 
-static int	 vtcon_port_enqueue_buf(struct vtcon_port *, void *, size_t);
-static int	 vtcon_port_create_buf(struct vtcon_port *);
-static void	 vtcon_port_requeue_buf(struct vtcon_port *, void *);
-static int	 vtcon_port_populate(struct vtcon_port *);
-static void	 vtcon_port_destroy(struct vtcon_port *);
-static int	 vtcon_port_create(struct vtcon_softc *, int);
-static void	 vtcon_port_dev_alias(struct vtcon_port *, const char *,
-		     size_t);
-static void	 vtcon_port_drain_bufs(struct virtqueue *);
-static void	 vtcon_port_drain(struct vtcon_port *);
-static void	 vtcon_port_teardown(struct vtcon_port *);
-static void	 vtcon_port_change_size(struct vtcon_port *, uint16_t,
-		     uint16_t);
-static void	 vtcon_port_update_console_size(struct vtcon_softc *);
-static void	 vtcon_port_enable_intr(struct vtcon_port *);
-static void	 vtcon_port_disable_intr(struct vtcon_port *);
-static void	 vtcon_port_in(struct vtcon_port *);
-static void	 vtcon_port_intr(void *);
-static void	 vtcon_port_out(struct vtcon_port *, void *, int);
-static void	 vtcon_port_submit_event(struct vtcon_port *, uint16_t,
-		     uint16_t);
+static int vtcon_port_enqueue_buf(struct vtcon_port *, void *, size_t);
+static int vtcon_port_create_buf(struct vtcon_port *);
+static void vtcon_port_requeue_buf(struct vtcon_port *, void *);
+static int vtcon_port_populate(struct vtcon_port *);
+static void vtcon_port_destroy(struct vtcon_port *);
+static int vtcon_port_create(struct vtcon_softc *, int);
+static void vtcon_port_dev_alias(struct vtcon_port *, const char *, size_t);
+static void vtcon_port_drain_bufs(struct virtqueue *);
+static void vtcon_port_drain(struct vtcon_port *);
+static void vtcon_port_teardown(struct vtcon_port *);
+static void vtcon_port_change_size(struct vtcon_port *, uint16_t, uint16_t);
+static void vtcon_port_update_console_size(struct vtcon_softc *);
+static void vtcon_port_enable_intr(struct vtcon_port *);
+static void vtcon_port_disable_intr(struct vtcon_port *);
+static void vtcon_port_in(struct vtcon_port *);
+static void vtcon_port_intr(void *);
+static void vtcon_port_out(struct vtcon_port *, void *, int);
+static void vtcon_port_submit_event(struct vtcon_port *, uint16_t, uint16_t);
 
-static int	 vtcon_tty_open(struct tty *);
-static void	 vtcon_tty_close(struct tty *);
-static void	 vtcon_tty_outwakeup(struct tty *);
-static void	 vtcon_tty_free(void *);
+static int vtcon_tty_open(struct tty *);
+static void vtcon_tty_close(struct tty *);
+static void vtcon_tty_outwakeup(struct tty *);
+static void vtcon_tty_free(void *);
 
-static void	 vtcon_get_console_size(struct vtcon_softc *, uint16_t *,
-		     uint16_t *);
+static void vtcon_get_console_size(struct vtcon_softc *, uint16_t *,
+    uint16_t *);
 
-static void	 vtcon_enable_interrupts(struct vtcon_softc *);
-static void	 vtcon_disable_interrupts(struct vtcon_softc *);
+static void vtcon_enable_interrupts(struct vtcon_softc *);
+static void vtcon_disable_interrupts(struct vtcon_softc *);
 
 #define vtcon_modern(_sc) (((_sc)->vtcon_features & VIRTIO_F_VERSION_1) != 0)
-#define vtcon_htog16(_sc, _val)	virtio_htog16(vtcon_modern(_sc), _val)
-#define vtcon_htog32(_sc, _val)	virtio_htog32(vtcon_modern(_sc), _val)
-#define vtcon_htog64(_sc, _val)	virtio_htog64(vtcon_modern(_sc), _val)
-#define vtcon_gtoh16(_sc, _val)	virtio_gtoh16(vtcon_modern(_sc), _val)
-#define vtcon_gtoh32(_sc, _val)	virtio_gtoh32(vtcon_modern(_sc), _val)
-#define vtcon_gtoh64(_sc, _val)	virtio_gtoh64(vtcon_modern(_sc), _val)
+#define vtcon_htog16(_sc, _val) virtio_htog16(vtcon_modern(_sc), _val)
+#define vtcon_htog32(_sc, _val) virtio_htog32(vtcon_modern(_sc), _val)
+#define vtcon_htog64(_sc, _val) virtio_htog64(vtcon_modern(_sc), _val)
+#define vtcon_gtoh16(_sc, _val) virtio_gtoh16(vtcon_modern(_sc), _val)
+#define vtcon_gtoh32(_sc, _val) virtio_gtoh32(vtcon_modern(_sc), _val)
+#define vtcon_gtoh64(_sc, _val) virtio_gtoh64(vtcon_modern(_sc), _val)
 
-static int	 vtcon_pending_free;
+static int vtcon_pending_free;
 
 static struct ttydevsw vtcon_tty_class = {
-	.tsw_flags	= 0,
-	.tsw_open	= vtcon_tty_open,
-	.tsw_close	= vtcon_tty_close,
-	.tsw_outwakeup	= vtcon_tty_outwakeup,
-	.tsw_free	= vtcon_tty_free,
+	.tsw_flags = 0,
+	.tsw_open = vtcon_tty_open,
+	.tsw_close = vtcon_tty_close,
+	.tsw_outwakeup = vtcon_tty_outwakeup,
+	.tsw_free = vtcon_tty_free,
 };
 
 static device_method_t vtcon_methods[] = {
 	/* Device methods. */
-	DEVMETHOD(device_probe,		vtcon_probe),
-	DEVMETHOD(device_attach,	vtcon_attach),
-	DEVMETHOD(device_detach,	vtcon_detach),
+	DEVMETHOD(device_probe, vtcon_probe),
+	DEVMETHOD(device_attach, vtcon_attach),
+	DEVMETHOD(device_detach, vtcon_detach),
 
 	/* VirtIO methods. */
-	DEVMETHOD(virtio_config_change,	vtcon_config_change),
+	DEVMETHOD(virtio_config_change, vtcon_config_change),
 
 	DEVMETHOD_END
 };
 
-static driver_t vtcon_driver = {
-	"vtcon",
-	vtcon_methods,
-	sizeof(struct vtcon_softc)
-};
+static driver_t vtcon_driver = { "vtcon", vtcon_methods,
+	sizeof(struct vtcon_softc) };
 
 VIRTIO_DRIVER_MODULE(virtio_console, vtcon_driver, vtcon_modevent, NULL);
 MODULE_VERSION(virtio_console, 1);
@@ -301,7 +292,7 @@ vtcon_drain_all(void)
 	for (first = 1; vtcon_pending_free != 0; first = 0) {
 		if (first != 0) {
 			printf("virtio_console: Waiting for all detached TTY "
-			    "devices to have open fds closed.\n");
+			       "devices to have open fds closed.\n");
 		}
 		pause("vtcondra", hz);
 	}
@@ -456,11 +447,11 @@ vtcon_setup_features(struct vtcon_softc *sc)
 	return (0);
 }
 
-#define VTCON_GET_CONFIG(_dev, _feature, _field, _cfg)			\
-	if (virtio_with_feature(_dev, _feature)) {			\
-		virtio_read_device_config(_dev,				\
-		    offsetof(struct virtio_console_config, _field),	\
-		    &(_cfg)->_field, sizeof((_cfg)->_field));		\
+#define VTCON_GET_CONFIG(_dev, _feature, _field, _cfg)              \
+	if (virtio_with_feature(_dev, _feature)) {                  \
+		virtio_read_device_config(_dev,                     \
+		    offsetof(struct virtio_console_config, _field), \
+		    &(_cfg)->_field, sizeof((_cfg)->_field));       \
 	}
 
 static void
@@ -521,22 +512,22 @@ vtcon_alloc_virtqueues(struct vtcon_softc *sc)
 	for (i = 0, idx = 0, portidx = 0; i < nvqs / 2; i++, idx += 2) {
 		if (i == 1) {
 			/* The control virtqueues are after the first port. */
-			VQ_ALLOC_INFO_INIT(&info[idx], 0,
-			    vtcon_ctrl_event_intr, sc, &sc->vtcon_ctrl_rxvq,
-			    "%s-control rx", device_get_nameunit(dev));
-			VQ_ALLOC_INFO_INIT(&info[idx+1], 0,
-			    NULL, sc, &sc->vtcon_ctrl_txvq,
-			    "%s-control tx", device_get_nameunit(dev));
+			VQ_ALLOC_INFO_INIT(&info[idx], 0, vtcon_ctrl_event_intr,
+			    sc, &sc->vtcon_ctrl_rxvq, "%s-control rx",
+			    device_get_nameunit(dev));
+			VQ_ALLOC_INFO_INIT(&info[idx + 1], 0, NULL, sc,
+			    &sc->vtcon_ctrl_txvq, "%s-control tx",
+			    device_get_nameunit(dev));
 			continue;
 		}
 
 		scport = &sc->vtcon_ports[portidx];
 
-		VQ_ALLOC_INFO_INIT(&info[idx], 0, vtcon_port_intr,
-		    scport, &scport->vcsp_invq, "%s-port%d in",
+		VQ_ALLOC_INFO_INIT(&info[idx], 0, vtcon_port_intr, scport,
+		    &scport->vcsp_invq, "%s-port%d in",
 		    device_get_nameunit(dev), i);
-		VQ_ALLOC_INFO_INIT(&info[idx+1], 0, NULL,
-		    NULL, &scport->vcsp_outvq, "%s-port%d out",
+		VQ_ALLOC_INFO_INIT(&info[idx + 1], 0, NULL, NULL,
+		    &scport->vcsp_outvq, "%s-port%d out",
 		    device_get_nameunit(dev), i);
 
 		portidx++;
@@ -554,8 +545,8 @@ vtcon_determine_max_ports(struct vtcon_softc *sc,
 {
 
 	if (sc->vtcon_flags & VTCON_FLAG_MULTIPORT) {
-		sc->vtcon_max_ports =
-		    min(concfg->max_nr_ports, VTCON_MAX_PORTS);
+		sc->vtcon_max_ports = min(concfg->max_nr_ports,
+		    VTCON_MAX_PORTS);
 		if (sc->vtcon_max_ports == 0)
 			sc->vtcon_max_ports = 1;
 	} else
@@ -617,8 +608,8 @@ vtcon_ctrl_event_enqueue(struct vtcon_softc *sc,
 
 	sglist_init(&sg, 2, segs);
 	error = sglist_append(&sg, control, VTCON_CTRL_BUFSZ);
-	KASSERT(error == 0, ("%s: error %d adding control to sglist",
-	    __func__, error));
+	KASSERT(error == 0,
+	    ("%s: error %d adding control to sglist", __func__, error));
 
 	return (virtqueue_enqueue(vq, control, &sg, 0, sg.sg_nseg));
 }
@@ -729,8 +720,8 @@ vtcon_ctrl_port_add_event(struct vtcon_softc *sc, int id)
 
 	error = vtcon_port_create(sc, id);
 	if (error) {
-		device_printf(dev, "%s: cannot create port %d: %d\n",
-		    __func__, id, error);
+		device_printf(dev, "%s: cannot create port %d: %d\n", __func__,
+		    id, error);
 		vtcon_ctrl_send_control(sc, id, VIRTIO_CONSOLE_PORT_READY, 0);
 		return;
 	}
@@ -889,7 +880,8 @@ vtcon_ctrl_process_event(struct vtcon_softc *sc,
 		break;
 
 	case VIRTIO_CONSOLE_PORT_NAME:
-		vtcon_ctrl_port_name_event(sc, id, (const char *)data, data_len);
+		vtcon_ctrl_port_name_event(sc, id, (const char *)data,
+		    data_len);
 		break;
 	}
 }
@@ -916,7 +908,7 @@ vtcon_ctrl_task_cb(void *xsc, int pending)
 			break;
 
 		if (len > sizeof(struct virtio_console_control)) {
-			data = (void *) &control[1];
+			data = (void *)&control[1];
 			data_len = len - sizeof(struct virtio_console_control);
 		} else {
 			data = NULL;
@@ -954,8 +946,7 @@ vtcon_ctrl_event_intr(void *xsc)
 }
 
 static void
-vtcon_ctrl_poll(struct vtcon_softc *sc,
-    struct virtio_console_control *control)
+vtcon_ctrl_poll(struct vtcon_softc *sc, struct virtio_console_control *control)
 {
 	struct sglist_seg segs[2];
 	struct sglist sg;
@@ -967,8 +958,8 @@ vtcon_ctrl_poll(struct vtcon_softc *sc,
 	sglist_init(&sg, 2, segs);
 	error = sglist_append(&sg, control,
 	    sizeof(struct virtio_console_control));
-	KASSERT(error == 0, ("%s: error %d adding control to sglist",
-	    __func__, error));
+	KASSERT(error == 0,
+	    ("%s: error %d adding control to sglist", __func__, error));
 
 	/*
 	 * We cannot use the softc lock to serialize access to this
@@ -977,8 +968,7 @@ vtcon_ctrl_poll(struct vtcon_softc *sc,
 	 * ordering.
 	 */
 	VTCON_CTRL_TX_LOCK(sc);
-	KASSERT(virtqueue_empty(vq),
-	    ("%s: virtqueue is not emtpy", __func__));
+	KASSERT(virtqueue_empty(vq), ("%s: virtqueue is not emtpy", __func__));
 	error = virtqueue_enqueue(vq, control, &sg, sg.sg_nseg, 0);
 	if (error == 0) {
 		virtqueue_notify(vq);
@@ -988,8 +978,8 @@ vtcon_ctrl_poll(struct vtcon_softc *sc,
 }
 
 static void
-vtcon_ctrl_send_control(struct vtcon_softc *sc, uint32_t portid,
-    uint16_t event, uint16_t value)
+vtcon_ctrl_send_control(struct vtcon_softc *sc, uint32_t portid, uint16_t event,
+    uint16_t value)
 {
 	struct virtio_console_control control;
 
@@ -1370,8 +1360,8 @@ vtcon_port_out(struct vtcon_port *port, void *buf, int bufsize)
 
 	sglist_init(&sg, 2, segs);
 	error = sglist_append(&sg, buf, bufsize);
-	KASSERT(error == 0, ("%s: error %d adding buffer to sglist",
-	    __func__, error));
+	KASSERT(error == 0,
+	    ("%s: error %d adding buffer to sglist", __func__, error));
 
 	error = virtqueue_enqueue(vq, buf, &sg, sg.sg_nseg, 0);
 	if (error == 0) {
@@ -1381,8 +1371,7 @@ vtcon_port_out(struct vtcon_port *port, void *buf, int bufsize)
 }
 
 static void
-vtcon_port_submit_event(struct vtcon_port *port, uint16_t event,
-    uint16_t value)
+vtcon_port_submit_event(struct vtcon_port *port, uint16_t event, uint16_t value)
 {
 	struct vtcon_softc *sc;
 

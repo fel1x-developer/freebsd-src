@@ -5,182 +5,166 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <sys/ioctl.h>
+
 #include <ctype.h>
 #include <fcntl.h>
-# include <nlist.h>
-#include <ctype.h>
+#include <nlist.h>
 #if defined(sun) && defined(__SVR4)
-# include <stddef.h>
+#include <stddef.h>
 #endif
 #include "ipf.h"
 #include "netinet/ipl.h"
 #if defined(STATETOP)
-# if defined(sun) && defined(__SVR4)
-#   include <sys/select.h>
-# endif
-# include <netinet/ip_var.h>
-# include <netinet/tcp_fsm.h>
-# include <ctype.h>
-# include <signal.h>
-# include <time.h>
-# if SOLARIS || defined(__NetBSD__)
-#  ifdef ERR
-#   undef ERR
-#  endif
-#  include <curses.h>
-# else /* SOLARIS */
-#  include <ncurses.h>
-# endif /* SOLARIS */
+#if defined(sun) && defined(__SVR4)
+#include <sys/select.h>
+#endif
+#include <netinet/ip_var.h>
+#include <netinet/tcp_fsm.h>
+
+#include <ctype.h>
+#include <signal.h>
+#include <time.h>
+#if SOLARIS || defined(__NetBSD__)
+#ifdef ERR
+#undef ERR
+#endif
+#include <curses.h>
+#else /* SOLARIS */
+#include <ncurses.h>
+#endif /* SOLARIS */
 #endif /* STATETOP */
 #include "kmem.h"
 #if defined(__NetBSD__)
-# include <paths.h>
+#include <paths.h>
 #endif
 
+extern char *optarg;
+extern int optind;
+extern int opterr;
 
+#define PRINTF (void)printf
+#define FPRINTF (void)fprintf
+static char *filters[4] = { "ipfilter(in)", "ipfilter(out)", "ipacct(in)",
+	"ipacct(out)" };
+static int state_logging = -1;
+static wordtab_t *state_fields = NULL;
 
-extern	char	*optarg;
-extern	int	optind;
-extern	int	opterr;
-
-#define	PRINTF	(void)printf
-#define	FPRINTF	(void)fprintf
-static	char	*filters[4] = { "ipfilter(in)", "ipfilter(out)",
-				"ipacct(in)", "ipacct(out)" };
-static	int	state_logging = -1;
-static	wordtab_t	*state_fields = NULL;
-
-int	nohdrfields = 0;
-int	opts = 0;
-#ifdef	USE_INET6
-int	use_inet4 = 0;
-int	use_inet6 = 0;
+int nohdrfields = 0;
+int opts = 0;
+#ifdef USE_INET6
+int use_inet4 = 0;
+int use_inet6 = 0;
 #endif
-int	live_kernel = 1;
-int	state_fd = -1;
-int	ipf_fd = -1;
-int	auth_fd = -1;
-int	nat_fd = -1;
+int live_kernel = 1;
+int state_fd = -1;
+int ipf_fd = -1;
+int auth_fd = -1;
+int nat_fd = -1;
 frgroup_t *grtop = NULL;
 frgroup_t *grtail = NULL;
 
-char *blockreasons[FRB_MAX_VALUE + 1] = {
-	"packet blocked",
-	"log rule failure",
-	"pps rate exceeded",
-	"jumbogram",
-	"makefrip failed",
-	"cannot add state",
-	"IP ID update failed",
-	"log-or-block failed",
-	"decapsulate failure",
-	"cannot create new auth entry",
-	"packet queued for auth",
-	"buffer coalesce failure",
-	"buffer pullup failure",
-	"auth feedback",
-	"bad fragment",
-	"IPv4 NAT failure",
-	"IPv6 NAT failure"
-};
+char *blockreasons[FRB_MAX_VALUE + 1] = { "packet blocked", "log rule failure",
+	"pps rate exceeded", "jumbogram", "makefrip failed", "cannot add state",
+	"IP ID update failed", "log-or-block failed", "decapsulate failure",
+	"cannot create new auth entry", "packet queued for auth",
+	"buffer coalesce failure", "buffer pullup failure", "auth feedback",
+	"bad fragment", "IPv4 NAT failure", "IPv6 NAT failure" };
 
 #ifdef STATETOP
-#define	STSTRSIZE 	80
-#define	STGROWSIZE	16
-#define	HOSTNMLEN	40
+#define STSTRSIZE 80
+#define STGROWSIZE 16
+#define HOSTNMLEN 40
 
-#define	STSORT_PR	0
-#define	STSORT_PKTS	1
-#define	STSORT_BYTES	2
-#define	STSORT_TTL	3
-#define	STSORT_SRCIP	4
-#define	STSORT_SRCPT	5
-#define	STSORT_DSTIP	6
-#define	STSORT_DSTPT	7
-#define	STSORT_MAX	STSORT_DSTPT
-#define	STSORT_DEFAULT	STSORT_BYTES
-
+#define STSORT_PR 0
+#define STSORT_PKTS 1
+#define STSORT_BYTES 2
+#define STSORT_TTL 3
+#define STSORT_SRCIP 4
+#define STSORT_SRCPT 5
+#define STSORT_DSTIP 6
+#define STSORT_DSTPT 7
+#define STSORT_MAX STSORT_DSTPT
+#define STSORT_DEFAULT STSORT_BYTES
 
 typedef struct statetop {
-	i6addr_t	st_src;
-	i6addr_t	st_dst;
-	u_short		st_sport;
-	u_short 	st_dport;
-	u_char		st_p;
-	u_char		st_v;
-	u_char		st_state[2];
-	U_QUAD_T	st_pkts;
-	U_QUAD_T	st_bytes;
-	u_long		st_age;
+	i6addr_t st_src;
+	i6addr_t st_dst;
+	u_short st_sport;
+	u_short st_dport;
+	u_char st_p;
+	u_char st_v;
+	u_char st_state[2];
+	U_QUAD_T st_pkts;
+	U_QUAD_T st_bytes;
+	u_long st_age;
 } statetop_t;
 #endif
 
-int		main(int, char *[]);
+int main(int, char *[]);
 
-static	int	fetchfrag(int, int, ipfr_t *);
-static	void	showstats(friostat_t *, u_32_t);
-static	void	showfrstates(ipfrstat_t *, u_long);
-static	void	showlist(friostat_t *);
-static	void	showstatestats(ips_stat_t *);
-static	void	showipstates(ips_stat_t *, int *);
-static	void	showauthstates(ipf_authstat_t *);
-static	void	showtqtable_live(int);
-static	void	showgroups(friostat_t *);
-static	void	usage(char *);
-static	int	state_matcharray(ipstate_t *, int *);
-static	int	printlivelist(friostat_t *, int, int, frentry_t *,
-				   char *, char *);
-static	void	printdeadlist(friostat_t *, int, int, frentry_t *,
-				   char *, char *);
-static	void	printside(char *, ipf_statistics_t *);
-static	void	parse_ipportstr(const char *, i6addr_t *, int *);
-static	void	ipfstate_live(char *, friostat_t **, ips_stat_t **,
-				   ipfrstat_t **, ipf_authstat_t **, u_32_t *);
-static	void	ipfstate_dead(char *, friostat_t **, ips_stat_t **,
-				   ipfrstat_t **, ipf_authstat_t **, u_32_t *);
-static	ipstate_t *fetchstate(ipstate_t *, ipstate_t *);
+static int fetchfrag(int, int, ipfr_t *);
+static void showstats(friostat_t *, u_32_t);
+static void showfrstates(ipfrstat_t *, u_long);
+static void showlist(friostat_t *);
+static void showstatestats(ips_stat_t *);
+static void showipstates(ips_stat_t *, int *);
+static void showauthstates(ipf_authstat_t *);
+static void showtqtable_live(int);
+static void showgroups(friostat_t *);
+static void usage(char *);
+static int state_matcharray(ipstate_t *, int *);
+static int printlivelist(friostat_t *, int, int, frentry_t *, char *, char *);
+static void printdeadlist(friostat_t *, int, int, frentry_t *, char *, char *);
+static void printside(char *, ipf_statistics_t *);
+static void parse_ipportstr(const char *, i6addr_t *, int *);
+static void ipfstate_live(char *, friostat_t **, ips_stat_t **, ipfrstat_t **,
+    ipf_authstat_t **, u_32_t *);
+static void ipfstate_dead(char *, friostat_t **, ips_stat_t **, ipfrstat_t **,
+    ipf_authstat_t **, u_32_t *);
+static ipstate_t *fetchstate(ipstate_t *, ipstate_t *);
 #ifdef STATETOP
-static	void	topipstates(i6addr_t, i6addr_t, int, int, int,
-				 int, int, int, int *);
-static	void	sig_break(int);
-static	void	sig_resize(int);
-static	char	*getip(int, i6addr_t *);
-static	char	*ttl_to_string(long);
-static	int	sort_p(const void *, const void *);
-static	int	sort_pkts(const void *, const void *);
-static	int	sort_bytes(const void *, const void *);
-static	int	sort_ttl(const void *, const void *);
-static	int	sort_srcip(const void *, const void *);
-static	int	sort_srcpt(const void *, const void *);
-static	int	sort_dstip(const void *, const void *);
-static	int	sort_dstpt(const void *, const void *);
+static void topipstates(i6addr_t, i6addr_t, int, int, int, int, int, int,
+    int *);
+static void sig_break(int);
+static void sig_resize(int);
+static char *getip(int, i6addr_t *);
+static char *ttl_to_string(long);
+static int sort_p(const void *, const void *);
+static int sort_pkts(const void *, const void *);
+static int sort_bytes(const void *, const void *);
+static int sort_ttl(const void *, const void *);
+static int sort_srcip(const void *, const void *);
+static int sort_srcpt(const void *, const void *);
+static int sort_dstip(const void *, const void *);
+static int sort_dstpt(const void *, const void *);
 #endif
 
-
-static void usage(char *name)
+static void
+usage(char *name)
 {
-#ifdef  USE_INET6
+#ifdef USE_INET6
 	fprintf(stderr, "Usage: %s [-46aAdfghIilnoRsv]\n", name);
 #else
 	fprintf(stderr, "Usage: %s [-4aAdfghIilnoRsv]\n", name);
 #endif
 	fprintf(stderr, "       %s [-M corefile] [-N symbol-list]\n", name);
-#ifdef	STATETOP
-#ifdef	USE_INET6
+#ifdef STATETOP
+#ifdef USE_INET6
 	fprintf(stderr, "       %s -t [-46C] ", name);
 #else
 	fprintf(stderr, "       %s -t [-4C] ", name);
 #endif
 #endif
-	fprintf(stderr, "[-D destination address] [-P protocol] [-S source address] [-T refresh time]\n");
+	fprintf(stderr,
+	    "[-D destination address] [-P protocol] [-S source address] [-T refresh time]\n");
 	exit(1);
 }
 
-
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-	ipf_authstat_t	frauthst;
-	ipf_authstat_t	*frauthstp = &frauthst;
+	ipf_authstat_t frauthst;
+	ipf_authstat_t *frauthstp = &frauthst;
 	friostat_t fio;
 	friostat_t *fiop = &fio;
 	ips_stat_t ipsst;
@@ -194,25 +178,25 @@ int main(int argc, char *argv[])
 	int myoptind;
 	int *filter = NULL;
 
-	int protocol = -1;		/* -1 = wild card for any protocol */
-	int refreshtime = 1; 		/* default update time */
-	int sport = -1;			/* -1 = wild card for any source port */
-	int dport = -1;			/* -1 = wild card for any dest port */
-	int topclosed = 0;		/* do not show closed tcp sessions */
+	int protocol = -1;   /* -1 = wild card for any protocol */
+	int refreshtime = 1; /* default update time */
+	int sport = -1;	     /* -1 = wild card for any source port */
+	int dport = -1;	     /* -1 = wild card for any dest port */
+	int topclosed = 0;   /* do not show closed tcp sessions */
 	i6addr_t saddr, daddr;
 	u_32_t frf;
 
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	options = "46aACdfghIilnostvD:m:M:N:O:P:RS:T:";
 #else
 	options = "4aACdfghIilnostvD:m:M:N:O:P:RS:T:";
 #endif
 
-	saddr.in4.s_addr = INADDR_ANY; 	/* default any v4 source addr */
-	daddr.in4.s_addr = INADDR_ANY; 	/* default any v4 dest addr */
-#ifdef	USE_INET6
-	saddr.in6 = in6addr_any;	/* default any v6 source addr */
-	daddr.in6 = in6addr_any;	/* default any v6 dest addr */
+	saddr.in4.s_addr = INADDR_ANY; /* default any v4 source addr */
+	daddr.in4.s_addr = INADDR_ANY; /* default any v4 dest addr */
+#ifdef USE_INET6
+	saddr.in6 = in6addr_any; /* default any v6 source addr */
+	daddr.in6 = in6addr_any; /* default any v6 dest addr */
 #endif
 
 	/* Don't warn about invalid flags when we run getopt for the 1st time */
@@ -224,13 +208,12 @@ int main(int argc, char *argv[])
 	 */
 	myoptind = optind;
 	while ((c = getopt(argc, argv, options)) != -1) {
-		switch (c)
-		{
-		case 'M' :
+		switch (c) {
+		case 'M':
 			memf = optarg;
 			live_kernel = 0;
 			break;
-		case 'N' :
+		case 'N':
 			kern = optarg;
 			live_kernel = 0;
 			break;
@@ -264,7 +247,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (live_kernel == 1) {
-		(void) checkrev(IPL_NAME);
+		(void)checkrev(IPL_NAME);
 	} else {
 		if (openkmem(kern, memf) == -1)
 			exit(-1);
@@ -275,120 +258,118 @@ int main(int argc, char *argv[])
 
 	opterr = 1;
 
-	while ((c = getopt(argc, argv, options)) != -1)
-	{
-		switch (c)
-		{
-#ifdef	USE_INET6
-		case '4' :
+	while ((c = getopt(argc, argv, options)) != -1) {
+		switch (c) {
+#ifdef USE_INET6
+		case '4':
 			use_inet4 = 1;
 			break;
-		case '6' :
+		case '6':
 			use_inet6 = 1;
 			break;
 #endif
-		case 'a' :
-			opts |= OPT_ACCNT|OPT_SHOWLIST;
+		case 'a':
+			opts |= OPT_ACCNT | OPT_SHOWLIST;
 			break;
-		case 'A' :
+		case 'A':
 			opts |= OPT_AUTHSTATS;
 			break;
-		case 'C' :
+		case 'C':
 			topclosed = 1;
 			break;
-		case 'd' :
+		case 'd':
 			opts |= OPT_DEBUG;
 			break;
-		case 'D' :
+		case 'D':
 			parse_ipportstr(optarg, &daddr, &dport);
 			break;
-		case 'f' :
+		case 'f':
 			opts |= OPT_FRSTATES;
 			break;
-		case 'g' :
+		case 'g':
 			opts |= OPT_GROUPS;
 			break;
-		case 'h' :
+		case 'h':
 			opts |= OPT_HITS;
 			break;
-		case 'i' :
-			opts |= OPT_INQUE|OPT_SHOWLIST;
+		case 'i':
+			opts |= OPT_INQUE | OPT_SHOWLIST;
 			break;
-		case 'I' :
+		case 'I':
 			opts |= OPT_INACTIVE;
 			break;
-		case 'l' :
+		case 'l':
 			opts |= OPT_SHOWLIST;
 			break;
-		case 'm' :
+		case 'm':
 			filter = parseipfexpr(optarg, NULL);
 			if (filter == NULL) {
 				fprintf(stderr, "Error parseing '%s'\n",
-					optarg);
+				    optarg);
 				exit(1);
 			}
 			break;
-		case 'M' :
+		case 'M':
 			break;
-		case 'N' :
+		case 'N':
 			break;
-		case 'n' :
+		case 'n':
 			opts |= OPT_SHOWLINENO;
 			break;
-		case 'o' :
-			opts |= OPT_OUTQUE|OPT_SHOWLIST;
+		case 'o':
+			opts |= OPT_OUTQUE | OPT_SHOWLIST;
 			break;
-		case 'O' :
+		case 'O':
 			state_fields = parsefields(statefields, optarg);
 			break;
-		case 'P' :
+		case 'P':
 			protocol = getproto(optarg);
 			if (protocol == -1) {
 				fprintf(stderr, "%s: Invalid protocol: %s\n",
-					argv[0], optarg);
+				    argv[0], optarg);
 				exit(-2);
 			}
 			break;
-		case 'R' :
+		case 'R':
 			opts |= OPT_NORESOLVE;
 			break;
-		case 's' :
+		case 's':
 			opts |= OPT_IPSTATES;
 			break;
-		case 'S' :
+		case 'S':
 			parse_ipportstr(optarg, &saddr, &sport);
 			break;
-		case 't' :
+		case 't':
 #ifdef STATETOP
 			opts |= OPT_STATETOP;
 			break;
 #else
 			fprintf(stderr,
-				"%s: state top facility not compiled in\n",
-				argv[0]);
+			    "%s: state top facility not compiled in\n",
+			    argv[0]);
 			exit(-2);
 #endif
-		case 'T' :
+		case 'T':
 			if (!sscanf(optarg, "%d", &refreshtime) ||
-				    (refreshtime <= 0)) {
+			    (refreshtime <= 0)) {
 				fprintf(stderr,
-					"%s: Invalid refreshtime < 1 : %s\n",
-					argv[0], optarg);
+				    "%s: Invalid refreshtime < 1 : %s\n",
+				    argv[0], optarg);
 				exit(-2);
 			}
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
-		default :
+		default:
 			usage(argv[0]);
 			break;
 		}
 	}
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	if ((use_inet4 || use_inet6) &&
-	   !(opts & (OPT_INQUE | OPT_OUTQUE | OPT_STATETOP))) {
-#ifdef	STATETOP
+	    !(opts & (OPT_INQUE | OPT_OUTQUE | OPT_STATETOP))) {
+#ifdef STATETOP
 		FPRINTF(stderr, "No -i, -o, or -t given with -4 or -6\n");
 #else
 		FPRINTF(stderr, "No -i or -o given with -4 or -6\n");
@@ -404,8 +385,8 @@ int main(int argc, char *argv[])
 		bzero((char *)&ipsst, sizeof(ipsst));
 		bzero((char *)&ifrst, sizeof(ifrst));
 
-		ipfstate_live(IPL_NAME, &fiop, &ipsstp, &ifrstp,
-			      &frauthstp, &frf);
+		ipfstate_live(IPL_NAME, &fiop, &ipsstp, &ifrstp, &frauthstp,
+		    &frf);
 	} else {
 		ipfstate_dead(kern, &fiop, &ipsstp, &ifrstp, &frauthstp, &frf);
 	}
@@ -414,7 +395,7 @@ int main(int argc, char *argv[])
 		showipstates(ipsstp, filter);
 	} else if (opts & OPT_SHOWLIST) {
 		showlist(fiop);
-		if ((opts & OPT_OUTQUE) && (opts & OPT_INQUE)){
+		if ((opts & OPT_OUTQUE) && (opts & OPT_INQUE)) {
 			opts &= ~OPT_OUTQUE;
 			showlist(fiop);
 		}
@@ -423,13 +404,15 @@ int main(int argc, char *argv[])
 #ifdef STATETOP
 	else if (opts & OPT_STATETOP)
 		topipstates(saddr, daddr, sport, dport, protocol,
-#ifdef	USE_INET6
-		use_inet6 && use_inet4 ? 0 : use_inet6 && !use_inet4 ? 6 : 4,
+#ifdef USE_INET6
+		    use_inet6 && use_inet4	? 0 :
+			use_inet6 && !use_inet4 ? 6 :
+						  4,
 #else
-		4,
+		    4,
 #endif
 #endif
-			    refreshtime, topclosed, filter);
+		    refreshtime, topclosed, filter);
 	else if (opts & OPT_AUTHSTATS)
 		showauthstates(frauthstp);
 	else if (opts & OPT_GROUPS)
@@ -440,14 +423,13 @@ int main(int argc, char *argv[])
 	return (0);
 }
 
-
 /*
  * Fill in the stats structures from the live kernel, using a combination
  * of ioctl's and copying directly from kernel memory.
  */
-static void ipfstate_live(char *device, friostat_t **fiopp,
-	ips_stat_t **ipsstpp, ipfrstat_t **ifrstpp,
-	ipf_authstat_t **frauthstpp, u_32_t *frfp)
+static void
+ipfstate_live(char *device, friostat_t **fiopp, ips_stat_t **ipsstpp,
+    ipfrstat_t **ifrstpp, ipf_authstat_t **frauthstpp, u_32_t *frfp)
 {
 	ipfobj_t ipfo;
 
@@ -513,22 +495,21 @@ static void ipfstate_live(char *device, friostat_t **fiopp,
 		ipfo.ipfo_size = sizeof(ipf_authstat_t);
 		ipfo.ipfo_ptr = (void *)*frauthstpp;
 
-	    	if (ioctl(auth_fd, SIOCATHST, &ipfo) == -1) {
+		if (ioctl(auth_fd, SIOCATHST, &ipfo) == -1) {
 			ipferror(auth_fd, "ioctl(SIOCATHST)");
 			exit(-1);
 		}
 	}
 }
 
-
 /*
  * Build up the stats structures from data held in the "core" memory.
  * This is mainly useful when looking at data in crash dumps and ioctl's
  * just won't work any more.
  */
-static void ipfstate_dead( char *kernel, friostat_t **fiopp,
-	ips_stat_t **ipsstpp, ipfrstat_t **ifrstpp,
-	ipf_authstat_t **frauthstpp, u_32_t *frfp)
+static void
+ipfstate_dead(char *kernel, friostat_t **fiopp, ips_stat_t **ipsstpp,
+    ipfrstat_t **ifrstpp, ipf_authstat_t **frauthstpp, u_32_t *frfp)
 {
 	static ipf_authstat_t frauthst, *frauthstp;
 	static ipftq_t ipstcptab[IPF_TCP_NSTATES];
@@ -538,51 +519,37 @@ static void ipfstate_dead( char *kernel, friostat_t **fiopp,
 	int temp;
 
 	void *rules[2][2];
-	struct nlist deadlist[44] = {
-		{ "ipf_auth_stats",	0, 0, 0, 0 },		/* 0 */
-		{ "fae_list",		0, 0, 0, 0 },
-		{ "ipauth",		0, 0, 0, 0 },
-		{ "ipf_auth_list",		0, 0, 0, 0 },
-		{ "ipf_auth_start",		0, 0, 0, 0 },
-		{ "ipf_auth_end",		0, 0, 0, 0 },		/* 5 */
-		{ "ipf_auth_next",		0, 0, 0, 0 },
-		{ "ipf_auth",		0, 0, 0, 0 },
-		{ "ipf_auth_used",		0, 0, 0, 0 },
-		{ "ipf_auth_size",		0, 0, 0, 0 },
-		{ "ipf_auth_defaultage",		0, 0, 0, 0 },	/* 10 */
-		{ "ipf_auth_pkts",		0, 0, 0, 0 },
-		{ "ipf_auth_lock",		0, 0, 0, 0 },
-		{ "frstats",		0, 0, 0, 0 },
-		{ "ips_stats",		0, 0, 0, 0 },
-		{ "ips_num",		0, 0, 0, 0 },			/* 15 */
-		{ "ips_wild",		0, 0, 0, 0 },
-		{ "ips_list",		0, 0, 0, 0 },
-		{ "ips_table",		0, 0, 0, 0 },
-		{ "ipf_state_max",		0, 0, 0, 0 },
-		{ "ipf_state_size",		0, 0, 0, 0 },		/* 20 */
-		{ "ipf_state_doflush",		0, 0, 0, 0 },
-		{ "ipf_state_lock",		0, 0, 0, 0 },
-		{ "ipfr_heads",		0, 0, 0, 0 },
-		{ "ipfr_nattab",		0, 0, 0, 0 },
-		{ "ipfr_stats",		0, 0, 0, 0 },		/* 25 */
-		{ "ipfr_inuse",		0, 0, 0, 0 },
-		{ "ipf_ipfrttl",		0, 0, 0, 0 },
-		{ "ipf_frag_lock",		0, 0, 0, 0 },
-		{ "ipfr_timer_id",		0, 0, 0, 0 },
-		{ "ipf_nat_lock",		0, 0, 0, 0 },		/* 30 */
-		{ "ipf_rules",		0, 0, 0, 0 },
-		{ "ipf_acct",		0, 0, 0, 0 },
-		{ "ipl_frouteok",		0, 0, 0, 0 },
-		{ "ipf_running",		0, 0, 0, 0 },
-		{ "ipf_groups",		0, 0, 0, 0 },		/* 35 */
-		{ "ipf_active",		0, 0, 0, 0 },
-		{ "ipf_pass",		0, 0, 0, 0 },
-		{ "ipf_flags",		0, 0, 0, 0 },
-		{ "ipf_state_logging",		0, 0, 0, 0 },
-		{ "ips_tqtqb",		0, 0, 0, 0 },		/* 40 */
-		{ NULL,		0, 0, 0, 0 }
-	};
-
+	struct nlist deadlist[44] = { { "ipf_auth_stats", 0, 0, 0, 0 }, /* 0 */
+		{ "fae_list", 0, 0, 0, 0 }, { "ipauth", 0, 0, 0, 0 },
+		{ "ipf_auth_list", 0, 0, 0, 0 },
+		{ "ipf_auth_start", 0, 0, 0, 0 },
+		{ "ipf_auth_end", 0, 0, 0, 0 }, /* 5 */
+		{ "ipf_auth_next", 0, 0, 0, 0 }, { "ipf_auth", 0, 0, 0, 0 },
+		{ "ipf_auth_used", 0, 0, 0, 0 },
+		{ "ipf_auth_size", 0, 0, 0, 0 },
+		{ "ipf_auth_defaultage", 0, 0, 0, 0 }, /* 10 */
+		{ "ipf_auth_pkts", 0, 0, 0, 0 },
+		{ "ipf_auth_lock", 0, 0, 0, 0 }, { "frstats", 0, 0, 0, 0 },
+		{ "ips_stats", 0, 0, 0, 0 }, { "ips_num", 0, 0, 0, 0 }, /* 15 */
+		{ "ips_wild", 0, 0, 0, 0 }, { "ips_list", 0, 0, 0, 0 },
+		{ "ips_table", 0, 0, 0, 0 }, { "ipf_state_max", 0, 0, 0, 0 },
+		{ "ipf_state_size", 0, 0, 0, 0 }, /* 20 */
+		{ "ipf_state_doflush", 0, 0, 0, 0 },
+		{ "ipf_state_lock", 0, 0, 0, 0 }, { "ipfr_heads", 0, 0, 0, 0 },
+		{ "ipfr_nattab", 0, 0, 0, 0 },
+		{ "ipfr_stats", 0, 0, 0, 0 }, /* 25 */
+		{ "ipfr_inuse", 0, 0, 0, 0 }, { "ipf_ipfrttl", 0, 0, 0, 0 },
+		{ "ipf_frag_lock", 0, 0, 0, 0 },
+		{ "ipfr_timer_id", 0, 0, 0, 0 },
+		{ "ipf_nat_lock", 0, 0, 0, 0 }, /* 30 */
+		{ "ipf_rules", 0, 0, 0, 0 }, { "ipf_acct", 0, 0, 0, 0 },
+		{ "ipl_frouteok", 0, 0, 0, 0 }, { "ipf_running", 0, 0, 0, 0 },
+		{ "ipf_groups", 0, 0, 0, 0 }, /* 35 */
+		{ "ipf_active", 0, 0, 0, 0 }, { "ipf_pass", 0, 0, 0, 0 },
+		{ "ipf_flags", 0, 0, 0, 0 },
+		{ "ipf_state_logging", 0, 0, 0, 0 },
+		{ "ips_tqtqb", 0, 0, 0, 0 }, /* 40 */
+		{ NULL, 0, 0, 0, 0 } };
 
 	frauthstp = &frauthst;
 	ipsstp = &ipsst;
@@ -616,13 +583,13 @@ static void ipfstate_dead( char *kernel, friostat_t **fiopp,
 	 */
 	kmemcpy((char *)fiop, (u_long)deadlist[13].n_value, sizeof(*fiop));
 	kmemcpy((char *)&fiop->f_locks[0], (u_long)deadlist[22].n_value,
-		sizeof(fiop->f_locks[0]));
+	    sizeof(fiop->f_locks[0]));
 	kmemcpy((char *)&fiop->f_locks[0], (u_long)deadlist[30].n_value,
-		sizeof(fiop->f_locks[1]));
+	    sizeof(fiop->f_locks[1]));
 	kmemcpy((char *)&fiop->f_locks[2], (u_long)deadlist[28].n_value,
-		sizeof(fiop->f_locks[2]));
+	    sizeof(fiop->f_locks[2]));
 	kmemcpy((char *)&fiop->f_locks[3], (u_long)deadlist[12].n_value,
-		sizeof(fiop->f_locks[3]));
+	    sizeof(fiop->f_locks[3]));
 
 	/*
 	 * Get pointers to each list of rules (active, inactive, in, out)
@@ -647,15 +614,15 @@ static void ipfstate_dead( char *kernel, friostat_t **fiopp,
 	 * are all collected in friostat_t via ioctl.
 	 */
 	kmemcpy((char *)&fiop->f_froute, (u_long)deadlist[33].n_value,
-		sizeof(fiop->f_froute));
+	    sizeof(fiop->f_froute));
 	kmemcpy((char *)&fiop->f_running, (u_long)deadlist[34].n_value,
-		sizeof(fiop->f_running));
+	    sizeof(fiop->f_running));
 	kmemcpy((char *)&fiop->f_groups, (u_long)deadlist[35].n_value,
-		sizeof(fiop->f_groups));
+	    sizeof(fiop->f_groups));
 	kmemcpy((char *)&fiop->f_active, (u_long)deadlist[36].n_value,
-		sizeof(fiop->f_active));
+	    sizeof(fiop->f_active));
 	kmemcpy((char *)&fiop->f_defpass, (u_long)deadlist[37].n_value,
-		sizeof(fiop->f_defpass));
+	    sizeof(fiop->f_defpass));
 
 	/*
 	 * Build up the state information stats structure.
@@ -663,7 +630,7 @@ static void ipfstate_dead( char *kernel, friostat_t **fiopp,
 	kmemcpy((char *)ipsstp, (u_long)deadlist[14].n_value, sizeof(*ipsstp));
 	kmemcpy((char *)&temp, (u_long)deadlist[15].n_value, sizeof(temp));
 	kmemcpy((char *)ipstcptab, (u_long)deadlist[40].n_value,
-		sizeof(ipstcptab));
+	    sizeof(ipstcptab));
 	ipsstp->iss_active = temp;
 	ipsstp->iss_table = (void *)deadlist[18].n_value;
 	ipsstp->iss_list = (void *)deadlist[17].n_value;
@@ -673,33 +640,32 @@ static void ipfstate_dead( char *kernel, friostat_t **fiopp,
 	 * Build up the authentiation information stats structure.
 	 */
 	kmemcpy((char *)frauthstp, (u_long)deadlist[0].n_value,
-		sizeof(*frauthstp));
+	    sizeof(*frauthstp));
 	frauthstp->fas_faelist = (void *)deadlist[1].n_value;
 
 	/*
 	 * Build up the fragment information stats structure.
 	 */
-	kmemcpy((char *)ifrstp, (u_long)deadlist[25].n_value,
-		sizeof(*ifrstp));
+	kmemcpy((char *)ifrstp, (u_long)deadlist[25].n_value, sizeof(*ifrstp));
 	ifrstp->ifs_table = (void *)deadlist[23].n_value;
 	ifrstp->ifs_nattab = (void *)deadlist[24].n_value;
 	kmemcpy((char *)&ifrstp->ifs_inuse, (u_long)deadlist[26].n_value,
-		sizeof(ifrstp->ifs_inuse));
+	    sizeof(ifrstp->ifs_inuse));
 
 	/*
 	 * Get logging on/off switches
 	 */
 	kmemcpy((char *)&state_logging, (u_long)deadlist[41].n_value,
-		sizeof(state_logging));
+	    sizeof(state_logging));
 }
 
-
-static void printside(char *side, ipf_statistics_t *frs)
+static void
+printside(char *side, ipf_statistics_t *frs)
 {
 	int i;
 
 	PRINTF("%lu\t%s bad packets\n", frs->fr_bad, side);
-#ifdef	USE_INET6
+#ifdef USE_INET6
 	PRINTF("%lu\t%s IPv6 packets\n", frs->fr_ipv6, side);
 #endif
 	PRINTF("%lu\t%s packets blocked\n", frs->fr_block, side);
@@ -721,16 +687,16 @@ static void printside(char *side, ipf_statistics_t *frs)
 	PRINTF("%lu\t%s pullups failed\n", frs->fr_pull[1], side);
 	PRINTF("%lu\t%s TCP checksum failures\n", frs->fr_tcpbad, side);
 	for (i = 0; i <= FRB_MAX_VALUE; i++)
-		PRINTF("%lu\t%s block reason %s\n",
-			frs->fr_blocked[i], side, blockreasons[i]);
+		PRINTF("%lu\t%s block reason %s\n", frs->fr_blocked[i], side,
+		    blockreasons[i]);
 }
-
 
 /*
  * Display the kernel stats for packets blocked and passed and other
  * associated running totals which are kept.
  */
-static	void	showstats( struct friostat *fp, u_32_t frf)
+static void
+showstats(struct friostat *fp, u_32_t frf)
 {
 	printside("input", &fp->f_st[0]);
 	printside("output", &fp->f_st[1]);
@@ -756,15 +722,14 @@ static	void	showstats( struct friostat *fp, u_32_t frf)
 		PRINTF("\tnone\n");
 }
 
-
 /*
  * Print out a list of rules from the kernel, starting at the one passed.
  */
 static int
-printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
-	char *group, char *comment)
+printlivelist(struct friostat *fiop, int out, int set, frentry_t *fp,
+    char *group, char *comment)
 {
-	struct	frentry	fb;
+	struct frentry fb;
 	ipfruleiter_t rule;
 	frentry_t zero;
 	frgroup_t *g;
@@ -800,7 +765,7 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 		if (ioctl(ipf_fd, SIOCIPFITER, &obj) == -1) {
 			ipferror(ipf_fd, "ioctl(SIOCIPFITER)");
 			num = IPFGENITER_IPF;
-			(void) ioctl(ipf_fd,SIOCIPFDELTOK, &num);
+			(void)ioctl(ipf_fd, SIOCIPFDELTOK, &num);
 			return (rules);
 		}
 		if (bcmp(fp, &zero, sizeof(zero)) == 0)
@@ -817,8 +782,8 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 				continue;
 #ifdef USE_INET6
 		} else {
-			if (fp->fr_family != 0 &&
-			   fp->fr_family != AF_INET && fp->fr_family != AF_INET6)
+			if (fp->fr_family != 0 && fp->fr_family != AF_INET &&
+			    fp->fr_family != AF_INET6)
 				continue;
 		}
 #endif
@@ -828,15 +793,16 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 
 		rules++;
 
-		if (opts & (OPT_HITS|OPT_DEBUG))
-#ifdef	USE_QUAD_T
-			PRINTF("%"PRIu64" ", (unsigned long long) fp->fr_hits);
+		if (opts & (OPT_HITS | OPT_DEBUG))
+#ifdef USE_QUAD_T
+			PRINTF("%" PRIu64 " ", (unsigned long long)fp->fr_hits);
 #else
 			PRINTF("%lu ", fp->fr_hits);
 #endif
-		if (opts & (OPT_ACCNT|OPT_DEBUG))
-#ifdef	USE_QUAD_T
-			PRINTF("%"PRIu64" ", (unsigned long long) fp->fr_bytes);
+		if (opts & (OPT_ACCNT | OPT_DEBUG))
+#ifdef USE_QUAD_T
+			PRINTF("%" PRIu64 " ",
+			    (unsigned long long)fp->fr_bytes);
 #else
 			PRINTF("%lu ", fp->fr_bytes);
 #endif
@@ -855,8 +821,7 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 		if (fp->fr_grhead != -1) {
 			for (g = grtop; g != NULL; g = g->fg_next) {
 				if (!strncmp(fp->fr_names + fp->fr_grhead,
-					     g->fg_name,
-					     FR_GROUPLEN))
+					g->fg_name, FR_GROUPLEN))
 					break;
 			}
 			if (g == NULL) {
@@ -864,8 +829,8 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 
 				if (g != NULL) {
 					strncpy(g->fg_name,
-						fp->fr_names + fp->fr_grhead,
-						FR_GROUPLEN);
+					    fp->fr_names + fp->fr_grhead,
+					    FR_GROUPLEN);
 					if (grtop == NULL) {
 						grtop = g;
 						grtail = g;
@@ -878,25 +843,25 @@ printlivelist( struct friostat *fiop, int out, int set, frentry_t *fp,
 		}
 		if (fp->fr_type == FR_T_CALLFUNC) {
 			rules += printlivelist(fiop, out, set, fp->fr_data,
-					       group, "# callfunc: ");
+			    group, "# callfunc: ");
 		}
 	}
 
 	num = IPFGENITER_IPF;
-	(void) ioctl(ipf_fd,SIOCIPFDELTOK, &num);
+	(void)ioctl(ipf_fd, SIOCIPFDELTOK, &num);
 
 	return (rules);
 }
 
-
-static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
-	char *group, char *comment)
+static void
+printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp, char *group,
+    char *comment)
 {
 	frgroup_t *grtop, *grtail, *g;
-	struct	frentry	fb;
-	char	*data;
-	u_32_t	type;
-	int	n;
+	struct frentry fb;
+	char *data;
+	u_32_t type;
+	int n;
 
 	fb.fr_next = fp;
 	n = 0;
@@ -904,13 +869,13 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 	grtail = NULL;
 
 	for (n = 1; fp; fp = fb.fr_next, n++) {
-		if (kmemcpy((char *)&fb, (u_long)fb.fr_next,
-			    fb.fr_size) == -1) {
+		if (kmemcpy((char *)&fb, (u_long)fb.fr_next, fb.fr_size) ==
+		    -1) {
 			perror("kmemcpy");
 			return;
 		}
 		fp = &fb;
-#ifdef	USE_INET6
+#ifdef USE_INET6
 		if (use_inet6 != 0 && use_inet4 == 0) {
 			if (fp->fr_family != 0 && fp->fr_family != AF_INET6)
 				continue;
@@ -918,10 +883,10 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 #endif
 			if (fp->fr_family != 0 && fp->fr_family != AF_INET)
 				continue;
-#ifdef	USE_INET6
+#ifdef USE_INET6
 		} else {
-			if (fp->fr_family != 0 &&
-			   fp->fr_family != AF_INET && fp->fr_family != AF_INET6)
+			if (fp->fr_family != 0 && fp->fr_family != AF_INET &&
+			    fp->fr_family != AF_INET6)
 				continue;
 		}
 #endif
@@ -933,7 +898,7 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 				data = malloc(fb.fr_dsize);
 
 				if (kmemcpy(data, (u_long)fb.fr_data,
-					    fb.fr_dsize) == -1) {
+					fb.fr_dsize) == -1) {
 					perror("kmemcpy");
 					return;
 				}
@@ -942,14 +907,14 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 		}
 
 		if (opts & OPT_HITS)
-#ifdef	USE_QUAD_T
-			PRINTF("%"PRIu64" ", (unsigned long long) fb.fr_hits);
+#ifdef USE_QUAD_T
+			PRINTF("%" PRIu64 " ", (unsigned long long)fb.fr_hits);
 #else
 			PRINTF("%lu ", fb.fr_hits);
 #endif
 		if (opts & OPT_ACCNT)
-#ifdef	USE_QUAD_T
-			PRINTF("%"PRIu64" ", (unsigned long long) fb.fr_bytes);
+#ifdef USE_QUAD_T
+			PRINTF("%" PRIu64 " ", (unsigned long long)fb.fr_bytes);
 #else
 			PRINTF("%lu ", fb.fr_bytes);
 #endif
@@ -969,7 +934,7 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 
 			if (g != NULL) {
 				strncpy(g->fg_name, fb.fr_names + fb.fr_grhead,
-					FR_GROUPLEN);
+				    FR_GROUPLEN);
 				if (grtop == NULL) {
 					grtop = g;
 					grtail = g;
@@ -981,7 +946,7 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
 		}
 		if (type == FR_T_CALLFUNC) {
 			printdeadlist(fiop, out, set, fb.fr_data, group,
-				      "# callfunc: ");
+			    "# callfunc: ");
 		}
 	}
 
@@ -996,10 +961,11 @@ static void printdeadlist(friostat_t *fiop, int out, int set, frentry_t *fp,
  * print out all of the asked for rule sets, using the stats struct as
  * the base from which to get the pointers.
  */
-static	void	showlist(struct friostat *fiop)
+static void
+showlist(struct friostat *fiop)
 {
-	struct	frentry	*fp = NULL;
-	int	i, set;
+	struct frentry *fp = NULL;
+	int i, set;
 
 	set = fiop->f_active;
 	if (opts & OPT_INACTIVE)
@@ -1037,25 +1003,25 @@ static	void	showlist(struct friostat *fiop)
 		printed = printlivelist(fiop, i, set, fp, NULL, NULL);
 		if (printed == 0) {
 			FPRINTF(stderr, "# empty list for %s%s\n",
-			        (opts & OPT_INACTIVE) ? "inactive " : "",
-							filters[i]);
+			    (opts & OPT_INACTIVE) ? "inactive " : "",
+			    filters[i]);
 		}
 	} else {
 		if (!fp) {
 			FPRINTF(stderr, "# empty list for %s%s\n",
-			        (opts & OPT_INACTIVE) ? "inactive " : "",
-							filters[i]);
+			    (opts & OPT_INACTIVE) ? "inactive " : "",
+			    filters[i]);
 		} else {
 			printdeadlist(fiop, i, set, fp, NULL, NULL);
 		}
 	}
 }
 
-
 /*
  * Display ipfilter stateful filtering information
  */
-static void showipstates(ips_stat_t *ipsp, int *filter)
+static void
+showipstates(ips_stat_t *ipsp, int *filter)
 {
 	ipstate_t *is;
 	int i;
@@ -1080,7 +1046,7 @@ static void showipstates(ips_stat_t *ipsp, int *filter)
 	/*
 	 * Print out all the state information currently held in the kernel.
 	 */
-	for (is = ipsp->iss_list; is != NULL; ) {
+	for (is = ipsp->iss_list; is != NULL;) {
 		ipstate_t ips;
 
 		is = fetchstate(is, &ips);
@@ -1089,8 +1055,7 @@ static void showipstates(ips_stat_t *ipsp, int *filter)
 			break;
 
 		is = ips.is_next;
-		if ((filter != NULL) &&
-		    (state_matcharray(&ips, filter) == 0)) {
+		if ((filter != NULL) && (state_matcharray(&ips, filter) == 0)) {
 			continue;
 		}
 		if (state_fields != NULL) {
@@ -1106,8 +1071,8 @@ static void showipstates(ips_stat_t *ipsp, int *filter)
 	}
 }
 
-
-static void showstatestats(ips_stat_t *ipsp)
+static void
+showstatestats(ips_stat_t *ipsp)
 {
 	int minlen, maxlen, totallen;
 	ipftable_t table;
@@ -1136,14 +1101,13 @@ static void showstatestats(ips_stat_t *ipsp)
 			return;
 		}
 	} else {
-		if (kmemcpy((char *)buckets,
-			    (u_long)ipsp->iss_bucketlen, sz)) {
+		if (kmemcpy((char *)buckets, (u_long)ipsp->iss_bucketlen, sz)) {
 			free(buckets);
 			return;
 		}
 	}
 
-	PRINTF("%u\tactive state table entries\n",ipsp->iss_active);
+	PRINTF("%u\tactive state table entries\n", ipsp->iss_active);
 	PRINTF("%lu\tadd bad\n", ipsp->iss_add_bad);
 	PRINTF("%lu\tadd duplicate\n", ipsp->iss_add_dup);
 	PRINTF("%lu\tadd locked\n", ipsp->iss_add_locked);
@@ -1168,7 +1132,7 @@ static void showstatestats(ips_stat_t *ipsp)
 	PRINTF("%lu\tICMP errors\n", ipsp->iss_icmp_icmperr);
 	PRINTF("%lu\tICMP head block\n", ipsp->iss_icmp_headblock);
 	PRINTF("%lu\tICMP hits\n", ipsp->iss_icmp_hits);
-	PRINTF("%lu\tICMP not query\n",	ipsp->iss_icmp_notquery);
+	PRINTF("%lu\tICMP not query\n", ipsp->iss_icmp_notquery);
 	PRINTF("%lu\tICMP short\n", ipsp->iss_icmp_short);
 	PRINTF("%lu\tICMP too many\n", ipsp->iss_icmp_toomany);
 	PRINTF("%lu\tICMPv6 errors\n", ipsp->iss_icmp6_icmperr);
@@ -1231,14 +1195,11 @@ static void showstatestats(ips_stat_t *ipsp)
 	}
 
 	PRINTF("%d\thash efficiency\n",
-		totallen ? ipsp->iss_inuse * 100 / totallen : 0);
+	    totallen ? ipsp->iss_inuse * 100 / totallen : 0);
 	PRINTF("%2.2f%%\tbucket usage\n%u\tminimal length\n",
-		((float)ipsp->iss_inuse / ipsp->iss_state_size) * 100.0,
-		minlen);
-	PRINTF("%u\tmaximal length\n%.3f\taverage length\n",
-		maxlen,
-		ipsp->iss_inuse ? (float) totallen/ ipsp->iss_inuse :
-				  0.0);
+	    ((float)ipsp->iss_inuse / ipsp->iss_state_size) * 100.0, minlen);
+	PRINTF("%u\tmaximal length\n%.3f\taverage length\n", maxlen,
+	    ipsp->iss_inuse ? (float)totallen / ipsp->iss_inuse : 0.0);
 
 #define ENTRIES_PER_LINE 5
 
@@ -1248,8 +1209,7 @@ static void showstatestats(ips_stat_t *ipsp)
 			if ((i % ENTRIES_PER_LINE) == 0)
 				PRINTF("\t");
 			PRINTF("%4d -> %4u", i, buckets[i]);
-			if ((i % ENTRIES_PER_LINE) ==
-			    (ENTRIES_PER_LINE - 1))
+			if ((i % ENTRIES_PER_LINE) == (ENTRIES_PER_LINE - 1))
 				PRINTF("\n");
 			else
 				PRINTF("  ");
@@ -1267,12 +1227,12 @@ static void showstatestats(ips_stat_t *ipsp)
 	}
 }
 
-
 #ifdef STATETOP
 static int handle_resize = 0, handle_break = 0;
 
-static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
-	int protocol, int ver, int refreshtime, int topclosed, int *filter)
+static void
+topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport, int protocol,
+    int ver, int refreshtime, int topclosed, int *filter)
 {
 	char str1[STSTRSIZE], str2[STSTRSIZE], str3[STSTRSIZE], str4[STSTRSIZE];
 	int maxtsentries = 0, reverse = 0, sorting = STSORT_DEFAULT;
@@ -1297,9 +1257,9 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 	signal(SIGWINCH, sig_resize);
 
 	/* init ncurses stuff */
-  	initscr();
-  	cbreak();
-  	noecho();
+	initscr();
+	cbreak();
+	noecho();
 	curs_set(0);
 	timeout(0);
 	getmaxyx(stdscr, maxy, maxx);
@@ -1316,7 +1276,7 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 	ipfo.ipfo_ptr = (void *)ipsstp;
 
 	/* repeat until user aborts */
-	while ( 1 ) {
+	while (1) {
 
 		/* get state table */
 		bzero((char *)&ipsst, sizeof(ipsst));
@@ -1349,18 +1309,18 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			/* check v4 src/dest addresses */
 			if (ips.is_v == 4) {
 				if ((saddr.in4.s_addr != INADDR_ANY &&
-				     saddr.in4.s_addr != ips.is_saddr) ||
+					saddr.in4.s_addr != ips.is_saddr) ||
 				    (daddr.in4.s_addr != INADDR_ANY &&
-				     daddr.in4.s_addr != ips.is_daddr))
+					daddr.in4.s_addr != ips.is_daddr))
 					continue;
 			}
-#ifdef	USE_INET6
+#ifdef USE_INET6
 			/* check v6 src/dest addresses */
 			if (ips.is_v == 6) {
 				if ((IP6_NEQ(&saddr, &in6addr_any) &&
-				     IP6_NEQ(&saddr, &ips.is_src)) ||
+					IP6_NEQ(&saddr, &ips.is_src)) ||
 				    (IP6_NEQ(&daddr, &in6addr_any) &&
-				     IP6_NEQ(&daddr, &ips.is_dst)))
+					IP6_NEQ(&daddr, &ips.is_dst)))
 					continue;
 			}
 #endif
@@ -1370,9 +1330,10 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 
 			/* check ports if protocol is TCP or UDP */
 			if (((ips.is_p == IPPROTO_TCP) ||
-			     (ips.is_p == IPPROTO_UDP)) &&
-			   (((sport > 0) && (htons(sport) != ips.is_sport)) ||
-			    ((dport > 0) && (htons(dport) != ips.is_dport))))
+				(ips.is_p == IPPROTO_UDP)) &&
+			    (((sport > 0) && (htons(sport) != ips.is_sport)) ||
+				((dport > 0) &&
+				    (htons(dport) != ips.is_dport))))
 				continue;
 
 			/* show closed TCP sessions ? */
@@ -1413,11 +1374,13 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			tp->st_state[0] = ips.is_state[0];
 			tp->st_state[1] = ips.is_state[1];
 			if (forward) {
-				tp->st_pkts = ips.is_pkts[0]+ips.is_pkts[1];
-				tp->st_bytes = ips.is_bytes[0]+ips.is_bytes[1];
+				tp->st_pkts = ips.is_pkts[0] + ips.is_pkts[1];
+				tp->st_bytes = ips.is_bytes[0] +
+				    ips.is_bytes[1];
 			} else {
-				tp->st_pkts = ips.is_pkts[2]+ips.is_pkts[3];
-				tp->st_bytes = ips.is_bytes[2]+ips.is_bytes[3];
+				tp->st_pkts = ips.is_pkts[2] + ips.is_pkts[3];
+				tp->st_bytes = ips.is_bytes[2] +
+				    ips.is_bytes[3];
 			}
 			tp->st_age = ips.is_die - ipsstp->iss_ticks;
 			if ((ips.is_p == IPPROTO_TCP) ||
@@ -1427,43 +1390,42 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			}
 		}
 
-		(void) ioctl(state_fd, SIOCIPFDELTOK, &token_type);
+		(void)ioctl(state_fd, SIOCIPFDELTOK, &token_type);
 
 		/* sort the array */
 		if (tsentry != -1) {
-			switch (sorting)
-			{
+			switch (sorting) {
 			case STSORT_PR:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_p);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_p);
 				break;
 			case STSORT_PKTS:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_pkts);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_pkts);
 				break;
 			case STSORT_BYTES:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_bytes);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_bytes);
 				break;
 			case STSORT_TTL:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_ttl);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_ttl);
 				break;
 			case STSORT_SRCIP:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_srcip);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_srcip);
 				break;
 			case STSORT_SRCPT:
-				qsort(tstable, tsentry +1,
-					sizeof(statetop_t), sort_srcpt);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_srcpt);
 				break;
 			case STSORT_DSTIP:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_dstip);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_dstip);
 				break;
 			case STSORT_DSTPT:
-				qsort(tstable, tsentry + 1,
-				      sizeof(statetop_t), sort_dstpt);
+				qsort(tstable, tsentry + 1, sizeof(statetop_t),
+				    sort_dstpt);
 				break;
 			default:
 				break;
@@ -1491,9 +1453,10 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 		erase();
 		attron(A_BOLD);
 		winy = 0;
-		move(winy,0);
-		snprintf(str1, sizeof(str1), "%s - %s - state top", hostnm, IPL_VERSION);
-		for (j = 0 ; j < (maxx - 8 - strlen(str1)) / 2; j++)
+		move(winy, 0);
+		snprintf(str1, sizeof(str1), "%s - %s - state top", hostnm,
+		    IPL_VERSION);
+		for (j = 0; j < (maxx - 8 - strlen(str1)) / 2; j++)
 			printw(" ");
 		printw("%s", str1);
 		attroff(A_BOLD);
@@ -1510,12 +1473,14 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 		 * while the programming is running :-)
 		 */
 		if (sport >= 0)
-			snprintf(str1, sizeof(str1), "%s,%d", getip(ver, &saddr), sport);
+			snprintf(str1, sizeof(str1), "%s,%d",
+			    getip(ver, &saddr), sport);
 		else
 			snprintf(str1, sizeof(str1), "%s", getip(ver, &saddr));
 
 		if (dport >= 0)
-			snprintf(str2, sizeof(str2), "%s,%d", getip(ver, &daddr), dport);
+			snprintf(str2, sizeof(str2), "%s,%d",
+			    getip(ver, &daddr), dport);
 		else
 			snprintf(str2, sizeof(str2), "%s", getip(ver, &daddr));
 
@@ -1526,8 +1491,7 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 		else
 			snprintf(str3, sizeof(str3), "%d", protocol);
 
-		switch (sorting)
-		{
+		switch (sorting) {
 		case STSORT_PR:
 			snprintf(str4, sizeof(str4), "proto");
 			break;
@@ -1561,9 +1525,9 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			strcat(str4, " (reverse)");
 
 		winy += 2;
-		move(winy,0);
-		printw("Src: %s, Dest: %s, Proto: %s, Sorted by: %s\n\n",
-		       str1, str2, str3, str4);
+		move(winy, 0);
+		printw("Src: %s, Dest: %s, Proto: %s, Sorted by: %s\n\n", str1,
+		    str2, str3, str4);
 
 		/*
 		 * For an IPv4 IP address we need at most 15 characters,
@@ -1582,11 +1546,11 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 
 		/* print column description */
 		winy += 2;
-		move(winy,0);
+		move(winy, 0);
 		attron(A_BOLD);
-		printw("%-*s %-*s %3s %4s %7s %9s %9s\n",
-		       srclen + 6, "Source IP", dstlen + 6, "Destination IP",
-		       "ST", "PR", "#pkts", "#bytes", "ttl");
+		printw("%-*s %-*s %3s %4s %7s %9s %9s\n", srclen + 6,
+		    "Source IP", dstlen + 6, "Destination IP", "ST", "PR",
+		    "#pkts", "#bytes", "ttl");
 		attroff(A_BOLD);
 
 		/* print all the entries */
@@ -1601,16 +1565,16 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			if ((tp->st_p == IPPROTO_TCP) ||
 			    (tp->st_p == IPPROTO_UDP)) {
 				snprintf(str1, sizeof(str1), "%s,%hu",
-					getip(tp->st_v, &tp->st_src),
-					ntohs(tp->st_sport));
+				    getip(tp->st_v, &tp->st_src),
+				    ntohs(tp->st_sport));
 				snprintf(str2, sizeof(str2), "%s,%hu",
-					getip(tp->st_v, &tp->st_dst),
-					ntohs(tp->st_dport));
+				    getip(tp->st_v, &tp->st_dst),
+				    ntohs(tp->st_dport));
 			} else {
-				snprintf(str1, sizeof(str1), "%s", getip(tp->st_v,
-				    &tp->st_src));
-				snprintf(str2, sizeof(str2), "%s", getip(tp->st_v,
-				    &tp->st_dst));
+				snprintf(str1, sizeof(str1), "%s",
+				    getip(tp->st_v, &tp->st_src));
+				snprintf(str2, sizeof(str2), "%s",
+				    getip(tp->st_v, &tp->st_dst));
 			}
 			winy++;
 			move(winy, 0);
@@ -1618,7 +1582,7 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 
 			/* print state */
 			snprintf(str1, sizeof(str1), "%X/%X", tp->st_state[0],
-				tp->st_state[1]);
+			    tp->st_state[1]);
 			printw(" %3s", str1);
 
 			/* print protocol */
@@ -1635,9 +1599,9 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 			printw(" %4s", str1);
 
 			/* print #pkt/#bytes */
-#ifdef	USE_QUAD_T
-			printw(" %7qu %9qu", (unsigned long long) tp->st_pkts,
-				(unsigned long long) tp->st_bytes);
+#ifdef USE_QUAD_T
+			printw(" %7qu %9qu", (unsigned long long)tp->st_pkts,
+			    (unsigned long long)tp->st_bytes);
 #else
 			printw(" %7lu %9lu", tp->st_pkts, tp->st_bytes);
 #endif
@@ -1651,12 +1615,12 @@ static void topipstates(i6addr_t saddr, i6addr_t daddr, int sport, int dport,
 
 		/* screen data structure is filled, now update the screen */
 		if (redraw)
-			clearok(stdscr,1);
+			clearok(stdscr, 1);
 
 		if (refresh() == ERR)
 			break;
 		if (redraw) {
-			clearok(stdscr,0);
+			clearok(stdscr, 0);
 			redraw = 0;
 		}
 
@@ -1704,11 +1668,11 @@ out:
 }
 #endif
 
-
 /*
  * Show fragment cache information that's held in the kernel.
  */
-static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
+static void
+showfrstates(ipfrstat_t *ifsp, u_long ticks)
 {
 	struct ipfr *ipfrtab[IPFT_SIZE], ifr;
 	int i;
@@ -1717,17 +1681,17 @@ static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
 	 * print out the numeric statistics
 	 */
 	PRINTF("IP fragment states:\n%lu\tnew\n%lu\texpired\n%lu\thits\n",
-		ifsp->ifs_new, ifsp->ifs_expire, ifsp->ifs_hits);
-	PRINTF("%lu\tretrans\n%lu\ttoo short\n",
-		ifsp->ifs_retrans0, ifsp->ifs_short);
-	PRINTF("%lu\tno memory\n%lu\talready exist\n",
-		ifsp->ifs_nomem, ifsp->ifs_exists);
+	    ifsp->ifs_new, ifsp->ifs_expire, ifsp->ifs_hits);
+	PRINTF("%lu\tretrans\n%lu\ttoo short\n", ifsp->ifs_retrans0,
+	    ifsp->ifs_short);
+	PRINTF("%lu\tno memory\n%lu\talready exist\n", ifsp->ifs_nomem,
+	    ifsp->ifs_exists);
 	PRINTF("%lu\tinuse\n", ifsp->ifs_inuse);
 	PRINTF("\n");
 
 	if (live_kernel == 0) {
 		if (kmemcpy((char *)ipfrtab, (u_long)ifsp->ifs_table,
-			    sizeof(ipfrtab)))
+			sizeof(ipfrtab)))
 			return;
 	}
 
@@ -1747,7 +1711,7 @@ static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
 		for (i = 0; i < IPFT_SIZE; i++)
 			while (ipfrtab[i] != NULL) {
 				if (kmemcpy((char *)&ifr, (u_long)ipfrtab[i],
-					    sizeof(ifr)) == -1)
+					sizeof(ifr)) == -1)
 					break;
 				printfraginfo("", &ifr);
 				ipfrtab[i] = ifr.ipfr_next;
@@ -1759,7 +1723,7 @@ static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
 
 	if (live_kernel == 0) {
 		if (kmemcpy((char *)ipfrtab, (u_long)ifsp->ifs_nattab,
-			    sizeof(ipfrtab)))
+			sizeof(ipfrtab)))
 			return;
 	}
 
@@ -1776,7 +1740,7 @@ static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
 		for (i = 0; i < IPFT_SIZE; i++)
 			while (ipfrtab[i] != NULL) {
 				if (kmemcpy((char *)&ifr, (u_long)ipfrtab[i],
-					    sizeof(ifr)) == -1)
+					sizeof(ifr)) == -1)
 					break;
 				printfraginfo("NAT: ", &ifr);
 				ipfrtab[i] = ifr.ipfr_next;
@@ -1784,11 +1748,11 @@ static void showfrstates(ipfrstat_t *ifsp, u_long ticks)
 	}
 }
 
-
 /*
  * Show stats on how auth within IPFilter has been used
  */
-static void showauthstates(ipf_authstat_t *asp)
+static void
+showauthstates(ipf_authstat_t *asp)
 {
 	frauthent_t *frap, fra;
 	ipfgeniter_t auth;
@@ -1803,19 +1767,19 @@ static void showauthstates(ipf_authstat_t *asp)
 	auth.igi_nitems = 1;
 	auth.igi_data = &fra;
 
-#ifdef	USE_QUAD_T
-	printf("Authorisation hits: %"PRIu64"\tmisses %"PRIu64"\n",
-		(unsigned long long) asp->fas_hits,
-		(unsigned long long) asp->fas_miss);
+#ifdef USE_QUAD_T
+	printf("Authorisation hits: %" PRIu64 "\tmisses %" PRIu64 "\n",
+	    (unsigned long long)asp->fas_hits,
+	    (unsigned long long)asp->fas_miss);
 #else
 	printf("Authorisation hits: %ld\tmisses %ld\n", asp->fas_hits,
-		asp->fas_miss);
+	    asp->fas_miss);
 #endif
 	printf("nospace %ld\nadded %ld\nsendfail %ld\nsendok %ld\n",
-		asp->fas_nospace, asp->fas_added, asp->fas_sendfail,
-		asp->fas_sendok);
-	printf("queok %ld\nquefail %ld\nexpire %ld\n",
-		asp->fas_queok, asp->fas_quefail, asp->fas_expire);
+	    asp->fas_nospace, asp->fas_added, asp->fas_sendfail,
+	    asp->fas_sendok);
+	printf("queok %ld\nquefail %ld\nexpire %ld\n", asp->fas_queok,
+	    asp->fas_quefail, asp->fas_expire);
 
 	frap = asp->fas_faelist;
 	while (frap) {
@@ -1823,8 +1787,8 @@ static void showauthstates(ipf_authstat_t *asp)
 			if (ioctl(auth_fd, SIOCGENITER, &obj))
 				break;
 		} else {
-			if (kmemcpy((char *)&fra, (u_long)frap,
-				    sizeof(fra)) == -1)
+			if (kmemcpy((char *)&fra, (u_long)frap, sizeof(fra)) ==
+			    -1)
 				break;
 		}
 		printf("age %ld\t", fra.fae_age);
@@ -1833,12 +1797,12 @@ static void showauthstates(ipf_authstat_t *asp)
 	}
 }
 
-
 /*
  * Display groups used for each of filter rules, accounting rules and
  * authentication, separately.
  */
-static void showgroups(struct friostat	*fiop)
+static void
+showgroups(struct friostat *fiop)
 {
 	static char *gnames[3] = { "Filter", "Accounting", "Authentication" };
 	static int gnums[3] = { IPL_LOGIPF, IPL_LOGCOUNT, IPL_LOGAUTH };
@@ -1866,8 +1830,8 @@ static void showgroups(struct friostat	*fiop)
 	}
 }
 
-
-static void parse_ipportstr(const char *argument, i6addr_t *ip, int *port)
+static void
+parse_ipportstr(const char *argument, i6addr_t *ip, int *port)
 {
 	char *s, *comma;
 	int ok = 0;
@@ -1883,24 +1847,24 @@ static void parse_ipportstr(const char *argument, i6addr_t *ip, int *port)
 	if ((comma = strchr(s, ',')) != NULL) {
 		if (!strcasecmp(comma + 1, "any")) {
 			*port = -1;
-		} else if (!sscanf(comma + 1, "%d", port) ||
-			   (*port < 0) || (*port > 65535)) {
+		} else if (!sscanf(comma + 1, "%d", port) || (*port < 0) ||
+		    (*port > 65535)) {
 			fprintf(stderr, "Invalid port specification in %s\n",
-				argument);
+			    argument);
 			free(s);
 			exit(-2);
 		}
 		*comma = '\0';
 	}
 
-
 	/* get ip address */
 	if (!strcasecmp(s, "any")) {
 		ip->in4.s_addr = INADDR_ANY;
 		ok = 1;
-#ifdef	USE_INET6
+#ifdef USE_INET6
 		ip->in6 = in6addr_any;
-	} else if (use_inet6 && !use_inet4 && inet_pton(AF_INET6, s, &ip->in6)) {
+	} else if (use_inet6 && !use_inet4 &&
+	    inet_pton(AF_INET6, s, &ip->in6)) {
 		ok = 1;
 #endif
 	} else if (inet_aton(s, &ip->in4))
@@ -1916,22 +1880,24 @@ static void parse_ipportstr(const char *argument, i6addr_t *ip, int *port)
 	free(s);
 }
 
-
 #ifdef STATETOP
-static void sig_resize(int s)
+static void
+sig_resize(int s)
 {
 	handle_resize = 1;
 }
 
-static void sig_break(int s)
+static void
+sig_break(int s)
 {
 	handle_break = 1;
 }
 
-static char *getip(int v, i6addr_t *addr)
+static char *
+getip(int v, i6addr_t *addr)
 {
-#ifdef  USE_INET6
-	static char hostbuf[MAXHOSTNAMELEN+1];
+#ifdef USE_INET6
+	static char hostbuf[MAXHOSTNAMELEN + 1];
 #endif
 
 	if (v == 0)
@@ -1940,8 +1906,8 @@ static char *getip(int v, i6addr_t *addr)
 	if (v == 4)
 		return (inet_ntoa(addr->in4));
 
-#ifdef  USE_INET6
-	(void) inet_ntop(AF_INET6, &addr->in6, hostbuf, sizeof(hostbuf) - 1);
+#ifdef USE_INET6
+	(void)inet_ntop(AF_INET6, &addr->in6, hostbuf, sizeof(hostbuf) - 1);
 	hostbuf[MAXHOSTNAMELEN] = '\0';
 	return (hostbuf);
 #else
@@ -1949,8 +1915,8 @@ static char *getip(int v, i6addr_t *addr)
 #endif
 }
 
-
-static char *ttl_to_string(long int ttl)
+static char *
+ttl_to_string(long int ttl)
 {
 	static char ttlbuf[STSTRSIZE];
 	int hours, minutes, seconds;
@@ -1964,14 +1930,15 @@ static char *ttl_to_string(long int ttl)
 	seconds = ttl % 60;
 
 	if (hours > 0)
-		snprintf(ttlbuf, sizeof(ttlbuf), "%2d:%02d:%02d", hours, minutes, seconds);
+		snprintf(ttlbuf, sizeof(ttlbuf), "%2d:%02d:%02d", hours,
+		    minutes, seconds);
 	else
 		snprintf(ttlbuf, sizeof(ttlbuf), "%2d:%02d", minutes, seconds);
 	return (ttlbuf);
 }
 
-
-static int sort_pkts(const void *a, const void *b)
+static int
+sort_pkts(const void *a, const void *b)
 {
 
 	register const statetop_t *ap = a;
@@ -1984,8 +1951,8 @@ static int sort_pkts(const void *a, const void *b)
 	return (-1);
 }
 
-
-static int sort_bytes(const void *a, const void *b)
+static int
+sort_bytes(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -1997,8 +1964,8 @@ static int sort_bytes(const void *a, const void *b)
 	return (-1);
 }
 
-
-static int sort_p(const void *a, const void *b)
+static int
+sort_p(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2010,8 +1977,8 @@ static int sort_p(const void *a, const void *b)
 	return (-1);
 }
 
-
-static int sort_ttl(const void *a, const void *b)
+static int
+sort_ttl(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2023,7 +1990,8 @@ static int sort_ttl(const void *a, const void *b)
 	return (-1);
 }
 
-static int sort_srcip(const void *a, const void *b)
+static int
+sort_srcip(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2041,13 +2009,14 @@ static int sort_srcip(const void *a, const void *b)
 		    ntohl(bp->st_src.in4.s_addr))
 			return (0);
 		else if (ntohl(ap->st_src.in4.s_addr) >
-		         ntohl(bp->st_src.in4.s_addr))
+		    ntohl(bp->st_src.in4.s_addr))
 			return (1);
 	}
 	return (-1);
 }
 
-static int sort_srcpt(const void *a, const void *b)
+static int
+sort_srcpt(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2059,7 +2028,8 @@ static int sort_srcpt(const void *a, const void *b)
 	return (-1);
 }
 
-static int sort_dstip(const void *a, const void *b)
+static int
+sort_dstip(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2077,13 +2047,14 @@ static int sort_dstip(const void *a, const void *b)
 		    ntohl(bp->st_dst.in4.s_addr))
 			return (0);
 		else if (ntohl(ap->st_dst.in4.s_addr) >
-		         ntohl(bp->st_dst.in4.s_addr))
+		    ntohl(bp->st_dst.in4.s_addr))
 			return (1);
 	}
 	return (-1);
 }
 
-static int sort_dstpt(const void *a, const void *b)
+static int
+sort_dstpt(const void *a, const void *b)
 {
 	register const statetop_t *ap = a;
 	register const statetop_t *bp = b;
@@ -2097,8 +2068,8 @@ static int sort_dstpt(const void *a, const void *b)
 
 #endif
 
-
-ipstate_t *fetchstate(ipstate_t *src, ipstate_t *dst)
+ipstate_t *
+fetchstate(ipstate_t *src, ipstate_t *dst)
 {
 
 	if (live_kernel == 1) {
@@ -2118,7 +2089,7 @@ ipstate_t *fetchstate(ipstate_t *src, ipstate_t *dst)
 			return (NULL);
 		if (dst->is_next == NULL) {
 			int n = IPFGENITER_STATE;
-			(void) ioctl(ipf_fd,SIOCIPFDELTOK, &n);
+			(void)ioctl(ipf_fd, SIOCIPFDELTOK, &n);
 		}
 	} else {
 		if (kmemcpy((char *)dst, (u_long)src, sizeof(*dst)))
@@ -2127,8 +2098,8 @@ ipstate_t *fetchstate(ipstate_t *src, ipstate_t *dst)
 	return (dst);
 }
 
-
-static int fetchfrag( int fd, int type, ipfr_t *frp)
+static int
+fetchfrag(int fd, int type, ipfr_t *frp)
 {
 	ipfgeniter_t frag;
 	ipfobj_t obj;
@@ -2147,8 +2118,8 @@ static int fetchfrag( int fd, int type, ipfr_t *frp)
 	return (0);
 }
 
-
-static int state_matcharray(ipstate_t *stp, int *array)
+static int
+state_matcharray(ipstate_t *stp, int *array)
 {
 	int i, n, *x, rv, p;
 	ipfexp_t *e;
@@ -2172,114 +2143,113 @@ static int state_matcharray(ipstate_t *stp, int *array)
 		if ((p != 0) && (p != stp->is_p))
 			break;
 
-		switch (e->ipfe_cmd)
-		{
-		case IPF_EXP_IP_PR :
+		switch (e->ipfe_cmd) {
+		case IPF_EXP_IP_PR:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_p == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_IP_SRCADDR :
+		case IPF_EXP_IP_SRCADDR:
 			if (stp->is_v != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((stp->is_saddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+				    e->ipfe_arg0[i * 2]);
 			}
 			break;
 
-		case IPF_EXP_IP_DSTADDR :
+		case IPF_EXP_IP_DSTADDR:
 			if (stp->is_v != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((stp->is_daddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+				    e->ipfe_arg0[i * 2]);
 			}
 			break;
 
-		case IPF_EXP_IP_ADDR :
+		case IPF_EXP_IP_ADDR:
 			if (stp->is_v != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((stp->is_saddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				      ((stp->is_daddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+					  e->ipfe_arg0[i * 2]) ||
+				    ((stp->is_daddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]);
 			}
 			break;
 
 #ifdef USE_INET6
-		case IPF_EXP_IP6_SRCADDR :
+		case IPF_EXP_IP6_SRCADDR:
 			if (stp->is_v != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&stp->is_src,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+				    &e->ipfe_arg0[i * 8 + 4],
+				    &e->ipfe_arg0[i * 8]);
 			}
 			break;
 
-		case IPF_EXP_IP6_DSTADDR :
+		case IPF_EXP_IP6_DSTADDR:
 			if (stp->is_v != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&stp->is_dst,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+				    &e->ipfe_arg0[i * 8 + 4],
+				    &e->ipfe_arg0[i * 8]);
 			}
 			break;
 
-		case IPF_EXP_IP6_ADDR :
+		case IPF_EXP_IP6_ADDR:
 			if (stp->is_v != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&stp->is_src,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&stp->is_dst,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+					  &e->ipfe_arg0[i * 8 + 4],
+					  &e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&stp->is_dst,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]);
 			}
 			break;
 #endif
 
-		case IPF_EXP_UDP_PORT :
-		case IPF_EXP_TCP_PORT :
+		case IPF_EXP_UDP_PORT:
+		case IPF_EXP_TCP_PORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_sport == e->ipfe_arg0[i]) ||
-				      (stp->is_dport == e->ipfe_arg0[i]);
+				    (stp->is_dport == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_UDP_SPORT :
-		case IPF_EXP_TCP_SPORT :
+		case IPF_EXP_UDP_SPORT:
+		case IPF_EXP_TCP_SPORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_sport == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_UDP_DPORT :
-		case IPF_EXP_TCP_DPORT :
+		case IPF_EXP_UDP_DPORT:
+		case IPF_EXP_TCP_DPORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_dport == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_IDLE_GT :
+		case IPF_EXP_IDLE_GT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_die < e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_TCP_STATE :
+		case IPF_EXP_TCP_STATE:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (stp->is_state[0] == e->ipfe_arg0[i]) ||
-				      (stp->is_state[1] == e->ipfe_arg0[i]);
+				    (stp->is_state[1] == e->ipfe_arg0[i]);
 			}
 			break;
 		}
@@ -2292,8 +2262,8 @@ static int state_matcharray(ipstate_t *stp, int *array)
 	return (rv);
 }
 
-
-static void showtqtable_live(int fd)
+static void
+showtqtable_live(int fd)
 {
 	ipftq_t table[IPF_TCP_NSTATES];
 	ipfobj_t obj;

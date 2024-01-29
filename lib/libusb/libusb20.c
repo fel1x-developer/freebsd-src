@@ -28,13 +28,14 @@
 #ifdef LIBUSB_GLOBAL_INCLUDE_FILE
 #include LIBUSB_GLOBAL_INCLUDE_FILE
 #else
+#include <sys/queue.h>
+
 #include <ctype.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <sys/queue.h>
 #endif
 
 #include "libusb20.h"
@@ -56,7 +57,7 @@ dummy_void(void)
 static void
 dummy_callback(struct libusb20_transfer *xfer)
 {
-	;				/* style fix */
+	; /* style fix */
 	switch (libusb20_tr_get_status(xfer)) {
 	case LIBUSB20_TRANSFER_START:
 		libusb20_tr_submit(xfer);
@@ -68,28 +69,28 @@ dummy_callback(struct libusb20_transfer *xfer)
 	return;
 }
 
-#define	dummy_get_config_desc_full (void *)dummy_int
-#define	dummy_get_config_index (void *)dummy_int
-#define	dummy_set_config_index (void *)dummy_int
-#define	dummy_set_alt_index (void *)dummy_int
-#define	dummy_reset_device (void *)dummy_int
-#define	dummy_check_connected (void *)dummy_int
-#define	dummy_set_power_mode (void *)dummy_int
-#define	dummy_get_power_mode (void *)dummy_int
-#define	dummy_get_power_usage (void *)dummy_int
-#define	dummy_get_stats (void *)dummy_int
-#define	dummy_kernel_driver_active (void *)dummy_int
-#define	dummy_detach_kernel_driver (void *)dummy_int
-#define	dummy_do_request_sync (void *)dummy_int
-#define	dummy_tr_open (void *)dummy_int
-#define	dummy_tr_close (void *)dummy_int
-#define	dummy_tr_clear_stall_sync (void *)dummy_int
-#define	dummy_process (void *)dummy_int
-#define	dummy_dev_info (void *)dummy_int
-#define	dummy_dev_get_iface_driver (void *)dummy_int
+#define dummy_get_config_desc_full (void *)dummy_int
+#define dummy_get_config_index (void *)dummy_int
+#define dummy_set_config_index (void *)dummy_int
+#define dummy_set_alt_index (void *)dummy_int
+#define dummy_reset_device (void *)dummy_int
+#define dummy_check_connected (void *)dummy_int
+#define dummy_set_power_mode (void *)dummy_int
+#define dummy_get_power_mode (void *)dummy_int
+#define dummy_get_power_usage (void *)dummy_int
+#define dummy_get_stats (void *)dummy_int
+#define dummy_kernel_driver_active (void *)dummy_int
+#define dummy_detach_kernel_driver (void *)dummy_int
+#define dummy_do_request_sync (void *)dummy_int
+#define dummy_tr_open (void *)dummy_int
+#define dummy_tr_close (void *)dummy_int
+#define dummy_tr_clear_stall_sync (void *)dummy_int
+#define dummy_process (void *)dummy_int
+#define dummy_dev_info (void *)dummy_int
+#define dummy_dev_get_iface_driver (void *)dummy_int
 
-#define	dummy_tr_submit (void *)dummy_void
-#define	dummy_tr_cancel_async (void *)dummy_void
+#define dummy_tr_submit (void *)dummy_void
+#define dummy_tr_cancel_async (void *)dummy_void
 
 static const struct libusb20_device_methods libusb20_dummy_methods = {
 	LIBUSB20_DEVICE(LIBUSB20_DECLARE, dummy)
@@ -98,7 +99,7 @@ static const struct libusb20_device_methods libusb20_dummy_methods = {
 void
 libusb20_tr_callback_wrapper(struct libusb20_transfer *xfer)
 {
-	;				/* style fix */
+	; /* style fix */
 
 repeat:
 
@@ -114,8 +115,7 @@ repeat:
 		xfer->is_restart = 0;
 		goto repeat;
 	}
-	if (xfer->is_draining &&
-	    (!xfer->is_pending)) {
+	if (xfer->is_draining && (!xfer->is_pending)) {
 		xfer->is_draining = 0;
 		xfer->status = LIBUSB20_TRANSFER_DRAINED;
 		xfer->callback(xfer);
@@ -162,7 +162,8 @@ int
 libusb20_tr_open(struct libusb20_transfer *xfer, uint32_t MaxBufSize,
     uint32_t MaxFrameCount, uint8_t ep_no)
 {
-	return (libusb20_tr_open_stream(xfer, MaxBufSize, MaxFrameCount, ep_no, 0));
+	return (
+	    libusb20_tr_open_stream(xfer, MaxBufSize, MaxFrameCount, ep_no, 0));
 }
 
 int
@@ -292,13 +293,13 @@ libusb20_tr_pending(struct libusb20_transfer *xfer)
 	return (xfer->is_pending);
 }
 
-void   *
+void *
 libusb20_tr_get_priv_sc0(struct libusb20_transfer *xfer)
 {
 	return (xfer->priv_sc0);
 }
 
-void   *
+void *
 libusb20_tr_get_priv_sc1(struct libusb20_transfer *xfer)
 {
 	return (xfer->priv_sc1);
@@ -319,7 +320,7 @@ libusb20_tr_stop(struct libusb20_transfer *xfer)
 		/* already cancelling */
 		return;
 	}
-	xfer->is_cancel = 1;		/* we are cancelling */
+	xfer->is_cancel = 1; /* we are cancelling */
 
 	xfer->pdev->methods->tr_cancel_async(xfer);
 	return;
@@ -349,14 +350,16 @@ libusb20_tr_clear_stall_sync(struct libusb20_transfer *xfer)
 }
 
 void
-libusb20_tr_set_buffer(struct libusb20_transfer *xfer, void *buffer, uint16_t frIndex)
+libusb20_tr_set_buffer(struct libusb20_transfer *xfer, void *buffer,
+    uint16_t frIndex)
 {
 	xfer->ppBuffer[frIndex] = buffer;
 	return;
 }
 
 void
-libusb20_tr_set_callback(struct libusb20_transfer *xfer, libusb20_tr_callback_t *cb)
+libusb20_tr_set_callback(struct libusb20_transfer *xfer,
+    libusb20_tr_callback_t *cb)
 {
 	xfer->callback = cb;
 	return;
@@ -376,7 +379,8 @@ libusb20_tr_get_length(struct libusb20_transfer *xfer, uint16_t frIndex)
 }
 
 void
-libusb20_tr_set_length(struct libusb20_transfer *xfer, uint32_t length, uint16_t frIndex)
+libusb20_tr_set_length(struct libusb20_transfer *xfer, uint32_t length,
+    uint16_t frIndex)
 {
 	xfer->pLength[frIndex] = length;
 	return;
@@ -415,7 +419,8 @@ libusb20_tr_set_total_frames(struct libusb20_transfer *xfer, uint32_t nFrames)
 }
 
 void
-libusb20_tr_setup_bulk(struct libusb20_transfer *xfer, void *pBuf, uint32_t length, uint32_t timeout)
+libusb20_tr_setup_bulk(struct libusb20_transfer *xfer, void *pBuf,
+    uint32_t length, uint32_t timeout)
 {
 	xfer->ppBuffer[0] = pBuf;
 	xfer->pLength[0] = length;
@@ -425,12 +430,13 @@ libusb20_tr_setup_bulk(struct libusb20_transfer *xfer, void *pBuf, uint32_t leng
 }
 
 void
-libusb20_tr_setup_control(struct libusb20_transfer *xfer, void *psetup, void *pBuf, uint32_t timeout)
+libusb20_tr_setup_control(struct libusb20_transfer *xfer, void *psetup,
+    void *pBuf, uint32_t timeout)
 {
 	uint16_t len;
 
 	xfer->ppBuffer[0] = psetup;
-	xfer->pLength[0] = 8;		/* fixed */
+	xfer->pLength[0] = 8; /* fixed */
 	xfer->timeout = timeout;
 
 	len = ((uint8_t *)psetup)[6] | (((uint8_t *)psetup)[7] << 8);
@@ -446,7 +452,8 @@ libusb20_tr_setup_control(struct libusb20_transfer *xfer, void *psetup, void *pB
 }
 
 void
-libusb20_tr_setup_intr(struct libusb20_transfer *xfer, void *pBuf, uint32_t length, uint32_t timeout)
+libusb20_tr_setup_intr(struct libusb20_transfer *xfer, void *pBuf,
+    uint32_t length, uint32_t timeout)
 {
 	xfer->ppBuffer[0] = pBuf;
 	xfer->pLength[0] = length;
@@ -456,7 +463,8 @@ libusb20_tr_setup_intr(struct libusb20_transfer *xfer, void *pBuf, uint32_t leng
 }
 
 void
-libusb20_tr_setup_isoc(struct libusb20_transfer *xfer, void *pBuf, uint32_t length, uint16_t frIndex)
+libusb20_tr_setup_isoc(struct libusb20_transfer *xfer, void *pBuf,
+    uint32_t length, uint16_t frIndex)
 {
 	if (frIndex >= xfer->maxFrames) {
 		/* should not happen */
@@ -468,9 +476,8 @@ libusb20_tr_setup_isoc(struct libusb20_transfer *xfer, void *pBuf, uint32_t leng
 }
 
 uint8_t
-libusb20_tr_bulk_intr_sync(struct libusb20_transfer *xfer,
-    void *pbuf, uint32_t length, uint32_t *pactlen,
-    uint32_t timeout)
+libusb20_tr_bulk_intr_sync(struct libusb20_transfer *xfer, void *pbuf,
+    uint32_t length, uint32_t *pactlen, uint32_t timeout)
 {
 	struct libusb20_device *pdev = xfer->pdev;
 	uint32_t transfer_max;
@@ -487,15 +494,13 @@ libusb20_tr_bulk_intr_sync(struct libusb20_transfer *xfer,
 
 	do {
 		/* compute maximum transfer length */
-		transfer_max = 
-		    libusb20_tr_get_max_total_length(xfer);
+		transfer_max = libusb20_tr_get_max_total_length(xfer);
 
 		if (transfer_max > length)
 			transfer_max = length;
 
 		/* setup bulk or interrupt transfer */
-		libusb20_tr_setup_bulk(xfer, pbuf, 
-		    transfer_max, timeout);
+		libusb20_tr_setup_bulk(xfer, pbuf, transfer_max, timeout);
 
 		/* start the transfer */
 		libusb20_tr_start(xfer);
@@ -544,9 +549,9 @@ libusb20_tr_submit(struct libusb20_transfer *xfer)
 		/* should not happen */
 		return;
 	}
-	xfer->is_pending = 1;		/* we are pending */
-	xfer->is_cancel = 0;		/* not cancelling */
-	xfer->is_restart = 0;		/* not restarting */
+	xfer->is_pending = 1; /* we are pending */
+	xfer->is_cancel = 0;  /* not cancelling */
+	xfer->is_restart = 0; /* not restarting */
 
 	xfer->pdev->methods->tr_submit(xfer);
 	return;
@@ -612,7 +617,7 @@ libusb20_dev_close(struct libusb20_device *pdev)
 	 */
 	pdev->nTransfer = 0;
 
-	/* 
+	/*
 	 * The following variable is only used by the libusb v0.1
 	 * compat layer:
 	 */
@@ -628,7 +633,8 @@ libusb20_dev_close(struct libusb20_device *pdev)
 }
 
 int
-libusb20_dev_detach_kernel_driver(struct libusb20_device *pdev, uint8_t ifaceIndex)
+libusb20_dev_detach_kernel_driver(struct libusb20_device *pdev,
+    uint8_t ifaceIndex)
 {
 	int error;
 
@@ -649,7 +655,8 @@ libusb20_dev_get_fd(struct libusb20_device *pdev)
 }
 
 int
-libusb20_dev_kernel_driver_active(struct libusb20_device *pdev, uint8_t ifaceIndex)
+libusb20_dev_kernel_driver_active(struct libusb20_device *pdev,
+    uint8_t ifaceIndex)
 {
 	int error;
 
@@ -742,12 +749,13 @@ libusb20_dev_get_power_mode(struct libusb20_device *pdev)
 
 	error = pdev->methods->get_power_mode(pdev, &power_mode);
 	if (error)
-		power_mode = LIBUSB20_POWER_ON;	/* fake power mode */
+		power_mode = LIBUSB20_POWER_ON; /* fake power mode */
 	return (power_mode);
 }
 
 int
-libusb20_dev_get_port_path(struct libusb20_device *pdev, uint8_t *buf, uint8_t bufsize)
+libusb20_dev_get_port_path(struct libusb20_device *pdev, uint8_t *buf,
+    uint8_t bufsize)
 {
 
 	if (pdev->port_level == 0) {
@@ -768,7 +776,7 @@ libusb20_dev_get_port_path(struct libusb20_device *pdev, uint8_t *buf, uint8_t b
 	/* copy port number information */
 	memcpy(buf, pdev->port_path, pdev->port_level);
 
-	return (pdev->port_level);	/* success */
+	return (pdev->port_level); /* success */
 }
 
 uint16_t
@@ -784,7 +792,8 @@ libusb20_dev_get_power_usage(struct libusb20_device *pdev)
 }
 
 int
-libusb20_dev_set_alt_index(struct libusb20_device *pdev, uint8_t ifaceIndex, uint8_t altIndex)
+libusb20_dev_set_alt_index(struct libusb20_device *pdev, uint8_t ifaceIndex,
+    uint8_t altIndex)
 {
 	int error;
 
@@ -803,19 +812,19 @@ libusb20_dev_set_config_index(struct libusb20_device *pdev, uint8_t configIndex)
 
 int
 libusb20_dev_request_sync(struct libusb20_device *pdev,
-    struct LIBUSB20_CONTROL_SETUP_DECODED *setup, void *data,
-    uint16_t *pactlen, uint32_t timeout, uint8_t flags)
+    struct LIBUSB20_CONTROL_SETUP_DECODED *setup, void *data, uint16_t *pactlen,
+    uint32_t timeout, uint8_t flags)
 {
 	int error;
 
-	error = pdev->methods->do_request_sync(pdev,
-	    setup, data, pactlen, timeout, flags);
+	error = pdev->methods->do_request_sync(pdev, setup, data, pactlen,
+	    timeout, flags);
 	return (error);
 }
 
 int
-libusb20_dev_req_string_sync(struct libusb20_device *pdev,
-    uint8_t str_index, uint16_t langid, void *ptr, uint16_t len)
+libusb20_dev_req_string_sync(struct libusb20_device *pdev, uint8_t str_index,
+    uint16_t langid, void *ptr, uint16_t len)
 {
 	struct LIBUSB20_CONTROL_SETUP_DECODED req;
 	int error;
@@ -834,17 +843,15 @@ libusb20_dev_req_string_sync(struct libusb20_device *pdev,
 	 * We need to read the USB string in two steps else some USB
 	 * devices will complain.
 	 */
-	req.bmRequestType =
-	    LIBUSB20_REQUEST_TYPE_STANDARD |
-	    LIBUSB20_RECIPIENT_DEVICE |
-	    LIBUSB20_ENDPOINT_IN;
+	req.bmRequestType = LIBUSB20_REQUEST_TYPE_STANDARD |
+	    LIBUSB20_RECIPIENT_DEVICE | LIBUSB20_ENDPOINT_IN;
 	req.bRequest = LIBUSB20_REQUEST_GET_DESCRIPTOR;
 	req.wValue = (LIBUSB20_DT_STRING << 8) | str_index;
 	req.wIndex = langid;
-	req.wLength = 4;		/* bytes */
+	req.wLength = 4; /* bytes */
 
-	error = libusb20_dev_request_sync(pdev, &req,
-	    ptr, NULL, 1000, LIBUSB20_TRANSFER_SINGLE_SHORT_NOT_OK);
+	error = libusb20_dev_request_sync(pdev, &req, ptr, NULL, 1000,
+	    LIBUSB20_TRANSFER_SINGLE_SHORT_NOT_OK);
 	if (error) {
 		/* try to request full string */
 		req.wLength = 255;
@@ -864,7 +871,7 @@ libusb20_dev_req_string_sync(struct libusb20_device *pdev,
 
 	if (((uint8_t *)ptr)[1] != LIBUSB20_DT_STRING)
 		return (LIBUSB20_ERROR_OTHER);
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 int
@@ -886,23 +893,22 @@ libusb20_dev_req_string_simple_sync(struct libusb20_device *pdev,
 		/* too short buffer */
 		return (LIBUSB20_ERROR_INVALID_PARAM);
 	}
-	error = libusb20_dev_req_string_sync(pdev,
-	    0, 0, temp, sizeof(temp));
+	error = libusb20_dev_req_string_sync(pdev, 0, 0, temp, sizeof(temp));
 	if (error < 0) {
-		*(uint8_t *)ptr = 0;	/* zero terminate */
+		*(uint8_t *)ptr = 0; /* zero terminate */
 		return (error);
 	}
 	langid = temp[2] | (temp[3] << 8);
 
-	error = libusb20_dev_req_string_sync(pdev, str_index,
-	    langid, temp, sizeof(temp));
+	error = libusb20_dev_req_string_sync(pdev, str_index, langid, temp,
+	    sizeof(temp));
 	if (error < 0) {
-		*(uint8_t *)ptr = 0;	/* zero terminate */
+		*(uint8_t *)ptr = 0; /* zero terminate */
 		return (error);
 	}
 	if (temp[0] < 2) {
 		/* string length is too short */
-		*(uint8_t *)ptr = 0;	/* zero terminate */
+		*(uint8_t *)ptr = 0; /* zero terminate */
 		return (LIBUSB20_ERROR_OTHER);
 	}
 	/* reserve one byte for terminating zero */
@@ -946,7 +952,7 @@ libusb20_dev_req_string_simple_sync(struct libusb20_device *pdev,
 		}
 		buf++;
 	}
-	*buf = 0;			/* zero terminate string */
+	*buf = 0; /* zero terminate string */
 
 	return (0);
 }
@@ -977,8 +983,8 @@ libusb20_dev_alloc_config(struct libusb20_device *pdev, uint8_t configIndex)
 	} else {
 		do_close = 0;
 	}
-	error = pdev->methods->get_config_desc_full(pdev,
-	    &ptr, &len, configIndex);
+	error = pdev->methods->get_config_desc_full(pdev, &ptr, &len,
+	    configIndex);
 
 	if (error) {
 		goto done;
@@ -1033,7 +1039,7 @@ libusb20_dev_get_config_index(struct libusb20_device *pdev)
 
 	error = pdev->methods->get_config_index(pdev, &cfg_index);
 	if (error)
-		cfg_index = 0xFF;	/* current config index */
+		cfg_index = 0xFF; /* current config index */
 	if (do_close) {
 		if (libusb20_dev_close(pdev)) {
 			/* ignore */
@@ -1055,7 +1061,8 @@ libusb20_dev_get_speed(struct libusb20_device *pdev)
 }
 
 int
-libusb20_dev_get_stats(struct libusb20_device *pdev, struct libusb20_device_stats *pstats)
+libusb20_dev_get_stats(struct libusb20_device *pdev,
+    struct libusb20_device_stats *pstats)
 {
 	uint8_t do_close;
 	int error;
@@ -1074,7 +1081,7 @@ libusb20_dev_get_stats(struct libusb20_device *pdev, struct libusb20_device_stat
 	error = pdev->methods->get_stats(pdev, pstats);
 
 	if (do_close)
-		(void) libusb20_dev_close(pdev);
+		(void)libusb20_dev_close(pdev);
 
 	return (error);
 }
@@ -1183,30 +1190,30 @@ libusb20_dev_get_bus_number(struct libusb20_device *pdev)
 }
 
 int
-libusb20_dev_get_iface_desc(struct libusb20_device *pdev, 
-    uint8_t iface_index, char *buf, uint8_t len)
+libusb20_dev_get_iface_desc(struct libusb20_device *pdev, uint8_t iface_index,
+    char *buf, uint8_t len)
 {
 	if ((buf == NULL) || (len == 0))
 		return (LIBUSB20_ERROR_INVALID_PARAM);
 
-	buf[0] = 0;		/* set default string value */
+	buf[0] = 0; /* set default string value */
 
-	return (pdev->beMethods->dev_get_iface_desc(
-	    pdev, iface_index, buf, len));
+	return (
+	    pdev->beMethods->dev_get_iface_desc(pdev, iface_index, buf, len));
 }
 
 /* USB backend operations */
 
 int
-libusb20_be_get_dev_quirk(struct libusb20_backend *pbe,
-    uint16_t quirk_index, struct libusb20_quirk *pq)
+libusb20_be_get_dev_quirk(struct libusb20_backend *pbe, uint16_t quirk_index,
+    struct libusb20_quirk *pq)
 {
 	return (pbe->methods->root_get_dev_quirk(pbe, quirk_index, pq));
 }
 
 int
-libusb20_be_get_quirk_name(struct libusb20_backend *pbe,
-    uint16_t quirk_index, struct libusb20_quirk *pq)
+libusb20_be_get_quirk_name(struct libusb20_backend *pbe, uint16_t quirk_index,
+    struct libusb20_quirk *pq)
 {
 	return (pbe->methods->root_get_quirk_name(pbe, quirk_index, pq));
 }
@@ -1243,7 +1250,8 @@ libusb20_be_get_template(struct libusb20_backend *pbe, int *ptemp)
 }
 
 struct libusb20_device *
-libusb20_be_device_foreach(struct libusb20_backend *pbe, struct libusb20_device *pdev)
+libusb20_be_device_foreach(struct libusb20_backend *pbe,
+    struct libusb20_device *pdev)
 {
 	if (pbe == NULL) {
 		pdev = NULL;
@@ -1268,7 +1276,7 @@ libusb20_be_alloc(const struct libusb20_backend_methods *methods)
 
 	TAILQ_INIT(&(pbe->usb_devs));
 
-	pbe->methods = methods;		/* set backend methods */
+	pbe->methods = methods; /* set backend methods */
 
 	/* do the initial device scan */
 	if (pbe->methods->init_backend) {
@@ -1304,7 +1312,7 @@ libusb20_be_alloc_default(void)
 	if (pbe) {
 		return (pbe);
 	}
-	return (NULL);			/* no backend found */
+	return (NULL); /* no backend found */
 }
 
 void
@@ -1328,9 +1336,10 @@ libusb20_be_free(struct libusb20_backend *pbe)
 }
 
 void
-libusb20_be_enqueue_device(struct libusb20_backend *pbe, struct libusb20_device *pdev)
+libusb20_be_enqueue_device(struct libusb20_backend *pbe,
+    struct libusb20_device *pdev)
 {
-	pdev->beMethods = pbe->methods;	/* copy backend methods */
+	pdev->beMethods = pbe->methods; /* copy backend methods */
 	TAILQ_INSERT_TAIL(&(pbe->usb_devs), pdev, dev_entry);
 }
 

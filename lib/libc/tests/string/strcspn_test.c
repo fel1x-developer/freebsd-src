@@ -26,17 +26,16 @@
  * SUCH DAMAGE
  */
 
-
-#include <atf-c.h>
 #include <assert.h>
+#include <atf-c.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 
 enum {
-	MAXALIGN = 16,	/* test all offsets from this alignment */
-	MAXBUF = 64,	/* test up to this buffer length */
+	MAXALIGN = 16, /* test all offsets from this alignment */
+	MAXBUF = 64,   /* test up to this buffer length */
 };
 
 enum { NOMATCH, MATCH };
@@ -136,12 +135,12 @@ ATF_TC_BODY(set_alignments, tc)
 {
 	char buf[31];
 
-	test_set_alignments(buf,  0, MATCH);
+	test_set_alignments(buf, 0, MATCH);
 	test_set_alignments(buf, 10, MATCH);
 	test_set_alignments(buf, 20, MATCH);
 	test_set_alignments(buf, 30, MATCH);
 
-	test_set_alignments(buf,  0, NOMATCH);
+	test_set_alignments(buf, 0, NOMATCH);
 	test_set_alignments(buf, 10, NOMATCH);
 	test_set_alignments(buf, 20, NOMATCH);
 	test_set_alignments(buf, 30, NOMATCH);
@@ -172,8 +171,8 @@ test_match_positions(char *buf, char *set, size_t buflen, size_t setlen)
 
 			outcome = strcspn(buf, set);
 			ATF_CHECK_EQ_MSG(i, outcome,
-			    "strcspn(\"%s\", \"%s\") = %zu != %zu",
-			    buf, set, outcome, i);
+			    "strcspn(\"%s\", \"%s\") = %zu != %zu", buf, set,
+			    outcome, i);
 		}
 
 		buf[i] = '-';

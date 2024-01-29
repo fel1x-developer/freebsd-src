@@ -27,23 +27,24 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <string.h>
 #include <sys/param.h>
+
 #include <machine/cpufunc.h>
+#include <machine/frame.h>
 #include <machine/psl.h>
 #include <machine/segments.h>
-#include <machine/frame.h>
 #include <machine/tss.h>
 
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
+#include <string.h>
 
 #include "bootstrap.h"
 #include "loader_efi.h"
 
-#define	NUM_IST	8
-#define	NUM_EXC	32
+#define NUM_IST 8
+#define NUM_EXC 32
 
 /*
  * This code catches exceptions but forwards hardware interrupts to
@@ -59,26 +60,26 @@
  * unused IST slot, or create a new descriptor in GDT, we bail out.
  */
 
-static struct region_descriptor fw_idt;	/* Descriptor for pristine fw IDT */
-static struct region_descriptor loader_idt;/* Descriptor for loader
-					   shadow IDT */
-static EFI_PHYSICAL_ADDRESS lidt_pa;	/* Address of loader shadow IDT */
-static EFI_PHYSICAL_ADDRESS tss_pa;	/* Address of TSS */
-static EFI_PHYSICAL_ADDRESS exc_stack_pa;/* Address of IST stack for loader */
-EFI_PHYSICAL_ADDRESS exc_rsp;	/* %rsp value on our IST stack when
-				   exception happens */
+static struct region_descriptor fw_idt;	    /* Descriptor for pristine fw IDT */
+static struct region_descriptor loader_idt; /* Descriptor for loader
+					    shadow IDT */
+static EFI_PHYSICAL_ADDRESS lidt_pa;	    /* Address of loader shadow IDT */
+static EFI_PHYSICAL_ADDRESS tss_pa;	    /* Address of TSS */
+static EFI_PHYSICAL_ADDRESS exc_stack_pa; /* Address of IST stack for loader */
+EFI_PHYSICAL_ADDRESS exc_rsp;		  /* %rsp value on our IST stack when
+					     exception happens */
 EFI_PHYSICAL_ADDRESS fw_intr_handlers[NUM_EXC]; /* fw handlers for < 32 IDT
 						   vectors */
 static int intercepted[NUM_EXC];
-static int ist;				/* IST for exception handlers */
-static uint32_t tss_fw_seg;		/* Fw TSS segment */
-static uint32_t loader_tss;		/* Loader TSS segment */
-static struct region_descriptor fw_gdt;	/* Descriptor of pristine GDT */
+static int ist;				   /* IST for exception handlers */
+static uint32_t tss_fw_seg;		   /* Fw TSS segment */
+static uint32_t loader_tss;		   /* Loader TSS segment */
+static struct region_descriptor fw_gdt;	   /* Descriptor of pristine GDT */
 static EFI_PHYSICAL_ADDRESS loader_gdt_pa; /* Address of loader shadow GDT */
 
 struct frame {
-	struct frame	*fr_savfp;
-	uintptr_t	fr_savpc;
+	struct frame *fr_savfp;
+	uintptr_t fr_savpc;
 };
 
 void report_exc(struct trapframe *tf);
@@ -97,22 +98,21 @@ report_exc(struct trapframe *tf)
 	 * loader or firmware runtime may fail to support the printf().
 	 */
 	printf("===================================================="
-	    "============================\n");
+	       "============================\n");
 	printf("Exception %u\n", tf->tf_trapno);
 	printf("ss 0x%04hx cs 0x%04hx ds 0x%04hx es 0x%04hx fs 0x%04hx "
-	    "gs 0x%04hx\n",
+	       "gs 0x%04hx\n",
 	    (uint16_t)tf->tf_ss, (uint16_t)tf->tf_cs, (uint16_t)tf->tf_ds,
 	    (uint16_t)tf->tf_es, (uint16_t)tf->tf_fs, (uint16_t)tf->tf_gs);
 	printf("err 0x%08x rfl 0x%08x addr 0x%016lx\n"
-	    "rsp 0x%016lx rip 0x%016lx\n",
+	       "rsp 0x%016lx rip 0x%016lx\n",
 	    (uint32_t)tf->tf_err, (uint32_t)tf->tf_rflags, tf->tf_addr,
 	    tf->tf_rsp, tf->tf_rip);
-	printf(
-	    "rdi 0x%016lx rsi 0x%016lx rdx 0x%016lx\n"
-	    "rcx 0x%016lx r8  0x%016lx r9  0x%016lx\n"
-	    "rax 0x%016lx rbx 0x%016lx rbp 0x%016lx\n"
-	    "r10 0x%016lx r11 0x%016lx r12 0x%016lx\n"
-	    "r13 0x%016lx r14 0x%016lx r15 0x%016lx\n",
+	printf("rdi 0x%016lx rsi 0x%016lx rdx 0x%016lx\n"
+	       "rcx 0x%016lx r8  0x%016lx r9  0x%016lx\n"
+	       "rax 0x%016lx rbx 0x%016lx rbp 0x%016lx\n"
+	       "r10 0x%016lx r11 0x%016lx r12 0x%016lx\n"
+	       "r13 0x%016lx r14 0x%016lx r15 0x%016lx\n",
 	    tf->tf_rdi, tf->tf_rsi, tf->tf_rdx, tf->tf_rcx, tf->tf_r8,
 	    tf->tf_r9, tf->tf_rax, tf->tf_rbx, tf->tf_rbp, tf->tf_r10,
 	    tf->tf_r11, tf->tf_r12, tf->tf_r13, tf->tf_r14, tf->tf_r15);
@@ -129,7 +129,7 @@ report_exc(struct trapframe *tf)
 			pc -= base;
 			source = "loader PC";
 		}
-		(void) snprintf(buf, sizeof (buf), "FP %016lx: %s 0x%016lx\n",
+		(void)snprintf(buf, sizeof(buf), "FP %016lx: %s 0x%016lx\n",
 		    (uintptr_t)fp, source, pc);
 		if (pager_output(buf))
 			break;
@@ -174,9 +174,9 @@ prepare_exception(unsigned idx, uint64_t my_handler,
 	loader_idt_e->gd_xx = 0;
 	loader_idt_e->sd_xx1 = 0;
 }
-#define	PREPARE_EXCEPTION(N)						\
-    extern char EXC##N##_handler[];					\
-    prepare_exception(N, (uintptr_t)EXC##N##_handler, ist_use_table);
+#define PREPARE_EXCEPTION(N)            \
+	extern char EXC##N##_handler[]; \
+	prepare_exception(N, (uintptr_t)EXC##N##_handler, ist_use_table);
 
 static void
 free_tables(void)
@@ -191,8 +191,8 @@ free_tables(void)
 		exc_stack_pa = 0;
 	}
 	if (tss_pa != 0 && tss_fw_seg == 0) {
-		BS->FreePages(tss_pa, EFI_SIZE_TO_PAGES(sizeof(struct
-		    amd64tss)));
+		BS->FreePages(tss_pa,
+		    EFI_SIZE_TO_PAGES(sizeof(struct amd64tss)));
 		tss_pa = 0;
 	}
 	if (loader_gdt_pa != 0) {
@@ -278,9 +278,9 @@ efi_redirect_exceptions(void)
 	gdt_rd = NULL;
 	if (tss_fw_seg == 0) {
 		for (i = 2; (i << 3) + sizeof(*gdt_desc) <= fw_gdt.rd_limit;
-		    i += 2) {
-			gdt_desc = (struct system_segment_descriptor *)(
-			    fw_gdt.rd_base + (i << 3));
+		     i += 2) {
+			gdt_desc = (struct system_segment_descriptor
+				*)(fw_gdt.rd_base + (i << 3));
 			if (gdt_desc->sd_type == 0 && gdt_desc->sd_mbz == 0) {
 				gdt_rd = &fw_gdt;
 				break;
@@ -289,15 +289,17 @@ efi_redirect_exceptions(void)
 		if (gdt_rd == NULL) {
 			if (i >= 8190) {
 				printf("efi_redirect_exceptions: all slots "
-				    "in gdt are used\n");
+				       "in gdt are used\n");
 				free_tables();
 				return (0);
 			}
-			loader_gdt.rd_limit = roundup2(fw_gdt.rd_limit +
-			    sizeof(struct system_segment_descriptor),
-			    sizeof(struct system_segment_descriptor)) - 1;
+			loader_gdt.rd_limit =
+			    roundup2(fw_gdt.rd_limit +
+				    sizeof(struct system_segment_descriptor),
+				sizeof(struct system_segment_descriptor)) -
+			    1;
 			i = (loader_gdt.rd_limit + 1 -
-			    sizeof(struct system_segment_descriptor)) /
+				sizeof(struct system_segment_descriptor)) /
 			    sizeof(struct system_segment_descriptor) * 2;
 			status = BS->AllocatePages(AllocateAnyPages,
 			    EfiLoaderData,
@@ -305,7 +307,8 @@ efi_redirect_exceptions(void)
 			    &loader_gdt_pa);
 			if (EFI_ERROR(status)) {
 				printf("efi_setup_tss: AllocatePages gdt error "
-				    "%lu\n",  EFI_ERROR_CODE(status));
+				       "%lu\n",
+				    EFI_ERROR_CODE(status));
 				loader_gdt_pa = 0;
 				free_tables();
 				return (0);
@@ -323,8 +326,8 @@ efi_redirect_exceptions(void)
 			return (0);
 		}
 	} else {
-		tss_desc = (struct system_segment_descriptor *)((char *)
-		    fw_gdt.rd_base + tss_fw_seg);
+		tss_desc = (struct system_segment_descriptor
+			*)((char *)fw_gdt.rd_base + tss_fw_seg);
 		if (tss_desc->sd_type != SDT_SYSTSS &&
 		    tss_desc->sd_type != SDT_SYSBSY) {
 			printf("LTR points to non-TSS descriptor\n");
@@ -372,8 +375,8 @@ efi_redirect_exceptions(void)
 		return (0);
 	}
 	for (i = 0; i < NUM_EXC; i++) {
-		loader_idt_e = &((struct gate_descriptor *)loader_idt.
-		    rd_base)[i];
+		loader_idt_e = &(
+		    (struct gate_descriptor *)loader_idt.rd_base)[i];
 		if (intercepted[i])
 			loader_idt_e->gd_ist = ist;
 	}

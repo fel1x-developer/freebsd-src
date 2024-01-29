@@ -27,7 +27,7 @@
 #ifndef __NSCD_PARSER_H__
 #define __NSCD_PARSER_H__
 
-int parse_config_file(struct configuration *,
-	const char *, char const **, int *);
+int parse_config_file(struct configuration *, const char *, char const **,
+    int *);
 
 #endif

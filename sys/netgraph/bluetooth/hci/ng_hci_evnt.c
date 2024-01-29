@@ -34,20 +34,21 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/queue.h>
-#include <netgraph/ng_message.h>
-#include <netgraph/netgraph.h>
-#include <netgraph/bluetooth/include/ng_bluetooth.h>
-#include <netgraph/bluetooth/include/ng_hci.h>
-#include <netgraph/bluetooth/hci/ng_hci_var.h>
+
 #include <netgraph/bluetooth/hci/ng_hci_cmds.h>
 #include <netgraph/bluetooth/hci/ng_hci_evnt.h>
-#include <netgraph/bluetooth/hci/ng_hci_ulpi.h>
 #include <netgraph/bluetooth/hci/ng_hci_misc.h>
+#include <netgraph/bluetooth/hci/ng_hci_ulpi.h>
+#include <netgraph/bluetooth/hci/ng_hci_var.h>
+#include <netgraph/bluetooth/include/ng_bluetooth.h>
+#include <netgraph/bluetooth/include/ng_hci.h>
+#include <netgraph/netgraph.h>
+#include <netgraph/ng_message.h>
 
 /******************************************************************************
  ******************************************************************************
@@ -55,29 +56,29 @@
  ******************************************************************************
  ******************************************************************************/
 
-/* 
- * Event processing routines 
+/*
+ * Event processing routines
  */
 
-static int inquiry_result             (ng_hci_unit_p, struct mbuf *);
-static int con_compl                  (ng_hci_unit_p, struct mbuf *);
-static int con_req                    (ng_hci_unit_p, struct mbuf *);
-static int discon_compl               (ng_hci_unit_p, struct mbuf *);
-static int encryption_change          (ng_hci_unit_p, struct mbuf *);
-static int read_remote_features_compl (ng_hci_unit_p, struct mbuf *);
-static int qos_setup_compl            (ng_hci_unit_p, struct mbuf *);
-static int hardware_error             (ng_hci_unit_p, struct mbuf *);
-static int role_change                (ng_hci_unit_p, struct mbuf *);
-static int num_compl_pkts             (ng_hci_unit_p, struct mbuf *);
-static int mode_change                (ng_hci_unit_p, struct mbuf *);
-static int data_buffer_overflow       (ng_hci_unit_p, struct mbuf *);
-static int read_clock_offset_compl    (ng_hci_unit_p, struct mbuf *);
-static int qos_violation              (ng_hci_unit_p, struct mbuf *);
-static int page_scan_mode_change      (ng_hci_unit_p, struct mbuf *);
-static int page_scan_rep_mode_change  (ng_hci_unit_p, struct mbuf *);
-static int sync_con_queue             (ng_hci_unit_p, ng_hci_unit_con_p, int);
-static int send_data_packets          (ng_hci_unit_p, int, int);
-static int le_event		      (ng_hci_unit_p, struct mbuf *);
+static int inquiry_result(ng_hci_unit_p, struct mbuf *);
+static int con_compl(ng_hci_unit_p, struct mbuf *);
+static int con_req(ng_hci_unit_p, struct mbuf *);
+static int discon_compl(ng_hci_unit_p, struct mbuf *);
+static int encryption_change(ng_hci_unit_p, struct mbuf *);
+static int read_remote_features_compl(ng_hci_unit_p, struct mbuf *);
+static int qos_setup_compl(ng_hci_unit_p, struct mbuf *);
+static int hardware_error(ng_hci_unit_p, struct mbuf *);
+static int role_change(ng_hci_unit_p, struct mbuf *);
+static int num_compl_pkts(ng_hci_unit_p, struct mbuf *);
+static int mode_change(ng_hci_unit_p, struct mbuf *);
+static int data_buffer_overflow(ng_hci_unit_p, struct mbuf *);
+static int read_clock_offset_compl(ng_hci_unit_p, struct mbuf *);
+static int qos_violation(ng_hci_unit_p, struct mbuf *);
+static int page_scan_mode_change(ng_hci_unit_p, struct mbuf *);
+static int page_scan_rep_mode_change(ng_hci_unit_p, struct mbuf *);
+static int sync_con_queue(ng_hci_unit_p, ng_hci_unit_con_p, int);
+static int send_data_packets(ng_hci_unit_p, int, int);
+static int le_event(ng_hci_unit_p, struct mbuf *);
 
 /*
  * Process HCI event packet
@@ -86,8 +87,8 @@ static int le_event		      (ng_hci_unit_p, struct mbuf *);
 int
 ng_hci_process_event(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_event_pkt_t	*hdr = NULL;
-	int			 error = 0;
+	ng_hci_event_pkt_t *hdr = NULL;
+	int error = 0;
 
 	/* Get event packet header */
 	NG_HCI_M_PULLUP(event, sizeof(*hdr));
@@ -96,9 +97,8 @@ ng_hci_process_event(ng_hci_unit_p unit, struct mbuf *event)
 
 	hdr = mtod(event, ng_hci_event_pkt_t *);
 
-	NG_HCI_INFO(
-"%s: %s - got HCI event=%#x, length=%d\n",
-		__func__, NG_NODE_NAME(unit->node), hdr->event, hdr->length);
+	NG_HCI_INFO("%s: %s - got HCI event=%#x, length=%d\n", __func__,
+	    NG_NODE_NAME(unit->node), hdr->event, hdr->length);
 
 	/* Get rid of event header and process event */
 	m_adj(event, sizeof(*hdr));
@@ -113,7 +113,7 @@ ng_hci_process_event(ng_hci_unit_p unit, struct mbuf *event)
 	case NG_HCI_EVENT_AUTH_COMPL:
 	case NG_HCI_EVENT_CHANGE_CON_LINK_KEY_COMPL:
 	case NG_HCI_EVENT_MASTER_LINK_KEY_COMPL:
-	case NG_HCI_EVENT_FLUSH_OCCUR:	/* XXX Do we have to handle it? */
+	case NG_HCI_EVENT_FLUSH_OCCUR: /* XXX Do we have to handle it? */
 	case NG_HCI_EVENT_MAX_SLOT_CHANGE:
 	case NG_HCI_EVENT_CON_PKT_TYPE_CHANGED:
 	case NG_HCI_EVENT_BT_LOGO:
@@ -215,14 +215,13 @@ ng_hci_process_event(ng_hci_unit_p unit, struct mbuf *event)
 void
 ng_hci_send_data(ng_hci_unit_p unit)
 {
-	int	count;
+	int count;
 
 	/* Send ACL data */
 	NG_HCI_BUFF_ACL_AVAIL(unit->buffer, count);
 
-	NG_HCI_INFO(
-"%s: %s - sending ACL data packets, count=%d\n",
-		__func__, NG_NODE_NAME(unit->node), count);
+	NG_HCI_INFO("%s: %s - sending ACL data packets, count=%d\n", __func__,
+	    NG_NODE_NAME(unit->node), count);
 
 	if (count > 0) {
 		count = send_data_packets(unit, NG_HCI_LINK_ACL, count);
@@ -233,9 +232,8 @@ ng_hci_send_data(ng_hci_unit_p unit)
 	/* Send SCO data */
 	NG_HCI_BUFF_SCO_AVAIL(unit->buffer, count);
 
-	NG_HCI_INFO(
-"%s: %s - sending SCO data packets, count=%d\n",
-		__func__, NG_NODE_NAME(unit->node), count);
+	NG_HCI_INFO("%s: %s - sending SCO data packets, count=%d\n", __func__,
+	    NG_NODE_NAME(unit->node), count);
 
 	if (count > 0) {
 		count = send_data_packets(unit, NG_HCI_LINK_SCO, count);
@@ -251,63 +249,65 @@ ng_hci_send_data(ng_hci_unit_p unit)
 static int
 send_data_packets(ng_hci_unit_p unit, int link_type, int limit)
 {
-	ng_hci_unit_con_p	con = NULL, winner = NULL;
-	int			reallink_type;
-	item_p			item = NULL;
-	int			min_pending, total_sent, sent, error, v;
+	ng_hci_unit_con_p con = NULL, winner = NULL;
+	int reallink_type;
+	item_p item = NULL;
+	int min_pending, total_sent, sent, error, v;
 
-	for (total_sent = 0; limit > 0; ) {
+	for (total_sent = 0; limit > 0;) {
 		min_pending = 0x0fffffff;
 		winner = NULL;
 
 		/*
-		 * Find the connection that has has data to send 
+		 * Find the connection that has has data to send
 		 * and the smallest number of pending packets
 		 */
 
-		LIST_FOREACH(con, &unit->con_list, next) {
-			reallink_type = (con->link_type == NG_HCI_LINK_SCO)?
-				NG_HCI_LINK_SCO: NG_HCI_LINK_ACL;
-			if (reallink_type != link_type){
+		LIST_FOREACH (con, &unit->con_list, next) {
+			reallink_type = (con->link_type == NG_HCI_LINK_SCO) ?
+			    NG_HCI_LINK_SCO :
+			    NG_HCI_LINK_ACL;
+			if (reallink_type != link_type) {
 				continue;
 			}
 			if (NG_BT_ITEMQ_LEN(&con->conq) == 0)
 				continue;
-        
+
 			if (con->pending < min_pending) {
 				winner = con;
 				min_pending = con->pending;
 			}
 		}
 
-	        if (winner == NULL)
+		if (winner == NULL)
 			break;
 
-		/* 
+		/*
 		 * OK, we have a winner now send as much packets as we can
 		 * Count the number of packets we have sent and then sync
 		 * winner connection queue.
 		 */
 
-		for (sent = 0; limit > 0; limit --, total_sent ++, sent ++) {
+		for (sent = 0; limit > 0; limit--, total_sent++, sent++) {
 			NG_BT_ITEMQ_DEQUEUE(&winner->conq, item);
 			if (item == NULL)
 				break;
-		
+
 			NG_HCI_INFO(
-"%s: %s - sending data packet, handle=%d, len=%d\n",
-				__func__, NG_NODE_NAME(unit->node), 
-				winner->con_handle, NGI_M(item)->m_pkthdr.len);
+			    "%s: %s - sending data packet, handle=%d, len=%d\n",
+			    __func__, NG_NODE_NAME(unit->node),
+			    winner->con_handle, NGI_M(item)->m_pkthdr.len);
 
 			/* Check if driver hook still there */
 			v = (unit->drv != NULL && NG_HOOK_IS_VALID(unit->drv));
-			if (!v || (unit->state & NG_HCI_UNIT_READY) != 
-					NG_HCI_UNIT_READY) {
+			if (!v ||
+			    (unit->state & NG_HCI_UNIT_READY) !=
+				NG_HCI_UNIT_READY) {
 				NG_HCI_ERR(
-"%s: %s - could not send data. Hook \"%s\" is %svalid, state=%#x\n",
-					__func__, NG_NODE_NAME(unit->node),
-					NG_HCI_HOOK_DRV, ((v)? "" : "not "),
-					unit->state);
+				    "%s: %s - could not send data. Hook \"%s\" is %svalid, state=%#x\n",
+				    __func__, NG_NODE_NAME(unit->node),
+				    NG_HCI_HOOK_DRV, ((v) ? "" : "not "),
+				    unit->state);
 
 				NG_FREE_ITEM(item);
 				error = ENOTCONN;
@@ -323,13 +323,13 @@ send_data_packets(ng_hci_unit_p unit, int link_type, int limit)
 
 			if (error != 0) {
 				NG_HCI_ERR(
-"%s: %s - could not send data packet, handle=%d, error=%d\n",
-					__func__, NG_NODE_NAME(unit->node),
-					winner->con_handle, error);
+				    "%s: %s - could not send data packet, handle=%d, error=%d\n",
+				    __func__, NG_NODE_NAME(unit->node),
+				    winner->con_handle, error);
 				break;
 			}
 
-			winner->pending ++;
+			winner->pending++;
 			NG_HCI_STAT_BYTES_SENT(unit->stat, v);
 		}
 
@@ -349,17 +349,17 @@ send_data_packets(ng_hci_unit_p unit, int link_type, int limit)
 static int
 sync_con_queue(ng_hci_unit_p unit, ng_hci_unit_con_p con, int completed)
 {
-	hook_p				 hook = NULL;
-	struct ng_mesg			*msg = NULL;
-	ng_hci_sync_con_queue_ep	*state = NULL;
-	int				 error;
+	hook_p hook = NULL;
+	struct ng_mesg *msg = NULL;
+	ng_hci_sync_con_queue_ep *state = NULL;
+	int error;
 
-	hook = (con->link_type != NG_HCI_LINK_SCO)? unit->acl : unit->sco;
+	hook = (con->link_type != NG_HCI_LINK_SCO) ? unit->acl : unit->sco;
 	if (hook == NULL || NG_HOOK_NOT_VALID(hook))
 		return (ENOTCONN);
 
 	NG_MKMESSAGE(msg, NGM_HCI_COOKIE, NGM_HCI_SYNC_CON_QUEUE,
-		sizeof(*state), M_NOWAIT);
+	    sizeof(*state), M_NOWAIT);
 	if (msg == NULL)
 		return (ENOMEM);
 
@@ -376,11 +376,11 @@ sync_con_queue(ng_hci_unit_p unit, ng_hci_unit_con_p con, int completed)
 static int
 le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_le_advertising_report_ep	*ep = NULL;
-	ng_hci_neighbor_p		 n = NULL;
-	bdaddr_t			 bdaddr;
-	int				 error = 0;
-	int				 num_reports = 0;
+	ng_hci_le_advertising_report_ep *ep = NULL;
+	ng_hci_neighbor_p n = NULL;
+	bdaddr_t bdaddr;
+	int error = 0;
+	int num_reports = 0;
 	u_int8_t addr_type;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
@@ -392,7 +392,7 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 	m_adj(event, sizeof(*ep));
 	ep = NULL;
 
-	for (; num_reports > 0; num_reports --) {
+	for (; num_reports > 0; num_reports--) {
 		/* event_type */
 		m_adj(event, sizeof(u_int8_t));
 
@@ -405,11 +405,13 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 		addr_type = *mtod(event, u_int8_t *);
 		m_adj(event, sizeof(u_int8_t));
 
-		m_copydata(event, 0, sizeof(bdaddr), (caddr_t) &bdaddr);
+		m_copydata(event, 0, sizeof(bdaddr), (caddr_t)&bdaddr);
 		m_adj(event, sizeof(bdaddr));
-		
+
 		/* Lookup entry in the cache */
-		n = ng_hci_get_neighbor(unit, &bdaddr, (addr_type) ? NG_HCI_LINK_LE_RANDOM:NG_HCI_LINK_LE_PUBLIC);
+		n = ng_hci_get_neighbor(unit, &bdaddr,
+		    (addr_type) ? NG_HCI_LINK_LE_RANDOM :
+				  NG_HCI_LINK_LE_PUBLIC);
 		if (n == NULL) {
 			/* Create new entry */
 			n = ng_hci_new_neighbor(unit);
@@ -418,70 +420,76 @@ le_advertizing_report(ng_hci_unit_p unit, struct mbuf *event)
 				break;
 			}
 			bcopy(&bdaddr, &n->bdaddr, sizeof(n->bdaddr));
-			n->addrtype = (addr_type)? NG_HCI_LINK_LE_RANDOM :
-			  NG_HCI_LINK_LE_PUBLIC;
-			
+			n->addrtype = (addr_type) ? NG_HCI_LINK_LE_RANDOM :
+						    NG_HCI_LINK_LE_PUBLIC;
+
 		} else
 			getmicrotime(&n->updated);
-		
+
 		{
-			/* 
-			 * TODO: Make these information 
+			/*
+			 * TODO: Make these information
 			 * Available from userland.
 			 */
 			u_int8_t length_data;
-			
+
 			event = m_pullup(event, sizeof(u_int8_t));
-			if(event == NULL){
-				NG_HCI_WARN("%s: Event datasize Pullup Failed\n", __func__);
+			if (event == NULL) {
+				NG_HCI_WARN(
+				    "%s: Event datasize Pullup Failed\n",
+				    __func__);
 				goto out;
 			}
 			length_data = *mtod(event, u_int8_t *);
 			m_adj(event, sizeof(u_int8_t));
-			n->extinq_size = (length_data < NG_HCI_EXTINQ_MAX)?
-				length_data : NG_HCI_EXTINQ_MAX;
-			
+			n->extinq_size = (length_data < NG_HCI_EXTINQ_MAX) ?
+			    length_data :
+			    NG_HCI_EXTINQ_MAX;
+
 			/*Advertizement data*/
 			event = m_pullup(event, n->extinq_size);
-			if(event == NULL){
-				NG_HCI_WARN("%s: Event data pullup Failed\n", __func__);
+			if (event == NULL) {
+				NG_HCI_WARN("%s: Event data pullup Failed\n",
+				    __func__);
 				goto out;
 			}
 			m_copydata(event, 0, n->extinq_size, n->extinq_data);
 			m_adj(event, n->extinq_size);
-			event = m_pullup(event, sizeof(char ));
+			event = m_pullup(event, sizeof(char));
 			/*Get RSSI*/
-			if(event == NULL){
-				NG_HCI_WARN("%s: Event rssi pull up Failed\n", __func__);
-				
+			if (event == NULL) {
+				NG_HCI_WARN("%s: Event rssi pull up Failed\n",
+				    __func__);
+
 				goto out;
-			}				
+			}
 			n->page_scan_mode = *mtod(event, char *);
 			m_adj(event, sizeof(u_int8_t));
 		}
 	}
- out:
+out:
 	NG_FREE_M(event);
 
 	return (error);
 } /* inquiry_result */
 
-static int le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
+static int
+le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
 {
-	int			 error = 0;
+	int error = 0;
 
-	ng_hci_le_connection_complete_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
+	ng_hci_le_connection_complete_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
 	int link_type;
-	uint8_t uclass[3] = {0,0,0};//dummy uclass
+	uint8_t uclass[3] = { 0, 0, 0 }; // dummy uclass
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
 		return (ENOBUFS);
 
 	ep = mtod(event, ng_hci_le_connection_complete_ep *);
-	link_type = (ep->address_type)? NG_HCI_LINK_LE_RANDOM :
-	  NG_HCI_LINK_LE_PUBLIC;
+	link_type = (ep->address_type) ? NG_HCI_LINK_LE_RANDOM :
+					 NG_HCI_LINK_LE_PUBLIC;
 	/*
 	 * Find the first connection descriptor that matches the following:
 	 *
@@ -489,7 +497,7 @@ static int le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
 	 * 2) con->state == NG_HCI_CON_W4_CONN_COMPLETE
 	 * 3) con->bdaddr == ep->address
 	 */
-	LIST_FOREACH(con, &unit->con_list, next)
+	LIST_FOREACH (con, &unit->con_list, next)
 		if (con->link_type == link_type &&
 		    con->state == NG_HCI_CON_W4_CONN_COMPLETE &&
 		    bcmp(&con->bdaddr, &ep->address, sizeof(bdaddr_t)) == 0)
@@ -508,7 +516,7 @@ static int le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
 	 *    nas not requested this connection , (less likely) we gave up
 	 *    on this connection (timeout) or as node act as slave role.
 	 *    The most likely scenario is that
-	 *    we have received LE_Create_Connection command 
+	 *    we have received LE_Create_Connection command
 	 *    from the RAW hook
 	 */
 
@@ -534,10 +542,10 @@ static int le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
 		}
 
 	} else if ((error = ng_hci_con_untimeout(con)) != 0)
-			goto out;
+		goto out;
 
 	/*
-	 * Update connection descriptor and send notification 
+	 * Update connection descriptor and send notification
 	 * to the upper layers.
 	 */
 
@@ -552,8 +560,8 @@ static int le_connection_complete(ng_hci_unit_p unit, struct mbuf *event)
 	else {
 		con->state = NG_HCI_CON_OPEN;
 
-		/*	
-		 * Change link policy for the ACL connections. Enable all 
+		/*
+		 * Change link policy for the ACL connections. Enable all
 		 * supported link modes. Enable Role switch as well if
 		 * device supports it.
 		 */
@@ -563,17 +571,16 @@ out:
 	NG_FREE_M(event);
 
 	return (error);
-
 }
 
-static int le_connection_update(ng_hci_unit_p unit, struct mbuf *event)
+static int
+le_connection_update(ng_hci_unit_p unit, struct mbuf *event)
 {
 	int error = 0;
 	/*TBD*/
 
 	NG_FREE_M(event);
 	return error;
-
 }
 static int
 le_event(ng_hci_unit_p unit, struct mbuf *event)
@@ -582,12 +589,12 @@ le_event(ng_hci_unit_p unit, struct mbuf *event)
 	ng_hci_le_ep *lep;
 
 	NG_HCI_M_PULLUP(event, sizeof(*lep));
-	if(event ==NULL){
+	if (event == NULL) {
 		return ENOBUFS;
 	}
 	lep = mtod(event, ng_hci_le_ep *);
 	m_adj(event, sizeof(*lep));
-	switch(lep->subevent_code){
+	switch (lep->subevent_code) {
 	case NG_HCI_LEEV_CON_COMPL:
 		le_connection_complete(unit, event);
 		break;
@@ -598,13 +605,13 @@ le_event(ng_hci_unit_p unit, struct mbuf *event)
 		le_connection_update(unit, event);
 		break;
 	case NG_HCI_LEEV_READ_REMOTE_FEATURES_COMPL:
-		//TBD
-	  /*FALLTHROUGH*/
+		// TBD
+		/*FALLTHROUGH*/
 	case NG_HCI_LEEV_LONG_TERM_KEY_REQUEST:
-		//TBD
-	  /*FALLTHROUGH*/
+		// TBD
+		/*FALLTHROUGH*/
 	default:
-	  	NG_FREE_M(event);
+		NG_FREE_M(event);
 	}
 	return error;
 }
@@ -613,10 +620,10 @@ le_event(ng_hci_unit_p unit, struct mbuf *event)
 static int
 inquiry_result(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_inquiry_result_ep	*ep = NULL;
-	ng_hci_neighbor_p		 n = NULL;
-	bdaddr_t			 bdaddr;
-	int				 error = 0;
+	ng_hci_inquiry_result_ep *ep = NULL;
+	ng_hci_neighbor_p n = NULL;
+	bdaddr_t bdaddr;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -625,9 +632,9 @@ inquiry_result(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_inquiry_result_ep *);
 	m_adj(event, sizeof(*ep));
 
-	for (; ep->num_responses > 0; ep->num_responses --) {
+	for (; ep->num_responses > 0; ep->num_responses--) {
 		/* Get remote unit address */
-		m_copydata(event, 0, sizeof(bdaddr), (caddr_t) &bdaddr);
+		m_copydata(event, 0, sizeof(bdaddr), (caddr_t)&bdaddr);
 		m_adj(event, sizeof(bdaddr));
 
 		/* Lookup entry in the cache */
@@ -660,8 +667,8 @@ inquiry_result(ng_hci_unit_p unit, struct mbuf *event)
 		m_adj(event, NG_HCI_CLASS_SIZE);
 
 		/* clock offset */
-		m_copydata(event, 0, sizeof(n->clock_offset), 
-			(caddr_t) &n->clock_offset);
+		m_copydata(event, 0, sizeof(n->clock_offset),
+		    (caddr_t)&n->clock_offset);
 		n->clock_offset = le16toh(n->clock_offset);
 	}
 
@@ -674,9 +681,9 @@ inquiry_result(ng_hci_unit_p unit, struct mbuf *event)
 static int
 con_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_con_compl_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
-	int			 error = 0;
+	ng_hci_con_compl_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -692,7 +699,7 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 	 * 3) con->bdaddr == ep->bdaddr
 	 */
 
-	LIST_FOREACH(con, &unit->con_list, next)
+	LIST_FOREACH (con, &unit->con_list, next)
 		if (con->link_type == ep->link_type &&
 		    con->state == NG_HCI_CON_W4_CONN_COMPLETE &&
 		    bcmp(&con->bdaddr, &ep->bdaddr, sizeof(bdaddr_t)) == 0)
@@ -710,7 +717,7 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 	 * 2) We do not have connection descriptor. That means upper layer
 	 *    nas not requested this connection or (less likely) we gave up
 	 *    on this connection (timeout). The most likely scenario is that
-	 *    we have received Create_Connection/Add_SCO_Connection command 
+	 *    we have received Create_Connection/Add_SCO_Connection command
 	 *    from the RAW hook
 	 */
 
@@ -726,10 +733,10 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 
 		bcopy(&ep->bdaddr, &con->bdaddr, sizeof(con->bdaddr));
 	} else if ((error = ng_hci_con_untimeout(con)) != 0)
-			goto out;
+		goto out;
 
 	/*
-	 * Update connection descriptor and send notification 
+	 * Update connection descriptor and send notification
 	 * to the upper layers.
 	 */
 
@@ -744,18 +751,18 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 	else {
 		con->state = NG_HCI_CON_OPEN;
 
-		/*	
-		 * Change link policy for the ACL connections. Enable all 
+		/*
+		 * Change link policy for the ACL connections. Enable all
 		 * supported link modes. Enable Role switch as well if
 		 * device supports it.
 		 */
 
 		if (ep->link_type == NG_HCI_LINK_ACL) {
 			struct __link_policy {
-				ng_hci_cmd_pkt_t			 hdr;
-				ng_hci_write_link_policy_settings_cp	 cp;
-			} __attribute__ ((packed))			*lp;
-			struct mbuf					*m;
+				ng_hci_cmd_pkt_t hdr;
+				ng_hci_write_link_policy_settings_cp cp;
+			} __attribute__((packed)) * lp;
+			struct mbuf *m;
 
 			MGETHDR(m, M_NOWAIT, MT_DATA);
 			if (m != NULL) {
@@ -763,8 +770,8 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 				lp = mtod(m, struct __link_policy *);
 
 				lp->hdr.type = NG_HCI_CMD_PKT;
-				lp->hdr.opcode = htole16(NG_HCI_OPCODE(
-					NG_HCI_OGF_LINK_POLICY,
+				lp->hdr.opcode = htole16(
+				    NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
 					NG_HCI_OCF_WRITE_LINK_POLICY_SETTINGS));
 				lp->hdr.length = sizeof(lp->cp);
 
@@ -785,7 +792,8 @@ con_compl(ng_hci_unit_p unit, struct mbuf *event)
 				lp->cp.settings = htole16(lp->cp.settings);
 
 				NG_BT_MBUFQ_ENQUEUE(&unit->cmdq, m);
-				if (!(unit->state & NG_HCI_UNIT_COMMAND_PENDING))
+				if (!(unit->state &
+					NG_HCI_UNIT_COMMAND_PENDING))
 					ng_hci_send_command(unit);
 			}
 		}
@@ -800,9 +808,9 @@ out:
 static int
 con_req(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_con_req_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
-	int			 error = 0;
+	ng_hci_con_req_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -817,7 +825,7 @@ con_req(ng_hci_unit_p unit, struct mbuf *event)
 	 *
 	 * 2) con->state == NG_HCI_CON_W4_LP_CON_RSP ||
 	 *    con->state == NG_HCI_CON_W4_CONN_COMPL
-	 * 
+	 *
 	 * 3) con->bdaddr == ep->bdaddr
 	 *
 	 * Possible cases:
@@ -827,14 +835,14 @@ con_req(ng_hci_unit_p unit, struct mbuf *event)
 	 *    appropriate upstream hook (based on link_type).
 	 *
 	 * 2) We found connection handle. This is more complicated.
-	 * 
+	 *
 	 * 2.1) ACL links
 	 *
 	 *      Since only one ACL link can exist between each pair of
-	 *      units then we have a race. Our upper layer has requested 
-	 *      an ACL connection to the remote unit, but we did not send 
+	 *      units then we have a race. Our upper layer has requested
+	 *      an ACL connection to the remote unit, but we did not send
 	 *      command yet. At the same time the remote unit has requested
-	 *      an ACL connection from us. In this case we will ignore 
+	 *      an ACL connection from us. In this case we will ignore
 	 *	Connection_Request event. This probably will cause connect
 	 *      failure	on both units.
 	 *
@@ -842,20 +850,20 @@ con_req(ng_hci_unit_p unit, struct mbuf *event)
 	 *
 	 *      The spec on page 45 says :
 	 *
-	 *      "The master can support up to three SCO links to the same 
-	 *       slave or to different slaves. A slave can support up to 
-	 *       three SCO links from the same master, or two SCO links if 
+	 *      "The master can support up to three SCO links to the same
+	 *       slave or to different slaves. A slave can support up to
+	 *       three SCO links from the same master, or two SCO links if
 	 *       the links originate from different masters."
 	 *
 	 *      The only problem is how to handle multiple SCO links between
 	 *      matster and slave. For now we will assume that multiple SCO
-	 *      links MUST be opened one after another. 
+	 *      links MUST be opened one after another.
 	 */
 
-	LIST_FOREACH(con, &unit->con_list, next)
+	LIST_FOREACH (con, &unit->con_list, next)
 		if (con->link_type == ep->link_type &&
 		    (con->state == NG_HCI_CON_W4_LP_CON_RSP ||
-		     con->state == NG_HCI_CON_W4_CONN_COMPLETE) &&
+			con->state == NG_HCI_CON_W4_CONN_COMPLETE) &&
 		    bcmp(&con->bdaddr, &ep->bdaddr, sizeof(bdaddr_t)) == 0)
 			break;
 
@@ -885,10 +893,10 @@ con_req(ng_hci_unit_p unit, struct mbuf *event)
 static int
 discon_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_discon_compl_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
-	int			 error = 0;
-	u_int16_t		 h;
+	ng_hci_discon_compl_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	int error = 0;
+	u_int16_t h;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -896,9 +904,9 @@ discon_compl(ng_hci_unit_p unit, struct mbuf *event)
 
 	ep = mtod(event, ng_hci_discon_compl_ep *);
 
-	/* 
-	 * XXX 
-	 * Do we have to send notification if ep->status != 0? 
+	/*
+	 * XXX
+	 * Do we have to send notification if ep->status != 0?
 	 * For now we will send notification for both ACL and SCO connections
 	 * ONLY if ep->status == 0.
 	 */
@@ -915,9 +923,8 @@ discon_compl(ng_hci_unit_p unit, struct mbuf *event)
 
 			ng_hci_free_con(con);
 		} else {
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 			error = ENOENT;
 		}
 	}
@@ -931,10 +938,10 @@ discon_compl(ng_hci_unit_p unit, struct mbuf *event)
 static int
 encryption_change(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_encryption_change_ep	*ep = NULL;
-	ng_hci_unit_con_p		 con = NULL;
-	int				 error = 0;
-	u_int16_t	h;
+	ng_hci_encryption_change_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	int error = 0;
+	u_int16_t h;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -946,15 +953,12 @@ encryption_change(ng_hci_unit_p unit, struct mbuf *event)
 
 	if (ep->status == 0) {
 		if (con == NULL) {
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 			error = ENOENT;
 		} else if (con->link_type == NG_HCI_LINK_SCO) {
-			NG_HCI_ALERT(
-"%s: %s - invalid link type=%d\n",
-				__func__, NG_NODE_NAME(unit->node), 
-				con->link_type);
+			NG_HCI_ALERT("%s: %s - invalid link type=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), con->link_type);
 			error = EINVAL;
 		} else if (ep->encryption_enable)
 			/* XXX is that true? */
@@ -963,8 +967,8 @@ encryption_change(ng_hci_unit_p unit, struct mbuf *event)
 			con->encryption_mode = NG_HCI_ENCRYPTION_MODE_NONE;
 	} else
 		NG_HCI_ERR(
-"%s: %s - failed to change encryption mode, status=%d\n",
-			__func__, NG_NODE_NAME(unit->node), ep->status);
+		    "%s: %s - failed to change encryption mode, status=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), ep->status);
 
 	/*Anyway, propagete encryption status to upper layer*/
 	ng_hci_lp_enc_change(con, con->encryption_mode);
@@ -978,11 +982,11 @@ encryption_change(ng_hci_unit_p unit, struct mbuf *event)
 static int
 read_remote_features_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_read_remote_features_compl_ep	*ep = NULL;
-	ng_hci_unit_con_p			 con = NULL;
-	ng_hci_neighbor_p			 n = NULL;
-	u_int16_t				 h;
-	int					 error = 0;
+	ng_hci_read_remote_features_compl_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	ng_hci_neighbor_p n = NULL;
+	u_int16_t h;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -995,9 +999,8 @@ read_remote_features_compl(ng_hci_unit_p unit, struct mbuf *event)
 		h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 		con = ng_hci_con_by_handle(unit, h);
 		if (con == NULL) {
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 			error = ENOENT;
 			goto out;
 		}
@@ -1019,8 +1022,8 @@ read_remote_features_compl(ng_hci_unit_p unit, struct mbuf *event)
 		bcopy(ep->features, n->features, sizeof(n->features));
 	} else
 		NG_HCI_ERR(
-"%s: %s - failed to read remote unit features, status=%d\n",
-			__func__, NG_NODE_NAME(unit->node), ep->status);
+		    "%s: %s - failed to read remote unit features, status=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), ep->status);
 out:
 	NG_FREE_M(event);
 
@@ -1031,10 +1034,10 @@ out:
 static int
 qos_setup_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_qos_setup_compl_ep	*ep = NULL;
-	ng_hci_unit_con_p		 con = NULL;
-	u_int16_t			 h;
-	int				 error = 0;
+	ng_hci_qos_setup_compl_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	u_int16_t h;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1046,20 +1049,17 @@ qos_setup_compl(ng_hci_unit_p unit, struct mbuf *event)
 	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 	con = ng_hci_con_by_handle(unit, h);
 	if (con == NULL) {
-		NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-			__func__, NG_NODE_NAME(unit->node), h);
+		NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), h);
 		error = ENOENT;
 	} else if (con->link_type != NG_HCI_LINK_ACL) {
-		NG_HCI_ALERT(
-"%s: %s - invalid link type=%d, handle=%d\n",
-			__func__, NG_NODE_NAME(unit->node), con->link_type, h);
+		NG_HCI_ALERT("%s: %s - invalid link type=%d, handle=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), con->link_type, h);
 		error = EINVAL;
 	} else if (con->state != NG_HCI_CON_OPEN) {
 		NG_HCI_ALERT(
-"%s: %s - invalid connection state=%d, handle=%d\n",
-			__func__, NG_NODE_NAME(unit->node), 
-			con->state, h);
+		    "%s: %s - invalid connection state=%d, handle=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), con->state, h);
 		error = EINVAL;
 	} else /* Notify upper layer */
 		error = ng_hci_lp_qos_cfm(con, ep->status);
@@ -1073,9 +1073,8 @@ qos_setup_compl(ng_hci_unit_p unit, struct mbuf *event)
 static int
 hardware_error(ng_hci_unit_p unit, struct mbuf *event)
 {
-	NG_HCI_ALERT(
-"%s: %s - hardware error %#x\n",
-		__func__, NG_NODE_NAME(unit->node), *mtod(event, u_int8_t *));
+	NG_HCI_ALERT("%s: %s - hardware error %#x\n", __func__,
+	    NG_NODE_NAME(unit->node), *mtod(event, u_int8_t *));
 
 	NG_FREE_M(event);
 
@@ -1086,8 +1085,8 @@ hardware_error(ng_hci_unit_p unit, struct mbuf *event)
 static int
 role_change(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_role_change_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
+	ng_hci_role_change_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1102,17 +1101,16 @@ role_change(ng_hci_unit_p unit, struct mbuf *event)
 			con->role = ep->role;
 		else
 			NG_HCI_ALERT(
-"%s: %s - ACL connection does not exist, bdaddr=%x:%x:%x:%x:%x:%x\n",
-				__func__, NG_NODE_NAME(unit->node),
-				ep->bdaddr.b[5], ep->bdaddr.b[4], 
-				ep->bdaddr.b[3], ep->bdaddr.b[2], 
-				ep->bdaddr.b[1], ep->bdaddr.b[0]);
+			    "%s: %s - ACL connection does not exist, bdaddr=%x:%x:%x:%x:%x:%x\n",
+			    __func__, NG_NODE_NAME(unit->node), ep->bdaddr.b[5],
+			    ep->bdaddr.b[4], ep->bdaddr.b[3], ep->bdaddr.b[2],
+			    ep->bdaddr.b[1], ep->bdaddr.b[0]);
 	} else
 		NG_HCI_ERR(
-"%s: %s - failed to change role, status=%d, bdaddr=%x:%x:%x:%x:%x:%x\n",
-			__func__, NG_NODE_NAME(unit->node), ep->status,
-			ep->bdaddr.b[5], ep->bdaddr.b[4], ep->bdaddr.b[3],
-			ep->bdaddr.b[2], ep->bdaddr.b[1], ep->bdaddr.b[0]);
+		    "%s: %s - failed to change role, status=%d, bdaddr=%x:%x:%x:%x:%x:%x\n",
+		    __func__, NG_NODE_NAME(unit->node), ep->status,
+		    ep->bdaddr.b[5], ep->bdaddr.b[4], ep->bdaddr.b[3],
+		    ep->bdaddr.b[2], ep->bdaddr.b[1], ep->bdaddr.b[0]);
 
 	NG_FREE_M(event);
 
@@ -1123,9 +1121,9 @@ role_change(ng_hci_unit_p unit, struct mbuf *event)
 static int
 num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_num_compl_pkts_ep	*ep = NULL;
-	ng_hci_unit_con_p		 con = NULL;
-	u_int16_t			 h, p;
+	ng_hci_num_compl_pkts_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	u_int16_t h, p;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1134,14 +1132,14 @@ num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_num_compl_pkts_ep *);
 	m_adj(event, sizeof(*ep));
 
-	for (; ep->num_con_handles > 0; ep->num_con_handles --) {
+	for (; ep->num_con_handles > 0; ep->num_con_handles--) {
 		/* Get connection handle */
-		m_copydata(event, 0, sizeof(h), (caddr_t) &h);
+		m_copydata(event, 0, sizeof(h), (caddr_t)&h);
 		m_adj(event, sizeof(h));
 		h = NG_HCI_CON_HANDLE(le16toh(h));
 
 		/* Get number of completed packets */
-		m_copydata(event, 0, sizeof(p), (caddr_t) &p);
+		m_copydata(event, 0, sizeof(p), (caddr_t)&p);
 		m_adj(event, sizeof(p));
 		p = le16toh(p);
 
@@ -1151,9 +1149,10 @@ num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 			con->pending -= p;
 			if (con->pending < 0) {
 				NG_HCI_WARN(
-"%s: %s - pending packet counter is out of sync! " \
-"handle=%d, pending=%d, ncp=%d\n",	__func__, NG_NODE_NAME(unit->node), 
-					con->con_handle, con->pending, p);
+				    "%s: %s - pending packet counter is out of sync! "
+				    "handle=%d, pending=%d, ncp=%d\n",
+				    __func__, NG_NODE_NAME(unit->node),
+				    con->con_handle, con->pending, p);
 
 				con->pending = 0;
 			}
@@ -1161,12 +1160,11 @@ num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 			/* Update buffer descriptor */
 			if (con->link_type != NG_HCI_LINK_SCO)
 				NG_HCI_BUFF_ACL_FREE(unit->buffer, p);
-			else 
+			else
 				NG_HCI_BUFF_SCO_FREE(unit->buffer, p);
 		} else
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 	}
 
 	NG_FREE_M(event);
@@ -1181,9 +1179,9 @@ num_compl_pkts(ng_hci_unit_p unit, struct mbuf *event)
 static int
 mode_change(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_mode_change_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
-	int			 error = 0;
+	ng_hci_mode_change_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1192,26 +1190,22 @@ mode_change(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_mode_change_ep *);
 
 	if (ep->status == 0) {
-		u_int16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
+		u_int16_t h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 
 		con = ng_hci_con_by_handle(unit, h);
 		if (con == NULL) {
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 			error = ENOENT;
 		} else if (con->link_type != NG_HCI_LINK_ACL) {
-			NG_HCI_ALERT(
-"%s: %s - invalid link type=%d\n",
-				__func__, NG_NODE_NAME(unit->node), 
-				con->link_type);
+			NG_HCI_ALERT("%s: %s - invalid link type=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), con->link_type);
 			error = EINVAL;
 		} else
 			con->mode = ep->unit_mode;
 	} else
-		NG_HCI_ERR(
-"%s: %s - failed to change mode, status=%d\n",
-			__func__, NG_NODE_NAME(unit->node), ep->status);
+		NG_HCI_ERR("%s: %s - failed to change mode, status=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), ep->status);
 
 	NG_FREE_M(event);
 
@@ -1222,10 +1216,9 @@ mode_change(ng_hci_unit_p unit, struct mbuf *event)
 static int
 data_buffer_overflow(ng_hci_unit_p unit, struct mbuf *event)
 {
-	NG_HCI_ALERT(
-"%s: %s - %s data buffer overflow\n",
-		__func__, NG_NODE_NAME(unit->node),
-		(*mtod(event, u_int8_t *) == NG_HCI_LINK_ACL)? "ACL" : "SCO");
+	NG_HCI_ALERT("%s: %s - %s data buffer overflow\n", __func__,
+	    NG_NODE_NAME(unit->node),
+	    (*mtod(event, u_int8_t *) == NG_HCI_LINK_ACL) ? "ACL" : "SCO");
 
 	NG_FREE_M(event);
 
@@ -1236,10 +1229,10 @@ data_buffer_overflow(ng_hci_unit_p unit, struct mbuf *event)
 static int
 read_clock_offset_compl(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_read_clock_offset_compl_ep	*ep = NULL;
-	ng_hci_unit_con_p			 con = NULL;
-	ng_hci_neighbor_p			 n = NULL;
-	int					 error = 0;
+	ng_hci_read_clock_offset_compl_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	ng_hci_neighbor_p n = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1248,13 +1241,12 @@ read_clock_offset_compl(ng_hci_unit_p unit, struct mbuf *event)
 	ep = mtod(event, ng_hci_read_clock_offset_compl_ep *);
 
 	if (ep->status == 0) {
-		u_int16_t	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
+		u_int16_t h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 
 		con = ng_hci_con_by_handle(unit, h);
 		if (con == NULL) {
-			NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-				__func__, NG_NODE_NAME(unit->node), h);
+			NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+			    __func__, NG_NODE_NAME(unit->node), h);
 			error = ENOENT;
 			goto out;
 		}
@@ -1276,8 +1268,8 @@ read_clock_offset_compl(ng_hci_unit_p unit, struct mbuf *event)
 		n->clock_offset = le16toh(ep->clock_offset);
 	} else
 		NG_HCI_ERR(
-"%s: %s - failed to Read Remote Clock Offset, status=%d\n",
-			__func__, NG_NODE_NAME(unit->node), ep->status);
+		    "%s: %s - failed to Read Remote Clock Offset, status=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), ep->status);
 out:
 	NG_FREE_M(event);
 
@@ -1288,10 +1280,10 @@ out:
 static int
 qos_violation(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_qos_violation_ep	*ep = NULL;
-	ng_hci_unit_con_p	 con = NULL;
-	u_int16_t		 h;
-	int			 error = 0;
+	ng_hci_qos_violation_ep *ep = NULL;
+	ng_hci_unit_con_p con = NULL;
+	u_int16_t h;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1303,22 +1295,20 @@ qos_violation(ng_hci_unit_p unit, struct mbuf *event)
 	h = NG_HCI_CON_HANDLE(le16toh(ep->con_handle));
 	con = ng_hci_con_by_handle(unit, h);
 	if (con == NULL) {
-		NG_HCI_ALERT(
-"%s: %s - invalid connection handle=%d\n",
-			__func__, NG_NODE_NAME(unit->node), h);
+		NG_HCI_ALERT("%s: %s - invalid connection handle=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), h);
 		error = ENOENT;
 	} else if (con->link_type != NG_HCI_LINK_ACL) {
-		NG_HCI_ALERT(
-"%s: %s - invalid link type=%d\n",
-			__func__, NG_NODE_NAME(unit->node), con->link_type);
+		NG_HCI_ALERT("%s: %s - invalid link type=%d\n", __func__,
+		    NG_NODE_NAME(unit->node), con->link_type);
 		error = EINVAL;
 	} else if (con->state != NG_HCI_CON_OPEN) {
 		NG_HCI_ALERT(
-"%s: %s - invalid connection state=%d, handle=%d\n",
-			__func__, NG_NODE_NAME(unit->node), con->state, h);
+		    "%s: %s - invalid connection state=%d, handle=%d\n",
+		    __func__, NG_NODE_NAME(unit->node), con->state, h);
 		error = EINVAL;
 	} else /* Notify upper layer */
-		error = ng_hci_lp_qos_ind(con); 
+		error = ng_hci_lp_qos_ind(con);
 
 	NG_FREE_M(event);
 
@@ -1329,9 +1319,9 @@ qos_violation(ng_hci_unit_p unit, struct mbuf *event)
 static int
 page_scan_mode_change(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_page_scan_mode_change_ep	*ep = NULL;
-	ng_hci_neighbor_p		 n = NULL;
-	int				 error = 0;
+	ng_hci_page_scan_mode_change_ep *ep = NULL;
+	ng_hci_neighbor_p n = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)
@@ -1364,9 +1354,9 @@ out:
 static int
 page_scan_rep_mode_change(ng_hci_unit_p unit, struct mbuf *event)
 {
-	ng_hci_page_scan_rep_mode_change_ep	*ep = NULL;
-	ng_hci_neighbor_p			 n = NULL;
-	int					 error = 0;
+	ng_hci_page_scan_rep_mode_change_ep *ep = NULL;
+	ng_hci_neighbor_p n = NULL;
+	int error = 0;
 
 	NG_HCI_M_PULLUP(event, sizeof(*ep));
 	if (event == NULL)

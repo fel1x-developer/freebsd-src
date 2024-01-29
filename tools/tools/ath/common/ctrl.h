@@ -26,8 +26,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__ATH_CTRL_H__
-#define	__ATH_CTRL_H__
+#ifndef __ATH_CTRL_H__
+#define __ATH_CTRL_H__
 
 struct ath_stats;
 struct ath_diag;
@@ -41,17 +41,17 @@ struct ath_driver_req {
 	char *ifname;
 };
 
-extern	int ath_driver_req_init(struct ath_driver_req *req);
-extern	int ath_driver_req_open(struct ath_driver_req *req, const char *ifname);
-extern	int ath_driver_req_close(struct ath_driver_req *req);
-extern	int ath_driver_req_fetch_diag(struct ath_driver_req *req,
-	    unsigned long cmd, struct ath_diag *ad);
-extern	int ath_driver_req_zero_stats(struct ath_driver_req *req);
-extern	int ath_driver_req_fetch_stats(struct ath_driver_req *req,
-	    struct ath_stats *st);
-extern	int ath_drive_req_fetch_aggr_stats(struct ath_driver_req *req,
+extern int ath_driver_req_init(struct ath_driver_req *req);
+extern int ath_driver_req_open(struct ath_driver_req *req, const char *ifname);
+extern int ath_driver_req_close(struct ath_driver_req *req);
+extern int ath_driver_req_fetch_diag(struct ath_driver_req *req,
+    unsigned long cmd, struct ath_diag *ad);
+extern int ath_driver_req_zero_stats(struct ath_driver_req *req);
+extern int ath_driver_req_fetch_stats(struct ath_driver_req *req,
+    struct ath_stats *st);
+extern int ath_drive_req_fetch_aggr_stats(struct ath_driver_req *req,
     struct ath_tx_aggr_stats *tx);
-extern	int ath_drive_req_fetch_ratectrl_stats(struct ath_driver_req *req,
+extern int ath_drive_req_fetch_ratectrl_stats(struct ath_driver_req *req,
     struct ath_rateioctl *r);
 
 #endif

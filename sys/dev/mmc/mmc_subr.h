@@ -51,7 +51,7 @@
  */
 
 #ifndef DEV_MMC_SUBR_H
-#define	DEV_MMC_SUBR_H
+#define DEV_MMC_SUBR_H
 
 struct mmc_command;
 

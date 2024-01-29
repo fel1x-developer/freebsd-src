@@ -26,44 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_iommu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/pciio.h>
 #include <sys/sbuf.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
-#include <dev/acpica/acpivar.h>
 #include <dev/acpica/acpi_pcivar.h>
-
-#include <sys/pciio.h>
+#include <dev/acpica/acpivar.h>
+#include <dev/iommu/iommu.h>
+#include <dev/pci/pci_private.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h>
 
-#include <dev/iommu/iommu.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-#include "pcib_if.h"
 #include "pci_if.h"
+#include "pcib_if.h"
 
 /* Hooks for the ACPI CA debugging infrastructure. */
-#define _COMPONENT	ACPI_BUS
+#define _COMPONENT ACPI_BUS
 ACPI_MODULE_NAME("PCI")
 
 struct acpi_pci_devinfo {
-	struct pci_devinfo	ap_dinfo;
-	ACPI_HANDLE		ap_handle;
-	int			ap_flags;
+	struct pci_devinfo ap_dinfo;
+	ACPI_HANDLE ap_handle;
+	int ap_flags;
 };
 
 ACPI_SERIAL_DECL(pci_powerstate, "ACPI PCI power methods");
@@ -75,45 +73,45 @@ CTASSERT(ACPI_STATE_D2 == PCI_POWERSTATE_D2);
 CTASSERT(ACPI_STATE_D3 == PCI_POWERSTATE_D3);
 
 static struct pci_devinfo *acpi_pci_alloc_devinfo(device_t dev);
-static int	acpi_pci_attach(device_t dev);
-static void	acpi_pci_child_deleted(device_t dev, device_t child);
-static int	acpi_pci_child_location_method(device_t cbdev,
-		    device_t child, struct sbuf *sb);
-static int	acpi_pci_get_device_path(device_t cbdev,
-		    device_t child, const char *locator, struct sbuf *sb);
-static int	acpi_pci_detach(device_t dev);
-static int	acpi_pci_probe(device_t dev);
-static int	acpi_pci_read_ivar(device_t dev, device_t child, int which,
-		    uintptr_t *result);
-static int	acpi_pci_write_ivar(device_t dev, device_t child, int which,
-		    uintptr_t value);
+static int acpi_pci_attach(device_t dev);
+static void acpi_pci_child_deleted(device_t dev, device_t child);
+static int acpi_pci_child_location_method(device_t cbdev, device_t child,
+    struct sbuf *sb);
+static int acpi_pci_get_device_path(device_t cbdev, device_t child,
+    const char *locator, struct sbuf *sb);
+static int acpi_pci_detach(device_t dev);
+static int acpi_pci_probe(device_t dev);
+static int acpi_pci_read_ivar(device_t dev, device_t child, int which,
+    uintptr_t *result);
+static int acpi_pci_write_ivar(device_t dev, device_t child, int which,
+    uintptr_t value);
 static ACPI_STATUS acpi_pci_save_handle(ACPI_HANDLE handle, UINT32 level,
-		    void *context, void **status);
-static int	acpi_pci_set_powerstate_method(device_t dev, device_t child,
-		    int state);
-static void	acpi_pci_update_device(ACPI_HANDLE handle, device_t pci_child);
+    void *context, void **status);
+static int acpi_pci_set_powerstate_method(device_t dev, device_t child,
+    int state);
+static void acpi_pci_update_device(ACPI_HANDLE handle, device_t pci_child);
 static bus_dma_tag_t acpi_pci_get_dma_tag(device_t bus, device_t child);
 
 static device_method_t acpi_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		acpi_pci_probe),
-	DEVMETHOD(device_attach,	acpi_pci_attach),
-	DEVMETHOD(device_detach,	acpi_pci_detach),
+	DEVMETHOD(device_probe, acpi_pci_probe),
+	DEVMETHOD(device_attach, acpi_pci_attach),
+	DEVMETHOD(device_detach, acpi_pci_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	acpi_pci_read_ivar),
-	DEVMETHOD(bus_write_ivar,	acpi_pci_write_ivar),
-	DEVMETHOD(bus_child_deleted,	acpi_pci_child_deleted),
-	DEVMETHOD(bus_child_location,	acpi_pci_child_location_method),
-	DEVMETHOD(bus_get_device_path,	acpi_pci_get_device_path),
-	DEVMETHOD(bus_get_cpus,		acpi_get_cpus),
-	DEVMETHOD(bus_get_dma_tag,	acpi_pci_get_dma_tag),
-	DEVMETHOD(bus_get_domain,	acpi_get_domain),
+	DEVMETHOD(bus_read_ivar, acpi_pci_read_ivar),
+	DEVMETHOD(bus_write_ivar, acpi_pci_write_ivar),
+	DEVMETHOD(bus_child_deleted, acpi_pci_child_deleted),
+	DEVMETHOD(bus_child_location, acpi_pci_child_location_method),
+	DEVMETHOD(bus_get_device_path, acpi_pci_get_device_path),
+	DEVMETHOD(bus_get_cpus, acpi_get_cpus),
+	DEVMETHOD(bus_get_dma_tag, acpi_pci_get_dma_tag),
+	DEVMETHOD(bus_get_domain, acpi_get_domain),
 
 	/* PCI interface */
-	DEVMETHOD(pci_alloc_devinfo,	acpi_pci_alloc_devinfo),
-	DEVMETHOD(pci_child_added,	acpi_pci_child_added),
-	DEVMETHOD(pci_set_powerstate,	acpi_pci_set_powerstate_method),
+	DEVMETHOD(pci_alloc_devinfo, acpi_pci_alloc_devinfo),
+	DEVMETHOD(pci_child_added, acpi_pci_child_added),
+	DEVMETHOD(pci_set_powerstate, acpi_pci_set_powerstate_method),
 
 	DEVMETHOD_END
 };
@@ -137,35 +135,35 @@ acpi_pci_alloc_devinfo(device_t dev)
 static int
 acpi_pci_read_ivar(device_t dev, device_t child, int which, uintptr_t *result)
 {
-    struct acpi_pci_devinfo *dinfo;
+	struct acpi_pci_devinfo *dinfo;
 
-    dinfo = device_get_ivars(child);
-    switch (which) {
-    case ACPI_IVAR_HANDLE:
-	*result = (uintptr_t)dinfo->ap_handle;
-	return (0);
-    case ACPI_IVAR_FLAGS:
-	*result = (uintptr_t)dinfo->ap_flags;
-	return (0);
-    }
-    return (pci_read_ivar(dev, child, which, result));
+	dinfo = device_get_ivars(child);
+	switch (which) {
+	case ACPI_IVAR_HANDLE:
+		*result = (uintptr_t)dinfo->ap_handle;
+		return (0);
+	case ACPI_IVAR_FLAGS:
+		*result = (uintptr_t)dinfo->ap_flags;
+		return (0);
+	}
+	return (pci_read_ivar(dev, child, which, result));
 }
 
 static int
 acpi_pci_write_ivar(device_t dev, device_t child, int which, uintptr_t value)
 {
-    struct acpi_pci_devinfo *dinfo;
+	struct acpi_pci_devinfo *dinfo;
 
-    dinfo = device_get_ivars(child);
-    switch (which) {
-    case ACPI_IVAR_HANDLE:
-	dinfo->ap_handle = (ACPI_HANDLE)value;
-	return (0);
-    case ACPI_IVAR_FLAGS:
-	dinfo->ap_flags = (int)value;
-	return (0);
-    }
-    return (pci_write_ivar(dev, child, which, value));
+	dinfo = device_get_ivars(child);
+	switch (which) {
+	case ACPI_IVAR_HANDLE:
+		dinfo->ap_handle = (ACPI_HANDLE)value;
+		return (0);
+	case ACPI_IVAR_FLAGS:
+		dinfo->ap_flags = (int)value;
+		return (0);
+	}
+	return (pci_write_ivar(dev, child, which, value));
 }
 
 static void
@@ -188,7 +186,8 @@ acpi_pci_child_location_method(device_t cbdev, device_t child, struct sbuf *sb)
 
 	if (dinfo->ap_handle) {
 		sbuf_printf(sb, " handle=%s", acpi_name(dinfo->ap_handle));
-		if (ACPI_SUCCESS(acpi_GetInteger(dinfo->ap_handle, "_PXM", &pxm))) {
+		if (ACPI_SUCCESS(
+			acpi_GetInteger(dinfo->ap_handle, "_PXM", &pxm))) {
 			sbuf_printf(sb, " _PXM=%d", pxm);
 		}
 	}
@@ -196,14 +195,15 @@ acpi_pci_child_location_method(device_t cbdev, device_t child, struct sbuf *sb)
 }
 
 static int
-acpi_pci_get_device_path(device_t bus, device_t child, const char *locator, struct sbuf *sb)
+acpi_pci_get_device_path(device_t bus, device_t child, const char *locator,
+    struct sbuf *sb)
 {
 
 	if (strcmp(locator, BUS_LOCATOR_ACPI) == 0)
 		return (acpi_get_acpi_device_path(bus, child, locator, sb));
 
 	/* Otherwise follow base class' actions */
-	return 	(pci_get_device_path_method(bus, child, locator, sb));
+	return (pci_get_device_path_method(bus, child, locator, sb));
 }
 
 /*
@@ -244,8 +244,8 @@ acpi_pci_set_powerstate_method(device_t dev, device_t child, int state)
 			    state, acpi_name(h));
 	} else if (status != AE_NOT_FOUND)
 		device_printf(dev,
-		    "failed to set ACPI power state D%d on %s: %s\n",
-		    state, acpi_name(h), AcpiFormatException(status));
+		    "failed to set ACPI power state D%d on %s: %s\n", state,
+		    acpi_name(h), AcpiFormatException(status));
 	if (old_state > state && pci_do_power_resume)
 		error = pci_set_powerstate_method(dev, child, state);
 
@@ -270,9 +270,9 @@ acpi_pci_update_device(ACPI_HANDLE handle, device_t pci_child)
 	child = acpi_get_device(handle);
 	if (child != NULL) {
 		KASSERT(device_get_parent(child) ==
-		    devclass_get_device(devclass_find("acpi"), 0),
+			devclass_get_device(devclass_find("acpi"), 0),
 		    ("%s: child (%s)'s parent is not acpi0", __func__,
-		    acpi_name(handle)));
+			acpi_name(handle)));
 		return;
 	}
 
@@ -294,11 +294,11 @@ acpi_pci_save_handle(ACPI_HANDLE handle, UINT32 level, void *context,
 	int func, slot;
 	UINT32 address;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	child = context;
 	if (ACPI_FAILURE(acpi_GetInteger(handle, "_ADR", &address)))
-		return_ACPI_STATUS (AE_OK);
+		return_ACPI_STATUS(AE_OK);
 	slot = ACPI_ADR_PCI_SLOT(address);
 	func = ACPI_ADR_PCI_FUNC(address);
 	dinfo = device_get_ivars(child);
@@ -306,9 +306,9 @@ acpi_pci_save_handle(ACPI_HANDLE handle, UINT32 level, void *context,
 	    dinfo->ap_dinfo.cfg.slot == slot) {
 		dinfo->ap_handle = handle;
 		acpi_pci_update_device(handle, child);
-		return_ACPI_STATUS (AE_CTRL_TERMINATE);
+		return_ACPI_STATUS(AE_CTRL_TERMINATE);
 	}
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 void
@@ -413,14 +413,14 @@ acpi_pci_install_device_notify_handler(ACPI_HANDLE handle, UINT32 level,
 {
 	ACPI_HANDLE h;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (ACPI_FAILURE(AcpiGetHandle(handle, "_EJ0", &h)))
-		return_ACPI_STATUS (AE_OK);
+		return_ACPI_STATUS(AE_OK);
 
 	AcpiInstallNotifyHandler(handle, ACPI_SYSTEM_NOTIFY,
 	    acpi_pci_device_notify_handler, context);
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 static int
@@ -445,14 +445,14 @@ acpi_pci_remove_notify_handler(ACPI_HANDLE handle, UINT32 level, void *context,
 {
 	ACPI_HANDLE h;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (ACPI_FAILURE(AcpiGetHandle(handle, "_EJ0", &h)))
-		return_ACPI_STATUS (AE_OK);
+		return_ACPI_STATUS(AE_OK);
 
 	AcpiRemoveNotifyHandler(handle, ACPI_SYSTEM_NOTIFY,
 	    acpi_pci_device_notify_handler);
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 static int

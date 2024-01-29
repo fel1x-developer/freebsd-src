@@ -26,8 +26,9 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <errno.h>
+
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
 #include <libutil.h>
@@ -40,23 +41,22 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include "image.h"
 #include "format.h"
+#include "image.h"
 #include "mkimg.h"
 #include "scheme.h"
 
-#define	LONGOPT_FORMATS		0x01000001
-#define	LONGOPT_SCHEMES		0x01000002
-#define	LONGOPT_VERSION		0x01000003
-#define	LONGOPT_CAPACITY	0x01000004
+#define LONGOPT_FORMATS 0x01000001
+#define LONGOPT_SCHEMES 0x01000002
+#define LONGOPT_VERSION 0x01000003
+#define LONGOPT_CAPACITY 0x01000004
 
-static struct option longopts[] = {
-	{ "formats", no_argument, NULL, LONGOPT_FORMATS },
+static struct option longopts[] = { { "formats", no_argument, NULL,
+					LONGOPT_FORMATS },
 	{ "schemes", no_argument, NULL, LONGOPT_SCHEMES },
 	{ "version", no_argument, NULL, LONGOPT_VERSION },
 	{ "capacity", required_argument, NULL, LONGOPT_CAPACITY },
-	{ NULL, 0, NULL, 0 }
-};
+	{ NULL, 0, NULL, 0 } };
 
 static uint64_t min_capacity = 0;
 static uint64_t max_capacity = 0;
@@ -150,8 +150,10 @@ usage(const char *why)
 	fputc('\n', stderr);
 	fprintf(stderr, "\t-a <num>\t-  mark num'th partition as active\n");
 	fprintf(stderr, "\t-b <file>\t-  file containing boot code\n");
-	fprintf(stderr, "\t-c <num>\t-  minimum capacity (in bytes) of the disk\n");
-	fprintf(stderr, "\t-C <num>\t-  maximum capacity (in bytes) of the disk\n");
+	fprintf(stderr,
+	    "\t-c <num>\t-  minimum capacity (in bytes) of the disk\n");
+	fprintf(stderr,
+	    "\t-C <num>\t-  maximum capacity (in bytes) of the disk\n");
 	fprintf(stderr, "\t-f <format>\n");
 	fprintf(stderr, "\t-o <file>\t-  file to write image into\n");
 	fprintf(stderr, "\t-p <partition>\n");
@@ -168,19 +170,23 @@ usage(const char *why)
 	print_schemes(1);
 	fputc('\n', stderr);
 	fprintf(stderr, "    partition specification:\n");
-	fprintf(stderr, "\t<t>[/<l>]::<size>[:[+]<offset>]\t-  "
+	fprintf(stderr,
+	    "\t<t>[/<l>]::<size>[:[+]<offset>]\t-  "
 	    "empty partition of given size and\n\t\t\t\t\t"
 	    "   optional relative or absolute offset\n");
-	fprintf(stderr, "\t<t>[/<l>]:=<file>[:[+]offset]\t-  partition "
+	fprintf(stderr,
+	    "\t<t>[/<l>]:=<file>[:[+]offset]\t-  partition "
 	    "content and size are\n\t\t\t\t\t"
 	    "   determined by the named file and\n"
 	    "\t\t\t\t\t   optional relative or absolute offset\n");
-	fprintf(stderr, "\t<t>[/<l>]:-<cmd>\t\t-  partition content and size "
+	fprintf(stderr,
+	    "\t<t>[/<l>]:-<cmd>\t\t-  partition content and size "
 	    "are taken\n\t\t\t\t\t   from the output of the command to run\n");
 	fprintf(stderr, "\t-\t\t\t\t-  unused partition entry\n");
 	fprintf(stderr, "\t    where:\n");
 	fprintf(stderr, "\t\t<t>\t-  scheme neutral partition type\n");
-	fprintf(stderr, "\t\t<l>\t-  optional scheme-dependent partition "
+	fprintf(stderr,
+	    "\t\t<l>\t-  optional scheme-dependent partition "
 	    "label\n");
 
 	exit(EX_USAGE);
@@ -311,7 +317,7 @@ parse_part(const char *spec)
 	nparts++;
 	return (0);
 
- errout:
+errout:
 	if (part->alias != NULL)
 		free(part->alias);
 	free(part);
@@ -406,7 +412,7 @@ mkimg_validate(void)
 
 	i = 0;
 
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		start = part->block;
 		end = part->block + part->size;
 		j = i + 1;
@@ -414,14 +420,14 @@ mkimg_validate(void)
 		if (part2 == NULL)
 			break;
 
-		TAILQ_FOREACH_FROM(part2, &partlist, link) {
+		TAILQ_FOREACH_FROM (part2, &partlist, link) {
 			start2 = part2->block;
 			end2 = part2->block + part2->size;
 
 			if ((start >= start2 && start < end2) ||
 			    (end > start2 && end <= end2)) {
-				errx(1, "partition %d overlaps partition %d",
-				    i, j);
+				errx(1, "partition %d overlaps partition %d", i,
+				    j);
 			}
 
 			j++;
@@ -443,15 +449,16 @@ mkimg(void)
 	int error, fd;
 
 	/* First check partition information */
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		error = scheme_check_part(part);
 		if (error)
-			errc(EX_DATAERR, error, "partition %d", part->index+1);
+			errc(EX_DATAERR, error, "partition %d",
+			    part->index + 1);
 	}
 
 	block = scheme_metadata(SCHEME_META_IMG_START, 0);
 	abs_offset = false;
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		byteoffset = blkoffset = 0;
 		abs_offset = false;
 
@@ -486,8 +493,10 @@ mkimg(void)
 		part->block = block;
 
 		if (verbose)
-			fprintf(stderr, "partition %d: starting block %llu "
-			    "... ", part->index + 1, (long long)part->block);
+			fprintf(stderr,
+			    "partition %d: starting block %llu "
+			    "... ",
+			    part->index + 1, (long long)part->block);
 
 		/* Pull in partition contents, set size if we haven't yet. */
 		switch (part->kind) {
@@ -515,7 +524,7 @@ mkimg(void)
 		if (verbose) {
 			bytesize = part->size * secsz;
 			fprintf(stderr, "size %llu bytes (%llu blocks)\n",
-			     (long long)bytesize, (long long)part->size);
+			    (long long)bytesize, (long long)part->size);
 			if (abs_offset) {
 				fprintf(stderr,
 				    "    location %llu bytes (%llu blocks)\n",
@@ -559,40 +568,44 @@ main(int argc, char *argv[])
 	int c, error;
 
 	bcfd = -1;
-	outfd = 1;	/* Write to stdout by default */
-	while ((c = getopt_long(argc, argv, "a:b:c:C:f:o:p:s:vyH:P:S:T:",
-	    longopts, NULL)) != -1) {
+	outfd = 1; /* Write to stdout by default */
+	while ((c = getopt_long(argc, argv,
+		    "a:b:c:C:f:o:p:s:vyH:P:S:T:", longopts, NULL)) != -1) {
 		switch (c) {
-		case 'a':	/* ACTIVE PARTITION, if supported */
+		case 'a': /* ACTIVE PARTITION, if supported */
 			error = parse_uint32(&active_partition, 1, 100, optarg);
 			if (error)
 				errc(EX_DATAERR, error, "Partition ordinal");
 			break;
-		case 'b':	/* BOOT CODE */
+		case 'b': /* BOOT CODE */
 			if (bcfd != -1)
 				usage("multiple bootcode given");
 			bcfd = open(optarg, O_RDONLY, 0);
 			if (bcfd == -1)
 				err(EX_UNAVAILABLE, "%s", optarg);
 			break;
-		case 'c':	/* MINIMUM CAPACITY */
-			error = parse_uint64(&min_capacity, 1, INT64_MAX, optarg);
+		case 'c': /* MINIMUM CAPACITY */
+			error = parse_uint64(&min_capacity, 1, INT64_MAX,
+			    optarg);
 			if (error)
-				errc(EX_DATAERR, error, "minimum capacity in bytes");
+				errc(EX_DATAERR, error,
+				    "minimum capacity in bytes");
 			break;
-		case 'C':	/* MAXIMUM CAPACITY */
-			error = parse_uint64(&max_capacity, 1, INT64_MAX, optarg);
+		case 'C': /* MAXIMUM CAPACITY */
+			error = parse_uint64(&max_capacity, 1, INT64_MAX,
+			    optarg);
 			if (error)
-				errc(EX_DATAERR, error, "maximum capacity in bytes");
+				errc(EX_DATAERR, error,
+				    "maximum capacity in bytes");
 			break;
-		case 'f':	/* OUTPUT FORMAT */
+		case 'f': /* OUTPUT FORMAT */
 			if (format_selected() != NULL)
 				usage("multiple formats given");
 			error = format_select(optarg);
 			if (error)
 				errc(EX_DATAERR, error, "format");
 			break;
-		case 'o':	/* OUTPUT FILE */
+		case 'o': /* OUTPUT FILE */
 			if (outfd != 1)
 				usage("multiple output files given");
 			outfd = open(optarg, O_WRONLY | O_CREAT | O_TRUNC,
@@ -600,12 +613,12 @@ main(int argc, char *argv[])
 			if (outfd == -1)
 				err(EX_CANTCREAT, "%s", optarg);
 			break;
-		case 'p':	/* PARTITION */
+		case 'p': /* PARTITION */
 			error = parse_part(optarg);
 			if (error)
 				errc(EX_DATAERR, error, "partition");
 			break;
-		case 's':	/* SCHEME */
+		case 's': /* SCHEME */
 			if (scheme_selected() != NULL)
 				usage("multiple schemes given");
 			error = scheme_select(optarg);
@@ -618,26 +631,26 @@ main(int argc, char *argv[])
 		case 'v':
 			verbose++;
 			break;
-		case 'H':	/* GEOMETRY: HEADS */
+		case 'H': /* GEOMETRY: HEADS */
 			error = parse_uint32(&nheads, 1, 255, optarg);
 			if (error)
 				errc(EX_DATAERR, error, "number of heads");
 			break;
-		case 'P':	/* GEOMETRY: PHYSICAL SECTOR SIZE */
-			error = parse_uint32(&blksz, 512, INT_MAX+1U, optarg);
+		case 'P': /* GEOMETRY: PHYSICAL SECTOR SIZE */
+			error = parse_uint32(&blksz, 512, INT_MAX + 1U, optarg);
 			if (error == 0 && !pwr_of_two(blksz))
 				error = EINVAL;
 			if (error)
 				errc(EX_DATAERR, error, "physical sector size");
 			break;
-		case 'S':	/* GEOMETRY: LOGICAL SECTOR SIZE */
-			error = parse_uint32(&secsz, 512, INT_MAX+1U, optarg);
+		case 'S': /* GEOMETRY: LOGICAL SECTOR SIZE */
+			error = parse_uint32(&secsz, 512, INT_MAX + 1U, optarg);
 			if (error == 0 && !pwr_of_two(secsz))
 				error = EINVAL;
 			if (error)
 				errc(EX_DATAERR, error, "logical sector size");
 			break;
-		case 'T':	/* GEOMETRY: TRACK SIZE */
+		case 'T': /* GEOMETRY: TRACK SIZE */
 			error = parse_uint32(&nsecs, 1, 63, optarg);
 			if (error)
 				errc(EX_DATAERR, error, "track size");
@@ -655,7 +668,8 @@ main(int argc, char *argv[])
 			exit(EX_OK);
 			/*NOTREACHED*/
 		case LONGOPT_CAPACITY:
-			error = parse_uint64(&min_capacity, 1, INT64_MAX, optarg);
+			error = parse_uint64(&min_capacity, 1, INT64_MAX,
+			    optarg);
 			if (error)
 				errc(EX_DATAERR, error, "capacity in bytes");
 			max_capacity = min_capacity;
@@ -676,14 +690,17 @@ main(int argc, char *argv[])
 
 	if (secsz > blksz) {
 		if (blksz != 0)
-			errx(EX_DATAERR, "the physical block size cannot "
+			errx(EX_DATAERR,
+			    "the physical block size cannot "
 			    "be smaller than the sector size");
 		blksz = secsz;
 	}
 
 	if (secsz > scheme_max_secsz())
-		errx(EX_DATAERR, "maximum sector size supported is %u; "
-		    "size specified is %u", scheme_max_secsz(), secsz);
+		errx(EX_DATAERR,
+		    "maximum sector size supported is %u; "
+		    "size specified is %u",
+		    scheme_max_secsz(), secsz);
 
 	if (nparts > scheme_max_parts())
 		errx(EX_DATAERR, "%d partitions supported; %d given",

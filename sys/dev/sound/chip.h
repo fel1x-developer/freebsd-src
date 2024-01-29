@@ -42,6 +42,6 @@ enum {
  * to the children.
  */
 struct sndcard_func {
-	int func;	/* The function code. */
-	void *varinfo;	/* Bridge-specific information. */
+	int func;      /* The function code. */
+	void *varinfo; /* Bridge-specific information. */
 };

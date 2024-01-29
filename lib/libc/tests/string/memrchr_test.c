@@ -6,11 +6,10 @@
 
 #include <sys/cdefs.h>
 
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <limits.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 static void *(*memrchr_fn)(const void *, int, size_t);
 
@@ -24,7 +23,8 @@ ATF_TC_WITHOUT_HEAD(not_found);
 ATF_TC_BODY(not_found, tc)
 {
 	size_t i, j;
-	char buf[1+15+64+1]; /* offset [0..15] + 64 buffer bytes + sentinels */
+	char buf[1 + 15 + 64 +
+	    1]; /* offset [0..15] + 64 buffer bytes + sentinels */
 
 	buf[0] = 'X';
 	memset(buf + 1, '-', sizeof(buf) - 1);
@@ -53,7 +53,7 @@ ATF_TC_WITHOUT_HEAD(found);
 ATF_TC_BODY(found, tc)
 {
 	size_t i, j, k, l;
-	char buf[1+15+64+1];
+	char buf[1 + 15 + 64 + 1];
 
 	buf[0] = 'X';
 	memset(buf + 1, '-', sizeof(buf) - 1);
@@ -89,7 +89,7 @@ ATF_TC_BODY(values, tc)
 {
 	size_t i, j, k;
 	int c;
-	unsigned char buf[1+15+64+1];
+	unsigned char buf[1 + 15 + 64 + 1];
 
 	for (i = 0; i < 16; i++)
 		for (j = 0; j < 64; j++)

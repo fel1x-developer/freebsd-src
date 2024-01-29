@@ -38,23 +38,23 @@
 #include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/proc.h>
-#include <sys/rwlock.h>
-#include <sys/vnode.h>
 #include <sys/mount.h>
+#include <sys/proc.h>
 #include <sys/racct.h>
 #include <sys/resourcevar.h>
+#include <sys/rwlock.h>
 #include <sys/stat.h>
+#include <sys/vnode.h>
 
 #include <vm/vm.h>
 #include <vm/vm_object.h>
 #include <vm/vnode_pager.h>
 
 #include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
 #include <ufs/ufs/inode.h>
-#include <ufs/ufs/ufsmount.h>
+#include <ufs/ufs/quota.h>
 #include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufsmount.h>
 
 static ufs_lbn_t lbn_count(struct ufsmount *, int);
 static int readindir(struct vnode *, ufs_lbn_t, ufs2_daddr_t, struct buf **);
@@ -66,14 +66,14 @@ static int readindir(struct vnode *, ufs_lbn_t, ufs2_daddr_t, struct buf **);
  */
 int
 ufs_bmap(
-	struct vop_bmap_args /* {
-		struct vnode *a_vp;
-		daddr_t a_bn;
-		struct bufobj **a_bop;
-		daddr_t *a_bnp;
-		int *a_runp;
-		int *a_runb;
-	} */ *ap)
+    struct vop_bmap_args /* {
+	    struct vnode *a_vp;
+	    daddr_t a_bn;
+	    struct bufobj **a_bop;
+	    daddr_t *a_bnp;
+	    int *a_runp;
+	    int *a_runb;
+    } */ *ap)
 {
 	ufs2_daddr_t blkno;
 	int error;
@@ -87,17 +87,14 @@ ufs_bmap(
 	if (ap->a_bnp == NULL)
 		return (0);
 
-	error = ufs_bmaparray(ap->a_vp, ap->a_bn, &blkno, NULL,
-	    ap->a_runp, ap->a_runb);
+	error = ufs_bmaparray(ap->a_vp, ap->a_bn, &blkno, NULL, ap->a_runp,
+	    ap->a_runb);
 	*ap->a_bnp = blkno;
 	return (error);
 }
 
 static int
-readindir(struct vnode *vp,
-	ufs_lbn_t lbn,
-	ufs2_daddr_t daddr,
-	struct buf **bpp)
+readindir(struct vnode *vp, ufs_lbn_t lbn, ufs2_daddr_t daddr, struct buf **bpp)
 {
 	struct buf *bp;
 	struct mount *mp;
@@ -109,8 +106,7 @@ readindir(struct vnode *vp,
 
 	bp = getblk(vp, lbn, mp->mnt_stat.f_iosize, 0, 0, 0);
 	if ((bp->b_flags & B_CACHE) == 0) {
-		KASSERT(daddr != 0,
-		    ("readindir: indirect block not in cache"));
+		KASSERT(daddr != 0, ("readindir: indirect block not in cache"));
 
 		bp->b_blkno = blkptrtodb(ump, daddr);
 		bp->b_iocmd = BIO_READ;
@@ -152,18 +148,14 @@ readindir(struct vnode *vp,
  */
 
 int
-ufs_bmaparray(struct vnode *vp,
-	ufs2_daddr_t bn,
-	ufs2_daddr_t *bnp,
-	struct buf *nbp,
-	int *runp,
-	int *runb)
+ufs_bmaparray(struct vnode *vp, ufs2_daddr_t bn, ufs2_daddr_t *bnp,
+    struct buf *nbp, int *runp, int *runb)
 {
 	struct inode *ip;
 	struct buf *bp;
 	struct ufsmount *ump;
 	struct mount *mp;
-	struct indir a[UFS_NIADDR+1], *ap;
+	struct indir a[UFS_NIADDR + 1], *ap;
 	ufs2_daddr_t daddr;
 	ufs_lbn_t metalbn;
 	int error, num, maxrun = 0;
@@ -219,20 +211,23 @@ ufs_bmaparray(struct vnode *vp,
 		    DIP(ip, i_db[bn]) < ump->um_seqinc) {
 			*bnp = -1;
 		} else if (*bnp == 0) {
-			*bnp = IS_SNAPSHOT(ip) ? blkptrtodb(ump,
-			    bn * ump->um_seqinc) : -1;
+			*bnp = IS_SNAPSHOT(ip) ?
+			    blkptrtodb(ump, bn * ump->um_seqinc) :
+			    -1;
 		} else if (runp) {
 			ufs2_daddr_t bnb = bn;
 			for (++bn; bn < UFS_NDADDR && *runp < maxrun &&
-			    is_sequential(ump, DIP(ip, i_db[bn - 1]),
-			    DIP(ip, i_db[bn]));
-			    ++bn, ++*runp);
+			     is_sequential(ump, DIP(ip, i_db[bn - 1]),
+				 DIP(ip, i_db[bn]));
+			     ++bn, ++*runp)
+				;
 			bn = bnb;
 			if (runb && (bn > 0)) {
 				for (--bn; (bn >= 0) && (*runb < maxrun) &&
-					is_sequential(ump, DIP(ip, i_db[bn]),
-						DIP(ip, i_db[bn+1]));
-						--bn, ++*runb);
+				     is_sequential(ump, DIP(ip, i_db[bn]),
+					 DIP(ip, i_db[bn + 1]));
+				     --bn, ++*runb)
+					;
 			}
 		}
 		return (0);
@@ -249,7 +244,8 @@ ufs_bmaparray(struct vnode *vp,
 		 */
 
 		metalbn = ap->in_lbn;
-		if ((daddr == 0 && !incore(&vp->v_bufobj, metalbn)) || metalbn == bn)
+		if ((daddr == 0 && !incore(&vp->v_bufobj, metalbn)) ||
+		    metalbn == bn)
 			break;
 		/*
 		 * If we get here, we've either got the block in the cache
@@ -266,43 +262,49 @@ ufs_bmaparray(struct vnode *vp,
 		else
 			daddr = ((ufs2_daddr_t *)bp->b_data)[ap->in_off];
 		if ((error = UFS_CHECK_BLKNO(mp, ip->i_number, daddr,
-		     mp->mnt_stat.f_iosize)) != 0) {
+			 mp->mnt_stat.f_iosize)) != 0) {
 			bqrelse(bp);
 			return (error);
 		}
 		if (I_IS_UFS1(ip)) {
 			if (num == 1 && daddr && runp) {
 				for (bn = ap->in_off + 1;
-				    bn < MNINDIR(ump) && *runp < maxrun &&
-				    is_sequential(ump,
-				    ((ufs1_daddr_t *)bp->b_data)[bn - 1],
-				    ((ufs1_daddr_t *)bp->b_data)[bn]);
-				    ++bn, ++*runp);
+				     bn < MNINDIR(ump) && *runp < maxrun &&
+				     is_sequential(ump,
+					 ((ufs1_daddr_t *)bp->b_data)[bn - 1],
+					 ((ufs1_daddr_t *)bp->b_data)[bn]);
+				     ++bn, ++*runp)
+					;
 				bn = ap->in_off;
 				if (runb && bn) {
 					for (--bn; bn >= 0 && *runb < maxrun &&
-					    is_sequential(ump,
-					    ((ufs1_daddr_t *)bp->b_data)[bn],
-					    ((ufs1_daddr_t *)bp->b_data)[bn+1]);
-					    --bn, ++*runb);
+					     is_sequential(ump,
+						 ((ufs1_daddr_t *)
+							 bp->b_data)[bn],
+						 ((ufs1_daddr_t *)
+							 bp->b_data)[bn + 1]);
+					     --bn, ++*runb)
+						;
 				}
 			}
 			continue;
 		}
 		if (num == 1 && daddr && runp) {
 			for (bn = ap->in_off + 1;
-			    bn < MNINDIR(ump) && *runp < maxrun &&
-			    is_sequential(ump,
-			    ((ufs2_daddr_t *)bp->b_data)[bn - 1],
-			    ((ufs2_daddr_t *)bp->b_data)[bn]);
-			    ++bn, ++*runp);
+			     bn < MNINDIR(ump) && *runp < maxrun &&
+			     is_sequential(ump,
+				 ((ufs2_daddr_t *)bp->b_data)[bn - 1],
+				 ((ufs2_daddr_t *)bp->b_data)[bn]);
+			     ++bn, ++*runp)
+				;
 			bn = ap->in_off;
 			if (runb && bn) {
 				for (--bn; bn >= 0 && *runb < maxrun &&
-				    is_sequential(ump,
-				    ((ufs2_daddr_t *)bp->b_data)[bn],
-				    ((ufs2_daddr_t *)bp->b_data)[bn + 1]);
-				    --bn, ++*runb);
+				     is_sequential(ump,
+					 ((ufs2_daddr_t *)bp->b_data)[bn],
+					 ((ufs2_daddr_t *)bp->b_data)[bn + 1]);
+				     --bn, ++*runb)
+					;
 			}
 		}
 	}
@@ -316,7 +318,7 @@ ufs_bmaparray(struct vnode *vp,
 	 * return a request for a zeroed out buffer if attempts are made
 	 * to read a BLK_NOCOPY or BLK_SNAP block.
 	 */
-	if (IS_SNAPSHOT(ip) && daddr > 0 && daddr < ump->um_seqinc){
+	if (IS_SNAPSHOT(ip) && daddr > 0 && daddr < ump->um_seqinc) {
 		*bnp = -1;
 		return (0);
 	}
@@ -374,7 +376,7 @@ ufs_bmap_seekdata(struct vnode *vp, off_t *offp)
 
 	bsize = mp->mnt_stat.f_iosize;
 	for (bn = *offp / bsize, numblks = howmany(ip->i_size, bsize);
-	    bn < numblks; bn = nextbn) {
+	     bn < numblks; bn = nextbn) {
 		if (bn < UFS_NDADDR) {
 			daddr = DIP(ip, i_db[bn]);
 			if (daddr != 0)
@@ -450,10 +452,7 @@ ufs_bmap_seekdata(struct vnode *vp, off_t *offp)
  * once with the offset into the page itself.
  */
 int
-ufs_getlbns(struct vnode *vp,
-	ufs2_daddr_t bn,
-	struct indir *ap,
-	int *nump)
+ufs_getlbns(struct vnode *vp, ufs2_daddr_t bn, struct indir *ap, int *nump)
 {
 	ufs2_daddr_t blockcnt;
 	ufs_lbn_t metalbn, realbn;
@@ -478,8 +477,8 @@ ufs_getlbns(struct vnode *vp,
 	 * at the previous level of indirection, and UFS_NIADDR - i is the
 	 * number of levels of indirection needed to locate the requested block.
 	 */
-	for (blockcnt = 1, i = UFS_NIADDR, bn -= UFS_NDADDR; ;
-	    i--, bn -= blockcnt) {
+	for (blockcnt = 1, i = UFS_NIADDR, bn -= UFS_NDADDR;;
+	     i--, bn -= blockcnt) {
 		if (i == 0)
 			return (EFBIG);
 		blockcnt *= MNINDIR(ump);

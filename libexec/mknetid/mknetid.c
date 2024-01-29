@@ -40,14 +40,13 @@
 
 #include <sys/types.h>
 
-#include <rpc/rpc.h>
-#include <rpcsvc/yp_prot.h>
-#include <rpcsvc/ypclnt.h>
-
 #include <err.h>
 #include <grp.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp_prot.h>
+#include <rpcsvc/ypclnt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,9 +85,9 @@ extern void _endgrent(void);
 static void
 usage(void)
 {
-	fprintf (stderr, "%s\n%s\n",
-	"usage: mknetid [-q] [-g group_file] [-p passwd_file] [-h hosts_file]",
-	"               [-n netid_file] [-d domain]");
+	fprintf(stderr, "%s\n%s\n",
+	    "usage: mknetid [-q] [-g group_file] [-p passwd_file] [-h hosts_file]",
+	    "               [-n netid_file] [-d domain]");
 	exit(1);
 }
 
@@ -110,7 +109,7 @@ main(int argc, char *argv[])
 
 	domain = NULL;
 	while ((ch = getopt(argc, argv, "g:p:h:n:d:q")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'g':
 			groupfile = optarg;
 			break;
@@ -163,8 +162,8 @@ domain not set");
 	/* Load all the group membership info into a hash table. */
 
 	_setgrent();
-	while((gr = _getgrent()) != NULL) {
-		while(*gr->gr_mem) {
+	while ((gr = _getgrent()) != NULL) {
+		while (*gr->gr_mem) {
 			mstore(mtable, *gr->gr_mem, gr->gr_gid, 0);
 			gr->gr_mem++;
 		}
@@ -177,7 +176,7 @@ domain not set");
 	 * Now parse the passwd database, spewing out the extra
 	 * group information we just stored if necessary.
 	 */
-	while(fgets(readbuf, LINSIZ, pfp)) {
+	while (fgets(readbuf, LINSIZ, pfp)) {
 		/* Ignore comments: ^[ \t]*# */
 		for (ptr = readbuf; *ptr != '\0'; ptr++)
 			if (*ptr != ' ' && *ptr != '\t')
@@ -211,27 +210,27 @@ domain not set");
 		*ptr = '\0';
 		i = atol(gidptr);
 
-		snprintf(writebuf, sizeof(writebuf), "%s.%s@%s", OPSYS,
-							pidptr, domain);
+		snprintf(writebuf, sizeof(writebuf), "%s.%s@%s", OPSYS, pidptr,
+		    domain);
 
 		if (lookup(dtable, writebuf)) {
 			if (!quiet)
 				warnx("duplicate netid '%s.%s@%s' -- skipping",
-						OPSYS, pidptr, domain);
+				    OPSYS, pidptr, domain);
 			continue;
 		} else {
 			mstore(dtable, writebuf, 0, 1);
 		}
 		printf("%s.%s@%s %s:%s", OPSYS, pidptr, domain, pidptr, gidptr);
 		if ((glist = lookup(mtable, (char *)&readbuf)) != NULL) {
-			while(glist) {
+			while (glist) {
 				if (glist->groupid != i)
 					printf(",%lu", (u_long)glist->groupid);
 				glist = glist->next;
 			}
 		}
-		printf ("\n");
-	}	
+		printf("\n");
+	}
 
 	fclose(pfp);
 
@@ -254,17 +253,17 @@ domain not set");
 		if (!(hptr = strpbrk(ptr, " \t")))
 			continue;
 		*hptr++ = '\0';
-		snprintf(writebuf, sizeof(writebuf), "%s.%s@%s", OPSYS,
-								ptr, domain);
+		snprintf(writebuf, sizeof(writebuf), "%s.%s@%s", OPSYS, ptr,
+		    domain);
 		if (lookup(dtable, (char *)&writebuf)) {
 			if (!quiet)
 				warnx("duplicate netid '%s' -- skipping",
-								writebuf);
+				    writebuf);
 			continue;
 		} else {
 			mstore(dtable, (char *)&writebuf, 0, 1);
 		}
-		printf ("%s.%s@%s 0:%s\n", OPSYS, ptr, domain, ptr);
+		printf("%s.%s@%s 0:%s\n", OPSYS, ptr, domain, ptr);
 	}
 
 	fclose(hfp);
@@ -275,10 +274,10 @@ domain not set");
 	 */
 
 	if (nfp != NULL) {
-		while(fgets(readbuf, LINSIZ, nfp)) {
+		while (fgets(readbuf, LINSIZ, nfp)) {
 			if (readbuf[0] == '#')
 				continue;
-			if ((ptr = strpbrk((char*)&readbuf, " \t")) == NULL) {
+			if ((ptr = strpbrk((char *)&readbuf, " \t")) == NULL) {
 				warnx("bad netid entry: '%s'", readbuf);
 				continue;
 			}
@@ -287,14 +286,15 @@ domain not set");
 			*ptr = '\0';
 			if (lookup(dtable, (char *)&readbuf)) {
 				if (!quiet)
-					warnx("duplicate netid '%s' -- skipping",
-								readbuf);
+					warnx(
+					    "duplicate netid '%s' -- skipping",
+					    readbuf);
 				continue;
 			} else {
 				mstore(dtable, (char *)&readbuf, 0, 1);
 			}
 			*ptr = writebuf[0];
-			printf("%s",readbuf);
+			printf("%s", readbuf);
 		}
 		fclose(nfp);
 	}

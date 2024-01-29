@@ -28,19 +28,17 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
 #ifndef _XLOCALE_UCHAR_H_
 #define _XLOCALE_UCHAR_H_
 
-size_t	c16rtomb_l(char * __restrict, char16_t, mbstate_t * __restrict,
-    locale_t);
-size_t	c32rtomb_l(char * __restrict, char32_t, mbstate_t * __restrict,
-    locale_t);
-size_t	mbrtoc16_l(char16_t * __restrict, const char * __restrict, size_t,
-    mbstate_t * __restrict, locale_t);
-size_t	mbrtoc32_l(char32_t * __restrict, const char * __restrict, size_t,
-    mbstate_t * __restrict, locale_t);
+size_t c16rtomb_l(char *__restrict, char16_t, mbstate_t *__restrict, locale_t);
+size_t c32rtomb_l(char *__restrict, char32_t, mbstate_t *__restrict, locale_t);
+size_t mbrtoc16_l(char16_t *__restrict, const char *__restrict, size_t,
+    mbstate_t *__restrict, locale_t);
+size_t mbrtoc32_l(char32_t *__restrict, const char *__restrict, size_t,
+    mbstate_t *__restrict, locale_t);
 
 #endif /* _XLOCALE_UCHAR_H_ */

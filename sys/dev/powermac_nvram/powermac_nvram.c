@@ -28,60 +28,54 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/sx.h>
 #include <sys/uio.h>
 
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <vm/vm.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 #include <machine/pio.h>
 #include <machine/resource.h>
 
-#include <sys/rman.h>
-
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/powermac_nvram/powermac_nvramvar.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
 
 /*
  * Device interface.
  */
-static int		powermac_nvram_probe(device_t);
-static int		powermac_nvram_attach(device_t);
-static int		powermac_nvram_detach(device_t);
+static int powermac_nvram_probe(device_t);
+static int powermac_nvram_attach(device_t);
+static int powermac_nvram_detach(device_t);
 
 /* Helper functions */
-static int		powermac_nvram_check(void *data);
-static int		chrp_checksum(int sum, uint8_t *, uint8_t *);
-static uint32_t		adler_checksum(uint8_t *, int);
-static int		erase_bank(device_t, uint8_t *);
-static int		write_bank(device_t, uint8_t *, uint8_t *);
+static int powermac_nvram_check(void *data);
+static int chrp_checksum(int sum, uint8_t *, uint8_t *);
+static uint32_t adler_checksum(uint8_t *, int);
+static int erase_bank(device_t, uint8_t *);
+static int write_bank(device_t, uint8_t *, uint8_t *);
 
 /*
  * Driver methods.
  */
-static device_method_t	powermac_nvram_methods[] = {
+static device_method_t powermac_nvram_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		powermac_nvram_probe),
-	DEVMETHOD(device_attach,	powermac_nvram_attach),
-	DEVMETHOD(device_detach,	powermac_nvram_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, powermac_nvram_probe),
+	DEVMETHOD(device_attach, powermac_nvram_attach),
+	DEVMETHOD(device_detach, powermac_nvram_detach), { 0, 0 }
 };
 
-static driver_t	powermac_nvram_driver = {
-	"powermac_nvram",
-	powermac_nvram_methods,
-	sizeof(struct powermac_nvram_softc)
-};
+static driver_t powermac_nvram_driver = { "powermac_nvram",
+	powermac_nvram_methods, sizeof(struct powermac_nvram_softc) };
 
 DRIVER_MODULE(powermac_nvram, ofwbus, powermac_nvram_driver, 0, 0);
 
@@ -89,24 +83,24 @@ DRIVER_MODULE(powermac_nvram, ofwbus, powermac_nvram_driver, 0, 0);
  * Cdev methods.
  */
 
-static	d_open_t	powermac_nvram_open;
-static	d_close_t	powermac_nvram_close;
-static	d_read_t	powermac_nvram_read;
-static	d_write_t	powermac_nvram_write;
+static d_open_t powermac_nvram_open;
+static d_close_t powermac_nvram_close;
+static d_read_t powermac_nvram_read;
+static d_write_t powermac_nvram_write;
 
 static struct cdevsw powermac_nvram_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	powermac_nvram_open,
-	.d_close =	powermac_nvram_close,
-	.d_read =	powermac_nvram_read,
-	.d_write =	powermac_nvram_write,
-	.d_name =	"powermac_nvram",
+	.d_version = D_VERSION,
+	.d_open = powermac_nvram_open,
+	.d_close = powermac_nvram_close,
+	.d_read = powermac_nvram_read,
+	.d_write = powermac_nvram_write,
+	.d_name = "powermac_nvram",
 };
 
 static int
 powermac_nvram_probe(device_t dev)
 {
-	const char	*type, *compatible;
+	const char *type, *compatible;
 
 	type = ofw_bus_get_type(dev);
 	compatible = ofw_bus_get_compat(dev);
@@ -128,7 +122,7 @@ static int
 powermac_nvram_attach(device_t dev)
 {
 	struct powermac_nvram_softc *sc;
-	const char	*compatible;
+	const char *compatible;
 	phandle_t node;
 	u_int32_t reg[3];
 	int gen0, gen1, i;
@@ -152,7 +146,7 @@ powermac_nvram_attach(device_t dev)
 	 * Find which byte of reg corresponds to the 32-bit physical address.
 	 * We should probably read #address-cells from /chosen instead.
 	 */
-	i = (i/4) - 2;
+	i = (i / 4) - 2;
 
 	sc->sc_bank0 = pmap_mapdev(reg[i], NVRAM_SIZE * 2);
 	sc->sc_bank1 = (char *)sc->sc_bank0 + NVRAM_SIZE;
@@ -166,8 +160,8 @@ powermac_nvram_attach(device_t dev)
 		device_printf(dev, "both banks appear to be corrupt\n");
 		return ENXIO;
 	}
-	device_printf(dev, "bank0 generation %d, bank1 generation %d\n",
-	    gen0, gen1);
+	device_printf(dev, "bank0 generation %d, bank1 generation %d\n", gen0,
+	    gen1);
 
 	sc->sc_bank = (gen0 > gen1) ? sc->sc_bank0 : sc->sc_bank1;
 	bcopy(sc->sc_bank, sc->sc_data, NVRAM_SIZE);
@@ -218,7 +212,8 @@ powermac_nvram_open(struct cdev *dev, int flags, int fmt, struct thread *td)
 }
 
 static int
-powermac_nvram_close(struct cdev *dev, int fflag, int devtype, struct thread *td)
+powermac_nvram_close(struct cdev *dev, int fflag, int devtype,
+    struct thread *td)
 {
 	struct powermac_nvram_softc *sc = dev->si_drv1;
 	struct core99_header *header;
@@ -239,12 +234,13 @@ powermac_nvram_close(struct cdev *dev, int fflag, int devtype, struct thread *td
 	header->generation++;
 	header->chrp_header.signature = CORE99_SIGNATURE;
 
-	header->adler_checksum =
-	    adler_checksum((uint8_t *)&(header->generation),
+	header->adler_checksum = adler_checksum((uint8_t *)&(
+						    header->generation),
 	    NVRAM_SIZE - offsetof(struct core99_header, generation));
-	header->chrp_header.chrp_checksum = chrp_checksum(header->chrp_header.signature,
-	    (uint8_t *)&(header->chrp_header.length),
-	    (uint8_t *)&(header->adler_checksum));
+	header->chrp_header.chrp_checksum =
+	    chrp_checksum(header->chrp_header.signature,
+		(uint8_t *)&(header->chrp_header.length),
+		(uint8_t *)&(header->adler_checksum));
 
 	bank = (sc->sc_bank == sc->sc_bank0) ? sc->sc_bank1 : sc->sc_bank0;
 	if (erase_bank(sc->sc_dev, bank) != 0 ||
@@ -272,8 +268,8 @@ powermac_nvram_read(struct cdev *dev, struct uio *uio, int ioflag)
 		data_available = sizeof(sc->sc_data) - sc->sc_rpos;
 		if (data_available > 0) {
 			amnt = MIN(uio->uio_resid, data_available);
-			rv = uiomove((void *)(sc->sc_data + sc->sc_rpos),
-			    amnt, uio);
+			rv = uiomove((void *)(sc->sc_data + sc->sc_rpos), amnt,
+			    uio);
 			if (rv != 0)
 				break;
 			sc->sc_rpos += amnt;
@@ -302,8 +298,8 @@ powermac_nvram_write(struct cdev *dev, struct uio *uio, int ioflag)
 		data_available = sizeof(sc->sc_data) - sc->sc_wpos;
 		if (data_available > 0) {
 			amnt = MIN(uio->uio_resid, data_available);
-			rv = uiomove((void *)(sc->sc_data + sc->sc_wpos),
-			    amnt, uio);
+			rv = uiomove((void *)(sc->sc_data + sc->sc_wpos), amnt,
+			    uio);
 			if (rv != 0)
 				break;
 			sc->sc_wpos += amnt;
@@ -327,12 +323,12 @@ powermac_nvram_check(void *data)
 		return -1;
 	if (header->chrp_header.chrp_checksum !=
 	    chrp_checksum(header->chrp_header.signature,
-	    (uint8_t *)&(header->chrp_header.length),
-	    (uint8_t *)&(header->adler_checksum)))
+		(uint8_t *)&(header->chrp_header.length),
+		(uint8_t *)&(header->adler_checksum)))
 		return -1;
 	if (header->adler_checksum !=
 	    adler_checksum((uint8_t *)&(header->generation),
-	    NVRAM_SIZE - offsetof(struct core99_header, generation)))
+		NVRAM_SIZE - offsetof(struct core99_header, generation)))
 		return -1;
 	return header->generation;
 }
@@ -370,7 +366,9 @@ adler_checksum(uint8_t *data, int len)
 	return (high << 16) | low;
 }
 
-#define	OUTB_DELAY(a, v)	outb(a, v); DELAY(1);
+#define OUTB_DELAY(a, v) \
+	outb(a, v);      \
+	DELAY(1);
 
 static int
 wait_operation_complete_amd(uint8_t *bank)

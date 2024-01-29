@@ -24,8 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -53,11 +54,11 @@ MALLOC_DEFINE(M_FIXEDREGULATOR, "fixedregulator", "Fixed regulator");
 /* GPIO list for shared pins. */
 typedef TAILQ_HEAD(gpio_list, gpio_entry) gpio_list_t;
 struct gpio_entry {
-	TAILQ_ENTRY(gpio_entry)	link;
-	struct gpiobus_pin	gpio_pin;
-	int 			use_cnt;
-	int 			enable_cnt;
-	bool			always_on;
+	TAILQ_ENTRY(gpio_entry) link;
+	struct gpiobus_pin gpio_pin;
+	int use_cnt;
+	int enable_cnt;
+	bool always_on;
 };
 static gpio_list_t gpio_list = TAILQ_HEAD_INITIALIZER(gpio_list);
 static struct mtx gpio_list_mtx;
@@ -65,8 +66,8 @@ MTX_SYSINIT(gpio_list_lock, &gpio_list_mtx, "Regulator GPIO lock", MTX_DEF);
 
 struct regnode_fixed_sc {
 	struct regnode_std_param *param;
-	bool			gpio_open_drain;
-	struct gpio_entry	*gpio_entry;
+	bool gpio_open_drain;
+	struct gpio_entry *gpio_entry;
 };
 
 static int regnode_fixed_init(struct regnode *regnode);
@@ -78,16 +79,16 @@ static int regnode_fixed_get_voltage(struct regnode *regnode, int *uvolt);
 
 static regnode_method_t regnode_fixed_methods[] = {
 	/* Regulator interface */
-	REGNODEMETHOD(regnode_init,		regnode_fixed_init),
-	REGNODEMETHOD(regnode_enable,		regnode_fixed_enable),
-	REGNODEMETHOD(regnode_status,		regnode_fixed_status),
-	REGNODEMETHOD(regnode_stop,		regnode_fixed_stop),
-	REGNODEMETHOD(regnode_get_voltage,	regnode_fixed_get_voltage),
-	REGNODEMETHOD(regnode_check_voltage,	regnode_method_check_voltage),
+	REGNODEMETHOD(regnode_init, regnode_fixed_init),
+	REGNODEMETHOD(regnode_enable, regnode_fixed_enable),
+	REGNODEMETHOD(regnode_status, regnode_fixed_status),
+	REGNODEMETHOD(regnode_stop, regnode_fixed_stop),
+	REGNODEMETHOD(regnode_get_voltage, regnode_fixed_get_voltage),
+	REGNODEMETHOD(regnode_check_voltage, regnode_method_check_voltage),
 	REGNODEMETHOD_END
 };
 DEFINE_CLASS_1(regnode_fixed, regnode_fixed_class, regnode_fixed_methods,
-   sizeof(struct regnode_fixed_sc), regnode_class);
+    sizeof(struct regnode_fixed_sc), regnode_class);
 
 /*
  * GPIO list functions.
@@ -111,7 +112,7 @@ regnode_get_gpio_entry(struct gpiobus_pin *gpio_pin)
 
 	mtx_lock(&gpio_list_mtx);
 
-	TAILQ_FOREACH(tmp, &gpio_list, link) {
+	TAILQ_FOREACH (tmp, &gpio_list, link) {
 		if (tmp->gpio_pin.dev == gpio_pin->dev &&
 		    tmp->gpio_pin.pin == gpio_pin->pin) {
 			tmp->use_cnt++;
@@ -138,7 +139,6 @@ regnode_get_gpio_entry(struct gpiobus_pin *gpio_pin)
 	return (entry);
 }
 
-
 /*
  * Regulator class implementation.
  */
@@ -162,7 +162,8 @@ regnode_fixed_init(struct regnode *regnode)
 	if (sc->gpio_open_drain)
 		flags |= GPIO_PIN_OPENDRAIN;
 	if (sc->param->boot_on || sc->param->always_on) {
-		rv = GPIO_PIN_SET(pin->dev, pin->pin, sc->param->enable_active_high);
+		rv = GPIO_PIN_SET(pin->dev, pin->pin,
+		    sc->param->enable_active_high);
 		if (rv != 0) {
 			device_printf(dev, "Cannot set GPIO pin: %d\n",
 			    pin->pin);
@@ -249,7 +250,7 @@ regnode_fixed_stop(struct regnode *regnode, int *udelay)
 		return (0);
 	}
 	rv = GPIO_PIN_SET(pin->dev, pin->pin,
-	    sc->param->enable_active_high ? false: true);
+	    sc->param->enable_active_high ? false : true);
 	if (rv != 0) {
 		device_printf(dev, "Cannot set GPIO pin: %d\n", pin->pin);
 		return (rv);
@@ -303,19 +304,19 @@ regnode_fixed_register(device_t dev, struct regnode_fixed_init_def *init_def)
 	    &init_def->reg_init_def);
 	if (regnode == NULL) {
 		device_printf(dev, "Cannot create regulator.\n");
-		return(ENXIO);
+		return (ENXIO);
 	}
 	sc = regnode_get_softc(regnode);
 	sc->gpio_open_drain = init_def->gpio_open_drain;
 	if (init_def->gpio_pin != NULL) {
 		sc->gpio_entry = regnode_get_gpio_entry(init_def->gpio_pin);
 		if (sc->gpio_entry == NULL)
-			return(ENXIO);
+			return (ENXIO);
 	}
 	regnode = regnode_register(regnode);
 	if (regnode == NULL) {
 		device_printf(dev, "Cannot register regulator.\n");
-		return(ENXIO);
+		return (ENXIO);
 	}
 
 	if (sc->gpio_entry != NULL)
@@ -329,24 +330,23 @@ regnode_fixed_register(device_t dev, struct regnode_fixed_init_def *init_def)
  */
 #ifdef FDT
 
-struct  regfix_softc
-{
-	device_t			dev;
-	bool				attach_done;
-	struct regnode_fixed_init_def	init_def;
-	phandle_t			gpio_prodxref;
-	pcell_t				*gpio_cells;
-	int				gpio_ncells;
-	struct gpiobus_pin		gpio_pin;
+struct regfix_softc {
+	device_t dev;
+	bool attach_done;
+	struct regnode_fixed_init_def init_def;
+	phandle_t gpio_prodxref;
+	pcell_t *gpio_cells;
+	int gpio_ncells;
+	struct gpiobus_pin gpio_pin;
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"regulator-fixed",		1},
-	{NULL,				0},
+	{ "regulator-fixed", 1 },
+	{ NULL, 0 },
 };
 
 static int
-regfix_get_gpio(struct regfix_softc * sc)
+regfix_get_gpio(struct regfix_softc *sc)
 {
 	device_t busdev;
 	phandle_t node;
@@ -380,7 +380,7 @@ regfix_get_gpio(struct regfix_softc * sc)
 }
 
 static int
-regfix_parse_fdt(struct regfix_softc * sc)
+regfix_parse_fdt(struct regfix_softc *sc)
 {
 	phandle_t node;
 	int rv;
@@ -392,7 +392,7 @@ regfix_parse_fdt(struct regfix_softc * sc)
 	rv = regulator_parse_ofw_stdparam(sc->dev, node, init_def);
 	if (rv != 0) {
 		device_printf(sc->dev, "Cannot parse standard parameters.\n");
-		return(rv);
+		return (rv);
 	}
 
 	if (init_def->std_param.min_uvolt != init_def->std_param.max_uvolt) {
@@ -401,8 +401,8 @@ regfix_parse_fdt(struct regfix_softc * sc)
 	}
 	/* Fixed regulator uses 'startup-delay-us' property for enable_delay */
 	rv = OF_getencprop(node, "startup-delay-us",
-	   &init_def->std_param.enable_delay,
-	   sizeof(init_def->std_param.enable_delay));
+	    &init_def->std_param.enable_delay,
+	    sizeof(init_def->std_param.enable_delay));
 	if (rv <= 0)
 		init_def->std_param.enable_delay = 0;
 	/* GPIO pin */
@@ -424,7 +424,7 @@ regfix_parse_fdt(struct regfix_softc * sc)
 static void
 regfix_new_pass(device_t dev)
 {
-	struct regfix_softc * sc;
+	struct regfix_softc *sc;
 	int rv;
 
 	sc = device_get_softc(dev);
@@ -468,7 +468,7 @@ regfix_detach(device_t dev)
 static int
 regfix_attach(device_t dev)
 {
-	struct regfix_softc * sc;
+	struct regfix_softc *sc;
 	int rv;
 
 	sc = device_get_softc(dev);
@@ -477,7 +477,7 @@ regfix_attach(device_t dev)
 	/* Parse FDT data. */
 	rv = regfix_parse_fdt(sc);
 	if (rv != 0)
-		return(ENXIO);
+		return (ENXIO);
 
 	/* Fill reset of init. */
 	sc->init_def.reg_init_def.id = 1;
@@ -497,13 +497,13 @@ regfix_attach(device_t dev)
 
 static device_method_t regfix_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		regfix_probe),
-	DEVMETHOD(device_attach,	regfix_attach),
-	DEVMETHOD(device_detach,	regfix_detach),
+	DEVMETHOD(device_probe, regfix_probe),
+	DEVMETHOD(device_attach, regfix_attach),
+	DEVMETHOD(device_detach, regfix_detach),
 	/* Bus interface */
-	DEVMETHOD(bus_new_pass,		regfix_new_pass),
+	DEVMETHOD(bus_new_pass, regfix_new_pass),
 	/* Regdev interface */
-	DEVMETHOD(regdev_map,		regdev_default_ofw_map),
+	DEVMETHOD(regdev_map, regdev_default_ofw_map),
 
 	DEVMETHOD_END
 };

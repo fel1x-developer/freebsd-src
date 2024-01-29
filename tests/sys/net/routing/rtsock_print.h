@@ -28,32 +28,33 @@
 #ifndef _NET_ROUTING_RTSOCK_PRINT_H_
 #define _NET_ROUTING_RTSOCK_PRINT_H_
 
+#define RLOG(_fmt, ...) printf("%s: " _fmt "\n", __func__, ##__VA_ARGS__)
+#define RLOG_ERRNO(_fmt, ...)                                 \
+	do {                                                  \
+		printf("%s: " _fmt, __func__, ##__VA_ARGS__); \
+		printf(": %s\n", strerror(errno));            \
+	} while (0)
 
-#define	RLOG(_fmt, ...)	printf("%s: " _fmt "\n", __func__, ##__VA_ARGS__)
-#define	RLOG_ERRNO(_fmt, ...)	do {			\
-	printf("%s: " _fmt, __func__, ##__VA_ARGS__);	\
-	printf(": %s\n", strerror(errno));		\
-} while(0)
+#define RTSOCK_ATF_REQUIRE_MSG(_rtm, _cond, _fmt, ...)                   \
+	do {                                                             \
+		if (!(_cond)) {                                          \
+			printf("-- CONDITION FAILED, rtm dump  --\n\n"); \
+			rtsock_print_message(_rtm);                      \
+			rtsock_print_table(AF_INET);                     \
+			rtsock_print_table(AF_INET6);                    \
+			printf("===================================\n"); \
+		}                                                        \
+		ATF_REQUIRE_MSG(_cond, _fmt, ##__VA_ARGS__);             \
+	} while (0);
 
-#define	RTSOCK_ATF_REQUIRE_MSG(_rtm, _cond, _fmt, ...)	 do {	\
-	if (!(_cond)) {						\
-		printf("-- CONDITION FAILED, rtm dump  --\n\n");\
-		rtsock_print_message(_rtm);			\
-		rtsock_print_table(AF_INET);			\
-		rtsock_print_table(AF_INET6);			\
-		printf("===================================\n");\
-	}							\
-	ATF_REQUIRE_MSG(_cond, _fmt, ##__VA_ARGS__);		\
-} while (0);
-
-#define	RTSOCKHD_ATF_REQUIRE_MSG(_rtm, _cond, _fmt, ...) do {	\
-	if (!(_cond)) {						\
-		printf("-- CONDITION FAILED, rtm hexdump--\n\n");\
-		rtsock_print_message_hd(_rtm);				\
-	}							\
-	ATF_REQUIRE_MSG(_cond, _fmt, ##__VA_ARGS__);		\
-} while (0);
-
+#define RTSOCKHD_ATF_REQUIRE_MSG(_rtm, _cond, _fmt, ...)                  \
+	do {                                                              \
+		if (!(_cond)) {                                           \
+			printf("-- CONDITION FAILED, rtm hexdump--\n\n"); \
+			rtsock_print_message_hd(_rtm);                    \
+		}                                                         \
+		ATF_REQUIRE_MSG(_cond, _fmt, ##__VA_ARGS__);              \
+	} while (0);
 
 /* from route.c */
 static const char *const msgtypes[] = {
@@ -106,7 +107,7 @@ _printb(char *buf, size_t bufsize, int b, const char *str)
 		return (0);
 	}
 	while ((i = *str++) != 0) {
-		if (b & (1 << (i-1))) {
+		if (b & (1 << (i - 1))) {
 			if (gotsome == 0)
 				i = '<';
 			else
@@ -141,13 +142,12 @@ rtsock_print_rtm_flags(char *buf, int buflen, int rtm_flags)
 	return (buf);
 }
 
-
-#define	_PRINTX(fmt, ...)	do {				\
-	one_len = snprintf(ptr, rem_len, fmt, __VA_ARGS__);	\
-	ptr += one_len;						\
-	rem_len -= one_len;					\
-} while(0)
-
+#define _PRINTX(fmt, ...)                                           \
+	do {                                                        \
+		one_len = snprintf(ptr, rem_len, fmt, __VA_ARGS__); \
+		ptr += one_len;                                     \
+		rem_len -= one_len;                                 \
+	} while (0)
 
 void
 sa_print_hd(char *buf, int buflen, const char *data, int len)
@@ -199,49 +199,52 @@ sa_print(const struct sockaddr *sa, int include_hexdump)
 	int i;
 
 	switch (sa->sa_family) {
-		case AF_INET:
-			sin = (struct sockaddr_in *)sa;
-			inet_ntop(AF_INET, &sin->sin_addr, abuf, sizeof(abuf));
-			printf(" af=inet len=%d addr=%s", sa->sa_len, abuf);
-			break;
-		case AF_INET6:
-			sin6 = (struct sockaddr_in6 *)sa;
-			inet_ntop(AF_INET6, &sin6->sin6_addr, abuf, sizeof(abuf));
-			int scope_id = sin6->sin6_scope_id;
-			printf(" af=inet6 len=%d addr=%s", sa->sa_len, abuf);
-			if (scope_id != 0) {
-				memset(ifbuf, 0, sizeof(ifbuf));
-				if_indextoname(scope_id, ifbuf);
-				printf(" scope_id=%d if_name=%s", scope_id, ifbuf);
+	case AF_INET:
+		sin = (struct sockaddr_in *)sa;
+		inet_ntop(AF_INET, &sin->sin_addr, abuf, sizeof(abuf));
+		printf(" af=inet len=%d addr=%s", sa->sa_len, abuf);
+		break;
+	case AF_INET6:
+		sin6 = (struct sockaddr_in6 *)sa;
+		inet_ntop(AF_INET6, &sin6->sin6_addr, abuf, sizeof(abuf));
+		int scope_id = sin6->sin6_scope_id;
+		printf(" af=inet6 len=%d addr=%s", sa->sa_len, abuf);
+		if (scope_id != 0) {
+			memset(ifbuf, 0, sizeof(ifbuf));
+			if_indextoname(scope_id, ifbuf);
+			printf(" scope_id=%d if_name=%s", scope_id, ifbuf);
+		}
+		break;
+	case AF_LINK:
+		sdl = (const struct sockaddr_dl *)sa;
+		int sdl_index = sdl->sdl_index;
+		if (sdl_index != 0) {
+			memset(ifbuf, 0, sizeof(ifbuf));
+			if_indextoname(sdl_index, ifbuf);
+			printf(" af=link len=%d sdl_index=%d if_name=%s",
+			    sdl->sdl_len, sdl_index, ifbuf);
+		}
+		if (sdl->sdl_nlen) {
+			char _ifname[IFNAMSIZ];
+			memcpy(_ifname, sdl->sdl_data, sdl->sdl_nlen);
+			_ifname[sdl->sdl_nlen] = '\0';
+			printf(" name=%s", _ifname);
+		}
+		if (sdl->sdl_alen) {
+			printf(" addr=");
+			const char *lladdr = LLADDR(sdl);
+			for (int i = 0; i < sdl->sdl_alen; i++) {
+				if (i + 1 < sdl->sdl_alen)
+					printf("%02X:",
+					    ((const unsigned char *)lladdr)[i]);
+				else
+					printf("%02X",
+					    ((const unsigned char *)lladdr)[i]);
 			}
-			break;
-		case AF_LINK:
-			sdl = (const struct sockaddr_dl *)sa;
-			int sdl_index = sdl->sdl_index;
-			if (sdl_index != 0) {
-				memset(ifbuf, 0, sizeof(ifbuf));
-				if_indextoname(sdl_index, ifbuf);
-				printf(" af=link len=%d sdl_index=%d if_name=%s", sdl->sdl_len, sdl_index, ifbuf);
-			}
-			if (sdl->sdl_nlen) {
-				char _ifname[IFNAMSIZ];
-				memcpy(_ifname, sdl->sdl_data, sdl->sdl_nlen);
-				_ifname[sdl->sdl_nlen] = '\0';
-				printf(" name=%s", _ifname);
-			}
-			if (sdl->sdl_alen) {
-				printf(" addr=");
-				const char *lladdr = LLADDR(sdl);
-				for (int i = 0; i < sdl->sdl_alen; i++) {
-					if (i + 1 < sdl->sdl_alen)
-						printf("%02X:", ((const unsigned char *)lladdr)[i]);
-					else
-						printf("%02X", ((const unsigned char *)lladdr)[i]);
-				}
-			}
-			break;
-		default:
-			printf(" af=%d len=%d", sa->sa_family, sa->sa_len);
+		}
+		break;
+	default:
+		printf(" af=%d len=%d", sa->sa_family, sa->sa_len);
 	}
 
 	if (include_hexdump) {
@@ -253,9 +256,8 @@ sa_print(const struct sockaddr *sa, int include_hexdump)
 
 /*
 got message of size 240 on Mon Dec 16 09:23:31 2019
-RTM_ADD: Add Route: len 240, pid: 25534, seq 2, errno 0, flags:<HOST,DONE,LLINFO,STATIC>
-locks:  inits:
-sockaddrs: <DST,GATEWAY>
+RTM_ADD: Add Route: len 240, pid: 25534, seq 2, errno 0,
+flags:<HOST,DONE,LLINFO,STATIC> locks:  inits: sockaddrs: <DST,GATEWAY>
 */
 
 void
@@ -273,11 +275,13 @@ rtsock_print_rtm(struct rt_msghdr *rtm)
 	char flags_buf[256];
 	rtsock_print_rtm_flags(flags_buf, sizeof(flags_buf), rtm->rtm_flags);
 
-	printf("%s: len %hu, pid: %d, seq %d, errno %d, flags: %s\n", msgtypes[rtm->rtm_type],
-		rtm->rtm_msglen, rtm->rtm_pid, rtm->rtm_seq, rtm->rtm_errno, flags_buf);
+	printf("%s: len %hu, pid: %d, seq %d, errno %d, flags: %s\n",
+	    msgtypes[rtm->rtm_type], rtm->rtm_msglen, rtm->rtm_pid,
+	    rtm->rtm_seq, rtm->rtm_errno, flags_buf);
 
 	if (rtm->rtm_inits > 0) {
-		_printb(flags_buf, sizeof(flags_buf), rtm->rtm_inits, metricnames);
+		_printb(flags_buf, sizeof(flags_buf), rtm->rtm_inits,
+		    metricnames);
 		printf("metrics: %s\n", flags_buf);
 		if (rtm->rtm_inits & RTV_MTU)
 			printf("mtu: %lu\n", rtm->rtm_rmx.rmx_mtu);
@@ -285,7 +289,8 @@ rtsock_print_rtm(struct rt_msghdr *rtm)
 			struct timeval tv;
 			gettimeofday(&tv, NULL);
 			printf("expire: %d (%lu raw)\n",
-			    (int)(rtm->rtm_rmx.rmx_expire - tv.tv_sec), rtm->rtm_rmx.rmx_expire);
+			    (int)(rtm->rtm_rmx.rmx_expire - tv.tv_sec),
+			    rtm->rtm_rmx.rmx_expire);
 		}
 	}
 
@@ -304,7 +309,6 @@ rtsock_print_rtm(struct rt_msghdr *rtm)
 	}
 
 	printf("\n");
-
 }
 
 void
@@ -322,8 +326,9 @@ rtsock_print_ifa(struct ifa_msghdr *ifam)
 	char flags_buf[256];
 	_printb(flags_buf, sizeof(flags_buf), ifam->ifam_flags, routeflags);
 
-	printf("%s: len %hu, ifindex: %d, flags: %s\n", msgtypes[ifam->ifam_type],
-		ifam->ifam_msglen, ifam->ifam_index, flags_buf);
+	printf("%s: len %hu, ifindex: %d, flags: %s\n",
+	    msgtypes[ifam->ifam_type], ifam->ifam_msglen, ifam->ifam_index,
+	    flags_buf);
 
 	_printb(flags_buf, sizeof(flags_buf), ifam->ifam_addrs, addrnames);
 	printf("sockaddrs: 0x%X %s\n", ifam->ifam_addrs, flags_buf);
@@ -340,7 +345,6 @@ rtsock_print_ifa(struct ifa_msghdr *ifam)
 	}
 
 	printf("\n");
-
 }
 
 void
@@ -355,8 +359,7 @@ rtsock_print_message_hd(struct rt_msghdr *rtm)
 	localtime_r(&tv.tv_sec, &tm_res);
 	strftime(buf, sizeof(buf), "%F %T", &tm_res);
 	printf("Got message type %s of size %hu on %s\n",
-	    rtsock_print_cmdtype(rtm->rtm_type),
-	    rtm->rtm_msglen, buf);
+	    rtsock_print_cmdtype(rtm->rtm_type), rtm->rtm_msglen, buf);
 
 	sa_print_hd(dumpbuf, sizeof(dumpbuf), (char *)rtm, rtm->rtm_msglen);
 	printf(" %s\n", dumpbuf);

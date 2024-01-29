@@ -32,17 +32,18 @@
 #ifdef DEBUG
 #include <errno.h>
 #endif
-#include <stdio.h>
-#include <string.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 #include <utmpx.h>
 #ifdef XIDLE
-#include <setjmp.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/xidle.h>
+#include <setjmp.h>
 #endif
 #include <rpcsvc/rnusers.h>
 
@@ -64,7 +65,7 @@ static jmp_buf openAbort;
 static void
 abortOpen(void)
 {
-    longjmp (openAbort, 1);
+	longjmp(openAbort, 1);
 }
 
 XqueryIdle(char *display)
@@ -72,32 +73,35 @@ XqueryIdle(char *display)
 	int first_event, first_error;
 	Time IdleTime;
 
-	(void) signal (SIGALRM, abortOpen);
-	(void) alarm ((unsigned) 10);
-	if (!setjmp (openAbort)) {
-		if (!(dpy= XOpenDisplay(display))) {
+	(void)signal(SIGALRM, abortOpen);
+	(void)alarm((unsigned)10);
+	if (!setjmp(openAbort)) {
+		if (!(dpy = XOpenDisplay(display))) {
 			syslog(LOG_ERR, "Cannot open display %s", display);
-			return(-1);
+			return (-1);
 		}
 		if (XidleQueryExtension(dpy, &first_event, &first_error)) {
 			if (!XGetIdleTime(dpy, &IdleTime)) {
-				syslog(LOG_ERR, "%s: unable to get idle time", display);
-				return(-1);
+				syslog(LOG_ERR, "%s: unable to get idle time",
+				    display);
+				return (-1);
 			}
 		} else {
-			syslog(LOG_ERR, "%s: Xidle extension not loaded", display);
-			return(-1);
+			syslog(LOG_ERR, "%s: Xidle extension not loaded",
+			    display);
+			return (-1);
 		}
 		XCloseDisplay(dpy);
 	} else {
-		syslog(LOG_ERR, "%s: server grabbed for over 10 seconds", display);
-		return(-1);
+		syslog(LOG_ERR, "%s: server grabbed for over 10 seconds",
+		    display);
+		return (-1);
 	}
-	(void) signal (SIGALRM, SIG_DFL);
-	(void) alarm ((unsigned) 0);
+	(void)signal(SIGALRM, SIG_DFL);
+	(void)alarm((unsigned)0);
 
 	IdleTime /= 1000;
-	return((IdleTime + 30) / 60);
+	return ((IdleTime + 30) / 60);
 }
 #endif
 
@@ -115,36 +119,35 @@ getidle(const char *tty, const char *display __unused)
 	 */
 #ifdef XIDLE
 	if (display && *display && (idle = XqueryIdle(display)) >= 0)
-		return(idle);
+		return (idle);
 #endif
 	idle = 0;
 	if (*tty == 'X') {
 		u_long kbd_idle, mouse_idle;
-#if	!defined(__FreeBSD__)
+#if !defined(__FreeBSD__)
 		kbd_idle = getidle("kbd", NULL);
 #else
 		kbd_idle = getidle("vga", NULL);
 #endif
 		mouse_idle = getidle("mouse", NULL);
-		idle = (kbd_idle < mouse_idle)?kbd_idle:mouse_idle;
+		idle = (kbd_idle < mouse_idle) ? kbd_idle : mouse_idle;
 	} else {
 		sprintf(ttyname, "%s/%s", _PATH_DEV, tty);
 		if (stat(ttyname, &st) < 0) {
 #ifdef DEBUG
 			printf("%s: %s\n", ttyname, strerror(errno));
 #endif
-			return(-1);
+			return (-1);
 		}
 		time(&now);
 #ifdef DEBUG
-		printf("%s: now=%d atime=%d\n", ttyname, now,
-		       st.st_atime);
+		printf("%s: now=%d atime=%d\n", ttyname, now, st.st_atime);
 #endif
 		idle = now - st.st_atime;
 		idle = (idle + 30) / 60; /* secs->mins */
 	}
 
-	return(idle);
+	return (idle);
 }
 
 static utmpidlearr *
@@ -164,21 +167,17 @@ do_names_2(void)
 
 		memcpy(&utmp_list[nusers], usr, sizeof(*usr));
 		utmp_idle[nusers].ui_utmp.ut_time = usr->ut_tv.tv_sec;
-		utmp_idle[nusers].ui_idle =
-		    getidle(usr->ut_line, usr->ut_host);
-		utmp_idle[nusers].ui_utmp.ut_line =
-		    utmp_list[nusers].ut_line;
-		utmp_idle[nusers].ui_utmp.ut_name =
-		    utmp_list[nusers].ut_user;
-		utmp_idle[nusers].ui_utmp.ut_host =
-		    utmp_list[nusers].ut_host;
+		utmp_idle[nusers].ui_idle = getidle(usr->ut_line, usr->ut_host);
+		utmp_idle[nusers].ui_utmp.ut_line = utmp_list[nusers].ut_line;
+		utmp_idle[nusers].ui_utmp.ut_name = utmp_list[nusers].ut_user;
+		utmp_idle[nusers].ui_utmp.ut_host = utmp_list[nusers].ut_host;
 
 		nusers++;
 	}
 	endutxent();
 
 	ut.utmpidlearr_len = nusers;
-	return(&ut);
+	return (&ut);
 }
 
 static int *
@@ -186,7 +185,7 @@ rusers_num(void *argp __unused, struct svc_req *rqstp __unused)
 {
 	static int num_users = 0;
 	struct utmpx *usr;
- 
+
 	setutxent();
 	while ((usr = getutxent()) != NULL) {
 		if (usr->ut_type != USER_PROCESS)
@@ -194,8 +193,8 @@ rusers_num(void *argp __unused, struct svc_req *rqstp __unused)
 		num_users++;
 	}
 	endutxent();
- 
-	return(&num_users);
+
+	return (&num_users);
 }
 
 static utmparr *
@@ -213,11 +212,10 @@ do_names_1(void)
 		ut.utmparr_val = &old_utmp[0];
 		for (i = 0; i < ut.utmparr_len; i++)
 			bcopy(&utmp_idle[i].ui_utmp, &old_utmp[i],
-			      sizeof(old_utmp[0]));
-
+			    sizeof(old_utmp[0]));
 	}
 
-	return(&ut);
+	return (&ut);
 }
 
 utmpidlearr *
@@ -282,7 +280,8 @@ rusers_service(struct svc_req *rqstp, SVCXPRT *transp)
 			local = (rusersproc_t)rusersproc_names_2_svc;
 			break;
 		default:
-			svcerr_progvers(transp, RUSERSVERS_ORIG, RUSERSVERS_IDLE);
+			svcerr_progvers(transp, RUSERSVERS_ORIG,
+			    RUSERSVERS_IDLE);
 			goto leave;
 			/*NOTREACHED*/
 		}
@@ -299,7 +298,8 @@ rusers_service(struct svc_req *rqstp, SVCXPRT *transp)
 			local = (rusersproc_t)rusersproc_allnames_2_svc;
 			break;
 		default:
-			svcerr_progvers(transp, RUSERSVERS_ORIG, RUSERSVERS_IDLE);
+			svcerr_progvers(transp, RUSERSVERS_ORIG,
+			    RUSERSVERS_IDLE);
 			goto leave;
 			/*NOTREACHED*/
 		}

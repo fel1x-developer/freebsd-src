@@ -24,8 +24,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/ucred.h>
 #include <sys/mount.h>
+#include <sys/ucred.h>
 
 #undef MAX
 #undef MIN
@@ -38,29 +38,28 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "efichar.h"
-
 #include "efi-osdep.h"
+#include "efichar.h"
 #include "efivar-dp.h"
-
 #include "uefi-dplib.h"
 
-#define MAX_DP_SANITY	4096		/* Biggest device path in bytes */
-#define MAX_DP_TEXT_LEN	4096		/* Longest string rep of dp */
+#define MAX_DP_SANITY 4096   /* Biggest device path in bytes */
+#define MAX_DP_TEXT_LEN 4096 /* Longest string rep of dp */
 
-#define ValidLen(dp) (DevicePathNodeLength(dp) >= sizeof(EFI_DEVICE_PATH_PROTOCOL) && \
+#define ValidLen(dp)                                                     \
+	(DevicePathNodeLength(dp) >= sizeof(EFI_DEVICE_PATH_PROTOCOL) && \
 	    DevicePathNodeLength(dp) < MAX_DP_SANITY)
 
-#define	G_PART	"PART"
-#define	G_LABEL "LABEL"
-#define G_DISK	"DISK"
+#define G_PART "PART"
+#define G_LABEL "LABEL"
+#define G_DISK "DISK"
 
 static const char *
 geom_pp_attr(struct gmesh *mesh, struct gprovider *pp, const char *attr)
 {
 	struct gconfig *conf;
 
-	LIST_FOREACH(conf, &pp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &pp->lg_config, lg_config) {
 		if (strcmp(conf->lg_name, attr) != 0)
 			continue;
 		return (conf->lg_val);
@@ -79,7 +78,7 @@ find_provider_by_efimedia(struct gmesh *mesh, const char *efimedia)
 	/*
 	 * Find the partition class so we can search it...
 	 */
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcasecmp(classp->lg_name, G_PART) == 0)
 			break;
 	}
@@ -90,9 +89,10 @@ find_provider_by_efimedia(struct gmesh *mesh, const char *efimedia)
 	 * Each geom will have a number of providers, search each
 	 * one of them for the efimedia that matches.
 	 */
-	/* XXX just used gpart class since I know it's the only one, but maybe I should search all classes */
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	/* XXX just used gpart class since I know it's the only one, but maybe I
+	 * should search all classes */
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 			val = geom_pp_attr(mesh, pp, "efimedia");
 			if (val == NULL)
 				continue;
@@ -111,9 +111,9 @@ find_provider_by_name(struct gmesh *mesh, const char *name)
 	struct ggeom *gp;
 	struct gprovider *pp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 				if (strcmp(pp->lg_name, name) == 0)
 					return (pp);
 			}
@@ -123,9 +123,9 @@ find_provider_by_name(struct gmesh *mesh, const char *name)
 	return (NULL);
 }
 
-
 static int
-efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, char **abspath)
+efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath,
+    char **abspath)
 {
 	int rv = 0, n, i;
 	const_efidp media, file, walker;
@@ -150,7 +150,7 @@ efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, c
 	walker = (const_efidp)NextDevicePathNode(walker);
 	if ((uintptr_t)walker - (uintptr_t)dp > MAX_DP_SANITY)
 		return (EINVAL);
-	if (DevicePathType(walker) ==  MEDIA_DEVICE_PATH &&
+	if (DevicePathType(walker) == MEDIA_DEVICE_PATH &&
 	    DevicePathSubType(walker) == MEDIA_FILEPATH_DP)
 		file = walker;
 	else if (DevicePathType(walker) == MEDIA_DEVICE_PATH &&
@@ -182,8 +182,8 @@ efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, c
 		goto errout;
 
 	/*
-	 * Now extract the relative path. The next node in the device path should
-	 * be a filesystem node. If not, we have issues.
+	 * Now extract the relative path. The next node in the device path
+	 * should be a filesystem node. If not, we have issues.
 	 */
 	*relpath = efidp_extract_file_path(file);
 	if (*relpath == NULL) {
@@ -216,7 +216,7 @@ efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, c
 	 * Find glabel, if it exists. It's OK if not: we'll skip searching for
 	 * labels.
 	 */
-	LIST_FOREACH(glabel, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (glabel, &mesh->lg_class, lg_class) {
 		if (strcmp(glabel->lg_name, G_LABEL) == 0)
 			break;
 	}
@@ -224,10 +224,10 @@ efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, c
 	provider = pp;
 	for (i = 0; i < n; i++) {
 		/*
-		 * Skip all pseudo filesystems. This also skips the real filesytsem
-		 * of ZFS. There's no EFI designator for ZFS in the standard, so
-		 * we'll need to invent one, but its decoding will be handled in
-		 * a separate function.
+		 * Skip all pseudo filesystems. This also skips the real
+		 * filesytsem of ZFS. There's no EFI designator for ZFS in the
+		 * standard, so we'll need to invent one, but its decoding will
+		 * be handled in a separate function.
 		 */
 		if (strncmp(mnt[i].f_mntfromname, "/dev/", 5) != 0)
 			continue;
@@ -241,20 +241,21 @@ efi_hd_to_unix(struct gmesh *mesh, const_efidp dp, char **dev, char **relpath, c
 		}
 
 		/*
-		 * Next see if it is attached via one of the physical disk's labels.
-		 * We can't search directly from the pointers we have for the
-		 * provider, so we have to cast a wider net for all labels and
-		 * filter those down to geoms whose name matches the PART provider
-		 * we found the efimedia attribute on.
+		 * Next see if it is attached via one of the physical disk's
+		 * labels. We can't search directly from the pointers we have
+		 * for the provider, so we have to cast a wider net for all
+		 * labels and filter those down to geoms whose name matches the
+		 * PART provider we found the efimedia attribute on.
 		 */
 		if (glabel == NULL)
 			continue;
-		LIST_FOREACH(gp, &glabel->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &glabel->lg_geom, lg_geom) {
 			if (strcmp(gp->lg_name, provider->lg_name) != 0) {
 				continue;
 			}
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
-				if (strcmp(pp->lg_name, mnt[i].f_mntfromname + 5) == 0) {
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
+				if (strcmp(pp->lg_name,
+					mnt[i].f_mntfromname + 5) == 0) {
 					newdev = pp->lg_name;
 					goto break2;
 				}
@@ -343,7 +344,8 @@ errout:
  * with an error code, so pay attention.
  */
 int
-efivar_device_path_to_unix_path(const_efidp dp, char **dev, char **relpath, char **abspath)
+efivar_device_path_to_unix_path(const_efidp dp, char **dev, char **relpath,
+    char **abspath)
 {
 	const_efidp walker;
 	struct gmesh mesh;
@@ -375,7 +377,7 @@ efivar_device_path_to_unix_path(const_efidp dp, char **dev, char **relpath, char
 		if (!ValidLen(walker))
 			return (EINVAL);
 	}
-	if (DevicePathType(walker) !=  MEDIA_DEVICE_PATH)
+	if (DevicePathType(walker) != MEDIA_DEVICE_PATH)
 		return (EINVAL);
 
 	/*
@@ -383,13 +385,13 @@ efivar_device_path_to_unix_path(const_efidp dp, char **dev, char **relpath, char
 	 * hard disk path, as it's really the only relevant one to booting. The
 	 * CD path just might also be relevant, and would be easy to add, but
 	 * isn't supported. A file path too is relevant, but at this stage, it's
-	 * premature because we're trying to translate a specification for a device
-	 * and path on that device into a unix path, or at the very least, a
-	 * geom device : path-on-device.
+	 * premature because we're trying to translate a specification for a
+	 * device and path on that device into a unix path, or at the very
+	 * least, a geom device : path-on-device.
 	 *
-	 * Also, ZFS throws a bit of a monkey wrench in here since it doesn't have
-	 * a device path type (it creates a new virtual device out of one or more
-	 * storage devices).
+	 * Also, ZFS throws a bit of a monkey wrench in here since it doesn't
+	 * have a device path type (it creates a new virtual device out of one
+	 * or more storage devices).
 	 *
 	 * For all of them, we'll need to know the geoms, so allocate / free the
 	 * geom mesh here since it's safer than doing it in each sub-function
@@ -473,7 +475,7 @@ find_geom_efi_on_root(struct gmesh *mesh)
 	struct statfs buf;
 	const char *dev;
 	struct gprovider *pp;
-//	struct ggeom *disk;
+	//	struct ggeom *disk;
 	struct gconsumer *cp;
 
 	/*
@@ -485,7 +487,7 @@ find_geom_efi_on_root(struct gmesh *mesh)
 	dev = buf.f_mntfromname;
 	if (*dev != '/' || strncmp(dev, _PATH_DEV, sizeof(_PATH_DEV) - 1) != 0)
 		return (NULL);
-	dev += sizeof(_PATH_DEV) -1;
+	dev += sizeof(_PATH_DEV) - 1;
 	pp = find_provider_by_name(mesh, dev);
 	if (pp == NULL)
 		return (NULL);
@@ -495,8 +497,9 @@ find_geom_efi_on_root(struct gmesh *mesh)
 	 * only operate on partitions.
 	 */
 	if (strcmp(pp->lg_geom->lg_class->lg_name, G_LABEL) == 0) {
-		LIST_FOREACH(cp, &pp->lg_consumers, lg_consumer) {
-			if (strcmp(cp->lg_provider->lg_geom->lg_class->lg_name, G_PART) == 0) {
+		LIST_FOREACH (cp, &pp->lg_consumers, lg_consumer) {
+			if (strcmp(cp->lg_provider->lg_geom->lg_class->lg_name,
+				G_PART) == 0) {
 				pp = cp->lg_provider;
 				break;
 			}
@@ -542,7 +545,6 @@ find_geom_efi_on_root(struct gmesh *mesh)
 #endif
 	return (NULL);
 }
-
 
 static char *
 find_geom_efimedia(struct gmesh *mesh, const char *dev)
@@ -656,7 +658,7 @@ dev_path_to_dp(struct gmesh *mesh, char *path, efidp *dp)
 
 	dev = path;
 	if (strncmp(dev, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
-		dev += sizeof(_PATH_DEV) -1;
+		dev += sizeof(_PATH_DEV) - 1;
 
 	efimedia = find_geom_efimedia(mesh, dev);
 #ifdef notyet
@@ -763,11 +765,11 @@ efivar_unix_path_to_device_path(const char *path, efidp *dp)
 		if (*cp == '\\')
 			*cp = '/';
 
-	if (modpath[0] == '/' && modpath[1] == '/')	/* Handle //foo/bar/baz */
+	if (modpath[0] == '/' && modpath[1] == '/') /* Handle //foo/bar/baz */
 		rv = efipart_to_dp(&mesh, modpath, dp);
-	else if (strchr(modpath, ':'))			/* Handle dev:/bar/baz */
+	else if (strchr(modpath, ':')) /* Handle dev:/bar/baz */
 		rv = dev_path_to_dp(&mesh, modpath, dp);
-	else						/* Handle /a/b/c */
+	else /* Handle /a/b/c */
 		rv = path_to_dp(&mesh, modpath, dp);
 
 out:

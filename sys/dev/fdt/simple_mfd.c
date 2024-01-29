@@ -37,20 +37,19 @@
 
 #include <machine/bus.h>
 
+#include <dev/fdt/simple_mfd.h>
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/fdt/simple_mfd.h>
 
 device_t simple_mfd_add_device(device_t dev, phandle_t node, u_int order,
     const char *name, int unit, struct simplebus_devinfo *di);
 struct simplebus_devinfo *simple_mfd_setup_dinfo(device_t dev, phandle_t node,
     struct simplebus_devinfo *di);
 
-#include "syscon_if.h"
 #include <dev/syscon/syscon.h>
+
+#include "syscon_if.h"
 
 MALLOC_DECLARE(M_SYSCON);
 
@@ -61,18 +60,19 @@ static int simple_mfd_syscon_write_4(struct syscon *syscon, bus_size_t offset,
 static int simple_mfd_syscon_modify_4(struct syscon *syscon, bus_size_t offset,
     uint32_t clear_bits, uint32_t set_bits);
 
-#define	SYSCON_LOCK(_sc)		mtx_lock_spin(&(_sc)->mtx)
-#define	SYSCON_UNLOCK(_sc)		mtx_unlock_spin(&(_sc)->mtx)
-#define	SYSCON_LOCK_INIT(_sc)		mtx_init(&(_sc)->mtx,	\
-    device_get_nameunit((_sc)->dev), "syscon", MTX_SPIN)
-#define	SYSCON_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->mtx);
-#define	SYSCON_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_OWNED);
-#define	SYSCON_ASSERT_UNLOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
+#define SYSCON_LOCK(_sc) mtx_lock_spin(&(_sc)->mtx)
+#define SYSCON_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->mtx)
+#define SYSCON_LOCK_INIT(_sc)                                            \
+	mtx_init(&(_sc)->mtx, device_get_nameunit((_sc)->dev), "syscon", \
+	    MTX_SPIN)
+#define SYSCON_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->mtx);
+#define SYSCON_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_OWNED);
+#define SYSCON_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
 
 static syscon_method_t simple_mfd_syscon_methods[] = {
-	SYSCONMETHOD(syscon_unlocked_read_4,	simple_mfd_syscon_read_4),
-	SYSCONMETHOD(syscon_unlocked_write_4,	simple_mfd_syscon_write_4),
-	SYSCONMETHOD(syscon_unlocked_modify_4,	simple_mfd_syscon_modify_4),
+	SYSCONMETHOD(syscon_unlocked_read_4, simple_mfd_syscon_read_4),
+	SYSCONMETHOD(syscon_unlocked_write_4, simple_mfd_syscon_write_4),
+	SYSCONMETHOD(syscon_unlocked_modify_4, simple_mfd_syscon_modify_4),
 
 	SYSCONMETHOD_END
 };
@@ -177,23 +177,25 @@ simple_mfd_attach(device_t dev)
 	sc->dev = dev;
 	rid = 0;
 
-	/* Parse address-cells and size-cells from the parent node as a fallback */
+	/* Parse address-cells and size-cells from the parent node as a fallback
+	 */
 	if (OF_getencprop(node, "#address-cells", &sc->sc.acells,
-	    sizeof(sc->sc.acells)) == -1) {
-		if (OF_getencprop(OF_parent(node), "#address-cells", &sc->sc.acells,
-		    sizeof(sc->sc.acells)) == -1) {
+		sizeof(sc->sc.acells)) == -1) {
+		if (OF_getencprop(OF_parent(node), "#address-cells",
+			&sc->sc.acells, sizeof(sc->sc.acells)) == -1) {
 			sc->sc.acells = 2;
 		}
 	}
 	if (OF_getencprop(node, "#size-cells", &sc->sc.scells,
-	    sizeof(sc->sc.scells)) == -1) {
-		if (OF_getencprop(OF_parent(node), "#size-cells", &sc->sc.scells,
-		    sizeof(sc->sc.scells)) == -1) {
+		sizeof(sc->sc.scells)) == -1) {
+		if (OF_getencprop(OF_parent(node), "#size-cells",
+			&sc->sc.scells, sizeof(sc->sc.scells)) == -1) {
 			sc->sc.scells = 1;
 		}
 	}
 
-	/* If the node has a ranges prop, parse it so children mapping will be done correctly */
+	/* If the node has a ranges prop, parse it so children mapping will be
+	 * done correctly */
 	if (OF_hasprop(node, "ranges")) {
 		if (simplebus_fill_ranges(node, &sc->sc) < 0) {
 			device_printf(dev, "could not get ranges\n");
@@ -212,8 +214,7 @@ simple_mfd_attach(device_t dev)
 		sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
 		    RF_ACTIVE);
 		if (sc->mem_res == NULL) {
-			device_printf(dev,
-			    "Cannot allocate memory resource\n");
+			device_printf(dev, "Cannot allocate memory resource\n");
 			return (ENXIO);
 		}
 
@@ -268,9 +269,11 @@ simple_mfd_setup_dinfo(device_t dev, phandle_t node,
 		return (NULL);
 	}
 
-	/* reg resources is from the parent but interrupts is on the node itself */
+	/* reg resources is from the parent but interrupts is on the node itself
+	 */
 	resource_list_init(&ndi->rl);
-	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells, &ndi->rl);
+	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells,
+	    &ndi->rl);
 	ofw_bus_intr_to_rl(dev, node, &ndi->rl, NULL);
 
 	return (ndi);
@@ -297,25 +300,25 @@ simple_mfd_add_device(device_t dev, phandle_t node, u_int order,
 	}
 	device_set_ivars(cdev, ndi);
 
-	return(cdev);
+	return (cdev);
 }
 
 static device_method_t simple_mfd_methods[] = {
 	/* syscon interface */
-	DEVMETHOD(syscon_get_handle,	simple_mfd_syscon_get_handle),
-	DEVMETHOD(syscon_device_lock,	simple_mfd_syscon_lock),
-	DEVMETHOD(syscon_device_unlock,	simple_mfd_syscon_unlock),
+	DEVMETHOD(syscon_get_handle, simple_mfd_syscon_get_handle),
+	DEVMETHOD(syscon_device_lock, simple_mfd_syscon_lock),
+	DEVMETHOD(syscon_device_unlock, simple_mfd_syscon_unlock),
 
 	/* Device interface */
-	DEVMETHOD(device_probe,		simple_mfd_probe),
-	DEVMETHOD(device_attach,	simple_mfd_attach),
-	DEVMETHOD(device_detach,	simple_mfd_detach),
+	DEVMETHOD(device_probe, simple_mfd_probe),
+	DEVMETHOD(device_attach, simple_mfd_attach),
+	DEVMETHOD(device_detach, simple_mfd_detach),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(simple_mfd, simple_mfd_driver, simple_mfd_methods,
-  sizeof(struct simple_mfd_softc), simplebus_driver);
+    sizeof(struct simple_mfd_softc), simplebus_driver);
 
 EARLY_DRIVER_MODULE(simple_mfd, simplebus, simple_mfd_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_LATE);

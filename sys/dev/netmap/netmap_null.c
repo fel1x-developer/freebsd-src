@@ -26,23 +26,23 @@
 
 #if defined(__FreeBSD__)
 #include <sys/cdefs.h> /* prerequisite */
-
 #include <sys/types.h>
+#include <sys/param.h> /* defines used in kernel.h */
 #include <sys/errno.h>
-#include <sys/param.h>	/* defines used in kernel.h */
-#include <sys/kernel.h>	/* types used in module initialization */
+#include <sys/kernel.h> /* types used in module initialization */
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/poll.h>
-#include <sys/lock.h>
+#include <sys/refcount.h>
 #include <sys/rwlock.h>
 #include <sys/selinfo.h>
-#include <sys/sysctl.h>
 #include <sys/socket.h> /* sockaddrs */
+#include <sys/sysctl.h>
+
+#include <machine/bus.h> /* bus_dmamap_* */
+
 #include <net/if.h>
 #include <net/if_var.h>
-#include <machine/bus.h>	/* bus_dmamap_* */
-#include <sys/refcount.h>
-
 
 #elif defined(linux)
 
@@ -58,7 +58,7 @@
 
 #else
 
-#error	Unsupported platform
+#error Unsupported platform
 
 #endif /* unsupported */
 
@@ -66,9 +66,10 @@
  * common headers
  */
 
-#include <net/netmap.h>
 #include <dev/netmap/netmap_kern.h>
 #include <dev/netmap/netmap_mem2.h>
+
+#include <net/netmap.h>
 
 #ifdef WITH_NMNULL
 
@@ -100,7 +101,7 @@ netmap_null_reg(struct netmap_adapter *na, int onoff)
 
 static int
 netmap_null_bdg_attach(const char *name, struct netmap_adapter *na,
-		struct nm_bridge *b)
+    struct nm_bridge *b)
 {
 	(void)name;
 	(void)na;
@@ -110,9 +111,10 @@ netmap_null_bdg_attach(const char *name, struct netmap_adapter *na,
 
 int
 netmap_get_null_na(struct nmreq_header *hdr, struct netmap_adapter **na,
-		struct netmap_mem_d *nmd, int create)
+    struct netmap_mem_d *nmd, int create)
 {
-	struct nmreq_register *req = (struct nmreq_register *)(uintptr_t)hdr->nr_body;
+	struct nmreq_register *req = (struct nmreq_register *)(uintptr_t)
+					 hdr->nr_body;
 	struct netmap_null_adapter *nna;
 	int error;
 
@@ -165,6 +167,5 @@ free_nna:
 err:
 	return error;
 }
-
 
 #endif /* WITH_NMNULL */

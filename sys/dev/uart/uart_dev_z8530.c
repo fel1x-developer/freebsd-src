@@ -30,23 +30,23 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+
 #include <machine/bus.h>
 
-#include <dev/uart/uart.h>
-#include <dev/uart/uart_cpu.h>
-#include <dev/uart/uart_bus.h>
-
 #include <dev/ic/z8530.h>
+#include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
+#include <dev/uart/uart_cpu.h>
 
 #include "uart_if.h"
 
-#define	DEFAULT_RCLK	307200
+#define DEFAULT_RCLK 307200
 
 /* Hack! */
 #ifdef __powerpc__
-#define	UART_PCLK	0
+#define UART_PCLK 0
 #else
-#define	UART_PCLK	MCB2_PCLK
+#define UART_PCLK MCB2_PCLK
 #endif
 
 /* Multiplexed I/O. */
@@ -117,10 +117,16 @@ z8530_param(struct uart_bas *bas, int baudrate, int databits, int stopbits,
 	}
 	mpm |= (stopbits > 1) ? MPM_SB2 : MPM_SB1;
 	switch (parity) {
-	case UART_PARITY_EVEN:	mpm |= MPM_PE | MPM_EVEN; break;
-	case UART_PARITY_NONE:	break;
-	case UART_PARITY_ODD:	mpm |= MPM_PE; break;
-	default:		return (EINVAL);
+	case UART_PARITY_EVEN:
+		mpm |= MPM_PE | MPM_EVEN;
+		break;
+	case UART_PARITY_NONE:
+		break;
+	case UART_PARITY_ODD:
+		mpm |= MPM_PE;
+		break;
+	default:
+		return (EINVAL);
 	}
 
 	if (baudrate > 0) {
@@ -265,8 +271,8 @@ z8530_getc(struct uart_bas *bas, struct mtx *hwmtx)
  */
 struct z8530_softc {
 	struct uart_softc base;
-	uint8_t	tpc;
-	uint8_t	txidle;
+	uint8_t tpc;
+	uint8_t txidle;
 };
 
 static int z8530_bus_attach(struct uart_softc *);
@@ -283,58 +289,50 @@ static int z8530_bus_transmit(struct uart_softc *);
 static void z8530_bus_grab(struct uart_softc *);
 static void z8530_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t z8530_methods[] = {
-	KOBJMETHOD(uart_attach,		z8530_bus_attach),
-	KOBJMETHOD(uart_detach,		z8530_bus_detach),
-	KOBJMETHOD(uart_flush,		z8530_bus_flush),
-	KOBJMETHOD(uart_getsig,		z8530_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		z8530_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		z8530_bus_ipend),
-	KOBJMETHOD(uart_param,		z8530_bus_param),
-	KOBJMETHOD(uart_probe,		z8530_bus_probe),
-	KOBJMETHOD(uart_receive,	z8530_bus_receive),
-	KOBJMETHOD(uart_setsig,		z8530_bus_setsig),
-	KOBJMETHOD(uart_transmit,	z8530_bus_transmit),
-	KOBJMETHOD(uart_grab,		z8530_bus_grab),
-	KOBJMETHOD(uart_ungrab,		z8530_bus_ungrab),
-	{ 0, 0 }
-};
+static kobj_method_t z8530_methods[] = { KOBJMETHOD(uart_attach,
+					     z8530_bus_attach),
+	KOBJMETHOD(uart_detach, z8530_bus_detach),
+	KOBJMETHOD(uart_flush, z8530_bus_flush),
+	KOBJMETHOD(uart_getsig, z8530_bus_getsig),
+	KOBJMETHOD(uart_ioctl, z8530_bus_ioctl),
+	KOBJMETHOD(uart_ipend, z8530_bus_ipend),
+	KOBJMETHOD(uart_param, z8530_bus_param),
+	KOBJMETHOD(uart_probe, z8530_bus_probe),
+	KOBJMETHOD(uart_receive, z8530_bus_receive),
+	KOBJMETHOD(uart_setsig, z8530_bus_setsig),
+	KOBJMETHOD(uart_transmit, z8530_bus_transmit),
+	KOBJMETHOD(uart_grab, z8530_bus_grab),
+	KOBJMETHOD(uart_ungrab, z8530_bus_ungrab), { 0, 0 } };
 
-struct uart_class uart_z8530_class = {
-	"z8530",
-	z8530_methods,
-	sizeof(struct z8530_softc),
-	.uc_ops = &uart_z8530_ops,
-	.uc_range = 2,
-	.uc_rclk = DEFAULT_RCLK,
-	.uc_rshift = 0
-};
+struct uart_class uart_z8530_class = { "z8530", z8530_methods,
+	sizeof(struct z8530_softc), .uc_ops = &uart_z8530_ops, .uc_range = 2,
+	.uc_rclk = DEFAULT_RCLK, .uc_rshift = 0 };
 
-#define	SIGCHG(c, i, s, d)				\
-	if (c) {					\
-		i |= (i & s) ? s : s | d;		\
-	} else {					\
-		i = (i & s) ? (i & ~s) | d : i;		\
+#define SIGCHG(c, i, s, d)                      \
+	if (c) {                                \
+		i |= (i & s) ? s : s | d;       \
+	} else {                                \
+		i = (i & s) ? (i & ~s) | d : i; \
 	}
 
 static int
 z8530_bus_attach(struct uart_softc *sc)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	struct uart_bas *bas;
 	struct uart_devinfo *di;
 
 	bas = &sc->sc_bas;
 	if (sc->sc_sysdev != NULL) {
 		di = sc->sc_sysdev;
-		z8530->tpc = TPC_DTR|TPC_RTS;
+		z8530->tpc = TPC_DTR | TPC_RTS;
 		z8530_param(bas, di->baudrate, di->databits, di->stopbits,
 		    di->parity, &z8530->tpc);
 	} else {
 		z8530->tpc = z8530_setup(bas, 9600, 8, 1, UART_PARITY_NONE);
-		z8530->tpc &= ~(TPC_DTR|TPC_RTS);
+		z8530->tpc &= ~(TPC_DTR | TPC_RTS);
 	}
-	z8530->txidle = 1;	/* Report SER_INT_TXIDLE. */
+	z8530->txidle = 1; /* Report SER_INT_TXIDLE. */
 
 	(void)z8530_bus_getsig(sc);
 
@@ -388,7 +386,7 @@ z8530_bus_getsig(struct uart_softc *sc)
 static int
 z8530_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	struct uart_bas *bas;
 	int baudrate, divisor, error;
 
@@ -408,7 +406,7 @@ z8530_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 		divisor = uart_getmreg(bas, RR_TCH);
 		divisor = (divisor << 8) | uart_getmreg(bas, RR_TCL);
 		baudrate = bas->rclk / 2 / (divisor + 2);
-		*(int*)data = baudrate;
+		*(int *)data = baudrate;
 		break;
 	default:
 		error = EINVAL;
@@ -421,7 +419,7 @@ z8530_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 static int
 z8530_bus_ipend(struct uart_softc *sc)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	struct uart_bas *bas;
 	int ipend;
 	uint32_t sig;
@@ -435,13 +433,21 @@ z8530_bus_ipend(struct uart_softc *sc)
 	case 1:
 		ip = uart_getmreg(bas, RR_IP);
 		break;
-	case 2:	/* XXX hack!!! */
+	case 2: /* XXX hack!!! */
 		iv = uart_getmreg(bas, RR_IV) & 0x0E;
 		switch (iv) {
-		case IV_TEB:	ip = IP_TIA; break;
-		case IV_XSB:	ip = IP_SIA; break;
-		case IV_RAB:	ip = IP_RIA; break;
-		default:	ip = 0; break;
+		case IV_TEB:
+			ip = IP_TIA;
+			break;
+		case IV_XSB:
+			ip = IP_SIA;
+			break;
+		case IV_RAB:
+			ip = IP_RIA;
+			break;
+		default:
+			ip = 0;
+			break;
 		}
 		break;
 	default:
@@ -457,7 +463,7 @@ z8530_bus_ipend(struct uart_softc *sc)
 		uart_barrier(bas);
 		if (z8530->txidle) {
 			ipend |= SER_INT_TXIDLE;
-			z8530->txidle = 0;	/* Mask SER_INT_TXIDLE. */
+			z8530->txidle = 0; /* Mask SER_INT_TXIDLE. */
 		}
 	}
 
@@ -492,10 +498,10 @@ z8530_bus_ipend(struct uart_softc *sc)
 }
 
 static int
-z8530_bus_param(struct uart_softc *sc, int baudrate, int databits,
-    int stopbits, int parity)
+z8530_bus_param(struct uart_softc *sc, int baudrate, int databits, int stopbits,
+    int parity)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	int error;
 
 	uart_lock(sc->sc_hwmtx);
@@ -575,7 +581,7 @@ z8530_bus_receive(struct uart_softc *sc)
 static int
 z8530_bus_setsig(struct uart_softc *sc, int sig)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	struct uart_bas *bas;
 	uint32_t new, old;
 
@@ -584,21 +590,19 @@ z8530_bus_setsig(struct uart_softc *sc, int sig)
 		old = sc->sc_hwsig;
 		new = old;
 		if (sig & SER_DDTR) {
-			SIGCHG(sig & SER_DTR, new, SER_DTR,
-			    SER_DDTR);
+			SIGCHG(sig & SER_DTR, new, SER_DTR, SER_DDTR);
 		}
 		if (sig & SER_DRTS) {
-			SIGCHG(sig & SER_RTS, new, SER_RTS,
-			    SER_DRTS);
+			SIGCHG(sig & SER_RTS, new, SER_RTS, SER_DRTS);
 		}
 	} while (!atomic_cmpset_32(&sc->sc_hwsig, old, new));
 
 	uart_lock(sc->sc_hwmtx);
-	if (new & SER_DTR)
+	if (new &SER_DTR)
 		z8530->tpc |= TPC_DTR;
 	else
 		z8530->tpc &= ~TPC_DTR;
-	if (new & SER_RTS)
+	if (new &SER_RTS)
 		z8530->tpc |= TPC_RTS;
 	else
 		z8530->tpc &= ~TPC_RTS;
@@ -611,7 +615,7 @@ z8530_bus_setsig(struct uart_softc *sc, int sig)
 static int
 z8530_bus_transmit(struct uart_softc *sc)
 {
-	struct z8530_softc *z8530 = (struct z8530_softc*)sc;
+	struct z8530_softc *z8530 = (struct z8530_softc *)sc;
 	struct uart_bas *bas;
 
 	bas = &sc->sc_bas;
@@ -621,7 +625,7 @@ z8530_bus_transmit(struct uart_softc *sc)
 	uart_setreg(bas, REG_DATA, sc->sc_txbuf[0]);
 	uart_barrier(bas);
 	sc->sc_txbusy = 1;
-	z8530->txidle = 1;	/* Report SER_INT_TXIDLE again. */
+	z8530->txidle = 1; /* Report SER_INT_TXIDLE again. */
 	uart_unlock(sc->sc_hwmtx);
 	return (0);
 }

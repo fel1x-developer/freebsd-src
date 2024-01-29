@@ -38,17 +38,17 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/limits.h> /* For CHAR_BIT*/
+
 #include <dev/aic7xxx/aic7xxx_osm.h>
 
-#include <sys/limits.h>		/* For CHAR_BIT*/
-#include <isa/isavar.h>		/* For ISA attach glue */
+#include <isa/isavar.h> /* For ISA attach glue */
 
 static struct aic7770_identity *ahc_isa_find_device(bus_space_tag_t tag,
-						    bus_space_handle_t bsh);
-static void			ahc_isa_identify(driver_t *driver,
-						 device_t parent);
-static int			ahc_isa_probe(device_t dev);
-static int			ahc_isa_attach(device_t dev);
+    bus_space_handle_t bsh);
+static void ahc_isa_identify(driver_t *driver, device_t parent);
+static int ahc_isa_probe(device_t dev);
+static int ahc_isa_attach(device_t dev);
 
 /*
  * Perform an EISA probe of the address with the addition
@@ -59,19 +59,20 @@ static int			ahc_isa_attach(device_t dev);
  * devices.
  */
 static struct aic7770_identity *
-ahc_isa_find_device(bus_space_tag_t tag, bus_space_handle_t bsh) {
-	uint32_t  id;
-	u_int	  id_size;
-	int	  i;
+ahc_isa_find_device(bus_space_tag_t tag, bus_space_handle_t bsh)
+{
+	uint32_t id;
+	u_int id_size;
+	int i;
 
 	id = 0;
 	id_size = sizeof(id);
 	for (i = 0; i < id_size; i++) {
 		bus_space_write_1(tag, bsh, 0x80, 0x80 + i);
 		id |= bus_space_read_1(tag, bsh, 0x80 + i)
-		   << ((id_size - i - 1) * CHAR_BIT);
+		    << ((id_size - i - 1) * CHAR_BIT);
 	}
-                           
+
 	return (aic7770_find_device(id));
 }
 
@@ -84,21 +85,21 @@ ahc_isa_identify(driver_t *driver, device_t parent)
 	max_slot = 14;
 	for (slot = 0; slot <= max_slot; slot++) {
 		struct aic7770_identity *entry;
-		bus_space_tag_t	    tag;
-		bus_space_handle_t  bsh;
-		struct resource	   *regs;
-		uint32_t	    iobase;
-		int		    rid;
+		bus_space_tag_t tag;
+		bus_space_handle_t bsh;
+		struct resource *regs;
+		uint32_t iobase;
+		int rid;
 
 		rid = 0;
 		iobase = (slot * AHC_EISA_SLOT_SIZE) + AHC_EISA_SLOT_OFFSET;
-		regs = bus_alloc_resource(parent, SYS_RES_IOPORT, &rid,
-					  iobase, iobase, AHC_EISA_IOSIZE,
-					  RF_ACTIVE);
+		regs = bus_alloc_resource(parent, SYS_RES_IOPORT, &rid, iobase,
+		    iobase, AHC_EISA_IOSIZE, RF_ACTIVE);
 		if (regs == NULL) {
 			if (bootverbose)
 				printf("ahc_isa_identify %d: ioport 0x%x "
-				       "alloc failed\n", slot, iobase);
+				       "alloc failed\n",
+				    slot, iobase);
 			continue;
 		}
 
@@ -110,11 +111,11 @@ ahc_isa_identify(driver_t *driver, device_t parent)
 			device_t child;
 
 			child = BUS_ADD_CHILD(parent, ISA_ORDER_SPECULATIVE,
-					      "ahc", -1);
+			    "ahc", -1);
 			if (child != NULL) {
 				device_set_driver(child, driver);
-				bus_set_resource(child, SYS_RES_IOPORT,
-						 0, iobase, AHC_EISA_IOSIZE);
+				bus_set_resource(child, SYS_RES_IOPORT, 0,
+				    iobase, AHC_EISA_IOSIZE);
 			}
 		}
 		bus_release_resource(parent, SYS_RES_IOPORT, rid, regs);
@@ -124,17 +125,17 @@ ahc_isa_identify(driver_t *driver, device_t parent)
 static int
 ahc_isa_probe(device_t dev)
 {
-	struct	  aic7770_identity *entry;
-	bus_space_tag_t	    tag;
-	bus_space_handle_t  bsh;
-	struct	  resource *regs;
-	struct	  resource *irq;
-	uint32_t  iobase;
-	u_int	  intdef;
-	u_int	  hcntrl;
-	int	  irq_num;
-	int	  error;
-	int	  zero;
+	struct aic7770_identity *entry;
+	bus_space_tag_t tag;
+	bus_space_handle_t bsh;
+	struct resource *regs;
+	struct resource *irq;
+	uint32_t iobase;
+	u_int intdef;
+	u_int hcntrl;
+	int irq_num;
+	int error;
+	int zero;
 
 	error = ENXIO;
 	zero = 0;
@@ -169,7 +170,7 @@ ahc_isa_probe(device_t dev)
 	intdef = bus_space_read_1(tag, bsh, INTDEF);
 	irq_num = intdef & VECTOR;
 	switch (irq_num) {
-	case 9: 
+	case 9:
 	case 10:
 	case 11:
 	case 12:
@@ -177,8 +178,8 @@ ahc_isa_probe(device_t dev)
 	case 15:
 		break;
 	default:
-		device_printf(dev, "@0x%x: illegal irq setting %d\n",
-			      iobase, irq_num);
+		device_printf(dev, "@0x%x: illegal irq setting %d\n", iobase,
+		    irq_num);
 		goto cleanup;
 	}
 
@@ -190,13 +191,13 @@ ahc_isa_probe(device_t dev)
 	 * so do not claim RF_SHAREABLE.
 	 */
 	irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &zero,
-				     0 /*!(RF_ACTIVE|RF_SHAREABLE)*/);
+	    0 /*!(RF_ACTIVE|RF_SHAREABLE)*/);
 	if (irq != NULL) {
 		error = 0;
 		device_set_desc(dev, entry->name);
-	} else 
-		device_printf(dev, "@0x%x: irq %d allocation failed\n",
-			      iobase, irq_num);
+	} else
+		device_printf(dev, "@0x%x: irq %d allocation failed\n", iobase,
+		    irq_num);
 
 cleanup:
 	if (regs != NULL) {
@@ -215,14 +216,14 @@ cleanup:
 static int
 ahc_isa_attach(device_t dev)
 {
-	struct	 aic7770_identity *entry;
-	bus_space_tag_t	    tag;
-	bus_space_handle_t  bsh;
-	struct	  resource *regs;
-	struct	  ahc_softc *ahc;
-	char	 *name;
-	int	  zero;
-	int	  error;
+	struct aic7770_identity *entry;
+	bus_space_tag_t tag;
+	bus_space_handle_t bsh;
+	struct resource *regs;
+	struct ahc_softc *ahc;
+	char *name;
+	int zero;
+	int error;
 
 	zero = 0;
 	regs = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &zero, RF_ACTIVE);
@@ -252,25 +253,25 @@ ahc_isa_attach(device_t dev)
 	ahc_set_unit(ahc, device_get_unit(dev));
 
 	/* Allocate a dmatag for our SCB DMA maps */
-	error = aic_dma_tag_create(ahc, /*parent*/bus_get_dma_tag(dev),
-				   /*alignment*/1, /*boundary*/0,
-				   /*lowaddr*/BUS_SPACE_MAXADDR_32BIT,
-				   /*highaddr*/BUS_SPACE_MAXADDR,
-				   /*filter*/NULL, /*filterarg*/NULL,
-				   /*maxsize*/BUS_SPACE_MAXSIZE_32BIT,
-				   /*nsegments*/AHC_NSEG,
-				   /*maxsegsz*/AHC_MAXTRANSFER_SIZE,
-				   /*flags*/0,
-				   &ahc->parent_dmat);
+	error = aic_dma_tag_create(ahc, /*parent*/ bus_get_dma_tag(dev),
+	    /*alignment*/ 1, /*boundary*/ 0,
+	    /*lowaddr*/ BUS_SPACE_MAXADDR_32BIT,
+	    /*highaddr*/ BUS_SPACE_MAXADDR,
+	    /*filter*/ NULL, /*filterarg*/ NULL,
+	    /*maxsize*/ BUS_SPACE_MAXSIZE_32BIT,
+	    /*nsegments*/ AHC_NSEG,
+	    /*maxsegsz*/ AHC_MAXTRANSFER_SIZE,
+	    /*flags*/ 0, &ahc->parent_dmat);
 
 	if (error != 0) {
 		printf("ahc_isa_attach: Could not allocate DMA tag "
-		       "- error %d\n", error);
+		       "- error %d\n",
+		    error);
 		ahc_free(ahc);
 		return (ENOMEM);
 	}
 	ahc->dev_softc = dev;
-	error = aic7770_config(ahc, entry, /*unused ioport arg*/0);
+	error = aic7770_config(ahc, entry, /*unused ioport arg*/ 0);
 	if (error != 0) {
 		ahc_free(ahc);
 		return (error);
@@ -282,18 +283,14 @@ ahc_isa_attach(device_t dev)
 
 static device_method_t ahc_isa_device_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,      ahc_isa_identify),
-	DEVMETHOD(device_probe,		ahc_isa_probe),
-	DEVMETHOD(device_attach,	ahc_isa_attach),
-	DEVMETHOD(device_detach,	ahc_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, ahc_isa_identify),
+	DEVMETHOD(device_probe, ahc_isa_probe),
+	DEVMETHOD(device_attach, ahc_isa_attach),
+	DEVMETHOD(device_detach, ahc_detach), { 0, 0 }
 };
 
-static driver_t ahc_isa_driver = {
-	"ahc",
-	ahc_isa_device_methods,
-	sizeof(struct ahc_softc)
-};
+static driver_t ahc_isa_driver = { "ahc", ahc_isa_device_methods,
+	sizeof(struct ahc_softc) };
 
 DRIVER_MODULE(ahc_isa, isa, ahc_isa_driver, 0, 0);
 MODULE_DEPEND(ahc_isa, ahc, 1, 1, 1);

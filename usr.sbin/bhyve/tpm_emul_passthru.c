@@ -33,7 +33,7 @@ tpm_passthru_init(void **sc, nvlist_t *nvl)
 {
 	struct tpm_passthru *tpm;
 	const char *path;
-	
+
 	tpm = calloc(1, sizeof(struct tpm_passthru));
 	if (tpm == NULL) {
 		warnx("%s: failed to allocate tpm passthru", __func__);

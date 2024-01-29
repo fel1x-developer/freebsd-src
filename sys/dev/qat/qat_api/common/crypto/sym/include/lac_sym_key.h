@@ -57,8 +57,8 @@
 #ifndef LAC_SYM_KEY_H_
 #define LAC_SYM_KEY_H_
 
-#include "icp_qat_fw_la.h"
 #include "cpa_cy_key.h"
+#include "icp_qat_fw_la.h"
 
 /**< @ingroup LacSymKey
  * Label for SSL. Size is 136 bytes for 16 iterations, which can theroretically
@@ -100,9 +100,9 @@
 #define HKDF_SUB_LABEL_IV_LENGTH ((Cpa8U)12)
 #define HKDF_SUB_LABEL_RESUMPTION_LENGTH ((Cpa8U)20)
 #define HKDF_SUB_LABEL_FINISHED_LENGTH ((Cpa8U)18)
-#define HKDF_SUB_LABELS_ALL                                                    \
-	(CPA_CY_HKDF_SUBLABEL_KEY | CPA_CY_HKDF_SUBLABEL_IV |                  \
-	 CPA_CY_HKDF_SUBLABEL_RESUMPTION | CPA_CY_HKDF_SUBLABEL_FINISHED)
+#define HKDF_SUB_LABELS_ALL                                   \
+	(CPA_CY_HKDF_SUBLABEL_KEY | CPA_CY_HKDF_SUBLABEL_IV | \
+	    CPA_CY_HKDF_SUBLABEL_RESUMPTION | CPA_CY_HKDF_SUBLABEL_FINISHED)
 #define LAC_KEY_HKDF_SUBLABELS_NUM 4
 #define LAC_KEY_HKDF_DIGESTS 0
 #define LAC_KEY_HKDF_CIPHERS_MAX (CPA_CY_HKDF_TLS_AES_128_CCM_8_SHA256 + 1)

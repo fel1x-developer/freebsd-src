@@ -31,15 +31,16 @@
 
 #include <sys/types.h>
 
+#include <ctype.h>
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
+
 #include "hexdump.h"
 
-FU *endfu;					/* format at end-of-data */
+FU *endfu; /* format at end-of-data */
 
 void
 addfile(const char *name)
@@ -54,11 +55,13 @@ addfile(const char *name)
 	while (fgets(buf, sizeof(buf), fp)) {
 		if (!(p = strchr(buf, '\n'))) {
 			warnx("line too long");
-			while ((ch = getchar()) != '\n' && ch != EOF);
+			while ((ch = getchar()) != '\n' && ch != EOF)
+				;
 			continue;
 		}
 		*p = '\0';
-		for (p = buf; *p && isspace(*p); ++p);
+		for (p = buf; *p && isspace(*p); ++p)
+			;
 		if (!*p || *p == '#')
 			continue;
 		add(p);
@@ -87,7 +90,8 @@ add(const char *fmt)
 	/* take the format string and break it up into format units */
 	for (p = fmt;;) {
 		/* skip leading white space */
-		for (; isspace(*p); ++p);
+		for (; isspace(*p); ++p)
+			;
 		if (!*p)
 			break;
 
@@ -100,28 +104,33 @@ add(const char *fmt)
 
 		/* if leading digit, repetition count */
 		if (isdigit(*p)) {
-			for (savep = p; isdigit(*p); ++p);
+			for (savep = p; isdigit(*p); ++p)
+				;
 			if (!isspace(*p) && *p != '/')
 				badfmt(fmt);
 			/* may overwrite either white space or slash */
 			tfu->reps = atoi(savep);
 			tfu->flags = F_SETREP;
 			/* skip trailing white space */
-			for (++p; isspace(*p); ++p);
+			for (++p; isspace(*p); ++p)
+				;
 		}
 
 		/* skip slash and trailing white space */
 		if (*p == '/')
-			while (isspace(*++p));
+			while (isspace(*++p))
+				;
 
 		/* byte count */
 		if (isdigit(*p)) {
-			for (savep = p; isdigit(*p); ++p);
+			for (savep = p; isdigit(*p); ++p)
+				;
 			if (!isspace(*p))
 				badfmt(fmt);
 			tfu->bcnt = atoi(savep);
 			/* skip trailing white space */
-			for (++p; isspace(*p); ++p);
+			for (++p; isspace(*p); ++p)
+				;
 		}
 
 		/* format */
@@ -132,7 +141,7 @@ add(const char *fmt)
 				badfmt(fmt);
 		if (!(tfu->fmt = malloc(p - savep + 1)))
 			err(1, NULL);
-		(void) strlcpy(tfu->fmt, savep, p - savep + 1);
+		(void)strlcpy(tfu->fmt, savep, p - savep + 1);
 		escape(tfu->fmt);
 		p++;
 	}
@@ -167,25 +176,36 @@ size(FS *fs)
 				badnoconv();
 			if (*fmt == '.' && isdigit(*++fmt)) {
 				prec = atoi(fmt);
-				while (isdigit(*++fmt));
+				while (isdigit(*++fmt))
+					;
 			}
-			switch(*fmt) {
+			switch (*fmt) {
 			case 'c':
 				bcnt += 1;
 				break;
-			case 'd': case 'i': case 'o': case 'u':
-			case 'x': case 'X':
+			case 'd':
+			case 'i':
+			case 'o':
+			case 'u':
+			case 'x':
+			case 'X':
 				bcnt += 4;
 				break;
-			case 'e': case 'E': case 'f': case 'g': case 'G':
+			case 'e':
+			case 'E':
+			case 'f':
+			case 'g':
+			case 'G':
 				bcnt += 8;
 				break;
 			case 's':
 				bcnt += prec;
 				break;
 			case '_':
-				switch(*++fmt) {
-				case 'c': case 'p': case 'u':
+				switch (*++fmt) {
+				case 'c':
+				case 'p':
+				case 'u':
 					bcnt += 1;
 					break;
 				}
@@ -220,7 +240,8 @@ rewrite(FS *fs)
 			*nextpr = pr;
 
 			/* Skip preceding text and up to the next % sign. */
-			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1);
+			for (p1 = fmtp; *p1 && *p1 != '%'; ++p1)
+				;
 
 			/* Only text in the string. */
 			if (!*p1) {
@@ -242,19 +263,21 @@ rewrite(FS *fs)
 					badnoconv();
 			} else {
 				/* Skip any special chars, field width. */
-				while (*++p1 != 0 && strchr(spec + 1, *p1) != NULL)
+				while (
+				    *++p1 != 0 && strchr(spec + 1, *p1) != NULL)
 					;
 				if (*p1 == 0)
 					badnoconv();
 				if (*p1 == '.' && isdigit(*++p1)) {
 					sokay = USEPREC;
 					prec = atoi(p1);
-					while (isdigit(*++p1));
+					while (isdigit(*++p1))
+						;
 				} else
 					sokay = NOTOKAY;
 			}
 
-			p2 = *p1 ? p1 + 1 : p1;	/* Set end pointer -- make sure
+			p2 = *p1 ? p1 + 1 : p1; /* Set end pointer -- make sure
 						 * that it's non-NUL/-NULL first
 						 * though. */
 			cs[0] = *p1;		/* Set conversion string. */
@@ -265,11 +288,12 @@ rewrite(FS *fs)
 			 * rewrite the format as necessary, set up blank-
 			 * padding for end of data.
 			 */
-			switch(cs[0]) {
+			switch (cs[0]) {
 			case 'c':
 				pr->flags = F_CHAR;
-				switch(fu->bcnt) {
-				case 0: case 1:
+				switch (fu->bcnt) {
+				case 0:
+				case 1:
 					pr->bcnt = 1;
 					break;
 				default:
@@ -277,16 +301,22 @@ rewrite(FS *fs)
 					badcnt(p1);
 				}
 				break;
-			case 'd': case 'i':
+			case 'd':
+			case 'i':
 				pr->flags = F_INT;
 				goto isint;
-			case 'o': case 'u': case 'x': case 'X':
+			case 'o':
+			case 'u':
+			case 'x':
+			case 'X':
 				pr->flags = F_UINT;
-isint:				cs[2] = '\0';
+			isint:
+				cs[2] = '\0';
 				cs[1] = cs[0];
 				cs[0] = 'q';
-				switch(fu->bcnt) {
-				case 0: case 4:
+				switch (fu->bcnt) {
+				case 0:
+				case 4:
 					pr->bcnt = 4;
 					break;
 				case 1:
@@ -303,10 +333,15 @@ isint:				cs[2] = '\0';
 					badcnt(p1);
 				}
 				break;
-			case 'e': case 'E': case 'f': case 'g': case 'G':
+			case 'e':
+			case 'E':
+			case 'f':
+			case 'g':
+			case 'G':
 				pr->flags = F_DBL;
-				switch(fu->bcnt) {
-				case 0: case 8:
+				switch (fu->bcnt) {
+				case 0:
+				case 8:
 					pr->bcnt = 8;
 					break;
 				case 4:
@@ -326,7 +361,7 @@ isint:				cs[2] = '\0';
 				break;
 			case 's':
 				pr->flags = F_STR;
-				switch(sokay) {
+				switch (sokay) {
 				case NOTOKAY:
 					badsfmt();
 				case USEBCNT:
@@ -339,7 +374,7 @@ isint:				cs[2] = '\0';
 				break;
 			case '_':
 				++p2;
-				switch(p1[1]) {
+				switch (p1[1]) {
 				case 'A':
 					endfu = fu;
 					fu->flags |= F_IGNORE;
@@ -347,8 +382,10 @@ isint:				cs[2] = '\0';
 				case 'a':
 					pr->flags = F_ADDRESS;
 					++p2;
-					switch(p1[2]) {
-					case 'd': case 'o': case'x':
+					switch (p1[2]) {
+					case 'd':
+					case 'o':
+					case 'x':
 						cs[0] = 'q';
 						cs[1] = p1[2];
 						cs[2] = '\0';
@@ -369,8 +406,10 @@ isint:				cs[2] = '\0';
 				case 'u':
 					pr->flags = F_U;
 					/* cs[0] = 'c';	set in conv_u */
-isint2:					switch(fu->bcnt) {
-					case 0: case 1:
+				isint2:
+					switch (fu->bcnt) {
+					case 0:
+					case 1:
 						pr->bcnt = 1;
 						break;
 					default:
@@ -401,8 +440,9 @@ isint2:					switch(fu->bcnt) {
 			fmtp = p2;
 
 			/* Only one conversion character if byte count. */
-			if (!(pr->flags&F_ADDRESS) && fu->bcnt && nconv++)
-	    errx(1, "byte count with multiple conversion characters");
+			if (!(pr->flags & F_ADDRESS) && fu->bcnt && nconv++)
+				errx(1,
+				    "byte count with multiple conversion characters");
 		}
 		/*
 		 * If format unit byte count not specified, figure it out
@@ -423,7 +463,7 @@ isint2:					switch(fu->bcnt) {
 	 */
 	for (fu = fs->nextfu; fu; fu = fu->nextfu) {
 		if (!fu->nextfu && fs->bcnt < blocksize &&
-		    !(fu->flags&F_SETREP) && fu->bcnt)
+		    !(fu->flags & F_SETREP) && fu->bcnt)
 			fu->reps += (blocksize - fs->bcnt) / fu->bcnt;
 		if (fu->reps > 1) {
 			for (pr = fu->nextpr;; pr = pr->nextpr)
@@ -454,13 +494,13 @@ escape(char *p1)
 	for (p2 = p1;; p1++, p2++) {
 		if (*p1 == '\\') {
 			p1++;
-			switch(*p1) {
+			switch (*p1) {
 			case '\0':
 				*p2 = '\\';
 				*++p2 = '\0';
 				return;
 			case 'a':
-			     /* *p2 = '\a'; */
+				/* *p2 = '\a'; */
 				*p2 = '\007';
 				break;
 			case 'b':

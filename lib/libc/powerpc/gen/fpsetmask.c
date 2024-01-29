@@ -33,6 +33,7 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 #ifndef _SOFT_FLOAT
@@ -45,7 +46,7 @@ fpsetmask(fp_except_t mask)
 	__asm__("mffs %0" : "=f"(fpscr));
 	old = (fp_except_t)((fpscr >> 3) & 0x1f);
 	fpscr = (fpscr & 0xffffff07) | ((mask & 0x1f) << 3);
-	__asm__ __volatile("mtfsf 0xff,%0" :: "f"(fpscr));
+	__asm__ __volatile("mtfsf 0xff,%0" ::"f"(fpscr));
 	return (old);
 }
 #endif

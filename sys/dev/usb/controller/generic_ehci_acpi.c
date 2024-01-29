@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -38,20 +38,18 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
+#include <dev/acpica/acpivar.h>
+#include <dev/usb/controller/ehci.h>
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usbdi.h>
 
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ehci.h>
-
-#include <contrib/dev/acpica/include/acpi.h>
 #include <contrib/dev/acpica/include/accommon.h>
-#include <dev/acpica/acpivar.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "generic_ehci.h"
 
@@ -60,8 +58,7 @@ generic_ehci_acpi_probe(device_t self)
 {
 	ACPI_HANDLE h;
 
-	if ((h = acpi_get_handle(self)) == NULL ||
-	    !acpi_MatchHid(h, "PNP0D20"))
+	if ((h = acpi_get_handle(self)) == NULL || !acpi_MatchHid(h, "PNP0D20"))
 		return (ENXIO);
 
 	device_set_desc(self, "Generic EHCI Controller");
@@ -70,13 +67,13 @@ generic_ehci_acpi_probe(device_t self)
 
 static device_method_t ehci_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		generic_ehci_acpi_probe),
+	DEVMETHOD(device_probe, generic_ehci_acpi_probe),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(ehci, ehci_acpi_driver, ehci_acpi_methods,
-    sizeof(ehci_softc_t), generic_ehci_driver);
+DEFINE_CLASS_1(ehci, ehci_acpi_driver, ehci_acpi_methods, sizeof(ehci_softc_t),
+    generic_ehci_driver);
 
 DRIVER_MODULE(ehci, acpi, ehci_acpi_driver, 0, 0);
 MODULE_DEPEND(ehci, usb, 1, 1, 1);

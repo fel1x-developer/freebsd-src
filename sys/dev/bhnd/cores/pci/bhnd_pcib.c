@@ -32,24 +32,24 @@
 #include <sys/cdefs.h>
 /*
  * Broadcom PCI/PCIe-Gen1 Host-PCI bridge.
- * 
+ *
  * This driver handles all interactions with PCI bridge cores operating in
  * root complex mode.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
 
-#include "bhnd_pcireg.h"
 #include "bhnd_pcibvar.h"
+#include "bhnd_pcireg.h"
 
 static int
 bhnd_pcib_attach(device_t dev)
@@ -79,14 +79,14 @@ bhnd_pcib_resume(device_t dev)
 
 static device_method_t bhnd_pcib_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_attach,	bhnd_pcib_attach),
-	DEVMETHOD(device_detach,	bhnd_pcib_detach),
-	DEVMETHOD(device_suspend,	bhnd_pcib_suspend),
-	DEVMETHOD(device_resume,	bhnd_pcib_resume),
-	DEVMETHOD_END
+	DEVMETHOD(device_attach, bhnd_pcib_attach),
+	DEVMETHOD(device_detach, bhnd_pcib_detach),
+	DEVMETHOD(device_suspend, bhnd_pcib_suspend),
+	DEVMETHOD(device_resume, bhnd_pcib_resume), DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(pcib, bhnd_pcib_driver, bhnd_pcib_methods, sizeof(struct bhnd_pcib_softc), bhnd_pci_driver);
+DEFINE_CLASS_1(pcib, bhnd_pcib_driver, bhnd_pcib_methods,
+    sizeof(struct bhnd_pcib_softc), bhnd_pci_driver);
 
 DRIVER_MODULE(bhnd_pcib, bhnd, bhnd_pcib_driver, 0, 0);
 

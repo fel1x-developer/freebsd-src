@@ -26,28 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/uio.h>
+#include <sys/param.h>
 #include <sys/file.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "yplib_host.h"
 
@@ -77,14 +76,12 @@ yp_bind_host(char *server, u_long program, u_long version, u_short port,
 
 	if (*server >= '0' && *server <= '9') {
 		if (inet_aton(server, &rsrv_sin.sin_addr) == 0) {
-			errx(1, "inet_aton: invalid address %s.",
-			    server);
+			errx(1, "inet_aton: invalid address %s.", server);
 		}
 	} else {
 		h = gethostbyname(server);
 		if (h == NULL) {
-			errx(1, "gethostbyname: unknown host %s.",
-			    server);
+			errx(1, "gethostbyname: unknown host %s.", server);
 		}
 		rsrv_sin.sin_addr.s_addr = *(u_int32_t *)h->h_addr;
 	}
@@ -93,15 +90,14 @@ yp_bind_host(char *server, u_long program, u_long version, u_short port,
 	tv.tv_usec = 0;
 
 	if (usetcp)
-		client = clnttcp_create(&rsrv_sin, program, version,
-		    &rsrv_sock, 0, 0);
+		client = clnttcp_create(&rsrv_sin, program, version, &rsrv_sock,
+		    0, 0);
 	else
 		client = clntudp_create(&rsrv_sin, program, version, tv,
 		    &rsrv_sock);
 
 	if (client == NULL) {
-		errx(1, "clntudp_create: no contact with host %s.",
-		    server);
+		errx(1, "clntudp_create: no contact with host %s.", server);
 	}
 
 	return (client);
@@ -154,12 +150,11 @@ yp_match_host(CLIENT *client, char *indomain, char *inmap, const char *inkey,
 
 	memset(&yprv, 0, sizeof yprv);
 
-	r = clnt_call(client, YPPROC_MATCH,
-	    (xdrproc_t)xdr_ypreq_key, &yprk,
+	r = clnt_call(client, YPPROC_MATCH, (xdrproc_t)xdr_ypreq_key, &yprk,
 	    (xdrproc_t)xdr_ypresp_val, &yprv, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_match_host: clnt_call");
-	if ( !(r = ypprot_err(yprv.stat)) ) {
+	if (!(r = ypprot_err(yprv.stat))) {
 		*outvallen = yprv.val.valdat_len;
 		*outval = malloc(*outvallen + 1);
 		memcpy(*outval, yprv.val.valdat_val, *outvallen);
@@ -189,18 +184,17 @@ yp_first_host(CLIENT *client, char *indomain, char *inmap, char **outkey,
 	yprnk.map = inmap;
 	memset(&yprkv, 0, sizeof yprkv);
 
-	r = clnt_call(client, YPPROC_FIRST,
-	    (xdrproc_t)xdr_ypreq_nokey, &yprnk,
+	r = clnt_call(client, YPPROC_FIRST, (xdrproc_t)xdr_ypreq_nokey, &yprnk,
 	    (xdrproc_t)xdr_ypresp_key_val, &yprkv, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_first_host: clnt_call");
-	if ( !(r = ypprot_err(yprkv.stat)) ) {
+	if (!(r = ypprot_err(yprkv.stat))) {
 		*outkeylen = yprkv.key.keydat_len;
-		*outkey = malloc(*outkeylen+1);
+		*outkey = malloc(*outkeylen + 1);
 		memcpy(*outkey, yprkv.key.keydat_val, *outkeylen);
 		(*outkey)[*outkeylen] = '\0';
 		*outvallen = yprkv.val.valdat_len;
-		*outval = malloc(*outvallen+1);
+		*outval = malloc(*outvallen + 1);
 		memcpy(*outval, yprkv.val.valdat_val, *outvallen);
 		(*outval)[*outvallen] = '\0';
 	}
@@ -230,18 +224,17 @@ yp_next_host(CLIENT *client, char *indomain, char *inmap, char *inkey,
 	yprk.key.keydat_len = inkeylen;
 	memset(&yprkv, 0, sizeof yprkv);
 
-	r = clnt_call(client, YPPROC_NEXT,
-	    (xdrproc_t)xdr_ypreq_key, &yprk,
+	r = clnt_call(client, YPPROC_NEXT, (xdrproc_t)xdr_ypreq_key, &yprk,
 	    (xdrproc_t)xdr_ypresp_key_val, &yprkv, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_next_host: clnt_call");
-	if ( !(r = ypprot_err(yprkv.stat)) ) {
+	if (!(r = ypprot_err(yprkv.stat))) {
 		*outkeylen = yprkv.key.keydat_len;
-		*outkey = malloc(*outkeylen+1);
+		*outkey = malloc(*outkeylen + 1);
 		memcpy(*outkey, yprkv.key.keydat_val, *outkeylen);
 		(*outkey)[*outkeylen] = '\0';
 		*outvallen = yprkv.val.valdat_len;
-		*outval = malloc(*outvallen+1);
+		*outval = malloc(*outvallen + 1);
 		memcpy(*outval, yprkv.val.valdat_val, *outvallen);
 		(*outval)[*outvallen] = '\0';
 	}
@@ -266,8 +259,7 @@ yp_all_host(CLIENT *client, char *indomain, char *inmap,
 	ypresp_allfn = incallback->foreach;
 	ypresp_data = (void *)incallback->data;
 
-	(void) clnt_call(client, YPPROC_ALL,
-	    (xdrproc_t)xdr_ypreq_nokey, &yprnk,
+	(void)clnt_call(client, YPPROC_ALL, (xdrproc_t)xdr_ypreq_nokey, &yprnk,
 	    (xdrproc_t)xdr_ypresp_all_seq, &status, tv);
 	if (status != YP_FALSE)
 		return ypprot_err(status);
@@ -291,8 +283,7 @@ yp_order_host(CLIENT *client, char *indomain, char *inmap, u_int32_t *outorder)
 
 	memset(&ypro, 0, sizeof ypro);
 
-	r = clnt_call(client, YPPROC_ORDER,
-	    (xdrproc_t)xdr_ypreq_nokey, &yprnk,
+	r = clnt_call(client, YPPROC_ORDER, (xdrproc_t)xdr_ypreq_nokey, &yprnk,
 	    (xdrproc_t)xdr_ypresp_order, &ypro, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_order_host: clnt_call");
@@ -317,8 +308,7 @@ yp_master_host(CLIENT *client, char *indomain, char *inmap, char **outname)
 
 	memset(&yprm, 0, sizeof yprm);
 
-	r = clnt_call(client, YPPROC_MASTER,
-	    (xdrproc_t)xdr_ypreq_nokey, &yprnk,
+	r = clnt_call(client, YPPROC_MASTER, (xdrproc_t)xdr_ypreq_nokey, &yprnk,
 	    (xdrproc_t)xdr_ypresp_master, &yprm, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_master: clnt_call");
@@ -341,9 +331,8 @@ yp_maplist_host(CLIENT *client, char *indomain, struct ypmaplist **outmaplist)
 
 	memset(&ypml, 0, sizeof ypml);
 
-	r = clnt_call(client, YPPROC_MAPLIST,
-	    (xdrproc_t)xdr_domainname, &indomain,
-	    (xdrproc_t)xdr_ypresp_maplist, &ypml, tv);
+	r = clnt_call(client, YPPROC_MAPLIST, (xdrproc_t)xdr_domainname,
+	    &indomain, (xdrproc_t)xdr_ypresp_maplist, &ypml, tv);
 	if (r != RPC_SUCCESS)
 		clnt_perror(client, "yp_maplist: clnt_call");
 	*outmaplist = ypml.maps;

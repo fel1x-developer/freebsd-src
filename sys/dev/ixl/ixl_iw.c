@@ -2,45 +2,45 @@
 
   Copyright (c) 2013-2018, Intel Corporation
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
+
+  Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
-  
-   1. Redistributions of source code must retain the above copyright notice, 
+
+   1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-  
-   2. Redistributions in binary form must reproduce the above copyright 
-      notice, this list of conditions and the following disclaimer in the 
+
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-  
-   3. Neither the name of the Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+   3. Neither the name of the Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 
 ******************************************************************************/
 
 #include "ixl.h"
-#include "ixl_pf.h"
 #include "ixl_iw.h"
 #include "ixl_iw_int.h"
+#include "ixl_pf.h"
 
-#ifdef	IXL_IW
+#ifdef IXL_IW
 
-#define IXL_IW_VEC_BASE(pf)	((pf)->msix - (pf)->iw_msix)
-#define IXL_IW_VEC_COUNT(pf)	((pf)->iw_msix)
-#define IXL_IW_VEC_LIMIT(pf)	((pf)->msix)
+#define IXL_IW_VEC_BASE(pf) ((pf)->msix - (pf)->iw_msix)
+#define IXL_IW_VEC_COUNT(pf) ((pf)->iw_msix)
+#define IXL_IW_VEC_LIMIT(pf) ((pf)->msix)
 
 extern int ixl_enable_iwarp;
 
@@ -77,7 +77,7 @@ ixl_iw_invoke_op(void *context, int pending)
 	    (pf_entry->state.iw_current == IXL_IW_PF_STATE_OFF))
 		initialize = true;
 	else if ((pf_entry->state.iw_scheduled == IXL_IW_PF_STATE_OFF) &&
-	         (pf_entry->state.iw_current == IXL_IW_PF_STATE_ON))
+	    (pf_entry->state.iw_current == IXL_IW_PF_STATE_ON))
 		initialize = false;
 	else {
 		/* nothing to be done, so finish here */
@@ -91,16 +91,16 @@ ixl_iw_invoke_op(void *context, int pending)
 		err = ixl_iw.ops->init(&info);
 		if (err)
 			device_printf(pf_entry->pf->dev,
-				"%s: failed to initialize iwarp (err %d)\n",
-				__func__, err);
+			    "%s: failed to initialize iwarp (err %d)\n",
+			    __func__, err);
 		else
 			pf_entry->state.iw_current = IXL_IW_PF_STATE_ON;
 	} else {
 		err = ixl_iw.ops->stop(&info);
 		if (err)
 			device_printf(pf_entry->pf->dev,
-				"%s: failed to stop iwarp (err %d)\n",
-				__func__, err);
+			    "%s: failed to stop iwarp (err %d)\n", __func__,
+			    err);
 		else {
 			ixl_iw_pf_msix_reset(pf_entry->pf);
 			pf_entry->state.iw_current = IXL_IW_PF_STATE_OFF;
@@ -146,7 +146,7 @@ ixl_iw_pf_init(struct ixl_pf *pf)
 
 	mtx_lock(&ixl_iw.mtx);
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->pf == pf)
 			break;
 	if (pf_entry == NULL) {
@@ -158,16 +158,16 @@ ixl_iw_pf_init(struct ixl_pf *pf)
 
 	pf_info = &pf_entry->pf_info;
 
-	pf_info->handle	= (void *)pf;
+	pf_info->handle = (void *)pf;
 
-	pf_info->ifp		= pf->vsi.ifp;
-	pf_info->dev		= pf->dev;
-	pf_info->pci_mem	= pf->pci_mem;
-	pf_info->pf_id		= pf->hw.pf_id;
-	pf_info->mtu		= if_getmtu(pf->vsi.ifp);
+	pf_info->ifp = pf->vsi.ifp;
+	pf_info->dev = pf->dev;
+	pf_info->pci_mem = pf->pci_mem;
+	pf_info->pf_id = pf->hw.pf_id;
+	pf_info->mtu = if_getmtu(pf->vsi.ifp);
 
-	pf_info->iw_msix.count	= IXL_IW_VEC_COUNT(pf);
-	pf_info->iw_msix.base	= IXL_IW_VEC_BASE(pf);
+	pf_info->iw_msix.count = IXL_IW_VEC_COUNT(pf);
+	pf_info->iw_msix.base = IXL_IW_VEC_BASE(pf);
 
 	for (int i = 0; i < IXL_IW_MAX_USER_PRIORITY; i++)
 		pf_info->qs_handle[i] = le16_to_cpu(pf->vsi.info.qs_handle[0]);
@@ -193,11 +193,12 @@ ixl_iw_pf_stop(struct ixl_pf *pf)
 
 	mtx_lock(&ixl_iw.mtx);
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->pf == pf)
 			break;
 	if (pf_entry == NULL) {
-		/* attempt to stop PF which has not been attached - sth is wrong */
+		/* attempt to stop PF which has not been attached - sth is wrong
+		 */
 		device_printf(pf->dev, "%s: PF not found\n", __func__);
 		goto out;
 	}
@@ -228,7 +229,7 @@ ixl_iw_pf_attach(struct ixl_pf *pf)
 
 	mtx_lock(&ixl_iw.mtx);
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->pf == pf) {
 			device_printf(pf->dev, "%s: PF already exists\n",
 			    __func__);
@@ -236,8 +237,8 @@ ixl_iw_pf_attach(struct ixl_pf *pf)
 			goto out;
 		}
 
-	pf_entry = malloc(sizeof(struct ixl_iw_pf_entry),
-			M_IXL, M_NOWAIT | M_ZERO);
+	pf_entry = malloc(sizeof(struct ixl_iw_pf_entry), M_IXL,
+	    M_NOWAIT | M_ZERO);
 	if (pf_entry == NULL) {
 		device_printf(pf->dev,
 		    "%s: failed to allocate memory to attach new PF\n",
@@ -246,9 +247,9 @@ ixl_iw_pf_attach(struct ixl_pf *pf)
 		goto out;
 	}
 	pf_entry->pf = pf;
-	pf_entry->state.pf		= IXL_IW_PF_STATE_OFF;
-	pf_entry->state.iw_scheduled	= IXL_IW_PF_STATE_OFF;
-	pf_entry->state.iw_current	= IXL_IW_PF_STATE_OFF;
+	pf_entry->state.pf = IXL_IW_PF_STATE_OFF;
+	pf_entry->state.iw_scheduled = IXL_IW_PF_STATE_OFF;
+	pf_entry->state.iw_current = IXL_IW_PF_STATE_OFF;
 
 	LIST_INSERT_HEAD(&ixl_iw.pfs, pf_entry, node);
 	ixl_iw_ref_cnt++;
@@ -270,18 +271,20 @@ ixl_iw_pf_detach(struct ixl_pf *pf)
 
 	mtx_lock(&ixl_iw.mtx);
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->pf == pf)
 			break;
 	if (pf_entry == NULL) {
-		/* attempt to stop PF which has not been attached - sth is wrong */
+		/* attempt to stop PF which has not been attached - sth is wrong
+		 */
 		device_printf(pf->dev, "%s: PF not found\n", __func__);
 		err = ENOENT;
 		goto out;
 	}
 
 	if (pf_entry->state.pf != IXL_IW_PF_STATE_OFF) {
-		/* attempt to detach PF which has not yet been stopped - sth is wrong */
+		/* attempt to detach PF which has not yet been stopped - sth is
+		 * wrong */
 		device_printf(pf->dev, "%s: failed - PF is still active\n",
 		    __func__);
 		err = EBUSY;
@@ -299,7 +302,6 @@ out:
 
 	return (err);
 }
-
 
 /******************************************************************************
  * API exposed to iw_ixl module
@@ -320,8 +322,7 @@ ixl_iw_pf_reset(void *pf_handle)
 }
 
 int
-ixl_iw_pf_msix_init(void *pf_handle,
-	struct ixl_iw_msix_mapping *msix_info)
+ixl_iw_pf_msix_init(void *pf_handle, struct ixl_iw_msix_mapping *msix_info)
 {
 	struct ixl_pf *pf = (struct ixl_pf *)pf_handle;
 	struct i40e_hw *hw = &pf->hw;
@@ -332,13 +333,13 @@ ixl_iw_pf_msix_init(void *pf_handle,
 
 	if ((msix_info->aeq_vector < IXL_IW_VEC_BASE(pf)) ||
 	    (msix_info->aeq_vector >= IXL_IW_VEC_LIMIT(pf))) {
-		printf("%s: invalid MSI-X vector (%i) for AEQ\n",
-		    __func__, msix_info->aeq_vector);
+		printf("%s: invalid MSI-X vector (%i) for AEQ\n", __func__,
+		    msix_info->aeq_vector);
 		return (EINVAL);
 	}
 	reg = I40E_PFINT_AEQCTL_CAUSE_ENA_MASK |
-		(msix_info->aeq_vector << I40E_PFINT_AEQCTL_MSIX_INDX_SHIFT) |
-		(msix_info->itr_indx << I40E_PFINT_AEQCTL_ITR_INDX_SHIFT);
+	    (msix_info->aeq_vector << I40E_PFINT_AEQCTL_MSIX_INDX_SHIFT) |
+	    (msix_info->itr_indx << I40E_PFINT_AEQCTL_ITR_INDX_SHIFT);
 	wr32(hw, I40E_PFINT_AEQCTL, reg);
 
 	for (vec = IXL_IW_VEC_BASE(pf); vec < IXL_IW_VEC_LIMIT(pf); vec++) {
@@ -351,16 +352,16 @@ ixl_iw_pf_msix_init(void *pf_handle,
 			wr32(hw, I40E_PFINT_LNKLSTN(vec - 1), reg);
 		} else {
 			reg = (i & I40E_PFINT_LNKLSTN_FIRSTQ_INDX_MASK) |
-			    (I40E_QUEUE_TYPE_PE_CEQ <<
-			    I40E_PFINT_LNKLSTN_FIRSTQ_TYPE_SHIFT);
+			    (I40E_QUEUE_TYPE_PE_CEQ
+				<< I40E_PFINT_LNKLSTN_FIRSTQ_TYPE_SHIFT);
 			wr32(hw, I40E_PFINT_LNKLSTN(vec - 1), reg);
 
 			reg = I40E_PFINT_CEQCTL_CAUSE_ENA_MASK |
 			    (vec << I40E_PFINT_CEQCTL_MSIX_INDX_SHIFT) |
-			    (msix_info->itr_indx <<
-			    I40E_PFINT_CEQCTL_ITR_INDX_SHIFT) |
-			    (IXL_QUEUE_EOL <<
-			    I40E_PFINT_CEQCTL_NEXTQ_INDX_SHIFT);
+			    (msix_info->itr_indx
+				<< I40E_PFINT_CEQCTL_ITR_INDX_SHIFT) |
+			    (IXL_QUEUE_EOL
+				<< I40E_PFINT_CEQCTL_NEXTQ_INDX_SHIFT);
 			wr32(hw, I40E_PFINT_CEQCTL(i), reg);
 		}
 	}
@@ -376,10 +377,11 @@ ixl_iw_register(struct ixl_iw_ops *ops)
 	int iwarp_cap_on_pfs = 0;
 
 	INIT_DEBUGOUT("begin");
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		iwarp_cap_on_pfs += pf_entry->pf->hw.func_caps.iwarp;
 	if (!iwarp_cap_on_pfs && ixl_enable_iwarp) {
-		printf("%s: the device is not iwarp-capable, registering dropped\n",
+		printf(
+		    "%s: the device is not iwarp-capable, registering dropped\n",
 		    __func__);
 		return (ENODEV);
 	}
@@ -404,7 +406,7 @@ ixl_iw_register(struct ixl_iw_ops *ops)
 	mtx_unlock(&ixl_iw.mtx);
 
 	ixl_iw.tq = taskqueue_create("ixl_iw", M_NOWAIT,
-		taskqueue_thread_enqueue, &ixl_iw.tq);
+	    taskqueue_thread_enqueue, &ixl_iw.tq);
 	if (ixl_iw.tq == NULL) {
 		printf("%s: failed to create queue\n", __func__);
 		ixl_iw.registered = false;
@@ -412,8 +414,8 @@ ixl_iw_register(struct ixl_iw_ops *ops)
 	}
 	taskqueue_start_threads(&ixl_iw.tq, 1, PI_NET, "ixl iw");
 
-	ixl_iw.ops = malloc(sizeof(struct ixl_iw_ops),
-			M_IXL, M_NOWAIT | M_ZERO);
+	ixl_iw.ops = malloc(sizeof(struct ixl_iw_ops), M_IXL,
+	    M_NOWAIT | M_ZERO);
 	if (ixl_iw.ops == NULL) {
 		printf("%s: failed to allocate memory\n", __func__);
 		taskqueue_free(ixl_iw.tq);
@@ -425,7 +427,7 @@ ixl_iw_register(struct ixl_iw_ops *ops)
 	ixl_iw.ops->stop = ops->stop;
 
 	mtx_lock(&ixl_iw.mtx);
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->state.pf == IXL_IW_PF_STATE_ON) {
 			pf_entry->state.iw_scheduled = IXL_IW_PF_STATE_ON;
 			taskqueue_enqueue(ixl_iw.tq, &pf_entry->iw_task);
@@ -444,16 +446,18 @@ ixl_iw_unregister(void)
 
 	INIT_DEBUGOUT("begin");
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		iwarp_cap_on_pfs += pf_entry->pf->hw.func_caps.iwarp;
 	if (!iwarp_cap_on_pfs && ixl_enable_iwarp) {
-		printf("%s: attempt to unregister driver when no iwarp-capable device present\n",
+		printf(
+		    "%s: attempt to unregister driver when no iwarp-capable device present\n",
 		    __func__);
 		return (ENODEV);
 	}
 
 	if (ixl_enable_iwarp == 0) {
-		printf("%s: attempt to unregister driver when enable_iwarp is off\n",
+		printf(
+		    "%s: attempt to unregister driver when enable_iwarp is off\n",
 		    __func__);
 		return (ENODEV);
 	}
@@ -466,7 +470,7 @@ ixl_iw_unregister(void)
 		return (ENOENT);
 	}
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		if (pf_entry->state.iw_scheduled == IXL_IW_PF_STATE_ON) {
 			pf_entry->state.iw_scheduled = IXL_IW_PF_STATE_OFF;
 			taskqueue_enqueue(ixl_iw.tq, &pf_entry->iw_task);
@@ -476,7 +480,7 @@ ixl_iw_unregister(void)
 
 	mtx_unlock(&ixl_iw.mtx);
 
-	LIST_FOREACH(pf_entry, &ixl_iw.pfs, node)
+	LIST_FOREACH (pf_entry, &ixl_iw.pfs, node)
 		taskqueue_drain(ixl_iw.tq, &pf_entry->iw_task);
 	taskqueue_free(ixl_iw.tq);
 	ixl_iw.tq = NULL;

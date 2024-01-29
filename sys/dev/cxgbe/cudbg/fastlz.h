@@ -28,9 +28,9 @@
 
 #define FASTLZ_VERSION 0x000100
 
-#define FASTLZ_VERSION_MAJOR	 0
-#define FASTLZ_VERSION_MINOR	 0
-#define FASTLZ_VERSION_REVISION  0
+#define FASTLZ_VERSION_MAJOR 0
+#define FASTLZ_VERSION_MINOR 0
+#define FASTLZ_VERSION_REVISION 0
 
 #define FASTLZ_VERSION_STRING "0.1.0"
 
@@ -38,7 +38,7 @@ struct cudbg_buffer;
 
 int fastlz_compress(const void *input, int length, void *output);
 int fastlz_compress_level(int level, const void *input, int length,
-			  void *output);
+    void *output);
 int fastlz_decompress(const void *input, int length, void *output, int maxout);
 
 /* prototypes */
@@ -47,14 +47,14 @@ int write_magic(struct cudbg_buffer *);
 int detect_magic(struct cudbg_buffer *);
 
 int write_to_buf(void *, u32, u32 *, void *, u32);
-int read_from_buf(void *, u32, u32 *, void *,  u32);
+int read_from_buf(void *, u32, u32 *, void *, u32);
 
 int write_chunk_header(struct cudbg_buffer *, int, int, unsigned long,
-		       unsigned long, unsigned long);
+    unsigned long, unsigned long);
 
-int read_chunk_header(struct cudbg_buffer *, int* , int*, unsigned long*,
-		      unsigned long*, unsigned long*);
+int read_chunk_header(struct cudbg_buffer *, int *, int *, unsigned long *,
+    unsigned long *, unsigned long *);
 
 unsigned long block_compress(const unsigned char *, unsigned long length,
-			     unsigned char *);
+    unsigned char *);
 #endif /* FASTLZ_H */

@@ -25,5 +25,5 @@
  * SUCH DAMAGE.
  */
 #pragma once
-void	vmgenc_init(struct vmctx *);
-void	vmgenc_write_dsdt(void);
+void vmgenc_init(struct vmctx *);
+void vmgenc_write_dsdt(void);

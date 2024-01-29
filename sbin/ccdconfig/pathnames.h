@@ -31,5 +31,5 @@
  * $NetBSD: pathnames.h,v 1.4 2008/04/28 20:23:07 martin Exp $
  */
 
-#define _PATH_CCDCONF		"/etc/ccd.conf"
-#define _PATH_CCDCTL		"ccd.ctl"
+#define _PATH_CCDCONF "/etc/ccd.conf"
+#define _PATH_CCDCTL "ccd.ctl"

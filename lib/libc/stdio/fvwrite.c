@@ -35,8 +35,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "local.h"
+
 #include "fvwrite.h"
+#include "local.h"
 
 /*
  * Write some memory regions.  Return zero on success, EOF on error.
@@ -60,19 +61,19 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 	if (prepwrite(fp) != 0)
 		return (EOF);
 
-#define	MIN(a, b) ((a) < (b) ? (a) : (b))
-#define	COPY(n)	  (void)memcpy((void *)fp->_p, (void *)p, (size_t)(n))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define COPY(n) (void)memcpy((void *)fp->_p, (void *)p, (size_t)(n))
 
 	iov = uio->uio_iov;
 	p = iov->iov_base;
 	len = iov->iov_len;
 	iov++;
-#define GETIOV(extra_work) \
-	while (len == 0) { \
-		extra_work; \
-		p = iov->iov_base; \
+#define GETIOV(extra_work)          \
+	while (len == 0) {          \
+		extra_work;         \
+		p = iov->iov_base;  \
 		len = iov->iov_len; \
-		iov++; \
+		iov++;              \
 	}
 	if (fp->_flags & __SNBF) {
 		/*
@@ -101,7 +102,8 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 		do {
 			GETIOV(;);
 			if ((fp->_flags & (__SALC | __SSTR)) ==
-			    (__SALC | __SSTR) && fp->_w < len) {
+				(__SALC | __SSTR) &&
+			    fp->_w < len) {
 				size_t blen = fp->_p - fp->_bf._base;
 
 				/*
@@ -110,8 +112,8 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 				 */
 				fp->_w = len + 128;
 				fp->_bf._size = blen + len + 128;
-				fp->_bf._base =
-				    reallocf(fp->_bf._base, fp->_bf._size + 1);
+				fp->_bf._base = reallocf(fp->_bf._base,
+				    fp->_bf._size + 1);
 				if (fp->_bf._base == NULL)
 					goto err;
 				fp->_p = fp->_bf._base + blen;
@@ -121,11 +123,11 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 				if (len < w)
 					w = len;
 				if (w > 0) {
-					COPY(w);        /* copy MIN(fp->_w,len), */
+					COPY(w); /* copy MIN(fp->_w,len), */
 					fp->_w -= w;
 					fp->_p += w;
 				}
-				w = len;	/* but pretend copied all */
+				w = len; /* but pretend copied all */
 			} else if (fp->_p > fp->_bf._base && len > w) {
 				/* fill and flush */
 				COPY(w);
@@ -157,7 +159,7 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 		 * that the amount to write is MIN(len,nldist).
 		 */
 		nlknown = 0;
-		nldist = 0;	/* XXX just to keep gcc happy */
+		nldist = 0; /* XXX just to keep gcc happy */
 		do {
 			GETIOV(nlknown = 0);
 			if (!nlknown) {
@@ -176,7 +178,7 @@ __sfvwrite(FILE *fp, struct __suio *uio)
 			} else if (s >= (w = fp->_bf._size)) {
 				w = _swrite(fp, p, w);
 				if (w <= 0)
-				 	goto err;
+					goto err;
 			} else {
 				w = s;
 				COPY(w);

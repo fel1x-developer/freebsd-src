@@ -24,13 +24,14 @@
  */
 
 #include <sys/param.h>
-#include <machine/pc/bios.h>
-#include <machine/metadata.h>
 
-#include "stand.h"
+#include <machine/metadata.h>
+#include <machine/pc/bios.h>
+
+#include "bootstrap.h"
 #include "host_syscall.h"
 #include "kboot.h"
-#include "bootstrap.h"
+#include "stand.h"
 
 /* Refactor when we do arm64 */
 
@@ -45,25 +46,24 @@ enum types {
 	reserved,
 };
 
-struct kv
-{
-	uint64_t	type;
-	char *		name;
+struct kv {
+	uint64_t type;
+	char *name;
 } str2type_kv[] = {
-	{ system_ram,		"System RAM" },
-	{ acpi_tables,		"ACPI Tables" },
-	{ acpi_nv_storage,	"ACPI Non-volatile Storage" },
-	{ unusable,		"Unusable memory" },
-	{ persistent_old,	"Persistent Memory (legacy)" },
-	{ persistent,		"Persistent Memory" },
-	{ soft_reserved,	"Soft Reserved" },
-	{ reserved,		"reserved" },
+	{ system_ram, "System RAM" },
+	{ acpi_tables, "ACPI Tables" },
+	{ acpi_nv_storage, "ACPI Non-volatile Storage" },
+	{ unusable, "Unusable memory" },
+	{ persistent_old, "Persistent Memory (legacy)" },
+	{ persistent, "Persistent Memory" },
+	{ soft_reserved, "Soft Reserved" },
+	{ reserved, "reserved" },
 	{ 0, NULL },
 };
 
 #define MEMMAP "/sys/firmware/memmap"
 
-static struct memory_segments segs[64];	/* make dynamic later */
+static struct memory_segments segs[64]; /* make dynamic later */
 static int nr_seg;
 
 static bool
@@ -111,31 +111,26 @@ enumerate_memory_arch(void)
 #define SZ(s) (((s).end - (s).start) + 1)
 
 static uint64_t
-find_ram(struct memory_segments *segs, int nr_seg, uint64_t minpa, uint64_t align,
-    uint64_t sz, uint64_t maxpa)
+find_ram(struct memory_segments *segs, int nr_seg, uint64_t minpa,
+    uint64_t align, uint64_t sz, uint64_t maxpa)
 {
 	uint64_t start;
 
-	printf("minpa %#jx align %#jx sz %#jx maxpa %#jx\n",
-	    (uintmax_t)minpa,
-	    (uintmax_t)align,
-	    (uintmax_t)sz,
-	    (uintmax_t)maxpa);
+	printf("minpa %#jx align %#jx sz %#jx maxpa %#jx\n", (uintmax_t)minpa,
+	    (uintmax_t)align, (uintmax_t)sz, (uintmax_t)maxpa);
 	/* XXX assume segs are sorted in numeric order -- assumed not ensured */
 	for (int i = 0; i < nr_seg; i++) {
-		if (segs[i].type != system_ram ||
-		    SZ(segs[i]) < sz ||
-		    minpa + sz > segs[i].end ||
-		    maxpa < segs[i].start)
+		if (segs[i].type != system_ram || SZ(segs[i]) < sz ||
+		    minpa + sz > segs[i].end || maxpa < segs[i].start)
 			continue;
 		start = roundup(segs[i].start, align);
-		if (start < minpa)	/* Too small, round up and try again */
+		if (start < minpa) /* Too small, round up and try again */
 			start = (roundup(minpa, align));
-		if (start + sz > segs[i].end)	/* doesn't fit in seg */
+		if (start + sz > segs[i].end) /* doesn't fit in seg */
 			continue;
-		if (start > maxpa ||		/* Over the edge */
-		    start + sz > maxpa)		/* on the edge */
-			break;			/* No hope to continue */
+		if (start > maxpa ||	/* Over the edge */
+		    start + sz > maxpa) /* on the edge */
+			break;		/* No hope to continue */
 		return start;
 	}
 
@@ -176,6 +171,6 @@ bi_loadsmap(struct preloaded_file *kfp)
 		sm->type = SMAP_TYPE_MEMORY;
 	}
 
-        len = smapnum * sizeof(struct bios_smap);
-        file_addmetadata(kfp, MODINFOMD_SMAP, len, &smap[0]);
+	len = smapnum * sizeof(struct bios_smap);
+	file_addmetadata(kfp, MODINFOMD_SMAP, len, &smap[0]);
 }

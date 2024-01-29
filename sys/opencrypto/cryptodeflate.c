@@ -34,25 +34,24 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/malloc.h>
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/sdt.h>
 #include <sys/systm.h>
-#include <contrib/zlib/zlib.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/sdt.h>
 
+#include <contrib/zlib/zlib.h>
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/deflate.h>
 
 SDT_PROVIDER_DECLARE(opencrypto);
-SDT_PROBE_DEFINE2(opencrypto, deflate, deflate_global, entry,
-    "int", "uint32_t");
-SDT_PROBE_DEFINE6(opencrypto, deflate, deflate_global, bad,
-    "int", "int", "int", "int", "int", "int");
-SDT_PROBE_DEFINE6(opencrypto, deflate, deflate_global, iter,
-    "int", "int", "int", "int", "int", "int");
-SDT_PROBE_DEFINE2(opencrypto, deflate, deflate_global, return,
-    "int", "uint32_t");
+SDT_PROBE_DEFINE2(opencrypto, deflate, deflate_global, entry, "int",
+    "uint32_t");
+SDT_PROBE_DEFINE6(opencrypto, deflate, deflate_global, bad, "int", "int", "int",
+    "int", "int", "int");
+SDT_PROBE_DEFINE6(opencrypto, deflate, deflate_global, iter, "int", "int",
+    "int", "int", "int", "int");
+SDT_PROBE_DEFINE2(opencrypto, deflate, deflate_global, return, "int",
+    "uint32_t");
 
 int window_inflate = -1 * MAX_WBITS;
 int window_deflate = -12;
@@ -62,7 +61,7 @@ crypto_zalloc(void *nil, u_int type, u_int size)
 {
 	void *ptr;
 
-	ptr = malloc(type *size, M_CRYPTO_DATA, M_NOWAIT);
+	ptr = malloc(type * size, M_CRYPTO_DATA, M_NOWAIT);
 	return ptr;
 }
 
@@ -96,11 +95,11 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 		i = 1;
 	} else {
 		/*
-	 	 * Choose a buffer with 4x the size of the input buffer
-	 	 * for the size of the output buffer in the case of
-	 	 * decompression. If it's not sufficient, it will need to be
-	 	 * updated while the decompression is going on.
-	 	 */
+		 * Choose a buffer with 4x the size of the input buffer
+		 * for the size of the output buffer in the case of
+		 * decompression. If it's not sufficient, it will need to be
+		 * updated while the decompression is going on.
+		 */
 		i = 4;
 	}
 	/*
@@ -111,11 +110,11 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 	while ((size * i) < 16)
 		i++;
 
-	bufh = bufp = malloc(sizeof(*bufp) + (size_t)(size * i),
-	    M_CRYPTO_DATA, M_NOWAIT);
+	bufh = bufp = malloc(sizeof(*bufp) + (size_t)(size * i), M_CRYPTO_DATA,
+	    M_NOWAIT);
 	if (bufp == NULL) {
-		SDT_PROBE6(opencrypto, deflate, deflate_global, bad,
-		    decomp, 0, __LINE__, 0, 0, 0);
+		SDT_PROBE6(opencrypto, deflate, deflate_global, bad, decomp, 0,
+		    __LINE__, 0, 0, 0);
 		goto bad2;
 	}
 	bufp->next = NULL;
@@ -125,17 +124,17 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 	zbuf.zalloc = crypto_zalloc;
 	zbuf.zfree = crypto_zfree;
 	zbuf.opaque = Z_NULL;
-	zbuf.next_in = data;	/* Data that is going to be processed. */
-	zbuf.avail_in = size;	/* Total length of data to be processed. */
+	zbuf.next_in = data;  /* Data that is going to be processed. */
+	zbuf.avail_in = size; /* Total length of data to be processed. */
 	zbuf.next_out = bufp->data;
 	zbuf.avail_out = bufp->size;
 
 	error = decomp ? inflateInit2(&zbuf, window_inflate) :
-	    deflateInit2(&zbuf, Z_DEFAULT_COMPRESSION, Z_METHOD,
-		    window_deflate, Z_MEMLEVEL, Z_DEFAULT_STRATEGY);
+			 deflateInit2(&zbuf, Z_DEFAULT_COMPRESSION, Z_METHOD,
+			     window_deflate, Z_MEMLEVEL, Z_DEFAULT_STRATEGY);
 	if (error != Z_OK) {
-		SDT_PROBE6(opencrypto, deflate, deflate_global, bad,
-		    decomp, error, __LINE__, 0, 0, 0);
+		SDT_PROBE6(opencrypto, deflate, deflate_global, bad, decomp,
+		    error, __LINE__, 0, 0, 0);
 		goto bad;
 	}
 
@@ -144,13 +143,13 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 				 deflate(&zbuf, Z_FINISH);
 		if (error != Z_OK && error != Z_STREAM_END) {
 			SDT_PROBE6(opencrypto, deflate, deflate_global, bad,
-			    decomp, error, __LINE__,
-			    zbuf.avail_in, zbuf.avail_out, zbuf.total_out);
+			    decomp, error, __LINE__, zbuf.avail_in,
+			    zbuf.avail_out, zbuf.total_out);
 			goto bad;
 		}
-		SDT_PROBE6(opencrypto, deflate, deflate_global, iter,
-		    decomp, error, __LINE__,
-		    zbuf.avail_in, zbuf.avail_out, zbuf.total_out);
+		SDT_PROBE6(opencrypto, deflate, deflate_global, iter, decomp,
+		    error, __LINE__, zbuf.avail_in, zbuf.avail_out,
+		    zbuf.total_out);
 		if (decomp && zbuf.avail_in == 0 && error == Z_STREAM_END) {
 			/* Done. */
 			break;
@@ -176,9 +175,9 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 			zbuf.avail_out = bufp->size;
 		} else {
 			/* Unexpect result. */
-			SDT_PROBE6(opencrypto, deflate, deflate_global,
-			    bad, decomp, error, __LINE__,
-			    zbuf.avail_in, zbuf.avail_out, zbuf.total_out);
+			SDT_PROBE6(opencrypto, deflate, deflate_global, bad,
+			    decomp, error, __LINE__, zbuf.avail_in,
+			    zbuf.avail_out, zbuf.total_out);
 			goto bad;
 		}
 	}
@@ -187,8 +186,8 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 
 	*out = malloc(result, M_CRYPTO_DATA, M_NOWAIT);
 	if (*out == NULL) {
-		SDT_PROBE6(opencrypto, deflate, deflate_global, bad,
-		    decomp, 0, __LINE__, 0, 0, 0);
+		SDT_PROBE6(opencrypto, deflate, deflate_global, bad, decomp, 0,
+		    __LINE__, 0, 0, 0);
 		goto bad;
 	}
 	if (decomp)
@@ -196,7 +195,7 @@ deflate_global(uint8_t *data, uint32_t size, int decomp, uint8_t **out)
 	else
 		deflateEnd(&zbuf);
 	output = *out;
-	for (bufp = bufh; bufp != NULL; ) {
+	for (bufp = bufh; bufp != NULL;) {
 		if (count > bufp->size) {
 			struct deflate_buf *p;
 
@@ -224,7 +223,7 @@ bad:
 		inflateEnd(&zbuf);
 	else
 		deflateEnd(&zbuf);
-	for (bufp = bufh; bufp != NULL; ) {
+	for (bufp = bufh; bufp != NULL;) {
 		struct deflate_buf *p;
 
 		p = bufp;

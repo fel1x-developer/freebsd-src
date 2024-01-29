@@ -63,7 +63,7 @@ con(void)
 	FILE *fd;
 	volatile int tried = 0;
 
-	if (!DU) {		/* regular connect message */
+	if (!DU) { /* regular connect message */
 		if (CM != NOSTR)
 			parwrite(FD, CM, size(CM));
 		logent(value(HOST), "", DV, "call completed");
@@ -105,7 +105,8 @@ con(void)
 			if (conflag)
 				break;
 
-			logent(value(HOST), phnum, acu->acu_name, "call failed");
+			logent(value(HOST), phnum, acu->acu_name,
+			    "call failed");
 			tried++;
 		}
 	} else {
@@ -132,7 +133,8 @@ con(void)
 			if (conflag)
 				break;
 
-			logent(value(HOST), phnum, acu->acu_name, "call failed");
+			logent(value(HOST), phnum, acu->acu_name,
+			    "call failed");
 			tried++;
 		}
 		fclose(fd);

@@ -31,13 +31,13 @@
 
 #define STR_BE_BRANCH "0"
 #define STR_BE_BUILD "9999"
-#define STR_BE_DOT   "0"
+#define STR_BE_DOT "0"
 #define STR_BE_MINOR "0"
 #define STR_BE_MAJOR "0"
 
 #define BE_BRANCH 0
 #define BE_BUILD 9999
-#define BE_DOT   0
+#define BE_DOT 0
 #define BE_MINOR 0
 #define BE_MAJOR 0
 
@@ -48,7 +48,7 @@
 
 #define BE_REDBOOT_VERSION "2.0.5.0"
 
-//start-auto
+// start-auto
 #define BUILD_MONTH "6"
 #define BUILD_MONTH_NAME "June"
 #define BUILD_DAY "12"
@@ -70,13 +70,13 @@
 #undef DOT_BUILD
 #undef NUMBERED_BUILD
 #undef BRANCH_BUILD
-//end-auto
+// end-auto
 
 #define ELX_FCOE_XROM_BIOS_VER "7.03a1"
-#define ELX_FCoE_X86_VER       "4.02a1"
-#define ELX_FCoE_EFI_VER       "5.01a1"
-#define ELX_FCoE_FCODE_VER     "4.01a0"
-#define ELX_PXE_BIOS_VER       "3.00a5"
-#define ELX_UEFI_NIC_VER       "2.10A10"
-#define ELX_UEFI_FCODE_VER     "1.10A1"
-#define ELX_ISCSI_BIOS_VER     "1.00A8"
+#define ELX_FCoE_X86_VER "4.02a1"
+#define ELX_FCoE_EFI_VER "5.01a1"
+#define ELX_FCoE_FCODE_VER "4.01a0"
+#define ELX_PXE_BIOS_VER "3.00a5"
+#define ELX_UEFI_NIC_VER "2.10A10"
+#define ELX_UEFI_FCODE_VER "1.10A1"
+#define ELX_ISCSI_BIOS_VER "1.00A8"

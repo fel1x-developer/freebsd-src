@@ -30,26 +30,23 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 
-#include <arpa/inet.h>
-
 #include <netinet/in.h>
 
-#include <nfs/nfssvc.h>
-
-#include <fs/nfs/rpcv2.h>
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfs.h>
-
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
+#include <fs/nfs/rpcv2.h>
+#include <nfs/nfssvc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#define	DUMPSIZE	10000
+#define DUMPSIZE 10000
 
 static void dump_lockstate(char *);
 static void dump_openstate(void);
@@ -127,21 +124,18 @@ dump_openstate(void)
 	if (nfssvc(NFSSVC_DUMPCLIENTS, &dumplist) < 0)
 		errx(1, "Can't perform dump clients syscall");
 
-	printf("%-13s %9.9s %9.9s %9.9s %9.9s %9.9s %9.9s %-45s %s\n",
-	    "Flags", "OpenOwner", "Open", "LockOwner",
-	    "Lock", "Deleg", "OldDeleg", "Clientaddr", "ClientID");
+	printf("%-13s %9.9s %9.9s %9.9s %9.9s %9.9s %9.9s %-45s %s\n", "Flags",
+	    "OpenOwner", "Open", "LockOwner", "Lock", "Deleg", "OldDeleg",
+	    "Clientaddr", "ClientID");
 	/*
 	 * Loop through results, printing them out.
 	 */
 	cnt = 0;
 	while (dp[cnt].ndcl_clid.nclid_idlen > 0 && cnt < DUMPSIZE) {
 		printf("%-13s ", client_flags(dp[cnt].ndcl_flags));
-		printf("%9d %9d %9d %9d %9d %9d ",
-		    dp[cnt].ndcl_nopenowners,
-		    dp[cnt].ndcl_nopens,
-		    dp[cnt].ndcl_nlockowners,
-		    dp[cnt].ndcl_nlocks,
-		    dp[cnt].ndcl_ndelegs,
+		printf("%9d %9d %9d %9d %9d %9d ", dp[cnt].ndcl_nopenowners,
+		    dp[cnt].ndcl_nopens, dp[cnt].ndcl_nlockowners,
+		    dp[cnt].ndcl_nlocks, dp[cnt].ndcl_ndelegs,
 		    dp[cnt].ndcl_nolddelegs);
 		switch (dp[cnt].ndcl_addrfam) {
 #ifdef INET
@@ -153,7 +147,7 @@ dump_openstate(void)
 #ifdef INET6
 		case AF_INET6:
 			if (inet_ntop(AF_INET6, &dp[cnt].ndcl_cbaddr.sin6_addr,
-			    nbuf, sizeof(nbuf)) != NULL)
+				nbuf, sizeof(nbuf)) != NULL)
 				printf("%-45s ", nbuf);
 			else
 				printf("%-45s ", " ");
@@ -188,10 +182,8 @@ dump_lockstate(char *fname)
 	if (nfssvc(NFSSVC_DUMPLOCKS, &dumplocklist) < 0)
 		errx(1, "Can't dump locks for %s\n", fname);
 
-	printf("%-11s %-36s %-45s %s\n",
-	    "Open/Lock",
-	    "          Stateid or Lock Range",
-	    "Clientaddr",
+	printf("%-11s %-36s %-45s %s\n", "Open/Lock",
+	    "          Stateid or Lock Range", "Clientaddr",
 	    "Owner and ClientID");
 	/*
 	 * Loop through results, printing them out.
@@ -205,8 +197,8 @@ dump_lockstate(char *fname)
 			    lp[cnt].ndlck_stateid.other[0],
 			    lp[cnt].ndlck_stateid.other[1],
 			    lp[cnt].ndlck_stateid.other[2]);
-		else if (lp[cnt].ndlck_flags & (NFSLCK_DELEGREAD |
-		    NFSLCK_DELEGWRITE))
+		else if (lp[cnt].ndlck_flags &
+		    (NFSLCK_DELEGREAD | NFSLCK_DELEGWRITE))
 			printf("%-11s %9d %08x %08x %08x ",
 			    deleg_flags(lp[cnt].ndlck_flags),
 			    lp[cnt].ndlck_stateid.seqid,
@@ -216,8 +208,7 @@ dump_lockstate(char *fname)
 		else
 			printf("%-11s  %17jd %17jd ",
 			    lock_flags(lp[cnt].ndlck_flags),
-			    lp[cnt].ndlck_first,
-			    lp[cnt].ndlck_end);
+			    lp[cnt].ndlck_first, lp[cnt].ndlck_end);
 		switch (lp[cnt].ndlck_addrfam) {
 #ifdef INET
 		case AF_INET:
@@ -228,7 +219,7 @@ dump_lockstate(char *fname)
 #ifdef INET6
 		case AF_INET6:
 			if (inet_ntop(AF_INET6, &lp[cnt].ndlck_cbaddr.sin6_addr,
-			    nbuf, sizeof(nbuf)) != NULL)
+				nbuf, sizeof(nbuf)) != NULL)
 				printf("%-45s ", nbuf);
 			else
 				printf("%-45s ", " ");
@@ -256,7 +247,7 @@ open_flags(uint32_t flags)
 {
 	int i, j;
 
-	strlcpy(flag_string, "Open ", sizeof (flag_string));
+	strlcpy(flag_string, "Open ", sizeof(flag_string));
 	i = 5;
 	if (flags & NFSLCK_READACCESS)
 		flag_string[i++] = 'R';
@@ -281,9 +272,9 @@ deleg_flags(uint32_t flags)
 {
 
 	if (flags & NFSLCK_DELEGREAD)
-		strlcpy(flag_string, "Deleg R", sizeof (flag_string));
+		strlcpy(flag_string, "Deleg R", sizeof(flag_string));
 	else
-		strlcpy(flag_string, "Deleg W", sizeof (flag_string));
+		strlcpy(flag_string, "Deleg W", sizeof(flag_string));
 	return (flag_string);
 }
 
@@ -292,9 +283,9 @@ lock_flags(uint32_t flags)
 {
 
 	if (flags & NFSLCK_READ)
-		strlcpy(flag_string, "Lock R", sizeof (flag_string));
+		strlcpy(flag_string, "Lock R", sizeof(flag_string));
 	else
-		strlcpy(flag_string, "Lock W", sizeof (flag_string));
+		strlcpy(flag_string, "Lock W", sizeof(flag_string));
 	return (flag_string);
 }
 
@@ -304,12 +295,12 @@ client_flags(uint32_t flags)
 
 	flag_string[0] = '\0';
 	if (flags & LCL_NEEDSCONFIRM)
-		strlcat(flag_string, "NC ", sizeof (flag_string));
+		strlcat(flag_string, "NC ", sizeof(flag_string));
 	if (flags & LCL_CALLBACKSON)
-		strlcat(flag_string, "CB ", sizeof (flag_string));
+		strlcat(flag_string, "CB ", sizeof(flag_string));
 	if (flags & LCL_GSS)
-		strlcat(flag_string, "GSS ", sizeof (flag_string));
+		strlcat(flag_string, "GSS ", sizeof(flag_string));
 	if (flags & LCL_ADMINREVOKED)
-		strlcat(flag_string, "REV", sizeof (flag_string));
+		strlcat(flag_string, "REV", sizeof(flag_string));
 	return (flag_string);
 }

@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "thr_private.h"
 
 void

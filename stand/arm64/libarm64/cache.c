@@ -36,8 +36,8 @@
 #include "cache.h"
 
 static long cache_flags;
-#define	CACHE_FLAG_DIC_OFF	(1<<0)
-#define	CACHE_FLAG_IDC_OFF	(1<<1)
+#define CACHE_FLAG_DIC_OFF (1 << 0)
+#define CACHE_FLAG_IDC_OFF (1 << 1)
 
 static bool
 get_cache_dic(uint64_t ctr)
@@ -95,8 +95,10 @@ cpu_flush_dcache(const void *ptr, size_t len)
 		addr = rounddown2(addr, cl_size);
 
 		for (; addr < end; addr += cl_size)
-			__asm __volatile("dc	civac, %0" : : "r" (addr) :
-			    "memory");
+			__asm __volatile("dc	civac, %0"
+					 :
+					 : "r"(addr)
+					 : "memory");
 		/* Full system DSB */
 		dsb(ish);
 	}
@@ -113,11 +115,12 @@ cpu_inval_icache(void)
 	if (get_cache_dic(ctr)) {
 		isb();
 	} else {
-		__asm __volatile(
-		    "ic		ialluis	\n"
-		    "dsb	ish	\n"
-		    "isb		\n"
-		    : : : "memory");
+		__asm __volatile("ic		ialluis	\n"
+				 "dsb	ish	\n"
+				 "isb		\n"
+				 :
+				 :
+				 : "memory");
 	}
 }
 

@@ -34,16 +34,16 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 
 /*
  * Autoconfiguration subroutines.
@@ -53,7 +53,7 @@
  * "Interrupt driven config" functions.
  */
 static STAILQ_HEAD(, intr_config_hook) intr_config_hook_list =
-	STAILQ_HEAD_INITIALIZER(intr_config_hook_list);
+    STAILQ_HEAD_INITIALIZER(intr_config_hook_list);
 static struct intr_config_hook *next_to_notify;
 static struct mtx intr_config_hook_lock;
 MTX_SYSINIT(intr_config_hook, &intr_config_hook_lock, "intr config", MTX_DEF);
@@ -65,10 +65,9 @@ static void run_interrupt_driven_config_hooks(void);
  * Private data and a shim function for implementing config_interhook_oneshot().
  */
 struct oneshot_config_hook {
-	struct intr_config_hook 
-			och_hook;		/* Must be first */
-	ich_func_t	och_func;
-	void		*och_arg;
+	struct intr_config_hook och_hook; /* Must be first */
+	ich_func_t och_func;
+	void *och_arg;
 };
 
 static void
@@ -86,7 +85,7 @@ config_intrhook_oneshot_func(void *arg)
  * If we wait too long for an interrupt-driven config hook to return, print
  * a diagnostic.
  */
-#define	WARNING_INTERVAL_SECS	60
+#define WARNING_INTERVAL_SECS 60
 static void
 run_interrupt_driven_config_hooks_warning(int warned)
 {
@@ -96,11 +95,12 @@ run_interrupt_driven_config_hooks_warning(int warned)
 
 	if (warned < 6) {
 		printf("run_interrupt_driven_hooks: still waiting after %d "
-		    "seconds for", warned * WARNING_INTERVAL_SECS);
-		STAILQ_FOREACH(hook_entry, &intr_config_hook_list, ich_links) {
+		       "seconds for",
+		    warned * WARNING_INTERVAL_SECS);
+		STAILQ_FOREACH (hook_entry, &intr_config_hook_list, ich_links) {
 			if (linker_search_symbol_name(
-			    (caddr_t)hook_entry->ich_func, namebuf,
-			    sizeof(namebuf), &offset) == 0)
+				(caddr_t)hook_entry->ich_func, namebuf,
+				sizeof(namebuf), &offset) == 0)
 				printf(" %s", namebuf);
 			else
 				printf(" %p", hook_entry->ich_func);
@@ -158,9 +158,8 @@ boot_run_interrupt_driven_config_hooks(void *dummy)
 	mtx_lock(&intr_config_hook_lock);
 	warned = 0;
 	while (!STAILQ_EMPTY(&intr_config_hook_list)) {
-		if (msleep(&intr_config_hook_list, &intr_config_hook_lock,
-		    0, "conifhk", WARNING_INTERVAL_SECS * hz) ==
-		    EWOULDBLOCK) {
+		if (msleep(&intr_config_hook_list, &intr_config_hook_lock, 0,
+			"conifhk", WARNING_INTERVAL_SECS * hz) == EWOULDBLOCK) {
 			mtx_unlock(&intr_config_hook_lock);
 			warned++;
 			run_interrupt_driven_config_hooks_warning(warned);
@@ -172,7 +171,7 @@ boot_run_interrupt_driven_config_hooks(void *dummy)
 }
 
 SYSINIT(intr_config_hooks, SI_SUB_INT_CONFIG_HOOKS, SI_ORDER_FIRST,
-	boot_run_interrupt_driven_config_hooks, NULL);
+    boot_run_interrupt_driven_config_hooks, NULL);
 
 /*
  * Register a hook that will be called after "cold"
@@ -186,7 +185,7 @@ config_intrhook_establish(struct intr_config_hook *hook)
 
 	TSHOLD("config hooks");
 	mtx_lock(&intr_config_hook_lock);
-	STAILQ_FOREACH(hook_entry, &intr_config_hook_list, ich_links)
+	STAILQ_FOREACH (hook_entry, &intr_config_hook_list, ich_links)
 		if (hook_entry == hook)
 			break;
 	if (hook_entry != NULL) {
@@ -206,7 +205,7 @@ config_intrhook_establish(struct intr_config_hook *hook)
 		 *     to be re-entered at the time a hook is established.
 		 */
 		/* XXX Sufficient for modules loaded after initial config??? */
-		run_interrupt_driven_config_hooks();	
+		run_interrupt_driven_config_hooks();
 	return (0);
 }
 
@@ -220,9 +219,9 @@ config_intrhook_oneshot(ich_func_t func, void *arg)
 
 	ohook = malloc(sizeof(*ohook), M_DEVBUF, M_WAITOK);
 	ohook->och_func = func;
-	ohook->och_arg  = arg;
+	ohook->och_arg = arg;
 	ohook->och_hook.ich_func = config_intrhook_oneshot_func;
-	ohook->och_hook.ich_arg  = ohook;
+	ohook->och_hook.ich_arg = ohook;
 	config_intrhook_establish(&ohook->och_hook);
 }
 
@@ -231,7 +230,7 @@ config_intrhook_disestablish_locked(struct intr_config_hook *hook)
 {
 	struct intr_config_hook *hook_entry;
 
-	STAILQ_FOREACH(hook_entry, &intr_config_hook_list, ich_links)
+	STAILQ_FOREACH (hook_entry, &intr_config_hook_list, ich_links)
 		if (hook_entry == hook)
 			break;
 	if (hook_entry == NULL)
@@ -240,7 +239,8 @@ config_intrhook_disestablish_locked(struct intr_config_hook *hook)
 
 	if (next_to_notify == hook)
 		next_to_notify = STAILQ_NEXT(hook, ich_links);
-	STAILQ_REMOVE(&intr_config_hook_list, hook, intr_config_hook, ich_links);
+	STAILQ_REMOVE(&intr_config_hook_list, hook, intr_config_hook,
+	    ich_links);
 	TSRELEASE("config hooks");
 
 	/* Wakeup anyone watching the list */
@@ -282,8 +282,8 @@ config_intrhook_drain(struct intr_config_hook *hook)
 	 * The config hook is running, so wait for it to complete and return.
 	 */
 	while (hook->ich_state != ICHS_DONE) {
-		if (msleep(&intr_config_hook_list, &intr_config_hook_lock,
-		    0, "confhd", hz) == EWOULDBLOCK) {
+		if (msleep(&intr_config_hook_list, &intr_config_hook_lock, 0,
+			"confhd", hz) == EWOULDBLOCK) {
 			// XXX do I whine?
 		}
 	}
@@ -300,10 +300,9 @@ DB_SHOW_COMMAND_FLAGS(conifhk, db_show_conifhk, DB_CMD_MEMSAFE)
 	char namebuf[64];
 	long offset;
 
-	STAILQ_FOREACH(hook_entry, &intr_config_hook_list, ich_links) {
-		if (linker_ddb_search_symbol_name(
-		    (caddr_t)hook_entry->ich_func, namebuf, sizeof(namebuf),
-		    &offset) == 0) {
+	STAILQ_FOREACH (hook_entry, &intr_config_hook_list, ich_links) {
+		if (linker_ddb_search_symbol_name((caddr_t)hook_entry->ich_func,
+			namebuf, sizeof(namebuf), &offset) == 0) {
 			db_printf("hook: %p at %s+%#lx arg: %p\n",
 			    hook_entry->ich_func, namebuf, offset,
 			    hook_entry->ich_arg);

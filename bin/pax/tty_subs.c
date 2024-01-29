@@ -35,21 +35,23 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include "pax.h"
-#include "extern.h"
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "extern.h"
+#include "pax.h"
 
 /*
  * routines that deal with I/O to and from the user
  */
 
-#define DEVTTY	  "/dev/tty"      /* device for interactive i/o */
-static FILE *ttyoutf = NULL;		/* output pointing at control tty */
-static FILE *ttyinf = NULL;		/* input pointing at control tty */
+#define DEVTTY "/dev/tty"    /* device for interactive i/o */
+static FILE *ttyoutf = NULL; /* output pointing at control tty */
+static FILE *ttyinf = NULL;  /* input pointing at control tty */
 
 /*
  * tty_init()
@@ -65,7 +67,7 @@ tty_init(void)
 	if ((ttyfd = open(DEVTTY, O_RDWR)) >= 0) {
 		if ((ttyoutf = fdopen(ttyfd, "w")) != NULL) {
 			if ((ttyinf = fdopen(ttyfd, "r")) != NULL)
-				return(0);
+				return (0);
 			(void)fclose(ttyoutf);
 		}
 		(void)close(ttyfd);
@@ -73,9 +75,9 @@ tty_init(void)
 
 	if (iflag) {
 		paxwarn(1, "Fatal error, cannot open %s", DEVTTY);
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -109,8 +111,9 @@ tty_read(char *str, int len)
 {
 	char *pt;
 
-	if ((--len <= 0) || (ttyinf == NULL) || (fgets(str,len,ttyinf) == NULL))
-		return(-1);
+	if ((--len <= 0) || (ttyinf == NULL) ||
+	    (fgets(str, len, ttyinf) == NULL))
+		return (-1);
 	*(str + len) = '\0';
 
 	/*
@@ -118,7 +121,7 @@ tty_read(char *str, int len)
 	 */
 	if ((pt = strchr(str, '\n')) != NULL)
 		*pt = '\0';
-	return(0);
+	return (0);
 }
 
 /*

@@ -32,10 +32,6 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <ufs/ufs/dir.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <protocols/dumprestore.h>
 
 #include <assert.h>
@@ -47,6 +43,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <timeconv.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/dir.h>
 #include <unistd.h>
 
 #include "dump.h"
@@ -55,31 +54,32 @@ union dinode {
 	struct ufs1_dinode dp1;
 	struct ufs2_dinode dp2;
 };
-#define	DIP(dp, field) \
-	((sblock->fs_magic == FS_UFS1_MAGIC) ? \
-	(dp)->dp1.field : (dp)->dp2.field)
-#define DIP_SET(dp, field, val) do {\
-	if (sblock->fs_magic == FS_UFS1_MAGIC) \
-		(dp)->dp1.field = (val); \
-	else \
-		(dp)->dp2.field = (val); \
+#define DIP(dp, field)                                           \
+	((sblock->fs_magic == FS_UFS1_MAGIC) ? (dp)->dp1.field : \
+					       (dp)->dp2.field)
+#define DIP_SET(dp, field, val)                        \
+	do {                                           \
+		if (sblock->fs_magic == FS_UFS1_MAGIC) \
+			(dp)->dp1.field = (val);       \
+		else                                   \
+			(dp)->dp2.field = (val);       \
 	} while (0)
 
-#define	HASDUMPEDFILE	0x1
-#define	HASSUBDIRS	0x2
+#define HASDUMPEDFILE 0x1
+#define HASSUBDIRS 0x2
 
-static	int dirindir(ino_t ino, ufs2_daddr_t blkno, int level, long *size,
+static int dirindir(ino_t ino, ufs2_daddr_t blkno, int level, long *size,
     long *tapesize, int nodump, ino_t maxino);
-static	void dmpindir(union dinode *dp, ino_t ino, ufs2_daddr_t blk, int level,
+static void dmpindir(union dinode *dp, ino_t ino, ufs2_daddr_t blk, int level,
     off_t *size);
-static	void ufs1_blksout(ufs1_daddr_t *blkp, int frags, ino_t ino);
-static	void ufs2_blksout(union dinode *dp, ufs2_daddr_t *blkp, int frags,
+static void ufs1_blksout(ufs1_daddr_t *blkp, int frags, ino_t ino);
+static void ufs2_blksout(union dinode *dp, ufs2_daddr_t *blkp, int frags,
     ino_t ino, int last);
-static	int appendextdata(union dinode *dp);
-static	void writeextdata(union dinode *dp, ino_t ino, int added);
-static	int searchdir(ino_t ino, ufs2_daddr_t blkno, long size, long filesize,
+static int appendextdata(union dinode *dp);
+static void writeextdata(union dinode *dp, ino_t ino, int added);
+static int searchdir(ino_t ino, ufs2_daddr_t blkno, long size, long filesize,
     long *tapesize, int nodump, ino_t maxino);
-static	long blockest(union dinode *dp);
+static long blockest(union dinode *dp);
 
 /*
  * This is an estimation of the number of TP_BSIZE blocks in the file.
@@ -116,22 +116,23 @@ blockest(union dinode *dp)
 	if (DIP(dp, di_size) > sblock->fs_bsize * UFS_NDADDR) {
 		/* calculate the number of indirect blocks on the dump tape */
 		blkest += howmany(sizeest -
-		    UFS_NDADDR * sblock->fs_bsize / TP_BSIZE, TP_NINDIR);
+			UFS_NDADDR * sblock->fs_bsize / TP_BSIZE,
+		    TP_NINDIR);
 	}
 	return (blkest + 1);
 }
 
 /* Auxiliary macro to pick up files changed since previous dump. */
-#define	CHANGEDSINCE(dp, t) \
+#define CHANGEDSINCE(dp, t) \
 	(DIP(dp, di_mtime) >= (t) || DIP(dp, di_ctime) >= (t))
 
 /* The WANTTODUMP macro decides whether a file should be dumped. */
 #ifdef UF_NODUMP
-#define	WANTTODUMP(dp) \
+#define WANTTODUMP(dp)                     \
 	(CHANGEDSINCE(dp, spcl.c_ddate) && \
-	 (nonodump || (DIP(dp, di_flags) & UF_NODUMP) != UF_NODUMP))
+	    (nonodump || (DIP(dp, di_flags) & UF_NODUMP) != UF_NODUMP))
 #else
-#define	WANTTODUMP(dp) CHANGEDSINCE(dp, spcl.c_ddate)
+#define WANTTODUMP(dp) CHANGEDSINCE(dp, spcl.c_ddate)
 #endif
 
 /*
@@ -172,7 +173,7 @@ mapfiles(ino_t maxino, long *tapesize)
 			if (!cg_chkmagic(cgp))
 				quit("mapfiles: cg %d: bad magic number\n", cg);
 			cp = &cg_inosused(cgp)[(inosused - 1) / CHAR_BIT];
-			for ( ; inosused > 0; inosused -= CHAR_BIT, cp--) {
+			for (; inosused > 0; inosused -= CHAR_BIT, cp--) {
 				if (*cp == 0)
 					continue;
 				for (i = 1 << (CHAR_BIT - 1); i > 0; i >>= 1) {
@@ -206,8 +207,7 @@ mapfiles(ino_t maxino, long *tapesize)
 				SETINO(ino, dumpdirmap);
 			if (WANTTODUMP(dp)) {
 				SETINO(ino, dumpinomap);
-				if (mode != IFREG &&
-				    mode != IFDIR &&
+				if (mode != IFREG && mode != IFDIR &&
 				    mode != IFLNK)
 					*tapesize += 1;
 				else
@@ -253,9 +253,9 @@ mapdirs(ino_t maxino, long *tapesize)
 	long filesize;
 	int ret, change = 0;
 
-	isdir = 0;		/* XXX just to get gcc to shut up */
+	isdir = 0; /* XXX just to get gcc to shut up */
 	for (map = dumpdirmap, ino = 1; ino < maxino; ino++) {
-		if (((ino - 1) % CHAR_BIT) == 0)	/* map is offset by 1 */
+		if (((ino - 1) % CHAR_BIT) == 0) /* map is offset by 1 */
 			isdir = *map++;
 		else
 			isdir >>= 1;
@@ -282,7 +282,8 @@ mapdirs(ino_t maxino, long *tapesize)
 			if (DIP(&di, di_db[i]) != 0)
 				ret |= searchdir(ino, DIP(&di, di_db[i]),
 				    (long)sblksize(sblock, DIP(&di, di_size),
-				    i), filesize, tapesize, nodump, maxino);
+					i),
+				    filesize, tapesize, nodump, maxino);
 			if (ret & HASDUMPEDFILE)
 				filesize = 0;
 			else
@@ -302,7 +303,7 @@ mapdirs(ino_t maxino, long *tapesize)
 		}
 		if (nodump) {
 			if (ret & HASSUBDIRS)
-				change = 1;	/* subdirs inherit nodump */
+				change = 1; /* subdirs inherit nodump */
 			CLRINO(ino, dumpdirmap);
 		} else if ((ret & HASSUBDIRS) == 0)
 			if (!TSTINO(ino, dumpinomap)) {
@@ -319,14 +320,8 @@ mapdirs(ino_t maxino, long *tapesize)
  * require the directory to be dumped.
  */
 static int
-dirindir(
-	ino_t ino,
-	ufs2_daddr_t blkno,
-	int ind_level,
-	long *filesize,
-	long *tapesize,
-	int nodump,
-	ino_t maxino)
+dirindir(ino_t ino, ufs2_daddr_t blkno, int ind_level, long *filesize,
+    long *tapesize, int nodump, ino_t maxino)
 {
 	union {
 		ufs1_daddr_t ufs1[MAXBSIZE / sizeof(ufs1_daddr_t)];
@@ -344,7 +339,7 @@ dirindir(
 				blkno = idblk.ufs2[i];
 			if (blkno != 0)
 				ret |= searchdir(ino, blkno, sblock->fs_bsize,
-					*filesize, tapesize, nodump, maxino);
+				    *filesize, tapesize, nodump, maxino);
 			if (ret & HASDUMPEDFILE)
 				*filesize = 0;
 			else
@@ -371,14 +366,8 @@ dirindir(
  * contains any subdirectories.
  */
 static int
-searchdir(
-	ino_t ino,
-	ufs2_daddr_t blkno,
-	long size,
-	long filesize, 
-	long *tapesize,
-	int nodump,
-	ino_t maxino)
+searchdir(ino_t ino, ufs2_daddr_t blkno, long size, long filesize,
+    long *tapesize, int nodump, ino_t maxino)
 {
 	int mode;
 	struct direct *dp;
@@ -391,7 +380,7 @@ searchdir(
 	blkread(fsbtodb(sblock, blkno), dblk, (int)size);
 	if (filesize < size)
 		size = filesize;
-	for (loc = 0; loc < size; ) {
+	for (loc = 0; loc < size;) {
 		dp = (struct direct *)(dblk + loc);
 		if (dp->d_reclen == 0) {
 			msg("corrupted directory, inumber %ju\n",
@@ -571,7 +560,7 @@ dumpino(union dinode *dp, ino_t ino)
  */
 static void
 dmpindir(union dinode *dp, ino_t ino, ufs2_daddr_t blk, int ind_level,
-	off_t *size)
+    off_t *size)
 {
 	union {
 		ufs1_daddr_t ufs1[MAXBSIZE / sizeof(ufs1_daddr_t)];
@@ -651,7 +640,7 @@ ufs1_blksout(ufs1_daddr_t *blkp, int frags, ino_t ino)
  */
 static void
 ufs2_blksout(union dinode *dp, ufs2_daddr_t *blkp, int frags, ino_t ino,
-	int last)
+    int last)
 {
 	ufs2_daddr_t *bp;
 	int i, j, count, resid, blks, tbperdb, added;
@@ -747,9 +736,9 @@ appendextdata(union dinode *dp)
 	assert(spcl.c_count + blks <= TP_NINDIR);
 	for (i = 0; i < blks; i++)
 		if (&dp->dp2.di_extb[i / tbperdb] != 0)
-				spcl.c_addr[spcl.c_count + i] = 1;
-			else
-				spcl.c_addr[spcl.c_count + i] = 0;
+			spcl.c_addr[spcl.c_count + i] = 1;
+		else
+			spcl.c_addr[spcl.c_count + i] = 0;
 	spcl.c_count += blks;
 	return (blks);
 }
@@ -800,7 +789,6 @@ writeextdata(union dinode *dp, ino_t ino, int added)
 					dumpblock(*bp, (blks - i) * TP_BSIZE);
 			}
 		}
-
 	}
 	/*
 	 * If an indirect block is added for extended attributes, then
@@ -896,8 +884,8 @@ gotit:
  * Error recovery is attempted at most BREADEMAX times before seeking
  * consent from the operator to continue.
  */
-int	breaderrors = 0;
-#define	BREADEMAX 32
+int breaderrors = 0;
+#define BREADEMAX 32
 
 void
 blkread(ufs2_daddr_t blkno, char *buf, int size)
@@ -966,17 +954,17 @@ bad:
 		goto loop;
 	}
 	if (cnt == -1)
-		msg("read error from %s: %s: [block %jd]: count=%d\n",
-			disk, strerror(errno), (intmax_t)blkno, size);
+		msg("read error from %s: %s: [block %jd]: count=%d\n", disk,
+		    strerror(errno), (intmax_t)blkno, size);
 	else
 		msg("short read error from %s: [block %jd]: count=%d, got=%d\n",
-			disk, (intmax_t)blkno, size, cnt);
+		    disk, (intmax_t)blkno, size, cnt);
 	if (++breaderrors > BREADEMAX) {
-		msg("More than %d block read errors from %s\n",
-			BREADEMAX, disk);
+		msg("More than %d block read errors from %s\n", BREADEMAX,
+		    disk);
 		broadcast("DUMP IS AILING!\n");
 		msg("This is an unrecoverable error.\n");
-		if (!query("Do you want to attempt to continue?")){
+		if (!query("Do you want to attempt to continue?")) {
 			dumpabort(0);
 			/*NOTREACHED*/
 		} else
@@ -989,7 +977,7 @@ bad:
 	memset(buf, 0, size);
 	for (i = 0; i < size; i += dev_bsize, buf += dev_bsize, blkno++) {
 		if ((cnt = pread(diskfd, buf, (int)dev_bsize,
-		    ((off_t)blkno << dev_bshift))) == dev_bsize)
+			 ((off_t)blkno << dev_bshift))) == dev_bsize)
 			continue;
 		if (cnt == -1) {
 			msg("read error from %s: %s: [sector %jd]: count=%ld\n",

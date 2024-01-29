@@ -19,15 +19,15 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
+#include "ah_internal.h"
 #ifdef AH_DEBUG
-#include "ah_desc.h"			/* NB: for HAL_PHYERR* */
+#include "ah_desc.h" /* NB: for HAL_PHYERR* */
 #endif
 
 #include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
 /*
  * Read 16 bits of data from offset into *data
@@ -39,8 +39,8 @@ ar5212EepromRead(struct ath_hal *ah, u_int off, uint16_t *data)
 	OS_REG_WRITE(ah, AR_EEPROM_CMD, AR_EEPROM_CMD_READ);
 
 	if (!ath_hal_wait(ah, AR_EEPROM_STS,
-	    AR_EEPROM_STS_READ_COMPLETE | AR_EEPROM_STS_READ_ERROR,
-	    AR_EEPROM_STS_READ_COMPLETE)) {
+		AR_EEPROM_STS_READ_COMPLETE | AR_EEPROM_STS_READ_ERROR,
+		AR_EEPROM_STS_READ_COMPLETE)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: read failed for entry 0x%x\n",
 		    __func__, off);
 		return AH_FALSE;

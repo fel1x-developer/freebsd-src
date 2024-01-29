@@ -32,24 +32,21 @@
  * SUCH DAMAGE.
  */
 
-
-#include <sys/capsicum.h>
 #include <sys/types.h>
+#include <sys/capsicum.h>
 #include <sys/stat.h>
 
 #include <capsicum_helpers.h>
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
+#include <libcasper.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libutil.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -59,16 +56,13 @@ fileargs_t *fa;
 static void obsolete(char **);
 static void usage(void) __dead2;
 
-static const struct option long_opts[] =
-{
-	{"blocks",	required_argument,	NULL, 'b'},
-	{"bytes",	required_argument,	NULL, 'c'},
-	{"lines",	required_argument,	NULL, 'n'},
-	{"quiet",	no_argument,		NULL, 'q'},
-	{"silent",	no_argument,		NULL, 'q'},
-	{"verbose",	no_argument,		NULL, 'v'},
-	{NULL,		no_argument,		NULL, 0}
-};
+static const struct option long_opts[] = { { "blocks", required_argument, NULL,
+					       'b' },
+	{ "bytes", required_argument, NULL, 'c' },
+	{ "lines", required_argument, NULL, 'n' },
+	{ "quiet", no_argument, NULL, 'q' },
+	{ "silent", no_argument, NULL, 'q' },
+	{ "verbose", no_argument, NULL, 'v' }, { NULL, no_argument, NULL, 0 } };
 
 int
 main(int argc, char *argv[])
@@ -94,35 +88,36 @@ main(int argc, char *argv[])
 	 * number of characters in reverse order.  Finally, the default for
 	 * -r is the entire file, not 10 lines.
 	 */
-#define	ARG(units, forward, backward) {					\
-	if (style)							\
-		usage();						\
-	if (expand_number(optarg, &off))				\
-		err(1, "illegal offset -- %s", optarg);			\
-	if (off > INT64_MAX / units || off < INT64_MIN / units )	\
-		errx(1, "illegal offset -- %s", optarg);		\
-	switch(optarg[0]) {						\
-	case '+':							\
-		if (off)						\
-			off -= (units);					\
-		style = (forward);					\
-		break;							\
-	case '-':							\
-		off = -off;						\
-		/* FALLTHROUGH */					\
-	default:							\
-		style = (backward);					\
-		break;							\
-	}								\
-}
+#define ARG(units, forward, backward)                                   \
+	{                                                               \
+		if (style)                                              \
+			usage();                                        \
+		if (expand_number(optarg, &off))                        \
+			err(1, "illegal offset -- %s", optarg);         \
+		if (off > INT64_MAX / units || off < INT64_MIN / units) \
+			errx(1, "illegal offset -- %s", optarg);        \
+		switch (optarg[0]) {                                    \
+		case '+':                                               \
+			if (off)                                        \
+				off -= (units);                         \
+			style = (forward);                              \
+			break;                                          \
+		case '-':                                               \
+			off = -off;                                     \
+			/* FALLTHROUGH */                               \
+		default:                                                \
+			style = (backward);                             \
+			break;                                          \
+		}                                                       \
+	}
 
 	obsolete(argv);
 	style = NOTSET;
 	off = 0;
-	while ((ch = getopt_long(argc, argv, "+Fb:c:fn:qrv", long_opts, NULL)) !=
-	    -1)
-		switch(ch) {
-		case 'F':	/* -F is superset of (and implies) -f */
+	while ((ch = getopt_long(argc, argv, "+Fb:c:fn:qrv", long_opts,
+		    NULL)) != -1)
+		switch (ch) {
+		case 'F': /* -F is superset of (and implies) -f */
 			Fflag = fflag = 1;
 			break;
 		case 'b':
@@ -157,8 +152,7 @@ main(int argc, char *argv[])
 
 	no_files = argc ? argc : 1;
 
-	cap_rights_init(&rights, CAP_FSTAT, CAP_FSTATFS, CAP_FCNTL,
-	    CAP_MMAP_R);
+	cap_rights_init(&rights, CAP_FSTAT, CAP_FSTATFS, CAP_FCNTL, CAP_MMAP_R);
 	if (fflag)
 		cap_rights_set(&rights, CAP_EVENT);
 	if (caph_rights_limit(STDIN_FILENO, &rights) < 0 ||
@@ -203,7 +197,8 @@ main(int argc, char *argv[])
 	if (*argv && fflag) {
 		files = malloc(no_files * sizeof(struct file_info));
 		if (files == NULL)
-			err(1, "failed to allocate memory for file descriptors");
+			err(1,
+			    "failed to allocate memory for file descriptors");
 
 		for (filep = files; (fn = *argv++); filep++) {
 			filep->file_name = fn;
@@ -252,7 +247,7 @@ main(int argc, char *argv[])
 		if (lseek(fileno(stdin), (off_t)0, SEEK_CUR) == -1 &&
 		    errno == ESPIPE) {
 			errno = 0;
-			fflag = 0;		/* POSIX.2 requires this. */
+			fflag = 0; /* POSIX.2 requires this. */
 		}
 
 		if (rflag) {
@@ -290,10 +285,18 @@ obsolete(char *argv[])
 		} else if (ap[1] == '-')
 			return;
 
-		switch(*++ap) {
+		switch (*++ap) {
 		/* Old-style option. */
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 
 			/* Malloc space for dash, new option and argument. */
 			len = strlen(*argv);
@@ -311,7 +314,7 @@ obsolete(char *argv[])
 				*p++ = *t;
 				*t-- = '\0';
 			}
-			switch(*t) {
+			switch (*t) {
 			case 'b':
 				*p++ = 'b';
 				*t = '\0';
@@ -323,8 +326,16 @@ obsolete(char *argv[])
 			case 'l':
 				*t = '\0';
 				/* FALLTHROUGH */
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
 				*p++ = 'n';
 				break;
 			default:

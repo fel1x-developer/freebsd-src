@@ -52,8 +52,8 @@
  * strings produced by the __STRING macro, but this only works with ANSI C.
  */
 
-#define	___STRING(x)	__STRING(x)
-#define	___CONCAT(x,y)	__CONCAT(x,y)
+#define ___STRING(x) __STRING(x)
+#define ___CONCAT(x, y) __CONCAT(x, y)
 
 /*
  * The following macro is used to remove const cast-away warnings
@@ -64,21 +64,23 @@
  * explicit about unsigned long so that we don't have additional
  * dependencies.
  */
-#define __UNCONST(a)	((void *)(unsigned long)(const void *)(a))
+#define __UNCONST(a) ((void *)(unsigned long)(const void *)(a))
 
 /*
  * Return the number of elements in a statically-allocated array,
  * __x.
  */
-#define	__arraycount(__x)	(sizeof(__x) / sizeof(__x[0]))
+#define __arraycount(__x) (sizeof(__x) / sizeof(__x[0]))
 
 /* __BIT(n): nth bit, where __BIT(0) == 0x1. */
-#define	__BIT(__n)	\
-    (((uintmax_t)(__n) >= NBBY * sizeof(uintmax_t)) ? 0 : \
-    ((uintmax_t)1 << (uintmax_t)((__n) & (NBBY * sizeof(uintmax_t) - 1))))
+#define __BIT(__n)                                        \
+	(((uintmax_t)(__n) >= NBBY * sizeof(uintmax_t)) ? \
+		0 :                                       \
+		((uintmax_t)1                             \
+		    << (uintmax_t)((__n) & (NBBY * sizeof(uintmax_t) - 1))))
 
 /* __BITS(m, n): bits m through n, m < n. */
-#define	__BITS(__m, __n)	\
+#define __BITS(__m, __n) \
 	((__BIT(MAX((__m), (__n)) + 1) - 1) ^ (__BIT(MIN((__m), (__n))) - 1))
 
 #endif /* _LIBNETBSD_SYS_CDEFS_H_ */

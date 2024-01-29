@@ -55,68 +55,68 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _OPENFIRM_H_
-#define	_OPENFIRM_H_
+#define _OPENFIRM_H_
 /*
  * Prototypes for Open Firmware Interface Routines
  */
 
 #include <sys/types.h>
 
-typedef uint32_t		ihandle_t;
-typedef uint32_t		phandle_t;
-typedef uint32_t		cell_t;
+typedef uint32_t ihandle_t;
+typedef uint32_t phandle_t;
+typedef uint32_t cell_t;
 
-extern int		(*openfirmware)(void *);
-extern phandle_t	chosen;
-extern ihandle_t	memory, mmu;
-extern int		real_mode;
+extern int (*openfirmware)(void *);
+extern phandle_t chosen;
+extern ihandle_t memory, mmu;
+extern int real_mode;
 
 /*
  * This isn't actually an Open Firmware function, but it seemed like the right
  * place for it to go.
  */
-void		OF_init(int (*openfirm)(void *));
+void OF_init(int (*openfirm)(void *));
 
 /* Generic functions */
-int		OF_test(char *);
-void		OF_quiesce(); /* Disable firmware */
+int OF_test(char *);
+void OF_quiesce(); /* Disable firmware */
 
 /* Device tree functions */
-phandle_t	OF_peer(phandle_t);
-phandle_t	OF_child(phandle_t);
-phandle_t	OF_parent(phandle_t);
-phandle_t	OF_instance_to_package(ihandle_t);
-int		OF_getproplen(phandle_t, const char *);
-int		OF_getprop(phandle_t, const char *, void *, int);
-int		OF_getencprop(phandle_t, const char *, cell_t *, int);
-int		OF_nextprop(phandle_t, const char *, char *);
-int		OF_setprop(phandle_t, const char *, void *, int);
-int		OF_canon(const char *, char *, int);
-phandle_t	OF_finddevice(const char *);
-int		OF_instance_to_path(ihandle_t, char *, int);
-int		OF_package_to_path(phandle_t, char *, int);
-int		OF_call_method(char *, ihandle_t, int, int, ...);
+phandle_t OF_peer(phandle_t);
+phandle_t OF_child(phandle_t);
+phandle_t OF_parent(phandle_t);
+phandle_t OF_instance_to_package(ihandle_t);
+int OF_getproplen(phandle_t, const char *);
+int OF_getprop(phandle_t, const char *, void *, int);
+int OF_getencprop(phandle_t, const char *, cell_t *, int);
+int OF_nextprop(phandle_t, const char *, char *);
+int OF_setprop(phandle_t, const char *, void *, int);
+int OF_canon(const char *, char *, int);
+phandle_t OF_finddevice(const char *);
+int OF_instance_to_path(ihandle_t, char *, int);
+int OF_package_to_path(phandle_t, char *, int);
+int OF_call_method(char *, ihandle_t, int, int, ...);
 
 /* Device I/O functions */
-ihandle_t	OF_open(char *);
-void		OF_close(ihandle_t);
-int		OF_read(ihandle_t, void *, int);
-int		OF_write(ihandle_t, void *, int);
-int		OF_seek(ihandle_t, u_quad_t);
-unsigned int	OF_blocks(ihandle_t);
-int		OF_block_size(ihandle_t);
+ihandle_t OF_open(char *);
+void OF_close(ihandle_t);
+int OF_read(ihandle_t, void *, int);
+int OF_write(ihandle_t, void *, int);
+int OF_seek(ihandle_t, u_quad_t);
+unsigned int OF_blocks(ihandle_t);
+int OF_block_size(ihandle_t);
 
 /* Memory functions */
-void 		*OF_claim(void *, u_int, u_int);
-void		OF_release(void *, u_int);
+void *OF_claim(void *, u_int, u_int);
+void OF_release(void *, u_int);
 
 /* Control transfer functions */
-void		OF_boot(char *);
-void		OF_enter(void);
-void		OF_exit(void) __attribute__((noreturn));
-void		OF_chain(void *, u_int, void (*)(), void *, u_int);
+void OF_boot(char *);
+void OF_enter(void);
+void OF_exit(void) __attribute__((noreturn));
+void OF_chain(void *, u_int, void (*)(), void *, u_int);
 
 /* Time function */
-int		OF_milliseconds(void);
+int OF_milliseconds(void);
 
 #endif /* _OPENFIRM_H_ */

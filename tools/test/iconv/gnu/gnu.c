@@ -25,8 +25,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 
 #include <err.h>
 #include <errno.h>
@@ -40,12 +40,12 @@ static bool uc_hook = false;
 static bool wc_hook = false;
 static bool mb_uc_fb = false;
 
-void	 unicode_hook(unsigned int mbr, void *data);
-void	 wchar_hook(wchar_t wc, void *data);
+void unicode_hook(unsigned int mbr, void *data);
+void wchar_hook(wchar_t wc, void *data);
 
-void    mb_to_uc_fb(const char *, size_t,
-            void (*write_replacement) (const unsigned int *, size_t, void *),
-            void *, void *);
+void mb_to_uc_fb(const char *, size_t,
+    void (*write_replacement)(const unsigned int *, size_t, void *), void *,
+    void *);
 
 static int
 ctl_get_translit1(void)
@@ -117,7 +117,7 @@ static int
 ctl_get_discard_ilseq1(void)
 {
 	iconv_t cd;
-        int arg, ret;
+	int arg, ret;
 
 	cd = iconv_open("ASCII", "UTF-8");
 	if (cd == (iconv_t)-1)
@@ -168,11 +168,11 @@ static int
 ctl_set_discard_ilseq2(void)
 {
 	iconv_t cd;
-        int arg = 0, ret;
+	int arg = 0, ret;
 
 	cd = iconv_open("ASCII//IGNORE", "UTF-8");
 	if (cd == (iconv_t)-1)
-	return (-1); 
+		return (-1);
 	ret = iconvctl(cd, ICONV_SET_DISCARD_ILSEQ, &arg) == 0 ? 0 : -1;
 	if (iconv_close(cd) == -1)
 		return (-1);
@@ -183,15 +183,15 @@ static int
 ctl_trivialp1(void)
 {
 	iconv_t cd;
-        int arg, ret;
+	int arg, ret;
 
 	cd = iconv_open("latin2", "latin2");
 	if (cd == (iconv_t)-1)
 		return (-1);
 	if (iconvctl(cd, ICONV_TRIVIALP, &arg) == 0) {
 		ret = (arg == 1) ? 0 : -1;
-        } else
-                ret = -1;
+	} else
+		ret = -1;
 	if (iconv_close(cd) == -1)
 		return (-1);
 	return (ret);
@@ -296,8 +296,6 @@ ctl_wc_hook(void)
 	return (wc_hook ? 0 : 1);
 }
 
-
-
 static int
 gnu_canonicalize1(void)
 {
@@ -309,12 +307,12 @@ static int
 gnu_canonicalize2(void)
 {
 
-	return (!strcmp(iconv_canonicalize("ASCII"), iconv_canonicalize("latin2")));
+	return (
+	    !strcmp(iconv_canonicalize("ASCII"), iconv_canonicalize("latin2")));
 }
 
-
 static int
-iconvlist_cb(unsigned int count, const char * const *names, void *data)
+iconvlist_cb(unsigned int count, const char *const *names, void *data)
 {
 
 	return (*(int *)data = ((names == NULL) && (count > 0)) ? -1 : 0);
@@ -330,9 +328,10 @@ gnu_iconvlist(void)
 }
 
 void
-mb_to_uc_fb(const char* inbuf, size_t inbufsize,
+mb_to_uc_fb(const char *inbuf, size_t inbufsize,
     void (*write_replacement)(const unsigned int *buf, size_t buflen,
-       void* callback_arg), void* callback_arg, void* data)
+	void *callback_arg),
+    void *callback_arg, void *data)
 {
 	unsigned int c = 0x3F;
 
@@ -391,7 +390,8 @@ gnu_openinto(void)
 	char *inbuf = "works!", *outptr;
 	char outbuf[6];
 
-	if ((myspace = (iconv_allocation_t *)malloc(sizeof(iconv_allocation_t))) == NULL)
+	if ((myspace = (iconv_allocation_t *)malloc(
+		 sizeof(iconv_allocation_t))) == NULL)
 		return (1);
 	if (iconv_open_into("ASCII", "ASCII", myspace) == -1)
 		return (1);
@@ -403,11 +403,11 @@ gnu_openinto(void)
 
 	iconv((iconv_t)myspace, &inptr, &inbytesleft, &outptr, &outbytesleft);
 
-	return ((memcmp(inbuf, outbuf, 6) == 0)	? 0 : 1);
+	return ((memcmp(inbuf, outbuf, 6) == 0) ? 0 : 1);
 }
 
 static void
-test(int (tester) (void), const char * label)
+test(int(tester)(void), const char *label)
 {
 	int ret;
 
@@ -432,7 +432,7 @@ main(void)
 	test(ctl_trivialp2, "ctl_trivialp2");
 	test(ctl_uc_hook, "ctl_uc_hook");
 	test(ctl_wc_hook, "ctl_wc_hook");
-//	test(ctl_mb_to_uc_fb, "ctl_mb_to_uc_fb");
+	//	test(ctl_mb_to_uc_fb, "ctl_mb_to_uc_fb");
 	test(gnu_openinto, "gnu_openinto");
 	test(gnu_canonicalize1, "gnu_canonicalize1");
 	test(gnu_canonicalize2, "gnu_canonicalize2");

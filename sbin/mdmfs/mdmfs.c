@@ -41,6 +41,7 @@
 #include <sys/wait.h>
 
 #include <assert.h>
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -52,54 +53,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
 
 typedef enum { false, true } bool;
 
 struct mtpt_info {
-	uid_t		 mi_uid;
-	bool		 mi_have_uid;
-	gid_t		 mi_gid;
-	bool		 mi_have_gid;
-	mode_t		 mi_mode;
-	bool		 mi_have_mode;
-	bool		 mi_forced_pw;
+	uid_t mi_uid;
+	bool mi_have_uid;
+	gid_t mi_gid;
+	bool mi_have_gid;
+	mode_t mi_mode;
+	bool mi_have_mode;
+	bool mi_forced_pw;
 };
 
-static	bool debug;		/* Emit debugging information? */
-static	bool loudsubs;		/* Suppress output from helper programs? */
-static	bool norun;		/* Actually run the helper programs? */
-static	int unit;      		/* The unit we're working with. */
-static	const char *mdname;	/* Name of memory disk device (e.g., "md"). */
-static	const char *mdsuffix;	/* Suffix of memory disk device (e.g., ".uzip"). */
-static	size_t mdnamelen;	/* Length of mdname. */
-static	const char *path_mdconfig =_PATH_MDCONFIG;
+static bool debug;	     /* Emit debugging information? */
+static bool loudsubs;	     /* Suppress output from helper programs? */
+static bool norun;	     /* Actually run the helper programs? */
+static int unit;	     /* The unit we're working with. */
+static const char *mdname;   /* Name of memory disk device (e.g., "md"). */
+static const char *mdsuffix; /* Suffix of memory disk device (e.g., ".uzip"). */
+static size_t mdnamelen;     /* Length of mdname. */
+static const char *path_mdconfig = _PATH_MDCONFIG;
 
-static void	 argappend(char **, const char *, ...) __printflike(2, 3);
-static void	 debugprintf(const char *, ...) __printflike(1, 2);
-static void	 do_mdconfig_attach(const char *, const enum md_types);
-static void	 do_mdconfig_attach_au(const char *, const enum md_types);
-static void	 do_mdconfig_detach(void);
-static void	 do_mount_md(const char *, const char *);
-static void	 do_mount_tmpfs(const char *, const char *);
-static void	 do_mtptsetup(const char *, struct mtpt_info *);
-static void	 do_newfs(const char *);
-static void	 do_copy(const char *, const char *);
-static void	 extract_ugid(const char *, struct mtpt_info *);
-static int	 run(int *, const char *, ...) __printflike(2, 3);
+static void argappend(char **, const char *, ...) __printflike(2, 3);
+static void debugprintf(const char *, ...) __printflike(1, 2);
+static void do_mdconfig_attach(const char *, const enum md_types);
+static void do_mdconfig_attach_au(const char *, const enum md_types);
+static void do_mdconfig_detach(void);
+static void do_mount_md(const char *, const char *);
+static void do_mount_tmpfs(const char *, const char *);
+static void do_mtptsetup(const char *, struct mtpt_info *);
+static void do_newfs(const char *);
+static void do_copy(const char *, const char *);
+static void extract_ugid(const char *, struct mtpt_info *);
+static int run(int *, const char *, ...) __printflike(2, 3);
 static const char *run_exitstr(int);
-static int	 run_exitnumber(int);
-static void	 usage(void);
+static int run_exitnumber(int);
+static void usage(void);
 
 int
 main(int argc, char **argv)
 {
-	struct mtpt_info mi;		/* Mountpoint info. */
+	struct mtpt_info mi; /* Mountpoint info. */
 	intmax_t mdsize;
-	char *mdconfig_arg, *newfs_arg,	/* Args to helper programs. */
+	char *mdconfig_arg, *newfs_arg, /* Args to helper programs. */
 	    *mount_arg;
-	enum md_types mdtype;		/* The type of our memory disk. */
+	enum md_types mdtype; /* The type of our memory disk. */
 	bool have_mdtype, mlmac;
 	bool detach, softdep, autounit, newfs;
 	const char *mtpoint, *size_arg, *skel, *unitstr;
@@ -141,7 +141,7 @@ main(int argc, char **argv)
 	}
 
 	while ((ch = getopt(argc, argv,
-	    "a:b:Cc:Dd:E:e:F:f:hi:k:LlMm:NnO:o:Pp:Ss:tT:Uv:w:X")) != -1)
+		    "a:b:Cc:Dd:E:e:F:f:hi:k:LlMm:NnO:o:Pp:Ss:tT:Uv:w:X")) != -1)
 		switch (ch) {
 		case 'a':
 			argappend(&newfs_arg, "-a %s", optarg);
@@ -321,7 +321,7 @@ main(int argc, char **argv)
 	if (strcmp(unitstr, "tmpfs") == 0) {
 		if (size_arg != NULL && mdsize != 0)
 			argappend(&mount_arg, "-o size=%jd", mdsize);
-		do_mount_tmpfs(mount_arg, mtpoint); 
+		do_mount_tmpfs(mount_arg, mtpoint);
 	} else {
 		if (size_arg != NULL)
 			argappend(&mdconfig_arg, "-s %jdB", mdsize);
@@ -338,16 +338,16 @@ main(int argc, char **argv)
 			if (ul == ULONG_MAX)
 				errx(1, "bad device unit: %s", unitstr);
 			unit = ul;
-			mdsuffix = p;	/* can be empty */
+			mdsuffix = p; /* can be empty */
 		}
-	
+
 		if (!have_mdtype)
 			mdtype = MD_SWAP;
 		if (softdep)
 			argappend(&newfs_arg, "-U");
 		if (mdtype != MD_VNODE && !newfs)
 			errx(1, "-P requires a vnode-backed disk");
-	
+
 		/* Do the work. */
 		if (detach && !autounit)
 			do_mdconfig_detach();
@@ -381,7 +381,7 @@ argappend(char **dstp, const char *fmt, ...)
 	assert(old != NULL);
 
 	va_start(ap, fmt);
-	if (vasprintf(&new, fmt,ap) == -1)
+	if (vasprintf(&new, fmt, ap) == -1)
 		errx(1, "vasprintf");
 	va_end(ap);
 
@@ -420,7 +420,7 @@ static void
 do_mdconfig_attach(const char *args, const enum md_types mdtype)
 {
 	int rv;
-	const char *ta;		/* Type arg. */
+	const char *ta; /* Type arg. */
 
 	switch (mdtype) {
 	case MD_SWAP:
@@ -435,8 +435,8 @@ do_mdconfig_attach(const char *args, const enum md_types mdtype)
 	default:
 		abort();
 	}
-	rv = run(NULL, "%s -a %s%s -u %s%d", path_mdconfig, ta, args,
-	    mdname, unit);
+	rv = run(NULL, "%s -a %s%s -u %s%d", path_mdconfig, ta, args, mdname,
+	    unit);
 	if (rv)
 		errx(1, "mdconfig (attach) exited %s %d", run_exitstr(rv),
 		    run_exitnumber(rv));
@@ -448,10 +448,10 @@ do_mdconfig_attach(const char *args, const enum md_types mdtype)
 static void
 do_mdconfig_attach_au(const char *args, const enum md_types mdtype)
 {
-	const char *ta;		/* Type arg. */
+	const char *ta; /* Type arg. */
 	char *linep;
-	char linebuf[12];	/* 32-bit unit (10) + '\n' (1) + '\0' (1) */
-	int fd;			/* Standard output of mdconfig invocation. */
+	char linebuf[12]; /* 32-bit unit (10) + '\n' (1) + '\0' (1) */
+	int fd;		  /* Standard output of mdconfig invocation. */
 	FILE *sfd;
 	int rv;
 	char *p;
@@ -477,7 +477,7 @@ do_mdconfig_attach_au(const char *args, const enum md_types mdtype)
 		    run_exitnumber(rv));
 
 	/* Receive the unit number. */
-	if (norun) {	/* Since we didn't run, we can't read.  Fake it. */
+	if (norun) { /* Since we didn't run, we can't read.  Fake it. */
 		unit = 0;
 		return;
 	}
@@ -512,7 +512,7 @@ do_mdconfig_detach(void)
 	int rv;
 
 	rv = run(NULL, "%s -d -u %s%d", path_mdconfig, mdname, unit);
-	if (rv && debug)	/* This is allowed to fail. */
+	if (rv && debug) /* This is allowed to fail. */
 		warnx("mdconfig (detach) exited %s %d (ignored)",
 		    run_exitstr(rv), run_exitnumber(rv));
 }
@@ -525,8 +525,8 @@ do_mount_md(const char *args, const char *mtpoint)
 {
 	int rv;
 
-	rv = run(NULL, "%s%s /dev/%s%d%s %s", _PATH_MOUNT, args,
-	    mdname, unit, mdsuffix, mtpoint);
+	rv = run(NULL, "%s%s /dev/%s%d%s %s", _PATH_MOUNT, args, mdname, unit,
+	    mdsuffix, mtpoint);
 	if (rv)
 		errx(1, "mount exited %s %d", run_exitstr(rv),
 		    run_exitnumber(rv));
@@ -565,11 +565,11 @@ do_mtptsetup(const char *mtpoint, struct mtpt_info *mip)
 		if ((sfs.f_flags & MNT_RDONLY) != 0) {
 			if (mip->mi_forced_pw) {
 				warnx(
-	"Not changing mode/owner of %s since it is read-only",
+				    "Not changing mode/owner of %s since it is read-only",
 				    mtpoint);
 			} else {
 				debugprintf(
-	"Not changing mode/owner of %s since it is read-only",
+				    "Not changing mode/owner of %s since it is read-only",
 				    mtpoint);
 			}
 			return;
@@ -619,7 +619,6 @@ do_newfs(const char *args)
 		    run_exitnumber(rv));
 }
 
-
 /*
  * Copy skel into the mountpoint.
  */
@@ -653,8 +652,8 @@ do_copy(const char *mtpoint, const char *skel)
 static void
 extract_ugid(const char *str, struct mtpt_info *mip)
 {
-	char *ug;			/* Writable 'str'. */
-	char *user, *group;		/* Result of extracton. */
+	char *ug;	    /* Writable 'str'. */
+	char *user, *group; /* Result of extracton. */
 	struct passwd *pw;
 	struct group *gr;
 	char *p;
@@ -716,13 +715,13 @@ extract_ugid(const char *str, struct mtpt_info *mip)
 static int
 run(int *ofd, const char *cmdline, ...)
 {
-	char **argv, **argvp;		/* Result of splitting 'cmd'. */
+	char **argv, **argvp; /* Result of splitting 'cmd'. */
 	int argc;
-	char *cmd;			/* Expansion of 'cmdline'. */
-	int pid, status;		/* Child info. */
-	int pfd[2];			/* Pipe to the child. */
-	int nfd;			/* Null (/dev/null) file descriptor. */
-	bool dup2dn;			/* Dup /dev/null to stdout? */
+	char *cmd;	 /* Expansion of 'cmdline'. */
+	int pid, status; /* Child info. */
+	int pfd[2];	 /* Pipe to the child. */
+	int nfd;	 /* Null (/dev/null) file descriptor. */
+	bool dup2dn;	 /* Dup /dev/null to stdout? */
 	va_list ap;
 	char *p;
 	int rv, i;
@@ -736,7 +735,7 @@ run(int *ofd, const char *cmdline, ...)
 
 	/* Split up 'cmd' into 'argv' for use with execve. */
 	for (argc = 1, p = cmd; (p = strchr(p, ' ')) != NULL; p++)
-		argc++;		/* 'argc' generation loop. */
+		argc++; /* 'argc' generation loop. */
 	argv = (char **)malloc(sizeof(*argv) * (argc + 1));
 	assert(argv != NULL);
 	for (p = cmd, argvp = argv; (*argvp = strsep(&p, " ")) != NULL;)
@@ -789,7 +788,7 @@ run(int *ofd, const char *cmdline, ...)
 				err(1, "dup2");
 			if (dup2dn)
 				if (dup2(nfd, STDOUT_FILENO) < 0)
-				   err(1, "dup2");
+					err(1, "dup2");
 			if (dup2(nfd, STDERR_FILENO) < 0)
 				err(1, "dup2");
 		}
@@ -841,11 +840,12 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: %s [-DLlMNnPStUX] [-a maxcontig] [-b block-size]\n"
-"\t[-c blocks-per-cylinder-group][-d max-extent-size] [-E path-mdconfig]\n"
-"\t[-e maxbpg] [-F file] [-f frag-size] [-i bytes] [-k skel]\n"
-"\t[-m percent-free] [-O optimization] [-o mount-options]\n"
-"\t[-p permissions] [-s size] [-v version] [-w user:group]\n"
-"\tmd-device mount-point\n", getprogname());
+	    "usage: %s [-DLlMNnPStUX] [-a maxcontig] [-b block-size]\n"
+	    "\t[-c blocks-per-cylinder-group][-d max-extent-size] [-E path-mdconfig]\n"
+	    "\t[-e maxbpg] [-F file] [-f frag-size] [-i bytes] [-k skel]\n"
+	    "\t[-m percent-free] [-O optimization] [-o mount-options]\n"
+	    "\t[-p permissions] [-s size] [-v version] [-w user:group]\n"
+	    "\tmd-device mount-point\n",
+	    getprogname());
 	exit(1);
 }

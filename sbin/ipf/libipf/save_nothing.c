@@ -6,21 +6,15 @@ static void nothing_destroy(void *);
 static int nothing_send(void *, ipmon_msg_t *);
 
 typedef struct nothing_opts_s {
-	FILE	*fp;
-	int	raw;
-	char	*path;
+	FILE *fp;
+	int raw;
+	char *path;
 } nothing_opts_t;
 
-ipmon_saver_t nothingsaver = {
-	"nothing",
-	nothing_destroy,
-	NULL,		/* dup */
-	NULL,		/* match */
-	nothing_parse,
-	NULL,		/* print */
-	nothing_send
-};
-
+ipmon_saver_t nothingsaver = { "nothing", nothing_destroy, NULL, /* dup */
+	NULL,							 /* match */
+	nothing_parse, NULL,					 /* print */
+	nothing_send };
 
 static void *
 nothing_parse(char **strings)
@@ -36,13 +30,11 @@ nothing_parse(char **strings)
 	return (ctx);
 }
 
-
 static void
 nothing_destroy(void *ctx)
 {
 	free(ctx);
 }
-
 
 static int
 nothing_send(void *ctx, ipmon_msg_t *msg)
@@ -56,4 +48,3 @@ nothing_send(void *ctx, ipmon_msg_t *msg)
 	 */
 	return (0);
 }
-

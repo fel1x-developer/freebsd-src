@@ -7,13 +7,12 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 
-#include <termios.h>
-
 #include <atf-c.h>
 #include <libutil.h>
+#include <termios.h>
 
 /* Just a little more concise. */
-#define	newpty(masterp, slavep)	openpty((masterp), (slavep), NULL, NULL, NULL)
+#define newpty(masterp, slavep) openpty((masterp), (slavep), NULL, NULL, NULL)
 
 ATF_TC_WITHOUT_HEAD(fionread);
 ATF_TC_BODY(fionread, tc)

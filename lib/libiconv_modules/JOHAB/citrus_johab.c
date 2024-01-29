@@ -41,41 +41,40 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_johab.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	int	 chlen;
-	char	 ch[2];
+	int chlen;
+	char ch[2];
 } _JOHABState;
 
 typedef struct {
-	int	 dummy;
+	int dummy;
 } _JOHABEncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_JOHAB_##m
-#define _ENCODING_INFO			_JOHABEncodingInfo
-#define _ENCODING_STATE			_JOHABState
-#define _ENCODING_MB_CUR_MAX(_ei_)		2
-#define _ENCODING_IS_STATE_DEPENDENT		0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
-
+#define _FUNCNAME(m) _citrus_JOHAB_##m
+#define _ENCODING_INFO _JOHABEncodingInfo
+#define _ENCODING_STATE _JOHABState
+#define _ENCODING_MB_CUR_MAX(_ei_) 2
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_JOHAB_init_state(_JOHABEncodingInfo * __restrict ei __unused,
-    _JOHABState * __restrict psenc)
+_citrus_JOHAB_init_state(_JOHABEncodingInfo *__restrict ei __unused,
+    _JOHABState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -111,8 +110,8 @@ _citrus_JOHAB_encoding_module_uninit(_JOHABEncodingInfo *ei __unused)
 
 static int
 /*ARGSUSED*/
-_citrus_JOHAB_encoding_module_init(_JOHABEncodingInfo * __restrict ei __unused,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_JOHAB_encoding_module_init(_JOHABEncodingInfo *__restrict ei __unused,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 
 	/* ei may be null */
@@ -145,9 +144,9 @@ ishanja(int l, int t)
 
 static int
 /*ARGSUSED*/
-_citrus_JOHAB_mbrtowc_priv(_JOHABEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _JOHABState * __restrict psenc, size_t * __restrict nresult)
+_citrus_JOHAB_mbrtowc_priv(_JOHABEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _JOHABState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	int l, t;
@@ -180,7 +179,7 @@ _citrus_JOHAB_mbrtowc_priv(_JOHABEncodingInfo * __restrict ei,
 		return (EINVAL);
 	}
 	if (n-- < 1) {
-restart:
+	restart:
 		*nresult = (size_t)-2;
 		*s = s0;
 		return (0);
@@ -201,9 +200,9 @@ restart:
 
 static int
 /*ARGSUSED*/
-_citrus_JOHAB_wcrtomb_priv(_JOHABEncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, wchar_t wc,
-    _JOHABState * __restrict psenc, size_t * __restrict nresult)
+_citrus_JOHAB_wcrtomb_priv(_JOHABEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, wchar_t wc, _JOHABState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	int l, t;
 
@@ -218,7 +217,7 @@ _citrus_JOHAB_wcrtomb_priv(_JOHABEncodingInfo * __restrict ei __unused,
 		*nresult = 1;
 	} else if ((uint32_t)wc <= 0xFFFF) {
 		if (n < 2) {
-e2big:
+		e2big:
 			*nresult = (size_t)-1;
 			return (E2BIG);
 		}
@@ -230,18 +229,17 @@ e2big:
 		*s = t;
 		*nresult = 2;
 	} else {
-ilseq:
+	ilseq:
 		*nresult = (size_t)-1;
 		return (EILSEQ);
 	}
 	return (0);
-
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_JOHAB_stdenc_wctocs(_JOHABEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_JOHAB_stdenc_wctocs(_JOHABEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	int m, l, linear, t;
 
@@ -283,8 +281,8 @@ _citrus_JOHAB_stdenc_wctocs(_JOHABEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_JOHAB_stdenc_cstowc(_JOHABEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_JOHAB_stdenc_cstowc(_JOHABEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 	int m, n, l, linear, t;
 
@@ -317,12 +315,13 @@ _citrus_JOHAB_stdenc_cstowc(_JOHABEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_JOHAB_stdenc_get_state_desc_generic(_JOHABEncodingInfo * __restrict ei __unused,
-    _JOHABState * __restrict psenc, int * __restrict rstate)
+_citrus_JOHAB_stdenc_get_state_desc_generic(
+    _JOHABEncodingInfo *__restrict ei __unused, _JOHABState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 

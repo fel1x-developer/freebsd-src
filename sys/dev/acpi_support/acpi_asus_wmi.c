@@ -24,264 +24,258 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
-#include <sys/param.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/proc.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/sbuf.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
+#include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/proc.h>
+#include <sys/sbuf.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
 #include "acpi_wmi_if.h"
 
-#define _COMPONENT	ACPI_OEM
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("ASUS-WMI")
 
-#define ACPI_ASUS_WMI_MGMT_GUID 	"97845ED0-4E6D-11DE-8A39-0800200C9A66"
-#define ACPI_ASUS_WMI_EVENT_GUID	"0B3CBB35-E3C2-45ED-91C2-4C5A6D195D1C"
-#define ACPI_EEEPC_WMI_EVENT_GUID	"ABBC0F72-8EA1-11D1-00A0-C90629100000"
+#define ACPI_ASUS_WMI_MGMT_GUID "97845ED0-4E6D-11DE-8A39-0800200C9A66"
+#define ACPI_ASUS_WMI_EVENT_GUID "0B3CBB35-E3C2-45ED-91C2-4C5A6D195D1C"
+#define ACPI_EEEPC_WMI_EVENT_GUID "ABBC0F72-8EA1-11D1-00A0-C90629100000"
 
 /* WMI Methods */
-#define ASUS_WMI_METHODID_SPEC          0x43455053
-#define ASUS_WMI_METHODID_SFUN          0x4E554653
-#define ASUS_WMI_METHODID_DSTS          0x53544344
-#define ASUS_WMI_METHODID_DSTS2         0x53545344
-#define ASUS_WMI_METHODID_DEVS          0x53564544
-#define ASUS_WMI_METHODID_INIT          0x54494E49
-#define ASUS_WMI_METHODID_HKEY          0x59454B48
+#define ASUS_WMI_METHODID_SPEC 0x43455053
+#define ASUS_WMI_METHODID_SFUN 0x4E554653
+#define ASUS_WMI_METHODID_DSTS 0x53544344
+#define ASUS_WMI_METHODID_DSTS2 0x53545344
+#define ASUS_WMI_METHODID_DEVS 0x53564544
+#define ASUS_WMI_METHODID_INIT 0x54494E49
+#define ASUS_WMI_METHODID_HKEY 0x59454B48
 
-#define ASUS_WMI_UNSUPPORTED_METHOD     0xFFFFFFFE
+#define ASUS_WMI_UNSUPPORTED_METHOD 0xFFFFFFFE
 
 /* Wireless */
-#define ASUS_WMI_DEVID_HW_SWITCH        0x00010001
-#define ASUS_WMI_DEVID_WIRELESS_LED     0x00010002
-#define ASUS_WMI_DEVID_CWAP             0x00010003
-#define ASUS_WMI_DEVID_WLAN             0x00010011
-#define ASUS_WMI_DEVID_BLUETOOTH        0x00010013
-#define ASUS_WMI_DEVID_GPS              0x00010015
-#define ASUS_WMI_DEVID_WIMAX            0x00010017
-#define ASUS_WMI_DEVID_WWAN3G           0x00010019
-#define ASUS_WMI_DEVID_UWB              0x00010021
+#define ASUS_WMI_DEVID_HW_SWITCH 0x00010001
+#define ASUS_WMI_DEVID_WIRELESS_LED 0x00010002
+#define ASUS_WMI_DEVID_CWAP 0x00010003
+#define ASUS_WMI_DEVID_WLAN 0x00010011
+#define ASUS_WMI_DEVID_BLUETOOTH 0x00010013
+#define ASUS_WMI_DEVID_GPS 0x00010015
+#define ASUS_WMI_DEVID_WIMAX 0x00010017
+#define ASUS_WMI_DEVID_WWAN3G 0x00010019
+#define ASUS_WMI_DEVID_UWB 0x00010021
 
 /* LEDs */
-#define ASUS_WMI_DEVID_LED1             0x00020011
-#define ASUS_WMI_DEVID_LED2             0x00020012
-#define ASUS_WMI_DEVID_LED3             0x00020013
-#define ASUS_WMI_DEVID_LED4             0x00020014
-#define ASUS_WMI_DEVID_LED5             0x00020015
-#define ASUS_WMI_DEVID_LED6             0x00020016
+#define ASUS_WMI_DEVID_LED1 0x00020011
+#define ASUS_WMI_DEVID_LED2 0x00020012
+#define ASUS_WMI_DEVID_LED3 0x00020013
+#define ASUS_WMI_DEVID_LED4 0x00020014
+#define ASUS_WMI_DEVID_LED5 0x00020015
+#define ASUS_WMI_DEVID_LED6 0x00020016
 
 /* Backlight and Brightness */
-#define ASUS_WMI_DEVID_BACKLIGHT        0x00050011
-#define ASUS_WMI_DEVID_BRIGHTNESS       0x00050012
-#define ASUS_WMI_DEVID_KBD_BACKLIGHT    0x00050021
-#define ASUS_WMI_DEVID_LIGHT_SENSOR     0x00050022
+#define ASUS_WMI_DEVID_BACKLIGHT 0x00050011
+#define ASUS_WMI_DEVID_BRIGHTNESS 0x00050012
+#define ASUS_WMI_DEVID_KBD_BACKLIGHT 0x00050021
+#define ASUS_WMI_DEVID_LIGHT_SENSOR 0x00050022
 
 /* Misc */
-#define ASUS_WMI_DEVID_CAMERA           0x00060013
-#define ASUS_WMI_DEVID_CARDREADER       0x00080013
-#define ASUS_WMI_DEVID_TOUCHPAD         0x00100011
-#define ASUS_WMI_DEVID_TOUCHPAD_LED     0x00100012
-#define ASUS_WMI_DEVID_THERMAL_CTRL     0x00110011
-#define ASUS_WMI_DEVID_FAN_CTRL         0x00110012
-#define ASUS_WMI_DEVID_PROCESSOR_STATE  0x00120012
+#define ASUS_WMI_DEVID_CAMERA 0x00060013
+#define ASUS_WMI_DEVID_CARDREADER 0x00080013
+#define ASUS_WMI_DEVID_TOUCHPAD 0x00100011
+#define ASUS_WMI_DEVID_TOUCHPAD_LED 0x00100012
+#define ASUS_WMI_DEVID_THERMAL_CTRL 0x00110011
+#define ASUS_WMI_DEVID_FAN_CTRL 0x00110012
+#define ASUS_WMI_DEVID_PROCESSOR_STATE 0x00120012
 
 /* DSTS masks */
-#define ASUS_WMI_DSTS_STATUS_BIT        0x00000001
-#define ASUS_WMI_DSTS_UNKNOWN_BIT       0x00000002
-#define ASUS_WMI_DSTS_PRESENCE_BIT      0x00010000
-#define ASUS_WMI_DSTS_USER_BIT          0x00020000
-#define ASUS_WMI_DSTS_BIOS_BIT          0x00040000
-#define ASUS_WMI_DSTS_BRIGHTNESS_MASK   0x000000FF
-#define ASUS_WMI_DSTS_MAX_BRIGTH_MASK   0x0000FF00
+#define ASUS_WMI_DSTS_STATUS_BIT 0x00000001
+#define ASUS_WMI_DSTS_UNKNOWN_BIT 0x00000002
+#define ASUS_WMI_DSTS_PRESENCE_BIT 0x00010000
+#define ASUS_WMI_DSTS_USER_BIT 0x00020000
+#define ASUS_WMI_DSTS_BIOS_BIT 0x00040000
+#define ASUS_WMI_DSTS_BRIGHTNESS_MASK 0x000000FF
+#define ASUS_WMI_DSTS_MAX_BRIGTH_MASK 0x0000FF00
 
 struct acpi_asus_wmi_softc {
-	device_t	dev;
-	device_t	wmi_dev;
-	const char	*notify_guid;
-	struct sysctl_ctx_list	*sysctl_ctx;
-	struct sysctl_oid	*sysctl_tree;
-	int		dsts_id;
-	int		handle_keys;
+	device_t dev;
+	device_t wmi_dev;
+	const char *notify_guid;
+	struct sysctl_ctx_list *sysctl_ctx;
+	struct sysctl_oid *sysctl_tree;
+	int dsts_id;
+	int handle_keys;
 };
 
 static struct {
-	char	*name;
-	int	dev_id;
-	char	*description;
-	int	flag_rdonly;
-} acpi_asus_wmi_sysctls[] = {
+	char *name;
+	int dev_id;
+	char *description;
+	int flag_rdonly;
+} acpi_asus_wmi_sysctls[] = { {
+				  .name = "hw_switch",
+				  .dev_id = ASUS_WMI_DEVID_HW_SWITCH,
+				  .description = "hw_switch",
+			      },
 	{
-		.name		= "hw_switch",
-		.dev_id		= ASUS_WMI_DEVID_HW_SWITCH,
-		.description	= "hw_switch",
+	    .name = "wireless_led",
+	    .dev_id = ASUS_WMI_DEVID_WIRELESS_LED,
+	    .description = "Wireless LED control",
 	},
 	{
-		.name		= "wireless_led",
-		.dev_id		= ASUS_WMI_DEVID_WIRELESS_LED,
-		.description	= "Wireless LED control",
+	    .name = "cwap",
+	    .dev_id = ASUS_WMI_DEVID_CWAP,
+	    .description = "Alt+F2 function",
 	},
 	{
-		.name		= "cwap",
-		.dev_id		= ASUS_WMI_DEVID_CWAP,
-		.description	= "Alt+F2 function",
+	    .name = "wlan",
+	    .dev_id = ASUS_WMI_DEVID_WLAN,
+	    .description = "WLAN power control",
 	},
 	{
-		.name		= "wlan",
-		.dev_id		= ASUS_WMI_DEVID_WLAN,
-		.description	= "WLAN power control",
+	    .name = "bluetooth",
+	    .dev_id = ASUS_WMI_DEVID_BLUETOOTH,
+	    .description = "Bluetooth power control",
 	},
 	{
-		.name		= "bluetooth",
-		.dev_id		= ASUS_WMI_DEVID_BLUETOOTH,
-		.description	= "Bluetooth power control",
+	    .name = "gps",
+	    .dev_id = ASUS_WMI_DEVID_GPS,
+	    .description = "GPS power control",
 	},
 	{
-		.name		= "gps",
-		.dev_id		= ASUS_WMI_DEVID_GPS,
-		.description	= "GPS power control",
+	    .name = "wimax",
+	    .dev_id = ASUS_WMI_DEVID_WIMAX,
+	    .description = "WiMAX power control",
 	},
 	{
-		.name		= "wimax",
-		.dev_id		= ASUS_WMI_DEVID_WIMAX,
-		.description	= "WiMAX power control",
+	    .name = "wwan3g",
+	    .dev_id = ASUS_WMI_DEVID_WWAN3G,
+	    .description = "WWAN-3G power control",
 	},
 	{
-		.name		= "wwan3g",
-		.dev_id		= ASUS_WMI_DEVID_WWAN3G,
-		.description	= "WWAN-3G power control",
+	    .name = "uwb",
+	    .dev_id = ASUS_WMI_DEVID_UWB,
+	    .description = "UWB power control",
 	},
 	{
-		.name		= "uwb",
-		.dev_id		= ASUS_WMI_DEVID_UWB,
-		.description	= "UWB power control",
+	    .name = "led1",
+	    .dev_id = ASUS_WMI_DEVID_LED1,
+	    .description = "LED1 control",
 	},
 	{
-		.name		= "led1",
-		.dev_id		= ASUS_WMI_DEVID_LED1,
-		.description	= "LED1 control",
+	    .name = "led2",
+	    .dev_id = ASUS_WMI_DEVID_LED2,
+	    .description = "LED2 control",
 	},
 	{
-		.name		= "led2",
-		.dev_id		= ASUS_WMI_DEVID_LED2,
-		.description	= "LED2 control",
+	    .name = "led3",
+	    .dev_id = ASUS_WMI_DEVID_LED3,
+	    .description = "LED3 control",
 	},
 	{
-		.name		= "led3",
-		.dev_id		= ASUS_WMI_DEVID_LED3,
-		.description	= "LED3 control",
+	    .name = "led4",
+	    .dev_id = ASUS_WMI_DEVID_LED4,
+	    .description = "LED4 control",
 	},
 	{
-		.name		= "led4",
-		.dev_id		= ASUS_WMI_DEVID_LED4,
-		.description	= "LED4 control",
+	    .name = "led5",
+	    .dev_id = ASUS_WMI_DEVID_LED5,
+	    .description = "LED5 control",
 	},
 	{
-		.name		= "led5",
-		.dev_id		= ASUS_WMI_DEVID_LED5,
-		.description	= "LED5 control",
+	    .name = "led6",
+	    .dev_id = ASUS_WMI_DEVID_LED6,
+	    .description = "LED6 control",
 	},
 	{
-		.name		= "led6",
-		.dev_id		= ASUS_WMI_DEVID_LED6,
-		.description	= "LED6 control",
+	    .name = "backlight",
+	    .dev_id = ASUS_WMI_DEVID_BACKLIGHT,
+	    .description = "LCD backlight on/off control",
 	},
 	{
-		.name		= "backlight",
-		.dev_id		= ASUS_WMI_DEVID_BACKLIGHT,
-		.description	= "LCD backlight on/off control",
+	    .name = "brightness",
+	    .dev_id = ASUS_WMI_DEVID_BRIGHTNESS,
+	    .description = "LCD backlight brightness control",
 	},
 	{
-		.name		= "brightness",
-		.dev_id		= ASUS_WMI_DEVID_BRIGHTNESS,
-		.description	= "LCD backlight brightness control",
+	    .name = "kbd_backlight",
+	    .dev_id = ASUS_WMI_DEVID_KBD_BACKLIGHT,
+	    .description = "Keyboard backlight brightness control",
 	},
 	{
-		.name		= "kbd_backlight",
-		.dev_id		= ASUS_WMI_DEVID_KBD_BACKLIGHT,
-		.description	= "Keyboard backlight brightness control",
+	    .name = "light_sensor",
+	    .dev_id = ASUS_WMI_DEVID_LIGHT_SENSOR,
+	    .description = "Ambient light sensor",
 	},
 	{
-		.name		= "light_sensor",
-		.dev_id		= ASUS_WMI_DEVID_LIGHT_SENSOR,
-		.description	= "Ambient light sensor",
+	    .name = "camera",
+	    .dev_id = ASUS_WMI_DEVID_CAMERA,
+	    .description = "Camera power control",
 	},
 	{
-		.name		= "camera",
-		.dev_id		= ASUS_WMI_DEVID_CAMERA,
-		.description	= "Camera power control",
+	    .name = "cardreader",
+	    .dev_id = ASUS_WMI_DEVID_CARDREADER,
+	    .description = "Cardreader power control",
 	},
 	{
-		.name		= "cardreader",
-		.dev_id		= ASUS_WMI_DEVID_CARDREADER,
-		.description	= "Cardreader power control",
+	    .name = "touchpad",
+	    .dev_id = ASUS_WMI_DEVID_TOUCHPAD,
+	    .description = "Touchpad control",
 	},
 	{
-		.name		= "touchpad",
-		.dev_id		= ASUS_WMI_DEVID_TOUCHPAD,
-		.description	= "Touchpad control",
+	    .name = "touchpad_led",
+	    .dev_id = ASUS_WMI_DEVID_TOUCHPAD_LED,
+	    .description = "Touchpad LED control",
 	},
-	{
-		.name		= "touchpad_led",
-		.dev_id		= ASUS_WMI_DEVID_TOUCHPAD_LED,
-		.description	= "Touchpad LED control",
-	},
-	{
-		.name		= "themperature",
-		.dev_id		= ASUS_WMI_DEVID_THERMAL_CTRL,
-		.description	= "Temperature (C)",
-		.flag_rdonly	= 1
-	},
-	{
-		.name		= "fan_speed",
-		.dev_id		= ASUS_WMI_DEVID_FAN_CTRL,
-		.description	= "Fan speed (0-3)",
-		.flag_rdonly	= 1
-	},
-	{
-		.name		= "processor_state",
-		.dev_id		= ASUS_WMI_DEVID_PROCESSOR_STATE,
-		.flag_rdonly	= 1
-	},
-	{ NULL, 0, NULL, 0 }
-};
+	{ .name = "themperature",
+	    .dev_id = ASUS_WMI_DEVID_THERMAL_CTRL,
+	    .description = "Temperature (C)",
+	    .flag_rdonly = 1 },
+	{ .name = "fan_speed",
+	    .dev_id = ASUS_WMI_DEVID_FAN_CTRL,
+	    .description = "Fan speed (0-3)",
+	    .flag_rdonly = 1 },
+	{ .name = "processor_state",
+	    .dev_id = ASUS_WMI_DEVID_PROCESSOR_STATE,
+	    .flag_rdonly = 1 },
+	{ NULL, 0, NULL, 0 } };
 
 ACPI_SERIAL_DECL(asus_wmi, "ASUS WMI device");
 
-static void	acpi_asus_wmi_identify(driver_t *driver, device_t parent);
-static int	acpi_asus_wmi_probe(device_t dev);
-static int	acpi_asus_wmi_attach(device_t dev);
-static int	acpi_asus_wmi_detach(device_t dev);
+static void acpi_asus_wmi_identify(driver_t *driver, device_t parent);
+static int acpi_asus_wmi_probe(device_t dev);
+static int acpi_asus_wmi_attach(device_t dev);
+static int acpi_asus_wmi_detach(device_t dev);
 
-static int	acpi_asus_wmi_sysctl(SYSCTL_HANDLER_ARGS);
-static int	acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id,
-		    int arg, int oldarg);
-static int	acpi_asus_wmi_sysctl_get(struct acpi_asus_wmi_softc *sc, int dev_id);
-static int	acpi_asus_wmi_evaluate_method(device_t wmi_dev, int method,
-		    UINT32 arg0, UINT32 arg1, UINT32 *retval);
-static int	acpi_wpi_asus_get_devstate(struct acpi_asus_wmi_softc *sc,
-		    UINT32 dev_id, UINT32 *retval);
-static int	acpi_wpi_asus_set_devstate(struct acpi_asus_wmi_softc *sc,
-		    UINT32 dev_id, UINT32 ctrl_param, UINT32 *retval);
-static void	acpi_asus_wmi_notify(ACPI_HANDLE h, UINT32 notify, void *context);
+static int acpi_asus_wmi_sysctl(SYSCTL_HANDLER_ARGS);
+static int acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id,
+    int arg, int oldarg);
+static int acpi_asus_wmi_sysctl_get(struct acpi_asus_wmi_softc *sc, int dev_id);
+static int acpi_asus_wmi_evaluate_method(device_t wmi_dev, int method,
+    UINT32 arg0, UINT32 arg1, UINT32 *retval);
+static int acpi_wpi_asus_get_devstate(struct acpi_asus_wmi_softc *sc,
+    UINT32 dev_id, UINT32 *retval);
+static int acpi_wpi_asus_set_devstate(struct acpi_asus_wmi_softc *sc,
+    UINT32 dev_id, UINT32 ctrl_param, UINT32 *retval);
+static void acpi_asus_wmi_notify(ACPI_HANDLE h, UINT32 notify, void *context);
 
-static device_method_t acpi_asus_wmi_methods[] = {
-	DEVMETHOD(device_identify, acpi_asus_wmi_identify),
+static device_method_t acpi_asus_wmi_methods[] = { DEVMETHOD(device_identify,
+						       acpi_asus_wmi_identify),
 	DEVMETHOD(device_probe, acpi_asus_wmi_probe),
 	DEVMETHOD(device_attach, acpi_asus_wmi_attach),
 	DEVMETHOD(device_detach, acpi_asus_wmi_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t	acpi_asus_wmi_driver = {
+static driver_t acpi_asus_wmi_driver = {
 	"acpi_asus_wmi",
 	acpi_asus_wmi_methods,
 	sizeof(struct acpi_asus_wmi_softc),
@@ -304,8 +298,7 @@ acpi_asus_wmi_identify(driver_t *driver, device_t parent)
 		return;
 
 	/* Check management GUID to see whether system is compatible. */
-	if (!ACPI_WMI_PROVIDES_GUID_STRING(parent,
-	    ACPI_ASUS_WMI_MGMT_GUID))
+	if (!ACPI_WMI_PROVIDES_GUID_STRING(parent, ACPI_ASUS_WMI_MGMT_GUID))
 		return;
 
 	if (BUS_ADD_CHILD(parent, 0, "acpi_asus_wmi", -1) == NULL)
@@ -317,7 +310,7 @@ acpi_asus_wmi_probe(device_t dev)
 {
 
 	if (!ACPI_WMI_PROVIDES_GUID_STRING(device_get_parent(dev),
-	    ACPI_ASUS_WMI_MGMT_GUID))
+		ACPI_ASUS_WMI_MGMT_GUID))
 		return (EINVAL);
 	device_set_desc(dev, "ASUS WMI device");
 	return (0);
@@ -326,9 +319,9 @@ acpi_asus_wmi_probe(device_t dev)
 static int
 acpi_asus_wmi_attach(device_t dev)
 {
-	struct acpi_asus_wmi_softc	*sc;
-	UINT32			val;
-	int			dev_id, i;
+	struct acpi_asus_wmi_softc *sc;
+	UINT32 val;
+	int dev_id, i;
 
 	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
@@ -339,7 +332,7 @@ acpi_asus_wmi_attach(device_t dev)
 
 	/* Check management GUID. */
 	if (!ACPI_WMI_PROVIDES_GUID_STRING(sc->wmi_dev,
-	    ACPI_ASUS_WMI_MGMT_GUID)) {
+		ACPI_ASUS_WMI_MGMT_GUID)) {
 		device_printf(dev,
 		    "WMI device does not provide the ASUS management GUID\n");
 		return (EINVAL);
@@ -366,41 +359,43 @@ next:
 
 	/* Find proper and attach to notufy GUID. */
 	if (ACPI_WMI_PROVIDES_GUID_STRING(sc->wmi_dev,
-	    ACPI_ASUS_WMI_EVENT_GUID))
+		ACPI_ASUS_WMI_EVENT_GUID))
 		sc->notify_guid = ACPI_ASUS_WMI_EVENT_GUID;
 	else if (ACPI_WMI_PROVIDES_GUID_STRING(sc->wmi_dev,
-	    ACPI_EEEPC_WMI_EVENT_GUID))
+		     ACPI_EEEPC_WMI_EVENT_GUID))
 		sc->notify_guid = ACPI_EEEPC_WMI_EVENT_GUID;
 	else
 		sc->notify_guid = NULL;
 	if (sc->notify_guid != NULL) {
-		if (ACPI_WMI_INSTALL_EVENT_HANDLER(sc->wmi_dev,
-		    sc->notify_guid, acpi_asus_wmi_notify, dev))
+		if (ACPI_WMI_INSTALL_EVENT_HANDLER(sc->wmi_dev, sc->notify_guid,
+			acpi_asus_wmi_notify, dev))
 			sc->notify_guid = NULL;
 	}
 	if (sc->notify_guid == NULL)
 		device_printf(dev, "Could not install event handler!\n");
 
 	/* Initialize. */
-	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev,
-	    ASUS_WMI_METHODID_INIT, 0, 0, &val) && bootverbose)
+	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev, ASUS_WMI_METHODID_INIT,
+		0, 0, &val) &&
+	    bootverbose)
 		device_printf(dev, "Initialization: %#x\n", val);
-	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev,
-	    ASUS_WMI_METHODID_SPEC, 0, 0x9, &val) && bootverbose)
-		device_printf(dev, "WMI BIOS version: %d.%d\n",
-		    val >> 16, val & 0xFF);
-	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev,
-	    ASUS_WMI_METHODID_SFUN, 0, 0, &val) && bootverbose)
+	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev, ASUS_WMI_METHODID_SPEC,
+		0, 0x9, &val) &&
+	    bootverbose)
+		device_printf(dev, "WMI BIOS version: %d.%d\n", val >> 16,
+		    val & 0xFF);
+	if (!acpi_asus_wmi_evaluate_method(sc->wmi_dev, ASUS_WMI_METHODID_SFUN,
+		0, 0, &val) &&
+	    bootverbose)
 		device_printf(dev, "SFUN value: %#x\n", val);
 
 	ACPI_SERIAL_BEGIN(asus_wmi);
 
 	sc->sysctl_ctx = device_get_sysctl_ctx(dev);
 	sc->sysctl_tree = device_get_sysctl_tree(dev);
-	SYSCTL_ADD_INT(sc->sysctl_ctx,
-	    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
-	    "handle_keys", CTLFLAG_RW, &sc->handle_keys,
-	    0, "Handle some hardware keys inside the driver");
+	SYSCTL_ADD_INT(sc->sysctl_ctx, SYSCTL_CHILDREN(sc->sysctl_tree),
+	    OID_AUTO, "handle_keys", CTLFLAG_RW, &sc->handle_keys, 0,
+	    "Handle some hardware keys inside the driver");
 	for (i = 0; acpi_asus_wmi_sysctls[i].name != NULL; ++i) {
 		dev_id = acpi_asus_wmi_sysctls[i].dev_id;
 		if (acpi_wpi_asus_get_devstate(sc, dev_id, &val))
@@ -423,15 +418,15 @@ next:
 			SYSCTL_ADD_PROC(sc->sysctl_ctx,
 			    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 			    acpi_asus_wmi_sysctls[i].name,
-			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    sc, i, acpi_asus_wmi_sysctl, "I",
+			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, sc, i,
+			    acpi_asus_wmi_sysctl, "I",
 			    acpi_asus_wmi_sysctls[i].description);
 		} else {
 			SYSCTL_ADD_PROC(sc->sysctl_ctx,
 			    SYSCTL_CHILDREN(sc->sysctl_tree), OID_AUTO,
 			    acpi_asus_wmi_sysctls[i].name,
-			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-			    sc, i, acpi_asus_wmi_sysctl, "I",
+			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, sc, i,
+			    acpi_asus_wmi_sysctl, "I",
 			    acpi_asus_wmi_sysctls[i].description);
 		}
 	}
@@ -456,14 +451,14 @@ acpi_asus_wmi_detach(device_t dev)
 static int
 acpi_asus_wmi_sysctl(SYSCTL_HANDLER_ARGS)
 {
-	struct acpi_asus_wmi_softc	*sc;
-	int			arg;
-	int			oldarg;
-	int			error = 0;
-	int			function;
-	int			dev_id;
+	struct acpi_asus_wmi_softc *sc;
+	int arg;
+	int oldarg;
+	int error = 0;
+	int function;
+	int dev_id;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = (struct acpi_asus_wmi_softc *)oidp->oid_arg1;
 	function = oidp->oid_arg2;
@@ -483,14 +478,14 @@ acpi_asus_wmi_sysctl(SYSCTL_HANDLER_ARGS)
 static int
 acpi_asus_wmi_sysctl_get(struct acpi_asus_wmi_softc *sc, int dev_id)
 {
-	UINT32	val = 0;
+	UINT32 val = 0;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 	ACPI_SERIAL_ASSERT(asus_wmi);
 
 	acpi_wpi_asus_get_devstate(sc, dev_id, &val);
 
-	switch(dev_id) {
+	switch (dev_id) {
 	case ASUS_WMI_DEVID_THERMAL_CTRL:
 		val = (val - 2731 + 5) / 10;
 		break;
@@ -515,12 +510,13 @@ acpi_asus_wmi_sysctl_get(struct acpi_asus_wmi_softc *sc, int dev_id)
 }
 
 static int
-acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id, int arg, int oldarg)
+acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id, int arg,
+    int oldarg)
 {
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 	ACPI_SERIAL_ASSERT(asus_wmi);
 
-	switch(dev_id) {
+	switch (dev_id) {
 	case ASUS_WMI_DEVID_KBD_BACKLIGHT:
 		arg = min(0x7, arg);
 		if (arg != 0)
@@ -534,7 +530,8 @@ acpi_asus_wmi_sysctl_set(struct acpi_asus_wmi_softc *sc, int dev_id, int arg, in
 }
 
 static __inline void
-acpi_asus_wmi_free_buffer(ACPI_BUFFER* buf) {
+acpi_asus_wmi_free_buffer(ACPI_BUFFER *buf)
+{
 	if (buf && buf->Pointer) {
 		AcpiOsFree(buf->Pointer);
 	}
@@ -544,7 +541,7 @@ static void
 acpi_asus_wmi_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 {
 	device_t dev = context;
-	ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t)__func__, notify);
+	ACPI_FUNCTION_TRACE_U32((char *)(uintptr_t) __func__, notify);
 	UINT32 val;
 	int code = 0;
 
@@ -552,11 +549,10 @@ acpi_asus_wmi_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 	ACPI_BUFFER response = { ACPI_ALLOCATE_BUFFER, NULL };
 	ACPI_OBJECT *obj;
 	ACPI_WMI_GET_EVENT_DATA(sc->wmi_dev, notify, &response);
-	obj = (ACPI_OBJECT*) response.Pointer;
+	obj = (ACPI_OBJECT *)response.Pointer;
 	if (obj && obj->Type == ACPI_TYPE_INTEGER) {
 		code = obj->Integer.Value;
-		acpi_UserNotify("ASUS", ACPI_ROOT_OBJECT,
-		    code);
+		acpi_UserNotify("ASUS", ACPI_ROOT_OBJECT, code);
 	}
 	if (code && sc->handle_keys) {
 		/* Keyboard backlight control. */
@@ -576,34 +572,34 @@ acpi_asus_wmi_notify(ACPI_HANDLE h, UINT32 notify, void *context)
 		}
 		/* Touchpad control. */
 		if (code == 0x6b) {
-			acpi_wpi_asus_get_devstate(sc,
-			    ASUS_WMI_DEVID_TOUCHPAD, &val);
+			acpi_wpi_asus_get_devstate(sc, ASUS_WMI_DEVID_TOUCHPAD,
+			    &val);
 			val = !(val & 1);
-			acpi_wpi_asus_set_devstate(sc,
-			    ASUS_WMI_DEVID_TOUCHPAD, val, NULL);
+			acpi_wpi_asus_set_devstate(sc, ASUS_WMI_DEVID_TOUCHPAD,
+			    val, NULL);
 		}
 	}
 	acpi_asus_wmi_free_buffer(&response);
 }
 
 static int
-acpi_asus_wmi_evaluate_method(device_t wmi_dev, int method,
-    UINT32 arg0, UINT32 arg1, UINT32 *retval)
+acpi_asus_wmi_evaluate_method(device_t wmi_dev, int method, UINT32 arg0,
+    UINT32 arg1, UINT32 *retval)
 {
-	UINT32		params[2] = { arg0, arg1 };
-	UINT32		result;
-	ACPI_OBJECT	*obj;
-	ACPI_BUFFER	in = { sizeof(params), &params };
-	ACPI_BUFFER	out = { ACPI_ALLOCATE_BUFFER, NULL };
+	UINT32 params[2] = { arg0, arg1 };
+	UINT32 result;
+	ACPI_OBJECT *obj;
+	ACPI_BUFFER in = { sizeof(params), &params };
+	ACPI_BUFFER out = { ACPI_ALLOCATE_BUFFER, NULL };
 
 	if (ACPI_FAILURE(ACPI_WMI_EVALUATE_CALL(wmi_dev,
-	    ACPI_ASUS_WMI_MGMT_GUID, 1, method, &in, &out))) {
+		ACPI_ASUS_WMI_MGMT_GUID, 1, method, &in, &out))) {
 		acpi_asus_wmi_free_buffer(&out);
 		return (-EINVAL);
 	}
 	obj = out.Pointer;
 	if (obj && obj->Type == ACPI_TYPE_INTEGER)
-		result = (UINT32) obj->Integer.Value;
+		result = (UINT32)obj->Integer.Value;
 	else
 		result = 0;
 	acpi_asus_wmi_free_buffer(&out);
@@ -613,17 +609,17 @@ acpi_asus_wmi_evaluate_method(device_t wmi_dev, int method,
 }
 
 static int
-acpi_wpi_asus_get_devstate(struct acpi_asus_wmi_softc *sc,
-    UINT32 dev_id, UINT32 *retval)
+acpi_wpi_asus_get_devstate(struct acpi_asus_wmi_softc *sc, UINT32 dev_id,
+    UINT32 *retval)
 {
 
-	return (acpi_asus_wmi_evaluate_method(sc->wmi_dev,
-	    sc->dsts_id, dev_id, 0, retval));
+	return (acpi_asus_wmi_evaluate_method(sc->wmi_dev, sc->dsts_id, dev_id,
+	    0, retval));
 }
 
 static int
-acpi_wpi_asus_set_devstate(struct acpi_asus_wmi_softc *sc,
-    UINT32 dev_id, UINT32 ctrl_param, UINT32 *retval)
+acpi_wpi_asus_set_devstate(struct acpi_asus_wmi_softc *sc, UINT32 dev_id,
+    UINT32 ctrl_param, UINT32 *retval)
 {
 
 	return (acpi_asus_wmi_evaluate_method(sc->wmi_dev,

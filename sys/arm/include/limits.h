@@ -30,7 +30,7 @@
  */
 
 #ifndef _MACHINE_LIMITS_H_
-#define	_MACHINE_LIMITS_H_
+#define _MACHINE_LIMITS_H_
 
 #warning "machine/limits.h is deprecated.  Include sys/limits.h instead."
 

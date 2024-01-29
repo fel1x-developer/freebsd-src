@@ -46,9 +46,9 @@ static int cfi_fdt_probe(device_t);
 
 static device_method_t cfi_fdt_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		cfi_fdt_probe),
-	DEVMETHOD(device_attach,	cfi_attach),
-	DEVMETHOD(device_detach,	cfi_detach),
+	DEVMETHOD(device_probe, cfi_fdt_probe),
+	DEVMETHOD(device_attach, cfi_attach),
+	DEVMETHOD(device_detach, cfi_detach),
 
 	DEVMETHOD_END
 };
@@ -59,8 +59,8 @@ static driver_t cfi_fdt_driver = {
 	sizeof(struct cfi_softc),
 };
 
-DRIVER_MODULE (cfi, lbc, cfi_fdt_driver, 0, 0);
-DRIVER_MODULE (cfi, simplebus, cfi_fdt_driver, 0, 0);
+DRIVER_MODULE(cfi, lbc, cfi_fdt_driver, 0, 0);
+DRIVER_MODULE(cfi, simplebus, cfi_fdt_driver, 0, 0);
 
 static int
 cfi_fdt_probe(device_t dev)

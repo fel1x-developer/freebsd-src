@@ -61,60 +61,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/acphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/acphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int acphy_probe(device_t);
 static int acphy_attach(device_t);
 
 static device_method_t acphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		acphy_probe),
-	DEVMETHOD(device_attach,	acphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, acphy_probe),
+	DEVMETHOD(device_attach, acphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t acphy_driver = {
-	"acphy",
-	acphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t acphy_driver = { "acphy", acphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(acphy, miibus, acphy_driver, 0, 0);
 
-static int	acphy_service(struct mii_softc *, struct mii_data *, int);
-static void	acphy_reset(struct mii_softc *);
-static void	acphy_status(struct mii_softc *);
+static int acphy_service(struct mii_softc *, struct mii_data *, int);
+static void acphy_reset(struct mii_softc *);
+static void acphy_status(struct mii_softc *);
 
-static const struct mii_phydesc acphys[] = {
-	MII_PHY_DESC(ALTIMA, AC101),
+static const struct mii_phydesc acphys[] = { MII_PHY_DESC(ALTIMA, AC101),
 	MII_PHY_DESC(ALTIMA, AC101L),
 	/* XXX This is reported to work, but it's not from any data sheet. */
-	MII_PHY_DESC(ALTIMA, ACXXX),
-	MII_PHY_END
-};
+	MII_PHY_DESC(ALTIMA, ACXXX), MII_PHY_END };
 
-static const struct mii_phy_funcs acphy_funcs = {
-	acphy_service,
-	acphy_status,
-	acphy_reset
-};
+static const struct mii_phy_funcs acphy_funcs = { acphy_service, acphy_status,
+	acphy_reset };
 
 static int
 acphy_probe(device_t dev)
@@ -137,7 +126,7 @@ acphy_attach(device_t dev)
 	sc->mii_capabilities = PHY_READ(sc, MII_BMSR) & sc->mii_capmask;
 	device_printf(dev, " ");
 
-#define	ADD(m)	ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
+#define ADD(m) ifmedia_add(&sc->mii_pdata->mii_media, (m), 0, NULL)
 	if ((PHY_READ(sc, MII_ACPHY_MCTL) & AC_MCTL_FX_SEL) != 0) {
 		sc->mii_flags |= MIIF_HAVEFIBER;
 		ADD(IFM_MAKEWORD(IFM_ETHER, IFM_100_FX, 0, sc->mii_inst));
@@ -197,8 +186,7 @@ acphy_status(struct mii_softc *sc)
 	mii->mii_media_status = IFM_AVALID;
 	mii->mii_media_active = IFM_ETHER;
 
-	bmsr = PHY_READ(sc, MII_BMSR) |
-	    PHY_READ(sc, MII_BMSR);
+	bmsr = PHY_READ(sc, MII_BMSR) | PHY_READ(sc, MII_BMSR);
 	if (bmsr & BMSR_LINK)
 		mii->mii_media_status |= IFM_ACTIVE;
 
@@ -225,8 +213,8 @@ acphy_status(struct mii_softc *sc)
 			mii->mii_media_active |= IFM_10_T;
 
 		if (diag & AC_DIAG_DUPLEX)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

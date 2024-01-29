@@ -59,10 +59,11 @@
 #include <sys/limits.h>
 #else
 #include <sys/types.h>
+
 #include <ctype.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <string.h>
 #endif
 
@@ -75,8 +76,8 @@
 #else
 #include <arpa/inet.h>
 
-#include "alias.h"		/* Public API functions for libalias */
-#include "alias_local.h"	/* Functions used by alias*.c */
+#include "alias.h"	 /* Public API functions for libalias */
+#include "alias_local.h" /* Functions used by alias*.c */
 #endif
 
 /*
@@ -89,22 +90,22 @@
  */
 struct proxy_entry {
 	struct libalias *la;
-#define PROXY_TYPE_ENCODE_NONE      1
+#define PROXY_TYPE_ENCODE_NONE 1
 #define PROXY_TYPE_ENCODE_TCPSTREAM 2
-#define PROXY_TYPE_ENCODE_IPHDR     3
-	int		rule_index;
-	int		proxy_type;
-	u_char		proto;
-	u_short		proxy_port;
-	u_short		server_port;
+#define PROXY_TYPE_ENCODE_IPHDR 3
+	int rule_index;
+	int proxy_type;
+	u_char proto;
+	u_short proxy_port;
+	u_short server_port;
 
-	struct in_addr	server_addr;
+	struct in_addr server_addr;
 
-	struct in_addr	src_addr;
-	struct in_addr	src_mask;
+	struct in_addr src_addr;
+	struct in_addr src_mask;
 
-	struct in_addr	dst_addr;
-	struct in_addr	dst_mask;
+	struct in_addr dst_addr;
+	struct in_addr dst_mask;
 
 	struct proxy_entry *next;
 	struct proxy_entry *last;
@@ -132,14 +133,14 @@ struct proxy_entry {
 				destination of a proxied IP packet
 */
 
-static int	IpMask(int, struct in_addr *);
-static int	IpAddr(char *, struct in_addr *);
-static int	IpPort(char *, int, int *);
-static void	RuleAdd(struct libalias *la, struct proxy_entry *);
-static void	RuleDelete(struct proxy_entry *);
-static int	RuleNumberDelete(struct libalias *la, int);
-static void	ProxyEncodeTcpStream(struct alias_link *, struct ip *, int);
-static void	ProxyEncodeIpHeader(struct ip *, int);
+static int IpMask(int, struct in_addr *);
+static int IpAddr(char *, struct in_addr *);
+static int IpPort(char *, int, int *);
+static void RuleAdd(struct libalias *la, struct proxy_entry *);
+static void RuleDelete(struct proxy_entry *);
+static int RuleNumberDelete(struct libalias *la, int);
+static void ProxyEncodeTcpStream(struct alias_link *, struct ip *, int);
+static void ProxyEncodeIpHeader(struct ip *, int);
 
 static int
 IpMask(int nbits, struct in_addr *mask)
@@ -174,7 +175,7 @@ IpPort(char *s, int proto, int *port)
 
 	n = sscanf(s, "%d", port);
 	if (n != 1)
-#ifndef _KERNEL	/* XXX: we accept only numeric ports in kernel */
+#ifndef _KERNEL /* XXX: we accept only numeric ports in kernel */
 	{
 		struct servent *se;
 
@@ -282,9 +283,7 @@ RuleNumberDelete(struct libalias *la, int rule_index)
 }
 
 static void
-ProxyEncodeTcpStream(struct alias_link *lnk,
-    struct ip *pip,
-    int maxpacketsize)
+ProxyEncodeTcpStream(struct alias_link *lnk, struct ip *pip, int maxpacketsize)
 {
 	int slen;
 	char buffer[40];
@@ -375,9 +374,9 @@ ProxyEncodeTcpStream(struct alias_link *lnk,
 static void
 ProxyEncodeIpHeader(struct ip *pip, int maxpacketsize)
 {
-#define OPTION_LEN_BYTES  8
-#define OPTION_LEN_INT16  4
-#define OPTION_LEN_INT32  2
+#define OPTION_LEN_BYTES 8
+#define OPTION_LEN_INT16 4
+#define OPTION_LEN_INT32 2
 	_Alignas(_Alignof(u_short)) u_char option[OPTION_LEN_BYTES];
 
 #ifdef LIBALIAS_DEBUG
@@ -396,11 +395,11 @@ ProxyEncodeIpHeader(struct ip *pip, int maxpacketsize)
 		u_char *ptr;
 		struct tcphdr *tc;
 
-		ptr = (u_char *) pip;
+		ptr = (u_char *)pip;
 		ptr += 20;
 		memcpy(ptr + OPTION_LEN_BYTES, ptr, ntohs(pip->ip_len) - 20);
 
-		option[0] = 0x64;	/* class: 3 (reserved), option 4 */
+		option[0] = 0x64; /* class: 3 (reserved), option 4 */
 		option[1] = OPTION_LEN_BYTES;
 
 		memcpy(&option[2], (u_char *)&pip->ip_dst, 4);
@@ -417,12 +416,12 @@ ProxyEncodeIpHeader(struct ip *pip, int maxpacketsize)
 		int accumulate;
 		u_short *sptr;
 
-		sptr = (u_short *) option;
+		sptr = (u_short *)option;
 		accumulate = 0;
 		for (i = 0; i < OPTION_LEN_INT16; i++)
 			accumulate -= *(sptr++);
 
-		sptr = (u_short *) pip;
+		sptr = (u_short *)pip;
 		accumulate += *sptr;
 		pip->ip_hl += OPTION_LEN_INT32;
 		accumulate -= *sptr;
@@ -453,7 +452,7 @@ ProxyEncodeIpHeader(struct ip *pip, int maxpacketsize)
 
 int
 ProxyCheck(struct libalias *la, struct in_addr *proxy_server_addr,
-    u_short * proxy_server_port, struct in_addr src_addr,
+    u_short *proxy_server_port, struct in_addr src_addr,
     struct in_addr dst_addr, u_short dst_port, u_char ip_p)
 {
 	struct proxy_entry *ptr;
@@ -465,18 +464,21 @@ ProxyCheck(struct libalias *la, struct in_addr *proxy_server_addr,
 		u_short proxy_port;
 
 		proxy_port = ptr->proxy_port;
-		if ((dst_port == proxy_port || proxy_port == 0)
-		    && ip_p == ptr->proto
-		    && src_addr.s_addr != ptr->server_addr.s_addr) {
+		if ((dst_port == proxy_port || proxy_port == 0) &&
+		    ip_p == ptr->proto &&
+		    src_addr.s_addr != ptr->server_addr.s_addr) {
 			struct in_addr src_addr_masked;
 			struct in_addr dst_addr_masked;
 
-			src_addr_masked.s_addr = src_addr.s_addr & ptr->src_mask.s_addr;
-			dst_addr_masked.s_addr = dst_addr.s_addr & ptr->dst_mask.s_addr;
+			src_addr_masked.s_addr = src_addr.s_addr &
+			    ptr->src_mask.s_addr;
+			dst_addr_masked.s_addr = dst_addr.s_addr &
+			    ptr->dst_mask.s_addr;
 
-			if ((src_addr_masked.s_addr == ptr->src_addr.s_addr)
-			    && (dst_addr_masked.s_addr == ptr->dst_addr.s_addr)) {
-				if ((*proxy_server_port = ptr->server_port) == 0)
+			if ((src_addr_masked.s_addr == ptr->src_addr.s_addr) &&
+			    (dst_addr_masked.s_addr == ptr->dst_addr.s_addr)) {
+				if ((*proxy_server_port = ptr->server_port) ==
+				    0)
 					*proxy_server_port = dst_port;
 				*proxy_server_addr = ptr->server_addr;
 				return (ptr->proxy_type);
@@ -489,10 +491,8 @@ ProxyCheck(struct libalias *la, struct in_addr *proxy_server_addr,
 }
 
 void
-ProxyModify(struct libalias *la, struct alias_link *lnk,
-    struct ip *pip,
-    int maxpacketsize,
-    int proxy_type)
+ProxyModify(struct libalias *la, struct alias_link *lnk, struct ip *pip,
+    int maxpacketsize, int proxy_type)
 {
 	LIBALIAS_LOCK_ASSERT(la);
 	(void)la;
@@ -591,15 +591,15 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 	str_server_port[0] = 0;
 
 	/* Parse command string with state machine */
-#define STATE_READ_KEYWORD    0
-#define STATE_READ_TYPE       1
-#define STATE_READ_PORT       2
-#define STATE_READ_SERVER     3
-#define STATE_READ_RULE       4
-#define STATE_READ_DELETE     5
-#define STATE_READ_PROTO      6
-#define STATE_READ_SRC        7
-#define STATE_READ_DST        8
+#define STATE_READ_KEYWORD 0
+#define STATE_READ_TYPE 1
+#define STATE_READ_PORT 2
+#define STATE_READ_SERVER 3
+#define STATE_READ_RULE 4
+#define STATE_READ_DELETE 5
+#define STATE_READ_PROTO 6
+#define STATE_READ_SRC 7
+#define STATE_READ_DST 8
 	state = STATE_READ_KEYWORD;
 	token = strsep(&res, " \t");
 	token_count = 0;
@@ -691,7 +691,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 			state = STATE_READ_KEYWORD;
 			break;
 
-		case STATE_READ_DELETE:	{
+		case STATE_READ_DELETE: {
 			int err;
 			int rule_to_delete;
 

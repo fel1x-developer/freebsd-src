@@ -62,49 +62,48 @@
  * Structure to manage the ExCA part of the chip.
  */
 struct exca_softc;
-typedef uint8_t (exca_getb_fn)(struct exca_softc *, int);
-typedef void (exca_putb_fn)(struct exca_softc *, int, uint8_t);
+typedef uint8_t(exca_getb_fn)(struct exca_softc *, int);
+typedef void(exca_putb_fn)(struct exca_softc *, int, uint8_t);
 
-struct exca_softc 
-{
-	device_t	dev;
-	int		memalloc;
-	struct		pccard_mem_handle mem[EXCA_MEM_WINS];
-	int		ioalloc;
-	struct		pccard_io_handle io[EXCA_IO_WINS];
-	bus_space_tag_t	bst;
+struct exca_softc {
+	device_t dev;
+	int memalloc;
+	struct pccard_mem_handle mem[EXCA_MEM_WINS];
+	int ioalloc;
+	struct pccard_io_handle io[EXCA_IO_WINS];
+	bus_space_tag_t bst;
 	bus_space_handle_t bsh;
-	uint32_t	flags;
-#define EXCA_SOCKET_PRESENT	0x00000001
-#define EXCA_HAS_MEMREG_WIN	0x00000002
-#define EXCA_CARD_OK		0x00000004
-#define EXCA_EVENT		0x80000000
-	uint32_t	offset;
-	int		chipset;
-#define EXCA_CARDBUS	0
-#define	EXCA_I82365	1		/* Intel i82365SL-A/B or clone */
-#define EXCA_I82365SL_DF 2		/* Intel i82365sl-DF step */
-#define	EXCA_VLSI	3		/* VLSI chip */
-#define	EXCA_PD6710	4		/* Cirrus logic PD6710 */
-#define	EXCA_PD6722	5		/* Cirrus logic PD6722 */
-#define EXCA_PD6729	6		/* Cirrus Logic PD6729 */
-#define	EXCA_VG365	7		/* Vadem 365 */
-#define	EXCA_VG465      8		/* Vadem 465 */
-#define	EXCA_VG468	9		/* Vadem 468 */
-#define	EXCA_VG469	10		/* Vadem 469 */
-#define	EXCA_RF5C296	11		/* Ricoh RF5C296 */
-#define	EXCA_RF5C396	12		/* Ricoh RF5C396 */
-#define	EXCA_IBM	13		/* IBM clone */
-#define	EXCA_IBM_KING	14		/* IBM KING PCMCIA Controller */
-#define EXCA_BOGUS	-1		/* Invalid/not present/etc */
-	exca_getb_fn	*getb;
-	exca_putb_fn	*putb;
-	device_t	pccarddev;
-	uint32_t	status;		/* status, hw dependent */
+	uint32_t flags;
+#define EXCA_SOCKET_PRESENT 0x00000001
+#define EXCA_HAS_MEMREG_WIN 0x00000002
+#define EXCA_CARD_OK 0x00000004
+#define EXCA_EVENT 0x80000000
+	uint32_t offset;
+	int chipset;
+#define EXCA_CARDBUS 0
+#define EXCA_I82365 1	   /* Intel i82365SL-A/B or clone */
+#define EXCA_I82365SL_DF 2 /* Intel i82365sl-DF step */
+#define EXCA_VLSI 3	   /* VLSI chip */
+#define EXCA_PD6710 4	   /* Cirrus logic PD6710 */
+#define EXCA_PD6722 5	   /* Cirrus logic PD6722 */
+#define EXCA_PD6729 6	   /* Cirrus Logic PD6729 */
+#define EXCA_VG365 7	   /* Vadem 365 */
+#define EXCA_VG465 8	   /* Vadem 465 */
+#define EXCA_VG468 9	   /* Vadem 468 */
+#define EXCA_VG469 10	   /* Vadem 469 */
+#define EXCA_RF5C296 11	   /* Ricoh RF5C296 */
+#define EXCA_RF5C396 12	   /* Ricoh RF5C396 */
+#define EXCA_IBM 13	   /* IBM clone */
+#define EXCA_IBM_KING 14   /* IBM KING PCMCIA Controller */
+#define EXCA_BOGUS -1	   /* Invalid/not present/etc */
+	exca_getb_fn *getb;
+	exca_putb_fn *putb;
+	device_t pccarddev;
+	uint32_t status; /* status, hw dependent */
 };
 
-void exca_init(struct exca_softc *sc, device_t dev, 
-    bus_space_tag_t, bus_space_handle_t, uint32_t);
+void exca_init(struct exca_softc *sc, device_t dev, bus_space_tag_t,
+    bus_space_handle_t, uint32_t);
 void exca_insert(struct exca_softc *sc);
 int exca_io_map(struct exca_softc *sc, int width, struct resource *r);
 int exca_io_unmap_res(struct exca_softc *sc, struct resource *res);
@@ -115,8 +114,8 @@ int exca_mem_set_flags(struct exca_softc *sc, struct resource *res,
 int exca_mem_set_offset(struct exca_softc *sc, struct resource *res,
     uint32_t cardaddr, uint32_t *deltap);
 int exca_mem_unmap_res(struct exca_softc *sc, struct resource *res);
-int exca_probe_slots(device_t dev, struct exca_softc *exca,
-    bus_space_tag_t iot, bus_space_handle_t ioh);
+int exca_probe_slots(device_t dev, struct exca_softc *exca, bus_space_tag_t iot,
+    bus_space_handle_t ioh);
 void exca_removal(struct exca_softc *);
 void exca_reset(struct exca_softc *, device_t child);
 
@@ -154,13 +153,12 @@ enum {
 	EXCA_IVAR_SLOT = 100,
 };
 
-#define EXCA_ACCESSOR(A, B, T)						\
-static inline int							\
-exca_get_ ## A(device_t dev, T *t)					\
-{									\
-	return BUS_READ_IVAR(device_get_parent(dev), dev,		\
-	    EXCA_IVAR_ ## B, (uintptr_t *) t);			\
-}
+#define EXCA_ACCESSOR(A, B, T)                                    \
+	static inline int exca_get_##A(device_t dev, T *t)        \
+	{                                                         \
+		return BUS_READ_IVAR(device_get_parent(dev), dev, \
+		    EXCA_IVAR_##B, (uintptr_t *)t);               \
+	}
 
-EXCA_ACCESSOR(slot,		SLOT,			uint32_t)
+EXCA_ACCESSOR(slot, SLOT, uint32_t)
 #endif /* !_SYS_DEV_EXCA_EXCAVAR_H */

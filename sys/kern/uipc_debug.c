@@ -30,9 +30,9 @@
  * Debugger routines relating to sockets, protocols, etc, for use in DDB.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/domain.h>
 #include <sys/kernel.h>

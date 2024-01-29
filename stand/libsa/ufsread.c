@@ -44,44 +44,45 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <ufs/ffs/fs.h>
 #include <ufs/ufs/dinode.h>
 #include <ufs/ufs/dir.h>
-#include <ufs/ffs/fs.h>
 
 #ifdef UFS_SMALL_CGBASE
 /* XXX: Revert to old (broken for over 1.5Tb filesystems) version of cgbase
    (see sys/ufs/ffs/fs.h rev 1.39) so that small boot loaders (e.g. boot2) can
    support both UFS1 and UFS2. */
 #undef cgbase
-#define cgbase(fs, c)   ((ufs2_daddr_t)((fs)->fs_fpg * (c)))
+#define cgbase(fs, c) ((ufs2_daddr_t)((fs)->fs_fpg * (c)))
 #endif
 
-typedef	uint32_t	ufs_ino_t;
+typedef uint32_t ufs_ino_t;
 
 /*
  * We use 4k `virtual' blocks for filesystem data, whatever the actual
  * filesystem block size. FFS blocks are always a multiple of 4k.
  */
-#define VBLKSHIFT	12
-#define VBLKSIZE	(1 << VBLKSHIFT)
-#define VBLKMASK	(VBLKSIZE - 1)
-#define DBPERVBLK	(VBLKSIZE / DEV_BSIZE)
+#define VBLKSHIFT 12
+#define VBLKSIZE (1 << VBLKSHIFT)
+#define VBLKMASK (VBLKSIZE - 1)
+#define DBPERVBLK (VBLKSIZE / DEV_BSIZE)
 #define INDIRPERVBLK(fs) (NINDIR(fs) / ((fs)->fs_bsize >> VBLKSHIFT))
-#define IPERVBLK(fs)	(INOPB(fs) / ((fs)->fs_bsize >> VBLKSHIFT))
-#define INO_TO_VBA(fs, ipervblk, x) \
-    (fsbtodb(fs, cgimin(fs, ino_to_cg(fs, x))) + \
-    (((x) % (fs)->fs_ipg) / (ipervblk) * DBPERVBLK))
+#define IPERVBLK(fs) (INOPB(fs) / ((fs)->fs_bsize >> VBLKSHIFT))
+#define INO_TO_VBA(fs, ipervblk, x)                  \
+	(fsbtodb(fs, cgimin(fs, ino_to_cg(fs, x))) + \
+	    (((x) % (fs)->fs_ipg) / (ipervblk) * DBPERVBLK))
 #define INO_TO_VBO(ipervblk, x) ((x) % ipervblk)
-#define FS_TO_VBA(fs, fsb, off) (fsbtodb(fs, fsb) + \
-    ((off) / VBLKSIZE) * DBPERVBLK)
+#define FS_TO_VBA(fs, fsb, off) \
+	(fsbtodb(fs, fsb) + ((off) / VBLKSIZE) * DBPERVBLK)
 #define FS_TO_VBO(fs, fsb, off) ((off) & VBLKMASK)
 
 /* Buffers that must not span a 64k boundary. */
 struct dmadat {
 	char blkbuf[VBLKSIZE];	/* filesystem blocks */
 	char indbuf[VBLKSIZE];	/* indir blocks */
-	char sbbuf[SBLOCKSIZE];	/* superblock */
-	char secbuf[DEV_BSIZE];	/* for MBR/disklabel */
+	char sbbuf[SBLOCKSIZE]; /* superblock */
+	char secbuf[DEV_BSIZE]; /* for MBR/disklabel */
 };
 static struct dmadat *dmadat;
 
@@ -92,7 +93,7 @@ static uint8_t ls, dsk_meta;
 static uint32_t fs_off;
 
 static __inline uint8_t
-fsfind(const char *name, ufs_ino_t * ino)
+fsfind(const char *name, ufs_ino_t *ino)
 {
 	static char buf[DEV_BSIZE];
 	static struct direct d;
@@ -132,7 +133,8 @@ lookup(const char *path)
 			path++;
 		if (!*path)
 			break;
-		for (s = path; *s && *s != '/'; s++);
+		for (s = path; *s && *s != '/'; s++)
+			;
 		if ((n = s - path) > UFS_MAXNAMLEN)
 			return 0;
 		ls = *path == '?' && n == 1 && !*s;
@@ -200,21 +202,21 @@ fsread_size(ufs_ino_t inode, void *buf, size_t nbyte, size_t *fsizep)
 		dsk_meta = 0;
 		for (n = 0; sblock_try[n] != -1; n++) {
 			if (dskread(dmadat->sbbuf, sblock_try[n] / DEV_BSIZE,
-			    SBLOCKSIZE / DEV_BSIZE))
+				SBLOCKSIZE / DEV_BSIZE))
 				return -1;
 			memcpy(&fs, dmadat->sbbuf, sizeof(struct fs));
 			if ((
 #if defined(UFS1_ONLY)
-			    fs.fs_magic == FS_UFS1_MAGIC
+				fs.fs_magic == FS_UFS1_MAGIC
 #elif defined(UFS2_ONLY)
-			    (fs.fs_magic == FS_UFS2_MAGIC &&
-			    fs.fs_sblockloc == sblock_try[n])
+				(fs.fs_magic == FS_UFS2_MAGIC &&
+				    fs.fs_sblockloc == sblock_try[n])
 #else
-			    fs.fs_magic == FS_UFS1_MAGIC ||
-			    (fs.fs_magic == FS_UFS2_MAGIC &&
-			    fs.fs_sblockloc == sblock_try[n])
+				fs.fs_magic == FS_UFS1_MAGIC ||
+				(fs.fs_magic == FS_UFS2_MAGIC &&
+				    fs.fs_sblockloc == sblock_try[n])
 #endif
-			    ) &&
+				) &&
 			    fs.fs_bsize <= MAXBSIZE &&
 			    fs.fs_bsize >= (int32_t)sizeof(struct fs))
 				break;
@@ -321,4 +323,3 @@ fsread(ufs_ino_t inode, void *buf, size_t nbyte)
 
 	return fsread_size(inode, buf, nbyte, NULL);
 }
-

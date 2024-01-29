@@ -45,43 +45,42 @@
 #include <machine/bus.h>
 #include <machine/intr.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include "pic_if.h"
 
-#define	PLIC_MAX_IRQS		1024
+#define PLIC_MAX_IRQS 1024
 
-#define	PLIC_PRIORITY_BASE	0x000000U
+#define PLIC_PRIORITY_BASE 0x000000U
 
-#define	PLIC_ENABLE_BASE	0x002000U
-#define	PLIC_ENABLE_STRIDE	0x80U
+#define PLIC_ENABLE_BASE 0x002000U
+#define PLIC_ENABLE_STRIDE 0x80U
 
-#define	PLIC_CONTEXT_BASE	0x200000U
-#define	PLIC_CONTEXT_STRIDE	0x1000U
-#define	PLIC_CONTEXT_THRESHOLD	0x0U
-#define	PLIC_CONTEXT_CLAIM	0x4U
+#define PLIC_CONTEXT_BASE 0x200000U
+#define PLIC_CONTEXT_STRIDE 0x1000U
+#define PLIC_CONTEXT_THRESHOLD 0x0U
+#define PLIC_CONTEXT_CLAIM 0x4U
 
-#define	PLIC_PRIORITY(n)	(PLIC_PRIORITY_BASE + (n) * sizeof(uint32_t))
-#define	PLIC_ENABLE(sc, n, h)						\
-    (sc->contexts[h].enable_offset + ((n) / 32) * sizeof(uint32_t))
-#define	PLIC_THRESHOLD(sc, h)						\
-    (sc->contexts[h].context_offset + PLIC_CONTEXT_THRESHOLD)
-#define	PLIC_CLAIM(sc, h)						\
-    (sc->contexts[h].context_offset + PLIC_CONTEXT_CLAIM)
+#define PLIC_PRIORITY(n) (PLIC_PRIORITY_BASE + (n) * sizeof(uint32_t))
+#define PLIC_ENABLE(sc, n, h) \
+	(sc->contexts[h].enable_offset + ((n) / 32) * sizeof(uint32_t))
+#define PLIC_THRESHOLD(sc, h) \
+	(sc->contexts[h].context_offset + PLIC_CONTEXT_THRESHOLD)
+#define PLIC_CLAIM(sc, h) (sc->contexts[h].context_offset + PLIC_CONTEXT_CLAIM)
 
-static pic_disable_intr_t	plic_disable_intr;
-static pic_enable_intr_t	plic_enable_intr;
-static pic_map_intr_t		plic_map_intr;
-static pic_setup_intr_t		plic_setup_intr;
-static pic_post_ithread_t	plic_post_ithread;
-static pic_pre_ithread_t	plic_pre_ithread;
-static pic_bind_intr_t		plic_bind_intr;
+static pic_disable_intr_t plic_disable_intr;
+static pic_enable_intr_t plic_enable_intr;
+static pic_map_intr_t plic_map_intr;
+static pic_setup_intr_t plic_setup_intr;
+static pic_post_ithread_t plic_post_ithread;
+static pic_pre_ithread_t plic_pre_ithread;
+static pic_bind_intr_t plic_bind_intr;
 
 struct plic_irqsrc {
-	struct intr_irqsrc	isrc;
-	u_int			irq;
+	struct intr_irqsrc isrc;
+	u_int irq;
 };
 
 struct plic_context {
@@ -90,19 +89,17 @@ struct plic_context {
 };
 
 struct plic_softc {
-	device_t		dev;
-	struct resource		*mem_res;
-	struct resource		*irq_res;
-	void			*ih;
-	struct plic_irqsrc	isrcs[PLIC_MAX_IRQS];
-	struct plic_context	contexts[MAXCPU];
-	int			ndev;
+	device_t dev;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	void *ih;
+	struct plic_irqsrc isrcs[PLIC_MAX_IRQS];
+	struct plic_context contexts[MAXCPU];
+	int ndev;
 };
 
-#define	RD4(sc, reg)				\
-    bus_read_4(sc->mem_res, (reg))
-#define	WR4(sc, reg, val)			\
-    bus_write_4(sc->mem_res, (reg), (val))
+#define RD4(sc, reg) bus_read_4(sc->mem_res, (reg))
+#define WR4(sc, reg, val) bus_write_4(sc->mem_res, (reg), (val))
 
 static u_int plic_irq_cpu;
 
@@ -111,7 +108,7 @@ riscv_hartid_to_cpu(int hartid)
 {
 	int i;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (pcpu_find(i)->pc_hart == hartid)
 			return (i);
 	}
@@ -125,8 +122,8 @@ plic_get_hartid(device_t dev, phandle_t intc)
 	int hart;
 
 	/* Check the interrupt controller layout. */
-	if (OF_searchencprop(intc, "#interrupt-cells", &hart,
-	    sizeof(hart)) == -1) {
+	if (OF_searchencprop(intc, "#interrupt-cells", &hart, sizeof(hart)) ==
+	    -1) {
 		device_printf(dev,
 		    "Could not find #interrupt-cells for phandle %u\n", intc);
 		return (-1);
@@ -137,7 +134,7 @@ plic_get_hartid(device_t dev, phandle_t intc)
 	 * interested in, so search for its hart ID.
 	 */
 	if (OF_searchencprop(OF_parent(intc), "reg", (pcell_t *)&hart,
-	    sizeof(hart)) == -1) {
+		sizeof(hart)) == -1) {
 		device_printf(dev, "Could not find hartid\n");
 		return (-1);
 	}
@@ -146,8 +143,7 @@ plic_get_hartid(device_t dev, phandle_t intc)
 }
 
 static inline void
-plic_irq_dispatch(struct plic_softc *sc, u_int irq,
-    struct trapframe *tf)
+plic_irq_dispatch(struct plic_softc *sc, u_int irq, struct trapframe *tf)
 {
 	struct plic_irqsrc *src;
 
@@ -263,16 +259,14 @@ plic_attach(device_t dev)
 	sc->dev = dev;
 
 	node = ofw_bus_get_node(dev);
-	if ((OF_getencprop(node, "riscv,ndev", &sc->ndev,
-	    sizeof(sc->ndev))) < 0) {
-		device_printf(dev,
-		    "Error: could not get number of devices\n");
+	if ((OF_getencprop(node, "riscv,ndev", &sc->ndev, sizeof(sc->ndev))) <
+	    0) {
+		device_printf(dev, "Error: could not get number of devices\n");
 		return (ENXIO);
 	}
 
 	if (sc->ndev >= PLIC_MAX_IRQS) {
-		device_printf(dev,
-		    "Error: invalid ndev (%d)\n", sc->ndev);
+		device_printf(dev, "Error: invalid ndev (%d)\n", sc->ndev);
 		return (ENXIO);
 	}
 
@@ -291,8 +285,8 @@ plic_attach(device_t dev)
 	name = device_get_nameunit(sc->dev);
 	for (irq = 1; irq <= sc->ndev; irq++) {
 		isrcs[irq].irq = irq;
-		error = intr_isrc_register(&isrcs[irq].isrc, sc->dev,
-		    0, "%s,%u", name, irq);
+		error = intr_isrc_register(&isrcs[irq].isrc, sc->dev, 0,
+		    "%s,%u", name, irq);
 		if (error != 0)
 			return (error);
 
@@ -377,16 +371,14 @@ plic_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
-		device_printf(dev,
-		    "Error: could not allocate IRQ resources\n");
+		device_printf(dev, "Error: could not allocate IRQ resources\n");
 		return (ENXIO);
 	}
 
 	/* Set the threshold for each CPU to accept all priorities. */
-	CPU_FOREACH(cpu)
+	CPU_FOREACH (cpu)
 		WR4(sc, PLIC_THRESHOLD(sc, cpu), 0);
 
 	xref = OF_xref_from_node(node);
@@ -423,8 +415,8 @@ plic_post_ithread(device_t dev, struct intr_irqsrc *isrc)
 }
 
 static int
-plic_setup_intr(device_t dev, struct intr_irqsrc *isrc,
-    struct resource *res, struct intr_map_data *data)
+plic_setup_intr(device_t dev, struct intr_irqsrc *isrc, struct resource *res,
+    struct intr_map_data *data)
 {
 	CPU_ZERO(&isrc->isrc_cpu);
 	plic_bind_intr(dev, isrc);
@@ -444,7 +436,7 @@ plic_bind_intr(device_t dev, struct intr_irqsrc *isrc)
 	src = (struct plic_irqsrc *)isrc;
 
 	/* Disable the interrupt source on all CPUs. */
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		reg = RD4(sc, PLIC_ENABLE(sc, src->irq, cpu));
 		reg &= ~(1 << (src->irq % 32));
 		WR4(sc, PLIC_ENABLE(sc, src->irq, cpu), reg);
@@ -469,21 +461,19 @@ plic_bind_intr(device_t dev, struct intr_irqsrc *isrc)
 	return (0);
 }
 
-static device_method_t plic_methods[] = {
-	DEVMETHOD(device_probe,		plic_probe),
-	DEVMETHOD(device_attach,	plic_attach),
+static device_method_t plic_methods[] = { DEVMETHOD(device_probe, plic_probe),
+	DEVMETHOD(device_attach, plic_attach),
 
-	DEVMETHOD(pic_disable_intr,	plic_disable_intr),
-	DEVMETHOD(pic_enable_intr,	plic_enable_intr),
-	DEVMETHOD(pic_map_intr,		plic_map_intr),
-	DEVMETHOD(pic_pre_ithread,	plic_pre_ithread),
-	DEVMETHOD(pic_post_ithread,	plic_post_ithread),
-	DEVMETHOD(pic_post_filter,	plic_post_ithread),
-	DEVMETHOD(pic_setup_intr,	plic_setup_intr),
-	DEVMETHOD(pic_bind_intr,	plic_bind_intr),
+	DEVMETHOD(pic_disable_intr, plic_disable_intr),
+	DEVMETHOD(pic_enable_intr, plic_enable_intr),
+	DEVMETHOD(pic_map_intr, plic_map_intr),
+	DEVMETHOD(pic_pre_ithread, plic_pre_ithread),
+	DEVMETHOD(pic_post_ithread, plic_post_ithread),
+	DEVMETHOD(pic_post_filter, plic_post_ithread),
+	DEVMETHOD(pic_setup_intr, plic_setup_intr),
+	DEVMETHOD(pic_bind_intr, plic_bind_intr),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t plic_driver = {
 	"plic",

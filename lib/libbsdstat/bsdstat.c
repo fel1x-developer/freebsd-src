@@ -37,7 +37,7 @@
 static void
 bsdstat_setfmt(struct bsdstat *sf, const char *fmt0)
 {
-#define	N(a)	(sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 	char fmt[4096];
 	char *fp, *tok;
 	int i, j;
@@ -49,13 +49,17 @@ bsdstat_setfmt(struct bsdstat *sf, const char *fmt0)
 			if (strcasecmp(tok, sf->stats[i].name) == 0)
 				break;
 		if (i >= sf->nstats) {
-			fprintf(stderr, "%s: unknown statistic name \"%s\" "
-				"skipped\n", sf->name, tok);
+			fprintf(stderr,
+			    "%s: unknown statistic name \"%s\" "
+			    "skipped\n",
+			    sf->name, tok);
 			continue;
 		}
-		if (j+4 > (int) sizeof(sf->fmts)) {
-			fprintf(stderr, "%s: not enough room for all stats; "
-				"stopped at %s\n", sf->name, tok);
+		if (j + 4 > (int)sizeof(sf->fmts)) {
+			fprintf(stderr,
+			    "%s: not enough room for all stats; "
+			    "stopped at %s\n",
+			    sf->name, tok);
 			break;
 		}
 		if (j != 0)
@@ -68,19 +72,19 @@ bsdstat_setfmt(struct bsdstat *sf, const char *fmt0)
 #undef N
 }
 
-static void 
+static void
 bsdstat_collect(struct bsdstat *sf)
 {
 	fprintf(stderr, "%s: don't know how to collect data\n", sf->name);
 }
 
-static void 
+static void
 bsdstat_update_tot(struct bsdstat *sf)
 {
 	fprintf(stderr, "%s: don't know how to update total data\n", sf->name);
 }
 
-static int 
+static int
 bsdstat_get(struct bsdstat *sf, int s, char b[] __unused, size_t bs __unused)
 {
 	fprintf(stderr, "%s: don't know how to get stat #%u\n", sf->name, s);
@@ -97,7 +101,7 @@ bsdstat_print_header(struct bsdstat *sf, FILE *fd)
 	for (cp = sf->fmts; *cp != '\0'; cp++) {
 		if (*cp == FMTS_IS_STAT) {
 			i = *(++cp);
-			i |= ((int) *(++cp)) << 8;
+			i |= ((int)*(++cp)) << 8;
 			f = &sf->stats[i];
 			fprintf(fd, "%*s", f->width, f->label);
 		} else
@@ -117,7 +121,7 @@ bsdstat_print_current(struct bsdstat *sf, FILE *fd)
 	for (cp = sf->fmts; *cp != '\0'; cp++) {
 		if (*cp == FMTS_IS_STAT) {
 			i = *(++cp);
-			i |= ((int) *(++cp)) << 8;
+			i |= ((int)*(++cp)) << 8;
 			f = &sf->stats[i];
 			if (sf->get_curstat(sf, i, buf, sizeof(buf)))
 				fprintf(fd, "%*s", f->width, buf);
@@ -138,7 +142,7 @@ bsdstat_print_total(struct bsdstat *sf, FILE *fd)
 	for (cp = sf->fmts; *cp != '\0'; cp++) {
 		if (*cp == FMTS_IS_STAT) {
 			i = *(++cp);
-			i |= ((int) *(++cp)) << 8;
+			i |= ((int)*(++cp)) << 8;
 			f = &sf->stats[i];
 			if (sf->get_totstat(sf, i, buf, sizeof(buf)))
 				fprintf(fd, "%*s", f->width, buf);
@@ -187,7 +191,8 @@ bsdstat_print_fields(struct bsdstat *sf, FILE *fd)
 }
 
 void
-bsdstat_init(struct bsdstat *sf, const char *name, const struct fmt *stats, int nstats)
+bsdstat_init(struct bsdstat *sf, const char *name, const struct fmt *stats,
+    int nstats)
 {
 	sf->name = name;
 	sf->stats = stats;

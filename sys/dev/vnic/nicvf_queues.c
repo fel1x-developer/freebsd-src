@@ -24,31 +24,31 @@
  * SUCH DAMAGE.
  *
  */
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bitset.h>
 #include <sys/bitstring.h>
 #include <sys/buf_ring.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/rman.h>
+#include <sys/mutex.h>
 #include <sys/pciio.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
-#include <sys/sockio.h>
-#include <sys/socket.h>
-#include <sys/stdatomic.h>
-#include <sys/cpuset.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/smp.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/stdatomic.h>
 #include <sys/taskqueue.h>
 
 #include <vm/vm.h>
@@ -57,47 +57,45 @@
 #include <machine/bus.h>
 #include <machine/vmparam.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/ifq.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
-
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net/ifq.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/sctp.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_lro.h>
 #include <netinet/udp.h>
-
 #include <netinet6/ip6_var.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include "thunder_bgx.h"
-#include "nic_reg.h"
 #include "nic.h"
-#include "q_struct.h"
+#include "nic_reg.h"
 #include "nicvf_queues.h"
+#include "q_struct.h"
+#include "thunder_bgx.h"
 
-#define	DEBUG
+#define DEBUG
 #undef DEBUG
 
 #ifdef DEBUG
-#define	dprintf(dev, fmt, ...)	device_printf(dev, fmt, ##__VA_ARGS__)
+#define dprintf(dev, fmt, ...) device_printf(dev, fmt, ##__VA_ARGS__)
 #else
-#define	dprintf(dev, fmt, ...)
+#define dprintf(dev, fmt, ...)
 #endif
 
 MALLOC_DECLARE(M_NICVF);
 
 static void nicvf_free_snd_queue(struct nicvf *, struct snd_queue *);
-static struct mbuf * nicvf_get_rcv_mbuf(struct nicvf *, struct cqe_rx_t *);
+static struct mbuf *nicvf_get_rcv_mbuf(struct nicvf *, struct cqe_rx_t *);
 static void nicvf_sq_disable(struct nicvf *, int);
 static void nicvf_sq_enable(struct nicvf *, struct snd_queue *, int);
 static void nicvf_put_sq_desc(struct snd_queue *, int);
@@ -111,16 +109,17 @@ static void nicvf_rbdr_task(void *, int);
 static void nicvf_rbdr_task_nowait(void *, int);
 
 struct rbuf_info {
-	bus_dma_tag_t	dmat;
-	bus_dmamap_t	dmap;
-	struct mbuf *	mbuf;
+	bus_dma_tag_t dmat;
+	bus_dmamap_t dmap;
+	struct mbuf *mbuf;
 };
 
-#define GET_RBUF_INFO(x) ((struct rbuf_info *)((x) - NICVF_RCV_BUF_ALIGN_BYTES))
+#define GET_RBUF_INFO(x) ((struct rbuf_info *)((x)-NICVF_RCV_BUF_ALIGN_BYTES))
 
 /* Poll a register for a specific value */
-static int nicvf_poll_reg(struct nicvf *nic, int qidx,
-			  uint64_t reg, int bit_pos, int bits, int val)
+static int
+nicvf_poll_reg(struct nicvf *nic, int qidx, uint64_t reg, int bit_pos, int bits,
+    int val)
 {
 	uint64_t bit_mask;
 	uint64_t reg_val;
@@ -154,25 +153,24 @@ nicvf_dmamap_q_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 
 /* Allocate memory for a queue's descriptors */
 static int
-nicvf_alloc_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem,
-    int q_len, int desc_size, int align_bytes)
+nicvf_alloc_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem, int q_len,
+    int desc_size, int align_bytes)
 {
 	int err, err_dmat __diagused;
 
 	/* Create DMA tag first */
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(nic->dev),		/* parent tag */
-	    align_bytes,			/* alignment */
-	    0,					/* boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filtfunc, filtfuncarg */
-	    (q_len * desc_size),		/* maxsize */
-	    1,					/* nsegments */
-	    (q_len * desc_size),		/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockfuncarg */
-	    &dmem->dmat);			/* dmat */
+	err = bus_dma_tag_create(bus_get_dma_tag(nic->dev), /* parent tag */
+	    align_bytes,				    /* alignment */
+	    0,						    /* boundary */
+	    BUS_SPACE_MAXADDR,				    /* lowaddr */
+	    BUS_SPACE_MAXADDR,				    /* highaddr */
+	    NULL, NULL,		 /* filtfunc, filtfuncarg */
+	    (q_len * desc_size), /* maxsize */
+	    1,			 /* nsegments */
+	    (q_len * desc_size), /* maxsegsize */
+	    0,			 /* flags */
+	    NULL, NULL,		 /* lockfunc, lockfuncarg */
+	    &dmem->dmat);	 /* dmat */
 
 	if (err != 0) {
 		device_printf(nic->dev,
@@ -181,24 +179,21 @@ nicvf_alloc_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem,
 	}
 
 	/* Allocate segment of continuous DMA safe memory */
-	err = bus_dmamem_alloc(
-	    dmem->dmat,				/* DMA tag */
-	    &dmem->base,			/* virtual address */
-	    (BUS_DMA_NOWAIT | BUS_DMA_ZERO),	/* flags */
-	    &dmem->dmap);			/* DMA map */
+	err = bus_dmamem_alloc(dmem->dmat,   /* DMA tag */
+	    &dmem->base,		     /* virtual address */
+	    (BUS_DMA_NOWAIT | BUS_DMA_ZERO), /* flags */
+	    &dmem->dmap);		     /* DMA map */
 	if (err != 0) {
-		device_printf(nic->dev, "Failed to allocate DMA safe memory for"
+		device_printf(nic->dev,
+		    "Failed to allocate DMA safe memory for"
 		    "descriptors ring\n");
 		goto dmamem_fail;
 	}
 
-	err = bus_dmamap_load(
-	    dmem->dmat,
-	    dmem->dmap,
-	    dmem->base,
-	    (q_len * desc_size),		/* allocation size */
-	    nicvf_dmamap_q_cb,			/* map to DMA address cb. */
-	    &dmem->phys_base,			/* physical address */
+	err = bus_dmamap_load(dmem->dmat, dmem->dmap, dmem->base,
+	    (q_len * desc_size), /* allocation size */
+	    nicvf_dmamap_q_cb,	 /* map to DMA address cb. */
+	    &dmem->phys_base,	 /* physical address */
 	    BUS_DMA_NOWAIT);
 	if (err != 0) {
 		device_printf(nic->dev,
@@ -240,8 +235,7 @@ nicvf_free_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem)
 	/* Destroy DMA tag */
 	err = bus_dma_tag_destroy(dmem->dmat);
 
-	KASSERT(err == 0,
-	    ("%s: Trying to destroy BUSY DMA tag", __func__));
+	KASSERT(err == 0, ("%s: Trying to destroy BUSY DMA tag", __func__));
 
 	dmem->phys_base = 0;
 	dmem->base = NULL;
@@ -254,8 +248,8 @@ nicvf_free_q_desc_mem(struct nicvf *nic, struct q_desc_mem *dmem)
  * align the start address to a cache aligned address
  */
 static __inline int
-nicvf_alloc_rcv_buffer(struct nicvf *nic, struct rbdr *rbdr,
-    bus_dmamap_t dmap, int mflags, uint32_t buf_len, bus_addr_t *rbuf)
+nicvf_alloc_rcv_buffer(struct nicvf *nic, struct rbdr *rbdr, bus_dmamap_t dmap,
+    int mflags, uint32_t buf_len, bus_addr_t *rbuf)
 {
 	struct mbuf *mbuf;
 	struct rbuf_info *rinfo;
@@ -372,19 +366,18 @@ nicvf_init_rbdr(struct nicvf *nic, struct rbdr *rbdr, int ring_len,
 		    "Buffer size to large for mbuf cluster\n");
 		return (EINVAL);
 	}
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(nic->dev),		/* parent tag */
-	    NICVF_RCV_BUF_ALIGN_BYTES,		/* alignment */
-	    0,					/* boundary */
-	    DMAP_MAX_PHYSADDR,			/* lowaddr */
-	    DMAP_MIN_PHYSADDR,			/* highaddr */
-	    NULL, NULL,				/* filtfunc, filtfuncarg */
-	    roundup2(buf_size, MCLBYTES),	/* maxsize */
-	    1,					/* nsegments */
-	    roundup2(buf_size, MCLBYTES),	/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockfuncarg */
-	    &rbdr->rbdr_buff_dmat);		/* dmat */
+	err = bus_dma_tag_create(bus_get_dma_tag(nic->dev), /* parent tag */
+	    NICVF_RCV_BUF_ALIGN_BYTES,			    /* alignment */
+	    0,						    /* boundary */
+	    DMAP_MAX_PHYSADDR,				    /* lowaddr */
+	    DMAP_MIN_PHYSADDR,				    /* highaddr */
+	    NULL, NULL,			  /* filtfunc, filtfuncarg */
+	    roundup2(buf_size, MCLBYTES), /* maxsize */
+	    1,				  /* nsegments */
+	    roundup2(buf_size, MCLBYTES), /* maxsegsize */
+	    0,				  /* flags */
+	    NULL, NULL,			  /* lockfunc, lockfuncarg */
+	    &rbdr->rbdr_buff_dmat);	  /* dmat */
 
 	if (err != 0) {
 		device_printf(nic->dev,
@@ -393,7 +386,8 @@ nicvf_init_rbdr(struct nicvf *nic, struct rbdr *rbdr, int ring_len,
 	}
 
 	rbdr->rbdr_buff_dmaps = malloc(sizeof(*rbdr->rbdr_buff_dmaps) *
-	    ring_len, M_NICVF, (M_WAITOK | M_ZERO));
+		ring_len,
+	    M_NICVF, (M_WAITOK | M_ZERO));
 
 	for (idx = 0; idx < ring_len; idx++) {
 		err = bus_dmamap_create(rbdr->rbdr_buff_dmat, 0, &dmap);
@@ -445,7 +439,7 @@ nicvf_free_rbdr(struct nicvf *nic, struct rbdr *rbdr)
 	if (rbdr->rbdr_taskq != NULL) {
 		/* Remove tasks */
 		while (taskqueue_cancel(rbdr->rbdr_taskq,
-		    &rbdr->rbdr_task_nowait, NULL) != 0) {
+			   &rbdr->rbdr_task_nowait, NULL) != 0) {
 			/* Finish the nowait task first */
 			taskqueue_drain(rbdr->rbdr_taskq,
 			    &rbdr->rbdr_task_nowait);
@@ -453,8 +447,8 @@ nicvf_free_rbdr(struct nicvf *nic, struct rbdr *rbdr)
 		taskqueue_free(rbdr->rbdr_taskq);
 		rbdr->rbdr_taskq = NULL;
 
-		while (taskqueue_cancel(taskqueue_thread,
-		    &rbdr->rbdr_task, NULL) != 0) {
+		while (taskqueue_cancel(taskqueue_thread, &rbdr->rbdr_task,
+			   NULL) != 0) {
 			/* Now finish the sleepable task */
 			taskqueue_drain(taskqueue_thread, &rbdr->rbdr_task);
 		}
@@ -501,7 +495,7 @@ nicvf_free_rbdr(struct nicvf *nic, struct rbdr *rbdr)
 			    rbdr->rbdr_buff_dmaps[idx]);
 			KASSERT(err == 0,
 			    ("%s: Could not destroy DMA map for RB, desc: %d",
-			    __func__, idx));
+				__func__, idx));
 			rbdr->rbdr_buff_dmaps[idx] = NULL;
 		}
 
@@ -563,7 +557,7 @@ nicvf_refill_rbdr(struct rbdr *rbdr, int mflags)
 
 		dmap = rbdr->rbdr_buff_dmaps[tail];
 		if (nicvf_alloc_rcv_buffer(nic, rbdr, dmap, mflags,
-		    DMA_BUFFER_LEN, &rbuf)) {
+			DMA_BUFFER_LEN, &rbuf)) {
 			/* Something went wrong. Resign */
 			break;
 		}
@@ -581,8 +575,7 @@ nicvf_refill_rbdr(struct rbdr *rbdr, int mflags)
 		rb_alloc_fail = FALSE;
 
 	/* Notify HW */
-	nicvf_queue_reg_write(nic, NIC_QSET_RBDR_0_1_DOOR,
-			      rbdr_idx, new_rb);
+	nicvf_queue_reg_write(nic, NIC_QSET_RBDR_0_1_DOOR, rbdr_idx, new_rb);
 out:
 	if (!rb_alloc_fail) {
 		/*
@@ -662,9 +655,10 @@ nicvf_rcv_pkt_handler(struct nicvf *nic, struct cmp_queue *cq,
 	}
 
 	if (rq->lro_enabled &&
-	    ((cqe_rx->l3_type == L3TYPE_IPV4) && (cqe_rx->l4_type == L4TYPE_TCP)) &&
+	    ((cqe_rx->l3_type == L3TYPE_IPV4) &&
+		(cqe_rx->l4_type == L4TYPE_TCP)) &&
 	    (mbuf->m_pkthdr.csum_flags & (CSUM_DATA_VALID | CSUM_PSEUDO_HDR)) ==
-            (CSUM_DATA_VALID | CSUM_PSEUDO_HDR)) {
+		(CSUM_DATA_VALID | CSUM_PSEUDO_HDR)) {
 		/*
 		 * At this point it is known that there are no errors in the
 		 * packet. Attempt to LRO enqueue. Send to stack if no resources
@@ -706,10 +700,9 @@ nicvf_snd_pkt_handler(struct nicvf *nic, struct cmp_queue *cq,
 	if (hdr->subdesc_type != SQ_DESC_TYPE_HEADER)
 		return;
 
-	dprintf(nic->dev,
-	    "%s Qset #%d SQ #%d SQ ptr #%d subdesc count %d\n",
-	    __func__, cqe_tx->sq_qs, cqe_tx->sq_idx,
-	    cqe_tx->sqe_ptr, hdr->subdesc_cnt);
+	dprintf(nic->dev, "%s Qset #%d SQ #%d SQ ptr #%d subdesc count %d\n",
+	    __func__, cqe_tx->sq_qs, cqe_tx->sq_idx, cqe_tx->sqe_ptr,
+	    hdr->subdesc_cnt);
 
 	dmap = (bus_dmamap_t)sq->snd_buff[cqe_tx->sqe_ptr].dmap;
 	bus_dmamap_unload(sq->snd_buff_dmat, dmap);
@@ -739,7 +732,7 @@ nicvf_cq_intr_handler(struct nicvf *nic, uint8_t cq_idx)
 	struct snd_queue *sq = &qs->sq[cq_idx];
 	struct rcv_queue *rq;
 	struct cqe_rx_t *cq_desc;
-	struct lro_ctrl	*lro;
+	struct lro_ctrl *lro;
 	int rq_idx;
 	int cmp_err;
 
@@ -756,15 +749,16 @@ nicvf_cq_intr_handler(struct nicvf *nic, uint8_t cq_idx)
 	cqe_head = nicvf_queue_reg_read(nic, NIC_QSET_CQ_0_7_HEAD, cq_idx) >> 9;
 	cqe_head &= 0xFFFF;
 
-	dprintf(nic->dev, "%s CQ%d cqe_count %d cqe_head %d\n",
-	    __func__, cq_idx, cqe_count, cqe_head);
+	dprintf(nic->dev, "%s CQ%d cqe_count %d cqe_head %d\n", __func__,
+	    cq_idx, cqe_count, cqe_head);
 	while (processed_cqe < cqe_count) {
 		/* Get the CQ descriptor */
 		cq_desc = (struct cqe_rx_t *)GET_CQ_DESC(cq, cqe_head);
 		cqe_head++;
 		cqe_head &= (cq->dmem.q_len - 1);
 		/* Prefetch next CQ descriptor */
-		__builtin_prefetch((struct cqe_rx_t *)GET_CQ_DESC(cq, cqe_head));
+		__builtin_prefetch(
+		    (struct cqe_rx_t *)GET_CQ_DESC(cq, cqe_head));
 
 		dprintf(nic->dev, "CQ%d cq_desc->cqe_type %d\n", cq_idx,
 		    cq_desc->cqe_type);
@@ -798,9 +792,8 @@ nicvf_cq_intr_handler(struct nicvf *nic, uint8_t cq_idx)
 		processed_cqe++;
 	}
 done:
-	dprintf(nic->dev,
-	    "%s CQ%d processed_cqe %d work_done %d\n",
-	    __func__, cq_idx, processed_cqe, work_done);
+	dprintf(nic->dev, "%s CQ%d processed_cqe %d work_done %d\n", __func__,
+	    cq_idx, processed_cqe, work_done);
 
 	/* Ring doorbell to inform H/W to reuse processed CQEs */
 	nicvf_queue_reg_write(nic, NIC_QSET_CQ_0_7_DOOR, cq_idx, processed_cqe);
@@ -897,7 +890,6 @@ nicvf_cmp_task(void *arg, int pending)
 	nicvf_clear_intr(nic, NICVF_INTR_CQ, cq->idx);
 	/* Reenable interrupt (previously disabled in nicvf_intr_handler() */
 	nicvf_enable_intr(nic, NICVF_INTR_CQ, cq->idx);
-
 }
 
 /* Initialize completion queue */
@@ -913,7 +905,7 @@ nicvf_init_cmp_queue(struct nicvf *nic, struct cmp_queue *cq, int q_len,
 	mtx_init(&cq->mtx, cq->mtx_name, NULL, MTX_DEF);
 
 	err = nicvf_alloc_q_desc_mem(nic, &cq->dmem, q_len, CMP_QUEUE_DESC_SIZE,
-				     NICVF_CQ_BASE_ALIGN_BYTES);
+	    NICVF_CQ_BASE_ALIGN_BYTES);
 
 	if (err != 0) {
 		device_printf(nic->dev,
@@ -956,7 +948,8 @@ nicvf_free_cmp_queue(struct nicvf *nic, struct cmp_queue *cq)
 
 	if (cq->cmp_taskq != NULL) {
 		/* Remove task */
-		while (taskqueue_cancel(cq->cmp_taskq, &cq->cmp_task, NULL) != 0)
+		while (
+		    taskqueue_cancel(cq->cmp_taskq, &cq->cmp_task, NULL) != 0)
 			taskqueue_drain(cq->cmp_taskq, &cq->cmp_task);
 
 		taskqueue_free(cq->cmp_taskq);
@@ -1027,7 +1020,8 @@ nicvf_snd_task(void *arg, int pending)
 	 * SQ full or link is down.
 	 */
 	if (((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING) || !nic->link_up)
+		IFF_DRV_RUNNING) ||
+	    !nic->link_up)
 		return;
 
 	NICVF_TX_LOCK(sq);
@@ -1064,7 +1058,7 @@ nicvf_init_snd_queue(struct nicvf *nic, struct snd_queue *sq, int q_len,
 
 	/* Allocate DMA memory for Tx descriptors */
 	err = nicvf_alloc_q_desc_mem(nic, &sq->dmem, q_len, SND_QUEUE_DESC_SIZE,
-				     NICVF_SQ_BASE_ALIGN_BYTES);
+	    NICVF_SQ_BASE_ALIGN_BYTES);
 	if (err != 0) {
 		device_printf(nic->dev,
 		    "Could not allocate DMA memory for SQ\n");
@@ -1083,19 +1077,18 @@ nicvf_init_snd_queue(struct nicvf *nic, struct snd_queue *sq, int q_len,
 	 */
 
 	/* Create DMA tag first */
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(nic->dev),		/* parent tag */
-	    1,					/* alignment */
-	    0,					/* boundary */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filtfunc, filtfuncarg */
-	    NICVF_TSO_MAXSIZE,			/* maxsize */
-	    NICVF_TSO_NSEGS,			/* nsegments */
-	    MCLBYTES,				/* maxsegsize */
-	    0,					/* flags */
-	    NULL, NULL,				/* lockfunc, lockfuncarg */
-	    &sq->snd_buff_dmat);		/* dmat */
+	err = bus_dma_tag_create(bus_get_dma_tag(nic->dev), /* parent tag */
+	    1,						    /* alignment */
+	    0,						    /* boundary */
+	    BUS_SPACE_MAXADDR,				    /* lowaddr */
+	    BUS_SPACE_MAXADDR,				    /* highaddr */
+	    NULL, NULL,		 /* filtfunc, filtfuncarg */
+	    NICVF_TSO_MAXSIZE,	 /* maxsize */
+	    NICVF_TSO_NSEGS,	 /* nsegments */
+	    MCLBYTES,		 /* maxsegsize */
+	    0,			 /* flags */
+	    NULL, NULL,		 /* lockfunc, lockfuncarg */
+	    &sq->snd_buff_dmat); /* dmat */
 
 	if (err != 0) {
 		device_printf(nic->dev,
@@ -1150,7 +1143,8 @@ nicvf_free_snd_queue(struct nicvf *nic, struct snd_queue *sq)
 
 	if (sq->snd_taskq != NULL) {
 		/* Remove task */
-		while (taskqueue_cancel(sq->snd_taskq, &sq->snd_task, NULL) != 0)
+		while (
+		    taskqueue_cancel(sq->snd_taskq, &sq->snd_task, NULL) != 0)
 			taskqueue_drain(sq->snd_taskq, &sq->snd_task);
 
 		taskqueue_free(sq->snd_taskq);
@@ -1175,7 +1169,7 @@ nicvf_free_snd_queue(struct nicvf *nic, struct snd_queue *sq)
 				 */
 				KASSERT(err == 0,
 				    ("%s: Could not destroy DMA map for SQ",
-				    __func__));
+					__func__));
 			}
 		}
 
@@ -1241,10 +1235,10 @@ nicvf_reclaim_rbdr(struct nicvf *nic, struct rbdr *rbdr, int qidx)
 	int timeout = 10;
 
 	/* Save head and tail pointers for feeing up buffers */
-	rbdr->head =
-	    nicvf_queue_reg_read(nic, NIC_QSET_RBDR_0_1_HEAD, qidx) >> 3;
-	rbdr->tail =
-	    nicvf_queue_reg_read(nic, NIC_QSET_RBDR_0_1_TAIL, qidx) >> 3;
+	rbdr->head = nicvf_queue_reg_read(nic, NIC_QSET_RBDR_0_1_HEAD, qidx) >>
+	    3;
+	rbdr->tail = nicvf_queue_reg_read(nic, NIC_QSET_RBDR_0_1_TAIL, qidx) >>
+	    3;
 
 	/*
 	 * If RBDR FIFO is in 'FAIL' state then do a reset first
@@ -1252,8 +1246,8 @@ nicvf_reclaim_rbdr(struct nicvf *nic, struct rbdr *rbdr, int qidx)
 	 */
 	fifo_state = nicvf_queue_reg_read(nic, NIC_QSET_RBDR_0_1_STATUS0, qidx);
 	if (((fifo_state >> 62) & 0x03) == 0x3) {
-		nicvf_queue_reg_write(nic, NIC_QSET_RBDR_0_1_CFG,
-		    qidx, NICVF_RBDR_RESET);
+		nicvf_queue_reg_write(nic, NIC_QSET_RBDR_0_1_CFG, qidx,
+		    NICVF_RBDR_RESET);
 	}
 
 	/* Disable RBDR */
@@ -1286,14 +1280,14 @@ nicvf_reclaim_rbdr(struct nicvf *nic, struct rbdr *rbdr, int qidx)
 
 /* Configures receive queue */
 static void
-nicvf_rcv_queue_config(struct nicvf *nic, struct queue_set *qs,
-    int qidx, bool enable)
+nicvf_rcv_queue_config(struct nicvf *nic, struct queue_set *qs, int qidx,
+    bool enable)
 {
 	union nic_mbx mbx = {};
 	struct rcv_queue *rq;
 	struct rq_cfg rq_cfg;
 	if_t ifp;
-	struct lro_ctrl	*lro;
+	struct lro_ctrl *lro;
 
 	ifp = nic->ifp;
 
@@ -1367,8 +1361,8 @@ nicvf_rcv_queue_config(struct nicvf *nic, struct queue_set *qs,
 
 /* Configures completion queue */
 static void
-nicvf_cmp_queue_config(struct nicvf *nic, struct queue_set *qs,
-    int qidx, boolean_t enable)
+nicvf_cmp_queue_config(struct nicvf *nic, struct queue_set *qs, int qidx,
+    boolean_t enable)
 {
 	struct cmp_queue *cq;
 	struct cq_cfg cq_cfg;
@@ -1394,7 +1388,8 @@ nicvf_cmp_queue_config(struct nicvf *nic, struct queue_set *qs,
 	cq_cfg.caching = 0;
 	cq_cfg.qsize = CMP_QSIZE;
 	cq_cfg.avg_con = 0;
-	nicvf_queue_reg_write(nic, NIC_QSET_CQ_0_7_CFG, qidx, *(uint64_t *)&cq_cfg);
+	nicvf_queue_reg_write(nic, NIC_QSET_CQ_0_7_CFG, qidx,
+	    *(uint64_t *)&cq_cfg);
 
 	/* Set threshold value for interrupt generation */
 	nicvf_queue_reg_write(nic, NIC_QSET_CQ_0_7_THRESH, qidx, cq->thresh);
@@ -1443,7 +1438,8 @@ nicvf_snd_queue_config(struct nicvf *nic, struct queue_set *qs, int qidx,
 	sq_cfg.ldwb = 0;
 	sq_cfg.qsize = SND_QSIZE;
 	sq_cfg.tstmp_bgx_intf = 0;
-	nicvf_queue_reg_write(nic, NIC_QSET_SQ_0_7_CFG, qidx, *(uint64_t *)&sq_cfg);
+	nicvf_queue_reg_write(nic, NIC_QSET_SQ_0_7_CFG, qidx,
+	    *(uint64_t *)&sq_cfg);
 
 	/* Set threshold value for interrupt generation */
 	nicvf_queue_reg_write(nic, NIC_QSET_SQ_0_7_THRESH, qidx, sq->thresh);
@@ -1530,8 +1526,8 @@ nicvf_free_resources(struct nicvf *nic)
 	 */
 	if (qs->qs_err_taskq != NULL) {
 		/* Shut down QS error tasks */
-		while (taskqueue_cancel(qs->qs_err_taskq,
-		    &qs->qs_err_task,  NULL) != 0) {
+		while (taskqueue_cancel(qs->qs_err_taskq, &qs->qs_err_task,
+			   NULL) != 0) {
 			taskqueue_drain(qs->qs_err_taskq, &qs->qs_err_task);
 		}
 		taskqueue_free(qs->qs_err_taskq);
@@ -1559,7 +1555,7 @@ nicvf_alloc_resources(struct nicvf *nic)
 	/* Alloc receive buffer descriptor ring */
 	for (qidx = 0; qidx < qs->rbdr_cnt; qidx++) {
 		if (nicvf_init_rbdr(nic, &qs->rbdr[qidx], qs->rbdr_len,
-				    DMA_BUFFER_LEN, qidx))
+			DMA_BUFFER_LEN, qidx))
 			goto alloc_fail;
 	}
 
@@ -1741,8 +1737,8 @@ nicvf_sq_free_used_descs(struct nicvf *nic, struct snd_queue *sq, int qidx)
  * First subdescriptor for every send descriptor.
  */
 static __inline int
-nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
-			 int subdesc_cnt, struct mbuf *mbuf, int len)
+nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry, int subdesc_cnt,
+    struct mbuf *mbuf, int len)
 {
 	struct nicvf *nic;
 	struct sq_hdr_subdesc *hdr;
@@ -1781,7 +1777,7 @@ nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
 #ifdef INET6
 	case ETHERTYPE_IPV6:
 		if (mbuf->m_len < ehdrlen + sizeof(struct ip6_hdr)) {
-			mbuf = m_pullup(mbuf, ehdrlen +sizeof(struct ip6_hdr));
+			mbuf = m_pullup(mbuf, ehdrlen + sizeof(struct ip6_hdr));
 			sq->snd_buff[qentry].mbuf = NULL;
 			if (mbuf == NULL)
 				return (ENOBUFS);
@@ -1819,7 +1815,8 @@ nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
 				break;
 
 			if (mbuf->m_len < (poff + sizeof(struct tcphdr))) {
-				mbuf = m_pullup(mbuf, poff + sizeof(struct tcphdr));
+				mbuf = m_pullup(mbuf,
+				    poff + sizeof(struct tcphdr));
 				sq->snd_buff[qentry].mbuf = mbuf;
 				if (mbuf == NULL)
 					return (ENOBUFS);
@@ -1831,7 +1828,8 @@ nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
 				break;
 
 			if (mbuf->m_len < (poff + sizeof(struct udphdr))) {
-				mbuf = m_pullup(mbuf, poff + sizeof(struct udphdr));
+				mbuf = m_pullup(mbuf,
+				    poff + sizeof(struct udphdr));
 				sq->snd_buff[qentry].mbuf = mbuf;
 				if (mbuf == NULL)
 					return (ENOBUFS);
@@ -1843,7 +1841,8 @@ nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
 				break;
 
 			if (mbuf->m_len < (poff + sizeof(struct sctphdr))) {
-				mbuf = m_pullup(mbuf, poff + sizeof(struct sctphdr));
+				mbuf = m_pullup(mbuf,
+				    poff + sizeof(struct sctphdr));
 				sq->snd_buff[qentry].mbuf = mbuf;
 				if (mbuf == NULL)
 					return (ENOBUFS);
@@ -1875,8 +1874,9 @@ nicvf_sq_add_hdr_subdesc(struct snd_queue *sq, int qentry,
  * SQ GATHER subdescriptor
  * Must follow HDR descriptor
  */
-static inline void nicvf_sq_add_gather_subdesc(struct snd_queue *sq, int qentry,
-					       int size, uint64_t data)
+static inline void
+nicvf_sq_add_gather_subdesc(struct snd_queue *sq, int qentry, int size,
+    uint64_t data)
 {
 	struct sq_gather_subdesc *gather;
 
@@ -1908,8 +1908,8 @@ nicvf_tx_mbuf_locked(struct snd_queue *sq, struct mbuf **mbufp)
 
 	snd_buff = &sq->snd_buff[sq->tail];
 
-	err = bus_dmamap_load_mbuf_sg(sq->snd_buff_dmat, snd_buff->dmap,
-	    *mbufp, segs, &nsegs, BUS_DMA_NOWAIT);
+	err = bus_dmamap_load_mbuf_sg(sq->snd_buff_dmat, snd_buff->dmap, *mbufp,
+	    segs, &nsegs, BUS_DMA_NOWAIT);
 	if (__predict_false(err != 0)) {
 		/* ARM64TODO: Add mbuf defragmenting if we lack maps */
 		m_freem(*mbufp);
@@ -1950,11 +1950,11 @@ nicvf_tx_mbuf_locked(struct snd_queue *sq, struct mbuf **mbufp)
 	/* make sure all memory stores are done before ringing doorbell */
 	bus_dmamap_sync(sq->dmem.dmat, sq->dmem.dmap, BUS_DMASYNC_PREWRITE);
 
-	dprintf(sq->nic->dev, "%s: sq->idx: %d, subdesc_cnt: %d\n",
-	    __func__, sq->idx, subdesc_cnt);
-	/* Inform HW to xmit new packet */
-	nicvf_queue_reg_write(sq->nic, NIC_QSET_SQ_0_7_DOOR,
+	dprintf(sq->nic->dev, "%s: sq->idx: %d, subdesc_cnt: %d\n", __func__,
 	    sq->idx, subdesc_cnt);
+	/* Inform HW to xmit new packet */
+	nicvf_queue_reg_write(sq->nic, NIC_QSET_SQ_0_7_DOOR, sq->idx,
+	    subdesc_cnt);
 	return (0);
 }
 
@@ -1983,8 +1983,8 @@ nicvf_get_rcv_mbuf(struct nicvf *nic, struct cqe_rx_t *cqe_rx)
 	rb_lens = (uint16_t *)((uint8_t *)cqe_rx + (3 * sizeof(uint64_t)));
 	rb_ptrs = (uint64_t *)((uint8_t *)cqe_rx + (6 * sizeof(uint64_t)));
 
-	dprintf(nic->dev, "%s rb_cnt %d rb0_ptr %lx rb0_sz %d\n",
-	    __func__, cqe_rx->rb_cnt, cqe_rx->rb0_ptr, cqe_rx->rb0_sz);
+	dprintf(nic->dev, "%s rb_cnt %d rb0_ptr %lx rb0_sz %d\n", __func__,
+	    cqe_rx->rb_cnt, cqe_rx->rb0_ptr, cqe_rx->rb0_sz);
 
 	for (frag = 0; frag < cqe_rx->rb_cnt; frag++) {
 		payload_len = rb_lens[frag_num(frag)];
@@ -2009,20 +2009,21 @@ nicvf_get_rcv_mbuf(struct nicvf *nic, struct cqe_rx_t *cqe_rx)
 		m_fixhdr(mbuf);
 		mbuf->m_pkthdr.flowid = cqe_rx->rq_idx;
 		M_HASHTYPE_SET(mbuf, M_HASHTYPE_OPAQUE);
-		if (__predict_true((if_getcapenable(nic->ifp) & IFCAP_RXCSUM) != 0)) {
+		if (__predict_true(
+			(if_getcapenable(nic->ifp) & IFCAP_RXCSUM) != 0)) {
 			/*
 			 * HW by default verifies IP & TCP/UDP/SCTP checksums
 			 */
 			if (__predict_true(cqe_rx->l3_type == L3TYPE_IPV4)) {
-				mbuf->m_pkthdr.csum_flags =
-				    (CSUM_IP_CHECKED | CSUM_IP_VALID);
+				mbuf->m_pkthdr.csum_flags = (CSUM_IP_CHECKED |
+				    CSUM_IP_VALID);
 			}
 
 			switch (cqe_rx->l4_type) {
 			case L4TYPE_UDP:
 			case L4TYPE_TCP: /* fall through */
-				mbuf->m_pkthdr.csum_flags |=
-				    (CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
+				mbuf->m_pkthdr.csum_flags |= (CSUM_DATA_VALID |
+				    CSUM_PSEUDO_HDR);
 				mbuf->m_pkthdr.csum_data = 0xffff;
 				break;
 			case L4TYPE_SCTP:
@@ -2069,7 +2070,7 @@ nicvf_enable_intr(struct nicvf *nic, int int_type, int q_idx)
 		break;
 	default:
 		device_printf(nic->dev,
-			   "Failed to enable interrupt: unknown type\n");
+		    "Failed to enable interrupt: unknown type\n");
 		break;
 	}
 
@@ -2106,7 +2107,7 @@ nicvf_disable_intr(struct nicvf *nic, int int_type, int q_idx)
 		break;
 	default:
 		device_printf(nic->dev,
-			   "Failed to disable interrupt: unknown type\n");
+		    "Failed to disable interrupt: unknown type\n");
 		break;
 	}
 
@@ -2143,7 +2144,7 @@ nicvf_clear_intr(struct nicvf *nic, int int_type, int q_idx)
 		break;
 	default:
 		device_printf(nic->dev,
-			   "Failed to clear interrupt: unknown type\n");
+		    "Failed to clear interrupt: unknown type\n");
 		break;
 	}
 
@@ -2183,7 +2184,7 @@ nicvf_is_intr_enabled(struct nicvf *nic, int int_type, int q_idx)
 		break;
 	default:
 		device_printf(nic->dev,
-			   "Failed to check interrupt enable: unknown type\n");
+		    "Failed to check interrupt enable: unknown type\n");
 		break;
 	}
 
@@ -2195,9 +2196,10 @@ nicvf_update_rq_stats(struct nicvf *nic, int rq_idx)
 {
 	struct rcv_queue *rq;
 
-#define GET_RQ_STATS(reg) \
-	nicvf_reg_read(nic, NIC_QSET_RQ_0_7_STAT_0_1 |\
-			    (rq_idx << NIC_Q_NUM_SHIFT) | (reg << 3))
+#define GET_RQ_STATS(reg)                                            \
+	nicvf_reg_read(nic,                                          \
+	    NIC_QSET_RQ_0_7_STAT_0_1 | (rq_idx << NIC_Q_NUM_SHIFT) | \
+		(reg << 3))
 
 	rq = &nic->qs->rq[rq_idx];
 	rq->stats.bytes = GET_RQ_STATS(RQ_SQ_STATS_OCTS);
@@ -2209,9 +2211,10 @@ nicvf_update_sq_stats(struct nicvf *nic, int sq_idx)
 {
 	struct snd_queue *sq;
 
-#define GET_SQ_STATS(reg) \
-	nicvf_reg_read(nic, NIC_QSET_SQ_0_7_STAT_0_1 |\
-			    (sq_idx << NIC_Q_NUM_SHIFT) | (reg << 3))
+#define GET_SQ_STATS(reg)                                            \
+	nicvf_reg_read(nic,                                          \
+	    NIC_QSET_SQ_0_7_STAT_0_1 | (sq_idx << NIC_Q_NUM_SHIFT) | \
+		(reg << 3))
 
 	sq = &nic->qs->sq[sq_idx];
 	sq->stats.bytes = GET_SQ_STATS(RQ_SQ_STATS_OCTS);

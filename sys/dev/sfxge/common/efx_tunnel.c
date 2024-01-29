@@ -31,44 +31,39 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_TUNNEL
 
 #if EFSYS_OPT_SIENA || EFSYS_OPT_HUNTINGTON
-static const efx_tunnel_ops_t	__efx_tunnel_dummy_ops = {
-	NULL,	/* eto_udp_encap_supported */
-	NULL,	/* eto_reconfigure */
+static const efx_tunnel_ops_t __efx_tunnel_dummy_ops = {
+	NULL, /* eto_udp_encap_supported */
+	NULL, /* eto_reconfigure */
 };
 #endif /* EFSYS_OPT_SIENA || EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static	__checkReturn	boolean_t
-ef10_udp_encap_supported(
-	__in		efx_nic_t *enp);
+static __checkReturn boolean_t ef10_udp_encap_supported(__in efx_nic_t *enp);
 
-static	__checkReturn	efx_rc_t
-ef10_tunnel_reconfigure(
-	__in		efx_nic_t *enp);
+static __checkReturn efx_rc_t ef10_tunnel_reconfigure(__in efx_nic_t *enp);
 
-static const efx_tunnel_ops_t	__efx_tunnel_ef10_ops = {
-	ef10_udp_encap_supported,	/* eto_udp_encap_supported */
-	ef10_tunnel_reconfigure,	/* eto_reconfigure */
+static const efx_tunnel_ops_t __efx_tunnel_ef10_ops = {
+	ef10_udp_encap_supported, /* eto_udp_encap_supported */
+	ef10_tunnel_reconfigure,  /* eto_reconfigure */
 };
 #endif /* EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-static	__checkReturn		efx_rc_t
-efx_mcdi_set_tunnel_encap_udp_ports(
-	__in			efx_nic_t *enp,
-	__in			efx_tunnel_cfg_t *etcp,
-	__in			boolean_t unloading,
-	__out			boolean_t *resetting)
+static __checkReturn efx_rc_t
+efx_mcdi_set_tunnel_encap_udp_ports(__in efx_nic_t *enp,
+    __in efx_tunnel_cfg_t *etcp, __in boolean_t unloading,
+    __out boolean_t *resetting)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload,
-		MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_IN_LENMAX,
-		MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_OUT_LEN);
+	    MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_IN_LENMAX,
+	    MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_OUT_LEN);
 	efx_word_t flags;
 	efx_rc_t rc;
 	unsigned int i;
@@ -81,8 +76,8 @@ efx_mcdi_set_tunnel_encap_udp_ports(
 
 	req.emr_cmd = MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS;
 	req.emr_in_buf = payload;
-	req.emr_in_length =
-	    MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_IN_LEN(entries_num);
+	req.emr_in_length = MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_IN_LEN(
+	    entries_num);
 	req.emr_out_buf = payload;
 	req.emr_out_length = MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS_OUT_LEN;
 
@@ -115,15 +110,14 @@ efx_mcdi_set_tunnel_encap_udp_ports(
 		 * and EFX_POPULATE_DWORD cares about conversion from
 		 * host/CPU byte order to little-endian.
 		 */
-		EFX_STATIC_ASSERT(sizeof (efx_dword_t) ==
-		    TUNNEL_ENCAP_UDP_PORT_ENTRY_LEN);
+		EFX_STATIC_ASSERT(
+		    sizeof(efx_dword_t) == TUNNEL_ENCAP_UDP_PORT_ENTRY_LEN);
 		EFX_POPULATE_DWORD_2(
 		    MCDI_IN2(req, efx_dword_t,
 			SET_TUNNEL_ENCAP_UDP_PORTS_IN_ENTRIES)[i],
 		    TUNNEL_ENCAP_UDP_PORT_ENTRY_UDP_PORT,
 		    etcp->etc_udp_entries[i].etue_port,
-		    TUNNEL_ENCAP_UDP_PORT_ENTRY_PROTOCOL,
-		    mcdi_udp_protocol);
+		    TUNNEL_ENCAP_UDP_PORT_ENTRY_PROTOCOL, mcdi_udp_protocol);
 	}
 
 	efx_mcdi_execute(enp, &req);
@@ -157,9 +151,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_tunnel_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_tunnel_init(__in efx_nic_t *enp)
 {
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
 	const efx_tunnel_ops_t *etop;
@@ -203,7 +196,7 @@ efx_tunnel_init(
 		goto fail1;
 	}
 
-	memset(etcp->etc_udp_entries, 0, sizeof (etcp->etc_udp_entries));
+	memset(etcp->etc_udp_entries, 0, sizeof(etcp->etc_udp_entries));
 	etcp->etc_udp_entries_num = 0;
 
 	enp->en_etop = etop;
@@ -220,9 +213,8 @@ fail1:
 	return (rc);
 }
 
-			void
-efx_tunnel_fini(
-	__in		efx_nic_t *enp)
+void
+efx_tunnel_fini(__in efx_nic_t *enp)
 {
 	boolean_t resetting;
 
@@ -237,7 +229,7 @@ efx_tunnel_fini(
 		 * reset if it was set on the last call to
 		 * MC_CMD_SET_TUNNEL_ENCAP_UDP_PORTS by all functions
 		 */
-		(void) efx_mcdi_set_tunnel_encap_udp_ports(enp, NULL, B_TRUE,
+		(void)efx_mcdi_set_tunnel_encap_udp_ports(enp, NULL, B_TRUE,
 		    &resetting);
 	}
 
@@ -245,11 +237,9 @@ efx_tunnel_fini(
 	enp->en_mod_flags &= ~EFX_MOD_TUNNEL;
 }
 
-static	__checkReturn	efx_rc_t
-efx_tunnel_config_find_udp_tunnel_entry(
-	__in		efx_tunnel_cfg_t *etcp,
-	__in		uint16_t port,
-	__out		unsigned int *entryp)
+static __checkReturn efx_rc_t
+efx_tunnel_config_find_udp_tunnel_entry(__in efx_tunnel_cfg_t *etcp,
+    __in uint16_t port, __out unsigned int *entryp)
 {
 	unsigned int i;
 
@@ -265,11 +255,10 @@ efx_tunnel_config_find_udp_tunnel_entry(
 	return (ENOENT);
 }
 
-	__checkReturn	efx_rc_t
-efx_tunnel_config_udp_add(
-	__in		efx_nic_t *enp,
-	__in		uint16_t port /* host/cpu-endian */,
-	__in		efx_tunnel_protocol_t protocol)
+__checkReturn efx_rc_t
+efx_tunnel_config_udp_add(__in efx_nic_t *enp,
+    __in uint16_t port /* host/cpu-endian */,
+    __in efx_tunnel_protocol_t protocol)
 {
 	const efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
@@ -284,8 +273,8 @@ efx_tunnel_config_udp_add(
 		goto fail1;
 	}
 
-	if ((encp->enc_tunnel_encapsulations_supported &
-	    (1u << protocol)) == 0) {
+	if ((encp->enc_tunnel_encapsulations_supported & (1u << protocol)) ==
+	    0) {
 		rc = ENOTSUP;
 		goto fail2;
 	}
@@ -330,11 +319,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_tunnel_config_udp_remove(
-	__in		efx_nic_t *enp,
-	__in		uint16_t port /* host/cpu-endian */,
-	__in		efx_tunnel_protocol_t protocol)
+__checkReturn efx_rc_t
+efx_tunnel_config_udp_remove(__in efx_nic_t *enp,
+    __in uint16_t port /* host/cpu-endian */,
+    __in efx_tunnel_protocol_t protocol)
 {
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
 	efsys_lock_state_t state;
@@ -361,11 +349,11 @@ efx_tunnel_config_udp_remove(
 		memmove(&etcp->etc_udp_entries[entry],
 		    &etcp->etc_udp_entries[entry + 1],
 		    (etcp->etc_udp_entries_num - entry) *
-		    sizeof (etcp->etc_udp_entries[0]));
+			sizeof(etcp->etc_udp_entries[0]));
 	}
 
 	memset(&etcp->etc_udp_entries[etcp->etc_udp_entries_num], 0,
-	    sizeof (etcp->etc_udp_entries[0]));
+	    sizeof(etcp->etc_udp_entries[0]));
 
 	EFSYS_UNLOCK(enp->en_eslp, state);
 
@@ -381,9 +369,8 @@ fail1:
 	return (rc);
 }
 
-			void
-efx_tunnel_config_clear(
-	__in			efx_nic_t *enp)
+void
+efx_tunnel_config_clear(__in efx_nic_t *enp)
 {
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
 	efsys_lock_state_t state;
@@ -393,14 +380,13 @@ efx_tunnel_config_clear(
 	EFSYS_LOCK(enp->en_eslp, state);
 
 	etcp->etc_udp_entries_num = 0;
-	memset(etcp->etc_udp_entries, 0, sizeof (etcp->etc_udp_entries));
+	memset(etcp->etc_udp_entries, 0, sizeof(etcp->etc_udp_entries));
 
 	EFSYS_UNLOCK(enp->en_eslp, state);
 }
 
-	__checkReturn	efx_rc_t
-efx_tunnel_reconfigure(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_tunnel_reconfigure(__in efx_nic_t *enp)
 {
 	const efx_tunnel_ops_t *etop = enp->en_etop;
 	efx_rc_t rc;
@@ -427,9 +413,8 @@ fail1:
 }
 
 #if EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static	__checkReturn		boolean_t
-ef10_udp_encap_supported(
-	__in		efx_nic_t *enp)
+static __checkReturn boolean_t
+ef10_udp_encap_supported(__in efx_nic_t *enp)
 {
 	const efx_nic_cfg_t *encp = &enp->en_nic_cfg;
 	uint32_t udp_tunnels_mask = 0;
@@ -438,12 +423,13 @@ ef10_udp_encap_supported(
 	udp_tunnels_mask |= (1u << EFX_TUNNEL_PROTOCOL_GENEVE);
 
 	return ((encp->enc_tunnel_encapsulations_supported &
-	    udp_tunnels_mask) == 0 ? B_FALSE : B_TRUE);
+		    udp_tunnels_mask) == 0 ?
+		B_FALSE :
+		B_TRUE);
 }
 
-static	__checkReturn	efx_rc_t
-ef10_tunnel_reconfigure(
-	__in		efx_nic_t *enp)
+static __checkReturn efx_rc_t
+ef10_tunnel_reconfigure(__in efx_nic_t *enp)
 {
 	efx_tunnel_cfg_t *etcp = &enp->en_tunnel_cfg;
 	efx_rc_t rc;
@@ -452,7 +438,7 @@ ef10_tunnel_reconfigure(
 	efx_tunnel_cfg_t etc;
 
 	EFSYS_LOCK(enp->en_eslp, state);
-	memcpy(&etc, etcp, sizeof (etc));
+	memcpy(&etc, etcp, sizeof(etc));
 	EFSYS_UNLOCK(enp->en_eslp, state);
 
 	if (ef10_udp_encap_supported(enp) == B_FALSE) {

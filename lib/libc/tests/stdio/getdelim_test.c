@@ -25,20 +25,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include <fcntl.h>
+#include <atf-c.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <atf-c.h>
-
-#define	CHUNK_MAX	10
+#define CHUNK_MAX 10
 
 /* The assertions depend on this string. */
 char apothegm[] = "All work and no play\0 makes Jack a dull boy.\n";
@@ -69,7 +68,7 @@ mkfilebuf(void)
 {
 	size_t *offp;
 
-	offp = malloc(sizeof(*offp));	/* XXX leak */
+	offp = malloc(sizeof(*offp)); /* XXX leak */
 	*offp = 0;
 	return (fropen(offp, _reader));
 }
@@ -94,7 +93,8 @@ ATF_TC_BODY(getline_basic, tc)
 		linecap = i;
 		line = malloc(i);
 		/* First line: the full apothegm */
-		ATF_REQUIRE(getline(&line, &linecap, fp) == sizeof(apothegm) - 1);
+		ATF_REQUIRE(
+		    getline(&line, &linecap, fp) == sizeof(apothegm) - 1);
 		ATF_REQUIRE(memcmp(line, apothegm, sizeof(apothegm)) == 0);
 		ATF_REQUIRE(linecap >= sizeof(apothegm));
 		/* Second line: the NUL terminator following the newline */
@@ -158,7 +158,7 @@ ATF_TC_BODY(eof, tc)
 	/* Make sure getline() allocates memory as needed if fp is at EOF. */
 	errno = 0;
 	fp = mkfilebuf();
-	while (!feof(fp))	/* advance to EOF; can't fseek this stream */
+	while (!feof(fp)) /* advance to EOF; can't fseek this stream */
 		getc(fp);
 	line = NULL;
 	linecap = 0;
@@ -275,10 +275,10 @@ _nonblock_eagain(int buf_mode)
 	FILE *fp;
 	const char delim = '!';
 	const char *strs[] = {
-	    "first line partial!",
-	    "second line is sent in full!",
-	    "third line is sent partially!",
-	    "last line is sent in full!",
+		"first line partial!",
+		"second line is sent in full!",
+		"third line is sent partially!",
+		"last line is sent in full!",
 	};
 	char *line;
 	size_t linecap, strslen[nitems(strs)];
@@ -305,32 +305,29 @@ _nonblock_eagain(int buf_mode)
 		ATF_REQUIRE((fd_fifo = open("fifo", O_WRONLY)) != -1);
 
 		/* Partial write. */
-		ATF_REQUIRE(write(fd_fifo, strs[0], strslen[0] - 3) ==
-		    strslen[0] - 3);
+		ATF_REQUIRE(
+		    write(fd_fifo, strs[0], strslen[0] - 3) == strslen[0] - 3);
 		ipc_wakeup(ipcfd);
 
 		ipc_wait(ipcfd);
 		/* Finish off the first line. */
-		ATF_REQUIRE(write(fd_fifo,
-		    &(strs[0][strslen[0] - 3]), 3) == 3);
+		ATF_REQUIRE(write(fd_fifo, &(strs[0][strslen[0] - 3]), 3) == 3);
 		/* And include the second full line and a partial 3rd line. */
 		ATF_REQUIRE(write(fd_fifo, strs[1], strslen[1]) == strslen[1]);
-		ATF_REQUIRE(write(fd_fifo, strs[2], strslen[2] - 3) ==
-		    strslen[2] - 3);
+		ATF_REQUIRE(
+		    write(fd_fifo, strs[2], strslen[2] - 3) == strslen[2] - 3);
 		ipc_wakeup(ipcfd);
 
 		ipc_wait(ipcfd);
 		/* Finish the partial write and partially send the last. */
-		ATF_REQUIRE(write(fd_fifo,
-		    &(strs[2][strslen[2] - 3]), 3) == 3);
-		ATF_REQUIRE(write(fd_fifo, strs[3], strslen[3] - 3) ==
-		    strslen[3] - 3);
+		ATF_REQUIRE(write(fd_fifo, &(strs[2][strslen[2] - 3]), 3) == 3);
+		ATF_REQUIRE(
+		    write(fd_fifo, strs[3], strslen[3] - 3) == strslen[3] - 3);
 		ipc_wakeup(ipcfd);
 
 		ipc_wait(ipcfd);
 		/* Finish the write */
-		ATF_REQUIRE(write(fd_fifo,
-		    &(strs[3][strslen[3] - 3]), 3) == 3);
+		ATF_REQUIRE(write(fd_fifo, &(strs[3][strslen[3] - 3]), 3) == 3);
 		ipc_wakeup(ipcfd);
 		_exit(0);
 	}
@@ -413,7 +410,6 @@ ATF_TC_BODY(nonblock_eagain_unbuffered, tc)
 
 	_nonblock_eagain(_IONBF);
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

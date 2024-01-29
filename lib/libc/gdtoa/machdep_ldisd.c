@@ -41,7 +41,7 @@
 #undef strtold_l
 
 long double
-strtold_l(const char * __restrict s, char ** __restrict sp, locale_t locale)
+strtold_l(const char *__restrict s, char **__restrict sp, locale_t locale)
 {
 
 	return strtod_l(s, sp, locale);

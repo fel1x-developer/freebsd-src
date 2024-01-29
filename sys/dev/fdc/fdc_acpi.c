@@ -27,30 +27,29 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/proc.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
 #include <dev/fdc/fdcvar.h>
 
-static int		fdc_acpi_probe(device_t dev);
-static int		fdc_acpi_attach(device_t dev);
-static int		fdc_acpi_probe_children(device_t bus, device_t dev,
-			    void *fde);
-static ACPI_STATUS	fdc_acpi_probe_child(ACPI_HANDLE h, device_t *dev,
-			    int level, void *arg);
+#include <contrib/dev/acpica/include/acpi.h>
+
+static int fdc_acpi_probe(device_t dev);
+static int fdc_acpi_attach(device_t dev);
+static int fdc_acpi_probe_children(device_t bus, device_t dev, void *fde);
+static ACPI_STATUS fdc_acpi_probe_child(ACPI_HANDLE h, device_t *dev, int level,
+    void *arg);
 
 /* Maximum number of child devices of a controller (4 floppy + 1 tape.) */
-#define ACPI_FDC_MAXDEVS	5
+#define ACPI_FDC_MAXDEVS 5
 
 /* Standard size of buffer returned by the _FDE method. */
-#define ACPI_FDC_FDE_LEN	(ACPI_FDC_MAXDEVS * sizeof(uint32_t))
+#define ACPI_FDC_FDE_LEN (ACPI_FDC_MAXDEVS * sizeof(uint32_t))
 
 /*
  * Parameters for the tape drive (5th device).  Some BIOS authors use this
@@ -58,19 +57,19 @@ static ACPI_STATUS	fdc_acpi_probe_child(ACPI_HANDLE h, device_t *dev,
  * grossly incompatible with the spec since it says the first four devices
  * are simple booleans.
  */
-#define ACPI_FD_UNKNOWN		0
-#define ACPI_FD_PRESENT		1
-#define ACPI_FD_NEVER_PRESENT	2
+#define ACPI_FD_UNKNOWN 0
+#define ACPI_FD_PRESENT 1
+#define ACPI_FD_NEVER_PRESENT 2
 
 /* Temporary buf length for evaluating _FDE and _FDI. */
-#define ACPI_FDC_BUFLEN		1024
+#define ACPI_FDC_BUFLEN 1024
 
 /* Context for walking FDC child devices. */
 struct fdc_walk_ctx {
-	uint32_t	fd_present[ACPI_FDC_MAXDEVS];
-	int		index;
-	device_t	acpi_dev;
-	device_t	dev;
+	uint32_t fd_present[ACPI_FDC_MAXDEVS];
+	int index;
+	device_t acpi_dev;
+	device_t dev;
 };
 
 static int
@@ -164,8 +163,7 @@ fdc_acpi_probe_children(device_t bus, device_t dev, void *fde)
 	ctx->index = 0;
 	ctx->dev = dev;
 	ctx->acpi_dev = bus;
-	ACPI_SCAN_CHILDREN(ctx->acpi_dev, dev, 1, fdc_acpi_probe_child,
-	    ctx);
+	ACPI_SCAN_CHILDREN(ctx->acpi_dev, dev, 1, fdc_acpi_probe_child, ctx);
 
 	/* Add any devices not represented by an AML Device handle/node. */
 	fd_dc = devclass_find("fd");
@@ -252,22 +250,19 @@ out:
 
 static device_method_t fdc_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fdc_acpi_probe),
-	DEVMETHOD(device_attach,	fdc_acpi_attach),
-	DEVMETHOD(device_detach,	fdc_detach),
+	DEVMETHOD(device_probe, fdc_acpi_probe),
+	DEVMETHOD(device_attach, fdc_acpi_attach),
+	DEVMETHOD(device_detach, fdc_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	fdc_print_child),
-	DEVMETHOD(bus_read_ivar,	fdc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	fdc_write_ivar),
+	DEVMETHOD(bus_print_child, fdc_print_child),
+	DEVMETHOD(bus_read_ivar, fdc_read_ivar),
+	DEVMETHOD(bus_write_ivar, fdc_write_ivar),
 
 	DEVMETHOD_END
 };
 
-static driver_t fdc_acpi_driver = {
-	"fdc",
-	fdc_acpi_methods,
-	sizeof(struct fdc_data)
-};
+static driver_t fdc_acpi_driver = { "fdc", fdc_acpi_methods,
+	sizeof(struct fdc_data) };
 
 DRIVER_MODULE(fdc, acpi, fdc_acpi_driver, 0, 0);

@@ -5,7 +5,7 @@
  */
 
 #ifndef __VMMAPI_INTERNAL_H__
-#define	__VMMAPI_INTERNAL_H__
+#define __VMMAPI_INTERNAL_H__
 
 struct vmctx;
 

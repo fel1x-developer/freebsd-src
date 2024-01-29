@@ -46,20 +46,18 @@
 #if defined(BSD)
 #if BSD >= 199306
 
-#include <sys/socket.h>
 #include <sys/filio.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #include <net/route.h>
-
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,16 +67,16 @@
 
 #include "report.h"
 
-
 static int rtmsg(int);
 
-static int s = -1; 	/* routing socket */
-
+static int s = -1; /* routing socket */
 
 /*
  * Open the routing socket
  */
-static void getsocket () {
+static void
+getsocket()
+{
 	if (s < 0) {
 		s = socket(PF_ROUTE, SOCK_RAW, 0);
 		if (s < 0) {
@@ -100,14 +98,14 @@ static void getsocket () {
 	}
 }
 
-static struct	sockaddr_in so_mask = {8, 0, 0, { 0xffffffff}};
-static struct	sockaddr_in blank_sin = {sizeof(blank_sin), AF_INET }, sin_m;
-static struct	sockaddr_dl blank_sdl = {sizeof(blank_sdl), AF_LINK }, sdl_m;
-static int	expire_time, flags, doing_proxy;
-static struct	{
-	struct	rt_msghdr m_rtm;
-	char	m_space[512];
-}	m_rtmsg;
+static struct sockaddr_in so_mask = { 8, 0, 0, { 0xffffffff } };
+static struct sockaddr_in blank_sin = { sizeof(blank_sin), AF_INET }, sin_m;
+static struct sockaddr_dl blank_sdl = { sizeof(blank_sdl), AF_LINK }, sdl_m;
+static int expire_time, flags, doing_proxy;
+static struct {
+	struct rt_msghdr m_rtm;
+	char m_space[512];
+} m_rtmsg;
 
 /*
  * Set an individual arp entry
@@ -145,15 +143,19 @@ tryagain:
 	sdl = (struct sockaddr_dl *)(sin->sin_len + (char *)sin);
 	if (sin->sin_addr.s_addr == sin_m.sin_addr.s_addr) {
 		if (sdl->sdl_family == AF_LINK &&
-		    !(rtm->rtm_flags & RTF_GATEWAY)) switch (sdl->sdl_type) {
-		case IFT_ETHER: case IFT_FDDI: case IFT_ISO88023:
-		case IFT_ISO88024: case IFT_ISO88025:
-			op = RTM_CHANGE;
-			goto overwrite;
-		}
+		    !(rtm->rtm_flags & RTF_GATEWAY))
+			switch (sdl->sdl_type) {
+			case IFT_ETHER:
+			case IFT_FDDI:
+			case IFT_ISO88023:
+			case IFT_ISO88024:
+			case IFT_ISO88025:
+				op = RTM_CHANGE;
+				goto overwrite;
+			}
 		if (doing_proxy == 0) {
 			report(LOG_WARNING, "set: can only proxy for %s\n",
-				inet_ntoa(sin->sin_addr));
+			    inet_ntoa(sin->sin_addr));
 			return (1);
 		}
 		goto tryagain;
@@ -161,15 +163,14 @@ tryagain:
 overwrite:
 	if (sdl->sdl_family != AF_LINK) {
 		report(LOG_WARNING,
-			"cannot intuit interface index and type for %s\n",
-			inet_ntoa(sin->sin_addr));
+		    "cannot intuit interface index and type for %s\n",
+		    inet_ntoa(sin->sin_addr));
 		return (1);
 	}
 	sdl_m.sdl_type = sdl->sdl_type;
 	sdl_m.sdl_index = sdl->sdl_index;
 	return (rtmsg(op));
 }
-
 
 static int
 rtmsg(int cmd)
@@ -203,9 +204,11 @@ rtmsg(int cmd)
 	case RTM_GET:
 		rtm->rtm_addrs |= RTA_DST;
 	}
-#define NEXTADDR(w, s) \
-	if (rtm->rtm_addrs & (w)) { \
-		bcopy((char *)&s, cp, sizeof(s)); cp += sizeof(s);}
+#define NEXTADDR(w, s)                            \
+	if (rtm->rtm_addrs & (w)) {               \
+		bcopy((char *)&s, cp, sizeof(s)); \
+		cp += sizeof(s);                  \
+	}
 
 	NEXTADDR(RTA_DST, sin_m);
 	NEXTADDR(RTA_GATEWAY, sdl_m);
@@ -217,15 +220,17 @@ rtmsg(int cmd)
 	rtm->rtm_seq = ++seq;
 	rtm->rtm_type = cmd;
 	if ((rlen = write(s, (char *)&m_rtmsg, l)) < 0) {
-		if ((errno != ESRCH) && !(errno == EEXIST && cmd == RTM_ADD)){
+		if ((errno != ESRCH) && !(errno == EEXIST && cmd == RTM_ADD)) {
 			report(LOG_WARNING, "writing to routing socket: %s",
-				strerror(errno));
+			    strerror(errno));
 			return (-1);
 		}
 	}
 	do {
 		l = read(s, (char *)&m_rtmsg, sizeof(m_rtmsg));
-	} while (l > 0 && (rtm->rtm_type != cmd || rtm->rtm_seq != seq || rtm->rtm_pid != getpid()));
+	} while (l > 0 &&
+	    (rtm->rtm_type != cmd || rtm->rtm_seq != seq ||
+		rtm->rtm_pid != getpid()));
 	if (l < 0)
 		report(LOG_WARNING, "arp: read from routing socket: %s\n",
 		    strerror(errno));

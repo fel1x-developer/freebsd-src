@@ -29,9 +29,9 @@
 
 /* Modified from the kernel GSSAPI code for RPC-over-TLS. */
 
-#include <sys/cdefs.h>
 #include "opt_kern_tls.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/capsicum.h>
 #include <sys/file.h>
@@ -50,15 +50,15 @@
 #include <sys/sysent.h>
 #include <sys/sysproto.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
+
 #include <net/vnet.h>
 
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
 #include <rpc/rpcsec_tls.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
-#include <vm/vm_param.h>
 
 #include "rpctlscd.h"
 #include "rpctlssd.h"
@@ -67,15 +67,14 @@
  * Syscall hooks
  */
 static struct syscall_helper_data rpctls_syscalls[] = {
-	SYSCALL_INIT_HELPER(rpctls_syscall),
-	SYSCALL_INIT_LAST
+	SYSCALL_INIT_HELPER(rpctls_syscall), SYSCALL_INIT_LAST
 };
 
-static CLIENT		*rpctls_connect_handle;
-static struct mtx	rpctls_connect_lock;
-static struct socket	*rpctls_connect_so = NULL;
-static CLIENT		*rpctls_connect_cl = NULL;
-static struct mtx	rpctls_server_lock;
+static CLIENT *rpctls_connect_handle;
+static struct mtx rpctls_connect_lock;
+static struct socket *rpctls_connect_so = NULL;
+static CLIENT *rpctls_connect_cl = NULL;
+static struct mtx rpctls_server_lock;
 static struct opaque_auth rpctls_null_verf;
 
 KRPC_VNET_DECLARE(uint64_t, svc_vc_tls_handshake_success);
@@ -88,12 +87,11 @@ KRPC_VNET_DEFINE_STATIC(bool, rpctls_srv_newdaemon) = false;
 KRPC_VNET_DEFINE_STATIC(int, rpctls_srv_prevproc) = 0;
 KRPC_VNET_DEFINE_STATIC(bool *, rpctls_server_busy);
 
-static CLIENT		*rpctls_connect_client(void);
-static CLIENT		*rpctls_server_client(int procpos);
-static enum clnt_stat	rpctls_server(SVCXPRT *xprt, struct socket *so,
-			    uint32_t *flags, uint64_t *sslp,
-			    uid_t *uid, int *ngrps, gid_t **gids,
-			    int *procposp);
+static CLIENT *rpctls_connect_client(void);
+static CLIENT *rpctls_server_client(int procpos);
+static enum clnt_stat rpctls_server(SVCXPRT *xprt, struct socket *so,
+    uint32_t *flags, uint64_t *sslp, uid_t *uid, int *ngrps, gid_t **gids,
+    int *procposp);
 
 static void
 rpctls_vnetinit(const void *unused __unused)
@@ -101,14 +99,16 @@ rpctls_vnetinit(const void *unused __unused)
 	int i;
 
 	KRPC_VNET(rpctls_server_handle) = malloc(sizeof(CLIENT *) *
-	    RPCTLS_SRV_MAXNPROCS, M_RPC, M_WAITOK | M_ZERO);
-	KRPC_VNET(rpctls_server_busy) = malloc(sizeof(bool) *
-	    RPCTLS_SRV_MAXNPROCS, M_RPC, M_WAITOK | M_ZERO);
+		RPCTLS_SRV_MAXNPROCS,
+	    M_RPC, M_WAITOK | M_ZERO);
+	KRPC_VNET(
+	    rpctls_server_busy) = malloc(sizeof(bool) * RPCTLS_SRV_MAXNPROCS,
+	    M_RPC, M_WAITOK | M_ZERO);
 	for (i = 0; i < RPCTLS_SRV_MAXNPROCS; i++)
 		KRPC_VNET(rpctls_server_busy)[i] = false;
 }
-VNET_SYSINIT(rpctls_vnetinit, SI_SUB_VNET_DONE, SI_ORDER_ANY,
-    rpctls_vnetinit, NULL);
+VNET_SYSINIT(rpctls_vnetinit, SI_SUB_VNET_DONE, SI_ORDER_ANY, rpctls_vnetinit,
+    NULL);
 
 static void
 rpctls_cleanup(void *unused __unused)
@@ -117,8 +117,8 @@ rpctls_cleanup(void *unused __unused)
 	free(KRPC_VNET(rpctls_server_handle), M_RPC);
 	free(KRPC_VNET(rpctls_server_busy), M_RPC);
 }
-VNET_SYSUNINIT(rpctls_cleanup, SI_SUB_VNET_DONE, SI_ORDER_ANY,
-    rpctls_cleanup, NULL);
+VNET_SYSUNINIT(rpctls_cleanup, SI_SUB_VNET_DONE, SI_ORDER_ANY, rpctls_cleanup,
+    NULL);
 
 int
 rpctls_init(void)
@@ -130,10 +130,8 @@ rpctls_init(void)
 		printf("rpctls_init: cannot register syscall\n");
 		return (error);
 	}
-	mtx_init(&rpctls_connect_lock, "rpctls_connect_lock", NULL,
-	    MTX_DEF);
-	mtx_init(&rpctls_server_lock, "rpctls_server_lock", NULL,
-	    MTX_DEF);
+	mtx_init(&rpctls_connect_lock, "rpctls_connect_lock", NULL, MTX_DEF);
+	mtx_init(&rpctls_server_lock, "rpctls_server_lock", NULL, MTX_DEF);
 	rpctls_null_verf.oa_flavor = AUTH_NULL;
 	rpctls_null_verf.oa_base = RPCTLS_START_STRING;
 	rpctls_null_verf.oa_length = strlen(RPCTLS_START_STRING);
@@ -143,8 +141,8 @@ rpctls_init(void)
 int
 sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 {
-        struct sockaddr_un sun;
-        struct netconfig *nconf;
+	struct sockaddr_un sun;
+	struct netconfig *nconf;
 	struct file *fp;
 	struct socket *so;
 	SVCXPRT *xprt;
@@ -156,7 +154,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 #ifdef KERN_TLS
 	u_int maxlen;
 #endif
-        
+
 	error = priv_check(td, PRIV_NFS_DAEMON);
 	if (error != 0)
 		return (error);
@@ -198,23 +196,24 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 				error = 0;
 #endif
 		}
-		if (error == 0 && (strlen(path) + 1 > sizeof(sun.sun_path) ||
-		    strlen(path) == 0))
+		if (error == 0 &&
+		    (strlen(path) + 1 > sizeof(sun.sun_path) ||
+			strlen(path) == 0))
 			error = EINVAL;
-	
+
 		cl = NULL;
 		if (error == 0) {
 			sun.sun_family = AF_LOCAL;
 			strlcpy(sun.sun_path, path, sizeof(sun.sun_path));
 			sun.sun_len = SUN_LEN(&sun);
-			
+
 			nconf = getnetconfigent("local");
 			cl = clnt_reconnect_create(nconf,
 			    (struct sockaddr *)&sun, RPCTLSCD, RPCTLSCDVERS,
 			    RPC_MAXDATASIZE, RPC_MAXDATASIZE);
 			/*
 			 * The number of retries defaults to INT_MAX, which
-			 * effectively means an infinite, uninterruptable loop. 
+			 * effectively means an infinite, uninterruptable loop.
 			 * Set the try_count to 1 so that no retries of the
 			 * RPC occur.  Since it is an upcall to a local daemon,
 			 * requests should not be lost and doing one of these
@@ -234,12 +233,12 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 			} else
 				error = EINVAL;
 		}
-	
+
 		mtx_lock(&rpctls_connect_lock);
 		oldcl[0] = rpctls_connect_handle;
 		rpctls_connect_handle = cl;
 		mtx_unlock(&rpctls_connect_lock);
-	
+
 		if (oldcl[0] != NULL) {
 			CLNT_CLOSE(oldcl[0]);
 			CLNT_RELEASE(oldcl[0]);
@@ -258,23 +257,24 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 				error = 0;
 #endif
 		}
-		if (error == 0 && (strlen(path) + 1 > sizeof(sun.sun_path) ||
-		    strlen(path) == 0))
+		if (error == 0 &&
+		    (strlen(path) + 1 > sizeof(sun.sun_path) ||
+			strlen(path) == 0))
 			error = EINVAL;
-	
+
 		cl = NULL;
 		if (error == 0) {
 			sun.sun_family = AF_LOCAL;
 			strlcpy(sun.sun_path, path, sizeof(sun.sun_path));
 			sun.sun_len = SUN_LEN(&sun);
-			
+
 			nconf = getnetconfigent("local");
 			cl = clnt_reconnect_create(nconf,
 			    (struct sockaddr *)&sun, RPCTLSSD, RPCTLSSDVERS,
 			    RPC_MAXDATASIZE, RPC_MAXDATASIZE);
 			/*
 			 * The number of retries defaults to INT_MAX, which
-			 * effectively means an infinite, uninterruptable loop. 
+			 * effectively means an infinite, uninterruptable loop.
 			 * Set the try_count to 1 so that no retries of the
 			 * RPC occur.  Since it is an upcall to a local daemon,
 			 * requests should not be lost and doing one of these
@@ -291,7 +291,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 			} else
 				error = EINVAL;
 		}
-	
+
 		for (i = 0; i < RPCTLS_SRV_MAXNPROCS; i++)
 			oldcl[i] = NULL;
 		mtx_lock(&rpctls_server_lock);
@@ -314,7 +314,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 				KRPC_VNET(rpctls_server_handle)[i] = NULL;
 				KRPC_VNET(rpctls_server_busy)[i] = false;
 			}
-			i = 0;	/* Set to use rpctls_server_handle[0]. */
+			i = 0; /* Set to use rpctls_server_handle[0]. */
 		}
 		if (error == 0)
 			KRPC_VNET(rpctls_server_handle)[i] = cl;
@@ -332,7 +332,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 		oldcl[0] = rpctls_connect_handle;
 		rpctls_connect_handle = NULL;
 		mtx_unlock(&rpctls_connect_lock);
-	
+
 		if (oldcl[0] != NULL) {
 			CLNT_CLOSE(oldcl[0]);
 			CLNT_RELEASE(oldcl[0]);
@@ -346,7 +346,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 		}
 		KRPC_VNET(rpctls_srv_newdaemon) = false;
 		mtx_unlock(&rpctls_server_lock);
-	
+
 		for (i = 0; i < RPCTLS_SRV_MAXNPROCS; i++) {
 			if (oldcl[i] != NULL) {
 				CLNT_CLOSE(oldcl[i]);
@@ -375,7 +375,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 				CLNT_CONTROL(concl, CLSET_TLS, ssl);
 				finit(fp, FREAD | FWRITE, DTYPE_SOCKET, so,
 				    &socketops);
-				fdrop(fp, td);	/* Drop fp reference. */
+				fdrop(fp, td); /* Drop fp reference. */
 				td->td_retval[0] = fd;
 			}
 		} else
@@ -402,7 +402,7 @@ sys_rpctls_syscall(struct thread *td, struct rpctls_syscall_args *uap)
 				sx_xunlock(&xprt->xp_lock);
 				finit(fp, FREAD | FWRITE, DTYPE_SOCKET, so,
 				    &socketops);
-				fdrop(fp, td);	/* Drop fp reference. */
+				fdrop(fp, td); /* Drop fp reference. */
 				td->td_retval[0] = fd;
 			}
 		} else
@@ -660,8 +660,8 @@ rpctls_server(SVCXPRT *xprt, struct socket *so, uint32_t *flags, uint64_t *sslp,
 	procpos = -1;
 	mtx_lock(&rpctls_server_lock);
 	for (i = (KRPC_VNET(rpctls_srv_prevproc) + 1) % RPCTLS_SRV_MAXNPROCS;
-	    i != KRPC_VNET(rpctls_srv_prevproc);
-	    i = (i + 1) % RPCTLS_SRV_MAXNPROCS) {
+	     i != KRPC_VNET(rpctls_srv_prevproc);
+	     i = (i + 1) % RPCTLS_SRV_MAXNPROCS) {
 		if (KRPC_VNET(rpctls_server_handle)[i] != NULL)
 			break;
 	}
@@ -697,8 +697,9 @@ rpctls_server(SVCXPRT *xprt, struct socket *so, uint32_t *flags, uint64_t *sslp,
 		*sslp++ = res.usec;
 		*sslp = res.ssl;
 		*procposp = procpos;
-		if ((*flags & (RPCTLS_FLAGS_CERTUSER |
-		    RPCTLS_FLAGS_DISABLED)) == RPCTLS_FLAGS_CERTUSER) {
+		if ((*flags &
+			(RPCTLS_FLAGS_CERTUSER | RPCTLS_FLAGS_DISABLED)) ==
+		    RPCTLS_FLAGS_CERTUSER) {
 			*ngrps = res.gid.gid_len;
 			*uid = res.uid;
 			*gids = gidp = mem_alloc(*ngrps * sizeof(gid_t));
@@ -750,7 +751,7 @@ _svcauth_rpcsec_tls(struct svc_req *rqst, struct rpc_msg *msg)
 #ifdef KERN_TLS
 	u_int maxlen;
 #endif
-	
+
 	KRPC_CURVNET_SET_QUIET(KRPC_TD_TO_VNET(curthread));
 	KRPC_VNET(svc_vc_tls_handshake_failed)++;
 	/* Initialize reply. */
@@ -763,7 +764,7 @@ _svcauth_rpcsec_tls(struct svc_req *rqst, struct rpc_msg *msg)
 		KRPC_CURVNET_RESTORE();
 		return (AUTH_BADCRED);
 	}
-	
+
 	if (rqst->rq_proc != NULLPROC) {
 		KRPC_CURVNET_RESTORE();
 		return (AUTH_REJECTEDCRED);
@@ -797,14 +798,14 @@ _svcauth_rpcsec_tls(struct svc_req *rqst, struct rpc_msg *msg)
 		sx_xlock(&xprt->xp_lock);
 		xprt->xp_dontrcv = FALSE;
 		sx_xunlock(&xprt->xp_lock);
-		xprt_active(xprt);	/* Harmless if already active. */
+		xprt_active(xprt); /* Harmless if already active. */
 		KRPC_CURVNET_RESTORE();
 		return (AUTH_REJECTEDCRED);
 	}
 
 	/* Do an upcall to do the TLS handshake. */
-	stat = rpctls_server(xprt, xprt->xp_socket, &flags,
-	    ssl, &uid, &ngrps, &gidp, &procpos);
+	stat = rpctls_server(xprt, xprt->xp_socket, &flags, ssl, &uid, &ngrps,
+	    &gidp, &procpos);
 
 	/* Re-enable reception on the socket within the krpc. */
 	sx_xlock(&xprt->xp_lock);
@@ -815,8 +816,8 @@ _svcauth_rpcsec_tls(struct svc_req *rqst, struct rpc_msg *msg)
 		xprt->xp_sslusec = ssl[1];
 		xprt->xp_sslrefno = ssl[2];
 		xprt->xp_sslproc = procpos;
-		if ((flags & (RPCTLS_FLAGS_CERTUSER |
-		    RPCTLS_FLAGS_DISABLED)) == RPCTLS_FLAGS_CERTUSER) {
+		if ((flags & (RPCTLS_FLAGS_CERTUSER | RPCTLS_FLAGS_DISABLED)) ==
+		    RPCTLS_FLAGS_CERTUSER) {
 			xprt->xp_ngrps = ngrps;
 			xprt->xp_uid = uid;
 			xprt->xp_gidp = gidp;
@@ -825,7 +826,7 @@ _svcauth_rpcsec_tls(struct svc_req *rqst, struct rpc_msg *msg)
 		KRPC_VNET(svc_vc_tls_handshake_success)++;
 	}
 	sx_xunlock(&xprt->xp_lock);
-	xprt_active(xprt);		/* Harmless if already active. */
+	xprt_active(xprt); /* Harmless if already active. */
 	KRPC_CURVNET_RESTORE();
 
 	return (RPCSEC_GSS_NODISPATCH);
@@ -845,13 +846,13 @@ rpctls_getinfo(u_int *maxlenp, bool rpctlscd_run, bool rpctlssd_run)
 	if (!mb_use_ext_pgs)
 		return (false);
 	siz = sizeof(enable);
-	error = kernel_sysctlbyname(curthread, "kern.ipc.tls.enable",
-	    &enable, &siz, NULL, 0, NULL, 0);
+	error = kernel_sysctlbyname(curthread, "kern.ipc.tls.enable", &enable,
+	    &siz, NULL, 0, NULL, 0);
 	if (error != 0)
 		return (false);
 	siz = sizeof(maxlen);
-	error = kernel_sysctlbyname(curthread, "kern.ipc.tls.maxlen",
-	    &maxlen, &siz, NULL, 0, NULL, 0);
+	error = kernel_sysctlbyname(curthread, "kern.ipc.tls.maxlen", &maxlen,
+	    &siz, NULL, 0, NULL, 0);
 	if (error != 0)
 		return (false);
 	if (rpctlscd_run && rpctls_connect_handle == NULL)
@@ -865,4 +866,3 @@ rpctls_getinfo(u_int *maxlenp, bool rpctlscd_run, bool rpctlssd_run)
 	*maxlenp = maxlen;
 	return (enable);
 }
-

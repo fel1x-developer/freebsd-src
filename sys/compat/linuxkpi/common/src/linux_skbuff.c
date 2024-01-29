@@ -33,11 +33,11 @@
  *       likely to change as we will improve the integration to FreeBSD mbufs.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
-#include <sys/param.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/sysctl.h>
@@ -46,9 +46,9 @@
 #include <ddb/ddb.h>
 #endif
 
+#include <linux/gfp.h>
 #include <linux/skbuff.h>
 #include <linux/slab.h>
-#include <linux/gfp.h>
 #ifdef __LP64__
 #include <linux/log2.h>
 #endif
@@ -74,7 +74,8 @@ SYSCTL_INT(_compat_linuxkpi_skb, OID_AUTO, debug, CTLFLAG_RWTUN,
  */
 static int linuxkpi_skb_memlimit;
 SYSCTL_INT(_compat_linuxkpi_skb, OID_AUTO, mem_limit, CTLFLAG_RDTUN,
-    &linuxkpi_skb_memlimit, 0, "SKB memory limit: 0=no limit, "
+    &linuxkpi_skb_memlimit, 0,
+    "SKB memory limit: 0=no limit, "
     "1=32bit, 2=36bit, other=undef (currently 32bit)");
 #endif
 
@@ -99,11 +100,11 @@ linuxkpi_alloc_skb(size_t size, gfp_t gfp)
 
 		switch (linuxkpi_skb_memlimit) {
 		case 2:
-			high = (0xfffffffff);	/* 1<<36 really. */
+			high = (0xfffffffff); /* 1<<36 really. */
 			break;
 		case 1:
 		default:
-			high = (0xffffffff);	/* 1<<32 really. */
+			high = (0xffffffff); /* 1<<32 really. */
 			break;
 		}
 		len = roundup_pow_of_two(len);
@@ -118,7 +119,7 @@ linuxkpi_alloc_skb(size_t size, gfp_t gfp)
 	skb->_alloc_len = len;
 	skb->truesize = size;
 
-	skb->head = skb->data = skb->tail = (uint8_t *)(skb+1);
+	skb->head = skb->data = skb->tail = (uint8_t *)(skb + 1);
 	skb->end = skb->head + size;
 
 	skb->prev = skb->next = skb;
@@ -141,8 +142,8 @@ linuxkpi_dev_alloc_skb(size_t size, gfp_t gfp)
 	if (skb != NULL)
 		skb_reserve(skb, NET_SKB_PAD);
 
-	SKB_TRACE_FMT(skb, "data %p size %zu len %zu",
-	    (skb) ? skb->data : NULL, size, len);
+	SKB_TRACE_FMT(skb, "data %p size %zu len %zu", (skb) ? skb->data : NULL,
+	    size, len);
 	return (skb);
 }
 
@@ -162,7 +163,7 @@ linuxkpi_build_skb(void *data, size_t fragsz)
 	skb->_flags |= _SKB_FLAGS_SKBEXTFRAG;
 	skb->truesize = fragsz;
 	skb->head = skb->data = data;
-	skb_reset_tail_pointer(skb);	/* XXX is that correct? */
+	skb_reset_tail_pointer(skb); /* XXX is that correct? */
 	skb->end = (void *)((uintptr_t)skb->head + fragsz);
 
 	return (skb);
@@ -185,8 +186,8 @@ linuxkpi_skb_copy(struct sk_buff *skb, gfp_t gfp)
 
 	headroom = skb_headroom(skb);
 	/* Fixup head and end. */
-	skb_reserve(new, headroom);	/* data and tail move headroom forward. */
-	skb_put(new, skb->len);		/* tail and len get adjusted */
+	skb_reserve(new, headroom); /* data and tail move headroom forward. */
+	skb_put(new, skb->len);	    /* tail and len get adjusted */
 
 	/* Copy data. */
 	memcpy(new->head, skb->data - headroom, headroom + skb->len);
@@ -194,8 +195,8 @@ linuxkpi_skb_copy(struct sk_buff *skb, gfp_t gfp)
 	/* Deal with fragments. */
 	shinfo = skb->shinfo;
 	if (shinfo->nr_frags > 0) {
-		printf("%s:%d: NOT YET SUPPORTED; missing %d frags\n",
-		    __func__, __LINE__, shinfo->nr_frags);
+		printf("%s:%d: NOT YET SUPPORTED; missing %d frags\n", __func__,
+		    __LINE__, shinfo->nr_frags);
 		SKB_TODO();
 	}
 
@@ -227,8 +228,10 @@ linuxkpi_kfree_skb(struct sk_buff *skb)
 		m = skb->m;
 		skb->m = NULL;
 
-		KASSERT(skb->m_free_func != NULL, ("%s: skb %p has m %p but no "
-		    "m_free_func %p\n", __func__, skb, m, skb->m_free_func));
+		KASSERT(skb->m_free_func != NULL,
+		    ("%s: skb %p has m %p but no "
+		     "m_free_func %p\n",
+			__func__, skb, m, skb->m_free_func));
 		skb->m_free_func(m);
 	}
 	KASSERT(skb->m == NULL,
@@ -236,8 +239,8 @@ linuxkpi_kfree_skb(struct sk_buff *skb)
 
 	shinfo = skb->shinfo;
 	for (count = fragno = 0;
-	    count < shinfo->nr_frags && fragno < nitems(shinfo->frags);
-	    fragno++) {
+	     count < shinfo->nr_frags && fragno < nitems(shinfo->frags);
+	     fragno++) {
 
 		if (shinfo->frags[fragno].page != NULL) {
 			struct page *p;
@@ -276,7 +279,7 @@ DB_SHOW_COMMAND(skb, db_show_skb)
 
 	if (!have_addr) {
 		db_printf("usage: show skb <addr>\n");
-			return;
+		return;
 	}
 
 	skb = (struct sk_buff *)addr;
@@ -289,15 +292,15 @@ DB_SHOW_COMMAND(skb, db_show_skb)
 	    skb->mac_len);
 	db_printf("\tcsum %#06x l3hdroff %u l4hdroff %u priority %u qmap %u\n",
 	    skb->csum, skb->l3hdroff, skb->l4hdroff, skb->priority, skb->qmap);
-	db_printf("\tpkt_type %d dev %p sk %p\n",
-	    skb->pkt_type, skb->dev, skb->sk);
+	db_printf("\tpkt_type %d dev %p sk %p\n", skb->pkt_type, skb->dev,
+	    skb->sk);
 	db_printf("\tcsum_offset %d csum_start %d ip_summed %d protocol %d\n",
 	    skb->csum_offset, skb->csum_start, skb->ip_summed, skb->protocol);
-	db_printf("\t_flags %#06x\n", skb->_flags);		/* XXX-BZ print names? */
-	db_printf("\thead %p data %p tail %p end %p\n",
-	    skb->head, skb->data, skb->tail, skb->end);
-	db_printf("\tshinfo %p m %p m_free_func %p\n",
-	    skb->shinfo, skb->m, skb->m_free_func);
+	db_printf("\t_flags %#06x\n", skb->_flags); /* XXX-BZ print names? */
+	db_printf("\thead %p data %p tail %p end %p\n", skb->head, skb->data,
+	    skb->tail, skb->end);
+	db_printf("\tshinfo %p m %p m_free_func %p\n", skb->shinfo, skb->m,
+	    skb->m_free_func);
 
 	if (skb->shinfo != NULL) {
 		struct skb_shared_info *shinfo;
@@ -312,15 +315,15 @@ DB_SHOW_COMMAND(skb, db_show_skb)
 			if (frag == NULL || frag->page == NULL)
 				continue;
 			db_printf("\t\t\tfrag %p fragno %d page %p %p "
-			    "offset %ju size %zu\n",
+				  "offset %ju size %zu\n",
 			    frag, i, frag->page, linux_page_address(frag->page),
 			    (uintmax_t)frag->offset, frag->size);
 		}
 	}
 	db_printf("\tcb[] %p {", skb->cb);
 	for (i = 0; i < nitems(skb->cb); i++) {
-		db_printf("%#04x%s",
-		    skb->cb[i], (i < (nitems(skb->cb)-1)) ? ", " : "");
+		db_printf("%#04x%s", skb->cb[i],
+		    (i < (nitems(skb->cb) - 1)) ? ", " : "");
 	}
 	db_printf("}\n");
 

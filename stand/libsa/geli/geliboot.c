@@ -27,17 +27,18 @@
 
 #include <stand.h>
 #include <stdarg.h>
+
 #include "geliboot.h"
 #include "geliboot_internal.h"
 
 struct known_dev {
-	char			name[GELIDEV_NAMELEN];
-	struct geli_dev 	*gdev;
-	SLIST_ENTRY(known_dev)	entries;
+	char name[GELIDEV_NAMELEN];
+	struct geli_dev *gdev;
+	SLIST_ENTRY(known_dev) entries;
 };
 
-SLIST_HEAD(known_dev_list, known_dev) known_devs_head = 
-    SLIST_HEAD_INITIALIZER(known_devs_head);
+SLIST_HEAD(known_dev_list, known_dev) known_devs_head = SLIST_HEAD_INITIALIZER(
+    known_devs_head);
 
 static geli_ukey saved_keys[GELI_MAX_KEYS];
 static unsigned int nsaved_keys = 0;
@@ -72,8 +73,7 @@ geli_import_key_buffer(struct keybuf *skeybuf)
 	for (i = 0; i < skeybuf->kb_nents && i < GELI_MAX_KEYS; i++) {
 		memcpy(saved_keys[i], skeybuf->kb_ents[i].ke_data,
 		    G_ELI_USERKEYLEN);
-		explicit_bzero(skeybuf->kb_ents[i].ke_data,
-		    G_ELI_USERKEYLEN);
+		explicit_bzero(skeybuf->kb_ents[i].ke_data, G_ELI_USERKEYLEN);
 		skeybuf->kb_ents[i].ke_type = KEYBUF_TYPE_NONE;
 	}
 	nsaved_keys = skeybuf->kb_nents;
@@ -101,15 +101,15 @@ geli_findkey(struct geli_dev *gdev, u_char *mkey)
 	int i;
 
 	if (gdev->keybuf_slot >= 0) {
-		if (g_eli_mkey_decrypt_any(&gdev->md, saved_keys[gdev->keybuf_slot],
-		    mkey, &keynum) == 0) {
+		if (g_eli_mkey_decrypt_any(&gdev->md,
+			saved_keys[gdev->keybuf_slot], mkey, &keynum) == 0) {
 			return (0);
 		}
 	}
 
 	for (i = 0; i < nsaved_keys; i++) {
 		if (g_eli_mkey_decrypt_any(&gdev->md, saved_keys[i], mkey,
-		    &keynum) == 0) {
+			&keynum) == 0) {
 			gdev->keybuf_slot = i;
 			return (0);
 		}
@@ -142,12 +142,12 @@ geli_taste(geli_readfunc readfunc, void *readpriv, daddr_t lastsector,
 	va_start(args, namefmt);
 	vsnprintf(devname, sizeof(devname), namefmt, args);
 	va_end(args);
-	SLIST_FOREACH(kdev, &known_devs_head, entries) {
+	SLIST_FOREACH (kdev, &known_devs_head, entries) {
 		if (strcmp(kdev->name, devname) == 0)
 			return (kdev->gdev);
 	}
 
-        /* Determine whether the new device is geli-encrypted... */
+	/* Determine whether the new device is geli-encrypted... */
 	if ((buf = malloc(DEV_GELIBOOT_BSIZE)) == NULL)
 		goto out;
 	alignsector = rounddown2(lastsector * DEV_BSIZE, DEV_GELIBOOT_BSIZE);
@@ -176,7 +176,8 @@ geli_taste(geli_readfunc readfunc, void *readpriv, daddr_t lastsector,
 	if (error != 0) {
 		/* Try the last 512 byte sector instead. */
 		error = eli_metadata_decode(buf +
-		    (DEV_GELIBOOT_BSIZE - DEV_BSIZE), &md);
+			(DEV_GELIBOOT_BSIZE - DEV_BSIZE),
+		    &md);
 		if (error != 0) {
 			goto out;
 		}
@@ -248,7 +249,8 @@ geli_probe(struct geli_dev *gdev, const char *passphrase, u_char *mkeyp)
 		    strlen(passphrase));
 	} else if (gdev->md.md_iterations > 0) {
 		printf("Calculating GELI Decryption Key for %s %d"
-		    " iterations...\n", gdev->name, gdev->md.md_iterations);
+		       " iterations...\n",
+		    gdev->name, gdev->md.md_iterations);
 		u_char dkey[G_ELI_USERKEYLEN];
 
 		pkcs5v2_genkey(dkey, sizeof(dkey), gdev->md.md_salt,
@@ -288,8 +290,8 @@ found_key:
 		/*
 		 * The encryption key is: ekey = HMAC_SHA512(Data-Key, 0x10)
 		 */
-		g_eli_crypto_hmac(mkp, G_ELI_MAXKEYLEN, (const uint8_t *)"\x10", 1,
-		    gdev->sc.sc_ekey, 0);
+		g_eli_crypto_hmac(mkp, G_ELI_MAXKEYLEN, (const uint8_t *)"\x10",
+		    1, gdev->sc.sc_ekey, 0);
 	}
 	explicit_bzero(mkey, sizeof(mkey));
 

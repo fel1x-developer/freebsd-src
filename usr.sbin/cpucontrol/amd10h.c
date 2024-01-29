@@ -24,25 +24,25 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <sys/ioccom.h>
 #include <sys/cpuctl.h>
+#include <sys/ioccom.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 
 #include <assert.h>
+#include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
 
-#include "cpucontrol.h"
 #include "amd.h"
+#include "cpucontrol.h"
 
 int
 amd10h_probe(int fd)
@@ -133,20 +133,19 @@ amd10h_update(const struct ucode_update_params *params)
 	}
 	revision = (uint32_t)msrargs.data;
 
-	WARNX(1, "found cpu family %#x model %#x "
+	WARNX(1,
+	    "found cpu family %#x model %#x "
 	    "stepping %#x extfamily %#x extmodel %#x.",
 	    ((signature >> 8) & 0x0f) + ((signature >> 20) & 0xff),
-	    (signature >> 4) & 0x0f,
-	    (signature >> 0) & 0x0f, (signature >> 20) & 0xff,
-	    (signature >> 16) & 0x0f);
+	    (signature >> 4) & 0x0f, (signature >> 0) & 0x0f,
+	    (signature >> 20) & 0xff, (signature >> 16) & 0x0f);
 	WARNX(1, "microcode revision %#x", revision);
 
 	/*
 	 * Open the firmware file.
 	 */
 	WARNX(1, "checking %s for update.", path);
-	if (fw_size <
-	    (sizeof(*container_header) + sizeof(*section_header))) {
+	if (fw_size < (sizeof(*container_header) + sizeof(*section_header))) {
 		WARNX(2, "file too short: %s", path);
 		goto done;
 	}
@@ -165,26 +164,34 @@ amd10h_update(const struct ucode_update_params *params)
 
 	section_header = (const section_header_t *)fw_data;
 	if (section_header->type != AMD_10H_EQUIV_TABLE_TYPE) {
-		WARNX(2, "%s is not a valid amd firmware: "
-		    "first section is not CPU equivalence table", path);
+		WARNX(2,
+		    "%s is not a valid amd firmware: "
+		    "first section is not CPU equivalence table",
+		    path);
 		goto done;
 	}
 	if (section_header->size == 0) {
-		WARNX(2, "%s is not a valid amd firmware: "
-		    "first section is empty", path);
+		WARNX(2,
+		    "%s is not a valid amd firmware: "
+		    "first section is empty",
+		    path);
 		goto done;
 	}
 	fw_data += sizeof(*section_header);
 	fw_size -= sizeof(*section_header);
 
 	if (section_header->size > fw_size) {
-		WARNX(2, "%s is not a valid amd firmware: "
-		    "file is truncated", path);
+		WARNX(2,
+		    "%s is not a valid amd firmware: "
+		    "file is truncated",
+		    path);
 		goto done;
 	}
 	if (section_header->size < sizeof(*equiv_cpu_table)) {
-		WARNX(2, "%s is not a valid amd firmware: "
-		    "first section is too short", path);
+		WARNX(2,
+		    "%s is not a valid amd firmware: "
+		    "first section is too short",
+		    path);
 		goto done;
 	}
 	equiv_cpu_table = (const equiv_cpu_entry_t *)fw_data;
@@ -195,9 +202,11 @@ amd10h_update(const struct ucode_update_params *params)
 	for (i = 0; equiv_cpu_table[i].installed_cpu != 0; i++) {
 		if (signature == equiv_cpu_table[i].installed_cpu) {
 			equiv_id = equiv_cpu_table[i].equiv_cpu;
-			WARNX(3, "equiv_id: %x, signature %8x,"
-			    " equiv_cpu_table[%d] %8x", equiv_id, signature,
-			    i, equiv_cpu_table[i].installed_cpu);
+			WARNX(3,
+			    "equiv_id: %x, signature %8x,"
+			    " equiv_cpu_table[%d] %8x",
+			    equiv_id, signature, i,
+			    equiv_cpu_table[i].installed_cpu);
 			break;
 		}
 	}
@@ -213,18 +222,24 @@ amd10h_update(const struct ucode_update_params *params)
 		fw_data += sizeof(*section_header);
 		fw_size -= sizeof(*section_header);
 		if (section_header->type != AMD_10H_uCODE_TYPE) {
-			WARNX(2, "%s is not a valid amd firmware: "
-			    "section has incorrect type", path);
+			WARNX(2,
+			    "%s is not a valid amd firmware: "
+			    "section has incorrect type",
+			    path);
 			goto done;
 		}
 		if (section_header->size > fw_size) {
-			WARNX(2, "%s is not a valid amd firmware: "
-			    "file is truncated", path);
+			WARNX(2,
+			    "%s is not a valid amd firmware: "
+			    "file is truncated",
+			    path);
 			goto done;
 		}
 		if (section_header->size < sizeof(*fw_header)) {
-			WARNX(2, "%s is not a valid amd firmware: "
-			    "section is too short", path);
+			WARNX(2,
+			    "%s is not a valid amd firmware: "
+			    "section is too short",
+			    path);
 			goto done;
 		}
 		fw_header = (const amd_10h_fw_header_t *)fw_data;
@@ -252,15 +267,17 @@ amd10h_update(const struct ucode_update_params *params)
 	}
 
 	if (fw_size != 0) {
-		WARNX(2, "%s is not a valid amd firmware: "
-		    "file is truncated", path);
+		WARNX(2,
+		    "%s is not a valid amd firmware: "
+		    "file is truncated",
+		    path);
 		goto done;
 	}
 
 	if (selected_fw != NULL) {
 		WARNX(1, "selected ucode size is %zu", selected_size);
-		fprintf(stderr, "%s: updating cpu %s to revision %#x... ",
-		    path, dev, revision);
+		fprintf(stderr, "%s: updating cpu %s to revision %#x... ", path,
+		    dev, revision);
 
 		args.data = __DECONST(void *, selected_fw);
 		args.size = selected_size;

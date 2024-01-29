@@ -40,9 +40,8 @@
 
 #include <net/vnet.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_command.h>
-
+#include <ddb/ddb.h>
 #include <security/mac/mac_policy.h>
 
 /*
@@ -67,18 +66,18 @@
  * considered unsafe for execution.
  */
 
-#define	DB_CMD_VALIDATE		DB_MAC1
+#define DB_CMD_VALIDATE DB_MAC1
 
 typedef int db_validation_fn_t(db_expr_t addr, bool have_addr, db_expr_t count,
     char *modif);
 
-static db_validation_fn_t	db_thread_valid;
-static db_validation_fn_t	db_show_ffs_valid;
-static db_validation_fn_t	db_show_prison_valid;
-static db_validation_fn_t	db_show_proc_valid;
-static db_validation_fn_t	db_show_rman_valid;
+static db_validation_fn_t db_thread_valid;
+static db_validation_fn_t db_show_ffs_valid;
+static db_validation_fn_t db_show_prison_valid;
+static db_validation_fn_t db_show_proc_valid;
+static db_validation_fn_t db_show_rman_valid;
 #ifdef VIMAGE
-static db_validation_fn_t	db_show_vnet_valid;
+static db_validation_fn_t db_show_vnet_valid;
 #endif
 
 struct cmd_list_item {
@@ -88,18 +87,18 @@ struct cmd_list_item {
 
 /* List of top-level ddb(4) commands which are allowed by this policy. */
 static const struct cmd_list_item command_list[] = {
-	{ "thread",	db_thread_valid },
+	{ "thread", db_thread_valid },
 };
 
 /* List of ddb(4) 'show' commands which are allowed by this policy. */
 static const struct cmd_list_item show_command_list[] = {
-	{ "ffs",	db_show_ffs_valid },
-	{ "prison",	db_show_prison_valid },
-	{ "proc",	db_show_proc_valid },
-	{ "rman",	db_show_rman_valid },
-	{ "thread",	db_thread_valid },
+	{ "ffs", db_show_ffs_valid },
+	{ "prison", db_show_prison_valid },
+	{ "proc", db_show_proc_valid },
+	{ "rman", db_show_rman_valid },
+	{ "thread", db_thread_valid },
 #ifdef VIMAGE
-	{ "vnet",	db_show_vnet_valid },
+	{ "vnet", db_show_vnet_valid },
 #endif
 };
 
@@ -132,7 +131,7 @@ db_show_ffs_valid(db_expr_t addr, bool have_addr, db_expr_t count, char *modif)
 	if (!have_addr)
 		return (0);
 
-	TAILQ_FOREACH(mp, &mountlist, mnt_list)
+	TAILQ_FOREACH (mp, &mountlist, mnt_list)
 		if ((void *)mp == (void *)addr)
 			return (0);
 
@@ -151,7 +150,7 @@ db_show_prison_valid(db_expr_t addr, bool have_addr, db_expr_t count,
 
 	/* prison can match by pointer address or ID. */
 	pr_id = (int)addr;
-	TAILQ_FOREACH(pr, &allprison, pr_list)
+	TAILQ_FOREACH (pr, &allprison, pr_list)
 		if (pr->pr_id == pr_id || (void *)pr == (void *)addr)
 			return (0);
 
@@ -159,8 +158,7 @@ db_show_prison_valid(db_expr_t addr, bool have_addr, db_expr_t count,
 }
 
 static int
-db_show_proc_valid(db_expr_t addr, bool have_addr, db_expr_t count,
-    char *modif)
+db_show_proc_valid(db_expr_t addr, bool have_addr, db_expr_t count, char *modif)
 {
 	struct proc *p;
 	int i;
@@ -170,7 +168,7 @@ db_show_proc_valid(db_expr_t addr, bool have_addr, db_expr_t count,
 		return (0);
 
 	for (i = 0; i <= pidhash; i++) {
-		LIST_FOREACH(p, &pidhashtbl[i], p_hash) {
+		LIST_FOREACH (p, &pidhashtbl[i], p_hash) {
 			if ((void *)p == (void *)addr)
 				return (0);
 		}
@@ -184,7 +182,7 @@ db_show_rman_valid(db_expr_t addr, bool have_addr, db_expr_t count, char *modif)
 {
 	struct rman *rm;
 
-	TAILQ_FOREACH(rm, &rman_head, rm_link) {
+	TAILQ_FOREACH (rm, &rman_head, rm_link) {
 		if ((void *)rm == (void *)addr)
 			return (0);
 	}
@@ -201,7 +199,8 @@ db_show_vnet_valid(db_expr_t addr, bool have_addr, db_expr_t count, char *modif)
 	if (!have_addr)
 		return (0);
 
-	VNET_FOREACH(vnet) {
+	VNET_FOREACH(vnet)
+	{
 		if ((void *)vnet == (void *)addr)
 			return (0);
 	}
@@ -239,7 +238,7 @@ mac_ddb_init(struct mac_policy_conf *conf)
 
 	/* Register basic commands. */
 	for (i = 0, cmd = prev = NULL; i < nitems(command_list); i++) {
-		LIST_FOREACH_FROM(cmd, &db_cmd_table, next) {
+		LIST_FOREACH_FROM (cmd, &db_cmd_table, next) {
 			n = command_match(cmd, command_list[i]);
 			if (n == 0) {
 				/* Got an exact match. */
@@ -257,7 +256,7 @@ mac_ddb_init(struct mac_policy_conf *conf)
 
 	/* Register 'show' commands which require validation. */
 	for (i = 0, cmd = prev = NULL; i < nitems(show_command_list); i++) {
-		LIST_FOREACH_FROM(cmd, &db_show_table, next) {
+		LIST_FOREACH_FROM (cmd, &db_show_table, next) {
 			n = command_match(cmd, show_command_list[i]);
 			if (n == 0) {
 				/* Got an exact match. */
@@ -295,8 +294,7 @@ mac_ddb_init(struct mac_policy_conf *conf)
 }
 
 static int
-mac_ddb_command_register(struct db_command_table *table,
-    struct db_command *cmd)
+mac_ddb_command_register(struct db_command_table *table, struct db_command *cmd)
 {
 	int i, n;
 
@@ -331,8 +329,8 @@ mac_ddb_command_register(struct db_command_table *table,
 }
 
 static int
-mac_ddb_command_exec(struct db_command *cmd, db_expr_t addr,
-    bool have_addr, db_expr_t count, char *modif)
+mac_ddb_command_exec(struct db_command *cmd, db_expr_t addr, bool have_addr,
+    db_expr_t count, char *modif)
 {
 	db_validation_fn_t *vfn = cmd->mac_priv;
 
@@ -361,8 +359,7 @@ mac_ddb_check_backend(struct kdb_dbbe *be)
 /*
  * Register functions with MAC Framework policy entry points.
  */
-static struct mac_policy_ops mac_ddb_ops =
-{
+static struct mac_policy_ops mac_ddb_ops = {
 	.mpo_init = mac_ddb_init,
 
 	.mpo_ddb_command_register = mac_ddb_command_register,

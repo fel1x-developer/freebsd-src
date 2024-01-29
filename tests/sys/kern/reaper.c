@@ -66,7 +66,7 @@ ATF_TC_BODY(reaper_wait_child_first, tc)
 		if (grandchild == -1)
 			_exit(101);
 		else if (grandchild == 0) {
-			if (read(pip[0], &(uint8_t){ 0 }, 1) != 0)
+			if (read(pip[0], &(uint8_t) { 0 }, 1) != 0)
 				_exit(102);
 			if (getppid() != parent)
 				_exit(103);
@@ -116,7 +116,7 @@ ATF_TC_BODY(reaper_wait_grandchild_first, tc)
 			_exit(2);
 		else {
 			if (waitid(P_PID, grandchild, NULL,
-			    WNOWAIT | WEXITED) != 0)
+				WNOWAIT | WEXITED) != 0)
 				_exit(102);
 			_exit(3);
 		}
@@ -181,7 +181,7 @@ ATF_TC_BODY(reaper_sigchld_child_first, tc)
 		if (grandchild == -1)
 			_exit(101);
 		else if (grandchild == 0) {
-			if (read(pip[0], &(uint8_t){ 0 }, 1) != 0)
+			if (read(pip[0], &(uint8_t) { 0 }, 1) != 0)
 				_exit(102);
 			if (getppid() != parent)
 				_exit(103);
@@ -265,7 +265,7 @@ ATF_TC_BODY(reaper_sigchld_grandchild_first, tc)
 			_exit(2);
 		else {
 			if (waitid(P_PID, grandchild, NULL,
-			    WNOWAIT | WEXITED) != 0)
+				WNOWAIT | WEXITED) != 0)
 				_exit(102);
 			_exit(3);
 		}
@@ -387,10 +387,9 @@ ATF_TC_BODY(reaper_getpids, tc)
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(0, info[0].pi_flags & REAPER_PIDINFO_VALID);
 
@@ -405,15 +404,15 @@ ATF_TC_BODY(reaper_getpids, tc)
 			_exit(100);
 		if (close(pipb[0]) != 0)
 			_exit(100);
-		if (read(pipa[0], &(uint8_t){ 0 }, 1) != 1)
+		if (read(pipa[0], &(uint8_t) { 0 }, 1) != 1)
 			_exit(101);
 		grandchild = fork();
 		if (grandchild == -1)
 			_exit(102);
 		if (grandchild == 0) {
-			if (write(pipb[1], &(uint8_t){ 0 }, 1) != 1)
+			if (write(pipb[1], &(uint8_t) { 0 }, 1) != 1)
 				_exit(103);
-			if (read(pipa[0], &(uint8_t){ 0 }, 1) != 1)
+			if (read(pipa[0], &(uint8_t) { 0 }, 1) != 1)
 				_exit(104);
 			_exit(0);
 		}
@@ -427,10 +426,9 @@ ATF_TC_BODY(reaper_getpids, tc)
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(REAPER_PIDINFO_VALID | REAPER_PIDINFO_CHILD,
 	    info[0].pi_flags & (REAPER_PIDINFO_VALID | REAPER_PIDINFO_CHILD));
@@ -438,17 +436,16 @@ ATF_TC_BODY(reaper_getpids, tc)
 	ATF_CHECK_EQ(child, info[0].pi_subtree);
 	ATF_CHECK_EQ(0, info[1].pi_flags & REAPER_PIDINFO_VALID);
 
-	sr = write(pipa[1], &(uint8_t){ 0 }, 1);
+	sr = write(pipa[1], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
-	sr = read(pipb[0], &(uint8_t){ 0 }, 1);
+	sr = read(pipb[0], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(REAPER_PIDINFO_VALID,
 	    info[0].pi_flags & REAPER_PIDINFO_VALID);
@@ -476,10 +473,9 @@ ATF_TC_BODY(reaper_getpids, tc)
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(REAPER_PIDINFO_VALID,
 	    info[0].pi_flags & REAPER_PIDINFO_VALID);
@@ -489,15 +485,14 @@ ATF_TC_BODY(reaper_getpids, tc)
 	    info[0].pi_flags & REAPER_PIDINFO_CHILD);
 	ATF_CHECK_EQ(grandchild, info[0].pi_pid);
 
-	sr = write(pipa[1], &(uint8_t){ 0 }, 1);
+	sr = write(pipa[1], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(REAPER_PIDINFO_VALID,
 	    info[0].pi_flags & REAPER_PIDINFO_VALID);
@@ -513,10 +508,9 @@ ATF_TC_BODY(reaper_getpids, tc)
 
 	memset(info, '\0', sizeof(info));
 	r = procctl(P_PID, parent, PROC_REAP_GETPIDS,
-	    &(struct procctl_reaper_pids){
-	    .rp_count = sizeof(info) / sizeof(info[0]),
-	    .rp_pids = info
-	    });
+	    &(struct procctl_reaper_pids) { .rp_count = sizeof(info) /
+		    sizeof(info[0]),
+		.rp_pids = info });
 	ATF_CHECK_EQ(0, r);
 	ATF_CHECK_EQ(0, info[0].pi_flags & REAPER_PIDINFO_VALID);
 
@@ -603,7 +597,7 @@ ATF_TC_BODY(reaper_kill_normal, tc)
 		if (grandchild == -1)
 			_exit(101);
 		if (grandchild == 0) {
-			if (write(pip[1], &(uint8_t){ 0 }, 1) != 1)
+			if (write(pip[1], &(uint8_t) { 0 }, 1) != 1)
 				_exit(102);
 			for (;;)
 				pause();
@@ -614,7 +608,7 @@ ATF_TC_BODY(reaper_kill_normal, tc)
 	r = close(pip[1]);
 	ATF_REQUIRE_EQ(0, r);
 
-	sr = read(pip[0], &(uint8_t){ 0 }, 1);
+	sr = read(pip[0], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
 
 	params.rk_sig = SIGTERM;
@@ -662,7 +656,7 @@ ATF_TC_BODY(reaper_kill_subtree, tc)
 		if (grandchild1 == -1)
 			_exit(101);
 		if (grandchild1 == 0) {
-			if (write(pip[1], &(uint8_t){ 0 }, 1) != 1)
+			if (write(pip[1], &(uint8_t) { 0 }, 1) != 1)
 				_exit(102);
 			for (;;)
 				pause();
@@ -679,7 +673,7 @@ ATF_TC_BODY(reaper_kill_subtree, tc)
 		if (grandchild2 == -1)
 			_exit(101);
 		if (grandchild2 == 0) {
-			if (write(pip[1], &(uint8_t){ 0 }, 1) != 1)
+			if (write(pip[1], &(uint8_t) { 0 }, 1) != 1)
 				_exit(102);
 			for (;;)
 				pause();
@@ -690,9 +684,9 @@ ATF_TC_BODY(reaper_kill_subtree, tc)
 	r = close(pip[1]);
 	ATF_REQUIRE_EQ(0, r);
 
-	sr = read(pip[0], &(uint8_t){ 0 }, 1);
+	sr = read(pip[0], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
-	sr = read(pip[0], &(uint8_t){ 0 }, 1);
+	sr = read(pip[0], &(uint8_t) { 0 }, 1);
 	ATF_REQUIRE_EQ(1, sr);
 
 	params.rk_sig = SIGUSR1;

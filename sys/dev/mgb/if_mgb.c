@@ -67,21 +67,22 @@
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/iflib.h>
 
 #include <dev/mgb/if_mgb.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/iflib.h>
 
 #include "ifdi_if.h"
 #include "miibus_if.h"
@@ -95,87 +96,73 @@ static const pci_vendor_info_t mgb_vendor_info_array[] = {
 };
 
 /* Device methods */
-static device_register_t		mgb_register;
+static device_register_t mgb_register;
 
 /* IFLIB methods */
-static ifdi_attach_pre_t		mgb_attach_pre;
-static ifdi_attach_post_t		mgb_attach_post;
-static ifdi_detach_t			mgb_detach;
+static ifdi_attach_pre_t mgb_attach_pre;
+static ifdi_attach_post_t mgb_attach_post;
+static ifdi_detach_t mgb_detach;
 
-static ifdi_tx_queues_alloc_t		mgb_tx_queues_alloc;
-static ifdi_rx_queues_alloc_t		mgb_rx_queues_alloc;
-static ifdi_queues_free_t		mgb_queues_free;
+static ifdi_tx_queues_alloc_t mgb_tx_queues_alloc;
+static ifdi_rx_queues_alloc_t mgb_rx_queues_alloc;
+static ifdi_queues_free_t mgb_queues_free;
 
-static ifdi_init_t			mgb_init;
-static ifdi_stop_t			mgb_stop;
+static ifdi_init_t mgb_init;
+static ifdi_stop_t mgb_stop;
 
-static ifdi_msix_intr_assign_t		mgb_msix_intr_assign;
-static ifdi_tx_queue_intr_enable_t	mgb_tx_queue_intr_enable;
-static ifdi_rx_queue_intr_enable_t	mgb_rx_queue_intr_enable;
-static ifdi_intr_enable_t		mgb_intr_enable_all;
-static ifdi_intr_disable_t		mgb_intr_disable_all;
+static ifdi_msix_intr_assign_t mgb_msix_intr_assign;
+static ifdi_tx_queue_intr_enable_t mgb_tx_queue_intr_enable;
+static ifdi_rx_queue_intr_enable_t mgb_rx_queue_intr_enable;
+static ifdi_intr_enable_t mgb_intr_enable_all;
+static ifdi_intr_disable_t mgb_intr_disable_all;
 
 /* IFLIB_TXRX methods */
-static int				mgb_isc_txd_encap(void *,
-					    if_pkt_info_t);
-static void				mgb_isc_txd_flush(void *,
-					    uint16_t, qidx_t);
-static int				mgb_isc_txd_credits_update(void *,
-					    uint16_t, bool);
-static int				mgb_isc_rxd_available(void *,
-					    uint16_t, qidx_t, qidx_t);
-static int				mgb_isc_rxd_pkt_get(void *,
-					    if_rxd_info_t);
-static void				mgb_isc_rxd_refill(void *,
-					    if_rxd_update_t);
-static void				mgb_isc_rxd_flush(void *,
-					    uint16_t, uint8_t, qidx_t);
+static int mgb_isc_txd_encap(void *, if_pkt_info_t);
+static void mgb_isc_txd_flush(void *, uint16_t, qidx_t);
+static int mgb_isc_txd_credits_update(void *, uint16_t, bool);
+static int mgb_isc_rxd_available(void *, uint16_t, qidx_t, qidx_t);
+static int mgb_isc_rxd_pkt_get(void *, if_rxd_info_t);
+static void mgb_isc_rxd_refill(void *, if_rxd_update_t);
+static void mgb_isc_rxd_flush(void *, uint16_t, uint8_t, qidx_t);
 
 /* Interrupts */
-static driver_filter_t			mgb_legacy_intr;
-static driver_filter_t			mgb_admin_intr;
-static driver_filter_t			mgb_rxq_intr;
-static bool				mgb_intr_test(struct mgb_softc *);
+static driver_filter_t mgb_legacy_intr;
+static driver_filter_t mgb_admin_intr;
+static driver_filter_t mgb_rxq_intr;
+static bool mgb_intr_test(struct mgb_softc *);
 
 /* MII methods */
-static miibus_readreg_t			mgb_miibus_readreg;
-static miibus_writereg_t		mgb_miibus_writereg;
-static miibus_linkchg_t			mgb_miibus_linkchg;
-static miibus_statchg_t			mgb_miibus_statchg;
+static miibus_readreg_t mgb_miibus_readreg;
+static miibus_writereg_t mgb_miibus_writereg;
+static miibus_linkchg_t mgb_miibus_linkchg;
+static miibus_statchg_t mgb_miibus_statchg;
 
-static int				mgb_media_change(if_t);
-static void				mgb_media_status(if_t,
-					    struct ifmediareq *);
+static int mgb_media_change(if_t);
+static void mgb_media_status(if_t, struct ifmediareq *);
 
 /* Helper/Test functions */
-static int				mgb_test_bar(struct mgb_softc *);
-static int				mgb_alloc_regs(struct mgb_softc *);
-static int				mgb_release_regs(struct mgb_softc *);
+static int mgb_test_bar(struct mgb_softc *);
+static int mgb_alloc_regs(struct mgb_softc *);
+static int mgb_release_regs(struct mgb_softc *);
 
-static void				mgb_get_ethaddr(struct mgb_softc *,
-					    struct ether_addr *);
+static void mgb_get_ethaddr(struct mgb_softc *, struct ether_addr *);
 
-static int				mgb_wait_for_bits(struct mgb_softc *,
-					    int, int, int);
+static int mgb_wait_for_bits(struct mgb_softc *, int, int, int);
 
 /* H/W init, reset and teardown helpers */
-static int				mgb_hw_init(struct mgb_softc *);
-static int				mgb_hw_teardown(struct mgb_softc *);
-static int				mgb_hw_reset(struct mgb_softc *);
-static int				mgb_mac_init(struct mgb_softc *);
-static int				mgb_dmac_reset(struct mgb_softc *);
-static int				mgb_phy_reset(struct mgb_softc *);
+static int mgb_hw_init(struct mgb_softc *);
+static int mgb_hw_teardown(struct mgb_softc *);
+static int mgb_hw_reset(struct mgb_softc *);
+static int mgb_mac_init(struct mgb_softc *);
+static int mgb_dmac_reset(struct mgb_softc *);
+static int mgb_phy_reset(struct mgb_softc *);
 
-static int				mgb_dma_init(struct mgb_softc *);
-static int				mgb_dma_tx_ring_init(struct mgb_softc *,
-					    int);
-static int				mgb_dma_rx_ring_init(struct mgb_softc *,
-					    int);
+static int mgb_dma_init(struct mgb_softc *);
+static int mgb_dma_tx_ring_init(struct mgb_softc *, int);
+static int mgb_dma_rx_ring_init(struct mgb_softc *, int);
 
-static int				mgb_dmac_control(struct mgb_softc *,
-					    int, int, enum mgb_dmac_cmd);
-static int				mgb_fct_control(struct mgb_softc *,
-					    int, int, enum mgb_fct_cmd);
+static int mgb_dmac_control(struct mgb_softc *, int, int, enum mgb_dmac_cmd);
+static int mgb_fct_control(struct mgb_softc *, int, int, enum mgb_fct_cmd);
 
 /*********************************************************************
  *  FreeBSD Device Interface Entry Points
@@ -183,32 +170,30 @@ static int				mgb_fct_control(struct mgb_softc *,
 
 static device_method_t mgb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_register,	mgb_register),
-	DEVMETHOD(device_probe,		iflib_device_probe),
-	DEVMETHOD(device_attach,	iflib_device_attach),
-	DEVMETHOD(device_detach,	iflib_device_detach),
-	DEVMETHOD(device_shutdown,	iflib_device_shutdown),
-	DEVMETHOD(device_suspend,	iflib_device_suspend),
-	DEVMETHOD(device_resume,	iflib_device_resume),
+	DEVMETHOD(device_register, mgb_register),
+	DEVMETHOD(device_probe, iflib_device_probe),
+	DEVMETHOD(device_attach, iflib_device_attach),
+	DEVMETHOD(device_detach, iflib_device_detach),
+	DEVMETHOD(device_shutdown, iflib_device_shutdown),
+	DEVMETHOD(device_suspend, iflib_device_suspend),
+	DEVMETHOD(device_resume, iflib_device_resume),
 
 	/* MII Interface */
-	DEVMETHOD(miibus_readreg,	mgb_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	mgb_miibus_writereg),
-	DEVMETHOD(miibus_linkchg,	mgb_miibus_linkchg),
-	DEVMETHOD(miibus_statchg,	mgb_miibus_statchg),
+	DEVMETHOD(miibus_readreg, mgb_miibus_readreg),
+	DEVMETHOD(miibus_writereg, mgb_miibus_writereg),
+	DEVMETHOD(miibus_linkchg, mgb_miibus_linkchg),
+	DEVMETHOD(miibus_statchg, mgb_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t mgb_driver = {
-	"mgb", mgb_methods, sizeof(struct mgb_softc)
-};
+static driver_t mgb_driver = { "mgb", mgb_methods, sizeof(struct mgb_softc) };
 
 DRIVER_MODULE(mgb, pci, mgb_driver, NULL, NULL);
 IFLIB_PNP_INFO(pci, mgb, mgb_vendor_info_array);
 MODULE_VERSION(mgb, 1);
 
-#if 0 /* MIIBUS_DEBUG */
+#if 0  /* MIIBUS_DEBUG */
 /* If MIIBUS debug stuff is in attach then order matters. Use below instead. */
 DRIVER_MODULE_ORDERED(miibus, mgb, miibus_driver, NULL, NULL,
     SI_ORDER_ANY);
@@ -220,13 +205,12 @@ MODULE_DEPEND(mgb, ether, 1, 1, 1);
 MODULE_DEPEND(mgb, miibus, 1, 1, 1);
 MODULE_DEPEND(mgb, iflib, 1, 1, 1);
 
-static device_method_t mgb_iflib_methods[] = {
-	DEVMETHOD(ifdi_attach_pre, mgb_attach_pre),
+static device_method_t mgb_iflib_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						   mgb_attach_pre),
 	DEVMETHOD(ifdi_attach_post, mgb_attach_post),
 	DEVMETHOD(ifdi_detach, mgb_detach),
 
-	DEVMETHOD(ifdi_init, mgb_init),
-	DEVMETHOD(ifdi_stop, mgb_stop),
+	DEVMETHOD(ifdi_init, mgb_init), DEVMETHOD(ifdi_stop, mgb_stop),
 
 	DEVMETHOD(ifdi_tx_queues_alloc, mgb_tx_queues_alloc),
 	DEVMETHOD(ifdi_rx_queues_alloc, mgb_rx_queues_alloc),
@@ -238,7 +222,7 @@ static device_method_t mgb_iflib_methods[] = {
 	DEVMETHOD(ifdi_intr_enable, mgb_intr_enable_all),
 	DEVMETHOD(ifdi_intr_disable, mgb_intr_disable_all),
 
-#if 0 /* Not yet implemented IFLIB methods */
+#if 0  /* Not yet implemented IFLIB methods */
 	/*
 	 * Set multicast addresses, mtu and promiscuous mode
 	 */
@@ -261,15 +245,12 @@ static device_method_t mgb_iflib_methods[] = {
 	DEVMETHOD(ifdi_suspend, mgb_suspend),
 	DEVMETHOD(ifdi_resume, mgb_resume),
 #endif /* UNUSED_IFLIB_METHODS */
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t mgb_iflib_driver = {
-	"mgb", mgb_iflib_methods, sizeof(struct mgb_softc)
-};
+static driver_t mgb_iflib_driver = { "mgb", mgb_iflib_methods,
+	sizeof(struct mgb_softc) };
 
-static struct if_txrx mgb_txrx  = {
-	.ift_txd_encap = mgb_isc_txd_encap,
+static struct if_txrx mgb_txrx = { .ift_txd_encap = mgb_isc_txd_encap,
 	.ift_txd_flush = mgb_isc_txd_flush,
 	.ift_txd_credits_update = mgb_isc_txd_credits_update,
 	.ift_rxd_available = mgb_isc_rxd_available,
@@ -277,8 +258,7 @@ static struct if_txrx mgb_txrx  = {
 	.ift_rxd_refill = mgb_isc_rxd_refill,
 	.ift_rxd_flush = mgb_isc_rxd_flush,
 
-	.ift_legacy_intr = mgb_legacy_intr
-};
+	.ift_legacy_intr = mgb_legacy_intr };
 
 static struct if_shared_ctx mgb_sctx_init = {
 	.isc_magic = IFLIB_MAGIC,
@@ -293,13 +273,13 @@ static struct if_shared_ctx mgb_sctx_init = {
 	/* 2 queues per set for TX and RX (ring queue, head writeback queue) */
 	.isc_ntxqs = 2,
 
-	.isc_tx_maxsize = MGB_DMA_MAXSEGS  * MCLBYTES,
+	.isc_tx_maxsize = MGB_DMA_MAXSEGS * MCLBYTES,
 	/* .isc_tx_nsegments = MGB_DMA_MAXSEGS, */
 	.isc_tx_maxsegsize = MCLBYTES,
 
-	.isc_ntxd_min = {1, 1}, /* Will want to make this bigger */
-	.isc_ntxd_max = {MGB_DMA_RING_SIZE, 1},
-	.isc_ntxd_default = {MGB_DMA_RING_SIZE, 1},
+	.isc_ntxd_min = { 1, 1 }, /* Will want to make this bigger */
+	.isc_ntxd_max = { MGB_DMA_RING_SIZE, 1 },
+	.isc_ntxd_default = { MGB_DMA_RING_SIZE, 1 },
 
 	.isc_nrxqs = 2,
 
@@ -307,16 +287,16 @@ static struct if_shared_ctx mgb_sctx_init = {
 	.isc_rx_nsegments = 1,
 	.isc_rx_maxsegsize = MCLBYTES,
 
-	.isc_nrxd_min = {1, 1}, /* Will want to make this bigger */
-	.isc_nrxd_max = {MGB_DMA_RING_SIZE, 1},
-	.isc_nrxd_default = {MGB_DMA_RING_SIZE, 1},
+	.isc_nrxd_min = { 1, 1 }, /* Will want to make this bigger */
+	.isc_nrxd_max = { MGB_DMA_RING_SIZE, 1 },
+	.isc_nrxd_default = { MGB_DMA_RING_SIZE, 1 },
 
 	.isc_nfl = 1, /*one free list since there is only one queue */
-#if 0 /* UNUSED_CTX */
+#if 0		      /* UNUSED_CTX */
 
 	.isc_tso_maxsize = MGB_TSO_MAXSIZE + sizeof(struct ether_vlan_header),
 	.isc_tso_maxsegsize = MGB_TX_MAXSEGSIZE,
-#endif /* UNUSED_CTX */
+#endif		      /* UNUSED_CTX */
 };
 
 /*********************************************************************/
@@ -390,8 +370,8 @@ mgb_attach_pre(if_ctx_t ctx)
 
 	error = mgb_hw_init(sc);
 	if (error != 0) {
-		device_printf(sc->dev,
-		    "MGB device init failed. (err: %d)\n", error);
+		device_printf(sc->dev, "MGB device init failed. (err: %d)\n",
+		    error);
 		goto fail;
 	}
 
@@ -407,8 +387,8 @@ mgb_attach_pre(if_ctx_t ctx)
 
 	/* XXX: Would be nice(r) if locked methods were here */
 	error = mii_attach(sc->dev, &sc->miibus, iflib_get_ifp(ctx),
-	    mgb_media_change, mgb_media_status,
-	    BMSR_DEFCAPMASK, phyaddr, MII_OFFSET_ANY, MIIF_DOPAUSE);
+	    mgb_media_change, mgb_media_status, BMSR_DEFCAPMASK, phyaddr,
+	    MII_OFFSET_ANY, MIIF_DOPAUSE);
 	if (error != 0) {
 		device_printf(sc->dev, "Failed to attach MII interface\n");
 		goto fail;
@@ -421,8 +401,8 @@ mgb_attach_pre(if_ctx_t ctx)
 	/** Setup PBA BAR **/
 	rid = pci_msix_pba_bar(sc->dev);
 	if (rid != scctx->isc_msix_bar) {
-		sc->pba = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
-		    &rid, RF_ACTIVE);
+		sc->pba = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &rid,
+		    RF_ACTIVE);
 		if (sc->pba == NULL) {
 			error = ENXIO;
 			device_printf(sc->dev, "Failed to setup PBA BAR\n");
@@ -432,8 +412,7 @@ mgb_attach_pre(if_ctx_t ctx)
 
 	mgb_get_ethaddr(sc, &hwaddr);
 	if (ETHER_IS_BROADCAST(hwaddr.octet) ||
-	    ETHER_IS_MULTICAST(hwaddr.octet) ||
-	    ETHER_IS_ZERO(hwaddr.octet))
+	    ETHER_IS_MULTICAST(hwaddr.octet) || ETHER_IS_ZERO(hwaddr.octet))
 		ether_gen_addr(iflib_get_ifp(ctx), &hwaddr);
 
 	/*
@@ -507,7 +486,7 @@ mgb_media_change(if_t ifp)
 	ctx = if_getsoftc(ifp);
 	sc = iflib_get_softc(ctx);
 	miid = device_get_softc(sc->miibus);
-	LIST_FOREACH(miisc, &miid->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &miid->mii_phys, mii_list)
 		PHY_RESET(miisc);
 
 	needs_reset = mii_mediachg(miid);
@@ -546,11 +525,11 @@ mgb_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs,
 	for (q = 0; q < ntxqsets; q++) {
 		KASSERT(ntxqs == 2, ("ntxqs = %d", ntxqs));
 		/* Ring */
-		rdata->ring = (struct mgb_ring_desc *) vaddrs[q * ntxqs + 0];
+		rdata->ring = (struct mgb_ring_desc *)vaddrs[q * ntxqs + 0];
 		rdata->ring_bus_addr = paddrs[q * ntxqs + 0];
 
 		/* Head WB */
-		rdata->head_wb = (uint32_t *) vaddrs[q * ntxqs + 1];
+		rdata->head_wb = (uint32_t *)vaddrs[q * ntxqs + 1];
 		rdata->head_wb_bus_addr = paddrs[q * ntxqs + 1];
 	}
 	return (0);
@@ -570,11 +549,11 @@ mgb_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrxqs,
 	for (q = 0; q < nrxqsets; q++) {
 		KASSERT(nrxqs == 2, ("nrxqs = %d", nrxqs));
 		/* Ring */
-		rdata->ring = (struct mgb_ring_desc *) vaddrs[q * nrxqs + 0];
+		rdata->ring = (struct mgb_ring_desc *)vaddrs[q * nrxqs + 0];
 		rdata->ring_bus_addr = paddrs[q * nrxqs + 0];
 
 		/* Head WB */
-		rdata->head_wb = (uint32_t *) vaddrs[q * nrxqs + 1];
+		rdata->head_wb = (uint32_t *)vaddrs[q * nrxqs + 1];
 		rdata->head_wb_bus_addr = paddrs[q * nrxqs + 1];
 	}
 	return (0);
@@ -607,9 +586,8 @@ mgb_init(if_ctx_t ctx)
 	/* XXX: Turn off perfect filtering, turn on (broad|multi|uni)cast rx */
 	CSR_CLEAR_REG(sc, MGB_RFE_CTL, MGB_RFE_ALLOW_PERFECT_FILTER);
 	CSR_UPDATE_REG(sc, MGB_RFE_CTL,
-	    MGB_RFE_ALLOW_BROADCAST |
-	    MGB_RFE_ALLOW_MULTICAST |
-	    MGB_RFE_ALLOW_UNICAST);
+	    MGB_RFE_ALLOW_BROADCAST | MGB_RFE_ALLOW_MULTICAST |
+		MGB_RFE_ALLOW_UNICAST);
 
 	error = mii_mediachg(miid);
 	/* Not much we can do if this fails. */
@@ -709,7 +687,7 @@ mgb_dump_some_stats(struct mgb_softc *sc)
 static void
 mgb_stop(if_ctx_t ctx)
 {
-	struct mgb_softc *sc ;
+	struct mgb_softc *sc;
 	if_softc_ctx_t scctx;
 	int i;
 
@@ -753,7 +731,7 @@ mgb_rxq_intr(void *xsc)
 	intr_sts &= intr_en;
 
 	for (qidx = 0; qidx < scctx->isc_nrxqsets; qidx++) {
-		if ((intr_sts & MGB_INTR_STS_RX(qidx))){
+		if ((intr_sts & MGB_INTR_STS_RX(qidx))) {
 			CSR_WRITE_REG(sc, MGB_INTR_ENBL_CLR,
 			    MGB_INTR_STS_RX(qidx));
 			CSR_WRITE_REG(sc, MGB_INTR_STS, MGB_INTR_STS_RX(qidx));
@@ -780,14 +758,14 @@ mgb_admin_intr(void *xsc)
 	/* TODO: shouldn't continue if suspended */
 	if ((intr_sts & MGB_INTR_STS_ANY) == 0)
 		return (FILTER_STRAY);
-	if ((intr_sts &  MGB_INTR_STS_TEST) != 0) {
+	if ((intr_sts & MGB_INTR_STS_TEST) != 0) {
 		sc->isr_test_flag = true;
 		CSR_WRITE_REG(sc, MGB_INTR_STS, MGB_INTR_STS_TEST);
 		return (FILTER_HANDLED);
 	}
 	if ((intr_sts & MGB_INTR_STS_RX_ANY) != 0) {
 		for (qidx = 0; qidx < scctx->isc_nrxqsets; qidx++) {
-			if ((intr_sts & MGB_INTR_STS_RX(qidx))){
+			if ((intr_sts & MGB_INTR_STS_RX(qidx))) {
 				iflib_rx_intr_deferred(sc->ctx, qidx);
 			}
 		}
@@ -957,7 +935,7 @@ mgb_intr_test(struct mgb_softc *sc)
 }
 
 static int
-mgb_isc_txd_encap(void *xsc , if_pkt_info_t ipi)
+mgb_isc_txd_encap(void *xsc, if_pkt_info_t ipi)
 {
 	struct mgb_softc *sc;
 	struct mgb_ring_data *rdata;
@@ -979,19 +957,17 @@ mgb_isc_txd_encap(void *xsc , if_pkt_info_t ipi)
 	for (i = 0; i < nsegs; ++i) {
 		KASSERT(nsegs == 1, ("Multisegment packet !!!!!\n"));
 		txd = &rdata->ring[pidx];
-		txd->ctl = htole32(
-		    (segs[i].ds_len & MGB_DESC_CTL_BUFLEN_MASK ) |
+		txd->ctl = htole32((segs[i].ds_len & MGB_DESC_CTL_BUFLEN_MASK) |
 		    /*
 		     * XXX: This will be wrong in the multipacket case
 		     * I suspect FS should be for the first packet and
 		     * LS should be for the last packet
 		     */
-		    MGB_TX_DESC_CTL_FS | MGB_TX_DESC_CTL_LS |
-		    MGB_DESC_CTL_FCS);
-		txd->addr.low = htole32(CSR_TRANSLATE_ADDR_LOW32(
-		    segs[i].ds_addr));
-		txd->addr.high = htole32(CSR_TRANSLATE_ADDR_HIGH32(
-		    segs[i].ds_addr));
+		    MGB_TX_DESC_CTL_FS | MGB_TX_DESC_CTL_LS | MGB_DESC_CTL_FCS);
+		txd->addr.low = htole32(
+		    CSR_TRANSLATE_ADDR_LOW32(segs[i].ds_addr));
+		txd->addr.high = htole32(
+		    CSR_TRANSLATE_ADDR_HIGH32(segs[i].ds_addr));
 		txd->sts = htole32(
 		    (segs[i].ds_len << 16) & MGB_DESC_FRAME_LEN_MASK);
 		pidx = MGB_NEXT_RING_IDX(pidx);
@@ -1031,8 +1007,8 @@ mgb_isc_txd_credits_update(void *xsc, uint16_t txqid, bool clear)
 	 * > command ring descriptor has been processed by the device.
 	 * - vmx driver
 	 */
-	KASSERT(txqid == 0, ("tried to credits_update TX Channel %d.\n",
-	    txqid));
+	KASSERT(txqid == 0,
+	    ("tried to credits_update TX Channel %d.\n", txqid));
 	sc = xsc;
 	rdata = &sc->tx_ring_data;
 
@@ -1057,8 +1033,8 @@ mgb_isc_rxd_available(void *xsc, uint16_t rxqid, qidx_t idx, qidx_t budget)
 	int avail = 0;
 
 	sc = xsc;
-	KASSERT(rxqid == 0, ("tried to check availability in RX Channel %d.\n",
-	    rxqid));
+	KASSERT(rxqid == 0,
+	    ("tried to check availability in RX Channel %d.\n", rxqid));
 
 	rdata = &sc->rx_ring_data;
 	for (; idx != *(rdata->head_wb); idx = MGB_NEXT_RING_IDX(idx)) {
@@ -1102,7 +1078,8 @@ mgb_isc_rxd_pkt_get(void *xsc, if_rxd_info_t ri)
 			device_printf(sc->dev,
 			    "Tried to read descriptor ... "
 			    "found that FS is not set.\n");
-			device_printf(sc->dev, "Tried to read descriptor ... that it FS is not set.\n");
+			device_printf(sc->dev,
+			    "Tried to read descriptor ... that it FS is not set.\n");
 			return (EINVAL);
 		}
 		/* XXX: Multi-packet support */
@@ -1152,12 +1129,12 @@ mgb_isc_rxd_refill(void *xsc, if_rxd_update_t iru)
 		rxd = &rdata->ring[idx];
 
 		rxd->sts = 0;
-		rxd->addr.low =
-		    htole32(CSR_TRANSLATE_ADDR_LOW32(paddrs[count]));
-		rxd->addr.high =
-		    htole32(CSR_TRANSLATE_ADDR_HIGH32(paddrs[count]));
-		rxd->ctl = htole32(MGB_DESC_CTL_OWN |
-		    (len & MGB_DESC_CTL_BUFLEN_MASK));
+		rxd->addr.low = htole32(
+		    CSR_TRANSLATE_ADDR_LOW32(paddrs[count]));
+		rxd->addr.high = htole32(
+		    CSR_TRANSLATE_ADDR_HIGH32(paddrs[count]));
+		rxd->ctl = htole32(
+		    MGB_DESC_CTL_OWN | (len & MGB_DESC_CTL_BUFLEN_MASK));
 	}
 	return;
 }
@@ -1203,10 +1180,10 @@ mgb_alloc_regs(struct mgb_softc *sc)
 
 	rid = PCIR_BAR(MGB_BAR);
 	pci_enable_busmaster(sc->dev);
-	sc->regs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	sc->regs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->regs == NULL)
-		 return (ENXIO);
+		return (ENXIO);
 
 	return (0);
 }
@@ -1320,12 +1297,12 @@ mgb_dma_tx_ring_init(struct mgb_softc *sc, int channel)
 		goto fail;
 	}
 	if ((error = mgb_fct_control(sc, MGB_FCT_TX_CTL, channel,
-	    FCT_ENABLE))) {
+		 FCT_ENABLE))) {
 		device_printf(sc->dev, "Failed to enable TX FCT.\n");
 		goto fail;
 	}
 	if ((error = mgb_dmac_control(sc, MGB_DMAC_TX_START, channel,
-	    DMAC_RESET))) {
+		 DMAC_RESET))) {
 		device_printf(sc->dev, "Failed to reset TX DMAC.\n");
 		goto fail;
 	}
@@ -1368,7 +1345,7 @@ mgb_dma_tx_ring_init(struct mgb_softc *sc, int channel)
 	CSR_WRITE_REG(sc, MGB_DMA_TX_TAIL(channel), rdata->last_tail);
 
 	if ((error = mgb_dmac_control(sc, MGB_DMAC_TX_START, channel,
-	    DMAC_START)))
+		 DMAC_START)))
 		device_printf(sc->dev, "Failed to start TX DMAC.\n");
 fail:
 	return (error);

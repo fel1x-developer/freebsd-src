@@ -24,24 +24,24 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DEV_EVDEV_EVDEV_H
-#define	_DEV_EVDEV_EVDEV_H
+#ifndef _DEV_EVDEV_EVDEV_H
+#define _DEV_EVDEV_EVDEV_H
 
 #include <sys/types.h>
 #include <sys/epoch.h>
 #include <sys/kbio.h>
+
 #include <dev/evdev/input.h>
 #include <dev/kbd/kbdreg.h>
 
-#define	NAMELEN		80
+#define NAMELEN 80
 
 struct evdev_dev;
 
-typedef int (evdev_open_t)(struct evdev_dev *);
-typedef int (evdev_close_t)(struct evdev_dev *);
-typedef void (evdev_event_t)(struct evdev_dev *, uint16_t, uint16_t, int32_t);
-typedef void (evdev_keycode_t)(struct evdev_dev *,
-    struct input_keymap_entry *);
+typedef int(evdev_open_t)(struct evdev_dev *);
+typedef int(evdev_close_t)(struct evdev_dev *);
+typedef void(evdev_event_t)(struct evdev_dev *, uint16_t, uint16_t, int32_t);
+typedef void(evdev_keycode_t)(struct evdev_dev *, struct input_keymap_entry *);
 
 /*
  * Keyboard and mouse events recipient mask.
@@ -49,10 +49,10 @@ typedef void (evdev_keycode_t)(struct evdev_dev *,
  * that are able to send events through both evdev and sysmouse/kbdmux
  * interfaces so user can choose preferred one to not receive one event twice.
  */
-#define	EVDEV_RCPT_SYSMOUSE	(1<<0)
-#define	EVDEV_RCPT_KBDMUX	(1<<1)
-#define	EVDEV_RCPT_HW_MOUSE	(1<<2)
-#define	EVDEV_RCPT_HW_KBD	(1<<3)
+#define EVDEV_RCPT_SYSMOUSE (1 << 0)
+#define EVDEV_RCPT_KBDMUX (1 << 1)
+#define EVDEV_RCPT_HW_MOUSE (1 << 2)
+#define EVDEV_RCPT_HW_KBD (1 << 3)
 extern int evdev_rcpt_mask;
 /*
  * Sysmouse protocol does not support horizontal wheel movement reporting.
@@ -63,66 +63,67 @@ extern int evdev_rcpt_mask;
  * 1 - ums(4) horizontal wheel encoding. T-axis is mapped to buttons 6 and 7
  * 2 - psm(4) wheels encoding: z = 1,-1 - vert. wheel, z = 2,-2 - horiz. wheel
  */
-enum
-{
+enum {
 	EVDEV_SYSMOUSE_T_AXIS_NONE = 0,
 	EVDEV_SYSMOUSE_T_AXIS_UMS = 1,
 	EVDEV_SYSMOUSE_T_AXIS_PSM = 2,
 };
 extern int evdev_sysmouse_t_axis;
 
-#define	ABS_MT_FIRST	ABS_MT_TOUCH_MAJOR
-#define	ABS_MT_LAST	ABS_MT_TOOL_Y
-#define	ABS_IS_MT(x)	((x) >= ABS_MT_FIRST && (x) <= ABS_MT_LAST)
-#define	ABS_MT_INDEX(x)	((x) - ABS_MT_FIRST)
-#define	MT_CNT		(ABS_MT_INDEX(ABS_MT_LAST) + 1)
+#define ABS_MT_FIRST ABS_MT_TOUCH_MAJOR
+#define ABS_MT_LAST ABS_MT_TOOL_Y
+#define ABS_IS_MT(x) ((x) >= ABS_MT_FIRST && (x) <= ABS_MT_LAST)
+#define ABS_MT_INDEX(x) ((x)-ABS_MT_FIRST)
+#define MT_CNT (ABS_MT_INDEX(ABS_MT_LAST) + 1)
 /* Multitouch protocol type A */
-#define	MAX_MT_REPORTS	5
+#define MAX_MT_REPORTS 5
 /* Multitouch protocol type B interface */
-#define	MAX_MT_SLOTS	16
+#define MAX_MT_SLOTS 16
 
-#define	EVDEV_FLAG_SOFTREPEAT	0x00	/* use evdev to repeat keys */
-#define	EVDEV_FLAG_MT_STCOMPAT	0x01	/* autogenerate ST-compatible events
-					 * for MT protocol type B reports */
-#define	EVDEV_FLAG_MT_AUTOREL	0x02	/* Autorelease MT-slots not listed in
-					 * current MT protocol type B report */
-#define	EVDEV_FLAG_EXT_EPOCH	0x03	/* evdev_push_* is allways called with
-					 * input (global) epoch entered */
-#define	EVDEV_FLAG_MT_KEEPID	0x04	/* Do not reassign tracking ID */
-#define	EVDEV_FLAG_MT_TRACK	0x05	/* Assign touch to slot by evdev */
-#define	EVDEV_FLAG_MAX		0x1F
-#define	EVDEV_FLAG_CNT		(EVDEV_FLAG_MAX + 1)
+#define EVDEV_FLAG_SOFTREPEAT 0x00 /* use evdev to repeat keys */
+#define EVDEV_FLAG_MT_STCOMPAT                    \
+	0x01 /* autogenerate ST-compatible events \
+	      * for MT protocol type B reports */
+#define EVDEV_FLAG_MT_AUTOREL                      \
+	0x02 /* Autorelease MT-slots not listed in \
+	      * current MT protocol type B report */
+#define EVDEV_FLAG_EXT_EPOCH                                             \
+	0x03			  /* evdev_push_* is allways called with \
+				   * input (global) epoch entered */
+#define EVDEV_FLAG_MT_KEEPID 0x04 /* Do not reassign tracking ID */
+#define EVDEV_FLAG_MT_TRACK 0x05  /* Assign touch to slot by evdev */
+#define EVDEV_FLAG_MAX 0x1F
+#define EVDEV_FLAG_CNT (EVDEV_FLAG_MAX + 1)
 
-struct evdev_methods
-{
-	evdev_open_t		*ev_open;
-	evdev_close_t		*ev_close;
-	evdev_event_t		*ev_event;
-	evdev_keycode_t		*ev_get_keycode;
-	evdev_keycode_t		*ev_set_keycode;
+struct evdev_methods {
+	evdev_open_t *ev_open;
+	evdev_close_t *ev_close;
+	evdev_event_t *ev_event;
+	evdev_keycode_t *ev_get_keycode;
+	evdev_keycode_t *ev_set_keycode;
 };
 
 union evdev_mt_slot {
-	int32_t         val[MT_CNT];
+	int32_t val[MT_CNT];
 	struct {
-		int32_t maj;		/* ABS_MT_TOUCH_MAJOR */
-		int32_t min;		/* ABS_MT_TOUCH_MINOR */
-		int32_t w_maj;		/* ABS_MT_WIDTH_MAJOR */
-		int32_t w_min;		/* ABS_MT_WIDTH_MINOR */
-		int32_t ori;		/* ABS_MT_ORIENTATION */
-		int32_t x;		/* ABS_MT_POSITION_X */
-		int32_t y;		/* ABS_MT_POSITION_Y */
-		int32_t type;		/* ABS_MT_TOOL_TYPE */
-		int32_t blob_id;	/* ABS_MT_BLOB_ID */
-		int32_t id;		/* ABS_MT_TRACKING_ID */
-		int32_t p;		/* ABS_MT_PRESSURE */
-		int32_t dist;		/* ABS_MT_DISTANCE */
-		int32_t tool_x;		/* ABS_MT_TOOL_X */
-		int32_t tool_y;		/* ABS_MT_TOOL_Y */
+		int32_t maj;	 /* ABS_MT_TOUCH_MAJOR */
+		int32_t min;	 /* ABS_MT_TOUCH_MINOR */
+		int32_t w_maj;	 /* ABS_MT_WIDTH_MAJOR */
+		int32_t w_min;	 /* ABS_MT_WIDTH_MINOR */
+		int32_t ori;	 /* ABS_MT_ORIENTATION */
+		int32_t x;	 /* ABS_MT_POSITION_X */
+		int32_t y;	 /* ABS_MT_POSITION_Y */
+		int32_t type;	 /* ABS_MT_TOOL_TYPE */
+		int32_t blob_id; /* ABS_MT_BLOB_ID */
+		int32_t id;	 /* ABS_MT_TRACKING_ID */
+		int32_t p;	 /* ABS_MT_PRESSURE */
+		int32_t dist;	 /* ABS_MT_DISTANCE */
+		int32_t tool_x;	 /* ABS_MT_TOOL_X */
+		int32_t tool_y;	 /* ABS_MT_TOOL_Y */
 	};
 };
 _Static_assert(offsetof(union evdev_mt_slot, tool_y) ==
-    offsetof(union evdev_mt_slot, val[ABS_MT_INDEX(ABS_MT_TOOL_Y)]),
+	offsetof(union evdev_mt_slot, val[ABS_MT_INDEX(ABS_MT_TOOL_Y)]),
     "evdev_mt_slot array members does not match their structure aliases");
 
 /* Input device interface: */
@@ -143,7 +144,7 @@ void evdev_support_event(struct evdev_dev *, uint16_t);
 void evdev_support_key(struct evdev_dev *, uint16_t);
 void evdev_support_rel(struct evdev_dev *, uint16_t);
 void evdev_support_abs(struct evdev_dev *, uint16_t, int32_t, int32_t, int32_t,
-   int32_t, int32_t);
+    int32_t, int32_t);
 void evdev_support_msc(struct evdev_dev *, uint16_t);
 void evdev_support_led(struct evdev_dev *, uint16_t);
 void evdev_support_snd(struct evdev_dev *, uint16_t);
@@ -236,4 +237,4 @@ evdev_push_sw(struct evdev_dev *evdev, uint16_t code, int32_t value)
 	return (evdev_push_event(evdev, EV_SW, code, value != 0));
 }
 
-#endif	/* _DEV_EVDEV_EVDEV_H */
+#endif /* _DEV_EVDEV_EVDEV_H */

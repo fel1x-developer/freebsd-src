@@ -31,32 +31,32 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/capsicum.h>
+#include <sys/extattr.h>
+#include <sys/fcntl.h>
+#include <sys/filedesc.h>
+#include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
-#include <sys/sysproto.h>
-#include <sys/fcntl.h>
 #include <sys/namei.h>
-#include <sys/filedesc.h>
-#include <sys/limits.h>
-#include <sys/vnode.h>
 #include <sys/proc.h>
-#include <sys/extattr.h>
 #include <sys/syscallsubr.h>
+#include <sys/sysproto.h>
+#include <sys/vnode.h>
 
 #include <security/audit/audit.h>
 #include <security/mac/mac_framework.h>
 
-static int	user_extattr_set_path(struct thread *td, const char *path,
-		    int attrnamespace, const char *attrname, void *data,
-		    size_t nbytes, int follow);
-static int	user_extattr_get_path(struct thread *td, const char *path,
-		    int attrnamespace, const char *attrname, void *data,
-		    size_t nbytes, int follow);
-static int	user_extattr_delete_path(struct thread *td, const char *path,
-		    int attrnamespace, const char *attrname, int follow);
-static int	user_extattr_list_path(struct thread *td, const char *path,
-		    int attrnamespace, void *data, size_t nbytes, int follow);
+static int user_extattr_set_path(struct thread *td, const char *path,
+    int attrnamespace, const char *attrname, void *data, size_t nbytes,
+    int follow);
+static int user_extattr_get_path(struct thread *td, const char *path,
+    int attrnamespace, const char *attrname, void *data, size_t nbytes,
+    int follow);
+static int user_extattr_delete_path(struct thread *td, const char *path,
+    int attrnamespace, const char *attrname, int follow);
+static int user_extattr_list_path(struct thread *td, const char *path,
+    int attrnamespace, void *data, size_t nbytes, int follow);
 
 /*
  * Syscall to push extended attribute configuration information into the VFS.
@@ -205,8 +205,8 @@ extattr_set_vp(struct vnode *vp, int attrnamespace, const char *attrname,
 		goto done;
 #endif
 
-	error = VOP_SETEXTATTR(vp, attrnamespace, attrname, &auio,
-	    td->td_ucred, td);
+	error = VOP_SETEXTATTR(vp, attrnamespace, attrname, &auio, td->td_ucred,
+	    td);
 	cnt -= auio.uio_resid;
 	td->td_retval[0] = cnt;
 
@@ -236,8 +236,8 @@ sys_extattr_set_fd(struct thread *td, struct extattr_set_fd_args *uap)
 	error = copyinstr(uap->attrname, attrname, sizeof(attrname), NULL);
 	if (error)
 		return (error);
-	return (kern_extattr_set_fd(td, uap->fd, uap->attrnamespace,
-	    attrname, uap->data, uap->nbytes));
+	return (kern_extattr_set_fd(td, uap->fd, uap->attrnamespace, attrname,
+	    uap->data, uap->nbytes));
 }
 
 int
@@ -257,8 +257,8 @@ kern_extattr_set_fd(struct thread *td, int fd, int attrnamespace,
 	if (error)
 		return (error);
 
-	error = extattr_set_vp(fp->f_vnode, attrnamespace,
-	    attrname, data, nbytes, td);
+	error = extattr_set_vp(fp->f_vnode, attrnamespace, attrname, data,
+	    nbytes, td);
 	fdrop(fp, td);
 
 	return (error);
@@ -308,8 +308,8 @@ user_extattr_set_path(struct thread *td, const char *path, int attrnamespace,
 	error = copyinstr(uattrname, attrname, sizeof(attrname), NULL);
 	if (error)
 		return (error);
-	return (kern_extattr_set_path(td, path, attrnamespace,
-	    attrname, data, nbytes, follow, UIO_USERSPACE));
+	return (kern_extattr_set_path(td, path, attrnamespace, attrname, data,
+	    nbytes, follow, UIO_USERSPACE));
 }
 
 int
@@ -329,8 +329,8 @@ kern_extattr_set_path(struct thread *td, const char *path, int attrnamespace,
 		return (error);
 	NDFREE_PNBUF(&nd);
 
-	error = extattr_set_vp(nd.ni_vp, attrnamespace, attrname, data,
-	    nbytes, td);
+	error = extattr_set_vp(nd.ni_vp, attrnamespace, attrname, data, nbytes,
+	    td);
 
 	vrele(nd.ni_vp);
 	return (error);
@@ -424,8 +424,8 @@ sys_extattr_get_fd(struct thread *td, struct extattr_get_fd_args *uap)
 	error = copyinstr(uap->attrname, attrname, sizeof(attrname), NULL);
 	if (error)
 		return (error);
-	return (kern_extattr_get_fd(td, uap->fd, uap->attrnamespace,
-	    attrname, uap->data, uap->nbytes));
+	return (kern_extattr_get_fd(td, uap->fd, uap->attrnamespace, attrname,
+	    uap->data, uap->nbytes));
 }
 
 int
@@ -445,8 +445,8 @@ kern_extattr_get_fd(struct thread *td, int fd, int attrnamespace,
 	if (error)
 		return (error);
 
-	error = extattr_get_vp(fp->f_vnode, attrnamespace,
-	    attrname, data, nbytes, td);
+	error = extattr_get_vp(fp->f_vnode, attrnamespace, attrname, data,
+	    nbytes, td);
 
 	fdrop(fp, td);
 	return (error);
@@ -494,8 +494,8 @@ user_extattr_get_path(struct thread *td, const char *path, int attrnamespace,
 	error = copyinstr(uattrname, attrname, sizeof(attrname), NULL);
 	if (error)
 		return (error);
-	return (kern_extattr_get_path(td, path, attrnamespace,
-	    attrname, data, nbytes, follow, UIO_USERSPACE));
+	return (kern_extattr_get_path(td, path, attrnamespace, attrname, data,
+	    nbytes, follow, UIO_USERSPACE));
 }
 
 int
@@ -515,8 +515,8 @@ kern_extattr_get_path(struct thread *td, const char *path, int attrnamespace,
 		return (error);
 	NDFREE_PNBUF(&nd);
 
-	error = extattr_get_vp(nd.ni_vp, attrnamespace, attrname, data,
-	    nbytes, td);
+	error = extattr_get_vp(nd.ni_vp, attrnamespace, attrname, data, nbytes,
+	    td);
 
 	vrele(nd.ni_vp);
 	return (error);
@@ -580,8 +580,8 @@ sys_extattr_delete_fd(struct thread *td, struct extattr_delete_fd_args *uap)
 	error = copyinstr(uap->attrname, attrname, sizeof(attrname), NULL);
 	if (error)
 		return (error);
-	return (kern_extattr_delete_fd(td, uap->fd, uap->attrnamespace,
-	    attrname));
+	return (
+	    kern_extattr_delete_fd(td, uap->fd, uap->attrnamespace, attrname));
 }
 
 int
@@ -601,8 +601,7 @@ kern_extattr_delete_fd(struct thread *td, int fd, int attrnamespace,
 	if (error)
 		return (error);
 
-	error = extattr_delete_vp(fp->f_vnode, attrnamespace,
-	    attrname, td);
+	error = extattr_delete_vp(fp->f_vnode, attrnamespace, attrname, td);
 	fdrop(fp, td);
 	return (error);
 }
@@ -646,9 +645,9 @@ user_extattr_delete_path(struct thread *td, const char *path, int attrnamespace,
 
 	error = copyinstr(uattrname, attrname, sizeof(attrname), NULL);
 	if (error)
-		return(error);
-	return (kern_extattr_delete_path(td, path, attrnamespace,
-	    attrname, follow, UIO_USERSPACE));
+		return (error);
+	return (kern_extattr_delete_path(td, path, attrnamespace, attrname,
+	    follow, UIO_USERSPACE));
 }
 
 int
@@ -664,12 +663,12 @@ kern_extattr_delete_path(struct thread *td, const char *path, int attrnamespace,
 	NDINIT(&nd, LOOKUP, follow | AUDITVNODE1, pathseg, path);
 	error = namei(&nd);
 	if (error)
-		return(error);
+		return (error);
 	NDFREE_PNBUF(&nd);
 
 	error = extattr_delete_vp(nd.ni_vp, attrnamespace, attrname, td);
 	vrele(nd.ni_vp);
-	return(error);
+	return (error);
 }
 
 /*-
@@ -709,8 +708,8 @@ extattr_list_vp(struct vnode *vp, int attrnamespace, struct uio *auiop,
 	}
 #endif
 
-	error = VOP_LISTEXTATTR(vp, attrnamespace, auiop, sizep,
-	    td->td_ucred, td);
+	error = VOP_LISTEXTATTR(vp, attrnamespace, auiop, sizep, td->td_ucred,
+	    td);
 	VOP_UNLOCK(vp);
 
 	if (auiop != NULL) {
@@ -749,8 +748,7 @@ sys_extattr_list_fd(struct thread *td, struct extattr_list_fd_args *uap)
 	} else
 		auiop = NULL;
 
-	return (kern_extattr_list_fd(td, uap->fd, uap->attrnamespace,
-	    auiop));
+	return (kern_extattr_list_fd(td, uap->fd, uap->attrnamespace, auiop));
 }
 
 int
@@ -827,8 +825,8 @@ user_extattr_list_path(struct thread *td, const char *path, int attrnamespace,
 	} else
 		auiop = NULL;
 
-	return (kern_extattr_list_path(td, path, attrnamespace,
-	    auiop, follow, UIO_USERSPACE));
+	return (kern_extattr_list_path(td, path, attrnamespace, auiop, follow,
+	    UIO_USERSPACE));
 }
 
 int

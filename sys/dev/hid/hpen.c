@@ -41,9 +41,8 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidmap.h>
@@ -51,56 +50,56 @@
 
 #include "usbdevs.h"
 
-static const uint8_t	hpen_graphire_report_descr[] =
-			   { HID_GRAPHIRE_REPORT_DESCR() };
-static const uint8_t	hpen_graphire3_4x5_report_descr[] =
-			   { HID_GRAPHIRE3_4X5_REPORT_DESCR() };
+static const uint8_t hpen_graphire_report_descr[] = {
+	HID_GRAPHIRE_REPORT_DESCR()
+};
+static const uint8_t hpen_graphire3_4x5_report_descr[] = {
+	HID_GRAPHIRE3_4X5_REPORT_DESCR()
+};
 
-static hidmap_cb_t	hpen_battery_strenght_cb;
-static hidmap_cb_t	hpen_final_pen_cb;
+static hidmap_cb_t hpen_battery_strenght_cb;
+static hidmap_cb_t hpen_final_pen_cb;
 
-#define HPEN_MAP_BUT(usage, code)	\
-	HIDMAP_KEY(HUP_DIGITIZERS, HUD_##usage, code)
-#define HPEN_MAP_ABS(usage, code)	\
-	HIDMAP_ABS(HUP_DIGITIZERS, HUD_##usage, code)
-#define HPEN_MAP_ABS_GD(usage, code)	\
+#define HPEN_MAP_BUT(usage, code) HIDMAP_KEY(HUP_DIGITIZERS, HUD_##usage, code)
+#define HPEN_MAP_ABS(usage, code) HIDMAP_ABS(HUP_DIGITIZERS, HUD_##usage, code)
+#define HPEN_MAP_ABS_GD(usage, code) \
 	HIDMAP_ABS(HUP_GENERIC_DESKTOP, HUG_##usage, code)
-#define HPEN_MAP_ABS_CB(usage, cb)	\
+#define HPEN_MAP_ABS_CB(usage, cb) \
 	HIDMAP_ABS_CB(HUP_DIGITIZERS, HUD_##usage, &cb)
 
 /* Generic map digitizer page map according to hut1_12v2.pdf */
 static const struct hidmap_item hpen_map_pen[] = {
-    { HPEN_MAP_ABS_GD(X,		ABS_X),		  .required = true },
-    { HPEN_MAP_ABS_GD(Y,		ABS_Y),		  .required = true },
-    { HPEN_MAP_ABS(   TIP_PRESSURE,	ABS_PRESSURE) },
-    { HPEN_MAP_ABS(   X_TILT,		ABS_TILT_X) },
-    { HPEN_MAP_ABS(   Y_TILT,		ABS_TILT_Y) },
-    { HPEN_MAP_ABS(   CONTACTID,	0), 		  .forbidden = true },
-    { HPEN_MAP_ABS(   CONTACTCOUNT,	0), 		  .forbidden = true },
-    { HPEN_MAP_ABS_CB(BATTERY_STRENGTH,	hpen_battery_strenght_cb) },
-    { HPEN_MAP_BUT(   TOUCH,		BTN_TOUCH) },
-    { HPEN_MAP_BUT(   TIP_SWITCH,	BTN_TOUCH) },
-    { HPEN_MAP_BUT(   SEC_TIP_SWITCH,	BTN_TOUCH) },
-    { HPEN_MAP_BUT(   BARREL_SWITCH,	BTN_STYLUS) },
-    { HPEN_MAP_BUT(   INVERT,		BTN_TOOL_RUBBER) },
-    { HPEN_MAP_BUT(   ERASER,		BTN_TOUCH) },
-    { HPEN_MAP_BUT(   TABLET_PICK,	BTN_STYLUS2) },
-    { HPEN_MAP_BUT(   SEC_BARREL_SWITCH,BTN_STYLUS2) },
-    { HIDMAP_FINAL_CB(			&hpen_final_pen_cb) },
+	{ HPEN_MAP_ABS_GD(X, ABS_X), .required = true },
+	{ HPEN_MAP_ABS_GD(Y, ABS_Y), .required = true },
+	{ HPEN_MAP_ABS(TIP_PRESSURE, ABS_PRESSURE) },
+	{ HPEN_MAP_ABS(X_TILT, ABS_TILT_X) },
+	{ HPEN_MAP_ABS(Y_TILT, ABS_TILT_Y) },
+	{ HPEN_MAP_ABS(CONTACTID, 0), .forbidden = true },
+	{ HPEN_MAP_ABS(CONTACTCOUNT, 0), .forbidden = true },
+	{ HPEN_MAP_ABS_CB(BATTERY_STRENGTH, hpen_battery_strenght_cb) },
+	{ HPEN_MAP_BUT(TOUCH, BTN_TOUCH) },
+	{ HPEN_MAP_BUT(TIP_SWITCH, BTN_TOUCH) },
+	{ HPEN_MAP_BUT(SEC_TIP_SWITCH, BTN_TOUCH) },
+	{ HPEN_MAP_BUT(BARREL_SWITCH, BTN_STYLUS) },
+	{ HPEN_MAP_BUT(INVERT, BTN_TOOL_RUBBER) },
+	{ HPEN_MAP_BUT(ERASER, BTN_TOUCH) },
+	{ HPEN_MAP_BUT(TABLET_PICK, BTN_STYLUS2) },
+	{ HPEN_MAP_BUT(SEC_BARREL_SWITCH, BTN_STYLUS2) },
+	{ HIDMAP_FINAL_CB(&hpen_final_pen_cb) },
 };
 
 static const struct hidmap_item hpen_map_stylus[] = {
-    { HPEN_MAP_BUT(   IN_RANGE,		BTN_TOOL_PEN) },
+	{ HPEN_MAP_BUT(IN_RANGE, BTN_TOOL_PEN) },
 };
 static const struct hidmap_item hpen_map_finger[] = {
-    { HPEN_MAP_BUT(   IN_RANGE,		BTN_TOOL_FINGER) },
+	{ HPEN_MAP_BUT(IN_RANGE, BTN_TOOL_FINGER) },
 };
 
 static const struct hid_device_id hpen_devs[] = {
 	{ HID_TLC(HUP_DIGITIZERS, HUD_DIGITIZER) },
 	{ HID_TLC(HUP_DIGITIZERS, HUD_PEN) },
 	{ HID_TLC(HUP_DIGITIZERS, HUD_TOUCHSCREEN),
-	  HID_BVP(BUS_USB, USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL) },
+	    HID_BVP(BUS_USB, USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL) },
 };
 
 /* Do not autoload legacy pen driver for all touchscreen */
@@ -154,8 +153,7 @@ hpen_identify(driver_t *driver, device_t parent)
 	if (hw->idBus == BUS_USB && hw->idVendor == USB_VENDOR_WACOM) {
 		switch (hw->idProduct) {
 		case USB_PRODUCT_WACOM_GRAPHIRE:
-			hid_set_report_descr(parent,
-			    hpen_graphire_report_descr,
+			hid_set_report_descr(parent, hpen_graphire_report_descr,
 			    sizeof(hpen_graphire_report_descr));
 			break;
 
@@ -194,7 +192,8 @@ hpen_probe(device_t dev)
 		return (ENXIO);
 
 	if (hidbus_is_collection(d_ptr, d_len,
-	    HID_USAGE2(HUP_DIGITIZERS, HUD_FINGER), hidbus_get_index(dev))) {
+		HID_USAGE2(HUP_DIGITIZERS, HUD_FINGER),
+		hidbus_get_index(dev))) {
 		HIDMAP_ADD_MAP(hm, hpen_map_finger, NULL);
 		desc = "TouchScreen";
 	} else {
@@ -223,12 +222,14 @@ hpen_attach(device_t dev)
 		 * feature report ID 2 before it'll start
 		 * returning digitizer data.
 		 */
-		static const uint8_t reportbuf[3] = {2, 2, 2};
+		static const uint8_t reportbuf[3] = { 2, 2, 2 };
 		error = hid_set_report(dev, reportbuf, sizeof(reportbuf),
 		    HID_FEATURE_REPORT, reportbuf[0]);
 		if (error)
-			device_printf(dev, "set feature report failed, "
-			    "error=%d (ignored)\n", error);
+			device_printf(dev,
+			    "set feature report failed, "
+			    "error=%d (ignored)\n",
+			    error);
 	}
 
 	return (hidmap_attach(hm));
@@ -240,15 +241,13 @@ hpen_detach(device_t dev)
 	return (hidmap_detach(device_get_softc(dev)));
 }
 
+static device_method_t hpen_methods[] = { DEVMETHOD(device_identify,
+					      hpen_identify),
+	DEVMETHOD(device_probe, hpen_probe),
+	DEVMETHOD(device_attach, hpen_attach),
+	DEVMETHOD(device_detach, hpen_detach),
 
-static device_method_t hpen_methods[] = {
-	DEVMETHOD(device_identify,	hpen_identify),
-	DEVMETHOD(device_probe,		hpen_probe),
-	DEVMETHOD(device_attach,	hpen_attach),
-	DEVMETHOD(device_detach,	hpen_detach),
-
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_0(hpen, hpen_driver, hpen_methods, sizeof(struct hidmap));
 DRIVER_MODULE(hpen, hidbus, hpen_driver, NULL, NULL);

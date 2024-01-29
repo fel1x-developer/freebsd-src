@@ -31,103 +31,100 @@
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/reboot.h>
 #include <sys/mutex.h>
+#include <sys/reboot.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
-
+#include <dev/iicbus/iiconf.h>
+#include <dev/iicbus/pmic/rockchip/rk805reg.h>
+#include <dev/iicbus/pmic/rockchip/rk8xx.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/iicbus/pmic/rockchip/rk805reg.h>
-#include <dev/iicbus/pmic/rockchip/rk8xx.h>
-
-static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk805", RK805},
-	{NULL,             0}
-};
+static struct ofw_compat_data compat_data[] = { { "rockchip,rk805", RK805 },
+	{ NULL, 0 } };
 
 static struct rk8xx_regdef rk805_regdefs[] = {
 	{
-		.id = RK805_BUCK1,
-		.name = "DCDC_REG1",
-		.enable_reg = RK805_DCDC_EN,
-		.enable_mask = 0x11,
-		.voltage_reg = RK805_BUCK1_ON_VSEL,
-		.voltage_mask = 0x3F,
-		.voltage_min = 712500,
-		.voltage_max = 1450000,
-		.voltage_step = 12500,
-		.voltage_nstep = 64,
+	    .id = RK805_BUCK1,
+	    .name = "DCDC_REG1",
+	    .enable_reg = RK805_DCDC_EN,
+	    .enable_mask = 0x11,
+	    .voltage_reg = RK805_BUCK1_ON_VSEL,
+	    .voltage_mask = 0x3F,
+	    .voltage_min = 712500,
+	    .voltage_max = 1450000,
+	    .voltage_step = 12500,
+	    .voltage_nstep = 64,
 	},
 	{
-		.id = RK805_BUCK2,
-		.name = "DCDC_REG2",
-		.enable_reg = RK805_DCDC_EN,
-		.enable_mask = 0x22,
-		.voltage_reg = RK805_BUCK2_ON_VSEL,
-		.voltage_mask = 0x3F,
-		.voltage_min = 712500,
-		.voltage_max = 1450000,
-		.voltage_step = 12500,
-		.voltage_nstep = 64,
+	    .id = RK805_BUCK2,
+	    .name = "DCDC_REG2",
+	    .enable_reg = RK805_DCDC_EN,
+	    .enable_mask = 0x22,
+	    .voltage_reg = RK805_BUCK2_ON_VSEL,
+	    .voltage_mask = 0x3F,
+	    .voltage_min = 712500,
+	    .voltage_max = 1450000,
+	    .voltage_step = 12500,
+	    .voltage_nstep = 64,
 	},
 	{
-		.id = RK805_BUCK3,
-		.name = "DCDC_REG3",
-		.enable_reg = RK805_DCDC_EN,
-		.enable_mask = 0x44,
+	    .id = RK805_BUCK3,
+	    .name = "DCDC_REG3",
+	    .enable_reg = RK805_DCDC_EN,
+	    .enable_mask = 0x44,
 	},
 	{
-		.id = RK805_BUCK4,
-		.name = "DCDC_REG4",
-		.enable_reg = RK805_DCDC_EN,
-		.enable_mask = 0x88,
-		.voltage_reg = RK805_BUCK4_ON_VSEL,
-		.voltage_mask = 0x3F,
-		.voltage_min = 800000,
-		.voltage_max = 3500000,
-		.voltage_step = 100000,
-		.voltage_nstep = 28,
+	    .id = RK805_BUCK4,
+	    .name = "DCDC_REG4",
+	    .enable_reg = RK805_DCDC_EN,
+	    .enable_mask = 0x88,
+	    .voltage_reg = RK805_BUCK4_ON_VSEL,
+	    .voltage_mask = 0x3F,
+	    .voltage_min = 800000,
+	    .voltage_max = 3500000,
+	    .voltage_step = 100000,
+	    .voltage_nstep = 28,
 	},
 	{
-		.id = RK805_LDO1,
-		.name = "LDO_REG1",
-		.enable_reg = RK805_LDO_EN,
-		.enable_mask = 0x11,
-		.voltage_reg = RK805_LDO1_ON_VSEL,
-		.voltage_mask = 0x1F,
-		.voltage_min = 800000,
-		.voltage_max = 3400000,
-		.voltage_step = 100000,
-		.voltage_nstep = 27,
+	    .id = RK805_LDO1,
+	    .name = "LDO_REG1",
+	    .enable_reg = RK805_LDO_EN,
+	    .enable_mask = 0x11,
+	    .voltage_reg = RK805_LDO1_ON_VSEL,
+	    .voltage_mask = 0x1F,
+	    .voltage_min = 800000,
+	    .voltage_max = 3400000,
+	    .voltage_step = 100000,
+	    .voltage_nstep = 27,
 	},
 	{
-		.id = RK805_LDO2,
-		.name = "LDO_REG2",
-		.enable_reg = RK805_LDO_EN,
-		.enable_mask = 0x22,
-		.voltage_reg = RK805_LDO2_ON_VSEL,
-		.voltage_mask = 0x1F,
-		.voltage_min = 800000,
-		.voltage_max = 3400000,
-		.voltage_step = 100000,
-		.voltage_nstep = 27,
+	    .id = RK805_LDO2,
+	    .name = "LDO_REG2",
+	    .enable_reg = RK805_LDO_EN,
+	    .enable_mask = 0x22,
+	    .voltage_reg = RK805_LDO2_ON_VSEL,
+	    .voltage_mask = 0x1F,
+	    .voltage_min = 800000,
+	    .voltage_max = 3400000,
+	    .voltage_step = 100000,
+	    .voltage_nstep = 27,
 	},
 	{
-		.id = RK805_LDO3,
-		.name = "LDO_REG3",
-		.enable_reg = RK805_LDO_EN,
-		.enable_mask = 0x44,
-		.voltage_reg = RK805_LDO3_ON_VSEL,
-		.voltage_mask = 0x1F,
-		.voltage_min = 800000,
-		.voltage_max = 3400000,
-		.voltage_step = 100000,
-		.voltage_nstep = 27,
+	    .id = RK805_LDO3,
+	    .name = "LDO_REG3",
+	    .enable_reg = RK805_LDO_EN,
+	    .enable_mask = 0x44,
+	    .voltage_reg = RK805_LDO3_ON_VSEL,
+	    .voltage_mask = 0x1F,
+	    .voltage_min = 800000,
+	    .voltage_max = 3400000,
+	    .voltage_step = 100000,
+	    .voltage_nstep = 27,
 	},
 };
 
@@ -179,12 +176,10 @@ rk805_attach(device_t dev)
 	return (rk8xx_attach(sc));
 }
 
-static device_method_t rk805_methods[] = {
-	DEVMETHOD(device_probe,		rk805_probe),
-	DEVMETHOD(device_attach,	rk805_attach),
+static device_method_t rk805_methods[] = { DEVMETHOD(device_probe, rk805_probe),
+	DEVMETHOD(device_attach, rk805_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(rk805_pmu, rk805_driver, rk805_methods,
     sizeof(struct rk8xx_softc), rk8xx_driver);

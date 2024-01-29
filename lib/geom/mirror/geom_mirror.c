@@ -27,26 +27,27 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
+#include <core/geom.h>
 #include <err.h>
 #include <errno.h>
+#include <geom/mirror/g_mirror.h>
+#include <libgeom.h>
+#include <misc/subr.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/mirror/g_mirror.h>
-#include <core/geom.h>
-#include <misc/subr.h>
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_MIRROR_VERSION;
 
-#define	GMIRROR_BALANCE		"load"
-#define	GMIRROR_SLICE		"4096"
-#define	GMIRROR_PRIORITY	"0"
+#define GMIRROR_BALANCE "load"
+#define GMIRROR_SLICE "4096"
+#define GMIRROR_PRIORITY "0"
 
 static void mirror_main(struct gctl_req *req, unsigned flags);
 static void mirror_activate(struct gctl_req *req);
@@ -55,16 +56,11 @@ static void mirror_dump(struct gctl_req *req);
 static void mirror_label(struct gctl_req *req);
 static void mirror_resize(struct gctl_req *req, unsigned flags);
 
-struct g_command class_commands[] = {
-	{ "activate", G_FLAG_VERBOSE, mirror_main, G_NULL_OPTS,
-	    "[-v] name prov ..."
-	},
-	{ "clear", G_FLAG_VERBOSE, mirror_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
+struct g_command class_commands[] = { { "activate", G_FLAG_VERBOSE, mirror_main,
+					  G_NULL_OPTS, "[-v] name prov ..." },
+	{ "clear", G_FLAG_VERBOSE, mirror_main, G_NULL_OPTS, "[-v] prov ..." },
 	{ "configure", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'a', "autosync", NULL, G_TYPE_BOOL },
+	    { { 'a', "autosync", NULL, G_TYPE_BOOL },
 		{ 'b', "balance", "", G_TYPE_STRING },
 		{ 'd', "dynamic", NULL, G_TYPE_BOOL },
 		{ 'f', "failsync", NULL, G_TYPE_BOOL },
@@ -72,80 +68,46 @@ struct g_command class_commands[] = {
 		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 'n', "noautosync", NULL, G_TYPE_BOOL },
 		{ 'p', "priority", "-1", G_TYPE_NUMBER },
-		{ 's', "slice", "-1", G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
+		{ 's', "slice", "-1", G_TYPE_NUMBER }, G_OPT_SENTINEL },
 	    "[-adfFhnv] [-b balance] [-s slice] name\n"
-	    "[-v] -p priority name prov"
-	},
+	    "[-v] -p priority name prov" },
 	{ "create", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'b', "balance", GMIRROR_BALANCE, G_TYPE_STRING },
+	    { { 'b', "balance", GMIRROR_BALANCE, G_TYPE_STRING },
 		{ 'F', "nofailsync", NULL, G_TYPE_BOOL },
 		{ 'n', "noautosync", NULL, G_TYPE_BOOL },
 		{ 's', "slice", GMIRROR_SLICE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-Fnv] [-b balance] [-s slice] name prov ..."
-	},
+		G_OPT_SENTINEL },
+	    "[-Fnv] [-b balance] [-s slice] name prov ..." },
 	{ "deactivate", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v] name prov ..."
-	},
+	    "[-v] name prov ..." },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "dump", 0, mirror_main, G_NULL_OPTS,
-	    "prov ..."
-	},
-	{ "forget", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "name ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "dump", 0, mirror_main, G_NULL_OPTS, "prov ..." },
+	{ "forget", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "name ..." },
 	{ "label", G_FLAG_VERBOSE, mirror_main,
-	    {
-		{ 'b', "balance", GMIRROR_BALANCE, G_TYPE_STRING },
+	    { { 'b', "balance", GMIRROR_BALANCE, G_TYPE_STRING },
 		{ 'F', "nofailsync", NULL, G_TYPE_BOOL },
 		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 'n', "noautosync", NULL, G_TYPE_BOOL },
 		{ 's', "slice", GMIRROR_SLICE, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-Fhnv] [-b balance] [-s slice] name prov ..."
-	},
+		G_OPT_SENTINEL },
+	    "[-Fhnv] [-b balance] [-s slice] name prov ..." },
 	{ "insert", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL },
 		{ 'i', "inactive", NULL, G_TYPE_BOOL },
 		{ 'p', "priority", GMIRROR_PRIORITY, G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-hiv] [-p priority] name prov ..."
-	},
-	{ "rebuild", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v] name prov ..."
-	},
-	{ "remove", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v] name prov ..."
-	},
+		G_OPT_SENTINEL },
+	    "[-hiv] [-p priority] name prov ..." },
+	{ "rebuild", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov ..." },
+	{ "remove", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v] name prov ..." },
 	{ "resize", G_FLAG_VERBOSE, mirror_resize,
-	    {
-		{ 's', "size", "*", G_TYPE_STRING },
-		G_OPT_SENTINEL
-	    },
-	    "[-s size] [-v] name"
-	},
+	    { { 's', "size", "*", G_TYPE_STRING }, G_OPT_SENTINEL },
+	    "[-s size] [-v] name" },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -408,7 +370,7 @@ find_class(struct gmesh *mesh, const char *name)
 {
 	struct gclass *classp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, name) == 0)
 			return (classp);
 	}
@@ -420,7 +382,7 @@ find_geom(struct gclass *classp, const char *name)
 {
 	struct ggeom *gp;
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		if (strcmp(gp->lg_name, name) == 0)
 			return (gp);
 	}
@@ -466,21 +428,20 @@ mirror_resize(struct gctl_req *req, unsigned flags __unused)
 	if (name == NULL)
 		errx(EXIT_FAILURE, "The size is not specified.");
 	if (*name == '*') {
-#define	CSZ(c)	((c)->lg_provider->lg_mediasize - \
-    (c)->lg_provider->lg_sectorsize)
+#define CSZ(c) \
+	((c)->lg_provider->lg_mediasize - (c)->lg_provider->lg_sectorsize)
 		/* Find the maximum possible size */
-		LIST_FOREACH(cp, &gp->lg_consumer, lg_consumer) {
+		LIST_FOREACH (cp, &gp->lg_consumer, lg_consumer) {
 			if (CSZ(cp) > size)
 				size = CSZ(cp);
 		}
-		LIST_FOREACH(cp, &gp->lg_consumer, lg_consumer) {
+		LIST_FOREACH (cp, &gp->lg_consumer, lg_consumer) {
 			if (CSZ(cp) < size)
 				size = CSZ(cp);
 		}
 #undef CSZ
 		if (size == pp->lg_mediasize)
-			errx(EXIT_FAILURE,
-			    "Cannot expand provider %s\n",
+			errx(EXIT_FAILURE, "Cannot expand provider %s\n",
 			    pp->lg_name);
 	} else {
 		error = g_parse_lba(name, pp->lg_sectorsize, &size);

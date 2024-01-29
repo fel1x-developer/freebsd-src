@@ -3,9 +3,13 @@ static int destructed;
 static int destructed2;
 
 class Test {
-public:
+    public:
 	Test() { printf("Test::Test()\n"); }
-	~Test() { printf("Test::~Test()\n"); destructed = 1; }
+	~Test()
+	{
+		printf("Test::~Test()\n");
+		destructed = 1;
+	}
 };
 
 void

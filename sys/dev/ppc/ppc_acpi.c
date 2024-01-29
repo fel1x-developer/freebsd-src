@@ -26,23 +26,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_isa.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <machine/bus.h>
 
+#include <dev/ppbus/ppb_msq.h>
+#include <dev/ppbus/ppbconf.h>
+#include <dev/ppc/ppcreg.h>
+#include <dev/ppc/ppcvar.h>
+
 #include <isa/isareg.h>
 #include <isa/isavar.h>
-
-#include <dev/ppbus/ppbconf.h>
-#include <dev/ppbus/ppb_msq.h>
-#include <dev/ppc/ppcvar.h>
-#include <dev/ppc/ppcreg.h>
 
 #include "ppbus_if.h"
 
@@ -53,31 +53,31 @@ int ppc_isa_write(device_t, char *, int, int);
 
 static device_method_t ppc_acpi_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ppc_acpi_probe),
+	DEVMETHOD(device_probe, ppc_acpi_probe),
 #ifdef DEV_ISA
-	DEVMETHOD(device_attach,	ppc_isa_attach),
+	DEVMETHOD(device_attach, ppc_isa_attach),
 #else
-	DEVMETHOD(device_attach,	ppc_attach),
+	DEVMETHOD(device_attach, ppc_attach),
 #endif
-	DEVMETHOD(device_detach,	ppc_detach),
+	DEVMETHOD(device_detach, ppc_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_read_ivar,	ppc_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ppc_write_ivar),
-	DEVMETHOD(bus_alloc_resource,	ppc_alloc_resource),
-	DEVMETHOD(bus_release_resource,	ppc_release_resource),
+	DEVMETHOD(bus_read_ivar, ppc_read_ivar),
+	DEVMETHOD(bus_write_ivar, ppc_write_ivar),
+	DEVMETHOD(bus_alloc_resource, ppc_alloc_resource),
+	DEVMETHOD(bus_release_resource, ppc_release_resource),
 
 	/* ppbus interface */
-	DEVMETHOD(ppbus_io,		ppc_io),
-	DEVMETHOD(ppbus_exec_microseq,	ppc_exec_microseq),
-	DEVMETHOD(ppbus_reset_epp,	ppc_reset_epp),
-	DEVMETHOD(ppbus_setmode,	ppc_setmode),
-	DEVMETHOD(ppbus_ecp_sync,	ppc_ecp_sync),
-	DEVMETHOD(ppbus_read,		ppc_read),
+	DEVMETHOD(ppbus_io, ppc_io),
+	DEVMETHOD(ppbus_exec_microseq, ppc_exec_microseq),
+	DEVMETHOD(ppbus_reset_epp, ppc_reset_epp),
+	DEVMETHOD(ppbus_setmode, ppc_setmode),
+	DEVMETHOD(ppbus_ecp_sync, ppc_ecp_sync),
+	DEVMETHOD(ppbus_read, ppc_read),
 #ifdef DEV_ISA
-	DEVMETHOD(ppbus_write,		ppc_isa_write),
+	DEVMETHOD(ppbus_write, ppc_isa_write),
 #else
-	DEVMETHOD(ppbus_write,		ppc_write),
+	DEVMETHOD(ppbus_write, ppc_write),
 #endif
 	{ 0, 0 }
 };
@@ -89,8 +89,8 @@ static driver_t ppc_acpi_driver = {
 };
 
 static struct isa_pnp_id lpc_ids[] = {
-	{ 0x0004d041, "Standard parallel printer port" },	/* PNP0400 */
-	{ 0x0104d041, "ECP parallel printer port" },		/* PNP0401 */
+	{ 0x0004d041, "Standard parallel printer port" }, /* PNP0400 */
+	{ 0x0104d041, "ECP parallel printer port" },	  /* PNP0401 */
 	{ 0 }
 };
 

@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -98,39 +98,38 @@ extern "C" {
  *
  *****************************************************************************/
 typedef struct _CpaCyEcdhPointMultiplyOpData {
-    CpaFlatBuffer k;
-    /**< scalar multiplier (k > 0 and k < n) */
-    CpaFlatBuffer xg;
-    /**< x coordinate of curve point */
-    CpaFlatBuffer yg;
-    /**< y coordinate of curve point */
-    CpaFlatBuffer a;
-    /**< a equation coefficient */
-    CpaFlatBuffer b;
-    /**< b equation coefficient */
-    CpaFlatBuffer q;
-    /**< prime modulus or irreducible polynomial over GF(2^r) */
-    CpaFlatBuffer h;
-    /**< cofactor of the operation.
-     * If the cofactor is NOT required then set the cofactor to 1 or the
-     * data pointer of the Flat Buffer to NULL.
-     * There are some restrictions on the value of the cofactor.
-     * Implementations of this API will support at least the following:
-     * <ul>
-     *   <li>NIST standard curves and their cofactors (1, 2 and 4)</li>
-     *
-     *   <li>Random curves where max(log2(p), log2(n)+log2(h)) <= 512, where
-     *   p is the modulus, n is the order of the curve and h is the cofactor
-     *   </li>
-     * </ul>
-     */
+	CpaFlatBuffer k;
+	/**< scalar multiplier (k > 0 and k < n) */
+	CpaFlatBuffer xg;
+	/**< x coordinate of curve point */
+	CpaFlatBuffer yg;
+	/**< y coordinate of curve point */
+	CpaFlatBuffer a;
+	/**< a equation coefficient */
+	CpaFlatBuffer b;
+	/**< b equation coefficient */
+	CpaFlatBuffer q;
+	/**< prime modulus or irreducible polynomial over GF(2^r) */
+	CpaFlatBuffer h;
+	/**< cofactor of the operation.
+	 * If the cofactor is NOT required then set the cofactor to 1 or the
+	 * data pointer of the Flat Buffer to NULL.
+	 * There are some restrictions on the value of the cofactor.
+	 * Implementations of this API will support at least the following:
+	 * <ul>
+	 *   <li>NIST standard curves and their cofactors (1, 2 and 4)</li>
+	 *
+	 *   <li>Random curves where max(log2(p), log2(n)+log2(h)) <= 512, where
+	 *   p is the modulus, n is the order of the curve and h is the cofactor
+	 *   </li>
+	 * </ul>
+	 */
 
-    CpaCyEcFieldType fieldType;
-    /**< field type for the operation */
-    CpaBoolean pointVerify;
-    /**< set to CPA_TRUE to do a verification before the multiplication */
+	CpaCyEcFieldType fieldType;
+	/**< field type for the operation */
+	CpaBoolean pointVerify;
+	/**< set to CPA_TRUE to do a verification before the multiplication */
 } CpaCyEcdhPointMultiplyOpData;
-
 
 /**
  *****************************************************************************
@@ -143,24 +142,23 @@ typedef struct _CpaCyEcdhPointMultiplyOpData {
  *
  ****************************************************************************/
 typedef struct _CpaCyEcdhStats64 {
-    Cpa64U numEcdhPointMultiplyRequests;
-    /**< Total number of ECDH Point Multiplication operation requests. */
-    Cpa64U numEcdhPointMultiplyRequestErrors;
-    /**< Total number of ECDH Point Multiplication operation requests that had
-     * an error and could not be processed. */
-    Cpa64U numEcdhPointMultiplyCompleted;
-    /**< Total number of ECDH Point Multiplication operation requests that
-     * completed successfully. */
-    Cpa64U numEcdhPointMultiplyCompletedError;
-    /**< Total number of ECDH Point Multiplication operation requests that could
-     * not be completed successfully due to errors. */
-    Cpa64U numEcdhRequestCompletedOutputInvalid;
-    /**< Total number of ECDH Point Multiplication or Point Verify operation
-     * requests that could not be completed successfully due to an invalid
-     * output.
-     * Note that this does not indicate an error. */
+	Cpa64U numEcdhPointMultiplyRequests;
+	/**< Total number of ECDH Point Multiplication operation requests. */
+	Cpa64U numEcdhPointMultiplyRequestErrors;
+	/**< Total number of ECDH Point Multiplication operation requests that
+	 * had an error and could not be processed. */
+	Cpa64U numEcdhPointMultiplyCompleted;
+	/**< Total number of ECDH Point Multiplication operation requests that
+	 * completed successfully. */
+	Cpa64U numEcdhPointMultiplyCompletedError;
+	/**< Total number of ECDH Point Multiplication operation requests that
+	 * could not be completed successfully due to errors. */
+	Cpa64U numEcdhRequestCompletedOutputInvalid;
+	/**< Total number of ECDH Point Multiplication or Point Verify operation
+	 * requests that could not be completed successfully due to an invalid
+	 * output.
+	 * Note that this does not indicate an error. */
 } CpaCyEcdhStats64;
-
 
 /**
  *****************************************************************************
@@ -209,12 +207,8 @@ typedef struct _CpaCyEcdhStats64 {
  *
  *****************************************************************************/
 typedef void (*CpaCyEcdhPointMultiplyCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData,
-        CpaBoolean multiplyStatus,
-        CpaFlatBuffer *pXk,
-        CpaFlatBuffer *pYk);
-
+    CpaStatus status, void *pOpData, CpaBoolean multiplyStatus,
+    CpaFlatBuffer *pXk, CpaFlatBuffer *pYk);
 
 /**
  *****************************************************************************
@@ -285,14 +279,10 @@ typedef void (*CpaCyEcdhPointMultiplyCbFunc)(void *pCallbackTag,
  *      CpaCyEcdhPointMultiplyCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyEcdhPointMultiply(const CpaInstanceHandle instanceHandle,
-        const CpaCyEcdhPointMultiplyCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyEcdhPointMultiplyOpData *pOpData,
-        CpaBoolean *pMultiplyStatus,
-        CpaFlatBuffer *pXk,
-        CpaFlatBuffer *pYk);
+CpaStatus cpaCyEcdhPointMultiply(const CpaInstanceHandle instanceHandle,
+    const CpaCyEcdhPointMultiplyCbFunc pCb, void *pCallbackTag,
+    const CpaCyEcdhPointMultiplyOpData *pOpData, CpaBoolean *pMultiplyStatus,
+    CpaFlatBuffer *pXk, CpaFlatBuffer *pYk);
 
 /**
  *****************************************************************************
@@ -346,9 +336,8 @@ cpaCyEcdhPointMultiply(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyEcdhStats64
  *****************************************************************************/
-CpaStatus
-cpaCyEcdhQueryStats64(const CpaInstanceHandle instanceHandle,
-        CpaCyEcdhStats64 *pEcdhStats);
+CpaStatus cpaCyEcdhQueryStats64(const CpaInstanceHandle instanceHandle,
+    CpaCyEcdhStats64 *pEcdhStats);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

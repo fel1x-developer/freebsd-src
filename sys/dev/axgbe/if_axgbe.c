@@ -44,81 +44,74 @@
 #include <sys/sx.h>
 #include <sys/taskqueue.h>
 
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <machine/bus.h>
 
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
 #include "miibus_if.h"
-
-#include "xgbe.h"
 #include "xgbe-common.h"
+#include "xgbe.h"
 
-static device_probe_t	axgbe_probe;
-static device_attach_t	axgbe_attach;
+static device_probe_t axgbe_probe;
+static device_attach_t axgbe_attach;
 
 struct axgbe_softc {
 	/* Must be first */
-	struct xgbe_prv_data	prv;
+	struct xgbe_prv_data prv;
 
-	uint8_t			mac_addr[ETHER_ADDR_LEN];
-	struct ifmedia		media;
+	uint8_t mac_addr[ETHER_ADDR_LEN];
+	struct ifmedia media;
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{ "amd,xgbe-seattle-v1a",	true },
-	{ NULL,				false }
+	{ "amd,xgbe-seattle-v1a", true }, { NULL, false }
 };
 
-static struct resource_spec old_phy_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE }, /* Rx/Tx regs */
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE }, /* Integration regs */
-	{ SYS_RES_MEMORY,	2,	RF_ACTIVE }, /* Integration regs */
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE }, /* Interrupt */
-	{ -1, 0 }
-};
+static struct resource_spec old_phy_spec[] = { { SYS_RES_MEMORY, 0,
+						   RF_ACTIVE }, /* Rx/Tx regs */
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE }, /* Integration regs */
+	{ SYS_RES_MEMORY, 2, RF_ACTIVE }, /* Integration regs */
+	{ SYS_RES_IRQ, 0, RF_ACTIVE },	  /* Interrupt */
+	{ -1, 0 } };
 
-static struct resource_spec old_mac_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE }, /* MAC regs */
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE }, /* PCS regs */
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE }, /* Device interrupt */
+static struct resource_spec old_mac_spec[] = { { SYS_RES_MEMORY, 0,
+						   RF_ACTIVE }, /* MAC regs */
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE },			/* PCS regs */
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, /* Device interrupt */
 	/* Per-channel interrupts */
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		2,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		3,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		4,	RF_ACTIVE | RF_OPTIONAL },
-	{ -1, 0 }
-};
+	{ SYS_RES_IRQ, 1, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 3, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 4, RF_ACTIVE | RF_OPTIONAL }, { -1, 0 } };
 
-static struct resource_spec mac_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE }, /* MAC regs */
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE }, /* PCS regs */
-	{ SYS_RES_MEMORY,	2,	RF_ACTIVE }, /* Rx/Tx regs */
-	{ SYS_RES_MEMORY,	3,	RF_ACTIVE }, /* Integration regs */
-	{ SYS_RES_MEMORY,	4,	RF_ACTIVE }, /* Integration regs */
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE }, /* Device interrupt */
+static struct resource_spec mac_spec[] = { { SYS_RES_MEMORY, 0,
+					       RF_ACTIVE }, /* MAC regs */
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE },		    /* PCS regs */
+	{ SYS_RES_MEMORY, 2, RF_ACTIVE },		    /* Rx/Tx regs */
+	{ SYS_RES_MEMORY, 3, RF_ACTIVE }, /* Integration regs */
+	{ SYS_RES_MEMORY, 4, RF_ACTIVE }, /* Integration regs */
+	{ SYS_RES_IRQ, 0, RF_ACTIVE },	  /* Device interrupt */
 	/* Per-channel and auto-negotiation interrupts */
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		2,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		3,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		4,	RF_ACTIVE | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		5,	RF_ACTIVE | RF_OPTIONAL },
-	{ -1, 0 }
-};
+	{ SYS_RES_IRQ, 1, RF_ACTIVE },
+	{ SYS_RES_IRQ, 2, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 3, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 4, RF_ACTIVE | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 5, RF_ACTIVE | RF_OPTIONAL }, { -1, 0 } };
 
 static struct xgbe_version_data xgbe_v1 = {
-	.init_function_ptrs_phy_impl    = xgbe_init_function_ptrs_phy_v1,
-	.xpcs_access                    = XGBE_XPCS_ACCESS_V1,
-	.tx_max_fifo_size               = 81920,
-	.rx_max_fifo_size               = 81920,
-	.tx_tstamp_workaround           = 1,
+	.init_function_ptrs_phy_impl = xgbe_init_function_ptrs_phy_v1,
+	.xpcs_access = XGBE_XPCS_ACCESS_V1,
+	.tx_max_fifo_size = 81920,
+	.rx_max_fifo_size = 81920,
+	.tx_tstamp_workaround = 1,
 };
 
 MALLOC_DEFINE(M_AXGBE, "axgbe", "axgbe data");
@@ -144,11 +137,11 @@ axgbe_ioctl(if_t ifp, unsigned long command, caddr_t data)
 	struct ifreq *ifr = (struct ifreq *)data;
 	int error = 0;
 
-	switch(command) {
+	switch (command) {
 	case SIOCSIFMTU:
 		if (ifr->ifr_mtu < ETHERMIN || ifr->ifr_mtu > ETHERMTU_JUMBO)
 			error = EINVAL;
-		/* TODO - change it to iflib way */ 
+		/* TODO - change it to iflib way */
 		break;
 	case SIOCSIFFLAGS:
 		error = 0;
@@ -247,14 +240,12 @@ axgbe_get_counter(if_t ifp, ift_counter c)
 
 	pdata->hw_if.read_mmc_stats(pdata);
 
-	switch(c) {
+	switch (c) {
 	case IFCOUNTER_IPACKETS:
 		return (pstats->rxframecount_gb);
 	case IFCOUNTER_IERRORS:
-		return (pstats->rxframecount_gb -
-		    pstats->rxbroadcastframes_g -
-		    pstats->rxmulticastframes_g -
-		    pstats->rxunicastframes_g);
+		return (pstats->rxframecount_gb - pstats->rxbroadcastframes_g -
+		    pstats->rxmulticastframes_g - pstats->rxunicastframes_g);
 	case IFCOUNTER_OPACKETS:
 		return (pstats->txframecount_gb);
 	case IFCOUNTER_OERRORS:
@@ -291,7 +282,7 @@ axgbe_get_optional_prop(device_t dev, phandle_t node, const char *name,
 		return (-1);
 
 	if (OF_getencprop(node, name, data, len) <= 0) {
-		device_printf(dev,"%s property is invalid\n", name);
+		device_printf(dev, "%s property is invalid\n", name);
 		return (ENXIO);
 	}
 
@@ -316,7 +307,7 @@ axgbe_attach(device_t dev)
 	sc->prv.vdata = &xgbe_v1;
 	node = ofw_bus_get_node(dev);
 	if (OF_getencprop(node, "phy-handle", &phy_handle,
-	    sizeof(phy_handle)) <= 0) {
+		sizeof(phy_handle)) <= 0) {
 		phy_node = node;
 
 		if (bus_alloc_resources(dev, mac_spec, mac_res)) {
@@ -334,8 +325,9 @@ axgbe_attach(device_t dev)
 		sc->prv.dev_irq_res = mac_res[5];
 		sc->prv.per_channel_irq = OF_hasprop(node,
 		    XGBE_DMA_IRQS_PROPERTY);
-		for (i = 0, j = 6; j < nitems(mac_res) - 1 &&
-		    mac_res[j + 1] != NULL; i++, j++) {
+		for (i = 0, j = 6;
+		     j < nitems(mac_res) - 1 && mac_res[j + 1] != NULL;
+		     i++, j++) {
 			if (sc->prv.per_channel_irq) {
 				sc->prv.chan_irq_res[i] = mac_res[j];
 			}
@@ -371,7 +363,8 @@ axgbe_attach(device_t dev)
 		    XGBE_DMA_IRQS_PROPERTY);
 		if (sc->prv.per_channel_irq) {
 			for (i = 0, j = 3; i < nitems(sc->prv.chan_irq_res) &&
-			    mac_res[j] != NULL; i++, j++) {
+			     mac_res[j] != NULL;
+			     i++, j++) {
 				sc->prv.chan_irq_res[i] = mac_res[j];
 			}
 		}
@@ -398,14 +391,13 @@ axgbe_attach(device_t dev)
 	sc->prv.phy.advertising = ADVERTISED_10000baseKR_Full |
 	    ADVERTISED_1000baseKX_Full;
 
-
 	/*
 	 * Read the needed properties from the phy node.
 	 */
 
 	/* This is documented as optional, but Linux requires it */
 	if (OF_getencprop(phy_node, XGBE_SPEEDSET_PROPERTY, &sc->prv.speed_set,
-	    sizeof(sc->prv.speed_set)) <= 0) {
+		sizeof(sc->prv.speed_set)) <= 0) {
 		device_printf(dev, "%s property is missing\n",
 		    XGBE_SPEEDSET_PROPERTY);
 		return (EINVAL);
@@ -530,10 +522,10 @@ axgbe_attach(device_t dev)
 
 	if_initname(ifp, device_get_name(dev), device_get_unit(dev));
 	if_setinitfn(ifp, axgbe_init);
-        if_setsoftc(ifp, sc);
+	if_setsoftc(ifp, sc);
 	if_setflags(ifp, IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST);
 	if_setioctlfn(ifp, axgbe_ioctl);
-	/* TODO - change it to iflib way */ 
+	/* TODO - change it to iflib way */
 	if_setqflushfn(ifp, axgbe_qflush);
 	if_setgetcounterfn(ifp, axgbe_get_counter);
 
@@ -561,20 +553,17 @@ axgbe_attach(device_t dev)
 
 static device_method_t axgbe_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		axgbe_probe),
-	DEVMETHOD(device_attach,	axgbe_attach),
+	DEVMETHOD(device_probe, axgbe_probe),
+	DEVMETHOD(device_attach, axgbe_attach),
 
 	{ 0, 0 }
 };
 
-DEFINE_CLASS_0(axgbe, axgbe_driver, axgbe_methods,
-    sizeof(struct axgbe_softc));
+DEFINE_CLASS_0(axgbe, axgbe_driver, axgbe_methods, sizeof(struct axgbe_softc));
 DRIVER_MODULE(axa, simplebus, axgbe_driver, 0, 0);
 
-
 static struct ofw_compat_data phy_compat_data[] = {
-	{ "amd,xgbe-phy-seattle-v1a",	true },
-	{ NULL,				false }
+	{ "amd,xgbe-phy-seattle-v1a", true }, { NULL, false }
 };
 
 static int
@@ -604,12 +593,12 @@ axgbephy_attach(device_t dev)
 
 static device_method_t axgbephy_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		axgbephy_probe),
-	DEVMETHOD(device_attach,	axgbephy_attach),
+	DEVMETHOD(device_probe, axgbephy_probe),
+	DEVMETHOD(device_attach, axgbephy_attach),
 
 	{ 0, 0 }
 };
 
 DEFINE_CLASS_0(axgbephy, axgbephy_driver, axgbephy_methods, 0);
-EARLY_DRIVER_MODULE(axgbephy, simplebus, axgbephy_driver,
-    0, 0, BUS_PASS_RESOURCE + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(axgbephy, simplebus, axgbephy_driver, 0, 0,
+    BUS_PASS_RESOURCE + BUS_PASS_ORDER_MIDDLE);

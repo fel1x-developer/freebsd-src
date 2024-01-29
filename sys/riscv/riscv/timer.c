@@ -58,10 +58,10 @@
 #include <dev/ofw/openfirm.h>
 
 struct riscv_timer_softc {
-	struct resource		*irq_res;
-	void			*ih;
-	uint32_t		clkfreq;
-	struct eventtimer	et;
+	struct resource *irq_res;
+	void *ih;
+	uint32_t clkfreq;
+	struct eventtimer et;
 };
 static struct riscv_timer_softc *riscv_timer_sc = NULL;
 
@@ -69,12 +69,12 @@ static timecounter_get_t riscv_timer_tc_get_timecount;
 static timecounter_fill_vdso_timehands_t riscv_timer_tc_fill_vdso_timehands;
 
 static struct timecounter riscv_timer_timecount = {
-	.tc_name           = "RISC-V Timecounter",
-	.tc_get_timecount  = riscv_timer_tc_get_timecount,
-	.tc_poll_pps       = NULL,
-	.tc_counter_mask   = ~0u,
-	.tc_frequency      = 0,
-	.tc_quality        = 1000,
+	.tc_name = "RISC-V Timecounter",
+	.tc_get_timecount = riscv_timer_tc_get_timecount,
+	.tc_poll_pps = NULL,
+	.tc_counter_mask = ~0u,
+	.tc_frequency = 0,
+	.tc_quality = 1000,
 	.tc_fill_vdso_timehands = riscv_timer_tc_fill_vdso_timehands,
 };
 
@@ -218,8 +218,7 @@ riscv_timer_attach(device_t dev)
 	}
 
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "Unable to alloc IRQ resource\n");
 		return (ENXIO);
@@ -254,11 +253,9 @@ riscv_timer_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t riscv_timer_methods[] = {
-	DEVMETHOD(device_probe,		riscv_timer_probe),
-	DEVMETHOD(device_attach,	riscv_timer_attach),
-	{ 0, 0 }
-};
+static device_method_t riscv_timer_methods[] = { DEVMETHOD(device_probe,
+						     riscv_timer_probe),
+	DEVMETHOD(device_attach, riscv_timer_attach), { 0, 0 } };
 
 static driver_t riscv_timer_driver = {
 	"timer",

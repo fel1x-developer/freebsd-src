@@ -27,13 +27,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/socket.h>
+#include <sys/time.h>
+
 #include <rpc/rpc.h>
 #include <rpcsvc/spray.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -41,14 +42,14 @@ static void spray_service(struct svc_req *, SVCXPRT *);
 
 static int from_inetd = 1;
 
-#define	timersub(tvp, uvp, vvp)						\
-	do {								\
-		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;		\
-		(vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec;	\
-		if ((vvp)->tv_usec < 0) {				\
-			(vvp)->tv_sec--;				\
-			(vvp)->tv_usec += 1000000;			\
-		}							\
+#define timersub(tvp, uvp, vvp)                                   \
+	do {                                                      \
+		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;    \
+		(vvp)->tv_usec = (tvp)->tv_usec - (uvp)->tv_usec; \
+		if ((vvp)->tv_usec < 0) {                         \
+			(vvp)->tv_sec--;                          \
+			(vvp)->tv_usec += 1000000;                \
+		}                                                 \
 	} while (0)
 
 #define TIMEOUT 120
@@ -103,15 +104,12 @@ main(int argc __unused, char *argv[] __unused)
 			syslog(LOG_ERR, "cannot create udp service.");
 			exit(1);
 		}
-		ok = svc_reg(transp, SPRAYPROG, SPRAYVERS,
-			     spray_service, NULL);
+		ok = svc_reg(transp, SPRAYPROG, SPRAYVERS, spray_service, NULL);
 	} else
-		ok = svc_create(spray_service,
-				SPRAYPROG, SPRAYVERS, "udp");
+		ok = svc_create(spray_service, SPRAYPROG, SPRAYVERS, "udp");
 	if (!ok) {
-		syslog(LOG_ERR,
-		    "unable to register (SPRAYPROG, SPRAYVERS, %s)",
-		    (!from_inetd)?"udp":"(inetd)");
+		syslog(LOG_ERR, "unable to register (SPRAYPROG, SPRAYVERS, %s)",
+		    (!from_inetd) ? "udp" : "(inetd)");
 		exit(1);
 	}
 
@@ -119,7 +117,6 @@ main(int argc __unused, char *argv[] __unused)
 	syslog(LOG_ERR, "svc_run returned");
 	return 1;
 }
-
 
 static void
 spray_service(struct svc_req *rqstp, SVCXPRT *transp)

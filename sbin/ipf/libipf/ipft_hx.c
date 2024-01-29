@@ -10,17 +10,16 @@
 #include "ipf.h"
 #include "ipt.h"
 
+extern int opts;
 
-extern	int	opts;
+static int hex_open(char *);
+static int hex_close(void);
+static int hex_readip(mb_t *, char **, int *);
+static char *readhex(char *, char *);
 
-static	int	hex_open(char *);
-static	int	hex_close(void);
-static	int	hex_readip(mb_t *, char **, int *);
-static	char	*readhex(char *, char *);
-
-struct	ipread	iphex = { hex_open, hex_close, hex_readip, 0 };
-static	FILE	*tfp = NULL;
-static	int	tfd = -1;
+struct ipread iphex = { hex_open, hex_close, hex_readip, 0 };
+static FILE *tfp = NULL;
+static int tfd = -1;
 
 static int
 hex_open(char *fname)
@@ -41,24 +40,22 @@ hex_open(char *fname)
 	return (tfd);
 }
 
-
 static int
 hex_close(void)
 {
-	int	cfd = tfd;
+	int cfd = tfd;
 
 	tfd = -1;
 	return (close(cfd));
 }
 
-
 static int
 hex_readip(mb_t *mb, char **ifn, int *dir)
 {
 	register char *s, *t, *u;
-	char	line[513];
-	ip_t	*ip;
-	char	*buf;
+	char line[513];
+	ip_t *ip;
+	char *buf;
 
 	buf = (char *)mb->mb_buf;
 	/*
@@ -69,8 +66,8 @@ hex_readip(mb_t *mb, char **ifn, int *dir)
 		*ifn = NULL;
 	if (dir)
 		*dir = 0;
- 	ip = (ip_t *)buf;
-	while (fgets(line, sizeof(line)-1, tfp)) {
+	ip = (ip_t *)buf;
+	while (fgets(line, sizeof(line) - 1, tfp)) {
 		if ((s = strchr(line, '\n'))) {
 			if (s == line) {
 				mb->mb_len = (char *)ip - buf;
@@ -146,12 +143,11 @@ hex_readip(mb_t *mb, char **ifn, int *dir)
 	return (-1);
 }
 
-
-static char
-*readhex(register char *src, register char *dst)
+static char *
+readhex(register char *src, register char *dst)
 {
-	int	state = 0;
-	char	c;
+	int state = 0;
+	char c;
 
 	while ((c = *src++)) {
 		if (ISSPACE(c)) {
@@ -161,7 +157,7 @@ static char
 			}
 			continue;
 		} else if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
-			   (c >= 'A' && c <= 'F')) {
+		    (c >= 'A' && c <= 'F')) {
 			c = ISDIGIT(c) ? (c - '0') : (TOUPPER(c) - 55);
 			if (state == 0) {
 				*dst = (c << 4);

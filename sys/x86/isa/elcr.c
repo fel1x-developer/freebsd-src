@@ -45,12 +45,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+
 #include <machine/intr_machdep.h>
 
-#define	ELCR_PORT	0x4d0
-#define	ELCR_MASK(irq)	(1 << (irq))
+#define ELCR_PORT 0x4d0
+#define ELCR_MASK(irq) (1 << (irq))
 
 static int elcr_status;
 int elcr_found;
@@ -65,8 +66,9 @@ elcr_probe(void)
 	int i;
 
 	elcr_status = inb(ELCR_PORT) | inb(ELCR_PORT + 1) << 8;
-	if ((elcr_status & (ELCR_MASK(0) | ELCR_MASK(1) | ELCR_MASK(2) |
-	    ELCR_MASK(8) | ELCR_MASK(13))) != 0)
+	if ((elcr_status &
+		(ELCR_MASK(0) | ELCR_MASK(1) | ELCR_MASK(2) | ELCR_MASK(8) |
+		    ELCR_MASK(13))) != 0)
 		return (ENXIO);
 	if (bootverbose) {
 		printf("ELCR Found.  ISA IRQs programmed as:\n");

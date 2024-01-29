@@ -27,6 +27,7 @@
 #include <sys/cdefs.h>
 #if defined(LOADER_FDT_SUPPORT)
 #include <sys/param.h>
+
 #include <fdt_platform.h>
 #endif
 

@@ -27,9 +27,9 @@
 
 /* Arm CoreLink CMN-600 Coherent Mesh Network Driver */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -41,30 +41,25 @@
 #include <sys/sysctl.h>
 
 #include <machine/bus.h>
+#include <machine/cmn600_reg.h>
 #include <machine/cpu.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 
-#include <machine/cmn600_reg.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-#define	RD4(sc, r)		bus_read_4((sc)->sc_res[0], (r))
-#define	RD8(sc, r)		bus_read_8((sc)->sc_res[0], (r))
-#define	WR4(sc, r, v)		bus_write_4((sc)->sc_res[0], (r), (v))
-#define	WR8(sc, r, v)		bus_write_8((sc)->sc_res[0], (r), (v))
-#define	FLD(v, n)		(((v) & n ## _MASK) >> n ## _SHIFT)
+#define RD4(sc, r) bus_read_4((sc)->sc_res[0], (r))
+#define RD8(sc, r) bus_read_8((sc)->sc_res[0], (r))
+#define WR4(sc, r, v) bus_write_4((sc)->sc_res[0], (r), (v))
+#define WR8(sc, r, v) bus_write_8((sc)->sc_res[0], (r), (v))
+#define FLD(v, n) (((v) & n##_MASK) >> n##_SHIFT)
 
-static char *cmn600_ids[] = {
-	"ARMHC600",
-	NULL
-};
+static char *cmn600_ids[] = { "ARMHC600", NULL };
 
-static struct resource_spec cmn600_res_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE | RF_UNMAPPED | RF_OPTIONAL },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec cmn600_res_spec[] = { { SYS_RES_MEMORY, 0,
+						      RF_ACTIVE },
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE | RF_UNMAPPED | RF_OPTIONAL },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
 struct cmn600_node;
 
@@ -74,33 +69,33 @@ typedef void (*nd_write_8_t)(struct cmn600_node *, uint32_t, uint64_t);
 typedef void (*nd_write_4_t)(struct cmn600_node *, uint32_t, uint32_t);
 
 struct cmn600_node {
-	struct cmn600_softc	*sc;
-	off_t			 nd_offset;
-	int			 nd_type;
-	uint16_t		 nd_id;
-	uint16_t		 nd_logical_id;
-	uint8_t			 nd_x, nd_y, nd_port, nd_sub;
-	uint16_t		 nd_child_count;
-	uint32_t		 nd_paired;
-	struct cmn600_node	*nd_parent;
-	nd_read_8_t		 nd_read8;
-	nd_read_4_t		 nd_read4;
-	nd_write_8_t		 nd_write8;
-	nd_write_4_t		 nd_write4;
-	struct cmn600_node	**nd_children;
+	struct cmn600_softc *sc;
+	off_t nd_offset;
+	int nd_type;
+	uint16_t nd_id;
+	uint16_t nd_logical_id;
+	uint8_t nd_x, nd_y, nd_port, nd_sub;
+	uint16_t nd_child_count;
+	uint32_t nd_paired;
+	struct cmn600_node *nd_parent;
+	nd_read_8_t nd_read8;
+	nd_read_4_t nd_read4;
+	nd_write_8_t nd_write8;
+	nd_write_4_t nd_write4;
+	struct cmn600_node **nd_children;
 };
 
 struct cmn600_softc {
-	device_t	 sc_dev;
-	int		 sc_unit;
-	int		 sc_domain;
-	int		 sc_longid;
-	int		 sc_mesh_x;
-	int		 sc_mesh_y;
+	device_t sc_dev;
+	int sc_unit;
+	int sc_domain;
+	int sc_longid;
+	int sc_mesh_x;
+	int sc_mesh_y;
 	struct resource *sc_res[3];
-	void		*sc_ih;
-	int		 sc_r2;
-	int		 sc_rev;
+	void *sc_ih;
+	int sc_r2;
+	int sc_rev;
 	struct cmn600_node *sc_rootnode;
 	struct cmn600_node *sc_dtcnode;
 	struct cmn600_node *sc_dvmnode;
@@ -213,53 +208,57 @@ static const char *
 cmn600_node_type_str(int type)
 {
 
-#define	NAME_OF(t, n)	case NODE_TYPE_ ## t: return n
+#define NAME_OF(t, n)       \
+	case NODE_TYPE_##t: \
+		return n
 	switch (type) {
-	NAME_OF(INVALID, "<invalid node>");
-	NAME_OF(DVM, "DVM");
-	NAME_OF(CFG, "CFG");
-	NAME_OF(DTC, "DTC");
-	NAME_OF(HN_I, "HN-I");
-	NAME_OF(HN_F, "HN-F");
-	NAME_OF(XP, "XP");
-	NAME_OF(SBSX, "SBSX");
-	NAME_OF(RN_I, "RN-I");
-	NAME_OF(RN_D, "RN-D");
-	NAME_OF(RN_SAM, "RN-SAM");
-	NAME_OF(CXRA, "CXRA");
-	NAME_OF(CXHA, "CXHA");
-	NAME_OF(CXLA, "CXLA");
+		NAME_OF(INVALID, "<invalid node>");
+		NAME_OF(DVM, "DVM");
+		NAME_OF(CFG, "CFG");
+		NAME_OF(DTC, "DTC");
+		NAME_OF(HN_I, "HN-I");
+		NAME_OF(HN_F, "HN-F");
+		NAME_OF(XP, "XP");
+		NAME_OF(SBSX, "SBSX");
+		NAME_OF(RN_I, "RN-I");
+		NAME_OF(RN_D, "RN-D");
+		NAME_OF(RN_SAM, "RN-SAM");
+		NAME_OF(CXRA, "CXRA");
+		NAME_OF(CXHA, "CXHA");
+		NAME_OF(CXLA, "CXLA");
 	default:
 		return "<unknown node>";
 	}
-#undef	NAME_OF
+#undef NAME_OF
 }
 
 static const char *
 cmn600_xpport_dev_type_str(uint8_t type)
 {
 
-#define	NAME_OF(t, n)	case POR_MXP_PX_INFO_DEV_TYPE_ ## t: return n
+#define NAME_OF(t, n)                      \
+	case POR_MXP_PX_INFO_DEV_TYPE_##t: \
+		return n
 	switch (type) {
-	NAME_OF(RN_I, "RN-I");
-	NAME_OF(RN_D, "RN-D");
-	NAME_OF(RN_F_CHIB, "RN-F CHIB");
-	NAME_OF(RN_F_CHIB_ESAM, "RN-F CHIB ESAM");
-	NAME_OF(RN_F_CHIA, "RN-F CHIA");
-	NAME_OF(RN_F_CHIA_ESAM, "RN-F CHIA ESAM");
-	NAME_OF(HN_T, "HN-T");
-	NAME_OF(HN_I, "HN-I");
-	NAME_OF(HN_D, "HN-D");
-	NAME_OF(SN_F, "SN-F");
-	NAME_OF(SBSX, "SBSX");
-	NAME_OF(HN_F, "HN-F");
-	NAME_OF(CXHA, "CXHA");
-	NAME_OF(CXRA, "CXRA");
-	NAME_OF(CXRH, "CXRH");
+		NAME_OF(RN_I, "RN-I");
+		NAME_OF(RN_D, "RN-D");
+		NAME_OF(RN_F_CHIB, "RN-F CHIB");
+		NAME_OF(RN_F_CHIB_ESAM, "RN-F CHIB ESAM");
+		NAME_OF(RN_F_CHIA, "RN-F CHIA");
+		NAME_OF(RN_F_CHIA_ESAM, "RN-F CHIA ESAM");
+		NAME_OF(HN_T, "HN-T");
+		NAME_OF(HN_I, "HN-I");
+		NAME_OF(HN_D, "HN-D");
+		NAME_OF(SN_F, "SN-F");
+		NAME_OF(SBSX, "SBSX");
+		NAME_OF(HN_F, "HN-F");
+		NAME_OF(CXHA, "CXHA");
+		NAME_OF(CXRA, "CXRA");
+		NAME_OF(CXRH, "CXRH");
 	default:
 		return "<unknown>";
 	}
-#undef	NAME_OF
+#undef NAME_OF
 }
 
 static void
@@ -267,7 +266,8 @@ cmn600_dump_node(struct cmn600_node *node, int lvl)
 {
 	int i;
 
-	for (i = 0; i < lvl; i++) printf("    ");
+	for (i = 0; i < lvl; i++)
+		printf("    ");
 	printf("%s [%dx%d:%d:%d] id: 0x%x @0x%lx Logical Id: 0x%x",
 	    cmn600_node_type_str(node->nd_type), node->nd_x, node->nd_y,
 	    node->nd_port, node->nd_sub, node->nd_id, node->nd_offset,
@@ -277,10 +277,10 @@ cmn600_dump_node(struct cmn600_node *node, int lvl)
 	printf("\n");
 	if (node->nd_type == NODE_TYPE_XP)
 		printf("\tPort 0: %s\n\tPort 1: %s\n",
-		    cmn600_xpport_dev_type_str(node->nd_read4(node,
-			POR_MXP_P0_INFO) & 0x1f),
-		    cmn600_xpport_dev_type_str(node->nd_read4(node,
-			POR_MXP_P1_INFO) & 0x1f));
+		    cmn600_xpport_dev_type_str(
+			node->nd_read4(node, POR_MXP_P0_INFO) & 0x1f),
+		    cmn600_xpport_dev_type_str(
+			node->nd_read4(node, POR_MXP_P1_INFO) & 0x1f));
 }
 
 static void
@@ -396,15 +396,15 @@ cmn600_create_node(struct cmn600_softc *sc, off_t node_offset,
 		cmn600_dump_node(node, lvl);
 	}
 
-	node->nd_children = (struct cmn600_node **)mallocarray(
-	    node->nd_child_count, sizeof(struct cmn600_node *), M_DEVBUF,
-	    M_WAITOK);
+	node->nd_children = (struct cmn600_node **)
+	    mallocarray(node->nd_child_count, sizeof(struct cmn600_node *),
+		M_DEVBUF, M_WAITOK);
 	if (node->nd_children == NULL)
 		goto FAIL;
 	for (i = 0; i < node->nd_child_count; i++) {
 		val = node->nd_read8(node, child_offset + (i * 8));
-		node->nd_children[i] = cmn600_create_node(sc, val &
-		    POR_CFGM_CHILD_POINTER_BASE_MASK, node, lvl + 1);
+		node->nd_children[i] = cmn600_create_node(sc,
+		    val & POR_CFGM_CHILD_POINTER_BASE_MASK, node, lvl + 1);
 	}
 	switch (node->nd_type) {
 	case NODE_TYPE_DTC:
@@ -646,8 +646,8 @@ pmu_cmn600_md8(void *arg, int nodeid, int node_type, off_t reg, uint64_t mask,
 	ret = cmn600_find_node(sc, nodeid, node_type, &node);
 	if (ret != 0)
 		return (ret);
-	cmn600_node_write8(node, reg, (cmn600_node_read8(node, reg) & ~mask) |
-	    val);
+	cmn600_node_write8(node, reg,
+	    (cmn600_node_read8(node, reg) & ~mask) | val);
 	return (0);
 }
 
@@ -658,7 +658,8 @@ cmn600_acpi_probe(device_t dev)
 
 	err = ACPI_ID_PROBE(device_get_parent(dev), dev, cmn600_ids, NULL);
 	if (err <= 0)
-		device_set_desc(dev, "Arm CoreLink CMN-600 Coherent Mesh Network");
+		device_set_desc(dev,
+		    "Arm CoreLink CMN-600 Coherent Mesh Network");
 
 	return (err);
 }
@@ -682,7 +683,8 @@ cmn600_acpi_attach(device_t dev)
 	domain = 0;
 
 	if ((resource_int_value(dname, u, "domain", &domain) == 0 ||
-	    bus_get_domain(dev, &domain) == 0) && domain < MAXMEMDOM) {
+		bus_get_domain(dev, &domain) == 0) &&
+	    domain < MAXMEMDOM) {
 		sc->sc_domain = domain;
 	}
 	if (domain == -1) /* NUMA not supported. Use single domain. */
@@ -694,8 +696,8 @@ cmn600_acpi_attach(device_t dev)
 
 	i = bus_alloc_resources(dev, cmn600_res_spec, sc->sc_res);
 	if (i != 0) {
-		device_printf(dev, "cannot allocate resources for device (%d)\n",
-		    i);
+		device_printf(dev,
+		    "cannot allocate resources for device (%d)\n", i);
 		return (i);
 	}
 
@@ -711,9 +713,9 @@ cmn600_acpi_attach(device_t dev)
 	ctx = device_get_sysctl_ctx(sc->sc_dev);
 
 	child = SYSCTL_CHILDREN(device_get_sysctl_tree(sc->sc_dev));
-	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "dump_nodes", CTLTYPE_INT |
-	    CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0, cmn600_sysctl_dump_nodes,
-	    "U", "Dump CMN-600 nodes tree");
+	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "dump_nodes",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    cmn600_sysctl_dump_nodes, "U", "Dump CMN-600 nodes tree");
 
 	node = sc->sc_dtcnode;
 	if (node == NULL)
@@ -727,7 +729,7 @@ cmn600_acpi_attach(device_t dev)
 	node->nd_write8(node, POR_DT_DTC_CTL, POR_DT_DTC_CTL_DT_EN);
 
 	if (bus_setup_intr(dev, sc->sc_res[2], INTR_TYPE_MISC | INTR_MPSAFE,
-	    cmn600_intr, NULL, sc, &sc->sc_ih)) {
+		cmn600_intr, NULL, sc, &sc->sc_ih)) {
 		bus_release_resources(dev, cmn600_res_spec, sc->sc_res);
 		device_printf(dev, "cannot setup interrupt handler\n");
 		cmn600_acpi_detach(dev);
@@ -767,12 +769,12 @@ cmn600_acpi_detach(device_t dev)
 }
 
 int
-cmn600_pmu_intr_cb(void *arg, int (*handler)(struct trapframe *tf, int unit,
-    int i))
+cmn600_pmu_intr_cb(void *arg,
+    int (*handler)(struct trapframe *tf, int unit, int i))
 {
 	struct cmn600_softc *sc;
 
-	sc = (struct cmn600_softc *) arg;
+	sc = (struct cmn600_softc *)arg;
 	sc->sc_pmu_ih = handler;
 	return (0);
 }
@@ -785,9 +787,9 @@ cmn600_intr(void *arg)
 	struct trapframe *tf;
 	uint64_t mask, ready, val;
 	int i;
-	
+
 	tf = PCPU_GET(curthread)->td_intr_frame;
-	sc = (struct cmn600_softc *) arg;
+	sc = (struct cmn600_softc *)arg;
 	node = sc->sc_dtcnode;
 	val = node->nd_read8(node, POR_DT_PMOVSR);
 	if (val & POR_DT_PMOVSR_CYCLE_COUNTER)
@@ -801,7 +803,6 @@ cmn600_intr(void *arg)
 			if (sc->sc_pmu_ih != NULL)
 				sc->sc_pmu_ih(tf, sc->sc_unit, i);
 			ready |= mask;
-
 		}
 		node->nd_write8(node, POR_DT_PMOVSR_CLR, ready);
 	}
@@ -811,9 +812,9 @@ cmn600_intr(void *arg)
 
 static device_method_t cmn600_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			cmn600_acpi_probe),
-	DEVMETHOD(device_attach,		cmn600_acpi_attach),
-	DEVMETHOD(device_detach,		cmn600_acpi_detach),
+	DEVMETHOD(device_probe, cmn600_acpi_probe),
+	DEVMETHOD(device_attach, cmn600_acpi_attach),
+	DEVMETHOD(device_detach, cmn600_acpi_detach),
 
 	/* End */
 	DEVMETHOD_END

@@ -12,24 +12,24 @@
 #include "ipf.h"
 #include "ipt.h"
 
-extern	int	opts;
+extern int opts;
 
-static	char	*tx_proto = "";
+static char *tx_proto = "";
 
-static	int	text_open(char *), text_close(void);
-static	int	text_readip(mb_t *, char **, int *);
-static	int	parseline(char *, ip_t *, char **, int *);
+static int text_open(char *), text_close(void);
+static int text_readip(mb_t *, char **, int *);
+static int parseline(char *, ip_t *, char **, int *);
 
-static	char	myflagset[] = "FSRPAUEC";
-static	u_char	myflags[] = { TH_FIN, TH_SYN, TH_RST, TH_PUSH,
-				TH_ACK, TH_URG, TH_ECN, TH_CWR };
+static char myflagset[] = "FSRPAUEC";
+static u_char myflags[] = { TH_FIN, TH_SYN, TH_RST, TH_PUSH, TH_ACK, TH_URG,
+	TH_ECN, TH_CWR };
 
-struct	ipread	iptext = { text_open, text_close, text_readip, R_DO_CKSUM };
-static	FILE	*tfp = NULL;
-static	int	tfd = -1;
+struct ipread iptext = { text_open, text_close, text_readip, R_DO_CKSUM };
+static FILE *tfp = NULL;
+static int tfd = -1;
 
-static	u_32_t	tx_hostnum(char *, int *);
-static	u_short	tx_portnum(char *);
+static u_32_t tx_hostnum(char *, int *);
+static u_short tx_portnum(char *);
 
 #ifdef USE_INET6
 int parseipv6(char **, ip6_t *, char **, int *);
@@ -42,7 +42,7 @@ int parseipv6(char **, ip6_t *, char **, int *);
 static u_32_t
 tx_hostnum(char *host, int *resolved)
 {
-	i6addr_t	ipa;
+	i6addr_t ipa;
 
 	*resolved = 0;
 	if (!strcasecmp("any", host))
@@ -58,7 +58,6 @@ tx_hostnum(char *host, int *resolved)
 	return (ipa.in4.s_addr);
 }
 
-
 /*
  * find the port number given by the name, either from getservbyname() or
  * straight atoi()
@@ -66,17 +65,16 @@ tx_hostnum(char *host, int *resolved)
 static u_short
 tx_portnum(char *name)
 {
-	struct	servent	*sp;
+	struct servent *sp;
 
 	if (ISDIGIT(*name))
 		return (u_short)atoi(name);
 	sp = getservbyname(name, tx_proto);
 	if (sp)
 		return (ntohs(sp->s_port));
-	(void) fprintf(stderr, "unknown service \"%s\".\n", name);
+	(void)fprintf(stderr, "unknown service \"%s\".\n", name);
 	return (0);
 }
-
 
 static int
 text_open(char *fname)
@@ -97,29 +95,27 @@ text_open(char *fname)
 	return (tfd);
 }
 
-
 static int
 text_close(void)
 {
-	int	cfd = tfd;
+	int cfd = tfd;
 
 	tfd = -1;
 	return (close(cfd));
 }
 
-
 static int
 text_readip(mb_t *mb, char **ifn, int *dir)
 {
 	register char *s;
-	char	line[513];
-	ip_t	*ip;
-	char	*buf;
+	char line[513];
+	ip_t *ip;
+	char *buf;
 
 	buf = (char *)mb->mb_buf;
 
 	*ifn = NULL;
-	while (fgets(line, sizeof(line)-1, tfp)) {
+	while (fgets(line, sizeof(line) - 1, tfp)) {
 		if ((s = strchr(line, '\n')))
 			*s = '\0';
 		if ((s = strchr(line, '\r')))
@@ -137,7 +133,7 @@ text_readip(mb_t *mb, char **ifn, int *dir)
 			if (IP_V(ip) == 6) {
 #ifdef USE_INET6
 				mb->mb_len = ntohs(((ip6_t *)ip)->ip6_plen) +
-				       sizeof(ip6_t);
+				    sizeof(ip6_t);
 #else
 				mb->mb_len = 0;
 #endif
@@ -155,10 +151,10 @@ text_readip(mb_t *mb, char **ifn, int *dir)
 static int
 parseline(char *line, ip_t *ip, char **ifn, int *out)
 {
-	tcphdr_t	th, *tcp = &th;
-	struct	icmp	icmp, *ic = &icmp;
-	char	*cps[20], **cpp, c, ipopts[68];
-	int	i, r;
+	tcphdr_t th, *tcp = &th;
+	struct icmp icmp, *ic = &icmp;
+	char *cps[20], **cpp, c, ipopts[68];
+	int i, r;
 
 	if (*ifn)
 		free(*ifn);
@@ -169,7 +165,7 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 	IP_HL_A(ip, sizeof(*ip) >> 2);
 	IP_V_A(ip, IPVERSION);
 	ip->ip_ttl = 63;
-	for (i = 0, cps[0] = strtok(line, " \b\t\r\n"); cps[i] && i < 19; )
+	for (i = 0, cps[0] = strtok(line, " \b\t\r\n"); cps[i] && i < 19;)
 		cps[++i] = strtok(NULL, " \b\t\r\n");
 
 	cpp = cps;
@@ -229,7 +225,7 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 	if (!*cpp)
 		return (1);
 	if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP) {
-		char	*last;
+		char *last;
 
 		last = strchr(*cpp, ',');
 		if (!last) {
@@ -249,7 +245,7 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 		return (1);
 
 	if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP) {
-		char	*last;
+		char *last;
 
 		last = strchr(*cpp, ',');
 		if (!last) {
@@ -263,12 +259,12 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 	cpp++;
 	if (ip->ip_p == IPPROTO_TCP) {
 		if (*cpp != NULL) {
-			char	*s, *t;
+			char *s, *t;
 
 			tcp->th_flags = 0;
 			for (s = *cpp; *s; s++)
-				if ((t  = strchr(myflagset, *s)))
-					tcp->th_flags |= myflags[t-myflagset];
+				if ((t = strchr(myflagset, *s)))
+					tcp->th_flags |= myflags[t - myflagset];
 			if (tcp->th_flags)
 				cpp++;
 		}
@@ -286,7 +282,7 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 			cpp++;
 		}
 	} else if (*cpp && ip->ip_p == IPPROTO_ICMP) {
-		char	*t;
+		char *t;
 
 		t = strchr(*cpp, ',');
 		if (t != NULL)
@@ -305,7 +301,7 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 	}
 
 	if (*cpp && !strcasecmp(*cpp, "opt")) {
-		u_long	olen;
+		u_long olen;
 
 		cpp++;
 		olen = buildopts(*cpp, ipopts, (IP_HL(ip) - 5) << 2);
@@ -317,14 +313,12 @@ parseline(char *line, ip_t *ip, char **ifn, int *out)
 	}
 	if (ip->ip_p == IPPROTO_TCP || ip->ip_p == IPPROTO_UDP)
 		bcopy((char *)tcp, ((char *)ip) + (IP_HL(ip) << 2),
-			sizeof(*tcp));
+		    sizeof(*tcp));
 	else if (ip->ip_p == IPPROTO_ICMP)
-		bcopy((char *)ic, ((char *)ip) + (IP_HL(ip) << 2),
-			sizeof(*ic));
+		bcopy((char *)ic, ((char *)ip) + (IP_HL(ip) << 2), sizeof(*ic));
 	ip->ip_len = htons(ip->ip_len);
 	return (0);
 }
-
 
 #ifdef USE_INET6
 int
@@ -373,18 +367,17 @@ parseipv6(char **cpp, ip6_t *ip6, char **ifn, int *out)
 	if (!*cpp)
 		return (1);
 
-	switch (ip6->ip6_nxt)
-	{
-	case IPPROTO_TCP :
+	switch (ip6->ip6_nxt) {
+	case IPPROTO_TCP:
 		ip6->ip6_plen = sizeof(struct tcphdr);
 		break;
-	case IPPROTO_UDP :
+	case IPPROTO_UDP:
 		ip6->ip6_plen = sizeof(struct udphdr);
 		break;
-	case IPPROTO_ICMPV6 :
+	case IPPROTO_ICMPV6:
 		ip6->ip6_plen = ICMP6ERR_IPICMPHLEN;
 		break;
-	default :
+	default:
 		break;
 	}
 
@@ -427,7 +420,7 @@ parseipv6(char **cpp, ip6_t *ip6, char **ifn, int *out)
 
 	if (inet_pton(AF_INET6, *cpp, &ip6->ip6_dst) != 1) {
 		fprintf(stderr, "cannot parse destination address '%s'\n",
-			*cpp);
+		    *cpp);
 		return (1);
 	}
 
@@ -438,8 +431,8 @@ parseipv6(char **cpp, ip6_t *ip6, char **ifn, int *out)
 
 			tcp->th_flags = 0;
 			for (s = *cpp; *s; s++)
-				if ((t  = strchr(myflagset, *s)))
-					tcp->th_flags |= myflags[t-myflagset];
+				if ((t = strchr(myflagset, *s)))
+					tcp->th_flags |= myflags[t - myflagset];
 			if (tcp->th_flags)
 				cpp++;
 		}
@@ -476,11 +469,9 @@ parseipv6(char **cpp, ip6_t *ip6, char **ifn, int *out)
 	}
 
 	if (ip6->ip6_nxt == IPPROTO_TCP || ip6->ip6_nxt == IPPROTO_UDP) {
-		bcopy((char *)tcp, (char *)ip6 + sizeof(*ip6),
-			sizeof(*tcp));
+		bcopy((char *)tcp, (char *)ip6 + sizeof(*ip6), sizeof(*tcp));
 	} else if (ip6->ip6_nxt == IPPROTO_ICMPV6) {
-		bcopy((char *)ic6, (char *)ip6 + sizeof(*ip6),
-			sizeof(*ic6));
+		bcopy((char *)ic6, (char *)ip6 + sizeof(*ip6), sizeof(*ic6));
 	}
 
 	/*

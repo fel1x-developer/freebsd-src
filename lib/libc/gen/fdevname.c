@@ -26,10 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/ioctl.h>
+
 #include <stdlib.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 char *

@@ -58,7 +58,6 @@
 #include <compat/linux/linux_file.h>
 #include <compat/linux/linux_util.h>
 
-
 static int
 linux_kern_fstat(struct thread *td, int fd, struct stat *sbp)
 {
@@ -92,17 +91,19 @@ linux_kern_statat(struct thread *td, int flag, int fd, const char *path,
 	struct nameidata nd;
 	int error;
 
-	if ((flag & ~(AT_SYMLINK_NOFOLLOW | AT_RESOLVE_BENEATH |
-	    AT_EMPTY_PATH)) != 0)
+	if ((flag &
+		~(AT_SYMLINK_NOFOLLOW | AT_RESOLVE_BENEATH | AT_EMPTY_PATH)) !=
+	    0)
 		return (EINVAL);
 
-	NDINIT_ATRIGHTS(&nd, LOOKUP, at2cnpflags(flag, AT_RESOLVE_BENEATH |
-	    AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH) | LOCKSHARED | LOCKLEAF |
-	    AUDITVNODE1, pathseg, path, fd, &cap_fstat_rights);
+	NDINIT_ATRIGHTS(&nd, LOOKUP,
+	    at2cnpflags(flag,
+		AT_RESOLVE_BENEATH | AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH) |
+		LOCKSHARED | LOCKLEAF | AUDITVNODE1,
+	    pathseg, path, fd, &cap_fstat_rights);
 
 	if ((error = namei(&nd)) != 0) {
-		if (error == ENOTDIR &&
-		    (nd.ni_resflags & NIRES_EMPTYPATH) != 0)
+		if (error == ENOTDIR && (nd.ni_resflags & NIRES_EMPTYPATH) != 0)
 			error = linux_kern_fstat(td, fd, sbp);
 		return (error);
 	}
@@ -162,7 +163,6 @@ newstat_copyout(struct stat *buf, void *ubuf)
 
 	return (copyout(&tbuf, ubuf, sizeof(tbuf)));
 }
-
 
 #ifdef LINUX_LEGACY_SYSCALLS
 int
@@ -268,53 +268,54 @@ linux_lstat(struct thread *td, struct linux_lstat_args *args)
 #endif /* __i386__ || (__amd64__ && COMPAT_LINUX32) */
 
 struct l_statfs {
-	l_long		f_type;
-	l_long		f_bsize;
-	l_long		f_blocks;
-	l_long		f_bfree;
-	l_long		f_bavail;
-	l_long		f_files;
-	l_long		f_ffree;
-	l_fsid_t	f_fsid;
-	l_long		f_namelen;
-	l_long		f_frsize;
-	l_long		f_flags;
-	l_long		f_spare[4];
+	l_long f_type;
+	l_long f_bsize;
+	l_long f_blocks;
+	l_long f_bfree;
+	l_long f_bavail;
+	l_long f_files;
+	l_long f_ffree;
+	l_fsid_t f_fsid;
+	l_long f_namelen;
+	l_long f_frsize;
+	l_long f_flags;
+	l_long f_spare[4];
 };
 
-#define	LINUX_CODA_SUPER_MAGIC	0x73757245L
-#define	LINUX_EXT2_SUPER_MAGIC	0xEF53L
-#define	LINUX_HPFS_SUPER_MAGIC	0xf995e849L
-#define	LINUX_ISOFS_SUPER_MAGIC	0x9660L
-#define	LINUX_MSDOS_SUPER_MAGIC	0x4d44L
-#define	LINUX_NCP_SUPER_MAGIC	0x564cL
-#define	LINUX_NFS_SUPER_MAGIC	0x6969L
-#define	LINUX_NTFS_SUPER_MAGIC	0x5346544EL
-#define	LINUX_PROC_SUPER_MAGIC	0x9fa0L
-#define	LINUX_UFS_SUPER_MAGIC	0x00011954L	/* XXX - UFS_MAGIC in Linux */
-#define	LINUX_ZFS_SUPER_MAGIC	0x2FC12FC1
-#define	LINUX_DEVFS_SUPER_MAGIC	0x1373L
-#define	LINUX_SHMFS_MAGIC	0x01021994
+#define LINUX_CODA_SUPER_MAGIC 0x73757245L
+#define LINUX_EXT2_SUPER_MAGIC 0xEF53L
+#define LINUX_HPFS_SUPER_MAGIC 0xf995e849L
+#define LINUX_ISOFS_SUPER_MAGIC 0x9660L
+#define LINUX_MSDOS_SUPER_MAGIC 0x4d44L
+#define LINUX_NCP_SUPER_MAGIC 0x564cL
+#define LINUX_NFS_SUPER_MAGIC 0x6969L
+#define LINUX_NTFS_SUPER_MAGIC 0x5346544EL
+#define LINUX_PROC_SUPER_MAGIC 0x9fa0L
+#define LINUX_UFS_SUPER_MAGIC 0x00011954L /* XXX - UFS_MAGIC in Linux */
+#define LINUX_ZFS_SUPER_MAGIC 0x2FC12FC1
+#define LINUX_DEVFS_SUPER_MAGIC 0x1373L
+#define LINUX_SHMFS_MAGIC 0x01021994
 
 static long
 bsd_to_linux_ftype(const char *fstypename)
 {
 	int i;
-	static struct {const char *bsd_name; long linux_type;} b2l_tbl[] = {
-		{"ufs",     LINUX_UFS_SUPER_MAGIC},
-		{"zfs",     LINUX_ZFS_SUPER_MAGIC},
-		{"cd9660",  LINUX_ISOFS_SUPER_MAGIC},
-		{"nfs",     LINUX_NFS_SUPER_MAGIC},
-		{"ext2fs",  LINUX_EXT2_SUPER_MAGIC},
-		{"procfs",  LINUX_PROC_SUPER_MAGIC},
-		{"msdosfs", LINUX_MSDOS_SUPER_MAGIC},
-		{"ntfs",    LINUX_NTFS_SUPER_MAGIC},
-		{"nwfs",    LINUX_NCP_SUPER_MAGIC},
-		{"hpfs",    LINUX_HPFS_SUPER_MAGIC},
-		{"coda",    LINUX_CODA_SUPER_MAGIC},
-		{"devfs",   LINUX_DEVFS_SUPER_MAGIC},
-		{"tmpfs",   LINUX_SHMFS_MAGIC},
-		{NULL,      0L}};
+	static struct {
+		const char *bsd_name;
+		long linux_type;
+	} b2l_tbl[] = { { "ufs", LINUX_UFS_SUPER_MAGIC },
+		{ "zfs", LINUX_ZFS_SUPER_MAGIC },
+		{ "cd9660", LINUX_ISOFS_SUPER_MAGIC },
+		{ "nfs", LINUX_NFS_SUPER_MAGIC },
+		{ "ext2fs", LINUX_EXT2_SUPER_MAGIC },
+		{ "procfs", LINUX_PROC_SUPER_MAGIC },
+		{ "msdosfs", LINUX_MSDOS_SUPER_MAGIC },
+		{ "ntfs", LINUX_NTFS_SUPER_MAGIC },
+		{ "nwfs", LINUX_NCP_SUPER_MAGIC },
+		{ "hpfs", LINUX_HPFS_SUPER_MAGIC },
+		{ "coda", LINUX_CODA_SUPER_MAGIC },
+		{ "devfs", LINUX_DEVFS_SUPER_MAGIC },
+		{ "tmpfs", LINUX_SHMFS_MAGIC }, { NULL, 0L } };
 
 	for (i = 0; b2l_tbl[i].bsd_name != NULL; i++)
 		if (strcmp(b2l_tbl[i].bsd_name, fstypename) == 0)
@@ -392,7 +393,8 @@ linux_statfs(struct thread *td, struct linux_statfs_args *args)
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 static void
-bsd_to_linux_statfs64(struct statfs *bsd_statfs, struct l_statfs64 *linux_statfs)
+bsd_to_linux_statfs64(struct statfs *bsd_statfs,
+    struct l_statfs64 *linux_statfs)
 {
 
 	linux_statfs->f_type = bsd_to_linux_ftype(bsd_statfs->f_fstypename);
@@ -468,12 +470,11 @@ linux_fstatfs(struct thread *td, struct linux_fstatfs_args *args)
 	return (copyout(&linux_statfs, args->buf, sizeof(linux_statfs)));
 }
 
-struct l_ustat
-{
-	l_daddr_t	f_tfree;
-	l_ino_t		f_tinode;
-	char		f_fname[6];
-	char		f_fpack[6];
+struct l_ustat {
+	l_daddr_t f_tfree;
+	l_ino_t f_tinode;
+	char f_fname[6];
+	char f_fpack[6];
 };
 
 #ifdef LINUX_LEGACY_SYSCALLS
@@ -564,19 +565,19 @@ linux_fstatat64(struct thread *td, struct linux_fstatat64_args *args)
 	int error, dfd, flag, unsupported;
 	struct stat buf;
 
-	unsupported = args->flag & ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
+	unsupported = args->flag &
+	    ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
 	if (unsupported != 0) {
 		linux_msg(td, "fstatat64 unsupported flag 0x%x", unsupported);
 		return (EINVAL);
 	}
-	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) ?
-	    AT_SYMLINK_NOFOLLOW : 0;
-	flag |= (args->flag & LINUX_AT_EMPTY_PATH) ?
-	    AT_EMPTY_PATH : 0;
+	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) ? AT_SYMLINK_NOFOLLOW :
+							  0;
+	flag |= (args->flag & LINUX_AT_EMPTY_PATH) ? AT_EMPTY_PATH : 0;
 
 	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
-	error = linux_kern_statat(td, flag, dfd, args->pathname,
-	    UIO_USERSPACE, &buf);
+	error = linux_kern_statat(td, flag, dfd, args->pathname, UIO_USERSPACE,
+	    &buf);
 	if (error == 0)
 		error = stat64_copyout(&buf, args->statbuf);
 
@@ -591,20 +592,20 @@ linux_newfstatat(struct thread *td, struct linux_newfstatat_args *args)
 	int error, dfd, flag, unsupported;
 	struct stat buf;
 
-	unsupported = args->flag & ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
+	unsupported = args->flag &
+	    ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
 	if (unsupported != 0) {
 		linux_msg(td, "fstatat unsupported flag 0x%x", unsupported);
 		return (EINVAL);
 	}
 
-	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) ?
-	    AT_SYMLINK_NOFOLLOW : 0;
-	flag |= (args->flag & LINUX_AT_EMPTY_PATH) ?
-	    AT_EMPTY_PATH : 0;
+	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) ? AT_SYMLINK_NOFOLLOW :
+							  0;
+	flag |= (args->flag & LINUX_AT_EMPTY_PATH) ? AT_EMPTY_PATH : 0;
 
 	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
-	error = linux_kern_statat(td, flag, dfd, args->pathname,
-	    UIO_USERSPACE, &buf);
+	error = linux_kern_statat(td, flag, dfd, args->pathname, UIO_USERSPACE,
+	    &buf);
 	if (error == 0)
 		error = newstat_copyout(&buf, args->statbuf);
 
@@ -647,7 +648,7 @@ linux_syncfs(struct thread *td, struct linux_syncfs_args *args)
 	}
 	vfs_unbusy(mp);
 
- out:
+out:
 	vrele(vp);
 	return (error);
 }
@@ -691,17 +692,18 @@ linux_statx(struct thread *td, struct linux_statx_args *args)
 	int error, dirfd, flags, unsupported;
 	struct stat buf;
 
-	unsupported = args->flags & ~(LINUX_AT_SYMLINK_NOFOLLOW |
-	    LINUX_AT_EMPTY_PATH | LINUX_AT_NO_AUTOMOUNT);
+	unsupported = args->flags &
+	    ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH |
+		LINUX_AT_NO_AUTOMOUNT);
 	if (unsupported != 0) {
 		linux_msg(td, "statx unsupported flags 0x%x", unsupported);
 		return (EINVAL);
 	}
 
 	flags = (args->flags & LINUX_AT_SYMLINK_NOFOLLOW) ?
-	    AT_SYMLINK_NOFOLLOW : 0;
-	flags |= (args->flags & LINUX_AT_EMPTY_PATH) ?
-	    AT_EMPTY_PATH : 0;
+	    AT_SYMLINK_NOFOLLOW :
+	    0;
+	flags |= (args->flags & LINUX_AT_EMPTY_PATH) ? AT_EMPTY_PATH : 0;
 
 	dirfd = (args->dirfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dirfd;
 	error = linux_kern_statat(td, flags, dirfd, args->pathname,

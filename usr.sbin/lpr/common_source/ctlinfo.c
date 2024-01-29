@@ -33,7 +33,7 @@
  * ------+---------+---------+---------+---------+---------+---------+---------*
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * ctlinfo - This collection of routines will know everything there is to
  * know about the information inside a control file ('cf*') which is used
@@ -52,6 +52,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -63,15 +64,16 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+
 #include "ctlinfo.h"
 
 struct cjprivate {
 	struct cjobinfo pub;
-	char	*cji_buff;		/* buffer for getline */
-	char	*cji_eobuff;		/* last byte IN the buffer */
-	FILE	*cji_fstream;
-	int	 cji_buffsize;		/* # bytes in the buffer */
-	int	 cji_dumpit;
+	char *cji_buff;	  /* buffer for getline */
+	char *cji_eobuff; /* last byte IN the buffer */
+	FILE *cji_fstream;
+	int cji_buffsize; /* # bytes in the buffer */
+	int cji_dumpit;
 };
 
 /*
@@ -79,14 +81,14 @@ struct cjprivate {
  * range of unsigned char.  Define wrappers which take values of type 'char',
  * whether signed or unsigned, and ensure they end up in the right range.
  */
-#define	isdigitch(Anychar) isdigit((u_char)(Anychar))
-#define	islowerch(Anychar) islower((u_char)(Anychar))
-#define	isupperch(Anychar) isupper((u_char)(Anychar))
-#define	tolowerch(Anychar) tolower((u_char)(Anychar))
+#define isdigitch(Anychar) isdigit((u_char)(Anychar))
+#define islowerch(Anychar) islower((u_char)(Anychar))
+#define isupperch(Anychar) isupper((u_char)(Anychar))
+#define tolowerch(Anychar) tolower((u_char)(Anychar))
 
-#define	OTHER_USERID_CHARS  "-_"	/* special chars valid in a userid */
+#define OTHER_USERID_CHARS "-_" /* special chars valid in a userid */
 
-#define roundup(x, y)   ((((x)+((y)-1))/(y))*(y))
+#define roundup(x, y) ((((x) + ((y)-1)) / (y)) * (y))
 
 /*
  * This has to be large enough to fit the maximum length of a single line
@@ -96,17 +98,17 @@ struct cjprivate {
  * 1 ('H') + NI_MAXHOST (remote hostname) + 2 ('\n\0').  Other lines can be
  * even longer than those.  So, pick some nice, large, arbitrary value.
  */
-#define CTI_LINEMAX  PATH_MAX+NI_MAXHOST+5
+#define CTI_LINEMAX PATH_MAX + NI_MAXHOST + 5
 
-extern const char	*from_host;	/* client's machine name */
-extern const char	*from_ip;	/* client machine's IP address */
+extern const char *from_host; /* client's machine name */
+extern const char *from_ip;   /* client machine's IP address */
 
 __BEGIN_DECLS
-void		 ctl_dumpcji(FILE *_dbg_stream, const char *_heading,
-		    struct cjobinfo *_cjinf);
-static char	*ctl_getline(struct cjobinfo *_cjinf);
-static void	 ctl_rewindcf(struct cjobinfo *_cjinf);
-char		*ctl_rmjob(const char *_ptrname, const char *_cfname);
+void ctl_dumpcji(FILE *_dbg_stream, const char *_heading,
+    struct cjobinfo *_cjinf);
+static char *ctl_getline(struct cjobinfo *_cjinf);
+static void ctl_rewindcf(struct cjobinfo *_cjinf);
+char *ctl_rmjob(const char *_ptrname, const char *_cfname);
 __END_DECLS
 
 /*
@@ -114,18 +116,18 @@ __END_DECLS
  * platforms other than FreeBSD.
  */
 #ifndef __FreeBSD__
-#   ifndef NAME_MAX
-#	define NAME_MAX	255
-#   endif
-#   ifndef NI_MAXHOST
-#	define NI_MAXHOST	1025
-#   endif
-#   ifndef PATH_MAX
-#	define PATH_MAX	1024
-#   endif
+#ifndef NAME_MAX
+#define NAME_MAX 255
+#endif
+#ifndef NI_MAXHOST
+#define NI_MAXHOST 1025
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
 __BEGIN_DECLS
-char		*strdup(const char *_src);
-size_t		 strlcpy(char *_dst, const char *_src, size_t _siz);
+char *strdup(const char *_src);
+size_t strlcpy(char *_dst, const char *_src, size_t _siz);
 __END_DECLS
 #endif
 
@@ -224,10 +226,10 @@ __END_DECLS
 void
 ctl_freeinf(struct cjobinfo *cjinf)
 {
-#define FREESTR(xStr) \
-	if (xStr != NULL) { \
-		free(xStr); \
-		xStr = NULL;\
+#define FREESTR(xStr)        \
+	if (xStr != NULL) {  \
+		free(xStr);  \
+		xStr = NULL; \
 	}
 
 	struct cjprivate *cpriv;
@@ -279,8 +281,8 @@ ctl_readcf(const char *ptrname, const char *cfname)
 
 	cfile = fopen(cfname, "r");
 	if (cfile == NULL) {
-		syslog(LOG_ERR, "%s: ctl_readcf error fopen(%s): %s",
-		    ptrname, cfname, strerror(errno));
+		syslog(LOG_ERR, "%s: ctl_readcf error fopen(%s): %s", ptrname,
+		    cfname, strerror(errno));
 		return NULL;
 	}
 
@@ -433,7 +435,7 @@ ctl_renametf(const char *ptrname, const char *tfname)
 	FILE *newcf;
 	struct cjobinfo *cjinf;
 	char *lbuff, *slash, *cp;
-	char tfname2[NAME_MAX+1], cfname2[NAME_MAX+1];
+	char tfname2[NAME_MAX + 1], cfname2[NAME_MAX + 1];
 	char errm[CTI_LINEMAX];
 
 #ifdef TRIGGERTEST_FNAME
@@ -458,9 +460,9 @@ ctl_renametf(const char *ptrname, const char *tfname)
 		return NULL;
 	}
 #endif
-	cjinf = NULL;		/* in case of early jump to error_ret */
-	newcf = NULL;		/* in case of early jump to error_ret */
-	*errm = '\0';		/* in case of early jump to error_ret */
+	cjinf = NULL; /* in case of early jump to error_ret */
+	newcf = NULL; /* in case of early jump to error_ret */
+	*errm = '\0'; /* in case of early jump to error_ret */
 
 	chk3rd = tfname[2];
 	if ((tfname[0] != 't') || (tfname[1] != 'f') || (!isalpha(chk3rd))) {
@@ -481,20 +483,18 @@ ctl_renametf(const char *ptrname, const char *tfname)
 	 * gives us greater control over file-creation issues.
 	 */
 	strlcpy(tfname2, tfname, sizeof(tfname2));
-	tfname2[0] = 'r';		/* rf<letter><job><hostname> */
-	newfd = open(tfname2, O_WRONLY|O_CREAT|O_TRUNC, 0660);
+	tfname2[0] = 'r'; /* rf<letter><job><hostname> */
+	newfd = open(tfname2, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	if (newfd == -1) {
-		snprintf(errm, sizeof(errm),
-		    "ctl_renametf error open(%s): %s", tfname2,
-		    strerror(errno));
+		snprintf(errm, sizeof(errm), "ctl_renametf error open(%s): %s",
+		    tfname2, strerror(errno));
 		goto error_ret;
 	}
 	newcf = fdopen(newfd, "w");
 	if (newcf == NULL) {
 		close(newfd);
-		snprintf(errm, sizeof(errm),
-		    "ctl_renametf error fopen(%s): %s", tfname2,
-		    strerror(errno));
+		snprintf(errm, sizeof(errm), "ctl_renametf error fopen(%s): %s",
+		    tfname2, strerror(errno));
 		goto error_ret;
 	}
 
@@ -547,7 +547,7 @@ ctl_renametf(const char *ptrname, const char *tfname)
 	if (cjinf->cji_acctuser == NULL)
 		nogood = 1;
 	else if (strcmp(cjinf->cji_acctuser, ".na.") == 0)
-		;			/* No further checks needed... */
+		; /* No further checks needed... */
 	else {
 		has_uc = 0;
 		cp = cjinf->cji_acctuser;
@@ -555,11 +555,11 @@ ctl_renametf(const char *ptrname, const char *tfname)
 			*cp++ = '_';
 		for (; *cp != '\0'; cp++) {
 			if (islowerch(*cp) || isdigitch(*cp))
-				continue;	/* Standard valid characters */
+				continue; /* Standard valid characters */
 			if (strchr(OTHER_USERID_CHARS, *cp) != NULL)
-				continue;	/* Some more valid characters */
+				continue; /* Some more valid characters */
 			if (isupperch(*cp)) {
-				has_uc = 1;	/* These may be valid... */
+				has_uc = 1; /* These may be valid... */
 				continue;
 			}
 			*cp = '_';
@@ -648,7 +648,7 @@ ctl_renametf(const char *ptrname, const char *tfname)
 			 */
 			slash = strchr(lbuff, '/');
 			if (slash != NULL) {
-				break;		/* skip this line */
+				break; /* skip this line */
 			}
 			/*
 			 * Okay, another kind of broken lpr implementation
@@ -690,7 +690,7 @@ ctl_renametf(const char *ptrname, const char *tfname)
 	}
 
 	strlcpy(cfname2, tfname, sizeof(cfname2));
-	cfname2[0] = 'c';		/* rename new file to 'cfA*' */
+	cfname2[0] = 'c'; /* rename new file to 'cfA*' */
 	res = link(tfname2, cfname2);
 	if (res != 0) {
 		snprintf(errm, sizeof(errm),
@@ -704,10 +704,10 @@ ctl_renametf(const char *ptrname, const char *tfname)
 	{
 		struct stat tfstat;
 		size_t size1;
-		tfstat.st_size = 1;	/* certainly invalid value */
+		tfstat.st_size = 1; /* certainly invalid value */
 		res = stat(tfname, &tfstat);
 		size1 = tfstat.st_size;
-		tfstat.st_size = 2;	/* certainly invalid value */
+		tfstat.st_size = 2; /* certainly invalid value */
 		res = stat(tfname2, &tfstat);
 		/*
 		 * If the sizes do not match, or either stat call failed,
@@ -730,7 +730,7 @@ ctl_renametf(const char *ptrname, const char *tfname)
 #endif
 	unlink(tfname);
 	unlink(tfname2);
-    
+
 	return NULL;
 
 error_ret:
@@ -757,14 +757,14 @@ ctl_rewindcf(struct cjobinfo *cjinf)
 		    (void *)cjinf, (void *)cpriv);
 		return;
 	}
-	
-	rewind(cpriv->cji_fstream);		/* assume no errors... :-) */
+
+	rewind(cpriv->cji_fstream); /* assume no errors... :-) */
 }
 
 char *
 ctl_rmjob(const char *ptrname, const char *cfname)
 {
-	struct cjobinfo	*cjinf;
+	struct cjobinfo *cjinf;
 	char *lbuff;
 	char errm[CTI_LINEMAX];
 
@@ -804,13 +804,13 @@ ctl_rmjob(const char *ptrname, const char *cfname)
 void
 ctl_dumpcji(FILE *dbg_stream, const char *heading, struct cjobinfo *cjinf)
 {
-#define PRINTSTR(xHdr,xStr) \
-	astr = xStr; \
-	ctl_dbgline++; \
+#define PRINTSTR(xHdr, xStr)                                    \
+	astr = xStr;                                            \
+	ctl_dbgline++;                                          \
 	fprintf(dbg_stream, "%4d] %12s = ", ctl_dbgline, xHdr); \
-	if (astr == NULL) \
-		fprintf(dbg_stream, "NULL\n"); \
-	else \
+	if (astr == NULL)                                       \
+		fprintf(dbg_stream, "NULL\n");                  \
+	else                                                    \
 		fprintf(dbg_stream, "%p -> %s\n", astr, astr)
 
 	struct cjprivate *cpriv;
@@ -818,8 +818,7 @@ ctl_dumpcji(FILE *dbg_stream, const char *heading, struct cjobinfo *cjinf)
 
 	if (cjinf == NULL) {
 		fprintf(dbg_stream,
-		    "ctl_dumpcji: ptr to cjobinfo for '%s' is NULL\n",
-		    heading);
+		    "ctl_dumpcji: ptr to cjobinfo for '%s' is NULL\n", heading);
 		return;
 	}
 	cpriv = cjinf->cji_priv;

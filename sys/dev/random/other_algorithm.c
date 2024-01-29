@@ -44,25 +44,32 @@
 
 #ifdef _KERNEL
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 
+#include <dev/random/hash.h>
+#include <dev/random/other_algorithm.h>
+#include <dev/random/random_harvestq.h>
+#include <dev/random/randomdev.h>
+#include <dev/random/uint128.h>
+
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha256.h>
-
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
-#include <dev/random/random_harvestq.h>
-#include <dev/random/uint128.h>
-#include <dev/random/other_algorithm.h>
 #else /* !_KERNEL */
+#include <dev/random/hash.h>
+#include <dev/random/other_algorithm.h>
+#include <dev/random/randomdev.h>
+#include <dev/random/uint128.h>
+
+#include <crypto/rijndael/rijndael-api-fst.h>
+#include <crypto/sha2/sha256.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -71,14 +78,6 @@
 #include <threads.h>
 
 #include "unit_test.h"
-
-#include <crypto/rijndael/rijndael-api-fst.h>
-#include <crypto/sha2/sha256.h>
-
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
-#include <dev/random/uint128.h>
-#include <dev/random/other_algorithm.h>
 #endif /* _KERNEL */
 
 static void random_other_pre_read(void);
@@ -96,14 +95,14 @@ static void random_other_process_event(struct harvest_event *);
 #ifdef RANDOM_LOADABLE
 static
 #endif
-const struct random_algorithm random_alg_context = {
-	.ra_ident = "other",
-	.ra_pre_read = random_other_pre_read,
-	.ra_read = random_other_read,
-	.ra_seeded = random_other_seeded,
-	.ra_event_processor = random_other_process_event,
-	.ra_poolcount = RANDOM_OTHER_NPOOLS,
-};
+    const struct random_algorithm random_alg_context = {
+	    .ra_ident = "other",
+	    .ra_pre_read = random_other_pre_read,
+	    .ra_read = random_other_read,
+	    .ra_seeded = random_other_seeded,
+	    .ra_event_processor = random_other_process_event,
+	    .ra_poolcount = RANDOM_OTHER_NPOOLS,
+    };
 
 /* Use a mutex to protect your reseed variables? */
 static mtx_t other_mtx;

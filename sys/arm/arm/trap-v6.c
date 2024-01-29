@@ -30,25 +30,25 @@
 #include "opt_ktrace.h"
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/signalvar.h>
-#include <sys/ktr.h>
 #include <sys/vmmeter.h>
 #ifdef KTRACE
-#include <sys/uio.h>
 #include <sys/ktrace.h>
+#include <sys/uio.h>
 #endif
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
-#include <vm/vm_extern.h>
 #include <vm/vm_param.h>
 
 #include <machine/cpu.h>
@@ -58,6 +58,7 @@
 
 #ifdef KDB
 #include <sys/kdb.h>
+
 #include <machine/db_machdep.h>
 #endif
 
@@ -70,7 +71,7 @@ extern char cachebailout[];
 struct ksig {
 	int sig;
 	u_long code;
-	vm_offset_t	addr;
+	vm_offset_t addr;
 };
 
 typedef int abort_func_t(struct trapframe *, u_int, u_int, u_int, u_int,
@@ -81,8 +82,8 @@ static abort_func_t abort_align;
 static abort_func_t abort_icache;
 
 struct abort {
-	abort_func_t	*func;
-	const char	*desc;
+	abort_func_t *func;
+	const char *desc;
 };
 
 /*
@@ -123,43 +124,38 @@ struct abort {
  *    fault mechanism is held including vm_fault().
  */
 
-static const struct abort aborts[] = {
-	{abort_fatal,	"Undefined Code (0x000)"},
-	{abort_align,	"Alignment Fault"},
-	{abort_fatal,	"Debug Event"},
-	{NULL,		"Access Bit (L1)"},
-	{NULL,		"Instruction cache maintenance"},
-	{NULL,		"Translation Fault (L1)"},
-	{NULL,		"Access Bit (L2)"},
-	{NULL,		"Translation Fault (L2)"},
+static const struct abort aborts[] = { { abort_fatal,
+					   "Undefined Code (0x000)" },
+	{ abort_align, "Alignment Fault" }, { abort_fatal, "Debug Event" },
+	{ NULL, "Access Bit (L1)" }, { NULL, "Instruction cache maintenance" },
+	{ NULL, "Translation Fault (L1)" }, { NULL, "Access Bit (L2)" },
+	{ NULL, "Translation Fault (L2)" },
 
-	{abort_fatal,	"External Abort"},
-	{abort_fatal,	"Domain Fault (L1)"},
-	{abort_fatal,	"Undefined Code (0x00A)"},
-	{abort_fatal,	"Domain Fault (L2)"},
-	{abort_fatal,	"External Translation Abort (L1)"},
-	{NULL,		"Permission Fault (L1)"},
-	{abort_fatal,	"External Translation Abort (L2)"},
-	{NULL,		"Permission Fault (L2)"},
+	{ abort_fatal, "External Abort" }, { abort_fatal, "Domain Fault (L1)" },
+	{ abort_fatal, "Undefined Code (0x00A)" },
+	{ abort_fatal, "Domain Fault (L2)" },
+	{ abort_fatal, "External Translation Abort (L1)" },
+	{ NULL, "Permission Fault (L1)" },
+	{ abort_fatal, "External Translation Abort (L2)" },
+	{ NULL, "Permission Fault (L2)" },
 
-	{abort_fatal,	"TLB Conflict Abort"},
-	{abort_fatal,	"Undefined Code (0x401)"},
-	{abort_fatal,	"Undefined Code (0x402)"},
-	{abort_fatal,	"Undefined Code (0x403)"},
-	{abort_fatal,	"Undefined Code (0x404)"},
-	{abort_fatal,	"Undefined Code (0x405)"},
-	{abort_fatal,	"Asynchronous External Abort"},
-	{abort_fatal,	"Undefined Code (0x407)"},
+	{ abort_fatal, "TLB Conflict Abort" },
+	{ abort_fatal, "Undefined Code (0x401)" },
+	{ abort_fatal, "Undefined Code (0x402)" },
+	{ abort_fatal, "Undefined Code (0x403)" },
+	{ abort_fatal, "Undefined Code (0x404)" },
+	{ abort_fatal, "Undefined Code (0x405)" },
+	{ abort_fatal, "Asynchronous External Abort" },
+	{ abort_fatal, "Undefined Code (0x407)" },
 
-	{abort_fatal,	"Asynchronous Parity Error on Memory Access"},
-	{abort_fatal,	"Parity Error on Memory Access"},
-	{abort_fatal,	"Undefined Code (0x40A)"},
-	{abort_fatal,	"Undefined Code (0x40B)"},
-	{abort_fatal,	"Parity Error on Translation (L1)"},
-	{abort_fatal,	"Undefined Code (0x40D)"},
-	{abort_fatal,	"Parity Error on Translation (L2)"},
-	{abort_fatal,	"Undefined Code (0x40F)"}
-};
+	{ abort_fatal, "Asynchronous Parity Error on Memory Access" },
+	{ abort_fatal, "Parity Error on Memory Access" },
+	{ abort_fatal, "Undefined Code (0x40A)" },
+	{ abort_fatal, "Undefined Code (0x40B)" },
+	{ abort_fatal, "Parity Error on Translation (L1)" },
+	{ abort_fatal, "Undefined Code (0x40D)" },
+	{ abort_fatal, "Parity Error on Translation (L2)" },
+	{ abort_fatal, "Undefined Code (0x40F)" } };
 
 static __inline void
 call_trapsignal(struct thread *td, int sig, int code, vm_offset_t addr,
@@ -167,8 +163,8 @@ call_trapsignal(struct thread *td, int sig, int code, vm_offset_t addr,
 {
 	ksiginfo_t ksi;
 
-	CTR4(KTR_TRAP, "%s: addr: %#x, sig: %d, code: %d",
-	   __func__, addr, sig, code);
+	CTR4(KTR_TRAP, "%s: addr: %#x, sig: %d, code: %d", __func__, addr, sig,
+	    code);
 
 	/*
 	 * TODO: some info would be nice to know
@@ -290,7 +286,7 @@ abort_handler(struct trapframe *tf, int prefetch)
 	VM_CNT_INC(v_trap);
 	td = curthread;
 
-	fsr = (prefetch) ? cp15_ifsr_get(): cp15_dfsr_get();
+	fsr = (prefetch) ? cp15_ifsr_get() : cp15_dfsr_get();
 #if __ARM_ARCH >= 7
 	far = (prefetch) ? cp15_ifar_get() : cp15_dfar_get();
 #else
@@ -298,14 +294,14 @@ abort_handler(struct trapframe *tf, int prefetch)
 #endif
 
 	idx = FSR_TO_FAULT(fsr);
-	usermode = TRAPF_USERMODE(tf);	/* Abort came from user mode? */
+	usermode = TRAPF_USERMODE(tf); /* Abort came from user mode? */
 
 	/*
 	 * Apply BP hardening by flushing the branch prediction cache
 	 * for prefaults on kernel addresses.
 	 */
 	if (__predict_false(prefetch && far > VM_MAXUSER_ADDRESS &&
-	    (idx == FAULT_TRAN_L2 || idx == FAULT_PERM_L2))) {
+		(idx == FAULT_TRAN_L2 || idx == FAULT_PERM_L2))) {
 		bp_harden = PCPU_GET(bp_harden_kind);
 		if (bp_harden == PCPU_BP_HARDEN_KIND_BPIALL)
 			_CP15_BPIALL();
@@ -398,7 +394,7 @@ abort_handler(struct trapframe *tf, int prefetch)
 		 */
 		if (td->td_critnest != 0 ||
 		    WITNESS_CHECK(WARN_SLEEPOK | WARN_GIANTOK, NULL,
-		    "Kernel page fault") != 0) {
+			"Kernel page fault") != 0) {
 			abort_fatal(tf, idx, fsr, far, prefetch, td, &ksig);
 			return;
 		}
@@ -440,7 +436,7 @@ abort_handler(struct trapframe *tf, int prefetch)
 	 */
 	pcb = td->td_pcb;
 	if (__predict_false(pcb->pcb_onfault == cachebailout)) {
-		tf->tf_r0 = far;		/* return failing address */
+		tf->tf_r0 = far; /* return failing address */
 		tf->tf_pc = (register_t)pcb->pcb_onfault;
 		return;
 	}
@@ -477,8 +473,9 @@ abort_handler(struct trapframe *tf, int prefetch)
 		}
 
 		map = &vm->vm_map;
-		if (!usermode && (td->td_intr_nesting_level != 0 ||
-		    pcb->pcb_onfault == NULL)) {
+		if (!usermode &&
+		    (td->td_intr_nesting_level != 0 ||
+			pcb->pcb_onfault == NULL)) {
 			abort_fatal(tf, idx, fsr, far, prefetch, td, &ksig);
 			return;
 		}
@@ -494,8 +491,7 @@ abort_handler(struct trapframe *tf, int prefetch)
 #endif
 
 	/* Fault in the page. */
-	rv = vm_fault_trap(map, va, ftype, VM_FAULT_NORMAL, &ksig.sig,
-	    &ucode);
+	rv = vm_fault_trap(map, va, ftype, VM_FAULT_NORMAL, &ksig.sig, &ucode);
 	ksig.code = ucode;
 
 #ifdef INVARIANTS
@@ -564,8 +560,8 @@ abort_fatal(struct trapframe *tf, u_int idx, u_int fsr, u_int far,
 #endif
 
 	mode = usermode ? "user" : "kernel";
-	rw_mode  = fsr & FSR_WNR ? "write" : "read";
-	disable_interrupts(PSR_I|PSR_F);
+	rw_mode = fsr & FSR_WNR ? "write" : "read";
+	disable_interrupts(PSR_I | PSR_F);
 
 	if (td != NULL) {
 		printf("Fatal %s mode data abort: '%s' on %s\n", mode,
@@ -577,25 +573,23 @@ abort_fatal(struct trapframe *tf, u_int idx, u_int fsr, u_int far,
 			printf("Invalid,  ");
 		printf("spsr=%08x\n", tf->tf_spsr);
 	} else {
-		printf("Fatal %s mode prefetch abort at 0x%08x\n",
-		    mode, tf->tf_pc);
+		printf("Fatal %s mode prefetch abort at 0x%08x\n", mode,
+		    tf->tf_pc);
 		printf("trapframe: %p, spsr=%08x\n", tf, tf->tf_spsr);
 	}
 
-	printf("r0 =%08x, r1 =%08x, r2 =%08x, r3 =%08x\n",
-	    tf->tf_r0, tf->tf_r1, tf->tf_r2, tf->tf_r3);
-	printf("r4 =%08x, r5 =%08x, r6 =%08x, r7 =%08x\n",
-	    tf->tf_r4, tf->tf_r5, tf->tf_r6, tf->tf_r7);
-	printf("r8 =%08x, r9 =%08x, r10=%08x, r11=%08x\n",
-	    tf->tf_r8, tf->tf_r9, tf->tf_r10, tf->tf_r11);
+	printf("r0 =%08x, r1 =%08x, r2 =%08x, r3 =%08x\n", tf->tf_r0, tf->tf_r1,
+	    tf->tf_r2, tf->tf_r3);
+	printf("r4 =%08x, r5 =%08x, r6 =%08x, r7 =%08x\n", tf->tf_r4, tf->tf_r5,
+	    tf->tf_r6, tf->tf_r7);
+	printf("r8 =%08x, r9 =%08x, r10=%08x, r11=%08x\n", tf->tf_r8, tf->tf_r9,
+	    tf->tf_r10, tf->tf_r11);
 	printf("r12=%08x, ", tf->tf_r12);
 
 	if (usermode)
-		printf("usp=%08x, ulr=%08x",
-		    tf->tf_usr_sp, tf->tf_usr_lr);
+		printf("usp=%08x, ulr=%08x", tf->tf_usr_sp, tf->tf_usr_lr);
 	else
-		printf("ssp=%08x, slr=%08x",
-		    tf->tf_svc_sp, tf->tf_svc_lr);
+		printf("ssp=%08x, slr=%08x", tf->tf_svc_sp, tf->tf_svc_lr);
 	printf(", pc =%08x\n\n", tf->tf_pc);
 
 #ifdef KDB
@@ -616,7 +610,7 @@ abort_fatal(struct trapframe *tf, u_int idx, u_int fsr, u_int far,
  *
  *  FAULT_ALIGN - Alignment fault
  *
- * Everything should be aligned in kernel with exception of user to kernel 
+ * Everything should be aligned in kernel with exception of user to kernel
  * and vice versa data copying, so if pcb_onfault is not set, it's fatal.
  * We generate signal in case of abort from user mode.
  */
@@ -663,5 +657,5 @@ abort_icache(struct trapframe *tf, u_int idx, u_int fsr, u_int far,
 {
 
 	abort_fatal(tf, idx, fsr, far, prefetch, td, ksig);
-	return(0);
+	return (0);
 }

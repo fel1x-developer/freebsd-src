@@ -39,11 +39,11 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
-static int
-eofread(void *, char *, int);
+static int eofread(void *, char *, int);
 
 /* ARGSUSED */
 static int
@@ -54,8 +54,8 @@ eofread(void *cookie, char *buf, int len)
 }
 
 int
-vsscanf_l(const char * __restrict str, locale_t locale,
-		const char * __restrict fmt, __va_list ap)
+vsscanf_l(const char *__restrict str, locale_t locale,
+    const char *__restrict fmt, __va_list ap)
 {
 	FILE f = FAKE_FILE;
 	FIX_LOCALE(locale);
@@ -67,8 +67,7 @@ vsscanf_l(const char * __restrict str, locale_t locale,
 	return (__svfscanf(&f, locale, fmt, ap));
 }
 int
-vsscanf(const char * __restrict str, const char * __restrict fmt,
-	__va_list ap)
+vsscanf(const char *__restrict str, const char *__restrict fmt, __va_list ap)
 {
 	return vsscanf_l(str, __get_locale(), fmt, ap);
 }

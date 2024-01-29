@@ -28,13 +28,14 @@
  */
 
 #include <sys/types.h>
-#include <sys/syscall.h>
 #include <sys/aio.h>
+#include <sys/syscall.h>
+
+#include <errno.h>
+#include <signal.h>
+#include <stddef.h>
 
 #include "namespace.h"
-#include <errno.h>
-#include <stddef.h>
-#include <signal.h>
 #include "sigev_thread.h"
 #include "un-namespace.h"
 
@@ -53,11 +54,12 @@ extern int __sys_aio_read(struct aiocb *iocb);
 extern int __sys_aio_readv(struct aiocb *iocb);
 extern int __sys_aio_write(struct aiocb *iocb);
 extern int __sys_aio_writev(struct aiocb *iocb);
-extern ssize_t __sys_aio_waitcomplete(struct aiocb **iocbp, struct timespec *timeout);
+extern ssize_t __sys_aio_waitcomplete(struct aiocb **iocbp,
+    struct timespec *timeout);
 extern ssize_t __sys_aio_return(struct aiocb *iocb);
 extern int __sys_aio_error(struct aiocb *iocb);
 extern int __sys_aio_fsync(int op, struct aiocb *iocb);
-extern int __sys_lio_listio(int mode, struct aiocb * const list[], int nent,
+extern int __sys_lio_listio(int mode, struct aiocb *const list[], int nent,
     struct sigevent *sig);
 
 static void
@@ -83,7 +85,7 @@ aio_sigev_alloc(sigev_id_t id, struct sigevent *sigevent,
 		errno = EAGAIN;
 		return (-1);
 	}
-	
+
 	*saved_ev = *sigevent;
 	(*sn)->sn_id = id;
 	__sigev_get_sigevent(*sn, sigevent, (*sn)->sn_id);
@@ -109,7 +111,7 @@ aio_io(struct aiocb *iocb, int (*sysfunc)(struct aiocb *iocb))
 	}
 
 	ret = aio_sigev_alloc((sigev_id_t)iocb, &iocb->aio_sigevent, &sn,
-			      &saved_ev);
+	    &saved_ev);
 	if (ret)
 		return (ret);
 	ret = sysfunc(iocb);
@@ -205,7 +207,7 @@ __aio_fsync(int op, struct aiocb *iocb)
 		return __sys_aio_fsync(op, iocb);
 
 	ret = aio_sigev_alloc((sigev_id_t)iocb, &iocb->aio_sigevent, &sn,
-			      &saved_ev);
+	    &saved_ev);
 	if (ret)
 		return (ret);
 	ret = __sys_aio_fsync(op, iocb);
@@ -221,7 +223,7 @@ __aio_fsync(int op, struct aiocb *iocb)
 }
 
 int
-__lio_listio(int mode, struct aiocb * const list[], int nent,
+__lio_listio(int mode, struct aiocb *const list[], int nent,
     struct sigevent *sig)
 {
 	struct sigev_node *sn;

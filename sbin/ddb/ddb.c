@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,22 +57,22 @@ usage(void)
 void
 ddb_readfile(char *filename)
 {
-	char    buf[BUFSIZ];
-	FILE*	f;
+	char buf[BUFSIZ];
+	FILE *f;
 
 	if ((f = fopen(filename, "r")) == NULL)
 		err(EX_UNAVAILABLE, "fopen: %s", filename);
 
-#define WHITESP		" \t"
-#define MAXARG	 	2
+#define WHITESP " \t"
+#define MAXARG 2
 	while (fgets(buf, BUFSIZ, f)) {
 		int argc = 0;
 		char *argv[MAXARG];
 		size_t spn;
 
 		spn = strlen(buf);
-		if (buf[spn-1] == '\n')
-			buf[spn-1] = '\0';
+		if (buf[spn - 1] == '\n')
+			buf[spn - 1] = '\0';
 
 		spn = strspn(buf, WHITESP);
 		argv[0] = buf + spn;
@@ -129,6 +130,6 @@ main(int argc, char *argv[])
 	if (argc == 2 && argv[1][0] == '/' && access(argv[1], R_OK) == 0)
 		ddb_readfile(argv[1]);
 	else
-		ddb_main(argc-1, argv+1);
+		ddb_main(argc - 1, argv + 1);
 	exit(EX_OK);
 }

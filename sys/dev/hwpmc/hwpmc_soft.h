@@ -31,10 +31,10 @@
 
 #include <sys/pmckern.h>
 
-#ifdef	_KERNEL
+#ifdef _KERNEL
 
-#define	PMC_CLASS_INDEX_SOFT	0
-#define	SOFT_NPMCS		16
+#define PMC_CLASS_INDEX_SOFT 0
+#define SOFT_NPMCS 16
 
 /*
  * Prototypes.
@@ -44,5 +44,5 @@ void pmc_soft_initialize(struct pmc_mdep *md);
 void pmc_soft_finalize(struct pmc_mdep *md);
 int pmc_soft_intr(struct pmckern_soft *ks);
 
-#endif	/* _KERNEL */
-#endif	/* _DEV_HWPMC_SOFT_H */
+#endif /* _KERNEL */
+#endif /* _DEV_HWPMC_SOFT_H */

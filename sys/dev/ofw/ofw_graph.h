@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_OFW_GRAPH_H_
-#define	_OFW_GRAPH_H_
+#ifndef _OFW_GRAPH_H_
+#define _OFW_GRAPH_H_
 
 phandle_t ofw_graph_get_port_by_idx(phandle_t node, uint32_t idx);
 phandle_t ofw_graph_get_remote_endpoint(phandle_t endpoint);
@@ -36,6 +36,7 @@ size_t ofw_graph_port_get_num_endpoints(phandle_t port);
 phandle_t ofw_graph_get_endpoint_by_idx(phandle_t port, uint32_t idx);
 phandle_t ofw_graph_get_remote_parent(phandle_t remote);
 
-device_t ofw_graph_get_device_by_port_ep(phandle_t node, uint32_t port_id, uint32_t ep_id);
+device_t ofw_graph_get_device_by_port_ep(phandle_t node, uint32_t port_id,
+    uint32_t ep_id);
 
 #endif /* _OFW_GRAPH_H_ */

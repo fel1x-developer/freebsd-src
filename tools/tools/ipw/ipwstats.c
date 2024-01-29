@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <sysexits.h>
 
-static void	get_statistics(const char *);
+static void get_statistics(const char *);
 
 int
 main(int argc, char **argv)
@@ -46,14 +46,14 @@ struct statistic {
 	int index;
 	const char *desc;
 	int unit;
-#define INT		1
-#define HEX		2
-#define MASK		HEX
-#define PERCENTAGE	3
-#define BOOL		4
+#define INT 1
+#define HEX 2
+#define MASK HEX
+#define PERCENTAGE 3
+#define BOOL 4
 };
 
-/*- 
+/*-
  * TIM  = Traffic Information Message
  * DTIM = Delivery TIM
  * ATIM = Announcement TIM
@@ -181,8 +181,7 @@ static const struct statistic tbl[] = {
 
 	{ 153, "Number of associations", INT },
 	{ 154, "Number of association failures", INT },
-	{ 156, "Number of full scans", INT },
-	{ 157, "Card disabled", BOOL },
+	{ 156, "Number of full scans", INT }, { 157, "Card disabled", BOOL },
 
 	{ 160, "RSSI at time of association", INT },
 	{ 161, "Number of reassociations due to no probe response", INT },
@@ -196,10 +195,8 @@ static const struct statistic tbl[] = {
 	{ 172, "Number of entries in association table", INT },
 	{ 173, "Average RSSI", INT },
 
-	{ 176, "Self test status", INT },
-	{ 177, "Power mode", INT },
-	{ 178, "Power index", INT },
-	{ 179, "IEEE country code", HEX },
+	{ 176, "Self test status", INT }, { 177, "Power mode", INT },
+	{ 178, "Power index", INT }, { 179, "IEEE country code", HEX },
 	{ 180, "Channels supported for this country", MASK },
 	{ 181, "Number of adapter warm resets", INT },
 	{ 182, "Beacon interval", INT },
@@ -211,10 +208,8 @@ static const struct statistic tbl[] = {
 	{ 187, "Number of times EEPROM updated", INT },
 #endif
 	{ 188, "Beacon intervals between DTIM", INT },
-	{ 189, "Current channel", INT },
-	{ 190, "RTC time", INT },
-	{ 191, "Operating mode", INT },
-	{ 192, "Transmission rate", HEX },
+	{ 189, "Current channel", INT }, { 190, "RTC time", INT },
+	{ 191, "Operating mode", INT }, { 192, "Transmission rate", HEX },
 	{ 193, "Supported transmission rates", MASK },
 	{ 194, "ATIM window", INT },
 	{ 195, "Supported basic transmission rates", MASK },
@@ -223,16 +218,13 @@ static const struct statistic tbl[] = {
 	{ 198, "Management frame capability", BOOL },
 	{ 199, "Type of authentication", INT },
 	{ 200, "Adapter card platform type", INT },
-	{ 201, "RTS threshold", INT },
-	{ 202, "International mode", BOOL },
+	{ 201, "RTS threshold", INT }, { 202, "International mode", BOOL },
 	{ 203, "Fragmentation threshold", INT },
 
-	{ 209, "MAC version", INT },
-	{ 210, "MAC revision", INT },
+	{ 209, "MAC version", INT }, { 210, "MAC revision", INT },
 	{ 211, "Radio version", INT },
 	{ 212, "NIC manufacturing date+time", INT },
-	{ 213, "Microcode version", INT },
-	{ 214, "RF switch state", INT },
+	{ 213, "Microcode version", INT }, { 214, "RF switch state", INT },
 
 	{ 0, NULL, 0 }
 };

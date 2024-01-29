@@ -27,7 +27,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_CORES_PCIE2_BHND_PCIE2_VAR_H_
@@ -43,55 +43,53 @@
 DECLARE_CLASS(bhnd_pcie2_driver);
 struct bhnd_pcie2_softc;
 
-int		bhnd_pcie2_generic_probe(device_t dev);
-int		bhnd_pcie2_generic_attach(device_t dev);
-int		bhnd_pcie2_generic_detach(device_t dev);
-int		bhnd_pcie2_generic_suspend(device_t dev);
-int		bhnd_pcie2_generic_resume(device_t dev);
+int bhnd_pcie2_generic_probe(device_t dev);
+int bhnd_pcie2_generic_attach(device_t dev);
+int bhnd_pcie2_generic_detach(device_t dev);
+int bhnd_pcie2_generic_suspend(device_t dev);
+int bhnd_pcie2_generic_resume(device_t dev);
 
-uint32_t	bhnd_pcie2_read_proto_reg(struct bhnd_pcie2_softc *sc,
-		    uint32_t addr);
-void		bhnd_pcie2_write_proto_reg(struct bhnd_pcie2_softc *sc,
-		    uint32_t addr, uint32_t val);
-int		bhnd_pcie2_mdio_read(struct bhnd_pcie2_softc *sc, int phy,
-		    int reg);
-int		bhnd_pcie2_mdio_write(struct bhnd_pcie2_softc *sc, int phy,
-		    int reg, int val);
-int		bhnd_pcie2_mdio_read_ext(struct bhnd_pcie2_softc *sc, int phy,
-		    int devaddr, int reg);
-int		bhnd_pcie2_mdio_write_ext(struct bhnd_pcie2_softc *sc,
-		    int phy, int devaddr, int reg, int val);
+uint32_t bhnd_pcie2_read_proto_reg(struct bhnd_pcie2_softc *sc, uint32_t addr);
+void bhnd_pcie2_write_proto_reg(struct bhnd_pcie2_softc *sc, uint32_t addr,
+    uint32_t val);
+int bhnd_pcie2_mdio_read(struct bhnd_pcie2_softc *sc, int phy, int reg);
+int bhnd_pcie2_mdio_write(struct bhnd_pcie2_softc *sc, int phy, int reg,
+    int val);
+int bhnd_pcie2_mdio_read_ext(struct bhnd_pcie2_softc *sc, int phy, int devaddr,
+    int reg);
+int bhnd_pcie2_mdio_write_ext(struct bhnd_pcie2_softc *sc, int phy, int devaddr,
+    int reg, int val);
 
 /**
  * bhnd_pcie2 child device info
  */
 struct bhnd_pcie2_devinfo {
-	struct resource_list	resources;
+	struct resource_list resources;
 };
 
 /*
  * Generic PCIe-G2 bridge/end-point driver state.
- * 
+ *
  * Must be first member of all subclass softc structures.
  */
 struct bhnd_pcie2_softc {
-	device_t		 dev;		/**< pci device */
-	uint32_t		 quirks;	/**< quirk flags */
+	device_t dev;	 /**< pci device */
+	uint32_t quirks; /**< quirk flags */
 
-	struct mtx		 mtx;		/**< state mutex used to protect
-						     interdependent register
-						     accesses. */
+	struct mtx mtx; /**< state mutex used to protect
+			     interdependent register
+			     accesses. */
 
-	struct bhnd_resource	*mem_res;	/**< device register block. */
-	int			 mem_rid;	/**< register block RID */
+	struct bhnd_resource *mem_res; /**< device register block. */
+	int mem_rid;		       /**< register block RID */
 };
 
-#define	BHND_PCIE2_LOCK_INIT(sc) \
+#define BHND_PCIE2_LOCK_INIT(sc)                             \
 	mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), \
 	    "BHND PCIe-G2 driver lock", MTX_DEF)
-#define	BHND_PCIE2_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	BHND_PCIE2_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	BHND_PCIE2_LOCK_ASSERT(sc, what)	mtx_assert(&(sc)->mtx, what)
-#define	BHND_PCIE2_LOCK_DESTROY(sc)		mtx_destroy(&(sc)->mtx)
+#define BHND_PCIE2_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define BHND_PCIE2_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define BHND_PCIE2_LOCK_ASSERT(sc, what) mtx_assert(&(sc)->mtx, what)
+#define BHND_PCIE2_LOCK_DESTROY(sc) mtx_destroy(&(sc)->mtx)
 
 #endif /* _BHND_CORES_PCIE2_BHND_PCIE2_VAR_H_ */

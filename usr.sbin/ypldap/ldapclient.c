@@ -24,39 +24,39 @@
 #include <sys/tree.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
-#include <netdb.h>
-#include <errno.h>
+#include <arpa/inet.h>
 #include <err.h>
+#include <errno.h>
 #include <event.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <netdb.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "aldap.h"
 #include "ypldap.h"
 
-void    client_sig_handler(int, short, void *);
-void	client_dispatch_dns(int, short, void *);
-void    client_dispatch_parent(int, short, void *);
-void    client_shutdown(void);
-void    client_connect(int, short, void *);
-void    client_configure(struct env *);
-void    client_periodic_update(int, short, void *);
-int	client_build_req(struct idm *, struct idm_req *, struct aldap_message *,
-	    int, int);
-int	client_search_idm(struct env *, struct idm *, struct aldap *,
-	    char **, char *, int, int, enum imsg_type);
-int	client_try_idm(struct env *, struct idm *);
-int	client_addr_init(struct idm *);
-int	client_addr_free(struct idm *);
+void client_sig_handler(int, short, void *);
+void client_dispatch_dns(int, short, void *);
+void client_dispatch_parent(int, short, void *);
+void client_shutdown(void);
+void client_connect(int, short, void *);
+void client_configure(struct env *);
+void client_periodic_update(int, short, void *);
+int client_build_req(struct idm *, struct idm_req *, struct aldap_message *,
+    int, int);
+int client_search_idm(struct env *, struct idm *, struct aldap *, char **,
+    char *, int, int, enum imsg_type);
+int client_try_idm(struct env *, struct idm *);
+int client_addr_init(struct idm *);
+int client_addr_free(struct idm *);
 
-struct aldap	*client_aldap_open(struct ypldap_addr_list *);
+struct aldap *client_aldap_open(struct ypldap_addr_list *);
 
 /*
  * dummy wrapper to provide aldap_init with its fd's.
@@ -64,16 +64,16 @@ struct aldap	*client_aldap_open(struct ypldap_addr_list *);
 struct aldap *
 client_aldap_open(struct ypldap_addr_list *addr)
 {
-	int			 fd = -1;
-	struct ypldap_addr	 *p;
+	int fd = -1;
+	struct ypldap_addr *p;
 
-	TAILQ_FOREACH(p, addr, next) {
-		char			 hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-		struct sockaddr		*sa = (struct sockaddr *)&p->ss;
+	TAILQ_FOREACH (p, addr, next) {
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+		struct sockaddr *sa = (struct sockaddr *)&p->ss;
 
 		if (getnameinfo(sa, sa->sa_len, hbuf, sizeof(hbuf), sbuf,
 			sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV))
-				errx(1, "could not get numeric hostname");
+			errx(1, "could not get numeric hostname");
 
 		if ((fd = socket(sa->sa_family, SOCK_STREAM, 0)) < 0)
 			return NULL;
@@ -94,37 +94,37 @@ client_aldap_open(struct ypldap_addr_list *addr)
 int
 client_addr_init(struct idm *idm)
 {
-        struct sockaddr_in      *sa_in;
-        struct sockaddr_in6     *sa_in6;
-        struct ypldap_addr         *h;
+	struct sockaddr_in *sa_in;
+	struct sockaddr_in6 *sa_in6;
+	struct ypldap_addr *h;
 
-	TAILQ_FOREACH(h, &idm->idm_addr, next) {
-                switch (h->ss.ss_family) {
-                case AF_INET:
-                        sa_in = (struct sockaddr_in *)&h->ss;
-                        if (ntohs(sa_in->sin_port) == 0)
-                                sa_in->sin_port = htons(LDAP_PORT);
-                        idm->idm_state = STATE_DNS_DONE;
-                        break;
-                case AF_INET6:
-                        sa_in6 = (struct sockaddr_in6 *)&h->ss;
-                        if (ntohs(sa_in6->sin6_port) == 0)
-                                sa_in6->sin6_port = htons(LDAP_PORT);
-                        idm->idm_state = STATE_DNS_DONE;
-                        break;
-                default:
-                        fatalx("king bula sez: wrong AF in client_addr_init");
-                        /* not reached */
-                }
-        }
+	TAILQ_FOREACH (h, &idm->idm_addr, next) {
+		switch (h->ss.ss_family) {
+		case AF_INET:
+			sa_in = (struct sockaddr_in *)&h->ss;
+			if (ntohs(sa_in->sin_port) == 0)
+				sa_in->sin_port = htons(LDAP_PORT);
+			idm->idm_state = STATE_DNS_DONE;
+			break;
+		case AF_INET6:
+			sa_in6 = (struct sockaddr_in6 *)&h->ss;
+			if (ntohs(sa_in6->sin6_port) == 0)
+				sa_in6->sin6_port = htons(LDAP_PORT);
+			idm->idm_state = STATE_DNS_DONE;
+			break;
+		default:
+			fatalx("king bula sez: wrong AF in client_addr_init");
+			/* not reached */
+		}
+	}
 
-        return (0);
+	return (0);
 }
 
 int
 client_addr_free(struct idm *idm)
 {
-        struct ypldap_addr         *h;
+	struct ypldap_addr *h;
 
 	while (!TAILQ_EMPTY(&idm->idm_addr)) {
 		h = TAILQ_FIRST(&idm->idm_addr);
@@ -151,17 +151,17 @@ client_sig_handler(int sig, short event, void *p)
 void
 client_dispatch_dns(int fd, short events, void *p)
 {
-	struct imsg		 imsg;
-	u_int16_t		 dlen;
-	u_char			*data;
-	struct ypldap_addr	*h;
-	int			 n, wait_cnt = 0;
-	struct idm		*idm;
-	int			 shut = 0;
+	struct imsg imsg;
+	u_int16_t dlen;
+	u_char *data;
+	struct ypldap_addr *h;
+	int n, wait_cnt = 0;
+	struct idm *idm;
+	int shut = 0;
 
-	struct env		*env = p;
-	struct imsgev		*iev = env->sc_iev_dns;
-	struct imsgbuf		*ibuf = &iev->ibuf;
+	struct env *env = p;
+	struct imsgev *iev = env->sc_iev_dns;
+	struct imsgbuf *ibuf = &iev->ibuf;
 
 	if ((events & (EV_READ | EV_WRITE)) == 0)
 		fatalx("unknown event");
@@ -188,7 +188,7 @@ client_dispatch_dns(int fd, short events, void *p)
 
 		switch (imsg.hdr.type) {
 		case IMSG_HOST_DNS:
-			TAILQ_FOREACH(idm, &env->sc_idms, idm_entry)
+			TAILQ_FOREACH (idm, &env->sc_idms, idm_entry)
 				if (idm->idm_id == imsg.hdr.peerid)
 					break;
 			if (idm == NULL) {
@@ -201,7 +201,7 @@ client_dispatch_dns(int fd, short events, void *p)
 			}
 
 			dlen = imsg.hdr.len - IMSG_HEADER_SIZE;
-			if (dlen == 0) {	/* no data -> temp error */
+			if (dlen == 0) { /* no data -> temp error */
 				idm->idm_state = STATE_DNS_TEMPFAIL;
 				break;
 			}
@@ -228,7 +228,7 @@ client_dispatch_dns(int fd, short events, void *p)
 		imsg_free(&imsg);
 	}
 
-	TAILQ_FOREACH(idm, &env->sc_idms, idm_entry) {
+	TAILQ_FOREACH (idm, &env->sc_idms, idm_entry) {
 		if (client_try_idm(env, idm) == -1)
 			idm->idm_state = STATE_LDAP_FAIL;
 
@@ -236,8 +236,8 @@ client_dispatch_dns(int fd, short events, void *p)
 			wait_cnt++;
 	}
 	if (wait_cnt == 0)
-		imsg_compose_event(env->sc_iev, IMSG_END_UPDATE, 0, 0, -1,
-		    NULL, 0);
+		imsg_compose_event(env->sc_iev, IMSG_END_UPDATE, 0, 0, -1, NULL,
+		    0);
 
 done:
 	if (!shut)
@@ -252,12 +252,12 @@ done:
 void
 client_dispatch_parent(int fd, short events, void *p)
 {
-	int			 n;
-	int			 shut = 0;
-	struct imsg		 imsg;
-	struct env		*env = p;
-	struct imsgev		*iev = env->sc_iev;
-	struct imsgbuf		*ibuf = &iev->ibuf;
+	int n;
+	int shut = 0;
+	struct imsg imsg;
+	struct env *env = p;
+	struct imsgev *iev = env->sc_iev;
+	struct imsgbuf *ibuf = &iev->ibuf;
 
 	if ((events & (EV_READ | EV_WRITE)) == 0)
 		fatalx("unknown event");
@@ -284,7 +284,7 @@ client_dispatch_parent(int fd, short events, void *p)
 
 		switch (imsg.hdr.type) {
 		case IMSG_CONF_START: {
-			struct env	params;
+			struct env params;
 
 			if (env->sc_flags & F_CONFIGURING) {
 				log_warnx("configuration already in progress");
@@ -300,7 +300,7 @@ client_dispatch_parent(int fd, short events, void *p)
 			break;
 		}
 		case IMSG_CONF_IDM: {
-			struct idm	*idm;
+			struct idm *idm;
 
 			if (!(env->sc_flags & F_CONFIGURING))
 				break;
@@ -345,12 +345,12 @@ client_shutdown(void)
 pid_t
 ldapclient(int pipe_main2client[2])
 {
-	pid_t            pid;
-	int              pipe_dns[2];
-	struct passwd	*pw;
-	struct event	 ev_sigint;
-	struct event	 ev_sigterm;
-	struct env	 env;
+	pid_t pid;
+	int pipe_dns[2];
+	struct passwd *pw;
+	struct event ev_sigint;
+	struct event ev_sigterm;
+	struct env env;
 
 	switch (pid = fork()) {
 	case -1:
@@ -426,72 +426,74 @@ ldapclient(int pipe_main2client[2])
 	client_shutdown();
 
 	return (0);
-
 }
 
 int
 client_build_req(struct idm *idm, struct idm_req *ir, struct aldap_message *m,
     int min_attr, int max_attr)
 {
-	char	**ldap_attrs;
-	int	 i, k;
+	char **ldap_attrs;
+	int i, k;
 
 	memset(ir, 0, sizeof(*ir));
 	for (i = min_attr; i < max_attr; i++) {
 		if (idm->idm_flags & F_FIXED_ATTR(i)) {
 			if (strlcat(ir->ir_line, idm->idm_attrs[i],
-			    sizeof(ir->ir_line)) >= sizeof(ir->ir_line))
+				sizeof(ir->ir_line)) >= sizeof(ir->ir_line))
 				/*
 				 * entry yields a line > 1024, trash it.
 				 */
 				return (-1);
 
 			if (i == ATTR_UID) {
-				ir->ir_key.ik_uid = strtonum(
-				    idm->idm_attrs[i], 0,
-				    UID_MAX, NULL);
+				ir->ir_key.ik_uid = strtonum(idm->idm_attrs[i],
+				    0, UID_MAX, NULL);
 			} else if (i == ATTR_GR_GID) {
-				ir->ir_key.ik_gid = strtonum(
-				    idm->idm_attrs[i], 0,
-				    GID_MAX, NULL);
+				ir->ir_key.ik_gid = strtonum(idm->idm_attrs[i],
+				    0, GID_MAX, NULL);
 			}
 		} else if (idm->idm_list & F_LIST(i)) {
 			aldap_match_attr(m, idm->idm_attrs[i], &ldap_attrs);
-			for (k = 0; k >= 0 && ldap_attrs && ldap_attrs[k] != NULL; k++) {
-				/* XXX: Fail when attributes have illegal characters e.g. ',' */
+			for (k = 0;
+			     k >= 0 && ldap_attrs && ldap_attrs[k] != NULL;
+			     k++) {
+				/* XXX: Fail when attributes have illegal
+				 * characters e.g. ',' */
 				if (strlcat(ir->ir_line, ldap_attrs[k],
-				    sizeof(ir->ir_line)) >= sizeof(ir->ir_line))
+					sizeof(ir->ir_line)) >=
+				    sizeof(ir->ir_line))
 					continue;
-				if (ldap_attrs[k+1] != NULL)
+				if (ldap_attrs[k + 1] != NULL)
 					if (strlcat(ir->ir_line, ",",
-						    sizeof(ir->ir_line))
-					    >= sizeof(ir->ir_line)) {
+						sizeof(ir->ir_line)) >=
+					    sizeof(ir->ir_line)) {
 						aldap_free_attr(ldap_attrs);
 						return (-1);
 					}
 			}
 			aldap_free_attr(ldap_attrs);
 		} else {
-			if (aldap_match_attr(m, idm->idm_attrs[i], &ldap_attrs) == -1)
+			if (aldap_match_attr(m, idm->idm_attrs[i],
+				&ldap_attrs) == -1)
 				return (-1);
 			if (strlcat(ir->ir_line, ldap_attrs[0],
-			    sizeof(ir->ir_line)) >= sizeof(ir->ir_line)) {
+				sizeof(ir->ir_line)) >= sizeof(ir->ir_line)) {
 				aldap_free_attr(ldap_attrs);
 				return (-1);
 			}
 			if (i == ATTR_UID) {
-				ir->ir_key.ik_uid = strtonum(
-				    ldap_attrs[0], 0, UID_MAX, NULL);
+				ir->ir_key.ik_uid = strtonum(ldap_attrs[0], 0,
+				    UID_MAX, NULL);
 			} else if (i == ATTR_GR_GID) {
-				ir->ir_key.ik_uid = strtonum(
-				    ldap_attrs[0], 0, GID_MAX, NULL);
+				ir->ir_key.ik_uid = strtonum(ldap_attrs[0], 0,
+				    GID_MAX, NULL);
 			}
 			aldap_free_attr(ldap_attrs);
 		}
 
 		if (i + 1 != max_attr)
-			if (strlcat(ir->ir_line, ":",
-			    sizeof(ir->ir_line)) >= sizeof(ir->ir_line))
+			if (strlcat(ir->ir_line, ":", sizeof(ir->ir_line)) >=
+			    sizeof(ir->ir_line))
 				return (-1);
 	}
 
@@ -500,22 +502,21 @@ client_build_req(struct idm *idm, struct idm_req *ir, struct aldap_message *m,
 
 int
 client_search_idm(struct env *env, struct idm *idm, struct aldap *al,
-    char **attrs, char *filter, int min_attr, int max_attr,
-    enum imsg_type type)
+    char **attrs, char *filter, int min_attr, int max_attr, enum imsg_type type)
 {
-	struct idm_req		 ir;
-	struct aldap_message	*m;
+	struct idm_req ir;
+	struct aldap_message *m;
 	struct aldap_page_control *pg = NULL;
-	const char		*errstr;
-	char			*dn;
+	const char *errstr;
+	char *dn;
 
 	dn = idm->idm_basedn;
 	if (type == IMSG_GRP_ENTRY && idm->idm_groupdn[0] != '\0')
 		dn = idm->idm_groupdn;
 
 	do {
-		if (aldap_search(al, dn, LDAP_SCOPE_SUBTREE,
-		    filter, attrs, 0, 0, 0, pg) == -1) {
+		if (aldap_search(al, dn, LDAP_SCOPE_SUBTREE, filter, attrs, 0,
+			0, 0, pg) == -1) {
 			aldap_get_errno(al, &errstr);
 			log_debug("%s", errstr);
 			return (-1);
@@ -530,7 +531,7 @@ client_search_idm(struct env *env, struct idm *idm, struct aldap *al,
 			if (al->msgid != m->msgid) {
 				goto fail;
 			}
-			
+
 			if (m->message_type == LDAP_RES_SEARCH_RESULT) {
 				if (m->page != NULL && m->page->cookie_len != 0)
 					pg = m->page;
@@ -545,18 +546,19 @@ client_search_idm(struct env *env, struct idm *idm, struct aldap *al,
 				goto fail;
 			}
 
-			if (client_build_req(idm, &ir, m, min_attr, max_attr) == 0)
+			if (client_build_req(idm, &ir, m, min_attr, max_attr) ==
+			    0)
 				imsg_compose_event(env->sc_iev, type, 0, 0, -1,
 				    &ir, sizeof(ir));
 
-			aldap_freemsg(m);	
+			aldap_freemsg(m);
 		}
 	} while (pg != NULL);
 
 	return (0);
 
 fail:
-	aldap_freemsg(m);	
+	aldap_freemsg(m);
 	if (pg != NULL) {
 		aldap_freepage(pg);
 	}
@@ -567,11 +569,11 @@ fail:
 int
 client_try_idm(struct env *env, struct idm *idm)
 {
-	const char		*where;
-	char			*attrs[ATTR_MAX+1];
-	int			 i, j;
-	struct aldap_message	*m;
-	struct aldap		*al;
+	const char *where;
+	char *attrs[ATTR_MAX + 1];
+	int i, j;
+	struct aldap_message *m;
+	struct aldap *al;
 
 	where = "connect";
 	if ((al = client_aldap_open(&idm->idm_addr)) == NULL)
@@ -607,7 +609,8 @@ client_try_idm(struct env *env, struct idm *idm)
 	where = "search";
 	log_debug("searching password entries");
 	if (client_search_idm(env, idm, al, attrs,
-	    idm->idm_filters[FILTER_USER], 0, ATTR_MAX, IMSG_PW_ENTRY) == -1)
+		idm->idm_filters[FILTER_USER], 0, ATTR_MAX,
+		IMSG_PW_ENTRY) == -1)
 		goto bad;
 
 	memset(attrs, 0, sizeof(attrs));
@@ -624,8 +627,8 @@ client_try_idm(struct env *env, struct idm *idm)
 	where = "search";
 	log_debug("searching group entries");
 	if (client_search_idm(env, idm, al, attrs,
-	    idm->idm_filters[FILTER_GROUP], ATTR_GR_MIN, ATTR_GR_MAX,
-	    IMSG_GRP_ENTRY) == -1)
+		idm->idm_filters[FILTER_GROUP], ATTR_GR_MIN, ATTR_GR_MAX,
+		IMSG_GRP_ENTRY) == -1)
 		goto bad;
 
 	aldap_close(al);
@@ -642,14 +645,14 @@ bad:
 void
 client_periodic_update(int fd, short event, void *p)
 {
-	struct env	*env = p;
+	struct env *env = p;
 
-	struct idm	*idm;
-	int		 fail_cnt = 0;
+	struct idm *idm;
+	int fail_cnt = 0;
 
 	/* If LDAP isn't finished, notify the master process to trash the
 	 * update. */
-	TAILQ_FOREACH(idm, &env->sc_idms, idm_entry) {
+	TAILQ_FOREACH (idm, &env->sc_idms, idm_entry) {
 		if (idm->idm_state < STATE_LDAP_DONE)
 			fail_cnt++;
 
@@ -669,16 +672,16 @@ client_periodic_update(int fd, short event, void *p)
 void
 client_configure(struct env *env)
 {
-	struct timeval	 tv;
-	struct idm	*idm;
-        u_int16_t        dlen;
+	struct timeval tv;
+	struct idm *idm;
+	u_int16_t dlen;
 
 	log_debug("connecting to directories");
 
 	imsg_compose_event(env->sc_iev, IMSG_START_UPDATE, 0, 0, -1, NULL, 0);
 
 	/* Start the DNS lookups */
-	TAILQ_FOREACH(idm, &env->sc_idms, idm_entry) {
+	TAILQ_FOREACH (idm, &env->sc_idms, idm_entry) {
 		dlen = strlen(idm->idm_name) + 1;
 		imsg_compose_event(env->sc_iev_dns, IMSG_HOST_DNS, idm->idm_id,
 		    0, -1, idm->idm_name, dlen);

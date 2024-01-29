@@ -28,6 +28,7 @@
  * Test for scanf() floating point formats.
  */
 
+#include <atf-c.h>
 #include <fenv.h>
 #include <float.h>
 #include <locale.h>
@@ -36,9 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <atf-c.h>
-
-#define	eq(type, a, b)	_eq(type##_EPSILON, (a), (b))
+#define eq(type, a, b) _eq(type##_EPSILON, (a), (b))
 static int
 _eq(long double epsilon, long double a, long double b)
 {
@@ -134,7 +133,8 @@ ATF_TC_BODY(normalized_numbers, tc)
 	ATF_REQUIRE(d == 0.0);
 	ATF_REQUIRE(strcmp(buf, "xg") == 0);
 
-	ATF_REQUIRE(setlocale(LC_NUMERIC, "ru_RU.ISO8859-5")); /* decimalpoint==, */
+	ATF_REQUIRE(
+	    setlocale(LC_NUMERIC, "ru_RU.ISO8859-5")); /* decimalpoint==, */
 
 	sscanf("1.23", "%le%s", &d, buf);
 	ATF_REQUIRE(d == 1.0);

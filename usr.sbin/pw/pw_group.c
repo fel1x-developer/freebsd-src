@@ -36,31 +36,31 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include "pw.h"
 #include "bitmap.h"
+#include "pw.h"
 
 static struct passwd *lookup_pwent(const char *user);
-static void	delete_members(struct group *grp, char *list);
-static int	print_group(struct group * grp, bool pretty);
-static gid_t	gr_gidpolicy(struct userconf * cnf, intmax_t id);
+static void delete_members(struct group *grp, char *list);
+static int print_group(struct group *grp, bool pretty);
+static gid_t gr_gidpolicy(struct userconf *cnf, intmax_t id);
 
 static void
 grp_set_passwd(struct group *grp, bool update, int fd, bool precrypted)
 {
-	int		 b;
-	int		 istty;
-	struct termios	 t, n;
-	static char      line[256];
-	char		*p;
+	int b;
+	int istty;
+	struct termios t, n;
+	static char line[256];
+	char *p;
 
 	if (fd == -1)
 		return;
 
 	if (fd == '-') {
-		grp->gr_passwd = "*";	/* No access */
+		grp->gr_passwd = "*"; /* No access */
 		return;
 	}
-	
+
 	if ((istty = isatty(fd))) {
 		if (tcgetattr(fd, &t) == -1)
 			istty = 0;
@@ -70,13 +70,12 @@ grp_set_passwd(struct group *grp, bool update, int fd, bool precrypted)
 			n.c_lflag &= ~(ECHO);
 			tcsetattr(fd, TCSANOW, &n);
 			printf("%sassword for group %s:",
-			    update ? "New p" : "P",
-			    grp->gr_name);
+			    update ? "New p" : "P", grp->gr_name);
 			fflush(stdout);
 		}
 	}
 	b = read(fd, line, sizeof(line) - 1);
-	if (istty) {	/* Restore state */
+	if (istty) { /* Restore state */
 		tcsetattr(fd, TCSANOW, &t);
 		fputc('\n', stdout);
 		fflush(stdout);
@@ -137,12 +136,11 @@ lookup_pwent(const char *user)
 
 	if ((pwd = GETPWNAM(user)) == NULL &&
 	    (!isdigit((unsigned char)*user) ||
-	    (pwd = getpwuid((uid_t) atoi(user))) == NULL))
+		(pwd = getpwuid((uid_t)atoi(user))) == NULL))
 		errx(EX_NOUSER, "user `%s' does not exist", user);
 
 	return (pwd);
 }
-
 
 /*
  * Delete requested members from a group.
@@ -165,22 +163,22 @@ delete_members(struct group *grp, char *list)
 			continue;
 
 		for (; grp->gr_mem[k] != NULL; k++)
-			grp->gr_mem[k] = grp->gr_mem[k+1];
+			grp->gr_mem[k] = grp->gr_mem[k + 1];
 	}
 }
 
 static gid_t
-gr_gidpolicy(struct userconf * cnf, intmax_t id)
+gr_gidpolicy(struct userconf *cnf, intmax_t id)
 {
-	struct group   *grp;
-	struct bitmap   bm;
-	gid_t           gid = (gid_t) - 1;
+	struct group *grp;
+	struct bitmap bm;
+	gid_t gid = (gid_t)-1;
 
 	/*
 	 * Check the given gid, if any
 	 */
 	if (id > 0) {
-		gid = (gid_t) id;
+		gid = (gid_t)id;
 
 		if ((grp = GETGRGID(gid)) != NULL && conf.checkduplicate)
 			errx(EX_DATAERR, "gid `%ju' has already been allocated",
@@ -193,7 +191,7 @@ gr_gidpolicy(struct userconf * cnf, intmax_t id)
 	 * two policies a) Grab the first unused gid b) Grab the
 	 * highest possible unused gid
 	 */
-	if (cnf->min_gid >= cnf->max_gid) {	/* Sanity claus^H^H^H^Hheck */
+	if (cnf->min_gid >= cnf->max_gid) { /* Sanity claus^H^H^H^Hheck */
 		cnf->min_gid = 1000;
 		cnf->max_gid = 32000;
 	}
@@ -213,27 +211,28 @@ gr_gidpolicy(struct userconf * cnf, intmax_t id)
 	 * Then apply the policy, with fallback to reuse if necessary
 	 */
 	if (cnf->reuse_gids)
-		gid = (gid_t) (bm_firstunset(&bm) + cnf->min_gid);
+		gid = (gid_t)(bm_firstunset(&bm) + cnf->min_gid);
 	else {
-		gid = (gid_t) (bm_lastset(&bm) + 1);
+		gid = (gid_t)(bm_lastset(&bm) + 1);
 		if (!bm_isset(&bm, gid))
 			gid += cnf->min_gid;
 		else
-			gid = (gid_t) (bm_firstunset(&bm) + cnf->min_gid);
+			gid = (gid_t)(bm_firstunset(&bm) + cnf->min_gid);
 	}
 
 	/*
 	 * Another sanity check
 	 */
 	if (gid < cnf->min_gid || gid > cnf->max_gid)
-		errx(EX_SOFTWARE, "unable to allocate a new gid - range fully "
+		errx(EX_SOFTWARE,
+		    "unable to allocate a new gid - range fully "
 		    "used");
 	bm_dealloc(&bm);
 	return (gid);
 }
 
 static int
-print_group(struct group * grp, bool pretty)
+print_group(struct group *grp, bool pretty)
 {
 	char *buf = NULL;
 	int i;
@@ -241,7 +240,7 @@ print_group(struct group * grp, bool pretty)
 	if (pretty) {
 		printf("Group Name: %-15s   #%lu\n"
 		       "   Members: ",
-		       grp->gr_name, (long) grp->gr_gid);
+		    grp->gr_name, (long)grp->gr_gid);
 		if (grp->gr_mem != NULL) {
 			for (i = 0; grp->gr_mem[i]; i++)
 				printf("%s%s", i ? "," : "", grp->gr_mem[i]);
@@ -294,12 +293,7 @@ pw_group_show(int argc, char **argv, char *arg1)
 
 	all = force = quiet = pretty = false;
 
-	struct group fakegroup = {
-		"nogroup",
-		"*",
-		-1,
-		NULL
-	};
+	struct group fakegroup = { "nogroup", "*", -1, NULL };
 
 	if (arg1 != NULL) {
 		if (arg1[strspn(arg1, "0123456789")] == '\0')
@@ -404,8 +398,7 @@ pw_group_del(int argc, char **argv, char *arg1)
 		err(EX_IOERR, "group '%s' not available (NIS?)", name);
 	else if (rc != 0)
 		err(EX_IOERR, "group update");
-	pw_log(cnf, M_DELETE, W_GROUP, "%s(%ju) removed", name,
-	    (uintmax_t)id);
+	pw_log(cnf, M_DELETE, W_GROUP, "%s(%ju) removed", name, (uintmax_t)id);
 
 	if (nis && nis_update() == 0)
 		pw_log(cnf, M_DELETE, W_GROUP, "NIS maps updated");
@@ -448,12 +441,7 @@ groupadd(struct userconf *cnf, char *name, gid_t id, char *members, int fd,
 	struct group *grp;
 	int rc;
 
-	struct group fakegroup = {
-		"nogroup",
-		"*",
-		-1,
-		NULL
-	};
+	struct group fakegroup = { "nogroup", "*", -1, NULL };
 
 	grp = &fakegroup;
 	grp->gr_name = pw_checkname(name, 0);
@@ -522,7 +510,8 @@ pw_group_add(int argc, char **argv, char *arg1)
 			break;
 		case 'H':
 			if (fd != -1)
-				errx(EX_USAGE, "'-h' and '-H' are mutually "
+				errx(EX_USAGE,
+				    "'-h' and '-H' are mutually "
 				    "exclusive options");
 			fd = pw_checkfd(optarg);
 			precrypted = true;
@@ -531,7 +520,8 @@ pw_group_add(int argc, char **argv, char *arg1)
 			break;
 		case 'h':
 			if (fd != -1)
-				errx(EX_USAGE, "'-h' and '-H' are mutually "
+				errx(EX_USAGE,
+				    "'-h' and '-H' are mutually "
 				    "exclusive options");
 			fd = pw_checkfd(optarg);
 			break;
@@ -616,7 +606,8 @@ pw_group_mod(int argc, char **argv, char *arg1)
 			break;
 		case 'H':
 			if (fd != -1)
-				errx(EX_USAGE, "'-h' and '-H' are mutually "
+				errx(EX_USAGE,
+				    "'-h' and '-H' are mutually "
 				    "exclusive options");
 			fd = pw_checkfd(optarg);
 			precrypted = true;
@@ -625,7 +616,8 @@ pw_group_mod(int argc, char **argv, char *arg1)
 			break;
 		case 'h':
 			if (fd != -1)
-				errx(EX_USAGE, "'-h' and '-H' are mutually "
+				errx(EX_USAGE,
+				    "'-h' and '-H' are mutually "
 				    "exclusive options");
 			fd = pw_checkfd(optarg);
 			break;

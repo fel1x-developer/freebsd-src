@@ -35,10 +35,10 @@
  */
 
 #ifndef _NLIST_H_
-#define	_NLIST_H_
+#define _NLIST_H_
 
-#include <sys/nlist_aout.h>
 #include <sys/cdefs.h>
+#include <sys/nlist_aout.h>
 
 __BEGIN_DECLS
 int nlist(const char *, struct nlist *);

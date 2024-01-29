@@ -29,13 +29,14 @@
  * SUCH DAMAGE.
  */
 
-#include "port_before.h"
-
 #include <sys/param.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  * Formulate an Internet address from network + host.  Used in

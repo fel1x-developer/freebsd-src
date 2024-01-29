@@ -48,7 +48,8 @@
 #include <string.h>
 
 int
-kiconv_add_xlat16_table(const char *to, const char *from, const void *data, int datalen)
+kiconv_add_xlat16_table(const char *to, const char *from, const void *data,
+    int datalen)
 {
 	struct iconv_add_in din;
 	struct iconv_add_out dout;
@@ -63,7 +64,8 @@ kiconv_add_xlat16_table(const char *to, const char *from, const void *data, int 
 	din.ia_data = data;
 	din.ia_datalen = datalen;
 	olen = sizeof(dout);
-	if (sysctlbyname("kern.iconv.add", &dout, &olen, &din, sizeof(din)) == -1)
+	if (sysctlbyname("kern.iconv.add", &dout, &olen, &din, sizeof(din)) ==
+	    -1)
 		return (errno);
 	return (0);
 }
@@ -72,6 +74,7 @@ kiconv_add_xlat16_table(const char *to, const char *from, const void *data, int 
 
 #include <sys/types.h>
 #include <sys/iconv.h>
+
 #include <errno.h>
 
 int

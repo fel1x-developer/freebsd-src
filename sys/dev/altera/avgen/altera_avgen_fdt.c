@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/conf.h>
@@ -41,20 +42,18 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/stat.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
+
+#include <vm/vm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <vm/vm.h>
-
+#include <dev/altera/avgen/altera_avgen.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/altera/avgen/altera_avgen.h>
+#include <dev/ofw/openfirm.h>
 
 static int
 altera_avgen_fdt_probe(device_t dev)
@@ -103,15 +102,15 @@ altera_avgen_fdt_attach(device_t dev)
 	    (void **)&str_geomio);
 	(void)OF_getprop_alloc(node, "sri-cambridge,mmapio",
 	    (void **)&str_mmapio);
-	(void)OF_getprop_alloc(node,  "sri-cambridge,devname",
+	(void)OF_getprop_alloc(node, "sri-cambridge,devname",
 	    (void **)&str_devname);
 	if (OF_getprop(node, "sri-cambridge,devunit", &cell, sizeof(cell)) > 0)
 		devunit = cell;
 
 	/* Memory allocation and checking. */
 	sc->avg_rid = 0;
-	sc->avg_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &sc->avg_rid, RF_ACTIVE);
+	sc->avg_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->avg_rid,
+	    RF_ACTIVE);
 	if (sc->avg_res == NULL) {
 		device_printf(dev, "couldn't map memory\n");
 		return (ENXIO);
@@ -144,10 +143,9 @@ altera_avgen_fdt_detach(device_t dev)
 }
 
 static device_method_t altera_avgen_fdt_methods[] = {
-	DEVMETHOD(device_probe,		altera_avgen_fdt_probe),
-	DEVMETHOD(device_attach,	altera_avgen_fdt_attach),
-	DEVMETHOD(device_detach,	altera_avgen_fdt_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, altera_avgen_fdt_probe),
+	DEVMETHOD(device_attach, altera_avgen_fdt_attach),
+	DEVMETHOD(device_detach, altera_avgen_fdt_detach), { 0, 0 }
 };
 
 static driver_t altera_avgen_fdt_driver = {

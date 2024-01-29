@@ -29,27 +29,25 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <dev/gpio/gpiobusvar.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/fdt_pinctrl.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/fdt/fdt_pinctrl.h>
-
-#include "qcom_tlmm_var.h"
 #include "qcom_tlmm_debug.h"
+#include "qcom_tlmm_var.h"
 
 void
 qcom_tlmm_debug_sysctl_attach(struct qcom_tlmm_softc *sc)
@@ -57,7 +55,6 @@ qcom_tlmm_debug_sysctl_attach(struct qcom_tlmm_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->dev);
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "debug", CTLFLAG_RW, &sc->sc_debug, 0,
-	    "control debugging printfs");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, 0, "control debugging printfs");
 }

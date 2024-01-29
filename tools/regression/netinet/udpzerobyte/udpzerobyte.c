@@ -31,7 +31,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -44,7 +43,7 @@
  * received?
  */
 
-#define	THEPORT	9543		/* Arbitrary. */
+#define THEPORT 9543 /* Arbitrary. */
 
 static void
 usage(void)
@@ -70,8 +69,10 @@ test(int domain, const char *domainstr, struct sockaddr *sa, socklen_t salen)
 	if (bind(sock_receive, sa, salen) < 0)
 		err(-1, "Protocol %s bind(sock_receive)", domainstr);
 	if (fcntl(sock_receive, F_SETFL, O_NONBLOCK, 1) < 0)
-		err(-1, "Protocll %s fcntl(sock_receive, FL_SETFL, "
-		    "O_NONBLOCK)", domainstr);
+		err(-1,
+		    "Protocll %s fcntl(sock_receive, FL_SETFL, "
+		    "O_NONBLOCK)",
+		    domainstr);
 
 	if (connect(sock_send, sa, salen) < 0)
 		err(-1, "Protocol %s connect(sock_send)", domainstr);

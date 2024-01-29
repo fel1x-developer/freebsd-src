@@ -26,13 +26,14 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <unistd.h>
+
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/param.h>
-#include <err.h>
+#include <unistd.h>
 
 #include "stress.h"
 
@@ -56,11 +57,11 @@ setup(int nb)
 			pct = random_int(1, 90);
 		size = size / 100 * pct + 1;
 
-		size = size % 200;	/* arbitrary limit depth */
+		size = size % 200; /* arbitrary limit depth */
 
 		/* Resource requirements: */
 		while (size > 0) {
-			reserve_in =    1 * size * op->incarnations;
+			reserve_in = 1 * size * op->incarnations;
 			reserve_bl = 4096 * size * op->incarnations;
 			if (reserve_bl <= bl && reserve_in <= in)
 				break;
@@ -70,8 +71,10 @@ setup(int nb)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("mkdir(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "mkdir(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 	} else
@@ -89,11 +92,13 @@ cleanup(void)
 }
 
 static void
-mkDir(char *path, int level) {
+mkDir(char *path, int level)
+{
 	char newPath[MAXPATHLEN + 1];
 
 	if (mkdir(path, 0770) == -1) {
-		warn("mkdir(%s), level %d. %s:%d", path, level, __FILE__, __LINE__);
+		warn("mkdir(%s), level %d. %s:%d", path, level, __FILE__,
+		    __LINE__);
 		size = level;
 	} else
 		chdir(path);
@@ -102,20 +107,21 @@ mkDir(char *path, int level) {
 		size = level;
 
 	if (level < (int)size) {
-		sprintf(newPath,"d%d", level+1);
-		mkDir(newPath, level+1);
+		sprintf(newPath, "d%d", level + 1);
+		mkDir(newPath, level + 1);
 	}
 }
 
 static void
-rmDir(char *path, int level) {
+rmDir(char *path, int level)
+{
 	char newPath[MAXPATHLEN + 1];
 
 	if (level < (int)size) {
-		sprintf(newPath,"d%d", level+1);
-		rmDir(newPath, level+1);
+		sprintf(newPath, "d%d", level + 1);
+		rmDir(newPath, level + 1);
 	}
-	chdir ("..");
+	chdir("..");
 	if (rmdir(path) == -1) {
 		err(1, "rmdir(%s), %s:%d", path, __FILE__, __LINE__);
 	}
@@ -127,7 +133,7 @@ test(void)
 	char path[MAXPATHLEN + 1];
 
 	umask(0);
-	sprintf(path,"p%05d.d%d", getpid(), 1);
+	sprintf(path, "p%05d.d%d", getpid(), 1);
 	mkDir(path, 1);
 	rmDir(path, 1);
 

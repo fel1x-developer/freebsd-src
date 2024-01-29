@@ -30,11 +30,12 @@
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/ac97.h>
 #include <dev/sound/pcm/ac97_patch.h>
+#include <dev/sound/pcm/sound.h>
 
-void ad1886_patch(struct ac97_info* codec)
+void
+ad1886_patch(struct ac97_info *codec)
 {
 #define AC97_AD_JACK_SPDIF 0x72
 	/*
@@ -46,10 +47,11 @@ void ad1886_patch(struct ac97_info* codec)
 	ac97_wrcd(codec, AC97_AD_JACK_SPDIF, 0x0010);
 }
 
-void ad198x_patch(struct ac97_info* codec)
+void
+ad198x_patch(struct ac97_info *codec)
 {
 	switch (ac97_getsubvendor(codec)) {
-	case 0x11931043:	/* Not for ASUS A9T (probably else too). */
+	case 0x11931043: /* Not for ASUS A9T (probably else too). */
 		break;
 	default:
 		ac97_wrcd(codec, 0x76, ac97_rdcd(codec, 0x76) | 0x0420);
@@ -57,14 +59,15 @@ void ad198x_patch(struct ac97_info* codec)
 	}
 }
 
-void ad1981b_patch(struct ac97_info* codec)
+void
+ad1981b_patch(struct ac97_info *codec)
 {
 	/*
 	 * Enable headphone jack sensing.
 	 */
 	switch (ac97_getsubvendor(codec)) {
-	case 0x02d91014:	/* IBM Thinkcentre */
-	case 0x099c103c:	/* HP nx6110 */
+	case 0x02d91014: /* IBM Thinkcentre */
+	case 0x099c103c: /* HP nx6110 */
 		ac97_wrcd(codec, AC97_AD_JACK_SPDIF,
 		    ac97_rdcd(codec, AC97_AD_JACK_SPDIF) | 0x0800);
 		break;
@@ -73,14 +76,15 @@ void ad1981b_patch(struct ac97_info* codec)
 	}
 }
 
-void cmi9739_patch(struct ac97_info* codec)
+void
+cmi9739_patch(struct ac97_info *codec)
 {
 	/*
 	 * Few laptops need extra register initialization
 	 * to power up the internal speakers.
 	 */
 	switch (ac97_getsubvendor(codec)) {
-	case 0x18431043:	/* ASUS W1000N */
+	case 0x18431043: /* ASUS W1000N */
 		ac97_wrcd(codec, AC97_REG_POWER, 0x000f);
 		ac97_wrcd(codec, AC97_MIXEXT_CLFE, 0x0000);
 		ac97_wrcd(codec, 0x64, 0x7110);
@@ -90,16 +94,17 @@ void cmi9739_patch(struct ac97_info* codec)
 	}
 }
 
-void alc655_patch(struct ac97_info* codec)
+void
+alc655_patch(struct ac97_info *codec)
 {
 	/*
 	 * MSI (Micro-Star International) specific EAPD quirk.
 	 */
 	switch (ac97_getsubvendor(codec)) {
-	case 0x00611462:	/* MSI S250 */
-	case 0x01311462:	/* MSI S270 */
-	case 0x01611462:	/* LG K1 Express */
-	case 0x03511462:	/* MSI L725 */
+	case 0x00611462: /* MSI S250 */
+	case 0x01311462: /* MSI S270 */
+	case 0x01611462: /* LG K1 Express */
+	case 0x03511462: /* MSI L725 */
 		ac97_wrcd(codec, 0x7a, ac97_rdcd(codec, 0x7a) & 0xfffd);
 		break;
 	case 0x10ca1734:

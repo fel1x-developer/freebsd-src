@@ -30,9 +30,9 @@
 */
 
 #include "cpa.h"
-#include "qat_utils.h"
 #include "cpa_cy_common.h"
 #include "icp_adf_init.h"
+#include "qat_utils.h"
 
 #define LAC_ARCH_UINT uintptr_t
 #define LAC_ARCH_INT intptr_t
@@ -118,7 +118,7 @@
  *      No
  *
  * param[in]  processName    Process name to be set
-*/
+ */
 CpaStatus icpSetProcessName(const char *processName);
 
 /*
@@ -138,7 +138,7 @@ CpaStatus icpSetProcessName(const char *processName);
  * @threadSafe
  *      Yes
  *
-*/
+ */
 char *icpGetProcessName(void);
 
 /* Sections of the config file */
@@ -161,15 +161,15 @@ char *icpGetProcessName(void);
 
 /**
 *****************************************************************************
- * @ingroup LacCommon
- *      Component state
- *
- * @description
- *      This enum is used to indicate the state that the component is in. Its
- *      purpose is to prevent components from being initialised or shutdown
- *      incorrectly.
- *
- *****************************************************************************/
+* @ingroup LacCommon
+*      Component state
+*
+* @description
+*      This enum is used to indicate the state that the component is in. Its
+*      purpose is to prevent components from being initialised or shutdown
+*      incorrectly.
+*
+*****************************************************************************/
 typedef enum {
 	LAC_COMP_SHUT_DOWN = 0,
 	/**< Component in the Shut Down state */
@@ -191,11 +191,11 @@ typedef enum {
  * @return CPA_STATUS_INVALID_PARAM Parameter is NULL
  * @return void                     Parameter is not NULL
  ******************************************************************************/
-#define LAC_CHECK_NULL_PARAM(param)                                            \
-	do {                                                                   \
-		if (NULL == (param)) {                                         \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define LAC_CHECK_NULL_PARAM(param)                      \
+	do {                                             \
+		if (NULL == (param)) {                   \
+			return CPA_STATUS_INVALID_PARAM; \
+		}                                        \
 	} while (0)
 
 /**
@@ -211,11 +211,11 @@ typedef enum {
  * @return CPA_STATUS_INVALID_PARAM Parameter is outside range
  * @return void                     Parameter is within range
  ******************************************************************************/
-#define LAC_CHECK_PARAM_RANGE(param, min, max)                                 \
-	do {                                                                   \
-		if (((param) < (min)) || ((param) >= (max))) {                 \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define LAC_CHECK_PARAM_RANGE(param, min, max)                 \
+	do {                                                   \
+		if (((param) < (min)) || ((param) >= (max))) { \
+			return CPA_STATUS_INVALID_PARAM;       \
+		}                                              \
 	} while (0)
 
 /**
@@ -224,11 +224,11 @@ typedef enum {
  *      This checks if a param is 8 byte aligned.
  *
  ******************************************************************************/
-#define LAC_CHECK_8_BYTE_ALIGNMENT(param)                                      \
-	do {                                                                   \
-		if ((Cpa64U)param % 8 != 0) {                                  \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define LAC_CHECK_8_BYTE_ALIGNMENT(param)                \
+	do {                                             \
+		if ((Cpa64U)param % 8 != 0) {            \
+			return CPA_STATUS_INVALID_PARAM; \
+		}                                        \
 	} while (0)
 
 /**
@@ -237,11 +237,11 @@ typedef enum {
  *      This checks if a param is 64 byte aligned.
  *
  ******************************************************************************/
-#define LAC_CHECK_64_BYTE_ALIGNMENT(param)                                     \
-	do {                                                                   \
-		if ((LAC_ARCH_UINT)param % 64 != 0) {                          \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define LAC_CHECK_64_BYTE_ALIGNMENT(param)               \
+	do {                                             \
+		if ((LAC_ARCH_UINT)param % 64 != 0) {    \
+			return CPA_STATUS_INVALID_PARAM; \
+		}                                        \
 	} while (0)
 
 /**
@@ -255,7 +255,7 @@ typedef enum {
  *
  * @return size of the buffer list structure
  ******************************************************************************/
-#define LAC_BUFFER_LIST_SIZE_GET(numBuffers)                                   \
+#define LAC_BUFFER_LIST_SIZE_GET(numBuffers) \
 	(sizeof(CpaBufferList) + (numBuffers * sizeof(CpaFlatBuffer)))
 
 /**
@@ -269,10 +269,10 @@ typedef enum {
  * @return CPA_STATUS_INVALID_PARAM Invalid flatbuffer pointer
  * @return void                     flatbuffer is ok
  ******************************************************************************/
-#define LAC_CHECK_FLAT_BUFFER(pFlatBuffer)                                     \
-	do {                                                                   \
-		LAC_CHECK_NULL_PARAM((pFlatBuffer));                           \
-		LAC_CHECK_NULL_PARAM((pFlatBuffer)->pData);                    \
+#define LAC_CHECK_FLAT_BUFFER(pFlatBuffer)                  \
+	do {                                                \
+		LAC_CHECK_NULL_PARAM((pFlatBuffer));        \
+		LAC_CHECK_NULL_PARAM((pFlatBuffer)->pData); \
 	} while (0)
 
 /**
@@ -286,11 +286,11 @@ typedef enum {
  * @return status       The value in the status parameter is an error one
  *
  ******************************************************************************/
-#define LAC_CHECK_STATUS(status)                                               \
-	do {                                                                   \
-		if (CPA_STATUS_SUCCESS != (status)) {                          \
-			return status;                                         \
-		}                                                              \
+#define LAC_CHECK_STATUS(status)                      \
+	do {                                          \
+		if (CPA_STATUS_SUCCESS != (status)) { \
+			return status;                \
+		}                                     \
 	} while (0)
 
 /**
@@ -304,11 +304,11 @@ typedef enum {
  * @return void                     Parameter is not NULL
  *
  ******************************************************************************/
-#define LAC_CHECK_INSTANCE_HANDLE(instanceHandle)                              \
-	do {                                                                   \
-		if (NULL == (instanceHandle)) {                                \
-			return CPA_STATUS_INVALID_PARAM;                       \
-		}                                                              \
+#define LAC_CHECK_INSTANCE_HANDLE(instanceHandle)        \
+	do {                                             \
+		if (NULL == (instanceHandle)) {          \
+			return CPA_STATUS_INVALID_PARAM; \
+		}                                        \
 	} while (0)
 
 /**
@@ -320,10 +320,10 @@ typedef enum {
  * @param[in] pSource               Pointer to source buffer
  *
  ******************************************************************************/
-#define LAC_COPY_STRING(pDestinationBuffer, pSource)                           \
-	do {                                                                   \
-		memcpy(pDestinationBuffer, pSource, (sizeof(pSource) - 1));    \
-		pDestinationBuffer[(sizeof(pSource) - 1)] = '\0';              \
+#define LAC_COPY_STRING(pDestinationBuffer, pSource)                        \
+	do {                                                                \
+		memcpy(pDestinationBuffer, pSource, (sizeof(pSource) - 1)); \
+		pDestinationBuffer[(sizeof(pSource) - 1)] = '\0';           \
 	} while (0)
 
 /**
@@ -350,7 +350,7 @@ typedef enum {
  * @param[in] member            the member of the given struct
  *
  ******************************************************************************/
-#define LAC_IDX_OF(structType, member)                                         \
+#define LAC_IDX_OF(structType, member) \
 	(offsetof(structType, member) / sizeof(((structType *)0)->member))
 
 /*
@@ -360,14 +360,14 @@ typedef enum {
 */
 
 #define LAC_BIT31_SET 0x80000000 /**< bit 31 == 1 */
-#define LAC_BIT7_SET 0x80	/**< bit 7 == 1  */
-#define LAC_BIT6_SET 0x40	/**< bit 6 == 1  */
-#define LAC_BIT5_SET 0x20	/**< bit 5 == 1  */
-#define LAC_BIT4_SET 0x10	/**< bit 4 == 1  */
-#define LAC_BIT3_SET 0x08	/**< bit 3 == 1  */
-#define LAC_BIT2_SET 0x04	/**< bit 2 == 1  */
-#define LAC_BIT1_SET 0x02	/**< bit 1 == 1  */
-#define LAC_BIT0_SET 0x01	/**< bit 0 == 1  */
+#define LAC_BIT7_SET 0x80	 /**< bit 7 == 1  */
+#define LAC_BIT6_SET 0x40	 /**< bit 6 == 1  */
+#define LAC_BIT5_SET 0x20	 /**< bit 5 == 1  */
+#define LAC_BIT4_SET 0x10	 /**< bit 4 == 1  */
+#define LAC_BIT3_SET 0x08	 /**< bit 3 == 1  */
+#define LAC_BIT2_SET 0x04	 /**< bit 2 == 1  */
+#define LAC_BIT1_SET 0x02	 /**< bit 1 == 1  */
+#define LAC_BIT0_SET 0x01	 /**< bit 0 == 1  */
 
 #define LAC_NUM_BITS_IN_BYTE (8)
 /**< @ingroup LacCommon
@@ -387,14 +387,14 @@ typedef enum {
 
 /**
 *****************************************************************************
- * @ingroup LacCommon
- *      Alignment shift requirements of a buffer.
- *
- * @description
- *      This enum is used to indicate the alignment shift of a buffer.
- *      All alignments are to power of 2
- *
- *****************************************************************************/
+* @ingroup LacCommon
+*      Alignment shift requirements of a buffer.
+*
+* @description
+*      This enum is used to indicate the alignment shift of a buffer.
+*      All alignments are to power of 2
+*
+*****************************************************************************/
 typedef enum lac_aligment_shift_s {
 	LAC_NO_ALIGNMENT_SHIFT = 0,
 	/**< No alignment shift (to a power of 2)*/
@@ -410,13 +410,13 @@ typedef enum lac_aligment_shift_s {
 
 /**
 *****************************************************************************
- * @ingroup LacCommon
- *      Alignment of a buffer.
- *
- * @description
- *      This enum is used to indicate the alignment requirements of a buffer.
- *
- *****************************************************************************/
+* @ingroup LacCommon
+*      Alignment of a buffer.
+*
+* @description
+*      This enum is used to indicate the alignment requirements of a buffer.
+*
+*****************************************************************************/
 typedef enum lac_aligment_s {
 	LAC_NO_ALIGNMENT = 0,
 	/**< No alignment */
@@ -432,14 +432,14 @@ typedef enum lac_aligment_s {
 
 /**
 *****************************************************************************
- * @ingroup LacCommon
- *      Size of a buffer.
- *
- * @description
- *      This enum is used to indicate the required size.
- *      The buffer must be a multiple of the required size.
- *
- *****************************************************************************/
+* @ingroup LacCommon
+*      Size of a buffer.
+*
+* @description
+*      This enum is used to indicate the required size.
+*      The buffer must be a multiple of the required size.
+*
+*****************************************************************************/
 typedef enum lac_expected_size_s {
 	LAC_NO_LENGTH_REQUIREMENTS = 0,
 	/**< No requirement for size */
@@ -453,7 +453,7 @@ typedef enum lac_expected_size_s {
 
 #define LAC_SHIFT_8 (1 << LAC_8BYTE_ALIGNMENT_SHIFT)
 /**< shift by 8 bits  */
-#define LAC_SHIFT_24                                                           \
+#define LAC_SHIFT_24 \
 	((1 << LAC_8BYTE_ALIGNMENT_SHIFT) + (1 << LAC_16BYTE_ALIGNMENT_SHIFT))
 /**< shift by 24 bits */
 
@@ -483,7 +483,7 @@ typedef enum lac_expected_size_s {
  * @param[in] alignment the byte alignment to check (specified as power of 2)
  *
  ******************************************************************************/
-#define LAC_ADDRESS_ALIGNED(address, alignment)                                \
+#define LAC_ADDRESS_ALIGNED(address, alignment) \
 	(!((LAC_ARCH_UINT)(address) & ((1 << (alignment)) - 1)))
 
 /**
@@ -574,7 +574,6 @@ typedef enum lac_expected_size_s {
  ******************************************************************************/
 #define LAC_QUADWORDS_TO_BYTES(x) ((x) << 3)
 
-
 /******************************************************************************/
 
 /*
@@ -594,10 +593,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with Mutex
  ******************************************************************************/
-#define LAC_LOCK_MUTEX(pLock, timeout)                                         \
-	((CPA_STATUS_SUCCESS != qatUtilsMutexLock((pLock), (timeout))) ?       \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_LOCK_MUTEX(pLock, timeout)                                   \
+	((CPA_STATUS_SUCCESS != qatUtilsMutexLock((pLock), (timeout))) ? \
+		CPA_STATUS_RESOURCE :                                    \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -609,10 +608,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with Mutex
  ******************************************************************************/
-#define LAC_UNLOCK_MUTEX(pLock)                                                \
-	((CPA_STATUS_SUCCESS != qatUtilsMutexUnlock((pLock))) ?                \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_UNLOCK_MUTEX(pLock)                                 \
+	((CPA_STATUS_SUCCESS != qatUtilsMutexUnlock((pLock))) ? \
+		CPA_STATUS_RESOURCE :                           \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -624,10 +623,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with Mutex
  ******************************************************************************/
-#define LAC_INIT_MUTEX(pLock)                                                  \
-	((CPA_STATUS_SUCCESS != qatUtilsMutexInit((pLock))) ?                  \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_INIT_MUTEX(pLock)                                 \
+	((CPA_STATUS_SUCCESS != qatUtilsMutexInit((pLock))) ? \
+		CPA_STATUS_RESOURCE :                         \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -639,10 +638,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with Mutex
  ******************************************************************************/
-#define LAC_DESTROY_MUTEX(pLock)                                               \
-	((CPA_STATUS_SUCCESS != qatUtilsMutexDestroy((pLock))) ?               \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_DESTROY_MUTEX(pLock)                                 \
+	((CPA_STATUS_SUCCESS != qatUtilsMutexDestroy((pLock))) ? \
+		CPA_STATUS_RESOURCE :                            \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -654,11 +653,11 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with Mutex
  ******************************************************************************/
-#define LAC_TRYLOCK_MUTEX(pLock)                                               \
-	((CPA_STATUS_SUCCESS !=                                                \
-	  qatUtilsMutexTryLock((pLock), QAT_UTILS_WAIT_NONE)) ?                \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_TRYLOCK_MUTEX(pLock)                                   \
+	((CPA_STATUS_SUCCESS !=                                    \
+	     qatUtilsMutexTryLock((pLock), QAT_UTILS_WAIT_NONE)) ? \
+		CPA_STATUS_RESOURCE :                              \
+		CPA_STATUS_SUCCESS)
 
 /*
 *******************************************************************************
@@ -677,10 +676,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with semaphore
  ******************************************************************************/
-#define LAC_WAIT_SEMAPHORE(sid, timeout)                                       \
-	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreWait(&sid, (timeout))) ?      \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_WAIT_SEMAPHORE(sid, timeout)                                  \
+	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreWait(&sid, (timeout))) ? \
+		CPA_STATUS_RESOURCE :                                     \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -692,10 +691,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with semaphore
  ******************************************************************************/
-#define LAC_CHECK_SEMAPHORE(sid)                                               \
-	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreTryWait(&sid)) ?              \
-	     CPA_STATUS_RETRY :                                                \
-	     CPA_STATUS_SUCCESS)
+#define LAC_CHECK_SEMAPHORE(sid)                                  \
+	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreTryWait(&sid)) ? \
+		CPA_STATUS_RETRY :                                \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -707,10 +706,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with semaphore
  ******************************************************************************/
-#define LAC_POST_SEMAPHORE(sid)                                                \
-	((CPA_STATUS_SUCCESS != qatUtilsSemaphorePost(&sid)) ?                 \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_POST_SEMAPHORE(sid)                                \
+	((CPA_STATUS_SUCCESS != qatUtilsSemaphorePost(&sid)) ? \
+		CPA_STATUS_RESOURCE :                          \
+		CPA_STATUS_SUCCESS)
 /**
  *******************************************************************************
  * @ingroup LacCommon
@@ -722,10 +721,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with semaphore
  ******************************************************************************/
-#define LAC_INIT_SEMAPHORE(sid, semValue)                                      \
-	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreInit(&sid, semValue)) ?       \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_INIT_SEMAPHORE(sid, semValue)                                \
+	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreInit(&sid, semValue)) ? \
+		CPA_STATUS_RESOURCE :                                    \
+		CPA_STATUS_SUCCESS)
 
 /**
  *******************************************************************************
@@ -737,10 +736,10 @@ typedef enum lac_expected_size_s {
  * @retval CPA_STATUS_SUCCESS   Function executed successfully.
  * @retval CPA_STATUS_RESOURCE  Error with semaphore
  ******************************************************************************/
-#define LAC_DESTROY_SEMAPHORE(sid)                                             \
-	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreDestroy(&sid)) ?              \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
+#define LAC_DESTROY_SEMAPHORE(sid)                                \
+	((CPA_STATUS_SUCCESS != qatUtilsSemaphoreDestroy(&sid)) ? \
+		CPA_STATUS_RESOURCE :                             \
+		CPA_STATUS_SUCCESS)
 
 /*
 *******************************************************************************
@@ -748,22 +747,13 @@ typedef enum lac_expected_size_s {
 *******************************************************************************
 */
 typedef struct mtx *lac_lock_t;
-#define LAC_SPINLOCK_INIT(lock)                                                \
-	((CPA_STATUS_SUCCESS != qatUtilsLockInit(lock)) ?                      \
-	     CPA_STATUS_RESOURCE :                                             \
-	     CPA_STATUS_SUCCESS)
-#define LAC_SPINLOCK(lock)                                                     \
-	({                                                                     \
-		(void)qatUtilsLock(lock);                                      \
-	})
-#define LAC_SPINUNLOCK(lock)                                                   \
-	({                                                                     \
-		(void)qatUtilsUnlock(lock);                                    \
-	})
-#define LAC_SPINLOCK_DESTROY(lock)                                             \
-	({                                                                     \
-		(void)qatUtilsLockDestroy(lock);                               \
-	})
+#define LAC_SPINLOCK_INIT(lock)                           \
+	((CPA_STATUS_SUCCESS != qatUtilsLockInit(lock)) ? \
+		CPA_STATUS_RESOURCE :                     \
+		CPA_STATUS_SUCCESS)
+#define LAC_SPINLOCK(lock) ({ (void)qatUtilsLock(lock); })
+#define LAC_SPINUNLOCK(lock) ({ (void)qatUtilsUnlock(lock); })
+#define LAC_SPINLOCK_DESTROY(lock) ({ (void)qatUtilsLockDestroy(lock); })
 
 #define LAC_CONST_PTR_CAST(castee) ((void *)(LAC_ARCH_UINT)(castee))
 #define LAC_CONST_VOLATILE_PTR_CAST(castee) ((void *)(LAC_ARCH_UINT)(castee))

@@ -27,16 +27,17 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <pthread.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include "libc_private.h"
 #include "thr_private.h"
 
-static void	pchar(int fd, char c);
-static void	pstr(int fd, const char *s);
+static void pchar(int fd, char c);
+static void pstr(int fd, const char *s);
 
 /*
  * Write formatted output to stdout, in a thread-safe manner.
@@ -52,7 +53,7 @@ static void	pstr(int fd, const char *s);
 void
 _thread_printf(int fd, const char *fmt, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, fmt);
 	_thread_vprintf(fd, fmt, ap);
@@ -74,7 +75,8 @@ _thread_vprintf(int fd, const char *fmt, va_list ap)
 		isalt = 0;
 		islong = 0;
 		if (c == '%') {
-next:			c = *fmt++;
+		next:
+			c = *fmt++;
 			if (c == '\0')
 				return;
 			switch (c) {
@@ -148,4 +150,3 @@ pstr(int fd, const char *s)
 
 	__sys_write(fd, s, strlen(s));
 }
-

@@ -32,18 +32,20 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Re-direct an existing, open (probably) file to some other file.
@@ -51,15 +53,15 @@
  * all possible, no matter what.
  */
 FILE *
-freopen(const char * __restrict file, const char * __restrict mode,
-    FILE * __restrict fp)
+freopen(const char *__restrict file, const char *__restrict mode,
+    FILE *__restrict fp)
 {
 	int f;
 	int dflags, flags, isopen, oflags, sverrno, wantfd;
 
 	if ((flags = __sflags(mode, &oflags)) == 0) {
 		sverrno = errno;
-		(void) fclose(fp);
+		(void)fclose(fp);
 		errno = sverrno;
 		return (NULL);
 	}
@@ -97,7 +99,7 @@ freopen(const char * __restrict file, const char * __restrict mode,
 			goto end;
 		}
 		if (fp->_flags & __SWR)
-			(void) __sflush(fp);
+			(void)__sflush(fp);
 		if ((oflags ^ dflags) & O_APPEND) {
 			dflags &= ~O_APPEND;
 			dflags |= oflags & O_APPEND;
@@ -110,11 +112,11 @@ freopen(const char * __restrict file, const char * __restrict mode,
 			}
 		}
 		if (oflags & O_TRUNC)
-			(void) ftruncate(fp->_file, (off_t)0);
+			(void)ftruncate(fp->_file, (off_t)0);
 		if (!(oflags & O_APPEND))
-			(void) _sseek(fp, (fpos_t)0, SEEK_SET);
+			(void)_sseek(fp, (fpos_t)0, SEEK_SET);
 		if (oflags & O_CLOEXEC)
-			(void) _fcntl(fp->_file, F_SETFD, FD_CLOEXEC);
+			(void)_fcntl(fp->_file, F_SETFD, FD_CLOEXEC);
 		f = fp->_file;
 		isopen = 0;
 		wantfd = -1;
@@ -130,17 +132,17 @@ freopen(const char * __restrict file, const char * __restrict mode,
 	 * should work.  This is unnecessary if it was not a Unix file.
 	 */
 	if (fp->_flags == 0) {
-		fp->_flags = __SEOF;	/* hold on to it */
+		fp->_flags = __SEOF; /* hold on to it */
 		isopen = 0;
 		wantfd = -1;
 	} else {
 		/* flush the stream; ANSI doesn't require this. */
 		if (fp->_flags & __SWR)
-			(void) __sflush(fp);
+			(void)__sflush(fp);
 		/* if close is NULL, closing is a no-op, hence pointless */
 		isopen = fp->_close != NULL;
 		if ((wantfd = fp->_file) < 0 && isopen) {
-			(void) (*fp->_close)(fp->_cookie);
+			(void)(*fp->_close)(fp->_cookie);
 			isopen = 0;
 		}
 	}
@@ -150,7 +152,7 @@ freopen(const char * __restrict file, const char * __restrict mode,
 	/* If out of fd's close the old one and try again. */
 	if (f < 0 && isopen && wantfd > STDERR_FILENO &&
 	    (errno == ENFILE || errno == EMFILE)) {
-		(void) (*fp->_close)(fp->_cookie);
+		(void)(*fp->_close)(fp->_cookie);
 		isopen = 0;
 		wantfd = -1;
 		f = _open(file, oflags, DEFFILEMODE);
@@ -185,11 +187,11 @@ finish:
 	memset(&fp->_mbstate, 0, sizeof(mbstate_t));
 	fp->_flags2 = 0;
 
-	if (f < 0) {			/* did not get it after all */
+	if (f < 0) { /* did not get it after all */
 		if (isopen)
-			(void) (*fp->_close)(fp->_cookie);
-		fp->_flags = 0;		/* set it free */
-		errno = sverrno;	/* restore in case _close clobbered */
+			(void)(*fp->_close)(fp->_cookie);
+		fp->_flags = 0;	 /* set it free */
+		errno = sverrno; /* restore in case _close clobbered */
 		fp = NULL;
 		goto end;
 	}
@@ -201,7 +203,7 @@ finish:
 	 */
 	if (wantfd >= 0) {
 		if ((oflags & O_CLOEXEC ? _fcntl(f, F_DUP2FD_CLOEXEC, wantfd) :
-		    _dup2(f, wantfd)) >= 0) {
+					  _dup2(f, wantfd)) >= 0) {
 			(void)_close(f);
 			f = wantfd;
 		} else
@@ -216,7 +218,7 @@ finish:
 	 * open.
 	 */
 	if (f > SHRT_MAX) {
-		fp->_flags = 0;		/* set it free */
+		fp->_flags = 0; /* set it free */
 		errno = EMFILE;
 		fp = NULL;
 		goto end;
@@ -239,7 +241,7 @@ finish:
 	 */
 	if (oflags & O_APPEND) {
 		fp->_flags2 |= __S2OAP;
-		(void) _sseek(fp, (fpos_t)0, SEEK_END);
+		(void)_sseek(fp, (fpos_t)0, SEEK_END);
 	}
 end:
 	FUNLOCKFILE_CANCELSAFE();

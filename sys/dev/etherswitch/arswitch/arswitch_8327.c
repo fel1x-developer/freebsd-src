@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -35,36 +36,33 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
+#include <machine/bus.h>
+
+#include <dev/etherswitch/arswitch/arswitch_8327.h>
+#include <dev/etherswitch/arswitch/arswitch_phy.h>
+#include <dev/etherswitch/arswitch/arswitch_reg.h>
+#include <dev/etherswitch/arswitch/arswitch_vlans.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 
-#include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-#include <dev/etherswitch/arswitch/arswitch_reg.h>
-#include <dev/etherswitch/arswitch/arswitch_phy.h>
-#include <dev/etherswitch/arswitch/arswitch_vlans.h>
-
-#include <dev/etherswitch/arswitch/arswitch_8327.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * AR8327 TODO:
@@ -76,34 +74,24 @@
  */
 
 /* Map port+led to register+shift */
-struct ar8327_led_mapping ar8327_led_mapping[AR8327_NUM_PHYS][ETHERSWITCH_PORT_MAX_LEDS] =
-{
-	{	/* PHY0 */
-		{AR8327_REG_LED_CTRL0, 14 },
-		{AR8327_REG_LED_CTRL1, 14 },
-		{AR8327_REG_LED_CTRL2, 14 }
-	},
-	{	/* PHY1 */
-		{AR8327_REG_LED_CTRL3, 8  },
-		{AR8327_REG_LED_CTRL3, 10 },
-		{AR8327_REG_LED_CTRL3, 12 }
-	},
-	{	/* PHY2 */
-		{AR8327_REG_LED_CTRL3, 14 },
-		{AR8327_REG_LED_CTRL3, 16 },
-		{AR8327_REG_LED_CTRL3, 18 }
-	},
-	{	/* PHY3 */
-		{AR8327_REG_LED_CTRL3, 20 },
-		{AR8327_REG_LED_CTRL3, 22 },
-		{AR8327_REG_LED_CTRL3, 24 }
-	},
-	{	/* PHY4 */
-		{AR8327_REG_LED_CTRL0, 30 },
-		{AR8327_REG_LED_CTRL1, 30 },
-		{AR8327_REG_LED_CTRL2, 30 }
-	}
-};
+struct ar8327_led_mapping
+    ar8327_led_mapping[AR8327_NUM_PHYS][ETHERSWITCH_PORT_MAX_LEDS] = {
+	    { /* PHY0 */
+		{ AR8327_REG_LED_CTRL0, 14 }, { AR8327_REG_LED_CTRL1, 14 },
+		{ AR8327_REG_LED_CTRL2, 14 } },
+	    { /* PHY1 */
+		{ AR8327_REG_LED_CTRL3, 8 }, { AR8327_REG_LED_CTRL3, 10 },
+		{ AR8327_REG_LED_CTRL3, 12 } },
+	    { /* PHY2 */
+		{ AR8327_REG_LED_CTRL3, 14 }, { AR8327_REG_LED_CTRL3, 16 },
+		{ AR8327_REG_LED_CTRL3, 18 } },
+	    { /* PHY3 */
+		{ AR8327_REG_LED_CTRL3, 20 }, { AR8327_REG_LED_CTRL3, 22 },
+		{ AR8327_REG_LED_CTRL3, 24 } },
+	    { /* PHY4 */
+		{ AR8327_REG_LED_CTRL0, 30 }, { AR8327_REG_LED_CTRL1, 30 },
+		{ AR8327_REG_LED_CTRL2, 30 } }
+    };
 
 static int
 ar8327_vlan_op(struct arswitch_softc *sc, uint32_t op, uint32_t vid,
@@ -115,7 +103,7 @@ ar8327_vlan_op(struct arswitch_softc *sc, uint32_t op, uint32_t vid,
 	 * Wait for the "done" bit to finish.
 	 */
 	if (arswitch_waitreg(sc->sc_dev, AR8327_REG_VTU_FUNC1,
-	    AR8327_VTU_FUNC1_BUSY, 0, 5))
+		AR8327_VTU_FUNC1_BUSY, 0, 5))
 		return (EBUSY);
 
 	/*
@@ -143,7 +131,7 @@ ar8327_vlan_op(struct arswitch_softc *sc, uint32_t op, uint32_t vid,
 	 * Finally - wait for it to load.
 	 */
 	if (arswitch_waitreg(sc->sc_dev, AR8327_REG_VTU_FUNC1,
-	    AR8327_VTU_FUNC1_BUSY, 0, 5))
+		AR8327_VTU_FUNC1_BUSY, 0, 5))
 		return (EBUSY);
 
 	return (0);
@@ -153,10 +141,8 @@ static void
 ar8327_phy_fixup(struct arswitch_softc *sc, int phy)
 {
 	if (bootverbose)
-		device_printf(sc->sc_dev,
-		    "%s: called; phy=%d; chiprev=%d\n", __func__,
-		    phy,
-		    sc->chip_rev);
+		device_printf(sc->sc_dev, "%s: called; phy=%d; chiprev=%d\n",
+		    __func__, phy, sc->chip_rev);
 	switch (sc->chip_rev) {
 	case 1:
 		/* For 100M waveform */
@@ -316,8 +302,7 @@ ar8327_get_port_init_status(struct ar8327_port_cfg *cfg)
  * the contents are valid; 0 otherwise.
  */
 static int
-ar8327_fetch_pdata_port(struct arswitch_softc *sc,
-    struct ar8327_port_cfg *pcfg,
+ar8327_fetch_pdata_port(struct arswitch_softc *sc, struct ar8327_port_cfg *pcfg,
     int port)
 {
 	int val;
@@ -326,9 +311,8 @@ ar8327_fetch_pdata_port(struct arswitch_softc *sc,
 	/* Check if force_link exists */
 	val = 0;
 	snprintf(sbuf, 128, "port.%d.force_link", port);
-	(void) resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val);
+	(void)resource_int_value(device_get_name(sc->sc_dev),
+	    device_get_unit(sc->sc_dev), sbuf, &val);
 	if (val != 1)
 		return (0);
 	pcfg->force_link = 1;
@@ -336,8 +320,7 @@ ar8327_fetch_pdata_port(struct arswitch_softc *sc,
 	/* force_link is set; let's parse the rest of the fields */
 	snprintf(sbuf, 128, "port.%d.speed", port);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0) {
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0) {
 		switch (val) {
 		case 10:
 			pcfg->speed = AR8327_PORT_SPEED_10;
@@ -350,40 +333,31 @@ ar8327_fetch_pdata_port(struct arswitch_softc *sc,
 			break;
 		default:
 			device_printf(sc->sc_dev,
-			    "%s: invalid port %d duplex value (%d)\n",
-			    __func__,
-			    port,
-			    val);
+			    "%s: invalid port %d duplex value (%d)\n", __func__,
+			    port, val);
 			return (0);
 		}
 	}
 
 	snprintf(sbuf, 128, "port.%d.duplex", port);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pcfg->duplex = val;
 
 	snprintf(sbuf, 128, "port.%d.txpause", port);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pcfg->txpause = val;
 
 	snprintf(sbuf, 128, "port.%d.rxpause", port);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pcfg->rxpause = val;
 
 #if 1
 	device_printf(sc->sc_dev,
 	    "%s: port %d: speed=%d, duplex=%d, txpause=%d, rxpause=%d\n",
-	    __func__,
-	    port,
-	    pcfg->speed,
-	    pcfg->duplex,
-	    pcfg->txpause,
+	    __func__, port, pcfg->speed, pcfg->duplex, pcfg->txpause,
 	    pcfg->rxpause);
 #endif
 
@@ -409,8 +383,7 @@ ar8327_fetch_pdata_port(struct arswitch_softc *sc,
  * Else the structure is fleshed out and 1 is returned.
  */
 static int
-ar8327_fetch_pdata_pad(struct arswitch_softc *sc,
-    struct ar8327_pad_cfg *pc,
+ar8327_fetch_pdata_pad(struct arswitch_softc *sc, struct ar8327_pad_cfg *pc,
     int pad)
 {
 	int val;
@@ -420,8 +393,7 @@ ar8327_fetch_pdata_pad(struct arswitch_softc *sc,
 	val = 0;
 	snprintf(sbuf, 128, "pad.%d.mode", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) != 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) != 0)
 		return (0);
 
 	/* assume that 'mode' exists and was found */
@@ -429,50 +401,42 @@ ar8327_fetch_pdata_pad(struct arswitch_softc *sc,
 
 	snprintf(sbuf, 128, "pad.%d.rxclk_sel", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->rxclk_sel = val;
 
 	snprintf(sbuf, 128, "pad.%d.txclk_sel", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->txclk_sel = val;
 
 	snprintf(sbuf, 128, "pad.%d.txclk_delay_sel", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->txclk_delay_sel = val;
 
 	snprintf(sbuf, 128, "pad.%d.rxclk_delay_sel", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->rxclk_delay_sel = val;
 
 	snprintf(sbuf, 128, "pad.%d.txclk_delay_en", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->txclk_delay_en = val;
 
 	snprintf(sbuf, 128, "pad.%d.rxclk_delay_en", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->rxclk_delay_en = val;
 
 	snprintf(sbuf, 128, "pad.%d.sgmii_delay_en", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->sgmii_delay_en = val;
 
 	snprintf(sbuf, 128, "pad.%d.pipe_rxclk_sel", pad);
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    sbuf, &val) == 0)
+		device_get_unit(sc->sc_dev), sbuf, &val) == 0)
 		pc->pipe_rxclk_sel = val;
 
 	if (bootverbose) {
@@ -480,16 +444,9 @@ ar8327_fetch_pdata_pad(struct arswitch_softc *sc,
 		    "%s: pad %d: mode=%d, rxclk_sel=%d, txclk_sel=%d, "
 		    "txclk_delay_sel=%d, rxclk_delay_sel=%d, txclk_delay_en=%d, "
 		    "rxclk_enable_en=%d, sgmii_delay_en=%d, pipe_rxclk_sel=%d\n",
-		    __func__,
-		    pad,
-		    pc->mode,
-		    pc->rxclk_sel,
-		    pc->txclk_sel,
-		    pc->txclk_delay_sel,
-		    pc->rxclk_delay_sel,
-		    pc->txclk_delay_en,
-		    pc->rxclk_delay_en,
-		    pc->sgmii_delay_en,
+		    __func__, pad, pc->mode, pc->rxclk_sel, pc->txclk_sel,
+		    pc->txclk_delay_sel, pc->rxclk_delay_sel,
+		    pc->txclk_delay_en, pc->rxclk_delay_en, pc->sgmii_delay_en,
 		    pc->pipe_rxclk_sel);
 	}
 
@@ -508,16 +465,14 @@ ar8327_fetch_pdata_sgmii(struct arswitch_softc *sc,
 	/* sgmii_ctrl */
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "sgmii.ctrl", &val) != 0)
+		device_get_unit(sc->sc_dev), "sgmii.ctrl", &val) != 0)
 		return (0);
 	scfg->sgmii_ctrl = val;
 
 	/* serdes_aen */
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "sgmii.serdes_aen", &val) != 0)
+		device_get_unit(sc->sc_dev), "sgmii.serdes_aen", &val) != 0)
 		return (0);
 	scfg->serdes_aen = val;
 
@@ -528,43 +483,37 @@ ar8327_fetch_pdata_sgmii(struct arswitch_softc *sc,
  * Fetch the LED configuration from the boot hints.
  */
 static int
-ar8327_fetch_pdata_led(struct arswitch_softc *sc,
-    struct ar8327_led_cfg *lcfg)
+ar8327_fetch_pdata_led(struct arswitch_softc *sc, struct ar8327_led_cfg *lcfg)
 {
 	int val;
 
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "led.ctrl0", &val) != 0)
+		device_get_unit(sc->sc_dev), "led.ctrl0", &val) != 0)
 		return (0);
 	lcfg->led_ctrl0 = val;
 
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "led.ctrl1", &val) != 0)
+		device_get_unit(sc->sc_dev), "led.ctrl1", &val) != 0)
 		return (0);
 	lcfg->led_ctrl1 = val;
 
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "led.ctrl2", &val) != 0)
+		device_get_unit(sc->sc_dev), "led.ctrl2", &val) != 0)
 		return (0);
 	lcfg->led_ctrl2 = val;
 
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "led.ctrl3", &val) != 0)
+		device_get_unit(sc->sc_dev), "led.ctrl3", &val) != 0)
 		return (0);
 	lcfg->led_ctrl3 = val;
 
 	val = 0;
 	if (resource_int_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "led.open_drain", &val) != 0)
+		device_get_unit(sc->sc_dev), "led.open_drain", &val) != 0)
 		return (0);
 	lcfg->open_drain = val;
 
@@ -588,13 +537,15 @@ ar8327_init_pdata(struct arswitch_softc *sc)
 	bzero(&port_cfg, sizeof(port_cfg));
 	sc->ar8327.port0_status = 0;
 	if (ar8327_fetch_pdata_port(sc, &port_cfg, 0))
-		sc->ar8327.port0_status = ar8327_get_port_init_status(&port_cfg);
+		sc->ar8327.port0_status = ar8327_get_port_init_status(
+		    &port_cfg);
 
 	/* Port 6 */
 	bzero(&port_cfg, sizeof(port_cfg));
 	sc->ar8327.port6_status = 0;
 	if (ar8327_fetch_pdata_port(sc, &port_cfg, 6))
-		sc->ar8327.port6_status = ar8327_get_port_init_status(&port_cfg);
+		sc->ar8327.port6_status = ar8327_get_port_init_status(
+		    &port_cfg);
 
 	/* Pad 0 */
 	bzero(&pc, sizeof(pc));
@@ -652,12 +603,10 @@ ar8327_init_pdata(struct arswitch_softc *sc)
 		t = scfg.sgmii_ctrl;
 		if (sc->chip_rev == 1)
 			t |= AR8327_SGMII_CTRL_EN_PLL |
-			    AR8327_SGMII_CTRL_EN_RX |
-			    AR8327_SGMII_CTRL_EN_TX;
+			    AR8327_SGMII_CTRL_EN_RX | AR8327_SGMII_CTRL_EN_TX;
 		else
 			t &= ~(AR8327_SGMII_CTRL_EN_PLL |
-			    AR8327_SGMII_CTRL_EN_RX |
-			    AR8327_SGMII_CTRL_EN_TX);
+			    AR8327_SGMII_CTRL_EN_RX | AR8327_SGMII_CTRL_EN_TX);
 
 		arswitch_writereg(sc->sc_dev, AR8327_REG_SGMII_CTRL, t);
 
@@ -691,7 +640,6 @@ ar8327_hw_setup(struct arswitch_softc *sc)
 
 		/* start PHY autonegotiation? */
 		/* XXX is this done as part of the normal PHY setup? */
-
 	}
 
 	/* Let things settle */
@@ -719,8 +667,7 @@ ar8327_hw_global_setup(struct arswitch_softc *sc)
 	ARSWITCH_LOCK(sc);
 
 	/* enable CPU port and disable mirror port */
-	t = AR8327_FWD_CTRL0_CPU_PORT_EN |
-	    AR8327_FWD_CTRL0_MIRROR_PORT;
+	t = AR8327_FWD_CTRL0_CPU_PORT_EN | AR8327_FWD_CTRL0_MIRROR_PORT;
 	arswitch_writereg(sc->sc_dev, AR8327_REG_FWD_CTRL0, t);
 
 	/* forward multicast and broadcast frames to CPU */
@@ -740,10 +687,8 @@ ar8327_hw_global_setup(struct arswitch_softc *sc)
 
 	/* Disable EEE on all ports due to stability issues */
 	t = arswitch_readreg(sc->sc_dev, AR8327_REG_EEE_CTRL);
-	t |= AR8327_EEE_CTRL_DISABLE_PHY(0) |
-	    AR8327_EEE_CTRL_DISABLE_PHY(1) |
-	    AR8327_EEE_CTRL_DISABLE_PHY(2) |
-	    AR8327_EEE_CTRL_DISABLE_PHY(3) |
+	t |= AR8327_EEE_CTRL_DISABLE_PHY(0) | AR8327_EEE_CTRL_DISABLE_PHY(1) |
+	    AR8327_EEE_CTRL_DISABLE_PHY(2) | AR8327_EEE_CTRL_DISABLE_PHY(3) |
 	    AR8327_EEE_CTRL_DISABLE_PHY(4);
 	arswitch_writereg(sc->sc_dev, AR8327_REG_EEE_CTRL, t);
 
@@ -771,7 +716,7 @@ ar8327_port_init(struct arswitch_softc *sc, int port)
 		t = sc->ar8327.port0_status;
 	else if (port == 6)
 		t = sc->ar8327.port6_status;
-        else
+	else
 		t = AR8X16_PORT_STS_LINK_AUTO;
 
 	arswitch_writereg(sc->sc_dev, AR8327_REG_PORT_STATUS(port), t);
@@ -851,14 +796,10 @@ static void
 ar8327_port_disable_mirror(struct arswitch_softc *sc, int port)
 {
 
-	arswitch_modifyreg(sc->sc_dev,
-	    AR8327_REG_PORT_LOOKUP(port),
-	    AR8327_PORT_LOOKUP_ING_MIRROR_EN,
-	    0);
-	arswitch_modifyreg(sc->sc_dev,
-	    AR8327_REG_PORT_HOL_CTRL1(port),
-	    AR8327_PORT_HOL_CTRL1_EG_MIRROR_EN,
-	    0);
+	arswitch_modifyreg(sc->sc_dev, AR8327_REG_PORT_LOOKUP(port),
+	    AR8327_PORT_LOOKUP_ING_MIRROR_EN, 0);
+	arswitch_modifyreg(sc->sc_dev, AR8327_REG_PORT_HOL_CTRL1(port),
+	    AR8327_PORT_HOL_CTRL1_EG_MIRROR_EN, 0);
 }
 
 static void
@@ -928,11 +869,12 @@ ar8327_reset_vlans(struct arswitch_softc *sc)
 
 		/* Ports can see other ports */
 		/* XXX not entirely true for dot1q? */
-		t = (ports & ~(1 << i));	/* all ports besides us */
+		t = (ports & ~(1 << i)); /* all ports besides us */
 		t |= AR8327_PORT_LOOKUP_LEARN;
 
 		t |= ingress << AR8327_PORT_LOOKUP_IN_MODE_S;
-		t |= AR8X16_PORT_CTRL_STATE_FORWARD << AR8327_PORT_LOOKUP_STATE_S;
+		t |= AR8X16_PORT_CTRL_STATE_FORWARD
+		    << AR8327_PORT_LOOKUP_STATE_S;
 		arswitch_writereg(sc->sc_dev, AR8327_REG_PORT_LOOKUP(i), t);
 	}
 
@@ -1047,11 +989,8 @@ ar8327_atu_wait_ready(struct arswitch_softc *sc)
 {
 	int ret;
 
-	ret = arswitch_waitreg(sc->sc_dev,
-	    AR8327_REG_ATU_FUNC,
-	    AR8327_ATU_FUNC_BUSY,
-	    0,
-	    1000);
+	ret = arswitch_waitreg(sc->sc_dev, AR8327_REG_ATU_FUNC,
+	    AR8327_ATU_FUNC_BUSY, 0, 1000);
 
 	return (ret);
 }
@@ -1069,8 +1008,7 @@ ar8327_atu_flush(struct arswitch_softc *sc)
 		device_printf(sc->sc_dev, "%s: waitreg failed\n", __func__);
 
 	if (!ret)
-		arswitch_writereg(sc->sc_dev,
-		    AR8327_REG_ATU_FUNC,
+		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_FUNC,
 		    AR8327_ATU_FUNC_OP_FLUSH | AR8327_ATU_FUNC_BUSY);
 	return (ret);
 }
@@ -1091,8 +1029,7 @@ ar8327_atu_flush_port(struct arswitch_softc *sc, int port)
 	val |= SM(port, AR8327_ATU_FUNC_PORT_NUM);
 
 	if (!ret)
-		arswitch_writereg(sc->sc_dev,
-		    AR8327_REG_ATU_FUNC,
+		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_FUNC,
 		    val | AR8327_ATU_FUNC_BUSY);
 
 	return (ret);
@@ -1114,10 +1051,10 @@ ar8327_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		/* Initialise things for the first fetch */
 
 		DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: initializing\n", __func__);
-		(void) ar8327_atu_wait_ready(sc);
+		(void)ar8327_atu_wait_ready(sc);
 
-		arswitch_writereg(sc->sc_dev,
-		    AR8327_REG_ATU_FUNC, AR8327_ATU_FUNC_OP_GET_NEXT);
+		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_FUNC,
+		    AR8327_ATU_FUNC_OP_GET_NEXT);
 		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_DATA0, 0);
 		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_DATA1, 0);
 		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_DATA2, 0);
@@ -1129,7 +1066,7 @@ ar8327_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		 * Attempt to read the next address entry; don't modify what
 		 * is there in these registers as its used for the next fetch
 		 */
-		(void) ar8327_atu_wait_ready(sc);
+		(void)ar8327_atu_wait_ready(sc);
 
 		/* Begin the next read event; not modifying anything */
 		val = arswitch_readreg(sc->sc_dev, AR8327_REG_ATU_FUNC);
@@ -1137,7 +1074,7 @@ ar8327_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		arswitch_writereg(sc->sc_dev, AR8327_REG_ATU_FUNC, val);
 
 		/* Wait for it to complete */
-		(void) ar8327_atu_wait_ready(sc);
+		(void)ar8327_atu_wait_ready(sc);
 
 		/* Fetch the ethernet address and ATU status */
 		ret0 = arswitch_readreg(sc->sc_dev, AR8327_REG_ATU_DATA0);
@@ -1162,8 +1099,7 @@ ar8327_atu_fetch_table(struct arswitch_softc *sc, etherswitch_atu_entry_t *e,
 		/* TODO: other flags that are interesting */
 
 		DPRINTF(sc, ARSWITCH_DBG_ATU, "%s: MAC %6D portmask 0x%08x\n",
-		    __func__,
-		    e->es_macaddr, ":", e->es_portmask);
+		    __func__, e->es_macaddr, ":", e->es_portmask);
 		return (0);
 	default:
 		return (-1);
@@ -1196,14 +1132,16 @@ ar8327_get_dot1q_vlan(struct arswitch_softc *sc, uint32_t *ports,
 	/* Filter out the vid flags; only grab the VLAN ID */
 	vid &= 0xfff;
 
-	/* XXX TODO: the VTU here stores egress mode - keep, tag, untagged, none */
+	/* XXX TODO: the VTU here stores egress mode - keep, tag, untagged, none
+	 */
 	r = ar8327_vlan_op(sc, op, vid, 0);
 	if (r != 0) {
 		device_printf(sc->sc_dev, "%s: %d: op failed\n", __func__, vid);
 	}
 
 	reg = arswitch_readreg(sc->sc_dev, AR8327_REG_VTU_FUNC0);
-	DPRINTF(sc, ARSWITCH_DBG_REGIO, "%s: %d: reg=0x%08x\n", __func__, vid, reg);
+	DPRINTF(sc, ARSWITCH_DBG_REGIO, "%s: %d: reg=0x%08x\n", __func__, vid,
+	    reg);
 
 	/*
 	 * If any of the bits are set, update the port mask.
@@ -1236,11 +1174,8 @@ ar8327_set_dot1q_vlan(struct arswitch_softc *sc, uint32_t ports,
 	vid &= 0xfff;
 
 	DPRINTF(sc, ARSWITCH_DBG_VLAN,
-	    "%s: vid: %d, ports=0x%08x, untagged_ports=0x%08x\n",
-	    __func__,
-	    vid,
-	    ports,
-	    untagged_ports);
+	    "%s: vid: %d, ports=0x%08x, untagged_ports=0x%08x\n", __func__, vid,
+	    ports, untagged_ports);
 
 	/*
 	 * Mark it as valid; and that it should use per-VLAN MAC table,
@@ -1304,7 +1239,7 @@ ar8327_attach(struct arswitch_softc *sc)
 	sc->hal.arswitch_phy_write = arswitch_writephy_external;
 
 	/* Set the switch vlan capabilities. */
-	sc->info.es_vlan_caps = ETHERSWITCH_VLAN_DOT1Q |
-	    ETHERSWITCH_VLAN_PORT | ETHERSWITCH_VLAN_DOUBLE_TAG;
+	sc->info.es_vlan_caps = ETHERSWITCH_VLAN_DOT1Q | ETHERSWITCH_VLAN_PORT |
+	    ETHERSWITCH_VLAN_DOUBLE_TAG;
 	sc->info.es_nvlangroups = AR8X16_MAX_VLANS;
 }

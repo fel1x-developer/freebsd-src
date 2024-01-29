@@ -32,9 +32,7 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -42,6 +40,8 @@
 #include <unistd.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * For POSIX.1e-semantic ACLs, do a presort so the kernel doesn't have to
@@ -164,7 +164,7 @@ acl_set_qualifier(acl_entry_t entry_d, const void *tag_qualifier_p)
 		errno = EINVAL;
 		return (-1);
 	}
-	switch(entry_d->ae_tag) {
+	switch (entry_d->ae_tag) {
 	case ACL_USER:
 	case ACL_GROUP:
 		entry_d->ae_id = *(uid_t *)tag_qualifier_p;
@@ -190,7 +190,7 @@ acl_set_tag_type(acl_entry_t entry_d, acl_tag_t tag_type)
 		return (-1);
 	}
 
-	switch(tag_type) {
+	switch (tag_type) {
 	case ACL_OTHER:
 	case ACL_MASK:
 		if (!_entry_brand_may_be(entry_d, ACL_BRAND_POSIX)) {
@@ -208,7 +208,7 @@ acl_set_tag_type(acl_entry_t entry_d, acl_tag_t tag_type)
 		break;
 	}
 
-	switch(tag_type) {
+	switch (tag_type) {
 	case ACL_USER_OBJ:
 	case ACL_USER:
 	case ACL_GROUP_OBJ:

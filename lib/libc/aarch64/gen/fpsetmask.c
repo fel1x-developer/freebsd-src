@@ -27,9 +27,10 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
-#define FP_X_MASK	(FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
+#define FP_X_MASK (FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
 
 fp_except_t
 fpsetmask(fp_except_t mask)
@@ -42,7 +43,7 @@ fpsetmask(fp_except_t mask)
 	__asm __volatile("mrs %0, fpcr" : "=&r"(old));
 	new = old & ~FP_X_MASK;
 	new |= mask;
-	__asm __volatile("msr fpcr, %0" :: "r"(new));
+	__asm __volatile("msr fpcr, %0" ::"r"(new));
 
 	return ((fp_except_t)old);
 }

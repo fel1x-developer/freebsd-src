@@ -24,7 +24,7 @@
  */
 
 #ifndef _CUSE_H_
-#define	_CUSE_H_
+#define _CUSE_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,12 +34,15 @@ extern "C" {
 
 struct cuse_dev;
 
-typedef int (cuse_open_t)(struct cuse_dev *, int fflags);
-typedef int (cuse_close_t)(struct cuse_dev *, int fflags);
-typedef int (cuse_read_t)(struct cuse_dev *, int fflags, void *user_ptr, int len);
-typedef int (cuse_write_t)(struct cuse_dev *, int fflags, const void *user_ptr, int len);
-typedef int (cuse_ioctl_t)(struct cuse_dev *, int fflags, unsigned long cmd, void *user_data);
-typedef int (cuse_poll_t)(struct cuse_dev *, int fflags, int events);
+typedef int(cuse_open_t)(struct cuse_dev *, int fflags);
+typedef int(cuse_close_t)(struct cuse_dev *, int fflags);
+typedef int(
+    cuse_read_t)(struct cuse_dev *, int fflags, void *user_ptr, int len);
+typedef int(
+    cuse_write_t)(struct cuse_dev *, int fflags, const void *user_ptr, int len);
+typedef int(cuse_ioctl_t)(struct cuse_dev *, int fflags, unsigned long cmd,
+    void *user_data);
+typedef int(cuse_poll_t)(struct cuse_dev *, int fflags, int events);
 
 struct cuse_methods {
 	cuse_open_t *cm_open;
@@ -50,40 +53,41 @@ struct cuse_methods {
 	cuse_poll_t *cm_poll;
 };
 
-int	cuse_init(void);
-int	cuse_uninit(void);
+int cuse_init(void);
+int cuse_uninit(void);
 
-void   *cuse_vmalloc(unsigned);
-int	cuse_is_vmalloc_addr(void *);
-void	cuse_vmfree(void *);
+void *cuse_vmalloc(unsigned);
+int cuse_is_vmalloc_addr(void *);
+void cuse_vmfree(void *);
 unsigned long cuse_vmoffset(void *ptr);
 
-int	cuse_alloc_unit_number_by_id(int *, int);
-int	cuse_free_unit_number_by_id(int, int);
-int	cuse_alloc_unit_number(int *);
-int	cuse_free_unit_number(int);
+int cuse_alloc_unit_number_by_id(int *, int);
+int cuse_free_unit_number_by_id(int, int);
+int cuse_alloc_unit_number(int *);
+int cuse_free_unit_number(int);
 
-struct cuse_dev *cuse_dev_create(const struct cuse_methods *, void *, void *, uid_t, gid_t, int, const char *,...);
-void	cuse_dev_destroy(struct cuse_dev *);
+struct cuse_dev *cuse_dev_create(const struct cuse_methods *, void *, void *,
+    uid_t, gid_t, int, const char *, ...);
+void cuse_dev_destroy(struct cuse_dev *);
 
-void   *cuse_dev_get_priv0(struct cuse_dev *);
-void   *cuse_dev_get_priv1(struct cuse_dev *);
+void *cuse_dev_get_priv0(struct cuse_dev *);
+void *cuse_dev_get_priv1(struct cuse_dev *);
 
-void	cuse_dev_set_priv0(struct cuse_dev *, void *);
-void	cuse_dev_set_priv1(struct cuse_dev *, void *);
+void cuse_dev_set_priv0(struct cuse_dev *, void *);
+void cuse_dev_set_priv1(struct cuse_dev *, void *);
 
-void	cuse_set_local(int);
-int	cuse_get_local(void);
+void cuse_set_local(int);
+int cuse_get_local(void);
 
-int	cuse_wait_and_process(void);
+int cuse_wait_and_process(void);
 
-void	cuse_dev_set_per_file_handle(struct cuse_dev *, void *);
-void   *cuse_dev_get_per_file_handle(struct cuse_dev *);
+void cuse_dev_set_per_file_handle(struct cuse_dev *, void *);
+void *cuse_dev_get_per_file_handle(struct cuse_dev *);
 
-int	cuse_copy_out(const void *src, void *user_dst, int len);
-int	cuse_copy_in(const void *user_src, void *dst, int len);
-int	cuse_got_peer_signal(void);
-void	cuse_poll_wakeup(void);
+int cuse_copy_out(const void *src, void *user_dst, int len);
+int cuse_copy_in(const void *user_src, void *dst, int len);
+int cuse_got_peer_signal(void);
+void cuse_poll_wakeup(void);
 
 struct cuse_dev *cuse_dev_get_current(int *);
 
@@ -93,4 +97,4 @@ extern int cuse_debug_level;
 }
 #endif
 
-#endif			/* _CUSE_H_ */
+#endif /* _CUSE_H_ */

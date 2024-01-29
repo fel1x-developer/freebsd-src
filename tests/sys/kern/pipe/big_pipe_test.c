@@ -1,4 +1,5 @@
 #include <sys/select.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -7,7 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BIG_PIPE_SIZE  64*1024 /* From sys/pipe.h */
+#define BIG_PIPE_SIZE 64 * 1024 /* From sys/pipe.h */
 
 /*
  * Test for the non-blocking big pipe bug (write(2) returning
@@ -23,7 +24,7 @@ write_frame(int fd, char *buf, unsigned long buflen)
 	while (buflen) {
 		FD_ZERO(&wfd);
 		FD_SET(fd, &wfd);
-		i = select(fd+1, NULL, &wfd, NULL, NULL);
+		i = select(fd + 1, NULL, &wfd, NULL, NULL);
 		if (i < 0)
 			err(1, "select failed");
 		if (i != 1) {
@@ -52,7 +53,7 @@ main(void)
 		errx(1, "pipe failed");
 
 	flags = fcntl(fd[1], F_GETFL);
-	if (flags == -1 || fcntl(fd[1], F_SETFL, flags|O_NONBLOCK) == -1) {
+	if (flags == -1 || fcntl(fd[1], F_SETFL, flags | O_NONBLOCK) == -1) {
 		printf("fcntl failed: %s\n", strerror(errno));
 		exit(1);
 	}

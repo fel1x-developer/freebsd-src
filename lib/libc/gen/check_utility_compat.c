@@ -39,8 +39,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	_PATH_UTIL_COMPAT	"/etc/compat-FreeBSD-4-util"
-#define	_ENV_UTIL_COMPAT	"_COMPAT_FreeBSD_4"
+#define _PATH_UTIL_COMPAT "/etc/compat-FreeBSD-4-util"
+#define _ENV_UTIL_COMPAT "_COMPAT_FreeBSD_4"
 
 int
 check_utility_compat(const char *utility)
@@ -52,7 +52,8 @@ check_utility_compat(const char *utility)
 	if ((p = getenv(_ENV_UTIL_COMPAT)) != NULL) {
 		strlcpy(buf, p, sizeof buf);
 	} else {
-		if ((len = readlink(_PATH_UTIL_COMPAT, buf, sizeof(buf) - 1)) < 0)
+		if ((len = readlink(_PATH_UTIL_COMPAT, buf, sizeof(buf) - 1)) <
+		    0)
 			return 0;
 		buf[len] = '\0';
 	}

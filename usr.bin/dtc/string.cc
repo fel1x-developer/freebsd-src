@@ -30,93 +30,85 @@
  * SUCH DAMAGE.
  */
 
-#include <string>
-#include <functional>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <ctype.h>
 #include <libgen.h>
 
 #include "util.hh"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <string>
 
 using std::string;
 
-namespace dtc
-{
+namespace dtc {
 
 void
 push_string(byte_buffer &buffer, const string &s, bool escapes)
 {
 	size_t length = s.size();
-	for (size_t i=0 ; i<length ; ++i)
-	{
+	for (size_t i = 0; i < length; ++i) {
 		uint8_t c = s[i];
-		if (escapes && c == '\\' && i+1 < length)
-		{
+		if (escapes && c == '\\' && i + 1 < length) {
 			c = s[++i];
-			switch (c)
-			{
-				// For now, we just ignore invalid escape sequences.
-				default:
-				case '"':
-				case '\'':
-				case '\\':
-					break;
-				case 'a':
-					c = '\a';
-					break;
-				case 'b':
-					c = '\b';
-					break;
-				case 't':
-					c = '\t';
-					break;
-				case 'n':
-					c = '\n';
-					break;
-				case 'v':
-					c = '\v';
-					break;
-				case 'f':
-					c = '\f';
-					break;
-				case 'r':
-					c = '\r';
-					break;
-				case '0'...'7':
-				{
-					int v = digittoint(c);
-					if (i+1 < length && s[i+1] <= '7' && s[i+1] >= '0')
-					{
+			switch (c) {
+			// For now, we just ignore invalid escape sequences.
+			default:
+			case '"':
+			case '\'':
+			case '\\':
+				break;
+			case 'a':
+				c = '\a';
+				break;
+			case 'b':
+				c = '\b';
+				break;
+			case 't':
+				c = '\t';
+				break;
+			case 'n':
+				c = '\n';
+				break;
+			case 'v':
+				c = '\v';
+				break;
+			case 'f':
+				c = '\f';
+				break;
+			case 'r':
+				c = '\r';
+				break;
+			case '0' ... '7': {
+				int v = digittoint(c);
+				if (i + 1 < length && s[i + 1] <= '7' &&
+				    s[i + 1] >= '0') {
+					v <<= 3;
+					v |= digittoint(s[i + 1]);
+					i++;
+					if (i + 1 < length && s[i + 1] <= '7' &&
+					    s[i + 1] >= '0') {
 						v <<= 3;
-						v |= digittoint(s[i+1]);
-						i++;
-						if (i+1 < length && s[i+1] <= '7' && s[i+1] >= '0')
-						{
-							v <<= 3;
-							v |= digittoint(s[i+1]);
-						}
+						v |= digittoint(s[i + 1]);
 					}
-					c = (uint8_t)v;
+				}
+				c = (uint8_t)v;
+				break;
+			}
+			case 'x': {
+				++i;
+				if (i >= length) {
 					break;
 				}
-				case 'x':
-				{
-					++i;
-					if (i >= length)
-					{
-						break;
-					}
-					int v = digittoint(s[i]);
-					if (i+1 < length && ishexdigit(s[i+1]))
-					{
-						v <<= 4;
-						v |= digittoint(s[++i]);
-					}
-					c = (uint8_t)v;
-					break;
+				int v = digittoint(s[i]);
+				if (i + 1 < length && ishexdigit(s[i + 1])) {
+					v <<= 4;
+					v |= digittoint(s[++i]);
 				}
+				c = (uint8_t)v;
+				break;
+			}
 			}
 		}
 		buffer.push_back(c);
@@ -125,26 +117,27 @@ push_string(byte_buffer &buffer, const string &s, bool escapes)
 
 namespace {
 string
-dirbasename(std::function<char*(char*)> fn, const string &s)
+dirbasename(std::function<char *(char *)> fn, const string &s)
 {
-	if (s == string())
-	{
+	if (s == string()) {
 		return string();
 	}
-	std::unique_ptr<char, decltype(free)*> str = {strdup(s.c_str()), free};
+	std::unique_ptr<char, decltype(free) *> str = { strdup(s.c_str()),
+		free };
 	string dn(fn(str.get()));
 	return dn;
 }
 }
 
-string dirname(const string &s)
+string
+dirname(const string &s)
 {
 	return dirbasename(::dirname, s);
 }
 
-string basename(const string &s)
+string
+basename(const string &s)
 {
 	return dirbasename(::basename, s);
 }
 } // namespace dtc
-

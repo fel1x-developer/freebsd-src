@@ -26,28 +26,24 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
+#include <sys/mbuf.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <unistd.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/route.h>
-
-#include <netinet/in.h>
-#include <sys/mbuf.h>
 #include <net/if_stf.h>
-#include <arpa/inet.h>
+#include <net/route.h>
+#include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
@@ -93,7 +89,7 @@ setstf_br(if_ctx *ctx, const char *val, int d __unused)
 
 	req.braddr = sin.sin_addr;
 	if (do_cmd(ctx, STF6RD_SBR, &req, sizeof(req), 1) < 0)
-		err(1, "STF6RD_SBR%s",  val);
+		err(1, "STF6RD_SBR%s", val);
 }
 
 static void
@@ -125,24 +121,24 @@ setstf_set(if_ctx *ctx, const char *val, int d __unused)
 
 	memcpy(&req.srcv4_addr, &sin.sin_addr, sizeof(req.srcv4_addr));
 	if (do_cmd(ctx, STF6RD_SV4NET, &req, sizeof(req), 1) < 0)
-		err(1, "STF6RD_SV4NET %s",  val);
+		err(1, "STF6RD_SV4NET %s", val);
 }
 
 static struct cmd stf_cmds[] = {
-	DEF_CMD_ARG("stfv4net",		setstf_set),
-	DEF_CMD_ARG("stfv4br",		setstf_br),
+	DEF_CMD_ARG("stfv4net", setstf_set),
+	DEF_CMD_ARG("stfv4br", setstf_br),
 };
 
 static struct afswtch af_stf = {
-	.af_name		= "af_stf",
-	.af_af			= AF_UNSPEC,
-	.af_other_status	= stf_status,
+	.af_name = "af_stf",
+	.af_af = AF_UNSPEC,
+	.af_other_status = stf_status,
 };
 
 static __constructor void
 stf_ctor(void)
 {
-	for (size_t i = 0; i < nitems(stf_cmds);  i++)
+	for (size_t i = 0; i < nitems(stf_cmds); i++)
 		cmd_register(&stf_cmds[i]);
 	af_register(&af_stf);
 }

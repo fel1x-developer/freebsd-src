@@ -40,11 +40,10 @@
 
 #include <errno.h>
 #include <ifaddrs.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <libcasper.h>
 #include <libcasper_service.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "rtsold.h"
 

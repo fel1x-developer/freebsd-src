@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/cpuset.h>
 #include <sys/errno.h>
 #include <sys/mman.h>
@@ -36,23 +36,22 @@
 #include <sys/sysctl.h>
 #include <sys/un.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
-#include <libgen.h>
-#include <libutil.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <time.h>
-#include <assert.h>
-#include <libutil.h>
-
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
+
+#include <assert.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <libgen.h>
+#include <libutil.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <vmmapi.h>
 
 #include "amd/vmcb.h"
@@ -62,12 +61,12 @@
 #include "snapshot.h"
 #endif
 
-#define	MB	(1UL << 20)
-#define	GB	(1UL << 30)
+#define MB (1UL << 20)
+#define GB (1UL << 30)
 
-#define	REQ_ARG		required_argument
-#define	NO_ARG		no_argument
-#define	OPT_ARG		optional_argument
+#define REQ_ARG required_argument
+#define NO_ARG no_argument
+#define OPT_ARG optional_argument
 
 static const char *progname;
 
@@ -76,175 +75,173 @@ usage(bool cpu_intel)
 {
 
 	(void)fprintf(stderr,
-	"Usage: %s --vm=<vmname>\n"
-	"       [--cpu=<vcpu_number>]\n"
-	"       [--create]\n"
-	"       [--destroy]\n"
+	    "Usage: %s --vm=<vmname>\n"
+	    "       [--cpu=<vcpu_number>]\n"
+	    "       [--create]\n"
+	    "       [--destroy]\n"
 #ifdef BHYVE_SNAPSHOT
-	"       [--checkpoint=<filename> | --suspend=<filename>]\n"
+	    "       [--checkpoint=<filename> | --suspend=<filename>]\n"
 #endif
-	"       [--get-all]\n"
-	"       [--get-stats]\n"
-	"       [--set-desc-ds]\n"
-	"       [--get-desc-ds]\n"
-	"       [--set-desc-es]\n"
-	"       [--get-desc-es]\n"
-	"       [--set-desc-gs]\n"
-	"       [--get-desc-gs]\n"
-	"       [--set-desc-fs]\n"
-	"       [--get-desc-fs]\n"
-	"       [--set-desc-cs]\n"
-	"       [--get-desc-cs]\n"
-	"       [--set-desc-ss]\n"
-	"       [--get-desc-ss]\n"
-	"       [--set-desc-tr]\n"
-	"       [--get-desc-tr]\n"
-	"       [--set-desc-ldtr]\n"
-	"       [--get-desc-ldtr]\n"
-	"       [--set-desc-gdtr]\n"
-	"       [--get-desc-gdtr]\n"
-	"       [--set-desc-idtr]\n"
-	"       [--get-desc-idtr]\n"
-	"       [--run]\n"
-	"       [--capname=<capname>]\n"
-	"       [--getcap]\n"
-	"       [--setcap=<0|1>]\n"
-	"       [--desc-base=<BASE>]\n"
-	"       [--desc-limit=<LIMIT>]\n"
-	"       [--desc-access=<ACCESS>]\n"
-	"       [--set-cr0=<CR0>]\n"
-	"       [--get-cr0]\n"
-	"       [--set-cr2=<CR2>]\n"
-	"       [--get-cr2]\n"
-	"       [--set-cr3=<CR3>]\n"
-	"       [--get-cr3]\n"
-	"       [--set-cr4=<CR4>]\n"
-	"       [--get-cr4]\n"
-	"       [--set-dr0=<DR0>]\n"
-	"       [--get-dr0]\n"
-	"       [--set-dr1=<DR1>]\n"
-	"       [--get-dr1]\n"
-	"       [--set-dr2=<DR2>]\n"
-	"       [--get-dr2]\n"
-	"       [--set-dr3=<DR3>]\n"
-	"       [--get-dr3]\n"
-	"       [--set-dr6=<DR6>]\n"
-	"       [--get-dr6]\n"
-	"       [--set-dr7=<DR7>]\n"
-	"       [--get-dr7]\n"
-	"       [--set-rsp=<RSP>]\n"
-	"       [--get-rsp]\n"
-	"       [--set-rip=<RIP>]\n"
-	"       [--get-rip]\n"
-	"       [--get-rax]\n"
-	"       [--set-rax=<RAX>]\n"
-	"       [--get-rbx]\n"
-	"       [--get-rcx]\n"
-	"       [--get-rdx]\n"
-	"       [--get-rsi]\n"
-	"       [--get-rdi]\n"
-	"       [--get-rbp]\n"
-	"       [--get-r8]\n"
-	"       [--get-r9]\n"
-	"       [--get-r10]\n"
-	"       [--get-r11]\n"
-	"       [--get-r12]\n"
-	"       [--get-r13]\n"
-	"       [--get-r14]\n"
-	"       [--get-r15]\n"
-	"       [--set-rflags=<RFLAGS>]\n"
-	"       [--get-rflags]\n"
-	"       [--set-cs]\n"
-	"       [--get-cs]\n"
-	"       [--set-ds]\n"
-	"       [--get-ds]\n"
-	"       [--set-es]\n"
-	"       [--get-es]\n"
-	"       [--set-fs]\n"
-	"       [--get-fs]\n"
-	"       [--set-gs]\n"
-	"       [--get-gs]\n"
-	"       [--set-ss]\n"
-	"       [--get-ss]\n"
-	"       [--get-tr]\n"
-	"       [--get-ldtr]\n"
-	"       [--set-x2apic-state=<state>]\n"
-	"       [--get-x2apic-state]\n"
-	"       [--unassign-pptdev=<bus/slot/func>]\n"
-	"       [--set-mem=<memory in units of MB>]\n"
-	"       [--get-lowmem]\n"
-	"       [--get-highmem]\n"
-	"       [--get-gpa-pmap]\n"
-	"       [--assert-lapic-lvt=<pin>]\n"
-	"       [--inject-nmi]\n"
-	"       [--force-reset]\n"
-	"       [--force-poweroff]\n"
-	"       [--get-rtc-time]\n"
-	"       [--set-rtc-time=<secs>]\n"
-	"       [--get-rtc-nvram]\n"
-	"       [--set-rtc-nvram=<val>]\n"
-	"       [--rtc-nvram-offset=<offset>]\n"
-	"       [--get-active-cpus]\n"
-	"       [--get-debug-cpus]\n"
-	"       [--get-suspended-cpus]\n"
-	"       [--get-intinfo]\n"
-	"       [--get-eptp]\n"
-	"       [--set-exception-bitmap]\n"
-	"       [--get-exception-bitmap]\n"
-	"       [--get-tsc-offset]\n"
-	"       [--get-guest-pat]\n"
-	"       [--get-io-bitmap-address]\n"
-	"       [--get-msr-bitmap]\n"
-	"       [--get-msr-bitmap-address]\n"
-	"       [--get-guest-sysenter]\n"
-	"       [--get-exit-reason]\n"
-	"       [--get-cpu-topology]\n",
-	progname);
+	    "       [--get-all]\n"
+	    "       [--get-stats]\n"
+	    "       [--set-desc-ds]\n"
+	    "       [--get-desc-ds]\n"
+	    "       [--set-desc-es]\n"
+	    "       [--get-desc-es]\n"
+	    "       [--set-desc-gs]\n"
+	    "       [--get-desc-gs]\n"
+	    "       [--set-desc-fs]\n"
+	    "       [--get-desc-fs]\n"
+	    "       [--set-desc-cs]\n"
+	    "       [--get-desc-cs]\n"
+	    "       [--set-desc-ss]\n"
+	    "       [--get-desc-ss]\n"
+	    "       [--set-desc-tr]\n"
+	    "       [--get-desc-tr]\n"
+	    "       [--set-desc-ldtr]\n"
+	    "       [--get-desc-ldtr]\n"
+	    "       [--set-desc-gdtr]\n"
+	    "       [--get-desc-gdtr]\n"
+	    "       [--set-desc-idtr]\n"
+	    "       [--get-desc-idtr]\n"
+	    "       [--run]\n"
+	    "       [--capname=<capname>]\n"
+	    "       [--getcap]\n"
+	    "       [--setcap=<0|1>]\n"
+	    "       [--desc-base=<BASE>]\n"
+	    "       [--desc-limit=<LIMIT>]\n"
+	    "       [--desc-access=<ACCESS>]\n"
+	    "       [--set-cr0=<CR0>]\n"
+	    "       [--get-cr0]\n"
+	    "       [--set-cr2=<CR2>]\n"
+	    "       [--get-cr2]\n"
+	    "       [--set-cr3=<CR3>]\n"
+	    "       [--get-cr3]\n"
+	    "       [--set-cr4=<CR4>]\n"
+	    "       [--get-cr4]\n"
+	    "       [--set-dr0=<DR0>]\n"
+	    "       [--get-dr0]\n"
+	    "       [--set-dr1=<DR1>]\n"
+	    "       [--get-dr1]\n"
+	    "       [--set-dr2=<DR2>]\n"
+	    "       [--get-dr2]\n"
+	    "       [--set-dr3=<DR3>]\n"
+	    "       [--get-dr3]\n"
+	    "       [--set-dr6=<DR6>]\n"
+	    "       [--get-dr6]\n"
+	    "       [--set-dr7=<DR7>]\n"
+	    "       [--get-dr7]\n"
+	    "       [--set-rsp=<RSP>]\n"
+	    "       [--get-rsp]\n"
+	    "       [--set-rip=<RIP>]\n"
+	    "       [--get-rip]\n"
+	    "       [--get-rax]\n"
+	    "       [--set-rax=<RAX>]\n"
+	    "       [--get-rbx]\n"
+	    "       [--get-rcx]\n"
+	    "       [--get-rdx]\n"
+	    "       [--get-rsi]\n"
+	    "       [--get-rdi]\n"
+	    "       [--get-rbp]\n"
+	    "       [--get-r8]\n"
+	    "       [--get-r9]\n"
+	    "       [--get-r10]\n"
+	    "       [--get-r11]\n"
+	    "       [--get-r12]\n"
+	    "       [--get-r13]\n"
+	    "       [--get-r14]\n"
+	    "       [--get-r15]\n"
+	    "       [--set-rflags=<RFLAGS>]\n"
+	    "       [--get-rflags]\n"
+	    "       [--set-cs]\n"
+	    "       [--get-cs]\n"
+	    "       [--set-ds]\n"
+	    "       [--get-ds]\n"
+	    "       [--set-es]\n"
+	    "       [--get-es]\n"
+	    "       [--set-fs]\n"
+	    "       [--get-fs]\n"
+	    "       [--set-gs]\n"
+	    "       [--get-gs]\n"
+	    "       [--set-ss]\n"
+	    "       [--get-ss]\n"
+	    "       [--get-tr]\n"
+	    "       [--get-ldtr]\n"
+	    "       [--set-x2apic-state=<state>]\n"
+	    "       [--get-x2apic-state]\n"
+	    "       [--unassign-pptdev=<bus/slot/func>]\n"
+	    "       [--set-mem=<memory in units of MB>]\n"
+	    "       [--get-lowmem]\n"
+	    "       [--get-highmem]\n"
+	    "       [--get-gpa-pmap]\n"
+	    "       [--assert-lapic-lvt=<pin>]\n"
+	    "       [--inject-nmi]\n"
+	    "       [--force-reset]\n"
+	    "       [--force-poweroff]\n"
+	    "       [--get-rtc-time]\n"
+	    "       [--set-rtc-time=<secs>]\n"
+	    "       [--get-rtc-nvram]\n"
+	    "       [--set-rtc-nvram=<val>]\n"
+	    "       [--rtc-nvram-offset=<offset>]\n"
+	    "       [--get-active-cpus]\n"
+	    "       [--get-debug-cpus]\n"
+	    "       [--get-suspended-cpus]\n"
+	    "       [--get-intinfo]\n"
+	    "       [--get-eptp]\n"
+	    "       [--set-exception-bitmap]\n"
+	    "       [--get-exception-bitmap]\n"
+	    "       [--get-tsc-offset]\n"
+	    "       [--get-guest-pat]\n"
+	    "       [--get-io-bitmap-address]\n"
+	    "       [--get-msr-bitmap]\n"
+	    "       [--get-msr-bitmap-address]\n"
+	    "       [--get-guest-sysenter]\n"
+	    "       [--get-exit-reason]\n"
+	    "       [--get-cpu-topology]\n",
+	    progname);
 
 	if (cpu_intel) {
 		(void)fprintf(stderr,
-		"       [--get-vmcs-pinbased-ctls]\n"
-		"       [--get-vmcs-procbased-ctls]\n"
-		"       [--get-vmcs-procbased-ctls2]\n"
-		"       [--get-vmcs-entry-interruption-info]\n"
-		"       [--set-vmcs-entry-interruption-info=<info>]\n"
-		"       [--get-vmcs-guest-physical-address\n"
-		"       [--get-vmcs-guest-linear-address\n"
-		"       [--get-vmcs-host-pat]\n"
-		"       [--get-vmcs-host-cr0]\n"
-		"       [--get-vmcs-host-cr3]\n"
-		"       [--get-vmcs-host-cr4]\n"
-		"       [--get-vmcs-host-rip]\n"
-		"       [--get-vmcs-host-rsp]\n"
-		"       [--get-vmcs-cr0-mask]\n"
-		"       [--get-vmcs-cr0-shadow]\n"
-		"       [--get-vmcs-cr4-mask]\n"
-		"       [--get-vmcs-cr4-shadow]\n"
-		"       [--get-vmcs-cr3-targets]\n"
-		"       [--get-vmcs-apic-access-address]\n"
-		"       [--get-vmcs-virtual-apic-address]\n"
-		"       [--get-vmcs-tpr-threshold]\n"
-		"       [--get-vmcs-vpid]\n"
-		"       [--get-vmcs-instruction-error]\n"
-		"       [--get-vmcs-exit-ctls]\n"
-		"       [--get-vmcs-entry-ctls]\n"
-		"       [--get-vmcs-link]\n"
-		"       [--get-vmcs-exit-qualification]\n"
-		"       [--get-vmcs-exit-interruption-info]\n"
-		"       [--get-vmcs-exit-interruption-error]\n"
-		"       [--get-vmcs-interruptibility]\n"
-		);
+		    "       [--get-vmcs-pinbased-ctls]\n"
+		    "       [--get-vmcs-procbased-ctls]\n"
+		    "       [--get-vmcs-procbased-ctls2]\n"
+		    "       [--get-vmcs-entry-interruption-info]\n"
+		    "       [--set-vmcs-entry-interruption-info=<info>]\n"
+		    "       [--get-vmcs-guest-physical-address\n"
+		    "       [--get-vmcs-guest-linear-address\n"
+		    "       [--get-vmcs-host-pat]\n"
+		    "       [--get-vmcs-host-cr0]\n"
+		    "       [--get-vmcs-host-cr3]\n"
+		    "       [--get-vmcs-host-cr4]\n"
+		    "       [--get-vmcs-host-rip]\n"
+		    "       [--get-vmcs-host-rsp]\n"
+		    "       [--get-vmcs-cr0-mask]\n"
+		    "       [--get-vmcs-cr0-shadow]\n"
+		    "       [--get-vmcs-cr4-mask]\n"
+		    "       [--get-vmcs-cr4-shadow]\n"
+		    "       [--get-vmcs-cr3-targets]\n"
+		    "       [--get-vmcs-apic-access-address]\n"
+		    "       [--get-vmcs-virtual-apic-address]\n"
+		    "       [--get-vmcs-tpr-threshold]\n"
+		    "       [--get-vmcs-vpid]\n"
+		    "       [--get-vmcs-instruction-error]\n"
+		    "       [--get-vmcs-exit-ctls]\n"
+		    "       [--get-vmcs-entry-ctls]\n"
+		    "       [--get-vmcs-link]\n"
+		    "       [--get-vmcs-exit-qualification]\n"
+		    "       [--get-vmcs-exit-interruption-info]\n"
+		    "       [--get-vmcs-exit-interruption-error]\n"
+		    "       [--get-vmcs-interruptibility]\n");
 	} else {
 		(void)fprintf(stderr,
-		"       [--get-vmcb-intercepts]\n"
-		"       [--get-vmcb-asid]\n"
-		"       [--get-vmcb-exit-details]\n"
-		"       [--get-vmcb-tlb-ctrl]\n"
-		"       [--get-vmcb-virq]\n"
-		"       [--get-avic-apic-bar]\n"
-		"       [--get-avic-backing-page]\n"
-		"       [--get-avic-table]\n"
-		);
+		    "       [--get-vmcb-intercepts]\n"
+		    "       [--get-vmcb-asid]\n"
+		    "       [--get-vmcb-exit-details]\n"
+		    "       [--get-vmcb-tlb-ctrl]\n"
+		    "       [--get-vmcb-virq]\n"
+		    "       [--get-avic-apic-bar]\n"
+		    "       [--get-avic-backing-page]\n"
+		    "       [--get-avic-table]\n");
 	}
 	exit(1);
 }
@@ -344,8 +341,8 @@ dump_vm_run_exitcode(struct vm_exit *vmexit, int vcpu)
 		printf("\tdirection\t%s\n", vmexit->u.inout.in ? "IN" : "OUT");
 		printf("\tbytes\t\t%d\n", vmexit->u.inout.bytes);
 		printf("\tflags\t\t%s%s\n",
-			vmexit->u.inout.string ? "STRING " : "",
-			vmexit->u.inout.rep ? "REP " : "");
+		    vmexit->u.inout.string ? "STRING " : "",
+		    vmexit->u.inout.rep ? "REP " : "");
 		printf("\tport\t\t0x%04x\n", vmexit->u.inout.port);
 		printf("\teax\t\t0x%08x\n", vmexit->u.inout.eax);
 		break;
@@ -355,7 +352,7 @@ dump_vm_run_exitcode(struct vm_exit *vmexit, int vcpu)
 		printf("\texit_reason\t0x%08x (%u)\n",
 		    vmexit->u.vmx.exit_reason, vmexit->u.vmx.exit_reason);
 		printf("\tqualification\t0x%016lx\n",
-			vmexit->u.vmx.exit_qualification);
+		    vmexit->u.vmx.exit_qualification);
 		printf("\tinst_type\t\t%d\n", vmexit->u.vmx.inst_type);
 		printf("\tinst_error\t\t%d\n", vmexit->u.vmx.inst_error);
 		break;
@@ -372,25 +369,25 @@ dump_vm_run_exitcode(struct vm_exit *vmexit, int vcpu)
 }
 
 /* AMD 6th generation and Intel compatible MSRs */
-#define MSR_AMD6TH_START	0xC0000000
-#define MSR_AMD6TH_END		0xC0001FFF
+#define MSR_AMD6TH_START 0xC0000000
+#define MSR_AMD6TH_END 0xC0001FFF
 /* AMD 7th and 8th generation compatible MSRs */
-#define MSR_AMD7TH_START	0xC0010000
-#define MSR_AMD7TH_END		0xC0011FFF
+#define MSR_AMD7TH_START 0xC0010000
+#define MSR_AMD7TH_END 0xC0011FFF
 
 static const char *
 msr_name(uint32_t msr)
 {
 	static char buf[32];
 
-	switch(msr) {
+	switch (msr) {
 	case MSR_TSC:
 		return ("MSR_TSC");
 	case MSR_EFER:
 		return ("MSR_EFER");
 	case MSR_STAR:
 		return ("MSR_STAR");
-	case MSR_LSTAR:	
+	case MSR_LSTAR:
 		return ("MSR_LSTAR");
 	case MSR_CSTAR:
 		return ("MSR_CSTAR");
@@ -422,7 +419,7 @@ print_msr_pm(uint64_t msr, int vcpu, int readable, int writeable)
 
 	if (readable || writeable) {
 		printf("%-20s[%d]\t\t%c%c\n", msr_name(msr), vcpu,
-			readable ? 'R' : '-', writeable ? 'W' : '-');
+		    readable ? 'R' : '-', writeable ? 'W' : '-');
 	}
 }
 
@@ -441,22 +438,20 @@ dump_amd_msr_pm(const char *bitmap, int vcpu)
 
 		/* Look at MSRs in the range 0x00000000 to 0x00001FFF */
 		readable = (bitmap[byte] & (1 << bit)) ? 0 : 1;
-		writeable = (bitmap[byte] & (2 << bit)) ?  0 : 1;
+		writeable = (bitmap[byte] & (2 << bit)) ? 0 : 1;
 		print_msr_pm(msr, vcpu, readable, writeable);
 
 		/* Look at MSRs in the range 0xC0000000 to 0xC0001FFF */
 		byte += 2048;
 		readable = (bitmap[byte] & (1 << bit)) ? 0 : 1;
-		writeable = (bitmap[byte] & (2 << bit)) ?  0 : 1;
-		print_msr_pm(msr + MSR_AMD6TH_START, vcpu, readable,
-				writeable);
-		
+		writeable = (bitmap[byte] & (2 << bit)) ? 0 : 1;
+		print_msr_pm(msr + MSR_AMD6TH_START, vcpu, readable, writeable);
+
 		/* MSR 0xC0010000 to 0xC0011FF is only for AMD */
 		byte += 4096;
 		readable = (bitmap[byte] & (1 << bit)) ? 0 : 1;
-		writeable = (bitmap[byte] & (2 << bit)) ?  0 : 1;
-		print_msr_pm(msr + MSR_AMD7TH_START, vcpu, readable,
-				writeable);
+		writeable = (bitmap[byte] & (2 << bit)) ? 0 : 1;
+		print_msr_pm(msr + MSR_AMD7TH_START, vcpu, readable, writeable);
 	}
 }
 
@@ -475,15 +470,14 @@ dump_intel_msr_pm(const char *bitmap, int vcpu)
 
 		/* Look at MSRs in the range 0x00000000 to 0x00001FFF */
 		readable = (bitmap[byte] & (1 << bit)) ? 0 : 1;
-		writeable = (bitmap[2048 + byte] & (1 << bit)) ?  0 : 1;
+		writeable = (bitmap[2048 + byte] & (1 << bit)) ? 0 : 1;
 		print_msr_pm(msr, vcpu, readable, writeable);
 
 		/* Look at MSRs in the range 0xC0000000 to 0xC0001FFF */
 		byte += 1024;
 		readable = (bitmap[byte] & (1 << bit)) ? 0 : 1;
-		writeable = (bitmap[2048 + byte] & (1 << bit)) ?  0 : 1;
-		print_msr_pm(msr + MSR_AMD6TH_START, vcpu, readable,
-				writeable);
+		writeable = (bitmap[2048 + byte] & (1 << bit)) ? 0 : 1;
+		print_msr_pm(msr + MSR_AMD6TH_START, vcpu, readable, writeable);
 	}
 }
 
@@ -512,10 +506,10 @@ dump_msr_bitmap(int vcpu, uint64_t addr, bool cpu_intel)
 		perror("mmap failed");
 		goto done;
 	}
-	
+
 	if (cpu_intel)
 		dump_intel_msr_pm(bitmap, vcpu);
-	else	
+	else
 		dump_amd_msr_pm(bitmap, vcpu);
 
 	error = 0;
@@ -536,15 +530,14 @@ vm_get_vmcs_field(struct vcpu *vcpu, int field, uint64_t *ret_val)
 }
 
 static int
-vm_get_vmcb_field(struct vcpu *vcpu, int off, int bytes,
-	uint64_t *ret_val)
+vm_get_vmcb_field(struct vcpu *vcpu, int off, int bytes, uint64_t *ret_val)
 {
 
 	return (vm_get_register(vcpu, VMCB_ACCESS(off, bytes), ret_val));
 }
 
 enum {
-	VMNAME = 1000,	/* avoid collision with return values from getopt */
+	VMNAME = 1000, /* avoid collision with return values from getopt */
 	VCPU,
 	SET_MEM,
 	SET_EFER,
@@ -835,8 +828,7 @@ get_all_registers(struct vcpu *vcpu, int vcpuid)
 	}
 
 	if (!error && (get_rflags || get_all)) {
-		error = vm_get_register(vcpu, VM_REG_GUEST_RFLAGS,
-					&rflags);
+		error = vm_get_register(vcpu, VM_REG_GUEST_RFLAGS, &rflags);
 		if (error == 0)
 			printf("rflags[%d]\t0x%016lx\n", vcpuid, rflags);
 	}
@@ -851,92 +843,92 @@ get_all_segments(struct vcpu *vcpu, int vcpuid)
 	int error = 0;
 
 	if (!error && (get_desc_ds || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_DS,
-				   &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_DS, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("ds desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			      vcpuid, desc_base, desc_limit, desc_access);
+			printf("ds desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_es || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_ES,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_ES, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("es desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("es desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_fs || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_FS,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_FS, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("fs desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("fs desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_gs || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_GS,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_GS, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("gs desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("gs desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_ss || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_SS,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_SS, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("ss desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("ss desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_cs || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_CS,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_CS, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("cs desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("cs desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_tr || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_TR,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_TR, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("tr desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			printf("tr desc[%d]\t0x%016lx/0x%08x/0x%08x\n", vcpuid,
+			    desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_ldtr || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_LDTR,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_LDTR, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
 			printf("ldtr desc[%d]\t0x%016lx/0x%08x/0x%08x\n",
-			       vcpuid, desc_base, desc_limit, desc_access);
+			    vcpuid, desc_base, desc_limit, desc_access);
 		}
 	}
 
 	if (!error && (get_desc_gdtr || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_GDTR,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_GDTR, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("gdtr[%d]\t\t0x%016lx/0x%08x\n",
-			       vcpuid, desc_base, desc_limit);
+			printf("gdtr[%d]\t\t0x%016lx/0x%08x\n", vcpuid,
+			    desc_base, desc_limit);
 		}
 	}
 
 	if (!error && (get_desc_idtr || get_all)) {
-		error = vm_get_desc(vcpu, VM_REG_GUEST_IDTR,
-				    &desc_base, &desc_limit, &desc_access);
+		error = vm_get_desc(vcpu, VM_REG_GUEST_IDTR, &desc_base,
+		    &desc_limit, &desc_access);
 		if (error == 0) {
-			printf("idtr[%d]\t\t0x%016lx/0x%08x\n",
-			       vcpuid, desc_base, desc_limit);
+			printf("idtr[%d]\t\t0x%016lx/0x%08x\n", vcpuid,
+			    desc_base, desc_limit);
 		}
 	}
 
@@ -1006,10 +998,10 @@ get_misc_vmcs(struct vcpu *vcpu, int vcpuid)
 
 	if (!error && (get_cr0_shadow || get_all)) {
 		uint64_t cr0shadow;
-		error = vm_get_vmcs_field(vcpu, VMCS_CR0_SHADOW,
-					  &cr0shadow);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR0_SHADOW, &cr0shadow);
 		if (error == 0)
-			printf("cr0_shadow[%d]\t\t0x%016lx\n", vcpuid, cr0shadow);
+			printf("cr0_shadow[%d]\t\t0x%016lx\n", vcpuid,
+			    cr0shadow);
 	}
 
 	if (!error && (get_cr4_mask || get_all)) {
@@ -1021,47 +1013,43 @@ get_misc_vmcs(struct vcpu *vcpu, int vcpuid)
 
 	if (!error && (get_cr4_shadow || get_all)) {
 		uint64_t cr4shadow;
-		error = vm_get_vmcs_field(vcpu, VMCS_CR4_SHADOW,
-					  &cr4shadow);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR4_SHADOW, &cr4shadow);
 		if (error == 0)
-			printf("cr4_shadow[%d]\t\t0x%016lx\n", vcpuid, cr4shadow);
+			printf("cr4_shadow[%d]\t\t0x%016lx\n", vcpuid,
+			    cr4shadow);
 	}
-	
+
 	if (!error && (get_cr3_targets || get_all)) {
 		uint64_t target_count, target_addr;
 		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET_COUNT,
-					  &target_count);
+		    &target_count);
 		if (error == 0) {
-			printf("cr3_target_count[%d]\t0x%016lx\n",
-				vcpuid, target_count);
+			printf("cr3_target_count[%d]\t0x%016lx\n", vcpuid,
+			    target_count);
 		}
 
-		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET0,
-					  &target_addr);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET0, &target_addr);
 		if (error == 0) {
-			printf("cr3_target0[%d]\t\t0x%016lx\n",
-				vcpuid, target_addr);
+			printf("cr3_target0[%d]\t\t0x%016lx\n", vcpuid,
+			    target_addr);
 		}
 
-		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET1,
-					  &target_addr);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET1, &target_addr);
 		if (error == 0) {
-			printf("cr3_target1[%d]\t\t0x%016lx\n",
-				vcpuid, target_addr);
+			printf("cr3_target1[%d]\t\t0x%016lx\n", vcpuid,
+			    target_addr);
 		}
 
-		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET2,
-					  &target_addr);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET2, &target_addr);
 		if (error == 0) {
-			printf("cr3_target2[%d]\t\t0x%016lx\n",
-				vcpuid, target_addr);
+			printf("cr3_target2[%d]\t\t0x%016lx\n", vcpuid,
+			    target_addr);
 		}
 
-		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET3,
-					  &target_addr);
+		error = vm_get_vmcs_field(vcpu, VMCS_CR3_TARGET3, &target_addr);
 		if (error == 0) {
-			printf("cr3_target3[%d]\t\t0x%016lx\n",
-				vcpuid, target_addr);
+			printf("cr3_target3[%d]\t\t0x%016lx\n", vcpuid,
+			    target_addr);
 		}
 	}
 
@@ -1072,57 +1060,54 @@ get_misc_vmcs(struct vcpu *vcpu, int vcpuid)
 	}
 
 	if (!error && (get_procbased_ctls || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-					  VMCS_PRI_PROC_BASED_CTLS, &ctl);
+		error = vm_get_vmcs_field(vcpu, VMCS_PRI_PROC_BASED_CTLS, &ctl);
 		if (error == 0)
 			printf("procbased_ctls[%d]\t0x%016lx\n", vcpuid, ctl);
 	}
 
 	if (!error && (get_procbased_ctls2 || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-					  VMCS_SEC_PROC_BASED_CTLS, &ctl);
+		error = vm_get_vmcs_field(vcpu, VMCS_SEC_PROC_BASED_CTLS, &ctl);
 		if (error == 0)
 			printf("procbased_ctls2[%d]\t0x%016lx\n", vcpuid, ctl);
 	}
 
 	if (!error && (get_vmcs_gla || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-					  VMCS_GUEST_LINEAR_ADDRESS, &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_GUEST_LINEAR_ADDRESS,
+		    &u64);
 		if (error == 0)
 			printf("gla[%d]\t\t0x%016lx\n", vcpuid, u64);
 	}
 
 	if (!error && (get_vmcs_gpa || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-					  VMCS_GUEST_PHYSICAL_ADDRESS, &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_GUEST_PHYSICAL_ADDRESS,
+		    &u64);
 		if (error == 0)
 			printf("gpa[%d]\t\t0x%016lx\n", vcpuid, u64);
 	}
 
-	if (!error && (get_vmcs_entry_interruption_info || 
-		get_all)) {
-		error = vm_get_vmcs_field(vcpu, VMCS_ENTRY_INTR_INFO,&u64);
+	if (!error && (get_vmcs_entry_interruption_info || get_all)) {
+		error = vm_get_vmcs_field(vcpu, VMCS_ENTRY_INTR_INFO, &u64);
 		if (error == 0) {
 			printf("entry_interruption_info[%d]\t0x%016lx\n",
-				vcpuid, u64);
+			    vcpuid, u64);
 		}
 	}
 
 	if (!error && (get_tpr_threshold || get_all)) {
 		uint64_t threshold;
-		error = vm_get_vmcs_field(vcpu, VMCS_TPR_THRESHOLD,
-					  &threshold);
+		error = vm_get_vmcs_field(vcpu, VMCS_TPR_THRESHOLD, &threshold);
 		if (error == 0)
-			printf("tpr_threshold[%d]\t0x%016lx\n", vcpuid, threshold);
+			printf("tpr_threshold[%d]\t0x%016lx\n", vcpuid,
+			    threshold);
 	}
 
 	if (!error && (get_inst_err || get_all)) {
 		uint64_t insterr;
 		error = vm_get_vmcs_field(vcpu, VMCS_INSTRUCTION_ERROR,
-					  &insterr);
+		    &insterr);
 		if (error == 0) {
-			printf("instruction_error[%d]\t0x%016lx\n",
-				vcpuid, insterr);
+			printf("instruction_error[%d]\t0x%016lx\n", vcpuid,
+			    insterr);
 		}
 	}
 
@@ -1184,44 +1169,42 @@ get_misc_vmcs(struct vcpu *vcpu, int vcpuid)
 		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_INTR_INFO, &u64);
 		if (error == 0) {
 			printf("vmcs_exit_interruption_info[%d]\t0x%016lx\n",
-				vcpuid, u64);
+			    vcpuid, u64);
 		}
 	}
 
 	if (!error && (get_vmcs_exit_interruption_error || get_all)) {
-		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_INTR_ERRCODE,
-		    			  &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_INTR_ERRCODE, &u64);
 		if (error == 0) {
 			printf("vmcs_exit_interruption_error[%d]\t0x%016lx\n",
-				vcpuid, u64);
+			    vcpuid, u64);
 		}
 	}
 
 	if (!error && (get_vmcs_interruptibility || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-					  VMCS_GUEST_INTERRUPTIBILITY, &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_GUEST_INTERRUPTIBILITY,
+		    &u64);
 		if (error == 0) {
 			printf("vmcs_guest_interruptibility[%d]\t0x%016lx\n",
-				vcpuid, u64);
+			    vcpuid, u64);
 		}
 	}
 
 	if (!error && (get_vmcs_exit_inst_length || get_all)) {
-		error = vm_get_vmcs_field(vcpu,
-		    VMCS_EXIT_INSTRUCTION_LENGTH, &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_INSTRUCTION_LENGTH,
+		    &u64);
 		if (error == 0)
 			printf("vmcs_exit_inst_length[%d]\t0x%08x\n", vcpuid,
 			    (uint32_t)u64);
 	}
 
 	if (!error && (get_vmcs_exit_qualification || get_all)) {
-		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_QUALIFICATION,
-					  &u64);
+		error = vm_get_vmcs_field(vcpu, VMCS_EXIT_QUALIFICATION, &u64);
 		if (error == 0)
 			printf("vmcs_exit_qualification[%d]\t0x%016lx\n",
-				vcpuid, u64);
+			    vcpuid, u64);
 	}
-	
+
 	return (error);
 }
 
@@ -1232,13 +1215,11 @@ get_misc_vmcb(struct vcpu *vcpu, int vcpuid)
 	int error = 0;
 
 	if (!error && (get_vmcb_intercept || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_CR_INTERCEPT, 4,
-		    &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_CR_INTERCEPT, 4, &ctl);
 		if (error == 0)
 			printf("cr_intercept[%d]\t0x%08x\n", vcpuid, (int)ctl);
 
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_DR_INTERCEPT, 4,
-		    &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_DR_INTERCEPT, 4, &ctl);
 		if (error == 0)
 			printf("dr_intercept[%d]\t0x%08x\n", vcpuid, (int)ctl);
 
@@ -1247,71 +1228,65 @@ get_misc_vmcb(struct vcpu *vcpu, int vcpuid)
 		if (error == 0)
 			printf("exc_intercept[%d]\t0x%08x\n", vcpuid, (int)ctl);
 
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_INST1_INTERCEPT,
-		    4, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_INST1_INTERCEPT, 4,
+		    &ctl);
 		if (error == 0)
-			printf("inst1_intercept[%d]\t0x%08x\n", vcpuid, (int)ctl);
+			printf("inst1_intercept[%d]\t0x%08x\n", vcpuid,
+			    (int)ctl);
 
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_INST2_INTERCEPT,
-		    4, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_INST2_INTERCEPT, 4,
+		    &ctl);
 		if (error == 0)
-			printf("inst2_intercept[%d]\t0x%08x\n", vcpuid, (int)ctl);
+			printf("inst2_intercept[%d]\t0x%08x\n", vcpuid,
+			    (int)ctl);
 	}
 
 	if (!error && (get_vmcb_tlb_ctrl || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_TLB_CTRL,
-					  4, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_TLB_CTRL, 4, &ctl);
 		if (error == 0)
 			printf("TLB ctrl[%d]\t0x%016lx\n", vcpuid, ctl);
 	}
 
 	if (!error && (get_vmcb_exit_details || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINFO1,
-					  8, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINFO1, 8, &ctl);
 		if (error == 0)
 			printf("exitinfo1[%d]\t0x%016lx\n", vcpuid, ctl);
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINFO2,
-					  8, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINFO2, 8, &ctl);
 		if (error == 0)
 			printf("exitinfo2[%d]\t0x%016lx\n", vcpuid, ctl);
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINTINFO,
-					  8, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXITINTINFO, 8, &ctl);
 		if (error == 0)
 			printf("exitintinfo[%d]\t0x%016lx\n", vcpuid, ctl);
 	}
 
 	if (!error && (get_vmcb_virq || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_VIRQ,
-					  8, &ctl);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_VIRQ, 8, &ctl);
 		if (error == 0)
 			printf("v_irq/tpr[%d]\t0x%016lx\n", vcpuid, ctl);
 	}
 
 	if (!error && (get_apic_access_addr || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_BAR, 8,
-					  &addr);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_BAR, 8, &addr);
 		if (error == 0)
 			printf("AVIC apic_bar[%d]\t0x%016lx\n", vcpuid, addr);
 	}
 
 	if (!error && (get_virtual_apic_addr || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_PAGE, 8,
-					  &addr);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_PAGE, 8, &addr);
 		if (error == 0)
-			printf("AVIC backing page[%d]\t0x%016lx\n", vcpuid, addr);
+			printf("AVIC backing page[%d]\t0x%016lx\n", vcpuid,
+			    addr);
 	}
 
 	if (!error && (get_avic_table || get_all)) {
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_LT, 8,
-					  &addr);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_LT, 8, &addr);
 		if (error == 0)
-			printf("AVIC logical table[%d]\t0x%016lx\n",
-				vcpuid, addr);
-		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_PT, 8,
-					  &addr);
+			printf("AVIC logical table[%d]\t0x%016lx\n", vcpuid,
+			    addr);
+		error = vm_get_vmcb_field(vcpu, VMCB_OFF_AVIC_PT, 8, &addr);
 		if (error == 0)
-			printf("AVIC physical table[%d]\t0x%016lx\n",
-				vcpuid, addr);
+			printf("AVIC physical table[%d]\t0x%016lx\n", vcpuid,
+			    addr);
 	}
 
 	return (error);
@@ -1321,217 +1296,186 @@ static struct option *
 setup_options(bool cpu_intel)
 {
 	const struct option common_opts[] = {
-		{ "vm",		REQ_ARG,	0,	VMNAME },
-		{ "cpu",	REQ_ARG,	0,	VCPU },
-		{ "set-mem",	REQ_ARG,	0,	SET_MEM },
-		{ "set-efer",	REQ_ARG,	0,	SET_EFER },
-		{ "set-cr0",	REQ_ARG,	0,	SET_CR0 },
-		{ "set-cr2",	REQ_ARG,	0,	SET_CR2 },
-		{ "set-cr3",	REQ_ARG,	0,	SET_CR3 },
-		{ "set-cr4",	REQ_ARG,	0,	SET_CR4 },
-		{ "set-dr0",	REQ_ARG,	0,	SET_DR0 },
-		{ "set-dr1",	REQ_ARG,	0,	SET_DR1 },
-		{ "set-dr2",	REQ_ARG,	0,	SET_DR2 },
-		{ "set-dr3",	REQ_ARG,	0,	SET_DR3 },
-		{ "set-dr6",	REQ_ARG,	0,	SET_DR6 },
-		{ "set-dr7",	REQ_ARG,	0,	SET_DR7 },
-		{ "set-rsp",	REQ_ARG,	0,	SET_RSP },
-		{ "set-rip",	REQ_ARG,	0,	SET_RIP },
-		{ "set-rax",	REQ_ARG,	0,	SET_RAX },
-		{ "set-rflags",	REQ_ARG,	0,	SET_RFLAGS },
-		{ "desc-base",	REQ_ARG,	0,	DESC_BASE },
-		{ "desc-limit",	REQ_ARG,	0,	DESC_LIMIT },
-		{ "desc-access",REQ_ARG,	0,	DESC_ACCESS },
-		{ "set-cs",	REQ_ARG,	0,	SET_CS },
-		{ "set-ds",	REQ_ARG,	0,	SET_DS },
-		{ "set-es",	REQ_ARG,	0,	SET_ES },
-		{ "set-fs",	REQ_ARG,	0,	SET_FS },
-		{ "set-gs",	REQ_ARG,	0,	SET_GS },
-		{ "set-ss",	REQ_ARG,	0,	SET_SS },
-		{ "set-tr",	REQ_ARG,	0,	SET_TR },
-		{ "set-ldtr",	REQ_ARG,	0,	SET_LDTR },
-		{ "set-x2apic-state",REQ_ARG,	0,	SET_X2APIC_STATE },
-		{ "capname",	REQ_ARG,	0,	CAPNAME },
-		{ "unassign-pptdev", REQ_ARG,	0,	UNASSIGN_PPTDEV },
-		{ "setcap",	REQ_ARG,	0,	SET_CAP },
-		{ "get-gpa-pmap", REQ_ARG,	0,	GET_GPA_PMAP },
-		{ "assert-lapic-lvt", REQ_ARG,	0,	ASSERT_LAPIC_LVT },
-		{ "get-rtc-time", NO_ARG,	&get_rtc_time,	1 },
-		{ "set-rtc-time", REQ_ARG,	0,	SET_RTC_TIME },
-		{ "rtc-nvram-offset", REQ_ARG,	0,	RTC_NVRAM_OFFSET },
-		{ "get-rtc-nvram", NO_ARG,	&get_rtc_nvram,	1 },
-		{ "set-rtc-nvram", REQ_ARG,	0,	SET_RTC_NVRAM },
-		{ "getcap",	NO_ARG,		&getcap,	1 },
-		{ "get-stats",	NO_ARG,		&get_stats,	1 },
-		{ "get-desc-ds",NO_ARG,		&get_desc_ds,	1 },
-		{ "set-desc-ds",NO_ARG,		&set_desc_ds,	1 },
-		{ "get-desc-es",NO_ARG,		&get_desc_es,	1 },
-		{ "set-desc-es",NO_ARG,		&set_desc_es,	1 },
-		{ "get-desc-ss",NO_ARG,		&get_desc_ss,	1 },
-		{ "set-desc-ss",NO_ARG,		&set_desc_ss,	1 },
-		{ "get-desc-cs",NO_ARG,		&get_desc_cs,	1 },
-		{ "set-desc-cs",NO_ARG,		&set_desc_cs,	1 },
-		{ "get-desc-fs",NO_ARG,		&get_desc_fs,	1 },
-		{ "set-desc-fs",NO_ARG,		&set_desc_fs,	1 },
-		{ "get-desc-gs",NO_ARG,		&get_desc_gs,	1 },
-		{ "set-desc-gs",NO_ARG,		&set_desc_gs,	1 },
-		{ "get-desc-tr",NO_ARG,		&get_desc_tr,	1 },
-		{ "set-desc-tr",NO_ARG,		&set_desc_tr,	1 },
-		{ "set-desc-ldtr", NO_ARG,	&set_desc_ldtr,	1 },
-		{ "get-desc-ldtr", NO_ARG,	&get_desc_ldtr,	1 },
-		{ "set-desc-gdtr", NO_ARG,	&set_desc_gdtr, 1 },
-		{ "get-desc-gdtr", NO_ARG,	&get_desc_gdtr, 1 },
-		{ "set-desc-idtr", NO_ARG,	&set_desc_idtr, 1 },
-		{ "get-desc-idtr", NO_ARG,	&get_desc_idtr, 1 },
-		{ "get-memmap",	NO_ARG,		&get_memmap,	1 },
-		{ "get-memseg", NO_ARG,		&get_memseg,	1 },
-		{ "get-efer",	NO_ARG,		&get_efer,	1 },
-		{ "get-cr0",	NO_ARG,		&get_cr0,	1 },
-		{ "get-cr2",	NO_ARG,		&get_cr2,	1 },
-		{ "get-cr3",	NO_ARG,		&get_cr3,	1 },
-		{ "get-cr4",	NO_ARG,		&get_cr4,	1 },
-		{ "get-dr0",	NO_ARG,		&get_dr0,	1 },
-		{ "get-dr1",	NO_ARG,		&get_dr1,	1 },
-		{ "get-dr2",	NO_ARG,		&get_dr2,	1 },
-		{ "get-dr3",	NO_ARG,		&get_dr3,	1 },
-		{ "get-dr6",	NO_ARG,		&get_dr6,	1 },
-		{ "get-dr7",	NO_ARG,		&get_dr7,	1 },
-		{ "get-rsp",	NO_ARG,		&get_rsp,	1 },
-		{ "get-rip",	NO_ARG,		&get_rip,	1 },
-		{ "get-rax",	NO_ARG,		&get_rax,	1 },
-		{ "get-rbx",	NO_ARG,		&get_rbx,	1 },
-		{ "get-rcx",	NO_ARG,		&get_rcx,	1 },
-		{ "get-rdx",	NO_ARG,		&get_rdx,	1 },
-		{ "get-rsi",	NO_ARG,		&get_rsi,	1 },
-		{ "get-rdi",	NO_ARG,		&get_rdi,	1 },
-		{ "get-rbp",	NO_ARG,		&get_rbp,	1 },
-		{ "get-r8",	NO_ARG,		&get_r8,	1 },
-		{ "get-r9",	NO_ARG,		&get_r9,	1 },
-		{ "get-r10",	NO_ARG,		&get_r10,	1 },
-		{ "get-r11",	NO_ARG,		&get_r11,	1 },
-		{ "get-r12",	NO_ARG,		&get_r12,	1 },
-		{ "get-r13",	NO_ARG,		&get_r13,	1 },
-		{ "get-r14",	NO_ARG,		&get_r14,	1 },
-		{ "get-r15",	NO_ARG,		&get_r15,	1 },
-		{ "get-rflags",	NO_ARG,		&get_rflags,	1 },
-		{ "get-cs",	NO_ARG,		&get_cs,	1 },
-		{ "get-ds",	NO_ARG,		&get_ds,	1 },
-		{ "get-es",	NO_ARG,		&get_es,	1 },
-		{ "get-fs",	NO_ARG,		&get_fs,	1 },
-		{ "get-gs",	NO_ARG,		&get_gs,	1 },
-		{ "get-ss",	NO_ARG,		&get_ss,	1 },
-		{ "get-tr",	NO_ARG,		&get_tr,	1 },
-		{ "get-ldtr",	NO_ARG,		&get_ldtr,	1 },
-		{ "get-eptp", 	NO_ARG,		&get_eptp,	1 },
-		{ "get-exception-bitmap",
-					NO_ARG,	&get_exception_bitmap,  1 },
-		{ "get-io-bitmap-address",
-					NO_ARG,	&get_io_bitmap,		1 },
-		{ "get-tsc-offset", 	NO_ARG, &get_tsc_offset, 	1 },
-		{ "get-msr-bitmap",
-					NO_ARG,	&get_msr_bitmap, 	1 },
-		{ "get-msr-bitmap-address",
-					NO_ARG,	&get_msr_bitmap_address, 1 },
-		{ "get-guest-pat",	NO_ARG,	&get_guest_pat,		1 },
-		{ "get-guest-sysenter",
-					NO_ARG,	&get_guest_sysenter, 	1 },
-		{ "get-exit-reason",
-					NO_ARG,	&get_exit_reason, 	1 },
-		{ "get-x2apic-state",	NO_ARG,	&get_x2apic_state, 	1 },
-		{ "get-all",		NO_ARG,	&get_all,		1 },
-		{ "run",		NO_ARG,	&run,			1 },
-		{ "create",		NO_ARG,	&create,		1 },
-		{ "destroy",		NO_ARG,	&destroy,		1 },
-		{ "inject-nmi",		NO_ARG,	&inject_nmi,		1 },
-		{ "force-reset",	NO_ARG,	&force_reset,		1 },
-		{ "force-poweroff", 	NO_ARG,	&force_poweroff, 	1 },
-		{ "get-active-cpus", 	NO_ARG,	&get_active_cpus, 	1 },
-		{ "get-debug-cpus",	NO_ARG,	&get_debug_cpus,	1 },
-		{ "get-suspended-cpus", NO_ARG,	&get_suspended_cpus, 	1 },
-		{ "get-intinfo", 	NO_ARG,	&get_intinfo,		1 },
-		{ "get-cpu-topology",	NO_ARG, &get_cpu_topology,	1 },
+		{ "vm", REQ_ARG, 0, VMNAME },
+		{ "cpu", REQ_ARG, 0, VCPU },
+		{ "set-mem", REQ_ARG, 0, SET_MEM },
+		{ "set-efer", REQ_ARG, 0, SET_EFER },
+		{ "set-cr0", REQ_ARG, 0, SET_CR0 },
+		{ "set-cr2", REQ_ARG, 0, SET_CR2 },
+		{ "set-cr3", REQ_ARG, 0, SET_CR3 },
+		{ "set-cr4", REQ_ARG, 0, SET_CR4 },
+		{ "set-dr0", REQ_ARG, 0, SET_DR0 },
+		{ "set-dr1", REQ_ARG, 0, SET_DR1 },
+		{ "set-dr2", REQ_ARG, 0, SET_DR2 },
+		{ "set-dr3", REQ_ARG, 0, SET_DR3 },
+		{ "set-dr6", REQ_ARG, 0, SET_DR6 },
+		{ "set-dr7", REQ_ARG, 0, SET_DR7 },
+		{ "set-rsp", REQ_ARG, 0, SET_RSP },
+		{ "set-rip", REQ_ARG, 0, SET_RIP },
+		{ "set-rax", REQ_ARG, 0, SET_RAX },
+		{ "set-rflags", REQ_ARG, 0, SET_RFLAGS },
+		{ "desc-base", REQ_ARG, 0, DESC_BASE },
+		{ "desc-limit", REQ_ARG, 0, DESC_LIMIT },
+		{ "desc-access", REQ_ARG, 0, DESC_ACCESS },
+		{ "set-cs", REQ_ARG, 0, SET_CS },
+		{ "set-ds", REQ_ARG, 0, SET_DS },
+		{ "set-es", REQ_ARG, 0, SET_ES },
+		{ "set-fs", REQ_ARG, 0, SET_FS },
+		{ "set-gs", REQ_ARG, 0, SET_GS },
+		{ "set-ss", REQ_ARG, 0, SET_SS },
+		{ "set-tr", REQ_ARG, 0, SET_TR },
+		{ "set-ldtr", REQ_ARG, 0, SET_LDTR },
+		{ "set-x2apic-state", REQ_ARG, 0, SET_X2APIC_STATE },
+		{ "capname", REQ_ARG, 0, CAPNAME },
+		{ "unassign-pptdev", REQ_ARG, 0, UNASSIGN_PPTDEV },
+		{ "setcap", REQ_ARG, 0, SET_CAP },
+		{ "get-gpa-pmap", REQ_ARG, 0, GET_GPA_PMAP },
+		{ "assert-lapic-lvt", REQ_ARG, 0, ASSERT_LAPIC_LVT },
+		{ "get-rtc-time", NO_ARG, &get_rtc_time, 1 },
+		{ "set-rtc-time", REQ_ARG, 0, SET_RTC_TIME },
+		{ "rtc-nvram-offset", REQ_ARG, 0, RTC_NVRAM_OFFSET },
+		{ "get-rtc-nvram", NO_ARG, &get_rtc_nvram, 1 },
+		{ "set-rtc-nvram", REQ_ARG, 0, SET_RTC_NVRAM },
+		{ "getcap", NO_ARG, &getcap, 1 },
+		{ "get-stats", NO_ARG, &get_stats, 1 },
+		{ "get-desc-ds", NO_ARG, &get_desc_ds, 1 },
+		{ "set-desc-ds", NO_ARG, &set_desc_ds, 1 },
+		{ "get-desc-es", NO_ARG, &get_desc_es, 1 },
+		{ "set-desc-es", NO_ARG, &set_desc_es, 1 },
+		{ "get-desc-ss", NO_ARG, &get_desc_ss, 1 },
+		{ "set-desc-ss", NO_ARG, &set_desc_ss, 1 },
+		{ "get-desc-cs", NO_ARG, &get_desc_cs, 1 },
+		{ "set-desc-cs", NO_ARG, &set_desc_cs, 1 },
+		{ "get-desc-fs", NO_ARG, &get_desc_fs, 1 },
+		{ "set-desc-fs", NO_ARG, &set_desc_fs, 1 },
+		{ "get-desc-gs", NO_ARG, &get_desc_gs, 1 },
+		{ "set-desc-gs", NO_ARG, &set_desc_gs, 1 },
+		{ "get-desc-tr", NO_ARG, &get_desc_tr, 1 },
+		{ "set-desc-tr", NO_ARG, &set_desc_tr, 1 },
+		{ "set-desc-ldtr", NO_ARG, &set_desc_ldtr, 1 },
+		{ "get-desc-ldtr", NO_ARG, &get_desc_ldtr, 1 },
+		{ "set-desc-gdtr", NO_ARG, &set_desc_gdtr, 1 },
+		{ "get-desc-gdtr", NO_ARG, &get_desc_gdtr, 1 },
+		{ "set-desc-idtr", NO_ARG, &set_desc_idtr, 1 },
+		{ "get-desc-idtr", NO_ARG, &get_desc_idtr, 1 },
+		{ "get-memmap", NO_ARG, &get_memmap, 1 },
+		{ "get-memseg", NO_ARG, &get_memseg, 1 },
+		{ "get-efer", NO_ARG, &get_efer, 1 },
+		{ "get-cr0", NO_ARG, &get_cr0, 1 },
+		{ "get-cr2", NO_ARG, &get_cr2, 1 },
+		{ "get-cr3", NO_ARG, &get_cr3, 1 },
+		{ "get-cr4", NO_ARG, &get_cr4, 1 },
+		{ "get-dr0", NO_ARG, &get_dr0, 1 },
+		{ "get-dr1", NO_ARG, &get_dr1, 1 },
+		{ "get-dr2", NO_ARG, &get_dr2, 1 },
+		{ "get-dr3", NO_ARG, &get_dr3, 1 },
+		{ "get-dr6", NO_ARG, &get_dr6, 1 },
+		{ "get-dr7", NO_ARG, &get_dr7, 1 },
+		{ "get-rsp", NO_ARG, &get_rsp, 1 },
+		{ "get-rip", NO_ARG, &get_rip, 1 },
+		{ "get-rax", NO_ARG, &get_rax, 1 },
+		{ "get-rbx", NO_ARG, &get_rbx, 1 },
+		{ "get-rcx", NO_ARG, &get_rcx, 1 },
+		{ "get-rdx", NO_ARG, &get_rdx, 1 },
+		{ "get-rsi", NO_ARG, &get_rsi, 1 },
+		{ "get-rdi", NO_ARG, &get_rdi, 1 },
+		{ "get-rbp", NO_ARG, &get_rbp, 1 },
+		{ "get-r8", NO_ARG, &get_r8, 1 },
+		{ "get-r9", NO_ARG, &get_r9, 1 },
+		{ "get-r10", NO_ARG, &get_r10, 1 },
+		{ "get-r11", NO_ARG, &get_r11, 1 },
+		{ "get-r12", NO_ARG, &get_r12, 1 },
+		{ "get-r13", NO_ARG, &get_r13, 1 },
+		{ "get-r14", NO_ARG, &get_r14, 1 },
+		{ "get-r15", NO_ARG, &get_r15, 1 },
+		{ "get-rflags", NO_ARG, &get_rflags, 1 },
+		{ "get-cs", NO_ARG, &get_cs, 1 },
+		{ "get-ds", NO_ARG, &get_ds, 1 },
+		{ "get-es", NO_ARG, &get_es, 1 },
+		{ "get-fs", NO_ARG, &get_fs, 1 },
+		{ "get-gs", NO_ARG, &get_gs, 1 },
+		{ "get-ss", NO_ARG, &get_ss, 1 },
+		{ "get-tr", NO_ARG, &get_tr, 1 },
+		{ "get-ldtr", NO_ARG, &get_ldtr, 1 },
+		{ "get-eptp", NO_ARG, &get_eptp, 1 },
+		{ "get-exception-bitmap", NO_ARG, &get_exception_bitmap, 1 },
+		{ "get-io-bitmap-address", NO_ARG, &get_io_bitmap, 1 },
+		{ "get-tsc-offset", NO_ARG, &get_tsc_offset, 1 },
+		{ "get-msr-bitmap", NO_ARG, &get_msr_bitmap, 1 },
+		{ "get-msr-bitmap-address", NO_ARG, &get_msr_bitmap_address,
+		    1 },
+		{ "get-guest-pat", NO_ARG, &get_guest_pat, 1 },
+		{ "get-guest-sysenter", NO_ARG, &get_guest_sysenter, 1 },
+		{ "get-exit-reason", NO_ARG, &get_exit_reason, 1 },
+		{ "get-x2apic-state", NO_ARG, &get_x2apic_state, 1 },
+		{ "get-all", NO_ARG, &get_all, 1 },
+		{ "run", NO_ARG, &run, 1 },
+		{ "create", NO_ARG, &create, 1 },
+		{ "destroy", NO_ARG, &destroy, 1 },
+		{ "inject-nmi", NO_ARG, &inject_nmi, 1 },
+		{ "force-reset", NO_ARG, &force_reset, 1 },
+		{ "force-poweroff", NO_ARG, &force_poweroff, 1 },
+		{ "get-active-cpus", NO_ARG, &get_active_cpus, 1 },
+		{ "get-debug-cpus", NO_ARG, &get_debug_cpus, 1 },
+		{ "get-suspended-cpus", NO_ARG, &get_suspended_cpus, 1 },
+		{ "get-intinfo", NO_ARG, &get_intinfo, 1 },
+		{ "get-cpu-topology", NO_ARG, &get_cpu_topology, 1 },
 #ifdef BHYVE_SNAPSHOT
-		{ "checkpoint", 	REQ_ARG, 0,	SET_CHECKPOINT_FILE},
-		{ "suspend", 		REQ_ARG, 0,	SET_SUSPEND_FILE},
+		{ "checkpoint", REQ_ARG, 0, SET_CHECKPOINT_FILE },
+		{ "suspend", REQ_ARG, 0, SET_SUSPEND_FILE },
 #endif
 	};
 
-	const struct option intel_opts[] = {
-		{ "get-vmcs-pinbased-ctls",
-				NO_ARG,		&get_pinbased_ctls, 1 },
-		{ "get-vmcs-procbased-ctls",
-				NO_ARG,		&get_procbased_ctls, 1 },
-		{ "get-vmcs-procbased-ctls2",
-				NO_ARG,		&get_procbased_ctls2, 1 },
-		{ "get-vmcs-guest-linear-address",
-				NO_ARG,		&get_vmcs_gla,	1 },
-		{ "get-vmcs-guest-physical-address",
-				NO_ARG,		&get_vmcs_gpa,	1 },
-		{ "get-vmcs-entry-interruption-info",
-				NO_ARG, &get_vmcs_entry_interruption_info, 1},
-		{ "get-vmcs-cr0-mask", NO_ARG,	&get_cr0_mask,	1 },
-		{ "get-vmcs-cr0-shadow", NO_ARG,&get_cr0_shadow, 1 },
-		{ "get-vmcs-cr4-mask", 		NO_ARG,	&get_cr4_mask,	  1 },
-		{ "get-vmcs-cr4-shadow", 	NO_ARG, &get_cr4_shadow,  1 },
-		{ "get-vmcs-cr3-targets", 	NO_ARG, &get_cr3_targets, 1 },
-		{ "get-vmcs-tpr-threshold",
-					NO_ARG,	&get_tpr_threshold, 1 },
-		{ "get-vmcs-vpid", 	NO_ARG,	&get_vpid_asid,	    1 },
-		{ "get-vmcs-exit-ctls", NO_ARG,	&get_exit_ctls,	    1 },
-		{ "get-vmcs-entry-ctls",
-					NO_ARG,	&get_entry_ctls, 1 },
-		{ "get-vmcs-instruction-error",
-					NO_ARG,	&get_inst_err,	1 },
-		{ "get-vmcs-host-pat",	NO_ARG,	&get_host_pat,	1 },
-		{ "get-vmcs-host-cr0",
-					NO_ARG,	&get_host_cr0,	1 },
-		{ "get-vmcs-exit-qualification",
-				NO_ARG,	&get_vmcs_exit_qualification, 1 },
-		{ "get-vmcs-exit-inst-length",
-				NO_ARG,	&get_vmcs_exit_inst_length, 1 },
-		{ "get-vmcs-interruptibility",
-				NO_ARG, &get_vmcs_interruptibility, 1 },
-		{ "get-vmcs-exit-interruption-error",
-				NO_ARG,	&get_vmcs_exit_interruption_error, 1 },
-		{ "get-vmcs-exit-interruption-info",
-				NO_ARG,	&get_vmcs_exit_interruption_info, 1 },
-		{ "get-vmcs-link", 	NO_ARG,		&get_vmcs_link, 1 },
-		{ "get-vmcs-host-cr3",
-					NO_ARG,		&get_host_cr3,	1 },
-		{ "get-vmcs-host-cr4",
-				NO_ARG,		&get_host_cr4,	1 },
-		{ "get-vmcs-host-rip",
-				NO_ARG,		&get_host_rip,	1 },
-		{ "get-vmcs-host-rsp",
-				NO_ARG,		&get_host_rsp,	1 },
-		{ "get-apic-access-address",
-				NO_ARG,		&get_apic_access_addr, 1},
-		{ "get-virtual-apic-address",
-				NO_ARG,		&get_virtual_apic_addr, 1}
-	};
+	const struct option intel_opts[] = { { "get-vmcs-pinbased-ctls", NO_ARG,
+						 &get_pinbased_ctls, 1 },
+		{ "get-vmcs-procbased-ctls", NO_ARG, &get_procbased_ctls, 1 },
+		{ "get-vmcs-procbased-ctls2", NO_ARG, &get_procbased_ctls2, 1 },
+		{ "get-vmcs-guest-linear-address", NO_ARG, &get_vmcs_gla, 1 },
+		{ "get-vmcs-guest-physical-address", NO_ARG, &get_vmcs_gpa, 1 },
+		{ "get-vmcs-entry-interruption-info", NO_ARG,
+		    &get_vmcs_entry_interruption_info, 1 },
+		{ "get-vmcs-cr0-mask", NO_ARG, &get_cr0_mask, 1 },
+		{ "get-vmcs-cr0-shadow", NO_ARG, &get_cr0_shadow, 1 },
+		{ "get-vmcs-cr4-mask", NO_ARG, &get_cr4_mask, 1 },
+		{ "get-vmcs-cr4-shadow", NO_ARG, &get_cr4_shadow, 1 },
+		{ "get-vmcs-cr3-targets", NO_ARG, &get_cr3_targets, 1 },
+		{ "get-vmcs-tpr-threshold", NO_ARG, &get_tpr_threshold, 1 },
+		{ "get-vmcs-vpid", NO_ARG, &get_vpid_asid, 1 },
+		{ "get-vmcs-exit-ctls", NO_ARG, &get_exit_ctls, 1 },
+		{ "get-vmcs-entry-ctls", NO_ARG, &get_entry_ctls, 1 },
+		{ "get-vmcs-instruction-error", NO_ARG, &get_inst_err, 1 },
+		{ "get-vmcs-host-pat", NO_ARG, &get_host_pat, 1 },
+		{ "get-vmcs-host-cr0", NO_ARG, &get_host_cr0, 1 },
+		{ "get-vmcs-exit-qualification", NO_ARG,
+		    &get_vmcs_exit_qualification, 1 },
+		{ "get-vmcs-exit-inst-length", NO_ARG,
+		    &get_vmcs_exit_inst_length, 1 },
+		{ "get-vmcs-interruptibility", NO_ARG,
+		    &get_vmcs_interruptibility, 1 },
+		{ "get-vmcs-exit-interruption-error", NO_ARG,
+		    &get_vmcs_exit_interruption_error, 1 },
+		{ "get-vmcs-exit-interruption-info", NO_ARG,
+		    &get_vmcs_exit_interruption_info, 1 },
+		{ "get-vmcs-link", NO_ARG, &get_vmcs_link, 1 },
+		{ "get-vmcs-host-cr3", NO_ARG, &get_host_cr3, 1 },
+		{ "get-vmcs-host-cr4", NO_ARG, &get_host_cr4, 1 },
+		{ "get-vmcs-host-rip", NO_ARG, &get_host_rip, 1 },
+		{ "get-vmcs-host-rsp", NO_ARG, &get_host_rsp, 1 },
+		{ "get-apic-access-address", NO_ARG, &get_apic_access_addr, 1 },
+		{ "get-virtual-apic-address", NO_ARG, &get_virtual_apic_addr,
+		    1 } };
 
-	const struct option amd_opts[] = {
-		{ "get-vmcb-intercepts",
-				NO_ARG,	&get_vmcb_intercept, 	1 },
-		{ "get-vmcb-asid", 
-				NO_ARG,	&get_vpid_asid,	     	1 },
-		{ "get-vmcb-exit-details",
-				NO_ARG, &get_vmcb_exit_details,	1 },
-		{ "get-vmcb-tlb-ctrl",
-				NO_ARG, &get_vmcb_tlb_ctrl, 	1 },
-		{ "get-vmcb-virq",
-				NO_ARG, &get_vmcb_virq, 	1 },
-		{ "get-avic-apic-bar",
-				NO_ARG,	&get_apic_access_addr, 	1 },
-		{ "get-avic-backing-page",
-				NO_ARG,	&get_virtual_apic_addr, 1 },
-		{ "get-avic-table",
-				NO_ARG,	&get_avic_table, 	1 }
-	};
+	const struct option amd_opts[] = { { "get-vmcb-intercepts", NO_ARG,
+					       &get_vmcb_intercept, 1 },
+		{ "get-vmcb-asid", NO_ARG, &get_vpid_asid, 1 },
+		{ "get-vmcb-exit-details", NO_ARG, &get_vmcb_exit_details, 1 },
+		{ "get-vmcb-tlb-ctrl", NO_ARG, &get_vmcb_tlb_ctrl, 1 },
+		{ "get-vmcb-virq", NO_ARG, &get_vmcb_virq, 1 },
+		{ "get-avic-apic-bar", NO_ARG, &get_apic_access_addr, 1 },
+		{ "get-avic-backing-page", NO_ARG, &get_virtual_apic_addr, 1 },
+		{ "get-avic-table", NO_ARG, &get_avic_table, 1 } };
 
-	const struct option null_opt = {
-		NULL, 0, NULL, 0
-	};
+	const struct option null_opt = { NULL, 0, NULL, 0 };
 
 	struct option *all_opts;
 	char *cp;
@@ -1569,9 +1513,8 @@ setup_options(bool cpu_intel)
 static const char *
 wday_str(int idx)
 {
-	static const char *weekdays[] = {
-		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
-	};
+	static const char *weekdays[] = { "Sun", "Mon", "Tue", "Wed", "Thu",
+		"Fri", "Sat" };
 
 	if (idx >= 0 && idx < 7)
 		return (weekdays[idx]);
@@ -1582,10 +1525,8 @@ wday_str(int idx)
 static const char *
 mon_str(int idx)
 {
-	static const char *months[] = {
-		"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-		"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-	};
+	static const char *months[] = { "Jan", "Feb", "Mar", "Apr", "May",
+		"Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
 	if (idx >= 0 && idx < 12)
 		return (months[idx]);
@@ -1684,8 +1625,8 @@ send_message(const char *vmname, nvlist_t *nvl)
 	}
 
 	memset(&addr, 0, sizeof(struct sockaddr_un));
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s%s",
-	    BHYVE_RUN_DIR, vmname);
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s%s", BHYVE_RUN_DIR,
+	    vmname);
 	addr.sun_family = AF_UNIX;
 	addr.sun_len = SUN_LEN(&addr);
 
@@ -1948,10 +1889,9 @@ main(int argc, char *argv[])
 	if (!error) {
 		ctx = vm_open(vmname);
 		if (ctx == NULL) {
-			fprintf(stderr,
-			    "vm_open: %s could not be opened: %s\n",
+			fprintf(stderr, "vm_open: %s could not be opened: %s\n",
 			    vmname, strerror(errno));
-			exit (1);
+			exit(1);
 		}
 		vcpu = vm_vcpu_open(ctx, vcpuid);
 	}
@@ -2002,58 +1942,57 @@ main(int argc, char *argv[])
 		error = vm_set_register(vcpu, VM_REG_GUEST_RAX, rax);
 
 	if (!error && set_rflags) {
-		error = vm_set_register(vcpu, VM_REG_GUEST_RFLAGS,
-					rflags);
+		error = vm_set_register(vcpu, VM_REG_GUEST_RFLAGS, rflags);
 	}
 
 	if (!error && set_desc_ds) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_DS,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_DS, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_es) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_ES,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_ES, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_ss) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_SS,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_SS, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_cs) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_CS,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_CS, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_fs) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_FS,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_FS, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_gs) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_GS,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_GS, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_tr) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_TR,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_TR, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_ldtr) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR,
-				    desc_base, desc_limit, desc_access);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, desc_base,
+		    desc_limit, desc_access);
 	}
 
 	if (!error && set_desc_gdtr) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR,
-				    desc_base, desc_limit, 0);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR, desc_base,
+		    desc_limit, 0);
 	}
 
 	if (!error && set_desc_idtr) {
-		error = vm_set_desc(vcpu, VM_REG_GUEST_IDTR,
-				    desc_base, desc_limit, 0);
+		error = vm_set_desc(vcpu, VM_REG_GUEST_IDTR, desc_base,
+		    desc_limit, 0);
 	}
 
 	if (!error && set_cs)
@@ -2112,7 +2051,7 @@ main(int argc, char *argv[])
 		else
 			error = get_misc_vmcb(vcpu, vcpuid);
 	}
-	
+
 	if (!error && (get_x2apic_state || get_all)) {
 		error = vm_get_x2apic_state(vcpu, &x2apic_state);
 		if (error == 0)
@@ -2123,38 +2062,35 @@ main(int argc, char *argv[])
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu, VMCS_EPTP, &eptp);
 		else
-			error = vm_get_vmcb_field(vcpu, VMCB_OFF_NPT_BASE,
-						   8, &eptp);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_NPT_BASE, 8,
+			    &eptp);
 		if (error == 0)
 			printf("%s[%d]\t\t0x%016lx\n",
-				cpu_intel ? "eptp" : "rvi/npt", vcpuid, eptp);
+			    cpu_intel ? "eptp" : "rvi/npt", vcpuid, eptp);
 	}
 
 	if (!error && (get_exception_bitmap || get_all)) {
-		if(cpu_intel)
-			error = vm_get_vmcs_field(vcpu,
-						VMCS_EXCEPTION_BITMAP, &bm);
+		if (cpu_intel)
+			error = vm_get_vmcs_field(vcpu, VMCS_EXCEPTION_BITMAP,
+			    &bm);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_EXC_INTERCEPT,
-						  4, &bm);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXC_INTERCEPT,
+			    4, &bm);
 		if (error == 0)
 			printf("exception_bitmap[%d]\t%#lx\n", vcpuid, bm);
 	}
 
 	if (!error && (get_io_bitmap || get_all)) {
 		if (cpu_intel) {
-			error = vm_get_vmcs_field(vcpu, VMCS_IO_BITMAP_A,
-						  &bm);
+			error = vm_get_vmcs_field(vcpu, VMCS_IO_BITMAP_A, &bm);
 			if (error == 0)
 				printf("io_bitmap_a[%d]\t%#lx\n", vcpuid, bm);
-			error = vm_get_vmcs_field(vcpu, VMCS_IO_BITMAP_B,
-						  &bm);
+			error = vm_get_vmcs_field(vcpu, VMCS_IO_BITMAP_B, &bm);
 			if (error == 0)
 				printf("io_bitmap_b[%d]\t%#lx\n", vcpuid, bm);
 		} else {
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_IO_PERM, 8, &bm);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_IO_PERM, 8,
+			    &bm);
 			if (error == 0)
 				printf("io_bitmap[%d]\t%#lx\n", vcpuid, bm);
 		}
@@ -2164,34 +2100,30 @@ main(int argc, char *argv[])
 		uint64_t tscoff;
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu, VMCS_TSC_OFFSET,
-						  &tscoff);
+			    &tscoff);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_TSC_OFFSET, 
-						  8, &tscoff);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_TSC_OFFSET, 8,
+			    &tscoff);
 		if (error == 0)
 			printf("tsc_offset[%d]\t0x%016lx\n", vcpuid, tscoff);
 	}
 
 	if (!error && (get_msr_bitmap_address || get_all)) {
 		if (cpu_intel)
-			error = vm_get_vmcs_field(vcpu, VMCS_MSR_BITMAP, 
-						  &addr);
+			error = vm_get_vmcs_field(vcpu, VMCS_MSR_BITMAP, &addr);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_MSR_PERM, 8, &addr);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_MSR_PERM, 8,
+			    &addr);
 		if (error == 0)
 			printf("msr_bitmap[%d]\t\t%#lx\n", vcpuid, addr);
 	}
 
 	if (!error && (get_msr_bitmap || get_all)) {
 		if (cpu_intel) {
-			error = vm_get_vmcs_field(vcpu, 
-						  VMCS_MSR_BITMAP, &addr);
+			error = vm_get_vmcs_field(vcpu, VMCS_MSR_BITMAP, &addr);
 		} else {
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_MSR_PERM, 8,
-						  &addr);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_MSR_PERM, 8,
+			    &addr);
 		}
 
 		if (error == 0)
@@ -2203,20 +2135,20 @@ main(int argc, char *argv[])
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu, VMCS_VPID, &vpid);
 		else
-			error = vm_get_vmcb_field(vcpu, VMCB_OFF_ASID, 
-						  4, &vpid);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_ASID, 4,
+			    &vpid);
 		if (error == 0)
-			printf("%s[%d]\t\t0x%04lx\n", 
-				cpu_intel ? "vpid" : "asid", vcpuid, vpid);
+			printf("%s[%d]\t\t0x%04lx\n",
+			    cpu_intel ? "vpid" : "asid", vcpuid, vpid);
 	}
 
 	if (!error && (get_guest_pat || get_all)) {
 		if (cpu_intel)
-			error = vm_get_vmcs_field(vcpu,
-						  VMCS_GUEST_IA32_PAT, &pat);
+			error = vm_get_vmcs_field(vcpu, VMCS_GUEST_IA32_PAT,
+			    &pat);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_GUEST_PAT, 8, &pat);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_GUEST_PAT, 8,
+			    &pat);
 		if (error == 0)
 			printf("guest_pat[%d]\t\t0x%016lx\n", vcpuid, pat);
 	}
@@ -2224,46 +2156,38 @@ main(int argc, char *argv[])
 	if (!error && (get_guest_sysenter || get_all)) {
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu,
-						  VMCS_GUEST_IA32_SYSENTER_CS,
-						  &cs);
+			    VMCS_GUEST_IA32_SYSENTER_CS, &cs);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_SYSENTER_CS, 8,
-						  &cs);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_SYSENTER_CS, 8,
+			    &cs);
 
 		if (error == 0)
 			printf("guest_sysenter_cs[%d]\t%#lx\n", vcpuid, cs);
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu,
-						  VMCS_GUEST_IA32_SYSENTER_ESP,
-						  &rsp);
+			    VMCS_GUEST_IA32_SYSENTER_ESP, &rsp);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_SYSENTER_ESP, 8,
-						  &rsp);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_SYSENTER_ESP,
+			    8, &rsp);
 
 		if (error == 0)
 			printf("guest_sysenter_sp[%d]\t%#lx\n", vcpuid, rsp);
 		if (cpu_intel)
 			error = vm_get_vmcs_field(vcpu,
-						  VMCS_GUEST_IA32_SYSENTER_EIP,
-						  &rip);
+			    VMCS_GUEST_IA32_SYSENTER_EIP, &rip);
 		else
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_SYSENTER_EIP, 8, 
-						  &rip);
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_SYSENTER_EIP,
+			    8, &rip);
 		if (error == 0)
 			printf("guest_sysenter_ip[%d]\t%#lx\n", vcpuid, rip);
 	}
 
 	if (!error && (get_exit_reason || get_all)) {
 		if (cpu_intel)
-			error = vm_get_vmcs_field(vcpu, VMCS_EXIT_REASON,
-						  &u64);
-		else	
-			error = vm_get_vmcb_field(vcpu,
-						  VMCB_OFF_EXIT_REASON, 8,
-						  &u64);
+			error = vm_get_vmcs_field(vcpu, VMCS_EXIT_REASON, &u64);
+		else
+			error = vm_get_vmcb_field(vcpu, VMCB_OFF_EXIT_REASON, 8,
+			    &u64);
 		if (error == 0)
 			printf("exit_reason[%d]\t%#lx\n", vcpuid, u64);
 	}
@@ -2326,12 +2250,12 @@ main(int argc, char *argv[])
 			error = vm_get_capability(vcpu, captype, &val);
 			if (error == 0) {
 				printf("Capability \"%s\" is %s on vcpu %d\n",
-					vm_capability_type2name(captype),
-					val ? "set" : "not set", vcpuid);
+				    vm_capability_type2name(captype),
+				    val ? "set" : "not set", vcpuid);
 			} else if (errno == ENOENT) {
 				error = 0;
 				printf("Capability \"%s\" is not available\n",
-					vm_capability_type2name(captype));
+				    vm_capability_type2name(captype));
 			} else {
 				break;
 			}
@@ -2385,7 +2309,8 @@ main(int argc, char *argv[])
 
 		vm_get_topology(ctx, &sockets, &cores, &threads, &maxcpus);
 		printf("cpu_topology:\tsockets=%hu, cores=%hu, threads=%hu, "
-		    "maxcpus=%hu\n", sockets, cores, threads, maxcpus);
+		       "maxcpus=%hu\n",
+		    sockets, cores, threads, maxcpus);
 	}
 
 	if (!error && run) {
@@ -2416,9 +2341,10 @@ main(int argc, char *argv[])
 
 #ifdef BHYVE_SNAPSHOT
 	if (!error && checkpoint_file)
-		error = snapshot_request(vmname, checkpoint_file, vm_suspend_opt);
+		error = snapshot_request(vmname, checkpoint_file,
+		    vm_suspend_opt);
 #endif
 
-	free (opts);
+	free(opts);
 	exit(error);
 }

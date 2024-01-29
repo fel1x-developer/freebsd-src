@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "stand.h"
 #include "host_syscall.h"
 #include "kboot.h"
+#include "stand.h"
 
 bool
 file2str(const char *fn, char *buffer, size_t buflen)
@@ -40,7 +40,7 @@ file2u64(const char *fn, uint64_t *val)
 
 	if (!file2str(fn, buffer, sizeof(buffer)))
 		return false;
-	v = strtoull(buffer, NULL, 0);	/* XXX check return values? */
+	v = strtoull(buffer, NULL, 0); /* XXX check return values? */
 	*val = v;
 	return true;
 }

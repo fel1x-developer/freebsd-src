@@ -27,16 +27,17 @@
 /*
  * See ../src/s_cospi.c for implementation details.
  */
-#define	INLINE_KERNEL_SINDF
-#define	INLINE_KERNEL_COSDF
+#define INLINE_KERNEL_SINDF
+#define INLINE_KERNEL_COSDF
 
 #include "math.h"
 #include "math_private.h"
+
 #include "k_cosf.c"
 #include "k_sinf.c"
 
-#define	__kernel_cospif(x)	(__kernel_cosdf(M_PI * (x)))
-#define	__kernel_sinpif(x)	(__kernel_sindf(M_PI * (x)))
+#define __kernel_cospif(x) (__kernel_cosdf(M_PI * (x)))
+#define __kernel_sinpif(x) (__kernel_sindf(M_PI * (x)))
 
 volatile static const float vzero = 0;
 
@@ -50,9 +51,9 @@ cospif(float x)
 	ix = ix & 0x7fffffff;
 	SET_FLOAT_WORD(ax, ix);
 
-	if (ix < 0x3f800000) {			/* |x| < 1 */
-		if (ix < 0x3e800000) {		/* |x| < 0.25 */
-			if (ix < 0x38800000) {	/* |x| < 0x1p-14 */
+	if (ix < 0x3f800000) {		       /* |x| < 1 */
+		if (ix < 0x3e800000) {	       /* |x| < 0.25 */
+			if (ix < 0x38800000) { /* |x| < 0x1p-14 */
 				/* Raise inexact iff != 0. */
 				if ((int)ax == 0)
 					return (1);
@@ -60,9 +61,9 @@ cospif(float x)
 			return (__kernel_cospif(ax));
 		}
 
-		if (ix < 0x3f000000)		/* |x| < 0.5 */
+		if (ix < 0x3f000000) /* |x| < 0.5 */
 			c = __kernel_sinpif(0.5F - ax);
-		else if (ix < 0x3f400000) {	/* |x| < 0.75 */
+		else if (ix < 0x3f400000) { /* |x| < 0.75 */
 			if (ix == 0x3f000000)
 				return (0);
 			c = -__kernel_sinpif(ax - 0.5F);
@@ -71,18 +72,18 @@ cospif(float x)
 		return (c);
 	}
 
-	if (ix < 0x4b000000) {		/* 1 <= |x| < 0x1p23 */
-		FFLOORF(x, j0, ix);	/* Integer part of ax. */
+	if (ix < 0x4b000000) {	    /* 1 <= |x| < 0x1p23 */
+		FFLOORF(x, j0, ix); /* Integer part of ax. */
 		ax -= x;
 		GET_FLOAT_WORD(ix, ax);
 
-		if (ix < 0x3f000000) {		/* |x| < 0.5 */
-			if (ix < 0x3e800000)	/* |x| < 0.25 */
+		if (ix < 0x3f000000) {	     /* |x| < 0.5 */
+			if (ix < 0x3e800000) /* |x| < 0.25 */
 				c = ix == 0 ? 1 : __kernel_cospif(ax);
 			else
 				c = __kernel_sinpif(0.5F - ax);
 		} else {
-			if (ix < 0x3f400000) {	/* |x| < 0.75 */
+			if (ix < 0x3f400000) { /* |x| < 0.75 */
 				if (ix == 0x3f000000)
 					return (0);
 				c = -__kernel_sinpif(ax - 0.5F);

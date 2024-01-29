@@ -37,17 +37,17 @@
 #define _VIRTIO_PCI_VAR_H
 
 /* VirtIO PCI vendor/device ID. */
-#define VIRTIO_PCI_VENDORID	0x1AF4
-#define VIRTIO_PCI_DEVICEID_MIN	0x1000
-#define VIRTIO_PCI_DEVICEID_LEGACY_MAX	0x103F
-#define VIRTIO_PCI_DEVICEID_MODERN_MIN	0x1040
-#define VIRTIO_PCI_DEVICEID_MODERN_MAX	0x107F
+#define VIRTIO_PCI_VENDORID 0x1AF4
+#define VIRTIO_PCI_DEVICEID_MIN 0x1000
+#define VIRTIO_PCI_DEVICEID_LEGACY_MAX 0x103F
+#define VIRTIO_PCI_DEVICEID_MODERN_MIN 0x1040
+#define VIRTIO_PCI_DEVICEID_MODERN_MAX 0x107F
 
 /* The bit of the ISR which indicates a device has an interrupt. */
-#define VIRTIO_PCI_ISR_INTR	0x1
+#define VIRTIO_PCI_ISR_INTR 0x1
 /* The bit of the ISR which indicates a device configuration change. */
-#define VIRTIO_PCI_ISR_CONFIG	0x2
+#define VIRTIO_PCI_ISR_CONFIG 0x2
 /* Vector value used to disable MSI for queue. */
-#define VIRTIO_MSI_NO_VECTOR	0xFFFF
+#define VIRTIO_MSI_NO_VECTOR 0xFFFF
 
 #endif /* _VIRTIO_PCI_VAR_H */

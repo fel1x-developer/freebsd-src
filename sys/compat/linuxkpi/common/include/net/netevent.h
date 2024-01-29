@@ -26,8 +26,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_NET_NETEVENT_H_
-#define	_LINUXKPI_NET_NETEVENT_H_
+#ifndef _LINUXKPI_NET_NETEVENT_H_
+#define _LINUXKPI_NET_NETEVENT_H_
 
 #include <sys/types.h>
 #include <sys/eventhandler.h>
@@ -56,8 +56,8 @@ _handle_arp_update_event(void *arg, struct llentry *lle, int evt __unused)
 static inline int
 register_netevent_notifier(struct notifier_block *nb)
 {
-	nb->tags[NETEVENT_NEIGH_UPDATE] = EVENTHANDLER_REGISTER(
-	    lle_event, _handle_arp_update_event, nb, 0);
+	nb->tags[NETEVENT_NEIGH_UPDATE] = EVENTHANDLER_REGISTER(lle_event,
+	    _handle_arp_update_event, nb, 0);
 	return (0);
 }
 

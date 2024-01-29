@@ -32,37 +32,42 @@
 #define __CXGBE_OSDEP_H_
 
 #include <sys/cdefs.h>
-#include <sys/ctype.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
+#include <sys/ctype.h>
+#include <sys/endian.h>
 #include <sys/syslog.h>
+
 #include <dev/pci/pcireg.h>
 
-#define CH_ERR(adap, fmt, ...) log(LOG_ERR, "%s: " fmt, \
-    device_get_nameunit((adap)->dev), ##__VA_ARGS__)
-#define CH_WARN(adap, fmt, ...) log(LOG_WARNING, "%s: " fmt, \
-    device_get_nameunit((adap)->dev), ##__VA_ARGS__)
-#define CH_ALERT(adap, fmt, ...) log(LOG_ALERT, "%s: " fmt, \
-    device_get_nameunit((adap)->dev), ##__VA_ARGS__)
-#define CH_WARN_RATELIMIT(adap, fmt, ...) log(LOG_WARNING, "%s: " fmt, \
-    device_get_nameunit((adap)->dev), ##__VA_ARGS__)
+#define CH_ERR(adap, fmt, ...)                                     \
+	log(LOG_ERR, "%s: " fmt, device_get_nameunit((adap)->dev), \
+	    ##__VA_ARGS__)
+#define CH_WARN(adap, fmt, ...)                                        \
+	log(LOG_WARNING, "%s: " fmt, device_get_nameunit((adap)->dev), \
+	    ##__VA_ARGS__)
+#define CH_ALERT(adap, fmt, ...)                                     \
+	log(LOG_ALERT, "%s: " fmt, device_get_nameunit((adap)->dev), \
+	    ##__VA_ARGS__)
+#define CH_WARN_RATELIMIT(adap, fmt, ...)                              \
+	log(LOG_WARNING, "%s: " fmt, device_get_nameunit((adap)->dev), \
+	    ##__VA_ARGS__)
 
 #ifndef LINUX_TYPES_DEFINED
-typedef int8_t  s8;
+typedef int8_t s8;
 typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
-typedef uint8_t  u8;
+typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-typedef uint8_t  __u8;
+typedef uint8_t __u8;
 typedef uint16_t __u16;
 typedef uint32_t __u32;
 typedef uint64_t __u64;
-typedef uint8_t  __be8;
+typedef uint8_t __be8;
 typedef uint16_t __be16;
 typedef uint32_t __be32;
 typedef uint64_t __be64;
@@ -108,27 +113,27 @@ typedef boolean_t bool;
 #define cpu_to_be32(x) htobe32(x)
 #define cpu_to_be64(x) htobe64(x)
 
-#define DUPLEX_HALF	0
-#define DUPLEX_FULL	1
-#define AUTONEG_AUTO	(-1)
-#define AUTONEG_DISABLE	0
-#define AUTONEG_ENABLE	1
+#define DUPLEX_HALF 0
+#define DUPLEX_FULL 1
+#define AUTONEG_AUTO (-1)
+#define AUTONEG_DISABLE 0
+#define AUTONEG_ENABLE 1
 
-#define PCI_DEVICE_ID	PCIR_DEVICE
-#define PCI_CAP_ID_VPD  PCIY_VPD
-#define PCI_VPD_ADDR    PCIR_VPD_ADDR
-#define PCI_VPD_ADDR_F  0x8000
-#define PCI_VPD_DATA    PCIR_VPD_DATA
+#define PCI_DEVICE_ID PCIR_DEVICE
+#define PCI_CAP_ID_VPD PCIY_VPD
+#define PCI_VPD_ADDR PCIR_VPD_ADDR
+#define PCI_VPD_ADDR_F 0x8000
+#define PCI_VPD_DATA PCIR_VPD_DATA
 
-#define PCI_CAP_ID_EXP		PCIY_EXPRESS
-#define PCI_EXP_DEVCTL		PCIER_DEVICE_CTL
-#define PCI_EXP_DEVCTL_PAYLOAD	PCIEM_CTL_MAX_PAYLOAD
-#define PCI_EXP_DEVCTL_READRQ	PCIEM_CTL_MAX_READ_REQUEST
-#define PCI_EXP_LNKCTL		PCIER_LINK_CTL
-#define PCI_EXP_LNKSTA		PCIER_LINK_STA
-#define PCI_EXP_LNKSTA_CLS	PCIEM_LINK_STA_SPEED
-#define PCI_EXP_LNKSTA_NLW	PCIEM_LINK_STA_WIDTH
-#define PCI_EXP_DEVCTL2		PCIER_DEVICE_CTL2
+#define PCI_CAP_ID_EXP PCIY_EXPRESS
+#define PCI_EXP_DEVCTL PCIER_DEVICE_CTL
+#define PCI_EXP_DEVCTL_PAYLOAD PCIEM_CTL_MAX_PAYLOAD
+#define PCI_EXP_DEVCTL_READRQ PCIEM_CTL_MAX_READ_REQUEST
+#define PCI_EXP_LNKCTL PCIER_LINK_CTL
+#define PCI_EXP_LNKSTA PCIER_LINK_STA
+#define PCI_EXP_LNKSTA_CLS PCIEM_LINK_STA_SPEED
+#define PCI_EXP_LNKSTA_NLW PCIEM_LINK_STA_WIDTH
+#define PCI_EXP_DEVCTL2 PCIER_DEVICE_CTL2
 
 static inline int
 ilog2(long x)

@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <limits.h>
 #include <math.h>
@@ -36,29 +37,33 @@
 
 #include "test-utils.h"
 
-#define	IGNORE	0x12345
+#define IGNORE 0x12345
 
-#define	test(func, x, result, excepts)	do {					\
-	ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));			\
-	long long _r = (func)(x);						\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, FE_ALL_EXCEPT, "for %s(%s)",		\
-	    #func, #x);								\
-	if ((excepts & FE_INVALID) != 0) {					\
-		ATF_REQUIRE_EQ(result, IGNORE);					\
-		ATF_CHECK_EQ_MSG(FE_INVALID, fetestexcept(FE_INVALID),		\
-		    "FE_INVALID not set correctly for %s(%s)", #func, #x);	\
-	} else {								\
-		ATF_REQUIRE_MSG(result != IGNORE, "Expected can't be IGNORE!");	\
-		ATF_REQUIRE_EQ(result, (__STRING(func(_d)), _r));		\
-	}									\
-} while (0)
+#define test(func, x, result, excepts)                                         \
+	do {                                                                   \
+		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));               \
+		long long _r = (func)(x);                                      \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, FE_ALL_EXCEPT, "for %s(%s)",  \
+		    #func, #x);                                                \
+		if ((excepts & FE_INVALID) != 0) {                             \
+			ATF_REQUIRE_EQ(result, IGNORE);                        \
+			ATF_CHECK_EQ_MSG(FE_INVALID, fetestexcept(FE_INVALID), \
+			    "FE_INVALID not set correctly for %s(%s)", #func,  \
+			    #x);                                               \
+		} else {                                                       \
+			ATF_REQUIRE_MSG(result != IGNORE,                      \
+			    "Expected can't be IGNORE!");                      \
+			ATF_REQUIRE_EQ(result, (__STRING(func(_d)), _r));      \
+		}                                                              \
+	} while (0)
 
-#define	testall(x, result, excepts)	do {				\
-	test(lround, x, result, excepts);				\
-	test(lroundf, x, result, excepts);				\
-	test(llround, x, result, excepts);				\
-	test(llroundf, x, result, excepts);				\
-} while (0)
+#define testall(x, result, excepts)                 \
+	do {                                        \
+		test(lround, x, result, excepts);   \
+		test(lroundf, x, result, excepts);  \
+		test(llround, x, result, excepts);  \
+		test(llroundf, x, result, excepts); \
+	} while (0)
 
 #pragma STDC FENV_ACCESS ON
 
@@ -103,8 +108,10 @@ ATF_TC_BODY(main, tc)
 	test(llroundf, 0x7fffff8000000000.0p0f, 0x7fffff8000000000ll, 0);
 	test(llround, -0x8000000000000800.0p0, IGNORE, FE_INVALID);
 	test(llroundf, -0x8000010000000000.0p0f, IGNORE, FE_INVALID);
-	test(llround, -0x8000000000000000.0p0, (long long)-0x8000000000000000ll, 0);
-	test(llroundf, -0x8000000000000000.0p0f, (long long)-0x8000000000000000ll, 0);
+	test(llround, -0x8000000000000000.0p0, (long long)-0x8000000000000000ll,
+	    0);
+	test(llroundf, -0x8000000000000000.0p0f,
+	    (long long)-0x8000000000000000ll, 0);
 #else
 #error "Unsupported long long size"
 #endif

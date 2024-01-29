@@ -29,13 +29,14 @@
  */
 
 #ifndef _MACHINE_ASAN_H_
-#define	_MACHINE_ASAN_H_
+#define _MACHINE_ASAN_H_
 
 #ifdef KASAN
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_page.h>
+
 #include <machine/vmparam.h>
 
 static inline vm_offset_t
@@ -54,7 +55,6 @@ kasan_md_unsupported(vm_offset_t addr)
 static inline void
 kasan_md_init(void)
 {
-
 }
 
 static inline void

@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _RDMA_IB_ADDR_FREEBSD_H
-#define	_RDMA_IB_ADDR_FREEBSD_H
+#define _RDMA_IB_ADDR_FREEBSD_H
 
 #ifdef INET
 static inline if_t
@@ -105,4 +105,4 @@ dev_get_by_index(struct vnet *vnet, int if_index)
 	return (retval);
 }
 
-#endif	/* _RDMA_IB_ADDR_FREEBSD_H */
+#endif /* _RDMA_IB_ADDR_FREEBSD_H */

@@ -18,55 +18,50 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_radiotap.h>
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#include <net80211/ieee80211_var.h>
+#ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_rx.h>
 #include <dev/rtwn/if_rtwn_task.h>
 #include <dev/rtwn/if_rtwn_tx.h>
-
-#include <dev/rtwn/usb/rtwn_usb_var.h>
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/usb/rtwn_usb_rx.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usbdi.h>
 
-static struct mbuf *	rtwn_rxeof(struct rtwn_softc *, struct rtwn_data *,
-			    uint8_t *, int);
+static struct mbuf *rtwn_rxeof(struct rtwn_softc *, struct rtwn_data *,
+    uint8_t *, int);
 
 static int
-rtwn_rx_check_pre_alloc(struct rtwn_softc *sc,
-    struct rtwn_rx_stat_common *stat)
+rtwn_rx_check_pre_alloc(struct rtwn_softc *sc, struct rtwn_rx_stat_common *stat)
 {
 	uint32_t rxdw0;
 	int pktlen;
@@ -86,9 +81,8 @@ rtwn_rx_check_pre_alloc(struct rtwn_softc *sc,
 		 * This should not happen since we setup our Rx filter
 		 * to not receive these frames.
 		 */
-		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV,
-		    "%s: RX flags error (%s)\n", __func__,
-		    rxdw0 & RTWN_RXDW0_CRCERR ? "CRC" : "ICV");
+		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV, "%s: RX flags error (%s)\n",
+		    __func__, rxdw0 & RTWN_RXDW0_CRCERR ? "CRC" : "ICV");
 		return (-1);
 	}
 
@@ -176,10 +170,10 @@ rtwn_rxeof_fragmented(struct rtwn_usb_softc *uc, struct rtwn_data *data,
 		/* Dump Rx descriptor. */
 		RTWN_DPRINTF(sc, RTWN_DEBUG_RECV_DESC,
 		    "%s: dw: 0 %08X, 1 %08X, 2 %08X, 3 %08X, 4 %08X, "
-		    "tsfl %08X\n", __func__, le32toh(stat->rxdw0),
-		    le32toh(stat->rxdw1), le32toh(stat->rxdw2),
-		    le32toh(stat->rxdw3), le32toh(stat->rxdw4),
-		    le32toh(stat->tsf_low));
+		    "tsfl %08X\n",
+		    __func__, le32toh(stat->rxdw0), le32toh(stat->rxdw1),
+		    le32toh(stat->rxdw2), le32toh(stat->rxdw3),
+		    le32toh(stat->rxdw4), le32toh(stat->tsf_low));
 	}
 
 	rxdw0 = le32toh(stat->rxdw0);
@@ -214,11 +208,11 @@ rtwn_rxeof_fragmented(struct rtwn_usb_softc *uc, struct rtwn_data *data,
 	uc->uc_rx_off += min_len;
 	if (uc->uc_rx_off == totlen) {
 		/* Align next frame. */
-		min_len = rtwn_usb_align_rx(uc,
-		    orig_len - len + min_len, orig_len);
+		min_len = rtwn_usb_align_rx(uc, orig_len - len + min_len,
+		    orig_len);
 		min_len -= (orig_len - len);
-		KASSERT(len >= min_len, ("%s: len (%d) < min_len (%d)!\n",
-		    __func__, len, min_len));
+		KASSERT(len >= min_len,
+		    ("%s: len (%d) < min_len (%d)!\n", __func__, len, min_len));
 
 		/* Clear mbuf stats. */
 		uc->uc_rx_stat_len = 0;
@@ -234,8 +228,7 @@ end:
 }
 
 static struct mbuf *
-rtwn_rxeof(struct rtwn_softc *sc, struct rtwn_data *data, uint8_t *buf,
-    int len)
+rtwn_rxeof(struct rtwn_softc *sc, struct rtwn_data *data, uint8_t *buf, int len)
 {
 	struct rtwn_usb_softc *uc = RTWN_USB_SOFTC(sc);
 	struct rtwn_rx_stat_common *stat;
@@ -301,7 +294,7 @@ rtwn_report_intr(struct rtwn_usb_softc *uc, struct usb_xfer *xfer,
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
 	if (__predict_false(len < sizeof(struct rtwn_rx_stat_common) &&
-	    uc->uc_rx_stat_len == 0)) {
+		uc->uc_rx_stat_len == 0)) {
 		counter_u64_add(ic->ic_ierrors, 1);
 		return (NULL);
 	}
@@ -317,8 +310,8 @@ rtwn_report_intr(struct rtwn_usb_softc *uc, struct usb_xfer *xfer,
 		if (sc->sc_ratectl != RTWN_RATECTL_NET80211) {
 			/* shouldn't happen */
 			device_printf(sc->sc_dev,
-			    "%s called while ratectl = %d!\n",
-			    __func__, sc->sc_ratectl);
+			    "%s called while ratectl = %d!\n", __func__,
+			    sc->sc_ratectl);
 			break;
 		}
 
@@ -380,7 +373,7 @@ rtwn_bulk_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 		STAILQ_INSERT_TAIL(&uc->uc_rx_inactive, data, next);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		data = STAILQ_FIRST(&uc->uc_rx_inactive);
 		if (data == NULL) {
 			KASSERT(m == NULL, ("mbuf isn't NULL"));

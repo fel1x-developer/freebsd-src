@@ -45,8 +45,8 @@
 #include <pwd.h>
 #include <stdlib.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 int compar(const void *, const void *);
 
@@ -56,13 +56,13 @@ static struct p_times {
 	struct kinfo_proc *pt_kp;
 } *pt = NULL;
 
-static int    fscale;
-static double  lccpu;
+static int fscale;
+static double lccpu;
 
 WINDOW *
 openpigs(void)
 {
-	return (subwin(stdscr, LINES-3-1, 0, MAINWIN_ROW, 0));
+	return (subwin(stdscr, LINES - 3 - 1, 0, MAINWIN_ROW, 0));
 }
 
 void
@@ -85,11 +85,11 @@ showpigs(void)
 	if (nproc == 0)
 		return;
 
-	qsort(pt, nproc, sizeof (struct p_times), compar);
+	qsort(pt, nproc, sizeof(struct p_times), compar);
 	y = 1;
 	i = nproc;
-	if (i > getmaxy(wnd)-2)
-		i = getmaxy(wnd)-2;
+	if (i > getmaxy(wnd) - 2)
+		i = getmaxy(wnd) - 2;
 	for (k = 0; i > 0 && pt[k].pt_pctcpu > 0.01; i--, y++, k++) {
 		uname = user_from_uid(pt[k].pt_kp->ki_uid, 0);
 		pname = pt[k].pt_kp->ki_comm;
@@ -102,7 +102,8 @@ showpigs(void)
 		for (j = pt[k].pt_pctcpu * 50 + 0.5; j > 0; j--)
 			waddch(wnd, 'X');
 	}
-	wmove(wnd, y, 0); wclrtobot(wnd);
+	wmove(wnd, y, 0);
+	wclrtobot(wnd);
 }
 
 int
@@ -126,9 +127,9 @@ initpigs(void)
 		return (0);
 	}
 
-	lccpu = log((double) ccpu / fscale);
+	lccpu = log((double)ccpu / fscale);
 
-	return(1);
+	return (1);
 }
 
 void
@@ -162,8 +163,8 @@ fetchpigs(void)
 		if (ftime == 0 || (kpp[i].ki_flag & P_INMEM) == 0)
 			*pctp = 0;
 		else
-			*pctp = ((double) kpp[i].ki_pctcpu /
-					fscale) / (1.0 - exp(ftime * lccpu));
+			*pctp = ((double)kpp[i].ki_pctcpu / fscale) /
+			    (1.0 - exp(ftime * lccpu));
 	}
 }
 
@@ -179,6 +180,8 @@ labelpigs(void)
 int
 compar(const void *a, const void *b)
 {
-	return (((const struct p_times *) a)->pt_pctcpu >
-		((const struct p_times *) b)->pt_pctcpu)? -1: 1;
+	return (((const struct p_times *)a)->pt_pctcpu >
+		   ((const struct p_times *)b)->pt_pctcpu) ?
+	    -1 :
+	    1;
 }

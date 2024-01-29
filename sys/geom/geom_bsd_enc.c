@@ -43,8 +43,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/endian.h>
 #include <sys/disklabel.h>
+#include <sys/endian.h>
 #include <sys/errno.h>
 #ifdef _KERNEL
 #include <sys/systm.h>
@@ -72,16 +72,16 @@ bsd_disklabel_le_dec(u_char *ptr, struct disklabel *d, int maxpart)
 
 	d->d_magic = le32dec(ptr + 0);
 	if (d->d_magic != DISKMAGIC)
-		return(EINVAL);
+		return (EINVAL);
 
 	d->d_magic2 = le32dec(ptr + 132);
 	if (d->d_magic2 != DISKMAGIC) {
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	d->d_npartitions = le16dec(ptr + 138);
 	if (d->d_npartitions > maxpart) {
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	pe = ptr + 148 + 16 * d->d_npartitions;
@@ -89,7 +89,7 @@ bsd_disklabel_le_dec(u_char *ptr, struct disklabel *d, int maxpart)
 	for (p = ptr; p < pe; p += 2)
 		sum ^= le16dec(p);
 	if (sum != 0) {
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	d->d_type = le16dec(ptr + 4);
@@ -128,7 +128,7 @@ bsd_disklabel_le_dec(u_char *ptr, struct disklabel *d, int maxpart)
 	d->d_sbsize = le32dec(ptr + 144);
 	for (i = 0; i < d->d_npartitions; i++)
 		bsd_partition_le_dec(ptr + 148 + 16 * i, &d->d_partitions[i]);
-	return(0);
+	return (0);
 }
 
 void

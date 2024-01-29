@@ -33,7 +33,7 @@
  * Example:
  *
  *	iicbus
- *	 /  \ 
+ *	 /  \
  *    iicbb pcf
  *     |  \
  *   bti2c lpbb
@@ -46,35 +46,35 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
+
 #include <machine/cpu.h>
 
 #ifdef FDT
+#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/fdt/fdt_common.h>
 #endif
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
-
+#include <dev/iicbus/iiconf.h>
 #include <dev/smbus/smbconf.h>
 
-#include "iicbus_if.h"
 #include "iicbb_if.h"
+#include "iicbus_if.h"
 
 /* Based on the SMBus specification. */
-#define	DEFAULT_SCL_LOW_TIMEOUT	(25 * 1000)
+#define DEFAULT_SCL_LOW_TIMEOUT (25 * 1000)
 
 struct iicbb_softc {
 	device_t iicbus;
-	u_int udelay;		/* signal toggle delay in usec */
-	u_int io_latency;	/* approximate pin toggling latency */
+	u_int udelay;	  /* signal toggle delay in usec */
+	u_int io_latency; /* approximate pin toggling latency */
 	u_int scl_low_timeout;
 };
 
@@ -99,27 +99,27 @@ static phandle_t iicbb_get_node(device_t, device_t);
 
 static device_method_t iicbb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		iicbb_probe),
-	DEVMETHOD(device_attach,	iicbb_attach),
-	DEVMETHOD(device_detach,	iicbb_detach),
+	DEVMETHOD(device_probe, iicbb_probe),
+	DEVMETHOD(device_attach, iicbb_attach),
+	DEVMETHOD(device_detach, iicbb_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_child_detached,	iicbb_child_detached),
-	DEVMETHOD(bus_print_child,	iicbb_print_child),
+	DEVMETHOD(bus_child_detached, iicbb_child_detached),
+	DEVMETHOD(bus_print_child, iicbb_print_child),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_callback,	iicbb_callback),
-	DEVMETHOD(iicbus_start,		iicbb_start),
+	DEVMETHOD(iicbus_callback, iicbb_callback),
+	DEVMETHOD(iicbus_start, iicbb_start),
 	DEVMETHOD(iicbus_repeated_start, iicbb_repstart),
-	DEVMETHOD(iicbus_stop,		iicbb_stop),
-	DEVMETHOD(iicbus_write,		iicbb_write),
-	DEVMETHOD(iicbus_read,		iicbb_read),
-	DEVMETHOD(iicbus_reset,		iicbb_reset),
-	DEVMETHOD(iicbus_transfer,	iicbb_transfer),
+	DEVMETHOD(iicbus_stop, iicbb_stop),
+	DEVMETHOD(iicbus_write, iicbb_write),
+	DEVMETHOD(iicbus_read, iicbb_read),
+	DEVMETHOD(iicbus_reset, iicbb_reset),
+	DEVMETHOD(iicbus_transfer, iicbb_transfer),
 
 #ifdef FDT
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_node,	iicbb_get_node),
+	DEVMETHOD(ofw_bus_get_node, iicbb_get_node),
 #endif
 
 	{ 0, 0 }
@@ -151,18 +151,18 @@ iicbb_attach(device_t dev)
 	sc->scl_low_timeout = DEFAULT_SCL_LOW_TIMEOUT;
 
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "delay", CTLFLAG_RD, &sc->udelay,
-	    0, "Signal change delay controlled by bus frequency, microseconds");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "delay",
+	    CTLFLAG_RD, &sc->udelay, 0,
+	    "Signal change delay controlled by bus frequency, microseconds");
 
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "scl_low_timeout", CTLFLAG_RWTUN, &sc->scl_low_timeout,
-	    0, "SCL low timeout, microseconds");
+	    "scl_low_timeout", CTLFLAG_RWTUN, &sc->scl_low_timeout, 0,
+	    "SCL low timeout, microseconds");
 	SYSCTL_ADD_UINT(device_get_sysctl_ctx(dev),
 	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "io_latency", CTLFLAG_RWTUN, &sc->io_latency,
-	    0, "Estimate of pin toggling latency, microseconds");
+	    "io_latency", CTLFLAG_RWTUN, &sc->io_latency, 0,
+	    "Estimate of pin toggling latency, microseconds");
 
 	bus_generic_attach(dev);
 	return (0);
@@ -189,7 +189,7 @@ iicbb_get_node(device_t bus, device_t dev)
 #endif
 
 static void
-iicbb_child_detached( device_t dev, device_t child )
+iicbb_child_detached(device_t dev, device_t child)
 {
 	struct iicbb_softc *sc = (struct iicbb_softc *)device_get_softc(dev);
 
@@ -209,13 +209,13 @@ iicbb_print_child(device_t bus, device_t dev)
 	error = IICBB_RESET(device_get_parent(bus), IIC_FASTEST, 0, &oldaddr);
 	if (error == IIC_ENOADDR) {
 		retval += printf(" on %s master-only\n",
-				 device_get_nameunit(bus));
+		    device_get_nameunit(bus));
 	} else {
 		/* restore the address */
 		IICBB_RESET(device_get_parent(bus), IIC_FASTEST, oldaddr, NULL);
 
-		retval += printf(" on %s addr 0x%x\n",
-				 device_get_nameunit(bus), oldaddr & 0xff);
+		retval += printf(" on %s addr 0x%x\n", device_get_nameunit(bus),
+		    oldaddr & 0xff);
 	}
 
 	return (retval);
@@ -226,20 +226,22 @@ iicbb_print_child(device_t bus, device_t dev)
 static int i2c_debug = 0;
 
 SYSCTL_DECL(_hw_i2c);
-SYSCTL_INT(_hw_i2c, OID_AUTO, iicbb_debug, CTLFLAG_RWTUN,
-    &i2c_debug, 0, "Enable i2c bit-banging driver debug");
+SYSCTL_INT(_hw_i2c, OID_AUTO, iicbb_debug, CTLFLAG_RWTUN, &i2c_debug, 0,
+    "Enable i2c bit-banging driver debug");
 
-#define I2C_DEBUG(x)	do {		\
-		if (i2c_debug) (x);	\
+#define I2C_DEBUG(x)           \
+	do {                   \
+		if (i2c_debug) \
+			(x);   \
 	} while (0)
 #else
 #define I2C_DEBUG(x)
 #endif
 
-#define	I2C_GETSDA(dev)		(IICBB_GETSDA(device_get_parent(dev)))
-#define	I2C_SETSDA(dev, x)	(IICBB_SETSDA(device_get_parent(dev), x))
-#define	I2C_GETSCL(dev)		(IICBB_GETSCL(device_get_parent(dev)))
-#define	I2C_SETSCL(dev, x)	(IICBB_SETSCL(device_get_parent(dev), x))
+#define I2C_GETSDA(dev) (IICBB_GETSDA(device_get_parent(dev)))
+#define I2C_SETSDA(dev, x) (IICBB_SETSDA(device_get_parent(dev), x))
+#define I2C_GETSCL(dev) (IICBB_GETSCL(device_get_parent(dev)))
+#define I2C_SETSCL(dev, x) (IICBB_SETSCL(device_get_parent(dev), x))
 
 static int
 iicbb_waitforscl(device_t dev)
@@ -588,7 +590,7 @@ iicbb_set_speed(struct iicbb_softc *sc, u_char speed)
 	 * udelay is half a period, the clock is held high or low for this long.
 	 */
 	busfreq = IICBUS_GET_FREQUENCY(sc->iicbus, speed);
-	period = 1000000 / 2 / busfreq;	/* Hz -> uS */
+	period = 1000000 / 2 / busfreq; /* Hz -> uS */
 	period -= sc->io_latency;
 	sc->udelay = MAX(period, 1);
 }

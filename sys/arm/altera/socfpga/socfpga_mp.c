@@ -42,52 +42,51 @@
 #include <vm/pmap.h>
 
 #include <machine/cpu.h>
-#include <machine/smp.h>
 #include <machine/fdt.h>
 #include <machine/intr.h>
 #include <machine/platformvar.h>
+#include <machine/smp.h>
 
 #include <arm/altera/socfpga/socfpga_mp.h>
 #include <arm/altera/socfpga/socfpga_rstmgr.h>
 
-#define	SCU_PHYSBASE			0xFFFEC000
-#define	SCU_PHYSBASE_A10		0xFFFFC000
-#define	SCU_SIZE			0x100
+#define SCU_PHYSBASE 0xFFFEC000
+#define SCU_PHYSBASE_A10 0xFFFFC000
+#define SCU_SIZE 0x100
 
-#define	SCU_CONTROL_REG			0x00
-#define	 SCU_CONTROL_ENABLE		(1 << 0)
-#define	SCU_CONFIG_REG			0x04
-#define	 SCU_CONFIG_REG_NCPU_MASK	0x03
-#define	SCU_CPUPOWER_REG		0x08
-#define	SCU_INV_TAGS_REG		0x0c
-#define	SCU_DIAG_CONTROL		0x30
-#define	 SCU_DIAG_DISABLE_MIGBIT	(1 << 0)
-#define	SCU_FILTER_START_REG		0x40
-#define	SCU_FILTER_END_REG		0x44
-#define	SCU_SECURE_ACCESS_REG		0x50
-#define	SCU_NONSECURE_ACCESS_REG	0x54
+#define SCU_CONTROL_REG 0x00
+#define SCU_CONTROL_ENABLE (1 << 0)
+#define SCU_CONFIG_REG 0x04
+#define SCU_CONFIG_REG_NCPU_MASK 0x03
+#define SCU_CPUPOWER_REG 0x08
+#define SCU_INV_TAGS_REG 0x0c
+#define SCU_DIAG_CONTROL 0x30
+#define SCU_DIAG_DISABLE_MIGBIT (1 << 0)
+#define SCU_FILTER_START_REG 0x40
+#define SCU_FILTER_END_REG 0x44
+#define SCU_SECURE_ACCESS_REG 0x50
+#define SCU_NONSECURE_ACCESS_REG 0x54
 
-#define	RSTMGR_PHYSBASE			0xFFD05000
-#define	RSTMGR_SIZE			0x100
+#define RSTMGR_PHYSBASE 0xFFD05000
+#define RSTMGR_SIZE 0x100
 
-#define	RAM_PHYSBASE			0x0
-#define	RAM_SIZE			0x1000
+#define RAM_PHYSBASE 0x0
+#define RAM_SIZE 0x1000
 
-#define	SOCFPGA_ARRIA10			1
-#define	SOCFPGA_CYCLONE5		2
+#define SOCFPGA_ARRIA10 1
+#define SOCFPGA_CYCLONE5 2
 
-extern char	*mpentry_addr;
-static void	socfpga_trampoline(void);
+extern char *mpentry_addr;
+static void socfpga_trampoline(void);
 
 static void
 socfpga_trampoline(void)
 {
 
-	__asm __volatile(
-			"ldr pc, 1f\n"
-			".globl mpentry_addr\n"
-			"mpentry_addr:\n"
-			"1: .space 4\n");
+	__asm __volatile("ldr pc, 1f\n"
+			 ".globl mpentry_addr\n"
+			 "mpentry_addr:\n"
+			 "1: .space 4\n");
 }
 
 void
@@ -119,15 +118,15 @@ _socfpga_mp_start_ap(uint32_t platid)
 	switch (platid) {
 #if defined(SOC_ALTERA_ARRIA10)
 	case SOCFPGA_ARRIA10:
-		if (bus_space_map(fdtbus_bs_tag, SCU_PHYSBASE_A10,
-		    SCU_SIZE, 0, &scu) != 0)
+		if (bus_space_map(fdtbus_bs_tag, SCU_PHYSBASE_A10, SCU_SIZE, 0,
+			&scu) != 0)
 			panic("Couldn't map the SCU\n");
 		break;
 #endif
 #if defined(SOC_ALTERA_CYCLONE5)
 	case SOCFPGA_CYCLONE5:
-		if (bus_space_map(fdtbus_bs_tag, SCU_PHYSBASE,
-		    SCU_SIZE, 0, &scu) != 0)
+		if (bus_space_map(fdtbus_bs_tag, SCU_PHYSBASE, SCU_SIZE, 0,
+			&scu) != 0)
 			panic("Couldn't map the SCU\n");
 		break;
 #endif
@@ -135,16 +134,14 @@ _socfpga_mp_start_ap(uint32_t platid)
 		panic("Unknown platform id %d\n", platid);
 	}
 
-	if (bus_space_map(fdtbus_bs_tag, RSTMGR_PHYSBASE,
-					RSTMGR_SIZE, 0, &rst) != 0)
+	if (bus_space_map(fdtbus_bs_tag, RSTMGR_PHYSBASE, RSTMGR_SIZE, 0,
+		&rst) != 0)
 		panic("Couldn't map the reset manager (RSTMGR)\n");
-	if (bus_space_map(fdtbus_bs_tag, RAM_PHYSBASE,
-					RAM_SIZE, 0, &ram) != 0)
+	if (bus_space_map(fdtbus_bs_tag, RAM_PHYSBASE, RAM_SIZE, 0, &ram) != 0)
 		panic("Couldn't map the first physram page\n");
 
 	/* Invalidate SCU cache tags */
-	bus_space_write_4(fdtbus_bs_tag, scu,
-		SCU_INV_TAGS_REG, 0x0000ffff);
+	bus_space_write_4(fdtbus_bs_tag, scu, SCU_INV_TAGS_REG, 0x0000ffff);
 
 	/*
 	 * Erratum ARM/MP: 764369 (problems with cache maintenance).
@@ -159,14 +156,14 @@ _socfpga_mp_start_ap(uint32_t platid)
 	switch (platid) {
 #if defined(SOC_ALTERA_ARRIA10)
 	case SOCFPGA_ARRIA10:
-		bus_space_write_4(fdtbus_bs_tag, rst,
-		    RSTMGR_A10_MPUMODRST, MPUMODRST_CPU1);
+		bus_space_write_4(fdtbus_bs_tag, rst, RSTMGR_A10_MPUMODRST,
+		    MPUMODRST_CPU1);
 		break;
 #endif
 #if defined(SOC_ALTERA_CYCLONE5)
 	case SOCFPGA_CYCLONE5:
-		bus_space_write_4(fdtbus_bs_tag, rst,
-		    RSTMGR_MPUMODRST, MPUMODRST_CPU1);
+		bus_space_write_4(fdtbus_bs_tag, rst, RSTMGR_MPUMODRST,
+		    MPUMODRST_CPU1);
 		break;
 #endif
 	default:
@@ -189,14 +186,12 @@ _socfpga_mp_start_ap(uint32_t platid)
 	switch (platid) {
 #if defined(SOC_ALTERA_ARRIA10)
 	case SOCFPGA_ARRIA10:
-		bus_space_write_4(fdtbus_bs_tag, rst,
-		    RSTMGR_A10_MPUMODRST, 0);
+		bus_space_write_4(fdtbus_bs_tag, rst, RSTMGR_A10_MPUMODRST, 0);
 		break;
 #endif
 #if defined(SOC_ALTERA_CYCLONE5)
 	case SOCFPGA_CYCLONE5:
-		bus_space_write_4(fdtbus_bs_tag, rst,
-		    RSTMGR_MPUMODRST, 0);
+		bus_space_write_4(fdtbus_bs_tag, rst, RSTMGR_MPUMODRST, 0);
 		break;
 #endif
 	default:

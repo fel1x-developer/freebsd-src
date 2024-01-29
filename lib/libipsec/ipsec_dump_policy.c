@@ -1,4 +1,5 @@
-/*	$KAME: ipsec_dump_policy.c,v 1.13 2002/06/27 14:35:11 itojun Exp $	*/
+/*	$KAME: ipsec_dump_policy.c,v 1.13 2002/06/27 14:35:11 itojun Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
@@ -35,29 +36,34 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include <netipsec/key_var.h>
 #include <netinet/in.h>
 #include <netipsec/ipsec.h>
+#include <netipsec/key_var.h>
 
 #include <arpa/inet.h>
-
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netdb.h>
 
 #include "ipsec_strerror.h"
 
 static const char *ipsp_dir_strs[] = {
-	"any", "in", "out",
+	"any",
+	"in",
+	"out",
 };
 
 static const char *ipsp_policy_strs[] = {
-	"discard", "none", "ipsec", "entrust", "bypass",
+	"discard",
+	"none",
+	"ipsec",
+	"entrust",
+	"bypass",
 };
 
 static char *ipsec_dump_ipsecrequest(char *, size_t,
-	struct sadb_x_ipsecrequest *, size_t);
+    struct sadb_x_ipsecrequest *, size_t);
 static int set_addresses(char *, size_t, struct sockaddr *, struct sockaddr *);
 static char *set_address(char *, size_t, struct sockaddr *);
 
@@ -110,10 +116,8 @@ ipsec_dump_policy(caddr_t policy, char *delimiter)
 		return NULL;
 	}
 
-	buflen = strlen(ipsp_dir_strs[xpl->sadb_x_policy_dir])
-		+ 1	/* space */
-		+ strlen(ipsp_policy_strs[xpl->sadb_x_policy_type])
-		+ 1;	/* NUL */
+	buflen = strlen(ipsp_dir_strs[xpl->sadb_x_policy_dir]) + 1   /* space */
+	    + strlen(ipsp_policy_strs[xpl->sadb_x_policy_type]) + 1; /* NUL */
 
 	if ((buf = malloc(buflen)) == NULL) {
 		__ipsec_errcode = EIPSEC_NO_BUFS;
@@ -146,7 +150,7 @@ ipsec_dump_policy(caddr_t policy, char *delimiter)
 		xisr = (struct sadb_x_ipsecrequest *)((caddr_t)xpl + off);
 
 		if (ipsec_dump_ipsecrequest(isrbuf, sizeof(isrbuf), xisr,
-		    PFKEY_EXTLEN(xpl) - off) == NULL) {
+			PFKEY_EXTLEN(xpl) - off) == NULL) {
 			free(buf);
 			return NULL;
 		}
@@ -159,8 +163,8 @@ ipsec_dump_policy(caddr_t policy, char *delimiter)
 			return NULL;
 		}
 		buf = newbuf;
-		snprintf(buf + strlen(buf), buflen - strlen(buf),
-		    "%s%s", delimiter, isrbuf);
+		snprintf(buf + strlen(buf), buflen - strlen(buf), "%s%s",
+		    delimiter, isrbuf);
 
 		off += xisr->sadb_x_ipsecrequest_len;
 	}

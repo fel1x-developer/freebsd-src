@@ -31,6 +31,7 @@
  */
 
 #include <sys/resource.h>
+
 #include <fcntl.h>
 #include <libgen.h>
 #include <limits.h>
@@ -40,9 +41,8 @@
 #include <time.h>
 #include <unistd.h>
 
-
-#include "fdt.hh"
 #include "checking.hh"
+#include "fdt.hh"
 #include "util.hh"
 
 using namespace dtc;
@@ -66,34 +66,39 @@ int version_minor_compatible = 4;
 int version_patch = 0;
 int version_patch_compatible = 7;
 
-void usage(const string &argv0)
+void
+usage(const string &argv0)
 {
-	fprintf(stderr, "Usage:\n"
-		"\t%s\t[-fhsv@] [-b boot_cpu_id] [-d dependency_file]"
-			"[-E [no-]checker_name]\n"
-		"\t\t[-H phandle_format] [-I input_format]"
-			"[-O output_format]\n"
-		"\t\t[-o output_file] [-R entries] [-S bytes] [-p bytes]"
-			"[-V blob_version]\n"
-		"\t\t-W [no-]checker_name] input_file\n", basename(argv0).c_str());
+	fprintf(stderr,
+	    "Usage:\n"
+	    "\t%s\t[-fhsv@] [-b boot_cpu_id] [-d dependency_file]"
+	    "[-E [no-]checker_name]\n"
+	    "\t\t[-H phandle_format] [-I input_format]"
+	    "[-O output_format]\n"
+	    "\t\t[-o output_file] [-R entries] [-S bytes] [-p bytes]"
+	    "[-V blob_version]\n"
+	    "\t\t-W [no-]checker_name] input_file\n",
+	    basename(argv0).c_str());
 }
 
 /**
  * Prints the current version of this program..
  */
-void version(const char* progname)
+void
+version(const char *progname)
 {
-	fprintf(stdout, "Version: %s %d.%d.%d compatible with gpl dtc %d.%d.%d\n", progname,
-		version_major, version_minor, version_patch,
-		version_major_compatible, version_minor_compatible,
-		version_patch_compatible);
+	fprintf(stdout,
+	    "Version: %s %d.%d.%d compatible with gpl dtc %d.%d.%d\n", progname,
+	    version_major, version_minor, version_patch,
+	    version_major_compatible, version_minor_compatible,
+	    version_patch_compatible);
 }
 
 } // Anonymous namespace
 
 using fdt::device_tree;
-using fdt::tree_write_fn_ptr;
 using fdt::tree_read_fn_ptr;
+using fdt::tree_write_fn_ptr;
 
 int
 main(int argc, char **argv)
@@ -116,10 +121,8 @@ main(int argc, char **argv)
 	const char *options = "@hqI:O:o:V:d:R:S:p:b:fi:svH:W:E:DP:";
 
 	// Don't forget to update the man page if any more options are added.
-	while ((ch = getopt(argc, argv, options)) != -1)
-	{
-		switch (ch)
-		{
+	while ((ch = getopt(argc, argv, options)) != -1) {
+		switch (ch) {
 		case 'h':
 			usage(argv[0]);
 			return EXIT_SUCCESS;
@@ -129,62 +132,46 @@ main(int argc, char **argv)
 		case '@':
 			tree.write_symbols = true;
 			break;
-		case 'I':
-		{
+		case 'I': {
 			string arg(optarg);
-			if (arg == "dtb")
-			{
+			if (arg == "dtb") {
 				read_fn = &device_tree::parse_dtb;
-				if (write_fn == nullptr)
-				{
+				if (write_fn == nullptr) {
 					write_fn = &device_tree::write_dts;
 				}
-			}
-			else if (arg == "dts")
-			{
+			} else if (arg == "dts") {
 				read_fn = &device_tree::parse_dts;
-			}
-			else
-			{
-				fprintf(stderr, "Unknown input format: %s\n", optarg);
+			} else {
+				fprintf(stderr, "Unknown input format: %s\n",
+				    optarg);
 				return EXIT_FAILURE;
 			}
 			break;
 		}
-		case 'O':
-		{
+		case 'O': {
 			string arg(optarg);
-			if (arg == "dtb")
-			{
+			if (arg == "dtb") {
 				write_fn = &device_tree::write_binary;
-			}
-			else if (arg == "asm")
-			{
+			} else if (arg == "asm") {
 				write_fn = &device_tree::write_asm;
-			}
-			else if (arg == "dts")
-			{
+			} else if (arg == "dts") {
 				write_fn = &device_tree::write_dts;
-				if (read_fn == nullptr)
-				{
+				if (read_fn == nullptr) {
 					read_fn = &device_tree::parse_dtb;
 				}
-			}
-			else
-			{
-				fprintf(stderr, "Unknown output format: %s\n", optarg);
+			} else {
+				fprintf(stderr, "Unknown output format: %s\n",
+				    optarg);
 				return EXIT_FAILURE;
 			}
 			break;
 		}
-		case 'o':
-		{
+		case 'o': {
 			outfile_name = optarg;
-			if (strcmp(outfile_name, "-") != 0)
-			{
-				outfile = open(optarg, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-				if (outfile == -1)
-				{
+			if (strcmp(outfile_name, "-") != 0) {
+				outfile = open(optarg,
+				    O_CREAT | O_TRUNC | O_WRONLY, 0666);
+				if (outfile == -1) {
 					perror("Unable to open output file");
 					return EXIT_FAILURE;
 				}
@@ -195,51 +182,44 @@ main(int argc, char **argv)
 			debug_mode = true;
 			break;
 		case 'V':
-			if (string(optarg) != "17")
-			{
-				fprintf(stderr, "Unknown output format version: %s\n", optarg);
+			if (string(optarg) != "17") {
+				fprintf(stderr,
+				    "Unknown output format version: %s\n",
+				    optarg);
 				return EXIT_FAILURE;
 			}
 			break;
-		case 'd':
-		{
-			if (depfile != 0)
-			{
+		case 'd': {
+			if (depfile != 0) {
 				fclose(depfile);
 			}
-			if (string(optarg) == "-")
-			{
+			if (string(optarg) == "-") {
 				depfile = stdout;
-			}
-			else
-			{
-				depfile = fdopen(open(optarg, O_CREAT | O_TRUNC | O_WRONLY, 0666), "w");
-				if (depfile == 0)
-				{
-					perror("Unable to open dependency file");
+			} else {
+				depfile = fdopen(open(optarg,
+						     O_CREAT | O_TRUNC |
+							 O_WRONLY,
+						     0666),
+				    "w");
+				if (depfile == 0) {
+					perror(
+					    "Unable to open dependency file");
 					return EXIT_FAILURE;
 				}
 			}
 			break;
 		}
-		case 'H':
-		{
+		case 'H': {
 			string arg(optarg);
-			if (arg == "both")
-			{
+			if (arg == "both") {
 				tree.set_phandle_format(device_tree::BOTH);
-			}
-			else if (arg == "epapr")
-			{
+			} else if (arg == "epapr") {
 				tree.set_phandle_format(device_tree::EPAPR);
-			}
-			else if (arg == "linux")
-			{
+			} else if (arg == "linux") {
 				tree.set_phandle_format(device_tree::LINUX);
-			}
-			else
-			{
-				fprintf(stderr, "Unknown phandle format: %s\n", optarg);
+			} else {
+				fprintf(stderr, "Unknown phandle format: %s\n",
+				    optarg);
 				return EXIT_FAILURE;
 			}
 			break;
@@ -254,31 +234,30 @@ main(int argc, char **argv)
 			keep_going = true;
 			break;
 		case 'W':
-		case 'E':
-		{
+		case 'E': {
 			string arg(optarg);
-			if ((arg.size() > 3) && (strncmp(optarg, "no-", 3) == 0))
-			{
-				arg = string(optarg+3);
-				if (!checks.disable_checker(arg))
-				{
-					fprintf(stderr, "Checker %s either does not exist or is already disabled\n", optarg+3);
+			if ((arg.size() > 3) &&
+			    (strncmp(optarg, "no-", 3) == 0)) {
+				arg = string(optarg + 3);
+				if (!checks.disable_checker(arg)) {
+					fprintf(stderr,
+					    "Checker %s either does not exist or is already disabled\n",
+					    optarg + 3);
 				}
 				break;
 			}
-			if (!checks.enable_checker(arg))
-			{
-				fprintf(stderr, "Checker %s either does not exist or is already enabled\n", optarg);
+			if (!checks.enable_checker(arg)) {
+				fprintf(stderr,
+				    "Checker %s either does not exist or is already enabled\n",
+				    optarg);
 			}
 			break;
 		}
-		case 's':
-		{
+		case 's': {
 			sort = true;
 			break;
 		}
-		case 'i':
-		{
+		case 'i': {
 			tree.add_include_path(optarg);
 			break;
 		}
@@ -286,7 +265,8 @@ main(int argc, char **argv)
 		case 'q':
 			break;
 		case 'R':
-			tree.set_empty_reserve_map_entries(strtoll(optarg, 0, 10));
+			tree.set_empty_reserve_map_entries(
+			    strtoll(optarg, 0, 10));
 			break;
 		case 'S':
 			tree.set_blob_minimum_size(strtoll(optarg, 0, 10));
@@ -295,34 +275,29 @@ main(int argc, char **argv)
 			tree.set_blob_padding(strtoll(optarg, 0, 10));
 			break;
 		case 'P':
-			if (!tree.parse_define(optarg))
-			{
+			if (!tree.parse_define(optarg)) {
 				fprintf(stderr, "Invalid predefine value %s\n",
-				        optarg);
+				    optarg);
 			}
 			break;
 		default:
-			/* 
+			/*
 			 * Since opterr is non-zero, getopt will have
 			 * already printed an error message.
 			 */
 			return EXIT_FAILURE;
 		}
 	}
-	if (read_fn == nullptr)
-	{
+	if (read_fn == nullptr) {
 		read_fn = &device_tree::parse_dts;
 	}
-	if (write_fn == nullptr)
-	{
+	if (write_fn == nullptr) {
 		write_fn = &device_tree::write_binary;
 	}
-	if (optind < argc)
-	{
+	if (optind < argc) {
 		in_file = argv[optind];
 	}
-	if (depfile != 0)
-	{
+	if (depfile != 0) {
 		fputs(outfile_name, depfile);
 		fputs(": ", depfile);
 		fputs(in_file, depfile);
@@ -330,27 +305,22 @@ main(int argc, char **argv)
 	clock_t c1 = clock();
 	(tree.*read_fn)(in_file, depfile);
 	// Override the boot CPU found in the header, if we're loading from dtb
-	if (boot_cpu_specified)
-	{
+	if (boot_cpu_specified) {
 		tree.set_boot_cpu(boot_cpu);
 	}
-	if (sort)
-	{
+	if (sort) {
 		tree.sort();
 	}
-	if (depfile != 0)
-	{
+	if (depfile != 0) {
 		putc('\n', depfile);
 		fclose(depfile);
 	}
-	if (!(tree.is_valid() || keep_going))
-	{
+	if (!(tree.is_valid() || keep_going)) {
 		fprintf(stderr, "Failed to parse tree.\n");
 		return EXIT_FAILURE;
 	}
 	clock_t c2 = clock();
-	if (!(checks.run_checks(&tree, true) || keep_going))
-	{
+	if (!(checks.run_checks(&tree, true) || keep_going)) {
 		return EXIT_FAILURE;
 	}
 	clock_t c3 = clock();
@@ -358,25 +328,23 @@ main(int argc, char **argv)
 	close(outfile);
 	clock_t c4 = clock();
 
-	if (debug_mode)
-	{
+	if (debug_mode) {
 		struct rusage r;
 
 		getrusage(RUSAGE_SELF, &r);
 		fprintf(stderr, "Peak memory usage: %ld bytes\n", r.ru_maxrss);
 		fprintf(stderr, "Setup and option parsing took %f seconds\n",
-				((double)(c1-c0))/CLOCKS_PER_SEC);
+		    ((double)(c1 - c0)) / CLOCKS_PER_SEC);
 		fprintf(stderr, "Parsing took %f seconds\n",
-				((double)(c2-c1))/CLOCKS_PER_SEC);
+		    ((double)(c2 - c1)) / CLOCKS_PER_SEC);
 		fprintf(stderr, "Checking took %f seconds\n",
-				((double)(c3-c2))/CLOCKS_PER_SEC);
+		    ((double)(c3 - c2)) / CLOCKS_PER_SEC);
 		fprintf(stderr, "Generating output took %f seconds\n",
-				((double)(c4-c3))/CLOCKS_PER_SEC);
+		    ((double)(c4 - c3)) / CLOCKS_PER_SEC);
 		fprintf(stderr, "Total time: %f seconds\n",
-				((double)(c4-c0))/CLOCKS_PER_SEC);
+		    ((double)(c4 - c0)) / CLOCKS_PER_SEC);
 		// This is not needed, but keeps valgrind quiet.
 		fclose(stdin);
 	}
 	return EXIT_SUCCESS;
 }
-

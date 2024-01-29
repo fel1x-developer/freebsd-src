@@ -28,10 +28,9 @@
 #include <sys/acl.h>
 #include <sys/stat.h>
 
-#include <stdlib.h>
-#include <errno.h>
-
 #include <atf-c.h>
+#include <errno.h>
+#include <stdlib.h>
 
 /* Compatibility shim to make it possible to run this test on Linux
  * gcc -I/path/to/atf/include -L/path/to/atf/lib -latf-c -lacl acl-api-test.c
@@ -43,19 +42,11 @@
 #define acl_cmp_np acl_cmp
 #endif
 
-static const mode_t all_modes[] = {
-	S_IRUSR,
-	S_IWUSR,
-	S_IXUSR,
-	S_IRGRP,
-	S_IWGRP,
-	S_IXGRP,
-	S_IROTH,
-	S_IWOTH,
-	S_IXOTH
-};
+static const mode_t all_modes[] = { S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP,
+	S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH };
 
-static mode_t gen_random_mode(void)
+static mode_t
+gen_random_mode(void)
 {
 	mode_t mode = 0;
 

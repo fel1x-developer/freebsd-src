@@ -27,13 +27,13 @@
 #ifndef _HYPERV_VAR_H_
 #define _HYPERV_VAR_H_
 
-extern u_int	hyperv_recommends;
+extern u_int hyperv_recommends;
 
 struct hypercall_ctx {
-    void            *hc_addr;
-    vm_paddr_t      hc_paddr;
+	void *hc_addr;
+	vm_paddr_t hc_paddr;
 };
-uint64_t	hypercall_post_message(bus_addr_t msg_paddr);
-uint64_t	hypercall_signal_event(bus_addr_t monprm_paddr);
+uint64_t hypercall_post_message(bus_addr_t msg_paddr);
+uint64_t hypercall_signal_event(bus_addr_t monprm_paddr);
 
-#endif	/* !_HYPERV_VAR_H_ */
+#endif /* !_HYPERV_VAR_H_ */

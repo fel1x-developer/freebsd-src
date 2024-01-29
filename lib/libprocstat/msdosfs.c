@@ -37,27 +37,27 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdbool.h>
-
 #include <sys/param.h>
 #include <sys/buf.h>
-#include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/vnode.h>
 
 #include <netinet/in.h>
 
-#define	_KERNEL
+#include <stdbool.h>
+
+#define _KERNEL
 #include <sys/mount.h>
+
 #include <fs/msdosfs/bpb.h>
 #include <fs/msdosfs/msdosfsmount.h>
 #undef _KERNEL
 
+#include <err.h>
 #include <fs/msdosfs/denode.h>
 #include <fs/msdosfs/direntry.h>
 #include <fs/msdosfs/fat.h>
-
-#include <err.h>
 #include <kvm.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,13 +69,13 @@
  */
 #define VTODE(vp) ((struct denode *)getvnodedata(vp))
 
-#include "libprocstat.h"
 #include "common_kvm.h"
+#include "libprocstat.h"
 
 struct dosmount {
 	struct dosmount *next;
-	struct msdosfsmount *kptr;	/* Pointer in kernel space */
-	struct msdosfsmount data;	/* User space copy of structure */
+	struct msdosfsmount *kptr; /* Pointer in kernel space */
+	struct msdosfsmount data;  /* User space copy of structure */
 };
 
 int
@@ -88,7 +88,7 @@ msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	int fileid;
 
 	if (!kvm_read_all(kd, (unsigned long)VTODE(vp), &denode,
-	    sizeof(denode))) {
+		sizeof(denode))) {
 		warnx("can't read denode at %p", (void *)VTODE(vp));
 		return (1);
 	}
@@ -106,10 +106,10 @@ msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 			warn("malloc()");
 			return (1);
 		}
-		if (!kvm_read_all(kd, (unsigned long)denode.de_pmp,
-		    &mnt->data, sizeof(mnt->data))) {
+		if (!kvm_read_all(kd, (unsigned long)denode.de_pmp, &mnt->data,
+			sizeof(mnt->data))) {
 			free(mnt);
-			    warnx("can't read mount info at %p",
+			warnx("can't read mount info at %p",
 			    (void *)denode.de_pmp);
 			return (1);
 		}
@@ -124,7 +124,8 @@ msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	vn->vn_mode &= mnt->data.pm_mask;
 
 	/* Distinguish directories and files. No "special" files in FAT. */
-	vn->vn_mode |= denode.de_Attributes & ATTR_DIRECTORY ? S_IFDIR : S_IFREG;
+	vn->vn_mode |= denode.de_Attributes & ATTR_DIRECTORY ? S_IFDIR :
+							       S_IFREG;
 	vn->vn_size = denode.de_FileSize;
 
 	/*
@@ -133,15 +134,15 @@ msdosfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 	 * here, in that a directory has the same inode number as the first
 	 * file in the directory. stat(2) suffers from this problem also, so
 	 * I won't try to fix it here.
-	 * 
+	 *
 	 * The following computation of the fileid must be the same as that
 	 * used in msdosfs_readdir() to compute d_fileno. If not, pwd
 	 * doesn't work.
 	 */
 	dirsperblk = mnt->data.pm_BytesPerSec / sizeof(struct direntry);
 	if (denode.de_Attributes & ATTR_DIRECTORY) {
-		fileid = cntobn(&mnt->data, denode.de_StartCluster)
-		    * dirsperblk;
+		fileid = cntobn(&mnt->data, denode.de_StartCluster) *
+		    dirsperblk;
 		if (denode.de_StartCluster == MSDOSFSROOT)
 			fileid = 1;
 	} else {

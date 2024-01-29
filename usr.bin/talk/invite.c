@@ -29,10 +29,9 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <protocols/talkd.h>
 
 #include <err.h>
@@ -41,8 +40,8 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "talk_ctl.h"
 #include "talk.h"
+#include "talk_ctl.h"
 
 /*
  * There wasn't an invitation waiting, so send a request containing
@@ -56,7 +55,7 @@
  * These are used to delete the
  * invitations.
  */
-static int	local_id, remote_id;
+static int local_id, remote_id;
 static jmp_buf invitebuf;
 
 void
@@ -74,7 +73,7 @@ invite_remote(void)
 	/* copy new style sockaddr to old, swap family (short in old) */
 	msg.addr = *(struct tsockaddr *)&my_addr;
 	msg.addr.sa_family = htons(my_addr.sin_family);
-	msg.id_num = htonl(-1);		/* an impossible id_num */
+	msg.id_num = htonl(-1); /* an impossible id_num */
 	invitation_waiting = 1;
 	announce_invite();
 	/*
@@ -85,7 +84,7 @@ invite_remote(void)
 	setitimer(ITIMER_REAL, &itimer, (struct itimerval *)0);
 	message("Waiting for your party to respond");
 	signal(SIGALRM, re_invite);
-	(void) setjmp(invitebuf);
+	(void)setjmp(invitebuf);
 	while ((new_sockt = accept(sockt, 0, 0)) < 0) {
 		if (errno == EINTR)
 			continue;
@@ -126,18 +125,18 @@ re_invite(int signo __unused)
 	longjmp(invitebuf, 1);
 }
 
-static	const char *answers[] = {
+static const char *answers[] = {
 	"answer #0",					/* SUCCESS */
 	"Your party is not logged on",			/* NOT_HERE */
-	"Target machine is too confused to talk to us",	/* FAILED */
+	"Target machine is too confused to talk to us", /* FAILED */
 	"Target machine does not recognize us",		/* MACHINE_UNKNOWN */
 	"Your party is refusing messages",		/* PERMISSION_REFUSED */
 	"Target machine can not handle remote talk",	/* UNKNOWN_REQUEST */
 	"Target machine indicates protocol mismatch",	/* BADVERSION */
-	"Target machine indicates protocol botch (addr)",/* BADADDR */
-	"Target machine indicates protocol botch (ctl_addr)",/* BADCTLADDR */
+	"Target machine indicates protocol botch (addr)",     /* BADADDR */
+	"Target machine indicates protocol botch (ctl_addr)", /* BADCTLADDR */
 };
-#define	NANSWERS	(sizeof (answers) / sizeof (answers[0]))
+#define NANSWERS (sizeof(answers) / sizeof(answers[0]))
 
 /*
  * Transmit the invitation and process the response
@@ -175,14 +174,14 @@ send_delete(void)
 	 */
 	msg.id_num = htonl(remote_id);
 	daemon_addr.sin_addr = his_machine_addr;
-	if (sendto(ctl_sockt, &msg, sizeof (msg), 0,
-	    (struct sockaddr *)&daemon_addr,
-	    sizeof (daemon_addr)) != sizeof(msg))
+	if (sendto(ctl_sockt, &msg, sizeof(msg), 0,
+		(struct sockaddr *)&daemon_addr,
+		sizeof(daemon_addr)) != sizeof(msg))
 		warn("send_delete (remote)");
 	msg.id_num = htonl(local_id);
 	daemon_addr.sin_addr = my_machine_addr;
-	if (sendto(ctl_sockt, &msg, sizeof (msg), 0,
-	    (struct sockaddr *)&daemon_addr,
-	    sizeof (daemon_addr)) != sizeof (msg))
+	if (sendto(ctl_sockt, &msg, sizeof(msg), 0,
+		(struct sockaddr *)&daemon_addr,
+		sizeof(daemon_addr)) != sizeof(msg))
 		warn("send_delete (local)");
 }

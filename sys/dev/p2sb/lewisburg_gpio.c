@@ -24,31 +24,29 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>		/* defines used in kernel.h */
-#include <sys/module.h>
+#include <sys/param.h> /* defines used in kernel.h */
 #include <sys/systm.h>
+#include <sys/bus.h> /* structs, prototypes for pci bus stuff and DEVMETHOD macros! */
+#include <sys/conf.h> /* cdevsw struct */
 #include <sys/errno.h>
-#include <sys/kernel.h>		/* types used in module initialization */
-#include <sys/conf.h>		/* cdevsw struct */
-#include <sys/uio.h>		/* uio struct */
-#include <sys/malloc.h>
-#include <sys/bus.h>		/* structs, prototypes for pci bus stuff and DEVMETHOD macros! */
 #include <sys/gpio.h>
+#include <sys/kernel.h> /* types used in module initialization */
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/uio.h> /* uio struct */
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/gpio/gpiobusvar.h>
 
 #include "gpio_if.h"
-
 #include "lewisburg_gpiocm.h"
 
 #define P2SB_GROUP_GPIO_MAX_PINS 24
-struct lbggpio_softc
-{
-	device_t		sc_busdev;
+struct lbggpio_softc {
+	device_t sc_busdev;
 	int groupid;
 	int pins_off;
 	int npins;
@@ -195,7 +193,7 @@ lbggpio_probe(device_t dev)
 	if (sc->npins <= 0)
 		return (ENXIO);
 
-	desc[sizeof(desc)-2] = sc->grpname;
+	desc[sizeof(desc) - 2] = sc->grpname;
 	device_set_desc_copy(dev, desc);
 	return (BUS_PROBE_DEFAULT);
 }
@@ -211,8 +209,8 @@ lbggpio_attach(device_t dev)
 	for (i = 0; i < sc->npins; ++i) {
 		sc->gpio_setup[i].gp_pin = i;
 		snprintf(sc->gpio_setup[i].gp_name,
-		    sizeof(sc->gpio_setup[i].gp_name),
-		    "GPIO %c%u", sc->grpname, i);
+		    sizeof(sc->gpio_setup[i].gp_name), "GPIO %c%u", sc->grpname,
+		    i);
 		sc->gpio_setup[i].gp_caps = GPIO_PIN_INPUT | GPIO_PIN_OUTPUT;
 	}
 
@@ -239,29 +237,26 @@ lbggpio_detach(device_t dev)
 
 static device_method_t lbggpio_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		lbggpio_probe),
-	DEVMETHOD(device_attach,	lbggpio_attach),
-	DEVMETHOD(device_detach,	lbggpio_detach),
+	DEVMETHOD(device_probe, lbggpio_probe),
+	DEVMETHOD(device_attach, lbggpio_attach),
+	DEVMETHOD(device_detach, lbggpio_detach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus,		lbggpio_get_bus),
-	DEVMETHOD(gpio_pin_max,		lbggpio_pin_max),
-	DEVMETHOD(gpio_pin_getcaps,	lbggpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_getflags,	lbggpio_pin_getflags),
-	DEVMETHOD(gpio_pin_setflags,	lbggpio_pin_setflags),
-	DEVMETHOD(gpio_pin_getname,	lbggpio_pin_getname),
-	DEVMETHOD(gpio_pin_set,		lbggpio_pin_set),
-	DEVMETHOD(gpio_pin_get,		lbggpio_pin_get),
-	DEVMETHOD(gpio_pin_toggle,	lbggpio_pin_toggle),
+	DEVMETHOD(gpio_get_bus, lbggpio_get_bus),
+	DEVMETHOD(gpio_pin_max, lbggpio_pin_max),
+	DEVMETHOD(gpio_pin_getcaps, lbggpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_getflags, lbggpio_pin_getflags),
+	DEVMETHOD(gpio_pin_setflags, lbggpio_pin_setflags),
+	DEVMETHOD(gpio_pin_getname, lbggpio_pin_getname),
+	DEVMETHOD(gpio_pin_set, lbggpio_pin_set),
+	DEVMETHOD(gpio_pin_get, lbggpio_pin_get),
+	DEVMETHOD(gpio_pin_toggle, lbggpio_pin_toggle),
 
 	DEVMETHOD_END
 };
 
-static driver_t lbggpio_driver = {
-	"gpio",
-	lbggpio_methods,
-	sizeof(struct lbggpio_softc)
-};
+static driver_t lbggpio_driver = { "gpio", lbggpio_methods,
+	sizeof(struct lbggpio_softc) };
 
 DRIVER_MODULE(lbggpio, lbggpiocm, lbggpio_driver, NULL, NULL);
 MODULE_DEPEND(lbggpio, gpiobus, 1, 1, 1);

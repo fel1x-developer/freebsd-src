@@ -38,24 +38,25 @@
 
 #include "e1000_api.h"
 
-static s32  e1000_init_phy_params_82542(struct e1000_hw *hw);
-static s32  e1000_init_nvm_params_82542(struct e1000_hw *hw);
-static s32  e1000_init_mac_params_82542(struct e1000_hw *hw);
-static s32  e1000_get_bus_info_82542(struct e1000_hw *hw);
-static s32  e1000_reset_hw_82542(struct e1000_hw *hw);
-static s32  e1000_init_hw_82542(struct e1000_hw *hw);
-static s32  e1000_setup_link_82542(struct e1000_hw *hw);
-static s32  e1000_led_on_82542(struct e1000_hw *hw);
-static s32  e1000_led_off_82542(struct e1000_hw *hw);
-static int  e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index);
+static s32 e1000_init_phy_params_82542(struct e1000_hw *hw);
+static s32 e1000_init_nvm_params_82542(struct e1000_hw *hw);
+static s32 e1000_init_mac_params_82542(struct e1000_hw *hw);
+static s32 e1000_get_bus_info_82542(struct e1000_hw *hw);
+static s32 e1000_reset_hw_82542(struct e1000_hw *hw);
+static s32 e1000_init_hw_82542(struct e1000_hw *hw);
+static s32 e1000_setup_link_82542(struct e1000_hw *hw);
+static s32 e1000_led_on_82542(struct e1000_hw *hw);
+static s32 e1000_led_off_82542(struct e1000_hw *hw);
+static int e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index);
 static void e1000_clear_hw_cntrs_82542(struct e1000_hw *hw);
-static s32  e1000_read_mac_addr_82542(struct e1000_hw *hw);
+static s32 e1000_read_mac_addr_82542(struct e1000_hw *hw);
 
 /**
  *  e1000_init_phy_params_82542 - Init PHY func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_phy_params_82542(struct e1000_hw *hw)
+static s32
+e1000_init_phy_params_82542(struct e1000_hw *hw)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 	s32 ret_val = E1000_SUCCESS;
@@ -71,24 +72,25 @@ static s32 e1000_init_phy_params_82542(struct e1000_hw *hw)
  *  e1000_init_nvm_params_82542 - Init NVM func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_nvm_params_82542(struct e1000_hw *hw)
+static s32
+e1000_init_nvm_params_82542(struct e1000_hw *hw)
 {
 	struct e1000_nvm_info *nvm = &hw->nvm;
 
 	DEBUGFUNC("e1000_init_nvm_params_82542");
 
-	nvm->address_bits	=  6;
-	nvm->delay_usec		= 50;
-	nvm->opcode_bits	=  3;
-	nvm->type		= e1000_nvm_eeprom_microwire;
-	nvm->word_size		= 64;
+	nvm->address_bits = 6;
+	nvm->delay_usec = 50;
+	nvm->opcode_bits = 3;
+	nvm->type = e1000_nvm_eeprom_microwire;
+	nvm->word_size = 64;
 
 	/* Function Pointers */
-	nvm->ops.read		= e1000_read_nvm_microwire;
-	nvm->ops.release	= e1000_stop_nvm;
-	nvm->ops.write		= e1000_write_nvm_microwire;
-	nvm->ops.update		= e1000_update_nvm_checksum_generic;
-	nvm->ops.validate	= e1000_validate_nvm_checksum_generic;
+	nvm->ops.read = e1000_read_nvm_microwire;
+	nvm->ops.release = e1000_stop_nvm;
+	nvm->ops.write = e1000_write_nvm_microwire;
+	nvm->ops.update = e1000_update_nvm_checksum_generic;
+	nvm->ops.validate = e1000_validate_nvm_checksum_generic;
 
 	return E1000_SUCCESS;
 }
@@ -97,7 +99,8 @@ static s32 e1000_init_nvm_params_82542(struct e1000_hw *hw)
  *  e1000_init_mac_params_82542 - Init MAC func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_mac_params_82542(struct e1000_hw *hw)
+static s32
+e1000_init_mac_params_82542(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 
@@ -125,7 +128,7 @@ static s32 e1000_init_mac_params_82542(struct e1000_hw *hw)
 	mac->ops.setup_link = e1000_setup_link_82542;
 	/* phy/fiber/serdes setup */
 	mac->ops.setup_physical_interface =
-					e1000_setup_fiber_serdes_link_generic;
+	    e1000_setup_fiber_serdes_link_generic;
 	/* check for link */
 	mac->ops.check_for_link = e1000_check_for_fiber_link_generic;
 	/* multicast address update */
@@ -145,7 +148,7 @@ static s32 e1000_init_mac_params_82542(struct e1000_hw *hw)
 	mac->ops.clear_hw_cntrs = e1000_clear_hw_cntrs_82542;
 	/* link info */
 	mac->ops.get_link_up_info =
-				e1000_get_speed_and_duplex_fiber_serdes_generic;
+	    e1000_get_speed_and_duplex_fiber_serdes_generic;
 
 	return E1000_SUCCESS;
 }
@@ -156,7 +159,8 @@ static s32 e1000_init_mac_params_82542(struct e1000_hw *hw)
  *
  *  Called to initialize all function pointers and parameters.
  **/
-void e1000_init_function_pointers_82542(struct e1000_hw *hw)
+void
+e1000_init_function_pointers_82542(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_function_pointers_82542");
 
@@ -172,7 +176,8 @@ void e1000_init_function_pointers_82542(struct e1000_hw *hw)
  *  This will obtain information about the HW bus for which the
  *  adapter is attached and stores it in the hw structure.
  **/
-static s32 e1000_get_bus_info_82542(struct e1000_hw *hw)
+static s32
+e1000_get_bus_info_82542(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_get_bus_info_82542");
 
@@ -189,7 +194,8 @@ static s32 e1000_get_bus_info_82542(struct e1000_hw *hw)
  *
  *  This resets the hardware into a known state.
  **/
-static s32 e1000_reset_hw_82542(struct e1000_hw *hw)
+static s32
+e1000_reset_hw_82542(struct e1000_hw *hw)
 {
 	struct e1000_bus_info *bus = &hw->bus;
 	s32 ret_val = E1000_SUCCESS;
@@ -240,7 +246,8 @@ static s32 e1000_reset_hw_82542(struct e1000_hw *hw)
  *
  *  This inits the hardware readying it for operation.
  **/
-static s32 e1000_init_hw_82542(struct e1000_hw *hw)
+static s32
+e1000_init_hw_82542(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	struct e1000_dev_spec_82542 *dev_spec = &hw->dev_spec._82542;
@@ -314,7 +321,8 @@ static s32 e1000_init_hw_82542(struct e1000_hw *hw)
  *  should be established.  Assumes the hardware has previously been reset
  *  and the transmitter and receiver are not enabled.
  **/
-static s32 e1000_setup_link_82542(struct e1000_hw *hw)
+static s32
+e1000_setup_link_82542(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	s32 ret_val;
@@ -337,7 +345,7 @@ static s32 e1000_setup_link_82542(struct e1000_hw *hw)
 	hw->fc.current_mode = hw->fc.requested_mode;
 
 	DEBUGOUT1("After fix-ups FlowControl is now = %x\n",
-		  hw->fc.current_mode);
+	    hw->fc.current_mode);
 
 	/* Call the necessary subroutine to configure the link. */
 	ret_val = mac->ops.setup_physical_interface(hw);
@@ -370,7 +378,8 @@ out:
  *
  *  Turns the SW defined LED on.
  **/
-static s32 e1000_led_on_82542(struct e1000_hw *hw)
+static s32
+e1000_led_on_82542(struct e1000_hw *hw)
 {
 	u32 ctrl = E1000_READ_REG(hw, E1000_CTRL);
 
@@ -389,7 +398,8 @@ static s32 e1000_led_on_82542(struct e1000_hw *hw)
  *
  *  Turns the SW defined LED off.
  **/
-static s32 e1000_led_off_82542(struct e1000_hw *hw)
+static s32
+e1000_led_off_82542(struct e1000_hw *hw)
 {
 	u32 ctrl = E1000_READ_REG(hw, E1000_CTRL);
 
@@ -411,7 +421,8 @@ static s32 e1000_led_off_82542(struct e1000_hw *hw)
  *  Sets the receive address array register at index to the address passed
  *  in by addr.
  **/
-static int e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index)
+static int
+e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index)
 {
 	u32 rar_low, rar_high;
 
@@ -421,10 +432,10 @@ static int e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index)
 	 * HW expects these in little endian so we reverse the byte order
 	 * from network order (big endian) to little endian
 	 */
-	rar_low = ((u32) addr[0] | ((u32) addr[1] << 8) |
-		   ((u32) addr[2] << 16) | ((u32) addr[3] << 24));
+	rar_low = ((u32)addr[0] | ((u32)addr[1] << 8) | ((u32)addr[2] << 16) |
+	    ((u32)addr[3] << 24));
 
-	rar_high = ((u32) addr[4] | ((u32) addr[5] << 8));
+	rar_high = ((u32)addr[4] | ((u32)addr[5] << 8));
 
 	/* If MAC address zero, no need to set the AV bit */
 	if (rar_low || rar_high)
@@ -445,7 +456,8 @@ static int e1000_rar_set_82542(struct e1000_hw *hw, u8 *addr, u32 index)
  *  the name of the register to read and returns the correct offset for
  *  82542 silicon.
  **/
-u32 e1000_translate_register_82542(u32 reg)
+u32
+e1000_translate_register_82542(u32 reg)
 {
 	/*
 	 * Some of the 82542 registers are located at different
@@ -539,7 +551,8 @@ u32 e1000_translate_register_82542(u32 reg)
  *
  *  Clears the hardware counters by reading the counter registers.
  **/
-static void e1000_clear_hw_cntrs_82542(struct e1000_hw *hw)
+static void
+e1000_clear_hw_cntrs_82542(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_clear_hw_cntrs_82542");
 
@@ -565,9 +578,10 @@ static void e1000_clear_hw_cntrs_82542(struct e1000_hw *hw)
  *
  *  Reads the device MAC address from the EEPROM and stores the value.
  **/
-s32 e1000_read_mac_addr_82542(struct e1000_hw *hw)
+s32
+e1000_read_mac_addr_82542(struct e1000_hw *hw)
 {
-	s32  ret_val = E1000_SUCCESS;
+	s32 ret_val = E1000_SUCCESS;
 	u16 offset, nvm_data, i;
 
 	DEBUGFUNC("e1000_read_mac_addr");
@@ -580,7 +594,7 @@ s32 e1000_read_mac_addr_82542(struct e1000_hw *hw)
 			goto out;
 		}
 		hw->mac.perm_addr[i] = (u8)(nvm_data & 0xFF);
-		hw->mac.perm_addr[i+1] = (u8)(nvm_data >> 8);
+		hw->mac.perm_addr[i + 1] = (u8)(nvm_data >> 8);
 	}
 
 	for (i = 0; i < ETHER_ADDR_LEN; i++)

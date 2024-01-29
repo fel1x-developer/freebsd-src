@@ -29,14 +29,13 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/types.h>
 
 #include <ctype.h>
 #include <err.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -49,17 +48,17 @@
  * November, 1978
  */
 
-#define	ignore(a)	((void) a)
+#define ignore(a) ((void)a)
 
-static off_t	tellpt;
+static off_t tellpt;
 
-static off_t	mesgpt;
-static char	cstrings[] =	"strings";
-static char	*strings =	cstrings;
+static off_t mesgpt;
+static char cstrings[] = "strings";
+static char *strings = cstrings;
 
-static int	cflg;
-static int	vflg;
-static int	readstd;
+static int cflg;
+static int vflg;
+static int readstd;
 
 static char lastchr(char *);
 
@@ -103,7 +102,7 @@ main(int argc, char *argv[])
 		}
 	argc -= optind;
 	argv += optind;
-		
+
 	if (signal(SIGINT, SIG_IGN) == SIG_DFL)
 		signal(SIGINT, onintr);
 	if (cflg || (argc == 0 && !readstd))
@@ -141,7 +140,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: xstr [-cv] [-] [file ...]\n");
-	exit (1);
+	exit(1);
 }
 
 static char linebuf[BUFSIZ];
@@ -168,46 +167,47 @@ process(const char *name)
 				printf("%s", linebuf);
 			continue;
 		}
-		for (cp = linebuf; (c = *cp++);) switch (c) {
+		for (cp = linebuf; (c = *cp++);)
+			switch (c) {
 
-		case '"':
-			if (incomm)
-				goto def;
-			if ((ret = (int) yankstr(&cp)) == -1)
-				goto out;
-			printf("(&xstr[%d])", ret);
-			break;
+			case '"':
+				if (incomm)
+					goto def;
+				if ((ret = (int)yankstr(&cp)) == -1)
+					goto out;
+				printf("(&xstr[%d])", ret);
+				break;
 
-		case '\'':
-			if (incomm)
-				goto def;
-			putchar(c);
-			if (*cp)
-				putchar(*cp++);
-			break;
+			case '\'':
+				if (incomm)
+					goto def;
+				putchar(c);
+				if (*cp)
+					putchar(*cp++);
+				break;
 
-		case '/':
-			if (incomm || *cp != '*')
-				goto def;
-			incomm = 1;
-			cp++;
-			printf("/*");
-			continue;
-
-		case '*':
-			if (incomm && *cp == '/') {
-				incomm = 0;
+			case '/':
+				if (incomm || *cp != '*')
+					goto def;
+				incomm = 1;
 				cp++;
-				printf("*/");
+				printf("/*");
 				continue;
-			}
-			goto def;
 
-def:
-		default:
-			putchar(c);
-			break;
-		}
+			case '*':
+				if (incomm && *cp == '/') {
+					incomm = 0;
+					cp++;
+					printf("*/");
+					continue;
+				}
+				goto def;
+
+			def:
+			default:
+				putchar(c);
+				break;
+			}
 	}
 out:
 	if (ferror(stdout))
@@ -238,11 +238,11 @@ yankstr(char **cpp)
 			if (c == 0)
 				break;
 			if (c == '\n') {
-				if (fgets(linebuf, sizeof linebuf, stdin)
-				    == NULL) {
+				if (fgets(linebuf, sizeof linebuf, stdin) ==
+				    NULL) {
 					if (ferror(stdin))
 						err(3, "x.c");
-					return(-1);
+					return (-1);
 				}
 				cp = linebuf;
 				continue;
@@ -265,7 +265,7 @@ yankstr(char **cpp)
 			c <<= 3, c += *cp++ - '0';
 			break;
 		}
-gotc:
+	gotc:
 		*dp++ = c;
 	}
 out:
@@ -317,13 +317,13 @@ xgetc(FILE *file)
 	return (getc(file));
 }
 
-#define	BUCKETS	128
+#define BUCKETS 128
 
 static struct hash {
-	off_t	hpt;
-	char	*hstr;
-	struct	hash *hnext;
-	short	hnew;
+	off_t hpt;
+	char *hstr;
+	struct hash *hnext;
+	short hnew;
 } bucket[BUCKETS];
 
 static off_t
@@ -339,7 +339,7 @@ hashit(char *str, int new)
 		if (i >= 0)
 			return (hp->hpt + i);
 	}
-	if ((hp = (struct hash *) calloc(1, sizeof (*hp))) == NULL)
+	if ((hp = (struct hash *)calloc(1, sizeof(*hp))) == NULL)
 		errx(8, "calloc");
 	hp->hpt = mesgpt;
 	if (!(hp->hstr = strdup(str)))
@@ -362,7 +362,7 @@ flushsh(void)
 	for (i = 0; i < BUCKETS; i++)
 		for (hp = bucket[i].hnext; hp != NULL; hp = hp->hnext)
 			if (hp->hnew)
-				new++;
+				new ++;
 			else
 				old++;
 	if (new == 0 && old != 0)
@@ -375,7 +375,8 @@ flushsh(void)
 			found(hp->hnew, hp->hpt, hp->hstr);
 			if (hp->hnew) {
 				fseek(mesgwrit, hp->hpt, 0);
-				ignore(fwrite(hp->hstr, strlen(hp->hstr) + 1, 1, mesgwrit));
+				ignore(fwrite(hp->hstr, strlen(hp->hstr) + 1, 1,
+				    mesgwrit));
 				if (ferror(mesgwrit))
 					err(4, "%s", strings);
 			}
@@ -390,9 +391,9 @@ found(int new, off_t off, char *str)
 	if (vflg == 0)
 		return;
 	if (!new)
-		fprintf(stderr, "found at %d:", (int) off);
+		fprintf(stderr, "found at %d:", (int)off);
 	else
-		fprintf(stderr, "new at %d:", (int) off);
+		fprintf(stderr, "new at %d:", (int)off);
 	prstr(str);
 	fprintf(stderr, "\n");
 }

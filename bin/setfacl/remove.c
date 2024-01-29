@@ -38,10 +38,10 @@
 int
 remove_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 {
-	acl_entry_t	entry;
-	acl_t		acl_new;
-	acl_tag_t	tag;
-	int		carried_error, entry_id, acl_brand, prev_acl_brand;
+	acl_entry_t entry;
+	acl_t acl_new;
+	acl_tag_t tag;
+	int carried_error, entry_id, acl_brand, prev_acl_brand;
 
 	carried_error = 0;
 
@@ -50,8 +50,9 @@ remove_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 
 	if (branding_mismatch(acl_brand, prev_acl_brand)) {
 		warnx("%s: branding mismatch; existing ACL is %s, "
-		    "entry to be removed is %s", filename,
-		    brand_name(prev_acl_brand), brand_name(acl_brand));
+		      "entry to be removed is %s",
+		    filename, brand_name(prev_acl_brand),
+		    brand_name(acl_brand));
 		return (-1);
 	}
 
@@ -90,11 +91,11 @@ remove_acl(acl_t acl, acl_t *prev_acl, const char *filename)
 int
 remove_by_number(uint entry_number, acl_t *prev_acl, const char *filename)
 {
-	acl_entry_t	entry;
-	acl_t		acl_new;
-	acl_tag_t	tag;
-	int		carried_error, entry_id;
-	uint		i;
+	acl_entry_t entry;
+	acl_t acl_new;
+	acl_tag_t tag;
+	int carried_error, entry_id;
+	uint i;
 
 	carried_error = 0;
 

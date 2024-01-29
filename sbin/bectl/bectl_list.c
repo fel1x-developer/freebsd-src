@@ -26,12 +26,12 @@
  */
 
 #include <sys/param.h>
+
+#include <be.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <be.h>
 
 #include "bectl.h"
 
@@ -42,15 +42,15 @@ struct sort_column {
 };
 
 struct printc {
-	int	active_colsz_def;
-	int	be_colsz;
-	int	current_indent;
-	int	mount_colsz;
-	int	space_colsz;
-	bool	script_fmt;
-	bool	show_all_datasets;
-	bool	show_snaps;
-	bool	show_space;
+	int active_colsz_def;
+	int be_colsz;
+	int current_indent;
+	int mount_colsz;
+	int space_colsz;
+	bool script_fmt;
+	bool show_all_datasets;
+	bool show_snaps;
+	bool show_space;
 };
 
 static const char *get_origin_props(nvlist_t *dsprops, nvlist_t **originprops);
@@ -60,15 +60,15 @@ static void print_info(const char *name, nvlist_t *dsprops, struct printc *pc);
 static void print_headers(nvlist_t *props, struct printc *pc);
 static unsigned long long dataset_space(const char *oname);
 
-#define	HEADER_BE	"BE"
-#define	HEADER_BEPLUS	"BE/Dataset/Snapshot"
-#define	HEADER_ACTIVE	"Active"
-#define	HEADER_MOUNT	"Mountpoint"
-#define	HEADER_SPACE	"Space"
-#define	HEADER_CREATED	"Created"
+#define HEADER_BE "BE"
+#define HEADER_BEPLUS "BE/Dataset/Snapshot"
+#define HEADER_ACTIVE "Active"
+#define HEADER_MOUNT "Mountpoint"
+#define HEADER_SPACE "Space"
+#define HEADER_CREATED "Created"
 
 /* Spaces */
-#define	INDENT_INCREMENT	2
+#define INDENT_INCREMENT 2
 
 /*
  * Given a set of dataset properties (for a BE dataset), populate originprops
@@ -155,15 +155,17 @@ print_snapshots(const char *dsname, struct printc *pc)
 	nvlist_t *props, *sprops;
 
 	if (be_prop_list_alloc(&props) != 0) {
-		fprintf(stderr, "bectl list: failed to allocate snapshot nvlist\n");
+		fprintf(stderr,
+		    "bectl list: failed to allocate snapshot nvlist\n");
 		return (1);
 	}
 	if (be_get_dataset_snapshots(be, dsname, props) != 0) {
-		fprintf(stderr, "bectl list: failed to fetch boot ds snapshots\n");
+		fprintf(stderr,
+		    "bectl list: failed to fetch boot ds snapshots\n");
 		return (1);
 	}
 	for (cur = nvlist_next_nvpair(props, NULL); cur != NULL;
-	    cur = nvlist_next_nvpair(props, cur)) {
+	     cur = nvlist_next_nvpair(props, cur)) {
 		nvpair_value_nvlist(cur, &sprops);
 		print_info(nvpair_name(cur), sprops, pc);
 	}
@@ -173,7 +175,7 @@ print_snapshots(const char *dsname, struct printc *pc)
 static void
 print_info(const char *name, nvlist_t *dsprops, struct printc *pc)
 {
-#define	BUFSZ	64
+#define BUFSZ 64
 	char buf[BUFSZ];
 	unsigned long long ctimenum, space;
 	nvlist_t *originprops;
@@ -187,8 +189,8 @@ print_info(const char *name, nvlist_t *dsprops, struct printc *pc)
 	nvlist_lookup_string(dsprops, "dataset", &dsname);
 
 	/* Recurse at the base level if we're breaking info down */
-	if (pc->current_indent == 0 && (pc->show_all_datasets ||
-	    pc->show_snaps)) {
+	if (pc->current_indent == 0 &&
+	    (pc->show_all_datasets || pc->show_snaps)) {
 		printf("\n");
 		if (dsname == NULL)
 			/* XXX TODO: Error? */
@@ -217,18 +219,19 @@ print_info(const char *name, nvlist_t *dsprops, struct printc *pc)
 		print_padding(name, pc->be_colsz - pc->current_indent, pc);
 
 	active_colsz = pc->active_colsz_def;
-	if (nvlist_lookup_boolean_value(dsprops, "active",
-	    &active_now) == 0 && active_now) {
+	if (nvlist_lookup_boolean_value(dsprops, "active", &active_now) == 0 &&
+	    active_now) {
 		printf("N");
 		active_colsz--;
 	}
-	if (nvlist_lookup_boolean_value(dsprops, "nextboot",
-	    &active_reboot) == 0 && active_reboot) {
+	if (nvlist_lookup_boolean_value(dsprops, "nextboot", &active_reboot) ==
+		0 &&
+	    active_reboot) {
 		printf("R");
 		active_colsz--;
 	}
-	if (nvlist_lookup_boolean_value(dsprops, "bootonce",
-	    &bootonce) == 0 && bootonce) {
+	if (nvlist_lookup_boolean_value(dsprops, "bootonce", &bootonce) == 0 &&
+	    bootonce) {
 		printf("T");
 		active_colsz--;
 	}
@@ -302,7 +305,7 @@ print_headers(nvlist_t *props, struct printc *pc)
 	be_maxcol = strlen(chosen_be_header);
 	mount_colsz = strlen(HEADER_MOUNT);
 	for (cur = nvlist_next_nvpair(props, NULL); cur != NULL;
-	    cur = nvlist_next_nvpair(props, cur)) {
+	     cur = nvlist_next_nvpair(props, cur)) {
 		be_maxcol = MAX(be_maxcol, strlen(nvpair_name(cur)));
 		nvpair_value_nvlist(cur, &dsprops);
 
@@ -324,7 +327,8 @@ print_headers(nvlist_t *props, struct printc *pc)
 	pc->mount_colsz = mount_colsz;
 	pc->space_colsz = strlen(HEADER_SPACE);
 	printf("%*s %s %*s %s %s\n", -pc->be_colsz, chosen_be_header,
-	    HEADER_ACTIVE, -pc->mount_colsz, HEADER_MOUNT, HEADER_SPACE, HEADER_CREATED);
+	    HEADER_ACTIVE, -pc->mount_colsz, HEADER_MOUNT, HEADER_SPACE,
+	    HEADER_CREATED);
 
 	/*
 	 * All other invocations in which we aren't using the default header
@@ -361,8 +365,10 @@ prop_list_sort(nvlist_t *props, char *property, bool reverse)
 		while ((nvp = nvlist_next_nvpair(nvl, nvp)) != NULL) {
 
 			nvpair_value_nvlist(nvp, &sc_next.nvl);
-			nvlist_lookup_string(sc_next.nvl, "name", &sc_next.name);
-			nvlist_lookup_string(sc_next.nvl, property, &sc_next.val);
+			nvlist_lookup_string(sc_next.nvl, "name",
+			    &sc_next.name);
+			nvlist_lookup_string(sc_next.nvl, property,
+			    &sc_next.val);
 
 			/* properties that use numerical comparison */
 			if (strcmp(property, "creation") == 0 ||
@@ -381,18 +387,20 @@ prop_list_sort(nvlist_t *props, char *property, bool reverse)
 
 			/* properties that use string comparison */
 			else if (strcmp(property, "name") == 0 ||
-				 strcmp(property, "origin") == 0) {
-				if ((strcmp(sc_prev.val, sc_next.val) < 0 && reverse) ||
-				    (strcmp(sc_prev.val, sc_next.val) > 0 && !reverse))
+			    strcmp(property, "origin") == 0) {
+				if ((strcmp(sc_prev.val, sc_next.val) < 0 &&
+					reverse) ||
+				    (strcmp(sc_prev.val, sc_next.val) > 0 &&
+					!reverse))
 					sc_prev = sc_next;
 			}
 		}
 
 		/*
-		 * The 'props' nvlist has been created to only have unique names.
-		 * When a name is added, any existing nvlist's with the same name
-		 * will be removed. Eventually, all existing nvlist's are replaced
-		 * in sorted order.
+		 * The 'props' nvlist has been created to only have unique
+		 * names. When a name is added, any existing nvlist's with the
+		 * same name will be removed. Eventually, all existing nvlist's
+		 * are replaced in sorted order.
 		 */
 		nvlist_add_nvlist(props, sc_prev.name, sc_prev.nvl);
 		nvlist_remove_all(nvl, sc_prev.name);
@@ -464,7 +472,8 @@ bectl_cmd_list(int argc, char *argv[])
 	}
 	if (be_get_bootenv_props(be, props) != 0) {
 		/* XXX TODO: Real errors */
-		fprintf(stderr, "bectl list: failed to fetch boot environments\n");
+		fprintf(stderr,
+		    "bectl list: failed to fetch boot environments\n");
 		return (1);
 	}
 
@@ -482,7 +491,7 @@ bectl_cmd_list(int argc, char *argv[])
 
 	/* Print boot environments */
 	for (cur = nvlist_next_nvpair(props, NULL); cur != NULL;
-	    cur = nvlist_next_nvpair(props, cur)) {
+	     cur = nvlist_next_nvpair(props, cur)) {
 		nvpair_value_nvlist(cur, &dsprops);
 
 		if (printed > 0 && (pc.show_all_datasets || pc.show_snaps))
@@ -497,4 +506,3 @@ bectl_cmd_list(int argc, char *argv[])
 
 	return (0);
 }
-

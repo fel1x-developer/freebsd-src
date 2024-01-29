@@ -31,7 +31,6 @@
 
 ******************************************************************************/
 
-
 #include "ixgbe.h"
 
 /************************************************************************
@@ -96,11 +95,11 @@ ixgbe_get_bypass_time(u32 *year, u32 *sec)
 {
 	struct timespec current;
 
-	*year = 1970;           /* time starts at 01/01/1970 */
+	*year = 1970; /* time starts at 01/01/1970 */
 	nanotime(&current);
 	*sec = current.tv_sec;
 
-	while(*sec > SEC_THIS_YEAR(*year)) {
+	while (*sec > SEC_THIS_YEAR(*year)) {
 		*sec -= SEC_THIS_YEAR(*year);
 		(*year)++;
 	}
@@ -114,11 +113,11 @@ ixgbe_get_bypass_time(u32 *year, u32 *sec)
 static int
 ixgbe_bp_version(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      version = 0;
-	u32             cmd;
+	int error = 0;
+	static int version = 0;
+	u32 cmd;
 
 	ixgbe_bypass_mutex_enter(sc);
 	cmd = BYPASS_PAGE_CTL2 | BYPASS_WE;
@@ -154,15 +153,14 @@ err:
 static int
 ixgbe_bp_set_state(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      state = 0;
+	int error = 0;
+	static int state = 0;
 
 	/* Get the current state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_rw(hw,
-	    BYPASS_PAGE_CTL0, &state);
+	error = hw->mac.ops.bypass_rw(hw, BYPASS_PAGE_CTL0, &state);
 	ixgbe_bypass_mutex_clear(sc);
 	if (error != 0)
 		return (error);
@@ -183,11 +181,11 @@ ixgbe_bp_set_state(SYSCTL_HANDLER_ARGS)
 	}
 	ixgbe_bypass_mutex_enter(sc);
 	if ((error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_MODE_OFF_M, state) != 0))
+			 BYPASS_MODE_OFF_M, state) != 0))
 		goto out;
 	/* Set AUTO back on so FW can receive events */
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_MODE_OFF_M, BYPASS_AUTO);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_MODE_OFF_M,
+	    BYPASS_AUTO);
 out:
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
@@ -216,10 +214,10 @@ out:
 static int
 ixgbe_bp_timeout(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      timeout = 0;
+	int error = 0;
+	static int timeout = 0;
 
 	/* Get the current value */
 	ixgbe_bypass_mutex_enter(sc);
@@ -246,8 +244,8 @@ ixgbe_bp_timeout(SYSCTL_HANDLER_ARGS)
 
 	/* Set the new state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_WDTIMEOUT_M, timeout << BYPASS_WDTIMEOUT_SHIFT);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_WDTIMEOUT_M,
+	    timeout << BYPASS_WDTIMEOUT_SHIFT);
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
 	return (error);
@@ -259,10 +257,10 @@ ixgbe_bp_timeout(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_main_on(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      main_on = 0;
+	int error = 0;
+	static int main_on = 0;
 
 	ixgbe_bypass_mutex_enter(sc);
 	error = hw->mac.ops.bypass_rw(hw, BYPASS_PAGE_CTL0, &main_on);
@@ -288,8 +286,8 @@ ixgbe_bp_main_on(SYSCTL_HANDLER_ARGS)
 
 	/* Set the new state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_MAIN_ON_M, main_on << BYPASS_MAIN_ON_SHIFT);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_MAIN_ON_M,
+	    main_on << BYPASS_MAIN_ON_SHIFT);
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
 	return (error);
@@ -301,10 +299,10 @@ ixgbe_bp_main_on(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_main_off(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      main_off = 0;
+	int error = 0;
+	static int main_off = 0;
 
 	ixgbe_bypass_mutex_enter(sc);
 	error = hw->mac.ops.bypass_rw(hw, BYPASS_PAGE_CTL0, &main_off);
@@ -330,8 +328,8 @@ ixgbe_bp_main_off(SYSCTL_HANDLER_ARGS)
 
 	/* Set the new state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_MAIN_OFF_M, main_off << BYPASS_MAIN_OFF_SHIFT);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_MAIN_OFF_M,
+	    main_off << BYPASS_MAIN_OFF_SHIFT);
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
 	return (error);
@@ -343,10 +341,10 @@ ixgbe_bp_main_off(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_aux_on(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      aux_on = 0;
+	int error = 0;
+	static int aux_on = 0;
 
 	ixgbe_bypass_mutex_enter(sc);
 	error = hw->mac.ops.bypass_rw(hw, BYPASS_PAGE_CTL0, &aux_on);
@@ -372,8 +370,8 @@ ixgbe_bp_aux_on(SYSCTL_HANDLER_ARGS)
 
 	/* Set the new state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_AUX_ON_M, aux_on << BYPASS_AUX_ON_SHIFT);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_AUX_ON_M,
+	    aux_on << BYPASS_AUX_ON_SHIFT);
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
 	return (error);
@@ -385,10 +383,10 @@ ixgbe_bp_aux_on(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_aux_off(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error = 0;
-	static int      aux_off = 0;
+	int error = 0;
+	static int aux_off = 0;
 
 	ixgbe_bypass_mutex_enter(sc);
 	error = hw->mac.ops.bypass_rw(hw, BYPASS_PAGE_CTL0, &aux_off);
@@ -414,8 +412,8 @@ ixgbe_bp_aux_off(SYSCTL_HANDLER_ARGS)
 
 	/* Set the new state */
 	ixgbe_bypass_mutex_enter(sc);
-	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0,
-	    BYPASS_AUX_OFF_M, aux_off << BYPASS_AUX_OFF_SHIFT);
+	error = hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL0, BYPASS_AUX_OFF_M,
+	    aux_off << BYPASS_AUX_OFF_SHIFT);
 	ixgbe_bypass_mutex_clear(sc);
 	usec_delay(6000);
 	return (error);
@@ -432,11 +430,11 @@ ixgbe_bp_aux_off(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_wd_set(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	int             error, tmp;
-	static int      timeout = 0;
-	u32             mask, arg;
+	int error, tmp;
+	static int timeout = 0;
+	u32 mask, arg;
 
 	/* Get the current hardware value */
 	ixgbe_bypass_mutex_enter(sc);
@@ -503,11 +501,11 @@ ixgbe_bp_wd_set(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_wd_reset(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc  *sc = (struct ixgbe_softc *) arg1;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
 	struct ixgbe_hw *hw = &sc->hw;
-	u32             sec, year;
-	int             cmd, count = 0, error = 0;
-	int             reset_wd = 0;
+	u32 sec, year;
+	int cmd, count = 0, error = 0;
+	int reset_wd = 0;
 
 	error = sysctl_handle_int(oidp, &reset_wd, 0, req);
 	if ((error) || (req->newptr == NULL))
@@ -550,14 +548,14 @@ ixgbe_bp_wd_reset(SYSCTL_HANDLER_ARGS)
 static int
 ixgbe_bp_log(SYSCTL_HANDLER_ARGS)
 {
-	struct ixgbe_softc             *sc = (struct ixgbe_softc *) arg1;
-	struct ixgbe_hw            *hw = &sc->hw;
-	u32                        cmd, base, head;
-	u32                        log_off, count = 0;
-	static int                 status = 0;
-	u8                         data;
+	struct ixgbe_softc *sc = (struct ixgbe_softc *)arg1;
+	struct ixgbe_hw *hw = &sc->hw;
+	u32 cmd, base, head;
+	u32 log_off, count = 0;
+	static int status = 0;
+	u8 data;
 	struct ixgbe_bypass_eeprom eeprom[BYPASS_MAX_LOGS];
-	int                        i, error = 0;
+	int i, error = 0;
 
 	error = sysctl_handle_int(oidp, &status, 0, req);
 	if ((error) || (req->newptr == NULL))
@@ -610,8 +608,8 @@ ixgbe_bp_log(SYSCTL_HANDLER_ARGS)
 		}
 
 		ixgbe_bypass_mutex_enter(sc);
-		error = hw->mac.ops.bypass_rd_eep(hw,
-		    log_off + i, &eeprom[count].actions);
+		error = hw->mac.ops.bypass_rd_eep(hw, log_off + i,
+		    &eeprom[count].actions);
 		ixgbe_bypass_mutex_clear(sc);
 		if (error)
 			return (EINVAL);
@@ -638,14 +636,19 @@ ixgbe_bp_log(SYSCTL_HANDLER_ARGS)
 		u32 time = eeprom[count].logs & BYPASS_LOG_TIME_M;
 		u32 event = (eeprom[count].logs & BYPASS_LOG_EVENT_M) >>
 		    BYPASS_LOG_EVENT_SHIFT;
-		u8 action =  eeprom[count].actions & BYPASS_LOG_ACTION_M;
-		u16 day_mon[2][13] = {
-		  {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
-		  {0, 31, 59, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}
+		u8 action = eeprom[count].actions & BYPASS_LOG_ACTION_M;
+		u16 day_mon[2][13] = { { 0, 31, 59, 90, 120, 151, 181, 212, 243,
+					   273, 304, 334, 365 },
+			{ 0, 31, 59, 91, 121, 152, 182, 213, 244, 274, 305, 335,
+			    366 } };
+		char *event_str[] = { "unknown", "main on", "aux on",
+			"main off", "aux off", "WDT", "user" };
+		char *action_str[] = {
+			"ignore",
+			"normal",
+			"bypass",
+			"isolate",
 		};
-		char *event_str[] = {"unknown", "main on", "aux on",
-		    "main off", "aux off", "WDT", "user" };
-		char *action_str[] = {"ignore", "normal", "bypass", "isolate",};
 
 		/* verify vaild data  1 - 6 */
 		if (event < BYPASS_EVENT_MAIN_ON || event > BYPASS_EVENT_USR)
@@ -659,21 +662,21 @@ ixgbe_bp_log(SYSCTL_HANDLER_ARGS)
 		days = time / SEC_PER_DAY;
 		for (i = 11; days < day_mon[LEAP_YR(year)][i]; i--)
 			continue;
-		mon = i + 1;    /* display month as 1-12 */
+		mon = i + 1; /* display month as 1-12 */
 		time -= (day_mon[LEAP_YR(year)][i] * SEC_PER_DAY);
-		days = (time / SEC_PER_DAY) + 1;  /* first day is 1 */
+		days = (time / SEC_PER_DAY) + 1; /* first day is 1 */
 		time %= SEC_PER_DAY;
 		hours = time / (60 * 60);
 		time %= (60 * 60);
 		min = time / 60;
 		sec = time % 60;
 		device_printf(sc->dev,
-		    "UT %02d/%02d %02d:%02d:%02d %8.8s -> %7.7s\n",
-		    mon, days, hours, min, sec, event_str[event],
-		    action_str[action]);
+		    "UT %02d/%02d %02d:%02d:%02d %8.8s -> %7.7s\n", mon, days,
+		    hours, min, sec, event_str[event], action_str[action]);
 		cmd = BYPASS_PAGE_CTL2 | BYPASS_WE | BYPASS_CTL2_RW;
 		cmd |= ((eeprom[count].clear_off + 3)
-		    << BYPASS_CTL2_OFFSET_SHIFT) & BYPASS_CTL2_OFFSET_M;
+			   << BYPASS_CTL2_OFFSET_SHIFT) &
+		    BYPASS_CTL2_OFFSET_M;
 		cmd |= ((eeprom[count].logs & ~BYPASS_LOG_CLEAR_M) >> 24);
 
 		ixgbe_bypass_mutex_enter(sc);
@@ -712,11 +715,11 @@ unlock_err:
 void
 ixgbe_bypass_init(struct ixgbe_softc *sc)
 {
-	struct ixgbe_hw        *hw = &sc->hw;
-	device_t               dev = sc->dev;
-	struct sysctl_oid      *bp_node;
+	struct ixgbe_hw *hw = &sc->hw;
+	device_t dev = sc->dev;
+	struct sysctl_oid *bp_node;
 	struct sysctl_oid_list *bp_list;
-	u32                    mask, value, sec, year;
+	u32 mask, value, sec, year;
 
 	if (!(sc->feat_cap & IXGBE_FEATURE_BYPASS))
 		return;
@@ -724,13 +727,10 @@ ixgbe_bypass_init(struct ixgbe_softc *sc)
 	/* First set up time for the hardware */
 	ixgbe_get_bypass_time(&year, &sec);
 
-	mask = BYPASS_CTL1_TIME_M
-	     | BYPASS_CTL1_VALID_M
-	     | BYPASS_CTL1_OFFTRST_M;
+	mask = BYPASS_CTL1_TIME_M | BYPASS_CTL1_VALID_M | BYPASS_CTL1_OFFTRST_M;
 
-	value = (sec & BYPASS_CTL1_TIME_M)
-	      | BYPASS_CTL1_VALID
-	      | BYPASS_CTL1_OFFTRST;
+	value = (sec & BYPASS_CTL1_TIME_M) | BYPASS_CTL1_VALID |
+	    BYPASS_CTL1_OFFTRST;
 
 	ixgbe_bypass_mutex_enter(sc);
 	hw->mac.ops.bypass_set(hw, BYPASS_PAGE_CTL1, mask, value);
@@ -744,54 +744,52 @@ ixgbe_bypass_init(struct ixgbe_softc *sc)
 	 * `sysctl dev.ix.0.bypass` will not show the log.
 	 */
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "bypass_log",
-	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_log, "I", "Bypass Log");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
+	    "bypass_log", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_log, "I", "Bypass Log");
 
 	/* All other setting are hung from the 'bypass' node */
 	bp_node = SYSCTL_ADD_NODE(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-	    OID_AUTO, "bypass", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Bypass");
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "bypass",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Bypass");
 
 	bp_list = SYSCTL_CHILDREN(bp_node);
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "version", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_version, "I", "Bypass Version");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "version", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_version, "I", "Bypass Version");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "state", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_set_state, "I", "Bypass State");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO, "state",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_set_state, "I", "Bypass State");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "timeout", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_timeout, "I", "Bypass Timeout");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "timeout", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_timeout, "I", "Bypass Timeout");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "main_on", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_main_on, "I", "Bypass Main On");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "main_on", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_main_on, "I", "Bypass Main On");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "main_off", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_main_off, "I", "Bypass Main Off");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "main_off", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_main_off, "I", "Bypass Main Off");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "aux_on", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_aux_on, "I", "Bypass Aux On");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO, "aux_on",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_aux_on, "I", "Bypass Aux On");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "aux_off", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_aux_off, "I", "Bypass Aux Off");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "aux_off", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_aux_off, "I", "Bypass Aux Off");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "wd_set", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_wd_set, "I", "Set BP Watchdog");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO, "wd_set",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_wd_set, "I", "Set BP Watchdog");
 
-	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list,
-	    OID_AUTO, "wd_reset", CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_NEEDGIANT,
-	    sc, 0, ixgbe_bp_wd_reset, "S", "Bypass WD Reset");
+	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev), bp_list, OID_AUTO,
+	    "wd_reset", CTLTYPE_INT | CTLFLAG_WR | CTLFLAG_NEEDGIANT, sc, 0,
+	    ixgbe_bp_wd_reset, "S", "Bypass WD Reset");
 
 	sc->feat_en |= IXGBE_FEATURE_BYPASS;
 } /* ixgbe_bypass_init */
-

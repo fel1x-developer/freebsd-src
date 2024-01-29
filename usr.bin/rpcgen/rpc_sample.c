@@ -28,49 +28,47 @@
  */
 
 /*
- * rpc_sample.c, Sample client-server code outputter for the RPC protocol compiler
- * Copyright (C) 1987, Sun Microsystems, Inc.
+ * rpc_sample.c, Sample client-server code outputter for the RPC protocol
+ * compiler Copyright (C) 1987, Sun Microsystems, Inc.
  */
 
 #include <stdio.h>
 #include <string.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
 
-
 static char RQSTP[] = "rqstp";
 
-static void write_sample_client(const char *, version_list * );
-static void write_sample_server( definition * );
-static void return_type( proc_list * );
+static void write_sample_client(const char *, version_list *);
+static void write_sample_server(definition *);
+static void return_type(proc_list *);
 
 void
 write_sample_svc(definition *def)
 {
 
 	if (def->def_kind != DEF_PROGRAM)
-	  return;
+		return;
 	write_sample_server(def);
 }
-
 
 int
 write_sample_clnt(definition *def)
 {
-        version_list *vp;
+	version_list *vp;
 	int count = 0;
 
 	if (def->def_kind != DEF_PROGRAM)
-	  return(0);
+		return (0);
 	/* generate sample code for each version */
 	for (vp = def->def.pr.versions; vp != NULL; vp = vp->next) {
-	  write_sample_client(def->def_name, vp);
-	  ++count;
+		write_sample_client(def->def_name, vp);
+		++count;
 	}
-	return(count);
+	return (count);
 }
-
 
 static void
 write_sample_client(const char *program_name, version_list *vp)
@@ -93,16 +91,17 @@ write_sample_client(const char *program_name, version_list *vp)
 			f_print(fout, "result_%d;\n", i);
 		} else {
 			ptype(proc->res_prefix, proc->res_type, 1);
-			f_print(fout, " *result_%d;\n",++i);
+			f_print(fout, " *result_%d;\n", ++i);
 		}
 		/* print out declarations for arguments */
-		if(proc->arg_num < 2 && !newstyle) {
+		if (proc->arg_num < 2 && !newstyle) {
 			f_print(fout, "\t");
-			if(!streq(proc->args.decls->decl.type, "void"))
+			if (!streq(proc->args.decls->decl.type, "void"))
 				ptype(proc->args.decls->decl.prefix,
-				      proc->args.decls->decl.type, 1);
+				    proc->args.decls->decl.type, 1);
 			else
-				f_print(fout, "char * "); /* cannot have "void" type */
+				f_print(fout,
+				    "char * "); /* cannot have "void" type */
 			f_print(fout, " ");
 			pvname(proc->proc_name, vp->vers_num);
 			f_print(fout, "_arg;\n");
@@ -110,8 +109,8 @@ write_sample_client(const char *program_name, version_list *vp)
 			for (l = proc->args.decls; l != NULL; l = l->next) {
 				f_print(fout, "\t");
 				ptype(l->decl.prefix, l->decl.type, 1);
-				if (strcmp(l->decl.type,"string") >= 1)
-				    f_print(fout, " ");
+				if (strcmp(l->decl.type, "string") >= 1)
+					f_print(fout, " ");
 				pvname(proc->proc_name, vp->vers_num);
 				f_print(fout, "_%s;\n", l->decl.name);
 			}
@@ -121,7 +120,7 @@ write_sample_client(const char *program_name, version_list *vp)
 	/* generate creation of client handle */
 	f_print(fout, "\n#ifndef\tDEBUG\n");
 	f_print(fout, "\tclnt = clnt_create(host, %s, %s, \"%s\");\n",
-		program_name, vp->vers_name, tirpcflag? "netpath" : "udp");
+	    program_name, vp->vers_name, tirpcflag ? "netpath" : "udp");
 	f_print(fout, "\tif (clnt == (CLIENT *) NULL) {\n");
 	f_print(fout, "\t\tclnt_pcreateerror(host);\n");
 	f_print(fout, "\t\texit(1);\n\t}\n");
@@ -131,20 +130,19 @@ write_sample_client(const char *program_name, version_list *vp)
 	i = 0;
 	for (proc = vp->procs; proc != NULL; proc = proc->next) {
 		if (mtflag)
-			f_print(fout, "\tretval_%d = ",++i);
+			f_print(fout, "\tretval_%d = ", ++i);
 		else
-			f_print(fout, "\tresult_%d = ",++i);
+			f_print(fout, "\tresult_%d = ", ++i);
 		pvname(proc->proc_name, vp->vers_num);
 		if (proc->arg_num < 2 && !newstyle) {
 			f_print(fout, "(");
-			if(streq(proc->args.decls->decl.type, "void"))
+			if (streq(proc->args.decls->decl.type, "void"))
 				/* cast to void * */
 				f_print(fout, "(void *)");
 			f_print(fout, "&");
 			pvname(proc->proc_name, vp->vers_num);
 			if (mtflag)
-				f_print(fout, "_arg, &result_%d, clnt);\n",
-					i);
+				f_print(fout, "_arg, &result_%d, clnt);\n", i);
 			else
 				f_print(fout, "_arg, clnt);\n");
 
@@ -153,16 +151,15 @@ write_sample_client(const char *program_name, version_list *vp)
 				f_print(fout, "(&result_%d, clnt);\n", i);
 			else
 				f_print(fout, "(clnt);\n");
-		}
-		else {
+		} else {
 			f_print(fout, "(");
-			for (l = proc->args.decls;  l != NULL; l = l->next) {
+			for (l = proc->args.decls; l != NULL; l = l->next) {
 				pvname(proc->proc_name, vp->vers_num);
 				f_print(fout, "_%s, ", l->decl.name);
 			}
 			if (mtflag)
 				f_print(fout, "&result_%d, ", i);
-				
+
 			f_print(fout, "clnt);\n");
 		}
 		if (mtflag) {
@@ -203,48 +200,47 @@ write_sample_server(definition *def)
 			f_print(fout, "{\n");
 			if (!mtflag) {
 				f_print(fout, "\tstatic ");
-				if(!streq(proc->res_type, "void"))
+				if (!streq(proc->res_type, "void"))
 					return_type(proc);
 				else
 					f_print(fout, "char *");
 				/* cannot have void type */
 				f_print(fout, " result;\n");
-			}
-			else
+			} else
 				f_print(fout, "\tbool_t retval;\n");
 			f_print(fout,
-				"\n\t/*\n\t * insert server code here\n\t */\n\n");
+			    "\n\t/*\n\t * insert server code here\n\t */\n\n");
 
 			if (!mtflag)
-				if(!streq(proc->res_type, "void"))
-					f_print(fout, "\treturn (&result);\n}\n");
+				if (!streq(proc->res_type, "void"))
+					f_print(fout,
+					    "\treturn (&result);\n}\n");
 				else /* cast back to void * */
-					f_print(fout, "\treturn((void *) &result);\n}\n");
+					f_print(fout,
+					    "\treturn((void *) &result);\n}\n");
 			else
 				f_print(fout, "\treturn (retval);\n}\n");
 		}
 		/* put in sample freeing routine */
 		if (mtflag) {
-		f_print(fout, "\nint\n");
-		pvname(def->def_name, vp->vers_num);
-		f_print(fout,"_freeresult(SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)\n");
-		f_print(fout, "{\n");
-		f_print(fout, "\t(void) xdr_free(xdr_result, result);\n");
-		f_print(fout,
-			"\n\t/*\n\t * Insert additional freeing code here, if needed\n\t */\n");
-		f_print(fout, "\n}\n");
-
-		
-	}
+			f_print(fout, "\nint\n");
+			pvname(def->def_name, vp->vers_num);
+			f_print(fout,
+			    "_freeresult(SVCXPRT *transp, xdrproc_t xdr_result, caddr_t result)\n");
+			f_print(fout, "{\n");
+			f_print(fout,
+			    "\t(void) xdr_free(xdr_result, result);\n");
+			f_print(fout,
+			    "\n\t/*\n\t * Insert additional freeing code here, if needed\n\t */\n");
+			f_print(fout, "\n}\n");
+		}
 	}
 }
-
-
 
 static void
 return_type(proc_list *plist)
 {
-  ptype(plist->res_prefix, plist->res_type, 1);
+	ptype(plist->res_prefix, plist->res_type, 1);
 }
 
 void
@@ -270,7 +266,8 @@ write_sample_clnt_main(void)
 
 	f_print(fout, "\tchar *host;");
 	f_print(fout, "\n\n\tif (argc < 2) {");
-	f_print(fout, "\n\t\tprintf(\"usage:  %%s server_host\\n\", argv[0]);\n");
+	f_print(fout,
+	    "\n\t\tprintf(\"usage:  %%s server_host\\n\", argv[0]);\n");
 	f_print(fout, "\t\texit(1);\n\t}");
 	f_print(fout, "\n\thost = argv[1];\n");
 
@@ -280,7 +277,7 @@ write_sample_clnt_main(void)
 			continue;
 		}
 		for (vp = def->def.pr.versions; vp != NULL; vp = vp->next) {
-		        f_print(fout, "\t");
+			f_print(fout, "\t");
 			pvname(def->def_name, vp->vers_num);
 			f_print(fout, "(host);\n");
 		}

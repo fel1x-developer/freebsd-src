@@ -28,18 +28,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/abi_compat.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/uio.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/uio.h>
 
+#include <dev/smbus/smb.h>
 #include <dev/smbus/smbconf.h>
 #include <dev/smbus/smbus.h>
-#include <dev/smbus/smb.h>
 
 #include "smbus_if.h"
 
@@ -49,14 +49,14 @@ struct smbcmd32 {
 	u_char reserved;
 	u_short op;
 	union {
-		char	byte;
-		char	buf[2];
-		short	word;
+		char byte;
+		char buf[2];
+		short word;
 	} wdata;
 	union {
-		char	byte;
-		char	buf[2];
-		short	word;
+		char byte;
+		char buf[2];
+		short word;
 	} rdata;
 	int slave;
 	uint32_t wbuf;
@@ -65,25 +65,25 @@ struct smbcmd32 {
 	int rcount;
 };
 
-#define	SMB_QUICK_WRITE32	_IOW('i', 1, struct smbcmd32)
-#define	SMB_QUICK_READ32	_IOW('i', 2, struct smbcmd32)
-#define	SMB_SENDB32		_IOW('i', 3, struct smbcmd32)
-#define	SMB_RECVB32		_IOWR('i', 4, struct smbcmd32)
-#define	SMB_WRITEB32		_IOW('i', 5, struct smbcmd32)
-#define	SMB_WRITEW32		_IOW('i', 6, struct smbcmd32)
-#define	SMB_READB32		_IOWR('i', 7, struct smbcmd32)
-#define	SMB_READW32		_IOWR('i', 8, struct smbcmd32)
-#define	SMB_PCALL32		_IOWR('i', 9, struct smbcmd32)
-#define	SMB_BWRITE32		_IOW('i', 10, struct smbcmd32)
-#define	SMB_BREAD32		_IOWR('i', 11, struct smbcmd32)
-#define	SMB_OLD_READB32		_IOW('i', 7, struct smbcmd32)
-#define	SMB_OLD_READW32		_IOW('i', 8, struct smbcmd32)
-#define	SMB_OLD_PCALL32		_IOW('i', 9, struct smbcmd32)
+#define SMB_QUICK_WRITE32 _IOW('i', 1, struct smbcmd32)
+#define SMB_QUICK_READ32 _IOW('i', 2, struct smbcmd32)
+#define SMB_SENDB32 _IOW('i', 3, struct smbcmd32)
+#define SMB_RECVB32 _IOWR('i', 4, struct smbcmd32)
+#define SMB_WRITEB32 _IOW('i', 5, struct smbcmd32)
+#define SMB_WRITEW32 _IOW('i', 6, struct smbcmd32)
+#define SMB_READB32 _IOWR('i', 7, struct smbcmd32)
+#define SMB_READW32 _IOWR('i', 8, struct smbcmd32)
+#define SMB_PCALL32 _IOWR('i', 9, struct smbcmd32)
+#define SMB_BWRITE32 _IOW('i', 10, struct smbcmd32)
+#define SMB_BREAD32 _IOWR('i', 11, struct smbcmd32)
+#define SMB_OLD_READB32 _IOW('i', 7, struct smbcmd32)
+#define SMB_OLD_READW32 _IOW('i', 8, struct smbcmd32)
+#define SMB_OLD_PCALL32 _IOW('i', 9, struct smbcmd32)
 #endif
 
-#define SMB_OLD_READB	_IOW('i', 7, struct smbcmd)
-#define SMB_OLD_READW	_IOW('i', 8, struct smbcmd)
-#define SMB_OLD_PCALL	_IOW('i', 9, struct smbcmd)
+#define SMB_OLD_READB _IOW('i', 7, struct smbcmd)
+#define SMB_OLD_READW _IOW('i', 8, struct smbcmd)
+#define SMB_OLD_PCALL _IOW('i', 9, struct smbcmd)
 
 struct smb_softc {
 	device_t sc_dev;
@@ -97,14 +97,13 @@ static int smb_detach(device_t);
 
 static device_method_t smb_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	smb_identify),
-	DEVMETHOD(device_probe,		smb_probe),
-	DEVMETHOD(device_attach,	smb_attach),
-	DEVMETHOD(device_detach,	smb_detach),
+	DEVMETHOD(device_identify, smb_identify),
+	DEVMETHOD(device_probe, smb_probe),
+	DEVMETHOD(device_attach, smb_attach),
+	DEVMETHOD(device_detach, smb_detach),
 
 	/* smbus interface */
-	DEVMETHOD(smbus_intr,		smbus_generic_intr),
-	{ 0, 0 }
+	DEVMETHOD(smbus_intr, smbus_generic_intr), { 0, 0 }
 };
 
 static driver_t smb_driver = {
@@ -113,13 +112,13 @@ static driver_t smb_driver = {
 	sizeof(struct smb_softc),
 };
 
-static	d_ioctl_t	smbioctl;
+static d_ioctl_t smbioctl;
 
 static struct cdevsw smb_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_TRACKCLOSE,
-	.d_ioctl =	smbioctl,
-	.d_name =	"smb",
+	.d_version = D_VERSION,
+	.d_flags = D_TRACKCLOSE,
+	.d_ioctl = smbioctl,
+	.d_name = "smb",
 };
 
 static void
@@ -187,7 +186,8 @@ smbcopyincmd32(struct smbcmd32 *uaddr, struct smbcmd *kaddr)
 #endif
 
 static int
-smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *td)
+smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	char buf[SMB_MAXBLOCKSIZE];
 	device_t parent;
@@ -218,7 +218,7 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 
 	/* Allocate the bus. */
 	if ((error = smbus_request_bus(parent, smbdev,
-			(flags & O_NONBLOCK) ? SMB_DONTWAIT : (SMB_WAIT | SMB_INTR))))
+		 (flags & O_NONBLOCK) ? SMB_DONTWAIT : (SMB_WAIT | SMB_INTR))))
 		return (error);
 
 #ifdef COMPAT_FREEBSD32
@@ -278,16 +278,16 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 #ifdef COMPAT_FREEBSD32
 	case SMB_WRITEB32:
 #endif
-		error = smbus_error(smbus_writeb(parent, s->slave, s->cmd,
-						s->wdata.byte));
+		error = smbus_error(
+		    smbus_writeb(parent, s->slave, s->cmd, s->wdata.byte));
 		break;
 
 	case SMB_WRITEW:
 #ifdef COMPAT_FREEBSD32
 	case SMB_WRITEW32:
 #endif
-		error = smbus_error(smbus_writew(parent, s->slave,
-						s->cmd, s->wdata.word));
+		error = smbus_error(
+		    smbus_writew(parent, s->slave, s->cmd, s->wdata.word));
 		break;
 
 	case SMB_OLD_READB:
@@ -297,8 +297,8 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 	case SMB_READB32:
 #endif
 		/* NB: for SMB_OLD_READB the read data goes to rbuf only. */
-		error = smbus_error(smbus_readb(parent, s->slave, s->cmd,
-		    &s->rdata.byte));
+		error = smbus_error(
+		    smbus_readb(parent, s->slave, s->cmd, &s->rdata.byte));
 		if (error)
 			break;
 		if (s->rbuf && s->rcount >= 1) {
@@ -314,8 +314,8 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 	case SMB_READW32:
 #endif
 		/* NB: for SMB_OLD_READW the read data goes to rbuf only. */
-		error = smbus_error(smbus_readw(parent, s->slave, s->cmd,
-		    &s->rdata.word));
+		error = smbus_error(
+		    smbus_readw(parent, s->slave, s->cmd, &s->rdata.word));
 		if (error)
 			break;
 		if (s->rbuf && s->rcount >= 2) {
@@ -360,8 +360,8 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 			error = copyin(s->wbuf, buf, s->wcount);
 		if (error)
 			break;
-		error = smbus_error(smbus_bwrite(parent, s->slave, s->cmd,
-		    s->wcount, buf));
+		error = smbus_error(
+		    smbus_bwrite(parent, s->slave, s->cmd, s->wcount, buf));
 		break;
 
 	case SMB_BREAD:
@@ -374,8 +374,8 @@ smbioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 		}
 		if (s->rcount > SMB_MAXBLOCKSIZE)
 			s->rcount = SMB_MAXBLOCKSIZE;
-		error = smbus_error(smbus_bread(parent, s->slave, s->cmd,
-		    &bcount, buf));
+		error = smbus_error(
+		    smbus_bread(parent, s->slave, s->cmd, &bcount, buf));
 		if (error)
 			break;
 		if (s->rcount > bcount)

@@ -31,10 +31,10 @@
 #include <dev/clk/clk.h>
 
 struct imx_clk_composite_def {
-	struct clknode_init_def	clkdef;
+	struct clknode_init_def clkdef;
 
-	uint32_t	offset;
-	uint32_t	flags;
+	uint32_t offset;
+	uint32_t flags;
 };
 
 int imx_clk_composite_register(struct clkdom *clkdom,

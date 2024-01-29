@@ -19,25 +19,24 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_devid.h"
-
 #include "ah_eeprom_v14.h"
-
-#include "ar5212/ar5212.h"	/* for NF cal related declarations */
-
+#include "ah_internal.h"
+#include "ar5212/ar5212.h" /* for NF cal related declarations */
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
 /* Owl specific stuff */
-#define NUM_NOISEFLOOR_READINGS 6       /* 3 chains * (ctl + ext) */
+#define NUM_NOISEFLOOR_READINGS 6 /* 3 chains * (ctl + ext) */
 
 static void ar5416StartNFCal(struct ath_hal *ah);
-static HAL_BOOL ar5416LoadNF(struct ath_hal *ah, const struct ieee80211_channel *);
+static HAL_BOOL ar5416LoadNF(struct ath_hal *ah,
+    const struct ieee80211_channel *);
 static int16_t ar5416GetNf(struct ath_hal *, struct ieee80211_channel *);
 
-static uint16_t ar5416GetDefaultNF(struct ath_hal *ah, const struct ieee80211_channel *chan);
+static uint16_t ar5416GetDefaultNF(struct ath_hal *ah,
+    const struct ieee80211_channel *chan);
 static void ar5416SanitizeNF(struct ath_hal *ah, int16_t *nf);
 
 /*
@@ -62,7 +61,7 @@ static void ar5416SanitizeNF(struct ath_hal *ah, int16_t *nf);
  */
 static OS_INLINE HAL_BOOL
 ar5416IsCalSupp(struct ath_hal *ah, const struct ieee80211_channel *chan,
-	HAL_CAL_TYPE calType) 
+    HAL_CAL_TYPE calType)
 {
 	struct ar5416PerCal *cal = &AH5416(ah)->ah_cal;
 
@@ -115,8 +114,8 @@ ar5416SetupMeasurement(struct ath_hal *ah, HAL_CAL_LIST *currCal)
 		break;
 	case ADC_DC_CAL:
 		OS_REG_WRITE(ah, AR_PHY_CALMODE, AR_PHY_CALMODE_ADC_DC_PER);
-		HALDEBUG(ah, HAL_DEBUG_PERCAL,
-		    "%s: start ADC DC calibration\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_PERCAL, "%s: start ADC DC calibration\n",
+		    __func__);
 		break;
 	case ADC_DC_INIT_CAL:
 		OS_REG_WRITE(ah, AR_PHY_CALMODE, AR_PHY_CALMODE_ADC_DC_INIT);
@@ -203,13 +202,12 @@ ar5416InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan)
 
 	if (AR_SREV_MERLIN_10_OR_LATER(ah)) {
 		/* Disable ADC */
-		OS_REG_CLR_BIT(ah, AR_PHY_ADC_CTL,
-		    AR_PHY_ADC_CTL_OFF_PWDADC);
+		OS_REG_CLR_BIT(ah, AR_PHY_ADC_CTL, AR_PHY_ADC_CTL_OFF_PWDADC);
 
 		/* Enable Rx Filter Cal */
 		OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL,
 		    AR_PHY_AGC_CONTROL_FLTR_CAL);
-	} 	
+	}
 
 	/* Calibrate the AGC */
 	OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL);
@@ -218,14 +216,14 @@ ar5416InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	if (!ath_hal_wait(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_CAL, 0)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: offset calibration did not complete in 1ms; "
-		    "noisy environment?\n", __func__);
+		    "noisy environment?\n",
+		    __func__);
 		return AH_FALSE;
 	}
 
 	if (AR_SREV_MERLIN_10_OR_LATER(ah)) {
 		/* Enable ADC */
-		OS_REG_SET_BIT(ah, AR_PHY_ADC_CTL,
-		    AR_PHY_ADC_CTL_OFF_PWDADC);
+		OS_REG_SET_BIT(ah, AR_PHY_ADC_CTL, AR_PHY_ADC_CTL_OFF_PWDADC);
 
 		/* Disable Rx Filter Cal */
 		OS_REG_CLR_BIT(ah, AR_PHY_AGC_CONTROL,
@@ -238,7 +236,7 @@ ar5416InitCalHardware(struct ath_hal *ah, const struct ieee80211_channel *chan)
 /*
  * Initialize Calibration infrastructure.
  */
-#define	MAX_CAL_CHECK		32
+#define MAX_CAL_CHECK 32
 HAL_BOOL
 ar5416InitCal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
@@ -249,10 +247,11 @@ ar5416InitCal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	HALASSERT(ichan != AH_NULL);
 
 	/* Do initial chipset-specific calibration */
-	if (! AH5416(ah)->ah_cal_initcal(ah, chan)) {
+	if (!AH5416(ah)->ah_cal_initcal(ah, chan)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: initial chipset calibration did "
-		    "not complete in time; noisy environment?\n", __func__);
+		    "not complete in time; noisy environment?\n",
+		    __func__);
 		return AH_FALSE;
 	}
 
@@ -260,7 +259,7 @@ ar5416InitCal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	if (AH5416(ah)->ah_cal_pacal)
 		AH5416(ah)->ah_cal_pacal(ah, AH_TRUE);
 
-	/* 
+	/*
 	 * Do NF calibration after DC offset and other CALs.
 	 * Per system engineers, noise floor value can sometimes be 20 dB
 	 * higher than normal value if DC offset and noise floor cal are
@@ -313,8 +312,8 @@ ar5416InitCal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	if (ar5416IsCalSupp(ah, chan, IQ_MISMATCH_CAL)) {
 		INIT_CAL(&cal->iqCalData);
 		INSERT_CAL(cal, &cal->iqCalData);
-		HALDEBUG(ah, HAL_DEBUG_PERCAL,
-		    "%s: enable IQ Calibration.\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_PERCAL, "%s: enable IQ Calibration.\n",
+		    __func__);
 	}
 	/* Initialize current pointer to first element in list */
 	cal->cal_curr = cal->cal_list;
@@ -327,7 +326,7 @@ ar5416InitCal(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	ichan->calValid = 0;
 
 	return AH_TRUE;
-#undef	MAX_CAL_CHECK
+#undef MAX_CAL_CHECK
 }
 
 /*
@@ -347,8 +346,8 @@ ar5416ResetCalValid(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		return AH_FALSE;
 	if (ichan == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: invalid channel %u/0x%x; no mapping\n",
-		    __func__, chan->ic_freq, chan->ic_flags);
+		    "%s: invalid channel %u/0x%x; no mapping\n", __func__,
+		    chan->ic_freq, chan->ic_flags);
 		return AH_FALSE;
 	}
 	/*
@@ -357,8 +356,8 @@ ar5416ResetCalValid(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	 */
 	if (currCal->calState != CAL_DONE) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: Calibration state incorrect, %d\n",
-		    __func__, currCal->calState);
+		    "%s: Calibration state incorrect, %d\n", __func__,
+		    currCal->calState);
 		return AH_FALSE;
 	}
 
@@ -367,9 +366,8 @@ ar5416ResetCalValid(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		return AH_FALSE;
 
 	HALDEBUG(ah, HAL_DEBUG_PERCAL,
-	    "%s: Resetting Cal %d state for channel %u/0x%x\n",
-	    __func__, currCal->calData->calType, chan->ic_freq,
-	    chan->ic_flags);
+	    "%s: Resetting Cal %d state for channel %u/0x%x\n", __func__,
+	    currCal->calData->calType, chan->ic_freq, chan->ic_flags);
 
 	/* Disable cal validity in channel */
 	ichan->calValid &= ~currCal->calData->calType;
@@ -383,8 +381,8 @@ ar5416ResetCalValid(struct ath_hal *ah, const struct ieee80211_channel *chan)
  * changes.
  */
 static void
-ar5416DoCalibration(struct ath_hal *ah,  HAL_CHANNEL_INTERNAL *ichan,
-	uint8_t rxchainmask, HAL_CAL_LIST *currCal, HAL_BOOL *isCalDone)
+ar5416DoCalibration(struct ath_hal *ah, HAL_CHANNEL_INTERNAL *ichan,
+    uint8_t rxchainmask, HAL_CAL_LIST *currCal, HAL_BOOL *isCalDone)
 {
 	struct ar5416PerCal *cal = &AH5416(ah)->ah_cal;
 
@@ -392,29 +390,29 @@ ar5416DoCalibration(struct ath_hal *ah,  HAL_CHANNEL_INTERNAL *ichan,
 	*isCalDone = AH_FALSE;
 
 	HALDEBUG(ah, HAL_DEBUG_PERCAL,
-	    "%s: %s Calibration, state %d, calValid 0x%x\n",
-	    __func__, currCal->calData->calName, currCal->calState,
-	    ichan->calValid);
+	    "%s: %s Calibration, state %d, calValid 0x%x\n", __func__,
+	    currCal->calData->calName, currCal->calState, ichan->calValid);
 
 	/* Calibration in progress. */
 	if (currCal->calState == CAL_RUNNING) {
 		/* Check to see if it has finished. */
-		if (!(OS_REG_READ(ah, AR_PHY_TIMING_CTRL4) & AR_PHY_TIMING_CTRL4_DO_CAL)) {
+		if (!(OS_REG_READ(ah, AR_PHY_TIMING_CTRL4) &
+			AR_PHY_TIMING_CTRL4_DO_CAL)) {
 			HALDEBUG(ah, HAL_DEBUG_PERCAL,
-			    "%s: sample %d of %d finished\n",
-			    __func__, cal->calSamples,
-			    currCal->calData->calNumSamples);
-			/* 
+			    "%s: sample %d of %d finished\n", __func__,
+			    cal->calSamples, currCal->calData->calNumSamples);
+			/*
 			 * Collect measurements for active chains.
 			 */
 			currCal->calData->calCollect(ah);
-			if (++cal->calSamples >= currCal->calData->calNumSamples) {
+			if (++cal->calSamples >=
+			    currCal->calData->calNumSamples) {
 				int i, numChains = 0;
 				for (i = 0; i < AR5416_MAX_CHAINS; i++) {
 					if (rxchainmask & (1 << i))
 						numChains++;
 				}
-				/* 
+				/*
 				 * Process accumulated data
 				 */
 				currCal->calData->calPostProc(ah, numChains);
@@ -441,7 +439,7 @@ ar5416DoCalibration(struct ath_hal *ah,  HAL_CHANNEL_INTERNAL *ichan,
  */
 HAL_BOOL
 ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
-	u_int rxchainmask, HAL_BOOL longcal, HAL_BOOL *isCalDone)
+    u_int rxchainmask, HAL_BOOL longcal, HAL_BOOL *isCalDone)
 {
 	struct ar5416PerCal *cal = &AH5416(ah)->ah_cal;
 	HAL_CAL_LIST *currCal = cal->cal_curr;
@@ -463,8 +461,8 @@ ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
 	ichan = ath_hal_checkchannel(ah, chan);
 	if (ichan == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: invalid channel %u/0x%x; no mapping\n",
-		    __func__, chan->ic_freq, chan->ic_flags);
+		    "%s: invalid channel %u/0x%x; no mapping\n", __func__,
+		    chan->ic_freq, chan->ic_flags);
 		return AH_FALSE;
 	}
 
@@ -479,7 +477,7 @@ ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
 	 */
 	if (currCal != AH_NULL &&
 	    (currCal->calState == CAL_RUNNING ||
-	     currCal->calState == CAL_WAITING)) {
+		currCal->calState == CAL_WAITING)) {
 		ar5416DoCalibration(ah, ichan, rxchainmask, currCal, isCalDone);
 		if (*isCalDone == AH_TRUE) {
 			cal->cal_curr = currCal = currCal->calNext;
@@ -496,7 +494,8 @@ ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
 		if (AH5416(ah)->ah_cal_pacal)
 			AH5416(ah)->ah_cal_pacal(ah, AH_FALSE);
 
-		/* Do open-loop temperature compensation if the chipset needs it */
+		/* Do open-loop temperature compensation if the chipset needs it
+		 */
 		if (ath_hal_eepromGetFlag(ah, AR_EEP_OL_PWRCTRL))
 			AH5416(ah)->ah_olcTempCompensation(ah);
 
@@ -507,27 +506,30 @@ ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
 		r = ar5416GetNf(ah, chan);
 		if (r == 0 || r == -1) {
 			/* NF calibration result isn't valid */
-			HALDEBUG(ah, HAL_DEBUG_UNMASKABLE, "%s: NF calibration"
-			    " didn't finish; delaying CCA\n", __func__);
+			HALDEBUG(ah, HAL_DEBUG_UNMASKABLE,
+			    "%s: NF calibration"
+			    " didn't finish; delaying CCA\n",
+			    __func__);
 		} else {
 			int ret;
-			/* 
+			/*
 			 * NF calibration result is valid.
 			 *
-			 * Load the NF from history buffer of the current channel.
-			 * NF is slow time-variant, so it is OK to use a
-			 * historical value.
+			 * Load the NF from history buffer of the current
+			 * channel. NF is slow time-variant, so it is OK to use
+			 * a historical value.
 			 */
 			ret = ar5416LoadNF(ah, AH_PRIVATE(ah)->ah_curchan);
 
-			/* start NF calibration, without updating BB NF register*/
+			/* start NF calibration, without updating BB NF
+			 * register*/
 			ar5416StartNFCal(ah);
 
 			/*
 			 * If we failed calibration then tell the driver
 			 * we failed and it should do a full chip reset
 			 */
-			if (! ret)
+			if (!ret)
 				return AH_FALSE;
 		}
 	}
@@ -540,7 +542,7 @@ ar5416PerCalibrationN(struct ath_hal *ah, struct ieee80211_channel *chan,
  */
 HAL_BOOL
 ar5416PerCalibration(struct ath_hal *ah, struct ieee80211_channel *chan,
-	HAL_BOOL *isIQdone)
+    HAL_BOOL *isIQdone)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 	struct ar5416PerCal *cal = &AH5416(ah)->ah_cal;
@@ -560,7 +562,7 @@ ar5416PerCalibration(struct ath_hal *ah, struct ieee80211_channel *chan,
 
 static HAL_BOOL
 ar5416GetEepromNoiseFloorThresh(struct ath_hal *ah,
-	const struct ieee80211_channel *chan, int16_t *nft)
+    const struct ieee80211_channel *chan, int16_t *nft)
 {
 	if (IEEE80211_IS_CHAN_5GHZ(chan)) {
 		ath_hal_eepromGet(ah, AR_EEP_NFTHRESH_5, nft);
@@ -586,14 +588,9 @@ ar5416StartNFCal(struct ath_hal *ah)
 static HAL_BOOL
 ar5416LoadNF(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
-	static const uint32_t ar5416_cca_regs[] = {
-		AR_PHY_CCA,
-		AR_PHY_CH1_CCA,
-		AR_PHY_CH2_CCA,
-		AR_PHY_EXT_CCA,
-		AR_PHY_CH1_EXT_CCA,
-		AR_PHY_CH2_EXT_CCA
-	};
+	static const uint32_t ar5416_cca_regs[] = { AR_PHY_CCA, AR_PHY_CH1_CCA,
+		AR_PHY_CH2_CCA, AR_PHY_EXT_CCA, AR_PHY_CH1_EXT_CCA,
+		AR_PHY_CH2_EXT_CCA };
 	struct ar5212NfCalHist *h;
 	int i;
 	int32_t val;
@@ -619,13 +616,14 @@ ar5416LoadNF(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	 */
 	h = AH5416(ah)->ah_cal.nfCalHist;
 	HALDEBUG(ah, HAL_DEBUG_NFCAL, "CCA: ");
-	for (i = 0; i < AR5416_NUM_NF_READINGS; i ++) {
-		/* Don't write to EXT radio CCA registers unless in HT/40 mode */
+	for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
+		/* Don't write to EXT radio CCA registers unless in HT/40 mode
+		 */
 		/* XXX this check should really be cleaner! */
 		if (i > 2 && !IEEE80211_IS_CHAN_HT40(chan))
 			continue;
 
-		if (chainmask & (1 << i)) { 
+		if (chainmask & (1 << i)) {
 			int16_t nf_val;
 
 			if (h)
@@ -635,30 +633,33 @@ ar5416LoadNF(struct ath_hal *ah, const struct ieee80211_channel *chan)
 
 			val = OS_REG_READ(ah, ar5416_cca_regs[i]);
 			val &= 0xFFFFFE00;
-			val |= (((uint32_t) nf_val << 1) & 0x1ff);
+			val |= (((uint32_t)nf_val << 1) & 0x1ff);
 			HALDEBUG(ah, HAL_DEBUG_NFCAL, "[%d: %d]", i, nf_val);
 			OS_REG_WRITE(ah, ar5416_cca_regs[i], val);
 		}
 	}
 	HALDEBUG(ah, HAL_DEBUG_NFCAL, "\n");
 
-	/* Load software filtered NF value into baseband internal minCCApwr variable. */
+	/* Load software filtered NF value into baseband internal minCCApwr
+	 * variable. */
 	OS_REG_CLR_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_ENABLE_NF);
 	OS_REG_CLR_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_NO_UPDATE_NF);
 	OS_REG_SET_BIT(ah, AR_PHY_AGC_CONTROL, AR_PHY_AGC_CONTROL_NF);
 
 	/* Wait for load to complete, should be fast, a few 10s of us. */
-	if (! ar5212WaitNFCalComplete(ah, 1000)) {
+	if (!ar5212WaitNFCalComplete(ah, 1000)) {
 		/*
-		 * We timed out waiting for the noisefloor to load, probably due to an
-		 * in-progress rx. Simply return here and allow the load plenty of time
-		 * to complete before the next calibration interval.  We need to avoid
-		 * trying to load -50 (which happens below) while the previous load is
-		 * still in progress as this can cause rx deafness. Instead by returning
-		 * here, the baseband nf cal will just be capped by our present
-		 * noisefloor until the next calibration timer.
+		 * We timed out waiting for the noisefloor to load, probably due
+		 * to an in-progress rx. Simply return here and allow the load
+		 * plenty of time to complete before the next calibration
+		 * interval.  We need to avoid trying to load -50 (which happens
+		 * below) while the previous load is still in progress as this
+		 * can cause rx deafness. Instead by returning here, the
+		 * baseband nf cal will just be capped by our present noisefloor
+		 * until the next calibration timer.
 		 */
-		HALDEBUG(ah, HAL_DEBUG_UNMASKABLE, "Timeout while waiting for "
+		HALDEBUG(ah, HAL_DEBUG_UNMASKABLE,
+		    "Timeout while waiting for "
 		    "nf to load: AR_PHY_AGC_CONTROL=0x%x\n",
 		    OS_REG_READ(ah, AR_PHY_AGC_CONTROL));
 		return AH_FALSE;
@@ -667,15 +668,16 @@ ar5416LoadNF(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	/*
 	 * Restore maxCCAPower register parameter again so that we're not capped
 	 * by the median we just loaded.  This will be initial (and max) value
-	 * of next noise floor calibration the baseband does.  
+	 * of next noise floor calibration the baseband does.
 	 */
-	for (i = 0; i < AR5416_NUM_NF_READINGS; i ++) {
-		/* Don't write to EXT radio CCA registers unless in HT/40 mode */
+	for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
+		/* Don't write to EXT radio CCA registers unless in HT/40 mode
+		 */
 		/* XXX this check should really be cleaner! */
 		if (i > 2 && !IEEE80211_IS_CHAN_HT40(chan))
 			continue;
 
-		if (chainmask & (1 << i)) {	
+		if (chainmask & (1 << i)) {
 			val = OS_REG_READ(ah, ar5416_cca_regs[i]);
 			val &= 0xFFFFFE00;
 			val |= (((uint32_t)(-50) << 1) & 0x1ff);
@@ -695,11 +697,11 @@ ar5416InitNfHistBuff(struct ar5212NfCalHist *h)
 {
 	int i, j;
 
-	for (i = 0; i < AR5416_NUM_NF_READINGS; i ++) {
+	for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
 		h[i].currIndex = 0;
 		h[i].privNF = AR5416_CCA_MAX_GOOD_VALUE;
 		h[i].invalidNFcount = AR512_NF_CAL_HIST_MAX;
-		for (j = 0; j < AR512_NF_CAL_HIST_MAX; j ++)
+		for (j = 0; j < AR512_NF_CAL_HIST_MAX; j++)
 			h[i].nfCalBuffer[j] = AR5416_CCA_MAX_GOOD_VALUE;
 	}
 }
@@ -714,7 +716,7 @@ ar5416UpdateNFHistBuff(struct ath_hal *ah, struct ar5212NfCalHist *h,
 	int i;
 
 	/* XXX TODO: don't record nfarray[] entries for inactive chains */
-	for (i = 0; i < AR5416_NUM_NF_READINGS; i ++) {
+	for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
 		h[i].nfCalBuffer[h[i].currIndex] = nfarray[i];
 
 		if (++h[i].currIndex >= AR512_NF_CAL_HIST_MAX)
@@ -731,49 +733,49 @@ ar5416UpdateNFHistBuff(struct ath_hal *ah, struct ar5212NfCalHist *h,
 			h[i].privNF = ar5212GetNfHistMid(h[i].nfCalBuffer);
 		}
 	}
-}   
+}
 
 static uint16_t
 ar5416GetDefaultNF(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
-        struct ar5416NfLimits *limit;
+	struct ar5416NfLimits *limit;
 
-        if (!chan || IEEE80211_IS_CHAN_2GHZ(chan))
-                limit = &AH5416(ah)->nf_2g;
-        else
-                limit = &AH5416(ah)->nf_5g;
+	if (!chan || IEEE80211_IS_CHAN_2GHZ(chan))
+		limit = &AH5416(ah)->nf_2g;
+	else
+		limit = &AH5416(ah)->nf_5g;
 
-        return limit->nominal;
+	return limit->nominal;
 }
 
 static void
 ar5416SanitizeNF(struct ath_hal *ah, int16_t *nf)
 {
 
-        struct ar5416NfLimits *limit;
-        int i;
+	struct ar5416NfLimits *limit;
+	int i;
 
-        if (IEEE80211_IS_CHAN_2GHZ(AH_PRIVATE(ah)->ah_curchan))
-                limit = &AH5416(ah)->nf_2g;
-        else
-                limit = &AH5416(ah)->nf_5g;
+	if (IEEE80211_IS_CHAN_2GHZ(AH_PRIVATE(ah)->ah_curchan))
+		limit = &AH5416(ah)->nf_2g;
+	else
+		limit = &AH5416(ah)->nf_5g;
 
-        for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
-                if (!nf[i])
-                        continue;
+	for (i = 0; i < AR5416_NUM_NF_READINGS; i++) {
+		if (!nf[i])
+			continue;
 
-                if (nf[i] > limit->max) {
-                        HALDEBUG(ah, HAL_DEBUG_NFCAL,
-                                  "NF[%d] (%d) > MAX (%d), correcting to MAX\n",
-                                  i, nf[i], limit->max);
-                        nf[i] = limit->max;
-                } else if (nf[i] < limit->min) {
-                        HALDEBUG(ah, HAL_DEBUG_NFCAL,
-                                  "NF[%d] (%d) < MIN (%d), correcting to NOM\n",
-                                  i, nf[i], limit->min);
-                        nf[i] = limit->nominal;
-                }
-        }
+		if (nf[i] > limit->max) {
+			HALDEBUG(ah, HAL_DEBUG_NFCAL,
+			    "NF[%d] (%d) > MAX (%d), correcting to MAX\n", i,
+			    nf[i], limit->max);
+			nf[i] = limit->max;
+		} else if (nf[i] < limit->min) {
+			HALDEBUG(ah, HAL_DEBUG_NFCAL,
+			    "NF[%d] (%d) < MIN (%d), correcting to NOM\n", i,
+			    nf[i], limit->min);
+			nf[i] = limit->nominal;
+		}
+	}
 }
 
 /*
@@ -793,12 +795,12 @@ ar5416GetNf(struct ath_hal *ah, struct ieee80211_channel *chan)
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: NF didn't complete in calibration window\n", __func__);
 		nf = 0;
-		retval = -1;	/* NF didn't finish */
+		retval = -1; /* NF didn't finish */
 	} else {
 		/* Finished NF cal, check against threshold */
 		int16_t nfarray[NUM_NOISEFLOOR_READINGS] = { 0 };
 		HAL_CHANNEL_INTERNAL *ichan = ath_hal_checkchannel(ah, chan);
-			
+
 		/* TODO - enhance for multiple chains and ext ch */
 		ath_hal_getNoiseFloor(ah, nfarray);
 		nf = nfarray[0];
@@ -807,8 +809,8 @@ ar5416GetNf(struct ath_hal *ah, struct ieee80211_channel *chan)
 			if (nf > nfThresh) {
 				HALDEBUG(ah, HAL_DEBUG_UNMASKABLE,
 				    "%s: noise floor failed detected; "
-				    "detected %d, threshold %d\n", __func__,
-				    nf, nfThresh);
+				    "detected %d, threshold %d\n",
+				    __func__, nf, nfThresh);
 				/*
 				 * NB: Don't discriminate 2.4 vs 5Ghz, if this
 				 *     happens it indicates a problem regardless
@@ -822,14 +824,16 @@ ar5416GetNf(struct ath_hal *ah, struct ieee80211_channel *chan)
 			nf = 0;
 			retval = 0;
 		}
-		/* Update MIMO channel statistics, regardless of validity or not (for now) */
+		/* Update MIMO channel statistics, regardless of validity or not
+		 * (for now) */
 		for (i = 0; i < 3; i++) {
 			ichan->noiseFloorCtl[i] = nfarray[i];
 			ichan->noiseFloorExt[i] = nfarray[i + 3];
 		}
 		ichan->privFlags |= CHANNEL_MIMO_NF_VALID;
 
-		ar5416UpdateNFHistBuff(ah, AH5416(ah)->ah_cal.nfCalHist, nfarray);
+		ar5416UpdateNFHistBuff(ah, AH5416(ah)->ah_cal.nfCalHist,
+		    nfarray);
 		ichan->rawNoiseFloor = nf;
 		retval = nf;
 	}

@@ -31,10 +31,11 @@
  * buffer for later dumping to disk or extraction from user space.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/kerneldump.h>
@@ -43,10 +44,9 @@
 #include <sys/priv.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_lex.h>
+#include <ddb/ddb.h>
 
 /*
  * While it would be desirable to use a small block-sized buffer and dump
@@ -62,34 +62,32 @@
 static MALLOC_DEFINE(M_DDB_CAPTURE, "ddb_capture", "DDB capture buffer");
 
 #ifndef DDB_CAPTURE_DEFAULTBUFSIZE
-#define	DDB_CAPTURE_DEFAULTBUFSIZE	48*1024
+#define DDB_CAPTURE_DEFAULTBUFSIZE 48 * 1024
 #endif
 #ifndef DDB_CAPTURE_MAXBUFSIZE
-#define	DDB_CAPTURE_MAXBUFSIZE	5*1024*1024
+#define DDB_CAPTURE_MAXBUFSIZE 5 * 1024 * 1024
 #endif
-#define	DDB_CAPTURE_FILENAME	"ddb.txt"	/* Captured DDB output. */
+#define DDB_CAPTURE_FILENAME "ddb.txt" /* Captured DDB output. */
 
 static char *db_capture_buf;
 static u_int db_capture_bufsize = DDB_CAPTURE_DEFAULTBUFSIZE;
 static u_int db_capture_maxbufsize = DDB_CAPTURE_MAXBUFSIZE; /* Read-only. */
-static u_int db_capture_bufoff;		/* Next location to write in buffer. */
-static u_int db_capture_bufpadding;	/* Amount of zero padding. */
-static int db_capture_inpager;		/* Suspend capture in pager. */
-static int db_capture_inprogress;	/* DDB capture currently in progress. */
+static u_int db_capture_bufoff;	    /* Next location to write in buffer. */
+static u_int db_capture_bufpadding; /* Amount of zero padding. */
+static int db_capture_inpager;	    /* Suspend capture in pager. */
+static int db_capture_inprogress;   /* DDB capture currently in progress. */
 
-struct sx db_capture_sx;		/* Lock against user thread races. */
+struct sx db_capture_sx; /* Lock against user thread races. */
 SX_SYSINIT(db_capture_sx, &db_capture_sx, "db_capture_sx");
 
-static SYSCTL_NODE(_debug_ddb, OID_AUTO, capture,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "DDB capture options");
+static SYSCTL_NODE(_debug_ddb, OID_AUTO, capture, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "DDB capture options");
 
 SYSCTL_UINT(_debug_ddb_capture, OID_AUTO, bufoff, CTLFLAG_RD,
     &db_capture_bufoff, 0, "Bytes of data in DDB capture buffer");
 
 SYSCTL_UINT(_debug_ddb_capture, OID_AUTO, maxbufsize, CTLFLAG_RD,
-    &db_capture_maxbufsize, 0,
-    "Maximum value for debug.ddb.capture.bufsize");
+    &db_capture_maxbufsize, 0, "Maximum value for debug.ddb.capture.bufsize");
 
 SYSCTL_INT(_debug_ddb_capture, OID_AUTO, inprogress, CTLFLAG_RD,
     &db_capture_inprogress, 0, "DDB output capture in progress");
@@ -165,9 +163,8 @@ sysctl_debug_ddb_capture_bufsize(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 SYSCTL_PROC(_debug_ddb_capture, OID_AUTO, bufsize,
-    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_NOFETCH | CTLFLAG_MPSAFE,
-    0, 0, sysctl_debug_ddb_capture_bufsize, "IU",
-    "Size of DDB capture buffer");
+    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_NOFETCH | CTLFLAG_MPSAFE, 0, 0,
+    sysctl_debug_ddb_capture_bufsize, "IU", "Size of DDB capture buffer");
 
 /*
  * Sysctl to read out the capture buffer from userspace.  We require
@@ -193,8 +190,7 @@ sysctl_debug_ddb_capture_data(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_debug_ddb_capture, OID_AUTO, data,
     CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    sysctl_debug_ddb_capture_data, "A",
-    "DDB capture data");
+    sysctl_debug_ddb_capture_data, "A", "DDB capture data");
 
 /*
  * Routines for capturing DDB output into a fixed-size buffer.  These are
@@ -248,8 +244,8 @@ db_capture_zeropad(void)
 {
 	u_int len;
 
-	len = min(TEXTDUMP_BLOCKSIZE, (db_capture_bufsize -
-	    db_capture_bufoff) % TEXTDUMP_BLOCKSIZE);
+	len = min(TEXTDUMP_BLOCKSIZE,
+	    (db_capture_bufsize - db_capture_bufoff) % TEXTDUMP_BLOCKSIZE);
 	bzero(db_capture_buf + db_capture_bufoff, len);
 	db_capture_bufpadding = len;
 }
@@ -313,7 +309,7 @@ db_capture_dump(struct dumperinfo *di)
 	    db_capture_bufoff);
 	(void)textdump_writenextblock(di, textdump_block_buffer);
 	for (offset = 0; offset < db_capture_bufoff + db_capture_bufpadding;
-	    offset += TEXTDUMP_BLOCKSIZE)
+	     offset += TEXTDUMP_BLOCKSIZE)
 		(void)textdump_writenextblock(di, db_capture_buf + offset);
 	db_capture_bufoff = 0;
 	db_capture_bufpadding = 0;

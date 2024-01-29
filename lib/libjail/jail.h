@@ -29,23 +29,23 @@
 #ifndef _JAIL_H
 #define _JAIL_H
 
-#define	JP_RAWVALUE	0x01
-#define	JP_BOOL		0x02
-#define	JP_NOBOOL	0x04
-#define	JP_JAILSYS	0x08
+#define JP_RAWVALUE 0x01
+#define JP_BOOL 0x02
+#define JP_NOBOOL 0x04
+#define JP_JAILSYS 0x08
 
-#define JAIL_ERRMSGLEN	1024
+#define JAIL_ERRMSGLEN 1024
 
 extern char jail_errmsg[];
 
 struct jailparam {
-	char		*jp_name;
-	void		*jp_value;
-	size_t		 jp_valuelen;
-	size_t		 jp_elemlen;
-	int		 jp_ctltype;
-	int		 jp_structtype;
-	unsigned	 jp_flags;
+	char *jp_name;
+	void *jp_value;
+	size_t jp_valuelen;
+	size_t jp_elemlen;
+	int jp_ctltype;
+	int jp_structtype;
+	unsigned jp_flags;
 };
 
 __BEGIN_DECLS
@@ -57,7 +57,7 @@ extern int jailparam_all(struct jailparam **jpp);
 extern int jailparam_init(struct jailparam *jp, const char *name);
 extern int jailparam_import(struct jailparam *jp, const char *value);
 extern int jailparam_import_raw(struct jailparam *jp, void *value,
-	       size_t valuelen);
+    size_t valuelen);
 extern int jailparam_set(struct jailparam *jp, unsigned njp, int flags);
 extern int jailparam_get(struct jailparam *jp, unsigned njp, int flags);
 extern char *jailparam_export(struct jailparam *jp);
@@ -65,5 +65,3 @@ extern void jailparam_free(struct jailparam *jp, unsigned njp);
 __END_DECLS
 
 #endif /* _JAIL_H  */
-
-

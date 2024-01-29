@@ -25,56 +25,56 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ofw.h"
 
-#include <sys/param.h>
-#include <sys/kdb.h>
-#include <sys/kernel.h>
-#include <sys/priv.h>
-#include <sys/systm.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/cons.h>
 #include <sys/consio.h>
+#include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/priv.h>
 #include <sys/tty.h>
 
 #include <dev/ofw/openfirm.h>
 
 #include <ddb/ddb.h>
 
-#ifndef	OFWCONS_POLL_HZ
-#define	OFWCONS_POLL_HZ	4	/* 50-100 works best on Ultra2 */
+#ifndef OFWCONS_POLL_HZ
+#define OFWCONS_POLL_HZ 4 /* 50-100 works best on Ultra2 */
 #endif
-#define OFBURSTLEN	128	/* max number of bytes to write in one chunk */
+#define OFBURSTLEN 128 /* max number of bytes to write in one chunk */
 
 static tsw_open_t ofwtty_open;
 static tsw_close_t ofwtty_close;
 static tsw_outwakeup_t ofwtty_outwakeup;
 
 static struct ttydevsw ofw_ttydevsw = {
-	.tsw_flags	= TF_NOPREFIX,
-	.tsw_open	= ofwtty_open,
-	.tsw_close	= ofwtty_close,
-	.tsw_outwakeup	= ofwtty_outwakeup,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_open = ofwtty_open,
+	.tsw_close = ofwtty_close,
+	.tsw_outwakeup = ofwtty_outwakeup,
 };
 
-static int			polltime;
-static struct callout		ofw_timer;
+static int polltime;
+static struct callout ofw_timer;
 
 #if defined(KDB)
-static int			alt_break_state;
+static int alt_break_state;
 #endif
 
-static void	ofw_timeout(void *);
+static void ofw_timeout(void *);
 
-static cn_probe_t	ofw_cnprobe;
-static cn_init_t	ofw_cninit;
-static cn_term_t	ofw_cnterm;
-static cn_getc_t	ofw_cngetc;
-static cn_putc_t	ofw_cnputc;
-static cn_grab_t	ofw_cngrab;
-static cn_ungrab_t	ofw_cnungrab;
+static cn_probe_t ofw_cnprobe;
+static cn_init_t ofw_cninit;
+static cn_term_t ofw_cnterm;
+static cn_getc_t ofw_cngetc;
+static cn_putc_t ofw_cnputc;
+static cn_grab_t ofw_cngrab;
+static cn_ungrab_t ofw_cnungrab;
 
 CONSOLE_DRIVER(ofw);
 
@@ -85,8 +85,7 @@ cn_drvinit(void *unused)
 	char output[32];
 	struct tty *tp;
 
-	if (ofw_consdev.cn_pri != CN_DEAD &&
-	    ofw_consdev.cn_name[0] != '\0') {
+	if (ofw_consdev.cn_pri != CN_DEAD && ofw_consdev.cn_name[0] != '\0') {
 		tp = tty_alloc(&ofw_ttydevsw, NULL);
 		tty_makedev(tp, NULL, "%s", "ofwcons");
 
@@ -96,7 +95,7 @@ cn_drvinit(void *unused)
 		 */
 		if ((options = OF_finddevice("/options")) == -1 ||
 		    OF_getprop(options, "output-device", output,
-		    sizeof(output)) == -1)
+			sizeof(output)) == -1)
 			return;
 		if (strlen(output) > 0)
 			tty_makealias(tp, "%s", output);
@@ -106,8 +105,8 @@ cn_drvinit(void *unused)
 
 SYSINIT(cndev, SI_SUB_CONFIGURE, SI_ORDER_MIDDLE, cn_drvinit, NULL);
 
-static pcell_t	stdin;
-static pcell_t	stdout;
+static pcell_t stdin;
+static pcell_t stdout;
 
 static int
 ofwtty_open(struct tty *tp)
@@ -145,8 +144,8 @@ ofwtty_outwakeup(struct tty *tp)
 static void
 ofw_timeout(void *v)
 {
-	struct	tty *tp;
-	int 	c;
+	struct tty *tp;
+	int c;
 
 	tp = (struct tty *)v;
 

@@ -39,43 +39,44 @@
 #include <sys/bio.h>
 #include <sys/buf.h>
 #include <sys/jail.h>
-#include <sys/vnode.h>
-#include <sys/mount.h>
 #include <sys/kernel.h>
+#include <sys/mount.h>
+#include <sys/vnode.h>
 
-#include <fs/cd9660/iso.h>
 #include <fs/cd9660/cd9660_node.h>
 #include <fs/cd9660/cd9660_rrip.h>
+#include <fs/cd9660/iso.h>
 #include <fs/cd9660/iso_rrip.h>
 
-typedef int	rrt_func_t(void *, ISO_RRIP_ANALYZE *ana);
+typedef int rrt_func_t(void *, ISO_RRIP_ANALYZE *ana);
 
 typedef struct {
 	char type[2];
 	rrt_func_t *func;
-	void (*func2)(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana);
+	void (
+	    *func2)(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana);
 	int result;
 } RRIP_TABLE;
 
-static int	cd9660_rrip_altname(ISO_RRIP_ALTNAME *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_attr(ISO_RRIP_ATTR *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_cont(ISO_RRIP_CONT *p, ISO_RRIP_ANALYZE *ana);
-static void	cd9660_rrip_defattr(struct iso_directory_record *isodir,
-		    ISO_RRIP_ANALYZE *ana);
-static void	cd9660_rrip_defname(struct iso_directory_record *isodir,
-		    ISO_RRIP_ANALYZE *ana);
-static void	cd9660_rrip_deftstamp(struct iso_directory_record *isodir,
-		    ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_device(ISO_RRIP_DEVICE *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_extref(ISO_RRIP_EXTREF *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_idflag(ISO_RRIP_IDFLAG *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_loop(struct iso_directory_record *isodir,
-		    ISO_RRIP_ANALYZE *ana, RRIP_TABLE *table);
-static int	cd9660_rrip_pclink(ISO_RRIP_CLINK *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_reldir(ISO_RRIP_RELDIR *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_slink(ISO_RRIP_SLINK *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_stop(ISO_SUSP_HEADER *p, ISO_RRIP_ANALYZE *ana);
-static int	cd9660_rrip_tstamp(ISO_RRIP_TSTAMP *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_altname(ISO_RRIP_ALTNAME *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_attr(ISO_RRIP_ATTR *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_cont(ISO_RRIP_CONT *p, ISO_RRIP_ANALYZE *ana);
+static void cd9660_rrip_defattr(struct iso_directory_record *isodir,
+    ISO_RRIP_ANALYZE *ana);
+static void cd9660_rrip_defname(struct iso_directory_record *isodir,
+    ISO_RRIP_ANALYZE *ana);
+static void cd9660_rrip_deftstamp(struct iso_directory_record *isodir,
+    ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_device(ISO_RRIP_DEVICE *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_extref(ISO_RRIP_EXTREF *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_idflag(ISO_RRIP_IDFLAG *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_loop(struct iso_directory_record *isodir,
+    ISO_RRIP_ANALYZE *ana, RRIP_TABLE *table);
+static int cd9660_rrip_pclink(ISO_RRIP_CLINK *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_reldir(ISO_RRIP_RELDIR *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_slink(ISO_RRIP_SLINK *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_stop(ISO_SUSP_HEADER *p, ISO_RRIP_ANALYZE *ana);
+static int cd9660_rrip_tstamp(ISO_RRIP_TSTAMP *p, ISO_RRIP_ANALYZE *ana);
 
 /*
  * POSIX file attribute
@@ -96,7 +97,7 @@ cd9660_rrip_defattr(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana)
 {
 	/* But this is a required field! */
 	printf("RRIP without PX field?\n");
-	cd9660_defattr(isodir,ana->inop,NULL,ISO_FTYPE_RRIP);
+	cd9660_defattr(isodir, ana->inop, NULL, ISO_FTYPE_RRIP);
 }
 
 /*
@@ -112,7 +113,8 @@ cd9660_rrip_slink(ISO_RRIP_SLINK *p, ISO_RRIP_ANALYZE *ana)
 	char hostbuf[MAXHOSTNAMELEN];
 
 	pcomp = (ISO_RRIP_SLINK_COMPONENT *)p->component;
-	pcompe = (ISO_RRIP_SLINK_COMPONENT *)((char *)p + isonum_711(p->h.length));
+	pcompe = (ISO_RRIP_SLINK_COMPONENT *)((char *)p +
+	    isonum_711(p->h.length));
 	len = *ana->outlen;
 	outbuf = ana->outbuf;
 	cont = ana->cont;
@@ -120,10 +122,9 @@ cd9660_rrip_slink(ISO_RRIP_SLINK *p, ISO_RRIP_ANALYZE *ana)
 	/*
 	 * Gathering a Symbolic name from each component with path
 	 */
-	for (;
-	     pcomp < pcompe;
-	     pcomp = (ISO_RRIP_SLINK_COMPONENT *)((char *)pcomp + ISO_RRIP_SLSIZ
-						  + isonum_711(pcomp->clen))) {
+	for (; pcomp < pcompe;
+	     pcomp = (ISO_RRIP_SLINK_COMPONENT *)((char *)pcomp +
+		 ISO_RRIP_SLSIZ + isonum_711(pcomp->clen))) {
 		if (!cont) {
 			if (len < ana->maxlen) {
 				len++;
@@ -275,10 +276,9 @@ cd9660_rrip_altname(ISO_RRIP_ALTNAME *p, ISO_RRIP_ANALYZE *ana)
 static void
 cd9660_rrip_defname(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana)
 {
-	isofntrans(isodir->name,isonum_711(isodir->name_len),
-		   ana->outbuf,ana->outlen,
-		   1,isonum_711(isodir->flags)&4, ana->imp->joliet_level,
-		   ana->imp->im_flags, ana->imp->im_d2l);
+	isofntrans(isodir->name, isonum_711(isodir->name_len), ana->outbuf,
+	    ana->outlen, 1, isonum_711(isodir->flags) & 4,
+	    ana->imp->joliet_level, ana->imp->im_flags, ana->imp->im_d2l);
 	switch (*ana->outbuf) {
 	default:
 		break;
@@ -287,7 +287,7 @@ cd9660_rrip_defname(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana)
 		/* FALLTHROUGH */
 	case 0:
 		/* outlen is 1 already */
-		strcpy(ana->outbuf,"..");
+		strcpy(ana->outbuf, "..");
 		break;
 	}
 }
@@ -299,7 +299,7 @@ static int
 cd9660_rrip_pclink(ISO_RRIP_CLINK *p, ISO_RRIP_ANALYZE *ana)
 {
 	*ana->inump = isonum_733(p->dir_loc) << ana->imp->im_bshift;
-	ana->fields &= ~(ISO_SUSP_CLINK|ISO_SUSP_PLINK);
+	ana->fields &= ~(ISO_SUSP_CLINK | ISO_SUSP_PLINK);
 	return *p->h.type == 'C' ? ISO_SUSP_CLINK : ISO_SUSP_PLINK;
 }
 
@@ -312,7 +312,8 @@ cd9660_rrip_reldir(ISO_RRIP_RELDIR *p, ISO_RRIP_ANALYZE *ana)
 	/* special hack to make caller aware of RE field */
 	*ana->outlen = 0;
 	ana->fields = 0;
-	return ISO_SUSP_RELDIR|ISO_SUSP_ALTNAME|ISO_SUSP_CLINK|ISO_SUSP_PLINK;
+	return ISO_SUSP_RELDIR | ISO_SUSP_ALTNAME | ISO_SUSP_CLINK |
+	    ISO_SUSP_PLINK;
 }
 
 static int
@@ -323,48 +324,53 @@ cd9660_rrip_tstamp(ISO_RRIP_TSTAMP *p, ISO_RRIP_ANALYZE *ana)
 	ptime = p->time;
 
 	/* Check a format of time stamp (7bytes/17bytes) */
-	if (!(*p->flags&ISO_SUSP_TSTAMP_FORM17)) {
-		if (*p->flags&ISO_SUSP_TSTAMP_CREAT)
+	if (!(*p->flags & ISO_SUSP_TSTAMP_FORM17)) {
+		if (*p->flags & ISO_SUSP_TSTAMP_CREAT)
 			ptime += 7;
 
-		if (*p->flags&ISO_SUSP_TSTAMP_MODIFY) {
-			cd9660_tstamp_conv7(ptime,&ana->inop->inode.iso_mtime,
-					    ISO_FTYPE_RRIP);
+		if (*p->flags & ISO_SUSP_TSTAMP_MODIFY) {
+			cd9660_tstamp_conv7(ptime, &ana->inop->inode.iso_mtime,
+			    ISO_FTYPE_RRIP);
 			ptime += 7;
 		} else
-			memset(&ana->inop->inode.iso_mtime, 0, sizeof(struct timespec));
+			memset(&ana->inop->inode.iso_mtime, 0,
+			    sizeof(struct timespec));
 
-		if (*p->flags&ISO_SUSP_TSTAMP_ACCESS) {
-			cd9660_tstamp_conv7(ptime,&ana->inop->inode.iso_atime,
-					    ISO_FTYPE_RRIP);
+		if (*p->flags & ISO_SUSP_TSTAMP_ACCESS) {
+			cd9660_tstamp_conv7(ptime, &ana->inop->inode.iso_atime,
+			    ISO_FTYPE_RRIP);
 			ptime += 7;
 		} else
 			ana->inop->inode.iso_atime = ana->inop->inode.iso_mtime;
 
-		if (*p->flags&ISO_SUSP_TSTAMP_ATTR)
-			cd9660_tstamp_conv7(ptime,&ana->inop->inode.iso_ctime,
-					    ISO_FTYPE_RRIP);
+		if (*p->flags & ISO_SUSP_TSTAMP_ATTR)
+			cd9660_tstamp_conv7(ptime, &ana->inop->inode.iso_ctime,
+			    ISO_FTYPE_RRIP);
 		else
 			ana->inop->inode.iso_ctime = ana->inop->inode.iso_mtime;
 
 	} else {
-		if (*p->flags&ISO_SUSP_TSTAMP_CREAT)
+		if (*p->flags & ISO_SUSP_TSTAMP_CREAT)
 			ptime += 17;
 
-		if (*p->flags&ISO_SUSP_TSTAMP_MODIFY) {
-			cd9660_tstamp_conv17(ptime,&ana->inop->inode.iso_mtime);
+		if (*p->flags & ISO_SUSP_TSTAMP_MODIFY) {
+			cd9660_tstamp_conv17(ptime,
+			    &ana->inop->inode.iso_mtime);
 			ptime += 17;
 		} else
-			memset(&ana->inop->inode.iso_mtime, 0, sizeof(struct timespec));
+			memset(&ana->inop->inode.iso_mtime, 0,
+			    sizeof(struct timespec));
 
-		if (*p->flags&ISO_SUSP_TSTAMP_ACCESS) {
-			cd9660_tstamp_conv17(ptime,&ana->inop->inode.iso_atime);
+		if (*p->flags & ISO_SUSP_TSTAMP_ACCESS) {
+			cd9660_tstamp_conv17(ptime,
+			    &ana->inop->inode.iso_atime);
 			ptime += 17;
 		} else
 			ana->inop->inode.iso_atime = ana->inop->inode.iso_mtime;
 
-		if (*p->flags&ISO_SUSP_TSTAMP_ATTR)
-			cd9660_tstamp_conv17(ptime,&ana->inop->inode.iso_ctime);
+		if (*p->flags & ISO_SUSP_TSTAMP_ATTR)
+			cd9660_tstamp_conv17(ptime,
+			    &ana->inop->inode.iso_ctime);
 		else
 			ana->inop->inode.iso_ctime = ana->inop->inode.iso_mtime;
 	}
@@ -376,7 +382,7 @@ static void
 cd9660_rrip_deftstamp(struct iso_directory_record *isodir,
     ISO_RRIP_ANALYZE *ana)
 {
-	cd9660_deftstamp(isodir,ana->inop,NULL,ISO_FTYPE_RRIP);
+	cd9660_deftstamp(isodir, ana->inop, NULL, ISO_FTYPE_RRIP);
 }
 
 /*
@@ -388,7 +394,7 @@ cd9660_rrip_device(ISO_RRIP_DEVICE *p, ISO_RRIP_ANALYZE *ana)
 	u_int high, low;
 
 	high = isonum_733(p->dev_t_high);
-	low  = isonum_733(p->dev_t_low);
+	low = isonum_733(p->dev_t_low);
 
 	if (high == 0)
 		ana->inop->inode.iso_rdev = makedev(major(low), minor(low));
@@ -404,10 +410,10 @@ cd9660_rrip_device(ISO_RRIP_DEVICE *p, ISO_RRIP_ANALYZE *ana)
 static int
 cd9660_rrip_idflag(ISO_RRIP_IDFLAG *p, ISO_RRIP_ANALYZE *ana)
 {
-	ana->fields &= isonum_711(p->flags)|~0xff; /* don't touch high bits */
+	ana->fields &= isonum_711(p->flags) | ~0xff; /* don't touch high bits */
 	/* special handling of RE field */
-	if (ana->fields&ISO_SUSP_RELDIR)
-		return cd9660_rrip_reldir(/* XXX */ (ISO_RRIP_RELDIR *)p,ana);
+	if (ana->fields & ISO_SUSP_RELDIR)
+		return cd9660_rrip_reldir(/* XXX */ (ISO_RRIP_RELDIR *)p, ana);
 
 	return ISO_SUSP_IDFLAG;
 }
@@ -439,13 +445,13 @@ cd9660_rrip_stop(ISO_SUSP_HEADER *p, ISO_RRIP_ANALYZE *ana)
 static int
 cd9660_rrip_extref(ISO_RRIP_EXTREF *p, ISO_RRIP_ANALYZE *ana)
 {
-	if ( ! ((isonum_711(p->len_id) == 10
-	      && bcmp((char *)p + 8,"RRIP_1991A",10) == 0)
-	    || (isonum_711(p->len_id) == 10
-	      && bcmp((char *)p + 8,"IEEE_P1282",10) == 0)
-	    || (isonum_711(p->len_id) ==  9
-	      && bcmp((char *)p + 8,"IEEE_1282",  9) == 0))
-	    || isonum_711(p->version) != 1)
+	if (!((isonum_711(p->len_id) == 10 &&
+		  bcmp((char *)p + 8, "RRIP_1991A", 10) == 0) ||
+		(isonum_711(p->len_id) == 10 &&
+		    bcmp((char *)p + 8, "IEEE_P1282", 10) == 0) ||
+		(isonum_711(p->len_id) == 9 &&
+		    bcmp((char *)p + 8, "IEEE_1282", 9) == 0)) ||
+	    isonum_711(p->version) != 1)
 		return 0;
 	ana->fields &= ~ISO_SUSP_EXTREF;
 	return ISO_SUSP_EXTREF;
@@ -468,10 +474,10 @@ cd9660_rrip_loop(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana,
 	 *	 it will be padding 1 byte after the name
 	 */
 	pwhead = isodir->name + isonum_711(isodir->name_len);
-	if (!(isonum_711(isodir->name_len)&1))
+	if (!(isonum_711(isodir->name_len) & 1))
 		pwhead++;
 	isochar(isodir->name, pwhead, ana->imp->joliet_level, &c, NULL,
-		ana->imp->im_flags, ana->imp->im_d2l);
+	    ana->imp->im_flags, ana->imp->im_d2l);
 
 	/* If it's not the '.' entry of the root dir obey SP field */
 	if (c != 0 || isonum_733(isodir->extent) != ana->imp->root_extent)
@@ -491,16 +497,17 @@ cd9660_rrip_loop(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana,
 		while (pend >= phead + 1) {
 			if (isonum_711(phead->version) == 1) {
 				for (ptable = table; ptable->func; ptable++) {
-					if (*phead->type == *ptable->type
-					    && phead->type[1] == ptable->type[1]) {
-						result |= ptable->func(phead,ana);
+					if (*phead->type == *ptable->type &&
+					    phead->type[1] == ptable->type[1]) {
+						result |= ptable->func(phead,
+						    ana);
 						break;
 					}
 				}
 				if (!ana->fields)
 					break;
 			}
-			if (result&ISO_SUSP_STOP) {
+			if (result & ISO_SUSP_STOP) {
 				result &= ~ISO_SUSP_STOP;
 				break;
 			}
@@ -511,26 +518,29 @@ cd9660_rrip_loop(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana,
 			 * move to next SUSP
 			 * Hopefully this works with newer versions, too
 			 */
-			phead = (ISO_SUSP_HEADER *)((char *)phead + isonum_711(phead->length));
+			phead = (ISO_SUSP_HEADER *)((char *)phead +
+			    isonum_711(phead->length));
 		}
 
 		if (ana->fields && ana->iso_ce_len) {
 			if (ana->iso_ce_blk >= ana->imp->volume_space_size ||
 			    ana->iso_ce_off + ana->iso_ce_len >
-			    ana->imp->logical_block_size)
+				ana->imp->logical_block_size)
 				break;
 			if (bp != NULL) {
 				brelse(bp);
 				bp = NULL;
 			}
 			if (bread(ana->imp->im_devvp,
-			    ana->iso_ce_blk <<
-			    (ana->imp->im_bshift - DEV_BSHIFT),
-			    ana->imp->logical_block_size, NOCRED, &bp) != 0)
+				ana->iso_ce_blk
+				    << (ana->imp->im_bshift - DEV_BSHIFT),
+				ana->imp->logical_block_size, NOCRED, &bp) != 0)
 				/* what to do now? */
 				break;
-			phead = (ISO_SUSP_HEADER *)(bp->b_data + ana->iso_ce_off);
-			pend = (ISO_SUSP_HEADER *) ((char *)phead + ana->iso_ce_len);
+			phead = (ISO_SUSP_HEADER *)(bp->b_data +
+			    ana->iso_ce_off);
+			pend = (ISO_SUSP_HEADER *)((char *)phead +
+			    ana->iso_ce_len);
 		} else
 			break;
 	}
@@ -541,8 +551,8 @@ cd9660_rrip_loop(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana,
 	 *   (attribute/time stamp)
 	 */
 	for (ptable = table; ptable->func2; ptable++)
-		if (!(ptable->result&result))
-			ptable->func2(isodir,ana);
+		if (!(ptable->result & result))
+			ptable->func2(isodir, ana);
 
 	return result;
 }
@@ -553,15 +563,14 @@ cd9660_rrip_loop(struct iso_directory_record *isodir, ISO_RRIP_ANALYZE *ana,
 /*
  * XXX the casts are bogus but will do for now.
  */
-#define	BC	(rrt_func_t *)
+#define BC (rrt_func_t *)
 static RRIP_TABLE rrip_table_analyze[] = {
-	{ "PX", BC cd9660_rrip_attr,	cd9660_rrip_defattr,	ISO_SUSP_ATTR },
-	{ "TF", BC cd9660_rrip_tstamp,	cd9660_rrip_deftstamp,	ISO_SUSP_TSTAMP },
-	{ "PN", BC cd9660_rrip_device,	0,			ISO_SUSP_DEVICE },
-	{ "RR", BC cd9660_rrip_idflag,	0,			ISO_SUSP_IDFLAG },
-	{ "CE", BC cd9660_rrip_cont,	0,			ISO_SUSP_CONT },
-	{ "ST", BC cd9660_rrip_stop,	0,			ISO_SUSP_STOP },
-	{ "",	0,			0,			0 }
+	{ "PX", BC cd9660_rrip_attr, cd9660_rrip_defattr, ISO_SUSP_ATTR },
+	{ "TF", BC cd9660_rrip_tstamp, cd9660_rrip_deftstamp, ISO_SUSP_TSTAMP },
+	{ "PN", BC cd9660_rrip_device, 0, ISO_SUSP_DEVICE },
+	{ "RR", BC cd9660_rrip_idflag, 0, ISO_SUSP_IDFLAG },
+	{ "CE", BC cd9660_rrip_cont, 0, ISO_SUSP_CONT },
+	{ "ST", BC cd9660_rrip_stop, 0, ISO_SUSP_STOP }, { "", 0, 0, 0 }
 };
 
 int
@@ -572,23 +581,22 @@ cd9660_rrip_analyze(struct iso_directory_record *isodir, struct iso_node *inop,
 
 	analyze.inop = inop;
 	analyze.imp = imp;
-	analyze.fields = ISO_SUSP_ATTR|ISO_SUSP_TSTAMP|ISO_SUSP_DEVICE;
+	analyze.fields = ISO_SUSP_ATTR | ISO_SUSP_TSTAMP | ISO_SUSP_DEVICE;
 
-	return cd9660_rrip_loop(isodir,&analyze,rrip_table_analyze);
+	return cd9660_rrip_loop(isodir, &analyze, rrip_table_analyze);
 }
 
 /*
  * Get Alternate Name.
  */
 static RRIP_TABLE rrip_table_getname[] = {
-	{ "NM", BC cd9660_rrip_altname,	cd9660_rrip_defname,	ISO_SUSP_ALTNAME },
-	{ "CL", BC cd9660_rrip_pclink,	0,			ISO_SUSP_CLINK|ISO_SUSP_PLINK },
-	{ "PL", BC cd9660_rrip_pclink,	0,			ISO_SUSP_CLINK|ISO_SUSP_PLINK },
-	{ "RE", BC cd9660_rrip_reldir,	0,			ISO_SUSP_RELDIR },
-	{ "RR", BC cd9660_rrip_idflag,	0,			ISO_SUSP_IDFLAG },
-	{ "CE", BC cd9660_rrip_cont,	0,			ISO_SUSP_CONT },
-	{ "ST", BC cd9660_rrip_stop,	0,			ISO_SUSP_STOP },
-	{ "",	0,			0,			0 }
+	{ "NM", BC cd9660_rrip_altname, cd9660_rrip_defname, ISO_SUSP_ALTNAME },
+	{ "CL", BC cd9660_rrip_pclink, 0, ISO_SUSP_CLINK | ISO_SUSP_PLINK },
+	{ "PL", BC cd9660_rrip_pclink, 0, ISO_SUSP_CLINK | ISO_SUSP_PLINK },
+	{ "RE", BC cd9660_rrip_reldir, 0, ISO_SUSP_RELDIR },
+	{ "RR", BC cd9660_rrip_idflag, 0, ISO_SUSP_IDFLAG },
+	{ "CE", BC cd9660_rrip_cont, 0, ISO_SUSP_CONT },
+	{ "ST", BC cd9660_rrip_stop, 0, ISO_SUSP_STOP }, { "", 0, 0, 0 }
 };
 
 int
@@ -604,32 +612,31 @@ cd9660_rrip_getname(struct iso_directory_record *isodir, char *outbuf,
 	analyze.maxlen = NAME_MAX;
 	analyze.inump = inump;
 	analyze.imp = imp;
-	analyze.fields = ISO_SUSP_ALTNAME|ISO_SUSP_RELDIR|ISO_SUSP_CLINK|ISO_SUSP_PLINK;
+	analyze.fields = ISO_SUSP_ALTNAME | ISO_SUSP_RELDIR | ISO_SUSP_CLINK |
+	    ISO_SUSP_PLINK;
 	*outlen = 0;
 
 	isochar(isodir->name, isodir->name + isonum_711(isodir->name_len),
-		imp->joliet_level, &c, NULL, imp->im_flags, imp->im_d2l);
+	    imp->joliet_level, &c, NULL, imp->im_flags, imp->im_d2l);
 	tab = rrip_table_getname;
 	if (c == 0 || c == 1) {
-		cd9660_rrip_defname(isodir,&analyze);
+		cd9660_rrip_defname(isodir, &analyze);
 
 		analyze.fields &= ~ISO_SUSP_ALTNAME;
 		tab++;
 	}
 
-	return cd9660_rrip_loop(isodir,&analyze,tab);
+	return cd9660_rrip_loop(isodir, &analyze, tab);
 }
 
 /*
  * Get Symbolic Link.
  */
-static RRIP_TABLE rrip_table_getsymname[] = {
-	{ "SL", BC cd9660_rrip_slink,	0,			ISO_SUSP_SLINK },
-	{ "RR", BC cd9660_rrip_idflag,	0,			ISO_SUSP_IDFLAG },
-	{ "CE", BC cd9660_rrip_cont,	0,			ISO_SUSP_CONT },
-	{ "ST", BC cd9660_rrip_stop,	0,			ISO_SUSP_STOP },
-	{ "",	0,			0,			0 }
-};
+static RRIP_TABLE rrip_table_getsymname[] = { { "SL", BC cd9660_rrip_slink, 0,
+						  ISO_SUSP_SLINK },
+	{ "RR", BC cd9660_rrip_idflag, 0, ISO_SUSP_IDFLAG },
+	{ "CE", BC cd9660_rrip_cont, 0, ISO_SUSP_CONT },
+	{ "ST", BC cd9660_rrip_stop, 0, ISO_SUSP_STOP }, { "", 0, 0, 0 } };
 
 int
 cd9660_rrip_getsymname(struct iso_directory_record *isodir, char *outbuf,
@@ -641,19 +648,18 @@ cd9660_rrip_getsymname(struct iso_directory_record *isodir, char *outbuf,
 	analyze.outlen = outlen;
 	*outlen = 0;
 	analyze.maxlen = MAXPATHLEN;
-	analyze.cont = 1;		/* don't start with a slash */
+	analyze.cont = 1; /* don't start with a slash */
 	analyze.imp = imp;
 	analyze.fields = ISO_SUSP_SLINK;
 
-	return (cd9660_rrip_loop(isodir,&analyze,rrip_table_getsymname)&ISO_SUSP_SLINK);
+	return (cd9660_rrip_loop(isodir, &analyze, rrip_table_getsymname) &
+	    ISO_SUSP_SLINK);
 }
 
-static RRIP_TABLE rrip_table_extref[] = {
-	{ "ER", BC cd9660_rrip_extref,	0,			ISO_SUSP_EXTREF },
-	{ "CE", BC cd9660_rrip_cont,	0,			ISO_SUSP_CONT },
-	{ "ST", BC cd9660_rrip_stop,	0,			ISO_SUSP_STOP },
-	{ "",	0,			0,			0 }
-};
+static RRIP_TABLE rrip_table_extref[] = { { "ER", BC cd9660_rrip_extref, 0,
+					      ISO_SUSP_EXTREF },
+	{ "CE", BC cd9660_rrip_cont, 0, ISO_SUSP_CONT },
+	{ "ST", BC cd9660_rrip_stop, 0, ISO_SUSP_STOP }, { "", 0, 0, 0 } };
 
 /*
  * Check for Rock Ridge Extension and return offset of its fields.
@@ -667,17 +673,18 @@ cd9660_rrip_offset(struct iso_directory_record *isodir, struct iso_mnt *imp)
 
 	imp->rr_skip0 = 0;
 	p = (ISO_RRIP_OFFSET *)(isodir->name + 1);
-	if (bcmp(p,"SP\7\1\276\357",6)) {
+	if (bcmp(p, "SP\7\1\276\357", 6)) {
 		/* Maybe, it's a CDROM XA disc? */
 		imp->rr_skip0 = 15;
 		p = (ISO_RRIP_OFFSET *)((char *)p + 15);
-		if (bcmp(p,"SP\7\1\276\357",6))
+		if (bcmp(p, "SP\7\1\276\357", 6))
 			return -1;
 	}
 
 	analyze.imp = imp;
 	analyze.fields = ISO_SUSP_EXTREF;
-	if (!(cd9660_rrip_loop(isodir,&analyze,rrip_table_extref)&ISO_SUSP_EXTREF))
+	if (!(cd9660_rrip_loop(isodir, &analyze, rrip_table_extref) &
+		ISO_SUSP_EXTREF))
 		return -1;
 
 	return isonum_711(p->skip);

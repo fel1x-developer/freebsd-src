@@ -31,16 +31,19 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
 #include <machine/pci_cfgreg.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 struct pcie_mcfg_region {
 	char *base;
@@ -49,16 +52,16 @@ struct pcie_mcfg_region {
 	uint8_t maxbus;
 };
 
-static uint32_t	pci_docfgregread(int domain, int bus, int slot, int func,
-		    int reg, int bytes);
+static uint32_t pci_docfgregread(int domain, int bus, int slot, int func,
+    int reg, int bytes);
 static struct pcie_mcfg_region *pcie_lookup_region(int domain, int bus);
-static int	pciereg_cfgread(struct pcie_mcfg_region *region, int bus,
-		    unsigned slot, unsigned func, unsigned reg, unsigned bytes);
-static void	pciereg_cfgwrite(struct pcie_mcfg_region *region, int bus,
-		    unsigned slot, unsigned func, unsigned reg, int data,
-		    unsigned bytes);
-static int	pcireg_cfgread(int bus, int slot, int func, int reg, int bytes);
-static void	pcireg_cfgwrite(int bus, int slot, int func, int reg, int data, int bytes);
+static int pciereg_cfgread(struct pcie_mcfg_region *region, int bus,
+    unsigned slot, unsigned func, unsigned reg, unsigned bytes);
+static void pciereg_cfgwrite(struct pcie_mcfg_region *region, int bus,
+    unsigned slot, unsigned func, unsigned reg, int data, unsigned bytes);
+static int pcireg_cfgread(int bus, int slot, int func, int reg, int bytes);
+static void pcireg_cfgwrite(int bus, int slot, int func, int reg, int data,
+    int bytes);
 
 SYSCTL_DECL(_hw_pci);
 
@@ -118,7 +121,7 @@ pci_docfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 		return (-1);
 }
 
-/* 
+/*
  * Read configuration space register
  */
 u_int32_t
@@ -144,8 +147,8 @@ pci_cfgregread(int domain, int bus, int slot, int func, int reg, int bytes)
 	return (pci_docfgregread(domain, bus, slot, func, reg, bytes));
 }
 
-/* 
- * Write configuration space register 
+/*
+ * Write configuration space register
  */
 void
 pci_cfgregwrite(int domain, int bus, int slot, int func, int reg, uint32_t data,
@@ -171,7 +174,7 @@ pci_cfgregwrite(int domain, int bus, int slot, int func, int reg, uint32_t data,
 		pcireg_cfgwrite(bus, slot, func, reg, data, bytes);
 }
 
-/* 
+/*
  * Configuration space access using direct register operations
  */
 
@@ -182,10 +185,11 @@ pci_cfgenable(unsigned bus, unsigned slot, unsigned func, int reg, int bytes)
 	int dataport = 0;
 
 	if (bus <= PCI_BUSMAX && slot <= PCI_SLOTMAX && func <= PCI_FUNCMAX &&
-	    (unsigned)reg <= PCI_REGMAX && bytes != 3 &&
-	    (unsigned)bytes <= 4 && (reg & (bytes - 1)) == 0) {
-		outl(CONF1_ADDR_PORT, (1U << 31) | (bus << 16) | (slot << 11) 
-		    | (func << 8) | (reg & ~0x03));
+	    (unsigned)reg <= PCI_REGMAX && bytes != 3 && (unsigned)bytes <= 4 &&
+	    (reg & (bytes - 1)) == 0) {
+		outl(CONF1_ADDR_PORT,
+		    (1U << 31) | (bus << 16) | (slot << 11) | (func << 8) |
+			(reg & ~0x03));
 		dataport = CONF1_DATA_PORT + (reg & 0x03);
 	}
 	return (dataport);
@@ -286,8 +290,8 @@ pcie_cfgregopen(uint64_t base, uint16_t domain, uint8_t minbus, uint8_t maxbus)
 		return (0);
 
 	if (bootverbose)
-		printf("PCI: MCFG domain %u bus %u-%u base @ 0x%lx\n",
-		    domain, minbus, maxbus, base);
+		printf("PCI: MCFG domain %u bus %u-%u base @ 0x%lx\n", domain,
+		    minbus, maxbus, base);
 
 	/* Resize the array. */
 	mcfg_regions = realloc(mcfg_regions,
@@ -296,7 +300,8 @@ pcie_cfgregopen(uint64_t base, uint16_t domain, uint8_t minbus, uint8_t maxbus)
 	region = &mcfg_regions[mcfg_numregions];
 
 	/* XXX: We should make sure this really fits into the direct map. */
-	region->base = pmap_mapdev_pciecfg(base + (minbus << 20), (maxbus + 1 - minbus) << 20);
+	region->base = pmap_mapdev_pciecfg(base + (minbus << 20),
+	    (maxbus + 1 - minbus) << 20);
 	region->domain = domain;
 	region->minbus = minbus;
 	region->maxbus = maxbus;
@@ -310,12 +315,10 @@ pcie_cfgregopen(uint64_t base, uint16_t domain, uint8_t minbus, uint8_t maxbus)
 	return (1);
 }
 
-#define PCIE_VADDR(base, reg, bus, slot, func)	\
-	((base)				+	\
-	((((bus) & 0xff) << 20)		|	\
-	(((slot) & 0x1f) << 15)		|	\
-	(((func) & 0x7) << 12)		|	\
-	((reg) & 0xfff)))
+#define PCIE_VADDR(base, reg, bus, slot, func)                  \
+	((base) +                                               \
+	    ((((bus) & 0xff) << 20) | (((slot) & 0x1f) << 15) | \
+		(((func) & 0x7) << 12) | ((reg) & 0xfff)))
 
 /*
  * AMD BIOS And Kernel Developer's Guides for CPU families starting with 10h
@@ -341,16 +344,19 @@ pciereg_cfgread(struct pcie_mcfg_region *region, int bus, unsigned slot,
 
 	switch (bytes) {
 	case 4:
-		__asm("movl %1, %0" : "=a" (data)
-		    : "m" (*(volatile uint32_t *)va));
+		__asm("movl %1, %0"
+		      : "=a"(data)
+		      : "m"(*(volatile uint32_t *)va));
 		break;
 	case 2:
-		__asm("movzwl %1, %0" : "=a" (data)
-		    : "m" (*(volatile uint16_t *)va));
+		__asm("movzwl %1, %0"
+		      : "=a"(data)
+		      : "m"(*(volatile uint16_t *)va));
 		break;
 	case 1:
-		__asm("movzbl %1, %0" : "=a" (data)
-		    : "m" (*(volatile uint8_t *)va));
+		__asm("movzbl %1, %0"
+		      : "=a"(data)
+		      : "m"(*(volatile uint8_t *)va));
 		break;
 	}
 
@@ -372,16 +378,19 @@ pciereg_cfgwrite(struct pcie_mcfg_region *region, int bus, unsigned slot,
 
 	switch (bytes) {
 	case 4:
-		__asm("movl %1, %0" : "=m" (*(volatile uint32_t *)va)
-		    : "a" (data));
+		__asm("movl %1, %0"
+		      : "=m"(*(volatile uint32_t *)va)
+		      : "a"(data));
 		break;
 	case 2:
-		__asm("movw %1, %0" : "=m" (*(volatile uint16_t *)va)
-		    : "a" ((uint16_t)data));
+		__asm("movw %1, %0"
+		      : "=m"(*(volatile uint16_t *)va)
+		      : "a"((uint16_t)data));
 		break;
 	case 1:
-		__asm("movb %1, %0" : "=m" (*(volatile uint8_t *)va)
-		    : "a" ((uint8_t)data));
+		__asm("movb %1, %0"
+		      : "=m"(*(volatile uint8_t *)va)
+		      : "a"((uint8_t)data));
 		break;
 	}
 }

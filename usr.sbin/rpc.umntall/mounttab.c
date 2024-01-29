@@ -30,12 +30,11 @@
 #include <sys/cdefs.h>
 #include <sys/syslog.h>
 
-#include <rpc/rpc.h>
-#include <rpcsvc/mount.h>
-
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/mount.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,8 +58,8 @@ add_mtab(char *hostp, char *dirp)
 	if ((mtabfile = fopen(PATH_MOUNTTAB, "a")) == NULL)
 		return (0);
 	else {
-		fprintf(mtabfile, "%ld\t%s\t%s\n",
-		    (long)time(NULL), hostp, dirp);
+		fprintf(mtabfile, "%ld\t%s\t%s\n", (long)time(NULL), hostp,
+		    dirp);
 		fclose(mtabfile);
 		return (1);
 	}
@@ -116,7 +115,7 @@ read_mtab(void)
 			continue;
 		}
 		actiontime = ultmp;
-		if ((mtabp = malloc(sizeof (struct mtablist))) == NULL) {
+		if ((mtabp = malloc(sizeof(struct mtablist))) == NULL) {
 			syslog(LOG_ERR, "malloc");
 			fclose(mtabfile);
 			return (0);
@@ -147,7 +146,7 @@ write_mtab(int verbose)
 
 	if ((mtabfile = fopen(PATH_MOUNTTAB, "w")) == NULL) {
 		syslog(LOG_ERR, "can't write to %s", PATH_MOUNTTAB);
-			return (0);
+		return (0);
 	}
 	line = 0;
 	for (mtabp = mtabhead; mtabp != NULL; mtabp = mtabp->mtab_next) {
@@ -161,12 +160,11 @@ write_mtab(int verbose)
 		if (mp != NULL)
 			continue;
 
-		fprintf(mtabfile, "%ld\t%s\t%s\n",
-		    (long)mtabp->mtab_time, mtabp->mtab_host,
-		    mtabp->mtab_dirp);
+		fprintf(mtabfile, "%ld\t%s\t%s\n", (long)mtabp->mtab_time,
+		    mtabp->mtab_host, mtabp->mtab_dirp);
 		if (verbose)
-			warnx("write mounttab entry %s:%s",
-			    mtabp->mtab_host, mtabp->mtab_dirp);
+			warnx("write mounttab entry %s:%s", mtabp->mtab_host,
+			    mtabp->mtab_dirp);
 		line++;
 	}
 	fclose(mtabfile);
@@ -198,8 +196,8 @@ clean_mtab(char *hostp, char *dirp, int verbose)
 
 		if (verbose)
 			warnx("delete mounttab entry%s %s:%s",
-			    (dirp == NULL) ? " by host" : "",
-			    mtabp->mtab_host, mtabp->mtab_dirp);
+			    (dirp == NULL) ? " by host" : "", mtabp->mtab_host,
+			    mtabp->mtab_dirp);
 		bzero(mtabp->mtab_host, MNTNAMLEN);
 	}
 	free(host);

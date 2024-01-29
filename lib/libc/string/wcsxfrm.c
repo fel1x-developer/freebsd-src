@@ -36,15 +36,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "collate.h"
 
 size_t
-wcsxfrm_l(wchar_t * __restrict dest, const wchar_t * __restrict src, size_t len, locale_t locale)
+wcsxfrm_l(wchar_t *__restrict dest, const wchar_t *__restrict src, size_t len,
+    locale_t locale)
 {
 	size_t slen;
 	FIX_LOCALE(locale);
-	struct xlocale_collate *table =
-		(struct xlocale_collate*)locale->components[XLC_COLLATE];
+	struct xlocale_collate *table = (struct xlocale_collate *)
+					    locale->components[XLC_COLLATE];
 
 	if (*src == L'\0') {
 		if (len != 0)
@@ -61,7 +63,7 @@ wcsxfrm_l(wchar_t * __restrict dest, const wchar_t * __restrict src, size_t len,
 	if (len > slen) {
 		dest[slen] = 0;
 	} else if (len) {
-		dest[len-1] = 0;
+		dest[len - 1] = 0;
 	}
 
 	return (slen);
@@ -69,16 +71,16 @@ wcsxfrm_l(wchar_t * __restrict dest, const wchar_t * __restrict src, size_t len,
 error:
 	slen = wcslen(src);
 	if (slen < len)
-		(void) wcscpy(dest, src);
+		(void)wcscpy(dest, src);
 	else if (len > 0) {
-		(void) wcsncpy(dest, src, len - 1);
+		(void)wcsncpy(dest, src, len - 1);
 		dest[len - 1] = L'\0';
 	}
 	return (slen);
 }
 
 size_t
-wcsxfrm(wchar_t * __restrict dest, const wchar_t * __restrict src, size_t len)
+wcsxfrm(wchar_t *__restrict dest, const wchar_t *__restrict src, size_t len)
 {
 	return wcsxfrm_l(dest, src, len, __get_locale());
 }

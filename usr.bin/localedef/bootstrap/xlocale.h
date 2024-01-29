@@ -49,5 +49,5 @@
 #error "Dummy xlocale.h included inside bootstrapping namespace context"
 #endif
 
-typedef	struct __dummy_host_locale	*__locale_t;
-typedef	__locale_t			locale_t;
+typedef struct __dummy_host_locale *__locale_t;
+typedef __locale_t locale_t;

@@ -40,21 +40,19 @@
 #include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/sockopt.h>
-#include <sys/syslog.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/route.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
-#include <netinet/ip_var.h>
 #include <netinet/ip_fw.h>
+#include <netinet/ip_var.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/ip6_var.h>
 #include <netinet6/ip_fw_nat64.h>
-
 #include <netpfil/ipfw/ip_fw_private.h>
 
 #include "nat64clat.h"
@@ -174,8 +172,8 @@ nat64clat_create(struct ip_fw_chain *ch, ip_fw3_opheader *op3,
 	cfg->base.plat_plen = uc->plat_plen;
 	cfg->base.clat_prefix = uc->clat_prefix;
 	cfg->base.clat_plen = uc->clat_plen;
-	cfg->base.flags = (uc->flags & NAT64CLAT_FLAGSMASK) |
-	    NAT64_CLATPFX | NAT64_PLATPFX;
+	cfg->base.flags = (uc->flags & NAT64CLAT_FLAGSMASK) | NAT64_CLATPFX |
+	    NAT64_PLATPFX;
 	if (IN6_IS_ADDR_WKPFX(&cfg->base.plat_prefix))
 		cfg->base.flags |= NAT64_WKPFX;
 
@@ -377,14 +375,14 @@ nat64clat_list(struct ip_fw_chain *ch, ip_fw3_opheader *op3,
 	memset(&da, 0, sizeof(da));
 	da.ch = ch;
 	da.sd = sd;
-	ipfw_objhash_foreach_type(CHAIN_TO_SRV(ch), export_config_cb,
-	    &da, IPFW_TLV_NAT64CLAT_NAME);
+	ipfw_objhash_foreach_type(CHAIN_TO_SRV(ch), export_config_cb, &da,
+	    IPFW_TLV_NAT64CLAT_NAME);
 	IPFW_UH_RUNLOCK(ch);
 
 	return (0);
 }
 
-#define	__COPY_STAT_FIELD(_cfg, _stats, _field)	\
+#define __COPY_STAT_FIELD(_cfg, _stats, _field) \
 	(_stats)->_field = NAT64STAT_FETCH(&(_cfg)->base.stats, _field)
 static void
 export_stats(struct ip_fw_chain *ch, struct nat64clat_cfg *cfg,
@@ -483,13 +481,13 @@ nat64clat_reset_stats(struct ip_fw_chain *ch, ip_fw3_opheader *op,
 	return (0);
 }
 
-static struct ipfw_sopt_handler	scodes[] = {
-	{ IP_FW_NAT64CLAT_CREATE, 0,	HDIR_SET,	nat64clat_create },
-	{ IP_FW_NAT64CLAT_DESTROY,0,	HDIR_SET,	nat64clat_destroy },
-	{ IP_FW_NAT64CLAT_CONFIG, 0,	HDIR_BOTH,	nat64clat_config },
-	{ IP_FW_NAT64CLAT_LIST,   0,	HDIR_GET,	nat64clat_list },
-	{ IP_FW_NAT64CLAT_STATS,  0,	HDIR_GET,	nat64clat_stats },
-	{ IP_FW_NAT64CLAT_RESET_STATS,0,	HDIR_SET,	nat64clat_reset_stats },
+static struct ipfw_sopt_handler scodes[] = {
+	{ IP_FW_NAT64CLAT_CREATE, 0, HDIR_SET, nat64clat_create },
+	{ IP_FW_NAT64CLAT_DESTROY, 0, HDIR_SET, nat64clat_destroy },
+	{ IP_FW_NAT64CLAT_CONFIG, 0, HDIR_BOTH, nat64clat_config },
+	{ IP_FW_NAT64CLAT_LIST, 0, HDIR_GET, nat64clat_list },
+	{ IP_FW_NAT64CLAT_STATS, 0, HDIR_GET, nat64clat_stats },
+	{ IP_FW_NAT64CLAT_RESET_STATS, 0, HDIR_SET, nat64clat_reset_stats },
 };
 
 static int
@@ -498,8 +496,7 @@ nat64clat_classify(ipfw_insn *cmd, uint16_t *puidx, uint8_t *ptype)
 	ipfw_insn *icmd;
 
 	icmd = cmd - 1;
-	if (icmd->opcode != O_EXTERNAL_ACTION ||
-	    icmd->arg1 != V_nat64clat_eid)
+	if (icmd->opcode != O_EXTERNAL_ACTION || icmd->arg1 != V_nat64clat_eid)
 		return (1);
 
 	*puidx = cmd->arg1;
@@ -550,13 +547,13 @@ nat64clat_manage_sets(struct ip_fw_chain *ch, uint16_t set, uint8_t new_set,
 
 static struct opcode_obj_rewrite opcodes[] = {
 	{
-		.opcode = O_EXTERNAL_INSTANCE,
-		.etlv = IPFW_TLV_EACTION /* just show it isn't table */,
-		.classifier = nat64clat_classify,
-		.update = nat64clat_update_arg1,
-		.find_byname = nat64clat_findbyname,
-		.find_bykidx = nat64clat_findbykidx,
-		.manage_sets = nat64clat_manage_sets,
+	    .opcode = O_EXTERNAL_INSTANCE,
+	    .etlv = IPFW_TLV_EACTION /* just show it isn't table */,
+	    .classifier = nat64clat_classify,
+	    .update = nat64clat_update_arg1,
+	    .find_byname = nat64clat_findbyname,
+	    .find_bykidx = nat64clat_findbykidx,
+	    .manage_sets = nat64clat_manage_sets,
 	},
 };
 

@@ -35,16 +35,15 @@
 #include <sys/errno.h>
 
 #include <capsicum_helpers.h>
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <fcntl.h>
+#include <libcasper.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 static int elftype(const char *);
 static const char *iselftype(int);
@@ -56,12 +55,9 @@ struct ELFtypes {
 	int value;
 };
 /* XXX - any more types? */
-static struct ELFtypes elftypes[] = {
-	{ "FreeBSD",	ELFOSABI_FREEBSD },
-	{ "Linux",	ELFOSABI_LINUX },
-	{ "Solaris",	ELFOSABI_SOLARIS },
-	{ "SVR4",	ELFOSABI_SYSV }
-};
+static struct ELFtypes elftypes[] = { { "FreeBSD", ELFOSABI_FREEBSD },
+	{ "Linux", ELFOSABI_LINUX }, { "Solaris", ELFOSABI_SOLARIS },
+	{ "SVR4", ELFOSABI_SYSV } };
 
 int
 main(int argc, char **argv)
@@ -107,7 +103,7 @@ main(int argc, char **argv)
 			break;
 		default:
 			usage();
-	}
+		}
 	argc -= optind;
 	argv += optind;
 	if (argc == 0) {
@@ -159,17 +155,14 @@ main(int argc, char **argv)
 			goto fail;
 		}
 		if (!change && !force) {
-			fprintf(stdout,
-				"File '%s' is of brand '%s' (%u).\n",
-				argv[0], iselftype(buffer[EI_OSABI]),
-				buffer[EI_OSABI]);
+			fprintf(stdout, "File '%s' is of brand '%s' (%u).\n",
+			    argv[0], iselftype(buffer[EI_OSABI]),
+			    buffer[EI_OSABI]);
 			if (!iselftype(type)) {
-				warnx("ELF ABI Brand '%u' is unknown",
-				      type);
+				warnx("ELF ABI Brand '%u' is unknown", type);
 				printelftypes();
 			}
-		}
-		else {
+		} else {
 			buffer[EI_OSABI] = type;
 			lseek(fd, 0, SEEK_SET);
 			if (write(fd, buffer, EI_NIDENT) != EI_NIDENT) {
@@ -178,7 +171,7 @@ main(int argc, char **argv)
 				goto fail;
 			}
 		}
-fail:
+	fail:
 		close(fd);
 		argc--;
 		argv++;

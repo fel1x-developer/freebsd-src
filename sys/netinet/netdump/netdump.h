@@ -26,7 +26,7 @@
  */
 
 #ifndef _NETINET_NETDUMP_H_
-#define	_NETINET_NETDUMP_H_
+#define _NETINET_NETDUMP_H_
 
 #include <sys/types.h>
 #include <sys/disk.h>
@@ -36,25 +36,25 @@
 #include <netinet/in.h>
 
 /* Netdump wire protocol definitions are consumed by the ftp/netdumpd port. */
-#define	NETDUMP_PORT		20023	/* Server UDP port for heralds. */
-#define	NETDUMP_ACKPORT		20024	/* Client UDP port for acks. */
+#define NETDUMP_PORT 20023    /* Server UDP port for heralds. */
+#define NETDUMP_ACKPORT 20024 /* Client UDP port for acks. */
 
-#define	NETDUMP_HERALD		DEBUGNET_HERALD
-#define	NETDUMP_FINISHED	DEBUGNET_FINISHED
-#define	NETDUMP_VMCORE		DEBUGNET_DATA
-#define	NETDUMP_KDH		4	/* Contains kernel dump header. */
-#define	NETDUMP_EKCD_KEY	5	/* Contains kernel dump key. */
+#define NETDUMP_HERALD DEBUGNET_HERALD
+#define NETDUMP_FINISHED DEBUGNET_FINISHED
+#define NETDUMP_VMCORE DEBUGNET_DATA
+#define NETDUMP_KDH 4	   /* Contains kernel dump header. */
+#define NETDUMP_EKCD_KEY 5 /* Contains kernel dump key. */
 
-#define	NETDUMP_DATASIZE	4096	/* Arbitrary packet size limit. */
+#define NETDUMP_DATASIZE 4096 /* Arbitrary packet size limit. */
 
 /* For netdumpd. */
 #ifndef _KERNEL
-#define	netdump_msg_hdr	debugnet_msg_hdr
-#define	mh__pad		mh_aux2
-#define	netdump_ack	debugnet_ack
-#define	na_seqno	da_seqno
+#define netdump_msg_hdr debugnet_msg_hdr
+#define mh__pad mh_aux2
+#define netdump_ack debugnet_ack
+#define na_seqno da_seqno
 #endif /* !_KERNEL */
 
-#define	_PATH_NETDUMP	"/dev/netdump"
+#define _PATH_NETDUMP "/dev/netdump"
 
 #endif /* _NETINET_NETDUMP_H_ */

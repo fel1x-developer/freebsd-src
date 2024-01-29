@@ -85,7 +85,7 @@ static void g_union_doio(struct g_union_wip *wip);
 static void g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool);
 static void g_union_setmap(struct bio *bp, struct g_union_softc *sc);
 static bool g_union_getmap(struct bio *bp, struct g_union_softc *sc,
-	off_t *len2read);
+    off_t *len2read);
 static void g_union_done(struct bio *bp);
 static void g_union_kerneldump(struct bio *bp, struct g_union_softc *sc);
 static int g_union_dumper(void *, void *, off_t, size_t);
@@ -181,9 +181,11 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	if (secsize == 0)
 		secsize = lowerpp->sectorsize;
 	else if ((secsize % lowerpp->sectorsize) != 0) {
-		gctl_error(req, "Sector size %jd is not a multiple of lower "
-		    "provider %s's %jd sector size.", (intmax_t)secsize,
-		    lowerpp->name, (intmax_t)lowerpp->sectorsize);
+		gctl_error(req,
+		    "Sector size %jd is not a multiple of lower "
+		    "provider %s's %jd sector size.",
+		    (intmax_t)secsize, lowerpp->name,
+		    (intmax_t)lowerpp->sectorsize);
 		return;
 	}
 	if (secsize > maxphys) {
@@ -192,15 +194,19 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 		return;
 	}
 	if (secsize % upperpp->sectorsize != 0) {
-		gctl_error(req, "Sector size %jd is not a multiple of upper "
-		    "provider %s's %jd sector size.", (intmax_t)secsize,
-		    upperpp->name, (intmax_t)upperpp->sectorsize);
+		gctl_error(req,
+		    "Sector size %jd is not a multiple of upper "
+		    "provider %s's %jd sector size.",
+		    (intmax_t)secsize, upperpp->name,
+		    (intmax_t)upperpp->sectorsize);
 		return;
 	}
 	if ((offset % secsize) != 0) {
-		gctl_error(req, "Offset %jd is not a multiple of lower "
-		    "provider %s's %jd sector size.", (intmax_t)offset,
-		    lowerpp->name, (intmax_t)lowerpp->sectorsize);
+		gctl_error(req,
+		    "Offset %jd is not a multiple of lower "
+		    "provider %s's %jd sector size.",
+		    (intmax_t)offset, lowerpp->name,
+		    (intmax_t)lowerpp->sectorsize);
 		return;
 	}
 	if (size == 0)
@@ -208,19 +214,25 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	else
 		size -= offset;
 	if ((size % secsize) != 0) {
-		gctl_error(req, "Size %jd is not a multiple of sector size "
-		    "%jd.", (intmax_t)size, (intmax_t)secsize);
+		gctl_error(req,
+		    "Size %jd is not a multiple of sector size "
+		    "%jd.",
+		    (intmax_t)size, (intmax_t)secsize);
 		return;
 	}
 	if (offset + size < lowerpp->mediasize) {
-		gctl_error(req, "Size %jd is too small for lower provider %s, "
-		    "needs %jd.", (intmax_t)(offset + size), lowerpp->name,
+		gctl_error(req,
+		    "Size %jd is too small for lower provider %s, "
+		    "needs %jd.",
+		    (intmax_t)(offset + size), lowerpp->name,
 		    lowerpp->mediasize);
 		return;
 	}
 	if (size > upperpp->mediasize) {
-		gctl_error(req, "Upper provider %s size (%jd) is too small, "
-		    "needs %jd.", upperpp->name, (intmax_t)upperpp->mediasize,
+		gctl_error(req,
+		    "Upper provider %s size (%jd) is too small, "
+		    "needs %jd.",
+		    upperpp->name, (intmax_t)upperpp->mediasize,
 		    (intmax_t)size);
 		return;
 	}
@@ -240,7 +252,7 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 		gctl_error(req, "Invalid provider name.");
 		return;
 	}
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (strcmp(gp->name, name) == 0) {
 			gctl_error(req, "Provider %s already exists.", name);
 			return;
@@ -271,10 +283,10 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	newpp->flags |= G_PF_DIRECT_SEND | G_PF_DIRECT_RECEIVE;
 	newpp->mediasize = size;
 	newpp->sectorsize = secsize;
-	LIST_FOREACH(gap, &upperpp->aliases, ga_next)
+	LIST_FOREACH (gap, &upperpp->aliases, ga_next)
 		g_provider_add_alias(newpp, "%s%s", gap->ga_alias,
 		    G_UNION_SUFFIX);
-	LIST_FOREACH(gap, &lowerpp->aliases, ga_next)
+	LIST_FOREACH (gap, &lowerpp->aliases, ga_next)
 		g_provider_add_alias(newpp, "%s%s", gap->ga_alias,
 		    G_UNION_SUFFIX);
 	lowercp = g_new_consumer(gp);
@@ -286,9 +298,10 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	}
 	/* request read and exclusive access for lower */
 	if ((error = g_access(lowercp, 1, 0, 1)) != 0) {
-		gctl_error(req, "Error %d: cannot obtain exclusive access to "
-		    "%s.\n\tMust be unmounted or mounted read-only.", error,
-		    lowerpp->name);
+		gctl_error(req,
+		    "Error %d: cannot obtain exclusive access to "
+		    "%s.\n\tMust be unmounted or mounted read-only.",
+		    error, lowerpp->name);
 		goto fail2;
 	}
 	uppercp = g_new_consumer(gp);
@@ -323,8 +336,7 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	 */
 	sc->sc_map_size = roundup(size / secsize, BITS_PER_ENTRY);
 	needed = sc->sc_map_size / BITS_PER_ENTRY;
-	for (sc->sc_root_size = 1;
-	     sc->sc_root_size * sc->sc_root_size < needed;
+	for (sc->sc_root_size = 1; sc->sc_root_size * sc->sc_root_size < needed;
 	     sc->sc_root_size++)
 		continue;
 	sc->sc_writemap_root = g_malloc(sc->sc_root_size * sizeof(uint64_t *),
@@ -334,12 +346,13 @@ g_union_ctl_create(struct gctl_req *req, struct g_class *mp, bool verbose)
 	sc->sc_leafused = g_malloc(roundup(sc->sc_root_size, BITS_PER_ENTRY),
 	    M_WAITOK | M_ZERO);
 	for (i = 0; i < sc->sc_root_size; i++)
-		sc->sc_writemap_root[i] =
-		    g_malloc(sc->sc_leaf_size * sizeof(uint64_t),
+		sc->sc_writemap_root[i] = g_malloc(sc->sc_leaf_size *
+			sizeof(uint64_t),
 		    M_WAITOK | M_ZERO);
-	sc->sc_writemap_memory =
-	    (sc->sc_root_size + sc->sc_root_size * sc->sc_leaf_size) *
-	    sizeof(uint64_t) + roundup(sc->sc_root_size, BITS_PER_ENTRY);
+	sc->sc_writemap_memory = (sc->sc_root_size +
+				     sc->sc_root_size * sc->sc_leaf_size) *
+		sizeof(uint64_t) +
+	    roundup(sc->sc_root_size, BITS_PER_ENTRY);
 	if (verbose)
 		gctl_msg(req, 0, "Device %s created with memory map size %jd.",
 		    gp->name, (intmax_t)sc->sc_writemap_memory);
@@ -374,8 +387,10 @@ g_union_fetcharg(struct gctl_req *req, const char *name)
 		return (0);
 	if (*val >= 0)
 		return (*val);
-	gctl_msg(req, EINVAL, "Invalid '%s' (%jd): negative value, "
-	    "using default.", name, *val);
+	gctl_msg(req, EINVAL,
+	    "Invalid '%s' (%jd): negative value, "
+	    "using default.",
+	    name, *val);
 	return (0);
 }
 
@@ -439,8 +454,10 @@ g_union_ctl_destroy(struct gctl_req *req, struct g_class *mp, bool verbose)
 		}
 		error = g_union_destroy(verbose ? req : NULL, gp, *force);
 		if (error != 0)
-			gctl_msg(req, error, "Error %d: "
-			    "cannot destroy device %s.", error, gp->name);
+			gctl_msg(req, error,
+			    "Error %d: "
+			    "cannot destroy device %s.",
+			    error, gp->name);
 	}
 	gctl_post_messages(req);
 }
@@ -453,7 +470,7 @@ g_union_find_geom(struct g_class *mp, const char *name)
 {
 	struct g_geom *gp;
 
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (strcmp(gp->name, name) == 0)
 			return (gp);
 	}
@@ -555,18 +572,21 @@ g_union_ctl_revert(struct gctl_req *req, struct g_class *mp, bool verbose)
 		}
 		sc = gp->softc;
 		if (g_union_get_writelock(sc) != 0) {
-			gctl_msg(req, EINVAL, "Revert already in progress for "
-			    "provider %s.", pp->name);
+			gctl_msg(req, EINVAL,
+			    "Revert already in progress for "
+			    "provider %s.",
+			    pp->name);
 			continue;
 		}
 		/*
 		 * No mount or other use of union is allowed.
 		 */
 		if (pp->acr > 0 || pp->acw > 0 || pp->ace > 0) {
-			gctl_msg(req, EPERM, "Unable to get exclusive access "
+			gctl_msg(req, EPERM,
+			    "Unable to get exclusive access "
 			    "for reverting of %s;\n\t%s cannot be mounted or "
 			    "otherwise open during a revert.",
-			     pp->name, pp->name);
+			    pp->name, pp->name);
 			g_union_rel_writelock(sc);
 			continue;
 		}
@@ -652,11 +672,13 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 		}
 		sc = gp->softc;
 		if (g_union_get_writelock(sc) != 0) {
-			gctl_msg(req, EINVAL, "Commit already in progress for "
-			    "provider %s.", pp->name);
+			gctl_msg(req, EINVAL,
+			    "Commit already in progress for "
+			    "provider %s.",
+			    pp->name);
 			continue;
 		}
-	
+
 		/* upgrade to write access for lower */
 		lowercp = sc->sc_lowercp;
 		lowerpp = lowercp->provider;
@@ -665,11 +687,13 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 		 * -f flag is given which allows read-only mount or usage.
 		 */
 		if ((*force == false && pp->acr > 0) || pp->acw > 0 ||
-		     pp->ace > 0) {
-			gctl_msg(req, EPERM, "Unable to get exclusive access "
+		    pp->ace > 0) {
+			gctl_msg(req, EPERM,
+			    "Unable to get exclusive access "
 			    "for writing of %s.\n\tNote that %s cannot be "
 			    "mounted or otherwise\n\topen during a commit "
-			    "unless the -f flag is used.", pp->name, pp->name);
+			    "unless the -f flag is used.",
+			    pp->name, pp->name);
 			g_union_rel_writelock(sc);
 			continue;
 		}
@@ -678,20 +702,22 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 		 * -f flag is given which allows read-only mount or usage.
 		 */
 		if ((*force == false && lowerpp->acr > lowercp->acr) ||
-		     lowerpp->acw > lowercp->acw ||
-		     lowerpp->ace > lowercp->ace) {
-			gctl_msg(req, EPERM, "provider %s is unable to get "
+		    lowerpp->acw > lowercp->acw ||
+		    lowerpp->ace > lowercp->ace) {
+			gctl_msg(req, EPERM,
+			    "provider %s is unable to get "
 			    "exclusive access to %s\n\tfor writing. Note that "
 			    "%s cannot be mounted or otherwise open\n\tduring "
-			    "a commit unless the -f flag is used.", pp->name,
-			    lowerpp->name, lowerpp->name);
+			    "a commit unless the -f flag is used.",
+			    pp->name, lowerpp->name, lowerpp->name);
 			g_union_rel_writelock(sc);
 			continue;
 		}
 		if ((error = g_access(lowercp, 0, 1, 0)) != 0) {
-			gctl_msg(req, error, "Error %d: provider %s is unable "
-			    "to access %s for writing.", error, pp->name,
-			    lowerpp->name);
+			gctl_msg(req, error,
+			    "Error %d: provider %s is unable "
+			    "to access %s for writing.",
+			    error, pp->name, lowerpp->name);
 			g_union_rel_writelock(sc);
 			continue;
 		}
@@ -710,7 +736,7 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 			}
 			G_RUNLOCK(sc);
 			/* need to read then write len2rd sectors */
-			for ( ; len2rd > 0; len2rd -= len2wt) {
+			for (; len2rd > 0; len2rd -= len2wt) {
 				/* limit ourselves to MAXBSIZE size I/Os */
 				len2wt = len2rd;
 				if (len2wt > MAXBSIZE)
@@ -720,18 +746,22 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 				bp->bio_cmd = BIO_READ;
 				g_io_request(bp, sc->sc_uppercp);
 				if ((error = biowait(bp, "rdunion")) != 0) {
-					gctl_msg(req, error, "Commit read "
+					gctl_msg(req, error,
+					    "Commit read "
 					    "error %d in provider %s, commit "
-					    "aborted.", error, pp->name);
+					    "aborted.",
+					    error, pp->name);
 					goto cleanup;
 				}
 				bp->bio_flags &= ~BIO_DONE;
 				bp->bio_cmd = BIO_WRITE;
 				g_io_request(bp, lowercp);
 				if ((error = biowait(bp, "wtunion")) != 0) {
-					gctl_msg(req, error, "Commit write "
+					gctl_msg(req, error,
+					    "Commit write "
 					    "error %d in provider %s, commit "
-					    "aborted.", error, pp->name);
+					    "aborted.",
+					    error, pp->name);
 					goto cleanup;
 				}
 				bp->bio_flags &= ~BIO_DONE;
@@ -743,13 +773,14 @@ g_union_ctl_commit(struct gctl_req *req, struct g_class *mp, bool verbose)
 		G_RUNLOCK(sc);
 		/* clear the write map */
 		g_union_revert(sc);
-cleanup:
+	cleanup:
 		g_topology_lock();
 		/* return lower to previous access */
 		if ((error1 = g_access(lowercp, 0, -1, 0)) != 0) {
-			G_UNION_DEBUG(2, "Error %d: device %s could not reset "
-			    "access to %s (r=0 w=-1 e=0).", error1, pp->name,
-			    lowerpp->name);
+			G_UNION_DEBUG(2,
+			    "Error %d: device %s could not reset "
+			    "access to %s (r=0 w=-1 e=0).",
+			    error1, pp->name, lowerpp->name);
 		}
 		g_union_rel_writelock(sc);
 		if (error == 0 && verbose)
@@ -902,7 +933,7 @@ g_union_doio(struct g_union_wip *wip)
 	 */
 	sc = wip->wip_sc;
 	G_WLOCK(sc);
-	TAILQ_FOREACH(activewip, &sc->sc_wiplist, wip_next) {
+	TAILQ_FOREACH (activewip, &sc->sc_wiplist, wip_next) {
 		if (wip->wip_end < activewip->wip_start ||
 		    wip->wip_start > activewip->wip_end)
 			continue;
@@ -912,13 +943,12 @@ g_union_doio(struct g_union_wip *wip)
 				sc->sc_writeblockwrite += 1;
 			else
 				sc->sc_readblockwrite += 1;
-		else
-			if (activewip->wip_bp->bio_cmd == BIO_WRITE)
-				sc->sc_writeblockread += 1;
-			else {
-				sc->sc_readcurrentread += 1;
-				needstoblock = 0;
-			}
+		else if (activewip->wip_bp->bio_cmd == BIO_WRITE)
+			sc->sc_writeblockread += 1;
+		else {
+			sc->sc_readcurrentread += 1;
+			needstoblock = 0;
+		}
 		/* Put request on a waiting list if necessary */
 		if (needstoblock) {
 			TAILQ_INSERT_TAIL(&activewip->wip_waiting, wip,
@@ -953,8 +983,10 @@ g_union_doio(struct g_union_wip *wip)
 	 * are written are recorded in the bitmap when the I/O completes.
 	 */
 	if (cbp->bio_cmd == BIO_WRITE) {
-		G_UNION_LOGREQ(cbp, "Sending %jd byte write request to upper "
-		    "level.", cbp->bio_length);
+		G_UNION_LOGREQ(cbp,
+		    "Sending %jd byte write request to upper "
+		    "level.",
+		    cbp->bio_length);
 		atomic_add_long(&sc->sc_writes, 1);
 		atomic_add_long(&sc->sc_wrotebytes, cbp->bio_length);
 		g_io_request(cbp, sc->sc_uppercp);
@@ -978,7 +1010,7 @@ g_union_doio(struct g_union_wip *wip)
 	atomic_add_long(&sc->sc_readbytes, cbp->bio_length);
 	rdlen = cbp->bio_length;
 	offset = 0;
-	for (iocnt = 0; ; iocnt++) {
+	for (iocnt = 0;; iocnt++) {
 		if (g_union_getmap(cbp, sc, &len2rd)) {
 			/* read top */
 			cp = sc->sc_uppercp;
@@ -990,9 +1022,10 @@ g_union_doio(struct g_union_wip *wip)
 		}
 		/* Check if only a single read is required */
 		if (iocnt == 0 && rdlen == len2rd) {
-			G_UNION_LOGREQLVL((cp == sc->sc_uppercp) ?
-			    3 : 4, cbp, "Sending %jd byte read "
-			    "request to %s level.", len2rd, level);
+			G_UNION_LOGREQLVL((cp == sc->sc_uppercp) ? 3 : 4, cbp,
+			    "Sending %jd byte read "
+			    "request to %s level.",
+			    len2rd, level);
 			g_io_request(cbp, cp);
 			return;
 		}
@@ -1003,8 +1036,10 @@ g_union_doio(struct g_union_wip *wip)
 			cbp->bio_data += offset;
 		offset += len2rd;
 		rdlen -= len2rd;
-		G_UNION_LOGREQLVL(3, cbp, "Sending %jd byte read "
-		    "request to %s level.", len2rd, level);
+		G_UNION_LOGREQLVL(3, cbp,
+		    "Sending %jd byte read "
+		    "request to %s level.",
+		    len2rd, level);
 		/*
 		 * To avoid prematurely notifying our consumer
 		 * that their I/O has completed, we have to delay
@@ -1087,14 +1122,14 @@ g_union_setmap(struct bio *bp, struct g_union_softc *sc)
 	numsec = bp->bio_length / sc->sc_sectorsize;
 	KASSERT(start + numsec <= sc->sc_map_size,
 	    ("g_union_setmap: block %jd is out of range", start + numsec));
-	for ( ; numsec > 0; numsec--, start++) {
+	for (; numsec > 0; numsec--, start++) {
 		root_idx = start / sc->sc_bits_per_leaf;
 		leaf = &sc->sc_writemap_root[root_idx];
-		wordp = &(*leaf)
-		    [(start % sc->sc_bits_per_leaf) / BITS_PER_ENTRY];
+		wordp = &(
+		    *leaf)[(start % sc->sc_bits_per_leaf) / BITS_PER_ENTRY];
 		*wordp |= 1ULL << (start % BITS_PER_ENTRY);
-		sc->sc_leafused[root_idx / BITS_PER_ENTRY] |=
-		    1ULL << (root_idx % BITS_PER_ENTRY);
+		sc->sc_leafused[root_idx / BITS_PER_ENTRY] |= 1ULL
+		    << (root_idx % BITS_PER_ENTRY);
 	}
 }
 
@@ -1125,7 +1160,7 @@ g_union_getmap(struct bio *bp, struct g_union_softc *sc, off_t *len2read)
 	    numsec, start);
 	KASSERT(start + numsec <= sc->sc_map_size,
 	    ("g_union_getmap: block %jd is out of range", start + numsec));
-		root_idx = start / sc->sc_bits_per_leaf;
+	root_idx = start / sc->sc_bits_per_leaf;
 	first = true;
 	maptype = false;
 	while (numsec > 0) {
@@ -1134,7 +1169,7 @@ g_union_getmap(struct bio *bp, struct g_union_softc *sc, off_t *len2read)
 		leafresid = sc->sc_bits_per_leaf -
 		    (start % sc->sc_bits_per_leaf);
 		if (((sc->sc_leafused[root_idx / BITS_PER_ENTRY]) &
-		    (1ULL << (root_idx % BITS_PER_ENTRY))) == 0) {
+			(1ULL << (root_idx % BITS_PER_ENTRY))) == 0) {
 			if (first) {
 				maptype = false;
 				first = false;
@@ -1157,14 +1192,13 @@ g_union_getmap(struct bio *bp, struct g_union_softc *sc, off_t *len2read)
 					maptype = true;
 				first = false;
 			}
-			if ((word == 0 && maptype) ||
-			    (word == ~0 && !maptype))
+			if ((word == 0 && maptype) || (word == ~0 && !maptype))
 				break;
 			numsec -= BITS_PER_ENTRY;
 			start += BITS_PER_ENTRY;
 			continue;
 		}
-		for ( ; bitloc < BITS_PER_ENTRY; bitloc ++) {
+		for (; bitloc < BITS_PER_ENTRY; bitloc++) {
 			retval = (word & (1ULL << bitloc)) != 0;
 			if (first) {
 				maptype = retval;
@@ -1186,8 +1220,8 @@ out:
 	*len2read = bp->bio_length - (numsec * sc->sc_sectorsize);
 	G_UNION_DEBUG(maptype ? 3 : 4,
 	    "g_union_getmap: return maptype %swritten for %jd "
-	    "sectors ending at %jd\n", maptype ? "" : "NOT ",
-	    *len2read / sc->sc_sectorsize, start - 1);
+	    "sectors ending at %jd\n",
+	    maptype ? "" : "NOT ", *len2read / sc->sc_sectorsize, start - 1);
 	return (maptype);
 }
 
@@ -1320,18 +1354,24 @@ g_union_destroy(struct gctl_req *req, struct g_geom *gp, bool force)
 	    (pp != NULL && (pp->acr != 0 || pp->acw != 0 || pp->ace != 0))) {
 		if (force) {
 			if (req != NULL)
-				gctl_msg(req, 0, "Device %s is still in use, "
-				    "so is being forcibly removed.", gp->name);
-			G_UNION_DEBUG(1, "Device %s is still in use, so "
-			    "is being forcibly removed.", gp->name);
+				gctl_msg(req, 0,
+				    "Device %s is still in use, "
+				    "so is being forcibly removed.",
+				    gp->name);
+			G_UNION_DEBUG(1,
+			    "Device %s is still in use, so "
+			    "is being forcibly removed.",
+			    gp->name);
 		} else {
 			if (req != NULL)
-				gctl_msg(req, EBUSY, "Device %s is still open "
-				    "(r=%d w=%d e=%d).", gp->name, pp->acr,
-				    pp->acw, pp->ace);
-			G_UNION_DEBUG(1, "Device %s is still open "
-			    "(r=%d w=%d e=%d).", gp->name, pp->acr,
-			    pp->acw, pp->ace);
+				gctl_msg(req, EBUSY,
+				    "Device %s is still open "
+				    "(r=%d w=%d e=%d).",
+				    gp->name, pp->acr, pp->acw, pp->ace);
+			G_UNION_DEBUG(1,
+			    "Device %s is still open "
+			    "(r=%d w=%d e=%d).",
+			    gp->name, pp->acr, pp->acw, pp->ace);
 			return (EBUSY);
 		}
 	} else {
@@ -1341,11 +1381,15 @@ g_union_destroy(struct gctl_req *req, struct g_geom *gp, bool force)
 	}
 	/* Close consumers */
 	if ((error = g_access(sc->sc_lowercp, -1, 0, -1)) != 0)
-		G_UNION_DEBUG(2, "Error %d: device %s could not reset access "
-		    "to %s.", error, gp->name, sc->sc_lowercp->provider->name);
+		G_UNION_DEBUG(2,
+		    "Error %d: device %s could not reset access "
+		    "to %s.",
+		    error, gp->name, sc->sc_lowercp->provider->name);
 	if ((error = g_access(sc->sc_uppercp, -1, -1, -1)) != 0)
-		G_UNION_DEBUG(2, "Error %d: device %s could not reset access "
-		    "to %s.", error, gp->name, sc->sc_uppercp->provider->name);
+		G_UNION_DEBUG(2,
+		    "Error %d: device %s could not reset access "
+		    "to %s.",
+		    error, gp->name, sc->sc_uppercp->provider->name);
 
 	g_wither_geom(gp, ENXIO);
 

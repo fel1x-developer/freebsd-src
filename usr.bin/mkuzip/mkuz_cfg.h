@@ -27,16 +27,16 @@
 struct mkuz_conveyor;
 
 struct mkuz_cfg {
-    int fdr;
-    int fdw;
-    int verbose;
-    int no_zcomp;
-    int en_dedup;
-    int nworkers;
-    int blksz;
-    const char *iname;
-    off_t isize;
-    const struct mkuz_format *handler;
-    size_t cbound_blksz;
-    int comp_level;
+	int fdr;
+	int fdw;
+	int verbose;
+	int no_zcomp;
+	int en_dedup;
+	int nworkers;
+	int blksz;
+	const char *iname;
+	off_t isize;
+	const struct mkuz_format *handler;
+	size_t cbound_blksz;
+	int comp_level;
 };

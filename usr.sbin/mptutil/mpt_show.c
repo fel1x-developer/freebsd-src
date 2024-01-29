@@ -32,17 +32,19 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mptutil.h"
 
 MPT_TABLE(top, show);
 
-#define	STANDALONE_STATE	"ONLINE"
+#define STANDALONE_STATE "ONLINE"
 
 static void
 format_stripe(char *buf, size_t buflen, U32 stripe)
@@ -223,7 +225,7 @@ print_pd(CONFIG_PAGE_RAID_PHYS_DISK_0 *info, int state_len, int location)
 	char buf[6];
 
 	humanize_number(buf, sizeof(buf), ((uint64_t)info->MaxLBA + 1) * 512,
-	    "", HN_AUTOSCALE, HN_B | HN_NOSPACE |HN_DECIMAL);
+	    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
 	state = mpt_pdstate(info);
 	if (state_len > 0)
 		printf("(%6s) %-*s", buf, state_len, state);
@@ -242,8 +244,8 @@ print_standalone(struct mpt_standalone_disk *disk, int state_len, int location)
 {
 	char buf[6];
 
-	humanize_number(buf, sizeof(buf), (disk->maxlba + 1) * 512,
-	    "", HN_AUTOSCALE, HN_B | HN_NOSPACE |HN_DECIMAL);
+	humanize_number(buf, sizeof(buf), (disk->maxlba + 1) * 512, "",
+	    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
 	if (state_len > 0)
 		printf("(%6s) %-*s", buf, state_len, STANDALONE_STATE);
 	else
@@ -321,13 +323,12 @@ show_config(int ac, char **av)
 	}
 
 	/* Dump out the configuration. */
-	printf("mpt%d Configuration: %d volumes, %d drives\n",
-	    mpt_unit, ioc2->NumActiveVolumes, ioc2->NumActivePhysDisks +
-	    nsdisks);
+	printf("mpt%d Configuration: %d volumes, %d drives\n", mpt_unit,
+	    ioc2->NumActiveVolumes, ioc2->NumActivePhysDisks + nsdisks);
 	vol = ioc2->RaidVolume;
 	for (i = 0; i < ioc2->NumActiveVolumes; vol++, i++) {
-		printf("    volume %s ", mpt_volume_name(vol->VolumeBus,
-		    vol->VolumeID));
+		printf("    volume %s ",
+		    mpt_volume_name(vol->VolumeBus, vol->VolumeID));
 		vinfo = mpt_vol_info(fd, vol->VolumeBus, vol->VolumeID, NULL);
 		if (vinfo == NULL) {
 			printf("%s UNKNOWN", mpt_raid_level(vol->VolumeType));
@@ -428,8 +429,8 @@ show_volumes(int ac, char **av)
 		if (volumes[i] == NULL)
 			len = strlen("UNKNOWN");
 		else
-			len = strlen(mpt_volstate(
-			    volumes[i]->VolumeStatus.State));
+			len = strlen(
+			    mpt_volstate(volumes[i]->VolumeStatus.State));
 		if (len > state_len)
 			state_len = len;
 	}

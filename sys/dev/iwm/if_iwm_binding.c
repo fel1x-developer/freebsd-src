@@ -86,59 +86,55 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_binding.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_sf.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_binding.h>
-#include <dev/iwm/if_iwm_sf.h>
 
 /*
  * BEGIN iwlwifi/mvm/binding.c
@@ -155,7 +151,7 @@ struct iwm_iface_iterator_data {
 
 static int
 iwm_binding_cmd(struct iwm_softc *sc, uint32_t action,
-	struct iwm_iface_iterator_data *data)
+    struct iwm_iface_iterator_data *data)
 {
 	struct iwm_binding_cmd_v1 cmd;
 	struct iwm_phy_ctxt *phyctxt = data->phyctxt;
@@ -164,20 +160,20 @@ iwm_binding_cmd(struct iwm_softc *sc, uint32_t action,
 
 	memset(&cmd, 0, sizeof(cmd));
 
-	cmd.id_and_color
-	    = htole32(IWM_FW_CMD_ID_AND_COLOR(phyctxt->id, phyctxt->color));
+	cmd.id_and_color = htole32(
+	    IWM_FW_CMD_ID_AND_COLOR(phyctxt->id, phyctxt->color));
 	cmd.action = htole32(action);
 	cmd.phy = htole32(IWM_FW_CMD_ID_AND_COLOR(phyctxt->id, phyctxt->color));
 
 	for (i = 0; i < IWM_MAX_MACS_IN_BINDING; i++)
 		cmd.macs[i] = htole32(IWM_FW_CTXT_INVALID);
 	for (i = 0; i < data->idx; i++)
-		cmd.macs[i] = htole32(IWM_FW_CMD_ID_AND_COLOR(data->ids[i],
-							      data->colors[i]));
+		cmd.macs[i] = htole32(
+		    IWM_FW_CMD_ID_AND_COLOR(data->ids[i], data->colors[i]));
 
 	status = 0;
-	ret = iwm_send_cmd_pdu_status(sc, IWM_BINDING_CONTEXT_CMD,
-	    sizeof(cmd), &cmd, &status);
+	ret = iwm_send_cmd_pdu_status(sc, IWM_BINDING_CONTEXT_CMD, sizeof(cmd),
+	    &cmd, &status);
 	if (ret) {
 		device_printf(sc->sc_dev,
 		    "Failed to send binding (action:%d): %d\n", action, ret);
@@ -185,8 +181,8 @@ iwm_binding_cmd(struct iwm_softc *sc, uint32_t action,
 	}
 
 	if (status) {
-		device_printf(sc->sc_dev,
-		    "Binding command failed: %u\n", status);
+		device_printf(sc->sc_dev, "Binding command failed: %u\n",
+		    status);
 		ret = EIO;
 	}
 
@@ -195,7 +191,7 @@ iwm_binding_cmd(struct iwm_softc *sc, uint32_t action,
 
 static int
 iwm_binding_update(struct iwm_softc *sc, struct iwm_vap *ivp,
-	struct iwm_phy_ctxt *phyctxt, boolean_t add)
+    struct iwm_phy_ctxt *phyctxt, boolean_t add)
 {
 	struct iwm_iface_iterator_data data = {
 		.phyctxt = phyctxt,

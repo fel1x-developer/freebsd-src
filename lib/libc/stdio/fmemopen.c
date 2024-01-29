@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (C) 2013 Pietro Cerutti <gahr@FreeBSD.org>
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -11,7 +11,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,31 +25,31 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
+
 #include "local.h"
 
-struct fmemopen_cookie
-{
-	char	*buf;	/* pointer to the memory region */
-	bool	 own;	/* did we allocate the buffer ourselves? */
-	char     bin;   /* is this a binary buffer? */
-	size_t	 size;	/* buffer length in bytes */
-	size_t	 len;	/* data length in bytes */
-	size_t	 off;	/* current offset into the buffer */
+struct fmemopen_cookie {
+	char *buf;   /* pointer to the memory region */
+	bool own;    /* did we allocate the buffer ourselves? */
+	char bin;    /* is this a binary buffer? */
+	size_t size; /* buffer length in bytes */
+	size_t len;  /* data length in bytes */
+	size_t off;  /* current offset into the buffer */
 };
 
-static int	fmemopen_read(void *cookie, char *buf, int nbytes);
-static int	fmemopen_write(void *cookie, const char *buf, int nbytes);
-static fpos_t	fmemopen_seek(void *cookie, fpos_t offset, int whence);
-static int	fmemopen_close(void *cookie);
+static int fmemopen_read(void *cookie, char *buf, int nbytes);
+static int fmemopen_write(void *cookie, const char *buf, int nbytes);
+static fpos_t fmemopen_seek(void *cookie, fpos_t offset, int whence);
+static int fmemopen_close(void *cookie);
 
 FILE *
-fmemopen(void * __restrict buf, size_t size, const char * __restrict mode)
+fmemopen(void *__restrict buf, size_t size, const char *__restrict mode)
 {
 	struct fmemopen_cookie *ck;
 	FILE *f;
@@ -81,13 +81,13 @@ fmemopen(void * __restrict buf, size_t size, const char * __restrict mode)
 		errno = EINVAL;
 		return (NULL);
 	}
-	
+
 	ck = malloc(sizeof(struct fmemopen_cookie));
 	if (ck == NULL) {
 		return (NULL);
 	}
 
-	ck->off  = 0;
+	ck->off = 0;
 	ck->size = size;
 
 	/* Check whether we have to allocate the buffer ourselves. */
@@ -114,14 +114,14 @@ fmemopen(void * __restrict buf, size_t size, const char * __restrict mode)
 	/*
 	 * The size of the current buffer contents is set depending on the
 	 * mode:
-	 * 
+	 *
 	 * for append (text-mode), the position of the first NULL byte, or the
 	 * size of the buffer if none is found
 	 *
 	 * for append (binary-mode), the size of the buffer
-	 * 
+	 *
 	 * for read, the size of the buffer
-	 * 
+	 *
 	 * for write, 0
 	 */
 	switch (mode[0]) {
@@ -136,10 +136,9 @@ fmemopen(void * __restrict buf, size_t size, const char * __restrict mode)
 		break;
 	}
 
-	f = funopen(ck,
-	    flags & O_WRONLY ? NULL : fmemopen_read, 
-	    flags & O_RDONLY ? NULL : fmemopen_write,
-	    fmemopen_seek, fmemopen_close);
+	f = funopen(ck, flags & O_WRONLY ? NULL : fmemopen_read,
+	    flags & O_RDONLY ? NULL : fmemopen_write, fmemopen_seek,
+	    fmemopen_close);
 
 	if (f == NULL) {
 		if (ck->own)
@@ -212,7 +211,6 @@ static fpos_t
 fmemopen_seek(void *cookie, fpos_t offset, int whence)
 {
 	struct fmemopen_cookie *ck = cookie;
-
 
 	switch (whence) {
 	case SEEK_SET:

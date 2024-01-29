@@ -28,16 +28,17 @@
 
 #include <sys/param.h>
 #ifdef _KERNEL
-#include <sys/malloc.h>
 #include <sys/systm.h>
+#include <sys/malloc.h>
+
 #include <geom/geom.h>
 #else
-#include <stdio.h>
+#include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <errno.h>
 #endif
 
 #include <geom/eli/g_eli.h>
@@ -53,9 +54,9 @@ MALLOC_DECLARE(M_ELI);
 static int
 g_eli_mkey_verify(const unsigned char *mkey, const unsigned char *key)
 {
-	const unsigned char *odhmac;	/* On-disk HMAC. */
-	unsigned char chmac[SHA512_MDLEN];	/* Calculated HMAC. */
-	unsigned char hmkey[SHA512_MDLEN];	/* Key for HMAC. */
+	const unsigned char *odhmac;	   /* On-disk HMAC. */
+	unsigned char chmac[SHA512_MDLEN]; /* Calculated HMAC. */
+	unsigned char hmkey[SHA512_MDLEN]; /* Key for HMAC. */
 
 	/*
 	 * The key for HMAC calculations is: hmkey = HMAC_SHA512(Derived-Key, 0)
@@ -65,8 +66,8 @@ g_eli_mkey_verify(const unsigned char *mkey, const unsigned char *key)
 	odhmac = mkey + G_ELI_DATAIVKEYLEN;
 
 	/* Calculate HMAC from Data-Key and IV-Key. */
-	g_eli_crypto_hmac(hmkey, sizeof(hmkey), mkey, G_ELI_DATAIVKEYLEN,
-	    chmac, 0);
+	g_eli_crypto_hmac(hmkey, sizeof(hmkey), mkey, G_ELI_DATAIVKEYLEN, chmac,
+	    0);
 
 	explicit_bzero(hmkey, sizeof(hmkey));
 
@@ -83,8 +84,8 @@ g_eli_mkey_verify(const unsigned char *mkey, const unsigned char *key)
 void
 g_eli_mkey_hmac(unsigned char *mkey, const unsigned char *key)
 {
-	unsigned char hmkey[SHA512_MDLEN];	/* Key for HMAC. */
-	unsigned char *odhmac;	/* On-disk HMAC. */
+	unsigned char hmkey[SHA512_MDLEN]; /* Key for HMAC. */
+	unsigned char *odhmac;		   /* On-disk HMAC. */
 
 	/*
 	 * The key for HMAC calculations is: hmkey = HMAC_SHA512(Derived-Key, 0)
@@ -108,7 +109,7 @@ g_eli_mkey_decrypt(const struct g_eli_metadata *md, const unsigned char *key,
     unsigned char *mkey, unsigned nkey)
 {
 	unsigned char tmpmkey[G_ELI_MKEYLEN];
-	unsigned char enckey[SHA512_MDLEN];	/* Key for encryption. */
+	unsigned char enckey[SHA512_MDLEN]; /* Key for encryption. */
 	const unsigned char *mmkey;
 	int bit, error;
 
@@ -125,8 +126,8 @@ g_eli_mkey_decrypt(const struct g_eli_metadata *md, const unsigned char *key,
 	if (!(md->md_keys & bit))
 		return (-1);
 	bcopy(mmkey, tmpmkey, G_ELI_MKEYLEN);
-	error = g_eli_crypto_decrypt(md->md_ealgo, tmpmkey,
-	    G_ELI_MKEYLEN, enckey, md->md_keylen);
+	error = g_eli_crypto_decrypt(md->md_ealgo, tmpmkey, G_ELI_MKEYLEN,
+	    enckey, md->md_keylen);
 	if (error != 0) {
 		explicit_bzero(tmpmkey, sizeof(tmpmkey));
 		explicit_bzero(enckey, sizeof(enckey));
@@ -181,7 +182,7 @@ int
 g_eli_mkey_encrypt(unsigned algo, const unsigned char *key, unsigned keylen,
     unsigned char *mkey)
 {
-	unsigned char enckey[SHA512_MDLEN];	/* Key for encryption. */
+	unsigned char enckey[SHA512_MDLEN]; /* Key for encryption. */
 	int error;
 
 	/*
@@ -224,8 +225,8 @@ g_eli_mkey_propagate(struct g_eli_softc *sc, const unsigned char *mkey)
 	 * The authentication key is: akey = HMAC_SHA512(Data-Key, 0x11)
 	 */
 	if ((sc->sc_flags & G_ELI_FLAG_AUTH) != 0) {
-		g_eli_crypto_hmac(mkey, G_ELI_MAXKEYLEN, "\x11", 1,
-		    sc->sc_akey, 0);
+		g_eli_crypto_hmac(mkey, G_ELI_MAXKEYLEN, "\x11", 1, sc->sc_akey,
+		    0);
 	} else {
 		arc4rand(sc->sc_akey, sizeof(sc->sc_akey), 0);
 	}

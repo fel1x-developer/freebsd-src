@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <sys/param.h>
+
 #include <fcntl.h>
 }
 
@@ -50,15 +51,17 @@ using namespace testing;
  */
 typedef tuple<tuple<bool, bool, bool>, cache_mode, ssize_t, ssize_t> CacheParam;
 
-class Cache: public FuseTest, public WithParamInterface<CacheParam> {
-public:
-bool m_direct_io;
+class Cache : public FuseTest, public WithParamInterface<CacheParam> {
+    public:
+	bool m_direct_io;
 
-Cache(): m_direct_io(false) {};
+	Cache()
+	    : m_direct_io(false) {};
 
-virtual void SetUp() {
-	int cache_mode = get<1>(GetParam());
-	switch (cache_mode) {
+	virtual void SetUp()
+	{
+		int cache_mode = get<1>(GetParam());
+		switch (cache_mode) {
 		case Uncached:
 			m_direct_io = true;
 			break;
@@ -72,63 +75,72 @@ virtual void SetUp() {
 			break;
 		default:
 			FAIL() << "Unknown cache mode";
+		}
+		m_noatime = true; // To prevent SETATTR for atime on close
+
+		FuseTest::SetUp();
+		if (IsSkipped())
+			return;
 	}
-	m_noatime = true;	// To prevent SETATTR for atime on close
 
-	FuseTest::SetUp();
-	if (IsSkipped())
-		return;
-}
+	void expect_getattr(uint64_t ino, int times, uint64_t size,
+	    uint64_t attr_valid)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_GETATTR &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .Times(times)
+		    .WillRepeatedly(
+			Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, attr);
+				out.body.attr.attr_valid = attr_valid;
+				out.body.attr.attr.ino = ino;
+				out.body.attr.attr.mode = S_IFREG | 0644;
+				out.body.attr.attr.size = size;
+			})));
+	}
 
-void expect_getattr(uint64_t ino, int times, uint64_t size, uint64_t attr_valid)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(times)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid = attr_valid;
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | 0644;
-		out.body.attr.attr.size = size;
-	})));
-}
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size,
+	    uint64_t entry_valid, uint64_t attr_valid)
+	{
+		EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
+		    .WillRepeatedly(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, entry);
+				out.body.entry.attr.mode = S_IFREG | 0644;
+				out.body.entry.nodeid = ino;
+				out.body.entry.attr.nlink = 1;
+				out.body.entry.attr_valid = attr_valid;
+				out.body.entry.attr.size = size;
+				out.body.entry.entry_valid = entry_valid;
+			})));
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino,
-	uint64_t size, uint64_t entry_valid, uint64_t attr_valid)
-{
-	EXPECT_LOOKUP(FUSE_ROOT_ID, relpath)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = attr_valid;
-		out.body.entry.attr.size = size;
-		out.body.entry.entry_valid = entry_valid;
-	})));
-}
+	void expect_open(uint64_t ino, int times)
+	{
+		FuseTest::expect_open(ino, m_direct_io ? FOPEN_DIRECT_IO : 0,
+		    times);
+	}
 
-void expect_open(uint64_t ino, int times)
-{
-	FuseTest::expect_open(ino, m_direct_io ? FOPEN_DIRECT_IO: 0, times);
-}
-
-void expect_release(uint64_t ino, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RELEASE &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(r));
-}
-
+	void expect_release(uint64_t ino, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_RELEASE &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .WillRepeatedly(Invoke(r));
+	}
 };
 
 // If the server truncates the file behind the kernel's back, the kernel should
@@ -196,23 +208,18 @@ TEST_P(Cache, truncate_by_surprise_invalidates_cache)
 }
 
 INSTANTIATE_TEST_SUITE_P(Cache, Cache,
-	Combine(
-		/* Test every combination that:
-		 * - does not cache at least one of entries and attrs
-		 * - either doesn't cache attrs, or reopens the file
-		 * In the other combinations, the kernel will never learn that
-		 * the file's size has changed.
-		 */
-		Values(
-			std::make_tuple(false, false, false),
-			std::make_tuple(false, true, false),
-			std::make_tuple(true, false, false),
-			std::make_tuple(true, false, true),
-			std::make_tuple(true, true, false)
-		),
-		Values(Writethrough, Writeback),
-		/* Test both reductions and extensions to file size */
-		Values(20),
-		Values(10, 25)
-	)
-);
+    Combine(
+	/* Test every combination that:
+	 * - does not cache at least one of entries and attrs
+	 * - either doesn't cache attrs, or reopens the file
+	 * In the other combinations, the kernel will never learn that
+	 * the file's size has changed.
+	 */
+	Values(std::make_tuple(false, false, false),
+	    std::make_tuple(false, true, false),
+	    std::make_tuple(true, false, false),
+	    std::make_tuple(true, false, true),
+	    std::make_tuple(true, true, false)),
+	Values(Writethrough, Writeback),
+	/* Test both reductions and extensions to file size */
+	Values(20), Values(10, 25)));

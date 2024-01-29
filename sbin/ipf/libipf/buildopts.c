@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 u_32_t
 buildopts(char *cp, char *op, int len)
 {

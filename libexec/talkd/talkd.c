@@ -36,10 +36,12 @@
  * loop on waiting for and processing requests
  */
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/param.h>
+#include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <protocols/talkd.h>
+
 #include <err.h>
 #include <errno.h>
 #include <paths.h>
@@ -53,13 +55,13 @@
 
 #include "extern.h"
 
-static CTL_MSG		request;
-static CTL_RESPONSE	response;
+static CTL_MSG request;
+static CTL_RESPONSE response;
 
-int			debug = 0;
-static long		lastmsgtime;
+int debug = 0;
+static long lastmsgtime;
 
-char			hostname[MAXHOSTNAMELEN];
+char hostname[MAXHOSTNAMELEN];
 
 #define TIMEOUT 30
 #define MAXIDLE 120
@@ -94,7 +96,7 @@ main(int argc, char *argv[])
 	alarm(TIMEOUT);
 	for (;;) {
 		cc = recv(0, (char *)mp, sizeof(*mp), 0);
-		if (cc != sizeof (*mp)) {
+		if (cc != sizeof(*mp)) {
 			if (cc < 0 && errno != EINTR)
 				syslog(LOG_WARNING, "recv: %m");
 			continue;
@@ -106,9 +108,9 @@ main(int argc, char *argv[])
 		ctl_addr.sa_len = sizeof(ctl_addr);
 		process_request(mp, &response);
 		/* can block here, is this what I want? */
-		cc = sendto(STDIN_FILENO, (char *)&response,
-		    sizeof(response), 0, &ctl_addr, sizeof(ctl_addr));
-		if (cc != sizeof (response))
+		cc = sendto(STDIN_FILENO, (char *)&response, sizeof(response),
+		    0, &ctl_addr, sizeof(ctl_addr));
+		if (cc != sizeof(response))
 			syslog(LOG_WARNING, "sendto: %m");
 	}
 }

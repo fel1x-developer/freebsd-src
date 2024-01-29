@@ -28,8 +28,8 @@
 
 #include <math.h>
 
-#include "fpmath.h"
 #include "../src/math_private.h"
+#include "fpmath.h"
 
 long double
 nanl(const char *s)
@@ -41,6 +41,6 @@ nanl(const char *s)
 
 	_scan_nan(u.bits, 3, s);
 	u.ieee.bits.exp = 0x7fff;
-	u.ieee.bits.manh |= 0xc0000000;	/* make it a quiet NaN */
+	u.ieee.bits.manh |= 0xc0000000; /* make it a quiet NaN */
 	return (u.ieee.e);
 }

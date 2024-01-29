@@ -41,11 +41,11 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 
 #include <arm64/coresight/coresight.h>
 #include <arm64/coresight/coresight_etm4x.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 static int
 etm_acpi_probe(device_t dev)
@@ -73,15 +73,15 @@ etm_acpi_attach(device_t dev)
 
 static device_method_t etm_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			etm_acpi_probe),
-	DEVMETHOD(device_attach,		etm_acpi_attach),
+	DEVMETHOD(device_probe, etm_acpi_probe),
+	DEVMETHOD(device_attach, etm_acpi_attach),
 
 	/* End */
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(etm, etm_acpi_driver, etm_acpi_methods,
-    sizeof(struct etm_softc), etm_driver);
+DEFINE_CLASS_1(etm, etm_acpi_driver, etm_acpi_methods, sizeof(struct etm_softc),
+    etm_driver);
 
 EARLY_DRIVER_MODULE(etm, acpi, etm_acpi_driver, 0, 0,
     BUS_PASS_INTERRUPT + BUS_PASS_ORDER_MIDDLE);

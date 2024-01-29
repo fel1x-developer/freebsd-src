@@ -33,4 +33,4 @@ extern size_t offsetof_z_id;
 extern size_t offsetof_z_size;
 extern size_t offsetof_z_mode;
 
-#endif 	/* _LIBPROCSTAT_ZFS_DEFS_H */
+#endif /* _LIBPROCSTAT_ZFS_DEFS_H */

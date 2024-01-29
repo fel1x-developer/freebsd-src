@@ -29,18 +29,18 @@
 #define SOUND_AOA_H
 
 #ifndef AOA_DEBUG
-#define DPRINTF(x)	/* nothing */
+#define DPRINTF(x) /* nothing */
 #else
-#define DPRINTF(x)	printf x
+#define DPRINTF(x) printf x
 #endif
 
 struct aoa_softc {
-	device_t	 sc_dev;	 
-	void		*sc_intrp;
-	struct resource	*sc_odma;
+	device_t sc_dev;
+	void *sc_intrp;
+	struct resource *sc_odma;
 };
 
-void	aoa_interrupt(void *);
-int	aoa_attach(void *xsc);
+void aoa_interrupt(void *);
+int aoa_attach(void *xsc);
 
 #endif /* SOUND_AOA_H */

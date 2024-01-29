@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -37,30 +38,27 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+
+#include <machine/bus.h>
+
+#include <dev/etherswitch/arswitch/arswitch_phy.h>
+#include <dev/etherswitch/arswitch/arswitch_reg.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-
-#include <dev/etherswitch/arswitch/arswitch_reg.h>
-#include <dev/etherswitch/arswitch/arswitch_phy.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * Access PHYs integrated into the switch by going direct
@@ -78,8 +76,8 @@ arswitch_readphy_external(device_t dev, int phy, int reg)
 	ARSWITCH_LOCK(sc);
 	ret = (MDIO_READREG(device_get_parent(dev), phy, reg));
 	DPRINTF(sc, ARSWITCH_DBG_PHYIO,
-	    "%s: phy=0x%08x, reg=0x%08x, ret=0x%08x\n",
-	    __func__, phy, reg, ret);
+	    "%s: phy=0x%08x, reg=0x%08x, ret=0x%08x\n", __func__, phy, reg,
+	    ret);
 	ARSWITCH_UNLOCK(sc);
 
 	return (ret);
@@ -93,11 +91,10 @@ arswitch_writephy_external(device_t dev, int phy, int reg, int data)
 	sc = device_get_softc(dev);
 
 	ARSWITCH_LOCK(sc);
-	(void) MDIO_WRITEREG(device_get_parent(dev), phy,
-	    reg, data);
+	(void)MDIO_WRITEREG(device_get_parent(dev), phy, reg, data);
 	DPRINTF(sc, ARSWITCH_DBG_PHYIO,
-	    "%s: phy=0x%08x, reg=0x%08x, data=0x%08x\n",
-	    __func__, phy, reg, data);
+	    "%s: phy=0x%08x, reg=0x%08x, data=0x%08x\n", __func__, phy, reg,
+	    data);
 	ARSWITCH_UNLOCK(sc);
 
 	return (0);
@@ -131,30 +128,29 @@ arswitch_readphy_internal(device_t dev, int phy, int reg)
 	ARSWITCH_LOCK(sc);
 	err = arswitch_writereg_msb(dev, a,
 	    AR8X16_MDIO_CTRL_BUSY | AR8X16_MDIO_CTRL_MASTER_EN |
-	    AR8X16_MDIO_CTRL_CMD_READ |
-	    (phy << AR8X16_MDIO_CTRL_PHY_ADDR_SHIFT) |
-	    (reg << AR8X16_MDIO_CTRL_REG_ADDR_SHIFT));
+		AR8X16_MDIO_CTRL_CMD_READ |
+		(phy << AR8X16_MDIO_CTRL_PHY_ADDR_SHIFT) |
+		(reg << AR8X16_MDIO_CTRL_REG_ADDR_SHIFT));
 	DEVERR(dev, err, "arswitch_readphy()=%d: phy=%d.%02x\n", phy, reg);
 	if (err != 0)
 		goto fail;
-	for (timeout = 100; timeout--; ) {
+	for (timeout = 100; timeout--;) {
 		ctrl = arswitch_readreg_msb(dev, a);
 		if ((ctrl & AR8X16_MDIO_CTRL_BUSY) == 0)
 			break;
 	}
 	if (timeout < 0) {
 		DPRINTF(sc, ARSWITCH_DBG_ANY,
-		    "arswitch_readphy(): phy=%d.%02x; timeout=%d\n",
-		    phy, reg, timeout);
+		    "arswitch_readphy(): phy=%d.%02x; timeout=%d\n", phy, reg,
+		    timeout);
 		goto fail;
 	}
-	data = arswitch_readreg_lsb(dev, a) &
-	    AR8X16_MDIO_CTRL_DATA_MASK;
+	data = arswitch_readreg_lsb(dev, a) & AR8X16_MDIO_CTRL_DATA_MASK;
 	ARSWITCH_UNLOCK(sc);
 
 	DPRINTF(sc, ARSWITCH_DBG_PHYIO,
-	    "%s: phy=0x%08x, reg=0x%08x, ret=0x%08x\n",
-	    __func__, phy, reg, data);
+	    "%s: phy=0x%08x, reg=0x%08x, ret=0x%08x\n", __func__, phy, reg,
+	    data);
 
 	return (data);
 
@@ -162,8 +158,8 @@ fail:
 	ARSWITCH_UNLOCK(sc);
 
 	DPRINTF(sc, ARSWITCH_DBG_PHYIO,
-	    "%s: phy=0x%08x, reg=0x%08x, fail; err=%d\n",
-	    __func__, phy, reg, err);
+	    "%s: phy=0x%08x, reg=0x%08x, fail; err=%d\n", __func__, phy, reg,
+	    err);
 
 	return (-1);
 }
@@ -189,15 +185,14 @@ arswitch_writephy_internal(device_t dev, int phy, int reg, int data)
 
 	ARSWITCH_LOCK(sc);
 	err = arswitch_writereg(dev, a,
-	    AR8X16_MDIO_CTRL_BUSY |
-	    AR8X16_MDIO_CTRL_MASTER_EN |
-	    AR8X16_MDIO_CTRL_CMD_WRITE |
-	    (phy << AR8X16_MDIO_CTRL_PHY_ADDR_SHIFT) |
-	    (reg << AR8X16_MDIO_CTRL_REG_ADDR_SHIFT) |
-	    (data & AR8X16_MDIO_CTRL_DATA_MASK));
+	    AR8X16_MDIO_CTRL_BUSY | AR8X16_MDIO_CTRL_MASTER_EN |
+		AR8X16_MDIO_CTRL_CMD_WRITE |
+		(phy << AR8X16_MDIO_CTRL_PHY_ADDR_SHIFT) |
+		(reg << AR8X16_MDIO_CTRL_REG_ADDR_SHIFT) |
+		(data & AR8X16_MDIO_CTRL_DATA_MASK));
 	if (err != 0)
 		goto out;
-	for (timeout = 100; timeout--; ) {
+	for (timeout = 100; timeout--;) {
 		ctrl = arswitch_readreg(dev, a);
 		if ((ctrl & AR8X16_MDIO_CTRL_BUSY) == 0)
 			break;
@@ -206,8 +201,8 @@ arswitch_writephy_internal(device_t dev, int phy, int reg, int data)
 		err = EIO;
 
 	DPRINTF(sc, ARSWITCH_DBG_PHYIO,
-	    "%s: phy=0x%08x, reg=0x%08x, data=0x%08x, err=%d\n",
-	    __func__, phy, reg, data, err);
+	    "%s: phy=0x%08x, reg=0x%08x, data=0x%08x, err=%d\n", __func__, phy,
+	    reg, data, err);
 
 out:
 	DEVERR(dev, err, "arswitch_writephy()=%d: phy=%d.%02x\n", phy, reg);

@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_utf1632.c,v 1.9 2008/06/14 16:01:08 tnozaki Exp $	*/
+/*	$NetBSD: citrus_utf1632.c,v 1.9 2008/06/14 16:01:08 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -29,8 +30,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -41,66 +42,62 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_bcs.h"
-
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_utf1632.h"
-
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	int		 chlen;
-	int		 current_endian;
-	uint8_t		 ch[4];
+	int chlen;
+	int current_endian;
+	uint8_t ch[4];
 } _UTF1632State;
 
-#define _ENDIAN_UNKNOWN		0
-#define _ENDIAN_BIG		1
-#define _ENDIAN_LITTLE		2
+#define _ENDIAN_UNKNOWN 0
+#define _ENDIAN_BIG 1
+#define _ENDIAN_LITTLE 2
 #if BYTE_ORDER == BIG_ENDIAN
-#define _ENDIAN_INTERNAL	_ENDIAN_BIG
-#define _ENDIAN_SWAPPED		_ENDIAN_LITTLE
+#define _ENDIAN_INTERNAL _ENDIAN_BIG
+#define _ENDIAN_SWAPPED _ENDIAN_LITTLE
 #else
-#define _ENDIAN_INTERNAL	_ENDIAN_LITTLE
-#define _ENDIAN_SWAPPED	_ENDIAN_BIG
+#define _ENDIAN_INTERNAL _ENDIAN_LITTLE
+#define _ENDIAN_SWAPPED _ENDIAN_BIG
 #endif
-#define _MODE_UTF32		0x00000001U
-#define _MODE_FORCE_ENDIAN	0x00000002U
+#define _MODE_UTF32 0x00000001U
+#define _MODE_FORCE_ENDIAN 0x00000002U
 
 typedef struct {
-	int		 preffered_endian;
-	unsigned int	 cur_max;
-	unsigned int	 cur_min;
-	uint32_t	 mode;
+	int preffered_endian;
+	unsigned int cur_max;
+	unsigned int cur_min;
+	uint32_t mode;
 } _UTF1632EncodingInfo;
 
-#define _FUNCNAME(m)			_citrus_UTF1632_##m
-#define _ENCODING_INFO			_UTF1632EncodingInfo
-#define _ENCODING_STATE			_UTF1632State
-#define _ENCODING_MB_CUR_MAX(_ei_)	((_ei_)->cur_max)
-#define _ENCODING_MB_CUR_MIN(_ei_)	((_ei_)->cur_min)
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
-
+#define _FUNCNAME(m) _citrus_UTF1632_##m
+#define _ENCODING_INFO _UTF1632EncodingInfo
+#define _ENCODING_STATE _UTF1632State
+#define _ENCODING_MB_CUR_MAX(_ei_) ((_ei_)->cur_max)
+#define _ENCODING_MB_CUR_MIN(_ei_) ((_ei_)->cur_min)
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_UTF1632_init_state(_UTF1632EncodingInfo *ei __unused,
-    _UTF1632State *s)
+_citrus_UTF1632_init_state(_UTF1632EncodingInfo *ei __unused, _UTF1632State *s)
 {
 
 	memset(s, 0, sizeof(*s));
 }
 
 static int
-_citrus_UTF1632_mbrtowc_priv(_UTF1632EncodingInfo *ei, wchar_t *pwc,
-    char **s, size_t n, _UTF1632State *psenc, size_t *nresult)
+_citrus_UTF1632_mbrtowc_priv(_UTF1632EncodingInfo *ei, wchar_t *pwc, char **s,
+    size_t n, _UTF1632State *psenc, size_t *nresult)
 {
 	char *s0;
 	size_t result;
@@ -149,14 +146,15 @@ refetch:
 			chlenbak = 0;
 			goto refetch;
 		} else if (psenc->ch[0] == 0xFF && psenc->ch[1] == 0xFE &&
-			   psenc->ch[2] == 0x00 && psenc->ch[3] == 0x00) {
+		    psenc->ch[2] == 0x00 && psenc->ch[3] == 0x00) {
 			psenc->current_endian = _ENDIAN_LITTLE;
 			chlenbak = 0;
 			goto refetch;
 		}
 	}
 	endian = ((ei->mode & _MODE_FORCE_ENDIAN) != 0 ||
-	    psenc->current_endian == _ENDIAN_UNKNOWN) ? ei->preffered_endian :
+		     psenc->current_endian == _ENDIAN_UNKNOWN) ?
+	    ei->preffered_endian :
 	    psenc->current_endian;
 
 	/* get wc */
@@ -192,7 +190,7 @@ refetch:
 				wc |= (wchar_t)(psenc->ch[3] & 3) << 8;
 				break;
 			case _ENDIAN_BIG:
-				if (psenc->ch[2]<0xDC || psenc->ch[2]>0xDF)
+				if (psenc->ch[2] < 0xDC || psenc->ch[2] > 0xDF)
 					goto ilseq;
 				wc |= psenc->ch[3];
 				wc |= (wchar_t)(psenc->ch[2] & 3) << 8;
@@ -206,14 +204,12 @@ refetch:
 		/* UTF32 */
 		switch (endian) {
 		case _ENDIAN_LITTLE:
-			wc = (psenc->ch[0] |
-			    ((wchar_t)psenc->ch[1] << 8) |
+			wc = (psenc->ch[0] | ((wchar_t)psenc->ch[1] << 8) |
 			    ((wchar_t)psenc->ch[2] << 16) |
 			    ((wchar_t)psenc->ch[3] << 24));
 			break;
 		case _ENDIAN_BIG:
-			wc = (psenc->ch[3] |
-			    ((wchar_t)psenc->ch[2] << 8) |
+			wc = (psenc->ch[3] | ((wchar_t)psenc->ch[2] << 8) |
 			    ((wchar_t)psenc->ch[1] << 16) |
 			    ((wchar_t)psenc->ch[0] << 24));
 			break;
@@ -223,7 +219,6 @@ refetch:
 		if (wc >= 0xD800 && wc <= 0xDFFF)
 			goto ilseq;
 	}
-
 
 	*pwc = wc;
 	psenc->chlen = 0;
@@ -250,7 +245,10 @@ _citrus_UTF1632_wcrtomb_priv(_UTF1632EncodingInfo *ei, char *s, size_t n,
 {
 	wchar_t wc2;
 	static const char _bom[4] = {
-	    0x00, 0x00, 0xFE, 0xFF,
+		0x00,
+		0x00,
+		0xFE,
+		0xFF,
 	};
 	const char *bom = &_bom[0];
 	size_t cnt;
@@ -273,7 +271,7 @@ _citrus_UTF1632_wcrtomb_priv(_UTF1632EncodingInfo *ei, char *s, size_t n,
 	}
 
 	wc2 = 0;
-	if ((ei->mode & _MODE_UTF32)==0) {
+	if ((ei->mode & _MODE_UTF32) == 0) {
 		/* UTF16 */
 		if (wc > 0xFFFF) {
 			/* surrogate */
@@ -284,14 +282,14 @@ _citrus_UTF1632_wcrtomb_priv(_UTF1632EncodingInfo *ei, char *s, size_t n,
 			cnt += 4;
 			wc -= 0x10000;
 			wc2 = (wc & 0x3FF) | 0xDC00;
-			wc = (wc>>10) | 0xD800;
+			wc = (wc >> 10) | 0xD800;
 		} else {
 			if (n < 2)
 				goto e2big;
 			cnt += 2;
 		}
 
-surrogate:
+	surrogate:
 		switch (psenc->current_endian) {
 		case _ENDIAN_BIG:
 			s[1] = wc;
@@ -343,8 +341,8 @@ e2big:
 }
 
 static void
-parse_variable(_UTF1632EncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+parse_variable(_UTF1632EncodingInfo *__restrict ei, const void *__restrict var,
+    size_t lenvar)
 {
 	const char *p;
 
@@ -361,7 +359,8 @@ parse_variable(_UTF1632EncodingInfo * __restrict ei,
 			break;
 		case 'i':
 		case 'I':
-			MATCH(internal, ei->preffered_endian = _ENDIAN_INTERNAL);
+			MATCH(internal,
+			    ei->preffered_endian = _ENDIAN_INTERNAL);
 			break;
 		case 's':
 		case 'S':
@@ -383,16 +382,16 @@ parse_variable(_UTF1632EncodingInfo * __restrict ei,
 
 static int
 /*ARGSUSED*/
-_citrus_UTF1632_encoding_module_init(_UTF1632EncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_UTF1632_encoding_module_init(_UTF1632EncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 
 	memset((void *)ei, 0, sizeof(*ei));
 
 	parse_variable(ei, var, lenvar);
 
-	ei->cur_min = ((ei->mode&_MODE_UTF32) == 0) ? 2 : 4;
-	ei->cur_max = ((ei->mode&_MODE_UTF32) == 0) ? 6 : 8;
+	ei->cur_min = ((ei->mode & _MODE_UTF32) == 0) ? 2 : 4;
+	ei->cur_max = ((ei->mode & _MODE_UTF32) == 0) ? 6 : 8;
 	/* 6: endian + surrogate */
 	/* 8: endian + normal */
 
@@ -407,13 +406,12 @@ static void
 /*ARGSUSED*/
 _citrus_UTF1632_encoding_module_uninit(_UTF1632EncodingInfo *ei __unused)
 {
-
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF1632_stdenc_wctocs(_UTF1632EncodingInfo * __restrict ei __unused,
-     _csid_t * __restrict csid, _index_t * __restrict idx, _wc_t wc)
+_citrus_UTF1632_stdenc_wctocs(_UTF1632EncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, _wc_t wc)
 {
 
 	*csid = 0;
@@ -424,8 +422,8 @@ _citrus_UTF1632_stdenc_wctocs(_UTF1632EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF1632_stdenc_cstowc(_UTF1632EncodingInfo * __restrict ei __unused,
-    _wc_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_UTF1632_stdenc_cstowc(_UTF1632EncodingInfo *__restrict ei __unused,
+    _wc_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid != 0)
@@ -438,12 +436,13 @@ _citrus_UTF1632_stdenc_cstowc(_UTF1632EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF1632_stdenc_get_state_desc_generic(_UTF1632EncodingInfo * __restrict ei __unused,
-    _UTF1632State * __restrict psenc, int * __restrict rstate)
+_citrus_UTF1632_stdenc_get_state_desc_generic(
+    _UTF1632EncodingInfo *__restrict ei __unused,
+    _UTF1632State *__restrict psenc, int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 

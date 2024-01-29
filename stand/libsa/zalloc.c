@@ -76,7 +76,7 @@
  */
 typedef char assert_align[(sizeof(struct MemNode) <= MALLOCALIGN) ? 1 : -1];
 
-#define	MEMNODE_SIZE_MASK	MALLOCALIGN_MASK
+#define MEMNODE_SIZE_MASK MALLOCALIGN_MASK
 
 /*
  * znalloc() -	allocate memory (without zeroing) from pool.  Call reclaim
@@ -94,7 +94,7 @@ znalloc(MemPool *mp, uintptr_t bytes, size_t align)
 	 * align according to pool object size (can be 0).  This is
 	 * inclusive of the MEMNODE_SIZE_MASK minimum alignment.
 	 *
-	*/
+	 */
 	bytes = (bytes + MEMNODE_SIZE_MASK) & ~MEMNODE_SIZE_MASK;
 
 	if (bytes == 0)
@@ -114,7 +114,7 @@ znalloc(MemPool *mp, uintptr_t bytes, size_t align)
 		char *aligned;
 		size_t extra;
 
-		dptr = (uintptr_t)(ptr + MALLOCALIGN);  /* pointer to data */
+		dptr = (uintptr_t)(ptr + MALLOCALIGN); /* pointer to data */
 		aligned = (char *)(roundup2(dptr, align) - MALLOCALIGN);
 		extra = aligned - ptr;
 
@@ -149,12 +149,12 @@ znalloc(MemPool *mp, uintptr_t bytes, size_t align)
 			*pmn = mn->mr_Next;
 		} else {
 			mn = (MemNode *)((char *)mn + bytes);
-			mn->mr_Next  = ((MemNode *)ptr)->mr_Next;
+			mn->mr_Next = ((MemNode *)ptr)->mr_Next;
 			mn->mr_Bytes = ((MemNode *)ptr)->mr_Bytes - bytes;
 			*pmn = mn;
 		}
 		mp->mp_Used += bytes;
-		return(ptr);
+		return (ptr);
 	}
 
 	/*
@@ -219,8 +219,8 @@ zfree(MemPool *mp, void *ptr, uintptr_t bytes)
 
 			if ((char *)ptr + bytes == (char *)mn) {
 				((MemNode *)ptr)->mr_Next = mn->mr_Next;
-				((MemNode *)ptr)->mr_Bytes =
-				    bytes + mn->mr_Bytes;
+				((MemNode *)ptr)->mr_Bytes = bytes +
+				    mn->mr_Bytes;
 			} else {
 				((MemNode *)ptr)->mr_Next = mn;
 				((MemNode *)ptr)->mr_Bytes = bytes;
@@ -233,7 +233,7 @@ zfree(MemPool *mp, void *ptr, uintptr_t bytes)
 			 */
 
 			if (pmn != &mp->mp_First) {
-				if ((char *)pmn + ((MemNode*)pmn)->mr_Bytes ==
+				if ((char *)pmn + ((MemNode *)pmn)->mr_Bytes ==
 				    (char *)ptr) {
 					((MemNode *)pmn)->mr_Next = mn->mr_Next;
 					((MemNode *)pmn)->mr_Bytes +=

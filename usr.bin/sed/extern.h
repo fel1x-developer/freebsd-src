@@ -42,16 +42,16 @@ extern unsigned int appendnum;
 extern int aflag, eflag, nflag;
 extern const char *fname, *outfname;
 extern FILE *infile, *outfile;
-extern int rflags;	/* regex flags to use */
+extern int rflags; /* regex flags to use */
 extern const char *inplace;
 extern int quit;
 
-void	 cfclose(struct s_command *, struct s_command *);
-void	 compile(void);
-void	 cspace(SPACE *, const char *, size_t, enum e_spflag);
-char	*cu_fgets(char *, int, int *);
-int	 mf_fgets(SPACE *, enum e_spflag);
-int	 lastline(void);
-void	 process(void);
-void	 resetstate(void);
-char	*strregerror(int, regex_t *);
+void cfclose(struct s_command *, struct s_command *);
+void compile(void);
+void cspace(SPACE *, const char *, size_t, enum e_spflag);
+char *cu_fgets(char *, int, int *);
+int mf_fgets(SPACE *, enum e_spflag);
+int lastline(void);
+void process(void);
+void resetstate(void);
+char *strregerror(int, regex_t *);

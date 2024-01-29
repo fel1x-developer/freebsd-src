@@ -31,109 +31,98 @@
 #ifndef WITHOUT_CAPSICUM
 #include <sys/capsicum.h>
 #endif
-#include <sys/queue.h>
-#include <sys/errno.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/disk.h>
+#include <sys/errno.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
-#include <err.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <pthread_np.h>
-#include <signal.h>
-#include <sysexits.h>
-#include <unistd.h>
-
 #include <machine/atomic.h>
 #include <machine/vmm_snapshot.h>
 
+#include <err.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <pthread_np.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <unistd.h>
+
 #include "bhyverun.h"
+#include "block_if.h"
 #include "config.h"
 #include "debug.h"
 #include "mevent.h"
 #include "pci_emul.h"
-#include "block_if.h"
 
-#define BLOCKIF_SIG	0xb109b109
+#define BLOCKIF_SIG 0xb109b109
 
-#define BLOCKIF_NUMTHR	8
-#define BLOCKIF_MAXREQ	(BLOCKIF_RING_MAX + BLOCKIF_NUMTHR)
+#define BLOCKIF_NUMTHR 8
+#define BLOCKIF_MAXREQ (BLOCKIF_RING_MAX + BLOCKIF_NUMTHR)
 
-enum blockop {
-	BOP_READ,
-	BOP_WRITE,
-	BOP_FLUSH,
-	BOP_DELETE
-};
+enum blockop { BOP_READ, BOP_WRITE, BOP_FLUSH, BOP_DELETE };
 
-enum blockstat {
-	BST_FREE,
-	BST_BLOCK,
-	BST_PEND,
-	BST_BUSY,
-	BST_DONE
-};
+enum blockstat { BST_FREE, BST_BLOCK, BST_PEND, BST_BUSY, BST_DONE };
 
 struct blockif_elem {
 	TAILQ_ENTRY(blockif_elem) be_link;
-	struct blockif_req  *be_req;
-	enum blockop	     be_op;
-	enum blockstat	     be_status;
-	pthread_t            be_tid;
-	off_t		     be_block;
+	struct blockif_req *be_req;
+	enum blockop be_op;
+	enum blockstat be_status;
+	pthread_t be_tid;
+	off_t be_block;
 };
 
 struct blockif_ctxt {
-	unsigned int		bc_magic;
-	int			bc_fd;
-	int			bc_ischr;
-	int			bc_isgeom;
-	int			bc_candelete;
-	int			bc_rdonly;
-	off_t			bc_size;
-	int			bc_sectsz;
-	int			bc_psectsz;
-	int			bc_psectoff;
-	int			bc_closing;
-	int			bc_paused;
-	pthread_t		bc_btid[BLOCKIF_NUMTHR];
-	pthread_mutex_t		bc_mtx;
-	pthread_cond_t		bc_cond;
-	pthread_cond_t		bc_work_done_cond;
-	blockif_resize_cb	*bc_resize_cb;
-	void			*bc_resize_cb_arg;
-	struct mevent		*bc_resize_event;
+	unsigned int bc_magic;
+	int bc_fd;
+	int bc_ischr;
+	int bc_isgeom;
+	int bc_candelete;
+	int bc_rdonly;
+	off_t bc_size;
+	int bc_sectsz;
+	int bc_psectsz;
+	int bc_psectoff;
+	int bc_closing;
+	int bc_paused;
+	pthread_t bc_btid[BLOCKIF_NUMTHR];
+	pthread_mutex_t bc_mtx;
+	pthread_cond_t bc_cond;
+	pthread_cond_t bc_work_done_cond;
+	blockif_resize_cb *bc_resize_cb;
+	void *bc_resize_cb_arg;
+	struct mevent *bc_resize_event;
 
 	/* Request elements and free/pending/busy queues */
 	TAILQ_HEAD(, blockif_elem) bc_freeq;
 	TAILQ_HEAD(, blockif_elem) bc_pendq;
 	TAILQ_HEAD(, blockif_elem) bc_busyq;
-	struct blockif_elem	bc_reqs[BLOCKIF_MAXREQ];
-	int			bc_bootindex;
+	struct blockif_elem bc_reqs[BLOCKIF_MAXREQ];
+	int bc_bootindex;
 };
 
 static pthread_once_t blockif_once = PTHREAD_ONCE_INIT;
 
 struct blockif_sig_elem {
-	pthread_mutex_t			bse_mtx;
-	pthread_cond_t			bse_cond;
-	int				bse_pending;
-	struct blockif_sig_elem		*bse_next;
+	pthread_mutex_t bse_mtx;
+	pthread_cond_t bse_cond;
+	int bse_pending;
+	struct blockif_sig_elem *bse_next;
 };
 
 static struct blockif_sig_elem *blockif_bse_head;
 
 static int
 blockif_enqueue(struct blockif_ctxt *bc, struct blockif_req *breq,
-		enum blockop op)
+    enum blockop op)
 {
 	struct blockif_elem *be, *tbe;
 	off_t off;
@@ -157,12 +146,12 @@ blockif_enqueue(struct blockif_ctxt *bc, struct blockif_req *breq,
 		off = OFF_MAX;
 	}
 	be->be_block = off;
-	TAILQ_FOREACH(tbe, &bc->bc_pendq, be_link) {
+	TAILQ_FOREACH (tbe, &bc->bc_pendq, be_link) {
 		if (tbe->be_block == breq->br_offset)
 			break;
 	}
 	if (tbe == NULL) {
-		TAILQ_FOREACH(tbe, &bc->bc_busyq, be_link) {
+		TAILQ_FOREACH (tbe, &bc->bc_busyq, be_link) {
 			if (tbe->be_block == breq->br_offset)
 				break;
 		}
@@ -180,7 +169,7 @@ blockif_dequeue(struct blockif_ctxt *bc, pthread_t t, struct blockif_elem **bep)
 {
 	struct blockif_elem *be;
 
-	TAILQ_FOREACH(be, &bc->bc_pendq, be_link) {
+	TAILQ_FOREACH (be, &bc->bc_pendq, be_link) {
 		if (be->be_status == BST_PEND)
 			break;
 		assert(be->be_status == BST_BLOCK);
@@ -204,7 +193,7 @@ blockif_complete(struct blockif_ctxt *bc, struct blockif_elem *be)
 		TAILQ_REMOVE(&bc->bc_busyq, be, be_link);
 	else
 		TAILQ_REMOVE(&bc->bc_pendq, be, be_link);
-	TAILQ_FOREACH(tbe, &bc->bc_pendq, be_link) {
+	TAILQ_FOREACH (tbe, &bc->bc_pendq, be_link) {
 		if (tbe->be_req->br_offset == be->be_block)
 			tbe->be_status = BST_PEND;
 	}
@@ -246,7 +235,7 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 	case BOP_READ:
 		if (buf == NULL) {
 			if ((n = preadv(bc->bc_fd, br->br_iov, br->br_iovcnt,
-			    br->br_offset)) < 0)
+				 br->br_offset)) < 0)
 				err = errno;
 			else
 				br->br_resid -= n;
@@ -264,8 +253,8 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 			len = (size_t)n;
 			boff = 0;
 			do {
-				clen = MIN(len - boff, br->br_iov[i].iov_len -
-				    voff);
+				clen = MIN(len - boff,
+				    br->br_iov[i].iov_len - voff);
 				memcpy((uint8_t *)br->br_iov[i].iov_base + voff,
 				    buf + boff, clen);
 				if (clen < br->br_iov[i].iov_len - voff)
@@ -287,7 +276,7 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 		}
 		if (buf == NULL) {
 			if ((n = pwritev(bc->bc_fd, br->br_iov, br->br_iovcnt,
-			    br->br_offset)) < 0)
+				 br->br_offset)) < 0)
 				err = errno;
 			else
 				br->br_resid -= n;
@@ -299,8 +288,8 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 			len = MIN(br->br_resid, MAXPHYS);
 			boff = 0;
 			do {
-				clen = MIN(len - boff, br->br_iov[i].iov_len -
-				    voff);
+				clen = MIN(len - boff,
+				    br->br_iov[i].iov_len - voff);
 				memcpy(buf + boff,
 				    (uint8_t *)br->br_iov[i].iov_base + voff,
 				    clen);
@@ -343,7 +332,7 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 
 			while (range.r_len > 0) {
 				if (fspacectl(bc->bc_fd, SPACECTL_DEALLOC,
-				    &range, 0, &range) != 0) {
+					&range, 0, &range) != 0) {
 					err = errno;
 					break;
 				}
@@ -426,8 +415,7 @@ blockif_sigcont_handler(int signal __unused, enum ev_type type __unused,
 			if (bse == NULL)
 				return;
 		} while (!atomic_cmpset_ptr((uintptr_t *)&blockif_bse_head,
-					    (uintptr_t)bse,
-					    (uintptr_t)bse->bse_next));
+		    (uintptr_t)bse, (uintptr_t)bse->bse_next));
 
 		pthread_mutex_lock(&bse->bse_mtx);
 		bse->bse_pending = 0;
@@ -440,7 +428,7 @@ static void
 blockif_init(void)
 {
 	mevent_add(SIGCONT, EVF_SIGNAL, blockif_sigcont_handler, NULL);
-	(void) signal(SIGCONT, SIG_IGN);
+	(void)signal(SIGCONT, SIG_IGN);
 }
 
 int
@@ -556,10 +544,10 @@ blockif_open(nvlist_t *nvl, const char *ident)
 		goto err;
 	}
 
-        if (fstat(fd, &sbuf) < 0) {
+	if (fstat(fd, &sbuf) < 0) {
 		warn("Could not stat backing file %s", path);
 		goto err;
-        }
+	}
 
 #ifndef WITHOUT_CAPSICUM
 	cap_rights_init(&rights, CAP_FSYNC, CAP_IOCTL, CAP_READ, CAP_SEEK,
@@ -571,10 +559,10 @@ blockif_open(nvlist_t *nvl, const char *ident)
 		errx(EX_OSERR, "Unable to apply rights for sandbox");
 #endif
 
-        /*
+	/*
 	 * Deal with raw devices
 	 */
-        size = sbuf.st_size;
+	size = sbuf.st_size;
 	sectsz = DEV_BSIZE;
 	psectsz = psectoff = 0;
 	candelete = geom = 0;
@@ -608,8 +596,7 @@ blockif_open(nvlist_t *nvl, const char *ident)
 	if (ssopt != 0) {
 		if (!powerof2(ssopt) || !powerof2(pssopt) || ssopt < 512 ||
 		    ssopt > pssopt) {
-			EPRINTLN("Invalid sector size %d/%d",
-			    ssopt, pssopt);
+			EPRINTLN("Invalid sector size %d/%d", ssopt, pssopt);
 			goto err;
 		}
 
@@ -622,7 +609,8 @@ blockif_open(nvlist_t *nvl, const char *ident)
 		 */
 		if (S_ISCHR(sbuf.st_mode)) {
 			if (ssopt < sectsz || (ssopt % sectsz) != 0) {
-				EPRINTLN("Sector size %d incompatible "
+				EPRINTLN(
+				    "Sector size %d incompatible "
 				    "with underlying device sector size %d",
 				    ssopt, sectsz);
 				goto err;
@@ -746,7 +734,7 @@ out:
 
 static int
 blockif_request(struct blockif_ctxt *bc, struct blockif_req *breq,
-		enum blockop op)
+    enum blockop op)
 {
 	int err;
 
@@ -816,7 +804,7 @@ blockif_cancel(struct blockif_ctxt *bc, struct blockif_req *breq)
 	/*
 	 * Check pending requests.
 	 */
-	TAILQ_FOREACH(be, &bc->bc_pendq, be_link) {
+	TAILQ_FOREACH (be, &bc->bc_pendq, be_link) {
 		if (be->be_req == breq)
 			break;
 	}
@@ -833,7 +821,7 @@ blockif_cancel(struct blockif_ctxt *bc, struct blockif_req *breq)
 	/*
 	 * Check in-flight requests.
 	 */
-	TAILQ_FOREACH(be, &bc->bc_busyq, be_link) {
+	TAILQ_FOREACH (be, &bc->bc_busyq, be_link) {
 		if (be->be_req == breq)
 			break;
 	}
@@ -861,8 +849,7 @@ blockif_cancel(struct blockif_ctxt *bc, struct blockif_req *breq)
 			old_head = blockif_bse_head;
 			bse.bse_next = old_head;
 		} while (!atomic_cmpset_ptr((uintptr_t *)&blockif_bse_head,
-					    (uintptr_t)old_head,
-					    (uintptr_t)&bse));
+		    (uintptr_t)old_head, (uintptr_t)&bse));
 
 		pthread_kill(be->be_tid, SIGCONT);
 
@@ -920,9 +907,9 @@ blockif_close(struct blockif_ctxt *bc)
 void
 blockif_chs(struct blockif_ctxt *bc, uint16_t *c, uint8_t *h, uint8_t *s)
 {
-	off_t sectors;		/* total sectors of the block dev */
-	off_t hcyl;		/* cylinders times heads */
-	uint16_t secpt;		/* sectors per track */
+	off_t sectors;	/* total sectors of the block dev */
+	off_t hcyl;	/* cylinders times heads */
+	uint16_t secpt; /* sectors per track */
 	uint8_t heads;
 
 	assert(bc->bc_magic == BLOCKIF_SIG);
@@ -1024,8 +1011,7 @@ blockif_pause(struct blockif_ctxt *bc)
 	pthread_mutex_unlock(&bc->bc_mtx);
 
 	if (!bc->bc_rdonly && blockif_flush_bc(bc))
-		EPRINTLN("%s: [WARN] failed to flush backing file.",
-			__func__);
+		EPRINTLN("%s: [WARN] failed to flush backing file.", __func__);
 }
 
 void
@@ -1038,4 +1024,4 @@ blockif_resume(struct blockif_ctxt *bc)
 	bc->bc_paused = 0;
 	pthread_mutex_unlock(&bc->bc_mtx);
 }
-#endif	/* BHYVE_SNAPSHOT */
+#endif /* BHYVE_SNAPSHOT */

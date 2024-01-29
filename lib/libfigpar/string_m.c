@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -124,8 +124,9 @@ replaceall(char *source, const char *find, const char *replace)
 		temp = source;
 
 	/* Reconstruct the string with the replacements */
-	p = source; t = temp; /* position elements */
- 
+	p = source;
+	t = temp; /* position elements */
+
 	while (*t != '\0') {
 		if (strncmp(t, find, flen) == 0) {
 			/* found an occurrence */
@@ -174,7 +175,8 @@ replaceall(char *source, const char *find, const char *replace)
  *
  * All other sequences are unescaped (ie. '\"' and '\#').
  */
-void strexpand(char *source)
+void
+strexpand(char *source)
 {
 	uint8_t c;
 	char *chr;
@@ -195,20 +197,34 @@ void strexpand(char *source)
 
 		/* Replace the backslash with the correct character */
 		switch (*++chr) {
-		case 'a': *pos = '\a'; break; /* bell/alert (BEL) */
-		case 'b': *pos = '\b'; break; /* backspace */
-		case 'f': *pos = '\f'; break; /* form feed */
-		case 'n': *pos = '\n'; break; /* new line */
-		case 'r': *pos = '\r'; break; /* carriage return */
-		case 't': *pos = '\t'; break; /* horizontal tab */
-		case 'v': *pos = '\v'; break; /* vertical tab */
-		case 'x': /* hex value (1 to 2 digits)(\xNN) */
+		case 'a':
+			*pos = '\a';
+			break; /* bell/alert (BEL) */
+		case 'b':
+			*pos = '\b';
+			break; /* backspace */
+		case 'f':
+			*pos = '\f';
+			break; /* form feed */
+		case 'n':
+			*pos = '\n';
+			break; /* new line */
+		case 'r':
+			*pos = '\r';
+			break; /* carriage return */
+		case 't':
+			*pos = '\t';
+			break; /* horizontal tab */
+		case 'v':
+			*pos = '\v';
+			break;	     /* vertical tab */
+		case 'x':	     /* hex value (1 to 2 digits)(\xNN) */
 			d[2] = '\0'; /* pre-terminate the string */
 
 			/* verify next two characters are hex */
-			d[0] = isxdigit(*(chr+1)) ? *++chr : '\0';
+			d[0] = isxdigit(*(chr + 1)) ? *++chr : '\0';
 			if (d[0] != '\0')
-				d[1] = isxdigit(*(chr+1)) ? *++chr : '\0';
+				d[1] = isxdigit(*(chr + 1)) ? *++chr : '\0';
 
 			/* convert the characters to decimal */
 			c = (uint8_t)strtoul(d, 0, 16);
@@ -216,18 +232,23 @@ void strexpand(char *source)
 			/* assign the converted value */
 			*pos = (c != 0 || d[0] == '0') ? c : *++chr;
 			break;
-		case '0': /* octal value (0 to 3 digits)(\0NNN) */
+		case '0':	     /* octal value (0 to 3 digits)(\0NNN) */
 			d[3] = '\0'; /* pre-terminate the string */
 
 			/* verify next three characters are octal */
-			d[0] = (isdigit(*(chr+1)) && *(chr+1) < '8') ?
-			    *++chr : '\0';
+			d[0] = (isdigit(*(chr + 1)) && *(chr + 1) < '8') ?
+			    *++chr :
+			    '\0';
 			if (d[0] != '\0')
-				d[1] = (isdigit(*(chr+1)) && *(chr+1) < '8') ?
-				    *++chr : '\0';
+				d[1] = (isdigit(*(chr + 1)) &&
+					   *(chr + 1) < '8') ?
+				    *++chr :
+				    '\0';
 			if (d[1] != '\0')
-				d[2] = (isdigit(*(chr+1)) && *(chr+1) < '8') ?
-				    *++chr : '\0';
+				d[2] = (isdigit(*(chr + 1)) &&
+					   *(chr + 1) < '8') ?
+				    *++chr :
+				    '\0';
 
 			/* convert the characters to decimal */
 			c = (uint8_t)strtoul(d, 0, 8);
@@ -262,12 +283,13 @@ void strexpand(char *source)
  * any escaped newlines were converted but the amount of memory allocated does
  * not change.
  */
-void strexpandnl(char *source)
+void
+strexpandnl(char *source)
 {
 	uint8_t backslash = 0;
 	char *cp1;
 	char *cp2;
-	
+
 	/* Replace '\n' with literal in dprompt */
 	cp1 = cp2 = source;
 	while (*cp2 != '\0') {

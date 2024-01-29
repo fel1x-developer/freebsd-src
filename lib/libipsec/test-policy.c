@@ -35,53 +35,55 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include <netinet/in.h>
 #include <net/pfkeyv2.h>
-#include <netipsec/key_debug.h>
+#include <netinet/in.h>
 #include <netipsec/ipsec.h>
+#include <netipsec/key_debug.h>
 
+#include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <err.h>
+#include <unistd.h>
 
 #include "libpfkey.h"
 
 struct req_t {
-	int result;	/* expected result; 0:ok 1:ng */
+	int result; /* expected result; 0:ok 1:ng */
 	char *str;
 } reqs[] = {
-{ 0, "out ipsec" },
-{ 1, "must_error" },
-{ 1, "in ipsec must_error" },
-{ 1, "out ipsec esp/must_error" },
-{ 1, "out discard" },
-{ 1, "out none" },
-{ 0, "in entrust" },
-{ 0, "out entrust" },
-{ 1, "out ipsec esp" },
-{ 0, "in ipsec ah/transport" },
-{ 1, "in ipsec ah/tunnel" },
-{ 0, "out ipsec ah/transport/" },
-{ 1, "out ipsec ah/tunnel/" },
-{ 0, "in ipsec esp / transport / 10.0.0.1-10.0.0.2" },
-{ 0, "in ipsec esp/tunnel/::1-::2" },
-{ 1, "in ipsec esp/tunnel/10.0.0.1-::2" },
-{ 0, "in ipsec esp/tunnel/::1-::2/require" },
-{ 0, "out ipsec ah/transport//use" },
-{ 1, "out ipsec ah/transport esp/use" },
-{ 1, "in ipsec ah/transport esp/tunnel" },
-{ 0, "in ipsec ah/transport esp/tunnel/::1-::1" },
-{ 0, "in ipsec\n"
-	"ah / transport\n"
-	"esp / tunnel / ::1-::2" },
-{ 0, "out ipsec\n"
-	"ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n"
-	"ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n"
-	"ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n" },
-{ 0, "out ipsec esp/transport/fec0::10-fec0::11/use" },
+	{ 0, "out ipsec" },
+	{ 1, "must_error" },
+	{ 1, "in ipsec must_error" },
+	{ 1, "out ipsec esp/must_error" },
+	{ 1, "out discard" },
+	{ 1, "out none" },
+	{ 0, "in entrust" },
+	{ 0, "out entrust" },
+	{ 1, "out ipsec esp" },
+	{ 0, "in ipsec ah/transport" },
+	{ 1, "in ipsec ah/tunnel" },
+	{ 0, "out ipsec ah/transport/" },
+	{ 1, "out ipsec ah/tunnel/" },
+	{ 0, "in ipsec esp / transport / 10.0.0.1-10.0.0.2" },
+	{ 0, "in ipsec esp/tunnel/::1-::2" },
+	{ 1, "in ipsec esp/tunnel/10.0.0.1-::2" },
+	{ 0, "in ipsec esp/tunnel/::1-::2/require" },
+	{ 0, "out ipsec ah/transport//use" },
+	{ 1, "out ipsec ah/transport esp/use" },
+	{ 1, "in ipsec ah/transport esp/tunnel" },
+	{ 0, "in ipsec ah/transport esp/tunnel/::1-::1" },
+	{ 0,
+	    "in ipsec\n"
+	    "ah / transport\n"
+	    "esp / tunnel / ::1-::2" },
+	{ 0,
+	    "out ipsec\n"
+	    "ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n"
+	    "ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n"
+	    "ah/transport/::1-::2 esp/tunnel/::3-::4/use ah/transport/::5-::6/require\n" },
+	{ 0, "out ipsec esp/transport/fec0::10-fec0::11/use" },
 };
 
 int test1(void);
@@ -92,8 +94,8 @@ int test2sub(int);
 
 int
 main(ac, av)
-	int ac;
-	char **av;
+int ac;
+char **av;
 {
 	test1();
 	test2();
@@ -108,7 +110,7 @@ test1()
 	int result;
 
 	printf("TEST1\n");
-	for (i = 0; i < sizeof(reqs)/sizeof(reqs[0]); i++) {
+	for (i = 0; i < sizeof(reqs) / sizeof(reqs[0]); i++) {
 		printf("#%d [%s]\n", i + 1, reqs[i].str);
 
 		result = test1sub1(&reqs[i]);
@@ -124,7 +126,7 @@ test1()
 
 int
 test1sub1(req)
-	struct req_t *req;
+struct req_t *req;
 {
 	char *buf;
 
@@ -134,8 +136,7 @@ test1sub1(req)
 		return 1;
 	}
 
-	if (test1sub2(buf, PF_INET) != 0
-	 || test1sub2(buf, PF_INET6) != 0) {
+	if (test1sub2(buf, PF_INET) != 0 || test1sub2(buf, PF_INET6) != 0) {
 		free(buf);
 		return 1;
 	}
@@ -149,8 +150,8 @@ test1sub1(req)
 
 int
 test1sub2(policy, family)
-	char *policy;
-	int family;
+char *policy;
+int family;
 {
 	int so;
 	int proto = 0, optname = 0;
@@ -190,33 +191,57 @@ test1sub2(policy, family)
 		return 1;
 	}
 
-    {
-	char *buf = NULL;
+	{
+		char *buf = NULL;
 
 #if 0
 	printf("\tgetlen:%d\n", len);
 #endif
 
-	if ((buf = ipsec_dump_policy(getbuf, NULL)) == NULL) {
-		printf("%s\n", ipsec_strerror());
-		close(so);
-		return 1;
-	}
+		if ((buf = ipsec_dump_policy(getbuf, NULL)) == NULL) {
+			printf("%s\n", ipsec_strerror());
+			close(so);
+			return 1;
+		}
 #if 0
 	printf("\t[%s]\n", buf);
 #endif
-	free(buf);
-    }
+		free(buf);
+	}
 
-	close (so);
+	close(so);
 	return 0;
 }
 
 char addr[] = {
-	28, 28, 0, 0,
-	0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-	0, 0, 0, 0,
+	28,
+	28,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	0,
+	1,
+	0,
+	0,
+	0,
+	0,
 };
 
 int
@@ -250,16 +275,14 @@ test2()
 
 	printf("spdsetidx()\n");
 	if (pfkey_send_spdsetidx(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, sp1, splen1, 0) < 0)
+		(struct sockaddr *)addr, 128, 255, sp1, splen1, 0) < 0)
 		errx(1, "ERROR: %s", ipsec_strerror());
 	m = pfkey_recv(so);
 	free(m);
-	
+
 	printf("spdupdate()\n");
 	if (pfkey_send_spdupdate(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, sp2, splen2, 0) < 0)
+		(struct sockaddr *)addr, 128, 255, sp2, splen2, 0) < 0)
 		errx(1, "ERROR: %s", ipsec_strerror());
 	m = pfkey_recv(so);
 	free(m);
@@ -269,16 +292,14 @@ test2()
 
 	printf("spddelete()\n");
 	if (pfkey_send_spddelete(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, sp1, splen1, 0) < 0)
+		(struct sockaddr *)addr, 128, 255, sp1, splen1, 0) < 0)
 		errx(1, "ERROR: %s", ipsec_strerror());
 	m = pfkey_recv(so);
 	free(m);
 
 	printf("spdadd()\n");
 	if (pfkey_send_spdadd(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, sp2, splen2, 0) < 0)
+		(struct sockaddr *)addr, 128, 255, sp2, splen2, 0) < 0)
 		errx(1, "ERROR: %s", ipsec_strerror());
 	spid = test2sub(so);
 
@@ -299,16 +320,14 @@ test2()
 
 	printf("spdadd() with lifetime's 10(s)\n");
 	if (pfkey_send_spdadd2(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, 0, 10, sp2, splen2, 0) < 0)
+		(struct sockaddr *)addr, 128, 255, 0, 10, sp2, splen2, 0) < 0)
 		errx(1, "ERROR: %s", ipsec_strerror());
 	spid = test2sub(so);
 
 	/* expecting failure */
 	printf("spdupdate()\n");
 	if (pfkey_send_spdupdate(so, (struct sockaddr *)addr, 128,
-				(struct sockaddr *)addr, 128,
-				255, sp2, splen2, 0) == 0) {
+		(struct sockaddr *)addr, 128, 255, sp2, splen2, 0) == 0) {
 		warnx("ERROR: expecting failure.");
 	}
 
@@ -317,7 +336,7 @@ test2()
 
 int
 test2sub(so)
-	int so;
+int so;
 {
 	struct sadb_msg *msg;
 	caddr_t mhp[SADB_EXT_MAX + 1];
@@ -327,6 +346,6 @@ test2sub(so)
 	if (pfkey_align(msg, mhp) < 0)
 		errx(1, "ERROR: pfkey_align failure.");
 
-	return ((struct sadb_x_policy *)mhp[SADB_X_EXT_POLICY])->sadb_x_policy_id;
+	return ((struct sadb_x_policy *)mhp[SADB_X_EXT_POLICY])
+	    ->sadb_x_policy_id;
 }
-

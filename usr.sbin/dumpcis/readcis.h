@@ -36,26 +36,24 @@ struct tuple {
 struct tuple_list {
 	struct tuple_list *next;
 	struct tuple *tuples;
-	off_t   offs;
-	int     flags;
+	off_t offs;
+	int flags;
 };
 
 struct tuple_info {
-	const char   *name;
+	const char *name;
 	unsigned char code;
-	unsigned char length;		/* 255 means variable length */
+	unsigned char length; /* 255 means variable length */
 };
 
-#define	tpl32(tp)	((*((tp) + 3) << 24) | \
-			 (*((tp) + 2) << 16) | \
-			 (*((tp) + 1) << 8)  | *(tp))
-#define	tpl24(tp)	((*((tp) + 2) << 16) | \
-			 (*((tp) + 1) << 8)  | *(tp))
-#define	tpl16(tp)	((*((tp) + 1) << 8)  | *(tp))
+#define tpl32(tp) \
+	((*((tp) + 3) << 24) | (*((tp) + 2) << 16) | (*((tp) + 1) << 8) | *(tp))
+#define tpl24(tp) ((*((tp) + 2) << 16) | (*((tp) + 1) << 8) | *(tp))
+#define tpl16(tp) ((*((tp) + 1) << 8) | *(tp))
 
-void    dumpcis(struct tuple_list *);
-void    freecis(struct tuple_list *);
+void dumpcis(struct tuple_list *);
+void freecis(struct tuple_list *);
 struct tuple_list *readcis(int);
 
 const char *tuple_name(unsigned char);
-u_int   parse_num(int, u_char *, u_char **, int);
+u_int parse_num(int, u_char *, u_char **, int);

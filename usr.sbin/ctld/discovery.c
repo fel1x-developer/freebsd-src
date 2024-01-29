@@ -30,13 +30,15 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+
 #include <assert.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/socket.h>
 
 #include "ctld.h"
 #include "iscsi_proto.h"
@@ -56,16 +58,19 @@ logout_receive(struct connection *conn)
 	bhslr = (struct iscsi_bhs_logout_request *)request->pdu_bhs;
 	if ((bhslr->bhslr_reason & 0x7f) != BHSLR_REASON_CLOSE_SESSION)
 		log_debugx("received Logout PDU with invalid reason 0x%x; "
-		    "continuing anyway", bhslr->bhslr_reason & 0x7f);
+			   "continuing anyway",
+		    bhslr->bhslr_reason & 0x7f);
 	if (ISCSI_SNLT(ntohl(bhslr->bhslr_cmdsn), conn->conn_cmdsn)) {
-		log_errx(1, "received Logout PDU with decreasing CmdSN: "
-		    "was %u, is %u", conn->conn_cmdsn,
-		    ntohl(bhslr->bhslr_cmdsn));
+		log_errx(1,
+		    "received Logout PDU with decreasing CmdSN: "
+		    "was %u, is %u",
+		    conn->conn_cmdsn, ntohl(bhslr->bhslr_cmdsn));
 	}
 	if (ntohl(bhslr->bhslr_expstatsn) != conn->conn_statsn) {
-		log_errx(1, "received Logout PDU with wrong ExpStatSN: "
-		    "is %u, should be %u", ntohl(bhslr->bhslr_expstatsn),
-		    conn->conn_statsn);
+		log_errx(1,
+		    "received Logout PDU with wrong ExpStatSN: "
+		    "is %u, should be %u",
+		    ntohl(bhslr->bhslr_expstatsn), conn->conn_statsn);
 	}
 	conn->conn_cmdsn = ntohl(bhslr->bhslr_cmdsn);
 	if ((bhslr->bhslr_opcode & ISCSI_BHS_OPCODE_IMMEDIATE) == 0)
@@ -109,39 +114,40 @@ discovery_add_target(struct keys *response_keys, const struct target *targ)
 	int ret;
 
 	keys_add(response_keys, "TargetName", targ->t_name);
-	TAILQ_FOREACH(port, &targ->t_ports, p_ts) {
-	    if (port->p_portal_group == NULL)
-		continue;
-	    TAILQ_FOREACH(portal, &port->p_portal_group->pg_portals, p_next) {
-		ai = portal->p_ai;
-		ret = getnameinfo(ai->ai_addr, ai->ai_addrlen,
-		    hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
-		    NI_NUMERICHOST | NI_NUMERICSERV);
-		if (ret != 0) {
-			log_warnx("getnameinfo: %s", gai_strerror(ret));
+	TAILQ_FOREACH (port, &targ->t_ports, p_ts) {
+		if (port->p_portal_group == NULL)
 			continue;
-		}
-		switch (ai->ai_addr->sa_family) {
-		case AF_INET:
-			if (strcmp(hbuf, "0.0.0.0") == 0)
+		TAILQ_FOREACH (portal, &port->p_portal_group->pg_portals,
+		    p_next) {
+			ai = portal->p_ai;
+			ret = getnameinfo(ai->ai_addr, ai->ai_addrlen, hbuf,
+			    sizeof(hbuf), sbuf, sizeof(sbuf),
+			    NI_NUMERICHOST | NI_NUMERICSERV);
+			if (ret != 0) {
+				log_warnx("getnameinfo: %s", gai_strerror(ret));
 				continue;
-			ret = asprintf(&buf, "%s:%s,%d", hbuf, sbuf,
-			    port->p_portal_group->pg_tag);
-			break;
-		case AF_INET6:
-			if (strcmp(hbuf, "::") == 0)
+			}
+			switch (ai->ai_addr->sa_family) {
+			case AF_INET:
+				if (strcmp(hbuf, "0.0.0.0") == 0)
+					continue;
+				ret = asprintf(&buf, "%s:%s,%d", hbuf, sbuf,
+				    port->p_portal_group->pg_tag);
+				break;
+			case AF_INET6:
+				if (strcmp(hbuf, "::") == 0)
+					continue;
+				ret = asprintf(&buf, "[%s]:%s,%d", hbuf, sbuf,
+				    port->p_portal_group->pg_tag);
+				break;
+			default:
 				continue;
-			ret = asprintf(&buf, "[%s]:%s,%d", hbuf, sbuf,
-			    port->p_portal_group->pg_tag);
-			break;
-		default:
-			continue;
+			}
+			if (ret <= 0)
+				log_err(1, "asprintf");
+			keys_add(response_keys, "TargetAddress", buf);
+			free(buf);
 		}
-		if (ret <= 0)
-		    log_err(1, "asprintf");
-		keys_add(response_keys, "TargetAddress", buf);
-		free(buf);
-	    }
 	}
 }
 
@@ -166,14 +172,16 @@ discovery_target_filtered_out(const struct ctld_connection *conn,
 	if (pg->pg_discovery_filter >= PG_FILTER_PORTAL &&
 	    auth_portal_check(ag, &conn->conn_initiator_sa) != 0) {
 		log_debugx("initiator does not match initiator portals "
-		    "allowed for target \"%s\"; skipping", targ->t_name);
+			   "allowed for target \"%s\"; skipping",
+		    targ->t_name);
 		return (true);
 	}
 
 	if (pg->pg_discovery_filter >= PG_FILTER_PORTAL_NAME &&
 	    auth_name_check(ag, conn->conn_initiator_name) != 0) {
 		log_debugx("initiator does not match initiator names "
-		    "allowed for target \"%s\"; skipping", targ->t_name);
+			   "allowed for target \"%s\"; skipping",
+		    targ->t_name);
 		return (true);
 	}
 
@@ -184,7 +192,8 @@ discovery_target_filtered_out(const struct ctld_connection *conn,
 			    AG_TYPE_NO_AUTHENTICATION);
 
 			log_debugx("initiator didn't authenticate, but target "
-			    "\"%s\" requires CHAP; skipping", targ->t_name);
+				   "\"%s\" requires CHAP; skipping",
+			    targ->t_name);
 			return (true);
 		}
 
@@ -192,14 +201,15 @@ discovery_target_filtered_out(const struct ctld_connection *conn,
 		auth = auth_find(ag, conn->conn_user);
 		if (auth == NULL) {
 			log_debugx("CHAP user \"%s\" doesn't match target "
-			    "\"%s\"; skipping", conn->conn_user, targ->t_name);
+				   "\"%s\"; skipping",
+			    conn->conn_user, targ->t_name);
 			return (true);
 		}
 
 		error = chap_authenticate(conn->conn_chap, auth->a_secret);
 		if (error != 0) {
 			log_debugx("password for CHAP user \"%s\" doesn't "
-			    "match target \"%s\"; skipping",
+				   "match target \"%s\"; skipping",
 			    conn->conn_user, targ->t_name);
 			return (true);
 		}
@@ -229,7 +239,7 @@ discovery(struct ctld_connection *conn)
 	response_keys = keys_new();
 
 	if (strcmp(send_targets, "All") == 0) {
-		TAILQ_FOREACH(port, &pg->pg_ports, p_pgs) {
+		TAILQ_FOREACH (port, &pg->pg_ports, p_pgs) {
 			if (discovery_target_filtered_out(conn, port)) {
 				/* Ignore this target. */
 				continue;
@@ -240,12 +250,14 @@ discovery(struct ctld_connection *conn)
 		port = port_find_in_pg(pg, send_targets);
 		if (port == NULL) {
 			log_debugx("initiator requested information on unknown "
-			    "target \"%s\"; returning nothing", send_targets);
+				   "target \"%s\"; returning nothing",
+			    send_targets);
 		} else {
 			if (discovery_target_filtered_out(conn, port)) {
 				/* Ignore this target. */
 			} else {
-				discovery_add_target(response_keys, port->p_target);
+				discovery_add_target(response_keys,
+				    port->p_target);
 			}
 		}
 	}

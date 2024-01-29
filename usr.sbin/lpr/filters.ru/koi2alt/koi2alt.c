@@ -26,12 +26,13 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * KOI8-R -> CP866 conversion filter (Russian character sets)
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,27 +42,28 @@ int length = 66;
 int lines;
 
 char *koi2alt[] = {
-/*         0      1      2      3      4      5      6      7   */
-/*         8      9      A      B      C      D      E      F   */
-/* 8 */ "\xc4","\xb3","\xda","\xbf","\xc0","\xd9","\xc3","\xb4",
-	"\xc2","\xc1","\xc5","\xdf","\xdc","\xdb","\xdd","\xde",
-/* 9 */ "\xb0","\xb1","\xb2","\xb3","\xfe","\xf9","\xfb","-\b~",
-	"<\b_",">\b_","\xff","\xb3","\xf8","2\b-","\xfa",":\b-",
-/* A */ "\xcd","\xba","\xd5","\xf1","\xd6","\xc9","\xb8","\xb7",
-	"\xbb","\xd4","\xd3","\xc8","\xbe","\xbd","\xbc","\xc6",
-/* B */ "\xc7","\xcc","\xb5","\xf0","\xb6","\xb9","\xd1","\xd2",
-	"\xcb","\xcf","\xd0","\xca","\xd8","\xd7","\xce","c\b_",
-/* C */ "\xee","\xa0","\xa1","\xe6","\xa4","\xa5","\xe4","\xa3",
-	"\xe5","\xa8","\xa9","\xaa","\xab","\xac","\xad","\xae",
-/* D */ "\xaf","\xef","\xe0","\xe1","\xe2","\xe3","\xa6","\xa2",
-	"\xec","\xeb","\xa7","\xe8","\xed","\xe9","\xe7","\xea",
-/* E */ "\x9e","\x80","\x81","\x96","\x84","\x85","\x94","\x83",
-	"\x95","\x88","\x89","\x8a","\x8b","\x8c","\x8d","\x8e",
-/* F */ "\x8f","\x9f","\x90","\x91","\x92","\x93","\x86","\x82",
-	"\x9c","\x9b","\x87","\x98","\x9d","\x99","\x97","\x9a"
+	/*         0      1      2      3      4      5      6      7   */
+	/*         8      9      A      B      C      D      E      F   */
+	/* 8 */ "\xc4", "\xb3", "\xda", "\xbf", "\xc0", "\xd9", "\xc3", "\xb4",
+	"\xc2", "\xc1", "\xc5", "\xdf", "\xdc", "\xdb", "\xdd", "\xde",
+	/* 9 */ "\xb0", "\xb1", "\xb2", "\xb3", "\xfe", "\xf9", "\xfb", "-\b~",
+	"<\b_", ">\b_", "\xff", "\xb3", "\xf8", "2\b-", "\xfa", ":\b-",
+	/* A */ "\xcd", "\xba", "\xd5", "\xf1", "\xd6", "\xc9", "\xb8", "\xb7",
+	"\xbb", "\xd4", "\xd3", "\xc8", "\xbe", "\xbd", "\xbc", "\xc6",
+	/* B */ "\xc7", "\xcc", "\xb5", "\xf0", "\xb6", "\xb9", "\xd1", "\xd2",
+	"\xcb", "\xcf", "\xd0", "\xca", "\xd8", "\xd7", "\xce", "c\b_",
+	/* C */ "\xee", "\xa0", "\xa1", "\xe6", "\xa4", "\xa5", "\xe4", "\xa3",
+	"\xe5", "\xa8", "\xa9", "\xaa", "\xab", "\xac", "\xad", "\xae",
+	/* D */ "\xaf", "\xef", "\xe0", "\xe1", "\xe2", "\xe3", "\xa6", "\xa2",
+	"\xec", "\xeb", "\xa7", "\xe8", "\xed", "\xe9", "\xe7", "\xea",
+	/* E */ "\x9e", "\x80", "\x81", "\x96", "\x84", "\x85", "\x94", "\x83",
+	"\x95", "\x88", "\x89", "\x8a", "\x8b", "\x8c", "\x8d", "\x8e",
+	/* F */ "\x8f", "\x9f", "\x90", "\x91", "\x92", "\x93", "\x86", "\x82",
+	"\x9c", "\x9b", "\x87", "\x98", "\x9d", "\x99", "\x97", "\x9a"
 };
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	int c, i;
 	char *cp;

@@ -36,6 +36,7 @@
 #include "opt_hid.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -43,61 +44,59 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/evdev/evdev.h>
 #include <dev/evdev/input.h>
 
-#define	HID_DEBUG_VAR	hmt_debug
+#define HID_DEBUG_VAR hmt_debug
+#include <dev/hid/hconf.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidquirk.h>
-
-#include <dev/hid/hconf.h>
 
 static SYSCTL_NODE(_hw_hid, OID_AUTO, hmt, CTLFLAG_RW, 0,
     "MSWindows 7/8/10 compatible HID Multi-touch Device");
 #ifdef HID_DEBUG
 static int hmt_debug = 0;
-SYSCTL_INT(_hw_hid_hmt, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &hmt_debug, 1, "Debug level");
+SYSCTL_INT(_hw_hid_hmt, OID_AUTO, debug, CTLFLAG_RWTUN, &hmt_debug, 1,
+    "Debug level");
 #endif
 static bool hmt_timestamps = 0;
-SYSCTL_BOOL(_hw_hid_hmt, OID_AUTO, timestamps, CTLFLAG_RDTUN,
-    &hmt_timestamps, 1, "Enable hardware timestamp reporting");
+SYSCTL_BOOL(_hw_hid_hmt, OID_AUTO, timestamps, CTLFLAG_RDTUN, &hmt_timestamps,
+    1, "Enable hardware timestamp reporting");
 
-#define	HMT_BTN_MAX	8	/* Number of buttons supported */
+#define HMT_BTN_MAX 8 /* Number of buttons supported */
 
 enum hmt_type {
-	HMT_TYPE_UNKNOWN = 0,	/* HID report descriptor is not probed */
-	HMT_TYPE_UNSUPPORTED,	/* Repdescr does not belong to MT device */
+	HMT_TYPE_UNKNOWN = 0, /* HID report descriptor is not probed */
+	HMT_TYPE_UNSUPPORTED, /* Repdescr does not belong to MT device */
 	HMT_TYPE_TOUCHPAD,
 	HMT_TYPE_TOUCHSCREEN,
 };
 
 enum {
-	HMT_TIP_SWITCH =	ABS_MT_INDEX(ABS_MT_TOOL_TYPE),
-	HMT_WIDTH =		ABS_MT_INDEX(ABS_MT_TOUCH_MAJOR),
-	HMT_HEIGHT =		ABS_MT_INDEX(ABS_MT_TOUCH_MINOR),
-	HMT_ORIENTATION = 	ABS_MT_INDEX(ABS_MT_ORIENTATION),
-	HMT_X =			ABS_MT_INDEX(ABS_MT_POSITION_X),
-	HMT_Y =			ABS_MT_INDEX(ABS_MT_POSITION_Y),
-	HMT_CONTACTID = 	ABS_MT_INDEX(ABS_MT_TRACKING_ID),
-	HMT_PRESSURE =		ABS_MT_INDEX(ABS_MT_PRESSURE),
-	HMT_IN_RANGE = 		ABS_MT_INDEX(ABS_MT_DISTANCE),
-	HMT_CONFIDENCE = 	ABS_MT_INDEX(ABS_MT_BLOB_ID),
-	HMT_TOOL_X =		ABS_MT_INDEX(ABS_MT_TOOL_X),
-	HMT_TOOL_Y = 		ABS_MT_INDEX(ABS_MT_TOOL_Y),
+	HMT_TIP_SWITCH = ABS_MT_INDEX(ABS_MT_TOOL_TYPE),
+	HMT_WIDTH = ABS_MT_INDEX(ABS_MT_TOUCH_MAJOR),
+	HMT_HEIGHT = ABS_MT_INDEX(ABS_MT_TOUCH_MINOR),
+	HMT_ORIENTATION = ABS_MT_INDEX(ABS_MT_ORIENTATION),
+	HMT_X = ABS_MT_INDEX(ABS_MT_POSITION_X),
+	HMT_Y = ABS_MT_INDEX(ABS_MT_POSITION_Y),
+	HMT_CONTACTID = ABS_MT_INDEX(ABS_MT_TRACKING_ID),
+	HMT_PRESSURE = ABS_MT_INDEX(ABS_MT_PRESSURE),
+	HMT_IN_RANGE = ABS_MT_INDEX(ABS_MT_DISTANCE),
+	HMT_CONFIDENCE = ABS_MT_INDEX(ABS_MT_BLOB_ID),
+	HMT_TOOL_X = ABS_MT_INDEX(ABS_MT_TOOL_X),
+	HMT_TOOL_Y = ABS_MT_INDEX(ABS_MT_TOOL_Y),
 };
 
-#define	HMT_N_USAGES	MT_CNT
-#define	HMT_NO_USAGE	-1
+#define HMT_N_USAGES MT_CNT
+#define HMT_NO_USAGE -1
 
 struct hmt_hid_map_item {
-	char		name[5];
-	int32_t 	usage;		/* HID usage */
-	bool		reported;	/* Item value is passed to evdev */
-	bool		required;	/* Required for MT Digitizers */
+	char name[5];
+	int32_t usage; /* HID usage */
+	bool reported; /* Item value is passed to evdev */
+	bool required; /* Required for MT Digitizers */
 };
 
 static const struct hmt_hid_map_item hmt_hid_map[HMT_N_USAGES] = {
@@ -176,66 +175,66 @@ static const struct hmt_hid_map_item hmt_hid_map[HMT_N_USAGES] = {
 };
 
 struct hmt_softc {
-	device_t		dev;
-	enum hmt_type		type;
+	device_t dev;
+	enum hmt_type type;
 
-	int32_t			cont_count_max;
-	struct hid_absinfo	ai[HMT_N_USAGES];
-	struct hid_location	locs[MAX_MT_SLOTS][HMT_N_USAGES];
-	struct hid_location	cont_count_loc;
-	struct hid_location	btn_loc[HMT_BTN_MAX];
-	struct hid_location	int_btn_loc;
-	struct hid_location	scan_time_loc;
-	int32_t			scan_time_max;
-	int32_t			scan_time;
-	int32_t			timestamp;
-	bool			touch;
-	bool			prev_touch;
+	int32_t cont_count_max;
+	struct hid_absinfo ai[HMT_N_USAGES];
+	struct hid_location locs[MAX_MT_SLOTS][HMT_N_USAGES];
+	struct hid_location cont_count_loc;
+	struct hid_location btn_loc[HMT_BTN_MAX];
+	struct hid_location int_btn_loc;
+	struct hid_location scan_time_loc;
+	int32_t scan_time_max;
+	int32_t scan_time;
+	int32_t timestamp;
+	bool touch;
+	bool prev_touch;
 
-	struct evdev_dev	*evdev;
+	struct evdev_dev *evdev;
 
-	union evdev_mt_slot	slot_data;
-	uint8_t			caps[howmany(HMT_N_USAGES, 8)];
-	uint8_t			buttons[howmany(HMT_BTN_MAX, 8)];
-	uint32_t		nconts_per_report;
-	uint32_t		nconts_todo;
-	uint8_t			report_id;
-	uint32_t		max_button;
-	bool			has_int_button;
-	bool			has_cont_count;
-	bool			has_scan_time;
-	bool			is_clickpad;
-	bool			do_timestamps;
+	union evdev_mt_slot slot_data;
+	uint8_t caps[howmany(HMT_N_USAGES, 8)];
+	uint8_t buttons[howmany(HMT_BTN_MAX, 8)];
+	uint32_t nconts_per_report;
+	uint32_t nconts_todo;
+	uint8_t report_id;
+	uint32_t max_button;
+	bool has_int_button;
+	bool has_cont_count;
+	bool has_scan_time;
+	bool is_clickpad;
+	bool do_timestamps;
 #ifdef IICHID_SAMPLING
-	bool			iichid_sampling;
+	bool iichid_sampling;
 #endif
 
-	struct hid_location	cont_max_loc;
-	uint32_t		cont_max_rlen;
-	uint8_t			cont_max_rid;
-	struct hid_location	btn_type_loc;
-	uint32_t		btn_type_rlen;
-	uint8_t			btn_type_rid;
-	uint32_t		thqa_cert_rlen;
-	uint8_t			thqa_cert_rid;
+	struct hid_location cont_max_loc;
+	uint32_t cont_max_rlen;
+	uint8_t cont_max_rid;
+	struct hid_location btn_type_loc;
+	uint32_t btn_type_rlen;
+	uint8_t btn_type_rid;
+	uint32_t thqa_cert_rlen;
+	uint8_t thqa_cert_rid;
 };
 
-#define	HMT_FOREACH_USAGE(caps, usage)			\
-	for ((usage) = 0; (usage) < HMT_N_USAGES; ++(usage))	\
+#define HMT_FOREACH_USAGE(caps, usage)                       \
+	for ((usage) = 0; (usage) < HMT_N_USAGES; ++(usage)) \
 		if (isset((caps), (usage)))
 
-static enum hmt_type hmt_hid_parse(struct hmt_softc *, const void *,
-    hid_size_t, uint32_t, uint8_t);
+static enum hmt_type hmt_hid_parse(struct hmt_softc *, const void *, hid_size_t,
+    uint32_t, uint8_t);
 static int hmt_set_input_mode(struct hmt_softc *, enum hconf_input_mode);
 
-static hid_intr_t	hmt_intr;
+static hid_intr_t hmt_intr;
 
-static device_probe_t	hmt_probe;
-static device_attach_t	hmt_attach;
-static device_detach_t	hmt_detach;
+static device_probe_t hmt_probe;
+static device_attach_t hmt_attach;
+static device_detach_t hmt_detach;
 
-static evdev_open_t	hmt_ev_open;
-static evdev_close_t	hmt_ev_close;
+static evdev_open_t hmt_ev_open;
+static evdev_close_t hmt_ev_close;
 
 static const struct evdev_methods hmt_evdev_methods = {
 	.ev_open = &hmt_ev_open,
@@ -273,8 +272,10 @@ hmt_probe(device_t dev)
 
 	err = hid_get_report_descr(dev, &d_ptr, &d_len);
 	if (err != 0) {
-		device_printf(dev, "could not retrieve report descriptor from "
-		     "device: %d\n", err);
+		device_printf(dev,
+		    "could not retrieve report descriptor from "
+		    "device: %d\n",
+		    err);
 		return (ENXIO);
 	}
 
@@ -306,8 +307,10 @@ hmt_attach(device_t dev)
 
 	err = hid_get_report_descr(dev, &d_ptr, &d_len);
 	if (err != 0) {
-		device_printf(dev, "could not retrieve report descriptor from "
-		    "device: %d\n", err);
+		device_printf(dev,
+		    "could not retrieve report descriptor from "
+		    "device: %d\n",
+		    err);
 		return (ENXIO);
 	}
 
@@ -321,8 +324,9 @@ hmt_attach(device_t dev)
 	if (sc->cont_max_rlen > 1) {
 		err = hid_get_report(dev, fbuf, sc->cont_max_rlen, &rsize,
 		    HID_FEATURE_REPORT, sc->cont_max_rid);
-		if (err == 0 && (rsize - 1) * 8 >=
-		    sc->cont_max_loc.pos + sc->cont_max_loc.size) {
+		if (err == 0 &&
+		    (rsize - 1) * 8 >=
+			sc->cont_max_loc.pos + sc->cont_max_loc.size) {
 			cont_count_max = hid_get_udata(fbuf + 1,
 			    sc->cont_max_rlen - 1, &sc->cont_max_loc);
 			/*
@@ -345,10 +349,10 @@ hmt_attach(device_t dev)
 		if (err != 0)
 			DPRINTF("hid_get_report error=%d\n", err);
 	}
-	if (sc->btn_type_rlen > 1 && err == 0 && (rsize - 1) * 8 >=
-	    sc->btn_type_loc.pos + sc->btn_type_loc.size)
+	if (sc->btn_type_rlen > 1 && err == 0 &&
+	    (rsize - 1) * 8 >= sc->btn_type_loc.pos + sc->btn_type_loc.size)
 		sc->is_clickpad = hid_get_udata(fbuf + 1, sc->btn_type_rlen - 1,
-		    &sc->btn_type_loc) == 0;
+				      &sc->btn_type_loc) == 0;
 	else
 		sc->is_clickpad = sc->max_button == 0 && sc->has_int_button;
 
@@ -369,7 +373,8 @@ hmt_attach(device_t dev)
 	/* Cap contact count maximum to MAX_MT_SLOTS */
 	if (sc->cont_count_max > MAX_MT_SLOTS) {
 		DPRINTF("Hardware reported %d contacts while only %d is "
-		    "supported\n", sc->cont_count_max, MAX_MT_SLOTS);
+			"supported\n",
+		    sc->cont_count_max, MAX_MT_SLOTS);
 		sc->cont_count_max = MAX_MT_SLOTS;
 	}
 
@@ -426,9 +431,10 @@ hmt_attach(device_t dev)
 			}
 		}
 	}
-	evdev_support_abs(sc->evdev,
-	    ABS_MT_SLOT, 0, sc->cont_count_max - 1, 0, 0, 0);
-	HMT_FOREACH_USAGE(sc->caps, i) {
+	evdev_support_abs(sc->evdev, ABS_MT_SLOT, 0, sc->cont_count_max - 1, 0,
+	    0, 0);
+	HMT_FOREACH_USAGE(sc->caps, i)
+	{
 		if (hmt_hid_map[i].reported)
 			evdev_support_abs(sc->evdev, ABS_MT_FIRST + i,
 			    sc->ai[i].min, sc->ai[i].max, 0, 0, sc->ai[i].res);
@@ -453,9 +459,9 @@ hmt_attach(device_t dev)
 	    isset(sc->caps, HMT_CONFIDENCE) ? "C" : "",
 	    isset(sc->caps, HMT_WIDTH) ? "W" : "",
 	    isset(sc->caps, HMT_HEIGHT) ? "H" : "",
-	    isset(sc->caps, HMT_PRESSURE) ? "P" : "",
-	    (int)sc->ai[HMT_X].min, (int)sc->ai[HMT_Y].min,
-	    (int)sc->ai[HMT_X].max, (int)sc->ai[HMT_Y].max);
+	    isset(sc->caps, HMT_PRESSURE) ? "P" : "", (int)sc->ai[HMT_X].min,
+	    (int)sc->ai[HMT_Y].min, (int)sc->ai[HMT_X].max,
+	    (int)sc->ai[HMT_Y].max);
 
 	return (0);
 }
@@ -555,7 +561,8 @@ hmt_intr(void *context, void *buf, hid_size_t len)
 #ifdef HID_DEBUG
 	DPRINTFN(6, "cont_count:%2u", (unsigned)cont_count);
 	if (hmt_debug >= 6) {
-		HMT_FOREACH_USAGE(sc->caps, usage) {
+		HMT_FOREACH_USAGE(sc->caps, usage)
+		{
 			if (hmt_hid_map[usage].usage != HMT_NO_USAGE)
 				printf(" %-4s", hmt_hid_map[usage].name);
 		}
@@ -570,10 +577,11 @@ hmt_intr(void *context, void *buf, hid_size_t len)
 	for (cont = 0; cont < cont_count; cont++) {
 		slot_data = &sc->slot_data;
 		bzero(slot_data, sizeof(sc->slot_data));
-		HMT_FOREACH_USAGE(sc->caps, usage) {
+		HMT_FOREACH_USAGE(sc->caps, usage)
+		{
 			if (sc->locs[cont][usage].size > 0)
-				slot_data->val[usage] = hid_get_udata(
-				    buf, len, &sc->locs[cont][usage]);
+				slot_data->val[usage] = hid_get_udata(buf, len,
+				    &sc->locs[cont][usage]);
 		}
 
 		slot = evdev_mt_id_to_slot(sc->evdev, slot_data->id);
@@ -581,7 +589,8 @@ hmt_intr(void *context, void *buf, hid_size_t len)
 #ifdef HID_DEBUG
 		DPRINTFN(6, "cont%01x: data = ", cont);
 		if (hmt_debug >= 6) {
-			HMT_FOREACH_USAGE(sc->caps, usage) {
+			HMT_FOREACH_USAGE(sc->caps, usage)
+			{
 				if (hmt_hid_map[usage].usage != HMT_NO_USAGE)
 					printf("%04x ", slot_data->val[usage]);
 			}
@@ -597,7 +606,7 @@ hmt_intr(void *context, void *buf, hid_size_t len)
 
 		if (slot_data->val[HMT_TIP_SWITCH] != 0 &&
 		    !(isset(sc->caps, HMT_CONFIDENCE) &&
-		      slot_data->val[HMT_CONFIDENCE] == 0)) {
+			slot_data->val[HMT_CONFIDENCE] == 0)) {
 			/* This finger is in proximity of the sensor */
 			sc->touch = true;
 			slot_data->dist = !slot_data->val[HMT_IN_RANGE];
@@ -643,9 +652,8 @@ hmt_intr(void *context, void *buf, hid_size_t len)
 		for (btn = 1; btn < sc->max_button; ++btn) {
 			if (isset(sc->buttons, btn))
 				evdev_push_key(sc->evdev, BTN_MOUSE + btn,
-				    hid_get_data(buf,
-						 len,
-						 &sc->btn_loc[btn]) != 0);
+				    hid_get_data(buf, len, &sc->btn_loc[btn]) !=
+					0);
 		}
 		evdev_sync(sc->evdev);
 	}
@@ -670,9 +678,10 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 	bool scan_time_found = false;
 	bool has_int_button = false;
 
-#define HMT_HI_ABSOLUTE(hi)	((hi).nusages != 0 &&	\
-	((hi).flags & (HIO_VARIABLE | HIO_RELATIVE)) == HIO_VARIABLE)
-#define	HUMS_THQA_CERT	0xC5
+#define HMT_HI_ABSOLUTE(hi)   \
+	((hi).nusages != 0 && \
+	    ((hi).flags & (HIO_VARIABLE | HIO_RELATIVE)) == HIO_VARIABLE)
+#define HUMS_THQA_CERT 0xC5
 
 	/*
 	 * Get left button usage taking in account MS Precision Touchpad specs.
@@ -701,8 +710,9 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 
 	/* Parse features for mandatory maximum contact count usage */
 	if (!hidbus_locate(d_ptr, d_len,
-	    HID_USAGE2(HUP_DIGITIZERS, HUD_CONTACT_MAX), hid_feature,
-	    tlc_index, 0, &sc->cont_max_loc, &flags, &sc->cont_max_rid, &ai) ||
+		HID_USAGE2(HUP_DIGITIZERS, HUD_CONTACT_MAX), hid_feature,
+		tlc_index, 0, &sc->cont_max_loc, &flags, &sc->cont_max_rid,
+		&ai) ||
 	    (flags & (HIO_VARIABLE | HIO_RELATIVE)) != HIO_VARIABLE)
 		return (HMT_TYPE_UNSUPPORTED);
 
@@ -710,9 +720,10 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 
 	/* Parse features for button type usage */
 	if (hidbus_locate(d_ptr, d_len,
-	    HID_USAGE2(HUP_DIGITIZERS, HUD_BUTTON_TYPE), hid_feature,
-	    tlc_index, 0, &sc->btn_type_loc, &flags, &sc->btn_type_rid, NULL)
-	    && (flags & (HIO_VARIABLE | HIO_RELATIVE)) != HIO_VARIABLE)
+		HID_USAGE2(HUP_DIGITIZERS, HUD_BUTTON_TYPE), hid_feature,
+		tlc_index, 0, &sc->btn_type_loc, &flags, &sc->btn_type_rid,
+		NULL) &&
+	    (flags & (HIO_VARIABLE | HIO_RELATIVE)) != HIO_VARIABLE)
 		sc->btn_type_rid = 0;
 
 	/* Parse features for THQA certificate report ID */
@@ -721,7 +732,8 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 
 	/* Parse input for other parameters */
 	hd = hid_start_parse(d_ptr, d_len, 1 << hid_input);
-	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index) {
+	HIDBUS_FOREACH_ITEM(hd, &hi, tlc_index)
+	{
 		switch (hi.kind) {
 		case hid_collection:
 			if (hi.collevel == 2 &&
@@ -800,9 +812,9 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 						break;
 					setbit(sc->caps, i);
 					sc->ai[i] = (struct hid_absinfo) {
-					    .max = hi.logical_maximum,
-					    .min = hi.logical_minimum,
-					    .res = hid_item_resolution(&hi),
+						.max = hi.logical_maximum,
+						.min = hi.logical_minimum,
+						.res = hid_item_resolution(&hi),
 					};
 					break;
 				}
@@ -843,11 +855,11 @@ hmt_hid_parse(struct hmt_softc *sc, const void *d_ptr, hid_size_t d_len,
 	sc->cont_max_rlen = hid_report_size(d_ptr, d_len, hid_feature,
 	    sc->cont_max_rid);
 	if (sc->btn_type_rid > 0)
-		sc->btn_type_rlen = hid_report_size(d_ptr, d_len,
-		    hid_feature, sc->btn_type_rid);
+		sc->btn_type_rlen = hid_report_size(d_ptr, d_len, hid_feature,
+		    sc->btn_type_rid);
 	if (sc->thqa_cert_rid > 0)
-		sc->thqa_cert_rlen = hid_report_size(d_ptr, d_len,
-		    hid_feature, sc->thqa_cert_rid);
+		sc->thqa_cert_rlen = hid_report_size(d_ptr, d_len, hid_feature,
+		    sc->thqa_cert_rid);
 
 	sc->report_id = report_id;
 	sc->cont_count_max = cont_count_max;
@@ -864,7 +876,7 @@ hmt_set_input_mode(struct hmt_softc *sc, enum hconf_input_mode mode)
 {
 	devclass_t hconf_devclass;
 	device_t hconf;
-	int  err;
+	int err;
 
 	bus_topo_assert();
 
@@ -891,13 +903,11 @@ hmt_set_input_mode(struct hmt_softc *sc, enum hconf_input_mode mode)
 	return (err);
 }
 
-static device_method_t hmt_methods[] = {
-	DEVMETHOD(device_probe,		hmt_probe),
-	DEVMETHOD(device_attach,	hmt_attach),
-	DEVMETHOD(device_detach,	hmt_detach),
+static device_method_t hmt_methods[] = { DEVMETHOD(device_probe, hmt_probe),
+	DEVMETHOD(device_attach, hmt_attach),
+	DEVMETHOD(device_detach, hmt_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t hmt_driver = {
 	.name = "hmt",

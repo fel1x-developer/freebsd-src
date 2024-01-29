@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -111,10 +111,10 @@ extern "C" {
  *      with an older API version.
  *
  *****************************************************************************/
-#define CPA_CY_API_VERSION_AT_LEAST(major, minor)                              \
-    (CPA_CY_API_VERSION_NUM_MAJOR > major ||                                   \
-     (CPA_CY_API_VERSION_NUM_MAJOR == major &&                                 \
-      CPA_CY_API_VERSION_NUM_MINOR >= minor))
+#define CPA_CY_API_VERSION_AT_LEAST(major, minor)     \
+	(CPA_CY_API_VERSION_NUM_MAJOR > major ||      \
+	    (CPA_CY_API_VERSION_NUM_MAJOR == major && \
+		CPA_CY_API_VERSION_NUM_MINOR >= minor))
 
 /**
  *****************************************************************************
@@ -127,10 +127,10 @@ extern "C" {
  *      API version.
  *
  *****************************************************************************/
-#define CPA_CY_API_VERSION_LESS_THAN(major, minor)                             \
-    (CPA_CY_API_VERSION_NUM_MAJOR < major ||                                   \
-     (CPA_CY_API_VERSION_NUM_MAJOR == major &&                                 \
-      CPA_CY_API_VERSION_NUM_MINOR < minor))
+#define CPA_CY_API_VERSION_LESS_THAN(major, minor)    \
+	(CPA_CY_API_VERSION_NUM_MAJOR < major ||      \
+	    (CPA_CY_API_VERSION_NUM_MAJOR == major && \
+		CPA_CY_API_VERSION_NUM_MINOR < minor))
 
 /**
  *****************************************************************************
@@ -144,10 +144,9 @@ extern "C" {
  *      that are marked with a NORMAL priority.
  *
  *****************************************************************************/
-typedef enum _CpaCyPriority
-{
-    CPA_CY_PRIORITY_NORMAL = 1, /**< Normal priority */
-    CPA_CY_PRIORITY_HIGH /**< High priority */
+typedef enum _CpaCyPriority {
+	CPA_CY_PRIORITY_NORMAL = 1, /**< Normal priority */
+	CPA_CY_PRIORITY_HIGH	    /**< High priority */
 } CpaCyPriority;
 
 /*****************************************************************************/
@@ -195,9 +194,8 @@ typedef enum _CpaCyPriority
  *      cpaCyKeyGenSsl()
  *
  *****************************************************************************/
-typedef void (*CpaCyGenericCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpData);
+typedef void (
+    *CpaCyGenericCbFunc)(void *pCallbackTag, CpaStatus status, void *pOpData);
 
 /**
  *****************************************************************************
@@ -244,10 +242,8 @@ typedef void (*CpaCyGenericCbFunc)(void *pCallbackTag,
  *      None
  *
  *****************************************************************************/
-typedef void (*CpaCyGenFlatBufCbFunc)(void *pCallbackTag,
-        CpaStatus status,
-        void *pOpdata,
-        CpaFlatBuffer *pOut);
+typedef void (*CpaCyGenFlatBufCbFunc)(void *pCallbackTag, CpaStatus status,
+    void *pOpdata, CpaFlatBuffer *pOut);
 
 /**
  *****************************************************************************
@@ -298,10 +294,8 @@ typedef void (*CpaCyGenFlatBufCbFunc)(void *pCallbackTag,
  *      cpaCyGetInstances()
  *
  *****************************************************************************/
-CpaStatus
-cpaCyBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
-        Cpa32U numBuffers,
-        Cpa32U *pSizeInBytes);
+CpaStatus cpaCyBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
+    Cpa32U numBuffers, Cpa32U *pSizeInBytes);
 
 /**
  *****************************************************************************
@@ -355,10 +349,8 @@ cpaCyBufferListGetMetaSize(const CpaInstanceHandle instanceHandle,
  *      CpaStatus
  *
  *****************************************************************************/
-CpaStatus
-cpaCyGetStatusText(const CpaInstanceHandle instanceHandle,
-        CpaStatus errStatus,
-        Cpa8S *pStatusText);
+CpaStatus cpaCyGetStatusText(const CpaInstanceHandle instanceHandle,
+    CpaStatus errStatus, Cpa8S *pStatusText);
 
 /*****************************************************************************/
 /* Instance Discovery Functions                                              */
@@ -409,8 +401,7 @@ cpaCyGetStatusText(const CpaInstanceHandle instanceHandle,
  *      cpaCyGetInstances
  *
  *****************************************************************************/
-CpaStatus
-cpaCyGetNumInstances(Cpa16U *pNumInstances);
+CpaStatus cpaCyGetNumInstances(Cpa16U *pNumInstances);
 
 /**
  *****************************************************************************
@@ -466,9 +457,8 @@ cpaCyGetNumInstances(Cpa16U *pNumInstances);
  *      cpaCyGetNumInstances
  *
  *****************************************************************************/
-CpaStatus
-cpaCyGetInstances(Cpa16U numInstances,
-        CpaInstanceHandle *cyInstances);
+CpaStatus cpaCyGetInstances(Cpa16U numInstances,
+    CpaInstanceHandle *cyInstances);
 
 /**
  *****************************************************************************
@@ -522,7 +512,7 @@ cpaCyGetInstances(Cpa16U numInstances,
  *****************************************************************************/
 CpaStatus CPA_DEPRECATED
 cpaCyInstanceGetInfo(const CpaInstanceHandle instanceHandle,
-        struct _CpaInstanceInfo * pInstanceInfo);
+    struct _CpaInstanceInfo *pInstanceInfo);
 
 /**
  *****************************************************************************
@@ -571,9 +561,8 @@ cpaCyInstanceGetInfo(const CpaInstanceHandle instanceHandle,
  *      CpaInstanceInfo
  *
  *****************************************************************************/
-CpaStatus
-cpaCyInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
-        CpaInstanceInfo2 * pInstanceInfo2);
+CpaStatus cpaCyInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
+    CpaInstanceInfo2 *pInstanceInfo2);
 
 /*****************************************************************************/
 /* Instance Notification Functions                                           */
@@ -621,10 +610,9 @@ cpaCyInstanceGetInfo2(const CpaInstanceHandle instanceHandle,
  *      cpaCyInstanceSetNotificationCb(),
  *
  *****************************************************************************/
-typedef void (*CpaCyInstanceNotificationCbFunc)(
-        const CpaInstanceHandle instanceHandle,
-        void * pCallbackTag,
-        const CpaInstanceEvent instanceEvent);
+typedef void (
+    *CpaCyInstanceNotificationCbFunc)(const CpaInstanceHandle instanceHandle,
+    void *pCallbackTag, const CpaInstanceEvent instanceEvent);
 
 /**
  *****************************************************************************
@@ -669,11 +657,9 @@ typedef void (*CpaCyInstanceNotificationCbFunc)(
  *      CpaCyInstanceNotificationCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyInstanceSetNotificationCb(
-        const CpaInstanceHandle instanceHandle,
-        const CpaCyInstanceNotificationCbFunc pInstanceNotificationCb,
-        void *pCallbackTag);
+CpaStatus cpaCyInstanceSetNotificationCb(const CpaInstanceHandle instanceHandle,
+    const CpaCyInstanceNotificationCbFunc pInstanceNotificationCb,
+    void *pCallbackTag);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

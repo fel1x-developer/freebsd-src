@@ -33,36 +33,36 @@ MALLOC_DECLARE(M_GSSAPI);
 
 struct _gss_ctx_id_t {
 	KOBJ_FIELDS;
-	gssd_ctx_id_t	handle;
+	gssd_ctx_id_t handle;
 };
 
 struct _gss_cred_id_t {
-	gssd_cred_id_t	handle;
+	gssd_cred_id_t handle;
 };
 
 struct _gss_name_t {
-	gssd_name_t	handle;
+	gssd_name_t handle;
 };
 
 struct kgss_mech {
 	LIST_ENTRY(kgss_mech) km_link;
-	gss_OID		km_mech_type;
-	const char	*km_mech_name;
+	gss_OID km_mech_type;
+	const char *km_mech_name;
 	struct kobj_class *km_class;
 };
 LIST_HEAD(kgss_mech_list, kgss_mech);
 
 /* Macros for VIMAGE. */
 /* Just define the KGSS_VNETxxx() macros as VNETxxx() macros. */
-#define	KGSS_VNET_DEFINE(t, n)		VNET_DEFINE(t, n)
-#define	KGSS_VNET_DEFINE_STATIC(t, n)	VNET_DEFINE_STATIC(t, n)
-#define	KGSS_VNET_DECLARE(t, n)		VNET_DECLARE(t, n)
-#define	KGSS_VNET(n)			VNET(n)
+#define KGSS_VNET_DEFINE(t, n) VNET_DEFINE(t, n)
+#define KGSS_VNET_DEFINE_STATIC(t, n) VNET_DEFINE_STATIC(t, n)
+#define KGSS_VNET_DECLARE(t, n) VNET_DECLARE(t, n)
+#define KGSS_VNET(n) VNET(n)
 
-#define	KGSS_CURVNET_SET(n)		CURVNET_SET(n)
-#define	KGSS_CURVNET_SET_QUIET(n)	CURVNET_SET_QUIET(n)
-#define	KGSS_CURVNET_RESTORE()		CURVNET_RESTORE()
-#define	KGSS_TD_TO_VNET(n)		TD_TO_VNET(n)
+#define KGSS_CURVNET_SET(n) CURVNET_SET(n)
+#define KGSS_CURVNET_SET_QUIET(n) CURVNET_SET_QUIET(n)
+#define KGSS_CURVNET_RESTORE() CURVNET_RESTORE()
+#define KGSS_TD_TO_VNET(n) TD_TO_VNET(n)
 
 extern struct mtx kgss_gssd_lock;
 extern struct kgss_mech_list kgss_mechs;

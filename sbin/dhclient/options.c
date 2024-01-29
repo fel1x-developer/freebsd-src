@@ -43,6 +43,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
 
 #define DHCP_OPTION_DATA
@@ -51,15 +52,14 @@
 static int bad_options = 0;
 static int bad_options_max = 5;
 
-void	parse_options(struct packet *);
-void	parse_option_buffer(struct packet *, unsigned char *, int);
+void parse_options(struct packet *);
+void parse_option_buffer(struct packet *, unsigned char *, int);
 unsigned store_options(unsigned char *, int, struct tree_cache **,
-	    unsigned char *, int, int, int, int);
-void	expand_domain_search(struct packet *packet);
-int	find_search_domain_name_len(struct option_data *option, size_t *offset);
-void	expand_search_domain_name(struct option_data *option, size_t *offset,
-	    unsigned char **domain_search);
-
+    unsigned char *, int, int, int, int);
+void expand_domain_search(struct packet *packet);
+int find_search_domain_name_len(struct option_data *option, size_t *offset);
+void expand_search_domain_name(struct option_data *option, size_t *offset,
+    unsigned char **domain_search);
 
 /*
  * Parse all available options out of the specified packet.
@@ -111,13 +111,12 @@ parse_options(struct packet *packet)
  * no errors are encountered.
  */
 void
-parse_option_buffer(struct packet *packet,
-    unsigned char *buffer, int length)
+parse_option_buffer(struct packet *packet, unsigned char *buffer, int length)
 {
 	unsigned char *s, *t, *end = buffer + length;
 	int len, code;
 
-	for (s = buffer; *s != DHO_END && s < end; ) {
+	for (s = buffer; *s != DHO_END && s < end;) {
 		code = s[0];
 
 		/* Pad options don't have a length - just skip them. */
@@ -145,17 +144,16 @@ parse_option_buffer(struct packet *packet,
 		 * anything good.
 		 */
 		if (s + len + 2 > end) {
-		    bogus:
+		bogus:
 			bad_options++;
-			warning("option %s (%d) %s.",
-			    dhcp_options[code].name, len,
-			    "larger than buffer");
+			warning("option %s (%d) %s.", dhcp_options[code].name,
+			    len, "larger than buffer");
 			if (bad_options == bad_options_max) {
 				packet->options_valid = 1;
 				bad_options = 0;
 				warning("Many bogus options seen in offers. "
-				    "Taking this offer in spite of bogus "
-				    "options - hope for the best!");
+					"Taking this offer in spite of bogus "
+					"options - hope for the best!");
 			} else {
 				warning("rejecting bogus offer.");
 				packet->options_valid = 0;
@@ -189,9 +187,8 @@ parse_option_buffer(struct packet *packet,
 				error("Can't expand storage for option %s.",
 				    dhcp_options[code].name);
 			memcpy(t, packet->options[code].data,
-				packet->options[code].len);
-			memcpy(t + packet->options[code].len,
-				&s[2], len);
+			    packet->options[code].len);
+			memcpy(t + packet->options[code].len, &s[2], len);
 			packet->options[code].len += len;
 			t[packet->options[code].len] = 0;
 			free(packet->options[code].data);
@@ -278,7 +275,7 @@ find_search_domain_name_len(struct option_data *option, size_t *offset)
 			if (i + 1 >= option->len) {
 				/* The pointer is truncated. */
 				warning("Truncated pointer in DHCP Domain "
-				    "Search option.");
+					"Search option.");
 				return (-1);
 			}
 
@@ -290,7 +287,7 @@ find_search_domain_name_len(struct option_data *option, size_t *offset)
 				 * occurrence.
 				 */
 				warning("Invalid forward pointer in DHCP "
-				    "Domain Search option compression.");
+					"Domain Search option compression.");
 				return (-1);
 			}
 
@@ -306,7 +303,7 @@ find_search_domain_name_len(struct option_data *option, size_t *offset)
 
 		if (i + label_len >= option->len) {
 			warning("Truncated label in DHCP Domain Search "
-			    "option.");
+				"option.");
 			return (-1);
 		}
 
@@ -378,8 +375,8 @@ expand_search_domain_name(struct option_data *option, size_t *offset,
  * vendor options using the same routine.
  */
 int
-cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
-    int mms, struct tree_cache **options,
+cons_options(struct packet *inpacket, struct dhcp_packet *outpacket, int mms,
+    struct tree_cache **options,
     int overload, /* Overload flags that may be set. */
     int terminate, int bootpp, u_int8_t *prl, int prl_len)
 {
@@ -397,11 +394,10 @@ cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
 	 * XXX if a BOOTP client specifies a max message size, we will
 	 * honor it.
 	 */
-	if (!mms &&
-	    inpacket &&
+	if (!mms && inpacket &&
 	    inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].data &&
 	    (inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].len >=
-	    sizeof(u_int16_t)))
+		sizeof(u_int16_t)))
 		mms = getUShort(
 		    inpacket->options[DHO_DHCP_MAX_MESSAGE_SIZE].data);
 
@@ -454,8 +450,7 @@ cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
 	}
 
 	/* Copy the options into the big buffer... */
-	option_size = store_options(
-	    buffer,
+	option_size = store_options(buffer,
 	    (main_buffer_size - 7 + ((overload & 1) ? DHCP_FILE_LEN : 0) +
 		((overload & 2) ? DHCP_SNAME_LEN : 0)),
 	    options, priority_list, priority_len, main_buffer_size,
@@ -472,8 +467,7 @@ cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
 	 * thing in the packet's option buffer and leave it at that.
 	 */
 	if (option_size <= main_buffer_size - mainbufix) {
-		memcpy(&outpacket->options[mainbufix],
-		    buffer, option_size);
+		memcpy(&outpacket->options[mainbufix], buffer, option_size);
 		mainbufix += option_size;
 		if (mainbufix < main_buffer_size)
 			outpacket->options[mainbufix++] = DHO_END;
@@ -481,34 +475,35 @@ cons_options(struct packet *inpacket, struct dhcp_packet *outpacket,
 	} else {
 		outpacket->options[mainbufix++] = DHO_DHCP_OPTION_OVERLOAD;
 		outpacket->options[mainbufix++] = 1;
-		if (option_size >
-		    main_buffer_size - mainbufix + DHCP_FILE_LEN)
+		if (option_size > main_buffer_size - mainbufix + DHCP_FILE_LEN)
 			outpacket->options[mainbufix++] = 3;
 		else
 			outpacket->options[mainbufix++] = 1;
 
-		memcpy(&outpacket->options[mainbufix],
-		    buffer, main_buffer_size - mainbufix);
+		memcpy(&outpacket->options[mainbufix], buffer,
+		    main_buffer_size - mainbufix);
 		bufix = main_buffer_size - mainbufix;
 		length = DHCP_FIXED_NON_UDP + mainbufix;
 		if (overload & 1) {
 			if (option_size - bufix <= DHCP_FILE_LEN) {
-				memcpy(outpacket->file,
-				    &buffer[bufix], option_size - bufix);
+				memcpy(outpacket->file, &buffer[bufix],
+				    option_size - bufix);
 				mainbufix = option_size - bufix;
 				if (mainbufix < DHCP_FILE_LEN)
-					outpacket->file[mainbufix++] = (char)DHO_END;
+					outpacket->file[mainbufix++] = (char)
+					    DHO_END;
 				while (mainbufix < DHCP_FILE_LEN)
-					outpacket->file[mainbufix++] = (char)DHO_PAD;
+					outpacket->file[mainbufix++] = (char)
+					    DHO_PAD;
 			} else {
-				memcpy(outpacket->file,
-				    &buffer[bufix], DHCP_FILE_LEN);
+				memcpy(outpacket->file, &buffer[bufix],
+				    DHCP_FILE_LEN);
 				bufix += DHCP_FILE_LEN;
 			}
 		}
 		if ((overload & 2) && option_size < bufix) {
-			memcpy(outpacket->sname,
-			    &buffer[bufix], option_size - bufix);
+			memcpy(outpacket->sname, &buffer[bufix],
+			    option_size - bufix);
 
 			mainbufix = option_size - bufix;
 			if (mainbufix < DHCP_SNAME_LEN)
@@ -591,8 +586,7 @@ store_options(unsigned char *buffer, int buflen, struct tree_cache **options,
 			 * boundary, only go up to the boundary in this
 			 * pass.
 			 */
-			if (bufix < first_cutoff &&
-			    bufix + incr > first_cutoff)
+			if (bufix < first_cutoff && bufix + incr > first_cutoff)
 				incr = first_cutoff - bufix;
 			else if (bufix < second_cutoff &&
 			    bufix + incr > second_cutoff)
@@ -667,8 +661,7 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 			break;
 		case 'X':
 			for (k = 0; k < len; k++)
-				if (!isascii(data[k]) ||
-				    !isprint(data[k]))
+				if (!isascii(data[k]) || !isprint(data[k]))
 					break;
 			if (k == len) {
 				fmtbuf[i] = 't';
@@ -718,8 +711,8 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 	}
 	/* Check for too many bytes... */
 	if (numhunk == -1 && hunksize < len)
-		warning("%s: %d extra bytes",
-		    dhcp_options[code].name, len - hunksize);
+		warning("%s: %d extra bytes", dhcp_options[code].name,
+		    len - hunksize);
 
 	/* If this is an array, compute its size. */
 	if (!numhunk)
@@ -744,8 +737,7 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 					opleft--;
 				}
 				for (; dp < data + len; dp++) {
-					if (!isascii(*dp) ||
-					    !isprint(*dp)) {
+					if (!isascii(*dp) || !isprint(*dp)) {
 						if (dp + 1 != data + len ||
 						    *dp != 0) {
 							snprintf(op, opleft,
@@ -753,10 +745,8 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 							op += 4;
 							opleft -= 4;
 						}
-					} else if (*dp == '"' ||
-					    *dp == '\'' ||
-					    *dp == '$' ||
-					    *dp == '`' ||
+					} else if (*dp == '"' || *dp == '\'' ||
+					    *dp == '$' || *dp == '`' ||
 					    *dp == '\\') {
 						*op++ = '\\';
 						*op++ = *dp;
@@ -833,8 +823,8 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 				opleft -= opcount;
 				break;
 			case 'f':
-				opcount = strlcpy(op,
-				    *dp++ ? "true" : "false", opleft);
+				opcount = strlcpy(op, *dp++ ? "true" : "false",
+				    opleft);
 				if (opcount >= opleft)
 					goto toobig;
 				opleft -= opcount;
@@ -857,17 +847,16 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 		}
 		if (opleft < 1)
 			goto toobig;
-
 	}
 	return (optbuf);
- toobig:
+toobig:
 	warning("dhcp option too large");
 	return ("<error>");
 }
 
 void
-do_packet(struct interface_info *interface, struct dhcp_packet *packet,
-    int len, unsigned int from_port, struct iaddr from, struct hardware *hfrom)
+do_packet(struct interface_info *interface, struct dhcp_packet *packet, int len,
+    unsigned int from_port, struct iaddr from, struct hardware *hfrom)
 {
 	struct packet tp;
 	int i;
@@ -886,8 +875,7 @@ do_packet(struct interface_info *interface, struct dhcp_packet *packet,
 	tp.haddr = hfrom;
 
 	parse_options(&tp);
-	if (tp.options_valid &&
-	    tp.options[DHO_DHCP_MESSAGE_TYPE].data)
+	if (tp.options_valid && tp.options[DHO_DHCP_MESSAGE_TYPE].data)
 		tp.packet_type = tp.options[DHO_DHCP_MESSAGE_TYPE].data[0];
 	if (tp.packet_type)
 		dhcp(&tp);

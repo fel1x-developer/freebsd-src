@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <linux/bitfield.h>
+
 #include "adf_accel_devices.h"
 #include "adf_common_drv.h"
 #include "adf_pfvf_msg.h"
@@ -22,7 +23,7 @@ adf_vf2pf_notify_init(struct adf_accel_dev *accel_dev)
 
 	if (adf_send_vf2pf_msg(accel_dev, msg)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to send Init event to PF\n");
+		    "Failed to send Init event to PF\n");
 		return -EFAULT;
 	}
 	set_bit(ADF_STATUS_PF_RUNNING, &accel_dev->status);
@@ -45,7 +46,7 @@ adf_vf2pf_notify_shutdown(struct adf_accel_dev *accel_dev)
 	if (test_bit(ADF_STATUS_PF_RUNNING, &accel_dev->status))
 		if (adf_send_vf2pf_msg(accel_dev, msg))
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to send Shutdown event to PF\n");
+			    "Failed to send Shutdown event to PF\n");
 }
 
 int
@@ -64,8 +65,7 @@ adf_vf2pf_request_version(struct adf_accel_dev *accel_dev)
 
 	ret = adf_send_vf2pf_req(accel_dev, msg, &resp);
 	if (ret) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Failed to send Compatibility Version Request.\n");
 		return ret;
 	}
@@ -81,15 +81,12 @@ adf_vf2pf_request_version(struct adf_accel_dev *accel_dev)
 		/* VF is newer than PF - compatible for now */
 		break;
 	case ADF_PF2VF_VF_INCOMPATIBLE:
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "PF (vers %d) and VF (vers %d) are not compatible\n",
-		    pf_version,
-		    ADF_PFVF_COMPAT_THIS_VERSION);
+		    pf_version, ADF_PFVF_COMPAT_THIS_VERSION);
 		return -EINVAL;
 	default:
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Invalid response from PF; assume not compatible\n");
 		return -EINVAL;
 	}
@@ -110,11 +107,9 @@ adf_vf2pf_get_capabilities(struct adf_accel_dev *accel_dev)
 		return 0;
 
 	if (adf_send_vf2pf_blkmsg_req(accel_dev,
-				      ADF_VF2PF_BLKMSG_REQ_CAP_SUMMARY,
-				      (u8 *)&cap_msg,
-				      &len)) {
+		ADF_VF2PF_BLKMSG_REQ_CAP_SUMMARY, (u8 *)&cap_msg, &len)) {
 		device_printf(GET_DEV(accel_dev),
-			      "QAT: Failed to get block message response\n");
+		    "QAT: Failed to get block message response\n");
 		return -EFAULT;
 	}
 
@@ -127,22 +122,21 @@ adf_vf2pf_get_capabilities(struct adf_accel_dev *accel_dev)
 			hw_data->clock_frequency = cap_msg.frequency;
 		else
 			device_printf(GET_DEV(accel_dev),
-				      "Could not get frequency");
+			    "Could not get frequency");
 		fallthrough;
 	case ADF_PFVF_CAPABILITIES_V2_VERSION:
 		if (likely(len >= sizeof(struct capabilities_v2))) {
 			hw_data->accel_capabilities_mask = cap_msg.capabilities;
 		} else {
 			device_printf(GET_DEV(accel_dev),
-				      "Could not get capabilities");
+			    "Could not get capabilities");
 		}
 		fallthrough;
 	case ADF_PFVF_CAPABILITIES_V1_VERSION:
 		if (likely(len >= sizeof(struct capabilities_v1))) {
 			hw_data->extended_dc_capabilities = cap_msg.ext_dc_caps;
 		} else {
-			device_printf(
-			    GET_DEV(accel_dev),
+			device_printf(GET_DEV(accel_dev),
 			    "Capabilities message truncated to %d bytes\n",
 			    len);
 			return -EFAULT;
@@ -163,18 +157,15 @@ adf_vf2pf_get_ring_to_svc(struct adf_accel_dev *accel_dev)
 		return 0;
 
 	if (adf_send_vf2pf_blkmsg_req(accel_dev,
-				      ADF_VF2PF_BLKMSG_REQ_RING_SVC_MAP,
-				      (u8 *)&rts_map_msg,
-				      &len)) {
+		ADF_VF2PF_BLKMSG_REQ_RING_SVC_MAP, (u8 *)&rts_map_msg, &len)) {
 		device_printf(GET_DEV(accel_dev),
-			      "QAT: Failed to get block message response\n");
+		    "QAT: Failed to get block message response\n");
 		return -EFAULT;
 	}
 
 	if (unlikely(len < sizeof(struct ring_to_svc_map_v1))) {
 		device_printf(GET_DEV(accel_dev),
-			      "RING_TO_SVC message truncated to %d bytes\n",
-			      len);
+		    "RING_TO_SVC message truncated to %d bytes\n", len);
 		return -EFAULT;
 	}
 

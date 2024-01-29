@@ -34,10 +34,10 @@
 #include <err.h>
 #include <errno.h>
 #include <libprocstat.h>
+#include <libutil.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <libutil.h>
 
 #include "procstat.h"
 
@@ -49,7 +49,7 @@ procstat_vm(struct procstat *procstat, struct kinfo_proc *kipp)
 	int i, cnt;
 	const char *str, *lstr;
 
-	ptrwidth = 2*sizeof(void *) + 2;
+	ptrwidth = 2 * sizeof(void *) + 2;
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
 		xo_emit("{T:/%5s %*s %*s %3s %4s %4s %3s %3s %-5s %-2s %-s}\n",
 		    "PID", ptrwidth, "START", ptrwidth, "END", "PRT", "RES",
@@ -71,49 +71,50 @@ procstat_vm(struct procstat *procstat, struct kinfo_proc *kipp)
 		    (uintmax_t)kve->kve_end);
 		xo_emit("{e:kve_start/%#jx}", (uintmax_t)kve->kve_start);
 		xo_emit("{e:kve_end/%#jx}", (uintmax_t)kve->kve_end);
-		xo_emit("{d:read/%s}", kve->kve_protection & KVME_PROT_READ ?
-		    "r" : "-");
-		xo_emit("{d:write/%s}", kve->kve_protection & KVME_PROT_WRITE ?
-		    "w" : "-");
-		xo_emit("{d:exec/%s} ", kve->kve_protection & KVME_PROT_EXEC ?
-		    "x" : "-");
+		xo_emit("{d:read/%s}",
+		    kve->kve_protection & KVME_PROT_READ ? "r" : "-");
+		xo_emit("{d:write/%s}",
+		    kve->kve_protection & KVME_PROT_WRITE ? "w" : "-");
+		xo_emit("{d:exec/%s} ",
+		    kve->kve_protection & KVME_PROT_EXEC ? "x" : "-");
 		xo_open_container("kve_protection");
-		xo_emit("{en:read/%s}", kve->kve_protection & KVME_PROT_READ ?
-		    "true" : "false");
-		xo_emit("{en:write/%s}", kve->kve_protection & KVME_PROT_WRITE ?
-		    "true" : "false");
-		xo_emit("{en:exec/%s}", kve->kve_protection & KVME_PROT_EXEC ?
-		    "true" : "false");
+		xo_emit("{en:read/%s}",
+		    kve->kve_protection & KVME_PROT_READ ? "true" : "false");
+		xo_emit("{en:write/%s}",
+		    kve->kve_protection & KVME_PROT_WRITE ? "true" : "false");
+		xo_emit("{en:exec/%s}",
+		    kve->kve_protection & KVME_PROT_EXEC ? "true" : "false");
 		xo_close_container("kve_protection");
 		xo_emit("{:kve_resident/%4d/%d} ", kve->kve_resident);
 		xo_emit("{:kve_private_resident/%4d/%d} ",
 		    kve->kve_private_resident);
 		xo_emit("{:kve_ref_count/%3d/%d} ", kve->kve_ref_count);
 		xo_emit("{:kve_shadow_count/%3d/%d} ", kve->kve_shadow_count);
-		xo_emit("{d:copy_on_write/%-1s}", kve->kve_flags &
-		    KVME_FLAG_COW ? "C" : "-");
-		xo_emit("{d:need_copy/%-1s}", kve->kve_flags &
-		    KVME_FLAG_NEEDS_COPY ? "N" : "-");
-		xo_emit("{d:super_pages/%-1s}", kve->kve_flags &
-		    KVME_FLAG_SUPER ? "S" : "-");
-		xo_emit("{d:grows_down/%-1s}", kve->kve_flags &
-		    KVME_FLAG_GROWS_UP ? "U" : kve->kve_flags &
-		    KVME_FLAG_GROWS_DOWN ? "D" : "-");
-		xo_emit("{d:wired/%-1s} ", kve->kve_flags &
-		    KVME_FLAG_USER_WIRED ? "W" : "-");
+		xo_emit("{d:copy_on_write/%-1s}",
+		    kve->kve_flags & KVME_FLAG_COW ? "C" : "-");
+		xo_emit("{d:need_copy/%-1s}",
+		    kve->kve_flags & KVME_FLAG_NEEDS_COPY ? "N" : "-");
+		xo_emit("{d:super_pages/%-1s}",
+		    kve->kve_flags & KVME_FLAG_SUPER ? "S" : "-");
+		xo_emit("{d:grows_down/%-1s}",
+		    kve->kve_flags & KVME_FLAG_GROWS_UP	      ? "U" :
+			kve->kve_flags & KVME_FLAG_GROWS_DOWN ? "D" :
+								"-");
+		xo_emit("{d:wired/%-1s} ",
+		    kve->kve_flags & KVME_FLAG_USER_WIRED ? "W" : "-");
 		xo_open_container("kve_flags");
-		xo_emit("{en:copy_on_write/%s}", kve->kve_flags &
-		    KVME_FLAG_COW ? "true" : "false");
-		xo_emit("{en:needs_copy/%s}", kve->kve_flags &
-		    KVME_FLAG_NEEDS_COPY ? "true" : "false");
-		xo_emit("{en:super_pages/%s}", kve->kve_flags &
-		    KVME_FLAG_SUPER ? "true" : "false");
-		xo_emit("{en:grows_up/%s}", kve->kve_flags &
-		    KVME_FLAG_GROWS_UP ? "true" : "false");
-		xo_emit("{en:grows_down/%s}", kve->kve_flags &
-		    KVME_FLAG_GROWS_DOWN ? "true" : "false");
-		xo_emit("{en:wired/%s}", kve->kve_flags &
-		    KVME_FLAG_USER_WIRED ? "true" : "false");
+		xo_emit("{en:copy_on_write/%s}",
+		    kve->kve_flags & KVME_FLAG_COW ? "true" : "false");
+		xo_emit("{en:needs_copy/%s}",
+		    kve->kve_flags & KVME_FLAG_NEEDS_COPY ? "true" : "false");
+		xo_emit("{en:super_pages/%s}",
+		    kve->kve_flags & KVME_FLAG_SUPER ? "true" : "false");
+		xo_emit("{en:grows_up/%s}",
+		    kve->kve_flags & KVME_FLAG_GROWS_UP ? "true" : "false");
+		xo_emit("{en:grows_down/%s}",
+		    kve->kve_flags & KVME_FLAG_GROWS_DOWN ? "true" : "false");
+		xo_emit("{en:wired/%s}",
+		    kve->kve_flags & KVME_FLAG_USER_WIRED ? "true" : "false");
 		xo_close_container("kve_flags");
 		switch (kve->kve_type) {
 		case KVME_TYPE_NONE:

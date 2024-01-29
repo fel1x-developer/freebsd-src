@@ -25,14 +25,14 @@
  */
 
 #include <sys/param.h>
+
 #include <err.h>
 #include <stdint.h>
-
 #include <zlib.h>
 
-#include "mkuzip.h"
 #include "mkuz_blk.h"
 #include "mkuz_zlib.h"
+#include "mkuzip.h"
 
 struct mkuz_zlib {
 	int comp_level;
@@ -54,7 +54,7 @@ mkuz_zlib_init(int *comp_level)
 	if (*comp_level < Z_BEST_SPEED || *comp_level > Z_BEST_COMPRESSION)
 		errx(1, "provided compression level %d is invalid",
 		    *comp_level);
-		/* Not reached */
+	/* Not reached */
 
 	zp = mkuz_safe_zmalloc(sizeof(struct mkuz_zlib));
 	zp->comp_level = *comp_level;
@@ -72,7 +72,7 @@ mkuz_zlib_compress(void *p, const struct mkuz_blk *iblk, struct mkuz_blk *oblk)
 
 	destlen_z = oblk->alen;
 	if (compress2(oblk->data, &destlen_z, iblk->data, iblk->info.len,
-	    zp->comp_level) != Z_OK) {
+		zp->comp_level) != Z_OK) {
 		errx(1, "can't compress data: compress2() failed");
 		/* Not reached */
 	}

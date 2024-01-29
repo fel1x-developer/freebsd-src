@@ -23,111 +23,111 @@
  * http://www.silabs.com/Support%20Documents/TechnicalDocs/AN571.pdf
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_ioctl.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR uslcom_debug
+#define USB_DEBUG_VAR uslcom_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int uslcom_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uslcom, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uslcom");
-SYSCTL_INT(_hw_usb_uslcom, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uslcom_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_uslcom, OID_AUTO, debug, CTLFLAG_RWTUN, &uslcom_debug, 0,
+    "Debug level");
 #endif
 
-#define	USLCOM_BULK_BUF_SIZE	1024
-#define	USLCOM_CONFIG_INDEX	0
+#define USLCOM_BULK_BUF_SIZE 1024
+#define USLCOM_CONFIG_INDEX 0
 
 /* Request types */
-#define	USLCOM_WRITE		0x41
-#define	USLCOM_READ		0xc1
+#define USLCOM_WRITE 0x41
+#define USLCOM_READ 0xc1
 
 /* Request codes */
-#define	USLCOM_IFC_ENABLE	0x00
-#define	USLCOM_SET_BAUDDIV	0x01
-#define	USLCOM_SET_LINE_CTL	0x03
-#define	USLCOM_SET_BREAK	0x05
-#define	USLCOM_SET_MHS		0x07
-#define	USLCOM_GET_MDMSTS	0x08
-#define	USLCOM_SET_FLOW		0x13
-#define	USLCOM_SET_BAUDRATE	0x1e
-#define	USLCOM_VENDOR_SPECIFIC	0xff
+#define USLCOM_IFC_ENABLE 0x00
+#define USLCOM_SET_BAUDDIV 0x01
+#define USLCOM_SET_LINE_CTL 0x03
+#define USLCOM_SET_BREAK 0x05
+#define USLCOM_SET_MHS 0x07
+#define USLCOM_GET_MDMSTS 0x08
+#define USLCOM_SET_FLOW 0x13
+#define USLCOM_SET_BAUDRATE 0x1e
+#define USLCOM_VENDOR_SPECIFIC 0xff
 
 /* USLCOM_IFC_ENABLE values */
-#define	USLCOM_IFC_ENABLE_DIS	0x00
-#define	USLCOM_IFC_ENABLE_EN	0x01
+#define USLCOM_IFC_ENABLE_DIS 0x00
+#define USLCOM_IFC_ENABLE_EN 0x01
 
 /* USLCOM_SET_MHS/USLCOM_GET_MDMSTS values */
-#define	USLCOM_MHS_DTR_ON	0x0001
-#define	USLCOM_MHS_DTR_SET	0x0100
-#define	USLCOM_MHS_RTS_ON	0x0002
-#define	USLCOM_MHS_RTS_SET	0x0200
-#define	USLCOM_MHS_CTS		0x0010
-#define	USLCOM_MHS_DSR		0x0020
-#define	USLCOM_MHS_RI		0x0040
-#define	USLCOM_MHS_DCD		0x0080
+#define USLCOM_MHS_DTR_ON 0x0001
+#define USLCOM_MHS_DTR_SET 0x0100
+#define USLCOM_MHS_RTS_ON 0x0002
+#define USLCOM_MHS_RTS_SET 0x0200
+#define USLCOM_MHS_CTS 0x0010
+#define USLCOM_MHS_DSR 0x0020
+#define USLCOM_MHS_RI 0x0040
+#define USLCOM_MHS_DCD 0x0080
 
 /* USLCOM_SET_BAUDDIV values */
-#define	USLCOM_BAUDDIV_REF	3686400 /* 3.6864 MHz */
+#define USLCOM_BAUDDIV_REF 3686400 /* 3.6864 MHz */
 
 /* USLCOM_SET_LINE_CTL values */
-#define	USLCOM_STOP_BITS_1	0x00
-#define	USLCOM_STOP_BITS_2	0x02
-#define	USLCOM_PARITY_NONE	0x00
-#define	USLCOM_PARITY_ODD	0x10
-#define	USLCOM_PARITY_EVEN	0x20
-#define	USLCOM_SET_DATA_BITS(x)	((x) << 8)
+#define USLCOM_STOP_BITS_1 0x00
+#define USLCOM_STOP_BITS_2 0x02
+#define USLCOM_PARITY_NONE 0x00
+#define USLCOM_PARITY_ODD 0x10
+#define USLCOM_PARITY_EVEN 0x20
+#define USLCOM_SET_DATA_BITS(x) ((x) << 8)
 
 /* USLCOM_SET_BREAK values */
-#define	USLCOM_SET_BREAK_OFF	0x00
-#define	USLCOM_SET_BREAK_ON	0x01
+#define USLCOM_SET_BREAK_OFF 0x00
+#define USLCOM_SET_BREAK_ON 0x01
 
 /* USLCOM_SET_FLOW values - 1st word */
-#define	USLCOM_FLOW_DTR_ON	0x00000001 /* DTR static active */
-#define	USLCOM_FLOW_CTS_HS	0x00000008 /* CTS handshake */
+#define USLCOM_FLOW_DTR_ON 0x00000001 /* DTR static active */
+#define USLCOM_FLOW_CTS_HS 0x00000008 /* CTS handshake */
 /* USLCOM_SET_FLOW values - 2nd word */
-#define	USLCOM_FLOW_RTS_ON	0x00000040 /* RTS static active */
-#define	USLCOM_FLOW_RTS_HS	0x00000080 /* RTS handshake */
+#define USLCOM_FLOW_RTS_ON 0x00000040 /* RTS static active */
+#define USLCOM_FLOW_RTS_HS 0x00000080 /* RTS handshake */
 
 /* USLCOM_VENDOR_SPECIFIC values */
-#define	USLCOM_GET_PARTNUM	0x370B
-#define	USLCOM_WRITE_LATCH	0x37E1
-#define	USLCOM_READ_LATCH	0x00C2
+#define USLCOM_GET_PARTNUM 0x370B
+#define USLCOM_WRITE_LATCH 0x37E1
+#define USLCOM_READ_LATCH 0x00C2
 
 /* USLCOM_GET_PARTNUM values from hardware */
-#define	USLCOM_PARTNUM_CP2101	1
-#define	USLCOM_PARTNUM_CP2102	2
-#define	USLCOM_PARTNUM_CP2103	3
-#define	USLCOM_PARTNUM_CP2104	4
-#define	USLCOM_PARTNUM_CP2105	5
+#define USLCOM_PARTNUM_CP2101 1
+#define USLCOM_PARTNUM_CP2102 2
+#define USLCOM_PARTNUM_CP2103 3
+#define USLCOM_PARTNUM_CP2104 4
+#define USLCOM_PARTNUM_CP2105 5
 
 enum {
 	USLCOM_BULK_DT_WR,
@@ -226,149 +226,150 @@ static struct ucom_callback uslcom_callback = {
 };
 
 static const STRUCT_USB_HOST_ID uslcom_devs[] = {
-#define	USLCOM_DEV(v,p)  { USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) }
-    USLCOM_DEV(BALTECH, CARDREADER),
-    USLCOM_DEV(CLIPSAL, 5000CT2),
-    USLCOM_DEV(CLIPSAL, 5500PACA),
-    USLCOM_DEV(CLIPSAL, 5500PCU),
-    USLCOM_DEV(CLIPSAL, 560884),
-    USLCOM_DEV(CLIPSAL, 5800PC),
-    USLCOM_DEV(CLIPSAL, C5000CT2),
-    USLCOM_DEV(CLIPSAL, L51xx),
-    USLCOM_DEV(DATAAPEX, MULTICOM),
-    USLCOM_DEV(DELL, DW700),
-    USLCOM_DEV(DIGIANSWER, ZIGBEE802154),
-    USLCOM_DEV(DYNASTREAM, ANTDEVBOARD),
-    USLCOM_DEV(DYNASTREAM, ANTDEVBOARD2),
-    USLCOM_DEV(DYNASTREAM, ANT2USB),
-    USLCOM_DEV(ELV, USBI2C),
-    USLCOM_DEV(FESTO, CMSP),
-    USLCOM_DEV(FESTO, CPX_USB),
-    USLCOM_DEV(FOXCONN, PIRELLI_DP_L10),
-    USLCOM_DEV(FOXCONN, TCOM_TC_300),
-    USLCOM_DEV(GEMALTO, PROXPU),
-    USLCOM_DEV(JABLOTRON, PC60B),
-    USLCOM_DEV(KAMSTRUP, OPTICALEYE),
-    USLCOM_DEV(KAMSTRUP, MBUS_250D),
-    USLCOM_DEV(LAKESHORE, 121),
-    USLCOM_DEV(LAKESHORE, 218A),
-    USLCOM_DEV(LAKESHORE, 219),
-    USLCOM_DEV(LAKESHORE, 233),
-    USLCOM_DEV(LAKESHORE, 235),
-    USLCOM_DEV(LAKESHORE, 335),
-    USLCOM_DEV(LAKESHORE, 336),
-    USLCOM_DEV(LAKESHORE, 350),
-    USLCOM_DEV(LAKESHORE, 371),
-    USLCOM_DEV(LAKESHORE, 411),
-    USLCOM_DEV(LAKESHORE, 425),
-    USLCOM_DEV(LAKESHORE, 455A),
-    USLCOM_DEV(LAKESHORE, 465),
-    USLCOM_DEV(LAKESHORE, 475A),
-    USLCOM_DEV(LAKESHORE, 625A),
-    USLCOM_DEV(LAKESHORE, 642A),
-    USLCOM_DEV(LAKESHORE, 648),
-    USLCOM_DEV(LAKESHORE, 737),
-    USLCOM_DEV(LAKESHORE, 776),
-    USLCOM_DEV(LINKINSTRUMENTS, MSO19),
-    USLCOM_DEV(LINKINSTRUMENTS, MSO28),
-    USLCOM_DEV(LINKINSTRUMENTS, MSO28_2),
-    USLCOM_DEV(MEI, CASHFLOW_SC),
-    USLCOM_DEV(MEI, S2000),
-    USLCOM_DEV(NETGEAR, M4100),
-    USLCOM_DEV(OWEN, AC4),
-    USLCOM_DEV(OWL, CM_160),
-    USLCOM_DEV(PHILIPS, ACE1001),
-    USLCOM_DEV(PLX, CA42),
-    USLCOM_DEV(RENESAS, RX610),
-    USLCOM_DEV(SEL, C662),
-    USLCOM_DEV(SILABS, AC_SERV_CAN),
-    USLCOM_DEV(SILABS, AC_SERV_CIS),
-    USLCOM_DEV(SILABS, AC_SERV_IBUS),
-    USLCOM_DEV(SILABS, AC_SERV_OBD),
-    USLCOM_DEV(SILABS, AEROCOMM),
-    USLCOM_DEV(SILABS, AMBER_AMB2560),
-    USLCOM_DEV(SILABS, ARGUSISP),
-    USLCOM_DEV(SILABS, ARKHAM_DS101_A),
-    USLCOM_DEV(SILABS, ARKHAM_DS101_M),
-    USLCOM_DEV(SILABS, ARYGON_MIFARE),
-    USLCOM_DEV(SILABS, AVIT_USB_TTL),
-    USLCOM_DEV(SILABS, B_G_H3000),
-    USLCOM_DEV(SILABS, BALLUFF_RFID),
-    USLCOM_DEV(SILABS, BEI_VCP),
-    USLCOM_DEV(SILABS, BSM7DUSB),
-    USLCOM_DEV(SILABS, BURNSIDE),
-    USLCOM_DEV(SILABS, C2_EDGE_MODEM),
-    USLCOM_DEV(SILABS, CP2102),
-    USLCOM_DEV(SILABS, CP210X_2),
-    USLCOM_DEV(SILABS, CP210X_3),
-    USLCOM_DEV(SILABS, CP210X_4),
-    USLCOM_DEV(SILABS, CRUMB128),
-    USLCOM_DEV(SILABS, CYGNAL),
-    USLCOM_DEV(SILABS, CYGNAL_DEBUG),
-    USLCOM_DEV(SILABS, CYGNAL_GPS),
-    USLCOM_DEV(SILABS, DEGREE),
-    USLCOM_DEV(SILABS, DEKTEK_DTAPLUS),
-    USLCOM_DEV(SILABS, EMS_C1007),
-    USLCOM_DEV(SILABS, HAMLINKUSB),
-    USLCOM_DEV(SILABS, HELICOM),
-    USLCOM_DEV(SILABS, HUBZ),
-    USLCOM_DEV(SILABS, BV_AV2010_10),
-    USLCOM_DEV(SILABS, IMS_USB_RS422),
-    USLCOM_DEV(SILABS, INFINITY_MIC),
-    USLCOM_DEV(SILABS, INGENI_ZIGBEE),
-    USLCOM_DEV(SILABS, INSYS_MODEM),
-    USLCOM_DEV(SILABS, IRZ_SG10),
-    USLCOM_DEV(SILABS, KYOCERA_GPS),
-    USLCOM_DEV(SILABS, LIPOWSKY_HARP),
-    USLCOM_DEV(SILABS, LIPOWSKY_JTAG),
-    USLCOM_DEV(SILABS, LIPOWSKY_LIN),
-    USLCOM_DEV(SILABS, MC35PU),
-    USLCOM_DEV(SILABS, MMB_ZIGBEE),
-    USLCOM_DEV(SILABS, MJS_TOSLINK),
-    USLCOM_DEV(SILABS, MSD_DASHHAWK),
-    USLCOM_DEV(SILABS, MULTIPLEX_RC),
-    USLCOM_DEV(SILABS, OPTRIS_MSPRO),
-    USLCOM_DEV(SILABS, POLOLU),
-    USLCOM_DEV(SILABS, PROCYON_AVS),
-    USLCOM_DEV(SILABS, SB_PARAMOUNT_ME),
-    USLCOM_DEV(SILABS, SUUNTO),
-    USLCOM_DEV(SILABS, TAMSMASTER),
-    USLCOM_DEV(SILABS, TELEGESIS_ETRX2),
-    USLCOM_DEV(SILABS, TRACIENT),
-    USLCOM_DEV(SILABS, TRAQMATE),
-    USLCOM_DEV(SILABS, USBCOUNT50),
-    USLCOM_DEV(SILABS, USBPULSE100),
-    USLCOM_DEV(SILABS, USBSCOPE50),
-    USLCOM_DEV(SILABS, USBWAVE12),
-    USLCOM_DEV(SILABS, V_PREON32),
-    USLCOM_DEV(SILABS, VSTABI),
-    USLCOM_DEV(SILABS, WAVIT),
-    USLCOM_DEV(SILABS, WMRBATT),
-    USLCOM_DEV(SILABS, WMRRIGBLASTER),
-    USLCOM_DEV(SILABS, WMRRIGTALK),
-    USLCOM_DEV(SILABS, ZEPHYR_BIO),
-    USLCOM_DEV(SILABS2, DCU11CLONE),
-    USLCOM_DEV(SILABS3, GPRS_MODEM),
-    USLCOM_DEV(SILABS4, 100EU_MODEM),
-    USLCOM_DEV(SYNTECH, CYPHERLAB100),
-    USLCOM_DEV(USI, MC60),
-    USLCOM_DEV(VAISALA, CABLE),
-    USLCOM_DEV(WAGO, SERVICECABLE),
-    USLCOM_DEV(WAVESENSE, JAZZ),
-    USLCOM_DEV(WESTMOUNTAIN, RIGBLASTER_ADVANTAGE),
-    USLCOM_DEV(WIENERPLEINBAUS, PL512),
-    USLCOM_DEV(WIENERPLEINBAUS, RCM),
-    USLCOM_DEV(WIENERPLEINBAUS, MPOD),
-    USLCOM_DEV(WIENERPLEINBAUS, CML),
+#define USLCOM_DEV(v, p)                                      \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) \
+	}
+	USLCOM_DEV(BALTECH, CARDREADER),
+	USLCOM_DEV(CLIPSAL, 5000CT2),
+	USLCOM_DEV(CLIPSAL, 5500PACA),
+	USLCOM_DEV(CLIPSAL, 5500PCU),
+	USLCOM_DEV(CLIPSAL, 560884),
+	USLCOM_DEV(CLIPSAL, 5800PC),
+	USLCOM_DEV(CLIPSAL, C5000CT2),
+	USLCOM_DEV(CLIPSAL, L51xx),
+	USLCOM_DEV(DATAAPEX, MULTICOM),
+	USLCOM_DEV(DELL, DW700),
+	USLCOM_DEV(DIGIANSWER, ZIGBEE802154),
+	USLCOM_DEV(DYNASTREAM, ANTDEVBOARD),
+	USLCOM_DEV(DYNASTREAM, ANTDEVBOARD2),
+	USLCOM_DEV(DYNASTREAM, ANT2USB),
+	USLCOM_DEV(ELV, USBI2C),
+	USLCOM_DEV(FESTO, CMSP),
+	USLCOM_DEV(FESTO, CPX_USB),
+	USLCOM_DEV(FOXCONN, PIRELLI_DP_L10),
+	USLCOM_DEV(FOXCONN, TCOM_TC_300),
+	USLCOM_DEV(GEMALTO, PROXPU),
+	USLCOM_DEV(JABLOTRON, PC60B),
+	USLCOM_DEV(KAMSTRUP, OPTICALEYE),
+	USLCOM_DEV(KAMSTRUP, MBUS_250D),
+	USLCOM_DEV(LAKESHORE, 121),
+	USLCOM_DEV(LAKESHORE, 218A),
+	USLCOM_DEV(LAKESHORE, 219),
+	USLCOM_DEV(LAKESHORE, 233),
+	USLCOM_DEV(LAKESHORE, 235),
+	USLCOM_DEV(LAKESHORE, 335),
+	USLCOM_DEV(LAKESHORE, 336),
+	USLCOM_DEV(LAKESHORE, 350),
+	USLCOM_DEV(LAKESHORE, 371),
+	USLCOM_DEV(LAKESHORE, 411),
+	USLCOM_DEV(LAKESHORE, 425),
+	USLCOM_DEV(LAKESHORE, 455A),
+	USLCOM_DEV(LAKESHORE, 465),
+	USLCOM_DEV(LAKESHORE, 475A),
+	USLCOM_DEV(LAKESHORE, 625A),
+	USLCOM_DEV(LAKESHORE, 642A),
+	USLCOM_DEV(LAKESHORE, 648),
+	USLCOM_DEV(LAKESHORE, 737),
+	USLCOM_DEV(LAKESHORE, 776),
+	USLCOM_DEV(LINKINSTRUMENTS, MSO19),
+	USLCOM_DEV(LINKINSTRUMENTS, MSO28),
+	USLCOM_DEV(LINKINSTRUMENTS, MSO28_2),
+	USLCOM_DEV(MEI, CASHFLOW_SC),
+	USLCOM_DEV(MEI, S2000),
+	USLCOM_DEV(NETGEAR, M4100),
+	USLCOM_DEV(OWEN, AC4),
+	USLCOM_DEV(OWL, CM_160),
+	USLCOM_DEV(PHILIPS, ACE1001),
+	USLCOM_DEV(PLX, CA42),
+	USLCOM_DEV(RENESAS, RX610),
+	USLCOM_DEV(SEL, C662),
+	USLCOM_DEV(SILABS, AC_SERV_CAN),
+	USLCOM_DEV(SILABS, AC_SERV_CIS),
+	USLCOM_DEV(SILABS, AC_SERV_IBUS),
+	USLCOM_DEV(SILABS, AC_SERV_OBD),
+	USLCOM_DEV(SILABS, AEROCOMM),
+	USLCOM_DEV(SILABS, AMBER_AMB2560),
+	USLCOM_DEV(SILABS, ARGUSISP),
+	USLCOM_DEV(SILABS, ARKHAM_DS101_A),
+	USLCOM_DEV(SILABS, ARKHAM_DS101_M),
+	USLCOM_DEV(SILABS, ARYGON_MIFARE),
+	USLCOM_DEV(SILABS, AVIT_USB_TTL),
+	USLCOM_DEV(SILABS, B_G_H3000),
+	USLCOM_DEV(SILABS, BALLUFF_RFID),
+	USLCOM_DEV(SILABS, BEI_VCP),
+	USLCOM_DEV(SILABS, BSM7DUSB),
+	USLCOM_DEV(SILABS, BURNSIDE),
+	USLCOM_DEV(SILABS, C2_EDGE_MODEM),
+	USLCOM_DEV(SILABS, CP2102),
+	USLCOM_DEV(SILABS, CP210X_2),
+	USLCOM_DEV(SILABS, CP210X_3),
+	USLCOM_DEV(SILABS, CP210X_4),
+	USLCOM_DEV(SILABS, CRUMB128),
+	USLCOM_DEV(SILABS, CYGNAL),
+	USLCOM_DEV(SILABS, CYGNAL_DEBUG),
+	USLCOM_DEV(SILABS, CYGNAL_GPS),
+	USLCOM_DEV(SILABS, DEGREE),
+	USLCOM_DEV(SILABS, DEKTEK_DTAPLUS),
+	USLCOM_DEV(SILABS, EMS_C1007),
+	USLCOM_DEV(SILABS, HAMLINKUSB),
+	USLCOM_DEV(SILABS, HELICOM),
+	USLCOM_DEV(SILABS, HUBZ),
+	USLCOM_DEV(SILABS, BV_AV2010_10),
+	USLCOM_DEV(SILABS, IMS_USB_RS422),
+	USLCOM_DEV(SILABS, INFINITY_MIC),
+	USLCOM_DEV(SILABS, INGENI_ZIGBEE),
+	USLCOM_DEV(SILABS, INSYS_MODEM),
+	USLCOM_DEV(SILABS, IRZ_SG10),
+	USLCOM_DEV(SILABS, KYOCERA_GPS),
+	USLCOM_DEV(SILABS, LIPOWSKY_HARP),
+	USLCOM_DEV(SILABS, LIPOWSKY_JTAG),
+	USLCOM_DEV(SILABS, LIPOWSKY_LIN),
+	USLCOM_DEV(SILABS, MC35PU),
+	USLCOM_DEV(SILABS, MMB_ZIGBEE),
+	USLCOM_DEV(SILABS, MJS_TOSLINK),
+	USLCOM_DEV(SILABS, MSD_DASHHAWK),
+	USLCOM_DEV(SILABS, MULTIPLEX_RC),
+	USLCOM_DEV(SILABS, OPTRIS_MSPRO),
+	USLCOM_DEV(SILABS, POLOLU),
+	USLCOM_DEV(SILABS, PROCYON_AVS),
+	USLCOM_DEV(SILABS, SB_PARAMOUNT_ME),
+	USLCOM_DEV(SILABS, SUUNTO),
+	USLCOM_DEV(SILABS, TAMSMASTER),
+	USLCOM_DEV(SILABS, TELEGESIS_ETRX2),
+	USLCOM_DEV(SILABS, TRACIENT),
+	USLCOM_DEV(SILABS, TRAQMATE),
+	USLCOM_DEV(SILABS, USBCOUNT50),
+	USLCOM_DEV(SILABS, USBPULSE100),
+	USLCOM_DEV(SILABS, USBSCOPE50),
+	USLCOM_DEV(SILABS, USBWAVE12),
+	USLCOM_DEV(SILABS, V_PREON32),
+	USLCOM_DEV(SILABS, VSTABI),
+	USLCOM_DEV(SILABS, WAVIT),
+	USLCOM_DEV(SILABS, WMRBATT),
+	USLCOM_DEV(SILABS, WMRRIGBLASTER),
+	USLCOM_DEV(SILABS, WMRRIGTALK),
+	USLCOM_DEV(SILABS, ZEPHYR_BIO),
+	USLCOM_DEV(SILABS2, DCU11CLONE),
+	USLCOM_DEV(SILABS3, GPRS_MODEM),
+	USLCOM_DEV(SILABS4, 100EU_MODEM),
+	USLCOM_DEV(SYNTECH, CYPHERLAB100),
+	USLCOM_DEV(USI, MC60),
+	USLCOM_DEV(VAISALA, CABLE),
+	USLCOM_DEV(WAGO, SERVICECABLE),
+	USLCOM_DEV(WAVESENSE, JAZZ),
+	USLCOM_DEV(WESTMOUNTAIN, RIGBLASTER_ADVANTAGE),
+	USLCOM_DEV(WIENERPLEINBAUS, PL512),
+	USLCOM_DEV(WIENERPLEINBAUS, RCM),
+	USLCOM_DEV(WIENERPLEINBAUS, MPOD),
+	USLCOM_DEV(WIENERPLEINBAUS, CML),
 #undef USLCOM_DEV
 };
 
-static device_method_t uslcom_methods[] = {
-	DEVMETHOD(device_probe, uslcom_probe),
+static device_method_t uslcom_methods[] = { DEVMETHOD(device_probe,
+						uslcom_probe),
 	DEVMETHOD(device_attach, uslcom_attach),
-	DEVMETHOD(device_detach, uslcom_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, uslcom_detach), DEVMETHOD_END };
 
 static driver_t uslcom_driver = {
 	.name = "uslcom",
@@ -391,8 +392,7 @@ uslcom_watchdog(void *arg)
 
 	usbd_transfer_start(sc->sc_xfer[USLCOM_CTRL_DT_RD]);
 
-	usb_callout_reset(&sc->sc_watchdog,
-	    hz / 4, &uslcom_watchdog, sc);
+	usb_callout_reset(&sc->sc_watchdog, hz / 4, &uslcom_watchdog, sc);
 }
 
 static int
@@ -429,12 +429,12 @@ uslcom_attach(device_t dev)
 	/* use the interface number from the USB interface descriptor */
 	sc->sc_iface_no = uaa->info.bIfaceNum;
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, uslcom_config,
-	    USLCOM_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, uslcom_config, USLCOM_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		DPRINTF("one or more missing USB endpoints, "
-		    "error=%s\n", usbd_errstr(error));
+			"error=%s\n",
+		    usbd_errstr(error));
 		goto detach;
 	}
 	sc->sc_partnum = uslcom_get_partnum(sc);
@@ -501,8 +501,8 @@ uslcom_cfg_open(struct ucom_softc *ucom)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-        if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("UART enable failed (ignored)\n");
 	}
 
@@ -529,8 +529,8 @@ uslcom_cfg_close(struct ucom_softc *ucom)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("UART disable failed (ignored)\n");
 	}
 }
@@ -549,12 +549,12 @@ uslcom_get_partnum(struct uslcom_softc *sc)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, sizeof(partnum));
 
-	if (usbd_do_request_flags(sc->sc_udev, NULL,
-	    &req, &partnum, 0, NULL, 1000)) {
+	if (usbd_do_request_flags(sc->sc_udev, NULL, &req, &partnum, 0, NULL,
+		1000)) {
 		DPRINTF("GET_PARTNUM failed\n");
 	}
 
-	return(partnum);
+	return (partnum);
 }
 
 static void
@@ -575,8 +575,8 @@ uslcom_cfg_set_dtr(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("Setting DTR failed (ignored)\n");
 	}
 }
@@ -599,8 +599,8 @@ uslcom_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("Setting DTR failed (ignored)\n");
 	}
 }
@@ -649,8 +649,8 @@ uslcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, sizeof(baudrate));
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, &baudrate, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &baudrate, 0,
+		1000)) {
 		printf("Set baudrate failed (ignored)\n");
 	}
 
@@ -686,8 +686,8 @@ uslcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("Set format failed (ignored)\n");
 	}
 
@@ -706,8 +706,8 @@ uslcom_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, sizeof(flowctrl));
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, flowctrl, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, flowctrl, 0,
+		1000)) {
 		DPRINTF("Set flowcontrol failed (ignored)\n");
 	}
 }
@@ -737,15 +737,15 @@ uslcom_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wIndex, sc->sc_iface_no);
 	USETW(req.wLength, 0);
 
-	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-	    &req, NULL, 0, 1000)) {
+	if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+		1000)) {
 		DPRINTF("Set BREAK failed (ignored)\n");
 	}
 }
 
 static int
-uslcom_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data,
-    int flag, struct thread *td)
+uslcom_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data, int flag,
+    struct thread *td)
 {
 	struct uslcom_softc *sc = ucom->sc_parent;
 	struct usb_device_request req;
@@ -766,8 +766,8 @@ uslcom_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data,
 		USETW(req.wIndex, sc->sc_iface_no);
 		USETW(req.wLength, sizeof(latch));
 
-		if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-		    &req, &latch, 0, 1000)) {
+		if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, &latch,
+			0, 1000)) {
 			DPRINTF("Get LATCH failed\n");
 			error = EIO;
 		}
@@ -785,13 +785,13 @@ uslcom_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data,
 			USETW(req.wIndex, (*(int *)data));
 			USETW(req.wLength, 0);
 
-			if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom,
-			    &req, NULL, 0, 1000)) {
+			if (ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req,
+				NULL, 0, 1000)) {
 				DPRINTF("Set LATCH failed\n");
 				error = EIO;
 			}
 		} else
-			error = ENODEV;	/* Not yet */
+			error = ENODEV; /* Not yet */
 		break;
 
 	default:
@@ -812,10 +812,10 @@ uslcom_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    USLCOM_BULK_BUF_SIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, USLCOM_BULK_BUF_SIZE,
+			&actlen)) {
 			DPRINTF("actlen = %d\n", actlen);
 
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
@@ -823,7 +823,7 @@ tr_setup:
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -848,12 +848,12 @@ uslcom_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -887,7 +887,8 @@ uslcom_control_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		if (msr != sc->sc_msr) {
 			DPRINTF("status change msr=0x%02x "
-			    "(was 0x%02x)\n", msr, sc->sc_msr);
+				"(was 0x%02x)\n",
+			    msr, sc->sc_msr);
 			sc->sc_msr = msr;
 			ucom_status_change(&sc->sc_ucom);
 		}
@@ -909,7 +910,7 @@ uslcom_control_callback(struct usb_xfer *xfer, usb_error_t error)
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:		/* error */
+	default: /* error */
 		if (error != USB_ERR_CANCELLED)
 			DPRINTF("error=%s\n", usbd_errstr(error));
 		break;

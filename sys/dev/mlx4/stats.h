@@ -33,7 +33,7 @@
 #ifndef _MLX4_STATS_
 #define _MLX4_STATS_
 
-#define NUM_PRIORITIES	9
+#define NUM_PRIORITIES 9
 #define NUM_PRIORITY_STATS 2
 
 struct mlx4_en_pkt_stats {
@@ -113,7 +113,7 @@ struct mlx4_en_perf_stats {
 	u32 napi_quota;
 };
 
-#define MLX4_NUM_PRIORITIES	8
+#define MLX4_NUM_PRIORITIES 8
 
 struct mlx4_en_flow_stats_rx {
 	u64 rx_pause;
@@ -148,12 +148,9 @@ struct mlx4_en_stat_out_flow_control_mbox {
 	__be64 reserved[2];
 };
 
-enum {
-	MLX4_DUMP_ETH_STATS_FLOW_CONTROL = 1 << 12
-};
+enum { MLX4_DUMP_ETH_STATS_FLOW_CONTROL = 1 << 12 };
 
 int mlx4_get_vport_ethtool_stats(struct mlx4_dev *dev, int port,
-    struct mlx4_en_vport_stats *vport_stats,
-    int reset, int *read_counters);
+    struct mlx4_en_vport_stats *vport_stats, int reset, int *read_counters);
 
 #endif

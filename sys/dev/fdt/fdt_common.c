@@ -32,10 +32,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/sysctl.h>
 
 #include <machine/resource.h>
@@ -48,15 +48,18 @@
 #include "ofw_bus_if.h"
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
 
-#define FDT_COMPAT_LEN	255
+#define FDT_COMPAT_LEN 255
 
-#define FDT_REG_CELLS	4
+#define FDT_REG_CELLS 4
 #define FDT_RANGES_SIZE 48
 
 SYSCTL_NODE(_hw, OID_AUTO, fdt, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
@@ -99,8 +102,8 @@ fdt_get_range_by_busaddr(phandle_t node, u_long addr, u_long *base,
 	if (len > sizeof(ranges))
 		return (ENOMEM);
 	if (len == 0) {
-		return (fdt_get_range_by_busaddr(OF_parent(node), addr,
-		    base, size));
+		return (fdt_get_range_by_busaddr(OF_parent(node), addr, base,
+		    size));
 	}
 
 	if (OF_getprop(node, "ranges", ranges, sizeof(ranges)) <= 0)
@@ -188,8 +191,8 @@ fdt_get_range(phandle_t node, int range_id, u_long *base, u_long *size)
 	par_bus_addr = fdt_data_get((void *)rangesptr, par_addr_cells);
 	rangesptr += par_addr_cells;
 
-	err = fdt_get_range_by_busaddr(OF_parent(node), par_bus_addr,
-	   &pbase, &psize);
+	err = fdt_get_range_by_busaddr(OF_parent(node), par_bus_addr, &pbase,
+	    &psize);
 	if (err == 0)
 		*base += pbase;
 	else
@@ -296,7 +299,7 @@ fdt_parent_addr_cells(phandle_t node)
 
 	/* Find out #address-cells of the superior bus. */
 	if (OF_searchprop(OF_parent(node), "#address-cells", &addr_cells,
-	    sizeof(addr_cells)) <= 0)
+		sizeof(addr_cells)) <= 0)
 		return (2);
 
 	return ((int)fdt32_to_cpu(addr_cells));
@@ -385,13 +388,13 @@ fdt_get_phyaddr(phandle_t node, device_t dev, int *phy_addr, void **phy_sc)
 	device_t parent, child;
 
 	if (OF_getencprop(node, "phy-handle", (void *)&phy_handle,
-	    sizeof(phy_handle)) <= 0)
+		sizeof(phy_handle)) <= 0)
 		return (ENXIO);
 
 	phy_node = OF_node_from_xref(phy_handle);
 
-	if (OF_getencprop(phy_node, "reg", (void *)&phy_reg,
-	    sizeof(phy_reg)) <= 0)
+	if (OF_getencprop(phy_node, "reg", (void *)&phy_reg, sizeof(phy_reg)) <=
+	    0)
 		return (ENXIO);
 
 	*phy_addr = phy_reg;
@@ -410,7 +413,7 @@ fdt_get_phyaddr(phandle_t node, device_t dev, int *phy_addr, void **phy_sc)
 	phy_node = OF_parent(phy_node);
 	while (phy_node != 0) {
 		if (OF_getprop(phy_node, "phy-handle", (void *)&phy_handle,
-		    sizeof(phy_handle)) > 0)
+			sizeof(phy_handle)) > 0)
 			break;
 		phy_node = OF_parent(phy_node);
 	}
@@ -459,7 +462,7 @@ fdt_get_reserved_regions(struct mem_region *mr, int *mrcnt)
 	}
 
 	if ((rv = fdt_addrsize_cells(OF_parent(memory), &addr_cells,
-	    &size_cells)) != 0)
+		 &size_cells)) != 0)
 		goto out;
 
 	if (addr_cells > 2) {
@@ -485,7 +488,7 @@ fdt_get_reserved_regions(struct mem_region *mr, int *mrcnt)
 	for (i = 0; i < tuples; i++) {
 
 		rv = fdt_data_to_res(reservep, addr_cells, size_cells,
-			(u_long *)&mr[i].mr_start, (u_long *)&mr[i].mr_size);
+		    (u_long *)&mr[i].mr_start, (u_long *)&mr[i].mr_size);
 
 		if (rv != 0)
 			goto out;
@@ -557,7 +560,7 @@ fdt_get_mem_regions(struct mem_region *mr, int *mrcnt, uint64_t *memsize)
 	}
 
 	if ((rv = fdt_addrsize_cells(OF_parent(memory), &addr_cells,
-	    &size_cells)) != 0)
+		 &size_cells)) != 0)
 		goto out;
 
 	if (addr_cells > 2) {
@@ -583,7 +586,7 @@ fdt_get_mem_regions(struct mem_region *mr, int *mrcnt, uint64_t *memsize)
 	for (i = 0; i < tuples; i++) {
 
 		rv = fdt_data_to_res(regp, addr_cells, size_cells,
-			(u_long *)&mr[i].mr_start, (u_long *)&mr[i].mr_size);
+		    (u_long *)&mr[i].mr_start, (u_long *)&mr[i].mr_size);
 
 		if (rv != 0)
 			goto out;

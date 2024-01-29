@@ -19,12 +19,11 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_desc.h"
-
+#include "ah_internal.h"
 #include "ar5210/ar5210.h"
-#include "ar5210/ar5210reg.h"
 #include "ar5210/ar5210desc.h"
+#include "ar5210/ar5210reg.h"
 
 /*
  * Get the RXDP.
@@ -65,7 +64,7 @@ ar5210StopDmaReceive(struct ath_hal *ah)
 {
 	int i;
 
-	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD);	/* Set receive disable bit */
+	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD); /* Set receive disable bit */
 	for (i = 0; i < 1000; i++) {
 		if ((OS_REG_READ(ah, AR_CR) & AR_CR_RXE) == 0)
 			return AH_TRUE;
@@ -86,7 +85,7 @@ void
 ar5210StartPcuReceive(struct ath_hal *ah, HAL_BOOL is_scanning)
 {
 	ar5210UpdateDiagReg(ah,
-		OS_REG_READ(ah, AR_DIAG_SW) & ~(AR_DIAG_SW_DIS_RX));
+	    OS_REG_READ(ah, AR_DIAG_SW) & ~(AR_DIAG_SW_DIS_RX));
 }
 
 /*
@@ -96,7 +95,7 @@ void
 ar5210StopPcuReceive(struct ath_hal *ah)
 {
 	ar5210UpdateDiagReg(ah,
-		OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_SW_DIS_RX);
+	    OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_SW_DIS_RX);
 }
 
 /*
@@ -122,10 +121,10 @@ ar5210ClrMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val &~ (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val & ~(1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val &~ (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val & ~(1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -142,10 +141,10 @@ ar5210SetMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -168,7 +167,8 @@ ar5210SetRxFilter(struct ath_hal *ah, uint32_t bits)
 {
 	if (bits & HAL_RX_FILTER_PHYRADAR) {
 		/* must enable promiscuous mode to get radar */
-		bits = (bits &~ HAL_RX_FILTER_PHYRADAR) | AR_RX_FILTER_PROMISCUOUS;
+		bits = (bits & ~HAL_RX_FILTER_PHYRADAR) |
+		    AR_RX_FILTER_PROMISCUOUS;
 	}
 	OS_REG_WRITE(ah, AR_RX_FILTER, bits);
 }
@@ -179,12 +179,12 @@ ar5210SetRxFilter(struct ath_hal *ah, uint32_t bits)
  * control and status words to be opaque above the hal.
  */
 HAL_BOOL
-ar5210SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t size, u_int flags)
+ar5210SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t size,
+    u_int flags)
 {
 	struct ar5210_desc *ads = AR5210DESC(ds);
 
-	(void) flags;
+	(void)flags;
 
 	ads->ds_ctl0 = 0;
 	ads->ds_ctl1 = size & AR_BufLen;
@@ -209,9 +209,8 @@ ar5210SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
  *     of the descriptor (e.g. flushing any cached copy).
  */
 HAL_STATUS
-ar5210ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t pa, struct ath_desc *nds, uint64_t tsf,
-	struct ath_rx_status *rs)
+ar5210ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t pa,
+    struct ath_desc *nds, uint64_t tsf, struct ath_rx_status *rs)
 {
 	struct ar5210_desc *ads = AR5210DESC(ds);
 	struct ar5210_desc *ands = AR5210DESC(nds);
@@ -250,8 +249,8 @@ ar5210ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 			rs->rs_status |= HAL_RXERR_FIFO;
 		else {
 			rs->rs_status |= HAL_RXERR_PHY;
-			rs->rs_phyerr =
-				(ads->ds_status1 & AR_PHYErr) >> AR_PHYErr_S;
+			rs->rs_phyerr = (ads->ds_status1 & AR_PHYErr) >>
+			    AR_PHYErr_S;
 		}
 	}
 	/* XXX what about KeyCacheMiss? */
@@ -262,7 +261,7 @@ ar5210ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		rs->rs_keyix = HAL_RXKEYIX_INVALID;
 	/* NB: caller expected to do rate table mapping */
 	rs->rs_rate = MS(ads->ds_status0, AR_RcvRate);
-	rs->rs_antenna  = (ads->ds_status0 & AR_RcvAntenna) ? 1 : 0;
+	rs->rs_antenna = (ads->ds_status0 & AR_RcvAntenna) ? 1 : 0;
 	rs->rs_more = (ads->ds_status0 & AR_More) ? 1 : 0;
 
 	return HAL_OK;

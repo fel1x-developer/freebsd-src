@@ -1,7 +1,7 @@
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -39,56 +39,55 @@ SOFTWARE.
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
 #include <sys/file.h>
-#include <sys/time.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
 
 #include <net/if.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>	/* inet_ntoa */
 
-#ifndef	NO_UNISTD
+#include <arpa/inet.h> /* inet_ntoa */
+
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
 
-#include <stdlib.h>
-#include <signal.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <paths.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
-#include <assert.h>
-#include <inttypes.h>
 
-#ifdef	NO_SETSID
-# include <fcntl.h>		/* for O_RDONLY, etc */
+#ifdef NO_SETSID
+#include <fcntl.h> /* for O_RDONLY, etc */
 #endif
 
 #include "bootp.h"
-#include "hash.h"
-#include "hwaddr.h"
 #include "bootpd.h"
 #include "dovend.h"
 #include "getif.h"
+#include "hash.h"
+#include "hwaddr.h"
+#include "patchlevel.h"
 #include "readfile.h"
 #include "report.h"
 #include "tzone.h"
-#include "patchlevel.h"
 
 #ifndef CONFIG_FILE
-#define CONFIG_FILE		"/etc/bootptab"
+#define CONFIG_FILE "/etc/bootptab"
 #endif
 #ifndef DUMPTAB_FILE
-#define DUMPTAB_FILE		"/tmp/bootpd.dump"
+#define DUMPTAB_FILE "/tmp/bootpd.dump"
 #endif
-
-
 
 /*
  * Externals, forward declarations, and global variables
@@ -113,33 +112,31 @@ PRIVATE void usage(void);
 
 u_short bootps_port, bootpc_port;
 
-
 /*
  * Internet socket and interface config structures
  */
 
-struct sockaddr_in bind_addr;	/* Listening */
-struct sockaddr_in recv_addr;	/* Packet source */
-struct sockaddr_in send_addr;	/*  destination */
-
+struct sockaddr_in bind_addr; /* Listening */
+struct sockaddr_in recv_addr; /* Packet source */
+struct sockaddr_in send_addr; /*  destination */
 
 /*
  * option defaults
  */
-int debug = 0;					/* Debugging flag (level) */
-struct timeval actualtimeout =
-{								/* fifteen minutes */
-	15 * 60L,					/* tv_sec */
-	0							/* tv_usec */
+int debug = 0; /* Debugging flag (level) */
+struct timeval actualtimeout = {
+	/* fifteen minutes */
+	15 * 60L, /* tv_sec */
+	0	  /* tv_usec */
 };
-int arpmod = TRUE;				/* modify the ARP table */
+int arpmod = TRUE; /* modify the ARP table */
 
 /*
  * General
  */
 
-int s;							/* Socket file descriptor */
-char *pktbuf;					/* Receive packet buffer */
+int s;	      /* Socket file descriptor */
+char *pktbuf; /* Receive packet buffer */
 int pktlen;
 char *progname;
 char *chdir_path;
@@ -159,8 +156,6 @@ PRIVATE int do_dumptab = 0;
 char *bootptab = CONFIG_FILE;
 char *bootpd_dump = DUMPTAB_FILE;
 
-
-
 /*
  * Initialization such as command-line processing is done and then the
  * main server loop is started.
@@ -179,18 +174,20 @@ main(int argc, char **argv)
 	int nfound;
 	fd_set readfds;
 	int standalone;
-#ifdef	SA_NOCLDSTOP	/* Have POSIX sigaction(2). */
+#ifdef SA_NOCLDSTOP /* Have POSIX sigaction(2). */
 	struct sigaction sa;
 #endif
 
 	progname = strrchr(argv[0], '/');
-	if (progname) progname++;
-	else progname = argv[0];
+	if (progname)
+		progname++;
+	else
+		progname = argv[0];
 
 	/*
 	 * Initialize logging.
 	 */
-	report_init(0);				/* uses progname */
+	report_init(0); /* uses progname */
 
 	/*
 	 * Log startup
@@ -206,7 +203,7 @@ main(int argc, char **argv)
 		report(LOG_ERR, "malloc failed");
 		exit(1);
 	}
-	bp = (struct bootp *) pktbuf;
+	bp = (struct bootp *)pktbuf;
 
 	/*
 	 * Check to see if a socket was passed to us from inetd.
@@ -217,10 +214,10 @@ main(int argc, char **argv)
 	 */
 	s = 0;
 	ba_len = sizeof(bind_addr);
-	bzero((char *) &bind_addr, ba_len);
+	bzero((char *)&bind_addr, ba_len);
 	errno = 0;
 	standalone = TRUE;
-	if (getsockname(s, (struct sockaddr *) &bind_addr, &ba_len) == 0) {
+	if (getsockname(s, (struct sockaddr *)&bind_addr, &ba_len) == 0) {
 		/*
 		 * Descriptor 0 is a socket.  Assume we are a child of inetd.
 		 */
@@ -254,10 +251,10 @@ main(int argc, char **argv)
 			break;
 		switch (argv[0][1]) {
 
-		case 'a':				/* don't modify the ARP table */
+		case 'a': /* don't modify the ARP table */
 			arpmod = FALSE;
 			break;
-		case 'c':				/* chdir_path */
+		case 'c': /* chdir_path */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -267,19 +264,20 @@ main(int argc, char **argv)
 			}
 			if (!stmp || (stmp[0] != '/')) {
 				report(LOG_ERR,
-						"bootpd: invalid chdir specification\n");
+				    "bootpd: invalid chdir specification\n");
 				break;
 			}
 			chdir_path = stmp;
 			break;
 
-		case 'd':				/* debug level */
+		case 'd': /* debug level */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else if (argv[1] && argv[1][0] == '-') {
 				/*
 				 * Backwards-compatible behavior:
-				 * no parameter, so just increment the debug flag.
+				 * no parameter, so just increment the debug
+				 * flag.
 				 */
 				debug++;
 				break;
@@ -289,14 +287,14 @@ main(int argc, char **argv)
 				stmp = argv[0];
 			}
 			if (!stmp || (sscanf(stmp, "%d", &n) != 1) || (n < 0)) {
-				report(LOG_ERR,
-						"%s: invalid debug level\n", progname);
+				report(LOG_ERR, "%s: invalid debug level\n",
+				    progname);
 				break;
 			}
 			debug = n;
 			break;
 
-		case 'h':				/* override hostname */
+		case 'h': /* override hostname */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -305,22 +303,21 @@ main(int argc, char **argv)
 				stmp = argv[0];
 			}
 			if (!stmp) {
-				report(LOG_ERR,
-						"bootpd: missing hostname\n");
+				report(LOG_ERR, "bootpd: missing hostname\n");
 				break;
 			}
 			hostname = stmp;
 			break;
 
-		case 'i':				/* inetd mode */
+		case 'i': /* inetd mode */
 			standalone = FALSE;
 			break;
 
-		case 's':				/* standalone mode */
+		case 's': /* standalone mode */
 			standalone = TRUE;
 			break;
 
-		case 't':				/* timeout */
+		case 't': /* timeout */
 			if (argv[0][2]) {
 				stmp = &(argv[0][2]);
 			} else {
@@ -330,10 +327,11 @@ main(int argc, char **argv)
 			}
 			if (!stmp || (sscanf(stmp, "%d", &n) != 1) || (n < 0)) {
 				report(LOG_ERR,
-						"%s: invalid timeout specification\n", progname);
+				    "%s: invalid timeout specification\n",
+				    progname);
 				break;
 			}
-			actualtimeout.tv_sec = (int32) (60 * n);
+			actualtimeout.tv_sec = (int32)(60 * n);
 			/*
 			 * If the actual timeout is zero, pass a NULL pointer
 			 * to select so it blocks indefinitely, otherwise,
@@ -343,13 +341,13 @@ main(int argc, char **argv)
 			break;
 
 		default:
-			report(LOG_ERR, "%s: unknown switch: -%c\n",
-					progname, argv[0][1]);
+			report(LOG_ERR, "%s: unknown switch: -%c\n", progname,
+			    argv[0][1]);
 			usage();
 			break;
 
 		} /* switch */
-	} /* for args */
+	}	  /* for args */
 
 	/*
 	 * Override default file names if specified on the command line.
@@ -373,24 +371,25 @@ main(int argc, char **argv)
 
 	if (standalone) {
 		/*
-		 * Go into background and disassociate from controlling terminal.
+		 * Go into background and disassociate from controlling
+		 * terminal.
 		 */
 		if (debug < 3) {
 			if (fork())
 				exit(0);
-#ifdef	NO_SETSID
-			setpgrp(0,0);
+#ifdef NO_SETSID
+			setpgrp(0, 0);
 #ifdef TIOCNOTTY
 			n = open(_PATH_TTY, O_RDWR);
 			if (n >= 0) {
-				ioctl(n, TIOCNOTTY, (char *) 0);
-				(void) close(n);
+				ioctl(n, TIOCNOTTY, (char *)0);
+				(void)close(n);
 			}
-#endif	/* TIOCNOTTY */
-#else	/* SETSID */
+#endif		  /* TIOCNOTTY */
+#else		  /* SETSID */
 			if (setsid() < 0)
 				perror("setsid");
-#endif	/* SETSID */
+#endif		  /* SETSID */
 		} /* if debug < 3 */
 
 		/*
@@ -415,7 +414,7 @@ main(int argc, char **argv)
 	/*
 	 * Read the bootptab file.
 	 */
-	readtab(1);					/* force read */
+	readtab(1); /* force read */
 
 	if (standalone) {
 
@@ -432,12 +431,12 @@ main(int argc, char **argv)
 		 */
 		servp = getservbyname("bootps", "udp");
 		if (servp) {
-			bootps_port = ntohs((u_short) servp->s_port);
+			bootps_port = ntohs((u_short)servp->s_port);
 		} else {
-			bootps_port = (u_short) IPPORT_BOOTPS;
+			bootps_port = (u_short)IPPORT_BOOTPS;
 			report(LOG_ERR,
-				"bootps/udp: unknown service -- using port %d",
-				   bootps_port);
+			    "bootps/udp: unknown service -- using port %d",
+			    bootps_port);
 		}
 
 		/*
@@ -446,9 +445,8 @@ main(int argc, char **argv)
 		bind_addr.sin_family = AF_INET;
 		bind_addr.sin_addr.s_addr = INADDR_ANY;
 		bind_addr.sin_port = htons(bootps_port);
-		if (bind(s, (struct sockaddr *) &bind_addr,
-				 sizeof(bind_addr)) < 0)
-		{
+		if (bind(s, (struct sockaddr *)&bind_addr, sizeof(bind_addr)) <
+		    0) {
 			report(LOG_ERR, "bind: %s", get_network_errmsg());
 			exit(1);
 		}
@@ -461,16 +459,15 @@ main(int argc, char **argv)
 	if (servp) {
 		bootpc_port = ntohs(servp->s_port);
 	} else {
-		report(LOG_ERR,
-			   "bootpc/udp: unknown service -- using port %d",
-			   IPPORT_BOOTPC);
-		bootpc_port = (u_short) IPPORT_BOOTPC;
+		report(LOG_ERR, "bootpc/udp: unknown service -- using port %d",
+		    IPPORT_BOOTPC);
+		bootpc_port = (u_short)IPPORT_BOOTPC;
 	}
 
 	/*
 	 * Set up signals to read or dump the table.
 	 */
-#ifdef	SA_NOCLDSTOP	/* Have POSIX sigaction(2). */
+#ifdef SA_NOCLDSTOP /* Have POSIX sigaction(2). */
 	sa.sa_handler = catcher;
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = 0;
@@ -482,17 +479,17 @@ main(int argc, char **argv)
 		report(LOG_ERR, "sigaction: %s", get_errmsg());
 		exit(1);
 	}
-#else	/* SA_NOCLDSTOP */
+#else  /* SA_NOCLDSTOP */
 	/* Old-fashioned UNIX signals */
-	if ((int) signal(SIGHUP, catcher) < 0) {
+	if ((int)signal(SIGHUP, catcher) < 0) {
 		report(LOG_ERR, "signal: %s", get_errmsg());
 		exit(1);
 	}
-	if ((int) signal(SIGUSR1, catcher) < 0) {
+	if ((int)signal(SIGUSR1, catcher) < 0) {
 		report(LOG_ERR, "signal: %s", get_errmsg());
 		exit(1);
 	}
-#endif	/* SA_NOCLDSTOP */
+#endif /* SA_NOCLDSTOP */
 
 	/*
 	 * Process incoming requests.
@@ -506,7 +503,7 @@ main(int argc, char **argv)
 			tv = *timeout;
 
 		nfound = select(s + 1, &readfds, NULL, NULL,
-						(timeout) ? &tv : NULL);
+		    (timeout) ? &tv : NULL);
 		if (nfound < 0) {
 			if (errno != EINTR) {
 				report(LOG_ERR, "select: %s", get_errmsg());
@@ -517,7 +514,7 @@ main(int argc, char **argv)
 			 */
 			if (do_readtab) {
 				do_readtab = 0;
-				readtab(1);		/* force read */
+				readtab(1); /* force read */
 			}
 			if (do_dumptab) {
 				do_dumptab = 0;
@@ -527,19 +524,20 @@ main(int argc, char **argv)
 		}
 		if (!FD_ISSET(s, &readfds)) {
 			if (debug > 1)
-				report(LOG_INFO, "exiting after %jd minutes of inactivity",
-					   (intmax_t)actualtimeout.tv_sec / 60);
+				report(LOG_INFO,
+				    "exiting after %jd minutes of inactivity",
+				    (intmax_t)actualtimeout.tv_sec / 60);
 			exit(0);
 		}
 		ra_len = sizeof(recv_addr);
 		n = recvfrom(s, pktbuf, MAX_MSG_SIZE, 0,
-					 (struct sockaddr *) &recv_addr, &ra_len);
+		    (struct sockaddr *)&recv_addr, &ra_len);
 		if (n <= 0) {
 			continue;
 		}
 		if (debug > 1) {
 			report(LOG_INFO, "recvd pkt from IP addr %s",
-				   inet_ntoa(recv_addr.sin_addr));
+			    inet_ntoa(recv_addr.sin_addr));
 		}
 		if (n < sizeof(struct bootp)) {
 			if (debug) {
@@ -549,7 +547,7 @@ main(int argc, char **argv)
 		}
 		pktlen = n;
 
-		readtab(0);				/* maybe re-read bootptab */
+		readtab(0); /* maybe re-read bootptab */
 
 		switch (bp->bp_op) {
 		case BOOTREQUEST:
@@ -563,9 +561,6 @@ main(int argc, char **argv)
 	return 0;
 }
 
-
-
-
 /*
  * Print "usage" message and exit
  */
@@ -574,14 +569,16 @@ PRIVATE void
 usage()
 {
 	fprintf(stderr,
-		"usage: bootpd [-a] [-i | -s] [-c chdir-path] [-d level] [-h hostname]\n"
-		"              [-t timeout] [bootptab [dumpfile]]\n");
+	    "usage: bootpd [-a] [-i | -s] [-c chdir-path] [-d level] [-h hostname]\n"
+	    "              [-t timeout] [bootptab [dumpfile]]\n");
 	fprintf(stderr, "       -a\tdon't modify ARP table\n");
 	fprintf(stderr, "       -c n\tset current directory\n");
 	fprintf(stderr, "       -d n\tset debug level\n");
 	fprintf(stderr, "       -h n\tset the hostname to listen on\n");
-	fprintf(stderr, "       -i\tforce inetd mode (run as child of inetd)\n");
-	fprintf(stderr, "       -s\tforce standalone mode (run without inetd)\n");
+	fprintf(stderr,
+	    "       -i\tforce inetd mode (run as child of inetd)\n");
+	fprintf(stderr,
+	    "       -s\tforce standalone mode (run without inetd)\n");
 	fprintf(stderr, "       -t n\tset inetd exit timeout to n minutes\n");
 	exit(1);
 }
@@ -594,13 +591,11 @@ catcher(int sig)
 		do_readtab = 1;
 	if (sig == SIGUSR1)
 		do_dumptab = 1;
-#if	!defined(SA_NOCLDSTOP) && defined(SYSV)
+#if !defined(SA_NOCLDSTOP) && defined(SYSV)
 	/* For older "System V" derivatives with no sigaction(). */
 	signal(sig, catcher);
 #endif
 }
-
-
 
 /*
  * Process BOOTREQUEST packet.
@@ -616,7 +611,7 @@ catcher(int sig)
 PRIVATE void
 handle_request(void)
 {
-	struct bootp *bp = (struct bootp *) pktbuf;
+	struct bootp *bp = (struct bootp *)pktbuf;
 	struct host *hp = NULL;
 	struct host dummyhost;
 	int32 bootsize = 0;
@@ -631,7 +626,7 @@ handle_request(void)
 		report(LOG_NOTICE, "bad hw addr type %u", bp->bp_htype);
 		return;
 	}
-	bp->bp_file[sizeof(bp->bp_file)-1] = '\0';
+	bp->bp_file[sizeof(bp->bp_file) - 1] = '\0';
 
 	/* XXX - SLIP init: Set bp_ciaddr = recv_addr here? */
 
@@ -645,8 +640,8 @@ handle_request(void)
 			if (debug)
 				report(LOG_INFO, "\
 ignoring request for server %s from client at %s address %s",
-					   bp->bp_sname, netname(bp->bp_htype),
-					   haddrtoa(bp->bp_chaddr, bp->bp_hlen));
+				    bp->bp_sname, netname(bp->bp_htype),
+				    haddrtoa(bp->bp_chaddr, bp->bp_hlen));
 			/* XXX - Is it correct to ignore such a request? -gwr */
 			return;
 		}
@@ -663,42 +658,41 @@ ignoring request for server %s from client at %s address %s",
 		 */
 		if (debug > 1) {
 			report(LOG_INFO, "request from %s address %s",
-				   netname(bp->bp_htype),
-				   haddrtoa(bp->bp_chaddr, bp->bp_hlen));
+			    netname(bp->bp_htype),
+			    haddrtoa(bp->bp_chaddr, bp->bp_hlen));
 		}
 		hlen = haddrlength(bp->bp_htype);
 		if (hlen != bp->bp_hlen) {
 			report(LOG_NOTICE, "bad addr len from %s address %s",
-				   netname(bp->bp_htype),
-				   haddrtoa(bp->bp_chaddr, hlen));
+			    netname(bp->bp_htype),
+			    haddrtoa(bp->bp_chaddr, hlen));
 		}
 		dummyhost.htype = bp->bp_htype;
 		bcopy(bp->bp_chaddr, dummyhost.haddr, hlen);
 		hashcode = hash_HashFunction(bp->bp_chaddr, hlen);
-		hp = (struct host *) hash_Lookup(hwhashtable, hashcode, hwlookcmp,
-										 &dummyhost);
-		if (hp == NULL &&
-			bp->bp_htype == HTYPE_IEEE802)
-		{
+		hp = (struct host *)hash_Lookup(hwhashtable, hashcode,
+		    hwlookcmp, &dummyhost);
+		if (hp == NULL && bp->bp_htype == HTYPE_IEEE802) {
 			/* Try again with address in "canonical" form. */
 			haddr_conv802(bp->bp_chaddr, dummyhost.haddr, hlen);
 			if (debug > 1) {
 				report(LOG_INFO, "\
 HW addr type is IEEE 802.  convert to %s and check again\n",
-					   haddrtoa(dummyhost.haddr, bp->bp_hlen));
+				    haddrtoa(dummyhost.haddr, bp->bp_hlen));
 			}
 			hashcode = hash_HashFunction(dummyhost.haddr, hlen);
-			hp = (struct host *) hash_Lookup(hwhashtable, hashcode,
-											 hwlookcmp, &dummyhost);
+			hp = (struct host *)hash_Lookup(hwhashtable, hashcode,
+			    hwlookcmp, &dummyhost);
 		}
 		if (hp == NULL) {
 			/*
 			 * XXX - Add dynamic IP address assignment?
 			 */
 			if (debug)
-				report(LOG_NOTICE, "unknown client %s address %s",
-					   netname(bp->bp_htype),
-					   haddrtoa(bp->bp_chaddr, bp->bp_hlen));
+				report(LOG_NOTICE,
+				    "unknown client %s address %s",
+				    netname(bp->bp_htype),
+				    haddrtoa(bp->bp_chaddr, bp->bp_hlen));
 			return; /* not found */
 		}
 		(bp->bp_yiaddr).s_addr = hp->iaddr.s_addr;
@@ -710,16 +704,17 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 		 */
 		if (debug > 1) {
 			report(LOG_INFO, "request from IP addr %s",
-				   inet_ntoa(bp->bp_ciaddr));
+			    inet_ntoa(bp->bp_ciaddr));
 		}
 		dummyhost.iaddr.s_addr = bp->bp_ciaddr.s_addr;
-		hashcode = hash_HashFunction((u_char *) &(bp->bp_ciaddr.s_addr), 4);
-		hp = (struct host *) hash_Lookup(iphashtable, hashcode, iplookcmp,
-										 &dummyhost);
+		hashcode = hash_HashFunction((u_char *)&(bp->bp_ciaddr.s_addr),
+		    4);
+		hp = (struct host *)hash_Lookup(iphashtable, hashcode,
+		    iplookcmp, &dummyhost);
 		if (hp == NULL) {
 			if (debug) {
 				report(LOG_NOTICE, "IP address not found: %s",
-					   inet_ntoa(bp->bp_ciaddr));
+				    inet_ntoa(bp->bp_ciaddr));
 			}
 			return;
 		}
@@ -727,7 +722,7 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 
 	if (debug) {
 		report(LOG_INFO, "found %s (%s)", inet_ntoa(hp->iaddr),
-			   hp->hostname->string);
+		    hp->hostname->string);
 	}
 
 	/*
@@ -735,17 +730,17 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 	 * with a timestamp lower than the threshold.
 	 */
 	if (hp->flags.min_wait) {
-		u_int32 t = (u_int32) ntohs(bp->bp_secs);
+		u_int32 t = (u_int32)ntohs(bp->bp_secs);
 		if (t < hp->min_wait) {
 			if (debug > 1)
 				report(LOG_INFO,
-					   "ignoring request due to timestamp (%d < %d)",
-					   t, hp->min_wait);
+				    "ignoring request due to timestamp (%d < %d)",
+				    t, hp->min_wait);
 			return;
 		}
 	}
 
-#ifdef	YORK_EX_OPTION
+#ifdef YORK_EX_OPTION
 	/*
 	 * The need for the "ex" tag arose out of the need to empty
 	 * shared networked drives on diskless PCs.  This solution is
@@ -760,15 +755,15 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 	if (hp->flags.exec_file) {
 		char tst[100];
 		/* XXX - Check string lengths? -gwr */
-		strcpy (tst, hp->exec_file->string);
-		strcat (tst, " ");
-		strcat (tst, hp->hostname->string);
-		strcat (tst, " &");
+		strcpy(tst, hp->exec_file->string);
+		strcat(tst, " ");
+		strcat(tst, hp->hostname->string);
+		strcat(tst, " &");
 		if (debug)
 			report(LOG_INFO, "executing %s", tst);
-		system(tst);	/* Hope this finishes soon... */
+		system(tst); /* Hope this finishes soon... */
 	}
-#endif	/* YORK_EX_OPTION */
+#endif /* YORK_EX_OPTION */
 
 	/*
 	 * If a specific TFTP server address was specified in the bootptab file,
@@ -776,9 +771,10 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 	 * XXX - Rather than zero it, should it be the bootpd address? -gwr
 	 */
 	(bp->bp_siaddr).s_addr = (hp->flags.bootserver) ?
-		hp->bootserver.s_addr : 0L;
+	    hp->bootserver.s_addr :
+	    0L;
 
-#ifdef	STANFORD_PROM_COMPAT
+#ifdef STANFORD_PROM_COMPAT
 	/*
 	 * Stanford bootp PROMs (for a Sun?) have no way to leave
 	 * the boot file name field blank (because the boot file
@@ -788,7 +784,7 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 	 * (The user specifies boot device 14 or some such magic.)
 	 */
 	if (strcmp(bp->bp_file, "sunboot14") == 0)
-		bp->bp_file[0] = '\0';	/* treat it as unspecified */
+		bp->bp_file[0] = '\0'; /* treat it as unspecified */
 #endif
 
 	/*
@@ -857,8 +853,8 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 		}
 		if (debug > 2) {
 			report(LOG_INFO, "requested path=\"%s\"  file=\"%s\"",
-				   (homedir) ? homedir : "",
-				   (bootfile) ? bootfile : "");
+			    (homedir) ? homedir : "",
+			    (bootfile) ? bootfile : "");
 		}
 	}
 
@@ -893,10 +889,10 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 	strcat(clntpath, ".");
 	strcat(clntpath, hp->hostname->string);
 	if (chk_access(realpath, &bootsize) < 0) {
-		clntpath[n] = 0;			/* Try it without the suffix */
+		clntpath[n] = 0; /* Try it without the suffix */
 		if (chk_access(realpath, &bootsize) < 0) {
 			/* neither "file.host" nor "file" was found */
-#ifdef	CHECK_FILE_ACCESS
+#ifdef CHECK_FILE_ACCESS
 
 			if (bp->bp_file[0]) {
 				/*
@@ -904,47 +900,47 @@ HW addr type is IEEE 802.  convert to %s and check again\n",
 				 * and we didn't have it.
 				 */
 				report(LOG_NOTICE,
-					   "requested file not found: \"%s\"", clntpath);
+				    "requested file not found: \"%s\"",
+				    clntpath);
 				return;
 			}
 			/*
 			 * Client didn't ask for a specific file and we couldn't
-			 * access the default file, so just zero-out the bootfile
-			 * field in the packet and continue processing the reply.
+			 * access the default file, so just zero-out the
+			 * bootfile field in the packet and continue processing
+			 * the reply.
 			 */
 			bzero(bp->bp_file, sizeof(bp->bp_file));
 			goto null_file_name;
 
-#else	/* CHECK_FILE_ACCESS */
+#else /* CHECK_FILE_ACCESS */
 
 			/* Complain only if boot file size was needed. */
 			if (hp->flags.bootsize_auto) {
-				report(LOG_ERR, "can not determine size of file \"%s\"",
-					   clntpath);
+				report(LOG_ERR,
+				    "can not determine size of file \"%s\"",
+				    clntpath);
 			}
 
-#endif	/* CHECK_FILE_ACCESS */
+#endif /* CHECK_FILE_ACCESS */
 		}
 	}
 	strncpy(bp->bp_file, clntpath, BP_FILE_LEN);
 	if (debug > 2)
 		report(LOG_INFO, "bootfile=\"%s\"", clntpath);
 
-#ifdef	CHECK_FILE_ACCESS
+#ifdef CHECK_FILE_ACCESS
 null_file_name:
-#endif	/* CHECK_FILE_ACCESS */
+#endif /* CHECK_FILE_ACCESS */
 
-
 	/*
 	 * Handle vendor options based on magic number.
 	 */
 
 	if (debug > 1) {
 		report(LOG_INFO, "vendor magic field is %d.%d.%d.%d",
-			   (int) ((bp->bp_vend)[0]),
-			   (int) ((bp->bp_vend)[1]),
-			   (int) ((bp->bp_vend)[2]),
-			   (int) ((bp->bp_vend)[3]));
+		    (int)((bp->bp_vend)[0]), (int)((bp->bp_vend)[1]),
+		    (int)((bp->bp_vend)[2]), (int)((bp->bp_vend)[3]));
 	}
 	/*
 	 * If this host isn't set for automatic vendor info then copy the
@@ -963,7 +959,8 @@ null_file_name:
 		/* RFC1048 conformant bootp client */
 		dovend_rfc1048(bp, hp, bootsize);
 		if (debug > 1) {
-			report(LOG_INFO, "sending reply (with RFC1048 options)");
+			report(LOG_INFO,
+			    "sending reply (with RFC1048 options)");
 		}
 	}
 #ifdef VEND_CMU
@@ -980,13 +977,11 @@ null_file_name:
 		}
 	}
 
-	dest = (hp->flags.reply_addr) ?
-		hp->reply_addr.s_addr : 0L;
+	dest = (hp->flags.reply_addr) ? hp->reply_addr.s_addr : 0L;
 
 	/* not forwarded */
 	sendreply(0, dest);
 }
-
 
 /*
  * Process BOOTREPLY packet.
@@ -1001,7 +996,6 @@ handle_reply(void)
 	sendreply(1, 0);
 }
 
-
 /*
  * Send a reply packet to the client.  'forward' flag is set if we are
  * not the originator of this reply packet.
@@ -1009,7 +1003,7 @@ handle_reply(void)
 PRIVATE void
 sendreply(int forward, int32 dst_override)
 {
-	struct bootp *bp = (struct bootp *) pktbuf;
+	struct bootp *bp = (struct bootp *)pktbuf;
 	struct in_addr dst;
 	u_short port = bootpc_port;
 	unsigned char *ha;
@@ -1035,7 +1029,7 @@ sendreply(int forward, int32 dst_override)
 		dst.s_addr = dst_override;
 		if (debug > 1) {
 			report(LOG_INFO, "reply address override: %s",
-				   inet_ntoa(dst));
+			    inet_ntoa(dst));
 		}
 	} else if (bp->bp_ciaddr.s_addr) {
 		dst = bp->bp_ciaddr;
@@ -1044,7 +1038,7 @@ sendreply(int forward, int32 dst_override)
 		port = bootps_port;
 		if (debug > 1) {
 			report(LOG_INFO, "sending reply to gateway %s",
-				   inet_ntoa(dst));
+			    inet_ntoa(dst));
 		}
 	} else {
 		dst = bp->bp_yiaddr;
@@ -1052,21 +1046,19 @@ sendreply(int forward, int32 dst_override)
 		len = bp->bp_hlen;
 		if (len > MAXHADDRLEN)
 			len = MAXHADDRLEN;
-		haf = (int) bp->bp_htype;
+		haf = (int)bp->bp_htype;
 		if (haf == 0)
 			haf = HTYPE_ETHERNET;
 
 		if (arpmod) {
 			if (debug > 1)
 				report(LOG_INFO, "setarp %s - %s",
-					   inet_ntoa(dst), haddrtoa(ha, len));
+				    inet_ntoa(dst), haddrtoa(ha, len));
 			setarp(s, &dst, haf, ha, len);
 		}
 	}
 
-	if ((forward == 0) &&
-		(bp->bp_siaddr.s_addr == 0))
-	{
+	if ((forward == 0) && (bp->bp_siaddr.s_addr == 0)) {
 		struct ifreq *ifr;
 		struct in_addr siaddr;
 		/*
@@ -1081,7 +1073,7 @@ sendreply(int forward, int32 dst_override)
 		ifr = getif(s, &dst);
 		if (ifr) {
 			struct sockaddr_in *sip;
-			sip = (struct sockaddr_in *) &(ifr->ifr_addr);
+			sip = (struct sockaddr_in *)&(ifr->ifr_addr);
 			siaddr = sip->sin_addr;
 		} else {
 			/* Just use my "official" IP address. */
@@ -1099,18 +1091,14 @@ sendreply(int forward, int32 dst_override)
 	send_addr.sin_addr = dst;
 
 	/* Send reply with same size packet as request used. */
-	if (sendto(s, pktbuf, pktlen, 0,
-			   (struct sockaddr *) &send_addr,
-			   sizeof(send_addr)) < 0)
-	{
+	if (sendto(s, pktbuf, pktlen, 0, (struct sockaddr *)&send_addr,
+		sizeof(send_addr)) < 0) {
 		report(LOG_ERR, "sendto: %s", get_network_errmsg());
 	}
 } /* sendreply */
-
 
 /* nmatch() - now in getif.c */
 /* setarp() - now in hwaddr.c */
-
 
 /*
  * This call checks read access to a file.  It returns 0 if the file given
@@ -1128,13 +1116,12 @@ chk_access(char *path, int32 *filesize)
 	struct stat st;
 
 	if ((stat(path, &st) == 0) && (st.st_mode & (S_IREAD >> 6))) {
-		*filesize = (int32) st.st_size;
+		*filesize = (int32)st.st_size;
 		return 0;
 	} else {
 		return -1;
 	}
 }
-
 
 /*
  * Now in dumptab.c :
@@ -1165,7 +1152,7 @@ dovend_cmu(struct bootp *bp, struct host *hp)
 	 * Fill in vendor information. Subnet mask, default gateway,
 	 * domain name server, ien name server, time server
 	 */
-	vendp = (struct cmu_vend *) bp->bp_vend;
+	vendp = (struct cmu_vend *)bp->bp_vend;
 	strcpy(vendp->v_magic, (char *)vm_cmu);
 	if (hp->flags.subnet_mask) {
 		(vendp->v_smask).s_addr = hp->subnet_mask.s_addr;
@@ -1179,7 +1166,8 @@ dovend_cmu(struct bootp *bp, struct host *hp)
 		if (taddr->addrcount > 0) {
 			(vendp->v_dns1).s_addr = (taddr->addr)[0].s_addr;
 			if (taddr->addrcount > 1) {
-				(vendp->v_dns2).s_addr = (taddr->addr)[1].s_addr;
+				(vendp->v_dns2).s_addr =
+				    (taddr->addr)[1].s_addr;
 			}
 		}
 	}
@@ -1188,7 +1176,8 @@ dovend_cmu(struct bootp *bp, struct host *hp)
 		if (taddr->addrcount > 0) {
 			(vendp->v_ins1).s_addr = (taddr->addr)[0].s_addr;
 			if (taddr->addrcount > 1) {
-				(vendp->v_ins2).s_addr = (taddr->addr)[1].s_addr;
+				(vendp->v_ins2).s_addr =
+				    (taddr->addr)[1].s_addr;
 			}
 		}
 	}
@@ -1205,19 +1194,18 @@ dovend_cmu(struct bootp *bp, struct host *hp)
 } /* dovend_cmu */
 
 #endif /* VEND_CMU */
-
-
 
 /*
  * Insert the RFC1048 vendor data for the host pointed to by "hp" into the
  * bootp packet pointed to by "bp".
  */
-#define	NEED(LEN, MSG) do \
-	if (bytesleft < (LEN)) { \
-		report(LOG_NOTICE, noroom, \
-			   hp->hostname->string, MSG); \
-		return; \
-	} while (0)
+#define NEED(LEN, MSG)                                                         \
+	do                                                                     \
+		if (bytesleft < (LEN)) {                                       \
+			report(LOG_NOTICE, noroom, hp->hostname->string, MSG); \
+			return;                                                \
+		}                                                              \
+	while (0)
 PRIVATE void
 dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 {
@@ -1238,7 +1226,8 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 		 */
 		if (pktlen > sizeof(*bp)) {
 			if (debug > 1)
-				report(LOG_INFO, "request message length=%d", pktlen);
+				report(LOG_INFO, "request message length=%d",
+				    pktlen);
 		}
 		/*
 		 * Check whether the request contains the option:
@@ -1266,12 +1255,13 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 				switch (tag) {
 				case TAG_MAX_MSGSZ:
 					if (len == 2) {
-						bcopy(p, (char*)&msgsz, 2);
+						bcopy(p, (char *)&msgsz, 2);
 						msgsz = ntohs(msgsz);
 					}
 					break;
 				case TAG_SUBNET_MASK:
-					/* XXX - Should preserve this if given... */
+					/* XXX - Should preserve this if
+					 * given... */
 					break;
 				} /* swtich */
 				p += len;
@@ -1279,7 +1269,9 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 
 			if (msgsz > sizeof(*bp) + BP_MSG_OVERHEAD) {
 				if (debug > 1)
-					report(LOG_INFO, "request has DHCP msglen=%d", msgsz);
+					report(LOG_INFO,
+					    "request has DHCP msglen=%d",
+					    msgsz);
 				pktlen = msgsz - BP_MSG_OVERHEAD;
 			}
 		}
@@ -1289,11 +1281,12 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 		report(LOG_ERR, "invalid response length=%d", pktlen);
 		pktlen = sizeof(*bp);
 	}
-	bytesleft = ((byte*)bp + pktlen) - vp;
+	bytesleft = ((byte *)bp + pktlen) - vp;
 	if (pktlen > sizeof(*bp)) {
 		if (debug > 1)
-			report(LOG_INFO, "extended reply, length=%d, options=%d",
-				   pktlen, bytesleft);
+			report(LOG_INFO,
+			    "extended reply, length=%d, options=%d", pktlen,
+			    bytesleft);
 	}
 
 	/* Copy in the magic cookie */
@@ -1303,25 +1296,25 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 
 	if (hp->flags.subnet_mask) {
 		/* always enough room here. */
-		*vp++ = TAG_SUBNET_MASK;/* -1 byte  */
-		*vp++ = 4;				/* -1 byte  */
-		insert_u_long(hp->subnet_mask.s_addr, &vp);	/* -4 bytes */
-		bytesleft -= 6;			/* Fix real count */
+		*vp++ = TAG_SUBNET_MASK;		    /* -1 byte  */
+		*vp++ = 4;				    /* -1 byte  */
+		insert_u_long(hp->subnet_mask.s_addr, &vp); /* -4 bytes */
+		bytesleft -= 6;				    /* Fix real count */
 		if (hp->flags.gateway) {
-			(void) insert_ip(TAG_GATEWAY,
-							 hp->gateway,
-							 &vp, &bytesleft);
+			(void)insert_ip(TAG_GATEWAY, hp->gateway, &vp,
+			    &bytesleft);
 		}
 	}
 	if (hp->flags.bootsize) {
 		/* always enough room here */
 		bootsize = (hp->flags.bootsize_auto) ?
-			((bootsize + 511) / 512) : (hp->bootsize);	/* Round up */
+		    ((bootsize + 511) / 512) :
+		    (hp->bootsize); /* Round up */
 		*vp++ = TAG_BOOT_SIZE;
 		*vp++ = 2;
-		*vp++ = (byte) ((bootsize >> 8) & 0xFF);
-		*vp++ = (byte) (bootsize & 0xFF);
-		bytesleft -= 4;			/* Tag, length, and 16 bit blocksize */
+		*vp++ = (byte)((bootsize >> 8) & 0xFF);
+		*vp++ = (byte)(bootsize & 0xFF);
+		bytesleft -= 4; /* Tag, length, and 16 bit blocksize */
 	}
 	/*
 	 * This one is special: Remaining options go in the ext file.
@@ -1335,12 +1328,12 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 		len = strlen(hp->exten_file->string);
 		NEED((len + 3), "ef");
 		*vp++ = TAG_EXTEN_FILE;
-		*vp++ = (byte) (len & 0xFF);
+		*vp++ = (byte)(len & 0xFF);
 		bcopy(hp->exten_file->string, vp, len);
 		vp += len;
 		*vp++ = TAG_END;
 		bytesleft -= len + 3;
-		return;					/* no more options here. */
+		return; /* no more options here. */
 	}
 	/*
 	 * The remaining options are inserted by the following
@@ -1364,8 +1357,7 @@ dovend_rfc1048(struct bootp *bp, struct host *hp, int32 bootsize)
 		bzero(vp, bytesleft);
 	}
 } /* dovend_rfc1048 */
-#undef	NEED
-
+#undef NEED
 
 /*
  * Now in readfile.c:

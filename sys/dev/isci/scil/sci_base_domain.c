@@ -67,23 +67,14 @@
 //* P R O T E C T E D   M E T H O D S
 //******************************************************************************
 
-void sci_base_domain_construct(
-   SCI_BASE_DOMAIN_T * this_domain,
-   SCI_BASE_LOGGER_T * logger,
-   SCI_BASE_STATE_T  * state_table
-)
+void
+sci_base_domain_construct(SCI_BASE_DOMAIN_T *this_domain,
+    SCI_BASE_LOGGER_T *logger, SCI_BASE_STATE_T *state_table)
 {
-   sci_base_object_construct(&this_domain->parent, logger);
+	sci_base_object_construct(&this_domain->parent, logger);
 
-   sci_base_state_machine_construct(
-      &this_domain->state_machine,
-      &this_domain->parent,
-      state_table,
-      SCI_BASE_DOMAIN_STATE_INITIAL
-   );
+	sci_base_state_machine_construct(&this_domain->state_machine,
+	    &this_domain->parent, state_table, SCI_BASE_DOMAIN_STATE_INITIAL);
 
-   sci_base_state_machine_start(
-      &this_domain->state_machine
-   );
+	sci_base_state_machine_start(&this_domain->state_machine);
 }
-

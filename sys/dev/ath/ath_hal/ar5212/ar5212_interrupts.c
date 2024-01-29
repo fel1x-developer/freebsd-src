@@ -20,10 +20,9 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
 /*
  * Checks to see if an interrupt is pending on our NIC
@@ -34,7 +33,7 @@
 HAL_BOOL
 ar5212IsInterruptPending(struct ath_hal *ah)
 {
-	/* 
+	/*
 	 * Some platforms trigger our ISR before applying power to
 	 * the card, so make sure the INTPEND is really 1, not 0xffffffff.
 	 */
@@ -117,8 +116,8 @@ ar5212GetPendingInterrupts(struct ath_hal *ah, HAL_INT *masked)
 		AH_PRIVATE(ah)->ah_fatalState[4] = OS_REG_READ(ah, AR_ISR_S3_S);
 		AH_PRIVATE(ah)->ah_fatalState[5] = OS_REG_READ(ah, AR_ISR_S4_S);
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: fatal error, ISR_RAC=0x%x ISR_S2_S=0x%x\n",
-		    __func__, isr, AH_PRIVATE(ah)->ah_fatalState[3]);
+		    "%s: fatal error, ISR_RAC=0x%x ISR_S2_S=0x%x\n", __func__,
+		    isr, AH_PRIVATE(ah)->ah_fatalState[3]);
 	}
 	return AH_TRUE;
 }
@@ -140,13 +139,14 @@ ar5212SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	uint32_t omask = ahp->ah_maskReg;
 	uint32_t mask, mask2;
 
-	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n",
-	    __func__, omask, ints);
+	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n", __func__, omask,
+	    ints);
 
 	if (omask & HAL_INT_GLOBAL) {
-		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n",
+		    __func__);
 		OS_REG_WRITE(ah, AR_IER, AR_IER_DISABLE);
-		(void) OS_REG_READ(ah, AR_IER);   /* flush write to HW */
+		(void)OS_REG_READ(ah, AR_IER); /* flush write to HW */
 	}
 
 	mask = ints & HAL_INT_COMMON;
@@ -188,7 +188,7 @@ ar5212SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: new IMR 0x%x\n", __func__, mask);
 	OS_REG_WRITE(ah, AR_IMR, mask);
 	OS_REG_WRITE(ah, AR_IMR_S2,
-	    (OS_REG_READ(ah, AR_IMR_S2) &~ AR_IMR_SR2_BCNMISC) | mask2);
+	    (OS_REG_READ(ah, AR_IMR_S2) & ~AR_IMR_SR2_BCNMISC) | mask2);
 	ahp->ah_maskReg = ints;
 
 	/* Re-enable interrupts if they were enabled before. */

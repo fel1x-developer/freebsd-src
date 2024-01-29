@@ -28,15 +28,17 @@
 /*
  * Obtain memory configuration information from the BIOS
  */
-#include <stand.h>
 #include <machine/pc/bios.h>
+
+#include <stand.h>
+
 #include "bootstrap.h"
-#include "libi386.h"
 #include "btxv86.h"
+#include "libi386.h"
 #include "smbios.h"
 
-vm_offset_t	memtop, memtop_copyin, high_heap_base;
-uint32_t	bios_basemem, bios_extmem, high_heap_size;
+vm_offset_t memtop, memtop_copyin, high_heap_base;
+uint32_t bios_basemem, bios_extmem, high_heap_size;
 
 static struct bios_smap_xattr smap;
 
@@ -45,16 +47,16 @@ static struct bios_smap_xattr smap;
  * regions.
  */
 static uint8_t b_bios_probed;
-#define	B_BASEMEM_E820	0x1
-#define	B_BASEMEM_12	0x2
-#define	B_EXTMEM_E820	0x4
-#define	B_EXTMEM_E801	0x8
-#define	B_EXTMEM_8800	0x10
+#define B_BASEMEM_E820 0x1
+#define B_BASEMEM_12 0x2
+#define B_EXTMEM_E820 0x4
+#define B_EXTMEM_E801 0x8
+#define B_EXTMEM_8800 0x10
 
 /*
  * The minimum amount of memory to reserve in bios_extmem for the heap.
  */
-#define	HEAP_MIN	(64 * 1024 * 1024)
+#define HEAP_MIN (64 * 1024 * 1024)
 
 /*
  * Products in this list need quirks to detect
@@ -62,7 +64,7 @@ static uint8_t b_bios_probed;
  * reported by smbios.
  */
 /* e820 might not return useful extended memory */
-#define	BQ_DISTRUST_E820_EXTMEM	0x1
+#define BQ_DISTRUST_E820_EXTMEM 0x1
 struct bios_getmem_quirks {
 	const char *bios_vendor;
 	const char *maker;
@@ -70,11 +72,10 @@ struct bios_getmem_quirks {
 	int quirk;
 };
 
-static struct bios_getmem_quirks quirks[] = {
-	{"coreboot", "Acer", "Peppy", BQ_DISTRUST_E820_EXTMEM},
-	{"coreboot", "Dell", "Wolf", BQ_DISTRUST_E820_EXTMEM},
-	{NULL, NULL, NULL, 0}
-};
+static struct bios_getmem_quirks quirks[] = { { "coreboot", "Acer", "Peppy",
+						  BQ_DISTRUST_E820_EXTMEM },
+	{ "coreboot", "Dell", "Wolf", BQ_DISTRUST_E820_EXTMEM },
+	{ NULL, NULL, NULL, 0 } };
 
 static int
 bios_getquirks(void)
@@ -83,7 +84,7 @@ bios_getquirks(void)
 
 	for (i = 0; quirks[i].quirk != 0; ++i) {
 		if (smbios_match(quirks[i].bios_vendor, quirks[i].maker,
-		    quirks[i].product))
+			quirks[i].product))
 			return (quirks[i].quirk);
 	}
 
@@ -99,7 +100,7 @@ bios_getmem(void)
 	v86.ebx = 0;
 	do {
 		v86.ctl = V86_FLAGS;
-		v86.addr = 0x15;		/* int 0x15 function 0xe820 */
+		v86.addr = 0x15; /* int 0x15 function 0xe820 */
 		v86.eax = 0xe820;
 		v86.ecx = sizeof(struct bios_smap_xattr);
 		v86.edx = SMAP_SIG;
@@ -127,8 +128,7 @@ bios_getmem(void)
 		 * Look for the highest segment in 'extended' memory beyond
 		 * 1MB but below 4GB.
 		 */
-		if ((smap.type == SMAP_TYPE_MEMORY) &&
-		    (smap.base > 0x100000) &&
+		if ((smap.type == SMAP_TYPE_MEMORY) && (smap.base > 0x100000) &&
 		    (smap.base < 0x100000000ull)) {
 			size = smap.length;
 
@@ -153,7 +153,7 @@ bios_getmem(void)
 	/* Fall back to the old compatibility function for base memory */
 	if (bios_basemem == 0) {
 		v86.ctl = 0;
-		v86.addr = 0x12;		/* int 0x12 */
+		v86.addr = 0x12; /* int 0x12 */
 		v86int();
 
 		bios_basemem = (v86.eax & 0xffff) * 1024;
@@ -166,7 +166,7 @@ bios_getmem(void)
 	 */
 	if (bios_extmem == 0) {
 		v86.ctl = V86_FLAGS;
-		v86.addr = 0x15;		/* int 0x15 function 0xe801 */
+		v86.addr = 0x15; /* int 0x15 function 0xe801 */
 		v86.eax = 0xe801;
 		v86int();
 		if (!(V86_CY(v86.efl))) {
@@ -198,7 +198,7 @@ bios_getmem(void)
 	}
 	if (bios_extmem == 0) {
 		v86.ctl = 0;
-		v86.addr = 0x15;		/* int 0x15 function 0x88 */
+		v86.addr = 0x15; /* int 0x15 function 0x88 */
 		v86.eax = 0x8800;
 		v86int();
 		bios_extmem = (v86.eax & 0xffff) * 1024;

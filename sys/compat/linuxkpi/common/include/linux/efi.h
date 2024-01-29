@@ -26,17 +26,17 @@
  */
 
 #ifndef _LINUXKPI_LINUX_EFI_H_
-#define	_LINUXKPI_LINUX_EFI_H_
+#define _LINUXKPI_LINUX_EFI_H_
 
 #include <sys/param.h>
-#include <sys/queue.h>
-#include <sys/linker.h>
 #include <sys/systm.h>
+#include <sys/linker.h>
+#include <sys/queue.h>
 
 #include <machine/md_var.h>
 #include <machine/metadata.h>
 
-#define	EFI_BOOT		0
+#define EFI_BOOT 0
 
 static inline bool
 __efi_enabled(int feature)
@@ -56,7 +56,7 @@ __efi_enabled(int feature)
 		if (kmdp == NULL)
 			kmdp = preload_search_by_type("elf64 kernel");
 		enabled = preload_search_info(kmdp,
-		    MODINFO_METADATA | MODINFOMD_EFI_MAP) != NULL;
+			      MODINFO_METADATA | MODINFOMD_EFI_MAP) != NULL;
 #endif
 		break;
 	default:
@@ -66,9 +66,10 @@ __efi_enabled(int feature)
 	return (enabled);
 }
 
-#define	efi_enabled(x)	({					\
-	_Static_assert((x) == EFI_BOOT, "unsupported feature");	\
-	__efi_enabled(x);					\
-})
+#define efi_enabled(x)                                                  \
+	({                                                              \
+		_Static_assert((x) == EFI_BOOT, "unsupported feature"); \
+		__efi_enabled(x);                                       \
+	})
 
-#endif	/* _LINUXKPI_LINUX_EFI_H_ */
+#endif /* _LINUXKPI_LINUX_EFI_H_ */

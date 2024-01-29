@@ -24,14 +24,14 @@
  * Use is subject to license terms.
  */
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <devid.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 
 /*
  * Usage: devname2devid <devicepath>
@@ -56,23 +56,22 @@
 int
 main(int argc, char *argv[])
 {
-	int		fd;
-	ddi_devid_t	devid;
-	char		*minor_name, *devidstr, *device;
+	int fd;
+	ddi_devid_t devid;
+	char *minor_name, *devidstr, *device;
 #ifdef DEBUG
-	devid_nmlist_t  *list = NULL;
-	char		*search_path;
-	int		i;
+	devid_nmlist_t *list = NULL;
+	char *search_path;
+	int i;
 #endif
 
 	if (argc == 1) {
-		(void) printf("%s <devicepath> [search path]\n",
-		    argv[0]);
+		(void)printf("%s <devicepath> [search path]\n", argv[0]);
 		exit(1);
 	}
 	device = argv[1];
 
-	if ((fd = open(device, O_RDONLY|O_NDELAY)) < 0) {
+	if ((fd = open(device, O_RDONLY | O_NDELAY)) < 0) {
 		perror(device);
 		exit(1);
 	}
@@ -89,7 +88,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	(void) printf("devid %s\n", devidstr);
+	(void)printf("devid %s\n", devidstr);
 
 	devid_str_free(devidstr);
 
@@ -101,14 +100,14 @@ main(int argc, char *argv[])
 	}
 
 	if (devid_deviceid_to_nmlist(search_path, devid, DEVID_MINOR_NAME_ALL,
-	    &list)) {
+		&list)) {
 		perror("devid_deviceid_to_nmlist");
 		exit(1);
 	}
 
 	/* loop through list and process device names and numbers */
 	for (i = 0; list[i].devname != NULL; i++) {
-		(void) printf("devname: %s %p\n", list[i].devname, list[i].dev);
+		(void)printf("devname: %s %p\n", list[i].devname, list[i].dev);
 	}
 	devid_free_nmlist(list);
 

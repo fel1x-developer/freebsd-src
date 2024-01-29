@@ -34,28 +34,26 @@
 #include <sys/cdefs.h>
 /*
  * BHND SPROM driver.
- * 
+ *
  * Abstract driver for memory-mapped SPROM devices.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/bhnd.h>
 
 #include "bhnd_nvram_if.h"
-
 #include "bhnd_nvram_io.h"
-
 #include "bhnd_spromvar.h"
 
 /**
@@ -80,24 +78,24 @@ bhnd_sprom_attach_meth(device_t dev)
 
 /**
  * BHND SPROM device attach.
- * 
+ *
  * This should be called from DEVICE_ATTACH() with the @p offset to the
  * SPROM data.
- * 
+ *
  * Assumes SPROM is mapped via SYS_RES_MEMORY resource with RID 0.
- * 
+ *
  * @param dev BHND SPROM device.
  * @param offset Offset to the SPROM data.
  */
 int
 bhnd_sprom_attach(device_t dev, bus_size_t offset)
 {
-	struct bhnd_sprom_softc	*sc;
-	struct bhnd_nvram_io	*io;
-	struct bhnd_resource	*r;
-	bus_size_t		 r_size, sprom_size;
-	int			 rid;
-	int			 error;
+	struct bhnd_sprom_softc *sc;
+	struct bhnd_nvram_io *io;
+	struct bhnd_resource *r;
+	bus_size_t r_size, sprom_size;
+	int rid;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -192,8 +190,8 @@ bhnd_sprom_suspend(device_t dev)
 int
 bhnd_sprom_detach(device_t dev)
 {
-	struct bhnd_sprom_softc	*sc;
-	int			 error;
+	struct bhnd_sprom_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -212,7 +210,7 @@ static int
 bhnd_sprom_getvar_method(device_t dev, const char *name, void *buf, size_t *len,
     bhnd_nvram_type type)
 {
-	struct bhnd_sprom_softc	*sc = device_get_softc(dev);
+	struct bhnd_sprom_softc *sc = device_get_softc(dev);
 
 	return (bhnd_nvram_store_getvar(sc->store, name, buf, len, type));
 }
@@ -224,25 +222,26 @@ static int
 bhnd_sprom_setvar_method(device_t dev, const char *name, const void *buf,
     size_t len, bhnd_nvram_type type)
 {
-	struct bhnd_sprom_softc	*sc = device_get_softc(dev);
+	struct bhnd_sprom_softc *sc = device_get_softc(dev);
 
 	return (bhnd_nvram_store_setvar(sc->store, name, buf, len, type));
 }
 
 static device_method_t bhnd_sprom_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			bhnd_sprom_probe),
-	DEVMETHOD(device_attach,		bhnd_sprom_attach_meth),
-	DEVMETHOD(device_resume,		bhnd_sprom_resume),
-	DEVMETHOD(device_suspend,		bhnd_sprom_suspend),
-	DEVMETHOD(device_detach,		bhnd_sprom_detach),
+	DEVMETHOD(device_probe, bhnd_sprom_probe),
+	DEVMETHOD(device_attach, bhnd_sprom_attach_meth),
+	DEVMETHOD(device_resume, bhnd_sprom_resume),
+	DEVMETHOD(device_suspend, bhnd_sprom_suspend),
+	DEVMETHOD(device_detach, bhnd_sprom_detach),
 
 	/* NVRAM interface */
-	DEVMETHOD(bhnd_nvram_getvar,		bhnd_sprom_getvar_method),
-	DEVMETHOD(bhnd_nvram_setvar,		bhnd_sprom_setvar_method),
+	DEVMETHOD(bhnd_nvram_getvar, bhnd_sprom_getvar_method),
+	DEVMETHOD(bhnd_nvram_setvar, bhnd_sprom_setvar_method),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(bhnd_nvram_store, bhnd_sprom_driver, bhnd_sprom_methods, sizeof(struct bhnd_sprom_softc));
+DEFINE_CLASS_0(bhnd_nvram_store, bhnd_sprom_driver, bhnd_sprom_methods,
+    sizeof(struct bhnd_sprom_softc));
 MODULE_VERSION(bhnd_sprom, 1);

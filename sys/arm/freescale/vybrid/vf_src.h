@@ -26,5 +26,5 @@
  * SUCH DAMAGE.
  */
 
-#define	SW_RST	(1 << 12)	/* Software reset */
+#define SW_RST (1 << 12) /* Software reset */
 int src_swreset(void);

@@ -25,8 +25,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__ARSWITCH_8327_H__
-#define	__ARSWITCH_8327_H__
+#ifndef __ARSWITCH_8327_H__
+#define __ARSWITCH_8327_H__
 
 enum ar8327_pad_mode {
 	AR8327_PAD_NC = 0,
@@ -75,9 +75,9 @@ struct ar8327_led_cfg {
 };
 
 struct ar8327_port_cfg {
-#define	AR8327_PORT_SPEED_10		1
-#define	AR8327_PORT_SPEED_100		2
-#define	AR8327_PORT_SPEED_1000		3
+#define AR8327_PORT_SPEED_10 1
+#define AR8327_PORT_SPEED_100 2
+#define AR8327_PORT_SPEED_1000 3
 	uint32_t speed;
 	uint32_t force_link;
 	uint32_t duplex;
@@ -90,7 +90,6 @@ extern struct ar8327_led_mapping {
 	int shift;
 } ar8327_led_mapping[AR8327_NUM_PHYS][ETHERSWITCH_PORT_MAX_LEDS];
 
-extern	void ar8327_attach(struct arswitch_softc *sc);
+extern void ar8327_attach(struct arswitch_softc *sc);
 
-#endif	/* __ARSWITCH_8327_H__ */
-
+#endif /* __ARSWITCH_8327_H__ */

@@ -26,13 +26,14 @@
 
 #include <sys/param.h>
 #include <sys/malloc.h>
+
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 #include <vm/uma.h>
 #include <vm/uma_int.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 void *
 uma_small_alloc(uma_zone_t zone, vm_size_t bytes, int domain, u_int8_t *flags,
@@ -43,8 +44,8 @@ uma_small_alloc(uma_zone_t zone, vm_size_t bytes, int domain, u_int8_t *flags,
 	void *va;
 
 	*flags = UMA_SLAB_PRIV;
-	m = vm_page_alloc_noobj_domain(domain, malloc2vm_flags(wait) |
-	    VM_ALLOC_WIRED);
+	m = vm_page_alloc_noobj_domain(domain,
+	    malloc2vm_flags(wait) | VM_ALLOC_WIRED);
 	if (m == NULL)
 		return (NULL);
 	pa = m->phys_addr;

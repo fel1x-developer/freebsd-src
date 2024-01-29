@@ -28,39 +28,39 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/evdev/input.h>
 
-#define	HID_DEBUG_VAR hid_debug
+#define HID_DEBUG_VAR hid_debug
 #include <dev/hid/hid.h>
 #include <dev/hid/hidquirk.h>
-#include "usbdevs.h"
 
+#include "usbdevs.h"
 
 MODULE_DEPEND(hidquirk, hid, 1, 1, 1);
 MODULE_VERSION(hidquirk, 1);
 
-#define	HID_DEV_QUIRKS_MAX 384
-#define	HID_SUB_QUIRKS_MAX 8
-#define	HID_QUIRK_ENVROOT "hw.hid.quirk."
+#define HID_DEV_QUIRKS_MAX 384
+#define HID_SUB_QUIRKS_MAX 8
+#define HID_QUIRK_ENVROOT "hw.hid.quirk."
 
 struct hidquirk_entry {
 	uint16_t bus;
@@ -73,11 +73,16 @@ struct hidquirk_entry {
 
 static struct mtx hidquirk_mtx;
 
-#define	HID_QUIRK_VP(b,v,p,l,h,...) \
-  { .bus = (b), .vid = (v), .pid = (p), .lo_rev = (l), .hi_rev = (h), \
-    .quirks = { __VA_ARGS__ } }
-#define	USB_QUIRK(v,p,l,h,...) \
-  HID_QUIRK_VP(BUS_USB, USB_VENDOR_##v, USB_PRODUCT_##v##_##p, l, h, __VA_ARGS__)
+#define HID_QUIRK_VP(b, v, p, l, h, ...)                           \
+	{                                                          \
+		.bus = (b), .vid = (v), .pid = (p), .lo_rev = (l), \
+		.hi_rev = (h), .quirks = {                         \
+			__VA_ARGS__                                \
+		}                                                  \
+	}
+#define USB_QUIRK(v, p, l, h, ...)                                         \
+	HID_QUIRK_VP(BUS_USB, USB_VENDOR_##v, USB_PRODUCT_##v##_##p, l, h, \
+	    __VA_ARGS__)
 
 static struct hidquirk_entry hidquirks[HID_DEV_QUIRKS_MAX] = {
 	USB_QUIRK(ASUS, LCM, 0x0000, 0xffff, HQ_HID_IGNORE),
@@ -136,7 +141,8 @@ static struct hidquirk_entry hidquirks[HID_DEV_QUIRKS_MAX] = {
 	USB_QUIRK(METAGEEK2, WISPYDBX, 0x0000, 0xffff, HQ_HID_IGNORE),
 	/* MS keyboards do weird things */
 	USB_QUIRK(MICROSOFT, NATURAL4000, 0x0000, 0xFFFF, HQ_KBD_BOOTPROTO),
-	USB_QUIRK(MICROSOFT, WLINTELLIMOUSE, 0x0000, 0xffff, HQ_MS_LEADING_BYTE),
+	USB_QUIRK(MICROSOFT, WLINTELLIMOUSE, 0x0000, 0xffff,
+	    HQ_MS_LEADING_BYTE),
 	/* Quirk for Corsair Vengeance K60 keyboard */
 	USB_QUIRK(CORSAIR, K60, 0x0000, 0xffff, HQ_KBD_BOOTPROTO),
 	/* Quirk for Corsair Gaming K68 keyboard */
@@ -157,7 +163,7 @@ static struct hidquirk_entry hidquirks[HID_DEV_QUIRKS_MAX] = {
 #undef USB_QUIRK
 
 /* hidquirk.h exposes only HID_QUIRK_LIST macro when HQ() is defined */
-#define	HQ(x)	[HQ_##x] = "HQ_"#x
+#define HQ(x) [HQ_##x] = "HQ_" #x
 #include "hidquirk.h"
 static const char *hidquirk_str[HID_QUIRK_MAX] = { HID_QUIRK_LIST() };
 #undef HQ
@@ -173,7 +179,8 @@ static const char *
 hidquirkstr(uint16_t quirk)
 {
 	return ((quirk < HID_QUIRK_MAX && hidquirk_str[quirk] != NULL) ?
-	    hidquirk_str[quirk] : "HQ_UNKNOWN");
+		hidquirk_str[quirk] :
+		"HQ_UNKNOWN");
 }
 
 /*------------------------------------------------------------------------*
@@ -193,8 +200,7 @@ hid_strquirk(const char *str, size_t len)
 
 	for (x = 0; x != HID_QUIRK_MAX; x++) {
 		quirk = hidquirkstr(x);
-		if (strncmp(str, quirk, len) == 0 &&
-		    quirk[len] == 0)
+		if (strncmp(str, quirk, len) == 0 && quirk[len] == 0)
 			break;
 	}
 	return (x);
@@ -232,7 +238,8 @@ hid_test_quirk_by_info(const struct hid_device_info *info, uint16_t quirk)
 				continue;
 
 			for (y = 0; y != HID_SUB_QUIRKS_MAX; y++) {
-				if (hidquirks[x].quirks[y] == HQ_MATCH_VENDOR_ONLY)
+				if (hidquirks[x].quirks[y] ==
+				    HQ_MATCH_VENDOR_ONLY)
 					break;
 			}
 			if (y == HID_SUB_QUIRKS_MAX)
@@ -242,19 +249,20 @@ hid_test_quirk_by_info(const struct hid_device_info *info, uint16_t quirk)
 		for (y = 0; y != HID_SUB_QUIRKS_MAX; y++) {
 			if (hidquirks[x].quirks[y] == quirk) {
 				mtx_unlock(&hidquirk_mtx);
-				DPRINTF("Found quirk '%s'.\n", hidquirkstr(quirk));
+				DPRINTF("Found quirk '%s'.\n",
+				    hidquirkstr(quirk));
 				return (true);
 			}
 		}
 	}
 	mtx_unlock(&hidquirk_mtx);
 done:
-	return (false);			/* no quirk match */
+	return (false); /* no quirk match */
 }
 
 static struct hidquirk_entry *
-hidquirk_get_entry(uint16_t bus, uint16_t vid, uint16_t pid,
-    uint16_t lo_rev, uint16_t hi_rev, uint8_t do_alloc)
+hidquirk_get_entry(uint16_t bus, uint16_t vid, uint16_t pid, uint16_t lo_rev,
+    uint16_t hi_rev, uint8_t do_alloc)
 {
 	uint16_t x;
 
@@ -267,8 +275,7 @@ hidquirk_get_entry(uint16_t bus, uint16_t vid, uint16_t pid,
 	/* search for an existing entry */
 	for (x = 0; x != HID_DEV_QUIRKS_MAX; x++) {
 		/* see if quirk information does not match */
-		if ((hidquirks[x].bus != bus) ||
-		    (hidquirks[x].vid != vid) ||
+		if ((hidquirks[x].bus != bus) || (hidquirks[x].vid != vid) ||
 		    (hidquirks[x].pid != pid) ||
 		    (hidquirks[x].lo_rev != lo_rev) ||
 		    (hidquirks[x].hi_rev != hi_rev)) {
@@ -284,11 +291,8 @@ hidquirk_get_entry(uint16_t bus, uint16_t vid, uint16_t pid,
 	/* search for a free entry */
 	for (x = 0; x != HID_DEV_QUIRKS_MAX; x++) {
 		/* see if quirk information does not match */
-		if ((hidquirks[x].bus |
-		    hidquirks[x].vid |
-		    hidquirks[x].pid |
-		    hidquirks[x].lo_rev |
-		    hidquirks[x].hi_rev) != 0) {
+		if ((hidquirks[x].bus | hidquirks[x].vid | hidquirks[x].pid |
+			hidquirks[x].lo_rev | hidquirks[x].hi_rev) != 0) {
 			continue;
 		}
 		hidquirks[x].bus = bus;
@@ -317,8 +321,8 @@ hidquirk_strtou16(const char **pptr, const char *name, const char *what)
 
 	value = strtoul(*pptr, &end, 0);
 	if (value > 65535 || *pptr == end || (*end != ' ' && *end != '\t')) {
-		printf("%s: %s 16-bit %s value set to zero\n",
-		    name, what, *end == 0 ? "incomplete" : "invalid");
+		printf("%s: %s 16-bit %s value set to zero\n", name, what,
+		    *end == 0 ? "incomplete" : "invalid");
 		return (0);
 	}
 	*pptr = end + 1;
@@ -334,7 +338,7 @@ hidquirk_strtou16(const char **pptr, const char *name, const char *what)
 static void
 hidquirk_add_entry_from_str(const char *name, const char *env)
 {
-	struct hidquirk_entry entry = { };
+	struct hidquirk_entry entry = {};
 	struct hidquirk_entry *new;
 	uint16_t quirk_idx;
 	uint16_t quirk;
@@ -371,8 +375,8 @@ hidquirk_add_entry_from_str(const char *name, const char *env)
 		if (quirk < HID_QUIRK_MAX) {
 			entry.quirks[quirk_idx++] = quirk;
 		} else {
-			printf("%s: unknown HID quirk '%.*s' (skipped)\n",
-			    name, (int)(end - env), env);
+			printf("%s: unknown HID quirk '%.*s' (skipped)\n", name,
+			    (int)(end - env), env);
 		}
 		env = end;
 
@@ -403,7 +407,7 @@ hidquirk_add_entry_from_str(const char *name, const char *env)
 static void
 hidquirk_init(void *arg)
 {
-	char envkey[sizeof(HID_QUIRK_ENVROOT) + 2];	/* 2 digits max, 0 to 99 */
+	char envkey[sizeof(HID_QUIRK_ENVROOT) + 2]; /* 2 digits max, 0 to 99 */
 	int i;
 
 	/* initialize mutex */

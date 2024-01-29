@@ -37,15 +37,17 @@
  * Copyright (c) 1990 by Sun Microsystems, Inc.
  */
 
+#include <sys/stat.h>
+
 #include <netconfig.h>
 #include <rpc/rpc.h>
 #include <rpc/rpcb_prot.h>
-#include <sys/stat.h>
 #ifdef PORTMAP
 #include <rpc/pmap_prot.h>
 #endif
 #include <stdlib.h>
 #include <string.h>
+
 #include "rpcbind.h"
 
 static rpcb_stat_byvers inf;
@@ -53,7 +55,6 @@ static rpcb_stat_byvers inf;
 void
 rpcbs_init(void)
 {
-
 }
 
 void
@@ -61,20 +62,21 @@ rpcbs_procinfo(rpcvers_t rtype, rpcproc_t proc)
 {
 	switch (rtype + 2) {
 #ifdef PORTMAP
-	case PMAPVERS:		/* version 2 */
+	case PMAPVERS: /* version 2 */
 		if (proc > rpcb_highproc_2)
 			return;
 		break;
 #endif
-	case RPCBVERS:		/* version 3 */
+	case RPCBVERS: /* version 3 */
 		if (proc > rpcb_highproc_3)
 			return;
 		break;
-	case RPCBVERS4:		/* version 4 */
+	case RPCBVERS4: /* version 4 */
 		if (proc > rpcb_highproc_4)
 			return;
 		break;
-	default: return;
+	default:
+		return;
 	}
 	inf[rtype].info[proc]++;
 }
@@ -97,7 +99,7 @@ rpcbs_unset(rpcvers_t rtype, bool_t success)
 
 void
 rpcbs_getaddr(rpcvers_t rtype, rpcprog_t prog, rpcvers_t vers, char *netid,
-	      char *uaddr)
+    char *uaddr)
 {
 	rpcbs_addrlist *al;
 	struct netconfig *nconf;
@@ -106,7 +108,7 @@ rpcbs_getaddr(rpcvers_t rtype, rpcprog_t prog, rpcvers_t vers, char *netid,
 		return;
 	for (al = inf[rtype].addrinfo; al; al = al->next) {
 
-		if(al->netid == NULL)
+		if (al->netid == NULL)
 			return;
 		if ((al->prog == prog) && (al->vers == vers) &&
 		    (strcmp(al->netid, netid) == 0)) {
@@ -121,7 +123,7 @@ rpcbs_getaddr(rpcvers_t rtype, rpcprog_t prog, rpcvers_t vers, char *netid,
 	if (nconf == NULL) {
 		return;
 	}
-	al = (rpcbs_addrlist *) malloc(sizeof (rpcbs_addrlist));
+	al = (rpcbs_addrlist *)malloc(sizeof(rpcbs_addrlist));
 	if (al == NULL) {
 		return;
 	}
@@ -141,7 +143,7 @@ rpcbs_getaddr(rpcvers_t rtype, rpcprog_t prog, rpcvers_t vers, char *netid,
 
 void
 rpcbs_rmtcall(rpcvers_t rtype, rpcproc_t rpcbproc, rpcprog_t prog,
-	      rpcvers_t vers, rpcproc_t proc, char *netid, rpcblist_ptr rbl)
+    rpcvers_t vers, rpcproc_t proc, char *netid, rpcblist_ptr rbl)
 {
 	rpcbs_rmtcalllist *rl;
 	struct netconfig *nconf;
@@ -150,14 +152,12 @@ rpcbs_rmtcall(rpcvers_t rtype, rpcproc_t rpcbproc, rpcprog_t prog,
 		return;
 	for (rl = inf[rtype].rmtinfo; rl; rl = rl->next) {
 
-		if(rl->netid == NULL)
+		if (rl->netid == NULL)
 			return;
 
 		if ((rl->prog == prog) && (rl->vers == vers) &&
-		    (rl->proc == proc) &&
-		    (strcmp(rl->netid, netid) == 0)) {
-			if ((rbl == NULL) ||
-			    (rbl->rpcb_map.r_vers != vers))
+		    (rl->proc == proc) && (strcmp(rl->netid, netid) == 0)) {
+			if ((rbl == NULL) || (rbl->rpcb_map.r_vers != vers))
 				rl->failure++;
 			else
 				rl->success++;
@@ -170,7 +170,7 @@ rpcbs_rmtcall(rpcvers_t rtype, rpcproc_t rpcbproc, rpcprog_t prog,
 	if (nconf == NULL) {
 		return;
 	}
-	rl = (rpcbs_rmtcalllist *) malloc(sizeof (rpcbs_rmtcalllist));
+	rl = (rpcbs_rmtcalllist *)malloc(sizeof(rpcbs_rmtcalllist));
 	if (rl == NULL) {
 		return;
 	}
@@ -178,8 +178,7 @@ rpcbs_rmtcall(rpcvers_t rtype, rpcproc_t rpcbproc, rpcprog_t prog,
 	rl->vers = vers;
 	rl->proc = proc;
 	rl->netid = nconf->nc_netid;
-	if ((rbl == NULL) ||
-		    (rbl->rpcb_map.r_vers != vers)) {
+	if ((rbl == NULL) || (rbl->rpcb_map.r_vers != vers)) {
 		rl->failure = 1;
 		rl->success = 0;
 	} else {

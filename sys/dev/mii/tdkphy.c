@@ -45,56 +45,46 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/tdkphyreg.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/tdkphyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int tdkphy_probe(device_t);
 static int tdkphy_attach(device_t);
 
 static device_method_t tdkphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		tdkphy_probe),
-	DEVMETHOD(device_attach,	tdkphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, tdkphy_probe),
+	DEVMETHOD(device_attach, tdkphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t tdkphy_driver = {
-	"tdkphy",
-	tdkphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t tdkphy_driver = { "tdkphy", tdkphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(tdkphy, miibus, tdkphy_driver, 0, 0);
 
 static int tdkphy_service(struct mii_softc *, struct mii_data *, int);
 static void tdkphy_status(struct mii_softc *);
 
-static const struct mii_phydesc tdkphys[] = {
-	MII_PHY_DESC(xxTSC, 78Q2120),
-	MII_PHY_END
-};
+static const struct mii_phydesc tdkphys[] = { MII_PHY_DESC(xxTSC, 78Q2120),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs tdkphy_funcs = {
-	tdkphy_service,
-	tdkphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs tdkphy_funcs = { tdkphy_service,
+	tdkphy_status, mii_phy_reset };
 
 static int
 tdkphy_probe(device_t dev)
@@ -183,15 +173,15 @@ tdkphy_status(struct mii_softc *phy)
 		 * since it is mentioned in the 78Q2120 specs.
 		 */
 		if (anlpar & ANLPAR_TX_FD)
-			mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+			mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 		else if (anlpar & ANLPAR_T4)
-			mii->mii_media_active |= IFM_100_T4|IFM_HDX;
+			mii->mii_media_active |= IFM_100_T4 | IFM_HDX;
 		else if (anlpar & ANLPAR_TX)
-			mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+			mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 		else if (anlpar & ANLPAR_10_FD)
-			mii->mii_media_active |= IFM_10_T|IFM_FDX;
+			mii->mii_media_active |= IFM_10_T | IFM_FDX;
 		else if (anlpar & ANLPAR_10)
-			mii->mii_media_active |= IFM_10_T|IFM_HDX;
+			mii->mii_media_active |= IFM_10_T | IFM_HDX;
 		else {
 			/*
 			 * ANLPAR isn't set, which leaves two possibilities:
@@ -202,7 +192,7 @@ tdkphy_status(struct mii_softc *phy)
 			 */
 			diag = PHY_READ(phy, MII_DIAG);
 			if (diag & DIAG_NEGFAIL) /* assume 10baseT if no neg */
-				mii->mii_media_active |= IFM_10_T|IFM_HDX;
+				mii->mii_media_active |= IFM_10_T | IFM_HDX;
 			else {
 				if (diag & DIAG_DUPLEX)
 					mii->mii_media_active |= IFM_FDX;

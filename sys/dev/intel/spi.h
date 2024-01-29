@@ -29,10 +29,10 @@
 #ifndef _DEV_INTEL_SPI_H_
 #define _DEV_INTEL_SPI_H_
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 enum intelspi_vers {
 	SPI_BAYTRAIL,
@@ -42,30 +42,30 @@ enum intelspi_vers {
 };
 
 struct intelspi_softc {
-	ACPI_HANDLE		sc_handle;
-	device_t		sc_dev;
-	enum intelspi_vers	sc_vers;
-	struct mtx		sc_mtx;
-	int			sc_mem_rid;
-	struct resource		*sc_mem_res;
-	int			sc_irq_rid;
-	struct resource		*sc_irq_res;
-	void			*sc_irq_ih;
-	struct spi_command	*sc_cmd;
-	uint32_t		sc_len;
-	uint32_t		sc_read;
-	volatile uint32_t	sc_flags;
-	uint32_t		sc_written;
-	uint32_t		sc_clock;
-	uint32_t		sc_mode;
+	ACPI_HANDLE sc_handle;
+	device_t sc_dev;
+	enum intelspi_vers sc_vers;
+	struct mtx sc_mtx;
+	int sc_mem_rid;
+	struct resource *sc_mem_res;
+	int sc_irq_rid;
+	struct resource *sc_irq_res;
+	void *sc_irq_ih;
+	struct spi_command *sc_cmd;
+	uint32_t sc_len;
+	uint32_t sc_read;
+	volatile uint32_t sc_flags;
+	uint32_t sc_written;
+	uint32_t sc_clock;
+	uint32_t sc_mode;
 	/* LPSS private register storage for suspend-resume */
-	uint32_t		sc_regs[9];
+	uint32_t sc_regs[9];
 };
 
-int	intelspi_attach(device_t dev);
-int	intelspi_detach(device_t dev);
-int	intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd);
-int	intelspi_suspend(device_t dev);
-int	intelspi_resume(device_t dev);
+int intelspi_attach(device_t dev);
+int intelspi_detach(device_t dev);
+int intelspi_transfer(device_t dev, device_t child, struct spi_command *cmd);
+int intelspi_suspend(device_t dev);
+int intelspi_resume(device_t dev);
 
 #endif

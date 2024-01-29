@@ -29,17 +29,16 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_NV_H_
-#define	_NV_H_
+#ifndef _NV_H_
+#define _NV_H_
 
 #include <sys/cdefs.h>
 
+#include <ebuf.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-
-#include <ebuf.h>
 
 struct nv;
 
@@ -91,8 +90,7 @@ void nv_add_stringf(struct nv *nv, const char *name, const char *valuefmt, ...)
 void nv_add_stringv(struct nv *nv, const char *name, const char *valuefmt,
     va_list valueap) __printflike(3, 0);
 
-int8_t nv_get_int8(struct nv *nv, const char *namefmt, ...)
-    __printflike(2, 3);
+int8_t nv_get_int8(struct nv *nv, const char *namefmt, ...) __printflike(2, 3);
 uint8_t nv_get_uint8(struct nv *nv, const char *namefmt, ...)
     __printflike(2, 3);
 int16_t nv_get_int16(struct nv *nv, const char *namefmt, ...)
@@ -130,4 +128,4 @@ bool nv_exists(struct nv *nv, const char *namefmt, ...) __printflike(2, 3);
 void nv_assert(struct nv *nv, const char *namefmt, ...) __printflike(2, 3);
 void nv_dump(struct nv *nv);
 
-#endif	/* !_NV_H_ */
+#endif /* !_NV_H_ */

@@ -33,12 +33,12 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <wchar.h>
-#include "collate.h"
 
+#include "collate.h"
 
 /*
  * In order to properly handle multibyte locales, its easiest to just
@@ -57,8 +57,8 @@ strcoll_l(const char *s, const char *s2, locale_t locale)
 	mbstate_t mbs2;
 	size_t sz1, sz2;
 
-	memset(&mbs1, 0, sizeof (mbstate_t));
-	memset(&mbs2, 0, sizeof (mbstate_t));
+	memset(&mbs1, 0, sizeof(mbstate_t));
+	memset(&mbs2, 0, sizeof(mbstate_t));
 
 	/*
 	 * The mbsrtowcs_l function can set the src pointer to null upon
@@ -70,8 +70,8 @@ strcoll_l(const char *s, const char *s2, locale_t locale)
 	cs2 = s2;
 
 	FIX_LOCALE(locale);
-	struct xlocale_collate *table =
-		(struct xlocale_collate*)locale->components[XLC_COLLATE];
+	struct xlocale_collate *table = (struct xlocale_collate *)
+					    locale->components[XLC_COLLATE];
 
 	if (table->__collate_load_error)
 		goto error;
@@ -84,10 +84,10 @@ strcoll_l(const char *s, const char *s2, locale_t locale)
 	 * reducing, i.e. a single byte (or multibyte character)
 	 * cannot result in multiple wide characters.
 	 */
-	if ((t1 = malloc(sz1 * sizeof (wchar_t))) == NULL)
+	if ((t1 = malloc(sz1 * sizeof(wchar_t))) == NULL)
 		goto error;
 	w1 = t1;
-	if ((t2 = malloc(sz2 * sizeof (wchar_t))) == NULL)
+	if ((t2 = malloc(sz2 * sizeof(wchar_t))) == NULL)
 		goto error;
 	w2 = t2;
 
@@ -114,4 +114,3 @@ strcoll(const char *s, const char *s2)
 {
 	return strcoll_l(s, s2, __get_locale());
 }
-

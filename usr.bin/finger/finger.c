@@ -58,8 +58,10 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <db.h>
 #include <err.h>
+#include <locale.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +69,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <utmpx.h>
-#include <locale.h>
 
 #include "finger.h"
 #include "pathnames.h"
@@ -91,10 +92,10 @@ option(int argc, char **argv)
 {
 	int ch;
 
-	optind = 1;		/* reset getopt */
+	optind = 1; /* reset getopt */
 
 	while ((ch = getopt(argc, argv, "46gklmpsho")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '4':
 			family = AF_INET;
 			break;
@@ -105,25 +106,25 @@ option(int argc, char **argv)
 			gflag = 1;
 			break;
 		case 'k':
-			kflag = 1;		/* keep going without utmp */
+			kflag = 1; /* keep going without utmp */
 			break;
 		case 'l':
-			lflag = 1;		/* long format */
+			lflag = 1; /* long format */
 			break;
 		case 'm':
-			mflag = 1;		/* force exact match of names */
+			mflag = 1; /* force exact match of names */
 			break;
 		case 'p':
-			pplan = 1;		/* don't show .plan/.project */
+			pplan = 1; /* don't show .plan/.project */
 			break;
 		case 's':
-			sflag = 1;		/* short format */
+			sflag = 1; /* short format */
 			break;
 		case 'h':
-			oflag = 0;		/* remote host info */
+			oflag = 0; /* remote host info */
 			break;
 		case 'o':
-			oflag = 1;		/* office info */
+			oflag = 1; /* office info */
 			break;
 		case '?':
 		default:
@@ -164,10 +165,10 @@ main(int argc, char **argv)
 		}
 	}
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
-				/* remove this line to get remote host */
-	oflag = 1;		/* default to old "office" behavior */
+	/* remove this line to get remote host */
+	oflag = 1; /* default to old "office" behavior */
 
 	/*
 	 * Process environment variables followed by command line arguments.
@@ -176,7 +177,7 @@ main(int argc, char **argv)
 		envargc = 2;
 		envargv[0] = myname;
 		envargv[2] = NULL;
-		(void) option(envargc, envargv);
+		(void)option(envargc, envargv);
 	}
 
 	argcnt = option(argc, argv);
@@ -192,7 +193,7 @@ main(int argc, char **argv)
 		 * screening will be done.
 		 */
 		if (!lflag)
-			sflag = 1;	/* if -l not explicit, force -s */
+			sflag = 1; /* if -l not explicit, force -s */
 		loginlist();
 		if (entries == 0)
 			(void)printf("No one logged on.\n");
@@ -204,7 +205,7 @@ main(int argc, char **argv)
 		 * remote finger attempts specified won't be mishandled.
 		 */
 		if (!sflag)
-			lflag = 1;	/* if -s not explicit, force -l */
+			lflag = 1; /* if -s not explicit, force -l */
 	}
 	if (entries) {
 		if (lflag)
@@ -269,7 +270,7 @@ userlist(int argc, char **argv)
 	char *conf_realname;
 	int conf_length;
 
-	if ((nargv = malloc((argc+1) * sizeof(char *))) == NULL ||
+	if ((nargv = malloc((argc + 1) * sizeof(char *))) == NULL ||
 	    (used = calloc(argc, sizeof(int))) == NULL)
 		err(1, NULL);
 
@@ -291,33 +292,35 @@ userlist(int argc, char **argv)
 	 * don't accidentally confuse them with expansions from finger.conf
 	 */
 	for (p = argv, ip = used; *p; ++p, ++ip)
-	    if (**p == '/') {
-		*ip = 1;
-		warnx("%s: no such user", *p);
-	    }
+		if (**p == '/') {
+			*ip = 1;
+			warnx("%s: no such user", *p);
+		}
 
 	/*
 	 * Traverse the finger alias configuration file of the form
 	 * alias:(user|alias), ignoring comment lines beginning '#'.
 	 */
 	if ((conf_fp = fopen(_PATH_FINGERCONF, "r")) != NULL) {
-	    while(fgets(conf_alias, sizeof(conf_alias), conf_fp) != NULL) {
-		conf_length = strlen(conf_alias);
-		if (*conf_alias == '#' || conf_alias[--conf_length] != '\n')
-		    continue;
-		conf_alias[conf_length] = '\0';      /* Remove trailing LF */
-		if ((conf_realname = strchr(conf_alias, ':')) == NULL)
-		    continue;
-		*conf_realname = '\0';               /* Replace : with NUL */
-		for (p = argv; *p; ++p) {
-		    if (strcmp(*p, conf_alias) == 0) {
-			if ((*p = strdup(conf_realname+1)) == NULL) {
-			    err(1, NULL);
+		while (fgets(conf_alias, sizeof(conf_alias), conf_fp) != NULL) {
+			conf_length = strlen(conf_alias);
+			if (*conf_alias == '#' ||
+			    conf_alias[--conf_length] != '\n')
+				continue;
+			conf_alias[conf_length] = '\0'; /* Remove trailing LF */
+			if ((conf_realname = strchr(conf_alias, ':')) == NULL)
+				continue;
+			*conf_realname = '\0'; /* Replace : with NUL */
+			for (p = argv; *p; ++p) {
+				if (strcmp(*p, conf_alias) == 0) {
+					if ((*p = strdup(conf_realname + 1)) ==
+					    NULL) {
+						err(1, NULL);
+					}
+				}
 			}
-		    }
 		}
-	    }
-	    (void)fclose(conf_fp);
+		(void)fclose(conf_fp);
 	}
 
 	/*
@@ -338,8 +341,8 @@ userlist(int argc, char **argv)
 	else {
 		while ((pw = getpwent()) != NULL) {
 			for (p = argv, ip = used; *p; ++p, ++ip)
-				if (**p == '/' && *ip != 1
-				    && show_text("", *p, ""))
+				if (**p == '/' && *ip != 1 &&
+				    show_text("", *p, ""))
 					*ip = 1;
 				else if (match(pw, *p) && !hide(pw)) {
 					enter_person(pw);
@@ -352,10 +355,11 @@ userlist(int argc, char **argv)
 	}
 
 	/* Handle network requests. */
-net:	for (p = nargv; *p;) {
+net:
+	for (p = nargv; *p;) {
 		netfinger(*p++);
 		if (*p || entries)
-		    printf("\n");
+			printf("\n");
 	}
 
 	free(nargv);

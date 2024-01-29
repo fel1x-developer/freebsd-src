@@ -35,78 +35,78 @@
 
 /* host driven signals */
 
-#define nHostClk	STROBE
-#define Write		STROBE
+#define nHostClk STROBE
+#define Write STROBE
 
-#define nHostBusy	AUTOFEED
-#define nHostAck	AUTOFEED
-#define DStrb		AUTOFEED
+#define nHostBusy AUTOFEED
+#define nHostAck AUTOFEED
+#define DStrb AUTOFEED
 
-#define nReveseRequest	nINIT
+#define nReveseRequest nINIT
 
-#define nActive1284	SELECTIN
-#define AStrb		SELECTIN
+#define nActive1284 SELECTIN
+#define AStrb SELECTIN
 
 /* peripheral driven signals */
 
-#define nDataAvail	nFAULT
-#define nPeriphRequest	nFAULT
+#define nDataAvail nFAULT
+#define nPeriphRequest nFAULT
 
-#define Xflag		SELECT
+#define Xflag SELECT
 
-#define AckDataReq	PERROR
-#define nAckReverse	PERROR
+#define AckDataReq PERROR
+#define nAckReverse PERROR
 
-#define nPtrBusy	nBUSY
-#define nPeriphAck	nBUSY
-#define Wait		nBUSY
+#define nPtrBusy nBUSY
+#define nPeriphAck nBUSY
+#define Wait nBUSY
 
-#define PtrClk		nACK
-#define PeriphClk	nACK
-#define Intr		nACK
+#define PtrClk nACK
+#define PeriphClk nACK
+#define Intr nACK
 
 /* request mode values */
-#define NIBBLE_1284_NORMAL	0x0
-#define NIBBLE_1284_REQUEST_ID	0x4
-#define BYTE_1284_NORMAL	0x1
-#define BYTE_1284_REQUEST_ID	0x5
-#define ECP_1284_NORMAL		0x10
-#define ECP_1284_REQUEST_ID	0x14
-#define ECP_1284_RLE		0x30
-#define ECP_1284_RLE_REQUEST_ID	0x34
-#define EPP_1284_NORMAL		0x40
-#define EXT_LINK_1284_NORMAL	0x80
+#define NIBBLE_1284_NORMAL 0x0
+#define NIBBLE_1284_REQUEST_ID 0x4
+#define BYTE_1284_NORMAL 0x1
+#define BYTE_1284_REQUEST_ID 0x5
+#define ECP_1284_NORMAL 0x10
+#define ECP_1284_REQUEST_ID 0x14
+#define ECP_1284_RLE 0x30
+#define ECP_1284_RLE_REQUEST_ID 0x34
+#define EPP_1284_NORMAL 0x40
+#define EXT_LINK_1284_NORMAL 0x80
 
 /* ieee1284 mode options */
-#define PPB_REQUEST_ID		0x1
-#define PPB_USE_RLE		0x2
-#define PPB_EXTENSIBILITY_LINK	0x4
+#define PPB_REQUEST_ID 0x1
+#define PPB_USE_RLE 0x2
+#define PPB_EXTENSIBILITY_LINK 0x4
 
 /* ieee1284 errors */
-#define PPB_NO_ERROR		0
-#define PPB_MODE_UNSUPPORTED	1	/* mode not supported by peripheral */
-#define PPB_NOT_IEEE1284	2	/* not an IEEE1284 compliant periph. */
-#define PPB_TIMEOUT		3	/* timeout */
-#define PPB_INVALID_MODE	4	/* current mode is incorrect */
+#define PPB_NO_ERROR 0
+#define PPB_MODE_UNSUPPORTED 1 /* mode not supported by peripheral */
+#define PPB_NOT_IEEE1284 2     /* not an IEEE1284 compliant periph. */
+#define PPB_TIMEOUT 3	       /* timeout */
+#define PPB_INVALID_MODE 4     /* current mode is incorrect */
 
 /* ieee1284 host side states */
-#define PPB_ERROR			0
-#define PPB_FORWARD_IDLE		1
-#define PPB_NEGOCIATION			2
-#define PPB_SETUP			3
-#define PPB_ECP_FORWARD_IDLE		4
-#define PPB_FWD_TO_REVERSE		5
-#define PPB_REVERSE_IDLE		6
-#define PPB_REVERSE_TRANSFER		7
-#define PPB_REVERSE_TO_FWD		8
-#define PPB_EPP_IDLE			9
-#define PPB_TERMINATION			10
+#define PPB_ERROR 0
+#define PPB_FORWARD_IDLE 1
+#define PPB_NEGOCIATION 2
+#define PPB_SETUP 3
+#define PPB_ECP_FORWARD_IDLE 4
+#define PPB_FWD_TO_REVERSE 5
+#define PPB_REVERSE_IDLE 6
+#define PPB_REVERSE_TRANSFER 7
+#define PPB_REVERSE_TO_FWD 8
+#define PPB_EPP_IDLE 9
+#define PPB_TERMINATION 10
 
 /* peripheral side states */
-#define PPB_PERIPHERAL_NEGOCIATION	11
-#define PPB_PERIPHERAL_IDLE		12
-#define PPB_PERIPHERAL_TRANSFER		13
-#define PPB_PERIPHERAL_TERMINATION	14
+#define PPB_PERIPHERAL_NEGOCIATION 11
+#define PPB_PERIPHERAL_IDLE 12
+#define PPB_PERIPHERAL_TRANSFER 13
+#define PPB_PERIPHERAL_TERMINATION 14
 
 extern int nibble_1284_inbyte(device_t, char *);
 extern int byte_1284_inbyte(device_t, char *);

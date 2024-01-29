@@ -29,7 +29,7 @@
  */
 
 #ifndef _MAKEFS_ZFS_H_
-#define	_MAKEFS_ZFS_H_
+#define _MAKEFS_ZFS_H_
 
 #include <sys/types.h>
 #include <sys/endian.h>
@@ -40,21 +40,20 @@
 #include <stdbool.h>
 
 #include "makefs.h"
-
 #include "zfs/nvlist.h"
-#define	ASSERT		assert
+#define ASSERT assert
 #include "zfs/zfsimpl.h"
 
-#define	MAXBLOCKSHIFT		17	/* 128KB */
-#define	MAXBLOCKSIZE		((off_t)(1 << MAXBLOCKSHIFT))
+#define MAXBLOCKSHIFT 17 /* 128KB */
+#define MAXBLOCKSIZE ((off_t)(1 << MAXBLOCKSHIFT))
 _Static_assert(MAXBLOCKSIZE == SPA_OLDMAXBLOCKSIZE, "");
-#define	MINBLOCKSHIFT		9	/* 512B */
-#define	MINBLOCKSIZE		((off_t)(1 << MINBLOCKSHIFT))
+#define MINBLOCKSHIFT 9 /* 512B */
+#define MINBLOCKSIZE ((off_t)(1 << MINBLOCKSHIFT))
 _Static_assert(MINBLOCKSIZE == SPA_MINBLOCKSIZE, "");
-#define	MINDEVSIZE		((off_t)SPA_MINDEVSIZE)
+#define MINDEVSIZE ((off_t)SPA_MINDEVSIZE)
 
 /* All data was written in this transaction group. */
-#define	TXG			4
+#define TXG 4
 
 typedef struct zfs_dsl_dataset zfs_dsl_dataset_t;
 typedef struct zfs_dsl_dir zfs_dsl_dir_t;
@@ -62,7 +61,7 @@ typedef struct zfs_objset zfs_objset_t;
 typedef struct zfs_zap zfs_zap_t;
 
 struct dataset_desc {
-	char		*params;
+	char *params;
 	STAILQ_ENTRY(dataset_desc) next;
 };
 
@@ -71,45 +70,45 @@ typedef struct {
 	 * Block buffer, needs to be aligned for various on-disk structures,
 	 * ZAPs, etc..
 	 */
-	char		filebuf[MAXBLOCKSIZE] __aligned(alignof(uint64_t));
+	char filebuf[MAXBLOCKSIZE] __aligned(alignof(uint64_t));
 
-	bool		nowarn;
+	bool nowarn;
 
 	/* Pool parameters. */
-	const char	*poolname;
-	char		*rootpath;	/* implicit mount point prefix */
-	char		*bootfs;	/* bootable dataset, pool property */
-	int		ashift;		/* vdev block size */
-	uint64_t	mssize;		/* metaslab size */
+	const char *poolname;
+	char *rootpath;	 /* implicit mount point prefix */
+	char *bootfs;	 /* bootable dataset, pool property */
+	int ashift;	 /* vdev block size */
+	uint64_t mssize; /* metaslab size */
 	STAILQ_HEAD(, dataset_desc) datasetdescs; /* non-root dataset descrs  */
 
 	/* Pool state. */
-	uint64_t	poolguid;	/* pool and root vdev GUID */
-	zfs_zap_t	*poolprops;
+	uint64_t poolguid; /* pool and root vdev GUID */
+	zfs_zap_t *poolprops;
 
 	/* MOS state. */
-	zfs_objset_t	*mos;		/* meta object set */
-	uint64_t	objarrid;	/* space map object array */
+	zfs_objset_t *mos; /* meta object set */
+	uint64_t objarrid; /* space map object array */
 
 	/* DSL state. */
-	zfs_dsl_dir_t	*rootdsldir;	/* root DSL directory */
+	zfs_dsl_dir_t *rootdsldir; /* root DSL directory */
 	zfs_dsl_dataset_t *rootds;
-	zfs_dsl_dir_t	*origindsldir;	/* $ORIGIN */
+	zfs_dsl_dir_t *origindsldir; /* $ORIGIN */
 	zfs_dsl_dataset_t *originds;
 	zfs_dsl_dataset_t *snapds;
-	zfs_zap_t	*cloneszap;
-	zfs_dsl_dir_t	*freedsldir;	/* $FREE */
-	zfs_dsl_dir_t	*mosdsldir;	/* $MOS */
+	zfs_zap_t *cloneszap;
+	zfs_dsl_dir_t *freedsldir; /* $FREE */
+	zfs_dsl_dir_t *mosdsldir;  /* $MOS */
 
 	/* vdev state. */
-	int		fd;		/* vdev disk fd */
-	uint64_t	vdevguid;	/* disk vdev GUID */
-	off_t		vdevsize;	/* vdev size, including labels */
-	off_t		asize;		/* vdev size, excluding labels */
-	bitstr_t	*spacemap;	/* space allocation tracking */
-	int		spacemapbits;	/* one bit per ashift-sized block */
-	uint64_t	msshift;	/* log2(metaslab size) */
-	uint64_t	mscount;	/* number of metaslabs for this vdev */
+	int fd;		    /* vdev disk fd */
+	uint64_t vdevguid;  /* disk vdev GUID */
+	off_t vdevsize;	    /* vdev size, including labels */
+	off_t asize;	    /* vdev size, excluding labels */
+	bitstr_t *spacemap; /* space allocation tracking */
+	int spacemapbits;   /* one bit per ashift-sized block */
+	uint64_t msshift;   /* log2(metaslab size) */
+	uint64_t mscount;   /* number of metaslabs for this vdev */
 } zfs_opt_t;
 
 /* dsl.c */
@@ -149,8 +148,8 @@ void vdev_pwrite_data(zfs_opt_t *zfs, uint8_t datatype, uint8_t cksumtype,
     blkptr_t *bp);
 void vdev_pwrite_dnode_indir(zfs_opt_t *zfs, dnode_phys_t *dnode, uint8_t level,
     uint64_t fill, const void *data, off_t sz, off_t loc, blkptr_t *bp);
-void vdev_pwrite_dnode_data(zfs_opt_t *zfs, dnode_phys_t *dnode, const void *data,
-    off_t sz, off_t loc);
+void vdev_pwrite_dnode_data(zfs_opt_t *zfs, dnode_phys_t *dnode,
+    const void *data, off_t sz, off_t loc);
 void vdev_label_write(zfs_opt_t *zfs, int ind, const vdev_label_t *labelp);
 void vdev_spacemap_write(zfs_opt_t *);
 void vdev_fini(zfs_opt_t *zfs);

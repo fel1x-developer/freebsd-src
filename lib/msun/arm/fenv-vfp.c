@@ -24,10 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#define	FENV_MANGLE(x)	__vfp_ ##x
+#define FENV_MANGLE(x) __vfp_##x
 #include "fenv-mangle.h"
 #ifndef __ARM_PCS_VFP
-#define	__ARM_PCS_VFP 1
+#define __ARM_PCS_VFP 1
 #endif
 #include "fenv.c"
-

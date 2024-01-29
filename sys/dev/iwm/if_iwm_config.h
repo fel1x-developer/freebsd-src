@@ -80,30 +80,31 @@ enum iwm_device_family {
 	IWM_DEVICE_FAMILY_9000,
 };
 
-#define IWM_DEFAULT_MAX_TX_POWER	22
+#define IWM_DEFAULT_MAX_TX_POWER 22
 
 /* Antenna presence definitions */
-#define	IWM_ANT_NONE	0x0
-#define	IWM_ANT_A	(1 << 0)
-#define	IWM_ANT_B	(1 << 1)
-#define IWM_ANT_C	(1 << 2)
-#define	IWM_ANT_AB	(IWM_ANT_A | IWM_ANT_B)
-#define	IWM_ANT_AC	(IWM_ANT_A | IWM_ANT_C)
-#define IWM_ANT_BC	(IWM_ANT_B | IWM_ANT_C)
-#define IWM_ANT_ABC	(IWM_ANT_A | IWM_ANT_B | IWM_ANT_C)
+#define IWM_ANT_NONE 0x0
+#define IWM_ANT_A (1 << 0)
+#define IWM_ANT_B (1 << 1)
+#define IWM_ANT_C (1 << 2)
+#define IWM_ANT_AB (IWM_ANT_A | IWM_ANT_B)
+#define IWM_ANT_AC (IWM_ANT_A | IWM_ANT_C)
+#define IWM_ANT_BC (IWM_ANT_B | IWM_ANT_C)
+#define IWM_ANT_ABC (IWM_ANT_A | IWM_ANT_B | IWM_ANT_C)
 
-static inline uint8_t num_of_ant(uint8_t mask)
+static inline uint8_t
+num_of_ant(uint8_t mask)
 {
-	return  !!((mask) & IWM_ANT_A) +
-		!!((mask) & IWM_ANT_B) +
-		!!((mask) & IWM_ANT_C);
+	return !!((mask)&IWM_ANT_A) + !!((mask)&IWM_ANT_B) +
+	    !!((mask)&IWM_ANT_C);
 }
 
 /* lower blocks contain EEPROM image and calibration data */
-#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_7000	(16 * 512 * sizeof(uint16_t)) /* 16 KB */
-#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000	(32 * 512 * sizeof(uint16_t)) /* 32 KB */
-#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_9000	IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000
-
+#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_7000 \
+	(16 * 512 * sizeof(uint16_t)) /* 16 KB */
+#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000 \
+	(32 * 512 * sizeof(uint16_t)) /* 32 KB */
+#define IWM_OTP_LOW_IMAGE_SIZE_FAMILY_9000 IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000
 
 /**
  * enum iwl_nvm_type - nvm formats

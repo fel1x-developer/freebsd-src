@@ -124,10 +124,10 @@
 
 /* Macro for checking if zero length buffer are supported
  * only for cipher is AES-GCM and hash are AES-GCM/AES-GMAC */
-#define IS_ZERO_LENGTH_BUFFER_SUPPORTED(cipherAlgo, hashAlgo)                  \
-	(CPA_CY_SYM_CIPHER_AES_GCM == cipherAlgo &&                            \
-	 (CPA_CY_SYM_HASH_AES_GMAC == hashAlgo ||                              \
-	  CPA_CY_SYM_HASH_AES_GCM == hashAlgo))
+#define IS_ZERO_LENGTH_BUFFER_SUPPORTED(cipherAlgo, hashAlgo) \
+	(CPA_CY_SYM_CIPHER_AES_GCM == cipherAlgo &&           \
+	    (CPA_CY_SYM_HASH_AES_GMAC == hashAlgo ||          \
+		CPA_CY_SYM_HASH_AES_GCM == hashAlgo))
 
 /**
 *******************************************************************************
@@ -159,8 +159,8 @@
 *
 *****************************************************************************/
 CpaStatus LacAlgChain_SessionInit(const CpaInstanceHandle instanceHandle,
-				  const CpaCySymSessionSetupData *pSessionCtx,
-				  lac_session_desc_t *pSessionDesc);
+    const CpaCySymSessionSetupData *pSessionCtx,
+    lac_session_desc_t *pSessionDesc);
 
 /**
 *******************************************************************************
@@ -197,12 +197,9 @@ CpaStatus LacAlgChain_SessionInit(const CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 CpaStatus LacAlgChain_Perform(const CpaInstanceHandle instanceHandle,
-			      lac_session_desc_t *pSessionDesc,
-			      void *pCallbackTag,
-			      const CpaCySymOpData *pOpData,
-			      const CpaBufferList *pSrcBuffer,
-			      CpaBufferList *pDstBuffer,
-			      CpaBoolean *pVerifyResult);
+    lac_session_desc_t *pSessionDesc, void *pCallbackTag,
+    const CpaCySymOpData *pOpData, const CpaBufferList *pSrcBuffer,
+    CpaBufferList *pDstBuffer, CpaBoolean *pVerifyResult);
 
 /**
 *******************************************************************************
@@ -231,7 +228,7 @@ CpaStatus LacAlgChain_Perform(const CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 CpaStatus LacAlgChain_SessionCipherKeyUpdate(lac_session_desc_t *pSessionDesc,
-					     Cpa8U *pCipherKey);
+    Cpa8U *pCipherKey);
 
 /**
 *******************************************************************************
@@ -260,7 +257,7 @@ CpaStatus LacAlgChain_SessionCipherKeyUpdate(lac_session_desc_t *pSessionDesc,
 *
 *****************************************************************************/
 CpaStatus LacAlgChain_SessionAuthKeyUpdate(lac_session_desc_t *pSessionDesc,
-					   Cpa8U *pAuthKey);
+    Cpa8U *pAuthKey);
 
 /**
 *******************************************************************************
@@ -289,6 +286,6 @@ CpaStatus LacAlgChain_SessionAuthKeyUpdate(lac_session_desc_t *pSessionDesc,
 *
 *****************************************************************************/
 CpaStatus LacAlgChain_SessionAADUpdate(lac_session_desc_t *pSessionDesc,
-				       Cpa32U newAADLength);
+    Cpa32U newAADLength);
 
 #endif /* LAC_SYM_ALG_CHAIN_H */

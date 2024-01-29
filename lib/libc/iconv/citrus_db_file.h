@@ -65,22 +65,22 @@
  *  +---
  */
 
-#define _CITRUS_DB_MAGIC_SIZE	8
-#define _CITRUS_DB_HEADER_SIZE	16
+#define _CITRUS_DB_MAGIC_SIZE 8
+#define _CITRUS_DB_HEADER_SIZE 16
 struct _citrus_db_header_x {
-	char		dhx_magic[_CITRUS_DB_MAGIC_SIZE];
-	uint32_t	dhx_num_entries;
-	uint32_t	dhx_entry_offset;
+	char dhx_magic[_CITRUS_DB_MAGIC_SIZE];
+	uint32_t dhx_num_entries;
+	uint32_t dhx_entry_offset;
 } __packed;
 
 struct _citrus_db_entry_x {
-	uint32_t	dex_hash_value;
-	uint32_t	dex_next_offset;
-	uint32_t	dex_key_offset;
-	uint32_t	dex_key_size;
-	uint32_t	dex_data_offset;
-	uint32_t	dex_data_size;
+	uint32_t dex_hash_value;
+	uint32_t dex_next_offset;
+	uint32_t dex_key_offset;
+	uint32_t dex_key_size;
+	uint32_t dex_data_offset;
+	uint32_t dex_data_size;
 } __packed;
-#define _CITRUS_DB_ENTRY_SIZE	24
+#define _CITRUS_DB_ENTRY_SIZE 24
 
 #endif

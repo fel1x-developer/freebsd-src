@@ -35,30 +35,30 @@
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#define	_WANT_SOCKET
-#include <sys/socketvar.h>
-#include <sys/protosw.h>
+#define _WANT_SOCKET
 #include <sys/linker.h>
+#include <sys/protosw.h>
+#include <sys/socketvar.h>
 
 #include <net/route.h>
-
-#include <netgraph.h>
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
 #include <netgraph/ng_socketvar.h>
 
+#include <err.h>
 #include <errno.h>
+#include <libxo/xo.h>
+#include <netgraph.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <err.h>
-#include <libxo/xo.h>
+
 #include "netstat.h"
 
-static	int first = 1;
-static	int csock = -1;
+static int first = 1;
+static int csock = -1;
 
 void
 netgraphprotopr(u_long off, const char *name, int af1 __unused,
@@ -85,8 +85,8 @@ netgraphprotopr(u_long off, const char *name, int af1 __unused,
 
 	for (; this != NULL; this = next) {
 		u_char rbuf[sizeof(struct ng_mesg) + sizeof(struct nodeinfo)];
-		struct ng_mesg *resp = (struct ng_mesg *) rbuf;
-		struct nodeinfo *ni = (struct nodeinfo *) resp->data;
+		struct ng_mesg *resp = (struct ng_mesg *)rbuf;
+		struct nodeinfo *ni = (struct nodeinfo *)resp->data;
 		char path[64];
 
 		/* Read in ngpcb structure */
@@ -108,7 +108,7 @@ netgraphprotopr(u_long off, const char *name, int af1 __unused,
 			if (Aflag)
 				xo_emit("{T:/%-8.8s} ", "PCB");
 			xo_emit("{T:/%-5.5s} {T:/%-6.6s} {T:/%-6.6s} "
-			    "{T:/%-14.14s} {T:/%s}\n",
+				"{T:/%-14.14s} {T:/%s}\n",
 			    "Type", "Recv-Q", "Send-Q", "Node Address",
 			    "#Hooks");
 			first = 0;
@@ -116,17 +116,17 @@ netgraphprotopr(u_long off, const char *name, int af1 __unused,
 
 		/* Show socket */
 		if (Aflag)
-			xo_emit("{:address/%8lx} ", (u_long) this);
+			xo_emit("{:address/%8lx} ", (u_long)this);
 		xo_emit("{t:name/%-5.5s} {:receive-bytes-waiting/%6u} "
-		    "{:send-byte-waiting/%6u} ",
+			"{:send-byte-waiting/%6u} ",
 		    name, sockb.so_rcv.sb_ccc, sockb.so_snd.sb_ccc);
 
 		/* Get info on associated node */
 		if (ngpcb.node_id == 0 || csock == -1)
 			goto finish;
 		snprintf(path, sizeof(path), "[%x]:", ngpcb.node_id);
-		if (NgSendMsg(csock, path,
-		    NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL, 0) < 0)
+		if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_NODEINFO,
+			NULL, 0) < 0)
 			goto finish;
 		if (NgRecvMsg(csock, resp, sizeof(rbuf), NULL) < 0)
 			goto finish;
@@ -135,8 +135,7 @@ netgraphprotopr(u_long off, const char *name, int af1 __unused,
 		if (*ni->name != '\0')
 			snprintf(path, sizeof(path), "%s:", ni->name);
 		xo_emit("{t:path/%-14.14s} {:hooks/%4d}", path, ni->hooks);
-finish:
+	finish:
 		xo_emit("\n");
 	}
 }
-

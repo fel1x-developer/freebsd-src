@@ -31,18 +31,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "un-namespace.h"
 
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 int
-vdprintf(int fd, const char * __restrict fmt, va_list ap)
+vdprintf(int fd, const char *__restrict fmt, va_list ap)
 {
 	FILE f = FAKE_FILE;
 	unsigned char buf[BUFSIZ];

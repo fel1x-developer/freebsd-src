@@ -28,14 +28,14 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -84,8 +84,8 @@ uart_cpu_getdev(int devtype, struct uart_devinfo *di)
 	if (!err)
 		return (0);
 
-	err = uart_cpu_fdt_probe(&class, &bst, &bsh, &br, &rclk,
-	    &shift, &iowidth, devtype);
+	err = uart_cpu_fdt_probe(&class, &bst, &bsh, &br, &rclk, &shift,
+	    &iowidth, devtype);
 	if (err != 0)
 		return (err);
 

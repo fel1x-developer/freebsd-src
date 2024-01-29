@@ -84,29 +84,27 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
-#define	Z_SOLO
+#define Z_SOLO
+#include <casper/cap_fileargs.h>
+#include <casper/cap_syslog.h>
+#include <libcasper.h>
+#include <libxo/xo.h>
 #include <zlib.h>
 #include <zstd.h>
 
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
-#include <casper/cap_syslog.h>
-
-#include <libxo/xo.h>
-
 /* The size of the buffer used for I/O. */
-#define	BUFFERSIZE	(1024*1024)
+#define BUFFERSIZE (1024 * 1024)
 
-#define	STATUS_BAD	0
-#define	STATUS_GOOD	1
-#define	STATUS_UNKNOWN	2
+#define STATUS_BAD 0
+#define STATUS_GOOD 1
+#define STATUS_UNKNOWN 2
 
 static cap_channel_t *capsyslog;
 static fileargs_t *capfa;
-static bool checkfor, compress, uncompress, clear, force, keep;	/* flags */
-static bool livecore;	/* flags cont. */
+static bool checkfor, compress, uncompress, clear, force, keep; /* flags */
+static bool livecore; /* flags cont. */
 static int verbose;
-static int nfound, nsaved, nerr;			/* statistics */
+static int nfound, nsaved, nerr; /* statistics */
 static int maxdumps;
 static uint8_t comp_desired;
 
@@ -269,7 +267,7 @@ writebounds(int savedirfd, int bounds)
 	FILE *fp;
 
 	if ((fp = xfopenat(savedirfd, "bounds", O_WRONLY | O_CREAT | O_TRUNC,
-	    "w", 0644)) == NULL) {
+		 "w", 0644)) == NULL) {
 		logmsg(LOG_WARNING, "unable to write to bounds file: %m");
 		return;
 	}
@@ -315,8 +313,8 @@ write_header_info(xo_handle_t *xostdout, const struct kerneldumpheader *kdh,
 	/*
 	 * Create or overwrite any existing dump header files.
 	 */
-	if ((info = xfopenat(savedirfd, infoname,
-	    O_WRONLY | O_CREAT | O_TRUNC, "w", 0600)) == NULL) {
+	if ((info = xfopenat(savedirfd, infoname, O_WRONLY | O_CREAT | O_TRUNC,
+		 "w", 0600)) == NULL) {
 		logmsg(LOG_ERR, "open(%s): %m", infoname);
 		return (-1);
 	}
@@ -435,8 +433,8 @@ check_space(const char *savedir, int savedirfd, off_t dumpsize, int bounds)
 		logmsg(LOG_ERR, "%s: %m", savedir);
 		exit(1);
 	}
-	spacefree = ((off_t) fsbuf.f_bavail * fsbuf.f_bsize) / 1024;
-	totfree = ((off_t) fsbuf.f_bfree * fsbuf.f_bsize) / 1024;
+	spacefree = ((off_t)fsbuf.f_bavail * fsbuf.f_bsize) / 1024;
+	totfree = ((off_t)fsbuf.f_bfree * fsbuf.f_bsize) / 1024;
 
 	if ((fp = xfopenat(savedirfd, "minfree", O_RDONLY, "r")) == NULL)
 		minfree = 0;
@@ -459,20 +457,20 @@ check_space(const char *savedir, int savedirfd, off_t dumpsize, int bounds)
 			if (minfree < 0)
 				logmsg(LOG_WARNING,
 				    "`minfree` didn't contain a valid size "
-				    "(`%s`). Defaulting to 0", buf);
+				    "(`%s`). Defaulting to 0",
+				    buf);
 		}
 		(void)fclose(fp);
 	}
 
 	available = minfree > 0 ? spacefree - minfree : totfree;
-	needed = dumpsize / 1024 + 2;	/* 2 for info file */
+	needed = dumpsize / 1024 + 2; /* 2 for info file */
 	needed -= saved_dump_size(savedirfd, bounds);
 	if (available < needed) {
 		logmsg(LOG_WARNING,
 		    "no dump: not enough free space on device (need at least "
 		    "%jdkB for dump; %jdkB available; %jdkB reserved)",
-		    (intmax_t)needed,
-		    (intmax_t)available + minfree,
+		    (intmax_t)needed, (intmax_t)available + minfree,
 		    (intmax_t)minfree);
 		return (0);
 	}
@@ -489,8 +487,8 @@ compare_magic(const struct kerneldumpheader *kdh, const char *magic)
 	return (strncmp(kdh->magic, magic, sizeof(kdh->magic)) == 0);
 }
 
-#define BLOCKSIZE (1<<12)
-#define BLOCKMASK (~(BLOCKSIZE-1))
+#define BLOCKSIZE (1 << 12)
+#define BLOCKMASK (~(BLOCKSIZE - 1))
 
 static size_t
 sparsefwrite(const char *buf, size_t nr, FILE *fp)
@@ -501,7 +499,7 @@ sparsefwrite(const char *buf, size_t nr, FILE *fp)
 		/* find a contiguous block of zeroes */
 		for (hs = nw; hs < nr; hs += BLOCKSIZE) {
 			for (he = hs; he < nr && buf[he] == 0; ++he)
-				/* nothing */ ;
+				/* nothing */;
 			/* is the hole long enough to matter? */
 			if (he >= hs + BLOCKSIZE)
 				break;
@@ -542,7 +540,7 @@ static size_t zbufsize;
 static ssize_t
 GunzipWrite(z_stream *z, char *in, size_t insize, FILE *fp)
 {
-	static bool firstblock = true;		/* XXX not re-entrable/usable */
+	static bool firstblock = true; /* XXX not re-entrable/usable */
 	const size_t hdrlen = 10;
 	size_t nw = 0, w;
 	int rv;
@@ -609,14 +607,14 @@ ZstdWrite(ZSTD_DCtx *Zctx, char *in, size_t insize, FILE *fp)
 
 static int
 DoRegularFile(int fd, off_t dumpsize, u_int sectorsize, bool sparse,
-    uint8_t compression, char *buf, const char *device,
-    const char *filename, FILE *fp)
+    uint8_t compression, char *buf, const char *device, const char *filename,
+    FILE *fp)
 {
 	size_t nr, wl;
 	ssize_t nw;
 	off_t dmpcnt, origsize;
-	z_stream z;		/* gzip */
-	ZSTD_DCtx *Zctx;	/* zstd */
+	z_stream z;	 /* gzip */
+	ZSTD_DCtx *Zctx; /* zstd */
 
 	dmpcnt = 0;
 	origsize = dumpsize;
@@ -664,10 +662,9 @@ DoRegularFile(int fd, off_t dumpsize, u_int sectorsize, bool sparse,
 			nw = fwrite(buf, 1, wl, fp);
 		else
 			nw = sparsefwrite(buf, wl, fp);
-		if (nw < 0 || (compression == KERNELDUMP_COMP_NONE &&
-		     (size_t)nw != wl)) {
-			logmsg(LOG_ERR,
-			    "write error on %s file: %m", filename);
+		if (nw < 0 ||
+		    (compression == KERNELDUMP_COMP_NONE && (size_t)nw != wl)) {
+			logmsg(LOG_ERR, "write error on %s file: %m", filename);
 			logmsg(LOG_WARNING,
 			    "WARNING: vmcore may be incomplete");
 			nerr++;
@@ -680,8 +677,9 @@ DoRegularFile(int fd, off_t dumpsize, u_int sectorsize, bool sparse,
 		}
 		dumpsize -= wl;
 		if (got_siginfo) {
-			printf("%s %.1lf%%\n", filename, (100.0 - (100.0 *
-			    (double)dumpsize / (double)origsize)));
+			printf("%s %.1lf%%\n", filename,
+			    (100.0 -
+				(100.0 * (double)dumpsize / (double)origsize)));
 			got_siginfo = 0;
 		}
 	}
@@ -723,8 +721,7 @@ DoTextdumpFile(int fd, off_t dumpsize, off_t lasthd, char *buf,
 		}
 		nw = fwrite(buf, 1, wl, fp);
 		if (nw != wl) {
-			logmsg(LOG_ERR,
-			    "write error on %s file: %m", filename);
+			logmsg(LOG_ERR, "write error on %s file: %m", filename);
 			logmsg(LOG_WARNING,
 			    "WARNING: textdump may be incomplete");
 			nerr++;
@@ -788,8 +785,7 @@ DoLiveFile(const char *savedir, int savedirfd, const char *device)
 	marg.fd = fdcore;
 	marg.compression = comp_desired;
 	if (ioctl(fddev, MEM_KERNELDUMP, &marg) == -1) {
-		logmsg(LOG_ERR,
-		    "failed to invoke live-dump on system: %m");
+		logmsg(LOG_ERR, "failed to invoke live-dump on system: %m");
 		close(fddev);
 		goto unlinkexit;
 	}
@@ -831,8 +827,8 @@ DoLiveFile(const char *savedir, int savedirfd, const char *device)
 		goto unlinkexit;
 	}
 	if (kerneldump_parity(&kdhl)) {
-		logmsg(LOG_ERR,
-		    "parity error on last dump header on %s", device);
+		logmsg(LOG_ERR, "parity error on last dump header on %s",
+		    device);
 		nerr++;
 		status = STATUS_BAD;
 		if (!force)
@@ -868,8 +864,8 @@ DoLiveFile(const char *savedir, int savedirfd, const char *device)
 
 	snprintf(corename, sizeof(corename), "livecore.%d", bounds);
 	if (compress)
-		strcat(corename, kdhl.compression == KERNELDUMP_COMP_ZSTD ?
-		    ".zst" : ".gz");
+		strcat(corename,
+		    kdhl.compression == KERNELDUMP_COMP_ZSTD ? ".zst" : ".gz");
 
 	if (verbose)
 		printf("renaming %s to %s\n", tmpname, corename);
@@ -880,7 +876,7 @@ DoLiveFile(const char *savedir, int savedirfd, const char *device)
 
 	snprintf(infoname, sizeof(infoname), "info.%d", bounds);
 	if (write_header_info(xostdout, &kdhl, savedirfd, infoname, device,
-	    bounds, status) != 0) {
+		bounds, status) != 0) {
 		nerr++;
 		return;
 	}
@@ -899,8 +895,8 @@ DoLiveFile(const char *savedir, int savedirfd, const char *device)
 
 	snprintf(linkname, sizeof(linkname), "livecore.last");
 	if (compress)
-		strcat(linkname, kdhl.compression == KERNELDUMP_COMP_ZSTD ?
-		    ".zst" : ".gz");
+		strcat(linkname,
+		    kdhl.compression == KERNELDUMP_COMP_ZSTD ? ".zst" : ".gz");
 	if (symlinkat(corename, savedirfd, linkname) == -1) {
 		logmsg(LOG_WARNING, "unable to create symlink %s/%s: %m",
 		    savedir, linkname);
@@ -1079,8 +1075,8 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 		goto nuke;
 
 	if (kerneldump_parity(&kdhl)) {
-		logmsg(LOG_ERR,
-		    "parity error on last dump header on %s", device);
+		logmsg(LOG_ERR, "parity error on last dump header on %s",
+		    device);
 		nerr++;
 		status = STATUS_BAD;
 		if (!force)
@@ -1110,8 +1106,8 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 	}
 
 	if (memcmp(&kdhl, &kdhf, sizeof(kdhl))) {
-		logmsg(LOG_ERR,
-		    "first and last dump headers disagree on %s", device);
+		logmsg(LOG_ERR, "first and last dump headers disagree on %s",
+		    device);
 		nerr++;
 		status = STATUS_BAD;
 		if (!force)
@@ -1148,14 +1144,16 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 	if (compress)
 		snprintf(corename, sizeof(corename), "%s.%d.gz",
 		    istextdump ? "textdump.tar" :
-		    (isencrypted ? "vmcore_encrypted" : "vmcore"), bounds);
+				 (isencrypted ? "vmcore_encrypted" : "vmcore"),
+		    bounds);
 	else if (iscompressed && !isencrypted && !uncompress)
 		snprintf(corename, sizeof(corename), "vmcore.%d.%s", bounds,
 		    (kdhl.compression == KERNELDUMP_COMP_GZIP) ? "gz" : "zst");
 	else
 		snprintf(corename, sizeof(corename), "%s.%d",
 		    istextdump ? "textdump.tar" :
-		    (isencrypted ? "vmcore_encrypted" : "vmcore"), bounds);
+				 (isencrypted ? "vmcore_encrypted" : "vmcore"),
+		    bounds);
 	fdcore = openat(savedirfd, corename, O_WRONLY | O_CREAT | O_TRUNC,
 	    0600);
 	if (fdcore < 0) {
@@ -1178,7 +1176,7 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 
 	snprintf(infoname, sizeof(infoname), "info.%d", bounds);
 	if (write_header_info(xostdout, &kdhl, savedirfd, infoname, device,
-	    bounds, status) != 0) {
+		bounds, status) != 0) {
 		nerr++;
 		goto closeall;
 	}
@@ -1212,13 +1210,13 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 
 	if (istextdump) {
 		if (DoTextdumpFile(fddev, dumplength, lasthd, buf, device,
-		    corename, core) < 0)
+			corename, core) < 0)
 			goto closeall;
 	} else {
 		if (DoRegularFile(fddev, dumplength, sectorsize,
-		    !(compress || iscompressed || isencrypted),
-		    uncompress ? kdhl.compression : KERNELDUMP_COMP_NONE,
-		    buf, device, corename, core) < 0) {
+			!(compress || iscompressed || isencrypted),
+			uncompress ? kdhl.compression : KERNELDUMP_COMP_NONE,
+			buf, device, corename, core) < 0) {
 			goto closeall;
 		}
 	}
@@ -1246,12 +1244,12 @@ DoFile(const char *savedir, int savedirfd, const char *device)
 	if ((iscompressed && !uncompress) || compress) {
 		snprintf(linkname, sizeof(linkname), "%s.last.%s",
 		    istextdump ? "textdump.tar" :
-		    (isencrypted ? "vmcore_encrypted" : "vmcore"),
+				 (isencrypted ? "vmcore_encrypted" : "vmcore"),
 		    (kdhl.compression == KERNELDUMP_COMP_ZSTD) ? "zst" : "gz");
 	} else {
 		snprintf(linkname, sizeof(linkname), "%s.last",
 		    istextdump ? "textdump.tar" :
-		    (isencrypted ? "vmcore_encrypted" : "vmcore"));
+				 (isencrypted ? "vmcore_encrypted" : "vmcore"));
 	}
 	if (symlinkat(corename, savedirfd, linkname) == -1) {
 		logmsg(LOG_WARNING, "unable to create symlink %s/%s: %m",
@@ -1412,8 +1410,7 @@ init_caps(int argc, char **argv)
 static void
 usage(void)
 {
-	xo_error("%s\n%s\n%s\n%s\n",
-	    "usage: savecore -c [-v] [device ...]",
+	xo_error("%s\n%s\n%s\n%s\n", "usage: savecore -c [-v] [device ...]",
 	    "       savecore -C [-v] [device ...]",
 	    "       savecore -L [-fvZz] [-m maxdumps] [directory]",
 	    "       savecore [-fkuvz] [-m maxdumps] [directory [device ...]]");
@@ -1442,7 +1439,7 @@ main(int argc, char **argv)
 		exit(1);
 
 	while ((ch = getopt(argc, argv, "CcfkLm:uvZz")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'C':
 			checkfor = true;
 			break;

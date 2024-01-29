@@ -13,9 +13,10 @@
  */
 
 #ifndef _MATH_PRIVATE_H_
-#define	_MATH_PRIVATE_H_
+#define _MATH_PRIVATE_H_
 
 #include <sys/types.h>
+
 #include <machine/endian.h>
 
 /*
@@ -38,12 +39,12 @@
 
 #ifdef __arm__
 #if defined(__VFP_FP__) || defined(__ARM_EABI__)
-#define	IEEE_WORD_ORDER	BYTE_ORDER
+#define IEEE_WORD_ORDER BYTE_ORDER
 #else
-#define	IEEE_WORD_ORDER	BIG_ENDIAN
+#define IEEE_WORD_ORDER BIG_ENDIAN
 #endif
 #else /* __arm__ */
-#define	IEEE_WORD_ORDER	BYTE_ORDER
+#define IEEE_WORD_ORDER BYTE_ORDER
 #endif
 
 /* A union which permits us to convert between a long double and
@@ -51,264 +52,259 @@
 
 #if IEEE_WORD_ORDER == BIG_ENDIAN
 
-typedef union
-{
-  long double value;
-  struct {
-    u_int32_t mswhi;
-    u_int32_t mswlo;
-    u_int32_t lswhi;
-    u_int32_t lswlo;
-  } parts32;
-  struct {
-    u_int64_t msw;
-    u_int64_t lsw;
-  } parts64;
+typedef union {
+	long double value;
+	struct {
+		u_int32_t mswhi;
+		u_int32_t mswlo;
+		u_int32_t lswhi;
+		u_int32_t lswlo;
+	} parts32;
+	struct {
+		u_int64_t msw;
+		u_int64_t lsw;
+	} parts64;
 } ieee_quad_shape_type;
 
 #endif
 
 #if IEEE_WORD_ORDER == LITTLE_ENDIAN
 
-typedef union
-{
-  long double value;
-  struct {
-    u_int32_t lswlo;
-    u_int32_t lswhi;
-    u_int32_t mswlo;
-    u_int32_t mswhi;
-  } parts32;
-  struct {
-    u_int64_t lsw;
-    u_int64_t msw;
-  } parts64;
+typedef union {
+	long double value;
+	struct {
+		u_int32_t lswlo;
+		u_int32_t lswhi;
+		u_int32_t mswlo;
+		u_int32_t mswhi;
+	} parts32;
+	struct {
+		u_int64_t lsw;
+		u_int64_t msw;
+	} parts64;
 } ieee_quad_shape_type;
 
 #endif
 
 #if IEEE_WORD_ORDER == BIG_ENDIAN
 
-typedef union
-{
-  double value;
-  struct
-  {
-    u_int32_t msw;
-    u_int32_t lsw;
-  } parts;
-  struct
-  {
-    u_int64_t w;
-  } xparts;
+typedef union {
+	double value;
+	struct {
+		u_int32_t msw;
+		u_int32_t lsw;
+	} parts;
+	struct {
+		u_int64_t w;
+	} xparts;
 } ieee_double_shape_type;
 
 #endif
 
 #if IEEE_WORD_ORDER == LITTLE_ENDIAN
 
-typedef union
-{
-  double value;
-  struct
-  {
-    u_int32_t lsw;
-    u_int32_t msw;
-  } parts;
-  struct
-  {
-    u_int64_t w;
-  } xparts;
+typedef union {
+	double value;
+	struct {
+		u_int32_t lsw;
+		u_int32_t msw;
+	} parts;
+	struct {
+		u_int64_t w;
+	} xparts;
 } ieee_double_shape_type;
 
 #endif
 
 /* Get two 32 bit ints from a double.  */
 
-#define EXTRACT_WORDS(ix0,ix1,d)				\
-do {								\
-  ieee_double_shape_type ew_u;					\
-  ew_u.value = (d);						\
-  (ix0) = ew_u.parts.msw;					\
-  (ix1) = ew_u.parts.lsw;					\
-} while (0)
+#define EXTRACT_WORDS(ix0, ix1, d)           \
+	do {                                 \
+		ieee_double_shape_type ew_u; \
+		ew_u.value = (d);            \
+		(ix0) = ew_u.parts.msw;      \
+		(ix1) = ew_u.parts.lsw;      \
+	} while (0)
 
 /* Get a 64-bit int from a double. */
-#define EXTRACT_WORD64(ix,d)					\
-do {								\
-  ieee_double_shape_type ew_u;					\
-  ew_u.value = (d);						\
-  (ix) = ew_u.xparts.w;						\
-} while (0)
+#define EXTRACT_WORD64(ix, d)                \
+	do {                                 \
+		ieee_double_shape_type ew_u; \
+		ew_u.value = (d);            \
+		(ix) = ew_u.xparts.w;        \
+	} while (0)
 
 /* Get the more significant 32 bit int from a double.  */
 
-#define GET_HIGH_WORD(i,d)					\
-do {								\
-  ieee_double_shape_type gh_u;					\
-  gh_u.value = (d);						\
-  (i) = gh_u.parts.msw;						\
-} while (0)
+#define GET_HIGH_WORD(i, d)                  \
+	do {                                 \
+		ieee_double_shape_type gh_u; \
+		gh_u.value = (d);            \
+		(i) = gh_u.parts.msw;        \
+	} while (0)
 
 /* Get the less significant 32 bit int from a double.  */
 
-#define GET_LOW_WORD(i,d)					\
-do {								\
-  ieee_double_shape_type gl_u;					\
-  gl_u.value = (d);						\
-  (i) = gl_u.parts.lsw;						\
-} while (0)
+#define GET_LOW_WORD(i, d)                   \
+	do {                                 \
+		ieee_double_shape_type gl_u; \
+		gl_u.value = (d);            \
+		(i) = gl_u.parts.lsw;        \
+	} while (0)
 
 /* Set a double from two 32 bit ints.  */
 
-#define INSERT_WORDS(d,ix0,ix1)					\
-do {								\
-  ieee_double_shape_type iw_u;					\
-  iw_u.parts.msw = (ix0);					\
-  iw_u.parts.lsw = (ix1);					\
-  (d) = iw_u.value;						\
-} while (0)
+#define INSERT_WORDS(d, ix0, ix1)            \
+	do {                                 \
+		ieee_double_shape_type iw_u; \
+		iw_u.parts.msw = (ix0);      \
+		iw_u.parts.lsw = (ix1);      \
+		(d) = iw_u.value;            \
+	} while (0)
 
 /* Set a double from a 64-bit int. */
-#define INSERT_WORD64(d,ix)					\
-do {								\
-  ieee_double_shape_type iw_u;					\
-  iw_u.xparts.w = (ix);						\
-  (d) = iw_u.value;						\
-} while (0)
+#define INSERT_WORD64(d, ix)                 \
+	do {                                 \
+		ieee_double_shape_type iw_u; \
+		iw_u.xparts.w = (ix);        \
+		(d) = iw_u.value;            \
+	} while (0)
 
 /* Set the more significant 32 bits of a double from an int.  */
 
-#define SET_HIGH_WORD(d,v)					\
-do {								\
-  ieee_double_shape_type sh_u;					\
-  sh_u.value = (d);						\
-  sh_u.parts.msw = (v);						\
-  (d) = sh_u.value;						\
-} while (0)
+#define SET_HIGH_WORD(d, v)                  \
+	do {                                 \
+		ieee_double_shape_type sh_u; \
+		sh_u.value = (d);            \
+		sh_u.parts.msw = (v);        \
+		(d) = sh_u.value;            \
+	} while (0)
 
 /* Set the less significant 32 bits of a double from an int.  */
 
-#define SET_LOW_WORD(d,v)					\
-do {								\
-  ieee_double_shape_type sl_u;					\
-  sl_u.value = (d);						\
-  sl_u.parts.lsw = (v);						\
-  (d) = sl_u.value;						\
-} while (0)
+#define SET_LOW_WORD(d, v)                   \
+	do {                                 \
+		ieee_double_shape_type sl_u; \
+		sl_u.value = (d);            \
+		sl_u.parts.lsw = (v);        \
+		(d) = sl_u.value;            \
+	} while (0)
 
 /*
  * A union which permits us to convert between a float and a 32 bit
  * int.
  */
 
-typedef union
-{
-  float value;
-  /* FIXME: Assumes 32 bit int.  */
-  unsigned int word;
+typedef union {
+	float value;
+	/* FIXME: Assumes 32 bit int.  */
+	unsigned int word;
 } ieee_float_shape_type;
 
 /* Get a 32 bit int from a float.  */
 
-#define GET_FLOAT_WORD(i,d)					\
-do {								\
-  ieee_float_shape_type gf_u;					\
-  gf_u.value = (d);						\
-  (i) = gf_u.word;						\
-} while (0)
+#define GET_FLOAT_WORD(i, d)                \
+	do {                                \
+		ieee_float_shape_type gf_u; \
+		gf_u.value = (d);           \
+		(i) = gf_u.word;            \
+	} while (0)
 
 /* Set a float from a 32 bit int.  */
 
-#define SET_FLOAT_WORD(d,i)					\
-do {								\
-  ieee_float_shape_type sf_u;					\
-  sf_u.word = (i);						\
-  (d) = sf_u.value;						\
-} while (0)
+#define SET_FLOAT_WORD(d, i)                \
+	do {                                \
+		ieee_float_shape_type sf_u; \
+		sf_u.word = (i);            \
+		(d) = sf_u.value;           \
+	} while (0)
 
 /*
  * Get expsign and mantissa as 16 bit and 64 bit ints from an 80 bit long
  * double.
  */
 
-#define	EXTRACT_LDBL80_WORDS(ix0,ix1,d)				\
-do {								\
-  union IEEEl2bits ew_u;					\
-  ew_u.e = (d);							\
-  (ix0) = ew_u.xbits.expsign;					\
-  (ix1) = ew_u.xbits.man;					\
-} while (0)
+#define EXTRACT_LDBL80_WORDS(ix0, ix1, d)   \
+	do {                                \
+		union IEEEl2bits ew_u;      \
+		ew_u.e = (d);               \
+		(ix0) = ew_u.xbits.expsign; \
+		(ix1) = ew_u.xbits.man;     \
+	} while (0)
 
 /*
  * Get expsign and mantissa as one 16 bit and two 64 bit ints from a 128 bit
  * long double.
  */
 
-#define	EXTRACT_LDBL128_WORDS(ix0,ix1,ix2,d)			\
-do {								\
-  union IEEEl2bits ew_u;					\
-  ew_u.e = (d);							\
-  (ix0) = ew_u.xbits.expsign;					\
-  (ix1) = ew_u.xbits.manh;					\
-  (ix2) = ew_u.xbits.manl;					\
-} while (0)
+#define EXTRACT_LDBL128_WORDS(ix0, ix1, ix2, d) \
+	do {                                    \
+		union IEEEl2bits ew_u;          \
+		ew_u.e = (d);                   \
+		(ix0) = ew_u.xbits.expsign;     \
+		(ix1) = ew_u.xbits.manh;        \
+		(ix2) = ew_u.xbits.manl;        \
+	} while (0)
 
 /* Get expsign as a 16 bit int from a long double.  */
 
-#define	GET_LDBL_EXPSIGN(i,d)					\
-do {								\
-  union IEEEl2bits ge_u;					\
-  ge_u.e = (d);							\
-  (i) = ge_u.xbits.expsign;					\
-} while (0)
+#define GET_LDBL_EXPSIGN(i, d)            \
+	do {                              \
+		union IEEEl2bits ge_u;    \
+		ge_u.e = (d);             \
+		(i) = ge_u.xbits.expsign; \
+	} while (0)
 
 /*
  * Set an 80 bit long double from a 16 bit int expsign and a 64 bit int
  * mantissa.
  */
 
-#define	INSERT_LDBL80_WORDS(d,ix0,ix1)				\
-do {								\
-  union IEEEl2bits iw_u;					\
-  iw_u.xbits.expsign = (ix0);					\
-  iw_u.xbits.man = (ix1);					\
-  (d) = iw_u.e;							\
-} while (0)
+#define INSERT_LDBL80_WORDS(d, ix0, ix1)    \
+	do {                                \
+		union IEEEl2bits iw_u;      \
+		iw_u.xbits.expsign = (ix0); \
+		iw_u.xbits.man = (ix1);     \
+		(d) = iw_u.e;               \
+	} while (0)
 
 /*
  * Set a 128 bit long double from a 16 bit int expsign and two 64 bit ints
  * comprising the mantissa.
  */
 
-#define	INSERT_LDBL128_WORDS(d,ix0,ix1,ix2)			\
-do {								\
-  union IEEEl2bits iw_u;					\
-  iw_u.xbits.expsign = (ix0);					\
-  iw_u.xbits.manh = (ix1);					\
-  iw_u.xbits.manl = (ix2);					\
-  (d) = iw_u.e;							\
-} while (0)
+#define INSERT_LDBL128_WORDS(d, ix0, ix1, ix2) \
+	do {                                   \
+		union IEEEl2bits iw_u;         \
+		iw_u.xbits.expsign = (ix0);    \
+		iw_u.xbits.manh = (ix1);       \
+		iw_u.xbits.manl = (ix2);       \
+		(d) = iw_u.e;                  \
+	} while (0)
 
 /* Set expsign of a long double from a 16 bit int.  */
 
-#define	SET_LDBL_EXPSIGN(d,v)					\
-do {								\
-  union IEEEl2bits se_u;					\
-  se_u.e = (d);							\
-  se_u.xbits.expsign = (v);					\
-  (d) = se_u.e;							\
-} while (0)
+#define SET_LDBL_EXPSIGN(d, v)            \
+	do {                              \
+		union IEEEl2bits se_u;    \
+		se_u.e = (d);             \
+		se_u.xbits.expsign = (v); \
+		(d) = se_u.e;             \
+	} while (0)
 
 #ifdef __i386__
 /* Long double constants are broken on i386. */
-#define	LD80C(m, ex, v) {						\
-	.xbits.man = __CONCAT(m, ULL),					\
-	.xbits.expsign = (0x3fff + (ex)) | ((v) < 0 ? 0x8000 : 0),	\
-}
+#define LD80C(m, ex, v)                                                    \
+	{                                                                  \
+		.xbits.man = __CONCAT(m, ULL),                             \
+		.xbits.expsign = (0x3fff + (ex)) | ((v) < 0 ? 0x8000 : 0), \
+	}
 #else
 /* The above works on non-i386 too, but we use this to check v. */
-#define	LD80C(m, ex, v)	{ .e = (v), }
+#define LD80C(m, ex, v)   \
+	{                 \
+		.e = (v), \
+	}
 #endif
 
 #ifdef FLT_EVAL_METHOD
@@ -316,69 +312,73 @@ do {								\
  * Attempt to get strict C99 semantics for assignment with non-C99 compilers.
  */
 #if FLT_EVAL_METHOD == 0 || __GNUC__ == 0
-#define	STRICT_ASSIGN(type, lval, rval)	((lval) = (rval))
+#define STRICT_ASSIGN(type, lval, rval) ((lval) = (rval))
 #else
-#define	STRICT_ASSIGN(type, lval, rval) do {	\
-	volatile type __lval;			\
-						\
-	if (sizeof(type) >= sizeof(long double))	\
-		(lval) = (rval);		\
-	else {					\
-		__lval = (rval);		\
-		(lval) = __lval;		\
-	}					\
-} while (0)
+#define STRICT_ASSIGN(type, lval, rval)                  \
+	do {                                             \
+		volatile type __lval;                    \
+                                                         \
+		if (sizeof(type) >= sizeof(long double)) \
+			(lval) = (rval);                 \
+		else {                                   \
+			__lval = (rval);                 \
+			(lval) = __lval;                 \
+		}                                        \
+	} while (0)
 #endif
 #endif /* FLT_EVAL_METHOD */
 
 /* Support switching the mode to FP_PE if necessary. */
 #if defined(__i386__) && !defined(NO_FPSETPREC)
-#define	ENTERI() ENTERIT(long double)
-#define	ENTERIT(returntype)			\
-	returntype __retval;			\
-	fp_prec_t __oprec;			\
-						\
-	if ((__oprec = fpgetprec()) != FP_PE)	\
-		fpsetprec(FP_PE)
-#define	RETURNI(x) do {				\
-	__retval = (x);				\
-	if (__oprec != FP_PE)			\
-		fpsetprec(__oprec);		\
-	RETURNF(__retval);			\
-} while (0)
-#define	ENTERV()				\
-	fp_prec_t __oprec;			\
-						\
-	if ((__oprec = fpgetprec()) != FP_PE)	\
-		fpsetprec(FP_PE)
-#define	RETURNV() do {				\
-	if (__oprec != FP_PE)			\
-		fpsetprec(__oprec);		\
-	return;			\
-} while (0)
+#define ENTERI() ENTERIT(long double)
+#define ENTERIT(returntype)                   \
+	returntype __retval;                  \
+	fp_prec_t __oprec;                    \
+                                              \
+	if ((__oprec = fpgetprec()) != FP_PE) \
+	fpsetprec(FP_PE)
+#define RETURNI(x)                          \
+	do {                                \
+		__retval = (x);             \
+		if (__oprec != FP_PE)       \
+			fpsetprec(__oprec); \
+		RETURNF(__retval);          \
+	} while (0)
+#define ENTERV()                              \
+	fp_prec_t __oprec;                    \
+                                              \
+	if ((__oprec = fpgetprec()) != FP_PE) \
+	fpsetprec(FP_PE)
+#define RETURNV()                           \
+	do {                                \
+		if (__oprec != FP_PE)       \
+			fpsetprec(__oprec); \
+		return;                     \
+	} while (0)
 #else
-#define	ENTERI()
-#define	ENTERIT(x)
-#define	RETURNI(x)	RETURNF(x)
-#define	ENTERV()
-#define	RETURNV()	return
+#define ENTERI()
+#define ENTERIT(x)
+#define RETURNI(x) RETURNF(x)
+#define ENTERV()
+#define RETURNV() return
 #endif
 
 /* Default return statement if hack*_t() is not used. */
-#define      RETURNF(v)      return (v)
+#define RETURNF(v) return (v)
 
 /*
  * 2sum gives the same result as 2sumF without requiring |a| >= |b| or
  * a == 0, but is slower.
  */
-#define	_2sum(a, b) do {	\
-	__typeof(a) __s, __w;	\
-				\
-	__w = (a) + (b);	\
-	__s = __w - (a);	\
-	(b) = ((a) - (__w - __s)) + ((b) - __s); \
-	(a) = __w;		\
-} while (0)
+#define _2sum(a, b)                                    \
+	do {                                           \
+		__typeof(a) __s, __w;                  \
+                                                       \
+		__w = (a) + (b);                       \
+		__s = __w - (a);                       \
+		(b) = ((a) - (__w - __s)) + ((b)-__s); \
+		(a) = __w;                             \
+	} while (0)
 
 /*
  * 2sumF algorithm.
@@ -409,33 +409,36 @@ do {								\
  * particular, they shouldn't convert back and forth just to call here.
  */
 #ifdef DEBUG
-#define	_2sumF(a, b) do {				\
-	__typeof(a) __w;				\
-	volatile __typeof(a) __ia, __ib, __r, __vw;	\
-							\
-	__ia = (a);					\
-	__ib = (b);					\
-	assert(__ia == 0 || fabsl(__ia) >= fabsl(__ib));	\
-							\
-	__w = (a) + (b);				\
-	(b) = ((a) - __w) + (b);			\
-	(a) = __w;					\
-							\
-	/* The next 2 assertions are weak if (a) is already long double. */ \
-	assert((long double)__ia + __ib == (long double)(a) + (b));	\
-	__vw = __ia + __ib;				\
-	__r = __ia - __vw;				\
-	__r += __ib;					\
-	assert(__vw == (a) && __r == (b));		\
-} while (0)
+#define _2sumF(a, b)                                                        \
+	do {                                                                \
+		__typeof(a) __w;                                            \
+		volatile __typeof(a) __ia, __ib, __r, __vw;                 \
+                                                                            \
+		__ia = (a);                                                 \
+		__ib = (b);                                                 \
+		assert(__ia == 0 || fabsl(__ia) >= fabsl(__ib));            \
+                                                                            \
+		__w = (a) + (b);                                            \
+		(b) = ((a)-__w) + (b);                                      \
+		(a) = __w;                                                  \
+                                                                            \
+		/* The next 2 assertions are weak if (a) is already long    \
+		 * double. */                                               \
+		assert((long double)__ia + __ib == (long double)(a) + (b)); \
+		__vw = __ia + __ib;                                         \
+		__r = __ia - __vw;                                          \
+		__r += __ib;                                                \
+		assert(__vw == (a) && __r == (b));                          \
+	} while (0)
 #else /* !DEBUG */
-#define	_2sumF(a, b) do {	\
-	__typeof(a) __w;	\
-				\
-	__w = (a) + (b);	\
-	(b) = ((a) - __w) + (b); \
-	(a) = __w;		\
-} while (0)
+#define _2sumF(a, b)                   \
+	do {                           \
+		__typeof(a) __w;       \
+                                       \
+		__w = (a) + (b);       \
+		(b) = ((a)-__w) + (b); \
+		(a) = __w;             \
+	} while (0)
 #endif /* DEBUG */
 
 /*
@@ -462,14 +465,15 @@ do {								\
  * exercise 19).  We gain considerable efficiency by requiring the terms to
  * be sufficiently normalized and sufficiently increasing.
  */
-#define	_3sumF(a, b, c) do {	\
-	__typeof(a) __tmp;	\
-				\
-	__tmp = (c);		\
-	_2sumF(__tmp, (a));	\
-	(b) += (a);		\
-	(a) = __tmp;		\
-} while (0)
+#define _3sumF(a, b, c)             \
+	do {                        \
+		__typeof(a) __tmp;  \
+                                    \
+		__tmp = (c);        \
+		_2sumF(__tmp, (a)); \
+		(b) += (a);         \
+		(a) = __tmp;        \
+	} while (0)
 
 /*
  * Common routine to process the arguments to nan(), nanf(), and nanl().
@@ -498,8 +502,8 @@ void _scan_nan(uint32_t *__words, int __num_words, const char *__s);
  * the 0's in different precisions (unless everything is in long double
  * precision).
  */
-#define	nan_mix(x, y)		(nan_mix_op((x), (y), +))
-#define	nan_mix_op(x, y, op)	(((x) + 0.0L) op ((y) + 0))
+#define nan_mix(x, y) (nan_mix_op((x), (y), +))
+#define nan_mix_op(x, y, op) (((x) + 0.0L) op((y) + 0))
 
 #ifdef _COMPLEX_H
 
@@ -520,8 +524,8 @@ typedef union {
 	long double complex f;
 	long double a[2];
 } long_double_complex;
-#define	REALPART(z)	((z).a[0])
-#define	IMAGPART(z)	((z).a[1])
+#define REALPART(z) ((z).a[0])
+#define IMAGPART(z) ((z).a[1])
 
 /*
  * Inline functions that can be used to construct complex values.
@@ -575,7 +579,7 @@ CMPLXL(long double x, long double y)
 #endif
 
 #endif /* _COMPLEX_H */
- 
+
 /*
  * The rnint() family rounds to the nearest integer for a restricted range
  * range of args (up to about 2**MANT_DIG).  We assume that the current
@@ -643,17 +647,20 @@ rnintl(long double x)
  * sometimes be more efficient because no rounding is required.
  */
 #if defined(amd64) || defined(__i386__)
-#define	irint(x)						\
-    (sizeof(x) == sizeof(float) &&				\
-    sizeof(__float_t) == sizeof(long double) ? irintf(x) :	\
-    sizeof(x) == sizeof(double) &&				\
-    sizeof(__double_t) == sizeof(long double) ? irintd(x) :	\
-    sizeof(x) == sizeof(long double) ? irintl(x) : (int)(x))
+#define irint(x)                                                \
+	(sizeof(x) == sizeof(float) &&                          \
+		    sizeof(__float_t) == sizeof(long double) ?  \
+		irintf(x) :                                     \
+		sizeof(x) == sizeof(double) &&                  \
+		    sizeof(__double_t) == sizeof(long double) ? \
+		irintd(x) :                                     \
+		sizeof(x) == sizeof(long double) ? irintl(x) :  \
+						   (int)(x))
 #else
-#define	irint(x)	((int)(x))
+#define irint(x) ((int)(x))
 #endif
 
-#define	i64rint(x)	((int64_t)(x))	/* only needed for ld128 so not opt. */
+#define i64rint(x) ((int64_t)(x)) /* only needed for ld128 so not opt. */
 
 #if defined(__i386__)
 static __inline int
@@ -661,7 +668,7 @@ irintf(float x)
 {
 	int n;
 
-	__asm("fistl %0" : "=m" (n) : "t" (x));
+	__asm("fistl %0" : "=m"(n) : "t"(x));
 	return (n);
 }
 
@@ -670,7 +677,7 @@ irintd(double x)
 {
 	int n;
 
-	__asm("fistl %0" : "=m" (n) : "t" (x));
+	__asm("fistl %0" : "=m"(n) : "t"(x));
 	return (n);
 }
 #endif
@@ -681,7 +688,7 @@ irintl(long double x)
 {
 	int n;
 
-	__asm("fistl %0" : "=m" (n) : "t" (x));
+	__asm("fistl %0" : "=m"(n) : "t"(x));
 	return (n);
 }
 #endif
@@ -691,114 +698,122 @@ irintl(long double x)
  * N is the precision of the type of x. These macros are used in the
  * half-cycle trignometric functions (e.g., sinpi(x)).
  */
-#define	FFLOORF(x, j0, ix) do {			\
-	(j0) = (((ix) >> 23) & 0xff) - 0x7f;	\
-	(ix) &= ~(0x007fffff >> (j0));		\
-	SET_FLOAT_WORD((x), (ix));		\
-} while (0)
+#define FFLOORF(x, j0, ix)                           \
+	do {                                         \
+		(j0) = (((ix) >> 23) & 0xff) - 0x7f; \
+		(ix) &= ~(0x007fffff >> (j0));       \
+		SET_FLOAT_WORD((x), (ix));           \
+	} while (0)
 
-#define	FFLOOR(x, j0, ix, lx) do {				\
-	(j0) = (((ix) >> 20) & 0x7ff) - 0x3ff;			\
-	if ((j0) < 20) {					\
-		(ix) &= ~(0x000fffff >> (j0));			\
-		(lx) = 0;					\
-	} else {						\
-		(lx) &= ~((uint32_t)0xffffffff >> ((j0) - 20));	\
-	}							\
-	INSERT_WORDS((x), (ix), (lx));				\
-} while (0)
+#define FFLOOR(x, j0, ix, lx)                                         \
+	do {                                                          \
+		(j0) = (((ix) >> 20) & 0x7ff) - 0x3ff;                \
+		if ((j0) < 20) {                                      \
+			(ix) &= ~(0x000fffff >> (j0));                \
+			(lx) = 0;                                     \
+		} else {                                              \
+			(lx) &= ~((uint32_t)0xffffffff >> ((j0)-20)); \
+		}                                                     \
+		INSERT_WORDS((x), (ix), (lx));                        \
+	} while (0)
 
-#define	FFLOORL80(x, j0, ix, lx) do {			\
-	j0 = ix - 0x3fff + 1;				\
-	if ((j0) < 32) {				\
-		(lx) = ((lx) >> 32) << 32;		\
-		(lx) &= ~((((lx) << 32)-1) >> (j0));	\
-	} else {					\
-		uint64_t _m;				\
-		_m = (uint64_t)-1 >> (j0);		\
-		if ((lx) & _m) (lx) &= ~_m;		\
-	}						\
-	INSERT_LDBL80_WORDS((x), (ix), (lx));		\
-} while (0)
+#define FFLOORL80(x, j0, ix, lx)                               \
+	do {                                                   \
+		j0 = ix - 0x3fff + 1;                          \
+		if ((j0) < 32) {                               \
+			(lx) = ((lx) >> 32) << 32;             \
+			(lx) &= ~((((lx) << 32) - 1) >> (j0)); \
+		} else {                                       \
+			uint64_t _m;                           \
+			_m = (uint64_t)-1 >> (j0);             \
+			if ((lx) & _m)                         \
+				(lx) &= ~_m;                   \
+		}                                              \
+		INSERT_LDBL80_WORDS((x), (ix), (lx));          \
+	} while (0)
 
-#define FFLOORL128(x, ai, ar) do {			\
-	union IEEEl2bits u;				\
-	uint64_t m;					\
-	int e;						\
-	u.e = (x);					\
-	e = u.bits.exp - 16383;				\
-	if (e < 48) {					\
-		m = ((1llu << 49) - 1) >> (e + 1);	\
-		u.bits.manh &= ~m;			\
-		u.bits.manl = 0;			\
-	} else {					\
-		m = (uint64_t)-1 >> (e - 48);		\
-		u.bits.manl &= ~m;			\
-	}						\
-	(ai) = u.e;					\
-	(ar) = (x) - (ai);				\
-} while (0)
+#define FFLOORL128(x, ai, ar)                              \
+	do {                                               \
+		union IEEEl2bits u;                        \
+		uint64_t m;                                \
+		int e;                                     \
+		u.e = (x);                                 \
+		e = u.bits.exp - 16383;                    \
+		if (e < 48) {                              \
+			m = ((1llu << 49) - 1) >> (e + 1); \
+			u.bits.manh &= ~m;                 \
+			u.bits.manl = 0;                   \
+		} else {                                   \
+			m = (uint64_t)-1 >> (e - 48);      \
+			u.bits.manl &= ~m;                 \
+		}                                          \
+		(ai) = u.e;                                \
+		(ar) = (x) - (ai);                         \
+	} while (0)
 
 #ifdef DEBUG
 #if defined(__amd64__) || defined(__i386__)
-#define	breakpoint()	asm("int $3")
+#define breakpoint() asm("int $3")
 #else
 #include <signal.h>
 
-#define	breakpoint()	raise(SIGTRAP)
+#define breakpoint() raise(SIGTRAP)
 #endif
 #endif
 
 #ifdef STRUCT_RETURN
-#define	RETURNSP(rp) do {		\
-	if (!(rp)->lo_set)		\
-		RETURNF((rp)->hi);	\
-	RETURNF((rp)->hi + (rp)->lo);	\
-} while (0)
-#define	RETURNSPI(rp) do {		\
-	if (!(rp)->lo_set)		\
-		RETURNI((rp)->hi);	\
-	RETURNI((rp)->hi + (rp)->lo);	\
-} while (0)
+#define RETURNSP(rp)                          \
+	do {                                  \
+		if (!(rp)->lo_set)            \
+			RETURNF((rp)->hi);    \
+		RETURNF((rp)->hi + (rp)->lo); \
+	} while (0)
+#define RETURNSPI(rp)                         \
+	do {                                  \
+		if (!(rp)->lo_set)            \
+			RETURNI((rp)->hi);    \
+		RETURNI((rp)->hi + (rp)->lo); \
+	} while (0)
 #endif
 
-#define	SUM2P(x, y) ({			\
-	const __typeof (x) __x = (x);	\
-	const __typeof (y) __y = (y);	\
-	__x + __y;			\
-})
+#define SUM2P(x, y)                          \
+	({                                   \
+		const __typeof(x) __x = (x); \
+		const __typeof(y) __y = (y); \
+		__x + __y;                   \
+	})
 
 /* fdlibm kernel function */
-int	__kernel_rem_pio2(double*,double*,int,int,int);
+int __kernel_rem_pio2(double *, double *, int, int, int);
 
 /* double precision kernel functions */
 #ifndef INLINE_REM_PIO2
-int	__ieee754_rem_pio2(double,double*);
+int __ieee754_rem_pio2(double, double *);
 #endif
-double	__kernel_sin(double,double,int);
-double	__kernel_cos(double,double);
-double	__kernel_tan(double,double,int);
-double	__ldexp_exp(double,int);
+double __kernel_sin(double, double, int);
+double __kernel_cos(double, double);
+double __kernel_tan(double, double, int);
+double __ldexp_exp(double, int);
 #ifdef _COMPLEX_H
-double complex __ldexp_cexp(double complex,int);
+double complex __ldexp_cexp(double complex, int);
 #endif
 
 /* float precision kernel functions */
 #ifndef INLINE_REM_PIO2F
-int	__ieee754_rem_pio2f(float,double*);
+int __ieee754_rem_pio2f(float, double *);
 #endif
 #ifndef INLINE_KERNEL_SINDF
-float	__kernel_sindf(double);
+float __kernel_sindf(double);
 #endif
 #ifndef INLINE_KERNEL_COSDF
-float	__kernel_cosdf(double);
+float __kernel_cosdf(double);
 #endif
 #ifndef INLINE_KERNEL_TANDF
-float	__kernel_tandf(double,int);
+float __kernel_tandf(double, int);
 #endif
-float	__ldexp_expf(float,int);
+float __ldexp_expf(float, int);
 #ifdef _COMPLEX_H
-float complex __ldexp_cexpf(float complex,int);
+float complex __ldexp_cexpf(float complex, int);
 #endif
 
 /* long double precision kernel functions */

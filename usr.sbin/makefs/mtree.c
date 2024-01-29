@@ -29,11 +29,12 @@
 #include "nbtool_config.h"
 #endif
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
 #include <sys/stat.h>
-#include <sys/types.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -55,11 +56,11 @@
 #include "makefs.h"
 
 #ifndef ENOATTR
-#define	ENOATTR	ENODATA
+#define ENOATTR ENODATA
 #endif
 
-#define	IS_DOT(nm)	((nm)[0] == '.' && (nm)[1] == '\0')
-#define	IS_DOTDOT(nm)	((nm)[0] == '.' && (nm)[1] == '.' && (nm)[2] == '\0')
+#define IS_DOT(nm) ((nm)[0] == '.' && (nm)[1] == '\0')
+#define IS_DOTDOT(nm) ((nm)[0] == '.' && (nm)[1] == '.' && (nm)[2] == '\0')
 
 struct mtree_fileinfo {
 	SLIST_ENTRY(mtree_fileinfo) next;
@@ -69,8 +70,8 @@ struct mtree_fileinfo {
 };
 
 /* Global state used while parsing. */
-static SLIST_HEAD(, mtree_fileinfo) mtree_fileinfo =
-    SLIST_HEAD_INITIALIZER(mtree_fileinfo);
+static SLIST_HEAD(, mtree_fileinfo) mtree_fileinfo = SLIST_HEAD_INITIALIZER(
+    mtree_fileinfo);
 static fsnode *mtree_root;
 static fsnode *mtree_current;
 static fsnode mtree_global;
@@ -143,7 +144,7 @@ mtree_warning(const char *fmt, ...)
 }
 
 #ifndef MAKEFS_MAX_TREE_DEPTH
-# define MAKEFS_MAX_TREE_DEPTH (MAXPATHLEN/2)
+#define MAKEFS_MAX_TREE_DEPTH (MAXPATHLEN / 2)
 #endif
 
 /* construct path to node->name */
@@ -163,7 +164,7 @@ mtree_file_path(fsnode *node)
 			break;
 		rp[++depth] = pnode->name;
 	}
-	
+
 	sb = sbuf_new_auto();
 	if (sb == NULL) {
 		errno = ENOMEM;
@@ -180,7 +181,6 @@ mtree_file_path(fsnode *node)
 	if (res == NULL)
 		errno = ENOMEM;
 	return res;
-
 }
 
 /* mtree_resolve() sets errno to indicate why NULL was returned. */
@@ -350,7 +350,7 @@ read_word(FILE *fp, char *buf, size_t bufsz)
 			if (error == -1)
 				mtree_error("unexpected end of file");
 			return (error);
-		case '#':		/* comment -- skip to end of line. */
+		case '#': /* comment -- skip to end of line. */
 			if (!esc) {
 				error = skip_to(fp, "\n");
 				if (!error)
@@ -398,7 +398,7 @@ read_word(FILE *fp, char *buf, size_t bufsz)
 				 */
 				if (qlvl > 0)
 					mtree_warning("quoted word straddles "
-					    "onto next line.");
+						      "onto next line.");
 				fi = SLIST_FIRST(&mtree_fileinfo);
 				fi->line++;
 			}
@@ -549,8 +549,8 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 					error = ENOATTR;
 					break;
 				}
-				error = read_number(value, 10, &num,
-				    0, UINT_MAX);
+				error = read_number(value, 10, &num, 0,
+				    UINT_MAX);
 				if (!error)
 					st->st_gid = num;
 			} else if (strcmp(keyword, "gname") == 0) {
@@ -590,8 +590,8 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 					break;
 				}
 				if (value[0] >= '0' && value[0] <= '9') {
-					error = read_number(value, 8, &num,
-					    0, 07777);
+					error = read_number(value, 8, &num, 0,
+					    07777);
 					if (!error) {
 						st->st_mode &= S_IFMT;
 						st->st_mode |= num;
@@ -618,8 +618,8 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 					error = ENOATTR;
 					break;
 				}
-				error = read_number(value, 10, &num,
-				    0, INTMAX_MAX);
+				error = read_number(value, 10, &num, 0,
+				    INTMAX_MAX);
 				if (!error)
 					st->st_size = num;
 			} else
@@ -650,8 +650,7 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 #if HAVE_STRUCT_STAT_ST_MTIMENSEC
 				if (p == NULL)
 					break;
-				error = read_number(p, 10, &num, 0,
-				    INTMAX_MAX);
+				error = read_number(p, 10, &num, 0, INTMAX_MAX);
 				if (error)
 					break;
 				st->st_atimensec = num;
@@ -680,8 +679,8 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 					error = ENOATTR;
 					break;
 				}
-				error = read_number(value, 10, &num,
-				    0, UINT_MAX);
+				error = read_number(value, 10, &num, 0,
+				    UINT_MAX);
 				if (!error)
 					st->st_uid = num;
 			} else if (strcmp(keyword, "uname") == 0) {
@@ -733,14 +732,16 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 	if (node->contents != NULL) {
 		if (node->symlink != NULL) {
 			mtree_error("%s: both link and contents keywords "
-			    "defined", node->name);
+				    "defined",
+			    node->name);
 			return (0);
 		}
 		type = S_IFREG;
 	} else if (node->type != 0) {
 		type = node->type;
 		if (type == S_IFLNK && node->symlink == NULL) {
-			mtree_error("%s: link type requires link keyword", node->name);
+			mtree_error("%s: link type requires link keyword",
+			    node->name);
 			return (0);
 		} else if (type == S_IFREG) {
 			/* the named path is the default contents */
@@ -775,9 +776,9 @@ read_mtree_keywords(FILE *fp, fsnode *node)
 	}
 
 	/*
-         * Check for hardlinks. If the contents key is used, then the check
-         * will only trigger if the contents file is a link even if it is used
-         * by more than one file
+	 * Check for hardlinks. If the contents key is used, then the check
+	 * will only trigger if the contents file is a link even if it is used
+	 * by more than one file
 	 */
 	if (sb.st_nlink > 1) {
 		fsinode *curino;
@@ -812,7 +813,7 @@ read_mtree_command(FILE *fp)
 
 	error = read_mtree_keywords(fp, &mtree_global);
 
- out:
+out:
 	skip_to(fp, "\n");
 	(void)getc(fp);
 	return (error);
@@ -896,12 +897,10 @@ read_mtree_spec1(FILE *fp, bool def, const char *name)
 			if (def == true) {
 				if (dupsok == 0)
 					mtree_error(
-					    "duplicate definition of %s",
-					    name);
+					    "duplicate definition of %s", name);
 				else if (dupsok == 1)
 					mtree_warning(
-					    "duplicate definition of %s",
-					    name);
+					    "duplicate definition of %s", name);
 				return (0);
 			}
 
@@ -973,7 +972,7 @@ read_mtree_spec1(FILE *fp, bool def, const char *name)
 static int
 read_mtree_spec(FILE *fp)
 {
-	char pathspec[PATH_MAX], pathtmp[4*PATH_MAX + 1];
+	char pathspec[PATH_MAX], pathtmp[4 * PATH_MAX + 1];
 	char *cp;
 	int error;
 
@@ -997,7 +996,7 @@ read_mtree_spec(FILE *fp)
 			/* Disallow '..' as a component. */
 			if (IS_DOTDOT(pathspec)) {
 				mtree_error("absolute path cannot contain "
-				    ".. component");
+					    ".. component");
 				goto out;
 			}
 
@@ -1011,7 +1010,7 @@ read_mtree_spec(FILE *fp)
 		/* Disallow '.' and '..' as the last component. */
 		if (!error && (IS_DOT(pathspec) || IS_DOTDOT(pathspec))) {
 			mtree_error("absolute path cannot contain . or .. "
-			    "components");
+				    "components");
 			goto out;
 		}
 	}
@@ -1020,7 +1019,7 @@ read_mtree_spec(FILE *fp)
 	if (!error && pathspec[0] != '\0')
 		error = read_mtree_spec1(fp, true, pathspec);
 
- out:
+out:
 	skip_to(fp, "\n");
 	(void)getc(fp);
 	return (error);
@@ -1078,18 +1077,18 @@ read_mtree(const char *fname, fsnode *node)
 		}
 
 		switch (c) {
-		case '\n':		/* empty line */
+		case '\n': /* empty line */
 			error = 0;
 			break;
-		case '#':		/* comment -- skip to end of line. */
+		case '#': /* comment -- skip to end of line. */
 			error = skip_to(fp, "\n");
 			if (!error)
 				(void)getc(fp);
 			break;
-		case '/':		/* special commands */
+		case '/': /* special commands */
 			error = read_mtree_command(fp);
 			break;
-		default:		/* specification */
+		default: /* specification */
 			ungetc(c, fp);
 			error = read_mtree_spec(fp);
 			break;
@@ -1100,13 +1099,13 @@ read_mtree(const char *fname, fsnode *node)
 	endgrent();
 
 	if (error <= 0 && (errors || warnings)) {
-		warnx("%u error(s) and %u warning(s) in mtree manifest",
-		    errors, warnings);
+		warnx("%u error(s) and %u warning(s) in mtree manifest", errors,
+		    warnings);
 		if (errors)
 			exit(1);
 	}
 
- out:
+out:
 	if (error > 0)
 		errc(1, error, "Error reading mtree file");
 

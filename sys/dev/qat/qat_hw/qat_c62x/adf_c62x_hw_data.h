@@ -38,8 +38,8 @@
 
 /* Mask for VF2PF interrupts */
 #define ADF_C62X_VF2PF1_16 (0xFFFF << 9)
-#define ADF_C62X_ERRSOU3_VF2PF(errsou3) (((errsou3)&0x01FFFE00) >> 9)
-#define ADF_C62X_ERRMSK3_VF2PF(vf_mask) (((vf_mask)&0xFFFF) << 9)
+#define ADF_C62X_ERRSOU3_VF2PF(errsou3) (((errsou3) & 0x01FFFE00) >> 9)
+#define ADF_C62X_ERRMSK3_VF2PF(vf_mask) (((vf_mask) & 0xFFFF) << 9)
 
 /* Masks for correctable error interrupts. */
 #define ADF_C62X_ERRMSK0_CERR (BIT(24) | BIT(16) | BIT(8) | BIT(0))
@@ -51,7 +51,7 @@
 /* Masks for uncorrectable error interrupts. */
 #define ADF_C62X_ERRMSK0_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
 #define ADF_C62X_ERRMSK1_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
-#define ADF_C62X_ERRMSK3_UERR                                                  \
+#define ADF_C62X_ERRMSK3_UERR \
 	(BIT(8) | BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(0))
 #define ADF_C62X_ERRMSK4_UERR (BIT(9) | BIT(1))
 #define ADF_C62X_ERRMSK5_UERR (BIT(18) | BIT(17) | BIT(16))
@@ -84,8 +84,8 @@
  */
 #define ADF_C62X_CPP_CFC_UE (BIT(1) | BIT(0))
 
-#define ADF_C62X_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i)*0x04))
-#define ADF_C62X_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i)*0x04))
+#define ADF_C62X_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i) * 0x04))
+#define ADF_C62X_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i) * 0x04))
 
 /* Arbiter configuration */
 #define ADF_C62X_ARB_OFFSET 0x30000

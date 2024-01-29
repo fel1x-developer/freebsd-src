@@ -25,8 +25,8 @@
 #define ADF_200XX_PFIEERRUNCSTSR 0x280
 
 /* Error detection and correction */
-#define ADF_200XX_AE_CTX_ENABLES(i) ((i)*0x1000 + 0x20818)
-#define ADF_200XX_AE_MISC_CONTROL(i) ((i)*0x1000 + 0x20960)
+#define ADF_200XX_AE_CTX_ENABLES(i) ((i) * 0x1000 + 0x20818)
+#define ADF_200XX_AE_MISC_CONTROL(i) ((i) * 0x1000 + 0x20960)
 #define ADF_200XX_ENABLE_AE_ECC_ERR BIT(28)
 #define ADF_200XX_ENABLE_AE_ECC_PARITY_CORR (BIT(24) | BIT(12))
 #define ADF_200XX_UERRSSMSH(i) (i * 0x4000 + 0x18)
@@ -40,8 +40,8 @@
 
 /* Mask for VF2PF interrupts */
 #define ADF_200XX_VF2PF1_16 (0xFFFF << 9)
-#define ADF_200XX_ERRSOU3_VF2PF(errsou3) (((errsou3)&0x01FFFE00) >> 9)
-#define ADF_200XX_ERRMSK3_VF2PF(vf_mask) (((vf_mask)&0xFFFF) << 9)
+#define ADF_200XX_ERRSOU3_VF2PF(errsou3) (((errsou3) & 0x01FFFE00) >> 9)
+#define ADF_200XX_ERRMSK3_VF2PF(vf_mask) (((vf_mask) & 0xFFFF) << 9)
 
 /* Masks for correctable error interrupts. */
 #define ADF_200XX_ERRMSK0_CERR (BIT(24) | BIT(16) | BIT(8) | BIT(0))
@@ -51,7 +51,7 @@
 /* Masks for uncorrectable error interrupts. */
 #define ADF_200XX_ERRMSK0_UERR (BIT(25) | BIT(17) | BIT(9) | BIT(1))
 #define ADF_200XX_ERRMSK1_UERR (BIT(9) | BIT(1))
-#define ADF_200XX_ERRMSK3_UERR                                                 \
+#define ADF_200XX_ERRMSK3_UERR \
 	(BIT(6) | BIT(5) | BIT(4) | BIT(3) | BIT(2) | BIT(0))
 #define ADF_200XX_ERRMSK5_UERR (BIT(16))
 
@@ -82,15 +82,15 @@
  */
 #define ADF_200XX_CPP_CFC_UE (BIT(1) | BIT(0))
 
-#define ADF_200XX_SLICEPWRDOWN(i) ((i)*0x4000 + 0x2C)
+#define ADF_200XX_SLICEPWRDOWN(i) ((i) * 0x4000 + 0x2C)
 /* Enabling PKE4-PKE0. */
-#define ADF_200XX_MMP_PWR_UP_MSK                                               \
+#define ADF_200XX_MMP_PWR_UP_MSK \
 	(BIT(20) | BIT(19) | BIT(18) | BIT(17) | BIT(16))
 
 /* CPM Uncorrectable Errors */
-#define ADF_200XX_INTMASKSSM(i) ((i)*0x4000 + 0x0)
+#define ADF_200XX_INTMASKSSM(i) ((i) * 0x4000 + 0x0)
 /* Disabling interrupts for correctable errors. */
-#define ADF_200XX_INTMASKSSM_UERR                                              \
+#define ADF_200XX_INTMASKSSM_UERR \
 	(BIT(11) | BIT(9) | BIT(7) | BIT(5) | BIT(3) | BIT(1))
 
 /* MMP */
@@ -100,8 +100,8 @@
 /* BIT(3) enables logging. */
 #define ADF_200XX_UERRSSMMMP_EN (BIT(3))
 
-#define ADF_200XX_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i)*0x04))
-#define ADF_200XX_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i)*0x04))
+#define ADF_200XX_PF2VF_OFFSET(i) (0x3A000 + 0x280 + ((i) * 0x04))
+#define ADF_200XX_VINTMSK_OFFSET(i) (0x3A000 + 0x200 + ((i) * 0x04))
 
 /* Arbiter configuration */
 #define ADF_200XX_ARB_OFFSET 0x30000

@@ -42,19 +42,18 @@
  */
 
 VNET_DECLARE(uint32_t, in_pcbhashseed);
-#define	V_in_pcbhashseed	VNET(in_pcbhashseed)
+#define V_in_pcbhashseed VNET(in_pcbhashseed)
 
-void	inp_lock(struct inpcb *inp, const inp_lookup_t lock);
-void	inp_unlock(struct inpcb *inp, const inp_lookup_t lock);
-int	inp_trylock(struct inpcb *inp, const inp_lookup_t lock);
-bool	inp_smr_lock(struct inpcb *, const inp_lookup_t);
-int	in_pcb_lport(struct inpcb *, struct in_addr *, u_short *,
-	    struct ucred *, int);
-int	in_pcb_lport_dest(struct inpcb *inp, struct sockaddr *lsa,
-            u_short *lportp, struct sockaddr *fsa, u_short fport,
-            struct ucred *cred, int lookupflags);
-struct inpcb *	in_pcblookup_local(struct inpcbinfo *, struct in_addr, u_short,
-	    int, struct ucred *);
+void inp_lock(struct inpcb *inp, const inp_lookup_t lock);
+void inp_unlock(struct inpcb *inp, const inp_lookup_t lock);
+int inp_trylock(struct inpcb *inp, const inp_lookup_t lock);
+bool inp_smr_lock(struct inpcb *, const inp_lookup_t);
+int in_pcb_lport(struct inpcb *, struct in_addr *, u_short *, struct ucred *,
+    int);
+int in_pcb_lport_dest(struct inpcb *inp, struct sockaddr *lsa, u_short *lportp,
+    struct sockaddr *fsa, u_short fport, struct ucred *cred, int lookupflags);
+struct inpcb *in_pcblookup_local(struct inpcbinfo *, struct in_addr, u_short,
+    int, struct ucred *);
 
 struct inpcbport {
 	struct inpcbhead phd_pcblist;

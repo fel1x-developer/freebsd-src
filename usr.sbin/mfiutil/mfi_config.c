@@ -43,16 +43,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
-static int	add_spare(int ac, char **av);
-static int	remove_spare(int ac, char **av);
+static int add_spare(int ac, char **av);
+static int remove_spare(int ac, char **av);
 
 static long
 dehumanize(const char *value)
 {
-	char    *vtp;
-	long    iv;
+	char *vtp;
+	long iv;
 
 	if (value == NULL)
 		return (0);
@@ -61,13 +62,17 @@ dehumanize(const char *value)
 		return (0);
 	}
 	switch (vtp[0]) {
-	case 't': case 'T':
+	case 't':
+	case 'T':
 		iv *= 1024;
-	case 'g': case 'G':
+	case 'g':
+	case 'G':
 		iv *= 1024;
-	case 'm': case 'M':
+	case 'm':
+	case 'M':
 		iv *= 1024;
-	case 'k': case 'K':
+	case 'k':
+	case 'K':
 		iv *= 1024;
 	case '\0':
 		break;
@@ -84,8 +89,8 @@ mfi_config_read(int fd, struct mfi_config_data **configp)
 }
 
 int
-mfi_config_read_opcode(int fd, uint32_t opcode, struct mfi_config_data **configp,
-	uint8_t *mbox, size_t mboxlen)
+mfi_config_read_opcode(int fd, uint32_t opcode,
+    struct mfi_config_data **configp, uint8_t *mbox, size_t mboxlen)
 {
 	struct mfi_config_data *config;
 	uint32_t config_size;
@@ -101,8 +106,8 @@ fetch:
 	config = reallocf(config, config_size);
 	if (config == NULL)
 		return (-1);
-	if (mfi_dcmd_command(fd, opcode, config,
-	    config_size, mbox, mboxlen, NULL) < 0) {
+	if (mfi_dcmd_command(fd, opcode, config, config_size, mbox, mboxlen,
+		NULL) < 0) {
 		error = errno;
 		free(config);
 		errno = error;
@@ -170,7 +175,8 @@ clear_config(int ac __unused, char **av __unused)
 
 	if (!mfi_reconfig_supported(mfi_device)) {
 		warnx("The current %s driver does not support "
-		    "configuration changes.", mfi_device);
+		      "configuration changes.",
+		    mfi_device);
 		close(fd);
 		return (EOPNOTSUPP);
 	}
@@ -185,14 +191,14 @@ clear_config(int ac __unused, char **av __unused)
 	for (i = 0; i < list.ld_count; i++) {
 		if (mfi_volume_busy(fd, list.ld_list[i].ld.v.target_id)) {
 			warnx("Volume %s is busy and cannot be deleted",
-			    mfi_volume_name(fd, list.ld_list[i].ld.v.target_id));
+			    mfi_volume_name(fd,
+				list.ld_list[i].ld.v.target_id));
 			close(fd);
 			return (EBUSY);
 		}
 	}
 
-	printf(
-	    "Are you sure you wish to clear the configuration on %s? [y/N] ",
+	printf("Are you sure you wish to clear the configuration on %s? [y/N] ",
 	    mfi_device);
 	ch = getchar();
 	if (ch != 'y' && ch != 'Y') {
@@ -201,7 +207,8 @@ clear_config(int ac __unused, char **av __unused)
 		return (0);
 	}
 
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_CLEAR, NULL, 0, NULL, 0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_CLEAR, NULL, 0, NULL, 0, NULL) <
+	    0) {
 		error = errno;
 		warn("Failed to clear configuration");
 		close(fd);
@@ -218,15 +225,15 @@ MFI_COMMAND(top, clear, clear_config);
 #define MAX_DRIVES_PER_ARRAY MFI_MAX_ROW_SIZE
 #define MFI_ARRAY_SIZE sizeof(struct mfi_array)
 
-#define	RT_RAID0	0
-#define	RT_RAID1	1
-#define	RT_RAID5	2
-#define	RT_RAID6	3
-#define	RT_JBOD		4
-#define	RT_CONCAT	5
-#define	RT_RAID10	6
-#define	RT_RAID50	7
-#define	RT_RAID60	8
+#define RT_RAID0 0
+#define RT_RAID1 1
+#define RT_RAID5 2
+#define RT_RAID6 3
+#define RT_JBOD 4
+#define RT_CONCAT 5
+#define RT_RAID10 6
+#define RT_RAID50 7
+#define RT_RAID60 8
 
 static int
 compare_int(const void *one, const void *two)
@@ -241,45 +248,45 @@ compare_int(const void *one, const void *two)
 
 static struct raid_type_entry {
 	const char *name;
-	int	raid_type;
+	int raid_type;
 } raid_type_table[] = {
-	{ "raid0",	RT_RAID0 },
-	{ "raid-0",	RT_RAID0 },
-	{ "raid1",	RT_RAID1 },
-	{ "raid-1",	RT_RAID1 },
-	{ "mirror",	RT_RAID1 },
-	{ "raid5",	RT_RAID5 },
-	{ "raid-5",	RT_RAID5 },
-	{ "raid6",	RT_RAID6 },
-	{ "raid-6",	RT_RAID6 },
-	{ "jbod",	RT_JBOD },
-	{ "concat",	RT_CONCAT },
-	{ "raid10",	RT_RAID10 },
-	{ "raid1+0",	RT_RAID10 },
-	{ "raid-10",	RT_RAID10 },
-	{ "raid-1+0",	RT_RAID10 },
-	{ "raid50",	RT_RAID50 },
-	{ "raid5+0",	RT_RAID50 },
-	{ "raid-50",	RT_RAID50 },
-	{ "raid-5+0",	RT_RAID50 },
-	{ "raid60",	RT_RAID60 },
-	{ "raid6+0",	RT_RAID60 },
-	{ "raid-60",	RT_RAID60 },
-	{ "raid-6+0",	RT_RAID60 },
-	{ NULL,		0 },
+	{ "raid0", RT_RAID0 },
+	{ "raid-0", RT_RAID0 },
+	{ "raid1", RT_RAID1 },
+	{ "raid-1", RT_RAID1 },
+	{ "mirror", RT_RAID1 },
+	{ "raid5", RT_RAID5 },
+	{ "raid-5", RT_RAID5 },
+	{ "raid6", RT_RAID6 },
+	{ "raid-6", RT_RAID6 },
+	{ "jbod", RT_JBOD },
+	{ "concat", RT_CONCAT },
+	{ "raid10", RT_RAID10 },
+	{ "raid1+0", RT_RAID10 },
+	{ "raid-10", RT_RAID10 },
+	{ "raid-1+0", RT_RAID10 },
+	{ "raid50", RT_RAID50 },
+	{ "raid5+0", RT_RAID50 },
+	{ "raid-50", RT_RAID50 },
+	{ "raid-5+0", RT_RAID50 },
+	{ "raid60", RT_RAID60 },
+	{ "raid6+0", RT_RAID60 },
+	{ "raid-60", RT_RAID60 },
+	{ "raid-6+0", RT_RAID60 },
+	{ NULL, 0 },
 };
 
 struct config_id_state {
-	int	array_count;
-	int	log_drv_count;
-	int	*arrays;
-	int	*volumes;
+	int array_count;
+	int log_drv_count;
+	int *arrays;
+	int *volumes;
 	uint16_t array_ref;
-	uint8_t	target_id;
+	uint8_t target_id;
 };
 
 struct array_info {
-	int	drive_count;
+	int drive_count;
 	struct mfi_pd_info *drives;
 	struct mfi_array *array;
 };
@@ -317,7 +324,7 @@ parse_array(int fd, int raid_type, char *array_str, struct array_info *info)
 	case RT_RAID10:
 		if (count % 2 != 0) {
 			warnx("RAID1 and RAID10 require an even number of "
-			    "drives in each array");
+			      "drives in each array");
 			return (EINVAL);
 		}
 		break;
@@ -325,7 +332,7 @@ parse_array(int fd, int raid_type, char *array_str, struct array_info *info)
 	case RT_RAID50:
 		if (count < 3) {
 			warnx("RAID5 and RAID50 require at least 3 drives in "
-			    "each array");
+			      "each array");
 			return (EINVAL);
 		}
 		break;
@@ -333,7 +340,7 @@ parse_array(int fd, int raid_type, char *array_str, struct array_info *info)
 	case RT_RAID60:
 		if (count < 4) {
 			warnx("RAID6 and RAID60 require at least 4 drives in "
-			    "each array");
+			      "each array");
 			return (EINVAL);
 		}
 		break;
@@ -434,8 +441,8 @@ build_array(int fd __unused, char *arrayp, struct array_info *array_info,
 		if (verbose)
 			printf("Adding drive %s to array %u\n",
 			    mfi_drive_name(NULL,
-			    array_info->drives[i].ref.v.device_id,
-			    MFI_DNAME_DEVICE_ID|MFI_DNAME_HONOR_OPTS),
+				array_info->drives[i].ref.v.device_id,
+				MFI_DNAME_DEVICE_ID | MFI_DNAME_HONOR_OPTS),
 			    ar->array_ref);
 		if (ar->size > array_info->drives[i].coerced_size)
 			ar->size = array_info->drives[i].coerced_size;
@@ -595,7 +602,8 @@ create_volume(int ac, char **av)
 
 	if (!mfi_reconfig_supported(mfi_device)) {
 		warnx("The current %s(4) driver does not support "
-		    "configuration changes.", mfi_device);
+		      "configuration changes.",
+		    mfi_device);
 		error = EOPNOTSUPP;
 		goto error;
 	}
@@ -670,7 +678,7 @@ create_volume(int ac, char **av)
 	case RT_RAID60:
 		if (narrays < 1) {
 			warnx("RAID10, RAID50, and RAID60 require at least "
-			    "two drive lists");
+			      "two drive lists");
 			error = EINVAL;
 			goto error;
 		}
@@ -701,7 +709,7 @@ create_volume(int ac, char **av)
 		for (i = 1; i < narrays; i++) {
 			if (arrays[i].drive_count != arrays[0].drive_count) {
 				warnx("All arrays must contain the same "
-				    "number of drives");
+				      "number of drives");
 				error = EINVAL;
 				goto error;
 			}
@@ -789,11 +797,11 @@ create_volume(int ac, char **av)
 	}
 	config->size = config_size;
 	config->array_count = narrays;
-	config->array_size = MFI_ARRAY_SIZE;	/* XXX: Firmware hardcode */
+	config->array_size = MFI_ARRAY_SIZE; /* XXX: Firmware hardcode */
 	config->log_drv_count = nvolumes;
 	config->log_drv_size = sizeof(struct mfi_ld_config);
 	config->spares_count = 0;
-	config->spares_size = 40;		/* XXX: Firmware hardcode */
+	config->spares_size = 40; /* XXX: Firmware hardcode */
 	cfg_arrays = (char *)config->array;
 	cfg_volumes = cfg_arrays + config->array_size * narrays;
 
@@ -818,8 +826,8 @@ create_volume(int ac, char **av)
 #endif
 
 	/* Send the new config to the controller. */
-	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_ADD, config, config_size,
-	    NULL, 0, NULL) < 0) {
+	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_ADD, config, config_size, NULL, 0,
+		NULL) < 0) {
 		error = errno;
 		warn("Failed to add volume");
 		/* FALLTHROUGH */
@@ -877,7 +885,8 @@ delete_volume(int ac, char **av)
 
 	if (!mfi_reconfig_supported(mfi_device)) {
 		warnx("The current %s(4) driver does not support "
-		    "configuration changes.", mfi_device);
+		      "configuration changes.",
+		    mfi_device);
 		close(fd);
 		return (EOPNOTSUPP);
 	}
@@ -905,7 +914,7 @@ delete_volume(int ac, char **av)
 
 	mbox_store_ldref(mbox, &info.ld_config.properties.ld);
 	if (mfi_dcmd_command(fd, MFI_DCMD_LD_DELETE, NULL, 0, mbox,
-	    sizeof(mbox), NULL) < 0) {
+		sizeof(mbox), NULL) < 0) {
 		error = errno;
 		warn("Failed to delete volume");
 		close(fd);
@@ -975,8 +984,8 @@ add_spare(int ac, char **av)
 		goto error;
 	}
 
-	spare = malloc(sizeof(struct mfi_spare) + sizeof(uint16_t) *
-	    config->array_count);
+	spare = malloc(
+	    sizeof(struct mfi_spare) + sizeof(uint16_t) * config->array_count);
 	if (spare == NULL) {
 		warnx("malloc failed");
 		error = ENOMEM;
@@ -999,7 +1008,7 @@ add_spare(int ac, char **av)
 			p += config->array_size;
 		}
 		spare->array_count = 0;
-	} else  {
+	} else {
 		/*
 		 * Dedicated spares only back the arrays for a
 		 * specific volume.
@@ -1032,8 +1041,9 @@ add_spare(int ac, char **av)
 	}
 
 	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_MAKE_SPARE, spare,
-	    sizeof(struct mfi_spare) + sizeof(uint16_t) * spare->array_count,
-	    NULL, 0, NULL) < 0) {
+		sizeof(struct mfi_spare) +
+		    sizeof(uint16_t) * spare->array_count,
+		NULL, 0, NULL) < 0) {
 		error = errno;
 		warn("Failed to assign spare");
 		/* FALLTHROUGH. */
@@ -1090,7 +1100,7 @@ remove_spare(int ac, char **av)
 
 	mbox_store_pdref(mbox, &info.ref);
 	if (mfi_dcmd_command(fd, MFI_DCMD_CFG_REMOVE_SPARE, NULL, 0, mbox,
-	    sizeof(mbox), NULL) < 0) {
+		sizeof(mbox), NULL) < 0) {
 		error = errno;
 		warn("Failed to delete spare");
 		close(fd);
@@ -1118,8 +1128,7 @@ dump_config(int fd, struct mfi_config_data *config, const char *msg_prefix)
 	if (NULL == msg_prefix)
 		msg_prefix = "Configuration (Debug)";
 
-	printf(
-	    "%s %s: %d arrays, %d volumes, %d spares\n", mfi_device,
+	printf("%s %s: %d arrays, %d volumes, %d spares\n", mfi_device,
 	    msg_prefix, config->array_count, config->log_drv_count,
 	    config->spares_count);
 	printf("  array size: %u\n", config->array_size);
@@ -1140,10 +1149,11 @@ dump_config(int fd, struct mfi_config_data *config, const char *msg_prefix)
 				printf("        drive %u %s\n", device_id,
 				    mfi_pdstate(ar->pd[j].fw_state));
 				if (mfi_pd_get_info(fd, device_id, &pinfo,
-				    NULL) >= 0) {
+					NULL) >= 0) {
 					printf("          raw size: %ju\n",
 					    (uintmax_t)pinfo.raw_size);
-					printf("          non-coerced size: %ju\n",
+					printf(
+					    "          non-coerced size: %ju\n",
 					    (uintmax_t)pinfo.non_coerced_size);
 					printf("          coerced size: %ju\n",
 					    (uintmax_t)pinfo.coerced_size);
@@ -1189,7 +1199,8 @@ dump_config(int fd, struct mfi_config_data *config, const char *msg_prefix)
 		sp = (struct mfi_spare *)p;
 		printf("    %s spare %u ",
 		    sp->spare_type & MFI_SPARE_DEDICATED ? "dedicated" :
-		    "global", sp->ref.v.device_id);
+							   "global",
+		    sp->ref.v.device_id);
 		printf("%s", mfi_pdstate(MFI_PD_STATE_HOT_SPARE));
 		printf(" backs:\n");
 		for (j = 0; j < sp->array_count; j++)

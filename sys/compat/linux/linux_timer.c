@@ -199,7 +199,8 @@ linux_timer_gettime64(struct thread *td, struct linux_timer_gettime64_args *uap)
 #endif
 
 int
-linux_timer_getoverrun(struct thread *td, struct linux_timer_getoverrun_args *uap)
+linux_timer_getoverrun(struct thread *td,
+    struct linux_timer_getoverrun_args *uap)
 {
 
 	return (kern_ktimer_getoverrun(td, uap->timerid));

@@ -33,21 +33,23 @@
 #include <dev/iicbus/iiconf.h>
 
 #include <linux/device.h>
-#include <linux/i2c.h>
 #include <linux/i2c-algo-bit.h>
+#include <linux/i2c.h>
 #include <linux/list.h>
 #include <linux/pci.h>
 
-#include "iicbus_if.h"
 #include "iicbb_if.h"
+#include "iicbus_if.h"
 #include "lkpi_iic_if.h"
 
-static int lkpi_i2c_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs);
-static int lkpi_i2c_reset(device_t dev, u_char speed, u_char addr, u_char *oldaddr);
+static int lkpi_i2c_transfer(device_t dev, struct iic_msg *msgs,
+    uint32_t nmsgs);
+static int lkpi_i2c_reset(device_t dev, u_char speed, u_char addr,
+    u_char *oldaddr);
 
 struct lkpi_iic_softc {
-	device_t		iicbus;
-	struct i2c_adapter	*adapter;
+	device_t iicbus;
+	struct i2c_adapter *adapter;
 };
 
 static struct sx lkpi_sx_i2c;
@@ -66,10 +68,8 @@ lkpi_sysuninit_i2c(void *arg __unused)
 	sx_destroy(&lkpi_sx_i2c);
 }
 
-SYSINIT(lkpi_i2c, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    lkpi_sysinit_i2c, NULL);
-SYSUNINIT(lkpi_i2c, SI_SUB_DRIVERS, SI_ORDER_ANY,
-    lkpi_sysuninit_i2c, NULL);
+SYSINIT(lkpi_i2c, SI_SUB_DRIVERS, SI_ORDER_ANY, lkpi_sysinit_i2c, NULL);
+SYSUNINIT(lkpi_i2c, SI_SUB_DRIVERS, SI_ORDER_ANY, lkpi_sysuninit_i2c, NULL);
 
 static int
 lkpi_iic_probe(device_t dev)
@@ -127,20 +127,20 @@ lkpi_iic_get_adapter(device_t dev)
 
 static device_method_t lkpi_iic_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		lkpi_iic_probe),
-	DEVMETHOD(device_attach,	lkpi_iic_attach),
-	DEVMETHOD(device_detach,	lkpi_iic_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, lkpi_iic_probe),
+	DEVMETHOD(device_attach, lkpi_iic_attach),
+	DEVMETHOD(device_detach, lkpi_iic_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* iicbus interface */
-	DEVMETHOD(iicbus_transfer,	lkpi_i2c_transfer),
-	DEVMETHOD(iicbus_reset,		lkpi_i2c_reset),
-	DEVMETHOD(iicbus_callback,	iicbus_null_callback),
+	DEVMETHOD(iicbus_transfer, lkpi_i2c_transfer),
+	DEVMETHOD(iicbus_reset, lkpi_i2c_reset),
+	DEVMETHOD(iicbus_callback, iicbus_null_callback),
 
 	/* lkpi_iic interface */
-	DEVMETHOD(lkpi_iic_add_adapter,	lkpi_iic_add_adapter),
-	DEVMETHOD(lkpi_iic_get_adapter,	lkpi_iic_get_adapter),
+	DEVMETHOD(lkpi_iic_add_adapter, lkpi_iic_add_adapter),
+	DEVMETHOD(lkpi_iic_get_adapter, lkpi_iic_get_adapter),
 
 	DEVMETHOD_END
 };
@@ -164,8 +164,9 @@ lkpi_i2c_reset(device_t dev, u_char speed, u_char addr, u_char *oldaddr)
 	return (0);
 }
 
-static int i2c_check_for_quirks(struct i2c_adapter *adapter,
-    struct iic_msg *msgs, uint32_t nmsgs)
+static int
+i2c_check_for_quirks(struct i2c_adapter *adapter, struct iic_msg *msgs,
+    uint32_t nmsgs)
 {
 	const struct i2c_adapter_quirks *quirks;
 	device_t dev;
@@ -213,8 +214,7 @@ static int i2c_check_for_quirks(struct i2c_adapter *adapter,
 				device_printf(dev,
 				    "Error: "
 				    "message too long: %hu > %hu max\n",
-				    msgs[0].len,
-				    quirks->max_comb_1st_msg_len);
+				    msgs[0].len, quirks->max_comb_1st_msg_len);
 				return (EOPNOTSUPP);
 			}
 			if (quirks->max_comb_2nd_msg_len &&
@@ -222,8 +222,7 @@ static int i2c_check_for_quirks(struct i2c_adapter *adapter,
 				device_printf(dev,
 				    "Error: "
 				    "message too long: %hu > %hu max\n",
-				    msgs[1].len,
-				    quirks->max_comb_2nd_msg_len);
+				    msgs[1].len, quirks->max_comb_2nd_msg_len);
 				return (EOPNOTSUPP);
 			}
 
@@ -232,8 +231,7 @@ static int i2c_check_for_quirks(struct i2c_adapter *adapter,
 	}
 
 	if (max_nmsgs && nmsgs > max_nmsgs) {
-		device_printf(dev,
-		    "Error: too many messages: %d > %d max\n",
+		device_printf(dev, "Error: too many messages: %d > %d max\n",
 		    nmsgs, max_nmsgs);
 		return (EOPNOTSUPP);
 	}
@@ -258,8 +256,8 @@ static int i2c_check_for_quirks(struct i2c_adapter *adapter,
 			if (check_len && quirks->max_write_len &&
 			    msgs[i].len > quirks->max_write_len) {
 				device_printf(dev,
-				    "Message %d too long: %hu > %hu max\n",
-				    i, msgs[i].len, quirks->max_write_len);
+				    "Message %d too long: %hu > %hu max\n", i,
+				    msgs[i].len, quirks->max_write_len);
 				return (EOPNOTSUPP);
 			}
 			if (quirks->flags & I2C_AQ_NO_ZERO_LEN_WRITE &&
@@ -289,8 +287,8 @@ lkpi_i2c_transfer(device_t dev, struct iic_msg *msgs, uint32_t nmsgs)
 		return (ret);
 	linux_set_current(curthread);
 
-	linux_msgs = malloc(sizeof(struct i2c_msg) * nmsgs,
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	linux_msgs = malloc(sizeof(struct i2c_msg) * nmsgs, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	for (i = 0; i < nmsgs; i++) {
 		linux_msgs[i].addr = msgs[i].slave >> 1;
@@ -324,9 +322,11 @@ lkpi_i2c_add_adapter(struct i2c_adapter *adapter)
 		device_printf(adapter->dev.parent->bsddev,
 		    "Adding i2c adapter %s\n", adapter->name);
 	sx_xlock(&lkpi_sx_i2c);
-	lkpi_iic = device_add_child(adapter->dev.parent->bsddev, "lkpi_iic", -1);
+	lkpi_iic = device_add_child(adapter->dev.parent->bsddev, "lkpi_iic",
+	    -1);
 	if (lkpi_iic == NULL) {
-		device_printf(adapter->dev.parent->bsddev, "Couldn't add lkpi_iic\n");
+		device_printf(adapter->dev.parent->bsddev,
+		    "Couldn't add lkpi_iic\n");
 		sx_xunlock(&lkpi_sx_i2c);
 		return (ENXIO);
 	}
@@ -336,7 +336,7 @@ lkpi_i2c_add_adapter(struct i2c_adapter *adapter)
 	bus_topo_unlock();
 	if (error) {
 		device_printf(adapter->dev.parent->bsddev,
-		  "failed to attach child: error %d\n", error);
+		    "failed to attach child: error %d\n", error);
 		sx_xunlock(&lkpi_sx_i2c);
 		return (ENXIO);
 	}
@@ -358,7 +358,8 @@ lkpi_i2c_del_adapter(struct i2c_adapter *adapter)
 		    "Removing i2c adapter %s\n", adapter->name);
 	sx_xlock(&lkpi_sx_i2c);
 	unit = 0;
-	while ((child = device_find_child(adapter->dev.parent->bsddev, "lkpi_iic", unit++)) != NULL) {
+	while ((child = device_find_child(adapter->dev.parent->bsddev,
+		    "lkpi_iic", unit++)) != NULL) {
 
 		if (adapter == LKPI_IIC_GET_ADAPTER(child)) {
 			bus_topo_lock();
@@ -370,7 +371,8 @@ lkpi_i2c_del_adapter(struct i2c_adapter *adapter)
 	}
 
 	unit = 0;
-	while ((child = device_find_child(adapter->dev.parent->bsddev, "lkpi_iicbb", unit++)) != NULL) {
+	while ((child = device_find_child(adapter->dev.parent->bsddev,
+		    "lkpi_iicbb", unit++)) != NULL) {
 
 		if (adapter == LKPI_IIC_GET_ADAPTER(child)) {
 			bus_topo_lock();

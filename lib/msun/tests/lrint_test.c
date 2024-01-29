@@ -29,37 +29,40 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
 
-#ifdef	__i386__
+#ifdef __i386__
 #include <ieeefp.h>
 #endif
 
 #include "test-utils.h"
 
-#define	test(func, x, result, excepts)	do {					\
-	ATF_CHECK(feclearexcept(FE_ALL_EXCEPT) == 0);				\
-	long long _r = (func)(x);						\
-	ATF_CHECK_MSG(_r == (result) || fetestexcept(FE_INVALID),		\
-	    #func "(%Lg) returned %lld, expected %lld", (long double)x, _r,	\
-	    (long long)(result));						\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, FE_ALL_EXCEPT & ALL_STD_EXCEPT,	\
-	    "for %s(%s)", #func, #x);						\
-} while (0)
+#define test(func, x, result, excepts)                                       \
+	do {                                                                 \
+		ATF_CHECK(feclearexcept(FE_ALL_EXCEPT) == 0);                \
+		long long _r = (func)(x);                                    \
+		ATF_CHECK_MSG(_r == (result) || fetestexcept(FE_INVALID),    \
+		    #func "(%Lg) returned %lld, expected %lld",              \
+		    (long double)x, _r, (long long)(result));                \
+		CHECK_FP_EXCEPTIONS_MSG(excepts,                             \
+		    FE_ALL_EXCEPT &ALL_STD_EXCEPT, "for %s(%s)", #func, #x); \
+	} while (0)
 
-#define	testall(x, result, excepts)	do {				\
-	test(lrint, x, result, excepts);				\
-	test(lrintf, x, result, excepts);				\
-	test(lrintl, x, result, excepts);				\
-	test(llrint, x, result, excepts);				\
-	test(llrintf, x, result, excepts);				\
-	test(llrintl, x, result, excepts);				\
-} while (0)
+#define testall(x, result, excepts)                \
+	do {                                       \
+		test(lrint, x, result, excepts);   \
+		test(lrintf, x, result, excepts);  \
+		test(lrintl, x, result, excepts);  \
+		test(llrint, x, result, excepts);  \
+		test(llrintf, x, result, excepts); \
+		test(llrintl, x, result, excepts); \
+	} while (0)
 
-#define	IGNORE	0
+#define IGNORE 0
 
 #pragma STDC FENV_ACCESS ON
 
@@ -94,7 +97,7 @@ run_tests(void)
 	test(lrintf, 0x7fffff80.0p0f, 0x7fffff80l, 0);
 
 	ATF_REQUIRE_EQ(0, fesetround(FE_TOWARDZERO));
-	test(lrint, 0x7fffffff.8p0,  0x7fffffffl, FE_INEXACT);
+	test(lrint, 0x7fffffff.8p0, 0x7fffffffl, FE_INEXACT);
 	test(lrint, -0x80000000.8p0, -0x80000000l, FE_INEXACT);
 	test(lrint, 0x80000000.0p0, IGNORE, FE_INVALID);
 	test(lrintf, 0x80000000.0p0f, IGNORE, FE_INVALID);
@@ -107,8 +110,10 @@ run_tests(void)
 	test(lrintf, 0x7fffff8000000000.0p0f, 0x7fffff8000000000l, 0);
 	test(lrint, -0x8000000000000800.0p0, IGNORE, FE_INVALID);
 	test(lrintf, -0x8000010000000000.0p0f, IGNORE, FE_INVALID);
-	test(lrint, -0x8000000000000000.0p0, (long long)-0x8000000000000000ul, 0);
-	test(lrintf, -0x8000000000000000.0p0f, (long long)-0x8000000000000000ul, 0);
+	test(lrint, -0x8000000000000000.0p0, (long long)-0x8000000000000000ul,
+	    0);
+	test(lrintf, -0x8000000000000000.0p0f, (long long)-0x8000000000000000ul,
+	    0);
 #else
 #error "Unsupported long size"
 #endif
@@ -121,8 +126,10 @@ run_tests(void)
 	test(llrintf, 0x7fffff8000000000.0p0f, 0x7fffff8000000000ll, 0);
 	test(llrint, -0x8000000000000800.0p0, IGNORE, FE_INVALID);
 	test(llrintf, -0x8000010000000000.0p0f, IGNORE, FE_INVALID);
-	test(llrint, -0x8000000000000000.0p0, (long long)-0x8000000000000000ull, 0);
-	test(llrintf, -0x8000000000000000.0p0f, (long long)-0x8000000000000000ull, 0);
+	test(llrint, -0x8000000000000000.0p0, (long long)-0x8000000000000000ull,
+	    0);
+	test(llrintf, -0x8000000000000000.0p0f,
+	    (long long)-0x8000000000000000ull, 0);
 #else
 #error "Unsupported long long size"
 #endif
@@ -132,7 +139,7 @@ ATF_TC_WITHOUT_HEAD(lrint);
 ATF_TC_BODY(lrint, tc)
 {
 	run_tests();
-#ifdef	__i386__
+#ifdef __i386__
 	fpsetprec(FP_PE);
 	run_tests();
 #endif
@@ -140,6 +147,6 @@ ATF_TC_BODY(lrint, tc)
 
 ATF_TP_ADD_TCS(tp)
 {
-    ATF_TP_ADD_TC(tp, lrint);
-    return (atf_no_error());
+	ATF_TP_ADD_TC(tp, lrint);
+	return (atf_no_error());
 }

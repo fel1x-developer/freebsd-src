@@ -65,10 +65,9 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/intel_sas.h>
-
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method enables the framework user to find the SCI Core Port
@@ -82,9 +81,7 @@ extern "C" {
  * @retval SCI_INVALID_HANDLE This value is returned if the core port
  *         object can not be retrieved.
  */
-SCI_PORT_HANDLE_T scif_domain_get_scic_port_handle(
-   SCI_DOMAIN_HANDLE_T  domain
-);
+SCI_PORT_HANDLE_T scif_domain_get_scic_port_handle(SCI_DOMAIN_HANDLE_T domain);
 
 /**
  * @brief This method will find and retrieve the device associated with the
@@ -100,10 +97,9 @@ SCI_PORT_HANDLE_T scif_domain_get_scic_port_handle(
  *         found in the domain.
  * @retval All other values indicate a valid remote device being found.
  */
-SCI_REMOTE_DEVICE_HANDLE_T scif_domain_get_device_by_sas_address(
-   SCI_DOMAIN_HANDLE_T   domain,
-   SCI_SAS_ADDRESS_T   * sas_address
-);
+SCI_REMOTE_DEVICE_HANDLE_T
+scif_domain_get_device_by_sas_address(SCI_DOMAIN_HANDLE_T domain,
+    SCI_SAS_ADDRESS_T *sas_address);
 
 /**
  * @brief This method will attempt to discover the supplied domain.
@@ -139,11 +135,8 @@ SCI_REMOTE_DEVICE_HANDLE_T scif_domain_get_device_by_sas_address(
  *         implementation doesn't support the desired timeout amounts or if
  *         the desired timeout amounts conflict in some manner.
  */
-SCI_STATUS scif_domain_discover(
-   SCI_DOMAIN_HANDLE_T   domain,
-   U32                   discover_timeout,
-   U32                   device_timeout
-);
+SCI_STATUS scif_domain_discover(SCI_DOMAIN_HANDLE_T domain,
+    U32 discover_timeout, U32 device_timeout);
 
 #if !defined(DISABLE_SCI_ITERATORS)
 /**
@@ -156,13 +149,12 @@ SCI_STATUS scif_domain_discover(
  *
  * @retval Handle to the remote device list iterator.
  */
-SCI_ITERATOR_HANDLE_T scif_domain_get_remote_device_iterator(
-   SCI_DOMAIN_HANDLE_T   domain,
-   void                * iterator_buffer
-);
+SCI_ITERATOR_HANDLE_T
+scif_domain_get_remote_device_iterator(SCI_DOMAIN_HANDLE_T domain,
+    void *iterator_buffer);
 #else // !defined(DISABLE_SCI_ITERATORS)
 #define scif_domain_get_remote_device_iterator(the_domain, the_buffer) \
-        SCI_INVALID_HANDLE
+	SCI_INVALID_HANDLE
 #endif // !defined(DISABLE_SCI_ITERATORS)
 
 /**
@@ -173,13 +165,10 @@ SCI_ITERATOR_HANDLE_T scif_domain_get_remote_device_iterator(
  *
  * @return The suggested timeout value for domain discover in milli-seconds.
  */
-U32 scif_domain_get_suggested_discover_timeout(
-   SCI_DOMAIN_HANDLE_T   domain
-);
+U32 scif_domain_get_suggested_discover_timeout(SCI_DOMAIN_HANDLE_T domain);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_DOMAIN_H_
-

@@ -7,17 +7,18 @@
 /* Implementation of the VMCI Resource Access Control API. */
 
 #include <sys/cdefs.h>
+
 #include "vmci_driver.h"
 #include "vmci_kernel_defs.h"
 #include "vmci_resource.h"
 
-#define LGPFX	"vmci_resource: "
+#define LGPFX "vmci_resource: "
 
 /* 0 through VMCI_RESERVED_RESOURCE_ID_MAX are reserved. */
 static uint32_t resource_id = VMCI_RESERVED_RESOURCE_ID_MAX + 1;
 static vmci_lock resource_id_lock;
 
-static void	vmci_resource_do_remove(struct vmci_resource *resource);
+static void vmci_resource_do_remove(struct vmci_resource *resource);
 
 static struct vmci_hashtable *resource_table = NULL;
 
@@ -51,8 +52,8 @@ vmci_resource_init(void)
 
 	resource_table = vmci_hashtable_create(128);
 	if (resource_table == NULL) {
-		VMCI_LOG_WARNING((LGPFX"Failed creating a resource hash table "
-		    "for VMCI.\n"));
+		VMCI_LOG_WARNING((LGPFX "Failed creating a resource hash table "
+					"for VMCI.\n"));
 		vmci_cleanup_lock(&resource_id_lock);
 		return (VMCI_ERROR_NO_MEM);
 	}
@@ -169,9 +170,9 @@ vmci_resource_add(struct vmci_resource *resource,
 	ASSERT(resource);
 
 	if (VMCI_HANDLE_EQUAL(resource_handle, VMCI_INVALID_HANDLE)) {
-		VMCI_LOG_DEBUG(LGPFX"Invalid argument resource "
-		    "(handle=0x%x:0x%x).\n", resource_handle.context,
-		    resource_handle.resource);
+		VMCI_LOG_DEBUG(LGPFX "Invalid argument resource "
+				     "(handle=0x%x:0x%x).\n",
+		    resource_handle.context, resource_handle.resource);
 		return (VMCI_ERROR_INVALID_ARGS);
 	}
 
@@ -184,8 +185,9 @@ vmci_resource_add(struct vmci_resource *resource,
 	result = vmci_hashtable_add_entry(resource_table,
 	    &resource->hash_entry);
 	if (result != VMCI_SUCCESS) {
-		VMCI_LOG_DEBUG(LGPFX"Failed to add entry to hash table "
-		    "(result=%d).\n", result);
+		VMCI_LOG_DEBUG(LGPFX "Failed to add entry to hash table "
+				     "(result=%d).\n",
+		    result);
 		return (result);
 	}
 
@@ -253,7 +255,7 @@ vmci_resource_get(struct vmci_handle resource_handle,
 		return (NULL);
 	resource = RESOURCE_CONTAINER(entry, struct vmci_resource, hash_entry);
 	if (resource_type == VMCI_RESOURCE_TYPE_ANY ||
-		resource->type == resource_type) {
+	    resource->type == resource_type) {
 		return (resource);
 	}
 	vmci_hashtable_release_entry(resource_table, entry);
@@ -302,8 +304,7 @@ vmci_resource_hold(struct vmci_resource *resource)
  *------------------------------------------------------------------------------
  */
 
-static void inline
-vmci_resource_do_remove(struct vmci_resource *resource)
+static void inline vmci_resource_do_remove(struct vmci_resource *resource)
 {
 
 	ASSERT(resource);

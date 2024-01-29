@@ -29,16 +29,14 @@
 
 /* Add a FreeBSD vendor copyright here - or via CFLAGS */
 #ifndef COPYRIGHT_Vendor
-#define	COPYRIGHT_Vendor \
-	""
+#define COPYRIGHT_Vendor ""
 #endif
 
 /* FreeBSD */
-#define COPYRIGHT_FreeBSD \
-	"Copyright (c) 1992-2024 The FreeBSD Project.\n"
+#define COPYRIGHT_FreeBSD "Copyright (c) 1992-2024 The FreeBSD Project.\n"
 
 /* Foundation */
-#define	TRADEMARK_Foundation \
+#define TRADEMARK_Foundation \
 	"FreeBSD is a registered trademark of The FreeBSD Foundation.\n"
 
 /* Berkeley */

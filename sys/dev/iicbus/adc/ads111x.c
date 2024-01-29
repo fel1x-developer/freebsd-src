@@ -28,9 +28,9 @@
  * Driver for Texas Instruments ADS101x and ADS111x family i2c ADC chips.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -46,34 +46,34 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #include "iicbus_if.h"
 
 /*
  * Chip registers, bit definitions, shifting and masking values.
  */
-#define	ADS111x_CONV			0	/* Reg 0: Latest sample (ro) */
+#define ADS111x_CONV 0 /* Reg 0: Latest sample (ro) */
 
-#define	ADS111x_CONF			1	/* Reg 1: Config (rw) */
-#define	  ADS111x_CONF_OS_SHIFT		15	/* Operational state */
-#define	  ADS111x_CONF_MUX_SHIFT	12	/* Input mux setting */
-#define	  ADS111x_CONF_GAIN_SHIFT	 9	/* Programmable gain amp */
-#define	  ADS111x_CONF_MODE_SHIFT	 8	/* Operational mode */
-#define	  ADS111x_CONF_RATE_SHIFT	 5	/* Sample rate */
-#define	  ADS111x_CONF_COMP_DISABLE	 3	/* Comparator disable */
+#define ADS111x_CONF 1		    /* Reg 1: Config (rw) */
+#define ADS111x_CONF_OS_SHIFT 15    /* Operational state */
+#define ADS111x_CONF_MUX_SHIFT 12   /* Input mux setting */
+#define ADS111x_CONF_GAIN_SHIFT 9   /* Programmable gain amp */
+#define ADS111x_CONF_MODE_SHIFT 8   /* Operational mode */
+#define ADS111x_CONF_RATE_SHIFT 5   /* Sample rate */
+#define ADS111x_CONF_COMP_DISABLE 3 /* Comparator disable */
 
-#define	ADS111x_LOTHRESH		2	/* Compare lo threshold (rw) */
+#define ADS111x_LOTHRESH 2 /* Compare lo threshold (rw) */
 
-#define	ADS111x_HITHRESH		3	/* Compare hi threshold (rw) */
+#define ADS111x_HITHRESH 3 /* Compare hi threshold (rw) */
 
 /*
  * On config write, the operational-state bit starts a measurement, on read it
  * indicates when the measurement process is complete/idle.
  */
-#define	  ADS111x_CONF_MEASURE		(1u << ADS111x_CONF_OS_SHIFT)
-#define	  ADS111x_CONF_IDLE		(1u << ADS111x_CONF_OS_SHIFT)
+#define ADS111x_CONF_MEASURE (1u << ADS111x_CONF_OS_SHIFT)
+#define ADS111x_CONF_IDLE (1u << ADS111x_CONF_OS_SHIFT)
 
 /*
  * The default values for config items that are not per-channel.  Mostly, this
@@ -82,9 +82,9 @@
  * comparator and we'll leave it alone if they do.  That allows them connect the
  * alert pin to something and use the feature without any help from this driver.
  */
-#define	ADS111x_CONF_DEFAULT    \
-    ((1 << ADS111x_CONF_MODE_SHIFT) | ADS111x_CONF_COMP_DISABLE)
-#define	ADS111x_CONF_USERMASK   0x001f
+#define ADS111x_CONF_DEFAULT \
+	((1 << ADS111x_CONF_MODE_SHIFT) | ADS111x_CONF_COMP_DISABLE)
+#define ADS111x_CONF_USERMASK 0x001f
 
 /*
  * Per-channel defaults.  The chip only has one control register, and we load
@@ -92,8 +92,8 @@
  * These are the default values for the control register from the datasheet, for
  * values we maintain on a per-channel basis.
  */
-#define	DEFAULT_GAINIDX		2
-#define	DEFAULT_RATEIDX		4
+#define DEFAULT_GAINIDX 2
+#define DEFAULT_RATEIDX 4
 
 /*
  * Full-scale ranges for each available amplifier setting, in microvolts.  The
@@ -101,71 +101,84 @@
  * amplifier, and the full scale range is based on the amplifier setting.
  */
 static const u_int fixedranges[8] = {
-	2048000, 2048000, 2048000, 2048000, 2048000, 2048000, 2048000, 2048000,
+	2048000,
+	2048000,
+	2048000,
+	2048000,
+	2048000,
+	2048000,
+	2048000,
+	2048000,
 };
 static const u_int gainranges[8] = {
-	6144000, 4096000, 2048000, 1024000,  512000,  256000,  256000,  256000,
+	6144000,
+	4096000,
+	2048000,
+	1024000,
+	512000,
+	256000,
+	256000,
+	256000,
 };
 
 /* The highest value for the ADS101x chip is 0x7ff0, for ADS111x it's 0x7fff. */
-#define	ADS101x_RANGEDIV	((1 << 15) - 15)
-#define	ADS111x_RANGEDIV	((1 << 15) - 1)
+#define ADS101x_RANGEDIV ((1 << 15) - 15)
+#define ADS111x_RANGEDIV ((1 << 15) - 1)
 
 /* Samples per second; varies based on chip type. */
-static const u_int rates101x[8] = {128, 250, 490, 920, 1600, 2400, 3300, 3300};
-static const u_int rates111x[8] = {  8,  16,  32,  64,  128,  250,  475,  860};
+static const u_int rates101x[8] = { 128, 250, 490, 920, 1600, 2400, 3300,
+	3300 };
+static const u_int rates111x[8] = { 8, 16, 32, 64, 128, 250, 475, 860 };
 
 struct ads111x_channel {
-	u_int gainidx;		/* Amplifier (full-scale range) config index */
-	u_int rateidx;		/* Samples per second config index */
-	bool  configured;	/* Channel has been configured */
+	u_int gainidx;	 /* Amplifier (full-scale range) config index */
+	u_int rateidx;	 /* Samples per second config index */
+	bool configured; /* Channel has been configured */
 };
 
-#define	ADS111x_MAX_CHANNELS	8
+#define ADS111x_MAX_CHANNELS 8
 
 struct ads111x_chipinfo {
-	const char	*name;
-	const u_int	*rangetab;
-	const u_int	*ratetab;
-	u_int		numchan;
-	int		rangediv;
+	const char *name;
+	const u_int *rangetab;
+	const u_int *ratetab;
+	u_int numchan;
+	int rangediv;
 };
 
 static struct ads111x_chipinfo ads111x_chip_infos[] = {
 	{ "ADS1013", fixedranges, rates101x, 1, ADS101x_RANGEDIV },
-	{ "ADS1014", gainranges,  rates101x, 1, ADS101x_RANGEDIV },
-	{ "ADS1015", gainranges,  rates101x, 8, ADS101x_RANGEDIV },
+	{ "ADS1014", gainranges, rates101x, 1, ADS101x_RANGEDIV },
+	{ "ADS1015", gainranges, rates101x, 8, ADS101x_RANGEDIV },
 	{ "ADS1113", fixedranges, rates111x, 1, ADS111x_RANGEDIV },
-	{ "ADS1114", gainranges,  rates111x, 1, ADS111x_RANGEDIV },
-	{ "ADS1115", gainranges,  rates111x, 8, ADS111x_RANGEDIV },
+	{ "ADS1114", gainranges, rates111x, 1, ADS111x_RANGEDIV },
+	{ "ADS1115", gainranges, rates111x, 8, ADS111x_RANGEDIV },
 };
 
 #ifdef FDT
 static struct ofw_compat_data compat_data[] = {
-	{"ti,ads1013",   (uintptr_t)&ads111x_chip_infos[0]},
-	{"ti,ads1014",   (uintptr_t)&ads111x_chip_infos[1]},
-	{"ti,ads1015",   (uintptr_t)&ads111x_chip_infos[2]},
-	{"ti,ads1113",   (uintptr_t)&ads111x_chip_infos[3]},
-	{"ti,ads1114",   (uintptr_t)&ads111x_chip_infos[4]},
-	{"ti,ads1115",   (uintptr_t)&ads111x_chip_infos[5]},
-	{NULL,           (uintptr_t)NULL},
+	{ "ti,ads1013", (uintptr_t)&ads111x_chip_infos[0] },
+	{ "ti,ads1014", (uintptr_t)&ads111x_chip_infos[1] },
+	{ "ti,ads1015", (uintptr_t)&ads111x_chip_infos[2] },
+	{ "ti,ads1113", (uintptr_t)&ads111x_chip_infos[3] },
+	{ "ti,ads1114", (uintptr_t)&ads111x_chip_infos[4] },
+	{ "ti,ads1115", (uintptr_t)&ads111x_chip_infos[5] },
+	{ NULL, (uintptr_t)NULL },
 };
 IICBUS_FDT_PNP_INFO(compat_data);
 #endif
 
 struct ads111x_softc {
-	device_t	dev;
-	struct sx	lock;
-	int		addr;
-	int		cfgword;
-	const struct ads111x_chipinfo
-			*chipinfo;
-	struct ads111x_channel
-			channels[ADS111x_MAX_CHANNELS];
+	device_t dev;
+	struct sx lock;
+	int addr;
+	int cfgword;
+	const struct ads111x_chipinfo *chipinfo;
+	struct ads111x_channel channels[ADS111x_MAX_CHANNELS];
 };
 
 static int
-ads111x_write_2(struct ads111x_softc *sc, int reg, int val) 
+ads111x_write_2(struct ads111x_softc *sc, int reg, int val)
 {
 	uint8_t data[3];
 	struct iic_msg msgs[1];
@@ -178,14 +191,14 @@ ads111x_write_2(struct ads111x_softc *sc, int reg, int val)
 
 	msgs[0].slave = slaveaddr;
 	msgs[0].flags = IIC_M_WR;
-	msgs[0].len   = sizeof(data);
-	msgs[0].buf   = data;
+	msgs[0].len = sizeof(data);
+	msgs[0].buf = data;
 
 	return (iicbus_transfer_excl(sc->dev, msgs, nitems(msgs), IIC_WAIT));
 }
 
 static int
-ads111x_read_2(struct ads111x_softc *sc, int reg, int *val) 
+ads111x_read_2(struct ads111x_softc *sc, int reg, int *val)
 {
 	int err;
 	uint8_t data[2];
@@ -198,7 +211,7 @@ ads111x_read_2(struct ads111x_softc *sc, int reg, int *val)
 }
 
 static int
-ads111x_sample_voltage(struct ads111x_softc *sc, int channum, int *voltage) 
+ads111x_sample_voltage(struct ads111x_softc *sc, int channum, int *voltage)
 {
 	struct ads111x_channel *chan;
 	int err, cfgword, convword, rate, retries, waitns;
@@ -207,8 +220,7 @@ ads111x_sample_voltage(struct ads111x_softc *sc, int channum, int *voltage)
 	chan = &sc->channels[channum];
 
 	/* Ask the chip to do a one-shot measurement of the given channel. */
-	cfgword = sc->cfgword |
-	    (1 << ADS111x_CONF_OS_SHIFT) |
+	cfgword = sc->cfgword | (1 << ADS111x_CONF_OS_SHIFT) |
 	    (channum << ADS111x_CONF_MUX_SHIFT) |
 	    (chan->gainidx << ADS111x_CONF_GAIN_SHIFT) |
 	    (chan->rateidx << ADS111x_CONF_RATE_SHIFT);
@@ -238,7 +250,7 @@ ads111x_sample_voltage(struct ads111x_softc *sc, int channum, int *voltage)
 	 * register number on reads, so we can't read both status and
 	 * measurement in one operation.
 	 */
-	for (retries = 5; ; --retries) {
+	for (retries = 5;; --retries) {
 		if (retries == 0)
 			return (EWOULDBLOCK);
 		if ((err = ads111x_read_2(sc, ADS111x_CONF, &cfgword)) != 0)
@@ -252,7 +264,7 @@ ads111x_sample_voltage(struct ads111x_softc *sc, int channum, int *voltage)
 	if ((err = ads111x_read_2(sc, ADS111x_CONV, &convword)) != 0)
 		return (err);
 	fsrange = sc->chipinfo->rangetab[chan->gainidx];
-	*voltage = (int)((convword * fsrange ) / sc->chipinfo->rangediv);
+	*voltage = (int)((convword * fsrange) / sc->chipinfo->rangediv);
 
 	return (err);
 }
@@ -381,7 +393,8 @@ ads111x_sysctl_hithresh(SYSCTL_HANDLER_ARGS)
 }
 
 static void
-ads111x_setup_channel(struct ads111x_softc *sc, int chan, int gainidx, int rateidx)
+ads111x_setup_channel(struct ads111x_softc *sc, int chan, int gainidx,
+    int rateidx)
 {
 	struct ads111x_channel *c;
 	struct sysctl_ctx_list *ctx;
@@ -406,15 +419,13 @@ ads111x_setup_channel(struct ads111x_softc *sc, int chan, int gainidx, int ratei
 	snprintf(chanstr, sizeof(chanstr), "%d", chan);
 	chantree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(devtree), OID_AUTO,
 	    chanstr, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "channel data");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO,
-	    "gain_index", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT,
-	    sc, chan, ads111x_sysctl_gainidx, "I",
-	    "programmable gain amp setting, 0-7");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO,
-	    "rate_index", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT,
-	    sc, chan, ads111x_sysctl_rateidx, "I", "sample rate setting, 0-7");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO,
-	    "voltage",
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO, "gain_index",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, chan,
+	    ads111x_sysctl_gainidx, "I", "programmable gain amp setting, 0-7");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO, "rate_index",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, chan,
+	    ads111x_sysctl_rateidx, "I", "sample rate setting, 0-7");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(chantree), OID_AUTO, "voltage",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_SKIP | CTLFLAG_NEEDGIANT, sc,
 	    chan, ads111x_sysctl_voltage, "I", "sampled voltage in microvolts");
 
@@ -494,8 +505,9 @@ ads111x_find_chipinfo(device_t dev)
 
 #ifdef FDT
 	if (ofw_bus_status_okay(dev)) {
-		info = (struct ads111x_chipinfo*)
-		    ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+		info = (struct ads111x_chipinfo *)ofw_bus_search_compatible(dev,
+		    compat_data)
+			   ->ocd_data;
 		if (info != NULL)
 			return (info);
 	}
@@ -562,14 +574,14 @@ ads111x_attach(device_t dev)
 	/* Add the sysctl handler to set the chip configuration register.  */
 	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "config", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "config",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
 	    ads111x_sysctl_config, "I", "configuration register word");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "lo_thresh", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "lo_thresh",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
 	    ads111x_sysctl_lothresh, "I", "comparator low threshold");
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "hi_thresh", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "hi_thresh",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, sc, 0,
 	    ads111x_sysctl_hithresh, "I", "comparator high threshold");
 
 	/* Set up channels based on metadata or default config. */
@@ -592,9 +604,9 @@ ads111x_detach(device_t dev)
 }
 
 static device_method_t ads111x_methods[] = {
-	DEVMETHOD(device_probe,		ads111x_probe),
-	DEVMETHOD(device_attach,	ads111x_attach),
-	DEVMETHOD(device_detach,	ads111x_detach),
+	DEVMETHOD(device_probe, ads111x_probe),
+	DEVMETHOD(device_attach, ads111x_attach),
+	DEVMETHOD(device_detach, ads111x_detach),
 
 	DEVMETHOD_END,
 };

@@ -27,7 +27,7 @@
  */
 
 #ifndef _DEV_MII_FDT_H_
-#define	_DEV_MII_FDT_H_
+#define _DEV_MII_FDT_H_
 
 /*
  * Common FDT config for a PHY, as documented in the devicetree bindings
@@ -35,25 +35,25 @@
  * bits in the flags member.
  */
 struct mii_fdt_phy_config {
-	phandle_t	macnode;	/* Node (not xref) of parent MAC */
-	phandle_t	phynode;	/* Node (not xref) of PHY */
-	mii_contype_t	con_type;	/* MAC<->PHY connection type */
-	u_int		max_speed;	/* Mbits/sec, 0 = not specified */
-	uint32_t	flags;		/* MIIF_FDT_xxx boolean properties */
+	phandle_t macnode;	/* Node (not xref) of parent MAC */
+	phandle_t phynode;	/* Node (not xref) of PHY */
+	mii_contype_t con_type; /* MAC<->PHY connection type */
+	u_int max_speed;	/* Mbits/sec, 0 = not specified */
+	uint32_t flags;		/* MIIF_FDT_xxx boolean properties */
 };
 typedef struct mii_fdt_phy_config mii_fdt_phy_config_t;
 
 /* PHY config flags. */
-#define	MIIF_FDT_COMPAT_CLAUSE45	0x0001
-#define	MIIF_FDT_BROKEN_TURNAROUND	0x0002
-#define	MIIF_FDT_LANE_SWAP		0x0004
-#define	MIIF_FDT_NO_LANE_SWAP		0x0008
-#define	MIIF_FDT_EEE_BROKEN_100TX	0x0010
-#define	MIIF_FDT_EEE_BROKEN_1000T	0x0020
-#define	MIIF_FDT_EEE_BROKEN_10GT	0x0040
-#define	MIIF_FDT_EEE_BROKEN_1000KX	0x0080
-#define	MIIF_FDT_EEE_BROKEN_10GKX4	0x0100
-#define	MIIF_FDT_EEE_BROKEN_10GKR	0x0200
+#define MIIF_FDT_COMPAT_CLAUSE45 0x0001
+#define MIIF_FDT_BROKEN_TURNAROUND 0x0002
+#define MIIF_FDT_LANE_SWAP 0x0004
+#define MIIF_FDT_NO_LANE_SWAP 0x0008
+#define MIIF_FDT_EEE_BROKEN_100TX 0x0010
+#define MIIF_FDT_EEE_BROKEN_1000T 0x0020
+#define MIIF_FDT_EEE_BROKEN_10GT 0x0040
+#define MIIF_FDT_EEE_BROKEN_1000KX 0x0080
+#define MIIF_FDT_EEE_BROKEN_10GKX4 0x0100
+#define MIIF_FDT_EEE_BROKEN_10GKR 0x0200
 
 /*
  * Convert between mii_contype enums and devicetree property strings.

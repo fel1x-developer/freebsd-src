@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,11 +37,10 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
+#include "clkdev_if.h"
 #include "qcom_clk_freqtbl.h"
 #include "qcom_clk_rcg2.h"
 #include "qcom_clk_rcg2_reg.h"
-
-#include "clkdev_if.h"
 
 #if 0
 #define DPRINTF(dev, msg...) device_printf(dev, msg);
@@ -48,16 +48,15 @@
 #define DPRINTF(dev, msg...)
 #endif
 
-#define	QCOM_CLK_RCG2_CFG_OFFSET(sc)	\
-	    ((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_CFG_REG)
-#define	QCOM_CLK_RCG2_CMD_REGISTER(sc)	\
-	    ((sc)->cmd_rcgr + QCOM_CLK_RCG2_CMD_REG)
-#define	QCOM_CLK_RCG2_M_OFFSET(sc)	\
-	    ((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_M_REG)
-#define	QCOM_CLK_RCG2_N_OFFSET(sc)	\
-	    ((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_N_REG)
-#define	QCOM_CLK_RCG2_D_OFFSET(sc)	\
-	    ((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_D_REG)
+#define QCOM_CLK_RCG2_CFG_OFFSET(sc) \
+	((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_CFG_REG)
+#define QCOM_CLK_RCG2_CMD_REGISTER(sc) ((sc)->cmd_rcgr + QCOM_CLK_RCG2_CMD_REG)
+#define QCOM_CLK_RCG2_M_OFFSET(sc) \
+	((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_M_REG)
+#define QCOM_CLK_RCG2_N_OFFSET(sc) \
+	((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_N_REG)
+#define QCOM_CLK_RCG2_D_OFFSET(sc) \
+	((sc)->cmd_rcgr + (sc)->cfg_offset + QCOM_CLK_RCG2_D_REG)
 
 struct qcom_clk_rcg2_sc {
 	struct clknode *clknode;
@@ -70,7 +69,6 @@ struct qcom_clk_rcg2_sc {
 	uint32_t flags;
 	const struct qcom_clk_freq_tbl *freq_tbl;
 };
-
 
 /*
  * Finish a clock update.
@@ -166,8 +164,7 @@ qcom_clk_rcg2_recalc(struct clknode *clk, uint64_t *freq)
 	/* Read the MODE, CFG, M and N parameters */
 	CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
 	CLKDEV_READ_4(clknode_get_device(sc->clknode),
-	    QCOM_CLK_RCG2_CFG_OFFSET(sc),
-	    &cfg);
+	    QCOM_CLK_RCG2_CFG_OFFSET(sc), &cfg);
 	if (sc->mnd_width != 0) {
 		mask = (1U << sc->mnd_width) - 1;
 		CLKDEV_READ_4(clknode_get_device(sc->clknode),
@@ -175,11 +172,11 @@ qcom_clk_rcg2_recalc(struct clknode *clk, uint64_t *freq)
 		CLKDEV_READ_4(clknode_get_device(sc->clknode),
 		    QCOM_CLK_RCG2_N_OFFSET(sc), &n);
 		m = m & mask;
-		n = ~ n;
+		n = ~n;
 		n = n & mask;
 		n = n + m;
-		mode = (cfg & QCOM_CLK_RCG2_CFG_MODE_MASK)
-		    >> QCOM_CLK_RCG2_CFG_MODE_SHIFT;
+		mode = (cfg & QCOM_CLK_RCG2_CFG_MODE_MASK) >>
+		    QCOM_CLK_RCG2_CFG_MODE_SHIFT;
 	}
 	CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 
@@ -233,9 +230,8 @@ qcom_clk_rcg2_set_config_locked(struct qcom_clk_rcg2_sc *sc,
 	 * Mask out register fields we're going to modify along with
 	 * the pre-divisor.
 	 */
-	mask |= QCOM_CLK_RCG2_CFG_SRC_SEL_MASK
-	    | QCOM_CLK_RCG2_CFG_MODE_MASK
-	    | QCOM_CLK_RCG2_CFG_HW_CLK_CTRL_MASK;
+	mask |= QCOM_CLK_RCG2_CFG_SRC_SEL_MASK | QCOM_CLK_RCG2_CFG_MODE_MASK |
+	    QCOM_CLK_RCG2_CFG_HW_CLK_CTRL_MASK;
 
 	CLKDEV_READ_4(clknode_get_device(sc->clknode),
 	    QCOM_CLK_RCG2_CFG_OFFSET(sc), &reg);
@@ -245,8 +241,9 @@ qcom_clk_rcg2_set_config_locked(struct qcom_clk_rcg2_sc *sc,
 	reg = reg | ((f->pre_div) << QCOM_CLK_RCG2_CFG_SRC_DIV_SHIFT);
 
 	/* Configure parent clock */
-	reg = reg | (((parent_idx << QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT)
-	    & QCOM_CLK_RCG2_CFG_SRC_SEL_MASK));
+	reg = reg |
+	    (((parent_idx << QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT) &
+		QCOM_CLK_RCG2_CFG_SRC_SEL_MASK));
 
 	/* Configure dual-edge if needed */
 	if (sc->mnd_width != 0 && f->n != 0 && (f->m != f->n))
@@ -285,11 +282,10 @@ qcom_clk_rcg2_init(struct clknode *clk, device_t dev)
 	    QCOM_CLK_RCG2_CFG_OFFSET(sc), &reg);
 	CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 
-	idx = (reg & QCOM_CLK_RCG2_CFG_SRC_SEL_MASK)
-	    >> QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT;
+	idx = (reg & QCOM_CLK_RCG2_CFG_SRC_SEL_MASK) >>
+	    QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT;
 	DPRINTF(clknode_get_device(sc->clknode),
-	    "%s: mux index %u, enabled=%d\n",
-	    __func__, idx, enabled);
+	    "%s: mux index %u, enabled=%d\n", __func__, idx, enabled);
 	clknode_init_parent_idx(clk, idx);
 
 	/*
@@ -299,7 +295,7 @@ qcom_clk_rcg2_init(struct clknode *clk, device_t dev)
 	 * currently isn't the case.
 	 */
 
-	return(0);
+	return (0);
 }
 
 static int
@@ -329,11 +325,11 @@ qcom_clk_rcg2_set_parent_index_locked(struct qcom_clk_rcg2_sc *sc,
 	CLKDEV_READ_4(clknode_get_device(sc->clknode),
 	    QCOM_CLK_RCG2_CFG_OFFSET(sc), &reg);
 	reg = reg & ~QCOM_CLK_RCG2_CFG_SRC_SEL_MASK;
-	reg = reg | (((index << QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT)
-	    & QCOM_CLK_RCG2_CFG_SRC_SEL_MASK));
+	reg = reg |
+	    (((index << QCOM_CLK_RCG2_CFG_SRC_SEL_SHIFT) &
+		QCOM_CLK_RCG2_CFG_SRC_SEL_MASK));
 	CLKDEV_WRITE_4(clknode_get_device(sc->clknode),
-	    QCOM_CLK_RCG2_CFG_OFFSET(sc),
-	    reg);
+	    QCOM_CLK_RCG2_CFG_OFFSET(sc), reg);
 }
 
 /*
@@ -369,8 +365,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	if (f == NULL) {
 		device_printf(clknode_get_device(sc->clknode),
 		    "%s: no suitable freqtbl entry found for freq %llu\n",
-		    __func__,
-		    *fout);
+		    __func__, *fout);
 		return (ERANGE);
 	}
 
@@ -390,8 +385,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	}
 	if (i >= parent_cnt) {
 		device_printf(clknode_get_device(sc->clknode),
-		    "%s: couldn't find suitable parent?\n",
-		    __func__);
+		    "%s: couldn't find suitable parent?\n", __func__);
 		return (ENXIO);
 	}
 
@@ -409,19 +403,18 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 
 		if (sc->safe_pre_parent_idx > -1) {
 			DPRINTF(clknode_get_device(sc->clknode),
-			    "%s: setting to safe parent idx %d\n",
-			    __func__,
+			    "%s: setting to safe parent idx %d\n", __func__,
 			    sc->safe_pre_parent_idx);
 			CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
 			qcom_clk_rcg2_set_parent_index_locked(sc,
 			    sc->safe_pre_parent_idx);
 			DPRINTF(clknode_get_device(sc->clknode),
 			    "%s: safe parent: updating config\n", __func__);
-			if (! qcom_clk_rcg2_update_config_locked(sc)) {
-				CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
+			if (!qcom_clk_rcg2_update_config_locked(sc)) {
+				CLKDEV_DEVICE_UNLOCK(
+				    clknode_get_device(sc->clknode));
 				DPRINTF(clknode_get_device(sc->clknode),
-				    "%s: error updating config\n",
-				    __func__);
+				    "%s: error updating config\n", __func__);
 				return (ENXIO);
 			}
 			CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
@@ -433,7 +426,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 		/* Program parent index, then schedule update */
 		CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
 		qcom_clk_rcg2_set_parent_index_locked(sc, i);
-		if (! qcom_clk_rcg2_update_config_locked(sc)) {
+		if (!qcom_clk_rcg2_update_config_locked(sc)) {
 			CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 			device_printf(clknode_get_device(sc->clknode),
 			    "%s: couldn't program in parent idx %u!\n",
@@ -458,8 +451,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	p_clk = clknode_find_by_name(f->parent);
 	if (p_clk == NULL) {
 		device_printf(clknode_get_device(sc->clknode),
-		    "%s: couldn't find parent clk (%s)\n",
-		    __func__, f->parent);
+		    "%s: couldn't find parent clk (%s)\n", __func__, f->parent);
 		return (ENXIO);
 	}
 
@@ -467,15 +459,10 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	 * Calculate required frequency from said parent clock to
 	 * meet the needs of our target clock.
 	 */
-	p_freq = qcom_clk_rcg2_calc_input_freq(f->freq, f->m, f->n,
-	    f->pre_div);
+	p_freq = qcom_clk_rcg2_calc_input_freq(f->freq, f->m, f->n, f->pre_div);
 	DPRINTF(clknode_get_device(sc->clknode),
 	    "%s: request %llu, parent %s freq %llu, parent freq %llu\n",
-	    __func__,
-	    *fout,
-	    f->parent,
-	    f->freq,
-	    p_freq);
+	    __func__, *fout, f->parent, f->freq, p_freq);
 
 	/*
 	 * To ensure glitch-free operation on some clocks, set it to
@@ -486,29 +473,25 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	 * If we're doing a dry-run then we don't need to re-parent the
 	 * clock just yet!
 	 */
-	if (((flags & CLK_SET_DRYRUN) == 0) &&
-	    (sc->safe_pre_parent_idx > -1)) {
+	if (((flags & CLK_SET_DRYRUN) == 0) && (sc->safe_pre_parent_idx > -1)) {
 		DPRINTF(clknode_get_device(sc->clknode),
-		    "%s: setting to safe parent idx %d\n",
-		    __func__,
+		    "%s: setting to safe parent idx %d\n", __func__,
 		    sc->safe_pre_parent_idx);
 		CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
 		qcom_clk_rcg2_set_parent_index_locked(sc,
 		    sc->safe_pre_parent_idx);
 		DPRINTF(clknode_get_device(sc->clknode),
 		    "%s: safe parent: updating config\n", __func__);
-		if (! qcom_clk_rcg2_update_config_locked(sc)) {
+		if (!qcom_clk_rcg2_update_config_locked(sc)) {
 			CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 			DPRINTF(clknode_get_device(sc->clknode),
-			    "%s: error updating config\n",
-			    __func__);
+			    "%s: error updating config\n", __func__);
 			return (ENXIO);
 		}
 		CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 		DPRINTF(clknode_get_device(sc->clknode),
 		    "%s: safe parent: done\n", __func__);
-		clknode_set_parent_by_idx(sc->clknode,
-		    sc->safe_pre_parent_idx);
+		clknode_set_parent_by_idx(sc->clknode, sc->safe_pre_parent_idx);
 	}
 
 	/*
@@ -517,8 +500,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	 */
 	if (clknode_get_freq(p_clk, &p_clk_freq) != 0) {
 		device_printf(clknode_get_device(sc->clknode),
-		    "%s: couldn't get freq for parent clock %s\n",
-		    __func__,
+		    "%s: couldn't get freq for parent clock %s\n", __func__,
 		    f->parent);
 		return (ENXIO);
 	}
@@ -545,9 +527,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 			device_printf(clknode_get_device(sc->clknode),
 			    "%s: couldn't set parent clock %s frequency to "
 			    "%llu\n",
-			    __func__,
-			    f->parent,
-			    p_freq);
+			    __func__, f->parent, p_freq);
 			return (ENXIO);
 		}
 
@@ -566,11 +546,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	DPRINTF(clknode_get_device(sc->clknode),
 	    "%s: requested freq=%llu, target freq=%llu,"
 	    " parent choice=%s, parent_freq=%llu\n",
-	    __func__,
-	    *fout,
-	    f->freq,
-	    f->parent,
-	    p_freq);
+	    __func__, *fout, f->freq, f->parent, p_freq);
 
 	/*
 	 * Set the parent node, the parent programming and the divisor
@@ -584,7 +560,7 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	if ((flags & CLK_SET_DRYRUN) == 0) {
 		CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
 		qcom_clk_rcg2_set_config_locked(sc, f, i);
-		if (! qcom_clk_rcg2_update_config_locked(sc)) {
+		if (!qcom_clk_rcg2_update_config_locked(sc)) {
 			CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 			device_printf(clknode_get_device(sc->clknode),
 			    "%s: couldn't program in divisor, help!\n",
@@ -604,27 +580,26 @@ qcom_clk_rcg2_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	 * don't set anything up.  This doesn't rely on the register
 	 * contents.
 	 */
-	*fout = qcom_clk_rcg2_calc_rate(p_freq, (f->n == 0 ? 0 : 1),
-	    f->m, f->n, f->pre_div);
+	*fout = qcom_clk_rcg2_calc_rate(p_freq, (f->n == 0 ? 0 : 1), f->m, f->n,
+	    f->pre_div);
 
 	return (0);
 }
 
 static clknode_method_t qcom_clk_rcg2_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_rcg2_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qcom_clk_rcg2_recalc),
-	CLKNODEMETHOD(clknode_set_gate,		qcom_clk_rcg2_set_gate),
-	CLKNODEMETHOD(clknode_set_freq,		qcom_clk_rcg2_set_freq),
+	CLKNODEMETHOD(clknode_init, qcom_clk_rcg2_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qcom_clk_rcg2_recalc),
+	CLKNODEMETHOD(clknode_set_gate, qcom_clk_rcg2_set_gate),
+	CLKNODEMETHOD(clknode_set_freq, qcom_clk_rcg2_set_freq),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(qcom_clk_fepll, qcom_clk_rcg2_class, qcom_clk_rcg2_methods,
-   sizeof(struct qcom_clk_rcg2_sc), clknode_class);
+    sizeof(struct qcom_clk_rcg2_sc), clknode_class);
 
 int
-qcom_clk_rcg2_register(struct clkdom *clkdom,
-    struct qcom_clk_rcg2_def *clkdef)
+qcom_clk_rcg2_register(struct clkdom *clkdom, struct qcom_clk_rcg2_def *clkdef)
 {
 	struct clknode *clk;
 	struct qcom_clk_rcg2_sc *sc;

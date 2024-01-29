@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_EFI_OSDEP_H_
-#define	_EFI_OSDEP_H_
+#ifndef _EFI_OSDEP_H_
+#define _EFI_OSDEP_H_
 
 /*
  * Defines to adjust the types that EDK2 uses for FreeBSD so we can
@@ -35,8 +35,9 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
+
 #include <stdint.h>
+#include <stdlib.h>
 #include <uuid.h>
 
 typedef int8_t INT8;
@@ -49,16 +50,16 @@ typedef uint16_t UINT16;
 typedef uint32_t UINT32;
 typedef uint64_t UINT64;
 typedef uintptr_t UINTN;
-//typedef uintptr_t EFI_PHYSICAL_ADDRESS;
-//typedef uint32_t EFI_IPv4_ADDRESS;
-//typedef uint8_t EFI_MAC_ADDRESS[6];
-//typedef uint8_t EFI_IPv6_ADDRESS[16];
+// typedef uintptr_t EFI_PHYSICAL_ADDRESS;
+// typedef uint32_t EFI_IPv4_ADDRESS;
+// typedef uint8_t EFI_MAC_ADDRESS[6];
+// typedef uint8_t EFI_IPv6_ADDRESS[16];
 typedef uint8_t CHAR8;
 typedef uint16_t CHAR16;
 typedef UINT8 BOOLEAN;
 typedef void VOID;
-//typedef uuid_t GUID;
-//typedef uuid_t EFI_GUID;
+// typedef uuid_t GUID;
+// typedef uuid_t EFI_GUID;
 
 /* We can't actually call this stuff, so snip out API syntactic sugar */
 #define INTERFACE_DECL(x)
@@ -67,8 +68,8 @@ typedef void VOID;
 #define OUT
 #define CONST const
 #define OPTIONAL
-//#define TRUE 1
-//#define FALSE 0
+// #define TRUE 1
+// #define FALSE 0
 
 /*
  * EDK2 has fine definitions for these, so let it define them.

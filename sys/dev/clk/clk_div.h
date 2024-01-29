@@ -25,29 +25,29 @@
  */
 
 #ifndef _DEV_CLK_DIV_H_
-#define	_DEV_CLK_DIV_H_
+#define _DEV_CLK_DIV_H_
 
 #include <dev/clk/clk.h>
 
-#define	CLK_DIV_ZERO_BASED	0x0001 /* Zero based divider. */
-#define	CLK_DIV_WITH_TABLE	0x0002 /* Table to lookup the real value */
+#define CLK_DIV_ZERO_BASED 0x0001 /* Zero based divider. */
+#define CLK_DIV_WITH_TABLE 0x0002 /* Table to lookup the real value */
 
 struct clk_div_table {
-	uint32_t	value;
-	uint32_t	divider;
+	uint32_t value;
+	uint32_t divider;
 };
 
 struct clk_div_def {
 	struct clknode_init_def clkdef;
-	uint32_t		offset;		/* Divider register offset */
-	uint32_t		i_shift;	/* Pos of div bits in reg */
-	uint32_t		i_width;	/* Width of div bit field */
-	uint32_t		f_shift;	/* Fractional divide bits, */
-	uint32_t		f_width;	/* set to 0 for int divider */
-	int			div_flags;	/* Divider-specific flags */
-	struct clk_div_table	*div_table;	/* Divider table */
+	uint32_t offset;		 /* Divider register offset */
+	uint32_t i_shift;		 /* Pos of div bits in reg */
+	uint32_t i_width;		 /* Width of div bit field */
+	uint32_t f_shift;		 /* Fractional divide bits, */
+	uint32_t f_width;		 /* set to 0 for int divider */
+	int div_flags;			 /* Divider-specific flags */
+	struct clk_div_table *div_table; /* Divider table */
 };
 
 int clknode_div_register(struct clkdom *clkdom, struct clk_div_def *clkdef);
 
-#endif	/*_DEV_CLK_DIV_H_*/
+#endif /*_DEV_CLK_DIV_H_*/

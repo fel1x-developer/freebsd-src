@@ -36,7 +36,11 @@ typedef struct report_desc *report_desc_t;
 typedef struct hid_data *hid_data_t;
 
 typedef enum hid_kind {
-	hid_input, hid_output, hid_feature, hid_collection, hid_endcollection
+	hid_input,
+	hid_output,
+	hid_feature,
+	hid_collection,
+	hid_endcollection
 } hid_kind_t;
 
 typedef struct hid_item {
@@ -65,7 +69,7 @@ typedef struct hid_item {
 	int32_t set_delimiter;
 	/* Misc */
 	int32_t collection;
-	int	collevel;
+	int collevel;
 	enum hid_kind kind;
 	uint32_t flags;
 	/* Location */
@@ -105,9 +109,9 @@ int hid_parse_usage_page(const char *name);
 /* Extracting/insertion of data, data.c: */
 int32_t hid_get_data(const void *p, const hid_item_t *h);
 void hid_set_data(void *p, const hid_item_t *h, int32_t data);
-int hid_get_report(int fd, enum hid_kind k,
-    unsigned char *data, unsigned int size);
-int hid_set_report(int fd, enum hid_kind k,
-    unsigned char *data, unsigned int size);
+int hid_get_report(int fd, enum hid_kind k, unsigned char *data,
+    unsigned int size);
+int hid_set_report(int fd, enum hid_kind k, unsigned char *data,
+    unsigned int size);
 
 __END_DECLS

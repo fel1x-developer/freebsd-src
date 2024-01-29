@@ -33,17 +33,17 @@
  */
 
 #ifndef _MACHINE_IN_CKSUM_H_
-#define	_MACHINE_IN_CKSUM_H_	1
+#define _MACHINE_IN_CKSUM_H_ 1
 
-#define in_cksum(m, len)	in_cksum_skip(m, len, 0)
+#define in_cksum(m, len) in_cksum_skip(m, len, 0)
 
 #ifdef _KERNEL
 #if defined(IPVERSION) && (IPVERSION == 4)
 u_int in_cksum_hdr(const struct ip *ip);
 #endif
-u_short	in_addword(u_short sum, u_short b);
-u_short	in_pseudo(u_int sum, u_int b, u_int c);
-u_short	in_cksum_skip(struct mbuf *m, int len, int skip);
+u_short in_addword(u_short sum, u_short b);
+u_short in_pseudo(u_int sum, u_int b, u_int c);
+u_short in_cksum_skip(struct mbuf *m, int len, int skip);
 #endif
 
 #endif /* _MACHINE_IN_CKSUM_H_ */

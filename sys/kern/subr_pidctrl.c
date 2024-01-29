@@ -27,14 +27,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
+#include <sys/kernel.h>
 #include <sys/pidctrl.h>
+#include <sys/sysctl.h>
 
 void
-pidctrl_init(struct pidctrl *pc, int interval, int setpoint, int bound,
-    int Kpd, int Kid, int Kdd)
+pidctrl_init(struct pidctrl *pc, int interval, int setpoint, int bound, int Kpd,
+    int Kid, int Kdd)
 {
 
 	bzero(pc, sizeof(*pc));
@@ -70,12 +70,12 @@ pidctrl_init_sysctl(struct pidctrl *pc, struct sysctl_oid_list *parent)
 	    &pc->pc_interval, 0, "Interval between calculations (ticks)");
 	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "bound", CTLFLAG_RW,
 	    &pc->pc_bound, 0, "Integral wind-up limit");
-	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kpd", CTLFLAG_RW,
-	    &pc->pc_Kpd, 0, "Inverse of proportional gain");
-	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kid", CTLFLAG_RW,
-	    &pc->pc_Kid, 0, "Inverse of integral gain");
-	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kdd", CTLFLAG_RW,
-	    &pc->pc_Kdd, 0, "Inverse of derivative gain");
+	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kpd", CTLFLAG_RW, &pc->pc_Kpd,
+	    0, "Inverse of proportional gain");
+	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kid", CTLFLAG_RW, &pc->pc_Kid,
+	    0, "Inverse of integral gain");
+	SYSCTL_ADD_INT(NULL, parent, OID_AUTO, "kdd", CTLFLAG_RW, &pc->pc_Kdd,
+	    0, "Inverse of derivative gain");
 }
 
 int
@@ -95,8 +95,8 @@ pidctrl_classic(struct pidctrl *pc, int input)
 
 	/* Compute P (proportional error), I (integral), D (derivative). */
 	pc->pc_error = error;
-	pc->pc_integral =
-	    MAX(MIN(pc->pc_integral + error, pc->pc_bound), -pc->pc_bound);
+	pc->pc_integral = MAX(MIN(pc->pc_integral + error, pc->pc_bound),
+	    -pc->pc_bound);
 	pc->pc_derivative = error - pc->pc_olderror;
 
 	/* Divide by inverse gain values to produce output. */
@@ -138,8 +138,7 @@ pidctrl_daemon(struct pidctrl *pc, int input)
 
 	/* Compute P (proportional error), I (integral), D (derivative). */
 	pc->pc_error += error;
-	pc->pc_integral =
-	    MAX(MIN(pc->pc_integral + error, pc->pc_bound), 0);
+	pc->pc_integral = MAX(MIN(pc->pc_integral + error, pc->pc_bound), 0);
 	pc->pc_derivative = pc->pc_error - pc->pc_olderror;
 
 	/* Divide by inverse gain values to produce output. */

@@ -28,7 +28,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_EROM_BHND_EROMVAR_H_
@@ -43,45 +43,45 @@ struct bhnd_erom_io;
 struct bhnd_erom_iobus;
 
 /** @see bhnd_erom_io_map() */
-typedef int		(bhnd_erom_io_map_t)(struct bhnd_erom_io *eio,
-			     bhnd_addr_t addr, bhnd_size_t size);
+typedef int(bhnd_erom_io_map_t)(struct bhnd_erom_io *eio, bhnd_addr_t addr,
+    bhnd_size_t size);
 
 /** @see bhnd_erom_io_tell() */
-typedef int		(bhnd_erom_io_tell_t)(struct bhnd_erom_io *eio,
-			     bhnd_addr_t *addr, bhnd_size_t *size);
+typedef int(bhnd_erom_io_tell_t)(struct bhnd_erom_io *eio, bhnd_addr_t *addr,
+    bhnd_size_t *size);
 
 /** @see bhnd_erom_io_read() */
-typedef uint32_t	(bhnd_erom_io_read_t)(struct bhnd_erom_io *eio,
-			     bhnd_size_t offset, u_int width);
+typedef uint32_t(bhnd_erom_io_read_t)(struct bhnd_erom_io *eio,
+    bhnd_size_t offset, u_int width);
 
 /** @see bhnd_erom_io_fini() */
-typedef void		(bhnd_erom_io_fini_t)(struct bhnd_erom_io *eio);
+typedef void(bhnd_erom_io_fini_t)(struct bhnd_erom_io *eio);
 
-int			 bhnd_erom_read_chipid(struct bhnd_erom_io *eio,
-			     struct bhnd_chipid *cid);
+int bhnd_erom_read_chipid(struct bhnd_erom_io *eio, struct bhnd_chipid *cid);
 
 /**
  * Abstract EROM bus I/O support.
  */
 struct bhnd_erom_io {
-	bhnd_erom_io_map_t	*map;	/**< @see bhnd_erom_io_map() */
-	bhnd_erom_io_tell_t	*tell;	/**< @see bhnd_erom_io_tell() */
-	bhnd_erom_io_read_t	*read;	/**< @see bhnd_erom_io_read() */
-	bhnd_erom_io_fini_t	*fini;	/**< @see bhnd_erom_io_fini(). May be NULL */
+	bhnd_erom_io_map_t *map;   /**< @see bhnd_erom_io_map() */
+	bhnd_erom_io_tell_t *tell; /**< @see bhnd_erom_io_tell() */
+	bhnd_erom_io_read_t *read; /**< @see bhnd_erom_io_read() */
+	bhnd_erom_io_fini_t *fini; /**< @see bhnd_erom_io_fini(). May be NULL */
 };
 
 /**
  * EROM bus handle/tag I/O instance state.
  */
 struct bhnd_erom_iobus {
-	struct bhnd_erom_io	eio;
-	bhnd_addr_t		addr;	/**< the address of @p bsh */
-	bhnd_size_t		size;	/**< the size of @p bsh */
-	bus_space_tag_t		bst;	/**< bus space tag */
-	bus_space_handle_t	bsh;	/**< bus space handle mapping the full enumeration space */
-	bool			mapped;	/**< if a mapping is active */
-	bus_size_t		offset;	/**< the current mapped offset within bsh */
-	bus_size_t		limit;	/**< the current mapped size relative to offset */
+	struct bhnd_erom_io eio;
+	bhnd_addr_t addr;    /**< the address of @p bsh */
+	bhnd_size_t size;    /**< the size of @p bsh */
+	bus_space_tag_t bst; /**< bus space tag */
+	bus_space_handle_t
+	    bsh;     /**< bus space handle mapping the full enumeration space */
+	bool mapped; /**< if a mapping is active */
+	bus_size_t offset; /**< the current mapped offset within bsh */
+	bus_size_t limit;  /**< the current mapped size relative to offset */
 };
 
 #endif /* _BHND_EROM_BHND_EROMVAR_H_ */

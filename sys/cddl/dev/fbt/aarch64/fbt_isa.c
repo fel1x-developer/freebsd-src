@@ -30,13 +30,12 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
 
 #include "fbt.h"
 
-#define	FBT_PATCHVAL	DTRACE_PATCHVAL
-#define	FBT_AFRAMES	4
+#define FBT_PATCHVAL DTRACE_PATCHVAL
+#define FBT_AFRAMES 4
 
 int
 fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
@@ -55,11 +54,11 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
 
 		if (fbt->fbtp_roffset == 0) {
 			dtrace_probe(fbt->fbtp_id, frame->tf_x[0],
-			    frame->tf_x[1], frame->tf_x[2],
-			    frame->tf_x[3], frame->tf_x[4]);
+			    frame->tf_x[1], frame->tf_x[2], frame->tf_x[3],
+			    frame->tf_x[4]);
 		} else {
-			dtrace_probe(fbt->fbtp_id, fbt->fbtp_roffset, rval,
-			    0, 0, 0);
+			dtrace_probe(fbt->fbtp_id, fbt->fbtp_roffset, rval, 0,
+			    0, 0);
 		}
 		cpu->cpu_dtrace_caller = 0;
 		return (fbt->fbtp_savedval);
@@ -102,7 +101,7 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	 * Instrumenting certain exception handling functions can lead to FBT
 	 * recursion, so exclude from instrumentation.
 	 */
-	 if (strcmp(name, "handle_el1h_sync") == 0 ||
+	if (strcmp(name, "handle_el1h_sync") == 0 ||
 	    strcmp(name, "do_el1h_sync") == 0)
 		return (1);
 
@@ -150,10 +149,10 @@ found:
 	if (instr >= limit)
 		return (0);
 
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
-	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-	    name, FBT_ENTRY, FBT_AFRAMES, fbt);
+	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name, FBT_ENTRY,
+	    FBT_AFRAMES, fbt);
 	fbt->fbtp_patchpoint = instr;
 	fbt->fbtp_ctl = lf;
 	fbt->fbtp_loadcnt = lf->loadcnt;
@@ -191,11 +190,11 @@ again:
 	/*
 	 * We have a winner!
 	 */
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
 	if (retfbt == NULL) {
-		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-		    name, FBT_RETURN, FBT_AFRAMES, fbt);
+		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name,
+		    FBT_RETURN, FBT_AFRAMES, fbt);
 	} else {
 		retfbt->fbtp_probenext = fbt;
 		fbt->fbtp_id = retfbt->fbtp_id;

@@ -39,22 +39,20 @@
 
 #include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "dwgpio_if.h"
 
 struct dwgpiobus_softc {
-	struct simplebus_softc	simplebus_sc;
-	device_t		dev;
-	struct resource		*res[1];
+	struct simplebus_softc simplebus_sc;
+	device_t dev;
+	struct resource *res[1];
 };
 
-static struct resource_spec dwgpio_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec dwgpio_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
 static int
 dwgpiobus_probe(device_t dev)
@@ -142,16 +140,15 @@ dwgpiobus_read(device_t dev, bus_size_t offset)
 	return (val);
 };
 
-static device_method_t dwgpiobus_methods[] = {
-	DEVMETHOD(device_probe,		dwgpiobus_probe),
-	DEVMETHOD(device_attach,	dwgpiobus_attach),
-	DEVMETHOD(device_detach,	dwgpiobus_detach),
+static device_method_t dwgpiobus_methods[] = { DEVMETHOD(device_probe,
+						   dwgpiobus_probe),
+	DEVMETHOD(device_attach, dwgpiobus_attach),
+	DEVMETHOD(device_detach, dwgpiobus_detach),
 
-	DEVMETHOD(dwgpio_write,		dwgpiobus_write),
-	DEVMETHOD(dwgpio_read,		dwgpiobus_read),
+	DEVMETHOD(dwgpio_write, dwgpiobus_write),
+	DEVMETHOD(dwgpio_read, dwgpiobus_read),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(dwgpiobus, dwgpiobus_driver, dwgpiobus_methods,
     sizeof(struct dwgpiobus_softc), simplebus_driver);

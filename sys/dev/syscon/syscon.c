@@ -32,9 +32,9 @@
  * access.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -43,9 +43,9 @@
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/rman.h>
 #include <sys/sx.h>
-#include <sys/queue.h>
 
 #include <machine/bus.h>
 
@@ -54,8 +54,8 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include "syscon_if.h"
 #include "syscon.h"
+#include "syscon_if.h"
 
 /*
  * Syscon interface details
@@ -73,32 +73,30 @@ static int syscon_method_write_4(struct syscon *syscon, bus_size_t offset,
 static int syscon_method_modify_4(struct syscon *syscon, bus_size_t offset,
     uint32_t clear_bits, uint32_t set_bits);
 
-
 MALLOC_DEFINE(M_SYSCON, "syscon", "Syscon driver");
 
 static syscon_list_t syscon_list = TAILQ_HEAD_INITIALIZER(syscon_list);
-static struct sx		syscon_topo_lock;
+static struct sx syscon_topo_lock;
 SX_SYSINIT(syscon_topology, &syscon_topo_lock, "Syscon topology lock");
 
 /*
  * Syscon methods.
  */
-static syscon_method_t syscon_methods[] = {
-	SYSCONMETHOD(syscon_init,	syscon_method_init),
-	SYSCONMETHOD(syscon_uninit,	syscon_method_uninit),
-	SYSCONMETHOD(syscon_read_4,	syscon_method_read_4),
-	SYSCONMETHOD(syscon_write_4,	syscon_method_write_4),
-	SYSCONMETHOD(syscon_modify_4,	syscon_method_modify_4),
+static syscon_method_t syscon_methods[] = { SYSCONMETHOD(syscon_init,
+						syscon_method_init),
+	SYSCONMETHOD(syscon_uninit, syscon_method_uninit),
+	SYSCONMETHOD(syscon_read_4, syscon_method_read_4),
+	SYSCONMETHOD(syscon_write_4, syscon_method_write_4),
+	SYSCONMETHOD(syscon_modify_4, syscon_method_modify_4),
 
-	SYSCONMETHOD_END
-};
+	SYSCONMETHOD_END };
 DEFINE_CLASS_0(syscon, syscon_class, syscon_methods, 0);
 
-#define SYSCON_TOPO_SLOCK()	sx_slock(&syscon_topo_lock)
-#define SYSCON_TOPO_XLOCK()	sx_xlock(&syscon_topo_lock)
-#define SYSCON_TOPO_UNLOCK()	sx_unlock(&syscon_topo_lock)
-#define SYSCON_TOPO_ASSERT()	sx_assert(&syscon_topo_lock, SA_LOCKED)
-#define SYSCON_TOPO_XASSERT()	sx_assert(&syscon_topo_lock, SA_XLOCKED)
+#define SYSCON_TOPO_SLOCK() sx_slock(&syscon_topo_lock)
+#define SYSCON_TOPO_XLOCK() sx_xlock(&syscon_topo_lock)
+#define SYSCON_TOPO_UNLOCK() sx_unlock(&syscon_topo_lock)
+#define SYSCON_TOPO_ASSERT() sx_assert(&syscon_topo_lock, SA_LOCKED)
+#define SYSCON_TOPO_XASSERT() sx_assert(&syscon_topo_lock, SA_XLOCKED)
 
 /*
  * Default syscon methods for base class.
@@ -132,30 +130,30 @@ syscon_method_read_4(struct syscon *syscon, bus_size_t offset)
 	SYSCON_DEVICE_LOCK(syscon->pdev);
 	val = SYSCON_UNLOCKED_READ_4(syscon, offset);
 	SYSCON_DEVICE_UNLOCK(syscon->pdev);
-	return(val);
+	return (val);
 }
 
 static int
 syscon_method_write_4(struct syscon *syscon, bus_size_t offset, uint32_t val)
 {
-	int	rv;
+	int rv;
 
 	SYSCON_DEVICE_LOCK(syscon->pdev);
 	rv = SYSCON_UNLOCKED_WRITE_4(syscon, offset, val);
 	SYSCON_DEVICE_UNLOCK(syscon->pdev);
-	return(rv);
+	return (rv);
 }
 
 static int
 syscon_method_modify_4(struct syscon *syscon, bus_size_t offset,
     uint32_t clear_bits, uint32_t set_bits)
 {
-	int	rv;
+	int rv;
 
 	SYSCON_DEVICE_LOCK(syscon->pdev);
 	rv = SYSCON_UNLOCKED_MODIFY_4(syscon, offset, clear_bits, set_bits);
 	SYSCON_DEVICE_UNLOCK(syscon->pdev);
-	return(rv);
+	return (rv);
 }
 /*
  * Create and initialize syscon object, but do not register it.
@@ -166,8 +164,7 @@ syscon_create(device_t pdev, syscon_class_t syscon_class)
 	struct syscon *syscon;
 
 	/* Create object and initialize it. */
-	syscon = malloc(sizeof(struct syscon), M_SYSCON,
-	    M_WAITOK | M_ZERO);
+	syscon = malloc(sizeof(struct syscon), M_SYSCON, M_WAITOK | M_ZERO);
 	kobj_init((kobj_t)syscon, (kobj_class_t)syscon_class);
 
 	/* Allocate softc if required. */
@@ -233,7 +230,7 @@ syscon_find_by_ofw_node(phandle_t node)
 
 	SYSCON_TOPO_ASSERT();
 
-	TAILQ_FOREACH(entry, &syscon_list, syscon_link) {
+	TAILQ_FOREACH (entry, &syscon_list, syscon_link) {
 		if (entry->ofw_node == node)
 			return (entry);
 	}
@@ -288,8 +285,8 @@ syscon_get_by_ofw_property(device_t cdev, phandle_t cnode, char *name,
 	if (cnode <= 0)
 		cnode = ofw_bus_get_node(cdev);
 	if (cnode <= 0) {
-		device_printf(cdev,
-		    "%s called on not ofw based device\n", __func__);
+		device_printf(cdev, "%s called on not ofw based device\n",
+		    __func__);
 		return (ENXIO);
 	}
 	ncells = OF_getencprop_alloc_multi(cnode, name, sizeof(pcell_t),

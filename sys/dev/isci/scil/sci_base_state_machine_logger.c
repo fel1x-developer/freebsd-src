@@ -77,29 +77,25 @@
  *       machine.
  * @param[in] subject The state machine that is being observed.
  */
-static
-void sci_base_state_machine_logger_update(
-   SCI_BASE_OBSERVER_T *observer,
-   SCI_BASE_SUBJECT_T  *subject
-)
+static void
+sci_base_state_machine_logger_update(SCI_BASE_OBSERVER_T *observer,
+    SCI_BASE_SUBJECT_T *subject)
 {
-   SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer;
-   this_observer = (SCI_BASE_STATE_MACHINE_LOGGER_T *)observer;
+	SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer;
+	this_observer = (SCI_BASE_STATE_MACHINE_LOGGER_T *)observer;
 
-   this_observer->log_function(
-      sci_base_object_get_logger(this_observer->log_object),
-      this_observer->log_mask,
-      "%s 0x%08x %s has transitioned from %d to %d\n",
-      this_observer->log_object_name,
-      this_observer->log_object,
-      this_observer->log_state_machine_name,
-      this_observer->parent.subject_state,
-      sci_base_state_machine_get_state((SCI_BASE_STATE_MACHINE_T *)subject)
-   );
+	this_observer->log_function(sci_base_object_get_logger(
+					this_observer->log_object),
+	    this_observer->log_mask,
+	    "%s 0x%08x %s has transitioned from %d to %d\n",
+	    this_observer->log_object_name, this_observer->log_object,
+	    this_observer->log_state_machine_name,
+	    this_observer->parent.subject_state,
+	    sci_base_state_machine_get_state(
+		(SCI_BASE_STATE_MACHINE_T *)subject));
 
-   sci_base_state_machine_observer_default_update(
-      &this_observer->parent.parent, subject
-   );
+	sci_base_state_machine_observer_default_update(
+	    &this_observer->parent.parent, subject);
 }
 
 //******************************************************************************
@@ -128,24 +124,23 @@ void sci_base_state_machine_logger_update(
  *
  * @return Nothing
  */
-void sci_base_state_machine_logger_construct(
-   SCI_BASE_STATE_MACHINE_LOGGER_T             * this_observer,
-   SCI_BASE_OBJECT_T                           * the_object,
-   SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T   the_log_function,
-   char                                        * log_object_name,
-   char                                        * log_state_machine_name,
-   U32                                           log_object_mask
-)
+void
+sci_base_state_machine_logger_construct(
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_OBJECT_T *the_object,
+    SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T the_log_function,
+    char *log_object_name, char *log_state_machine_name, U32 log_object_mask)
 {
-   sci_base_state_machine_observer_construct(&this_observer->parent);
+	sci_base_state_machine_observer_construct(&this_observer->parent);
 
-   this_observer->log_object             = the_object;
-   this_observer->log_function           = the_log_function;
-   this_observer->log_object_name        = log_object_name;
-   this_observer->log_state_machine_name = log_state_machine_name;
-   this_observer->log_mask               = log_object_mask;
+	this_observer->log_object = the_object;
+	this_observer->log_function = the_log_function;
+	this_observer->log_object_name = log_object_name;
+	this_observer->log_state_machine_name = log_state_machine_name;
+	this_observer->log_mask = log_object_mask;
 
-   this_observer->parent.parent.update = sci_base_state_machine_logger_update;
+	this_observer->parent.parent.update =
+	    sci_base_state_machine_logger_update;
 }
 
 /**
@@ -172,24 +167,19 @@ void sci_base_state_machine_logger_construct(
  *
  * @return Nothing
  */
-void sci_base_state_machine_logger_initialize(
-   SCI_BASE_STATE_MACHINE_LOGGER_T             * this_observer,
-   SCI_BASE_STATE_MACHINE_T                    * the_state_machine,
-   SCI_BASE_OBJECT_T                           * the_object,
-   SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T   the_log_function,
-   char                                        * log_object_name,
-   char                                        * log_state_machine_name,
-   U32                                           log_object_mask
-)
+void
+sci_base_state_machine_logger_initialize(
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_STATE_MACHINE_T *the_state_machine, SCI_BASE_OBJECT_T *the_object,
+    SCI_BASE_STATE_MACHINE_LOGGER_LOG_HANDLER_T the_log_function,
+    char *log_object_name, char *log_state_machine_name, U32 log_object_mask)
 {
-   sci_base_state_machine_logger_construct(
-      this_observer, the_object,
-      the_log_function, log_object_name, log_state_machine_name, log_object_mask
-   );
+	sci_base_state_machine_logger_construct(this_observer, the_object,
+	    the_log_function, log_object_name, log_state_machine_name,
+	    log_object_mask);
 
-   sci_base_subject_attach_observer(
-      &the_state_machine->parent, &this_observer->parent.parent
-   );
+	sci_base_subject_attach_observer(&the_state_machine->parent,
+	    &this_observer->parent.parent);
 }
 
 /**
@@ -203,15 +193,13 @@ void sci_base_state_machine_logger_initialize(
  *
  * @return Nothing
  */
-void sci_base_state_machine_logger_deinitialize(
-   SCI_BASE_STATE_MACHINE_LOGGER_T * this_observer,
-   SCI_BASE_STATE_MACHINE_T        * the_state_machine
-)
+void
+sci_base_state_machine_logger_deinitialize(
+    SCI_BASE_STATE_MACHINE_LOGGER_T *this_observer,
+    SCI_BASE_STATE_MACHINE_T *the_state_machine)
 {
-   sci_base_subject_detach_observer(
-      &the_state_machine->parent, &this_observer->parent.parent
-   );
+	sci_base_subject_detach_observer(&the_state_machine->parent,
+	    &this_observer->parent.parent);
 }
 
 #endif // defined(SCI_LOGGING)
-

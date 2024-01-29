@@ -27,12 +27,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <pwd.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <ulog.h>
+#include <unistd.h>
 
 /*
  * This setuid helper utility writes user login records to disk.

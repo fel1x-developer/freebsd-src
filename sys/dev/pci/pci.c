@@ -28,12 +28,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
-#include "opt_iommu.h"
 #include "opt_bus.h"
+#include "opt_iommu.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/eventhandler.h>
@@ -44,9 +46,9 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 
@@ -54,9 +56,7 @@
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 
-#include <sys/bus.h>
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
@@ -65,158 +65,156 @@
 #endif
 
 #include <sys/pciio.h>
+
+#include <dev/pci/pci_private.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h>
 
 #ifdef PCI_IOV
 #include <sys/nv.h>
+
 #include <dev/pci/pci_iov_private.h>
 #endif
 
-#include <dev/usb/controller/xhcireg.h>
+#include <dev/iommu/iommu.h>
 #include <dev/usb/controller/ehcireg.h>
 #include <dev/usb/controller/ohcireg.h>
 #include <dev/usb/controller/uhcireg.h>
+#include <dev/usb/controller/xhcireg.h>
 
-#include <dev/iommu/iommu.h>
-
-#include "pcib_if.h"
 #include "pci_if.h"
+#include "pcib_if.h"
 
-#define	PCIR_IS_BIOS(cfg, reg)						\
-	(((cfg)->hdrtype == PCIM_HDRTYPE_NORMAL && reg == PCIR_BIOS) ||	\
-	 ((cfg)->hdrtype == PCIM_HDRTYPE_BRIDGE && reg == PCIR_BIOS_1))
+#define PCIR_IS_BIOS(cfg, reg)                                          \
+	(((cfg)->hdrtype == PCIM_HDRTYPE_NORMAL && reg == PCIR_BIOS) || \
+	    ((cfg)->hdrtype == PCIM_HDRTYPE_BRIDGE && reg == PCIR_BIOS_1))
 
-static int		pci_has_quirk(uint32_t devid, int quirk);
-static pci_addr_t	pci_mapbase(uint64_t mapreg);
-static const char	*pci_maptype(uint64_t mapreg);
-static int		pci_maprange(uint64_t mapreg);
-static pci_addr_t	pci_rombase(uint64_t mapreg);
-static int		pci_romsize(uint64_t testval);
-static void		pci_fixancient(pcicfgregs *cfg);
-static int		pci_printf(pcicfgregs *cfg, const char *fmt, ...);
+static int pci_has_quirk(uint32_t devid, int quirk);
+static pci_addr_t pci_mapbase(uint64_t mapreg);
+static const char *pci_maptype(uint64_t mapreg);
+static int pci_maprange(uint64_t mapreg);
+static pci_addr_t pci_rombase(uint64_t mapreg);
+static int pci_romsize(uint64_t testval);
+static void pci_fixancient(pcicfgregs *cfg);
+static int pci_printf(pcicfgregs *cfg, const char *fmt, ...);
 
-static int		pci_porten(device_t dev);
-static int		pci_memen(device_t dev);
-static void		pci_assign_interrupt(device_t bus, device_t dev,
-			    int force_route);
-static int		pci_add_map(device_t bus, device_t dev, int reg,
-			    struct resource_list *rl, int force, int prefetch);
-static int		pci_probe(device_t dev);
-static void		pci_load_vendor_data(void);
-static int		pci_describe_parse_line(char **ptr, int *vendor,
-			    int *device, char **desc);
-static char		*pci_describe_device(device_t dev);
-static int		pci_modevent(module_t mod, int what, void *arg);
-static void		pci_hdrtypedata(device_t pcib, int b, int s, int f,
-			    pcicfgregs *cfg);
-static void		pci_read_cap(device_t pcib, pcicfgregs *cfg);
-static int		pci_read_vpd_reg(device_t pcib, pcicfgregs *cfg,
-			    int reg, uint32_t *data);
+static int pci_porten(device_t dev);
+static int pci_memen(device_t dev);
+static void pci_assign_interrupt(device_t bus, device_t dev, int force_route);
+static int pci_add_map(device_t bus, device_t dev, int reg,
+    struct resource_list *rl, int force, int prefetch);
+static int pci_probe(device_t dev);
+static void pci_load_vendor_data(void);
+static int pci_describe_parse_line(char **ptr, int *vendor, int *device,
+    char **desc);
+static char *pci_describe_device(device_t dev);
+static int pci_modevent(module_t mod, int what, void *arg);
+static void pci_hdrtypedata(device_t pcib, int b, int s, int f,
+    pcicfgregs *cfg);
+static void pci_read_cap(device_t pcib, pcicfgregs *cfg);
+static int pci_read_vpd_reg(device_t pcib, pcicfgregs *cfg, int reg,
+    uint32_t *data);
 #if 0
 static int		pci_write_vpd_reg(device_t pcib, pcicfgregs *cfg,
 			    int reg, uint32_t data);
 #endif
-static void		pci_read_vpd(device_t pcib, pcicfgregs *cfg);
-static void		pci_mask_msix(device_t dev, u_int index);
-static void		pci_unmask_msix(device_t dev, u_int index);
-static int		pci_msi_blacklisted(void);
-static int		pci_msix_blacklisted(void);
-static void		pci_resume_msi(device_t dev);
-static void		pci_resume_msix(device_t dev);
-static int		pci_remap_intr_method(device_t bus, device_t dev,
-			    u_int irq);
-static void		pci_hint_device_unit(device_t acdev, device_t child,
-			    const char *name, int *unitp);
-static int		pci_reset_post(device_t dev, device_t child);
-static int		pci_reset_prepare(device_t dev, device_t child);
-static int		pci_reset_child(device_t dev, device_t child,
-			    int flags);
+static void pci_read_vpd(device_t pcib, pcicfgregs *cfg);
+static void pci_mask_msix(device_t dev, u_int index);
+static void pci_unmask_msix(device_t dev, u_int index);
+static int pci_msi_blacklisted(void);
+static int pci_msix_blacklisted(void);
+static void pci_resume_msi(device_t dev);
+static void pci_resume_msix(device_t dev);
+static int pci_remap_intr_method(device_t bus, device_t dev, u_int irq);
+static void pci_hint_device_unit(device_t acdev, device_t child,
+    const char *name, int *unitp);
+static int pci_reset_post(device_t dev, device_t child);
+static int pci_reset_prepare(device_t dev, device_t child);
+static int pci_reset_child(device_t dev, device_t child, int flags);
 
-static int		pci_get_id_method(device_t dev, device_t child,
-			    enum pci_id_type type, uintptr_t *rid);
-static struct pci_devinfo * pci_fill_devinfo(device_t pcib, device_t bus, int d,
+static int pci_get_id_method(device_t dev, device_t child,
+    enum pci_id_type type, uintptr_t *rid);
+static struct pci_devinfo *pci_fill_devinfo(device_t pcib, device_t bus, int d,
     int b, int s, int f, uint16_t vid, uint16_t did);
 
 static device_method_t pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pci_probe),
-	DEVMETHOD(device_attach,	pci_attach),
-	DEVMETHOD(device_detach,	pci_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	pci_resume),
+	DEVMETHOD(device_probe, pci_probe),
+	DEVMETHOD(device_attach, pci_attach),
+	DEVMETHOD(device_detach, pci_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, pci_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	pci_print_child),
-	DEVMETHOD(bus_probe_nomatch,	pci_probe_nomatch),
-	DEVMETHOD(bus_read_ivar,	pci_read_ivar),
-	DEVMETHOD(bus_write_ivar,	pci_write_ivar),
-	DEVMETHOD(bus_driver_added,	pci_driver_added),
-	DEVMETHOD(bus_setup_intr,	pci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	pci_teardown_intr),
-	DEVMETHOD(bus_reset_prepare,	pci_reset_prepare),
-	DEVMETHOD(bus_reset_post,	pci_reset_post),
-	DEVMETHOD(bus_reset_child,	pci_reset_child),
+	DEVMETHOD(bus_print_child, pci_print_child),
+	DEVMETHOD(bus_probe_nomatch, pci_probe_nomatch),
+	DEVMETHOD(bus_read_ivar, pci_read_ivar),
+	DEVMETHOD(bus_write_ivar, pci_write_ivar),
+	DEVMETHOD(bus_driver_added, pci_driver_added),
+	DEVMETHOD(bus_setup_intr, pci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, pci_teardown_intr),
+	DEVMETHOD(bus_reset_prepare, pci_reset_prepare),
+	DEVMETHOD(bus_reset_post, pci_reset_post),
+	DEVMETHOD(bus_reset_child, pci_reset_child),
 
-	DEVMETHOD(bus_get_dma_tag,	pci_get_dma_tag),
-	DEVMETHOD(bus_get_resource_list,pci_get_resource_list),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
-	DEVMETHOD(bus_delete_resource,	pci_delete_resource),
-	DEVMETHOD(bus_alloc_resource,	pci_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,	bus_generic_adjust_resource),
-	DEVMETHOD(bus_release_resource,	pci_release_resource),
+	DEVMETHOD(bus_get_dma_tag, pci_get_dma_tag),
+	DEVMETHOD(bus_get_resource_list, pci_get_resource_list),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_delete_resource, pci_delete_resource),
+	DEVMETHOD(bus_alloc_resource, pci_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_release_resource, pci_release_resource),
 	DEVMETHOD(bus_activate_resource, pci_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, pci_deactivate_resource),
-	DEVMETHOD(bus_child_deleted,	pci_child_deleted),
-	DEVMETHOD(bus_child_detached,	pci_child_detached),
-	DEVMETHOD(bus_child_pnpinfo,	pci_child_pnpinfo_method),
-	DEVMETHOD(bus_child_location,	pci_child_location_method),
-	DEVMETHOD(bus_get_device_path,	pci_get_device_path_method),
-	DEVMETHOD(bus_hint_device_unit,	pci_hint_device_unit),
-	DEVMETHOD(bus_remap_intr,	pci_remap_intr_method),
-	DEVMETHOD(bus_suspend_child,	pci_suspend_child),
-	DEVMETHOD(bus_resume_child,	pci_resume_child),
-	DEVMETHOD(bus_rescan,		pci_rescan_method),
+	DEVMETHOD(bus_child_deleted, pci_child_deleted),
+	DEVMETHOD(bus_child_detached, pci_child_detached),
+	DEVMETHOD(bus_child_pnpinfo, pci_child_pnpinfo_method),
+	DEVMETHOD(bus_child_location, pci_child_location_method),
+	DEVMETHOD(bus_get_device_path, pci_get_device_path_method),
+	DEVMETHOD(bus_hint_device_unit, pci_hint_device_unit),
+	DEVMETHOD(bus_remap_intr, pci_remap_intr_method),
+	DEVMETHOD(bus_suspend_child, pci_suspend_child),
+	DEVMETHOD(bus_resume_child, pci_resume_child),
+	DEVMETHOD(bus_rescan, pci_rescan_method),
 
 	/* PCI interface */
-	DEVMETHOD(pci_read_config,	pci_read_config_method),
-	DEVMETHOD(pci_write_config,	pci_write_config_method),
-	DEVMETHOD(pci_enable_busmaster,	pci_enable_busmaster_method),
+	DEVMETHOD(pci_read_config, pci_read_config_method),
+	DEVMETHOD(pci_write_config, pci_write_config_method),
+	DEVMETHOD(pci_enable_busmaster, pci_enable_busmaster_method),
 	DEVMETHOD(pci_disable_busmaster, pci_disable_busmaster_method),
-	DEVMETHOD(pci_enable_io,	pci_enable_io_method),
-	DEVMETHOD(pci_disable_io,	pci_disable_io_method),
-	DEVMETHOD(pci_get_vpd_ident,	pci_get_vpd_ident_method),
-	DEVMETHOD(pci_get_vpd_readonly,	pci_get_vpd_readonly_method),
-	DEVMETHOD(pci_get_powerstate,	pci_get_powerstate_method),
-	DEVMETHOD(pci_set_powerstate,	pci_set_powerstate_method),
-	DEVMETHOD(pci_assign_interrupt,	pci_assign_interrupt_method),
-	DEVMETHOD(pci_find_cap,		pci_find_cap_method),
-	DEVMETHOD(pci_find_next_cap,	pci_find_next_cap_method),
-	DEVMETHOD(pci_find_extcap,	pci_find_extcap_method),
-	DEVMETHOD(pci_find_next_extcap,	pci_find_next_extcap_method),
-	DEVMETHOD(pci_find_htcap,	pci_find_htcap_method),
-	DEVMETHOD(pci_find_next_htcap,	pci_find_next_htcap_method),
-	DEVMETHOD(pci_alloc_msi,	pci_alloc_msi_method),
-	DEVMETHOD(pci_alloc_msix,	pci_alloc_msix_method),
-	DEVMETHOD(pci_enable_msi,	pci_enable_msi_method),
-	DEVMETHOD(pci_enable_msix,	pci_enable_msix_method),
-	DEVMETHOD(pci_disable_msi,	pci_disable_msi_method),
-	DEVMETHOD(pci_remap_msix,	pci_remap_msix_method),
-	DEVMETHOD(pci_release_msi,	pci_release_msi_method),
-	DEVMETHOD(pci_msi_count,	pci_msi_count_method),
-	DEVMETHOD(pci_msix_count,	pci_msix_count_method),
-	DEVMETHOD(pci_msix_pba_bar,	pci_msix_pba_bar_method),
-	DEVMETHOD(pci_msix_table_bar,	pci_msix_table_bar_method),
-	DEVMETHOD(pci_get_id,		pci_get_id_method),
-	DEVMETHOD(pci_alloc_devinfo,	pci_alloc_devinfo_method),
-	DEVMETHOD(pci_child_added,	pci_child_added_method),
+	DEVMETHOD(pci_enable_io, pci_enable_io_method),
+	DEVMETHOD(pci_disable_io, pci_disable_io_method),
+	DEVMETHOD(pci_get_vpd_ident, pci_get_vpd_ident_method),
+	DEVMETHOD(pci_get_vpd_readonly, pci_get_vpd_readonly_method),
+	DEVMETHOD(pci_get_powerstate, pci_get_powerstate_method),
+	DEVMETHOD(pci_set_powerstate, pci_set_powerstate_method),
+	DEVMETHOD(pci_assign_interrupt, pci_assign_interrupt_method),
+	DEVMETHOD(pci_find_cap, pci_find_cap_method),
+	DEVMETHOD(pci_find_next_cap, pci_find_next_cap_method),
+	DEVMETHOD(pci_find_extcap, pci_find_extcap_method),
+	DEVMETHOD(pci_find_next_extcap, pci_find_next_extcap_method),
+	DEVMETHOD(pci_find_htcap, pci_find_htcap_method),
+	DEVMETHOD(pci_find_next_htcap, pci_find_next_htcap_method),
+	DEVMETHOD(pci_alloc_msi, pci_alloc_msi_method),
+	DEVMETHOD(pci_alloc_msix, pci_alloc_msix_method),
+	DEVMETHOD(pci_enable_msi, pci_enable_msi_method),
+	DEVMETHOD(pci_enable_msix, pci_enable_msix_method),
+	DEVMETHOD(pci_disable_msi, pci_disable_msi_method),
+	DEVMETHOD(pci_remap_msix, pci_remap_msix_method),
+	DEVMETHOD(pci_release_msi, pci_release_msi_method),
+	DEVMETHOD(pci_msi_count, pci_msi_count_method),
+	DEVMETHOD(pci_msix_count, pci_msix_count_method),
+	DEVMETHOD(pci_msix_pba_bar, pci_msix_pba_bar_method),
+	DEVMETHOD(pci_msix_table_bar, pci_msix_table_bar_method),
+	DEVMETHOD(pci_get_id, pci_get_id_method),
+	DEVMETHOD(pci_alloc_devinfo, pci_alloc_devinfo_method),
+	DEVMETHOD(pci_child_added, pci_child_added_method),
 #ifdef PCI_IOV
-	DEVMETHOD(pci_iov_attach,	pci_iov_attach_method),
-	DEVMETHOD(pci_iov_detach,	pci_iov_detach_method),
-	DEVMETHOD(pci_create_iov_child,	pci_create_iov_child_method),
+	DEVMETHOD(pci_iov_attach, pci_iov_attach_method),
+	DEVMETHOD(pci_iov_detach, pci_iov_detach_method),
+	DEVMETHOD(pci_create_iov_child, pci_create_iov_child_method),
 #endif
 
 	DEVMETHOD_END
@@ -227,60 +225,61 @@ DEFINE_CLASS_0(pci, pci_driver, pci_methods, sizeof(struct pci_softc));
 EARLY_DRIVER_MODULE(pci, pcib, pci_driver, pci_modevent, NULL, BUS_PASS_BUS);
 MODULE_VERSION(pci, 1);
 
-static char	*pci_vendordata;
-static size_t	pci_vendordata_size;
+static char *pci_vendordata;
+static size_t pci_vendordata_size;
 
 struct pci_quirk {
-	uint32_t devid;	/* Vendor/device of the card */
-	int	type;
-#define	PCI_QUIRK_MAP_REG	1 /* PCI map register in weird place */
-#define	PCI_QUIRK_DISABLE_MSI	2 /* Neither MSI nor MSI-X work */
-#define	PCI_QUIRK_ENABLE_MSI_VM	3 /* Older chipset in VM where MSI works */
-#define	PCI_QUIRK_UNMAP_REG	4 /* Ignore PCI map register */
-#define	PCI_QUIRK_DISABLE_MSIX	5 /* MSI-X doesn't work */
-#define	PCI_QUIRK_MSI_INTX_BUG	6 /* PCIM_CMD_INTxDIS disables MSI */
-#define	PCI_QUIRK_REALLOC_BAR	7 /* Can't allocate memory at the default address */
-	int	arg1;
-	int	arg2;
+	uint32_t devid; /* Vendor/device of the card */
+	int type;
+#define PCI_QUIRK_MAP_REG 1	  /* PCI map register in weird place */
+#define PCI_QUIRK_DISABLE_MSI 2	  /* Neither MSI nor MSI-X work */
+#define PCI_QUIRK_ENABLE_MSI_VM 3 /* Older chipset in VM where MSI works */
+#define PCI_QUIRK_UNMAP_REG 4	  /* Ignore PCI map register */
+#define PCI_QUIRK_DISABLE_MSIX 5  /* MSI-X doesn't work */
+#define PCI_QUIRK_MSI_INTX_BUG 6  /* PCIM_CMD_INTxDIS disables MSI */
+#define PCI_QUIRK_REALLOC_BAR \
+	7 /* Can't allocate memory at the default address */
+	int arg1;
+	int arg2;
 };
 
 static const struct pci_quirk pci_quirks[] = {
 	/* The Intel 82371AB and 82443MX have a map register at offset 0x90. */
-	{ 0x71138086, PCI_QUIRK_MAP_REG,	0x90,	 0 },
-	{ 0x719b8086, PCI_QUIRK_MAP_REG,	0x90,	 0 },
+	{ 0x71138086, PCI_QUIRK_MAP_REG, 0x90, 0 },
+	{ 0x719b8086, PCI_QUIRK_MAP_REG, 0x90, 0 },
 	/* As does the Serverworks OSB4 (the SMBus mapping register) */
-	{ 0x02001166, PCI_QUIRK_MAP_REG,	0x90,	 0 },
+	{ 0x02001166, PCI_QUIRK_MAP_REG, 0x90, 0 },
 
 	/*
 	 * MSI doesn't work with the ServerWorks CNB20-HE Host Bridge
 	 * or the CMIC-SL (AKA ServerWorks GC_LE).
 	 */
-	{ 0x00141166, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x00171166, PCI_QUIRK_DISABLE_MSI,	0,	0 },
+	{ 0x00141166, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x00171166, PCI_QUIRK_DISABLE_MSI, 0, 0 },
 
 	/*
 	 * MSI doesn't work on earlier Intel chipsets including
 	 * E7500, E7501, E7505, 845, 865, 875/E7210, and 855.
 	 */
-	{ 0x25408086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x254c8086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x25508086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x25608086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x25708086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x25788086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
-	{ 0x35808086, PCI_QUIRK_DISABLE_MSI,	0,	0 },
+	{ 0x25408086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x254c8086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x25508086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x25608086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x25708086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x25788086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
+	{ 0x35808086, PCI_QUIRK_DISABLE_MSI, 0, 0 },
 
 	/*
 	 * MSI doesn't work with devices behind the AMD 8131 HT-PCIX
 	 * bridge.
 	 */
-	{ 0x74501022, PCI_QUIRK_DISABLE_MSI,	0,	0 },
+	{ 0x74501022, PCI_QUIRK_DISABLE_MSI, 0, 0 },
 
 	/*
 	 * Some virtualization environments emulate an older chipset
 	 * but support MSI just fine.  QEMU uses the Intel 82440.
 	 */
-	{ 0x12378086, PCI_QUIRK_ENABLE_MSI_VM,	0,	0 },
+	{ 0x12378086, PCI_QUIRK_ENABLE_MSI_VM, 0, 0 },
 
 	/*
 	 * HPET MMIO base address may appear in Bar1 for AMD SB600 SMBus
@@ -290,42 +289,41 @@ static const struct pci_quirk pci_quirks[] = {
 	 * For SB600 A21 and later, firmware must set the bit to hide it.
 	 * For SB700 and later, it is unused and hardcoded to zero.
 	 */
-	{ 0x43851002, PCI_QUIRK_UNMAP_REG,	0x14,	0 },
+	{ 0x43851002, PCI_QUIRK_UNMAP_REG, 0x14, 0 },
 
 	/*
 	 * Atheros AR8161/AR8162/E2200/E2400/E2500 Ethernet controllers have
 	 * a bug that MSI interrupt does not assert if PCIM_CMD_INTxDIS bit
 	 * of the command register is set.
 	 */
-	{ 0x10911969, PCI_QUIRK_MSI_INTX_BUG,	0,	0 },
-	{ 0xE0911969, PCI_QUIRK_MSI_INTX_BUG,	0,	0 },
-	{ 0xE0A11969, PCI_QUIRK_MSI_INTX_BUG,	0,	0 },
-	{ 0xE0B11969, PCI_QUIRK_MSI_INTX_BUG,	0,	0 },
-	{ 0x10901969, PCI_QUIRK_MSI_INTX_BUG,	0,	0 },
+	{ 0x10911969, PCI_QUIRK_MSI_INTX_BUG, 0, 0 },
+	{ 0xE0911969, PCI_QUIRK_MSI_INTX_BUG, 0, 0 },
+	{ 0xE0A11969, PCI_QUIRK_MSI_INTX_BUG, 0, 0 },
+	{ 0xE0B11969, PCI_QUIRK_MSI_INTX_BUG, 0, 0 },
+	{ 0x10901969, PCI_QUIRK_MSI_INTX_BUG, 0, 0 },
 
 	/*
 	 * Broadcom BCM5714(S)/BCM5715(S)/BCM5780(S) Ethernet MACs don't
 	 * issue MSI interrupts with PCIM_CMD_INTxDIS set either.
 	 */
-	{ 0x166814e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5714 */
-	{ 0x166914e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5714S */
-	{ 0x166a14e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5780 */
-	{ 0x166b14e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5780S */
-	{ 0x167814e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5715 */
-	{ 0x167914e4, PCI_QUIRK_MSI_INTX_BUG,	0,	0 }, /* BCM5715S */
+	{ 0x166814e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5714 */
+	{ 0x166914e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5714S */
+	{ 0x166a14e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5780 */
+	{ 0x166b14e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5780S */
+	{ 0x167814e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5715 */
+	{ 0x167914e4, PCI_QUIRK_MSI_INTX_BUG, 0, 0 }, /* BCM5715S */
 
 	/*
 	 * HPE Gen 10 VGA has a memory range that can't be allocated in the
 	 * expected place.
 	 */
-	{ 0x98741002, PCI_QUIRK_REALLOC_BAR,	0, 	0 },
-	{ 0 }
+	{ 0x98741002, PCI_QUIRK_REALLOC_BAR, 0, 0 }, { 0 }
 };
 
 /* map register information */
-#define	PCI_MAPMEM	0x01	/* memory map */
-#define	PCI_MAPMEMP	0x02	/* prefetchable memory map */
-#define	PCI_MAPPORT	0x04	/* port map */
+#define PCI_MAPMEM 0x01	 /* memory map */
+#define PCI_MAPMEMP 0x02 /* prefetchable memory map */
+#define PCI_MAPPORT 0x04 /* port map */
 
 struct devlist pci_devq;
 uint32_t pci_generation;
@@ -344,8 +342,8 @@ SYSCTL_INT(_hw_pci, OID_AUTO, enable_io_modes, CTLFLAG_RWTUN,
     " there are some peripherals that this causes problems with.");
 
 static int pci_do_realloc_bars = 1;
-SYSCTL_INT(_hw_pci, OID_AUTO, realloc_bars, CTLFLAG_RWTUN,
-    &pci_do_realloc_bars, 0,
+SYSCTL_INT(_hw_pci, OID_AUTO, realloc_bars, CTLFLAG_RWTUN, &pci_do_realloc_bars,
+    0,
     "Attempt to allocate a new range for any BARs whose original "
     "firmware-assigned ranges fail to allocate during the initial device scan.");
 
@@ -359,13 +357,11 @@ SYSCTL_INT(_hw_pci, OID_AUTO, do_power_nodriver, CTLFLAG_RWTUN,
 
 int pci_do_power_resume = 1;
 SYSCTL_INT(_hw_pci, OID_AUTO, do_power_resume, CTLFLAG_RWTUN,
-    &pci_do_power_resume, 1,
-  "Transition from D3 -> D0 on resume.");
+    &pci_do_power_resume, 1, "Transition from D3 -> D0 on resume.");
 
 int pci_do_power_suspend = 1;
 SYSCTL_INT(_hw_pci, OID_AUTO, do_power_suspend, CTLFLAG_RWTUN,
-    &pci_do_power_suspend, 1,
-  "Transition from D0 -> D3 on suspend.");
+    &pci_do_power_suspend, 1, "Transition from D0 -> D3 on suspend.");
 
 static int pci_do_msi = 1;
 SYSCTL_INT(_hw_pci, OID_AUTO, enable_msi, CTLFLAG_RWTUN, &pci_do_msi, 1,
@@ -406,12 +402,12 @@ SYSCTL_INT(_hw_pci, OID_AUTO, clear_buses, CTLFLAG_RDTUN, &pci_clear_buses, 0,
 #endif
 
 static int pci_enable_ari = 1;
-SYSCTL_INT(_hw_pci, OID_AUTO, enable_ari, CTLFLAG_RDTUN, &pci_enable_ari,
-    0, "Enable support for PCIe Alternative RID Interpretation");
+SYSCTL_INT(_hw_pci, OID_AUTO, enable_ari, CTLFLAG_RDTUN, &pci_enable_ari, 0,
+    "Enable support for PCIe Alternative RID Interpretation");
 
 int pci_enable_aspm = 1;
-SYSCTL_INT(_hw_pci, OID_AUTO, enable_aspm, CTLFLAG_RDTUN, &pci_enable_aspm,
-    0, "Enable support for PCIe Active State Power Management");
+SYSCTL_INT(_hw_pci, OID_AUTO, enable_aspm, CTLFLAG_RDTUN, &pci_enable_aspm, 0,
+    "Enable support for PCIe Active State Power Management");
 
 static int pci_clear_aer_on_attach = 0;
 SYSCTL_INT(_hw_pci, OID_AUTO, clear_aer_on_attach, CTLFLAG_RWTUN,
@@ -420,8 +416,7 @@ SYSCTL_INT(_hw_pci, OID_AUTO, clear_aer_on_attach, CTLFLAG_RWTUN,
 
 static bool pci_enable_mps_tune = true;
 SYSCTL_BOOL(_hw_pci, OID_AUTO, enable_mps_tune, CTLFLAG_RWTUN,
-    &pci_enable_mps_tune, 1,
-    "Enable tuning of MPS(maximum payload size)." );
+    &pci_enable_mps_tune, 1, "Enable tuning of MPS(maximum payload size).");
 
 static int
 pci_has_quirk(uint32_t devid, int quirk)
@@ -451,11 +446,9 @@ pci_find_dbsf(uint32_t domain, uint8_t bus, uint8_t slot, uint8_t func)
 {
 	struct pci_devinfo *dinfo = NULL;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
-		if ((dinfo->cfg.domain == domain) &&
-		    (dinfo->cfg.bus == bus) &&
-		    (dinfo->cfg.slot == slot) &&
-		    (dinfo->cfg.func == func)) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
+		if ((dinfo->cfg.domain == domain) && (dinfo->cfg.bus == bus) &&
+		    (dinfo->cfg.slot == slot) && (dinfo->cfg.func == func)) {
 			break;
 		}
 	}
@@ -470,7 +463,7 @@ pci_find_device(uint16_t vendor, uint16_t device)
 {
 	struct pci_devinfo *dinfo;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
 		if ((dinfo->cfg.vendor == vendor) &&
 		    (dinfo->cfg.device == device)) {
 			return (dinfo->cfg.dev);
@@ -485,7 +478,7 @@ pci_find_class(uint8_t class, uint8_t subclass)
 {
 	struct pci_devinfo *dinfo;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
 		if (dinfo->cfg.baseclass == class &&
 		    dinfo->cfg.subclass == subclass) {
 			return (dinfo->cfg.dev);
@@ -501,7 +494,7 @@ pci_find_class_from(uint8_t class, uint8_t subclass, device_t from)
 	struct pci_devinfo *dinfo;
 	bool found = false;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
 		if (from != NULL && found == false) {
 			if (from != dinfo->cfg.dev)
 				continue;
@@ -566,8 +559,7 @@ pci_mapsize(uint64_t testval)
 	testval = pci_mapbase(testval);
 	ln2size = 0;
 	if (testval != 0) {
-		while ((testval & 1) == 0)
-		{
+		while ((testval & 1) == 0) {
 			ln2size++;
 			testval >>= 1;
 		}
@@ -594,8 +586,7 @@ pci_romsize(uint64_t testval)
 	testval = pci_rombase(testval);
 	ln2size = 0;
 	if (testval != 0) {
-		while ((testval & 1) == 0)
-		{
+		while ((testval & 1) == 0) {
 			ln2size++;
 			testval >>= 1;
 		}
@@ -645,14 +636,14 @@ pci_fixancient(pcicfgregs *cfg)
 static void
 pci_hdrtypedata(device_t pcib, int b, int s, int f, pcicfgregs *cfg)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, b, s, f, n, w)
+#define REG(n, w) PCIB_READ_CONFIG(pcib, b, s, f, n, w)
 	switch (cfg->hdrtype & PCIM_HDRTYPE) {
 	case PCIM_HDRTYPE_NORMAL:
-		cfg->subvendor      = REG(PCIR_SUBVEND_0, 2);
-		cfg->subdevice      = REG(PCIR_SUBDEV_0, 2);
-		cfg->mingnt         = REG(PCIR_MINGNT, 1);
-		cfg->maxlat         = REG(PCIR_MAXLAT, 1);
-		cfg->nummaps	    = PCI_MAXMAPS_0;
+		cfg->subvendor = REG(PCIR_SUBVEND_0, 2);
+		cfg->subdevice = REG(PCIR_SUBDEV_0, 2);
+		cfg->mingnt = REG(PCIR_MINGNT, 1);
+		cfg->maxlat = REG(PCIR_MAXLAT, 1);
+		cfg->nummaps = PCI_MAXMAPS_0;
 		break;
 	case PCIM_HDRTYPE_BRIDGE:
 		cfg->bridge.br_seclat = REG(PCIR_SECLAT_1, 1);
@@ -660,7 +651,7 @@ pci_hdrtypedata(device_t pcib, int b, int s, int f, pcicfgregs *cfg)
 		cfg->bridge.br_secbus = REG(PCIR_SECBUS_1, 1);
 		cfg->bridge.br_pribus = REG(PCIR_PRIBUS_1, 1);
 		cfg->bridge.br_control = REG(PCIR_BRIDGECTL_1, 2);
-		cfg->nummaps	    = PCI_MAXMAPS_1;
+		cfg->nummaps = PCI_MAXMAPS_1;
 		break;
 	case PCIM_HDRTYPE_CARDBUS:
 		cfg->bridge.br_seclat = REG(PCIR_SECLAT_2, 1);
@@ -668,9 +659,9 @@ pci_hdrtypedata(device_t pcib, int b, int s, int f, pcicfgregs *cfg)
 		cfg->bridge.br_secbus = REG(PCIR_SECBUS_2, 1);
 		cfg->bridge.br_pribus = REG(PCIR_PRIBUS_2, 1);
 		cfg->bridge.br_control = REG(PCIR_BRIDGECTL_2, 2);
-		cfg->subvendor      = REG(PCIR_SUBVEND_2, 2);
-		cfg->subdevice      = REG(PCIR_SUBDEV_2, 2);
-		cfg->nummaps	    = PCI_MAXMAPS_2;
+		cfg->subvendor = REG(PCIR_SUBVEND_2, 2);
+		cfg->subdevice = REG(PCIR_SUBDEV_2, 2);
+		cfg->nummaps = PCI_MAXMAPS_2;
 		break;
 	}
 #undef REG
@@ -680,7 +671,7 @@ pci_hdrtypedata(device_t pcib, int b, int s, int f, pcicfgregs *cfg)
 struct pci_devinfo *
 pci_read_device(device_t pcib, device_t bus, int d, int b, int s, int f)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, b, s, f, n, w)
+#define REG(n, w) PCIB_READ_CONFIG(pcib, b, s, f, n, w)
 	uint16_t vid, did;
 
 	vid = REG(PCIR_VENDOR, 2);
@@ -696,8 +687,8 @@ struct pci_devinfo *
 pci_alloc_devinfo_method(device_t dev)
 {
 
-	return (malloc(sizeof(struct pci_devinfo), M_DEVBUF,
-	    M_WAITOK | M_ZERO));
+	return (
+	    malloc(sizeof(struct pci_devinfo), M_DEVBUF, M_WAITOK | M_ZERO));
 }
 
 static struct pci_devinfo *
@@ -711,29 +702,29 @@ pci_fill_devinfo(device_t pcib, device_t bus, int d, int b, int s, int f,
 
 	cfg = &devlist_entry->cfg;
 
-	cfg->domain		= d;
-	cfg->bus		= b;
-	cfg->slot		= s;
-	cfg->func		= f;
-	cfg->vendor		= vid;
-	cfg->device		= did;
-	cfg->cmdreg		= REG(PCIR_COMMAND, 2);
-	cfg->statreg		= REG(PCIR_STATUS, 2);
-	cfg->baseclass		= REG(PCIR_CLASS, 1);
-	cfg->subclass		= REG(PCIR_SUBCLASS, 1);
-	cfg->progif		= REG(PCIR_PROGIF, 1);
-	cfg->revid		= REG(PCIR_REVID, 1);
-	cfg->hdrtype		= REG(PCIR_HDRTYPE, 1);
-	cfg->cachelnsz		= REG(PCIR_CACHELNSZ, 1);
-	cfg->lattimer		= REG(PCIR_LATTIMER, 1);
-	cfg->intpin		= REG(PCIR_INTPIN, 1);
-	cfg->intline		= REG(PCIR_INTLINE, 1);
+	cfg->domain = d;
+	cfg->bus = b;
+	cfg->slot = s;
+	cfg->func = f;
+	cfg->vendor = vid;
+	cfg->device = did;
+	cfg->cmdreg = REG(PCIR_COMMAND, 2);
+	cfg->statreg = REG(PCIR_STATUS, 2);
+	cfg->baseclass = REG(PCIR_CLASS, 1);
+	cfg->subclass = REG(PCIR_SUBCLASS, 1);
+	cfg->progif = REG(PCIR_PROGIF, 1);
+	cfg->revid = REG(PCIR_REVID, 1);
+	cfg->hdrtype = REG(PCIR_HDRTYPE, 1);
+	cfg->cachelnsz = REG(PCIR_CACHELNSZ, 1);
+	cfg->lattimer = REG(PCIR_LATTIMER, 1);
+	cfg->intpin = REG(PCIR_INTPIN, 1);
+	cfg->intline = REG(PCIR_INTLINE, 1);
 
-	cfg->mfdev		= (cfg->hdrtype & PCIM_MFDEV) != 0;
-	cfg->hdrtype		&= ~PCIM_MFDEV;
+	cfg->mfdev = (cfg->hdrtype & PCIM_MFDEV) != 0;
+	cfg->hdrtype &= ~PCIM_MFDEV;
 	STAILQ_INIT(&cfg->maps);
 
-	cfg->iov		= NULL;
+	cfg->iov = NULL;
 
 	pci_fixancient(cfg);
 	pci_hdrtypedata(pcib, b, s, f, cfg);
@@ -769,8 +760,9 @@ pci_fill_devinfo(device_t pcib, device_t bus, int d, int b, int s, int f,
 static void
 pci_ea_fill_info(device_t pcib, pcicfgregs *cfg)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, \
-    cfg->ea.ea_location + (n), w)
+#define REG(n, w)                                              \
+	PCIB_READ_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, \
+	    cfg->ea.ea_location + (n), w)
 	int num_ent;
 	int ptr;
 	int a, b;
@@ -820,8 +812,7 @@ pci_ea_fill_info(device_t pcib, pcicfgregs *cfg)
 			base |= (uint64_t)dw[b] << 32UL;
 			b++;
 		}
-		if (((dw[1] & PCIM_EA_IS_64) != 0)
-		    && (b < ent_size)) {
+		if (((dw[1] & PCIM_EA_IS_64) != 0) && (b < ent_size)) {
 			max_offset |= (uint64_t)dw[b] << 32UL;
 			b++;
 		}
@@ -832,9 +823,11 @@ pci_ea_fill_info(device_t pcib, pcicfgregs *cfg)
 		STAILQ_INSERT_TAIL(&cfg->ea.ea_entries, eae, eae_link);
 
 		if (bootverbose) {
-			printf("PCI(EA) dev %04x:%04x, bei %d, flags #%x, base #%jx, max_offset #%jx\n",
-			    cfg->vendor, cfg->device, eae->eae_bei, eae->eae_flags,
-			    (uintmax_t)eae->eae_base, (uintmax_t)eae->eae_max_offset);
+			printf(
+			    "PCI(EA) dev %04x:%04x, bei %d, flags #%x, base #%jx, max_offset #%jx\n",
+			    cfg->vendor, cfg->device, eae->eae_bei,
+			    eae->eae_flags, (uintmax_t)eae->eae_base,
+			    (uintmax_t)eae->eae_max_offset);
 		}
 	}
 }
@@ -843,13 +836,14 @@ pci_ea_fill_info(device_t pcib, pcicfgregs *cfg)
 static void
 pci_read_cap(device_t pcib, pcicfgregs *cfg)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, n, w)
-#define	WREG(n, v, w)	PCIB_WRITE_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, n, v, w)
+#define REG(n, w) PCIB_READ_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, n, w)
+#define WREG(n, v, w) \
+	PCIB_WRITE_CONFIG(pcib, cfg->bus, cfg->slot, cfg->func, n, v, w)
 #if defined(__i386__) || defined(__amd64__) || defined(__powerpc__)
 	uint64_t addr;
 #endif
 	uint32_t val;
-	int	ptr, nextptr, ptrptr;
+	int ptr, nextptr, ptrptr;
 
 	switch (cfg->hdrtype & PCIM_HDRTYPE) {
 	case PCIM_HDRTYPE_NORMAL:
@@ -857,12 +851,12 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 		ptrptr = PCIR_CAP_PTR;
 		break;
 	case PCIM_HDRTYPE_CARDBUS:
-		ptrptr = PCIR_CAP_PTR_2;	/* cardbus capabilities ptr */
+		ptrptr = PCIR_CAP_PTR_2; /* cardbus capabilities ptr */
 		break;
 	default:
-		return;		/* no extended capabilities support */
+		return; /* no extended capabilities support */
 	}
-	nextptr = REG(ptrptr, 1);	/* sanity check? */
+	nextptr = REG(ptrptr, 1); /* sanity check? */
 
 	/*
 	 * Read capability entries.
@@ -880,7 +874,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 
 		/* Process this entry */
 		switch (REG(ptr + PCICAP_ID, 1)) {
-		case PCIY_PMG:		/* PCI power management */
+		case PCIY_PMG: /* PCI power management */
 			if (cfg->pp.pp_cap == 0) {
 				cfg->pp.pp_cap = REG(ptr + PCIR_POWER_CAP, 2);
 				cfg->pp.pp_status = ptr + PCIR_POWER_STATUS;
@@ -889,7 +883,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 					cfg->pp.pp_data = ptr + PCIR_POWER_DATA;
 			}
 			break;
-		case PCIY_HT:		/* HyperTransport */
+		case PCIY_HT: /* HyperTransport */
 			/* Determine HT-specific capability type. */
 			val = REG(ptr + PCIR_HT_COMMAND, 2);
 
@@ -908,7 +902,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 					    4);
 					if (addr != MSI_INTEL_ADDR_BASE)
 						device_printf(pcib,
-	    "HT device at pci%d:%d:%d:%d has non-default MSI window 0x%llx\n",
+						    "HT device at pci%d:%d:%d:%d has non-default MSI window 0x%llx\n",
 						    cfg->domain, cfg->bus,
 						    cfg->slot, cfg->func,
 						    (long long)addr);
@@ -922,27 +916,29 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 			}
 #endif
 			break;
-		case PCIY_MSI:		/* PCI MSI */
+		case PCIY_MSI: /* PCI MSI */
 			cfg->msi.msi_location = ptr;
 			cfg->msi.msi_ctrl = REG(ptr + PCIR_MSI_CTRL, 2);
-			cfg->msi.msi_msgnum = 1 << ((cfg->msi.msi_ctrl &
-						     PCIM_MSICTRL_MMC_MASK)>>1);
+			cfg->msi.msi_msgnum = 1
+			    << ((cfg->msi.msi_ctrl & PCIM_MSICTRL_MMC_MASK) >>
+				   1);
 			break;
-		case PCIY_MSIX:		/* PCI MSI-X */
+		case PCIY_MSIX: /* PCI MSI-X */
 			cfg->msix.msix_location = ptr;
 			cfg->msix.msix_ctrl = REG(ptr + PCIR_MSIX_CTRL, 2);
 			cfg->msix.msix_msgnum = (cfg->msix.msix_ctrl &
-			    PCIM_MSIXCTRL_TABLE_SIZE) + 1;
+						    PCIM_MSIXCTRL_TABLE_SIZE) +
+			    1;
 			val = REG(ptr + PCIR_MSIX_TABLE, 4);
-			cfg->msix.msix_table_bar = PCIR_BAR(val &
-			    PCIM_MSIX_BIR_MASK);
+			cfg->msix.msix_table_bar = PCIR_BAR(
+			    val & PCIM_MSIX_BIR_MASK);
 			cfg->msix.msix_table_offset = val & ~PCIM_MSIX_BIR_MASK;
 			val = REG(ptr + PCIR_MSIX_PBA, 4);
-			cfg->msix.msix_pba_bar = PCIR_BAR(val &
-			    PCIM_MSIX_BIR_MASK);
+			cfg->msix.msix_pba_bar = PCIR_BAR(
+			    val & PCIM_MSIX_BIR_MASK);
 			cfg->msix.msix_pba_offset = val & ~PCIM_MSIX_BIR_MASK;
 			break;
-		case PCIY_VPD:		/* PCI Vital Product Data */
+		case PCIY_VPD: /* PCI Vital Product Data */
 			cfg->vpd.vpd_reg = ptr;
 			break;
 		case PCIY_SUBVENDOR:
@@ -954,7 +950,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 				cfg->subdevice = val >> 16;
 			}
 			break;
-		case PCIY_PCIX:		/* PCI-X */
+		case PCIY_PCIX: /* PCI-X */
 			/*
 			 * Assume we have a PCI-X chipset if we have
 			 * at least one PCI-PCI bridge with a PCI-X
@@ -967,7 +963,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 				pcix_chipset = 1;
 			cfg->pcix.pcix_location = ptr;
 			break;
-		case PCIY_EXPRESS:	/* PCI-express */
+		case PCIY_EXPRESS: /* PCI-express */
 			/*
 			 * Assume we have a PCI-express chipset if we have
 			 * at least one PCI-express device.
@@ -977,7 +973,7 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 			val = REG(ptr + PCIER_FLAGS, 2);
 			cfg->pcie.pcie_type = val & PCIEM_FLAGS_TYPE;
 			break;
-		case PCIY_EA:		/* Enhanced Allocation */
+		case PCIY_EA: /* Enhanced Allocation */
 			cfg->ea.ea_location = ptr;
 			pci_ea_fill_info(pcib, cfg);
 			break;
@@ -995,21 +991,21 @@ pci_read_cap(device_t pcib, pcicfgregs *cfg)
 	if (cfg->ht.ht_slave != 0 && cfg->ht.ht_msimap != 0 &&
 	    !(cfg->ht.ht_msictrl & PCIM_HTCMD_MSI_ENABLE)) {
 		device_printf(pcib,
-	    "Enabling MSI window for HyperTransport slave at pci%d:%d:%d:%d\n",
+		    "Enabling MSI window for HyperTransport slave at pci%d:%d:%d:%d\n",
 		    cfg->domain, cfg->bus, cfg->slot, cfg->func);
-		 cfg->ht.ht_msictrl |= PCIM_HTCMD_MSI_ENABLE;
-		 WREG(cfg->ht.ht_msimap + PCIR_HT_COMMAND, cfg->ht.ht_msictrl,
-		     2);
+		cfg->ht.ht_msictrl |= PCIM_HTCMD_MSI_ENABLE;
+		WREG(cfg->ht.ht_msimap + PCIR_HT_COMMAND, cfg->ht.ht_msictrl,
+		    2);
 	}
 #endif
-/* REG and WREG use carry through to next functions */
+	/* REG and WREG use carry through to next functions */
 }
 
 /*
  * PCI Vital Product Data
  */
 
-#define	PCI_VPD_TIMEOUT		1000000
+#define PCI_VPD_TIMEOUT 1000000
 
 static int
 pci_read_vpd_reg(device_t pcib, pcicfgregs *cfg, int reg, uint32_t *data)
@@ -1023,7 +1019,7 @@ pci_read_vpd_reg(device_t pcib, pcicfgregs *cfg, int reg, uint32_t *data)
 	while ((REG(cfg->vpd.vpd_reg + PCIR_VPD_ADDR, 2) & 0x8000) != 0x8000) {
 		if (--count < 0)
 			return (ENXIO);
-		DELAY(1);	/* limit looping */
+		DELAY(1); /* limit looping */
 	}
 	*data = (REG(cfg->vpd.vpd_reg + PCIR_VPD_DATA, 4));
 
@@ -1053,12 +1049,12 @@ pci_write_vpd_reg(device_t pcib, pcicfgregs *cfg, int reg, uint32_t data)
 #undef PCI_VPD_TIMEOUT
 
 struct vpd_readstate {
-	device_t	pcib;
-	pcicfgregs	*cfg;
-	uint32_t	val;
-	int		bytesinval;
-	int		off;
-	uint8_t		cksum;
+	device_t pcib;
+	pcicfgregs *cfg;
+	uint32_t val;
+	int bytesinval;
+	int off;
+	uint8_t cksum;
 };
 
 /* return 0 and one byte in *data if no read error, -1 else */
@@ -1125,16 +1121,16 @@ vpd_read_tag_size(struct vpd_readstate *vrs, uint8_t vpd_tag)
 }
 
 /* (re)allocate buffer in multiples of 8 elements */
-static void*
-alloc_buffer(void* buffer, size_t element_size, int needed)
+static void *
+alloc_buffer(void *buffer, size_t element_size, int needed)
 {
 	int alloc, new_alloc;
 
 	alloc = roundup2(needed, 8);
 	new_alloc = roundup2(needed + 1, 8);
 	if (alloc != new_alloc) {
-		buffer = reallocf(buffer,
-		    new_alloc * element_size, M_DEVBUF, M_WAITOK | M_ZERO);
+		buffer = reallocf(buffer, new_alloc * element_size, M_DEVBUF,
+		    M_WAITOK | M_ZERO);
 	}
 
 	return (buffer);
@@ -1179,7 +1175,8 @@ vpd_read_value(struct vpd_readstate *vrs, int size)
 
 /* read VPD into *keyword and *value, return length of data element */
 static int
-vpd_read_elem_data(struct vpd_readstate *vrs, char keyword[2], char **value, int maxlen)
+vpd_read_elem_data(struct vpd_readstate *vrs, char keyword[2], char **value,
+    int maxlen)
 {
 	int len;
 
@@ -1218,18 +1215,20 @@ next_vpd_ro_elem(struct vpd_readstate *vrs, int maxsize)
 
 	if (maxsize < 3)
 		return (-1);
-	vpd->vpd_ros = alloc_buffer(vpd->vpd_ros, sizeof(*vpd->vpd_ros), vpd->vpd_rocnt);
+	vpd->vpd_ros = alloc_buffer(vpd->vpd_ros, sizeof(*vpd->vpd_ros),
+	    vpd->vpd_rocnt);
 	vpd_ros = &vpd->vpd_ros[vpd->vpd_rocnt];
 	maxsize -= 3;
-	len = vpd_read_elem_data(vrs, vpd_ros->keyword, &vpd_ros->value, maxsize);
+	len = vpd_read_elem_data(vrs, vpd_ros->keyword, &vpd_ros->value,
+	    maxsize);
 	if (vpd_ros->value == NULL)
 		return (-1);
 	vpd_ros->len = len;
 	if (vpd_ros->keyword[0] == 'R' && vpd_ros->keyword[1] == 'V') {
 		vpd_fixup_cksum(vrs, vpd_ros->value, len);
 		if (vrs->cksum != 0) {
-			pci_printf(cfg,
-			    "invalid VPD checksum %#hhx\n", vrs->cksum);
+			pci_printf(cfg, "invalid VPD checksum %#hhx\n",
+			    vrs->cksum);
 			return (-1);
 		}
 	}
@@ -1252,7 +1251,8 @@ next_vpd_rw_elem(struct vpd_readstate *vrs, int maxsize)
 
 	if (maxsize < 3)
 		return (-1);
-	vpd->vpd_w = alloc_buffer(vpd->vpd_w, sizeof(*vpd->vpd_w), vpd->vpd_wcnt);
+	vpd->vpd_w = alloc_buffer(vpd->vpd_w, sizeof(*vpd->vpd_w),
+	    vpd->vpd_wcnt);
 	if (vpd->vpd_w == NULL) {
 		pci_printf(cfg, "out of memory");
 		return (-1);
@@ -1286,10 +1286,10 @@ vpd_free(struct pcicfg_vpd *vpd)
 	vpd->vpd_wcnt = 0;
 }
 
-#define VPD_TAG_END	((0x0f << 3) | 0)	/* small tag, len == 0 */
-#define VPD_TAG_IDENT	(0x02 | 0x80)		/* large tag */
-#define VPD_TAG_RO	(0x10 | 0x80)		/* large tag */
-#define VPD_TAG_RW	(0x11 | 0x80)		/* large tag */
+#define VPD_TAG_END ((0x0f << 3) | 0) /* small tag, len == 0 */
+#define VPD_TAG_IDENT (0x02 | 0x80)   /* large tag */
+#define VPD_TAG_RO (0x10 | 0x80)      /* large tag */
+#define VPD_TAG_RW (0x11 | 0x80)      /* large tag */
 
 static int
 pci_parse_vpd(device_t pcib, pcicfgregs *cfg)
@@ -1388,7 +1388,7 @@ pci_get_vpd_ident_method(device_t dev, device_t child, const char **identptr)
 
 int
 pci_get_vpd_readonly_method(device_t dev, device_t child, const char *kw,
-	const char **vptr)
+    const char **vptr)
 {
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 	pcicfgregs *cfg = &dinfo->cfg;
@@ -1399,7 +1399,7 @@ pci_get_vpd_readonly_method(device_t dev, device_t child, const char *kw,
 
 	for (i = 0; i < cfg->vpd.vpd_rocnt; i++)
 		if (memcmp(kw, cfg->vpd.vpd_ros[i].keyword,
-		    sizeof(cfg->vpd.vpd_ros[i].keyword)) == 0) {
+			sizeof(cfg->vpd.vpd_ros[i].keyword)) == 0) {
 			*vptr = cfg->vpd.vpd_ros[i].value;
 			return (0);
 		}
@@ -1506,8 +1506,7 @@ pci_find_next_htcap_method(device_t dev, device_t child, int capability,
  * 0 on success and an error code otherwise.
  */
 int
-pci_find_cap_method(device_t dev, device_t child, int capability,
-    int *capreg)
+pci_find_cap_method(device_t dev, device_t child, int capability, int *capreg)
 {
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 	pcicfgregs *cfg = &dinfo->cfg;
@@ -1534,7 +1533,7 @@ pci_find_cap_method(device_t dev, device_t child, int capability,
 		break;
 	default:
 		/* XXX: panic? */
-		return (ENXIO);		/* no extended capabilities support */
+		return (ENXIO); /* no extended capabilities support */
 	}
 	ptr = pci_read_config(child, ptr, 1);
 
@@ -1686,8 +1685,7 @@ pci_enable_msix_method(device_t dev, device_t child, u_int index,
 		 * must be disabled while updating all entries in the
 		 * table.
 		 */
-		pci_write_config(child,
-		    msix->msix_location + PCIR_MSIX_CTRL,
+		pci_write_config(child, msix->msix_location + PCIR_MSIX_CTRL,
 		    msix->msix_ctrl & ~PCIM_MSIXCTRL_MSIX_ENABLE, 2);
 		pci_resume_msix(child);
 	} else
@@ -1988,8 +1986,8 @@ pci_remap_msix_method(device_t dev, device_t child, int count,
 	 * It's a big pain to support it, and it doesn't really make
 	 * sense anyway.  Also, at least one vector must be used.
 	 */
-	used = malloc(sizeof(int) * msix->msix_alloc, M_DEVBUF, M_WAITOK |
-	    M_ZERO);
+	used = malloc(sizeof(int) * msix->msix_alloc, M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 	for (i = 0; i < count; i++)
 		if (vectors[i] != 0)
 			used[vectors[i] - 1] = 1;
@@ -2049,8 +2047,8 @@ pci_remap_msix_method(device_t dev, device_t child, int count,
 		}
 		vec = malloc(sizeof(struct msix_vector) * (j + 1), M_DEVBUF,
 		    M_WAITOK);
-		bcopy(msix->msix_vectors, vec, sizeof(struct msix_vector) *
-		    (j + 1));
+		bcopy(msix->msix_vectors, vec,
+		    sizeof(struct msix_vector) * (j + 1));
 		free(msix->msix_vectors, M_DEVBUF);
 		msix->msix_vectors = vec;
 		msix->msix_alloc = j + 1;
@@ -2388,10 +2386,11 @@ pci_resume_msi(device_t dev)
 		pci_write_config(dev, msi->msi_location + PCIR_MSI_ADDR,
 		    address & 0xffffffff, 4);
 		if (msi->msi_ctrl & PCIM_MSICTRL_64BIT) {
-			pci_write_config(dev, msi->msi_location +
-			    PCIR_MSI_ADDR_HIGH, address >> 32, 4);
-			pci_write_config(dev, msi->msi_location +
-			    PCIR_MSI_DATA_64BIT, data, 2);
+			pci_write_config(dev,
+			    msi->msi_location + PCIR_MSI_ADDR_HIGH,
+			    address >> 32, 4);
+			pci_write_config(dev,
+			    msi->msi_location + PCIR_MSI_DATA_64BIT, data, 2);
 		} else
 			pci_write_config(dev, msi->msi_location + PCIR_MSI_DATA,
 			    data, 2);
@@ -2514,7 +2513,7 @@ pci_msi_blacklisted(void)
 			dev = pci_find_bsf(0, 0, 0);
 			if (dev != NULL)
 				return (!pci_has_quirk(pci_get_devid(dev),
-					PCI_QUIRK_ENABLE_MSI_VM));
+				    PCI_QUIRK_ENABLE_MSI_VM));
 		}
 		return (1);
 	}
@@ -2557,8 +2556,8 @@ pci_msix_blacklisted(void)
 		return (0);
 
 	dev = pci_find_bsf(0, 0, 0);
-	if (dev != NULL && pci_has_quirk(pci_get_devid(dev),
-	    PCI_QUIRK_DISABLE_MSIX))
+	if (dev != NULL &&
+	    pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_DISABLE_MSIX))
 		return (1);
 
 	return (pci_msi_blacklisted());
@@ -2766,7 +2765,7 @@ pci_freecfg(struct pci_devinfo *dinfo)
 	if (dinfo->cfg.vpd.vpd_reg)
 		vpd_free(&dinfo->cfg.vpd);
 
-	STAILQ_FOREACH_SAFE(pm, &dinfo->cfg.maps, pm_link, next) {
+	STAILQ_FOREACH_SAFE (pm, &dinfo->cfg.maps, pm_link, next) {
 		free(pm, M_DEVBUF);
 	}
 	STAILQ_REMOVE(devlist_head, dinfo, pci_devinfo, pci_links);
@@ -2817,13 +2816,13 @@ pci_set_powerstate_method(device_t dev, device_t child, int state)
 	 */
 	highest = (oldstate > state) ? oldstate : state;
 	if (highest == PCI_POWERSTATE_D3)
-	    delay = 10000;
+		delay = 10000;
 	else if (highest == PCI_POWERSTATE_D2)
-	    delay = 200;
+		delay = 200;
 	else
-	    delay = 0;
-	status = PCI_READ_CONFIG(dev, child, cfg->pp.pp_status, 2)
-	    & ~PCIM_PSTAT_DMASK;
+		delay = 0;
+	status = PCI_READ_CONFIG(dev, child, cfg->pp.pp_status, 2) &
+	    ~PCIM_PSTAT_DMASK;
 	switch (state) {
 	case PCI_POWERSTATE_D0:
 		status |= PCIM_PSTAT_D0;
@@ -2896,7 +2895,7 @@ pci_get_powerstate_method(device_t dev, device_t child)
 static __inline void
 pci_set_command_bit(device_t dev, device_t child, uint16_t bit)
 {
-	uint16_t	command;
+	uint16_t command;
 
 	command = PCI_READ_CONFIG(dev, child, PCIR_COMMAND, 2);
 	command |= bit;
@@ -2906,7 +2905,7 @@ pci_set_command_bit(device_t dev, device_t child, uint16_t bit)
 static __inline void
 pci_clear_command_bit(device_t dev, device_t child, uint16_t bit)
 {
-	uint16_t	command;
+	uint16_t command;
 
 	command = PCI_READ_CONFIG(dev, child, PCIR_COMMAND, 2);
 	command &= ~bit;
@@ -2932,7 +2931,7 @@ pci_enable_io_method(device_t dev, device_t child, int space)
 {
 	uint16_t bit;
 
-	switch(space) {
+	switch (space) {
 	case SYS_RES_IOPORT:
 		bit = PCIM_CMD_PORTEN;
 		break;
@@ -2951,7 +2950,7 @@ pci_disable_io_method(device_t dev, device_t child, int space)
 {
 	uint16_t bit;
 
-	switch(space) {
+	switch (space) {
 	case SYS_RES_IOPORT:
 		bit = PCIM_CMD_PORTEN;
 		break;
@@ -2979,24 +2978,28 @@ pci_print_verbose(struct pci_devinfo *dinfo)
 
 		printf("found->\tvendor=0x%04x, dev=0x%04x, revid=0x%02x\n",
 		    cfg->vendor, cfg->device, cfg->revid);
-		printf("\tdomain=%d, bus=%d, slot=%d, func=%d\n",
-		    cfg->domain, cfg->bus, cfg->slot, cfg->func);
+		printf("\tdomain=%d, bus=%d, slot=%d, func=%d\n", cfg->domain,
+		    cfg->bus, cfg->slot, cfg->func);
 		printf("\tclass=%02x-%02x-%02x, hdrtype=0x%02x, mfdev=%d\n",
 		    cfg->baseclass, cfg->subclass, cfg->progif, cfg->hdrtype,
 		    cfg->mfdev);
-		printf("\tcmdreg=0x%04x, statreg=0x%04x, cachelnsz=%d (dwords)\n",
+		printf(
+		    "\tcmdreg=0x%04x, statreg=0x%04x, cachelnsz=%d (dwords)\n",
 		    cfg->cmdreg, cfg->statreg, cfg->cachelnsz);
-		printf("\tlattimer=0x%02x (%d ns), mingnt=0x%02x (%d ns), maxlat=0x%02x (%d ns)\n",
+		printf(
+		    "\tlattimer=0x%02x (%d ns), mingnt=0x%02x (%d ns), maxlat=0x%02x (%d ns)\n",
 		    cfg->lattimer, cfg->lattimer * 30, cfg->mingnt,
 		    cfg->mingnt * 250, cfg->maxlat, cfg->maxlat * 250);
 		if (cfg->intpin > 0)
-			printf("\tintpin=%c, irq=%d\n",
-			    cfg->intpin +'a' -1, cfg->intline);
+			printf("\tintpin=%c, irq=%d\n", cfg->intpin + 'a' - 1,
+			    cfg->intline);
 		if (cfg->pp.pp_cap) {
 			uint16_t status;
 
-			status = pci_read_config(cfg->dev, cfg->pp.pp_status, 2);
-			printf("\tpowerspec %d  supports D0%s%s D3  current D%d\n",
+			status = pci_read_config(cfg->dev, cfg->pp.pp_status,
+			    2);
+			printf(
+			    "\tpowerspec %d  supports D0%s%s D3  current D%d\n",
 			    cfg->pp.pp_cap & PCIM_PCAP_SPEC,
 			    cfg->pp.pp_cap & PCIM_PCAP_D1SUPP ? " D1" : "",
 			    cfg->pp.pp_cap & PCIM_PCAP_D2SUPP ? " D2" : "",
@@ -3010,7 +3013,8 @@ pci_print_verbose(struct pci_devinfo *dinfo)
 			    cfg->msi.msi_msgnum,
 			    (cfg->msi.msi_msgnum == 1) ? "" : "s",
 			    (ctrl & PCIM_MSICTRL_64BIT) ? ", 64 bit" : "",
-			    (ctrl & PCIM_MSICTRL_VECTOR) ? ", vector masks":"");
+			    (ctrl & PCIM_MSICTRL_VECTOR) ? ", vector masks" :
+							   "");
 		}
 		if (cfg->msix.msix_location) {
 			printf("\tMSI-X supports %d message%s ",
@@ -3133,8 +3137,8 @@ pci_write_bar(device_t dev, struct pci_map *pm, pci_addr_t base)
 		pci_write_config(dev, pm->pm_reg + 4, base >> 32, 4);
 	pm->pm_value = pci_read_config(dev, pm->pm_reg, 4);
 	if (ln2range == 64)
-		pm->pm_value |= (pci_addr_t)pci_read_config(dev,
-		    pm->pm_reg + 4, 4) << 32;
+		pm->pm_value |=
+		    (pci_addr_t)pci_read_config(dev, pm->pm_reg + 4, 4) << 32;
 }
 
 struct pci_map *
@@ -3144,7 +3148,7 @@ pci_find_bar(device_t dev, int reg)
 	struct pci_map *pm;
 
 	dinfo = device_get_ivars(dev);
-	STAILQ_FOREACH(pm, &dinfo->cfg.maps, pm_link) {
+	STAILQ_FOREACH (pm, &dinfo->cfg.maps, pm_link) {
 		if (pm->pm_reg == reg)
 			return (pm);
 	}
@@ -3204,9 +3208,9 @@ pci_add_bar(device_t dev, int reg, pci_addr_t value, pci_addr_t size)
 	pm->pm_reg = reg;
 	pm->pm_value = value;
 	pm->pm_size = size;
-	STAILQ_FOREACH(prev, &dinfo->cfg.maps, pm_link) {
-		KASSERT(prev->pm_reg != pm->pm_reg, ("duplicate map %02x",
-		    reg));
+	STAILQ_FOREACH (prev, &dinfo->cfg.maps, pm_link) {
+		KASSERT(prev->pm_reg != pm->pm_reg,
+		    ("duplicate map %02x", reg));
 		if (STAILQ_NEXT(prev, pm_link) == NULL ||
 		    STAILQ_NEXT(prev, pm_link)->pm_reg > pm->pm_reg)
 			break;
@@ -3226,7 +3230,7 @@ pci_restore_bars(device_t dev)
 	int ln2range;
 
 	dinfo = device_get_ivars(dev);
-	STAILQ_FOREACH(pm, &dinfo->cfg.maps, pm_link) {
+	STAILQ_FOREACH (pm, &dinfo->cfg.maps, pm_link) {
 		if (PCIR_IS_BIOS(&dinfo->cfg, pm->pm_reg))
 			ln2range = 32;
 		else
@@ -3359,7 +3363,7 @@ pci_add_map(device_t bus, device_t dev, int reg, struct resource_list *rl,
 	if (prefetch)
 		flags |= RF_PREFETCHABLE;
 	if (basezero || base == pci_mapbase(testval) || pci_clear_bars) {
-		start = 0;	/* Let the parent decide. */
+		start = 0; /* Let the parent decide. */
 		end = ~0;
 	} else {
 		start = base;
@@ -3375,9 +3379,9 @@ pci_add_map(device_t bus, device_t dev, int reg, struct resource_list *rl,
 	 */
 	res = resource_list_reserve(rl, bus, dev, type, &reg, start, end, count,
 	    flags);
-	if ((pci_do_realloc_bars
-		|| pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_REALLOC_BAR))
-	    && res == NULL && (start != 0 || end != ~0)) {
+	if ((pci_do_realloc_bars ||
+		pci_has_quirk(pci_get_devid(dev), PCI_QUIRK_REALLOC_BAR)) &&
+	    res == NULL && (start != 0 || end != ~0)) {
 		/*
 		 * If the allocation fails, try to allocate a resource for
 		 * this BAR using any available range.  The firmware felt
@@ -3467,10 +3471,8 @@ pci_ata_maps(device_t bus, device_t dev, struct resource_list *rl, int force,
 		(void)resource_list_reserve(rl, bus, dev, type, &rid, 0x376,
 		    0x376, 1, 0);
 	}
-	pci_add_map(bus, dev, PCIR_BAR(4), rl, force,
-	    prefetchmask & (1 << 4));
-	pci_add_map(bus, dev, PCIR_BAR(5), rl, force,
-	    prefetchmask & (1 << 5));
+	pci_add_map(bus, dev, PCIR_BAR(4), rl, force, prefetchmask & (1 << 4));
+	pci_add_map(bus, dev, PCIR_BAR(5), rl, force, prefetchmask & (1 << 5));
 }
 
 static void
@@ -3487,8 +3489,7 @@ pci_assign_interrupt(device_t bus, device_t dev, int force_route)
 
 	/* Let the user override the IRQ with a tunable. */
 	irq = PCI_INVALID_IRQ;
-	snprintf(tunable_name, sizeof(tunable_name),
-	    "hw.pci%d.%d.%d.INT%c.irq",
+	snprintf(tunable_name, sizeof(tunable_name), "hw.pci%d.%d.%d.INT%c.irq",
 	    cfg->domain, cfg->bus, cfg->slot, cfg->intpin + 'A' - 1);
 	if (TUNABLE_INT_FETCH(tunable_name, &irq) && (irq >= 255 || irq <= 0))
 		irq = PCI_INVALID_IRQ;
@@ -3539,7 +3540,7 @@ ohci_early_takeover(device_t self)
 	if (ctl & OHCI_IR) {
 		if (bootverbose)
 			printf("ohci early: "
-			    "SMM active, request owner change\n");
+			       "SMM active, request owner change\n");
 		bus_write_4(res, OHCI_COMMAND_STATUS, OHCI_OCR);
 		for (i = 0; (i < 100) && (ctl & OHCI_IR); i++) {
 			DELAY(1000);
@@ -3548,7 +3549,7 @@ ohci_early_takeover(device_t self)
 		if (ctl & OHCI_IR) {
 			if (bootverbose)
 				printf("ohci early: "
-				    "SMM does not respond, resetting\n");
+				       "SMM does not respond, resetting\n");
 			bus_write_4(res, OHCI_CONTROL, OHCI_HCFS_RESET);
 		}
 		/* Disable interrupts */
@@ -3604,32 +3605,32 @@ ehci_early_takeover(device_t self)
 
 	/* Synchronise with the BIOS if it owns the controller. */
 	for (eecp = EHCI_HCC_EECP(cparams); eecp != 0;
-	    eecp = EHCI_EECP_NEXT(eec)) {
+	     eecp = EHCI_EECP_NEXT(eec)) {
 		eec = pci_read_config(self, eecp, 4);
 		if (EHCI_EECP_ID(eec) != EHCI_EC_LEGSUP) {
 			continue;
 		}
-		bios_sem = pci_read_config(self, eecp +
-		    EHCI_LEGSUP_BIOS_SEM, 1);
+		bios_sem = pci_read_config(self, eecp + EHCI_LEGSUP_BIOS_SEM,
+		    1);
 		if (bios_sem == 0) {
 			continue;
 		}
 		if (bootverbose)
 			printf("ehci early: "
-			    "SMM active, request owner change\n");
+			       "SMM active, request owner change\n");
 
 		pci_write_config(self, eecp + EHCI_LEGSUP_OS_SEM, 1, 1);
 
 		for (i = 0; (i < 100) && (bios_sem != 0); i++) {
 			DELAY(1000);
-			bios_sem = pci_read_config(self, eecp +
-			    EHCI_LEGSUP_BIOS_SEM, 1);
+			bios_sem = pci_read_config(self,
+			    eecp + EHCI_LEGSUP_BIOS_SEM, 1);
 		}
 
 		if (bios_sem != 0) {
 			if (bootverbose)
 				printf("ehci early: "
-				    "SMM does not respond\n");
+				       "SMM does not respond\n");
 		}
 		/* Disable interrupts */
 		offs = EHCI_CAPLENGTH(bus_read_4(res, EHCI_CAPLEN_HCIVERSION));
@@ -3661,8 +3662,9 @@ xhci_early_takeover(device_t self)
 	eec = -1;
 
 	/* Synchronise with the BIOS if it owns the controller. */
-	for (eecp = XHCI_HCS0_XECP(cparams) << 2; eecp != 0 && XHCI_XECP_NEXT(eec);
-	    eecp += XHCI_XECP_NEXT(eec) << 2) {
+	for (eecp = XHCI_HCS0_XECP(cparams) << 2;
+	     eecp != 0 && XHCI_XECP_NEXT(eec);
+	     eecp += XHCI_XECP_NEXT(eec) << 2) {
 		eec = bus_read_4(res, eecp);
 
 		if (XHCI_XECP_ID(eec) != XHCI_ID_USB_LEGACY)
@@ -3674,7 +3676,7 @@ xhci_early_takeover(device_t self)
 
 		if (bootverbose)
 			printf("xhci early: "
-			    "SMM active, request owner change\n");
+			       "SMM active, request owner change\n");
 
 		bus_write_1(res, eecp + XHCI_XECP_OS_SEM, 1);
 
@@ -3682,14 +3684,13 @@ xhci_early_takeover(device_t self)
 
 		for (i = 0; (i < 5000) && (bios_sem != 0); i++) {
 			DELAY(1000);
-			bios_sem = bus_read_1(res, eecp +
-			    XHCI_XECP_BIOS_SEM);
+			bios_sem = bus_read_1(res, eecp + XHCI_XECP_BIOS_SEM);
 		}
 
 		if (bios_sem != 0) {
 			if (bootverbose)
 				printf("xhci early: "
-				    "SMM does not respond\n");
+				       "SMM does not respond\n");
 		}
 
 		/* Disable interrupts */
@@ -3737,7 +3738,7 @@ pci_reserve_secbus(device_t bus, device_t dev, pcicfgregs *cfg,
 
 	/* Quirk handling. */
 	switch (pci_get_devid(dev)) {
-	case 0x12258086:		/* Intel 82454KX/GX (Orion) */
+	case 0x12258086: /* Intel 82454KX/GX (Orion) */
 		sup_bus = pci_read_config(dev, 0x41, 1);
 		if (sup_bus != 0xff) {
 			sec_bus = sup_bus + 1;
@@ -3875,8 +3876,7 @@ pci_ea_bei_to_rid(device_t dev, int bei)
 #endif
 
 	/* Check if matches BAR */
-	if ((bei >= PCIM_EA_BEI_BAR_0) &&
-	    (bei <= PCIM_EA_BEI_BAR_5))
+	if ((bei >= PCIM_EA_BEI_BAR_0) && (bei <= PCIM_EA_BEI_BAR_5))
 		return (PCIR_BAR(bei));
 
 	/* Check ROM */
@@ -3887,8 +3887,7 @@ pci_ea_bei_to_rid(device_t dev, int bei)
 	/* Check if matches VF_BAR */
 	if ((iov != NULL) && (bei >= PCIM_EA_BEI_VF_BAR_0) &&
 	    (bei <= PCIM_EA_BEI_VF_BAR_5))
-		return (PCIR_SRIOV_BAR(bei - PCIM_EA_BEI_VF_BAR_0) +
-		    iov_pos);
+		return (PCIR_SRIOV_BAR(bei - PCIM_EA_BEI_VF_BAR_0) + iov_pos);
 #endif
 
 	return (-1);
@@ -3902,7 +3901,7 @@ pci_ea_is_enabled(device_t dev, int rid)
 
 	dinfo = device_get_ivars(dev);
 
-	STAILQ_FOREACH(ea, &dinfo->cfg.ea.ea_entries, eae_link) {
+	STAILQ_FOREACH (ea, &dinfo->cfg.ea.ea_entries, eae_link) {
 		if (pci_ea_bei_to_rid(dev, ea->eae_bei) == rid)
 			return ((ea->eae_flags & PCIM_EA_ENABLE) > 0);
 	}
@@ -3935,7 +3934,7 @@ pci_add_resources_ea(device_t bus, device_t dev, int alloc_iov)
 	if (dinfo->cfg.ea.ea_location == 0)
 		return;
 
-	STAILQ_FOREACH(ea, &dinfo->cfg.ea.ea_entries, eae_link) {
+	STAILQ_FOREACH (ea, &dinfo->cfg.ea.ea_entries, eae_link) {
 		/*
 		 * TODO: Ignore EA-BAR if is not enabled.
 		 *   Currently the EA implementation supports
@@ -3975,7 +3974,7 @@ pci_add_resources_ea(device_t bus, device_t dev, int alloc_iov)
 		} else {
 			/* Allocating BAR, confirm BEI matches */
 			if (((ea->eae_bei < PCIM_EA_BEI_BAR_0) ||
-			    (ea->eae_bei > PCIM_EA_BEI_BAR_5)) &&
+				(ea->eae_bei > PCIM_EA_BEI_BAR_5)) &&
 			    (ea->eae_bei != PCIM_EA_BEI_ROM))
 				continue;
 		}
@@ -4000,8 +3999,8 @@ pci_add_resources_ea(device_t bus, device_t dev, int alloc_iov)
 			continue;
 
 		resource_list_add(rl, type, rid, start, end, count);
-		res = resource_list_reserve(rl, bus, dev, type, &rid, start, end, count,
-		    flags);
+		res = resource_list_reserve(rl, bus, dev, type, &rid, start,
+		    end, count, flags);
 		if (res == NULL) {
 			resource_list_delete(rl, type, rid);
 
@@ -4018,7 +4017,8 @@ pci_add_resources_ea(device_t bus, device_t dev, int alloc_iov)
 			 * Disabling entry might fail in case it is hardwired.
 			 * Read flags again to match current status.
 			 */
-			ea->eae_flags = pci_read_config(dev, ea->eae_cfg_offset, 4);
+			ea->eae_flags = pci_read_config(dev, ea->eae_cfg_offset,
+			    4);
 
 			continue;
 		}
@@ -4050,14 +4050,16 @@ pci_add_resources(device_t bus, device_t dev, int force, uint32_t prefetchmask)
 	if ((pci_get_class(dev) == PCIC_STORAGE) &&
 	    (pci_get_subclass(dev) == PCIS_STORAGE_IDE) &&
 	    ((pci_get_progif(dev) & PCIP_STORAGE_IDE_MASTERDEV) ||
-	     (!pci_read_config(dev, PCIR_BAR(0), 4) &&
-	      !pci_read_config(dev, PCIR_BAR(2), 4))) )
+		(!pci_read_config(dev, PCIR_BAR(0), 4) &&
+		    !pci_read_config(dev, PCIR_BAR(2), 4))))
 		pci_ata_maps(bus, dev, rl, force, prefetchmask);
 	else
 		for (i = 0; i < cfg->nummaps;) {
 			/* Skip resources already managed by EA */
-			if ((resource_list_find(rl, SYS_RES_MEMORY, PCIR_BAR(i)) != NULL) ||
-			    (resource_list_find(rl, SYS_RES_IOPORT, PCIR_BAR(i)) != NULL) ||
+			if ((resource_list_find(rl, SYS_RES_MEMORY,
+				 PCIR_BAR(i)) != NULL) ||
+			    (resource_list_find(rl, SYS_RES_IOPORT,
+				 PCIR_BAR(i)) != NULL) ||
 			    pci_ea_is_enabled(dev, PCIR_BAR(i))) {
 				i++;
 				continue;
@@ -4137,7 +4139,7 @@ pci_identify_function(device_t pcib, device_t dev, int domain, int busno,
 void
 pci_add_children(device_t dev, int domain, int busno)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, busno, s, f, n, w)
+#define REG(n, w) PCIB_READ_CONFIG(pcib, busno, s, f, n, w)
 	device_t pcib = device_get_parent(dev);
 	struct pci_devinfo *dinfo;
 	int maxslots;
@@ -4184,7 +4186,7 @@ pci_add_children(device_t dev, int domain, int busno)
 int
 pci_rescan_method(device_t dev)
 {
-#define	REG(n, w)	PCIB_READ_CONFIG(pcib, busno, s, f, n, w)
+#define REG(n, w) PCIB_READ_CONFIG(pcib, busno, s, f, n, w)
 	device_t pcib = device_get_parent(dev);
 	device_t child, *devlist, *unchanged;
 	int devcount, error, i, j, maxslots, oldcount;
@@ -4330,8 +4332,9 @@ pcie_setup_mps(device_t dev)
 	if (mps == rmps)
 		return;
 	/* Check whether the device is capable of the root's MPS. */
-	mmps = (pcie_read_config(dev, PCIER_DEVICE_CAP, 2) &
-	    PCIEM_CAP_MAX_PAYLOAD) << 5;
+	mmps =
+	    (pcie_read_config(dev, PCIER_DEVICE_CAP, 2) & PCIEM_CAP_MAX_PAYLOAD)
+	    << 5;
 	if (rmps > mmps) {
 		/*
 		 * The device is unable to handle root's MPS.  Limit root.
@@ -4341,8 +4344,8 @@ pcie_setup_mps(device_t dev)
 		pcie_adjust_config(root, PCIER_DEVICE_CTL,
 		    PCIEM_CTL_MAX_PAYLOAD, mmps, 2);
 	} else {
-		pcie_adjust_config(dev, PCIER_DEVICE_CTL,
-		    PCIEM_CTL_MAX_PAYLOAD, rmps, 2);
+		pcie_adjust_config(dev, PCIER_DEVICE_CTL, PCIEM_CTL_MAX_PAYLOAD,
+		    rmps, 2);
 	}
 }
 
@@ -4355,40 +4358,34 @@ pci_add_child_clear_aer(device_t dev, struct pci_devinfo *dinfo)
 
 	if (dinfo->cfg.pcie.pcie_location != 0 &&
 	    dinfo->cfg.pcie.pcie_type == PCIEM_TYPE_ROOT_PORT) {
-		r2 = pci_read_config(dev, dinfo->cfg.pcie.pcie_location +
-		    PCIER_ROOT_CTL, 2);
+		r2 = pci_read_config(dev,
+		    dinfo->cfg.pcie.pcie_location + PCIER_ROOT_CTL, 2);
 		r2 &= ~(PCIEM_ROOT_CTL_SERR_CORR |
 		    PCIEM_ROOT_CTL_SERR_NONFATAL | PCIEM_ROOT_CTL_SERR_FATAL);
-		pci_write_config(dev, dinfo->cfg.pcie.pcie_location +
-		    PCIER_ROOT_CTL, r2, 2);
+		pci_write_config(dev,
+		    dinfo->cfg.pcie.pcie_location + PCIER_ROOT_CTL, r2, 2);
 	}
 	if (pci_find_extcap(dev, PCIZ_AER, &aer) == 0) {
 		r = pci_read_config(dev, aer + PCIR_AER_UC_STATUS, 4);
 		pci_write_config(dev, aer + PCIR_AER_UC_STATUS, r, 4);
 		if (r != 0 && bootverbose) {
 			pci_printf(&dinfo->cfg,
-			    "clearing AER UC 0x%08x -> 0x%08x\n",
-			    r, pci_read_config(dev, aer + PCIR_AER_UC_STATUS,
-			    4));
+			    "clearing AER UC 0x%08x -> 0x%08x\n", r,
+			    pci_read_config(dev, aer + PCIR_AER_UC_STATUS, 4));
 		}
 
 		r = pci_read_config(dev, aer + PCIR_AER_UC_MASK, 4);
 		r &= ~(PCIM_AER_UC_TRAINING_ERROR |
 		    PCIM_AER_UC_DL_PROTOCOL_ERROR |
-		    PCIM_AER_UC_SURPRISE_LINK_DOWN |
-		    PCIM_AER_UC_POISONED_TLP |
+		    PCIM_AER_UC_SURPRISE_LINK_DOWN | PCIM_AER_UC_POISONED_TLP |
 		    PCIM_AER_UC_FC_PROTOCOL_ERROR |
 		    PCIM_AER_UC_COMPLETION_TIMEOUT |
 		    PCIM_AER_UC_COMPLETER_ABORT |
 		    PCIM_AER_UC_UNEXPECTED_COMPLETION |
-		    PCIM_AER_UC_RECEIVER_OVERFLOW |
-		    PCIM_AER_UC_MALFORMED_TLP |
-		    PCIM_AER_UC_ECRC_ERROR |
-		    PCIM_AER_UC_UNSUPPORTED_REQUEST |
-		    PCIM_AER_UC_ACS_VIOLATION |
-		    PCIM_AER_UC_INTERNAL_ERROR |
-		    PCIM_AER_UC_MC_BLOCKED_TLP |
-		    PCIM_AER_UC_ATOMIC_EGRESS_BLK |
+		    PCIM_AER_UC_RECEIVER_OVERFLOW | PCIM_AER_UC_MALFORMED_TLP |
+		    PCIM_AER_UC_ECRC_ERROR | PCIM_AER_UC_UNSUPPORTED_REQUEST |
+		    PCIM_AER_UC_ACS_VIOLATION | PCIM_AER_UC_INTERNAL_ERROR |
+		    PCIM_AER_UC_MC_BLOCKED_TLP | PCIM_AER_UC_ATOMIC_EGRESS_BLK |
 		    PCIM_AER_UC_TLP_PREFIX_BLOCKED);
 		pci_write_config(dev, aer + PCIR_AER_UC_MASK, r, 4);
 
@@ -4396,28 +4393,25 @@ pci_add_child_clear_aer(device_t dev, struct pci_devinfo *dinfo)
 		pci_write_config(dev, aer + PCIR_AER_COR_STATUS, r, 4);
 		if (r != 0 && bootverbose) {
 			pci_printf(&dinfo->cfg,
-			    "clearing AER COR 0x%08x -> 0x%08x\n",
-			    r, pci_read_config(dev, aer + PCIR_AER_COR_STATUS,
-			    4));
+			    "clearing AER COR 0x%08x -> 0x%08x\n", r,
+			    pci_read_config(dev, aer + PCIR_AER_COR_STATUS, 4));
 		}
 
 		r = pci_read_config(dev, aer + PCIR_AER_COR_MASK, 4);
-		r &= ~(PCIM_AER_COR_RECEIVER_ERROR |
-		    PCIM_AER_COR_BAD_TLP |
-		    PCIM_AER_COR_BAD_DLLP |
-		    PCIM_AER_COR_REPLAY_ROLLOVER |
+		r &= ~(PCIM_AER_COR_RECEIVER_ERROR | PCIM_AER_COR_BAD_TLP |
+		    PCIM_AER_COR_BAD_DLLP | PCIM_AER_COR_REPLAY_ROLLOVER |
 		    PCIM_AER_COR_REPLAY_TIMEOUT |
 		    PCIM_AER_COR_ADVISORY_NF_ERROR |
 		    PCIM_AER_COR_INTERNAL_ERROR |
 		    PCIM_AER_COR_HEADER_LOG_OVFLOW);
 		pci_write_config(dev, aer + PCIR_AER_COR_MASK, r, 4);
 
-		r = pci_read_config(dev, dinfo->cfg.pcie.pcie_location +
-		    PCIER_DEVICE_CTL, 2);
-		r |=  PCIEM_CTL_COR_ENABLE | PCIEM_CTL_NFER_ENABLE |
+		r = pci_read_config(dev,
+		    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_CTL, 2);
+		r |= PCIEM_CTL_COR_ENABLE | PCIEM_CTL_NFER_ENABLE |
 		    PCIEM_CTL_FER_ENABLE | PCIEM_CTL_URR_ENABLE;
-		pci_write_config(dev, dinfo->cfg.pcie.pcie_location +
-		    PCIER_DEVICE_CTL, r, 2);
+		pci_write_config(dev,
+		    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_CTL, r, 2);
 	}
 }
 
@@ -4446,7 +4440,6 @@ pci_add_child(device_t bus, struct pci_devinfo *dinfo)
 void
 pci_child_added_method(device_t dev, device_t child)
 {
-
 }
 
 static int
@@ -4473,16 +4466,16 @@ pci_attach_common(device_t dev)
 	busno = pcib_get_bus(dev);
 #ifdef PCI_RES_BUS
 	rid = 0;
-	sc->sc_bus = bus_alloc_resource(dev, PCI_RES_BUS, &rid, busno, busno,
-	    1, 0);
+	sc->sc_bus = bus_alloc_resource(dev, PCI_RES_BUS, &rid, busno, busno, 1,
+	    0);
 	if (sc->sc_bus == NULL) {
 		device_printf(dev, "failed to allocate bus number\n");
 		return (ENXIO);
 	}
 #endif
 	if (bootverbose)
-		device_printf(dev, "domain=%d, physical bus=%d\n",
-		    domain, busno);
+		device_printf(dev, "domain=%d, physical bus=%d\n", domain,
+		    busno);
 	sc->sc_dma_tag = bus_get_dma_tag(dev);
 	return (0);
 }
@@ -4609,8 +4602,7 @@ pci_suspend_child(device_t dev, device_t child)
 		 * This is applicable only to regular (legacy) PCI interrupts
 		 * as MSI/MSI-X interrupts are never shared.
 		 */
-		rle = resource_list_find(&dinfo->resources,
-		    SYS_RES_IRQ, 0);
+		rle = resource_list_find(&dinfo->resources, SYS_RES_IRQ, 0);
 		if (rle != NULL && rle->res != NULL)
 			(void)bus_suspend_intr(child, rle->res);
 		pci_set_power_child(dev, child, PCI_POWERSTATE_D3);
@@ -4756,7 +4748,7 @@ pci_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
 	/* If this is not a direct child, just bail out. */
 	if (device_get_parent(child) != dev) {
 		*cookiep = cookie;
-		return(0);
+		return (0);
 	}
 
 	rid = rman_get_rid(irq);
@@ -4775,7 +4767,7 @@ pci_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
 		if (dinfo->cfg.msi.msi_alloc > 0) {
 			if (dinfo->cfg.msi.msi_addr == 0) {
 				KASSERT(dinfo->cfg.msi.msi_handlers == 0,
-			    ("MSI has handlers, but vectors not mapped"));
+				    ("MSI has handlers, but vectors not mapped"));
 				error = PCIB_MAP_MSI(device_get_parent(dev),
 				    child, rman_get_start(irq), &addr, &data);
 				if (error)
@@ -4799,7 +4791,7 @@ pci_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
 			    ("IRQ mismatch"));
 			if (mv->mv_address == 0) {
 				KASSERT(mte->mte_handlers == 0,
-		    ("MSI-X table entry has handlers, but vector not mapped"));
+				    ("MSI-X table entry has handlers, but vector not mapped"));
 				error = PCIB_MAP_MSI(device_get_parent(dev),
 				    child, rman_get_start(irq), &addr, &data);
 				if (error)
@@ -4829,7 +4821,7 @@ pci_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
 		 * in which case we "enable" INTx so MSI/MSI-X actually works.
 		 */
 		if (!pci_has_quirk(pci_get_devid(child),
-		    PCI_QUIRK_MSI_INTX_BUG))
+			PCI_QUIRK_MSI_INTX_BUG))
 			pci_set_command_bit(dev, child, PCIM_CMD_INTxDIS);
 		else
 			pci_clear_command_bit(dev, child, PCIM_CMD_INTxDIS);
@@ -4858,7 +4850,7 @@ pci_teardown_intr(device_t dev, device_t child, struct resource *irq,
 
 	/* If this isn't a direct child, just bail out */
 	if (device_get_parent(child) != dev)
-		return(bus_generic_teardown_intr(dev, child, irq, cookie));
+		return (bus_generic_teardown_intr(dev, child, irq, cookie));
 
 	rid = rman_get_rid(irq);
 	if (rid == 0) {
@@ -4930,104 +4922,103 @@ pci_print_child(device_t dev, device_t child)
 	return (retval);
 }
 
-static const struct
-{
-	int		class;
-	int		subclass;
-	int		report; /* 0 = bootverbose, 1 = always */
-	const char	*desc;
-} pci_nomatch_tab[] = {
-	{PCIC_OLD,		-1,			1, "old"},
-	{PCIC_OLD,		PCIS_OLD_NONVGA,	1, "non-VGA display device"},
-	{PCIC_OLD,		PCIS_OLD_VGA,		1, "VGA-compatible display device"},
-	{PCIC_STORAGE,		-1,			1, "mass storage"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SCSI,	1, "SCSI"},
-	{PCIC_STORAGE,		PCIS_STORAGE_IDE,	1, "ATA"},
-	{PCIC_STORAGE,		PCIS_STORAGE_FLOPPY,	1, "floppy disk"},
-	{PCIC_STORAGE,		PCIS_STORAGE_IPI,	1, "IPI"},
-	{PCIC_STORAGE,		PCIS_STORAGE_RAID,	1, "RAID"},
-	{PCIC_STORAGE,		PCIS_STORAGE_ATA_ADMA,	1, "ATA (ADMA)"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SATA,	1, "SATA"},
-	{PCIC_STORAGE,		PCIS_STORAGE_SAS,	1, "SAS"},
-	{PCIC_STORAGE,		PCIS_STORAGE_NVM,	1, "NVM"},
-	{PCIC_NETWORK,		-1,			1, "network"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ETHERNET,	1, "ethernet"},
-	{PCIC_NETWORK,		PCIS_NETWORK_TOKENRING,	1, "token ring"},
-	{PCIC_NETWORK,		PCIS_NETWORK_FDDI,	1, "fddi"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ATM,	1, "ATM"},
-	{PCIC_NETWORK,		PCIS_NETWORK_ISDN,	1, "ISDN"},
-	{PCIC_DISPLAY,		-1,			1, "display"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_VGA,	1, "VGA"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_XGA,	1, "XGA"},
-	{PCIC_DISPLAY,		PCIS_DISPLAY_3D,	1, "3D"},
-	{PCIC_MULTIMEDIA,	-1,			1, "multimedia"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_VIDEO,	1, "video"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_AUDIO,	1, "audio"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_TELE,	1, "telephony"},
-	{PCIC_MULTIMEDIA,	PCIS_MULTIMEDIA_HDA,	1, "HDA"},
-	{PCIC_MEMORY,		-1,			1, "memory"},
-	{PCIC_MEMORY,		PCIS_MEMORY_RAM,	1, "RAM"},
-	{PCIC_MEMORY,		PCIS_MEMORY_FLASH,	1, "flash"},
-	{PCIC_BRIDGE,		-1,			1, "bridge"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_HOST,	1, "HOST-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_ISA,	1, "PCI-ISA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_EISA,	1, "PCI-EISA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_MCA,	1, "PCI-MCA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_PCI,	1, "PCI-PCI"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_PCMCIA,	1, "PCI-PCMCIA"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_NUBUS,	1, "PCI-NuBus"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_CARDBUS,	1, "PCI-CardBus"},
-	{PCIC_BRIDGE,		PCIS_BRIDGE_RACEWAY,	1, "PCI-RACEway"},
-	{PCIC_SIMPLECOMM,	-1,			1, "simple comms"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_UART,	1, "UART"},	/* could detect 16550 */
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_PAR,	1, "parallel port"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_MULSER,	1, "multiport serial"},
-	{PCIC_SIMPLECOMM,	PCIS_SIMPLECOMM_MODEM,	1, "generic modem"},
-	{PCIC_BASEPERIPH,	-1,			0, "base peripheral"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_PIC,	1, "interrupt controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_DMA,	1, "DMA controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_TIMER,	1, "timer"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_RTC,	1, "realtime clock"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_PCIHOT,	1, "PCI hot-plug controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_SDHC,	1, "SD host controller"},
-	{PCIC_BASEPERIPH,	PCIS_BASEPERIPH_IOMMU,	1, "IOMMU"},
-	{PCIC_INPUTDEV,		-1,			1, "input device"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_KEYBOARD,	1, "keyboard"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_DIGITIZER,1, "digitizer"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_MOUSE,	1, "mouse"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_SCANNER,	1, "scanner"},
-	{PCIC_INPUTDEV,		PCIS_INPUTDEV_GAMEPORT,	1, "gameport"},
-	{PCIC_DOCKING,		-1,			1, "docking station"},
-	{PCIC_PROCESSOR,	-1,			1, "processor"},
-	{PCIC_SERIALBUS,	-1,			1, "serial bus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_FW,	1, "FireWire"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_ACCESS,	1, "AccessBus"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_SSA,	1, "SSA"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_USB,	1, "USB"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_FC,	1, "Fibre Channel"},
-	{PCIC_SERIALBUS,	PCIS_SERIALBUS_SMBUS,	0, "SMBus"},
-	{PCIC_WIRELESS,		-1,			1, "wireless controller"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_IRDA,	1, "iRDA"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_IR,	1, "IR"},
-	{PCIC_WIRELESS,		PCIS_WIRELESS_RF,	1, "RF"},
-	{PCIC_INTELLIIO,	-1,			1, "intelligent I/O controller"},
-	{PCIC_INTELLIIO,	PCIS_INTELLIIO_I2O,	1, "I2O"},
-	{PCIC_SATCOM,		-1,			1, "satellite communication"},
-	{PCIC_SATCOM,		PCIS_SATCOM_TV,		1, "sat TV"},
-	{PCIC_SATCOM,		PCIS_SATCOM_AUDIO,	1, "sat audio"},
-	{PCIC_SATCOM,		PCIS_SATCOM_VOICE,	1, "sat voice"},
-	{PCIC_SATCOM,		PCIS_SATCOM_DATA,	1, "sat data"},
-	{PCIC_CRYPTO,		-1,			1, "encrypt/decrypt"},
-	{PCIC_CRYPTO,		PCIS_CRYPTO_NETCOMP,	1, "network/computer crypto"},
-	{PCIC_CRYPTO,		PCIS_CRYPTO_ENTERTAIN,	1, "entertainment crypto"},
-	{PCIC_DASP,		-1,			0, "dasp"},
-	{PCIC_DASP,		PCIS_DASP_DPIO,		1, "DPIO module"},
-	{PCIC_DASP,		PCIS_DASP_PERFCNTRS,	1, "performance counters"},
-	{PCIC_DASP,		PCIS_DASP_COMM_SYNC,	1, "communication synchronizer"},
-	{PCIC_DASP,		PCIS_DASP_MGMT_CARD,	1, "signal processing management"},
-	{PCIC_INSTRUMENT,	-1,			0, "non-essential instrumentation"},
-	{0, 0, 0,		NULL}
-};
+static const struct {
+	int class;
+	int subclass;
+	int report; /* 0 = bootverbose, 1 = always */
+	const char *desc;
+} pci_nomatch_tab[] = { { PCIC_OLD, -1, 1, "old" },
+	{ PCIC_OLD, PCIS_OLD_NONVGA, 1, "non-VGA display device" },
+	{ PCIC_OLD, PCIS_OLD_VGA, 1, "VGA-compatible display device" },
+	{ PCIC_STORAGE, -1, 1, "mass storage" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SCSI, 1, "SCSI" },
+	{ PCIC_STORAGE, PCIS_STORAGE_IDE, 1, "ATA" },
+	{ PCIC_STORAGE, PCIS_STORAGE_FLOPPY, 1, "floppy disk" },
+	{ PCIC_STORAGE, PCIS_STORAGE_IPI, 1, "IPI" },
+	{ PCIC_STORAGE, PCIS_STORAGE_RAID, 1, "RAID" },
+	{ PCIC_STORAGE, PCIS_STORAGE_ATA_ADMA, 1, "ATA (ADMA)" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SATA, 1, "SATA" },
+	{ PCIC_STORAGE, PCIS_STORAGE_SAS, 1, "SAS" },
+	{ PCIC_STORAGE, PCIS_STORAGE_NVM, 1, "NVM" },
+	{ PCIC_NETWORK, -1, 1, "network" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ETHERNET, 1, "ethernet" },
+	{ PCIC_NETWORK, PCIS_NETWORK_TOKENRING, 1, "token ring" },
+	{ PCIC_NETWORK, PCIS_NETWORK_FDDI, 1, "fddi" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ATM, 1, "ATM" },
+	{ PCIC_NETWORK, PCIS_NETWORK_ISDN, 1, "ISDN" },
+	{ PCIC_DISPLAY, -1, 1, "display" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_VGA, 1, "VGA" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_XGA, 1, "XGA" },
+	{ PCIC_DISPLAY, PCIS_DISPLAY_3D, 1, "3D" },
+	{ PCIC_MULTIMEDIA, -1, 1, "multimedia" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_VIDEO, 1, "video" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_AUDIO, 1, "audio" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_TELE, 1, "telephony" },
+	{ PCIC_MULTIMEDIA, PCIS_MULTIMEDIA_HDA, 1, "HDA" },
+	{ PCIC_MEMORY, -1, 1, "memory" },
+	{ PCIC_MEMORY, PCIS_MEMORY_RAM, 1, "RAM" },
+	{ PCIC_MEMORY, PCIS_MEMORY_FLASH, 1, "flash" },
+	{ PCIC_BRIDGE, -1, 1, "bridge" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_HOST, 1, "HOST-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_ISA, 1, "PCI-ISA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_EISA, 1, "PCI-EISA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_MCA, 1, "PCI-MCA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_PCI, 1, "PCI-PCI" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_PCMCIA, 1, "PCI-PCMCIA" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_NUBUS, 1, "PCI-NuBus" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_CARDBUS, 1, "PCI-CardBus" },
+	{ PCIC_BRIDGE, PCIS_BRIDGE_RACEWAY, 1, "PCI-RACEway" },
+	{ PCIC_SIMPLECOMM, -1, 1, "simple comms" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_UART, 1,
+	    "UART" }, /* could detect 16550 */
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_PAR, 1, "parallel port" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_MULSER, 1, "multiport serial" },
+	{ PCIC_SIMPLECOMM, PCIS_SIMPLECOMM_MODEM, 1, "generic modem" },
+	{ PCIC_BASEPERIPH, -1, 0, "base peripheral" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_PIC, 1, "interrupt controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_DMA, 1, "DMA controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_TIMER, 1, "timer" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_RTC, 1, "realtime clock" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_PCIHOT, 1,
+	    "PCI hot-plug controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_SDHC, 1, "SD host controller" },
+	{ PCIC_BASEPERIPH, PCIS_BASEPERIPH_IOMMU, 1, "IOMMU" },
+	{ PCIC_INPUTDEV, -1, 1, "input device" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_KEYBOARD, 1, "keyboard" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_DIGITIZER, 1, "digitizer" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_MOUSE, 1, "mouse" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_SCANNER, 1, "scanner" },
+	{ PCIC_INPUTDEV, PCIS_INPUTDEV_GAMEPORT, 1, "gameport" },
+	{ PCIC_DOCKING, -1, 1, "docking station" },
+	{ PCIC_PROCESSOR, -1, 1, "processor" },
+	{ PCIC_SERIALBUS, -1, 1, "serial bus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_FW, 1, "FireWire" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_ACCESS, 1, "AccessBus" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_SSA, 1, "SSA" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_USB, 1, "USB" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_FC, 1, "Fibre Channel" },
+	{ PCIC_SERIALBUS, PCIS_SERIALBUS_SMBUS, 0, "SMBus" },
+	{ PCIC_WIRELESS, -1, 1, "wireless controller" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_IRDA, 1, "iRDA" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_IR, 1, "IR" },
+	{ PCIC_WIRELESS, PCIS_WIRELESS_RF, 1, "RF" },
+	{ PCIC_INTELLIIO, -1, 1, "intelligent I/O controller" },
+	{ PCIC_INTELLIIO, PCIS_INTELLIIO_I2O, 1, "I2O" },
+	{ PCIC_SATCOM, -1, 1, "satellite communication" },
+	{ PCIC_SATCOM, PCIS_SATCOM_TV, 1, "sat TV" },
+	{ PCIC_SATCOM, PCIS_SATCOM_AUDIO, 1, "sat audio" },
+	{ PCIC_SATCOM, PCIS_SATCOM_VOICE, 1, "sat voice" },
+	{ PCIC_SATCOM, PCIS_SATCOM_DATA, 1, "sat data" },
+	{ PCIC_CRYPTO, -1, 1, "encrypt/decrypt" },
+	{ PCIC_CRYPTO, PCIS_CRYPTO_NETCOMP, 1, "network/computer crypto" },
+	{ PCIC_CRYPTO, PCIS_CRYPTO_ENTERTAIN, 1, "entertainment crypto" },
+	{ PCIC_DASP, -1, 0, "dasp" },
+	{ PCIC_DASP, PCIS_DASP_DPIO, 1, "DPIO module" },
+	{ PCIC_DASP, PCIS_DASP_PERFCNTRS, 1, "performance counters" },
+	{ PCIC_DASP, PCIS_DASP_COMM_SYNC, 1, "communication synchronizer" },
+	{ PCIC_DASP, PCIS_DASP_MGMT_CARD, 1, "signal processing management" },
+	{ PCIC_INSTRUMENT, -1, 0, "non-essential instrumentation" },
+	{ 0, 0, 0, NULL } };
 
 void
 pci_probe_nomatch(device_t dev, device_t child)
@@ -5063,8 +5054,7 @@ pci_probe_nomatch(device_t dev, device_t child)
 			}
 		}
 		if (report || bootverbose) {
-			device_printf(dev, "<%s%s%s>",
-			    cp ? cp : "",
+			device_printf(dev, "<%s%s%s>", cp ? cp : "",
 			    ((cp != NULL) && (scp != NULL)) ? ", " : "",
 			    scp ? scp : "");
 		}
@@ -5094,11 +5084,15 @@ pci_child_detached(device_t dev, device_t child)
 		pci_printf(&dinfo->cfg, "Device leaked IRQ resources\n");
 	if (dinfo->cfg.msi.msi_alloc != 0 || dinfo->cfg.msix.msix_alloc != 0) {
 		if (dinfo->cfg.msi.msi_alloc != 0)
-			pci_printf(&dinfo->cfg, "Device leaked %d MSI "
-			    "vectors\n", dinfo->cfg.msi.msi_alloc);
+			pci_printf(&dinfo->cfg,
+			    "Device leaked %d MSI "
+			    "vectors\n",
+			    dinfo->cfg.msi.msi_alloc);
 		else
-			pci_printf(&dinfo->cfg, "Device leaked %d MSI-X "
-			    "vectors\n", dinfo->cfg.msix.msix_alloc);
+			pci_printf(&dinfo->cfg,
+			    "Device leaked %d MSI-X "
+			    "vectors\n",
+			    dinfo->cfg.msix.msix_alloc);
 		(void)pci_release_msi(child);
 	}
 	if (resource_list_release_active(rl, dev, child, SYS_RES_MEMORY) != 0)
@@ -5144,8 +5138,8 @@ pci_child_detached(device_t dev, device_t child)
 static int
 pci_describe_parse_line(char **ptr, int *vendor, int *device, char **desc)
 {
-	char	*cp = *ptr;
-	int	left;
+	char *cp = *ptr;
+	int left;
 
 	*device = -1;
 	*vendor = -1;
@@ -5154,7 +5148,7 @@ pci_describe_parse_line(char **ptr, int *vendor, int *device, char **desc)
 		left = pci_vendordata_size - (cp - pci_vendordata);
 		if (left <= 0) {
 			*ptr = cp;
-			return(1);
+			return (1);
 		}
 
 		/* vendor entry? */
@@ -5184,14 +5178,14 @@ pci_describe_parse_line(char **ptr, int *vendor, int *device, char **desc)
 	if (*cp == '\n' && left > 0)
 		cp++;
 	*ptr = cp;
-	return(0);
+	return (0);
 }
 
 static char *
 pci_describe_device(device_t dev)
 {
-	int	vendor, device;
-	char	*desc, *vp, *dp, *line;
+	int vendor, device;
+	char *desc, *vp, *dp, *line;
 
 	desc = vp = dp = NULL;
 
@@ -5237,7 +5231,7 @@ out:
 		free(vp, M_DEVBUF);
 	if (dp != NULL)
 		free(dp, M_DEVBUF);
-	return(desc);
+	return (desc);
 }
 
 int
@@ -5255,7 +5249,7 @@ pci_read_ivar(device_t dev, device_t child, int which, uintptr_t *result)
 		 * The generic accessor doesn't deal with failure, so
 		 * we set the return value, then return an error.
 		 */
-		*((uint8_t **) result) = NULL;
+		*((uint8_t **)result) = NULL;
 		return (EINVAL);
 	case PCI_IVAR_SUBVENDOR:
 		*result = cfg->subvendor;
@@ -5357,7 +5351,7 @@ pci_write_ivar(device_t dev, device_t child, int which, uintptr_t value)
 	case PCI_IVAR_BUS:
 	case PCI_IVAR_SLOT:
 	case PCI_IVAR_FUNCTION:
-		return (EINVAL);	/* disallow for now */
+		return (EINVAL); /* disallow for now */
 
 	default:
 		return (ENOENT);
@@ -5366,8 +5360,9 @@ pci_write_ivar(device_t dev, device_t child, int which, uintptr_t value)
 
 #include "opt_ddb.h"
 #ifdef DDB
-#include <ddb/ddb.h>
 #include <sys/cons.h>
+
+#include <ddb/ddb.h>
 
 /*
  * List resources based on pci map registers, used for within ddb
@@ -5388,9 +5383,9 @@ DB_SHOW_COMMAND_FLAGS(pciregs, db_pci_dump, DB_CMD_MEMSAFE)
 	/*
 	 * Go through the list of devices and print out devices
 	 */
-	for (error = 0, i = 0,
-	     dinfo = STAILQ_FIRST(devlist_head);
-	     (dinfo != NULL) && (error == 0) && (i < pci_numdevs) && !db_pager_quit;
+	for (error = 0, i = 0, dinfo = STAILQ_FIRST(devlist_head);
+	     (dinfo != NULL) && (error == 0) && (i < pci_numdevs) &&
+	     !db_pager_quit;
 	     dinfo = STAILQ_NEXT(dinfo, pci_links), i++) {
 		/* Populate pd_name and pd_unit */
 		name = NULL;
@@ -5399,24 +5394,23 @@ DB_SHOW_COMMAND_FLAGS(pciregs, db_pci_dump, DB_CMD_MEMSAFE)
 
 		p = &dinfo->conf;
 		db_printf("%s%d@pci%d:%d:%d:%d:\tclass=0x%06x card=0x%08x "
-			"chip=0x%08x rev=0x%02x hdr=0x%02x\n",
-			(name && *name) ? name : "none",
-			(name && *name) ? (int)device_get_unit(dinfo->cfg.dev) :
-			none_count++,
-			p->pc_sel.pc_domain, p->pc_sel.pc_bus, p->pc_sel.pc_dev,
-			p->pc_sel.pc_func, (p->pc_class << 16) |
-			(p->pc_subclass << 8) | p->pc_progif,
-			(p->pc_subdevice << 16) | p->pc_subvendor,
-			(p->pc_device << 16) | p->pc_vendor,
-			p->pc_revid, p->pc_hdr);
+			  "chip=0x%08x rev=0x%02x hdr=0x%02x\n",
+		    (name && *name) ? name : "none",
+		    (name && *name) ? (int)device_get_unit(dinfo->cfg.dev) :
+				      none_count++,
+		    p->pc_sel.pc_domain, p->pc_sel.pc_bus, p->pc_sel.pc_dev,
+		    p->pc_sel.pc_func,
+		    (p->pc_class << 16) | (p->pc_subclass << 8) | p->pc_progif,
+		    (p->pc_subdevice << 16) | p->pc_subvendor,
+		    (p->pc_device << 16) | p->pc_vendor, p->pc_revid,
+		    p->pc_hdr);
 	}
 }
 #endif /* DDB */
 
 struct resource *
 pci_reserve_map(device_t dev, device_t child, int type, int *rid,
-    rman_res_t start, rman_res_t end, rman_res_t count, u_int num,
-    u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int num, u_int flags)
 {
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 	struct resource_list *rl = &dinfo->resources;
@@ -5490,7 +5484,8 @@ pci_reserve_map(device_t dev, device_t child, int type, int *rid,
 	 */
 	count = ((pci_addr_t)1 << mapsize) * num;
 	if (RF_ALIGNMENT(flags) < mapsize)
-		flags = (flags & ~RF_ALIGNMENT_MASK) | RF_ALIGNMENT_LOG2(mapsize);
+		flags = (flags & ~RF_ALIGNMENT_MASK) |
+		    RF_ALIGNMENT_LOG2(mapsize);
 	if (PCI_BAR_MEM(map) && (map & PCIM_BAR_MEM_PREFETCH))
 		flags |= RF_PREFETCHABLE;
 
@@ -5529,8 +5524,7 @@ out:
 
 struct resource *
 pci_alloc_multi_resource(device_t dev, device_t child, int type, int *rid,
-    rman_res_t start, rman_res_t end, rman_res_t count, u_long num,
-    u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_long num, u_int flags)
 {
 	struct pci_devinfo *dinfo;
 	struct resource_list *rl;
@@ -5555,8 +5549,8 @@ pci_alloc_multi_resource(device_t dev, device_t child, int type, int *rid,
 		 * Can't alloc legacy interrupt once MSI messages have
 		 * been allocated.
 		 */
-		if (*rid == 0 && (cfg->msi.msi_alloc > 0 ||
-		    cfg->msix.msix_alloc > 0))
+		if (*rid == 0 &&
+		    (cfg->msi.msi_alloc > 0 || cfg->msix.msix_alloc > 0))
 			return (NULL);
 
 		/*
@@ -5599,8 +5593,8 @@ pci_alloc_multi_resource(device_t dev, device_t child, int type, int *rid,
 				return (NULL);
 		}
 	}
-	return (resource_list_alloc(rl, dev, child, type, rid,
-	    start, end, count, flags));
+	return (resource_list_alloc(rl, dev, child, type, rid, start, end,
+	    count, flags));
 }
 
 struct resource *
@@ -5612,8 +5606,8 @@ pci_alloc_resource(device_t dev, device_t child, int type, int *rid,
 #endif
 
 	if (device_get_parent(child) != dev)
-		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child,
-		    type, rid, start, end, count, flags));
+		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child, type,
+		    rid, start, end, count, flags));
 
 #ifdef PCI_IOV
 	dinfo = device_get_ivars(child);
@@ -5657,8 +5651,8 @@ pci_release_resource(device_t dev, device_t child, int type, int rid,
 		case SYS_RES_IOPORT:
 			return (EDOOFUS);
 		case SYS_RES_MEMORY:
-			return (pci_vf_release_mem_resource(dev, child, rid,
-			    r));
+			return (
+			    pci_vf_release_mem_resource(dev, child, rid, r));
 		}
 
 		/* Fall through for other types of resource allocations. */
@@ -5715,8 +5709,8 @@ pci_activate_resource(device_t dev, device_t child, int type, int rid,
 }
 
 int
-pci_deactivate_resource(device_t dev, device_t child, int type,
-    int rid, struct resource *r)
+pci_deactivate_resource(device_t dev, device_t child, int type, int rid,
+    struct resource *r)
 {
 	struct pci_devinfo *dinfo;
 	int error;
@@ -5749,14 +5743,16 @@ pci_child_deleted(device_t dev, device_t child)
 
 	/* Turn off access to resources we're about to free */
 	if (bus_child_present(child) != 0) {
-		pci_write_config(child, PCIR_COMMAND, pci_read_config(child,
-		    PCIR_COMMAND, 2) & ~(PCIM_CMD_MEMEN | PCIM_CMD_PORTEN), 2);
+		pci_write_config(child, PCIR_COMMAND,
+		    pci_read_config(child, PCIR_COMMAND, 2) &
+			~(PCIM_CMD_MEMEN | PCIM_CMD_PORTEN),
+		    2);
 
 		pci_disable_busmaster(child);
 	}
 
 	/* Free all allocated resources */
-	STAILQ_FOREACH(rle, rl, link) {
+	STAILQ_FOREACH (rle, rl, link) {
 		if (rle->res) {
 			if (rman_get_flags(rle->res) & RF_ACTIVE ||
 			    resource_list_busy(rl, rle->type, rle->rid)) {
@@ -5796,7 +5792,8 @@ pci_delete_resource(device_t dev, device_t child, int type, int rid)
 	if (rle->res) {
 		if (rman_get_flags(rle->res) & RF_ACTIVE ||
 		    resource_list_busy(rl, type, rid)) {
-			device_printf(dev, "delete_resource: "
+			device_printf(dev,
+			    "delete_resource: "
 			    "Resource still owned by child, oops. "
 			    "(type=%d, rid=%d, addr=%jx)\n",
 			    type, rid, rman_get_start(rle->res));
@@ -5808,7 +5805,7 @@ pci_delete_resource(device_t dev, device_t child, int type, int rid)
 }
 
 struct resource_list *
-pci_get_resource_list (device_t dev, device_t child)
+pci_get_resource_list(device_t dev, device_t child)
 {
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 
@@ -5880,19 +5877,19 @@ pci_read_config_method(device_t dev, device_t child, int reg, int width)
 	}
 #endif
 
-	return (PCIB_READ_CONFIG(device_get_parent(dev),
-	    cfg->bus, cfg->slot, cfg->func, reg, width));
+	return (PCIB_READ_CONFIG(device_get_parent(dev), cfg->bus, cfg->slot,
+	    cfg->func, reg, width));
 }
 
 void
-pci_write_config_method(device_t dev, device_t child, int reg,
-    uint32_t val, int width)
+pci_write_config_method(device_t dev, device_t child, int reg, uint32_t val,
+    int width)
 {
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 	pcicfgregs *cfg = &dinfo->cfg;
 
-	PCIB_WRITE_CONFIG(device_get_parent(dev),
-	    cfg->bus, cfg->slot, cfg->func, reg, val, width);
+	PCIB_WRITE_CONFIG(device_get_parent(dev), cfg->bus, cfg->slot,
+	    cfg->func, reg, val, width);
 }
 
 int
@@ -5913,10 +5910,11 @@ pci_child_pnpinfo_method(device_t dev, device_t child, struct sbuf *sb)
 
 	dinfo = device_get_ivars(child);
 	cfg = &dinfo->cfg;
-	sbuf_printf(sb, "vendor=0x%04x device=0x%04x subvendor=0x%04x "
-	    "subdevice=0x%04x class=0x%02x%02x%02x", cfg->vendor, cfg->device,
-	    cfg->subvendor, cfg->subdevice, cfg->baseclass, cfg->subclass,
-	    cfg->progif);
+	sbuf_printf(sb,
+	    "vendor=0x%04x device=0x%04x subvendor=0x%04x "
+	    "subdevice=0x%04x class=0x%02x%02x%02x",
+	    cfg->vendor, cfg->device, cfg->subvendor, cfg->subdevice,
+	    cfg->baseclass, cfg->subclass, cfg->progif);
 	return (0);
 }
 
@@ -5944,8 +5942,8 @@ pci_assign_interrupt_method(device_t dev, device_t child)
 	struct pci_devinfo *dinfo = device_get_ivars(child);
 	pcicfgregs *cfg = &dinfo->cfg;
 
-	return (PCIB_ROUTE_INTERRUPT(device_get_parent(dev), child,
-	    cfg->intpin));
+	return (
+	    PCIB_ROUTE_INTERRUPT(device_get_parent(dev), child, cfg->intpin));
 }
 
 static void
@@ -6010,8 +6008,7 @@ pci_modevent(module_t mod, int what, void *arg)
 		pci_cdev = make_dev(&pcicdev, 0, UID_ROOT, GID_WHEEL, 0644,
 		    "pci");
 		pci_load_vendor_data();
-		tag = EVENTHANDLER_REGISTER(dev_lookup, pci_lookup, NULL,
-		    1000);
+		tag = EVENTHANDLER_REGISTER(dev_lookup, pci_lookup, NULL, 1000);
 		break;
 
 	case MOD_UNLOAD:
@@ -6027,7 +6024,7 @@ pci_modevent(module_t mod, int what, void *arg)
 static void
 pci_cfg_restore_pcie(device_t dev, struct pci_devinfo *dinfo)
 {
-#define	WREG(n, v)	pci_write_config(dev, pos + (n), (v), 2)
+#define WREG(n, v) pci_write_config(dev, pos + (n), (v), 2)
 	struct pcicfg_pcie *cfg;
 	int version, pos;
 
@@ -6043,9 +6040,10 @@ pci_cfg_restore_pcie(device_t dev, struct pci_devinfo *dinfo)
 	    cfg->pcie_type == PCIEM_TYPE_LEGACY_ENDPOINT)
 		WREG(PCIER_LINK_CTL, cfg->pcie_link_ctl);
 
-	if (version > 1 || (cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
-	    (cfg->pcie_type == PCIEM_TYPE_DOWNSTREAM_PORT &&
-	     (cfg->pcie_flags & PCIEM_FLAGS_SLOT))))
+	if (version > 1 ||
+	    (cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
+		(cfg->pcie_type == PCIEM_TYPE_DOWNSTREAM_PORT &&
+		    (cfg->pcie_flags & PCIEM_FLAGS_SLOT))))
 		WREG(PCIER_SLOT_CTL, cfg->pcie_slot_ctl);
 
 	if (version > 1 || cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
@@ -6064,7 +6062,7 @@ static void
 pci_cfg_restore_pcix(device_t dev, struct pci_devinfo *dinfo)
 {
 	pci_write_config(dev, dinfo->cfg.pcix.pcix_location + PCIXR_COMMAND,
-	    dinfo->cfg.pcix.pcix_command,  2);
+	    dinfo->cfg.pcix.pcix_command, 2);
 }
 
 void
@@ -6145,7 +6143,7 @@ pci_cfg_restore(device_t dev, struct pci_devinfo *dinfo)
 static void
 pci_cfg_save_pcie(device_t dev, struct pci_devinfo *dinfo)
 {
-#define	RREG(n)	pci_read_config(dev, pos + (n), 2)
+#define RREG(n) pci_read_config(dev, pos + (n), 2)
 	struct pcicfg_pcie *cfg;
 	int version, pos;
 
@@ -6163,9 +6161,10 @@ pci_cfg_save_pcie(device_t dev, struct pci_devinfo *dinfo)
 	    cfg->pcie_type == PCIEM_TYPE_LEGACY_ENDPOINT)
 		cfg->pcie_link_ctl = RREG(PCIER_LINK_CTL);
 
-	if (version > 1 || (cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
-	    (cfg->pcie_type == PCIEM_TYPE_DOWNSTREAM_PORT &&
-	     (cfg->pcie_flags & PCIEM_FLAGS_SLOT))))
+	if (version > 1 ||
+	    (cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
+		(cfg->pcie_type == PCIEM_TYPE_DOWNSTREAM_PORT &&
+		    (cfg->pcie_flags & PCIEM_FLAGS_SLOT))))
 		cfg->pcie_slot_ctl = RREG(PCIER_SLOT_CTL);
 
 	if (version > 1 || cfg->pcie_type == PCIEM_TYPE_ROOT_PORT ||
@@ -6268,21 +6267,20 @@ pci_cfg_save(device_t dev, struct pci_devinfo *dinfo, int setstate)
 	cls = pci_get_class(dev);
 	if (!setstate)
 		return;
-	switch (pci_do_power_nodriver)
-	{
-		case 0:		/* NO powerdown at all */
+	switch (pci_do_power_nodriver) {
+	case 0: /* NO powerdown at all */
+		return;
+	case 1: /* Conservative about what to power down */
+		if (cls == PCIC_STORAGE)
 			return;
-		case 1:		/* Conservative about what to power down */
-			if (cls == PCIC_STORAGE)
-				return;
-			/*FALLTHROUGH*/
-		case 2:		/* Aggressive about what to power down */
-			if (cls == PCIC_DISPLAY || cls == PCIC_MEMORY ||
-			    cls == PCIC_BASEPERIPH)
-				return;
-			/*FALLTHROUGH*/
-		case 3:		/* Power down everything */
-			break;
+		/*FALLTHROUGH*/
+	case 2: /* Aggressive about what to power down */
+		if (cls == PCIC_DISPLAY || cls == PCIC_MEMORY ||
+		    cls == PCIC_BASEPERIPH)
+			return;
+		/*FALLTHROUGH*/
+	case 3: /* Power down everything */
+		break;
 	}
 	/*
 	 * PCI spec says we can only go into D3 state from D0 state.
@@ -6340,12 +6338,14 @@ pci_find_pcie_root_port(device_t dev)
 	 */
 	for (;;) {
 		bus = device_get_parent(dev);
-		KASSERT(bus != NULL, ("%s: null parent of %s", __func__,
-		    device_get_nameunit(dev)));
+		KASSERT(bus != NULL,
+		    ("%s: null parent of %s", __func__,
+			device_get_nameunit(dev)));
 
 		pcib = device_get_parent(bus);
-		KASSERT(pcib != NULL, ("%s: null bridge of %s", __func__,
-		    device_get_nameunit(bus)));
+		KASSERT(pcib != NULL,
+		    ("%s: null bridge of %s", __func__,
+			device_get_nameunit(bus)));
 
 		/*
 		 * pcib's parent must be a PCI bus for this to be a
@@ -6425,7 +6425,7 @@ pcie_get_max_completion_timeout(device_t dev)
 	 */
 	if ((dinfo->cfg.pcie.pcie_flags & PCIEM_FLAGS_VERSION) < 2 ||
 	    (pci_read_config(dev, cap + PCIER_DEVICE_CAP2, 4) &
-	    PCIEM_CAP2_COMP_TIMO_RANGES) == 0)
+		PCIEM_CAP2_COMP_TIMO_RANGES) == 0)
 		return (50 * 1000);
 
 	switch (pci_read_config(dev, cap + PCIER_DEVICE_CTL2, 2) &
@@ -6479,8 +6479,7 @@ pcie_apei_error(device_t dev, int sev, uint8_t *aerp)
 		if (sev != PCIEM_STA_CORRECTABLE_ERROR) {
 			r = le32dec(aerp + PCIR_AER_UC_SEVERITY);
 			rs = le16dec(aerp + PCIR_AER_CAP_CONTROL);
-			printf(" severity 0x%08x first %d\n",
-			    r, rs & 0x1f);
+			printf(" severity 0x%08x first %d\n", r, rs & 0x1f);
 		} else
 			printf("\n");
 	}
@@ -6490,23 +6489,27 @@ pcie_apei_error(device_t dev, int sev, uint8_t *aerp)
 		r = pci_read_config(dev, aer + PCIR_AER_UC_STATUS, 4);
 		if (r != 0) {
 			pci_write_config(dev, aer + PCIR_AER_UC_STATUS, r, 4);
-			device_printf(dev, "Clearing UC AER errors 0x%08x\n", r);
+			device_printf(dev, "Clearing UC AER errors 0x%08x\n",
+			    r);
 		}
 
 		r = pci_read_config(dev, aer + PCIR_AER_COR_STATUS, 4);
 		if (r != 0) {
 			pci_write_config(dev, aer + PCIR_AER_COR_STATUS, r, 4);
-			device_printf(dev, "Clearing COR AER errors 0x%08x\n", r);
+			device_printf(dev, "Clearing COR AER errors 0x%08x\n",
+			    r);
 		}
 	}
 	if (dinfo->cfg.pcie.pcie_location != 0) {
-		rs = pci_read_config(dev, dinfo->cfg.pcie.pcie_location +
-		    PCIER_DEVICE_STA, 2);
-		if ((rs & (PCIEM_STA_CORRECTABLE_ERROR |
-		    PCIEM_STA_NON_FATAL_ERROR | PCIEM_STA_FATAL_ERROR |
-		    PCIEM_STA_UNSUPPORTED_REQ)) != 0) {
-			pci_write_config(dev, dinfo->cfg.pcie.pcie_location +
-			    PCIER_DEVICE_STA, rs, 2);
+		rs = pci_read_config(dev,
+		    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_STA, 2);
+		if ((rs &
+			(PCIEM_STA_CORRECTABLE_ERROR |
+			    PCIEM_STA_NON_FATAL_ERROR | PCIEM_STA_FATAL_ERROR |
+			    PCIEM_STA_UNSUPPORTED_REQ)) != 0) {
+			pci_write_config(dev,
+			    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_STA,
+			    rs, 2);
 			device_printf(dev, "Clearing PCIe errors 0x%04x\n", rs);
 		}
 	}
@@ -6574,8 +6577,8 @@ pcie_flr(device_t dev, u_int max_delay, bool force)
 
 	/* Initiate the reset. */
 	ctl = pci_read_config(dev, cap + PCIER_DEVICE_CTL, 2);
-	pci_write_config(dev, cap + PCIER_DEVICE_CTL, ctl |
-	    PCIEM_CTL_INITIATE_FLR, 2);
+	pci_write_config(dev, cap + PCIER_DEVICE_CTL,
+	    ctl | PCIEM_CTL_INITIATE_FLR, 2);
 
 	/* Wait for 100ms. */
 	pause_sbt("pcieflr", (100 + compl_delay) * SBT_1MS, 0, C_HARDCLOCK);
@@ -6655,7 +6658,8 @@ pci_reset_child(device_t dev, device_t child, int flags)
 		return (0);
 	if ((flags & DEVF_RESET_DETACH) != 0) {
 		error = device_get_state(child) == DS_ATTACHED ?
-		    device_detach(child) : 0;
+		    device_detach(child) :
+		    0;
 	} else {
 		error = BUS_SUSPEND_CHILD(dev, child);
 	}
@@ -6733,7 +6737,7 @@ pci_print_faulted_dev(void)
 	uint32_t r1, r2;
 	uint16_t status;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
 		dev = dinfo->cfg.dev;
 		status = pci_read_config(dev, PCIR_STATUS, 2);
 		status &= PCIM_STATUS_MDPERR | PCIM_STATUS_STABORT |
@@ -6745,16 +6749,19 @@ pci_print_faulted_dev(void)
 		}
 		if (dinfo->cfg.pcie.pcie_location != 0) {
 			status = pci_read_config(dev,
-			    dinfo->cfg.pcie.pcie_location +
-			    PCIER_DEVICE_STA, 2);
-			if ((status & (PCIEM_STA_CORRECTABLE_ERROR |
-			    PCIEM_STA_NON_FATAL_ERROR | PCIEM_STA_FATAL_ERROR |
-			    PCIEM_STA_UNSUPPORTED_REQ)) != 0) {
+			    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_STA,
+			    2);
+			if ((status &
+				(PCIEM_STA_CORRECTABLE_ERROR |
+				    PCIEM_STA_NON_FATAL_ERROR |
+				    PCIEM_STA_FATAL_ERROR |
+				    PCIEM_STA_UNSUPPORTED_REQ)) != 0) {
 				pci_print_faulted_dev_name(dinfo);
 				printf(" PCIe DEVCTL 0x%04x DEVSTA 0x%04x\n",
 				    pci_read_config(dev,
-				    dinfo->cfg.pcie.pcie_location +
-				    PCIER_DEVICE_CTL, 2),
+					dinfo->cfg.pcie.pcie_location +
+					    PCIER_DEVICE_CTL,
+					2),
 				    status);
 			}
 		}
@@ -6764,18 +6771,21 @@ pci_print_faulted_dev(void)
 			if (r1 != 0 || r2 != 0) {
 				pci_print_faulted_dev_name(dinfo);
 				printf(" AER UC 0x%08x Mask 0x%08x Svr 0x%08x\n"
-				    "  COR 0x%08x Mask 0x%08x Ctl 0x%08x\n",
-				    r1, pci_read_config(dev, aer +
-				    PCIR_AER_UC_MASK, 4),
-				    pci_read_config(dev, aer +
-				    PCIR_AER_UC_SEVERITY, 4),
-				    r2, pci_read_config(dev, aer +
-				    PCIR_AER_COR_MASK, 4),
-				    pci_read_config(dev, aer +
-				    PCIR_AER_CAP_CONTROL, 4));
+				       "  COR 0x%08x Mask 0x%08x Ctl 0x%08x\n",
+				    r1,
+				    pci_read_config(dev, aer + PCIR_AER_UC_MASK,
+					4),
+				    pci_read_config(dev,
+					aer + PCIR_AER_UC_SEVERITY, 4),
+				    r2,
+				    pci_read_config(dev,
+					aer + PCIR_AER_COR_MASK, 4),
+				    pci_read_config(dev,
+					aer + PCIR_AER_CAP_CONTROL, 4));
 				for (i = 0; i < 4; i++) {
-					r1 = pci_read_config(dev, aer +
-					    PCIR_AER_HEADER_LOG + i * 4, 4);
+					r1 = pci_read_config(dev,
+					    aer + PCIR_AER_HEADER_LOG + i * 4,
+					    4);
 					printf("    HL%d: 0x%08x\n", i, r1);
 				}
 			}
@@ -6798,10 +6808,10 @@ db_clear_pcie_errors(const struct pci_devinfo *dinfo)
 	uint32_t r;
 
 	dev = dinfo->cfg.dev;
-	r = pci_read_config(dev, dinfo->cfg.pcie.pcie_location +
-	    PCIER_DEVICE_STA, 2);
-	pci_write_config(dev, dinfo->cfg.pcie.pcie_location +
-	    PCIER_DEVICE_STA, r, 2);
+	r = pci_read_config(dev,
+	    dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_STA, 2);
+	pci_write_config(dev, dinfo->cfg.pcie.pcie_location + PCIER_DEVICE_STA,
+	    r, 2);
 
 	if (pci_find_extcap(dev, PCIZ_AER, &aer) != 0)
 		return;
@@ -6819,7 +6829,7 @@ DB_COMMAND_FLAGS(pci_clearerr, db_pci_clearerr, DB_CMD_MEMSAFE)
 	device_t dev;
 	uint16_t status, status1;
 
-	STAILQ_FOREACH(dinfo, &pci_devq, pci_links) {
+	STAILQ_FOREACH (dinfo, &pci_devq, pci_links) {
 		dev = dinfo->cfg.dev;
 		status1 = status = pci_read_config(dev, PCIR_STATUS, 2);
 		status1 &= PCIM_STATUS_MDPERR | PCIM_STATUS_STABORT |

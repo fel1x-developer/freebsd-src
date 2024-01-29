@@ -38,8 +38,8 @@
 
 #include "bus_if.h"
 #include "device_if.h"
-#include "pci_if.h"
 #include "iicbus_if.h"
+#include "pci_if.h"
 
 enum ig4_vers {
 	IG4_EMAG,
@@ -53,47 +53,47 @@ enum ig4_vers {
 };
 
 /* Controller has additional registers */
-#define	IG4_HAS_ADDREGS(vers)	((vers) >= IG4_SKYLAKE)
+#define IG4_HAS_ADDREGS(vers) ((vers) >= IG4_SKYLAKE)
 
 struct ig4_hw {
-	uint32_t	ic_clock_rate;	/* MHz */
-	uint32_t	sda_fall_time;	/* nsec */
-	uint32_t	scl_fall_time;	/* nsec */
-	uint32_t	sda_hold_time;	/* nsec */
-	int		txfifo_depth;
-	int		rxfifo_depth;
+	uint32_t ic_clock_rate; /* MHz */
+	uint32_t sda_fall_time; /* nsec */
+	uint32_t scl_fall_time; /* nsec */
+	uint32_t sda_hold_time; /* nsec */
+	int txfifo_depth;
+	int rxfifo_depth;
 };
 
 struct ig4_cfg {
-	uint32_t	version;
-	uint32_t	bus_speed;
-	uint16_t	ss_scl_hcnt;
-	uint16_t	ss_scl_lcnt;
-	uint16_t	ss_sda_hold;
-	uint16_t	fs_scl_hcnt;
-	uint16_t	fs_scl_lcnt;
-	uint16_t	fs_sda_hold;
-	int		txfifo_depth;
-	int		rxfifo_depth;
+	uint32_t version;
+	uint32_t bus_speed;
+	uint16_t ss_scl_hcnt;
+	uint16_t ss_scl_lcnt;
+	uint16_t ss_sda_hold;
+	uint16_t fs_scl_hcnt;
+	uint16_t fs_scl_lcnt;
+	uint16_t fs_sda_hold;
+	int txfifo_depth;
+	int rxfifo_depth;
 };
 
 struct ig4iic_softc {
-	device_t	dev;
-	device_t	iicbus;
-	struct resource	*regs_res;
-	int		regs_rid;
-	struct resource	*intr_res;
-	int		intr_rid;
-	void		*intr_handle;
-	int		intr_type;
-	enum ig4_vers	version;
-	struct ig4_cfg	cfg;
-	uint32_t	intr_mask;
-	uint8_t		last_slave;
-	bool		platform_attached : 1;
-	bool		use_10bit : 1;
-	bool		slave_valid : 1;
-	bool		poll: 1;
+	device_t dev;
+	device_t iicbus;
+	struct resource *regs_res;
+	int regs_rid;
+	struct resource *intr_res;
+	int intr_rid;
+	void *intr_handle;
+	int intr_type;
+	enum ig4_vers version;
+	struct ig4_cfg cfg;
+	uint32_t intr_mask;
+	uint8_t last_slave;
+	bool platform_attached : 1;
+	bool use_10bit : 1;
+	bool slave_valid : 1;
+	bool poll : 1;
 
 	/*
 	 * Locking semantics:
@@ -107,8 +107,8 @@ struct ig4iic_softc {
 	 * than waiting for interrupt and passing parameters to and from
 	 * it's handler.
 	 */
-	struct sx	call_lock;
-	struct mtx	io_lock;
+	struct sx call_lock;
+	struct mtx io_lock;
 };
 
 typedef struct ig4iic_softc ig4iic_softc_t;
@@ -121,7 +121,7 @@ int ig4iic_resume(ig4iic_softc_t *sc);
 
 /* iicbus methods */
 extern iicbus_transfer_t ig4iic_transfer;
-extern iicbus_reset_t   ig4iic_reset;
+extern iicbus_reset_t ig4iic_reset;
 extern iicbus_callback_t ig4iic_callback;
 
 #endif /* _ICHIIC_IG4_VAR_H_ */

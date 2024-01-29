@@ -31,8 +31,8 @@
 
 int32_t uinput_open_mouse(hid_device_p const d, bdaddr_p local);
 int32_t uinput_open_keyboard(hid_device_p const d, bdaddr_p local);
-int32_t uinput_rep_mouse(int32_t fd, int32_t x, int32_t y, int32_t z,
-    int32_t t, int32_t buttons, int32_t obuttons);
+int32_t uinput_rep_mouse(int32_t fd, int32_t x, int32_t y, int32_t z, int32_t t,
+    int32_t buttons, int32_t obuttons);
 int32_t uinput_rep_key(int32_t fd, int32_t key, int32_t make);
 int32_t uinput_rep_cons(int32_t fd, int32_t key, int32_t make);
 int32_t uinput_rep_leds(int32_t fd, int state, int mask);

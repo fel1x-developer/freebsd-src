@@ -24,17 +24,15 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kernel.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
-
-#include <dev/pci/pcivar.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
@@ -42,6 +40,8 @@
 
 #include <machine/cputypes.h>
 #include <machine/md_var.h>
+
+#include <dev/pci/pcivar.h>
 
 /*
  * See BKDG for AMD Family 15h Models 00h-0Fh Processors
@@ -51,29 +51,29 @@
  * - D18F3xBC NB Array Data Port
  * - D18F3xBC_x8 DRAM ECC
  */
-#define	NB_MCA_CFG		0x44
-#define		DRAM_ECC_EN	(1 << 22)
-#define	NB_MCA_EXTCFG		0x180
-#define		ECC_SYMB_SZ	(1 << 25)
-#define	NB_ARRAY_ADDR		0xb8
-#define		DRAM_ECC_SEL	(0x8 << 28)
-#define		QUADRANT_SHIFT	1
-#define		QUADRANT_MASK	0x3
-#define	NB_ARRAY_PORT		0xbc
-#define		INJ_WORD_SHIFT	20
-#define		INJ_WORD_MASK	0x1ff
-#define		DRAM_ERR_EN	(1 << 18)
-#define		DRAM_WR_REQ	(1 << 17)
-#define		DRAM_RD_REQ	(1 << 16)
-#define		INJ_VECTOR_MASK	0xffff
+#define NB_MCA_CFG 0x44
+#define DRAM_ECC_EN (1 << 22)
+#define NB_MCA_EXTCFG 0x180
+#define ECC_SYMB_SZ (1 << 25)
+#define NB_ARRAY_ADDR 0xb8
+#define DRAM_ECC_SEL (0x8 << 28)
+#define QUADRANT_SHIFT 1
+#define QUADRANT_MASK 0x3
+#define NB_ARRAY_PORT 0xbc
+#define INJ_WORD_SHIFT 20
+#define INJ_WORD_MASK 0x1ff
+#define DRAM_ERR_EN (1 << 18)
+#define DRAM_WR_REQ (1 << 17)
+#define DRAM_RD_REQ (1 << 16)
+#define INJ_VECTOR_MASK 0xffff
 
 static void ecc_ei_inject(int);
 
 static device_t nbdev;
 static int delay_ms = 0;
-static int quadrant = 0;	/* 0 - 3 */
-static int word_mask = 0x001;	/* 9 bits: 8 + 1 for ECC */
-static int bit_mask = 0x0001;	/* 16 bits */
+static int quadrant = 0;      /* 0 - 3 */
+static int word_mask = 0x001; /* 9 bits: 8 + 1 for ECC */
+static int bit_mask = 0x0001; /* 16 bits */
 
 static int
 sysctl_int_with_max(SYSCTL_HANDLER_ARGS)
@@ -122,12 +122,10 @@ sysctl_proc_inject(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-static SYSCTL_NODE(_hw, OID_AUTO, error_injection,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "Hardware error injection");
+static SYSCTL_NODE(_hw, OID_AUTO, error_injection, CTLFLAG_RD | CTLFLAG_MPSAFE,
+    NULL, "Hardware error injection");
 static SYSCTL_NODE(_hw_error_injection, OID_AUTO, dram_ecc,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "DRAM ECC error injection");
+    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "DRAM ECC error injection");
 SYSCTL_UINT(_hw_error_injection_dram_ecc, OID_AUTO, delay,
     CTLTYPE_UINT | CTLFLAG_RW, &delay_ms, 0,
     "Delay in milliseconds between error injections");
@@ -202,7 +200,8 @@ ecc_ei_load(void)
 {
 	uint32_t val;
 
-	if ((cpu_vendor_id != CPU_VENDOR_AMD || CPUID_TO_FAMILY(cpu_id) < 0x10) &&
+	if ((cpu_vendor_id != CPU_VENDOR_AMD ||
+		CPUID_TO_FAMILY(cpu_id) < 0x10) &&
 	    cpu_vendor_id != CPU_VENDOR_HYGON) {
 		printf("DRAM ECC error injection is not supported\n");
 		return (ENXIO);

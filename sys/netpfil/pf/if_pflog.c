@@ -36,12 +36,12 @@
  *	$OpenBSD: if_pflog.c,v 1.26 2007/10/18 21:58:18 mpf Exp $
  */
 
-#include <sys/cdefs.h>
+#include "opt_bpf.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
-#include "opt_bpf.h"
 #include "opt_pf.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/mbuf.h>
@@ -52,18 +52,18 @@
 
 #include <net/bpf.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_clone.h>
 #include <net/if_pflog.h>
 #include <net/if_private.h>
 #include <net/if_types.h>
-#include <net/vnet.h>
+#include <net/if_var.h>
 #include <net/pfvar.h>
+#include <net/vnet.h>
 
 #if defined(INET) || defined(INET6)
 #include <netinet/in.h>
 #endif
-#ifdef	INET
+#ifdef INET
 #include <netinet/in_var.h>
 #include <netinet/ip.h>
 #endif
@@ -77,35 +77,39 @@
 #include <machine/in_cksum.h>
 #endif /* INET */
 
-#define PFLOGMTU	(32768 + MHLEN + MLEN)
+#define PFLOGMTU (32768 + MHLEN + MLEN)
 
 #ifdef PFLOGDEBUG
-#define DPRINTF(x)    do { if (pflogdebug) printf x ; } while (0)
+#define DPRINTF(x)                \
+	do {                      \
+		if (pflogdebug)   \
+			printf x; \
+	} while (0)
 #else
 #define DPRINTF(x)
 #endif
 
-static int	pflogoutput(struct ifnet *, struct mbuf *,
-		    const struct sockaddr *, struct route *);
-static void	pflogattach(int);
-static int	pflogioctl(struct ifnet *, u_long, caddr_t);
-static void	pflogstart(struct ifnet *);
-static int	pflog_clone_create(struct if_clone *, char *, size_t,
-		    struct ifc_data *, struct ifnet **);
-static int	pflog_clone_destroy(struct if_clone *, struct ifnet *, uint32_t);
+static int pflogoutput(struct ifnet *, struct mbuf *, const struct sockaddr *,
+    struct route *);
+static void pflogattach(int);
+static int pflogioctl(struct ifnet *, u_long, caddr_t);
+static void pflogstart(struct ifnet *);
+static int pflog_clone_create(struct if_clone *, char *, size_t,
+    struct ifc_data *, struct ifnet **);
+static int pflog_clone_destroy(struct if_clone *, struct ifnet *, uint32_t);
 
 static const char pflogname[] = "pflog";
 
 VNET_DEFINE_STATIC(struct if_clone *, pflog_cloner);
-#define	V_pflog_cloner		VNET(pflog_cloner)
+#define V_pflog_cloner VNET(pflog_cloner)
 
-VNET_DEFINE(struct ifnet *, pflogifs[PFLOGIFS_MAX]);	/* for fast access */
-#define	V_pflogifs		VNET(pflogifs)
+VNET_DEFINE(struct ifnet *, pflogifs[PFLOGIFS_MAX]); /* for fast access */
+#define V_pflogifs VNET(pflogifs)
 
 static void
 pflogattach(int npflog __unused)
 {
-	int	i;
+	int i;
 	for (i = 0; i < PFLOGIFS_MAX; i++)
 		V_pflogifs[i] = NULL;
 
@@ -190,7 +194,7 @@ pflogstart(struct ifnet *ifp)
 
 static int
 pflogoutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
-	struct route *rt)
+    struct route *rt)
 {
 	m_freem(m);
 	return (0);
@@ -223,7 +227,7 @@ pflog_packet(struct pfi_kkif *kif, struct mbuf *m, sa_family_t af,
 	struct pfloghdr hdr;
 
 	if (kif == NULL || m == NULL || rm == NULL || pd == NULL)
-		return ( 1);
+		return (1);
 
 	if ((ifn = V_pflogifs[rm->logif]) == NULL || !ifn->if_bpf)
 		return (0);

@@ -49,74 +49,91 @@
 */
 
 #include <sys/param.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
+
 #include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#define LZ_STATES		12
+#define LZ_STATES 12
 
-#define LITERAL_CONTEXT_BITS	3
-#define POS_STATE_BITS		2
-#define POS_STATES		(1 << POS_STATE_BITS)
-#define POS_STATE_MASK 		(POS_STATES - 1)
+#define LITERAL_CONTEXT_BITS 3
+#define POS_STATE_BITS 2
+#define POS_STATES (1 << POS_STATE_BITS)
+#define POS_STATE_MASK (POS_STATES - 1)
 
-#define STATES			4
-#define DIS_SLOT_BITS		6
+#define STATES 4
+#define DIS_SLOT_BITS 6
 
-#define DIS_MODEL_START		4
-#define DIS_MODEL_END		14
+#define DIS_MODEL_START 4
+#define DIS_MODEL_END 14
 
-#define MODELED_DISTANCES	(1 << (DIS_MODEL_END / 2))
-#define DIS_ALIGN_BITS		4
-#define DIS_ALIGN_SIZE		(1 << DIS_ALIGN_BITS)
+#define MODELED_DISTANCES (1 << (DIS_MODEL_END / 2))
+#define DIS_ALIGN_BITS 4
+#define DIS_ALIGN_SIZE (1 << DIS_ALIGN_BITS)
 
-#define LOW_BITS		3
-#define MID_BITS		3
-#define HIGH_BITS		8
+#define LOW_BITS 3
+#define MID_BITS 3
+#define HIGH_BITS 8
 
-#define LOW_SYMBOLS		(1 << LOW_BITS)
-#define MID_SYMBOLS		(1 << MID_BITS)
-#define HIGH_SYMBOLS		(1 << HIGH_BITS)
+#define LOW_SYMBOLS (1 << LOW_BITS)
+#define MID_SYMBOLS (1 << MID_BITS)
+#define HIGH_SYMBOLS (1 << HIGH_BITS)
 
-#define MAX_SYMBOLS 		(LOW_SYMBOLS + MID_SYMBOLS + HIGH_SYMBOLS)
+#define MAX_SYMBOLS (LOW_SYMBOLS + MID_SYMBOLS + HIGH_SYMBOLS)
 
-#define MIN_MATCH_LEN		2
+#define MIN_MATCH_LEN 2
 
-#define BIT_MODEL_MOVE_BITS	5
-#define BIT_MODEL_TOTAL_BITS 	11
-#define BIT_MODEL_TOTAL 	(1 << BIT_MODEL_TOTAL_BITS)
-#define BIT_MODEL_INIT		(BIT_MODEL_TOTAL / 2)
+#define BIT_MODEL_MOVE_BITS 5
+#define BIT_MODEL_TOTAL_BITS 11
+#define BIT_MODEL_TOTAL (1 << BIT_MODEL_TOTAL_BITS)
+#define BIT_MODEL_INIT (BIT_MODEL_TOTAL / 2)
 
 static const int lz_st_next[] = {
-	0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 4, 5,
+	0,
+	0,
+	0,
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	4,
+	5,
 };
 
 static bool
-lz_st_is_char(int st) {
+lz_st_is_char(int st)
+{
 	return st < 7;
 }
 
 static int
-lz_st_get_char(int st) {
+lz_st_get_char(int st)
+{
 	return lz_st_next[st];
 }
 
 static int
-lz_st_get_match(int st) {
+lz_st_get_match(int st)
+{
 	return st < 7 ? 7 : 10;
 }
 
 static int
-lz_st_get_rep(int st) {
+lz_st_get_rep(int st)
+{
 	return st < 7 ? 8 : 11;
 }
 
 static int
-lz_st_get_short_rep(int st) {
+lz_st_get_short_rep(int st)
+{
 	return st < 7 ? 9 : 11;
 }
 
@@ -142,7 +159,7 @@ lz_crc_init(void)
 				c >>= 1;
 		}
 		lz_crc[i] = c;
-      }
+	}
 }
 
 static void
@@ -182,7 +199,7 @@ lz_rd_decode(struct lz_range_decoder *rd, int num_bits)
 			symbol |= 1;
 		}
 		if (rd->range <= 0x00FFFFFFU) {
-			rd->range <<= 8; 
+			rd->range <<= 8;
 			rd->code = (rd->code << 8) | (uint8_t)getc(rd->fp);
 		}
 	}
@@ -196,12 +213,11 @@ lz_rd_decode_bit(struct lz_range_decoder *rd, int *bm)
 	unsigned symbol;
 	const uint32_t bound = (rd->range >> BIT_MODEL_TOTAL_BITS) * *bm;
 
-	if(rd->code < bound) {
+	if (rd->code < bound) {
 		rd->range = bound;
 		*bm += (BIT_MODEL_TOTAL - *bm) >> BIT_MODEL_MOVE_BITS;
 		symbol = 0;
-	}
-	else {
+	} else {
 		rd->range -= bound;
 		rd->code -= bound;
 		*bm -= *bm >> BIT_MODEL_MOVE_BITS;
@@ -274,7 +290,7 @@ lz_rd_decode_len(struct lz_range_decoder *rd, struct lz_len_model *lm,
 	}
 
 	return LOW_SYMBOLS + MID_SYMBOLS +
-           lz_rd_decode_tree(rd, lm->bm_high, HIGH_BITS);
+	    lz_rd_decode_tree(rd, lm->bm_high, HIGH_BITS);
 }
 
 struct lz_decoder {
@@ -388,21 +404,23 @@ lz_bm_init(int *a, size_t l)
 		a[i] = BIT_MODEL_INIT;
 }
 
-#define LZ_BM_INIT(a)	lz_bm_init(a, nitems(a))
-#define LZ_BM_INIT2(a)	do { \
-	size_t l = nitems(a[0]); \
-	for (size_t i = 0; i < nitems(a); i++) \
-		lz_bm_init(a[i], l); \
-} while (/*CONSTCOND*/0)
+#define LZ_BM_INIT(a) lz_bm_init(a, nitems(a))
+#define LZ_BM_INIT2(a)                                 \
+	do {                                           \
+		size_t l = nitems(a[0]);               \
+		for (size_t i = 0; i < nitems(a); i++) \
+			lz_bm_init(a[i], l);           \
+	} while (/*CONSTCOND*/ 0)
 
-#define LZ_MODEL_INIT(a) do { \
-	a.choice1 = BIT_MODEL_INIT; \
-	a.choice2 = BIT_MODEL_INIT; \
-	LZ_BM_INIT2(a.bm_low); \
-	LZ_BM_INIT2(a.bm_mid); \
-	LZ_BM_INIT(a.bm_high); \
-} while (/*CONSTCOND*/0)
-		
+#define LZ_MODEL_INIT(a)                    \
+	do {                                \
+		a.choice1 = BIT_MODEL_INIT; \
+		a.choice2 = BIT_MODEL_INIT; \
+		LZ_BM_INIT2(a.bm_low);      \
+		LZ_BM_INIT2(a.bm_mid);      \
+		LZ_BM_INIT(a.bm_high);      \
+	} while (/*CONSTCOND*/ 0)
+
 static bool
 lz_decode_member(struct lz_decoder *lz)
 {
@@ -431,7 +449,6 @@ lz_decode_member(struct lz_decoder *lz)
 	struct lz_range_decoder *rd = &lz->rdec;
 	unsigned rep[4] = { 0 };
 
-
 	int state = 0;
 
 	while (!feof(lz->fin) && !ferror(lz->fin)) {
@@ -439,8 +456,8 @@ lz_decode_member(struct lz_decoder *lz)
 		// bit 1
 		if (lz_rd_decode_bit(rd, &bm_match[state][pos_state]) == 0) {
 			const uint8_t prev_byte = lz_peek(lz, 0);
-			const int literal_state =
-			    prev_byte >> (8 - LITERAL_CONTEXT_BITS);
+			const int literal_state = prev_byte >>
+			    (8 - LITERAL_CONTEXT_BITS);
 			int *bm = bm_literal[literal_state];
 			if (lz_st_is_char(state))
 				lz_put(lz, lz_rd_decode_tree(rd, bm, 8));
@@ -458,8 +475,7 @@ lz_decode_member(struct lz_decoder *lz)
 			if (lz_rd_decode_bit(rd, &bm_rep[1][state]) == 0) {
 				// bit 4
 				if (lz_rd_decode_bit(rd,
-				    &bm_len[state][pos_state]) == 0)
-				{
+					&bm_len[state][pos_state]) == 0) {
 					state = lz_st_get_short_rep(state);
 					lz_put(lz, lz_peek(lz, rep[0]));
 					continue;
@@ -467,13 +483,13 @@ lz_decode_member(struct lz_decoder *lz)
 			} else {
 				unsigned distance;
 				// bit 4
-				if (lz_rd_decode_bit(rd, &bm_rep[2][state])
-				    == 0)
+				if (lz_rd_decode_bit(rd, &bm_rep[2][state]) ==
+				    0)
 					distance = rep[1];
 				else {
 					// bit 5
 					if (lz_rd_decode_bit(rd,
-					    &bm_rep[3][state]) == 0)
+						&bm_rep[3][state]) == 0)
 						distance = rep[2];
 					else {
 						distance = rep[3];
@@ -488,24 +504,28 @@ lz_decode_member(struct lz_decoder *lz)
 			len = MIN_MATCH_LEN +
 			    lz_rd_decode_len(rd, &rep_len_model, pos_state);
 		} else {
-			rep[3] = rep[2]; rep[2] = rep[1]; rep[1] = rep[0];
+			rep[3] = rep[2];
+			rep[2] = rep[1];
+			rep[1] = rep[0];
 			len = MIN_MATCH_LEN +
 			    lz_rd_decode_len(rd, &match_len_model, pos_state);
-			const int len_state =
-			    MIN(len - MIN_MATCH_LEN, STATES - 1);
+			const int len_state = MIN(len - MIN_MATCH_LEN,
+			    STATES - 1);
 			rep[0] = lz_rd_decode_tree(rd, bm_dis_slot[len_state],
 			    DIS_SLOT_BITS);
 			if (rep[0] >= DIS_MODEL_START) {
 				const unsigned dis_slot = rep[0];
 				const int direct_bits = (dis_slot >> 1) - 1;
-			        rep[0] = (2 | (dis_slot & 1)) << direct_bits;
+				rep[0] = (2 | (dis_slot & 1)) << direct_bits;
 				if (dis_slot < DIS_MODEL_END)
 					rep[0] += lz_rd_decode_tree_reversed(rd,
 					    &bm_dis[rep[0] - dis_slot],
-                                            direct_bits);
+					    direct_bits);
 				else {
-					rep[0] += lz_rd_decode(rd, direct_bits
-					    - DIS_ALIGN_BITS) << DIS_ALIGN_BITS;
+					rep[0] += lz_rd_decode(rd,
+						      direct_bits -
+							  DIS_ALIGN_BITS)
+					    << DIS_ALIGN_BITS;
 					rep[0] += lz_rd_decode_tree_reversed(rd,
 					    bm_align, DIS_ALIGN_BITS);
 					if (rep[0] == 0xFFFFFFFFU) {
@@ -523,7 +543,7 @@ lz_decode_member(struct lz_decoder *lz)
 		}
 		for (int i = 0; i < len; i++)
 			lz_put(lz, lz_peek(lz, rep[0]));
-    	}
+	}
 	lz_flush(lz);
 	return false;
 }
@@ -534,7 +554,6 @@ lz_decode_member(struct lz_decoder *lz)
  * 12-19 member size including header and trailer
  */
 #define TRAILER_SIZE 20
-
 
 static off_t
 lz_decode(int fin, int fdout, unsigned dict_size, off_t *insize)
@@ -550,7 +569,7 @@ lz_decode(int fin, int fdout, unsigned dict_size, off_t *insize)
 
 	uint8_t trailer[TRAILER_SIZE];
 
-	for(size_t i = 0; i < nitems(trailer); i++) 
+	for (size_t i = 0; i < nitems(trailer); i++)
 		trailer[i] = (uint8_t)getc(lz.fin);
 
 	unsigned crc = 0;
@@ -586,7 +605,6 @@ out:
 	return rv;
 }
 
-
 /*
  * 0-3 magic
  * 4 version
@@ -602,7 +620,7 @@ static unsigned
 lz_get_dict_size(unsigned char c)
 {
 	unsigned dict_size = 1 << (c & 0x1f);
-	dict_size -= (dict_size >> 2) * ( (c >> 5) & 0x7);
+	dict_size -= (dict_size >> 2) * ((c >> 5) & 0x7);
 	if (dict_size < MIN_DICTIONARY_SIZE || dict_size > MAX_DICTIONARY_SIZE)
 		return 0;
 	return dict_size;
@@ -618,7 +636,7 @@ unlz(int fin, int fout, char *pre, size_t prelen, off_t *bytes_in)
 
 	if (pre && prelen)
 		memcpy(header, pre, prelen);
-	
+
 	ssize_t nr = read(fin, header + prelen, sizeof(header) - prelen);
 	switch (nr) {
 	case -1:

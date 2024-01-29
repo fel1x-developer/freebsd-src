@@ -66,38 +66,34 @@
 //* P U B L I C   M E T H O D S
 //******************************************************************************
 
-U32 sci_library_get_major_version(
-   void
-)
+U32
+sci_library_get_major_version(void)
 {
-   // Return the 32-bit value representing the major version for this SCI
-   // binary.
-   return __SCI_LIBRARY_MAJOR_VERSION__;
+	// Return the 32-bit value representing the major version for this SCI
+	// binary.
+	return __SCI_LIBRARY_MAJOR_VERSION__;
 }
 
 // ---------------------------------------------------------------------------
 
-U32 sci_library_get_minor_version(
-   void
-)
+U32
+sci_library_get_minor_version(void)
 {
-   // Return the 32-bit value representing the minor version for this SCI
-   // binary.
-   return __SCI_LIBRARY_MINOR_VERSION__;
+	// Return the 32-bit value representing the minor version for this SCI
+	// binary.
+	return __SCI_LIBRARY_MINOR_VERSION__;
 }
 
 // ---------------------------------------------------------------------------
 
-U32 sci_library_get_build_version(
-   void
-)
+U32
+sci_library_get_build_version(void)
 {
-   // Return the 32-bit value representing the build version for this SCI
-   // binary.
-   return __SCI_LIBRARY_BUILD_VERSION__;
+	// Return the 32-bit value representing the build version for this SCI
+	// binary.
+	return __SCI_LIBRARY_BUILD_VERSION__;
 }
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
 //******************************************************************************
-

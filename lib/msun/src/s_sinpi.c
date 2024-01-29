@@ -32,11 +32,11 @@
  *
  * 1. For small |x|, sinpi(x) = pi * x where a sloppy threshold is used.  The
  *    threshold is |x| < 0x1pN with N = -(P/2+M).  P is the precision of the
- *    floating-point type and M = 2 to 4.  To achieve high accuracy, pi is 
+ *    floating-point type and M = 2 to 4.  To achieve high accuracy, pi is
  *    decomposed into high and low parts with the high part containing a
  *    number of trailing zero bits.  x is also split into high and low parts.
  *
- * 2. For |x| < 1, argument reduction is not required and sinpi(x) is 
+ * 2. For |x| < 1, argument reduction is not required and sinpi(x) is
  *    computed by calling a kernel that leverages the kernels for sin(x)
  *    ans cos(x).  See k_sinpi.c and k_cospi.c for details.
  *
@@ -64,12 +64,12 @@
  */
 
 #include <float.h>
+
 #include "math.h"
 #include "math_private.h"
 
-static const double
-pi_hi = 3.1415926814079285e+00,	/* 0x400921fb 0x58000000 */
-pi_lo =-2.7818135228334233e-08;	/* 0xbe5dde97 0x3dcb3b3a */
+static const double pi_hi = 3.1415926814079285e+00, /* 0x400921fb 0x58000000 */
+    pi_lo = -2.7818135228334233e-08;		    /* 0xbe5dde97 0x3dcb3b3a */
 
 #include "k_cospi.h"
 #include "k_sinpi.h"
@@ -86,14 +86,14 @@ sinpi(double x)
 	ix = hx & 0x7fffffff;
 	INSERT_WORDS(ax, ix, lx);
 
-	if (ix < 0x3ff00000) {			/* |x| < 1 */
-		if (ix < 0x3fd00000) {		/* |x| < 0.25 */
-			if (ix < 0x3e200000) {	/* |x| < 0x1p-29 */
+	if (ix < 0x3ff00000) {		       /* |x| < 1 */
+		if (ix < 0x3fd00000) {	       /* |x| < 0.25 */
+			if (ix < 0x3e200000) { /* |x| < 0x1p-29 */
 				if (x == 0)
 					return (x);
 				/*
 				 * To avoid issues with subnormal values,
-				 * scale the computation and rescale on 
+				 * scale the computation and rescale on
 				 * return.
 				 */
 				INSERT_WORDS(hi, hx, 0);
@@ -108,30 +108,30 @@ sinpi(double x)
 			return ((hx & 0x80000000) ? -s : s);
 		}
 
-		if (ix < 0x3fe00000)		/* |x| < 0.5 */
+		if (ix < 0x3fe00000) /* |x| < 0.5 */
 			s = __kernel_cospi(0.5 - ax);
-		else if (ix < 0x3fe80000)	/* |x| < 0.75 */
+		else if (ix < 0x3fe80000) /* |x| < 0.75 */
 			s = __kernel_cospi(ax - 0.5);
 		else
 			s = __kernel_sinpi(1 - ax);
 		return ((hx & 0x80000000) ? -s : s);
 	}
 
-	if (ix < 0x43300000) {			/* 1 <= |x| < 0x1p52 */
-		FFLOOR(x, j0, ix, lx);	/* Integer part of ax. */
+	if (ix < 0x43300000) {	       /* 1 <= |x| < 0x1p52 */
+		FFLOOR(x, j0, ix, lx); /* Integer part of ax. */
 		ax -= x;
 		EXTRACT_WORDS(ix, lx, ax);
 
 		if (ix == 0)
 			s = 0;
 		else {
-			if (ix < 0x3fe00000) {		/* |x| < 0.5 */
-				if (ix < 0x3fd00000)	/* |x| < 0.25 */
+			if (ix < 0x3fe00000) {	     /* |x| < 0.5 */
+				if (ix < 0x3fd00000) /* |x| < 0.25 */
 					s = __kernel_sinpi(ax);
-				else 
+				else
 					s = __kernel_cospi(0.5 - ax);
 			} else {
-				if (ix < 0x3fe80000)	/* |x| < 0.75 */
+				if (ix < 0x3fe80000) /* |x| < 0.75 */
 					s = __kernel_cospi(ax - 0.5);
 				else
 					s = __kernel_sinpi(1 - ax);
@@ -140,7 +140,8 @@ sinpi(double x)
 			if (j0 > 30)
 				x -= 0x1p30;
 			j0 = (uint32_t)x;
-			if (j0 & 1) s = -s;
+			if (j0 & 1)
+				s = -s;
 		}
 
 		return ((hx & 0x80000000) ? -s : s);

@@ -38,17 +38,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/hhook.h>
+#include <sys/kernel.h>
 #include <sys/khelp.h>
 #include <sys/module.h>
 #include <sys/module_khelp.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 
-#include <netinet/tcp_var.h>
-
 #include <vm/uma.h>
+
+#include <netinet/tcp_var.h>
 
 /*
  * Function prototype for our helper hook (man 9 hhook) compatible hook
@@ -78,33 +78,25 @@ struct example {
  * connection is created, the Khelp framework takes care of associating helper
  * modules of the appropriate class with the new connection.
  */
-struct helper example_helper = {
-	.h_flags = HELPER_NEEDS_OSD,
-	.h_classes = HELPER_CLASS_TCP
-};
+struct helper example_helper = { .h_flags = HELPER_NEEDS_OSD,
+	.h_classes = HELPER_CLASS_TCP };
 
 /*
  * Set which helper hook points our module wants to hook by creating an array of
  * hookinfo structs (defined in <sys/hhook.h>). We hook the TCP established
  * inbound/outbound hook points (TCP hhook points are defined in
- * <netinet/tcp_var.h>) with our example_hook() function. We don't require a user
- * data pointer to be passed to our hook function when called, so we set it to
- * NULL.
+ * <netinet/tcp_var.h>) with our example_hook() function. We don't require a
+ * user data pointer to be passed to our hook function when called, so we set it
+ * to NULL.
  */
-struct hookinfo example_hooks[] = {
-	{
-		.hook_type = HHOOK_TYPE_TCP,
-		.hook_id = HHOOK_TCP_EST_IN,
-		.hook_udata = NULL,
-		.hook_func = &example_hook
-	},
-	{
-		.hook_type = HHOOK_TYPE_TCP,
-		.hook_id = HHOOK_TCP_EST_OUT,
-		.hook_udata = NULL,
-		.hook_func = &example_hook
-	}
-};
+struct hookinfo example_hooks[] = { { .hook_type = HHOOK_TYPE_TCP,
+					.hook_id = HHOOK_TCP_EST_IN,
+					.hook_udata = NULL,
+					.hook_func = &example_hook },
+	{ .hook_type = HHOOK_TYPE_TCP,
+	    .hook_id = HHOOK_TCP_EST_OUT,
+	    .hook_udata = NULL,
+	    .hook_func = &example_hook } };
 
 /*
  * Very simple helper hook function. Here's a quick run through the arguments:

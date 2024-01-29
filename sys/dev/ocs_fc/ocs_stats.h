@@ -37,10 +37,10 @@
 #if !defined(__OCS_STATS_H__)
 #define __OCS_STATS_H__
 
-#define OCS_STAT_ENABLE		0
+#define OCS_STAT_ENABLE 0
 #if OCS_STAT_ENABLE
-	#define OCS_STAT(x)	x
+#define OCS_STAT(x) x
 #else
-	#define OCS_STAT(x)
+#define OCS_STAT(x)
 #endif
-#endif 
+#endif

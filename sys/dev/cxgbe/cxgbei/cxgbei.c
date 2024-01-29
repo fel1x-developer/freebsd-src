@@ -28,69 +28,68 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #ifdef TCP_OFFLOAD
+#include <sys/condvar.h>
 #include <sys/errno.h>
 #include <sys/gsb_crc32.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
 #include <sys/smp.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/mbuf.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
 #include <sys/uio.h>
+
+#include <dev/iscsi/icl.h>
+#include <dev/iscsi/iscsi.h>
+#include <dev/iscsi/iscsi_ioctl.h>
+#include <dev/iscsi/iscsi_proto.h>
 
 #include <netinet/in.h>
 #include <netinet/in_pcb.h>
-#include <netinet/toecore.h>
-#include <netinet/tcp_var.h>
 #include <netinet/tcp_fsm.h>
-
-#include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_backend.h>
-#include <cam/ctl/ctl_error.h>
-#include <cam/ctl/ctl_frontend.h>
-#include <cam/ctl/ctl_debug.h>
-#include <cam/ctl/ctl_ha.h>
-#include <cam/ctl/ctl_ioctl.h>
-
-#include <dev/iscsi/icl.h>
-#include <dev/iscsi/iscsi_proto.h>
-#include <dev/iscsi/iscsi_ioctl.h>
-#include <dev/iscsi/iscsi.h>
-#include <cam/ctl/ctl_frontend_iscsi.h>
+#include <netinet/tcp_var.h>
+#include <netinet/toecore.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
-#include <cam/cam_xpt.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_sim.h>
-#include <cam/cam_xpt_sim.h>
-#include <cam/cam_xpt_periph.h>
-#include <cam/cam_periph.h>
 #include <cam/cam_compat.h>
+#include <cam/cam_debug.h>
+#include <cam/cam_periph.h>
+#include <cam/cam_sim.h>
+#include <cam/cam_xpt.h>
+#include <cam/cam_xpt_periph.h>
+#include <cam/cam_xpt_sim.h>
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_debug.h>
+#include <cam/ctl/ctl_error.h>
+#include <cam/ctl/ctl_frontend.h>
+#include <cam/ctl/ctl_frontend_iscsi.h>
+#include <cam/ctl/ctl_ha.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/scsi/scsi_all.h>
+#include <cam/scsi/scsi_da.h>
 #include <cam/scsi/scsi_message.h>
 
 #include "common/common.h"
 #include "common/t4_msg.h"
-#include "common/t4_regs.h"	/* for PCIE_MEM_ACCESS */
-#include "tom/t4_tom.h"
+#include "common/t4_regs.h" /* for PCIE_MEM_ACCESS */
 #include "cxgbei.h"
+#include "tom/t4_tom.h"
 
 static void
 read_pdu_limits(struct adapter *sc, uint32_t *max_tx_data_len,
@@ -168,7 +167,7 @@ cxgbei_init(struct adapter *sc, struct cxgbei_data *ci)
 	read_pdu_limits(sc, &ci->max_tx_data_len, &ci->max_rx_data_len, pr);
 
 	sysctl_ctx_init(&ci->ctx);
-	oid = device_get_sysctl_tree(sc->dev);	/* dev.t5nex.X */
+	oid = device_get_sysctl_tree(sc->dev); /* dev.t5nex.X */
 	children = SYSCTL_CHILDREN(oid);
 
 	oid = SYSCTL_ADD_NODE(&ci->ctx, children, OID_AUTO, "iscsi",
@@ -227,10 +226,11 @@ do_rx_iscsi_hdr(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 }
 
 static int
-do_rx_iscsi_data(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
+do_rx_iscsi_data(struct sge_iq *iq, const struct rss_header *rss,
+    struct mbuf *m)
 {
 	struct adapter *sc = iq->adapter;
-	struct cpl_iscsi_data *cpl =  mtod(m, struct cpl_iscsi_data *);
+	struct cpl_iscsi_data *cpl = mtod(m, struct cpl_iscsi_data *);
 	u_int tid = GET_TID(cpl);
 	struct toepcb *toep = lookup_tid(sc, tid);
 	struct icl_cxgbei_pdu *icp = toep->ulpcb2;
@@ -244,8 +244,8 @@ do_rx_iscsi_data(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m
 		 * T6 completion enabled, start of a new pdu. Header
 		 * will come in completion CPL.
 		 */
-	        ip = icl_cxgbei_new_pdu(M_NOWAIT);
-	        if (ip == NULL)
+		ip = icl_cxgbei_new_pdu(M_NOWAIT);
+		if (ip == NULL)
 			CXGBE_UNIMPLEMENTED("PDU allocation failure");
 		icp = ip_to_icp(ip);
 	} else {
@@ -331,8 +331,7 @@ parse_pdu(struct socket *so, struct toepcb *toep, struct icl_cxgbei_conn *icc,
 
 	ahs_len = bhs.bhs_total_ahs_len * 4;
 	data_len = bhs.bhs_data_segment_len[0] << 16 |
-	    bhs.bhs_data_segment_len[1] << 8 |
-	    bhs.bhs_data_segment_len[2];
+	    bhs.bhs_data_segment_len[1] << 8 | bhs.bhs_data_segment_len[2];
 	pdu_len = header_len + ahs_len + roundup2(data_len, 4);
 	if (icc->ic.ic_data_crc32c && data_len != 0)
 		pdu_len += ISCSI_DATA_DIGEST_SIZE;
@@ -354,7 +353,7 @@ parse_pdu(struct socket *so, struct toepcb *toep, struct icl_cxgbei_conn *icc,
 		calc_digest ^= 0xffffffff;
 		if (calc_digest != wire_digest) {
 			ICL_WARN("received pre-offload PDU 0x%02x with "
-			    "invalid header digest (0x%x vs 0x%x)",
+				 "invalid header digest (0x%x vs 0x%x)",
 			    bhs.bhs_opcode, wire_digest, calc_digest);
 			toep->ofld_rxq->rx_iscsi_header_digest_errors++;
 			return (NULL);
@@ -371,7 +370,8 @@ parse_pdu(struct socket *so, struct toepcb *toep, struct icl_cxgbei_conn *icc,
 		error = soreceive(so, NULL, &uio, &m, NULL, NULL);
 		if (error != 0) {
 			ICL_WARN("failed to read data payload from "
-			    "pre-offload PDU: %d", error);
+				 "pre-offload PDU: %d",
+			    error);
 			return (NULL);
 		}
 
@@ -384,7 +384,8 @@ parse_pdu(struct socket *so, struct toepcb *toep, struct icl_cxgbei_conn *icc,
 			    &calc_digest);
 			calc_digest ^= 0xffffffff;
 			if (calc_digest != wire_digest) {
-				ICL_WARN("received pre-offload PDU 0x%02x "
+				ICL_WARN(
+				    "received pre-offload PDU 0x%02x "
 				    "with invalid data digest (0x%x vs 0x%x)",
 				    bhs.bhs_opcode, wire_digest, calc_digest);
 				toep->ofld_rxq->rx_iscsi_data_digest_errors++;
@@ -462,10 +463,10 @@ do_rx_iscsi_ddp(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 
 	/* Must already be assembling a PDU. */
 	MPASS(icp != NULL);
-	MPASS(icp->icp_flags & ICPF_RX_HDR);	/* Data is optional. */
+	MPASS(icp->icp_flags & ICPF_RX_HDR); /* Data is optional. */
 	MPASS((icp->icp_flags & ICPF_RX_STATUS) == 0);
 
-	pdu_len = be16toh(cpl->len);	/* includes everything. */
+	pdu_len = be16toh(cpl->len); /* includes everything. */
 	val = be32toh(cpl->ddpvld);
 
 #if 0
@@ -550,8 +551,9 @@ do_rx_iscsi_ddp(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 	}
 	MPASS(icc->icc_signature == CXGBEI_CONN_SIGNATURE);
 	ic = &icc->ic;
-	if ((val & (F_DDP_PADDING_ERR | F_DDP_HDRCRC_ERR |
-	    F_DDP_DATACRC_ERR)) != 0) {
+	if ((val &
+		(F_DDP_PADDING_ERR | F_DDP_HDRCRC_ERR | F_DDP_DATACRC_ERR)) !=
+	    0) {
 		SOCKBUF_UNLOCK(sb);
 		INP_WUNLOCK(inp);
 
@@ -690,8 +692,9 @@ do_rx_iscsi_cmp(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 
 	MPASS(icc->icc_signature == CXGBEI_CONN_SIGNATURE);
 	ic = &icc->ic;
-	if ((val & (F_DDP_PADDING_ERR | F_DDP_HDRCRC_ERR |
-	    F_DDP_DATACRC_ERR)) != 0) {
+	if ((val &
+		(F_DDP_PADDING_ERR | F_DDP_HDRCRC_ERR | F_DDP_DATACRC_ERR)) !=
+	    0) {
 		INP_WUNLOCK(inp);
 
 		icl_cxgbei_conn_pdu_free(NULL, ip);
@@ -703,7 +706,8 @@ do_rx_iscsi_cmp(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 
 #ifdef INVARIANTS
 	data_digest_len = (icc->ulp_submode & ULP_CRC_DATA) ?
-	    ISCSI_DATA_DIGEST_SIZE : 0;
+	    ISCSI_DATA_DIGEST_SIZE :
+	    0;
 	MPASS(roundup2(ip->ip_data_len, 4) == pdu_len - len - data_digest_len);
 #endif
 
@@ -746,9 +750,10 @@ do_rx_iscsi_cmp(struct sge_iq *iq, const struct rss_header *rss, struct mbuf *m)
 			ip->ip_data_len += prev_seg_len;
 			bhsdo->bhsdo_data_segment_len[2] = ip->ip_data_len;
 			bhsdo->bhsdo_data_segment_len[1] = ip->ip_data_len >> 8;
-			bhsdo->bhsdo_data_segment_len[0] = ip->ip_data_len >> 16;
-			bhsdo->bhsdo_buffer_offset =
-			    htobe32(cmp->next_buffer_offset);
+			bhsdo->bhsdo_data_segment_len[0] = ip->ip_data_len >>
+			    16;
+			bhsdo->bhsdo_buffer_offset = htobe32(
+			    cmp->next_buffer_offset);
 
 			orig_datasn = htobe32(bhsdo->bhsdo_datasn);
 			npdus = orig_datasn - cmp->last_datasn;
@@ -829,8 +834,9 @@ cxgbei_activate(struct adapter *sc)
 	ASSERT_SYNCHRONIZED_OP(sc);
 
 	if (uld_active(sc, ULD_ISCSI)) {
-		KASSERT(0, ("%s: iSCSI offload already enabled on adapter %p",
-		    __func__, sc));
+		KASSERT(0,
+		    ("%s: iSCSI offload already enabled on adapter %p",
+			__func__, sc));
 		return (0);
 	}
 
@@ -882,7 +888,7 @@ cxgbei_activate_all(struct adapter *sc, void *arg __unused)
 
 	/* Activate iSCSI if any port on this adapter has IFCAP_TOE enabled. */
 	if (sc->offload_map && !uld_active(sc, ULD_ISCSI))
-		(void) t4_activate_uld(sc, ULD_ISCSI);
+		(void)t4_activate_uld(sc, ULD_ISCSI);
 
 	end_synchronized_op(sc, 0);
 }
@@ -895,7 +901,7 @@ cxgbei_deactivate_all(struct adapter *sc, void *arg __unused)
 		return;
 
 	if (uld_active(sc, ULD_ISCSI))
-	    (void) t4_deactivate_uld(sc, ULD_ISCSI);
+		(void)t4_deactivate_uld(sc, ULD_ISCSI);
 
 	end_synchronized_op(sc, 0);
 }

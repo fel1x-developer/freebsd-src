@@ -64,58 +64,48 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include "miidevs.h"
-
 #include <dev/mii/nsphyreg.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int nsphy_probe(device_t);
 static int nsphy_attach(device_t);
 
 static device_method_t nsphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		nsphy_probe),
-	DEVMETHOD(device_attach,	nsphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, nsphy_probe),
+	DEVMETHOD(device_attach, nsphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t nsphy_driver = {
-	"nsphy",
-	nsphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t nsphy_driver = { "nsphy", nsphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(nsphy, miibus, nsphy_driver, 0, 0);
 
-static int	nsphy_service(struct mii_softc *, struct mii_data *, int);
-static void	nsphy_status(struct mii_softc *);
-static void	nsphy_reset(struct mii_softc *);
+static int nsphy_service(struct mii_softc *, struct mii_data *, int);
+static void nsphy_status(struct mii_softc *);
+static void nsphy_reset(struct mii_softc *);
 
-static const struct mii_phydesc nsphys[] = {
-	MII_PHY_DESC(xxNATSEMI, DP83840),
-	MII_PHY_END
-};
+static const struct mii_phydesc nsphys[] = { MII_PHY_DESC(xxNATSEMI, DP83840),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs nsphy_funcs = {
-	nsphy_service,
-	nsphy_status,
-	nsphy_reset
-};
+static const struct mii_phy_funcs nsphy_funcs = { nsphy_service, nsphy_status,
+	nsphy_reset };
 
 static int
 nsphy_probe(device_t dev)
@@ -205,8 +195,7 @@ nsphy_status(struct mii_softc *sc)
 	mii->mii_media_status = IFM_AVALID;
 	mii->mii_media_active = IFM_ETHER;
 
-	bmsr = PHY_READ(sc, MII_BMSR) |
-	    PHY_READ(sc, MII_BMSR);
+	bmsr = PHY_READ(sc, MII_BMSR) | PHY_READ(sc, MII_BMSR);
 	if (bmsr & BMSR_LINK)
 		mii->mii_media_status |= IFM_ACTIVE;
 
@@ -240,20 +229,19 @@ nsphy_status(struct mii_softc *sc)
 			anlpar = PHY_READ(sc, MII_ANAR) &
 			    PHY_READ(sc, MII_ANLPAR);
 			if (anlpar & ANLPAR_TX_FD)
-				mii->mii_media_active |= IFM_100_TX|IFM_FDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_FDX;
 			else if (anlpar & ANLPAR_T4)
-				mii->mii_media_active |= IFM_100_T4|IFM_HDX;
+				mii->mii_media_active |= IFM_100_T4 | IFM_HDX;
 			else if (anlpar & ANLPAR_TX)
-				mii->mii_media_active |= IFM_100_TX|IFM_HDX;
+				mii->mii_media_active |= IFM_100_TX | IFM_HDX;
 			else if (anlpar & ANLPAR_10_FD)
-				mii->mii_media_active |= IFM_10_T|IFM_FDX;
+				mii->mii_media_active |= IFM_10_T | IFM_FDX;
 			else if (anlpar & ANLPAR_10)
-				mii->mii_media_active |= IFM_10_T|IFM_HDX;
+				mii->mii_media_active |= IFM_10_T | IFM_HDX;
 			else
 				mii->mii_media_active |= IFM_NONE;
 			if ((mii->mii_media_active & IFM_FDX) != 0)
-				mii->mii_media_active |=
-				    mii_phy_flowstatus(sc);
+				mii->mii_media_active |= mii_phy_flowstatus(sc);
 			return;
 		}
 

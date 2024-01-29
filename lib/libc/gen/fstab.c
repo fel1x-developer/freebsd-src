@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -42,6 +41,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <vis.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 static FILE *_fs_fp;
@@ -107,7 +108,7 @@ static int
 fstabscan(void)
 {
 	char *cp, *p;
-#define	MAXLINELENGTH	1024
+#define MAXLINELENGTH 1024
 	static char line[MAXLINELENGTH];
 	char subline[MAXLINELENGTH];
 	int typexx;
@@ -116,7 +117,7 @@ fstabscan(void)
 
 		if (!(p = fgets(line, sizeof(line), _fs_fp)))
 			return (0);
-/* OLD_STYLE_FSTAB */
+		/* OLD_STYLE_FSTAB */
 		++LineNo;
 		if (*line == '#' || *line == '\n')
 			continue;
@@ -129,9 +130,10 @@ fstabscan(void)
 				if (!strcmp(_fs_fstab.fs_type, FSTAB_XX))
 					continue;
 				_fs_fstab.fs_mntops = _fs_fstab.fs_type;
-				_fs_fstab.fs_vfstype =
-				    strcmp(_fs_fstab.fs_type, FSTAB_SW) ?
-				    "ufs" : "swap";
+				_fs_fstab.fs_vfstype = strcmp(_fs_fstab.fs_type,
+							   FSTAB_SW) ?
+				    "ufs" :
+				    "swap";
 				if ((cp = strsep(&p, ":\n")) != NULL) {
 					_fs_fstab.fs_freq = atoi(cp);
 					if ((cp = strsep(&p, ":\n")) != NULL) {
@@ -142,7 +144,7 @@ fstabscan(void)
 			}
 			goto bad;
 		}
-/* OLD_STYLE_FSTAB */
+		/* OLD_STYLE_FSTAB */
 		while ((cp = strsep(&p, " \t\n")) != NULL && *cp == '\0')
 			;
 		_fs_fstab.fs_spec = cp;
@@ -172,7 +174,8 @@ fstabscan(void)
 			;
 		if (cp != NULL) {
 			_fs_fstab.fs_freq = atoi(cp);
-			while ((cp = strsep(&p, " \t\n")) != NULL && *cp == '\0')
+			while (
+			    (cp = strsep(&p, " \t\n")) != NULL && *cp == '\0')
 				;
 			if (cp != NULL)
 				_fs_fstab.fs_passno = atoi(cp);
@@ -210,7 +213,7 @@ fstabscan(void)
 		if (cp != NULL)
 			return (1);
 
-bad:		/* no way to distinguish between EOF and syntax error */
+	bad: /* no way to distinguish between EOF and syntax error */
 		error(EFTYPE);
 	}
 	/* NOTREACHED */

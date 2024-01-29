@@ -30,25 +30,24 @@
  */
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_mib.h>
 #include <net/if_types.h>
 
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "bridge_tree.h"
+#define SNMPTREE_TYPES
 #include "bridge_snmp.h"
+#include "bridge_tree.h"
 
 static int
 val2snmp_truth(uint8_t val)
@@ -71,8 +70,8 @@ snmp_truth2val(int32_t truth)
 }
 
 int
-op_begemot_bridge_pf(struct snmp_context *ctx, struct snmp_value *val,
-	uint sub, uint iidx __unused, enum snmp_op op)
+op_begemot_bridge_pf(struct snmp_context *ctx, struct snmp_value *val, uint sub,
+    uint iidx __unused, enum snmp_op op)
 {
 	int k_val;
 
@@ -80,37 +79,36 @@ op_begemot_bridge_pf(struct snmp_context *ctx, struct snmp_value *val,
 		return (SNMP_ERR_NOSUCHNAME);
 
 	switch (op) {
-		case SNMP_OP_GETNEXT:
-			abort();
-		case SNMP_OP_ROLLBACK:
-			bridge_do_pfctl(val->var.subs[sub - 1] - 1,
-			    op, &(ctx->scratch->int1));
-				return (SNMP_ERR_NOERROR);
+	case SNMP_OP_GETNEXT:
+		abort();
+	case SNMP_OP_ROLLBACK:
+		bridge_do_pfctl(val->var.subs[sub - 1] - 1, op,
+		    &(ctx->scratch->int1));
+		return (SNMP_ERR_NOERROR);
 
-		case SNMP_OP_COMMIT:
+	case SNMP_OP_COMMIT:
+		return (SNMP_ERR_NOERROR);
+
+	case SNMP_OP_SET:
+		ctx->scratch->int1 = bridge_get_pfval(val->var.subs[sub - 1]);
+
+		if ((k_val = snmp_truth2val(val->v.integer)) < 0)
+			return (SNMP_ERR_BADVALUE);
+		return (SNMP_ERR_NOERROR);
+
+	case SNMP_OP_GET:
+		switch (val->var.subs[sub - 1]) {
+		case LEAF_begemotBridgePfilStatus:
+		case LEAF_begemotBridgePfilMembers:
+		case LEAF_begemotBridgePfilIpOnly:
+		case LEAF_begemotBridgeLayer2PfStatus:
+			if (bridge_do_pfctl(val->var.subs[sub - 1] - 1, op,
+				&k_val) < 0)
+				return (SNMP_ERR_GENERR);
+			val->v.integer = val2snmp_truth(k_val);
 			return (SNMP_ERR_NOERROR);
-
-		case SNMP_OP_SET:
-			ctx->scratch->int1 =
-			    bridge_get_pfval(val->var.subs[sub - 1]);
-
-			if ((k_val = snmp_truth2val(val->v.integer)) < 0)
-				return (SNMP_ERR_BADVALUE);
-			return (SNMP_ERR_NOERROR);
-
-		case SNMP_OP_GET:
-			switch (val->var.subs[sub - 1]) {
-			    case LEAF_begemotBridgePfilStatus:
-			    case LEAF_begemotBridgePfilMembers:
-			    case LEAF_begemotBridgePfilIpOnly:
-			    case LEAF_begemotBridgeLayer2PfStatus:
-				if (bridge_do_pfctl(val->var.subs[sub - 1] - 1,
-				    op, &k_val) < 0)
-					return (SNMP_ERR_GENERR);
-				val->v.integer = val2snmp_truth(k_val);
-				return (SNMP_ERR_NOERROR);
-			}
-			abort();
+		}
+		abort();
 	}
 
 	abort();

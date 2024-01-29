@@ -32,6 +32,7 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
@@ -39,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(wcsrtombs_test);
 ATF_TC_BODY(wcsrtombs_test, tc)
@@ -58,8 +57,8 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	memset(dstbuf, 0xcc, sizeof(dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf),
-	    &s) == 5);
+	ATF_REQUIRE(
+	    wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf), &s) == 5);
 	ATF_REQUIRE(strcmp(dstbuf, "hello") == 0);
 	ATF_REQUIRE((unsigned char)dstbuf[6] == 0xcc);
 	ATF_REQUIRE(src == NULL);
@@ -70,8 +69,7 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	memset(dstbuf, 0xcc, sizeof(dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, 4,
-	    &s) == 4);
+	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, 4, &s) == 4);
 	ATF_REQUIRE(memcmp(dstbuf, "hell", 4) == 0);
 	ATF_REQUIRE((unsigned char)dstbuf[5] == 0xcc);
 	ATF_REQUIRE(src == srcbuf + 4);
@@ -81,8 +79,8 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	wcscpy(srcbuf, L"hello");
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(wcsrtombs(NULL, (const wchar_t **)&src, sizeof(dstbuf),
-	    &s) == 5);
+	ATF_REQUIRE(
+	    wcsrtombs(NULL, (const wchar_t **)&src, sizeof(dstbuf), &s) == 5);
 
 	/* Null terminated string, internal state. */
 	wmemset(srcbuf, 0xcc, sizeof(srcbuf) / sizeof(*srcbuf));
@@ -90,7 +88,7 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	memset(dstbuf, 0xcc, sizeof(dstbuf));
 	src = srcbuf;
 	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf),
-	    NULL) == 5);
+			NULL) == 5);
 	ATF_REQUIRE(strcmp(dstbuf, "hello") == 0);
 	ATF_REQUIRE((unsigned char)dstbuf[6] == 0xcc);
 	ATF_REQUIRE(src == NULL);
@@ -107,8 +105,8 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	memset(dstbuf, 0xcc, sizeof(dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf),
-	    &s) == 0);
+	ATF_REQUIRE(
+	    wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf), &s) == 0);
 	ATF_REQUIRE(dstbuf[0] == L'\0');
 
 	/* Zero length destination buffer. */
@@ -124,7 +122,8 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX > 1);
 
 	wmemset(srcbuf, 0xcc, sizeof(srcbuf) / sizeof(*srcbuf));
@@ -137,8 +136,8 @@ ATF_TC_BODY(wcsrtombs_test, tc)
 	memset(dstbuf, 0xcc, sizeof(dstbuf));
 	src = srcbuf;
 	memset(&s, 0, sizeof(s));
-	ATF_REQUIRE(wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf),
-	    &s) == 7);
+	ATF_REQUIRE(
+	    wcsrtombs(dstbuf, (const wchar_t **)&src, sizeof(dstbuf), &s) == 7);
 	ATF_REQUIRE(strcmp(dstbuf, "\xA3\xC1 B \xA3\xC3") == 0);
 	ATF_REQUIRE((unsigned char)dstbuf[8] == 0xcc);
 	ATF_REQUIRE(src == NULL);

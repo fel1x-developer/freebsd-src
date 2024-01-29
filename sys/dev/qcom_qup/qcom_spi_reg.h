@@ -25,34 +25,34 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_SPI_REG_H__
-#define	__QCOM_SPI_REG_H__
+#ifndef __QCOM_SPI_REG_H__
+#define __QCOM_SPI_REG_H__
 
-#define	SPI_CONFIG			0x0300
-#define		SPI_CONFIG_HS_MODE	(1U << 10)
-#define		SPI_CONFIG_INPUT_FIRST	(1U << 9)
-#define		SPI_CONFIG_LOOPBACK	(1U << 8)
+#define SPI_CONFIG 0x0300
+#define SPI_CONFIG_HS_MODE (1U << 10)
+#define SPI_CONFIG_INPUT_FIRST (1U << 9)
+#define SPI_CONFIG_LOOPBACK (1U << 8)
 
-#define	SPI_IO_CONTROL			0x0304
-#define		SPI_IO_C_FORCE_CS		(1U << 11)
-#define		SPI_IO_C_CLK_IDLE_HIGH		(1U << 10)
-#define		SPI_IO_C_MX_CS_MODE		(1U << 8)
-#define		SPI_IO_C_CS_N_POLARITY_0	(1U << 4)
-#define		SPI_IO_C_CS_SELECT(x)		(((x) & 3) << 2)
-#define		SPI_IO_C_CS_SELECT_MASK		0x000c
-#define		SPI_IO_C_TRISTATE_CS		(1U << 1)
-#define		SPI_IO_C_NO_TRI_STATE		(1U << 0)
+#define SPI_IO_CONTROL 0x0304
+#define SPI_IO_C_FORCE_CS (1U << 11)
+#define SPI_IO_C_CLK_IDLE_HIGH (1U << 10)
+#define SPI_IO_C_MX_CS_MODE (1U << 8)
+#define SPI_IO_C_CS_N_POLARITY_0 (1U << 4)
+#define SPI_IO_C_CS_SELECT(x) (((x) & 3) << 2)
+#define SPI_IO_C_CS_SELECT_MASK 0x000c
+#define SPI_IO_C_TRISTATE_CS (1U << 1)
+#define SPI_IO_C_NO_TRI_STATE (1U << 0)
 
-#define	SPI_ERROR_FLAGS			0x0308
-#define	SPI_ERROR_FLAGS_EN		0x030c
-#define		SPI_ERROR_CLK_OVER_RUN		(1U << 1)
-#define		SPI_ERROR_CLK_UNDER_RUN		(1U << 0)
+#define SPI_ERROR_FLAGS 0x0308
+#define SPI_ERROR_FLAGS_EN 0x030c
+#define SPI_ERROR_CLK_OVER_RUN (1U << 1)
+#define SPI_ERROR_CLK_UNDER_RUN (1U << 0)
 
 /*
  * Strictly this isn't true; some controllers have
  * less CS lines exposed via GPIO/pinmux.
  */
-#define	SPI_NUM_CHIPSELECTS		4
+#define SPI_NUM_CHIPSELECTS 4
 
 /*
  * The maximum single SPI transaction done in any mode.
@@ -60,15 +60,14 @@
  * this then it must be split up into SPI_MAX_XFER
  * sub-transactions in the transfer loop.
  */
-#define	SPI_MAX_XFER			(65536 - 64)
+#define SPI_MAX_XFER (65536 - 64)
 
 /*
  * Any frequency at or above 26MHz is considered "high"
  * and will have some different parameters configured.
  */
-#define	SPI_HS_MIN_RATE			26000000
+#define SPI_HS_MIN_RATE 26000000
 
-#define	SPI_MAX_RATE			50000000
+#define SPI_MAX_RATE 50000000
 
-#endif	/* __QCOM_SPI_REG_H__ */
-
+#endif /* __QCOM_SPI_REG_H__ */

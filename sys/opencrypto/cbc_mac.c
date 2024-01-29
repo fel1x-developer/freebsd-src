@@ -23,9 +23,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/systm.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/endian.h>
+
 #include <opencrypto/cbc_mac.h>
 #include <opencrypto/xform_auth.h>
 
@@ -34,10 +35,9 @@
  * them into dst, and then encrypt dst.
  */
 static void
-xor_and_encrypt(struct aes_cbc_mac_ctx *ctx,
-		const uint8_t *src, uint8_t *dst)
+xor_and_encrypt(struct aes_cbc_mac_ctx *ctx, const uint8_t *src, uint8_t *dst)
 {
-#define	NWORDS	(CCM_CBC_BLOCK_LEN / sizeof(uint64_t))
+#define NWORDS (CCM_CBC_BLOCK_LEN / sizeof(uint64_t))
 	uint64_t b1[NWORDS], b2[NWORDS], temp[NWORDS];
 
 	memcpy(b1, src, CCM_CBC_BLOCK_LEN);
@@ -94,7 +94,7 @@ AES_CBC_MAC_Update(void *vctx, const void *vdata, u_int length)
 	struct aes_cbc_mac_ctx *ctx;
 	const uint8_t *data;
 	size_t copy_amt;
-	
+
 	ctx = vctx;
 	data = vdata;
 

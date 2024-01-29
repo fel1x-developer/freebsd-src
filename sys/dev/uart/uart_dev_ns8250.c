@@ -36,6 +36,7 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/sysctl.h>
+
 #include <machine/bus.h>
 
 #ifdef FDT
@@ -54,6 +55,7 @@
 #include <dev/uart/uart_ppstypes.h>
 #ifdef DEV_ACPI
 #include <dev/uart/uart_cpu_acpi.h>
+
 #include <contrib/dev/acpica/include/acpi.h>
 #endif
 
@@ -61,7 +63,7 @@
 
 #include "uart_if.h"
 
-#define	DEFAULT_RCLK	1843200
+#define DEFAULT_RCLK 1843200
 
 /*
  * Set the default baudrate tolerance to 3.0%.
@@ -69,20 +71,20 @@
  * Some embedded boards have odd reference clocks (eg 25MHz)
  * and we need to handle higher variances in the target baud rate.
  */
-#ifndef	UART_DEV_TOLERANCE_PCT
-#define	UART_DEV_TOLERANCE_PCT	30
-#endif	/* UART_DEV_TOLERANCE_PCT */
+#ifndef UART_DEV_TOLERANCE_PCT
+#define UART_DEV_TOLERANCE_PCT 30
+#endif /* UART_DEV_TOLERANCE_PCT */
 
 static int broken_txfifo = 0;
-SYSCTL_INT(_hw, OID_AUTO, broken_txfifo, CTLFLAG_RWTUN,
-	&broken_txfifo, 0, "UART FIFO has QEMU emulation bug");
+SYSCTL_INT(_hw, OID_AUTO, broken_txfifo, CTLFLAG_RWTUN, &broken_txfifo, 0,
+    "UART FIFO has QEMU emulation bug");
 
 /*
  * To use early printf on x86, add the following to your kernel config:
  *
  * options UART_NS8250_EARLY_PORT=0x3f8
  * options EARLY_PRINTF
-*/
+ */
 #if defined(EARLY_PRINTF) && (defined(__amd64__) || defined(__i386__))
 static void
 uart_ns8250_early_putc(int c)
@@ -112,7 +114,7 @@ ns8250_clrint(struct uart_bas *bas)
 		iir &= IIR_IMASK;
 		if (iir == IIR_RLS) {
 			lsr = uart_getreg(bas, REG_LSR);
-			if (lsr & (LSR_BI|LSR_FE|LSR_PE))
+			if (lsr & (LSR_BI | LSR_FE | LSR_PE))
 				(void)uart_getreg(bas, REG_DATA);
 		} else if (iir == IIR_RXRDY || iir == IIR_RXTOUT)
 			(void)uart_getreg(bas, REG_DATA);
@@ -180,7 +182,7 @@ ns8250_drain(struct uart_bas *bas, int what)
 		 * an infinite loop when the hardware is broken. Make the
 		 * limit high enough to handle large FIFOs.
 		 */
-		limit = 10*1024;
+		limit = 10 * 1024;
 		while ((uart_getreg(bas, REG_LSR) & LSR_TEMT) == 0 && --limit)
 			DELAY(delay);
 		if (limit == 0) {
@@ -202,12 +204,14 @@ ns8250_drain(struct uart_bas *bas, int what)
 		 * asserted, read (and discard) characters as quickly as
 		 * possible.
 		 */
-		limit=10*4096;
-		while (limit && (uart_getreg(bas, REG_LSR) & LSR_RXRDY) && --limit) {
+		limit = 10 * 4096;
+		while (limit && (uart_getreg(bas, REG_LSR) & LSR_RXRDY) &&
+		    --limit) {
 			do {
 				(void)uart_getreg(bas, REG_DATA);
 				uart_barrier(bas);
-			} while ((uart_getreg(bas, REG_LSR) & LSR_RXRDY) && --limit);
+			} while (
+			    (uart_getreg(bas, REG_LSR) & LSR_RXRDY) && --limit);
 			uart_barrier(bas);
 			DELAY(delay << 2);
 		}
@@ -421,72 +425,79 @@ ns8250_getc(struct uart_bas *bas, struct mtx *hwmtx)
 	return (c);
 }
 
-static kobj_method_t ns8250_methods[] = {
-	KOBJMETHOD(uart_attach,		ns8250_bus_attach),
-	KOBJMETHOD(uart_detach,		ns8250_bus_detach),
-	KOBJMETHOD(uart_flush,		ns8250_bus_flush),
-	KOBJMETHOD(uart_getsig,		ns8250_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		ns8250_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		ns8250_bus_ipend),
-	KOBJMETHOD(uart_param,		ns8250_bus_param),
-	KOBJMETHOD(uart_probe,		ns8250_bus_probe),
-	KOBJMETHOD(uart_receive,	ns8250_bus_receive),
-	KOBJMETHOD(uart_setsig,		ns8250_bus_setsig),
-	KOBJMETHOD(uart_transmit,	ns8250_bus_transmit),
-	KOBJMETHOD(uart_txbusy,		ns8250_bus_txbusy),
-	KOBJMETHOD(uart_grab,		ns8250_bus_grab),
-	KOBJMETHOD(uart_ungrab,		ns8250_bus_ungrab),
-	KOBJMETHOD_END
-};
+static kobj_method_t ns8250_methods[] = { KOBJMETHOD(uart_attach,
+					      ns8250_bus_attach),
+	KOBJMETHOD(uart_detach, ns8250_bus_detach),
+	KOBJMETHOD(uart_flush, ns8250_bus_flush),
+	KOBJMETHOD(uart_getsig, ns8250_bus_getsig),
+	KOBJMETHOD(uart_ioctl, ns8250_bus_ioctl),
+	KOBJMETHOD(uart_ipend, ns8250_bus_ipend),
+	KOBJMETHOD(uart_param, ns8250_bus_param),
+	KOBJMETHOD(uart_probe, ns8250_bus_probe),
+	KOBJMETHOD(uart_receive, ns8250_bus_receive),
+	KOBJMETHOD(uart_setsig, ns8250_bus_setsig),
+	KOBJMETHOD(uart_transmit, ns8250_bus_transmit),
+	KOBJMETHOD(uart_txbusy, ns8250_bus_txbusy),
+	KOBJMETHOD(uart_grab, ns8250_bus_grab),
+	KOBJMETHOD(uart_ungrab, ns8250_bus_ungrab), KOBJMETHOD_END };
 
-struct uart_class uart_ns8250_class = {
-	"ns8250",
-	ns8250_methods,
-	sizeof(struct ns8250_softc),
-	.uc_ops = &uart_ns8250_ops,
-	.uc_range = 8,
-	.uc_rclk = DEFAULT_RCLK,
-	.uc_rshift = 0
-};
+struct uart_class uart_ns8250_class = { "ns8250", ns8250_methods,
+	sizeof(struct ns8250_softc), .uc_ops = &uart_ns8250_ops, .uc_range = 8,
+	.uc_rclk = DEFAULT_RCLK, .uc_rshift = 0 };
 
 /*
  * XXX -- refactor out ACPI and FDT ifdefs
  */
 #ifdef DEV_ACPI
 static struct acpi_uart_compat_data acpi_compat_data[] = {
-	{"AMD0020",	&uart_ns8250_class, 0, 2, 0, 48000000, UART_F_BUSY_DETECT, "AMD / Synopsys Designware UART"},
-	{"AMDI0020", &uart_ns8250_class, 0, 2, 0, 48000000, UART_F_BUSY_DETECT, "AMD / Synopsys Designware UART"},
-	{"MRVL0001", &uart_ns8250_class, ACPI_DBG2_16550_SUBSET, 2, 0, 200000000, UART_F_BUSY_DETECT, "Marvell / Synopsys Designware UART"},
-	{"SCX0006",  &uart_ns8250_class, 0, 2, 0, 62500000, UART_F_BUSY_DETECT, "SynQuacer / Synopsys Designware UART"},
-	{"HISI0031", &uart_ns8250_class, 0, 2, 0, 200000000, UART_F_BUSY_DETECT, "HiSilicon / Synopsys Designware UART"},
-	{"NXP0018", &uart_ns8250_class, 0, 0, 0, 350000000, UART_F_BUSY_DETECT, "NXP / Synopsys Designware UART"},
-	{"PNP0500", &uart_ns8250_class, 0, 0, 0, 0, 0, "Standard PC COM port"},
-	{"PNP0501", &uart_ns8250_class, 0, 0, 0, 0, 0, "16550A-compatible COM port"},
-	{"PNP0502", &uart_ns8250_class, 0, 0, 0, 0, 0, "Multiport serial device (non-intelligent 16550)"},
-	{"PNP0510", &uart_ns8250_class, 0, 0, 0, 0, 0, "Generic IRDA-compatible device"},
-	{"PNP0511", &uart_ns8250_class, 0, 0, 0, 0, 0, "Generic IRDA-compatible device"},
-	{"WACF004", &uart_ns8250_class, 0, 0, 0, 0, 0, "Wacom Tablet PC Screen"},
-	{"WACF00E", &uart_ns8250_class, 0, 0, 0, 0, 0, "Wacom Tablet PC Screen 00e"},
-	{"FUJ02E5", &uart_ns8250_class, 0, 0, 0, 0, 0, "Wacom Tablet at FuS Lifebook T"},
-	{NULL, 			NULL, 0, 0 , 0, 0, 0, NULL},
+	{ "AMD0020", &uart_ns8250_class, 0, 2, 0, 48000000, UART_F_BUSY_DETECT,
+	    "AMD / Synopsys Designware UART" },
+	{ "AMDI0020", &uart_ns8250_class, 0, 2, 0, 48000000, UART_F_BUSY_DETECT,
+	    "AMD / Synopsys Designware UART" },
+	{ "MRVL0001", &uart_ns8250_class, ACPI_DBG2_16550_SUBSET, 2, 0,
+	    200000000, UART_F_BUSY_DETECT,
+	    "Marvell / Synopsys Designware UART" },
+	{ "SCX0006", &uart_ns8250_class, 0, 2, 0, 62500000, UART_F_BUSY_DETECT,
+	    "SynQuacer / Synopsys Designware UART" },
+	{ "HISI0031", &uart_ns8250_class, 0, 2, 0, 200000000,
+	    UART_F_BUSY_DETECT, "HiSilicon / Synopsys Designware UART" },
+	{ "NXP0018", &uart_ns8250_class, 0, 0, 0, 350000000, UART_F_BUSY_DETECT,
+	    "NXP / Synopsys Designware UART" },
+	{ "PNP0500", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Standard PC COM port" },
+	{ "PNP0501", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "16550A-compatible COM port" },
+	{ "PNP0502", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Multiport serial device (non-intelligent 16550)" },
+	{ "PNP0510", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Generic IRDA-compatible device" },
+	{ "PNP0511", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Generic IRDA-compatible device" },
+	{ "WACF004", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Wacom Tablet PC Screen" },
+	{ "WACF00E", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Wacom Tablet PC Screen 00e" },
+	{ "FUJ02E5", &uart_ns8250_class, 0, 0, 0, 0, 0,
+	    "Wacom Tablet at FuS Lifebook T" },
+	{ NULL, NULL, 0, 0, 0, 0, 0, NULL },
 };
 UART_ACPI_CLASS_AND_DEVICE(acpi_compat_data);
 #endif
 
 #ifdef FDT
 static struct ofw_compat_data compat_data[] = {
-	{"ns16550",		(uintptr_t)&uart_ns8250_class},
-	{"ns16550a",		(uintptr_t)&uart_ns8250_class},
-	{NULL,			(uintptr_t)NULL},
+	{ "ns16550", (uintptr_t)&uart_ns8250_class },
+	{ "ns16550a", (uintptr_t)&uart_ns8250_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(compat_data);
 #endif
 
 /* Use token-pasting to form SER_ and MSR_ named constants. */
-#define	SER(sig)	SER_##sig
-#define	SERD(sig)	SER_D##sig
-#define	MSR(sig)	MSR_##sig
-#define	MSRD(sig)	MSR_D##sig
+#define SER(sig) SER_##sig
+#define SERD(sig) SER_D##sig
+#define MSR(sig) MSR_##sig
+#define MSRD(sig) MSR_D##sig
 
 /*
  * Detect signal changes using software delta detection.  The previous state of
@@ -494,13 +505,13 @@ UART_FDT_CLASS_AND_DEVICE(compat_data);
  * short name (DCD, CTS, etc) of the signal bit being processed; 'var' gets the
  * new state of both the signal and the delta bits.
  */
-#define SIGCHGSW(var, msr, sig)					\
-	if ((msr) & MSR(sig)) {					\
-		if ((var & SER(sig)) == 0)			\
-			var |= SERD(sig) | SER(sig);		\
-	} else {						\
-		if ((var & SER(sig)) != 0)			\
-			var = SERD(sig) | (var & ~SER(sig));	\
+#define SIGCHGSW(var, msr, sig)                              \
+	if ((msr) & MSR(sig)) {                              \
+		if ((var & SER(sig)) == 0)                   \
+			var |= SERD(sig) | SER(sig);         \
+	} else {                                             \
+		if ((var & SER(sig)) != 0)                   \
+			var = SERD(sig) | (var & ~SER(sig)); \
 	}
 
 /*
@@ -510,18 +521,18 @@ UART_FDT_CLASS_AND_DEVICE(compat_data);
  * by time the interrupt handler is invoked.  The hardware will latch the fact
  * that it changed in the delta bits.
  */
-#define SIGCHGHW(var, msr, sig)					\
-	if ((msr) & MSRD(sig)) {				\
-		if (((msr) & MSR(sig)) != 0)			\
-			var |= SERD(sig) | SER(sig);		\
-		else						\
-			var = SERD(sig) | (var & ~SER(sig));	\
+#define SIGCHGHW(var, msr, sig)                              \
+	if ((msr) & MSRD(sig)) {                             \
+		if (((msr) & MSR(sig)) != 0)                 \
+			var |= SERD(sig) | SER(sig);         \
+		else                                         \
+			var = SERD(sig) | (var & ~SER(sig)); \
 	}
 
 int
 ns8250_bus_attach(struct uart_softc *sc)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas;
 	unsigned int ivar;
 #ifdef FDT
@@ -533,7 +544,7 @@ ns8250_bus_attach(struct uart_softc *sc)
 	/* Check whether uart has a broken txfifo. */
 	node = ofw_bus_get_node(sc->sc_dev);
 	if ((OF_getencprop(node, "broken-txfifo", &cell, sizeof(cell))) > 0)
-		broken_txfifo =  cell ? 1 : 0;
+		broken_txfifo = cell ? 1 : 0;
 #endif
 
 	bas = &sc->sc_bas;
@@ -542,7 +553,7 @@ ns8250_bus_attach(struct uart_softc *sc)
 	ns8250->mcr = uart_getreg(bas, REG_MCR);
 	ns8250->fcr = FCR_ENABLE;
 	if (!resource_int_value("uart", device_get_unit(sc->sc_dev), "flags",
-	    &ivar)) {
+		&ivar)) {
 		if (UART_FLAGS_FCR_RX_LOW(ivar))
 			ns8250->fcr |= FCR_RX_LOW;
 		else if (UART_FLAGS_FCR_RX_MEDL(ivar))
@@ -568,7 +579,7 @@ ns8250_bus_attach(struct uart_softc *sc)
 
 	uart_setreg(bas, REG_FCR, ns8250->fcr);
 	uart_barrier(bas);
-	ns8250_bus_flush(sc, UART_FLUSH_RECEIVER|UART_FLUSH_TRANSMITTER);
+	ns8250_bus_flush(sc, UART_FLUSH_RECEIVER | UART_FLUSH_TRANSMITTER);
 
 	if (ns8250->mcr & MCR_DTR)
 		sc->sc_hwsig |= SER_DTR;
@@ -616,7 +627,7 @@ ns8250_bus_detach(struct uart_softc *sc)
 int
 ns8250_bus_flush(struct uart_softc *sc, int what)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas;
 	int error;
 
@@ -731,7 +742,7 @@ ns8250_bus_ioctl(struct uart_softc *sc, int request, intptr_t data)
 		uart_barrier(bas);
 		baudrate = (divisor > 0) ? bas->rclk / divisor / 16 : 0;
 		if (baudrate > 0)
-			*(int*)data = baudrate;
+			*(int *)data = baudrate;
 		else
 			error = ENXIO;
 		break;
@@ -797,7 +808,7 @@ ns8250_bus_param(struct uart_softc *sc, int baudrate, int databits,
 	struct uart_bas *bas;
 	int error, limit;
 
-	ns8250 = (struct ns8250_softc*)sc;
+	ns8250 = (struct ns8250_softc *)sc;
 	bas = &sc->sc_bas;
 	uart_lock(sc->sc_hwmtx);
 	/*
@@ -811,8 +822,8 @@ ns8250_bus_param(struct uart_softc *sc, int baudrate, int databits,
 		 * an infinite loop in case when the hardware is broken.
 		 */
 		limit = 10 * 1024;
-		while (((uart_getreg(bas, DW_REG_USR) & USR_BUSY) != 0) &&
-		    --limit)
+		while (
+		    ((uart_getreg(bas, DW_REG_USR) & USR_BUSY) != 0) && --limit)
 			DELAY(4);
 
 		if (limit <= 0) {
@@ -886,7 +897,7 @@ ns8250_bus_probe(struct uart_softc *sc)
 	delay = ns8250_delay(bas);
 
 	/* We have FIFOs. Drain the transmitter and receiver. */
-	error = ns8250_drain(bas, UART_DRAIN_RECEIVER|UART_DRAIN_TRANSMITTER);
+	error = ns8250_drain(bas, UART_DRAIN_RECEIVER | UART_DRAIN_TRANSMITTER);
 	if (error) {
 		uart_setreg(bas, REG_MCR, mcr);
 		uart_setreg(bas, REG_FCR, 0);
@@ -931,9 +942,9 @@ ns8250_bus_probe(struct uart_softc *sc)
 	uart_setreg(bas, REG_MCR, mcr);
 
 	/* Reset FIFOs. */
-	ns8250_flush(bas, UART_FLUSH_RECEIVER|UART_FLUSH_TRANSMITTER);
+	ns8250_flush(bas, UART_FLUSH_RECEIVER | UART_FLUSH_TRANSMITTER);
 
- describe:
+describe:
 	if (count >= 14 && count <= 16) {
 		sc->sc_rxfifosz = 16;
 		device_set_desc(sc->sc_dev, "16550 or compatible");
@@ -1009,13 +1020,13 @@ ns8250_bus_receive(struct uart_softc *sc)
 		lsr = uart_getreg(bas, REG_LSR);
 	}
 	uart_unlock(sc->sc_hwmtx);
- 	return (0);
+	return (0);
 }
 
 int
 ns8250_bus_setsig(struct uart_softc *sc, int sig)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas;
 	uint32_t new, old;
 
@@ -1031,10 +1042,10 @@ ns8250_bus_setsig(struct uart_softc *sc, int sig)
 		}
 	} while (!atomic_cmpset_32(&sc->sc_hwsig, old, new));
 	uart_lock(sc->sc_hwmtx);
-	ns8250->mcr &= ~(MCR_DTR|MCR_RTS);
-	if (new & SER_DTR)
+	ns8250->mcr &= ~(MCR_DTR | MCR_RTS);
+	if (new &SER_DTR)
 		ns8250->mcr |= MCR_DTR;
-	if (new & SER_RTS)
+	if (new &SER_RTS)
 		ns8250->mcr |= MCR_RTS;
 	uart_setreg(bas, REG_MCR, ns8250->mcr);
 	uart_barrier(bas);
@@ -1045,7 +1056,7 @@ ns8250_bus_setsig(struct uart_softc *sc, int sig)
 int
 ns8250_bus_transmit(struct uart_softc *sc)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas;
 	int i;
 
@@ -1086,7 +1097,7 @@ void
 ns8250_bus_grab(struct uart_softc *sc)
 {
 	struct uart_bas *bas = &sc->sc_bas;
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	u_char ier;
 
 	/*
@@ -1104,7 +1115,7 @@ ns8250_bus_grab(struct uart_softc *sc)
 void
 ns8250_bus_ungrab(struct uart_softc *sc)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas = &sc->sc_bas;
 
 	/*

@@ -26,16 +26,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <string.h>
-#include <sys/disklabel.h>
 #include <sys/param.h>
+#include <sys/disklabel.h>
+
 #include <bootstrap.h>
 #include <disk.h>
-
 #include <efi.h>
 #include <efilib.h>
 #include <efizfs.h>
+#include <stand.h>
+#include <string.h>
 
 /*
  * Point (dev) at an allocated device specifier for the device matching the

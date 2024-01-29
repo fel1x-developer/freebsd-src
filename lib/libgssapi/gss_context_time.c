@@ -28,15 +28,14 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 
 OM_uint32
-gss_context_time(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
+gss_context_time(OM_uint32 *minor_status, const gss_ctx_id_t context_handle,
     OM_uint32 *time_rec)
 {
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m = ctx->gc_mech;
 
 	return (m->gm_context_time(minor_status, ctx->gc_ctx, time_rec));

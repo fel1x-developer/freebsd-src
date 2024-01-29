@@ -30,25 +30,25 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/reboot.h>
 #include <sys/devmap.h>
+#include <sys/reboot.h>
 #include <sys/smp.h>
 
 #include <vm/vm.h>
 
-#include <machine/cpu.h>
 #include <machine/bus.h>
+#include <machine/cpu.h>
 #include <machine/intr.h>
 #include <machine/machdep.h>
 #include <machine/platformvar.h>
 #include <machine/smp.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
 
-#include <arm/qualcomm/qcom_cpu_kpssv2_reg.h>
 #include <arm/qualcomm/qcom_cpu_kpssv2.h>
+#include <arm/qualcomm/qcom_cpu_kpssv2_reg.h>
 
 #include "platform_if.h"
 
@@ -96,19 +96,19 @@ qcom_cpu_kpssv2_regulator_start(u_int id, phandle_t node)
 	 * The next-level-cache actually is a phandle through to a qcom,saw
 	 * entry.
 	 */
-	sret = OF_getencprop(node, "qcom,acc", (void *) &acc_phandle,
+	sret = OF_getencprop(node, "qcom,acc", (void *)&acc_phandle,
 	    sizeof(acc_phandle));
 	if (sret != sizeof(acc_phandle))
 		panic("***couldn't get phandle for qcom,acc");
 	acc_phandle = OF_node_from_xref(acc_phandle);
 
-	sret = OF_getencprop(node, "next-level-cache", (void *) &l2_phandle,
+	sret = OF_getencprop(node, "next-level-cache", (void *)&l2_phandle,
 	    sizeof(l2_phandle));
 	if (sret != sizeof(l2_phandle))
 		panic("***couldn't get phandle for next-level-cache");
 	l2_phandle = OF_node_from_xref(l2_phandle);
 
-	sret = OF_getencprop(l2_phandle, "qcom,saw", (void *) &saw_phandle,
+	sret = OF_getencprop(l2_phandle, "qcom,saw", (void *)&saw_phandle,
 	    sizeof(saw_phandle));
 	if (sret != sizeof(saw_phandle))
 		panic("***couldn't get phandle for qcom,saw");
@@ -124,7 +124,8 @@ qcom_cpu_kpssv2_regulator_start(u_int id, phandle_t node)
 	ret = OF_decode_addr(saw_phandle, 0, &saw_tag, &saw_handle, &saw_sz);
 	if (ret != 0)
 		panic("*** couldn't map next-level-cache -> "
-		    "qcom,saw space (%d)", ret);
+		      "qcom,saw space (%d)",
+		    ret);
 
 	/*
 	 * Power sequencing to ensure the cores are off, then power them on
@@ -135,9 +136,9 @@ qcom_cpu_kpssv2_regulator_start(u_int id, phandle_t node)
 	 * BHS: off
 	 * LDO: bypassed, powered off
 	 */
-	reg_val = (64 << QCOM_APC_PWR_GATE_CTL_BHS_CNT_SHIFT)
-	    | (0x3f << QCOM_APC_PWR_GATE_CTL_LDO_PWR_DWN_SHIFT)
-	    | QCOM_APC_PWR_GATE_CTL_BHS_EN;
+	reg_val = (64 << QCOM_APC_PWR_GATE_CTL_BHS_CNT_SHIFT) |
+	    (0x3f << QCOM_APC_PWR_GATE_CTL_LDO_PWR_DWN_SHIFT) |
+	    QCOM_APC_PWR_GATE_CTL_BHS_EN;
 	bus_space_write_4(acc_tag, acc_handle, QCOM_APC_PWR_GATE_CTL, reg_val);
 	mb();
 	/* Settle time */
@@ -169,8 +170,8 @@ qcom_cpu_kpssv2_regulator_start(u_int id, phandle_t node)
 	/*
 	 * Put the core in reset.
 	 */
-	reg_val = QCOM_APCS_CPU_PWR_CTL_COREPOR_RST
-	    | QCOM_APCS_CPU_PWR_CTL_CLAMP;
+	reg_val = QCOM_APCS_CPU_PWR_CTL_COREPOR_RST |
+	    QCOM_APCS_CPU_PWR_CTL_CLAMP;
 	bus_space_write_4(acc_tag, acc_handle, QCOM_APCS_CPU_PWR_CTL, reg_val);
 	mb();
 	loop_delay(2);

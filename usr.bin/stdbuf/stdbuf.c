@@ -31,8 +31,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define	LIBSTDBUF	"/usr/lib/libstdbuf.so"
-#define	LIBSTDBUF32	"/usr/lib32/libstdbuf.so"
+#define LIBSTDBUF "/usr/lib/libstdbuf.so"
+#define LIBSTDBUF32 "/usr/lib32/libstdbuf.so"
 
 static int
 appendenv(const char *key, const char *value)
@@ -91,14 +91,14 @@ main(int argc, char *argv[])
 		exit(0);
 
 	if (ibuf != NULL && setenv("_STDBUF_I", ibuf, 1) == -1)
-		warn("Failed to set environment variable: %s=%s",
-		    "_STDBUF_I", ibuf);
+		warn("Failed to set environment variable: %s=%s", "_STDBUF_I",
+		    ibuf);
 	if (obuf != NULL && setenv("_STDBUF_O", obuf, 1) == -1)
-		warn("Failed to set environment variable: %s=%s",
-		    "_STDBUF_O", obuf);
+		warn("Failed to set environment variable: %s=%s", "_STDBUF_O",
+		    obuf);
 	if (ebuf != NULL && setenv("_STDBUF_E", ebuf, 1) == -1)
-		warn("Failed to set environment variable: %s=%s",
-		    "_STDBUF_E", ebuf);
+		warn("Failed to set environment variable: %s=%s", "_STDBUF_E",
+		    ebuf);
 
 	appendenv("LD_PRELOAD", LIBSTDBUF);
 	appendenv("LD_32_PRELOAD", LIBSTDBUF32);

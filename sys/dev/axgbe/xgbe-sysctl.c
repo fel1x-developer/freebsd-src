@@ -30,15 +30,15 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/sbuf.h>
+#include <sys/sysctl.h>
 
-#include "xgbe.h"
 #include "xgbe-common.h"
+#include "xgbe.h"
 
 #define SYSCTL_BUF_LEN 64
 
-typedef enum{
+typedef enum {
 	/* Coalesce flag */
 	rx_coalesce_usecs = 1,
 	rx_max_coalesced_frames,
@@ -170,18 +170,18 @@ struct xgbe_stats {
 	int stat_offset;
 };
 
-#define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+#define FIELD_SIZEOF(t, f) (sizeof(((t *)0)->f))
 
-#define XGMAC_MMC_STAT(_string, _var)			   \
-	{ _string,					      \
-	  FIELD_SIZEOF(struct xgbe_mmc_stats, _var),	    \
-	  offsetof(struct xgbe_prv_data, mmc_stats._var),       \
+#define XGMAC_MMC_STAT(_string, _var)                               \
+	{                                                           \
+		_string, FIELD_SIZEOF(struct xgbe_mmc_stats, _var), \
+		    offsetof(struct xgbe_prv_data, mmc_stats._var), \
 	}
 
-#define XGMAC_EXT_STAT(_string, _var)			   \
-	{ _string,					      \
-	  FIELD_SIZEOF(struct xgbe_ext_stats, _var),	    \
-	  offsetof(struct xgbe_prv_data, ext_stats._var),       \
+#define XGMAC_EXT_STAT(_string, _var)                               \
+	{                                                           \
+		_string, FIELD_SIZEOF(struct xgbe_ext_stats, _var), \
+		    offsetof(struct xgbe_prv_data, ext_stats._var), \
 	}
 static const struct xgbe_stats xgbe_gstring_stats[] = {
 	XGMAC_MMC_STAT("tx_bytes", txoctetcount_gb),
@@ -230,9 +230,9 @@ static const struct xgbe_stats xgbe_gstring_stats[] = {
 	XGMAC_EXT_STAT("rx_buffer_unavailable", rx_buffer_unavailable),
 };
 
-#define XGBE_STATS_COUNT	ARRAY_SIZE(xgbe_gstring_stats)
+#define XGBE_STATS_COUNT ARRAY_SIZE(xgbe_gstring_stats)
 
-char** alloc_sysctl_buffer(void);
+char **alloc_sysctl_buffer(void);
 void get_val(char *buf, char **op, char **val, int *n_op);
 void fill_data(struct sysctl_op *sys_op, int flag, unsigned int value);
 
@@ -241,7 +241,7 @@ exit_bad_op(void)
 {
 
 	printf("SYSCTL: bad command line option (s)\n");
-	return(-EINVAL);
+	return (-EINVAL);
 }
 
 static inline unsigned
@@ -253,8 +253,8 @@ fls_long(unsigned long l)
 	return (fls64(l));
 }
 
-static inline __attribute__((const))
-unsigned long __rounddown_pow_of_two(unsigned long n)
+static inline __attribute__((const)) unsigned long
+__rounddown_pow_of_two(unsigned long n)
 {
 
 	return (1UL << (fls_long(n) - 1));
@@ -265,8 +265,7 @@ get_ubuf(struct sysctl_req *req, char *ubuf)
 {
 	int rc;
 
-	printf("%s: len:0x%li idx:0x%li\n", __func__, req->newlen,
-	    req->newidx);
+	printf("%s: len:0x%li idx:0x%li\n", __func__, req->newlen, req->newidx);
 	if (req->newlen >= SYSCTL_BUF_LEN)
 		return (-EINVAL);
 
@@ -278,15 +277,16 @@ get_ubuf(struct sysctl_req *req, char *ubuf)
 	return (0);
 }
 
-char**
+char **
 alloc_sysctl_buffer(void)
 {
 	char **buffer;
 	int i;
 
-	buffer = malloc(sizeof(char *)*32, M_AXGBE, M_WAITOK | M_ZERO);
-	for(i = 0; i < 32; i++)
-		buffer[i] = malloc(sizeof(char)*32, M_AXGBE, M_WAITOK | M_ZERO);
+	buffer = malloc(sizeof(char *) * 32, M_AXGBE, M_WAITOK | M_ZERO);
+	for (i = 0; i < 32; i++)
+		buffer[i] = malloc(sizeof(char) * 32, M_AXGBE,
+		    M_WAITOK | M_ZERO);
 
 	return (buffer);
 }
@@ -307,7 +307,7 @@ get_val(char *buf, char **op, char **val, int *n_op)
 				break;
 			op[*n_op][j] = buf[i++];
 		}
-		op[*n_op][j+1] = '\0';
+		op[*n_op][j + 1] = '\0';
 		if (i >= strlen(buf))
 			goto out;
 
@@ -316,9 +316,9 @@ get_val(char *buf, char **op, char **val, int *n_op)
 		for (j = 0; buf[i] != ' '; j++) {
 			if (i >= blen)
 				break;
-			val[*n_op][j] = buf[i++]; 
+			val[*n_op][j] = buf[i++];
 		}
-		val[*n_op][j+1] = '\0';
+		val[*n_op][j + 1] = '\0';
 		if (i >= strlen(buf))
 			goto out;
 
@@ -333,100 +333,100 @@ void
 fill_data(struct sysctl_op *sys_op, int flag, unsigned int value)
 {
 
-	switch(flag) {
+	switch (flag) {
 	case 1:
-	sys_op->rx_coalesce_usecs = value;
-	break;
+		sys_op->rx_coalesce_usecs = value;
+		break;
 	case 2:
-	sys_op->rx_max_coalesced_frames = value;
-	break;
+		sys_op->rx_max_coalesced_frames = value;
+		break;
 	case 3:
-	sys_op->rx_coalesce_usecs_irq = value;
-	break;
+		sys_op->rx_coalesce_usecs_irq = value;
+		break;
 	case 4:
-	sys_op->rx_max_coalesced_frames_irq = value;
-	break;
+		sys_op->rx_max_coalesced_frames_irq = value;
+		break;
 	case 5:
-	sys_op->tx_coalesce_usecs = value;
-	break;
+		sys_op->tx_coalesce_usecs = value;
+		break;
 	case 6:
-	sys_op->tx_max_coalesced_frames = value;
-	break;
+		sys_op->tx_max_coalesced_frames = value;
+		break;
 	case 7:
-	sys_op->tx_coalesce_usecs_irq = value;
-	break;
+		sys_op->tx_coalesce_usecs_irq = value;
+		break;
 	case 8:
-	sys_op->tx_max_coalesced_frames_irq = value;
-	break;
+		sys_op->tx_max_coalesced_frames_irq = value;
+		break;
 	case 9:
-	sys_op->stats_block_coalesce_usecs = value;
-	break;
+		sys_op->stats_block_coalesce_usecs = value;
+		break;
 	case 10:
-	sys_op->use_adaptive_rx_coalesce = value;
-	break;
+		sys_op->use_adaptive_rx_coalesce = value;
+		break;
 	case 11:
-	sys_op->use_adaptive_tx_coalesce = value;
-	break;
+		sys_op->use_adaptive_tx_coalesce = value;
+		break;
 	case 12:
-	sys_op->pkt_rate_low = value;
-	break;
+		sys_op->pkt_rate_low = value;
+		break;
 	case 13:
-	sys_op->rx_coalesce_usecs_low = value;
-	break;
+		sys_op->rx_coalesce_usecs_low = value;
+		break;
 	case 14:
-	sys_op->rx_max_coalesced_frames_low = value;
-	break;
+		sys_op->rx_max_coalesced_frames_low = value;
+		break;
 	case 15:
-	sys_op->tx_coalesce_usecs_low = value;
-	break;
+		sys_op->tx_coalesce_usecs_low = value;
+		break;
 	case 16:
-	sys_op->tx_max_coalesced_frames_low = value;
-	break;
+		sys_op->tx_max_coalesced_frames_low = value;
+		break;
 	case 17:
-	sys_op->pkt_rate_high = value;
-	break;
+		sys_op->pkt_rate_high = value;
+		break;
 	case 18:
-	sys_op->rx_coalesce_usecs_high = value;
-	break;
+		sys_op->rx_coalesce_usecs_high = value;
+		break;
 	case 19:
-	sys_op->rx_max_coalesced_frames_high = value;
-	break;
+		sys_op->rx_max_coalesced_frames_high = value;
+		break;
 	case 20:
-	sys_op->tx_coalesce_usecs_high = value;
-	break;
+		sys_op->tx_coalesce_usecs_high = value;
+		break;
 	case 21:
-	sys_op->tx_max_coalesced_frames_high = value;
-	break;
+		sys_op->tx_max_coalesced_frames_high = value;
+		break;
 	case 22:
-	sys_op->rate_sample_interval = value;
-	break;
+		sys_op->rate_sample_interval = value;
+		break;
 	case 23:
-	sys_op->autoneg = value;
-	break;
+		sys_op->autoneg = value;
+		break;
 	case 24:
-	sys_op->rx_pause = value;
-	break;
+		sys_op->rx_pause = value;
+		break;
 	case 25:
-	sys_op->tx_pause = value;
-	break;
+		sys_op->tx_pause = value;
+		break;
 	case 26:
-	sys_op->speed = value;
-	break;
+		sys_op->speed = value;
+		break;
 	case 27:
-	sys_op->duplex = value;
-	break;
+		sys_op->duplex = value;
+		break;
 	case 28:
-	sys_op->rx_pending = value;
-	break;
+		sys_op->rx_pending = value;
+		break;
 	case 29:
-	sys_op->rx_mini_pending = value;
-	break;
+		sys_op->rx_mini_pending = value;
+		break;
 	case 30:
-	sys_op->rx_jumbo_pending = value;
-	break;
+		sys_op->rx_jumbo_pending = value;
+		break;
 	case 31:
-	sys_op->tx_pending = value;
-	break;
+		sys_op->tx_pending = value;
+		break;
 	default:
 		printf("Option error\n");
 	}
@@ -451,12 +451,14 @@ parse_generic_sysctl(struct xgbe_prv_data *pdata, char *buf,
 		for (idx = 0; idx < n_info; idx++) {
 			if (strcmp(info[idx].name, op[i]) == 0) {
 				if (strcmp(info[idx].support,
-				    "not-supported") == 0){
-					axgbe_printf(1, "ignoring not-supported "
-					    "option \"%s\"\n", info[idx].name);
+					"not-supported") == 0) {
+					axgbe_printf(1,
+					    "ignoring not-supported "
+					    "option \"%s\"\n",
+					    info[idx].name);
 					break;
 				}
-				switch(info[idx].type) {
+				switch (info[idx].type) {
 				case SYSL_BOOL: {
 					if (!strcmp(val[i], "on"))
 						fill_data(sys_op,
@@ -470,15 +472,18 @@ parse_generic_sysctl(struct xgbe_prv_data *pdata, char *buf,
 				}
 				case SYSL_S32:
 					sscanf(val[i], "%u", &value);
-					fill_data(sys_op, info[idx].flag, value);
+					fill_data(sys_op, info[idx].flag,
+					    value);
 					break;
 				case SYSL_U8:
 					if (!strcmp(val[i], "half"))
 						fill_data(sys_op,
-						    info[idx].flag, DUPLEX_HALF);
+						    info[idx].flag,
+						    DUPLEX_HALF);
 					else if (!strcmp(val[i], "full"))
 						fill_data(sys_op,
-						    info[idx].flag, DUPLEX_FULL);
+						    info[idx].flag,
+						    DUPLEX_FULL);
 					else
 						exit_bad_op();
 				default:
@@ -488,16 +493,15 @@ parse_generic_sysctl(struct xgbe_prv_data *pdata, char *buf,
 		}
 	}
 
-	for(i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++)
 		free(op[i], M_AXGBE);
 	free(op, M_AXGBE);
 
-	for(i = 0; i < 32; i++)
+	for (i = 0; i < 32; i++)
 		free(val[i], M_AXGBE);
 	free(val, M_AXGBE);
 	return (rc);
 }
-
 
 static int
 sysctl_xgmac_reg_addr_handler(SYSCTL_HANDLER_ARGS)
@@ -516,7 +520,7 @@ sysctl_xgmac_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: sysctl_xgmac_reg: 0x%x\n",  __func__,
+		axgbe_printf(2, "READ: %s: sysctl_xgmac_reg: 0x%x\n", __func__,
 		    pdata->sysctl_xgmac_reg);
 		sbuf_printf(sb, "\nXGMAC reg_addr:	0x%x\n",
 		    pdata->sysctl_xgmac_reg);
@@ -528,11 +532,11 @@ sysctl_xgmac_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &reg);
-		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n",  __func__, reg);
+		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n", __func__, reg);
 		pdata->sysctl_xgmac_reg = reg;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -558,8 +562,8 @@ sysctl_get_drv_info_handler(SYSCTL_HANDLER_ARGS)
 		    XGMAC_GET_BITS(hw_feat->version, MAC_VR, USERVER),
 		    XGMAC_GET_BITS(hw_feat->version, MAC_VR, DEVID),
 		    XGMAC_GET_BITS(hw_feat->version, MAC_VR, SNPSVER));
-		sbuf_printf(sb, "\nbus-info: %04d:%02d:%02d",
-		    pdata->pcie_bus, pdata->pcie_device, pdata->pcie_func);
+		sbuf_printf(sb, "\nbus-info: %04d:%02d:%02d", pdata->pcie_bus,
+		    pdata->pcie_device, pdata->pcie_func);
 
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -583,8 +587,9 @@ sysctl_get_link_info_handler(SYSCTL_HANDLER_ARGS)
 			rc = ENOMEM;
 			return (rc);
 		}
-		
-		sbuf_printf(sb, "\nLink is %s", pdata->phy.link ? "Up" : "Down");
+
+		sbuf_printf(sb, "\nLink is %s",
+		    pdata->phy.link ? "Up" : "Down");
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
 		return (0);
@@ -593,31 +598,52 @@ sysctl_get_link_info_handler(SYSCTL_HANDLER_ARGS)
 	return (-EINVAL);
 }
 
-#define COALESCE_SYSCTL_INFO(__coalop)							\
-{											\
-	{ "adaptive-rx", SYSL_BOOL, use_adaptive_rx_coalesce, "not-supported" },	\
-	{ "adaptive-tx", SYSL_BOOL, use_adaptive_tx_coalesce, "not-supported" },	\
-	{ "sample-interval", SYSL_S32, rate_sample_interval, "not-supported" },		\
-	{ "stats-block-usecs", SYSL_S32, stats_block_coalesce_usecs, "not-supported" },	\
-	{ "pkt-rate-low", SYSL_S32, pkt_rate_low, "not-supported" },	  		\
-	{ "pkt-rate-high", SYSL_S32, pkt_rate_high, "not-supported" },	  		\
-	{ "rx-usecs", SYSL_S32, rx_coalesce_usecs, "supported" },	  		\
-	{ "rx-frames", SYSL_S32, rx_max_coalesced_frames, "supported" },	  	\
-	{ "rx-usecs-irq", SYSL_S32, rx_coalesce_usecs_irq, "not-supported" },	  	\
-	{ "rx-frames-irq", SYSL_S32, rx_max_coalesced_frames_irq, "not-supported" },	\
-	{ "tx-usecs", SYSL_S32, tx_coalesce_usecs, "not-supported" },	  		\
-	{ "tx-frames", SYSL_S32, tx_max_coalesced_frames, "supported" },	  	\
-	{ "tx-usecs-irq", SYSL_S32, tx_coalesce_usecs_irq, "not-supported" },	  	\
-	{ "tx-frames-irq", SYSL_S32, tx_max_coalesced_frames_irq, "not-supported" },	\
-	{ "rx-usecs-low", SYSL_S32, rx_coalesce_usecs_low, "not-supported" },	  	\
-	{ "rx-frames-low", SYSL_S32, rx_max_coalesced_frames_low, "not-supported"},	\
-	{ "tx-usecs-low", SYSL_S32, tx_coalesce_usecs_low, "not-supported" },	  	\
-	{ "tx-frames-low", SYSL_S32, tx_max_coalesced_frames_low, "not-supported" },	\
-	{ "rx-usecs-high", SYSL_S32, rx_coalesce_usecs_high, "not-supported" },	  	\
-	{ "rx-frames-high", SYSL_S32, rx_max_coalesced_frames_high, "not-supported" },	\
-	{ "tx-usecs-high", SYSL_S32, tx_coalesce_usecs_high, "not-supported" },	  	\
-	{ "tx-frames-high", SYSL_S32, tx_max_coalesced_frames_high, "not-supported" },	\
-}
+#define COALESCE_SYSCTL_INFO(__coalop)                                        \
+	{                                                                     \
+		{ "adaptive-rx", SYSL_BOOL, use_adaptive_rx_coalesce,         \
+			"not-supported" },                                    \
+		    { "adaptive-tx", SYSL_BOOL, use_adaptive_tx_coalesce,     \
+			    "not-supported" },                                \
+		    { "sample-interval", SYSL_S32, rate_sample_interval,      \
+			    "not-supported" },                                \
+		    { "stats-block-usecs", SYSL_S32,                          \
+			    stats_block_coalesce_usecs, "not-supported" },    \
+		    { "pkt-rate-low", SYSL_S32, pkt_rate_low,                 \
+			    "not-supported" },                                \
+		    { "pkt-rate-high", SYSL_S32, pkt_rate_high,               \
+			    "not-supported" },                                \
+		    { "rx-usecs", SYSL_S32, rx_coalesce_usecs, "supported" }, \
+		    { "rx-frames", SYSL_S32, rx_max_coalesced_frames,         \
+			    "supported" },                                    \
+		    { "rx-usecs-irq", SYSL_S32, rx_coalesce_usecs_irq,        \
+			    "not-supported" },                                \
+		    { "rx-frames-irq", SYSL_S32, rx_max_coalesced_frames_irq, \
+			    "not-supported" },                                \
+		    { "tx-usecs", SYSL_S32, tx_coalesce_usecs,                \
+			    "not-supported" },                                \
+		    { "tx-frames", SYSL_S32, tx_max_coalesced_frames,         \
+			    "supported" },                                    \
+		    { "tx-usecs-irq", SYSL_S32, tx_coalesce_usecs_irq,        \
+			    "not-supported" },                                \
+		    { "tx-frames-irq", SYSL_S32, tx_max_coalesced_frames_irq, \
+			    "not-supported" },                                \
+		    { "rx-usecs-low", SYSL_S32, rx_coalesce_usecs_low,        \
+			    "not-supported" },                                \
+		    { "rx-frames-low", SYSL_S32, rx_max_coalesced_frames_low, \
+			    "not-supported" },                                \
+		    { "tx-usecs-low", SYSL_S32, tx_coalesce_usecs_low,        \
+			    "not-supported" },                                \
+		    { "tx-frames-low", SYSL_S32, tx_max_coalesced_frames_low, \
+			    "not-supported" },                                \
+		    { "rx-usecs-high", SYSL_S32, rx_coalesce_usecs_high,      \
+			    "not-supported" },                                \
+		    { "rx-frames-high", SYSL_S32,                             \
+			    rx_max_coalesced_frames_high, "not-supported" },  \
+		    { "tx-usecs-high", SYSL_S32, tx_coalesce_usecs_high,      \
+			    "not-supported" },                                \
+		    { "tx-frames-high", SYSL_S32,                             \
+			    tx_max_coalesced_frames_high, "not-supported" },  \
+	}
 
 static int
 sysctl_coalesce_handler(SYSCTL_HANDLER_ARGS)
@@ -647,7 +673,8 @@ sysctl_coalesce_handler(SYSCTL_HANDLER_ARGS)
 		    sys_op->use_adaptive_rx_coalesce ? "on" : "off",
 		    sys_op->use_adaptive_tx_coalesce ? "on" : "off");
 
-		sbuf_printf(sb, "stats-block-usecs: %u\n"
+		sbuf_printf(sb,
+		    "stats-block-usecs: %u\n"
 		    "sample-interval: %u\n"
 		    "pkt-rate-low: %u\n"
 		    "pkt-rate-high: %u\n"
@@ -672,17 +699,14 @@ sysctl_coalesce_handler(SYSCTL_HANDLER_ARGS)
 		    "tx-usecs-high: %u\n"
 		    "tx-frames-high: %u\n",
 		    sys_op->stats_block_coalesce_usecs,
-		    sys_op->rate_sample_interval,
-		    sys_op->pkt_rate_low,
+		    sys_op->rate_sample_interval, sys_op->pkt_rate_low,
 		    sys_op->pkt_rate_high,
 
-		    sys_op->rx_coalesce_usecs,
-		    sys_op->rx_max_coalesced_frames,
+		    sys_op->rx_coalesce_usecs, sys_op->rx_max_coalesced_frames,
 		    sys_op->rx_coalesce_usecs_irq,
 		    sys_op->rx_max_coalesced_frames_irq,
 
-		    sys_op->tx_coalesce_usecs,
-		    sys_op->tx_max_coalesced_frames,
+		    sys_op->tx_coalesce_usecs, sys_op->tx_max_coalesced_frames,
 		    sys_op->tx_coalesce_usecs_irq,
 		    sys_op->tx_max_coalesced_frames_irq,
 
@@ -704,7 +728,7 @@ sysctl_coalesce_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		parse_generic_sysctl(pdata, buf, sysctl_coalesce,
-		    ARRAY_SIZE(sysctl_coalesce)); 
+		    ARRAY_SIZE(sysctl_coalesce));
 
 		rx_riwt = hw_if->usec_to_riwt(pdata, sys_op->rx_coalesce_usecs);
 		rx_usecs = sys_op->rx_coalesce_usecs;
@@ -744,7 +768,7 @@ sysctl_coalesce_handler(SYSCTL_HANDLER_ARGS)
 		hw_if->config_tx_coalesce(pdata);
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 
 	return (rc);
 }
@@ -795,13 +819,12 @@ sysctl_pauseparam_handler(SYSCTL_HANDLER_ARGS)
 					an_rx = 1;
 				else if (pdata->phy.lp_advertising &
 				    ADVERTISED_Pause)
-				an_tx = 1;
+					an_tx = 1;
 			}
 			sbuf_printf(sb,
 			    "\n->\nRX negotiated:	%s\n"
 			    "TX negotiated:	%s\n",
-			    an_rx ? "on" : "off",
-			    an_tx ? "on" : "off");
+			    an_rx ? "on" : "off", an_tx ? "on" : "off");
 		}
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -814,7 +837,8 @@ sysctl_pauseparam_handler(SYSCTL_HANDLER_ARGS)
 		    ARRAY_SIZE(sysctl_pauseparam));
 
 		if (sys_op->autoneg && (pdata->phy.autoneg != AUTONEG_ENABLE)) {
-			axgbe_error("autoneg disabled, pause autoneg not available\n");
+			axgbe_error(
+			    "autoneg disabled, pause autoneg not available\n");
 			return (-EINVAL);
 		}
 
@@ -840,7 +864,6 @@ sysctl_pauseparam_handler(SYSCTL_HANDLER_ARGS)
 
 		if (test_bit(XGBE_LINK_INIT, &pdata->dev_state))
 			rc = pdata->phy_if.phy_config_aneg(pdata);
-
 	}
 
 	return (rc);
@@ -873,8 +896,10 @@ sysctl_link_ksettings_handler(SYSCTL_HANDLER_ARGS)
 		sys_op->duplex = pdata->phy.duplex;
 
 		XGBE_LM_COPY(&pdata->phy, supported, &pdata->phy, supported);
-		XGBE_LM_COPY(&pdata->phy, advertising, &pdata->phy, advertising);
-		XGBE_LM_COPY(&pdata->phy, lp_advertising, &pdata->phy, lp_advertising);
+		XGBE_LM_COPY(&pdata->phy, advertising, &pdata->phy,
+		    advertising);
+		XGBE_LM_COPY(&pdata->phy, lp_advertising, &pdata->phy,
+		    lp_advertising);
 
 		switch (sys_op->speed) {
 		case 1:
@@ -885,15 +910,15 @@ sysctl_link_ksettings_handler(SYSCTL_HANDLER_ARGS)
 			strcpy(link_modes, "10Gbps/Full");
 			strcpy(speed_modes, "10000");
 			break;
-		case 3: 
+		case 3:
 			strcpy(link_modes, "2.5Gbps/Full");
 			strcpy(speed_modes, "2500");
 			break;
-		case 4: 
+		case 4:
 			strcpy(link_modes, "1Gbps/Full");
 			strcpy(speed_modes, "1000");
 			break;
-		case 5: 
+		case 5:
 			strcpy(link_modes, "100Mbps/Full");
 			strcpy(speed_modes, "100");
 			break;
@@ -902,7 +927,7 @@ sysctl_link_ksettings_handler(SYSCTL_HANDLER_ARGS)
 			strcpy(speed_modes, "10");
 			break;
 		}
-			
+
 		sbuf_printf(sb,
 		    "\nlink_modes: %s\n"
 		    "autonegotiation: %s\n"
@@ -912,15 +937,15 @@ sysctl_link_ksettings_handler(SYSCTL_HANDLER_ARGS)
 		    speed_modes);
 
 		switch (sys_op->duplex) {
-			case DUPLEX_HALF:
-				sbuf_printf(sb, "Duplex: Half\n");
-				break;
-			case DUPLEX_FULL:
-				sbuf_printf(sb, "Duplex: Full\n");
-				break;
-			default:
-				sbuf_printf(sb, "Duplex: Unknown\n");
-				break;
+		case DUPLEX_HALF:
+			sbuf_printf(sb, "Duplex: Half\n");
+			break;
+		case DUPLEX_FULL:
+			sbuf_printf(sb, "Duplex: Full\n");
+			break;
+		default:
+			sbuf_printf(sb, "Duplex: Unknown\n");
+			break;
 		}
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1004,10 +1029,8 @@ sysctl_ringparam_handler(SYSCTL_HANDLER_ARGS)
 		    "RX Mini:	%u\n"
 		    "RX Jumbo:	%u\n"
 		    "TX:		%u\n",
-		    sys_op->rx_max_pending,
-		    sys_op->rx_mini_max_pending,
-		    sys_op->rx_jumbo_max_pending,
-		    sys_op->tx_max_pending);
+		    sys_op->rx_max_pending, sys_op->rx_mini_max_pending,
+		    sys_op->rx_jumbo_max_pending, sys_op->tx_max_pending);
 
 		sbuf_printf(sb,
 		    "\nCurrent hardware settings:\n"
@@ -1015,10 +1038,8 @@ sysctl_ringparam_handler(SYSCTL_HANDLER_ARGS)
 		    "RX Mini:	%u\n"
 		    "RX Jumbo:	%u\n"
 		    "TX:		%u\n",
-		    sys_op->rx_pending,
-		    sys_op->rx_mini_pending,
-		    sys_op->rx_jumbo_pending,
-		    sys_op->tx_pending);
+		    sys_op->rx_pending, sys_op->rx_mini_pending,
+		    sys_op->rx_jumbo_pending, sys_op->tx_pending);
 
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1036,14 +1057,14 @@ sysctl_ringparam_handler(SYSCTL_HANDLER_ARGS)
 		}
 
 		if ((sys_op->rx_pending < XGBE_RX_DESC_CNT_MIN) ||
-				(sys_op->rx_pending > XGBE_RX_DESC_CNT_MAX)) {
+		    (sys_op->rx_pending > XGBE_RX_DESC_CNT_MAX)) {
 			axgbe_error("rx ring param must be between %u and %u\n",
 			    XGBE_RX_DESC_CNT_MIN, XGBE_RX_DESC_CNT_MAX);
 			return (-EINVAL);
 		}
 
 		if ((sys_op->tx_pending < XGBE_TX_DESC_CNT_MIN) ||
-				(sys_op->tx_pending > XGBE_TX_DESC_CNT_MAX)) {
+		    (sys_op->tx_pending > XGBE_TX_DESC_CNT_MAX)) {
 			axgbe_error("tx ring param must be between %u and %u\n",
 			    XGBE_TX_DESC_CNT_MIN, XGBE_TX_DESC_CNT_MAX);
 			return (-EINVAL);
@@ -1051,13 +1072,13 @@ sysctl_ringparam_handler(SYSCTL_HANDLER_ARGS)
 
 		rx = __rounddown_pow_of_two(sys_op->rx_pending);
 		if (rx != sys_op->rx_pending)
-			axgbe_printf(1,	"rx ring param rounded to power of 2: %u\n",
-			    rx);
+			axgbe_printf(1,
+			    "rx ring param rounded to power of 2: %u\n", rx);
 
 		tx = __rounddown_pow_of_two(sys_op->tx_pending);
 		if (tx != sys_op->tx_pending)
-			axgbe_printf(1, "tx ring param rounded to power of 2: %u\n",
-			    tx);
+			axgbe_printf(1,
+			    "tx ring param rounded to power of 2: %u\n", tx);
 
 		if ((rx == pdata->rx_desc_count) &&
 		    (tx == pdata->tx_desc_count))
@@ -1126,8 +1147,7 @@ sysctl_channels_handler(SYSCTL_HANDLER_ARGS)
 		    "TX:		%u\n"
 		    "Other:		%u\n"
 		    "Combined:	%u\n",
-		    sys_op->max_rx, sys_op->max_tx,
-		    sys_op->max_other,
+		    sys_op->max_rx, sys_op->max_tx, sys_op->max_other,
 		    sys_op->max_combined);
 
 		sbuf_printf(sb,
@@ -1136,8 +1156,7 @@ sysctl_channels_handler(SYSCTL_HANDLER_ARGS)
 		    "TX:		%u\n"
 		    "Other:		%u\n"
 		    "Combined:	%u\n",
-		    sys_op->rx_count, sys_op->tx_count,
-		    sys_op->other_count,
+		    sys_op->rx_count, sys_op->tx_count, sys_op->other_count,
 		    sys_op->combined_count);
 
 		rc = sbuf_finish(sb);
@@ -1150,14 +1169,13 @@ sysctl_channels_handler(SYSCTL_HANDLER_ARGS)
 		parse_generic_sysctl(pdata, buf, sysctl_channels,
 		    ARRAY_SIZE(sysctl_channels));
 
-		axgbe_error( "channel inputs: combined=%u, rx-only=%u,"
-		    " tx-only=%u\n", sys_op->combined_count,
-		    sys_op->rx_count, sys_op->tx_count);
+		axgbe_error("channel inputs: combined=%u, rx-only=%u,"
+			    " tx-only=%u\n",
+		    sys_op->combined_count, sys_op->rx_count, sys_op->tx_count);
 	}
 
 	return (rc);
 }
-
 
 static int
 sysctl_mac_stats_handler(SYSCTL_HANDLER_ARGS)
@@ -1177,23 +1195,24 @@ sysctl_mac_stats_handler(SYSCTL_HANDLER_ARGS)
 
 		pdata->hw_if.read_mmc_stats(pdata);
 		for (i = 0; i < XGBE_STATS_COUNT; i++) {
-		sbuf_printf(sb, "\n %s: %lu",
-		    xgbe_gstring_stats[i].stat_string,
-		    *(uint64_t *)((uint8_t *)pdata + xgbe_gstring_stats[i].stat_offset));
+			sbuf_printf(sb, "\n %s: %lu",
+			    xgbe_gstring_stats[i].stat_string,
+			    *(uint64_t *)((uint8_t *)pdata +
+				xgbe_gstring_stats[i].stat_offset));
 		}
 		for (i = 0; i < pdata->tx_ring_count; i++) {
 			sbuf_printf(sb,
 			    "\n txq_packets[%d]: %lu"
 			    "\n txq_bytes[%d]: %lu",
-			    i, pdata->ext_stats.txq_packets[i],
-			    i, pdata->ext_stats.txq_bytes[i]);
+			    i, pdata->ext_stats.txq_packets[i], i,
+			    pdata->ext_stats.txq_bytes[i]);
 		}
 		for (i = 0; i < pdata->rx_ring_count; i++) {
 			sbuf_printf(sb,
 			    "\n rxq_packets[%d]: %lu"
 			    "\n rxq_bytes[%d]: %lu",
-			    i, pdata->ext_stats.rxq_packets[i],
-			    i, pdata->ext_stats.rxq_bytes[i]);
+			    i, pdata->ext_stats.rxq_packets[i], i,
+			    pdata->ext_stats.rxq_bytes[i]);
 		}
 
 		rc = sbuf_finish(sb);
@@ -1222,7 +1241,7 @@ sysctl_xgmac_reg_value_handler(SYSCTL_HANDLER_ARGS)
 		}
 
 		value = XGMAC_IOREAD(pdata, pdata->sysctl_xgmac_reg);
-		axgbe_printf(2, "READ: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "READ: %s: value: 0x%x\n", __func__, value);
 		sbuf_printf(sb, "\nXGMAC reg_value:	0x%x\n", value);
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1232,11 +1251,11 @@ sysctl_xgmac_reg_value_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &value);
-		axgbe_printf(2, "WRITE: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "WRITE: %s: value: 0x%x\n", __func__, value);
 		XGMAC_IOWRITE(pdata, pdata->sysctl_xgmac_reg, value);
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1257,7 +1276,7 @@ sysctl_xpcs_mmd_reg_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: xpcs_mmd: 0x%x\n",  __func__,
+		axgbe_printf(2, "READ: %s: xpcs_mmd: 0x%x\n", __func__,
 		    pdata->sysctl_xpcs_mmd);
 		sbuf_printf(sb, "\nXPCS mmd_reg:	0x%x\n",
 		    pdata->sysctl_xpcs_mmd);
@@ -1269,11 +1288,11 @@ sysctl_xpcs_mmd_reg_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &reg);
-		axgbe_printf(2, "WRITE: %s: mmd_reg: 0x%x\n",  __func__, reg);
+		axgbe_printf(2, "WRITE: %s: mmd_reg: 0x%x\n", __func__, reg);
 		pdata->sysctl_xpcs_mmd = reg;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1294,7 +1313,7 @@ sysctl_xpcs_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: sysctl_xpcs_reg: 0x%x\n",  __func__,
+		axgbe_printf(2, "READ: %s: sysctl_xpcs_reg: 0x%x\n", __func__,
 		    pdata->sysctl_xpcs_reg);
 		sbuf_printf(sb, "\nXPCS reg_addr:	0x%x\n",
 		    pdata->sysctl_xpcs_reg);
@@ -1306,11 +1325,11 @@ sysctl_xpcs_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &reg);
-		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n",  __func__, reg);
+		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n", __func__, reg);
 		pdata->sysctl_xpcs_reg = reg;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1333,7 +1352,7 @@ sysctl_xpcs_reg_value_handler(SYSCTL_HANDLER_ARGS)
 
 		value = XMDIO_READ(pdata, pdata->sysctl_xpcs_mmd,
 		    pdata->sysctl_xpcs_reg);
-		axgbe_printf(2, "READ: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "READ: %s: value: 0x%x\n", __func__, value);
 		sbuf_printf(sb, "\nXPCS reg_value:	0x%x\n", value);
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1343,12 +1362,12 @@ sysctl_xpcs_reg_value_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &value);
-		axgbe_printf(2, "WRITE: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "WRITE: %s: value: 0x%x\n", __func__, value);
 		XMDIO_WRITE(pdata, pdata->sysctl_xpcs_mmd,
 		    pdata->sysctl_xpcs_reg, value);
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1369,7 +1388,7 @@ sysctl_xprop_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: sysctl_xprop_reg: 0x%x\n",  __func__,
+		axgbe_printf(2, "READ: %s: sysctl_xprop_reg: 0x%x\n", __func__,
 		    pdata->sysctl_xprop_reg);
 		sbuf_printf(sb, "\nXPROP reg_addr:	0x%x\n",
 		    pdata->sysctl_xprop_reg);
@@ -1381,11 +1400,11 @@ sysctl_xprop_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &reg);
-		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n",  __func__, reg);
+		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n", __func__, reg);
 		pdata->sysctl_xprop_reg = reg;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1407,7 +1426,7 @@ sysctl_xprop_reg_value_handler(SYSCTL_HANDLER_ARGS)
 		}
 
 		value = XP_IOREAD(pdata, pdata->sysctl_xprop_reg);
-		axgbe_printf(2, "READ: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "READ: %s: value: 0x%x\n", __func__, value);
 		sbuf_printf(sb, "\nXPROP reg_value:	0x%x\n", value);
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1417,11 +1436,11 @@ sysctl_xprop_reg_value_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &value);
-		axgbe_printf(2, "WRITE: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "WRITE: %s: value: 0x%x\n", __func__, value);
 		XP_IOWRITE(pdata, pdata->sysctl_xprop_reg, value);
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1442,7 +1461,7 @@ sysctl_xi2c_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: sysctl_xi2c_reg: 0x%x\n",  __func__,
+		axgbe_printf(2, "READ: %s: sysctl_xi2c_reg: 0x%x\n", __func__,
 		    pdata->sysctl_xi2c_reg);
 		sbuf_printf(sb, "\nXI2C reg_addr:	0x%x\n",
 		    pdata->sysctl_xi2c_reg);
@@ -1454,11 +1473,11 @@ sysctl_xi2c_reg_addr_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &reg);
-		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n",  __func__, reg);
+		axgbe_printf(2, "WRITE: %s: reg: 0x%x\n", __func__, reg);
 		pdata->sysctl_xi2c_reg = reg;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1480,7 +1499,7 @@ sysctl_xi2c_reg_value_handler(SYSCTL_HANDLER_ARGS)
 		}
 
 		value = XI2C_IOREAD(pdata, pdata->sysctl_xi2c_reg);
-		axgbe_printf(2, "READ: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "READ: %s: value: 0x%x\n", __func__, value);
 		sbuf_printf(sb, "\nXI2C reg_value:	0x%x\n", value);
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
@@ -1490,11 +1509,11 @@ sysctl_xi2c_reg_value_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%x", &value);
-		axgbe_printf(2, "WRITE: %s: value: 0x%x\n",  __func__, value);
+		axgbe_printf(2, "WRITE: %s: value: 0x%x\n", __func__, value);
 		XI2C_IOWRITE(pdata, pdata->sysctl_xi2c_reg, value);
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1515,7 +1534,7 @@ sysctl_an_cdr_wr_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: an_cdr_wr: %d\n",  __func__,
+		axgbe_printf(2, "READ: %s: an_cdr_wr: %d\n", __func__,
 		    pdata->sysctl_an_cdr_workaround);
 		sbuf_printf(sb, "%d\n", pdata->sysctl_an_cdr_workaround);
 		rc = sbuf_finish(sb);
@@ -1526,7 +1545,7 @@ sysctl_an_cdr_wr_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%u", &an_cdr_wr);
-		axgbe_printf(2, "WRITE: %s: an_cdr_wr: 0x%d\n",  __func__,
+		axgbe_printf(2, "WRITE: %s: an_cdr_wr: 0x%d\n", __func__,
 		    an_cdr_wr);
 
 		if (an_cdr_wr)
@@ -1535,7 +1554,7 @@ sysctl_an_cdr_wr_handler(SYSCTL_HANDLER_ARGS)
 			pdata->sysctl_an_cdr_workaround = 0;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1556,9 +1575,9 @@ sysctl_an_cdr_track_early_handler(SYSCTL_HANDLER_ARGS)
 			return (rc);
 		}
 
-		axgbe_printf(2, "READ: %s: an_cdr_track_early %d\n",  __func__,
+		axgbe_printf(2, "READ: %s: an_cdr_track_early %d\n", __func__,
 		    pdata->sysctl_an_cdr_track_early);
-		sbuf_printf(sb, "%d\n", pdata->sysctl_an_cdr_track_early);			
+		sbuf_printf(sb, "%d\n", pdata->sysctl_an_cdr_track_early);
 		rc = sbuf_finish(sb);
 		sbuf_delete(sb);
 		return (rc);
@@ -1567,7 +1586,7 @@ sysctl_an_cdr_track_early_handler(SYSCTL_HANDLER_ARGS)
 	rc = get_ubuf(req, buf);
 	if (rc == 0) {
 		sscanf(buf, "%u", &an_cdr_track_early);
-		axgbe_printf(2, "WRITE: %s: an_cdr_track_early: %d\n",  __func__,
+		axgbe_printf(2, "WRITE: %s: an_cdr_track_early: %d\n", __func__,
 		    an_cdr_track_early);
 
 		if (an_cdr_track_early)
@@ -1576,7 +1595,7 @@ sysctl_an_cdr_track_early_handler(SYSCTL_HANDLER_ARGS)
 			pdata->sysctl_an_cdr_track_early = 0;
 	}
 
-	axgbe_printf(2, "%s: rc= %d\n",  __func__, rc);
+	axgbe_printf(2, "%s: rc= %d\n", __func__, rc);
 	return (rc);
 }
 
@@ -1588,18 +1607,18 @@ axgbe_sysctl_exit(struct xgbe_prv_data *pdata)
 		free(pdata->sys_op, M_AXGBE);
 }
 
-void 
+void
 axgbe_sysctl_init(struct xgbe_prv_data *pdata)
 {
 	struct sysctl_ctx_list *clist;
 	struct sysctl_oid_list *top;
-	struct sysctl_oid *parent; 
+	struct sysctl_oid *parent;
 	struct sysctl_op *sys_op;
 
 	sys_op = malloc(sizeof(*sys_op), M_AXGBE, M_WAITOK | M_ZERO);
 	pdata->sys_op = sys_op;
 
-	clist = device_get_sysctl_ctx(pdata->dev); 
+	clist = device_get_sysctl_ctx(pdata->dev);
 	parent = device_get_sysctl_tree(pdata->dev);
 	top = SYSCTL_CHILDREN(parent);
 
@@ -1608,113 +1627,99 @@ axgbe_sysctl_init(struct xgbe_prv_data *pdata)
 	pdata->sysctl_xpcs_mmd = 1;
 	pdata->sysctl_xpcs_reg = 0;
 
-	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "axgbe_debug_level", CTLFLAG_RWTUN,
-	    &pdata->debug_level, 0, "axgbe log level -- higher is verbose");
+	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "axgbe_debug_level",
+	    CTLFLAG_RWTUN, &pdata->debug_level, 0,
+	    "axgbe log level -- higher is verbose");
 
-	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "sph_enable",
-	    CTLFLAG_RDTUN, &pdata->sph_enable, 1,
+	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "sph_enable", CTLFLAG_RDTUN,
+	    &pdata->sph_enable, 1,
 	    "shows the split header feature state (1 - enable, 0 - disable");
 
-	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "link_workaround",
-	    CTLFLAG_RWTUN, &pdata->link_workaround, 0,
+	SYSCTL_ADD_UINT(clist, top, OID_AUTO, "link_workaround", CTLFLAG_RWTUN,
+	    &pdata->link_workaround, 0,
 	    "enable the workaround for link issue in coming up");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xgmac_register",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_xgmac_reg_addr_handler, "IU",
-	    "xgmac register addr");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_xgmac_reg_addr_handler, "IU", "xgmac register addr");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xgmac_register_value",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_xgmac_reg_value_handler, "IU",
-	    "xgmac register value");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_xgmac_reg_value_handler, "IU", "xgmac register value");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xpcs_mmd",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_xpcs_mmd_reg_handler, "IU", "xpcs mmd register");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_xpcs_mmd_reg_handler, "IU", "xpcs mmd register");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xpcs_register",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_xpcs_reg_addr_handler, "IU", "xpcs register");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_xpcs_reg_addr_handler, "IU", "xpcs register");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xpcs_register_value",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_xpcs_reg_value_handler, "IU",
-	    "xpcs register value");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_xpcs_reg_value_handler, "IU", "xpcs register value");
 
 	if (pdata->xpcs_res) {
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xprop_register",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_xprop_reg_addr_handler,
-		    "IU", "xprop register");
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_xprop_reg_addr_handler, "IU", "xprop register");
 
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xprop_register_value",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_xprop_reg_value_handler,
-		    "IU", "xprop register value");
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_xprop_reg_value_handler, "IU",
+		    "xprop register value");
 	}
 
 	if (pdata->xpcs_res) {
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xi2c_register",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_xi2c_reg_addr_handler,
-		    "IU", "xi2c register");
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_xi2c_reg_addr_handler, "IU", "xi2c register");
 
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "xi2c_register_value",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_xi2c_reg_value_handler,
-		    "IU", "xi2c register value");
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_xi2c_reg_value_handler, "IU", "xi2c register value");
 	}
 
 	if (pdata->vdata->an_cdr_workaround) {
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "an_cdr_workaround",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_an_cdr_wr_handler, "IU",
-		    "an cdr workaround");
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_an_cdr_wr_handler, "IU", "an cdr workaround");
 
 		SYSCTL_ADD_PROC(clist, top, OID_AUTO, "an_cdr_track_early",
-		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-		    pdata, 0, sysctl_an_cdr_track_early_handler, "IU",
+		    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+		    sysctl_an_cdr_track_early_handler, "IU",
 		    "an cdr track early");
 	}
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "drv_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_get_drv_info_handler, "IU",
-	    "xgbe drv info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_get_drv_info_handler, "IU", "xgbe drv info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "link_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_get_link_info_handler, "IU",
-	    "xgbe link info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_get_link_info_handler, "IU", "xgbe link info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "coalesce_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_coalesce_handler, "IU",
-	    "xgbe coalesce info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_coalesce_handler, "IU", "xgbe coalesce info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "pauseparam_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_pauseparam_handler, "IU",
-	    "xgbe pauseparam info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_pauseparam_handler, "IU", "xgbe pauseparam info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "link_ksettings_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_link_ksettings_handler, "IU",
-	    "xgbe link_ksettings info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_link_ksettings_handler, "IU", "xgbe link_ksettings info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "ringparam_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_ringparam_handler, "IU",
-	    "xgbe ringparam info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_ringparam_handler, "IU", "xgbe ringparam info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "channels_info",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_channels_handler, "IU",
-	    "xgbe channels info");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_channels_handler, "IU", "xgbe channels info");
 
 	SYSCTL_ADD_PROC(clist, top, OID_AUTO, "mac_stats",
-	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    pdata, 0, sysctl_mac_stats_handler, "IU",
-	    "xgbe mac stats");
+	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, pdata, 0,
+	    sysctl_mac_stats_handler, "IU", "xgbe mac stats");
 }

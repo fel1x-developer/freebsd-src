@@ -26,4 +26,4 @@
  * SUCH DAMAGE.
  */
 
-#define PATH_DEFAULTSMBDEV	"/dev/smb0"
+#define PATH_DEFAULTSMBDEV "/dev/smb0"

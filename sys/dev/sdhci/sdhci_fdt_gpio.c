@@ -29,10 +29,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <dev/gpio/gpiobusvar.h>
@@ -43,17 +43,17 @@
 #include <dev/sdhci/sdhci_fdt_gpio.h>
 
 struct sdhci_fdt_gpio {
-	device_t		dev;
-	struct sdhci_slot *	slot;
-	gpio_pin_t		wp_pin;
-	gpio_pin_t		cd_pin;
-	void *			cd_ihandler;
-	struct resource *	cd_ires;
-	int			cd_irid;
-	bool			wp_disabled;
-	bool			wp_inverted;
-	bool			cd_disabled;
-	bool			cd_inverted;
+	device_t dev;
+	struct sdhci_slot *slot;
+	gpio_pin_t wp_pin;
+	gpio_pin_t cd_pin;
+	void *cd_ihandler;
+	struct resource *cd_ires;
+	int cd_irid;
+	bool wp_disabled;
+	bool wp_inverted;
+	bool cd_disabled;
+	bool cd_inverted;
 };
 
 /*
@@ -104,7 +104,8 @@ cd_setup(struct sdhci_fdt_gpio *gpio, phandle_t node)
 
 	if (gpio_pin_getcaps(gpio->cd_pin, &pincaps) != 0 ||
 	    !(pincaps & GPIO_PIN_INPUT)) {
-		device_printf(dev, "Cannot read card-detect gpio pin; "
+		device_printf(dev,
+		    "Cannot read card-detect gpio pin; "
 		    "setting card-always-present flag.\n");
 		gpio->cd_disabled = true;
 		return;
@@ -120,7 +121,8 @@ cd_setup(struct sdhci_fdt_gpio *gpio, phandle_t node)
 	 */
 	if (!(pincaps & GPIO_INTR_EDGE_BOTH)) {
 		if (bootverbose)
-			device_printf(dev, "Cannot configure "
+			device_printf(dev,
+			    "Cannot configure "
 			    "GPIO_INTR_EDGE_BOTH for card detect\n");
 		goto without_interrupts;
 	}
@@ -129,15 +131,16 @@ cd_setup(struct sdhci_fdt_gpio *gpio, phandle_t node)
 	 * Create an interrupt resource from the pin and set up the interrupt.
 	 */
 	if ((gpio->cd_ires = gpio_alloc_intr_resource(dev, &gpio->cd_irid,
-	    RF_ACTIVE, gpio->cd_pin, GPIO_INTR_EDGE_BOTH)) == NULL) {
+		 RF_ACTIVE, gpio->cd_pin, GPIO_INTR_EDGE_BOTH)) == NULL) {
 		if (bootverbose)
-			device_printf(dev, "Cannot allocate an IRQ for card "
+			device_printf(dev,
+			    "Cannot allocate an IRQ for card "
 			    "detect GPIO\n");
 		goto without_interrupts;
 	}
 
 	if (bus_setup_intr(dev, gpio->cd_ires, INTR_TYPE_BIO | INTR_MPSAFE,
-	    NULL, cd_intr, gpio, &gpio->cd_ihandler) != 0) {
+		NULL, cd_intr, gpio, &gpio->cd_ihandler) != 0) {
 		device_printf(dev, "Unable to setup card-detect irq handler\n");
 		gpio->cd_ihandler = NULL;
 		goto without_interrupts;
@@ -157,7 +160,8 @@ without_interrupts:
 	}
 
 	if (bootverbose) {
-		device_printf(dev, "Card presence detect on %s pin %u, "
+		device_printf(dev,
+		    "Card presence detect on %s pin %u, "
 		    "configured for %s.\n",
 		    device_get_nameunit(gpio->cd_pin->dev), gpio->cd_pin->pin,
 		    cd_mode_str);
@@ -199,7 +203,7 @@ sdhci_fdt_gpio_setup(device_t dev, struct sdhci_slot *slot)
 	struct sdhci_fdt_gpio *gpio;
 
 	gpio = malloc(sizeof(*gpio), M_DEVBUF, M_ZERO | M_WAITOK);
-	gpio->dev  = dev;
+	gpio->dev = dev;
 	gpio->slot = slot;
 
 	node = ofw_bus_get_node(dev);

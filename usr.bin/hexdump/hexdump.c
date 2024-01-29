@@ -31,18 +31,20 @@
 
 #include <sys/types.h>
 #include <sys/capsicum.h>
+
 #include <capsicum_helpers.h>
 #include <err.h>
 #include <locale.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
 #include "hexdump.h"
 
-FS *fshead;				/* head of format strings */
-int blocksize;				/* data block size */
-int exitval;				/* final exit value */
-int length = -1;			/* max bytes to read */
+FS *fshead;	 /* head of format strings */
+int blocksize;	 /* data block size */
+int exitval;	 /* final exit value */
+int length = -1; /* max bytes to read */
 
 int
 main(int argc, char *argv[])

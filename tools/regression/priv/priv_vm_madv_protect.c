@@ -70,5 +70,4 @@ priv_vm_madv_protect(int asroot, int injail, struct test *test)
 void
 priv_vm_madv_protect_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

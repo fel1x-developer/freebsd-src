@@ -26,15 +26,15 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -56,34 +56,32 @@
  * - Sensirion Electronic Identification Code (How to read-out the serial number
  *   of SHT2x) application note.
  */
-#define	HTU21_ADDR		0x40
+#define HTU21_ADDR 0x40
 
-#define	HTU21_GET_TEMP		0xe3
-#define	HTU21_GET_HUM		0xe5
-#define	HTU21_GET_TEMP_NH	0xf3
-#define	HTU21_GET_HUM_NH	0xf5
-#define	HTU21_WRITE_CFG		0xe6
-#define	HTU21_READ_CFG		0xe7
-#define	HTU21_RESET		0xfe
+#define HTU21_GET_TEMP 0xe3
+#define HTU21_GET_HUM 0xe5
+#define HTU21_GET_TEMP_NH 0xf3
+#define HTU21_GET_HUM_NH 0xf5
+#define HTU21_WRITE_CFG 0xe6
+#define HTU21_READ_CFG 0xe7
+#define HTU21_RESET 0xfe
 
-#define	HTU2x_SERIAL0_0		0xfa
-#define	HTU2x_SERIAL0_1		0x0f
-#define	HTU2x_SERIAL1_0		0xfc
-#define	HTU2x_SERIAL1_1		0xc9
+#define HTU2x_SERIAL0_0 0xfa
+#define HTU2x_SERIAL0_1 0x0f
+#define HTU2x_SERIAL1_0 0xfc
+#define HTU2x_SERIAL1_1 0xc9
 
 struct htu21_softc {
-	device_t		sc_dev;
-	uint32_t		sc_addr;
-	uint8_t			sc_serial[8];
-	int			sc_errcount;
-	bool			sc_hold;
+	device_t sc_dev;
+	uint32_t sc_addr;
+	uint8_t sc_serial[8];
+	int sc_errcount;
+	bool sc_hold;
 };
 
 #ifdef FDT
-static struct ofw_compat_data compat_data[] = {
-	{ "meas,htu21",		true },
-	{ NULL,			false }
-};
+static struct ofw_compat_data compat_data[] = { { "meas,htu21", true },
+	{ NULL, false } };
 #endif
 
 static uint8_t
@@ -144,8 +142,8 @@ htu21_get_measurement(device_t dev, uint8_t cmd, uint8_t *data, int count)
 }
 
 static int
-htu21_get_measurement_nohold(device_t dev, uint8_t cmd,
-    uint8_t *data, int count)
+htu21_get_measurement_nohold(device_t dev, uint8_t cmd, uint8_t *data,
+    int count)
 {
 	struct iic_msg msgs[2];
 	struct htu21_softc *sc;
@@ -206,7 +204,7 @@ htu21_temp_sysctl(SYSCTL_HANDLER_ARGS)
 		} else {
 			temp = (((uint16_t)raw_data[0]) << 8) |
 			    (raw_data[1] & 0xfc);
-			temp = ((temp * 17572) >> 16 ) + 27315 - 4685;
+			temp = ((temp * 17572) >> 16) + 27315 - 4685;
 		}
 	}
 
@@ -241,7 +239,7 @@ htu21_rh_sysctl(SYSCTL_HANDLER_ARGS)
 		} else {
 			rh = (((uint16_t)raw_data[0]) << 8) |
 			    (raw_data[1] & 0xfc);
-			rh = ((rh * 12500) >> 16 ) - 600;
+			rh = ((rh * 12500) >> 16) - 600;
 		}
 	}
 
@@ -440,16 +438,16 @@ htu21_start(void *arg)
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
 	    htu21_temp_sysctl, "IK2", "Current temperature");
 	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "humidity",
-	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
-	    htu21_rh_sysctl, "I", "Relative humidity in 0.01%% units");
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0, htu21_rh_sysctl,
+	    "I", "Relative humidity in 0.01%% units");
 	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "heater",
 	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
 	    htu21_heater_sysctl, "IU", "Enable built-in heater");
 	SYSCTL_ADD_PROC(ctx, tree, OID_AUTO, "power",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
 	    htu21_power_sysctl, "IU", "If sensor's power is good");
-	SYSCTL_ADD_BOOL(ctx, tree, OID_AUTO, "hold_bus",
-	    CTLFLAG_RW, &sc->sc_hold, 0,
+	SYSCTL_ADD_BOOL(ctx, tree, OID_AUTO, "hold_bus", CTLFLAG_RW,
+	    &sc->sc_hold, 0,
 	    "Whether device should hold I2C bus while measuring");
 	SYSCTL_ADD_INT(ctx, tree, OID_AUTO, "crc_errors",
 	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, &sc->sc_errcount, 0,
@@ -504,20 +502,17 @@ htu21_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t  htu21_methods[] = {
+static device_method_t htu21_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		htu21_probe),
-	DEVMETHOD(device_attach,	htu21_attach),
-	DEVMETHOD(device_detach,	htu21_detach),
+	DEVMETHOD(device_probe, htu21_probe),
+	DEVMETHOD(device_attach, htu21_attach),
+	DEVMETHOD(device_detach, htu21_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t htu21_driver = {
-	"htu21",
-	htu21_methods,
-	sizeof(struct htu21_softc)
-};
+static driver_t htu21_driver = { "htu21", htu21_methods,
+	sizeof(struct htu21_softc) };
 
 DRIVER_MODULE(htu21, iicbus, htu21_driver, 0, 0);
 MODULE_DEPEND(htu21, iicbus, IICBUS_MINVER, IICBUS_PREFVER, IICBUS_MAXVER);

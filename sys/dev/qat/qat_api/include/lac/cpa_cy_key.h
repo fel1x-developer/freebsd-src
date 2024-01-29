@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -74,7 +74,7 @@ extern "C" {
  *      cpaCyKeyGenTls.   This is the length of the client or server random
  *      number values.
  *****************************************************************************/
-#define CPA_CY_KEY_GEN_SSL_TLS_RANDOM_LEN_IN_BYTES   (32)
+#define CPA_CY_KEY_GEN_SSL_TLS_RANDOM_LEN_IN_BYTES (32)
 
 /**
  *****************************************************************************
@@ -84,16 +84,14 @@ extern "C" {
  *      Enumeration of the different SSL operations that can be specified in
  *      the struct @ref CpaCyKeyGenSslOpData.  It identifies the label.
  *****************************************************************************/
-typedef enum _CpaCyKeySslOp
-{
-    CPA_CY_KEY_SSL_OP_MASTER_SECRET_DERIVE = 1,
-    /**< Derive the master secret */
-    CPA_CY_KEY_SSL_OP_KEY_MATERIAL_DERIVE,
-    /**< Derive the key material */
-    CPA_CY_KEY_SSL_OP_USER_DEFINED
-    /**< User Defined Operation for custom labels*/
+typedef enum _CpaCyKeySslOp {
+	CPA_CY_KEY_SSL_OP_MASTER_SECRET_DERIVE = 1,
+	/**< Derive the master secret */
+	CPA_CY_KEY_SSL_OP_KEY_MATERIAL_DERIVE,
+	/**< Derive the key material */
+	CPA_CY_KEY_SSL_OP_USER_DEFINED
+	/**< User Defined Operation for custom labels*/
 } CpaCyKeySslOp;
-
 
 /**
  *****************************************************************************
@@ -131,27 +129,28 @@ typedef enum _CpaCyKeySslOp
  *
  ****************************************************************************/
 typedef struct _CpaCyKeyGenSslOpData {
-    CpaCyKeySslOp sslOp;
-    /**< Indicate the SSL operation to be performed */
-    CpaFlatBuffer secret;
-    /**<  Flat buffer containing a pointer to either the master or pre-master
-     * secret key. The length field indicates the length of the secret key in
-     * bytes. Implementation-specific limits may apply to this length. */
-    CpaFlatBuffer seed;
-    /**<  Flat buffer containing a pointer to the seed data.
-     * Implementation-specific limits may apply to this length. */
-    CpaFlatBuffer info;
-    /**<  Flat buffer containing a pointer to the info data.
-     * Implementation-specific limits may apply to this length. */
-    Cpa32U generatedKeyLenInBytes;
-    /**< The requested length of the generated key in bytes.
-     * Implementation-specific limits may apply to this length. */
-    CpaFlatBuffer userLabel;
-    /**<  Optional flat buffer containing a pointer to a user defined label.
-     * The length field indicates the length of the label in bytes. To use this
-     * field, the sslOp must be CPA_CY_KEY_SSL_OP_USER_DEFINED,
-     * or otherwise it is ignored and can be set to NULL.
-     * Implementation-specific limits may apply to this length. */
+	CpaCyKeySslOp sslOp;
+	/**< Indicate the SSL operation to be performed */
+	CpaFlatBuffer secret;
+	/**<  Flat buffer containing a pointer to either the master or
+	 * pre-master secret key. The length field indicates the length of the
+	 * secret key in bytes. Implementation-specific limits may apply to this
+	 * length. */
+	CpaFlatBuffer seed;
+	/**<  Flat buffer containing a pointer to the seed data.
+	 * Implementation-specific limits may apply to this length. */
+	CpaFlatBuffer info;
+	/**<  Flat buffer containing a pointer to the info data.
+	 * Implementation-specific limits may apply to this length. */
+	Cpa32U generatedKeyLenInBytes;
+	/**< The requested length of the generated key in bytes.
+	 * Implementation-specific limits may apply to this length. */
+	CpaFlatBuffer userLabel;
+	/**<  Optional flat buffer containing a pointer to a user defined label.
+	 * The length field indicates the length of the label in bytes. To use
+	 * this field, the sslOp must be CPA_CY_KEY_SSL_OP_USER_DEFINED, or
+	 * otherwise it is ignored and can be set to NULL.
+	 * Implementation-specific limits may apply to this length. */
 } CpaCyKeyGenSslOpData;
 
 /**
@@ -177,29 +176,27 @@ typedef struct _CpaCyKeyGenSslOpData {
  *      CpaCyKeyGenTlsOpData data structure.
  *
  *****************************************************************************/
-typedef enum _CpaCyKeyTlsOp
-{
-    CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE = 1,
-    /**< Derive the master secret using the TLS PRF.
-     * Corresponds to RFC2246/5246 section 8.1, operation "Computing the
-     * master secret", label "master secret". */
-    CPA_CY_KEY_TLS_OP_KEY_MATERIAL_DERIVE,
-    /**< Derive the key material using the TLS PRF.
-     * Corresponds to RFC2246/5246 section 6.3, operation "Derive the key
-     * material", label "key expansion". */
-    CPA_CY_KEY_TLS_OP_CLIENT_FINISHED_DERIVE,
-    /**< Derive the client finished tag using the TLS PRF.
-     * Corresponds to RFC2246/5246 section 7.4.9, operation "Client finished",
-     * label "client finished". */
-    CPA_CY_KEY_TLS_OP_SERVER_FINISHED_DERIVE,
-    /**< Derive the server finished tag using the TLS PRF.
-     * Corresponds to RFC2246/5246 section 7.4.9, operation "Server finished",
-     * label "server finished". */
-    CPA_CY_KEY_TLS_OP_USER_DEFINED
-    /**< User Defined Operation for custom labels. */
+typedef enum _CpaCyKeyTlsOp {
+	CPA_CY_KEY_TLS_OP_MASTER_SECRET_DERIVE = 1,
+	/**< Derive the master secret using the TLS PRF.
+	 * Corresponds to RFC2246/5246 section 8.1, operation "Computing the
+	 * master secret", label "master secret". */
+	CPA_CY_KEY_TLS_OP_KEY_MATERIAL_DERIVE,
+	/**< Derive the key material using the TLS PRF.
+	 * Corresponds to RFC2246/5246 section 6.3, operation "Derive the key
+	 * material", label "key expansion". */
+	CPA_CY_KEY_TLS_OP_CLIENT_FINISHED_DERIVE,
+	/**< Derive the client finished tag using the TLS PRF.
+	 * Corresponds to RFC2246/5246 section 7.4.9, operation "Client
+	 * finished", label "client finished". */
+	CPA_CY_KEY_TLS_OP_SERVER_FINISHED_DERIVE,
+	/**< Derive the server finished tag using the TLS PRF.
+	 * Corresponds to RFC2246/5246 section 7.4.9, operation "Server
+	 * finished", label "server finished". */
+	CPA_CY_KEY_TLS_OP_USER_DEFINED
+	/**< User Defined Operation for custom labels. */
 
 } CpaCyKeyTlsOp;
-
 
 /**
  *****************************************************************************
@@ -218,29 +215,27 @@ typedef enum _CpaCyKeyTlsOp
  *      extraction and expansion of keying material.
  *
  *****************************************************************************/
-typedef enum _CpaCyKeyHKDFOp
-{
-    CPA_CY_HKDF_KEY_EXTRACT = 12,
-    /**< HKDF Extract operation
-     * Corresponds to RFC5869 section 2.2, step 1 "Extract" */
-    CPA_CY_HKDF_KEY_EXPAND,
-    /**< HKDF Expand operation
-     * Corresponds to RFC5869 section 2.3, step 2 "Expand" */
-    CPA_CY_HKDF_KEY_EXTRACT_EXPAND,
-    /**< HKDF operation
-     * This performs HKDF_EXTRACT and HKDF_EXPAND in a single
-     * API invocation. */
-    CPA_CY_HKDF_KEY_EXPAND_LABEL ,
-    /**< HKDF Expand label operation for TLS 1.3
-     * Corresponds to RFC8446 section 7.1 Key Schedule definition for
-     * HKDF-Expand-Label, which refers to HKDF-Expand defined in RFC5869. */
-    CPA_CY_HKDF_KEY_EXTRACT_EXPAND_LABEL
-    /**< HKDF Extract plus Expand label operation for TLS 1.3
-     * Corresponds to  RFC5869 section 2.2, step 1 "Extract" followed by
-     * RFC8446 section 7.1 Key Schedule definition for
-     * HKDF-Expand-Label, which refers to HKDF-Expand defined in RFC5869. */
+typedef enum _CpaCyKeyHKDFOp {
+	CPA_CY_HKDF_KEY_EXTRACT = 12,
+	/**< HKDF Extract operation
+	 * Corresponds to RFC5869 section 2.2, step 1 "Extract" */
+	CPA_CY_HKDF_KEY_EXPAND,
+	/**< HKDF Expand operation
+	 * Corresponds to RFC5869 section 2.3, step 2 "Expand" */
+	CPA_CY_HKDF_KEY_EXTRACT_EXPAND,
+	/**< HKDF operation
+	 * This performs HKDF_EXTRACT and HKDF_EXPAND in a single
+	 * API invocation. */
+	CPA_CY_HKDF_KEY_EXPAND_LABEL,
+	/**< HKDF Expand label operation for TLS 1.3
+	 * Corresponds to RFC8446 section 7.1 Key Schedule definition for
+	 * HKDF-Expand-Label, which refers to HKDF-Expand defined in RFC5869. */
+	CPA_CY_HKDF_KEY_EXTRACT_EXPAND_LABEL
+	/**< HKDF Extract plus Expand label operation for TLS 1.3
+	 * Corresponds to  RFC5869 section 2.2, step 1 "Extract" followed by
+	 * RFC8446 section 7.1 Key Schedule definition for
+	 * HKDF-Expand-Label, which refers to HKDF-Expand defined in RFC5869. */
 } CpaCyKeyHKDFOp;
-
 
 /**
  *****************************************************************************
@@ -260,15 +255,13 @@ typedef enum _CpaCyKeyHKDFOp
  *      TLS operation that require HKDF key operations.
  *
  *****************************************************************************/
-typedef enum _CpaCyKeyHKDFCipherSuite
-{
-    CPA_CY_HKDF_TLS_AES_128_GCM_SHA256 = 1,
-    CPA_CY_HKDF_TLS_AES_256_GCM_SHA384,
-    CPA_CY_HKDF_TLS_CHACHA20_POLY1305_SHA256 ,
-    CPA_CY_HKDF_TLS_AES_128_CCM_SHA256,
-    CPA_CY_HKDF_TLS_AES_128_CCM_8_SHA256
+typedef enum _CpaCyKeyHKDFCipherSuite {
+	CPA_CY_HKDF_TLS_AES_128_GCM_SHA256 = 1,
+	CPA_CY_HKDF_TLS_AES_256_GCM_SHA384,
+	CPA_CY_HKDF_TLS_CHACHA20_POLY1305_SHA256,
+	CPA_CY_HKDF_TLS_AES_128_CCM_SHA256,
+	CPA_CY_HKDF_TLS_AES_128_CCM_8_SHA256
 } CpaCyKeyHKDFCipherSuite;
-
 
 /**
  *****************************************************************************
@@ -288,26 +281,26 @@ typedef enum _CpaCyKeyHKDFCipherSuite
  *
  *****************************************************************************/
 
-#define    CPA_CY_HKDF_SUBLABEL_KEY                   ((Cpa16U)0x0001)
-        /**< Bit for creation of key material for 'key' sublabel */
-#define    CPA_CY_HKDF_SUBLABEL_IV                    ((Cpa16U)0x0002)
-        /**< Bit for creation of key material for 'iv' sublabel */
-#define    CPA_CY_HKDF_SUBLABEL_RESUMPTION            ((Cpa16U)0x0004)
-        /**< Bit for creation of key material for 'resumption' sublabel */
-#define    CPA_CY_HKDF_SUBLABEL_FINISHED              ((Cpa16U)0x0008)
-        /**< Bit for creation of key material for 'finished' sublabel */
+#define CPA_CY_HKDF_SUBLABEL_KEY ((Cpa16U)0x0001)
+/**< Bit for creation of key material for 'key' sublabel */
+#define CPA_CY_HKDF_SUBLABEL_IV ((Cpa16U)0x0002)
+/**< Bit for creation of key material for 'iv' sublabel */
+#define CPA_CY_HKDF_SUBLABEL_RESUMPTION ((Cpa16U)0x0004)
+/**< Bit for creation of key material for 'resumption' sublabel */
+#define CPA_CY_HKDF_SUBLABEL_FINISHED ((Cpa16U)0x0008)
+/**< Bit for creation of key material for 'finished' sublabel */
 
-#define CPA_CY_HKDF_KEY_MAX_SECRET_SZ   ((Cpa8U)80)
-        /** space in bytes PSK or (EC)DH */
-#define CPA_CY_HKDF_KEY_MAX_HMAC_SZ     ((Cpa8U)48)
-        /** space in bytes of CPA_CY_SYM_HASH_SHA384 result */
-#define CPA_CY_HKDF_KEY_MAX_INFO_SZ     ((Cpa8U)80)
-        /** space in bytes of largest info needed for TLS 1.3,
-          * rounded up to multiple of 8 */
-#define CPA_CY_HKDF_KEY_MAX_LABEL_SZ    ((Cpa8U)78)
-        /** space in bytes of largest label for TLS 1.3 */
+#define CPA_CY_HKDF_KEY_MAX_SECRET_SZ ((Cpa8U)80)
+/** space in bytes PSK or (EC)DH */
+#define CPA_CY_HKDF_KEY_MAX_HMAC_SZ ((Cpa8U)48)
+/** space in bytes of CPA_CY_SYM_HASH_SHA384 result */
+#define CPA_CY_HKDF_KEY_MAX_INFO_SZ ((Cpa8U)80)
+/** space in bytes of largest info needed for TLS 1.3,
+ * rounded up to multiple of 8 */
+#define CPA_CY_HKDF_KEY_MAX_LABEL_SZ ((Cpa8U)78)
+/** space in bytes of largest label for TLS 1.3 */
 #define CPA_CY_HKDF_KEY_MAX_LABEL_COUNT ((Cpa8U)4)
-        /** Maximum number of labels in op structure */
+/** Maximum number of labels in op structure */
 
 /**
  *****************************************************************************
@@ -326,21 +319,20 @@ typedef enum _CpaCyKeyHKDFCipherSuite
  *          <br> context = context as defined in RFC8446
  *
  ****************************************************************************/
-typedef struct _CpaCyKeyGenHKDFExpandLabel
-{
-    Cpa8U label[CPA_CY_HKDF_KEY_MAX_LABEL_SZ];
-    /**< HKDFLabel field as defined in RFC8446 sec 7.1.
-      */
-    Cpa8U   labelLen;
-    /**< The length, in bytes of the label */
-    Cpa8U   sublabelFlag;
-    /**< mask of sublabels to be generated.
-      *  This flag is composed of zero or more of:
-      *    CPA_CY_HKDF_SUBLABEL_KEY
-      *    CPA_CY_HKDF_SUBLABEL_IV
-      *    CPA_CY_HKDF_SUBLABEL_RESUMPTION
-      *    CPA_CY_HKDF_SUBLABEL_FINISHED
-      */
+typedef struct _CpaCyKeyGenHKDFExpandLabel {
+	Cpa8U label[CPA_CY_HKDF_KEY_MAX_LABEL_SZ];
+	/**< HKDFLabel field as defined in RFC8446 sec 7.1.
+	 */
+	Cpa8U labelLen;
+	/**< The length, in bytes of the label */
+	Cpa8U sublabelFlag;
+	/**< mask of sublabels to be generated.
+	 *  This flag is composed of zero or more of:
+	 *    CPA_CY_HKDF_SUBLABEL_KEY
+	 *    CPA_CY_HKDF_SUBLABEL_IV
+	 *    CPA_CY_HKDF_SUBLABEL_RESUMPTION
+	 *    CPA_CY_HKDF_SUBLABEL_FINISHED
+	 */
 } CpaCyKeyGenHKDFExpandLabel;
 
 /**
@@ -364,26 +356,25 @@ typedef struct _CpaCyKeyGenHKDFExpandLabel
  *          <br> labels - See notes above
  *
  ****************************************************************************/
-typedef struct _CpaCyKeyGenHKDFOpData
-{
-    CpaCyKeyHKDFOp hkdfKeyOp;
-    /**< Keying operation to be performed. */
-    Cpa8U secretLen;
-    /**< Length of secret field */
-    Cpa16U seedLen;
-    /**< Length of seed field */
-    Cpa16U infoLen;
-    /**< Length of info field */
-    Cpa16U numLabels;
-    /**< Number of filled CpaCyKeyGenHKDFExpandLabel elements */
-    Cpa8U secret[CPA_CY_HKDF_KEY_MAX_SECRET_SZ];
-    /**< Input Key Material or PRK */
-    Cpa8U seed[CPA_CY_HKDF_KEY_MAX_HMAC_SZ];
-    /**< Input salt */
-    Cpa8U info[CPA_CY_HKDF_KEY_MAX_INFO_SZ];
-    /**< info field */
-    CpaCyKeyGenHKDFExpandLabel label[CPA_CY_HKDF_KEY_MAX_LABEL_COUNT];
-    /**< array of Expand Label structures */
+typedef struct _CpaCyKeyGenHKDFOpData {
+	CpaCyKeyHKDFOp hkdfKeyOp;
+	/**< Keying operation to be performed. */
+	Cpa8U secretLen;
+	/**< Length of secret field */
+	Cpa16U seedLen;
+	/**< Length of seed field */
+	Cpa16U infoLen;
+	/**< Length of info field */
+	Cpa16U numLabels;
+	/**< Number of filled CpaCyKeyGenHKDFExpandLabel elements */
+	Cpa8U secret[CPA_CY_HKDF_KEY_MAX_SECRET_SZ];
+	/**< Input Key Material or PRK */
+	Cpa8U seed[CPA_CY_HKDF_KEY_MAX_HMAC_SZ];
+	/**< Input salt */
+	Cpa8U info[CPA_CY_HKDF_KEY_MAX_INFO_SZ];
+	/**< info field */
+	CpaCyKeyGenHKDFExpandLabel label[CPA_CY_HKDF_KEY_MAX_LABEL_COUNT];
+	/**< array of Expand Label structures */
 } CpaCyKeyGenHKDFOpData;
 
 /**
@@ -427,23 +418,23 @@ typedef struct _CpaCyKeyGenHKDFOpData
  *
  ****************************************************************************/
 typedef struct _CpaCyKeyGenTlsOpData {
-    CpaCyKeyTlsOp tlsOp;
-    /**< TLS operation to be performed */
-    CpaFlatBuffer secret;
-    /**< Flat buffer containing a pointer to either the master or pre-master
-     * secret key. The length field indicates the length of the secret in
-     * bytes.  */
-    CpaFlatBuffer seed;
-    /**< Flat buffer containing a pointer to the seed data.
-     * Implementation-specific limits may apply to this length. */
-    Cpa32U generatedKeyLenInBytes;
-    /**< The requested length of the generated key in bytes.
-     * Implementation-specific limits may apply to this length. */
-    CpaFlatBuffer userLabel;
-    /**< Optional flat buffer containing a pointer to a user defined label.
-     * The length field indicates the length of the label in bytes. To use this
-     * field, the tlsOp must be CPA_CY_KEY_TLS_OP_USER_DEFINED.
-         * Implementation-specific limits may apply to this length. */
+	CpaCyKeyTlsOp tlsOp;
+	/**< TLS operation to be performed */
+	CpaFlatBuffer secret;
+	/**< Flat buffer containing a pointer to either the master or pre-master
+	 * secret key. The length field indicates the length of the secret in
+	 * bytes.  */
+	CpaFlatBuffer seed;
+	/**< Flat buffer containing a pointer to the seed data.
+	 * Implementation-specific limits may apply to this length. */
+	Cpa32U generatedKeyLenInBytes;
+	/**< The requested length of the generated key in bytes.
+	 * Implementation-specific limits may apply to this length. */
+	CpaFlatBuffer userLabel;
+	/**< Optional flat buffer containing a pointer to a user defined label.
+	 * The length field indicates the length of the label in bytes. To use
+	 * this field, the tlsOp must be CPA_CY_KEY_TLS_OP_USER_DEFINED.
+	 * Implementation-specific limits may apply to this length. */
 } CpaCyKeyGenTlsOpData;
 
 /**
@@ -461,14 +452,15 @@ typedef struct _CpaCyKeyGenTlsOpData {
  *        cpaCyKeyGenMgf
  ****************************************************************************/
 typedef struct _CpaCyKeyGenMgfOpData {
-    CpaFlatBuffer seedBuffer;
-    /**<  Caller MUST allocate a buffer and populate with the input seed
-     * data. For optimal performance the start of the seed SHOULD be allocated
-     * on an 8-byte boundary. The length field represents the seed length in
-     * bytes.  Implementation-specific limits may apply to this length. */
-    Cpa32U maskLenInBytes;
-    /**< The requested length of the generated mask in bytes.
-     * Implementation-specific limits may apply to this length. */
+	CpaFlatBuffer seedBuffer;
+	/**<  Caller MUST allocate a buffer and populate with the input seed
+	 * data. For optimal performance the start of the seed SHOULD be
+	 * allocated on an 8-byte boundary. The length field represents the seed
+	 * length in bytes.  Implementation-specific limits may apply to this
+	 * length. */
+	Cpa32U maskLenInBytes;
+	/**< The requested length of the generated mask in bytes.
+	 * Implementation-specific limits may apply to this length. */
 } CpaCyKeyGenMgfOpData;
 
 /**
@@ -487,11 +479,11 @@ typedef struct _CpaCyKeyGenMgfOpData {
  *        cpaCyKeyGenMgfExt
  ****************************************************************************/
 typedef struct _CpaCyKeyGenMgfOpDataExt {
-    CpaCyKeyGenMgfOpData baseOpData;
-    /**<  "Base" operational data for MGF generation */
-    CpaCySymHashAlgorithm hashAlgorithm;
-    /**< Specifies the hash algorithm to be used by the Mask Generation
-     * Function */
+	CpaCyKeyGenMgfOpData baseOpData;
+	/**<  "Base" operational data for MGF generation */
+	CpaCySymHashAlgorithm hashAlgorithm;
+	/**< Specifies the hash algorithm to be used by the Mask Generation
+	 * Function */
 } CpaCyKeyGenMgfOpDataExt;
 
 /**
@@ -508,40 +500,40 @@ typedef struct _CpaCyKeyGenMgfOpDataExt {
  *
  ****************************************************************************/
 typedef struct _CpaCyKeyGenStats {
-    Cpa32U numSslKeyGenRequests;
-    /**< Total number of successful SSL key generation requests. */
-    Cpa32U numSslKeyGenRequestErrors;
-    /**< Total number of SSL key generation requests that had an error and
-     *   could not be processed. */
-    Cpa32U numSslKeyGenCompleted;
-    /**< Total number of SSL key generation operations that completed
-     *   successfully. */
-    Cpa32U numSslKeyGenCompletedErrors;
-    /**< Total number of SSL key generation operations that could not be
-     *   completed successfully due to errors. */
-    Cpa32U numTlsKeyGenRequests;
-    /**< Total number of successful TLS key generation requests. */
-    Cpa32U numTlsKeyGenRequestErrors;
-    /**< Total number of TLS key generation requests that had an error and
-     *   could not be processed. */
-    Cpa32U numTlsKeyGenCompleted;
-    /**< Total number of TLS key generation operations that completed
-     *   successfully. */
-    Cpa32U numTlsKeyGenCompletedErrors;
-    /**< Total number of TLS key generation operations that could not be
-     *   completed successfully due to errors. */
-    Cpa32U numMgfKeyGenRequests;
-    /**< Total number of successful MGF key generation requests (including
-     *   "extended" MGF requests). */
-    Cpa32U numMgfKeyGenRequestErrors;
-    /**< Total number of MGF key generation requests that had an error and
-     *   could not be processed. */
-    Cpa32U numMgfKeyGenCompleted;
-    /**< Total number of MGF key generation operations that completed
-     *   successfully. */
-    Cpa32U numMgfKeyGenCompletedErrors;
-    /**< Total number of MGF key generation operations that could not be
-     *   completed successfully due to errors. */
+	Cpa32U numSslKeyGenRequests;
+	/**< Total number of successful SSL key generation requests. */
+	Cpa32U numSslKeyGenRequestErrors;
+	/**< Total number of SSL key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa32U numSslKeyGenCompleted;
+	/**< Total number of SSL key generation operations that completed
+	 *   successfully. */
+	Cpa32U numSslKeyGenCompletedErrors;
+	/**< Total number of SSL key generation operations that could not be
+	 *   completed successfully due to errors. */
+	Cpa32U numTlsKeyGenRequests;
+	/**< Total number of successful TLS key generation requests. */
+	Cpa32U numTlsKeyGenRequestErrors;
+	/**< Total number of TLS key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa32U numTlsKeyGenCompleted;
+	/**< Total number of TLS key generation operations that completed
+	 *   successfully. */
+	Cpa32U numTlsKeyGenCompletedErrors;
+	/**< Total number of TLS key generation operations that could not be
+	 *   completed successfully due to errors. */
+	Cpa32U numMgfKeyGenRequests;
+	/**< Total number of successful MGF key generation requests (including
+	 *   "extended" MGF requests). */
+	Cpa32U numMgfKeyGenRequestErrors;
+	/**< Total number of MGF key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa32U numMgfKeyGenCompleted;
+	/**< Total number of MGF key generation operations that completed
+	 *   successfully. */
+	Cpa32U numMgfKeyGenCompletedErrors;
+	/**< Total number of MGF key generation operations that could not be
+	 *   completed successfully due to errors. */
 } CpaCyKeyGenStats CPA_DEPRECATED;
 
 /**
@@ -556,40 +548,40 @@ typedef struct _CpaCyKeyGenStats {
  *
  ****************************************************************************/
 typedef struct _CpaCyKeyGenStats64 {
-    Cpa64U numSslKeyGenRequests;
-    /**< Total number of successful SSL key generation requests. */
-    Cpa64U numSslKeyGenRequestErrors;
-    /**< Total number of SSL key generation requests that had an error and
-     *   could not be processed. */
-    Cpa64U numSslKeyGenCompleted;
-    /**< Total number of SSL key generation operations that completed
-     *   successfully. */
-    Cpa64U numSslKeyGenCompletedErrors;
-    /**< Total number of SSL key generation operations that could not be
-     *   completed successfully due to errors. */
-    Cpa64U numTlsKeyGenRequests;
-    /**< Total number of successful TLS key generation requests. */
-    Cpa64U numTlsKeyGenRequestErrors;
-    /**< Total number of TLS key generation requests that had an error and
-     *   could not be processed. */
-    Cpa64U numTlsKeyGenCompleted;
-    /**< Total number of TLS key generation operations that completed
-     *   successfully. */
-    Cpa64U numTlsKeyGenCompletedErrors;
-    /**< Total number of TLS key generation operations that could not be
-     *   completed successfully due to errors. */
-    Cpa64U numMgfKeyGenRequests;
-    /**< Total number of successful MGF key generation requests (including
-     *   "extended" MGF requests). */
-    Cpa64U numMgfKeyGenRequestErrors;
-    /**< Total number of MGF key generation requests that had an error and
-     *   could not be processed. */
-    Cpa64U numMgfKeyGenCompleted;
-    /**< Total number of MGF key generation operations that completed
-     *   successfully. */
-    Cpa64U numMgfKeyGenCompletedErrors;
-    /**< Total number of MGF key generation operations that could not be
-     *   completed successfully due to errors. */
+	Cpa64U numSslKeyGenRequests;
+	/**< Total number of successful SSL key generation requests. */
+	Cpa64U numSslKeyGenRequestErrors;
+	/**< Total number of SSL key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa64U numSslKeyGenCompleted;
+	/**< Total number of SSL key generation operations that completed
+	 *   successfully. */
+	Cpa64U numSslKeyGenCompletedErrors;
+	/**< Total number of SSL key generation operations that could not be
+	 *   completed successfully due to errors. */
+	Cpa64U numTlsKeyGenRequests;
+	/**< Total number of successful TLS key generation requests. */
+	Cpa64U numTlsKeyGenRequestErrors;
+	/**< Total number of TLS key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa64U numTlsKeyGenCompleted;
+	/**< Total number of TLS key generation operations that completed
+	 *   successfully. */
+	Cpa64U numTlsKeyGenCompletedErrors;
+	/**< Total number of TLS key generation operations that could not be
+	 *   completed successfully due to errors. */
+	Cpa64U numMgfKeyGenRequests;
+	/**< Total number of successful MGF key generation requests (including
+	 *   "extended" MGF requests). */
+	Cpa64U numMgfKeyGenRequestErrors;
+	/**< Total number of MGF key generation requests that had an error and
+	 *   could not be processed. */
+	Cpa64U numMgfKeyGenCompleted;
+	/**< Total number of MGF key generation operations that completed
+	 *   successfully. */
+	Cpa64U numMgfKeyGenCompletedErrors;
+	/**< Total number of MGF key generation operations that could not be
+	 *   completed successfully due to errors. */
 } CpaCyKeyGenStats64;
 
 /**
@@ -664,12 +656,10 @@ typedef struct _CpaCyKeyGenStats64 {
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenSsl(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenSslOpData *pKeyGenSslOpData,
-        CpaFlatBuffer *pGeneratedKeyBuffer);
+CpaStatus cpaCyKeyGenSsl(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenSslOpData *pKeyGenSslOpData,
+    CpaFlatBuffer *pGeneratedKeyBuffer);
 
 /**
  *****************************************************************************
@@ -743,12 +733,10 @@ cpaCyKeyGenSsl(const CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenTls(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
-        CpaFlatBuffer *pGeneratedKeyBuffer);
+CpaStatus cpaCyKeyGenTls(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
+    CpaFlatBuffer *pGeneratedKeyBuffer);
 
 /**
  *****************************************************************************
@@ -825,14 +813,10 @@ cpaCyKeyGenTls(const CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenTls2(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
-        CpaCySymHashAlgorithm hashAlgorithm,
-        CpaFlatBuffer *pGeneratedKeyBuffer);
-
+CpaStatus cpaCyKeyGenTls2(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenTlsOpData *pKeyGenTlsOpData,
+    CpaCySymHashAlgorithm hashAlgorithm, CpaFlatBuffer *pGeneratedKeyBuffer);
 
 /**
  *****************************************************************************
@@ -912,14 +896,10 @@ cpaCyKeyGenTls2(const CpaInstanceHandle instanceHandle,
  *      CpaCyKeyGenHKDFOpData
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenTls3(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
-        CpaCyKeyHKDFCipherSuite cipherSuite,
-        CpaFlatBuffer *pGeneratedKeyBuffer);
-
+CpaStatus cpaCyKeyGenTls3(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenHKDFOpData *pKeyGenTlsOpData,
+    CpaCyKeyHKDFCipherSuite cipherSuite, CpaFlatBuffer *pGeneratedKeyBuffer);
 
 /**
  *****************************************************************************
@@ -993,12 +973,10 @@ cpaCyKeyGenTls3(const CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenMgf(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
-        CpaFlatBuffer *pGeneratedMaskBuffer);
+CpaStatus cpaCyKeyGenMgf(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenMgfOpData *pKeyGenMgfOpData,
+    CpaFlatBuffer *pGeneratedMaskBuffer);
 
 /**
  *****************************************************************************
@@ -1071,12 +1049,10 @@ cpaCyKeyGenMgf(const CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pKeyGenCb,
-        void *pCallbackTag,
-        const CpaCyKeyGenMgfOpDataExt *pKeyGenMgfOpDataExt,
-        CpaFlatBuffer *pGeneratedMaskBuffer);
+CpaStatus cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pKeyGenCb, void *pCallbackTag,
+    const CpaCyKeyGenMgfOpDataExt *pKeyGenMgfOpDataExt,
+    CpaFlatBuffer *pGeneratedMaskBuffer);
 
 /**
  *****************************************************************************
@@ -1138,7 +1114,7 @@ cpaCyKeyGenMgfExt(const CpaInstanceHandle instanceHandle,
  *****************************************************************************/
 CpaStatus CPA_DEPRECATED
 cpaCyKeyGenQueryStats(const CpaInstanceHandle instanceHandle,
-        struct _CpaCyKeyGenStats *pKeyGenStats);
+    struct _CpaCyKeyGenStats *pKeyGenStats);
 
 /**
  *****************************************************************************
@@ -1193,9 +1169,8 @@ cpaCyKeyGenQueryStats(const CpaInstanceHandle instanceHandle,
  * @see
  *      CpaCyKeyGenStats64
  *****************************************************************************/
-CpaStatus
-cpaCyKeyGenQueryStats64(const CpaInstanceHandle instanceHandle,
-        CpaCyKeyGenStats64 *pKeyGenStats);
+CpaStatus cpaCyKeyGenQueryStats64(const CpaInstanceHandle instanceHandle,
+    CpaCyKeyGenStats64 *pKeyGenStats);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

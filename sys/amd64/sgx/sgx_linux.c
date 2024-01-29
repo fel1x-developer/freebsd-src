@@ -33,22 +33,22 @@
 #include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/conf.h>
+#include <sys/file.h>
+#include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/file.h>
 #include <sys/proc.h>
 
-#include <machine/sgx.h>
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
-#include <compat/linux/linux_ioctl.h>
+#include <machine/sgx.h>
 
 #include <amd64/sgx/sgxvar.h>
 
-#include <sys/ioccom.h>
+#include <compat/linux/linux_ioctl.h>
 
-#define	SGX_LINUX_IOCTL_MIN	(SGX_IOC_ENCLAVE_CREATE & 0xffff)
-#define	SGX_LINUX_IOCTL_MAX	(SGX_IOC_ENCLAVE_INIT & 0xffff)
+#define SGX_LINUX_IOCTL_MIN (SGX_IOC_ENCLAVE_CREATE & 0xffff)
+#define SGX_LINUX_IOCTL_MAX (SGX_IOC_ENCLAVE_INIT & 0xffff)
 
 static int
 sgx_linux_ioctl(struct thread *td, struct linux_ioctl_args *args)

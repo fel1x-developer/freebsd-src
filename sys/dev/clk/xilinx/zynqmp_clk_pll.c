@@ -26,21 +26,19 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/xilinx/zynqmp_clk_pll.h>
 
 #include "clkdev_if.h"
 #include "zynqmp_firmware_if.h"
 
 struct zynqmp_clk_pll_softc {
-	device_t	firmware;
-	uint32_t	id;
+	device_t firmware;
+	uint32_t id;
 };
 
 enum pll_mode {
@@ -68,14 +66,12 @@ zynqmp_clk_pll_recalc(struct clknode *clk, uint64_t *freq)
 	sc = clknode_get_softc(clk);
 	rv = ZYNQMP_FIRMWARE_CLOCK_GETDIVIDER(sc->firmware, sc->id, &div);
 	if (rv != 0) {
-		printf("%s: Error while getting divider for %s\n",
-		    __func__,
+		printf("%s: Error while getting divider for %s\n", __func__,
 		    clknode_get_name(clk));
 	}
 	rv = ZYNQMP_FIRMWARE_PLL_GET_MODE(sc->firmware, sc->id, &mode);
 	if (rv != 0) {
-		printf("%s: Error while getting mode for %s\n",
-		    __func__,
+		printf("%s: Error while getting mode for %s\n", __func__,
 		    clknode_get_name(clk));
 	}
 	if (mode == PLL_MODE_ERROR)
@@ -103,17 +99,19 @@ zynqmp_clk_pll_set_freq(struct clknode *clk, uint64_t fparent, uint64_t *fout,
 
 static clknode_method_t zynqmp_clk_pll_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		zynqmp_clk_pll_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	zynqmp_clk_pll_recalc),
-	CLKNODEMETHOD(clknode_set_freq,		zynqmp_clk_pll_set_freq),
+	CLKNODEMETHOD(clknode_init, zynqmp_clk_pll_init),
+	CLKNODEMETHOD(clknode_recalc_freq, zynqmp_clk_pll_recalc),
+	CLKNODEMETHOD(clknode_set_freq, zynqmp_clk_pll_set_freq),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_clk_pll_clknode, zynqmp_clk_pll_clknode_class,
-    zynqmp_clk_pll_clknode_methods, sizeof(struct zynqmp_clk_pll_softc), clknode_class);
+    zynqmp_clk_pll_clknode_methods, sizeof(struct zynqmp_clk_pll_softc),
+    clknode_class);
 
 int
-zynqmp_clk_pll_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef)
+zynqmp_clk_pll_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef)
 {
 	struct clknode *clk;
 	struct zynqmp_clk_pll_softc *sc;

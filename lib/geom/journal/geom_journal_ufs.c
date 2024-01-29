@@ -30,13 +30,12 @@
 #include <sys/disklabel.h>
 #include <sys/mount.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
-#include <libufs.h>
-#include <libgeom.h>
 #include <core/geom.h>
+#include <libgeom.h>
+#include <libufs.h>
 #include <misc/subr.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "geom_journal.h"
 

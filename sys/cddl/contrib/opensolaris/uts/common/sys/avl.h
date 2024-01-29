@@ -27,15 +27,15 @@
  * Copyright (c) 2014 by Delphix. All rights reserved.
  */
 
-#ifndef	_AVL_H
-#define	_AVL_H
+#ifndef _AVL_H
+#define _AVL_H
 
 /*
  * This is a private header file.  Applications should not directly include
  * this file.
  */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -108,17 +108,17 @@ extern "C" {
 /*
  * AVL comparator helpers
  */
-#define	AVL_ISIGN(a)	(((a) > 0) - ((a) < 0))
-#define	AVL_CMP(a, b)	(((a) > (b)) - ((a) < (b)))
-#define	AVL_PCMP(a, b)	\
+#define AVL_ISIGN(a) (((a) > 0) - ((a) < 0))
+#define AVL_CMP(a, b) (((a) > (b)) - ((a) < (b)))
+#define AVL_PCMP(a, b) \
 	(((uintptr_t)(a) > (uintptr_t)(b)) - ((uintptr_t)(a) < (uintptr_t)(b)))
 
 /*
  * AVL comparator helpers
  */
-#define	AVL_ISIGN(a)	(((a) > 0) - ((a) < 0))
-#define	AVL_CMP(a, b)	(((a) > (b)) - ((a) < (b)))
-#define	AVL_PCMP(a, b)	\
+#define AVL_ISIGN(a) (((a) > 0) - ((a) < 0))
+#define AVL_CMP(a, b) (((a) > (b)) - ((a) < (b)))
+#define AVL_PCMP(a, b) \
 	(((uintptr_t)(a) > (uintptr_t)(b)) - ((uintptr_t)(a) < (uintptr_t)(b)))
 
 /*
@@ -137,13 +137,11 @@ typedef struct avl_node avl_node_t;
  */
 typedef uintptr_t avl_index_t;
 
-
 /*
  * Direction constants used for avl_nearest().
  */
-#define	AVL_BEFORE	(0)
-#define	AVL_AFTER	(1)
-
+#define AVL_BEFORE (0)
+#define AVL_AFTER (1)
 
 /*
  * Prototypes
@@ -169,8 +167,7 @@ typedef uintptr_t avl_index_t;
  * offset - the value of OFFSETOF(struct my_type, my_link)
  */
 extern void avl_create(avl_tree_t *tree,
-	int (*compar) (const void *, const void *), size_t size, size_t offset);
-
+    int (*compar)(const void *, const void *), size_t size, size_t offset);
 
 /*
  * Find a node with a matching value in the tree. Returns the matching node
@@ -204,7 +201,6 @@ extern void avl_insert(avl_tree_t *tree, void *node, avl_index_t where);
 extern void avl_insert_here(avl_tree_t *tree, void *new_data, void *here,
     int direction);
 
-
 /*
  * Return the first or last valued node in the tree. Will return NULL
  * if the tree is empty.
@@ -213,7 +209,6 @@ extern void avl_insert_here(avl_tree_t *tree, void *new_data, void *here,
 extern void *avl_first(avl_tree_t *tree);
 extern void *avl_last(avl_tree_t *tree);
 
-
 /*
  * Return the next or previous valued node in the tree.
  * AVL_NEXT() will return NULL if at the last node.
@@ -221,9 +216,8 @@ extern void *avl_last(avl_tree_t *tree);
  *
  * node   - the node from which the next or previous node is found
  */
-#define	AVL_NEXT(tree, node)	avl_walk(tree, node, AVL_AFTER)
-#define	AVL_PREV(tree, node)	avl_walk(tree, node, AVL_BEFORE)
-
+#define AVL_NEXT(tree, node) avl_walk(tree, node, AVL_AFTER)
+#define AVL_PREV(tree, node) avl_walk(tree, node, AVL_BEFORE)
 
 /*
  * Find the node with the nearest value either greater or less than
@@ -249,7 +243,6 @@ extern void *avl_last(avl_tree_t *tree);
  */
 extern void *avl_nearest(avl_tree_t *tree, avl_index_t where, int direction);
 
-
 /*
  * Add a single node to the tree.
  * The node must not be in the tree, and it must not
@@ -258,7 +251,6 @@ extern void *avl_nearest(avl_tree_t *tree, avl_index_t where, int direction);
  * node   - the node to add
  */
 extern void avl_add(avl_tree_t *tree, void *node);
-
 
 /*
  * Remove a single node from the tree.  The node must be in the tree.
@@ -316,7 +308,6 @@ extern boolean_t avl_is_empty(avl_tree_t *tree);
  */
 extern void *avl_destroy_nodes(avl_tree_t *tree, void **cookie);
 
-
 /*
  * Final destroy of an AVL tree. Arguments are:
  *
@@ -324,10 +315,8 @@ extern void *avl_destroy_nodes(avl_tree_t *tree, void **cookie);
  */
 extern void avl_destroy(avl_tree_t *tree);
 
-
-
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _AVL_H */
+#endif /* _AVL_H */

@@ -31,120 +31,103 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h>
-
-#include <dev/mpr/mpi/mpi2_type.h>
 #include <dev/mpr/mpi/mpi2.h>
-#include <dev/mpr/mpi/mpi2_ioc.h>
 #include <dev/mpr/mpi/mpi2_cnfg.h>
-#include <dev/mpr/mpi/mpi2_tool.h>
+#include <dev/mpr/mpi/mpi2_ioc.h>
 #include <dev/mpr/mpi/mpi2_pci.h>
-
-#include <sys/queue.h>
-#include <sys/kthread.h>
+#include <dev/mpr/mpi/mpi2_tool.h>
+#include <dev/mpr/mpi/mpi2_type.h>
 #include <dev/mpr/mpr_ioctl.h>
 #include <dev/mpr/mprvar.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-static int	mpr_pci_probe(device_t);
-static int	mpr_pci_attach(device_t);
-static int	mpr_pci_detach(device_t);
-static int	mpr_pci_suspend(device_t);
-static int	mpr_pci_resume(device_t);
-static void	mpr_pci_free(struct mpr_softc *);
-static int	mpr_alloc_msix(struct mpr_softc *sc, int msgs);
-static int	mpr_alloc_msi(struct mpr_softc *sc, int msgs);
-static int	mpr_pci_alloc_interrupts(struct mpr_softc *sc);
+static int mpr_pci_probe(device_t);
+static int mpr_pci_attach(device_t);
+static int mpr_pci_detach(device_t);
+static int mpr_pci_suspend(device_t);
+static int mpr_pci_resume(device_t);
+static void mpr_pci_free(struct mpr_softc *);
+static int mpr_alloc_msix(struct mpr_softc *sc, int msgs);
+static int mpr_alloc_msi(struct mpr_softc *sc, int msgs);
+static int mpr_pci_alloc_interrupts(struct mpr_softc *sc);
 
-static device_method_t mpr_methods[] = {
-	DEVMETHOD(device_probe,		mpr_pci_probe),
-	DEVMETHOD(device_attach,	mpr_pci_attach),
-	DEVMETHOD(device_detach,	mpr_pci_detach),
-	DEVMETHOD(device_suspend,	mpr_pci_suspend),
-	DEVMETHOD(device_resume,	mpr_pci_resume),
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	DEVMETHOD(bus_driver_added,	bus_generic_driver_added),
-	{ 0, 0 }
-};
+static device_method_t mpr_methods[] = { DEVMETHOD(device_probe, mpr_pci_probe),
+	DEVMETHOD(device_attach, mpr_pci_attach),
+	DEVMETHOD(device_detach, mpr_pci_detach),
+	DEVMETHOD(device_suspend, mpr_pci_suspend),
+	DEVMETHOD(device_resume, mpr_pci_resume),
+	DEVMETHOD(bus_print_child, bus_generic_print_child),
+	DEVMETHOD(bus_driver_added, bus_generic_driver_added), { 0, 0 } };
 
-static driver_t mpr_pci_driver = {
-	"mpr",
-	mpr_methods,
-	sizeof(struct mpr_softc)
-};
+static driver_t mpr_pci_driver = { "mpr", mpr_methods,
+	sizeof(struct mpr_softc) };
 
 struct mpr_ident {
-	uint16_t	vendor;
-	uint16_t	device;
-	uint16_t	subvendor;
-	uint16_t	subdevice;
-	u_int		flags;
-	const char	*desc;
-} mpr_identifiers[] = {
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3004,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3004" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3008,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3008" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_1,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3108_1" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_2,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3108_2" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_5,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3108_5" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_6,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3108_6" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3216,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3216" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3224,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3224" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3316_1,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3316_1" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3316_2,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3316_2" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3324_1,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3324_1" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3324_2,
-	    0xffff, 0xffff, 0, "Avago Technologies (LSI) SAS3324_2" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3408,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3408" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3416,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3416" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3508,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3508" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3508_1,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3508_1" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3516,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3516" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3516_1,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3516_1" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3616,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3616" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3708,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3708" },
-	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3716,
-	    0xffff, 0xffff, MPR_FLAGS_GEN35_IOC,
-	    "Avago Technologies (LSI) SAS3716" },
+	uint16_t vendor;
+	uint16_t device;
+	uint16_t subvendor;
+	uint16_t subdevice;
+	u_int flags;
+	const char *desc;
+} mpr_identifiers[] = { { MPI2_MFGPAGE_VENDORID_LSI,
+			    MPI25_MFGPAGE_DEVID_SAS3004, 0xffff, 0xffff, 0,
+			    "Avago Technologies (LSI) SAS3004" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3008, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3008" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_1, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3108_1" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_2, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3108_2" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_5, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3108_5" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI25_MFGPAGE_DEVID_SAS3108_6, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3108_6" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3216, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3216" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3224, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3224" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3316_1, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3316_1" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3316_2, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3316_2" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3324_1, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3324_1" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3324_2, 0xffff,
+	    0xffff, 0, "Avago Technologies (LSI) SAS3324_2" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3408, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3408" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3416, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3416" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3508, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3508" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3508_1, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3508_1" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3516, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3516" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3516_1, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3516_1" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3616, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3616" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3708, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3708" },
+	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_SAS3716, 0xffff,
+	    0xffff, MPR_FLAGS_GEN35_IOC, "Avago Technologies (LSI) SAS3716" },
 	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_INVALID0_SAS3816,
 	    0xffff, 0xffff, (MPR_FLAGS_GEN35_IOC | MPR_FLAGS_SEA_IOC),
 	    "Broadcom Inc. (LSI) INVALID0 SAS3816" },
@@ -169,8 +152,7 @@ struct mpr_ident {
 	{ MPI2_MFGPAGE_VENDORID_LSI, MPI26_MFGPAGE_DEVID_INVALID1_SAS3916,
 	    0xffff, 0xffff, (MPR_FLAGS_GEN35_IOC | MPR_FLAGS_SEA_IOC),
 	    "Broadcom Inc. (LSI) INVALID1 SAS3916" },
-	{ 0, 0, 0, 0, 0, NULL }
-};
+	{ 0, 0, 0, 0, 0, NULL } };
 
 DRIVER_MODULE(mpr, pci, mpr_pci_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;U16:subvendor;U16:subdevice;D:#", pci,
@@ -250,7 +232,7 @@ mpr_pci_attach(device_t dev)
 		sc->mpr_regs_rid = PCIR_BAR(i);
 
 		if ((sc->mpr_regs_resource = bus_alloc_resource_any(dev,
-		    SYS_RES_MEMORY, &sc->mpr_regs_rid, RF_ACTIVE)) != NULL)
+			 SYS_RES_MEMORY, &sc->mpr_regs_rid, RF_ACTIVE)) != NULL)
 			break;
 	}
 
@@ -298,10 +280,12 @@ mpr_pci_alloc_interrupts(struct mpr_softc *sc)
 		mpr_dprint(sc, MPR_INIT, "Counted %d MSI-X messages\n", msgs);
 		msgs = min(msgs, sc->max_msix);
 		msgs = min(msgs, MPR_MSIX_MAX);
-		msgs = min(msgs, 1);	/* XXX */
+		msgs = min(msgs, 1); /* XXX */
 		if (msgs != 0) {
-			mpr_dprint(sc, MPR_INIT, "Attempting to allocate %d "
-			    "MSI-X messages\n", msgs);
+			mpr_dprint(sc, MPR_INIT,
+			    "Attempting to allocate %d "
+			    "MSI-X messages\n",
+			    msgs);
 			error = mpr_alloc_msix(sc, msgs);
 		}
 	}
@@ -310,8 +294,10 @@ mpr_pci_alloc_interrupts(struct mpr_softc *sc)
 		mpr_dprint(sc, MPR_INIT, "Counted %d MSI messages\n", msgs);
 		msgs = min(msgs, MPR_MSI_MAX);
 		if (msgs != 0) {
-			mpr_dprint(sc, MPR_INIT, "Attempting to allocated %d "
-			    "MSI messages\n", MPR_MSI_MAX);
+			mpr_dprint(sc, MPR_INIT,
+			    "Attempting to allocated %d "
+			    "MSI messages\n",
+			    MPR_MSI_MAX);
 			error = mpr_alloc_msi(sc, MPR_MSI_MAX);
 		}
 	}
@@ -350,7 +336,7 @@ mpr_pci_setup_interrupts(struct mpr_softc *sc)
 		initial_rid = 1;
 		ihandler = mpr_intr_msi;
 	} else {
-		mpr_dprint(sc, MPR_ERROR|MPR_INIT,
+		mpr_dprint(sc, MPR_ERROR | MPR_INIT,
 		    "Unable to set up interrupts\n");
 		return (EINVAL);
 	}
@@ -359,26 +345,25 @@ mpr_pci_setup_interrupts(struct mpr_softc *sc)
 		q = &sc->queues[i];
 		rid = i + initial_rid;
 		q->irq_rid = rid;
-		q->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-		    &q->irq_rid, RF_ACTIVE);
+		q->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &q->irq_rid,
+		    RF_ACTIVE);
 		if (q->irq == NULL) {
-			mpr_dprint(sc, MPR_ERROR|MPR_INIT,
+			mpr_dprint(sc, MPR_ERROR | MPR_INIT,
 			    "Cannot allocate interrupt RID %d\n", rid);
 			sc->msi_msgs = i;
 			break;
 		}
-		error = bus_setup_intr(dev, q->irq,
-		    INTR_TYPE_BIO | INTR_MPSAFE, NULL, ihandler,
-		    sc, &q->intrhand);
+		error = bus_setup_intr(dev, q->irq, INTR_TYPE_BIO | INTR_MPSAFE,
+		    NULL, ihandler, sc, &q->intrhand);
 		if (error) {
-			mpr_dprint(sc, MPR_ERROR|MPR_INIT,
+			mpr_dprint(sc, MPR_ERROR | MPR_INIT,
 			    "Cannot setup interrupt RID %d\n", rid);
 			sc->msi_msgs = i;
 			break;
 		}
 	}
 
-        mpr_dprint(sc, MPR_INIT, "Set up %d interrupts\n", sc->msi_msgs);
+	mpr_dprint(sc, MPR_INIT, "Set up %d interrupts\n", sc->msi_msgs);
 	return (error);
 }
 
@@ -409,8 +394,7 @@ mpr_pci_free_interrupts(struct mpr_softc *sc)
 	for (i = 0; i < sc->msi_msgs; i++) {
 		q = &sc->queues[i];
 		if (q->irq != NULL) {
-			bus_teardown_intr(sc->mpr_dev, q->irq,
-			    q->intrhand);
+			bus_teardown_intr(sc->mpr_dev, q->irq, q->intrhand);
 			bus_release_resource(sc->mpr_dev, SYS_RES_IRQ,
 			    q->irq_rid, q->irq);
 		}

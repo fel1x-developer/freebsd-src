@@ -25,9 +25,10 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/acl.h>
+
 #include <assert.h>
 #include <errno.h>
-#include <sys/acl.h>
 
 #include "acl_support.h"
 
@@ -49,7 +50,8 @@ entry2acl(acl_entry_t entry)
 {
 	acl_t aclp;
 
-	aclp = (acl_t)(((long)entry >> _ACL_T_ALIGNMENT_BITS) << _ACL_T_ALIGNMENT_BITS);
+	aclp = (acl_t)(((long)entry >> _ACL_T_ALIGNMENT_BITS)
+	    << _ACL_T_ALIGNMENT_BITS);
 
 	return (aclp);
 }

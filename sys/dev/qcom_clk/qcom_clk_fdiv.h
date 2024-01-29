@@ -25,15 +25,15 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_CLK_FDIV_H__
-#define	__QCOM_CLK_FDIV_H__
+#ifndef __QCOM_CLK_FDIV_H__
+#define __QCOM_CLK_FDIV_H__
 
 struct qcom_clk_fdiv_def {
 	struct clknode_init_def clkdef;
 	uint32_t divisor; /* Fixed divisor */
 };
 
-extern	int qcom_clk_fdiv_register(struct clkdom *clkdom,
-	    struct qcom_clk_fdiv_def *clkdef);
+extern int qcom_clk_fdiv_register(struct clkdom *clkdom,
+    struct qcom_clk_fdiv_def *clkdef);
 
-#endif	/* __QCOM_CLK_FDIV_H__ */
+#endif /* __QCOM_CLK_FDIV_H__ */

@@ -28,6 +28,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fs/nfs/nfsport.h>
 
 extern int nfsrv_useacl;
@@ -39,8 +40,8 @@ static int nfsrv_acemasktoperm(u_int32_t acetype, u_int32_t mask, int owner,
  * Handle xdr for an ace.
  */
 int
-nfsrv_dissectace(struct nfsrv_descript *nd, struct acl_entry *acep,
-    bool server, int *aceerrp, int *acesizep, NFSPROC_T *p)
+nfsrv_dissectace(struct nfsrv_descript *nd, struct acl_entry *acep, bool server,
+    int *aceerrp, int *acesizep, NFSPROC_T *p)
 {
 	u_int32_t *tl;
 	int len, gotid = 0, owner = 0, error = 0, aceerr = 0;
@@ -391,8 +392,8 @@ nfsrv_buildace(struct nfsrv_descript *nd, u_char *name, int namelen,
  * Build an NFSv4 ACL.
  */
 int
-nfsrv_buildacl(struct nfsrv_descript *nd, NFSACL_T *aclp, __enum_uint8(vtype) type,
-    NFSPROC_T *p)
+nfsrv_buildacl(struct nfsrv_descript *nd, NFSACL_T *aclp,
+    __enum_uint8(vtype) type, NFSPROC_T *p)
 {
 	int i, entrycnt = 0, retlen;
 	u_int32_t *entrycntp;

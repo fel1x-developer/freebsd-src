@@ -37,9 +37,9 @@
 
 #include <sys/types.h>
 #include <sys/capsicum.h>
+#include <sys/nv.h>
 #include <sys/procdesc.h>
 #include <sys/socket.h>
-#include <sys/nv.h>
 
 #include <assert.h>
 #include <err.h>
@@ -53,9 +53,9 @@
 #include "zygote.h"
 
 /* Zygote info. */
-static int	zygote_sock = -1;
+static int zygote_sock = -1;
 
-#define	ZYGOTE_SERVICE_EXECUTE	1
+#define ZYGOTE_SERVICE_EXECUTE 1
 
 int
 zygote_clone(uint64_t funcidx, int *chanfdp, int *procfdp)
@@ -145,7 +145,7 @@ zygote_main(int *sockp)
 		chanfd[1] = -1;
 		error = 0;
 		if (socketpair(PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0,
-		    chanfd) == -1) {
+			chanfd) == -1) {
 			error = errno;
 			goto send;
 		}
@@ -167,7 +167,7 @@ zygote_main(int *sockp)
 			close(chanfd[1]);
 			break;
 		}
-send:
+	send:
 		nvlout = nvlist_create(0);
 		if (error != 0) {
 			nvlist_add_number(nvlout, "error", (uint64_t)error);

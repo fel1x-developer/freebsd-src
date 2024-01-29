@@ -30,7 +30,7 @@
 #define _SHA512_IMPL_H_
 
 #if defined(ARM64_SHA512)
-void SHA512_Transform_arm64_impl(uint64_t * state,
+void SHA512_Transform_arm64_impl(uint64_t *state,
     const unsigned char block[SHA512_BLOCK_LENGTH], const uint64_t K[80]);
 #endif
 

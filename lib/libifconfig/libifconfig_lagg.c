@@ -30,9 +30,9 @@
 #include <sys/ioctl.h>
 
 #include <net/ethernet.h>
+#include <net/ieee8023ad_lacp.h>
 #include <net/if.h>
 #include <net/if_lagg.h>
-#include <net/ieee8023ad_lacp.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -44,7 +44,7 @@
 
 /* Internal structure used for allocations and frees */
 struct _ifconfig_lagg_status {
-	struct ifconfig_lagg_status l;  /* Must be first */
+	struct ifconfig_lagg_status l; /* Must be first */
 	struct lagg_reqall ra;
 	struct lagg_reqopts ro;
 	struct lagg_reqflags rf;
@@ -52,8 +52,8 @@ struct _ifconfig_lagg_status {
 };
 
 int
-ifconfig_lagg_get_laggport_status(ifconfig_handle_t *h,
-    const char *name, struct lagg_reqport *rp)
+ifconfig_lagg_get_laggport_status(ifconfig_handle_t *h, const char *name,
+    struct lagg_reqport *rp)
 {
 	strlcpy(rp->rp_ifname, name, sizeof(rp->rp_portname));
 	strlcpy(rp->rp_portname, name, sizeof(rp->rp_portname));
@@ -62,8 +62,8 @@ ifconfig_lagg_get_laggport_status(ifconfig_handle_t *h,
 }
 
 int
-ifconfig_lagg_get_lagg_status(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_lagg_status **lagg_status)
+ifconfig_lagg_get_lagg_status(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_lagg_status **lagg_status)
 {
 	struct _ifconfig_lagg_status *ls;
 

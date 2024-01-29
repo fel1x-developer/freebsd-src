@@ -26,9 +26,9 @@
  */
 
 #include "opt_acpi.h"
+#include "opt_ddb.h"
 #include "opt_kstack_pages.h"
 #include "opt_platform.h"
-#include "opt_ddb.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -65,14 +65,14 @@
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/pmap.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 #include <machine/armreg.h>
 #include <machine/cpu.h>
@@ -80,8 +80,8 @@
 #include <machine/hypervisor.h>
 #include <machine/kdb.h>
 #include <machine/machdep.h>
-#include <machine/metadata.h>
 #include <machine/md_var.h>
+#include <machine/metadata.h>
 #include <machine/pcb.h>
 #include <machine/undefined.h>
 #include <machine/vmparam.h>
@@ -91,8 +91,9 @@
 #endif
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <machine/acpica_machdep.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 #ifdef FDT
@@ -134,7 +135,7 @@ static uint64_t hcr_el2;
 
 struct kva_md_info kmi;
 
-int64_t dczva_line_size;	/* The size of cache line the dc zva zeroes */
+int64_t dczva_line_size; /* The size of cache line the dc zva zeroes */
 int has_pan;
 
 /*
@@ -157,7 +158,8 @@ int (*apei_nmi)(void);
 static void
 print_ssp_warning(void *data __unused)
 {
-	printf("WARNING: Per-thread SSP is enabled but the compiler is too old to support it\n");
+	printf(
+	    "WARNING: Per-thread SSP is enabled but the compiler is too old to support it\n");
 }
 SYSINIT(ssp_warn, SI_SUB_COPYRIGHT, SI_ORDER_ANY, print_ssp_warning, NULL);
 SYSINIT(ssp_warn2, SI_SUB_LAST, SI_ORDER_ANY, print_ssp_warning, NULL);
@@ -220,8 +222,8 @@ cpu_startup(void *dummy)
 			size = phys_avail[i + 1] - phys_avail[i];
 			printf("%#016jx - %#016jx, %ju bytes (%ju pages)\n",
 			    (uintmax_t)phys_avail[i],
-			    (uintmax_t)phys_avail[i + 1] - 1,
-			    (uintmax_t)size, (uintmax_t)size / PAGE_SIZE);
+			    (uintmax_t)phys_avail[i + 1] - 1, (uintmax_t)size,
+			    (uintmax_t)size / PAGE_SIZE);
 		}
 	}
 
@@ -261,9 +263,8 @@ cpu_idle(int busy)
 	if (!busy)
 		cpu_idleclock();
 	if (!sched_runnable())
-		__asm __volatile(
-		    "dsb sy \n"
-		    "wfi    \n");
+		__asm __volatile("dsb sy \n"
+				 "wfi    \n");
 	if (!busy)
 		cpu_activeclock();
 	spinlock_exit();
@@ -385,7 +386,8 @@ init_proc0(vm_offset_t kstack)
 	thread0.td_md.md_canary = boot_canary;
 #endif
 	thread0.td_pcb = (struct pcb *)(thread0.td_kstack +
-	    thread0.td_kstack_pages * PAGE_SIZE) - 1;
+			     thread0.td_kstack_pages * PAGE_SIZE) -
+	    1;
 	thread0.td_pcb->pcb_flags = 0;
 	thread0.td_pcb->pcb_fpflags = 0;
 	thread0.td_pcb->pcb_fpusaved = &thread0.td_pcb->pcb_fpustate;
@@ -440,7 +442,8 @@ arm64_get_writable_addr(vm_offset_t addr, vm_offset_t *out)
 typedef void (*efi_map_entry_cb)(struct efi_md *, void *argp);
 
 static void
-foreach_efi_map_entry(struct efi_map_header *efihdr, efi_map_entry_cb cb, void *argp)
+foreach_efi_map_entry(struct efi_map_header *efihdr, efi_map_entry_cb cb,
+    void *argp)
 {
 	struct efi_md *map, *p;
 	size_t efisz;
@@ -457,8 +460,8 @@ foreach_efi_map_entry(struct efi_map_header *efihdr, efi_map_entry_cb cb, void *
 		return;
 	ndesc = efihdr->memory_size / efihdr->descriptor_size;
 
-	for (i = 0, p = map; i < ndesc; i++,
-	    p = efi_next_descriptor(p, efihdr->descriptor_size)) {
+	for (i = 0, p = map; i < ndesc;
+	     i++, p = efi_next_descriptor(p, efihdr->descriptor_size)) {
 		cb(p, argp);
 	}
 }
@@ -543,30 +546,18 @@ static void
 print_efi_map_entry(struct efi_md *p, void *argp __unused)
 {
 	const char *type;
-	static const char *types[] = {
-		"Reserved",
-		"LoaderCode",
-		"LoaderData",
-		"BootServicesCode",
-		"BootServicesData",
-		"RuntimeServicesCode",
-		"RuntimeServicesData",
-		"ConventionalMemory",
-		"UnusableMemory",
-		"ACPIReclaimMemory",
-		"ACPIMemoryNVS",
-		"MemoryMappedIO",
-		"MemoryMappedIOPortSpace",
-		"PalCode",
-		"PersistentMemory"
-	};
+	static const char *types[] = { "Reserved", "LoaderCode", "LoaderData",
+		"BootServicesCode", "BootServicesData", "RuntimeServicesCode",
+		"RuntimeServicesData", "ConventionalMemory", "UnusableMemory",
+		"ACPIReclaimMemory", "ACPIMemoryNVS", "MemoryMappedIO",
+		"MemoryMappedIOPortSpace", "PalCode", "PersistentMemory" };
 
 	if (p->md_type < nitems(types))
 		type = types[p->md_type];
 	else
 		type = "<INVALID>";
-	printf("%23s %012lx %012lx %08lx ", type, p->md_phys,
-	    p->md_virt, p->md_pages);
+	printf("%23s %012lx %012lx %08lx ", type, p->md_phys, p->md_virt,
+	    p->md_pages);
 	if (p->md_attr & EFI_MD_ATTR_UC)
 		printf("UC ");
 	if (p->md_attr & EFI_MD_ATTR_WC)
@@ -598,8 +589,8 @@ static void
 print_efi_map_entries(struct efi_map_header *efihdr)
 {
 
-	printf("%23s %12s %12s %8s %4s\n",
-	    "Type", "Physical", "Virtual", "#Pages", "Attr");
+	printf("%23s %12s %12s %8s %4s\n", "Type", "Physical", "Virtual",
+	    "#Pages", "Attr");
 	foreach_efi_map_entry(efihdr, print_efi_map_entry, NULL);
 }
 
@@ -611,8 +602,7 @@ print_efi_map_entries(struct efi_map_header *efihdr)
  * or if it spills to the next page, that's contiguous in PA and in the DMAP.
  * All observed tables obey the first part of this precondition.
  */
-struct early_map_data
-{
+struct early_map_data {
 	vm_offset_t va;
 	vm_offset_t pa;
 };
@@ -629,7 +619,7 @@ efi_early_map_entry(struct efi_md *p, void *argp)
 		return;
 	s = p->md_virt;
 	e = p->md_virt + p->md_pages * EFI_PAGE_SIZE;
-	if (emdp->va < s  || emdp->va >= e)
+	if (emdp->va < s || emdp->va >= e)
 		return;
 	emdp->pa = p->md_phys + (emdp->va - p->md_virt);
 }
@@ -644,7 +634,6 @@ efi_early_map(vm_offset_t va)
 		return NULL;
 	return (void *)PHYS_TO_DMAP(emd.pa);
 }
-
 
 /*
  * When booted via kboot, the prior kernel will pass in reserved memory areas in
@@ -664,7 +653,8 @@ exclude_efi_memreserve(vm_offset_t efi_systbl_phys)
 		return;
 	}
 	if (systbl->st_hdr.th_sig != EFI_SYSTBL_SIG) {
-		printf("Bad signature for systbl %#lx\n", systbl->st_hdr.th_sig);
+		printf("Bad signature for systbl %#lx\n",
+		    systbl->st_hdr.th_sig);
 		return;
 	}
 
@@ -676,7 +666,8 @@ exclude_efi_memreserve(vm_offset_t efi_systbl_phys)
 	 * the cfgtbl entries don't span a page. Other pointers are PAs, as
 	 * noted below.
 	 */
-	if (systbl->st_cfgtbl == 0)	/* Failsafe st_entries should == 0 in this case */
+	if (systbl->st_cfgtbl ==
+	    0) /* Failsafe st_entries should == 0 in this case */
 		return;
 	for (int i = 0; i < systbl->st_entries; i++) {
 		struct efi_cfgtbl *cfgtbl;
@@ -685,7 +676,8 @@ exclude_efi_memreserve(vm_offset_t efi_systbl_phys)
 		cfgtbl = efi_early_map(systbl->st_cfgtbl + i * sizeof(*cfgtbl));
 		if (cfgtbl == NULL)
 			panic("Can't map the config table entry %d\n", i);
-		if (memcmp(&cfgtbl->ct_uuid, &efi_memreserve, sizeof(struct uuid)) != 0)
+		if (memcmp(&cfgtbl->ct_uuid, &efi_memreserve,
+			sizeof(struct uuid)) != 0)
 			continue;
 
 		/*
@@ -695,21 +687,22 @@ exclude_efi_memreserve(vm_offset_t efi_systbl_phys)
 		 * is also a PA.
 		 */
 		mr = (struct linux_efi_memreserve *)PHYS_TO_DMAP(
-			(vm_offset_t)cfgtbl->ct_data);
+		    (vm_offset_t)cfgtbl->ct_data);
 		while (true) {
 			for (int j = 0; j < mr->mr_count; j++) {
 				struct linux_efi_memreserve_entry *mre;
 
 				mre = &mr->mr_entry[j];
-				physmem_exclude_region(mre->mre_base, mre->mre_size,
+				physmem_exclude_region(mre->mre_base,
+				    mre->mre_size,
 				    EXFLAG_NODUMP | EXFLAG_NOALLOC);
 			}
 			if (mr->mr_next == 0)
 				break;
-			mr = (struct linux_efi_memreserve *)PHYS_TO_DMAP(mr->mr_next);
+			mr = (struct linux_efi_memreserve *)PHYS_TO_DMAP(
+			    mr->mr_next);
 		};
 	}
-
 }
 
 #ifdef FDT
@@ -764,21 +757,19 @@ bus_probe(void)
 	if (env != NULL) {
 		order = env;
 		while (order != NULL) {
-			if (has_acpi &&
-			    strncmp(order, "acpi", 4) == 0 &&
+			if (has_acpi && strncmp(order, "acpi", 4) == 0 &&
 			    (order[4] == ',' || order[4] == '\0')) {
 				arm64_bus_method = ARM64_BUS_ACPI;
 				break;
 			}
-			if (has_fdt &&
-			    strncmp(order, "fdt", 3) == 0 &&
+			if (has_fdt && strncmp(order, "fdt", 3) == 0 &&
 			    (order[3] == ',' || order[3] == '\0')) {
 				arm64_bus_method = ARM64_BUS_FDT;
 				break;
 			}
 			order = strchr(order, ',');
 			if (order != NULL)
-				order++;	/* Skip comma */
+				order++; /* Skip comma */
 		}
 		freeenv(env);
 
@@ -846,8 +837,8 @@ memory_mapping_mode(vm_paddr_t pa)
 		return (VM_MEMATTR_WRITE_BACK);
 	ndesc = efihdr->memory_size / efihdr->descriptor_size;
 
-	for (i = 0, p = map; i < ndesc; i++,
-	    p = efi_next_descriptor(p, efihdr->descriptor_size)) {
+	for (i = 0, p = map; i < ndesc;
+	     i++, p = efi_next_descriptor(p, efihdr->descriptor_size)) {
 		if (pa < p->md_phys ||
 		    pa >= p->md_phys + p->md_pages * EFI_PAGE_SIZE)
 			continue;
@@ -916,8 +907,8 @@ initarm(struct arm64_bootparams *abp)
 #ifdef FDT
 	else {
 		/* Grab physical memory regions information from device tree. */
-		if (fdt_get_mem_regions(mem_regions, &mem_regions_sz,
-		    NULL) != 0)
+		if (fdt_get_mem_regions(mem_regions, &mem_regions_sz, NULL) !=
+		    0)
 			panic("Cannot get physical memory regions");
 		physmem_hardware_regions(mem_regions, mem_regions_sz);
 	}
@@ -941,9 +932,8 @@ initarm(struct arm64_bootparams *abp)
 	 * Set the pcpu pointer with a backup in tpidr_el1 to be
 	 * loaded when entering the kernel from userland.
 	 */
-	__asm __volatile(
-	    "mov x18, %0 \n"
-	    "msr tpidr_el1, %0" :: "r"(pcpup));
+	__asm __volatile("mov x18, %0 \n"
+			 "msr tpidr_el1, %0" ::"r"(pcpup));
 
 	/* locore.S sets sp_el0 to &thread0 so no need to set it here. */
 	PCPU_SET(curthread, &thread0);
@@ -964,13 +954,14 @@ initarm(struct arm64_bootparams *abp)
 	if (efi_systbl_phys != 0)
 		exclude_efi_memreserve(efi_systbl_phys);
 
-	/*
-	 * We carefully bootstrap the sanitizer map after we've excluded
-	 * absolutely everything else that could impact phys_avail.  There's not
-	 * always enough room for the initial shadow map after the kernel, so
-	 * we'll end up searching for segments that we can safely use.  Those
-	 * segments also get excluded from phys_avail.
-	 */
+		/*
+		 * We carefully bootstrap the sanitizer map after we've excluded
+		 * absolutely everything else that could impact phys_avail.
+		 * There's not always enough room for the initial shadow map
+		 * after the kernel, so we'll end up searching for segments that
+		 * we can safely use.  Those segments also get excluded from
+		 * phys_avail.
+		 */
 #if defined(KASAN)
 	pmap_bootstrap_san();
 #endif
@@ -1027,14 +1018,16 @@ initarm(struct arm64_bootparams *abp)
 #ifdef FDT
 	if (arm64_bus_method == ARM64_BUS_FDT) {
 		root = OF_finddevice("/");
-		if (OF_getprop(root, "freebsd,dts-version", dts_version, sizeof(dts_version)) > 0) {
+		if (OF_getprop(root, "freebsd,dts-version", dts_version,
+			sizeof(dts_version)) > 0) {
 			if (strcmp(LINUX_DTS_VERSION, dts_version) != 0)
-				printf("WARNING: DTB version is %s while kernel expects %s, "
+				printf(
+				    "WARNING: DTB version is %s while kernel expects %s, "
 				    "please update the DTB in the ESP\n",
-				    dts_version,
-				    LINUX_DTS_VERSION);
+				    dts_version, LINUX_DTS_VERSION);
 		} else {
-			printf("WARNING: Cannot find freebsd,dts-version property, "
+			printf(
+			    "WARNING: Cannot find freebsd,dts-version property, "
 			    "cannot check DTB compliance\n");
 		}
 	}
@@ -1073,8 +1066,8 @@ dbg_init(void)
 
 DB_SHOW_COMMAND(specialregs, db_show_spregs)
 {
-#define	PRINT_REG(reg)	\
-    db_printf(__STRING(reg) " = %#016lx\n", READ_SPECIALREG(reg))
+#define PRINT_REG(reg) \
+	db_printf(__STRING(reg) " = %#016lx\n", READ_SPECIALREG(reg))
 
 	PRINT_REG(actlr_el1);
 	PRINT_REG(afsr0_el1);

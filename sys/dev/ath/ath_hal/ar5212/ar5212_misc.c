@@ -19,18 +19,16 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
+#include "ah_desc.h" /* NB: for HAL_PHYERR* */
 #include "ah_devid.h"
-#include "ah_desc.h"			/* NB: for HAL_PHYERR* */
-
-#include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
-#include "ar5212/ar5212phy.h"
-
 #include "ah_eeprom_v3.h"
+#include "ah_internal.h"
+#include "ar5212/ar5212.h"
+#include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
-#define	AR_NUM_GPIO	6		/* 6 GPIO pins */
-#define	AR_GPIOD_MASK	0x0000002F	/* GPIO data reg r/w mask */
+#define AR_NUM_GPIO 6		 /* 6 GPIO pins */
+#define AR_GPIOD_MASK 0x0000002F /* GPIO data reg r/w mask */
 
 void
 ar5212GetMacAddress(struct ath_hal *ah, uint8_t *mac)
@@ -74,8 +72,8 @@ ar5212SetBssIdMask(struct ath_hal *ah, const uint8_t *mask)
  * Attempt to change the cards operating regulatory domain to the given value
  */
 HAL_BOOL
-ar5212SetRegulatoryDomain(struct ath_hal *ah,
-	uint16_t regDomain, HAL_STATUS *status)
+ar5212SetRegulatoryDomain(struct ath_hal *ah, uint16_t regDomain,
+    HAL_STATUS *status)
 {
 	HAL_STATUS ecode;
 
@@ -90,8 +88,8 @@ ar5212SetRegulatoryDomain(struct ath_hal *ah,
 #ifdef AH_SUPPORT_WRITE_REGDOMAIN
 	if (ath_hal_eepromWrite(ah, AR_EEPROM_REG_DOMAIN, regDomain)) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: set regulatory domain to %u (0x%x)\n",
-		    __func__, regDomain, regDomain);
+		    "%s: set regulatory domain to %u (0x%x)\n", __func__,
+		    regDomain, regDomain);
 		AH_PRIVATE(ah)->ah_currentRD = regDomain;
 		return AH_TRUE;
 	}
@@ -178,8 +176,8 @@ ar5212SetLedState(struct ath_hal *ah, HAL_LED_STATE state)
 		AR_PCICFG_LEDCTL_NONE,	/* HAL_LED_INIT */
 		AR_PCICFG_LEDCTL_PEND,	/* HAL_LED_SCAN */
 		AR_PCICFG_LEDCTL_PEND,	/* HAL_LED_AUTH */
-		AR_PCICFG_LEDCTL_ASSOC,	/* HAL_LED_ASSOC*/
-		AR_PCICFG_LEDCTL_ASSOC,	/* HAL_LED_RUN */
+		AR_PCICFG_LEDCTL_ASSOC, /* HAL_LED_ASSOC*/
+		AR_PCICFG_LEDCTL_ASSOC, /* HAL_LED_RUN */
 		AR_PCICFG_LEDCTL_NONE,
 		AR_PCICFG_LEDCTL_NONE,
 		AR_PCICFG_LEDCTL_NONE,
@@ -195,15 +193,15 @@ ar5212SetLedState(struct ath_hal *ah, HAL_LED_STATE state)
 		 * status bits below is meangless (the driver must flash
 		 * the LED(s) using the GPIO lines).
 		 */
-		bits = (bits &~ AR_PCICFG_LEDMODE)
-		     | SM(AR_PCICFG_LEDMODE_POWON, AR_PCICFG_LEDMODE)
+		bits = (bits & ~AR_PCICFG_LEDMODE) |
+		    SM(AR_PCICFG_LEDMODE_POWON, AR_PCICFG_LEDMODE)
 #if 0
 		     | SM(AR_PCICFG_LEDMODE_NETON, AR_PCICFG_LEDMODE)
 #endif
-		     | 0x08000000;
+		    | 0x08000000;
 	}
-	bits = (bits &~ AR_PCICFG_LEDCTL)
-	     | SM(ledbits[state & 0x7], AR_PCICFG_LEDCTL);
+	bits = (bits & ~AR_PCICFG_LEDCTL) |
+	    SM(ledbits[state & 0x7], AR_PCICFG_LEDCTL);
 	OS_REG_WRITE(ah, AR_PCICFG, bits);
 }
 
@@ -222,8 +220,9 @@ ar5212WriteAssocid(struct ath_hal *ah, const uint8_t *bssid, uint16_t assocId)
 	OS_MEMCPY(ahp->ah_bssid, bssid, IEEE80211_ADDR_LEN);
 	ahp->ah_assocId = assocId;
 	OS_REG_WRITE(ah, AR_BSS_ID0, LE_READ_4(ahp->ah_bssid));
-	OS_REG_WRITE(ah, AR_BSS_ID1, LE_READ_2(ahp->ah_bssid+4) |
-				     ((assocId & 0x3fff)<<AR_BSS_ID1_AID_S));
+	OS_REG_WRITE(ah, AR_BSS_ID1,
+	    LE_READ_2(ahp->ah_bssid + 4) |
+		((assocId & 0x3fff) << AR_BSS_ID1_AID_S));
 }
 
 /*
@@ -238,7 +237,7 @@ ar5212GetTsf64(struct ath_hal *ah)
 	low1 = OS_REG_READ(ah, AR_TSF_L32);
 	u32 = OS_REG_READ(ah, AR_TSF_U32);
 	low2 = OS_REG_READ(ah, AR_TSF_L32);
-	if (low2 < low1) {	/* roll over */
+	if (low2 < low1) { /* roll over */
 		/*
 		 * If we are not preempted this will work.  If we are
 		 * then we re-reading AR_TSF_U32 does no good as the
@@ -251,7 +250,7 @@ ar5212GetTsf64(struct ath_hal *ah)
 		 */
 		u32++;
 	}
-	return (((uint64_t) u32) << 32) | ((uint64_t) low2);
+	return (((uint64_t)u32) << 32) | ((uint64_t)low2);
 }
 
 /*
@@ -317,10 +316,10 @@ ar5212SetBasicRate(struct ath_hal *ah, HAL_RATE_SET *rs)
 	 * rate is found to be equal or less than 2Mbps.
 	 */
 	reg = OS_REG_READ(ah, AR_STA_ID1);
-	if (xset && xset/2 <= 2)
+	if (xset && xset / 2 <= 2)
 		OS_REG_WRITE(ah, AR_STA_ID1, reg | AR_STA_ID1_BASE_RATE_11B);
 	else
-		OS_REG_WRITE(ah, AR_STA_ID1, reg &~ AR_STA_ID1_BASE_RATE_11B);
+		OS_REG_WRITE(ah, AR_STA_ID1, reg & ~AR_STA_ID1_BASE_RATE_11B);
 }
 
 /*
@@ -335,8 +334,7 @@ ar5212GetRandomSeed(struct ath_hal *ah)
 	nf = (OS_REG_READ(ah, AR_PHY(25)) >> 19) & 0x1ff;
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	return (OS_REG_READ(ah, AR_TSF_U32) ^
-		OS_REG_READ(ah, AR_TSF_L32) ^ nf);
+	return (OS_REG_READ(ah, AR_TSF_U32) ^ OS_REG_READ(ah, AR_TSF_L32) ^ nf);
 }
 
 /*
@@ -357,7 +355,7 @@ ar5212DetectCardPresent(struct ath_hal *ah)
 	macVersion = v >> AR_SREV_ID_S;
 	macRev = v & AR_SREV_REVISION;
 	return (AH_PRIVATE(ah)->ah_macVersion == macVersion &&
-		AH_PRIVATE(ah)->ah_macRev == macRev);
+	    AH_PRIVATE(ah)->ah_macRev == macRev);
 }
 
 void
@@ -368,23 +366,23 @@ ar5212EnableMibCounters(struct ath_hal *ah)
 	    ~(AR_MIBC_COW | AR_MIBC_FMC | AR_MIBC_CMC | AR_MIBC_MCS) & 0x0f);
 }
 
-void 
+void
 ar5212DisableMibCounters(struct ath_hal *ah)
 {
-	OS_REG_WRITE(ah, AR_MIBC,  AR_MIBC | AR_MIBC_CMC);
+	OS_REG_WRITE(ah, AR_MIBC, AR_MIBC | AR_MIBC_CMC);
 }
 
 /*
  * Update MIB Counters
  */
 void
-ar5212UpdateMibCounters(struct ath_hal *ah, HAL_MIB_STATS* stats)
+ar5212UpdateMibCounters(struct ath_hal *ah, HAL_MIB_STATS *stats)
 {
 	stats->ackrcv_bad += OS_REG_READ(ah, AR_ACK_FAIL);
-	stats->rts_bad	  += OS_REG_READ(ah, AR_RTS_FAIL);
-	stats->fcs_bad	  += OS_REG_READ(ah, AR_FCS_FAIL);
-	stats->rts_good	  += OS_REG_READ(ah, AR_RTS_OK);
-	stats->beacons	  += OS_REG_READ(ah, AR_BEACON_CNT);
+	stats->rts_bad += OS_REG_READ(ah, AR_RTS_FAIL);
+	stats->fcs_bad += OS_REG_READ(ah, AR_FCS_FAIL);
+	stats->rts_good += OS_REG_READ(ah, AR_RTS_OK);
+	stats->beacons += OS_REG_READ(ah, AR_BEACON_CNT);
 }
 
 /*
@@ -407,9 +405,9 @@ ar5212GetCurRssi(struct ath_hal *ah)
 
 u_int
 ar5212GetDefAntenna(struct ath_hal *ah)
-{   
+{
 	return (OS_REG_READ(ah, AR_DEF_ANTENNA) & 0x7);
-}   
+}
 
 void
 ar5212SetDefAntenna(struct ath_hal *ah, u_int antenna)
@@ -450,13 +448,14 @@ ar5212SetSifsTime(struct ath_hal *ah, u_int us)
 	struct ath_hal_5212 *ahp = AH5212(ah);
 
 	if (us > ath_hal_mac_usec(ah, 0xffff)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad SIFS time %u\n",
-		    __func__, us);
-		ahp->ah_sifstime = (u_int) -1;	/* restore default handling */
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad SIFS time %u\n", __func__,
+		    us);
+		ahp->ah_sifstime = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
-		OS_REG_WRITE(ah, AR_D_GBL_IFS_SIFS, ath_hal_mac_clks(ah, us-2));
+		OS_REG_WRITE(ah, AR_D_GBL_IFS_SIFS,
+		    ath_hal_mac_clks(ah, us - 2));
 		ahp->ah_sifstime = us;
 		return AH_TRUE;
 	}
@@ -466,7 +465,7 @@ u_int
 ar5212GetSifsTime(struct ath_hal *ah)
 {
 	u_int clks = OS_REG_READ(ah, AR_D_GBL_IFS_SIFS) & 0xffff;
-	return ath_hal_mac_usec(ah, clks)+2;	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks) + 2; /* convert from system clocks */
 }
 
 HAL_BOOL
@@ -475,9 +474,9 @@ ar5212SetSlotTime(struct ath_hal *ah, u_int us)
 	struct ath_hal_5212 *ahp = AH5212(ah);
 
 	if (us < HAL_SLOT_TIME_6 || us > ath_hal_mac_usec(ah, 0xffff)) {
-		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad slot time %u\n",
-		    __func__, us);
-		ahp->ah_slottime = (u_int) -1;	/* restore default handling */
+		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad slot time %u\n", __func__,
+		    us);
+		ahp->ah_slottime = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
@@ -491,7 +490,7 @@ u_int
 ar5212GetSlotTime(struct ath_hal *ah)
 {
 	u_int clks = OS_REG_READ(ah, AR_D_GBL_IFS_SLOT) & 0xffff;
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 HAL_BOOL
@@ -502,12 +501,12 @@ ar5212SetAckTimeout(struct ath_hal *ah, u_int us)
 	if (us > ath_hal_mac_usec(ah, MS(0xffffffff, AR_TIME_OUT_ACK))) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad ack timeout %u\n",
 		    __func__, us);
-		ahp->ah_acktimeout = (u_int) -1; /* restore default handling */
+		ahp->ah_acktimeout = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
-		OS_REG_RMW_FIELD(ah, AR_TIME_OUT,
-			AR_TIME_OUT_ACK, ath_hal_mac_clks(ah, us));
+		OS_REG_RMW_FIELD(ah, AR_TIME_OUT, AR_TIME_OUT_ACK,
+		    ath_hal_mac_clks(ah, us));
 		ahp->ah_acktimeout = us;
 		return AH_TRUE;
 	}
@@ -517,7 +516,7 @@ u_int
 ar5212GetAckTimeout(struct ath_hal *ah)
 {
 	u_int clks = MS(OS_REG_READ(ah, AR_TIME_OUT), AR_TIME_OUT_ACK);
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 u_int
@@ -549,12 +548,12 @@ ar5212SetCTSTimeout(struct ath_hal *ah, u_int us)
 	if (us > ath_hal_mac_usec(ah, MS(0xffffffff, AR_TIME_OUT_CTS))) {
 		HALDEBUG(ah, HAL_DEBUG_ANY, "%s: bad cts timeout %u\n",
 		    __func__, us);
-		ahp->ah_ctstimeout = (u_int) -1; /* restore default handling */
+		ahp->ah_ctstimeout = (u_int)-1; /* restore default handling */
 		return AH_FALSE;
 	} else {
 		/* convert to system clocks */
-		OS_REG_RMW_FIELD(ah, AR_TIME_OUT,
-			AR_TIME_OUT_CTS, ath_hal_mac_clks(ah, us));
+		OS_REG_RMW_FIELD(ah, AR_TIME_OUT, AR_TIME_OUT_CTS,
+		    ath_hal_mac_clks(ah, us));
 		ahp->ah_ctstimeout = us;
 		return AH_TRUE;
 	}
@@ -564,7 +563,7 @@ u_int
 ar5212GetCTSTimeout(struct ath_hal *ah)
 {
 	u_int clks = MS(OS_REG_READ(ah, AR_TIME_OUT), AR_TIME_OUT_CTS);
-	return ath_hal_mac_usec(ah, clks);	/* convert from system clocks */
+	return ath_hal_mac_usec(ah, clks); /* convert from system clocks */
 }
 
 /* Setup decompression for given key index */
@@ -573,13 +572,13 @@ ar5212SetDecompMask(struct ath_hal *ah, uint16_t keyidx, int en)
 {
 	struct ath_hal_5212 *ahp = AH5212(ah);
 
-        if (keyidx >= HAL_DECOMP_MASK_SIZE)
-                return AH_FALSE;
-        OS_REG_WRITE(ah, AR_DCM_A, keyidx);
-        OS_REG_WRITE(ah, AR_DCM_D, en ? AR_DCM_D_EN : 0);
-        ahp->ah_decompMask[keyidx] = en;
+	if (keyidx >= HAL_DECOMP_MASK_SIZE)
+		return AH_FALSE;
+	OS_REG_WRITE(ah, AR_DCM_A, keyidx);
+	OS_REG_WRITE(ah, AR_DCM_D, en ? AR_DCM_D_EN : 0);
+	ahp->ah_decompMask[keyidx] = en;
 
-        return AH_TRUE;
+	return AH_TRUE;
 }
 
 /* Setup coverage class */
@@ -608,7 +607,8 @@ ar5212SetCoverageClass(struct ath_hal *ah, uint8_t coverageclass, int now)
 		if (IEEE80211_IS_CHAN_HALF(AH_PRIVATE(ah)->ah_curchan)) {
 			slot += IFS_SLOT_HALF_RATE;
 			eifs += IFS_EIFS_HALF_RATE;
-		} else if (IEEE80211_IS_CHAN_QUARTER(AH_PRIVATE(ah)->ah_curchan)) {
+		} else if (IEEE80211_IS_CHAN_QUARTER(
+			       AH_PRIVATE(ah)->ah_curchan)) {
 			slot += IFS_SLOT_QUARTER_RATE;
 			eifs += IFS_EIFS_QUARTER_RATE;
 		} else { /* full rate */
@@ -619,7 +619,7 @@ ar5212SetCoverageClass(struct ath_hal *ah, uint8_t coverageclass, int now)
 		/*
 		 * Add additional time for air propagation for ACK and CTS
 		 * timeouts. This value is in core clocks.
-  		 */
+		 */
 		timeout = ACK_CTS_TIMEOUT_11A + (coverageclass * 3 * clkRate);
 
 		/*
@@ -628,8 +628,8 @@ ar5212SetCoverageClass(struct ath_hal *ah, uint8_t coverageclass, int now)
 		OS_REG_WRITE(ah, AR_D_GBL_IFS_SLOT, slot);
 		OS_REG_WRITE(ah, AR_D_GBL_IFS_EIFS, eifs);
 		OS_REG_WRITE(ah, AR_TIME_OUT,
-			  SM(timeout, AR_TIME_OUT_CTS)
-			| SM(timeout, AR_TIME_OUT_ACK));
+		    SM(timeout, AR_TIME_OUT_CTS) |
+			SM(timeout, AR_TIME_OUT_ACK));
 	}
 }
 
@@ -637,11 +637,11 @@ HAL_STATUS
 ar5212SetQuiet(struct ath_hal *ah, uint32_t period, uint32_t duration,
     uint32_t nextStart, HAL_QUIET_FLAG flag)
 {
-	OS_REG_WRITE(ah, AR_QUIET2, period | (duration << AR_QUIET2_QUIET_DUR_S));
+	OS_REG_WRITE(ah, AR_QUIET2,
+	    period | (duration << AR_QUIET2_QUIET_DUR_S));
 	if (flag & HAL_QUIET_ENABLE) {
 		OS_REG_WRITE(ah, AR_QUIET1, nextStart | (1 << 16));
-	}
-	else {
+	} else {
 		OS_REG_WRITE(ah, AR_QUIET1, nextStart);
 	}
 	return HAL_OK;
@@ -665,8 +665,8 @@ ar5212Use32KHzclock(struct ath_hal *ah, HAL_OPMODE opmode)
 	if (opmode != HAL_M_HOSTAP) {
 		struct ath_hal_5212 *ahp = AH5212(ah);
 		return ath_hal_eepromGetFlag(ah, AR_EEP_32KHZCRYSTAL) &&
-		       (ahp->ah_enable32kHzClock == USE_32KHZ ||
-		        ahp->ah_enable32kHzClock == AUTO_32KHZ);
+		    (ahp->ah_enable32kHzClock == USE_32KHZ ||
+			ahp->ah_enable32kHzClock == AUTO_32KHZ);
 	} else
 		return AH_FALSE;
 }
@@ -690,31 +690,33 @@ ar5212SetupClock(struct ath_hal *ah, HAL_OPMODE opmode)
 		OS_REG_WRITE(ah, AR_PHY_REFCLKPD,
 		    IS_RAD5112_ANY(ah) || IS_5413(ah) ? 0x14 : 0x18);
 		OS_REG_RMW_FIELD(ah, AR_USEC, AR_USEC_USEC32, 1);
-		OS_REG_WRITE(ah, AR_TSF_PARM, 61);  /* 32 KHz TSF incr */
+		OS_REG_WRITE(ah, AR_TSF_PARM, 61); /* 32 KHz TSF incr */
 		OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_SEL, 1);
 
 		if (IS_2413(ah) || IS_5413(ah) || IS_2417(ah)) {
-			OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT,   0x26);
-			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL,        0x0d);
-			OS_REG_WRITE(ah, AR_PHY_M_SLEEP,           0x07);
-			OS_REG_WRITE(ah, AR_PHY_REFCLKDLY,         0x3f);
+			OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT, 0x26);
+			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0d);
+			OS_REG_WRITE(ah, AR_PHY_M_SLEEP, 0x07);
+			OS_REG_WRITE(ah, AR_PHY_REFCLKDLY, 0x3f);
 			/* # Set sleep clock rate to 32 KHz. */
-			OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND, 0x2);
+			OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND,
+			    0x2);
 		} else {
-			OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT,   0x0a);
-			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL,        0x0c);
-			OS_REG_WRITE(ah, AR_PHY_M_SLEEP,           0x03);
-			OS_REG_WRITE(ah, AR_PHY_REFCLKDLY,         0x20);
-			OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND, 0x3);
+			OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT, 0x0a);
+			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0c);
+			OS_REG_WRITE(ah, AR_PHY_M_SLEEP, 0x03);
+			OS_REG_WRITE(ah, AR_PHY_REFCLKDLY, 0x20);
+			OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND,
+			    0x3);
 		}
 	} else {
 		OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND, 0x0);
 		OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_SEL, 0);
 
-		OS_REG_WRITE(ah, AR_TSF_PARM, 1);	/* 32MHz TSF inc */
+		OS_REG_WRITE(ah, AR_TSF_PARM, 1); /* 32MHz TSF inc */
 
 		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_CONTROL, 0x1f);
-		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT,   0x7f);
+		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT, 0x7f);
 
 		if (IS_2417(ah))
 			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0a);
@@ -722,10 +724,11 @@ ar5212SetupClock(struct ath_hal *ah, HAL_OPMODE opmode)
 			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x32);
 		else
 			OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0e);
-		OS_REG_WRITE(ah, AR_PHY_M_SLEEP,           0x0c);
-		OS_REG_WRITE(ah, AR_PHY_REFCLKDLY,         0xff);
+		OS_REG_WRITE(ah, AR_PHY_M_SLEEP, 0x0c);
+		OS_REG_WRITE(ah, AR_PHY_REFCLKDLY, 0xff);
 		OS_REG_WRITE(ah, AR_PHY_REFCLKPD,
-		    IS_RAD5112_ANY(ah) || IS_5413(ah) || IS_2417(ah) ? 0x14 : 0x18);
+		    IS_RAD5112_ANY(ah) || IS_5413(ah) || IS_2417(ah) ? 0x14 :
+								       0x18);
 		OS_REG_RMW_FIELD(ah, AR_USEC, AR_USEC_USEC32,
 		    IS_RAD5112_ANY(ah) || IS_5413(ah) ? 39 : 31);
 	}
@@ -742,7 +745,7 @@ ar5212RestoreClock(struct ath_hal *ah, HAL_OPMODE opmode)
 		OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_RATE_IND, 0);
 		OS_REG_RMW_FIELD(ah, AR_PCICFG, AR_PCICFG_SCLK_SEL, 0);
 
-		OS_REG_WRITE(ah, AR_TSF_PARM, 1);	/* 32 MHz TSF incr */
+		OS_REG_WRITE(ah, AR_TSF_PARM, 1); /* 32 MHz TSF incr */
 		OS_REG_RMW_FIELD(ah, AR_USEC, AR_USEC_USEC32,
 		    IS_RAD5112_ANY(ah) || IS_5413(ah) ? 39 : 31);
 
@@ -750,12 +753,12 @@ ar5212RestoreClock(struct ath_hal *ah, HAL_OPMODE opmode)
 		 * Restore BB registers to power-on defaults
 		 */
 		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_CONTROL, 0x1f);
-		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT,   0x7f);
-		OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL,        0x0e);
-		OS_REG_WRITE(ah, AR_PHY_M_SLEEP,           0x0c);
-		OS_REG_WRITE(ah, AR_PHY_REFCLKDLY,         0xff);
+		OS_REG_WRITE(ah, AR_PHY_SLEEP_CTR_LIMIT, 0x7f);
+		OS_REG_WRITE(ah, AR_PHY_SLEEP_SCAL, 0x0e);
+		OS_REG_WRITE(ah, AR_PHY_M_SLEEP, 0x0c);
+		OS_REG_WRITE(ah, AR_PHY_REFCLKDLY, 0xff);
 		OS_REG_WRITE(ah, AR_PHY_REFCLKPD,
-		    IS_RAD5112_ANY(ah) || IS_5413(ah) ?  0x14 : 0x18);
+		    IS_RAD5112_ANY(ah) || IS_5413(ah) ? 0x14 : 0x18);
 	}
 }
 
@@ -768,19 +771,19 @@ ar5212GetNfAdjust(struct ath_hal *ah, const HAL_CHANNEL_INTERNAL *c)
 {
 	static const struct {
 		uint16_t freqLow;
-		int16_t	  adjust;
+		int16_t adjust;
 	} adjustDef[] = {
-		{ 5790,	11 },	/* NB: ordered high -> low */
+		{ 5790, 11 }, /* NB: ordered high -> low */
 		{ 5730, 10 },
-		{ 5690,  9 },
-		{ 5660,  8 },
-		{ 5610,  7 },
-		{ 5530,  5 },
-		{ 5450,  4 },
-		{ 5379,  2 },
-		{ 5209,  0 },
-		{ 3000,  1 },
-		{    0,  0 },
+		{ 5690, 9 },
+		{ 5660, 8 },
+		{ 5610, 7 },
+		{ 5530, 5 },
+		{ 5450, 4 },
+		{ 5379, 2 },
+		{ 5209, 0 },
+		{ 3000, 1 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -791,19 +794,19 @@ ar5212GetNfAdjust(struct ath_hal *ah, const HAL_CHANNEL_INTERNAL *c)
 
 HAL_STATUS
 ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t *result)
+    uint32_t capability, uint32_t *result)
 {
-#define	MACVERSION(ah)	AH_PRIVATE(ah)->ah_macVersion
+#define MACVERSION(ah) AH_PRIVATE(ah)->ah_macVersion
 	struct ath_hal_5212 *ahp = AH5212(ah);
 	const HAL_CAPABILITIES *pCap = &AH_PRIVATE(ah)->ah_caps;
 	const struct ar5212AniState *ani;
 
 	switch (type) {
-	case HAL_CAP_CIPHER:		/* cipher handled in hardware */
+	case HAL_CAP_CIPHER: /* cipher handled in hardware */
 		switch (capability) {
 		case HAL_CIPHER_AES_CCM:
-			return pCap->halCipherAesCcmSupport ?
-				HAL_OK : HAL_ENOTSUPP;
+			return pCap->halCipherAesCcmSupport ? HAL_OK :
+							      HAL_ENOTSUPP;
 		case HAL_CIPHER_AES_OCB:
 		case HAL_CIPHER_TKIP:
 		case HAL_CIPHER_WEP:
@@ -813,35 +816,41 @@ ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		default:
 			return HAL_ENOTSUPP;
 		}
-	case HAL_CAP_TKIP_MIC:		/* handle TKIP MIC in hardware */
+	case HAL_CAP_TKIP_MIC: /* handle TKIP MIC in hardware */
 		switch (capability) {
-		case 0:			/* hardware capability */
+		case 0: /* hardware capability */
 			return HAL_OK;
 		case 1:
 			return (ahp->ah_staId1Defaults &
-			    AR_STA_ID1_CRPT_MIC_ENABLE) ?  HAL_OK : HAL_ENXIO;
+				   AR_STA_ID1_CRPT_MIC_ENABLE) ?
+			    HAL_OK :
+			    HAL_ENXIO;
 		}
 		return HAL_EINVAL;
-	case HAL_CAP_TKIP_SPLIT:	/* hardware TKIP uses split keys */
+	case HAL_CAP_TKIP_SPLIT: /* hardware TKIP uses split keys */
 		switch (capability) {
-		case 0:			/* hardware capability */
-			return pCap->halTkipMicTxRxKeySupport ?
-				HAL_ENXIO : HAL_OK;
-		case 1:			/* current setting */
+		case 0: /* hardware capability */
+			return pCap->halTkipMicTxRxKeySupport ? HAL_ENXIO :
+								HAL_OK;
+		case 1: /* current setting */
 			return (ahp->ah_miscMode &
-			    AR_MISC_MODE_MIC_NEW_LOC_ENABLE) ? HAL_ENXIO : HAL_OK;
+				   AR_MISC_MODE_MIC_NEW_LOC_ENABLE) ?
+			    HAL_ENXIO :
+			    HAL_OK;
 		}
 		return HAL_EINVAL;
-	case HAL_CAP_WME_TKIPMIC:	/* hardware can do TKIP MIC w/ WMM */
+	case HAL_CAP_WME_TKIPMIC: /* hardware can do TKIP MIC w/ WMM */
 		/* XXX move to capability bit */
 		return MACVERSION(ah) > AR_SREV_VERSION_VENICE ||
-		    (MACVERSION(ah) == AR_SREV_VERSION_VENICE &&
-		     AH_PRIVATE(ah)->ah_macRev >= 8) ? HAL_OK : HAL_ENOTSUPP;
-	case HAL_CAP_DIVERSITY:		/* hardware supports fast diversity */
+			(MACVERSION(ah) == AR_SREV_VERSION_VENICE &&
+			    AH_PRIVATE(ah)->ah_macRev >= 8) ?
+		    HAL_OK :
+		    HAL_ENOTSUPP;
+	case HAL_CAP_DIVERSITY: /* hardware supports fast diversity */
 		switch (capability) {
-		case 0:			/* hardware capability */
+		case 0: /* hardware capability */
 			return HAL_OK;
-		case 1:			/* current setting */
+		case 1: /* current setting */
 			return ahp->ah_diversity ? HAL_OK : HAL_ENXIO;
 		case HAL_CAP_STRONG_DIV:
 			*result = OS_REG_READ(ah, AR_PHY_RESTART);
@@ -854,39 +863,45 @@ ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		return HAL_OK;
 	case HAL_CAP_TPC:
 		switch (capability) {
-		case 0:			/* hardware capability */
+		case 0: /* hardware capability */
 			return HAL_OK;
 		case 1:
 			return ahp->ah_tpcEnabled ? HAL_OK : HAL_ENXIO;
 		}
 		return HAL_OK;
-	case HAL_CAP_PHYDIAG:		/* radar pulse detection capability */
+	case HAL_CAP_PHYDIAG: /* radar pulse detection capability */
 		switch (capability) {
 		case HAL_CAP_RADAR:
 			return ath_hal_eepromGetFlag(ah, AR_EEP_AMODE) ?
-			    HAL_OK: HAL_ENXIO;
+			    HAL_OK :
+			    HAL_ENXIO;
 		case HAL_CAP_AR:
 			return (ath_hal_eepromGetFlag(ah, AR_EEP_GMODE) ||
-			    ath_hal_eepromGetFlag(ah, AR_EEP_BMODE)) ?
-			       HAL_OK: HAL_ENXIO;
+				   ath_hal_eepromGetFlag(ah, AR_EEP_BMODE)) ?
+			    HAL_OK :
+			    HAL_ENXIO;
 		}
 		return HAL_ENXIO;
-	case HAL_CAP_MCAST_KEYSRCH:	/* multicast frame keycache search */
+	case HAL_CAP_MCAST_KEYSRCH: /* multicast frame keycache search */
 		switch (capability) {
-		case 0:			/* hardware capability */
-			return pCap->halMcastKeySrchSupport ? HAL_OK : HAL_ENXIO;
+		case 0: /* hardware capability */
+			return pCap->halMcastKeySrchSupport ? HAL_OK :
+							      HAL_ENXIO;
 		case 1:
 			return (ahp->ah_staId1Defaults &
-			    AR_STA_ID1_MCAST_KSRCH) ? HAL_OK : HAL_ENXIO;
+				   AR_STA_ID1_MCAST_KSRCH) ?
+			    HAL_OK :
+			    HAL_ENXIO;
 		}
 		return HAL_EINVAL;
-	case HAL_CAP_TSF_ADJUST:	/* hardware has beacon tsf adjust */
+	case HAL_CAP_TSF_ADJUST: /* hardware has beacon tsf adjust */
 		switch (capability) {
-		case 0:			/* hardware capability */
+		case 0: /* hardware capability */
 			return pCap->halTsfAddSupport ? HAL_OK : HAL_ENOTSUPP;
 		case 1:
 			return (ahp->ah_miscMode & AR_MISC_MODE_TX_ADD_TSF) ?
-				HAL_OK : HAL_ENXIO;
+			    HAL_OK :
+			    HAL_ENXIO;
 		}
 		return HAL_EINVAL;
 	case HAL_CAP_TPC_ACK:
@@ -895,13 +910,13 @@ ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 	case HAL_CAP_TPC_CTS:
 		*result = MS(ahp->ah_macTPC, AR_TPC_CTS);
 		return HAL_OK;
-	case HAL_CAP_INTMIT:		/* interference mitigation */
+	case HAL_CAP_INTMIT: /* interference mitigation */
 		switch (capability) {
-		case HAL_CAP_INTMIT_PRESENT:		/* hardware capability */
+		case HAL_CAP_INTMIT_PRESENT: /* hardware capability */
 			return HAL_OK;
 		case HAL_CAP_INTMIT_ENABLE:
-			return (ahp->ah_procPhyErr & HAL_ANI_ENA) ?
-				HAL_OK : HAL_ENXIO;
+			return (ahp->ah_procPhyErr & HAL_ANI_ENA) ? HAL_OK :
+								    HAL_ENXIO;
 		case HAL_CAP_INTMIT_NOISE_IMMUNITY_LEVEL:
 		case HAL_CAP_INTMIT_OFDM_WEAK_SIGNAL_LEVEL:
 		case HAL_CAP_INTMIT_CCK_WEAK_SIGNAL_THR:
@@ -911,11 +926,21 @@ ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 			if (ani == AH_NULL)
 				return HAL_ENXIO;
 			switch (capability) {
-			case 2:	*result = ani->noiseImmunityLevel; break;
-			case 3: *result = !ani->ofdmWeakSigDetectOff; break;
-			case 4: *result = ani->cckWeakSigThreshold; break;
-			case 5: *result = ani->firstepLevel; break;
-			case 6: *result = ani->spurImmunityLevel; break;
+			case 2:
+				*result = ani->noiseImmunityLevel;
+				break;
+			case 3:
+				*result = !ani->ofdmWeakSigDetectOff;
+				break;
+			case 4:
+				*result = ani->cckWeakSigThreshold;
+				break;
+			case 5:
+				*result = ani->firstepLevel;
+				break;
+			case 6:
+				*result = ani->spurImmunityLevel;
+				break;
 			}
 			return HAL_OK;
 		}
@@ -928,21 +953,21 @@ ar5212GetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 
 HAL_BOOL
 ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
-	uint32_t capability, uint32_t setting, HAL_STATUS *status)
+    uint32_t capability, uint32_t setting, HAL_STATUS *status)
 {
-#define	N(a)	(sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 	struct ath_hal_5212 *ahp = AH5212(ah);
 	const HAL_CAPABILITIES *pCap = &AH_PRIVATE(ah)->ah_caps;
 	uint32_t v;
 
 	switch (type) {
-	case HAL_CAP_TKIP_MIC:		/* handle TKIP MIC in hardware */
+	case HAL_CAP_TKIP_MIC: /* handle TKIP MIC in hardware */
 		if (setting)
 			ahp->ah_staId1Defaults |= AR_STA_ID1_CRPT_MIC_ENABLE;
 		else
 			ahp->ah_staId1Defaults &= ~AR_STA_ID1_CRPT_MIC_ENABLE;
 		return AH_TRUE;
-	case HAL_CAP_TKIP_SPLIT:	/* hardware TKIP uses split keys */
+	case HAL_CAP_TKIP_SPLIT: /* hardware TKIP uses split keys */
 		if (!pCap->halTkipMicTxRxKeySupport)
 			return AH_FALSE;
 		/* NB: true =>'s use split key cache layout */
@@ -951,20 +976,23 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		else
 			ahp->ah_miscMode |= AR_MISC_MODE_MIC_NEW_LOC_ENABLE;
 		/* NB: write here so keys can be setup w/o a reset */
-		OS_REG_WRITE(ah, AR_MISC_MODE, OS_REG_READ(ah, AR_MISC_MODE) | ahp->ah_miscMode);
+		OS_REG_WRITE(ah, AR_MISC_MODE,
+		    OS_REG_READ(ah, AR_MISC_MODE) | ahp->ah_miscMode);
 		return AH_TRUE;
 	case HAL_CAP_DIVERSITY:
 		switch (capability) {
 		case 0:
 			return AH_FALSE;
-		case 1:	/* setting */
+		case 1: /* setting */
 			if (ahp->ah_phyPowerOn) {
 				if (capability == HAL_CAP_STRONG_DIV) {
 					v = OS_REG_READ(ah, AR_PHY_CCK_DETECT);
 					if (setting)
-						v |= AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV;
+						v |=
+						    AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV;
 					else
-						v &= ~AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV;
+						v &=
+						    ~AR_PHY_CCK_DETECT_BB_ENABLE_ANT_FAST_DIV;
 					OS_REG_WRITE(ah, AR_PHY_CCK_DETECT, v);
 				}
 			}
@@ -972,7 +1000,7 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 			return AH_TRUE;
 
 		case HAL_CAP_STRONG_DIV:
-			if (! ahp->ah_phyPowerOn)
+			if (!ahp->ah_phyPowerOn)
 				return AH_FALSE;
 			v = OS_REG_READ(ah, AR_PHY_RESTART);
 			v &= ~AR_PHY_RESTART_DIV_GC;
@@ -982,7 +1010,7 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		default:
 			return AH_FALSE;
 		}
-	case HAL_CAP_DIAG:		/* hardware diagnostic support */
+	case HAL_CAP_DIAG: /* hardware diagnostic support */
 		/*
 		 * NB: could split this up into virtual capabilities,
 		 *     (e.g. 1 => ACK, 2 => CTS, etc.) but it hardly
@@ -994,7 +1022,7 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 	case HAL_CAP_TPC:
 		ahp->ah_tpcEnabled = (setting != 0);
 		return AH_TRUE;
-	case HAL_CAP_MCAST_KEYSRCH:	/* multicast frame keycache search */
+	case HAL_CAP_MCAST_KEYSRCH: /* multicast frame keycache search */
 		if (setting)
 			ahp->ah_staId1Defaults |= AR_STA_ID1_MCAST_KSRCH;
 		else
@@ -1014,8 +1042,9 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		}
 		OS_REG_WRITE(ah, AR_TPC, ahp->ah_macTPC);
 		return AH_TRUE;
-	case HAL_CAP_INTMIT: {		/* interference mitigation */
-		/* This maps the public ANI commands to the internal ANI commands */
+	case HAL_CAP_INTMIT: { /* interference mitigation */
+		/* This maps the public ANI commands to the internal ANI
+		 * commands */
 		/* Private: HAL_ANI_CMD; Public: HAL_CAP_INTMIT_CMD */
 		static const HAL_ANI_CMD cmds[] = {
 			HAL_ANI_PRESENT,
@@ -1027,10 +1056,10 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 			HAL_ANI_SPUR_IMMUNITY_LEVEL,
 		};
 		return capability < N(cmds) ?
-			AH5212(ah)->ah_aniControl(ah, cmds[capability], setting) :
-			AH_FALSE;
+		    AH5212(ah)->ah_aniControl(ah, cmds[capability], setting) :
+		    AH_FALSE;
 	}
-	case HAL_CAP_TSF_ADJUST:	/* hardware has beacon tsf adjust */
+	case HAL_CAP_TSF_ADJUST: /* hardware has beacon tsf adjust */
 		if (pCap->halTsfAddSupport) {
 			if (setting)
 				ahp->ah_miscMode |= AR_MISC_MODE_TX_ADD_TSF;
@@ -1040,22 +1069,22 @@ ar5212SetCapability(struct ath_hal *ah, HAL_CAPABILITY_TYPE type,
 		}
 		/* fall thru... */
 	default:
-		return ath_hal_setcapability(ah, type, capability,
-				setting, status);
+		return ath_hal_setcapability(ah, type, capability, setting,
+		    status);
 	}
 #undef N
 }
 
 HAL_BOOL
-ar5212GetDiagState(struct ath_hal *ah, int request,
-	const void *args, uint32_t argsize,
-	void **result, uint32_t *resultsize)
+ar5212GetDiagState(struct ath_hal *ah, int request, const void *args,
+    uint32_t argsize, void **result, uint32_t *resultsize)
 {
 	struct ath_hal_5212 *ahp = AH5212(ah);
 	HAL_ANI_STATS *astats;
 
-	(void) ahp;
-	if (ath_hal_getdiagstate(ah, request, args, argsize, result, resultsize))
+	(void)ahp;
+	if (ath_hal_getdiagstate(ah, request, args, argsize, result,
+		resultsize))
 		return AH_TRUE;
 	switch (request) {
 	case HAL_DIAG_EEPROM:
@@ -1063,12 +1092,13 @@ ar5212GetDiagState(struct ath_hal *ah, int request,
 	case HAL_DIAG_EEPROM_EXP_11B:
 	case HAL_DIAG_EEPROM_EXP_11G:
 	case HAL_DIAG_RFGAIN:
-		return ath_hal_eepromDiag(ah, request,
-		    args, argsize, result, resultsize);
+		return ath_hal_eepromDiag(ah, request, args, argsize, result,
+		    resultsize);
 	case HAL_DIAG_RFGAIN_CURSTEP:
 		*result = __DECONST(void *, ahp->ah_gainValues.currStep);
 		*resultsize = (*result == AH_NULL) ?
-			0 : sizeof(GAIN_OPTIMIZATION_STEP);
+		    0 :
+		    sizeof(GAIN_OPTIMIZATION_STEP);
 		return AH_TRUE;
 	case HAL_DIAG_PCDAC:
 		*result = ahp->ah_pcdacTable;
@@ -1081,7 +1111,8 @@ ar5212GetDiagState(struct ath_hal *ah, int request,
 	case HAL_DIAG_ANI_CURRENT:
 		*result = ar5212AniGetCurrentState(ah);
 		*resultsize = (*result == AH_NULL) ?
-			0 : sizeof(struct ar5212AniState);
+		    0 :
+		    sizeof(struct ar5212AniState);
 		return AH_TRUE;
 	case HAL_DIAG_ANI_STATS:
 		OS_MEMZERO(&ahp->ext_ani_stats, sizeof(ahp->ext_ani_stats));
@@ -1090,16 +1121,17 @@ ar5212GetDiagState(struct ath_hal *ah, int request,
 			*result = NULL;
 			*resultsize = 0;
 		} else {
-			OS_MEMCPY(&ahp->ext_ani_stats, astats, sizeof(HAL_ANI_STATS));
+			OS_MEMCPY(&ahp->ext_ani_stats, astats,
+			    sizeof(HAL_ANI_STATS));
 			*result = &ahp->ext_ani_stats;
 			*resultsize = sizeof(ahp->ext_ani_stats);
 		}
 		return AH_TRUE;
 	case HAL_DIAG_ANI_CMD:
-		if (argsize != 2*sizeof(uint32_t))
+		if (argsize != 2 * sizeof(uint32_t))
 			return AH_FALSE;
 		AH5212(ah)->ah_aniControl(ah, ((const uint32_t *)args)[0],
-			((const uint32_t *)args)[1]);
+		    ((const uint32_t *)args)[1]);
 		return AH_TRUE;
 	case HAL_DIAG_ANI_PARAMS:
 		/*
@@ -1151,9 +1183,9 @@ ar5212WaitNFCalComplete(struct ath_hal *ah, int i)
 {
 	int j;
 	if (i <= 0)
-		i = 1;	  /* it should run at least once */
+		i = 1; /* it should run at least once */
 	for (j = 0; j < i; j++) {
-		if (! ar5212IsNFCalInProgress(ah))
+		if (!ar5212IsNFCalInProgress(ah))
 			return AH_TRUE;
 		OS_DELAY(10);
 	}
@@ -1189,7 +1221,7 @@ ar5212EnableDfs(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 	if (pe->pe_enabled)
 		val |= AR_PHY_RADAR_0_ENA;
 	else
-		val &= ~ AR_PHY_RADAR_0_ENA;
+		val &= ~AR_PHY_RADAR_0_ENA;
 
 	if (IS_5413(ah)) {
 		if (pe->pe_blockradar == 1)
@@ -1246,23 +1278,23 @@ ar5212EnableDfs(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 /*
  * Parameters for the AR5212 PHY.
  */
-#define	AR5212_DFS_FIRPWR	-35
-#define	AR5212_DFS_RRSSI	20
-#define	AR5212_DFS_HEIGHT	14
-#define	AR5212_DFS_PRSSI	6
-#define	AR5212_DFS_INBAND	4
+#define AR5212_DFS_FIRPWR -35
+#define AR5212_DFS_RRSSI 20
+#define AR5212_DFS_HEIGHT 14
+#define AR5212_DFS_PRSSI 6
+#define AR5212_DFS_INBAND 4
 
 /*
  * Default parameters for the AR5413 PHY.
  */
-#define	AR5413_DFS_FIRPWR	-34
-#define	AR5413_DFS_RRSSI	20
-#define	AR5413_DFS_HEIGHT	10
-#define	AR5413_DFS_PRSSI	15
-#define	AR5413_DFS_INBAND	6
-#define	AR5413_DFS_RELPWR	8
-#define	AR5413_DFS_RELSTEP	31
-#define	AR5413_DFS_MAXLEN	255
+#define AR5413_DFS_FIRPWR -34
+#define AR5413_DFS_RRSSI 20
+#define AR5413_DFS_HEIGHT 10
+#define AR5413_DFS_PRSSI 15
+#define AR5413_DFS_INBAND 6
+#define AR5413_DFS_RELPWR 8
+#define AR5413_DFS_RELSTEP 31
+#define AR5413_DFS_MAXLEN 255
 
 HAL_BOOL
 ar5212GetDfsDefaultThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
@@ -1304,18 +1336,18 @@ ar5212GetDfsDefaultThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 void
 ar5212GetDfsThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 {
-	uint32_t val,temp;
+	uint32_t val, temp;
 
 	val = OS_REG_READ(ah, AR_PHY_RADAR_0);
 
-	temp = MS(val,AR_PHY_RADAR_0_FIRPWR);
+	temp = MS(val, AR_PHY_RADAR_0_FIRPWR);
 	temp |= 0xFFFFFF80;
 	pe->pe_firpwr = temp;
 	pe->pe_rrssi = MS(val, AR_PHY_RADAR_0_RRSSI);
-	pe->pe_height =  MS(val, AR_PHY_RADAR_0_HEIGHT);
+	pe->pe_height = MS(val, AR_PHY_RADAR_0_HEIGHT);
 	pe->pe_prssi = MS(val, AR_PHY_RADAR_0_PRSSI);
 	pe->pe_inband = MS(val, AR_PHY_RADAR_0_INBAND);
-	pe->pe_enabled = !! (val & AR_PHY_RADAR_0_ENA);
+	pe->pe_enabled = !!(val & AR_PHY_RADAR_0_ENA);
 
 	pe->pe_relpwr = 0;
 	pe->pe_relstep = 0;
@@ -1329,16 +1361,15 @@ ar5212GetDfsThresh(struct ath_hal *ah, HAL_PHYERR_PARAM *pe)
 
 	if (IS_5413(ah)) {
 		val = OS_REG_READ(ah, AR_PHY_RADAR_2);
-		pe->pe_relpwr = !! MS(val, AR_PHY_RADAR_2_RELPWR);
-		pe->pe_relstep = !! MS(val, AR_PHY_RADAR_2_RELSTEP);
-		pe->pe_maxlen = !! MS(val, AR_PHY_RADAR_2_MAXLEN);
+		pe->pe_relpwr = !!MS(val, AR_PHY_RADAR_2_RELPWR);
+		pe->pe_relstep = !!MS(val, AR_PHY_RADAR_2_RELSTEP);
+		pe->pe_maxlen = !!MS(val, AR_PHY_RADAR_2_MAXLEN);
 
-		pe->pe_usefir128 = !! (val & AR_PHY_RADAR_2_USEFIR128);
-		pe->pe_blockradar = !! (val & AR_PHY_RADAR_2_BLOCKOFDMWEAK);
-		pe->pe_enmaxrssi = !! (val & AR_PHY_RADAR_2_ENMAXRSSI);
-		pe->pe_enrelpwr = !! (val & AR_PHY_RADAR_2_ENRELPWRCHK);
-		pe->pe_en_relstep_check =
-		    !! (val & AR_PHY_RADAR_2_ENRELSTEPCHK);
+		pe->pe_usefir128 = !!(val & AR_PHY_RADAR_2_USEFIR128);
+		pe->pe_blockradar = !!(val & AR_PHY_RADAR_2_BLOCKOFDMWEAK);
+		pe->pe_enmaxrssi = !!(val & AR_PHY_RADAR_2_ENMAXRSSI);
+		pe->pe_enrelpwr = !!(val & AR_PHY_RADAR_2_ENRELPWRCHK);
+		pe->pe_en_relstep_check = !!(val & AR_PHY_RADAR_2_ENRELSTEPCHK);
 	}
 }
 
@@ -1363,19 +1394,19 @@ ar5212ProcessRadarEvent(struct ath_hal *ah, struct ath_rx_status *rxs,
 	 */
 	if (rxs->rs_datalen >= 1)
 		/* The pulse width is byte 0 of the data */
-		dur = ((uint8_t) buf[0]) & 0xff;
+		dur = ((uint8_t)buf[0]) & 0xff;
 	else
 		dur = 0;
 
 	/* Pulse RSSI is the normal reported RSSI */
-	rssi = (uint8_t) rxs->rs_rssi;
+	rssi = (uint8_t)rxs->rs_rssi;
 
 	/* 0 duration/rssi is not a valid radar event */
 	if (dur == 0 && rssi == 0)
 		return AH_FALSE;
 
-	HALDEBUG(ah, HAL_DEBUG_DFS, "%s: rssi=%d, dur=%d\n",
-	    __func__, rssi, dur);
+	HALDEBUG(ah, HAL_DEBUG_DFS, "%s: rssi=%d, dur=%d\n", __func__, rssi,
+	    dur);
 
 	/* Record the event */
 	event->re_full_ts = fulltsf;

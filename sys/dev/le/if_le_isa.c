@@ -76,39 +76,39 @@
 #include <sys/rman.h>
 #include <sys/socket.h>
 
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/le/am7990var.h>
+#include <dev/le/lancereg.h>
+#include <dev/le/lancevar.h>
+
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <machine/bus.h>
-#include <machine/resource.h>
-
 #include <isa/isavar.h>
 
-#include <dev/le/lancereg.h>
-#include <dev/le/lancevar.h>
-#include <dev/le/am7990var.h>
-
-#define	LE_ISA_MEMSIZE	(16*1024)
-#define	PCNET_RDP	0x10
-#define	PCNET_RAP	0x12
+#define LE_ISA_MEMSIZE (16 * 1024)
+#define PCNET_RDP 0x10
+#define PCNET_RAP 0x12
 
 struct le_isa_softc {
-	struct am7990_softc	sc_am7990;	/* glue to MI code */
+	struct am7990_softc sc_am7990; /* glue to MI code */
 
-	bus_size_t		sc_rap;		/* offsets to LANCE... */
-	bus_size_t		sc_rdp;		/* ...registers */
+	bus_size_t sc_rap; /* offsets to LANCE... */
+	bus_size_t sc_rdp; /* ...registers */
 
-	struct resource		*sc_rres;
+	struct resource *sc_rres;
 
-	struct resource		*sc_dres;
+	struct resource *sc_dres;
 
-	struct resource		*sc_ires;
-	void			*sc_ih;
+	struct resource *sc_ires;
+	void *sc_ih;
 
-	bus_dma_tag_t		sc_pdmat;
-	bus_dma_tag_t		sc_dmat;
-	bus_dmamap_t		sc_dmam;
+	bus_dma_tag_t sc_pdmat;
+	bus_dma_tag_t sc_dmat;
+	bus_dmamap_t sc_dmam;
 };
 
 static device_probe_t le_isa_probe;
@@ -119,39 +119,37 @@ static device_suspend_t le_isa_suspend;
 
 static device_method_t le_isa_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		le_isa_probe),
-	DEVMETHOD(device_attach,	le_isa_attach),
-	DEVMETHOD(device_detach,	le_isa_detach),
+	DEVMETHOD(device_probe, le_isa_probe),
+	DEVMETHOD(device_attach, le_isa_attach),
+	DEVMETHOD(device_detach, le_isa_detach),
 	/* We can just use the suspend method here. */
-	DEVMETHOD(device_shutdown,	le_isa_suspend),
-	DEVMETHOD(device_suspend,	le_isa_suspend),
-	DEVMETHOD(device_resume,	le_isa_resume),
+	DEVMETHOD(device_shutdown, le_isa_suspend),
+	DEVMETHOD(device_suspend, le_isa_suspend),
+	DEVMETHOD(device_resume, le_isa_resume),
 
 	{ 0, 0 }
 };
 
 struct le_isa_param {
-	const char	*name;
-	u_long		iosize;
-	bus_size_t	rap;
-	bus_size_t	rdp;
-	bus_size_t	macstart;
-	int		macstride;
-} static const le_isa_params[] = {
-	{ "BICC Isolan", 24, 0xe, 0xc, 0, 2 },
-	{ "Novell NE2100", 16, 0x12, 0x10, 0, 1 }
-};
+	const char *name;
+	u_long iosize;
+	bus_size_t rap;
+	bus_size_t rdp;
+	bus_size_t macstart;
+	int macstride;
+} static const le_isa_params[] = { { "BICC Isolan", 24, 0xe, 0xc, 0, 2 },
+	{ "Novell NE2100", 16, 0x12, 0x10, 0, 1 } };
 
 static struct isa_pnp_id le_isa_ids[] = {
-	{ 0x0322690e, "Cabletron E2200 Single Chip" },	/* CSI2203 */
-	{ 0x0110490a, "Boca LANCard Combo" },		/* BRI1001 */
-	{ 0x0100a60a, "Melco Inc. LGY-IV" },		/* BUF0001 */
-	{ 0xd880d041, "Novell NE2100" },		/* PNP80D8 */
-	{ 0x0082d041, "Cabletron E2100 Series DNI" },	/* PNP8200 */
-	{ 0x3182d041, "AMD AM1500T/AM2100" },		/* PNP8231 */
-	{ 0x8c82d041, "AMD PCnet-ISA" },		/* PNP828C */
-	{ 0x8d82d041, "AMD PCnet-32" },			/* PNP828D */
-	{ 0xcefaedfe, "Racal InterLan EtherBlaster" },	/* _WMFACE */
+	{ 0x0322690e, "Cabletron E2200 Single Chip" }, /* CSI2203 */
+	{ 0x0110490a, "Boca LANCard Combo" },	       /* BRI1001 */
+	{ 0x0100a60a, "Melco Inc. LGY-IV" },	       /* BUF0001 */
+	{ 0xd880d041, "Novell NE2100" },	       /* PNP80D8 */
+	{ 0x0082d041, "Cabletron E2100 Series DNI" },  /* PNP8200 */
+	{ 0x3182d041, "AMD AM1500T/AM2100" },	       /* PNP8231 */
+	{ 0x8c82d041, "AMD PCnet-ISA" },	       /* PNP828C */
+	{ 0x8d82d041, "AMD PCnet-32" },		       /* PNP828D */
+	{ 0xcefaedfe, "Racal InterLan EtherBlaster" }, /* _WMFACE */
 	{ 0, NULL }
 };
 
@@ -219,9 +217,9 @@ le_isa_probe_legacy(device_t dev, const struct le_isa_param *leip)
 	le_isa_wrcsr(sc, LE_CSR3, 0);
 	error = 0;
 
- fail:
-	bus_release_resource(dev, SYS_RES_IOPORT,
-	    rman_get_rid(lesc->sc_rres), lesc->sc_rres);
+fail:
+	bus_release_resource(dev, SYS_RES_IOPORT, rman_get_rid(lesc->sc_rres),
+	    lesc->sc_rres);
 	return (error);
 }
 
@@ -263,8 +261,8 @@ le_isa_attach(device_t dev)
 	j = 0;
 	switch (ISA_PNP_PROBE(device_get_parent(dev), dev, le_isa_ids)) {
 	case 0:
-		lesc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		    &j, RF_ACTIVE);
+		lesc->sc_rres = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &j,
+		    RF_ACTIVE);
 		rap = PCNET_RAP;
 		rdp = PCNET_RDP;
 		macstart = 0;
@@ -274,8 +272,8 @@ le_isa_attach(device_t dev)
 		for (i = 0; i < nitems(le_isa_params); i++) {
 			if (le_isa_probe_legacy(dev, &le_isa_params[i]) == 0) {
 				lesc->sc_rres = bus_alloc_resource_anywhere(dev,
-				    SYS_RES_IOPORT, &j,
-				    le_isa_params[i].iosize, RF_ACTIVE);
+				    SYS_RES_IOPORT, &j, le_isa_params[i].iosize,
+				    RF_ACTIVE);
 				rap = le_isa_params[i].rap;
 				rdp = le_isa_params[i].rdp;
 				macstart = le_isa_params[i].macstart;
@@ -291,7 +289,7 @@ le_isa_attach(device_t dev)
 		goto fail_mtx;
 	}
 
- found:
+found:
 	if (lesc->sc_rres == NULL) {
 		device_printf(dev, "cannot allocate registers\n");
 		error = ENXIO;
@@ -301,32 +299,31 @@ le_isa_attach(device_t dev)
 	lesc->sc_rdp = rdp;
 
 	i = 0;
-	if ((lesc->sc_dres = bus_alloc_resource_any(dev, SYS_RES_DRQ,
-	    &i, RF_ACTIVE)) == NULL) {
+	if ((lesc->sc_dres = bus_alloc_resource_any(dev, SYS_RES_DRQ, &i,
+		 RF_ACTIVE)) == NULL) {
 		device_printf(dev, "cannot allocate DMA channel\n");
 		error = ENXIO;
 		goto fail_rres;
 	}
 
 	i = 0;
-	if ((lesc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &i, RF_SHAREABLE | RF_ACTIVE)) == NULL) {
+	if ((lesc->sc_ires = bus_alloc_resource_any(dev, SYS_RES_IRQ, &i,
+		 RF_SHAREABLE | RF_ACTIVE)) == NULL) {
 		device_printf(dev, "cannot allocate interrupt\n");
 		error = ENXIO;
 		goto fail_dres;
 	}
 
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(dev),	/* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_24BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_24BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &lesc->sc_pdmat);
 	if (error != 0) {
 		device_printf(dev, "cannot allocate parent DMA tag\n");
@@ -338,17 +335,16 @@ le_isa_attach(device_t dev)
 	 * For Am79C90, Am79C961 and Am79C961A the init block must be 2-byte
 	 * aligned and the ring descriptors must be 8-byte aligned.
 	 */
-	error = bus_dma_tag_create(
-	    lesc->sc_pdmat,		/* parent */
-	    8, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_24BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    sc->sc_memsize,		/* maxsize */
-	    1,				/* nsegments */
-	    sc->sc_memsize,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(lesc->sc_pdmat, /* parent */
+	    8, 0,				   /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_24BIT,		   /* lowaddr */
+	    BUS_SPACE_MAXADDR,			   /* highaddr */
+	    NULL, NULL,				   /* filter, filterarg */
+	    sc->sc_memsize,			   /* maxsize */
+	    1,					   /* nsegments */
+	    sc->sc_memsize,			   /* maxsegsize */
+	    0,					   /* flags */
+	    NULL, NULL,				   /* lockfunc, lockarg */
 	    &lesc->sc_dmat);
 	if (error != 0) {
 		device_printf(dev, "cannot allocate buffer DMA tag\n");
@@ -414,26 +410,26 @@ le_isa_attach(device_t dev)
 
 	return (0);
 
- fail_am7990:
+fail_am7990:
 	am7990_detach(&lesc->sc_am7990);
- fail_dmap:
+fail_dmap:
 	bus_dmamap_unload(lesc->sc_dmat, lesc->sc_dmam);
- fail_dmem:
+fail_dmem:
 	bus_dmamem_free(lesc->sc_dmat, sc->sc_mem, lesc->sc_dmam);
- fail_dtag:
+fail_dtag:
 	bus_dma_tag_destroy(lesc->sc_dmat);
- fail_pdtag:
+fail_pdtag:
 	bus_dma_tag_destroy(lesc->sc_pdmat);
- fail_ires:
-	bus_release_resource(dev, SYS_RES_IRQ,
-	    rman_get_rid(lesc->sc_ires), lesc->sc_ires);
- fail_dres:
-	bus_release_resource(dev, SYS_RES_DRQ,
-	    rman_get_rid(lesc->sc_dres), lesc->sc_dres);
- fail_rres:
-	bus_release_resource(dev, SYS_RES_IOPORT,
-	    rman_get_rid(lesc->sc_rres), lesc->sc_rres);
- fail_mtx:
+fail_ires:
+	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(lesc->sc_ires),
+	    lesc->sc_ires);
+fail_dres:
+	bus_release_resource(dev, SYS_RES_DRQ, rman_get_rid(lesc->sc_dres),
+	    lesc->sc_dres);
+fail_rres:
+	bus_release_resource(dev, SYS_RES_IOPORT, rman_get_rid(lesc->sc_rres),
+	    lesc->sc_rres);
+fail_mtx:
 	LE_LOCK_DESTROY(sc);
 	return (error);
 }
@@ -453,12 +449,12 @@ le_isa_detach(device_t dev)
 	bus_dmamem_free(lesc->sc_dmat, sc->sc_mem, lesc->sc_dmam);
 	bus_dma_tag_destroy(lesc->sc_dmat);
 	bus_dma_tag_destroy(lesc->sc_pdmat);
-	bus_release_resource(dev, SYS_RES_IRQ,
-	    rman_get_rid(lesc->sc_ires), lesc->sc_ires);
-	bus_release_resource(dev, SYS_RES_DRQ,
-	    rman_get_rid(lesc->sc_dres), lesc->sc_dres);
-	bus_release_resource(dev, SYS_RES_IOPORT,
-	    rman_get_rid(lesc->sc_rres), lesc->sc_rres);
+	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(lesc->sc_ires),
+	    lesc->sc_ires);
+	bus_release_resource(dev, SYS_RES_DRQ, rman_get_rid(lesc->sc_dres),
+	    lesc->sc_dres);
+	bus_release_resource(dev, SYS_RES_IOPORT, rman_get_rid(lesc->sc_rres),
+	    lesc->sc_rres);
 	LE_LOCK_DESTROY(sc);
 
 	return (0);

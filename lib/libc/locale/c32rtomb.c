@@ -29,10 +29,11 @@
 #include <errno.h>
 #include <uchar.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-c32rtomb_l(char * __restrict s, char32_t c32, mbstate_t * __restrict ps,
+c32rtomb_l(char *__restrict s, char32_t c32, mbstate_t *__restrict ps,
     locale_t locale)
 {
 
@@ -51,7 +52,7 @@ c32rtomb_l(char * __restrict s, char32_t c32, mbstate_t * __restrict ps,
 }
 
 size_t
-c32rtomb(char * __restrict s, char32_t c32, mbstate_t * __restrict ps)
+c32rtomb(char *__restrict s, char32_t c32, mbstate_t *__restrict ps)
 {
 
 	return (c32rtomb_l(s, c32, ps, __get_locale()));

@@ -32,6 +32,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+
 #include <fcntl.h>
 }
 
@@ -45,42 +46,45 @@ const char RELPATH[] = "some_fifo";
 const char MESSAGE[] = "Hello, World!\n";
 const int msgsize = sizeof(MESSAGE);
 
-class Fifo: public FuseTest {
-public:
-pthread_t m_child;
+class Fifo : public FuseTest {
+    public:
+	pthread_t m_child;
 
-Fifo(): m_child(NULL) {};
+	Fifo()
+	    : m_child(NULL) {};
 
-void TearDown() {
-	if (m_child != NULL) {
-		pthread_join(m_child, NULL);
+	void TearDown()
+	{
+		if (m_child != NULL) {
+			pthread_join(m_child, NULL);
+		}
+		FuseTest::TearDown();
 	}
-	FuseTest::TearDown();
-}
 };
 
-class Socket: public Fifo {};
+class Socket : public Fifo { };
 
 /* Writer thread */
-static void* writer(void* arg) {
+static void *
+writer(void *arg)
+{
 	ssize_t sent = 0;
 	int fd;
 
-	fd = *(int*)arg;
+	fd = *(int *)arg;
 	while (sent < msgsize) {
 		ssize_t r;
 
 		r = write(fd, MESSAGE + sent, msgsize - sent);
 		if (r < 0)
-			return (void*)(intptr_t)errno;
+			return (void *)(intptr_t)errno;
 		else
 			sent += r;
-		
 	}
 	return 0;
 }
 
-/* 
+/*
  * Reading and writing FIFOs works.  None of the I/O actually goes through FUSE
  */
 TEST_F(Fifo, read_write)
@@ -97,7 +101,7 @@ TEST_F(Fifo, read_write)
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
 	ASSERT_EQ(0, pthread_create(&m_child, NULL, writer, &fd))
-		<< strerror(errno);
+	    << strerror(errno);
 	while (recvd < msgsize) {
 		r = read(fd, message + recvd, bufsize - recvd);
 		ASSERT_LE(0, r) << strerror(errno);
@@ -110,7 +114,9 @@ TEST_F(Fifo, read_write)
 }
 
 /* Writer thread */
-static void* socket_writer(void* arg __unused) {
+static void *
+socket_writer(void *arg __unused)
+{
 	ssize_t sent = 0;
 	int fd, err;
 	struct sockaddr_un sa;
@@ -118,15 +124,15 @@ static void* socket_writer(void* arg __unused) {
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
 		perror("socket");
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 	}
 	sa.sun_family = AF_UNIX;
 	strlcpy(sa.sun_path, FULLPATH, sizeof(sa.sun_path));
 	sa.sun_len = sizeof(FULLPATH);
-	err = connect(fd, (struct sockaddr*)&sa, sizeof(sa));
+	err = connect(fd, (struct sockaddr *)&sa, sizeof(sa));
 	if (err < 0) {
 		perror("connect");
-		return (void*)(intptr_t)errno;
+		return (void *)(intptr_t)errno;
 	}
 
 	while (sent < msgsize) {
@@ -134,17 +140,16 @@ static void* socket_writer(void* arg __unused) {
 
 		r = write(fd, MESSAGE + sent, msgsize - sent);
 		if (r < 0)
-			return (void*)(intptr_t)errno;
+			return (void *)(intptr_t)errno;
 		else
 			sent += r;
-		
 	}
 
 	FuseTest::leak(fd);
 	return 0;
 }
 
-/* 
+/*
  * Reading and writing unix-domain sockets works.  None of the I/O actually
  * goes through FUSE.
  */
@@ -160,42 +165,44 @@ TEST_F(Socket, read_write)
 	Sequence seq;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillOnce(Invoke(ReturnErrno(ENOENT)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_MKNOD);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_MKNOD);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = mode;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.attr.nlink = 1;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.entry_valid = UINT64_MAX;
+	    })));
 
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	ASSERT_LE(0, fd) << strerror(errno);
 	sa.sun_family = AF_UNIX;
 	strlcpy(sa.sun_path, FULLPATH, sizeof(sa.sun_path));
 	sa.sun_len = sizeof(FULLPATH);
-	ASSERT_EQ(0, bind(fd, (struct sockaddr*)&sa, sizeof(sa)))
-		<< strerror(errno);
+	ASSERT_EQ(0, bind(fd, (struct sockaddr *)&sa, sizeof(sa)))
+	    << strerror(errno);
 	listen(fd, 5);
 	ASSERT_EQ(0, pthread_create(&m_child, NULL, socket_writer, NULL))
-		<< strerror(errno);
+	    << strerror(errno);
 	connected = accept(fd, 0, 0);
 	ASSERT_LE(0, connected) << strerror(errno);
 

@@ -38,15 +38,16 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include <sys/param.h>	/* required for lp.h, but not used here */
+#include <sys/dirent.h> /* ditto */
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <sys/param.h>		/* required for lp.h, but not used here */
-#include <sys/dirent.h>		/* ditto */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
@@ -54,16 +55,15 @@
 /*
  * Routines and data used in processing the printcap file.
  */
-static char	*printcapdb[] = { __DECONST(char *, _PATH_PRINTCAP), NULL };
+static char *printcapdb[] = { __DECONST(char *, _PATH_PRINTCAP), NULL };
 
-static char 	*capdb_canonical_name(const char *_bp);
-static int	 capdb_getaltlog(char *_bp, const char *_shrt,
-		    const char *_lng);
-static int	 capdb_getaltnum(char *_bp, const char *_shrt,
-		    const char *_lng, long _dflt, long *_result);
-static int	 capdb_getaltstr(char *_bp, const char *_shrt,
-		    const char *lng, const char *_dflt, char **_result);
-static int	 getprintcap_int(char *_bp, struct printer *_pp);
+static char *capdb_canonical_name(const char *_bp);
+static int capdb_getaltlog(char *_bp, const char *_shrt, const char *_lng);
+static int capdb_getaltnum(char *_bp, const char *_shrt, const char *_lng,
+    long _dflt, long *_result);
+static int capdb_getaltstr(char *_bp, const char *_shrt, const char *lng,
+    const char *_dflt, char **_result);
+static int getprintcap_int(char *_bp, struct printer *_pp);
 
 /*
  * Change the name of the printcap file.  Used by chkprintcap(8),
@@ -186,14 +186,12 @@ lastprinter(void)
 /*
  * This must match the order of declaration of enum filter in lp.h.
  */
-static const char *filters[] = {
-	"cf", "df", "gf", "if", "nf", "of", "rf", "tf", "vf"
-};
+static const char *filters[] = { "cf", "df", "gf", "if", "nf", "of", "rf", "tf",
+	"vf" };
 
-static const char *longfilters[] = {
-	"filt.cifplot", "filt.dvi", "filt.plot", "filt.input", "filt.ditroff",
-	"filt.output", "filt.fortran", "filt.troff", "filt.raster"
-};
+static const char *longfilters[] = { "filt.cifplot", "filt.dvi", "filt.plot",
+	"filt.input", "filt.ditroff", "filt.output", "filt.fortran",
+	"filt.troff", "filt.raster" };
 
 /*
  * Internal routine for both getprintcap() and nextprinter().
@@ -211,40 +209,42 @@ getprintcap_int(char *bp, struct printer *pp)
 	if ((pp->printer = capdb_canonical_name(bp)) == NULL)
 		return PCAPERR_OSERR;
 
-#define CHK(x) do {if ((x) == PCAPERR_OSERR) return PCAPERR_OSERR;}while(0)
+#define CHK(x)                                \
+	do {                                  \
+		if ((x) == PCAPERR_OSERR)     \
+			return PCAPERR_OSERR; \
+	} while (0)
 	CHK(capdb_getaltstr(bp, "af", "acct.file", 0, &pp->acct_file));
 	CHK(capdb_getaltnum(bp, "br", "tty.rate", 0, &pp->baud_rate));
-	CHK(capdb_getaltnum(bp, "ct", "remote.timeout", DEFTIMEOUT, 
-			    &pp->conn_timeout));
-	CHK(capdb_getaltnum(bp, "du", "daemon.user", DEFUID, 
-			    &pp->daemon_user));
+	CHK(capdb_getaltnum(bp, "ct", "remote.timeout", DEFTIMEOUT,
+	    &pp->conn_timeout));
+	CHK(capdb_getaltnum(bp, "du", "daemon.user", DEFUID, &pp->daemon_user));
 	CHK(capdb_getaltstr(bp, "ff", "job.formfeed", DEFFF, &pp->form_feed));
-	CHK(capdb_getaltstr(bp, "lf", "spool.log", _PATH_CONSOLE, 
-			    &pp->log_file));
+	CHK(capdb_getaltstr(bp, "lf", "spool.log", _PATH_CONSOLE,
+	    &pp->log_file));
 	CHK(capdb_getaltstr(bp, "lo", "spool.lock", DEFLOCK, &pp->lock_file));
 	CHK(capdb_getaltstr(bp, "lp", "tty.device", _PATH_DEFDEVLP, &pp->lp));
-	CHK(capdb_getaltnum(bp, "mc", "max.copies", DEFMAXCOPIES, 
-			    &pp->max_copies));
+	CHK(capdb_getaltnum(bp, "mc", "max.copies", DEFMAXCOPIES,
+	    &pp->max_copies));
 	CHK(capdb_getaltstr(bp, "ms", "tty.mode", 0, &pp->mode_set));
 	CHK(capdb_getaltnum(bp, "mx", "max.blocks", DEFMX, &pp->max_blocks));
 	CHK(capdb_getaltnum(bp, "pc", "acct.price", 0, &pp->price100));
 	CHK(capdb_getaltnum(bp, "pl", "page.length", DEFLENGTH,
-			    &pp->page_length));
-	CHK(capdb_getaltnum(bp, "pw", "page.width", DEFWIDTH, 
-			    &pp->page_width));
+	    &pp->page_length));
+	CHK(capdb_getaltnum(bp, "pw", "page.width", DEFWIDTH, &pp->page_width));
 	CHK(capdb_getaltnum(bp, "px", "page.pwidth", 0, &pp->page_pwidth));
 	CHK(capdb_getaltnum(bp, "py", "page.plength", 0, &pp->page_plength));
-	CHK(capdb_getaltstr(bp, "rg", "daemon.restrictgrp", 0, 
-			    &pp->restrict_grp));
+	CHK(capdb_getaltstr(bp, "rg", "daemon.restrictgrp", 0,
+	    &pp->restrict_grp));
 	CHK(capdb_getaltstr(bp, "rm", "remote.host", 0, &pp->remote_host));
-	CHK(capdb_getaltstr(bp, "rp", "remote.queue", DEFLP, 
-			    &pp->remote_queue));
+	CHK(capdb_getaltstr(bp, "rp", "remote.queue", DEFLP,
+	    &pp->remote_queue));
 	CHK(capdb_getaltstr(bp, "sd", "spool.dir", _PATH_DEFSPOOL,
-			    &pp->spool_dir));
+	    &pp->spool_dir));
 	CHK(capdb_getaltstr(bp, "sr", "stat.recv", 0, &pp->stat_recv));
 	CHK(capdb_getaltstr(bp, "ss", "stat.send", 0, &pp->stat_send));
 	CHK(capdb_getaltstr(bp, "st", "spool.status", DEFSTAT,
-			    &pp->status_file));
+	    &pp->status_file));
 	CHK(capdb_getaltstr(bp, "tr", "job.trailer", 0, &pp->trailer));
 
 	pp->resend_copies = capdb_getaltlog(bp, "rc", "remote.resend_copies");
@@ -256,7 +256,7 @@ getprintcap_int(char *bp, struct printer *pp)
 	pp->header_last = capdb_getaltlog(bp, "hl", "banner.last");
 	pp->rw = capdb_getaltlog(bp, "rw", "tty.rw");
 	pp->tof = !capdb_getaltlog(bp, "fo", "job.topofform");
-	
+
 	/*
 	 * Decide if the remote printer name matches the local printer name.
 	 * If no name is given then we assume they mean them to match.
@@ -266,7 +266,7 @@ getprintcap_int(char *bp, struct printer *pp)
 	pp->rp_matches_local = 1;
 	CHK((error = capdb_getaltstr(bp, "rp", "remote.queue", 0, &rp_name)));
 	if (error != PCAPERR_NOTFOUND && rp_name != NULL) {
-		if (cgetmatch(bp,rp_name) != 0)
+		if (cgetmatch(bp, rp_name) != 0)
 			pp->rp_matches_local = 0;
 		free(rp_name);
 	}
@@ -276,7 +276,7 @@ getprintcap_int(char *bp, struct printer *pp)
 	 */
 	for (filt = 0; filt < LPF_COUNT; filt++) {
 		CHK(capdb_getaltstr(bp, filters[filt], longfilters[filt], 0,
-				    &pp->filters[filt]));
+		    &pp->filters[filt]));
 	}
 
 	return 0;
@@ -291,7 +291,7 @@ getprintcap_int(char *bp, struct printer *pp)
 const char *
 pcaperr(int error)
 {
-	switch(error) {
+	switch (error) {
 	case PCAPERR_TCOPEN:
 		return "unresolved tc= expansion";
 	case PCAPERR_SUCCESS:
@@ -326,7 +326,11 @@ void
 free_printer(struct printer *pp)
 {
 	enum lpd_filters filt;
-#define	cfree(x)	do { if (x) free(x); } while(0)
+#define cfree(x)                 \
+	do {                     \
+		if (x)           \
+			free(x); \
+	} while (0)
 	cfree(pp->printer);
 	cfree(pp->acct_file);
 	for (filt = 0; filt < LPF_COUNT; filt++)
@@ -348,9 +352,8 @@ free_printer(struct printer *pp)
 	init_printer(pp);
 }
 
-
-/* 
- * The following routines are part of what would be a sensible library 
+/*
+ * The following routines are part of what would be a sensible library
  * interface to capability databases.  Maybe someday this will become
  * the default.
  */
@@ -361,8 +364,8 @@ free_printer(struct printer *pp)
  * capability name and allows for a default to be specified.
  */
 static int
-capdb_getaltstr(char *bp, const char *shrt, const char *lng, 
-    const char *dflt, char **result)
+capdb_getaltstr(char *bp, const char *shrt, const char *lng, const char *dflt,
+    char **result)
 {
 	int status;
 
@@ -398,7 +401,7 @@ capdb_getaltnum(char *bp, const char *shrt, const char *lng, long dflt,
 		return status;
 	*result = dflt;
 	return 0;
-}	
+}
 
 /*
  * Likewise for logical values.  There's no need for a default parameter
@@ -423,7 +426,7 @@ capdb_getaltlog(char *bp, const char *shrt, const char *lng)
 static char *
 capdb_canonical_name(const char *bp)
 {
-	char *retval;	
+	char *retval;
 	const char *nameend;
 
 	nameend = strpbrk(bp, "|:");
@@ -435,5 +438,3 @@ capdb_canonical_name(const char *bp)
 	}
 	return retval;
 }
-
-

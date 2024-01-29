@@ -17,8 +17,8 @@
 
 /* This file is a simple driver for the Hesiod library. */
 
-
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <errno.h>
 #include <hesiod.h>
@@ -27,12 +27,12 @@
 #include <string.h>
 #include <unistd.h>
 
-int 
+int
 main(int argc, char **argv)
 {
-	char  **list, **p, *bindname, *name, *type;
-	int     lflag = 0, errflg = 0, bflag = 0, c;
-	void   *context;
+	char **list, **p, *bindname, *name, *type;
+	int lflag = 0, errflg = 0, bflag = 0, c;
+	void *context;
 
 	while ((c = getopt(argc, argv, "lb")) != -1) {
 		switch (c) {

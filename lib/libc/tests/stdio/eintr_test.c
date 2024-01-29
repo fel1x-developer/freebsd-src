@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,10 +19,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define NDATA	1000
-#define	DELAY	2
+#define NDATA 1000
+#define DELAY 2
 
 static void
 hup(int signo __unused)
@@ -128,8 +128,8 @@ ATF_TC_BODY(eintr_test, tc)
 		MD5End(&md5, digest);
 		fclose(fp);
 		ATF_REQUIRE_MSG(total == total0,
-		    "Total number of bytes read does not match: %d %d",
-		    total, total0);
+		    "Total number of bytes read does not match: %d %d", total,
+		    total0);
 		ATF_REQUIRE_MSG(strcmp(digest, digest0) == 0,
 		    "Digests do not match %s %s", digest, digest0);
 		break;

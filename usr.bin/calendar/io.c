@@ -32,6 +32,7 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -47,8 +48,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "pathnames.h"
 #include "calendar.h"
+#include "pathnames.h"
 
 enum {
 	T_OK = 0,
@@ -56,9 +57,11 @@ enum {
 	T_PROCESS,
 };
 
-const char *calendarFile = "calendar";	/* default calendar file */
-static const char *calendarHomes[] = {".calendar", _PATH_INCLUDE_LOCAL, _PATH_INCLUDE}; /* HOME */
-static const char *calendarNoMail = "nomail";/* don't sent mail if file exist */
+const char *calendarFile = "calendar"; /* default calendar file */
+static const char *calendarHomes[] = { ".calendar", _PATH_INCLUDE_LOCAL,
+	_PATH_INCLUDE }; /* HOME */
+static const char *calendarNoMail =
+    "nomail"; /* don't sent mail if file exist */
 
 static char path[MAXPATHLEN];
 static const char *cal_home;
@@ -94,7 +97,7 @@ trimlr(char **buf)
 		last = sep + strlen(sep) - 1;
 		while (last > walk && isspace(*last))
 			last--;
-		*(last+1) = 0;
+		*(last + 1) = 0;
 	}
 
 	return (sep);
@@ -151,8 +154,9 @@ cal_fopen(const char *file)
 	}
 
 	for (i = 0; i < nitems(calendarHomes); i++) {
-		if (snprintf(calendarhome, sizeof (calendarhome), calendarHomes[i],
-			getlocalbase()) >= (int)sizeof (calendarhome))
+		if (snprintf(calendarhome, sizeof(calendarhome),
+			calendarHomes[i],
+			getlocalbase()) >= (int)sizeof(calendarhome))
 			continue;
 
 		if (chdir(calendarhome) != 0)
@@ -168,9 +172,11 @@ cal_fopen(const char *file)
 
 	warnx("can't open calendar file \"%s\"", file);
 	if (!warned) {
-		snprintf(path, sizeof(path), _PATH_INCLUDE_LOCAL, getlocalbase());
+		snprintf(path, sizeof(path), _PATH_INCLUDE_LOCAL,
+		    getlocalbase());
 		if (stat(path, &sb) != 0) {
-			warnx("calendar data files now provided by calendar-data pkg.");
+			warnx(
+			    "calendar data files now provided by calendar-data pkg.");
 			warned = true;
 		}
 	}
@@ -178,7 +184,7 @@ cal_fopen(const char *file)
 	return (NULL);
 }
 
-static char*
+static char *
 cal_path(void)
 {
 	static char buffer[MAXPATHLEN + 10];
@@ -188,17 +194,17 @@ cal_path(void)
 	else if (cal_dir[0] == '/')
 		snprintf(buffer, sizeof(buffer), "%s/%s", cal_dir, cal_file);
 	else
-		snprintf(buffer, sizeof(buffer), "%s/%s/%s", cal_home, cal_dir, cal_file);
+		snprintf(buffer, sizeof(buffer), "%s/%s/%s", cal_home, cal_dir,
+		    cal_file);
 	return (buffer);
 }
 
-#define	WARN0(format)		   \
-	warnx(format " in %s line %d", cal_path(), cal_line)
-#define	WARN1(format, arg1)		   \
+#define WARN0(format) warnx(format " in %s line %d", cal_path(), cal_line)
+#define WARN1(format, arg1) \
 	warnx(format " in %s line %d", arg1, cal_path(), cal_line)
 
-static char*
-cmptoken(char *line, const char* token)
+static char *
+cmptoken(char *line, const char *token)
 {
 	char len = strlen(token);
 
@@ -242,16 +248,17 @@ token(char *line, FILE *out, int *skip, int *unskip)
 		}
 		if (*sep != '\0') {
 			WARN1("Expecting a single word after #ifdef "
-			    "but got \"%s\"", walk);
+			      "but got \"%s\"",
+			    walk);
 			return (T_ERR);
 		}
 
-		if (*skip != 0 ||
-		    definitions == NULL || sl_find(definitions, walk) == NULL)
+		if (*skip != 0 || definitions == NULL ||
+		    sl_find(definitions, walk) == NULL)
 			++*skip;
 		else
 			++*unskip;
-		
+
 		return (T_OK);
 	}
 
@@ -265,7 +272,8 @@ token(char *line, FILE *out, int *skip, int *unskip)
 		}
 		if (*sep != '\0') {
 			WARN1("Expecting a single word after #ifndef "
-			    "but got \"%s\"", walk);
+			      "but got \"%s\"",
+			    walk);
 			return (T_ERR);
 		}
 
@@ -371,7 +379,8 @@ token(char *line, FILE *out, int *skip, int *unskip)
 			}
 			if (*sep != '\0') {
 				WARN1("Expecting a single word after #undef "
-				    "but got \"%s\"", walk);
+				      "but got \"%s\"",
+				    walk);
 				return (T_ERR);
 			}
 
@@ -410,15 +419,15 @@ setup_locale(const char *locale)
 	setnnames();
 }
 
-#define	REPLACE(string, slen, struct_) \
-		if (strncasecmp(buf, (string), (slen)) == 0 && buf[(slen)]) { \
-			if (struct_.name != NULL)			      \
-				free(struct_.name);			      \
-			if ((struct_.name = strdup(buf + (slen))) == NULL)    \
-				errx(1, "cannot allocate memory");	      \
-			struct_.len = strlen(buf + (slen));		      \
-			continue;					      \
-		}
+#define REPLACE(string, slen, struct_)                                \
+	if (strncasecmp(buf, (string), (slen)) == 0 && buf[(slen)]) { \
+		if (struct_.name != NULL)                             \
+			free(struct_.name);                           \
+		if ((struct_.name = strdup(buf + (slen))) == NULL)    \
+			errx(1, "cannot allocate memory");            \
+		struct_.len = strlen(buf + (slen));                   \
+		continue;                                             \
+	}
 static int
 cal_parse(FILE *in, FILE *out)
 {
@@ -468,7 +477,8 @@ cal_parse(FILE *in, FILE *out)
 				cc = strstr(bufp, "/*");
 				if (c != NULL && (cc == NULL || c - cc < 0)) {
 					bufp = c + 2;
-					/* ignore "//" within string to allow it in an URL */
+					/* ignore "//" within string to allow it
+					 * in an URL */
 					if (c == buf || isspace(c[-1])) {
 						/* single line comment */
 						*c = '\0';
@@ -477,10 +487,13 @@ cal_parse(FILE *in, FILE *out)
 					}
 				} else if (cc != NULL) {
 					c = strstr(cc + 2, "*/");
-					if (c != NULL) { // 'a /* b */ c' -- cc=2, c=7+2
-						/* multi-line comment ending on same line */
+					if (c != NULL) { // 'a /* b */ c' --
+							 // cc=2, c=7+2
+						/* multi-line comment ending on
+						 * same line */
 						c += 2;
-						memmove(cc, c, buf + linelen + 1 - c);
+						memmove(cc, c,
+						    buf + linelen + 1 - c);
 						linelen -= c - cc;
 						bufp = cc;
 					} else {
@@ -494,8 +507,7 @@ cal_parse(FILE *in, FILE *out)
 			} while (c != NULL || cc != NULL);
 		}
 
-		for (l = linelen;
-		     l > 0 && isspace((unsigned char)buf[l - 1]);
+		for (l = linelen; l > 0 && isspace((unsigned char)buf[l - 1]);
 		     l--)
 			;
 		buf[l] = '\0';
@@ -503,7 +515,7 @@ cal_parse(FILE *in, FILE *out)
 			continue;
 
 		if (buf == line && *buf == '#') {
-			switch (token(buf+1, out, &skip, &unskip)) {
+			switch (token(buf + 1, out, &skip, &unskip)) {
 			case T_ERR:
 				free(line);
 				return (1);
@@ -572,7 +584,7 @@ cal_parse(FILE *in, FILE *out)
 		p = *pp;
 		*pp = '\0';
 		if ((count = parsedaymonth(buf, year, month, day, &flags,
-		    extradata)) == 0)
+			 extradata)) == 0)
 			continue;
 		*pp = p;
 		if (count < 0) {
@@ -620,7 +632,6 @@ cal(void)
 
 	for (i = 0; i < MAXCOUNT; i++)
 		extradata[i] = (char *)calloc(1, 20);
-
 
 	if ((fpin = opencalin()) == NULL)
 		return;
@@ -692,7 +703,7 @@ closecal(FILE *fp)
 	if (pipe(pdes) < 0)
 		goto done;
 	switch (fork()) {
-	case -1:			/* error */
+	case -1: /* error */
 		(void)close(pdes[0]);
 		(void)close(pdes[1]);
 		goto done;
@@ -722,7 +733,9 @@ closecal(FILE *fp)
 	while ((nread = read(fileno(fp), buf, sizeof(buf))) > 0)
 		(void)write(pdes[1], buf, nread);
 	(void)close(pdes[1]);
-done:	(void)fclose(fp);
+done:
+	(void)fclose(fp);
 	(void)unlink(path);
-	while (wait(&status) >= 0);
+	while (wait(&status) >= 0)
+		;
 }

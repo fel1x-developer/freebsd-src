@@ -31,38 +31,38 @@
 
 #include <sys/types.h>
 
-#define BTX_PGSIZE	0x1000		/* Page size */
-#define BTX_PGBASE	0x5000		/* Start of page tables */
-#define BTX_MAXCWR	0x3bc		/* Max. btx_pgctl adjustment */
+#define BTX_PGSIZE 0x1000 /* Page size */
+#define BTX_PGBASE 0x5000 /* Start of page tables */
+#define BTX_MAXCWR 0x3bc  /* Max. btx_pgctl adjustment */
 
 /*
  * BTX image header.
  */
 struct btx_hdr {
-    uint8_t	btx_machid;		/* Machine ID */
-    uint8_t	btx_hdrsz;		/* Header size */
-    uint8_t	btx_magic[3];		/* Magic */
-    uint8_t	btx_majver;		/* Major version */
-    uint8_t	btx_minver;		/* Minor version */
-    uint8_t	btx_flags;		/* Flags */
-    uint16_t	btx_pgctl;		/* Paging control */
-    uint16_t	btx_textsz;		/* Text size */
-    uint32_t	btx_entry;		/* Client entry address */
+	uint8_t btx_machid;   /* Machine ID */
+	uint8_t btx_hdrsz;    /* Header size */
+	uint8_t btx_magic[3]; /* Magic */
+	uint8_t btx_majver;   /* Major version */
+	uint8_t btx_minver;   /* Minor version */
+	uint8_t btx_flags;    /* Flags */
+	uint16_t btx_pgctl;   /* Paging control */
+	uint16_t btx_textsz;  /* Text size */
+	uint32_t btx_entry;   /* Client entry address */
 };
 
 /* btx_machid */
-#define BTX_I386	0xeb		/* Intel i386 or compatible */
+#define BTX_I386 0xeb /* Intel i386 or compatible */
 
 /* btx_magic */
-#define BTX_MAG0	'B'
-#define BTX_MAG1	'T'
-#define BTX_MAG2	'X'
+#define BTX_MAG0 'B'
+#define BTX_MAG1 'T'
+#define BTX_MAG2 'X'
 
 /* btx_flags */
-#define BTX_MAPONE	0x80		/* Start mapping at page 1 */
+#define BTX_MAPONE 0x80 /* Start mapping at page 1 */
 
 #define BTX_MAPPED(btx) (((btx).btx_pgctl | (BTX_PGSIZE / 4 - 1)) + 1)
 #define BTX_ORIGIN(btx) (BTX_PGBASE + BTX_MAPPED(btx) * 4)
-#define BTX_ENTRY(btx)	(BTX_ORIGIN(btx) + 2 + (btx).btx_hdrsz)
+#define BTX_ENTRY(btx) (BTX_ORIGIN(btx) + 2 + (btx).btx_hdrsz)
 
 #endif /* !_BTX_H_ */

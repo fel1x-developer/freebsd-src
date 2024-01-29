@@ -24,19 +24,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
@@ -46,23 +46,20 @@
 #include <dev/ahci/ahci.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
-
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"generic-ahci", 		1},
-	{"snps,dwc-ahci",		1},
-	{"marvell,armada-3700-ahci",	1},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "generic-ahci", 1 },
+	{ "snps,dwc-ahci", 1 }, { "marvell,armada-3700-ahci", 1 },
+	{ NULL, 0 } };
 
 static int
 ahci_fdt_probe(device_t dev)
@@ -86,13 +83,9 @@ ahci_fdt_probe(device_t dev)
 #ifdef DEV_ACPI
 
 static const struct ahci_acpi_quirk {
-	const char*	hid;
-	u_int		quirks;
-} ahci_acpi_quirks[] = {
-	{ "NXP0004", AHCI_Q_NOPMP },
-	{ NULL, 0 }
-};
-
+	const char *hid;
+	u_int quirks;
+} ahci_acpi_quirks[] = { { "NXP0004", AHCI_Q_NOPMP }, { NULL, 0 } };
 
 static int
 ahci_acpi_probe(device_t dev)
@@ -108,14 +101,15 @@ ahci_acpi_probe(device_t dev)
 	    pci_get_subclass(dev) == PCIS_STORAGE_SATA &&
 	    pci_get_progif(dev) == PCIP_STORAGE_SATA_AHCI_1_0) {
 		device_set_desc_copy(dev, "AHCI SATA controller");
-		if (ACPI_FAILURE(acpi_GetInteger(h, "_CCA",
-		      &ctlr->dma_coherent)))
+		if (ACPI_FAILURE(
+			acpi_GetInteger(h, "_CCA", &ctlr->dma_coherent)))
 			ctlr->dma_coherent = 0;
 		if (bootverbose)
 			device_printf(dev, "Bus is%s cache-coherent\n",
-			  ctlr->dma_coherent ? "" : " not");
+			    ctlr->dma_coherent ? "" : " not");
 		for (i = 0; ahci_acpi_quirks[i].hid != NULL; i++) {
-			if (acpi_MatchHid(h, ahci_acpi_quirks[i].hid) != ACPI_MATCHHID_NOMATCH) {
+			if (acpi_MatchHid(h, ahci_acpi_quirks[i].hid) !=
+			    ACPI_MATCHHID_NOMATCH) {
 				ctlr->quirks = ahci_acpi_quirks[i].quirks;
 				break;
 			}
@@ -138,7 +132,7 @@ static int
 ahci_gen_attach(device_t dev)
 {
 	struct ahci_controller *ctlr = device_get_softc(dev);
-	int	error;
+	int error;
 
 	ctlr->r_rid = 0;
 	ctlr->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &ctlr->r_rid,
@@ -170,45 +164,35 @@ ahci_gen_detach(device_t dev)
 }
 
 #ifdef FDT
-static device_method_t ahci_fdt_methods[] = {
-	DEVMETHOD(device_probe,     ahci_fdt_probe),
-	DEVMETHOD(device_attach,    ahci_gen_attach),
-	DEVMETHOD(device_detach,    ahci_gen_detach),
-	DEVMETHOD(bus_print_child,  ahci_print_child),
-	DEVMETHOD(bus_alloc_resource,       ahci_alloc_resource),
-	DEVMETHOD(bus_release_resource,     ahci_release_resource),
-	DEVMETHOD(bus_setup_intr,   ahci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,ahci_teardown_intr),
+static device_method_t ahci_fdt_methods[] = { DEVMETHOD(device_probe,
+						  ahci_fdt_probe),
+	DEVMETHOD(device_attach, ahci_gen_attach),
+	DEVMETHOD(device_detach, ahci_gen_detach),
+	DEVMETHOD(bus_print_child, ahci_print_child),
+	DEVMETHOD(bus_alloc_resource, ahci_alloc_resource),
+	DEVMETHOD(bus_release_resource, ahci_release_resource),
+	DEVMETHOD(bus_setup_intr, ahci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, ahci_teardown_intr),
 	DEVMETHOD(bus_child_location, ahci_child_location),
-	DEVMETHOD(bus_get_dma_tag,  ahci_get_dma_tag),
-	DEVMETHOD_END
-};
-static driver_t ahci_fdt_driver = {
-	"ahci",
-	ahci_fdt_methods,
-	sizeof(struct ahci_controller)
-};
+	DEVMETHOD(bus_get_dma_tag, ahci_get_dma_tag), DEVMETHOD_END };
+static driver_t ahci_fdt_driver = { "ahci", ahci_fdt_methods,
+	sizeof(struct ahci_controller) };
 DRIVER_MODULE(ahci_fdt, simplebus, ahci_fdt_driver, NULL, NULL);
 #endif
 
 #ifdef DEV_ACPI
-static device_method_t ahci_acpi_methods[] = {
-	DEVMETHOD(device_probe,     ahci_acpi_probe),
-	DEVMETHOD(device_attach,    ahci_gen_attach),
-	DEVMETHOD(device_detach,    ahci_gen_detach),
-	DEVMETHOD(bus_print_child,  ahci_print_child),
-	DEVMETHOD(bus_alloc_resource,       ahci_alloc_resource),
-	DEVMETHOD(bus_release_resource,     ahci_release_resource),
-	DEVMETHOD(bus_setup_intr,   ahci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,ahci_teardown_intr),
+static device_method_t ahci_acpi_methods[] = { DEVMETHOD(device_probe,
+						   ahci_acpi_probe),
+	DEVMETHOD(device_attach, ahci_gen_attach),
+	DEVMETHOD(device_detach, ahci_gen_detach),
+	DEVMETHOD(bus_print_child, ahci_print_child),
+	DEVMETHOD(bus_alloc_resource, ahci_alloc_resource),
+	DEVMETHOD(bus_release_resource, ahci_release_resource),
+	DEVMETHOD(bus_setup_intr, ahci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, ahci_teardown_intr),
 	DEVMETHOD(bus_child_location, ahci_child_location),
-	DEVMETHOD(bus_get_dma_tag,  ahci_get_dma_tag),
-	DEVMETHOD_END
-};
-static driver_t ahci_acpi_driver = {
-	"ahci",
-	ahci_acpi_methods,
-	sizeof(struct ahci_controller)
-};
+	DEVMETHOD(bus_get_dma_tag, ahci_get_dma_tag), DEVMETHOD_END };
+static driver_t ahci_acpi_driver = { "ahci", ahci_acpi_methods,
+	sizeof(struct ahci_controller) };
 DRIVER_MODULE(ahci_acpi, acpi, ahci_acpi_driver, NULL, NULL);
 #endif

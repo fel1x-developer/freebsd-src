@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2003
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -20,7 +20,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,60 +32,59 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * $Id: dconschat.c,v 1.76 2003/10/23 06:21:13 simokawa Exp $
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/errno.h>
+#include <sys/eui64.h>
+#include <sys/event.h>
+#include <sys/ioccom.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
-#include <unistd.h>
+
+#include <dev/dcons/dcons.h>
+#include <dev/firewire/firewire.h>
+#include <dev/firewire/iec13213.h>
+
+#include <netinet/in.h>
+
+#include <arpa/telnet.h>
+#include <err.h>
 #include <fcntl.h>
+#include <kvm.h>
+#include <netdb.h>
+#include <nlist.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <termios.h>
-#include <dev/dcons/dcons.h>
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <err.h>
 #include <string.h>
-#include <sys/eui64.h>
-#include <sys/event.h>
-#include <sys/time.h>
-#include <arpa/telnet.h>
+#include <termios.h>
+#include <unistd.h>
 
-#include <sys/ioccom.h>
-#include <dev/firewire/firewire.h>
-#include <dev/firewire/iec13213.h>
-
-#include <kvm.h>
-#include <nlist.h>
-
-#include <sys/errno.h>
-
-#define	DCONS_POLL_HZ		100
-#define	DCONS_POLL_OFFLINE	2	/* sec */
+#define DCONS_POLL_HZ 100
+#define DCONS_POLL_OFFLINE 2 /* sec */
 
 #define RETRY 3
 
 #ifdef CSRVAL_VENDOR_PRIVATE
-#define	USE_CROM 1
+#define USE_CROM 1
 #else
-#define	USE_CROM 0
+#define USE_CROM 0
 #endif
 
 int verbose = 0;
 int tc_set = 0;
 int poll_hz = DCONS_POLL_HZ;
-static u_char abreak[3] = {13 /* CR */, 126 /* ~ */, 2 /* ^B */};
+static u_char abreak[3] = { 13 /* CR */, 126 /* ~ */, 2 /* ^B */ };
 
-#define IS_CONSOLE(p)	((p)->port == DCONS_CON)
-#define IS_GDB(p)	((p)->port == DCONS_GDB)
+#define IS_CONSOLE(p) ((p)->port == DCONS_CON)
+#define IS_GDB(p) ((p)->port == DCONS_GDB)
 
 static struct dcons_state {
 	int fd;
@@ -93,18 +92,15 @@ static struct dcons_state {
 	int kq;
 	off_t paddr;
 	off_t reset;
-#define F_READY		(1 << 1)
-#define F_RD_ONLY	(1 << 2)
-#define F_ALT_BREAK	(1 << 3)
-#define F_TELNET	(1 << 4)
-#define F_USE_CROM	(1 << 5)
-#define F_ONE_SHOT	(1 << 6)
-#define F_REPLAY	(1 << 7)
+#define F_READY (1 << 1)
+#define F_RD_ONLY (1 << 2)
+#define F_ALT_BREAK (1 << 3)
+#define F_TELNET (1 << 4)
+#define F_USE_CROM (1 << 5)
+#define F_ONE_SHOT (1 << 6)
+#define F_REPLAY (1 << 7)
 	int flags;
-	enum {
-		TYPE_KVM,
-		TYPE_FW
-	} type;
+	enum { TYPE_KVM, TYPE_FW } type;
 	int escape_state;
 	struct dcons_port {
 		int port;
@@ -170,7 +166,6 @@ dconschat_reset_target(struct dcons_state *dc, struct dcons_port *p)
 	dwrite(dc, (void *)buf, PAGE_SIZE, dc->reset);
 }
 
-
 static void
 dconschat_suspend(struct dcons_state *dc, struct dcons_port *p)
 {
@@ -219,14 +214,13 @@ dconschat_fork_gdb(struct dcons_state *dc, struct dcons_port *p)
 		write(p->outfd, buf, strlen(buf));
 	}
 
-
 	if (pid == 0) {
 		/* child */
 		if (tc_set)
 			tcsetattr(STDIN_FILENO, TCSADRAIN, &dc->tsave);
 
 		snprintf(com, sizeof(buf), "kgdb -r :%d kernel",
-			dc->port[DCONS_GDB].sport);
+		    dc->port[DCONS_GDB].sport);
 		snprintf(buf, 256, "\n[fork %s]\n", com);
 		write(p->outfd, buf, strlen(buf));
 
@@ -245,7 +239,6 @@ dconschat_fork_gdb(struct dcons_state *dc, struct dcons_port *p)
 		kevent(sc.kq, &kev, 1, NULL, 0, &sc.zero);
 	}
 }
-
 
 static void
 dconschat_cleanup(int sig)
@@ -272,7 +265,7 @@ dconschat_get_crom(struct dcons_state *dc)
 	off_t addr;
 	int i, state = 0;
 	u_int32_t buf, hi = 0, lo = 0, reset_hi = 0, reset_lo = 0;
-	struct csrreg *reg; 
+	struct csrreg *reg;
 
 	reg = (struct csrreg *)&buf;
 	addr = 0xffff;
@@ -289,12 +282,12 @@ dconschat_get_crom(struct dcons_state *dc)
 		switch (state) {
 		case 0:
 			if (reg->key == CSRKEY_SPEC &&
-					reg->val == CSRVAL_VENDOR_PRIVATE)
+			    reg->val == CSRVAL_VENDOR_PRIVATE)
 				state = 1;
 			break;
 		case 1:
 			if (reg->key == CSRKEY_VER &&
-					reg->val == DCONS_CSR_VAL_VER)
+			    reg->val == DCONS_CSR_VAL_VER)
 				state = 2;
 			break;
 		case 2:
@@ -322,7 +315,7 @@ dconschat_get_crom(struct dcons_state *dc)
 	}
 out:
 	if (verbose)
-		printf("addr: %06x %06x\n", hi, lo); 
+		printf("addr: %06x %06x\n", hi, lo);
 	dc->paddr = ((off_t)hi << 24) | lo;
 	dc->reset = ((off_t)reset_hi << 24) | reset_lo;
 	if (dc->paddr == 0)
@@ -374,15 +367,14 @@ dconschat_fetch_header(struct dcons_state *dc)
 		return (-1);
 	}
 	if (dbuf.magic != htonl(DCONS_MAGIC)) {
-		if ((dc->flags & F_USE_CROM) !=0)
+		if ((dc->flags & F_USE_CROM) != 0)
 			dc->paddr = 0;
 		snprintf(ebuf, sizeof(ebuf), "wrong magic 0x%08x", dbuf.magic);
 		dconschat_ready(dc, 0, ebuf);
 		return (-1);
 	}
 	if (ntohl(dbuf.version) != DCONS_VERSION) {
-		snprintf(ebuf, sizeof(ebuf),
-		    "wrong version %d,%d",
+		snprintf(ebuf, sizeof(ebuf), "wrong version %d,%d",
 		    ntohl(dbuf.version), DCONS_VERSION);
 		/* XXX exit? */
 		dconschat_ready(dc, 0, ebuf);
@@ -415,54 +407,55 @@ dconschat_fetch_header(struct dcons_state *dc)
 		if (verbose) {
 			printf("port %d   size offset   gen   pos\n", j);
 			printf("output: %5d %6d %5d %5d\n"
-				"input : %5d %6d %5d %5d\n",
-			o->size, ntohl(dbuf.ooffset[j]), o->gen, o->pos,
-			i->size, ntohl(dbuf.ioffset[j]), i->gen, i->pos);
+			       "input : %5d %6d %5d %5d\n",
+			    o->size, ntohl(dbuf.ooffset[j]), o->gen, o->pos,
+			    i->size, ntohl(dbuf.ioffset[j]), i->gen, i->pos);
 		}
 
 		if (IS_CONSOLE(&dc->port[j]) && new &&
-		    (dc->flags & F_REPLAY) !=0) {
+		    (dc->flags & F_REPLAY) != 0) {
 			if (o->gen > 0)
-				o->gen --;
+				o->gen--;
 			else
 				o->pos = 0;
 		}
 	}
 	dconschat_ready(dc, 1, NULL);
-	return(0);
+	return (0);
 }
 
 static int
-dconschat_get_ptr (struct dcons_state *dc) {
+dconschat_get_ptr(struct dcons_state *dc)
+{
 	int dlen, i;
-	u_int32_t ptr[DCONS_NPORT*2+1];
+	u_int32_t ptr[DCONS_NPORT * 2 + 1];
 	static int retry = RETRY;
 	char ebuf[64];
 
 again:
 	dlen = dread(dc, &ptr, sizeof(ptr),
-		dc->paddr + __offsetof(struct dcons_buf, magic));
+	    dc->paddr + __offsetof(struct dcons_buf, magic));
 
 	if (dlen < 0) {
 		if (errno == ETIMEDOUT)
-			if (retry -- > 0)
+			if (retry-- > 0)
 				goto again;
 		dconschat_ready(dc, 0, "get ptr failed");
-		return(-1);
+		return (-1);
 	}
 	if (ptr[0] != htonl(DCONS_MAGIC)) {
-		if ((dc->flags & F_USE_CROM) !=0)
+		if ((dc->flags & F_USE_CROM) != 0)
 			dc->paddr = 0;
 		snprintf(ebuf, sizeof(ebuf), "wrong magic 0x%08x", ptr[0]);
 		dconschat_ready(dc, 0, ebuf);
-		return(-1);
+		return (-1);
 	}
 	retry = RETRY;
-	for (i = 0; i < DCONS_NPORT; i ++) {
+	for (i = 0; i < DCONS_NPORT; i++) {
 		dc->port[i].optr = ntohl(ptr[i + 1]);
 		dc->port[i].iptr = ntohl(ptr[DCONS_NPORT + i + 1]);
 	}
-	return(0);
+	return (0);
 }
 
 #define MAX_XFER 2048
@@ -520,17 +513,18 @@ ok:
 
 #if 1
 	if (verbose == 1)
-		printf("[%d]", rlen); fflush(stdout);
+		printf("[%d]", rlen);
+	fflush(stdout);
 #endif
 
 again:
 	dlen = dread(dc, buf, rlen, ch->buf + ch->pos);
 	if (dlen < 0) {
 		if (errno == ETIMEDOUT)
-			if (retry -- > 0)
+			if (retry-- > 0)
 				goto again;
 		dconschat_ready(dc, 0, "read buffer failed");
-		return(-1);
+		return (-1);
 	}
 	if (dlen != rlen)
 		warnx("dlen(%d) != rlen(%d)\n", dlen, rlen);
@@ -559,16 +553,16 @@ dconschat_write_dcons(struct dcons_state *dc, int port, char *buf, int blen)
 	ch->gen = ptr >> DCONS_GEN_SHIFT;
 	ch->pos = ptr & DCONS_POS_MASK;
 
-	while(blen > 0) {
+	while (blen > 0) {
 		wlen = MIN(blen, ch->size - ch->pos);
 		wlen = MIN(wlen, MAX_XFER);
 		len = dwrite(dc, buf, wlen, ch->buf + ch->pos);
 		if (len < 0) {
 			if (errno == ETIMEDOUT)
-				if (retry -- > 0)
+				if (retry-- > 0)
 					continue; /* try again */
 			dconschat_ready(dc, 0, "write buffer failed");
-			return(-1);
+			return (-1);
 		}
 		ch->pos += len;
 		buf += len;
@@ -578,7 +572,6 @@ dconschat_write_dcons(struct dcons_state *dc, int port, char *buf, int blen)
 			ch->pos = 0;
 			if (verbose)
 				printf("write_dcons: gen=%d", ch->gen);
-				
 		}
 	}
 
@@ -589,17 +582,16 @@ dconschat_write_dcons(struct dcons_state *dc, int port, char *buf, int blen)
 		printf("(iptr: 0x%x)", ptr);
 again:
 	len = dwrite(dc, &ptr, sizeof(u_int32_t),
-		dc->paddr + __offsetof(struct dcons_buf, iptr[port]));
+	    dc->paddr + __offsetof(struct dcons_buf, iptr[port]));
 	if (len < 0) {
 		if (errno == ETIMEDOUT)
-			if (retry -- > 0)
+			if (retry-- > 0)
 				goto again;
 		dconschat_ready(dc, 0, "write ptr failed");
-		return(-1);
+		return (-1);
 	}
-	return(0);
+	return (0);
 }
-
 
 static int
 dconschat_write_socket(int fd, char *buf, int len)
@@ -635,8 +627,7 @@ dconschat_init_socket(struct dcons_state *dc, int port, char *host, int sport)
 		p->infd = STDIN_FILENO;
 		p->outfd = STDOUT_FILENO;
 		p->s = -1;
-		if (tc_set == 0 &&
-		    tcgetattr(STDIN_FILENO, &dc->tsave) == 0) {
+		if (tc_set == 0 && tcgetattr(STDIN_FILENO, &dc->tsave) == 0) {
 			dc->traw = dc->tsave;
 			cfmakeraw(&dc->traw);
 			tcsetattr(STDIN_FILENO, TCSADRAIN, &dc->traw);
@@ -650,7 +641,7 @@ dconschat_init_socket(struct dcons_state *dc, int port, char *host, int sport)
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_PASSIVE;
-#if 1	/* gdb can talk v4 only */
+#if 1 /* gdb can talk v4 only */
 	hints.ai_family = PF_INET;
 #else
 	hints.ai_family = PF_UNSPEC;
@@ -659,10 +650,10 @@ dconschat_init_socket(struct dcons_state *dc, int port, char *host, int sport)
 	hints.ai_protocol = 0;
 
 	if (verbose)
-		printf("%s:%d for port %d\n",
-			host == NULL ? "*" : host, sport, port);
+		printf("%s:%d for port %d\n", host == NULL ? "*" : host, sport,
+		    port);
 	snprintf(service, sizeof(service), "%d", sport);
-	error = getaddrinfo(host, service,  &hints, &res);
+	error = getaddrinfo(host, service, &hints, &res);
 	if (error)
 		errx(1, "tcp/%s: %s\n", service, gai_strerror(error));
 	p->res = res;
@@ -702,10 +693,10 @@ dconschat_accept_socket(struct dcons_state *dc, struct dcons_port *p)
 	fcntl(ns, F_SETFL, flags);
 #if 1
 	if (IS_CONSOLE(p) && (dc->flags & F_TELNET) != 0) {
-		char sga[] = {IAC, WILL, TELOPT_SGA};
-		char linemode[] = {IAC, DONT, TELOPT_LINEMODE};
-		char echo[] = {IAC, WILL, TELOPT_ECHO};
-		char bin[] = {IAC, DO, TELOPT_BINARY};
+		char sga[] = { IAC, WILL, TELOPT_SGA };
+		char linemode[] = { IAC, DONT, TELOPT_LINEMODE };
+		char echo[] = { IAC, WILL, TELOPT_ECHO };
+		char bin[] = { IAC, DO, TELOPT_BINARY };
 
 		write(ns, sga, sizeof(sga));
 		write(ns, linemode, sizeof(linemode));
@@ -720,7 +711,7 @@ dconschat_accept_socket(struct dcons_state *dc, struct dcons_port *p)
 		int len;
 
 		while ((len = dconschat_read_dcons(dc, DCONS_GDB, &buf[0],
-				 2048)) > 0)
+			    2048)) > 0)
 			if (verbose)
 				printf("discard %d chars on GDB port\n", len);
 	}
@@ -728,12 +719,12 @@ dconschat_accept_socket(struct dcons_state *dc, struct dcons_port *p)
 	p->infd = p->outfd = ns;
 	EV_SET(&kev, ns, EVFILT_READ, EV_ADD, NOTE_LOWAT, 1, (void *)p);
 	kevent(dc->kq, &kev, 1, NULL, 0, &dc->zero);
-	return(0);
+	return (0);
 }
 
 static int
-dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p,
-    u_char *sp, int slen, u_char *dp, int *dlen)
+dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p, u_char *sp,
+    int slen, u_char *dp, int *dlen)
 {
 	int skip;
 	char *buf;
@@ -743,24 +734,24 @@ dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p,
 		if (IS_CONSOLE(p)) {
 			if ((dc->flags & F_TELNET) != 0) {
 				/* XXX Telnet workarounds */
-				if (p->skip_read -- > 0) {
-					sp ++;
-					slen --;
+				if (p->skip_read-- > 0) {
+					sp++;
+					slen--;
 					continue;
 				}
 				if (*sp == IAC) {
 					if (verbose)
 						printf("(IAC)");
 					p->skip_read = 2;
-					sp ++;
-					slen --;
+					sp++;
+					slen--;
 					continue;
 				}
 				if (*sp == 0) {
 					if (verbose)
 						printf("(0 stripped)");
-					sp ++;
-					slen --;
+					sp++;
+					slen--;
 					continue;
 				}
 			}
@@ -781,20 +772,20 @@ dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p,
 					bcopy(abreak, dp, 3);
 					dp += 3;
 					*dlen += 3;
-				}
-				else if (*sp == CTRL('G'))
+				} else if (*sp == CTRL('G'))
 					dconschat_fork_gdb(dc, p);
-				else if ((*sp == CTRL('R'))
-						&& (dc->reset != 0)) {
+				else if ((*sp == CTRL('R')) &&
+				    (dc->reset != 0)) {
 					dc->escape_state = STATE3;
-					buf = "\r\n[Are you sure to reset target? (y/N)]";
+					buf =
+					    "\r\n[Are you sure to reset target? (y/N)]";
 					write(p->outfd, buf, strlen(buf));
 				} else if (*sp == CTRL('Z'))
 					dconschat_suspend(dc, p);
 				else {
 					skip = 0;
 					*dp++ = dc->escape;
-					(*dlen) ++;
+					(*dlen)++;
 				}
 				break;
 			case STATE3:
@@ -812,10 +803,11 @@ dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p,
 				dc->escape_state = STATE1;
 		} else if (IS_GDB(p)) {
 			/* GDB: ^C -> CR+~+^B */
-			if (*sp == CTRL('C') && (dc->flags & F_ALT_BREAK) != 0) {
+			if (*sp == CTRL('C') &&
+			    (dc->flags & F_ALT_BREAK) != 0) {
 				bcopy(abreak, dp, 3);
 				dp += 3;
-				sp ++;
+				sp++;
 				*dlen += 3;
 				/* discard rest of the packet */
 				slen = 0;
@@ -824,13 +816,12 @@ dconschat_read_filter(struct dcons_state *dc, struct dcons_port *p,
 		}
 		if (!skip) {
 			*dp++ = *sp;
-			(*dlen) ++;
+			(*dlen)++;
 		}
-		sp ++;
-		slen --;
+		sp++;
+		slen--;
 	}
 	return (*dlen);
-			
 }
 
 static int
@@ -838,7 +829,7 @@ dconschat_read_socket(struct dcons_state *dc, struct dcons_port *p)
 {
 	struct kevent kev;
 	int len, wlen;
-	char rbuf[MAX_XFER], wbuf[MAX_XFER+2];
+	char rbuf[MAX_XFER], wbuf[MAX_XFER + 2];
 
 	if ((len = read(p->infd, rbuf, sizeof(rbuf))) > 0) {
 		wlen = 0;
@@ -861,18 +852,17 @@ dconschat_read_socket(struct dcons_state *dc, struct dcons_port *p)
 			else
 				warn("port%d: read", p->port);
 		}
-		EV_SET(&kev, p->infd, EVFILT_READ,
-			EV_DELETE, 0, 0, NULL);
+		EV_SET(&kev, p->infd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
 		kevent(dc->kq, &kev, 1, NULL, 0, &dc->zero);
 		close(p->infd);
 		close(p->outfd);
 		/* XXX exit for pipe case XXX */
-		EV_SET(&kev, p->s, EVFILT_READ,
-				EV_ADD | EV_ONESHOT, 0, 0, (void *) p);
+		EV_SET(&kev, p->s, EVFILT_READ, EV_ADD | EV_ONESHOT, 0, 0,
+		    (void *)p);
 		kevent(dc->kq, &kev, 1, NULL, 0, &dc->zero);
 		p->infd = p->outfd = -1;
 	}
-	return(0);
+	return (0);
 }
 #define NEVENT 5
 static int
@@ -883,7 +873,7 @@ dconschat_proc_socket(struct dcons_state *dc)
 	struct dcons_port *p;
 
 	n = kevent(dc->kq, NULL, 0, elist, NEVENT, &dc->to);
-	for (i = 0; i < n; i ++) {
+	for (i = 0; i < n; i++) {
 		e = &elist[i];
 		p = (struct dcons_port *)e->udata;
 		if (e->ident == p->s) {
@@ -892,7 +882,7 @@ dconschat_proc_socket(struct dcons_state *dc)
 			dconschat_read_socket(dc, p);
 		}
 	}
-	return(0);
+	return (0);
 }
 
 static int
@@ -907,12 +897,12 @@ dconschat_proc_dcons(struct dcons_state *dc)
 		/* XXX we should stop write operation too. */
 		return err;
 	}
-	for (port = 0; port < DCONS_NPORT; port ++) {
+	for (port = 0; port < DCONS_NPORT; port++) {
 		p = &dc->port[port];
 		if (p->infd < 0)
 			continue;
 		while ((len = dconschat_read_dcons(dc, port, buf,
-		    sizeof(buf))) > 0) {
+			    sizeof(buf))) > 0) {
 			dconschat_write_socket(p->outfd, buf, len);
 			if ((err = dconschat_get_ptr(dc)))
 				return (err);
@@ -936,7 +926,7 @@ dconschat_start_session(struct dcons_state *dc)
 	while (1) {
 		if (((dc->flags & F_READY) == 0) && ++counter > retry_unit) {
 			counter = 0;
-			retry ++;
+			retry++;
 			if (retry > retry_max)
 				retry_unit = retry_unit_offline;
 			if (verbose) {
@@ -960,7 +950,7 @@ static void
 usage(void)
 {
 	fprintf(stderr,
- 	    "usage: dconschat [-brvwRT1] [-h hz] [-C port] [-G port]\n"
+	    "usage: dconschat [-brvwRT1] [-h hz] [-C port] [-G port]\n"
 	    "\t\t\t[-M core] [-N system]\n"
 	    "\t\t\t[-u unit] [-a address] [-t target_eui64]\n"
 	    "\t-b	translate ctrl-C to CR+~+ctrl-B on gdb port\n"
@@ -979,8 +969,7 @@ usage(void)
 	    "\t(for FireWire)\n"
 	    "\t-u	specify unit number of the bus\n"
 	    "\t-t	EUI64 of target host (must be specified)\n"
-	    "\t-a	physical address of dcons buffer on target host\n"
-	);
+	    "\t-a	physical address of dcons buffer on target host\n");
 	exit(0);
 }
 int
@@ -991,7 +980,7 @@ main(int argc, char **argv)
 	struct eui64 target;
 	char devname[256], *core = NULL, *system = NULL;
 	int i, ch, error;
-	int unit=0, wildcard=0;
+	int unit = 0, wildcard = 0;
 	int port[DCONS_NPORT];
 
 	bzero(&sc, sizeof(sc));
@@ -999,14 +988,14 @@ main(int argc, char **argv)
 	dc->flags |= USE_CROM ? F_USE_CROM : 0;
 
 	/* default ports */
-	port[0] = 0;	/* stdin/out for console */
-	port[1] = -1;	/* disable gdb port */
+	port[0] = 0;  /* stdin/out for console */
+	port[1] = -1; /* disable gdb port */
 
 	/* default escape char */
 	dc->escape = KEY_TILDE;
 
 	while ((ch = getopt(argc, argv, "a:be:h:rt:u:vwC:G:M:N:RT1")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			dc->paddr = strtoull(optarg, NULL, 0);
 			dc->flags &= ~F_USE_CROM;
@@ -1029,15 +1018,15 @@ main(int argc, char **argv)
 			if (eui64_hostton(optarg, &target) != 0 &&
 			    eui64_aton(optarg, &target) != 0)
 				errx(1, "invalid target: %s", optarg);
-			eui.hi = ntohl(*(u_int32_t*)&(target.octet[0]));
-			eui.lo = ntohl(*(u_int32_t*)&(target.octet[4]));
+			eui.hi = ntohl(*(u_int32_t *)&(target.octet[0]));
+			eui.lo = ntohl(*(u_int32_t *)&(target.octet[4]));
 			dc->type = TYPE_FW;
 			break;
 		case 'u':
 			unit = strtol(optarg, NULL, 0);
 			break;
 		case 'v':
-			verbose ++;
+			verbose++;
 			break;
 		case 'w':
 			wildcard = 1;
@@ -1050,10 +1039,10 @@ main(int argc, char **argv)
 			break;
 		case 'M':
 			core = optarg;
-			break;	
+			break;
 		case 'N':
 			system = optarg;
-			break;	
+			break;
 		case 'R':
 			dc->flags |= F_RD_ONLY;
 			break;
@@ -1087,22 +1076,21 @@ main(int argc, char **argv)
 	switch (dc->type) {
 	case TYPE_FW:
 #define MAXDEV 10
-		for (i = 0; i < MAXDEV; i ++) {
-			snprintf(devname, sizeof(devname),
-			    "/dev/fwmem%d.%d", unit, i);
+		for (i = 0; i < MAXDEV; i++) {
+			snprintf(devname, sizeof(devname), "/dev/fwmem%d.%d",
+			    unit, i);
 			dc->fd = open(devname, O_RDWR);
 			if (dc->fd >= 0)
 				goto found;
 		}
 		err(1, "open");
-found:
+	found:
 		error = ioctl(dc->fd, FW_SDEUI64, &eui);
 		if (error)
 			err(1, "ioctl");
 		break;
-	case TYPE_KVM:
-	{
-		struct nlist nl[] = {{"dcons_buf"}, {""}};
+	case TYPE_KVM: {
+		struct nlist nl[] = { { "dcons_buf" }, { "" } };
 		void *dcons_buf;
 
 		dc->kd = kvm_open(system, core, NULL,
@@ -1114,7 +1102,7 @@ found:
 			errx(1, "kvm_nlist: %s", kvm_geterr(dc->kd));
 
 		if (kvm_read(dc->kd, nl[0].n_value, &dcons_buf,
-		    sizeof(void *)) < 0)
+			sizeof(void *)) < 0)
 			errx(1, "kvm_read: %s", kvm_geterr(dc->kd));
 		dc->paddr = (uintptr_t)dcons_buf;
 		if (verbose)
@@ -1136,8 +1124,8 @@ found:
 	dc->zero.tv_sec = 0;
 	dc->zero.tv_nsec = 0;
 	for (i = 0; i < DCONS_NPORT; i++)
-		dconschat_init_socket(dc, i,
-		    wildcard ? NULL : "localhost", port[i]);
+		dconschat_init_socket(dc, i, wildcard ? NULL : "localhost",
+		    port[i]);
 
 	dconschat_start_session(dc);
 

@@ -32,22 +32,24 @@
  * LC_MESSAGES database generation routines for localedef.
  */
 #include <sys/cdefs.h>
+#include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "lmessages.h"
 #include "localedef.h"
 #include "parser.h"
-#include "lmessages.h"
 
 static struct lc_messages_T msgs;
 
 void
 init_messages(void)
 {
-	(void) memset(&msgs, 0, sizeof (msgs));
+	(void)memset(&msgs, 0, sizeof(msgs));
 }
 
 void

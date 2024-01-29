@@ -32,6 +32,7 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
@@ -39,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(wcstombs_test);
 ATF_TC_BODY(wcstombs_test, tc)
@@ -102,7 +101,8 @@ ATF_TC_BODY(wcstombs_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX > 1);
 
 	wmemset(srcbuf, 0xcc, sizeof(srcbuf) / sizeof(*srcbuf));

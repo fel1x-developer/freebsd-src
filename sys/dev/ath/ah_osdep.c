@@ -32,23 +32,23 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/proc.h>
-#include <sys/pcpu.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
 
 #include <machine/stdarg.h>
 
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
 #include <dev/ath/ath_hal/ah.h>
 #include <dev/ath/ath_hal/ah_debug.h>
+
+#include <net/ethernet.h> /* XXX for ether_sprintf */
 
 /*
  * WiSoC boards overload the bus tag with information about the
@@ -58,10 +58,10 @@
  * XXX cache indirect ref privately
  */
 #ifdef AH_SUPPORT_AR5312
-#define	BUSTAG(ah) \
-	((bus_space_tag_t) ((struct ar531x_config *)((ah)->ah_st))->tag)
+#define BUSTAG(ah) \
+	((bus_space_tag_t)((struct ar531x_config *)((ah)->ah_st))->tag)
 #else
-#define	BUSTAG(ah)	((ah)->ah_st)
+#define BUSTAG(ah) ((ah)->ah_st)
 #endif
 
 /*
@@ -75,19 +75,19 @@ struct mtx ah_regser_mtx;
 MTX_SYSINIT(ah_regser, &ah_regser_mtx, "Atheros register access mutex",
     MTX_SPIN);
 
-extern	void ath_hal_printf(struct ath_hal *, const char*, ...)
-		__printflike(2,3);
-extern	void ath_hal_vprintf(struct ath_hal *, const char*, __va_list)
-		__printflike(2, 0);
-extern	const char* ath_hal_ether_sprintf(const u_int8_t *mac);
-extern	void *ath_hal_malloc(size_t);
-extern	void ath_hal_free(void *);
+extern void ath_hal_printf(struct ath_hal *, const char *, ...)
+    __printflike(2, 3);
+extern void ath_hal_vprintf(struct ath_hal *, const char *, __va_list)
+    __printflike(2, 0);
+extern const char *ath_hal_ether_sprintf(const u_int8_t *mac);
+extern void *ath_hal_malloc(size_t);
+extern void ath_hal_free(void *);
 #ifdef AH_ASSERT
-extern	void ath_hal_assert_failed(const char* filename,
-		int lineno, const char* msg);
+extern void ath_hal_assert_failed(const char *filename, int lineno,
+    const char *msg);
 #endif
 #ifdef AH_DEBUG
-extern	void DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char* fmt, ...);
+extern void DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char *fmt, ...);
 #endif /* AH_DEBUG */
 
 /* NB: put this here instead of the driver to avoid circular references */
@@ -98,32 +98,32 @@ static SYSCTL_NODE(_hw_ath, OID_AUTO, hal, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 
 #ifdef AH_DEBUG
 int ath_hal_debug = 0;
-SYSCTL_INT(_hw_ath_hal, OID_AUTO, debug, CTLFLAG_RWTUN, &ath_hal_debug,
-    0, "Atheros HAL debugging printfs");
+SYSCTL_INT(_hw_ath_hal, OID_AUTO, debug, CTLFLAG_RWTUN, &ath_hal_debug, 0,
+    "Atheros HAL debugging printfs");
 #endif /* AH_DEBUG */
 
 static MALLOC_DEFINE(M_ATH_HAL, "ath_hal", "ath hal data");
 
-void*
+void *
 ath_hal_malloc(size_t size)
 {
 	return malloc(size, M_ATH_HAL, M_NOWAIT | M_ZERO);
 }
 
 void
-ath_hal_free(void* p)
+ath_hal_free(void *p)
 {
 	free(p, M_ATH_HAL);
 }
 
 void
-ath_hal_vprintf(struct ath_hal *ah, const char* fmt, va_list ap)
+ath_hal_vprintf(struct ath_hal *ah, const char *fmt, va_list ap)
 {
 	vprintf(fmt, ap);
 }
 
 void
-ath_hal_printf(struct ath_hal *ah, const char* fmt, ...)
+ath_hal_printf(struct ath_hal *ah, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -131,7 +131,7 @@ ath_hal_printf(struct ath_hal *ah, const char* fmt, ...)
 	va_end(ap);
 }
 
-const char*
+const char *
 ath_hal_ether_sprintf(const u_int8_t *mac)
 {
 	return ether_sprintf(mac);
@@ -158,7 +158,7 @@ ath_hal_reg_whilst_asleep(struct ath_hal *ah, uint32_t reg)
 }
 
 void
-DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char* fmt, ...)
+DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char *fmt, ...)
 {
 	if ((mask == HAL_DEBUG_UNMASKABLE) ||
 	    (ah != NULL && ah->ah_config.ah_debug & mask) ||
@@ -169,7 +169,7 @@ DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char* fmt, ...)
 		va_end(ap);
 	}
 }
-#undef	HAL_DEBUG_UNMASKABLE
+#undef HAL_DEBUG_UNMASKABLE
 #endif /* AH_DEBUG */
 
 #ifdef AH_DEBUG_ALQ
@@ -188,17 +188,18 @@ DO_HALDEBUG(struct ath_hal *ah, u_int mask, const char* fmt, ...)
  */
 #include <sys/alq.h>
 #include <sys/pcpu.h>
+
 #include <dev/ath/ath_hal/ah_decode.h>
 
-static	struct alq *ath_hal_alq;
-static	int ath_hal_alq_emitdev;	/* need to emit DEVICE record */
-static	u_int ath_hal_alq_lost;		/* count of lost records */
-static	char ath_hal_logfile[MAXPATHLEN] = "/tmp/ath_hal.log";
+static struct alq *ath_hal_alq;
+static int ath_hal_alq_emitdev; /* need to emit DEVICE record */
+static u_int ath_hal_alq_lost;	/* count of lost records */
+static char ath_hal_logfile[MAXPATHLEN] = "/tmp/ath_hal.log";
 
-SYSCTL_STRING(_hw_ath_hal, OID_AUTO, alq_logfile, CTLFLAG_RW,
-    &ath_hal_logfile, sizeof(kernelname), "Name of ALQ logfile");
+SYSCTL_STRING(_hw_ath_hal, OID_AUTO, alq_logfile, CTLFLAG_RW, &ath_hal_logfile,
+    sizeof(kernelname), "Name of ALQ logfile");
 
-static	u_int ath_hal_alq_qsize = 64*1024;
+static u_int ath_hal_alq_qsize = 64 * 1024;
 
 static int
 ath_hal_setlogging(int enable)
@@ -207,12 +208,11 @@ ath_hal_setlogging(int enable)
 
 	if (enable) {
 		error = alq_open(&ath_hal_alq, ath_hal_logfile,
-			curthread->td_ucred, ALQ_DEFAULT_CMODE,
-			sizeof (struct athregrec), ath_hal_alq_qsize);
+		    curthread->td_ucred, ALQ_DEFAULT_CMODE,
+		    sizeof(struct athregrec), ath_hal_alq_qsize);
 		ath_hal_alq_lost = 0;
 		ath_hal_alq_emitdev = 1;
-		printf("ath_hal: logging to %s enabled\n",
-			ath_hal_logfile);
+		printf("ath_hal: logging to %s enabled\n", ath_hal_logfile);
 	} else {
 		if (ath_hal_alq)
 			alq_close(ath_hal_alq);
@@ -229,20 +229,19 @@ sysctl_hw_ath_hal_log(SYSCTL_HANDLER_ARGS)
 	int error, enable;
 
 	enable = (ath_hal_alq != NULL);
-        error = sysctl_handle_int(oidp, &enable, 0, req);
-        if (error || !req->newptr)
-                return (error);
+	error = sysctl_handle_int(oidp, &enable, 0, req);
+	if (error || !req->newptr)
+		return (error);
 	else
 		return (ath_hal_setlogging(enable));
 }
 SYSCTL_PROC(_hw_ath_hal, OID_AUTO, alq,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-    0, 0, sysctl_hw_ath_hal_log, "I",
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0, sysctl_hw_ath_hal_log, "I",
     "Enable HAL register logging");
-SYSCTL_INT(_hw_ath_hal, OID_AUTO, alq_size, CTLFLAG_RW,
-	&ath_hal_alq_qsize, 0, "In-memory log size (#records)");
-SYSCTL_INT(_hw_ath_hal, OID_AUTO, alq_lost, CTLFLAG_RW,
-	&ath_hal_alq_lost, 0, "Register operations not logged");
+SYSCTL_INT(_hw_ath_hal, OID_AUTO, alq_size, CTLFLAG_RW, &ath_hal_alq_qsize, 0,
+    "In-memory log size (#records)");
+SYSCTL_INT(_hw_ath_hal, OID_AUTO, alq_lost, CTLFLAG_RW, &ath_hal_alq_lost, 0,
+    "Register operations not logged");
 
 static struct ale *
 ath_hal_alq_get(struct ath_hal *ah)
@@ -252,8 +251,7 @@ ath_hal_alq_get(struct ath_hal *ah)
 	if (ath_hal_alq_emitdev) {
 		ale = alq_get(ath_hal_alq, ALQ_NOWAIT);
 		if (ale) {
-			struct athregrec *r =
-				(struct athregrec *) ale->ae_data;
+			struct athregrec *r = (struct athregrec *)ale->ae_data;
 			r->op = OP_DEVICE;
 			r->reg = 0;
 			r->val = ah->ah_devid;
@@ -274,9 +272,9 @@ ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
 
-#ifdef	AH_DEBUG
+#ifdef AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */
-	if (! ath_hal_reg_whilst_asleep(ah, reg) &&
+	if (!ath_hal_reg_whilst_asleep(ah, reg) &&
 	    ah->ah_powerMode != HAL_PM_AWAKE) {
 		ath_hal_printf(ah, "%s: reg=0x%08x, val=0x%08x, pm=%d\n",
 		    __func__, reg, val, ah->ah_powerMode);
@@ -286,7 +284,7 @@ ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
 	if (ath_hal_alq) {
 		struct ale *ale = ath_hal_alq_get(ah);
 		if (ale) {
-			struct athregrec *r = (struct athregrec *) ale->ae_data;
+			struct athregrec *r = (struct athregrec *)ale->ae_data;
 			r->threadid = curthread->td_tid;
 			r->op = OP_WRITE;
 			r->reg = reg;
@@ -309,12 +307,12 @@ ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
 	bus_space_handle_t h = ah->ah_sh;
 	u_int32_t val;
 
-#ifdef	AH_DEBUG
+#ifdef AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */
-	if (! ath_hal_reg_whilst_asleep(ah, reg) &&
+	if (!ath_hal_reg_whilst_asleep(ah, reg) &&
 	    ah->ah_powerMode != HAL_PM_AWAKE) {
-		ath_hal_printf(ah, "%s: reg=0x%08x, pm=%d\n",
-		    __func__, reg, ah->ah_powerMode);
+		ath_hal_printf(ah, "%s: reg=0x%08x, pm=%d\n", __func__, reg,
+		    ah->ah_powerMode);
 	}
 #endif
 
@@ -327,7 +325,7 @@ ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
 	if (ath_hal_alq) {
 		struct ale *ale = ath_hal_alq_get(ah);
 		if (ale) {
-			struct athregrec *r = (struct athregrec *) ale->ae_data;
+			struct athregrec *r = (struct athregrec *)ale->ae_data;
 			r->threadid = curthread->td_tid;
 			r->op = OP_READ;
 			r->reg = reg;
@@ -344,7 +342,7 @@ OS_MARK(struct ath_hal *ah, u_int id, u_int32_t v)
 	if (ath_hal_alq) {
 		struct ale *ale = ath_hal_alq_get(ah);
 		if (ale) {
-			struct athregrec *r = (struct athregrec *) ale->ae_data;
+			struct athregrec *r = (struct athregrec *)ale->ae_data;
 			r->threadid = curthread->td_tid;
 			r->op = OP_MARK;
 			r->reg = id;
@@ -372,9 +370,9 @@ ath_hal_reg_write(struct ath_hal *ah, u_int32_t reg, u_int32_t val)
 	bus_space_tag_t tag = BUSTAG(ah);
 	bus_space_handle_t h = ah->ah_sh;
 
-#ifdef	AH_DEBUG
+#ifdef AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */
-	if (! ath_hal_reg_whilst_asleep(ah, reg) &&
+	if (!ath_hal_reg_whilst_asleep(ah, reg) &&
 	    ah->ah_powerMode != HAL_PM_AWAKE) {
 		ath_hal_printf(ah, "%s: reg=0x%08x, val=0x%08x, pm=%d\n",
 		    __func__, reg, val, ah->ah_powerMode);
@@ -396,12 +394,12 @@ ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
 	bus_space_handle_t h = ah->ah_sh;
 	u_int32_t val;
 
-#ifdef	AH_DEBUG
+#ifdef AH_DEBUG
 	/* Debug - complain if we haven't fully waken things up */
-	if (! ath_hal_reg_whilst_asleep(ah, reg) &&
+	if (!ath_hal_reg_whilst_asleep(ah, reg) &&
 	    ah->ah_powerMode != HAL_PM_AWAKE) {
-		ath_hal_printf(ah, "%s: reg=0x%08x, pm=%d\n",
-		    __func__, reg, ah->ah_powerMode);
+		ath_hal_printf(ah, "%s: reg=0x%08x, pm=%d\n", __func__, reg,
+		    ah->ah_powerMode);
 	}
 #endif
 
@@ -417,10 +415,10 @@ ath_hal_reg_read(struct ath_hal *ah, u_int32_t reg)
 
 #ifdef AH_ASSERT
 void
-ath_hal_assert_failed(const char* filename, int lineno, const char *msg)
+ath_hal_assert_failed(const char *filename, int lineno, const char *msg)
 {
-	printf("Atheros HAL assertion failure: %s: line %u: %s\n",
-		filename, lineno, msg);
+	printf("Atheros HAL assertion failure: %s: line %u: %s\n", filename,
+	    lineno, msg);
 	panic("ath_hal_assert");
 }
 #endif /* AH_ASSERT */
@@ -453,6 +451,6 @@ ath_hal_modevent(module_t mod __unused, int type, void *data __unused)
 
 DEV_MODULE(ath_hal, ath_hal_modevent, NULL);
 MODULE_VERSION(ath_hal, 1);
-#if	defined(AH_DEBUG_ALQ)
+#if defined(AH_DEBUG_ALQ)
 MODULE_DEPEND(ath_hal, alq, 1, 1, 1);
 #endif

@@ -29,18 +29,17 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <protocols/talkd.h>
 
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "talk_ctl.h"
 #include "talk.h"
+#include "talk_ctl.h"
 
 /*
  * See if the local daemon has an invitation for us.

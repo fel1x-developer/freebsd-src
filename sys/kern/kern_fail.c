@@ -51,9 +51,10 @@
  * @{
  */
 
-#include <sys/cdefs.h>
 #include "opt_stack.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/ctype.h>
 #include <sys/errno.h>
 #include <sys/fail.h>
@@ -68,7 +69,6 @@
 #include <sys/sleepqueue.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 
 #include <machine/atomic.h>
 #include <machine/stdarg.h>
@@ -81,16 +81,16 @@ static MALLOC_DEFINE(M_FAIL_POINT, "Fail Points", "fail points system");
 #define fp_free(ptr) free(ptr, M_FAIL_POINT)
 #define fp_malloc(size, flags) malloc((size), M_FAIL_POINT, (flags))
 #define fs_free(ptr) fp_free(ptr)
-#define fs_malloc() fp_malloc(sizeof(struct fail_point_setting), \
-    M_WAITOK | M_ZERO)
+#define fs_malloc() \
+	fp_malloc(sizeof(struct fail_point_setting), M_WAITOK | M_ZERO)
 
 /**
  * These define the wchans that are used for sleeping, pausing respectively.
  * They are chosen arbitrarily but need to be distinct to the failpoint and
  * the sleep/pause distinction.
  */
-#define FP_SLEEP_CHANNEL(fp) (void*)(fp)
-#define FP_PAUSE_CHANNEL(fp) __DEVOLATILE(void*, &fp->fp_setting)
+#define FP_SLEEP_CHANNEL(fp) (void *)(fp)
+#define FP_PAUSE_CHANNEL(fp) __DEVOLATILE(void *, &fp->fp_setting)
 
 /**
  * Don't allow more than this many entries in a fail point set by sysctl.
@@ -112,10 +112,10 @@ TAILQ_HEAD(fail_point_entry_queue, fail_point_entry);
  */
 STAILQ_HEAD(fail_point_setting_garbage, fail_point_setting);
 static struct fail_point_setting_garbage fp_setting_garbage =
-        STAILQ_HEAD_INITIALIZER(fp_setting_garbage);
+    STAILQ_HEAD_INITIALIZER(fp_setting_garbage);
 static struct mtx mtx_garbage_list;
 MTX_SYSINIT(mtx_garbage_list, &mtx_garbage_list, "fail point garbage mtx",
-        MTX_SPIN);
+    MTX_SPIN);
 
 static struct sx sx_fp_set;
 SX_SYSINIT(sx_fp_set, &sx_fp_set, "fail point set sx");
@@ -126,33 +126,36 @@ SX_SYSINIT(sx_fp_set, &sx_fp_set, "fail point set sx");
  * @ingroup failpoint_private
  */
 enum fail_point_t {
-	FAIL_POINT_OFF,		/**< don't fail */
-	FAIL_POINT_PANIC,	/**< panic */
-	FAIL_POINT_RETURN,	/**< return an errorcode */
-	FAIL_POINT_BREAK,	/**< break into the debugger */
-	FAIL_POINT_PRINT,	/**< print a message */
-	FAIL_POINT_SLEEP,	/**< sleep for some msecs */
-	FAIL_POINT_PAUSE,	/**< sleep until failpoint is set to off */
-	FAIL_POINT_YIELD,	/**< yield the cpu */
-	FAIL_POINT_DELAY,	/**< busy wait the cpu */
+	FAIL_POINT_OFF,	   /**< don't fail */
+	FAIL_POINT_PANIC,  /**< panic */
+	FAIL_POINT_RETURN, /**< return an errorcode */
+	FAIL_POINT_BREAK,  /**< break into the debugger */
+	FAIL_POINT_PRINT,  /**< print a message */
+	FAIL_POINT_SLEEP,  /**< sleep for some msecs */
+	FAIL_POINT_PAUSE,  /**< sleep until failpoint is set to off */
+	FAIL_POINT_YIELD,  /**< yield the cpu */
+	FAIL_POINT_DELAY,  /**< busy wait the cpu */
 	FAIL_POINT_NUMTYPES,
 	FAIL_POINT_INVALID = -1
 };
 
 static struct {
 	const char *name;
-	int	nmlen;
+	int nmlen;
 } fail_type_strings[] = {
-#define	FP_TYPE_NM_LEN(s)	{ s, sizeof(s) - 1 }
-	[FAIL_POINT_OFF] =	FP_TYPE_NM_LEN("off"),
-	[FAIL_POINT_PANIC] =	FP_TYPE_NM_LEN("panic"),
-	[FAIL_POINT_RETURN] =	FP_TYPE_NM_LEN("return"),
-	[FAIL_POINT_BREAK] =	FP_TYPE_NM_LEN("break"),
-	[FAIL_POINT_PRINT] =	FP_TYPE_NM_LEN("print"),
-	[FAIL_POINT_SLEEP] =	FP_TYPE_NM_LEN("sleep"),
-	[FAIL_POINT_PAUSE] =	FP_TYPE_NM_LEN("pause"),
-	[FAIL_POINT_YIELD] =	FP_TYPE_NM_LEN("yield"),
-	[FAIL_POINT_DELAY] =	FP_TYPE_NM_LEN("delay"),
+#define FP_TYPE_NM_LEN(s)        \
+	{                        \
+		s, sizeof(s) - 1 \
+	}
+	[FAIL_POINT_OFF] = FP_TYPE_NM_LEN("off"),
+	[FAIL_POINT_PANIC] = FP_TYPE_NM_LEN("panic"),
+	[FAIL_POINT_RETURN] = FP_TYPE_NM_LEN("return"),
+	[FAIL_POINT_BREAK] = FP_TYPE_NM_LEN("break"),
+	[FAIL_POINT_PRINT] = FP_TYPE_NM_LEN("print"),
+	[FAIL_POINT_SLEEP] = FP_TYPE_NM_LEN("sleep"),
+	[FAIL_POINT_PAUSE] = FP_TYPE_NM_LEN("pause"),
+	[FAIL_POINT_YIELD] = FP_TYPE_NM_LEN("yield"),
+	[FAIL_POINT_DELAY] = FP_TYPE_NM_LEN("delay"),
 };
 
 #define FE_COUNT_UNTRACKED (INT_MIN)
@@ -162,20 +165,20 @@ static struct {
  * @ingroup failpoint_private
  */
 struct fail_point_entry {
-	volatile bool	fe_stale;
-	enum fail_point_t	fe_type;	/**< type of entry */
-	int		fe_arg;		/**< argument to type (e.g. return value) */
-	int		fe_prob;	/**< likelihood of firing in millionths */
-	int32_t		fe_count;	/**< number of times to fire, -1 means infinite */
-	pid_t		fe_pid;		/**< only fail for this process */
-	struct fail_point	*fe_parent;	/**< backpointer to fp */
-	TAILQ_ENTRY(fail_point_entry)	fe_entries; /**< next entry ptr */
+	volatile bool fe_stale;
+	enum fail_point_t fe_type; /**< type of entry */
+	int fe_arg;		   /**< argument to type (e.g. return value) */
+	int fe_prob;		   /**< likelihood of firing in millionths */
+	int32_t fe_count; /**< number of times to fire, -1 means infinite */
+	pid_t fe_pid;	  /**< only fail for this process */
+	struct fail_point *fe_parent;		  /**< backpointer to fp */
+	TAILQ_ENTRY(fail_point_entry) fe_entries; /**< next entry ptr */
 };
 
 struct fail_point_setting {
 	STAILQ_ENTRY(fail_point_setting) fs_garbage_link;
 	struct fail_point_entry_queue fp_entry_queue;
-	struct fail_point * fs_parent;
+	struct fail_point *fs_parent;
 	struct mtx feq_mtx; /* Gives fail_point_pause something to do.  */
 };
 
@@ -183,37 +186,36 @@ struct fail_point_setting {
  * Defines stating the equivalent of probablilty one (100%)
  */
 enum {
-	PROB_MAX = 1000000,	/* probability between zero and this number */
-	PROB_DIGITS = 6		/* number of zero's in above number */
+	PROB_MAX = 1000000, /* probability between zero and this number */
+	PROB_DIGITS = 6	    /* number of zero's in above number */
 };
 
 /* Get a ref on an fp's fp_setting */
 static inline struct fail_point_setting *fail_point_setting_get_ref(
-        struct fail_point *fp);
+    struct fail_point *fp);
 /* Release a ref on an fp_setting */
 static inline void fail_point_setting_release_ref(struct fail_point *fp);
 /* Allocate and initialize a struct fail_point_setting */
-static struct fail_point_setting *fail_point_setting_new(struct
-        fail_point *);
+static struct fail_point_setting *fail_point_setting_new(struct fail_point *);
 /* Free a struct fail_point_setting */
 static void fail_point_setting_destroy(struct fail_point_setting *fp_setting);
 /* Allocate and initialize a struct fail_point_entry */
-static struct fail_point_entry *fail_point_entry_new(struct
-        fail_point_setting *);
+static struct fail_point_entry *fail_point_entry_new(
+    struct fail_point_setting *);
 /* Free a struct fail_point_entry */
 static void fail_point_entry_destroy(struct fail_point_entry *fp_entry);
 /* Append fp setting to garbage list */
 static inline void fail_point_setting_garbage_append(
-        struct fail_point_setting *fp_setting);
+    struct fail_point_setting *fp_setting);
 /* Swap fp's setting with fp_setting_new */
 static inline struct fail_point_setting *
-        fail_point_swap_settings(struct fail_point *fp,
-        struct fail_point_setting *fp_setting_new);
+fail_point_swap_settings(struct fail_point *fp,
+    struct fail_point_setting *fp_setting_new);
 /* Free up any zero-ref setting in the garbage queue */
 static void fail_point_garbage_collect(void);
 /* If this fail point's setting are empty, then swap it out to NULL. */
 static inline void fail_point_eval_swap_out(struct fail_point *fp,
-        struct fail_point_setting *fp_setting);
+    struct fail_point_setting *fp_setting);
 
 bool
 fail_point_is_off(struct fail_point *fp)
@@ -226,8 +228,7 @@ fail_point_is_off(struct fail_point *fp)
 
 	fp_setting = fail_point_setting_get_ref(fp);
 	if (fp_setting != NULL) {
-		TAILQ_FOREACH(ent, &fp_setting->fp_entry_queue,
-		    fe_entries) {
+		TAILQ_FOREACH (ent, &fp_setting->fp_entry_queue, fe_entries) {
 			if (!ent->fe_stale) {
 				return_val = false;
 				break;
@@ -277,13 +278,12 @@ fail_point_entry_new(struct fail_point_setting *fp_setting)
 	struct fail_point_entry *fp_entry;
 
 	fp_entry = fp_malloc(sizeof(struct fail_point_entry),
-	        M_WAITOK | M_ZERO);
+	    M_WAITOK | M_ZERO);
 	fp_entry->fe_parent = fp_setting->fs_parent;
 	fp_entry->fe_prob = PROB_MAX;
 	fp_entry->fe_pid = NO_PID;
 	fp_entry->fe_count = FE_COUNT_UNTRACKED;
-	TAILQ_INSERT_TAIL(&fp_setting->fp_entry_queue, fp_entry,
-	        fe_entries);
+	TAILQ_INSERT_TAIL(&fp_setting->fp_entry_queue, fp_entry, fe_entries);
 
 	return (fp_entry);
 }
@@ -324,15 +324,14 @@ fail_point_setting_garbage_append(struct fail_point_setting *fp_setting)
 {
 
 	mtx_lock_spin(&mtx_garbage_list);
-	STAILQ_INSERT_TAIL(&fp_setting_garbage, fp_setting,
-	        fs_garbage_link);
+	STAILQ_INSERT_TAIL(&fp_setting_garbage, fp_setting, fs_garbage_link);
 	mtx_unlock_spin(&mtx_garbage_list);
 }
 
 /* Swap fp's entries with fp_setting_new */
 static struct fail_point_setting *
 fail_point_swap_settings(struct fail_point *fp,
-        struct fail_point_setting *fp_setting_new)
+    struct fail_point_setting *fp_setting_new)
 {
 	struct fail_point_setting *fp_setting_old;
 
@@ -344,7 +343,7 @@ fail_point_swap_settings(struct fail_point *fp,
 
 static inline void
 fail_point_eval_swap_out(struct fail_point *fp,
-        struct fail_point_setting *fp_setting)
+    struct fail_point_setting *fp_setting)
 {
 
 	/* We may have already been swapped out and replaced; ignore. */
@@ -360,28 +359,28 @@ fail_point_garbage_collect(void)
 	struct fail_point_setting_garbage fp_ents_free_list;
 
 	/**
-	  * We will transfer the entries to free to fp_ents_free_list while holding
-	  * the spin mutex, then free it after we drop the lock. This avoids
-	  * triggering witness due to sleepable mutexes in the memory
-	  * allocator.
-	  */
+	 * We will transfer the entries to free to fp_ents_free_list while
+	 * holding the spin mutex, then free it after we drop the lock. This
+	 * avoids triggering witness due to sleepable mutexes in the memory
+	 * allocator.
+	 */
 	STAILQ_INIT(&fp_ents_free_list);
 
 	mtx_lock_spin(&mtx_garbage_list);
-	STAILQ_FOREACH_SAFE(fs_current, &fp_setting_garbage, fs_garbage_link,
+	STAILQ_FOREACH_SAFE (fs_current, &fp_setting_garbage, fs_garbage_link,
 	    fs_next) {
 		if (fs_current->fs_parent->fp_setting != fs_current &&
-		        fs_current->fs_parent->fp_ref_cnt == 0) {
+		    fs_current->fs_parent->fp_ref_cnt == 0) {
 			STAILQ_REMOVE(&fp_setting_garbage, fs_current,
-			        fail_point_setting, fs_garbage_link);
+			    fail_point_setting, fs_garbage_link);
 			STAILQ_INSERT_HEAD(&fp_ents_free_list, fs_current,
-			        fs_garbage_link);
+			    fs_garbage_link);
 		}
 	}
 	mtx_unlock_spin(&mtx_garbage_list);
 
-	STAILQ_FOREACH_SAFE(fs_current, &fp_ents_free_list, fs_garbage_link,
-	        fs_next)
+	STAILQ_FOREACH_SAFE (fs_current, &fp_ents_free_list, fs_garbage_link,
+	    fs_next)
 		fail_point_setting_destroy(fs_current);
 }
 
@@ -408,7 +407,7 @@ fail_point_drain(struct fail_point *fp, int expected_ref)
 
 static inline void
 fail_point_pause(struct fail_point *fp, enum fail_point_return_code *pret,
-        struct mtx *mtx_sleep)
+    struct mtx *mtx_sleep)
 {
 
 	if (fp->fp_pre_sleep_fn)
@@ -422,7 +421,7 @@ fail_point_pause(struct fail_point *fp, enum fail_point_return_code *pret,
 
 static inline void
 fail_point_sleep(struct fail_point *fp, int msecs,
-        enum fail_point_return_code *pret)
+    enum fail_point_return_code *pret)
 {
 	int timo;
 
@@ -560,7 +559,7 @@ fail_point_eval_nontrivial(struct fail_point *fp, int *return_value)
 	if (fp_setting == NULL)
 		goto abort;
 
-	TAILQ_FOREACH(ent, &fp_setting->fp_entry_queue, fe_entries) {
+	TAILQ_FOREACH (ent, &fp_setting->fp_entry_queue, fe_entries) {
 		if (ent->fe_stale)
 			continue;
 
@@ -574,7 +573,8 @@ fail_point_eval_nontrivial(struct fail_point *fp, int *return_value)
 		if (ent->fe_count != FE_COUNT_UNTRACKED) {
 			count = ent->fe_count;
 			while (count > 0) {
-				if (atomic_cmpset_32(&ent->fe_count, count, count - 1)) {
+				if (atomic_cmpset_32(&ent->fe_count, count,
+					count - 1)) {
 					count--;
 					execute = true;
 					break;
@@ -582,7 +582,8 @@ fail_point_eval_nontrivial(struct fail_point *fp, int *return_value)
 				count = ent->fe_count;
 			}
 			if (execute == false)
-				/* We lost the race; consider the entry stale and bail now */
+				/* We lost the race; consider the entry stale
+				 * and bail now */
 				continue;
 			if (count == 0)
 				ent->fe_stale = true;
@@ -601,7 +602,7 @@ fail_point_eval_nontrivial(struct fail_point *fp, int *return_value)
 
 		case FAIL_POINT_BREAK:
 			printf("fail point %s breaking to debugger\n",
-			        fp->fp_name);
+			    fp->fp_name);
 			breakpoint();
 			break;
 
@@ -620,10 +621,10 @@ fail_point_eval_nontrivial(struct fail_point *fp, int *return_value)
 			/**
 			 * Pausing is inherently strange with multiple
 			 * entries given our design.  That is because some
-			 * entries could be unreachable, for instance in cases like:
-			 * pause->return. We can never reach the return entry.
-			 * The sysctl layer actually truncates all entries after
-			 * a pause for this reason.
+			 * entries could be unreachable, for instance in cases
+			 * like: pause->return. We can never reach the return
+			 * entry. The sysctl layer actually truncates all
+			 * entries after a pause for this reason.
 			 */
 			mtx_lock_spin(&fp_setting->feq_mtx);
 			fail_point_pause(fp, &ret, &fp_setting->feq_mtx);
@@ -660,8 +661,7 @@ abort:
  * Translate internal fail_point structure into human-readable text.
  */
 static void
-fail_point_get(struct fail_point *fp, struct sbuf *sb,
-        bool verbose)
+fail_point_get(struct fail_point *fp, struct sbuf *sb, bool verbose)
 {
 	struct fail_point_entry *ent;
 	struct fail_point_setting *fp_setting;
@@ -675,17 +675,18 @@ fail_point_get(struct fail_point *fp, struct sbuf *sb,
 	printed_entry_count = 0;
 
 	fp_entry_cpy = fp_malloc(sizeof(struct fail_point_entry) *
-	        (FP_MAX_ENTRY_COUNT + 1), M_WAITOK);
+		(FP_MAX_ENTRY_COUNT + 1),
+	    M_WAITOK);
 
 	fp_setting = fail_point_setting_get_ref(fp);
 
 	if (fp_setting != NULL) {
-		TAILQ_FOREACH(ent, &fp_setting->fp_entry_queue, fe_entries) {
+		TAILQ_FOREACH (ent, &fp_setting->fp_entry_queue, fe_entries) {
 			if (ent->fe_stale)
 				continue;
 
 			KASSERT(printed_entry_count < FP_MAX_ENTRY_COUNT,
-			        ("FP entry list larger than allowed"));
+			    ("FP entry list larger than allowed"));
 
 			fp_entry_cpy[printed_entry_count] = *ent;
 			++printed_entry_count;
@@ -733,22 +734,20 @@ fail_point_get(struct fail_point *fp, struct sbuf *sb,
 		 * used by msleep when sending our threads to sleep. */
 		sbuf_cat(sb, "\nsleeping_thread_stacks = {\n");
 		sleepq_sbuf_print_stacks(sb, FP_SLEEP_CHANNEL(fp), 0,
-		        &cnt_sleeping);
+		    &cnt_sleeping);
 
 		sbuf_cat(sb, "},\n");
 #endif
-		sbuf_printf(sb, "sleeping_thread_count = %d,\n",
-		        cnt_sleeping);
+		sbuf_printf(sb, "sleeping_thread_count = %d,\n", cnt_sleeping);
 
 #ifdef STACK
 		sbuf_cat(sb, "paused_thread_stacks = {\n");
 		sleepq_sbuf_print_stacks(sb, FP_PAUSE_CHANNEL(fp), 0,
-		        &cnt_sleeping);
+		    &cnt_sleeping);
 
 		sbuf_cat(sb, "},\n");
 #endif
-		sbuf_printf(sb, "paused_thread_count = %d\n",
-		        cnt_sleeping);
+		sbuf_printf(sb, "paused_thread_count = %d\n", cnt_sleeping);
 	}
 }
 
@@ -777,8 +776,8 @@ fail_point_set(struct fail_point *fp, char *buf)
 	fail_point_setting_get_ref(fp);
 	entries = fail_point_setting_new(fp);
 	if (parse_fail_point(entries, buf) == NULL) {
-		STAILQ_REMOVE(&fp_setting_garbage, entries,
-		        fail_point_setting, fs_garbage_link);
+		STAILQ_REMOVE(&fp_setting_garbage, entries, fail_point_setting,
+		    fs_garbage_link);
 		fail_point_setting_destroy(entries);
 		error = EINVAL;
 		goto end;
@@ -791,19 +790,18 @@ fail_point_set(struct fail_point *fp, char *buf)
 	 * If 'off' is present, and it has no hit count set, then all entries
 	 *       after it are discarded since they are unreachable.
 	 */
-	TAILQ_FOREACH_SAFE(ent, &entries->fp_entry_queue, fe_entries, ent_next) {
+	TAILQ_FOREACH_SAFE (ent, &entries->fp_entry_queue, fe_entries,
+	    ent_next) {
 		if (ent->fe_prob == 0 || ent->fe_count == 0) {
 			printf("Discarding entry which cannot execute %s\n",
-			        fail_type_strings[ent->fe_type].name);
-			TAILQ_REMOVE(&entries->fp_entry_queue, ent,
-			        fe_entries);
+			    fail_type_strings[ent->fe_type].name);
+			TAILQ_REMOVE(&entries->fp_entry_queue, ent, fe_entries);
 			fp_free(ent);
 			continue;
 		} else if (should_truncate) {
 			printf("Discarding unreachable entry %s\n",
-			        fail_type_strings[ent->fe_type].name);
-			TAILQ_REMOVE(&entries->fp_entry_queue, ent,
-			        fe_entries);
+			    fail_type_strings[ent->fe_type].name);
+			TAILQ_REMOVE(&entries->fp_entry_queue, ent, fe_entries);
 			fp_free(ent);
 			continue;
 		}
@@ -813,21 +811,21 @@ fail_point_set(struct fail_point *fp, char *buf)
 			if (ent->fe_count == FE_COUNT_UNTRACKED) {
 				should_truncate = true;
 				TAILQ_REMOVE(&entries->fp_entry_queue, ent,
-				        fe_entries);
+				    fe_entries);
 				fp_free(ent);
 			}
 		} else if (ent->fe_type == FAIL_POINT_PAUSE) {
 			should_truncate = true;
-		} else if (ent->fe_type == FAIL_POINT_SLEEP && (fp->fp_flags &
-		        FAIL_POINT_NONSLEEPABLE)) {
+		} else if (ent->fe_type == FAIL_POINT_SLEEP &&
+		    (fp->fp_flags & FAIL_POINT_NONSLEEPABLE)) {
 			/**
 			 * If this fail point is annotated as being in a
 			 * non-sleepable ctx, convert sleep to delay and
 			 * convert the msec argument to usecs.
 			 */
 			printf("Sleep call request on fail point in "
-			        "non-sleepable context; using delay instead "
-			        "of sleep\n");
+			       "non-sleepable context; using delay instead "
+			       "of sleep\n");
 			ent->fe_type = FAIL_POINT_DELAY;
 			ent->fe_arg *= 1000;
 		}
@@ -846,18 +844,17 @@ fail_point_set(struct fail_point *fp, char *buf)
 end:
 #ifdef IWARNING
 	if (error)
-		IWARNING("Failed to set %s %s to %s",
-		    fp->fp_name, fp->fp_location, buf);
+		IWARNING("Failed to set %s %s to %s", fp->fp_name,
+		    fp->fp_location, buf);
 	else
-		INOTICE("Set %s %s to %s",
-		    fp->fp_name, fp->fp_location, buf);
+		INOTICE("Set %s %s to %s", fp->fp_name, fp->fp_location, buf);
 #endif /* IWARNING */
 
 	fail_point_setting_release_ref(fp);
 	return (error);
 }
 
-#define MAX_FAIL_POINT_BUF	1023
+#define MAX_FAIL_POINT_BUF 1023
 
 /**
  * Handle kernel failpoint set/get.
@@ -986,8 +983,8 @@ parse_fail_point(struct fail_point_setting *ents, char *p)
 	while (*p != '\0') {
 		term_count++;
 		if (p[0] != '-' || p[1] != '>' ||
-		        (p = parse_term(ents, p+2)) == NULL ||
-		        term_count > FP_MAX_ENTRY_COUNT)
+		    (p = parse_term(ents, p + 2)) == NULL ||
+		    term_count > FP_MAX_ENTRY_COUNT)
 			return (NULL);
 	}
 	return (p);
@@ -1051,7 +1048,7 @@ parse_term(struct fail_point_setting *ents, char *p)
 	if (*p++ != ')')
 		return (NULL);
 
-	/* [ "[pid " <integer> "]" ] */
+		/* [ "[pid " <integer> "]" ] */
 #define PID_STRING "[pid "
 	if (strncmp(p, PID_STRING, sizeof(PID_STRING) - 1) != 0)
 		return (p);
@@ -1141,5 +1138,4 @@ sysctl_test_fail_point(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_OID(_debug_fail_point, OID_AUTO, test_trigger_fail_point,
     CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT, NULL, 0,
-    sysctl_test_fail_point, "A",
-    "Trigger test fail points");
+    sysctl_test_fail_point, "A", "Trigger test fail points");

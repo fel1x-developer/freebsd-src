@@ -1,19 +1,19 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
-#include "adf_uio_control.h"
-#include "adf_uio_cleanup.h"
-#include "adf_uio.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
+#include "adf_uio.h"
+#include "adf_uio_cleanup.h"
+#include "adf_uio_control.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define ADF_DEV_PROCESSES_NAME "qat_dev_processes"
 #define ADF_DEV_STATE_NAME "qat_dev_state"
@@ -110,12 +110,8 @@ static int
 adf_chr_drv_create(void)
 {
 
-	adf_processes_dev = make_dev(&adf_processes_cdevsw,
-				     0,
-				     UID_ROOT,
-				     GID_WHEEL,
-				     0600,
-				     ADF_DEV_PROCESSES_NAME);
+	adf_processes_dev = make_dev(&adf_processes_cdevsw, 0, UID_ROOT,
+	    GID_WHEEL, 0600, ADF_DEV_PROCESSES_NAME);
 	if (adf_processes_dev == NULL) {
 		printf("QAT: failed to create device\n");
 		goto err_cdev_del;
@@ -235,11 +231,8 @@ adf_processes_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	/* If there is nothing there then take the first name and return */
 	if (list_empty(&processes_list)) {
-		snprintf(prv_data->name,
-			 ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
-			 "%s" ADF_INTERNAL_USERSPACE_SEC_SUFF "%d",
-			 usr_name,
-			 0);
+		snprintf(prv_data->name, ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
+		    "%s" ADF_INTERNAL_USERSPACE_SEC_SUFF "%d", usr_name, 0);
 		list_add(&prv_data->list, &processes_list);
 		sx_xunlock(&processes_list_sema);
 		prv_data->read_flag = 1;
@@ -259,14 +252,13 @@ adf_processes_write(struct cdev *dev, struct uio *uio, int ioflag)
 		for (pr_num = 0; pr_num < GET_MAX_PROCESSES(accel_dev);
 		     pr_num++) {
 			snprintf(prv_data->name,
-				 ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
-				 "%s" ADF_INTERNAL_USERSPACE_SEC_SUFF "%d",
-				 usr_name,
-				 pr_num);
+			    ADF_CFG_MAX_SECTION_LEN_IN_BYTES,
+			    "%s" ADF_INTERNAL_USERSPACE_SEC_SUFF "%d", usr_name,
+			    pr_num);
 			pr_name_available = 1;
 			/* Figure out if section exists in the config table */
-			section_ptr =
-			    adf_cfg_sec_find(accel_dev, prv_data->name);
+			section_ptr = adf_cfg_sec_find(accel_dev,
+			    prv_data->name);
 			if (NULL == section_ptr) {
 				/* This section name doesn't exist */
 				pr_name_available = 0;
@@ -279,13 +271,9 @@ adf_processes_write(struct cdev *dev, struct uio *uio, int ioflag)
 			/* Figure out if it's been taken already */
 			list_for_each(lpos, &processes_list)
 			{
-				pdata =
-				    list_entry(lpos,
-					       struct adf_processes_priv_data,
-					       list);
-				if (!strncmp(
-					pdata->name,
-					prv_data->name,
+				pdata = list_entry(lpos,
+				    struct adf_processes_priv_data, list);
+				if (!strncmp(pdata->name, prv_data->name,
 					ADF_CFG_MAX_SECTION_LEN_IN_BYTES)) {
 					pr_name_available = 0;
 					break;
@@ -332,9 +320,8 @@ adf_processes_read(struct cdev *dev, struct uio *uio, int ioflag)
 	 */
 	if (prv_data->read_flag) {
 		error = uiomove(prv_data->name,
-				strnlen(prv_data->name,
-					ADF_CFG_MAX_SECTION_LEN_IN_BYTES),
-				uio);
+		    strnlen(prv_data->name, ADF_CFG_MAX_SECTION_LEN_IN_BYTES),
+		    uio);
 		if (error) {
 			printf("QAT: failed to copy data to user\n");
 			return error;
@@ -404,9 +391,8 @@ adf_state_set(int dev, enum adf_event event)
 	SLIST_FOREACH (proc_events, &proc_events_head, entries_proc_events) {
 		state = NULL;
 		head = &proc_events->proc_events->state_head;
-		state = malloc(sizeof(struct entry_state),
-			       M_QAT,
-			       M_NOWAIT | M_ZERO);
+		state = malloc(sizeof(struct entry_state), M_QAT,
+		    M_NOWAIT | M_ZERO);
 		if (!state)
 			continue;
 		state->state.dev_state = event;
@@ -414,9 +400,8 @@ adf_state_set(int dev, enum adf_event event)
 		STAILQ_INSERT_TAIL(head, state, entries_state);
 		if (event == ADF_EVENT_STOP) {
 			state = NULL;
-			state = malloc(sizeof(struct entry_state),
-				       M_QAT,
-				       M_NOWAIT | M_ZERO);
+			state = malloc(sizeof(struct entry_state), M_QAT,
+			    M_NOWAIT | M_ZERO);
 			if (!state)
 				continue;
 			state->state.dev_state = ADF_EVENT_SHUTDOWN;
@@ -523,13 +508,8 @@ adf_state_kqread_detach(struct knote *kn)
 void
 adf_state_init(void)
 {
-	adf_state_dev = make_dev(&adf_state_cdevsw,
-				 0,
-				 UID_ROOT,
-				 GID_WHEEL,
-				 0600,
-				 "%s",
-				 ADF_DEV_STATE_NAME);
+	adf_state_dev = make_dev(&adf_state_cdevsw, 0, UID_ROOT, GID_WHEEL,
+	    0600, "%s", ADF_DEV_STATE_NAME);
 	SLIST_INIT(&proc_events_head);
 	mtx_init(&mtx, mtx_name, NULL, MTX_DEF);
 	mtx_init(&callout_mtx, mtx_callout_name, NULL, MTX_DEF);
@@ -538,10 +518,8 @@ adf_state_init(void)
 	adf_state_hndl.event_hld = adf_state_event_handler;
 	adf_state_hndl.name = "adf_state_event_handler";
 	adf_service_register(&adf_state_hndl);
-	callout_reset(&callout,
-		      ADF_STATE_CALLOUT_TIME,
-		      adf_state_callout_notify_ev,
-		      NULL);
+	callout_reset(&callout, ADF_STATE_CALLOUT_TIME,
+	    adf_state_callout_notify_ev, NULL);
 }
 
 void
@@ -575,8 +553,8 @@ adf_state_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	prv_data = malloc(sizeof(*prv_data), M_QAT, M_WAITOK | M_ZERO);
 	if (!prv_data)
 		return -ENOMEM;
-	entry_proc_events =
-	    malloc(sizeof(struct entry_proc_events), M_QAT, M_WAITOK | M_ZERO);
+	entry_proc_events = malloc(sizeof(struct entry_proc_events), M_QAT,
+	    M_WAITOK | M_ZERO);
 	if (!entry_proc_events) {
 		free(prv_data, M_QAT);
 		return -ENOMEM;
@@ -587,16 +565,13 @@ adf_state_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	knlist_init_mtx(&prv_data->rsel.si_note, &mtx);
 	STAILQ_INIT(&prv_data->state_head);
 	entry_proc_events->proc_events = prv_data;
-	SLIST_INSERT_HEAD(&proc_events_head,
-			  entry_proc_events,
-			  entries_proc_events);
+	SLIST_INSERT_HEAD(&proc_events_head, entry_proc_events,
+	    entries_proc_events);
 	mtx_unlock(&mtx);
 	ret = devfs_set_cdevpriv(prv_data, adf_state_release);
 	if (ret) {
-		SLIST_REMOVE(&proc_events_head,
-			     entry_proc_events,
-			     entry_proc_events,
-			     entries_proc_events);
+		SLIST_REMOVE(&proc_events_head, entry_proc_events,
+		    entry_proc_events, entries_proc_events);
 		free(entry_proc_events, M_QAT);
 		free(prv_data, M_QAT);
 	}
@@ -663,15 +638,11 @@ adf_state_release(void *data)
 		STAILQ_REMOVE_HEAD(&prv_data->state_head, entries_state);
 		free(entry_state, M_QAT);
 	}
-	SLIST_FOREACH_SAFE (entry_proc_events,
-			    &proc_events_head,
-			    entries_proc_events,
-			    tmp) {
+	SLIST_FOREACH_SAFE (entry_proc_events, &proc_events_head,
+	    entries_proc_events, tmp) {
 		if (entry_proc_events->proc_events == prv_data) {
-			SLIST_REMOVE(&proc_events_head,
-				     entry_proc_events,
-				     entry_proc_events,
-				     entries_proc_events);
+			SLIST_REMOVE(&proc_events_head, entry_proc_events,
+			    entry_proc_events, entries_proc_events);
 			free(entry_proc_events, M_QAT);
 		}
 	}

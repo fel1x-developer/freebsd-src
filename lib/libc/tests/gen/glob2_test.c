@@ -25,6 +25,8 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <glob.h>
@@ -33,8 +35,6 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 /*
  * Derived from Russ Cox' pathological case test program used for the
@@ -45,7 +45,8 @@ ATF_TC_BODY(glob_pathological_test, tc)
 {
 	struct timespec t, t2;
 	glob_t g;
-	const char *longname = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const char *longname =
+	    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 	char pattern[1000], *p;
 	double dt;
@@ -78,7 +79,8 @@ ATF_TC_BODY(glob_pathological_test, tc)
 			if (rc == GLOB_NOSPACE || rc == GLOB_ABORTED) {
 				ATF_REQUIRE_MSG(rc == GLOB_NOMATCH,
 				    "an unexpected error occurred: "
-				    "rc=%d errno=%d", rc, errno);
+				    "rc=%d errno=%d",
+				    rc, errno);
 				/* NORETURN */
 			}
 
@@ -91,7 +93,7 @@ ATF_TC_BODY(glob_pathological_test, tc)
 
 		t2.tv_sec -= t.tv_sec;
 		t2.tv_nsec -= t.tv_nsec;
-		dt = t2.tv_sec + (double)t2.tv_nsec/1e9;
+		dt = t2.tv_sec + (double)t2.tv_nsec / 1e9;
 		dt /= mul;
 
 		ATF_CHECK_MSG(dt < 1, "glob(3) took far too long: %d %.9f", i,

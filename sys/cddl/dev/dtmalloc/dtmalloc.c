@@ -26,49 +26,53 @@
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/ctype.h>
+#include <sys/dtrace.h>
+#include <sys/dtrace_bsd.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 
-#include <sys/dtrace.h>
-#include <sys/dtrace_bsd.h>
-
 extern bool dtrace_malloc_enabled;
 static uint32_t dtrace_malloc_enabled_count;
 
-static int	dtmalloc_unload(void);
-static void	dtmalloc_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
-static void	dtmalloc_provide(void *, dtrace_probedesc_t *);
-static void	dtmalloc_destroy(void *, dtrace_id_t, void *);
-static void	dtmalloc_enable(void *, dtrace_id_t, void *);
-static void	dtmalloc_disable(void *, dtrace_id_t, void *);
-static void	dtmalloc_load(void *);
+static int dtmalloc_unload(void);
+static void dtmalloc_getargdesc(void *, dtrace_id_t, void *,
+    dtrace_argdesc_t *);
+static void dtmalloc_provide(void *, dtrace_probedesc_t *);
+static void dtmalloc_destroy(void *, dtrace_id_t, void *);
+static void dtmalloc_enable(void *, dtrace_id_t, void *);
+static void dtmalloc_disable(void *, dtrace_id_t, void *);
+static void dtmalloc_load(void *);
 
 static dtrace_pattr_t dtmalloc_attr = {
-{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE, DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_STABLE, DTRACE_STABILITY_STABLE,
+	    DTRACE_CLASS_COMMON },
 };
 
-static dtrace_pops_t dtmalloc_pops = {
-	.dtps_provide =		dtmalloc_provide,
-	.dtps_provide_module =	NULL,
-	.dtps_enable =		dtmalloc_enable,
-	.dtps_disable =		dtmalloc_disable,
-	.dtps_suspend =		NULL,
-	.dtps_resume =		NULL,
-	.dtps_getargdesc =	dtmalloc_getargdesc,
-	.dtps_getargval =	NULL,
-	.dtps_usermode =	NULL,
-	.dtps_destroy =		dtmalloc_destroy
-};
+static dtrace_pops_t dtmalloc_pops = { .dtps_provide = dtmalloc_provide,
+	.dtps_provide_module = NULL,
+	.dtps_enable = dtmalloc_enable,
+	.dtps_disable = dtmalloc_disable,
+	.dtps_suspend = NULL,
+	.dtps_resume = NULL,
+	.dtps_getargdesc = dtmalloc_getargdesc,
+	.dtps_getargval = NULL,
+	.dtps_usermode = NULL,
+	.dtps_destroy = dtmalloc_destroy };
 
-static dtrace_provider_id_t	dtmalloc_id;
+static dtrace_provider_id_t dtmalloc_id;
 
 static void
-dtmalloc_getargdesc(void *arg, dtrace_id_t id, void *parg, dtrace_argdesc_t *desc)
+dtmalloc_getargdesc(void *arg, dtrace_id_t id, void *parg,
+    dtrace_argdesc_t *desc)
 {
 	const char *p = NULL;
 
@@ -119,9 +123,9 @@ dtmalloc_type_cb(struct malloc_type *mtp, void *arg __unused)
 	if (dtrace_probe_lookup(dtmalloc_id, NULL, name, "malloc") != 0)
 		return;
 
-	(void) dtrace_probe_create(dtmalloc_id, NULL, name, "malloc", 0,
+	(void)dtrace_probe_create(dtmalloc_id, NULL, name, "malloc", 0,
 	    &mtip->mti_probes[DTMALLOC_PROBE_MALLOC]);
-	(void) dtrace_probe_create(dtmalloc_id, NULL, name, "free", 0,
+	(void)dtrace_probe_create(dtmalloc_id, NULL, name, "free", 0,
 	    &mtip->mti_probes[DTMALLOC_PROBE_FREE]);
 }
 
@@ -162,13 +166,12 @@ dtmalloc_disable(void *arg, dtrace_id_t id, void *parg)
 static void
 dtmalloc_load(void *dummy)
 {
-	if (dtrace_register("dtmalloc", &dtmalloc_attr, DTRACE_PRIV_USER,
-	    NULL, &dtmalloc_pops, NULL, &dtmalloc_id) != 0)
+	if (dtrace_register("dtmalloc", &dtmalloc_attr, DTRACE_PRIV_USER, NULL,
+		&dtmalloc_pops, NULL, &dtmalloc_id) != 0)
 		return;
 
 	dtrace_malloc_probe = dtrace_probe;
 }
-
 
 static int
 dtmalloc_unload(void)
@@ -201,14 +204,15 @@ dtmalloc_modevent(module_t mod __unused, int type, void *data __unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);
 }
 
-SYSINIT(dtmalloc_load, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, dtmalloc_load, NULL);
-SYSUNINIT(dtmalloc_unload, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, dtmalloc_unload, NULL);
+SYSINIT(dtmalloc_load, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, dtmalloc_load,
+    NULL);
+SYSUNINIT(dtmalloc_unload, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY,
+    dtmalloc_unload, NULL);
 
 DEV_MODULE(dtmalloc, dtmalloc_modevent, NULL);
 MODULE_VERSION(dtmalloc, 1);

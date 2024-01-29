@@ -34,12 +34,8 @@ struct quirk_replace_list {
 };
 
 const char *search_quirk(const char *, const char *,
-			 struct quirk_replace_list **, size_t *);
-uint16_t quirk_vendor2unix(uint16_t,
-			  struct quirk_replace_list *,
-			  size_t);
-uint16_t quirk_unix2vendor(uint16_t,
-			  struct quirk_replace_list *,
-			  size_t);
+    struct quirk_replace_list **, size_t *);
+uint16_t quirk_vendor2unix(uint16_t, struct quirk_replace_list *, size_t);
+uint16_t quirk_unix2vendor(uint16_t, struct quirk_replace_list *, size_t);
 
 #endif /* _KICONV_QUIRKS_H_ */

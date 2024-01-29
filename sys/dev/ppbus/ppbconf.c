@@ -28,23 +28,23 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_ppb_1284.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
-#include <sys/malloc.h>
 #include <sys/rman.h>
 
 #include <machine/resource.h>
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_1284.h>
+#include <dev/ppbus/ppbconf.h>
 
 #include "ppbus_if.h"
 
@@ -52,7 +52,7 @@
 
 static MALLOC_DEFINE(M_PPBUSDEV, "ppbusdev", "Parallel Port bus device");
 
-static int	ppbus_intr(void *arg);
+static int ppbus_intr(void *arg);
 
 /*
  * Device methods
@@ -97,7 +97,7 @@ ppbus_add_child(device_t dev, u_int order, const char *name, int unit)
 
 	/* allocate ivars for the new ppbus child */
 	ppbdev = malloc(sizeof(struct ppb_device), M_PPBUSDEV,
-		M_NOWAIT | M_ZERO);
+	    M_NOWAIT | M_ZERO);
 	if (!ppbdev)
 		return (NULL);
 
@@ -113,7 +113,7 @@ ppbus_add_child(device_t dev, u_int order, const char *name, int unit)
 }
 
 static int
-ppbus_read_ivar(device_t bus, device_t dev, int index, uintptr_t* val)
+ppbus_read_ivar(device_t bus, device_t dev, int index, uintptr_t *val)
 {
 
 	switch (index) {
@@ -139,27 +139,26 @@ ppbus_write_ivar(device_t bus, device_t dev, int index, uintptr_t val)
 		break;
 	default:
 		return (ENOENT);
-  	}
+	}
 
 	return (0);
 }
 
-#define PPB_PNP_PRINTER		0
-#define PPB_PNP_MODEM		1
-#define PPB_PNP_NET		2
-#define PPB_PNP_HDC		3
-#define PPB_PNP_PCMCIA		4
-#define PPB_PNP_MEDIA		5
-#define PPB_PNP_FDC		6
-#define PPB_PNP_PORTS		7
-#define PPB_PNP_SCANNER		8
-#define PPB_PNP_DIGICAM		9
+#define PPB_PNP_PRINTER 0
+#define PPB_PNP_MODEM 1
+#define PPB_PNP_NET 2
+#define PPB_PNP_HDC 3
+#define PPB_PNP_PCMCIA 4
+#define PPB_PNP_MEDIA 5
+#define PPB_PNP_FDC 6
+#define PPB_PNP_PORTS 7
+#define PPB_PNP_SCANNER 8
+#define PPB_PNP_DIGICAM 9
 
 #ifndef DONTPROBE_1284
 
-static char *pnp_tokens[] = {
-	"PRINTER", "MODEM", "NET", "HDC", "PCMCIA", "MEDIA",
-	"FDC", "PORTS", "SCANNER", "DIGICAM", "", NULL };
+static char *pnp_tokens[] = { "PRINTER", "MODEM", "NET", "HDC", "PCMCIA",
+	"MEDIA", "FDC", "PORTS", "SCANNER", "DIGICAM", "", NULL };
 
 #if 0
 static char *pnp_classes[] = {
@@ -179,7 +178,7 @@ search_token(char *str, int slen, char *token)
 {
 	int tlen, i;
 
-#define UNKNOWN_LENGTH	-1
+#define UNKNOWN_LENGTH -1
 
 	if (slen == UNKNOWN_LENGTH)
 		/* get string's length */
@@ -190,7 +189,7 @@ search_token(char *str, int slen, char *token)
 	if (tlen == 0)
 		return (str);
 
-	for (i = 0; i <= slen-tlen; i++) {
+	for (i = 0; i <= slen - tlen; i++) {
 		if (strncmp(str + i, token, tlen) == 0)
 			return (&str[i]);
 	}
@@ -209,12 +208,12 @@ ppb_pnp_detect(device_t bus)
 	char *token, *class = NULL;
 	int i, len, error;
 	int class_id = -1;
-	char str[PPB_PnP_STRING_SIZE+1];
+	char str[PPB_PnP_STRING_SIZE + 1];
 
 	device_printf(bus, "Probing for PnP devices:\n");
 
-	if ((error = ppb_1284_read_id(bus, PPB_NIBBLE, str,
-					PPB_PnP_STRING_SIZE, &len)))
+	if ((error = ppb_1284_read_id(bus, PPB_NIBBLE, str, PPB_PnP_STRING_SIZE,
+		 &len)))
 		goto end_detect;
 
 #ifdef DEBUG_1284
@@ -229,26 +228,23 @@ ppb_pnp_detect(device_t bus)
 		str[i] = (str[i] == ';') ? '\0' : str[i];
 
 	if ((token = search_token(str, len, "MFG")) != NULL ||
-		(token = search_token(str, len, "MANUFACTURER")) != NULL)
+	    (token = search_token(str, len, "MANUFACTURER")) != NULL)
 		device_printf(bus, "<%s",
-			search_token(token, UNKNOWN_LENGTH, ":") + 1);
+		    search_token(token, UNKNOWN_LENGTH, ":") + 1);
 	else
 		device_printf(bus, "<unknown");
 
 	if ((token = search_token(str, len, "MDL")) != NULL ||
-		(token = search_token(str, len, "MODEL")) != NULL)
-		printf(" %s",
-			search_token(token, UNKNOWN_LENGTH, ":") + 1);
+	    (token = search_token(str, len, "MODEL")) != NULL)
+		printf(" %s", search_token(token, UNKNOWN_LENGTH, ":") + 1);
 	else
 		printf(" unknown");
 
 	if ((token = search_token(str, len, "VER")) != NULL)
-		printf("/%s",
-			search_token(token, UNKNOWN_LENGTH, ":") + 1);
+		printf("/%s", search_token(token, UNKNOWN_LENGTH, ":") + 1);
 
 	if ((token = search_token(str, len, "REV")) != NULL)
-		printf(".%s",
-			search_token(token, UNKNOWN_LENGTH, ":") + 1);
+		printf(".%s", search_token(token, UNKNOWN_LENGTH, ":") + 1);
 
 	printf(">");
 
@@ -258,9 +254,8 @@ ppb_pnp_detect(device_t bus)
 	}
 
 	if ((token = search_token(str, len, "CMD")) != NULL ||
-		(token = search_token(str, len, "COMMAND")) != NULL)
-		printf(" %s",
-			search_token(token, UNKNOWN_LENGTH, ":") + 1);
+	    (token = search_token(str, len, "COMMAND")) != NULL)
+		printf(" %s", search_token(token, UNKNOWN_LENGTH, ":") + 1);
 
 	printf("\n");
 
@@ -287,7 +282,7 @@ end_detect:
 static int
 ppb_scan_bus(device_t bus)
 {
-	struct ppb_data * ppb = (struct ppb_data *)device_get_softc(bus);
+	struct ppb_data *ppb = (struct ppb_data *)device_get_softc(bus);
 	int error = 0;
 
 	/* try all IEEE1284 modes, for one device only
@@ -333,31 +328,31 @@ ppb_scan_bus(device_t bus)
 	/* try more IEEE1284 modes */
 	if (bootverbose) {
 		if (!(error = ppb_1284_negociate(bus, PPB_NIBBLE,
-				PPB_REQUEST_ID))) {
+			  PPB_REQUEST_ID))) {
 			printf("/NIBBLE_ID");
 			ppb_1284_terminate(bus);
 		}
 
 		if (!(error = ppb_1284_negociate(bus, PPB_PS2,
-				PPB_REQUEST_ID))) {
+			  PPB_REQUEST_ID))) {
 			printf("/PS2_ID");
 			ppb_1284_terminate(bus);
 		}
 
 		if (!(error = ppb_1284_negociate(bus, PPB_ECP,
-				PPB_REQUEST_ID))) {
+			  PPB_REQUEST_ID))) {
 			printf("/ECP_ID");
 			ppb_1284_terminate(bus);
 		}
 
 		if (!(error = ppb_1284_negociate(bus, PPB_ECP,
-				PPB_REQUEST_ID | PPB_USE_RLE))) {
+			  PPB_REQUEST_ID | PPB_USE_RLE))) {
 			printf("/ECP_RLE_ID");
 			ppb_1284_terminate(bus);
 		}
 
 		if (!(error = ppb_1284_negociate(bus, PPB_COMPATIBLE,
-				PPB_EXTENSIBILITY_LINK))) {
+			  PPB_EXTENSIBILITY_LINK))) {
 			printf("/Extensibility Link");
 			ppb_1284_terminate(bus);
 		}
@@ -576,20 +571,19 @@ ppb_release_bus(device_t bus, device_t dev)
 
 static device_method_t ppbus_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ppbus_probe),
-	DEVMETHOD(device_attach,	ppbus_attach),
-	DEVMETHOD(device_detach,	ppbus_detach),
+	DEVMETHOD(device_probe, ppbus_probe),
+	DEVMETHOD(device_attach, ppbus_attach),
+	DEVMETHOD(device_detach, ppbus_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	ppbus_add_child),
-	DEVMETHOD(bus_print_child,	ppbus_print_child),
-	DEVMETHOD(bus_read_ivar,	ppbus_read_ivar),
-	DEVMETHOD(bus_write_ivar,	ppbus_write_ivar),
-	DEVMETHOD(bus_setup_intr,	ppbus_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	ppbus_teardown_intr),
-	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
-	{ 0, 0 }
+	DEVMETHOD(bus_add_child, ppbus_add_child),
+	DEVMETHOD(bus_print_child, ppbus_print_child),
+	DEVMETHOD(bus_read_ivar, ppbus_read_ivar),
+	DEVMETHOD(bus_write_ivar, ppbus_write_ivar),
+	DEVMETHOD(bus_setup_intr, ppbus_setup_intr),
+	DEVMETHOD(bus_teardown_intr, ppbus_teardown_intr),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource), { 0, 0 }
 };
 
 static driver_t ppbus_driver = {

@@ -25,50 +25,42 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus.h>
 #include <dev/hyperv/utilities/vmbus_icreg.h>
 #include <dev/hyperv/utilities/vmbus_icvar.h>
 
-#define VMBUS_HEARTBEAT_FWVER_MAJOR	3
-#define VMBUS_HEARTBEAT_FWVER		\
-	VMBUS_IC_VERSION(VMBUS_HEARTBEAT_FWVER_MAJOR, 0)
+#define VMBUS_HEARTBEAT_FWVER_MAJOR 3
+#define VMBUS_HEARTBEAT_FWVER VMBUS_IC_VERSION(VMBUS_HEARTBEAT_FWVER_MAJOR, 0)
 
-#define VMBUS_HEARTBEAT_MSGVER_MAJOR	3
-#define VMBUS_HEARTBEAT_MSGVER		\
-	VMBUS_IC_VERSION(VMBUS_HEARTBEAT_MSGVER_MAJOR, 0)
+#define VMBUS_HEARTBEAT_MSGVER_MAJOR 3
+#define VMBUS_HEARTBEAT_MSGVER VMBUS_IC_VERSION(VMBUS_HEARTBEAT_MSGVER_MAJOR, 0)
 
-static int			vmbus_heartbeat_probe(device_t);
-static int			vmbus_heartbeat_attach(device_t);
+static int vmbus_heartbeat_probe(device_t);
+static int vmbus_heartbeat_attach(device_t);
 
 static const struct vmbus_ic_desc vmbus_heartbeat_descs[] = {
-	{
-		.ic_guid = { .hv_guid = {
-		    0x39, 0x4f, 0x16, 0x57, 0x15, 0x91, 0x78, 0x4e,
-		    0xab, 0x55, 0x38, 0x2f, 0x3b, 0xd5, 0x42, 0x2d} },
-		.ic_desc = "Hyper-V Heartbeat"
-	},
+	{ .ic_guid = { .hv_guid = { 0x39, 0x4f, 0x16, 0x57, 0x15, 0x91, 0x78,
+			   0x4e, 0xab, 0x55, 0x38, 0x2f, 0x3b, 0xd5, 0x42,
+			   0x2d } },
+	    .ic_desc = "Hyper-V Heartbeat" },
 	VMBUS_IC_DESC_END
 };
 
 static device_method_t vmbus_heartbeat_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		vmbus_heartbeat_probe),
-	DEVMETHOD(device_attach,	vmbus_heartbeat_attach),
-	DEVMETHOD(device_detach,	vmbus_ic_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, vmbus_heartbeat_probe),
+	DEVMETHOD(device_attach, vmbus_heartbeat_attach),
+	DEVMETHOD(device_detach, vmbus_ic_detach), DEVMETHOD_END
 };
 
-static driver_t vmbus_heartbeat_driver = {
-	"hvheartbeat",
-	vmbus_heartbeat_methods,
-	sizeof(struct vmbus_ic_softc)
-};
+static driver_t vmbus_heartbeat_driver = { "hvheartbeat",
+	vmbus_heartbeat_methods, sizeof(struct vmbus_ic_softc) };
 
 DRIVER_MODULE(hv_heartbeat, vmbus, vmbus_heartbeat_driver, NULL, NULL);
 MODULE_VERSION(hv_heartbeat, 1);
@@ -104,8 +96,8 @@ vmbus_heartbeat_cb(struct vmbus_channel *chan, void *xsc)
 	 */
 	switch (hdr->ic_type) {
 	case VMBUS_ICMSG_TYPE_NEGOTIATE:
-		error = vmbus_ic_negomsg(sc, data, &dlen,
-		    VMBUS_HEARTBEAT_FWVER, VMBUS_HEARTBEAT_MSGVER);
+		error = vmbus_ic_negomsg(sc, data, &dlen, VMBUS_HEARTBEAT_FWVER,
+		    VMBUS_HEARTBEAT_MSGVER);
 		if (error)
 			return;
 		break;

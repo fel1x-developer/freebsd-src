@@ -4,54 +4,54 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define        KERNEL	1
-# define        _KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/errno.h>
-#include <sys/types.h>
-#include <sys/time.h>
 #include <sys/file.h>
+#include <sys/time.h>
 #if defined(__FreeBSD__) && defined(_KERNEL)
-# include <sys/fcntl.h>
-# include <sys/filio.h>
+#include <sys/fcntl.h>
+#include <sys/filio.h>
 #else
-# include <sys/ioctl.h>
+#include <sys/ioctl.h>
 #endif
 #if !defined(_KERNEL)
-# include <stdio.h>
-# include <string.h>
-# include <stdlib.h>
-# define _KERNEL
-# include <sys/uio.h>
-# undef _KERNEL
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _KERNEL
+#include <sys/uio.h>
+#undef _KERNEL
 #endif
 #include <sys/socket.h>
+
 #include <net/if.h>
 #if defined(__FreeBSD__)
-# include <sys/cdefs.h>
-# include <sys/proc.h>
+#include <sys/cdefs.h>
+#include <sys/proc.h>
 #endif
 #if defined(_KERNEL)
-# include <sys/systm.h>
-# if !defined(__SVR4)
-#  include <sys/mbuf.h>
-# endif
+#include <sys/systm.h>
+#if !defined(__SVR4)
+#include <sys/mbuf.h>
+#endif
 #else
-# include "ipf.h"
+#include "ipf.h"
 #endif
 #include <netinet/in.h>
 
 #include "netinet/ip_compat.h"
+#include "netinet/ip_dstlist.h"
 #include "netinet/ip_fil.h"
+#include "netinet/ip_htable.h"
 #include "netinet/ip_lookup.h"
 #include "netinet/ip_pool.h"
-#include "netinet/ip_htable.h"
-#include "netinet/ip_dstlist.h"
 /* END OF INCLUDES */
-
 
 /*
  * In this file, ip_pool.c, ip_htable.c and ip_dstlist.c, you will find the
@@ -71,18 +71,13 @@ static int ipf_lookup_flush(ipf_main_softc_t *, caddr_t);
 static int ipf_lookup_iterate(ipf_main_softc_t *, void *, int, void *);
 static int ipf_lookup_deltok(ipf_main_softc_t *, void *, int, void *);
 
-#define	MAX_BACKENDS	3
-static ipf_lookup_t *backends[MAX_BACKENDS] = {
-	&ipf_pool_backend,
-	&ipf_htable_backend,
-	&ipf_dstlist_backend
-};
-
+#define MAX_BACKENDS 3
+static ipf_lookup_t *backends[MAX_BACKENDS] = { &ipf_pool_backend,
+	&ipf_htable_backend, &ipf_dstlist_backend };
 
 typedef struct ipf_lookup_softc_s {
-	void		*ipf_back[MAX_BACKENDS];
+	void *ipf_back[MAX_BACKENDS];
 } ipf_lookup_softc_t;
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_init                                             */
@@ -115,7 +110,6 @@ ipf_lookup_soft_create(ipf_main_softc_t *softc)
 	return (softl);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_soft_init                                        */
 /* Returns:     int      - 0 = success, else error                          */
@@ -140,7 +134,6 @@ ipf_lookup_soft_init(ipf_main_softc_t *softc, void *arg)
 	return (err);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_soft_fini                                        */
 /* Returns:     int      - 0 = success, else error                          */
@@ -157,13 +150,11 @@ ipf_lookup_soft_fini(ipf_main_softc_t *softc, void *arg)
 
 	for (i = 0; i < MAX_BACKENDS; i++) {
 		if (softl->ipf_back[i] != NULL)
-			(*backends[i]->ipfl_fini)(softc,
-						  softl->ipf_back[i]);
+			(*backends[i]->ipfl_fini)(softc, softl->ipf_back[i]);
 	}
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_expire                                           */
@@ -185,7 +176,6 @@ ipf_lookup_expire(ipf_main_softc_t *softc)
 	RWLOCK_EXIT(&softc->ipf_poolrw);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_softc_destroy                                    */
 /* Returns:     int     - 0 = success, else error                           */
@@ -204,13 +194,11 @@ ipf_lookup_soft_destroy(ipf_main_softc_t *softc, void *arg)
 
 	for (i = 0; i < MAX_BACKENDS; i++) {
 		if (softl->ipf_back[i] != NULL)
-			(*backends[i]->ipfl_destroy)(softc,
-						     softl->ipf_back[i]);
+			(*backends[i]->ipfl_destroy)(softc, softl->ipf_back[i]);
 	}
 
 	KFREE(softl);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_ioctl                                            */
@@ -230,65 +218,64 @@ ipf_lookup_soft_destroy(ipf_main_softc_t *softc, void *arg)
 /* ------------------------------------------------------------------------ */
 int
 ipf_lookup_ioctl(ipf_main_softc_t *softc, caddr_t data, ioctlcmd_t cmd,
-	int mode, int uid, void *ctx)
+    int mode, int uid, void *ctx)
 {
 	int err;
 	SPL_INT(s);
 
-	mode = mode;	/* LINT */
+	mode = mode; /* LINT */
 
 	SPL_NET(s);
 
-	switch (cmd)
-	{
-	case SIOCLOOKUPADDNODE :
-	case SIOCLOOKUPADDNODEW :
+	switch (cmd) {
+	case SIOCLOOKUPADDNODE:
+	case SIOCLOOKUPADDNODEW:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_addnode(softc, data, uid);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPDELNODE :
-	case SIOCLOOKUPDELNODEW :
+	case SIOCLOOKUPDELNODE:
+	case SIOCLOOKUPDELNODEW:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_delnode(softc, data, uid);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPADDTABLE :
+	case SIOCLOOKUPADDTABLE:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_addtable(softc, data);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPDELTABLE :
+	case SIOCLOOKUPDELTABLE:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_deltable(softc, data);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPSTAT :
-	case SIOCLOOKUPSTATW :
+	case SIOCLOOKUPSTAT:
+	case SIOCLOOKUPSTATW:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_stats(softc, data);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPFLUSH :
+	case SIOCLOOKUPFLUSH:
 		WRITE_ENTER(&softc->ipf_poolrw);
 		err = ipf_lookup_flush(softc, data);
 		RWLOCK_EXIT(&softc->ipf_poolrw);
 		break;
 
-	case SIOCLOOKUPITER :
+	case SIOCLOOKUPITER:
 		err = ipf_lookup_iterate(softc, data, uid, ctx);
 		break;
 
-	case SIOCIPFDELTOK :
+	case SIOCIPFDELTOK:
 		err = ipf_lookup_deltok(softc, data, uid, ctx);
 		break;
 
-	default :
+	default:
 		IPFERROR(50001);
 		err = EINVAL;
 		break;
@@ -296,7 +283,6 @@ ipf_lookup_ioctl(ipf_main_softc_t *softc, caddr_t data, ioctlcmd_t cmd,
 	SPL_X(s);
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_addnode                                          */
@@ -333,9 +319,8 @@ ipf_lookup_addnode(ipf_main_softc_t *softc, caddr_t data, int uid)
 
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (op.iplo_type == (*l)->ipfl_type) {
-			err = (*(*l)->ipfl_node_add)(softc,
-						     softl->ipf_back[i],
-						     &op, uid);
+			err = (*(*l)->ipfl_node_add)(softc, softl->ipf_back[i],
+			    &op, uid);
 			break;
 		}
 	}
@@ -347,7 +332,6 @@ ipf_lookup_addnode(ipf_main_softc_t *softc, caddr_t data, int uid)
 
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_delnode                                          */
@@ -384,7 +368,7 @@ ipf_lookup_delnode(ipf_main_softc_t *softc, caddr_t data, int uid)
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (op.iplo_type == (*l)->ipfl_type) {
 			err = (*(*l)->ipfl_node_del)(softc, softl->ipf_back[i],
-						     &op, uid);
+			    &op, uid);
 			break;
 		}
 	}
@@ -395,7 +379,6 @@ ipf_lookup_delnode(ipf_main_softc_t *softc, caddr_t data, int uid)
 	}
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_addtable                                         */
@@ -430,9 +413,8 @@ ipf_lookup_addtable(ipf_main_softc_t *softc, caddr_t data)
 
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (op.iplo_type == (*l)->ipfl_type) {
-			err = (*(*l)->ipfl_table_add)(softc,
-						      softl->ipf_back[i],
-						      &op);
+			err = (*(*l)->ipfl_table_add)(softc, softl->ipf_back[i],
+			    &op);
 			break;
 		}
 	}
@@ -456,7 +438,6 @@ ipf_lookup_addtable(ipf_main_softc_t *softc, caddr_t data)
 
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_deltable                                         */
@@ -491,9 +472,8 @@ ipf_lookup_deltable(ipf_main_softc_t *softc, caddr_t data)
 
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (op.iplo_type == (*l)->ipfl_type) {
-			err = (*(*l)->ipfl_table_del)(softc,
-						      softl->ipf_back[i],
-						      &op);
+			err = (*(*l)->ipfl_table_del)(softc, softl->ipf_back[i],
+			    &op);
 			break;
 		}
 	}
@@ -504,7 +484,6 @@ ipf_lookup_deltable(ipf_main_softc_t *softc, caddr_t data)
 	}
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_stats                                            */
@@ -537,9 +516,8 @@ ipf_lookup_stats(ipf_main_softc_t *softc, caddr_t data)
 
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (op.iplo_type == (*l)->ipfl_type) {
-			err = (*(*l)->ipfl_stats_get)(softc,
-						      softl->ipf_back[i],
-						      &op);
+			err = (*(*l)->ipfl_stats_get)(softc, softl->ipf_back[i],
+			    &op);
 			break;
 		}
 	}
@@ -551,7 +529,6 @@ ipf_lookup_stats(ipf_main_softc_t *softc, caddr_t data)
 
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_flush                                            */
@@ -592,9 +569,8 @@ ipf_lookup_flush(ipf_main_softc_t *softc, caddr_t data)
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (type == (*l)->ipfl_type || type == IPLT_ALL) {
 			err = 0;
-			num += (*(*l)->ipfl_flush)(softc,
-						   softl->ipf_back[i],
-						   &flush);
+			num += (*(*l)->ipfl_flush)(softc, softl->ipf_back[i],
+			    &flush);
 		}
 	}
 
@@ -608,7 +584,6 @@ ipf_lookup_flush(ipf_main_softc_t *softc, caddr_t data)
 	}
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_delref                                           */
@@ -633,14 +608,12 @@ ipf_lookup_deref(ipf_main_softc_t *softc, int type, void *ptr)
 		if (type == backends[i]->ipfl_type) {
 			WRITE_ENTER(&softc->ipf_poolrw);
 			(*backends[i]->ipfl_table_deref)(softc,
-							 softl->ipf_back[i],
-							 ptr);
+			    softl->ipf_back[i], ptr);
 			RWLOCK_EXIT(&softc->ipf_poolrw);
 			break;
 		}
 	}
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_iterate                                          */
@@ -686,8 +659,7 @@ ipf_lookup_iterate(ipf_main_softc_t *softc, void *data, int uid, void *ctx)
 	for (i = 0; i < MAX_BACKENDS; i++) {
 		if (iter.ili_type == backends[i]->ipfl_type) {
 			err = (*backends[i]->ipfl_iter_next)(softc,
-							     softl->ipf_back[i],
-							     token, &iter);
+			    softl->ipf_back[i], token, &iter);
 			break;
 		}
 	}
@@ -704,7 +676,6 @@ ipf_lookup_iterate(ipf_main_softc_t *softc, void *data, int uid, void *ctx)
 
 	return (err);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_iterderef                                        */
@@ -738,16 +709,13 @@ ipf_lookup_iterderef(ipf_main_softc_t *softc, u_32_t type, void *data)
 	for (i = 0; i < MAX_BACKENDS; i++) {
 		if (lkey->ilik_type == backends[i]->ipfl_type) {
 			(*backends[i]->ipfl_iter_deref)(softc,
-							softl->ipf_back[i],
-							lkey->ilik_otype,
-							lkey->ilik_unit,
-							data);
+			    softl->ipf_back[i], lkey->ilik_otype,
+			    lkey->ilik_unit, data);
 			break;
 		}
 	}
 	RWLOCK_EXIT(&softc->ipf_poolrw);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_deltok                                           */
@@ -775,7 +743,6 @@ ipf_lookup_deltok(ipf_main_softc_t *softc, void *data, int uid, void *ctx)
 	return (error);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_res_num                                          */
 /* Returns:     void * - NULL = failure, else success.                      */
@@ -793,15 +760,14 @@ ipf_lookup_deltok(ipf_main_softc_t *softc, void *data, int uid, void *ctx)
 /* ------------------------------------------------------------------------ */
 void *
 ipf_lookup_res_num(ipf_main_softc_t *softc, int unit, u_int type, u_int number,
-	lookupfunc_t *funcptr)
+    lookupfunc_t *funcptr)
 {
 	char name[FR_GROUPLEN];
 
-	(void) snprintf(name, sizeof(name), "%u", number);
+	(void)snprintf(name, sizeof(name), "%u", number);
 
 	return (ipf_lookup_res_name(softc, unit, type, name, funcptr));
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_res_name                                         */
@@ -820,7 +786,7 @@ ipf_lookup_res_num(ipf_main_softc_t *softc, int unit, u_int type, u_int number,
 /* ------------------------------------------------------------------------ */
 void *
 ipf_lookup_res_name(ipf_main_softc_t *softc, int unit, u_int type, char *name,
-	lookupfunc_t *funcptr)
+    lookupfunc_t *funcptr)
 {
 	ipf_lookup_softc_t *softl = softc->ipf_lookup_soft;
 	ipf_lookup_t **l;
@@ -832,7 +798,7 @@ ipf_lookup_res_name(ipf_main_softc_t *softc, int unit, u_int type, char *name,
 	for (i = 0, l = backends; i < MAX_BACKENDS; i++, l++) {
 		if (type == (*l)->ipfl_type) {
 			ptr = (*(*l)->ipfl_select_add_ref)(softl->ipf_back[i],
-							   unit, name);
+			    unit, name);
 			if (ptr != NULL && funcptr != NULL) {
 				*funcptr = (*l)->ipfl_addr_find;
 			}
@@ -850,7 +816,6 @@ ipf_lookup_res_name(ipf_main_softc_t *softc, int unit, u_int type, char *name,
 
 	return (ptr);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_find_htable                                      */
@@ -884,7 +849,6 @@ ipf_lookup_find_htable(ipf_main_softc_t *softc, int unit, char *name)
 	return (tab);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_lookup_sync                                             */
 /* Returns:     void                                                        */
@@ -910,7 +874,6 @@ ipf_lookup_sync(ipf_main_softc_t *softc, void *ifp)
 
 	RWLOCK_EXIT(&softc->ipf_poolrw);
 }
-
 
 #ifndef _KERNEL
 void

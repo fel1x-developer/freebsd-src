@@ -62,22 +62,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
 #include <sys/counter.h>
-#include <sys/module.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
 #include <sys/lock.h>
-#include <sys/sx.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/mount.h>
-#include <sys/vnode.h>
+#include <sys/queue.h>
 #include <sys/sdt.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
 
 #include "fuse.h"
 #include "fuse_file.h"
@@ -89,7 +89,7 @@
 MALLOC_DEFINE(M_FUSE_FILEHANDLE, "fuse_filefilehandle", "FUSE file handle");
 
 SDT_PROVIDER_DECLARE(fusefs);
-/* 
+/*
  * Fuse trace probe:
  * arg0: verbosity.  Higher numbers give more verbose messages
  * arg1: Textual message
@@ -124,11 +124,9 @@ fuse_filehandle_open(struct vnode *vp, int a_mode,
 	struct mount *mp = vnode_mount(vp);
 	struct fuse_data *data = fuse_get_mpdata(mp);
 	struct fuse_dispatcher fdi;
-	const struct fuse_open_out default_foo = {
-		.fh = 0,
+	const struct fuse_open_out default_foo = { .fh = 0,
 		.open_flags = FOPEN_KEEP_CACHE,
-		.padding = 0
-	};
+		.padding = 0 };
 	struct fuse_open_in *foi = NULL;
 	const struct fuse_open_out *foo;
 	fufh_type_t fufh_type;
@@ -168,7 +166,7 @@ fuse_filehandle_open(struct vnode *vp, int a_mode,
 			err = 0;
 		} else if (err) {
 			SDT_PROBE2(fusefs, , file, trace, 1,
-				"OUCH ... daemon didn't give fh");
+			    "OUCH ... daemon didn't give fh");
 			if (err == ENOENT)
 				fuse_internal_vnode_disappear(vp);
 			goto out;
@@ -211,7 +209,7 @@ fuse_filehandle_close(struct vnode *vp, struct fuse_filehandle *fufh,
 	fri = fdi.indata;
 	fri->fh = fufh->fh_id;
 	fri->flags = fufh_type_2_fflags(fufh->fufh_type);
-	/* 
+	/*
 	 * If the file has a POSIX lock then we're supposed to set lock_owner.
 	 * If not, then lock_owner is undefined.  So we may as well always set
 	 * it.
@@ -237,20 +235,19 @@ out:
  * A pid of 0 means "don't care"
  */
 bool
-fuse_filehandle_validrw(struct vnode *vp, int mode,
-	struct ucred *cred, pid_t pid)
+fuse_filehandle_validrw(struct vnode *vp, int mode, struct ucred *cred,
+    pid_t pid)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	struct fuse_filehandle *fufh;
 	fufh_type_t fufh_type = fflags_2_fufh_type(mode);
 
-	/* 
+	/*
 	 * Unlike fuse_filehandle_get, we want to search for a filehandle with
 	 * the exact cred, and no fallback
 	 */
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
-		if (fufh->fufh_type == fufh_type &&
-		    fufh->uid == cred->cr_uid &&
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
+		if (fufh->fufh_type == fufh_type && fufh->uid == cred->cr_uid &&
 		    fufh->gid == cred->cr_rgid &&
 		    (pid == 0 || fufh->pid == pid))
 			return true;
@@ -260,9 +257,8 @@ fuse_filehandle_validrw(struct vnode *vp, int mode,
 		return false;
 
 	/* Fallback: find a RDWR list entry with the right cred */
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
-		if (fufh->fufh_type == FUFH_RDWR &&
-		    fufh->uid == cred->cr_uid &&
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
+		if (fufh->fufh_type == FUFH_RDWR && fufh->uid == cred->cr_uid &&
 		    fufh->gid == cred->cr_rgid &&
 		    (pid == 0 || fufh->pid == pid))
 			return true;
@@ -272,8 +268,8 @@ fuse_filehandle_validrw(struct vnode *vp, int mode,
 }
 
 int
-fuse_filehandle_get(struct vnode *vp, int fflag,
-    struct fuse_filehandle **fufhp, struct ucred *cred, pid_t pid)
+fuse_filehandle_get(struct vnode *vp, int fflag, struct fuse_filehandle **fufhp,
+    struct ucred *cred, pid_t pid)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	struct fuse_filehandle *fufh;
@@ -284,9 +280,8 @@ fuse_filehandle_get(struct vnode *vp, int fflag,
 	if (cred == NULL)
 		goto fallback;
 
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
-		if (fufh->fufh_type == fufh_type &&
-		    fufh->uid == cred->cr_uid &&
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
+		if (fufh->fufh_type == fufh_type && fufh->uid == cred->cr_uid &&
 		    fufh->gid == cred->cr_rgid &&
 		    (pid == 0 || fufh->pid == pid))
 			goto found;
@@ -294,7 +289,7 @@ fuse_filehandle_get(struct vnode *vp, int fflag,
 
 fallback:
 	/* Fallback: find a list entry with the right flags */
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
 		if (fufh->fufh_type == fufh_type)
 			break;
 	}
@@ -310,8 +305,8 @@ found:
 
 /* Get a file handle with any kind of flags */
 int
-fuse_filehandle_get_anyflags(struct vnode *vp,
-    struct fuse_filehandle **fufhp, struct ucred *cred, pid_t pid)
+fuse_filehandle_get_anyflags(struct vnode *vp, struct fuse_filehandle **fufhp,
+    struct ucred *cred, pid_t pid)
 {
 	struct fuse_vnode_data *fvdat = VTOFUD(vp);
 	struct fuse_filehandle *fufh;
@@ -319,9 +314,8 @@ fuse_filehandle_get_anyflags(struct vnode *vp,
 	if (cred == NULL)
 		goto fallback;
 
-	LIST_FOREACH(fufh, &fvdat->handles, next) {
-		if (fufh->uid == cred->cr_uid &&
-		    fufh->gid == cred->cr_rgid &&
+	LIST_FOREACH (fufh, &fvdat->handles, next) {
+		if (fufh->uid == cred->cr_uid && fufh->gid == cred->cr_rgid &&
 		    (pid == 0 || fufh->pid == pid))
 			goto found;
 	}
@@ -360,7 +354,7 @@ fuse_filehandle_init(struct vnode *vp, fufh_type_t fufh_type,
 	struct fuse_filehandle *fufh;
 
 	fufh = malloc(sizeof(struct fuse_filehandle), M_FUSE_FILEHANDLE,
-		M_WAITOK);
+	    M_WAITOK);
 	MPASS(fufh != NULL);
 	fufh->fh_id = foo->fh;
 	fufh->fufh_type = fufh_type;
@@ -384,9 +378,8 @@ fuse_filehandle_init(struct vnode *vp, fufh_type_t fufh_type,
 	} else {
 		if ((foo->open_flags & FOPEN_KEEP_CACHE) == 0)
 			fuse_io_invalbuf(vp, td);
-	        VTOFUD(vp)->flag &= ~FN_DIRECTIO;
+		VTOFUD(vp)->flag &= ~FN_DIRECTIO;
 	}
-
 }
 
 void

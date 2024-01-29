@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 /*
  *	XXX: Placeholder for MIPS fasttrap code
  */

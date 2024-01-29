@@ -33,38 +33,38 @@
  * SUCH DAMAGE.
  */
 
-#include <namespace.h>
-#include <err.h>
 #include <sys/types.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
+
+#include <assert.h>
+#include <err.h>
 #include <limits.h>
 #include <locale.h>
-#include <stdint.h>
-#include <assert.h>
 #include <namespace.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <un-namespace.h>
+#include <wchar.h>
 
 #include "printf.h"
 
 /* private stuff -----------------------------------------------------*/
 
 union arg {
-	int			intarg;
-	u_int			uintarg;
-	long			longarg;
-	u_long			ulongarg;
-	intmax_t 		intmaxarg;
-	uintmax_t 		uintmaxarg;
+	int intarg;
+	u_int uintarg;
+	long longarg;
+	u_long ulongarg;
+	intmax_t intmaxarg;
+	uintmax_t uintmaxarg;
 };
 
 /*
  * Macros for converting digits to letters and vice versa
  */
-#define	to_char(n)	((n) + '0')
+#define to_char(n) ((n) + '0')
 
 /* various globals ---------------------------------------------------*/
 
@@ -75,7 +75,7 @@ union arg {
  * each pair of digits: 60 digits for 128 bit intmax_t.
  * Use a bit more for better alignment of stuff.
  */
-#define	BUF	64
+#define BUF 64
 
 /* misc --------------------------------------------------------------*/
 
@@ -86,8 +86,8 @@ union arg {
  * use the given digits.
  */
 static char *
-__ultoa(u_long val, char *endp, int base, const char *xdigs,
-	int needgrp, char thousep, const char *grp)
+__ultoa(u_long val, char *endp, int base, const char *xdigs, int needgrp,
+    char thousep, const char *grp)
 {
 	char *cp = endp;
 	long sval;
@@ -99,7 +99,7 @@ __ultoa(u_long val, char *endp, int base, const char *xdigs,
 	 */
 	switch (base) {
 	case 10:
-		if (val < 10) {	/* many numbers are 1 digit */
+		if (val < 10) { /* many numbers are 1 digit */
 			*--cp = to_char(val);
 			return (cp);
 		}
@@ -123,8 +123,8 @@ __ultoa(u_long val, char *endp, int base, const char *xdigs,
 			 * If (*grp == CHAR_MAX) then no more grouping
 			 * should be performed.
 			 */
-			if (needgrp && ndig == *grp && *grp != CHAR_MAX
-					&& sval > 9) {
+			if (needgrp && ndig == *grp && *grp != CHAR_MAX &&
+			    sval > 9) {
 				*--cp = thousep;
 				ndig = 0;
 				/*
@@ -132,7 +132,7 @@ __ultoa(u_long val, char *endp, int base, const char *xdigs,
 				 * use *grp character (last grouping rule)
 				 * for all next cases
 				 */
-				if (*(grp+1) != '\0')
+				if (*(grp + 1) != '\0')
 					grp++;
 			}
 			sval /= 10;
@@ -153,17 +153,16 @@ __ultoa(u_long val, char *endp, int base, const char *xdigs,
 		} while (val);
 		break;
 
-	default:			/* oops */
+	default: /* oops */
 		assert(base == 16);
 	}
 	return (cp);
 }
 
-
 /* Identical to __ultoa, but for intmax_t. */
 static char *
-__ujtoa(uintmax_t val, char *endp, int base, const char *xdigs, 
-	int needgrp, char thousep, const char *grp)
+__ujtoa(uintmax_t val, char *endp, int base, const char *xdigs, int needgrp,
+    char thousep, const char *grp)
 {
 	char *cp = endp;
 	intmax_t sval;
@@ -189,8 +188,8 @@ __ujtoa(uintmax_t val, char *endp, int base, const char *xdigs,
 			 * If (*grp == CHAR_MAX) then no more grouping
 			 * should be performed.
 			 */
-			if (needgrp && *grp != CHAR_MAX && ndig == *grp
-					&& sval > 9) {
+			if (needgrp && *grp != CHAR_MAX && ndig == *grp &&
+			    sval > 9) {
 				*--cp = thousep;
 				ndig = 0;
 				/*
@@ -198,7 +197,7 @@ __ujtoa(uintmax_t val, char *endp, int base, const char *xdigs,
 				 * use *grp character (last grouping rule)
 				 * for all next cases
 				 */
-				if (*(grp+1) != '\0')
+				if (*(grp + 1) != '\0')
 					grp++;
 			}
 			sval /= 10;
@@ -225,13 +224,12 @@ __ujtoa(uintmax_t val, char *endp, int base, const char *xdigs,
 	return (cp);
 }
 
-
 /* 'd' ---------------------------------------------------------------*/
 
 int
 __printf_arginfo_int(const struct printf_info *pi, size_t n, int *argt)
 {
-	assert (n > 0);
+	assert(n > 0);
 	argt[0] = PA_INT;
 	if (pi->is_ptrdiff)
 		argt[0] |= PA_FLAG_PTRDIFF;
@@ -253,7 +251,8 @@ __printf_arginfo_int(const struct printf_info *pi, size_t n, int *argt)
 }
 
 int
-__printf_render_int(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_int(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	const union arg *argp;
 	char buf[BUF];
@@ -261,8 +260,8 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 	char ns;
 	int l, ngrp, rdx, sign, zext;
 	const char *nalt, *digit;
-	char thousands_sep;	/* locale specific thousands separator */
-	const char *grouping;	/* locale specific numeric grouping rules */
+	char thousands_sep;   /* locale specific thousands separator */
+	const char *grouping; /* locale specific numeric grouping rules */
 	uintmax_t uu;
 	int ret;
 
@@ -282,7 +281,7 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 		ngrp = 0;
 	}
 
-	switch(pi->spec) {
+	switch (pi->spec) {
 	case 'd':
 	case 'i':
 		rdx = 10;
@@ -314,8 +313,8 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 	if (sign)
 		ns = pi->showsign;
 
-	if (pi->is_long_double || pi->is_quad || pi->is_intmax ||
-	    pi->is_size || pi->is_ptrdiff) {
+	if (pi->is_long_double || pi->is_quad || pi->is_intmax || pi->is_size ||
+	    pi->is_ptrdiff) {
 		if (sign && argp->intmaxarg < 0) {
 			uu = -argp->intmaxarg;
 			ns = '-';
@@ -325,19 +324,19 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 		if (sign && argp->longarg < 0) {
 			uu = (u_long)-argp->longarg;
 			ns = '-';
-		} else 
+		} else
 			uu = argp->ulongarg;
 	} else if (pi->is_short) {
 		if (sign && (short)argp->intarg < 0) {
 			uu = -(short)argp->intarg;
 			ns = '-';
-		} else 
+		} else
 			uu = (unsigned short)argp->uintarg;
 	} else if (pi->is_char) {
 		if (sign && (signed char)argp->intarg < 0) {
 			uu = -(signed char)argp->intarg;
 			ns = '-';
-		} else 
+		} else
 			uu = (unsigned char)argp->uintarg;
 	} else {
 		if (sign && argp->intarg < 0) {
@@ -362,11 +361,11 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 		 * printf("%#.0o", 0) should print 0.''
 		 *      -- Defect Report #151
 		 */
-			;
+		;
 		if (pi->prec == 0 && !(pi->alt && rdx == 8))
 			p = pe;
 	} else if (pi->alt) {
-		if (rdx == 8) 
+		if (rdx == 8)
 			*--p = '0';
 		if (rdx == 16) {
 			if (pi->spec == 'x')
@@ -427,9 +426,9 @@ __printf_render_int(struct __printf_io *io, const struct printf_info *pi, const 
 		if (zext > 0)
 			ret += __printf_pad(io, zext, 1);
 	}
-	
+
 	ret += __printf_puts(io, p, pe - p);
-	if (pi->width > ret && pi->left) 
+	if (pi->width > ret && pi->left)
 		ret += __printf_pad(io, pi->width - ret, 0);
 	__printf_flush(io);
 	return (ret);
@@ -441,13 +440,14 @@ int
 __printf_arginfo_ptr(const struct printf_info *pi __unused, size_t n, int *argt)
 {
 
-	assert (n > 0);
+	assert(n > 0);
 	argt[0] = PA_POINTER;
 	return (1);
 }
 
 int
-__printf_render_ptr(struct __printf_io *io, const struct printf_info *pi, const void *const *arg)
+__printf_render_ptr(struct __printf_io *io, const struct printf_info *pi,
+    const void *const *arg)
 {
 	struct printf_info p2;
 	uintmax_t u;
@@ -460,7 +460,7 @@ __printf_render_ptr(struct __printf_io *io, const struct printf_info *pi, const 
 	 * defined manner.''
 	 *      -- ANSI X3J11
 	 */
-	u = (uintmax_t)(uintptr_t) *((void **)arg[0]);
+	u = (uintmax_t)(uintptr_t) * ((void **)arg[0]);
 	p2 = *pi;
 
 	p2.spec = 'x';

@@ -25,6 +25,6 @@
  * SUCH DAMAGE.
  */
 
-void	child_leader_run(const char *name, int fd, bool new_session,
-	    const char **argv, const sigset_t *oset,
-	    struct pipe_barrier *start_barrier) __dead2;
+void child_leader_run(const char *name, int fd, bool new_session,
+    const char **argv, const sigset_t *oset,
+    struct pipe_barrier *start_barrier) __dead2;

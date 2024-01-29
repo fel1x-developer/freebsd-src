@@ -25,30 +25,30 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_route.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rwlock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
-#include <sys/kernel.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/route.h>
-#include <net/route/route_var.h>
-#include <net/route/nhop_utils.h>
 #include <net/route/nhop.h>
+#include <net/route/nhop_utils.h>
 #include <net/route/nhop_var.h>
+#include <net/route/route_var.h>
 #include <net/vnet.h>
 
-#define	DEBUG_MOD_NAME	nhop
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG
+#define DEBUG_MOD_NAME nhop
+#define DEBUG_MAX_LEVEL LOG_DEBUG
 #include <net/route/route_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -59,8 +59,8 @@ _DECLARE_DEBUG(LOG_INFO);
  * Nexthops in the original sense are the objects containing all the necessary
  * information to forward the packet to the selected destination.
  * In particular, nexthop is defined by a combination of
- *  ifp, ifa, aifp, mtu, gw addr(if set), nh_type, nh_family, mask of rt_flags and
- *    NHF_DEFAULT
+ *  ifp, ifa, aifp, mtu, gw addr(if set), nh_type, nh_family, mask of rt_flags
+ * and NHF_DEFAULT
  *
  * All nexthops are stored in the resizable hash table.
  * Additionally, each nexthop gets assigned its unique index (nexthop index)
@@ -156,10 +156,13 @@ nhops_destroy_rib(struct rib_head *rh)
 	 */
 
 	NHOPS_WLOCK(ctl);
-	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv) {
-		FIB_RH_LOG(LOG_DEBUG3, rh, "marking nhop %u unlinked", nh_priv->nh_idx);
+	CHT_SLIST_FOREACH(&ctl->nh_head, nhops, nh_priv)
+	{
+		FIB_RH_LOG(LOG_DEBUG3, rh, "marking nhop %u unlinked",
+		    nh_priv->nh_idx);
 		refcount_release(&nh_priv->nh_linked);
-	} CHT_SLIST_FOREACH_END;
+	}
+	CHT_SLIST_FOREACH_END;
 #ifdef ROUTE_MPATH
 	nhgrp_ctl_unlink_all(ctl);
 #endif
@@ -191,10 +194,10 @@ nhops_destroy_rib(struct rib_head *rh)
  *  neighbors.
  */
 struct _hash_data {
-	uint16_t	ifentropy;
-	uint8_t		family;
-	uint8_t		nh_type;
-	uint32_t	gw_addr;
+	uint16_t ifentropy;
+	uint8_t family;
+	uint8_t nh_type;
+	uint32_t gw_addr;
 };
 
 static unsigned
@@ -214,12 +217,13 @@ hash_priv(const struct nhop_priv *priv)
 {
 	struct nhop_object *nh = priv->nh;
 	struct _hash_data key = {
-	    .ifentropy = (uint16_t)((((uintptr_t)nh->nh_ifp) >> 6) & 0xFFFF),
-	    .family = nh->gw_sa.sa_family,
-	    .nh_type = priv->nh_type & 0xFF,
-	    .gw_addr = (nh->gw_sa.sa_family == AF_INET6) ?
-		nh->gw6_sa.sin6_addr.s6_addr32[3] :
-		nh->gw4_sa.sin_addr.s_addr
+		.ifentropy = (uint16_t)((((uintptr_t)nh->nh_ifp) >> 6) &
+		    0xFFFF),
+		.family = nh->gw_sa.sa_family,
+		.nh_type = priv->nh_type & 0xFF,
+		.gw_addr = (nh->gw_sa.sa_family == AF_INET6) ?
+		    nh->gw6_sa.sin6_addr.s6_addr32[3] :
+		    nh->gw4_sa.sin_addr.s_addr
 	};
 
 	return (uint32_t)(djb_hash((const unsigned char *)&key, sizeof(key)));
@@ -230,7 +234,8 @@ hash_priv(const struct nhop_priv *priv)
  *
  */
 static void
-consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets, uint32_t new_idx_items)
+consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets,
+    uint32_t new_idx_items)
 {
 	void *nh_ptr, *nh_idx_ptr;
 	void *old_idx_ptr;
@@ -254,8 +259,8 @@ consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets, uint32_t new_id
 	}
 
 	FIB_CTL_LOG(LOG_DEBUG, ctl,
-	    "going to resize: nh:[ptr:%p sz:%u] idx:[ptr:%p sz:%u]",
-	    nh_ptr, new_nh_buckets, nh_idx_ptr, new_idx_items);
+	    "going to resize: nh:[ptr:%p sz:%u] idx:[ptr:%p sz:%u]", nh_ptr,
+	    new_nh_buckets, nh_idx_ptr, new_idx_items);
 
 	old_idx_ptr = NULL;
 
@@ -264,8 +269,10 @@ consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets, uint32_t new_id
 		CHT_SLIST_RESIZE(&ctl->nh_head, nhops, nh_ptr, new_nh_buckets);
 	}
 	if (nh_idx_ptr != NULL) {
-		if (bitmask_copy(&ctl->nh_idx_head, nh_idx_ptr, new_idx_items) == 0)
-			bitmask_swap(&ctl->nh_idx_head, nh_idx_ptr, new_idx_items, &old_idx_ptr);
+		if (bitmask_copy(&ctl->nh_idx_head, nh_idx_ptr,
+			new_idx_items) == 0)
+			bitmask_swap(&ctl->nh_idx_head, nh_idx_ptr,
+			    new_idx_items, &old_idx_ptr);
 	}
 	NHOPS_WUNLOCK(ctl);
 
@@ -314,8 +321,8 @@ link_nhop(struct nh_control *ctl, struct nhop_priv *nh_priv)
 	NHOPS_WUNLOCK(ctl);
 
 	FIB_RH_LOG(LOG_DEBUG2, ctl->ctl_rh,
-	    "Linked nhop priv %p to %d, hash %u, ctl %p",
-	    nh_priv, idx, hash_priv(nh_priv), ctl);
+	    "Linked nhop priv %p to %d, hash %u, ctl %p", nh_priv, idx,
+	    hash_priv(nh_priv), ctl);
 	consider_resize(ctl, num_buckets_new, num_items_new);
 
 	return (idx);
@@ -345,8 +352,8 @@ unlink_nhop(struct nh_control *ctl, struct nhop_priv *nh_priv_del)
 		KASSERT((idx != 0), ("bogus nhop index 0"));
 		if ((bitmask_free_idx(&ctl->nh_idx_head, idx)) != 0) {
 			FIB_CTL_LOG(LOG_DEBUG, ctl,
-			    "Unable to remove index %d from fib %u af %d",
-			    idx, ctl->ctl_rh->rib_fibnum, ctl->ctl_rh->rib_family);
+			    "Unable to remove index %d from fib %u af %d", idx,
+			    ctl->ctl_rh->rib_fibnum, ctl->ctl_rh->rib_family);
 		}
 	}
 
@@ -382,7 +389,8 @@ find_nhop(struct nh_control *ctl, const struct nhop_priv *nh_priv)
 	NHOPS_RLOCK(ctl);
 	CHT_SLIST_FIND_BYOBJ(&ctl->nh_head, nhops, nh_priv, nh_priv_ret);
 	if (nh_priv_ret != NULL) {
-		if (refcount_acquire_if_not_zero(&nh_priv_ret->nh_refcnt) == 0){
+		if (refcount_acquire_if_not_zero(&nh_priv_ret->nh_refcnt) ==
+		    0) {
 			/* refcount was 0 -> nhop is being deleted */
 			nh_priv_ret = NULL;
 		}

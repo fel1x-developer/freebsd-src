@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <linux/kernel.h>
+
 #include "adf_accel_devices.h"
 #include "adf_common_drv.h"
 #include "adf_pfvf_msg.h"
@@ -12,10 +13,10 @@
 
 #define FIELD_MAX(_mask) ({ (typeof(_mask))((_mask) >> __bf_shf(_mask)); })
 
-#define FIELD_PREP(_mask, _val)                                                \
+#define FIELD_PREP(_mask, _val) \
 	({ ((typeof(_mask))(_val) << __bf_shf(_mask)) & (_mask); })
 
-#define FIELD_GET(_mask, _reg)                                                 \
+#define FIELD_GET(_mask, _reg) \
 	({ (typeof(_mask))(((_reg) & (_mask)) >> __bf_shf(_mask)); })
 
 /**
@@ -33,10 +34,8 @@ adf_send_vf2pf_msg(struct adf_accel_dev *accel_dev, struct pfvf_message msg)
 	struct adf_pfvf_ops *pfvf_ops = GET_PFVF_OPS(accel_dev);
 	u32 pfvf_offset = pfvf_ops->get_pf2vf_offset(0);
 
-	int ret = pfvf_ops->send_msg(accel_dev,
-				     msg,
-				     pfvf_offset,
-				     &accel_dev->u1.vf.vf2pf_lock);
+	int ret = pfvf_ops->send_msg(accel_dev, msg, pfvf_offset,
+	    &accel_dev->u1.vf.vf2pf_lock);
 	return ret;
 }
 
@@ -53,9 +52,8 @@ adf_recv_pf2vf_msg(struct adf_accel_dev *accel_dev)
 {
 	struct adf_pfvf_ops *pfvf_ops = GET_PFVF_OPS(accel_dev);
 	u32 pfvf_offset = pfvf_ops->get_vf2pf_offset(0); // 1008
-	return pfvf_ops->recv_msg(accel_dev,
-				  pfvf_offset,
-				  accel_dev->u1.vf.pf_compat_ver);
+	return pfvf_ops->recv_msg(accel_dev, pfvf_offset,
+	    accel_dev->u1.vf.pf_compat_ver);
 }
 
 /**
@@ -70,9 +68,8 @@ adf_recv_pf2vf_msg(struct adf_accel_dev *accel_dev)
  * Return: 0 on success, error code otherwise.
  */
 int
-adf_send_vf2pf_req(struct adf_accel_dev *accel_dev,
-		   struct pfvf_message msg,
-		   struct pfvf_message *resp)
+adf_send_vf2pf_req(struct adf_accel_dev *accel_dev, struct pfvf_message msg,
+    struct pfvf_message *resp)
 {
 	unsigned long timeout = msecs_to_jiffies(ADF_PFVF_MSG_RESP_TIMEOUT);
 	unsigned int retries = ADF_PFVF_MSG_RESP_RETRIES;
@@ -84,14 +81,13 @@ adf_send_vf2pf_req(struct adf_accel_dev *accel_dev,
 		ret = adf_send_vf2pf_msg(accel_dev, msg);
 		if (ret) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to send request msg to PF\n");
+			    "Failed to send request msg to PF\n");
 			return ret;
 		}
 
 		/* Wait for response, if it times out retry */
-		ret =
-		    wait_for_completion_timeout(&accel_dev->u1.vf.msg_received,
-						timeout);
+		ret = wait_for_completion_timeout(
+		    &accel_dev->u1.vf.msg_received, timeout);
 		if (ret) {
 			if (likely(resp))
 				*resp = accel_dev->u1.vf.response;
@@ -103,17 +99,15 @@ adf_send_vf2pf_req(struct adf_accel_dev *accel_dev,
 		}
 
 		device_printf(GET_DEV(accel_dev),
-			      "PFVF response message timeout\n");
+		    "PFVF response message timeout\n");
 	} while (--retries);
 
 	return -EIO;
 }
 
 static int
-adf_vf2pf_blkmsg_data_req(struct adf_accel_dev *accel_dev,
-			  bool crc,
-			  u8 *type,
-			  u8 *data)
+adf_vf2pf_blkmsg_data_req(struct adf_accel_dev *accel_dev, bool crc, u8 *type,
+    u8 *data)
 {
 	struct pfvf_message req = { 0 };
 	struct pfvf_message resp = { 0 };
@@ -132,36 +126,33 @@ adf_vf2pf_blkmsg_data_req(struct adf_accel_dev *accel_dev,
 	} else if (*type <= ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX) {
 		msg_type = ADF_VF2PF_MSGTYPE_MEDIUM_BLOCK_REQ;
 		blk_type = FIELD_PREP(ADF_VF2PF_MEDIUM_BLOCK_TYPE_MASK,
-				      *type - ADF_VF2PF_SMALL_BLOCK_TYPE_MAX);
+		    *type - ADF_VF2PF_SMALL_BLOCK_TYPE_MAX);
 		blk_byte = FIELD_PREP(ADF_VF2PF_MEDIUM_BLOCK_BYTE_MASK, *data);
 		max_data = ADF_VF2PF_MEDIUM_BLOCK_BYTE_MAX;
 	} else if (*type <= ADF_VF2PF_LARGE_BLOCK_TYPE_MAX) {
 		msg_type = ADF_VF2PF_MSGTYPE_LARGE_BLOCK_REQ;
 		blk_type = FIELD_PREP(ADF_VF2PF_LARGE_BLOCK_TYPE_MASK,
-				      *type - ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX);
+		    *type - ADF_VF2PF_MEDIUM_BLOCK_TYPE_MAX);
 		blk_byte = FIELD_PREP(ADF_VF2PF_LARGE_BLOCK_BYTE_MASK, *data);
 		max_data = ADF_VF2PF_LARGE_BLOCK_BYTE_MAX;
 	} else {
-		device_printf(GET_DEV(accel_dev),
-			      "Invalid message type %u\n",
-			      *type);
+		device_printf(GET_DEV(accel_dev), "Invalid message type %u\n",
+		    *type);
 		return -EINVAL;
 	}
 
 	/* Sanity check */
 	if (*data > max_data) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid byte %s %u for message type %u\n",
-			      crc ? "count" : "index",
-			      *data,
-			      *type);
+		    "Invalid byte %s %u for message type %u\n",
+		    crc ? "count" : "index", *data, *type);
 		return -EINVAL;
 	}
 
 	/* Build the block message */
 	req.type = msg_type;
-	req.data =
-	    blk_type | blk_byte | FIELD_PREP(ADF_VF2PF_BLOCK_CRC_REQ_MASK, crc);
+	req.data = blk_type | blk_byte |
+	    FIELD_PREP(ADF_VF2PF_BLOCK_CRC_REQ_MASK, crc);
 
 	err = adf_send_vf2pf_req(accel_dev, req, &resp);
 	if (err)
@@ -174,10 +165,8 @@ adf_vf2pf_blkmsg_data_req(struct adf_accel_dev *accel_dev,
 }
 
 static int
-adf_vf2pf_blkmsg_get_byte(struct adf_accel_dev *accel_dev,
-			  u8 type,
-			  u8 index,
-			  u8 *data)
+adf_vf2pf_blkmsg_get_byte(struct adf_accel_dev *accel_dev, u8 type, u8 index,
+    u8 *data)
 {
 	int ret;
 
@@ -187,9 +176,8 @@ adf_vf2pf_blkmsg_get_byte(struct adf_accel_dev *accel_dev,
 
 	if (unlikely(type != ADF_PF2VF_BLKMSG_RESP_TYPE_DATA)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Unexpected BLKMSG response type %u, byte 0x%x\n",
-			      type,
-			      index);
+		    "Unexpected BLKMSG response type %u, byte 0x%x\n", type,
+		    index);
 		return -EFAULT;
 	}
 
@@ -198,10 +186,8 @@ adf_vf2pf_blkmsg_get_byte(struct adf_accel_dev *accel_dev,
 }
 
 static int
-adf_vf2pf_blkmsg_get_crc(struct adf_accel_dev *accel_dev,
-			 u8 type,
-			 u8 bytes,
-			 u8 *crc)
+adf_vf2pf_blkmsg_get_crc(struct adf_accel_dev *accel_dev, u8 type, u8 bytes,
+    u8 *crc)
 {
 	int ret;
 
@@ -216,10 +202,8 @@ adf_vf2pf_blkmsg_get_crc(struct adf_accel_dev *accel_dev,
 		return ret;
 
 	if (unlikely(type != ADF_PF2VF_BLKMSG_RESP_TYPE_CRC)) {
-		device_printf(
-		    GET_DEV(accel_dev),
-		    "Unexpected CRC BLKMSG response type %u, crc 0x%x\n",
-		    type,
+		device_printf(GET_DEV(accel_dev),
+		    "Unexpected CRC BLKMSG response type %u, crc 0x%x\n", type,
 		    bytes);
 		return -EFAULT;
 	}
@@ -244,10 +228,8 @@ adf_vf2pf_blkmsg_get_crc(struct adf_accel_dev *accel_dev,
  * Return: 0 on success, error code otherwise.
  */
 int
-adf_send_vf2pf_blkmsg_req(struct adf_accel_dev *accel_dev,
-			  u8 type,
-			  u8 *buffer,
-			  unsigned int *buffer_len)
+adf_send_vf2pf_blkmsg_req(struct adf_accel_dev *accel_dev, u8 type, u8 *buffer,
+    unsigned int *buffer_len)
 {
 	unsigned int index;
 	unsigned int msg_len;
@@ -257,42 +239,35 @@ adf_send_vf2pf_blkmsg_req(struct adf_accel_dev *accel_dev,
 
 	if (unlikely(type > ADF_VF2PF_LARGE_BLOCK_TYPE_MAX)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid block message type %d\n",
-			      type);
+		    "Invalid block message type %d\n", type);
 		return -EINVAL;
 	}
 
 	if (unlikely(*buffer_len < ADF_PFVF_BLKMSG_HEADER_SIZE)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Buffer size too small for a block message\n");
+		    "Buffer size too small for a block message\n");
 		return -EINVAL;
 	}
 
-	ret = adf_vf2pf_blkmsg_get_byte(accel_dev,
-					type,
-					ADF_PFVF_BLKMSG_VER_BYTE,
-					&buffer[ADF_PFVF_BLKMSG_VER_BYTE]);
+	ret = adf_vf2pf_blkmsg_get_byte(accel_dev, type,
+	    ADF_PFVF_BLKMSG_VER_BYTE, &buffer[ADF_PFVF_BLKMSG_VER_BYTE]);
 	if (unlikely(ret))
 		return ret;
 
 	if (unlikely(!buffer[ADF_PFVF_BLKMSG_VER_BYTE])) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid version 0 received for block request %u",
-			      type);
+		    "Invalid version 0 received for block request %u", type);
 		return -EFAULT;
 	}
 
-	ret = adf_vf2pf_blkmsg_get_byte(accel_dev,
-					type,
-					ADF_PFVF_BLKMSG_LEN_BYTE,
-					&buffer[ADF_PFVF_BLKMSG_LEN_BYTE]);
+	ret = adf_vf2pf_blkmsg_get_byte(accel_dev, type,
+	    ADF_PFVF_BLKMSG_LEN_BYTE, &buffer[ADF_PFVF_BLKMSG_LEN_BYTE]);
 	if (unlikely(ret))
 		return ret;
 
 	if (unlikely(!buffer[ADF_PFVF_BLKMSG_LEN_BYTE])) {
 		device_printf(GET_DEV(accel_dev),
-			      "Invalid size 0 received for block request %u",
-			      type);
+		    "Invalid size 0 received for block request %u", type);
 		return -EFAULT;
 	}
 
@@ -303,16 +278,14 @@ adf_send_vf2pf_blkmsg_req(struct adf_accel_dev *accel_dev,
 	 *   bytes in excess
 	 * - PF and VF share the same version, no problem
 	 */
-	msg_len =
-	    ADF_PFVF_BLKMSG_HEADER_SIZE + buffer[ADF_PFVF_BLKMSG_LEN_BYTE];
+	msg_len = ADF_PFVF_BLKMSG_HEADER_SIZE +
+	    buffer[ADF_PFVF_BLKMSG_LEN_BYTE];
 	msg_len = min(*buffer_len, msg_len);
 
 	/* Get the payload */
 	for (index = ADF_PFVF_BLKMSG_HEADER_SIZE; index < msg_len; index++) {
-		ret = adf_vf2pf_blkmsg_get_byte(accel_dev,
-						type,
-						index,
-						&buffer[index]);
+		ret = adf_vf2pf_blkmsg_get_byte(accel_dev, type, index,
+		    &buffer[index]);
 		if (unlikely(ret))
 			return ret;
 	}
@@ -323,12 +296,9 @@ adf_send_vf2pf_blkmsg_req(struct adf_accel_dev *accel_dev,
 
 	local_crc = adf_pfvf_calc_blkmsg_crc(buffer, msg_len);
 	if (unlikely(local_crc != remote_crc)) {
-		device_printf(
-		    GET_DEV(accel_dev),
-		    "CRC error on msg type %d. Local %02X, remote %02X\n",
-		    type,
-		    local_crc,
-		    remote_crc);
+		device_printf(GET_DEV(accel_dev),
+		    "CRC error on msg type %d. Local %02X, remote %02X\n", type,
+		    local_crc, remote_crc);
 		return -EIO;
 	}
 
@@ -352,11 +322,9 @@ adf_handle_pf2vf_msg(struct adf_accel_dev *accel_dev, struct pfvf_message msg)
 		complete(&accel_dev->u1.vf.msg_received);
 		return true;
 	default:
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "Unknown message from PF (type 0x%.4x, data: 0x%.4x)\n",
-		    msg.type,
-		    msg.data);
+		    msg.type, msg.data);
 	}
 
 	return false;

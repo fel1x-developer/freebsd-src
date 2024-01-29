@@ -34,14 +34,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/malloc.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 
+#include <dev/pci/pcib_private.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/pci/pcib_private.h>
 
 /*
  * Try to read the bus number of a host-PCI bridge using appropriate config
@@ -71,9 +71,9 @@ host_pcib_get_busno(pci_read_config_fn read_config, int bus, int slot, int func,
 	case 0x84ca8086:
 		/*
 		 * For the 450nx chipset, there is a whole bundle of
-		 * things pretending to be host bridges. The MIOC will 
+		 * things pretending to be host bridges. The MIOC will
 		 * be seen first and isn't really a pci bridge (the
-		 * actual buses are attached to the PXB's). We need to 
+		 * actual buses are attached to the PXB's). We need to
 		 * read the registers of the MIOC to figure out the
 		 * bus numbers for the PXB channels.
 		 *
@@ -178,15 +178,15 @@ pcib_host_res_free(device_t pcib, struct pcib_host_resources *hr)
 }
 
 int
-pcib_host_res_decodes(struct pcib_host_resources *hr, int type, rman_res_t start,
-    rman_res_t end, u_int flags)
+pcib_host_res_decodes(struct pcib_host_resources *hr, int type,
+    rman_res_t start, rman_res_t end, u_int flags)
 {
 	struct resource_list_entry *rle;
 	int rid;
 
 	if (bootverbose)
 		device_printf(hr->hr_pcib, "decoding %d %srange %#jx-%#jx\n",
-		    type, flags & RF_PREFETCHABLE ? "prefetchable ": "", start,
+		    type, flags & RF_PREFETCHABLE ? "prefetchable " : "", start,
 		    end);
 	rid = resource_list_add_next(&hr->hr_rl, type, start, end,
 	    end - start + 1);
@@ -231,8 +231,7 @@ restart:
 			continue;
 		new_start = ummax(start, rle->start);
 		new_end = ummin(end, rle->end);
-		if (new_start > new_end ||
-		    new_start + count - 1 > new_end ||
+		if (new_start > new_end || new_start + count - 1 > new_end ||
 		    new_start + count < new_start)
 			continue;
 		r = bus_generic_alloc_resource(hr->hr_pcib, dev, type, rid,
@@ -240,7 +239,7 @@ restart:
 		if (r != NULL) {
 			if (bootverbose)
 				device_printf(hr->hr_pcib,
-			    "allocated type %d (%#jx-%#jx) for rid %x of %s\n",
+				    "allocated type %d (%#jx-%#jx) for rid %x of %s\n",
 				    type, rman_get_start(r), rman_get_end(r),
 				    *rid, pcib_child_name(dev));
 			return (r);
@@ -286,7 +285,7 @@ pcib_host_res_adjust(struct pcib_host_resources *hr, device_t dev, int type,
 
 #ifdef PCI_RES_BUS
 struct pci_domain {
-	int	pd_domain;
+	int pd_domain;
 	struct rman pd_bus_rman;
 	TAILQ_ENTRY(pci_domain) pd_link;
 };
@@ -306,7 +305,7 @@ pci_find_domain(int domain)
 	char buf[64];
 	int error;
 
-	TAILQ_FOREACH(d, &domains, pd_link) {
+	TAILQ_FOREACH (d, &domains, pd_link) {
 		if (d->pd_domain == domain)
 			return (d);
 	}

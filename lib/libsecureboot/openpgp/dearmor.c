@@ -25,8 +25,8 @@
 
 #include <sys/cdefs.h>
 #define NEED_BRSSL_H
-#include <libsecureboot.h>
 #include <brssl.h>
+#include <libsecureboot.h>
 
 #include "decode.h"
 
@@ -54,16 +54,14 @@ dearmor(char *pem, size_t nbytes, size_t *len)
 	char *ep;
 
 	/* we need to remove the Armor tail */
-	if ((cp = strstr((char *)pem, "\n=")) &&
-	    (ep = strstr(cp, "\n---"))) {
+	if ((cp = strstr((char *)pem, "\n=")) && (ep = strstr(cp, "\n---"))) {
 		memmove(cp, ep, nbytes - (size_t)(ep - pem));
 		nbytes -= (size_t)(ep - cp);
 		pem[nbytes] = '\0';
 	}
 #ifdef USE_BEARSSL
 	/* we also need to remove any headers */
-	if ((cp = strstr((char *)pem, "---\n")) &&
-	    (ep = strstr(cp, "\n\n"))) {
+	if ((cp = strstr((char *)pem, "---\n")) && (ep = strstr(cp, "\n\n"))) {
 		cp += 4;
 		ep += 2;
 		memmove(cp, ep, nbytes - (size_t)(ep - pem));
@@ -88,9 +86,9 @@ dearmor(char *pem, size_t nbytes, size_t *len)
 }
 
 #ifdef MAIN_DEARMOR
-#include <unistd.h>
-#include <fcntl.h>
 #include <err.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 /*
  * Mostly a unit test.
@@ -120,15 +118,15 @@ main(int argc, char *argv[])
 	if (!infile)
 		errx(1, "need -i infile");
 	if (outfile) {
-		if ((fd = open(outfile, O_WRONLY|O_CREAT|O_TRUNC)) < 0)
+		if ((fd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC)) < 0)
 			err(1, "cannot open %s", outfile);
 	} else {
-		fd = 1;			/* stdout */
+		fd = 1; /* stdout */
 	}
 	data = read_file(infile, &n);
 	if (!(data[0] & OPENPGP_TAG_ISTAG))
 		data = dearmor(data, n, &n);
-	for (x = 0; x < n; ) {
+	for (x = 0; x < n;) {
 		o = write(fd, &data[x], (n - x));
 		if (o < 0)
 			err(1, "cannot write");

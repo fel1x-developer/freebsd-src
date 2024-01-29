@@ -31,12 +31,12 @@
  */
 
 /* Privately defined error codes. */
-#define YPPUSH_TIMEDOUT	255	/* Timed out trying to talk to ypserv */
-#define YPPUSH_NOHOST	254	/* No such host */
-#define YPPUSH_YPSERV	252	/* Failed to contact ypserv. */
-#define YPPUSH_PMAP	251	/* Portmapper failure. */
+#define YPPUSH_TIMEDOUT 255 /* Timed out trying to talk to ypserv */
+#define YPPUSH_NOHOST 254   /* No such host */
+#define YPPUSH_YPSERV 252   /* Failed to contact ypserv. */
+#define YPPUSH_PMAP 251	    /* Portmapper failure. */
 #ifndef YPPUSH_RESPONSE_TIMEOUT
-#define YPPUSH_RESPONSE_TIMEOUT 5*60
+#define YPPUSH_RESPONSE_TIMEOUT 5 * 60
 #endif
-extern int	_rpc_dtablesize(void);
-extern void	yppush_xfrrespprog_1(struct svc_req *, SVCXPRT *);
+extern int _rpc_dtablesize(void);
+extern void yppush_xfrrespprog_1(struct svc_req *, SVCXPRT *);

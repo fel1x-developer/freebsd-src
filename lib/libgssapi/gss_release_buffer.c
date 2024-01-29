@@ -32,8 +32,7 @@
 #include "utils.h"
 
 OM_uint32
-gss_release_buffer(OM_uint32 *minor_status,
-		   gss_buffer_t buffer)
+gss_release_buffer(OM_uint32 *minor_status, gss_buffer_t buffer)
 {
 
 	*minor_status = 0;

@@ -39,25 +39,25 @@
  */
 
 #include <sys/param.h>
-#include <sys/queue.h>
+#include <sys/systm.h>
 #include <sys/exec.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
 #include <sys/sbuf.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_param.h>
 
-#include <fs/pseudofs/pseudofs.h>
 #include <fs/procfs/procfs.h>
+#include <fs/pseudofs/pseudofs.h>
 
 /*
  * Filler function for proc/pid/file
@@ -90,7 +90,8 @@ procfs_docurproc(PFS_FILL_ARGS)
 }
 
 static int
-procfs_attr(PFS_ATTR_ARGS, int mode) {
+procfs_attr(PFS_ATTR_ARGS, int mode)
+{
 	vap->va_mode = mode;
 	if (p != NULL) {
 		PROC_LOCK_ASSERT(p, MA_OWNED);
@@ -156,38 +157,37 @@ procfs_init(PFS_INIT_ARGS)
 
 	root = pi->pi_root;
 
-	pfs_create_link(root, "curproc", procfs_docurproc,
-	    NULL, NULL, NULL, 0);
+	pfs_create_link(root, "curproc", procfs_docurproc, NULL, NULL, NULL, 0);
 
-	dir = pfs_create_dir(root, "pid",
-	    procfs_attr_all_rx, NULL, NULL, PFS_PROCDEP);
-	pfs_create_file(dir, "cmdline", procfs_doproccmdline,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(dir, "dbregs", procfs_doprocdbregs,
-	    procfs_attr_rw, procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
-	pfs_create_file(dir, "etype", procfs_doproctype,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(dir, "fpregs", procfs_doprocfpregs,
-	    procfs_attr_rw, procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
-	pfs_create_file(dir, "map", procfs_doprocmap,
-	    NULL, procfs_notsystem, NULL, PFS_RD);
-	pfs_create_file(dir, "mem", procfs_doprocmem,
-	    procfs_attr_rw, procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
-	pfs_create_file(dir, "note", procfs_doprocnote,
-	    procfs_attr_w, procfs_candebug, NULL, PFS_WR);
-	pfs_create_file(dir, "notepg", procfs_doprocnote,
-	    procfs_attr_w, procfs_candebug, NULL, PFS_WR);
-	pfs_create_file(dir, "regs", procfs_doprocregs,
-	    procfs_attr_rw, procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
-	pfs_create_file(dir, "rlimit", procfs_doprocrlimit,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(dir, "status", procfs_doprocstatus,
-	    NULL, NULL, NULL, PFS_RD);
-	pfs_create_file(dir, "osrel", procfs_doosrel,
-	    procfs_attr_rw, procfs_candebug, NULL, PFS_RDWR);
+	dir = pfs_create_dir(root, "pid", procfs_attr_all_rx, NULL, NULL,
+	    PFS_PROCDEP);
+	pfs_create_file(dir, "cmdline", procfs_doproccmdline, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(dir, "dbregs", procfs_doprocdbregs, procfs_attr_rw,
+	    procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
+	pfs_create_file(dir, "etype", procfs_doproctype, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(dir, "fpregs", procfs_doprocfpregs, procfs_attr_rw,
+	    procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
+	pfs_create_file(dir, "map", procfs_doprocmap, NULL, procfs_notsystem,
+	    NULL, PFS_RD);
+	pfs_create_file(dir, "mem", procfs_doprocmem, procfs_attr_rw,
+	    procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
+	pfs_create_file(dir, "note", procfs_doprocnote, procfs_attr_w,
+	    procfs_candebug, NULL, PFS_WR);
+	pfs_create_file(dir, "notepg", procfs_doprocnote, procfs_attr_w,
+	    procfs_candebug, NULL, PFS_WR);
+	pfs_create_file(dir, "regs", procfs_doprocregs, procfs_attr_rw,
+	    procfs_candebug, NULL, PFS_RDWR | PFS_RAW);
+	pfs_create_file(dir, "rlimit", procfs_doprocrlimit, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(dir, "status", procfs_doprocstatus, NULL, NULL, NULL,
+	    PFS_RD);
+	pfs_create_file(dir, "osrel", procfs_doosrel, procfs_attr_rw,
+	    procfs_candebug, NULL, PFS_RDWR);
 
-	pfs_create_link(dir, "file", procfs_doprocfile,
-	    NULL, procfs_notsystem, NULL, 0);
+	pfs_create_link(dir, "file", procfs_doprocfile, NULL, procfs_notsystem,
+	    NULL, 0);
 
 	return (0);
 }

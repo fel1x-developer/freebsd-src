@@ -24,11 +24,12 @@
  */
 
 #include <sys/types.h>
+
 #include <string.h>
 
 #include "kvm_test_common.h"
 
-char	errbuf[_POSIX2_LINE_MAX];
+char errbuf[_POSIX2_LINE_MAX];
 
 void
 errbuf_clear(void)

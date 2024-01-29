@@ -34,22 +34,22 @@
 
 #include <sys/types.h>
 #include <sys/file.h>
-#include <stdio.h>
+
 #include <db.h>
+#include <stdio.h>
 
-#define INITIAL	25000
-#define MAXWORDS    25000	       /* # of elements in search table */
+#define INITIAL 25000
+#define MAXWORDS 25000 /* # of elements in search table */
 
-char	wp1[8192];
-char	wp2[8192];
-main(argc, argv)
-char **argv;
+char wp1[8192];
+char wp2[8192];
+main(argc, argv) char **argv;
 {
 	DBT item, key;
-	DB	*dbp;
+	DB *dbp;
 	HASHINFO ctl;
 	FILE *fp;
-	int	trash;
+	int trash;
 
 	int i = 0;
 
@@ -59,31 +59,29 @@ char **argv;
 	ctl.ffactor = atoi(*argv++);
 	ctl.nelem = atoi(*argv++);
 	ctl.lorder = 0;
-	if (!(dbp = dbopen( "hashtest",
-	    O_CREAT|O_TRUNC|O_RDWR, 0600, DB_HASH, &ctl))){
+	if (!(dbp = dbopen("hashtest", O_CREAT | O_TRUNC | O_RDWR, 0600,
+		  DB_HASH, &ctl))) {
 		/* create table */
 		fprintf(stderr, "cannot create: hash table (size %d)\n",
-			INITIAL);
+		    INITIAL);
 		exit(1);
 	}
 
 	key.data = wp1;
 	item.data = wp2;
-	while ( fgets(wp1, 8192, stdin) &&
-		fgets(wp2, 8192, stdin) &&
-		i++ < MAXWORDS) {
-/*
-* put info in structure, and structure in the item
-*/
+	while (fgets(wp1, 8192, stdin) && fgets(wp2, 8192, stdin) &&
+	    i++ < MAXWORDS) {
+		/*
+		 * put info in structure, and structure in the item
+		 */
 		key.size = strlen(wp1);
 		item.size = strlen(wp2);
 
-/*
- * enter key/data pair into the table
- */
+		/*
+		 * enter key/data pair into the table
+		 */
 		if ((dbp->put)(dbp, &key, &item, R_NOOVERWRITE) != NULL) {
-			fprintf(stderr, "cannot enter: key %s\n",
-				item.data);
+			fprintf(stderr, "cannot enter: key %s\n", item.data);
 			exit(1);
 		}
 	}

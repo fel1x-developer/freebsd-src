@@ -29,6 +29,7 @@
 #define __CCU_NG_H__
 
 #include <dev/clk/allwinner/aw_clk.h>
+#include <dev/clk/allwinner/aw_clk_frac.h>
 #include <dev/clk/allwinner/aw_clk_m.h>
 #include <dev/clk/allwinner/aw_clk_mipi.h>
 #include <dev/clk/allwinner/aw_clk_nkmp.h>
@@ -36,10 +37,9 @@
 #include <dev/clk/allwinner/aw_clk_nmm.h>
 #include <dev/clk/allwinner/aw_clk_np.h>
 #include <dev/clk/allwinner/aw_clk_prediv_mux.h>
-#include <dev/clk/allwinner/aw_clk_frac.h>
-#include <dev/clk/clk_mux.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
+#include <dev/clk/clk_mux.h>
 
 enum aw_ccung_clk_type {
 	AW_CLK_UNDEFINED = 0,
@@ -57,48 +57,48 @@ enum aw_ccung_clk_type {
 };
 
 struct aw_ccung_clk {
-	enum aw_ccung_clk_type	type;
+	enum aw_ccung_clk_type type;
 	union {
-		struct clk_mux_def		*mux;
-		struct clk_div_def		*div;
-		struct clk_fixed_def		*fixed;
-		struct aw_clk_nkmp_def		*nkmp;
-		struct aw_clk_nm_def		*nm;
-		struct aw_clk_prediv_mux_def	*prediv_mux;
-		struct aw_clk_frac_def		*frac;
-		struct aw_clk_m_def		*m;
-		struct aw_clk_mipi_def		*mipi;
-		struct aw_clk_np_def		*np;
-		struct aw_clk_nmm_def		*nmm;
+		struct clk_mux_def *mux;
+		struct clk_div_def *div;
+		struct clk_fixed_def *fixed;
+		struct aw_clk_nkmp_def *nkmp;
+		struct aw_clk_nm_def *nm;
+		struct aw_clk_prediv_mux_def *prediv_mux;
+		struct aw_clk_frac_def *frac;
+		struct aw_clk_m_def *m;
+		struct aw_clk_mipi_def *mipi;
+		struct aw_clk_np_def *np;
+		struct aw_clk_nmm_def *nmm;
 	} clk;
 };
 
 struct aw_ccung_softc {
-	device_t		dev;
-	struct resource		*res;
-	struct clkdom		*clkdom;
-	struct mtx		mtx;
-	struct aw_ccung_reset	*resets;
-	int			nresets;
-	struct aw_ccung_gate	*gates;
-	int			ngates;
-	struct aw_ccung_clk	*clks;
-	int			nclks;
-	struct aw_clk_init	*clk_init;
-	int			n_clk_init;
+	device_t dev;
+	struct resource *res;
+	struct clkdom *clkdom;
+	struct mtx mtx;
+	struct aw_ccung_reset *resets;
+	int nresets;
+	struct aw_ccung_gate *gates;
+	int ngates;
+	struct aw_ccung_clk *clks;
+	int nclks;
+	struct aw_clk_init *clk_init;
+	int n_clk_init;
 };
 
 struct aw_ccung_reset {
-	uint32_t	offset;
-	uint32_t	shift;
+	uint32_t offset;
+	uint32_t shift;
 };
 
 struct aw_ccung_gate {
-	const char	*name;
-	const char	*parent_name;
-	uint32_t	id;
-	uint32_t	offset;
-	uint32_t	shift;
+	const char *name;
+	const char *parent_name;
+	uint32_t id;
+	uint32_t offset;
+	uint32_t shift;
 };
 
 DECLARE_CLASS(aw_ccung_driver);

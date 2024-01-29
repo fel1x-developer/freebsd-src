@@ -29,25 +29,26 @@
  * SUCH DAMAGE.
  */
 
-#define	WR(p, size) do { \
-	ssize_t res; \
-	res = write(STDOUT_FILENO, p, size); \
-	if (res != (ssize_t)size) { \
-		if (res == -1) \
-			oerr(); \
-		else \
-			errx(1, "stdout"); \
-	} \
-} while (0)
+#define WR(p, size)                                  \
+	do {                                         \
+		ssize_t res;                         \
+		res = write(STDOUT_FILENO, p, size); \
+		if (res != (ssize_t)size) {          \
+			if (res == -1)               \
+				oerr();              \
+			else                         \
+				errx(1, "stdout");   \
+		}                                    \
+	} while (0)
 
-#define TAILMAPLEN (4<<20)
+#define TAILMAPLEN (4 << 20)
 
 struct mapinfo {
-	off_t	mapoff;
-	off_t	maxoff;
-	size_t	maplen;
-	char	*start;
-	int	fd;
+	off_t mapoff;
+	off_t maxoff;
+	size_t maplen;
+	char *start;
+	int fd;
 };
 
 struct file_info {

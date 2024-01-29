@@ -38,8 +38,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <errno.h>
@@ -90,17 +90,17 @@ priv_proc_setrlimit_raisemax(int asroot, int injail, struct test *test)
 	rl.rlim_max = rl_base.rlim_max;
 	error = setrlimit(RLIMIT_DATA, &rl);
 	if (asroot && injail)
-		expect("priv_proc_setrlimit_raisemax(asroot, injail)", error,
-		    0, 0);
+		expect("priv_proc_setrlimit_raisemax(asroot, injail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_proc_setrlimit_raisemax(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_proc_setrlimit_raisemax(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_proc_setrlimit_raisemax(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_proc_setrlimit_raisemax(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_proc_setrlimit_raisemax(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_proc_setrlimit_raisemax(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 /*
@@ -108,8 +108,7 @@ priv_proc_setrlimit_raisemax(int asroot, int injail, struct test *test)
  * without privilege.
  */
 void
-priv_proc_setrlimit_raisecur_nopriv(int asroot, int injail,
-    struct test *test)
+priv_proc_setrlimit_raisecur_nopriv(int asroot, int injail, struct test *test)
 {
 	struct rlimit rl;
 	int error;
@@ -145,17 +144,17 @@ priv_proc_setrlimit_raisecur(int asroot, int injail, struct test *test)
 	rl.rlim_cur = rl.rlim_max + 10;
 	error = setrlimit(RLIMIT_DATA, &rl);
 	if (asroot && injail)
-		expect("priv_proc_setrlimit_raisecur(asroot, injail)", error,
-		    0, 0);
+		expect("priv_proc_setrlimit_raisecur(asroot, injail)", error, 0,
+		    0);
 	if (asroot && !injail)
-		expect("priv_proc_setrlimit_raisecur(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_proc_setrlimit_raisecur(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_proc_setrlimit_raisecur(!asroot, injail)",
-		    error, -1, EPERM);
+		expect("priv_proc_setrlimit_raisecur(!asroot, injail)", error,
+		    -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_proc_setrlimit_raisecur(!asroot, !injail)",
-		    error, -1, EPERM);
+		expect("priv_proc_setrlimit_raisecur(!asroot, !injail)", error,
+		    -1, EPERM);
 }
 
 void

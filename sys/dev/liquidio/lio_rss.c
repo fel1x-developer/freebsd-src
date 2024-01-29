@@ -35,21 +35,21 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_ctrl.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
-#include "lio_ctrl.h"
 #include "lio_main.h"
 #include "lio_network.h"
+#include "lio_response_manager.h"
 #include "lio_rss.h"
 
-int	lio_send_rss_param(struct lio *lio);
+int lio_send_rss_param(struct lio *lio);
 
 static void
 lio_set_rss_callback(struct octeon_device *oct, uint32_t status, void *arg)
 {
-	struct lio_soft_command	*sc = (struct lio_soft_command *)arg;
+	struct lio_soft_command *sc = (struct lio_soft_command *)arg;
 
 	if (status)
 		lio_dev_err(oct, "Failed to SET RSS params\n");
@@ -62,11 +62,11 @@ lio_set_rss_callback(struct octeon_device *oct, uint32_t status, void *arg)
 static void
 lio_set_rss_info(struct lio *lio)
 {
-	struct octeon_device		*oct = lio->oct_dev;
-	struct lio_rss_params_set	*rss_set = &lio->rss_set;
-	uint32_t	rss_hash_config;
-	int		i;
-	uint8_t		queue_id;
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_rss_params_set *rss_set = &lio->rss_set;
+	uint32_t rss_hash_config;
+	int i;
+	uint8_t queue_id;
 
 	for (i = 0; i < LIO_RSS_TABLE_SZ; i++) {
 		queue_id = rss_get_indirection_to_bucket(i);
@@ -97,25 +97,25 @@ lio_set_rss_info(struct lio *lio)
 int
 lio_send_rss_param(struct lio *lio)
 {
-	struct octeon_device	*oct = lio->oct_dev;
-	struct lio_soft_command	*sc = NULL;
-	union	octeon_cmd *cmd = NULL;
-	struct lio_rss_params	*rss_param;
-	int	i, retval;
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_soft_command *sc = NULL;
+	union octeon_cmd *cmd = NULL;
+	struct lio_rss_params *rss_param;
+	int i, retval;
 
 	sc = lio_alloc_soft_command(oct,
-			OCTEON_CMD_SIZE + sizeof(struct lio_rss_params), 0, 0);
+	    OCTEON_CMD_SIZE + sizeof(struct lio_rss_params), 0, 0);
 
 	if (sc == NULL) {
 		lio_dev_err(oct, "%s: Soft command allocation failed\n",
-			    __func__);
+		    __func__);
 		return (ENOMEM);
 	}
 
 	sc->iq_no = lio->linfo.txpciq[0].s.q_no;
 
 	lio_prepare_soft_command(oct, sc, LIO_OPCODE_NIC, LIO_OPCODE_NIC_CMD, 0,
-				 0, 0);
+	    0, 0);
 
 	sc->callback = lio_set_rss_callback;
 	sc->callback_arg = sc;
@@ -133,35 +133,34 @@ lio_send_rss_param(struct lio *lio)
 	lio_set_rss_info(lio);
 	rss_param->param.hashinfo = lio->rss_set.hashinfo;
 	memcpy(rss_param->itable, (void *)lio->rss_set.fw_itable,
-	       (size_t)rss_param->param.itablesize);
+	    (size_t)rss_param->param.itablesize);
 
 	lio_dev_info(oct, "RSS itable: Size %u\n", rss_param->param.itablesize);
 	for (i = 0; i < rss_param->param.itablesize; i += 8) {
-		lio_dev_dbg(oct, "   %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u\n",
-			    i + 0, rss_param->itable[i + 0],
-			    i + 1, rss_param->itable[i + 1],
-			    i + 2, rss_param->itable[i + 2],
-			    i + 3, rss_param->itable[i + 3],
-			    i + 4, rss_param->itable[i + 4],
-			    i + 5, rss_param->itable[i + 5],
-			    i + 6, rss_param->itable[i + 6],
-			    i + 7, rss_param->itable[i + 7]);
+		lio_dev_dbg(oct,
+		    "   %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u, %03u:%2u\n",
+		    i + 0, rss_param->itable[i + 0], i + 1,
+		    rss_param->itable[i + 1], i + 2, rss_param->itable[i + 2],
+		    i + 3, rss_param->itable[i + 3], i + 4,
+		    rss_param->itable[i + 4], i + 5, rss_param->itable[i + 5],
+		    i + 6, rss_param->itable[i + 6], i + 7,
+		    rss_param->itable[i + 7]);
 	}
 
 	rss_getkey(lio->rss_set.key);
 
 	memcpy(rss_param->key, (void *)lio->rss_set.key,
-	       (size_t)rss_param->param.hashkeysize);
+	    (size_t)rss_param->param.hashkeysize);
 
 	/* swap cmd and rss params */
 	lio_swap_8B_data((uint64_t *)cmd,
-			 ((OCTEON_CMD_SIZE + LIO_RSS_PARAM_SIZE) >> 3));
+	    ((OCTEON_CMD_SIZE + LIO_RSS_PARAM_SIZE) >> 3));
 
 	retval = lio_send_soft_command(oct, sc);
 	if (retval == LIO_IQ_SEND_FAILED) {
 		lio_dev_err(oct,
-			    "%s: Sending soft command failed, status: %x\n",
-			    __func__, retval);
+		    "%s: Sending soft command failed, status: %x\n", __func__,
+		    retval);
 		lio_free_soft_command(oct, sc);
 		return (-1);
 	}
@@ -169,4 +168,4 @@ lio_send_rss_param(struct lio *lio)
 	return (0);
 }
 
-#endif	/* RSS */
+#endif /* RSS */

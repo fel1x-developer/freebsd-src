@@ -21,10 +21,9 @@
 #include "ah.h"
 #include "ah_desc.h"
 #include "ah_internal.h"
-
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416desc.h"
+#include "ar5416/ar5416reg.h"
 
 /*
  * Get the receive filter.
@@ -62,7 +61,7 @@ ar5416SetRxFilter(struct ath_hal *ah, u_int32_t bits)
 		    OS_REG_READ(ah, AR_RXCFG) | AR_RXCFG_ZLFDMA);
 	} else {
 		OS_REG_WRITE(ah, AR_RXCFG,
-		    OS_REG_READ(ah, AR_RXCFG) &~ AR_RXCFG_ZLFDMA);
+		    OS_REG_READ(ah, AR_RXCFG) & ~AR_RXCFG_ZLFDMA);
 	}
 }
 
@@ -75,15 +74,15 @@ ar5416StopDmaReceive(struct ath_hal *ah)
 	HAL_BOOL status;
 
 	OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_DMA_STOP);
-	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD);	/* Set receive disable bit */
+	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD); /* Set receive disable bit */
 	if (!ath_hal_wait(ah, AR_CR, AR_CR_RXE, 0)) {
 		OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_DMA_STOP_ERR);
 #ifdef AH_DEBUG
-		ath_hal_printf(ah, "%s: dma failed to stop in 10ms\n"
-			"AR_CR=0x%08x\nAR_DIAG_SW=0x%08x\n",
-			__func__,
-			OS_REG_READ(ah, AR_CR),
-			OS_REG_READ(ah, AR_DIAG_SW));
+		ath_hal_printf(ah,
+		    "%s: dma failed to stop in 10ms\n"
+		    "AR_CR=0x%08x\nAR_DIAG_SW=0x%08x\n",
+		    __func__, OS_REG_READ(ah, AR_CR),
+		    OS_REG_READ(ah, AR_DIAG_SW));
 #endif
 		status = AH_FALSE;
 	} else {
@@ -111,7 +110,7 @@ ar5416StartPcuReceive(struct ath_hal *ah, HAL_BOOL is_scanning)
 	HALDEBUG(ah, HAL_DEBUG_RX, "%s: Start PCU Receive \n", __func__);
 	ar5212EnableMibCounters(ah);
 	/* NB: restore current settings if we're not scanning */
-	ar5416AniReset(ah, ahp->ah_curchan, ahp->ah_opmode, ! is_scanning);
+	ar5416AniReset(ah, ahp->ah_curchan, ahp->ah_opmode, !is_scanning);
 	/*
 	 * NB: must do after enabling phy errors to avoid rx
 	 *     frames w/ corrupted descriptor status.
@@ -127,7 +126,7 @@ void
 ar5416StopPcuReceive(struct ath_hal *ah)
 {
 	OS_REG_SET_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_DIS | AR_DIAG_RX_ABORT);
-    
+
 	HALDEBUG(ah, HAL_DEBUG_RX, "%s: Stop PCU Receive \n", __func__);
 	ar5212DisableMibCounters(ah);
 }
@@ -137,12 +136,12 @@ ar5416StopPcuReceive(struct ath_hal *ah)
  * the size (and any other flags).
  */
 HAL_BOOL
-ar5416SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-    uint32_t size, u_int flags)
+ar5416SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t size,
+    u_int flags)
 {
 	struct ar5416_desc *ads = AR5416DESC(ds);
 
-	HALASSERT((size &~ AR_BufLen) == 0);
+	HALASSERT((size & ~AR_BufLen) == 0);
 
 	ads->ds_ctl1 = size & AR_BufLen;
 	if (flags & HAL_RXDESC_INTREQ)
@@ -166,9 +165,8 @@ ar5416SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
  *     of the descriptor (e.g. flushing any cached copy).
  */
 HAL_STATUS
-ar5416ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-    uint32_t pa, struct ath_desc *nds, uint64_t tsf,
-    struct ath_rx_status *rs)
+ar5416ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t pa,
+    struct ath_desc *nds, uint64_t tsf, struct ath_rx_status *rs)
 {
 	struct ar5416_desc *ads = AR5416DESC(ds);
 
@@ -179,7 +177,7 @@ ar5416ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 	rs->rs_flags = 0;
 
 	rs->rs_datalen = ads->ds_rxstatus1 & AR_DataLen;
-	rs->rs_tstamp =  ads->AR_RcvTimestamp;
+	rs->rs_tstamp = ads->AR_RcvTimestamp;
 
 	rs->rs_rssi = MS(ads->ds_rxstatus4, AR_RxRSSICombined);
 	rs->rs_rssi_ctl[0] = MS(ads->ds_rxstatus0, AR_RxRSSIAnt00);
@@ -211,8 +209,7 @@ ar5416ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 	 * Only the AR9280 and later chips support STBC RX, so
 	 * ensure we only set this bit for those chips.
 	 */
-	if (AR_SREV_MERLIN_10_OR_LATER(ah)
-	    && ads->ds_rxstatus3 & AR_STBCFrame)
+	if (AR_SREV_MERLIN_10_OR_LATER(ah) && ads->ds_rxstatus3 & AR_STBCFrame)
 		rs->rs_flags |= HAL_RX_STBC;
 
 	if (ads->ds_rxstatus8 & AR_PreDelimCRCErr)
@@ -247,10 +244,10 @@ ar5416ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 			u_int phyerr;
 
 			/*
-			 * Packets with OFDM_RESTART on post delimiter are CRC OK and
-			 * usable and MAC ACKs them.
-			 * To avoid packet from being lost, we remove the PHY Err flag
-			 * so that driver layer does not drop them.
+			 * Packets with OFDM_RESTART on post delimiter are CRC
+			 * OK and usable and MAC ACKs them. To avoid packet from
+			 * being lost, we remove the PHY Err flag so that driver
+			 * layer does not drop them.
 			 */
 			phyerr = MS(ads->ds_rxstatus8, AR_PHYErrCode);
 

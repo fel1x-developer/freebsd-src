@@ -27,48 +27,49 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/mfi/mfireg.h>
 
 struct iovec32 {
-	u_int32_t	iov_base;
-	int		iov_len;
+	u_int32_t iov_base;
+	int iov_len;
 };
 
-#define MFIQ_FREE	0
-#define MFIQ_BIO	1
-#define MFIQ_READY	2
-#define MFIQ_BUSY	3
-#define MFIQ_COUNT	4
+#define MFIQ_FREE 0
+#define MFIQ_BIO 1
+#define MFIQ_READY 2
+#define MFIQ_BUSY 3
+#define MFIQ_COUNT 4
 
 struct mfi_qstat {
-	uint32_t	q_length;
-	uint32_t	q_max;
+	uint32_t q_length;
+	uint32_t q_max;
 };
 
 union mfi_statrequest {
-	uint32_t		ms_item;
-	struct mfi_qstat	ms_qstat;
+	uint32_t ms_item;
+	struct mfi_qstat ms_qstat;
 };
 
-#define MAX_SPACE_FOR_SENSE_PTR		32
+#define MAX_SPACE_FOR_SENSE_PTR 32
 union mfi_sense_ptr {
-	uint8_t		sense_ptr_data[MAX_SPACE_FOR_SENSE_PTR];
-	void 		*user_space;
+	uint8_t sense_ptr_data[MAX_SPACE_FOR_SENSE_PTR];
+	void *user_space;
 	struct {
-		uint32_t	low;
-		uint32_t	high;
+		uint32_t low;
+		uint32_t high;
 	} addr;
 } __packed;
 
-#define MAX_IOCTL_SGE	16
+#define MAX_IOCTL_SGE 16
 
 struct mfi_ioc_packet {
-	uint16_t	mfi_adapter_no;
-	uint16_t	mfi_pad1;
-	uint32_t	mfi_sgl_off;
-	uint32_t	mfi_sge_count;
-	uint32_t	mfi_sense_off;
-	uint32_t	mfi_sense_len;
+	uint16_t mfi_adapter_no;
+	uint16_t mfi_pad1;
+	uint32_t mfi_sgl_off;
+	uint32_t mfi_sge_count;
+	uint32_t mfi_sense_off;
+	uint32_t mfi_sense_len;
 	union {
 		uint8_t raw[128];
 		struct mfi_frame_header hdr;
@@ -79,12 +80,12 @@ struct mfi_ioc_packet {
 
 #ifdef COMPAT_FREEBSD32
 struct mfi_ioc_packet32 {
-	uint16_t	mfi_adapter_no;
-	uint16_t	mfi_pad1;
-	uint32_t	mfi_sgl_off;
-	uint32_t	mfi_sge_count;
-	uint32_t	mfi_sense_off;
-	uint32_t	mfi_sense_len;
+	uint16_t mfi_adapter_no;
+	uint16_t mfi_pad1;
+	uint32_t mfi_sgl_off;
+	uint32_t mfi_sge_count;
+	uint32_t mfi_sense_off;
+	uint32_t mfi_sense_len;
 	union {
 		uint8_t raw[128];
 		struct mfi_frame_header hdr;
@@ -95,27 +96,27 @@ struct mfi_ioc_packet32 {
 #endif
 
 struct mfi_ioc_aen {
-	uint16_t	aen_adapter_no;
-	uint16_t	aen_pad1;
-	uint32_t	aen_seq_num;
-	uint32_t	aen_class_locale;
+	uint16_t aen_adapter_no;
+	uint16_t aen_pad1;
+	uint32_t aen_seq_num;
+	uint32_t aen_class_locale;
 } __packed;
 
-#define MFI_CMD		_IOWR('M', 1, struct mfi_ioc_packet)
+#define MFI_CMD _IOWR('M', 1, struct mfi_ioc_packet)
 #ifdef COMPAT_FREEBSD32
-#define MFI_CMD32	_IOWR('M', 1, struct mfi_ioc_packet32)
+#define MFI_CMD32 _IOWR('M', 1, struct mfi_ioc_packet32)
 #endif
-#define MFI_SET_AEN	_IOW('M', 3, struct mfi_ioc_aen)
+#define MFI_SET_AEN _IOW('M', 3, struct mfi_ioc_aen)
 
-#define MAX_LINUX_IOCTL_SGE	16
+#define MAX_LINUX_IOCTL_SGE 16
 
 struct mfi_linux_ioc_packet {
-	uint16_t	lioc_adapter_no;
-	uint16_t	lioc_pad1;
-	uint32_t	lioc_sgl_off;
-	uint32_t	lioc_sge_count;
-	uint32_t	lioc_sense_off;
-	uint32_t	lioc_sense_len;
+	uint16_t lioc_adapter_no;
+	uint16_t lioc_pad1;
+	uint32_t lioc_sgl_off;
+	uint32_t lioc_sge_count;
+	uint32_t lioc_sense_off;
+	uint32_t lioc_sense_len;
 	union {
 		uint8_t raw[128];
 		struct mfi_frame_header hdr;
@@ -129,47 +130,47 @@ struct mfi_linux_ioc_packet {
 } __packed;
 
 struct mfi_ioc_passthru {
-	struct mfi_dcmd_frame	ioc_frame;
-	uint32_t		buf_size;
-	uint8_t			*buf;
+	struct mfi_dcmd_frame ioc_frame;
+	uint32_t buf_size;
+	uint8_t *buf;
 } __packed;
 
 #ifdef COMPAT_FREEBSD32
 struct mfi_ioc_passthru32 {
-	struct mfi_dcmd_frame	ioc_frame;
-	uint32_t		buf_size;
-	uint32_t		buf;
+	struct mfi_dcmd_frame ioc_frame;
+	uint32_t buf_size;
+	uint32_t buf;
 } __packed;
 #endif
 
-#define MFIIO_STATS	_IOWR('Q', 101, union mfi_statrequest)
-#define MFIIO_PASSTHRU	_IOWR('C', 102, struct mfi_ioc_passthru)
+#define MFIIO_STATS _IOWR('Q', 101, union mfi_statrequest)
+#define MFIIO_PASSTHRU _IOWR('C', 102, struct mfi_ioc_passthru)
 #ifdef COMPAT_FREEBSD32
-#define MFIIO_PASSTHRU32	_IOWR('C', 102, struct mfi_ioc_passthru32)
+#define MFIIO_PASSTHRU32 _IOWR('C', 102, struct mfi_ioc_passthru32)
 #endif
 
 struct mfi_linux_ioc_aen {
-	uint16_t	laen_adapter_no;
-	uint16_t	laen_pad1;
-	uint32_t	laen_seq_num;
-	uint32_t	laen_class_locale;
+	uint16_t laen_adapter_no;
+	uint16_t laen_pad1;
+	uint32_t laen_seq_num;
+	uint32_t laen_class_locale;
 } __packed;
 
 struct mfi_query_disk {
-	uint8_t	array_id;
-	uint8_t	present;
-	uint8_t	open;
-	uint8_t reserved;	/* reserved for future use */
-	char	devname[SPECNAMELEN + 1];
+	uint8_t array_id;
+	uint8_t present;
+	uint8_t open;
+	uint8_t reserved; /* reserved for future use */
+	char devname[SPECNAMELEN + 1];
 } __packed;
 
-#define MFIIO_QUERY_DISK	_IOWR('Q', 102, struct mfi_query_disk)
+#define MFIIO_QUERY_DISK _IOWR('Q', 102, struct mfi_query_disk)
 
 /*
  * Create a second set so the FreeBSD native ioctl doesn't
  * conflict in FreeBSD ioctl handler.  Translate in mfi_linux.c.
  */
-#define MFI_LINUX_CMD		0xc1144d01
-#define MFI_LINUX_SET_AEN	0x400c4d03
-#define MFI_LINUX_CMD_2		0xc1144d02
-#define MFI_LINUX_SET_AEN_2	0x400c4d04
+#define MFI_LINUX_CMD 0xc1144d01
+#define MFI_LINUX_SET_AEN 0x400c4d03
+#define MFI_LINUX_CMD_2 0xc1144d02
+#define MFI_LINUX_SET_AEN_2 0x400c4d04

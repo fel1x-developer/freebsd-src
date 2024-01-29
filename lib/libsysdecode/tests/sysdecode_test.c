@@ -29,10 +29,10 @@
  */
 
 #include <sys/capsicum.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sysdecode.h>
 
 /*
@@ -59,15 +59,15 @@ check_sysdecode_cap_rights(FILE *fp, char **bufp, size_t *szp,
 			if (strcmp(tok, tab[i]) == 0)
 				break;
 		}
-		ATF_REQUIRE_MSG(tab[i] != NULL,
-		    "did not find '%s' in table", tok);
+		ATF_REQUIRE_MSG(tab[i] != NULL, "did not find '%s' in table",
+		    tok);
 	}
 	free(buf);
 
 	for (i = 0; tab[i] != NULL; i++) {
 		buf = strdup(*bufp);
 		for (tok = buf; (next = strsep(&buf, ",")), tok != NULL;
-		    tok = next) {
+		     tok = next) {
 			if (strcmp(tok, tab[i]) == 0)
 				break;
 		}
@@ -97,48 +97,78 @@ ATF_TC_BODY(cap_rights, tc)
 	 * libsysdecode emits a pseudo-right, CAP_NONE, when no rights are
 	 * present.
 	 */
-	check_sysdecode_cap_rights(fp, &buf, &sz,
-	    cap_rights_init(&rights),
-	    (const char *[]){ "CAP_NONE", NULL, });
+	check_sysdecode_cap_rights(fp, &buf, &sz, cap_rights_init(&rights),
+	    (const char *[]) {
+		"CAP_NONE",
+		NULL,
+	    });
 
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_READ, CAP_SEEK),
-	    (const char *[]){ "CAP_PREAD", NULL, });
+	    (const char *[]) {
+		"CAP_PREAD",
+		NULL,
+	    });
 
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_READ, CAP_MMAP, CAP_SEEK_TELL),
-	    (const char *[]){ "CAP_READ", "CAP_MMAP", "CAP_SEEK_TELL", NULL, });
+	    (const char *[]) {
+		"CAP_READ",
+		"CAP_MMAP",
+		"CAP_SEEK_TELL",
+		NULL,
+	    });
 
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_MMAP, CAP_READ, CAP_WRITE, CAP_SEEK),
-	    (const char *[]){ "CAP_MMAP_RW", NULL, });
+	    (const char *[]) {
+		"CAP_MMAP_RW",
+		NULL,
+	    });
 
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_READ, CAP_MMAP_X),
-	    (const char *[]){ "CAP_MMAP_RX", NULL, });
+	    (const char *[]) {
+		"CAP_MMAP_RX",
+		NULL,
+	    });
 
 	/* Aliases map back to the main definition. */
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_RECV, CAP_SEND),
-	    (const char *[]){ "CAP_READ", "CAP_WRITE", NULL, });
+	    (const char *[]) {
+		"CAP_READ",
+		"CAP_WRITE",
+		NULL,
+	    });
 
 	/* This set straddles both indices. */
 	check_sysdecode_cap_rights(fp, &buf, &sz,
 	    cap_rights_init(&rights, CAP_READ, CAP_KQUEUE),
-	    (const char *[]){ "CAP_READ", "CAP_KQUEUE", NULL, });
+	    (const char *[]) {
+		"CAP_READ",
+		"CAP_KQUEUE",
+		NULL,
+	    });
 
 	/* Create a rights set with an unnamed flag. */
 	cap_rights_init(&rights, CAP_SEEK);
 	cap_rights_clear(&rights, CAP_SEEK_TELL);
-	check_sysdecode_cap_rights(fp, &buf, &sz,
-	    &rights,
-	    (const char *[]){ "CAP_NONE", "unknown rights", NULL, });
+	check_sysdecode_cap_rights(fp, &buf, &sz, &rights,
+	    (const char *[]) {
+		"CAP_NONE",
+		"unknown rights",
+		NULL,
+	    });
 
 	cap_rights_init(&rights, CAP_SEEK, CAP_KQUEUE_CHANGE);
 	cap_rights_clear(&rights, CAP_SEEK_TELL);
-	check_sysdecode_cap_rights(fp, &buf, &sz,
-	    &rights,
-	    (const char *[]){ "CAP_KQUEUE_CHANGE", "unknown rights", NULL, });
+	check_sysdecode_cap_rights(fp, &buf, &sz, &rights,
+	    (const char *[]) {
+		"CAP_KQUEUE_CHANGE",
+		"unknown rights",
+		NULL,
+	    });
 
 	ATF_REQUIRE(fclose(fp) == 0);
 	free(buf);

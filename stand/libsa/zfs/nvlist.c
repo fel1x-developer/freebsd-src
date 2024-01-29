@@ -38,10 +38,7 @@
 
 #include "nvlist.h"
 
-enum xdr_op {
-	XDR_OP_ENCODE = 1,
-	XDR_OP_DECODE = 2
-};
+enum xdr_op { XDR_OP_ENCODE = 1, XDR_OP_DECODE = 2 };
 
 typedef struct xdr {
 	enum xdr_op xdr_op;
@@ -429,17 +426,16 @@ nvlist_xdr_nvp(xdr_t *xdr, nvlist_t *nvl)
 		nv_xdr = *xdr;
 		nv_xdr.xdr_buf = nvlist.nv_data;
 		nv_xdr.xdr_idx = nvlist.nv_data;
-		nv_xdr.xdr_buf_size =
-		    nvl->nv_data + nvl->nv_size - nvlist.nv_data;
+		nv_xdr.xdr_buf_size = nvl->nv_data + nvl->nv_size -
+		    nvlist.nv_data;
 
 		for (unsigned i = 0; i < nelem; i++) {
 			if (xdr->xdr_op == XDR_OP_ENCODE) {
 				if (!nvlist_size_native(&nv_xdr,
-				    &nvlist.nv_size))
+					&nvlist.nv_size))
 					return (false);
 			} else {
-				if (!nvlist_size_xdr(&nv_xdr,
-				    &nvlist.nv_size))
+				if (!nvlist_size_xdr(&nv_xdr, &nvlist.nv_size))
 					return (false);
 			}
 			if (nvlist_xdr_nvlist(xdr, &nvlist) != 0)
@@ -449,8 +445,8 @@ nvlist_xdr_nvp(xdr_t *xdr, nvlist_t *nvl)
 			nvlist.nv_idx = nv_xdr.xdr_idx;
 
 			nv_xdr.xdr_buf = nv_xdr.xdr_idx;
-			nv_xdr.xdr_buf_size =
-			    nvl->nv_data + nvl->nv_size - nvlist.nv_data;
+			nv_xdr.xdr_buf_size = nvl->nv_data + nvl->nv_size -
+			    nvlist.nv_data;
 		}
 		break;
 
@@ -713,14 +709,12 @@ int
 nvlist_export(nvlist_t *nvl)
 {
 	int rv;
-	xdr_t xdr = {
-		.xdr_op = XDR_OP_ENCODE,
+	xdr_t xdr = { .xdr_op = XDR_OP_ENCODE,
 		.xdr_putint = _putint,
 		.xdr_putuint = _putuint,
 		.xdr_buf = nvl->nv_data,
 		.xdr_idx = nvl->nv_data,
-		.xdr_buf_size = nvl->nv_size
-	};
+		.xdr_buf_size = nvl->nv_size };
 
 	if (nvl->nv_header.nvh_encoding != NV_ENCODE_XDR)
 		return (ENOTSUP);
@@ -740,16 +734,14 @@ nvlist_t *
 nvlist_import(const char *stream, size_t size)
 {
 	nvlist_t *nvl;
-	xdr_t xdr = {
-		.xdr_op = XDR_OP_DECODE,
+	xdr_t xdr = { .xdr_op = XDR_OP_DECODE,
 		.xdr_getint = _getint,
-		.xdr_getuint = _getuint
-	};
+		.xdr_getuint = _getuint };
 
 	/* Check the nvlist head. */
 	if (stream[0] != NV_ENCODE_XDR ||
-	    (stream[1] != '\0' && stream[1] != '\1') ||
-	    stream[2] != '\0' || stream[3] != '\0' ||
+	    (stream[1] != '\0' && stream[1] != '\1') || stream[2] != '\0' ||
+	    stream[3] != '\0' ||
 	    be32toh(*(uint32_t *)(stream + 4)) != NV_VERSION ||
 	    be32toh(*(uint32_t *)(stream + 8)) != NV_UNIQUE_NAME)
 		return (NULL);
@@ -816,7 +808,7 @@ nvlist_remove(nvlist_t *nvl, const char *name, data_type_t type)
 		return (EINVAL);
 
 	data = (nvs_data_t *)nvl->nv_data;
-	nvp = &data->nvl_pair;	/* first pair in nvlist */
+	nvp = &data->nvl_pair; /* first pair in nvlist */
 	head = (uint8_t *)nvp;
 
 	while (nvp->encoded_size != 0 && nvp->decoded_size != 0) {
@@ -881,7 +873,7 @@ nvlist_next(const uint8_t *ptr)
 	nvp_header_t *nvp;
 
 	data = (nvs_data_t *)ptr;
-	nvp = &data->nvl_pair;	/* first pair in nvlist */
+	nvp = &data->nvl_pair; /* first pair in nvlist */
 
 	while (nvp->encoded_size != 0 && nvp->decoded_size != 0) {
 		nvp = (nvp_header_t *)((uint8_t *)nvp + nvp->encoded_size);
@@ -908,7 +900,7 @@ nvlist_find(const nvlist_t *nvl, const char *name, data_type_t type,
 		return (EINVAL);
 
 	data = (nvs_data_t *)nvl->nv_data;
-	nvp = &data->nvl_pair;	/* first pair in nvlist */
+	nvp = &data->nvl_pair; /* first pair in nvlist */
 
 	while (nvp->encoded_size != 0 && nvp->decoded_size != 0) {
 		nvp_name = (nv_string_t *)((uint8_t *)nvp + sizeof(*nvp));
@@ -916,9 +908,8 @@ nvlist_find(const nvlist_t *nvl, const char *name, data_type_t type,
 		    nvp_name->nv_data + nvp_name->nv_size)
 			return (EIO);
 
-		nvp_data = (nv_pair_data_t *)
-		    NV_ALIGN4((uintptr_t)&nvp_name->nv_data[0] +
-		    nvp_name->nv_size);
+		nvp_data = (nv_pair_data_t *)NV_ALIGN4(
+		    (uintptr_t)&nvp_name->nv_data[0] + nvp_name->nv_size);
 
 		if (strlen(name) == nvp_name->nv_size &&
 		    memcmp(nvp_name->nv_data, name, nvp_name->nv_size) == 0 &&
@@ -955,7 +946,7 @@ nvlist_find(const nvlist_t *nvl, const char *name, data_type_t type,
 				ptr = &nvp_data->nv_data[0];
 				rv = 0;
 				for (unsigned i = 0; i < nvp_data->nv_nelem;
-				    i++) {
+				     i++) {
 					rv = clone_nvlist(nvl, ptr,
 					    nvlist_next(ptr) - ptr, &nvlist[i]);
 					if (rv != 0)
@@ -1149,9 +1140,9 @@ get_nvp_data_size(data_type_t type, const void *data, uint32_t nelem)
 	return (value_sz > INT32_MAX ? -1 : (int)value_sz);
 }
 
-#define	NVPE_SIZE(name_len, data_len) \
+#define NVPE_SIZE(name_len, data_len) \
 	(4 + 4 + 4 + NV_ALIGN4(name_len) + 4 + 4 + data_len)
-#define	NVP_SIZE(name_len, data_len) \
+#define NVP_SIZE(name_len, data_len) \
 	(NV_ALIGN((4 * 4) + (name_len)) + NV_ALIGN(data_len))
 
 static int
@@ -1163,18 +1154,16 @@ nvlist_add_common(nvlist_t *nvl, const char *name, data_type_t type,
 	uint8_t *ptr;
 	size_t namelen;
 	int decoded_size, encoded_size;
-	xdr_t xdr = {
-		.xdr_op = XDR_OP_ENCODE,
+	xdr_t xdr = { .xdr_op = XDR_OP_ENCODE,
 		.xdr_putint = _putint_mem,
 		.xdr_putuint = _putuint_mem,
 		.xdr_buf = nvl->nv_data,
 		.xdr_idx = nvl->nv_data,
-		.xdr_buf_size = nvl->nv_size
-	};
+		.xdr_buf_size = nvl->nv_size };
 
 	nvs = (nvs_data_t *)nvl->nv_data;
 	if (nvs->nvl_nvflag & NV_UNIQUE_NAME)
-		(void) nvlist_remove(nvl, name, type);
+		(void)nvlist_remove(nvl, name, type);
 
 	xdr.xdr_buf = nvl->nv_data;
 	xdr.xdr_idx = nvl->nv_data;
@@ -1348,8 +1337,8 @@ nvlist_add_common(nvlist_t *nvl, const char *name, data_type_t type,
 int
 nvlist_add_boolean_value(nvlist_t *nvl, const char *name, int value)
 {
-	return (nvlist_add_common(nvl, name, DATA_TYPE_BOOLEAN_VALUE, 1,
-	    &value));
+	return (
+	    nvlist_add_common(nvl, name, DATA_TYPE_BOOLEAN_VALUE, 1, &value));
 }
 
 int
@@ -1476,8 +1465,8 @@ nvlist_add_uint64_array(nvlist_t *nvl, const char *name, uint64_t *a,
 }
 
 int
-nvlist_add_string_array(nvlist_t *nvl, const char *name,
-    char * const *a, uint32_t n)
+nvlist_add_string_array(nvlist_t *nvl, const char *name, char *const *a,
+    uint32_t n)
 {
 	return (nvlist_add_common(nvl, name, DATA_TYPE_STRING_ARRAY, n, a));
 }
@@ -1495,35 +1484,17 @@ nvlist_add_nvlist_array(nvlist_t *nvl, const char *name, nvlist_t **a,
 	return (nvlist_add_common(nvl, name, DATA_TYPE_NVLIST_ARRAY, n, a));
 }
 
-static const char *typenames[] = {
-	"DATA_TYPE_UNKNOWN",
-	"DATA_TYPE_BOOLEAN",
-	"DATA_TYPE_BYTE",
-	"DATA_TYPE_INT16",
-	"DATA_TYPE_UINT16",
-	"DATA_TYPE_INT32",
-	"DATA_TYPE_UINT32",
-	"DATA_TYPE_INT64",
-	"DATA_TYPE_UINT64",
-	"DATA_TYPE_STRING",
-	"DATA_TYPE_BYTE_ARRAY",
-	"DATA_TYPE_INT16_ARRAY",
-	"DATA_TYPE_UINT16_ARRAY",
-	"DATA_TYPE_INT32_ARRAY",
-	"DATA_TYPE_UINT32_ARRAY",
-	"DATA_TYPE_INT64_ARRAY",
-	"DATA_TYPE_UINT64_ARRAY",
-	"DATA_TYPE_STRING_ARRAY",
-	"DATA_TYPE_HRTIME",
-	"DATA_TYPE_NVLIST",
-	"DATA_TYPE_NVLIST_ARRAY",
-	"DATA_TYPE_BOOLEAN_VALUE",
-	"DATA_TYPE_INT8",
-	"DATA_TYPE_UINT8",
-	"DATA_TYPE_BOOLEAN_ARRAY",
-	"DATA_TYPE_INT8_ARRAY",
-	"DATA_TYPE_UINT8_ARRAY"
-};
+static const char *typenames[] = { "DATA_TYPE_UNKNOWN", "DATA_TYPE_BOOLEAN",
+	"DATA_TYPE_BYTE", "DATA_TYPE_INT16", "DATA_TYPE_UINT16",
+	"DATA_TYPE_INT32", "DATA_TYPE_UINT32", "DATA_TYPE_INT64",
+	"DATA_TYPE_UINT64", "DATA_TYPE_STRING", "DATA_TYPE_BYTE_ARRAY",
+	"DATA_TYPE_INT16_ARRAY", "DATA_TYPE_UINT16_ARRAY",
+	"DATA_TYPE_INT32_ARRAY", "DATA_TYPE_UINT32_ARRAY",
+	"DATA_TYPE_INT64_ARRAY", "DATA_TYPE_UINT64_ARRAY",
+	"DATA_TYPE_STRING_ARRAY", "DATA_TYPE_HRTIME", "DATA_TYPE_NVLIST",
+	"DATA_TYPE_NVLIST_ARRAY", "DATA_TYPE_BOOLEAN_VALUE", "DATA_TYPE_INT8",
+	"DATA_TYPE_UINT8", "DATA_TYPE_BOOLEAN_ARRAY", "DATA_TYPE_INT8_ARRAY",
+	"DATA_TYPE_UINT8_ARRAY" };
 
 int
 nvpair_type_from_name(const char *name)
@@ -1561,24 +1532,22 @@ nvpair_print(nvp_header_t *nvp, unsigned int indent)
 	nv_pair_data_t *nvp_data;
 	nvlist_t nvlist;
 	unsigned i, j;
-	xdr_t xdr = {
-		.xdr_op = XDR_OP_DECODE,
+	xdr_t xdr = { .xdr_op = XDR_OP_DECODE,
 		.xdr_getint = _getint_mem,
 		.xdr_getuint = _getuint_mem,
 		.xdr_buf = (const uint8_t *)nvp,
 		.xdr_idx = NULL,
-		.xdr_buf_size = nvp->encoded_size
-	};
+		.xdr_buf_size = nvp->encoded_size };
 
 	nvp_name = (nv_string_t *)((uintptr_t)nvp + sizeof(*nvp));
-	nvp_data = (nv_pair_data_t *)
-	    NV_ALIGN4((uintptr_t)&nvp_name->nv_data[0] + nvp_name->nv_size);
+	nvp_data = (nv_pair_data_t *)NV_ALIGN4(
+	    (uintptr_t)&nvp_name->nv_data[0] + nvp_name->nv_size);
 
 	for (i = 0; i < indent; i++)
 		printf(" ");
 
-	printf("%s [%d] %.*s", typenames[nvp_data->nv_type],
-	    nvp_data->nv_nelem, nvp_name->nv_size, nvp_name->nv_data);
+	printf("%s [%d] %.*s", typenames[nvp_data->nv_type], nvp_data->nv_nelem,
+	    nvp_name->nv_size, nvp_name->nv_data);
 
 	xdr.xdr_idx = nvp_data->nv_data;
 	switch (nvp_data->nv_type) {
@@ -1625,7 +1594,7 @@ nvpair_print(nvp_header_t *nvp, unsigned int indent)
 		uint64_t *u;
 
 		if (xdr_array(&xdr, nvp_data->nv_nelem,
-		    (xdrproc_t)xdr_uint64)) {
+			(xdrproc_t)xdr_uint64)) {
 			u = (uint64_t *)(nvp_data->nv_data + sizeof(unsigned));
 			for (i = 0; i < nvp_data->nv_nelem; i++)
 				printf(" [%u] = 0x%jx", i, (uintmax_t)u[i]);
@@ -1660,10 +1629,8 @@ nvpair_print(nvp_header_t *nvp, unsigned int indent)
 			if (j != nvp_data->nv_nelem - 1) {
 				for (i = 0; i < indent; i++)
 					printf(" ");
-				printf("%s %.*s",
-				    typenames[nvp_data->nv_type],
-				    nvp_name->nv_size,
-				    nvp_name->nv_data);
+				printf("%s %.*s", typenames[nvp_data->nv_type],
+				    nvp_name->nv_size, nvp_name->nv_data);
 			}
 			xdr.xdr_idx = nvlist.nv_data;
 			xdr.xdr_buf = xdr.xdr_idx;
@@ -1689,7 +1656,7 @@ nvlist_print(const nvlist_t *nvl, unsigned int indent)
 	nvp_header_t *nvp;
 
 	data = (nvs_data_t *)nvl->nv_data;
-	nvp = &data->nvl_pair;  /* first pair in nvlist */
+	nvp = &data->nvl_pair; /* first pair in nvlist */
 	while (nvp->encoded_size != 0 && nvp->decoded_size != 0) {
 		nvpair_print(nvp, indent);
 		nvp = (nvp_header_t *)((uint8_t *)nvp + nvp->encoded_size);

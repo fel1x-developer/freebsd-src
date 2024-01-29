@@ -43,10 +43,10 @@
 
 #include "main.h"
 
-#define	EA_NAMESPACE	EXTATTR_NAMESPACE_SYSTEM
-#define	EA_NAME		"test"
-#define	EA_DATA		"test"
-#define	EA_SIZE		strlen(EA_DATA)
+#define EA_NAMESPACE EXTATTR_NAMESPACE_SYSTEM
+#define EA_NAME "test"
+#define EA_DATA "test"
+#define EA_SIZE strlen(EA_DATA)
 
 static char fpath[1024];
 static int fpath_initialized;
@@ -71,8 +71,7 @@ priv_vfs_extattr_system(int asroot, int injail, struct test *test)
 	ssize_t ret;
 	int error;
 
-	ret = extattr_set_file(fpath, EA_NAMESPACE, EA_NAME, EA_DATA,
-	    EA_SIZE);
+	ret = extattr_set_file(fpath, EA_NAMESPACE, EA_NAME, EA_DATA, EA_SIZE);
 	if (ret < 0)
 		error = -1;
 	else if (ret == EA_SIZE)
@@ -83,14 +82,13 @@ priv_vfs_extattr_system(int asroot, int injail, struct test *test)
 		expect("priv_vfs_extattr_system(asroot, injail)", error, -1,
 		    EPERM);
 	if (asroot && !injail)
-		expect("priv_vfs_extattr_system(asroot, !injail)", error, 0,
-		    0);
+		expect("priv_vfs_extattr_system(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
 		expect("priv_vfs_extattr_system(!asroot, injail)", error, -1,
 		    EPERM);
 	if (!asroot && !injail)
-		expect("priv_vfs_extattr_system(!asroot, !injail)", error,
-		    -1, EPERM);
+		expect("priv_vfs_extattr_system(!asroot, !injail)", error, -1,
+		    EPERM);
 }
 
 void

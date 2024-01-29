@@ -3,70 +3,70 @@
 #include <adf_accel_devices.h>
 #include <adf_cfg.h>
 #include <adf_common_drv.h>
-#include <adf_gen4vf_hw_csr_data.h>
 #include <adf_gen4_pfvf.h>
+#include <adf_gen4vf_hw_csr_data.h>
 #include <adf_pfvf_vf_msg.h>
+
 #include "adf_4xxxvf_hw_data.h"
-#include "icp_qat_hw.h"
-#include "adf_transport_internal.h"
 #include "adf_pfvf_vf_proto.h"
+#include "adf_transport_internal.h"
+#include "icp_qat_hw.h"
 
-static struct adf_hw_device_class adf_4xxxiov_class =
-    { .name = ADF_4XXXVF_DEVICE_NAME, .type = DEV_4XXXVF, .instances = 0 };
+static struct adf_hw_device_class adf_4xxxiov_class = {
+	.name = ADF_4XXXVF_DEVICE_NAME,
+	.type = DEV_4XXXVF,
+	.instances = 0
+};
 
-#define ADF_4XXXIOV_DEFAULT_RING_TO_SRV_MAP                                    \
-	(ASYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                        \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_DEFAULT_RING_TO_SRV_MAP             \
+	(ASYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |    \
+	    SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
 #define ADF_4XXXIOV_ASYM_SYM ADF_4XXXIOV_DEFAULT_RING_TO_SRV_MAP
 
-#define ADF_4XXXIOV_DC                                                         \
-	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_DC                                   \
+	(COMP | COMP << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXXIOV_SYM                                                        \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                               \
-	 SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_SYM                                \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    SYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |    \
+	    SYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXXIOV_ASYM                                                       \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_ASYM                                 \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    ASYM << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXXIOV_ASYM_DC                                                    \
-	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                       \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_ASYM_DC                              \
+	(ASYM | ASYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |     \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXXIOV_SYM_DC                                                     \
-	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                         \
-	 COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                              \
-	 COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_SYM_DC                             \
+	(SYM | SYM << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    COMP << ADF_CFG_SERV_RING_PAIR_2_SHIFT |   \
+	    COMP << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
-#define ADF_4XXXIOV_NA                                                         \
-	(NA | NA << ADF_CFG_SERV_RING_PAIR_1_SHIFT |                           \
-	 NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |                                \
-	 NA << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
+#define ADF_4XXXIOV_NA                               \
+	(NA | NA << ADF_CFG_SERV_RING_PAIR_1_SHIFT | \
+	    NA << ADF_CFG_SERV_RING_PAIR_2_SHIFT |   \
+	    NA << ADF_CFG_SERV_RING_PAIR_3_SHIFT)
 
 struct adf_enabled_services {
 	const char svcs_enabled[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 	u16 rng_to_svc_msk;
 };
 
-static struct adf_enabled_services adf_4xxxiov_svcs[] =
-    { { "dc", ADF_4XXXIOV_DC },
-      { "sym", ADF_4XXXIOV_SYM },
-      { "asym", ADF_4XXXIOV_ASYM },
-      { "dc;asym", ADF_4XXXIOV_ASYM_DC },
-      { "asym;dc", ADF_4XXXIOV_ASYM_DC },
-      { "sym;dc", ADF_4XXXIOV_SYM_DC },
-      { "dc;sym", ADF_4XXXIOV_SYM_DC },
-      { "asym;sym", ADF_4XXXIOV_ASYM_SYM },
-      { "sym;asym", ADF_4XXXIOV_ASYM_SYM },
-      { "cy", ADF_4XXXIOV_ASYM_SYM } };
+static struct adf_enabled_services adf_4xxxiov_svcs[] = {
+	{ "dc", ADF_4XXXIOV_DC }, { "sym", ADF_4XXXIOV_SYM },
+	{ "asym", ADF_4XXXIOV_ASYM }, { "dc;asym", ADF_4XXXIOV_ASYM_DC },
+	{ "asym;dc", ADF_4XXXIOV_ASYM_DC }, { "sym;dc", ADF_4XXXIOV_SYM_DC },
+	{ "dc;sym", ADF_4XXXIOV_SYM_DC }, { "asym;sym", ADF_4XXXIOV_ASYM_SYM },
+	{ "sym;asym", ADF_4XXXIOV_ASYM_SYM }, { "cy", ADF_4XXXIOV_ASYM_SYM }
+};
 
 static u32
 get_accel_mask(struct adf_accel_dev *accel_dev)
@@ -152,15 +152,15 @@ adf_4xxxvf_get_hw_cap(struct adf_accel_dev *accel_dev)
 	vffusectl1 = pci_read_config(pdev, ADF_4XXXIOV_VFFUSECTL1_OFFSET, 4);
 
 	if (vffusectl1 & BIT(7)) {
-		capabilities &=
-		    ~(ICP_ACCEL_CAPABILITIES_SM3 + ICP_ACCEL_CAPABILITIES_SM4);
+		capabilities &= ~(
+		    ICP_ACCEL_CAPABILITIES_SM3 + ICP_ACCEL_CAPABILITIES_SM4);
 	}
 	if (vffusectl1 & BIT(6)) {
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_SM3;
 	}
 	if (vffusectl1 & BIT(3)) {
 		capabilities &= ~(ICP_ACCEL_CAPABILITIES_COMPRESSION +
-				  ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY64);
+		    ICP_ACCEL_CAPABILITIES_CNV_INTEGRITY64);
 	}
 	if (vffusectl1 & BIT(2)) {
 		capabilities &= ~ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC;
@@ -245,15 +245,11 @@ get_int_active_bundles(struct adf_accel_dev *accel_dev)
 }
 
 static void
-get_ring_svc_map_data(int ring_pair_index,
-		      u16 ring_to_svc_map,
-		      u8 *serv_type,
-		      int *ring_index,
-		      int *num_rings_per_srv,
-		      int bank_num)
+get_ring_svc_map_data(int ring_pair_index, u16 ring_to_svc_map, u8 *serv_type,
+    int *ring_index, int *num_rings_per_srv, int bank_num)
 {
-	*serv_type =
-	    GET_SRV_TYPE(ring_to_svc_map, bank_num % ADF_CFG_NUM_SERVICES);
+	*serv_type = GET_SRV_TYPE(ring_to_svc_map,
+	    bank_num % ADF_CFG_NUM_SERVICES);
 	*ring_index = 0;
 	*num_rings_per_srv = ADF_4XXXIOV_NUM_RINGS_PER_BANK / 2;
 }
@@ -277,17 +273,15 @@ get_ring_to_svc_map(struct adf_accel_dev *accel_dev, u16 *ring_to_svc_map)
 		return 0;
 
 	for (i = 0; i < ARRAY_SIZE(adf_4xxxiov_svcs); i++) {
-		if (!strncmp(val,
-			     adf_4xxxiov_svcs[i].svcs_enabled,
-			     ADF_CFG_MAX_KEY_LEN_IN_BYTES)) {
+		if (!strncmp(val, adf_4xxxiov_svcs[i].svcs_enabled,
+			ADF_CFG_MAX_KEY_LEN_IN_BYTES)) {
 			*ring_to_svc_map = adf_4xxxiov_svcs[i].rng_to_svc_msk;
 			return 0;
 		}
 	}
 
-	device_printf(GET_DEV(accel_dev),
-		      "Invalid services enabled: %s\n",
-		      val);
+	device_printf(GET_DEV(accel_dev), "Invalid services enabled: %s\n",
+	    val);
 	return EFAULT;
 }
 
@@ -308,21 +302,19 @@ adf_4xxxvf_ring_pair_reset(struct adf_accel_dev *accel_dev, u32 bank_number)
 	accel_dev->u1.vf.rpreset_sts = RPRESET_SUCCESS;
 	if (adf_send_vf2pf_msg(accel_dev, req)) {
 		device_printf(GET_DEV(accel_dev),
-			      "vf ring pair reset failure (vf2pf msg error)\n");
+		    "vf ring pair reset failure (vf2pf msg error)\n");
 		ret = EFAULT;
 		goto out;
 	}
 	if (!wait_for_completion_timeout(&accel_dev->u1.vf.msg_received,
-					 timeout)) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		timeout)) {
+		device_printf(GET_DEV(accel_dev),
 		    "vf ring pair reset failure (pf2vf msg timeout)\n");
 		ret = EFAULT;
 		goto out;
 	}
 	if (accel_dev->u1.vf.rpreset_sts != RPRESET_SUCCESS) {
-		device_printf(
-		    GET_DEV(accel_dev),
+		device_printf(GET_DEV(accel_dev),
 		    "vf ring pair reset failure (pf reports error)\n");
 		ret = EFAULT;
 		goto out;

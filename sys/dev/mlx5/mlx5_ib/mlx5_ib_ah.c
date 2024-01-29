@@ -23,21 +23,19 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
 #include <dev/mlx5/mlx5_ib/mlx5_ib.h>
 
-static void create_ib_ah(struct mlx5_ib_dev *dev,
-				  struct mlx5_ib_ah *ah,
-				  struct ib_ah_attr *ah_attr,
-				  enum rdma_link_layer ll)
+static void
+create_ib_ah(struct mlx5_ib_dev *dev, struct mlx5_ib_ah *ah,
+    struct ib_ah_attr *ah_attr, enum rdma_link_layer ll)
 {
 	if (ah_attr->ah_flags & IB_AH_GRH) {
 		memcpy(ah->av.rgid, &ah_attr->grh.dgid, 16);
 		ah->av.grh_gid_fl = cpu_to_be32(ah_attr->grh.flow_label |
-						(1 << 30) |
-						ah_attr->grh.sgid_index << 20);
+		    (1 << 30) | ah_attr->grh.sgid_index << 20);
 		ah->av.hop_limit = ah_attr->grh.hop_limit;
 		ah->av.tclass = ah_attr->grh.traffic_class;
 	}
@@ -46,10 +44,8 @@ static void create_ib_ah(struct mlx5_ib_dev *dev,
 
 	if (ll == IB_LINK_LAYER_ETHERNET) {
 		memcpy(ah->av.rmac, ah_attr->dmac, sizeof(ah_attr->dmac));
-		ah->av.udp_sport =
-			mlx5_get_roce_udp_sport(dev,
-						ah_attr->port_num,
-						ah_attr->grh.sgid_index);
+		ah->av.udp_sport = mlx5_get_roce_udp_sport(dev,
+		    ah_attr->port_num, ah_attr->grh.sgid_index);
 		ah->av.stat_rate_sl |= (ah_attr->sl & 0x7) << 1;
 	} else {
 		ah->av.rlid = cpu_to_be16(ah_attr->dlid);
@@ -58,8 +54,9 @@ static void create_ib_ah(struct mlx5_ib_dev *dev,
 	}
 }
 
-int mlx5_ib_create_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr,
-		      u32 flags, struct ib_udata *udata)
+int
+mlx5_ib_create_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr, u32 flags,
+    struct ib_udata *udata)
 
 {
 	struct mlx5_ib_ah *ah = to_mah(ibah);
@@ -75,7 +72,7 @@ int mlx5_ib_create_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr,
 		int err;
 		struct mlx5_ib_create_ah_resp resp = {};
 		u32 min_resp_len = offsetof(typeof(resp), dmac) +
-				   sizeof(resp.dmac);
+		    sizeof(resp.dmac);
 
 		if (udata->outlen < min_resp_len)
 			return -EINVAL;
@@ -96,7 +93,8 @@ int mlx5_ib_create_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr,
 	return 0;
 }
 
-int mlx5_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
+int
+mlx5_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
 {
 	struct mlx5_ib_ah *ah = to_mah(ibah);
 	u32 tmp;
@@ -119,7 +117,8 @@ int mlx5_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
 	return 0;
 }
 
-void mlx5_ib_destroy_ah(struct ib_ah *ah, u32 flags)
+void
+mlx5_ib_destroy_ah(struct ib_ah *ah, u32 flags)
 {
 	return;
 }

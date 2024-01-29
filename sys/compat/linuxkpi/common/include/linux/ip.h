@@ -28,29 +28,30 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_IP_H
-#define	_LINUXKPI_LINUX_IP_H
+#ifndef _LINUXKPI_LINUX_IP_H
+#define _LINUXKPI_LINUX_IP_H
 
 #include <sys/types.h>
 
+#include <machine/in_cksum.h>
+
 #include <netinet/in.h>
 #include <netinet/ip.h>
-#include <machine/in_cksum.h>
 
 #include <linux/skbuff.h>
 
 /* (u) unconfirmed structure field names; using FreeBSD's meanwhile. */
 struct iphdr {
-	uint8_t		ip_hl:4, ip_ver:4;	/* (u) */
-	uint8_t		ip_tos;			/* (u) */
-	uint16_t	ip_len;			/* (u) */
-	uint16_t	id;
-	uint16_t	ip_off;			/* (u) */
-	uint8_t		ip_ttl;			/* (u) */
-	uint8_t		protocol;
-	uint16_t	check;
-	uint32_t	saddr;
-	uint32_t	daddr;
+	uint8_t ip_hl : 4, ip_ver : 4; /* (u) */
+	uint8_t ip_tos;		       /* (u) */
+	uint16_t ip_len;	       /* (u) */
+	uint16_t id;
+	uint16_t ip_off; /* (u) */
+	uint8_t ip_ttl;	 /* (u) */
+	uint8_t protocol;
+	uint16_t check;
+	uint32_t saddr;
+	uint32_t daddr;
 };
 
 static __inline struct iphdr *
@@ -70,4 +71,4 @@ ip_send_check(struct iphdr *iph)
 	iph->check = in_cksum_hdr((const void *)iph);
 }
 
-#endif	/* _LINUXKPI_LINUX_IP_H */
+#endif /* _LINUXKPI_LINUX_IP_H */

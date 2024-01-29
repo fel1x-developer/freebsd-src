@@ -26,16 +26,16 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
-
 #include <zstd.h>
 
-#include "mkuzip.h"
 #include "mkuz_blk.h"
 #include "mkuz_zstd.h"
+#include "mkuzip.h"
 
 size_t
 mkuz_zstd_cbound(size_t blksz)
@@ -61,8 +61,7 @@ mkuz_zstd_init(int *comp_level)
 	if (cctx == NULL)
 		errx(1, "could not allocate Zstd context");
 
-	rc = ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel,
-	    *comp_level);
+	rc = ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, *comp_level);
 	if (ZSTD_isError(rc))
 		errx(1, "Could not set zstd compression level %d: %s",
 		    *comp_level, ZSTD_getErrorName(rc));

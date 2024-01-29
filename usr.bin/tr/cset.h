@@ -27,40 +27,40 @@
  */
 
 #ifndef CSET_H
-#define	CSET_H
+#define CSET_H
 
 #include <stdbool.h>
 #include <wchar.h>
 #include <wctype.h>
 
 struct csnode {
-	wchar_t		csn_min;
-	wchar_t		csn_max;
-	struct csnode	*csn_left;
-	struct csnode	*csn_right;
+	wchar_t csn_min;
+	wchar_t csn_max;
+	struct csnode *csn_left;
+	struct csnode *csn_right;
 };
 
 struct csclass {
-	wctype_t	csc_type;
-	bool		csc_invert;
-	struct csclass	*csc_next;
+	wctype_t csc_type;
+	bool csc_invert;
+	struct csclass *csc_next;
 };
 
 struct cset {
-#define	CS_CACHE_SIZE	256
-	bool		cs_cache[CS_CACHE_SIZE];
-	bool		cs_havecache;
-	struct csclass	*cs_classes;
-	struct csnode	*cs_root;
-	bool		cs_invert;
+#define CS_CACHE_SIZE 256
+	bool cs_cache[CS_CACHE_SIZE];
+	bool cs_havecache;
+	struct csclass *cs_classes;
+	struct csnode *cs_root;
+	bool cs_invert;
 };
 
-bool			cset_addclass(struct cset *, wctype_t, bool);
-struct cset *		cset_alloc(void);
-bool 			cset_add(struct cset *, wchar_t);
-void			cset_invert(struct cset *);
-bool			cset_in_hard(struct cset *, wchar_t);
-void			cset_cache(struct cset *);
+bool cset_addclass(struct cset *, wctype_t, bool);
+struct cset *cset_alloc(void);
+bool cset_add(struct cset *, wchar_t);
+void cset_invert(struct cset *);
+bool cset_in_hard(struct cset *, wchar_t);
+void cset_cache(struct cset *);
 
 static __inline bool
 cset_in(struct cset *cs, wchar_t ch)
@@ -71,4 +71,4 @@ cset_in(struct cset *cs, wchar_t ch)
 	return (cset_in_hard(cs, ch));
 }
 
-#endif	/* CSET_H */
+#endif /* CSET_H */

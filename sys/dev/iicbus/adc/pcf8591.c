@@ -26,15 +26,15 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -49,28 +49,26 @@
 /*
  * Driver for PCF8591 I2C 8-bit ADC and DAC.
  */
-#define	CTRL_CH_SELECT_MASK			0x03
-#define	CTRL_AUTOINC_EN				0x04
-#define	CTRL_CH_CONFIG_MASK			0x30
-#define		CTRL_CH_CONFIG_4_SINGLE		0x00
-#define		CTRL_CH_CONFIG_3_DIFF		0x10
-#define		CTRL_CH_CONFIG_2_SINGLE_1_DIFF	0x20
-#define		CTRL_CH_CONFIG_2_DIFF		0x30
-#define	CTRL_OUTPUT_EN				0x40
+#define CTRL_CH_SELECT_MASK 0x03
+#define CTRL_AUTOINC_EN 0x04
+#define CTRL_CH_CONFIG_MASK 0x30
+#define CTRL_CH_CONFIG_4_SINGLE 0x00
+#define CTRL_CH_CONFIG_3_DIFF 0x10
+#define CTRL_CH_CONFIG_2_SINGLE_1_DIFF 0x20
+#define CTRL_CH_CONFIG_2_DIFF 0x30
+#define CTRL_OUTPUT_EN 0x40
 
 struct pcf8591_softc {
-	device_t		sc_dev;
-	int			sc_ch_count;
-	uint8_t			sc_addr;
-	uint8_t			sc_cfg;
-	uint8_t			sc_output;
+	device_t sc_dev;
+	int sc_ch_count;
+	uint8_t sc_addr;
+	uint8_t sc_cfg;
+	uint8_t sc_output;
 };
 
 #ifdef FDT
-static struct ofw_compat_data compat_data[] = {
-	{ "nxp,pcf8591",	true },
-	{ NULL,			false }
-};
+static struct ofw_compat_data compat_data[] = { { "nxp,pcf8591", true },
+	{ NULL, false } };
 #endif
 
 static int
@@ -197,8 +195,9 @@ pcf8591_start(void *arg)
 
 		snprintf(buf, sizeof(buf), "%d", i);
 		SYSCTL_ADD_PROC(ctx, inputs, OID_AUTO, buf,
-		    CTLTYPE_INT | CTLFLAG_RD, dev, i,
-		    pcf8591_channel_sysctl, "I", "Input level from 0 to 255 "
+		    CTLTYPE_INT | CTLFLAG_RD, dev, i, pcf8591_channel_sysctl,
+		    "I",
+		    "Input level from 0 to 255 "
 		    "(relative to Vref)");
 	}
 }
@@ -241,20 +240,17 @@ pcf8591_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t  pcf8591_methods[] = {
+static device_method_t pcf8591_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pcf8591_probe),
-	DEVMETHOD(device_attach,	pcf8591_attach),
-	DEVMETHOD(device_detach,	pcf8591_detach),
+	DEVMETHOD(device_probe, pcf8591_probe),
+	DEVMETHOD(device_attach, pcf8591_attach),
+	DEVMETHOD(device_detach, pcf8591_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t pcf8591_driver = {
-	"pcf8591",
-	pcf8591_methods,
-	sizeof(struct pcf8591_softc)
-};
+static driver_t pcf8591_driver = { "pcf8591", pcf8591_methods,
+	sizeof(struct pcf8591_softc) };
 
 DRIVER_MODULE(pcf8591, iicbus, pcf8591_driver, 0, 0);
 MODULE_DEPEND(pcf8591, iicbus, IICBUS_MINVER, IICBUS_PREFVER, IICBUS_MAXVER);

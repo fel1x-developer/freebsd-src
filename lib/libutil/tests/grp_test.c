@@ -25,14 +25,13 @@
  */
 
 #include <sys/types.h>
+
 #include <errno.h>
 #include <grp.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <libutil.h>
-
 
 /*
  * Static values for building and testing an artificial group.
@@ -42,7 +41,6 @@ static char grpPasswd[] = "groupPwd";
 static gid_t grpGID = 1234;
 static char *grpMems[] = { "mem1", "mem2", "mem3", NULL };
 static const char *origStrGrp = "groupName:groupPwd:1234:mem1,mem2,mem3";
-
 
 /*
  * Build a group to test against without depending on a real group to be found
@@ -58,7 +56,6 @@ build_grp(struct group *grp)
 
 	return;
 }
-
 
 int
 main(void)
@@ -84,7 +81,7 @@ main(void)
 
 	/* Compare the original and duplicate groups. */
 	testNdx++;
-	if (! gr_equal(&origGrp, dupGrp))
+	if (!gr_equal(&origGrp, dupGrp))
 		printf("not ");
 	printf("ok %d - %s\n", testNdx, "gr_equal");
 
@@ -100,8 +97,7 @@ main(void)
 	 * group structure.
 	 */
 	testNdx++;
-	if ((scanGrp = gr_scan(strGrp)) == NULL || ! gr_equal(&origGrp,
-	    scanGrp))
+	if ((scanGrp = gr_scan(strGrp)) == NULL || !gr_equal(&origGrp, scanGrp))
 		printf("not ");
 	printf("ok %d - %s\n", testNdx, "gr_scan");
 

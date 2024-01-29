@@ -60,8 +60,8 @@
  *        that can be utilized by a user to perform SCSI-to-ATA PACKET IO
  *        Translation.
  */
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
 /**
  * @brief This method translates the supplied SCSI command into a
@@ -87,13 +87,8 @@
  * @retval SATI_SUCCESS
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_atapi_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   SATI_DEVICE_T              * sati_device,
-   void                       * scsi_io,
-   void                       * atapi_io
-);
-
+SATI_STATUS sati_atapi_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    SATI_DEVICE_T *sati_device, void *scsi_io, void *atapi_io);
 
 /**
  * @brief This method translates the supplied ATA packet IO response into the
@@ -117,12 +112,9 @@ SATI_STATUS sati_atapi_translate_command(
  * @retval SATI_SUCCESS
  * @retval SATI_FAILURE_CHECK_RESPONSE_DATA
  */
-SATI_STATUS sati_atapi_translate_command_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * atapi_io
-);
-
+SATI_STATUS
+sati_atapi_translate_command_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *atapi_io);
 
 /**
  * @brief This method translates the internal Request Sense command response
@@ -145,11 +137,7 @@ SATI_STATUS sati_atapi_translate_command_response(
  * @return None.
  */
 void sati_atapi_translate_request_sense_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * atapi_io
-);
-
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io, void *atapi_io);
 
 /**
  * @brief This method retrieve ATA packet IO actual transferred data length.
@@ -170,8 +158,5 @@ void sati_atapi_translate_request_sense_response(
  * @return Actual data transfer length.
  */
 U32 sati_atapi_translate_number_of_bytes_transferred(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * atapi_io
-);
+    SATI_TRANSLATOR_SEQUENCE_T *sequence, void *scsi_io, void *atapi_io);
 #endif

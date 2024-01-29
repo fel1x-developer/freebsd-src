@@ -31,13 +31,14 @@
 
 #include <sys/types.h>
 #include <sys/uio.h>
+
 #include <assert.h>
 #include <errno.h>
+#include <iscsi_proto.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <iscsi_proto.h>
 #include "libiscsiutil.h"
 
 int
@@ -149,7 +150,8 @@ pdu_receive(struct pdu *pdu)
 	len = pdu_data_segment_length(pdu);
 	if (len > 0) {
 		if (len > (size_t)conn->conn_max_recv_data_segment_length) {
-			log_errx(1, "protocol error: received PDU "
+			log_errx(1,
+			    "protocol error: received PDU "
 			    "with DataSegmentLength exceeding %d",
 			    conn->conn_max_recv_data_segment_length);
 		}

@@ -66,13 +66,12 @@
  *
  *****************************************************************************/
 
-
 #ifndef __IF_IWN_NOTIF_WAIT_H__
 #define __IF_IWN_NOTIF_WAIT_H__
 
 #include <sys/queue.h>
 
-#define IWM_MAX_NOTIF_CMDS	5
+#define IWM_MAX_NOTIF_CMDS 5
 
 struct iwm_rx_packet;
 struct iwm_softc;
@@ -113,25 +112,22 @@ struct iwm_notification_wait {
 };
 
 /* caller functions */
-extern	struct iwm_notif_wait_data *iwm_notification_wait_init(
-		struct iwm_softc *sc);
-extern	void iwm_notification_wait_free(struct iwm_notif_wait_data *notif_data);
-extern	void iwm_notification_wait_notify(
-		struct iwm_notif_wait_data *notif_data, uint16_t cmd,
-		struct iwm_rx_packet *pkt);
-extern	void iwm_abort_notification_waits(
-		struct iwm_notif_wait_data *notif_data);
+extern struct iwm_notif_wait_data *iwm_notification_wait_init(
+    struct iwm_softc *sc);
+extern void iwm_notification_wait_free(struct iwm_notif_wait_data *notif_data);
+extern void iwm_notification_wait_notify(struct iwm_notif_wait_data *notif_data,
+    uint16_t cmd, struct iwm_rx_packet *pkt);
+extern void iwm_abort_notification_waits(
+    struct iwm_notif_wait_data *notif_data);
 
 /* user functions */
-extern	void iwm_init_notification_wait(struct iwm_notif_wait_data *notif_data,
-		struct iwm_notification_wait *wait_entry,
-		const uint16_t *cmds, int n_cmds,
-		int (*fn)(struct iwm_softc *sc,
-			  struct iwm_rx_packet *pkt, void *data),
-		void *fn_data);
-extern	int iwm_wait_notification(struct iwm_notif_wait_data *notif_data,
-		struct iwm_notification_wait *wait_entry, int timeout);
-extern	void iwm_remove_notification(struct iwm_notif_wait_data *notif_data,
-		struct iwm_notification_wait *wait_entry);
+extern void iwm_init_notification_wait(struct iwm_notif_wait_data *notif_data,
+    struct iwm_notification_wait *wait_entry, const uint16_t *cmds, int n_cmds,
+    int (*fn)(struct iwm_softc *sc, struct iwm_rx_packet *pkt, void *data),
+    void *fn_data);
+extern int iwm_wait_notification(struct iwm_notif_wait_data *notif_data,
+    struct iwm_notification_wait *wait_entry, int timeout);
+extern void iwm_remove_notification(struct iwm_notif_wait_data *notif_data,
+    struct iwm_notification_wait *wait_entry);
 
-#endif  /* __IF_IWN_NOTIF_WAIT_H__ */
+#endif /* __IF_IWN_NOTIF_WAIT_H__ */

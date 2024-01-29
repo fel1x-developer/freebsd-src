@@ -32,11 +32,11 @@
  * SOFTWARE.
  */
 
-#include "osdep.h"
-#include "irdma_hmc.h"
 #include "irdma_defs.h"
-#include "irdma_type.h"
+#include "irdma_hmc.h"
 #include "irdma_protos.h"
+#include "irdma_type.h"
+#include "osdep.h"
 
 /**
  * irdma_find_sd_index_limit - finds segment descriptor index limit
@@ -52,9 +52,8 @@
  */
 
 static void
-irdma_find_sd_index_limit(struct irdma_hmc_info *hmc_info, u32 type,
-			  u32 idx, u32 cnt, u32 *sd_idx,
-			  u32 *sd_limit)
+irdma_find_sd_index_limit(struct irdma_hmc_info *hmc_info, u32 type, u32 idx,
+    u32 cnt, u32 *sd_idx, u32 *sd_limit)
 {
 	u64 fpm_addr, fpm_limit;
 
@@ -80,9 +79,8 @@ irdma_find_sd_index_limit(struct irdma_hmc_info *hmc_info, u32 type,
  */
 
 static void
-irdma_find_pd_index_limit(struct irdma_hmc_info *hmc_info, u32 type,
-			  u32 idx, u32 cnt, u32 *pd_idx,
-			  u32 *pd_limit)
+irdma_find_pd_index_limit(struct irdma_hmc_info *hmc_info, u32 type, u32 idx,
+    u32 cnt, u32 *pd_idx, u32 *pd_limit)
 {
 	u64 fpm_adr, fpm_limit;
 
@@ -103,12 +101,13 @@ irdma_find_pd_index_limit(struct irdma_hmc_info *hmc_info, u32 type,
  */
 static void
 irdma_set_sd_entry(u64 pa, u32 idx, enum irdma_sd_entry_type type,
-		   struct irdma_update_sd_entry *entry)
+    struct irdma_update_sd_entry *entry)
 {
 	entry->data = pa |
-	    FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDBPCOUNT, IRDMA_HMC_MAX_BP_COUNT) |
+	    FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDBPCOUNT,
+		IRDMA_HMC_MAX_BP_COUNT) |
 	    FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDTYPE,
-		       type == IRDMA_SD_TYPE_PAGED ? 0 : 1) |
+		type == IRDMA_SD_TYPE_PAGED ? 0 : 1) |
 	    FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDVALID, 1);
 
 	entry->cmd = idx | FIELD_PREP(IRDMA_PFHMC_SDCMD_PMSDWR, 1) |
@@ -123,11 +122,12 @@ irdma_set_sd_entry(u64 pa, u32 idx, enum irdma_sd_entry_type type,
  */
 static void
 irdma_clr_sd_entry(u32 idx, enum irdma_sd_entry_type type,
-		   struct irdma_update_sd_entry *entry)
+    struct irdma_update_sd_entry *entry)
 {
-	entry->data = FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDBPCOUNT, IRDMA_HMC_MAX_BP_COUNT) |
+	entry->data = FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDBPCOUNT,
+			  IRDMA_HMC_MAX_BP_COUNT) |
 	    FIELD_PREP(IRDMA_PFHMC_SDDATALOW_PMSDTYPE,
-		       type == IRDMA_SD_TYPE_PAGED ? 0 : 1);
+		type == IRDMA_SD_TYPE_PAGED ? 0 : 1);
 
 	entry->cmd = idx | FIELD_PREP(IRDMA_PFHMC_SDCMD_PMSDWR, 1) |
 	    IRDMA_PFHMC_SDCMD_PMSDPARTSEL;
@@ -140,12 +140,11 @@ irdma_clr_sd_entry(u32 idx, enum irdma_sd_entry_type type,
  * @pd_idx: page descriptor index
  */
 static inline void
-irdma_invalidate_pf_hmc_pd(struct irdma_sc_dev *dev, u32 sd_idx,
-			   u32 pd_idx)
+irdma_invalidate_pf_hmc_pd(struct irdma_sc_dev *dev, u32 sd_idx, u32 pd_idx)
 {
 	u32 val = FIELD_PREP(IRDMA_PFHMC_PDINV_PMSDIDX, sd_idx) |
-	FIELD_PREP(IRDMA_PFHMC_PDINV_PMSDPARTSEL, 1) |
-	FIELD_PREP(IRDMA_PFHMC_PDINV_PMPDIDX, pd_idx);
+	    FIELD_PREP(IRDMA_PFHMC_PDINV_PMSDPARTSEL, 1) |
+	    FIELD_PREP(IRDMA_PFHMC_PDINV_PMPDIDX, pd_idx);
 
 	writel(val, dev->hw_regs[IRDMA_PFHMC_PDINV]);
 }
@@ -161,7 +160,7 @@ irdma_invalidate_pf_hmc_pd(struct irdma_sc_dev *dev, u32 sd_idx,
  */
 int
 irdma_hmc_sd_one(struct irdma_sc_dev *dev, u16 hmc_fn_id, u64 pa, u32 sd_idx,
-		 enum irdma_sd_entry_type type, bool setsd)
+    enum irdma_sd_entry_type type, bool setsd)
 {
 	struct irdma_update_sds_info sdinfo;
 
@@ -183,12 +182,11 @@ irdma_hmc_sd_one(struct irdma_sc_dev *dev, u16 hmc_fn_id, u64 pa, u32 sd_idx,
  * @setsd: flag to set or clear sd
  */
 static int
-irdma_hmc_sd_grp(struct irdma_sc_dev *dev,
-		 struct irdma_hmc_info *hmc_info, u32 sd_index,
-		 u32 sd_cnt, bool setsd)
+irdma_hmc_sd_grp(struct irdma_sc_dev *dev, struct irdma_hmc_info *hmc_info,
+    u32 sd_index, u32 sd_cnt, bool setsd)
 {
 	struct irdma_hmc_sd_entry *sd_entry;
-	struct irdma_update_sds_info sdinfo = {0};
+	struct irdma_update_sds_info sdinfo = { 0 };
 	u64 pa;
 	u32 i;
 	int ret_code = 0;
@@ -204,18 +202,17 @@ irdma_hmc_sd_grp(struct irdma_sc_dev *dev,
 			    sd_entry->u.pd_table.pd_page_addr.pa :
 			    sd_entry->u.bp.addr.pa;
 			irdma_set_sd_entry(pa, i, sd_entry->entry_type,
-					   &sdinfo.entry[sdinfo.cnt]);
+			    &sdinfo.entry[sdinfo.cnt]);
 		} else {
 			irdma_clr_sd_entry(i, sd_entry->entry_type,
-					   &sdinfo.entry[sdinfo.cnt]);
+			    &sdinfo.entry[sdinfo.cnt]);
 		}
 		sdinfo.cnt++;
 		if (sdinfo.cnt == IRDMA_MAX_SD_ENTRIES) {
 			ret_code = dev->cqp->process_cqp_sds(dev, &sdinfo);
 			if (ret_code) {
 				irdma_debug(dev, IRDMA_DEBUG_HMC,
-					    "sd_programming failed err=%d\n",
-					    ret_code);
+				    "sd_programming failed err=%d\n", ret_code);
 				return ret_code;
 			}
 
@@ -235,7 +232,7 @@ irdma_hmc_sd_grp(struct irdma_sc_dev *dev,
  */
 static int
 irdma_hmc_finish_add_sd_reg(struct irdma_sc_dev *dev,
-			    struct irdma_hmc_create_obj_info *info)
+    struct irdma_hmc_create_obj_info *info)
 {
 	if (info->start_idx >= info->hmc_info->hmc_obj[info->rsrc_type].cnt)
 		return -EINVAL;
@@ -247,8 +244,7 @@ irdma_hmc_finish_add_sd_reg(struct irdma_sc_dev *dev,
 	if (!info->add_sd_cnt)
 		return 0;
 	return irdma_hmc_sd_grp(dev, info->hmc_info,
-				info->hmc_info->sd_indexes[0], info->add_sd_cnt,
-				true);
+	    info->hmc_info->sd_indexes[0], info->add_sd_cnt, true);
 }
 
 /**
@@ -261,7 +257,7 @@ irdma_hmc_finish_add_sd_reg(struct irdma_sc_dev *dev,
  */
 int
 irdma_sc_create_hmc_obj(struct irdma_sc_dev *dev,
-			struct irdma_hmc_create_obj_info *info)
+    struct irdma_hmc_create_obj_info *info)
 {
 	struct irdma_hmc_sd_entry *sd_entry;
 	u32 sd_idx, sd_lmt;
@@ -277,42 +273,38 @@ irdma_sc_create_hmc_obj(struct irdma_sc_dev *dev,
 	if ((info->start_idx + info->count) >
 	    info->hmc_info->hmc_obj[info->rsrc_type].cnt) {
 		irdma_debug(dev, IRDMA_DEBUG_HMC,
-			    "error type %u, start = %u, req cnt %u, cnt = %u\n",
-			    info->rsrc_type, info->start_idx, info->count,
-			    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
+		    "error type %u, start = %u, req cnt %u, cnt = %u\n",
+		    info->rsrc_type, info->start_idx, info->count,
+		    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
 		return -EINVAL;
 	}
 
 	irdma_find_sd_index_limit(info->hmc_info, info->rsrc_type,
-				  info->start_idx, info->count, &sd_idx,
-				  &sd_lmt);
+	    info->start_idx, info->count, &sd_idx, &sd_lmt);
 	if (sd_idx >= info->hmc_info->sd_table.sd_cnt ||
 	    sd_lmt > info->hmc_info->sd_table.sd_cnt) {
 		return -EINVAL;
 	}
 
 	irdma_find_pd_index_limit(info->hmc_info, info->rsrc_type,
-				  info->start_idx, info->count, &pd_idx,
-				  &pd_lmt);
+	    info->start_idx, info->count, &pd_idx, &pd_lmt);
 
 	for (j = sd_idx; j < sd_lmt; j++) {
 		ret_code = irdma_add_sd_table_entry(dev->hw, info->hmc_info, j,
-						    info->entry_type,
-						    IRDMA_HMC_DIRECT_BP_SIZE);
+		    info->entry_type, IRDMA_HMC_DIRECT_BP_SIZE);
 		if (ret_code)
 			goto exit_sd_error;
 
 		sd_entry = &info->hmc_info->sd_table.sd_entry[j];
 		if (sd_entry->entry_type == IRDMA_SD_TYPE_PAGED &&
 		    (dev->hmc_info == info->hmc_info &&
-		     info->rsrc_type != IRDMA_HMC_IW_PBLE)) {
+			info->rsrc_type != IRDMA_HMC_IW_PBLE)) {
 			pd_idx1 = max(pd_idx, (j * IRDMA_HMC_MAX_BP_COUNT));
 			pd_lmt1 = min(pd_lmt, (j + 1) * IRDMA_HMC_MAX_BP_COUNT);
 			for (i = pd_idx1; i < pd_lmt1; i++) {
 				/* update the pd table entry */
 				ret_code = irdma_add_pd_table_entry(dev,
-								    info->hmc_info,
-								    i, NULL);
+				    info->hmc_info, i, NULL);
 				if (ret_code) {
 					pd_error = true;
 					break;
@@ -321,7 +313,7 @@ irdma_sc_create_hmc_obj(struct irdma_sc_dev *dev,
 			if (pd_error) {
 				while (i && (i > pd_idx1)) {
 					irdma_remove_pd_bp(dev, info->hmc_info,
-							   i - 1);
+					    i - 1);
 					i--;
 				}
 			}
@@ -366,8 +358,7 @@ exit_sd_error:
  */
 static int
 irdma_finish_del_sd_reg(struct irdma_sc_dev *dev,
-			struct irdma_hmc_del_obj_info *info,
-			bool reset)
+    struct irdma_hmc_del_obj_info *info, bool reset)
 {
 	struct irdma_hmc_sd_entry *sd_entry;
 	int ret_code = 0;
@@ -376,8 +367,7 @@ irdma_finish_del_sd_reg(struct irdma_sc_dev *dev,
 
 	if (!reset)
 		ret_code = irdma_hmc_sd_grp(dev, info->hmc_info,
-					    info->hmc_info->sd_indexes[0],
-					    info->del_sd_cnt, false);
+		    info->hmc_info->sd_indexes[0], info->del_sd_cnt, false);
 
 	if (ret_code)
 		irdma_debug(dev, IRDMA_DEBUG_HMC, "error cqp sd sd_grp\n");
@@ -411,7 +401,7 @@ irdma_finish_del_sd_reg(struct irdma_sc_dev *dev,
  */
 int
 irdma_sc_del_hmc_obj(struct irdma_sc_dev *dev,
-		     struct irdma_hmc_del_obj_info *info, bool reset)
+    struct irdma_hmc_del_obj_info *info, bool reset)
 {
 	struct irdma_hmc_pd_table *pd_table;
 	u32 sd_idx, sd_lmt;
@@ -421,24 +411,23 @@ irdma_sc_del_hmc_obj(struct irdma_sc_dev *dev,
 
 	if (info->start_idx >= info->hmc_info->hmc_obj[info->rsrc_type].cnt) {
 		irdma_debug(dev, IRDMA_DEBUG_HMC,
-			    "error start_idx[%04d] >= [type %04d].cnt[%04d]\n",
-			    info->start_idx, info->rsrc_type,
-			    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
+		    "error start_idx[%04d] >= [type %04d].cnt[%04d]\n",
+		    info->start_idx, info->rsrc_type,
+		    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
 		return -EINVAL;
 	}
 
 	if ((info->start_idx + info->count) >
 	    info->hmc_info->hmc_obj[info->rsrc_type].cnt) {
 		irdma_debug(dev, IRDMA_DEBUG_HMC,
-			    "error start_idx[%04d] + count %04d >= [type %04d].cnt[%04d]\n",
-			    info->start_idx, info->count, info->rsrc_type,
-			    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
+		    "error start_idx[%04d] + count %04d >= [type %04d].cnt[%04d]\n",
+		    info->start_idx, info->count, info->rsrc_type,
+		    info->hmc_info->hmc_obj[info->rsrc_type].cnt);
 		return -EINVAL;
 	}
 
 	irdma_find_pd_index_limit(info->hmc_info, info->rsrc_type,
-				  info->start_idx, info->count, &pd_idx,
-				  &pd_lmt);
+	    info->start_idx, info->count, &pd_idx, &pd_lmt);
 
 	for (j = pd_idx; j < pd_lmt; j++) {
 		sd_idx = j / IRDMA_HMC_PD_CNT_IN_SD;
@@ -451,21 +440,21 @@ irdma_sc_del_hmc_obj(struct irdma_sc_dev *dev,
 			continue;
 
 		rel_pd_idx = j % IRDMA_HMC_PD_CNT_IN_SD;
-		pd_table = &info->hmc_info->sd_table.sd_entry[sd_idx].u.pd_table;
+		pd_table =
+		    &info->hmc_info->sd_table.sd_entry[sd_idx].u.pd_table;
 		if (pd_table->pd_entry &&
 		    pd_table->pd_entry[rel_pd_idx].valid) {
 			ret_code = irdma_remove_pd_bp(dev, info->hmc_info, j);
 			if (ret_code) {
 				irdma_debug(dev, IRDMA_DEBUG_HMC,
-					    "remove_pd_bp error\n");
+				    "remove_pd_bp error\n");
 				return ret_code;
 			}
 		}
 	}
 
 	irdma_find_sd_index_limit(info->hmc_info, info->rsrc_type,
-				  info->start_idx, info->count, &sd_idx,
-				  &sd_lmt);
+	    info->start_idx, info->count, &sd_idx, &sd_lmt);
 	if (sd_idx >= info->hmc_info->sd_table.sd_cnt ||
 	    sd_lmt > info->hmc_info->sd_table.sd_cnt) {
 		irdma_debug(dev, IRDMA_DEBUG_HMC, "invalid sd_idx\n");
@@ -514,9 +503,8 @@ irdma_sc_del_hmc_obj(struct irdma_sc_dev *dev,
  * @direct_mode_sz: size to alloc in direct mode
  */
 int
-irdma_add_sd_table_entry(struct irdma_hw *hw,
-			 struct irdma_hmc_info *hmc_info, u32 sd_index,
-			 enum irdma_sd_entry_type type, u64 direct_mode_sz)
+irdma_add_sd_table_entry(struct irdma_hw *hw, struct irdma_hmc_info *hmc_info,
+    u32 sd_index, enum irdma_sd_entry_type type, u64 direct_mode_sz)
 {
 	struct irdma_hmc_sd_entry *sd_entry;
 	struct irdma_dma_mem dma_mem;
@@ -532,12 +520,12 @@ irdma_add_sd_table_entry(struct irdma_hw *hw,
 		/* allocate a 4K pd page or 2M backing page */
 		dma_mem.size = alloc_len;
 		dma_mem.va = irdma_allocate_dma_mem(hw, &dma_mem, dma_mem.size,
-						    IRDMA_HMC_PD_BP_BUF_ALIGNMENT);
+		    IRDMA_HMC_PD_BP_BUF_ALIGNMENT);
 		if (!dma_mem.va)
 			return -ENOMEM;
 		if (type == IRDMA_SD_TYPE_PAGED) {
 			struct irdma_virt_mem *vmem =
-			&sd_entry->u.pd_table.pd_entry_virt_mem;
+			    &sd_entry->u.pd_table.pd_entry_virt_mem;
 
 			vmem->size = sizeof(struct irdma_hmc_pd_entry) * 512;
 			vmem->va = kzalloc(vmem->size, GFP_KERNEL);
@@ -547,11 +535,12 @@ irdma_add_sd_table_entry(struct irdma_hw *hw,
 			}
 			sd_entry->u.pd_table.pd_entry = vmem->va;
 
-			irdma_memcpy(&sd_entry->u.pd_table.pd_page_addr, &dma_mem,
-				     sizeof(sd_entry->u.pd_table.pd_page_addr));
+			irdma_memcpy(&sd_entry->u.pd_table.pd_page_addr,
+			    &dma_mem,
+			    sizeof(sd_entry->u.pd_table.pd_page_addr));
 		} else {
 			irdma_memcpy(&sd_entry->u.bp.addr, &dma_mem,
-				     sizeof(sd_entry->u.bp.addr));
+			    sizeof(sd_entry->u.bp.addr));
 
 			sd_entry->u.bp.sd_pd_index = sd_index;
 		}
@@ -584,8 +573,8 @@ irdma_add_sd_table_entry(struct irdma_hw *hw,
  */
 int
 irdma_add_pd_table_entry(struct irdma_sc_dev *dev,
-			 struct irdma_hmc_info *hmc_info, u32 pd_index,
-			 struct irdma_dma_mem *rsrc_pg)
+    struct irdma_hmc_info *hmc_info, u32 pd_index,
+    struct irdma_dma_mem *rsrc_pg)
 {
 	struct irdma_hmc_pd_table *pd_table;
 	struct irdma_hmc_pd_entry *pd_entry;
@@ -613,15 +602,15 @@ irdma_add_pd_table_entry(struct irdma_sc_dev *dev,
 		} else {
 			page->size = IRDMA_HMC_PAGED_BP_SIZE;
 			page->va = irdma_allocate_dma_mem(dev->hw, page,
-							  page->size,
-							  IRDMA_HMC_PD_BP_BUF_ALIGNMENT);
+			    page->size, IRDMA_HMC_PD_BP_BUF_ALIGNMENT);
 			if (!page->va)
 				return -ENOMEM;
 
 			pd_entry->rsrc_pg = false;
 		}
 
-		irdma_memcpy(&pd_entry->bp.addr, page, sizeof(pd_entry->bp.addr));
+		irdma_memcpy(&pd_entry->bp.addr, page,
+		    sizeof(pd_entry->bp.addr));
 		pd_entry->bp.sd_pd_index = pd_index;
 		pd_entry->bp.entry_type = IRDMA_SD_TYPE_PAGED;
 		page_desc = page->pa | 0x1;
@@ -654,8 +643,8 @@ irdma_add_pd_table_entry(struct irdma_sc_dev *dev,
  *	   function returns.
  */
 int
-irdma_remove_pd_bp(struct irdma_sc_dev *dev,
-		   struct irdma_hmc_info *hmc_info, u32 idx)
+irdma_remove_pd_bp(struct irdma_sc_dev *dev, struct irdma_hmc_info *hmc_info,
+    u32 idx)
 {
 	struct irdma_hmc_pd_entry *pd_entry;
 	struct irdma_hmc_pd_table *pd_table;

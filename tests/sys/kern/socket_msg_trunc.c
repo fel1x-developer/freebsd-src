@@ -33,12 +33,11 @@
 
 #include <netinet/in.h>
 
+#include <atf-c.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <atf-c.h>
 
 static void
 check_recvmsg(int cs, int ss, struct sockaddr *sa, const size_t sizes[],
@@ -97,7 +96,7 @@ ATF_TC_BODY(recv_trunc_afinet_udp, tc)
 	cs = socket(PF_INET, SOCK_DGRAM, 0);
 	ATF_REQUIRE(cs >= 0);
 
-	size_t sizes[] = {80, 255, 256, 1024, 4096, 9000};
+	size_t sizes[] = { 80, 255, 256, 1024, 4096, 9000 };
 	check_recvmsg(cs, ss, sa, sizes, nitems(sizes));
 }
 
@@ -124,7 +123,7 @@ ATF_TC_BODY(recv_trunc_afinet6_udp, tc)
 	cs = socket(PF_INET6, SOCK_DGRAM, 0);
 	ATF_REQUIRE(cs >= 0);
 
-	size_t sizes[] = {80, 255, 256, 1024, 4096, 9000};
+	size_t sizes[] = { 80, 255, 256, 1024, 4096, 9000 };
 	check_recvmsg(cs, ss, sa, sizes, nitems(sizes));
 }
 
@@ -140,7 +139,8 @@ ATF_TC_BODY(recv_trunc_afunix_dgram, tc)
 
 	bzero(&sun, sizeof(sun));
 	sun.sun_family = AF_UNIX;
-	strlcpy(sun.sun_path, "test_check_recvmsg_socket", sizeof(sun.sun_path));
+	strlcpy(sun.sun_path, "test_check_recvmsg_socket",
+	    sizeof(sun.sun_path));
 	sun.sun_len = sizeof(sun);
 	sa = (struct sockaddr *)&sun;
 	rc = bind(ss, sa, sa->sa_len);
@@ -149,7 +149,7 @@ ATF_TC_BODY(recv_trunc_afunix_dgram, tc)
 	cs = socket(PF_UNIX, SOCK_DGRAM, 0);
 	ATF_REQUIRE(cs >= 0);
 
-	size_t sizes[] = {80, 255, 256, 1024, 2000};
+	size_t sizes[] = { 80, 255, 256, 1024, 2000 };
 	check_recvmsg(cs, ss, sa, sizes, nitems(sizes));
 }
 
@@ -165,7 +165,8 @@ ATF_TC_BODY(recv_trunc_afunix_seqpacket, tc)
 
 	bzero(&sun, sizeof(sun));
 	sun.sun_family = AF_UNIX;
-	strlcpy(sun.sun_path, "test_check_recvmsg_socket", sizeof(sun.sun_path));
+	strlcpy(sun.sun_path, "test_check_recvmsg_socket",
+	    sizeof(sun.sun_path));
 	sun.sun_len = sizeof(sun);
 	sa = (struct sockaddr *)&sun;
 	rc = bind(ss, sa, sa->sa_len);
@@ -180,7 +181,7 @@ ATF_TC_BODY(recv_trunc_afunix_seqpacket, tc)
 	nss = accept(ss, NULL, NULL);
 	ATF_REQUIRE(nss >= 0);
 
-	size_t sizes[] = {80, 255, 256, 1024, 2000};
+	size_t sizes[] = { 80, 255, 256, 1024, 2000 };
 	check_recvmsg(cs, nss, sa, sizes, nitems(sizes));
 
 	ATF_REQUIRE(close(ss) == 0);
@@ -213,8 +214,7 @@ ATF_TC_BODY(recvmsg_trunc_ktrace_uio, tc)
 	fd = open(tracepath, O_RDWR | O_CREAT | O_TRUNC, 0644);
 	ATF_REQUIRE_MSG(fd >= 0, "open failed: %s", strerror(errno));
 	error = ktrace(tracepath, KTROP_SET, KTRFAC_GENIO, getpid());
-	ATF_REQUIRE_MSG(error == 0,
-	    "ktrace(SET) failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "ktrace(SET) failed: %s", strerror(errno));
 
 	iov.iov_base = buf;
 	iov.iov_len = sizeof(buf) - 1; /* truncate */
@@ -227,8 +227,8 @@ ATF_TC_BODY(recvmsg_trunc_ktrace_uio, tc)
 	ATF_REQUIRE((msg.msg_flags & MSG_TRUNC) != 0);
 
 	error = ktrace(tracepath, KTROP_CLEARFILE, 0, getpid());
-	ATF_REQUIRE_MSG(error == 0,
-	    "ktrace(CLEARFILE) failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "ktrace(CLEARFILE) failed: %s",
+	    strerror(errno));
 
 	nbytes = read(fd, &ktr, sizeof(ktr));
 	ATF_REQUIRE_MSG(nbytes >= 0, "read failed: %s", strerror(errno));

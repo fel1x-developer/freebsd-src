@@ -28,19 +28,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IP175C_H__
-#define	__IP175C_H__
+#ifndef __IP175C_H__
+#define __IP175C_H__
 
-#define	IP175C_MODE_PHY			29
-#define	IP175C_MODE_REG			31
-#define	IP175C_RESET_PHY		30
-#define	IP175C_RESET_REG		0
-#define	IP175C_MII_PHY			31
-#define	IP175C_MII_CTL_REG		5
-#define	IP175C_MII_MII1_RMII_EN		8
+#define IP175C_MODE_PHY 29
+#define IP175C_MODE_REG 31
+#define IP175C_RESET_PHY 30
+#define IP175C_RESET_REG 0
+#define IP175C_MII_PHY 31
+#define IP175C_MII_CTL_REG 5
+#define IP175C_MII_MII1_RMII_EN 8
 
-#define	IP175C_LAST_VLAN		15
+#define IP175C_LAST_VLAN 15
 
 void ip175c_attach(struct ip17x_softc *sc);
 
-#endif	/* __IP175C_H__ */
+#endif /* __IP175C_H__ */

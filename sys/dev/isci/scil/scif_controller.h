@@ -65,9 +65,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method will attempt to construct a framework controller object
@@ -92,11 +91,8 @@ extern "C" {
  *         if the controller doesn't support the port configuration scheme
  *         (APC or MPC).
  */
-SCI_STATUS scif_controller_construct(
-   SCI_LIBRARY_HANDLE_T      library,
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void *                    user_object
-);
+SCI_STATUS scif_controller_construct(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T controller, void *user_object);
 
 /**
  * @brief This method will initialize the SCI Framework controller object.
@@ -110,9 +106,7 @@ SCI_STATUS scif_controller_construct(
  * @retval SCI_SUCCESS This value is returned if the controller hardware
  *         was successfully initialized.
  */
-SCI_STATUS scif_controller_initialize(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+SCI_STATUS scif_controller_initialize(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method returns the suggested scif_controller_start()
@@ -128,8 +122,7 @@ SCI_STATUS scif_controller_initialize(
  *          suggested start operation timeout.
  */
 U32 scif_controller_get_suggested_start_timeout(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method will start the SCIF controller.  The SCI User completion
@@ -159,10 +152,8 @@ U32 scif_controller_get_suggested_start_timeout(
  *
  * @see For additional information please refer to: scic_controller_start()
  */
-SCI_STATUS scif_controller_start(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   U32                      timeout
-);
+SCI_STATUS scif_controller_start(SCI_CONTROLLER_HANDLE_T controller,
+    U32 timeout);
 
 /**
  * @brief This method will stop an individual framework controller object. This
@@ -191,10 +182,8 @@ SCI_STATUS scif_controller_start(
  *
  * @see For additional information please refer to: scic_controller_stop()
  */
-SCI_STATUS scif_controller_stop(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   U32                      timeout
-);
+SCI_STATUS scif_controller_stop(SCI_CONTROLLER_HANDLE_T controller,
+    U32 timeout);
 
 /**
  * @brief This method will reset the supplied framework controller regardless
@@ -214,9 +203,7 @@ SCI_STATUS scif_controller_stop(
  *
  * @see For additional information please refer to: scic_controller_reset()
  */
-SCI_STATUS scif_controller_reset(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+SCI_STATUS scif_controller_reset(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method returns the SCI Core controller handle associated
@@ -229,8 +216,7 @@ SCI_STATUS scif_controller_reset(
  *         framework controller.
  */
 SCI_CONTROLLER_HANDLE_T scif_controller_get_scic_handle(
-   SCI_CONTROLLER_HANDLE_T   scif_controller
-);
+    SCI_CONTROLLER_HANDLE_T scif_controller);
 
 /**
  * @brief This method is called by the SCIF user to send/start a framework
@@ -255,12 +241,9 @@ SCI_CONTROLLER_HANDLE_T scif_controller_get_scic_handle(
  *
  * @todo Determine the failure situations and return values.
  */
-SCI_IO_STATUS scif_controller_start_io(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     io_request,
-   U16                         io_tag
-);
+SCI_IO_STATUS scif_controller_start_io(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_IO_REQUEST_HANDLE_T io_request, U16 io_tag);
 
 /**
  * @brief This method is called by the SCIF user to send/start a framework
@@ -287,12 +270,9 @@ SCI_IO_STATUS scif_controller_start_io(
  *
  * @todo Determine the failure situations and return values.
  */
-SCI_TASK_STATUS scif_controller_start_task(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_TASK_REQUEST_HANDLE_T   task_request,
-   U16                         io_tag
-);
+SCI_TASK_STATUS scif_controller_start_task(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_TASK_REQUEST_HANDLE_T task_request, U16 io_tag);
 
 /**
  * @brief This method is called by the SCI user to complete a previously
@@ -312,11 +292,9 @@ SCI_TASK_STATUS scif_controller_start_task(
  * @see For additional information please refer to:
  *      scic_controller_complete_io()
  */
-SCI_STATUS scif_controller_complete_io(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     io_request
-);
+SCI_STATUS scif_controller_complete_io(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_IO_REQUEST_HANDLE_T io_request);
 
 /**
  * @brief This method will perform framework specific completion operations for
@@ -335,11 +313,9 @@ SCI_STATUS scif_controller_complete_io(
  *         management request.
  * @retval SCI_SUCCESS if the completion process was successful.
  */
-SCI_STATUS scif_controller_complete_task(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_TASK_REQUEST_HANDLE_T   task_request
-);
+SCI_STATUS scif_controller_complete_task(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_TASK_REQUEST_HANDLE_T task_request);
 
 /**
  * @brief This method simply provides the user with a unique handle for a
@@ -359,11 +335,8 @@ SCI_STATUS scif_controller_complete_task(
  * @retval SCI_FAILURE_INVALID_PORT This value is returned if the supplied
  *         port index is not invalid.
  */
-SCI_STATUS scif_controller_get_domain_handle(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   U8                        port_index,
-   SCI_DOMAIN_HANDLE_T     * domain_handle
-);
+SCI_STATUS scif_controller_get_domain_handle(SCI_CONTROLLER_HANDLE_T controller,
+    U8 port_index, SCI_DOMAIN_HANDLE_T *domain_handle);
 
 /**
  * @brief This method allows the user to configure the SCI Framework
@@ -379,10 +352,8 @@ SCI_STATUS scif_controller_get_domain_handle(
  *         of the controller.
  * @retval SCI_SUCCESS The user successfully updated the mode.
  */
-SCI_STATUS scif_controller_set_mode(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_CONTROLLER_MODE       mode
-);
+SCI_STATUS scif_controller_set_mode(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_CONTROLLER_MODE mode);
 
 /**
  * @brief This method simply returns the T10 SCSI to ATA Translation (SAT)
@@ -392,9 +363,7 @@ SCI_STATUS scif_controller_set_mode(
  * @return An integer value indicating the SAT version to which this
  *         translator complies.
  */
-U32 scif_controller_get_sat_compliance_version(
-   void
-);
+U32 scif_controller_get_sat_compliance_version(void);
 
 /**
  * @brief This method simply returns the revision of the T10 SCSI to ATA
@@ -404,16 +373,13 @@ U32 scif_controller_get_sat_compliance_version(
  * @return An integer value indicating the revision of the SAT version
  *         to which this translator complies.
  */
-U32 scif_controller_get_sat_compliance_version_revision(
-   void
-);
+U32 scif_controller_get_sat_compliance_version_revision(void);
 
 /**
  * @brief This method is called by the SCI user to start internal io.
  */
 typedef void (*SCI_START_INTERNAL_IO_ROUTINE)(
-   SCI_CONTROLLER_HANDLE_T controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 #if !defined(DISABLE_INTERRUPTS)
 /**
@@ -421,27 +387,23 @@ typedef void (*SCI_START_INTERNAL_IO_ROUTINE)(
  *           Please refer to the comment header for
  *           scic_controller_set_interrupt_coalescence() to find details.
  */
-SCI_STATUS scif_controller_set_interrupt_coalescence(
-   SCI_CONTROLLER_HANDLE_T controller,
-   U32                     coalesce_number,
-   U32                     coalesce_timeout
-);
+SCI_STATUS
+scif_controller_set_interrupt_coalescence(SCI_CONTROLLER_HANDLE_T controller,
+    U32 coalesce_number, U32 coalesce_timeout);
 
 /**
  * @brief This method retrieves the interrupt coalescence information.
  *           Please refer to the comment header for
  *           scic_controller_get_interrupt_coalescence() to find details.
  */
-void scif_controller_get_interrupt_coalescence(
-   SCI_CONTROLLER_HANDLE_T controller,
-   U32                   * coalesce_number,
-   U32                   * coalesce_timeout
-);
+void
+scif_controller_get_interrupt_coalescence(SCI_CONTROLLER_HANDLE_T controller,
+    U32 *coalesce_number, U32 *coalesce_timeout);
 
 #else // !defined(DISABLE_INTERRUPTS)
 
 #define scif_controller_set_interrupt_coalescence(controller, num, timeout) \
-        SCI_FAILURE
+	SCI_FAILURE
 #define scif_controller_get_interrupt_coalescence(controller, num, timeout)
 
 #endif // !defined(DISABLE_INTERRUPTS)
@@ -451,4 +413,3 @@ void scif_controller_get_interrupt_coalescence(
 #endif // __cplusplus
 
 #endif // _SCIF_CONTROLLER_H_
-

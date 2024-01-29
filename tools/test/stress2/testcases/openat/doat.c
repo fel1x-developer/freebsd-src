@@ -25,10 +25,11 @@
  *
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-#include <sys/types.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -38,31 +39,30 @@
 #include <unistd.h>
 
 union param {
-	int		i;
-	char		*cp;
-	mode_t		m;
-	dev_t		d;
-	void		*vp;
-	uid_t		u;
-	gid_t		g;
-	char		**cpp;
+	int i;
+	char *cp;
+	mode_t m;
+	dev_t d;
+	void *vp;
+	uid_t u;
+	gid_t g;
+	char **cpp;
 };
 
 struct testcase {
-	int		result;
-	union param	params[5];	// no *at syscall with more than 5 params
+	int result;
+	union param params[5]; // no *at syscall with more than 5 params
 };
 
 struct test {
-	int	syscall;
-	int	num_of_cases;
-	char	*name;
-	struct testcase	tests[10];	// no more than 10 tests
-
+	int syscall;
+	int num_of_cases;
+	char *name;
+	struct testcase tests[10]; // no more than 10 tests
 };
 
 struct test *tests;
-#define	NUM_OF_TESTS	15
+#define NUM_OF_TESTS 15
 
 char *absolute_path = NULL;
 char *relative_path = "tmp/";
@@ -194,12 +194,12 @@ setup()
 	tests[0].num_of_cases = 6;
 	tests[0].name = "faccessat";
 	tests[0].tests[0].result = EBADF;
-	tests[0].tests[0].params[0].i = 106;	// invalid fd
+	tests[0].tests[0].params[0].i = 106; // invalid fd
 	tests[0].tests[0].params[1].cp = relative_path;
 	tests[0].tests[0].params[2].m = 0;
 	tests[0].tests[0].params[3].i = 0;
 	tests[0].tests[1].result = EBADF;
-	tests[0].tests[1].params[0].i = 106;	// invalid fd
+	tests[0].tests[1].params[0].i = 106; // invalid fd
 	tests[0].tests[1].params[1].cp = relative_path;
 	tests[0].tests[1].params[2].m = 0;
 	tests[0].tests[1].params[3].i = AT_EACCESS;
@@ -207,7 +207,7 @@ setup()
 	tests[0].tests[2].params[0].i = rel_fd;
 	tests[0].tests[2].params[1].cp = absolute_path;
 	tests[0].tests[2].params[2].m = 0;
-	tests[0].tests[2].params[3].i = 123;	// invalid flag
+	tests[0].tests[2].params[3].i = 123; // invalid flag
 	tests[0].tests[3].result = ENOTDIR;
 	tests[0].tests[3].params[0].i = notd_fd;
 	tests[0].tests[3].params[1].cp = relative_file;
@@ -224,7 +224,7 @@ setup()
 	tests[0].tests[5].params[2].m = 0;
 	tests[0].tests[5].params[3].i = AT_EACCESS;
 	tests[0].tests[6].result = 0;
-	tests[0].tests[6].params[0].i = 106;	// invalid fd
+	tests[0].tests[6].params[0].i = 106; // invalid fd
 	tests[0].tests[6].params[1].cp = absolute_path;
 	tests[0].tests[6].params[2].m = 0;
 	tests[0].tests[6].params[3].i = 0;
@@ -234,15 +234,15 @@ setup()
 	tests[1].num_of_cases = 6;
 	tests[1].name = "fchmodat";
 	tests[1].tests[0].result = EBADF;
-	tests[1].tests[0].params[0].i = 106;	// invalid fd
+	tests[1].tests[0].params[0].i = 106; // invalid fd
 	tests[1].tests[0].params[1].cp = relative_path;
 	tests[1].tests[0].params[2].m = 33190;
 	tests[1].tests[0].params[3].i = 0;
 	tests[1].tests[1].result = EINVAL;
 	tests[1].tests[1].params[0].i = rel_fd;
 	tests[1].tests[1].params[1].cp = absolute_path;
-	tests[1].tests[1].params[2].m = 33190;	// mode 646 translated
-	tests[1].tests[1].params[3].i = 123;	// invalid flag
+	tests[1].tests[1].params[2].m = 33190; // mode 646 translated
+	tests[1].tests[1].params[3].i = 123;   // invalid flag
 	tests[1].tests[2].result = ENOTDIR;
 	tests[1].tests[2].params[0].i = notd_fd;
 	tests[1].tests[2].params[1].cp = relative_file;
@@ -269,7 +269,7 @@ setup()
 	tests[2].num_of_cases = 6;
 	tests[2].name = "fchownat";
 	tests[2].tests[0].result = EBADF;
-	tests[2].tests[0].params[0].i = 106;	// invalid fd
+	tests[2].tests[0].params[0].i = 106; // invalid fd
 	tests[2].tests[0].params[1].cp = relative_file;
 	tests[2].tests[0].params[2].u = 65534;
 	tests[2].tests[0].params[3].g = 65534;
@@ -279,7 +279,7 @@ setup()
 	tests[2].tests[1].params[1].cp = file;
 	tests[2].tests[1].params[2].u = 65534;
 	tests[2].tests[1].params[3].g = 65534;
-	tests[2].tests[1].params[4].i = 123;	// invalid flag
+	tests[2].tests[1].params[4].i = 123; // invalid flag
 	tests[2].tests[2].result = ENOTDIR;
 	tests[2].tests[2].params[0].i = notd_fd;
 	tests[2].tests[2].params[1].cp = relative_file;
@@ -310,7 +310,7 @@ setup()
 	tests[3].num_of_cases = 5;
 	tests[3].name = "fstatat";
 	tests[3].tests[0].result = EBADF;
-	tests[3].tests[0].params[0].i = 106;	// invalid fd
+	tests[3].tests[0].params[0].i = 106; // invalid fd
 	tests[3].tests[0].params[1].cp = relative_file;
 	tests[3].tests[0].params[2].vp = &buf;
 	tests[3].tests[0].params[3].i = 0;
@@ -318,7 +318,7 @@ setup()
 	tests[3].tests[1].params[0].i = rel_fd;
 	tests[3].tests[1].params[1].cp = relative_file;
 	tests[3].tests[1].params[2].vp = &buf;
-	tests[3].tests[1].params[3].i = 123;	// invalid flags
+	tests[3].tests[1].params[3].i = 123; // invalid flags
 	tests[3].tests[2].result = ENOTDIR;
 	tests[3].tests[2].params[0].i = notd_fd;
 	tests[3].tests[2].params[1].cp = relative_file;
@@ -345,7 +345,7 @@ setup()
 	tests[4].num_of_cases = 4;
 	tests[4].name = "futimesat";
 	tests[4].tests[0].result = EBADF;
-	tests[4].tests[0].params[0].i = 106;	// invalid fd
+	tests[4].tests[0].params[0].i = 106; // invalid fd
 	tests[4].tests[0].params[1].cp = relative_file;
 	tests[4].tests[0].params[2].vp = times;
 	tests[4].tests[1].result = ENOTDIR;
@@ -366,7 +366,7 @@ setup()
 	tests[5].num_of_cases = 7;
 	tests[5].name = "linkat";
 	tests[5].tests[0].result = EBADF;
-	tests[5].tests[0].params[0].i = 106;	// invalid fd
+	tests[5].tests[0].params[0].i = 106; // invalid fd
 	tests[5].tests[0].params[1].cp = relative_file;
 	tests[5].tests[0].params[2].i = AT_FDCWD;
 	tests[5].tests[0].params[3].cp = newlink;
@@ -374,7 +374,7 @@ setup()
 	tests[5].tests[1].result = EBADF;
 	tests[5].tests[1].params[0].i = AT_FDCWD;
 	tests[5].tests[1].params[1].cp = relative_file;
-	tests[5].tests[1].params[2].i = 106;	// invalid fd
+	tests[5].tests[1].params[2].i = 106; // invalid fd
 	tests[5].tests[1].params[3].cp = newlink;
 	tests[5].tests[1].params[4].i = 0;
 	tests[5].tests[2].result = EINVAL;
@@ -382,7 +382,7 @@ setup()
 	tests[5].tests[2].params[1].cp = relative_file;
 	tests[5].tests[2].params[2].i = AT_FDCWD;
 	tests[5].tests[2].params[3].cp = newlink;
-	tests[5].tests[2].params[4].i = 123;	// invalid flag
+	tests[5].tests[2].params[4].i = 123; // invalid flag
 	tests[5].tests[3].result = ENOTDIR;
 	tests[5].tests[3].params[0].i = notd_fd;
 	tests[5].tests[3].params[1].cp = relative_file;
@@ -413,7 +413,7 @@ setup()
 	tests[6].num_of_cases = 3;
 	tests[6].name = "mkdirat";
 	tests[6].tests[0].result = EBADF;
-	tests[6].tests[0].params[0].i = 106;	// invalid fd
+	tests[6].tests[0].params[0].i = 106; // invalid fd
 	tests[6].tests[0].params[1].cp = relative_file;
 	tests[6].tests[0].params[2].m = 33190;
 	tests[6].tests[1].result = ENOTDIR;
@@ -430,7 +430,7 @@ setup()
 	tests[7].num_of_cases = 3;
 	tests[7].name = "mkfifoat";
 	tests[7].tests[0].result = EBADF;
-	tests[7].tests[0].params[0].i = 107;	// invalid fd
+	tests[7].tests[0].params[0].i = 107; // invalid fd
 	tests[7].tests[0].params[1].cp = relative_file;
 	tests[7].tests[0].params[2].m = 33190;
 	tests[7].tests[1].result = ENOTDIR;
@@ -447,7 +447,7 @@ setup()
 	tests[8].num_of_cases = 3;
 	tests[8].name = "mknodat";
 	tests[8].tests[0].result = EBADF;
-	tests[8].tests[0].params[0].i = 108;	// invalid fd
+	tests[8].tests[0].params[0].i = 108; // invalid fd
 	tests[8].tests[0].params[1].cp = relative_file;
 	tests[8].tests[0].params[2].m = 0666 | S_IFCHR;
 	tests[8].tests[0].params[3].d = 15;
@@ -467,7 +467,7 @@ setup()
 	tests[9].num_of_cases = 5;
 	tests[9].name = "openat";
 	tests[9].tests[0].result = EBADF;
-	tests[9].tests[0].params[0].i = 106;	// invalid fd
+	tests[9].tests[0].params[0].i = 106; // invalid fd
 	tests[9].tests[0].params[1].cp = relative_file;
 	tests[9].tests[0].params[2].i = O_RDONLY;
 	tests[9].tests[0].params[3].i = 0666;
@@ -476,17 +476,17 @@ setup()
 	tests[9].tests[1].params[1].cp = relative_file;
 	tests[9].tests[1].params[2].i = O_RDONLY;
 	tests[9].tests[1].params[3].i = 0666;
-	tests[9].tests[2].result = 7;		// hardcoded fd
+	tests[9].tests[2].result = 7; // hardcoded fd
 	tests[9].tests[2].params[0].i = rel_fd;
 	tests[9].tests[2].params[1].cp = file;
 	tests[9].tests[2].params[2].i = O_RDONLY;
 	tests[9].tests[2].params[3].i = 0400;
-	tests[9].tests[3].result = 8;		// hardcoded fd
+	tests[9].tests[3].result = 8; // hardcoded fd
 	tests[9].tests[3].params[0].i = notd_fd;
 	tests[9].tests[3].params[1].cp = absolute_file;
 	tests[9].tests[3].params[2].i = O_RDONLY;
 	tests[9].tests[3].params[3].i = 0400;
-	tests[9].tests[4].result = 9;		// hardcoded fd
+	tests[9].tests[4].result = 9; // hardcoded fd
 	tests[9].tests[4].params[0].i = rel_fd;
 	tests[9].tests[4].params[1].cp = newfile;
 	tests[9].tests[4].params[2].i = O_RDONLY | O_CREAT;
@@ -497,7 +497,7 @@ setup()
 	tests[10].num_of_cases = 3;
 	tests[10].name = "readlinkat";
 	tests[10].tests[0].result = EBADF;
-	tests[10].tests[0].params[0].i = 106;	// invalid fd
+	tests[10].tests[0].params[0].i = 106; // invalid fd
 	tests[10].tests[0].params[1].cp = relative_file;
 	tests[10].tests[0].params[2].vp = cbuf;
 	tests[10].tests[0].params[3].i = PATH_MAX;
@@ -517,14 +517,14 @@ setup()
 	tests[11].num_of_cases = 5;
 	tests[11].name = "renameat";
 	tests[11].tests[0].result = EBADF;
-	tests[11].tests[0].params[0].i = 106;	// invalid fd
+	tests[11].tests[0].params[0].i = 106; // invalid fd
 	tests[11].tests[0].params[1].cp = file;
 	tests[11].tests[0].params[2].i = rel_fd;
 	tests[11].tests[0].params[3].cp = file;
 	tests[11].tests[1].result = EBADF;
 	tests[11].tests[1].params[0].i = rel_fd;
 	tests[11].tests[1].params[1].cp = file;
-	tests[11].tests[1].params[2].i = 106;	// invalid fd
+	tests[11].tests[1].params[2].i = 106; // invalid fd
 	tests[11].tests[1].params[3].cp = file;
 	tests[11].tests[2].result = ENOTDIR;
 	tests[11].tests[2].params[0].i = notd_fd;
@@ -548,7 +548,7 @@ setup()
 	tests[12].name = "symlinkat";
 	tests[12].tests[0].result = EBADF;
 	tests[12].tests[0].params[0].cp = file;
-	tests[12].tests[0].params[1].i = 106;	// invalid fd
+	tests[12].tests[0].params[1].i = 106; // invalid fd
 	tests[12].tests[0].params[2].cp = file;
 	tests[12].tests[1].result = ENOTDIR;
 	tests[12].tests[1].params[0].cp = file;
@@ -564,7 +564,7 @@ setup()
 	tests[13].num_of_cases = 7;
 	tests[13].name = "unlinkat";
 	tests[13].tests[0].result = EBADF;
-	tests[13].tests[0].params[0].i = 106;	// invalid fd
+	tests[13].tests[0].params[0].i = 106; // invalid fd
 	tests[13].tests[0].params[1].cp = relative_file;
 	tests[13].tests[0].params[2].i = 0;
 	tests[13].tests[1].result = ENOTDIR;
@@ -574,7 +574,7 @@ setup()
 	tests[13].tests[2].result = EINVAL;
 	tests[13].tests[2].params[0].i = rel_fd;
 	tests[13].tests[2].params[1].cp = file;
-	tests[13].tests[2].params[2].i = 123;	// invalid flag
+	tests[13].tests[2].params[2].i = 123; // invalid flag
 	tests[13].tests[3].result = ENOTDIR;
 	tests[13].tests[3].params[0].i = rel_fd;
 	tests[13].tests[3].params[1].cp = not_dir_path;
@@ -597,7 +597,7 @@ setup()
 	tests[14].num_of_cases = 2;
 	tests[14].name = "fexecve";
 	tests[14].tests[0].result = EBADF;
-	tests[14].tests[0].params[0].i = 106;	// invalid fd
+	tests[14].tests[0].params[0].i = 106; // invalid fd
 	tests[14].tests[0].params[1].cpp = pargv;
 	tests[14].tests[0].params[2].cpp = NULL;
 	// This is EXPECTED to execve /bin/date, so dont expect OK output
@@ -647,7 +647,7 @@ setup_once()
 int
 main(int argc, char *argv[])
 {
-	int i,j;
+	int i, j;
 	int error;
 
 	setup();
@@ -656,33 +656,35 @@ main(int argc, char *argv[])
 		printf("\nTest: %s\n", tests[i].name);
 		for (j = 0; j < tests[i].num_of_cases; j++) {
 			error = syscall(tests[i].syscall,
-				tests[i].tests[j].params[0],
-				tests[i].tests[j].params[1],
-				tests[i].tests[j].params[2],
-				tests[i].tests[j].params[3],
-				tests[i].tests[j].params[4]);
+			    tests[i].tests[j].params[0],
+			    tests[i].tests[j].params[1],
+			    tests[i].tests[j].params[2],
+			    tests[i].tests[j].params[3],
+			    tests[i].tests[j].params[4]);
 			if (error == 0) {
 				if (tests[i].tests[j].result == 0)
 					printf("#%i ... OK\n", j);
 				else {
 					printf("#%i ... BAD: ", j);
-					printf("expected %i, but got %i\n", tests[i].tests[j].result, error);
+					printf("expected %i, but got %i\n",
+					    tests[i].tests[j].result, error);
 				}
-			} else	{
+			} else {
 				if (tests[i].tests[j].result == errno)
 					printf("#%i ... OK\n", j);
 				else {
 					if (error != tests[i].tests[j].result) {
 						printf("#%i ... BAD: ", j);
-						printf("expected %i, but got %i\n", tests[i].tests[j].result, error);
+						printf(
+						    "expected %i, but got %i\n",
+						    tests[i].tests[j].result,
+						    error);
 					} else
 						printf("#%i ... OK\n", j);
 				}
 			}
-
 		}
 	}
-
 
 	return (0);
 }

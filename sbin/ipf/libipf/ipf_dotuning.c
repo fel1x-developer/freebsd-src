@@ -7,11 +7,13 @@
  * $Id$
  */
 
-#include "ipf.h"
-#include "netinet/ipl.h"
 #include <sys/ioctl.h>
 
-void ipf_dotuning(int fd, char *tuneargs, ioctlfunc_t iocfn)
+#include "ipf.h"
+#include "netinet/ipl.h"
+
+void
+ipf_dotuning(int fd, char *tuneargs, ioctlfunc_t iocfn)
 {
 	ipfobj_t obj;
 	ipftune_t tu;
@@ -28,7 +30,7 @@ void ipf_dotuning(int fd, char *tuneargs, ioctlfunc_t iocfn)
 			while (1) {
 				if ((*iocfn)(fd, SIOCIPFGETNEXT, &obj) == -1) {
 					ipf_perror_fd(fd, iocfn,
-						      "ioctl(SIOCIPFGETNEXT)");
+					    "ioctl(SIOCIPFGETNEXT)");
 					break;
 				}
 				if (tu.ipft_cookie == NULL)
@@ -44,7 +46,7 @@ void ipf_dotuning(int fd, char *tuneargs, ioctlfunc_t iocfn)
 			if (sscanf(t, "%lu", &tu.ipft_vlong) == 1) {
 				if ((*iocfn)(fd, SIOCIPFSET, &obj) == -1) {
 					ipf_perror_fd(fd, iocfn,
-						      "ioctl(SIOCIPFSET)");
+					    "ioctl(SIOCIPFSET)");
 					return;
 				}
 			} else {

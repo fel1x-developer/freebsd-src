@@ -4,40 +4,40 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <sys/param.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
 #include <net/if.h>
+#include <netinet/in.h>
 #ifdef _KERNEL
 #include <sys/systm.h>
 #else
-# include <stddef.h>
-# include <stdlib.h>
-# include <strings.h>
-# include <string.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 #endif /* !_KERNEL */
 #include "netinet/ip_compat.h"
 #include "netinet/ip_fil.h"
 #ifdef RDX_DEBUG
-# include <arpa/inet.h>
-# include <stdlib.h>
-# include <stdio.h>
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
 #endif
 #include "netinet/radix_ipf.h"
 
-#define	ADF_OFF	offsetof(addrfamily_t, adf_addr)
-#define	ADF_OFF_BITS	(ADF_OFF << 3)
+#define ADF_OFF offsetof(addrfamily_t, adf_addr)
+#define ADF_OFF_BITS (ADF_OFF << 3)
 
-static ipf_rdx_node_t *ipf_rx_insert(ipf_rdx_head_t *,
-					  ipf_rdx_node_t nodes[2], int *);
+static ipf_rdx_node_t *ipf_rx_insert(ipf_rdx_head_t *, ipf_rdx_node_t nodes[2],
+    int *);
 static void ipf_rx_attach_mask(ipf_rdx_node_t *, ipf_rdx_mask_t *);
 static int count_mask_bits(addrfamily_t *, u_32_t **);
-static void buildnodes(addrfamily_t *, addrfamily_t *,
-			    ipf_rdx_node_t n[2]);
+static void buildnodes(addrfamily_t *, addrfamily_t *, ipf_rdx_node_t n[2]);
 static ipf_rdx_node_t *ipf_rx_find_addr(ipf_rdx_node_t *, u_32_t *);
 static ipf_rdx_node_t *ipf_rx_lookup(ipf_rdx_head_t *, addrfamily_t *,
-					  addrfamily_t *);
+    addrfamily_t *);
 static ipf_rdx_node_t *ipf_rx_match(ipf_rdx_head_t *, addrfamily_t *);
 
 /*
@@ -82,7 +82,6 @@ count_mask_bits(addrfamily_t *mask, u_32_t **lastp)
 
 	return (count);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    buildnodes                                                  */
@@ -129,11 +128,10 @@ buildnodes(addrfamily_t *addr, addrfamily_t *mask, ipf_rdx_node_t nodes[2])
 	nodes[1].left = &nodes[0];
 	nodes[1].maskbitcount = maskbits;
 #ifdef RDX_DEBUG
-	(void) strcpy(nodes[0].name, "_BUILD.0");
-	(void) strcpy(nodes[1].name, "_BUILD.1");
+	(void)strcpy(nodes[0].name, "_BUILD.0");
+	(void)strcpy(nodes[1].name, "_BUILD.1");
 #endif
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_find_addr                                            */
@@ -159,7 +157,6 @@ ipf_rx_find_addr(ipf_rdx_node_t *tree, u_32_t *addr)
 
 	return (cur);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_match                                                */
@@ -203,7 +200,7 @@ ipf_rx_match(ipf_rdx_head_t *head, addrfamily_t *addr)
 			if ((*key & *mask) != *data)
 				break;
 		if ((end == key) && (cur->root == 0))
-			return (cur);	/* Equal keys */
+			return (cur); /* Equal keys */
 	}
 	prev = node->parent;
 	key = (u_32_t *)addr;
@@ -229,7 +226,6 @@ ipf_rx_match(ipf_rdx_head_t *head, addrfamily_t *addr)
 
 	return (NULL);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_lookup                                               */
@@ -257,7 +253,7 @@ ipf_rx_lookup(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 	/*
 	 * It is possible to find a matching address in the tree but for the
 	 * netmask to not match. If the netmask does not match and there is
-	* no list of alternatives present at dupkey, return a failure.
+	 * no list of alternatives present at dupkey, return a failure.
 	 */
 	count = count_mask_bits(mask, NULL);
 	if (count != found->maskbitcount && found->dupkey == NULL)
@@ -278,7 +274,6 @@ ipf_rx_lookup(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 	}
 	return (found);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_attach_mask                                          */
@@ -301,7 +296,6 @@ ipf_rx_attach_mask(ipf_rdx_node_t *node, ipf_rdx_mask_t *mask)
 	mask->next = *pm;
 	*pm = mask;
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_insert                                               */
@@ -342,14 +336,14 @@ ipf_rx_insert(ipf_rdx_head_t *head, ipf_rdx_node_t nodes[2], int *dup)
 	node = ipf_rx_find_addr(head->root, addr);
 	len = ((addrfamily_t *)addr)->adf_len;
 	key = (u_32_t *)&((addrfamily_t *)addr)->adf_addr;
-	data= (u_32_t *)&((addrfamily_t *)node->addrkey)->adf_addr;
+	data = (u_32_t *)&((addrfamily_t *)node->addrkey)->adf_addr;
 	end = (u_32_t *)((u_char *)addr + len);
 	for (nlen = 0; key < end; data++, key++, nlen += 32)
 		if (*key != *data)
 			break;
 	if (end == data) {
 		*dup = 1;
-		return (node);	/* Equal keys */
+		return (node); /* Equal keys */
 	}
 	*dup = 0;
 
@@ -449,7 +443,7 @@ ipf_rx_insert(ipf_rdx_head_t *head, ipf_rdx_node_t nodes[2], int *dup)
 	 */
 	cur = nodes[1].right;
 	if (cur->root == 0) {
-		for (pmask = &cur->masks; (mask = *pmask) != NULL; ) {
+		for (pmask = &cur->masks; (mask = *pmask) != NULL;) {
 			if (mask->maskbitcount < nodebits) {
 				*pmask = mask->next;
 				ipf_rx_attach_mask(&nodes[0], mask);
@@ -460,7 +454,7 @@ ipf_rx_insert(ipf_rdx_head_t *head, ipf_rdx_node_t nodes[2], int *dup)
 	}
 	cur = nodes[1].left;
 	if (cur->root == 0 && cur != &nodes[0]) {
-		for (pmask = &cur->masks; (mask = *pmask) != NULL; ) {
+		for (pmask = &cur->masks; (mask = *pmask) != NULL;) {
 			if (mask->maskbitcount < nodebits) {
 				*pmask = mask->next;
 				ipf_rx_attach_mask(&nodes[0], mask);
@@ -496,7 +490,7 @@ ipf_rx_insert(ipf_rdx_head_t *head, ipf_rdx_node_t nodes[2], int *dup)
 /* ------------------------------------------------------------------------ */
 ipf_rdx_node_t *
 ipf_rx_addroute(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask,
-	ipf_rdx_node_t *nodes)
+    ipf_rdx_node_t *nodes)
 {
 	ipf_rdx_node_t *node;
 	ipf_rdx_node_t *prev;
@@ -523,7 +517,7 @@ ipf_rx_addroute(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask,
 		}
 
 		/*
-		* Is it a complete duplicate? If so, return NULL and
+		 * Is it a complete duplicate? If so, return NULL and
 		 * fail the insert. Otherwise, insert it into the list
 		 * of netmasks active for this key.
 		 */
@@ -550,7 +544,6 @@ ipf_rx_addroute(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask,
 
 	return (&nodes[0]);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_delete                                               */
@@ -615,7 +608,7 @@ ipf_rx_delete(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 			if (parent->left == found)
 				parent->left = node;
 			else
-				parent->right= node;
+				parent->right = node;
 		}
 	} else {
 		if (count != found->maskbitcount)
@@ -700,7 +693,7 @@ ipf_rx_delete(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 		if (((cur - 1)->addrkey[found->offset] & found->bitmask) !=
 		    found->addrkey[found->offset])
 			break;
-		for (pm = &cur->masks; (m = *pm) != NULL; )
+		for (pm = &cur->masks; (m = *pm) != NULL;)
 			if (m->node == cur) {
 				*pm = m->next;
 				break;
@@ -714,7 +707,7 @@ ipf_rx_delete(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 	 * Masks that have been brought up to this node from below need to
 	 * be sent back down.
 	 */
-	for (pmask = &parent->masks; (m = *pmask) != NULL; ) {
+	for (pmask = &parent->masks; (m = *pmask) != NULL;) {
 		*pmask = m->next;
 		cur = m->node;
 		if (cur == found)
@@ -728,7 +721,6 @@ ipf_rx_delete(ipf_rdx_head_t *head, addrfamily_t *addr, addrfamily_t *mask)
 
 	return (found);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_walktree                                             */
@@ -759,7 +751,7 @@ ipf_rx_walktree(ipf_rdx_head_t *head, radix_walk_func_t walker, void *arg)
 		while ((node->parent->right == node) && (node->root == 0))
 			node = node->parent;
 
-		for (node = node->parent->right; node->index >= 0; )
+		for (node = node->parent->right; node->index >= 0;)
 			node = node->left;
 		next = node;
 
@@ -773,7 +765,6 @@ ipf_rx_walktree(ipf_rdx_head_t *head, radix_walk_func_t walker, void *arg)
 			return;
 	}
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_inithead                                             */
@@ -820,9 +811,9 @@ ipf_rx_inithead(radix_softc_t *softr, ipf_rdx_head_t **headp)
 	node[0].addrkey = (u_32_t *)softr->zeros;
 	node[2].addrkey = (u_32_t *)softr->ones;
 #ifdef RDX_DEBUG
-	(void) strcpy(node[0].name, "0_ROOT");
-	(void) strcpy(node[1].name, "1_ROOT");
-	(void) strcpy(node[2].name, "2_ROOT");
+	(void)strcpy(node[0].name, "0_ROOT");
+	(void)strcpy(node[1].name, "1_ROOT");
+	(void)strcpy(node[2].name, "2_ROOT");
 #endif
 
 	ptr->addaddr = ipf_rx_addroute;
@@ -832,7 +823,6 @@ ipf_rx_inithead(radix_softc_t *softr, ipf_rdx_head_t **headp)
 	ptr->walktree = ipf_rx_walktree;
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_freehead                                             */
@@ -847,7 +837,6 @@ ipf_rx_freehead(ipf_rdx_head_t *head)
 {
 	KFREE(head);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_create                                               */
@@ -874,7 +863,6 @@ ipf_rx_create(void)
 	return (softr);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_init                                                 */
 /* Returns:     int       - 0 = success (always)                            */
@@ -890,7 +878,6 @@ ipf_rx_init(void *ctx)
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_rx_destroy                                              */
@@ -913,87 +900,69 @@ ipf_rx_destroy(void *ctx)
 /*
  * To compile this file as a standalone test unit, use -DRDX_DEBUG=1
  */
-#define	NAME(x)	((x)->index < 0 ? (x)->name : (x)->name)
-#define	GNAME(y)	((y) == NULL ? "NULL" : NAME(y))
+#define NAME(x) ((x)->index < 0 ? (x)->name : (x)->name)
+#define GNAME(y) ((y) == NULL ? "NULL" : NAME(y))
 
 typedef struct myst {
 	struct ipf_rdx_node nodes[2];
-	addrfamily_t	dst;
-	addrfamily_t	mask;
-	struct myst	*next;
-	int		printed;
+	addrfamily_t dst;
+	addrfamily_t mask;
+	struct myst *next;
+	int printed;
 } myst_t;
 
 typedef struct tabe_s {
-	char	*host;
-	char	*mask;
-	char	*what;
+	char *host;
+	char *mask;
+	char *what;
 } tabe_t;
 
 tabe_t builtin[] = {
 #if 1
-	{ "192:168:100::0",	"48",			"d" },
-	{ "192:168:100::2",	"128",			"d" },
+	{ "192:168:100::0", "48", "d" }, { "192:168:100::2", "128", "d" },
 #else
-	{ "127.192.0.0",	"255.255.255.0",	"d" },
-	{ "127.128.0.0",	"255.255.255.0",	"d" },
-	{ "127.96.0.0",		"255.255.255.0",	"d" },
-	{ "127.80.0.0",		"255.255.255.0",	"d" },
-	{ "127.72.0.0",		"255.255.255.0",	"d" },
-	{ "127.64.0.0",		"255.255.255.0",	"d" },
-	{ "127.56.0.0",		"255.255.255.0",	"d" },
-	{ "127.48.0.0",		"255.255.255.0",	"d" },
-	{ "127.40.0.0",		"255.255.255.0",	"d" },
-	{ "127.32.0.0",		"255.255.255.0",	"d" },
-	{ "127.24.0.0",		"255.255.255.0",	"d" },
-	{ "127.16.0.0",		"255.255.255.0",	"d" },
-	{ "127.8.0.0",		"255.255.255.0",	"d" },
-	{ "124.0.0.0",		"255.0.0.0",		"d" },
-	{ "125.0.0.0",		"255.0.0.0",		"d" },
-	{ "126.0.0.0",		"255.0.0.0",		"d" },
-	{ "127.0.0.0",		"255.0.0.0",		"d" },
-	{ "10.0.0.0",		"255.0.0.0",		"d" },
-	{ "128.250.0.0",	"255.255.0.0",		"d" },
-	{ "192.168.0.0",	"255.255.0.0",		"d" },
-	{ "192.168.1.0",	"255.255.255.0",	"d" },
+	{ "127.192.0.0", "255.255.255.0", "d" },
+	{ "127.128.0.0", "255.255.255.0", "d" },
+	{ "127.96.0.0", "255.255.255.0", "d" },
+	{ "127.80.0.0", "255.255.255.0", "d" },
+	{ "127.72.0.0", "255.255.255.0", "d" },
+	{ "127.64.0.0", "255.255.255.0", "d" },
+	{ "127.56.0.0", "255.255.255.0", "d" },
+	{ "127.48.0.0", "255.255.255.0", "d" },
+	{ "127.40.0.0", "255.255.255.0", "d" },
+	{ "127.32.0.0", "255.255.255.0", "d" },
+	{ "127.24.0.0", "255.255.255.0", "d" },
+	{ "127.16.0.0", "255.255.255.0", "d" },
+	{ "127.8.0.0", "255.255.255.0", "d" },
+	{ "124.0.0.0", "255.0.0.0", "d" }, { "125.0.0.0", "255.0.0.0", "d" },
+	{ "126.0.0.0", "255.0.0.0", "d" }, { "127.0.0.0", "255.0.0.0", "d" },
+	{ "10.0.0.0", "255.0.0.0", "d" }, { "128.250.0.0", "255.255.0.0", "d" },
+	{ "192.168.0.0", "255.255.0.0", "d" },
+	{ "192.168.1.0", "255.255.255.0", "d" },
 #endif
 	{ NULL, NULL, NULL }
 };
 
 char *mtable[][1] = {
 #if 1
-	{ "192:168:100::2" },
-	{ "192:168:101::2" },
+	{ "192:168:100::2" }, { "192:168:101::2" },
 #else
-	{ "9.0.0.0" },
-	{ "9.0.0.1" },
-	{ "11.0.0.0" },
-	{ "11.0.0.1" },
-	{ "127.0.0.1" },
-	{ "127.0.1.0" },
-	{ "255.255.255.0" },
-	{ "126.0.0.1" },
-	{ "128.251.0.0" },
-	{ "128.251.0.1" },
-	{ "128.251.255.255" },
-	{ "129.250.0.0" },
-	{ "129.250.0.1" },
-	{ "192.168.255.255" },
+	{ "9.0.0.0" }, { "9.0.0.1" }, { "11.0.0.0" }, { "11.0.0.1" },
+	{ "127.0.0.1" }, { "127.0.1.0" }, { "255.255.255.0" }, { "126.0.0.1" },
+	{ "128.251.0.0" }, { "128.251.0.1" }, { "128.251.255.255" },
+	{ "129.250.0.0" }, { "129.250.0.1" }, { "192.168.255.255" },
 #endif
 	{ NULL }
 };
 
-
-int forder[22] = {
-	14, 13, 12,  5, 10,  3, 19,  7,  4, 20,  8,
-	 2, 17,  9, 16, 11, 15,  1,  6, 18,  0, 21
-};
+int forder[22] = { 14, 13, 12, 5, 10, 3, 19, 7, 4, 20, 8, 2, 17, 9, 16, 11, 15,
+	1, 6, 18, 0, 21 };
 
 static int nodecount = 0;
 myst_t *myst_top = NULL;
 tabe_t *ttable = NULL;
 
-void add_addr(ipf_rdx_head_t *, int , int);
+void add_addr(ipf_rdx_head_t *, int, int);
 void checktree(ipf_rdx_head_t *);
 void delete_addr(ipf_rdx_head_t *rnh, int item);
 void dumptree(ipf_rdx_head_t *rnh);
@@ -1002,7 +971,6 @@ void printroots(ipf_rdx_head_t *);
 void random_add(ipf_rdx_head_t *);
 void random_delete(ipf_rdx_head_t *);
 void test_addr(ipf_rdx_head_t *rnh, int pref, addrfamily_t *, int);
-
 
 static void
 ipf_rx_freenode(ipf_rdx_node_t *node, void *arg)
@@ -1018,7 +986,6 @@ ipf_rx_freenode(ipf_rdx_node_t *node, void *arg)
 	}
 }
 
-
 const char *
 addrname(addrfamily_t *ap)
 {
@@ -1026,11 +993,9 @@ addrname(addrfamily_t *ap)
 	const char *txt;
 
 	bzero((char *)name, sizeof(name));
-	txt =  inet_ntop(ap->adf_family, &ap->adf_addr, name,
-			 sizeof(name));
+	txt = inet_ntop(ap->adf_family, &ap->adf_addr, name, sizeof(name));
 	return (txt);
 }
-
 
 void
 fill6bits(int bits, u_int *msk)
@@ -1067,7 +1032,6 @@ fill6bits(int bits, u_int *msk)
 	}
 }
 
-
 void
 setaddr(addrfamily_t *afp, char *str)
 {
@@ -1084,7 +1048,6 @@ setaddr(addrfamily_t *afp, char *str)
 	inet_pton(afp->adf_family, str, &afp->adf_addr);
 }
 
-
 void
 setmask(addrfamily_t *afp, char *str)
 {
@@ -1100,23 +1063,20 @@ setmask(addrfamily_t *afp, char *str)
 	}
 }
 
-
 void
 nodeprinter(ipf_rdx_node_t *node, void *arg)
 {
 	myst_t *stp = (myst_t *)node;
 
 	printf("Node %-9.9s L %-9.9s R %-9.9s P %9.9s/%-9.9s %s/%d\n",
-		node[0].name,
-		GNAME(node[1].left), GNAME(node[1].right),
-		GNAME(node[0].parent), GNAME(node[1].parent),
-		addrname(&stp->dst), node[0].maskbitcount);
+	    node[0].name, GNAME(node[1].left), GNAME(node[1].right),
+	    GNAME(node[0].parent), GNAME(node[1].parent), addrname(&stp->dst),
+	    node[0].maskbitcount);
 	if (stp->printed == -1)
 		printf("!!! %d\n", stp->printed);
 	else
 		stp->printed = 1;
 }
-
 
 void
 printnode(myst_t *stp)
@@ -1133,7 +1093,6 @@ printnode(myst_t *stp)
 	printf("/%-9.9s ", GNAME(node[1].parent));
 	printf("%s P%d\n", addrname(&stp->dst), stp->printed);
 }
-
 
 void
 buildtab(void)
@@ -1169,24 +1128,22 @@ buildtab(void)
 	ttable = tab;
 }
 
-
 void
 printroots(ipf_rdx_head_t *rnh)
 {
 	printf("Root.0.%s b %3d p %-9.9s l %-9.9s r %-9.9s\n",
-		GNAME(&rnh->nodes[0]),
-		rnh->nodes[0].index, GNAME(rnh->nodes[0].parent),
-		GNAME(rnh->nodes[0].left), GNAME(rnh->nodes[0].right));
+	    GNAME(&rnh->nodes[0]), rnh->nodes[0].index,
+	    GNAME(rnh->nodes[0].parent), GNAME(rnh->nodes[0].left),
+	    GNAME(rnh->nodes[0].right));
 	printf("Root.1.%s b %3d p %-9.9s l %-9.9s r %-9.9s\n",
-		GNAME(&rnh->nodes[1]),
-		rnh->nodes[1].index, GNAME(rnh->nodes[1].parent),
-		GNAME(rnh->nodes[1].left), GNAME(rnh->nodes[1].right));
+	    GNAME(&rnh->nodes[1]), rnh->nodes[1].index,
+	    GNAME(rnh->nodes[1].parent), GNAME(rnh->nodes[1].left),
+	    GNAME(rnh->nodes[1].right));
 	printf("Root.2.%s b %3d p %-9.9s l %-9.9s r %-9.9s\n",
-		GNAME(&rnh->nodes[2]),
-		rnh->nodes[2].index, GNAME(rnh->nodes[2].parent),
-		GNAME(rnh->nodes[2].left), GNAME(rnh->nodes[2].right));
+	    GNAME(&rnh->nodes[2]), rnh->nodes[2].index,
+	    GNAME(rnh->nodes[2].parent), GNAME(rnh->nodes[2].left),
+	    GNAME(rnh->nodes[2].right));
 }
-
 
 int
 main(int argc, char *argv[])
@@ -1266,7 +1223,6 @@ main(int argc, char *argv[])
 	return (0);
 }
 
-
 void
 dumptree(ipf_rdx_head_t *rnh)
 {
@@ -1279,13 +1235,11 @@ dumptree(ipf_rdx_head_t *rnh)
 	printf("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 }
 
-
 void
 test_addr(ipf_rdx_head_t *rnh, int pref, addrfamily_t *addr, int limit)
 {
-	static int extras[14] = { 0, -1, 1, 3, 5, 8, 9,
-				  15, 16, 19, 255, 256, 65535, 65536
-	};
+	static int extras[14] = { 0, -1, 1, 3, 5, 8, 9, 15, 16, 19, 255, 256,
+		65535, 65536 };
 	ipf_rdx_node_t *rn;
 	addrfamily_t af;
 	char name[80];
@@ -1312,11 +1266,10 @@ test_addr(ipf_rdx_head_t *rnh, int pref, addrfamily_t *addr, int limit)
 	printf("%d.%d.LOOKUP(%s)", pref, -1, addrname(addr));
 	rn = ipf_rx_match(rnh, addr);
 	stp = (myst_t *)rn;
-	printf(" = %s (%s/%d)\n", GNAME(rn),
-		rn ? addrname(&stp->dst) : "NULL", rn ? rn->maskbitcount : 0);
+	printf(" = %s (%s/%d)\n", GNAME(rn), rn ? addrname(&stp->dst) : "NULL",
+	    rn ? rn->maskbitcount : 0);
 #endif
 }
-
 
 void
 delete_addr(ipf_rdx_head_t *rnh, int item)
@@ -1359,7 +1312,6 @@ delete_addr(ipf_rdx_head_t *rnh, int item)
 	checktree(rnh);
 }
 
-
 void
 add_addr(ipf_rdx_head_t *rnh, int n, int item)
 {
@@ -1374,17 +1326,18 @@ add_addr(ipf_rdx_head_t *rnh, int n, int item)
 	stp->next = myst_top;
 	myst_top = stp;
 #ifdef RDX_DEBUG
-	(void) snprintf(rn[0].name, sizeof(ipf_rdx_node.name), "_BORN.0");
-	(void) snprintf(rn[1].name, sizeof(ipf_rdx_node.name), "_BORN.1");
+	(void)snprintf(rn[0].name, sizeof(ipf_rdx_node.name), "_BORN.0");
+	(void)snprintf(rn[1].name, sizeof(ipf_rdx_node.name), "_BORN.1");
 	rn = ipf_rx_addroute(rnh, &stp->dst, &stp->mask, stp->nodes);
-	(void) snprintf(rn[0].name, sizeof(ipf_rdx_node.name), "%d_NODE.0", item);
-	(void) snprintf(rn[1].name, sizeof(ipf_rdx_node.name), "%d_NODE.1", item);
+	(void)snprintf(rn[0].name, sizeof(ipf_rdx_node.name), "%d_NODE.0",
+	    item);
+	(void)snprintf(rn[1].name, sizeof(ipf_rdx_node.name), "%d_NODE.1",
+	    item);
 	printf("ADD %d/%d %s/%s\n", n, item, rn[0].name, rn[1].name);
 #endif
 	nodecount++;
 	checktree(rnh);
 }
-
 
 void
 checktree(ipf_rdx_head_t *head)
@@ -1418,7 +1371,6 @@ checktree(ipf_rdx_head_t *head)
 	}
 }
 
-
 int *
 randomize(int *pnitems)
 {
@@ -1447,7 +1399,6 @@ randomize(int *pnitems)
 	return (order);
 }
 
-
 void
 random_add(ipf_rdx_head_t *rnh)
 {
@@ -1464,7 +1415,6 @@ random_add(ipf_rdx_head_t *rnh)
 
 	free(order);
 }
-
 
 void
 random_delete(ipf_rdx_head_t *rnh)

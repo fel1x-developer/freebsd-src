@@ -31,33 +31,29 @@
  */
 
 #include <sys/param.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/socket.h>
+
+#include <dev/bhnd/bhnd.h>
+#include <dev/bwn/if_bwnvar.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-#include <net80211/ieee80211_regdomain.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_phy.h>
+#include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
-
-#include <dev/bhnd/bhnd.h>
-
-#include <dev/bwn/if_bwnvar.h>
-
-#include "if_bwn_phy_n_sprom.h"
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 
 #include "bhnd_nvram_map.h"
-
+#include "if_bwn_phy_n_sprom.h"
 
 /* Core power NVRAM variables, indexed by D11 core unit number */
 static const struct bwn_nphy_power_vars {
@@ -67,13 +63,13 @@ static const struct bwn_nphy_power_vars {
 	const char *pa2ga;
 	const char *pa5ga;
 } bwn_nphy_power_vars[BWN_NPHY_NUM_CORE_PWR] = {
-#define	BHND_POWER_NVAR(_idx)					\
-	{ BHND_NVAR_ITT2GA ## _idx, BHND_NVAR_ITT5GA ## _idx,	\
-	  BHND_NVAR_MAXP2GA ## _idx, BHND_NVAR_PA2GA ## _idx,	\
-	  BHND_NVAR_PA5GA ## _idx }
-	BHND_POWER_NVAR(0),
-	BHND_POWER_NVAR(1),
-	BHND_POWER_NVAR(2),
+#define BHND_POWER_NVAR(_idx)                                       \
+	{                                                           \
+		BHND_NVAR_ITT2GA##_idx, BHND_NVAR_ITT5GA##_idx,     \
+		    BHND_NVAR_MAXP2GA##_idx, BHND_NVAR_PA2GA##_idx, \
+		    BHND_NVAR_PA5GA##_idx                           \
+	}
+	BHND_POWER_NVAR(0), BHND_POWER_NVAR(1), BHND_POWER_NVAR(2),
 	BHND_POWER_NVAR(3)
 #undef BHND_POWER_NVAR
 };
@@ -82,8 +78,8 @@ static int
 bwn_nphy_get_core_power_info_r11(struct bwn_softc *sc,
     const struct bwn_nphy_power_vars *v, struct bwn_phy_n_core_pwr_info *c)
 {
-	int16_t	pa5ga[12];
-	int	error;
+	int16_t pa5ga[12];
+	int error;
 
 	/* BHND_NVAR_PA2GA[core] */
 	error = bhnd_nvram_getvar_array(sc->sc_dev, v->pa2ga, c->pa_2g,
@@ -91,15 +87,16 @@ bwn_nphy_get_core_power_info_r11(struct bwn_softc *sc,
 	if (error)
 		return (error);
 
-	/* 
+	/*
 	 * BHND_NVAR_PA5GA
-	 * 
+	 *
 	 * The NVRAM variable is defined as a single pa5ga[12] array; we have
 	 * to split this into pa_5gl[4], pa_5g[4], and pa_5gh[4] for use
 	 * by bwn(4);
 	 */
-	_Static_assert(nitems(pa5ga) == nitems(c->pa_5g) + nitems(c->pa_5gh) +
-	    nitems(c->pa_5gl), "cannot split pa5ga into pa_5gl/pa_5g/pa_5gh");
+	_Static_assert(nitems(pa5ga) ==
+		nitems(c->pa_5g) + nitems(c->pa_5gh) + nitems(c->pa_5gl),
+	    "cannot split pa5ga into pa_5gl/pa_5g/pa_5gh");
 
 	error = bhnd_nvram_getvar_array(sc->sc_dev, v->pa5ga, pa5ga,
 	    sizeof(pa5ga), BHND_NVRAM_TYPE_INT16);
@@ -142,10 +139,10 @@ int
 bwn_nphy_get_core_power_info(struct bwn_mac *mac, int core,
     struct bwn_phy_n_core_pwr_info *c)
 {
-	struct bwn_softc			*sc;
-	const struct bwn_nphy_power_vars	*v;
-	uint8_t					 sromrev;
-	int					 error;
+	struct bwn_softc *sc;
+	const struct bwn_nphy_power_vars *v;
+	uint8_t sromrev;
+	int error;
 
 	sc = mac->mac_sc;
 

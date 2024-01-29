@@ -32,14 +32,14 @@
  */
 
 #include <sys/cdefs.h>
+
+#include "qla_def.h"
+#include "qla_glbl.h"
+#include "qla_hw.h"
+#include "qla_inline.h"
+#include "qla_ioctl.h"
 #include "qla_os.h"
 #include "qla_reg.h"
-#include "qla_hw.h"
-#include "qla_def.h"
-#include "qla_reg.h"
-#include "qla_inline.h"
-#include "qla_glbl.h"
-#include "qla_ioctl.h"
 
 static struct cdevsw qla_cdevsw = {
 	.d_version = D_VERSION,
@@ -50,18 +50,13 @@ static struct cdevsw qla_cdevsw = {
 int
 qla_make_cdev(qla_host_t *ha)
 {
-        ha->ioctl_dev = make_dev(&qla_cdevsw,
-				if_getdunit(ha->ifp),
-                                UID_ROOT,
-                                GID_WHEEL,
-                                0600,
-                                "%s",
-                                if_name(ha->ifp));
+	ha->ioctl_dev = make_dev(&qla_cdevsw, if_getdunit(ha->ifp), UID_ROOT,
+	    GID_WHEEL, 0600, "%s", if_name(ha->ifp));
 
 	if (ha->ioctl_dev == NULL)
 		return (-1);
 
-        ha->ioctl_dev->si_drv1 = ha;
+	ha->ioctl_dev->si_drv1 = ha;
 
 	return (0);
 }
@@ -76,51 +71,51 @@ qla_del_cdev(qla_host_t *ha)
 
 int
 qla_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
-        struct thread *td)
+    struct thread *td)
 {
-        qla_host_t *ha;
-        int rval = 0;
-        qla_reg_val_t *rv;
-        qla_rd_flash_t *rdf;
+	qla_host_t *ha;
+	int rval = 0;
+	qla_reg_val_t *rv;
+	qla_rd_flash_t *rdf;
 	qla_wr_flash_t *wrf;
 	qla_rd_pci_ids_t *pci_ids;
 	device_t pci_dev;
 
-        if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
-                return ENXIO;
+	if ((ha = (qla_host_t *)dev->si_drv1) == NULL)
+		return ENXIO;
 
-	pci_dev= ha->pci_dev;
+	pci_dev = ha->pci_dev;
 
-        switch(cmd) {
-        case QLA_RDWR_REG:
+	switch (cmd) {
+	case QLA_RDWR_REG:
 
-                rv = (qla_reg_val_t *)data;
+		rv = (qla_reg_val_t *)data;
 
-                if (rv->direct) {
-                        if (rv->rd) {
-                                rv->val = READ_OFFSET32(ha, rv->reg);
-                        } else {
-                                WRITE_OFFSET32(ha, rv->reg, rv->val);
-                        }
-                } else {
-                        if ((rval = qla_rdwr_indreg32(ha, rv->reg, &rv->val,
-                                rv->rd)))
-                                rval = ENXIO;
-                }
-                break;
+		if (rv->direct) {
+			if (rv->rd) {
+				rv->val = READ_OFFSET32(ha, rv->reg);
+			} else {
+				WRITE_OFFSET32(ha, rv->reg, rv->val);
+			}
+		} else {
+			if ((rval = qla_rdwr_indreg32(ha, rv->reg, &rv->val,
+				 rv->rd)))
+				rval = ENXIO;
+		}
+		break;
 
-        case QLA_RD_FLASH:
-                rdf = (qla_rd_flash_t *)data;
-                if ((rval = qla_rd_flash32(ha, rdf->off, &rdf->data)))
-                        rval = ENXIO;
-                break;
+	case QLA_RD_FLASH:
+		rdf = (qla_rd_flash_t *)data;
+		if ((rval = qla_rd_flash32(ha, rdf->off, &rdf->data)))
+			rval = ENXIO;
+		break;
 
-        case QLA_WR_FLASH:
-                wrf = (qla_wr_flash_t *)data;
-                if ((rval = qla_wr_flash_buffer(ha, wrf->off, wrf->size,
-					wrf->buffer, wrf->pattern)))
-                        rval = ENXIO;
-                break;
+	case QLA_WR_FLASH:
+		wrf = (qla_wr_flash_t *)data;
+		if ((rval = qla_wr_flash_buffer(ha, wrf->off, wrf->size,
+			 wrf->buffer, wrf->pattern)))
+			rval = ENXIO;
+		break;
 
 	case QLA_ERASE_FLASH:
 		if (qla_erase_flash(ha, ((qla_erase_flash_t *)data)->off,
@@ -136,10 +131,10 @@ qla_eioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		pci_ids->subsys_dev_id = pci_get_subdevice(pci_dev);
 		pci_ids->rev_id = pci_read_config(pci_dev, PCIR_REVID, 1);
 		break;
-		
-        default:
-                break;
-        }
 
-        return rval;
+	default:
+		break;
+	}
+
+	return rval;
 }

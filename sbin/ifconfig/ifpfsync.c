@@ -33,12 +33,12 @@
 #include <sys/socket.h>
 
 #include <net/if.h>
-#include <netinet/in.h>
-#include <net/pfvar.h>
 #include <net/if_pfsync.h>
+#include <net/pfvar.h>
 #include <net/route.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -358,8 +358,7 @@ pfsync_status(if_ctx *ctx)
 
 	memset((char *)&syncdev, 0, IFNAMSIZ);
 	if (nvlist_exists_string(nvl, "syncdev"))
-		strlcpy(syncdev, nvlist_get_string(nvl, "syncdev"),
-		    IFNAMSIZ);
+		strlcpy(syncdev, nvlist_get_string(nvl, "syncdev"), IFNAMSIZ);
 	if (nvlist_exists_number(nvl, "maxupdates"))
 		maxupdates = nvlist_get_number(nvl, "maxupdates");
 	if (nvlist_exists_number(nvl, "version"))
@@ -368,7 +367,7 @@ pfsync_status(if_ctx *ctx)
 		flags = nvlist_get_number(nvl, "flags");
 	if (nvlist_exists_nvlist(nvl, "syncpeer")) {
 		pfsync_syncpeer_nvlist_to_sockaddr(nvlist_get_nvlist(nvl,
-							     "syncpeer"),
+						       "syncpeer"),
 		    &syncpeer);
 	}
 
@@ -381,11 +380,11 @@ pfsync_status(if_ctx *ctx)
 		printf("syncdev: %s ", syncdev);
 
 	if ((syncpeer.ss_family == AF_INET &&
-	    ((struct sockaddr_in *)&syncpeer)->sin_addr.s_addr !=
-	    htonl(INADDR_PFSYNC_GROUP)) || syncpeer.ss_family == AF_INET6) {
+		((struct sockaddr_in *)&syncpeer)->sin_addr.s_addr !=
+		    htonl(INADDR_PFSYNC_GROUP)) ||
+	    syncpeer.ss_family == AF_INET6) {
 
-		struct sockaddr *syncpeer_sa =
-		    (struct sockaddr *)&syncpeer;
+		struct sockaddr *syncpeer_sa = (struct sockaddr *)&syncpeer;
 		if ((error = getnameinfo(syncpeer_sa, syncpeer_sa->sa_len,
 			 syncpeer_str, sizeof(syncpeer_str), NULL, 0,
 			 NI_NUMERICHOST)) != 0)
@@ -400,27 +399,27 @@ pfsync_status(if_ctx *ctx)
 }
 
 static struct cmd pfsync_cmds[] = {
-	DEF_CMD_ARG("syncdev",		setpfsync_syncdev),
-	DEF_CMD("-syncdev",	1,	unsetpfsync_syncdev),
-	DEF_CMD_ARG("syncif",		setpfsync_syncdev),
-	DEF_CMD("-syncif",	1,	unsetpfsync_syncdev),
-	DEF_CMD_ARG("syncpeer",		setpfsync_syncpeer),
-	DEF_CMD("-syncpeer",	1,	unsetpfsync_syncpeer),
-	DEF_CMD_ARG("maxupd",		setpfsync_maxupd),
-	DEF_CMD("defer",	1,	setpfsync_defer),
-	DEF_CMD("-defer",	0,	setpfsync_defer),
-	DEF_CMD_ARG("version",		setpfsync_version),
+	DEF_CMD_ARG("syncdev", setpfsync_syncdev),
+	DEF_CMD("-syncdev", 1, unsetpfsync_syncdev),
+	DEF_CMD_ARG("syncif", setpfsync_syncdev),
+	DEF_CMD("-syncif", 1, unsetpfsync_syncdev),
+	DEF_CMD_ARG("syncpeer", setpfsync_syncpeer),
+	DEF_CMD("-syncpeer", 1, unsetpfsync_syncpeer),
+	DEF_CMD_ARG("maxupd", setpfsync_maxupd),
+	DEF_CMD("defer", 1, setpfsync_defer),
+	DEF_CMD("-defer", 0, setpfsync_defer),
+	DEF_CMD_ARG("version", setpfsync_version),
 };
 static struct afswtch af_pfsync = {
-	.af_name	= "af_pfsync",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_pfsync",
+	.af_af = AF_UNSPEC,
 	.af_other_status = pfsync_status,
 };
 
 static __constructor void
 pfsync_ctor(void)
 {
-	for (size_t i = 0; i < nitems(pfsync_cmds);  i++)
+	for (size_t i = 0; i < nitems(pfsync_cmds); i++)
 		cmd_register(&pfsync_cmds[i]);
 	af_register(&af_pfsync);
 }

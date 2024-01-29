@@ -33,22 +33,25 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <errno.h>
+#include <rpc/clnt.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
+#include <rpcsvc/ypclnt.h>
+#include <rpcsvc/ypxfrd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <rpc/rpc.h>
-#include <rpc/clnt.h>
-#include <rpcsvc/yp.h>
-#include <rpcsvc/ypclnt.h>
-#include <rpcsvc/ypxfrd.h>
+
 #include "ypxfr_extern.h"
 
 int debug = 1;
@@ -75,7 +78,7 @@ ypxfr_exit(ypxfrstat retval, char *temp)
 		if (dbp != NULL)
 			(void)(dbp->close)(dbp);
 		if (unlink(temp) == -1) {
-			yp_error("failed to unlink %s",strerror(errno));
+			yp_error("failed to unlink %s", strerror(errno));
 		}
 	}
 
@@ -84,9 +87,10 @@ ypxfr_exit(ypxfrstat retval, char *temp)
 		timeout.tv_usec = 0;
 
 		if ((clnt = clntudp_create(&ypxfr_callback_addr, ypxfr_prognum,
-					1, timeout, &sock)) == NULL) {
-			yp_error("%s", clnt_spcreateerror("failed to "
-			    "establish callback handle"));
+			 1, timeout, &sock)) == NULL) {
+			yp_error("%s",
+			    clnt_spcreateerror("failed to "
+					       "establish callback handle"));
 			exit(1);
 		}
 
@@ -109,12 +113,12 @@ static void
 usage(void)
 {
 	if (_rpcpmstart) {
-		ypxfr_exit(YPXFR_BADARGS,NULL);
+		ypxfr_exit(YPXFR_BADARGS, NULL);
 	} else {
 		fprintf(stderr, "%s\n%s\n%s\n",
-	"usage: ypxfr [-f] [-c] [-d target domain] [-h source host]",
-	"             [-s source domain] [-p path]",
-	"             [-C taskid program-number ipaddr port] mapname");
+		    "usage: ypxfr [-f] [-c] [-d target domain] [-h source host]",
+		    "             [-s source domain] [-p path]",
+		    "             [-C taskid program-number ipaddr port] mapname");
 		exit(1);
 	}
 }
@@ -150,7 +154,7 @@ ypxfr_foreach(int status, char *key, int keylen, char *val, int vallen,
 	}
 
 	if (yp_put_record(dbp, &dbkey, &dbval, 0) != YP_TRUE)
-		return(yp_errno);
+		return (yp_errno);
 
 	return (0);
 }
@@ -217,33 +221,39 @@ main(int argc, char *argv[])
 			 * four arguments is a twit.
 			 */
 			my_optind = optind - 1;
-			if (argv[my_optind] == NULL || !strlen(argv[my_optind])) {
+			if (argv[my_optind] == NULL ||
+			    !strlen(argv[my_optind])) {
 				yp_error("transaction ID not specified");
 				usage();
 			}
 			ypxfr_resp.transid = atol(argv[my_optind]);
 			my_optind++;
-			if (argv[my_optind] == NULL || !strlen(argv[my_optind])) {
+			if (argv[my_optind] == NULL ||
+			    !strlen(argv[my_optind])) {
 				yp_error("RPC program number not specified");
 				usage();
 			}
 			ypxfr_prognum = atol(argv[my_optind]);
 			my_optind++;
-			if (argv[my_optind] == NULL || !strlen(argv[my_optind])) {
+			if (argv[my_optind] == NULL ||
+			    !strlen(argv[my_optind])) {
 				yp_error("address not specified");
 				usage();
 			}
-			if (!inet_aton(argv[my_optind], &ypxfr_callback_addr.sin_addr)) {
+			if (!inet_aton(argv[my_optind],
+				&ypxfr_callback_addr.sin_addr)) {
 				yp_error("failed to convert '%s' to IP addr",
-					argv[my_optind]);
+				    argv[my_optind]);
 				exit(1);
 			}
 			my_optind++;
-			if (argv[my_optind] == NULL || !strlen(argv[my_optind])) {
+			if (argv[my_optind] == NULL ||
+			    !strlen(argv[my_optind])) {
 				yp_error("port not specified");
 				usage();
 			}
-			ypxfr_callback_addr.sin_port = htons((u_short)atoi(argv[my_optind]));
+			ypxfr_callback_addr.sin_port = htons(
+			    (u_short)atoi(argv[my_optind]));
 			ypxfr_args += 5;
 			break;
 		default:
@@ -278,7 +288,7 @@ main(int argc, char *argv[])
 		} else {
 			yp_error("no destination domain specified and \
 the local domain name isn't set");
-			ypxfr_exit(YPXFR_BADARGS,NULL);
+			ypxfr_exit(YPXFR_BADARGS, NULL);
 		}
 	}
 
@@ -300,18 +310,18 @@ the local domain name isn't set");
 	 */
 	if (ypxfr_source_host == NULL) {
 		if (!ypxfr_use_yplib) {
-		/*
-		 * Double whammy: NIS isn't turned on and the user
-		 * didn't specify a source host.
-		 */
+			/*
+			 * Double whammy: NIS isn't turned on and the user
+			 * didn't specify a source host.
+			 */
 			char *dptr;
 			key.data = "YP_MASTER_NAME";
 			key.size = sizeof("YP_MASTER_NAME") - 1;
 
 			if (yp_get_record(ypxfr_dest_domain, ypxfr_mapname,
-					 &key, &data, 1) != YP_TRUE) {
+				&key, &data, 1) != YP_TRUE) {
 				yp_error("no source host specified");
-				ypxfr_exit(YPXFR_BADARGS,NULL);
+				ypxfr_exit(YPXFR_BADARGS, NULL);
 			}
 			dptr = data.data;
 			dptr[data.size] = '\0';
@@ -324,13 +334,12 @@ the local domain name isn't set");
 
 	if (ypxfr_master == NULL) {
 		if ((ypxfr_master = ypxfr_get_master(ypxfr_source_domain,
-					    	 ypxfr_mapname,
-					     	ypxfr_source_host,
-					     	ypxfr_use_yplib)) == NULL) {
+			 ypxfr_mapname, ypxfr_source_host, ypxfr_use_yplib)) ==
+		    NULL) {
 			yp_error("failed to find master of %s in domain %s: %s",
-				  ypxfr_mapname, ypxfr_source_domain,
-				  ypxfrerr_string((ypxfrstat)yp_errno));
-			ypxfr_exit(YPXFR_MADDR,NULL);
+			    ypxfr_mapname, ypxfr_source_domain,
+			    ypxfrerr_string((ypxfrstat)yp_errno));
+			ypxfr_exit(YPXFR_MADDR, NULL);
 		}
 	}
 
@@ -349,26 +358,24 @@ the local domain name isn't set");
 	remoteport = getrpcport(ypxfr_source_host, YPPROG, YPVERS, IPPROTO_UDP);
 	if (remoteport >= IPPORT_RESERVED) {
 		yp_error("ypserv on %s not running on reserved port",
-						ypxfr_source_host);
+		    ypxfr_source_host);
 		ypxfr_exit(YPXFR_REFUSED, NULL);
 	}
 
-	if ((ypxfr_order = ypxfr_get_order(ypxfr_source_domain,
-					     ypxfr_mapname,
-					     ypxfr_master, 0)) == 0) {
-		yp_error("failed to get order number of %s: %s",
-				ypxfr_mapname, yp_errno == YP_TRUE ?
-				"map has order 0" :
-				ypxfrerr_string((ypxfrstat)yp_errno));
-		ypxfr_exit(YPXFR_YPERR,NULL);
+	if ((ypxfr_order = ypxfr_get_order(ypxfr_source_domain, ypxfr_mapname,
+		 ypxfr_master, 0)) == 0) {
+		yp_error("failed to get order number of %s: %s", ypxfr_mapname,
+		    yp_errno == YP_TRUE ? "map has order 0" :
+					  ypxfrerr_string((ypxfrstat)yp_errno));
+		ypxfr_exit(YPXFR_YPERR, NULL);
 	}
 
 	if (ypxfr_match(ypxfr_master, ypxfr_source_domain, ypxfr_mapname,
-			"YP_INTERDOMAIN", sizeof("YP_INTERDOMAIN") - 1))
+		"YP_INTERDOMAIN", sizeof("YP_INTERDOMAIN") - 1))
 		interdom++;
 
 	if (ypxfr_match(ypxfr_master, ypxfr_source_domain, ypxfr_mapname,
-			"YP_SECURE", sizeof("YP_SECURE") - 1))
+		"YP_SECURE", sizeof("YP_SECURE") - 1))
 		secure++;
 
 	key.data = "YP_LAST_MODIFIED";
@@ -378,10 +385,11 @@ the local domain name isn't set");
 
 	if (!ypxfr_force) {
 		int ignore = 0;
-		if (yp_get_record(ypxfr_dest_domain,ypxfr_mapname,&key,&data,1) != YP_TRUE) {
+		if (yp_get_record(ypxfr_dest_domain, ypxfr_mapname, &key, &data,
+			1) != YP_TRUE) {
 			switch (yp_errno) {
 			case YP_NOKEY:
-				ypxfr_exit(YPXFR_FORCE,NULL);
+				ypxfr_exit(YPXFR_FORCE, NULL);
 				break;
 			case YP_NOMAP:
 				/*
@@ -392,40 +400,39 @@ the local domain name isn't set");
 				break;
 			case YP_BADDB:
 			default:
-				ypxfr_exit(YPXFR_DBM,NULL);
+				ypxfr_exit(YPXFR_DBM, NULL);
 				break;
 			}
 		}
 		if (!ignore && ypxfr_order <= atoi(data.data))
 			ypxfr_exit(YPXFR_AGE, NULL);
-
 	}
 
 	/* Construct a temporary map file name */
-	snprintf(tempmap, sizeof(tempmap), "%s.%d",ypxfr_mapname, getpid());
+	snprintf(tempmap, sizeof(tempmap), "%s.%d", ypxfr_mapname, getpid());
 	snprintf(ypxfr_temp_map, sizeof(ypxfr_temp_map), "%s/%s/%s", yp_dir,
-		 ypxfr_dest_domain, tempmap);
+	    ypxfr_dest_domain, tempmap);
 
 	if ((remoteport = getrpcport(ypxfr_source_host, YPXFRD_FREEBSD_PROG,
-					YPXFRD_FREEBSD_VERS, IPPROTO_TCP))) {
+		 YPXFRD_FREEBSD_VERS, IPPROTO_TCP))) {
 
 		/* Don't talk to rpc.ypxfrds on unprovileged ports. */
 		if (remoteport >= IPPORT_RESERVED) {
 			yp_error("rpc.ypxfrd on %s not using privileged port",
-							ypxfr_source_host);
+			    ypxfr_source_host);
 			ypxfr_exit(YPXFR_REFUSED, NULL);
 		}
 
 		/* Try to send using ypxfrd. If it fails, use old method. */
 		if (!ypxfrd_get_map(ypxfr_source_host, ypxfr_mapname,
-					ypxfr_source_domain, ypxfr_temp_map))
+			ypxfr_source_domain, ypxfr_temp_map))
 			goto leave;
 	}
 
 	/* Open the temporary map read/write. */
 	if ((dbp = yp_open_db_rw(ypxfr_dest_domain, tempmap, 0)) == NULL) {
 		yp_error("failed to open temporary map file");
-		ypxfr_exit(YPXFR_DBM,NULL);
+		ypxfr_exit(YPXFR_DBM, NULL);
 	}
 
 	/*
@@ -439,7 +446,7 @@ the local domain name isn't set");
 
 	if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 		yp_error("failed to write order number to database");
-		ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 	}
 
 	key.data = "YP_MASTER_NAME";
@@ -449,7 +456,7 @@ the local domain name isn't set");
 
 	if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 		yp_error("failed to write master name to database");
-		ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 	}
 
 	key.data = "YP_DOMAIN_NAME";
@@ -459,10 +466,10 @@ the local domain name isn't set");
 
 	if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 		yp_error("failed to write domain name to database");
-		ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 	}
 
-	snprintf (buf, sizeof(buf), "%s:%s", ypxfr_source_host, ypxfr_mapname);
+	snprintf(buf, sizeof(buf), "%s:%s", ypxfr_source_host, ypxfr_mapname);
 
 	key.data = "YP_INPUT_NAME";
 	key.size = sizeof("YP_INPUT_NAME") - 1;
@@ -471,12 +478,11 @@ the local domain name isn't set");
 
 	if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 		yp_error("failed to write input name to database");
-		ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
-
+		ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 	}
 
 	snprintf(buf, sizeof(buf), "%s/%s/%s", yp_dir, ypxfr_dest_domain,
-							ypxfr_mapname);
+	    ypxfr_mapname);
 
 	key.data = "YP_OUTPUT_NAME";
 	key.size = sizeof("YP_OUTPUT_NAME") - 1;
@@ -485,7 +491,7 @@ the local domain name isn't set");
 
 	if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 		yp_error("failed to write output name to database");
-		ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 	}
 
 	if (interdom) {
@@ -496,7 +502,7 @@ the local domain name isn't set");
 
 		if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 			yp_error("failed to add interdomain flag to database");
-			ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+			ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 		}
 	}
 
@@ -508,16 +514,16 @@ the local domain name isn't set");
 
 		if (yp_put_record(dbp, &key, &data, 0) != YP_TRUE) {
 			yp_error("failed to add secure flag to database");
-			ypxfr_exit(YPXFR_DBM,ypxfr_temp_map);
+			ypxfr_exit(YPXFR_DBM, ypxfr_temp_map);
 		}
 	}
 
 	/* Now suck over the contents of the map from the master. */
 
-	if (ypxfr_get_map(ypxfr_mapname,ypxfr_source_domain,
-			  ypxfr_source_host, ypxfr_foreach)){
+	if (ypxfr_get_map(ypxfr_mapname, ypxfr_source_domain, ypxfr_source_host,
+		ypxfr_foreach)) {
 		yp_error("failed to retrieve map from source host");
-		ypxfr_exit(YPXFR_YPERR,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_YPERR, ypxfr_temp_map);
 	}
 
 	(void)(dbp->close)(dbp);
@@ -526,21 +532,19 @@ the local domain name isn't set");
 leave:
 
 	snprintf(buf, sizeof(buf), "%s/%s/%s", yp_dir, ypxfr_dest_domain,
-							ypxfr_mapname);
+	    ypxfr_mapname);
 
 	/* Peek at the order number again and check for skew. */
 	if ((ypxfr_skew_check = ypxfr_get_order(ypxfr_source_domain,
-					     ypxfr_mapname,
-					     ypxfr_master, 0)) == 0) {
-		yp_error("failed to get order number of %s: %s",
-				ypxfr_mapname, yp_errno == YP_TRUE ?
-				"map has order 0" :
-				ypxfrerr_string((ypxfrstat)yp_errno));
-		ypxfr_exit(YPXFR_YPERR,ypxfr_temp_map);
+		 ypxfr_mapname, ypxfr_master, 0)) == 0) {
+		yp_error("failed to get order number of %s: %s", ypxfr_mapname,
+		    yp_errno == YP_TRUE ? "map has order 0" :
+					  ypxfrerr_string((ypxfrstat)yp_errno));
+		ypxfr_exit(YPXFR_YPERR, ypxfr_temp_map);
 	}
 
 	if (ypxfr_order != ypxfr_skew_check)
-		ypxfr_exit(YPXFR_SKEW,ypxfr_temp_map);
+		ypxfr_exit(YPXFR_SKEW, ypxfr_temp_map);
 
 	/*
 	 * Send a YPPROC_CLEAR to the local ypserv.
@@ -549,11 +553,11 @@ leave:
 		char in = 0;
 		char *out = NULL;
 		int stat;
-		if ((stat = callrpc("localhost",YPPROG,YPVERS,YPPROC_CLEAR,
-			(xdrproc_t)xdr_void, (void *)&in,
-			(xdrproc_t)xdr_void, (void *)out)) != RPC_SUCCESS) {
+		if ((stat = callrpc("localhost", YPPROG, YPVERS, YPPROC_CLEAR,
+			 (xdrproc_t)xdr_void, (void *)&in, (xdrproc_t)xdr_void,
+			 (void *)out)) != RPC_SUCCESS) {
 			yp_error("failed to send 'clear' to local ypserv: %s",
-				 clnt_sperrno((enum clnt_stat) stat));
+			    clnt_sperrno((enum clnt_stat)stat));
 			ypxfr_exit(YPXFR_CLEAR, ypxfr_temp_map);
 		}
 	}
@@ -567,11 +571,11 @@ leave:
 	 */
 	if (rename(ypxfr_temp_map, buf) == -1) {
 		yp_error("rename(%s,%s) failed: %s", ypxfr_temp_map, buf,
-							strerror(errno));
-		ypxfr_exit(YPXFR_FILE,NULL);
+		    strerror(errno));
+		ypxfr_exit(YPXFR_FILE, NULL);
 	}
 
-	ypxfr_exit(YPXFR_SUCC,NULL);
+	ypxfr_exit(YPXFR_SUCC, NULL);
 
-	return(1);
+	return (1);
 }

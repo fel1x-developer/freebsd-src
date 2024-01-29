@@ -27,11 +27,10 @@
  */
 
 #ifndef _RFB_H_
-#define	_RFB_H_
+#define _RFB_H_
 
-#define	RFB_PORT	5900
+#define RFB_PORT 5900
 
-int	rfb_init(const char *hostname, int port, int wait,
-	    const char *password);
+int rfb_init(const char *hostname, int port, int wait, const char *password);
 
 #endif /* _RFB_H_ */

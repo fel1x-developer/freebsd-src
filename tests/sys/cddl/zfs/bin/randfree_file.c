@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 #include "file_common.h"
 
 /*
@@ -37,9 +36,10 @@ static void usage(char *progname);
 static void
 usage(char *progname)
 {
-	(void) fprintf(stderr,
+	(void)fprintf(stderr,
 	    "usage: %s [-l filesize] [-s start-offset]"
-	    "[-n section-len] filename\n", progname);
+	    "[-n section-len] filename\n",
+	    progname);
 	exit(1);
 }
 
@@ -49,7 +49,7 @@ main(int argc, char *argv[])
 	char *filename, *buf;
 	size_t filesize;
 	off_t start_off, off_len;
-	int  fd, ch;
+	int fd, ch;
 	struct flock fl;
 
 	while ((ch = getopt(argc, argv, "l:s:n:")) != EOF) {
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
 
 	buf = (char *)malloc(filesize);
 
-	if ((fd = open(filename, O_RDWR|O_CREAT|O_TRUNC)) < 0) {
+	if ((fd = open(filename, O_RDWR | O_CREAT | O_TRUNC)) < 0) {
 		perror("open");
 		return (1);
 	}

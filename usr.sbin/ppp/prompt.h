@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#define LOCAL_AUTH	0x01
-#define LOCAL_NO_AUTH	0x02
-#define LOCAL_DENY	0x03
-#define LOCAL_CX	0x04	/* OR'd value - require a context */
-#define LOCAL_CX_OPT	0x08	/* OR'd value - optional context */
+#define LOCAL_AUTH 0x01
+#define LOCAL_NO_AUTH 0x02
+#define LOCAL_DENY 0x03
+#define LOCAL_CX 0x04	  /* OR'd value - require a context */
+#define LOCAL_CX_OPT 0x08 /* OR'd value - optional context */
 
 struct server;
 struct datalink;
@@ -38,32 +38,32 @@ struct bundle;
 struct cmdargs;
 
 struct prompt {
-  struct fdescriptor desc;
-  int fd_in, fd_out;
-  struct datalink *TermMode;	/* The modem we're talking directly to */
-  FILE *Term;			/* sits on top of fd_out */
-  u_char auth;			/* Local Authorized status */
-  struct server *owner;         /* who created me */
-  struct bundle *bundle;	/* who I'm controlling */
-  unsigned nonewline : 1;	/* need a newline before our prompt ? */
-  unsigned needprompt : 1;	/* Show a prompt at the next UpdateSet() */
-  unsigned active : 1;		/* Is the prompt active (^Z) */
-  unsigned readtilde : 1;	/* We've read a ``~'' from fd_in */
+	struct fdescriptor desc;
+	int fd_in, fd_out;
+	struct datalink *TermMode; /* The modem we're talking directly to */
+	FILE *Term;		   /* sits on top of fd_out */
+	u_char auth;		   /* Local Authorized status */
+	struct server *owner;	   /* who created me */
+	struct bundle *bundle;	   /* who I'm controlling */
+	unsigned nonewline : 1;	   /* need a newline before our prompt ? */
+	unsigned needprompt : 1;   /* Show a prompt at the next UpdateSet() */
+	unsigned active : 1;	   /* Is the prompt active (^Z) */
+	unsigned readtilde : 1;	   /* We've read a ``~'' from fd_in */
 
-  struct {
-    const char *type;		/* Type of connection */
-    char from[40];		/* Source of connection */
-  } src;
+	struct {
+		const char *type; /* Type of connection */
+		char from[40];	  /* Source of connection */
+	} src;
 
-  struct prompt *next;		/* Maintained in log.c */
-  u_long logmask;		/* Maintained in log.c */
+	struct prompt *next; /* Maintained in log.c */
+	u_long logmask;	     /* Maintained in log.c */
 
-  struct termios oldtio;	/* Original tty mode */
-  struct termios comtio;	/* Command level tty mode */
+	struct termios oldtio; /* Original tty mode */
+	struct termios comtio; /* Command level tty mode */
 };
 
 #define descriptor2prompt(d) \
-  ((d)->type == PROMPT_DESCRIPTOR ? (struct prompt *)(d) : NULL)
+	((d)->type == PROMPT_DESCRIPTOR ? (struct prompt *)(d) : NULL)
 
 #define PROMPT_STD (-1)
 extern struct prompt *prompt_Create(struct server *, struct bundle *, int);
@@ -71,13 +71,13 @@ extern void prompt_Destroy(struct prompt *, int);
 extern void prompt_Required(struct prompt *);
 #ifdef __GNUC__
 extern void prompt_Printf(struct prompt *, const char *, ...)
-                          __attribute__ ((format (printf, 2, 3)));
+    __attribute__((format(printf, 2, 3)));
 #else
 extern void prompt_Printf(struct prompt *, const char *, ...);
 #endif
 #ifdef __GNUC__
 extern void prompt_vPrintf(struct prompt *, const char *, va_list)
-			   __attribute__ ((format (printf, 2, 0)));
+    __attribute__((format(printf, 2, 0)));
 #else
 extern void prompt_vPrintf(struct prompt *, const char *, va_list);
 #endif

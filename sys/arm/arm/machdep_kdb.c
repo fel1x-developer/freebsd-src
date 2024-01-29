@@ -1,4 +1,5 @@
-/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $	*/
+/*	$NetBSD: arm32_machdep.c,v 1.44 2004/03/24 15:34:47 atatat Exp $
+ */
 
 /*-
  * Copyright (c) 2004 Olivier Houchard
@@ -31,9 +32,9 @@
 #include "opt_ddb.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/proc.h>
 #include <sys/reg.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 #include <machine/pcb.h>
@@ -48,12 +49,12 @@ DB_SHOW_COMMAND(cp15, db_show_cp15)
 	reg = cp15_midr_get();
 	db_printf("Cpu ID: 0x%08x\n", reg);
 	reg = cp15_ctr_get();
-	db_printf("Current Cache Lvl ID: 0x%08x\n",reg);
+	db_printf("Current Cache Lvl ID: 0x%08x\n", reg);
 
 	reg = cp15_sctlr_get();
-	db_printf("Ctrl: 0x%08x\n",reg);
+	db_printf("Ctrl: 0x%08x\n", reg);
 	reg = cp15_actlr_get();
-	db_printf("Aux Ctrl: 0x%08x\n",reg);
+	db_printf("Aux Ctrl: 0x%08x\n", reg);
 
 	reg = cp15_id_pfr0_get();
 	db_printf("Processor Feat 0: 0x%08x\n", reg);
@@ -82,7 +83,7 @@ DB_SHOW_COMMAND(vtop, db_show_vtop)
 	if (have_addr) {
 		cp15_ats1cpr_set(addr);
 		reg = cp15_par_get();
-		db_printf("Physical address reg: 0x%08x\n",reg);
+		db_printf("Physical address reg: 0x%08x\n", reg);
 	} else
 		db_printf("show vtop <virt_addr>\n");
 }
@@ -117,8 +118,7 @@ fill_fpregs(struct thread *td, struct fpreg *regs)
 	}
 	KASSERT(pcb->pcb_vfpsaved == &pcb->pcb_vfpstate,
 	    ("Called fill_fpregs while the kernel is using the VFP"));
-	memcpy(regs->fpr_r, pcb->pcb_vfpstate.reg,
-	    sizeof(regs->fpr_r));
+	memcpy(regs->fpr_r, pcb->pcb_vfpstate.reg, sizeof(regs->fpr_r));
 	regs->fpr_fpscr = pcb->pcb_vfpstate.fpscr;
 #else
 	memset(regs, 0, sizeof(*regs));
@@ -135,7 +135,7 @@ set_regs(struct thread *td, struct reg *regs)
 	tf->tf_usr_sp = regs->r_sp;
 	tf->tf_usr_lr = regs->r_lr;
 	tf->tf_pc = regs->r_pc;
-	tf->tf_spsr &=  ~PSR_FLAGS;
+	tf->tf_spsr &= ~PSR_FLAGS;
 	tf->tf_spsr |= regs->r_cpsr & PSR_FLAGS;
 	return (0);
 }

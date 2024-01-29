@@ -30,20 +30,21 @@
 
 #include <sys/param.h>
 #include <sys/dtrace.h>
+
 #include <machine/md_var.h>
 
 #include "fbt.h"
 
-#define FBT_PATCHVAL		0x7ffff808
-#define FBT_MFLR_R0		0x7c0802a6
-#define FBT_MTLR_R0		0x7c0803a6
-#define FBT_BLR			0x4e800020
-#define FBT_BCTR		0x4e800030
-#define FBT_BRANCH		0x48000000
-#define FBT_BR_MASK		0x03fffffc
-#define FBT_IS_JUMP(instr)	((instr & ~FBT_BR_MASK) == FBT_BRANCH)
+#define FBT_PATCHVAL 0x7ffff808
+#define FBT_MFLR_R0 0x7c0802a6
+#define FBT_MTLR_R0 0x7c0803a6
+#define FBT_BLR 0x4e800020
+#define FBT_BCTR 0x4e800030
+#define FBT_BRANCH 0x48000000
+#define FBT_BR_MASK 0x03fffffc
+#define FBT_IS_JUMP(instr) ((instr & ~FBT_BR_MASK) == FBT_BRANCH)
 
-#define	FBT_AFRAMES	5
+#define FBT_AFRAMES 5
 
 int
 fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
@@ -71,7 +72,8 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
 				 * fixup tail calls here.
 				 */
 				if (fbt->fbtp_rval == DTRACE_INVOP_JUMP) {
-					frame->srr0 = (uintptr_t)fbt->fbtp_patchpoint;
+					frame->srr0 = (uintptr_t)
+							  fbt->fbtp_patchpoint;
 					tmp = fbt->fbtp_savedval & FBT_BR_MASK;
 					/* Sign extend. */
 					if (tmp & 0x02000000)
@@ -127,8 +129,8 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	if (fbt_excluded(name))
 		return (0);
 
-	instr = (uint32_t *) symval->value;
-	limit = (uint32_t *) (symval->value + symval->size);
+	instr = (uint32_t *)symval->value;
+	limit = (uint32_t *)(symval->value + symval->size);
 
 	for (; instr < limit; instr++)
 		if (*instr == FBT_MFLR_R0)
@@ -137,10 +139,10 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	if (*instr != FBT_MFLR_R0)
 		return (0);
 
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
-	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-	    name, FBT_ENTRY, FBT_AFRAMES, fbt);
+	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name, FBT_ENTRY,
+	    FBT_AFRAMES, fbt);
 	fbt->fbtp_patchpoint = instr;
 	fbt->fbtp_ctl = lf;
 	fbt->fbtp_loadcnt = lf->loadcnt;
@@ -173,7 +175,7 @@ again:
 
 		ptr = *(uint32_t **)instr;
 
-		if (ptr >= (uint32_t *) symval->value && ptr < limit) {
+		if (ptr >= (uint32_t *)symval->value && ptr < limit) {
 			instr++;
 			goto again;
 		}
@@ -198,12 +200,12 @@ again:
 	/*
 	 * We have a winner!
 	 */
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
 
 	if (retfbt == NULL) {
-		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-		    name, FBT_RETURN, FBT_AFRAMES, fbt);
+		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name,
+		    FBT_RETURN, FBT_AFRAMES, fbt);
 	} else {
 		retfbt->fbtp_probenext = fbt;
 		fbt->fbtp_id = retfbt->fbtp_id;
@@ -222,8 +224,8 @@ again:
 	else
 		fbt->fbtp_rval = DTRACE_INVOP_JUMP;
 
-	fbt->fbtp_roffset =
-	    (uintptr_t)((uint8_t *)instr - (uint8_t *)symval->value);
+	fbt->fbtp_roffset = (uintptr_t)((uint8_t *)instr -
+	    (uint8_t *)symval->value);
 
 	fbt->fbtp_savedval = *instr;
 	fbt->fbtp_patchval = FBT_PATCHVAL;

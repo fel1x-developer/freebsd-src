@@ -38,22 +38,22 @@
 struct syscon {
 	KOBJ_FIELDS;
 
-	TAILQ_ENTRY(syscon)	syscon_link;   /* Global list entry */
+	TAILQ_ENTRY(syscon) syscon_link; /* Global list entry */
 
-	device_t		pdev;		/* provider device */
+	device_t pdev; /* provider device */
 #ifdef FDT
-	phandle_t		ofw_node;	/* OFW node for syscon */
+	phandle_t ofw_node; /* OFW node for syscon */
 #endif
-	void			*softc;		/* provider softc */
+	void *softc; /* provider softc */
 };
 
 /*
  * Shorthands for constructing method tables.
  */
-#define	SYSCONMETHOD		KOBJMETHOD
-#define	SYSCONMETHOD_END	KOBJMETHOD_END
-#define	syscon_method_t		kobj_method_t
-#define	syscon_class_t		kobj_class_t
+#define SYSCONMETHOD KOBJMETHOD
+#define SYSCONMETHOD_END KOBJMETHOD_END
+#define syscon_method_t kobj_method_t
+#define syscon_class_t kobj_class_t
 DECLARE_CLASS(syscon_class);
 
 void *syscon_get_softc(struct syscon *syscon);
@@ -71,7 +71,8 @@ struct syscon *syscon_create_ofw_node(device_t pdev,
 phandle_t syscon_get_ofw_node(struct syscon *syscon);
 int syscon_get_by_ofw_property(device_t consumer, phandle_t node, char *name,
     struct syscon **syscon);
-int syscon_get_by_ofw_node(device_t cdev, phandle_t node, struct syscon **syscon);
+int syscon_get_by_ofw_node(device_t cdev, phandle_t node,
+    struct syscon **syscon);
 #endif
 
 #endif /* DEV_SYSCON_H */

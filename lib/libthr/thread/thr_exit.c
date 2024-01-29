@@ -30,23 +30,26 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
+
+#include "namespace.h"
 #ifdef _PTHREAD_FORCED_UNWIND
 #include <dlfcn.h>
 #endif
+#include <sys/types.h>
+#include <sys/signalvar.h>
+
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-#include <sys/types.h>
-#include <sys/signalvar.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
-static void	exit_thread(void) __dead2;
+static void exit_thread(void) __dead2;
 
 __weak_reference(_Tthr_exit, pthread_exit);
 __weak_reference(_Tthr_exit, _pthread_exit);
@@ -58,13 +61,12 @@ static void thread_unwind(void) __dead2;
 #ifdef PIC
 static void thread_uw_init(void);
 static _Unwind_Reason_Code thread_unwind_stop(int version,
-	_Unwind_Action actions,
-	uint64_t exc_class,
-	struct _Unwind_Exception *exc_obj,
-	struct _Unwind_Context *context, void *stop_parameter);
+    _Unwind_Action actions, uint64_t exc_class,
+    struct _Unwind_Exception *exc_obj, struct _Unwind_Context *context,
+    void *stop_parameter);
 /* unwind library pointers */
-static _Unwind_Reason_Code (*uwl_forcedunwind)(struct _Unwind_Exception *,
-	_Unwind_Stop_Fn, void *);
+static _Unwind_Reason_Code (
+    *uwl_forcedunwind)(struct _Unwind_Exception *, _Unwind_Stop_Fn, void *);
 static uintptr_t (*uwl_getcfa)(struct _Unwind_Context *);
 
 static void
@@ -76,33 +78,36 @@ thread_uw_init(void)
 	void *forcedunwind, *getcfa;
 
 	if (inited)
-	    return;
+		return;
 	handle = RTLD_DEFAULT;
 	if ((forcedunwind = dlsym(handle, "_Unwind_ForcedUnwind")) != NULL) {
-	    if (dladdr(forcedunwind, &dli)) {
-		/*
-		 * Make sure the address is always valid by holding the library,
-		 * also assume functions are in same library.
-		 */
-		if ((handle = dlopen(dli.dli_fname, RTLD_LAZY)) != NULL) {
-		    forcedunwind = dlsym(handle, "_Unwind_ForcedUnwind");
-		    getcfa = dlsym(handle, "_Unwind_GetCFA");
-		    if (forcedunwind != NULL && getcfa != NULL) {
-			uwl_getcfa = getcfa;
-			atomic_store_rel_ptr((volatile void *)&uwl_forcedunwind,
-				(uintptr_t)forcedunwind);
-		    } else {
-			dlclose(handle);
-		    }
+		if (dladdr(forcedunwind, &dli)) {
+			/*
+			 * Make sure the address is always valid by holding the
+			 * library, also assume functions are in same library.
+			 */
+			if ((handle = dlopen(dli.dli_fname, RTLD_LAZY)) !=
+			    NULL) {
+				forcedunwind = dlsym(handle,
+				    "_Unwind_ForcedUnwind");
+				getcfa = dlsym(handle, "_Unwind_GetCFA");
+				if (forcedunwind != NULL && getcfa != NULL) {
+					uwl_getcfa = getcfa;
+					atomic_store_rel_ptr(
+					    (volatile void *)&uwl_forcedunwind,
+					    (uintptr_t)forcedunwind);
+				} else {
+					dlclose(handle);
+				}
+			}
 		}
-	    }
 	}
 	inited = 1;
 }
 
 _Unwind_Reason_Code
 _Unwind_ForcedUnwind(struct _Unwind_Exception *ex, _Unwind_Stop_Fn stop_func,
-	void *stop_arg)
+    void *stop_arg)
 {
 	return (*uwl_forcedunwind)(ex, stop_func, stop_arg);
 }
@@ -131,9 +136,8 @@ thread_unwind_cleanup(_Unwind_Reason_Code code __unused,
 
 static _Unwind_Reason_Code
 thread_unwind_stop(int version __unused, _Unwind_Action actions,
-	uint64_t exc_class __unused,
-	struct _Unwind_Exception *exc_obj __unused,
-	struct _Unwind_Context *context, void *stop_parameter __unused)
+    uint64_t exc_class __unused, struct _Unwind_Exception *exc_obj __unused,
+    struct _Unwind_Context *context, void *stop_parameter __unused)
 {
 	struct pthread *curthread = _get_curthread();
 	struct pthread_cleanup *cur;
@@ -149,7 +153,7 @@ thread_unwind_stop(int version __unused, _Unwind_Action actions,
 	}
 
 	while ((cur = curthread->cleanup) != NULL &&
-	       (done || (uintptr_t)cur <= cfa)) {
+	    (done || (uintptr_t)cur <= cfa)) {
 		__pthread_cleanup_pop_imp(1);
 	}
 
@@ -166,7 +170,7 @@ thread_unwind_stop(int version __unused, _Unwind_Action actions,
 static void
 thread_unwind(void)
 {
-	struct pthread  *curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 
 	curthread->ex.exception_class = 0;
 	curthread->ex.exception_cleanup = thread_unwind_cleanup;
@@ -215,8 +219,9 @@ _pthread_exit_mask(void *status, sigset_t *mask)
 	/* Check if this thread is already in the process of exiting: */
 	if (curthread->cancelling)
 		PANIC("Thread %p has called "
-		    "pthread_exit() from a destructor. POSIX 1003.1 "
-		    "1996 s16.2.5.2 does not allow this!", curthread);
+		      "pthread_exit() from a destructor. POSIX 1003.1 "
+		      "1996 s16.2.5.2 does not allow this!",
+		    curthread);
 
 	/* Flag this thread as exiting. */
 	curthread->cancelling = 1;
@@ -233,7 +238,7 @@ _pthread_exit_mask(void *status, sigset_t *mask)
 		SIGADDSET(set, SIGCANCEL);
 		__sys_sigprocmask(SIG_UNBLOCK, mask, NULL);
 	}
-	
+
 	/* Save the return value: */
 	curthread->ret = status;
 #ifdef _PTHREAD_FORCED_UNWIND
@@ -247,15 +252,16 @@ _pthread_exit_mask(void *status, sigset_t *mask)
 		if (curthread->unwind_disabled) {
 			if (message_printed == 0) {
 				message_printed = 1;
-				_thread_printf(2, "Warning: old _pthread_cleanup_push was called, "
-				  	"stack unwinding is disabled.\n");
+				_thread_printf(2,
+				    "Warning: old _pthread_cleanup_push was called, "
+				    "stack unwinding is disabled.\n");
 			}
 			goto cleanup;
 		}
 		thread_unwind();
 
 	} else {
-cleanup:
+	cleanup:
 		while (curthread->cleanup != NULL) {
 			__pthread_cleanup_pop_imp(1);
 		}

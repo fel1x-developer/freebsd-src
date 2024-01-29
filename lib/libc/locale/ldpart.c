@@ -26,7 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -36,28 +35,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "ldpart.h"
+#include "namespace.h"
 #include "setlocale.h"
+#include "un-namespace.h"
 
 static int split_lines(char *, const char *);
 
 int
-__part_load_locale(const char *name,
-		int *using_locale,
-		char **locale_buf,
-		const char *category_filename,
-		int locale_buf_size_max,
-		int locale_buf_size_min,
-		const char **dst_localebuf)
+__part_load_locale(const char *name, int *using_locale, char **locale_buf,
+    const char *category_filename, int locale_buf_size_max,
+    int locale_buf_size_min, const char **dst_localebuf)
 {
-	int		saverr, fd, i, num_lines;
-	char		*lbuf, *p;
-	const char	*plim;
-	char		filename[PATH_MAX];
-	struct stat	st;
-	size_t		namesize, bufsize;
+	int saverr, fd, i, num_lines;
+	char *lbuf, *p;
+	const char *plim;
+	char filename[PATH_MAX];
+	struct stat st;
+	size_t namesize, bufsize;
 
 	/* 'name' must be already checked. */
 	if (strcmp(name, "C") == 0 || strcmp(name, "POSIX") == 0 ||
@@ -103,7 +99,7 @@ __part_load_locale(const char *name,
 	(void)strcpy(lbuf, name);
 	p = lbuf + namesize;
 	plim = p + st.st_size;
-	if (_read(fd, p, (size_t) st.st_size) != st.st_size)
+	if (_read(fd, p, (size_t)st.st_size) != st.st_size)
 		goto bad_lbuf;
 	/*
 	 * Parse the locale file into localebuf.
@@ -163,4 +159,3 @@ split_lines(char *p, const char *plim)
 	}
 	return (i);
 }
-

@@ -35,328 +35,333 @@
 #ifndef IRDMA_DEFS_H
 #define IRDMA_DEFS_H
 
-#define IRDMA_FIRST_USER_QP_ID	3
+#define IRDMA_FIRST_USER_QP_ID 3
 
 #define ECN_CODE_PT_MASK 3
-#define ECN_CODE_PT_VAL	2
+#define ECN_CODE_PT_VAL 2
 
-#define IRDMA_PUSH_OFFSET		(8 * 1024 * 1024)
-#define IRDMA_PF_FIRST_PUSH_PAGE_INDEX	16
-#define IRDMA_PF_BAR_RSVD		(60 * 1024)
+#define IRDMA_PUSH_OFFSET (8 * 1024 * 1024)
+#define IRDMA_PF_FIRST_PUSH_PAGE_INDEX 16
+#define IRDMA_PF_BAR_RSVD (60 * 1024)
 
-#define IRDMA_PE_DB_SIZE_4M	1
-#define IRDMA_PE_DB_SIZE_8M	2
+#define IRDMA_PE_DB_SIZE_4M 1
+#define IRDMA_PE_DB_SIZE_8M 2
 
-#define IRDMA_IRD_HW_SIZE_4	0
-#define IRDMA_IRD_HW_SIZE_16	1
-#define IRDMA_IRD_HW_SIZE_64	2
-#define IRDMA_IRD_HW_SIZE_128	3
-#define IRDMA_IRD_HW_SIZE_256	4
+#define IRDMA_IRD_HW_SIZE_4 0
+#define IRDMA_IRD_HW_SIZE_16 1
+#define IRDMA_IRD_HW_SIZE_64 2
+#define IRDMA_IRD_HW_SIZE_128 3
+#define IRDMA_IRD_HW_SIZE_256 4
 
-#define IRDMA_QP_STATE_INVALID		0
-#define IRDMA_QP_STATE_IDLE		1
-#define IRDMA_QP_STATE_RTS		2
-#define IRDMA_QP_STATE_CLOSING		3
-#define IRDMA_QP_STATE_SQD		3
-#define IRDMA_QP_STATE_RTR		4
-#define IRDMA_QP_STATE_TERMINATE	5
-#define IRDMA_QP_STATE_ERROR		6
+#define IRDMA_QP_STATE_INVALID 0
+#define IRDMA_QP_STATE_IDLE 1
+#define IRDMA_QP_STATE_RTS 2
+#define IRDMA_QP_STATE_CLOSING 3
+#define IRDMA_QP_STATE_SQD 3
+#define IRDMA_QP_STATE_RTR 4
+#define IRDMA_QP_STATE_TERMINATE 5
+#define IRDMA_QP_STATE_ERROR 6
 
-#define IRDMA_MAX_USER_PRIORITY		8
-#define IRDMA_DSCP_NUM_VAL		64
-#define IRDMA_MAX_TRAFFIC_CLASS		8
-#define IRDMA_MAX_STATS_COUNT		128
-#define IRDMA_FIRST_NON_PF_STAT		4
+#define IRDMA_MAX_USER_PRIORITY 8
+#define IRDMA_DSCP_NUM_VAL 64
+#define IRDMA_MAX_TRAFFIC_CLASS 8
+#define IRDMA_MAX_STATS_COUNT 128
+#define IRDMA_FIRST_NON_PF_STAT 4
 
-#define IRDMA_MIN_MTU_IPV4	576
-#define IRDMA_MIN_MTU_IPV6	1280
-#define IRDMA_MTU_TO_MSS_IPV4	40
-#define IRDMA_MTU_TO_MSS_IPV6	60
-#define IRDMA_DEFAULT_MTU	1500
+#define IRDMA_MIN_MTU_IPV4 576
+#define IRDMA_MIN_MTU_IPV6 1280
+#define IRDMA_MTU_TO_MSS_IPV4 40
+#define IRDMA_MTU_TO_MSS_IPV6 60
+#define IRDMA_DEFAULT_MTU 1500
 
-#define Q2_FPSN_OFFSET		64
-#define TERM_DDP_LEN_TAGGED	14
-#define TERM_DDP_LEN_UNTAGGED	18
-#define TERM_RDMA_LEN		28
-#define RDMA_OPCODE_M		0x0f
-#define RDMA_READ_REQ_OPCODE	1
-#define Q2_BAD_FRAME_OFFSET	72
-#define CQE_MAJOR_DRV		0x8000
+#define Q2_FPSN_OFFSET 64
+#define TERM_DDP_LEN_TAGGED 14
+#define TERM_DDP_LEN_UNTAGGED 18
+#define TERM_RDMA_LEN 28
+#define RDMA_OPCODE_M 0x0f
+#define RDMA_READ_REQ_OPCODE 1
+#define Q2_BAD_FRAME_OFFSET 72
+#define CQE_MAJOR_DRV 0x8000
 
-#define IRDMA_TERM_SENT		1
-#define IRDMA_TERM_RCVD		2
-#define IRDMA_TERM_DONE		4
-#define IRDMA_MAC_HLEN		14
-#define IRDMA_BYTE_0		0
-#define IRDMA_BYTE_8		8
-#define IRDMA_BYTE_16		16
-#define IRDMA_BYTE_24		24
-#define IRDMA_BYTE_32		32
-#define IRDMA_BYTE_40		40
-#define IRDMA_BYTE_48		48
-#define IRDMA_BYTE_56		56
-#define IRDMA_BYTE_64		64
-#define IRDMA_BYTE_72		72
-#define IRDMA_BYTE_80		80
-#define IRDMA_BYTE_88		88
-#define IRDMA_BYTE_96		96
-#define IRDMA_BYTE_104		104
-#define IRDMA_BYTE_112		112
-#define IRDMA_BYTE_120		120
-#define IRDMA_BYTE_128		128
-#define IRDMA_BYTE_136		136
-#define IRDMA_BYTE_144		144
-#define IRDMA_BYTE_152		152
-#define IRDMA_BYTE_160		160
-#define IRDMA_BYTE_168		168
-#define IRDMA_BYTE_176		176
-#define IRDMA_BYTE_184		184
-#define IRDMA_BYTE_192		192
-#define IRDMA_BYTE_200		200
-#define IRDMA_BYTE_208		208
-#define IRDMA_BYTE_216		216
+#define IRDMA_TERM_SENT 1
+#define IRDMA_TERM_RCVD 2
+#define IRDMA_TERM_DONE 4
+#define IRDMA_MAC_HLEN 14
+#define IRDMA_BYTE_0 0
+#define IRDMA_BYTE_8 8
+#define IRDMA_BYTE_16 16
+#define IRDMA_BYTE_24 24
+#define IRDMA_BYTE_32 32
+#define IRDMA_BYTE_40 40
+#define IRDMA_BYTE_48 48
+#define IRDMA_BYTE_56 56
+#define IRDMA_BYTE_64 64
+#define IRDMA_BYTE_72 72
+#define IRDMA_BYTE_80 80
+#define IRDMA_BYTE_88 88
+#define IRDMA_BYTE_96 96
+#define IRDMA_BYTE_104 104
+#define IRDMA_BYTE_112 112
+#define IRDMA_BYTE_120 120
+#define IRDMA_BYTE_128 128
+#define IRDMA_BYTE_136 136
+#define IRDMA_BYTE_144 144
+#define IRDMA_BYTE_152 152
+#define IRDMA_BYTE_160 160
+#define IRDMA_BYTE_168 168
+#define IRDMA_BYTE_176 176
+#define IRDMA_BYTE_184 184
+#define IRDMA_BYTE_192 192
+#define IRDMA_BYTE_200 200
+#define IRDMA_BYTE_208 208
+#define IRDMA_BYTE_216 216
 
-#define IRDMA_CQP_WAIT_POLL_REGS	1
-#define IRDMA_CQP_WAIT_POLL_CQ		2
-#define IRDMA_CQP_WAIT_EVENT		3
+#define IRDMA_CQP_WAIT_POLL_REGS 1
+#define IRDMA_CQP_WAIT_POLL_CQ 2
+#define IRDMA_CQP_WAIT_EVENT 3
 
-#define IRDMA_AE_SOURCE_RSVD		0x0
-#define IRDMA_AE_SOURCE_RQ		0x1
-#define IRDMA_AE_SOURCE_RQ_0011		0x3
+#define IRDMA_AE_SOURCE_RSVD 0x0
+#define IRDMA_AE_SOURCE_RQ 0x1
+#define IRDMA_AE_SOURCE_RQ_0011 0x3
 
-#define IRDMA_AE_SOURCE_CQ		0x2
-#define IRDMA_AE_SOURCE_CQ_0110		0x6
-#define IRDMA_AE_SOURCE_CQ_1010		0xa
-#define IRDMA_AE_SOURCE_CQ_1110		0xe
+#define IRDMA_AE_SOURCE_CQ 0x2
+#define IRDMA_AE_SOURCE_CQ_0110 0x6
+#define IRDMA_AE_SOURCE_CQ_1010 0xa
+#define IRDMA_AE_SOURCE_CQ_1110 0xe
 
-#define IRDMA_AE_SOURCE_SQ		0x5
-#define IRDMA_AE_SOURCE_SQ_0111		0x7
+#define IRDMA_AE_SOURCE_SQ 0x5
+#define IRDMA_AE_SOURCE_SQ_0111 0x7
 
-#define IRDMA_AE_SOURCE_IN_WR		0x9
-#define IRDMA_AE_SOURCE_IN_RR		0xb
-#define IRDMA_AE_SOURCE_OUT_RR		0xd
-#define IRDMA_AE_SOURCE_OUT_RR_1111	0xf
+#define IRDMA_AE_SOURCE_IN_WR 0x9
+#define IRDMA_AE_SOURCE_IN_RR 0xb
+#define IRDMA_AE_SOURCE_OUT_RR 0xd
+#define IRDMA_AE_SOURCE_OUT_RR_1111 0xf
 
-#define IRDMA_AE_SOURCE_RSRC_EXHT_Q1	0x1
-#define IRDMA_AE_SOURCE_RSRC_EXHT_XT_RR	0x5
+#define IRDMA_AE_SOURCE_RSRC_EXHT_Q1 0x1
+#define IRDMA_AE_SOURCE_RSRC_EXHT_XT_RR 0x5
 
-#define IRDMA_TCP_STATE_NON_EXISTENT	0
-#define IRDMA_TCP_STATE_CLOSED		1
-#define IRDMA_TCP_STATE_LISTEN		2
-#define IRDMA_STATE_SYN_SEND		3
-#define IRDMA_TCP_STATE_SYN_RECEIVED	4
-#define IRDMA_TCP_STATE_ESTABLISHED	5
-#define IRDMA_TCP_STATE_CLOSE_WAIT	6
-#define IRDMA_TCP_STATE_FIN_WAIT_1	7
-#define IRDMA_TCP_STATE_CLOSING		8
-#define IRDMA_TCP_STATE_LAST_ACK	9
-#define IRDMA_TCP_STATE_FIN_WAIT_2	10
-#define IRDMA_TCP_STATE_TIME_WAIT	11
-#define IRDMA_TCP_STATE_RESERVED_1	12
-#define IRDMA_TCP_STATE_RESERVED_2	13
-#define IRDMA_TCP_STATE_RESERVED_3	14
-#define IRDMA_TCP_STATE_RESERVED_4	15
+#define IRDMA_TCP_STATE_NON_EXISTENT 0
+#define IRDMA_TCP_STATE_CLOSED 1
+#define IRDMA_TCP_STATE_LISTEN 2
+#define IRDMA_STATE_SYN_SEND 3
+#define IRDMA_TCP_STATE_SYN_RECEIVED 4
+#define IRDMA_TCP_STATE_ESTABLISHED 5
+#define IRDMA_TCP_STATE_CLOSE_WAIT 6
+#define IRDMA_TCP_STATE_FIN_WAIT_1 7
+#define IRDMA_TCP_STATE_CLOSING 8
+#define IRDMA_TCP_STATE_LAST_ACK 9
+#define IRDMA_TCP_STATE_FIN_WAIT_2 10
+#define IRDMA_TCP_STATE_TIME_WAIT 11
+#define IRDMA_TCP_STATE_RESERVED_1 12
+#define IRDMA_TCP_STATE_RESERVED_2 13
+#define IRDMA_TCP_STATE_RESERVED_3 14
+#define IRDMA_TCP_STATE_RESERVED_4 15
 
-#define IRDMA_CQP_SW_SQSIZE_4		4
-#define IRDMA_CQP_SW_SQSIZE_2048	2048
+#define IRDMA_CQP_SW_SQSIZE_4 4
+#define IRDMA_CQP_SW_SQSIZE_2048 2048
 
-#define IRDMA_CQ_TYPE_IWARP	1
-#define IRDMA_CQ_TYPE_ILQ	2
-#define IRDMA_CQ_TYPE_IEQ	3
-#define IRDMA_CQ_TYPE_CQP	4
+#define IRDMA_CQ_TYPE_IWARP 1
+#define IRDMA_CQ_TYPE_ILQ 2
+#define IRDMA_CQ_TYPE_IEQ 3
+#define IRDMA_CQ_TYPE_CQP 4
 
-#define IRDMA_DONE_COUNT	1000
-#define IRDMA_SLEEP_COUNT	10
+#define IRDMA_DONE_COUNT 1000
+#define IRDMA_SLEEP_COUNT 10
 
-#define IRDMA_UPDATE_SD_BUFF_SIZE	128
-#define IRDMA_FEATURE_BUF_SIZE		(8 * IRDMA_MAX_FEATURES)
+#define IRDMA_UPDATE_SD_BUFF_SIZE 128
+#define IRDMA_FEATURE_BUF_SIZE (8 * IRDMA_MAX_FEATURES)
 
-#define IRDMA_MAX_QUANTA_PER_WR	8
+#define IRDMA_MAX_QUANTA_PER_WR 8
 
-#define IRDMA_QP_SW_MAX_WQ_QUANTA	32768
-#define IRDMA_QP_SW_MAX_SQ_QUANTA	32768
-#define IRDMA_QP_SW_MAX_RQ_QUANTA	32768
+#define IRDMA_QP_SW_MAX_WQ_QUANTA 32768
+#define IRDMA_QP_SW_MAX_SQ_QUANTA 32768
+#define IRDMA_QP_SW_MAX_RQ_QUANTA 32768
 
 #define IRDMA_MAX_QP_WRS(max_quanta_per_wr) \
 	((IRDMA_QP_SW_MAX_WQ_QUANTA - IRDMA_SQ_RSVD) / (max_quanta_per_wr))
 
-#define IRDMAQP_TERM_SEND_TERM_AND_FIN		0
-#define IRDMAQP_TERM_SEND_TERM_ONLY		1
-#define IRDMAQP_TERM_SEND_FIN_ONLY		2
-#define IRDMAQP_TERM_DONOT_SEND_TERM_OR_FIN	3
+#define IRDMAQP_TERM_SEND_TERM_AND_FIN 0
+#define IRDMAQP_TERM_SEND_TERM_ONLY 1
+#define IRDMAQP_TERM_SEND_FIN_ONLY 2
+#define IRDMAQP_TERM_DONOT_SEND_TERM_OR_FIN 3
 
-#define IRDMA_QP_TYPE_IWARP	1
-#define IRDMA_QP_TYPE_UDA	2
-#define IRDMA_QP_TYPE_ROCE_RC	3
-#define IRDMA_QP_TYPE_ROCE_UD	4
+#define IRDMA_QP_TYPE_IWARP 1
+#define IRDMA_QP_TYPE_UDA 2
+#define IRDMA_QP_TYPE_ROCE_RC 3
+#define IRDMA_QP_TYPE_ROCE_UD 4
 
-#define IRDMA_HW_PAGE_SIZE	4096
-#define IRDMA_HW_PAGE_SHIFT	12
-#define IRDMA_CQE_QTYPE_RQ	0
-#define IRDMA_CQE_QTYPE_SQ	1
+#define IRDMA_HW_PAGE_SIZE 4096
+#define IRDMA_HW_PAGE_SHIFT 12
+#define IRDMA_CQE_QTYPE_RQ 0
+#define IRDMA_CQE_QTYPE_SQ 1
 
-#define IRDMA_QP_SW_MIN_WQSIZE	8 /* in WRs*/
-#define IRDMA_QP_WQE_MIN_SIZE	32
-#define IRDMA_QP_WQE_MAX_SIZE	256
+#define IRDMA_QP_SW_MIN_WQSIZE 8 /* in WRs*/
+#define IRDMA_QP_WQE_MIN_SIZE 32
+#define IRDMA_QP_WQE_MAX_SIZE 256
 #define IRDMA_QP_WQE_MIN_QUANTA 1
 #define IRDMA_MAX_RQ_WQE_SHIFT_GEN1 2
 #define IRDMA_MAX_RQ_WQE_SHIFT_GEN2 3
 
-#define IRDMA_SQ_RSVD	258
-#define IRDMA_RQ_RSVD	1
+#define IRDMA_SQ_RSVD 258
+#define IRDMA_RQ_RSVD 1
 
-#define IRDMA_FEATURE_RTS_AE			BIT_ULL(0)
-#define IRDMA_FEATURE_CQ_RESIZE			BIT_ULL(1)
-#define IRDMA_FEATURE_RELAX_RQ_ORDER		BIT_ULL(2)
-#define IRDMA_FEATURE_64_BYTE_CQE		BIT_ULL(5)
+#define IRDMA_FEATURE_RTS_AE BIT_ULL(0)
+#define IRDMA_FEATURE_CQ_RESIZE BIT_ULL(1)
+#define IRDMA_FEATURE_RELAX_RQ_ORDER BIT_ULL(2)
+#define IRDMA_FEATURE_64_BYTE_CQE BIT_ULL(5)
 
-#define IRDMAQP_OP_RDMA_WRITE			0x00
-#define IRDMAQP_OP_RDMA_READ			0x01
-#define IRDMAQP_OP_RDMA_SEND			0x03
-#define IRDMAQP_OP_RDMA_SEND_INV		0x04
-#define IRDMAQP_OP_RDMA_SEND_SOL_EVENT		0x05
-#define IRDMAQP_OP_RDMA_SEND_SOL_EVENT_INV	0x06
-#define IRDMAQP_OP_BIND_MW			0x08
-#define IRDMAQP_OP_FAST_REGISTER		0x09
-#define IRDMAQP_OP_LOCAL_INVALIDATE		0x0a
-#define IRDMAQP_OP_RDMA_READ_LOC_INV		0x0b
-#define IRDMAQP_OP_NOP				0x0c
-#define IRDMAQP_OP_RDMA_WRITE_SOL		0x0d
-#define IRDMAQP_OP_GEN_RTS_AE			0x30
+#define IRDMAQP_OP_RDMA_WRITE 0x00
+#define IRDMAQP_OP_RDMA_READ 0x01
+#define IRDMAQP_OP_RDMA_SEND 0x03
+#define IRDMAQP_OP_RDMA_SEND_INV 0x04
+#define IRDMAQP_OP_RDMA_SEND_SOL_EVENT 0x05
+#define IRDMAQP_OP_RDMA_SEND_SOL_EVENT_INV 0x06
+#define IRDMAQP_OP_BIND_MW 0x08
+#define IRDMAQP_OP_FAST_REGISTER 0x09
+#define IRDMAQP_OP_LOCAL_INVALIDATE 0x0a
+#define IRDMAQP_OP_RDMA_READ_LOC_INV 0x0b
+#define IRDMAQP_OP_NOP 0x0c
+#define IRDMAQP_OP_RDMA_WRITE_SOL 0x0d
+#define IRDMAQP_OP_GEN_RTS_AE 0x30
 
 enum irdma_cqp_op_type {
-	IRDMA_OP_CEQ_DESTROY			= 1,
-	IRDMA_OP_AEQ_DESTROY			= 2,
-	IRDMA_OP_DELETE_ARP_CACHE_ENTRY		= 3,
-	IRDMA_OP_MANAGE_APBVT_ENTRY		= 4,
-	IRDMA_OP_CEQ_CREATE			= 5,
-	IRDMA_OP_AEQ_CREATE			= 6,
-	IRDMA_OP_MANAGE_QHASH_TABLE_ENTRY	= 7,
-	IRDMA_OP_QP_MODIFY			= 8,
-	IRDMA_OP_QP_UPLOAD_CONTEXT		= 9,
-	IRDMA_OP_CQ_CREATE			= 10,
-	IRDMA_OP_CQ_DESTROY			= 11,
-	IRDMA_OP_QP_CREATE			= 12,
-	IRDMA_OP_QP_DESTROY			= 13,
-	IRDMA_OP_ALLOC_STAG			= 14,
-	IRDMA_OP_MR_REG_NON_SHARED		= 15,
-	IRDMA_OP_DEALLOC_STAG			= 16,
-	IRDMA_OP_MW_ALLOC			= 17,
-	IRDMA_OP_QP_FLUSH_WQES			= 18,
-	IRDMA_OP_ADD_ARP_CACHE_ENTRY		= 19,
-	IRDMA_OP_MANAGE_PUSH_PAGE		= 20,
-	IRDMA_OP_UPDATE_PE_SDS			= 21,
-	IRDMA_OP_MANAGE_HMC_PM_FUNC_TABLE	= 22,
-	IRDMA_OP_SUSPEND			= 23,
-	IRDMA_OP_RESUME				= 24,
-	IRDMA_OP_MANAGE_VCHNL_REQ_PBLE_BP	= 25,
-	IRDMA_OP_QUERY_FPM_VAL			= 26,
-	IRDMA_OP_COMMIT_FPM_VAL			= 27,
-	IRDMA_OP_AH_CREATE			= 28,
-	IRDMA_OP_AH_MODIFY			= 29,
-	IRDMA_OP_AH_DESTROY			= 30,
-	IRDMA_OP_MC_CREATE			= 31,
-	IRDMA_OP_MC_DESTROY			= 32,
-	IRDMA_OP_MC_MODIFY			= 33,
-	IRDMA_OP_STATS_ALLOCATE			= 34,
-	IRDMA_OP_STATS_FREE			= 35,
-	IRDMA_OP_STATS_GATHER			= 36,
-	IRDMA_OP_WS_ADD_NODE			= 37,
-	IRDMA_OP_WS_MODIFY_NODE			= 38,
-	IRDMA_OP_WS_DELETE_NODE			= 39,
-	IRDMA_OP_WS_FAILOVER_START		= 40,
-	IRDMA_OP_WS_FAILOVER_COMPLETE		= 41,
-	IRDMA_OP_SET_UP_MAP			= 42,
-	IRDMA_OP_GEN_AE				= 43,
-	IRDMA_OP_QUERY_RDMA_FEATURES		= 44,
-	IRDMA_OP_ALLOC_LOCAL_MAC_ENTRY		= 45,
-	IRDMA_OP_ADD_LOCAL_MAC_ENTRY		= 46,
-	IRDMA_OP_DELETE_LOCAL_MAC_ENTRY		= 47,
-	IRDMA_OP_CQ_MODIFY			= 48,
+	IRDMA_OP_CEQ_DESTROY = 1,
+	IRDMA_OP_AEQ_DESTROY = 2,
+	IRDMA_OP_DELETE_ARP_CACHE_ENTRY = 3,
+	IRDMA_OP_MANAGE_APBVT_ENTRY = 4,
+	IRDMA_OP_CEQ_CREATE = 5,
+	IRDMA_OP_AEQ_CREATE = 6,
+	IRDMA_OP_MANAGE_QHASH_TABLE_ENTRY = 7,
+	IRDMA_OP_QP_MODIFY = 8,
+	IRDMA_OP_QP_UPLOAD_CONTEXT = 9,
+	IRDMA_OP_CQ_CREATE = 10,
+	IRDMA_OP_CQ_DESTROY = 11,
+	IRDMA_OP_QP_CREATE = 12,
+	IRDMA_OP_QP_DESTROY = 13,
+	IRDMA_OP_ALLOC_STAG = 14,
+	IRDMA_OP_MR_REG_NON_SHARED = 15,
+	IRDMA_OP_DEALLOC_STAG = 16,
+	IRDMA_OP_MW_ALLOC = 17,
+	IRDMA_OP_QP_FLUSH_WQES = 18,
+	IRDMA_OP_ADD_ARP_CACHE_ENTRY = 19,
+	IRDMA_OP_MANAGE_PUSH_PAGE = 20,
+	IRDMA_OP_UPDATE_PE_SDS = 21,
+	IRDMA_OP_MANAGE_HMC_PM_FUNC_TABLE = 22,
+	IRDMA_OP_SUSPEND = 23,
+	IRDMA_OP_RESUME = 24,
+	IRDMA_OP_MANAGE_VCHNL_REQ_PBLE_BP = 25,
+	IRDMA_OP_QUERY_FPM_VAL = 26,
+	IRDMA_OP_COMMIT_FPM_VAL = 27,
+	IRDMA_OP_AH_CREATE = 28,
+	IRDMA_OP_AH_MODIFY = 29,
+	IRDMA_OP_AH_DESTROY = 30,
+	IRDMA_OP_MC_CREATE = 31,
+	IRDMA_OP_MC_DESTROY = 32,
+	IRDMA_OP_MC_MODIFY = 33,
+	IRDMA_OP_STATS_ALLOCATE = 34,
+	IRDMA_OP_STATS_FREE = 35,
+	IRDMA_OP_STATS_GATHER = 36,
+	IRDMA_OP_WS_ADD_NODE = 37,
+	IRDMA_OP_WS_MODIFY_NODE = 38,
+	IRDMA_OP_WS_DELETE_NODE = 39,
+	IRDMA_OP_WS_FAILOVER_START = 40,
+	IRDMA_OP_WS_FAILOVER_COMPLETE = 41,
+	IRDMA_OP_SET_UP_MAP = 42,
+	IRDMA_OP_GEN_AE = 43,
+	IRDMA_OP_QUERY_RDMA_FEATURES = 44,
+	IRDMA_OP_ALLOC_LOCAL_MAC_ENTRY = 45,
+	IRDMA_OP_ADD_LOCAL_MAC_ENTRY = 46,
+	IRDMA_OP_DELETE_LOCAL_MAC_ENTRY = 47,
+	IRDMA_OP_CQ_MODIFY = 48,
 
 	/* Must be last entry */
-	IRDMA_MAX_CQP_OPS			= 49,
+	IRDMA_MAX_CQP_OPS = 49,
 };
 
 /* CQP SQ WQES */
-#define IRDMA_CQP_OP_CREATE_QP				0x00
-#define IRDMA_CQP_OP_MODIFY_QP				0x01
-#define IRDMA_CQP_OP_DESTROY_QP				0x02
-#define IRDMA_CQP_OP_CREATE_CQ				0x03
-#define IRDMA_CQP_OP_MODIFY_CQ				0x04
-#define IRDMA_CQP_OP_DESTROY_CQ				0x05
-#define IRDMA_CQP_OP_ALLOC_STAG				0x09
-#define IRDMA_CQP_OP_REG_MR				0x0a
-#define IRDMA_CQP_OP_QUERY_STAG				0x0b
-#define IRDMA_CQP_OP_REG_SMR				0x0c
-#define IRDMA_CQP_OP_DEALLOC_STAG			0x0d
-#define IRDMA_CQP_OP_MANAGE_LOC_MAC_TABLE		0x0e
-#define IRDMA_CQP_OP_MANAGE_ARP				0x0f
-#define IRDMA_CQP_OP_MANAGE_VCHNL_REQ_PBLE_BP		0x10
-#define IRDMA_CQP_OP_MANAGE_PUSH_PAGES			0x11
-#define IRDMA_CQP_OP_QUERY_RDMA_FEATURES		0x12
-#define IRDMA_CQP_OP_UPLOAD_CONTEXT			0x13
-#define IRDMA_CQP_OP_ALLOCATE_LOC_MAC_TABLE_ENTRY	0x14
-#define IRDMA_CQP_OP_MANAGE_HMC_PM_FUNC_TABLE		0x15
-#define IRDMA_CQP_OP_CREATE_CEQ				0x16
-#define IRDMA_CQP_OP_DESTROY_CEQ			0x18
-#define IRDMA_CQP_OP_CREATE_AEQ				0x19
-#define IRDMA_CQP_OP_DESTROY_AEQ			0x1b
-#define IRDMA_CQP_OP_CREATE_ADDR_HANDLE			0x1c
-#define IRDMA_CQP_OP_MODIFY_ADDR_HANDLE			0x1d
-#define IRDMA_CQP_OP_DESTROY_ADDR_HANDLE		0x1e
-#define IRDMA_CQP_OP_UPDATE_PE_SDS			0x1f
-#define IRDMA_CQP_OP_QUERY_FPM_VAL			0x20
-#define IRDMA_CQP_OP_COMMIT_FPM_VAL			0x21
-#define IRDMA_CQP_OP_FLUSH_WQES				0x22
+#define IRDMA_CQP_OP_CREATE_QP 0x00
+#define IRDMA_CQP_OP_MODIFY_QP 0x01
+#define IRDMA_CQP_OP_DESTROY_QP 0x02
+#define IRDMA_CQP_OP_CREATE_CQ 0x03
+#define IRDMA_CQP_OP_MODIFY_CQ 0x04
+#define IRDMA_CQP_OP_DESTROY_CQ 0x05
+#define IRDMA_CQP_OP_ALLOC_STAG 0x09
+#define IRDMA_CQP_OP_REG_MR 0x0a
+#define IRDMA_CQP_OP_QUERY_STAG 0x0b
+#define IRDMA_CQP_OP_REG_SMR 0x0c
+#define IRDMA_CQP_OP_DEALLOC_STAG 0x0d
+#define IRDMA_CQP_OP_MANAGE_LOC_MAC_TABLE 0x0e
+#define IRDMA_CQP_OP_MANAGE_ARP 0x0f
+#define IRDMA_CQP_OP_MANAGE_VCHNL_REQ_PBLE_BP 0x10
+#define IRDMA_CQP_OP_MANAGE_PUSH_PAGES 0x11
+#define IRDMA_CQP_OP_QUERY_RDMA_FEATURES 0x12
+#define IRDMA_CQP_OP_UPLOAD_CONTEXT 0x13
+#define IRDMA_CQP_OP_ALLOCATE_LOC_MAC_TABLE_ENTRY 0x14
+#define IRDMA_CQP_OP_MANAGE_HMC_PM_FUNC_TABLE 0x15
+#define IRDMA_CQP_OP_CREATE_CEQ 0x16
+#define IRDMA_CQP_OP_DESTROY_CEQ 0x18
+#define IRDMA_CQP_OP_CREATE_AEQ 0x19
+#define IRDMA_CQP_OP_DESTROY_AEQ 0x1b
+#define IRDMA_CQP_OP_CREATE_ADDR_HANDLE 0x1c
+#define IRDMA_CQP_OP_MODIFY_ADDR_HANDLE 0x1d
+#define IRDMA_CQP_OP_DESTROY_ADDR_HANDLE 0x1e
+#define IRDMA_CQP_OP_UPDATE_PE_SDS 0x1f
+#define IRDMA_CQP_OP_QUERY_FPM_VAL 0x20
+#define IRDMA_CQP_OP_COMMIT_FPM_VAL 0x21
+#define IRDMA_CQP_OP_FLUSH_WQES 0x22
 /* IRDMA_CQP_OP_GEN_AE is the same value as IRDMA_CQP_OP_FLUSH_WQES */
-#define IRDMA_CQP_OP_GEN_AE				0x22
-#define IRDMA_CQP_OP_MANAGE_APBVT			0x23
-#define IRDMA_CQP_OP_NOP				0x24
-#define IRDMA_CQP_OP_MANAGE_QUAD_HASH_TABLE_ENTRY	0x25
-#define IRDMA_CQP_OP_CREATE_MCAST_GRP			0x26
-#define IRDMA_CQP_OP_MODIFY_MCAST_GRP			0x27
-#define IRDMA_CQP_OP_DESTROY_MCAST_GRP			0x28
-#define IRDMA_CQP_OP_SUSPEND_QP				0x29
-#define IRDMA_CQP_OP_RESUME_QP				0x2a
-#define IRDMA_CQP_OP_SHMC_PAGES_ALLOCATED		0x2b
-#define IRDMA_CQP_OP_WORK_SCHED_NODE			0x2c
-#define IRDMA_CQP_OP_MANAGE_STATS			0x2d
-#define IRDMA_CQP_OP_GATHER_STATS			0x2e
-#define IRDMA_CQP_OP_UP_MAP				0x2f
+#define IRDMA_CQP_OP_GEN_AE 0x22
+#define IRDMA_CQP_OP_MANAGE_APBVT 0x23
+#define IRDMA_CQP_OP_NOP 0x24
+#define IRDMA_CQP_OP_MANAGE_QUAD_HASH_TABLE_ENTRY 0x25
+#define IRDMA_CQP_OP_CREATE_MCAST_GRP 0x26
+#define IRDMA_CQP_OP_MODIFY_MCAST_GRP 0x27
+#define IRDMA_CQP_OP_DESTROY_MCAST_GRP 0x28
+#define IRDMA_CQP_OP_SUSPEND_QP 0x29
+#define IRDMA_CQP_OP_RESUME_QP 0x2a
+#define IRDMA_CQP_OP_SHMC_PAGES_ALLOCATED 0x2b
+#define IRDMA_CQP_OP_WORK_SCHED_NODE 0x2c
+#define IRDMA_CQP_OP_MANAGE_STATS 0x2d
+#define IRDMA_CQP_OP_GATHER_STATS 0x2e
+#define IRDMA_CQP_OP_UP_MAP 0x2f
 
 #ifndef LS_64_1
-#define LS_64_1(val, bits)	((u64)(uintptr_t)(val) << (bits))
-#define RS_64_1(val, bits)	((u64)(uintptr_t)(val) >> (bits))
-#define LS_32_1(val, bits)	((u32)((val) << (bits)))
-#define RS_32_1(val, bits)	((u32)((val) >> (bits)))
+#define LS_64_1(val, bits) ((u64)(uintptr_t)(val) << (bits))
+#define RS_64_1(val, bits) ((u64)(uintptr_t)(val) >> (bits))
+#define LS_32_1(val, bits) ((u32)((val) << (bits)))
+#define RS_32_1(val, bits) ((u32)((val) >> (bits)))
 #endif
 #ifndef GENMASK_ULL
-#define GENMASK_ULL(high, low)	((0xFFFFFFFFFFFFFFFFULL >> (64ULL - ((high) - (low) + 1ULL))) << (low))
+#define GENMASK_ULL(high, low) \
+	((0xFFFFFFFFFFFFFFFFULL >> (64ULL - ((high) - (low) + 1ULL))) << (low))
 #endif /* GENMASK_ULL */
 #ifndef GENMASK
-#define GENMASK(high, low)	((0xFFFFFFFFUL >> (32UL - ((high) - (low) + 1UL))) << (low))
+#define GENMASK(high, low) \
+	((0xFFFFFFFFUL >> (32UL - ((high) - (low) + 1UL))) << (low))
 #endif /* GENMASK */
 #ifndef FIELD_PREP
-#define FIELD_PREP(mask, val)	(((u64)(val) << mask##_S) & (mask))
-#define FIELD_GET(mask, val)	(((val) & mask) >> mask##_S)
+#define FIELD_PREP(mask, val) (((u64)(val) << mask##_S) & (mask))
+#define FIELD_GET(mask, val) (((val) & mask) >> mask##_S)
 #endif /* FIELD_PREP */
 
-#define FLD_LS_64(dev, val, field)	\
-	(((u64)(val) << (dev)->hw_shifts[field ## _S]) & (dev)->hw_masks[field ## _M])
-#define FLD_RS_64(dev, val, field)	\
-	((u64)((val) & (dev)->hw_masks[field ## _M]) >> (dev)->hw_shifts[field ## _S])
-#define FLD_LS_32(dev, val, field)	\
-	(((val) << (dev)->hw_shifts[field ## _S]) & (dev)->hw_masks[field ## _M])
-#define FLD_RS_32(dev, val, field)	\
-	((u64)((val) & (dev)->hw_masks[field ## _M]) >> (dev)->hw_shifts[field ## _S])
+#define FLD_LS_64(dev, val, field)                     \
+	(((u64)(val) << (dev)->hw_shifts[field##_S]) & \
+	    (dev)->hw_masks[field##_M])
+#define FLD_RS_64(dev, val, field)                    \
+	((u64)((val) & (dev)->hw_masks[field##_M]) >> \
+	    (dev)->hw_shifts[field##_S])
+#define FLD_LS_32(dev, val, field) \
+	(((val) << (dev)->hw_shifts[field##_S]) & (dev)->hw_masks[field##_M])
+#define FLD_RS_32(dev, val, field)                    \
+	((u64)((val) & (dev)->hw_masks[field##_M]) >> \
+	    (dev)->hw_shifts[field##_S])
 
-#define IRDMA_MAX_STATS_16	0xffffULL
-#define IRDMA_MAX_STATS_24	0xffffffULL
-#define IRDMA_MAX_STATS_32	0xffffffffULL
-#define IRDMA_MAX_STATS_48	0xffffffffffffULL
-#define IRDMA_MAX_STATS_56	0xffffffffffffffULL
-#define IRDMA_MAX_STATS_64	0xffffffffffffffffULL
+#define IRDMA_MAX_STATS_16 0xffffULL
+#define IRDMA_MAX_STATS_24 0xffffffULL
+#define IRDMA_MAX_STATS_32 0xffffffffULL
+#define IRDMA_MAX_STATS_48 0xffffffffffffULL
+#define IRDMA_MAX_STATS_56 0xffffffffffffffULL
+#define IRDMA_MAX_STATS_64 0xffffffffffffffffULL
 
 #define IRDMA_MAX_CQ_READ_THRESH 0x3FFFF
 #define IRDMA_CQPSQ_QHASH_VLANID_S 32
@@ -1372,99 +1377,85 @@ enum irdma_cqp_op_type {
 #define IRDMA_SHMC_PAGE_ALLOCATED_HMC_FN_ID GENMASK_ULL(15, 0)
 
 #define IRDMA_GET_CURRENT_AEQ_ELEM(_aeq) \
-	( \
-		(_aeq)->aeqe_base[IRDMA_RING_CURRENT_TAIL((_aeq)->aeq_ring)].buf \
-	)
+	((_aeq)->aeqe_base[IRDMA_RING_CURRENT_TAIL((_aeq)->aeq_ring)].buf)
 
 #define IRDMA_GET_CURRENT_CEQ_ELEM(_ceq) \
-	( \
-		(_ceq)->ceqe_base[IRDMA_RING_CURRENT_TAIL((_ceq)->ceq_ring)].buf \
-	)
+	((_ceq)->ceqe_base[IRDMA_RING_CURRENT_TAIL((_ceq)->ceq_ring)].buf)
 
-#define IRDMA_GET_CEQ_ELEM_AT_POS(_ceq, _pos) \
-	( \
-		(_ceq)->ceqe_base[_pos].buf  \
-	)
+#define IRDMA_GET_CEQ_ELEM_AT_POS(_ceq, _pos) ((_ceq)->ceqe_base[_pos].buf)
 
 #define IRDMA_RING_GET_NEXT_TAIL(_ring, _idx) \
-	( \
-		((_ring).tail + (_idx)) % (_ring).size \
-	)
+	(((_ring).tail + (_idx)) % (_ring).size)
 
-#define IRDMA_GET_RING_OFFSET(_ring, _i) \
-	( \
-		((_ring).head + (_i)) % (_ring).size \
-	)
+#define IRDMA_GET_RING_OFFSET(_ring, _i) (((_ring).head + (_i)) % (_ring).size)
 
-#define IRDMA_GET_CQ_ELEM_AT_OFFSET(_cq, _i, _cqe) \
-	{ \
-		__u32 offset; \
+#define IRDMA_GET_CQ_ELEM_AT_OFFSET(_cq, _i, _cqe)                  \
+	{                                                           \
+		__u32 offset;                                       \
 		offset = IRDMA_GET_RING_OFFSET((_cq)->cq_ring, _i); \
-		(_cqe) = (_cq)->cq_base[offset].buf; \
+		(_cqe) = (_cq)->cq_base[offset].buf;                \
 	}
 #define IRDMA_GET_CURRENT_CQ_ELEM(_cq) \
-	( \
-		(_cq)->cq_base[IRDMA_RING_CURRENT_HEAD((_cq)->cq_ring)].buf  \
-	)
-#define IRDMA_GET_CURRENT_EXTENDED_CQ_ELEM(_cq) \
-	( \
-		((struct irdma_extended_cqe *) \
-		((_cq)->cq_base))[IRDMA_RING_CURRENT_HEAD((_cq)->cq_ring)].buf \
-	)
+	((_cq)->cq_base[IRDMA_RING_CURRENT_HEAD((_cq)->cq_ring)].buf)
+#define IRDMA_GET_CURRENT_EXTENDED_CQ_ELEM(_cq)                              \
+	(((struct irdma_extended_cqe                                         \
+		*)((_cq)->cq_base))[IRDMA_RING_CURRENT_HEAD((_cq)->cq_ring)] \
+		.buf)
 
-#define IRDMA_RING_INIT(_ring, _size) \
-	{ \
-		(_ring).head = 0; \
-		(_ring).tail = 0; \
+#define IRDMA_RING_INIT(_ring, _size)   \
+	{                               \
+		(_ring).head = 0;       \
+		(_ring).tail = 0;       \
 		(_ring).size = (_size); \
 	}
 #define IRDMA_RING_SIZE(_ring) ((_ring).size)
 #define IRDMA_RING_CURRENT_HEAD(_ring) ((_ring).head)
 #define IRDMA_RING_CURRENT_TAIL(_ring) ((_ring).tail)
 
-#define IRDMA_RING_MOVE_HEAD(_ring, _retcode) \
-	{ \
-		u32 size; \
-		size = (_ring).size;  \
-		if (!IRDMA_RING_FULL_ERR(_ring)) { \
+#define IRDMA_RING_MOVE_HEAD(_ring, _retcode)                     \
+	{                                                         \
+		u32 size;                                         \
+		size = (_ring).size;                              \
+		if (!IRDMA_RING_FULL_ERR(_ring)) {                \
 			(_ring).head = ((_ring).head + 1) % size; \
-			(_retcode) = 0; \
-		} else { \
-			(_retcode) = -ENOSPC; \
-		} \
+			(_retcode) = 0;                           \
+		} else {                                          \
+			(_retcode) = -ENOSPC;                     \
+		}                                                 \
 	}
-#define IRDMA_RING_MOVE_HEAD_BY_COUNT(_ring, _count, _retcode) \
-	{ \
-		u32 size; \
-		size = (_ring).size; \
+#define IRDMA_RING_MOVE_HEAD_BY_COUNT(_ring, _count, _retcode)           \
+	{                                                                \
+		u32 size;                                                \
+		size = (_ring).size;                                     \
 		if ((IRDMA_RING_USED_QUANTA(_ring) + (_count)) < size) { \
 			(_ring).head = ((_ring).head + (_count)) % size; \
-			(_retcode) = 0; \
-		} else { \
-			(_retcode) = -ENOSPC; \
-		} \
+			(_retcode) = 0;                                  \
+		} else {                                                 \
+			(_retcode) = -ENOSPC;                            \
+		}                                                        \
 	}
-#define IRDMA_SQ_RING_MOVE_HEAD(_ring, _retcode) \
-	{ \
-		u32 size; \
-		size = (_ring).size;  \
-		if (!IRDMA_SQ_RING_FULL_ERR(_ring)) { \
+#define IRDMA_SQ_RING_MOVE_HEAD(_ring, _retcode)                  \
+	{                                                         \
+		u32 size;                                         \
+		size = (_ring).size;                              \
+		if (!IRDMA_SQ_RING_FULL_ERR(_ring)) {             \
 			(_ring).head = ((_ring).head + 1) % size; \
-			(_retcode) = 0; \
-		} else { \
-			(_retcode) = -ENOSPC; \
-		} \
+			(_retcode) = 0;                           \
+		} else {                                          \
+			(_retcode) = -ENOSPC;                     \
+		}                                                 \
 	}
-#define IRDMA_SQ_RING_MOVE_HEAD_BY_COUNT(_ring, _count, _retcode) \
-	{ \
-		u32 size; \
-		size = (_ring).size; \
-		if ((IRDMA_RING_USED_QUANTA(_ring) + (_count)) < (size - 256)) { \
+#define IRDMA_SQ_RING_MOVE_HEAD_BY_COUNT(_ring, _count, _retcode)        \
+	{                                                                \
+		u32 size;                                                \
+		size = (_ring).size;                                     \
+		if ((IRDMA_RING_USED_QUANTA(_ring) + (_count)) <         \
+		    (size - 256)) {                                      \
 			(_ring).head = ((_ring).head + (_count)) % size; \
-			(_retcode) = 0; \
-		} else { \
-			(_retcode) = -ENOSPC; \
-		} \
+			(_retcode) = 0;                                  \
+		} else {                                                 \
+			(_retcode) = -ENOSPC;                            \
+		}                                                        \
 	}
 #define IRDMA_RING_MOVE_HEAD_BY_COUNT_NOCHECK(_ring, _count) \
 	(_ring).head = ((_ring).head + (_count)) % (_ring).size
@@ -1478,61 +1469,39 @@ enum irdma_cqp_op_type {
 #define IRDMA_RING_MOVE_TAIL_BY_COUNT(_ring, _count) \
 	(_ring).tail = ((_ring).tail + (_count)) % (_ring).size
 
-#define IRDMA_RING_SET_TAIL(_ring, _pos) \
-	(_ring).tail = (_pos) % (_ring).size
+#define IRDMA_RING_SET_TAIL(_ring, _pos) (_ring).tail = (_pos) % (_ring).size
 
 #define IRDMA_RING_FULL_ERR(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 1))  \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 1)))
 
 #define IRDMA_ERR_RING_FULL2(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 2))  \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 2)))
 
 #define IRDMA_ERR_RING_FULL3(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 3))  \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 3)))
 
 #define IRDMA_SQ_RING_FULL_ERR(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 257))  \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 257)))
 
 #define IRDMA_ERR_SQ_RING_FULL2(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 258))  \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 258)))
 #define IRDMA_ERR_SQ_RING_FULL3(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 259))  \
-	)
-#define IRDMA_RING_MORE_WORK(_ring) \
-	( \
-		(IRDMA_RING_USED_QUANTA(_ring) != 0) \
-	)
+	((IRDMA_RING_USED_QUANTA(_ring) == ((_ring).size - 259)))
+#define IRDMA_RING_MORE_WORK(_ring) ((IRDMA_RING_USED_QUANTA(_ring) != 0))
 
 #define IRDMA_RING_USED_QUANTA(_ring) \
-	( \
-		(((_ring).head + (_ring).size - (_ring).tail) % (_ring).size) \
-	)
+	((((_ring).head + (_ring).size - (_ring).tail) % (_ring).size))
 
 #define IRDMA_RING_FREE_QUANTA(_ring) \
-	( \
-		((_ring).size - IRDMA_RING_USED_QUANTA(_ring) - 1) \
-	)
+	(((_ring).size - IRDMA_RING_USED_QUANTA(_ring) - 1))
 
 #define IRDMA_SQ_RING_FREE_QUANTA(_ring) \
-	( \
-		((_ring).size - IRDMA_RING_USED_QUANTA(_ring) - 257) \
-	)
+	(((_ring).size - IRDMA_RING_USED_QUANTA(_ring) - 257))
 
 #define IRDMA_ATOMIC_RING_MOVE_HEAD(_ring, index, _retcode) \
-	{ \
-		index = IRDMA_RING_CURRENT_HEAD(_ring); \
-		IRDMA_RING_MOVE_HEAD(_ring, _retcode); \
+	{                                                   \
+		index = IRDMA_RING_CURRENT_HEAD(_ring);     \
+		IRDMA_RING_MOVE_HEAD(_ring, _retcode);      \
 	}
 
 enum irdma_protocol_used {
@@ -1542,9 +1511,9 @@ enum irdma_protocol_used {
 };
 
 enum irdma_qp_wqe_size {
-	IRDMA_WQE_SIZE_32  = 32,
-	IRDMA_WQE_SIZE_64  = 64,
-	IRDMA_WQE_SIZE_96  = 96,
+	IRDMA_WQE_SIZE_32 = 32,
+	IRDMA_WQE_SIZE_64 = 64,
+	IRDMA_WQE_SIZE_96 = 96,
 	IRDMA_WQE_SIZE_128 = 128,
 	IRDMA_WQE_SIZE_256 = 256,
 };
@@ -1568,23 +1537,24 @@ enum irdma_ws_node_op {
 	IRDMA_DEL_NODE,
 };
 
-enum {	IRDMA_Q_ALIGNMENT_M		 = (128 - 1),
-	IRDMA_AEQ_ALIGNMENT_M		 = (256 - 1),
-	IRDMA_Q2_ALIGNMENT_M		 = (256 - 1),
-	IRDMA_CEQ_ALIGNMENT_M		 = (256 - 1),
-	IRDMA_CQ0_ALIGNMENT_M		 = (256 - 1),
-	IRDMA_HOST_CTX_ALIGNMENT_M	 = (4 - 1),
-	IRDMA_SHADOWAREA_M		 = (128 - 1),
-	IRDMA_FPM_QUERY_BUF_ALIGNMENT_M	 = (4 - 1),
+enum {
+	IRDMA_Q_ALIGNMENT_M = (128 - 1),
+	IRDMA_AEQ_ALIGNMENT_M = (256 - 1),
+	IRDMA_Q2_ALIGNMENT_M = (256 - 1),
+	IRDMA_CEQ_ALIGNMENT_M = (256 - 1),
+	IRDMA_CQ0_ALIGNMENT_M = (256 - 1),
+	IRDMA_HOST_CTX_ALIGNMENT_M = (4 - 1),
+	IRDMA_SHADOWAREA_M = (128 - 1),
+	IRDMA_FPM_QUERY_BUF_ALIGNMENT_M = (4 - 1),
 	IRDMA_FPM_COMMIT_BUF_ALIGNMENT_M = (4 - 1),
 };
 
 enum irdma_alignment {
-	IRDMA_CQP_ALIGNMENT	    = 0x200,
-	IRDMA_AEQ_ALIGNMENT	    = 0x100,
-	IRDMA_CEQ_ALIGNMENT	    = 0x100,
-	IRDMA_CQ0_ALIGNMENT	    = 0x100,
-	IRDMA_SD_BUF_ALIGNMENT      = 0x80,
+	IRDMA_CQP_ALIGNMENT = 0x200,
+	IRDMA_AEQ_ALIGNMENT = 0x100,
+	IRDMA_CEQ_ALIGNMENT = 0x100,
+	IRDMA_CQ0_ALIGNMENT = 0x100,
+	IRDMA_SD_BUF_ALIGNMENT = 0x80,
 	IRDMA_FEATURE_BUF_ALIGNMENT = 0x10,
 };
 
@@ -1594,7 +1564,8 @@ enum irdma_alignment {
  * @byte_index: index in wqe
  * @val: value to write
  **/
-static inline void set_64bit_val(__le64 *wqe_words, u32 byte_index, u64 val)
+static inline void
+set_64bit_val(__le64 *wqe_words, u32 byte_index, u64 val)
 {
 	wqe_words[byte_index >> 3] = cpu_to_le64(val);
 }
@@ -1605,7 +1576,8 @@ static inline void set_64bit_val(__le64 *wqe_words, u32 byte_index, u64 val)
  * @byte_index: index in wqe
  * @val: value to write
  **/
-static inline void set_32bit_val(__le32 *wqe_words, u32 byte_index, u32 val)
+static inline void
+set_32bit_val(__le32 *wqe_words, u32 byte_index, u32 val)
 {
 	wqe_words[byte_index >> 2] = cpu_to_le32(val);
 }
@@ -1616,7 +1588,8 @@ static inline void set_32bit_val(__le32 *wqe_words, u32 byte_index, u32 val)
  * @byte_index: index to read from
  * @val: read value
  **/
-static inline void get_64bit_val(__le64 *wqe_words, u32 byte_index, u64 *val)
+static inline void
+get_64bit_val(__le64 *wqe_words, u32 byte_index, u64 *val)
 {
 	*val = le64_to_cpu(wqe_words[byte_index >> 3]);
 }
@@ -1627,7 +1600,8 @@ static inline void get_64bit_val(__le64 *wqe_words, u32 byte_index, u64 *val)
  * @byte_index: index to reaad from
  * @val: return 32 bit value
  **/
-static inline void get_32bit_val(__le32 *wqe_words, u32 byte_index, u32 *val)
+static inline void
+get_32bit_val(__le32 *wqe_words, u32 byte_index, u32 *val)
 {
 	*val = le32_to_cpu(wqe_words[byte_index >> 2]);
 }

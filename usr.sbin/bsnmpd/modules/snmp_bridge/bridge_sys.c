@@ -29,10 +29,10 @@
  * Bridge OS specific ioctls.
  */
 
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <sys/module.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
+#include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
@@ -45,20 +45,19 @@
 #include <net/if_types.h>
 #include <netinet/in.h>
 
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
 #include <ifaddrs.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "bridge_tree.h"
+#define SNMPTREE_TYPES
 #include "bridge_snmp.h"
+#include "bridge_tree.h"
 
 int sock = -1;
 
@@ -88,7 +87,7 @@ bridge_kmod_load(void)
 	for (fileid = kldnext(0); fileid > 0; fileid = kldnext(fileid)) {
 		/* Scan modules in file. */
 		for (modid = kldfirstmod(fileid); modid > 0;
-			modid = modfnext(modid)) {
+		     modid = modfnext(modid)) {
 
 			if (modstat(modid, &mstat) < 0)
 				continue;
@@ -120,7 +119,7 @@ snmp_uint64_to_bridgeid(uint64_t id, bridge_id b_id)
 	int i;
 	u_char *o;
 
-	o = (u_char *) &id;
+	o = (u_char *)&id;
 
 	for (i = 0; i < SNMP_BRIDGE_ID_LEN; i++, o++)
 		b_id[SNMP_BRIDGE_ID_LEN - i - 1] = *o;
@@ -200,8 +199,10 @@ bridge_get_conf_param(struct bridge_if *bif)
 	/* Address table size. */
 	ifd.ifd_cmd = BRDGGCACHE;
 	if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "update bridge: ioctl(BRDGGCACHE) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "update bridge: ioctl(BRDGGCACHE) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 	bif->max_addrs = b_param.ifbrp_csize;
@@ -248,8 +249,7 @@ bridge_get_op_param(struct bridge_if *bif)
 
 	bif->root_port = b_req.ifbop_root_port;
 	bif->root_cost = b_req.ifbop_root_path_cost;
-	snmp_uint64_to_bridgeid(b_req.ifbop_designated_root,
-	    bif->design_root);
+	snmp_uint64_to_bridgeid(b_req.ifbop_designated_root, bif->design_root);
 
 	if (bif->last_tc_time.tv_sec != b_req.ifbop_last_tc_time.tv_sec) {
 		bif->top_changes++;
@@ -285,12 +285,14 @@ bridge_set_priority(struct bridge_if *bif, int32_t priority)
 	strlcpy(ifd.ifd_name, bif->bif_name, IFNAMSIZ);
 	ifd.ifd_len = sizeof(b_param);
 	ifd.ifd_data = &b_param;
-	b_param.ifbrp_prio = (uint32_t) priority;
+	b_param.ifbrp_prio = (uint32_t)priority;
 	ifd.ifd_cmd = BRDGSPRI;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSPRI) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSPRI) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -332,8 +334,10 @@ bridge_set_maxage(struct bridge_if *bif, int32_t max_age)
 	ifd.ifd_cmd = BRDGSMA;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSMA) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSMA) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -354,8 +358,10 @@ bridge_set_hello_time(struct bridge_if *bif, int32_t hello_time)
 	ifd.ifd_cmd = BRDGSHT;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSHT) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSHT) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -376,8 +382,10 @@ bridge_set_forward_delay(struct bridge_if *bif, int32_t fwd_delay)
 	ifd.ifd_cmd = BRDGSFD;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSFD) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSFD) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -394,12 +402,14 @@ bridge_set_aging_time(struct bridge_if *bif, int32_t age_time)
 	strlcpy(ifd.ifd_name, bif->bif_name, IFNAMSIZ);
 	ifd.ifd_len = sizeof(b_param);
 	ifd.ifd_data = &b_param;
-	b_param.ifbrp_ctime = (uint32_t) age_time;
+	b_param.ifbrp_ctime = (uint32_t)age_time;
 	ifd.ifd_cmd = BRDGSTO;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSTO) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSTO) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -420,8 +430,10 @@ bridge_set_max_cache(struct bridge_if *bif, int32_t max_cache)
 	ifd.ifd_cmd = BRDGSCACHE;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSCACHE) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSCACHE) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -445,8 +457,10 @@ bridge_set_tx_hold_count(struct bridge_if *bif, int32_t tx_hc)
 	ifd.ifd_cmd = BRDGSTXHC;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSTXHC) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSTXHC) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -467,8 +481,10 @@ bridge_set_stp_version(struct bridge_if *bif, int32_t stp_proto)
 	ifd.ifd_cmd = BRDGSPROTO;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set bridge param: ioctl(BRDGSPROTO) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "set bridge param: ioctl(BRDGSPROTO) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -480,16 +496,18 @@ bridge_set_stp_version(struct bridge_if *bif, int32_t stp_proto)
  * Set the bridge interface status to up/down.
  */
 int
-bridge_set_if_up(const char* b_name, int8_t up)
+bridge_set_if_up(const char *b_name, int8_t up)
 {
-	int	flags;
+	int flags;
 	struct ifreq ifr;
 
 	bzero(&ifr, sizeof(ifr));
 	strlcpy(ifr.ifr_name, b_name, sizeof(ifr.ifr_name));
-	if (ioctl(sock, SIOCGIFFLAGS, (caddr_t) &ifr) < 0) {
-		syslog(LOG_ERR, "set bridge up: ioctl(SIOCGIFFLAGS) "
-		    "failed: %s", strerror(errno));
+	if (ioctl(sock, SIOCGIFFLAGS, (caddr_t)&ifr) < 0) {
+		syslog(LOG_ERR,
+		    "set bridge up: ioctl(SIOCGIFFLAGS) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -501,9 +519,11 @@ bridge_set_if_up(const char* b_name, int8_t up)
 
 	ifr.ifr_flags = flags & 0xffff;
 	ifr.ifr_flagshigh = flags >> 16;
-	if (ioctl(sock, SIOCSIFFLAGS, (caddr_t) &ifr) < 0) {
-		syslog(LOG_ERR, "set bridge up: ioctl(SIOCSIFFLAGS) "
-		    "failed: %s", strerror(errno));
+	if (ioctl(sock, SIOCSIFFLAGS, (caddr_t)&ifr) < 0) {
+		syslog(LOG_ERR,
+		    "set bridge up: ioctl(SIOCSIFFLAGS) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -520,8 +540,10 @@ bridge_create(const char *b_name)
 	strlcpy(ifr.ifr_name, b_name, sizeof(ifr.ifr_name));
 
 	if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-		syslog(LOG_ERR, "create bridge: ioctl(SIOCIFCREATE) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "create bridge: ioctl(SIOCIFCREATE) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -534,9 +556,11 @@ bridge_create(const char *b_name)
 	}
 
 	ifr.ifr_data = new_name;
-	if (ioctl(sock, SIOCSIFNAME, (caddr_t) &ifr) < 0) {
-		syslog(LOG_ERR, "create bridge: ioctl(SIOCSIFNAME) "
-		    "failed: %s", strerror(errno));
+	if (ioctl(sock, SIOCSIFNAME, (caddr_t)&ifr) < 0) {
+		syslog(LOG_ERR,
+		    "create bridge: ioctl(SIOCSIFNAME) "
+		    "failed: %s",
+		    strerror(errno));
 		free(new_name);
 		return (-1);
 	}
@@ -553,8 +577,10 @@ bridge_destroy(const char *b_name)
 	strlcpy(ifr.ifr_name, b_name, sizeof(ifr.ifr_name));
 
 	if (ioctl(sock, SIOCIFDESTROY, &ifr) < 0) {
-		syslog(LOG_ERR, "destroy bridge: ioctl(SIOCIFDESTROY) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "destroy bridge: ioctl(SIOCIFDESTROY) "
+		    "failed: %s",
+		    strerror(errno));
 		return (-1);
 	}
 
@@ -620,17 +646,17 @@ static int
 state2snmp_st(uint8_t ifbr_state)
 {
 	switch (ifbr_state) {
-		case BSTP_IFSTATE_DISABLED:
-			return (StpPortState_disabled);
-		case BSTP_IFSTATE_LISTENING:
-			return (StpPortState_listening);
-		case BSTP_IFSTATE_LEARNING:
-			return (StpPortState_learning);
-		case BSTP_IFSTATE_FORWARDING:
-			return (StpPortState_forwarding);
-		case BSTP_IFSTATE_BLOCKING:
-		case BSTP_IFSTATE_DISCARDING:
-			return (StpPortState_blocking);
+	case BSTP_IFSTATE_DISABLED:
+		return (StpPortState_disabled);
+	case BSTP_IFSTATE_LISTENING:
+		return (StpPortState_listening);
+	case BSTP_IFSTATE_LEARNING:
+		return (StpPortState_learning);
+	case BSTP_IFSTATE_FORWARDING:
+		return (StpPortState_forwarding);
+	case BSTP_IFSTATE_BLOCKING:
+	case BSTP_IFSTATE_DISCARDING:
+		return (StpPortState_blocking);
 	}
 
 	return (StpPortState_broken);
@@ -741,7 +767,7 @@ bridge_port_clearinfo_opstp(struct bridge_port *bp)
  */
 int
 bridge_port_set_priority(const char *bif_name, struct bridge_port *bp,
-	int32_t priority)
+    int32_t priority)
 {
 	struct ifdrv ifd;
 	struct ifbreq b_req;
@@ -751,12 +777,14 @@ bridge_port_set_priority(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_data = &b_req;
 	strlcpy(b_req.ifbr_ifsname, bp->p_name, sizeof(b_req.ifbr_ifsname));
 
-	b_req.ifbr_priority = (uint8_t) priority;
+	b_req.ifbr_priority = (uint8_t)priority;
 	ifd.ifd_cmd = BRDGSIFPRIO;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFPRIO) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFPRIO) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -769,7 +797,7 @@ bridge_port_set_priority(const char *bif_name, struct bridge_port *bp,
  */
 int
 bridge_port_set_stp_enable(const char *bif_name, struct bridge_port *bp,
-	uint32_t enable)
+    uint32_t enable)
 {
 	struct ifdrv ifd;
 	struct ifbreq b_req;
@@ -785,8 +813,10 @@ bridge_port_set_stp_enable(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_cmd = BRDGGIFFLGS;
 
 	if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "get member %s param: ioctl(BRDGGIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "get member %s param: ioctl(BRDGGIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -797,8 +827,10 @@ bridge_port_set_stp_enable(const char *bif_name, struct bridge_port *bp,
 
 	ifd.ifd_cmd = BRDGSIFFLGS;
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -811,7 +843,7 @@ bridge_port_set_stp_enable(const char *bif_name, struct bridge_port *bp,
  */
 int
 bridge_port_set_path_cost(const char *bif_name, struct bridge_port *bp,
-	int32_t path_cost)
+    int32_t path_cost)
 {
 	struct ifdrv ifd;
 	struct ifbreq b_req;
@@ -829,8 +861,10 @@ bridge_port_set_path_cost(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_cmd = BRDGSIFCOST;
 
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFCOST) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFCOST) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -860,29 +894,33 @@ bridge_port_set_admin_ptp(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_cmd = BRDGGIFFLGS;
 
 	if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "get member %s param: ioctl(BRDGGIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "get member %s param: ioctl(BRDGGIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
 	switch (admin_ptp) {
-		case StpPortAdminPointToPointType_forceTrue:
-			b_req.ifbr_ifsflags &= ~IFBIF_BSTP_AUTOPTP;
-			b_req.ifbr_ifsflags |= IFBIF_BSTP_PTP;
-			break;
-		case StpPortAdminPointToPointType_forceFalse:
-			b_req.ifbr_ifsflags &= ~IFBIF_BSTP_AUTOPTP;
-			b_req.ifbr_ifsflags &= ~IFBIF_BSTP_PTP;
-			break;
-		case StpPortAdminPointToPointType_auto:
-			b_req.ifbr_ifsflags |= IFBIF_BSTP_AUTOPTP;
-			break;
+	case StpPortAdminPointToPointType_forceTrue:
+		b_req.ifbr_ifsflags &= ~IFBIF_BSTP_AUTOPTP;
+		b_req.ifbr_ifsflags |= IFBIF_BSTP_PTP;
+		break;
+	case StpPortAdminPointToPointType_forceFalse:
+		b_req.ifbr_ifsflags &= ~IFBIF_BSTP_AUTOPTP;
+		b_req.ifbr_ifsflags &= ~IFBIF_BSTP_PTP;
+		break;
+	case StpPortAdminPointToPointType_auto:
+		b_req.ifbr_ifsflags |= IFBIF_BSTP_AUTOPTP;
+		break;
 	}
 
 	ifd.ifd_cmd = BRDGSIFFLGS;
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -911,8 +949,10 @@ bridge_port_set_admin_edge(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_cmd = BRDGGIFFLGS;
 
 	if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "get member %s param: ioctl(BRDGGIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "get member %s param: ioctl(BRDGGIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -924,8 +964,10 @@ bridge_port_set_admin_edge(const char *bif_name, struct bridge_port *bp,
 
 	ifd.ifd_cmd = BRDGSIFFLGS;
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -955,8 +997,10 @@ bridge_port_set_private(const char *bif_name, struct bridge_port *bp,
 	ifd.ifd_cmd = BRDGGIFFLGS;
 
 	if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "get member %s param: ioctl(BRDGGIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "get member %s param: ioctl(BRDGGIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -969,8 +1013,10 @@ bridge_port_set_private(const char *bif_name, struct bridge_port *bp,
 
 	ifd.ifd_cmd = BRDGSIFFLGS;
 	if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-		syslog(LOG_ERR, "set member %s param: ioctl(BRDGSIFFLGS) "
-		    "failed: %s", bp->p_name, strerror(errno));
+		syslog(LOG_ERR,
+		    "set member %s param: ioctl(BRDGSIFFLGS) "
+		    "failed: %s",
+		    bp->p_name, strerror(errno));
 		return (-1);
 	}
 
@@ -978,7 +1024,6 @@ bridge_port_set_private(const char *bif_name, struct bridge_port *bp,
 
 	return (0);
 }
-
 
 /*
  * Add a bridge member port.
@@ -1065,11 +1110,13 @@ bridge_port_get_iflist(struct bridge_if *bif, struct ifbreq **buf)
 	ifd.ifd_len = sizeof(ifbc);
 	ifd.ifd_data = &ifbc;
 
-	for ( ; ; ) {
+	for (;;) {
 		len = n * sizeof(struct ifbreq);
 		if ((ninbuf = (struct ifbreq *)realloc(*buf, len)) == NULL) {
-			syslog(LOG_ERR, "get bridge member list: "
-			    "realloc failed: %s", strerror(errno));
+			syslog(LOG_ERR,
+			    "get bridge member list: "
+			    "realloc failed: %s",
+			    strerror(errno));
 			free(*buf);
 			*buf = NULL;
 			return (-1);
@@ -1079,8 +1126,10 @@ bridge_port_get_iflist(struct bridge_if *bif, struct ifbreq **buf)
 		ifbc.ifbic_req = *buf = ninbuf;
 
 		if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-			syslog(LOG_ERR, "get bridge member list: ioctl "
-			    "(BRDGGIFS) failed: %s", strerror(errno));
+			syslog(LOG_ERR,
+			    "get bridge member list: ioctl "
+			    "(BRDGGIFS) failed: %s",
+			    strerror(errno));
 			free(*buf);
 			buf = NULL;
 			return (-1);
@@ -1114,12 +1163,14 @@ bridge_port_get_ifstplist(struct bridge_if *bif, struct ifbpstpreq **buf)
 	ifd.ifd_len = sizeof(ifbstp);
 	ifd.ifd_data = &ifbstp;
 
-	for ( ; ; ) {
+	for (;;) {
 		len = n * sizeof(struct ifbpstpreq);
-		if ((ninbuf = (struct ifbpstpreq *)
-		    realloc(*buf, len)) == NULL) {
-			syslog(LOG_ERR, "get bridge STP ports list: "
-			    "realloc failed: %s", strerror(errno));
+		if ((ninbuf = (struct ifbpstpreq *)realloc(*buf, len)) ==
+		    NULL) {
+			syslog(LOG_ERR,
+			    "get bridge STP ports list: "
+			    "realloc failed: %s",
+			    strerror(errno));
 			free(*buf);
 			*buf = NULL;
 			return (-1);
@@ -1129,8 +1180,10 @@ bridge_port_get_ifstplist(struct bridge_if *bif, struct ifbpstpreq **buf)
 		ifbstp.ifbpstp_req = *buf = ninbuf;
 
 		if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-			syslog(LOG_ERR, "get bridge STP ports list: ioctl "
-			    "(BRDGGIFSSTP) failed: %s", strerror(errno));
+			syslog(LOG_ERR,
+			    "get bridge STP ports list: ioctl "
+			    "(BRDGGIFSSTP) failed: %s",
+			    strerror(errno));
 			free(*buf);
 			buf = NULL;
 			return (-1);
@@ -1193,8 +1246,10 @@ bridge_getinfo_bif_ports(struct bridge_if *bif)
 				bridge_port_getinfo_mibif(m_if, bp);
 			}
 		} else {
-			syslog(LOG_ERR, "bridge member %s not present "
-			    "in mibII ifTable", b_req->ifbr_ifsname);
+			syslog(LOG_ERR,
+			    "bridge member %s not present "
+			    "in mibII ifTable",
+			    b_req->ifbr_ifsname);
 		}
 	}
 	free(b_req_buf);
@@ -1203,9 +1258,9 @@ bridge_getinfo_bif_ports(struct bridge_if *bif)
 		return (-1);
 
 	for (bp = bridge_port_bif_first(bif); bp != NULL;
-	    bp = bridge_port_bif_next(bp)) {
+	     bp = bridge_port_bif_next(bp)) {
 		if ((bs_req = bridge_port_find_ifstplist(bp->port_no,
-		    bs_req_buf, buf_len)) == NULL)
+			 bs_req_buf, buf_len)) == NULL)
 			bridge_port_clearinfo_opstp(bp);
 		else
 			bridge_port_getinfo_opstp(bs_req, bp);
@@ -1234,13 +1289,15 @@ bridge_update_memif(struct bridge_if *bif)
 
 	updated = 0;
 
-#define	BP_FOUND	0x01
+#define BP_FOUND 0x01
 	for (i = 0; i < buf_len / sizeof(struct ifbreq); i++) {
 		b_req = b_req_buf + i;
 
 		if ((m_if = mib_find_if_sys(b_req->ifbr_portno)) == NULL) {
-			syslog(LOG_ERR, "bridge member %s not present "
-			    "in mibII ifTable", b_req->ifbr_ifsname);
+			syslog(LOG_ERR,
+			    "bridge member %s not present "
+			    "in mibII ifTable",
+			    b_req->ifbr_ifsname);
 			continue;
 		}
 
@@ -1260,7 +1317,7 @@ bridge_update_memif(struct bridge_if *bif)
 
 	/* Clean up list. */
 	for (bp = bridge_port_bif_first(bif); bp != NULL; bp = bp_next) {
-		bp_next  = bridge_port_bif_next(bp);
+		bp_next = bridge_port_bif_next(bp);
 
 		if ((bp->flags & BP_FOUND) == 0 &&
 		    bp->status == RowStatus_active)
@@ -1268,15 +1325,15 @@ bridge_update_memif(struct bridge_if *bif)
 		else
 			bp->flags |= ~BP_FOUND;
 	}
-#undef	BP_FOUND
+#undef BP_FOUND
 
 	if ((buf_len = bridge_port_get_ifstplist(bif, &bs_req_buf)) < 0)
 		return (-1);
 
 	for (bp = bridge_port_bif_first(bif); bp != NULL;
-	    bp = bridge_port_bif_next(bp)) {
+	     bp = bridge_port_bif_next(bp)) {
 		if ((bs_req = bridge_port_find_ifstplist(bp->port_no,
-		    bs_req_buf, buf_len)) == NULL)
+			 bs_req_buf, buf_len)) == NULL)
 			bridge_port_clearinfo_opstp(bp);
 		else
 			bridge_port_getinfo_opstp(bs_req, bp);
@@ -1324,11 +1381,13 @@ bridge_addrs_getinfo_ifalist(struct bridge_if *bif, struct ifbareq **buf)
 	ifd.ifd_len = sizeof(bac);
 	ifd.ifd_data = &bac;
 
-	for ( ; ; ) {
+	for (;;) {
 		len = n * sizeof(struct ifbareq);
 		if ((ninbuf = (struct ifbareq *)realloc(*buf, len)) == NULL) {
-			syslog(LOG_ERR, "get bridge address list: "
-			    " realloc failed: %s", strerror(errno));
+			syslog(LOG_ERR,
+			    "get bridge address list: "
+			    " realloc failed: %s",
+			    strerror(errno));
 			free(*buf);
 			*buf = NULL;
 			return (-1);
@@ -1338,8 +1397,10 @@ bridge_addrs_getinfo_ifalist(struct bridge_if *bif, struct ifbareq **buf)
 		bac.ifbac_req = *buf = ninbuf;
 
 		if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-			syslog(LOG_ERR, "get bridge address list: "
-			    "ioctl(BRDGRTS) failed: %s", strerror(errno));
+			syslog(LOG_ERR,
+			    "get bridge address list: "
+			    "ioctl(BRDGRTS) failed: %s",
+			    strerror(errno));
 			free(*buf);
 			buf = NULL;
 			return (-1);
@@ -1398,33 +1459,33 @@ bridge_update_addrs(struct bridge_if *bif)
 
 	added = updated = 0;
 
-#define	BA_FOUND	0x01
+#define BA_FOUND 0x01
 	for (i = 0; i < buf_len / sizeof(struct ifbareq); i++) {
 		addr_req = addr_req_buf + i;
 
 		if ((te = bridge_addrs_find(addr_req->ifba_dst, bif)) == NULL) {
 			added++;
 
-			if ((te = bridge_new_addrs(addr_req->ifba_dst, bif))
-			    == NULL)
+			if ((te = bridge_new_addrs(addr_req->ifba_dst, bif)) ==
+			    NULL)
 				continue;
 		} else
 			updated++;
 
 		bridge_addrs_info_ifaddrlist(addr_req, te);
-		te-> flags |= BA_FOUND;
+		te->flags |= BA_FOUND;
 	}
 	free(addr_req_buf);
 
 	for (te = bridge_addrs_bif_first(bif); te != NULL; te = te_next) {
 		te_next = bridge_addrs_bif_next(te);
 
-		if ((te-> flags & BA_FOUND) == 0)
+		if ((te->flags & BA_FOUND) == 0)
 			bridge_addrs_remove(te, bif);
 		else
-			te-> flags &= ~BA_FOUND;
+			te->flags &= ~BA_FOUND;
 	}
-#undef	BA_FOUND
+#undef BA_FOUND
 
 	bif->addrs_age = time(NULL);
 	return (updated + added);
@@ -1479,7 +1540,7 @@ bridge_do_pfctl(int32_t bridge_ctl, enum snmp_op op, int32_t *val)
 		return (-1);
 
 	if (sysctlbyname(mib_oid, &i, &len, (op == SNMP_OP_SET ? &s_i : NULL),
-	    s_len) == -1) {
+		s_len) == -1) {
 		syslog(LOG_ERR, "sysctl(%s) failed - %s", mib_oid,
 		    strerror(errno));
 		free(mib_oid);

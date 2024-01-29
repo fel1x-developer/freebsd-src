@@ -25,23 +25,23 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_SPI_DEBUG_H__
-#define	__QCOM_SPI_DEBUG_H__
+#ifndef __QCOM_SPI_DEBUG_H__
+#define __QCOM_SPI_DEBUG_H__
 
-#define	QCOM_SPI_DEBUG_TRANSFER			0x00000001
-#define	QCOM_SPI_DEBUG_HW_TRANSFER_SETUP	0x00000002
-#define	QCOM_SPI_DEBUG_HW_TX_FIFO		0x00000004
-#define	QCOM_SPI_DEBUG_HW_RX_FIFO		0x00000008
-#define	QCOM_SPI_DEBUG_INTR			0x00000010
-#define	QCOM_SPI_DEBUG_CHIPSELECT		0x00000020
-#define	QCOM_SPI_DEBUG_HW_CHIPSELECT		0x00000080
-#define	QCOM_SPI_DEBUG_HW_STATE_CHANGE		0x00000100
-#define	QCOM_SPI_DEBUG_HW_INTR			0x00000200
+#define QCOM_SPI_DEBUG_TRANSFER 0x00000001
+#define QCOM_SPI_DEBUG_HW_TRANSFER_SETUP 0x00000002
+#define QCOM_SPI_DEBUG_HW_TX_FIFO 0x00000004
+#define QCOM_SPI_DEBUG_HW_RX_FIFO 0x00000008
+#define QCOM_SPI_DEBUG_INTR 0x00000010
+#define QCOM_SPI_DEBUG_CHIPSELECT 0x00000020
+#define QCOM_SPI_DEBUG_HW_CHIPSELECT 0x00000080
+#define QCOM_SPI_DEBUG_HW_STATE_CHANGE 0x00000100
+#define QCOM_SPI_DEBUG_HW_INTR 0x00000200
 
-#define	QCOM_SPI_DPRINTF(sc, flags, ...)				\
-	do {								\
-		if ((sc)->sc_debug & flags)				\
-			device_printf((sc)->sc_dev, __VA_ARGS__);	\
+#define QCOM_SPI_DPRINTF(sc, flags, ...)                          \
+	do {                                                      \
+		if ((sc)->sc_debug & flags)                       \
+			device_printf((sc)->sc_dev, __VA_ARGS__); \
 	} while (0)
 
-#endif	/* __QCOM_SPI_DEBUG_H__ */
+#endif /* __QCOM_SPI_DEBUG_H__ */

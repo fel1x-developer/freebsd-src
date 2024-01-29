@@ -39,68 +39,54 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <machine/bus.h>
+
+#include <dev/mii/ciphyreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/mii/ciphyreg.h>
-
 #include "miibus_if.h"
-
-#include <machine/bus.h>
+#include "miidevs.h"
 
 static int ciphy_probe(device_t);
 static int ciphy_attach(device_t);
 
 static device_method_t ciphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ciphy_probe),
-	DEVMETHOD(device_attach,	ciphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ciphy_probe),
+	DEVMETHOD(device_attach, ciphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t ciphy_driver = {
-	"ciphy",
-	ciphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t ciphy_driver = { "ciphy", ciphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(ciphy, miibus, ciphy_driver, 0, 0);
 
-static int	ciphy_service(struct mii_softc *, struct mii_data *, int);
-static void	ciphy_status(struct mii_softc *);
-static void	ciphy_reset(struct mii_softc *);
-static void	ciphy_fixup(struct mii_softc *);
+static int ciphy_service(struct mii_softc *, struct mii_data *, int);
+static void ciphy_status(struct mii_softc *);
+static void ciphy_reset(struct mii_softc *);
+static void ciphy_fixup(struct mii_softc *);
 
-static const struct mii_phydesc ciphys[] = {
-	MII_PHY_DESC(xxCICADA, CS8201),
-	MII_PHY_DESC(xxCICADA, CS8201A),
-	MII_PHY_DESC(xxCICADA, CS8201B),
-	MII_PHY_DESC(xxCICADA, CS8204),
-	MII_PHY_DESC(xxCICADA, VSC8211),
-	MII_PHY_DESC(xxCICADA, VSC8221),
-	MII_PHY_DESC(xxCICADA, CS8244),
-	MII_PHY_DESC(xxVITESSE, VSC8601),
-	MII_PHY_DESC(xxVITESSE, VSC8641),
-	MII_PHY_END
-};
+static const struct mii_phydesc ciphys[] = { MII_PHY_DESC(xxCICADA, CS8201),
+	MII_PHY_DESC(xxCICADA, CS8201A), MII_PHY_DESC(xxCICADA, CS8201B),
+	MII_PHY_DESC(xxCICADA, CS8204), MII_PHY_DESC(xxCICADA, VSC8211),
+	MII_PHY_DESC(xxCICADA, VSC8221), MII_PHY_DESC(xxCICADA, CS8244),
+	MII_PHY_DESC(xxVITESSE, VSC8601), MII_PHY_DESC(xxVITESSE, VSC8641),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs ciphy_funcs = {
-	ciphy_service,
-	ciphy_status,
-	ciphy_reset
-};
+static const struct mii_phy_funcs ciphy_funcs = { ciphy_service, ciphy_status,
+	ciphy_reset };
 
 static int
 ciphy_probe(device_t dev)
@@ -113,8 +99,8 @@ static int
 ciphy_attach(device_t dev)
 {
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &ciphy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &ciphy_funcs,
+	    1);
 	return (0);
 }
 
@@ -129,7 +115,7 @@ ciphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		break;
 
 	case MII_MEDIACHG:
-		ciphy_fixup(sc);	/* XXX hardware bug work-around */
+		ciphy_fixup(sc); /* XXX hardware bug work-around */
 
 		switch (IFM_SUBTYPE(ife->ifm_media)) {
 		case IFM_AUTO:
@@ -150,7 +136,7 @@ ciphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 			goto setit;
 		case IFM_10_T:
 			speed = CIPHY_S10;
-setit:
+		setit:
 			if ((ife->ifm_media & IFM_FDX) != 0) {
 				speed |= CIPHY_BMCR_FDX;
 				gig = CIPHY_1000CTL_AFD;
@@ -161,8 +147,8 @@ setit:
 				gig |= CIPHY_1000CTL_MSE;
 				if ((ife->ifm_media & IFM_ETH_MASTER) != 0)
 					gig |= CIPHY_1000CTL_MSC;
-				speed |=
-				    CIPHY_BMCR_AUTOEN | CIPHY_BMCR_STARTNEG;
+				speed |= CIPHY_BMCR_AUTOEN |
+				    CIPHY_BMCR_STARTNEG;
 			} else
 				gig = 0;
 			PHY_WRITE(sc, CIPHY_MII_1000CTL, gig);
@@ -273,7 +259,7 @@ ciphy_status(struct mii_softc *sc)
 		mii->mii_media_active |= IFM_HDX;
 
 	if ((IFM_SUBTYPE(mii->mii_media_active) == IFM_1000_T) &&
-	   (PHY_READ(sc, CIPHY_MII_1000STS) & CIPHY_1000STS_MSR) != 0)
+	    (PHY_READ(sc, CIPHY_MII_1000STS) & CIPHY_1000STS_MSR) != 0)
 		mii->mii_media_active |= IFM_ETH_MASTER;
 }
 
@@ -285,17 +271,15 @@ ciphy_reset(struct mii_softc *sc)
 	DELAY(1000);
 }
 
-#define PHY_SETBIT(x, y, z) \
-	PHY_WRITE(x, y, (PHY_READ(x, y) | (z)))
-#define PHY_CLRBIT(x, y, z) \
-	PHY_WRITE(x, y, (PHY_READ(x, y) & ~(z)))
+#define PHY_SETBIT(x, y, z) PHY_WRITE(x, y, (PHY_READ(x, y) | (z)))
+#define PHY_CLRBIT(x, y, z) PHY_WRITE(x, y, (PHY_READ(x, y) & ~(z)))
 
 static void
 ciphy_fixup(struct mii_softc *sc)
 {
-	uint16_t		model;
-	uint16_t		status, speed;
-	uint16_t		val;
+	uint16_t model;
+	uint16_t status, speed;
+	uint16_t val;
 
 	model = MII_MODEL(PHY_READ(sc, CIPHY_MII_PHYIDR2));
 	status = PHY_READ(sc, CIPHY_MII_AUXCSR);

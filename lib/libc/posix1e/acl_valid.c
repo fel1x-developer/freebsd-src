@@ -32,13 +32,14 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 #include <sys/errno.h>
+
 #include <stdlib.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * acl_valid: accepts an ACL, returns 0 on valid ACL, -1 for invalid,
@@ -51,11 +52,11 @@
  * This call is deprecated, as it doesn't ask whether the ACL is valid
  * for a particular target.  However, this call is standardized, unlike
  * the other two forms.
- */ 
+ */
 int
 acl_valid(acl_t acl)
 {
-	int	error;
+	int error;
 
 	if (acl == NULL) {
 		errno = EINVAL;

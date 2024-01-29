@@ -25,24 +25,27 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <stdio.h>
+#include <arpa/nameser.h> /* XXX hack for _res */
 #include <ctype.h>
 #include <errno.h>
+#include <netdb.h>
+#include <nsswitch.h>
+#include <resolv.h> /* XXX hack for _res */
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <nsswitch.h>
-#include <arpa/nameser.h>		/* XXX hack for _res */
-#include <resolv.h>			/* XXX hack for _res */
-#include "un-namespace.h"
+
+#include "namespace.h"
 #include "netdb_private.h"
+#include "reentrant.h"
+#include "un-namespace.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
@@ -51,11 +54,8 @@ static int gethostbyname_internal(const char *, int, struct hostent *, char *,
     size_t, struct hostent **, int *, res_state);
 
 /* Host lookup order if nsswitch.conf is broken or nonexistent */
-static const ns_src default_src[] = {
-	{ NSSRC_FILES, NS_SUCCESS },
-	{ NSSRC_DNS, NS_SUCCESS },
-	{ 0 }
-};
+static const ns_src default_src[] = { { NSSRC_FILES, NS_SUCCESS },
+	{ NSSRC_DNS, NS_SUCCESS }, { 0 } };
 #ifdef NS_CACHING
 static int host_id_func(char *, size_t *, va_list, void *);
 static int host_marshal_func(char *, size_t *, void *, va_list, void *);
@@ -109,7 +109,7 @@ __copy_hostent(struct hostent *he, struct hostent *hptr, char *buf,
 		len += strlen(he->h_aliases[i]) + 1;
 	}
 	len += strlen(he->h_name) + 1;
-	len += nptr * sizeof(char*);
+	len += nptr * sizeof(char *);
 
 	if (len > buflen) {
 		errno = ERANGE;
@@ -125,7 +125,7 @@ __copy_hostent(struct hostent *he, struct hostent *hptr, char *buf,
 
 	/* copy address list */
 	hptr->h_addr_list = ptr;
-	for (i = 0; he->h_addr_list[i]; i++ , ptr++) {
+	for (i = 0; he->h_addr_list[i]; i++, ptr++) {
 		memcpy(cp, he->h_addr_list[i], n);
 		hptr->h_addr_list[i] = cp;
 		cp += n;
@@ -141,7 +141,7 @@ __copy_hostent(struct hostent *he, struct hostent *hptr, char *buf,
 
 	/* copy aliases */
 	hptr->h_aliases = ptr;
-	for (i = 0 ; he->h_aliases[i]; i++) {
+	for (i = 0; he->h_aliases[i]; i++) {
 		n = strlen(he->h_aliases[i]) + 1;
 		strcpy(cp, he->h_aliases[i]);
 		hptr->h_aliases[i] = cp;
@@ -171,8 +171,9 @@ host_id_func(char *buffer, size_t *buffer_size, va_list ap, void *cache_mdata)
 	int res = NS_UNAVAIL;
 
 	statp = __res_state();
-	res_options = statp->options & (RES_RECURSE | RES_DEFNAMES |
-	    RES_DNSRCH | RES_NOALIASES | RES_USE_INET6);
+	res_options = statp->options &
+	    (RES_RECURSE | RES_DEFNAMES | RES_DNSRCH | RES_NOALIASES |
+		RES_USE_INET6);
 
 	lookup_type = (enum nss_lookup_type)(uintptr_t)cache_mdata;
 	switch (lookup_type) {
@@ -401,10 +402,11 @@ host_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 	memcpy(&p, buffer + sizeof(struct hostent), sizeof(char *));
 
 	orig_buf = (char *)_ALIGN(orig_buf);
-	memcpy(orig_buf, buffer + sizeof(struct hostent) + sizeof(char *) +
-	    _ALIGN(p) - (size_t)p,
-	    buffer_size - sizeof(struct hostent) - sizeof(char *) -
-	    _ALIGN(p) + (size_t)p);
+	memcpy(orig_buf,
+	    buffer + sizeof(struct hostent) + sizeof(char *) + _ALIGN(p) -
+		(size_t)p,
+	    buffer_size - sizeof(struct hostent) - sizeof(char *) - _ALIGN(p) +
+		(size_t)p);
 	p = (char *)_ALIGN(p);
 
 	NS_APPLY_OFFSET(ht->h_name, orig_buf, p, char *);
@@ -428,8 +430,8 @@ host_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 #endif /* NS_CACHING */
 
 static int
-fakeaddr(const char *name, int af, struct hostent *hp, char *buf,
-    size_t buflen, res_state statp)
+fakeaddr(const char *name, int af, struct hostent *hp, char *buf, size_t buflen,
+    res_state statp)
 {
 	struct hostent_data *hed;
 	struct hostent he;
@@ -441,7 +443,7 @@ fakeaddr(const char *name, int af, struct hostent *hp, char *buf,
 	}
 
 	if ((af != AF_INET ||
-	    inet_aton(name, (struct in_addr *)hed->host_addr) != 1) &&
+		inet_aton(name, (struct in_addr *)hed->host_addr) != 1) &&
 	    inet_pton(af, name, hed->host_addr) != 1) {
 		RES_SET_H_ERRNO(statp, HOST_NOT_FOUND);
 		return (-1);
@@ -454,7 +456,7 @@ fakeaddr(const char *name, int af, struct hostent *hp, char *buf,
 		af = AF_INET6;
 	}
 	he.h_addrtype = af;
-	switch(af) {
+	switch (af) {
 	case AF_INET:
 		he.h_length = NS_INADDRSZ;
 		break;
@@ -497,7 +499,7 @@ gethostbyname_r(const char *name, struct hostent *he, char *buffer,
 			return (0);
 		}
 		if (gethostbyname_internal(name, AF_INET6, he, buffer, buflen,
-		    result, h_errnop, statp) == 0)
+			result, h_errnop, statp) == 0)
 			return (0);
 	}
 	return (gethostbyname_internal(name, AF_INET, he, buffer, buflen,
@@ -529,19 +531,17 @@ gethostbyname_internal(const char *name, int af, struct hostent *hp, char *buf,
 
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-		NS_COMMON_CACHE_INFO_INITIALIZER(
-		hosts, (void *)nss_lt_name,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(hosts, (void *)nss_lt_name,
 		host_id_func, host_marshal_func, host_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		NS_FILES_CB(_ht_gethostbyname, NULL)
-		{ NSSRC_DNS, _dns_gethostbyname, NULL },
+	static const ns_dtab dtab[] = { NS_FILES_CB(_ht_gethostbyname,
+					    NULL) { NSSRC_DNS,
+					    _dns_gethostbyname, NULL },
 		NS_NIS_CB(_nis_gethostbyname, NULL) /* force -DHESIOD */
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ 0 }
-	};
+		    { 0 } };
 
 	switch (af) {
 	case AF_INET:
@@ -568,9 +568,8 @@ gethostbyname_internal(const char *name, int af, struct hostent *hp, char *buf,
 		return (0);
 	}
 
-	rval = _nsdispatch((void *)result, dtab, NSDB_HOSTS,
-	    "gethostbyname2_r", default_src, name, af, hp, buf, buflen,
-	    &ret_errno, h_errnop);
+	rval = _nsdispatch((void *)result, dtab, NSDB_HOSTS, "gethostbyname2_r",
+	    default_src, name, af, hp, buf, buflen, &ret_errno, h_errnop);
 
 	if (rval != NS_SUCCESS) {
 		errno = ret_errno;
@@ -591,19 +590,17 @@ gethostbyaddr_r(const void *addr, socklen_t len, int af, struct hostent *hp,
 
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-		NS_COMMON_CACHE_INFO_INITIALIZER(
-		hosts, (void *)nss_lt_id,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(hosts, (void *)nss_lt_id,
 		host_id_func, host_marshal_func, host_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		NS_FILES_CB(_ht_gethostbyaddr, NULL)
-		{ NSSRC_DNS, _dns_gethostbyaddr, NULL },
+	static const ns_dtab dtab[] = { NS_FILES_CB(_ht_gethostbyaddr,
+					    NULL) { NSSRC_DNS,
+					    _dns_gethostbyaddr, NULL },
 		NS_NIS_CB(_nis_gethostbyaddr, NULL) /* force -DHESIOD */
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ 0 }
-	};
+		    { 0 } };
 
 	statp = __res_state();
 	if ((statp->options & RES_INIT) == 0 && res_ninit(statp) == -1) {
@@ -647,9 +644,8 @@ gethostbyaddr_r(const void *addr, socklen_t len, int af, struct hostent *hp,
 		return (-1);
 	}
 
-	rval = _nsdispatch((void *)result, dtab, NSDB_HOSTS,
-	    "gethostbyaddr_r", default_src, uaddr, len, af, hp, buf, buflen,
-	    &ret_errno, h_errnop);
+	rval = _nsdispatch((void *)result, dtab, NSDB_HOSTS, "gethostbyaddr_r",
+	    default_src, uaddr, len, af, hp, buf, buflen, &ret_errno, h_errnop);
 
 	if (rval != NS_SUCCESS) {
 		errno = ret_errno;
@@ -668,7 +664,7 @@ gethostbyname(const char *name)
 	if ((hd = __hostdata_init()) == NULL)
 		return (NULL);
 	if (gethostbyname_r(name, &hd->host, hd->data, sizeof(hd->data), &rval,
-	    &ret_h_errno) != 0)
+		&ret_h_errno) != 0)
 		return (NULL);
 	return (rval);
 }
@@ -683,7 +679,7 @@ gethostbyname2(const char *name, int af)
 	if ((hd = __hostdata_init()) == NULL)
 		return (NULL);
 	if (gethostbyname2_r(name, af, &hd->host, hd->data, sizeof(hd->data),
-	    &rval, &ret_h_errno) != 0)
+		&rval, &ret_h_errno) != 0)
 		return (NULL);
 	return (rval);
 }
@@ -698,7 +694,7 @@ gethostbyaddr(const void *addr, socklen_t len, int af)
 	if ((hd = __hostdata_init()) == NULL)
 		return (NULL);
 	if (gethostbyaddr_r(addr, len, af, &hd->host, hd->data,
-	    sizeof(hd->data), &rval, &ret_h_errno) != 0)
+		sizeof(hd->data), &rval, &ret_h_errno) != 0)
 		return (NULL);
 	return (rval);
 }

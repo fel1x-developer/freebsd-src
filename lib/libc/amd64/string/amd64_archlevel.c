@@ -38,7 +38,7 @@
 #include "amd64_archlevel.h"
 #include "libc_private.h"
 
-#define ARCHLEVEL_ENV	"ARCHLEVEL"
+#define ARCHLEVEL_ENV "ARCHLEVEL"
 
 static volatile int amd64_archlevel = X86_64_UNDEFINED;
 
@@ -46,54 +46,61 @@ static const struct archlevel {
 	char name[10];
 	/* CPUID feature bits that need to be present */
 	u_int feat_edx, feat_ecx, amd_ecx, ext_ebx;
-} levels[] = {
+} levels[] = { {
+		   .name = "scalar",
+		   .feat_edx = 0,
+		   .feat_ecx = 0,
+		   .amd_ecx = 0,
+		   .ext_ebx = 0,
+	       },
 	{
-		.name = "scalar",
-		.feat_edx = 0,
-		.feat_ecx = 0,
-		.amd_ecx = 0,
-		.ext_ebx = 0,
-	}, {
-#define FEAT_EDX_BASELINE (CPUID_FPU | CPUID_CX8 | CPUID_CMOV | CPUID_MMX | \
-	CPUID_FXSR | CPUID_SSE | CPUID_SSE2)
-		.name = "baseline",
-		.feat_edx = FEAT_EDX_BASELINE,
-		.feat_ecx = 0,
-		.amd_ecx = 0,
-		.ext_ebx = 0,
-	}, {
-#define FEAT_ECX_V2 (CPUID2_SSE3 | CPUID2_SSSE3 | CPUID2_CX16 | CPUID2_SSE41 | \
-	CPUID2_SSE42 | CPUID2_POPCNT)
+#define FEAT_EDX_BASELINE                                              \
+	(CPUID_FPU | CPUID_CX8 | CPUID_CMOV | CPUID_MMX | CPUID_FXSR | \
+	    CPUID_SSE | CPUID_SSE2)
+	    .name = "baseline",
+	    .feat_edx = FEAT_EDX_BASELINE,
+	    .feat_ecx = 0,
+	    .amd_ecx = 0,
+	    .ext_ebx = 0,
+	},
+	{
+#define FEAT_ECX_V2                                                \
+	(CPUID2_SSE3 | CPUID2_SSSE3 | CPUID2_CX16 | CPUID2_SSE41 | \
+	    CPUID2_SSE42 | CPUID2_POPCNT)
 #define AMD_ECX_V2 AMDID2_LAHF
-		.name = "x86-64-v2",
-		.feat_edx = FEAT_EDX_BASELINE,
-		.feat_ecx = FEAT_ECX_V2,
-		.amd_ecx = AMD_ECX_V2,
-		.ext_ebx = 0,
-	}, {
-#define FEAT_ECX_V3 (FEAT_ECX_V2 | CPUID2_FMA | CPUID2_MOVBE | \
-	CPUID2_OSXSAVE | CPUID2_AVX | CPUID2_F16C)
+	    .name = "x86-64-v2",
+	    .feat_edx = FEAT_EDX_BASELINE,
+	    .feat_ecx = FEAT_ECX_V2,
+	    .amd_ecx = AMD_ECX_V2,
+	    .ext_ebx = 0,
+	},
+	{
+#define FEAT_ECX_V3                                                 \
+	(FEAT_ECX_V2 | CPUID2_FMA | CPUID2_MOVBE | CPUID2_OSXSAVE | \
+	    CPUID2_AVX | CPUID2_F16C)
 #define AMD_ECX_V3 (AMD_ECX_V2 | AMDID2_ABM)
 #define EXT_EBX_V3 (CPUID_STDEXT_BMI1 | CPUID_STDEXT_AVX2 | CPUID_STDEXT_BMI2)
-		.name = "x86-64-v3",
-		.feat_edx = FEAT_EDX_BASELINE,
-		.feat_ecx = FEAT_ECX_V3,
-		.amd_ecx = AMD_ECX_V3,
-		.ext_ebx = EXT_EBX_V3,
-	}, {
-#define EXT_EBX_V4 (EXT_EBX_V3 | CPUID_STDEXT_AVX512F | \
-	CPUID_STDEXT_AVX512DQ | CPUID_STDEXT_AVX512CD | \
-	CPUID_STDEXT_AVX512BW | CPUID_STDEXT_AVX512VL)
-		.name = "x86-64-v4",
-		.feat_edx = FEAT_EDX_BASELINE,
-		.feat_ecx = FEAT_ECX_V3,
-		.amd_ecx = AMD_ECX_V3,
-		.ext_ebx = EXT_EBX_V4,
-	}
-};
+	    .name = "x86-64-v3",
+	    .feat_edx = FEAT_EDX_BASELINE,
+	    .feat_ecx = FEAT_ECX_V3,
+	    .amd_ecx = AMD_ECX_V3,
+	    .ext_ebx = EXT_EBX_V3,
+	},
+	{
+#define EXT_EBX_V4                                                   \
+	(EXT_EBX_V3 | CPUID_STDEXT_AVX512F | CPUID_STDEXT_AVX512DQ | \
+	    CPUID_STDEXT_AVX512CD | CPUID_STDEXT_AVX512BW |          \
+	    CPUID_STDEXT_AVX512VL)
+	    .name = "x86-64-v4",
+	    .feat_edx = FEAT_EDX_BASELINE,
+	    .feat_ecx = FEAT_ECX_V3,
+	    .amd_ecx = AMD_ECX_V3,
+	    .ext_ebx = EXT_EBX_V4,
+	} };
 
 static int
-supported_archlevel(u_int feat_edx, u_int feat_ecx, u_int ext_ebx, u_int ext_ecx)
+supported_archlevel(u_int feat_edx, u_int feat_ecx, u_int ext_ebx,
+    u_int ext_ecx)
 {
 	int level;
 	u_int p[4], max_leaf;
@@ -138,9 +145,11 @@ match_archlevel(const char *str, int *force)
 		size_t i;
 		const char *candidate = levels[level].name;
 
-		/* can't use strcmp here: would recurse during ifunc resolution */
+		/* can't use strcmp here: would recurse during ifunc resolution
+		 */
 		for (i = 0; str[i] == candidate[i]; i++)
-			/* suffixes starting with : or + are ignored for future extensions */
+			/* suffixes starting with : or + are ignored for future
+			 * extensions */
 			if (str[i] == '\0' || str[i] == ':' || str[i] == '+') {
 				if (want_force)
 					*force = 1;
@@ -172,13 +181,13 @@ env_archlevel(int *force)
 
 		for (j = 0; environ[i][j] == ARCHLEVEL_ENV "="[j]; j++)
 			if (environ[i][j] == '=')
-				return (match_archlevel(&environ[i][j + 1], force));
+				return (
+				    match_archlevel(&environ[i][j + 1], force));
 	}
 
 	*force = 0;
 
 	return (X86_64_UNDEFINED);
-
 }
 
 /*
@@ -207,7 +216,8 @@ archlevel(u_int feat_edx, u_int feat_ecx, u_int ext_ebx, u_int ext_ecx)
 
 	wantlevel = env_archlevel(&force);
 	if (!force) {
-		hwlevel = supported_archlevel(feat_edx, feat_ecx, ext_ebx, ext_ecx);
+		hwlevel = supported_archlevel(feat_edx, feat_ecx, ext_ebx,
+		    ext_ecx);
 		if (wantlevel == X86_64_UNDEFINED || wantlevel > hwlevel)
 			wantlevel = hwlevel;
 	}
@@ -232,9 +242,11 @@ __archlevel_resolve(u_int feat_edx, u_int feat_ecx, u_int ext_ebx,
 {
 	int level;
 
-	for (level = archlevel(feat_edx, feat_ecx, ext_ebx, ext_ecx); level >= 0; level--)
+	for (level = archlevel(feat_edx, feat_ecx, ext_ebx, ext_ecx);
+	     level >= 0; level--)
 		if (funcs[level] != 0)
-			return (dlfunc_t)((uintptr_t)funcs + (ptrdiff_t)funcs[level]);
+			return (dlfunc_t)((uintptr_t)funcs +
+			    (ptrdiff_t)funcs[level]);
 
 	/* no function is present -- what now? */
 	__builtin_trap();

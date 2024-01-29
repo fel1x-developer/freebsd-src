@@ -41,7 +41,7 @@
  *
  */
 void LacSymAlgChain_PrepareGCMData(lac_session_desc_t *pSessionDesc,
-				   Cpa8U *pAdditionalAuthData);
+    Cpa8U *pAdditionalAuthData);
 
 /**
  * @ingroup LacAuthEnc
@@ -56,10 +56,8 @@ void LacSymAlgChain_PrepareGCMData(lac_session_desc_t *pSessionDesc,
  * @retval CPA_STATUS_INVALID_PARAM    Invalid parameter passed
  *
  */
-CpaStatus LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData,
-				      Cpa8U *pIv,
-				      Cpa32U messageLenToCipherInBytes,
-				      Cpa32U ivLenInBytes);
+CpaStatus LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData, Cpa8U *pIv,
+    Cpa32U messageLenToCipherInBytes, Cpa32U ivLenInBytes);
 
 /**
  * @ingroup LacAuthEnc
@@ -78,9 +76,7 @@ CpaStatus LacSymAlgChain_CheckCCMData(Cpa8U *pAdditionalAuthData,
  * @pre parameters have been checked using LacSymAlgChain_CheckCCMData()
  */
 void LacSymAlgChain_PrepareCCMData(lac_session_desc_t *pSessionDesc,
-				   Cpa8U *pAdditionalAuthData,
-				   Cpa8U *pIv,
-				   Cpa32U messageLenToCipherInBytes,
-				   Cpa32U ivLenInBytes);
+    Cpa8U *pAdditionalAuthData, Cpa8U *pIv, Cpa32U messageLenToCipherInBytes,
+    Cpa32U ivLenInBytes);
 
 #endif /* LAC_SYM_AUTH_ENC_H_ */

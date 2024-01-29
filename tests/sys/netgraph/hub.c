@@ -45,8 +45,8 @@ ATF_TC_HEAD(basic, conf)
 
 ATF_TC_BODY(basic, dummy)
 {
-	char		msg[] = "test";
-	ng_counter_t	r;
+	char msg[] = "test";
+	ng_counter_t r;
 
 	ng_errors(PASS);
 	ng_shutdown("hub:");
@@ -123,9 +123,9 @@ ATF_TC_HEAD(loop, conf)
 
 ATF_TC_BODY(loop, dummy)
 {
-	ng_counter_t	r;
-	int		i;
-	char		msg[] = "LOOP Alert!";
+	ng_counter_t r;
+	int i;
+	char msg[] = "LOOP Alert!";
 
 	ng_errors(PASS);
 	ng_shutdown("hub1:");
@@ -166,7 +166,7 @@ ATF_TC_BODY(loop, dummy)
 
 	ng_counter_clear(r);
 	ng_send_data("a", msg, sizeof(msg));
-	for (i = 0; i < 10; i++)	/* don't run forever */
+	for (i = 0; i < 10; i++) /* don't run forever */
 		if (!ng_handle_event(50, r))
 			break;
 	ATF_CHECK(r[0] > 7);
@@ -183,10 +183,10 @@ ATF_TC_HEAD(many_hooks, conf)
 
 ATF_TC_BODY(many_hooks, dummy)
 {
-	ng_counter_t	r;
-	int		i;
-	char		msg[] = "test";
-	const int	HOOKS = 1000;
+	ng_counter_t r;
+	int i;
+	char msg[] = "test";
+	const int HOOKS = 1000;
 
 	ng_errors(PASS);
 	ng_shutdown("hub:");
@@ -198,9 +198,8 @@ ATF_TC_BODY(many_hooks, dummy)
 
 	ng_register_data("a", get_data0);
 	ng_counter_clear(r);
-	for (i = 0; i < HOOKS; i++)
-	{
-		char		hook[20];
+	for (i = 0; i < HOOKS; i++) {
+		char hook[20];
 
 		snprintf(hook, sizeof(hook), "hook%d", i);
 		ng_connect(".", hook, "hub:", hook);
@@ -218,7 +217,6 @@ ATF_TC_BODY(many_hooks, dummy)
 
 	ng_shutdown("hub:");
 }
-
 
 ATF_TP_ADD_TCS(hub)
 {

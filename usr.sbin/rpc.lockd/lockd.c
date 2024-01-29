@@ -54,31 +54,30 @@ __RCSID("$NetBSD: lockd.c,v 1.7 2000/08/12 18:08:44 thorpej Exp $");
 #include <sys/stat.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
-#include <syslog.h>
-#include <signal.h>
-#include <string.h>
-#include <unistd.h>
 #include <libutil.h>
 #include <netconfig.h>
 #include <netdb.h>
-
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
+#include <rpcsvc/nlm_prot.h>
 #include <rpcsvc/sm_inter.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "lockd.h"
-#include <rpcsvc/nlm_prot.h>
 
-#define	GETPORT_MAXTRY	20	/* Max tries to get a port # */
+#define GETPORT_MAXTRY 20 /* Max tries to get a port # */
 
-int		debug_level = 0;	/* 0 = no debugging syslog() calls */
-int		_rpcsvcdirty = 0;
+int debug_level = 0; /* 0 = no debugging syslog() calls */
+int _rpcsvcdirty = 0;
 
 int grace_expired;
 int nsm_state;
@@ -87,29 +86,29 @@ int kernel_lockd_client;
 pid_t client_pid;
 struct mon mon_host;
 char **hosts, *svcport_str = NULL;
-static int	mallocd_svcport = 0;
-static int	*sock_fd;
-static int	sock_fdcnt;
-static int	sock_fdpos;
+static int mallocd_svcport = 0;
+static int *sock_fd;
+static int sock_fdcnt;
+static int sock_fdpos;
 int nhosts = 0;
 int xcreated = 0;
-char **addrs;			/* actually (netid, uaddr) pairs */
-int naddrs;			/* count of how many (netid, uaddr) pairs */
+char **addrs; /* actually (netid, uaddr) pairs */
+int naddrs;   /* count of how many (netid, uaddr) pairs */
 char localhost[] = "localhost";
 
-static int	create_service(struct netconfig *nconf);
-static void	complete_service(struct netconfig *nconf, char *port_str);
-static void	clearout_service(void);
-static void	out_of_mem(void) __dead2;
-void	init_nsm(void);
-void	usage(void);
+static int create_service(struct netconfig *nconf);
+static void complete_service(struct netconfig *nconf, char *port_str);
+static void clearout_service(void);
+static void out_of_mem(void) __dead2;
+void init_nsm(void);
+void usage(void);
 
 void sigalarm_handler(void);
 
 /*
  * XXX move to some header file.
  */
-#define _PATH_RPCLOCKDSOCK	"/var/run/rpclockd.sock"
+#define _PATH_RPCLOCKDSOCK "/var/run/rpclockd.sock"
 
 int
 main(int argc, char **argv)
@@ -151,7 +150,7 @@ main(int argc, char **argv)
 			hosts_bak = realloc(hosts, nhosts * sizeof(char *));
 			if (hosts_bak == NULL) {
 				if (hosts != NULL) {
-					for (i = 0; i < nhosts; i++) 
+					for (i = 0; i < nhosts; i++)
 						free(hosts[i]);
 					free(hosts);
 					out_of_mem();
@@ -160,7 +159,7 @@ main(int argc, char **argv)
 			hosts = hosts_bak;
 			hosts[nhosts - 1] = strdup(optarg);
 			if (hosts[nhosts - 1] == NULL) {
-				for (i = 0; i < (nhosts - 1); i++) 
+				for (i = 0; i < (nhosts - 1); i++)
 					free(hosts[i]);
 				free(hosts);
 				out_of_mem();
@@ -169,8 +168,8 @@ main(int argc, char **argv)
 		case 'p':
 			endptr = NULL;
 			svcport = (in_port_t)strtoul(optarg, &endptr, 10);
-			if (endptr == NULL || *endptr != '\0' ||
-			    svcport == 0 || svcport >= IPPORT_MAX)
+			if (endptr == NULL || *endptr != '\0' || svcport == 0 ||
+			    svcport >= IPPORT_MAX)
 				usage();
 			svcport_str = strdup(optarg);
 			break;
@@ -182,13 +181,14 @@ main(int argc, char **argv)
 	if (geteuid()) { /* This command allowed only to root */
 		fprintf(stderr, "Sorry. You are not superuser\n");
 		exit(1);
-        }
+	}
 
 	kernel_lockd = FALSE;
 	kernel_lockd_client = FALSE;
 	if (modfind("nfslockd") < 0) {
 		if (kldload("nfslockd") < 0) {
-			fprintf(stderr, "Can't find or load kernel support for rpc.lockd - using non-kernel implementation\n");
+			fprintf(stderr,
+			    "Can't find or load kernel support for rpc.lockd - using non-kernel implementation\n");
 		} else {
 			kernel_lockd = TRUE;
 		}
@@ -211,7 +211,7 @@ main(int argc, char **argv)
 	s = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	if (s < 0)
 		have_v6 = 0;
-	else 
+	else
 		close(s);
 
 	rpc_control(RPC_SVC_CONNMAXREC_SET, &maxrec);
@@ -230,8 +230,8 @@ main(int argc, char **argv)
 		nhosts = 1;
 	} else {
 		if (have_v6) {
-			hosts_bak = realloc(hosts, (nhosts + 2) *
-			    sizeof(char *));
+			hosts_bak = realloc(hosts,
+			    (nhosts + 2) * sizeof(char *));
 			if (hosts_bak == NULL) {
 				for (i = 0; i < nhosts; i++)
 					free(hosts[i]);
@@ -243,7 +243,8 @@ main(int argc, char **argv)
 			nhosts += 2;
 			hosts[nhosts - 2] = strdup("::1");
 		} else {
-			hosts_bak = realloc(hosts, (nhosts + 1) * sizeof(char *));
+			hosts_bak = realloc(hosts,
+			    (nhosts + 1) * sizeof(char *));
 			if (hosts_bak == NULL) {
 				for (i = 0; i < nhosts; i++)
 					free(hosts[i]);
@@ -280,20 +281,25 @@ main(int argc, char **argv)
 			if (!fd) {
 				err(1, "Can't create local lockd socket");
 			}
-			oldmask = umask(S_IXUSR|S_IRWXG|S_IRWXO);
-			if (bind(fd, (struct sockaddr *) &sun, sun.sun_len) < 0) {
+			oldmask = umask(S_IXUSR | S_IRWXG | S_IRWXO);
+			if (bind(fd, (struct sockaddr *)&sun, sun.sun_len) <
+			    0) {
 				err(1, "Can't bind local lockd socket");
 			}
 			umask(oldmask);
 			if (listen(fd, SOMAXCONN) < 0) {
 				err(1, "Can't listen on local lockd socket");
 			}
-			xprt = svc_vc_create(fd, RPC_MAXDATASIZE, RPC_MAXDATASIZE);
+			xprt = svc_vc_create(fd, RPC_MAXDATASIZE,
+			    RPC_MAXDATASIZE);
 			if (!xprt) {
-				err(1, "Can't create transport for local lockd socket");
+				err(1,
+				    "Can't create transport for local lockd socket");
 			}
-			if (!svc_reg(xprt, NLM_PROG, NLM_VERS4, nlm_prog_4, NULL)) {
-				err(1, "Can't register service for local lockd socket");
+			if (!svc_reg(xprt, NLM_PROG, NLM_VERS4, nlm_prog_4,
+				NULL)) {
+				err(1,
+				    "Can't register service for local lockd socket");
 			}
 		}
 
@@ -304,10 +310,12 @@ main(int argc, char **argv)
 		 */
 		nc_handle = setnetconfig();
 		while ((nconf = getnetconfig(nc_handle))) {
-			/* We want to listen only on udp6, tcp6, udp, tcp transports */
+			/* We want to listen only on udp6, tcp6, udp, tcp
+			 * transports */
 			if (nconf->nc_flag & NC_VISIBLE) {
 				/* Skip if there's no IPv6 support */
-				if (have_v6 == 0 && strcmp(nconf->nc_protofmly, "inet6") == 0) {
+				if (have_v6 == 0 &&
+				    strcmp(nconf->nc_protofmly, "inet6") == 0) {
 					/* DO NOTHING */
 				} else {
 					create_service(nconf);
@@ -323,10 +331,12 @@ main(int argc, char **argv)
 		port_len = 0;
 		nc_handle = setnetconfig();
 		while ((nconf = getnetconfig(nc_handle))) {
-			/* We want to listen only on udp6, tcp6, udp, tcp transports */
+			/* We want to listen only on udp6, tcp6, udp, tcp
+			 * transports */
 			if (nconf->nc_flag & NC_VISIBLE) {
 				/* Skip if there's no IPv6 support */
-				if (have_v6 == 0 && strcmp(nconf->nc_protofmly, "inet6") == 0) {
+				if (have_v6 == 0 &&
+				    strcmp(nconf->nc_protofmly, "inet6") == 0) {
 					/* DO NOTHING */
 				} else {
 					ret = create_service(nconf);
@@ -344,17 +354,17 @@ main(int argc, char **argv)
 						clearout_service();
 						if (mallocd_svcport != 0 &&
 						    attempt_cnt <
-						    GETPORT_MAXTRY) {
+							GETPORT_MAXTRY) {
 							free(svcport_str);
 							svcport_str = NULL;
 							mallocd_svcport = 0;
 						} else {
 							errno = EADDRINUSE;
 							syslog(LOG_ERR,
-							 "bindresvport_sa: %m");
+							    "bindresvport_sa: %m");
 							exit(1);
 						}
-	
+
 						/*
 						 * Start over at the first
 						 * service.
@@ -375,7 +385,7 @@ main(int argc, char **argv)
 						 */
 						port_list = realloc(port_list,
 						    (port_len + 1) *
-						    sizeof(char *));
+							sizeof(char *));
 						if (port_list == NULL)
 							out_of_mem();
 						port_list[port_len++] =
@@ -395,10 +405,12 @@ main(int argc, char **argv)
 		port_pos = 0;
 		nc_handle = setnetconfig();
 		while ((nconf = getnetconfig(nc_handle))) {
-			/* We want to listen only on udp6, tcp6, udp, tcp transports */
+			/* We want to listen only on udp6, tcp6, udp, tcp
+			 * transports */
 			if (nconf->nc_flag & NC_VISIBLE) {
 				/* Skip if there's no IPv6 support */
-				if (have_v6 == 0 && strcmp(nconf->nc_protofmly, "inet6") == 0) {
+				if (have_v6 == 0 &&
+				    strcmp(nconf->nc_protofmly, "inet6") == 0) {
 					/* DO NOTHING */
 				} else if (port_list != NULL) {
 					if (port_pos >= port_len) {
@@ -436,7 +448,7 @@ main(int argc, char **argv)
 	else
 		syslog(LOG_INFO, "Starting");
 
-	sigalarm.sa_handler = (sig_t) sigalarm_handler;
+	sigalarm.sa_handler = (sig_t)sigalarm_handler;
 	sigemptyset(&sigalarm.sa_mask);
 	sigalarm.sa_flags = SA_RESETHAND; /* should only happen once */
 	sigalarm.sa_flags |= SA_RESTART;
@@ -456,8 +468,8 @@ main(int argc, char **argv)
 			 * wait for RPCs on our local domain socket.
 			 */
 			if (!fork())
-				nlm_syscall(debug_level, grace_period,
-				    naddrs, addrs);
+				nlm_syscall(debug_level, grace_period, naddrs,
+				    addrs);
 			else
 				svc_run();
 		} else {
@@ -476,7 +488,7 @@ main(int argc, char **argv)
 
 		client_pid = client_request();
 
-		svc_run();		/* Should never return */
+		svc_run(); /* Should never return */
 	}
 	exit(1);
 }
@@ -505,13 +517,13 @@ create_service(struct netconfig *nconf)
 	int fd;
 	int nhostsbak;
 	int r;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	u_int32_t host_addr[4]; /* IPv4 or IPv6 */
 	int mallocd_res;
 
 	if ((nconf->nc_semantics != NC_TPI_CLTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS_ORD))
-		return (1);	/* not my type */
+		return (1); /* not my type */
 
 	/*
 	 * XXX - using RPC library internal functions.
@@ -538,56 +550,57 @@ create_service(struct netconfig *nconf)
 		hints.ai_flags = AI_PASSIVE;
 
 		if (!kernel_lockd) {
-			sock_fd = realloc(sock_fd, (sock_fdcnt + 1) * sizeof(int));
+			sock_fd = realloc(sock_fd,
+			    (sock_fdcnt + 1) * sizeof(int));
 			if (sock_fd == NULL)
 				out_of_mem();
-			sock_fd[sock_fdcnt++] = -1;	/* Set invalid for now. */
+			sock_fd[sock_fdcnt++] = -1; /* Set invalid for now. */
 
-			/*	
-			* XXX - using RPC library internal functions.
-			*/
+			/*
+			 * XXX - using RPC library internal functions.
+			 */
 			if ((fd = __rpc_nconf2fd(nconf)) < 0) {
 				syslog(LOG_ERR, "cannot create socket for %s",
-					nconf->nc_netid);
+				    nconf->nc_netid);
 				continue;
 			}
 		}
 
 		switch (hints.ai_family) {
-			case AF_INET:
-				if (inet_pton(AF_INET, hosts[nhostsbak],
-				    host_addr) == 1) {
-					hints.ai_flags |= AI_NUMERICHOST;
-				} else {
-					/*
-					 * Skip if we have an AF_INET6 address.
-					 */
-					if (inet_pton(AF_INET6, hosts[nhostsbak],
-					    host_addr) == 1) {
-						if (!kernel_lockd)
-							close(fd);
-						continue;
-					}
-				}
-				break;
-			case AF_INET6:
+		case AF_INET:
+			if (inet_pton(AF_INET, hosts[nhostsbak], host_addr) ==
+			    1) {
+				hints.ai_flags |= AI_NUMERICHOST;
+			} else {
+				/*
+				 * Skip if we have an AF_INET6 address.
+				 */
 				if (inet_pton(AF_INET6, hosts[nhostsbak],
-				    host_addr) == 1) {
-					hints.ai_flags |= AI_NUMERICHOST;
-				} else {
-					/*
-					 * Skip if we have an AF_INET address.
-					 */
-					if (inet_pton(AF_INET, hosts[nhostsbak],
-					    host_addr) == 1) {
-						if (!kernel_lockd)
-							close(fd);
-						continue;
-					}
+					host_addr) == 1) {
+					if (!kernel_lockd)
+						close(fd);
+					continue;
 				}
-				break;
-			default:
-				break;
+			}
+			break;
+		case AF_INET6:
+			if (inet_pton(AF_INET6, hosts[nhostsbak], host_addr) ==
+			    1) {
+				hints.ai_flags |= AI_NUMERICHOST;
+			} else {
+				/*
+				 * Skip if we have an AF_INET address.
+				 */
+				if (inet_pton(AF_INET, hosts[nhostsbak],
+					host_addr) == 1) {
+					if (!kernel_lockd)
+						close(fd);
+					continue;
+				}
+			}
+			break;
+		default:
+			break;
 		}
 
 		/*
@@ -595,44 +608,47 @@ create_service(struct netconfig *nconf)
 		 */
 		if (strcmp("*", hosts[nhostsbak]) == 0) {
 			if (svcport_str == NULL) {
-				if ((res = malloc(sizeof(struct addrinfo))) == NULL)
+				if ((res = malloc(sizeof(struct addrinfo))) ==
+				    NULL)
 					out_of_mem();
 				mallocd_res = 1;
 				res->ai_flags = hints.ai_flags;
 				res->ai_family = hints.ai_family;
 				res->ai_protocol = hints.ai_protocol;
 				switch (res->ai_family) {
-					case AF_INET:
-						sin = malloc(sizeof(struct sockaddr_in));
-						if (sin == NULL) 
-							out_of_mem();
-						sin->sin_family = AF_INET;
-						sin->sin_port = htons(0);
-						sin->sin_addr.s_addr = htonl(INADDR_ANY);
-						res->ai_addr = (struct sockaddr*) sin;
-						res->ai_addrlen = (socklen_t)
-						    sizeof(struct sockaddr_in);
-						break;
-					case AF_INET6:
-						sin6 = malloc(sizeof(struct sockaddr_in6));
-						if (sin6 == NULL)
-							out_of_mem();
-						sin6->sin6_family = AF_INET6;
-						sin6->sin6_port = htons(0);
-						sin6->sin6_addr = in6addr_any;
-						res->ai_addr = (struct sockaddr*) sin6;
-						res->ai_addrlen = (socklen_t)
-						    sizeof(struct sockaddr_in6);
-						break;
-					default:
-						syslog(LOG_ERR,
-						    "bad address family %d",
-						    res->ai_family);
-						exit(1);
+				case AF_INET:
+					sin = malloc(
+					    sizeof(struct sockaddr_in));
+					if (sin == NULL)
+						out_of_mem();
+					sin->sin_family = AF_INET;
+					sin->sin_port = htons(0);
+					sin->sin_addr.s_addr = htonl(
+					    INADDR_ANY);
+					res->ai_addr = (struct sockaddr *)sin;
+					res->ai_addrlen = (socklen_t)sizeof(
+					    struct sockaddr_in);
+					break;
+				case AF_INET6:
+					sin6 = malloc(
+					    sizeof(struct sockaddr_in6));
+					if (sin6 == NULL)
+						out_of_mem();
+					sin6->sin6_family = AF_INET6;
+					sin6->sin6_port = htons(0);
+					sin6->sin6_addr = in6addr_any;
+					res->ai_addr = (struct sockaddr *)sin6;
+					res->ai_addrlen = (socklen_t)sizeof(
+					    struct sockaddr_in6);
+					break;
+				default:
+					syslog(LOG_ERR, "bad address family %d",
+					    res->ai_family);
+					exit(1);
 				}
-			} else { 
+			} else {
 				if ((aicode = getaddrinfo(NULL, svcport_str,
-				    &hints, &res)) != 0) {
+					 &hints, &res)) != 0) {
 					syslog(LOG_ERR,
 					    "cannot get local address for %s: %s",
 					    nconf->nc_netid,
@@ -644,7 +660,7 @@ create_service(struct netconfig *nconf)
 			}
 		} else {
 			if ((aicode = getaddrinfo(hosts[nhostsbak], svcport_str,
-			    &hints, &res)) != 0) {
+				 &hints, &res)) != 0) {
 				syslog(LOG_ERR,
 				    "cannot get local address for %s: %s",
 				    nconf->nc_netid, gai_strerror(aicode));
@@ -659,13 +675,15 @@ create_service(struct netconfig *nconf)
 			char *uaddr;
 
 			/*
-			 * Look up addresses for the kernel to create transports for.
+			 * Look up addresses for the kernel to create transports
+			 * for.
 			 */
 			servaddr.len = servaddr.maxlen = res->ai_addrlen;
 			servaddr.buf = res->ai_addr;
 			uaddr = taddr2uaddr(nconf, &servaddr);
 
-			addrs = realloc(addrs, 2 * (naddrs + 1) * sizeof(char *));
+			addrs = realloc(addrs,
+			    2 * (naddrs + 1) * sizeof(char *));
 			if (!addrs)
 				out_of_mem();
 			addrs[2 * naddrs] = strdup(nconf->nc_netid);
@@ -678,7 +696,8 @@ create_service(struct netconfig *nconf)
 			/* Now, attempt the bind. */
 			r = bindresvport_sa(fd, res->ai_addr);
 			if (r != 0) {
-				if (errno == EADDRINUSE && mallocd_svcport != 0) {
+				if (errno == EADDRINUSE &&
+				    mallocd_svcport != 0) {
 					if (mallocd_res != 0) {
 						free(res->ai_addr);
 						free(res);
@@ -697,9 +716,9 @@ create_service(struct netconfig *nconf)
 				mallocd_svcport = 1;
 
 				if (getnameinfo(res->ai_addr,
-				res->ai_addr->sa_len, NULL, NI_MAXHOST,
-				svcport_str, NI_MAXSERV * sizeof(char),
-				NI_NUMERICHOST | NI_NUMERICSERV))
+					res->ai_addr->sa_len, NULL, NI_MAXHOST,
+					svcport_str, NI_MAXSERV * sizeof(char),
+					NI_NUMERICHOST | NI_NUMERICSERV))
 					errx(1, "Cannot get port number");
 			}
 		}
@@ -724,14 +743,14 @@ complete_service(struct netconfig *nconf, char *port_str)
 	struct addrinfo hints, *res = NULL;
 	struct __rpc_sockinfo si;
 	struct netbuf servaddr;
-	SVCXPRT	*transp = NULL;
+	SVCXPRT *transp = NULL;
 	int aicode, fd, nhostsbak;
 	int registered = 0;
 
 	if ((nconf->nc_semantics != NC_TPI_CLTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS) &&
 	    (nconf->nc_semantics != NC_TPI_COTS_ORD))
-		return;	/* not my type */
+		return; /* not my type */
 
 	/*
 	 * XXX - using RPC library internal functions.
@@ -755,37 +774,37 @@ complete_service(struct netconfig *nconf, char *port_str)
 			continue;
 
 		if (nconf->nc_semantics != NC_TPI_CLTS)
-		    listen(fd, SOMAXCONN);
+			listen(fd, SOMAXCONN);
 
-		transp = svc_tli_create(fd, nconf, NULL,
-		    RPC_MAXDATASIZE, RPC_MAXDATASIZE);
+		transp = svc_tli_create(fd, nconf, NULL, RPC_MAXDATASIZE,
+		    RPC_MAXDATASIZE);
 
-		if (transp != (SVCXPRT *) NULL) {
+		if (transp != (SVCXPRT *)NULL) {
 			if (!svc_reg(transp, NLM_PROG, NLM_SM, nlm_prog_0,
-			    NULL)) 
+				NULL))
 				syslog(LOG_ERR,
 				    "can't register %s NLM_PROG, NLM_SM service",
 				    nconf->nc_netid);
-			
+
 			if (!svc_reg(transp, NLM_PROG, NLM_VERS, nlm_prog_1,
-			    NULL)) 
+				NULL))
 				syslog(LOG_ERR,
 				    "can't register %s NLM_PROG, NLM_VERS service",
 				    nconf->nc_netid);
-			
+
 			if (!svc_reg(transp, NLM_PROG, NLM_VERSX, nlm_prog_3,
-			    NULL)) 
+				NULL))
 				syslog(LOG_ERR,
 				    "can't register %s NLM_PROG, NLM_VERSX service",
 				    nconf->nc_netid);
-			
+
 			if (!svc_reg(transp, NLM_PROG, NLM_VERS4, nlm_prog_4,
-			    NULL)) 
+				NULL))
 				syslog(LOG_ERR,
 				    "can't register %s NLM_PROG, NLM_VERS4 service",
 				    nconf->nc_netid);
-			
-		} else 
+
+		} else
 			syslog(LOG_WARNING, "can't create %s services",
 			    nconf->nc_netid);
 
@@ -798,7 +817,7 @@ complete_service(struct netconfig *nconf, char *port_str)
 			hints.ai_protocol = si.si_proto;
 
 			if ((aicode = getaddrinfo(NULL, port_str, &hints,
-			    &res)) != 0) {
+				 &res)) != 0) {
 				syslog(LOG_ERR, "cannot get local address: %s",
 				    gai_strerror(aicode));
 				exit(1);
@@ -846,7 +865,8 @@ sigalarm_handler(void)
 void
 usage(void)
 {
-	errx(1, "usage: rpc.lockd [-d <debuglevel>]"
+	errx(1,
+	    "usage: rpc.lockd [-d <debuglevel>]"
 	    " [-F] [-g <grace period>] [-h <bindip>] [-p <port>]");
 }
 
@@ -897,7 +917,7 @@ init_nsm(void)
 	mon_host.mon_id.my_id.my_name = localhost;
 	mon_host.mon_id.my_id.my_prog = NLM_PROG;
 	mon_host.mon_id.my_id.my_vers = NLM_SM;
-	mon_host.mon_id.my_id.my_proc = NLM_SM_NOTIFY;  /* bsdi addition */
+	mon_host.mon_id.my_id.my_proc = NLM_SM_NOTIFY; /* bsdi addition */
 }
 
 /*

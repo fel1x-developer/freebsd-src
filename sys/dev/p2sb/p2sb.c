@@ -25,29 +25,31 @@
  */
 
 /*
- * Implementation of Primary to Sideband bridge (P2SB), the documentation is available here :
+ * Implementation of Primary to Sideband bridge (P2SB), the documentation is
+ * available here :
  * https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/c620-series-chipset-datasheet.pdf
  * section 36.9 P2SB Bridge.
- * This device exposes a 16MB memory block, this block is composed of 256 64KB blocks called ports.
- * The indexes of this array (target port ID) can be found on the Table 36-10 of the documentation.
+ * This device exposes a 16MB memory block, this block is composed of 256 64KB
+ * blocks called ports. The indexes of this array (target port ID) can be found
+ * on the Table 36-10 of the documentation.
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "p2sb.h"
 
@@ -56,13 +58,11 @@
 #define P2SB_PORT2ADDRESS_SHIFT 16
 #define P2SB_PORT_ADDRESS(port) ((uint32_t)port << P2SB_PORT2ADDRESS_SHIFT)
 
-static const uint8_t lbg_communities[] = {
-	0xAF, 0xAE, 0xAD, 0xAC, 0xAB, 0x11
-};
+static const uint8_t lbg_communities[] = { 0xAF, 0xAE, 0xAD, 0xAC, 0xAB, 0x11 };
 
 /* The softc holds our per-instance data. */
 struct p2sb_softc {
-	device_t	dev;
+	device_t dev;
 	int rid;
 	struct resource *res;
 	struct intel_community *communities;
@@ -84,7 +84,7 @@ p2sb_port_read_4(device_t dev, uint8_t port, uint32_t reg)
 {
 	struct p2sb_softc *sc;
 
-	KASSERT(reg < (1<<P2SB_PORT2ADDRESS_SHIFT), ("register out of port"));
+	KASSERT(reg < (1 << P2SB_PORT2ADDRESS_SHIFT), ("register out of port"));
 	sc = device_get_softc(dev);
 	return (bus_read_4(sc->res, P2SB_PORT_ADDRESS(port) + reg));
 }
@@ -94,7 +94,7 @@ p2sb_port_write_4(device_t dev, uint8_t port, uint32_t reg, uint32_t val)
 {
 	struct p2sb_softc *sc;
 
-	KASSERT(reg < (1<<P2SB_PORT2ADDRESS_SHIFT), ("register out of port"));
+	KASSERT(reg < (1 << P2SB_PORT2ADDRESS_SHIFT), ("register out of port"));
 	sc = device_get_softc(dev);
 	bus_write_4(sc->res, P2SB_PORT_ADDRESS(port) + reg, val);
 }
@@ -116,7 +116,6 @@ p2sb_unlock(device_t dev)
 	sc = device_get_softc(dev);
 	mtx_unlock_spin(&sc->mutex);
 }
-
 
 static int
 p2sb_probe(device_t dev)
@@ -140,7 +139,8 @@ p2sb_attach(device_t dev)
 	sc = device_get_softc(dev);
 	sc->dev = dev;
 	sc->rid = PCIR_BAR(0);
-	sc->res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->rid, RF_ACTIVE);
+	sc->res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &sc->rid,
+	    RF_ACTIVE);
 	if (sc->res == NULL) {
 		device_printf(dev, "Could not allocate memory.\n");
 		return (ENXIO);
@@ -199,12 +199,12 @@ p2sb_resume(device_t dev)
 
 static device_method_t p2sb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		p2sb_probe),
-	DEVMETHOD(device_attach,	p2sb_attach),
-	DEVMETHOD(device_detach,	p2sb_detach),
-	DEVMETHOD(device_shutdown,	p2sb_shutdown),
-	DEVMETHOD(device_suspend,	p2sb_suspend),
-	DEVMETHOD(device_resume,	p2sb_resume),
+	DEVMETHOD(device_probe, p2sb_probe),
+	DEVMETHOD(device_attach, p2sb_attach),
+	DEVMETHOD(device_detach, p2sb_detach),
+	DEVMETHOD(device_shutdown, p2sb_shutdown),
+	DEVMETHOD(device_suspend, p2sb_suspend),
+	DEVMETHOD(device_resume, p2sb_resume),
 
 	DEVMETHOD_END
 };

@@ -1,19 +1,19 @@
-//#include <sys/param.h>
-#include <stdio.h>
-
-#include <net/if.h>
-#include <netinet/in.h>
+// #include <sys/param.h>
 #include <sys/param.h>
 #include <sys/errno.h>
-#include <sys/linker.h>
 #include <sys/ioctl.h>
+#include <sys/linker.h>
 #include <sys/nv.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <atf-c.h>
+#include <net/if.h>
+#include <netinet/in.h>
 
-#define OVPN_NEW_PEER		_IO  ('D', 1)
+#include <atf-c.h>
+#include <stdio.h>
+
+#define OVPN_NEW_PEER _IO('D', 1)
 
 static nvlist_t *
 fake_sockaddr(void)

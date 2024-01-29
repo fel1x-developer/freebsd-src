@@ -26,11 +26,10 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #include <libifconfig.h>
 #include <libifconfig_sfp_tables.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 /** SFP module information in raw numeric form
  * These are static properties of the hardware.
@@ -42,52 +41,56 @@ struct ifconfig_sfp_info;
  */
 struct ifconfig_sfp_info_strings;
 
-#define SFF_VENDOR_STRING_SIZE	16	/**< max chars in a vendor string */
-#define SFF_VENDOR_DATE_SIZE	6	/**< chars in a vendor date code */
+#define SFF_VENDOR_STRING_SIZE 16 /**< max chars in a vendor string */
+#define SFF_VENDOR_DATE_SIZE 6	  /**< chars in a vendor date code */
 
 /** SFP module vendor info strings */
 struct ifconfig_sfp_vendor_info {
-	char name[SFF_VENDOR_STRING_SIZE + 1];	/**< vendor name */
-	char pn[SFF_VENDOR_STRING_SIZE + 1];	/**< vendor part number */
-	char sn[SFF_VENDOR_STRING_SIZE + 1];	/**< vendor serial number */
-	char date[SFF_VENDOR_DATE_SIZE + 5];	/**< formatted vendor date */
+	char name[SFF_VENDOR_STRING_SIZE + 1]; /**< vendor name */
+	char pn[SFF_VENDOR_STRING_SIZE + 1];   /**< vendor part number */
+	char sn[SFF_VENDOR_STRING_SIZE + 1];   /**< vendor serial number */
+	char date[SFF_VENDOR_DATE_SIZE + 5];   /**< formatted vendor date */
 };
 
 /** SFP module status
  * These are dynamic properties of the hardware.
  */
 struct ifconfig_sfp_status {
-	double temp;		/**< module temperature in degrees C,
-				     valid range -40.0 to 125.0 */
-	double voltage;		/**< module voltage in volts */
+	double temp;	/**< module temperature in degrees C,
+			     valid range -40.0 to 125.0 */
+	double voltage; /**< module voltage in volts */
 	struct sfp_channel {
-		uint16_t rx;	/**< channel receive power, LSB 0.1uW */
-		uint16_t tx;	/**< channel transmit bias current, LSB 2uA */
-	} *channel;		/**< array of channel rx/tx status */
-	uint32_t bitrate;	/**< link bitrate,
-				     only present for QSFP modules,
-				     zero for SFP modules */
+		uint16_t rx; /**< channel receive power, LSB 0.1uW */
+		uint16_t tx; /**< channel transmit bias current, LSB 2uA */
+	} *channel;	     /**< array of channel rx/tx status */
+	uint32_t bitrate;    /**< link bitrate,
+				  only present for QSFP modules,
+				  zero for SFP modules */
 };
 
-#define SFF_DUMP_SIZE	256	/**< size of the memory dump buffer */
+#define SFF_DUMP_SIZE 256 /**< size of the memory dump buffer */
 
-#define SFP_DUMP_START	0	/**< start address of an SFP module dump */
-#define SFP_DUMP_SIZE	128	/**< bytes in an SFP module dump */
+#define SFP_DUMP_START 0  /**< start address of an SFP module dump */
+#define SFP_DUMP_SIZE 128 /**< bytes in an SFP module dump */
 
-#define QSFP_DUMP0_START	0	/**< start address of the first region
-					     in a QSFP module dump */
-#define QSFP_DUMP0_SIZE		82	/**< bytes in the first region
-					     in a QSFP module dump */
-#define QSFP_DUMP1_START	128	/**< start address of the second region
-					     in a QSFP module dump */
-#define QSFP_DUMP1_SIZE		128	/**< bytes in the second region
-					     in a QSFP module dump */
+#define QSFP_DUMP0_START                         \
+	0 /**< start address of the first region \
+	       in a QSFP module dump */
+#define QSFP_DUMP0_SIZE                   \
+	82 /**< bytes in the first region \
+		in a QSFP module dump */
+#define QSFP_DUMP1_START                            \
+	128 /**< start address of the second region \
+		 in a QSFP module dump */
+#define QSFP_DUMP1_SIZE                     \
+	128 /**< bytes in the second region \
+		 in a QSFP module dump */
 
 /** SFP module I2C memory dump
  * SFP modules have one region, QSFP modules have two regions.
  */
 struct ifconfig_sfp_dump {
-	uint8_t data[SFF_DUMP_SIZE];	/**< memory dump data */
+	uint8_t data[SFF_DUMP_SIZE]; /**< memory dump data */
 };
 
 /** Get information about the static properties of an SFP/QSFP module

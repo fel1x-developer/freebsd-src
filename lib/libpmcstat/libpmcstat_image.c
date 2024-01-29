@@ -25,13 +25,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/cpuset.h>
 #include <sys/param.h>
+#include <sys/cpuset.h>
 #include <sys/endian.h>
-#include <sys/pmc.h>
-#include <sys/sysctl.h>
 #include <sys/imgact_aout.h>
 #include <sys/imgact_elf.h>
+#include <sys/pmc.h>
+#include <sys/sysctl.h>
 
 #include <netinet/in.h>
 
@@ -49,16 +49,16 @@
 
 #include "libpmcstat.h"
 
-#define	min(A,B)		((A) < (B) ? (A) : (B))
-#define	max(A,B)		((A) > (B) ? (A) : (B))
+#define min(A, B) ((A) < (B) ? (A) : (B))
+#define max(A, B) ((A) > (B) ? (A) : (B))
 
 /*
  * Add the list of symbols in the given section to the list associated
  * with the object.
  */
 void
-pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
-    Elf_Scn *scn, GElf_Shdr *sh)
+pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e, Elf_Scn *scn,
+    GElf_Shdr *sh)
 {
 	int firsttime;
 	size_t n, newsyms, nshsyms, nfuncsyms;
@@ -77,7 +77,7 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 
 	nshsyms = sh->sh_size / sh->sh_entsize;
 	for (n = nfuncsyms = 0; n < nshsyms; n++) {
-		if (gelf_getsym(data, (int) n, &sym) != &sym)
+		if (gelf_getsym(data, (int)n, &sym) != &sym)
 			return;
 		if (GELF_ST_TYPE(sym.st_info) == STT_FUNC)
 			nfuncsyms++;
@@ -90,8 +90,8 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 	 * Allocate space for the new entries.
 	 */
 	firsttime = image->pi_symbols == NULL;
-	symptr = reallocarray(image->pi_symbols,
-	    image->pi_symcount + nfuncsyms, sizeof(*symptr));
+	symptr = reallocarray(image->pi_symbols, image->pi_symcount + nfuncsyms,
+	    sizeof(*symptr));
 	if (symptr == image->pi_symbols) /* realloc() failed. */
 		return;
 	image->pi_symbols = symptr;
@@ -102,7 +102,7 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 	symptr += image->pi_symcount;
 
 	for (n = newsyms = 0; n < nshsyms; n++) {
-		if (gelf_getsym(data, (int) n, &sym) != &sym)
+		if (gelf_getsym(data, (int)n, &sym) != &sym)
 			return;
 		if (GELF_ST_TYPE(sym.st_info) != STT_FUNC)
 			continue;
@@ -113,15 +113,14 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 		if (!firsttime && pmcstat_symbol_search(image, sym.st_value))
 			continue; /* We've seen this symbol already. */
 
-		if ((fnname = elf_strptr(e, sh->sh_link, sym.st_name))
-		    == NULL)
+		if ((fnname = elf_strptr(e, sh->sh_link, sym.st_name)) == NULL)
 			continue;
 
 #if defined(__aarch64__) || defined(__arm__)
 		/* Ignore ARM mapping symbols. */
 		if (fnname[0] == '$' &&
-		    (fnname[1] == 'a' || fnname[1] == 't' ||
-		    fnname[1] == 'd' || fnname[1] == 'x'))
+		    (fnname[1] == 'a' || fnname[1] == 't' || fnname[1] == 'd' ||
+			fnname[1] == 'x'))
 			continue;
 
 		/*
@@ -135,9 +134,9 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 		sym.st_value &= ~1;
 #endif
 
-		symptr->ps_name  = pmcstat_string_intern(fnname);
+		symptr->ps_name = pmcstat_string_intern(fnname);
 		symptr->ps_start = sym.st_value - image->pi_vaddr;
-		symptr->ps_end   = symptr->ps_start + sym.st_size;
+		symptr->ps_end = symptr->ps_start + sym.st_size;
 
 		symptr++;
 		newsyms++;
@@ -168,10 +167,9 @@ pmcstat_image_add_symbols(struct pmcstat_image *image, Elf *e,
 	 * symbols are usually defined in assembly code.
 	 */
 	for (symptr = image->pi_symbols;
-	     symptr < image->pi_symbols + (image->pi_symcount - 1);
-	     symptr++)
+	     symptr < image->pi_symbols + (image->pi_symcount - 1); symptr++)
 		if (symptr->ps_start == symptr->ps_end)
-			symptr->ps_end = (symptr+1)->ps_start;
+			symptr->ps_end = (symptr + 1)->ps_start;
 }
 
 /*
@@ -196,19 +194,19 @@ pmcstat_image_link(struct pmcstat_process *pp, struct pmcstat_image *image,
 	if ((pcmnew = malloc(sizeof(*pcmnew))) == NULL)
 		err(EX_OSERR, "ERROR: Cannot create a map entry");
 
-	/*
-	 * PowerPC kernel is of DYN type and it has a base address
-	 * where it is initially loaded, before being relocated.
-	 * As the address in 'start' is where the kernel was relocated to,
-	 * but the symbols always use the original base address, we need to
-	 * subtract it to get the correct offset.
-	 */
+		/*
+		 * PowerPC kernel is of DYN type and it has a base address
+		 * where it is initially loaded, before being relocated.
+		 * As the address in 'start' is where the kernel was relocated
+		 * to, but the symbols always use the original base address, we
+		 * need to subtract it to get the correct offset.
+		 */
 #ifdef __powerpc__
 	if (pp->pp_pid == -1) {
 		kernbase = 0;
 		kernbase_len = sizeof(kernbase);
 		if (sysctlbyname("kern.base_address", &kernbase, &kernbase_len,
-		    NULL, 0) == -1)
+			NULL, 0) == -1)
 			warnx(
 			    "WARNING: Could not retrieve kernel base address");
 		else
@@ -222,16 +220,16 @@ pmcstat_image_link(struct pmcstat_process *pp, struct pmcstat_image *image,
 	 */
 
 	offset = start - image->pi_vaddr;
-	pcmnew->ppm_lowpc  = image->pi_start + offset;
+	pcmnew->ppm_lowpc = image->pi_start + offset;
 	pcmnew->ppm_highpc = image->pi_end + offset;
-	pcmnew->ppm_image  = image;
+	pcmnew->ppm_image = image;
 
 	assert(pcmnew->ppm_lowpc < pcmnew->ppm_highpc);
 
 	/* Overlapped mmap()'s are assumed to never occur. */
-	TAILQ_FOREACH(pcm, &pp->pp_map, ppm_next)
-	    if (pcm->ppm_lowpc >= pcmnew->ppm_highpc)
-		    break;
+	TAILQ_FOREACH (pcm, &pp->pp_map, ppm_next)
+		if (pcm->ppm_lowpc >= pcmnew->ppm_highpc)
+			break;
 
 	if (pcm == NULL)
 		TAILQ_INSERT_TAIL(&pp->pp_map, pcmnew, ppm_next);
@@ -262,24 +260,21 @@ pmcstat_image_get_aout_params(struct pmcstat_image *image,
 		errx(EX_SOFTWARE,
 		    "ERROR: a.out kernel modules are unsupported \"%s\"", path);
 
-	(void) snprintf(buffer, sizeof(buffer), "%s%s",
-	    args->pa_fsroot, path);
+	(void)snprintf(buffer, sizeof(buffer), "%s%s", args->pa_fsroot, path);
 
 	if ((fd = open(buffer, O_RDONLY, 0)) < 0 ||
 	    (nbytes = read(fd, &ex, sizeof(ex))) < 0) {
 		if (args->pa_verbosity >= 2)
-			warn("WARNING: Cannot determine type of \"%s\"",
-			    path);
+			warn("WARNING: Cannot determine type of \"%s\"", path);
 		image->pi_type = PMCSTAT_IMAGE_INDETERMINABLE;
 		if (fd != -1)
-			(void) close(fd);
+			(void)close(fd);
 		return;
 	}
 
-	(void) close(fd);
+	(void)close(fd);
 
-	if ((unsigned) nbytes != sizeof(ex) ||
-	    N_BADMAG(ex))
+	if ((unsigned)nbytes != sizeof(ex) || N_BADMAG(ex))
 		return;
 
 	image->pi_type = PMCSTAT_IMAGE_AOUT;
@@ -315,8 +310,8 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 
 	assert(image->pi_type == PMCSTAT_IMAGE_UNKNOWN);
 
-	image->pi_start = minva = ~(uintfptr_t) 0;
-	image->pi_end = maxva = (uintfptr_t) 0;
+	image->pi_start = minva = ~(uintfptr_t)0;
+	image->pi_end = maxva = (uintfptr_t)0;
 	image->pi_type = image_type = PMCSTAT_IMAGE_INDETERMINABLE;
 	image->pi_isdynamic = 0;
 	image->pi_dynlinkerpath = NULL;
@@ -328,14 +323,12 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	/*
 	 * Look for files under FSROOT/PATHNAME.
 	 */
-	(void) snprintf(buffer, sizeof(buffer), "%s%s",
-	    args->pa_fsroot, path);
+	(void)snprintf(buffer, sizeof(buffer), "%s%s", args->pa_fsroot, path);
 
 	e = NULL;
 	fd = open(buffer, O_RDONLY, 0);
 	if (fd < 0) {
-		warnx("WARNING: Cannot open \"%s\".",
-		    buffer);
+		warnx("WARNING: Cannot open \"%s\".", buffer);
 		goto done;
 	}
 
@@ -345,8 +338,7 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	}
 
 	if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
-		warnx("WARNING: Cannot read \"%s\".",
-		    buffer);
+		warnx("WARNING: Cannot read \"%s\".", buffer);
 		goto done;
 	}
 
@@ -358,21 +350,19 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	}
 
 	if (gelf_getehdr(e, &eh) != &eh) {
-		warnx(
-		    "WARNING: Cannot retrieve the ELF Header for \"%s\": %s.",
+		warnx("WARNING: Cannot retrieve the ELF Header for \"%s\": %s.",
 		    buffer, elf_errmsg(-1));
 		goto done;
 	}
 
 	if (eh.e_type != ET_EXEC && eh.e_type != ET_DYN &&
 	    !(image->pi_iskernelmodule && eh.e_type == ET_REL)) {
-		warnx("WARNING: \"%s\" is of an unsupported ELF type.",
-		    buffer);
+		warnx("WARNING: \"%s\" is of an unsupported ELF type.", buffer);
 		goto done;
 	}
 
-	image_type = eh.e_ident[EI_CLASS] == ELFCLASS32 ?
-	    PMCSTAT_IMAGE_ELF32 : PMCSTAT_IMAGE_ELF64;
+	image_type = eh.e_ident[EI_CLASS] == ELFCLASS32 ? PMCSTAT_IMAGE_ELF32 :
+							  PMCSTAT_IMAGE_ELF64;
 
 	/*
 	 * Determine the virtual address where an executable would be
@@ -382,17 +372,16 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	if (eh.e_type != ET_REL) {
 		if (elf_getphnum(e, &nph) == 0) {
 			warnx(
-"WARNING: Could not determine the number of program headers in \"%s\": %s.",
-			    buffer,
-			    elf_errmsg(-1));
+			    "WARNING: Could not determine the number of program headers in \"%s\": %s.",
+			    buffer, elf_errmsg(-1));
 			goto done;
 		}
 		first_exec_segment = true;
 		for (i = 0; i < eh.e_phnum; i++) {
 			if (gelf_getphdr(e, i, &ph) != &ph) {
 				warnx(
-"WARNING: Retrieval of PHDR entry #%ju in \"%s\" failed: %s.",
-				    (uintmax_t) i, buffer, elf_errmsg(-1));
+				    "WARNING: Retrieval of PHDR entry #%ju in \"%s\" failed: %s.",
+				    (uintmax_t)i, buffer, elf_errmsg(-1));
 				goto done;
 			}
 			switch (ph.p_type) {
@@ -402,18 +391,18 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 			case PT_INTERP:
 				if ((elfbase = elf_rawfile(e, NULL)) == NULL) {
 					warnx(
-"WARNING: Cannot retrieve the interpreter for \"%s\": %s.",
+					    "WARNING: Cannot retrieve the interpreter for \"%s\": %s.",
 					    buffer, elf_errmsg(-1));
 					goto done;
 				}
-				image->pi_dynlinkerpath =
-				    pmcstat_string_intern(elfbase +
-				        ph.p_offset);
+				image->pi_dynlinkerpath = pmcstat_string_intern(
+				    elfbase + ph.p_offset);
 				break;
 			case PT_LOAD:
 				if ((ph.p_flags & PF_X) != 0 &&
 				    first_exec_segment) {
-					image->pi_vaddr = ph.p_vaddr & (-ph.p_align);
+					image->pi_vaddr = ph.p_vaddr &
+					    (-ph.p_align);
 					first_exec_segment = false;
 				}
 				break;
@@ -426,7 +415,7 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	 */
 	if (elf_getshnum(e, &nsh) == 0) {
 		warnx(
-"WARNING: Could not determine the number of sections for \"%s\": %s.",
+		    "WARNING: Could not determine the number of sections for \"%s\": %s.",
 		    buffer, elf_errmsg(-1));
 		goto done;
 	}
@@ -435,8 +424,8 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 		if ((scn = elf_getscn(e, i)) == NULL ||
 		    gelf_getshdr(scn, &sh) != &sh) {
 			warnx(
-"WARNING: Could not retrieve section header #%ju in \"%s\": %s.",
-			    (uintmax_t) i, buffer, elf_errmsg(-1));
+			    "WARNING: Could not retrieve section header #%ju in \"%s\": %s.",
+			    (uintmax_t)i, buffer, elf_errmsg(-1));
 			goto done;
 		}
 		if (sh.sh_flags & SHF_EXECINSTR) {
@@ -448,8 +437,8 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	}
 
 	image->pi_start = minva;
-	image->pi_end   = maxva;
-	image->pi_type  = image_type;
+	image->pi_end = maxva;
+	image->pi_type = image_type;
 	image->pi_fullpath = pmcstat_string_intern(buffer);
 
 	/* Build display name
@@ -457,13 +446,13 @@ pmcstat_image_get_elf_params(struct pmcstat_image *image,
 	endp = buffer;
 	for (p = buffer; *p; p++)
 		if (*p == '/')
-			endp = p+1;
+			endp = p + 1;
 	image->pi_name = pmcstat_string_intern(endp);
 
- done:
-	(void) elf_end(e);
+done:
+	(void)elf_end(e);
 	if (fd >= 0)
-		(void) close(fd);
+		(void)close(fd);
 	return;
 }
 
@@ -504,8 +493,7 @@ pmcstat_image_determine_type(struct pmcstat_image *image,
 
 struct pmcstat_image *
 pmcstat_image_from_path(pmcstat_interned_string internedpath,
-    int iskernelmodule, struct pmcstat_args *args,
-    struct pmc_plugins *plugins)
+    int iskernelmodule, struct pmcstat_args *args, struct pmc_plugins *plugins)
 {
 	int hash;
 	struct pmcstat_image *pi;
@@ -513,10 +501,10 @@ pmcstat_image_from_path(pmcstat_interned_string internedpath,
 	hash = pmcstat_string_lookup_hash(internedpath);
 
 	/* First, look for an existing entry. */
-	LIST_FOREACH(pi, &pmcstat_image_hash[hash], pi_next)
-	    if (pi->pi_execpath == internedpath &&
-		  pi->pi_iskernelmodule == iskernelmodule)
-		    return (pi);
+	LIST_FOREACH (pi, &pmcstat_image_hash[hash], pi_next)
+		if (pi->pi_execpath == internedpath &&
+		    pi->pi_iskernelmodule == iskernelmodule)
+			return (pi);
 
 	/*
 	 * Allocate a new entry and place it at the head of the hash

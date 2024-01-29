@@ -96,47 +96,46 @@
  * and the FreeBSD if_reu.c as reference for the USB Ethernet framework.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR mos_debug
+#define USB_DEBUG_VAR mos_debug
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
 
-#include <dev/usb/net/usb_ethernet.h>
-
 #include "miibus_if.h"
 
-//#include <dev/usb/net/if_mosreg.h>
+// #include <dev/usb/net/if_mosreg.h>
 #include "if_mosreg.h"
 
 #ifdef USB_DEBUG
@@ -148,18 +147,18 @@ SYSCTL_INT(_hw_usb_mos, OID_AUTO, debug, CTLFLAG_RWTUN, &mos_debug, 0,
     "Debug level");
 #endif
 
-#define MOS_DPRINTFN(fmt,...) \
-  DPRINTF("mos: %s: " fmt "\n",__FUNCTION__,## __VA_ARGS__)
+#define MOS_DPRINTFN(fmt, ...) \
+	DPRINTF("mos: %s: " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 
-#define	USB_PRODUCT_MOSCHIP_MCS7730	0x7730
-#define	USB_PRODUCT_SITECOMEU_LN030	0x0021
+#define USB_PRODUCT_MOSCHIP_MCS7730 0x7730
+#define USB_PRODUCT_SITECOMEU_LN030 0x0021
 
 /* Various supported device vendors/products. */
 static const STRUCT_USB_HOST_ID mos_devs[] = {
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7730, MCS7730)},
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7830, MCS7830)},
-	{USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7832, MCS7832)},
-	{USB_VPI(USB_VENDOR_SITECOMEU, USB_PRODUCT_SITECOMEU_LN030, MCS7830)},
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7730, MCS7730) },
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7830, MCS7830) },
+	{ USB_VPI(USB_VENDOR_MOSCHIP, USB_PRODUCT_MOSCHIP_MCS7832, MCS7832) },
+	{ USB_VPI(USB_VENDOR_SITECOMEU, USB_PRODUCT_SITECOMEU_LN030, MCS7830) },
 };
 
 static int mos_probe(device_t dev);
@@ -237,11 +236,9 @@ static device_method_t mos_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t mos_driver = {
-	.name = "mos",
+static driver_t mos_driver = { .name = "mos",
 	.methods = mos_methods,
-	.size = sizeof(struct mos_softc)
-};
+	.size = sizeof(struct mos_softc) };
 
 DRIVER_MODULE(mos, uhub, mos_driver, NULL, NULL);
 DRIVER_MODULE(miibus, mos, miibus_driver, 0, 0);
@@ -429,10 +426,10 @@ mos_miibus_readreg(device_t dev, int phy, int reg)
 		MOS_LOCK(sc);
 
 	mos_reg_write_2(sc, MOS_PHY_DATA, 0);
-	mos_reg_write_1(sc, MOS_PHY_CTL, (phy & MOS_PHYCTL_PHYADDR) |
-	    MOS_PHYCTL_READ);
-	mos_reg_write_1(sc, MOS_PHY_STS, (reg & MOS_PHYSTS_PHYREG) |
-	    MOS_PHYSTS_PENDING);
+	mos_reg_write_1(sc, MOS_PHY_CTL,
+	    (phy & MOS_PHYCTL_PHYADDR) | MOS_PHYCTL_READ);
+	mos_reg_write_1(sc, MOS_PHY_STS,
+	    (reg & MOS_PHYSTS_PHYREG) | MOS_PHYSTS_PENDING);
 
 	for (i = 0; i < MOS_TIMEOUT; i++) {
 		if (mos_reg_read_1(sc, MOS_PHY_STS) & MOS_PHYSTS_READY)
@@ -459,10 +456,10 @@ mos_miibus_writereg(device_t dev, int phy, int reg, int val)
 		MOS_LOCK(sc);
 
 	mos_reg_write_2(sc, MOS_PHY_DATA, val);
-	mos_reg_write_1(sc, MOS_PHY_CTL, (phy & MOS_PHYCTL_PHYADDR) |
-	    MOS_PHYCTL_WRITE);
-	mos_reg_write_1(sc, MOS_PHY_STS, (reg & MOS_PHYSTS_PHYREG) |
-	    MOS_PHYSTS_PENDING);
+	mos_reg_write_1(sc, MOS_PHY_CTL,
+	    (phy & MOS_PHYCTL_PHYADDR) | MOS_PHYCTL_WRITE);
+	mos_reg_write_1(sc, MOS_PHY_STS,
+	    (reg & MOS_PHYSTS_PHYREG) | MOS_PHYSTS_PENDING);
 
 	for (i = 0; i < MOS_TIMEOUT; i++) {
 		if (mos_reg_read_1(sc, MOS_PHY_STS) & MOS_PHYSTS_READY)
@@ -534,7 +531,7 @@ mos_ifmedia_upd(if_t ifp)
 	MOS_LOCK_ASSERT(sc, MA_OWNED);
 
 	sc->mos_link = 0;
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	return (error);
@@ -597,7 +594,7 @@ mos_setmulti(struct usb_ether *ue)
 	struct mos_softc *sc = uether_getsc(ue);
 	if_t ifp = uether_getifp(ue);
 	uint8_t rxmode;
-	uint8_t hashtbl[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+	uint8_t hashtbl[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	int allmulti = 0;
 
 	MOS_LOCK_ASSERT(sc, MA_OWNED);
@@ -664,7 +661,7 @@ static int
 mos_probe(device_t dev)
 {
 	struct usb_attach_arg *uaa = device_get_ivars(dev);
-        int retval;
+	int retval;
 
 	if (uaa->usb_mode != USB_MODE_HOST)
 		return (ENXIO);
@@ -696,9 +693,8 @@ mos_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	iface_index = MOS_IFACE_IDX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, mos_config, MOS_ENDPT_MAX,
-	    sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    mos_config, MOS_ENDPT_MAX, sc, &sc->sc_mtx);
 
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
@@ -733,13 +729,13 @@ static void
 mos_attach_post(struct usb_ether *ue)
 {
 	struct mos_softc *sc = uether_getsc(ue);
-        int err;
+	int err;
 
 	/* Read MAC address, inform the world. */
 	err = mos_readmac(sc, ue->ue_eaddr);
 
 	if (err)
-	  MOS_DPRINTFN("couldn't get MAC address");
+		MOS_DPRINTFN("couldn't get MAC address");
 
 	MOS_DPRINTFN("address: %s", ether_sprintf(ue->ue_eaddr));
 
@@ -795,7 +791,7 @@ mos_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				MOS_DPRINTFN("frame size less than 64 bytes");
 			if (rxstat & MOS_RXSTS_LARGE_FRAME) {
 				MOS_DPRINTFN("frame size larger than "
-				    "1532 bytes");
+					     "1532 bytes");
 			}
 			if (rxstat & MOS_RXSTS_CRC_ERROR)
 				MOS_DPRINTFN("CRC error");
@@ -808,15 +804,15 @@ mos_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		pktlen = actlen - 1;
 		if (pktlen < sizeof(struct ether_header)) {
 			MOS_DPRINTFN("error: pktlen %d is smaller "
-			    "than ether_header %zd", pktlen,
-			    sizeof(struct ether_header));
+				     "than ether_header %zd",
+			    pktlen, sizeof(struct ether_header));
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			goto tr_setup;
 		}
 		uether_rxbuf(ue, pc, 0, actlen);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
@@ -850,7 +846,7 @@ mos_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		/*
 		 * XXX: don't send anything if there is no link?
 		 */
@@ -978,7 +974,7 @@ mos_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		usbd_copy_out(pc, 0, &pkt, sizeof(pkt));
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		return;
 	default:
 		if (error != USB_ERR_CANCELLED) {

@@ -28,10 +28,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <unistd.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 int __dup3(int, int, int);

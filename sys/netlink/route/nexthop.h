@@ -34,18 +34,18 @@
 
 /* Base header for all of the relevant messages */
 struct nhmsg {
-        unsigned char	nh_family;	/* transport family */
-	unsigned char	nh_scope;	/* ignored on RX, filled by kernel */
-	unsigned char	nh_protocol;	/* Routing protocol that installed nh */
-	unsigned char	resvd;
-	unsigned int	nh_flags;	/* RTNH_F_* flags from route.h */
+	unsigned char nh_family;   /* transport family */
+	unsigned char nh_scope;	   /* ignored on RX, filled by kernel */
+	unsigned char nh_protocol; /* Routing protocol that installed nh */
+	unsigned char resvd;
+	unsigned int nh_flags; /* RTNH_F_* flags from route.h */
 };
 
 enum {
 	NHA_UNSPEC,
 	NHA_ID,		/* u32: nexthop userland index, auto-assigned if 0 */
 	NHA_GROUP,	/* binary: array of struct nexthop_grp */
-	NHA_GROUP_TYPE,	/* u16: set to NEXTHOP_GRP_TYPE */
+	NHA_GROUP_TYPE, /* u16: set to NEXTHOP_GRP_TYPE */
 	NHA_BLACKHOLE,	/* flag: nexthop used to blackhole packets */
 	NHA_OIF,	/* u32: transmit ifindex */
 	NHA_GATEWAY,	/* network: IPv4/IPv6 gateway addr */
@@ -55,20 +55,20 @@ enum {
 	NHA_MASTER,	/* not supported */
 	NHA_FDB,	/* not supported */
 	NHA_RES_GROUP,	/* not supported */
-	NHA_RES_BUCKET,	/* not supported */
+	NHA_RES_BUCKET, /* not supported */
 	NHA_FREEBSD,	/* nested: FreeBSD-specific attributes */
 	__NHA_MAX,
 };
-#define NHA_MAX	(__NHA_MAX - 1)
+#define NHA_MAX (__NHA_MAX - 1)
 
 enum {
 	NHAF_UNSPEC,
-	NHAF_KNHOPS,	/* flag: dump kernel nexthops */
-	NHAF_KGOUPS,	/* flag: dump kernel nexthop groups */
-	NHAF_TABLE,	/* u32: rtable id */
-	NHAF_FAMILY,	/* u32: upper family */
-	NHAF_KID,	/* u32: kernel nexthop index */
-	NHAF_AIF,	/* u32: source interface address */
+	NHAF_KNHOPS, /* flag: dump kernel nexthops */
+	NHAF_KGOUPS, /* flag: dump kernel nexthop groups */
+	NHAF_TABLE,  /* u32: rtable id */
+	NHAF_FAMILY, /* u32: upper family */
+	NHAF_KID,    /* u32: kernel nexthop index */
+	NHAF_AIF,    /* u32: source interface address */
 };
 
 /*
@@ -83,20 +83,19 @@ enum {
  *  NHA_RES_GROUP and NHA_RES_BUCKET are not supported yet
  */
 struct nexthop_grp {
-	uint32_t	id;		/* nexhop userland index */
-	uint8_t		weight;         /* weight of this nexthop */
-	uint8_t		resvd1;
-	uint16_t	resvd2;
+	uint32_t id;	/* nexhop userland index */
+	uint8_t weight; /* weight of this nexthop */
+	uint8_t resvd1;
+	uint16_t resvd2;
 };
 
 /* NHA_GROUP_TYPE: u16 */
 enum {
-	NEXTHOP_GRP_TYPE_MPATH,		/* default nexthop group */
-	NEXTHOP_GRP_TYPE_RES,		/* resilient nexthop group */
+	NEXTHOP_GRP_TYPE_MPATH, /* default nexthop group */
+	NEXTHOP_GRP_TYPE_RES,	/* resilient nexthop group */
 	__NEXTHOP_GRP_TYPE_MAX,
 };
 #define NEXTHOP_GRP_TYPE_MAX (__NEXTHOP_GRP_TYPE_MAX - 1)
-
 
 /* NHA_RES_GROUP */
 enum {
@@ -108,6 +107,6 @@ enum {
 	NHA_RES_GROUP_UNBALANCED_TIME,
 	__NHA_RES_GROUP_MAX,
 };
-#define NHA_RES_GROUP_MAX	(__NHA_RES_GROUP_MAX - 1)
+#define NHA_RES_GROUP_MAX (__NHA_RES_GROUP_MAX - 1)
 
 #endif

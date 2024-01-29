@@ -30,8 +30,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -42,63 +42,287 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_viqr.h"
 
-#define ESCAPE	'\\'
+#define ESCAPE '\\'
 
 /*
  * this table generated from RFC 1456.
  */
 static const char *mnemonic_rfc1456[0x100] = {
-  NULL , NULL , "A(?", NULL , NULL , "A(~", "A^~", NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , "Y?" , NULL , NULL , NULL ,
-  NULL , "Y~" , NULL , NULL , NULL , NULL , "Y." , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  NULL , NULL , NULL , NULL , NULL , NULL , NULL , NULL ,
-  "A." , "A('", "A(`", "A(.", "A^'", "A^`", "A^?", "A^.",
-  "E~" , "E." , "E^'", "E^`", "E^?", "E^~", "E^.", "O^'",
-  "O^`", "O^?", "O^~", "O^.", "O+.", "O+'", "O+`", "O+?",
-  "I." , "O?" , "O." , "I?" , "U?" , "U~" , "U." , "Y`" ,
-  "O~" , "a('", "a(`", "a(.", "a^'", "a^`", "a^?", "a^.",
-  "e~" , "e." , "e^'", "e^`", "e^?", "e^~", "e^.", "o^'",
-  "o^`", "o^?", "o^~", "O+~", "O+" , "o^.", "o+`", "o+?",
-  "i." , "U+.", "U+'", "U+`", "U+?", "o+" , "o+'", "U+" ,
-  "A`" , "A'" , "A^" , "A~" , "A?" , "A(" , "a(?", "a(~",
-  "E`" , "E'" , "E^" , "E?" , "I`" , "I'" , "I~" , "y`" ,
-  "DD" , "u+'", "O`" , "O'" , "O^" , "a." , "y?" , "u+`",
-  "u+?", "U`" , "U'" , "y~" , "y." , "Y'" , "o+~", "u+" ,
-  "a`" , "a'" , "a^" , "a~" , "a?" , "a(" , "u+~", "a^~",
-  "e`" , "e'" , "e^" , "e?" , "i`" , "i'" , "i~" , "i?" ,
-  "dd" , "u+.", "o`" , "o'" , "o^" , "o~" , "o?" , "o." ,
-  "u." , "u`" , "u'" , "u~" , "u?" , "y'" , "o+.", "U+~",
+	NULL,
+	NULL,
+	"A(?",
+	NULL,
+	NULL,
+	"A(~",
+	"A^~",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"Y?",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"Y~",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"Y.",
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	"A.",
+	"A('",
+	"A(`",
+	"A(.",
+	"A^'",
+	"A^`",
+	"A^?",
+	"A^.",
+	"E~",
+	"E.",
+	"E^'",
+	"E^`",
+	"E^?",
+	"E^~",
+	"E^.",
+	"O^'",
+	"O^`",
+	"O^?",
+	"O^~",
+	"O^.",
+	"O+.",
+	"O+'",
+	"O+`",
+	"O+?",
+	"I.",
+	"O?",
+	"O.",
+	"I?",
+	"U?",
+	"U~",
+	"U.",
+	"Y`",
+	"O~",
+	"a('",
+	"a(`",
+	"a(.",
+	"a^'",
+	"a^`",
+	"a^?",
+	"a^.",
+	"e~",
+	"e.",
+	"e^'",
+	"e^`",
+	"e^?",
+	"e^~",
+	"e^.",
+	"o^'",
+	"o^`",
+	"o^?",
+	"o^~",
+	"O+~",
+	"O+",
+	"o^.",
+	"o+`",
+	"o+?",
+	"i.",
+	"U+.",
+	"U+'",
+	"U+`",
+	"U+?",
+	"o+",
+	"o+'",
+	"U+",
+	"A`",
+	"A'",
+	"A^",
+	"A~",
+	"A?",
+	"A(",
+	"a(?",
+	"a(~",
+	"E`",
+	"E'",
+	"E^",
+	"E?",
+	"I`",
+	"I'",
+	"I~",
+	"y`",
+	"DD",
+	"u+'",
+	"O`",
+	"O'",
+	"O^",
+	"a.",
+	"y?",
+	"u+`",
+	"u+?",
+	"U`",
+	"U'",
+	"y~",
+	"y.",
+	"Y'",
+	"o+~",
+	"u+",
+	"a`",
+	"a'",
+	"a^",
+	"a~",
+	"a?",
+	"a(",
+	"u+~",
+	"a^~",
+	"e`",
+	"e'",
+	"e^",
+	"e?",
+	"i`",
+	"i'",
+	"i~",
+	"i?",
+	"dd",
+	"u+.",
+	"o`",
+	"o'",
+	"o^",
+	"o~",
+	"o?",
+	"o.",
+	"u.",
+	"u`",
+	"u'",
+	"u~",
+	"u?",
+	"y'",
+	"o+.",
+	"U+~",
 };
 
 typedef struct {
-	const char	*name;
-	wchar_t		 value;
+	const char *name;
+	wchar_t value;
 } mnemonic_def_t;
 
 static const mnemonic_def_t mnemonic_ext[] = {
-/* add extra mnemonic here (should be sorted by wchar_t order). */
+	/* add extra mnemonic here (should be sorted by wchar_t order). */
 };
-static const size_t mnemonic_ext_size =
-	sizeof(mnemonic_ext) / sizeof(mnemonic_def_t);
+static const size_t mnemonic_ext_size = sizeof(mnemonic_ext) /
+    sizeof(mnemonic_def_t);
 
 static const char *
 mnemonic_ext_find(wchar_t wc, const mnemonic_def_t *head, size_t n)
@@ -120,11 +344,11 @@ mnemonic_ext_find(wchar_t wc, const mnemonic_def_t *head, size_t n)
 struct mnemonic_t;
 typedef TAILQ_HEAD(mnemonic_list_t, mnemonic_t) mnemonic_list_t;
 typedef struct mnemonic_t {
-	TAILQ_ENTRY(mnemonic_t)	 entry;
-	struct mnemonic_t	*parent;
-	mnemonic_list_t		 child;
-	wchar_t			 value;
-	int			 ascii;
+	TAILQ_ENTRY(mnemonic_t) entry;
+	struct mnemonic_t *parent;
+	mnemonic_list_t child;
+	wchar_t value;
+	int ascii;
 } mnemonic_t;
 
 static mnemonic_t *
@@ -132,7 +356,7 @@ mnemonic_list_find(mnemonic_list_t *ml, int ch)
 {
 	mnemonic_t *m;
 
-	TAILQ_FOREACH(m, ml, entry) {
+	TAILQ_FOREACH (m, ml, entry) {
 		if (m->ascii == ch)
 			return (m);
 	}
@@ -157,8 +381,8 @@ mnemonic_create(mnemonic_t *parent, int ascii, wchar_t value)
 }
 
 static int
-mnemonic_append_child(mnemonic_t *m, const char *s,
-    wchar_t value, wchar_t invalid)
+mnemonic_append_child(mnemonic_t *m, const char *s, wchar_t value,
+    wchar_t invalid)
 {
 	mnemonic_t *m0;
 	int ch;
@@ -196,36 +420,36 @@ mnemonic_destroy(mnemonic_t *m)
 {
 	mnemonic_t *m0, *n;
 
-	TAILQ_FOREACH_SAFE(m0, &m->child, entry, n)
+	TAILQ_FOREACH_SAFE (m0, &m->child, entry, n)
 		mnemonic_destroy(m0);
 	free(m);
 }
 
 typedef struct {
-	mnemonic_t	*mroot;
-	wchar_t		 invalid;
-	size_t		 mb_cur_max;
+	mnemonic_t *mroot;
+	wchar_t invalid;
+	size_t mb_cur_max;
 } _VIQREncodingInfo;
 
 typedef struct {
-	int	 chlen;
-	char	 ch[MB_LEN_MAX];
+	int chlen;
+	char ch[MB_LEN_MAX];
 } _VIQRState;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_VIQR_##m
-#define _ENCODING_INFO			_VIQREncodingInfo
-#define _ENCODING_STATE			_VIQRState
-#define _ENCODING_MB_CUR_MAX(_ei_)	(_ei_)->mb_cur_max
-#define _ENCODING_IS_STATE_DEPENDENT		1
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_VIQR_##m
+#define _ENCODING_INFO _VIQREncodingInfo
+#define _ENCODING_STATE _VIQRState
+#define _ENCODING_MB_CUR_MAX(_ei_) (_ei_)->mb_cur_max
+#define _ENCODING_IS_STATE_DEPENDENT 1
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_VIQR_init_state(_VIQREncodingInfo * __restrict ei __unused,
-    _VIQRState * __restrict psenc)
+_citrus_VIQR_init_state(_VIQREncodingInfo *__restrict ei __unused,
+    _VIQRState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -252,9 +476,9 @@ _citrus_VIQR_unpack_state(_VIQREncodingInfo * __restrict ei __unused,
 #endif
 
 static int
-_citrus_VIQR_mbrtowc_priv(_VIQREncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _VIQRState * __restrict psenc, size_t * __restrict nresult)
+_citrus_VIQR_mbrtowc_priv(_VIQREncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _VIQRState *__restrict psenc, size_t *__restrict nresult)
 {
 	mnemonic_t *m, *m0;
 	char *s0;
@@ -314,16 +538,17 @@ _citrus_VIQR_mbrtowc_priv(_VIQREncodingInfo * __restrict ei,
 }
 
 static int
-_citrus_VIQR_wcrtomb_priv(_VIQREncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wc,
-    _VIQRState * __restrict psenc, size_t * __restrict nresult)
+_citrus_VIQR_wcrtomb_priv(_VIQREncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, wchar_t wc, _VIQRState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	mnemonic_t *m;
 	const char *p;
 	int ch = 0;
 
 	switch (psenc->chlen) {
-	case 0: case 1:
+	case 0:
+	case 1:
 		break;
 	default:
 		return (EINVAL);
@@ -354,7 +579,7 @@ _citrus_VIQR_wcrtomb_priv(_VIQREncodingInfo * __restrict ei,
 			*nresult = (size_t)-1;
 			return (EILSEQ);
 		} else {
-mnemonic_found:
+		mnemonic_found:
 			psenc->chlen = 0;
 			while (*p != '\0') {
 				if (n-- < 1)
@@ -380,13 +605,14 @@ e2big:
 
 static int
 /* ARGSUSED */
-_citrus_VIQR_put_state_reset(_VIQREncodingInfo * __restrict ei __unused,
-    char * __restrict s __unused, size_t n __unused,
-    _VIQRState * __restrict psenc, size_t * __restrict nresult)
+_citrus_VIQR_put_state_reset(_VIQREncodingInfo *__restrict ei __unused,
+    char *__restrict s __unused, size_t n __unused,
+    _VIQRState *__restrict psenc, size_t *__restrict nresult)
 {
 
 	switch (psenc->chlen) {
-	case 0: case 1:
+	case 0:
+	case 1:
 		break;
 	default:
 		return (EINVAL);
@@ -399,8 +625,8 @@ _citrus_VIQR_put_state_reset(_VIQREncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_VIQR_stdenc_wctocs(_VIQREncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_VIQR_stdenc_wctocs(_VIQREncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = 0;
@@ -411,8 +637,8 @@ _citrus_VIQR_stdenc_wctocs(_VIQREncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_VIQR_stdenc_cstowc(_VIQREncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict pwc, _csid_t csid, _index_t idx)
+_citrus_VIQR_stdenc_cstowc(_VIQREncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict pwc, _csid_t csid, _index_t idx)
 {
 
 	if (csid != 0)
@@ -431,8 +657,8 @@ _citrus_VIQR_encoding_module_uninit(_VIQREncodingInfo *ei)
 
 static int
 /*ARGSUSED*/
-_citrus_VIQR_encoding_module_init(_VIQREncodingInfo * __restrict ei,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_VIQR_encoding_module_init(_VIQREncodingInfo *__restrict ei,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 	const char *s;
 	size_t i, n;
@@ -450,8 +676,8 @@ _citrus_VIQR_encoding_module_init(_VIQREncodingInfo * __restrict ei,
 		n = strlen(s);
 		if (ei->mb_cur_max < n)
 			ei->mb_cur_max = n;
-		errnum = mnemonic_append_child(ei->mroot,
-		    s, (wchar_t)i, ei->invalid);
+		errnum = mnemonic_append_child(ei->mroot, s, (wchar_t)i,
+		    ei->invalid);
 		if (errnum != 0) {
 			_citrus_VIQR_encoding_module_uninit(ei);
 			return (errnum);
@@ -465,8 +691,8 @@ _citrus_VIQR_encoding_module_init(_VIQREncodingInfo * __restrict ei,
 		n = strlen(p->name);
 		if (ei->mb_cur_max < n)
 			ei->mb_cur_max = n;
-		errnum = mnemonic_append_child(ei->mroot,
-		    p->name, p->value, ei->invalid);
+		errnum = mnemonic_append_child(ei->mroot, p->name, p->value,
+		    ei->invalid);
 		if (errnum != 0) {
 			_citrus_VIQR_encoding_module_uninit(ei);
 			return (errnum);
@@ -478,13 +704,13 @@ _citrus_VIQR_encoding_module_init(_VIQREncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_VIQR_stdenc_get_state_desc_generic(_VIQREncodingInfo * __restrict ei __unused,
-    _VIQRState * __restrict psenc, int * __restrict rstate)
+_citrus_VIQR_stdenc_get_state_desc_generic(
+    _VIQREncodingInfo *__restrict ei __unused, _VIQRState *__restrict psenc,
+    int *__restrict rstate)
 {
 
-	*rstate = (psenc->chlen == 0) ?
-	    _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 
 	return (0);
 }

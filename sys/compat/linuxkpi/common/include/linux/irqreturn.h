@@ -25,7 +25,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_IRQRETURN_H
-#define	_LINUXKPI_LINUX_IRQRETURN_H
+#define _LINUXKPI_LINUX_IRQRETURN_H
 
 typedef enum irqreturn {
 	IRQ_NONE = 0,
@@ -33,6 +33,6 @@ typedef enum irqreturn {
 	IRQ_WAKE_THREAD = 2
 } irqreturn_t;
 
-#define	IRQ_RETVAL(x) ((x) ? IRQ_HANDLED : IRQ_NONE)
+#define IRQ_RETVAL(x) ((x) ? IRQ_HANDLED : IRQ_NONE)
 
 #endif /* _LINUXKPI_LINUX_IRQRETURN_H */

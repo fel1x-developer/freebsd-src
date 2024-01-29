@@ -28,7 +28,6 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
 
 #include <machine/cpufunc.h>
@@ -36,22 +35,22 @@
 
 #include "fbt.h"
 
-#define	FBT_PUSHL_EBP		0x55
-#define	FBT_MOVL_ESP_EBP0_V0	0x8b
-#define	FBT_MOVL_ESP_EBP1_V0	0xec
-#define	FBT_MOVL_ESP_EBP0_V1	0x89
-#define	FBT_MOVL_ESP_EBP1_V1	0xe5
-#define	FBT_REX_RSP_RBP		0x48
+#define FBT_PUSHL_EBP 0x55
+#define FBT_MOVL_ESP_EBP0_V0 0x8b
+#define FBT_MOVL_ESP_EBP1_V0 0xec
+#define FBT_MOVL_ESP_EBP0_V1 0x89
+#define FBT_MOVL_ESP_EBP1_V1 0xe5
+#define FBT_REX_RSP_RBP 0x48
 
-#define	FBT_POPL_EBP		0x5d
-#define	FBT_RET			0xc3
-#define	FBT_RET_IMM16		0xc2
-#define	FBT_LEAVE		0xc9
+#define FBT_POPL_EBP 0x5d
+#define FBT_RET 0xc3
+#define FBT_RET_IMM16 0xc2
+#define FBT_LEAVE 0xc9
 
 #ifdef __amd64__
-#define	FBT_PATCHVAL		0xcc
+#define FBT_PATCHVAL 0xcc
 #else
-#define	FBT_PATCHVAL		0xf0
+#define FBT_PATCHVAL 0xf0
 #endif
 
 #define FBT_AFRAMES 2
@@ -97,8 +96,8 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch __unused)
 				/* fbt->fbtp_rval == DTRACE_INVOP_PUSHQ_RBP */
 				DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
 				cpu->cpu_dtrace_caller = stack[0];
-				DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT |
-				    CPU_DTRACE_BADADDR);
+				DTRACE_CPUFLAG_CLEAR(
+				    CPU_DTRACE_NOFAULT | CPU_DTRACE_BADADDR);
 
 				arg0 = frame->tf_rdi;
 				arg1 = frame->tf_rsi;
@@ -122,12 +121,12 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch __unused)
 				arg2 = stack[i++];
 				arg3 = stack[i++];
 				arg4 = stack[i++];
-				DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT |
-				    CPU_DTRACE_BADADDR);
+				DTRACE_CPUFLAG_CLEAR(
+				    CPU_DTRACE_NOFAULT | CPU_DTRACE_BADADDR);
 #endif
 
-				dtrace_probe(fbt->fbtp_id, arg0, arg1,
-				    arg2, arg3, arg4);
+				dtrace_probe(fbt->fbtp_id, arg0, arg1, arg2,
+				    arg3, arg4);
 
 				cpu->cpu_dtrace_caller = 0;
 			} else {
@@ -140,8 +139,8 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch __unused)
 				 */
 				DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
 				cpu->cpu_dtrace_caller = stack[0];
-				DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT |
-				    CPU_DTRACE_BADADDR);
+				DTRACE_CPUFLAG_CLEAR(
+				    CPU_DTRACE_NOFAULT | CPU_DTRACE_BADADDR);
 #endif
 
 				dtrace_probe(fbt->fbtp_id, fbt->fbtp_roffset,
@@ -197,8 +196,8 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 
 	size = symval->size;
 
-	instr = (uint8_t *) symval->value;
-	limit = (uint8_t *) symval->value + symval->size;
+	instr = (uint8_t *)symval->value;
+	limit = (uint8_t *)symval->value + symval->size;
 
 #ifdef __amd64__
 	while (instr < limit) {
@@ -224,16 +223,16 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 		return (0);
 
 	if (!(instr[1] == FBT_MOVL_ESP_EBP0_V0 &&
-	    instr[2] == FBT_MOVL_ESP_EBP1_V0) &&
+		instr[2] == FBT_MOVL_ESP_EBP1_V0) &&
 	    !(instr[1] == FBT_MOVL_ESP_EBP0_V1 &&
-	    instr[2] == FBT_MOVL_ESP_EBP1_V1))
+		instr[2] == FBT_MOVL_ESP_EBP1_V1))
 		return (0);
 #endif
 
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
-	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-	    name, FBT_ENTRY, FBT_AFRAMES, fbt);
+	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name, FBT_ENTRY,
+	    FBT_AFRAMES, fbt);
 	fbt->fbtp_patchpoint = instr;
 	fbt->fbtp_ctl = lf;
 	fbt->fbtp_loadcnt = lf->loadcnt;
@@ -243,7 +242,7 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	fbt->fbtp_symindx = symindx;
 
 	for (hash = fbt_probetab[FBT_ADDR2NDX(instr)]; hash != NULL;
-	    hash = hash->fbtp_hashnext) {
+	     hash = hash->fbtp_hashnext) {
 		if (hash->fbtp_patchpoint == fbt->fbtp_patchpoint) {
 			fbt->fbtp_tracenext = hash->fbtp_tracenext;
 			hash->fbtp_tracenext = fbt;
@@ -281,10 +280,8 @@ again:
 		goto again;
 	}
 #else
-	if (!(size == 1 &&
-	    (*instr == FBT_POPL_EBP || *instr == FBT_LEAVE) &&
-	    (*(instr + 1) == FBT_RET ||
-	    *(instr + 1) == FBT_RET_IMM16))) {
+	if (!(size == 1 && (*instr == FBT_POPL_EBP || *instr == FBT_LEAVE) &&
+		(*(instr + 1) == FBT_RET || *(instr + 1) == FBT_RET_IMM16))) {
 		instr += size;
 		goto again;
 	}
@@ -301,19 +298,19 @@ again:
 	 * and see if that pointer points to within the body of the
 	 * function.  If it does, we refuse to instrument it.
 	 */
-	for (j = 0; j < sizeof (uintptr_t); j++) {
-		caddr_t check = (caddr_t) instr - j;
+	for (j = 0; j < sizeof(uintptr_t); j++) {
+		caddr_t check = (caddr_t)instr - j;
 		uint8_t *ptr;
 
 		if (check < symval->value)
 			break;
 
-		if (check + sizeof (caddr_t) > (caddr_t)limit)
+		if (check + sizeof(caddr_t) > (caddr_t)limit)
 			continue;
 
 		ptr = *(uint8_t **)check;
 
-		if (ptr >= (uint8_t *) symval->value && ptr < limit) {
+		if (ptr >= (uint8_t *)symval->value && ptr < limit) {
 			instr += size;
 			goto again;
 		}
@@ -322,12 +319,12 @@ again:
 	/*
 	 * We have a winner!
 	 */
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
 
 	if (retfbt == NULL) {
-		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-		    name, FBT_RETURN, FBT_AFRAMES, fbt);
+		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name,
+		    FBT_RETURN, FBT_AFRAMES, fbt);
 	} else {
 		retfbt->fbtp_probenext = fbt;
 		fbt->fbtp_id = retfbt->fbtp_id;
@@ -346,14 +343,12 @@ again:
 		ASSERT(*instr == FBT_LEAVE);
 		fbt->fbtp_rval = DTRACE_INVOP_LEAVE;
 	}
-	fbt->fbtp_roffset =
-	    (uintptr_t)(instr - (uint8_t *) symval->value) + 1;
+	fbt->fbtp_roffset = (uintptr_t)(instr - (uint8_t *)symval->value) + 1;
 
 #else
 	ASSERT(*instr == FBT_RET);
 	fbt->fbtp_rval = DTRACE_INVOP_RET;
-	fbt->fbtp_roffset =
-	    (uintptr_t)(instr - (uint8_t *) symval->value);
+	fbt->fbtp_roffset = (uintptr_t)(instr - (uint8_t *)symval->value);
 #endif
 
 	fbt->fbtp_savedval = *instr;

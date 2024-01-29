@@ -33,70 +33,69 @@
  *	$NetBSD: fpu.h,v 1.2 1999/12/07 15:14:56 danw Exp $
  */
 
-#ifndef	_MACHINE_FPU_H_
-#define	_MACHINE_FPU_H_
+#ifndef _MACHINE_FPU_H_
+#define _MACHINE_FPU_H_
 
-#define	FPSCR_FX	0x80000000
-#define	FPSCR_FEX	0x40000000
-#define	FPSCR_VX	0x20000000
-#define	FPSCR_OX	0x10000000
-#define	FPSCR_UX	0x08000000
-#define	FPSCR_ZX	0x04000000
-#define	FPSCR_XX	0x02000000
-#define	FPSCR_VXSNAN	0x01000000
-#define	FPSCR_VXISI	0x00800000
-#define	FPSCR_VXIDI	0x00400000
-#define	FPSCR_VXZDZ	0x00200000
-#define	FPSCR_VXIMZ	0x00100000
-#define	FPSCR_VXVC	0x00080000
-#define	FPSCR_FR	0x00040000
-#define	FPSCR_FI	0x00020000
-#define	FPSCR_FPRF	0x0001f000
-#define	FPSCR_C		0x00010000
-#define	FPSCR_FPCC	0x0000f000
-#define	FPSCR_FL	0x00008000
-#define	FPSCR_FG	0x00004000
-#define	FPSCR_FE	0x00002000
-#define	FPSCR_FU	0x00001000
-#define	FPSCR_VXSOFT	0x00000400
-#define	FPSCR_VXSQRT	0x00000200
-#define	FPSCR_VXCVI	0x00000100
-#define	FPSCR_VE	0x00000080
-#define	FPSCR_OE	0x00000040
-#define	FPSCR_UE	0x00000020
-#define	FPSCR_ZE	0x00000010
-#define	FPSCR_XE	0x00000008
-#define	FPSCR_NI	0x00000004
-#define	FPSCR_RN	0x00000003
+#define FPSCR_FX 0x80000000
+#define FPSCR_FEX 0x40000000
+#define FPSCR_VX 0x20000000
+#define FPSCR_OX 0x10000000
+#define FPSCR_UX 0x08000000
+#define FPSCR_ZX 0x04000000
+#define FPSCR_XX 0x02000000
+#define FPSCR_VXSNAN 0x01000000
+#define FPSCR_VXISI 0x00800000
+#define FPSCR_VXIDI 0x00400000
+#define FPSCR_VXZDZ 0x00200000
+#define FPSCR_VXIMZ 0x00100000
+#define FPSCR_VXVC 0x00080000
+#define FPSCR_FR 0x00040000
+#define FPSCR_FI 0x00020000
+#define FPSCR_FPRF 0x0001f000
+#define FPSCR_C 0x00010000
+#define FPSCR_FPCC 0x0000f000
+#define FPSCR_FL 0x00008000
+#define FPSCR_FG 0x00004000
+#define FPSCR_FE 0x00002000
+#define FPSCR_FU 0x00001000
+#define FPSCR_VXSOFT 0x00000400
+#define FPSCR_VXSQRT 0x00000200
+#define FPSCR_VXCVI 0x00000100
+#define FPSCR_VE 0x00000080
+#define FPSCR_OE 0x00000040
+#define FPSCR_UE 0x00000020
+#define FPSCR_ZE 0x00000010
+#define FPSCR_XE 0x00000008
+#define FPSCR_NI 0x00000004
+#define FPSCR_RN 0x00000003
 
 #ifdef _KERNEL
 
-void    enable_fpu(struct thread *);
-void    save_fpu(struct thread *);
-void    save_fpu_nodrop(struct thread *);
-void    cleanup_fpscr(void);
-u_int   get_fpu_exception(struct thread *);
-void    enable_fpu_kern(void);
-void    disable_fpu(struct thread *td);
+void enable_fpu(struct thread *);
+void save_fpu(struct thread *);
+void save_fpu_nodrop(struct thread *);
+void cleanup_fpscr(void);
+u_int get_fpu_exception(struct thread *);
+void enable_fpu_kern(void);
+void disable_fpu(struct thread *td);
 
 /*
  * Flags for fpu_kern_alloc_ctx(), fpu_kern_enter() and fpu_kern_thread().
  */
-#define	FPU_KERN_NORMAL	0x0000
-#define	FPU_KERN_NOWAIT	0x0001
-#define	FPU_KERN_KTHR	0x0002
-#define	FPU_KERN_NOCTX	0x0004
+#define FPU_KERN_NORMAL 0x0000
+#define FPU_KERN_NOWAIT 0x0001
+#define FPU_KERN_KTHR 0x0002
+#define FPU_KERN_NOCTX 0x0004
 
 struct fpu_kern_ctx;
 
 struct fpu_kern_ctx *fpu_kern_alloc_ctx(u_int flags);
-void	fpu_kern_free_ctx(struct fpu_kern_ctx *ctx);
-void	fpu_kern_enter(struct thread *td, struct fpu_kern_ctx *ctx,
-	    u_int flags);
-int	fpu_kern_leave(struct thread *td, struct fpu_kern_ctx *ctx);
-int	fpu_kern_thread(u_int flags);
-int	is_fpu_kern_thread(u_int flags);
+void fpu_kern_free_ctx(struct fpu_kern_ctx *ctx);
+void fpu_kern_enter(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags);
+int fpu_kern_leave(struct thread *td, struct fpu_kern_ctx *ctx);
+int fpu_kern_thread(u_int flags);
+int is_fpu_kern_thread(u_int flags);
 
 #endif /* _KERNEL */
 
-#endif	/* _MACHINE_FPU_H_ */
+#endif /* _MACHINE_FPU_H_ */

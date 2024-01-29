@@ -24,34 +24,35 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
 #include <dlfcn.h>
+#include <stdio.h>
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-    void *handle;
-    void (*__gl_tls_test)(void);
-    const char *error;
+	void *handle;
+	void (*__gl_tls_test)(void);
+	const char *error;
 
-    handle = dlopen("libtls-test.so.1", RTLD_NOW);
-    if (!handle) {
-        error = dlerror();
-        printf("dlopen failed (%s)!\n", error);
-        exit(1);
-    }
+	handle = dlopen("libtls-test.so.1", RTLD_NOW);
+	if (!handle) {
+		error = dlerror();
+		printf("dlopen failed (%s)!\n", error);
+		exit(1);
+	}
 
-    dlerror();
-    __gl_tls_test = dlsym(handle, "__gl_tls_test");
-    error = dlerror();
+	dlerror();
+	__gl_tls_test = dlsym(handle, "__gl_tls_test");
+	error = dlerror();
 
-    if (error) {
-        dlclose(handle);
-        printf("dlsym failed (%s)!\n", error);
-        exit(1);
-    }
+	if (error) {
+		dlclose(handle);
+		printf("dlsym failed (%s)!\n", error);
+		exit(1);
+	}
 
-    __gl_tls_test(); /* print TLS values */
-    dlclose(handle);
+	__gl_tls_test(); /* print TLS values */
+	dlclose(handle);
 
-    return 0;
+	return 0;
 }

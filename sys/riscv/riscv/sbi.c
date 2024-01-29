@@ -39,15 +39,15 @@
 #include <machine/sbi.h>
 
 /* SBI Implementation-Specific Definitions */
-#define	OPENSBI_VERSION_MAJOR_OFFSET	16
-#define	OPENSBI_VERSION_MINOR_MASK	0xFFFF
+#define OPENSBI_VERSION_MAJOR_OFFSET 16
+#define OPENSBI_VERSION_MINOR_MASK 0xFFFF
 
 struct sbi_softc {
-	device_t		dev;
+	device_t dev;
 };
 
 struct sbi_devinfo {
-	struct resource_list	rl;
+	struct resource_list rl;
 };
 
 static struct sbi_softc *sbi_softc = NULL;
@@ -183,8 +183,8 @@ sbi_send_ipi(const u_long *hart_mask)
 
 	/* Use the IPI legacy replacement extension, if available. */
 	if (has_ipi_extension) {
-		ret = SBI_CALL2(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI,
-		    *hart_mask, 0);
+		ret = SBI_CALL2(SBI_EXT_ID_IPI, SBI_IPI_SEND_IPI, *hart_mask,
+		    0);
 		MPASS(ret.error == SBI_SUCCESS);
 	} else {
 		(void)SBI_CALL1(SBI_SEND_IPI, 0, (uint64_t)hart_mask);
@@ -231,8 +231,8 @@ sbi_remote_sfence_vma_asid(const u_long *hart_mask, u_long start, u_long size,
 	/* Use the RFENCE legacy replacement extension, if available. */
 	if (has_rfnc_extension) {
 		ret = SBI_CALL5(SBI_EXT_ID_RFNC,
-		    SBI_RFNC_REMOTE_SFENCE_VMA_ASID, *hart_mask, 0, start,
-		    size, asid);
+		    SBI_RFNC_REMOTE_SFENCE_VMA_ASID, *hart_mask, 0, start, size,
+		    asid);
 		MPASS(ret.error == SBI_SUCCESS);
 	} else {
 		(void)SBI_CALL4(SBI_REMOTE_SFENCE_VMA_ASID, 0,
@@ -315,13 +315,13 @@ sbi_init(void)
 	KASSERT(has_ipi_extension || sbi_probe_extension(SBI_SEND_IPI) != 0,
 	    ("SBI doesn't implement sbi_send_ipi()"));
 	KASSERT(has_rfnc_extension ||
-	    sbi_probe_extension(SBI_REMOTE_FENCE_I) != 0,
+		sbi_probe_extension(SBI_REMOTE_FENCE_I) != 0,
 	    ("SBI doesn't implement sbi_remote_fence_i()"));
 	KASSERT(has_rfnc_extension ||
-	    sbi_probe_extension(SBI_REMOTE_SFENCE_VMA) != 0,
+		sbi_probe_extension(SBI_REMOTE_SFENCE_VMA) != 0,
 	    ("SBI doesn't implement sbi_remote_sfence_vma()"));
 	KASSERT(has_rfnc_extension ||
-	    sbi_probe_extension(SBI_REMOTE_SFENCE_VMA_ASID) != 0,
+		sbi_probe_extension(SBI_REMOTE_SFENCE_VMA_ASID) != 0,
 	    ("SBI doesn't implement sbi_remote_sfence_vma_asid()"));
 	KASSERT(has_srst_extension || sbi_probe_extension(SBI_SHUTDOWN) != 0,
 	    ("SBI doesn't implement a shutdown or reset extension"));
@@ -395,20 +395,20 @@ sbi_get_resource_list(device_t bus, device_t child)
 
 static device_method_t sbi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	sbi_identify),
-	DEVMETHOD(device_probe,		sbi_probe),
-	DEVMETHOD(device_attach,	sbi_attach),
+	DEVMETHOD(device_identify, sbi_identify),
+	DEVMETHOD(device_probe, sbi_probe),
+	DEVMETHOD(device_attach, sbi_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_rl_release_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_release_resource, bus_generic_rl_release_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 	DEVMETHOD(bus_get_resource_list, sbi_get_resource_list),
-	DEVMETHOD(bus_set_resource,	bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource,	bus_generic_rl_get_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
 
 	DEVMETHOD_END
 };

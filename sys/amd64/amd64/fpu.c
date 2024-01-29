@@ -39,16 +39,16 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
+#include <sys/signalvar.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
 #include <sys/tslog.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
-#include <sys/signalvar.h>
+
 #include <vm/uma.h>
 
+#include <machine/bus.h>
 #include <machine/cputypes.h>
 #include <machine/frame.h>
 #include <machine/intr_machdep.h>
@@ -56,24 +56,25 @@
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/resource.h>
-#include <machine/specialreg.h>
 #include <machine/segments.h>
+#include <machine/specialreg.h>
 #include <machine/ucontext.h>
+
 #include <x86/ifunc.h>
 
 /*
  * Floating point support.
  */
 
-#define	fldcw(cw)		__asm __volatile("fldcw %0" : : "m" (cw))
-#define	fnclex()		__asm __volatile("fnclex")
-#define	fninit()		__asm __volatile("fninit")
-#define	fnstcw(addr)		__asm __volatile("fnstcw %0" : "=m" (*(addr)))
-#define	fnstsw(addr)		__asm __volatile("fnstsw %0" : "=am" (*(addr)))
-#define	fxrstor(addr)		__asm __volatile("fxrstor %0" : : "m" (*(addr)))
-#define	fxsave(addr)		__asm __volatile("fxsave %0" : "=m" (*(addr)))
-#define	ldmxcsr(csr)		__asm __volatile("ldmxcsr %0" : : "m" (csr))
-#define	stmxcsr(addr)		__asm __volatile("stmxcsr %0" : "=m" (*(addr)))
+#define fldcw(cw) __asm __volatile("fldcw %0" : : "m"(cw))
+#define fnclex() __asm __volatile("fnclex")
+#define fninit() __asm __volatile("fninit")
+#define fnstcw(addr) __asm __volatile("fnstcw %0" : "=m"(*(addr)))
+#define fnstsw(addr) __asm __volatile("fnstsw %0" : "=am"(*(addr)))
+#define fxrstor(addr) __asm __volatile("fxrstor %0" : : "m"(*(addr)))
+#define fxsave(addr) __asm __volatile("fxsave %0" : "=m"(*(addr)))
+#define ldmxcsr(csr) __asm __volatile("ldmxcsr %0" : : "m"(csr))
+#define stmxcsr(addr) __asm __volatile("stmxcsr %0" : "=m"(*(addr)))
 
 static __inline void
 xrstor32(char *addr, uint64_t mask)
@@ -82,7 +83,7 @@ xrstor32(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xrstor %0" : : "m" (*addr), "a" (low), "d" (hi));
+	__asm __volatile("xrstor %0" : : "m"(*addr), "a"(low), "d"(hi));
 }
 
 static __inline void
@@ -92,7 +93,7 @@ xrstor64(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xrstor64 %0" : : "m" (*addr), "a" (low), "d" (hi));
+	__asm __volatile("xrstor64 %0" : : "m"(*addr), "a"(low), "d"(hi));
 }
 
 static __inline void
@@ -102,8 +103,10 @@ xsave32(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsave %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsave %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
 static __inline void
@@ -113,8 +116,10 @@ xsave64(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsave64 %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsave64 %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
 static __inline void
@@ -124,8 +129,10 @@ xsaveopt32(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsaveopt %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsaveopt %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
 static __inline void
@@ -135,8 +142,10 @@ xsaveopt64(char *addr, uint64_t mask)
 
 	low = mask;
 	hi = mask >> 32;
-	__asm __volatile("xsaveopt64 %0" : "=m" (*addr) : "a" (low), "d" (hi) :
-	    "memory");
+	__asm __volatile("xsaveopt64 %0"
+			 : "=m"(*addr)
+			 : "a"(low), "d"(hi)
+			 : "memory");
 }
 
 CTASSERT(sizeof(struct savefpu) == 512);
@@ -157,19 +166,19 @@ CTASSERT(sizeof(struct pcb) % XSAVE_AREA_ALIGN == 0);
 CTASSERT(X86_XSTATE_XCR0_OFFSET >= offsetof(struct savefpu, sv_pad) &&
     X86_XSTATE_XCR0_OFFSET + sizeof(uint64_t) <= sizeof(struct savefpu));
 
-static	void	fpu_clean_state(void);
+static void fpu_clean_state(void);
 
-SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD,
-    SYSCTL_NULL_INT_PTR, 1, "Floating point instructions executed in hardware");
+SYSCTL_INT(_hw, HW_FLOATINGPT, floatingpoint, CTLFLAG_RD, SYSCTL_NULL_INT_PTR,
+    1, "Floating point instructions executed in hardware");
 
-int use_xsave;			/* non-static for cpu_switch.S */
-uint64_t xsave_mask;		/* the same */
-static	uma_zone_t fpu_save_area_zone;
-static	struct savefpu *fpu_initialstate;
+int use_xsave;	     /* non-static for cpu_switch.S */
+uint64_t xsave_mask; /* the same */
+static uma_zone_t fpu_save_area_zone;
+static struct savefpu *fpu_initialstate;
 
 static struct xsave_area_elm_descr {
-	u_int	offset;
-	u_int	size;
+	u_int offset;
+	u_int size;
 } *xsave_area_desc;
 
 static void
@@ -237,10 +246,12 @@ DEFINE_IFUNC(, void, fpusave, (void *))
 		return (fpusave_fxsave);
 	if ((cpu_stdext_feature & CPUID_EXTSTATE_XSAVEOPT) != 0) {
 		return ((cpu_stdext_feature & CPUID_STDEXT_NFPUSG) != 0 ?
-		    fpusave_xsaveopt64 : fpusave_xsaveopt3264);
+			fpusave_xsaveopt64 :
+			fpusave_xsaveopt3264);
 	}
 	return ((cpu_stdext_feature & CPUID_STDEXT_NFPUSG) != 0 ?
-	    fpusave_xsave64 : fpusave_xsave3264);
+		fpusave_xsave64 :
+		fpusave_xsave3264);
 }
 
 DEFINE_IFUNC(, void, fpurestore, (void *))
@@ -248,7 +259,8 @@ DEFINE_IFUNC(, void, fpurestore, (void *))
 	if (!use_xsave)
 		return (fpurestore_fxrstor);
 	return ((cpu_stdext_feature & CPUID_STDEXT_NFPUSG) != 0 ?
-	    fpurestore_xrstor64 : fpurestore_xrstor3264);
+		fpurestore_xrstor64 :
+		fpurestore_xrstor3264);
 }
 
 void
@@ -417,8 +429,9 @@ fpuinitstate(void *arg __unused)
 	fpu_initialstate = uma_zalloc(fpu_save_area_zone, M_WAITOK | M_ZERO);
 	if (use_xsave) {
 		max_ext_n = flsl(xsave_mask);
-		xsave_area_desc = malloc(max_ext_n * sizeof(struct
-		    xsave_area_elm_descr), M_DEVBUF, M_WAITOK | M_ZERO);
+		xsave_area_desc = malloc(max_ext_n *
+			sizeof(struct xsave_area_elm_descr),
+		    M_DEVBUF, M_WAITOK | M_ZERO);
 	}
 
 	cpu_thread_alloc(&thread0);
@@ -535,137 +548,136 @@ fpuformat(void)
  *      (FP_X_INV, FP_X_DZ)
  * 4  Denormal operand (FP_X_DNML)
  * 5  Numeric over/underflow (FP_X_OFL, FP_X_UFL)
- * 6  Inexact result (FP_X_IMP) 
+ * 6  Inexact result (FP_X_IMP)
  */
 static char fpetable[128] = {
-	0,
-	FPE_FLTINV,	/*  1 - INV */
-	FPE_FLTUND,	/*  2 - DNML */
-	FPE_FLTINV,	/*  3 - INV | DNML */
-	FPE_FLTDIV,	/*  4 - DZ */
-	FPE_FLTINV,	/*  5 - INV | DZ */
-	FPE_FLTDIV,	/*  6 - DNML | DZ */
-	FPE_FLTINV,	/*  7 - INV | DNML | DZ */
-	FPE_FLTOVF,	/*  8 - OFL */
-	FPE_FLTINV,	/*  9 - INV | OFL */
-	FPE_FLTUND,	/*  A - DNML | OFL */
-	FPE_FLTINV,	/*  B - INV | DNML | OFL */
-	FPE_FLTDIV,	/*  C - DZ | OFL */
-	FPE_FLTINV,	/*  D - INV | DZ | OFL */
-	FPE_FLTDIV,	/*  E - DNML | DZ | OFL */
-	FPE_FLTINV,	/*  F - INV | DNML | DZ | OFL */
-	FPE_FLTUND,	/* 10 - UFL */
-	FPE_FLTINV,	/* 11 - INV | UFL */
-	FPE_FLTUND,	/* 12 - DNML | UFL */
-	FPE_FLTINV,	/* 13 - INV | DNML | UFL */
-	FPE_FLTDIV,	/* 14 - DZ | UFL */
-	FPE_FLTINV,	/* 15 - INV | DZ | UFL */
-	FPE_FLTDIV,	/* 16 - DNML | DZ | UFL */
-	FPE_FLTINV,	/* 17 - INV | DNML | DZ | UFL */
-	FPE_FLTOVF,	/* 18 - OFL | UFL */
-	FPE_FLTINV,	/* 19 - INV | OFL | UFL */
-	FPE_FLTUND,	/* 1A - DNML | OFL | UFL */
-	FPE_FLTINV,	/* 1B - INV | DNML | OFL | UFL */
-	FPE_FLTDIV,	/* 1C - DZ | OFL | UFL */
-	FPE_FLTINV,	/* 1D - INV | DZ | OFL | UFL */
-	FPE_FLTDIV,	/* 1E - DNML | DZ | OFL | UFL */
-	FPE_FLTINV,	/* 1F - INV | DNML | DZ | OFL | UFL */
-	FPE_FLTRES,	/* 20 - IMP */
-	FPE_FLTINV,	/* 21 - INV | IMP */
-	FPE_FLTUND,	/* 22 - DNML | IMP */
-	FPE_FLTINV,	/* 23 - INV | DNML | IMP */
-	FPE_FLTDIV,	/* 24 - DZ | IMP */
-	FPE_FLTINV,	/* 25 - INV | DZ | IMP */
-	FPE_FLTDIV,	/* 26 - DNML | DZ | IMP */
-	FPE_FLTINV,	/* 27 - INV | DNML | DZ | IMP */
-	FPE_FLTOVF,	/* 28 - OFL | IMP */
-	FPE_FLTINV,	/* 29 - INV | OFL | IMP */
-	FPE_FLTUND,	/* 2A - DNML | OFL | IMP */
-	FPE_FLTINV,	/* 2B - INV | DNML | OFL | IMP */
-	FPE_FLTDIV,	/* 2C - DZ | OFL | IMP */
-	FPE_FLTINV,	/* 2D - INV | DZ | OFL | IMP */
-	FPE_FLTDIV,	/* 2E - DNML | DZ | OFL | IMP */
-	FPE_FLTINV,	/* 2F - INV | DNML | DZ | OFL | IMP */
-	FPE_FLTUND,	/* 30 - UFL | IMP */
-	FPE_FLTINV,	/* 31 - INV | UFL | IMP */
-	FPE_FLTUND,	/* 32 - DNML | UFL | IMP */
-	FPE_FLTINV,	/* 33 - INV | DNML | UFL | IMP */
-	FPE_FLTDIV,	/* 34 - DZ | UFL | IMP */
-	FPE_FLTINV,	/* 35 - INV | DZ | UFL | IMP */
-	FPE_FLTDIV,	/* 36 - DNML | DZ | UFL | IMP */
-	FPE_FLTINV,	/* 37 - INV | DNML | DZ | UFL | IMP */
-	FPE_FLTOVF,	/* 38 - OFL | UFL | IMP */
-	FPE_FLTINV,	/* 39 - INV | OFL | UFL | IMP */
-	FPE_FLTUND,	/* 3A - DNML | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3B - INV | DNML | OFL | UFL | IMP */
-	FPE_FLTDIV,	/* 3C - DZ | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3D - INV | DZ | OFL | UFL | IMP */
-	FPE_FLTDIV,	/* 3E - DNML | DZ | OFL | UFL | IMP */
-	FPE_FLTINV,	/* 3F - INV | DNML | DZ | OFL | UFL | IMP */
-	FPE_FLTSUB,	/* 40 - STK */
-	FPE_FLTSUB,	/* 41 - INV | STK */
-	FPE_FLTUND,	/* 42 - DNML | STK */
-	FPE_FLTSUB,	/* 43 - INV | DNML | STK */
-	FPE_FLTDIV,	/* 44 - DZ | STK */
-	FPE_FLTSUB,	/* 45 - INV | DZ | STK */
-	FPE_FLTDIV,	/* 46 - DNML | DZ | STK */
-	FPE_FLTSUB,	/* 47 - INV | DNML | DZ | STK */
-	FPE_FLTOVF,	/* 48 - OFL | STK */
-	FPE_FLTSUB,	/* 49 - INV | OFL | STK */
-	FPE_FLTUND,	/* 4A - DNML | OFL | STK */
-	FPE_FLTSUB,	/* 4B - INV | DNML | OFL | STK */
-	FPE_FLTDIV,	/* 4C - DZ | OFL | STK */
-	FPE_FLTSUB,	/* 4D - INV | DZ | OFL | STK */
-	FPE_FLTDIV,	/* 4E - DNML | DZ | OFL | STK */
-	FPE_FLTSUB,	/* 4F - INV | DNML | DZ | OFL | STK */
-	FPE_FLTUND,	/* 50 - UFL | STK */
-	FPE_FLTSUB,	/* 51 - INV | UFL | STK */
-	FPE_FLTUND,	/* 52 - DNML | UFL | STK */
-	FPE_FLTSUB,	/* 53 - INV | DNML | UFL | STK */
-	FPE_FLTDIV,	/* 54 - DZ | UFL | STK */
-	FPE_FLTSUB,	/* 55 - INV | DZ | UFL | STK */
-	FPE_FLTDIV,	/* 56 - DNML | DZ | UFL | STK */
-	FPE_FLTSUB,	/* 57 - INV | DNML | DZ | UFL | STK */
-	FPE_FLTOVF,	/* 58 - OFL | UFL | STK */
-	FPE_FLTSUB,	/* 59 - INV | OFL | UFL | STK */
-	FPE_FLTUND,	/* 5A - DNML | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5B - INV | DNML | OFL | UFL | STK */
-	FPE_FLTDIV,	/* 5C - DZ | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5D - INV | DZ | OFL | UFL | STK */
-	FPE_FLTDIV,	/* 5E - DNML | DZ | OFL | UFL | STK */
-	FPE_FLTSUB,	/* 5F - INV | DNML | DZ | OFL | UFL | STK */
-	FPE_FLTRES,	/* 60 - IMP | STK */
-	FPE_FLTSUB,	/* 61 - INV | IMP | STK */
-	FPE_FLTUND,	/* 62 - DNML | IMP | STK */
-	FPE_FLTSUB,	/* 63 - INV | DNML | IMP | STK */
-	FPE_FLTDIV,	/* 64 - DZ | IMP | STK */
-	FPE_FLTSUB,	/* 65 - INV | DZ | IMP | STK */
-	FPE_FLTDIV,	/* 66 - DNML | DZ | IMP | STK */
-	FPE_FLTSUB,	/* 67 - INV | DNML | DZ | IMP | STK */
-	FPE_FLTOVF,	/* 68 - OFL | IMP | STK */
-	FPE_FLTSUB,	/* 69 - INV | OFL | IMP | STK */
-	FPE_FLTUND,	/* 6A - DNML | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6B - INV | DNML | OFL | IMP | STK */
-	FPE_FLTDIV,	/* 6C - DZ | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6D - INV | DZ | OFL | IMP | STK */
-	FPE_FLTDIV,	/* 6E - DNML | DZ | OFL | IMP | STK */
-	FPE_FLTSUB,	/* 6F - INV | DNML | DZ | OFL | IMP | STK */
-	FPE_FLTUND,	/* 70 - UFL | IMP | STK */
-	FPE_FLTSUB,	/* 71 - INV | UFL | IMP | STK */
-	FPE_FLTUND,	/* 72 - DNML | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 73 - INV | DNML | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 74 - DZ | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 75 - INV | DZ | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 76 - DNML | DZ | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 77 - INV | DNML | DZ | UFL | IMP | STK */
-	FPE_FLTOVF,	/* 78 - OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 79 - INV | OFL | UFL | IMP | STK */
-	FPE_FLTUND,	/* 7A - DNML | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7B - INV | DNML | OFL | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 7C - DZ | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7D - INV | DZ | OFL | UFL | IMP | STK */
-	FPE_FLTDIV,	/* 7E - DNML | DZ | OFL | UFL | IMP | STK */
-	FPE_FLTSUB,	/* 7F - INV | DNML | DZ | OFL | UFL | IMP | STK */
+	0, FPE_FLTINV, /*  1 - INV */
+	FPE_FLTUND,    /*  2 - DNML */
+	FPE_FLTINV,    /*  3 - INV | DNML */
+	FPE_FLTDIV,    /*  4 - DZ */
+	FPE_FLTINV,    /*  5 - INV | DZ */
+	FPE_FLTDIV,    /*  6 - DNML | DZ */
+	FPE_FLTINV,    /*  7 - INV | DNML | DZ */
+	FPE_FLTOVF,    /*  8 - OFL */
+	FPE_FLTINV,    /*  9 - INV | OFL */
+	FPE_FLTUND,    /*  A - DNML | OFL */
+	FPE_FLTINV,    /*  B - INV | DNML | OFL */
+	FPE_FLTDIV,    /*  C - DZ | OFL */
+	FPE_FLTINV,    /*  D - INV | DZ | OFL */
+	FPE_FLTDIV,    /*  E - DNML | DZ | OFL */
+	FPE_FLTINV,    /*  F - INV | DNML | DZ | OFL */
+	FPE_FLTUND,    /* 10 - UFL */
+	FPE_FLTINV,    /* 11 - INV | UFL */
+	FPE_FLTUND,    /* 12 - DNML | UFL */
+	FPE_FLTINV,    /* 13 - INV | DNML | UFL */
+	FPE_FLTDIV,    /* 14 - DZ | UFL */
+	FPE_FLTINV,    /* 15 - INV | DZ | UFL */
+	FPE_FLTDIV,    /* 16 - DNML | DZ | UFL */
+	FPE_FLTINV,    /* 17 - INV | DNML | DZ | UFL */
+	FPE_FLTOVF,    /* 18 - OFL | UFL */
+	FPE_FLTINV,    /* 19 - INV | OFL | UFL */
+	FPE_FLTUND,    /* 1A - DNML | OFL | UFL */
+	FPE_FLTINV,    /* 1B - INV | DNML | OFL | UFL */
+	FPE_FLTDIV,    /* 1C - DZ | OFL | UFL */
+	FPE_FLTINV,    /* 1D - INV | DZ | OFL | UFL */
+	FPE_FLTDIV,    /* 1E - DNML | DZ | OFL | UFL */
+	FPE_FLTINV,    /* 1F - INV | DNML | DZ | OFL | UFL */
+	FPE_FLTRES,    /* 20 - IMP */
+	FPE_FLTINV,    /* 21 - INV | IMP */
+	FPE_FLTUND,    /* 22 - DNML | IMP */
+	FPE_FLTINV,    /* 23 - INV | DNML | IMP */
+	FPE_FLTDIV,    /* 24 - DZ | IMP */
+	FPE_FLTINV,    /* 25 - INV | DZ | IMP */
+	FPE_FLTDIV,    /* 26 - DNML | DZ | IMP */
+	FPE_FLTINV,    /* 27 - INV | DNML | DZ | IMP */
+	FPE_FLTOVF,    /* 28 - OFL | IMP */
+	FPE_FLTINV,    /* 29 - INV | OFL | IMP */
+	FPE_FLTUND,    /* 2A - DNML | OFL | IMP */
+	FPE_FLTINV,    /* 2B - INV | DNML | OFL | IMP */
+	FPE_FLTDIV,    /* 2C - DZ | OFL | IMP */
+	FPE_FLTINV,    /* 2D - INV | DZ | OFL | IMP */
+	FPE_FLTDIV,    /* 2E - DNML | DZ | OFL | IMP */
+	FPE_FLTINV,    /* 2F - INV | DNML | DZ | OFL | IMP */
+	FPE_FLTUND,    /* 30 - UFL | IMP */
+	FPE_FLTINV,    /* 31 - INV | UFL | IMP */
+	FPE_FLTUND,    /* 32 - DNML | UFL | IMP */
+	FPE_FLTINV,    /* 33 - INV | DNML | UFL | IMP */
+	FPE_FLTDIV,    /* 34 - DZ | UFL | IMP */
+	FPE_FLTINV,    /* 35 - INV | DZ | UFL | IMP */
+	FPE_FLTDIV,    /* 36 - DNML | DZ | UFL | IMP */
+	FPE_FLTINV,    /* 37 - INV | DNML | DZ | UFL | IMP */
+	FPE_FLTOVF,    /* 38 - OFL | UFL | IMP */
+	FPE_FLTINV,    /* 39 - INV | OFL | UFL | IMP */
+	FPE_FLTUND,    /* 3A - DNML | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3B - INV | DNML | OFL | UFL | IMP */
+	FPE_FLTDIV,    /* 3C - DZ | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3D - INV | DZ | OFL | UFL | IMP */
+	FPE_FLTDIV,    /* 3E - DNML | DZ | OFL | UFL | IMP */
+	FPE_FLTINV,    /* 3F - INV | DNML | DZ | OFL | UFL | IMP */
+	FPE_FLTSUB,    /* 40 - STK */
+	FPE_FLTSUB,    /* 41 - INV | STK */
+	FPE_FLTUND,    /* 42 - DNML | STK */
+	FPE_FLTSUB,    /* 43 - INV | DNML | STK */
+	FPE_FLTDIV,    /* 44 - DZ | STK */
+	FPE_FLTSUB,    /* 45 - INV | DZ | STK */
+	FPE_FLTDIV,    /* 46 - DNML | DZ | STK */
+	FPE_FLTSUB,    /* 47 - INV | DNML | DZ | STK */
+	FPE_FLTOVF,    /* 48 - OFL | STK */
+	FPE_FLTSUB,    /* 49 - INV | OFL | STK */
+	FPE_FLTUND,    /* 4A - DNML | OFL | STK */
+	FPE_FLTSUB,    /* 4B - INV | DNML | OFL | STK */
+	FPE_FLTDIV,    /* 4C - DZ | OFL | STK */
+	FPE_FLTSUB,    /* 4D - INV | DZ | OFL | STK */
+	FPE_FLTDIV,    /* 4E - DNML | DZ | OFL | STK */
+	FPE_FLTSUB,    /* 4F - INV | DNML | DZ | OFL | STK */
+	FPE_FLTUND,    /* 50 - UFL | STK */
+	FPE_FLTSUB,    /* 51 - INV | UFL | STK */
+	FPE_FLTUND,    /* 52 - DNML | UFL | STK */
+	FPE_FLTSUB,    /* 53 - INV | DNML | UFL | STK */
+	FPE_FLTDIV,    /* 54 - DZ | UFL | STK */
+	FPE_FLTSUB,    /* 55 - INV | DZ | UFL | STK */
+	FPE_FLTDIV,    /* 56 - DNML | DZ | UFL | STK */
+	FPE_FLTSUB,    /* 57 - INV | DNML | DZ | UFL | STK */
+	FPE_FLTOVF,    /* 58 - OFL | UFL | STK */
+	FPE_FLTSUB,    /* 59 - INV | OFL | UFL | STK */
+	FPE_FLTUND,    /* 5A - DNML | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5B - INV | DNML | OFL | UFL | STK */
+	FPE_FLTDIV,    /* 5C - DZ | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5D - INV | DZ | OFL | UFL | STK */
+	FPE_FLTDIV,    /* 5E - DNML | DZ | OFL | UFL | STK */
+	FPE_FLTSUB,    /* 5F - INV | DNML | DZ | OFL | UFL | STK */
+	FPE_FLTRES,    /* 60 - IMP | STK */
+	FPE_FLTSUB,    /* 61 - INV | IMP | STK */
+	FPE_FLTUND,    /* 62 - DNML | IMP | STK */
+	FPE_FLTSUB,    /* 63 - INV | DNML | IMP | STK */
+	FPE_FLTDIV,    /* 64 - DZ | IMP | STK */
+	FPE_FLTSUB,    /* 65 - INV | DZ | IMP | STK */
+	FPE_FLTDIV,    /* 66 - DNML | DZ | IMP | STK */
+	FPE_FLTSUB,    /* 67 - INV | DNML | DZ | IMP | STK */
+	FPE_FLTOVF,    /* 68 - OFL | IMP | STK */
+	FPE_FLTSUB,    /* 69 - INV | OFL | IMP | STK */
+	FPE_FLTUND,    /* 6A - DNML | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6B - INV | DNML | OFL | IMP | STK */
+	FPE_FLTDIV,    /* 6C - DZ | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6D - INV | DZ | OFL | IMP | STK */
+	FPE_FLTDIV,    /* 6E - DNML | DZ | OFL | IMP | STK */
+	FPE_FLTSUB,    /* 6F - INV | DNML | DZ | OFL | IMP | STK */
+	FPE_FLTUND,    /* 70 - UFL | IMP | STK */
+	FPE_FLTSUB,    /* 71 - INV | UFL | IMP | STK */
+	FPE_FLTUND,    /* 72 - DNML | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 73 - INV | DNML | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 74 - DZ | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 75 - INV | DZ | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 76 - DNML | DZ | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 77 - INV | DNML | DZ | UFL | IMP | STK */
+	FPE_FLTOVF,    /* 78 - OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 79 - INV | OFL | UFL | IMP | STK */
+	FPE_FLTUND,    /* 7A - DNML | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7B - INV | DNML | OFL | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 7C - DZ | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7D - INV | DZ | OFL | UFL | IMP | STK */
+	FPE_FLTDIV,    /* 7E - DNML | DZ | OFL | UFL | IMP | STK */
+	FPE_FLTSUB,    /* 7F - INV | DNML | DZ | OFL | UFL | IMP | STK */
 };
 
 /*
@@ -750,14 +762,13 @@ restore_fpu_curthread(struct thread *td)
 		 * fpu_initialstate, to ignite the XSAVEOPT
 		 * tracking engine.
 		 */
-		bcopy(fpu_initialstate, pcb->pcb_save,
-		    cpu_max_ext_state_size);
+		bcopy(fpu_initialstate, pcb->pcb_save, cpu_max_ext_state_size);
 		fpurestore(pcb->pcb_save);
 		if (pcb->pcb_initial_fpucw != __INITIAL_FPUCW__)
 			fldcw(pcb->pcb_initial_fpucw);
 		if (PCB_USER_FPU(pcb))
-			set_pcb_flags(pcb, PCB_FPUINITDONE |
-			    PCB_USERFPUINITDONE);
+			set_pcb_flags(pcb,
+			    PCB_FPUINITDONE | PCB_USERFPUINITDONE);
 		else
 			set_pcb_flags(pcb, PCB_FPUINITDONE);
 	} else
@@ -801,7 +812,7 @@ fpudna(void)
 	} else {
 		if (__predict_false(PCPU_GET(fpcurthread) != NULL)) {
 			panic(
-		    "fpudna: fpcurthread = %p (%d), curthread = %p (%d)\n",
+			    "fpudna: fpcurthread = %p (%d), curthread = %p (%d)\n",
 			    PCPU_GET(fpcurthread),
 			    PCPU_GET(fpcurthread)->td_tid, td, td->td_tid);
 		}
@@ -879,7 +890,7 @@ fpugetregs(struct thread *td)
 			if ((xsave_mask & bit) == 0 || (*xstate_bv & bit) != 0)
 				continue;
 			bcopy((char *)fpu_initialstate +
-			    xsave_area_desc[i].offset,
+				xsave_area_desc[i].offset,
 			    sa + xsave_area_desc[i].offset,
 			    xsave_area_desc[i].size);
 			*xstate_bv |= bit;
@@ -897,8 +908,7 @@ fpuuserinited(struct thread *td)
 	CRITICAL_ASSERT(td);
 	pcb = td->td_pcb;
 	if (PCB_USER_FPU(pcb))
-		set_pcb_flags(pcb,
-		    PCB_FPUINITDONE | PCB_USERFPUINITDONE);
+		set_pcb_flags(pcb, PCB_FPUINITDONE | PCB_USERFPUINITDONE);
 	else
 		set_pcb_flags(pcb, PCB_FPUINITDONE);
 }
@@ -935,8 +945,8 @@ fpusetxstate(struct thread *td, char *xfpustate, size_t xfpustate_size)
 	hdr = (struct xstate_hdr *)(get_pcb_user_save_td(td) + 1);
 
 	hdr->xstate_bv = bv;
-	bcopy(xfpustate + sizeof(struct xstate_hdr),
-	    (char *)(hdr + 1), len - sizeof(struct xstate_hdr));
+	bcopy(xfpustate + sizeof(struct xstate_hdr), (char *)(hdr + 1),
+	    len - sizeof(struct xstate_hdr));
 
 	return (0);
 }
@@ -960,8 +970,8 @@ fpusetregs(struct thread *td, struct savefpu *addr, char *xfpustate,
 		if (error == 0) {
 			bcopy(addr, get_pcb_user_save_td(td), sizeof(*addr));
 			fpurestore(get_pcb_user_save_td(td));
-			set_pcb_flags(pcb, PCB_FPUINITDONE |
-			    PCB_USERFPUINITDONE);
+			set_pcb_flags(pcb,
+			    PCB_FPUINITDONE | PCB_USERFPUINITDONE);
 		}
 	} else {
 		error = fpusetxstate(td, xfpustate, xfpustate_size);
@@ -1002,7 +1012,7 @@ fpu_clean_state(void)
 	 * the x87 stack, but we don't care since we're about to call
 	 * fxrstor() anyway.
 	 */
-	__asm __volatile("ffree %%st(7); flds %0" : : "m" (dummy_variable));
+	__asm __volatile("ffree %%st(7); flds %0" : : "m"(dummy_variable));
 }
 
 /*
@@ -1040,31 +1050,28 @@ fpupnp_attach(device_t dev)
 
 static device_method_t fpupnp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fpupnp_probe),
-	DEVMETHOD(device_attach,	fpupnp_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, fpupnp_probe),
+	DEVMETHOD(device_attach, fpupnp_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume), { 0, 0 }
 };
 
 static driver_t fpupnp_driver = {
-	"fpupnp",
-	fpupnp_methods,
-	1,			/* no softc */
+	"fpupnp", fpupnp_methods, 1, /* no softc */
 };
 
 DRIVER_MODULE(fpupnp, acpi, fpupnp_driver, 0, 0);
 ISA_PNP_INFO(fpupnp_ids);
-#endif	/* DEV_ISA */
+#endif /* DEV_ISA */
 
 static MALLOC_DEFINE(M_FPUKERN_CTX, "fpukern_ctx",
     "Kernel contexts for FPU state");
 
-#define	FPU_KERN_CTX_FPUINITDONE 0x01
-#define	FPU_KERN_CTX_DUMMY	 0x02	/* avoided save for the kern thread */
-#define	FPU_KERN_CTX_INUSE	 0x04
+#define FPU_KERN_CTX_FPUINITDONE 0x01
+#define FPU_KERN_CTX_DUMMY 0x02 /* avoided save for the kern thread */
+#define FPU_KERN_CTX_INUSE 0x04
 
 struct fpu_kern_ctx {
 	struct savefpu *prev;
@@ -1095,8 +1102,8 @@ fpu_kern_alloc_ctx_domain(int domain, u_int flags)
 struct fpu_kern_ctx *
 fpu_kern_alloc_ctx(u_int flags)
 {
-	return (malloc(fpu_kern_alloc_sz(cpu_max_ext_state_size),
-	    M_FPUKERN_CTX, fpu_kern_malloc_flags(flags)));
+	return (malloc(fpu_kern_alloc_sz(cpu_max_ext_state_size), M_FPUKERN_CTX,
+	    fpu_kern_malloc_flags(flags)));
 }
 
 void
@@ -1148,8 +1155,8 @@ fpu_kern_enter(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags)
 		 * save FPU context at all.
 		 */
 		fpurestore(fpu_initialstate);
-		set_pcb_flags(pcb, PCB_KERNFPU | PCB_FPUNOSAVE |
-		    PCB_FPUINITDONE);
+		set_pcb_flags(pcb,
+		    PCB_KERNFPU | PCB_FPUNOSAVE | PCB_FPUINITDONE);
 		return;
 	}
 	if ((flags & FPU_KERN_KTHR) != 0 && is_fpu_kern_thread(0)) {
@@ -1157,8 +1164,9 @@ fpu_kern_enter(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags)
 		return;
 	}
 	critical_enter();
-	KASSERT(!PCB_USER_FPU(pcb) || pcb->pcb_save ==
-	    get_pcb_user_save_pcb(pcb), ("mangled pcb_save"));
+	KASSERT(!PCB_USER_FPU(pcb) ||
+		pcb->pcb_save == get_pcb_user_save_pcb(pcb),
+	    ("mangled pcb_save"));
 	ctx->flags = FPU_KERN_CTX_INUSE;
 	if ((pcb->pcb_flags & PCB_FPUINITDONE) != 0)
 		ctx->flags |= FPU_KERN_CTX_FPUINITDONE;
@@ -1183,7 +1191,7 @@ fpu_kern_leave(struct thread *td, struct fpu_kern_ctx *ctx)
 		    ("non-NULL fpcurthread for PCB_FPUNOSAVE"));
 		CRITICAL_ASSERT(td);
 
-		clear_pcb_flags(pcb,  PCB_FPUNOSAVE | PCB_FPUINITDONE);
+		clear_pcb_flags(pcb, PCB_FPUNOSAVE | PCB_FPUINITDONE);
 		fpu_disable();
 	} else {
 		KASSERT((ctx->flags & FPU_KERN_CTX_INUSE) != 0,
@@ -1193,8 +1201,7 @@ fpu_kern_leave(struct thread *td, struct fpu_kern_ctx *ctx)
 		if (is_fpu_kern_thread(0) &&
 		    (ctx->flags & FPU_KERN_CTX_DUMMY) != 0)
 			return (0);
-		KASSERT((ctx->flags & FPU_KERN_CTX_DUMMY) == 0,
-		    ("dummy ctx"));
+		KASSERT((ctx->flags & FPU_KERN_CTX_DUMMY) == 0, ("dummy ctx"));
 		critical_enter();
 		if (curthread == PCPU_GET(fpcurthread))
 			fpudrop();

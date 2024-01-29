@@ -51,19 +51,19 @@
  * the pointers.
  */
 struct ps_strings {
-	char	**ps_argvstr;	/* first of 0 or more argument strings */
+	char **ps_argvstr;	  /* first of 0 or more argument strings */
 	unsigned int ps_nargvstr; /* the number of argument strings */
-	char	**ps_envstr;	/* first of 0 or more environment strings */
-	unsigned int ps_nenvstr; /* the number of environment strings */
+	char **ps_envstr;	  /* first of 0 or more environment strings */
+	unsigned int ps_nenvstr;  /* the number of environment strings */
 };
 
 /* Coredump output parameters. */
 struct coredump_params {
-	off_t		offset;
-	struct ucred	*active_cred;
-	struct ucred	*file_cred;
-	struct thread	*td;
-	struct vnode	*vp;
+	off_t offset;
+	struct ucred *active_cred;
+	struct ucred *file_cred;
+	struct thread *td;
+	struct vnode *vp;
 	struct compressor *comp;
 };
 
@@ -83,29 +83,28 @@ struct execsw {
  * Address of ps_strings structure (in user space).
  * Prefer the kern.ps_strings or kern.proc.ps_strings sysctls to this constant.
  */
-#define	PS_STRINGS	(USRSTACK - sizeof(struct ps_strings))
-#define	PROC_PS_STRINGS(p)	\
+#define PS_STRINGS (USRSTACK - sizeof(struct ps_strings))
+#define PROC_PS_STRINGS(p) \
 	((p)->p_vmspace->vm_stacktop - (p)->p_sysent->sv_psstringssz)
 
 /*
  * Address of signal trampoline (in user space).
  * This assumes that the sigcode resides in the shared page.
  */
-#define PROC_SIGCODE(p)		\
+#define PROC_SIGCODE(p) \
 	((p)->p_vmspace->vm_shp_base + (p)->p_sysent->sv_sigcode_offset)
 
-#define PROC_HAS_SHP(p)		\
-	((p)->p_sysent->sv_shared_page_obj != NULL)
+#define PROC_HAS_SHP(p) ((p)->p_sysent->sv_shared_page_obj != NULL)
 
-int exec_map_first_page(struct image_params *);        
-void exec_unmap_first_page(struct image_params *);       
+int exec_map_first_page(struct image_params *);
+void exec_unmap_first_page(struct image_params *);
 
 int exec_register(const struct execsw *);
 int exec_unregister(const struct execsw *);
 
 enum uio_seg;
 
-#define   CORE_BUF_SIZE   (16 * 1024)
+#define CORE_BUF_SIZE (16 * 1024)
 
 int core_write(struct coredump_params *, const void *, size_t, off_t,
     enum uio_seg, size_t *);
@@ -123,37 +122,35 @@ extern int coredump_pack_vmmapinfo;
 
 #include <sys/module.h>
 
-#define EXEC_SET(name, execsw_arg) \
-	static int __CONCAT(name,_modevent)(module_t mod, int type, \
-	    void *data) \
-	{ \
-		struct execsw *exec = (struct execsw *)data; \
-		int error = 0; \
-		switch (type) { \
-		case MOD_LOAD: \
-			/* printf(#name " module loaded\n"); */ \
-			error = exec_register(exec); \
-			if (error) \
+#define EXEC_SET(name, execsw_arg)                                           \
+	static int __CONCAT(name, _modevent)(module_t mod, int type,         \
+	    void *data)                                                      \
+	{                                                                    \
+		struct execsw *exec = (struct execsw *)data;                 \
+		int error = 0;                                               \
+		switch (type) {                                              \
+		case MOD_LOAD:                                               \
+			/* printf(#name " module loaded\n"); */              \
+			error = exec_register(exec);                         \
+			if (error)                                           \
 				printf(__XSTRING(name) "register failed\n"); \
-			break; \
-		case MOD_UNLOAD: \
-			/* printf(#name " module unloaded\n"); */ \
-			error = exec_unregister(exec); \
-			if (error) \
-				printf(__XSTRING(name) " unregister failed\n");\
-			break; \
-		default: \
-			error = EOPNOTSUPP; \
-			break; \
-		} \
-		return error; \
-	} \
-	static moduledata_t __CONCAT(name,_mod) = { \
-		__XSTRING(name), \
-		__CONCAT(name,_modevent), \
-		(void *)& execsw_arg \
-	}; \
-	DECLARE_MODULE_TIED(name, __CONCAT(name,_mod), SI_SUB_EXEC, \
+			break;                                               \
+		case MOD_UNLOAD:                                             \
+			/* printf(#name " module unloaded\n"); */            \
+			error = exec_unregister(exec);                       \
+			if (error)                                           \
+				printf(                                      \
+				    __XSTRING(name) " unregister failed\n"); \
+			break;                                               \
+		default:                                                     \
+			error = EOPNOTSUPP;                                  \
+			break;                                               \
+		}                                                            \
+		return error;                                                \
+	}                                                                    \
+	static moduledata_t __CONCAT(name, _mod) = { __XSTRING(name),        \
+		__CONCAT(name, _modevent), (void *)&execsw_arg };            \
+	DECLARE_MODULE_TIED(name, __CONCAT(name, _mod), SI_SUB_EXEC,         \
 	    SI_ORDER_ANY)
 #endif
 

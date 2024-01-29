@@ -1,4 +1,5 @@
-/*	$NetBSD: clnt_generic.c,v 1.18 2000/07/06 03:10:34 christos Exp $	*/
+/*	$NetBSD: clnt_generic.c,v 1.18 2000/07/06 03:10:34 christos Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
@@ -34,32 +35,34 @@
  * Copyright (c) 1986-1996,1998 by Sun Microsystems, Inc.
  * All rights reserved.
  */
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <stdio.h>
+
 #include <errno.h>
 #include <netdb.h>
-#include <syslog.h>
-#include <rpc/rpc.h>
 #include <rpc/nettype.h>
-#include <string.h>
+#include <rpc/rpc.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
+#include "namespace.h"
+#include "reentrant.h"
 #include "rpc_com.h"
+#include "un-namespace.h"
 
 extern bool_t __rpc_is_local_host(const char *);
 int __rpc_raise_fd(int);
 
 #ifndef NETIDLEN
-#define	NETIDLEN 32
+#define NETIDLEN 32
 #endif
-
 
 /*
  * Generic client creation with version checking the value of
@@ -72,11 +75,11 @@ int __rpc_raise_fd(int);
  */
 CLIENT *
 clnt_create_vers(const char *hostname, rpcprog_t prog, rpcvers_t *vers_out,
-	rpcvers_t vers_low, rpcvers_t vers_high, const char *nettype)
+    rpcvers_t vers_low, rpcvers_t vers_high, const char *nettype)
 {
 
 	return (clnt_create_vers_timed(hostname, prog, vers_out, vers_low,
-				vers_high, nettype, NULL));
+	    vers_high, nettype, NULL));
 }
 
 /*
@@ -101,8 +104,8 @@ clnt_create_vers_timed(const char *hostname, rpcprog_t prog,
 	}
 	to.tv_sec = 10;
 	to.tv_usec = 0;
-	rpc_stat = clnt_call(clnt, NULLPROC, (xdrproc_t)xdr_void,
-			(char *)NULL, (xdrproc_t)xdr_void, (char *)NULL, to);
+	rpc_stat = clnt_call(clnt, NULLPROC, (xdrproc_t)xdr_void, (char *)NULL,
+	    (xdrproc_t)xdr_void, (char *)NULL, to);
 	if (rpc_stat == RPC_SUCCESS) {
 		*vers_out = vers_high;
 		return (clnt);
@@ -124,8 +127,7 @@ clnt_create_vers_timed(const char *hostname, rpcprog_t prog,
 		}
 		CLNT_CONTROL(clnt, CLSET_VERS, (char *)&vers_high);
 		rpc_stat = clnt_call(clnt, NULLPROC, (xdrproc_t)xdr_void,
-				(char *)NULL, (xdrproc_t)xdr_void,
-				(char *)NULL, to);
+		    (char *)NULL, (xdrproc_t)xdr_void, (char *)NULL, to);
 		if (rpc_stat == RPC_SUCCESS) {
 			*vers_out = vers_high;
 			return (clnt);
@@ -176,8 +178,8 @@ clnt_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
 	struct netconfig *nconf;
 	CLIENT *clnt = NULL;
 	void *handle;
-	enum clnt_stat	save_cf_stat = RPC_SUCCESS;
-	struct rpc_err	save_cf_error;
+	enum clnt_stat save_cf_stat = RPC_SUCCESS;
+	struct rpc_err save_cf_error;
 	char nettype_array[NETIDLEN];
 	char *nettype = &nettype_array[0];
 
@@ -185,7 +187,7 @@ clnt_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
 		nettype = NULL;
 	else {
 		size_t len = strlen(netclass);
-		if (len >= sizeof (nettype_array)) {
+		if (len >= sizeof(nettype_array)) {
 			rpc_createerr.cf_stat = RPC_UNKNOWNPROTO;
 			return (NULL);
 		}
@@ -238,8 +240,8 @@ clnt_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
 	 *	translation failed'' or ``unknown host name''
 	 */
 	if ((rpc_createerr.cf_stat == RPC_N2AXLATEFAILURE ||
-				rpc_createerr.cf_stat == RPC_UNKNOWNHOST) &&
-					(save_cf_stat != RPC_SUCCESS)) {
+		rpc_createerr.cf_stat == RPC_UNKNOWNHOST) &&
+	    (save_cf_stat != RPC_SUCCESS)) {
 		rpc_createerr.cf_stat = save_cf_stat;
 		rpc_createerr.cf_error = save_cf_error;
 	}
@@ -273,8 +275,8 @@ CLIENT *
 clnt_tp_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
     const struct netconfig *nconf, const struct timeval *tp)
 {
-	struct netbuf *svcaddr;			/* servers address */
-	CLIENT *cl = NULL;			/* client handle */
+	struct netbuf *svcaddr; /* servers address */
+	CLIENT *cl = NULL;	/* client handle */
 
 	if (nconf == NULL) {
 		rpc_createerr.cf_stat = RPC_UNKNOWNPROTO;
@@ -285,14 +287,14 @@ clnt_tp_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
 	 * Get the address of the server
 	 */
 	if ((svcaddr = __rpcb_findaddr_timed(prog, vers,
-			(struct netconfig *)nconf, (char *)hostname,
-			&cl, (struct timeval *)tp)) == NULL) {
+		 (struct netconfig *)nconf, (char *)hostname, &cl,
+		 (struct timeval *)tp)) == NULL) {
 		/* appropriate error number is set by rpcbind libraries */
 		return (NULL);
 	}
 	if (cl == NULL) {
-		cl = clnt_tli_create(RPC_ANYFD, nconf, svcaddr,
-					prog, vers, 0, 0);
+		cl = clnt_tli_create(RPC_ANYFD, nconf, svcaddr, prog, vers, 0,
+		    0);
 	} else {
 		/* Reuse the CLIENT handle and change the appropriate fields */
 		if (CLNT_CONTROL(cl, CLSET_SVC_ADDR, (void *)svcaddr) == TRUE) {
@@ -300,12 +302,12 @@ clnt_tp_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
 				cl->cl_netid = strdup(nconf->nc_netid);
 			if (cl->cl_tp == NULL)
 				cl->cl_tp = strdup(nconf->nc_device);
-			(void) CLNT_CONTROL(cl, CLSET_PROG, (void *)&prog);
-			(void) CLNT_CONTROL(cl, CLSET_VERS, (void *)&vers);
+			(void)CLNT_CONTROL(cl, CLSET_PROG, (void *)&prog);
+			(void)CLNT_CONTROL(cl, CLSET_VERS, (void *)&vers);
 		} else {
 			CLNT_DESTROY(cl);
-			cl = clnt_tli_create(RPC_ANYFD, nconf, svcaddr,
-					prog, vers, 0, 0);
+			cl = clnt_tli_create(RPC_ANYFD, nconf, svcaddr, prog,
+			    vers, 0, 0);
 		}
 	}
 	free(svcaddr->buf);
@@ -322,12 +324,11 @@ clnt_tp_create_timed(const char *hostname, rpcprog_t prog, rpcvers_t vers,
  * If sizes are 0; appropriate defaults will be chosen.
  */
 CLIENT *
-clnt_tli_create(int fd, const struct netconfig *nconf,
-	struct netbuf *svcaddr, rpcprog_t prog, rpcvers_t vers,
-	uint sendsz, uint recvsz)
+clnt_tli_create(int fd, const struct netconfig *nconf, struct netbuf *svcaddr,
+    rpcprog_t prog, rpcvers_t vers, uint sendsz, uint recvsz)
 {
-	CLIENT *cl;			/* client handle */
-	bool_t madefd = FALSE;		/* whether fd opened here */
+	CLIENT *cl;	       /* client handle */
+	bool_t madefd = FALSE; /* whether fd opened here */
 	long servtype;
 	int one = 1;
 	struct __rpc_sockinfo si;
@@ -361,7 +362,7 @@ clnt_tli_create(int fd, const struct netconfig *nconf,
 	}
 
 	if (si.si_af != ((struct sockaddr *)svcaddr->buf)->sa_family) {
-		rpc_createerr.cf_stat = RPC_UNKNOWNHOST;	/* XXX */
+		rpc_createerr.cf_stat = RPC_UNKNOWNHOST; /* XXX */
 		goto err1;
 	}
 
@@ -372,7 +373,7 @@ clnt_tli_create(int fd, const struct netconfig *nconf,
 	case NC_TPI_COTS_ORD:
 		if (nconf && ((strcmp(nconf->nc_protofmly, "inet") == 0))) {
 			_setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one,
-			    sizeof (one));
+			    sizeof(one));
 		}
 		cl = clnt_vc_create(fd, svcaddr, prog, vers, sendsz, recvsz);
 		break;
@@ -393,8 +394,9 @@ clnt_tli_create(int fd, const struct netconfig *nconf,
 		cl->cl_tp = "";
 	}
 	if (madefd) {
-		(void) CLNT_CONTROL(cl, CLSET_FD_CLOSE, NULL);
-/*		(void) CLNT_CONTROL(cl, CLSET_POP_TIMOD, NULL);  */
+		(void)CLNT_CONTROL(cl, CLSET_FD_CLOSE, NULL);
+		/*		(void) CLNT_CONTROL(cl, CLSET_POP_TIMOD, NULL);
+		 */
 	}
 
 	return (cl);
@@ -402,7 +404,8 @@ clnt_tli_create(int fd, const struct netconfig *nconf,
 err:
 	rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 	rpc_createerr.cf_error.re_errno = errno;
-err1:	if (madefd)
+err1:
+	if (madefd)
 		(void)_close(fd);
 	return (NULL);
 }
@@ -433,8 +436,8 @@ __rpc_raise_fd(int fd)
 
 	if (_close(fd) == -1) {
 		/* this is okay, we will syslog an error, then use the new fd */
-		(void) syslog(LOG_ERR,
-			"could not close() fd %d; mem & fd leak", fd);
+		(void)syslog(LOG_ERR, "could not close() fd %d; mem & fd leak",
+		    fd);
 	}
 
 	return (nfd);

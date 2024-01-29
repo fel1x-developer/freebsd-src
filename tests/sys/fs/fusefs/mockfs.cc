@@ -30,7 +30,6 @@
 
 extern "C" {
 #include <sys/param.h>
-
 #include <sys/mount.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -45,22 +44,22 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "mntopts.h"	// for build_iovec
+#include "mntopts.h" // for build_iovec
 }
-
-#include <cinttypes>
 
 #include <gtest/gtest.h>
 
 #include "mockfs.hh"
+#include <cinttypes>
 
 using namespace testing;
 
 int verbosity = 0;
 
-const char* opcode2opname(uint32_t opcode)
+const char *
+opcode2opname(uint32_t opcode)
 {
-	const char* table[] = {
+	const char *table[] = {
 		"Unknown (opcode 0)",
 		"LOOKUP",
 		"FORGET",
@@ -119,7 +118,7 @@ const char* opcode2opname(uint32_t opcode)
 ProcessMockerT
 ReturnErrno(int error)
 {
-	return([=](auto in, auto &out) {
+	return ([=](auto in, auto &out) {
 		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
 		out0->header.unique = in.header.unique;
 		out0->header.error = -error;
@@ -132,7 +131,7 @@ ReturnErrno(int error)
 ProcessMockerT
 ReturnNegativeCache(const struct timespec *entry_valid)
 {
-	return([=](auto in, auto &out) {
+	return ([=](auto in, auto &out) {
 		/* nodeid means ENOENT and cache it */
 		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
 		out0->body.entry.nodeid = 0;
@@ -146,10 +145,10 @@ ReturnNegativeCache(const struct timespec *entry_valid)
 }
 
 ProcessMockerT
-ReturnImmediate(std::function<void(const mockfs_buf_in& in,
-				   struct mockfs_buf_out &out)> f)
+ReturnImmediate(
+    std::function<void(const mockfs_buf_in &in, struct mockfs_buf_out &out)> f)
 {
-	return([=](auto& in, auto &out) {
+	return ([=](auto &in, auto &out) {
 		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
 		out0->header.unique = in.header.unique;
 		f(in, *out0);
@@ -157,270 +156,251 @@ ReturnImmediate(std::function<void(const mockfs_buf_in& in,
 	});
 }
 
-void sigint_handler(int __unused sig) {
+void
+sigint_handler(int __unused sig)
+{
 	// Don't do anything except interrupt the daemon's read(2) call
 }
 
-void MockFS::debug_request(const mockfs_buf_in &in, ssize_t buflen)
+void
+MockFS::debug_request(const mockfs_buf_in &in, ssize_t buflen)
 {
 	printf("%-11s ino=%2" PRIu64, opcode2opname(in.header.opcode),
-		in.header.nodeid);
+	    in.header.nodeid);
 	if (verbosity > 1) {
 		printf(" uid=%5u gid=%5u pid=%5u unique=%" PRIu64 " len=%u"
-			" buflen=%zd",
-			in.header.uid, in.header.gid, in.header.pid,
-			in.header.unique, in.header.len, buflen);
+		       " buflen=%zd",
+		    in.header.uid, in.header.gid, in.header.pid,
+		    in.header.unique, in.header.len, buflen);
 	}
 	switch (in.header.opcode) {
 		const char *name, *value;
 
-		case FUSE_ACCESS:
-			printf(" mask=%#x", in.body.access.mask);
+	case FUSE_ACCESS:
+		printf(" mask=%#x", in.body.access.mask);
+		break;
+	case FUSE_BMAP:
+		printf(" block=%" PRIx64 " blocksize=%#x", in.body.bmap.block,
+		    in.body.bmap.blocksize);
+		break;
+	case FUSE_COPY_FILE_RANGE:
+		printf(" off_in=%" PRIu64 " ino_out=%" PRIu64
+		       " off_out=%" PRIu64 " size=%" PRIu64,
+		    in.body.copy_file_range.off_in,
+		    in.body.copy_file_range.nodeid_out,
+		    in.body.copy_file_range.off_out,
+		    in.body.copy_file_range.len);
+		if (verbosity > 1)
+			printf(" fh_in=%" PRIu64 " fh_out=%" PRIu64
+			       " flags=%" PRIx64,
+			    in.body.copy_file_range.fh_in,
+			    in.body.copy_file_range.fh_out,
+			    in.body.copy_file_range.flags);
+		break;
+	case FUSE_CREATE:
+		if (m_kernel_minor_version >= 12)
+			name = (const char *)in.body.bytes +
+			    sizeof(fuse_create_in);
+		else
+			name = (const char *)in.body.bytes +
+			    sizeof(fuse_open_in);
+		printf(" flags=%#x name=%s", in.body.open.flags, name);
+		break;
+	case FUSE_FALLOCATE:
+		printf(" fh=%#" PRIx64 " offset=%" PRIu64 " length=%" PRIx64
+		       " mode=%#x",
+		    in.body.fallocate.fh, in.body.fallocate.offset,
+		    in.body.fallocate.length, in.body.fallocate.mode);
+		break;
+	case FUSE_FLUSH:
+		printf(" fh=%#" PRIx64 " lock_owner=%" PRIu64, in.body.flush.fh,
+		    in.body.flush.lock_owner);
+		break;
+	case FUSE_FORGET:
+		printf(" nlookup=%" PRIu64, in.body.forget.nlookup);
+		break;
+	case FUSE_FSYNC:
+		printf(" flags=%#x", in.body.fsync.fsync_flags);
+		break;
+	case FUSE_FSYNCDIR:
+		printf(" flags=%#x", in.body.fsyncdir.fsync_flags);
+		break;
+	case FUSE_GETLK:
+		printf(" fh=%#" PRIx64 " type=%u pid=%u", in.body.getlk.fh,
+		    in.body.getlk.lk.type, in.body.getlk.lk.pid);
+		if (verbosity >= 2) {
+			printf(" range=[%" PRIi64 ":%" PRIi64 "]",
+			    in.body.getlk.lk.start, in.body.getlk.lk.end);
+		}
+		break;
+	case FUSE_INTERRUPT:
+		printf(" unique=%" PRIu64, in.body.interrupt.unique);
+		break;
+	case FUSE_LINK:
+		printf(" oldnodeid=%" PRIu64, in.body.link.oldnodeid);
+		break;
+	case FUSE_LISTXATTR:
+		printf(" size=%" PRIu32, in.body.listxattr.size);
+		break;
+	case FUSE_LOOKUP:
+		printf(" %s", in.body.lookup);
+		break;
+	case FUSE_LSEEK:
+		switch (in.body.lseek.whence) {
+		case SEEK_HOLE:
+			printf(" SEEK_HOLE offset=%jd", in.body.lseek.offset);
 			break;
-		case FUSE_BMAP:
-			printf(" block=%" PRIx64 " blocksize=%#x",
-				in.body.bmap.block, in.body.bmap.blocksize);
-			break;
-		case FUSE_COPY_FILE_RANGE:
-			printf(" off_in=%" PRIu64 " ino_out=%" PRIu64
-			       " off_out=%" PRIu64 " size=%" PRIu64,
-			       in.body.copy_file_range.off_in,
-			       in.body.copy_file_range.nodeid_out,
-			       in.body.copy_file_range.off_out,
-			       in.body.copy_file_range.len);
-			if (verbosity > 1)
-				printf(" fh_in=%" PRIu64 " fh_out=%" PRIu64
-				       " flags=%" PRIx64,
-				       in.body.copy_file_range.fh_in,
-				       in.body.copy_file_range.fh_out,
-				       in.body.copy_file_range.flags);
-			break;
-		case FUSE_CREATE:
-			if (m_kernel_minor_version >= 12)
-				name = (const char*)in.body.bytes +
-					sizeof(fuse_create_in);
-			else
-				name = (const char*)in.body.bytes +
-					sizeof(fuse_open_in);
-			printf(" flags=%#x name=%s",
-				in.body.open.flags, name);
-			break;
-		case FUSE_FALLOCATE:
-			printf(" fh=%#" PRIx64 " offset=%" PRIu64
-				" length=%" PRIx64 " mode=%#x",
-				in.body.fallocate.fh,
-				in.body.fallocate.offset,
-				in.body.fallocate.length,
-				in.body.fallocate.mode);
-			break;
-		case FUSE_FLUSH:
-			printf(" fh=%#" PRIx64 " lock_owner=%" PRIu64,
-				in.body.flush.fh,
-				in.body.flush.lock_owner);
-			break;
-		case FUSE_FORGET:
-			printf(" nlookup=%" PRIu64, in.body.forget.nlookup);
-			break;
-		case FUSE_FSYNC:
-			printf(" flags=%#x", in.body.fsync.fsync_flags);
-			break;
-		case FUSE_FSYNCDIR:
-			printf(" flags=%#x", in.body.fsyncdir.fsync_flags);
-			break;
-		case FUSE_GETLK:
-			printf(" fh=%#" PRIx64
-				" type=%u pid=%u",
-				in.body.getlk.fh,
-				in.body.getlk.lk.type,
-				in.body.getlk.lk.pid);
-			if (verbosity >= 2) {
-				printf(" range=[%" PRIi64 ":%" PRIi64 "]",
-					in.body.getlk.lk.start,
-					in.body.getlk.lk.end);
-			}
-			break;
-		case FUSE_INTERRUPT:
-			printf(" unique=%" PRIu64, in.body.interrupt.unique);
-			break;
-		case FUSE_LINK:
-			printf(" oldnodeid=%" PRIu64, in.body.link.oldnodeid);
-			break;
-		case FUSE_LISTXATTR:
-			printf(" size=%" PRIu32, in.body.listxattr.size);
-			break;
-		case FUSE_LOOKUP:
-			printf(" %s", in.body.lookup);
-			break;
-		case FUSE_LSEEK:
-			switch (in.body.lseek.whence) {
-			case SEEK_HOLE:
-				printf(" SEEK_HOLE offset=%jd",
-				    in.body.lseek.offset);
-				break;
-			case SEEK_DATA:
-				printf(" SEEK_DATA offset=%jd",
-				    in.body.lseek.offset);
-				break;
-			default:
-				printf(" whence=%u offset=%jd",
-				    in.body.lseek.whence, in.body.lseek.offset);
-				break;
-			}
-			break;
-		case FUSE_MKDIR:
-			name = (const char*)in.body.bytes +
-				sizeof(fuse_mkdir_in);
-			printf(" name=%s mode=%#o umask=%#o", name,
-				in.body.mkdir.mode, in.body.mkdir.umask);
-			break;
-		case FUSE_MKNOD:
-			if (m_kernel_minor_version >= 12)
-				name = (const char*)in.body.bytes +
-					sizeof(fuse_mknod_in);
-			else
-				name = (const char*)in.body.bytes +
-					FUSE_COMPAT_MKNOD_IN_SIZE;
-			printf(" mode=%#o rdev=%x umask=%#o name=%s",
-				in.body.mknod.mode, in.body.mknod.rdev,
-				in.body.mknod.umask, name);
-			break;
-		case FUSE_OPEN:
-			printf(" flags=%#x", in.body.open.flags);
-			break;
-		case FUSE_OPENDIR:
-			printf(" flags=%#x", in.body.opendir.flags);
-			break;
-		case FUSE_READ:
-			printf(" offset=%" PRIu64 " size=%u",
-				in.body.read.offset,
-				in.body.read.size);
-			if (verbosity > 1)
-				printf(" flags=%#x", in.body.read.flags);
-			break;
-		case FUSE_READDIR:
-			printf(" fh=%#" PRIx64 " offset=%" PRIu64 " size=%u",
-				in.body.readdir.fh, in.body.readdir.offset,
-				in.body.readdir.size);
-			break;
-		case FUSE_RELEASE:
-			printf(" fh=%#" PRIx64 " flags=%#x lock_owner=%" PRIu64,
-				in.body.release.fh,
-				in.body.release.flags,
-				in.body.release.lock_owner);
-			break;
-		case FUSE_RENAME:
-			{
-				const char *src = (const char*)in.body.bytes +
-					sizeof(fuse_rename_in);
-				const char *dst = src + strlen(src) + 1;
-				printf(" src=%s newdir=%" PRIu64 " dst=%s",
-					src, in.body.rename.newdir, dst);
-			}
-			break;
-		case FUSE_SETATTR:
-			if (verbosity <= 1) {
-				printf(" valid=%#x", in.body.setattr.valid);
-				break;
-			}
-			if (in.body.setattr.valid & FATTR_MODE)
-				printf(" mode=%#o", in.body.setattr.mode);
-			if (in.body.setattr.valid & FATTR_UID)
-				printf(" uid=%u", in.body.setattr.uid);
-			if (in.body.setattr.valid & FATTR_GID)
-				printf(" gid=%u", in.body.setattr.gid);
-			if (in.body.setattr.valid & FATTR_SIZE)
-				printf(" size=%" PRIu64, in.body.setattr.size);
-			if (in.body.setattr.valid & FATTR_ATIME)
-				printf(" atime=%" PRIu64 ".%u",
-					in.body.setattr.atime,
-					in.body.setattr.atimensec);
-			if (in.body.setattr.valid & FATTR_MTIME)
-				printf(" mtime=%" PRIu64 ".%u",
-					in.body.setattr.mtime,
-					in.body.setattr.mtimensec);
-			if (in.body.setattr.valid & FATTR_FH)
-				printf(" fh=%" PRIu64 "", in.body.setattr.fh);
-			break;
-		case FUSE_SETLK:
-			printf(" fh=%#" PRIx64 " owner=%" PRIu64
-				" type=%u pid=%u",
-				in.body.setlk.fh, in.body.setlk.owner,
-				in.body.setlk.lk.type,
-				in.body.setlk.lk.pid);
-			if (verbosity >= 2) {
-				printf(" range=[%" PRIi64 ":%" PRIi64 "]",
-					in.body.setlk.lk.start,
-					in.body.setlk.lk.end);
-			}
-			break;
-		case FUSE_SETXATTR:
-			/* 
-			 * In theory neither the xattr name and value need be
-			 * ASCII, but in this test suite they always are.
-			 */
-			name = (const char*)in.body.bytes +
-				sizeof(fuse_setxattr_in);
-			value = name + strlen(name) + 1;
-			printf(" %s=%s", name, value);
-			break;
-		case FUSE_WRITE:
-			printf(" fh=%#" PRIx64 " offset=%" PRIu64
-				" size=%u write_flags=%u",
-				in.body.write.fh,
-				in.body.write.offset, in.body.write.size,
-				in.body.write.write_flags);
-			if (verbosity > 1)
-				printf(" flags=%#x", in.body.write.flags);
+		case SEEK_DATA:
+			printf(" SEEK_DATA offset=%jd", in.body.lseek.offset);
 			break;
 		default:
+			printf(" whence=%u offset=%jd", in.body.lseek.whence,
+			    in.body.lseek.offset);
 			break;
+		}
+		break;
+	case FUSE_MKDIR:
+		name = (const char *)in.body.bytes + sizeof(fuse_mkdir_in);
+		printf(" name=%s mode=%#o umask=%#o", name, in.body.mkdir.mode,
+		    in.body.mkdir.umask);
+		break;
+	case FUSE_MKNOD:
+		if (m_kernel_minor_version >= 12)
+			name = (const char *)in.body.bytes +
+			    sizeof(fuse_mknod_in);
+		else
+			name = (const char *)in.body.bytes +
+			    FUSE_COMPAT_MKNOD_IN_SIZE;
+		printf(" mode=%#o rdev=%x umask=%#o name=%s",
+		    in.body.mknod.mode, in.body.mknod.rdev, in.body.mknod.umask,
+		    name);
+		break;
+	case FUSE_OPEN:
+		printf(" flags=%#x", in.body.open.flags);
+		break;
+	case FUSE_OPENDIR:
+		printf(" flags=%#x", in.body.opendir.flags);
+		break;
+	case FUSE_READ:
+		printf(" offset=%" PRIu64 " size=%u", in.body.read.offset,
+		    in.body.read.size);
+		if (verbosity > 1)
+			printf(" flags=%#x", in.body.read.flags);
+		break;
+	case FUSE_READDIR:
+		printf(" fh=%#" PRIx64 " offset=%" PRIu64 " size=%u",
+		    in.body.readdir.fh, in.body.readdir.offset,
+		    in.body.readdir.size);
+		break;
+	case FUSE_RELEASE:
+		printf(" fh=%#" PRIx64 " flags=%#x lock_owner=%" PRIu64,
+		    in.body.release.fh, in.body.release.flags,
+		    in.body.release.lock_owner);
+		break;
+	case FUSE_RENAME: {
+		const char *src = (const char *)in.body.bytes +
+		    sizeof(fuse_rename_in);
+		const char *dst = src + strlen(src) + 1;
+		printf(" src=%s newdir=%" PRIu64 " dst=%s", src,
+		    in.body.rename.newdir, dst);
+	} break;
+	case FUSE_SETATTR:
+		if (verbosity <= 1) {
+			printf(" valid=%#x", in.body.setattr.valid);
+			break;
+		}
+		if (in.body.setattr.valid & FATTR_MODE)
+			printf(" mode=%#o", in.body.setattr.mode);
+		if (in.body.setattr.valid & FATTR_UID)
+			printf(" uid=%u", in.body.setattr.uid);
+		if (in.body.setattr.valid & FATTR_GID)
+			printf(" gid=%u", in.body.setattr.gid);
+		if (in.body.setattr.valid & FATTR_SIZE)
+			printf(" size=%" PRIu64, in.body.setattr.size);
+		if (in.body.setattr.valid & FATTR_ATIME)
+			printf(" atime=%" PRIu64 ".%u", in.body.setattr.atime,
+			    in.body.setattr.atimensec);
+		if (in.body.setattr.valid & FATTR_MTIME)
+			printf(" mtime=%" PRIu64 ".%u", in.body.setattr.mtime,
+			    in.body.setattr.mtimensec);
+		if (in.body.setattr.valid & FATTR_FH)
+			printf(" fh=%" PRIu64 "", in.body.setattr.fh);
+		break;
+	case FUSE_SETLK:
+		printf(" fh=%#" PRIx64 " owner=%" PRIu64 " type=%u pid=%u",
+		    in.body.setlk.fh, in.body.setlk.owner,
+		    in.body.setlk.lk.type, in.body.setlk.lk.pid);
+		if (verbosity >= 2) {
+			printf(" range=[%" PRIi64 ":%" PRIi64 "]",
+			    in.body.setlk.lk.start, in.body.setlk.lk.end);
+		}
+		break;
+	case FUSE_SETXATTR:
+		/*
+		 * In theory neither the xattr name and value need be
+		 * ASCII, but in this test suite they always are.
+		 */
+		name = (const char *)in.body.bytes + sizeof(fuse_setxattr_in);
+		value = name + strlen(name) + 1;
+		printf(" %s=%s", name, value);
+		break;
+	case FUSE_WRITE:
+		printf(" fh=%#" PRIx64 " offset=%" PRIu64
+		       " size=%u write_flags=%u",
+		    in.body.write.fh, in.body.write.offset, in.body.write.size,
+		    in.body.write.write_flags);
+		if (verbosity > 1)
+			printf(" flags=%#x", in.body.write.flags);
+		break;
+	default:
+		break;
 	}
 	printf("\n");
 }
 
-/* 
+/*
  * Debug a FUSE response.
  *
  * This is mostly useful for asynchronous notifications, which don't correspond
  * to any request
  */
-void MockFS::debug_response(const mockfs_buf_out &out) {
+void
+MockFS::debug_response(const mockfs_buf_out &out)
+{
 	const char *name;
 
 	if (verbosity == 0)
 		return;
 
 	switch (out.header.error) {
-		case FUSE_NOTIFY_INVAL_ENTRY:
-			name = (const char*)out.body.bytes +
-				sizeof(fuse_notify_inval_entry_out);
-			printf("<- INVAL_ENTRY parent=%" PRIu64 " %s\n",
-				out.body.inval_entry.parent, name);
-			break;
-		case FUSE_NOTIFY_INVAL_INODE:
-			printf("<- INVAL_INODE ino=%" PRIu64 " off=%" PRIi64
-				" len=%" PRIi64 "\n",
-				out.body.inval_inode.ino,
-				out.body.inval_inode.off,
-				out.body.inval_inode.len);
-			break;
-		case FUSE_NOTIFY_STORE:
-			printf("<- STORE ino=%" PRIu64 " off=%" PRIu64
-				" size=%" PRIu32 "\n",
-				out.body.store.nodeid,
-				out.body.store.offset,
-				out.body.store.size);
-			break;
-		default:
-			break;
+	case FUSE_NOTIFY_INVAL_ENTRY:
+		name = (const char *)out.body.bytes +
+		    sizeof(fuse_notify_inval_entry_out);
+		printf("<- INVAL_ENTRY parent=%" PRIu64 " %s\n",
+		    out.body.inval_entry.parent, name);
+		break;
+	case FUSE_NOTIFY_INVAL_INODE:
+		printf("<- INVAL_INODE ino=%" PRIu64 " off=%" PRIi64
+		       " len=%" PRIi64 "\n",
+		    out.body.inval_inode.ino, out.body.inval_inode.off,
+		    out.body.inval_inode.len);
+		break;
+	case FUSE_NOTIFY_STORE:
+		printf("<- STORE ino=%" PRIu64 " off=%" PRIu64 " size=%" PRIu32
+		       "\n",
+		    out.body.store.nodeid, out.body.store.offset,
+		    out.body.store.size);
+		break;
+	default:
+		break;
 	}
 }
 
 MockFS::MockFS(int max_readahead, bool allow_other, bool default_permissions,
-	bool push_symlinks_in, bool ro, enum poll_method pm, uint32_t flags,
-	uint32_t kernel_minor_version, uint32_t max_write, bool async,
-	bool noclusterr, unsigned time_gran, bool nointr, bool noatime,
-	const char *fsname, const char *subtype)
+    bool push_symlinks_in, bool ro, enum poll_method pm, uint32_t flags,
+    uint32_t kernel_minor_version, uint32_t max_write, bool async,
+    bool noclusterr, unsigned time_gran, bool nointr, bool noatime,
+    const char *fsname, const char *subtype)
 {
 	struct sigaction sa;
 	struct iovec *iov = NULL;
@@ -450,9 +430,9 @@ MockFS::MockFS(int max_readahead, bool allow_other, bool default_permissions,
 	 * googletest doesn't allow ASSERT_ in constructors, so we must throw
 	 * instead.
 	 */
-	if (mkdir("mountpoint" , 0755) && errno != EEXIST)
+	if (mkdir("mountpoint", 0755) && errno != EEXIST)
 		throw(std::system_error(errno, std::system_category(),
-			"Couldn't make mountpoint directory"));
+		    "Couldn't make mountpoint directory"));
 
 	switch (m_pm) {
 	case BLOCKING:
@@ -464,82 +444,83 @@ MockFS::MockFS(int max_readahead, bool allow_other, bool default_permissions,
 	}
 	if (m_fuse_fd < 0)
 		throw(std::system_error(errno, std::system_category(),
-			"Couldn't open /dev/fuse"));
+		    "Couldn't open /dev/fuse"));
 
 	m_pid = getpid();
 	m_child_pid = -1;
 
 	build_iovec(&iov, &iovlen, "fstype", __DECONST(void *, "fusefs"), -1);
-	build_iovec(&iov, &iovlen, "fspath",
-		    __DECONST(void *, "mountpoint"), -1);
+	build_iovec(&iov, &iovlen, "fspath", __DECONST(void *, "mountpoint"),
+	    -1);
 	build_iovec(&iov, &iovlen, "from", __DECONST(void *, "/dev/fuse"), -1);
 	sprintf(fdstr, "%d", m_fuse_fd);
 	build_iovec(&iov, &iovlen, "fd", fdstr, -1);
 	if (allow_other) {
 		build_iovec(&iov, &iovlen, "allow_other",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	}
 	if (default_permissions) {
 		build_iovec(&iov, &iovlen, "default_permissions",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	}
 	if (push_symlinks_in) {
 		build_iovec(&iov, &iovlen, "push_symlinks_in",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	}
 	if (ro) {
-		build_iovec(&iov, &iovlen, "ro",
-			__DECONST(void*, &trueval), sizeof(bool));
+		build_iovec(&iov, &iovlen, "ro", __DECONST(void *, &trueval),
+		    sizeof(bool));
 	}
 	if (async) {
-		build_iovec(&iov, &iovlen, "async", __DECONST(void*, &trueval),
-			sizeof(bool));
+		build_iovec(&iov, &iovlen, "async", __DECONST(void *, &trueval),
+		    sizeof(bool));
 	}
 	if (noatime) {
 		build_iovec(&iov, &iovlen, "noatime",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	}
 	if (noclusterr) {
 		build_iovec(&iov, &iovlen, "noclusterr",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	}
 	if (nointr) {
 		build_iovec(&iov, &iovlen, "nointr",
-			__DECONST(void*, &trueval), sizeof(bool));
+		    __DECONST(void *, &trueval), sizeof(bool));
 	} else {
-		build_iovec(&iov, &iovlen, "intr",
-			__DECONST(void*, &trueval), sizeof(bool));
+		build_iovec(&iov, &iovlen, "intr", __DECONST(void *, &trueval),
+		    sizeof(bool));
 	}
 	if (*fsname) {
-		build_iovec(&iov, &iovlen, "fsname=",
-			__DECONST(void*, fsname), -1);
+		build_iovec(&iov, &iovlen, "fsname=", __DECONST(void *, fsname),
+		    -1);
 	}
 	if (*subtype) {
-		build_iovec(&iov, &iovlen, "subtype=",
-			__DECONST(void*, subtype), -1);
+		build_iovec(&iov, &iovlen,
+		    "subtype=", __DECONST(void *, subtype), -1);
 	}
 	if (nmount(iov, iovlen, 0))
 		throw(std::system_error(errno, std::system_category(),
-			"Couldn't mount filesystem"));
+		    "Couldn't mount filesystem"));
 	free_iovec(&iov, &iovlen);
 
 	// Setup default handler
 	ON_CALL(*this, process(_, _))
-		.WillByDefault(Invoke(this, &MockFS::process_default));
+	    .WillByDefault(Invoke(this, &MockFS::process_default));
 
 	init(flags);
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = sigint_handler;
-	sa.sa_flags = 0;	/* Don't set SA_RESTART! */
+	sa.sa_flags = 0; /* Don't set SA_RESTART! */
 	if (0 != sigaction(SIGUSR1, &sa, NULL))
 		throw(std::system_error(errno, std::system_category(),
-			"Couldn't handle SIGUSR1"));
-	if (pthread_create(&m_daemon_id, NULL, service, (void*)this))
+		    "Couldn't handle SIGUSR1"));
+	if (pthread_create(&m_daemon_id, NULL, service, (void *)this))
 		throw(std::system_error(errno, std::system_category(),
-			"Couldn't Couldn't start fuse thread"));
+		    "Couldn't Couldn't start fuse thread"));
 }
 
-MockFS::~MockFS() {
+MockFS::~MockFS()
+{
 	kill_daemon();
 	if (m_daemon_id != NULL) {
 		pthread_join(m_daemon_id, NULL);
@@ -551,7 +532,9 @@ MockFS::~MockFS() {
 		close(m_kq);
 }
 
-void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
+void
+MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen)
+{
 	uint32_t inlen = in.header.len;
 	size_t fih = sizeof(in.header);
 	switch (in.header.opcode) {
@@ -578,37 +561,36 @@ void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
 		EXPECT_EQ(inlen, fih) << "Unexpected request body";
 		EXPECT_EQ((size_t)buflen, inlen);
 		break;
-	case FUSE_MKNOD:
-		{
-			size_t s;
-			if (m_kernel_minor_version >= 12)
-				s = sizeof(in.body.mknod);
-			else
-				s = FUSE_COMPAT_MKNOD_IN_SIZE;
-			EXPECT_GE(inlen, fih + s) << "Missing request body";
-			EXPECT_GT(inlen, fih + s) << "Missing request filename";
-			// No redundant information for checking buflen
-			break;
-		}
+	case FUSE_MKNOD: {
+		size_t s;
+		if (m_kernel_minor_version >= 12)
+			s = sizeof(in.body.mknod);
+		else
+			s = FUSE_COMPAT_MKNOD_IN_SIZE;
+		EXPECT_GE(inlen, fih + s) << "Missing request body";
+		EXPECT_GT(inlen, fih + s) << "Missing request filename";
+		// No redundant information for checking buflen
+		break;
+	}
 	case FUSE_MKDIR:
-		EXPECT_GE(inlen, fih + sizeof(in.body.mkdir)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.mkdir)) <<
-			"Missing request filename";
+		EXPECT_GE(inlen, fih + sizeof(in.body.mkdir))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.mkdir))
+		    << "Missing request filename";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_RENAME:
-		EXPECT_GE(inlen, fih + sizeof(in.body.rename)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.rename)) <<
-			"Missing request filename";
+		EXPECT_GE(inlen, fih + sizeof(in.body.rename))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.rename))
+		    << "Missing request filename";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_LINK:
-		EXPECT_GE(inlen, fih + sizeof(in.body.link)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.link)) <<
-			"Missing request filename";
+		EXPECT_GE(inlen, fih + sizeof(in.body.link))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.link))
+		    << "Missing request filename";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_OPEN:
@@ -619,19 +601,18 @@ void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
 		EXPECT_EQ(inlen, fih + sizeof(in.body.read));
 		EXPECT_EQ((size_t)buflen, inlen);
 		break;
-	case FUSE_WRITE:
-		{
-			size_t s;
+	case FUSE_WRITE: {
+		size_t s;
 
-			if (m_kernel_minor_version >= 9)
-				s = sizeof(in.body.write);
-			else
-				s = FUSE_COMPAT_WRITE_IN_SIZE;
-			// I suppose a 0-byte write should be allowed
-			EXPECT_GE(inlen, fih + s) << "Missing request body";
-			EXPECT_EQ((size_t)buflen, fih + s + in.body.write.size);
-			break;
-		}
+		if (m_kernel_minor_version >= 9)
+			s = sizeof(in.body.write);
+		else
+			s = FUSE_COMPAT_WRITE_IN_SIZE;
+		// I suppose a 0-byte write should be allowed
+		EXPECT_GE(inlen, fih + s) << "Missing request body";
+		EXPECT_EQ((size_t)buflen, fih + s + in.body.write.size);
+		break;
+	}
 	case FUSE_DESTROY:
 	case FUSE_STATFS:
 		EXPECT_EQ(inlen, fih);
@@ -647,17 +628,17 @@ void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
 		EXPECT_EQ((size_t)buflen, inlen);
 		break;
 	case FUSE_SETXATTR:
-		EXPECT_GE(inlen, fih + sizeof(in.body.setxattr)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.setxattr)) <<
-			"Missing request attribute name";
+		EXPECT_GE(inlen, fih + sizeof(in.body.setxattr))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.setxattr))
+		    << "Missing request attribute name";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_GETXATTR:
-		EXPECT_GE(inlen, fih + sizeof(in.body.getxattr)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.getxattr)) <<
-			"Missing request attribute name";
+		EXPECT_GE(inlen, fih + sizeof(in.body.getxattr))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.getxattr))
+		    << "Missing request attribute name";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_LISTXATTR:
@@ -702,10 +683,10 @@ void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
 		EXPECT_EQ((size_t)buflen, inlen);
 		break;
 	case FUSE_CREATE:
-		EXPECT_GE(inlen, fih + sizeof(in.body.create)) <<
-			"Missing request body";
-		EXPECT_GT(inlen, fih + sizeof(in.body.create)) <<
-			"Missing request filename";
+		EXPECT_GE(inlen, fih + sizeof(in.body.create))
+		    << "Missing request body";
+		EXPECT_GT(inlen, fih + sizeof(in.body.create))
+		    << "Missing request filename";
 		// No redundant information for checking buflen
 		break;
 	case FUSE_INTERRUPT:
@@ -748,7 +729,9 @@ void MockFS::audit_request(const mockfs_buf_in &in, ssize_t buflen) {
 		FAIL() << "Non-sequential unique value";
 }
 
-void MockFS::init(uint32_t flags) {
+void
+MockFS::init(uint32_t flags)
+{
 	ssize_t buflen;
 
 	std::unique_ptr<mockfs_buf_in> in(new mockfs_buf_in);
@@ -763,7 +746,8 @@ void MockFS::init(uint32_t flags) {
 	out->header.unique = in->header.unique;
 	out->header.error = 0;
 	out->body.init.major = FUSE_KERNEL_VERSION;
-	out->body.init.minor = m_kernel_minor_version;;
+	out->body.init.minor = m_kernel_minor_version;
+	;
 	out->body.init.flags = in->body.init.flags & flags;
 	out->body.init.max_write = m_maxwrite;
 	out->body.init.max_readahead = m_maxreadahead;
@@ -778,7 +762,9 @@ void MockFS::init(uint32_t flags) {
 	write(m_fuse_fd, out.get(), out->header.len);
 }
 
-void MockFS::kill_daemon() {
+void
+MockFS::kill_daemon()
+{
 	m_quit = true;
 	if (m_daemon_id != NULL)
 		pthread_kill(m_daemon_id, SIGUSR1);
@@ -789,7 +775,9 @@ void MockFS::kill_daemon() {
 	m_fuse_fd = -1;
 }
 
-void MockFS::loop() {
+void
+MockFS::loop()
+{
 	std::vector<std::unique_ptr<mockfs_buf_out>> out;
 
 	std::unique_ptr<mockfs_buf_in> in(new mockfs_buf_in);
@@ -807,44 +795,46 @@ void MockFS::loop() {
 		if (pid_ok((pid_t)in->header.pid)) {
 			process(*in, out);
 		} else {
-			/* 
+			/*
 			 * Reject any requests from unknown processes.  Because
 			 * we actually do mount a filesystem, plenty of
 			 * unrelated system daemons may try to access it.
 			 */
 			if (verbosity > 1)
 				printf("\tREJECTED (wrong pid %d)\n",
-					in->header.pid);
+				    in->header.pid);
 			process_default(*in, out);
 		}
-		for (auto &it: out)
+		for (auto &it : out)
 			write_response(*it);
 		out.clear();
 	}
 }
 
-int MockFS::notify_inval_entry(ino_t parent, const char *name, size_t namelen)
+int
+MockFS::notify_inval_entry(ino_t parent, const char *name, size_t namelen)
 {
 	std::unique_ptr<mockfs_buf_out> out(new mockfs_buf_out);
 
-	out->header.unique = 0;	/* 0 means asynchronous notification */
+	out->header.unique = 0; /* 0 means asynchronous notification */
 	out->header.error = FUSE_NOTIFY_INVAL_ENTRY;
 	out->body.inval_entry.parent = parent;
 	out->body.inval_entry.namelen = namelen;
-	strlcpy((char*)&out->body.bytes + sizeof(out->body.inval_entry),
-		name, sizeof(out->body.bytes) - sizeof(out->body.inval_entry));
+	strlcpy((char *)&out->body.bytes + sizeof(out->body.inval_entry), name,
+	    sizeof(out->body.bytes) - sizeof(out->body.inval_entry));
 	out->header.len = sizeof(out->header) + sizeof(out->body.inval_entry) +
-		namelen;
+	    namelen;
 	debug_response(*out);
 	write_response(*out);
 	return 0;
 }
 
-int MockFS::notify_inval_inode(ino_t ino, off_t off, ssize_t len)
+int
+MockFS::notify_inval_inode(ino_t ino, off_t off, ssize_t len)
 {
 	std::unique_ptr<mockfs_buf_out> out(new mockfs_buf_out);
 
-	out->header.unique = 0;	/* 0 means asynchronous notification */
+	out->header.unique = 0; /* 0 means asynchronous notification */
 	out->header.error = FUSE_NOTIFY_INVAL_INODE;
 	out->body.inval_inode.ino = ino;
 	out->body.inval_inode.off = off;
@@ -855,23 +845,26 @@ int MockFS::notify_inval_inode(ino_t ino, off_t off, ssize_t len)
 	return 0;
 }
 
-int MockFS::notify_store(ino_t ino, off_t off, const void* data, ssize_t size)
+int
+MockFS::notify_store(ino_t ino, off_t off, const void *data, ssize_t size)
 {
 	std::unique_ptr<mockfs_buf_out> out(new mockfs_buf_out);
 
-	out->header.unique = 0;	/* 0 means asynchronous notification */
+	out->header.unique = 0; /* 0 means asynchronous notification */
 	out->header.error = FUSE_NOTIFY_STORE;
 	out->body.store.nodeid = ino;
 	out->body.store.offset = off;
 	out->body.store.size = size;
-	bcopy(data, (char*)&out->body.bytes + sizeof(out->body.store), size);
+	bcopy(data, (char *)&out->body.bytes + sizeof(out->body.store), size);
 	out->header.len = sizeof(out->header) + sizeof(out->body.store) + size;
 	debug_response(*out);
 	write_response(*out);
 	return 0;
 }
 
-bool MockFS::pid_ok(pid_t pid) {
+bool
+MockFS::pid_ok(pid_t pid)
+{
 	if (pid == m_pid) {
 		return (true);
 	} else if (pid == m_child_pid) {
@@ -883,7 +876,7 @@ bool MockFS::pid_ok(pid_t pid) {
 		ki = kinfo_getproc(pid);
 		if (ki == NULL)
 			return (false);
-		/* 
+		/*
 		 * Allow access by the aio daemon processes so that our tests
 		 * can use aio functions
 		 */
@@ -894,8 +887,9 @@ bool MockFS::pid_ok(pid_t pid) {
 	}
 }
 
-void MockFS::process_default(const mockfs_buf_in& in,
-		std::vector<std::unique_ptr<mockfs_buf_out>> &out)
+void
+MockFS::process_default(const mockfs_buf_in &in,
+    std::vector<std::unique_ptr<mockfs_buf_out>> &out)
 {
 	std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
 	out0->header.unique = in.header.unique;
@@ -904,7 +898,9 @@ void MockFS::process_default(const mockfs_buf_in& in,
 	out.push_back(std::move(out0));
 }
 
-void MockFS::read_request(mockfs_buf_in &in, ssize_t &res) {
+void
+MockFS::read_request(mockfs_buf_in &in, ssize_t &res)
+{
 	int nready = 0;
 	fd_set readfds;
 	pollfd fds[1];
@@ -924,9 +920,9 @@ void MockFS::read_request(mockfs_buf_in &in, ssize_t &res) {
 		timeout_ts.tv_nsec = timeout_ms * 1'000'000;
 		while (nready == 0) {
 			EV_SET(&changes[0], m_fuse_fd, EVFILT_READ,
-				EV_ADD | EV_ONESHOT, 0, 0, 0);
+			    EV_ADD | EV_ONESHOT, 0, 0, 0);
 			nready = kevent(m_kq, &changes[0], 1, &events[0], 1,
-				&timeout_ts);
+			    &timeout_ts);
 			if (m_quit)
 				return;
 		}
@@ -961,7 +957,7 @@ void MockFS::read_request(mockfs_buf_in &in, ssize_t &res) {
 			FD_ZERO(&readfds);
 			FD_SET(fuse_fd, &readfds);
 			nready = select(nfds, &readfds, NULL, NULL,
-				&timeout_tv);
+			    &timeout_tv);
 			if (m_quit)
 				return;
 		}
@@ -986,7 +982,9 @@ void MockFS::read_request(mockfs_buf_in &in, ssize_t &res) {
 	ASSERT_TRUE(res == static_cast<ssize_t>(in.header.len) || m_quit);
 }
 
-void MockFS::write_response(const mockfs_buf_out &out) {
+void
+MockFS::write_response(const mockfs_buf_out &out)
+{
 	fd_set writefds;
 	pollfd fds[1];
 	struct kevent changes[1];
@@ -999,9 +997,8 @@ void MockFS::write_response(const mockfs_buf_out &out) {
 		break;
 	case KQ:
 		EV_SET(&changes[0], m_fuse_fd, EVFILT_WRITE,
-			EV_ADD | EV_ONESHOT, 0, 0, 0);
-		nready = kevent(m_kq, &changes[0], 1, &events[0], 1,
-			NULL);
+		    EV_ADD | EV_ONESHOT, 0, 0, 0);
+		nready = kevent(m_kq, &changes[0], 1, &events[0], 1, NULL);
 		ASSERT_LE(0, nready) << strerror(errno);
 		ASSERT_EQ(events[0].ident, (uintptr_t)m_fuse_fd);
 		if (events[0].flags & EV_ERROR)
@@ -1039,14 +1036,18 @@ void MockFS::write_response(const mockfs_buf_out &out) {
 	}
 }
 
-void* MockFS::service(void *pthr_data) {
-	MockFS *mock_fs = (MockFS*)pthr_data;
+void *
+MockFS::service(void *pthr_data)
+{
+	MockFS *mock_fs = (MockFS *)pthr_data;
 
 	mock_fs->loop();
 
 	return (NULL);
 }
 
-void MockFS::unmount() {
+void
+MockFS::unmount()
+{
 	::unmount("mountpoint", 0);
 }

@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#ifndef	NO_UNISTD
+#ifndef NO_UNISTD
 #include <unistd.h>
 #endif
 
@@ -35,10 +35,10 @@
  */
 
 #include <sys/ioctl.h>
-#include <net/if.h>				/* struct ifdevea */
 
-getether(ifname, eap)
-	char *ifname, *eap;
+#include <net/if.h> /* struct ifdevea */
+
+getether(ifname, eap) char *ifname, *eap;
 {
 	int rc = -1;
 	int fd;
@@ -59,33 +59,31 @@ getether(ifname, eap)
 	return rc;
 }
 
-#define	GETETHER
+#define GETETHER
 #endif /* ultrix|osf1 */
-
 
-#ifdef	SUNOS
+#ifdef SUNOS
 
 #include <sys/sockio.h>
-#include <sys/time.h>			/* needed by net_if.h */
-#include <net/nit_if.h>			/* for NIOCBIND */
-#include <net/if.h>				/* for struct ifreq */
+#include <sys/time.h> /* needed by net_if.h */
 
-getether(ifname, eap)
-	char *ifname;				/* interface name from ifconfig structure */
-	char *eap;					/* Ether address (output) */
+#include <net/if.h>	/* for struct ifreq */
+#include <net/nit_if.h> /* for NIOCBIND */
+
+getether(ifname, eap) char *ifname; /* interface name from ifconfig structure */
+char *eap;			    /* Ether address (output) */
 {
 	int rc = -1;
 
 	struct ifreq ifrnit;
 	int nit;
 
-	bzero((char *) &ifrnit, sizeof(ifrnit));
+	bzero((char *)&ifrnit, sizeof(ifrnit));
 	strlcpy(&ifrnit.ifr_name[0], ifname, IFNAMSIZ);
 
 	nit = open("/dev/nit", 0);
 	if (nit < 0) {
-		report(LOG_ERR, "getether: open /dev/nit: %s",
-			   get_errmsg());
+		report(LOG_ERR, "getether: open /dev/nit: %s", get_errmsg());
 		return rc;
 	}
 	do {
@@ -104,14 +102,14 @@ getether(ifname, eap)
 	return rc;
 }
 
-#define	GETETHER
+#define GETETHER
 #endif /* SUNOS */
-
 
 #if defined(__FreeBSD__) || defined(__NetBSD__)
 /* Thanks to John Brezak <brezak@ch.hp.com> for this code. */
 #include <sys/ioctl.h>
 #include <sys/time.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
@@ -128,25 +126,28 @@ getether(char *ifname, char *eap)
 	/* Fetch the interface configuration */
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
-		report(LOG_ERR, "getether: socket %s: %s", ifname, get_errmsg());
+		report(LOG_ERR, "getether: socket %s: %s", ifname,
+		    get_errmsg());
 		return (fd);
 	}
 	ifc.ifc_len = sizeof(ibuf);
-	ifc.ifc_buf = (caddr_t) ibuf;
-	if (ioctl(fd, SIOCGIFCONF, (char *) &ifc) < 0 ||
-		ifc.ifc_len < sizeof(struct ifreq)) {
+	ifc.ifc_buf = (caddr_t)ibuf;
+	if (ioctl(fd, SIOCGIFCONF, (char *)&ifc) < 0 ||
+	    ifc.ifc_len < sizeof(struct ifreq)) {
 		report(LOG_ERR, "getether: SIOCGIFCONF: %s", get_errmsg());
 		goto out;
 	}
 	/* Search interface configuration list for link layer address. */
 	ifrp = ibuf;
-	ifend = (struct ifreq *) ((char *) ibuf + ifc.ifc_len);
+	ifend = (struct ifreq *)((char *)ibuf + ifc.ifc_len);
 	while (ifrp < ifend) {
 		/* Look for interface */
 		if (strcmp(ifname, ifrp->ifr_name) == 0 &&
-			ifrp->ifr_addr.sa_family == AF_LINK &&
-		((struct sockaddr_dl *) &ifrp->ifr_addr)->sdl_type == IFT_ETHER) {
-			bcopy(LLADDR((struct sockaddr_dl *) &ifrp->ifr_addr), eap, EALEN);
+		    ifrp->ifr_addr.sa_family == AF_LINK &&
+		    ((struct sockaddr_dl *)&ifrp->ifr_addr)->sdl_type ==
+			IFT_ETHER) {
+			bcopy(LLADDR((struct sockaddr_dl *)&ifrp->ifr_addr),
+			    eap, EALEN);
 			rc = 0;
 			break;
 		}
@@ -154,36 +155,36 @@ getether(char *ifname, char *eap)
 		n = ifrp->ifr_addr.sa_len + sizeof(ifrp->ifr_name);
 		if (n < sizeof(*ifrp))
 			n = sizeof(*ifrp);
-		ifrp = (struct ifreq *) ((char *) ifrp + n);
+		ifrp = (struct ifreq *)((char *)ifrp + n);
 	}
 
-  out:
+out:
 	close(fd);
 	return (rc);
 }
 
-#define	GETETHER
+#define GETETHER
 #endif /* __NetBSD__ */
-
 
-#ifdef	SVR4
+#ifdef SVR4
 /*
  * This is for "Streams TCP/IP" by Lachman Associates.
  * They sure made this cumbersome!  -gwr
  */
 
-#include <sys/sockio.h>
 #include <sys/dlpi.h>
-#include <stropts.h>
+#include <sys/sockio.h>
+
 #include <string.h>
+#include <stropts.h>
 #ifndef NULL
 #define NULL 0
 #endif
 
 int
 getether(ifname, eap)
-	char *ifname;				/* interface name from ifconfig structure */
-	char *eap;					/* Ether address (output) */
+char *ifname; /* interface name from ifconfig structure */
+char *eap;    /* Ether address (output) */
 {
 	int rc = -1;
 	char devname[32];
@@ -192,7 +193,7 @@ getether(ifname, eap)
 	int fd, flags;
 	union DL_primitives *dlp;
 	char *enaddr;
-	int unit = -1;				/* which unit to attach */
+	int unit = -1; /* which unit to attach */
 
 	snprintf(devname, sizeof(devname), "%s%s", _PATH_DEV, ifname);
 	fd = open(devname, 2);
@@ -207,12 +208,12 @@ getether(ifname, eap)
 		}
 		fd = open(devname, 2);
 		if (fd < 0) {
-			report(LOG_ERR, "getether: open %s: %s",
-				   devname, get_errmsg());
+			report(LOG_ERR, "getether: open %s: %s", devname,
+			    get_errmsg());
 			return rc;
 		}
 	}
-#ifdef	DL_ATTACH_REQ
+#ifdef DL_ATTACH_REQ
 	/*
 	 * If this is a "Style 2" DLPI, then we must "attach" first
 	 * to tell the driver which unit (board, port) we want.
@@ -221,13 +222,14 @@ getether(ifname, eap)
 	 */
 	if (unit >= 0) {
 		memset(tmpbuf, 0, sizeof(tmpbuf));
-		dlp = (union DL_primitives *) tmpbuf;
+		dlp = (union DL_primitives *)tmpbuf;
 		dlp->dl_primitive = DL_ATTACH_REQ;
 		dlp->attach_req.dl_ppa = unit;
 		cbuf.buf = tmpbuf;
 		cbuf.len = DL_ATTACH_REQ_SIZE;
 		if (putmsg(fd, &cbuf, NULL, 0) < 0) {
-			report(LOG_ERR, "getether: attach: putmsg: %s", get_errmsg());
+			report(LOG_ERR, "getether: attach: putmsg: %s",
+			    get_errmsg());
 			goto out;
 		}
 		/* Recv the ack. */
@@ -235,16 +237,18 @@ getether(ifname, eap)
 		cbuf.maxlen = sizeof(tmpbuf);
 		flags = 0;
 		if (getmsg(fd, &cbuf, NULL, &flags) < 0) {
-			report(LOG_ERR, "getether: attach: getmsg: %s", get_errmsg());
+			report(LOG_ERR, "getether: attach: getmsg: %s",
+			    get_errmsg());
 			goto out;
 		}
 		/*
 		 * Check the type, etc.
 		 */
 		if (dlp->dl_primitive == DL_ERROR_ACK) {
-			report(LOG_ERR, "getether: attach: dlpi_errno=%d, unix_errno=%d",
-				   dlp->error_ack.dl_errno,
-				   dlp->error_ack.dl_unix_errno);
+			report(LOG_ERR,
+			    "getether: attach: dlpi_errno=%d, unix_errno=%d",
+			    dlp->error_ack.dl_errno,
+			    dlp->error_ack.dl_unix_errno);
 			goto out;
 		}
 		if (dlp->dl_primitive != DL_OK_ACK) {
@@ -252,7 +256,7 @@ getether(ifname, eap)
 			goto out;
 		}
 	} /* unit >= 0 */
-#endif	/* DL_ATTACH_REQ */
+#endif	  /* DL_ATTACH_REQ */
 
 	/*
 	 * Get the Ethernet address the same way the ARP module
@@ -263,9 +267,9 @@ getether(ifname, eap)
 	 * for dl_bind_ack because the ARP module requires it).
 	 */
 	memset(tmpbuf, 0, sizeof(tmpbuf));
-	dlp = (union DL_primitives *) tmpbuf;
+	dlp = (union DL_primitives *)tmpbuf;
 	dlp->dl_primitive = DL_BIND_REQ;
-	dlp->bind_req.dl_sap = 0x8FF;	/* XXX - Unused SAP */
+	dlp->bind_req.dl_sap = 0x8FF; /* XXX - Unused SAP */
 	cbuf.buf = tmpbuf;
 	cbuf.len = DL_BIND_REQ_SIZE;
 	if (putmsg(fd, &cbuf, NULL, 0) < 0) {
@@ -285,8 +289,7 @@ getether(ifname, eap)
 	 */
 	if (dlp->dl_primitive == DL_ERROR_ACK) {
 		report(LOG_ERR, "getether: bind: dlpi_errno=%d, unix_errno=%d",
-			   dlp->error_ack.dl_errno,
-			   dlp->error_ack.dl_unix_errno);
+		    dlp->error_ack.dl_errno, dlp->error_ack.dl_unix_errno);
 		goto out;
 	}
 	if (dlp->dl_primitive != DL_BIND_ACK) {
@@ -308,16 +311,15 @@ getether(ifname, eap)
 	memcpy(eap, enaddr, EALEN);
 	rc = 0;
 
-  out:
+out:
 	close(fd);
 	return rc;
 }
 
-#define	GETETHER
+#define GETETHER
 #endif /* SVR4 */
-
 
-#ifdef	__linux__
+#ifdef __linux__
 /*
  * This is really easy on Linux!  This version (for linux)
  * written by Nigel Metheringham <nigelm@ohm.york.ac.uk> and
@@ -328,14 +330,16 @@ getether(ifname, eap)
  * Most of this code was stolen from the Ultrix bit above.
  */
 
-#include <memory.h>
 #include <sys/ioctl.h>
-#include <net/if.h>	       	/* struct ifreq */
-#include <sys/socketio.h>	/* Needed for IOCTL defs */
+#include <sys/socketio.h> /* Needed for IOCTL defs */
+
+#include <net/if.h> /* struct ifreq */
+
+#include <memory.h>
 
 int
 getether(ifname, eap)
-	char *ifname, *eap;
+char *ifname, *eap;
 {
 	int rc = -1;
 	int fd;
@@ -357,15 +361,14 @@ getether(ifname, eap)
 	return rc;
 }
 
-#define	GETETHER
-#endif	/* __linux__ */
-
+#define GETETHER
+#endif /* __linux__ */
 
 /* If we don't know how on this system, just return an error. */
-#ifndef	GETETHER
+#ifndef GETETHER
 int
 getether(ifname, eap)
-	char *ifname, *eap;
+char *ifname, *eap;
 {
 	return -1;
 }

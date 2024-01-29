@@ -49,8 +49,8 @@
 
 /* A filename->descriptor mapping. */
 struct fd {
-	char	*f_name;
-	int	 f_fd;
+	char *f_name;
+	int f_fd;
 };
 
 /*
@@ -67,27 +67,30 @@ test_fcntl(void)
 	 * Open some files of different types, and wrap them in capabilities.
 	 */
 	struct fd files[] = {
-		{ "file",         open("/etc/passwd", O_RDONLY) },
-		{ "socket",       socket(PF_LOCAL, SOCK_STREAM, 0) },
-		{ "SHM",          shm_open(SHM_ANON, O_RDWR, 0600) },
+		{ "file", open("/etc/passwd", O_RDONLY) },
+		{ "socket", socket(PF_LOCAL, SOCK_STREAM, 0) },
+		{ "SHM", shm_open(SHM_ANON, O_RDWR, 0600) },
 	};
 	REQUIRE(files[0].f_fd);
 	REQUIRE(files[1].f_fd);
 	REQUIRE(files[2].f_fd);
 
 	struct fd caps[] = {
-		{ "file cap",     cap_new(files[0].f_fd, rights) },
-		{ "socket cap",   cap_new(files[1].f_fd, rights) },
-		{ "SHM cap",      cap_new(files[2].f_fd, rights) },
+		{ "file cap", cap_new(files[0].f_fd, rights) },
+		{ "socket cap", cap_new(files[1].f_fd, rights) },
+		{ "SHM cap", cap_new(files[2].f_fd, rights) },
 	};
 	REQUIRE(caps[0].f_fd);
 	REQUIRE(caps[1].f_fd);
 	REQUIRE(caps[2].f_fd);
 
 	struct fd all[] = {
-		files[0], caps[0],
-		files[1], caps[1],
-		files[2], caps[2],
+		files[0],
+		caps[0],
+		files[1],
+		caps[1],
+		files[2],
+		caps[2],
 	};
 	const size_t len = sizeof(all) / sizeof(struct fd);
 
@@ -96,8 +99,7 @@ test_fcntl(void)
 	/*
 	 * Ensure that we can fcntl() all the files that we opened above.
 	 */
-	for (size_t i = 0; i < len; i++)
-	{
+	for (size_t i = 0; i < len; i++) {
 		struct fd f = all[i];
 		int cap;
 
@@ -111,4 +113,3 @@ test_fcntl(void)
 
 	return (success);
 }
-

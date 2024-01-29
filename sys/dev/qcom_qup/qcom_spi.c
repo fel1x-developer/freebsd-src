@@ -28,16 +28,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/bus.h>
-#include <sys/interrupt.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/gpio.h>
+#include <sys/interrupt.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -46,31 +45,26 @@
 #include <machine/bus.h>
 #include <machine/cpu.h>
 
+#include <dev/clk/clk.h>
 #include <dev/fdt/fdt_common.h>
 #include <dev/fdt/fdt_pinctrl.h>
-
 #include <dev/gpio/gpiobusvar.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
+#include <dev/qcom_qup/qcom_qup_reg.h>
+#include <dev/qcom_qup/qcom_spi_debug.h>
+#include <dev/qcom_qup/qcom_spi_reg.h>
+#include <dev/qcom_qup/qcom_spi_var.h>
 #include <dev/spibus/spi.h>
 #include <dev/spibus/spibusvar.h>
+
 #include "spibus_if.h"
 
-#include <dev/qcom_qup/qcom_spi_var.h>
-#include <dev/qcom_qup/qcom_qup_reg.h>
-#include <dev/qcom_qup/qcom_spi_reg.h>
-#include <dev/qcom_qup/qcom_spi_debug.h>
-
-static struct ofw_compat_data compat_data[] = {
-	{ "qcom,spi-qup-v1.1.1",	QCOM_SPI_HW_QPI_V1_1 },
-	{ "qcom,spi-qup-v2.1.1",	QCOM_SPI_HW_QPI_V2_1 },
-	{ "qcom,spi-qup-v2.2.1",	QCOM_SPI_HW_QPI_V2_2 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "qcom,spi-qup-v1.1.1",
+						    QCOM_SPI_HW_QPI_V1_1 },
+	{ "qcom,spi-qup-v2.1.1", QCOM_SPI_HW_QPI_V2_1 },
+	{ "qcom,spi-qup-v2.2.1", QCOM_SPI_HW_QPI_V2_2 }, { NULL, 0 } };
 
 /*
  * Flip the CS GPIO line either active or inactive.
@@ -81,19 +75,19 @@ static void
 qcom_spi_set_chipsel(struct qcom_spi_softc *sc, int cs, bool active)
 {
 	bool pinactive;
-	bool invert = !! (cs & SPIBUS_CS_HIGH);
+	bool invert = !!(cs & SPIBUS_CS_HIGH);
 
 	cs = cs & ~SPIBUS_CS_HIGH;
 
 	if (sc->cs_pins[cs] == NULL) {
 		device_printf(sc->sc_dev,
-		    "%s: cs=%u, active=%u, invert=%u, no gpio?\n",
-		    __func__, cs, active, invert);
+		    "%s: cs=%u, active=%u, invert=%u, no gpio?\n", __func__, cs,
+		    active, invert);
 		return;
 	}
 
-	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_CHIPSELECT,
-	    "%s: cs=%u active=%u\n", __func__, cs, active);
+	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_CHIPSELECT, "%s: cs=%u active=%u\n",
+	    __func__, cs, active);
 
 	/*
 	 * Default rule here is CS is active low.
@@ -107,7 +101,7 @@ qcom_spi_set_chipsel(struct qcom_spi_softc *sc, int cs, bool active)
 	 * Invert the CS line if required.
 	 */
 	if (invert)
-		pinactive = !! pinactive;
+		pinactive = !!pinactive;
 
 	gpio_pin_set_active(sc->cs_pins[cs], pinactive);
 	gpio_pin_is_active(sc->cs_pins[cs], &pinactive);
@@ -120,7 +114,6 @@ qcom_spi_intr(void *arg)
 	int ret;
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR, "%s: called\n", __func__);
-
 
 	QCOM_SPI_LOCK(sc);
 	ret = qcom_spi_hw_interrupt_handle(sc);
@@ -135,8 +128,7 @@ qcom_spi_intr(void *arg)
 	 * transfer.
 	 */
 	if (sc->transfer.active == false) {
-		device_printf(sc->sc_dev,
-		    "ERROR: spurious interrupt\n");
+		device_printf(sc->sc_dev, "ERROR: spurious interrupt\n");
 		qcom_spi_hw_ack_opmode(sc);
 		goto done;
 	}
@@ -149,8 +141,8 @@ qcom_spi_intr(void *arg)
 
 	if (sc->intr.do_rx) {
 		sc->intr.do_rx = false;
-		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR,
-		    "%s: PIO_READ\n", __func__);
+		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR, "%s: PIO_READ\n",
+		    __func__);
 		if (sc->state.transfer_mode == QUP_IO_M_MODE_FIFO)
 			ret = qcom_spi_hw_read_pio_fifo(sc);
 		else
@@ -163,8 +155,8 @@ qcom_spi_intr(void *arg)
 	}
 	if (sc->intr.do_tx) {
 		sc->intr.do_tx = false;
-		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR,
-		    "%s: PIO_WRITE\n", __func__);
+		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR, "%s: PIO_WRITE\n",
+		    __func__);
 		/*
 		 * For FIFO operations we do not do a write here, we did
 		 * it at the beginning of the transfer.
@@ -191,14 +183,13 @@ qcom_spi_intr(void *arg)
 	if (sc->intr.done) {
 		sc->intr.done = false;
 		sc->transfer.done = true;
-		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR,
-		    "%s: transfer done\n", __func__);
+		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR, "%s: transfer done\n",
+		    __func__);
 		wakeup(sc);
 	}
 
 done:
-	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR,
-	    "%s: done\n", __func__);
+	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_INTR, "%s: done\n", __func__);
 	QCOM_SPI_UNLOCK(sc);
 }
 
@@ -242,15 +233,16 @@ qcom_spi_attach_gpios(struct qcom_spi_softc *sc)
 	/* Allocate gpio pins for configured chip selects. */
 	node = ofw_bus_get_node(sc->sc_dev);
 	for (idx = 0; idx < nitems(sc->cs_pins); idx++) {
-		err = gpio_pin_get_by_ofw_propidx(sc->sc_dev, node,
-		    "cs-gpios", idx, &sc->cs_pins[idx]);
+		err = gpio_pin_get_by_ofw_propidx(sc->sc_dev, node, "cs-gpios",
+		    idx, &sc->cs_pins[idx]);
 		if (err == 0) {
 			err = gpio_pin_setflags(sc->cs_pins[idx],
 			    GPIO_PIN_OUTPUT);
 			if (err != 0) {
 				device_printf(sc->sc_dev,
 				    "error configuring gpio for"
-				    " cs %u (%d)\n", idx, err);
+				    " cs %u (%d)\n",
+				    idx, err);
 			}
 			/*
 			 * We can't set this HIGH right now because
@@ -276,9 +268,8 @@ qcom_spi_sysctl_attach(struct qcom_spi_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
-	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "debug", CTLFLAG_RW, &sc->sc_debug, 0,
-	    "control debugging printfs");
+	SYSCTL_ADD_UINT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, 0, "control debugging printfs");
 }
 
 static int
@@ -292,8 +283,7 @@ qcom_spi_attach(device_t dev)
 	/*
 	 * Hardware version is stored in the ofw_compat_data table.
 	 */
-	sc->hw_version =
-	    ofw_bus_search_compatible(dev, compat_data)->ocd_data;
+	sc->hw_version = ofw_bus_search_compatible(dev, compat_data)->ocd_data;
 
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
@@ -315,11 +305,11 @@ qcom_spi_attach(device_t dev)
 		goto error;
 	}
 
-	ret = bus_setup_intr(dev, sc->sc_irq_res,
-	    INTR_TYPE_MISC | INTR_MPSAFE,
+	ret = bus_setup_intr(dev, sc->sc_irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
 	    NULL, qcom_spi_intr, sc, &sc->sc_irq_h);
 	if (ret != 0) {
-		device_printf(dev, "ERROR: could not configure interrupt "
+		device_printf(dev,
+		    "ERROR: could not configure interrupt "
 		    "(%d)\n",
 		    ret);
 		goto error;
@@ -357,8 +347,8 @@ qcom_spi_attach(device_t dev)
 	/*
 	 * Read optional spi-max-frequency
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev), "spi-max-frequency",
-	    &val, sizeof(val)) > 0)
+	if (OF_getencprop(ofw_bus_get_node(dev), "spi-max-frequency", &val,
+		sizeof(val)) > 0)
 		sc->config.max_frequency = val;
 	else
 		sc->config.max_frequency = SPI_MAX_RATE;
@@ -366,8 +356,8 @@ qcom_spi_attach(device_t dev)
 	/*
 	 * Read optional cs-select
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev), "cs-select",
-	    &val, sizeof(val)) > 0)
+	if (OF_getencprop(ofw_bus_get_node(dev), "cs-select", &val,
+		sizeof(val)) > 0)
 		sc->config.cs_select = val;
 	else
 		sc->config.cs_select = 0;
@@ -375,8 +365,8 @@ qcom_spi_attach(device_t dev)
 	/*
 	 * Read optional num-cs
 	 */
-	if (OF_getencprop(ofw_bus_get_node(dev), "num-cs",
-	    &val, sizeof(val)) > 0)
+	if (OF_getencprop(ofw_bus_get_node(dev), "num-cs", &val, sizeof(val)) >
+	    0)
 		sc->config.num_cs = val;
 	else
 		sc->config.num_cs = SPI_NUM_CHIPSELECTS;
@@ -394,13 +384,10 @@ qcom_spi_attach(device_t dev)
 		goto error;
 	}
 
-
 	device_printf(dev, "BLOCK: input=%u bytes, output=%u bytes\n",
-	    sc->config.input_block_size,
-	    sc->config.output_block_size);
+	    sc->config.input_block_size, sc->config.output_block_size);
 	device_printf(dev, "FIFO: input=%u bytes, output=%u bytes\n",
-	    sc->config.input_fifo_size,
-	    sc->config.output_fifo_size);
+	    sc->config.input_fifo_size, sc->config.output_fifo_size);
 
 	/* QUP config */
 	QCOM_SPI_LOCK(sc);
@@ -463,18 +450,16 @@ error:
  * not yet being done here.
  */
 static int
-qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
-    char *tx_buf, int tx_len, char *rx_buf, int rx_len)
+qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode, char *tx_buf,
+    int tx_len, char *rx_buf, int rx_len)
 {
 	int ret = 0;
 
-	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER, "%s: start\n",
-	    __func__);
+	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER, "%s: start\n", __func__);
 
 	if (rx_len != tx_len) {
 		device_printf(sc->sc_dev,
-		    "ERROR: tx/rx len doesn't match (%d/%d)\n",
-		    tx_len, rx_len);
+		    "ERROR: tx/rx len doesn't match (%d/%d)\n", tx_len, rx_len);
 		return (ENXIO);
 	}
 
@@ -486,8 +471,7 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 	ret = qcom_spi_hw_setup_transfer_selection(sc, tx_len);
 	if (ret != 0) {
 		device_printf(sc->sc_dev,
-		    "ERROR: failed to setup transfer selection (%d)\n",
-		    ret);
+		    "ERROR: failed to setup transfer selection (%d)\n", ret);
 		return (ret);
 	}
 
@@ -516,8 +500,7 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 		sc->transfer.active = false;
 
 		QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER,
-		    "%s: tx=%d of %d bytes, rx=%d of %d bytes\n",
-		    __func__,
+		    "%s: tx=%d of %d bytes, rx=%d of %d bytes\n", __func__,
 		    sc->transfer.tx_offset, sc->transfer.tx_len,
 		    sc->transfer.rx_offset, sc->transfer.rx_len);
 
@@ -545,8 +528,7 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 		ret = qcom_spi_hw_setup_current_transfer(sc);
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
-			    "ERROR: failed to setup sub transfer (%d)\n",
-			    ret);
+			    "ERROR: failed to setup sub transfer (%d)\n", ret);
 			goto done;
 		}
 
@@ -558,7 +540,8 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_pio_transfer_cnt failed"
-			    " (%u)\n", ret);
+			    " (%u)\n",
+			    ret);
 			goto done;
 		}
 
@@ -579,34 +562,38 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_io_modes failed"
-			    " (%u)\n", ret);
+			    " (%u)\n",
+			    ret);
 			goto done;
 		}
 
 		ret = qcom_spi_hw_setup_spi_io_clock_polarity(sc,
-		    !! (mode & SPIBUS_MODE_CPOL));
+		    !!(mode & SPIBUS_MODE_CPOL));
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_spi_io_clock_polarity"
-			    "    failed (%u)\n", ret);
+			    "    failed (%u)\n",
+			    ret);
 			goto done;
 		}
 
 		ret = qcom_spi_hw_setup_spi_config(sc, sc->state.frequency,
-		    !! (mode & SPIBUS_MODE_CPHA));
+		    !!(mode & SPIBUS_MODE_CPHA));
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_spi_config failed"
-			    " (%u)\n", ret);
+			    " (%u)\n",
+			    ret);
 			goto done;
 		}
 
-		ret = qcom_spi_hw_setup_qup_config(sc, !! (tx_len > 0),
-		    !! (rx_len > 0));
+		ret = qcom_spi_hw_setup_qup_config(sc, !!(tx_len > 0),
+		    !!(rx_len > 0));
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_qup_config failed"
-			    " (%u)\n", ret);
+			    " (%u)\n",
+			    ret);
 			goto done;
 		}
 
@@ -614,7 +601,8 @@ qcom_spi_transfer_pio_block(struct qcom_spi_softc *sc, int mode,
 		if (ret != 0) {
 			device_printf(sc->sc_dev,
 			    "ERROR: qcom_spi_hw_setup_operational_mask failed"
-			    " (%u)\n", ret);
+			    " (%u)\n",
+			    ret);
 			goto done;
 		}
 
@@ -689,15 +677,15 @@ done:
 	 * Don't worry about return value here; if we errored out above then
 	 * we want to communicate that value to the caller.
 	 */
-	(void) qcom_spi_hw_qup_set_state_locked(sc, QUP_STATE_RESET);
-	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER,
-	    "%s: completed\n", __func__);
+	(void)qcom_spi_hw_qup_set_state_locked(sc, QUP_STATE_RESET);
+	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER, "%s: completed\n",
+	    __func__);
 
-	 /*
-	  * Blank the transfer state so we don't use an old transfer
-	  * state in a subsequent interrupt.
-	  */
-	(void) qcom_spi_hw_complete_transfer(sc);
+	/*
+	 * Blank the transfer state so we don't use an old transfer
+	 * state in a subsequent interrupt.
+	 */
+	(void)qcom_spi_hw_complete_transfer(sc);
 	sc->transfer.active = false;
 
 	return (ret);
@@ -717,12 +705,8 @@ qcom_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_TRANSFER,
 	    "%s: called; child cs=0x%08x, clock=%u, mode=0x%08x, "
 	    "cmd=%u/%u bytes; data=%u/%u bytes\n",
-	    __func__,
-	    cs_val,
-	    clock_val,
-	    mode_val,
-	    cmd->tx_cmd_sz, cmd->rx_cmd_sz,
-	    cmd->tx_data_sz, cmd->rx_data_sz);
+	    __func__, cs_val, clock_val, mode_val, cmd->tx_cmd_sz,
+	    cmd->rx_cmd_sz, cmd->tx_data_sz, cmd->rx_data_sz);
 
 	QCOM_SPI_LOCK(sc);
 
@@ -737,7 +721,7 @@ qcom_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	 */
 	sc->sc_busy = true;
 
-	sc->state.cs_high = !! (cs_val & SPIBUS_CS_HIGH);
+	sc->state.cs_high = !!(cs_val & SPIBUS_CS_HIGH);
 	sc->state.frequency = clock_val;
 
 	/*
@@ -876,19 +860,18 @@ qcom_spi_get_node(device_t bus, device_t dev)
 	return ofw_bus_get_node(bus);
 }
 
-
 static device_method_t qcom_spi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		qcom_spi_probe),
-	DEVMETHOD(device_attach,	qcom_spi_attach),
-	DEVMETHOD(device_detach,	qcom_spi_detach),
+	DEVMETHOD(device_probe, qcom_spi_probe),
+	DEVMETHOD(device_attach, qcom_spi_attach),
+	DEVMETHOD(device_detach, qcom_spi_detach),
 	/* TODO: suspend */
 	/* TODO: resume */
 
-	DEVMETHOD(spibus_transfer,	qcom_spi_transfer),
+	DEVMETHOD(spibus_transfer, qcom_spi_transfer),
 
 	/* ofw_bus_if */
-	DEVMETHOD(ofw_bus_get_node,     qcom_spi_get_node),
+	DEVMETHOD(ofw_bus_get_node, qcom_spi_get_node),
 
 	DEVMETHOD_END
 };

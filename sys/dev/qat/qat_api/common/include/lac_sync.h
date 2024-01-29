@@ -16,8 +16,8 @@
 #define LAC_SYNC_H
 
 #include "cpa.h"
-#include "qat_utils.h"
 #include "lac_mem.h"
+#include "qat_utils.h"
 
 /**
  *****************************************************************************
@@ -53,12 +53,12 @@ typedef struct lac_sync_op_data_s {
 #define LAC_SYM_SYNC_CALLBACK_TIMEOUT (300)
 /**< @ingroup LacSyn
  * Timeout for wait for symmetric response in msecs
-*/
+ */
 
 #define LAC_INIT_MSG_CALLBACK_TIMEOUT (1922)
 /**< @ingroup LacSyn
  * Timeout for wait for init messages response in msecs
-*/
+ */
 
 #define DC_SYNC_CALLBACK_TIMEOUT (2000)
 /**< @ingroup LacSyn
@@ -85,12 +85,12 @@ LacSync_CreateSyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-	*ppSyncCallbackCookie =
-	    malloc(sizeof(lac_sync_op_data_t), M_QAT, M_WAITOK);
+	*ppSyncCallbackCookie = malloc(sizeof(lac_sync_op_data_t), M_QAT,
+	    M_WAITOK);
 
 	if (CPA_STATUS_SUCCESS == status) {
 		status = LAC_INIT_SEMAPHORE((*ppSyncCallbackCookie)->sid,
-					    LAC_SYN_INITIAL_SEM_VALUE);
+		    LAC_SYN_INITIAL_SEM_VALUE);
 		(*ppSyncCallbackCookie)->complete = CPA_FALSE;
 		(*ppSyncCallbackCookie)->canceled = CPA_FALSE;
 	}
@@ -150,10 +150,8 @@ LacSync_DestroySyncCookie(lac_sync_op_data_t **ppSyncCallbackCookie)
  *
  *****************************************************************************/
 static __inline CpaStatus
-LacSync_WaitForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
-			Cpa32S timeOut,
-			CpaStatus *pStatus,
-			CpaBoolean *pOpStatus)
+LacSync_WaitForCallback(lac_sync_op_data_t *pSyncCallbackCookie, Cpa32S timeOut,
+    CpaStatus *pStatus, CpaBoolean *pOpStatus)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -187,8 +185,7 @@ LacSync_WaitForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
  *****************************************************************************/
 static __inline CpaStatus
 LacSync_CheckForCallback(lac_sync_op_data_t *pSyncCallbackCookie,
-			 CpaStatus *pStatus,
-			 CpaBoolean *pOpStatus)
+    CpaStatus *pStatus, CpaBoolean *pOpStatus)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
@@ -247,10 +244,8 @@ LacSync_SetSyncCookieComplete(lac_sync_op_data_t *pSyncCallbackCookie)
  *
  * @return void
  *****************************************************************************/
-void LacSync_GenVerifyCb(void *callbackTag,
-			 CpaStatus status,
-			 void *pOpdata,
-			 CpaBoolean opResult);
+void LacSync_GenVerifyCb(void *callbackTag, CpaStatus status, void *pOpdata,
+    CpaBoolean opResult);
 
 /**
  *****************************************************************************
@@ -270,10 +265,8 @@ void LacSync_GenVerifyCb(void *callbackTag,
  *
  * @return void
  *****************************************************************************/
-void LacSync_GenFlatBufCb(void *callbackTag,
-			  CpaStatus status,
-			  void *pOpdata,
-			  CpaFlatBuffer *pOut);
+void LacSync_GenFlatBufCb(void *callbackTag, CpaStatus status, void *pOpdata,
+    CpaFlatBuffer *pOut);
 
 /**
  *****************************************************************************
@@ -295,11 +288,8 @@ void LacSync_GenFlatBufCb(void *callbackTag,
  *
  * @return void
  *****************************************************************************/
-void LacSync_GenFlatBufVerifyCb(void *callbackTag,
-				CpaStatus status,
-				void *pOpdata,
-				CpaBoolean opResult,
-				CpaFlatBuffer *pOut);
+void LacSync_GenFlatBufVerifyCb(void *callbackTag, CpaStatus status,
+    void *pOpdata, CpaBoolean opResult, CpaFlatBuffer *pOut);
 
 /**
  *****************************************************************************
@@ -322,12 +312,9 @@ void LacSync_GenFlatBufVerifyCb(void *callbackTag,
  *
  * @return void
  *****************************************************************************/
-void LacSync_GenDualFlatBufVerifyCb(void *callbackTag,
-				    CpaStatus status,
-				    void *pOpdata,
-				    CpaBoolean opResult,
-				    CpaFlatBuffer *pOut0,
-				    CpaFlatBuffer *pOut1);
+void LacSync_GenDualFlatBufVerifyCb(void *callbackTag, CpaStatus status,
+    void *pOpdata, CpaBoolean opResult, CpaFlatBuffer *pOut0,
+    CpaFlatBuffer *pOut1);
 
 /**
  *****************************************************************************
@@ -368,8 +355,7 @@ void LacSync_GenWakeupSyncCaller(void *callbackTag, CpaStatus status);
  *
  * @return void
  *****************************************************************************/
-void LacSync_GenVerifyWakeupSyncCaller(void *callbackTag,
-				       CpaStatus status,
-				       CpaBoolean opResult);
+void LacSync_GenVerifyWakeupSyncCaller(void *callbackTag, CpaStatus status,
+    CpaBoolean opResult);
 
 #endif /*LAC_SYNC_H*/

@@ -34,15 +34,17 @@
 #include <sys/errno.h>
 #include <sys/pmc.h>
 #include <sys/sysctl.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <regex.h>
-#include <string.h>
-#include <pmc.h>
-#include <pmclog.h>
+
 #include <assert.h>
 #include <libpmcstat.h>
+#include <limits.h>
+#include <pmc.h>
+#include <pmclog.h>
+#include <regex.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "pmu-events/pmu-events.h"
 
 struct pmu_alias {
@@ -58,48 +60,50 @@ typedef enum {
 } pmu_mfr_t;
 
 static struct pmu_alias pmu_intel_alias_table[] = {
-	{"UNHALTED_CORE_CYCLES", "cpu_clk_unhalted.thread"},
-	{"UNHALTED-CORE-CYCLES", "cpu_clk_unhalted.thread"},
-	{"LLC_MISSES", "LONGEST_LAT_CACHE.MISS"},
-	{"LLC-MISSES", "LONGEST_LAT_CACHE.MISS"},
-	{"LLC_REFERENCE", "LONGEST_LAT_CACHE.REFERENCE"},
-	{"LLC-REFERENCE", "LONGEST_LAT_CACHE.REFERENCE"},
-	{"LLC_MISS_RHITM", "mem_load_l3_miss_retired.remote_hitm"},
-	{"LLC-MISS-RHITM", "mem_load_l3_miss_retired.remote_hitm"},
-	{"RESOURCE_STALL", "RESOURCE_STALLS.ANY"},
-	{"RESOURCE_STALLS_ANY", "RESOURCE_STALLS.ANY"},
-	{"BRANCH_INSTRUCTION_RETIRED", "BR_INST_RETIRED.ALL_BRANCHES"},
-	{"BRANCH-INSTRUCTION-RETIRED", "BR_INST_RETIRED.ALL_BRANCHES"},
-	{"BRANCH_MISSES_RETIRED", "BR_MISP_RETIRED.ALL_BRANCHES"},
-	{"BRANCH-MISSES-RETIRED", "BR_MISP_RETIRED.ALL_BRANCHES"},
-	{"unhalted-cycles", "cpu_clk_unhalted.thread"},
-	{"instructions", "inst_retired.any"},
-	{"branch-mispredicts", "br_misp_retired.all_branches"},
-	{"branches", "br_inst_retired.all_branches"},
-	{"interrupts", "hw_interrupts.received"},
-	{"ic-misses", "frontend_retired.l1i_miss"},
-	{NULL, NULL},
+	{ "UNHALTED_CORE_CYCLES", "cpu_clk_unhalted.thread" },
+	{ "UNHALTED-CORE-CYCLES", "cpu_clk_unhalted.thread" },
+	{ "LLC_MISSES", "LONGEST_LAT_CACHE.MISS" },
+	{ "LLC-MISSES", "LONGEST_LAT_CACHE.MISS" },
+	{ "LLC_REFERENCE", "LONGEST_LAT_CACHE.REFERENCE" },
+	{ "LLC-REFERENCE", "LONGEST_LAT_CACHE.REFERENCE" },
+	{ "LLC_MISS_RHITM", "mem_load_l3_miss_retired.remote_hitm" },
+	{ "LLC-MISS-RHITM", "mem_load_l3_miss_retired.remote_hitm" },
+	{ "RESOURCE_STALL", "RESOURCE_STALLS.ANY" },
+	{ "RESOURCE_STALLS_ANY", "RESOURCE_STALLS.ANY" },
+	{ "BRANCH_INSTRUCTION_RETIRED", "BR_INST_RETIRED.ALL_BRANCHES" },
+	{ "BRANCH-INSTRUCTION-RETIRED", "BR_INST_RETIRED.ALL_BRANCHES" },
+	{ "BRANCH_MISSES_RETIRED", "BR_MISP_RETIRED.ALL_BRANCHES" },
+	{ "BRANCH-MISSES-RETIRED", "BR_MISP_RETIRED.ALL_BRANCHES" },
+	{ "unhalted-cycles", "cpu_clk_unhalted.thread" },
+	{ "instructions", "inst_retired.any" },
+	{ "branch-mispredicts", "br_misp_retired.all_branches" },
+	{ "branches", "br_inst_retired.all_branches" },
+	{ "interrupts", "hw_interrupts.received" },
+	{ "ic-misses", "frontend_retired.l1i_miss" },
+	{ NULL, NULL },
 };
 
 static struct pmu_alias pmu_amd_alias_table[] = {
-	{"UNHALTED_CORE_CYCLES", "ls_not_halted_cyc"},
-	{"UNHALTED-CORE-CYCLES", "ls_not_halted_cyc"},
-	{"LLC_MISSES", "l3_comb_clstr_state.request_miss"},
-	{"LLC-MISSES", "l3_comb_clstr_state.request_miss"},
-	{"LLC_REFERENCE", "l3_request_g1.caching_l3_cache_accesses"},
-	{"LLC-REFERENCE", "l3_request_g1.caching_l3_cache_accesses"},
-	{"BRANCH_INSTRUCTION_RETIRED", "ex_ret_brn"},
-	{"BRANCH-INSTRUCTION-RETIRED", "ex_ret_brn"},
-	{"BRANCH_MISSES_RETIRED", "ex_ret_brn_misp"},
-	{"BRANCH-MISSES-RETIRED", "ex_ret_brn_misp"},
-	{"unhalted-cycles", "ls_not_halted_cyc"},
-	{"instructions", "ex_ret_instr",},
-	{"branch-mispredicts", "ex_ret_brn_misp"},
-	{"branches", "ex_ret_brn"},
-	{"interrupts", "ls_int_taken"}, /* Not on amdzen1 */
-	{NULL, NULL},
+	{ "UNHALTED_CORE_CYCLES", "ls_not_halted_cyc" },
+	{ "UNHALTED-CORE-CYCLES", "ls_not_halted_cyc" },
+	{ "LLC_MISSES", "l3_comb_clstr_state.request_miss" },
+	{ "LLC-MISSES", "l3_comb_clstr_state.request_miss" },
+	{ "LLC_REFERENCE", "l3_request_g1.caching_l3_cache_accesses" },
+	{ "LLC-REFERENCE", "l3_request_g1.caching_l3_cache_accesses" },
+	{ "BRANCH_INSTRUCTION_RETIRED", "ex_ret_brn" },
+	{ "BRANCH-INSTRUCTION-RETIRED", "ex_ret_brn" },
+	{ "BRANCH_MISSES_RETIRED", "ex_ret_brn_misp" },
+	{ "BRANCH-MISSES-RETIRED", "ex_ret_brn_misp" },
+	{ "unhalted-cycles", "ls_not_halted_cyc" },
+	{
+	    "instructions",
+	    "ex_ret_instr",
+	},
+	{ "branch-mispredicts", "ex_ret_brn_misp" },
+	{ "branches", "ex_ret_brn" },
+	{ "interrupts", "ls_int_taken" }, /* Not on amdzen1 */
+	{ NULL, NULL },
 };
-
 
 static pmu_mfr_t
 pmu_events_mfr(void)
@@ -108,8 +112,7 @@ pmu_events_mfr(void)
 	size_t s = sizeof(buf);
 	pmu_mfr_t mfr;
 
-	if (sysctlbyname("kern.hwpmc.cpuid", buf, &s,
-	    (void *)NULL, 0) == -1)
+	if (sysctlbyname("kern.hwpmc.cpuid", buf, &s, (void *)NULL, 0) == -1)
 		return (PMU_INVALID);
 	if (strcasestr(buf, "AuthenticAMD") != NULL ||
 	    strcasestr(buf, "HygonGenuine") != NULL)
@@ -163,22 +166,25 @@ pmu_alias_get(const char *name)
 #elif defined(__aarch64__)
 
 static struct pmu_alias pmu_armv8_alias_table[] = {
-	{"UNHALTED_CORE_CYCLES", "CPU_CYCLES"},
-	{"UNHALTED-CORE-CYCLES", "CPU_CYCLES"},
-	{"LLC_MISSES", "LL_CACHE_MISS_RD"},
-	{"LLC-MISSES", "LL_CACHE_MISS_RD"},
-	{"LLC_REFERENCE", "LL_CACHE_RD"},
-	{"LLC-REFERENCE", "LL_CACHE_RD"},
-	{"BRANCH_INSTRUCTION_RETIRED", "BR_RETIRED"},
-	{"BRANCH-INSTRUCTION-RETIRED", "BR_RETIRED"},
-	{"BRANCH_MISSES_RETIRED", "BR_MIS_PRED_RETIRED"},
-	{"BRANCH-MISSES-RETIRED", "BR_MIS_PRED_RETIRED"},
-	{"unhalted-cycles", "CPU_CYCLES"},
-	{"instructions", "INST_RETIRED",},
-	{"branch-mispredicts", "BR_MIS_PRED_RETIRED"},
-	{"branches", "BR_RETIRED"},
-	{"interrupts", "EXC_IRQ"},
-	{NULL, NULL},
+	{ "UNHALTED_CORE_CYCLES", "CPU_CYCLES" },
+	{ "UNHALTED-CORE-CYCLES", "CPU_CYCLES" },
+	{ "LLC_MISSES", "LL_CACHE_MISS_RD" },
+	{ "LLC-MISSES", "LL_CACHE_MISS_RD" },
+	{ "LLC_REFERENCE", "LL_CACHE_RD" },
+	{ "LLC-REFERENCE", "LL_CACHE_RD" },
+	{ "BRANCH_INSTRUCTION_RETIRED", "BR_RETIRED" },
+	{ "BRANCH-INSTRUCTION-RETIRED", "BR_RETIRED" },
+	{ "BRANCH_MISSES_RETIRED", "BR_MIS_PRED_RETIRED" },
+	{ "BRANCH-MISSES-RETIRED", "BR_MIS_PRED_RETIRED" },
+	{ "unhalted-cycles", "CPU_CYCLES" },
+	{
+	    "instructions",
+	    "INST_RETIRED",
+	},
+	{ "branch-mispredicts", "BR_MIS_PRED_RETIRED" },
+	{ "branches", "BR_RETIRED" },
+	{ "interrupts", "EXC_IRQ" },
+	{ NULL, NULL },
 };
 
 static const char *
@@ -212,13 +218,13 @@ struct pmu_event_desc {
 	uint32_t ped_frontend;
 	uint32_t ped_ldlat;
 	uint32_t ped_config1;
-	int16_t	ped_umask;
-	uint8_t	ped_cmask;
-	uint8_t	ped_any;
-	uint8_t	ped_inv;
-	uint8_t	ped_edge;
-	uint8_t	ped_fc_mask;
-	uint8_t	ped_ch_mask;
+	int16_t ped_umask;
+	uint8_t ped_cmask;
+	uint8_t ped_any;
+	uint8_t ped_inv;
+	uint8_t ped_edge;
+	uint8_t ped_fc_mask;
+	uint8_t ped_ch_mask;
 };
 
 static const struct pmu_events_map *
@@ -234,8 +240,8 @@ pmu_events_map_get(const char *cpuid)
 	if (cpuid != NULL) {
 		strlcpy(buf, cpuid, s);
 	} else {
-		if (sysctlbyname("kern.hwpmc.cpuid", buf, &s,
-		    (void *)NULL, 0) == -1)
+		if (sysctlbyname("kern.hwpmc.cpuid", buf, &s, (void *)NULL,
+			0) == -1)
 			return (NULL);
 	}
 	for (pme = pmu_events_map; pme->cpuid != NULL; pme++) {
@@ -247,8 +253,9 @@ pmu_events_map_get(const char *cpuid)
 		match = regexec(&re, buf, 1, pmatch, 0);
 		regfree(&re);
 		if (match == 0) {
-			if (pmatch[0].rm_so == 0 && (buf[pmatch[0].rm_eo] == 0
-			    || buf[pmatch[0].rm_eo] == '-'))
+			if (pmatch[0].rm_so == 0 &&
+			    (buf[pmatch[0].rm_eo] == 0 ||
+				buf[pmatch[0].rm_eo] == '-'))
 				return (pme);
 		}
 	}
@@ -264,7 +271,8 @@ pmu_event_get(const char *cpuid, const char *event_name, int *idx)
 
 	if ((pme = pmu_events_map_get(cpuid)) == NULL)
 		return (NULL);
-	for (i = 0, pe = pme->table; pe->name || pe->desc || pe->event; pe++, i++) {
+	for (i = 0, pe = pme->table; pe->name || pe->desc || pe->event;
+	     pe++, i++) {
 		if (pe->name == NULL)
 			continue;
 		if (strcasecmp(pe->name, event_name) == 0) {
@@ -349,8 +357,10 @@ pmu_parse_event(struct pmu_event_desc *ped, const char *eventin)
 			ped->ped_l3_slice = strtol(value, NULL, 16);
 		else {
 			debug = getenv("PMUDEBUG");
-			if (debug != NULL && strcmp(debug, "true") == 0 && value != NULL)
-				printf("unrecognized kvpair: %s:%s\n", key, value);
+			if (debug != NULL && strcmp(debug, "true") == 0 &&
+			    value != NULL)
+				printf("unrecognized kvpair: %s:%s\n", key,
+				    value);
 		}
 	}
 	free(r);
@@ -399,7 +409,8 @@ pmc_pmu_print_counters(const char *event_name)
 	for (pe = pme->table; pe->name || pe->desc || pe->event; pe++) {
 		if (pe->name == NULL)
 			continue;
-		if (event_name != NULL && strcasestr(pe->name, event_name) == NULL)
+		if (event_name != NULL &&
+		    strcasestr(pe->name, event_name) == NULL)
 			continue;
 		printf("\t%s\n", pe->name);
 		if (do_debug)
@@ -418,8 +429,7 @@ pmc_pmu_print_counter_desc(const char *ev)
 	for (pe = pme->table; pe->name || pe->desc || pe->event; pe++) {
 		if (pe->name == NULL)
 			continue;
-		if (strcasestr(pe->name, ev) != NULL &&
-		    pe->desc != NULL)
+		if (strcasestr(pe->name, ev) != NULL && pe->desc != NULL)
 			printf("%s:\t%s\n", pe->name, pe->desc);
 	}
 }
@@ -484,7 +494,7 @@ pmc_pmu_print_counter_full(const char *ev)
 #if defined(__amd64__) || defined(__i386__)
 static int
 pmc_pmu_amd_pmcallocate(const char *event_name, struct pmc_op_pmcallocate *pm,
-	struct pmu_event_desc *ped)
+    struct pmu_event_desc *ped)
 {
 	struct pmc_md_amd_op_pmcallocate *amd;
 	const struct pmu_event *pe;
@@ -498,23 +508,21 @@ pmc_pmu_amd_pmcallocate(const char *event_name, struct pmc_op_pmcallocate *pm,
 	pm->pm_class = PMC_CLASS_K8;
 	pe = pmu_event_get(NULL, event_name, &idx);
 
-	if (strcmp("l3cache", pe->topic) == 0){
+	if (strcmp("l3cache", pe->topic) == 0) {
 		amd->pm_amd_config |= AMD_PMC_TO_EVENTMASK(ped->ped_event);
 		amd->pm_amd_sub_class = PMC_AMD_SUB_CLASS_L3_CACHE;
 		amd->pm_amd_config |= AMD_PMC_TO_L3SLICE(ped->ped_l3_slice);
 		amd->pm_amd_config |= AMD_PMC_TO_L3CORE(ped->ped_l3_thread);
-	}
-	else if (strcmp("data fabric", pe->topic) == 0){
+	} else if (strcmp("data fabric", pe->topic) == 0) {
 
 		amd->pm_amd_config |= AMD_PMC_TO_EVENTMASK_DF(ped->ped_event);
 		amd->pm_amd_sub_class = PMC_AMD_SUB_CLASS_DATA_FABRIC;
-	}
-	else{
+	} else {
 		amd->pm_amd_config |= AMD_PMC_TO_EVENTMASK(ped->ped_event);
 		amd->pm_amd_sub_class = PMC_AMD_SUB_CLASS_CORE;
-		if ((pm->pm_caps & (PMC_CAP_USER|PMC_CAP_SYSTEM)) == 0 ||
-			(pm->pm_caps & (PMC_CAP_USER|PMC_CAP_SYSTEM)) ==
-			(PMC_CAP_USER|PMC_CAP_SYSTEM))
+		if ((pm->pm_caps & (PMC_CAP_USER | PMC_CAP_SYSTEM)) == 0 ||
+		    (pm->pm_caps & (PMC_CAP_USER | PMC_CAP_SYSTEM)) ==
+			(PMC_CAP_USER | PMC_CAP_SYSTEM))
 			amd->pm_amd_config |= (AMD_PMC_USR | AMD_PMC_OS);
 		else if (pm->pm_caps & PMC_CAP_USER)
 			amd->pm_amd_config |= AMD_PMC_USR;
@@ -532,7 +540,7 @@ pmc_pmu_amd_pmcallocate(const char *event_name, struct pmc_op_pmcallocate *pm,
 
 static int
 pmc_pmu_intel_pmcallocate(const char *event_name, struct pmc_op_pmcallocate *pm,
-	struct pmu_event_desc *ped)
+    struct pmu_event_desc *ped)
 {
 	struct pmc_md_iap_op_pmcallocate *iap;
 
@@ -553,9 +561,9 @@ pmc_pmu_intel_pmcallocate(const char *event_name, struct pmc_op_pmcallocate *pm,
 	iap->pm_iap_config |= IAP_CMASK(ped->ped_cmask);
 	iap->pm_iap_rsp = ped->ped_offcore_rsp;
 
-	if ((pm->pm_caps & (PMC_CAP_USER|PMC_CAP_SYSTEM)) == 0 ||
-		(pm->pm_caps & (PMC_CAP_USER|PMC_CAP_SYSTEM)) ==
-		(PMC_CAP_USER|PMC_CAP_SYSTEM))
+	if ((pm->pm_caps & (PMC_CAP_USER | PMC_CAP_SYSTEM)) == 0 ||
+	    (pm->pm_caps & (PMC_CAP_USER | PMC_CAP_SYSTEM)) ==
+		(PMC_CAP_USER | PMC_CAP_SYSTEM))
 		iap->pm_iap_config |= (IAP_USR | IAP_OS);
 	else if (pm->pm_caps & PMC_CAP_USER)
 		iap->pm_iap_config |= IAP_USR;
@@ -658,7 +666,8 @@ pmc_pmu_pmcallocate_md(const char *event_name, struct pmc_op_pmcallocate *pm)
 #else
 
 static int
-pmc_pmu_pmcallocate_md(const char *e __unused, struct pmc_op_pmcallocate *p __unused)
+pmc_pmu_pmcallocate_md(const char *e __unused,
+    struct pmc_op_pmcallocate *p __unused)
 {
 	return (EOPNOTSUPP);
 }

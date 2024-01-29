@@ -32,8 +32,9 @@
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/pcm/pcm.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "feeder_if.h"
 
 #define SND_USE_FXDIV
@@ -42,34 +43,32 @@
 
 typedef void (*feed_volume_t)(int *, int *, uint32_t, uint8_t *, uint32_t);
 
-#define FEEDVOLUME_CALC8(s, v)	(SND_VOL_CALC_SAMPLE((intpcm_t)		\
-				 (s) << 8, v) >> 8)
-#define FEEDVOLUME_CALC16(s, v)	SND_VOL_CALC_SAMPLE((intpcm_t)(s), v)
-#define FEEDVOLUME_CALC24(s, v)	SND_VOL_CALC_SAMPLE((intpcm64_t)(s), v)
-#define FEEDVOLUME_CALC32(s, v)	SND_VOL_CALC_SAMPLE((intpcm64_t)(s), v)
+#define FEEDVOLUME_CALC8(s, v) (SND_VOL_CALC_SAMPLE((intpcm_t)(s) << 8, v) >> 8)
+#define FEEDVOLUME_CALC16(s, v) SND_VOL_CALC_SAMPLE((intpcm_t)(s), v)
+#define FEEDVOLUME_CALC24(s, v) SND_VOL_CALC_SAMPLE((intpcm64_t)(s), v)
+#define FEEDVOLUME_CALC32(s, v) SND_VOL_CALC_SAMPLE((intpcm64_t)(s), v)
 
-#define FEEDVOLUME_DECLARE(SIGN, BIT, ENDIAN)				\
-static void								\
-feed_volume_##SIGN##BIT##ENDIAN(int *vol, int *matrix,			\
-    uint32_t channels, uint8_t *dst, uint32_t count)			\
-{									\
-	intpcm##BIT##_t v;						\
-	intpcm_t x;							\
-	uint32_t i;							\
-									\
-	dst += count * PCM_##BIT##_BPS * channels;			\
-	do {								\
-		i = channels;						\
-		do {							\
-			dst -= PCM_##BIT##_BPS;				\
-			i--;						\
-			x = PCM_READ_##SIGN##BIT##_##ENDIAN(dst);	\
-			v = FEEDVOLUME_CALC##BIT(x, vol[matrix[i]]);	\
-			x = PCM_CLAMP_##SIGN##BIT(v);			\
-			_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, x);	\
-		} while (i != 0);					\
-	} while (--count != 0);						\
-}
+#define FEEDVOLUME_DECLARE(SIGN, BIT, ENDIAN)                                \
+	static void feed_volume_##SIGN##BIT##ENDIAN(int *vol, int *matrix,   \
+	    uint32_t channels, uint8_t *dst, uint32_t count)                 \
+	{                                                                    \
+		intpcm##BIT##_t v;                                           \
+		intpcm_t x;                                                  \
+		uint32_t i;                                                  \
+                                                                             \
+		dst += count * PCM_##BIT##_BPS * channels;                   \
+		do {                                                         \
+			i = channels;                                        \
+			do {                                                 \
+				dst -= PCM_##BIT##_BPS;                      \
+				i--;                                         \
+				x = PCM_READ_##SIGN##BIT##_##ENDIAN(dst);    \
+				v = FEEDVOLUME_CALC##BIT(x, vol[matrix[i]]); \
+				x = PCM_CLAMP_##SIGN##BIT(v);                \
+				_PCM_WRITE_##SIGN##BIT##_##ENDIAN(dst, x);   \
+			} while (i != 0);                                    \
+		} while (--count != 0);                                      \
+	}
 
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
 FEEDVOLUME_DECLARE(S, 16, LE)
@@ -80,10 +79,10 @@ FEEDVOLUME_DECLARE(S, 16, BE)
 FEEDVOLUME_DECLARE(S, 32, BE)
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-FEEDVOLUME_DECLARE(S,  8, NE)
+FEEDVOLUME_DECLARE(S, 8, NE)
 FEEDVOLUME_DECLARE(S, 24, LE)
 FEEDVOLUME_DECLARE(S, 24, BE)
-FEEDVOLUME_DECLARE(U,  8, NE)
+FEEDVOLUME_DECLARE(U, 8, NE)
 FEEDVOLUME_DECLARE(U, 16, LE)
 FEEDVOLUME_DECLARE(U, 24, LE)
 FEEDVOLUME_DECLARE(U, 32, LE)
@@ -100,10 +99,9 @@ struct feed_volume_info {
 	int matrix[SND_CHN_MAX];
 };
 
-#define FEEDVOLUME_ENTRY(SIGN, BIT, ENDIAN)				\
-	{								\
-		AFMT_##SIGN##BIT##_##ENDIAN,				\
-		feed_volume_##SIGN##BIT##ENDIAN				\
+#define FEEDVOLUME_ENTRY(SIGN, BIT, ENDIAN)                                  \
+	{                                                                    \
+		AFMT_##SIGN##BIT##_##ENDIAN, feed_volume_##SIGN##BIT##ENDIAN \
 	}
 
 static const struct {
@@ -111,30 +109,23 @@ static const struct {
 	feed_volume_t apply;
 } feed_volume_info_tab[] = {
 #if BYTE_ORDER == LITTLE_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDVOLUME_ENTRY(S, 16, LE),
-	FEEDVOLUME_ENTRY(S, 32, LE),
+	FEEDVOLUME_ENTRY(S, 16, LE), FEEDVOLUME_ENTRY(S, 32, LE),
 #endif
 #if BYTE_ORDER == BIG_ENDIAN || defined(SND_FEEDER_MULTIFORMAT)
-	FEEDVOLUME_ENTRY(S, 16, BE),
-	FEEDVOLUME_ENTRY(S, 32, BE),
+	FEEDVOLUME_ENTRY(S, 16, BE), FEEDVOLUME_ENTRY(S, 32, BE),
 #endif
 #ifdef SND_FEEDER_MULTIFORMAT
-	FEEDVOLUME_ENTRY(S,  8, NE),
-	FEEDVOLUME_ENTRY(S, 24, LE),
-	FEEDVOLUME_ENTRY(S, 24, BE),
-	FEEDVOLUME_ENTRY(U,  8, NE),
-	FEEDVOLUME_ENTRY(U, 16, LE),
-	FEEDVOLUME_ENTRY(U, 24, LE),
-	FEEDVOLUME_ENTRY(U, 32, LE),
-	FEEDVOLUME_ENTRY(U, 16, BE),
-	FEEDVOLUME_ENTRY(U, 24, BE),
-	FEEDVOLUME_ENTRY(U, 32, BE)
+	FEEDVOLUME_ENTRY(S, 8, NE), FEEDVOLUME_ENTRY(S, 24, LE),
+	FEEDVOLUME_ENTRY(S, 24, BE), FEEDVOLUME_ENTRY(U, 8, NE),
+	FEEDVOLUME_ENTRY(U, 16, LE), FEEDVOLUME_ENTRY(U, 24, LE),
+	FEEDVOLUME_ENTRY(U, 32, LE), FEEDVOLUME_ENTRY(U, 16, BE),
+	FEEDVOLUME_ENTRY(U, 24, BE), FEEDVOLUME_ENTRY(U, 32, BE)
 #endif
 };
 
-#define FEEDVOLUME_TAB_SIZE	((int32_t)				\
-				 (sizeof(feed_volume_info_tab) /	\
-				  sizeof(feed_volume_info_tab[0])))
+#define FEEDVOLUME_TAB_SIZE                       \
+	((int32_t)(sizeof(feed_volume_info_tab) / \
+	    sizeof(feed_volume_info_tab[0])))
 
 static int
 feed_volume_init(struct pcm_feeder *f)
@@ -261,8 +252,7 @@ feed_volume_feed(struct pcm_feeder *f, struct pcm_channel *c, uint8_t *b,
 	j = 0;
 	i = info->channels;
 	while (i--) {
-		if (vol[matrix[i]] != SND_VOL_FLAT ||
-		    muted[matrix[i]] != 0) {
+		if (vol[matrix[i]] != SND_VOL_FLAT || muted[matrix[i]] != 0) {
 			j = 1;
 			break;
 		}
@@ -300,17 +290,14 @@ feed_volume_feed(struct pcm_feeder *f, struct pcm_channel *c, uint8_t *b,
 }
 
 static struct pcm_feederdesc feeder_volume_desc[] = {
-	{ FEEDER_VOLUME, 0, 0, 0, 0 },
-	{ 0, 0, 0, 0, 0 }
+	{ FEEDER_VOLUME, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }
 };
 
-static kobj_method_t feeder_volume_methods[] = {
-	KOBJMETHOD(feeder_init,		feed_volume_init),
-	KOBJMETHOD(feeder_free,		feed_volume_free),
-	KOBJMETHOD(feeder_set,		feed_volume_set),
-	KOBJMETHOD(feeder_feed,		feed_volume_feed),
-	KOBJMETHOD_END
-};
+static kobj_method_t feeder_volume_methods[] = { KOBJMETHOD(feeder_init,
+						     feed_volume_init),
+	KOBJMETHOD(feeder_free, feed_volume_free),
+	KOBJMETHOD(feeder_set, feed_volume_set),
+	KOBJMETHOD(feeder_feed, feed_volume_feed), KOBJMETHOD_END };
 
 FEEDER_DECLARE(feeder_volume, NULL);
 

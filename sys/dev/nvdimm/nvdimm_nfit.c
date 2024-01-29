@@ -30,9 +30,10 @@
 #include <sys/malloc.h>
 #include <sys/uuid.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 #include <dev/nvdimm/nvdimm_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 static int
 uint32_t_compare(const void *a, const void *b)
@@ -51,8 +52,7 @@ find_matches(ACPI_TABLE_NFIT *nfitbl, uint16_t type, uint16_t offset,
 	int count;
 
 	h = (ACPI_NFIT_HEADER *)(nfitbl + 1);
-	end = (ACPI_NFIT_HEADER *)((char *)nfitbl +
-	    nfitbl->Header.Length);
+	end = (ACPI_NFIT_HEADER *)((char *)nfitbl + nfitbl->Header.Length);
 	load_size = roundup2(flsl(mask), 8) / 8;
 	count = 0;
 
@@ -105,8 +105,7 @@ acpi_nfit_get_dimm_ids(ACPI_TABLE_NFIT *nfitbl, nfit_handle_t **listp,
 		*countp = 0;
 		return;
 	}
-	regions = mallocarray(num_spas, sizeof(uint16_t *), M_NVDIMM,
-	    M_WAITOK);
+	regions = mallocarray(num_spas, sizeof(uint16_t *), M_NVDIMM, M_WAITOK);
 	region_counts = mallocarray(num_spas, sizeof(int), M_NVDIMM, M_WAITOK);
 	for (i = 0; i < num_spas; i++) {
 		acpi_nfit_get_region_mappings_by_spa_range(nfitbl,
@@ -166,7 +165,8 @@ acpi_nfit_get_region_mappings_by_spa_range(ACPI_TABLE_NFIT *nfitbl,
 	    spa_range_index, (void ***)listp, countp);
 }
 
-void acpi_nfit_get_control_region(ACPI_TABLE_NFIT *nfitbl,
+void
+acpi_nfit_get_control_region(ACPI_TABLE_NFIT *nfitbl,
     uint16_t control_region_index, ACPI_NFIT_CONTROL_REGION **out)
 {
 
@@ -185,8 +185,8 @@ acpi_nfit_get_flush_addrs(ACPI_TABLE_NFIT *nfitbl, nfit_handle_t dimm,
 
 	subtable = NULL;
 	find_matches(nfitbl, ACPI_NFIT_TYPE_FLUSH_ADDRESS,
-	    offsetof(ACPI_NFIT_FLUSH_ADDRESS, DeviceHandle), UINT32_MAX,
-	    dimm, (void **)&subtable, 1);
+	    offsetof(ACPI_NFIT_FLUSH_ADDRESS, DeviceHandle), UINT32_MAX, dimm,
+	    (void **)&subtable, 1);
 	if (subtable == NULL || subtable->HintCount == 0) {
 		*listp = NULL;
 		*countp = 0;

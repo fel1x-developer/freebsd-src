@@ -50,44 +50,41 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-
-#include <net80211/ieee80211_var.h>
 
 #include <net/bpf.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef INET
-#include <netinet/in.h> 
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_rate/amrr/amrr.h>
 #include <dev/ath/ath_hal/ah_desc.h>
+#include <dev/ath/ath_rate/amrr/amrr.h>
+#include <dev/ath/if_athvar.h>
 
-static	int ath_rateinterval = 1000;		/* rate ctl interval (ms)  */
-static	int ath_rate_max_success_threshold = 10;
-static	int ath_rate_min_success_threshold = 1;
+static int ath_rateinterval = 1000; /* rate ctl interval (ms)  */
+static int ath_rate_max_success_threshold = 10;
+static int ath_rate_min_success_threshold = 1;
 
-static void	ath_rate_update(struct ath_softc *, struct ieee80211_node *,
-			int rate);
-static void	ath_rate_ctl_start(struct ath_softc *, struct ieee80211_node *);
-static void	ath_rate_ctl(void *, struct ieee80211_node *);
+static void ath_rate_update(struct ath_softc *, struct ieee80211_node *,
+    int rate);
+static void ath_rate_ctl_start(struct ath_softc *, struct ieee80211_node *);
+static void ath_rate_ctl(void *, struct ieee80211_node *);
 
 void
 ath_rate_node_init(struct ath_softc *sc, struct ath_node *an)
@@ -101,10 +98,9 @@ ath_rate_node_cleanup(struct ath_softc *sc, struct ath_node *an)
 }
 
 void
-ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
-	int shortPreamble, size_t frameLen, int tid, int is_aggr,
-	u_int8_t *rix, int *try0, u_int8_t *txrate, int *maxdur,
-	int *maxpktlen)
+ath_rate_findrate(struct ath_softc *sc, struct ath_node *an, int shortPreamble,
+    size_t frameLen, int tid, int is_aggr, u_int8_t *rix, int *try0,
+    u_int8_t *txrate, int *maxdur, int *maxpktlen)
 {
 	struct amrr_node *amn = ATH_NODE_AMRR(an);
 
@@ -125,8 +121,8 @@ ath_rate_findrate(struct ath_softc *sc, struct ath_node *an,
  * the returned rate with the relevant preamble rate flag.
  */
 void
-ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
-    uint8_t rix0, int is_aggr, struct ath_rc_series *rc)
+ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an, uint8_t rix0,
+    int is_aggr, struct ath_rc_series *rc)
 {
 	struct amrr_node *amn = ATH_NODE_AMRR(an);
 
@@ -145,21 +141,23 @@ ath_rate_getxtxrates(struct ath_softc *sc, struct ath_node *an,
 
 void
 ath_rate_setupxtxdesc(struct ath_softc *sc, struct ath_node *an,
-	struct ath_desc *ds, int shortPreamble, u_int8_t rix)
+    struct ath_desc *ds, int shortPreamble, u_int8_t rix)
 {
 	struct amrr_node *amn = ATH_NODE_AMRR(an);
 
-	ath_hal_setupxtxdesc(sc->sc_ah, ds
-		, amn->amn_tx_rate1sp, amn->amn_tx_try1	/* series 1 */
-		, amn->amn_tx_rate2sp, amn->amn_tx_try2	/* series 2 */
-		, amn->amn_tx_rate3sp, amn->amn_tx_try3	/* series 3 */
+	ath_hal_setupxtxdesc(sc->sc_ah, ds, amn->amn_tx_rate1sp,
+	    amn->amn_tx_try1 /* series 1 */
+	    ,
+	    amn->amn_tx_rate2sp, amn->amn_tx_try2 /* series 2 */
+	    ,
+	    amn->amn_tx_rate3sp, amn->amn_tx_try3 /* series 3 */
 	);
 }
 
 void
 ath_rate_tx_complete(struct ath_softc *sc, struct ath_node *an,
-	const struct ath_rc_series *rc, const struct ath_tx_status *ts,
-	int frame_size, int rc_framesize, int nframes, int nbad)
+    const struct ath_rc_series *rc, const struct ath_tx_status *ts,
+    int frame_size, int rc_framesize, int nframes, int nbad)
 {
 	struct amrr_node *amn = ATH_NODE_AMRR(an);
 	int sr = ts->ts_shortretry;
@@ -201,7 +199,7 @@ ath_rate_update_rx_rssi(struct ath_softc *sc, struct ath_node *an, int rssi)
 {
 }
 
-static void 
+static void
 node_reset(struct amrr_node *amn)
 {
 	amn->amn_tx_try0_cnt = 0;
@@ -209,9 +207,9 @@ node_reset(struct amrr_node *amn)
 	amn->amn_tx_try2_cnt = 0;
 	amn->amn_tx_try3_cnt = 0;
 	amn->amn_tx_failure_cnt = 0;
-  	amn->amn_success = 0;
-  	amn->amn_recovery = 0;
-  	amn->amn_success_threshold = ath_rate_min_success_threshold;
+	amn->amn_success = 0;
+	amn->amn_recovery = 0;
+	amn->amn_success_threshold = ath_rate_min_success_threshold;
 }
 
 /**
@@ -232,9 +230,10 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 	KASSERT(rt != NULL, ("no rate table, mode %u", sc->sc_curmode));
 
 	IEEE80211_NOTE(vap, IEEE80211_MSG_RATECTL, ni,
-	    "%s: set xmit rate to %dM", __func__, 
+	    "%s: set xmit rate to %dM", __func__,
 	    ni->ni_rates.rs_nrates > 0 ?
-		(ni->ni_rates.rs_rates[rate] & IEEE80211_RATE_VAL) / 2 : 0);
+		(ni->ni_rates.rs_rates[rate] & IEEE80211_RATE_VAL) / 2 :
+		0);
 
 	amn->amn_rix = rate;
 	/*
@@ -245,46 +244,51 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 	 * lowest hardware rate.
 	 */
 	if (ni->ni_rates.rs_nrates > 0) {
-		ni->ni_txrate = ni->ni_rates.rs_rates[rate] & IEEE80211_RATE_VAL;
+		ni->ni_txrate = ni->ni_rates.rs_rates[rate] &
+		    IEEE80211_RATE_VAL;
 		amn->amn_tx_rix0 = sc->sc_rixmap[ni->ni_txrate];
 		amn->amn_tx_rate0 = rt->info[amn->amn_tx_rix0].rateCode;
 		amn->amn_tx_rate0sp = amn->amn_tx_rate0 |
-			rt->info[amn->amn_tx_rix0].shortPreamble;
+		    rt->info[amn->amn_tx_rix0].shortPreamble;
 		if (sc->sc_mrretry) {
 			amn->amn_tx_try0 = 1;
 			amn->amn_tx_try1 = 1;
 			amn->amn_tx_try2 = 1;
 			amn->amn_tx_try3 = 1;
 			if (--rate >= 0) {
-				rix = sc->sc_rixmap[
-						    ni->ni_rates.rs_rates[rate]&IEEE80211_RATE_VAL];
+				rix =
+				    sc->sc_rixmap[ni->ni_rates.rs_rates[rate] &
+					IEEE80211_RATE_VAL];
 				amn->amn_tx_rate1 = rt->info[rix].rateCode;
 				amn->amn_tx_rate1sp = amn->amn_tx_rate1 |
-					rt->info[rix].shortPreamble;
+				    rt->info[rix].shortPreamble;
 			} else {
 				amn->amn_tx_rate1 = amn->amn_tx_rate1sp = 0;
 			}
 			if (--rate >= 0) {
-				rix = sc->sc_rixmap[
-						    ni->ni_rates.rs_rates[rate]&IEEE80211_RATE_VAL];
+				rix =
+				    sc->sc_rixmap[ni->ni_rates.rs_rates[rate] &
+					IEEE80211_RATE_VAL];
 				amn->amn_tx_rate2 = rt->info[rix].rateCode;
 				amn->amn_tx_rate2sp = amn->amn_tx_rate2 |
-					rt->info[rix].shortPreamble;
+				    rt->info[rix].shortPreamble;
 			} else {
 				amn->amn_tx_rate2 = amn->amn_tx_rate2sp = 0;
 			}
 			if (rate > 0) {
-				/* NB: only do this if we didn't already do it above */
+				/* NB: only do this if we didn't already do it
+				 * above */
 				amn->amn_tx_rate3 = rt->info[0].rateCode;
-				amn->amn_tx_rate3sp =
-					amn->amn_tx_rate3 | rt->info[0].shortPreamble;
+				amn->amn_tx_rate3sp = amn->amn_tx_rate3 |
+				    rt->info[0].shortPreamble;
 			} else {
 				amn->amn_tx_rate3 = amn->amn_tx_rate3sp = 0;
 			}
 		} else {
 			amn->amn_tx_try0 = ATH_TXMAXTRY;
 			/* theorically, these statements are useless because
-			 *  the code which uses them tests for an_tx_try0 == ATH_TXMAXTRY
+			 *  the code which uses them tests for an_tx_try0 ==
+			 * ATH_TXMAXTRY
 			 */
 			amn->amn_tx_try1 = 0;
 			amn->amn_tx_try2 = 0;
@@ -308,7 +312,7 @@ ath_rate_update(struct ath_softc *sc, struct ieee80211_node *ni, int rate)
 static void
 ath_rate_ctl_start(struct ath_softc *sc, struct ieee80211_node *ni)
 {
-#define	RATE(_ix)	(ni->ni_rates.rs_rates[(_ix)] & IEEE80211_RATE_VAL)
+#define RATE(_ix) (ni->ni_rates.rs_rates[(_ix)] & IEEE80211_RATE_VAL)
 	const struct ieee80211_txparam *tp = ni->ni_txparms;
 	int srate;
 
@@ -352,68 +356,67 @@ ath_rate_ctl_start(struct ath_softc *sc, struct ieee80211_node *ni)
 #undef RATE
 }
 
-/* 
+/*
  * Examine and potentially adjust the transmit rate.
  */
 static void
 ath_rate_ctl(void *arg, struct ieee80211_node *ni)
 {
 	struct ath_softc *sc = arg;
-	struct amrr_node *amn = ATH_NODE_AMRR(ATH_NODE (ni));
+	struct amrr_node *amn = ATH_NODE_AMRR(ATH_NODE(ni));
 	int rix;
 
-#define is_success(amn) \
-(amn->amn_tx_try1_cnt  < (amn->amn_tx_try0_cnt/10))
-#define is_enough(amn) \
-(amn->amn_tx_try0_cnt > 10)
-#define is_failure(amn) \
-(amn->amn_tx_try1_cnt > (amn->amn_tx_try0_cnt/3))
+#define is_success(amn) (amn->amn_tx_try1_cnt < (amn->amn_tx_try0_cnt / 10))
+#define is_enough(amn) (amn->amn_tx_try0_cnt > 10)
+#define is_failure(amn) (amn->amn_tx_try1_cnt > (amn->amn_tx_try0_cnt / 3))
 
 	rix = amn->amn_rix;
-  
-  	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_RATECTL, ni,
+
+	IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_RATECTL, ni,
 	    "cnt0: %d cnt1: %d cnt2: %d cnt3: %d -- threshold: %d",
 	    amn->amn_tx_try0_cnt, amn->amn_tx_try1_cnt, amn->amn_tx_try2_cnt,
 	    amn->amn_tx_try3_cnt, amn->amn_success_threshold);
-  	if (is_success (amn) && is_enough (amn)) {
+	if (is_success(amn) && is_enough(amn)) {
 		amn->amn_success++;
 		if (amn->amn_success == amn->amn_success_threshold &&
 		    rix + 1 < ni->ni_rates.rs_nrates) {
-  			amn->amn_recovery = 1;
-  			amn->amn_success = 0;
-  			rix++;
+			amn->amn_recovery = 1;
+			amn->amn_success = 0;
+			rix++;
 			IEEE80211_NOTE(ni->ni_vap, IEEE80211_MSG_RATECTL, ni,
 			    "increase rate to %d", rix);
-  		} else {
+		} else {
 			amn->amn_recovery = 0;
 		}
-  	} else if (is_failure (amn)) {
-  		amn->amn_success = 0;
+	} else if (is_failure(amn)) {
+		amn->amn_success = 0;
 		if (rix > 0) {
-  			if (amn->amn_recovery) {
-  				/* recovery failure. */
-  				amn->amn_success_threshold *= 2;
-  				amn->amn_success_threshold = min (amn->amn_success_threshold,
-								  (u_int)ath_rate_max_success_threshold);
+			if (amn->amn_recovery) {
+				/* recovery failure. */
+				amn->amn_success_threshold *= 2;
+				amn->amn_success_threshold =
+				    min(amn->amn_success_threshold,
+					(u_int)ath_rate_max_success_threshold);
 				IEEE80211_NOTE(ni->ni_vap,
 				    IEEE80211_MSG_RATECTL, ni,
 				    "decrease rate recovery thr: %d",
 				    amn->amn_success_threshold);
-  			} else {
-  				/* simple failure. */
- 				amn->amn_success_threshold = ath_rate_min_success_threshold;
+			} else {
+				/* simple failure. */
+				amn->amn_success_threshold =
+				    ath_rate_min_success_threshold;
 				IEEE80211_NOTE(ni->ni_vap,
 				    IEEE80211_MSG_RATECTL, ni,
 				    "decrease rate normal thr: %d",
 				    amn->amn_success_threshold);
-  			}
+			}
 			amn->amn_recovery = 0;
-  			rix--;
-   		} else {
+			rix--;
+		} else {
 			amn->amn_recovery = 0;
 		}
-   	}
-	if (is_enough (amn) || rix != amn->amn_rix) {
+	}
+	if (is_enough(amn) || rix != amn->amn_rix) {
 		/* reset counters. */
 		amn->amn_tx_try0_cnt = 0;
 		amn->amn_tx_try1_cnt = 0;
@@ -440,16 +443,16 @@ ath_rate_sysctlattach(struct ath_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"rate_interval", CTLFLAG_RW, &ath_rateinterval, 0,
-		"rate control: operation interval (ms)");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rate_interval",
+	    CTLFLAG_RW, &ath_rateinterval, 0,
+	    "rate control: operation interval (ms)");
 	/* XXX bounds check values */
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"max_sucess_threshold", CTLFLAG_RW,
-		&ath_rate_max_success_threshold, 0, "");
+	    "max_sucess_threshold", CTLFLAG_RW, &ath_rate_max_success_threshold,
+	    0, "");
 	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-		"min_sucess_threshold", CTLFLAG_RW,
-		&ath_rate_min_success_threshold, 0, "");
+	    "min_sucess_threshold", CTLFLAG_RW, &ath_rate_min_success_threshold,
+	    0, "");
 }
 
 struct ath_ratectrl *
@@ -457,7 +460,7 @@ ath_rate_attach(struct ath_softc *sc)
 {
 	struct amrr_softc *asc;
 
-	asc = malloc(sizeof(struct amrr_softc), M_DEVBUF, M_NOWAIT|M_ZERO);
+	asc = malloc(sizeof(struct amrr_softc), M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (asc == NULL)
 		return NULL;
 	asc->arc.arc_space = sizeof(struct amrr_node);
@@ -469,7 +472,7 @@ ath_rate_attach(struct ath_softc *sc)
 void
 ath_rate_detach(struct ath_ratectrl *arc)
 {
-	struct amrr_softc *asc = (struct amrr_softc *) arc;
+	struct amrr_softc *asc = (struct amrr_softc *)arc;
 
 	free(asc, M_DEVBUF);
 }

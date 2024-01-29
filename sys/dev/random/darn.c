@@ -32,13 +32,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/random.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 #include <machine/md_var.h>
@@ -52,7 +52,7 @@
  * bit.
  */
 
-#define	RETRY_COUNT	10
+#define RETRY_COUNT 10
 
 static u_int random_darn_read(void *, u_int);
 
@@ -77,8 +77,8 @@ darn_rng_store(u_long *buf)
 		 * 2 - Raw random number	 (unprocessed, may include bias)
 		 * 3 - Reserved
 		 */
-	    	__asm __volatile(".long 0x7c0105e6 | (%0 << 21)" :
-	    	    "+r"(rndval));
+		__asm __volatile(".long 0x7c0105e6 | (%0 << 21)"
+				 : "+r"(rndval));
 		if (rndval != ~0)
 			break;
 	}
@@ -113,7 +113,8 @@ darn_modevent(module_t mod, int type, void *unused)
 	case MOD_LOAD:
 		if (cpu_features2 & PPC_FEATURE2_DARN) {
 			random_source_register(&random_darn);
-			printf("random: fast provider: \"%s\"\n", random_darn.rs_ident);
+			printf("random: fast provider: \"%s\"\n",
+			    random_darn.rs_ident);
 		}
 		break;
 
@@ -128,17 +129,12 @@ darn_modevent(module_t mod, int type, void *unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);
 }
 
-static moduledata_t darn_mod = {
-	"darn",
-	darn_modevent,
-	0
-};
+static moduledata_t darn_mod = { "darn", darn_modevent, 0 };
 
 DECLARE_MODULE(darn, darn_mod, SI_SUB_RANDOM, SI_ORDER_FOURTH);
 MODULE_VERSION(darn, 1);

@@ -26,36 +26,34 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/sysctl.h>
 #include <sys/rman.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sysctl.h>
 #include <sys/unistd.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/ahci/ahci.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/ahci/ahci.h>
+#define AHCI_VENDOR_SPECIFIC_0_ADDR 0xa0
+#define AHCI_VENDOR_SPECIFIC_0_DATA 0xa4
 
-#define		AHCI_VENDOR_SPECIFIC_0_ADDR	0xa0
-#define		AHCI_VENDOR_SPECIFIC_0_DATA	0xa4
-
-#define		AHCI_HC_DEVSTR		"Marvell AHCI Controller"
-#define		AHCI_HC_VENDOR		"Marvell"
+#define AHCI_HC_DEVSTR "Marvell AHCI Controller"
+#define AHCI_HC_VENDOR "Marvell"
 
 static device_attach_t ahci_mv_fdt_attach;
 
 static struct ofw_compat_data compatible_data[] = {
-	{"marvell,armada-380-ahci",	true},
-	{NULL,				false}
+	{ "marvell,armada-380-ahci", true }, { NULL, false }
 };
 
 static void
@@ -102,8 +100,8 @@ ahci_mv_fdt_attach(device_t dev)
 		ctlr->quirks |= AHCI_Q_MRVL_SR_DEL;
 
 	/* Allocate memory for controller */
-	ctlr->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &ctlr->r_rid, RF_ACTIVE | RF_SHAREABLE);
+	ctlr->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &ctlr->r_rid,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (ctlr->r_mem == NULL) {
 		device_printf(dev, "Failed to alloc memory for controller\n");
 		return (ENOMEM);
@@ -113,7 +111,8 @@ ahci_mv_fdt_attach(device_t dev)
 	rc = ahci_ctlr_reset(dev);
 	if (rc != 0) {
 		device_printf(dev, "Failed to reset controller\n");
-		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid, ctlr->r_mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid,
+		    ctlr->r_mem);
 		return (ENXIO);
 	}
 
@@ -121,7 +120,8 @@ ahci_mv_fdt_attach(device_t dev)
 
 	rc = ahci_attach(dev);
 	if (rc != 0) {
-		device_printf(dev, "Failed to initialize AHCI, with error %d\n", rc);
+		device_printf(dev, "Failed to initialize AHCI, with error %d\n",
+		    rc);
 		return (ENXIO);
 	}
 
@@ -130,24 +130,20 @@ ahci_mv_fdt_attach(device_t dev)
 
 static device_method_t ahci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			ahci_mv_fdt_probe),
-	DEVMETHOD(device_attach,		ahci_mv_fdt_attach),
-	DEVMETHOD(device_detach,		ahci_detach),
-	DEVMETHOD(bus_alloc_resource,       	ahci_alloc_resource),
-	DEVMETHOD(bus_release_resource,     	ahci_release_resource),
-	DEVMETHOD(bus_setup_intr,   		ahci_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		ahci_teardown_intr),
-	DEVMETHOD(bus_print_child,		ahci_print_child),
-	DEVMETHOD(bus_child_location,	 	ahci_child_location),
-	DEVMETHOD(bus_get_dma_tag,  		ahci_get_dma_tag),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ahci_mv_fdt_probe),
+	DEVMETHOD(device_attach, ahci_mv_fdt_attach),
+	DEVMETHOD(device_detach, ahci_detach),
+	DEVMETHOD(bus_alloc_resource, ahci_alloc_resource),
+	DEVMETHOD(bus_release_resource, ahci_release_resource),
+	DEVMETHOD(bus_setup_intr, ahci_setup_intr),
+	DEVMETHOD(bus_teardown_intr, ahci_teardown_intr),
+	DEVMETHOD(bus_print_child, ahci_print_child),
+	DEVMETHOD(bus_child_location, ahci_child_location),
+	DEVMETHOD(bus_get_dma_tag, ahci_get_dma_tag), DEVMETHOD_END
 };
 
-static driver_t ahci_driver = {
-	"ahci",
-	ahci_methods,
-	sizeof(struct ahci_controller)
-};
+static driver_t ahci_driver = { "ahci", ahci_methods,
+	sizeof(struct ahci_controller) };
 
 DRIVER_MODULE(ahci_mv, simplebus, ahci_driver, NULL, NULL);
 DRIVER_MODULE(ahci_mv, ofwbus, ahci_driver, NULL, NULL);

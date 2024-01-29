@@ -43,6 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "hash.h"
 
 /* Default location of netgroup file. */
@@ -60,7 +61,7 @@ struct member_entry *mtable[TABLESIZE];
 static void
 usage(void)
 {
-	fprintf (stderr,"usage: revnetgroup -u | -h [-f netgroup_file]\n");
+	fprintf(stderr, "usage: revnetgroup -u | -h [-f netgroup_file]\n");
 	exit(1);
 }
 
@@ -80,7 +81,7 @@ main(int argc, char *argv[])
 		usage();
 
 	while ((ch = getopt(argc, argv, "uhf:")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'u':
 			if (hosts != -1) {
 				warnx("please use only one of -u or -h");
@@ -120,9 +121,9 @@ main(int argc, char *argv[])
 		if (readbuf[0] == '#')
 			continue;
 		/* handle backslash line continuations */
-		while(readbuf[strlen(readbuf) - 2] == '\\') {
+		while (readbuf[strlen(readbuf) - 2] == '\\') {
 			fgets((char *)&readbuf[strlen(readbuf) - 2],
-					sizeof(readbuf) - strlen(readbuf), fp);
+			    sizeof(readbuf) - strlen(readbuf), fp);
 		}
 		data = NULL;
 		if ((data = (char *)(strpbrk(readbuf, " \t") + 1)) < (char *)2)
@@ -140,11 +141,13 @@ main(int argc, char *argv[])
 	 */
 	for (i = 0; i < TABLESIZE; i++) {
 		gcur = gtable[i];
-		while(gcur) {
+		while (gcur) {
 			__setnetgrent(gcur->key);
-			while(__getnetgrent(&host, &user, &domain) != 0) {
-				if (hosts ? host && strcmp(host,"-") : user && strcmp(user, "-"))
-					mstore(mtable, hosts ? host : user, gcur->key, domain);
+			while (__getnetgrent(&host, &user, &domain) != 0) {
+				if (hosts ? host && strcmp(host, "-") :
+					    user && strcmp(user, "-"))
+					mstore(mtable, hosts ? host : user,
+					    gcur->key, domain);
 			}
 			gcur = gcur->next;
 		}
@@ -156,18 +159,18 @@ main(int argc, char *argv[])
 	/* Spew out the results. */
 	for (i = 0; i < TABLESIZE; i++) {
 		mcur = mtable[i];
-		while(mcur) {
+		while (mcur) {
 			struct grouplist *tmp;
-			printf ("%s.%s\t", mcur->key, mcur->domain);
+			printf("%s.%s\t", mcur->key, mcur->domain);
 			tmp = mcur->groups;
-			while(tmp) {
-				printf ("%s", tmp->groupname);
+			while (tmp) {
+				printf("%s", tmp->groupname);
 				tmp = tmp->next;
 				if (tmp)
 					printf(",");
 			}
 			mcur = mcur->next;
-			printf ("\n");
+			printf("\n");
 		}
 	}
 

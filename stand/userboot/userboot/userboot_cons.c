@@ -25,8 +25,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/font.h>
+
+#include <stand.h>
+
 #include "bootstrap.h"
 #include "libuserboot.h"
 
@@ -111,7 +113,7 @@ static void
 userboot_cons_putchar(int c)
 {
 
-        CALLBACK(putc, c);
+	CALLBACK(putc, c);
 }
 
 static int

@@ -31,13 +31,12 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_fixed.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -48,8 +47,7 @@
 #define XTAL_OFW_INDEX 4
 
 static struct resource_spec a37x0_periph_clk_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 int
@@ -80,7 +78,7 @@ a37x0_periph_clk_attach(device_t dev)
 		return (ENXIO);
 	}
 
-	for (i = 0; i < TBG_COUNT; i++){
+	for (i = 0; i < TBG_COUNT; i++) {
 		error = clk_get_by_ofw_index(dev, node, i, &clock);
 		if (error)
 			goto fail;
@@ -94,63 +92,63 @@ a37x0_periph_clk_attach(device_t dev)
 
 	dev_defs = sc->devices;
 
-	for (i = 0; i< sc->device_count; i++) {
+	for (i = 0; i < sc->device_count; i++) {
 		dev_defs[i].common_def.tbgs = tbg_clocks;
 		dev_defs[i].common_def.xtal = xtal_clock;
 		dev_defs[i].common_def.tbg_cnt = TBG_COUNT;
 		switch (dev_defs[i].type) {
 		case CLK_FULL_DD:
-			error = a37x0_periph_d_register_full_clk_dd(
-			    sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_d_register_full_clk_dd(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_FULL:
-			error = a37x0_periph_d_register_full_clk(
-			    sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_d_register_full_clk(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_GATE:
-			error = a37x0_periph_gate_register_gate(
-			    sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_gate_register_gate(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_MUX_GATE:
-			error = a37x0_periph_register_mux_gate(
-			   sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_register_mux_gate(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_FIXED:
-			error = a37x0_periph_fixed_register_fixed(
-			   sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_fixed_register_fixed(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_CPU:
-			error = a37x0_periph_d_register_periph_cpu(
-			   sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_d_register_periph_cpu(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_MDD:
-			error = a37x0_periph_d_register_mdd(
-			    sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_d_register_mdd(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
 
 		case CLK_MUX_GATE_FIXED:
-			error = a37x0_periph_register_mux_gate_fixed(
-			    sc->clkdom, &dev_defs[i]);
+			error = a37x0_periph_register_mux_gate_fixed(sc->clkdom,
+			    &dev_defs[i]);
 			if (error)
 				goto fail;
 			break;
@@ -173,7 +171,6 @@ fail:
 	bus_release_resources(dev, a37x0_periph_clk_spec, &sc->res);
 
 	return (error);
-
 }
 
 int

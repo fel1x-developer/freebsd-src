@@ -35,7 +35,7 @@ extern "C" {
 #include <signal.h>
 #include <unistd.h>
 
-#include "mntopts.h"	// for build_iovec
+#include "mntopts.h" // for build_iovec
 }
 
 #include "mockfs.hh"
@@ -47,72 +47,85 @@ using namespace testing;
 static bool
 is_zero(const char *buf, uint64_t size)
 {
-    return buf[0] == 0 && !memcmp(buf, buf + 1, size - 1);
+	return buf[0] == 0 && !memcmp(buf, buf + 1, size - 1);
 }
 
-class Fallocate: public FuseTest {
-public:
-/*
- * expect VOP_DEALLOCATE to be implemented by vop_stddeallocate.
- */
-void expect_vop_stddeallocate(uint64_t ino, uint64_t off, uint64_t length)
-{
-	/* XXX read offset and size may depend on cache mode */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.offset <= off &&
-				in.body.read.offset + in.body.read.size >=
-					off + length);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in, auto& out) {
-		assert(in.body.read.size <= sizeof(out.body.bytes));
-		out.header.len = sizeof(struct fuse_out_header) +
-			in.body.read.size;
-		memset(out.body.bytes, 'X', in.body.read.size);
-	}))).RetiresOnSaturation();
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *buf = (const char*)in.body.bytes +
-				sizeof(struct fuse_write_in);
+class Fallocate : public FuseTest {
+    public:
+	/*
+	 * expect VOP_DEALLOCATE to be implemented by vop_stddeallocate.
+	 */
+	void expect_vop_stddeallocate(uint64_t ino, uint64_t off,
+	    uint64_t length)
+	{
+		/* XXX read offset and size may depend on cache mode */
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (in.header.opcode == FUSE_READ &&
+					    in.header.nodeid == ino &&
+					    in.body.read.offset <= off &&
+					    in.body.read.offset +
+						    in.body.read.size >=
+						off + length);
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnImmediate([=](auto in, auto &out) {
+			    assert(in.body.read.size <= sizeof(out.body.bytes));
+			    out.header.len = sizeof(struct fuse_out_header) +
+				in.body.read.size;
+			    memset(out.body.bytes, 'X', in.body.read.size);
+		    })))
+		    .RetiresOnSaturation();
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *buf = (const char *)
+							      in.body.bytes +
+					    sizeof(struct fuse_write_in);
 
-			assert(length <= sizeof(in.body.bytes) -
-				sizeof(struct fuse_write_in));
-			return (in.header.opcode == FUSE_WRITE &&
-				in.header.nodeid == ino &&
-				in.body.write.offset == off  &&
-				in.body.write.size == length &&
-				is_zero(buf, length));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, write);
-		out.body.write.size = length;
-	})));
-}
+					assert(length <= sizeof(in.body.bytes) -
+						sizeof(struct fuse_write_in));
+					return (
+					    in.header.opcode == FUSE_WRITE &&
+					    in.header.nodeid == ino &&
+					    in.body.write.offset == off &&
+					    in.body.write.size == length &&
+					    is_zero(buf, length));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, write);
+				out.body.write.size = length;
+			})));
+	}
 };
 
-class Fspacectl: public Fallocate {};
+class Fspacectl : public Fallocate { };
 
-class Fspacectl_7_18: public Fspacectl {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 18;
-	Fspacectl::SetUp();
-}
+class Fspacectl_7_18 : public Fspacectl {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 18;
+		Fspacectl::SetUp();
+	}
 };
 
-class FspacectlCache: public Fspacectl, public WithParamInterface<cache_mode> {
-public:
-bool m_direct_io;
+class FspacectlCache : public Fspacectl, public WithParamInterface<cache_mode> {
+    public:
+	bool m_direct_io;
 
-FspacectlCache(): m_direct_io(false) {};
+	FspacectlCache()
+	    : m_direct_io(false) {};
 
-virtual void SetUp() {
-	int cache_mode = GetParam();
-	switch (cache_mode) {
+	virtual void SetUp()
+	{
+		int cache_mode = GetParam();
+		switch (cache_mode) {
 		case Uncached:
 			m_direct_io = true;
 			break;
@@ -126,49 +139,52 @@ virtual void SetUp() {
 			break;
 		default:
 			FAIL() << "Unknown cache mode";
-	}
+		}
 
-	FuseTest::SetUp();
-	if (IsSkipped())
-		return;
-}
+		FuseTest::SetUp();
+		if (IsSkipped())
+			return;
+	}
 };
 
-class PosixFallocate: public Fallocate {
-public:
-static sig_atomic_t s_sigxfsz;
+class PosixFallocate : public Fallocate {
+    public:
+	static sig_atomic_t s_sigxfsz;
 
-void SetUp() {
-	s_sigxfsz = 0;
-	FuseTest::SetUp();
-}
+	void SetUp()
+	{
+		s_sigxfsz = 0;
+		FuseTest::SetUp();
+	}
 
-void TearDown() {
-	struct sigaction sa;
+	void TearDown()
+	{
+		struct sigaction sa;
 
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = SIG_DFL;
-	sigaction(SIGXFSZ, &sa, NULL);
+		bzero(&sa, sizeof(sa));
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGXFSZ, &sa, NULL);
 
-	Fallocate::TearDown();
-}
-
+		Fallocate::TearDown();
+	}
 };
 
 sig_atomic_t PosixFallocate::s_sigxfsz = 0;
 
-void sigxfsz_handler(int __unused sig) {
+void
+sigxfsz_handler(int __unused sig)
+{
 	PosixFallocate::s_sigxfsz = 1;
 }
 
-class PosixFallocate_7_18: public PosixFallocate {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 18;
-	PosixFallocate::SetUp();
-}
+class PosixFallocate_7_18 : public PosixFallocate {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 18;
+		PosixFallocate::SetUp();
+	}
 };
-
 
 /*
  * If the server returns ENOSYS, it indicates that the server does not support
@@ -192,7 +208,7 @@ TEST_F(Fspacectl, enosys)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off0, len0,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, ENOSYS);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, ENOSYS);
 	expect_vop_stddeallocate(ino, off0, len0);
 	expect_vop_stddeallocate(ino, off2, len2);
 
@@ -232,12 +248,10 @@ TEST_F(Fspacectl, eopnotsupp)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, off0, len,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE,
-	                EOPNOTSUPP);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, EOPNOTSUPP);
 	expect_vop_stddeallocate(ino, off0, len);
 	expect_fallocate(ino, off1, len,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE,
-	                EOPNOTSUPP);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, EOPNOTSUPP);
 	expect_vop_stddeallocate(ino, off1, len);
 	expect_fallocate(ino, fsize, len, 0, 0);
 
@@ -278,19 +292,21 @@ TEST_F(Fspacectl, erofs)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out)
-	{
-		/*
-		 * All of the fields except f_flags are don't care, and f_flags
-		 * is set by the VFS
-		 */
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			/*
+			 * All of the fields except f_flags are don't care, and
+			 * f_flags is set by the VFS
+			 */
+			SET_OUT_HEADER_LEN(out, statfs);
+		})));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -298,8 +314,8 @@ TEST_F(Fspacectl, erofs)
 	/* Remount read-only */
 	ASSERT_EQ(0, statfs("mountpoint", &statbuf)) << strerror(errno);
 	newflags = statbuf.f_flags | MNT_UPDATE | MNT_RDONLY;
-	build_iovec(&iov, &iovlen, "fstype", (void*)statbuf.f_fstypename, -1);
-	build_iovec(&iov, &iovlen, "fspath", (void*)statbuf.f_mntonname, -1);
+	build_iovec(&iov, &iovlen, "fstype", (void *)statbuf.f_fstypename, -1);
+	build_iovec(&iov, &iovlen, "fspath", (void *)statbuf.f_mntonname, -1);
 	build_iovec(&iov, &iovlen, "from", __DECONST(void *, "/dev/fuse"), -1);
 	ASSERT_EQ(0, nmount(iov, iovlen, newflags)) << strerror(errno);
 	free_iovec(&iov, &iovlen);
@@ -325,7 +341,7 @@ TEST_F(Fspacectl, ok)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, offset, length,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -366,7 +382,7 @@ TEST_F(Fspacectl, past_eof)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, offset, length,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -394,7 +410,7 @@ TEST_F(Fspacectl, spans_eof)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, offset, length,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -467,14 +483,14 @@ TEST_P(FspacectlCache, clears_cache)
 	expect_read(ino, 0, fsize, fsize, zbuf);
 	expect_read(ino, 0, fsize, fsize, CONTENTS);
 	expect_fallocate(ino, offset, length,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	/* Populate the cache */
 	ASSERT_EQ(fsize, (uint64_t)pread(fd, buf, bufsize, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(buf, CONTENTS, fsize));
 
 	/* Zero the file */
@@ -486,15 +502,14 @@ TEST_P(FspacectlCache, clears_cache)
 
 	/* Read again.  This should query the daemon */
 	ASSERT_EQ(fsize, (uint64_t)pread(fd, buf, bufsize, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(buf, zbuf, fsize));
 
 	leak(fd);
 }
 
 INSTANTIATE_TEST_SUITE_P(FspacectlCache, FspacectlCache,
-	Values(Uncached, Writethrough, Writeback)
-);
+    Values(Uncached, Writethrough, Writeback));
 
 /*
  * If the server returns ENOSYS, it indicates that the server does not support
@@ -553,7 +568,7 @@ TEST_F(PosixFallocate, eopnotsupp)
 	expect_fallocate(ino, fsize, length, 0, EOPNOTSUPP);
 	expect_fallocate(ino, offset, length, 0, EOPNOTSUPP);
 	expect_fallocate(ino, offset, length,
-		FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
+	    FUSE_FALLOC_FL_KEEP_SIZE | FUSE_FALLOC_FL_PUNCH_HOLE, 0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -610,19 +625,21 @@ TEST_F(PosixFallocate, erofs)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_STATFS);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out)
-	{
-		/*
-		 * All of the fields except f_flags are don't care, and f_flags
-		 * is set by the VFS
-		 */
-		SET_OUT_HEADER_LEN(out, statfs);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_STATFS);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			/*
+			 * All of the fields except f_flags are don't care, and
+			 * f_flags is set by the VFS
+			 */
+			SET_OUT_HEADER_LEN(out, statfs);
+		})));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -630,8 +647,8 @@ TEST_F(PosixFallocate, erofs)
 	/* Remount read-only */
 	ASSERT_EQ(0, statfs("mountpoint", &statbuf)) << strerror(errno);
 	newflags = statbuf.f_flags | MNT_UPDATE | MNT_RDONLY;
-	build_iovec(&iov, &iovlen, "fstype", (void*)statbuf.f_fstypename, -1);
-	build_iovec(&iov, &iovlen, "fspath", (void*)statbuf.f_mntonname, -1);
+	build_iovec(&iov, &iovlen, "fstype", (void *)statbuf.f_fstypename, -1);
+	build_iovec(&iov, &iovlen, "fspath", (void *)statbuf.f_mntonname, -1);
 	build_iovec(&iov, &iovlen, "from", __DECONST(void *, "/dev/fuse"), -1);
 	ASSERT_EQ(0, nmount(iov, iovlen, newflags)) << strerror(errno);
 	free_iovec(&iov, &iovlen);
@@ -652,13 +669,13 @@ TEST_F(PosixFallocate, ok)
 	int fd;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+	    })));
 	expect_open(ino, 0, 1);
 	expect_fallocate(ino, offset, length, 0, 0);
 

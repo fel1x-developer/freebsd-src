@@ -35,12 +35,11 @@
 #ifndef _CORE_PRIV_H
 #define _CORE_PRIV_H
 
+#include <net/if_vlan_var.h>
+
 #include <linux/list.h>
 #include <linux/spinlock.h>
-
 #include <rdma/ib_verbs.h>
-
-#include <net/if_vlan_var.h>
 
 /* Total number of ports combined across all struct ib_devices's */
 #define RDMA_MAX_PORTS 8192
@@ -49,12 +48,14 @@
 int cma_configfs_init(void);
 void cma_configfs_exit(void);
 #else
-static inline int cma_configfs_init(void)
+static inline int
+cma_configfs_init(void)
 {
 	return 0;
 }
 
-static inline void cma_configfs_exit(void)
+static inline void
+cma_configfs_exit(void)
 {
 }
 #endif
@@ -62,38 +63,30 @@ struct cma_device;
 void cma_ref_dev(struct cma_device *cma_dev);
 void cma_deref_dev(struct cma_device *cma_dev);
 typedef bool (*cma_device_filter)(struct ib_device *, void *);
-struct cma_device *cma_enum_devices_by_ibdev(cma_device_filter	filter,
-					     void		*cookie);
-int cma_get_default_gid_type(struct cma_device *cma_dev,
-			     unsigned int port);
-int cma_set_default_gid_type(struct cma_device *cma_dev,
-			     unsigned int port,
-			     enum ib_gid_type default_gid_type);
+struct cma_device *cma_enum_devices_by_ibdev(cma_device_filter filter,
+    void *cookie);
+int cma_get_default_gid_type(struct cma_device *cma_dev, unsigned int port);
+int cma_set_default_gid_type(struct cma_device *cma_dev, unsigned int port,
+    enum ib_gid_type default_gid_type);
 struct ib_device *cma_get_ib_dev(struct cma_device *cma_dev);
 
-int  ib_device_register_sysfs(struct ib_device *device,
-			      int (*port_callback)(struct ib_device *,
-						   u8, struct kobject *));
+int ib_device_register_sysfs(struct ib_device *device,
+    int (*port_callback)(struct ib_device *, u8, struct kobject *));
 void ib_device_unregister_sysfs(struct ib_device *device);
 
 void ib_cache_setup(void);
 void ib_cache_cleanup(void);
 
 typedef void (*roce_netdev_callback)(struct ib_device *device, u8 port,
-	      if_t idev, void *cookie);
+    if_t idev, void *cookie);
 
-typedef int (*roce_netdev_filter)(struct ib_device *device, u8 port,
-	     if_t idev, void *cookie);
+typedef int (*roce_netdev_filter)(struct ib_device *device, u8 port, if_t idev,
+    void *cookie);
 
-void ib_enum_roce_netdev(struct ib_device *ib_dev,
-			 roce_netdev_filter filter,
-			 void *filter_cookie,
-			 roce_netdev_callback cb,
-			 void *cookie);
-void ib_enum_all_roce_netdevs(roce_netdev_filter filter,
-			      void *filter_cookie,
-			      roce_netdev_callback cb,
-			      void *cookie);
+void ib_enum_roce_netdev(struct ib_device *ib_dev, roce_netdev_filter filter,
+    void *filter_cookie, roce_netdev_callback cb, void *cookie);
+void ib_enum_all_roce_netdevs(roce_netdev_filter filter, void *filter_cookie,
+    roce_netdev_callback cb, void *cookie);
 
 enum ib_cache_gid_default_mode {
 	IB_CACHE_GID_DEFAULT_MODE_SET,
@@ -104,19 +97,17 @@ int ib_cache_gid_parse_type_str(const char *buf);
 
 const char *ib_cache_gid_type_str(enum ib_gid_type gid_type);
 
-void ib_cache_gid_set_default_gid(struct ib_device *ib_dev, u8 port,
-				  if_t ndev,
-				  unsigned long gid_type_mask,
-				  enum ib_cache_gid_default_mode mode);
+void ib_cache_gid_set_default_gid(struct ib_device *ib_dev, u8 port, if_t ndev,
+    unsigned long gid_type_mask, enum ib_cache_gid_default_mode mode);
 
-int ib_cache_gid_add(struct ib_device *ib_dev, u8 port,
-		     union ib_gid *gid, struct ib_gid_attr *attr);
+int ib_cache_gid_add(struct ib_device *ib_dev, u8 port, union ib_gid *gid,
+    struct ib_gid_attr *attr);
 
-int ib_cache_gid_del(struct ib_device *ib_dev, u8 port,
-		     union ib_gid *gid, struct ib_gid_attr *attr);
+int ib_cache_gid_del(struct ib_device *ib_dev, u8 port, union ib_gid *gid,
+    struct ib_gid_attr *attr);
 
 int ib_cache_gid_del_all_netdev_gids(struct ib_device *ib_dev, u8 port,
-				     if_t ndev);
+    if_t ndev);
 void ib_cache_gid_del_all_by_netdev(if_t ndev);
 
 int roce_gid_mgmt_init(void);
@@ -129,7 +120,7 @@ int ib_cache_setup_one(struct ib_device *device);
 void ib_cache_cleanup_one(struct ib_device *device);
 void ib_cache_release_one(struct ib_device *device);
 
-#define	ib_rdmacg_try_charge(...) ({ 0; })
+#define ib_rdmacg_try_charge(...) ({ 0; })
 
 int addr_init(void);
 void addr_cleanup(void);
@@ -141,15 +132,13 @@ int ib_sa_init(void);
 void ib_sa_cleanup(void);
 
 int ib_port_register_module_stat(struct ib_device *device, u8 port_num,
-				 struct kobject *kobj, struct kobj_type *ktype,
-				 const char *name);
+    struct kobject *kobj, struct kobj_type *ktype, const char *name);
 void ib_port_unregister_module_stat(struct kobject *kobj);
 
-static inline struct ib_qp *_ib_create_qp(struct ib_device *dev,
-					  struct ib_pd *pd,
-					  struct ib_qp_init_attr *attr,
-					  struct ib_udata *udata,
-					  struct ib_uqp_object *uobj)
+static inline struct ib_qp *
+_ib_create_qp(struct ib_device *dev, struct ib_pd *pd,
+    struct ib_qp_init_attr *attr, struct ib_udata *udata,
+    struct ib_uqp_object *uobj)
 {
 	struct ib_qp *qp;
 
@@ -186,7 +175,6 @@ struct rdma_umap_priv {
 };
 
 void rdma_umap_priv_init(struct rdma_umap_priv *priv,
-			 struct vm_area_struct *vma,
-			 struct rdma_user_mmap_entry *entry);
+    struct vm_area_struct *vma, struct rdma_user_mmap_entry *entry);
 
 #endif /* _CORE_PRIV_H */

@@ -28,16 +28,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/random.h>
 #include <sys/sglist.h>
 #include <sys/sysctl.h>
@@ -47,16 +47,14 @@
 #endif
 
 #include <dev/pci/pcivar.h>
-
 #include <dev/random/randomdev.h>
 
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
 
-#include "cryptodev_if.h"
-
 #include "ccp.h"
 #include "ccp_hardware.h"
+#include "cryptodev_if.h"
 
 MALLOC_DEFINE(M_CCP, "ccp", "AMD CCP crypto");
 
@@ -312,7 +310,7 @@ static bool
 ccp_auth_supported(struct ccp_softc *sc,
     const struct crypto_session_params *csp)
 {
-	
+
 	if ((sc->hw_features & VERSION_CAP_SHA) == 0)
 		return (false);
 	switch (csp->csp_auth_alg) {
@@ -352,8 +350,8 @@ ccp_cipher_supported(struct ccp_softc *sc,
 	default:
 		return (false);
 	}
-	return (ccp_aes_check_keylen(csp->csp_cipher_alg,
-	    csp->csp_cipher_klen));
+	return (
+	    ccp_aes_check_keylen(csp->csp_cipher_alg, csp->csp_cipher_klen));
 }
 
 static int
@@ -615,30 +613,24 @@ out:
 	return (0);
 }
 
-static device_method_t ccp_methods[] = {
-	DEVMETHOD(device_probe,		ccp_probe),
-	DEVMETHOD(device_attach,	ccp_attach),
-	DEVMETHOD(device_detach,	ccp_detach),
+static device_method_t ccp_methods[] = { DEVMETHOD(device_probe, ccp_probe),
+	DEVMETHOD(device_attach, ccp_attach),
+	DEVMETHOD(device_detach, ccp_detach),
 
 	DEVMETHOD(cryptodev_probesession, ccp_probesession),
-	DEVMETHOD(cryptodev_newsession,	ccp_newsession),
+	DEVMETHOD(cryptodev_newsession, ccp_newsession),
 	DEVMETHOD(cryptodev_freesession, ccp_freesession),
-	DEVMETHOD(cryptodev_process,	ccp_process),
+	DEVMETHOD(cryptodev_process, ccp_process),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ccp_driver = {
-	"ccp",
-	ccp_methods,
-	sizeof(struct ccp_softc)
-};
+static driver_t ccp_driver = { "ccp", ccp_methods, sizeof(struct ccp_softc) };
 
 DRIVER_MODULE(ccp, pci, ccp_driver, NULL, NULL);
 MODULE_VERSION(ccp, 1);
 MODULE_DEPEND(ccp, crypto, 1, 1, 1);
 MODULE_DEPEND(ccp, random_device, 1, 1, 1);
-#if 0	/* There are enough known issues that we shouldn't load automatically */
+#if 0 /* There are enough known issues that we shouldn't load automatically */
 MODULE_PNP_INFO("W32:vendor/device", pci, ccp, ccp_ids,
     nitems(ccp_ids));
 #endif
@@ -698,7 +690,7 @@ ccp_queue_abort(struct ccp_queue *qp)
 
 	/* Wipe out any descriptors associated with this aborted txn. */
 	for (i = qp->cq_acq_tail; i != qp->cq_tail;
-	    i = (i + 1) % (1 << qp->cq_softc->ring_size_order)) {
+	     i = (i + 1) % (1 << qp->cq_softc->ring_size_order)) {
 		memset(&qp->desc_ring[i], 0, sizeof(qp->desc_ring[i]));
 	}
 	qp->cq_tail = qp->cq_acq_tail;
@@ -707,8 +699,8 @@ ccp_queue_abort(struct ccp_queue *qp)
 }
 
 #ifdef DDB
-#define	_db_show_lock(lo)	LOCK_CLASS(lo)->lc_ddb_show(lo)
-#define	db_show_lock(lk)	_db_show_lock(&(lk)->lock_object)
+#define _db_show_lock(lo) LOCK_CLASS(lo)->lc_ddb_show(lo)
+#define db_show_lock(lk) _db_show_lock(&(lk)->lock_object)
 static void
 db_show_ccp_sc(struct ccp_softc *sc)
 {

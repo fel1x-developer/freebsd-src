@@ -25,28 +25,27 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
+
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/smc/if_smcvar.h>
 
 #include <net/if.h>
 
-#include <dev/smc/if_smcvar.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-static int		smc_fdt_probe(device_t);
+static int smc_fdt_probe(device_t);
 
 static int
 smc_fdt_probe(device_t dev)
 {
-	struct	smc_softc *sc;
+	struct smc_softc *sc;
 
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
@@ -67,12 +66,11 @@ smc_fdt_probe(device_t dev)
 
 static device_method_t smc_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		smc_fdt_probe),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, smc_fdt_probe), { 0, 0 }
 };
 
-DEFINE_CLASS_1(smc, smc_fdt_driver, smc_fdt_methods,
-    sizeof(struct smc_softc), smc_driver);
+DEFINE_CLASS_1(smc, smc_fdt_driver, smc_fdt_methods, sizeof(struct smc_softc),
+    smc_driver);
 
 DRIVER_MODULE(smc, simplebus, smc_fdt_driver, 0, 0);
 MODULE_DEPEND(smc, fdt, 1, 1, 1);

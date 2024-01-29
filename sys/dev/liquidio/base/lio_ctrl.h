@@ -40,9 +40,9 @@
 #define __LIO_CTRL_H__
 
 /* Maximum number of 8-byte words can be sent in a NIC control message. */
-#define LIO_MAX_NCTRL_UDD	32
+#define LIO_MAX_NCTRL_UDD 32
 
-typedef void	(*lio_ctrl_pkt_cb_fn_t)(void *);
+typedef void (*lio_ctrl_pkt_cb_fn_t)(void *);
 
 /*
  * Structure of control information passed by the NIC module to the OSI
@@ -50,33 +50,33 @@ typedef void	(*lio_ctrl_pkt_cb_fn_t)(void *);
  */
 struct lio_ctrl_pkt {
 	/* Command to be passed to the Octeon device software. */
-	union octeon_cmd	ncmd;
+	union octeon_cmd ncmd;
 
 	/* Send buffer  */
-	void			*data;
-	uint64_t		dmadata;
+	void *data;
+	uint64_t dmadata;
 
 	/* Response buffer */
-	void			*rdata;
-	uint64_t		dmardata;
+	void *rdata;
+	uint64_t dmardata;
 
 	/* Additional data that may be needed by some commands. */
-	uint64_t		udd[LIO_MAX_NCTRL_UDD];
+	uint64_t udd[LIO_MAX_NCTRL_UDD];
 
 	/* Input queue to use to send this command. */
-	uint64_t		iq_no;
+	uint64_t iq_no;
 
 	/*
 	 *  Time to wait for Octeon software to respond to this control command.
 	 *  If wait_time is 0, OSI assumes no response is expected.
 	 */
-	size_t			wait_time;
+	size_t wait_time;
 
 	/* The network device that issued the control command. */
-	struct lio		*lio;
+	struct lio *lio;
 
 	/* Callback function called when the command has been fetched */
-	lio_ctrl_pkt_cb_fn_t	cb_fn;
+	lio_ctrl_pkt_cb_fn_t cb_fn;
 };
 
 /*
@@ -88,20 +88,19 @@ struct lio_data_pkt {
 	 *  Pointer to information maintained by NIC module for this packet. The
 	 *  OSI layer passes this as-is to the driver.
 	 */
-	void			*buf;
+	void *buf;
 
 	/* Type of buffer passed in "buf" above. */
-	uint32_t		reqtype;
+	uint32_t reqtype;
 
 	/* Total data bytes to be transferred in this command. */
-	uint32_t		datasize;
+	uint32_t datasize;
 
 	/* Command to be passed to the Octeon device software. */
-	union lio_instr_64B	cmd;
+	union lio_instr_64B cmd;
 
 	/* Input queue to use to send this command. */
-	uint32_t		q_no;
-
+	uint32_t q_no;
 };
 
 /*
@@ -110,22 +109,21 @@ struct lio_data_pkt {
  */
 union lio_cmd_setup {
 	struct {
-		uint32_t	iq_no:8;
-		uint32_t	gather:1;
-		uint32_t	timestamp:1;
-		uint32_t	ip_csum:1;
-		uint32_t	transport_csum:1;
-		uint32_t	tnl_csum:1;
-		uint32_t	rsvd:19;
+		uint32_t iq_no : 8;
+		uint32_t gather : 1;
+		uint32_t timestamp : 1;
+		uint32_t ip_csum : 1;
+		uint32_t transport_csum : 1;
+		uint32_t tnl_csum : 1;
+		uint32_t rsvd : 19;
 
 		union {
-			uint32_t	datasize;
-			uint32_t	gatherptrs;
-		}	u;
-	}	s;
+			uint32_t datasize;
+			uint32_t gatherptrs;
+		} u;
+	} s;
 
-	uint64_t	cmd_setup64;
-
+	uint64_t cmd_setup64;
 };
 
 static inline int
@@ -133,18 +131,18 @@ lio_iq_is_full(struct octeon_device *oct, uint32_t q_no)
 {
 
 	return (atomic_load_acq_int(&oct->instr_queue[q_no]->instr_pending) >=
-		(oct->instr_queue[q_no]->max_count - 2));
+	    (oct->instr_queue[q_no]->max_count - 2));
 }
 
 static inline void
 lio_prepare_pci_cmd_o3(struct octeon_device *oct, union lio_instr_64B *cmd,
-		       union lio_cmd_setup *setup, uint32_t tag)
+    union lio_cmd_setup *setup, uint32_t tag)
 {
-	union octeon_packet_params	packet_params;
-	struct octeon_instr_irh		*irh;
-	struct octeon_instr_ih3		*ih3;
-	struct octeon_instr_pki_ih3	*pki_ih3;
-	int	port;
+	union octeon_packet_params packet_params;
+	struct octeon_instr_irh *irh;
+	struct octeon_instr_ih3 *ih3;
+	struct octeon_instr_pki_ih3 *pki_ih3;
+	int port;
 
 	bzero(cmd, sizeof(union lio_instr_64B));
 
@@ -181,7 +179,7 @@ lio_prepare_pci_cmd_o3(struct octeon_device *oct, union lio_instr_64B *cmd,
 
 	pki_ih3->tagtype = LIO_ORDERED_TAG;
 	pki_ih3->qpg = oct->instr_queue[setup->s.iq_no]->txpciq.s.qpg;
-	pki_ih3->pm = 0x0;		/* parse from L2 */
+	pki_ih3->pm = 0x0; /* parse from L2 */
 	/* sl will be sizeof(pki_ih3) + irh + ossp0 + ossp1 */
 	pki_ih3->sl = 32;
 
@@ -211,7 +209,7 @@ lio_prepare_pci_cmd_o3(struct octeon_device *oct, union lio_instr_64B *cmd,
  */
 static inline void
 lio_prepare_pci_cmd(struct octeon_device *oct, union lio_instr_64B *cmd,
-		    union lio_cmd_setup *setup, uint32_t tag)
+    union lio_cmd_setup *setup, uint32_t tag)
 {
 
 	lio_prepare_pci_cmd_o3(oct, cmd, setup, tag);
@@ -226,8 +224,7 @@ lio_prepare_pci_cmd(struct octeon_device *oct, union lio_instr_64B *cmd,
  * LIO_IQ_STOP if it the queue should be stopped,
  * and LIO_IQ_SEND_OK if it sent okay.
  */
-int	lio_send_data_pkt(struct octeon_device *oct,
-			  struct lio_data_pkt *ndata);
+int lio_send_data_pkt(struct octeon_device *oct, struct lio_data_pkt *ndata);
 
 /*
  * Send a NIC control packet to the device
@@ -236,7 +233,6 @@ int	lio_send_data_pkt(struct octeon_device *oct,
  * @returns IQ_FAILED if it failed to add to the input queue. IQ_STOP if it the
  * queue should be stopped, and LIO_IQ_SEND_OK if it sent okay.
  */
-int	lio_send_ctrl_pkt(struct octeon_device *oct,
-			  struct lio_ctrl_pkt *nctrl);
+int lio_send_ctrl_pkt(struct octeon_device *oct, struct lio_ctrl_pkt *nctrl);
 
-#endif	/* __LIO_CTRL_H__ */
+#endif /* __LIO_CTRL_H__ */

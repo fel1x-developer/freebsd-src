@@ -26,38 +26,39 @@
  */
 
 #ifndef _LINUXKPI_ASM_PROCESSOR_H_
-#define	_LINUXKPI_ASM_PROCESSOR_H_
+#define _LINUXKPI_ASM_PROCESSOR_H_
 
 #include <sys/types.h>
-#include <machine/cpufunc.h>
+
 #include <machine/cpu.h>
+#include <machine/cpufunc.h>
 
 #if defined(__i386__) || defined(__amd64__)
-#define	X86_VENDOR_INTEL	0
-#define	X86_VENDOR_CYRIX	1
-#define	X86_VENDOR_AMD		2
-#define	X86_VENDOR_UMC		3
-#define	X86_VENDOR_CENTAUR	5
-#define	X86_VENDOR_TRANSMETA	7
-#define	X86_VENDOR_NSC		8
-#define	X86_VENDOR_HYGON	9
-#define	X86_VENDOR_NUM		12
+#define X86_VENDOR_INTEL 0
+#define X86_VENDOR_CYRIX 1
+#define X86_VENDOR_AMD 2
+#define X86_VENDOR_UMC 3
+#define X86_VENDOR_CENTAUR 5
+#define X86_VENDOR_TRANSMETA 7
+#define X86_VENDOR_NSC 8
+#define X86_VENDOR_HYGON 9
+#define X86_VENDOR_NUM 12
 
-#define	X86_VENDOR_UNKNOWN	0xff
+#define X86_VENDOR_UNKNOWN 0xff
 
 struct cpuinfo_x86 {
-	uint8_t		x86;
-	uint8_t		x86_model;
-	uint16_t	x86_clflush_size;
-	uint16_t	x86_max_cores;
-	uint8_t		x86_vendor;
+	uint8_t x86;
+	uint8_t x86_model;
+	uint16_t x86_clflush_size;
+	uint16_t x86_max_cores;
+	uint8_t x86_vendor;
 };
 
-extern struct cpuinfo_x86	boot_cpu_data;
-extern struct cpuinfo_x86	*__cpu_data;
-#define	cpu_data(cpu)	__cpu_data[cpu]
+extern struct cpuinfo_x86 boot_cpu_data;
+extern struct cpuinfo_x86 *__cpu_data;
+#define cpu_data(cpu) __cpu_data[cpu]
 #endif
 
-#define	cpu_relax()	cpu_spinwait()
+#define cpu_relax() cpu_spinwait()
 
-#endif	/* _LINUXKPI_ASM_PROCESSOR_H_ */
+#endif /* _LINUXKPI_ASM_PROCESSOR_H_ */

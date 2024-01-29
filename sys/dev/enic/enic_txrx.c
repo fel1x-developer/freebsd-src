@@ -7,52 +7,54 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/endian.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/smp.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
 #include <net/iflib.h>
 #ifdef RSS
 #include <net/rss_config.h>
 #endif
 
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
+#include "opt_inet.h"
+#include "opt_inet6.h"
+
+#include <sys/bus.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include "ifdi_if.h"
-#include "enic.h"
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+#include <netinet/udp.h>
+#include <netinet6/ip6_var.h>
 
-#include "opt_inet.h"
-#include "opt_inet6.h"
+#include "enic.h"
+#include "ifdi_if.h"
 
 static int enic_isc_txd_encap(void *, if_pkt_info_t);
 static void enic_isc_txd_flush(void *, uint16_t, qidx_t);
@@ -68,16 +70,14 @@ static int enic_wq_service(struct vnic_dev *, struct cq_desc *, u8, u16, u16,
 static int enic_rq_service(struct vnic_dev *, struct cq_desc *, u8, u16, u16,
     void *);
 
-struct if_txrx	enic_txrx = {
-	.ift_txd_encap = enic_isc_txd_encap,
+struct if_txrx enic_txrx = { .ift_txd_encap = enic_isc_txd_encap,
 	.ift_txd_flush = enic_isc_txd_flush,
 	.ift_txd_credits_update = enic_isc_txd_credits_update,
 	.ift_rxd_available = enic_isc_rxd_available,
 	.ift_rxd_pkt_get = enic_isc_rxd_pkt_get,
 	.ift_rxd_refill = enic_isc_rxd_refill,
 	.ift_rxd_flush = enic_isc_rxd_flush,
-	.ift_legacy_intr = enic_legacy_intr
-};
+	.ift_legacy_intr = enic_legacy_intr };
 
 static int
 enic_isc_txd_encap(void *vsc, if_pkt_info_t pi)
@@ -126,8 +126,8 @@ enic_isc_txd_encap(void *vsc, if_pkt_info_t pi)
 		data_len = pi->ipi_segs[i].ds_len;
 
 		wq_enet_desc_enc(&desc[head_idx], bus_addr, data_len, mss,
-				 header_len, offload_mode, eop, cq, 0,
-				 vlan_tag_insert, vlan_id, 0);
+		    header_len, offload_mode, eop, cq, 0, vlan_tag_insert,
+		    vlan_id, 0);
 
 		head_idx = enic_ring_incr(desc_count, head_idx);
 		wq_desc_avail--;
@@ -192,8 +192,7 @@ enic_isc_txd_credits_update(void *vsc, uint16_t txqid, bool clear)
 		return (1);
 
 	ENIC_LOCK(softc);
-	vnic_cq_service(cq, wq_work_to_do,
-		    enic_wq_service, NULL);
+	vnic_cq_service(cq, wq_work_to_do, enic_wq_service, NULL);
 
 	processed = wq->processed;
 	wq->processed = 0;
@@ -250,7 +249,6 @@ enic_isc_rxd_pkt_get(void *vsc, if_rxd_info_t ri)
 		ENIC_UNLOCK(softc);
 		return (-1);
 	}
-
 }
 
 static void
@@ -281,10 +279,8 @@ enic_isc_rxd_refill(void *vsc, if_rxd_update_t iru)
 
 		if (idx == rq->ring.desc_count)
 			idx = 0;
-		rq_enet_desc_enc(&rqd[idx], paddrs[i],
-				 RQ_ENET_TYPE_ONLY_SOP,
-				 len);
-
+		rq_enet_desc_enc(&rqd[idx], paddrs[i], RQ_ENET_TYPE_ONLY_SOP,
+		    len);
 	}
 
 	rq->in_use = 1;
@@ -325,8 +321,9 @@ enic_legacy_intr(void *xsc)
 
 static inline void
 vnic_wq_service(struct vnic_wq *wq, struct cq_desc *cq_desc,
-    u16 completed_index, void (*buf_service) (struct vnic_wq *wq,
-    struct cq_desc *cq_desc, /* struct vnic_wq_buf * *buf, */ void *opaque),
+    u16 completed_index,
+    void (*buf_service)(struct vnic_wq *wq, struct cq_desc *cq_desc,
+	/* struct vnic_wq_buf * *buf, */ void *opaque),
     void *opaque)
 {
 	int processed;
@@ -373,19 +370,20 @@ enic_wq_service(struct vnic_dev *vdev, struct cq_desc *cq_desc, u8 type,
 {
 	struct enic *enic = vnic_dev_priv(vdev);
 
-	vnic_wq_service(&enic->wq[q_number], cq_desc,
-			completed_index, NULL, opaque);
+	vnic_wq_service(&enic->wq[q_number], cq_desc, completed_index, NULL,
+	    opaque);
 	return 0;
 }
 
 static void
 vnic_rq_service(struct vnic_rq *rq, struct cq_desc *cq_desc,
     u16 in_completed_index, int desc_return,
-    void(*buf_service)(struct vnic_rq *rq, struct cq_desc *cq_desc,
-    /* struct vnic_rq_buf * *buf, */ int skipped, void *opaque), void *opaque)
+    void (*buf_service)(struct vnic_rq *rq, struct cq_desc *cq_desc,
+	/* struct vnic_rq_buf * *buf, */ int skipped, void *opaque),
+    void *opaque)
 {
 
-	if_rxd_info_t ri = (if_rxd_info_t) opaque;
+	if_rxd_info_t ri = (if_rxd_info_t)opaque;
 	u8 type, color, eop, sop, ingress_port, vlan_stripped;
 	u8 fcoe, fcoe_sof, fcoe_fc_crc_ok, fcoe_enc_error, fcoe_eof;
 	u8 tcp_udp_csum_ok, udp, tcp, ipv4_csum_ok;
@@ -396,15 +394,12 @@ vnic_rq_service(struct vnic_rq *rq, struct cq_desc *cq_desc,
 	int cqidx;
 	if_rxd_frag_t frag;
 
-	cq_enet_rq_desc_dec((struct cq_enet_rq_desc *)cq_desc,
-	    &type, &color, &q_number, &completed_index,
-	    &ingress_port, &fcoe, &eop, &sop, &rss_type,
-	    &csum_not_calc, &rss_hash, &bytes_written,
-	    &packet_error, &vlan_stripped, &vlan_tci, &checksum,
-	    &fcoe_sof, &fcoe_fc_crc_ok, &fcoe_enc_error,
-	    &fcoe_eof, &tcp_udp_csum_ok, &udp, &tcp,
-	    &ipv4_csum_ok, &ipv6, &ipv4, &ipv4_fragment,
-	    &fcs_ok);
+	cq_enet_rq_desc_dec((struct cq_enet_rq_desc *)cq_desc, &type, &color,
+	    &q_number, &completed_index, &ingress_port, &fcoe, &eop, &sop,
+	    &rss_type, &csum_not_calc, &rss_hash, &bytes_written, &packet_error,
+	    &vlan_stripped, &vlan_tci, &checksum, &fcoe_sof, &fcoe_fc_crc_ok,
+	    &fcoe_enc_error, &fcoe_eof, &tcp_udp_csum_ok, &udp, &tcp,
+	    &ipv4_csum_ok, &ipv6, &ipv4, &ipv4_fragment, &fcs_ok);
 
 	cqidx = ri->iri_cidx;
 
@@ -422,11 +417,11 @@ vnic_rq_service(struct vnic_rq *rq, struct cq_desc *cq_desc,
 }
 
 static int
-enic_rq_service(struct vnic_dev *vdev, struct cq_desc *cq_desc,
-		u8 type, u16 q_number, u16 completed_index, void *opaque)
+enic_rq_service(struct vnic_dev *vdev, struct cq_desc *cq_desc, u8 type,
+    u16 q_number, u16 completed_index, void *opaque)
 {
 	struct enic *enic = vnic_dev_priv(vdev);
-	if_rxd_info_t ri = (if_rxd_info_t) opaque;
+	if_rxd_info_t ri = (if_rxd_info_t)opaque;
 
 	vnic_rq_service(&enic->rq[ri->iri_qsidx], cq_desc, completed_index,
 	    VNIC_RQ_RETURN_DESC, NULL, /* enic_rq_indicate_buf, */ opaque);
@@ -451,8 +446,8 @@ enic_prep_wq_for_simple_tx(struct enic *enic, uint16_t queue_idx)
 	for (i = 0; i < wq->ring.desc_count; i++, desc++) {
 		desc->header_length_flags = 1 << WQ_ENET_FLAGS_EOP_SHIFT;
 		if (i % ENIC_WQ_CQ_THRESH == ENIC_WQ_CQ_THRESH - 1)
-			desc->header_length_flags |=
-			    (1 << WQ_ENET_FLAGS_CQ_ENTRY_SHIFT);
+			desc->header_length_flags |= (1
+			    << WQ_ENET_FLAGS_CQ_ENTRY_SHIFT);
 	}
 }
 

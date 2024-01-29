@@ -20,16 +20,15 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5416/ar5416.h"
 
 static const int keyType[] = {
-	1,	/* HAL_CIPHER_WEP */
-	0,	/* HAL_CIPHER_AES_OCB */
-	2,	/* HAL_CIPHER_AES_CCM */
-	0,	/* HAL_CIPHER_CKIP */
-	3,	/* HAL_CIPHER_TKIP */
-	0,	/* HAL_CIPHER_CLR */
+	1, /* HAL_CIPHER_WEP */
+	0, /* HAL_CIPHER_AES_OCB */
+	2, /* HAL_CIPHER_AES_CCM */
+	0, /* HAL_CIPHER_CKIP */
+	3, /* HAL_CIPHER_TKIP */
+	0, /* HAL_CIPHER_CLR */
 };
 
 /*
@@ -52,9 +51,8 @@ ar5416ResetKeyCacheEntry(struct ath_hal *ah, uint16_t entry)
  * and any associated MIC entry.
  */
 HAL_BOOL
-ar5416SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry,
-                       const HAL_KEYVAL *k, const uint8_t *mac,
-                       int xorKey)
+ar5416SetKeyCacheEntry(struct ath_hal *ah, uint16_t entry, const HAL_KEYVAL *k,
+    const uint8_t *mac, int xorKey)
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
 

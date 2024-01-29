@@ -20,7 +20,7 @@
 #ifndef R88EU_REG_H
 #define R88EU_REG_H
 
-#include <dev/rtwn/rtl8192c/usb/r92cu_reg.h>
 #include <dev/rtwn/rtl8188e/r88e_reg.h>
+#include <dev/rtwn/rtl8192c/usb/r92cu_reg.h>
 
-#endif	/* R88EU_REG_H */
+#endif /* R88EU_REG_H */

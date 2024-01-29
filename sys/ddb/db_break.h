@@ -31,31 +31,31 @@
  *	Date:	7/90
  */
 #ifndef _DDB_DB_BREAK_H_
-#define	_DDB_DB_BREAK_H_
+#define _DDB_DB_BREAK_H_
 
 /*
  * Breakpoint.
  */
 
 #ifndef BKPT_INST_TYPE
-#define	BKPT_INST_TYPE int
+#define BKPT_INST_TYPE int
 #endif
 
 struct db_breakpoint {
-	vm_map_t map;			/* in this map */
-	db_addr_t address;		/* set here */
-	int	init_count;		/* number of times to skip bkpt */
-	int	count;			/* current count */
-	int	flags;			/* flags: */
-#define	BKPT_SINGLE_STEP	0x2	    /* to simulate single step */
-#define	BKPT_TEMP		0x4	    /* temporary */
-	BKPT_INST_TYPE bkpt_inst;	/* saved instruction at bkpt */
-	struct db_breakpoint *link;	/* link in in-use or free chain */
+	vm_map_t map;		    /* in this map */
+	db_addr_t address;	    /* set here */
+	int init_count;		    /* number of times to skip bkpt */
+	int count;		    /* current count */
+	int flags;		    /* flags: */
+#define BKPT_SINGLE_STEP 0x2	    /* to simulate single step */
+#define BKPT_TEMP 0x4		    /* temporary */
+	BKPT_INST_TYPE bkpt_inst;   /* saved instruction at bkpt */
+	struct db_breakpoint *link; /* link in in-use or free chain */
 };
 typedef struct db_breakpoint *db_breakpoint_t;
 
-void		db_clear_breakpoints(void);
-db_breakpoint_t	db_find_breakpoint_here(db_addr_t addr);
-void		db_set_breakpoints(void);
+void db_clear_breakpoints(void);
+db_breakpoint_t db_find_breakpoint_here(db_addr_t addr);
+void db_set_breakpoints(void);
 
 #endif /* !_DDB_DB_BREAK_H_ */

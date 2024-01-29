@@ -27,18 +27,18 @@
 
 /* Used by tests like divert-to.sh */
 
-#include <errno.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <err.h>
-#include <sysexits.h>
-#include <string.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <netinet/ip.h>
 
+#include <err.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
 
 struct context {
 	unsigned short divert_port;
@@ -64,7 +64,7 @@ init(struct context *c)
 	c->sin.sin_addr.s_addr = INADDR_ANY;
 	c->sin_len = sizeof(struct sockaddr_in);
 
-	if (bind(c->fd, (struct sockaddr *) &c->sin, c->sin_len) != 0)
+	if (bind(c->fd, (struct sockaddr *)&c->sin, c->sin_len) != 0)
 		errx(EX_OSERR, "init: Cannot bind divert socket.");
 }
 
@@ -87,7 +87,7 @@ recv_pkt(struct context *c)
 		return -1;
 
 	c->pkt_n = recvfrom(c->fd, c->pkt, sizeof(c->pkt), 0,
-	    (struct sockaddr *) &c->sin, &c->sin_len);
+	    (struct sockaddr *)&c->sin, &c->sin_len);
 	if (c->pkt_n == -1)
 		errx(EX_IOERR, "recv_pkt: recvfrom() errors.");
 
@@ -100,15 +100,16 @@ send_pkt(struct context *c)
 	ssize_t n;
 	char errstr[32];
 
-	n = sendto(c->fd, c->pkt, c->pkt_n, 0,
-	    (struct sockaddr *) &c->sin, c->sin_len);
+	n = sendto(c->fd, c->pkt, c->pkt_n, 0, (struct sockaddr *)&c->sin,
+	    c->sin_len);
 	if (n == -1) {
 		strerror_r(errno, errstr, sizeof(errstr));
-		errx(EX_IOERR, "send_pkt: sendto() errors: %d %s.", errno, errstr);
+		errx(EX_IOERR, "send_pkt: sendto() errors: %d %s.", errno,
+		    errstr);
 	}
 	if (n != c->pkt_n)
-		errx(EX_IOERR, "send_pkt: sendto() sent %zd of %zd bytes.",
-		    n, c->pkt_n);
+		errx(EX_IOERR, "send_pkt: sendto() sent %zd of %zd bytes.", n,
+		    c->pkt_n);
 }
 
 int
@@ -118,18 +119,17 @@ main(int argc, char *argv[])
 	int npkt;
 
 	if (argc < 2)
-		errx(EX_USAGE,
-		    "Usage: %s <divert-port> [divert-back]", argv[0]);
+		errx(EX_USAGE, "Usage: %s <divert-port> [divert-back]",
+		    argv[0]);
 
 	memset(&c, 0, sizeof(struct context));
 
-	c.divert_port = (unsigned short) strtol(argv[1], NULL, 10);
+	c.divert_port = (unsigned short)strtol(argv[1], NULL, 10);
 	if (c.divert_port == 0)
 		errx(EX_USAGE, "divert port is not defined.");
 
 	if (argc >= 3 && strcmp(argv[2], "divert-back") == 0)
 		c.divert_back = true;
-
 
 	init(&c);
 

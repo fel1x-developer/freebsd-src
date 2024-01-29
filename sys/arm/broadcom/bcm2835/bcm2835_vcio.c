@@ -25,11 +25,11 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
+#include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/ioccom.h>
-#include <sys/conf.h>
 #include <sys/proc.h>
 
 #include <arm/broadcom/bcm2835/bcm2835_mbox_prop.h>
@@ -41,8 +41,8 @@ static struct cdev *sdev;
 static d_ioctl_t vcio_ioctl;
 
 static struct cdevsw vcio_devsw = {
-	/* version */	.d_version = D_VERSION,
-	/* ioctl */	.d_ioctl = vcio_ioctl,
+	/* version */ .d_version = D_VERSION,
+	/* ioctl */ .d_ioctl = vcio_ioctl,
 };
 
 #define VCIO_IOC_MAGIC 100
@@ -52,64 +52,65 @@ int
 vcio_ioctl(struct cdev *dev, u_long cmd, caddr_t arg, int mode,
     struct thread *td)
 {
-    int error;
-    void *ptr;
-    uint32_t size;
-    uint8_t *property;
+	int error;
+	void *ptr;
+	uint32_t size;
+	uint8_t *property;
 
-    error = 0;
-    switch(cmd) {
-    case IOCTL_MBOX_PROPERTY:
-    	memcpy (&ptr, arg, sizeof(ptr));
-	error = copyin(ptr, &size, sizeof(size));
+	error = 0;
+	switch (cmd) {
+	case IOCTL_MBOX_PROPERTY:
+		memcpy(&ptr, arg, sizeof(ptr));
+		error = copyin(ptr, &size, sizeof(size));
 
-	if (error != 0)
-		break;
-	property = malloc(size, M_VCIO, M_WAITOK);
+		if (error != 0)
+			break;
+		property = malloc(size, M_VCIO, M_WAITOK);
 
-	error = copyin(ptr, property, size);
-	if (error) {
+		error = copyin(ptr, property, size);
+		if (error) {
+			free(property, M_VCIO);
+			break;
+		}
+
+		error = bcm2835_mbox_property(property, size);
+		if (error) {
+			free(property, M_VCIO);
+			break;
+		}
+
+		error = copyout(property, ptr, size);
 		free(property, M_VCIO);
+
+		break;
+	default:
+		error = EINVAL;
 		break;
 	}
-
-	error = bcm2835_mbox_property(property, size);
-	if (error) {
-		free(property, M_VCIO);
-		break;
-	}
-
-	error = copyout(property, ptr, size);
-	free(property, M_VCIO);
-
-	break;
-    default:
-	error = EINVAL;
-	break;
-    }
-    return (error);
+	return (error);
 }
 
 static int
 vcio_load(module_t mod, int cmd, void *arg)
 {
-    int  err = 0;
+	int err = 0;
 
-    switch (cmd) {
-    case MOD_LOAD:
-	sdev = make_dev(&vcio_devsw, 0, UID_ROOT, GID_WHEEL, 0600, "vcio");
-	break;
+	switch (cmd) {
+	case MOD_LOAD:
+		sdev = make_dev(&vcio_devsw, 0, UID_ROOT, GID_WHEEL, 0600,
+		    "vcio");
+		break;
 
-    case MOD_UNLOAD:
-	destroy_dev(sdev);
-	break;
+	case MOD_UNLOAD:
+		destroy_dev(sdev);
+		break;
 
-    default:
-	err = EOPNOTSUPP;
-	break;
-    }
+	default:
+		err = EOPNOTSUPP;
+		break;
+	}
 
-    return(err);
+	return (err);
 }
 
 DEV_MODULE(vcio, vcio_load, NULL);

@@ -35,21 +35,24 @@
 #include <sys/memdesc.h>
 #include <sys/sysctl.h>
 #else /* _KERNEL */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <camlib.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #endif /* _KERNEL */
+
+#include <sys/sbuf.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/smp_all.h>
-#include <sys/sbuf.h>
 
 #ifdef _KERNEL
 #include <sys/libkern.h>
+
 #include <machine/bus.h>
+
 #include <cam/cam_queue.h>
 #include <cam/cam_xpt.h>
 
@@ -57,55 +60,55 @@ FEATURE(scbus, "SCSI devices support");
 
 #endif
 
-static int	camstatusentrycomp(const void *key, const void *member);
+static int camstatusentrycomp(const void *key, const void *member);
 
 const struct cam_status_entry cam_status_table[] = {
-	{ CAM_REQ_INPROG,	 "CCB request is in progress"		     },
-	{ CAM_REQ_CMP,		 "CCB request completed without error"	     },
-	{ CAM_REQ_ABORTED,	 "CCB request aborted by the host"	     },
-	{ CAM_UA_ABORT,		 "Unable to abort CCB request"		     },
-	{ CAM_REQ_CMP_ERR,	 "CCB request completed with an error"	     },
-	{ CAM_BUSY,		 "CAM subsystem is busy"		     },
-	{ CAM_REQ_INVALID,	 "CCB request was invalid"		     },
-	{ CAM_PATH_INVALID,	 "Supplied Path ID is invalid"		     },
-	{ CAM_DEV_NOT_THERE,	 "Device Not Present"			     },
-	{ CAM_UA_TERMIO,	 "Unable to terminate I/O CCB request"	     },
-	{ CAM_SEL_TIMEOUT,	 "Selection Timeout"			     },
-	{ CAM_CMD_TIMEOUT,	 "Command timeout"			     },
-	{ CAM_SCSI_STATUS_ERROR, "SCSI Status Error"			     },
-	{ CAM_MSG_REJECT_REC,	 "Message Reject Reveived"		     },
-	{ CAM_SCSI_BUS_RESET,	 "SCSI Bus Reset Sent/Received"		     },
-	{ CAM_UNCOR_PARITY,	 "Uncorrectable parity/CRC error"	     },
-	{ CAM_AUTOSENSE_FAIL,	 "Auto-Sense Retrieval Failed"		     },
-	{ CAM_NO_HBA,		 "No HBA Detected"			     },
-	{ CAM_DATA_RUN_ERR,	 "Data Overrun error"			     },
-	{ CAM_UNEXP_BUSFREE,	 "Unexpected Bus Free"			     },
-	{ CAM_SEQUENCE_FAIL,	 "Target Bus Phase Sequence Failure"	     },
-	{ CAM_CCB_LEN_ERR,	 "CCB length supplied is inadequate"	     },
-	{ CAM_PROVIDE_FAIL,	 "Unable to provide requested capability"    },
-	{ CAM_BDR_SENT,		 "SCSI BDR Message Sent"		     },
-	{ CAM_REQ_TERMIO,	 "CCB request terminated by the host"	     },
-	{ CAM_UNREC_HBA_ERROR,	 "Unrecoverable Host Bus Adapter Error"	     },
-	{ CAM_REQ_TOO_BIG,	 "The request was too large for this host"   },
-	{ CAM_REQUEUE_REQ,	 "Unconditionally Re-queue Request"	     },
-	{ CAM_ATA_STATUS_ERROR,	 "ATA Status Error"			     },
-	{ CAM_SCSI_IT_NEXUS_LOST,"Initiator/Target Nexus Lost"               },
-	{ CAM_SMP_STATUS_ERROR,	 "SMP Status Error"                          },
-	{ CAM_REQ_SOFTTIMEOUT,   "Completed w/o error, but took too long"    },
-	{ CAM_NVME_STATUS_ERROR, "NVME Status Error"			     },
-	{ CAM_IDE,		 "Initiator Detected Error Message Received" },
-	{ CAM_RESRC_UNAVAIL,	 "Resource Unavailable"			     },
-	{ CAM_UNACKED_EVENT,	 "Unacknowledged Event by Host"		     },
-	{ CAM_MESSAGE_RECV,	 "Message Received in Host Target Mode"	     },
-	{ CAM_INVALID_CDB,	 "Invalid CDB received in Host Target Mode"  },
-	{ CAM_LUN_INVALID,	 "Invalid Lun"				     },
-	{ CAM_TID_INVALID,	 "Invalid Target ID"			     },
-	{ CAM_FUNC_NOTAVAIL,	 "Function Not Available"		     },
-	{ CAM_NO_NEXUS,		 "Nexus Not Established"		     },
-	{ CAM_IID_INVALID,	 "Invalid Initiator ID"			     },
-	{ CAM_CDB_RECVD,	 "CDB Received"				     },
-	{ CAM_LUN_ALRDY_ENA,	 "LUN Already Enabled for Target Mode"	     },
-	{ CAM_SCSI_BUSY,	 "SCSI Bus Busy"			     },
+	{ CAM_REQ_INPROG, "CCB request is in progress" },
+	{ CAM_REQ_CMP, "CCB request completed without error" },
+	{ CAM_REQ_ABORTED, "CCB request aborted by the host" },
+	{ CAM_UA_ABORT, "Unable to abort CCB request" },
+	{ CAM_REQ_CMP_ERR, "CCB request completed with an error" },
+	{ CAM_BUSY, "CAM subsystem is busy" },
+	{ CAM_REQ_INVALID, "CCB request was invalid" },
+	{ CAM_PATH_INVALID, "Supplied Path ID is invalid" },
+	{ CAM_DEV_NOT_THERE, "Device Not Present" },
+	{ CAM_UA_TERMIO, "Unable to terminate I/O CCB request" },
+	{ CAM_SEL_TIMEOUT, "Selection Timeout" },
+	{ CAM_CMD_TIMEOUT, "Command timeout" },
+	{ CAM_SCSI_STATUS_ERROR, "SCSI Status Error" },
+	{ CAM_MSG_REJECT_REC, "Message Reject Reveived" },
+	{ CAM_SCSI_BUS_RESET, "SCSI Bus Reset Sent/Received" },
+	{ CAM_UNCOR_PARITY, "Uncorrectable parity/CRC error" },
+	{ CAM_AUTOSENSE_FAIL, "Auto-Sense Retrieval Failed" },
+	{ CAM_NO_HBA, "No HBA Detected" },
+	{ CAM_DATA_RUN_ERR, "Data Overrun error" },
+	{ CAM_UNEXP_BUSFREE, "Unexpected Bus Free" },
+	{ CAM_SEQUENCE_FAIL, "Target Bus Phase Sequence Failure" },
+	{ CAM_CCB_LEN_ERR, "CCB length supplied is inadequate" },
+	{ CAM_PROVIDE_FAIL, "Unable to provide requested capability" },
+	{ CAM_BDR_SENT, "SCSI BDR Message Sent" },
+	{ CAM_REQ_TERMIO, "CCB request terminated by the host" },
+	{ CAM_UNREC_HBA_ERROR, "Unrecoverable Host Bus Adapter Error" },
+	{ CAM_REQ_TOO_BIG, "The request was too large for this host" },
+	{ CAM_REQUEUE_REQ, "Unconditionally Re-queue Request" },
+	{ CAM_ATA_STATUS_ERROR, "ATA Status Error" },
+	{ CAM_SCSI_IT_NEXUS_LOST, "Initiator/Target Nexus Lost" },
+	{ CAM_SMP_STATUS_ERROR, "SMP Status Error" },
+	{ CAM_REQ_SOFTTIMEOUT, "Completed w/o error, but took too long" },
+	{ CAM_NVME_STATUS_ERROR, "NVME Status Error" },
+	{ CAM_IDE, "Initiator Detected Error Message Received" },
+	{ CAM_RESRC_UNAVAIL, "Resource Unavailable" },
+	{ CAM_UNACKED_EVENT, "Unacknowledged Event by Host" },
+	{ CAM_MESSAGE_RECV, "Message Received in Host Target Mode" },
+	{ CAM_INVALID_CDB, "Invalid CDB received in Host Target Mode" },
+	{ CAM_LUN_INVALID, "Invalid Lun" },
+	{ CAM_TID_INVALID, "Invalid Target ID" },
+	{ CAM_FUNC_NOTAVAIL, "Function Not Available" },
+	{ CAM_NO_NEXUS, "Nexus Not Established" },
+	{ CAM_IID_INVALID, "Invalid Initiator ID" },
+	{ CAM_CDB_RECVD, "CDB Received" },
+	{ CAM_LUN_ALRDY_ENA, "LUN Already Enabled for Target Mode" },
+	{ CAM_SCSI_BUSY, "SCSI Bus Busy" },
 };
 
 #ifdef _KERNEL
@@ -118,19 +121,19 @@ SYSCTL_NODE(_kern, OID_AUTO, cam, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 
 int cam_sort_io_queues = CAM_DEFAULT_SORT_IO_QUEUES;
 SYSCTL_INT(_kern_cam, OID_AUTO, sort_io_queues, CTLFLAG_RWTUN,
-    &cam_sort_io_queues, 0, "Sort IO queues to try and optimise disk access patterns");
+    &cam_sort_io_queues, 0,
+    "Sort IO queues to try and optimise disk access patterns");
 #endif
 
 void
 cam_strvis(uint8_t *dst, const uint8_t *src, int srclen, int dstlen)
 {
-	cam_strvis_flag(dst, src, srclen, dstlen,
-	    CAM_STRVIS_FLAG_NONASCII_ESC);
+	cam_strvis_flag(dst, src, srclen, dstlen, CAM_STRVIS_FLAG_NONASCII_ESC);
 }
 
 void
 cam_strvis_flag(uint8_t *dst, const uint8_t *src, int srclen, int dstlen,
-		uint32_t flags)
+    uint32_t flags)
 {
 	struct sbuf sb;
 
@@ -140,15 +143,14 @@ cam_strvis_flag(uint8_t *dst, const uint8_t *src, int srclen, int dstlen,
 }
 
 void
-cam_strvis_sbuf(struct sbuf *sb, const uint8_t *src, int srclen,
-		uint32_t flags)
+cam_strvis_sbuf(struct sbuf *sb, const uint8_t *src, int srclen, uint32_t flags)
 {
 
 	/* Trim leading/trailing spaces, nulls. */
 	while (srclen > 0 && src[0] == ' ')
 		src++, srclen--;
-	while (srclen > 0
-	    && (src[srclen-1] == ' ' || src[srclen-1] == '\0'))
+	while (
+	    srclen > 0 && (src[srclen - 1] == ' ' || src[srclen - 1] == '\0'))
 		srclen--;
 
 	while (srclen > 0) {
@@ -157,7 +159,7 @@ cam_strvis_sbuf(struct sbuf *sb, const uint8_t *src, int srclen,
 			/* non-printable character */
 			switch (flags & CAM_STRVIS_FLAG_NONASCII_MASK) {
 			case CAM_STRVIS_FLAG_NONASCII_ESC:
-				sbuf_printf(sb, "\\%c%c%c", 
+				sbuf_printf(sb, "\\%c%c%c",
 				    ((*src & 0300) >> 6) + '0',
 				    ((*src & 0070) >> 3) + '0',
 				    ((*src & 0007) >> 0) + '0');
@@ -205,7 +207,7 @@ int
 cam_strmatch(const uint8_t *str, const uint8_t *pattern, int str_len)
 {
 
-	while (*pattern != '\0' && str_len > 0) {  
+	while (*pattern != '\0' && str_len > 0) {
 		if (*pattern == '*') {
 			pattern++;
 			if (*pattern == '\0')
@@ -230,7 +232,8 @@ cam_strmatch(const uint8_t *str, const uint8_t *pattern, int str_len)
 				pattern++;
 			while ((*pattern != ']') && *pattern != '\0') {
 				if (*pattern == '-') {
-					if (pattern[1] == '\0') /* Bad pattern */
+					if (pattern[1] ==
+					    '\0') /* Bad pattern */
 						return (1);
 					if (sc >= pc && sc <= pattern[1])
 						ok = 1;
@@ -264,7 +267,7 @@ cam_strmatch(const uint8_t *str, const uint8_t *pattern, int str_len)
 	while (*pattern == '*')
 		pattern++;
 
-	if ( *pattern != '\0') {
+	if (*pattern != '\0') {
 		/* Pattern not fully consumed.  Not a match */
 		return (1);
 	}
@@ -280,7 +283,7 @@ cam_strmatch(const uint8_t *str, const uint8_t *pattern, int str_len)
 
 caddr_t
 cam_quirkmatch(caddr_t target, caddr_t quirk_table, int num_entries,
-	       int entry_size, cam_quirkmatch_t *comp_func)
+    int entry_size, cam_quirkmatch_t *comp_func)
 {
 	for (; num_entries > 0; num_entries--, quirk_table += entry_size) {
 		if ((*comp_func)(target, quirk_table) == 0)
@@ -289,14 +292,12 @@ cam_quirkmatch(caddr_t target, caddr_t quirk_table, int num_entries,
 	return (NULL);
 }
 
-const struct cam_status_entry*
+const struct cam_status_entry *
 cam_fetch_status_entry(cam_status status)
 {
 	status &= CAM_STATUS_MASK;
-	return (bsearch(&status, &cam_status_table,
-			nitems(cam_status_table),
-			sizeof(*cam_status_table),
-			camstatusentrycomp));
+	return (bsearch(&status, &cam_status_table, nitems(cam_status_table),
+	    sizeof(*cam_status_table), camstatusentrycomp));
 }
 
 static int
@@ -314,78 +315,75 @@ camstatusentrycomp(const void *key, const void *member)
 #ifdef _KERNEL
 char *
 cam_error_string(union ccb *ccb, char *str, int str_len,
-		 cam_error_string_flags flags,
-		 cam_error_proto_flags proto_flags)
-#else /* !_KERNEL */
+    cam_error_string_flags flags, cam_error_proto_flags proto_flags)
+#else  /* !_KERNEL */
 char *
 cam_error_string(struct cam_device *device, union ccb *ccb, char *str,
-		 int str_len, cam_error_string_flags flags,
-		 cam_error_proto_flags proto_flags)
+    int str_len, cam_error_string_flags flags,
+    cam_error_proto_flags proto_flags)
 #endif /* _KERNEL/!_KERNEL */
 {
 	char path_str[64];
 	struct sbuf sb;
 
-	if ((ccb == NULL)
-	 || (str == NULL)
-	 || (str_len <= 0))
-		return(NULL);
+	if ((ccb == NULL) || (str == NULL) || (str_len <= 0))
+		return (NULL);
 
 	if (flags == CAM_ESF_NONE)
-		return(NULL);
+		return (NULL);
 
 	switch (ccb->ccb_h.func_code) {
-		case XPT_ATA_IO:
-			switch (proto_flags & CAM_EPF_LEVEL_MASK) {
-			case CAM_EPF_NONE:
-				break;
-			case CAM_EPF_ALL:
-			case CAM_EPF_NORMAL:
-				proto_flags |= CAM_EAF_PRINT_RESULT;
-				/* FALLTHROUGH */
-			case CAM_EPF_MINIMAL:
-				proto_flags |= CAM_EAF_PRINT_STATUS;
-				/* FALLTHROUGH */
-			default:
-				break;
-			}
+	case XPT_ATA_IO:
+		switch (proto_flags & CAM_EPF_LEVEL_MASK) {
+		case CAM_EPF_NONE:
 			break;
-		case XPT_SCSI_IO:
-			switch (proto_flags & CAM_EPF_LEVEL_MASK) {
-			case CAM_EPF_NONE:
-				break;
-			case CAM_EPF_ALL:
-			case CAM_EPF_NORMAL:
-				proto_flags |= CAM_ESF_PRINT_SENSE;
-				/* FALLTHROUGH */
-			case CAM_EPF_MINIMAL:
-				proto_flags |= CAM_ESF_PRINT_STATUS;
-				/* FALLTHROUGH */
-			default:
-				break;
-			}
-			break;
-		case XPT_SMP_IO:
-			switch (proto_flags & CAM_EPF_LEVEL_MASK) {
-			case CAM_EPF_NONE:
-				break;
-			case CAM_EPF_ALL:
-				proto_flags |= CAM_ESMF_PRINT_FULL_CMD;
-				/* FALLTHROUGH */
-			case CAM_EPF_NORMAL:
-			case CAM_EPF_MINIMAL:
-				proto_flags |= CAM_ESMF_PRINT_STATUS;
-				/* FALLTHROUGH */
-			default:
-				break;
-			}
-			break;
+		case CAM_EPF_ALL:
+		case CAM_EPF_NORMAL:
+			proto_flags |= CAM_EAF_PRINT_RESULT;
+			/* FALLTHROUGH */
+		case CAM_EPF_MINIMAL:
+			proto_flags |= CAM_EAF_PRINT_STATUS;
+			/* FALLTHROUGH */
 		default:
 			break;
+		}
+		break;
+	case XPT_SCSI_IO:
+		switch (proto_flags & CAM_EPF_LEVEL_MASK) {
+		case CAM_EPF_NONE:
+			break;
+		case CAM_EPF_ALL:
+		case CAM_EPF_NORMAL:
+			proto_flags |= CAM_ESF_PRINT_SENSE;
+			/* FALLTHROUGH */
+		case CAM_EPF_MINIMAL:
+			proto_flags |= CAM_ESF_PRINT_STATUS;
+			/* FALLTHROUGH */
+		default:
+			break;
+		}
+		break;
+	case XPT_SMP_IO:
+		switch (proto_flags & CAM_EPF_LEVEL_MASK) {
+		case CAM_EPF_NONE:
+			break;
+		case CAM_EPF_ALL:
+			proto_flags |= CAM_ESMF_PRINT_FULL_CMD;
+			/* FALLTHROUGH */
+		case CAM_EPF_NORMAL:
+		case CAM_EPF_MINIMAL:
+			proto_flags |= CAM_ESMF_PRINT_STATUS;
+			/* FALLTHROUGH */
+		default:
+			break;
+		}
+		break;
+	default:
+		break;
 	}
 #ifdef _KERNEL
 	xpt_path_string(ccb->csio.ccb_h.path, path_str, sizeof(path_str));
-#else /* !_KERNEL */
+#else  /* !_KERNEL */
 	cam_path_string(device, path_str, sizeof(path_str));
 #endif /* _KERNEL/!_KERNEL */
 
@@ -400,22 +398,21 @@ cam_error_string(struct cam_device *device, union ccb *ccb, char *str,
 		case XPT_SCSI_IO:
 #ifdef _KERNEL
 			scsi_command_string(&ccb->csio, &sb);
-#else /* !_KERNEL */
+#else  /* !_KERNEL */
 			scsi_command_string(device, &ccb->csio, &sb);
 #endif /* _KERNEL/!_KERNEL */
 			break;
 		case XPT_SMP_IO:
-			smp_command_sbuf(&ccb->smpio, &sb, path_str, 79 -
-					 strlen(path_str), (proto_flags &
-					 CAM_ESMF_PRINT_FULL_CMD) ? 79 : 0);
+			smp_command_sbuf(&ccb->smpio, &sb, path_str,
+			    79 - strlen(path_str),
+			    (proto_flags & CAM_ESMF_PRINT_FULL_CMD) ? 79 : 0);
 			break;
 		case XPT_NVME_IO:
 		case XPT_NVME_ADMIN:
 			nvme_command_sbuf(&ccb->nvmeio, &sb);
 			break;
 		default:
-			sbuf_printf(&sb, "CAM func %#x",
-			    ccb->ccb_h.func_code);
+			sbuf_printf(&sb, "CAM func %#x", ccb->ccb_h.func_code);
 			break;
 		}
 		sbuf_putc(&sb, '\n');
@@ -426,25 +423,25 @@ cam_error_string(struct cam_device *device, union ccb *ccb, char *str,
 		const struct cam_status_entry *entry;
 
 		sbuf_cat(&sb, path_str);
-  
+
 		status = ccb->ccb_h.status & CAM_STATUS_MASK;
 
 		entry = cam_fetch_status_entry(status);
 
 		if (entry == NULL)
 			sbuf_printf(&sb, "CAM status: Unknown (%#x)\n",
-				    ccb->ccb_h.status);
+			    ccb->ccb_h.status);
 		else
 			sbuf_printf(&sb, "CAM status: %s\n",
-				    entry->status_text);
+			    entry->status_text);
 	}
 
 	if (flags & CAM_ESF_PROTO_STATUS) {
-  
+
 		switch (ccb->ccb_h.func_code) {
 		case XPT_ATA_IO:
 			if ((ccb->ccb_h.status & CAM_STATUS_MASK) !=
-			     CAM_ATA_STATUS_ERROR)
+			    CAM_ATA_STATUS_ERROR)
 				break;
 			if (proto_flags & CAM_EAF_PRINT_STATUS) {
 				sbuf_cat(&sb, path_str);
@@ -461,37 +458,36 @@ cam_error_string(struct cam_device *device, union ccb *ccb, char *str,
 			break;
 		case XPT_SCSI_IO:
 			if ((ccb->ccb_h.status & CAM_STATUS_MASK) !=
-			     CAM_SCSI_STATUS_ERROR)
+			    CAM_SCSI_STATUS_ERROR)
 				break;
 
 			if (proto_flags & CAM_ESF_PRINT_STATUS) {
 				sbuf_cat(&sb, path_str);
 				sbuf_printf(&sb, "SCSI status: %s\n",
-					    scsi_status_string(&ccb->csio));
+				    scsi_status_string(&ccb->csio));
 			}
 
-			if ((proto_flags & CAM_ESF_PRINT_SENSE)
-			 && (ccb->csio.scsi_status == SCSI_STATUS_CHECK_COND)
-			 && (ccb->ccb_h.status & CAM_AUTOSNS_VALID)) {
+			if ((proto_flags & CAM_ESF_PRINT_SENSE) &&
+			    (ccb->csio.scsi_status == SCSI_STATUS_CHECK_COND) &&
+			    (ccb->ccb_h.status & CAM_AUTOSNS_VALID)) {
 #ifdef _KERNEL
-				scsi_sense_sbuf(&ccb->csio, &sb,
-						SSS_FLAG_NONE);
-#else /* !_KERNEL */
+				scsi_sense_sbuf(&ccb->csio, &sb, SSS_FLAG_NONE);
+#else  /* !_KERNEL */
 				scsi_sense_sbuf(device, &ccb->csio, &sb,
-						SSS_FLAG_NONE);
+				    SSS_FLAG_NONE);
 #endif /* _KERNEL/!_KERNEL */
 			}
 			break;
 		case XPT_SMP_IO:
 			if ((ccb->ccb_h.status & CAM_STATUS_MASK) !=
-			     CAM_SMP_STATUS_ERROR)
+			    CAM_SMP_STATUS_ERROR)
 				break;
 
 			if (proto_flags & CAM_ESF_PRINT_STATUS) {
 				sbuf_cat(&sb, path_str);
 				sbuf_printf(&sb, "SMP status: %s (%#x)\n",
 				    smp_error_desc(ccb->smpio.smp_response[2]),
-						   ccb->smpio.smp_response[2]);
+				    ccb->smpio.smp_response[2]);
 			}
 			/* There is no SMP equivalent to SCSI sense. */
 			break;
@@ -502,35 +498,36 @@ cam_error_string(struct cam_device *device, union ccb *ccb, char *str,
 
 	sbuf_finish(&sb);
 
-	return(sbuf_data(&sb));
+	return (sbuf_data(&sb));
 }
 
 #ifdef _KERNEL
 
 void
 cam_error_print(union ccb *ccb, cam_error_string_flags flags,
-		cam_error_proto_flags proto_flags)
+    cam_error_proto_flags proto_flags)
 {
 	char str[512];
 
-	printf("%s", cam_error_string(ccb, str, sizeof(str), flags,
-	       proto_flags));
+	printf("%s",
+	    cam_error_string(ccb, str, sizeof(str), flags, proto_flags));
 }
 
 #else /* !_KERNEL */
 
 void
 cam_error_print(struct cam_device *device, union ccb *ccb,
-		cam_error_string_flags flags, cam_error_proto_flags proto_flags,
-		FILE *ofile)
+    cam_error_string_flags flags, cam_error_proto_flags proto_flags,
+    FILE *ofile)
 {
 	char str[512];
 
 	if ((device == NULL) || (ccb == NULL) || (ofile == NULL))
 		return;
 
-	fprintf(ofile, "%s", cam_error_string(device, ccb, str, sizeof(str),
-		flags, proto_flags));
+	fprintf(ofile, "%s",
+	    cam_error_string(device, ccb, str, sizeof(str), flags,
+		proto_flags));
 }
 
 #endif /* _KERNEL/!_KERNEL */
@@ -630,8 +627,8 @@ memdesc_ccb(union ccb *ccb)
 	case CAM_DATA_VADDR:
 		return (memdesc_vaddr(data_ptr, dxfer_len));
 	case CAM_DATA_PADDR:
-		return (memdesc_paddr((vm_paddr_t)(uintptr_t)data_ptr,
-		    dxfer_len));
+		return (
+		    memdesc_paddr((vm_paddr_t)(uintptr_t)data_ptr, dxfer_len));
 	case CAM_DATA_SG:
 		return (memdesc_vlist(data_ptr, sglist_cnt));
 	case CAM_DATA_SG_PADDR:
@@ -645,8 +642,7 @@ memdesc_ccb(union ccb *ccb)
 
 int
 bus_dmamap_load_ccb(bus_dma_tag_t dmat, bus_dmamap_t map, union ccb *ccb,
-		    bus_dmamap_callback_t *callback, void *callback_arg,
-		    int flags)
+    bus_dmamap_callback_t *callback, void *callback_arg, int flags)
 {
 	struct ccb_hdr *ccb_h;
 	struct memdesc mem;

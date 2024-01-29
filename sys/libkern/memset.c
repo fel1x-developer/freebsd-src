@@ -25,17 +25,16 @@
  * SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#define	LIBKERN_INLINE
+#define LIBKERN_INLINE
 
 #include <sys/types.h>
 #include <sys/libkern.h>
 
-void *
-(memset)(void *b, int c, size_t len)
+void *(memset)(void *b, int c, size_t len)
 {
 	char *bb;
 
-	for (bb = (char *)b; len--; )
+	for (bb = (char *)b; len--;)
 		*bb++ = c;
 	return (b);
 }

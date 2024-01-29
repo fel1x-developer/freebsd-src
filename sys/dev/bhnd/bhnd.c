@@ -36,43 +36,41 @@
 #include <sys/cdefs.h>
 /*
  * Broadcom Home Networking Division (HND) Bus Driver.
- * 
+ *
  * The Broadcom HND family of devices consists of both SoCs and host-connected
  * networking chipsets containing a common family of Broadcom IP cores,
  * including an integrated MIPS and/or ARM cores.
- * 
- * HND devices expose a nearly identical interface whether accessible over a 
- * native SoC interconnect, or when connected via a host interface such as 
- * PCIe. As a result, the majority of hardware support code should be re-usable 
- * across host drivers for HND networking chipsets, as well as FreeBSD support 
+ *
+ * HND devices expose a nearly identical interface whether accessible over a
+ * native SoC interconnect, or when connected via a host interface such as
+ * PCIe. As a result, the majority of hardware support code should be re-usable
+ * across host drivers for HND networking chipsets, as well as FreeBSD support
  * for Broadcom MIPS/ARM HND SoCs.
- * 
+ *
  * Earlier HND models used the siba(4) on-chip interconnect, while later models
  * use bcma(4); the programming model is almost entirely independent
  * of the actual underlying interconect.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/sbuf.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/sbuf.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/bhnd/cores/pmu/bhnd_pmu.h>
 
+#include "bhnd.h"
 #include "bhnd_chipc_if.h"
 #include "bhnd_nvram_if.h"
-
-#include "bhnd.h"
+#include "bhnd_private.h"
 #include "bhndreg.h"
 #include "bhndvar.h"
-
-#include "bhnd_private.h"
 
 MALLOC_DEFINE(M_BHND, "bhnd", "bhnd bus data structures");
 
@@ -80,19 +78,17 @@ MALLOC_DEFINE(M_BHND, "bhnd", "bhnd bus data structures");
  * bhnd_generic_probe_nomatch() reporting configuration.
  */
 static const struct bhnd_nomatch {
-	uint16_t	vendor;		/**< core designer */
-	uint16_t	device;		/**< core id */
-	bool		if_verbose;	/**< print when bootverbose is set. */
-} bhnd_nomatch_table[] = {
-	{ BHND_MFGID_ARM,	BHND_COREID_OOB_ROUTER,		true	},
-	{ BHND_MFGID_ARM,	BHND_COREID_EROM,		true	},
-	{ BHND_MFGID_ARM,	BHND_COREID_PL301,		true	},
-	{ BHND_MFGID_ARM,	BHND_COREID_APB_BRIDGE,		true	},
-	{ BHND_MFGID_ARM,	BHND_COREID_AXI_UNMAPPED,	false	},
-	{ BHND_MFGID_INVALID,	BHND_COREID_INVALID,		false	}
-};
+	uint16_t vendor; /**< core designer */
+	uint16_t device; /**< core id */
+	bool if_verbose; /**< print when bootverbose is set. */
+} bhnd_nomatch_table[] = { { BHND_MFGID_ARM, BHND_COREID_OOB_ROUTER, true },
+	{ BHND_MFGID_ARM, BHND_COREID_EROM, true },
+	{ BHND_MFGID_ARM, BHND_COREID_PL301, true },
+	{ BHND_MFGID_ARM, BHND_COREID_APB_BRIDGE, true },
+	{ BHND_MFGID_ARM, BHND_COREID_AXI_UNMAPPED, false },
+	{ BHND_MFGID_INVALID, BHND_COREID_INVALID, false } };
 
-static int			 bhnd_delete_children(struct bhnd_softc *sc);
+static int bhnd_delete_children(struct bhnd_softc *sc);
 
 /**
  * Default bhnd(4) bus driver implementation of DEVICE_ATTACH().
@@ -103,8 +99,8 @@ static int			 bhnd_delete_children(struct bhnd_softc *sc);
 int
 bhnd_generic_attach(device_t dev)
 {
-	struct bhnd_softc	*sc;
-	int			 error;
+	struct bhnd_softc *sc;
+	int error;
 
 	if (device_is_attached(dev))
 		return (EBUSY);
@@ -127,9 +123,9 @@ bhnd_generic_attach(device_t dev)
 static int
 bhnd_delete_children(struct bhnd_softc *sc)
 {
-	device_t		*devs;
-	int			 ndevs;
-	int			 error;
+	device_t *devs;
+	int ndevs;
+	int error;
 
 	/* Fetch children in detach order */
 	error = bhnd_bus_get_children(sc->dev, &devs, &ndevs,
@@ -161,8 +157,8 @@ cleanup:
 int
 bhnd_generic_detach(device_t dev)
 {
-	struct bhnd_softc	*sc;
-	int			 error;
+	struct bhnd_softc *sc;
+	int error;
 
 	if (!device_is_attached(dev))
 		return (EBUSY);
@@ -177,7 +173,7 @@ bhnd_generic_detach(device_t dev)
 
 /**
  * Default bhnd(4) bus driver implementation of DEVICE_SHUTDOWN().
- * 
+ *
  * This implementation calls device_shutdown() for each of the device's
  * children, in reverse bhnd probe order, terminating if any call to
  * device_shutdown() fails.
@@ -185,9 +181,9 @@ bhnd_generic_detach(device_t dev)
 int
 bhnd_generic_shutdown(device_t dev)
 {
-	device_t	*devs;
-	int		 ndevs;
-	int		 error;
+	device_t *devs;
+	int ndevs;
+	int error;
 
 	if (!device_is_attached(dev))
 		return (EBUSY);
@@ -222,9 +218,9 @@ cleanup:
 int
 bhnd_generic_resume(device_t dev)
 {
-	device_t	*devs;
-	int		 ndevs;
-	int		 error;
+	device_t *devs;
+	int ndevs;
+	int error;
 
 	if (!device_is_attached(dev))
 		return (EBUSY);
@@ -261,9 +257,9 @@ cleanup:
 int
 bhnd_generic_suspend(device_t dev)
 {
-	device_t	*devs;
-	int		 ndevs;
-	int		 error;
+	device_t *devs;
+	int ndevs;
+	int error;
 
 	if (!device_is_attached(dev))
 		return (EBUSY);
@@ -321,7 +317,7 @@ bhnd_generic_get_probe_order(device_t dev, device_t child)
 
 	case BHND_DEVCLASS_SOC_BRIDGE:
 		return (BHND_PROBE_BUS + BHND_PROBE_ORDER_LAST);
-		
+
 	case BHND_DEVCLASS_CPU:
 		return (BHND_PROBE_CPU + BHND_PROBE_ORDER_FIRST);
 
@@ -329,7 +325,7 @@ bhnd_generic_get_probe_order(device_t dev, device_t child)
 		/* fall through */
 	case BHND_DEVCLASS_MEMC:
 		return (BHND_PROBE_CPU + BHND_PROBE_ORDER_EARLY);
-		
+
 	case BHND_DEVCLASS_NVRAM:
 		return (BHND_PROBE_RESOURCE + BHND_PROBE_ORDER_EARLY);
 
@@ -360,17 +356,17 @@ bhnd_generic_get_probe_order(device_t dev, device_t child)
 int
 bhnd_generic_alloc_pmu(device_t dev, device_t child)
 {
-	struct bhnd_softc		*sc;
-	struct bhnd_resource		*r;
-	struct bhnd_core_clkctl		*clkctl;
-	struct resource_list		*rl;
-	struct resource_list_entry	*rle;
-	device_t			 pmu_dev;
-	bhnd_addr_t			 r_addr;
-	bhnd_size_t			 r_size;
-	bus_size_t			 pmu_regs;
-	u_int				 max_latency;
-	int				 error;
+	struct bhnd_softc *sc;
+	struct bhnd_resource *r;
+	struct bhnd_core_clkctl *clkctl;
+	struct resource_list *rl;
+	struct resource_list_entry *rle;
+	device_t pmu_dev;
+	bhnd_addr_t r_addr;
+	bhnd_size_t r_size;
+	bus_size_t pmu_regs;
+	u_int max_latency;
+	int error;
 
 	bus_topo_assert();
 
@@ -391,15 +387,18 @@ bhnd_generic_alloc_pmu(device_t dev, device_t child)
 	error = bhnd_get_region_addr(child, BHND_PORT_DEVICE, 0, 0, &r_addr,
 	    &r_size);
 	if (error) {
-		device_printf(sc->dev, "error fetching register block info for "
-		    "%s: %d\n", device_get_nameunit(child), error);
+		device_printf(sc->dev,
+		    "error fetching register block info for "
+		    "%s: %d\n",
+		    device_get_nameunit(child), error);
 		return (error);
 	}
 
 	if (r_size < (pmu_regs + sizeof(uint32_t))) {
-		device_printf(sc->dev, "pmu offset %#jx would overrun %s "
-		    "register block\n", (uintmax_t)pmu_regs,
-		    device_get_nameunit(child));
+		device_printf(sc->dev,
+		    "pmu offset %#jx would overrun %s "
+		    "register block\n",
+		    (uintmax_t)pmu_regs, device_get_nameunit(child));
 		return (ENODEV);
 	}
 
@@ -411,29 +410,33 @@ bhnd_generic_alloc_pmu(device_t dev, device_t child)
 	}
 
 	if ((rle = resource_list_find(rl, SYS_RES_MEMORY, 0)) == NULL) {
-		device_printf(dev, "cannot locate core register resource "
-		    "for %s\n", device_get_nameunit(child));
+		device_printf(dev,
+		    "cannot locate core register resource "
+		    "for %s\n",
+		    device_get_nameunit(child));
 		return (ENXIO);
 	}
 
 	if (rle->res == NULL) {
-		device_printf(dev, "core register resource unallocated for "
-		    "%s\n", device_get_nameunit(child));
+		device_printf(dev,
+		    "core register resource unallocated for "
+		    "%s\n",
+		    device_get_nameunit(child));
 		return (ENXIO);
 	}
 
-	if (r_addr+pmu_regs < rman_get_start(rle->res) ||
-	    r_addr+pmu_regs >= rman_get_end(rle->res))
-	{
-		device_printf(dev, "core register resource does not map PMU "
-		    "registers at %#jx\n for %s\n", r_addr+pmu_regs,
-		    device_get_nameunit(child));
+	if (r_addr + pmu_regs < rman_get_start(rle->res) ||
+	    r_addr + pmu_regs >= rman_get_end(rle->res)) {
+		device_printf(dev,
+		    "core register resource does not map PMU "
+		    "registers at %#jx\n for %s\n",
+		    r_addr + pmu_regs, device_get_nameunit(child));
 		return (ENXIO);
 	}
 
 	/* Adjust PMU register offset relative to the actual start address
 	 * of the core's register block allocation.
-	 * 
+	 *
 	 * XXX: The saved offset will be invalid if bus_adjust_resource is
 	 * used to modify the resource's start address.
 	 */
@@ -483,9 +486,9 @@ bhnd_generic_alloc_pmu(device_t dev, device_t child)
 int
 bhnd_generic_release_pmu(device_t dev, device_t child)
 {
-	struct bhnd_core_clkctl	*clkctl;
-	struct bhnd_resource	*r;
-	device_t		 pmu_dev;
+	struct bhnd_core_clkctl *clkctl;
+	struct bhnd_resource *r;
+	device_t pmu_dev;
 
 	bus_topo_assert();
 
@@ -504,8 +507,9 @@ bhnd_generic_release_pmu(device_t dev, device_t child)
 		BHND_CLKCTL_LOCK(clkctl);
 
 		/* Clear all FORCE, AREQ, and ERSRC flags */
-		BHND_CLKCTL_SET_4(clkctl, 0x0, BHND_CCS_FORCE_MASK |
-		    BHND_CCS_AREQ_MASK | BHND_CCS_ERSRC_REQ_MASK);
+		BHND_CLKCTL_SET_4(clkctl, 0x0,
+		    BHND_CCS_FORCE_MASK | BHND_CCS_AREQ_MASK |
+			BHND_CCS_ERSRC_REQ_MASK);
 
 		BHND_CLKCTL_UNLOCK(clkctl);
 	}
@@ -572,10 +576,10 @@ bhnd_generic_get_clock_freq(device_t dev, device_t child, bhnd_clock clock,
 int
 bhnd_generic_request_clock(device_t dev, device_t child, bhnd_clock clock)
 {
-	struct bhnd_core_clkctl	*clkctl;
-	uint32_t		 avail;
-	uint32_t		 req;
-	int			 error;
+	struct bhnd_core_clkctl *clkctl;
+	uint32_t avail;
+	uint32_t req;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -627,10 +631,10 @@ bhnd_generic_request_clock(device_t dev, device_t child, bhnd_clock clock)
 int
 bhnd_generic_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 {
-	struct bhnd_core_clkctl	*clkctl;
-	uint32_t		 avail;
-	uint32_t		 req;
-	int			 error;
+	struct bhnd_core_clkctl *clkctl;
+	uint32_t avail;
+	uint32_t req;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -644,10 +648,10 @@ bhnd_generic_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 	req = 0x0;
 
 	/* Build clock request flags */
-	if (clocks & BHND_CLOCK_DYN)		/* nothing to enable */
+	if (clocks & BHND_CLOCK_DYN) /* nothing to enable */
 		clocks &= ~BHND_CLOCK_DYN;
 
-	if (clocks & BHND_CLOCK_ILP)		/* nothing to enable */
+	if (clocks & BHND_CLOCK_ILP) /* nothing to enable */
 		clocks &= ~BHND_CLOCK_ILP;
 
 	if (clocks & BHND_CLOCK_ALP) {
@@ -688,10 +692,10 @@ bhnd_generic_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 int
 bhnd_generic_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 {
-	struct bhnd_core_clkctl	*clkctl;
-	uint32_t		 req;
-	uint32_t		 avail;
-	int			 error;
+	struct bhnd_core_clkctl *clkctl;
+	uint32_t req;
+	uint32_t avail;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -704,8 +708,8 @@ bhnd_generic_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 	if (rsrc > BHND_CCS_ERSRC_MAX)
 		return (EINVAL);
 
-	req = BHND_CCS_SET_BITS((1<<rsrc), BHND_CCS_ERSRC_REQ);
-	avail = BHND_CCS_SET_BITS((1<<rsrc), BHND_CCS_ERSRC_STS);
+	req = BHND_CCS_SET_BITS((1 << rsrc), BHND_CCS_ERSRC_REQ);
+	avail = BHND_CCS_SET_BITS((1 << rsrc), BHND_CCS_ERSRC_STS);
 
 	BHND_CLKCTL_LOCK(clkctl);
 
@@ -726,8 +730,8 @@ bhnd_generic_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 int
 bhnd_generic_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 {
-	struct bhnd_core_clkctl	*clkctl;
-	uint32_t		 mask;
+	struct bhnd_core_clkctl *clkctl;
+	uint32_t mask;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -740,7 +744,7 @@ bhnd_generic_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 	if (rsrc > BHND_CCS_ERSRC_MAX)
 		return (EINVAL);
 
-	mask = BHND_CCS_SET_BITS((1<<rsrc), BHND_CCS_ERSRC_REQ);
+	mask = BHND_CCS_SET_BITS((1 << rsrc), BHND_CCS_ERSRC_REQ);
 
 	/* Clear request */
 	BHND_CLKCTL_LOCK(clkctl);
@@ -752,15 +756,15 @@ bhnd_generic_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 
 /**
  * Default bhnd(4) bus driver implementation of BHND_BUS_IS_REGION_VALID().
- * 
+ *
  * This implementation assumes that port and region numbers are 0-indexed and
  * are allocated non-sparsely, using BHND_BUS_GET_PORT_COUNT() and
  * BHND_BUS_GET_REGION_COUNT() to determine if @p port and @p region fall
  * within the defined range.
  */
 static bool
-bhnd_generic_is_region_valid(device_t dev, device_t child,
-    bhnd_port_type type, u_int port, u_int region)
+bhnd_generic_is_region_valid(device_t dev, device_t child, bhnd_port_type type,
+    u_int port, u_int region)
 {
 	if (port >= bhnd_get_port_count(child, type))
 		return (false);
@@ -773,9 +777,9 @@ bhnd_generic_is_region_valid(device_t dev, device_t child,
 
 /**
  * Default bhnd(4) bus driver implementation of BHND_BUS_GET_NVRAM_VAR().
- * 
+ *
  * This implementation searches @p dev for a registered NVRAM child device.
- * 
+ *
  * If no NVRAM device is registered with @p dev, the request is delegated to
  * the BHND_BUS_GET_NVRAM_VAR() method on the parent of @p dev.
  */
@@ -783,8 +787,8 @@ int
 bhnd_generic_get_nvram_var(device_t dev, device_t child, const char *name,
     void *buf, size_t *size, bhnd_nvram_type type)
 {
-	device_t		 nvram, parent;
-	int			 error;
+	device_t nvram, parent;
+	int error;
 
 	/* If a NVRAM device is available, consult it first */
 	nvram = bhnd_retain_provider(child, BHND_SERVICE_NVRAM);
@@ -798,21 +802,21 @@ bhnd_generic_get_nvram_var(device_t dev, device_t child, const char *name,
 	if ((parent = device_get_parent(dev)) == NULL)
 		return (ENODEV);
 
-	return (BHND_BUS_GET_NVRAM_VAR(device_get_parent(dev), child,
-	    name, buf, size, type));
+	return (BHND_BUS_GET_NVRAM_VAR(device_get_parent(dev), child, name, buf,
+	    size, type));
 }
 
 /**
  * Default bhnd(4) bus driver implementation of BUS_PRINT_CHILD().
- * 
+ *
  * This implementation requests the device's struct resource_list via
  * BUS_GET_RESOURCE_LIST.
  */
 int
 bhnd_generic_print_child(device_t dev, device_t child)
 {
-	struct resource_list	*rl;
-	int			retval = 0;
+	struct resource_list *rl;
+	int retval = 0;
 
 	retval += bus_print_child_header(dev, child);
 
@@ -836,16 +840,16 @@ bhnd_generic_print_child(device_t dev, device_t child)
 
 /**
  * Default bhnd(4) bus driver implementation of BUS_PROBE_NOMATCH().
- * 
+ *
  * This implementation requests the device's struct resource_list via
  * BUS_GET_RESOURCE_LIST.
  */
 void
 bhnd_generic_probe_nomatch(device_t dev, device_t child)
 {
-	struct resource_list		*rl;
-	const struct bhnd_nomatch	*nm;
-	bool				 report;
+	struct resource_list *rl;
+	const struct bhnd_nomatch *nm;
+	bool report;
 
 	/* Fetch reporting configuration for this device */
 	report = true;
@@ -867,7 +871,7 @@ bhnd_generic_probe_nomatch(device_t dev, device_t child)
 
 	/* Print the non-matched device info */
 	device_printf(dev, "<%s %s, rev %hhu>", bhnd_get_vendor_name(child),
-		bhnd_get_device_name(child), bhnd_get_hwrev(child));
+	    bhnd_get_device_name(child), bhnd_get_hwrev(child));
 
 	rl = BUS_GET_RESOURCE_LIST(dev, child);
 	if (rl != NULL) {
@@ -895,8 +899,8 @@ bhnd_child_pnpinfo(device_t dev, device_t child, struct sbuf *sb)
 static int
 bhnd_child_location(device_t dev, device_t child, struct sbuf *sb)
 {
-	bhnd_addr_t	addr;
-	bhnd_size_t	size;
+	bhnd_addr_t addr;
+	bhnd_size_t size;
 
 	if (device_get_parent(child) != dev)
 		return (BUS_CHILD_LOCATION(device_get_parent(dev), child, sb));
@@ -904,13 +908,13 @@ bhnd_child_location(device_t dev, device_t child, struct sbuf *sb)
 	if (bhnd_get_region_addr(child, BHND_PORT_DEVICE, 0, 0, &addr, &size))
 		return (0);
 
-	sbuf_printf(sb, "port0.0=0x%llx", (unsigned long long) addr);
+	sbuf_printf(sb, "port0.0=0x%llx", (unsigned long long)addr);
 	return (0);
 }
 
 /**
  * Default bhnd(4) bus driver implementation of BUS_CHILD_DELETED().
- * 
+ *
  * This implementation manages internal bhnd(4) state, and must be called
  * by subclassing drivers.
  */
@@ -932,7 +936,7 @@ bhnd_generic_child_deleted(device_t dev, device_t child)
  * Helper function for implementing BUS_SUSPEND_CHILD().
  *
  * TODO: Power management
- * 
+ *
  * If @p child is not a direct child of @p dev, suspension is delegated to
  * the @p dev parent.
  */
@@ -949,7 +953,7 @@ bhnd_generic_suspend_child(device_t dev, device_t child)
  * Helper function for implementing BUS_RESUME_CHILD().
  *
  * TODO: Power management
- * 
+ *
  * If @p child is not a direct child of @p dev, suspension is delegated to
  * the @p dev parent.
  */
@@ -982,70 +986,62 @@ bhnd_generic_setup_intr(device_t dev, device_t child, struct resource *irq,
  * non-bridged bus implementations, resources will never be marked as
  * indirect, and these methods will never be called.
  */
-#define	BHND_IO_READ(_type, _name, _method)				\
-static _type								\
-bhnd_read_ ## _name (device_t dev, device_t child,			\
-    struct bhnd_resource *r, bus_size_t offset)				\
-{									\
-	return (BHND_BUS_READ_ ## _method(				\
-		    device_get_parent(dev), child, r, offset));		\
-}
+#define BHND_IO_READ(_type, _name, _method)                                    \
+	static _type bhnd_read_##_name(device_t dev, device_t child,           \
+	    struct bhnd_resource *r, bus_size_t offset)                        \
+	{                                                                      \
+		return (BHND_BUS_READ_##_method(device_get_parent(dev), child, \
+		    r, offset));                                               \
+	}
 
-#define	BHND_IO_WRITE(_type, _name, _method)				\
-static void								\
-bhnd_write_ ## _name (device_t dev, device_t child,			\
-    struct bhnd_resource *r, bus_size_t offset, _type value)		\
-{									\
-	return (BHND_BUS_WRITE_ ## _method(				\
-		    device_get_parent(dev), child, r, offset,		\
-		    value));	\
-}
+#define BHND_IO_WRITE(_type, _name, _method)                             \
+	static void bhnd_write_##_name(device_t dev, device_t child,     \
+	    struct bhnd_resource *r, bus_size_t offset, _type value)     \
+	{                                                                \
+		return (BHND_BUS_WRITE_##_method(device_get_parent(dev), \
+		    child, r, offset, value));                           \
+	}
 
-#define	BHND_IO_MISC(_type, _op, _method)				\
-static void								\
-bhnd_ ## _op (device_t dev, device_t child,				\
-    struct bhnd_resource *r, bus_size_t offset, _type datap,		\
-    bus_size_t count)							\
-{									\
-	BHND_BUS_ ## _method(device_get_parent(dev), child, r,		\
-	    offset, datap, count);					\
-}	
+#define BHND_IO_MISC(_type, _op, _method)                                    \
+	static void bhnd_##_op(device_t dev, device_t child,                 \
+	    struct bhnd_resource *r, bus_size_t offset, _type datap,         \
+	    bus_size_t count)                                                \
+	{                                                                    \
+		BHND_BUS_##_method(device_get_parent(dev), child, r, offset, \
+		    datap, count);                                           \
+	}
 
-#define	BHND_IO_METHODS(_type, _size)					\
-	BHND_IO_READ(_type, _size, _size)				\
-	BHND_IO_WRITE(_type, _size, _size)				\
-									\
-	BHND_IO_READ(_type, stream_ ## _size, STREAM_ ## _size)		\
-	BHND_IO_WRITE(_type, stream_ ## _size, STREAM_ ## _size)	\
-									\
-	BHND_IO_MISC(_type*, read_multi_ ## _size,			\
-	    READ_MULTI_ ## _size)					\
-	BHND_IO_MISC(_type*, write_multi_ ## _size,			\
-	    WRITE_MULTI_ ## _size)					\
-									\
-	BHND_IO_MISC(_type*, read_multi_stream_ ## _size,		\
-	   READ_MULTI_STREAM_ ## _size)					\
-	BHND_IO_MISC(_type*, write_multi_stream_ ## _size,		\
-	   WRITE_MULTI_STREAM_ ## _size)				\
-									\
-	BHND_IO_MISC(_type, set_multi_ ## _size, SET_MULTI_ ## _size)	\
-	BHND_IO_MISC(_type, set_region_ ## _size, SET_REGION_ ## _size)	\
-									\
-	BHND_IO_MISC(_type*, read_region_ ## _size,			\
-	    READ_REGION_ ## _size)					\
-	BHND_IO_MISC(_type*, write_region_ ## _size,			\
-	    WRITE_REGION_ ## _size)					\
-									\
-	BHND_IO_MISC(_type*, read_region_stream_ ## _size,		\
-	    READ_REGION_STREAM_ ## _size)				\
-	BHND_IO_MISC(_type*, write_region_stream_ ## _size,		\
-	    WRITE_REGION_STREAM_ ## _size)				\
+#define BHND_IO_METHODS(_type, _size)                                     \
+	BHND_IO_READ(_type, _size, _size)                                 \
+	BHND_IO_WRITE(_type, _size, _size)                                \
+                                                                          \
+	BHND_IO_READ(_type, stream_##_size, STREAM_##_size)               \
+	BHND_IO_WRITE(_type, stream_##_size, STREAM_##_size)              \
+                                                                          \
+	BHND_IO_MISC(_type *, read_multi_##_size, READ_MULTI_##_size)     \
+	BHND_IO_MISC(_type *, write_multi_##_size, WRITE_MULTI_##_size)   \
+                                                                          \
+	BHND_IO_MISC(_type *, read_multi_stream_##_size,                  \
+	    READ_MULTI_STREAM_##_size)                                    \
+	BHND_IO_MISC(_type *, write_multi_stream_##_size,                 \
+	    WRITE_MULTI_STREAM_##_size)                                   \
+                                                                          \
+	BHND_IO_MISC(_type, set_multi_##_size, SET_MULTI_##_size)         \
+	BHND_IO_MISC(_type, set_region_##_size, SET_REGION_##_size)       \
+                                                                          \
+	BHND_IO_MISC(_type *, read_region_##_size, READ_REGION_##_size)   \
+	BHND_IO_MISC(_type *, write_region_##_size, WRITE_REGION_##_size) \
+                                                                          \
+	BHND_IO_MISC(_type *, read_region_stream_##_size,                 \
+	    READ_REGION_STREAM_##_size)                                   \
+	BHND_IO_MISC(_type *, write_region_stream_##_size,                \
+	    WRITE_REGION_STREAM_##_size)
 
 BHND_IO_METHODS(uint8_t, 1);
 BHND_IO_METHODS(uint16_t, 2);
 BHND_IO_METHODS(uint32_t, 4);
 
-static void 
+static void
 bhnd_barrier(device_t dev, device_t child, struct bhnd_resource *r,
     bus_size_t offset, bus_size_t length, int flags)
 {
@@ -1054,110 +1050,110 @@ bhnd_barrier(device_t dev, device_t child, struct bhnd_resource *r,
 }
 
 static device_method_t bhnd_methods[] = {
-	/* Device interface */ \
-	DEVMETHOD(device_attach,		bhnd_generic_attach),
-	DEVMETHOD(device_detach,		bhnd_generic_detach),
-	DEVMETHOD(device_shutdown,		bhnd_generic_shutdown),
-	DEVMETHOD(device_suspend,		bhnd_generic_suspend),
-	DEVMETHOD(device_resume,		bhnd_generic_resume),
+	/* Device interface */
+	DEVMETHOD(device_attach, bhnd_generic_attach),
+	DEVMETHOD(device_detach, bhnd_generic_detach),
+	DEVMETHOD(device_shutdown, bhnd_generic_shutdown),
+	DEVMETHOD(device_suspend, bhnd_generic_suspend),
+	DEVMETHOD(device_resume, bhnd_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_deleted,		bhnd_generic_child_deleted),
-	DEVMETHOD(bus_probe_nomatch,		bhnd_generic_probe_nomatch),
-	DEVMETHOD(bus_print_child,		bhnd_generic_print_child),
-	DEVMETHOD(bus_child_pnpinfo,		bhnd_child_pnpinfo),
-	DEVMETHOD(bus_child_location,		bhnd_child_location),
+	DEVMETHOD(bus_child_deleted, bhnd_generic_child_deleted),
+	DEVMETHOD(bus_probe_nomatch, bhnd_generic_probe_nomatch),
+	DEVMETHOD(bus_print_child, bhnd_generic_print_child),
+	DEVMETHOD(bus_child_pnpinfo, bhnd_child_pnpinfo),
+	DEVMETHOD(bus_child_location, bhnd_child_location),
 
-	DEVMETHOD(bus_suspend_child,		bhnd_generic_suspend_child),
-	DEVMETHOD(bus_resume_child,		bhnd_generic_resume_child),
+	DEVMETHOD(bus_suspend_child, bhnd_generic_suspend_child),
+	DEVMETHOD(bus_resume_child, bhnd_generic_resume_child),
 
-	DEVMETHOD(bus_set_resource,		bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource,		bus_generic_rl_get_resource),
-	DEVMETHOD(bus_delete_resource,		bus_generic_rl_delete_resource),
-	DEVMETHOD(bus_alloc_resource,		bus_generic_rl_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,		bus_generic_adjust_resource),
-	DEVMETHOD(bus_release_resource,		bus_generic_rl_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_delete_resource, bus_generic_rl_delete_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_rl_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
-	DEVMETHOD(bus_setup_intr,		bhnd_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
-	DEVMETHOD(bus_config_intr,		bus_generic_config_intr),
-	DEVMETHOD(bus_bind_intr,		bus_generic_bind_intr),
-	DEVMETHOD(bus_describe_intr,		bus_generic_describe_intr),
+	DEVMETHOD(bus_setup_intr, bhnd_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_config_intr, bus_generic_config_intr),
+	DEVMETHOD(bus_bind_intr, bus_generic_bind_intr),
+	DEVMETHOD(bus_describe_intr, bus_generic_describe_intr),
 
-	DEVMETHOD(bus_get_dma_tag,		bus_generic_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, bus_generic_get_dma_tag),
 
 	/* BHND interface */
-	DEVMETHOD(bhnd_bus_get_chipid,		bhnd_bus_generic_get_chipid),
-	DEVMETHOD(bhnd_bus_is_hw_disabled,	bhnd_bus_generic_is_hw_disabled),
+	DEVMETHOD(bhnd_bus_get_chipid, bhnd_bus_generic_get_chipid),
+	DEVMETHOD(bhnd_bus_is_hw_disabled, bhnd_bus_generic_is_hw_disabled),
 
-	DEVMETHOD(bhnd_bus_get_probe_order,	bhnd_generic_get_probe_order),
+	DEVMETHOD(bhnd_bus_get_probe_order, bhnd_generic_get_probe_order),
 
-	DEVMETHOD(bhnd_bus_alloc_pmu,		bhnd_generic_alloc_pmu),
-	DEVMETHOD(bhnd_bus_release_pmu,		bhnd_generic_release_pmu),
-	DEVMETHOD(bhnd_bus_request_clock,	bhnd_generic_request_clock),
-	DEVMETHOD(bhnd_bus_enable_clocks,	bhnd_generic_enable_clocks),
-	DEVMETHOD(bhnd_bus_request_ext_rsrc,	bhnd_generic_request_ext_rsrc),
-	DEVMETHOD(bhnd_bus_release_ext_rsrc,	bhnd_generic_release_ext_rsrc),
-	DEVMETHOD(bhnd_bus_get_clock_latency,	bhnd_generic_get_clock_latency),
-	DEVMETHOD(bhnd_bus_get_clock_freq,	bhnd_generic_get_clock_freq),
+	DEVMETHOD(bhnd_bus_alloc_pmu, bhnd_generic_alloc_pmu),
+	DEVMETHOD(bhnd_bus_release_pmu, bhnd_generic_release_pmu),
+	DEVMETHOD(bhnd_bus_request_clock, bhnd_generic_request_clock),
+	DEVMETHOD(bhnd_bus_enable_clocks, bhnd_generic_enable_clocks),
+	DEVMETHOD(bhnd_bus_request_ext_rsrc, bhnd_generic_request_ext_rsrc),
+	DEVMETHOD(bhnd_bus_release_ext_rsrc, bhnd_generic_release_ext_rsrc),
+	DEVMETHOD(bhnd_bus_get_clock_latency, bhnd_generic_get_clock_latency),
+	DEVMETHOD(bhnd_bus_get_clock_freq, bhnd_generic_get_clock_freq),
 
-	DEVMETHOD(bhnd_bus_is_region_valid,	bhnd_generic_is_region_valid),
-	DEVMETHOD(bhnd_bus_get_nvram_var,	bhnd_generic_get_nvram_var),
+	DEVMETHOD(bhnd_bus_is_region_valid, bhnd_generic_is_region_valid),
+	DEVMETHOD(bhnd_bus_get_nvram_var, bhnd_generic_get_nvram_var),
 
 	/* BHND interface (bus I/O) */
-	DEVMETHOD(bhnd_bus_read_1,		bhnd_read_1),
-	DEVMETHOD(bhnd_bus_read_2,		bhnd_read_2),
-	DEVMETHOD(bhnd_bus_read_4,		bhnd_read_4),
-	DEVMETHOD(bhnd_bus_write_1,		bhnd_write_1),
-	DEVMETHOD(bhnd_bus_write_2,		bhnd_write_2),
-	DEVMETHOD(bhnd_bus_write_4,		bhnd_write_4),
+	DEVMETHOD(bhnd_bus_read_1, bhnd_read_1),
+	DEVMETHOD(bhnd_bus_read_2, bhnd_read_2),
+	DEVMETHOD(bhnd_bus_read_4, bhnd_read_4),
+	DEVMETHOD(bhnd_bus_write_1, bhnd_write_1),
+	DEVMETHOD(bhnd_bus_write_2, bhnd_write_2),
+	DEVMETHOD(bhnd_bus_write_4, bhnd_write_4),
 
-	DEVMETHOD(bhnd_bus_read_stream_1,	bhnd_read_stream_1),
-	DEVMETHOD(bhnd_bus_read_stream_2,	bhnd_read_stream_2),
-	DEVMETHOD(bhnd_bus_read_stream_4,	bhnd_read_stream_4),
-	DEVMETHOD(bhnd_bus_write_stream_1,	bhnd_write_stream_1),
-	DEVMETHOD(bhnd_bus_write_stream_2,	bhnd_write_stream_2),
-	DEVMETHOD(bhnd_bus_write_stream_4,	bhnd_write_stream_4),
+	DEVMETHOD(bhnd_bus_read_stream_1, bhnd_read_stream_1),
+	DEVMETHOD(bhnd_bus_read_stream_2, bhnd_read_stream_2),
+	DEVMETHOD(bhnd_bus_read_stream_4, bhnd_read_stream_4),
+	DEVMETHOD(bhnd_bus_write_stream_1, bhnd_write_stream_1),
+	DEVMETHOD(bhnd_bus_write_stream_2, bhnd_write_stream_2),
+	DEVMETHOD(bhnd_bus_write_stream_4, bhnd_write_stream_4),
 
-	DEVMETHOD(bhnd_bus_read_multi_1,	bhnd_read_multi_1),
-	DEVMETHOD(bhnd_bus_read_multi_2,	bhnd_read_multi_2),
-	DEVMETHOD(bhnd_bus_read_multi_4,	bhnd_read_multi_4),
-	DEVMETHOD(bhnd_bus_write_multi_1,	bhnd_write_multi_1),
-	DEVMETHOD(bhnd_bus_write_multi_2,	bhnd_write_multi_2),
-	DEVMETHOD(bhnd_bus_write_multi_4,	bhnd_write_multi_4),
+	DEVMETHOD(bhnd_bus_read_multi_1, bhnd_read_multi_1),
+	DEVMETHOD(bhnd_bus_read_multi_2, bhnd_read_multi_2),
+	DEVMETHOD(bhnd_bus_read_multi_4, bhnd_read_multi_4),
+	DEVMETHOD(bhnd_bus_write_multi_1, bhnd_write_multi_1),
+	DEVMETHOD(bhnd_bus_write_multi_2, bhnd_write_multi_2),
+	DEVMETHOD(bhnd_bus_write_multi_4, bhnd_write_multi_4),
 
-	DEVMETHOD(bhnd_bus_read_multi_stream_1,	bhnd_read_multi_stream_1),
-	DEVMETHOD(bhnd_bus_read_multi_stream_2,	bhnd_read_multi_stream_2),
-	DEVMETHOD(bhnd_bus_read_multi_stream_4,	bhnd_read_multi_stream_4),
-	DEVMETHOD(bhnd_bus_write_multi_stream_1,bhnd_write_multi_stream_1),
-	DEVMETHOD(bhnd_bus_write_multi_stream_2,bhnd_write_multi_stream_2),
-	DEVMETHOD(bhnd_bus_write_multi_stream_4,bhnd_write_multi_stream_4),
+	DEVMETHOD(bhnd_bus_read_multi_stream_1, bhnd_read_multi_stream_1),
+	DEVMETHOD(bhnd_bus_read_multi_stream_2, bhnd_read_multi_stream_2),
+	DEVMETHOD(bhnd_bus_read_multi_stream_4, bhnd_read_multi_stream_4),
+	DEVMETHOD(bhnd_bus_write_multi_stream_1, bhnd_write_multi_stream_1),
+	DEVMETHOD(bhnd_bus_write_multi_stream_2, bhnd_write_multi_stream_2),
+	DEVMETHOD(bhnd_bus_write_multi_stream_4, bhnd_write_multi_stream_4),
 
-	DEVMETHOD(bhnd_bus_set_multi_1,		bhnd_set_multi_1),
-	DEVMETHOD(bhnd_bus_set_multi_2,		bhnd_set_multi_2),
-	DEVMETHOD(bhnd_bus_set_multi_4,		bhnd_set_multi_4),
+	DEVMETHOD(bhnd_bus_set_multi_1, bhnd_set_multi_1),
+	DEVMETHOD(bhnd_bus_set_multi_2, bhnd_set_multi_2),
+	DEVMETHOD(bhnd_bus_set_multi_4, bhnd_set_multi_4),
 
-	DEVMETHOD(bhnd_bus_set_region_1,	bhnd_set_region_1),
-	DEVMETHOD(bhnd_bus_set_region_2,	bhnd_set_region_2),
-	DEVMETHOD(bhnd_bus_set_region_4,	bhnd_set_region_4),
+	DEVMETHOD(bhnd_bus_set_region_1, bhnd_set_region_1),
+	DEVMETHOD(bhnd_bus_set_region_2, bhnd_set_region_2),
+	DEVMETHOD(bhnd_bus_set_region_4, bhnd_set_region_4),
 
-	DEVMETHOD(bhnd_bus_read_region_1,	bhnd_read_region_1),
-	DEVMETHOD(bhnd_bus_read_region_2,	bhnd_read_region_2),
-	DEVMETHOD(bhnd_bus_read_region_4,	bhnd_read_region_4),
-	DEVMETHOD(bhnd_bus_write_region_1,	bhnd_write_region_1),
-	DEVMETHOD(bhnd_bus_write_region_2,	bhnd_write_region_2),
-	DEVMETHOD(bhnd_bus_write_region_4,	bhnd_write_region_4),
+	DEVMETHOD(bhnd_bus_read_region_1, bhnd_read_region_1),
+	DEVMETHOD(bhnd_bus_read_region_2, bhnd_read_region_2),
+	DEVMETHOD(bhnd_bus_read_region_4, bhnd_read_region_4),
+	DEVMETHOD(bhnd_bus_write_region_1, bhnd_write_region_1),
+	DEVMETHOD(bhnd_bus_write_region_2, bhnd_write_region_2),
+	DEVMETHOD(bhnd_bus_write_region_4, bhnd_write_region_4),
 
-	DEVMETHOD(bhnd_bus_read_region_stream_1,bhnd_read_region_stream_1),
-	DEVMETHOD(bhnd_bus_read_region_stream_2,bhnd_read_region_stream_2),
-	DEVMETHOD(bhnd_bus_read_region_stream_4,bhnd_read_region_stream_4),
+	DEVMETHOD(bhnd_bus_read_region_stream_1, bhnd_read_region_stream_1),
+	DEVMETHOD(bhnd_bus_read_region_stream_2, bhnd_read_region_stream_2),
+	DEVMETHOD(bhnd_bus_read_region_stream_4, bhnd_read_region_stream_4),
 	DEVMETHOD(bhnd_bus_write_region_stream_1, bhnd_write_region_stream_1),
 	DEVMETHOD(bhnd_bus_write_region_stream_2, bhnd_write_region_stream_2),
 	DEVMETHOD(bhnd_bus_write_region_stream_4, bhnd_write_region_stream_4),
 
-	DEVMETHOD(bhnd_bus_barrier,			bhnd_barrier),
+	DEVMETHOD(bhnd_bus_barrier, bhnd_barrier),
 
 	DEVMETHOD_END
 };

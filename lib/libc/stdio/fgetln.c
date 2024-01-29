@@ -32,15 +32,16 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Expand the line buffer.  Return -1 on error.
@@ -94,7 +95,7 @@ fgetln(FILE *fp, size_t *lenp)
 		 * `optimising' a backward seek, in case the user stomps on
 		 * the text.
 		 */
-		p++;		/* advance over it */
+		p++; /* advance over it */
 		ret = (char *)fp->_p;
 		*lenp = len = p - fp->_p;
 		fp->_flags |= __SMOD;
@@ -153,7 +154,7 @@ end:
 	return (ret);
 
 error:
-	*lenp = 0;		/* ??? */
+	*lenp = 0; /* ??? */
 	fp->_flags |= __SERR;
 	ret = NULL;
 	goto end;

@@ -36,39 +36,43 @@
 #include "debug.h"
 
 static void cache_fifo_policy_update_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void cache_lfu_policy_add_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
-static struct cache_policy_item_ * cache_lfu_policy_create_item(void);
+    struct cache_policy_item_ *);
+static struct cache_policy_item_ *cache_lfu_policy_create_item(void);
 static void cache_lfu_policy_destroy_item(struct cache_policy_item_ *);
 static struct cache_policy_item_ *cache_lfu_policy_get_first_item(
-	struct cache_policy_ *);
+    struct cache_policy_ *);
 static struct cache_policy_item_ *cache_lfu_policy_get_last_item(
-	struct cache_policy_ *);
-static struct cache_policy_item_ *cache_lfu_policy_get_next_item(
-	struct cache_policy_ *, struct cache_policy_item_ *);
-static struct cache_policy_item_ *cache_lfu_policy_get_prev_item(
-	struct cache_policy_ *, struct cache_policy_item_ *);
+    struct cache_policy_ *);
+static struct cache_policy_item_ *
+cache_lfu_policy_get_next_item(struct cache_policy_ *,
+    struct cache_policy_item_ *);
+static struct cache_policy_item_ *
+cache_lfu_policy_get_prev_item(struct cache_policy_ *,
+    struct cache_policy_item_ *);
 static void cache_lfu_policy_remove_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void cache_lfu_policy_update_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void cache_lru_policy_update_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void cache_queue_policy_add_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
-static struct cache_policy_item_ * cache_queue_policy_create_item(void);
+    struct cache_policy_item_ *);
+static struct cache_policy_item_ *cache_queue_policy_create_item(void);
 static void cache_queue_policy_destroy_item(struct cache_policy_item_ *);
 static struct cache_policy_item_ *cache_queue_policy_get_first_item(
-	struct cache_policy_ *);
+    struct cache_policy_ *);
 static struct cache_policy_item_ *cache_queue_policy_get_last_item(
-	struct cache_policy_ *);
-static struct cache_policy_item_ *cache_queue_policy_get_next_item(
-	struct cache_policy_ *, struct cache_policy_item_ *);
-static struct cache_policy_item_ *cache_queue_policy_get_prev_item(
-	struct cache_policy_ *, struct cache_policy_item_ *);
+    struct cache_policy_ *);
+static struct cache_policy_item_ *
+cache_queue_policy_get_next_item(struct cache_policy_ *,
+    struct cache_policy_item_ *);
+static struct cache_policy_item_ *
+cache_queue_policy_get_prev_item(struct cache_policy_ *,
+    struct cache_policy_item_ *);
 static void cache_queue_policy_remove_item(struct cache_policy_ *,
-	struct cache_policy_item_ *);
+    struct cache_policy_item_ *);
 static void destroy_cache_queue_policy(struct cache_queue_policy_ *);
 static struct cache_queue_policy_ *init_cache_queue_policy(void);
 
@@ -84,8 +88,7 @@ cache_queue_policy_create_item(void)
 	struct cache_queue_policy_item_ *retval;
 
 	TRACE_IN(cache_queue_policy_create_item);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	TRACE_OUT(cache_queue_policy_create_item);
@@ -104,7 +107,7 @@ cache_queue_policy_destroy_item(struct cache_policy_item_ *item)
 
 static void
 cache_queue_policy_add_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_queue_policy_ *queue_policy;
 	struct cache_queue_policy_item_ *queue_item;
@@ -118,10 +121,10 @@ cache_queue_policy_add_item(struct cache_policy_ *policy,
 
 static void
 cache_queue_policy_remove_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_queue_policy_ *queue_policy;
-	struct cache_queue_policy_item_	*queue_item;
+	struct cache_queue_policy_item_ *queue_item;
 
 	TRACE_IN(cache_queue_policy_remove_item);
 	queue_policy = (struct cache_queue_policy_ *)policy;
@@ -150,14 +153,14 @@ cache_queue_policy_get_last_item(struct cache_policy_ *policy)
 	queue_policy = (struct cache_queue_policy_ *)policy;
 	TRACE_OUT(cache_queue_policy_get_last_item);
 	return ((struct cache_policy_item_ *)TAILQ_LAST(&queue_policy->head,
-		cache_queue_policy_head_));
+	    cache_queue_policy_head_));
 }
 
 static struct cache_policy_item_ *
 cache_queue_policy_get_next_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
-	struct cache_queue_policy_item_	*queue_item;
+	struct cache_queue_policy_item_ *queue_item;
 
 	TRACE_IN(cache_queue_policy_get_next_item);
 	queue_item = (struct cache_queue_policy_item_ *)item;
@@ -168,16 +171,16 @@ cache_queue_policy_get_next_item(struct cache_policy_ *policy,
 
 static struct cache_policy_item_ *
 cache_queue_policy_get_prev_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
-	struct cache_queue_policy_item_	*queue_item;
+	struct cache_queue_policy_item_ *queue_item;
 
 	TRACE_IN(cache_queue_policy_get_prev_item);
 	queue_item = (struct cache_queue_policy_item_ *)item;
 
 	TRACE_OUT(cache_queue_policy_get_prev_item);
 	return ((struct cache_policy_item_ *)TAILQ_PREV(queue_item,
-		cache_queue_policy_head_, entries));
+	    cache_queue_policy_head_, entries));
 }
 
 /*
@@ -187,11 +190,10 @@ cache_queue_policy_get_prev_item(struct cache_policy_ *policy,
 static struct cache_queue_policy_ *
 init_cache_queue_policy(void)
 {
-	struct cache_queue_policy_	*retval;
+	struct cache_queue_policy_ *retval;
 
 	TRACE_IN(init_cache_queue_policy);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent_data.create_item_func = cache_queue_policy_create_item;
@@ -201,13 +203,13 @@ init_cache_queue_policy(void)
 	retval->parent_data.remove_item_func = cache_queue_policy_remove_item;
 
 	retval->parent_data.get_first_item_func =
-		cache_queue_policy_get_first_item;
+	    cache_queue_policy_get_first_item;
 	retval->parent_data.get_last_item_func =
-		cache_queue_policy_get_last_item;
+	    cache_queue_policy_get_last_item;
 	retval->parent_data.get_next_item_func =
-		cache_queue_policy_get_next_item;
+	    cache_queue_policy_get_next_item;
 	retval->parent_data.get_prev_item_func =
-		cache_queue_policy_get_prev_item;
+	    cache_queue_policy_get_prev_item;
 
 	TAILQ_INIT(&retval->head);
 	TRACE_OUT(init_cache_queue_policy);
@@ -217,14 +219,14 @@ init_cache_queue_policy(void)
 static void
 destroy_cache_queue_policy(struct cache_queue_policy_ *queue_policy)
 {
-	struct cache_queue_policy_item_	*queue_item;
+	struct cache_queue_policy_item_ *queue_item;
 
 	TRACE_IN(destroy_cache_queue_policy);
 	while (!TAILQ_EMPTY(&queue_policy->head)) {
 		queue_item = TAILQ_FIRST(&queue_policy->head);
 		TAILQ_REMOVE(&queue_policy->head, queue_item, entries);
 		cache_queue_policy_destroy_item(
-			(struct cache_policy_item_ *)queue_item);
+		    (struct cache_policy_item_ *)queue_item);
 	}
 	free(queue_policy);
 	TRACE_OUT(destroy_cache_queue_policy);
@@ -237,7 +239,7 @@ destroy_cache_queue_policy(struct cache_queue_policy_ *queue_policy)
  */
 static void
 cache_fifo_policy_update_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 
 	TRACE_IN(cache_fifo_policy_update_item);
@@ -261,7 +263,7 @@ init_cache_fifo_policy(void)
 void
 destroy_cache_fifo_policy(struct cache_policy_ *policy)
 {
-	struct cache_queue_policy_	*queue_policy;
+	struct cache_queue_policy_ *queue_policy;
 
 	TRACE_IN(destroy_cache_fifo_policy);
 	queue_policy = (struct cache_queue_policy_ *)policy;
@@ -276,7 +278,7 @@ destroy_cache_fifo_policy(struct cache_policy_ *policy)
  */
 static void
 cache_lru_policy_update_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_queue_policy_ *queue_policy;
 	struct cache_queue_policy_item_ *queue_item;
@@ -306,7 +308,7 @@ init_cache_lru_policy(void)
 void
 destroy_cache_lru_policy(struct cache_policy_ *policy)
 {
-	struct cache_queue_policy_	*queue_policy;
+	struct cache_queue_policy_ *queue_policy;
 
 	TRACE_IN(destroy_cache_lru_policy);
 	queue_policy = (struct cache_queue_policy_ *)policy;
@@ -330,8 +332,7 @@ cache_lfu_policy_create_item(void)
 	struct cache_lfu_policy_item_ *retval;
 
 	TRACE_IN(cache_lfu_policy_create_item);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	TRACE_OUT(cache_lfu_policy_create_item);
@@ -354,7 +355,7 @@ cache_lfu_policy_destroy_item(struct cache_policy_item_ *item)
  */
 static void
 cache_lfu_policy_add_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_lfu_policy_ *lfu_policy;
 	struct cache_lfu_policy_item_ *lfu_item;
@@ -365,7 +366,7 @@ cache_lfu_policy_add_item(struct cache_policy_ *policy,
 
 	lfu_item->frequency = CACHELIB_MAX_FREQUENCY - 1;
 	TAILQ_INSERT_HEAD(&(lfu_policy->groups[CACHELIB_MAX_FREQUENCY - 1]),
-		lfu_item, entries);
+	    lfu_item, entries);
 	TRACE_OUT(cache_lfu_policy_add_item);
 }
 
@@ -375,7 +376,7 @@ cache_lfu_policy_add_item(struct cache_policy_ *policy,
  */
 static void
 cache_lfu_policy_update_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_lfu_policy_ *lfu_policy;
 	struct cache_lfu_policy_item_ *lfu_item;
@@ -394,19 +395,20 @@ cache_lfu_policy_update_item(struct cache_policy_ *policy,
 	 * equally distributed  in the array and not grouped in its beginning.
 	 */
 	if (lfu_item->parent_data.last_request_time.tv_sec !=
-		lfu_item->parent_data.creation_time.tv_sec) {
+	    lfu_item->parent_data.creation_time.tv_sec) {
 		index = ((double)lfu_item->parent_data.request_count *
-			(double)lfu_item->parent_data.request_count /
-			(lfu_item->parent_data.last_request_time.tv_sec -
-			    lfu_item->parent_data.creation_time.tv_sec + 1)) *
-			    CACHELIB_MAX_FREQUENCY;
+			    (double)lfu_item->parent_data.request_count /
+			    (lfu_item->parent_data.last_request_time.tv_sec -
+				lfu_item->parent_data.creation_time.tv_sec +
+				1)) *
+		    CACHELIB_MAX_FREQUENCY;
 		if (index >= CACHELIB_MAX_FREQUENCY)
 			index = CACHELIB_MAX_FREQUENCY - 1;
 	} else
 		index = CACHELIB_MAX_FREQUENCY - 1;
 
 	TAILQ_REMOVE(&(lfu_policy->groups[lfu_item->frequency]), lfu_item,
-		entries);
+	    entries);
 	lfu_item->frequency = index;
 	TAILQ_INSERT_HEAD(&(lfu_policy->groups[index]), lfu_item, entries);
 
@@ -415,7 +417,7 @@ cache_lfu_policy_update_item(struct cache_policy_ *policy,
 
 static void
 cache_lfu_policy_remove_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_lfu_policy_ *lfu_policy;
 	struct cache_lfu_policy_item_ *lfu_item;
@@ -425,7 +427,7 @@ cache_lfu_policy_remove_item(struct cache_policy_ *policy,
 	lfu_item = (struct cache_lfu_policy_item_ *)item;
 
 	TAILQ_REMOVE(&(lfu_policy->groups[lfu_item->frequency]), lfu_item,
-		entries);
+	    entries);
 	TRACE_OUT(cache_lfu_policy_remove_item);
 }
 
@@ -462,7 +464,7 @@ cache_lfu_policy_get_last_item(struct cache_policy_ *policy)
 	for (i = CACHELIB_MAX_FREQUENCY - 1; i >= 0; --i)
 		if (!TAILQ_EMPTY(&(lfu_policy->groups[i]))) {
 			lfu_item = TAILQ_LAST(&(lfu_policy->groups[i]),
-				cache_lfu_policy_group_);
+			    cache_lfu_policy_group_);
 			break;
 		}
 
@@ -472,7 +474,7 @@ cache_lfu_policy_get_last_item(struct cache_policy_ *policy)
 
 static struct cache_policy_item_ *
 cache_lfu_policy_get_next_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_lfu_policy_ *lfu_policy;
 	struct cache_lfu_policy_item_ *lfu_item;
@@ -481,13 +483,13 @@ cache_lfu_policy_get_next_item(struct cache_policy_ *policy,
 	TRACE_IN(cache_lfu_policy_get_next_item);
 	lfu_policy = (struct cache_lfu_policy_ *)policy;
 	lfu_item = TAILQ_NEXT((struct cache_lfu_policy_item_ *)item, entries);
-	if (lfu_item == NULL)
-	{
+	if (lfu_item == NULL) {
 		for (i = ((struct cache_lfu_policy_item_ *)item)->frequency + 1;
-			i < CACHELIB_MAX_FREQUENCY; ++i) {
+		     i < CACHELIB_MAX_FREQUENCY; ++i) {
 			if (!TAILQ_EMPTY(&(lfu_policy->groups[i]))) {
-			    lfu_item = TAILQ_FIRST(&(lfu_policy->groups[i]));
-			    break;
+				lfu_item = TAILQ_FIRST(
+				    &(lfu_policy->groups[i]));
+				break;
 			}
 		}
 	}
@@ -498,7 +500,7 @@ cache_lfu_policy_get_next_item(struct cache_policy_ *policy,
 
 static struct cache_policy_item_ *
 cache_lfu_policy_get_prev_item(struct cache_policy_ *policy,
-	struct cache_policy_item_ *item)
+    struct cache_policy_item_ *item)
 {
 	struct cache_lfu_policy_ *lfu_policy;
 	struct cache_lfu_policy_item_ *lfu_item;
@@ -507,16 +509,15 @@ cache_lfu_policy_get_prev_item(struct cache_policy_ *policy,
 	TRACE_IN(cache_lfu_policy_get_prev_item);
 	lfu_policy = (struct cache_lfu_policy_ *)policy;
 	lfu_item = TAILQ_PREV((struct cache_lfu_policy_item_ *)item,
-		cache_lfu_policy_group_, entries);
-	if (lfu_item == NULL)
-	{
+	    cache_lfu_policy_group_, entries);
+	if (lfu_item == NULL) {
 		for (i = ((struct cache_lfu_policy_item_ *)item)->frequency - 1;
-			i >= 0; --i)
+		     i >= 0; --i)
 			if (!TAILQ_EMPTY(&(lfu_policy->groups[i]))) {
 				lfu_item = TAILQ_LAST(&(lfu_policy->groups[i]),
-					cache_lfu_policy_group_);
+				    cache_lfu_policy_group_);
 				break;
-		}
+			}
 	}
 
 	TRACE_OUT(cache_lfu_policy_get_prev_item);
@@ -534,8 +535,7 @@ init_cache_lfu_policy(void)
 	struct cache_lfu_policy_ *retval;
 
 	TRACE_IN(init_cache_lfu_policy);
-	retval = calloc(1,
-		sizeof(*retval));
+	retval = calloc(1, sizeof(*retval));
 	assert(retval != NULL);
 
 	retval->parent_data.create_item_func = cache_lfu_policy_create_item;
@@ -546,13 +546,10 @@ init_cache_lfu_policy(void)
 	retval->parent_data.remove_item_func = cache_lfu_policy_remove_item;
 
 	retval->parent_data.get_first_item_func =
-		cache_lfu_policy_get_first_item;
-	retval->parent_data.get_last_item_func =
-		cache_lfu_policy_get_last_item;
-	retval->parent_data.get_next_item_func =
-		cache_lfu_policy_get_next_item;
-	retval->parent_data.get_prev_item_func =
-		cache_lfu_policy_get_prev_item;
+	    cache_lfu_policy_get_first_item;
+	retval->parent_data.get_last_item_func = cache_lfu_policy_get_last_item;
+	retval->parent_data.get_next_item_func = cache_lfu_policy_get_next_item;
+	retval->parent_data.get_prev_item_func = cache_lfu_policy_get_prev_item;
 
 	for (i = 0; i < CACHELIB_MAX_FREQUENCY; ++i)
 		TAILQ_INIT(&(retval->groups[i]));
@@ -574,9 +571,9 @@ destroy_cache_lfu_policy(struct cache_policy_ *policy)
 		while (!TAILQ_EMPTY(&(lfu_policy->groups[i]))) {
 			lfu_item = TAILQ_FIRST(&(lfu_policy->groups[i]));
 			TAILQ_REMOVE(&(lfu_policy->groups[i]), lfu_item,
-				entries);
+			    entries);
 			cache_lfu_policy_destroy_item(
-				(struct cache_policy_item_ *)lfu_item);
+			    (struct cache_policy_item_ *)lfu_item);
 		}
 	}
 	free(policy);

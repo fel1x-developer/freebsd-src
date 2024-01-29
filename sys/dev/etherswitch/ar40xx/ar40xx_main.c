@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,57 +35,54 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_atu.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_mib.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_psgmii.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
+#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_phy.h>
-#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_psgmii.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_mib.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_vtu.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_atu.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 static struct ofw_compat_data compat_data[] = {
-	{ "qcom,ess-switch",		1 },
-	{ NULL,				0 },
+	{ "qcom,ess-switch", 1 },
+	{ NULL, 0 },
 };
 
 static int
 ar40xx_probe(device_t dev)
 {
 
-	if (! ofw_bus_status_okay(dev))
+	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
@@ -99,7 +97,7 @@ ar40xx_tick(void *arg)
 {
 	struct ar40xx_softc *sc = arg;
 
-	(void) ar40xx_phy_tick(sc);
+	(void)ar40xx_phy_tick(sc);
 	callout_reset(&sc->sc_phy_callout, hz, ar40xx_tick, sc);
 }
 
@@ -167,7 +165,8 @@ ar40xx_sysctl_dump_port_state(SYSCTL_HANDLER_ARGS)
 	int error;
 	int i;
 
-	(void) i; (void) sc;
+	(void)i;
+	(void)sc;
 
 	error = sysctl_handle_int(oidp, &val, 0, req);
 	if (error || !req->newptr)
@@ -191,8 +190,8 @@ ar40xx_sysctl_dump_port_state(SYSCTL_HANDLER_ARGS)
 	    AR40XX_REG_READ(sc, AR40XX_REG_PORT_LOOKUP(val)));
 	device_printf(sc->sc_dev, "port %d: PORT_HOL_CTRL1=0x%08x\n", val,
 	    AR40XX_REG_READ(sc, AR40XX_REG_PORT_HOL_CTRL1(val)));
-	device_printf(sc->sc_dev, "port %d: PORT_FLOWCTRL_THRESH=0x%08x\n",
-	    val, AR40XX_REG_READ(sc, AR40XX_REG_PORT_FLOWCTRL_THRESH(val)));
+	device_printf(sc->sc_dev, "port %d: PORT_FLOWCTRL_THRESH=0x%08x\n", val,
+	    AR40XX_REG_READ(sc, AR40XX_REG_PORT_FLOWCTRL_THRESH(val)));
 
 	AR40XX_UNLOCK(sc);
 
@@ -207,7 +206,8 @@ ar40xx_sysctl_dump_port_mibstats(SYSCTL_HANDLER_ARGS)
 	int error;
 	int i;
 
-	(void) i; (void) sc;
+	(void)i;
+	(void)sc;
 
 	error = sysctl_handle_int(oidp, &val, 0, req);
 	if (error || !req->newptr)
@@ -220,14 +220,13 @@ ar40xx_sysctl_dump_port_mibstats(SYSCTL_HANDLER_ARGS)
 	AR40XX_LOCK(sc);
 
 	/* Yes, this snapshots all ports */
-	(void) ar40xx_hw_mib_capture(sc);
-	(void) ar40xx_hw_mib_fetch(sc, val);
+	(void)ar40xx_hw_mib_capture(sc);
+	(void)ar40xx_hw_mib_fetch(sc, val);
 
 	AR40XX_UNLOCK(sc);
 
 	return (0);
 }
-
 
 static int
 ar40xx_sysctl_attach(struct ar40xx_softc *sc)
@@ -235,17 +234,16 @@ ar40xx_sysctl_attach(struct ar40xx_softc *sc)
 	struct sysctl_ctx_list *ctx = device_get_sysctl_ctx(sc->sc_dev);
 	struct sysctl_oid *tree = device_get_sysctl_tree(sc->sc_dev);
 
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "debug", CTLFLAG_RW, &sc->sc_debug, 0,
-	    "debugging flags");
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "debug",
+	    CTLFLAG_RW, &sc->sc_debug, 0, "debugging flags");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "port_state", CTLTYPE_INT | CTLFLAG_RW, sc,
-	    0, ar40xx_sysctl_dump_port_state, "I", "");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "port_state",
+	    CTLTYPE_INT | CTLFLAG_RW, sc, 0, ar40xx_sysctl_dump_port_state, "I",
+	    "");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "port_mibstats", CTLTYPE_INT | CTLFLAG_RW, sc,
-	    0, ar40xx_sysctl_dump_port_mibstats, "I", "");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "port_mibstats",
+	    CTLTYPE_INT | CTLFLAG_RW, sc, 0, ar40xx_sysctl_dump_port_mibstats,
+	    "I", "");
 
 	return (0);
 }
@@ -288,8 +286,7 @@ ar40xx_attach(device_t dev)
 	psgmii_p = OF_finddevice("/soc/ess-psgmii");
 	if (psgmii_p == -1) {
 		device_printf(dev,
-		    "%s: couldn't find /soc/ess-psgmii DT node\n",
-		    __func__);
+		    "%s: couldn't find /soc/ess-psgmii DT node\n", __func__);
 		goto error;
 	}
 
@@ -307,16 +304,14 @@ ar40xx_attach(device_t dev)
 	sc->sc_mdio_phandle = mdio_p;
 	sc->sc_mdio_dev = OF_device_from_xref(OF_xref_from_node(mdio_p));
 	if (sc->sc_mdio_dev == NULL) {
-		device_printf(dev,
-		    "%s: couldn't get mdio device (mdio_p=%u)\n",
+		device_printf(dev, "%s: couldn't get mdio device (mdio_p=%u)\n",
 		    __func__, mdio_p);
 		goto error;
 	}
 
 	/* get psgmii base address from psgmii node */
 	ret = OF_decode_addr(psgmii_p, 0, &sc->sc_psgmii_mem_tag,
-	    &sc->sc_psgmii_mem_handle,
-	    &sc->sc_psgmii_mem_size);
+	    &sc->sc_psgmii_mem_handle, &sc->sc_psgmii_mem_size);
 	if (ret != 0) {
 		device_printf(dev, "%s: couldn't map psgmii mem (%d)\n",
 		    __func__, ret);
@@ -332,7 +327,7 @@ ar40xx_attach(device_t dev)
 		    __func__);
 		goto error;
 	}
-	sc->sc_ess_mem_size = (size_t) bus_get_resource_count(dev,
+	sc->sc_ess_mem_size = (size_t)bus_get_resource_count(dev,
 	    SYS_RES_MEMORY, sc->sc_ess_mem_rid);
 	if (sc->sc_ess_mem_size == 0) {
 		device_printf(dev, "%s: failed to get device memory size\n",
@@ -406,8 +401,8 @@ ar40xx_attach(device_t dev)
 	/* Initial PSGMII/RGMII port configuration */
 	ret = ar40xx_hw_psgmii_init_config(sc);
 	if (ret != 0) {
-		device_printf(sc->sc_dev,
-		    "ERROR: failed to init PSGMII (%d)\n", ret);
+		device_printf(sc->sc_dev, "ERROR: failed to init PSGMII (%d)\n",
+		    ret);
 		goto error_locked;
 	}
 
@@ -455,8 +450,7 @@ ar40xx_attach(device_t dev)
 	}
 
 	/* mac_mode_init */
-	ret = ar40xx_hw_psgmii_set_mac_mode(sc,
-	    sc->sc_config.switch_mac_mode);
+	ret = ar40xx_hw_psgmii_set_mac_mode(sc, sc->sc_config.switch_mac_mode);
 
 	/* Initialise each hardware port */
 	for (i = 0; i < AR40XX_NUM_PORTS; i++) {
@@ -601,14 +595,14 @@ ar40xx_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr = &p->es_ifmr;
 		ifmr->ifm_count = 0;
-		ifmr->ifm_current = ifmr->ifm_active =
-		     IFM_ETHER | IFM_1000_T | IFM_FDX;
+		ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER | IFM_1000_T |
+		    IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else if (mii != NULL) {
 		/* non-CPU port */
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	} else {
@@ -729,10 +723,9 @@ ar40xx_setvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 	 * If we have an 802.1q VID and it's different to the current one,
 	 * purge the current VTU entry.
 	 */
-	if ((vid != 0) &&
-	    ((vid & ETHERSWITCH_VID_VALID) != 0) &&
+	if ((vid != 0) && ((vid & ETHERSWITCH_VID_VALID) != 0) &&
 	    ((vid & ETHERSWITCH_VID_MASK) !=
-	     (vg->es_vid & ETHERSWITCH_VID_MASK))) {
+		(vg->es_vid & ETHERSWITCH_VID_MASK))) {
 		AR40XX_DPRINTF(sc, AR40XX_DBG_VTU_OP,
 		    "%s: purging VID %d first\n", __func__, vid);
 		err = ar40xx_hw_vtu_flush(sc);
@@ -875,8 +868,8 @@ ar40xx_atu_fetch_table(device_t dev, etherswitch_atu_table_t *table)
 		goto done;
 
 	while (nitems < AR40XX_NUM_ATU_ENTRIES) {
-		err = ar40xx_hw_atu_fetch_entry(sc,
-		    &sc->atu.entries[nitems], 1);
+		err = ar40xx_hw_atu_fetch_entry(sc, &sc->atu.entries[nitems],
+		    1);
 		if (err != 0)
 			goto done;
 		sc->atu.entries[nitems].id = nitems;
@@ -914,41 +907,40 @@ done:
 
 static device_method_t ar40xx_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			ar40xx_probe),
-	DEVMETHOD(device_attach,		ar40xx_attach),
-	DEVMETHOD(device_detach,		ar40xx_detach),
+	DEVMETHOD(device_probe, ar40xx_probe),
+	DEVMETHOD(device_attach, ar40xx_attach),
+	DEVMETHOD(device_detach, ar40xx_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_add_child,		device_add_child_ordered),
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,		ar40xx_readphy),
-	DEVMETHOD(miibus_writereg,		ar40xx_writephy),
-	DEVMETHOD(miibus_statchg,		ar40xx_statchg),
+	DEVMETHOD(miibus_readreg, ar40xx_readphy),
+	DEVMETHOD(miibus_writereg, ar40xx_writephy),
+	DEVMETHOD(miibus_statchg, ar40xx_statchg),
 
 	/* MDIO interface */
-	DEVMETHOD(mdio_readreg,			ar40xx_readphy),
-	DEVMETHOD(mdio_writereg,		ar40xx_writephy),
+	DEVMETHOD(mdio_readreg, ar40xx_readphy),
+	DEVMETHOD(mdio_writereg, ar40xx_writephy),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,		ar40xx_lock),
-	DEVMETHOD(etherswitch_unlock,		ar40xx_unlock),
-	DEVMETHOD(etherswitch_getinfo,		ar40xx_getinfo),
-	DEVMETHOD(etherswitch_readreg,		ar40xx_readreg),
-	DEVMETHOD(etherswitch_writereg,		ar40xx_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	ar40xx_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	ar40xx_writephy),
-	DEVMETHOD(etherswitch_getport,		ar40xx_getport),
-	DEVMETHOD(etherswitch_setport,		ar40xx_setport),
-	DEVMETHOD(etherswitch_getvgroup,	ar40xx_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	ar40xx_setvgroup),
-	DEVMETHOD(etherswitch_getconf,		ar40xx_getconf),
-	DEVMETHOD(etherswitch_setconf,		ar40xx_setconf),
-	DEVMETHOD(etherswitch_flush_all,	ar40xx_atu_flush_all),
-	DEVMETHOD(etherswitch_flush_port,	ar40xx_atu_flush_port),
-	DEVMETHOD(etherswitch_fetch_table,	ar40xx_atu_fetch_table),
-	DEVMETHOD(etherswitch_fetch_table_entry,
-					     ar40xx_atu_fetch_table_entry),
+	DEVMETHOD(etherswitch_lock, ar40xx_lock),
+	DEVMETHOD(etherswitch_unlock, ar40xx_unlock),
+	DEVMETHOD(etherswitch_getinfo, ar40xx_getinfo),
+	DEVMETHOD(etherswitch_readreg, ar40xx_readreg),
+	DEVMETHOD(etherswitch_writereg, ar40xx_writereg),
+	DEVMETHOD(etherswitch_readphyreg, ar40xx_readphy),
+	DEVMETHOD(etherswitch_writephyreg, ar40xx_writephy),
+	DEVMETHOD(etherswitch_getport, ar40xx_getport),
+	DEVMETHOD(etherswitch_setport, ar40xx_setport),
+	DEVMETHOD(etherswitch_getvgroup, ar40xx_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, ar40xx_setvgroup),
+	DEVMETHOD(etherswitch_getconf, ar40xx_getconf),
+	DEVMETHOD(etherswitch_setconf, ar40xx_setconf),
+	DEVMETHOD(etherswitch_flush_all, ar40xx_atu_flush_all),
+	DEVMETHOD(etherswitch_flush_port, ar40xx_atu_flush_port),
+	DEVMETHOD(etherswitch_fetch_table, ar40xx_atu_fetch_table),
+	DEVMETHOD(etherswitch_fetch_table_entry, ar40xx_atu_fetch_table_entry),
 
 	DEVMETHOD_END
 };

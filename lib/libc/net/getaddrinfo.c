@@ -53,34 +53,38 @@
  * - FreeBSD supported $GAI.  The code does not.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <netinet/in.h>
-#include <net/if_types.h>
-#include <ifaddrs.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
+
+#include <net/if.h>
+#include <net/if_types.h>
+#include <netinet/in.h>
+
+#include <ifaddrs.h>
+
+#include "namespace.h"
 #ifdef INET6
-#include <sys/sysctl.h>
 #include <sys/ioctl.h>
+#include <sys/sysctl.h>
+
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 #endif
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netdb.h>
+#include <resolv.h>
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
-#include <netdb.h>
-#include <resolv.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stddef.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "res_config.h"
 
@@ -88,28 +92,27 @@
 #include <syslog.h>
 #endif
 
-#include <stdarg.h>
 #include <nsswitch.h>
-#include "un-namespace.h"
-#include "netdb_private.h"
+#include <stdarg.h>
+
 #include "libc_private.h"
+#include "netdb_private.h"
+#include "un-namespace.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 
 #define ANY 0
 #define YES 1
-#define NO  0
+#define NO 0
 
 static const char in_addrany[] = { 0, 0, 0, 0 };
 static const char in_loopback[] = { 127, 0, 0, 1 };
 #ifdef INET6
-static const char in6_addrany[] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
-static const char in6_loopback[] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
-};
+static const char in6_addrany[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0 };
+static const char in6_loopback[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 1 };
 #endif
 
 struct policyqueue {
@@ -128,29 +131,26 @@ static const struct afd {
 	const char *a_addrany;
 	const char *a_loopback;
 	int a_scoped;
-} afdl [] = {
+} afdl[] = {
 #ifdef INET6
-#define	N_INET6 0
-	{PF_INET6, sizeof(struct in6_addr),
-	 sizeof(struct sockaddr_in6),
-	 offsetof(struct sockaddr_in6, sin6_addr),
-	 in6_addrany, in6_loopback, 1},
-#define	N_INET 1
-#define	N_LOCAL 2
+#define N_INET6 0
+	{ PF_INET6, sizeof(struct in6_addr), sizeof(struct sockaddr_in6),
+	    offsetof(struct sockaddr_in6, sin6_addr), in6_addrany, in6_loopback,
+	    1 },
+#define N_INET 1
+#define N_LOCAL 2
 #else
-#define	N_INET 0
-#define	N_LOCAL 1
+#define N_INET 0
+#define N_LOCAL 1
 #endif
-	{PF_INET, sizeof(struct in_addr),
-	 sizeof(struct sockaddr_in),
-	 offsetof(struct sockaddr_in, sin_addr),
-	 in_addrany, in_loopback, 0},
-#define	sizeofmember(type, member)	(sizeof(((type *)0)->member))
-	{PF_LOCAL, sizeofmember(struct sockaddr_un, sun_path),
-	 sizeof(struct sockaddr_un),
-	 offsetof(struct sockaddr_un, sun_path),
-	 NULL, NULL, 0},
-	{0, 0, 0, 0, NULL, NULL, 0},
+	{ PF_INET, sizeof(struct in_addr), sizeof(struct sockaddr_in),
+	    offsetof(struct sockaddr_in, sin_addr), in_addrany, in_loopback,
+	    0 },
+#define sizeofmember(type, member) (sizeof(((type *)0)->member))
+	{ PF_LOCAL, sizeofmember(struct sockaddr_un, sun_path),
+	    sizeof(struct sockaddr_un), offsetof(struct sockaddr_un, sun_path),
+	    NULL, NULL, 0 },
+	{ 0, 0, 0, 0, NULL, NULL, 0 },
 };
 
 struct explore {
@@ -158,57 +158,48 @@ struct explore {
 	int e_socktype;
 	int e_protocol;
 	int e_wild;
-#define	AF_ANY		0x01
-#define	SOCKTYPE_ANY	0x02
-#define	PROTOCOL_ANY	0x04
-#define WILD_AF(ex)		((ex)->e_wild & AF_ANY)
-#define WILD_SOCKTYPE(ex)	((ex)->e_wild & SOCKTYPE_ANY)
-#define WILD_PROTOCOL(ex)	((ex)->e_wild & PROTOCOL_ANY)
+#define AF_ANY 0x01
+#define SOCKTYPE_ANY 0x02
+#define PROTOCOL_ANY 0x04
+#define WILD_AF(ex) ((ex)->e_wild & AF_ANY)
+#define WILD_SOCKTYPE(ex) ((ex)->e_wild & SOCKTYPE_ANY)
+#define WILD_PROTOCOL(ex) ((ex)->e_wild & PROTOCOL_ANY)
 };
 
 static const struct explore explore[] = {
 #ifdef INET6
-	{ PF_INET6, SOCK_DGRAM,	 IPPROTO_UDP,
+	{ PF_INET6, SOCK_DGRAM, IPPROTO_UDP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
 	{ PF_INET6, SOCK_STREAM, IPPROTO_TCP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_INET6, SOCK_STREAM, IPPROTO_SCTP,
-	    AF_ANY | SOCKTYPE_ANY },
+	{ PF_INET6, SOCK_STREAM, IPPROTO_SCTP, AF_ANY | SOCKTYPE_ANY },
 	{ PF_INET6, SOCK_SEQPACKET, IPPROTO_SCTP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_INET6, SOCK_DGRAM,	IPPROTO_UDPLITE,
-	    AF_ANY | SOCKTYPE_ANY },
-	{ PF_INET6, SOCK_RAW, ANY,
-	    AF_ANY | PROTOCOL_ANY },
+	{ PF_INET6, SOCK_DGRAM, IPPROTO_UDPLITE, AF_ANY | SOCKTYPE_ANY },
+	{ PF_INET6, SOCK_RAW, ANY, AF_ANY | PROTOCOL_ANY },
 #endif
 	{ PF_INET, SOCK_DGRAM, IPPROTO_UDP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_INET, SOCK_STREAM,	IPPROTO_TCP,
+	{ PF_INET, SOCK_STREAM, IPPROTO_TCP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_INET, SOCK_STREAM, IPPROTO_SCTP,
-	    AF_ANY | SOCKTYPE_ANY },
+	{ PF_INET, SOCK_STREAM, IPPROTO_SCTP, AF_ANY | SOCKTYPE_ANY },
 	{ PF_INET, SOCK_SEQPACKET, IPPROTO_SCTP,
 	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_INET, SOCK_DGRAM, IPPROTO_UDPLITE,
-	    AF_ANY | SOCKTYPE_ANY },
-	{ PF_INET, SOCK_RAW, ANY,
-	    AF_ANY | PROTOCOL_ANY },
-	{ PF_LOCAL, SOCK_DGRAM,	ANY,
-	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_LOCAL, SOCK_STREAM, ANY,
-	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
-	{ PF_LOCAL, SOCK_SEQPACKET, ANY,
-	    AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
+	{ PF_INET, SOCK_DGRAM, IPPROTO_UDPLITE, AF_ANY | SOCKTYPE_ANY },
+	{ PF_INET, SOCK_RAW, ANY, AF_ANY | PROTOCOL_ANY },
+	{ PF_LOCAL, SOCK_DGRAM, ANY, AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
+	{ PF_LOCAL, SOCK_STREAM, ANY, AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
+	{ PF_LOCAL, SOCK_SEQPACKET, ANY, AF_ANY | SOCKTYPE_ANY | PROTOCOL_ANY },
 	{ -1, 0, 0, 0 },
 };
 
 #ifdef INET6
-#define PTON_MAX	16
+#define PTON_MAX 16
 #else
-#define PTON_MAX	4
+#define PTON_MAX 4
 #endif
 
-#define AIO_SRCFLAG_DEPRECATED	0x1
+#define AIO_SRCFLAG_DEPRECATED 0x1
 
 struct ai_order {
 	union {
@@ -226,22 +217,19 @@ struct ai_order {
 	int aio_initial_sequence;
 };
 
-static const ns_src default_dns_files[] = {
-	{ NSSRC_FILES, 	NS_SUCCESS },
-	{ NSSRC_DNS, 	NS_SUCCESS },
-	{ 0 }
-};
+static const ns_src default_dns_files[] = { { NSSRC_FILES, NS_SUCCESS },
+	{ NSSRC_DNS, NS_SUCCESS }, { 0 } };
 
 struct res_target {
 	struct res_target *next;
-	const char *name;	/* domain name */
-	int qclass, qtype;	/* class and type of query */
-	u_char *answer;		/* buffer to put answer */
-	int anslen;		/* size of answer buffer */
-	int n;			/* result length */
+	const char *name;  /* domain name */
+	int qclass, qtype; /* class and type of query */
+	u_char *answer;	   /* buffer to put answer */
+	int anslen;	   /* size of answer buffer */
+	int n;		   /* result length */
 };
 
-#define MAXPACKET	(64*1024)
+#define MAXPACKET (64 * 1024)
 
 typedef union {
 	HEADER hdr;
@@ -250,17 +238,17 @@ typedef union {
 
 static int str2number(const char *, int *);
 static int explore_copy(const struct addrinfo *, const struct addrinfo *,
-	struct addrinfo **);
-static int explore_null(const struct addrinfo *,
-	const char *, struct addrinfo **);
-static int explore_numeric(const struct addrinfo *, const char *,
-	const char *, struct addrinfo **, const char *);
+    struct addrinfo **);
+static int explore_null(const struct addrinfo *, const char *,
+    struct addrinfo **);
+static int explore_numeric(const struct addrinfo *, const char *, const char *,
+    struct addrinfo **, const char *);
 static int explore_numeric_scope(const struct addrinfo *, const char *,
-	const char *, struct addrinfo **);
-static int get_canonname(const struct addrinfo *,
-	struct addrinfo *, const char *);
-static struct addrinfo *get_ai(const struct addrinfo *,
-	const struct afd *, const char *);
+    const char *, struct addrinfo **);
+static int get_canonname(const struct addrinfo *, struct addrinfo *,
+    const char *);
+static struct addrinfo *get_ai(const struct addrinfo *, const struct afd *,
+    const char *);
 static struct addrinfo *copy_ai(const struct addrinfo *);
 static int get_portmatch(const struct addrinfo *, const char *);
 static int get_port(struct addrinfo *, const char *, int);
@@ -276,18 +264,18 @@ static int ip6_str2scopeid(char *, struct sockaddr_in6 *, u_int32_t *);
 #endif
 static int gai_addr2scopetype(struct sockaddr *);
 
-static int explore_fqdn(const struct addrinfo *, const char *,
-	const char *, struct addrinfo **);
+static int explore_fqdn(const struct addrinfo *, const char *, const char *,
+    struct addrinfo **);
 
 static int reorder(struct addrinfo *);
 static int get_addrselectpolicy(struct policyhead *);
 static void free_addrselectpolicy(struct policyhead *);
 static struct policyqueue *match_addrselectpolicy(struct sockaddr *,
-	struct policyhead *);
+    struct policyhead *);
 static int matchlen(struct sockaddr *, struct sockaddr *);
 
 static struct addrinfo *getanswer(const querybuf *, int, const char *, int,
-	const struct addrinfo *, res_state);
+    const struct addrinfo *, res_state);
 #if defined(RESOLVSORT)
 static int addr4sort(struct addrinfo *, res_state);
 #endif
@@ -295,7 +283,7 @@ static int _dns_getaddrinfo(void *, void *, va_list);
 static void _sethtent(FILE **);
 static void _endhtent(FILE **);
 static struct addrinfo *_gethtent(FILE **, const char *,
-	const struct addrinfo *);
+    const struct addrinfo *);
 static int _files_getaddrinfo(void *, void *, va_list);
 #ifdef YP
 static struct addrinfo *_yphostent(char *, const struct addrinfo *);
@@ -309,49 +297,50 @@ static int addrinfo_unmarshal_func(char *, size_t, void *, va_list, void *);
 
 static int res_queryN(const char *, struct res_target *, res_state);
 static int res_searchN(const char *, struct res_target *, res_state);
-static int res_querydomainN(const char *, const char *,
-	struct res_target *, res_state);
+static int res_querydomainN(const char *, const char *, struct res_target *,
+    res_state);
 
 /* XXX macros that make external reference is BAD. */
 
-#define GET_AI(ai, afd, addr) \
-do { \
-	/* external reference: pai, error, and label free */ \
-	(ai) = get_ai(pai, (afd), (addr)); \
-	if ((ai) == NULL) { \
-		error = EAI_MEMORY; \
-		goto free; \
-	} \
-} while (/*CONSTCOND*/0)
+#define GET_AI(ai, afd, addr)                                        \
+	do {                                                         \
+		/* external reference: pai, error, and label free */ \
+		(ai) = get_ai(pai, (afd), (addr));                   \
+		if ((ai) == NULL) {                                  \
+			error = EAI_MEMORY;                          \
+			goto free;                                   \
+		}                                                    \
+	} while (/*CONSTCOND*/ 0)
 
-#define GET_PORT(ai, serv) \
-do { \
-	/* external reference: error and label free */ \
-	error = get_port((ai), (serv), 0); \
-	if (error != 0) \
-		goto free; \
-} while (/*CONSTCOND*/0)
+#define GET_PORT(ai, serv)                                     \
+	do {                                                   \
+		/* external reference: error and label free */ \
+		error = get_port((ai), (serv), 0);             \
+		if (error != 0)                                \
+			goto free;                             \
+	} while (/*CONSTCOND*/ 0)
 
-#define GET_CANONNAME(ai, str) \
-do { \
-	/* external reference: pai, error and label free */ \
-	error = get_canonname(pai, (ai), (str)); \
-	if (error != 0) \
-		goto free; \
-} while (/*CONSTCOND*/0)
+#define GET_CANONNAME(ai, str)                                      \
+	do {                                                        \
+		/* external reference: pai, error and label free */ \
+		error = get_canonname(pai, (ai), (str));            \
+		if (error != 0)                                     \
+			goto free;                                  \
+	} while (/*CONSTCOND*/ 0)
 
-#define ERR(err) \
-do { \
-	/* external reference: error, and label bad */ \
-	error = (err); \
-	goto bad; \
-	/*NOTREACHED*/ \
-} while (/*CONSTCOND*/0)
+#define ERR(err)                                               \
+	do {                                                   \
+		/* external reference: error, and label bad */ \
+		error = (err);                                 \
+		goto bad;                                      \
+		/*NOTREACHED*/                                 \
+	} while (/*CONSTCOND*/ 0)
 
 #define MATCH_FAMILY(x, y, w) \
-	((x) == (y) || (/*CONSTCOND*/(w) && ((x) == PF_UNSPEC || (y) == PF_UNSPEC)))
+	((x) == (y) ||        \
+	    (/*CONSTCOND*/ (w) && ((x) == PF_UNSPEC || (y) == PF_UNSPEC)))
 #define MATCH(x, y, w) \
-	((x) == (y) || (/*CONSTCOND*/(w) && ((x) == ANY || (y) == ANY)))
+	((x) == (y) || (/*CONSTCOND*/ (w) && ((x) == ANY || (y) == ANY)))
 
 void
 freeaddrinfo(struct addrinfo *ai)
@@ -450,13 +439,13 @@ getaddrinfo(const char *hostname, const char *servname,
 		if (pai->ai_socktype != ANY && pai->ai_protocol != ANY) {
 			for (ex = explore; ex->e_af >= 0; ex++) {
 				if (!MATCH_FAMILY(pai->ai_family, ex->e_af,
-				    WILD_AF(ex)))
+					WILD_AF(ex)))
 					continue;
 				if (!MATCH(pai->ai_socktype, ex->e_socktype,
-				    WILD_SOCKTYPE(ex)))
+					WILD_SOCKTYPE(ex)))
 					continue;
 				if (!MATCH(pai->ai_protocol, ex->e_protocol,
-				    WILD_PROTOCOL(ex)))
+					WILD_PROTOCOL(ex)))
 					continue;
 
 				/* matched */
@@ -495,8 +484,8 @@ getaddrinfo(const char *hostname, const char *servname,
 #ifdef PF_INET6
 	    || MATCH_FAMILY(pai->ai_family, PF_INET6, 1)
 #endif
-	    ) {
-		ai0 = *pai;	/* backup *pai */
+	) {
+		ai0 = *pai; /* backup *pai */
 
 		if (pai->ai_family == PF_UNSPEC) {
 #ifdef PF_INET6
@@ -546,7 +535,7 @@ getaddrinfo(const char *hostname, const char *servname,
 			/*
 			 * explore_numeric_scope returns an error for address
 			 * families that do not match that of hostname.
-			 * Thus we should not catch the error at this moment. 
+			 * Thus we should not catch the error at this moment.
 			 */
 		}
 
@@ -559,7 +548,7 @@ getaddrinfo(const char *hostname, const char *servname,
 	}
 
 	if (hostname == NULL)
-		ERR(EAI_NONAME);	/* used to be EAI_NODATA */
+		ERR(EAI_NONAME); /* used to be EAI_NODATA */
 	if (pai->ai_flags & AI_NUMERICHOST)
 		ERR(EAI_NONAME);
 
@@ -578,11 +567,9 @@ globcopy:
 
 		if (!MATCH_FAMILY(pai->ai_family, ex->e_af, WILD_AF(ex)))
 			continue;
-		if (!MATCH(pai->ai_socktype, ex->e_socktype,
-		    WILD_SOCKTYPE(ex)))
+		if (!MATCH(pai->ai_socktype, ex->e_socktype, WILD_SOCKTYPE(ex)))
 			continue;
-		if (!MATCH(pai->ai_protocol, ex->e_protocol,
-		    WILD_PROTOCOL(ex)))
+		if (!MATCH(pai->ai_protocol, ex->e_protocol, WILD_PROTOCOL(ex)))
 			continue;
 
 		if (pai->ai_family == PF_UNSPEC)
@@ -645,8 +632,8 @@ globcopy:
 					(void)reorder(&sentinel);
 					if (sentinel.ai_next->ai_canonname ==
 					    NULL) {
-						sentinel.ai_next->ai_canonname
-						    = canonname;
+						sentinel.ai_next->ai_canonname =
+						    canonname;
 					} else if (canonname != NULL)
 						free(canonname);
 				}
@@ -686,11 +673,11 @@ reorder(struct addrinfo *sentinel)
 	 * If the number is small enough, we can skip the reordering process.
 	 */
 	if (n <= 1)
-		return(n);
+		return (n);
 
 	/* allocate a temporary array for sort and initialization of it. */
 	if ((aio = calloc(n, sizeof(*aio))) == NULL)
-		return(n);	/* give up reordering */
+		return (n); /* give up reordering */
 
 	/* retrieve address selection policy from the kernel */
 	TAILQ_INIT(&policyhead);
@@ -704,7 +691,7 @@ reorder(struct addrinfo *sentinel)
 		aio[i].aio_ai = ai;
 		aio[i].aio_dstscope = gai_addr2scopetype(ai->ai_addr);
 		aio[i].aio_dstpolicy = match_addrselectpolicy(ai->ai_addr,
-							      &policyhead);
+		    &policyhead);
 		set_source(&aio[i], &policyhead);
 		aio[i].aio_initial_sequence = i;
 	}
@@ -722,7 +709,7 @@ reorder(struct addrinfo *sentinel)
 	/* cleanup and return */
 	free(aio);
 	free_addrselectpolicy(&policyhead);
-	return(n);
+	return (n);
 }
 
 static int
@@ -786,7 +773,7 @@ match_addrselectpolicy(struct sockaddr *addr, struct policyhead *head)
 	u_char *mp, *ep, *k, *p, m;
 	struct sockaddr_in6 key;
 
-	switch(addr->sa_family) {
+	switch (addr->sa_family) {
 	case AF_INET6:
 		key = *(struct sockaddr_in6 *)addr;
 		break;
@@ -800,7 +787,7 @@ match_addrselectpolicy(struct sockaddr *addr, struct policyhead *head)
 		    (char *)&key.sin6_addr);
 		break;
 	default:
-		return(NULL);
+		return (NULL);
 	}
 
 	for (ent = TAILQ_FIRST(head); ent; ent = TAILQ_NEXT(ent, pc_entry)) {
@@ -808,14 +795,14 @@ match_addrselectpolicy(struct sockaddr *addr, struct policyhead *head)
 		matchlen = 0;
 
 		mp = (u_char *)&pol->addrmask.sin6_addr;
-		ep = mp + 16;	/* XXX: scope field? */
+		ep = mp + 16; /* XXX: scope field? */
 		k = (u_char *)&key.sin6_addr;
 		p = (u_char *)&pol->addr.sin6_addr;
 		for (; mp < ep && *mp; mp++, k++, p++) {
 			m = *mp;
 			if ((*k & m) != *p)
 				goto next; /* not match */
-			if (m == 0xff) /* short cut for a typical case */
+			if (m == 0xff)	   /* short cut for a typical case */
 				matchlen += 8;
 			else {
 				while (m >= 0x80) {
@@ -831,15 +818,14 @@ match_addrselectpolicy(struct sockaddr *addr, struct policyhead *head)
 			bestmatchlen = matchlen;
 		}
 
-	  next:
+	next:
 		continue;
 	}
 
-	return(bestent);
+	return (bestent);
 #else
-	return(NULL);
+	return (NULL);
 #endif
-
 }
 
 static void
@@ -854,13 +840,13 @@ set_source(struct ai_order *aio, struct policyhead *ph)
 	aio->aio_srcsa.sa_family = AF_UNSPEC;
 	aio->aio_srcscope = -1;
 
-	switch(ai.ai_family) {
+	switch (ai.ai_family) {
 	case AF_INET:
 #ifdef INET6
 	case AF_INET6:
 #endif
 		break;
-	default:		/* ignore unsupported AFs explicitly */
+	default: /* ignore unsupported AFs explicitly */
 		return;
 	}
 
@@ -875,8 +861,8 @@ set_source(struct ai_order *aio, struct policyhead *ph)
 
 	/* open a socket to get the source address for the given dst */
 	if ((s = _socket(ai.ai_family, ai.ai_socktype | SOCK_CLOEXEC,
-	    ai.ai_protocol)) < 0)
-		return;		/* give up */
+		 ai.ai_protocol)) < 0)
+		return; /* give up */
 #ifdef INET6
 	if (ai.ai_family == AF_INET6) {
 		struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ai.ai_addr;
@@ -912,7 +898,7 @@ set_source(struct ai_order *aio, struct policyhead *ph)
 	}
 #endif
 
-  cleanup:
+cleanup:
 	_close(s);
 	return;
 }
@@ -941,7 +927,7 @@ matchlen(struct sockaddr *src, struct sockaddr *dst)
 		lim = s + addrlen;
 		break;
 	default:
-		return(0);
+		return (0);
 	}
 
 	while (s < lim)
@@ -953,7 +939,7 @@ matchlen(struct sockaddr *src, struct sockaddr *dst)
 			break;
 		} else
 			match += 8;
-	return(match);
+	return (match);
 }
 
 static int
@@ -967,21 +953,21 @@ comp_dst(const void *arg1, const void *arg2)
 	 */
 	if (dst1->aio_srcsa.sa_family != AF_UNSPEC &&
 	    dst2->aio_srcsa.sa_family == AF_UNSPEC) {
-		return(-1);
+		return (-1);
 	}
 	if (dst1->aio_srcsa.sa_family == AF_UNSPEC &&
 	    dst2->aio_srcsa.sa_family != AF_UNSPEC) {
-		return(1);
+		return (1);
 	}
 
 	/* Rule 2: Prefer matching scope. */
 	if (dst1->aio_dstscope == dst1->aio_srcscope &&
 	    dst2->aio_dstscope != dst2->aio_srcscope) {
-		return(-1);
+		return (-1);
 	}
 	if (dst1->aio_dstscope != dst1->aio_srcscope &&
 	    dst2->aio_dstscope == dst2->aio_srcscope) {
-		return(1);
+		return (1);
 	}
 
 	/* Rule 3: Avoid deprecated addresses. */
@@ -989,11 +975,11 @@ comp_dst(const void *arg1, const void *arg2)
 	    dst2->aio_srcsa.sa_family != AF_UNSPEC) {
 		if (!(dst1->aio_srcflag & AIO_SRCFLAG_DEPRECATED) &&
 		    (dst2->aio_srcflag & AIO_SRCFLAG_DEPRECATED)) {
-			return(-1);
+			return (-1);
 		}
 		if ((dst1->aio_srcflag & AIO_SRCFLAG_DEPRECATED) &&
 		    !(dst2->aio_srcflag & AIO_SRCFLAG_DEPRECATED)) {
-			return(1);
+			return (1);
 		}
 	}
 
@@ -1004,19 +990,19 @@ comp_dst(const void *arg1, const void *arg2)
 #ifdef INET6
 	if (dst1->aio_srcpolicy && dst1->aio_dstpolicy &&
 	    dst1->aio_srcpolicy->pc_policy.label ==
-	    dst1->aio_dstpolicy->pc_policy.label &&
+		dst1->aio_dstpolicy->pc_policy.label &&
 	    (dst2->aio_srcpolicy == NULL || dst2->aio_dstpolicy == NULL ||
-	     dst2->aio_srcpolicy->pc_policy.label !=
-	     dst2->aio_dstpolicy->pc_policy.label)) {
-		return(-1);
+		dst2->aio_srcpolicy->pc_policy.label !=
+		    dst2->aio_dstpolicy->pc_policy.label)) {
+		return (-1);
 	}
 	if (dst2->aio_srcpolicy && dst2->aio_dstpolicy &&
 	    dst2->aio_srcpolicy->pc_policy.label ==
-	    dst2->aio_dstpolicy->pc_policy.label &&
+		dst2->aio_dstpolicy->pc_policy.label &&
 	    (dst1->aio_srcpolicy == NULL || dst1->aio_dstpolicy == NULL ||
-	     dst1->aio_srcpolicy->pc_policy.label !=
-	     dst1->aio_dstpolicy->pc_policy.label)) {
-		return(1);
+		dst1->aio_srcpolicy->pc_policy.label !=
+		    dst1->aio_dstpolicy->pc_policy.label)) {
+		return (1);
 	}
 #endif
 
@@ -1024,15 +1010,15 @@ comp_dst(const void *arg1, const void *arg2)
 #ifdef INET6
 	if (dst1->aio_dstpolicy &&
 	    (dst2->aio_dstpolicy == NULL ||
-	     dst1->aio_dstpolicy->pc_policy.preced >
-	     dst2->aio_dstpolicy->pc_policy.preced)) {
-		return(-1);
+		dst1->aio_dstpolicy->pc_policy.preced >
+		    dst2->aio_dstpolicy->pc_policy.preced)) {
+		return (-1);
 	}
 	if (dst2->aio_dstpolicy &&
 	    (dst1->aio_dstpolicy == NULL ||
-	     dst2->aio_dstpolicy->pc_policy.preced >
-	     dst1->aio_dstpolicy->pc_policy.preced)) {
-		return(1);
+		dst2->aio_dstpolicy->pc_policy.preced >
+		    dst1->aio_dstpolicy->pc_policy.preced)) {
+		return (1);
 	}
 #endif
 
@@ -1042,11 +1028,11 @@ comp_dst(const void *arg1, const void *arg2)
 	/* Rule 8: Prefer smaller scope. */
 	if (dst1->aio_dstscope >= 0 &&
 	    dst1->aio_dstscope < dst2->aio_dstscope) {
-		return(-1);
+		return (-1);
 	}
 	if (dst2->aio_dstscope >= 0 &&
 	    dst2->aio_dstscope < dst1->aio_dstscope) {
-		return(1);
+		return (1);
 	}
 
 	/*
@@ -1054,35 +1040,35 @@ comp_dst(const void *arg1, const void *arg2)
 	 * We compare the match length in a same AF only.
 	 */
 	if (dst1->aio_ai->ai_addr->sa_family ==
-	    dst2->aio_ai->ai_addr->sa_family &&
+		dst2->aio_ai->ai_addr->sa_family &&
 	    dst1->aio_ai->ai_addr->sa_family != AF_INET) {
 		if (dst1->aio_matchlen > dst2->aio_matchlen) {
-			return(-1);
+			return (-1);
 		}
 		if (dst1->aio_matchlen < dst2->aio_matchlen) {
-			return(1);
+			return (1);
 		}
 	}
 
 	/* Rule 10: Otherwise, leave the order unchanged. */
 
-	/* 
-	 * Note that qsort is unstable; so, we can't return zero and 
+	/*
+	 * Note that qsort is unstable; so, we can't return zero and
 	 * expect the order to be unchanged.
 	 * That also means we can't depend on the current position of
 	 * dst2 being after dst1.  We must enforce the initial order
 	 * with an explicit compare on the original position.
-	 * The qsort specification requires that "When the same objects 
-	 * (consisting of width bytes, irrespective of their current 
-	 * positions in the array) are passed more than once to the 
-	 * comparison function, the results shall be consistent with one 
-	 * another."  
+	 * The qsort specification requires that "When the same objects
+	 * (consisting of width bytes, irrespective of their current
+	 * positions in the array) are passed more than once to the
+	 * comparison function, the results shall be consistent with one
+	 * another."
 	 * In other words, If A < B, then we must also return B > A.
 	 */
 	if (dst2->aio_initial_sequence < dst1->aio_initial_sequence)
-		return(1);
+		return (1);
 
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -1098,13 +1084,13 @@ gai_addr2scopetype(struct sockaddr *sa)
 #endif
 	struct sockaddr_in *sa4;
 
-	switch(sa->sa_family) {
+	switch (sa->sa_family) {
 #ifdef INET6
 	case AF_INET6:
 		sa6 = (struct sockaddr_in6 *)sa;
 		if (IN6_IS_ADDR_MULTICAST(&sa6->sin6_addr)) {
 			/* just use the scope field of the multicast address */
-			return(sa6->sin6_addr.s6_addr[2] & 0x0f);
+			return (sa6->sin6_addr.s6_addr[2] & 0x0f);
 		}
 		/*
 		 * Unicast addresses: map scope type to corresponding scope
@@ -1112,12 +1098,12 @@ gai_addr2scopetype(struct sockaddr *sa)
 		 * XXX: hardcoded scope type values are bad...
 		 */
 		if (IN6_IS_ADDR_LOOPBACK(&sa6->sin6_addr))
-			return(1); /* node local scope */
+			return (1); /* node local scope */
 		if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr))
-			return(2); /* link-local scope */
+			return (2); /* link-local scope */
 		if (IN6_IS_ADDR_SITELOCAL(&sa6->sin6_addr))
-			return(5); /* site-local scope */
-		return(14);	/* global scope */
+			return (5); /* site-local scope */
+		return (14);	    /* global scope */
 		break;
 #endif
 	case AF_INET:
@@ -1128,22 +1114,22 @@ gai_addr2scopetype(struct sockaddr *sa)
 		/* IPv4 autoconfiguration addresses have link-local scope. */
 		if (((u_char *)&sa4->sin_addr)[0] == 169 &&
 		    ((u_char *)&sa4->sin_addr)[1] == 254)
-			return(2);
+			return (2);
 		/* Private addresses have site-local scope. */
 		if (((u_char *)&sa4->sin_addr)[0] == 10 ||
 		    (((u_char *)&sa4->sin_addr)[0] == 172 &&
-		     (((u_char *)&sa4->sin_addr)[1] & 0xf0) == 16) ||
+			(((u_char *)&sa4->sin_addr)[1] & 0xf0) == 16) ||
 		    (((u_char *)&sa4->sin_addr)[0] == 192 &&
-		     ((u_char *)&sa4->sin_addr)[1] == 168))
-			return(14);	/* XXX: It should be 5 unless NAT */
+			((u_char *)&sa4->sin_addr)[1] == 168))
+			return (14); /* XXX: It should be 5 unless NAT */
 		/* Loopback addresses have link-local scope. */
 		if (((u_char *)&sa4->sin_addr)[0] == 127)
-			return(2);
-		return(14);
+			return (2);
+		return (14);
 		break;
 	default:
 		errno = EAFNOSUPPORT; /* is this a good error? */
-		return(-1);
+		return (-1);
 	}
 }
 
@@ -1275,7 +1261,8 @@ explore_numeric(const struct addrinfo *pai, const char *hostname,
 		 * AF_INET.
 		 */
 		if (inet_aton(hostname, (struct in_addr *)pton) != 1 ||
-		    hostname[strspn(hostname, "0123456789.xabcdefXABCDEF")] != '\0')
+		    hostname[strspn(hostname, "0123456789.xabcdefXABCDEF")] !=
+			'\0')
 			return 0;
 		p = pton;
 		break;
@@ -1298,8 +1285,7 @@ explore_numeric(const struct addrinfo *pai, const char *hostname,
 	if (pai->ai_family == afd->a_af) {
 		GET_AI(ai, afd, p);
 		GET_PORT(ai, servname);
-		if ((pai->ai_family == AF_INET ||
-		     pai->ai_family == AF_INET6) &&
+		if ((pai->ai_family == AF_INET || pai->ai_family == AF_INET6) &&
 		    (pai->ai_flags & AI_CANONNAME)) {
 			/*
 			 * Set the numeric address itself as the canonical
@@ -1375,7 +1361,7 @@ explore_numeric_scope(const struct addrinfo *pai, const char *hostname,
 				free(hostname2);
 				freeaddrinfo(*res);
 				*res = NULL;
-				return(EAI_NONAME); /* XXX: is return OK? */
+				return (EAI_NONAME); /* XXX: is return OK? */
 			}
 			sin6->sin6_scope_id = scopeid;
 		}
@@ -1417,8 +1403,8 @@ get_ai(const struct addrinfo *pai, const struct afd *afd, const char *addr)
 	}
 #endif
 
-	ai = (struct addrinfo *)malloc(sizeof(struct addrinfo)
-		+ (afd->a_socklen));
+	ai = (struct addrinfo *)malloc(
+	    sizeof(struct addrinfo) + (afd->a_socklen));
 	if (ai == NULL)
 		return NULL;
 
@@ -1564,13 +1550,13 @@ get_port(struct addrinfo *ai, const char *servname, int matchonly)
 	if (!matchonly) {
 		switch (ai->ai_family) {
 		case AF_INET:
-			((struct sockaddr_in *)(void *)
-			    ai->ai_addr)->sin_port = port;
+			((struct sockaddr_in *)(void *)ai->ai_addr)->sin_port =
+			    port;
 			break;
 #ifdef INET6
 		case AF_INET6:
-			((struct sockaddr_in6 *)(void *)
-			    ai->ai_addr)->sin6_port = port;
+			((struct sockaddr_in6 *)(void *)ai->ai_addr)
+			    ->sin6_port = port;
 			break;
 #endif
 		}
@@ -1647,7 +1633,7 @@ addrconfig(struct addrinfo *pai)
 	}
 	freeifaddrs(ifaddrs);
 
-	switch(pai->ai_family) {
+	switch (pai->ai_family) {
 	case AF_INET6:
 		return (seen_inet6);
 	case AF_INET:
@@ -1713,10 +1699,10 @@ ip6_str2scopeid(char *scope, struct sockaddr_in6 *sin6, u_int32_t *scopeid)
 	if (IN6_IS_ADDR_MC_ORGLOCAL(a6))
 		goto trynumeric;
 	else
-		goto trynumeric;	/* global */
+		goto trynumeric; /* global */
 
 	/* try to convert to a numeric id as a last resort */
-  trynumeric:
+trynumeric:
 	errno = 0;
 	lscopeid = strtoul(scope, &ep, 10);
 	*scopeid = (u_int32_t)(lscopeid & 0xffffffffUL);
@@ -1727,7 +1713,6 @@ ip6_str2scopeid(char *scope, struct sockaddr_in6 *sin6, u_int32_t *scopeid)
 }
 #endif
 
-
 #ifdef NS_CACHING
 static int
 addrinfo_id_func(char *buffer, size_t *buffer_size, va_list ap,
@@ -1736,7 +1721,7 @@ addrinfo_id_func(char *buffer, size_t *buffer_size, va_list ap,
 	res_state statp;
 	u_long res_options;
 
-	const int op_id = 0;	/* identifies the getaddrinfo for the cache */
+	const int op_id = 0; /* identifies the getaddrinfo for the cache */
 	char *hostname;
 	struct addrinfo *hints;
 
@@ -1745,8 +1730,9 @@ addrinfo_id_func(char *buffer, size_t *buffer_size, va_list ap,
 	size_t desired_size, size;
 
 	statp = __res_state();
-	res_options = statp->options & (RES_RECURSE | RES_DEFNAMES |
-	    RES_DNSRCH | RES_NOALIASES | RES_USE_INET6);
+	res_options = statp->options &
+	    (RES_RECURSE | RES_DEFNAMES | RES_DNSRCH | RES_NOALIASES |
+		RES_USE_INET6);
 
 	hostname = va_arg(ap, char *);
 	hints = va_arg(ap, struct addrinfo *);
@@ -1802,7 +1788,7 @@ static int
 addrinfo_marshal_func(char *buffer, size_t *buffer_size, void *retval,
     va_list ap, void *cache_mdata)
 {
-	struct addrinfo	*ai, *cai;
+	struct addrinfo *ai, *cai;
 	char *p;
 	size_t desired_size, size, ai_size;
 
@@ -1854,7 +1840,7 @@ static int
 addrinfo_unmarshal_func(char *buffer, size_t buffer_size, void *retval,
     va_list ap, void *cache_mdata)
 {
-	struct addrinfo	new_ai, *result, *sentinel, *lasts;
+	struct addrinfo new_ai, *result, *sentinel, *lasts;
 
 	char *p;
 	size_t ai_size, ai_i, size;
@@ -1869,13 +1855,13 @@ addrinfo_unmarshal_func(char *buffer, size_t buffer_size, void *retval,
 		memcpy(&new_ai, p, sizeof(struct addrinfo));
 		p += sizeof(struct addrinfo);
 		size = new_ai.ai_addrlen + sizeof(struct addrinfo) +
-			_ALIGNBYTES;
+		    _ALIGNBYTES;
 
 		sentinel = calloc(1, size);
 
 		memcpy(sentinel, &new_ai, sizeof(struct addrinfo));
-		sentinel->ai_addr = (struct sockaddr *)_ALIGN((char *)sentinel +
-		    sizeof(struct addrinfo));
+		sentinel->ai_addr = (struct sockaddr *)_ALIGN(
+		    (char *)sentinel + sizeof(struct addrinfo));
 
 		memcpy(sentinel->ai_addr, p, new_ai.ai_addrlen);
 		p += new_ai.ai_addrlen;
@@ -1917,19 +1903,17 @@ explore_fqdn(const struct addrinfo *pai, const char *hostname,
 
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-	NS_COMMON_CACHE_INFO_INITIALIZER(
-		hosts, NULL, addrinfo_id_func, addrinfo_marshal_func,
-		addrinfo_unmarshal_func);
+	    NS_COMMON_CACHE_INFO_INITIALIZER(hosts, NULL, addrinfo_id_func,
+		addrinfo_marshal_func, addrinfo_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		NS_FILES_CB(_files_getaddrinfo, NULL)
-		{ NSSRC_DNS, _dns_getaddrinfo, NULL },	/* force -DHESIOD */
+	static const ns_dtab dtab[] = { NS_FILES_CB(_files_getaddrinfo,
+					    NULL) { NSSRC_DNS, _dns_getaddrinfo,
+					    NULL }, /* force -DHESIOD */
 		NS_NIS_CB(_yp_getaddrinfo, NULL)
 #ifdef NS_CACHING
-		NS_CACHE_CB(&cache_info)
+		    NS_CACHE_CB(&cache_info)
 #endif
-		{ 0 }
-	};
+			{ 0 } };
 
 	result = NULL;
 
@@ -1940,7 +1924,7 @@ explore_fqdn(const struct addrinfo *pai, const char *hostname,
 		return 0;
 
 	switch (_nsdispatch(&result, dtab, NSDB_HOSTS, "getaddrinfo",
-			default_dns_files, hostname, pai)) {
+	    default_dns_files, hostname, pai)) {
 	case NS_TRYAGAIN:
 		error = EAI_AGAIN;
 		goto free;
@@ -1974,7 +1958,7 @@ free:
 
 #ifdef DEBUG
 static const char AskedForGot[] =
-	"gethostby*.getanswer: asked for \"%s\", got \"%s\"";
+    "gethostby*.getanswer: asked for \"%s\", got \"%s\"";
 #endif
 
 static struct addrinfo *
@@ -1994,7 +1978,7 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 	int haveanswer, had_error;
 	char tbuf[MAXDNAME];
 	int (*name_ok)(const char *);
-	char hostbuf[8*1024];
+	char hostbuf[8 * 1024];
 
 	memset(&sentinel, 0, sizeof(sentinel));
 	cur = &sentinel;
@@ -2004,11 +1988,11 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 	switch (qtype) {
 	case T_A:
 	case T_AAAA:
-	case T_ANY:	/*use T_ANY only for T_A/T_AAAA lookup*/
+	case T_ANY: /*use T_ANY only for T_A/T_AAAA lookup*/
 		name_ok = res_hnok;
 		break;
 	default:
-		return (NULL);	/* XXX should be abort(); */
+		return (NULL); /* XXX should be abort(); */
 	}
 	/*
 	 * find first satisfactory answer
@@ -2034,7 +2018,7 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 		 * same as the one we sent; this just gets the expanded name
 		 * (i.e., with the succeeding search-domain tacked on).
 		 */
-		n = strlen(bp) + 1;		/* for the \0 */
+		n = strlen(bp) + 1; /* for the \0 */
 		if (n >= MAXHOSTNAMELEN) {
 			RES_SET_H_ERRNO(res, NO_RECOVERY);
 			return (NULL);
@@ -2052,17 +2036,17 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 			had_error++;
 			continue;
 		}
-		cp += n;			/* name */
+		cp += n; /* name */
 		type = _getshort(cp);
- 		cp += INT16SZ;			/* type */
+		cp += INT16SZ; /* type */
 		class = _getshort(cp);
- 		cp += INT16SZ + INT32SZ;	/* class, TTL */
+		cp += INT16SZ + INT32SZ; /* class, TTL */
 		n = _getshort(cp);
-		cp += INT16SZ;			/* len */
+		cp += INT16SZ; /* len */
 		if (class != C_IN) {
 			/* XXX - debug? syslog? */
 			cp += n;
-			continue;		/* XXX - had_error++ ? */
+			continue; /* XXX - had_error++ ? */
 		}
 		if ((qtype == T_A || qtype == T_AAAA || qtype == T_ANY) &&
 		    type == T_CNAME) {
@@ -2073,7 +2057,7 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 			}
 			cp += n;
 			/* Get canonical name. */
-			n = strlen(tbuf) + 1;	/* for the \0 */
+			n = strlen(tbuf) + 1; /* for the \0 */
 			if (n > ep - bp || n >= MAXHOSTNAMELEN) {
 				had_error++;
 				continue;
@@ -2090,26 +2074,26 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 			}
 		} else if (type != qtype) {
 #ifdef DEBUG
-			if (type != T_KEY && type != T_SIG &&
-			    type != T_DNAME && type != T_RRSIG)
-				syslog(LOG_NOTICE|LOG_AUTH,
-	       "gethostby*.getanswer: asked for \"%s %s %s\", got type \"%s\"",
-				       qname, p_class(C_IN), p_type(qtype),
-				       p_type(type));
+			if (type != T_KEY && type != T_SIG && type != T_DNAME &&
+			    type != T_RRSIG)
+				syslog(LOG_NOTICE | LOG_AUTH,
+				    "gethostby*.getanswer: asked for \"%s %s %s\", got type \"%s\"",
+				    qname, p_class(C_IN), p_type(qtype),
+				    p_type(type));
 #endif
 			cp += n;
-			continue;		/* XXX - had_error++ ? */
+			continue; /* XXX - had_error++ ? */
 		}
 		switch (type) {
 		case T_A:
 		case T_AAAA:
 			if (strcasecmp(canonname, bp) != 0) {
 #ifdef DEBUG
-				syslog(LOG_NOTICE|LOG_AUTH,
-				       AskedForGot, canonname, bp);
+				syslog(LOG_NOTICE | LOG_AUTH, AskedForGot,
+				    canonname, bp);
 #endif
 				cp += n;
-				continue;	/* XXX - had_error++ ? */
+				continue; /* XXX - had_error++ ? */
 			}
 			if (type == T_A && n != INADDRSZ) {
 				cp += n;
@@ -2133,7 +2117,7 @@ getanswer(const querybuf *answer, int anslen, const char *qname, int qtype,
 				int nn;
 
 				canonname = bp;
-				nn = strlen(bp) + 1;	/* for the \0 */
+				nn = strlen(bp) + 1; /* for the \0 */
 				bp += nn;
 			}
 
@@ -2209,7 +2193,7 @@ addr4sort(struct addrinfo *sentinel, res_state res)
 	for (ai = sentinel->ai_next; ai; ai = ai->ai_next)
 		naddrs++;
 	if (naddrs < 2)
-		return 0;		/* We don't need sorting. */
+		return 0; /* We don't need sorting. */
 	if ((addrs = malloc(sizeof(struct addr_ptr) * naddrs)) == NULL)
 		return -1;
 	i = 0;
@@ -2233,7 +2217,7 @@ addr4sort(struct addrinfo *sentinel, res_state res)
 
 	while (needsort < naddrs) {
 		for (j = needsort - 1; j >= 0; j--) {
-			if (addrs[j].aval > addrs[j+1].aval) {
+			if (addrs[j].aval > addrs[j + 1].aval) {
 				addr = addrs[j];
 				addrs[j] = addrs[j + 1];
 				addrs[j + 1] = addr;
@@ -2390,7 +2374,7 @@ static void
 _endhtent(FILE **hostf)
 {
 	if (*hostf) {
-		(void) fclose(*hostf);
+		(void)fclose(*hostf);
 		*hostf = NULL;
 	}
 }
@@ -2403,7 +2387,7 @@ _gethtent(FILE **hostf, const char *name, const struct addrinfo *pai)
 	struct addrinfo hints, *res0, *res;
 	int error;
 	const char *addr;
-	char hostbuf[8*1024];
+	char hostbuf[8 * 1024];
 
 	if (!*hostf && !(*hostf = fopen(_PATH_HOSTS, "re")))
 		return (NULL);
@@ -2452,7 +2436,8 @@ found:
 #ifdef FILTER_V4MAPPED
 	/* XXX should check all items in the chain */
 	if (res0->ai_family == AF_INET6 &&
-	    IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)res0->ai_addr)->sin6_addr)) {
+	    IN6_IS_ADDR_V4MAPPED(
+		&((struct sockaddr_in6 *)res0->ai_addr)->sin6_addr)) {
 		freeaddrinfo(res0);
 		goto again;
 	}
@@ -2475,7 +2460,7 @@ found:
 
 static struct addrinfo *
 _getht(FILE **hostf, const char *name, const struct addrinfo *pai,
-     struct addrinfo *cur)
+    struct addrinfo *cur)
 {
 	struct addrinfo *p;
 
@@ -2626,8 +2611,8 @@ _yp_getaddrinfo(void *rv, void *cb_data, va_list ap)
 	cur = &sentinel;
 
 	/* ipnodes.byname can hold both IPv4/v6 */
-	r = yp_match(ypdomain, "ipnodes.byname", name,
-		(int)strlen(name), &ypbuf, &ypbuflen);
+	r = yp_match(ypdomain, "ipnodes.byname", name, (int)strlen(name),
+	    &ypbuf, &ypbuflen);
 	if (r == 0) {
 		ai = _yphostent(ypbuf, pai);
 		if (ai) {
@@ -2655,10 +2640,10 @@ _yp_getaddrinfo(void *rv, void *cb_data, va_list ap)
 	/* hosts.byname is only for IPv4 (Solaris8) */
 	if (pai->ai_family == AF_UNSPEC || pai->ai_family == AF_INET ||
 	    ((pai->ai_family == AF_INET6 &&
-	     (pai->ai_flags & AI_V4MAPPED) == AI_V4MAPPED) &&
-	      (ai == NULL || (pai->ai_flags & AI_ALL) == AI_ALL))) {
-		r = yp_match(ypdomain, "hosts.byname", name,
-			(int)strlen(name), &ypbuf, &ypbuflen);
+		 (pai->ai_flags & AI_V4MAPPED) == AI_V4MAPPED) &&
+		(ai == NULL || (pai->ai_flags & AI_ALL) == AI_ALL))) {
+		r = yp_match(ypdomain, "hosts.byname", name, (int)strlen(name),
+		    &ypbuf, &ypbuflen);
 		if (r == 0) {
 			struct addrinfo ai4;
 
@@ -2732,8 +2717,8 @@ res_queryN(const char *name, struct res_target *target, res_state res)
 
 		oflags = res->_flags;
 
-again:
-		hp->rcode = NOERROR;	/* default */
+	again:
+		hp->rcode = NOERROR; /* default */
 
 #ifdef DEBUG
 		if (res->options & RES_DEBUG)
@@ -2743,7 +2728,7 @@ again:
 		n = res_nmkquery(res, QUERY, name, class, type, NULL, 0, NULL,
 		    buf, MAXPACKET);
 		if (n > 0 && (res->_flags & RES_F_EDNS0ERR) == 0 &&
-		    (res->options & (RES_USE_EDNS0|RES_USE_DNSSEC)) != 0U)
+		    (res->options & (RES_USE_EDNS0 | RES_USE_DNSSEC)) != 0U)
 			n = res_nopt(res, n, buf, MAXPACKET, anslen);
 		if (n <= 0) {
 #ifdef DEBUG
@@ -2760,15 +2745,16 @@ again:
 			 * if the query choked with EDNS0, retry
 			 * without EDNS0
 			 */
-			if ((res->options & (RES_USE_EDNS0|RES_USE_DNSSEC))
-			    != 0U &&
+			if ((res->options & (RES_USE_EDNS0 | RES_USE_DNSSEC)) !=
+				0U &&
 			    ((oflags ^ res->_flags) & RES_F_EDNS0ERR) != 0) {
 				res->_flags |= RES_F_EDNS0ERR;
 				if (res->options & RES_DEBUG)
-					printf(";; res_nquery: retry without EDNS0\n");
+					printf(
+					    ";; res_nquery: retry without EDNS0\n");
 				goto again;
 			}
-			rcode = hp->rcode;	/* record most recent error */
+			rcode = hp->rcode; /* record most recent error */
 #ifdef DEBUG
 			if (res->options & RES_DEBUG)
 				printf(";; res_query: send error\n");
@@ -2779,7 +2765,7 @@ again:
 		if (n > anslen)
 			hp->rcode = FORMERR; /* XXX not very informative */
 		if (hp->rcode != NOERROR || ntohs(hp->ancount) == 0) {
-			rcode = hp->rcode;	/* record most recent error */
+			rcode = hp->rcode; /* record most recent error */
 #ifdef DEBUG
 			if (res->options & RES_DEBUG)
 				printf(";; rcode = %u, ancount=%u\n", hp->rcode,
@@ -2827,8 +2813,8 @@ again:
 static int
 res_searchN(const char *name, struct res_target *target, res_state res)
 {
-	const char *cp, * const *domain;
-	HEADER *hp = (HEADER *)(void *)target->answer;	/*XXX*/
+	const char *cp, *const *domain;
+	HEADER *hp = (HEADER *)(void *)target->answer; /*XXX*/
 	u_int dots;
 	int trailing_dot, ret, saved_herrno;
 	int got_nodata = 0, got_servfail = 0, root_on_list = 0;
@@ -2891,9 +2877,8 @@ res_searchN(const char *name, struct res_target *target, res_state res)
 	    (dots && !trailing_dot && (res->options & RES_DNSRCH))) {
 		int done = 0;
 
-		for (domain = (const char * const *)res->dnsrch;
-		   *domain && !done;
-		   domain++) {
+		for (domain = (const char *const *)res->dnsrch;
+		     *domain && !done; domain++) {
 			searched = 1;
 
 			if (domain[0][0] == '\0' ||
@@ -2948,7 +2933,7 @@ res_searchN(const char *name, struct res_target *target, res_state res)
 			 * we only wanted one iteration of the loop, so stop.
 			 */
 			if (!(res->options & RES_DNSRCH))
-			        done++;
+				done++;
 		}
 	}
 
@@ -3007,8 +2992,8 @@ res_querydomainN(const char *name, const char *domain,
 
 #ifdef DEBUG
 	if (res->options & RES_DEBUG)
-		printf(";; res_querydomain(%s, %s)\n",
-			name, domain?domain:"<Nil>");
+		printf(";; res_querydomain(%s, %s)\n", name,
+		    domain ? domain : "<Nil>");
 #endif
 	if (domain == NULL) {
 		/*

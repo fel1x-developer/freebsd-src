@@ -30,12 +30,12 @@
 
 #include <sys/types.h>
 
-#include "systat.h"
-#include "extern.h"
-#include "convtbl.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "convtbl.h"
+#include "extern.h"
+#include "systat.h"
 
 int curscale = SC_AUTO;
 char *matchline = NULL;
@@ -57,7 +57,8 @@ ifcmd(const char *cmd, const char *args)
 			addstr(get_helplist());
 		}
 	} else if (prefix(cmd, "match")) {
-		if (args != NULL && *args != '\0' && memcmp(args, "*", 2) != 0) {
+		if (args != NULL && *args != '\0' &&
+		    memcmp(args, "*", 2) != 0) {
 			/* We got a valid match line */
 			if (matchline != NULL)
 				free(matchline);

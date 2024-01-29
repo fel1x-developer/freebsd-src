@@ -29,18 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/queue.h>
+
 #include <dirent.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include "libc_private.h"
 #include "gen-private.h"
+#include "libc_private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
 /*
  * return a pointer into a directory
@@ -53,7 +54,7 @@ telldir(DIR *dirp)
 
 	if (__isthreaded)
 		_pthread_mutex_lock(&dirp->dd_lock);
-	/* 
+	/*
 	 * Outline:
 	 * 1) If the directory position fits in a packed structure, return that.
 	 * 2) Otherwise, see if it's already been recorded in the linked list
@@ -68,7 +69,7 @@ telldir(DIR *dirp)
 	}
 
 	flp = NULL;
-	LIST_FOREACH(lp, &dirp->dd_td->td_locq, loc_lqe) {
+	LIST_FOREACH (lp, &dirp->dd_td->td_locq, loc_lqe) {
 		if (lp->loc_seek == dirp->dd_seek) {
 			if (flp == NULL)
 				flp = lp;
@@ -95,7 +96,7 @@ telldir(DIR *dirp)
 			LIST_INSERT_HEAD(&dirp->dd_td->td_locq, lp, loc_lqe);
 	}
 	ddloc.i.is_packed = 0;
-	/* 
+	/*
 	 * Technically this assignment could overflow on 32-bit architectures,
 	 * but we would get ENOMEM long before that happens.
 	 */
@@ -126,7 +127,7 @@ _seekdir(DIR *dirp, long loc)
 		loc_seek = ddloc.s.seek;
 		loc_loc = ddloc.s.loc;
 	} else {
-		LIST_FOREACH(lp, &dirp->dd_td->td_locq, loc_lqe) {
+		LIST_FOREACH (lp, &dirp->dd_td->td_locq, loc_lqe) {
 			if (lp->loc_index == ddloc.i.index)
 				break;
 		}
@@ -150,7 +151,7 @@ _seekdir(DIR *dirp, long loc)
 		dirp->dd_loc = loc_loc;
 		return;
 	}
-	(void) lseek(dirp->dd_fd, (off_t)loc_seek, SEEK_SET);
+	(void)lseek(dirp->dd_fd, (off_t)loc_seek, SEEK_SET);
 	dirp->dd_seek = loc_seek;
 	dirp->dd_loc = 0;
 	dirp->dd_flags &= ~__DTF_SKIPREAD; /* current contents are invalid */
@@ -177,8 +178,7 @@ _fixtelldir(DIR *dirp, long oldseek, long oldloc)
 
 	lp = LIST_FIRST(&dirp->dd_td->td_locq);
 	if (lp != NULL) {
-		if (lp->loc_loc == oldloc &&
-		    lp->loc_seek == oldseek) {
+		if (lp->loc_loc == oldloc && lp->loc_seek == oldseek) {
 			lp->loc_seek = dirp->dd_seek;
 			lp->loc_loc = dirp->dd_loc;
 		}

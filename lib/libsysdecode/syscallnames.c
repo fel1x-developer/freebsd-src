@@ -34,6 +34,7 @@
 #include <sys/param.h>
 #include <sys/acl.h>
 #include <sys/wait.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <sysdecode.h>
@@ -42,12 +43,12 @@ static
 #include <kern/syscalls.c>
 
 #if defined(__amd64__) || defined(__powerpc64__) || defined(__aarch64__)
-static
+    static
 #include <compat/freebsd32/freebsd32_syscalls.c>
 #endif
 
 #if defined(__aarch64__) || defined(__amd64__) || defined(__i386__)
-static
+    static
 #ifdef __aarch64__
 #include <arm64/linux/linux_syscalls.c>
 #elif __amd64__
@@ -58,12 +59,12 @@ static
 #endif
 
 #ifdef __amd64__
-static
+    static
 #include <amd64/linux32/linux32_syscalls.c>
 #endif
 
-const char *
-sysdecode_syscallname(enum sysdecode_abi abi, unsigned int code)
+    const char *
+    sysdecode_syscallname(enum sysdecode_abi abi, unsigned int code)
 {
 
 	switch (abi) {

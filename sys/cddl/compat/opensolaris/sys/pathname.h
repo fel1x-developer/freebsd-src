@@ -25,7 +25,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_PATHNAME_H_
-#define	_OPENSOLARIS_SYS_PATHNAME_H_
+#define _OPENSOLARIS_SYS_PATHNAME_H_
 
 #ifdef _KERNEL
 
@@ -36,6 +36,6 @@ int lookupname(char *, enum uio_seg, enum symfollow, vnode_t **, vnode_t **);
 int lookupnameat(char *, enum uio_seg, enum symfollow, vnode_t **, vnode_t **,
     vnode_t *);
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_PATHNAME_H_ */
+#endif /* _OPENSOLARIS_SYS_PATHNAME_H_ */

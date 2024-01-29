@@ -32,9 +32,9 @@
 #include <strings.h>
 
 #ifndef FFS
-# define FFS ffs
-# define TYPE int
-# define TYPE_MIN INT_MIN
+#define FFS ffs
+#define TYPE int
+#define TYPE_MIN INT_MIN
 #endif
 
 ATF_TC_WITHOUT_HEAD(zero);
@@ -54,8 +54,8 @@ ATF_TC_BODY(twobit, tc)
 	for (i = 0; i < n - 1; i++)
 		for (j = 0; j <= i; j++) {
 			x = one << i | one << j;
-			ATF_CHECK_EQ_MSG(j + 1, FFS(x),
-			    "%s(%#jx) == %d != %d", __STRING(FFS), (intmax_t)x, FFS(x), j + 1);
+			ATF_CHECK_EQ_MSG(j + 1, FFS(x), "%s(%#jx) == %d != %d",
+			    __STRING(FFS), (intmax_t)x, FFS(x), j + 1);
 		}
 }
 
@@ -70,11 +70,10 @@ ATF_TC_BODY(twobitneg, tc)
 	for (i = 0; i < n - 1; i++)
 		for (j = 0; j <= i; j++) {
 			x = one << i | one << j | TYPE_MIN;
-			ATF_CHECK_EQ_MSG(j + 1, FFS(x),
-			    "%s(%#jx) == %d != %d", __STRING(FFS), (intmax_t)x, FFS(x), j + 1);
+			ATF_CHECK_EQ_MSG(j + 1, FFS(x), "%s(%#jx) == %d != %d",
+			    __STRING(FFS), (intmax_t)x, FFS(x), j + 1);
 		}
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

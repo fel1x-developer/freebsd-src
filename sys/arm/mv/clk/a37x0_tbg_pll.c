@@ -28,25 +28,24 @@
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
+#include "a37x0_tbg_pll.h"
 #include "clkdev_if.h"
 
-#include "a37x0_tbg_pll.h"
-
-#define RD4(_clk, offset, val)			\
+#define RD4(_clk, offset, val) \
 	CLKDEV_READ_4(clknode_get_device(_clk), offset, val)
 
 struct a37x0_tbg_pll_softc {
-	struct a37x0_tbg_pll_reg_def		vcodiv;
-	struct a37x0_tbg_pll_reg_def		refdiv;
-	struct a37x0_tbg_pll_reg_def		fbdiv;
-	struct a37x0_tbg_pll_reg_def		tbg_bypass;
+	struct a37x0_tbg_pll_reg_def vcodiv;
+	struct a37x0_tbg_pll_reg_def refdiv;
+	struct a37x0_tbg_pll_reg_def fbdiv;
+	struct a37x0_tbg_pll_reg_def tbg_bypass;
 };
 
 static int
@@ -90,8 +89,8 @@ a37x0_tbg_pll_init(struct clknode *clk, device_t dev)
 }
 
 static clknode_method_t a37x0_tbg_pll_clknode_methods[] = {
-	CLKNODEMETHOD(clknode_recalc_freq,	a37x0_tbg_pll_recalc_freq),
-	CLKNODEMETHOD(clknode_init,		a37x0_tbg_pll_init),
+	CLKNODEMETHOD(clknode_recalc_freq, a37x0_tbg_pll_recalc_freq),
+	CLKNODEMETHOD(clknode_init, a37x0_tbg_pll_init),
 
 	CLKNODEMETHOD_END
 };

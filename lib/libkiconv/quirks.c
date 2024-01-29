@@ -38,7 +38,7 @@
  * Since each vendors has their own Unicode mapping rules,
  * we need some quirks until iconv(3) supports them.
  * We can define Microsoft mappings here.
- * 
+ *
  * For example, the eucJP and Unocode mapping rule is based on
  * the JIS standard. Since Microsoft uses cp932 for Unicode mapping
  * which is not truly based on the JIS standard, reading a file
@@ -66,13 +66,11 @@
 static struct {
 	int vendor; /* reserved for non MS mapping */
 	const char *base_codeset, *quirk_codeset;
-} quirk_list[] = {
-	{ KICONV_VENDOR_MICSFT,	"eucJP", "eucJP-ms" },
-	{ KICONV_VENDOR_MICSFT,	"EUC-JP", "eucJP-ms" },
-	{ KICONV_VENDOR_MICSFT,	"SJIS", "SJIS-ms" },
-	{ KICONV_VENDOR_MICSFT,	"Shift_JIS", "SJIS-ms" },
-	{ KICONV_VENDOR_MICSFT,	"Big5", "Big5-ms" }
-};
+} quirk_list[] = { { KICONV_VENDOR_MICSFT, "eucJP", "eucJP-ms" },
+	{ KICONV_VENDOR_MICSFT, "EUC-JP", "eucJP-ms" },
+	{ KICONV_VENDOR_MICSFT, "SJIS", "SJIS-ms" },
+	{ KICONV_VENDOR_MICSFT, "Shift_JIS", "SJIS-ms" },
+	{ KICONV_VENDOR_MICSFT, "Big5", "Big5-ms" } };
 
 /*
  * The character list to replace for Japanese MS-Windows.
@@ -90,32 +88,22 @@ static struct quirk_replace_list quirk_jis_cp932[] = {
 /*
  * All entries of quirks
  */
-#define	NumOf(n)	(sizeof((n)) / sizeof((n)[0]))
+#define NumOf(n) (sizeof((n)) / sizeof((n)[0]))
 static struct {
 	const char *quirk_codeset, *iconv_codeset, *pair_codeset;
 	struct quirk_replace_list (*replace_list)[];
 	size_t num_of_replaces;
-} quirk_table[] = {
-	{
-		"eucJP-ms", "eucJP", ENCODING_UNICODE,
-		(struct quirk_replace_list (*)[])&quirk_jis_cp932,
-		NumOf(quirk_jis_cp932)
-	},
-	{
-		"SJIS-ms", "CP932", ENCODING_UNICODE,
-		/* XXX - quirk_replace_list should be NULL */
-		(struct quirk_replace_list (*)[])&quirk_jis_cp932,
-		NumOf(quirk_jis_cp932)
-	},
-	{
-		"Big5-ms", "CP950", ENCODING_UNICODE,
-		NULL, 0
-	}
-};
-
+} quirk_table[] = { { "eucJP-ms", "eucJP", ENCODING_UNICODE,
+			(struct quirk_replace_list(*)[]) & quirk_jis_cp932,
+			NumOf(quirk_jis_cp932) },
+	{ "SJIS-ms", "CP932", ENCODING_UNICODE,
+	    /* XXX - quirk_replace_list should be NULL */
+	    (struct quirk_replace_list (*)[]) & quirk_jis_cp932,
+	    NumOf(quirk_jis_cp932) },
+	{ "Big5-ms", "CP950", ENCODING_UNICODE, NULL, 0 } };
 
 const char *
-kiconv_quirkcs(const char* base, int vendor)
+kiconv_quirkcs(const char *base, int vendor)
 {
 	size_t i;
 
@@ -136,10 +124,8 @@ kiconv_quirkcs(const char* base, int vendor)
  * Internal Functions
  */
 const char *
-search_quirk(const char *given_codeset,
-	     const char *pair_codeset,
-	     struct quirk_replace_list **replace_list,
-	     size_t *num_of_replaces)
+search_quirk(const char *given_codeset, const char *pair_codeset,
+    struct quirk_replace_list **replace_list, size_t *num_of_replaces)
 {
 	size_t i;
 
@@ -147,9 +133,11 @@ search_quirk(const char *given_codeset,
 	*num_of_replaces = 0;
 	for (i = 0; i < NumOf(quirk_table); i++)
 		if (strcmp(quirk_table[i].quirk_codeset, given_codeset) == 0) {
-			if (strcmp(quirk_table[i].pair_codeset, pair_codeset) == 0) {
+			if (strcmp(quirk_table[i].pair_codeset, pair_codeset) ==
+			    0) {
 				*replace_list = *quirk_table[i].replace_list;
-				*num_of_replaces = quirk_table[i].num_of_replaces;
+				*num_of_replaces =
+				    quirk_table[i].num_of_replaces;
 			}
 			return (quirk_table[i].iconv_codeset);
 		}
@@ -158,7 +146,8 @@ search_quirk(const char *given_codeset,
 }
 
 uint16_t
-quirk_vendor2unix(uint16_t c, struct quirk_replace_list *replace_list, size_t num)
+quirk_vendor2unix(uint16_t c, struct quirk_replace_list *replace_list,
+    size_t num)
 {
 	size_t i;
 
@@ -170,7 +159,8 @@ quirk_vendor2unix(uint16_t c, struct quirk_replace_list *replace_list, size_t nu
 }
 
 uint16_t
-quirk_unix2vendor(uint16_t c, struct quirk_replace_list *replace_list, size_t num)
+quirk_unix2vendor(uint16_t c, struct quirk_replace_list *replace_list,
+    size_t num)
 {
 	size_t i;
 
@@ -187,7 +177,7 @@ quirk_unix2vendor(uint16_t c, struct quirk_replace_list *replace_list, size_t nu
 #include <sys/iconv.h>
 
 const char *
-kiconv_quirkcs(const char* base __unused, int vendor __unused)
+kiconv_quirkcs(const char *base __unused, int vendor __unused)
 {
 
 	return (base);

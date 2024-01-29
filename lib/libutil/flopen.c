@@ -32,10 +32,9 @@
 #include <sys/stat.h>
 
 #include <errno.h>
+#include <libutil.h>
 #include <stdarg.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 /*
  * Reliably open and lock a file.
@@ -61,9 +60,9 @@ vflopenat(int dirfd, const char *path, int flags, va_list ap)
 		mode = (mode_t)va_arg(ap, int); /* mode_t promoted to int */
 	}
 
-        operation = LOCK_EX;
-        if (flags & O_NONBLOCK)
-                operation |= LOCK_NB;
+	operation = LOCK_EX;
+	if (flags & O_NONBLOCK)
+		operation |= LOCK_NB;
 
 	trunc = (flags & O_TRUNC);
 	flags &= ~O_TRUNC;
@@ -91,8 +90,7 @@ vflopenat(int dirfd, const char *path, int flags, va_list ap)
 			errno = serrno;
 			return (-1);
 		}
-		if (sb.st_dev != fsb.st_dev ||
-		    sb.st_ino != fsb.st_ino) {
+		if (sb.st_dev != fsb.st_dev || sb.st_ino != fsb.st_ino) {
 			/* changed under our feet */
 			(void)close(fd);
 			continue;

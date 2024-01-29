@@ -31,23 +31,22 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_mux.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
 #include "clkdev_if.h"
 #include "periph.h"
 
-#define PARENT_CNT	2
+#define PARENT_CNT 2
 
 /*
  * Register chain: mux (select proper TBG) -> div1 (first frequency divider) ->
@@ -77,8 +76,8 @@ a37x0_periph_d_register_full_clk_dd(struct clkdom *clkdom,
 	a37x0_periph_set_props(&tbg_mux->clkdef, device_def->common_def.tbgs,
 	    device_def->common_def.tbg_cnt);
 
-	error = a37x0_periph_create_mux(clkdom,
-	    tbg_mux, A37x0_INTERNAL_CLK_ID(dev_id, MUX_POS));
+	error = a37x0_periph_create_mux(clkdom, tbg_mux,
+	    A37x0_INTERNAL_CLK_ID(dev_id, MUX_POS));
 	if (error)
 		goto fail;
 
@@ -104,8 +103,7 @@ a37x0_periph_d_register_full_clk_dd(struct clkdom *clkdom,
 		goto fail;
 
 	a37x0_periph_set_props(&gate->clkdef, &clk_mux->clkdef.name, 1);
-	error = a37x0_periph_create_gate(clkdom, gate,
-	    dev_id);
+	error = a37x0_periph_create_gate(clkdom, gate, dev_id);
 	if (error)
 		goto fail;
 
@@ -135,7 +133,7 @@ a37x0_periph_d_register_full_clk(struct clkdom *clkdom,
 	tbg_mux = &device_def->clk_def.full_d.tbg_mux;
 	div = &device_def->clk_def.full_d.div;
 	gate = &device_def->clk_def.full_d.gate;
-	clk_mux = &device_def->clk_def.full_d. clk_mux;
+	clk_mux = &device_def->clk_def.full_d.clk_mux;
 
 	a37x0_periph_set_props(&tbg_mux->clkdef, device_def->common_def.tbgs,
 	    device_def->common_def.tbg_cnt);
@@ -160,8 +158,7 @@ a37x0_periph_d_register_full_clk(struct clkdom *clkdom,
 		goto fail;
 
 	a37x0_periph_set_props(&gate->clkdef, &clk_mux->clkdef.name, 1);
-	error = a37x0_periph_create_gate(clkdom, gate,
-	    dev_id);
+	error = a37x0_periph_create_gate(clkdom, gate, dev_id);
 	if (error)
 		goto fail;
 
@@ -207,8 +204,7 @@ a37x0_periph_d_register_periph_cpu(struct clkdom *clkdom,
 	parent_names[1] = div->clkdef.name;
 
 	a37x0_periph_set_props(&clk_mux->clkdef, parent_names, PARENT_CNT);
-	error = a37x0_periph_create_mux(clkdom, clk_mux,
-	    dev_id);
+	error = a37x0_periph_create_mux(clkdom, clk_mux, dev_id);
 
 fail:
 
@@ -260,8 +256,7 @@ a37x0_periph_d_register_mdd(struct clkdom *clkdom,
 	parent_names[1] = div2->clkdef.name;
 
 	a37x0_periph_set_props(&clk_mux->clkdef, parent_names, PARENT_CNT);
-	error = a37x0_periph_create_mux(clkdom, clk_mux,
-	    dev_id);
+	error = a37x0_periph_create_mux(clkdom, clk_mux, dev_id);
 	if (error)
 		goto fail;
 

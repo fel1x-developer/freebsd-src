@@ -32,79 +32,79 @@ struct mpr_fw_event_work;
 
 struct mprsas_lun {
 	SLIST_ENTRY(mprsas_lun) lun_link;
-	lun_id_t	lun_id;
-	uint8_t		eedp_formatted;
-	uint32_t	eedp_block_size;
+	lun_id_t lun_id;
+	uint8_t eedp_formatted;
+	uint32_t eedp_block_size;
 };
 
 struct mprsas_target {
-	uint16_t	handle;
-	uint8_t		linkrate;
-	uint8_t		encl_level_valid;
-	uint8_t		encl_level;
-	char		connector_name[4];
-	uint64_t	devname;
-	uint32_t	devinfo;
-	uint16_t	encl_handle;
-	uint16_t	encl_slot;
-	uint8_t		flags;
-#define MPRSAS_TARGET_INABORT	(1 << 0)
-#define MPRSAS_TARGET_INRESET	(1 << 1)
+	uint16_t handle;
+	uint8_t linkrate;
+	uint8_t encl_level_valid;
+	uint8_t encl_level;
+	char connector_name[4];
+	uint64_t devname;
+	uint32_t devinfo;
+	uint16_t encl_handle;
+	uint16_t encl_slot;
+	uint8_t flags;
+#define MPRSAS_TARGET_INABORT (1 << 0)
+#define MPRSAS_TARGET_INRESET (1 << 1)
 #define MPRSAS_TARGET_INDIAGRESET (1 << 2)
-#define MPRSAS_TARGET_INREMOVAL	(1 << 3)
+#define MPRSAS_TARGET_INREMOVAL (1 << 3)
 #define MPR_TARGET_FLAGS_RAID_COMPONENT (1 << 4)
-#define MPR_TARGET_FLAGS_VOLUME         (1 << 5)
-#define MPR_TARGET_IS_SATA_SSD	(1 << 6)
-#define MPRSAS_TARGET_TOREMOVE	(1 << 7)
+#define MPR_TARGET_FLAGS_VOLUME (1 << 5)
+#define MPR_TARGET_IS_SATA_SSD (1 << 6)
+#define MPRSAS_TARGET_TOREMOVE (1 << 7)
 
-	uint16_t	tid;
+	uint16_t tid;
 	SLIST_HEAD(, mprsas_lun) luns;
 	TAILQ_HEAD(, mpr_command) commands;
 	struct mpr_command *tm;
 	struct mpr_command *pending_remove_tm;
 	TAILQ_HEAD(, mpr_command) timedout_commands;
-	uint16_t        exp_dev_handle;
-	uint16_t        phy_num;
-	uint64_t	sasaddr;
-	uint16_t	parent_handle;
-	uint64_t	parent_sasaddr;
-	uint32_t	parent_devinfo;
-	uint64_t        issued;
-	uint64_t        completed;
-	unsigned int    outstanding;
-	unsigned int    timeouts;
-	unsigned int    aborts;
-	unsigned int    logical_unit_resets;
-	unsigned int    target_resets;
-	uint8_t		scsi_req_desc_type;
-	uint8_t		stop_at_shutdown;
-	uint8_t		supports_SSU;
-	uint8_t		is_nvme;
-	uint32_t	MDTS;
-	uint8_t		controller_reset_timeout;
+	uint16_t exp_dev_handle;
+	uint16_t phy_num;
+	uint64_t sasaddr;
+	uint16_t parent_handle;
+	uint64_t parent_sasaddr;
+	uint32_t parent_devinfo;
+	uint64_t issued;
+	uint64_t completed;
+	unsigned int outstanding;
+	unsigned int timeouts;
+	unsigned int aborts;
+	unsigned int logical_unit_resets;
+	unsigned int target_resets;
+	uint8_t scsi_req_desc_type;
+	uint8_t stop_at_shutdown;
+	uint8_t supports_SSU;
+	uint8_t is_nvme;
+	uint32_t MDTS;
+	uint8_t controller_reset_timeout;
 };
 
 struct mprsas_softc {
-	struct mpr_softc	*sc;
-	u_int			flags;
-#define MPRSAS_IN_DISCOVERY	(1 << 0)
-#define MPRSAS_IN_STARTUP	(1 << 1)
-#define MPRSAS_QUEUE_FROZEN	(1 << 3)
-#define	MPRSAS_TOREMOVE		(1 << 5)
-	u_int			maxtargets;
-	struct mprsas_target	*targets;
-	struct cam_devq		*devq;
-	struct cam_sim		*sim;
-	struct cam_path		*path;
-	struct intr_config_hook	sas_ich;
-	struct mpr_event_handle	*mprsas_eh;
+	struct mpr_softc *sc;
+	u_int flags;
+#define MPRSAS_IN_DISCOVERY (1 << 0)
+#define MPRSAS_IN_STARTUP (1 << 1)
+#define MPRSAS_QUEUE_FROZEN (1 << 3)
+#define MPRSAS_TOREMOVE (1 << 5)
+	u_int maxtargets;
+	struct mprsas_target *targets;
+	struct cam_devq *devq;
+	struct cam_sim *sim;
+	struct cam_path *path;
+	struct intr_config_hook sas_ich;
+	struct mpr_event_handle *mprsas_eh;
 
-	u_int                   startup_refcount;
-	struct proc             *sysctl_proc;
+	u_int startup_refcount;
+	struct proc *sysctl_proc;
 
-	struct taskqueue	*ev_tq;
-	struct task		ev_task;
-	TAILQ_HEAD(, mpr_fw_event_work)	ev_queue;
+	struct taskqueue *ev_tq;
+	struct task ev_task;
+	TAILQ_HEAD(, mpr_fw_event_work) ev_queue;
 };
 
 MALLOC_DECLARE(M_MPRSAS);
@@ -113,8 +113,7 @@ MALLOC_DECLARE(M_MPRSAS);
  * Abstracted so that the driver can be backwards and forwards compatible
  * with future versions of CAM that will provide this functionality.
  */
-#define MPR_SET_LUN(lun, ccblun)	\
-	mprsas_set_lun(lun, ccblun)
+#define MPR_SET_LUN(lun, ccblun) mprsas_set_lun(lun, ccblun)
 
 static __inline int
 mprsas_set_lun(uint8_t *lun, u_int ccblun)
@@ -159,11 +158,11 @@ mprsas_get_ccbstatus(union ccb *ccb)
 	return (ccb->ccb_h.status & CAM_STATUS_MASK);
 }
 
-#define MPR_SET_SINGLE_LUN(req, lun)	\
-do {					\
-	bzero((req)->LUN, 8);		\
-	(req)->LUN[1] = lun;		\
-} while(0)
+#define MPR_SET_SINGLE_LUN(req, lun)  \
+	do {                          \
+		bzero((req)->LUN, 8); \
+		(req)->LUN[1] = lun;  \
+	} while (0)
 
 void mprsas_rescan_target(struct mpr_softc *sc, struct mprsas_target *targ);
 void mprsas_discovery_end(struct mprsas_softc *sassc);

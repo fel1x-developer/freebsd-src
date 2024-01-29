@@ -43,7 +43,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	ITERATIONS	1000000
+#define ITERATIONS 1000000
 
 static char socket_path[] = "tmp.XXXXXX";
 
@@ -202,7 +202,7 @@ datagram_test(void)
 int
 main(void)
 {
-	
+
 	if (mkstemp(socket_path) == -1)
 		err(1, "mkstemp failed");
 	(void)unlink(socket_path);

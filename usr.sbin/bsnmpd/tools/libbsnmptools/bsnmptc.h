@@ -29,42 +29,42 @@
  * Textual conventions for snmp
  */
 
-#ifndef	_BSNMP_TEXT_CONV_H_
-#define	_BSNMP_TEXT_CONV_H_
+#ifndef _BSNMP_TEXT_CONV_H_
+#define _BSNMP_TEXT_CONV_H_
 
 /* Variable display length string. */
-#define	SNMP_VAR_STRSZ		-1
+#define SNMP_VAR_STRSZ -1
 
 /*
  * 11 bytes - octets that represent DateAndTime Textual convention
  * and the size of string used to display that.
  */
-#define	SNMP_DATETIME_OCTETS	11
-#define	SNMP_DATETIME_STRSZ	32
+#define SNMP_DATETIME_OCTETS 11
+#define SNMP_DATETIME_STRSZ 32
 
 /*
  * 6 bytes - octets that represent PhysAddress Textual convention
  * and the size of string used to display that.
  */
-#define	SNMP_PHYSADDR_OCTETS	6
-#define	SNMP_PHYSADDR_STRSZ	19
+#define SNMP_PHYSADDR_OCTETS 6
+#define SNMP_PHYSADDR_STRSZ 19
 
 /* NTPTimeStamp. */
-#define	SNMP_NTP_TS_OCTETS	8
-#define	SNMP_NTP_TS_STRSZ	10
+#define SNMP_NTP_TS_OCTETS 8
+#define SNMP_NTP_TS_STRSZ 10
 
 /* BridgeId. */
-#define	SNMP_BRIDGEID_OCTETS		8
-#define	SNMP_BRIDGEID_STRSZ		25
-#define	SNMP_MAX_BRIDGE_PRIORITY	65535
+#define SNMP_BRIDGEID_OCTETS 8
+#define SNMP_BRIDGEID_STRSZ 25
+#define SNMP_MAX_BRIDGE_PRIORITY 65535
 
 /* BridgePortId. */
-#define	SNMP_BPORT_OCTETS	2
-#define	SNMP_BPORT_STRSZ	7
-#define	SNMP_MAX_BPORT_PRIORITY	255
+#define SNMP_BPORT_OCTETS 2
+#define SNMP_BPORT_STRSZ 7
+#define SNMP_MAX_BPORT_PRIORITY 255
 
 /* InetAddress. */
-#define	SNMP_INADDRS_STRSZ	INET6_ADDRSTRLEN
+#define SNMP_INADDRS_STRSZ INET6_ADDRSTRLEN
 
 enum snmp_tc {
 	SNMP_STRING = 0,
@@ -81,9 +81,9 @@ enum snmp_tc {
 	SNMP_UNKNOWN, /* keep last */
 };
 
-typedef char * (*snmp_oct2tc_f) (uint32_t len, char *octs, char *buf);
-typedef char * (*snmp_tc2oid_f) (char *str, struct asn_oid *oid);
-typedef int32_t (*snmp_tc2oct_f) (struct snmp_value *value, char *string);
+typedef char *(*snmp_oct2tc_f)(uint32_t len, char *octs, char *buf);
+typedef char *(*snmp_tc2oid_f)(char *str, struct asn_oid *oid);
+typedef int32_t (*snmp_tc2oct_f)(struct snmp_value *value, char *string);
 
 enum snmp_tc snmp_get_tc(char *str);
 char *snmp_oct2tc(enum snmp_tc tc, uint32_t len, char *octets);

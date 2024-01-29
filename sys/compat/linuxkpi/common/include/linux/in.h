@@ -26,19 +26,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_IN_H_
-#define	_LINUXKPI_LINUX_IN_H_
+#ifndef _LINUXKPI_LINUX_IN_H_
+#define _LINUXKPI_LINUX_IN_H_
 
 #include "opt_inet.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
+
 #include <netinet/in.h>
+
 #include <asm/byteorder.h>
 
-#define	ipv4_is_zeronet(be)	IN_ZERONET(ntohl(be))
-#define	ipv4_is_loopback(be)	IN_LOOPBACK(ntohl(be))
-#define	ipv4_is_multicast(be)	IN_MULTICAST(ntohl(be))
-#define	ipv4_is_lbcast(be)	((be) == INADDR_BROADCAST)
+#define ipv4_is_zeronet(be) IN_ZERONET(ntohl(be))
+#define ipv4_is_loopback(be) IN_LOOPBACK(ntohl(be))
+#define ipv4_is_multicast(be) IN_MULTICAST(ntohl(be))
+#define ipv4_is_lbcast(be) ((be) == INADDR_BROADCAST)
 
-#endif	/* _LINUXKPI_LINUX_IN_H_ */
+#endif /* _LINUXKPI_LINUX_IN_H_ */

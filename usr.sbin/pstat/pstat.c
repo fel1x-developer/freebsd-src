@@ -37,15 +37,15 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/blist.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/stdint.h>
-#include <sys/ioctl.h>
-#include <sys/tty.h>
-#include <sys/blist.h>
-
 #include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/tty.h>
+
 #include <vm/vm_param.h>
 
 #include <err.h>
@@ -60,13 +60,7 @@
 #include <string.h>
 #include <unistd.h>
 
-enum {
-	NL_CONSTTY,
-	NL_MAXFILES,
-	NL_NFILES,
-	NL_TTY_LIST,
-	NL_MARKER
-};
+enum { NL_CONSTTY, NL_MAXFILES, NL_NFILES, NL_TTY_LIST, NL_MARKER };
 
 static struct {
 	int order;
@@ -78,27 +72,27 @@ static struct {
 	{ NL_TTY_LIST, "_tty_list" },
 	{ NL_MARKER, "" },
 };
-#define NNAMES	(sizeof(namelist) / sizeof(*namelist))
+#define NNAMES (sizeof(namelist) / sizeof(*namelist))
 static struct nlist nl[NNAMES];
 
-#define	SIZEHDR	"Size"
+#define SIZEHDR "Size"
 
-static int	humanflag;
-static int	usenumflag;
-static int	totalflag;
-static int	swapflag;
-static char	*nlistf;
-static char	*memf;
-static kvm_t	*kd;
+static int humanflag;
+static int usenumflag;
+static int totalflag;
+static int swapflag;
+static char *nlistf;
+static char *memf;
+static kvm_t *kd;
 
 static const char *usagestr;
 
-static void	filemode(void);
-static int	getfiles(struct xfile **, size_t *);
-static void	swapmode(void);
-static void	ttymode(void);
-static void	ttyprt(struct xtty *);
-static void	usage(void);
+static void filemode(void);
+static int getfiles(struct xfile **, size_t *);
+static void swapmode(void);
+static void ttymode(void);
+static void ttyprt(struct xtty *);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -197,26 +191,26 @@ main(int argc, char *argv[])
 		ttymode();
 	if (swapflag || totalflag)
 		swapmode();
-	exit (0);
+	exit(0);
 }
 
 static void
 usage(void)
 {
 	fprintf(stderr, "usage: %s\n", usagestr);
-	exit (1);
+	exit(1);
 }
 
 static const char fhdr32[] =
-  "   LOC   TYPE   FLG  CNT MSG   DATA        OFFSET\n";
+    "   LOC   TYPE   FLG  CNT MSG   DATA        OFFSET\n";
 /* c0000000 ------ RWAI 123 123 c0000000 1000000000000000 */
 
 static const char fhdr64[] =
-  "       LOC       TYPE   FLG  CNT MSG       DATA            OFFSET\n";
+    "       LOC       TYPE   FLG  CNT MSG       DATA            OFFSET\n";
 /* c000000000000000 ------ RWAI 123 123 c000000000000000 1000000000000000 */
 
 static const char hdr[] =
-"      LINE   INQ  CAN  LIN  LOW  OUTQ  USE  LOW   COL  SESS  PGID STATE\n";
+    "      LINE   INQ  CAN  LIN  LOW  OUTQ  USE  LOW   COL  SESS  PGID STATE\n";
 
 static void
 ttymode_kvm(void)
@@ -290,37 +284,37 @@ static struct {
 #if 0
 	{ TF_NOPREFIX,		'N' },
 #endif
-	{ TF_INITLOCK,		'I' },
-	{ TF_CALLOUT,		'C' },
+	{ TF_INITLOCK, 'I' },
+	{ TF_CALLOUT, 'C' },
 
 	/* Keep these together -> 'Oi' and 'Oo'. */
-	{ TF_OPENED,		'O' },
-	{ TF_OPENED_IN,		'i' },
-	{ TF_OPENED_OUT,	'o' },
-	{ TF_OPENED_CONS,	'c' },
+	{ TF_OPENED, 'O' },
+	{ TF_OPENED_IN, 'i' },
+	{ TF_OPENED_OUT, 'o' },
+	{ TF_OPENED_CONS, 'c' },
 
-	{ TF_GONE,		'G' },
-	{ TF_OPENCLOSE,		'B' },
-	{ TF_ASYNC,		'Y' },
-	{ TF_LITERAL,		'L' },
+	{ TF_GONE, 'G' },
+	{ TF_OPENCLOSE, 'B' },
+	{ TF_ASYNC, 'Y' },
+	{ TF_LITERAL, 'L' },
 
 	/* Keep these together -> 'Hi' and 'Ho'. */
-	{ TF_HIWAT,		'H' },
-	{ TF_HIWAT_IN,		'i' },
-	{ TF_HIWAT_OUT,		'o' },
+	{ TF_HIWAT, 'H' },
+	{ TF_HIWAT_IN, 'i' },
+	{ TF_HIWAT_OUT, 'o' },
 
-	{ TF_STOPPED,		'S' },
-	{ TF_EXCLUDE,		'X' },
-	{ TF_BYPASS,		'l' },
-	{ TF_ZOMBIE,		'Z' },
-	{ TF_HOOK,		's' },
+	{ TF_STOPPED, 'S' },
+	{ TF_EXCLUDE, 'X' },
+	{ TF_BYPASS, 'l' },
+	{ TF_ZOMBIE, 'Z' },
+	{ TF_HOOK, 's' },
 
 	/* Keep these together -> 'bi' and 'bo'. */
-	{ TF_BUSY,		'b' },
-	{ TF_BUSY_IN,		'i' },
-	{ TF_BUSY_OUT,		'o' },
+	{ TF_BUSY, 'b' },
+	{ TF_BUSY_IN, 'i' },
+	{ TF_BUSY_OUT, 'o' },
 
-	{ 0,			'\0'},
+	{ 0, '\0' },
 };
 
 static void
@@ -332,14 +326,13 @@ ttyprt(struct xtty *xt)
 	if (xt->xt_size != sizeof *xt)
 		errx(1, "struct xtty size mismatch");
 	if (usenumflag || xt->xt_dev == 0 ||
-	   (name = devname(xt->xt_dev, S_IFCHR)) == NULL)
+	    (name = devname(xt->xt_dev, S_IFCHR)) == NULL)
 		printf("%#10jx ", (uintmax_t)xt->xt_dev);
 	else
 		printf("%10s ", name);
-	printf("%5zu %4zu %4zu %4zu %5zu %4zu %4zu %5u %5d %5d ",
-	    xt->xt_insize, xt->xt_incc, xt->xt_inlc,
-	    (xt->xt_insize - xt->xt_inlow), xt->xt_outsize,
-	    xt->xt_outcc, (xt->xt_outsize - xt->xt_outlow),
+	printf("%5zu %4zu %4zu %4zu %5zu %4zu %4zu %5u %5d %5d ", xt->xt_insize,
+	    xt->xt_incc, xt->xt_inlc, (xt->xt_insize - xt->xt_inlow),
+	    xt->xt_outsize, xt->xt_outcc, (xt->xt_outsize - xt->xt_outlow),
 	    MIN(xt->xt_column, 99999), xt->xt_sid, xt->xt_pgid);
 	for (i = j = 0; ttystates[i].flag; i++)
 		if (xt->xt_flags & ttystates[i].flag) {
@@ -358,16 +351,16 @@ filemode(void)
 	char flagbuf[16], *fbp;
 	int maxf, openf;
 	size_t len;
-	static char const * const dtypes[] = { "???", "inode", "socket",
-	    "pipe", "fifo", "kqueue", "crypto" };
+	static char const *const dtypes[] = { "???", "inode", "socket", "pipe",
+		"fifo", "kqueue", "crypto" };
 	int i;
 	int wid;
 
 	if (kd != NULL) {
-		if (kvm_read(kd, nl[NL_MAXFILES].n_value,
-			&maxf, sizeof maxf) != sizeof maxf ||
-		    kvm_read(kd, nl[NL_NFILES].n_value,
-			&openf, sizeof openf) != sizeof openf)
+		if (kvm_read(kd, nl[NL_MAXFILES].n_value, &maxf, sizeof maxf) !=
+			sizeof maxf ||
+		    kvm_read(kd, nl[NL_NFILES].n_value, &openf, sizeof openf) !=
+			sizeof openf)
 			errx(1, "kvm_read(): %s", kvm_geterr(kd));
 	} else {
 		len = sizeof(int);
@@ -447,8 +440,8 @@ getfiles(struct xfile **abuf, size_t *alen)
  * by Kevin Lahey <kml@rokkaku.atl.ga.us>.
  */
 
-#define CONVERT(v)	((int64_t)(v) * pagesize / blocksize)
-#define CONVERT_BLOCKS(v)	((int64_t)(v) * pagesize)
+#define CONVERT(v) ((int64_t)(v) * pagesize / blocksize)
+#define CONVERT_BLOCKS(v) ((int64_t)(v) * pagesize)
 static struct kvm_swap swtot;
 static int nswdev;
 
@@ -466,8 +459,7 @@ print_swap_header(void)
 		header = getbsize(&hlen, &blocksize);
 	}
 	if (totalflag == 0)
-		(void)printf("%-15s %*s %8s %8s %8s\n",
-		    "Device", hlen, header,
+		(void)printf("%-15s %*s %8s %8s %8s\n", "Device", hlen, header,
 		    "Used", "Avail", "Capacity");
 }
 
@@ -486,21 +478,18 @@ print_swap_line(const char *swdevname, intmax_t nblks, intmax_t bused,
 
 	printf("%-15s ", swdevname);
 	if (humanflag) {
-		humanize_number(sizebuf, sizeof(sizebuf),
-		    CONVERT_BLOCKS(nblks), "",
-		    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
-		humanize_number(usedbuf, sizeof(usedbuf),
-		    CONVERT_BLOCKS(bused), "",
-		    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+		humanize_number(sizebuf, sizeof(sizebuf), CONVERT_BLOCKS(nblks),
+		    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+		humanize_number(usedbuf, sizeof(usedbuf), CONVERT_BLOCKS(bused),
+		    "", HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
 		humanize_number(availbuf, sizeof(availbuf),
-		    CONVERT_BLOCKS(bavail), "",
-		    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
-		printf("%8s %8s %8s %5.0f%%\n", sizebuf,
-		    usedbuf, availbuf, bpercent);
+		    CONVERT_BLOCKS(bavail), "", HN_AUTOSCALE,
+		    HN_B | HN_NOSPACE | HN_DECIMAL);
+		printf("%8s %8s %8s %5.0f%%\n", sizebuf, usedbuf, availbuf,
+		    bpercent);
 	} else {
 		printf("%*jd %8jd %8jd %5.0f%%\n", hlen,
-		    (intmax_t)CONVERT(nblks),
-		    (intmax_t)CONVERT(bused),
+		    (intmax_t)CONVERT(nblks), (intmax_t)CONVERT(bused),
 		    (intmax_t)CONVERT(bavail), bpercent);
 	}
 }
@@ -513,8 +502,8 @@ print_swap(struct kvm_swap *ksw)
 	swtot.ksw_used += ksw->ksw_used;
 	++nswdev;
 	if (totalflag == 0)
-		print_swap_line(ksw->ksw_devname, ksw->ksw_total,
-		    ksw->ksw_used, ksw->ksw_total - ksw->ksw_used,
+		print_swap_line(ksw->ksw_devname, ksw->ksw_total, ksw->ksw_used,
+		    ksw->ksw_total - ksw->ksw_used,
 		    (ksw->ksw_used * 100.0) / ksw->ksw_total);
 }
 
@@ -528,8 +517,8 @@ print_swap_total(void)
 	getbsize(&hlen, &blocksize);
 	if (totalflag) {
 		blocksize = 1024 * 1024;
-		(void)printf("%jdM/%jdM swap space\n",
-		    CONVERT(swtot.ksw_used), CONVERT(swtot.ksw_total));
+		(void)printf("%jdM/%jdM swap space\n", CONVERT(swtot.ksw_used),
+		    CONVERT(swtot.ksw_total));
 	} else if (nswdev > 1) {
 		print_swap_line("Total", swtot.ksw_total, swtot.ksw_used,
 		    swtot.ksw_total - swtot.ksw_used,
@@ -564,7 +553,7 @@ swapmode_sysctl(void)
 	mibsize = sizeof mib / sizeof mib[0];
 	if (sysctlnametomib("vm.swap_info", mib, &mibsize) == -1)
 		err(1, "sysctlnametomib()");
-	for (n = 0; ; ++n) {
+	for (n = 0;; ++n) {
 		mib[mibsize] = n;
 		size = sizeof xsw;
 		if (sysctl(mib, mibsize + 1, &xsw, &size, NULL, 0) == -1)

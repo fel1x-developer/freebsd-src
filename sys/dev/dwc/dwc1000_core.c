@@ -47,26 +47,24 @@
 #include <sys/rman.h>
 #include <sys/socket.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
+#include <dev/dwc/dwc1000_core.h>
+#include <dev/dwc/dwc1000_dma.h>
+#include <dev/dwc/dwc1000_reg.h>
+#include <dev/dwc/if_dwcvar.h>
 #include <dev/hwreset/hwreset.h>
-
 #include <dev/mii/mii.h>
+#include <dev/mii/mii_fdt.h>
 #include <dev/mii/miivar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/mii/mii_fdt.h>
 
-#include <dev/dwc/if_dwcvar.h>
-#include <dev/dwc/dwc1000_reg.h>
-#include <dev/dwc/dwc1000_core.h>
-#include <dev/dwc/dwc1000_dma.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
 
 #include "if_dwc_if.h"
 
@@ -75,7 +73,7 @@ struct dwc_hash_maddr_ctx {
 	uint32_t hash[8];
 };
 
-#define	STATS_HARVEST_INTERVAL	2
+#define STATS_HARVEST_INTERVAL 2
 
 /* Pause time field in the transmitted control frame */
 static int dwc_pause_time = 0xffff;
@@ -95,10 +93,10 @@ dwc1000_miibus_read_reg(device_t dev, int phy, int reg)
 
 	sc = device_get_softc(dev);
 
-	mii = ((phy & GMII_ADDRESS_PA_MASK) << GMII_ADDRESS_PA_SHIFT)
-	    | ((reg & GMII_ADDRESS_GR_MASK) << GMII_ADDRESS_GR_SHIFT)
-	    | (sc->mii_clk << GMII_ADDRESS_CR_SHIFT)
-	    | GMII_ADDRESS_GB; /* Busy flag */
+	mii = ((phy & GMII_ADDRESS_PA_MASK) << GMII_ADDRESS_PA_SHIFT) |
+	    ((reg & GMII_ADDRESS_GR_MASK) << GMII_ADDRESS_GR_SHIFT) |
+	    (sc->mii_clk << GMII_ADDRESS_CR_SHIFT) |
+	    GMII_ADDRESS_GB; /* Busy flag */
 
 	WRITE4(sc, GMII_ADDRESS, mii);
 
@@ -122,10 +120,10 @@ dwc1000_miibus_write_reg(device_t dev, int phy, int reg, int val)
 
 	sc = device_get_softc(dev);
 
-	mii = ((phy & GMII_ADDRESS_PA_MASK) << GMII_ADDRESS_PA_SHIFT)
-	    | ((reg & GMII_ADDRESS_GR_MASK) << GMII_ADDRESS_GR_SHIFT)
-	    | (sc->mii_clk << GMII_ADDRESS_CR_SHIFT)
-	    | GMII_ADDRESS_GB | GMII_ADDRESS_GW;
+	mii = ((phy & GMII_ADDRESS_PA_MASK) << GMII_ADDRESS_PA_SHIFT) |
+	    ((reg & GMII_ADDRESS_GR_MASK) << GMII_ADDRESS_GR_SHIFT) |
+	    (sc->mii_clk << GMII_ADDRESS_CR_SHIFT) | GMII_ADDRESS_GB |
+	    GMII_ADDRESS_GW;
 
 	WRITE4(sc, GMII_DATA, val);
 	WRITE4(sc, GMII_ADDRESS, mii);
@@ -133,7 +131,7 @@ dwc1000_miibus_write_reg(device_t dev, int phy, int reg, int val)
 	for (cnt = 0; cnt < 1000; cnt++) {
 		if (!(READ4(sc, GMII_ADDRESS) & GMII_ADDRESS_GB)) {
 			break;
-                }
+		}
 		DELAY(10);
 	}
 
@@ -201,7 +199,6 @@ dwc1000_miibus_statchg(device_t dev)
 	WRITE4(sc, FLOW_CONTROL, reg);
 
 	IF_DWC_SET_SPEED(dev, IFM_SUBTYPE(mii->mii_media_active));
-
 }
 
 void
@@ -246,22 +243,23 @@ dwc1000_enable_csum_offload(struct dwc_softc *sc)
 }
 
 static const uint8_t nibbletab[] = {
-	/* 0x0 0000 -> 0000 */  0x0,
-	/* 0x1 0001 -> 1000 */  0x8,
-	/* 0x2 0010 -> 0100 */  0x4,
-	/* 0x3 0011 -> 1100 */  0xc,
-	/* 0x4 0100 -> 0010 */  0x2,
-	/* 0x5 0101 -> 1010 */  0xa,
-	/* 0x6 0110 -> 0110 */  0x6,
-	/* 0x7 0111 -> 1110 */  0xe,
-	/* 0x8 1000 -> 0001 */  0x1,
-	/* 0x9 1001 -> 1001 */  0x9,
-	/* 0xa 1010 -> 0101 */  0x5,
-	/* 0xb 1011 -> 1101 */  0xd,
-	/* 0xc 1100 -> 0011 */  0x3,
-	/* 0xd 1101 -> 1011 */  0xb,
-	/* 0xe 1110 -> 0111 */  0x7,
-	/* 0xf 1111 -> 1111 */  0xf, };
+	/* 0x0 0000 -> 0000 */ 0x0,
+	/* 0x1 0001 -> 1000 */ 0x8,
+	/* 0x2 0010 -> 0100 */ 0x4,
+	/* 0x3 0011 -> 1100 */ 0xc,
+	/* 0x4 0100 -> 0010 */ 0x2,
+	/* 0x5 0101 -> 1010 */ 0xa,
+	/* 0x6 0110 -> 0110 */ 0x6,
+	/* 0x7 0111 -> 1110 */ 0xe,
+	/* 0x8 1000 -> 0001 */ 0x1,
+	/* 0x9 1001 -> 1001 */ 0x9,
+	/* 0xa 1010 -> 0101 */ 0x5,
+	/* 0xb 1011 -> 1101 */ 0xd,
+	/* 0xc 1100 -> 0011 */ 0x3,
+	/* 0xd 1101 -> 1011 */ 0xb,
+	/* 0xe 1110 -> 0111 */ 0x7,
+	/* 0xf 1111 -> 1111 */ 0xf,
+};
 
 static uint8_t
 bitreverse(uint8_t x)
@@ -336,8 +334,7 @@ dwc1000_setup_rxfilter(struct dwc_softc *sc)
 	 * Set the primary address.
 	 */
 	eaddr = if_getlladdr(ifp);
-	lo = eaddr[0] | (eaddr[1] << 8) | (eaddr[2] << 16) |
-	    (eaddr[3] << 24);
+	lo = eaddr[0] | (eaddr[1] << 8) | (eaddr[2] << 16) | (eaddr[3] << 24);
 	hi = eaddr[4] | (eaddr[5] << 8);
 	WRITE4(sc, MAC_ADDRESS_LOW(0), lo);
 	WRITE4(sc, MAC_ADDRESS_HIGH(0), hi);
@@ -368,20 +365,20 @@ dwc1000_get_hwaddr(struct dwc_softc *sc, uint8_t *hwaddr)
 	lo = READ4(sc, MAC_ADDRESS_LOW(0));
 	hi = READ4(sc, MAC_ADDRESS_HIGH(0)) & 0xffff;
 	if ((lo != 0xffffffff) || (hi != 0xffff)) {
-		hwaddr[0] = (lo >>  0) & 0xff;
-		hwaddr[1] = (lo >>  8) & 0xff;
+		hwaddr[0] = (lo >> 0) & 0xff;
+		hwaddr[1] = (lo >> 8) & 0xff;
 		hwaddr[2] = (lo >> 16) & 0xff;
 		hwaddr[3] = (lo >> 24) & 0xff;
-		hwaddr[4] = (hi >>  0) & 0xff;
-		hwaddr[5] = (hi >>  8) & 0xff;
+		hwaddr[4] = (hi >> 0) & 0xff;
+		hwaddr[5] = (hi >> 8) & 0xff;
 	} else {
 		rnd = arc4random() & 0x00ffffff;
 		hwaddr[0] = 'b';
 		hwaddr[1] = 's';
 		hwaddr[2] = 'd';
 		hwaddr[3] = rnd >> 16;
-		hwaddr[4] = rnd >>  8;
-		hwaddr[5] = rnd >>  0;
+		hwaddr[4] = rnd >> 8;
+		hwaddr[5] = rnd >> 0;
 	}
 }
 
@@ -413,13 +410,13 @@ dwc1000_harvest_stats(struct dwc_softc *sc)
 
 	if_inc_counter(ifp, IFCOUNTER_IERRORS,
 	    READ4(sc, RXOVERSIZE_G) + READ4(sc, RXUNDERSIZE_G) +
-	    READ4(sc, RXCRCERROR) + READ4(sc, RXALIGNMENTERROR) +
-	    READ4(sc, RXRUNTERROR) + READ4(sc, RXJABBERERROR) +
-	    READ4(sc, RXLENGTHERROR));
+		READ4(sc, RXCRCERROR) + READ4(sc, RXALIGNMENTERROR) +
+		READ4(sc, RXRUNTERROR) + READ4(sc, RXJABBERERROR) +
+		READ4(sc, RXLENGTHERROR));
 
 	if_inc_counter(ifp, IFCOUNTER_OERRORS,
 	    READ4(sc, TXOVERSIZE_G) + READ4(sc, TXEXCESSDEF) +
-	    READ4(sc, TXCARRIERERR) + READ4(sc, TXUNDERFLOWERROR));
+		READ4(sc, TXCARRIERERR) + READ4(sc, TXUNDERFLOWERROR));
 
 	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
 	    READ4(sc, TXEXESSCOL) + READ4(sc, TXLATECOL));

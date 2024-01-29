@@ -42,9 +42,9 @@
 #include <sys/time.h>
 #include <sys/uio.h>
 
+#include <rpc/krpc.h>
 #include <rpc/rpc.h>
 #include <rpc/rpc_com.h>
-#include <rpc/krpc.h>
 #include <rpc/rpcsec_tls.h>
 
 static enum clnt_stat clnt_reconnect_call(CLIENT *, struct rpc_callextra *,
@@ -57,38 +57,37 @@ static void clnt_reconnect_close(CLIENT *);
 static void clnt_reconnect_destroy(CLIENT *);
 
 static const struct clnt_ops clnt_reconnect_ops = {
-	.cl_call =	clnt_reconnect_call,
-	.cl_abort =	clnt_reconnect_abort,
-	.cl_geterr =	clnt_reconnect_geterr,
-	.cl_freeres =	clnt_reconnect_freeres,
-	.cl_close =	clnt_reconnect_close,
-	.cl_destroy =	clnt_reconnect_destroy,
-	.cl_control =	clnt_reconnect_control
+	.cl_call = clnt_reconnect_call,
+	.cl_abort = clnt_reconnect_abort,
+	.cl_geterr = clnt_reconnect_geterr,
+	.cl_freeres = clnt_reconnect_freeres,
+	.cl_close = clnt_reconnect_close,
+	.cl_destroy = clnt_reconnect_destroy,
+	.cl_control = clnt_reconnect_control
 };
 
-static int	fake_wchan;
+static int fake_wchan;
 
 CLIENT *
-clnt_reconnect_create(
-	struct netconfig *nconf,	/* network type */
-	struct sockaddr *svcaddr,	/* servers address */
-	rpcprog_t program,		/* program number */
-	rpcvers_t version,		/* version number */
-	size_t sendsz,			/* buffer recv size */
-	size_t recvsz)			/* buffer send size */
+clnt_reconnect_create(struct netconfig *nconf, /* network type */
+    struct sockaddr *svcaddr,		       /* servers address */
+    rpcprog_t program,			       /* program number */
+    rpcvers_t version,			       /* version number */
+    size_t sendsz,			       /* buffer recv size */
+    size_t recvsz)			       /* buffer send size */
 {
-	CLIENT *cl = NULL;		/* client handle */
-	struct rc_data *rc = NULL;	/* private data */
+	CLIENT *cl = NULL;	   /* client handle */
+	struct rc_data *rc = NULL; /* private data */
 
 	if (svcaddr == NULL) {
 		rpc_createerr.cf_stat = RPC_UNKNOWNADDR;
 		return (NULL);
 	}
 
-	cl = mem_alloc(sizeof (CLIENT));
-	rc = mem_alloc(sizeof (*rc));
+	cl = mem_alloc(sizeof(CLIENT));
+	rc = mem_alloc(sizeof(*rc));
 	mtx_init(&rc->rc_lock, "rc->rc_lock", NULL, MTX_DEF);
-	(void) memcpy(&rc->rc_addr, svcaddr, (size_t)svcaddr->sa_len);
+	(void)memcpy(&rc->rc_addr, svcaddr, (size_t)svcaddr->sa_len);
 	rc->rc_nconf = nconf;
 	rc->rc_prog = program;
 	rc->rc_vers = version;
@@ -136,8 +135,8 @@ clnt_reconnect_connect(CLIENT *cl)
 
 	mtx_lock(&rc->rc_lock);
 	while (rc->rc_connecting) {
-		error = msleep(rc, &rc->rc_lock,
-		    rc->rc_intr ? PCATCH : 0, "rpcrecon", 0);
+		error = msleep(rc, &rc->rc_lock, rc->rc_intr ? PCATCH : 0,
+		    "rpcrecon", 0);
 		if (error) {
 			mtx_unlock(&rc->rc_lock);
 			return (RPC_INTR);
@@ -175,9 +174,8 @@ clnt_reconnect_connect(CLIENT *cl)
 		bindresvport(so, NULL);
 
 	if (rc->rc_nconf->nc_semantics == NC_TPI_CLTS)
-		newclient = clnt_dg_create(so,
-		    (struct sockaddr *) &rc->rc_addr, rc->rc_prog, rc->rc_vers,
-		    rc->rc_sendsz, rc->rc_recvsz);
+		newclient = clnt_dg_create(so, (struct sockaddr *)&rc->rc_addr,
+		    rc->rc_prog, rc->rc_vers, rc->rc_sendsz, rc->rc_recvsz);
 	else {
 		/*
 		 * I do not believe a timeout of less than 1sec would make
@@ -194,9 +192,9 @@ clnt_reconnect_connect(CLIENT *cl)
 				goto out;
 			}
 		}
-		newclient = clnt_vc_create(so,
-		    (struct sockaddr *) &rc->rc_addr, rc->rc_prog, rc->rc_vers,
-		    rc->rc_sendsz, rc->rc_recvsz, rc->rc_intr);
+		newclient = clnt_vc_create(so, (struct sockaddr *)&rc->rc_addr,
+		    rc->rc_prog, rc->rc_vers, rc->rc_sendsz, rc->rc_recvsz,
+		    rc->rc_intr);
 		if (rc->rc_tls && newclient != NULL) {
 			stat = rpctls_connect(newclient, rc->rc_tlscertname, so,
 			    ssl, &reterr);
@@ -263,13 +261,12 @@ out:
 }
 
 static enum clnt_stat
-clnt_reconnect_call(
-	CLIENT		*cl,		/* client handle */
-	struct rpc_callextra *ext,	/* call metadata */
-	rpcproc_t	proc,		/* procedure number */
-	struct mbuf	*args,		/* pointer to args */
-	struct mbuf	**resultsp,	/* pointer to results */
-	struct timeval	utimeout)
+clnt_reconnect_call(CLIENT *cl, /* client handle */
+    struct rpc_callextra *ext,	/* call metadata */
+    rpcproc_t proc,		/* procedure number */
+    struct mbuf *args,		/* pointer to args */
+    struct mbuf **resultsp,	/* pointer to results */
+    struct timeval utimeout)
 {
 	struct rc_data *rc = (struct rc_data *)cl->cl_private;
 	CLIENT *client;
@@ -310,8 +307,8 @@ clnt_reconnect_call(
 		CLNT_ACQUIRE(rc->rc_client);
 		client = rc->rc_client;
 		mtx_unlock(&rc->rc_lock);
-		stat = CLNT_CALL_MBUF(client, ext, proc, args,
-		    resultsp, utimeout);
+		stat = CLNT_CALL_MBUF(client, ext, proc, args, resultsp,
+		    utimeout);
 
 		if (stat != RPC_SUCCESS) {
 			if (!ext)
@@ -323,18 +320,18 @@ clnt_reconnect_call(
 			 * Check for async send misfeature for NLM
 			 * protocol.
 			 */
-			if ((rc->rc_timeout.tv_sec == 0
-				&& rc->rc_timeout.tv_usec == 0)
-			    || (rc->rc_timeout.tv_sec == -1
-				&& utimeout.tv_sec == 0
-				&& utimeout.tv_usec == 0)) {
+			if ((rc->rc_timeout.tv_sec == 0 &&
+				rc->rc_timeout.tv_usec == 0) ||
+			    (rc->rc_timeout.tv_sec == -1 &&
+				utimeout.tv_sec == 0 &&
+				utimeout.tv_usec == 0)) {
 				CLNT_RELEASE(client);
 				break;
 			}
 		}
 
-		if (stat == RPC_TIMEDOUT || stat == RPC_CANTSEND
-		    || stat == RPC_CANTRECV) {
+		if (stat == RPC_TIMEDOUT || stat == RPC_CANTSEND ||
+		    stat == RPC_CANTRECV) {
 			tries++;
 			if (tries >= rc->rc_retries) {
 				CLNT_RELEASE(client);
@@ -441,7 +438,7 @@ clnt_reconnect_control(CLIENT *cl, u_int request, void *info)
 		break;
 
 	case CLSET_VERS:
-		rc->rc_vers = *(uint32_t *) info;
+		rc->rc_vers = *(uint32_t *)info;
 		if (rc->rc_client)
 			CLNT_CONTROL(rc->rc_client, CLSET_VERS, info);
 		break;
@@ -451,7 +448,7 @@ clnt_reconnect_control(CLIENT *cl, u_int request, void *info)
 		break;
 
 	case CLSET_PROG:
-		rc->rc_prog = *(uint32_t *) info;
+		rc->rc_prog = *(uint32_t *)info;
 		if (rc->rc_client)
 			CLNT_CONTROL(rc->rc_client, request, info);
 		break;
@@ -463,33 +460,33 @@ clnt_reconnect_control(CLIENT *cl, u_int request, void *info)
 		break;
 
 	case CLGET_WAITCHAN:
-		*(const char **) info = rc->rc_waitchan;
+		*(const char **)info = rc->rc_waitchan;
 		break;
 
 	case CLSET_INTERRUPTIBLE:
-		rc->rc_intr = *(int *) info;
+		rc->rc_intr = *(int *)info;
 		if (rc->rc_client)
 			CLNT_CONTROL(rc->rc_client, request, info);
 		break;
 
 	case CLGET_INTERRUPTIBLE:
-		*(int *) info = rc->rc_intr;
+		*(int *)info = rc->rc_intr;
 		break;
 
 	case CLSET_RETRIES:
-		rc->rc_retries = *(int *) info;
+		rc->rc_retries = *(int *)info;
 		break;
 
 	case CLGET_RETRIES:
-		*(int *) info = rc->rc_retries;
+		*(int *)info = rc->rc_retries;
 		break;
 
 	case CLSET_PRIVPORT:
-		rc->rc_privport = *(int *) info;
+		rc->rc_privport = *(int *)info;
 		break;
 
 	case CLGET_PRIVPORT:
-		*(int *) info = rc->rc_privport;
+		*(int *)info = rc->rc_privport;
 		break;
 
 	case CLSET_BACKCHANNEL:
@@ -571,8 +568,8 @@ clnt_reconnect_destroy(CLIENT *cl)
 	}
 	crfree(rc->rc_ucred);
 	mtx_destroy(&rc->rc_lock);
-	mem_free(rc->rc_tlscertname, 0);	/* 0 ok, since arg. ignored. */
+	mem_free(rc->rc_tlscertname, 0); /* 0 ok, since arg. ignored. */
 	mem_free(rc->rc_reconarg, 0);
 	mem_free(rc, sizeof(*rc));
-	mem_free(cl, sizeof (CLIENT));
+	mem_free(cl, sizeof(CLIENT));
 }

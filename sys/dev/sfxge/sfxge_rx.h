@@ -34,22 +34,22 @@
  */
 
 #ifndef _SFXGE_RX_H
-#define	_SFXGE_RX_H
+#define _SFXGE_RX_H
 
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
 #if defined(INET) || defined(INET6)
-#define	SFXGE_LRO	1
+#define SFXGE_LRO 1
 #endif
 
-#define	SFXGE_RX_SCALE_MAX	EFX_MAXRSS
+#define SFXGE_RX_SCALE_MAX EFX_MAXRSS
 
 struct sfxge_rx_sw_desc {
-	struct mbuf	*mbuf;
-	bus_dmamap_t	map;
-	int		flags;
-	int		size;
+	struct mbuf *mbuf;
+	bus_dmamap_t map;
+	int flags;
+	int size;
 };
 
 #ifdef SFXGE_LRO
@@ -134,7 +134,7 @@ struct sfxge_lro_state {
 	unsigned n_drop_closed;
 };
 
-#endif	/* SFXGE_LRO */
+#endif /* SFXGE_LRO */
 
 enum sfxge_flush_state {
 	SFXGE_FLUSH_DONE = 0,
@@ -149,32 +149,32 @@ enum sfxge_rxq_state {
 	SFXGE_RXQ_STARTED
 };
 
-#define	SFXGE_RX_BATCH	128
+#define SFXGE_RX_BATCH 128
 
 struct sfxge_rxq {
-	struct sfxge_softc		*sc __aligned(CACHE_LINE_SIZE);
-	unsigned int			index;
-	efsys_mem_t			mem;
-	enum sfxge_rxq_state		init_state;
-	unsigned int			entries;
-	unsigned int			ptr_mask;
-	efx_rxq_t			*common;
+	struct sfxge_softc *sc __aligned(CACHE_LINE_SIZE);
+	unsigned int index;
+	efsys_mem_t mem;
+	enum sfxge_rxq_state init_state;
+	unsigned int entries;
+	unsigned int ptr_mask;
+	efx_rxq_t *common;
 
-	struct sfxge_rx_sw_desc		*queue __aligned(CACHE_LINE_SIZE);
-	unsigned int			added;
-	unsigned int			pushed;
-	unsigned int			pending;
-	unsigned int			completed;
-	unsigned int			loopback;
+	struct sfxge_rx_sw_desc *queue __aligned(CACHE_LINE_SIZE);
+	unsigned int added;
+	unsigned int pushed;
+	unsigned int pending;
+	unsigned int completed;
+	unsigned int loopback;
 #ifdef SFXGE_LRO
-	struct sfxge_lro_state		lro;
+	struct sfxge_lro_state lro;
 #endif
-	unsigned int			refill_threshold;
-	struct callout			refill_callout;
-	unsigned int			refill_delay;
+	unsigned int refill_threshold;
+	struct callout refill_callout;
+	unsigned int refill_delay;
 
-	volatile enum sfxge_flush_state	flush_state __aligned(CACHE_LINE_SIZE);
-	unsigned int			buf_base_id;
+	volatile enum sfxge_flush_state flush_state __aligned(CACHE_LINE_SIZE);
+	unsigned int buf_base_id;
 };
 
 /*

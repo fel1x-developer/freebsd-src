@@ -33,11 +33,12 @@
  */
 
 #include <sys/types.h>
-
 #include <sys/wait.h>
-#include <stdio.h>
+
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
@@ -45,17 +46,17 @@
 #define startcomment(where) (where[0] == '/' && where[1] == '*')
 #define endcomment(where) (where[-1] == '*' && where[0] == '/')
 
-static int pushed = 0;	/* is a token pushed */
-static token lasttok;	/* last token, if pushed */
+static int pushed = 0; /* is a token pushed */
+static token lasttok;  /* last token, if pushed */
 
-static void unget_token( token * );
+static void unget_token(token *);
 static void findstrconst(char **, const char **);
 static void findchrconst(char **, const char **);
 static void findconst(char **, const char **);
-static void findkind( char **, token * );
-static int cppline( char * );
-static int directive( char * );
-static void printdirective( char * );
+static void findkind(char **, token *);
+static int cppline(char *);
+static int directive(char *);
+static void printdirective(char *);
 static void docppline(char *, int *, const char **);
 
 /*
@@ -89,8 +90,8 @@ void
 scan3(tok_kind expect1, tok_kind expect2, tok_kind expect3, token *tokp)
 {
 	get_token(tokp);
-	if (tokp->kind != expect1 && tokp->kind != expect2
-	    && tokp->kind != expect3) {
+	if (tokp->kind != expect1 && tokp->kind != expect2 &&
+	    tokp->kind != expect3) {
 		expected3(expect1, expect2, expect3);
 	}
 }
@@ -142,8 +143,7 @@ get_token(token *tokp)
 {
 	int commenting;
 	int stat = 0;
-	
-	
+
 	if (pushed) {
 		pushed = 0;
 		*tokp = lasttok;
@@ -155,10 +155,12 @@ get_token(token *tokp)
 			for (;;) {
 				if (!fgets(curline, MAXLINESIZE, fin)) {
 					tokp->kind = TOK_EOF;
-					/* now check if cpp returned non NULL value */
+					/* now check if cpp returned non NULL
+					 * value */
 					waitpid(childpid, &stat, WUNTRACED);
 					if (stat > 0) {
-					/* Set return value from rpcgen */
+						/* Set return value from rpcgen
+						 */
 						nonfatalerrors = stat >> 8;
 					}
 					*where = 0;
@@ -169,7 +171,7 @@ get_token(token *tokp)
 					break;
 				} else if (cppline(curline)) {
 					docppline(curline, &linenum,
-						  &infilename);
+					    &infilename);
 				} else if (directive(curline)) {
 					printdirective(curline);
 				} else {
@@ -179,7 +181,7 @@ get_token(token *tokp)
 			where = curline;
 		} else if (isspace(*where)) {
 			while (isspace(*where)) {
-				where++;	/* eat */
+				where++; /* eat */
 			}
 		} else if (commenting) {
 			for (where++; *where; where++) {
@@ -321,7 +323,7 @@ findstrconst(char **str, const char **val)
 	p++;
 	size = p - *str + 1;
 	tmp = xmalloc(size);
-	(void) strlcpy(tmp, *str, size);
+	(void)strlcpy(tmp, *str, size);
 	*val = tmp;
 	*str = p;
 }
@@ -346,7 +348,7 @@ findchrconst(char **str, const char **val)
 		error("empty char string");
 	}
 	tmp = xmalloc(size);
-	(void) strlcpy(tmp, *str, size);
+	(void)strlcpy(tmp, *str, size);
 	*val = tmp;
 	*str = p;
 }
@@ -371,36 +373,36 @@ findconst(char **str, const char **val)
 	}
 	size = p - *str + 1;
 	tmp = xmalloc(size);
-	(void) strlcpy(tmp, *str, size);
+	(void)strlcpy(tmp, *str, size);
 	*val = tmp;
 	*str = p;
 }
 
 static token symbols[] = {
-			  {TOK_CONST, "const"},
-			  {TOK_UNION, "union"},
-			  {TOK_SWITCH, "switch"},
-			  {TOK_CASE, "case"},
-			  {TOK_DEFAULT, "default"},
-			  {TOK_STRUCT, "struct"},
-			  {TOK_TYPEDEF, "typedef"},
-			  {TOK_ENUM, "enum"},
-			  {TOK_OPAQUE, "opaque"},
-			  {TOK_BOOL, "bool"},
-			  {TOK_VOID, "void"},
-			  {TOK_CHAR, "char"},
-			  {TOK_INT, "int"},
-			  {TOK_UNSIGNED, "unsigned"},
-			  {TOK_SHORT, "short"},
-			  {TOK_LONG, "long"},
-			  {TOK_HYPER, "hyper"},
-			  {TOK_FLOAT, "float"},
-			  {TOK_DOUBLE, "double"},
-			  {TOK_QUAD, "quadruple"},
-			  {TOK_STRING, "string"},
-			  {TOK_PROGRAM, "program"},
-			  {TOK_VERSION, "version"},
-			  {TOK_EOF, "??????"},
+	{ TOK_CONST, "const" },
+	{ TOK_UNION, "union" },
+	{ TOK_SWITCH, "switch" },
+	{ TOK_CASE, "case" },
+	{ TOK_DEFAULT, "default" },
+	{ TOK_STRUCT, "struct" },
+	{ TOK_TYPEDEF, "typedef" },
+	{ TOK_ENUM, "enum" },
+	{ TOK_OPAQUE, "opaque" },
+	{ TOK_BOOL, "bool" },
+	{ TOK_VOID, "void" },
+	{ TOK_CHAR, "char" },
+	{ TOK_INT, "int" },
+	{ TOK_UNSIGNED, "unsigned" },
+	{ TOK_SHORT, "short" },
+	{ TOK_LONG, "long" },
+	{ TOK_HYPER, "hyper" },
+	{ TOK_FLOAT, "float" },
+	{ TOK_DOUBLE, "double" },
+	{ TOK_QUAD, "quadruple" },
+	{ TOK_STRING, "string" },
+	{ TOK_PROGRAM, "program" },
+	{ TOK_VERSION, "version" },
+	{ TOK_EOF, "??????" },
 };
 
 static void
@@ -423,9 +425,10 @@ findkind(char **mark, token *tokp)
 		}
 	}
 	tokp->kind = TOK_IDENT;
-	for (len = 0; isalnum(str[len]) || str[len] == '_'; len++);
+	for (len = 0; isalnum(str[len]) || str[len] == '_'; len++)
+		;
 	tmp = xmalloc(len + 1);
-	(void) strlcpy(tmp, str, len + 1);
+	(void)strlcpy(tmp, str, len + 1);
 	tokp->str = tmp;
 	*mark = str + len;
 }

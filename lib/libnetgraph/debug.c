@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -14,7 +14,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -39,21 +39,12 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 
-#include <stdarg.h>
-
-#include <netinet/in.h>
-#include <net/ethernet.h>
 #include <net/bpf.h>
-
-#include <netgraph/ng_message.h>
-#include <netgraph/ng_socket.h>
-
-#include "netgraph.h"
-#include "internal.h"
-
+#include <net/ethernet.h>
+#include <netgraph/netflow/ng_netflow.h>
 #include <netgraph/ng_UI.h>
 #include <netgraph/ng_async.h>
 #include <netgraph/ng_bpf.h>
@@ -78,9 +69,9 @@
 #include <netgraph/ng_ksocket.h>
 #include <netgraph/ng_l2tp.h>
 #include <netgraph/ng_lmi.h>
+#include <netgraph/ng_message.h>
 #include <netgraph/ng_mppc.h>
 #include <netgraph/ng_nat.h>
-#include <netgraph/netflow/ng_netflow.h>
 #include <netgraph/ng_one2many.h>
 #include <netgraph/ng_patch.h>
 #include <netgraph/ng_pipe.h>
@@ -98,88 +89,60 @@
 #include <netgraph/ng_tty.h>
 #include <netgraph/ng_vjc.h>
 #include <netgraph/ng_vlan.h>
-#ifdef	WHISTLE
+#include <netinet/in.h>
+
+#include <stdarg.h>
+
+#include "internal.h"
+#include "netgraph.h"
+#ifdef WHISTLE
 #include <machine/../isa/df_def.h>
 #include <machine/../isa/if_wfra.h>
 #include <machine/../isa/ipac.h>
+
 #include <netgraph/ng_df.h>
 #include <netgraph/ng_ipac.h>
 #include <netgraph/ng_tn.h>
 #endif
 
 /* Global debug level */
-int     _gNgDebugLevel = 0;
+int _gNgDebugLevel = 0;
 
 /* Debug printing functions */
-void    (*_NgLog) (const char *fmt,...) = warn;
-void    (*_NgLogx) (const char *fmt,...) = warnx;
+void (*_NgLog)(const char *fmt, ...) = warn;
+void (*_NgLogx)(const char *fmt, ...) = warnx;
 
 /* Internal functions */
-static const	char *NgCookie(int cookie);
+static const char *NgCookie(int cookie);
 
 /* Known typecookie list */
 struct ng_cookie {
-	int		cookie;
-	const char	*type;
+	int cookie;
+	const char *type;
 };
 
-#define COOKIE(c)	{ NGM_ ## c ## _COOKIE, #c }
+#define COOKIE(c)                    \
+	{                            \
+		NGM_##c##_COOKIE, #c \
+	}
 
 /* List of known cookies */
-static const struct ng_cookie cookies[] = {
-	COOKIE(UI),
-	COOKIE(ASYNC),
-	COOKIE(BPF),
-	COOKIE(BRIDGE),
-	COOKIE(CAR),
-	COOKIE(CISCO),
-	COOKIE(DEFLATE),
-	COOKIE(DEVICE),
-	COOKIE(ECHO),
-	COOKIE(EIFACE),
-	COOKIE(ETF),
-	COOKIE(ETHER),
-	COOKIE(ETHER_ECHO),
-	COOKIE(FRAMERELAY),
-	COOKIE(GIF),
-	COOKIE(GIF_DEMUX),
-	COOKIE(GENERIC),
-	COOKIE(HOLE),
-	COOKIE(HUB),
-	COOKIE(IFACE),
-	COOKIE(IP_INPUT),
-	COOKIE(IPFW),
-	COOKIE(KSOCKET),
-	COOKIE(L2TP),
-	COOKIE(LMI),
-	COOKIE(MPPC),
-	COOKIE(NAT),
-	COOKIE(NETFLOW),
-	COOKIE(ONE2MANY),
-	COOKIE(PATCH),
-	COOKIE(PIPE),
-	COOKIE(PPP),
-	COOKIE(PPPOE),
-	COOKIE(PPTPGRE),
-	COOKIE(PRED1),
-	COOKIE(RFC1490),
-	COOKIE(SOCKET),
-	COOKIE(SOURCE),
-	COOKIE(SPLIT),
-	COOKIE(TAG),
-	COOKIE(TCPMSS),
-	COOKIE(TEE),
-	COOKIE(TTY),
-	COOKIE(VJC),
+static const struct ng_cookie cookies[] = { COOKIE(UI), COOKIE(ASYNC),
+	COOKIE(BPF), COOKIE(BRIDGE), COOKIE(CAR), COOKIE(CISCO),
+	COOKIE(DEFLATE), COOKIE(DEVICE), COOKIE(ECHO), COOKIE(EIFACE),
+	COOKIE(ETF), COOKIE(ETHER), COOKIE(ETHER_ECHO), COOKIE(FRAMERELAY),
+	COOKIE(GIF), COOKIE(GIF_DEMUX), COOKIE(GENERIC), COOKIE(HOLE),
+	COOKIE(HUB), COOKIE(IFACE), COOKIE(IP_INPUT), COOKIE(IPFW),
+	COOKIE(KSOCKET), COOKIE(L2TP), COOKIE(LMI), COOKIE(MPPC), COOKIE(NAT),
+	COOKIE(NETFLOW), COOKIE(ONE2MANY), COOKIE(PATCH), COOKIE(PIPE),
+	COOKIE(PPP), COOKIE(PPPOE), COOKIE(PPTPGRE), COOKIE(PRED1),
+	COOKIE(RFC1490), COOKIE(SOCKET), COOKIE(SOURCE), COOKIE(SPLIT),
+	COOKIE(TAG), COOKIE(TCPMSS), COOKIE(TEE), COOKIE(TTY), COOKIE(VJC),
 	COOKIE(VLAN),
 #ifdef WHISTLE
-	COOKIE(DF),
-	COOKIE(IPAC),
-	COOKIE(TN),
-	COOKIE(WFRA),
+	COOKIE(DF), COOKIE(IPAC), COOKIE(TN), COOKIE(WFRA),
 #endif
-	{ 0, NULL }
-};
+	{ 0, NULL } };
 
 /*
  * Set debug level, ie, verbosity, if "level" is non-negative.
@@ -199,8 +162,8 @@ NgSetDebug(int level)
  * Set debug logging functions.
  */
 void
-NgSetErrLog(void (*log) (const char *fmt,...),
-		void (*logx) (const char *fmt,...))
+NgSetErrLog(void (*log)(const char *fmt, ...),
+    void (*logx)(const char *fmt, ...))
 {
 	_NgLog = log;
 	_NgLogx = logx;
@@ -212,12 +175,12 @@ NgSetErrLog(void (*log) (const char *fmt,...),
 void
 _NgDebugSockaddr(const struct sockaddr_ng *sg)
 {
-	NGLOGX("SOCKADDR: { fam=%d len=%d addr=\"%s\" }",
-	       sg->sg_family, sg->sg_len, sg->sg_data);
+	NGLOGX("SOCKADDR: { fam=%d len=%d addr=\"%s\" }", sg->sg_family,
+	    sg->sg_len, sg->sg_data);
 }
 
-#define ARGS_BUFSIZE		2048
-#define RECURSIVE_DEBUG_ADJUST	4
+#define ARGS_BUFSIZE 2048
+#define RECURSIVE_DEBUG_ADJUST 4
 
 /*
  * Display a negraph message
@@ -236,8 +199,8 @@ _NgDebugMsg(const struct ng_mesg *msg, const char *path)
 	NGLOGX("  arglen %u", msg->header.arglen);
 	NGLOGX("  flags  %x", msg->header.flags);
 	NGLOGX("  token  %u", msg->header.token);
-	NGLOGX("  cookie %s (%u)",
-	    NgCookie(msg->header.typecookie), msg->header.typecookie);
+	NGLOGX("  cookie %s (%u)", NgCookie(msg->header.typecookie),
+	    msg->header.typecookie);
 
 	/* At lower debugging levels, skip ASCII translation */
 	if (_gNgDebugLevel <= 2)
@@ -263,8 +226,8 @@ _NgDebugMsg(const struct ng_mesg *msg, const char *path)
 	_gNgDebugLevel -= RECURSIVE_DEBUG_ADJUST;
 
 	/* Ask the node to translate the binary message to ASCII for us */
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	    NGM_BINARY2ASCII, bin, sizeof(*bin) + bin->header.arglen) < 0) {
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_BINARY2ASCII, bin,
+		sizeof(*bin) + bin->header.arglen) < 0) {
 		_gNgDebugLevel += RECURSIVE_DEBUG_ADJUST;
 		goto fail;
 	}
@@ -315,10 +278,10 @@ NgCookie(int cookie)
 void
 _NgDebugBytes(const u_char *ptr, int len)
 {
-	char    buf[100];
-	int     k, count;
+	char buf[100];
+	int k, count;
 
-#define BYPERLINE	16
+#define BYPERLINE 16
 
 	for (count = 0; count < len; ptr += BYPERLINE, count += BYPERLINE) {
 
@@ -338,8 +301,8 @@ _NgDebugBytes(const u_char *ptr, int len)
 		for (k = 0; k < BYPERLINE; k++, count++)
 			if (count < len)
 				snprintf(buf + strlen(buf),
-				    sizeof(buf) - strlen(buf),
-				    "%c", isprint(ptr[k]) ? ptr[k] : '.');
+				    sizeof(buf) - strlen(buf), "%c",
+				    isprint(ptr[k]) ? ptr[k] : '.');
 			else
 				snprintf(buf + strlen(buf),
 				    sizeof(buf) - strlen(buf), "  ");
@@ -349,4 +312,3 @@ _NgDebugBytes(const u_char *ptr, int len)
 		NGLOGX("%s", buf);
 	}
 }
-

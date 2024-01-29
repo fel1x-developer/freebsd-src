@@ -28,14 +28,12 @@
 /*
  * Functions in rpc.tlscommon.c used by both rpc.tlsservd.c and rpc.tlsclntd.c.
  */
-int		rpctls_gethost(int s, struct sockaddr *sad,
-		    char *hostip, size_t hostlen);
-int		rpctls_checkhost(struct sockaddr *sad, X509 *cert,
-		    unsigned int wildcard);
-int		rpctls_loadcrlfile(SSL_CTX *ctx);
-void		rpctls_checkcrl(void);
-void		rpctls_verbose_out(const char *fmt, ...);
-void		rpctls_svc_run(void);
+int rpctls_gethost(int s, struct sockaddr *sad, char *hostip, size_t hostlen);
+int rpctls_checkhost(struct sockaddr *sad, X509 *cert, unsigned int wildcard);
+int rpctls_loadcrlfile(SSL_CTX *ctx);
+void rpctls_checkcrl(void);
+void rpctls_verbose_out(const char *fmt, ...);
+void rpctls_svc_run(void);
 
 /*
  * A linked list of all current "SSL *"s and socket "fd"s
@@ -45,22 +43,21 @@ void		rpctls_svc_run(void);
  */
 LIST_HEAD(ssl_list, ssl_entry);
 struct ssl_entry {
-	LIST_ENTRY(ssl_entry)	next;
-	uint64_t		refno;
-	int			s;
-	bool			shutoff;
-	SSL			*ssl;
-	X509			*cert;
+	LIST_ENTRY(ssl_entry) next;
+	uint64_t refno;
+	int s;
+	bool shutoff;
+	SSL *ssl;
+	X509 *cert;
 };
 
 /* Global variables shared between rpc.tlscommon.c and the daemons. */
-extern int			rpctls_debug_level;
-extern bool			rpctls_verbose;
-extern SSL_CTX			*rpctls_ctx;
-extern const char		*rpctls_verify_cafile;
-extern const char		*rpctls_verify_capath;
-extern char			*rpctls_crlfile;
-extern bool			rpctls_cert;
-extern bool			rpctls_gothup;
-extern struct ssl_list		rpctls_ssllist;
-
+extern int rpctls_debug_level;
+extern bool rpctls_verbose;
+extern SSL_CTX *rpctls_ctx;
+extern const char *rpctls_verify_cafile;
+extern const char *rpctls_verify_capath;
+extern char *rpctls_crlfile;
+extern bool rpctls_cert;
+extern bool rpctls_gothup;
+extern struct ssl_list rpctls_ssllist;

@@ -30,35 +30,34 @@
 
 /* Generic ECAM PCIe driver */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcib_private.h>
-#include <dev/pci/pci_host_generic.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/intr.h>
 
+#include <dev/pci/pci_host_generic.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include "pcib_if.h"
 
 #if defined(VM_MEMATTR_DEVICE_NP)
-#define	PCI_UNMAPPED
-#define	PCI_RF_FLAGS	RF_UNMAPPED
+#define PCI_UNMAPPED
+#define PCI_RF_FLAGS RF_UNMAPPED
 #else
-#define	PCI_RF_FLAGS	0
+#define PCI_RF_FLAGS 0
 #endif
-
 
 /* Forward prototypes */
 
@@ -91,15 +90,15 @@ pci_host_generic_core_attach(device_t dev)
 
 	/* Create the parent DMA tag to pass down the coherent flag */
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
-	    1, 0,				/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,			/* highaddr */
-	    NULL, NULL,				/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE,			/* maxsize */
-	    BUS_SPACE_UNRESTRICTED,		/* nsegments */
-	    BUS_SPACE_MAXSIZE,			/* maxsegsize */
-	    sc->coherent ? BUS_DMA_COHERENT : 0, /* flags */
-	    NULL, NULL,				/* lockfunc, lockarg */
+	    1, 0,					 /* alignment, bounds */
+	    BUS_SPACE_MAXADDR,				 /* lowaddr */
+	    BUS_SPACE_MAXADDR,				 /* highaddr */
+	    NULL, NULL,					 /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE,				 /* maxsize */
+	    BUS_SPACE_UNRESTRICTED,			 /* nsegments */
+	    BUS_SPACE_MAXSIZE,				 /* maxsegsize */
+	    sc->coherent ? BUS_DMA_COHERENT : 0,	 /* flags */
+	    NULL, NULL,					 /* lockfunc, lockarg */
 	    &sc->dmat);
 	if (error != 0)
 		return (error);
@@ -171,23 +170,25 @@ pci_host_generic_core_attach(device_t dev)
 		switch (FLAG_TYPE(sc->ranges[tuple].flags)) {
 		case FLAG_TYPE_PMEM:
 			sc->has_pmem = true;
-			error = rman_manage_region(&sc->pmem_rman,
-			   pci_base, pci_base + size - 1);
+			error = rman_manage_region(&sc->pmem_rman, pci_base,
+			    pci_base + size - 1);
 			break;
 		case FLAG_TYPE_MEM:
-			error = rman_manage_region(&sc->mem_rman,
-			   pci_base, pci_base + size - 1);
+			error = rman_manage_region(&sc->mem_rman, pci_base,
+			    pci_base + size - 1);
 			break;
 		case FLAG_TYPE_IO:
-			error = rman_manage_region(&sc->io_rman,
-			   pci_base, pci_base + size - 1);
+			error = rman_manage_region(&sc->io_rman, pci_base,
+			    pci_base + size - 1);
 			break;
 		default:
 			continue;
 		}
 		if (error) {
-			device_printf(dev, "rman_manage_region() failed."
-						"error = %d\n", error);
+			device_printf(dev,
+			    "rman_manage_region() failed."
+			    "error = %d\n",
+			    error);
 			goto err_rman_manage;
 		}
 	}
@@ -231,8 +232,8 @@ pci_host_generic_core_detach(device_t dev)
 }
 
 static uint32_t
-generic_pcie_read_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, int bytes)
+generic_pcie_read_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, int bytes)
 {
 	struct generic_pcie_core_softc *sc;
 	uint64_t offset;
@@ -241,8 +242,7 @@ generic_pcie_read_config(device_t dev, u_int bus, u_int slot,
 	sc = device_get_softc(dev);
 	if ((bus < sc->bus_start) || (bus > sc->bus_end))
 		return (~0U);
-	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) ||
-	    (reg > PCIE_REGMAX))
+	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) || (reg > PCIE_REGMAX))
 		return (~0U);
 	if ((sc->quirks & PCIE_ECAM_DESIGNWARE_QUIRK) && bus == 0 && slot > 0)
 		return (~0U);
@@ -267,8 +267,8 @@ generic_pcie_read_config(device_t dev, u_int bus, u_int slot,
 }
 
 static void
-generic_pcie_write_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, uint32_t val, int bytes)
+generic_pcie_write_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, uint32_t val, int bytes)
 {
 	struct generic_pcie_core_softc *sc;
 	uint64_t offset;
@@ -276,8 +276,7 @@ generic_pcie_write_config(device_t dev, u_int bus, u_int slot,
 	sc = device_get_softc(dev);
 	if ((bus < sc->bus_start) || (bus > sc->bus_end))
 		return;
-	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) ||
-	    (reg > PCIE_REGMAX))
+	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) || (reg > PCIE_REGMAX))
 		return;
 
 	offset = PCIE_ADDR_OFFSET(bus - sc->bus_start, slot, func, reg);
@@ -441,13 +440,13 @@ generic_pcie_translate_resource_common(device_t dev, int type, rman_res_t start,
 }
 
 static int
-generic_pcie_translate_resource(device_t bus, int type,
-    rman_res_t start, rman_res_t *newstart)
+generic_pcie_translate_resource(device_t bus, int type, rman_res_t start,
+    rman_res_t *newstart)
 {
 	rman_res_t newend; /* unused */
 
-	return (generic_pcie_translate_resource_common(
-	    bus, type, start, 0, newstart, &newend));
+	return (generic_pcie_translate_resource_common(bus, type, start, 0,
+	    newstart, &newend));
 }
 
 struct resource *
@@ -469,8 +468,8 @@ pci_host_generic_core_alloc_resource(device_t dev, device_t child, int type,
 
 	rm = generic_pcie_rman(sc, type, flags);
 	if (rm == NULL)
-		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child,
-		    type, rid, start, end, count, flags));
+		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child, type,
+		    rid, start, end, count, flags));
 
 	if (bootverbose) {
 		device_printf(dev,
@@ -493,7 +492,8 @@ pci_host_generic_core_alloc_resource(device_t dev, device_t child, int type,
 	return (res);
 
 fail:
-	device_printf(dev, "%s FAIL: type=%d, rid=%d, "
+	device_printf(dev,
+	    "%s FAIL: type=%d, rid=%d, "
 	    "start=%016jx, end=%016jx, count=%016jx, flags=%x\n",
 	    __func__, type, *rid, start, end, count, flags);
 
@@ -501,8 +501,8 @@ fail:
 }
 
 static int
-generic_pcie_activate_resource(device_t dev, device_t child, int type,
-    int rid, struct resource *r)
+generic_pcie_activate_resource(device_t dev, device_t child, int type, int rid,
+    struct resource *r)
 {
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
 	struct generic_pcie_core_softc *sc;
@@ -531,8 +531,8 @@ generic_pcie_activate_resource(device_t dev, device_t child, int type,
 	rman_set_start(r, start);
 	rman_set_end(r, end);
 
-	return (BUS_ACTIVATE_RESOURCE(device_get_parent(dev), child, type,
-	    rid, r));
+	return (
+	    BUS_ACTIVATE_RESOURCE(device_get_parent(dev), child, type, rid, r));
 }
 
 static int
@@ -577,8 +577,8 @@ generic_pcie_adjust_resource(device_t dev, device_t child, int type,
 	sc = device_get_softc(dev);
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
 	if (type == PCI_RES_BUS)
-		return (pci_domain_adjust_bus(sc->ecam, child, res, start,
-		    end));
+		return (
+		    pci_domain_adjust_bus(sc->ecam, child, res, start, end));
 #endif
 
 	rm = generic_pcie_rman(sc, type, rman_get_flags(res));
@@ -597,29 +597,29 @@ generic_pcie_get_dma_tag(device_t dev, device_t child)
 }
 
 static device_method_t generic_pcie_methods[] = {
-	DEVMETHOD(device_attach,		pci_host_generic_core_attach),
-	DEVMETHOD(device_detach,		pci_host_generic_core_detach),
+	DEVMETHOD(device_attach, pci_host_generic_core_attach),
+	DEVMETHOD(device_detach, pci_host_generic_core_detach),
 
-	DEVMETHOD(bus_read_ivar,		generic_pcie_read_ivar),
-	DEVMETHOD(bus_write_ivar,		generic_pcie_write_ivar),
-	DEVMETHOD(bus_alloc_resource,		pci_host_generic_core_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,		generic_pcie_adjust_resource),
-	DEVMETHOD(bus_activate_resource,	generic_pcie_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	generic_pcie_deactivate_resource),
-	DEVMETHOD(bus_release_resource,		pci_host_generic_core_release_resource),
-	DEVMETHOD(bus_translate_resource,	generic_pcie_translate_resource),
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
+	DEVMETHOD(bus_read_ivar, generic_pcie_read_ivar),
+	DEVMETHOD(bus_write_ivar, generic_pcie_write_ivar),
+	DEVMETHOD(bus_alloc_resource, pci_host_generic_core_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, generic_pcie_adjust_resource),
+	DEVMETHOD(bus_activate_resource, generic_pcie_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, generic_pcie_deactivate_resource),
+	DEVMETHOD(bus_release_resource, pci_host_generic_core_release_resource),
+	DEVMETHOD(bus_translate_resource, generic_pcie_translate_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
-	DEVMETHOD(bus_get_dma_tag,		generic_pcie_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, generic_pcie_get_dma_tag),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,		generic_pcie_maxslots),
-	DEVMETHOD(pcib_read_config,		generic_pcie_read_config),
-	DEVMETHOD(pcib_write_config,		generic_pcie_write_config),
+	DEVMETHOD(pcib_maxslots, generic_pcie_maxslots),
+	DEVMETHOD(pcib_read_config, generic_pcie_read_config),
+	DEVMETHOD(pcib_write_config, generic_pcie_write_config),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(pcib, generic_pcie_core_driver,
-    generic_pcie_methods, sizeof(struct generic_pcie_core_softc));
+DEFINE_CLASS_0(pcib, generic_pcie_core_driver, generic_pcie_methods,
+    sizeof(struct generic_pcie_core_softc));

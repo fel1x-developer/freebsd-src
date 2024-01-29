@@ -36,13 +36,13 @@
 #define FBSD_KCOMPAT_H
 #include "ice_rdma.h"
 
-#define TASKLET_DATA_TYPE	unsigned long
-#define TASKLET_FUNC_TYPE	void (*)(TASKLET_DATA_TYPE)
+#define TASKLET_DATA_TYPE unsigned long
+#define TASKLET_FUNC_TYPE void (*)(TASKLET_DATA_TYPE)
 
 #ifndef tasklet_setup
-#define tasklet_setup(tasklet, callback)				\
-	tasklet_init((tasklet), (TASKLET_FUNC_TYPE)(callback),		\
-		      (TASKLET_DATA_TYPE)(tasklet))
+#define tasklet_setup(tasklet, callback)                       \
+	tasklet_init((tasklet), (TASKLET_FUNC_TYPE)(callback), \
+	    (TASKLET_DATA_TYPE)(tasklet))
 #endif
 #ifndef from_tasklet
 #define from_tasklet(var, callback_tasklet, tasklet_fieldname) \
@@ -50,17 +50,16 @@
 #endif
 
 #if __FreeBSD_version >= 1400000
-#define IRDMA_SET_RDMA_OBJ_SIZE(ib_struct, drv_struct, member)    \
-	(sizeof(struct drv_struct) +                              \
-	 BUILD_BUG_ON_ZERO(offsetof(struct drv_struct, member)) + \
-	 BUILD_BUG_ON_ZERO(                                       \
-		!__same_type(((struct drv_struct *)NULL)->member, \
-                                      struct ib_struct)))
+#define IRDMA_SET_RDMA_OBJ_SIZE(ib_struct, drv_struct, member)       \
+	(sizeof(struct drv_struct) +                                 \
+	    BUILD_BUG_ON_ZERO(offsetof(struct drv_struct, member)) + \
+	    BUILD_BUG_ON_ZERO(                                       \
+		!__same_type(((struct drv_struct *)NULL)->member,    \
+		    struct ib_struct)))
 #endif /* __FreeBSD_version > 1400000 */
 
-#define set_ibdev_dma_device(ibdev, dev) \
-	ibdev.dma_device = (dev)
-#define set_max_sge(props, rf)  \
+#define set_ibdev_dma_device(ibdev, dev) ibdev.dma_device = (dev)
+#define set_max_sge(props, rf) \
 	((props)->max_sge = (rf)->sc_dev.hw_attrs.uk_attrs.max_hw_wq_frags)
 #define rdma_query_gid(ibdev, port, index, gid) \
 	ib_get_cached_gid(ibdev, port, index, gid, NULL)
@@ -95,23 +94,25 @@ struct irdma_tunable_info {
 	u8 roce_ena;
 };
 
-static inline int irdma_iw_query_pkey(struct ib_device *ibdev, u8 port, u16 index,
-				      u16 *pkey)
+static inline int
+irdma_iw_query_pkey(struct ib_device *ibdev, u8 port, u16 index, u16 *pkey)
 {
 	*pkey = 0;
 	return 0;
 }
 
-static inline int cq_validate_flags(u32 flags, u8 hw_rev)
+static inline int
+cq_validate_flags(u32 flags, u8 hw_rev)
 {
 	/* GEN1 does not support CQ create flags */
 	if (hw_rev == IRDMA_GEN_1)
 		return flags ? -EOPNOTSUPP : 0;
 
-	return flags & ~IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION ? -EOPNOTSUPP : 0;
+	return flags & ~IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION ? -EOPNOTSUPP :
+								  0;
 }
-static inline u64 *irdma_next_pbl_addr(u64 *pbl, struct irdma_pble_info **pinfo,
-				       u32 *idx)
+static inline u64 *
+irdma_next_pbl_addr(u64 *pbl, struct irdma_pble_info **pinfo, u32 *idx)
 {
 	*idx += 1;
 	if (!(*pinfo) || *idx != (*pinfo)->cnt)
@@ -137,31 +138,24 @@ irdma_cmid_to_vnet(struct iw_cm_id *cm_id)
 
 #if __FreeBSD_version < 1400026
 struct ib_cq *irdma_create_cq(struct ib_device *ibdev,
-			      const struct ib_cq_init_attr *attr,
-			      struct ib_ucontext *context,
-			      struct ib_udata *udata);
+    const struct ib_cq_init_attr *attr, struct ib_ucontext *context,
+    struct ib_udata *udata);
 #else
-int irdma_create_cq(struct ib_cq *ibcq,
-		    const struct ib_cq_init_attr *attr,
-		    struct ib_udata *udata);
+int irdma_create_cq(struct ib_cq *ibcq, const struct ib_cq_init_attr *attr,
+    struct ib_udata *udata);
 #endif
 struct ib_qp *irdma_create_qp(struct ib_pd *ibpd,
-			      struct ib_qp_init_attr *init_attr,
-			      struct ib_udata *udata);
+    struct ib_qp_init_attr *init_attr, struct ib_udata *udata);
 #if __FreeBSD_version >= 1400026
-int irdma_create_ah(struct ib_ah *ib_ah,
-		    struct ib_ah_attr *attr, u32 flags,
-		    struct ib_udata *udata);
-int irdma_create_ah_stub(struct ib_ah *ib_ah,
-			 struct ib_ah_attr *attr, u32 flags,
-			 struct ib_udata *udata);
+int irdma_create_ah(struct ib_ah *ib_ah, struct ib_ah_attr *attr, u32 flags,
+    struct ib_udata *udata);
+int irdma_create_ah_stub(struct ib_ah *ib_ah, struct ib_ah_attr *attr,
+    u32 flags, struct ib_udata *udata);
 #else
-struct ib_ah *irdma_create_ah(struct ib_pd *ibpd,
-			      struct ib_ah_attr *attr,
-			      struct ib_udata *udata);
-struct ib_ah *irdma_create_ah_stub(struct ib_pd *ibpd,
-				   struct ib_ah_attr *attr,
-				   struct ib_udata *udata);
+struct ib_ah *irdma_create_ah(struct ib_pd *ibpd, struct ib_ah_attr *attr,
+    struct ib_udata *udata);
+struct ib_ah *irdma_create_ah_stub(struct ib_pd *ibpd, struct ib_ah_attr *attr,
+    struct ib_udata *udata);
 #endif
 void irdma_ether_copy(u8 *dmac, struct ib_ah_attr *attr);
 
@@ -183,39 +177,36 @@ int irdma_dereg_mr(struct ib_mr *ib_mr);
 int irdma_dereg_mr(struct ib_mr *ib_mr, struct ib_udata *udata);
 #endif
 int ib_get_eth_speed(struct ib_device *dev, u32 port_num, u8 *speed, u8 *width);
-enum rdma_link_layer irdma_get_link_layer(struct ib_device *ibdev,
-					  u8 port_num);
+enum rdma_link_layer irdma_get_link_layer(struct ib_device *ibdev, u8 port_num);
 int irdma_roce_port_immutable(struct ib_device *ibdev, u8 port_num,
-			      struct ib_port_immutable *immutable);
+    struct ib_port_immutable *immutable);
 int irdma_iw_port_immutable(struct ib_device *ibdev, u8 port_num,
-			    struct ib_port_immutable *immutable);
+    struct ib_port_immutable *immutable);
 int irdma_query_gid(struct ib_device *ibdev, u8 port, int index,
-		    union ib_gid *gid);
+    union ib_gid *gid);
 int irdma_query_gid_roce(struct ib_device *ibdev, u8 port, int index,
-			 union ib_gid *gid);
-int irdma_query_pkey(struct ib_device *ibdev, u8 port, u16 index,
-		     u16 *pkey);
+    union ib_gid *gid);
+int irdma_query_pkey(struct ib_device *ibdev, u8 port, u16 index, u16 *pkey);
 int irdma_query_port(struct ib_device *ibdev, u8 port,
-		     struct ib_port_attr *props);
-struct rdma_hw_stats *irdma_alloc_hw_stats(struct ib_device *ibdev, u8 port_num);
-int irdma_get_hw_stats(struct ib_device *ibdev,
-		       struct rdma_hw_stats *stats, u8 port_num,
-		       int index);
+    struct ib_port_attr *props);
+struct rdma_hw_stats *irdma_alloc_hw_stats(struct ib_device *ibdev,
+    u8 port_num);
+int irdma_get_hw_stats(struct ib_device *ibdev, struct rdma_hw_stats *stats,
+    u8 port_num, int index);
 
 void irdma_request_reset(struct irdma_pci_f *rf);
 int irdma_register_qset(struct irdma_sc_vsi *vsi,
-			struct irdma_ws_node *tc_node);
+    struct irdma_ws_node *tc_node);
 void irdma_unregister_qset(struct irdma_sc_vsi *vsi,
-			   struct irdma_ws_node *tc_node);
+    struct irdma_ws_node *tc_node);
 void ib_unregister_device(struct ib_device *ibdev);
 #if __FreeBSD_version < 1400026
 int rdma_user_mmap_io(struct ib_ucontext *ucontext, struct vm_area_struct *vma,
-		      unsigned long pfn, unsigned long size, pgprot_t prot);
+    unsigned long pfn, unsigned long size, pgprot_t prot);
 #endif
 void irdma_disassociate_ucontext(struct ib_ucontext *context);
-int kc_irdma_set_roce_cm_info(struct irdma_qp *iwqp,
-			      struct ib_qp_attr *attr,
-			      u16 *vlan_id);
+int kc_irdma_set_roce_cm_info(struct irdma_qp *iwqp, struct ib_qp_attr *attr,
+    u16 *vlan_id);
 
 void kc_set_loc_seq_num_mss(struct irdma_cm_node *cm_node);
 u16 kc_rdma_get_udp_sport(u32 fl, u32 lqpn, u32 rqpn);
@@ -223,15 +214,15 @@ u16 kc_rdma_get_udp_sport(u32 fl, u32 lqpn, u32 rqpn);
 void irdma_get_dev_fw_str(struct ib_device *dev, char *str, size_t str_len);
 
 int irdma_modify_port(struct ib_device *ibdev, u8 port, int mask,
-		      struct ib_port_modify *props);
+    struct ib_port_modify *props);
 int irdma_get_dst_mac(struct irdma_cm_node *cm_node, struct sockaddr *dst_sin,
-		      u8 *dst_mac);
-int irdma_resolve_neigh_lpb_chk(struct irdma_device *iwdev, struct irdma_cm_node *cm_node,
-				struct irdma_cm_info *cm_info);
+    u8 *dst_mac);
+int irdma_resolve_neigh_lpb_chk(struct irdma_device *iwdev,
+    struct irdma_cm_node *cm_node, struct irdma_cm_info *cm_info);
 int irdma_addr_resolve_neigh(struct irdma_cm_node *cm_node, u32 dst_ip,
-			     int arpindex);
+    int arpindex);
 int irdma_addr_resolve_neigh_ipv6(struct irdma_cm_node *cm_node, u32 *dest,
-				  int arpindex);
+    int arpindex);
 void irdma_dcqcn_tunables_init(struct irdma_pci_f *rf);
 void irdma_sysctl_settings(struct irdma_pci_f *rf);
 void irdma_sw_stats_tunables_init(struct irdma_pci_f *rf);
@@ -240,50 +231,43 @@ void irdma_free_stag(struct irdma_device *iwdev, u32 stag);
 
 int irdma_hwdereg_mr(struct ib_mr *ib_mr);
 int irdma_rereg_user_mr(struct ib_mr *ib_mr, int flags, u64 start, u64 len,
-			u64 virt, int new_access, struct ib_pd *new_pd,
-			struct ib_udata *udata);
+    u64 virt, int new_access, struct ib_pd *new_pd, struct ib_udata *udata);
 struct irdma_mr;
 struct irdma_cq;
 struct irdma_cq_buf;
 #if __FreeBSD_version < 1400026
 struct ib_mr *irdma_alloc_mr(struct ib_pd *pd, enum ib_mr_type mr_type,
-			     u32 max_num_sg);
+    u32 max_num_sg);
 #else
 struct ib_mr *irdma_alloc_mr(struct ib_pd *pd, enum ib_mr_type mr_type,
-			     u32 max_num_sg, struct ib_udata *udata);
+    u32 max_num_sg, struct ib_udata *udata);
 #endif
 int irdma_hwreg_mr(struct irdma_device *iwdev, struct irdma_mr *iwmr,
-		   u16 access);
+    u16 access);
 struct ib_mr *irdma_rereg_mr_trans(struct irdma_mr *iwmr, u64 start, u64 len,
-				   u64 virt, struct ib_udata *udata);
+    u64 virt, struct ib_udata *udata);
 int irdma_hw_alloc_mw(struct irdma_device *iwdev, struct irdma_mr *iwmr);
 struct ib_mw *irdma_alloc_mw(struct ib_pd *pd, enum ib_mw_type type,
-			     struct ib_udata *udata);
+    struct ib_udata *udata);
 int irdma_hw_alloc_stag(struct irdma_device *iwdev, struct irdma_mr *iwmr);
 void irdma_cq_free_rsrc(struct irdma_pci_f *rf, struct irdma_cq *iwcq);
 int irdma_validate_qp_attrs(struct ib_qp_init_attr *init_attr,
-			    struct irdma_device *iwdev);
-void irdma_setup_virt_qp(struct irdma_device *iwdev,
-                         struct irdma_qp *iwqp,
-                         struct irdma_qp_init_info *init_info);
-int irdma_setup_kmode_qp(struct irdma_device *iwdev,
-			 struct irdma_qp *iwqp,
-			 struct irdma_qp_init_info *info,
-			 struct ib_qp_init_attr *init_attr);
-int irdma_setup_umode_qp(struct ib_udata *udata,
-			 struct irdma_device *iwdev,
-			 struct irdma_qp *iwqp,
-			 struct irdma_qp_init_info *info,
-			 struct ib_qp_init_attr *init_attr);
+    struct irdma_device *iwdev);
+void irdma_setup_virt_qp(struct irdma_device *iwdev, struct irdma_qp *iwqp,
+    struct irdma_qp_init_info *init_info);
+int irdma_setup_kmode_qp(struct irdma_device *iwdev, struct irdma_qp *iwqp,
+    struct irdma_qp_init_info *info, struct ib_qp_init_attr *init_attr);
+int irdma_setup_umode_qp(struct ib_udata *udata, struct irdma_device *iwdev,
+    struct irdma_qp *iwqp, struct irdma_qp_init_info *info,
+    struct ib_qp_init_attr *init_attr);
 void irdma_roce_fill_and_set_qpctx_info(struct irdma_qp *iwqp,
-					struct irdma_qp_host_ctx_info *ctx_info);
+    struct irdma_qp_host_ctx_info *ctx_info);
 void irdma_iw_fill_and_set_qpctx_info(struct irdma_qp *iwqp,
-				      struct irdma_qp_host_ctx_info *ctx_info);
+    struct irdma_qp_host_ctx_info *ctx_info);
 int irdma_cqp_create_qp_cmd(struct irdma_qp *iwqp);
-void irdma_dealloc_push_page(struct irdma_pci_f *rf,
-			     struct irdma_sc_qp *qp);
+void irdma_dealloc_push_page(struct irdma_pci_f *rf, struct irdma_sc_qp *qp);
 int irdma_process_resize_list(struct irdma_cq *iwcq, struct irdma_device *iwdev,
-			      struct irdma_cq_buf *lcqe_buf);
+    struct irdma_cq_buf *lcqe_buf);
 #if __FreeBSD_version < 1400026
 int irdma_destroy_cq(struct ib_cq *ib_cq);
 #else
@@ -301,7 +285,7 @@ void irdma_dealloc_ucontext(struct ib_ucontext *context);
 #endif
 #if __FreeBSD_version < 1400026
 struct ib_pd *irdma_alloc_pd(struct ib_device *, struct ib_ucontext *,
-			     struct ib_udata *);
+    struct ib_udata *);
 #else
 int irdma_alloc_pd(struct ib_pd *pd, struct ib_udata *udata);
 #endif
@@ -311,7 +295,7 @@ int irdma_dealloc_pd(struct ib_pd *);
 void irdma_dealloc_pd(struct ib_pd *ibpd, struct ib_udata *udata);
 #endif
 int irdma_add_gid(struct ib_device *, u8, unsigned int, const union ib_gid *,
-		  const struct ib_gid_attr *, void **);
+    const struct ib_gid_attr *, void **);
 int irdma_del_gid(struct ib_device *, u8, unsigned int, void **);
 struct ib_device *ib_device_get_by_netdev(struct ifnet *ndev, int driver_id);
 void ib_device_put(struct ib_device *device);
@@ -324,26 +308,30 @@ void irdma_remove_push_mmap_entries(struct irdma_qp *iwqp);
 struct irdma_ucontext;
 void irdma_del_memlist(struct irdma_mr *iwmr, struct irdma_ucontext *ucontext);
 void irdma_copy_user_pgaddrs(struct irdma_mr *iwmr, u64 *pbl,
-			     enum irdma_pble_level level);
+    enum irdma_pble_level level);
 void irdma_reg_ipaddr_event_cb(struct irdma_pci_f *rf);
 void irdma_dereg_ipaddr_event_cb(struct irdma_pci_f *rf);
 
-/* Introduced in this series https://lore.kernel.org/linux-rdma/0-v2-270386b7e60b+28f4-umem_1_jgg@nvidia.com/
- * An irdma version helper doing same for older functions with difference that iova is passed in
- * as opposed to derived from umem->iova.
+/* Introduced in this series
+ * https://lore.kernel.org/linux-rdma/0-v2-270386b7e60b+28f4-umem_1_jgg@nvidia.com/
+ * An irdma version helper doing same for older functions with difference that
+ * iova is passed in as opposed to derived from umem->iova.
  */
-static inline size_t irdma_ib_umem_num_dma_blocks(struct ib_umem *umem, unsigned long pgsz, u64 iova)
+static inline size_t
+irdma_ib_umem_num_dma_blocks(struct ib_umem *umem, unsigned long pgsz, u64 iova)
 {
 	/* some older OFED distros do not have ALIGN_DOWN */
 #ifndef ALIGN_DOWN
-#define ALIGN_DOWN(x, a)	ALIGN((x) - ((a) - 1), (a))
+#define ALIGN_DOWN(x, a) ALIGN((x) - ((a)-1), (a))
 #endif
 
-	return (size_t)((ALIGN(iova + umem->length, pgsz) -
-			 ALIGN_DOWN(iova, pgsz))) / pgsz;
+	return (size_t)((
+		   ALIGN(iova + umem->length, pgsz) - ALIGN_DOWN(iova, pgsz))) /
+	    pgsz;
 }
 
-static inline void addrconf_addr_eui48(u8 *deui, const char *const addr)
+static inline void
+addrconf_addr_eui48(u8 *deui, const char *const addr)
 {
 	memcpy(deui, addr, 3);
 	deui[3] = 0xFF;

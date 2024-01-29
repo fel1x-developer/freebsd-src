@@ -65,7 +65,6 @@ maclabel_status(if_ctx *ctx)
 	if (ioctl_ctx(ctx, SIOCGIFMAC, &ifr) == -1)
 		goto mac_free;
 
-	
 	if (mac_to_text(label, &label_text) == -1)
 		goto mac_free;
 
@@ -100,11 +99,11 @@ setifmaclabel(if_ctx *ctx, const char *val, int d __unused)
 }
 
 static struct cmd mac_cmds[] = {
-	DEF_CMD_ARG("maclabel",	setifmaclabel),
+	DEF_CMD_ARG("maclabel", setifmaclabel),
 };
 static struct afswtch af_mac = {
-	.af_name	= "af_maclabel",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_maclabel",
+	.af_af = AF_UNSPEC,
 	.af_other_status = maclabel_status,
 };
 
@@ -113,7 +112,7 @@ mac_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(mac_cmds);  i++)
+	for (i = 0; i < nitems(mac_cmds); i++)
 		cmd_register(&mac_cmds[i]);
 	af_register(&af_mac);
 }

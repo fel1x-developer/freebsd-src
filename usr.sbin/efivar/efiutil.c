@@ -24,9 +24,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <ctype.h>
-#include <efivar.h>
 #include <efivar-dp.h>
+#include <efivar.h>
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
@@ -35,13 +36,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "efiutil.h"
+
 #include "efichar.h"
-#include <efivar-dp.h>
+#include "efiutil.h"
 
 /*
  * Dump the data as ASCII data, which is a pretty
- * printed form 
+ * printed form
  */
 void
 asciidump(uint8_t *data, size_t datalen)
@@ -59,7 +60,7 @@ asciidump(uint8_t *data, size_t datalen)
 			}
 			printf("%c", data[i]);
 		} else {
-			len +=3;
+			len += 3;
 			if (len > 80) {
 				len = 0;
 				printf("\n");
@@ -116,7 +117,8 @@ bindump(uint8_t *data, size_t datalen)
 #define SIZE(dp, edp) (size_t)((intptr_t)(void *)edp - (intptr_t)(void *)dp)
 
 void
-efi_print_load_option(uint8_t *data, size_t datalen, int Aflag, int bflag, int uflag)
+efi_print_load_option(uint8_t *data, size_t datalen, int Aflag, int bflag,
+    int uflag)
 {
 	char *dev, *relpath, *abspath;
 	uint8_t *ep = data + datalen;
@@ -142,7 +144,8 @@ efi_print_load_option(uint8_t *data, size_t datalen, int Aflag, int bflag, int u
 	walker += sizeof(fplen);
 	// Next we have a 0 terminated UCS2 string that we know to be aligned
 	descr = (efi_char *)(intptr_t)(void *)walker;
-	len = ucs2len(descr); // XXX need to sanity check that len < (datalen - (ep - walker) / 2)
+	len = ucs2len(descr); // XXX need to sanity check that len < (datalen -
+			      // (ep - walker) / 2)
 	walker += (len + 1) * sizeof(efi_char);
 	if (walker > ep)
 		return;
@@ -164,12 +167,15 @@ efi_print_load_option(uint8_t *data, size_t datalen, int Aflag, int bflag, int u
 		printf("Empty path\n");
 	} else {
 		while (dp < edp && SIZE(dp, edp) > sizeof(efidp_header)) {
-			efidp_format_device_path(buf, sizeof(buf), dp, SIZE(dp, edp));
-			rv = efivar_device_path_to_unix_path(dp, &dev, &relpath, &abspath);
+			efidp_format_device_path(buf, sizeof(buf), dp,
+			    SIZE(dp, edp));
+			rv = efivar_device_path_to_unix_path(dp, &dev, &relpath,
+			    &abspath);
 			dp = (efidp)((char *)dp + efidp_size(dp));
 			printf(" %s\n", buf);
 			if (rv == 0) {
-				printf("      %*s:%s\n", len + (int)strlen(dev), dev, relpath);
+				printf("      %*s:%s\n", len + (int)strlen(dev),
+				    dev, relpath);
 				free(dev);
 				free(relpath);
 				free(abspath);

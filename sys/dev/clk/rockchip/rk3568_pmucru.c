@@ -29,44 +29,42 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
-
-#include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
 
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
-
 #include <dev/clk/rockchip/rk_cru.h>
+#include <dev/fdt/simplebus.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+
 #include <contrib/device-tree/include/dt-bindings/clock/rk3568-cru.h>
 
-
-#define	CRU_PLLSEL_CON(x)		((x) * 0x20)
-#define	CRU_CLKSEL_CON(x)		((x) * 0x4 + 0x100)
-#define	CRU_CLKGATE_CON(x)		((x) * 0x4 + 0x180)
+#define CRU_PLLSEL_CON(x) ((x) * 0x20)
+#define CRU_CLKSEL_CON(x) ((x) * 0x4 + 0x100)
+#define CRU_CLKGATE_CON(x) ((x) * 0x4 + 0x180)
 
 /* PLL clock */
-#define	RK_PLL(_id, _name, _pnames, _off, _shift)			\
-{									\
-	.type = RK3328_CLK_PLL,						\
-	.clk.pll = &(struct rk_clk_pll_def) {				\
-		.clkdef.id = _id,					\
-		.clkdef.name = _name,					\
-		.clkdef.parent_names = _pnames,				\
-		.clkdef.parent_cnt = nitems(_pnames),			\
-		.clkdef.flags = CLK_NODE_STATIC_STRINGS,		\
-		.base_offset = CRU_PLLSEL_CON(_off),			\
-		.mode_reg = 0x80,					\
-		.mode_shift = _shift,					\
-		.rates = rk3568_pll_rates,				\
-	},								\
-}
+#define RK_PLL(_id, _name, _pnames, _off, _shift)                \
+	{                                                        \
+		.type = RK3328_CLK_PLL,                          \
+		.clk.pll = &(struct rk_clk_pll_def) {            \
+			.clkdef.id = _id,                        \
+			.clkdef.name = _name,                    \
+			.clkdef.parent_names = _pnames,          \
+			.clkdef.parent_cnt = nitems(_pnames),    \
+			.clkdef.flags = CLK_NODE_STATIC_STRINGS, \
+			.base_offset = CRU_PLLSEL_CON(_off),     \
+			.mode_reg = 0x80,                        \
+			.mode_shift = _shift,                    \
+			.rates = rk3568_pll_rates,               \
+		},                                               \
+	}
 
 extern struct rk_clk_pll_rate rk3568_pll_rates[];
 
@@ -139,66 +137,71 @@ static struct rk_clk rk3568_clks[] = {
 	/* PMUCRU_PMUCLKSEL_CON08 */
 	MUX(CLK_USBPHY0_REF, "clk_usbphy0_ref", clk_usbphy0_ref_p, 0, 8, 0, 1),
 	MUX(CLK_USBPHY1_REF, "clk_usbphy1_ref", clk_usbphy1_ref_p, 0, 8, 1, 1),
-	MUX(CLK_MIPIDSIPHY0_REF, "clk_mipidsiphy0_ref", clk_mipidsiphy0_ref_p, 0, 8, 2, 1),
-	MUX(CLK_MIPIDSIPHY1_REF, "clk_mipidsiphy1_ref", clk_mipidsiphy1_ref_p, 0, 8, 3, 1),
+	MUX(CLK_MIPIDSIPHY0_REF, "clk_mipidsiphy0_ref", clk_mipidsiphy0_ref_p,
+	    0, 8, 2, 1),
+	MUX(CLK_MIPIDSIPHY1_REF, "clk_mipidsiphy1_ref", clk_mipidsiphy1_ref_p,
+	    0, 8, 3, 1),
 	MUX(CLK_HDMI_REF, "clk_hdmi_ref", clk_hdmi_ref_p, 0, 8, 7, 1),
 	CDIV(0, "clk_wifi_div_div", "clk_pdpmu", 0, 8, 8, 6),
 	MUX(CLK_WIFI, "clk_wifi", clk_wifi_p, 0, 8, 15, 1),
 
 	/* PMUCRU_PMUCLKSEL_CON09 */
 	CDIV(0, "clk_pciephy0_div_div", "ppll_ph0", 0, 9, 0, 3),
-	MUX(CLK_PCIEPHY0_REF, "clk_pciephy0_ref",
-	  clk_pciephy0_ref_p, 0, 9, 3, 1),
+	MUX(CLK_PCIEPHY0_REF, "clk_pciephy0_ref", clk_pciephy0_ref_p, 0, 9, 3,
+	    1),
 	CDIV(0, "clk_pciephy1_div_div", "ppll_ph0", 0, 9, 4, 3),
-	MUX(CLK_PCIEPHY1_REF, "clk_pciephy1_ref",
-	  clk_pciephy1_ref_p, 0, 9, 7, 1),
+	MUX(CLK_PCIEPHY1_REF, "clk_pciephy1_ref", clk_pciephy1_ref_p, 0, 9, 7,
+	    1),
 	CDIV(0, "clk_pciephy2_div_div", "ppll_ph0", 0, 9, 8, 3),
-	MUX(CLK_PCIEPHY2_REF, "clk_pciephy2_ref",
-	  clk_pciephy2_ref_p, 0, 9, 11, 1),
+	MUX(CLK_PCIEPHY2_REF, "clk_pciephy2_ref", clk_pciephy2_ref_p, 0, 9, 11,
+	    1),
 };
 
 /* GATES */
 static struct rk_cru_gate rk3568_gates[] = {
 	/* PMUCRU_PMUGATE_CON00 */
-	GATE(XIN_OSC0_DIV, "xin_osc0_div", "xin_osc0_div_div",			0, 0),
-	GATE(CLK_RTC_32K, "clk_rtc_32k", "clk_rtc_32k_mux",			0, 1),
-	GATE(PCLK_PDPMU, "pclk_pdpmu", "pclk_pdpmu_pre",			0, 2),
-	GATE(PCLK_PMU, "pclk_pmu", "pclk_pdpmu",				0, 6),
-	GATE(CLK_PMU, "clk_pmu", "xin24m",					0, 7),
+	GATE(XIN_OSC0_DIV, "xin_osc0_div", "xin_osc0_div_div", 0, 0),
+	GATE(CLK_RTC_32K, "clk_rtc_32k", "clk_rtc_32k_mux", 0, 1),
+	GATE(PCLK_PDPMU, "pclk_pdpmu", "pclk_pdpmu_pre", 0, 2),
+	GATE(PCLK_PMU, "pclk_pmu", "pclk_pdpmu", 0, 6),
+	GATE(CLK_PMU, "clk_pmu", "xin24m", 0, 7),
 
 	/* PMUCRU_PMUGATE_CON01 */
-	GATE(PCLK_I2C0, "pclk_i2c0", "pclk_pdpmu",				1, 0),
-	GATE(CLK_I2C0, "clk_i2c0", "clk_i2c0_div",				1, 1),
-	GATE(PCLK_UART0, "pclk_uart0", "pclk_pdpmu",				1, 2),
-	GATE(CLK_UART0_DIV, "sclk_uart0_div", "sclk_uart0_div_div",		1, 3),
-	GATE(CLK_UART0_FRAC, "sclk_uart0_frac", "sclk_uart0_frac_div",		1, 4),
-	GATE(SCLK_UART0, "sclk_uart0", "sclk_uart0_mux",			1, 5),
-	GATE(PCLK_PWM0, "pclk_pwm0", "pclk_pdpmu",				1, 6),
-	GATE(CLK_PWM0, "clk_pwm0", "clk_pwm0_div",				1, 7),
-	GATE(CLK_CAPTURE_PWM0_NDFT, "clk_capture_pwm0_ndft", "xin24m",		1, 8),
-	GATE(PCLK_GPIO0, "pclk_gpio0", "pclk_pdpmu",				1, 9),
-	GATE(DBCLK_GPIO0, "dbclk_gpio0", "dbclk_gpio0_sel",			1, 10),
-	GATE(PCLK_PMUPVTM, "pclk_pmupvtm", "pclk_pdpmu",			1, 11),
-	GATE(CLK_PMUPVTM, "clk_pmupvtm", "xin24m",				1, 12),
-	GATE(CLK_CORE_PMUPVTM, "clk_core_pmupvtm", "xin24m",			1, 13),
+	GATE(PCLK_I2C0, "pclk_i2c0", "pclk_pdpmu", 1, 0),
+	GATE(CLK_I2C0, "clk_i2c0", "clk_i2c0_div", 1, 1),
+	GATE(PCLK_UART0, "pclk_uart0", "pclk_pdpmu", 1, 2),
+	GATE(CLK_UART0_DIV, "sclk_uart0_div", "sclk_uart0_div_div", 1, 3),
+	GATE(CLK_UART0_FRAC, "sclk_uart0_frac", "sclk_uart0_frac_div", 1, 4),
+	GATE(SCLK_UART0, "sclk_uart0", "sclk_uart0_mux", 1, 5),
+	GATE(PCLK_PWM0, "pclk_pwm0", "pclk_pdpmu", 1, 6),
+	GATE(CLK_PWM0, "clk_pwm0", "clk_pwm0_div", 1, 7),
+	GATE(CLK_CAPTURE_PWM0_NDFT, "clk_capture_pwm0_ndft", "xin24m", 1, 8),
+	GATE(PCLK_GPIO0, "pclk_gpio0", "pclk_pdpmu", 1, 9),
+	GATE(DBCLK_GPIO0, "dbclk_gpio0", "dbclk_gpio0_sel", 1, 10),
+	GATE(PCLK_PMUPVTM, "pclk_pmupvtm", "pclk_pdpmu", 1, 11),
+	GATE(CLK_PMUPVTM, "clk_pmupvtm", "xin24m", 1, 12),
+	GATE(CLK_CORE_PMUPVTM, "clk_core_pmupvtm", "xin24m", 1, 13),
 
 	/* PMUCRU_PMUGATE_CON02 */
-	GATE(CLK_REF24M, "clk_ref24m", "clk_ref24m_div",			2, 0),
-	GATE(XIN_OSC0_USBPHY0_G, "xin_osc0_usbphy0_g", "xin24m",		2, 1),
-	GATE(XIN_OSC0_USBPHY1_G, "xin_osc0_usbphy1_g", "xin24m",		2, 2),
-	GATE(XIN_OSC0_MIPIDSIPHY0_G, "xin_osc0_mipidsiphy0_g", "xin24m",	2, 3),
-	GATE(XIN_OSC0_MIPIDSIPHY1_G, "xin_osc0_mipidsiphy1_g", "xin24m",	2, 4),
-	GATE(CLK_WIFI_DIV, "clk_wifi_div", "clk_wifi_div_div",			2, 5),
-	GATE(CLK_WIFI_OSC0, "clk_wifi_osc0", "xin24m",				2, 6),
-	GATE(CLK_PCIEPHY0_DIV, "clk_pciephy0_div", "clk_pciephy0_div_div",	2, 7),
-	GATE(CLK_PCIEPHY0_OSC0, "clk_pciephy0_osc0", "xin24m",			2, 8),
-	GATE(CLK_PCIEPHY1_DIV, "clk_pciephy1_div", "clk_pciephy1_div_div",	2, 9),
-	GATE(CLK_PCIEPHY1_OSC0, "clk_pciephy1_osc0", "xin24m",			2, 10),
-	GATE(CLK_PCIEPHY2_DIV, "clk_pciephy2_div", "clk_pciephy2_div_div",	2, 11),
-	GATE(CLK_PCIEPHY2_OSC0, "clk_pciephy2_osc0", "xin24m",			2, 12),
-	GATE(CLK_PCIE30PHY_REF_M, "clk_pcie30phy_ref_m", "ppll_ph0",		2, 13),
-	GATE(CLK_PCIE30PHY_REF_N, "clk_pcie30phy_ref_n", "ppll_ph180",		2, 14),
-	GATE(XIN_OSC0_EDPPHY_G, "xin_osc0_edpphy_g", "xin24m",			2, 15),
+	GATE(CLK_REF24M, "clk_ref24m", "clk_ref24m_div", 2, 0),
+	GATE(XIN_OSC0_USBPHY0_G, "xin_osc0_usbphy0_g", "xin24m", 2, 1),
+	GATE(XIN_OSC0_USBPHY1_G, "xin_osc0_usbphy1_g", "xin24m", 2, 2),
+	GATE(XIN_OSC0_MIPIDSIPHY0_G, "xin_osc0_mipidsiphy0_g", "xin24m", 2, 3),
+	GATE(XIN_OSC0_MIPIDSIPHY1_G, "xin_osc0_mipidsiphy1_g", "xin24m", 2, 4),
+	GATE(CLK_WIFI_DIV, "clk_wifi_div", "clk_wifi_div_div", 2, 5),
+	GATE(CLK_WIFI_OSC0, "clk_wifi_osc0", "xin24m", 2, 6),
+	GATE(CLK_PCIEPHY0_DIV, "clk_pciephy0_div", "clk_pciephy0_div_div", 2,
+	    7),
+	GATE(CLK_PCIEPHY0_OSC0, "clk_pciephy0_osc0", "xin24m", 2, 8),
+	GATE(CLK_PCIEPHY1_DIV, "clk_pciephy1_div", "clk_pciephy1_div_div", 2,
+	    9),
+	GATE(CLK_PCIEPHY1_OSC0, "clk_pciephy1_osc0", "xin24m", 2, 10),
+	GATE(CLK_PCIEPHY2_DIV, "clk_pciephy2_div", "clk_pciephy2_div_div", 2,
+	    11),
+	GATE(CLK_PCIEPHY2_OSC0, "clk_pciephy2_osc0", "xin24m", 2, 12),
+	GATE(CLK_PCIE30PHY_REF_M, "clk_pcie30phy_ref_m", "ppll_ph0", 2, 13),
+	GATE(CLK_PCIE30PHY_REF_N, "clk_pcie30phy_ref_n", "ppll_ph180", 2, 14),
+	GATE(XIN_OSC0_EDPPHY_G, "xin_osc0_edpphy_g", "xin24m", 2, 15),
 };
 
 static int
@@ -235,8 +238,8 @@ rk3568_pmucru_attach(device_t dev)
 
 static device_method_t methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rk3568_pmucru_probe),
-	DEVMETHOD(device_attach,	rk3568_pmucru_attach),
+	DEVMETHOD(device_probe, rk3568_pmucru_probe),
+	DEVMETHOD(device_attach, rk3568_pmucru_attach),
 
 	DEVMETHOD_END
 };
@@ -244,5 +247,5 @@ static device_method_t methods[] = {
 DEFINE_CLASS_1(rk3568_pmucru, rk3568_pmucru_driver, methods,
     sizeof(struct rk_cru_softc), rk_cru_driver);
 
-EARLY_DRIVER_MODULE(rk3568_pmucru, simplebus, rk3568_pmucru_driver,
-    0, 0, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(rk3568_pmucru, simplebus, rk3568_pmucru_driver, 0, 0,
+    BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);

@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stddef.h>
 
 #define PAM_SM_AUTH
@@ -38,8 +39,8 @@
 #include <security/pam_modules.h>
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	const char *user;
 	int r;

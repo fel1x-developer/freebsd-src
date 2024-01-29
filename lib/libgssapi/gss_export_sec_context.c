@@ -26,37 +26,36 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 #include "utils.h"
 
 OM_uint32
-gss_export_sec_context(OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
+gss_export_sec_context(OM_uint32 *minor_status, gss_ctx_id_t *context_handle,
     gss_buffer_t interprocess_token)
 {
 	OM_uint32 major_status;
-	struct _gss_context *ctx = (struct _gss_context *) *context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)*context_handle;
 	struct _gss_mech_switch *m = ctx->gc_mech;
 	gss_buffer_desc buf;
 
 	_gss_buffer_zero(interprocess_token);
 
-	major_status = m->gm_export_sec_context(minor_status,
-	    &ctx->gc_ctx, &buf);
+	major_status = m->gm_export_sec_context(minor_status, &ctx->gc_ctx,
+	    &buf);
 
 	if (major_status == GSS_S_COMPLETE) {
 		unsigned char *p;
 
 		free(ctx);
 		*context_handle = GSS_C_NO_CONTEXT;
-		interprocess_token->length = buf.length
-			+ 2 + m->gm_mech_oid.length;
+		interprocess_token->length = buf.length + 2 +
+		    m->gm_mech_oid.length;
 		interprocess_token->value = malloc(interprocess_token->length);
 		if (!interprocess_token->value) {
 			/*

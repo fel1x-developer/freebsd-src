@@ -26,18 +26,20 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/endian.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <utmpx.h>
-#include "utxdb.h"
+
+#include "namespace.h"
 #include "un-namespace.h"
+#include "utxdb.h"
 
 static FILE *
 futx_open(const char *file)
@@ -46,7 +48,7 @@ futx_open(const char *file)
 	struct stat sb;
 	int fd;
 
-	fd = _open(file, O_CREAT|O_RDWR|O_EXLOCK|O_CLOEXEC, 0644);
+	fd = _open(file, O_CREAT | O_RDWR | O_EXLOCK | O_CLOEXEC, 0644);
 	if (fd < 0)
 		return (NULL);
 
@@ -165,7 +167,6 @@ utx_active_remove(struct futx *fu)
 				error = errno;
 			else
 				ret = 0;
-
 		}
 
 	fclose(fp);
@@ -180,7 +181,7 @@ utx_active_init(const struct futx *fu)
 	int fd;
 
 	/* Initialize utx.active with a single BOOT_TIME record. */
-	fd = _open(_PATH_UTX_ACTIVE, O_CREAT|O_RDWR|O_TRUNC, 0644);
+	fd = _open(_PATH_UTX_ACTIVE, O_CREAT | O_RDWR | O_TRUNC, 0644);
 	if (fd < 0)
 		return;
 	_write(fd, fu, sizeof(*fu));
@@ -237,7 +238,7 @@ utx_lastlogin_upgrade(void)
 	struct stat sb;
 	int fd;
 
-	fd = _open(_PATH_UTX_LASTLOGIN, O_RDWR|O_CLOEXEC, 0644);
+	fd = _open(_PATH_UTX_LASTLOGIN, O_RDWR | O_CLOEXEC, 0644);
 	if (fd < 0)
 		return;
 
@@ -264,14 +265,16 @@ utx_log_add(const struct futx *fu)
 	 * zero-bytes.  Prepend a length field, indicating the length of
 	 * the record, excluding the length field itself.
 	 */
-	for (l = sizeof(*fu); l > 0 && ((const char *)fu)[l - 1] == '\0'; l--) ;
+	for (l = sizeof(*fu); l > 0 && ((const char *)fu)[l - 1] == '\0'; l--)
+		;
 	vec[0].iov_base = &l;
 	vec[0].iov_len = sizeof(l);
 	vec[1].iov_base = __DECONST(void *, fu);
 	vec[1].iov_len = l;
 	l = htobe16(l);
 
-	fd = _open(_PATH_UTX_LOG, O_CREAT|O_WRONLY|O_APPEND|O_CLOEXEC, 0644);
+	fd = _open(_PATH_UTX_LOG, O_CREAT | O_WRONLY | O_APPEND | O_CLOEXEC,
+	    0644);
 	if (fd < 0)
 		return (-1);
 	if (_writev(fd, vec, 2) == -1)

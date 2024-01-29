@@ -32,6 +32,7 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -45,26 +46,26 @@
  * Editline and history functions (and glue).
  */
 #include "alias.h"
-#include "exec.h"
-#include "shell.h"
-#include "parser.h"
-#include "var.h"
-#include "options.h"
-#include "main.h"
-#include "output.h"
-#include "mystring.h"
 #include "builtins.h"
+#include "exec.h"
+#include "main.h"
+#include "mystring.h"
+#include "options.h"
+#include "output.h"
+#include "parser.h"
+#include "shell.h"
+#include "var.h"
 #ifndef NO_HISTORY
-#include "myhistedit.h"
 #include "error.h"
 #include "eval.h"
 #include "memalloc.h"
+#include "myhistedit.h"
 
-#define MAXHISTLOOPS	4	/* max recursions through fc */
-#define DEFEDITOR	"ed"	/* default editor *should* be $EDITOR */
+#define MAXHISTLOOPS 4 /* max recursions through fc */
+#define DEFEDITOR "ed" /* default editor *should* be $EDITOR */
 
-History *hist;	/* history cookie */
-EditLine *el;	/* editline cookie */
+History *hist; /* history cookie */
+EditLine *el;  /* editline cookie */
 int displayhist;
 static int savehist;
 static FILE *el_in, *el_out;
@@ -122,7 +123,6 @@ histsave(void)
 	fclose(f);
 	free(histtmpname);
 	INTON;
-
 }
 
 void
@@ -186,10 +186,9 @@ histedit(void)
 					el_set(el, EL_HIST, history, hist);
 				el_set(el, EL_PROMPT_ESC, getprompt, '\001');
 				el_set(el, EL_ADDFN, "sh-complete",
-				    "Filename completion",
-				    sh_complete);
+				    "Filename completion", sh_complete);
 			} else {
-bad:
+			bad:
 				out2fmt_flush("sh: can't initialize editing\n");
 			}
 			INTON;
@@ -210,7 +209,7 @@ bad:
 		}
 	} else {
 		INTOFF;
-		if (el) {	/* no editing if not interactive */
+		if (el) { /* no editing if not interactive */
 			el_end(el);
 			el = NULL;
 		}
@@ -221,7 +220,6 @@ bad:
 		INTON;
 	}
 }
-
 
 void
 sethistsize(const char *hs)
@@ -298,7 +296,7 @@ operands:
 	 * If executing...
 	 */
 	if (lflg == 0 || editor || sflg) {
-		lflg = 0;	/* ignore */
+		lflg = 0; /* ignore */
 		editfile = NULL;
 		/*
 		 * Catch interrupts to reset active counter and
@@ -326,7 +324,7 @@ operands:
 			    (editor = bltinlookup("EDITOR", 1)) == NULL)
 				editor = DEFEDITOR;
 			if (editor[0] == '-' && editor[1] == '\0') {
-				sflg = 1;	/* no edit */
+				sflg = 1; /* no edit */
 				editor = NULL;
 			}
 		}
@@ -336,7 +334,7 @@ operands:
 	 * If executing, parse [old=new] now
 	 */
 	if (lflg == 0 && *argptr != NULL &&
-	     ((repl = strchr(*argptr, '=')) != NULL)) {
+	    ((repl = strchr(*argptr, '=')) != NULL)) {
 		pat = *argptr;
 		*repl++ = '\0';
 		argptr++;
@@ -378,7 +376,7 @@ operands:
 	 */
 	if (editor) {
 		int fd;
-		INTOFF;		/* easier */
+		INTOFF; /* easier */
 		sprintf(editfilestr, "%s/_shXXXXXX", _PATH_TMP);
 		if ((fd = mkstemp(editfilestr)) < 0)
 			error("can't create temporary file %s", editfile);
@@ -399,14 +397,14 @@ operands:
 	 */
 	history(hist, &he, H_FIRST);
 	retval = history(hist, &he, H_NEXT_EVENT, first);
-	for (;retval != -1; retval = history(hist, &he, direction)) {
+	for (; retval != -1; retval = history(hist, &he, direction)) {
 		if (lflg) {
 			if (!nflg)
 				out1fmt("%5d ", he.num);
 			out1str(he.str);
 		} else {
-			const char *s = pat ?
-			   fc_replace(he.str, pat, repl) : he.str;
+			const char *s = pat ? fc_replace(he.str, pat, repl) :
+					      he.str;
 
 			if (sflg) {
 				if (displayhist) {
@@ -426,8 +424,8 @@ operands:
 					 * cursor, set it back to the current
 					 * entry.
 					 */
-					history(hist, &he,
-					    H_NEXT_EVENT, oldhistnum);
+					history(hist, &he, H_NEXT_EVENT,
+					    oldhistnum);
 				}
 			} else
 				fputs(s, efp);
@@ -446,8 +444,9 @@ operands:
 		INTON;
 		editcmd = stalloc(strlen(editor) + strlen(editfile) + 2);
 		sprintf(editcmd, "%s %s", editor, editfile);
-		evalstring(editcmd, 0);	/* XXX - should use no JC command */
-		readcmdfile(editfile, 0 /* verify */);	/* XXX - should read back - quick tst */
+		evalstring(editcmd, 0); /* XXX - should use no JC command */
+		readcmdfile(editfile,
+		    0 /* verify */); /* XXX - should read back - quick tst */
 		unlink(editfile);
 	}
 
@@ -470,7 +469,7 @@ fc_replace(const char *s, char *p, char *r)
 		if (*s == *p && strncmp(s, p, plen) == 0) {
 			STPUTS(r, dest);
 			s += plen;
-			*p = '\0';	/* so no more matches */
+			*p = '\0'; /* so no more matches */
 		} else
 			STPUTC(*s++, dest);
 	}
@@ -521,12 +520,13 @@ str_to_event(const char *str, int last)
 				 * the notion of first and last is
 				 * backwards to that of the history package
 				 */
-				retval = history(hist, &he, last ? H_FIRST : H_LAST);
+				retval = history(hist, &he,
+				    last ? H_FIRST : H_LAST);
 			}
 		}
 		if (retval == -1)
 			error("history number %s not found (internal error)",
-			       str);
+			    str);
 	} else {
 		/*
 		 * pattern
@@ -584,12 +584,11 @@ comparator(const void *a, const void *b, void *thunk)
 {
 	size_t curpos = (intptr_t)thunk;
 
-	return (strcmp(*(char *const *)a + curpos,
-		*(char *const *)b + curpos));
+	return (strcmp(*(char *const *)a + curpos, *(char *const *)b + curpos));
 }
 
-static char
-**add_match(char **matches, size_t i, size_t *size, char *match_copy)
+static char **
+add_match(char **matches, size_t i, size_t *size, char *match_copy)
 {
 	if (match_copy == NULL)
 		return (NULL);
@@ -608,8 +607,8 @@ static char
  * directory. If we're at the start of the line, we want to look for
  * available commands from all paths in $PATH.
  */
-static char
-**sh_matches(const char *text, int start, int end)
+static char **
+sh_matches(const char *text, int start, int end)
 {
 	char *free_path = NULL, *path;
 	const char *dirname;
@@ -643,15 +642,17 @@ static char
 
 			if (strncmp(entry->d_name, text, curpos) != 0)
 				continue;
-			if (entry->d_type == DT_UNKNOWN || entry->d_type == DT_LNK) {
-				if (fstatat(dfd, entry->d_name, &statb, 0) == -1)
+			if (entry->d_type == DT_UNKNOWN ||
+			    entry->d_type == DT_LNK) {
+				if (fstatat(dfd, entry->d_name, &statb, 0) ==
+				    -1)
 					continue;
 				if (!S_ISREG(statb.st_mode))
 					continue;
 			} else if (entry->d_type != DT_REG)
 				continue;
 			rmatches = add_match(matches, ++i, &size,
-				strdup(entry->d_name));
+			    strdup(entry->d_name));
 			if (rmatches == NULL) {
 				closedir(dir);
 				goto out;
@@ -663,7 +664,8 @@ static char
 	for (const unsigned char *bp = builtincmd; *bp != 0; bp += 2 + bp[0]) {
 		if (curpos > bp[0] || memcmp(bp + 2, text, curpos) != 0)
 			continue;
-		rmatches = add_match(matches, ++i, &size, strndup(bp + 2, bp[0]));
+		rmatches = add_match(matches, ++i, &size,
+		    strndup(bp + 2, bp[0]));
 		if (rmatches == NULL)
 			goto out;
 		matches = rmatches;
@@ -695,7 +697,7 @@ out:
 	uniq = 1;
 	if (i > 1) {
 		qsort_s(matches + 1, i, sizeof(matches[0]), comparator,
-			(void *)(intptr_t)curpos);
+		    (void *)(intptr_t)curpos);
 		for (size_t k = 2; k <= i; k++) {
 			const char *l = matches[uniq] + curpos;
 			const char *r = matches[k] + curpos;
@@ -770,8 +772,8 @@ unsigned char
 sh_complete(EditLine *sel, int ch __unused)
 {
 	return (unsigned char)fn_complete2(sel, NULL, sh_matches,
-		L" \t\n\"\\'`@$><=;|&{(", NULL, append_char_function,
-		(size_t)100, NULL, &((int) {0}), NULL, NULL, FN_QUOTE_MATCH);
+	    L" \t\n\"\\'`@$><=;|&{(", NULL, append_char_function, (size_t)100,
+	    NULL, &((int) { 0 }), NULL, NULL, FN_QUOTE_MATCH);
 }
 
 #else

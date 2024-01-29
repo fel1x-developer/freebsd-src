@@ -31,17 +31,17 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cn23xx_pf_device.h"
 #include "lio_bsd.h"
 #include "lio_common.h"
-#include "lio_droq.h"
-#include "lio_iq.h"
-#include "lio_response_manager.h"
 #include "lio_device.h"
-#include "lio_main.h"
-#include "lio_network.h"
-#include "cn23xx_pf_device.h"
+#include "lio_droq.h"
 #include "lio_image.h"
+#include "lio_iq.h"
+#include "lio_main.h"
 #include "lio_mem_ops.h"
+#include "lio_network.h"
+#include "lio_response_manager.h"
 
 static struct lio_config default_cn23xx_conf = {
 	.card_type			= LIO_23XX,
@@ -147,39 +147,41 @@ static struct lio_config default_cn23xx_conf = {
 };
 
 static struct lio_config_ptr {
-	uint32_t	conf_type;
-}	oct_conf_info[LIO_MAX_DEVICES] = {
+	uint32_t conf_type;
+} oct_conf_info[LIO_MAX_DEVICES] = {
 
 	{
-		LIO_CFG_TYPE_DEFAULT,
-	}, {
-		LIO_CFG_TYPE_DEFAULT,
-	}, {
-		LIO_CFG_TYPE_DEFAULT,
-	}, {
-		LIO_CFG_TYPE_DEFAULT,
+	    LIO_CFG_TYPE_DEFAULT,
+	},
+	{
+	    LIO_CFG_TYPE_DEFAULT,
+	},
+	{
+	    LIO_CFG_TYPE_DEFAULT,
+	},
+	{
+	    LIO_CFG_TYPE_DEFAULT,
 	},
 };
 
-static char lio_state_str[LIO_DEV_STATES + 1][32] = {
-	"BEGIN", "PCI-ENABLE-DONE", "PCI-MAP-DONE", "DISPATCH-INIT-DONE",
-	"IQ-INIT-DONE", "SCBUFF-POOL-INIT-DONE", "RESPLIST-INIT-DONE",
-	"DROQ-INIT-DONE", "MBOX-SETUP-DONE", "MSIX-ALLOC-VECTOR-DONE",
-	"INTR-SET-DONE", "IO-QUEUES-INIT-DONE", "CONSOLE-INIT-DONE",
-	"HOST-READY", "CORE-READY", "RUNNING", "IN-RESET",
-	"INVALID"
-};
+static char lio_state_str[LIO_DEV_STATES + 1][32] = { "BEGIN",
+	"PCI-ENABLE-DONE", "PCI-MAP-DONE", "DISPATCH-INIT-DONE", "IQ-INIT-DONE",
+	"SCBUFF-POOL-INIT-DONE", "RESPLIST-INIT-DONE", "DROQ-INIT-DONE",
+	"MBOX-SETUP-DONE", "MSIX-ALLOC-VECTOR-DONE", "INTR-SET-DONE",
+	"IO-QUEUES-INIT-DONE", "CONSOLE-INIT-DONE", "HOST-READY", "CORE-READY",
+	"RUNNING", "IN-RESET", "INVALID" };
 
-static char	lio_app_str[LIO_DRV_APP_COUNT + 1][32] = {"BASE", "NIC", "UNKNOWN"};
+static char lio_app_str[LIO_DRV_APP_COUNT + 1][32] = { "BASE", "NIC",
+	"UNKNOWN" };
 
-static struct octeon_device	*octeon_device[LIO_MAX_DEVICES];
-static volatile int		lio_adapter_refcounts[LIO_MAX_DEVICES];
+static struct octeon_device *octeon_device[LIO_MAX_DEVICES];
+static volatile int lio_adapter_refcounts[LIO_MAX_DEVICES];
 
-static uint32_t	octeon_device_count;
+static uint32_t octeon_device_count;
 /* locks device array (i.e. octeon_device[]) */
-struct mtx	octeon_devices_lock;
+struct mtx octeon_devices_lock;
 
-static struct lio_core_setup	core_setup[LIO_MAX_DEVICES];
+static struct lio_core_setup core_setup[LIO_MAX_DEVICES];
 
 static void
 oct_set_config_info(int oct_id, int conf_type)
@@ -193,7 +195,7 @@ oct_set_config_info(int oct_id, int conf_type)
 void
 lio_init_device_list(int conf_type)
 {
-	int	i;
+	int i;
 
 	bzero(octeon_device, (sizeof(void *) * LIO_MAX_DEVICES));
 	for (i = 0; i < LIO_MAX_DEVICES; i++)
@@ -204,8 +206,8 @@ lio_init_device_list(int conf_type)
 static void *
 __lio_retrieve_config_info(struct octeon_device *oct, uint16_t card_type)
 {
-	void		*ret = NULL;
-	uint32_t	oct_id = oct->octeon_id;
+	void *ret = NULL;
+	uint32_t oct_id = oct->octeon_id;
 
 	switch (oct_conf_info[oct_id].conf_type) {
 	case LIO_CFG_TYPE_DEFAULT:
@@ -220,10 +222,10 @@ __lio_retrieve_config_info(struct octeon_device *oct, uint16_t card_type)
 	return (ret);
 }
 
-void   *
+void *
 lio_get_config_info(struct octeon_device *oct, uint16_t card_type)
 {
-	void	*conf = NULL;
+	void *conf = NULL;
 
 	conf = __lio_retrieve_config_info(oct, card_type);
 	if (conf == NULL)
@@ -232,10 +234,10 @@ lio_get_config_info(struct octeon_device *oct, uint16_t card_type)
 	return (conf);
 }
 
-char   *
+char *
 lio_get_state_string(volatile int *state_ptr)
 {
-	int32_t	istate = (int32_t)atomic_load_acq_int(state_ptr);
+	int32_t istate = (int32_t)atomic_load_acq_int(state_ptr);
 
 	if (istate > LIO_DEV_STATES || istate < 0)
 		return (lio_state_str[LIO_DEV_STATE_INVALID]);
@@ -256,7 +258,7 @@ lio_get_app_string(uint32_t app_mode)
 void
 lio_free_device_mem(struct octeon_device *oct)
 {
-	int	i;
+	int i;
 
 	for (i = 0; i < LIO_MAX_OUTPUT_QUEUES(oct); i++) {
 		if ((oct->io_qmask.oq & BIT_ULL(i)) && (oct->droq[i]))
@@ -278,9 +280,9 @@ lio_free_device_mem(struct octeon_device *oct)
 static struct octeon_device *
 lio_allocate_device_mem(device_t device)
 {
-	struct octeon_device	*oct;
-	uint32_t	configsize = 0, pci_id = 0, size;
-	uint8_t		*buf = NULL;
+	struct octeon_device *oct;
+	uint32_t configsize = 0, pci_id = 0, size;
+	uint8_t *buf = NULL;
 
 	pci_id = pci_get_device(device);
 	switch (pci_id) {
@@ -289,7 +291,7 @@ lio_allocate_device_mem(device_t device)
 		break;
 	default:
 		device_printf(device, "Error: Unknown PCI Device: 0x%x\n",
-			      pci_id);
+		    pci_id);
 		return (NULL);
 	}
 
@@ -297,7 +299,7 @@ lio_allocate_device_mem(device_t device)
 		configsize += (8 - (configsize & 0x7));
 
 	size = configsize +
-		(sizeof(struct lio_dispatch) * LIO_DISPATCH_LIST_SIZE);
+	    (sizeof(struct lio_dispatch) * LIO_DISPATCH_LIST_SIZE);
 
 	buf = malloc(size, M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (buf == NULL)
@@ -313,8 +315,8 @@ lio_allocate_device_mem(device_t device)
 struct octeon_device *
 lio_allocate_device(device_t device)
 {
-	struct octeon_device	*oct = NULL;
-	uint32_t	oct_idx = 0;
+	struct octeon_device *oct = NULL;
+	uint32_t oct_idx = 0;
 
 	mtx_lock(&octeon_devices_lock);
 
@@ -340,7 +342,7 @@ lio_allocate_device(device_t device)
 
 	oct->octeon_id = oct_idx;
 	snprintf(oct->device_name, sizeof(oct->device_name), "%s%d",
-		 LIO_DRV_NAME, oct->octeon_id);
+	    LIO_DRV_NAME, oct->octeon_id);
 
 	return (oct);
 }
@@ -356,9 +358,9 @@ lio_allocate_device(device_t device)
  */
 int
 lio_register_device(struct octeon_device *oct, int bus, int dev, int func,
-		    int is_pf)
+    int is_pf)
 {
-	int	idx, refcount;
+	int idx, refcount;
 
 	oct->loc.bus = bus;
 	oct->loc.dev = dev;
@@ -370,18 +372,19 @@ lio_register_device(struct octeon_device *oct, int bus, int dev, int func,
 	mtx_lock(&octeon_devices_lock);
 	for (idx = (int)oct->octeon_id - 1; idx >= 0; idx--) {
 		if (octeon_device[idx] == NULL) {
-			lio_dev_err(oct, "%s: Internal driver error, missing dev\n",
-				    __func__);
+			lio_dev_err(oct,
+			    "%s: Internal driver error, missing dev\n",
+			    __func__);
 			mtx_unlock(&octeon_devices_lock);
 			atomic_add_int(oct->adapter_refcount, 1);
-			return (1);	/* here, refcount is guaranteed to be 1 */
+			return (1); /* here, refcount is guaranteed to be 1 */
 		}
 
 		/* if another device is at same bus/dev, use its refcounter */
 		if ((octeon_device[idx]->loc.bus == bus) &&
 		    (octeon_device[idx]->loc.dev == dev)) {
 			oct->adapter_refcount =
-				octeon_device[idx]->adapter_refcount;
+			    octeon_device[idx]->adapter_refcount;
 			break;
 		}
 	}
@@ -392,7 +395,7 @@ lio_register_device(struct octeon_device *oct, int bus, int dev, int func,
 	refcount = atomic_load_acq_int(oct->adapter_refcount);
 
 	lio_dev_dbg(oct, "%s: %02x:%02x:%d refcount %u\n", __func__,
-		    oct->loc.bus, oct->loc.dev, oct->loc.func, refcount);
+	    oct->loc.bus, oct->loc.dev, oct->loc.func, refcount);
 
 	return (refcount);
 }
@@ -405,13 +408,13 @@ lio_register_device(struct octeon_device *oct, int bus, int dev, int func,
 int
 lio_deregister_device(struct octeon_device *oct)
 {
-	int	refcount;
+	int refcount;
 
 	atomic_subtract_int(oct->adapter_refcount, 1);
 	refcount = atomic_load_acq_int(oct->adapter_refcount);
 
 	lio_dev_dbg(oct, "%s: %04d:%02d:%d refcount %u\n", __func__,
-		    oct->loc.bus, oct->loc.dev, oct->loc.func, refcount);
+	    oct->loc.bus, oct->loc.dev, oct->loc.func, refcount);
 
 	return (refcount);
 }
@@ -419,8 +422,8 @@ lio_deregister_device(struct octeon_device *oct)
 int
 lio_allocate_ioq_vector(struct octeon_device *oct)
 {
-	struct lio_ioq_vector	*ioq_vector;
-	int	i, cpu_num, num_ioqs = 0, size;
+	struct lio_ioq_vector *ioq_vector;
+	int i, cpu_num, num_ioqs = 0, size;
 
 	if (LIO_CN23XX_PF(oct))
 		num_ioqs = oct->sriov_info.num_pf_rings;
@@ -458,14 +461,13 @@ lio_free_ioq_vector(struct octeon_device *oct)
 int
 lio_setup_instr_queue0(struct octeon_device *oct)
 {
-	union octeon_txpciq	txpciq;
-	uint32_t	iq_no = 0;
-	uint32_t	num_descs = 0;
+	union octeon_txpciq txpciq;
+	uint32_t iq_no = 0;
+	uint32_t num_descs = 0;
 
 	if (LIO_CN23XX_PF(oct))
-		num_descs =
-			LIO_GET_NUM_DEF_TX_DESCS_CFG(LIO_CHIP_CONF(oct,
-								   cn23xx_pf));
+		num_descs = LIO_GET_NUM_DEF_TX_DESCS_CFG(
+		    LIO_CHIP_CONF(oct, cn23xx_pf));
 
 	oct->num_iqs = 0;
 
@@ -490,15 +492,13 @@ lio_setup_instr_queue0(struct octeon_device *oct)
 int
 lio_setup_output_queue0(struct octeon_device *oct)
 {
-	uint32_t	desc_size = 0, num_descs = 0, oq_no = 0;
+	uint32_t desc_size = 0, num_descs = 0, oq_no = 0;
 
 	if (LIO_CN23XX_PF(oct)) {
-		num_descs =
-			LIO_GET_NUM_DEF_RX_DESCS_CFG(LIO_CHIP_CONF(oct,
-								   cn23xx_pf));
-		desc_size =
-			LIO_GET_DEF_RX_BUF_SIZE_CFG(LIO_CHIP_CONF(oct,
-								  cn23xx_pf));
+		num_descs = LIO_GET_NUM_DEF_RX_DESCS_CFG(
+		    LIO_CHIP_CONF(oct, cn23xx_pf));
+		desc_size = LIO_GET_DEF_RX_BUF_SIZE_CFG(
+		    LIO_CHIP_CONF(oct, cn23xx_pf));
 	}
 
 	oct->num_oqs = 0;
@@ -515,7 +515,7 @@ lio_setup_output_queue0(struct octeon_device *oct)
 int
 lio_init_dispatch_list(struct octeon_device *oct)
 {
-	uint32_t	i;
+	uint32_t i;
 
 	oct->dispatch.count = 0;
 
@@ -532,9 +532,9 @@ lio_init_dispatch_list(struct octeon_device *oct)
 void
 lio_delete_dispatch_list(struct octeon_device *oct)
 {
-	struct lio_stailq_head	freelist;
-	struct lio_stailq_node	*temp, *tmp2;
-	uint32_t		i;
+	struct lio_stailq_head freelist;
+	struct lio_stailq_node *temp, *tmp2;
+	uint32_t i;
 
 	STAILQ_INIT(&freelist);
 
@@ -547,7 +547,7 @@ lio_delete_dispatch_list(struct octeon_device *oct)
 		while (!STAILQ_EMPTY(dispatch)) {
 			temp = STAILQ_FIRST(dispatch);
 			STAILQ_REMOVE_HEAD(&oct->dispatch.dlist[i].head,
-					   entries);
+			    entries);
 			STAILQ_INSERT_TAIL(&freelist, temp, entries);
 		}
 
@@ -558,7 +558,7 @@ lio_delete_dispatch_list(struct octeon_device *oct)
 
 	mtx_unlock(&oct->dispatch.lock);
 
-	STAILQ_FOREACH_SAFE(temp, &freelist, entries, tmp2) {
+	STAILQ_FOREACH_SAFE (temp, &freelist, entries, tmp2) {
 		STAILQ_REMOVE_HEAD(&freelist, entries);
 		free(temp, M_DEVBUF);
 	}
@@ -566,12 +566,12 @@ lio_delete_dispatch_list(struct octeon_device *oct)
 
 lio_dispatch_fn_t
 lio_get_dispatch(struct octeon_device *octeon_dev, uint16_t opcode,
-		 uint16_t subcode)
+    uint16_t subcode)
 {
-	struct lio_stailq_node	*dispatch;
-	lio_dispatch_fn_t	fn = NULL;
-	uint32_t		idx;
-	uint16_t	combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
+	struct lio_stailq_node *dispatch;
+	lio_dispatch_fn_t fn = NULL;
+	uint32_t idx;
+	uint16_t combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
 
 	idx = combined_opcode & LIO_OPCODE_MASK;
 
@@ -590,12 +590,12 @@ lio_get_dispatch(struct octeon_device *octeon_dev, uint16_t opcode,
 	if (octeon_dev->dispatch.dlist[idx].opcode == combined_opcode) {
 		fn = octeon_dev->dispatch.dlist[idx].dispatch_fn;
 	} else {
-		STAILQ_FOREACH(dispatch, &octeon_dev->dispatch.dlist[idx].head,
-			       entries) {
+		STAILQ_FOREACH (dispatch, &octeon_dev->dispatch.dlist[idx].head,
+		    entries) {
 			if (((struct lio_dispatch *)dispatch)->opcode ==
 			    combined_opcode) {
-				fn = ((struct lio_dispatch *)
-				      dispatch)->dispatch_fn;
+				fn = ((struct lio_dispatch *)dispatch)
+					 ->dispatch_fn;
 				break;
 			}
 		}
@@ -625,11 +625,11 @@ lio_get_dispatch(struct octeon_device *octeon_dev, uint16_t opcode,
  */
 int
 lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
-			 uint16_t subcode, lio_dispatch_fn_t fn, void *fn_arg)
+    uint16_t subcode, lio_dispatch_fn_t fn, void *fn_arg)
 {
-	lio_dispatch_fn_t	pfn;
-	uint32_t	idx;
-	uint16_t	combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
+	lio_dispatch_fn_t pfn;
+	uint32_t idx;
+	uint16_t combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
 
 	idx = combined_opcode & LIO_OPCODE_MASK;
 
@@ -655,13 +655,12 @@ lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
 		struct lio_dispatch *dispatch;
 
 		lio_dev_dbg(oct,
-			    "Adding opcode to dispatch list linked list\n");
-		dispatch = (struct lio_dispatch *)
-			malloc(sizeof(struct lio_dispatch),
-			       M_DEVBUF, M_NOWAIT | M_ZERO);
+		    "Adding opcode to dispatch list linked list\n");
+		dispatch = (struct lio_dispatch *)malloc(
+		    sizeof(struct lio_dispatch), M_DEVBUF, M_NOWAIT | M_ZERO);
 		if (dispatch == NULL) {
 			lio_dev_err(oct,
-				    "No memory to add dispatch function\n");
+			    "No memory to add dispatch function\n");
 			return (1);
 		}
 
@@ -675,13 +674,14 @@ lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
 		 */
 		mtx_lock(&oct->dispatch.lock);
 		STAILQ_INSERT_HEAD(&oct->dispatch.dlist[idx].head,
-				   &dispatch->node, entries);
+		    &dispatch->node, entries);
 		oct->dispatch.count++;
 		mtx_unlock(&oct->dispatch.lock);
 
 	} else {
-		lio_dev_err(oct, "Found previously registered dispatch fn for opcode/subcode: %x/%x\n",
-			    opcode, subcode);
+		lio_dev_err(oct,
+		    "Found previously registered dispatch fn for opcode/subcode: %x/%x\n",
+		    opcode, subcode);
 		return (1);
 	}
 
@@ -704,13 +704,13 @@ lio_register_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
  */
 int
 lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
-			   uint16_t subcode)
+    uint16_t subcode)
 {
-	struct lio_stailq_head	*dispatch_head;
-	struct lio_stailq_node	*dispatch, *dfree = NULL, *tmp2;
-	int		retval = 0;
-	uint32_t	idx;
-	uint16_t	combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
+	struct lio_stailq_head *dispatch_head;
+	struct lio_stailq_node *dispatch, *dfree = NULL, *tmp2;
+	int retval = 0;
+	uint32_t idx;
+	uint16_t combined_opcode = LIO_OPCODE_SUBCODE(opcode, subcode);
 
 	idx = combined_opcode & LIO_OPCODE_MASK;
 
@@ -718,7 +718,8 @@ lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
 
 	if (oct->dispatch.count == 0) {
 		mtx_unlock(&oct->dispatch.lock);
-		lio_dev_err(oct, "No dispatch functions registered for this device\n");
+		lio_dev_err(oct,
+		    "No dispatch functions registered for this device\n");
 		return (1);
 	}
 	if (oct->dispatch.dlist[idx].opcode == combined_opcode) {
@@ -740,14 +741,12 @@ lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
 		}
 	} else {
 		retval = 1;
-		STAILQ_FOREACH_SAFE(dispatch,
-				    &oct->dispatch.dlist[idx].head,
-				    entries, tmp2) {
+		STAILQ_FOREACH_SAFE (dispatch, &oct->dispatch.dlist[idx].head,
+		    entries, tmp2) {
 			if (((struct lio_dispatch *)dispatch)->opcode ==
 			    combined_opcode) {
 				STAILQ_REMOVE(&oct->dispatch.dlist[idx].head,
-					      dispatch,
-					      lio_stailq_node, entries);
+				    dispatch, lio_stailq_node, entries);
 				dfree = dispatch;
 				retval = 0;
 			}
@@ -766,27 +765,26 @@ lio_unregister_dispatch_fn(struct octeon_device *oct, uint16_t opcode,
 int
 lio_core_drv_init(struct lio_recv_info *recv_info, void *buf)
 {
-	struct octeon_device	*oct = (struct octeon_device *)buf;
-	struct lio_recv_pkt	*recv_pkt = recv_info->recv_pkt;
-	struct lio_core_setup	*cs = NULL;
-	uint32_t	i;
-	uint32_t	num_nic_ports = 0;
-	char		app_name[16];
+	struct octeon_device *oct = (struct octeon_device *)buf;
+	struct lio_recv_pkt *recv_pkt = recv_info->recv_pkt;
+	struct lio_core_setup *cs = NULL;
+	uint32_t i;
+	uint32_t num_nic_ports = 0;
+	char app_name[16];
 
 	if (LIO_CN23XX_PF(oct))
 		num_nic_ports = LIO_GET_NUM_NIC_PORTS_CFG(
-					       LIO_CHIP_CONF(oct, cn23xx_pf));
+		    LIO_CHIP_CONF(oct, cn23xx_pf));
 
 	if (atomic_load_acq_int(&oct->status) >= LIO_DEV_RUNNING) {
 		lio_dev_err(oct, "Received CORE OK when device state is 0x%x\n",
-			    atomic_load_acq_int(&oct->status));
+		    atomic_load_acq_int(&oct->status));
 		goto core_drv_init_err;
 	}
 
 	strncpy(app_name,
-		lio_get_app_string((uint32_t)
-				   recv_pkt->rh.r_core_drv_init.app_mode),
-		sizeof(app_name) - 1);
+	    lio_get_app_string((uint32_t)recv_pkt->rh.r_core_drv_init.app_mode),
+	    sizeof(app_name) - 1);
 	oct->app_mode = (uint32_t)recv_pkt->rh.r_core_drv_init.app_mode;
 	if (recv_pkt->rh.r_core_drv_init.app_mode == LIO_DRV_NIC_APP) {
 		oct->fw_info.max_nic_ports =
@@ -796,15 +794,16 @@ lio_core_drv_init(struct lio_recv_info *recv_info, void *buf)
 	}
 
 	if (oct->fw_info.max_nic_ports < num_nic_ports) {
-		lio_dev_err(oct, "Config has more ports than firmware allows (%d > %d).\n",
-			    num_nic_ports, oct->fw_info.max_nic_ports);
+		lio_dev_err(oct,
+		    "Config has more ports than firmware allows (%d > %d).\n",
+		    num_nic_ports, oct->fw_info.max_nic_ports);
 		goto core_drv_init_err;
 	}
 
 	oct->fw_info.app_cap_flags = recv_pkt->rh.r_core_drv_init.app_cap_flags;
 	oct->fw_info.app_mode = (uint32_t)recv_pkt->rh.r_core_drv_init.app_mode;
-	oct->pfvf_hsword.app_mode =
-	    (uint32_t)recv_pkt->rh.r_core_drv_init.app_mode;
+	oct->pfvf_hsword.app_mode = (uint32_t)
+					recv_pkt->rh.r_core_drv_init.app_mode;
 
 	oct->pfvf_hsword.pkind = recv_pkt->rh.r_core_drv_init.pkind;
 
@@ -817,15 +816,15 @@ lio_core_drv_init(struct lio_recv_info *recv_info, void *buf)
 
 	if (recv_pkt->buffer_size[0] != (sizeof(*cs) + LIO_DROQ_INFO_SIZE)) {
 		lio_dev_dbg(oct, "Core setup bytes expected %llu found %d\n",
-			    LIO_CAST64(sizeof(*cs) + LIO_DROQ_INFO_SIZE),
-			    recv_pkt->buffer_size[0]);
+		    LIO_CAST64(sizeof(*cs) + LIO_DROQ_INFO_SIZE),
+		    recv_pkt->buffer_size[0]);
 	}
 
 	memcpy(cs, recv_pkt->buffer_ptr[0]->m_data + LIO_DROQ_INFO_SIZE,
-	       sizeof(*cs));
+	    sizeof(*cs));
 	strncpy(oct->boardinfo.name, cs->boardname, LIO_BOARD_NAME);
 	strncpy(oct->boardinfo.serial_number, cs->board_serial_number,
-		LIO_SERIAL_NUM_LEN);
+	    LIO_SERIAL_NUM_LEN);
 
 	lio_swap_8B_data((uint64_t *)cs, (sizeof(*cs) >> 3));
 
@@ -833,7 +832,7 @@ lio_core_drv_init(struct lio_recv_info *recv_info, void *buf)
 	oct->boardinfo.minor = cs->board_rev_minor;
 
 	lio_dev_info(oct, "Running %s (%llu Hz)\n", app_name,
-		     LIO_CAST64(cs->corefreq));
+	    LIO_CAST64(cs->corefreq));
 
 core_drv_init_err:
 	for (i = 0; i < recv_pkt->buffer_count; i++)
@@ -850,7 +849,6 @@ lio_get_tx_qsize(struct octeon_device *oct, uint32_t q_no)
 	if ((oct != NULL) && (q_no < (uint32_t)LIO_MAX_INSTR_QUEUES(oct)) &&
 	    (oct->io_qmask.iq & BIT_ULL(q_no)))
 		return (oct->instr_queue[q_no]->max_count);
-
 
 	return (-1);
 }
@@ -870,15 +868,15 @@ lio_get_rx_qsize(struct octeon_device *oct, uint32_t q_no)
 struct lio_config *
 lio_get_conf(struct octeon_device *oct)
 {
-	struct lio_config	*default_oct_conf = NULL;
+	struct lio_config *default_oct_conf = NULL;
 
 	/*
 	 * check the OCTEON Device model & return the corresponding octeon
 	 * configuration
 	 */
 	if (LIO_CN23XX_PF(oct)) {
-		default_oct_conf = (struct lio_config *)(
-					       LIO_CHIP_CONF(oct, cn23xx_pf));
+		default_oct_conf = (struct lio_config *)(LIO_CHIP_CONF(oct,
+		    cn23xx_pf));
 	}
 
 	return (default_oct_conf);
@@ -903,8 +901,8 @@ lio_get_device(uint32_t octeon_id)
 uint64_t
 lio_pci_readq(struct octeon_device *oct, uint64_t addr)
 {
-	uint64_t		val64;
-	volatile uint32_t	addrhi;
+	uint64_t val64;
+	volatile uint32_t addrhi;
 
 	mtx_lock(&oct->pci_win_lock);
 
@@ -921,7 +919,7 @@ lio_pci_readq(struct octeon_device *oct, uint64_t addr)
 	(void)lio_read_csr32(oct, oct->reg_list.pci_win_rd_addr_hi);
 
 	lio_write_csr32(oct, oct->reg_list.pci_win_rd_addr_lo,
-			addr & 0xffffffff);
+	    addr & 0xffffffff);
 	(void)lio_read_csr32(oct, oct->reg_list.pci_win_rd_addr_lo);
 
 	val64 = lio_read_csr64(oct, oct->reg_list.pci_win_rd_data);
@@ -945,7 +943,7 @@ lio_pci_writeq(struct octeon_device *oct, uint64_t val, uint64_t addr)
 	(void)lio_read_csr32(oct, oct->reg_list.pci_win_wr_data_hi);
 
 	lio_write_csr32(oct, oct->reg_list.pci_win_wr_data_lo,
-			val & 0xffffffff);
+	    val & 0xffffffff);
 
 	mtx_unlock(&oct->pci_win_lock);
 }
@@ -953,14 +951,14 @@ lio_pci_writeq(struct octeon_device *oct, uint64_t val, uint64_t addr)
 int
 lio_mem_access_ok(struct octeon_device *oct)
 {
-	uint64_t	access_okay = 0;
-	uint64_t	lmc0_reset_ctl;
+	uint64_t access_okay = 0;
+	uint64_t lmc0_reset_ctl;
 
 	/* Check to make sure a DDR interface is enabled */
 	if (LIO_CN23XX_PF(oct)) {
 		lmc0_reset_ctl = lio_pci_readq(oct, LIO_CN23XX_LMC0_RESET_CTL);
-		access_okay =
-		    (lmc0_reset_ctl & LIO_CN23XX_LMC0_RESET_CTL_DDR3RST_MASK);
+		access_okay = (lmc0_reset_ctl &
+		    LIO_CN23XX_LMC0_RESET_CTL_DDR3RST_MASK);
 	}
 
 	return (access_okay ? 0 : 1);
@@ -969,8 +967,8 @@ lio_mem_access_ok(struct octeon_device *oct)
 int
 lio_wait_for_ddr_init(struct octeon_device *oct, unsigned long *timeout)
 {
-	int		ret = 1;
-	uint32_t	ms;
+	int ret = 1;
+	uint32_t ms;
 
 	if (timeout == NULL)
 		return (ret);
@@ -995,8 +993,8 @@ lio_wait_for_ddr_init(struct octeon_device *oct, unsigned long *timeout)
 int
 lio_get_device_id(void *dev)
 {
-	struct octeon_device	*octeon_dev = (struct octeon_device *)dev;
-	uint32_t		i;
+	struct octeon_device *octeon_dev = (struct octeon_device *)dev;
+	uint32_t i;
 
 	for (i = 0; i < LIO_MAX_DEVICES; i++)
 		if (octeon_device[i] == octeon_dev)
@@ -1009,8 +1007,8 @@ void
 lio_enable_irq(struct lio_droq *droq, struct lio_instr_queue *iq)
 {
 	struct octeon_device *oct = NULL;
-	uint64_t	instr_cnt;
-	uint32_t	pkts_pend;
+	uint64_t instr_cnt;
+	uint32_t pkts_pend;
 
 	/* the whole thing needs to be atomic, ideally */
 	if (droq != NULL) {
@@ -1018,7 +1016,7 @@ lio_enable_irq(struct lio_droq *droq, struct lio_instr_queue *iq)
 		pkts_pend = atomic_load_acq_int(&droq->pkts_pending);
 		mtx_lock(&droq->lock);
 		lio_write_csr32(oct, droq->pkts_sent_reg,
-				droq->pkt_count - pkts_pend);
+		    droq->pkt_count - pkts_pend);
 		droq->pkt_count = pkts_pend;
 		/* this write needs to be flushed before we release the lock */
 		__compiler_membar();
@@ -1047,14 +1045,14 @@ lio_enable_irq(struct lio_droq *droq, struct lio_instr_queue *iq)
 	if ((oct != NULL) && (LIO_CN23XX_PF(oct))) {
 		if (droq != NULL)
 			lio_write_csr64(oct, droq->pkts_sent_reg,
-					LIO_CN23XX_INTR_RESEND);
+			    LIO_CN23XX_INTR_RESEND);
 		/* we race with firmrware here. */
 		/* read and write the IN_DONE_CNTS */
 		else if (iq != NULL) {
 			instr_cnt = lio_read_csr64(oct, iq->inst_cnt_reg);
 			lio_write_csr64(oct, iq->inst_cnt_reg,
-					((instr_cnt & 0xFFFFFFFF00000000ULL) |
-					 LIO_CN23XX_INTR_RESEND));
+			    ((instr_cnt & 0xFFFFFFFF00000000ULL) |
+				LIO_CN23XX_INTR_RESEND));
 		}
 	}
 }

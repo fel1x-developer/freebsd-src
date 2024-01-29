@@ -255,8 +255,8 @@ qemu_fwcfg_add_item_max_cpus(void)
 	}
 
 	/*
-	 * We don't support cpu hotplug yet. For that reason, use guest_ncpus instead
-	 * of maxcpus.
+	 * We don't support cpu hotplug yet. For that reason, use guest_ncpus
+	 * instead of maxcpus.
 	 */
 	*fwcfg_max_cpus = htole16(guest_ncpus);
 
@@ -410,7 +410,7 @@ qemu_fwcfg_add_user_files(void)
 	const struct qemu_fwcfg_user_file *fwcfg_file;
 	int error;
 
-	STAILQ_FOREACH(fwcfg_file, &user_files, chain) {
+	STAILQ_FOREACH (fwcfg_file, &user_files, chain) {
 		error = qemu_fwcfg_add_file(fwcfg_file->name, fwcfg_file->size,
 		    fwcfg_file->data);
 		if (error)
@@ -467,19 +467,19 @@ qemu_fwcfg_init(struct vmctx *const ctx)
 
 #ifdef __amd64__
 		if ((error = qemu_fwcfg_register_port("qemu_fwcfg_selector",
-		    QEMU_FWCFG_SELECTOR_PORT_NUMBER,
-		    QEMU_FWCFG_SELECTOR_PORT_SIZE,
-		    QEMU_FWCFG_SELECTOR_PORT_FLAGS,
-		    qemu_fwcfg_selector_port_handler)) != 0) {
+			 QEMU_FWCFG_SELECTOR_PORT_NUMBER,
+			 QEMU_FWCFG_SELECTOR_PORT_SIZE,
+			 QEMU_FWCFG_SELECTOR_PORT_FLAGS,
+			 qemu_fwcfg_selector_port_handler)) != 0) {
 			warnx(
 			    "%s: Unable to register qemu fwcfg selector port 0x%x",
 			    __func__, QEMU_FWCFG_SELECTOR_PORT_NUMBER);
 			goto done;
 		}
 		if ((error = qemu_fwcfg_register_port("qemu_fwcfg_data",
-		    QEMU_FWCFG_DATA_PORT_NUMBER, QEMU_FWCFG_DATA_PORT_SIZE,
-		    QEMU_FWCFG_DATA_PORT_FLAGS,
-		    qemu_fwcfg_data_port_handler)) != 0) {
+			 QEMU_FWCFG_DATA_PORT_NUMBER, QEMU_FWCFG_DATA_PORT_SIZE,
+			 QEMU_FWCFG_DATA_PORT_FLAGS,
+			 qemu_fwcfg_data_port_handler)) != 0) {
 			warnx(
 			    "%s: Unable to register qemu fwcfg data port 0x%x",
 			    __func__, QEMU_FWCFG_DATA_PORT_NUMBER);
@@ -545,7 +545,7 @@ qemu_fwcfg_parse_cmdline_arg(const char *opt)
 	const char *opt_ptr, *opt_end;
 	ssize_t bytes_read;
 	int fd;
-	
+
 	fwcfg_file = malloc(sizeof(*fwcfg_file));
 	if (fwcfg_file == NULL) {
 		warnx("Unable to allocate fw_cfg_user_file");

@@ -33,20 +33,18 @@ struct hn_nvs_sendctx;
 struct vmbus_channel;
 struct hn_softc;
 
-typedef void		(*hn_nvs_sent_t)
-			(struct hn_nvs_sendctx *, struct hn_softc *,
-			 struct vmbus_channel *, const void *, int);
+typedef void (*hn_nvs_sent_t)(struct hn_nvs_sendctx *, struct hn_softc *,
+    struct vmbus_channel *, const void *, int);
 
 struct hn_nvs_sendctx {
-	hn_nvs_sent_t	hn_cb;
-	void		*hn_cbarg;
+	hn_nvs_sent_t hn_cb;
+	void *hn_cbarg;
 };
 
-#define HN_NVS_SENDCTX_INITIALIZER(cb, cbarg)	\
-{						\
-	.hn_cb		= cb,			\
-	.hn_cbarg	= cbarg			\
-}
+#define HN_NVS_SENDCTX_INITIALIZER(cb, cbarg)  \
+	{                                      \
+		.hn_cb = cb, .hn_cbarg = cbarg \
+	}
 
 static __inline void
 hn_nvs_sendctx_init(struct hn_nvs_sendctx *sndc, hn_nvs_sent_t cb, void *cbarg)
@@ -57,12 +55,12 @@ hn_nvs_sendctx_init(struct hn_nvs_sendctx *sndc, hn_nvs_sent_t cb, void *cbarg)
 }
 
 static __inline int
-hn_nvs_send(struct vmbus_channel *chan, uint16_t flags,
-    void *nvs_msg, int nvs_msglen, struct hn_nvs_sendctx *sndc)
+hn_nvs_send(struct vmbus_channel *chan, uint16_t flags, void *nvs_msg,
+    int nvs_msglen, struct hn_nvs_sendctx *sndc)
 {
 
-	return (vmbus_chan_send(chan, VMBUS_CHANPKT_TYPE_INBAND, flags,
-	    nvs_msg, nvs_msglen, (uint64_t)(uintptr_t)sndc));
+	return (vmbus_chan_send(chan, VMBUS_CHANPKT_TYPE_INBAND, flags, nvs_msg,
+	    nvs_msglen, (uint64_t)(uintptr_t)sndc));
 }
 
 static __inline int
@@ -85,21 +83,19 @@ hn_nvs_send_rndis_sglist(struct vmbus_channel *chan, uint32_t rndis_mtype,
 	rndis.nvs_chim_idx = HN_NVS_CHIM_IDX_INVALID;
 	rndis.nvs_chim_sz = 0;
 
-	return (hn_nvs_send_sglist(chan, gpa, gpa_cnt,
-	    &rndis, sizeof(rndis), sndc));
+	return (hn_nvs_send_sglist(chan, gpa, gpa_cnt, &rndis, sizeof(rndis),
+	    sndc));
 }
 
-int		hn_nvs_attach(struct hn_softc *sc, int mtu);
-void		hn_nvs_detach(struct hn_softc *sc);
-int		hn_nvs_alloc_subchans(struct hn_softc *sc, int *nsubch);
-void		hn_nvs_sent_xact(struct hn_nvs_sendctx *sndc,
-		    struct hn_softc *sc, struct vmbus_channel *chan,
-		    const void *data, int dlen);
-int		hn_nvs_send_rndis_ctrl(struct vmbus_channel *chan,
-		    struct hn_nvs_sendctx *sndc, struct vmbus_gpa *gpa,
-		    int gpa_cnt);
-void		hn_nvs_set_datapath(struct hn_softc *sc, uint32_t path);
+int hn_nvs_attach(struct hn_softc *sc, int mtu);
+void hn_nvs_detach(struct hn_softc *sc);
+int hn_nvs_alloc_subchans(struct hn_softc *sc, int *nsubch);
+void hn_nvs_sent_xact(struct hn_nvs_sendctx *sndc, struct hn_softc *sc,
+    struct vmbus_channel *chan, const void *data, int dlen);
+int hn_nvs_send_rndis_ctrl(struct vmbus_channel *chan,
+    struct hn_nvs_sendctx *sndc, struct vmbus_gpa *gpa, int gpa_cnt);
+void hn_nvs_set_datapath(struct hn_softc *sc, uint32_t path);
 
-extern struct hn_nvs_sendctx	hn_nvs_sendctx_none;
+extern struct hn_nvs_sendctx hn_nvs_sendctx_none;
 
-#endif  /* !_HN_NVS_H_ */
+#endif /* !_HN_NVS_H_ */

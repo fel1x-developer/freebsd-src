@@ -24,9 +24,9 @@
  */
 
 #include <sys/types.h>
+#include <sys/aac_ioctl.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
-#include <sys/aac_ioctl.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -74,7 +74,8 @@ main(int argc, char **argv)
 		return (-1);
 	}
 
-	printf("length= %d, max= %d\n",sr.as_qstat.q_length, sr.as_qstat.q_max);
+	printf("length= %d, max= %d\n", sr.as_qstat.q_length,
+	    sr.as_qstat.q_max);
 
 	close(fd);
 	return 0;

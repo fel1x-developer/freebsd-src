@@ -26,10 +26,10 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
@@ -41,9 +41,9 @@
 #include "hwreset_if.h"
 
 struct hwreset {
-	device_t consumer_dev;		/* consumer device*/
-	device_t provider_dev;		/* provider device*/
-	int 	rst_id;			/* reset id */
+	device_t consumer_dev; /* consumer device*/
+	device_t provider_dev; /* provider device*/
+	int rst_id;	       /* reset id */
 };
 
 MALLOC_DEFINE(M_HWRESET, "hwreset", "Reset framework");
@@ -82,8 +82,7 @@ hwreset_get_by_id(device_t consumer_dev, device_t provider_dev, intptr_t id,
 	hwreset_t rst;
 
 	/* Create handle */
-	rst = malloc(sizeof(struct hwreset), M_HWRESET,
-	    M_WAITOK | M_ZERO);
+	rst = malloc(sizeof(struct hwreset), M_HWRESET, M_WAITOK | M_ZERO);
 	rst->consumer_dev = consumer_dev;
 	rst->provider_dev = provider_dev;
 	rst->rst_id = id;
@@ -101,7 +100,7 @@ hwreset_default_ofw_map(device_t provider_dev, phandle_t xref, int ncells,
 	else if (ncells == 1)
 		*id = cells[0];
 	else
-		return  (ERANGE);
+		return (ERANGE);
 
 	return (0);
 }
@@ -124,8 +123,8 @@ hwreset_get_by_ofw_idx(device_t consumer_dev, phandle_t cnode, int idx,
 		return (ENXIO);
 	}
 
-	rv = ofw_bus_parse_xref_list_alloc(cnode, "resets", "#reset-cells",
-	    idx, &xnode, &ncells, &cells);
+	rv = ofw_bus_parse_xref_list_alloc(cnode, "resets", "#reset-cells", idx,
+	    &xnode, &ncells, &cells);
 	if (rv != 0)
 		return (rv);
 
@@ -154,7 +153,7 @@ hwreset_get_by_ofw_name(device_t consumer_dev, phandle_t cnode, char *name,
 		cnode = ofw_bus_get_node(consumer_dev);
 	if (cnode <= 0) {
 		device_printf(consumer_dev,
-		    "%s called on not ofw based device\n",  __func__);
+		    "%s called on not ofw based device\n", __func__);
 		return (ENXIO);
 	}
 	rv = ofw_bus_find_string_index(cnode, "reset-names", name, &idx);

@@ -32,9 +32,12 @@
 #include <sys/elf.h>
 #include <sys/time.h>
 #include <sys/vdso.h>
-#include <machine/cpufunc.h>
+
 #include <machine/acle-compat.h>
+#include <machine/cpufunc.h>
+
 #include <errno.h>
+
 #include "libc_private.h"
 
 #if __ARM_ARCH >= 6
@@ -43,7 +46,7 @@ cp15_cntvct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrrc\tp15, 1, %Q0, %R0, c14" : "=r" (reg));
+	__asm __volatile("mrrc\tp15, 1, %Q0, %R0, c14" : "=r"(reg));
 	return (reg);
 }
 
@@ -52,7 +55,7 @@ cp15_cntpct_get(void)
 {
 	uint64_t reg;
 
-	__asm __volatile("mrrc\tp15, 0, %Q0, %R0, c14" : "=r" (reg));
+	__asm __volatile("mrrc\tp15, 0, %Q0, %R0, c14" : "=r"(reg));
 	return (reg);
 }
 #endif

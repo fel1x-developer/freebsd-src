@@ -27,27 +27,27 @@
  * SUCH DAMAGE.
  */
 #ifndef _SAFE_SAFEVAR_H_
-#define	_SAFE_SAFEVAR_H_
+#define _SAFE_SAFEVAR_H_
 
 /* Maximum queue length */
 #ifndef SAFE_MAX_NQUEUE
-#define SAFE_MAX_NQUEUE	60
+#define SAFE_MAX_NQUEUE 60
 #endif
 
-#define	SAFE_MAX_PART		64	/* Maximum scatter/gather depth */
-#define	SAFE_DMA_BOUNDARY	0	/* No boundary for source DMA ops */
-#define	SAFE_MAX_DSIZE		MCLBYTES /* Fixed scatter particle size */
-#define	SAFE_MAX_SSIZE		0x0ffff	/* Maximum gather particle size */
-#define	SAFE_MAX_DMA		0xfffff	/* Maximum PE operand size (20 bits) */
+#define SAFE_MAX_PART 64	/* Maximum scatter/gather depth */
+#define SAFE_DMA_BOUNDARY 0	/* No boundary for source DMA ops */
+#define SAFE_MAX_DSIZE MCLBYTES /* Fixed scatter particle size */
+#define SAFE_MAX_SSIZE 0x0ffff	/* Maximum gather particle size */
+#define SAFE_MAX_DMA 0xfffff	/* Maximum PE operand size (20 bits) */
 /* total src+dst particle descriptors */
-#define	SAFE_TOTAL_DPART	(SAFE_MAX_NQUEUE * SAFE_MAX_PART)
-#define	SAFE_TOTAL_SPART	(SAFE_MAX_NQUEUE * SAFE_MAX_PART)
+#define SAFE_TOTAL_DPART (SAFE_MAX_NQUEUE * SAFE_MAX_PART)
+#define SAFE_TOTAL_SPART (SAFE_MAX_NQUEUE * SAFE_MAX_PART)
 
-#define	SAFE_RNG_MAXBUFSIZ	128	/* 32-bit words */
+#define SAFE_RNG_MAXBUFSIZ 128 /* 32-bit words */
 
-#define SAFE_DEF_RTY		0xff	/* PCI Retry Timeout */
-#define SAFE_DEF_TOUT		0xff	/* PCI TRDY Timeout */
-#define SAFE_DEF_CACHELINE	0x01	/* Cache Line setting */
+#define SAFE_DEF_RTY 0xff	/* PCI Retry Timeout */
+#define SAFE_DEF_TOUT 0xff	/* PCI TRDY Timeout */
+#define SAFE_DEF_CACHELINE 0x01 /* Cache Line setting */
 
 #ifdef _KERNEL
 /*
@@ -55,13 +55,13 @@
  * of memory setup for DMA.
  */
 struct safe_dma_alloc {
-	u_int32_t		dma_paddr;	/* physical address */
-	caddr_t			dma_vaddr;	/* virtual address */
-	bus_dma_tag_t		dma_tag;	/* bus dma tag used */
-	bus_dmamap_t		dma_map;	/* associated map */
-	bus_dma_segment_t	dma_seg;
-	bus_size_t		dma_size;	/* mapped memory size (bytes) */
-	int			dma_nseg;	/* number of segments */
+	u_int32_t dma_paddr;   /* physical address */
+	caddr_t dma_vaddr;     /* virtual address */
+	bus_dma_tag_t dma_tag; /* bus dma tag used */
+	bus_dmamap_t dma_map;  /* associated map */
+	bus_dma_segment_t dma_seg;
+	bus_size_t dma_size; /* mapped memory size (bytes) */
+	int dma_nseg;	     /* number of segments */
 };
 
 /*
@@ -73,10 +73,10 @@ struct safe_dma_alloc {
  * where each is mapped for DMA.
  */
 struct safe_operand {
-	bus_dmamap_t		map;
-	bus_size_t		mapsize;
-	int			nsegs;
-	bus_dma_segment_t	segs[SAFE_MAX_PART];
+	bus_dmamap_t map;
+	bus_size_t mapsize;
+	int nsegs;
+	bus_dma_segment_t segs[SAFE_MAX_PART];
 };
 
 /*
@@ -96,77 +96,76 @@ struct safe_operand {
  * contiguous.
  */
 struct safe_ringentry {
-	struct safe_desc	re_desc;	/* command descriptor */
-	struct safe_sarec	re_sa;		/* SA record */
-	struct safe_sastate	re_sastate;	/* SA state record */
-	struct cryptop		*re_crp;	/* crypto operation */
+	struct safe_desc re_desc;	/* command descriptor */
+	struct safe_sarec re_sa;	/* SA record */
+	struct safe_sastate re_sastate; /* SA state record */
+	struct cryptop *re_crp;		/* crypto operation */
 
-	struct safe_operand	re_src;		/* source operand */
-	struct safe_operand	re_dst;		/* destination operand */
-	struct mbuf		*re_dst_m;
+	struct safe_operand re_src; /* source operand */
+	struct safe_operand re_dst; /* destination operand */
+	struct mbuf *re_dst_m;
 
-	int			unused;
-	int			re_flags;
-#define	SAFE_QFLAGS_COPYOUTICV	0x2		/* copy back on completion */
+	int unused;
+	int re_flags;
+#define SAFE_QFLAGS_COPYOUTICV 0x2 /* copy back on completion */
 };
 
-#define	re_src_map	re_src.map
-#define	re_src_nsegs	re_src.nsegs
-#define	re_src_segs	re_src.segs
-#define	re_src_mapsize	re_src.mapsize
+#define re_src_map re_src.map
+#define re_src_nsegs re_src.nsegs
+#define re_src_segs re_src.segs
+#define re_src_mapsize re_src.mapsize
 
-#define	re_dst_map	re_dst.map
-#define	re_dst_nsegs	re_dst.nsegs
-#define	re_dst_segs	re_dst.segs
-#define	re_dst_mapsize	re_dst.mapsize
+#define re_dst_map re_dst.map
+#define re_dst_nsegs re_dst.nsegs
+#define re_dst_segs re_dst.segs
+#define re_dst_mapsize re_dst.mapsize
 
 struct rndstate_test;
 
 struct safe_session {
-	u_int32_t	ses_klen;		/* key length in bits */
-	u_int32_t	ses_key[8];		/* DES/3DES/AES key */
-	u_int32_t	ses_mlen;		/* hmac length in bytes */
-	u_int32_t	ses_hminner[5];		/* hmac inner state */
-	u_int32_t	ses_hmouter[5];		/* hmac outer state */
+	u_int32_t ses_klen;	  /* key length in bits */
+	u_int32_t ses_key[8];	  /* DES/3DES/AES key */
+	u_int32_t ses_mlen;	  /* hmac length in bytes */
+	u_int32_t ses_hminner[5]; /* hmac inner state */
+	u_int32_t ses_hmouter[5]; /* hmac outer state */
 };
 
 struct safe_softc {
-	device_t		sc_dev;		/* device backpointer */
-	struct resource		*sc_irq;
-	void			*sc_ih;		/* interrupt handler cookie */
-	bus_space_handle_t	sc_sh;		/* memory handle */
-	bus_space_tag_t		sc_st;		/* memory tag */
-	struct resource		*sc_sr;		/* memory resource */
-	bus_dma_tag_t		sc_srcdmat;	/* source dma tag */
-	bus_dma_tag_t		sc_dstdmat;	/* destination dma tag */
-	u_int			sc_chiprev;	/* major/minor chip revision */
-	int			sc_flags;	/* device specific flags */
-#define	SAFE_FLAGS_KEY		0x01		/* has key accelerator */
-#define	SAFE_FLAGS_RNG		0x02		/* hardware rng */
-	int			sc_suspended;
-	int			sc_needwakeup;	/* notify crypto layer */
-	int32_t			sc_cid;		/* crypto tag */
-	uint32_t		sc_devinfo;
-	struct safe_dma_alloc	sc_ringalloc;	/* PE ring allocation state */
-	struct safe_ringentry	*sc_ring;	/* PE ring */
-	struct safe_ringentry	*sc_ringtop;	/* PE ring top */
-	struct safe_ringentry	*sc_front;	/* next free entry */
-	struct safe_ringentry	*sc_back;	/* next pending entry */
-	int			sc_nqchip;	/* # passed to chip */
-	struct mtx		sc_ringmtx;	/* PE ring lock */
-	struct safe_pdesc	*sc_spring;	/* src particle ring */
-	struct safe_pdesc	*sc_springtop;	/* src particle ring top */
-	struct safe_pdesc	*sc_spfree;	/* next free src particle */
-	struct safe_dma_alloc	sc_spalloc;	/* src particle ring state */
-	struct safe_pdesc	*sc_dpring;	/* dest particle ring */
-	struct safe_pdesc	*sc_dpringtop;	/* dest particle ring top */
-	struct safe_pdesc	*sc_dpfree;	/* next free dest particle */
-	struct safe_dma_alloc	sc_dpalloc;	/* dst particle ring state */
+	device_t sc_dev; /* device backpointer */
+	struct resource *sc_irq;
+	void *sc_ih;		  /* interrupt handler cookie */
+	bus_space_handle_t sc_sh; /* memory handle */
+	bus_space_tag_t sc_st;	  /* memory tag */
+	struct resource *sc_sr;	  /* memory resource */
+	bus_dma_tag_t sc_srcdmat; /* source dma tag */
+	bus_dma_tag_t sc_dstdmat; /* destination dma tag */
+	u_int sc_chiprev;	  /* major/minor chip revision */
+	int sc_flags;		  /* device specific flags */
+#define SAFE_FLAGS_KEY 0x01	  /* has key accelerator */
+#define SAFE_FLAGS_RNG 0x02	  /* hardware rng */
+	int sc_suspended;
+	int sc_needwakeup; /* notify crypto layer */
+	int32_t sc_cid;	   /* crypto tag */
+	uint32_t sc_devinfo;
+	struct safe_dma_alloc sc_ringalloc; /* PE ring allocation state */
+	struct safe_ringentry *sc_ring;	    /* PE ring */
+	struct safe_ringentry *sc_ringtop;  /* PE ring top */
+	struct safe_ringentry *sc_front;    /* next free entry */
+	struct safe_ringentry *sc_back;	    /* next pending entry */
+	int sc_nqchip;			    /* # passed to chip */
+	struct mtx sc_ringmtx;		    /* PE ring lock */
+	struct safe_pdesc *sc_spring;	    /* src particle ring */
+	struct safe_pdesc *sc_springtop;    /* src particle ring top */
+	struct safe_pdesc *sc_spfree;	    /* next free src particle */
+	struct safe_dma_alloc sc_spalloc;   /* src particle ring state */
+	struct safe_pdesc *sc_dpring;	    /* dest particle ring */
+	struct safe_pdesc *sc_dpringtop;    /* dest particle ring top */
+	struct safe_pdesc *sc_dpfree;	    /* next free dest particle */
+	struct safe_dma_alloc sc_dpalloc;   /* dst particle ring state */
 
-	struct callout		sc_rngto;	/* rng timeout */
-	struct rndtest_state	*sc_rndtest;	/* RNG test state */
-	void			(*sc_harvest)(struct rndtest_state *,
-					void *, u_int);
+	struct callout sc_rngto;	  /* rng timeout */
+	struct rndtest_state *sc_rndtest; /* RNG test state */
+	void (*sc_harvest)(struct rndtest_state *, void *, u_int);
 };
 #endif /* _KERNEL */
 
@@ -175,30 +174,30 @@ struct safe_stats {
 	u_int64_t st_obytes;
 	u_int32_t st_ipackets;
 	u_int32_t st_opackets;
-	u_int32_t st_invalid;		/* invalid argument */
-	u_int32_t st_badsession;	/* invalid session id */
-	u_int32_t st_badflags;		/* flags indicate !(mbuf | uio) */
-	u_int32_t st_nodesc;		/* op submitted w/o descriptors */
-	u_int32_t st_badalg;		/* unsupported algorithm */
-	u_int32_t st_ringfull;		/* PE descriptor ring full */
-	u_int32_t st_peoperr;		/* PE marked error */
-	u_int32_t st_dmaerr;		/* PE DMA error */
-	u_int32_t st_bypasstoobig;	/* bypass > 96 bytes */
-	u_int32_t st_skipmismatch;	/* enc part begins before auth part */
-	u_int32_t st_lenmismatch;	/* enc length different auth length */
-	u_int32_t st_coffmisaligned;	/* crypto offset not 32-bit aligned */
-	u_int32_t st_cofftoobig;	/* crypto offset > 255 words */
-	u_int32_t st_iovmisaligned;	/* iov op not aligned */
-	u_int32_t st_iovnotuniform;	/* iov op not suitable */
-	u_int32_t st_unaligned;		/* unaligned src caused copy */
-	u_int32_t st_notuniform;	/* non-uniform src caused copy */
-	u_int32_t st_nomap;		/* bus_dmamap_create failed */
-	u_int32_t st_noload;		/* bus_dmamap_load_* failed */
-	u_int32_t st_nombuf;		/* MGET* failed */
-	u_int32_t st_nomcl;		/* MCLGET* failed */
-	u_int32_t st_maxqchip;		/* max mcr1 ops out for processing */
-	u_int32_t st_rng;		/* RNG requests */
-	u_int32_t st_rngalarm;		/* RNG alarm requests */
-	u_int32_t st_noicvcopy;		/* ICV data copies suppressed */
+	u_int32_t st_invalid;	     /* invalid argument */
+	u_int32_t st_badsession;     /* invalid session id */
+	u_int32_t st_badflags;	     /* flags indicate !(mbuf | uio) */
+	u_int32_t st_nodesc;	     /* op submitted w/o descriptors */
+	u_int32_t st_badalg;	     /* unsupported algorithm */
+	u_int32_t st_ringfull;	     /* PE descriptor ring full */
+	u_int32_t st_peoperr;	     /* PE marked error */
+	u_int32_t st_dmaerr;	     /* PE DMA error */
+	u_int32_t st_bypasstoobig;   /* bypass > 96 bytes */
+	u_int32_t st_skipmismatch;   /* enc part begins before auth part */
+	u_int32_t st_lenmismatch;    /* enc length different auth length */
+	u_int32_t st_coffmisaligned; /* crypto offset not 32-bit aligned */
+	u_int32_t st_cofftoobig;     /* crypto offset > 255 words */
+	u_int32_t st_iovmisaligned;  /* iov op not aligned */
+	u_int32_t st_iovnotuniform;  /* iov op not suitable */
+	u_int32_t st_unaligned;	     /* unaligned src caused copy */
+	u_int32_t st_notuniform;     /* non-uniform src caused copy */
+	u_int32_t st_nomap;	     /* bus_dmamap_create failed */
+	u_int32_t st_noload;	     /* bus_dmamap_load_* failed */
+	u_int32_t st_nombuf;	     /* MGET* failed */
+	u_int32_t st_nomcl;	     /* MCLGET* failed */
+	u_int32_t st_maxqchip;	     /* max mcr1 ops out for processing */
+	u_int32_t st_rng;	     /* RNG requests */
+	u_int32_t st_rngalarm;	     /* RNG alarm requests */
+	u_int32_t st_noicvcopy;	     /* ICV data copies suppressed */
 };
 #endif /* _SAFE_SAFEVAR_H_ */

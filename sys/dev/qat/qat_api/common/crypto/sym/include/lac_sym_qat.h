@@ -54,9 +54,9 @@
 #include "icp_accel_devices.h"
 #include "icp_qat_fw_la.h"
 #include "icp_qat_hw.h"
+#include "lac_common.h"
 #include "lac_session.h"
 #include "sal_qat_cmn_msg.h"
-#include "lac_common.h"
 
 /*
 *******************************************************************************
@@ -134,7 +134,7 @@ CpaStatus LacSymQat_Init(CpaInstanceHandle instanceHandle);
  *
  *****************************************************************************/
 void LacSymQat_RespHandlerRegister(icp_qat_fw_la_cmd_id_t lacCmdId,
-				   sal_qat_resp_handler_func_t pCbHandler);
+    sal_qat_resp_handler_func_t pCbHandler);
 
 /**
  ******************************************************************************
@@ -156,8 +156,7 @@ void LacSymQat_RespHandlerRegister(icp_qat_fw_la_cmd_id_t lacCmdId,
  *
  *****************************************************************************/
 void LacSymQat_packetTypeGet(CpaCySymPacketType packetType,
-			     CpaCySymPacketType packetState,
-			     Cpa32U *pQatPacketType);
+    CpaCySymPacketType packetState, Cpa32U *pQatPacketType);
 
 /**
  ******************************************************************************
@@ -182,10 +181,8 @@ void LacSymQat_packetTypeGet(CpaCySymPacketType packetType,
  *
  *****************************************************************************/
 void LacSymQat_LaPacketCommandFlagSet(Cpa32U qatPacketType,
-				      icp_qat_fw_la_cmd_id_t laCmdId,
-				      CpaCySymCipherAlgorithm cipherAlgorithm,
-				      Cpa16U *pLaCommandFlags,
-				      Cpa32U ivLenInBytes);
+    icp_qat_fw_la_cmd_id_t laCmdId, CpaCySymCipherAlgorithm cipherAlgorithm,
+    Cpa16U *pLaCommandFlags, Cpa32U ivLenInBytes);
 
 /**
  ******************************************************************************
@@ -203,7 +200,7 @@ void LacSymQat_LaPacketCommandFlagSet(Cpa32U qatPacketType,
  *****************************************************************************/
 
 void LacSymQat_LaSetDefaultFlags(icp_qat_fw_serv_specif_flags *laCmdFlags,
-				 CpaCySymOp symOp);
+    CpaCySymOp symOp);
 
 /**
  ******************************************************************************
@@ -225,8 +222,7 @@ void LacSymQat_LaSetDefaultFlags(icp_qat_fw_serv_specif_flags *laCmdFlags,
  *
  *****************************************************************************/
 CpaBoolean LacSymQat_UseSymConstantsTable(lac_session_desc_t *pSession,
-					  Cpa8U *cipherOffset,
-					  Cpa8U *hashOffset);
+    Cpa8U *cipherOffset, Cpa8U *hashOffset);
 
 /**
  ******************************************************************************

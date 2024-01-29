@@ -31,6 +31,7 @@
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+
 #include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
@@ -48,19 +49,18 @@
 
 #include "fstyp.h"
 
-#define	LABEL_LEN	256
+#define LABEL_LEN 256
 
 bool show_label = false;
 
 typedef int (*fstyp_function)(FILE *, char *, size_t);
 
 static struct {
-	const char	*name;
-	fstyp_function	function;
-	bool		unmountable;
-	const char	*precache_encoding;
-} fstypes[] = {
-	{ "apfs", &fstyp_apfs, true, NULL },
+	const char *name;
+	fstyp_function function;
+	bool unmountable;
+	const char *precache_encoding;
+} fstypes[] = { { "apfs", &fstyp_apfs, true, NULL },
 	{ "befs", &fstyp_befs, false, NULL },
 	{ "cd9660", &fstyp_cd9660, false, NULL },
 	{ "exfat", &fstyp_exfat, false, EXFAT_ENC },
@@ -75,8 +75,7 @@ static struct {
 #ifdef HAVE_ZFS
 	{ "zfs", &fstyp_zfs, true, NULL },
 #endif
-	{ NULL, NULL, NULL, NULL }
-};
+	{ NULL, NULL, NULL, NULL } };
 
 void *
 read_buf(FILE *fp, off_t off, size_t len)

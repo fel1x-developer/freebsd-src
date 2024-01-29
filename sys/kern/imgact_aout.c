@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/exec.h>
 #include <sys/imgact.h>
 #include <sys/imgact_aout.h>
@@ -41,11 +42,7 @@
 #include <sys/signalvar.h>
 #include <sys/syscall.h>
 #include <sys/sysent.h>
-#include <sys/systm.h>
 #include <sys/vnode.h>
-
-#include <machine/frame.h>
-#include <machine/md_var.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -53,53 +50,55 @@
 #include <vm/vm_object.h>
 #include <vm/vm_param.h>
 
+#include <machine/frame.h>
+#include <machine/md_var.h>
+
 #ifdef __amd64__
-#include <compat/freebsd32/freebsd32_signal.h>
-#include <compat/freebsd32/freebsd32_util.h>
 #include <compat/freebsd32/freebsd32_proto.h>
+#include <compat/freebsd32/freebsd32_signal.h>
 #include <compat/freebsd32/freebsd32_syscall.h>
+#include <compat/freebsd32/freebsd32_util.h>
 #include <compat/ia32/ia32_signal.h>
 #endif
 
-static int	exec_aout_imgact(struct image_params *imgp);
-static int	aout_fixup(uintptr_t *stack_base, struct image_params *imgp);
+static int exec_aout_imgact(struct image_params *imgp);
+static int aout_fixup(uintptr_t *stack_base, struct image_params *imgp);
 
-#define	AOUT32_USRSTACK		0xbfc00000
+#define AOUT32_USRSTACK 0xbfc00000
 
 #if defined(__i386__)
 
-#define	AOUT32_PS_STRINGS	(AOUT32_USRSTACK - sizeof(struct ps_strings))
+#define AOUT32_PS_STRINGS (AOUT32_USRSTACK - sizeof(struct ps_strings))
 
 struct sysentvec aout_sysvec = {
-	.sv_size	= SYS_MAXSYSCALL,
-	.sv_table	= sysent,
-	.sv_fixup	= aout_fixup,
-	.sv_sendsig	= sendsig,
-	.sv_sigcode	= sigcode,
-	.sv_szsigcode	= &szsigcode,
-	.sv_name	= "FreeBSD a.out",
-	.sv_coredump	= NULL,
-	.sv_minsigstksz	= MINSIGSTKSZ,
-	.sv_minuser	= VM_MIN_ADDRESS,
-	.sv_maxuser	= AOUT32_USRSTACK,
-	.sv_usrstack	= AOUT32_USRSTACK,
-	.sv_psstrings	= AOUT32_PS_STRINGS,
-	.sv_psstringssz	= sizeof(struct ps_strings),
-	.sv_stackprot	= VM_PROT_ALL,
-	.sv_copyout_strings	= exec_copyout_strings,
-	.sv_setregs	= exec_setregs,
-	.sv_fixlimit	= NULL,
-	.sv_maxssiz	= NULL,
-	.sv_flags	= SV_ABI_FREEBSD | SV_AOUT | SV_IA32 | SV_ILP32 |
-			    SV_SIGSYS,
+	.sv_size = SYS_MAXSYSCALL,
+	.sv_table = sysent,
+	.sv_fixup = aout_fixup,
+	.sv_sendsig = sendsig,
+	.sv_sigcode = sigcode,
+	.sv_szsigcode = &szsigcode,
+	.sv_name = "FreeBSD a.out",
+	.sv_coredump = NULL,
+	.sv_minsigstksz = MINSIGSTKSZ,
+	.sv_minuser = VM_MIN_ADDRESS,
+	.sv_maxuser = AOUT32_USRSTACK,
+	.sv_usrstack = AOUT32_USRSTACK,
+	.sv_psstrings = AOUT32_PS_STRINGS,
+	.sv_psstringssz = sizeof(struct ps_strings),
+	.sv_stackprot = VM_PROT_ALL,
+	.sv_copyout_strings = exec_copyout_strings,
+	.sv_setregs = exec_setregs,
+	.sv_fixlimit = NULL,
+	.sv_maxssiz = NULL,
+	.sv_flags = SV_ABI_FREEBSD | SV_AOUT | SV_IA32 | SV_ILP32 | SV_SIGSYS,
 	.sv_set_syscall_retval = cpu_set_syscall_retval,
 	.sv_fetch_syscall_args = cpu_fetch_syscall_args,
 	.sv_syscallnames = syscallnames,
-	.sv_schedtail	= NULL,
+	.sv_schedtail = NULL,
 	.sv_thread_detach = NULL,
-	.sv_trap	= NULL,
+	.sv_trap = NULL,
 	.sv_onexec_old = exec_onexec_old,
-	.sv_onexit =  exit_onexit,
+	.sv_onexit = exit_onexit,
 	.sv_set_fork_retval = x86_set_fork_retval,
 };
 
@@ -111,9 +110,9 @@ extern const char _binary_elf_vdso32_so_1_start[];
 extern const char _binary_elf_vdso32_so_1_end[];
 extern char _binary_elf_vdso32_so_1_size;
 
-#define	AOUT32_PS_STRINGS \
-    (AOUT32_USRSTACK - sizeof(struct freebsd32_ps_strings))
-#define	AOUT32_MINUSER		FREEBSD32_MINUSER
+#define AOUT32_PS_STRINGS \
+	(AOUT32_USRSTACK - sizeof(struct freebsd32_ps_strings))
+#define AOUT32_MINUSER FREEBSD32_MINUSER
 
 extern const char *freebsd32_syscallnames[];
 extern u_long ia32_maxssiz;
@@ -121,32 +120,31 @@ extern u_long ia32_maxssiz;
 static int aout_szsigcode;
 
 struct sysentvec aout_sysvec = {
-	.sv_size	= FREEBSD32_SYS_MAXSYSCALL,
-	.sv_table	= freebsd32_sysent,
-	.sv_fixup	= aout_fixup,
-	.sv_sendsig	= ia32_sendsig,
-	.sv_sigcode	= _binary_elf_vdso32_so_1_start,
-	.sv_szsigcode	= &aout_szsigcode,
-	.sv_name	= "FreeBSD a.out",
-	.sv_coredump	= NULL,
-	.sv_minsigstksz	= MINSIGSTKSZ,
-	.sv_minuser	= AOUT32_MINUSER,
-	.sv_maxuser	= AOUT32_USRSTACK,
-	.sv_usrstack	= AOUT32_USRSTACK,
-	.sv_psstrings	= AOUT32_PS_STRINGS,
-	.sv_psstringssz	= sizeof(struct freebsd32_ps_strings),
-	.sv_stackprot	= VM_PROT_ALL,
-	.sv_copyout_strings	= freebsd32_copyout_strings,
-	.sv_setregs	= ia32_setregs,
-	.sv_fixlimit	= ia32_fixlimit,
-	.sv_maxssiz	= &ia32_maxssiz,
-	.sv_flags	= SV_ABI_FREEBSD | SV_AOUT | SV_IA32 | SV_ILP32 |
-			    SV_SIGSYS,
+	.sv_size = FREEBSD32_SYS_MAXSYSCALL,
+	.sv_table = freebsd32_sysent,
+	.sv_fixup = aout_fixup,
+	.sv_sendsig = ia32_sendsig,
+	.sv_sigcode = _binary_elf_vdso32_so_1_start,
+	.sv_szsigcode = &aout_szsigcode,
+	.sv_name = "FreeBSD a.out",
+	.sv_coredump = NULL,
+	.sv_minsigstksz = MINSIGSTKSZ,
+	.sv_minuser = AOUT32_MINUSER,
+	.sv_maxuser = AOUT32_USRSTACK,
+	.sv_usrstack = AOUT32_USRSTACK,
+	.sv_psstrings = AOUT32_PS_STRINGS,
+	.sv_psstringssz = sizeof(struct freebsd32_ps_strings),
+	.sv_stackprot = VM_PROT_ALL,
+	.sv_copyout_strings = freebsd32_copyout_strings,
+	.sv_setregs = ia32_setregs,
+	.sv_fixlimit = ia32_fixlimit,
+	.sv_maxssiz = &ia32_maxssiz,
+	.sv_flags = SV_ABI_FREEBSD | SV_AOUT | SV_IA32 | SV_ILP32 | SV_SIGSYS,
 	.sv_set_syscall_retval = ia32_set_syscall_retval,
 	.sv_fetch_syscall_args = ia32_fetch_syscall_args,
 	.sv_syscallnames = freebsd32_syscallnames,
-	.sv_onexec_old	= exec_onexec_old,
-	.sv_onexit	= exit_onexit,
+	.sv_onexec_old = exec_onexec_old,
+	.sv_onexit = exit_onexit,
 	.sv_set_fork_retval = x86_set_fork_retval,
 };
 
@@ -194,7 +192,7 @@ exec_aout_imgact(struct image_params *imgp)
 	if (((a_out->a_midmag >> 16) & 0xff) != 0x86 &&
 	    ((a_out->a_midmag >> 16) & 0xff) != 0 &&
 	    ((((int)ntohl(a_out->a_midmag)) >> 16) & 0xff) != 0x86)
-                return (-1);
+		return (-1);
 
 	/*
 	 * Set file/virtual offset based on a.out variant.
@@ -248,7 +246,7 @@ exec_aout_imgact(struct image_params *imgp)
 	    /* overflows */
 	    virtual_offset + a_out->a_text + a_out->a_data + bss_size > UINT_MAX
 #endif
-	    )
+	)
 		return (-1);
 
 	/* text + data can't exceed file size */
@@ -300,11 +298,9 @@ exec_aout_imgact(struct image_params *imgp)
 	vm_object_reference(object);
 
 	text_end = virtual_offset + a_out->a_text;
-	error = vm_map_insert(map, object,
-		file_offset,
-		virtual_offset, text_end,
-		VM_PROT_READ | VM_PROT_EXECUTE, VM_PROT_ALL,
-		MAP_COPY_ON_WRITE | MAP_PREFAULT | MAP_VN_EXEC);
+	error = vm_map_insert(map, object, file_offset, virtual_offset,
+	    text_end, VM_PROT_READ | VM_PROT_EXECUTE, VM_PROT_ALL,
+	    MAP_COPY_ON_WRITE | MAP_PREFAULT | MAP_VN_EXEC);
 	if (error) {
 		vm_map_unlock(map);
 		vm_object_deallocate(object);
@@ -314,11 +310,9 @@ exec_aout_imgact(struct image_params *imgp)
 	data_end = text_end + a_out->a_data;
 	if (a_out->a_data) {
 		vm_object_reference(object);
-		error = vm_map_insert(map, object,
-			file_offset + a_out->a_text,
-			text_end, data_end,
-			VM_PROT_ALL, VM_PROT_ALL,
-			MAP_COPY_ON_WRITE | MAP_PREFAULT | MAP_VN_EXEC);
+		error = vm_map_insert(map, object, file_offset + a_out->a_text,
+		    text_end, data_end, VM_PROT_ALL, VM_PROT_ALL,
+		    MAP_COPY_ON_WRITE | MAP_PREFAULT | MAP_VN_EXEC);
 		if (error) {
 			vm_map_unlock(map);
 			vm_object_deallocate(object);
@@ -328,9 +322,8 @@ exec_aout_imgact(struct image_params *imgp)
 	}
 
 	if (bss_size) {
-		error = vm_map_insert(map, NULL, 0,
-			data_end, data_end + bss_size,
-			VM_PROT_ALL, VM_PROT_ALL, 0);
+		error = vm_map_insert(map, NULL, 0, data_end,
+		    data_end + bss_size, VM_PROT_ALL, VM_PROT_ALL, 0);
 		if (error) {
 			vm_map_unlock(map);
 			return (error);
@@ -341,9 +334,9 @@ exec_aout_imgact(struct image_params *imgp)
 	/* Fill in process VM information */
 	vmspace->vm_tsize = a_out->a_text >> PAGE_SHIFT;
 	vmspace->vm_dsize = (a_out->a_data + bss_size) >> PAGE_SHIFT;
-	vmspace->vm_taddr = (caddr_t) (uintptr_t) virtual_offset;
-	vmspace->vm_daddr = (caddr_t) (uintptr_t)
-			    (virtual_offset + a_out->a_text);
+	vmspace->vm_taddr = (caddr_t)(uintptr_t)virtual_offset;
+	vmspace->vm_daddr = (caddr_t)(uintptr_t)(virtual_offset +
+	    a_out->a_text);
 
 	error = exec_map_stack(imgp);
 	if (error != 0)
@@ -361,8 +354,6 @@ exec_aout_imgact(struct image_params *imgp)
 /*
  * Tell kern_execve.c about it, with a little help from the linker.
  */
-static struct execsw aout_execsw = {
-	.ex_imgact = exec_aout_imgact,
-	.ex_name = "a.out"
-};
+static struct execsw aout_execsw = { .ex_imgact = exec_aout_imgact,
+	.ex_name = "a.out" };
 EXEC_SET(aout, aout_execsw);

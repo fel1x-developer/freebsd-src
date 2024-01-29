@@ -3,7 +3,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -14,7 +14,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -40,15 +40,17 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdarg.h>
+
 #include <netgraph/ng_message.h>
 #include <netgraph/ng_socket.h>
 
-#include "netgraph.h"
+#include <stdarg.h>
+
 #include "internal.h"
+#include "netgraph.h"
 
 /* The socket node type KLD */
-#define NG_SOCKET_KLD	"ng_socket.ko"
+#define NG_SOCKET_KLD "ng_socket.ko"
 
 /*
  * Create a socket type node and give it the supplied name.
@@ -59,8 +61,8 @@ int
 NgMkSockNode(const char *name, int *csp, int *dsp)
 {
 	char namebuf[NG_NODESIZ];
-	int cs = -1;		/* control socket */
-	int ds = -1;		/* data socket */
+	int cs = -1; /* control socket */
+	int ds = -1; /* data socket */
 	int errnosv;
 
 	/* Empty name means no name */
@@ -92,13 +94,13 @@ gotNode:
 	/* Assign the node the desired name, if any */
 	if (name != NULL) {
 		u_char sbuf[NG_NODESIZ + NGSA_OVERHEAD];
-		struct sockaddr_ng *const sg = (struct sockaddr_ng *) sbuf;
+		struct sockaddr_ng *const sg = (struct sockaddr_ng *)sbuf;
 
 		/* Assign name */
 		strlcpy(sg->sg_data, name, NG_NODESIZ);
 		sg->sg_family = AF_NETGRAPH;
 		sg->sg_len = strlen(sg->sg_data) + 1 + NGSA_OVERHEAD;
-		if (bind(cs, (struct sockaddr *) sg, sg->sg_len) < 0) {
+		if (bind(cs, (struct sockaddr *)sg, sg->sg_len) < 0) {
 			errnosv = errno;
 			if (_gNgDebugLevel >= 1)
 				NGLOG("bind(%s)", sg->sg_data);
@@ -113,11 +115,11 @@ gotNode:
 			    sizeof(struct nodeinfo)];
 			struct ng_mesg res;
 		} res;
-		struct nodeinfo *const ni = (struct nodeinfo *) res.res.data;
+		struct nodeinfo *const ni = (struct nodeinfo *)res.res.data;
 
 		/* Find out the node ID */
-		if (NgSendMsg(cs, ".", NGM_GENERIC_COOKIE,
-		    NGM_NODEINFO, NULL, 0) < 0) {
+		if (NgSendMsg(cs, ".", NGM_GENERIC_COOKIE, NGM_NODEINFO, NULL,
+			0) < 0) {
 			errnosv = errno;
 			if (_gNgDebugLevel >= 1)
 				NGLOG("send nodeinfo");
@@ -131,13 +133,13 @@ gotNode:
 		}
 
 		/* Save node "name" */
-		snprintf(namebuf, sizeof(namebuf), "[%lx]", (u_long) ni->id);
+		snprintf(namebuf, sizeof(namebuf), "[%lx]", (u_long)ni->id);
 	}
 
 	/* Create data socket if desired */
 	if (dsp != NULL) {
 		u_char sbuf[NG_NODESIZ + 1 + NGSA_OVERHEAD];
-		struct sockaddr_ng *const sg = (struct sockaddr_ng *) sbuf;
+		struct sockaddr_ng *const sg = (struct sockaddr_ng *)sbuf;
 
 		/* Create data socket, initially just "floating" */
 		if ((ds = socket(AF_NETGRAPH, SOCK_DGRAM, NG_DATA)) < 0) {
@@ -151,7 +153,7 @@ gotNode:
 		snprintf(sg->sg_data, NG_NODESIZ + 1, "%s:", namebuf);
 		sg->sg_family = AF_NETGRAPH;
 		sg->sg_len = strlen(sg->sg_data) + 1 + NGSA_OVERHEAD;
-		if (connect(ds, (struct sockaddr *) sg, sg->sg_len) < 0) {
+		if (connect(ds, (struct sockaddr *)sg, sg->sg_len) < 0) {
 			errnosv = errno;
 			if (_gNgDebugLevel >= 1)
 				NGLOG("connect(%s)", sg->sg_data);
@@ -194,8 +196,8 @@ NgNameNode(int cs, const char *path, const char *fmt, ...)
 	va_end(args);
 
 	/* Send message */
-	if (NgSendMsg(cs, path,
-	    NGM_GENERIC_COOKIE, NGM_NAME, &ngn, sizeof(ngn)) < 0) {
+	if (NgSendMsg(cs, path, NGM_GENERIC_COOKIE, NGM_NAME, &ngn,
+		sizeof(ngn)) < 0) {
 		if (_gNgDebugLevel >= 1)
 			NGLOGX("%s: failed", __func__);
 		return (-1);
@@ -210,15 +212,15 @@ NgNameNode(int cs, const char *path, const char *fmt, ...)
  * Returns -1 if error and sets errno.
  */
 int
-NgRecvData(int ds, u_char * buf, size_t len, char *hook)
+NgRecvData(int ds, u_char *buf, size_t len, char *hook)
 {
 	u_char frombuf[NG_HOOKSIZ + NGSA_OVERHEAD];
-	struct sockaddr_ng *const from = (struct sockaddr_ng *) frombuf;
+	struct sockaddr_ng *const from = (struct sockaddr_ng *)frombuf;
 	socklen_t fromlen = sizeof(frombuf);
 	int rtn, errnosv;
 
 	/* Read packet */
-	rtn = recvfrom(ds, buf, len, 0, (struct sockaddr *) from, &fromlen);
+	rtn = recvfrom(ds, buf, len, 0, (struct sockaddr *)from, &fromlen);
 	if (rtn < 0) {
 		errnosv = errno;
 		if (_gNgDebugLevel >= 1)
@@ -234,7 +236,7 @@ NgRecvData(int ds, u_char * buf, size_t len, char *hook)
 	/* Debugging */
 	if (_gNgDebugLevel >= 2) {
 		NGLOGX("READ %s from hook \"%s\" (%d bytes)",
-		       rtn ? "PACKET" : "EOF", from->sg_data, rtn);
+		    rtn ? "PACKET" : "EOF", from->sg_data, rtn);
 		if (_gNgDebugLevel >= 3)
 			_NgDebugBytes(buf, rtn);
 	}
@@ -267,10 +269,10 @@ NgAllocRecvData(int ds, u_char **buf, char *hook)
  * Returns -1 if error and sets errno.
  */
 int
-NgSendData(int ds, const char *hook, const u_char * buf, size_t len)
+NgSendData(int ds, const char *hook, const u_char *buf, size_t len)
 {
 	u_char sgbuf[NG_HOOKSIZ + NGSA_OVERHEAD];
-	struct sockaddr_ng *const sg = (struct sockaddr_ng *) sgbuf;
+	struct sockaddr_ng *const sg = (struct sockaddr_ng *)sgbuf;
 	int errnosv;
 
 	/* Set up destination hook */
@@ -287,7 +289,7 @@ NgSendData(int ds, const char *hook, const u_char * buf, size_t len)
 	}
 
 	/* Send packet */
-	if (sendto(ds, buf, len, 0, (struct sockaddr *) sg, sg->sg_len) < 0) {
+	if (sendto(ds, buf, len, 0, (struct sockaddr *)sg, sg->sg_len) < 0) {
 		errnosv = errno;
 		if (_gNgDebugLevel >= 1)
 			NGLOG("sendto(%s)", sg->sg_data);
@@ -298,4 +300,3 @@ NgSendData(int ds, const char *hook, const u_char * buf, size_t len)
 	/* Done */
 	return (0);
 }
-

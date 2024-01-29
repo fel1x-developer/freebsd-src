@@ -26,23 +26,21 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "mech_switch.h"
 #include "name.h"
 #include "utils.h"
 
 OM_uint32
-gss_display_name(OM_uint32 *minor_status,
-    const gss_name_t input_name,
-    gss_buffer_t output_name_buffer,
-    gss_OID *output_name_type)
+gss_display_name(OM_uint32 *minor_status, const gss_name_t input_name,
+    gss_buffer_t output_name_buffer, gss_OID *output_name_type)
 {
 	OM_uint32 major_status;
-	struct _gss_name *name = (struct _gss_name *) input_name;
+	struct _gss_name *name = (struct _gss_name *)input_name;
 	struct _gss_mechanism_name *mn;
 
 	_gss_buffer_zero(output_name_buffer);
@@ -74,11 +72,10 @@ gss_display_name(OM_uint32 *minor_status,
 		*minor_status = 0;
 		return (GSS_S_COMPLETE);
 	} else {
-		SLIST_FOREACH(mn, &name->gn_mn, gmn_link) {
+		SLIST_FOREACH (mn, &name->gn_mn, gmn_link) {
 			major_status = mn->gmn_mech->gm_display_name(
-				minor_status, mn->gmn_name,
-				output_name_buffer,
-				output_name_type);
+			    minor_status, mn->gmn_name, output_name_buffer,
+			    output_name_type);
 			if (major_status == GSS_S_COMPLETE)
 				return (GSS_S_COMPLETE);
 		}

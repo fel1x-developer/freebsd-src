@@ -26,113 +26,105 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_NI_H
-#define	_DPAA2_NI_H
+#ifndef _DPAA2_NI_H
+#define _DPAA2_NI_H
 
-#include <sys/rman.h>
-#include <sys/bus.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
-#include <sys/mbuf.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/buf_ring.h>
-#include <sys/proc.h>
+#include <sys/bus.h>
 #include <sys/lock.h>
+#include <sys/mbuf.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_media.h>
 
-#include "dpaa2_types.h"
-#include "dpaa2_mcp.h"
-#include "dpaa2_swp.h"
+#include "dpaa2_channel.h"
 #include "dpaa2_io.h"
 #include "dpaa2_mac.h"
+#include "dpaa2_mcp.h"
 #include "dpaa2_ni_dpkg.h"
-#include "dpaa2_channel.h"
+#include "dpaa2_swp.h"
+#include "dpaa2_types.h"
 
 /* Name of the DPAA2 network interface. */
-#define DPAA2_NI_IFNAME		"dpni"
+#define DPAA2_NI_IFNAME "dpni"
 
 /* Maximum resources per DPNI: 16 DPIOs + 16 DPCONs + 1 DPBP + 1 DPMCP. */
-#define DPAA2_NI_MAX_RESOURCES	34
+#define DPAA2_NI_MAX_RESOURCES 34
 
-#define DPAA2_NI_MSI_COUNT	1  /* MSIs per DPNI */
-#define DPAA2_NI_MAX_POOLS	8  /* buffer pools per DPNI */
+#define DPAA2_NI_MSI_COUNT 1 /* MSIs per DPNI */
+#define DPAA2_NI_MAX_POOLS 8 /* buffer pools per DPNI */
 
-#define DPAA2_NI_BUFS_INIT	(5u * DPAA2_SWP_BUFS_PER_CMD)
+#define DPAA2_NI_BUFS_INIT (5u * DPAA2_SWP_BUFS_PER_CMD)
 
 /* Maximum number of buffers allocated per Tx ring. */
-#define DPAA2_NI_BUFS_PER_TX	(1 << 7)
-#define DPAA2_NI_MAX_BPTX	(1 << 8)
+#define DPAA2_NI_BUFS_PER_TX (1 << 7)
+#define DPAA2_NI_MAX_BPTX (1 << 8)
 
 /* Number of the DPNI statistics counters. */
-#define DPAA2_NI_STAT_COUNTERS	7u
-#define	DPAA2_NI_STAT_SYSCTLS	9u
+#define DPAA2_NI_STAT_COUNTERS 7u
+#define DPAA2_NI_STAT_SYSCTLS 9u
 
 /* Error and status bits in the frame annotation status word. */
-#define DPAA2_NI_FAS_DISC	0x80000000 /* debug frame */
-#define DPAA2_NI_FAS_MS		0x40000000 /* MACSEC frame */
-#define DPAA2_NI_FAS_PTP	0x08000000
-#define DPAA2_NI_FAS_MC		0x04000000 /* Ethernet multicast frame */
-#define DPAA2_NI_FAS_BC		0x02000000 /* Ethernet broadcast frame */
-#define DPAA2_NI_FAS_KSE	0x00040000
-#define DPAA2_NI_FAS_EOFHE	0x00020000
-#define DPAA2_NI_FAS_MNLE	0x00010000
-#define DPAA2_NI_FAS_TIDE	0x00008000
-#define DPAA2_NI_FAS_PIEE	0x00004000
-#define DPAA2_NI_FAS_FLE	0x00002000 /* Frame length error */
-#define DPAA2_NI_FAS_FPE	0x00001000 /* Frame physical error */
-#define DPAA2_NI_FAS_PTE	0x00000080
-#define DPAA2_NI_FAS_ISP	0x00000040
-#define DPAA2_NI_FAS_PHE	0x00000020
-#define DPAA2_NI_FAS_BLE	0x00000010
-#define DPAA2_NI_FAS_L3CV	0x00000008 /* L3 csum validation performed */
-#define DPAA2_NI_FAS_L3CE	0x00000004 /* L3 csum error */
-#define DPAA2_NI_FAS_L4CV	0x00000002 /* L4 csum validation performed */
-#define DPAA2_NI_FAS_L4CE	0x00000001 /* L4 csum error */
+#define DPAA2_NI_FAS_DISC 0x80000000 /* debug frame */
+#define DPAA2_NI_FAS_MS 0x40000000   /* MACSEC frame */
+#define DPAA2_NI_FAS_PTP 0x08000000
+#define DPAA2_NI_FAS_MC 0x04000000 /* Ethernet multicast frame */
+#define DPAA2_NI_FAS_BC 0x02000000 /* Ethernet broadcast frame */
+#define DPAA2_NI_FAS_KSE 0x00040000
+#define DPAA2_NI_FAS_EOFHE 0x00020000
+#define DPAA2_NI_FAS_MNLE 0x00010000
+#define DPAA2_NI_FAS_TIDE 0x00008000
+#define DPAA2_NI_FAS_PIEE 0x00004000
+#define DPAA2_NI_FAS_FLE 0x00002000 /* Frame length error */
+#define DPAA2_NI_FAS_FPE 0x00001000 /* Frame physical error */
+#define DPAA2_NI_FAS_PTE 0x00000080
+#define DPAA2_NI_FAS_ISP 0x00000040
+#define DPAA2_NI_FAS_PHE 0x00000020
+#define DPAA2_NI_FAS_BLE 0x00000010
+#define DPAA2_NI_FAS_L3CV 0x00000008 /* L3 csum validation performed */
+#define DPAA2_NI_FAS_L3CE 0x00000004 /* L3 csum error */
+#define DPAA2_NI_FAS_L4CV 0x00000002 /* L4 csum validation performed */
+#define DPAA2_NI_FAS_L4CE 0x00000001 /* L4 csum error */
 
 /* Mask for errors on the ingress path. */
-#define DPAA2_NI_FAS_RX_ERR_MASK (DPAA2_NI_FAS_KSE |	\
-    DPAA2_NI_FAS_EOFHE |				\
-    DPAA2_NI_FAS_MNLE |					\
-    DPAA2_NI_FAS_TIDE |					\
-    DPAA2_NI_FAS_PIEE |					\
-    DPAA2_NI_FAS_FLE |					\
-    DPAA2_NI_FAS_FPE |					\
-    DPAA2_NI_FAS_PTE |					\
-    DPAA2_NI_FAS_ISP |					\
-    DPAA2_NI_FAS_PHE |					\
-    DPAA2_NI_FAS_BLE |					\
-    DPAA2_NI_FAS_L3CE |					\
-    DPAA2_NI_FAS_L4CE					\
-)
+#define DPAA2_NI_FAS_RX_ERR_MASK                                       \
+	(DPAA2_NI_FAS_KSE | DPAA2_NI_FAS_EOFHE | DPAA2_NI_FAS_MNLE |   \
+	    DPAA2_NI_FAS_TIDE | DPAA2_NI_FAS_PIEE | DPAA2_NI_FAS_FLE | \
+	    DPAA2_NI_FAS_FPE | DPAA2_NI_FAS_PTE | DPAA2_NI_FAS_ISP |   \
+	    DPAA2_NI_FAS_PHE | DPAA2_NI_FAS_BLE | DPAA2_NI_FAS_L3CE |  \
+	    DPAA2_NI_FAS_L4CE)
 
 /* Option bits to select specific queue configuration options to apply. */
-#define DPAA2_NI_QUEUE_OPT_USER_CTX	0x00000001
-#define DPAA2_NI_QUEUE_OPT_DEST		0x00000002
-#define DPAA2_NI_QUEUE_OPT_FLC		0x00000004
-#define DPAA2_NI_QUEUE_OPT_HOLD_ACTIVE	0x00000008
-#define DPAA2_NI_QUEUE_OPT_SET_CGID	0x00000040
-#define DPAA2_NI_QUEUE_OPT_CLEAR_CGID	0x00000080
+#define DPAA2_NI_QUEUE_OPT_USER_CTX 0x00000001
+#define DPAA2_NI_QUEUE_OPT_DEST 0x00000002
+#define DPAA2_NI_QUEUE_OPT_FLC 0x00000004
+#define DPAA2_NI_QUEUE_OPT_HOLD_ACTIVE 0x00000008
+#define DPAA2_NI_QUEUE_OPT_SET_CGID 0x00000040
+#define DPAA2_NI_QUEUE_OPT_CLEAR_CGID 0x00000080
 
 /* DPNI link configuration options. */
-#define DPAA2_NI_LINK_OPT_AUTONEG	((uint64_t) 0x01u)
-#define DPAA2_NI_LINK_OPT_HALF_DUPLEX	((uint64_t) 0x02u)
-#define DPAA2_NI_LINK_OPT_PAUSE		((uint64_t) 0x04u)
-#define DPAA2_NI_LINK_OPT_ASYM_PAUSE	((uint64_t) 0x08u)
-#define DPAA2_NI_LINK_OPT_PFC_PAUSE	((uint64_t) 0x10u)
+#define DPAA2_NI_LINK_OPT_AUTONEG ((uint64_t)0x01u)
+#define DPAA2_NI_LINK_OPT_HALF_DUPLEX ((uint64_t)0x02u)
+#define DPAA2_NI_LINK_OPT_PAUSE ((uint64_t)0x04u)
+#define DPAA2_NI_LINK_OPT_ASYM_PAUSE ((uint64_t)0x08u)
+#define DPAA2_NI_LINK_OPT_PFC_PAUSE ((uint64_t)0x10u)
 
 /*
  * Number of times to retry a frame enqueue before giving up. Value determined
  * empirically, in order to minimize the number of frames dropped on Tx.
  */
-#define DPAA2_NI_ENQUEUE_RETRIES	10
+#define DPAA2_NI_ENQUEUE_RETRIES 10
 
 /* Channel storage buffer configuration */
-#define DPAA2_ETH_STORE_FRAMES		16u
+#define DPAA2_ETH_STORE_FRAMES 16u
 #define DPAA2_ETH_STORE_SIZE \
 	((DPAA2_ETH_STORE_FRAMES + 1) * sizeof(struct dpaa2_dq))
 
@@ -140,21 +132,21 @@
  * NOTE: Don't forget to update dpaa2_ni_spec in case of any changes in macros!
  */
 /* DPMCP resources */
-#define DPAA2_NI_MCP_RES_NUM	(1u)
-#define DPAA2_NI_MCP_RID_OFF	(0u)
-#define DPAA2_NI_MCP_RID(rid)	((rid) + DPAA2_NI_MCP_RID_OFF)
+#define DPAA2_NI_MCP_RES_NUM (1u)
+#define DPAA2_NI_MCP_RID_OFF (0u)
+#define DPAA2_NI_MCP_RID(rid) ((rid) + DPAA2_NI_MCP_RID_OFF)
 /* DPIO resources (software portals) */
-#define DPAA2_NI_IO_RES_NUM	(16u)
-#define DPAA2_NI_IO_RID_OFF	(DPAA2_NI_MCP_RID_OFF + DPAA2_NI_MCP_RES_NUM)
-#define DPAA2_NI_IO_RID(rid)	((rid) + DPAA2_NI_IO_RID_OFF)
+#define DPAA2_NI_IO_RES_NUM (16u)
+#define DPAA2_NI_IO_RID_OFF (DPAA2_NI_MCP_RID_OFF + DPAA2_NI_MCP_RES_NUM)
+#define DPAA2_NI_IO_RID(rid) ((rid) + DPAA2_NI_IO_RID_OFF)
 /* DPBP resources (buffer pools) */
-#define DPAA2_NI_BP_RES_NUM	(1u)
-#define DPAA2_NI_BP_RID_OFF	(DPAA2_NI_IO_RID_OFF + DPAA2_NI_IO_RES_NUM)
-#define DPAA2_NI_BP_RID(rid)	((rid) + DPAA2_NI_BP_RID_OFF)
+#define DPAA2_NI_BP_RES_NUM (1u)
+#define DPAA2_NI_BP_RID_OFF (DPAA2_NI_IO_RID_OFF + DPAA2_NI_IO_RES_NUM)
+#define DPAA2_NI_BP_RID(rid) ((rid) + DPAA2_NI_BP_RID_OFF)
 /* DPCON resources (channels) */
-#define DPAA2_NI_CON_RES_NUM	(16u)
-#define DPAA2_NI_CON_RID_OFF	(DPAA2_NI_BP_RID_OFF + DPAA2_NI_BP_RES_NUM)
-#define DPAA2_NI_CON_RID(rid)	((rid) + DPAA2_NI_CON_RID_OFF)
+#define DPAA2_NI_CON_RES_NUM (16u)
+#define DPAA2_NI_CON_RID_OFF (DPAA2_NI_BP_RID_OFF + DPAA2_NI_BP_RES_NUM)
+#define DPAA2_NI_CON_RID(rid) ((rid) + DPAA2_NI_CON_RID_OFF)
 
 enum dpaa2_ni_dest_type {
 	DPAA2_NI_DEST_NONE = 0,
@@ -198,24 +190,24 @@ struct dpaa2_ni_fq;
  * wriop_ver:	 Revision of the underlying WRIOP hardware block.
  */
 struct dpaa2_ni_attr {
-	uint32_t		 options;
-	uint16_t		 wriop_ver;
+	uint32_t options;
+	uint16_t wriop_ver;
 	struct {
-		uint16_t	 fs;
-		uint8_t		 mac;
-		uint8_t		 vlan;
-		uint8_t		 qos;
+		uint16_t fs;
+		uint8_t mac;
+		uint8_t vlan;
+		uint8_t qos;
 	} entries;
 	struct {
-		uint8_t		 queues;
-		uint8_t		 rx_tcs;
-		uint8_t		 tx_tcs;
-		uint8_t		 channels;
-		uint8_t		 cgs;
+		uint8_t queues;
+		uint8_t rx_tcs;
+		uint8_t tx_tcs;
+		uint8_t channels;
+		uint8_t cgs;
 	} num;
 	struct {
-		uint8_t		 fs;
-		uint8_t		 qos;
+		uint8_t fs;
+		uint8_t qos;
 	} key_size;
 };
 
@@ -230,12 +222,11 @@ struct dpaa2_ni_attr {
  *
  * user_ctx:	(r/w) User defined data, presented along with the frames
  *		being dequeued from this queue.
- * flow_ctx:	(r/w) Set default FLC value for traffic dequeued from this queue.
- *		Please check description of FD structure for more information.
- *		Note that FLC values set using DPNI_ADD_FS_ENTRY, if any, take
- *		precedence over values per queue.
- * dest_id:	(r/w) The ID of a DPIO or DPCON object, depending on
- *		DEST_TYPE (in flags) value. This field is ignored for DEST_TYPE
+ * flow_ctx:	(r/w) Set default FLC value for traffic dequeued from this
+ *queue. Please check description of FD structure for more information. Note
+ *that FLC values set using DPNI_ADD_FS_ENTRY, if any, take precedence over
+ *values per queue. dest_id:	(r/w) The ID of a DPIO or DPCON object,
+ *depending on DEST_TYPE (in flags) value. This field is ignored for DEST_TYPE
  *		set to 0 (DPNI_DEST_NONE).
  * fqid:	(r) Frame queue ID, can be used to enqueue/dequeue or execute
  *		other commands on the queue through DPIO. Note that Tx queues
@@ -264,32 +255,32 @@ struct dpaa2_ni_attr {
  *		See DPAA2_NI_QUEUE_OPT_* for details.
  * dest_type:	Type of destination for dequeued traffic.
  * cgid_valid:	(r) Congestion group ID is valid.
- * stash_control: (r/w) If true, lowest 6 bits of FLC are used for stash control.
- *		Please check description of FD structure for more information.
+ * stash_control: (r/w) If true, lowest 6 bits of FLC are used for stash
+ *control. Please check description of FD structure for more information.
  * hold_active:	(r/w) If true, this flag prevents the queue from being
  *		rescheduled between DPIOs while it carries traffic and is active
  *		on one DPIO. Can help reduce reordering if one queue is services
- *		on multiple CPUs, but the queue is also more likely to be trapped
- *		in one DPIO, especially when congested.
+ *		on multiple CPUs, but the queue is also more likely to be
+ *trapped in one DPIO, especially when congested.
  */
 struct dpaa2_ni_queue_cfg {
-	uint64_t		 user_ctx;
-	uint64_t		 flow_ctx;
-	uint32_t		 dest_id;
-	uint32_t		 fqid;
-	uint16_t		 qdbin;
+	uint64_t user_ctx;
+	uint64_t flow_ctx;
+	uint32_t dest_id;
+	uint32_t fqid;
+	uint16_t qdbin;
 	enum dpaa2_ni_queue_type type;
-	uint8_t			 tc;
-	uint8_t			 idx;
-	uint8_t			 cgid;
-	uint8_t			 chan_id;
-	uint8_t			 priority;
-	uint8_t			 options;
+	uint8_t tc;
+	uint8_t idx;
+	uint8_t cgid;
+	uint8_t chan_id;
+	uint8_t priority;
+	uint8_t options;
 
-	enum dpaa2_ni_dest_type	 dest_type;
-	bool			 cgid_valid;
-	bool			 stash_control;
-	bool			 hold_active;
+	enum dpaa2_ni_dest_type dest_type;
+	bool cgid_valid;
+	bool stash_control;
+	bool hold_active;
 };
 
 /**
@@ -307,15 +298,15 @@ struct dpaa2_ni_queue_cfg {
  * queue_type:		Type of a queue this configuration applies to.
  */
 struct dpaa2_ni_buf_layout {
-	uint16_t	pd_size;
-	uint16_t	fd_align;
-	uint16_t	head_size;
-	uint16_t	tail_size;
-	uint16_t	options;
-	bool		pass_timestamp;
-	bool		pass_parser_result;
-	bool		pass_frame_status;
-	bool		pass_sw_opaque;
+	uint16_t pd_size;
+	uint16_t fd_align;
+	uint16_t head_size;
+	uint16_t tail_size;
+	uint16_t options;
+	bool pass_timestamp;
+	bool pass_parser_result;
+	bool pass_frame_status;
+	bool pass_sw_opaque;
 	enum dpaa2_ni_queue_type queue_type;
 };
 
@@ -323,11 +314,11 @@ struct dpaa2_ni_buf_layout {
  * @brief Buffer pools configuration for a network interface.
  */
 struct dpaa2_ni_pools_cfg {
-	uint8_t		pools_num;
+	uint8_t pools_num;
 	struct {
 		uint32_t bp_obj_id;
 		uint16_t buf_sz;
-		int	 backup_flag; /* 0 - regular pool, 1 - backup pool */
+		int backup_flag; /* 0 - regular pool, 1 - backup pool */
 	} pools[DPAA2_NI_MAX_POOLS];
 };
 
@@ -340,9 +331,9 @@ struct dpaa2_ni_pools_cfg {
  * 			status (FAS); relevant for non-discard actions only.
  */
 struct dpaa2_ni_err_cfg {
-	uint32_t	err_mask;
+	uint32_t err_mask;
 	enum dpaa2_ni_err_action action;
-	bool		set_err_fas;
+	bool set_err_fas;
 };
 
 /**
@@ -353,9 +344,9 @@ struct dpaa2_ni_err_cfg {
  * rate:	Rate in Mbps.
  */
 struct dpaa2_ni_link_cfg {
-	uint64_t	options;
-	uint64_t	adv_speeds;
-	uint32_t	rate;
+	uint64_t options;
+	uint64_t adv_speeds;
+	uint32_t rate;
 };
 
 /**
@@ -369,12 +360,12 @@ struct dpaa2_ni_link_cfg {
  * state_valid:	Ignore/Update the state of the link.
  */
 struct dpaa2_ni_link_state {
-	uint64_t	options;
-	uint64_t	adv_speeds;
-	uint64_t	sup_speeds;
-	uint32_t	rate;
-	bool		link_up;
-	bool		state_valid;
+	uint64_t options;
+	uint64_t adv_speeds;
+	uint64_t sup_speeds;
+	uint32_t rate;
+	bool link_up;
+	bool state_valid;
 };
 
 /**
@@ -391,10 +382,10 @@ struct dpaa2_ni_link_state {
  *			with DPNI_OPT_HAS_KEY_MASKING option.
  */
 struct dpaa2_ni_qos_table {
-	uint64_t	kcfg_busaddr;
-	uint8_t		default_tc;
-	bool		discard_on_miss;
-	bool		keep_entries;
+	uint64_t kcfg_busaddr;
+	uint8_t default_tc;
+	bool discard_on_miss;
+	bool keep_entries;
 };
 
 /**
@@ -405,42 +396,42 @@ struct dpaa2_ni_qos_table {
  * nent:	Number of entries added.
  */
 struct dpaa2_ni_mcaddr_ctx {
-	struct ifnet	*ifp;
-	int		 error;
-	int		 nent;
+	struct ifnet *ifp;
+	int error;
+	int nent;
 };
 
 struct dpaa2_eth_dist_fields {
-	uint64_t	rxnfc_field;
-	enum net_prot	cls_prot;
-	int		cls_field;
-	int		size;
-	uint64_t	id;
+	uint64_t rxnfc_field;
+	enum net_prot cls_prot;
+	int cls_field;
+	int size;
+	uint64_t id;
 };
 
 struct dpni_mask_cfg {
-	uint8_t		mask;
-	uint8_t		offset;
+	uint8_t mask;
+	uint8_t offset;
 } __packed;
 
 struct dpni_dist_extract {
-	uint8_t		prot;
-	uint8_t		efh_type; /* EFH type is in the 4 LSBs. */
-	uint8_t		size;
-	uint8_t		offset;
-	uint32_t	field;
-	uint8_t		hdr_index;
-	uint8_t		constant;
-	uint8_t		num_of_repeats;
-	uint8_t		num_of_byte_masks;
-	uint8_t		extract_type; /* Extraction type is in the 4 LSBs */
-	uint8_t		_reserved[3];
+	uint8_t prot;
+	uint8_t efh_type; /* EFH type is in the 4 LSBs. */
+	uint8_t size;
+	uint8_t offset;
+	uint32_t field;
+	uint8_t hdr_index;
+	uint8_t constant;
+	uint8_t num_of_repeats;
+	uint8_t num_of_byte_masks;
+	uint8_t extract_type; /* Extraction type is in the 4 LSBs */
+	uint8_t _reserved[3];
 	struct dpni_mask_cfg masks[4];
 } __packed;
 
 struct dpni_ext_set_rx_tc_dist {
-	uint8_t		num_extracts;
-	uint8_t		_reserved[7];
+	uint8_t num_extracts;
+	uint8_t _reserved[7];
 	struct dpni_dist_extract extracts[DPKG_MAX_NUM_OF_EXTRACTS];
 } __packed;
 
@@ -448,64 +439,64 @@ struct dpni_ext_set_rx_tc_dist {
  * @brief Software context for the DPAA2 Network Interface driver.
  */
 struct dpaa2_ni_softc {
-	device_t		 dev;
-	struct resource 	*res[DPAA2_NI_MAX_RESOURCES];
-	uint16_t		 api_major;
-	uint16_t		 api_minor;
-	uint64_t		 rx_hash_fields;
-	uint16_t		 tx_data_off;
-	uint16_t		 tx_qdid;
-	uint32_t		 link_options;
-	int			 link_state;
+	device_t dev;
+	struct resource *res[DPAA2_NI_MAX_RESOURCES];
+	uint16_t api_major;
+	uint16_t api_minor;
+	uint64_t rx_hash_fields;
+	uint16_t tx_data_off;
+	uint16_t tx_qdid;
+	uint32_t link_options;
+	int link_state;
 
-	uint16_t		 buf_align;
-	uint16_t		 buf_sz;
+	uint16_t buf_align;
+	uint16_t buf_sz;
 
-	uint64_t		 rx_anomaly_frames;
-	uint64_t		 rx_single_buf_frames;
-	uint64_t		 rx_sg_buf_frames;
-	uint64_t		 rx_enq_rej_frames;
-	uint64_t		 rx_ieoi_err_frames;
-	uint64_t		 tx_single_buf_frames;
-	uint64_t		 tx_sg_frames;
+	uint64_t rx_anomaly_frames;
+	uint64_t rx_single_buf_frames;
+	uint64_t rx_sg_buf_frames;
+	uint64_t rx_enq_rej_frames;
+	uint64_t rx_ieoi_err_frames;
+	uint64_t tx_single_buf_frames;
+	uint64_t tx_sg_frames;
 
-	struct dpaa2_ni_attr	 attr;
+	struct dpaa2_ni_attr attr;
 
-	struct ifnet		*ifp;
-	uint32_t		 if_flags;
-	struct mtx		 lock;
-	device_t		 miibus;
-	struct mii_data		*mii;
-	bool			 fixed_link;
-	struct ifmedia		 fixed_ifmedia;
-	int			 media_status;
+	struct ifnet *ifp;
+	uint32_t if_flags;
+	struct mtx lock;
+	device_t miibus;
+	struct mii_data *mii;
+	bool fixed_link;
+	struct ifmedia fixed_ifmedia;
+	int media_status;
 
-	bus_dma_tag_t		 rxd_dmat; /* for Rx distribution key */
-	bus_dma_tag_t		 qos_dmat; /* for QoS table key */
+	bus_dma_tag_t rxd_dmat; /* for Rx distribution key */
+	bus_dma_tag_t qos_dmat; /* for QoS table key */
 
-	struct dpaa2_buf	 qos_kcfg; /* QoS table key config */
-	struct dpaa2_buf	 rxd_kcfg; /* Rx distribution key config */
+	struct dpaa2_buf qos_kcfg; /* QoS table key config */
+	struct dpaa2_buf rxd_kcfg; /* Rx distribution key config */
 
-	uint32_t		 chan_n;
-	struct dpaa2_channel	*channels[DPAA2_MAX_CHANNELS];
-	struct dpaa2_ni_fq	 rxe_queue; /* one per DPNI */
+	uint32_t chan_n;
+	struct dpaa2_channel *channels[DPAA2_MAX_CHANNELS];
+	struct dpaa2_ni_fq rxe_queue; /* one per DPNI */
 
-	struct dpaa2_atomic	 buf_num;
-	struct dpaa2_atomic	 buf_free; /* for sysctl(9) only */
+	struct dpaa2_atomic buf_num;
+	struct dpaa2_atomic buf_free; /* for sysctl(9) only */
 
-	int			 irq_rid[DPAA2_NI_MSI_COUNT];
-	struct resource		*irq_res;
-	void			*intr;
+	int irq_rid[DPAA2_NI_MSI_COUNT];
+	struct resource *irq_res;
+	void *intr;
 
-	struct taskqueue	*bp_taskq;
+	struct taskqueue *bp_taskq;
 
-	struct callout		 mii_callout;
+	struct callout mii_callout;
 
 	struct {
-		uint32_t	 dpmac_id;
-		uint8_t		 addr[ETHER_ADDR_LEN];
-		device_t	 phy_dev;
-		int		 phy_loc;
+		uint32_t dpmac_id;
+		uint8_t addr[ETHER_ADDR_LEN];
+		device_t phy_dev;
+		int phy_loc;
 	} mac; /* Info about connected DPMAC (if exists) */
 };
 

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2010 David Xu <davidxu@freebsd.org>.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -15,7 +15,7 @@
  *    notice(s), this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
@@ -29,26 +29,29 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/queue.h>
 #include <sys/mman.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
-#include <errno.h>
-#include <machine/atomic.h>
 #include <sys/umtx.h>
-#include <limits.h>
+
+#include <machine/atomic.h>
+
+#include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <semaphore.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 __weak_reference(_sem_close, sem_close);
 __weak_reference(_sem_destroy, sem_destroy);
@@ -62,8 +65,8 @@ __weak_reference(_sem_trywait, sem_trywait);
 __weak_reference(_sem_unlink, sem_unlink);
 __weak_reference(_sem_wait, sem_wait);
 
-#define SEM_PREFIX	"/tmp/SEMD"
-#define SEM_MAGIC	((u_int32_t)0x73656d32)
+#define SEM_PREFIX "/tmp/SEMD"
+#define SEM_MAGIC ((u_int32_t)0x73656d32)
 
 _Static_assert(SEM_VALUE_MAX <= USEM_MAX_COUNT, "SEM_VALUE_MAX too large");
 
@@ -83,7 +86,7 @@ static LIST_HEAD(, sem_nameinfo) sem_list = LIST_HEAD_INITIALIZER(sem_list);
 static void
 sem_prefork(void)
 {
-	
+
 	_pthread_mutex_lock(&sem_llock);
 }
 
@@ -127,7 +130,7 @@ _sem_init(sem_t *sem, int pshared, unsigned int value)
 		errno = EINVAL;
 		return (-1);
 	}
- 
+
 	bzero(sem, sizeof(sem_t));
 	sem->_magic = SEM_MAGIC;
 	sem->_kern._count = (u_int32_t)value;
@@ -160,7 +163,7 @@ _sem_open(const char *name, int flags, ...)
 		errno = ENAMETOOLONG;
 		return (SEM_FAILED);
 	}
-	if (flags & ~(O_CREAT|O_EXCL)) {
+	if (flags & ~(O_CREAT | O_EXCL)) {
 		errno = EINVAL;
 		return (SEM_FAILED);
 	}
@@ -174,17 +177,17 @@ _sem_open(const char *name, int flags, ...)
 	_pthread_once(&once, sem_module_init);
 
 	_pthread_mutex_lock(&sem_llock);
-	LIST_FOREACH(ni, &sem_list, next) {
+	LIST_FOREACH (ni, &sem_list, next) {
 		if (ni->name != NULL && strcmp(name, ni->name) == 0) {
-			fd = _open(path, flags | O_RDWR | O_CLOEXEC |
-			    O_EXLOCK, mode);
+			fd = _open(path, flags | O_RDWR | O_CLOEXEC | O_EXLOCK,
+			    mode);
 			if (fd == -1 || _fstat(fd, &sb) == -1) {
 				ni = NULL;
 				goto error;
 			}
-			if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT |
-			    O_EXCL) || ni->dev != sb.st_dev ||
-			    ni->ino != sb.st_ino) {
+			if ((flags & (O_CREAT | O_EXCL)) ==
+				(O_CREAT | O_EXCL) ||
+			    ni->dev != sb.st_dev || ni->ino != sb.st_ino) {
 				ni->name = NULL;
 				ni = NULL;
 				break;
@@ -204,7 +207,7 @@ _sem_open(const char *name, int flags, ...)
 		goto error;
 	}
 
-	ni->name = (char *)(ni+1);
+	ni->name = (char *)(ni + 1);
 	strcpy(ni->name, name);
 
 	if (fd == -1) {
@@ -270,7 +273,7 @@ _sem_close(sem_t *sem)
 	_pthread_once(&once, sem_module_init);
 
 	_pthread_mutex_lock(&sem_llock);
-	LIST_FOREACH(ni, &sem_list, next) {
+	LIST_FOREACH (ni, &sem_list, next) {
 		if (sem == ni->sem) {
 			last = --ni->open_count == 0;
 			if (last)
@@ -323,7 +326,7 @@ _sem_destroy(sem_t *sem)
 }
 
 int
-_sem_getvalue(sem_t * __restrict sem, int * __restrict sval)
+_sem_getvalue(sem_t *__restrict sem, int *__restrict sval)
 {
 
 	if (sem_check_validity(sem) != 0)
@@ -388,8 +391,8 @@ _sem_trywait(sem_t *sem)
 }
 
 int
-_sem_clockwait_np(sem_t * __restrict sem, clockid_t clock_id, int flags,
-	const struct timespec *rqtp, struct timespec *rmtp)
+_sem_clockwait_np(sem_t *__restrict sem, clockid_t clock_id, int flags,
+    const struct timespec *rqtp, struct timespec *rmtp)
 {
 	int val, retval;
 
@@ -401,7 +404,7 @@ _sem_clockwait_np(sem_t * __restrict sem, clockid_t clock_id, int flags,
 	for (;;) {
 		while (USEM_COUNT(val = sem->_kern._count) > 0) {
 			if (atomic_cmpset_acq_int(&sem->_kern._count, val,
-			    val - 1))
+				val - 1))
 				return (0);
 		}
 
@@ -428,8 +431,7 @@ _sem_clockwait_np(sem_t * __restrict sem, clockid_t clock_id, int flags,
 }
 
 int
-_sem_timedwait(sem_t * __restrict sem,
-	const struct timespec * __restrict abstime)
+_sem_timedwait(sem_t *__restrict sem, const struct timespec *__restrict abstime)
 {
 
 	return (_sem_clockwait_np(sem, CLOCK_REALTIME, TIMER_ABSTIME, abstime,
@@ -446,7 +448,7 @@ _sem_wait(sem_t *sem)
 /*
  * POSIX:
  * The sem_post() interface is reentrant with respect to signals and may be
- * invoked from a signal-catching function. 
+ * invoked from a signal-catching function.
  * The implementation does not use lock, so it should be safe.
  */
 int

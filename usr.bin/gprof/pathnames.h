@@ -29,6 +29,5 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_FLAT_BLURB	"/usr/share/misc/gprof.flat"
-#define	_PATH_CALLG_BLURB	"/usr/share/misc/gprof.callg"
-
+#define _PATH_FLAT_BLURB "/usr/share/misc/gprof.flat"
+#define _PATH_CALLG_BLURB "/usr/share/misc/gprof.callg"

@@ -254,7 +254,7 @@ ATF_TEST_CASE_BODY(dnvlist_get_binary__default_value)
 	ATF_REQUIRE_EQ(memcmp(actual_value, default_value, actual_size), 0);
 
 	set_const_binary_value(default_value, default_size,
-	     "rrhgrythtyrtgbrhgrtdsvdfbtjlkul");
+	    "rrhgrythtyrtgbrhgrtdsvdfbtjlkul");
 	actual_value = dnvlist_get_binary(nvl, "s", &actual_size, default_value,
 	    default_size);
 	ATF_REQUIRE_EQ(default_size, actual_size);

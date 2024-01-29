@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * lprm - remove the current user's spool entry
  *
@@ -44,32 +44,33 @@
 
 #include <sys/param.h>
 
-#include <syslog.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <err.h>
 #include <pwd.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "lp.h"
 #include "lp.local.h"
 
 /*
  * Stuff for handling job specifications
  */
-char	*person;		/* name of person doing lprm */
-int	 requ[MAXREQUESTS];	/* job number of spool entries */
-int	 requests;		/* # of spool requests */
-char	*user[MAXUSERS];	/* users to process */
-int	 users;			/* # of users in user array */
-uid_t	 uid, euid;		/* real and effective user id's */
+char *person;	       /* name of person doing lprm */
+int requ[MAXREQUESTS]; /* job number of spool entries */
+int requests;	       /* # of spool requests */
+char *user[MAXUSERS];  /* users to process */
+int users;	       /* # of users in user array */
+uid_t uid, euid;       /* real and effective user id's */
 
-static char	luser[16];	/* buffer for person */
+static char luser[16]; /* buffer for person */
 
-int		 main(int argc, char *_argv[]);
-static void	 usage(void);
+int main(int argc, char *_argv[]);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -82,13 +83,13 @@ main(int argc, char *argv[])
 	printer = NULL;
 	uid = getuid();
 	euid = geteuid();
-	PRIV_END	/* be safe */
-	progname = argv[0];
+	PRIV_END /* be safe */
+	    progname = argv[0];
 	gethostname(local_host, sizeof(local_host));
 	openlog("lpd", 0, LOG_LPR);
 
 	/*
-	 * Bogus code later checks for string equality between 
+	 * Bogus code later checks for string equality between
 	 * `person' and "root", so if we are root, better make sure
 	 * that code will succeed.
 	 */

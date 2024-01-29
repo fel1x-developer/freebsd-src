@@ -27,32 +27,34 @@
  *
  */
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/un.h>
 #include <sys/uio.h>
+#include <sys/un.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <netinet/in.h>
 #include <netinet/icmp6.h>
-#include <fcntl.h>
+#include <netinet/in.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <signal.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#include "pathnames.h"
-#include "rtadvd.h"
-#include "if.h"
 #include "control.h"
 #include "control_client.h"
+#include "if.h"
+#include "pathnames.h"
+#include "rtadvd.h"
 
 int
 cm_handler_client(int fd, int state, char *buf_orig)
@@ -93,8 +95,7 @@ cm_handler_client(int fd, int state, char *buf_orig)
 			cm->cm_version = CM_VERSION;
 			error = cm_send(fd, buf);
 			if (error) {
-				syslog(LOG_WARNING,
-				    "<%s> cm_send()", __func__);
+				syslog(LOG_WARNING, "<%s> cm_send()", __func__);
 				return (-1);
 			}
 			state = CM_STATE_ACK_WAIT;
@@ -102,24 +103,21 @@ cm_handler_client(int fd, int state, char *buf_orig)
 		case CM_STATE_ACK_WAIT:
 			error = cm_recv(fd, buf);
 			if (error) {
-				syslog(LOG_ERR,
-				    "<%s> cm_recv()", __func__);
+				syslog(LOG_ERR, "<%s> cm_recv()", __func__);
 				close(fd);
 				return (-1);
 			}
 			switch (cm->cm_type) {
 			case CM_TYPE_ACK:
-				syslog(LOG_DEBUG,
-				    "<%s> CM_TYPE_ACK", __func__);
+				syslog(LOG_DEBUG, "<%s> CM_TYPE_ACK", __func__);
 				break;
 			case CM_TYPE_ERR:
-				syslog(LOG_DEBUG,
-				    "<%s> CM_TYPE_ERR", __func__);
+				syslog(LOG_DEBUG, "<%s> CM_TYPE_ERR", __func__);
 				close(fd);
 				return (-1);
 			default:
-				syslog(LOG_DEBUG,
-				    "<%s> unknown status", __func__);
+				syslog(LOG_DEBUG, "<%s> unknown status",
+				    __func__);
 				close(fd);
 				return (-1);
 			}

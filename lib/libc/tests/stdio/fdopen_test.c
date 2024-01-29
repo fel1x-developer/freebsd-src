@@ -24,6 +24,7 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
@@ -32,8 +33,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 static void
 runtest(const char *fname, int intmode, const char *strmode, bool success)
 {
@@ -41,8 +40,8 @@ runtest(const char *fname, int intmode, const char *strmode, bool success)
 	int fd;
 
 	fd = open(fname, intmode);
-	ATF_REQUIRE_MSG(fd != -1,
-	    "open(\"%s\", %#x) failed; errno=%d", fname, intmode, errno);
+	ATF_REQUIRE_MSG(fd != -1, "open(\"%s\", %#x) failed; errno=%d", fname,
+	    intmode, errno);
 
 	fp = fdopen(fd, strmode);
 	if (fp == NULL) {
@@ -53,8 +52,8 @@ runtest(const char *fname, int intmode, const char *strmode, bool success)
 		return;
 	}
 	ATF_REQUIRE_MSG(success == true,
-	    "fdopen(open(\"%s\", %#x), \"%s\") failed; errno=%d",
-	    fname, intmode, strmode, errno);
+	    "fdopen(open(\"%s\", %#x), \"%s\") failed; errno=%d", fname,
+	    intmode, strmode, errno);
 	fclose(fp);
 }
 

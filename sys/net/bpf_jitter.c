@@ -41,16 +41,17 @@
 #include <sys/mbuf.h>
 #include <sys/sysctl.h>
 #else
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/mman.h>
+
+#include <stdlib.h>
 #endif
 
 #include <net/bpf.h>
 #include <net/bpf_jitter.h>
 
-static u_int	bpf_jit_accept_all(u_char *, u_int, u_int);
+static u_int bpf_jit_accept_all(u_char *, u_int, u_int);
 
 #ifdef _KERNEL
 MALLOC_DEFINE(M_BPFJIT, "BPF_JIT", "BPF JIT compiler");
@@ -58,8 +59,8 @@ MALLOC_DEFINE(M_BPFJIT, "BPF_JIT", "BPF JIT compiler");
 SYSCTL_NODE(_net, OID_AUTO, bpf_jitter, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "BPF JIT compiler");
 int bpf_jitter_enable = 1;
-SYSCTL_INT(_net_bpf_jitter, OID_AUTO, enable, CTLFLAG_RW,
-    &bpf_jitter_enable, 0, "enable BPF JIT compiler");
+SYSCTL_INT(_net_bpf_jitter, OID_AUTO, enable, CTLFLAG_RW, &bpf_jitter_enable, 0,
+    "enable BPF JIT compiler");
 #endif
 
 bpf_jit_filter *
@@ -69,8 +70,8 @@ bpf_jitter(struct bpf_insn *fp, int nins)
 
 	/* Allocate the filter structure. */
 #ifdef _KERNEL
-	filter = (struct bpf_jit_filter *)malloc(sizeof(*filter),
-	    M_BPFJIT, M_NOWAIT);
+	filter = (struct bpf_jit_filter *)malloc(sizeof(*filter), M_BPFJIT,
+	    M_NOWAIT);
 #else
 	filter = (struct bpf_jit_filter *)malloc(sizeof(*filter));
 #endif

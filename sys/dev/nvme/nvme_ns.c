@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
@@ -36,7 +37,6 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 
 #include <dev/pci/pcivar.h>
 
@@ -44,28 +44,24 @@
 
 #include "nvme_private.h"
 
-static void		nvme_bio_child_inbed(struct bio *parent, int bio_error);
-static void		nvme_bio_child_done(void *arg,
-					    const struct nvme_completion *cpl);
-static uint32_t		nvme_get_num_segments(uint64_t addr, uint64_t size,
-					      uint32_t alignment);
-static void		nvme_free_child_bios(int num_bios,
-					     struct bio **child_bios);
-static struct bio **	nvme_allocate_child_bios(int num_bios);
-static struct bio **	nvme_construct_child_bios(struct bio *bp,
-						  uint32_t alignment,
-						  int *num_bios);
-static int		nvme_ns_split_bio(struct nvme_namespace *ns,
-					  struct bio *bp,
-					  uint32_t alignment);
+static void nvme_bio_child_inbed(struct bio *parent, int bio_error);
+static void nvme_bio_child_done(void *arg, const struct nvme_completion *cpl);
+static uint32_t nvme_get_num_segments(uint64_t addr, uint64_t size,
+    uint32_t alignment);
+static void nvme_free_child_bios(int num_bios, struct bio **child_bios);
+static struct bio **nvme_allocate_child_bios(int num_bios);
+static struct bio **nvme_construct_child_bios(struct bio *bp,
+    uint32_t alignment, int *num_bios);
+static int nvme_ns_split_bio(struct nvme_namespace *ns, struct bio *bp,
+    uint32_t alignment);
 
 static int
 nvme_ns_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int flag,
     struct thread *td)
 {
-	struct nvme_namespace			*ns;
-	struct nvme_controller			*ctrlr;
-	struct nvme_pt_command			*pt;
+	struct nvme_namespace *ns;
+	struct nvme_controller *ctrlr;
+	struct nvme_pt_command *pt;
 
 	ns = cdev->si_drv1;
 	ctrlr = ns->ctrlr;
@@ -77,10 +73,9 @@ nvme_ns_ioctl(struct cdev *cdev, u_long cmd, caddr_t arg, int flag,
 		break;
 	case NVME_PASSTHROUGH_CMD:
 		pt = (struct nvme_pt_command *)arg;
-		return (nvme_ctrlr_passthrough_cmd(ctrlr, pt, ns->id, 
+		return (nvme_ctrlr_passthrough_cmd(ctrlr, pt, ns->id,
 		    1 /* is_user_buffer */, 0 /* is_admin_cmd */));
-	case NVME_GET_NSID:
-	{
+	case NVME_GET_NSID: {
 		struct nvme_get_nsid *gnsid = (struct nvme_get_nsid *)arg;
 		strncpy(gnsid->cdev, device_get_nameunit(ctrlr->dev),
 		    sizeof(gnsid->cdev));
@@ -143,8 +138,8 @@ nvme_ns_strategy_done(void *arg, const struct nvme_completion *cpl)
 static void
 nvme_ns_strategy(struct bio *bp)
 {
-	struct nvme_namespace	*ns;
-	int			err;
+	struct nvme_namespace *ns;
+	int err;
 
 	ns = bp->bio_dev->si_drv1;
 	err = nvme_ns_bio_process(ns, bp, nvme_ns_strategy_done);
@@ -155,19 +150,16 @@ nvme_ns_strategy(struct bio *bp)
 		bp->bio_resid = bp->bio_bcount;
 		biodone(bp);
 	}
-
 }
 
-static struct cdevsw nvme_ns_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_DISK,
-	.d_read =	physread,
-	.d_write =	physwrite,
-	.d_open =	nvme_ns_open,
-	.d_close =	nvme_ns_close,
-	.d_strategy =	nvme_ns_strategy,
-	.d_ioctl =	nvme_ns_ioctl
-};
+static struct cdevsw nvme_ns_cdevsw = { .d_version = D_VERSION,
+	.d_flags = D_DISK,
+	.d_read = physread,
+	.d_write = physwrite,
+	.d_open = nvme_ns_open,
+	.d_close = nvme_ns_close,
+	.d_strategy = nvme_ns_strategy,
+	.d_ioctl = nvme_ns_ioctl };
 
 uint32_t
 nvme_ns_get_max_io_xfer_size(struct nvme_namespace *ns)
@@ -181,9 +173,9 @@ nvme_ns_get_sector_size(struct nvme_namespace *ns)
 	uint8_t flbas_fmt, lbads;
 
 	flbas_fmt = (ns->data.flbas >> NVME_NS_DATA_FLBAS_FORMAT_SHIFT) &
-		NVME_NS_DATA_FLBAS_FORMAT_MASK;
+	    NVME_NS_DATA_FLBAS_FORMAT_MASK;
 	lbads = (ns->data.lbaf[flbas_fmt] >> NVME_NS_DATA_LBAF_LBADS_SHIFT) &
-		NVME_NS_DATA_LBAF_LBADS_MASK;
+	    NVME_NS_DATA_LBAF_LBADS_MASK;
 
 	return (1 << lbads);
 }
@@ -231,7 +223,7 @@ nvme_ns_get_stripesize(struct nvme_namespace *ns)
 	uint32_t ss;
 
 	if (((ns->data.nsfeat >> NVME_NS_DATA_NSFEAT_NPVALID_SHIFT) &
-	    NVME_NS_DATA_NSFEAT_NPVALID_MASK) != 0) {
+		NVME_NS_DATA_NSFEAT_NPVALID_MASK) != 0) {
 		ss = nvme_ns_get_sector_size(ns);
 		if (ns->data.npwa != 0)
 			return ((ns->data.npwa + 1) * ss);
@@ -244,8 +236,8 @@ nvme_ns_get_stripesize(struct nvme_namespace *ns)
 static void
 nvme_ns_bio_done(void *arg, const struct nvme_completion *status)
 {
-	struct bio	*bp = arg;
-	nvme_cb_fn_t	bp_cb_fn;
+	struct bio *bp = arg;
+	nvme_cb_fn_t bp_cb_fn;
 
 	bp_cb_fn = bp->bio_driver1;
 
@@ -269,8 +261,8 @@ nvme_ns_bio_done(void *arg, const struct nvme_completion *status)
 static void
 nvme_bio_child_inbed(struct bio *parent, int bio_error)
 {
-	struct nvme_completion	parent_cpl;
-	int			children, inbed;
+	struct nvme_completion parent_cpl;
+	int children, inbed;
 
 	if (bio_error != 0) {
 		parent->bio_flags |= BIO_ERROR;
@@ -288,8 +280,10 @@ nvme_bio_child_inbed(struct bio *parent, int bio_error)
 	if (inbed == children) {
 		bzero(&parent_cpl, sizeof(parent_cpl));
 		if (parent->bio_flags & BIO_ERROR) {
-			parent_cpl.status &= ~(NVME_STATUS_SC_MASK << NVME_STATUS_SC_SHIFT);
-			parent_cpl.status |= (NVME_SC_DATA_TRANSFER_ERROR) << NVME_STATUS_SC_SHIFT;
+			parent_cpl.status &= ~(
+			    NVME_STATUS_SC_MASK << NVME_STATUS_SC_SHIFT);
+			parent_cpl.status |= (NVME_SC_DATA_TRANSFER_ERROR)
+			    << NVME_STATUS_SC_SHIFT;
 		}
 		nvme_ns_bio_done(parent, &parent_cpl);
 	}
@@ -298,9 +292,9 @@ nvme_bio_child_inbed(struct bio *parent, int bio_error)
 static void
 nvme_bio_child_done(void *arg, const struct nvme_completion *cpl)
 {
-	struct bio		*child = arg;
-	struct bio		*parent;
-	int			bio_error;
+	struct bio *child = arg;
+	struct bio *parent;
+	int bio_error;
 
 	parent = child->bio_parent;
 	g_destroy_bio(child);
@@ -311,7 +305,7 @@ nvme_bio_child_done(void *arg, const struct nvme_completion *cpl)
 static uint32_t
 nvme_get_num_segments(uint64_t addr, uint64_t size, uint32_t align)
 {
-	uint32_t	num_segs, offset, remainder;
+	uint32_t num_segs, offset, remainder;
 
 	if (align == 0)
 		return (1);
@@ -366,14 +360,14 @@ nvme_allocate_child_bios(int num_bios)
 static struct bio **
 nvme_construct_child_bios(struct bio *bp, uint32_t alignment, int *num_bios)
 {
-	struct bio	**child_bios;
-	struct bio	*child;
-	uint64_t	cur_offset;
-	caddr_t		data;
-	uint32_t	rem_bcount;
-	int		i;
-	struct vm_page	**ma;
-	uint32_t	ma_offset;
+	struct bio **child_bios;
+	struct bio *child;
+	uint64_t cur_offset;
+	caddr_t data;
+	uint32_t rem_bcount;
+	int i;
+	struct vm_page **ma;
+	uint32_t ma_offset;
 
 	*num_bios = nvme_get_num_segments(bp->bio_offset, bp->bio_bcount,
 	    alignment);
@@ -400,11 +394,9 @@ nvme_construct_child_bios(struct bio *bp, uint32_t alignment, int *num_bios)
 		if (bp->bio_flags & BIO_UNMAPPED) {
 			child->bio_ma_offset = ma_offset;
 			child->bio_ma = ma;
-			child->bio_ma_n =
-			    nvme_get_num_segments(child->bio_ma_offset,
-				child->bio_bcount, PAGE_SIZE);
-			ma_offset = (ma_offset + child->bio_bcount) &
-			    PAGE_MASK;
+			child->bio_ma_n = nvme_get_num_segments(
+			    child->bio_ma_offset, child->bio_bcount, PAGE_SIZE);
+			ma_offset = (ma_offset + child->bio_bcount) & PAGE_MASK;
 			ma += child->bio_ma_n;
 			if (ma_offset != 0)
 				ma -= 1;
@@ -420,12 +412,11 @@ nvme_construct_child_bios(struct bio *bp, uint32_t alignment, int *num_bios)
 }
 
 static int
-nvme_ns_split_bio(struct nvme_namespace *ns, struct bio *bp,
-    uint32_t alignment)
+nvme_ns_split_bio(struct nvme_namespace *ns, struct bio *bp, uint32_t alignment)
 {
-	struct bio	*child;
-	struct bio	**child_bios;
-	int		err, i, num_bios;
+	struct bio *child;
+	struct bio **child_bios;
+	int err, i, num_bios;
 
 	child_bios = nvme_construct_child_bios(bp, alignment, &num_bios);
 	if (child_bios == NULL)
@@ -446,18 +437,18 @@ nvme_ns_split_bio(struct nvme_namespace *ns, struct bio *bp,
 
 int
 nvme_ns_bio_process(struct nvme_namespace *ns, struct bio *bp,
-	nvme_cb_fn_t cb_fn)
+    nvme_cb_fn_t cb_fn)
 {
-	struct nvme_dsm_range	*dsm_range;
-	uint32_t		num_bios;
-	int			err;
+	struct nvme_dsm_range *dsm_range;
+	uint32_t num_bios;
+	int err;
 
 	bp->bio_driver1 = cb_fn;
 
 	if (ns->boundary > 0 &&
 	    (bp->bio_cmd == BIO_READ || bp->bio_cmd == BIO_WRITE)) {
-		num_bios = nvme_get_num_segments(bp->bio_offset,
-		    bp->bio_bcount, ns->boundary);
+		num_bios = nvme_get_num_segments(bp->bio_offset, bp->bio_bcount,
+		    ns->boundary);
 		if (num_bios > 1)
 			return (nvme_ns_split_bio(ns, bp, ns->boundary));
 	}
@@ -473,20 +464,19 @@ nvme_ns_bio_process(struct nvme_namespace *ns, struct bio *bp,
 		err = nvme_ns_cmd_flush(ns, nvme_ns_bio_done, bp);
 		break;
 	case BIO_DELETE:
-		dsm_range =
-		    malloc(sizeof(struct nvme_dsm_range), M_NVME,
+		dsm_range = malloc(sizeof(struct nvme_dsm_range), M_NVME,
 		    M_ZERO | M_NOWAIT);
 		if (!dsm_range) {
 			err = ENOMEM;
 			break;
 		}
-		dsm_range->length =
-		    htole32(bp->bio_bcount/nvme_ns_get_sector_size(ns));
-		dsm_range->starting_lba =
-		    htole64(bp->bio_offset/nvme_ns_get_sector_size(ns));
+		dsm_range->length = htole32(
+		    bp->bio_bcount / nvme_ns_get_sector_size(ns));
+		dsm_range->starting_lba = htole64(
+		    bp->bio_offset / nvme_ns_get_sector_size(ns));
 		bp->bio_driver2 = dsm_range;
-		err = nvme_ns_cmd_deallocate(ns, dsm_range, 1,
-			nvme_ns_bio_done, bp);
+		err = nvme_ns_cmd_deallocate(ns, dsm_range, 1, nvme_ns_bio_done,
+		    bp);
 		if (err != 0)
 			free(dsm_range, M_NVME);
 		break;
@@ -509,12 +499,12 @@ int
 nvme_ns_construct(struct nvme_namespace *ns, uint32_t id,
     struct nvme_controller *ctrlr)
 {
-	struct make_dev_args                    md_args;
-	struct nvme_completion_poll_status	status;
-	int                                     res;
-	int					unit;
-	uint8_t					flbas_fmt;
-	uint8_t					vwc_present;
+	struct make_dev_args md_args;
+	struct nvme_completion_poll_status status;
+	int res;
+	int unit;
+	uint8_t flbas_fmt;
+	uint8_t vwc_present;
 
 	ns->ctrlr = ctrlr;
 	ns->id = id;
@@ -552,15 +542,15 @@ nvme_ns_construct(struct nvme_namespace *ns, uint32_t id,
 		return (ENXIO);
 
 	flbas_fmt = (ns->data.flbas >> NVME_NS_DATA_FLBAS_FORMAT_SHIFT) &
-		NVME_NS_DATA_FLBAS_FORMAT_MASK;
+	    NVME_NS_DATA_FLBAS_FORMAT_MASK;
 	/*
 	 * Note: format is a 0-based value, so > is appropriate here,
 	 *  not >=.
 	 */
 	if (flbas_fmt > ns->data.nlbaf) {
 		nvme_printf(ctrlr,
-		    "lba format %d exceeds number supported (%d)\n",
-		    flbas_fmt, ns->data.nlbaf + 1);
+		    "lba format %d exceeds number supported (%d)\n", flbas_fmt,
+		    ns->data.nlbaf + 1);
 		return (ENXIO);
 	}
 
@@ -572,9 +562,9 @@ nvme_ns_construct(struct nvme_namespace *ns, uint32_t id,
 	 */
 	if ((ctrlr->quirks & QUIRK_INTEL_ALIGNMENT) != 0) {
 		if (ctrlr->cdata.vs[3] != 0)
-			ns->boundary =
-			    1 << (ctrlr->cdata.vs[3] + NVME_MPS_SHIFT +
-				NVME_CAP_HI_MPSMIN(ctrlr->cap_hi));
+			ns->boundary = 1
+			    << (ctrlr->cdata.vs[3] + NVME_MPS_SHIFT +
+				   NVME_CAP_HI_MPSMIN(ctrlr->cap_hi));
 		else
 			ns->boundary = 0;
 	} else {
@@ -585,7 +575,7 @@ nvme_ns_construct(struct nvme_namespace *ns, uint32_t id,
 		ns->flags |= NVME_NS_DEALLOCATE_SUPPORTED;
 
 	vwc_present = (ctrlr->cdata.vwc >> NVME_CTRLR_DATA_VWC_PRESENT_SHIFT) &
-		NVME_CTRLR_DATA_VWC_PRESENT_MASK;
+	    NVME_CTRLR_DATA_VWC_PRESENT_MASK;
 	if (vwc_present)
 		ns->flags |= NVME_NS_FLUSH_SUPPORTED;
 

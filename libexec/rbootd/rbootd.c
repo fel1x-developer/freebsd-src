@@ -42,6 +42,7 @@
 
 #include <sys/param.h>
 #include <sys/time.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -52,6 +53,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+
 #include "defs.h"
 
 static void usage(void) __dead2;
@@ -73,24 +75,24 @@ main(int argc, char *argv[])
 		for (i = 0; i < nfds; i++)
 			if (i != fileno(stdin) && i != fileno(stdout) &&
 			    i != fileno(stderr))
-				(void) close(i);
+				(void)close(i);
 	}
 
 	/*
 	 *  Parse any arguments.
 	 */
 	while ((c = getopt(argc, argv, "adi:")) != -1)
-		switch(c) {
-		    case 'a':
+		switch (c) {
+		case 'a':
 			BootAny++;
 			break;
-		    case 'd':
+		case 'd':
 			DebugFlg++;
 			break;
-		    case 'i':
+		case 'i':
 			IntfName = optarg;
 			break;
-		    default:
+		default:
 			usage();
 		}
 	for (; optind < argc; optind++) {
@@ -102,21 +104,21 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (ConfigFile == NULL)			/* use default config file */
+	if (ConfigFile == NULL) /* use default config file */
 		ConfigFile = DfltConfig;
 
 	if (DebugFlg) {
-		DbgFp = stdout;				/* output to stdout */
+		DbgFp = stdout; /* output to stdout */
 
-		(void) signal(SIGUSR1, SIG_IGN);	/* dont muck w/DbgFp */
-		(void) signal(SIGUSR2, SIG_IGN);
-		(void) fclose(stderr);			/* finished with it */
+		(void)signal(SIGUSR1, SIG_IGN); /* dont muck w/DbgFp */
+		(void)signal(SIGUSR2, SIG_IGN);
+		(void)fclose(stderr); /* finished with it */
 	} else {
 		if (daemon(0, 0))
 			err(1, "can't detach from terminal");
 
-		(void) signal(SIGUSR1, DebugOn);
-		(void) signal(SIGUSR2, DebugOff);
+		(void)signal(SIGUSR1, DebugOn);
+		(void)signal(SIGUSR2, DebugOff);
 	}
 
 	openlog("rbootd", LOG_PID, LOG_DAEMON);
@@ -143,9 +145,9 @@ main(int argc, char *argv[])
 
 	syslog(LOG_NOTICE, "restarted (%s)", IntfName);
 
-	(void) signal(SIGHUP, ReConfig);
-	(void) signal(SIGINT, Exit);
-	(void) signal(SIGTERM, Exit);
+	(void)signal(SIGHUP, ReConfig);
+	(void)signal(SIGINT, Exit);
+	(void)signal(SIGTERM, Exit);
 
 	/*
 	 *  Grab our host name and pid.
@@ -165,8 +167,8 @@ main(int argc, char *argv[])
 		FILE *fp;
 
 		if ((fp = fopen(PidFile, "w")) != NULL) {
-			(void) fprintf(fp, "%d\n", (int) MyPid);
-			(void) fclose(fp);
+			(void)fprintf(fp, "%d\n", (int)MyPid);
+			(void)fclose(fp);
 		} else {
 			syslog(LOG_WARNING, "fopen: failed (%s)", PidFile);
 		}
@@ -184,10 +186,10 @@ main(int argc, char *argv[])
 	/*
 	 *  Initial configuration.
 	 */
-	omask = sigblock(sigmask(SIGHUP));	/* prevent reconfig's */
-	if (GetBootFiles() == 0)		/* get list of boot files */
+	omask = sigblock(sigmask(SIGHUP)); /* prevent reconfig's */
+	if (GetBootFiles() == 0)	   /* get list of boot files */
 		Exit(0);
-	if (ParseConfig() == 0)			/* parse config file */
+	if (ParseConfig() == 0) /* parse config file */
 		Exit(0);
 
 	/*
@@ -197,7 +199,7 @@ main(int argc, char *argv[])
 	 */
 	fd = BpfOpen();
 
-	(void) sigsetmask(omask);		/* allow reconfig's */
+	(void)sigsetmask(omask); /* allow reconfig's */
 
 	/*
 	 *  Main loop: receive a packet, determine where it came from,
@@ -213,7 +215,7 @@ main(int argc, char *argv[])
 
 		r = rset;
 
-		if (RmpConns == NULL) {		/* timeout isn't necessary */
+		if (RmpConns == NULL) { /* timeout isn't necessary */
 			nsel = select(maxfds, &r, NULL, NULL, NULL);
 		} else {
 			timeout.tv_sec = RMP_TIMEOUT;
@@ -226,8 +228,8 @@ main(int argc, char *argv[])
 				continue;
 			syslog(LOG_ERR, "select: %m");
 			Exit(0);
-		} else if (nsel == 0) {		/* timeout */
-			DoTimeout();			/* clear stale conns */
+		} else if (nsel == 0) { /* timeout */
+			DoTimeout();	/* clear stale conns */
 			continue;
 		}
 
@@ -239,8 +241,8 @@ main(int argc, char *argv[])
 			while (BpfRead(&rconn, doread)) {
 				doread = 0;
 
-				if (DbgFp != NULL)	/* display packet */
-					DispPkt(&rconn,DIR_RCVD);
+				if (DbgFp != NULL) /* display packet */
+					DispPkt(&rconn, DIR_RCVD);
 
 				omask = sigblock(sigmask(SIGHUP));
 
@@ -253,17 +255,18 @@ main(int argc, char *argv[])
 				 */
 				if (BootAny) {
 					client = NULL;
-				} else if ((client=FindClient(&rconn))==NULL) {
+				} else if ((client = FindClient(&rconn)) ==
+				    NULL) {
 					syslog(LOG_INFO,
-					       "%s: boot packet ignored",
-					       EnetStr(&rconn));
-					(void) sigsetmask(omask);
+					    "%s: boot packet ignored",
+					    EnetStr(&rconn));
+					(void)sigsetmask(omask);
 					continue;
 				}
 
-				ProcessPacket(&rconn,client);
+				ProcessPacket(&rconn, client);
 
-				(void) sigsetmask(omask);
+				(void)sigsetmask(omask);
 			}
 		}
 	}
@@ -273,7 +276,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "usage: rbootd [-ad] [-i interface] [config_file]\n");
-	exit (1);
+	exit(1);
 }
 
 /*
@@ -302,7 +305,7 @@ DoTimeout(void)
 	for (rtmp = RmpConns; rtmp != NULL; rtmp = rtmp->next)
 		if ((rtmp->tstamp.tv_sec + RMP_TIMEOUT) < now) {
 			syslog(LOG_WARNING, "%s: connection timed out (%u)",
-			       EnetStr(rtmp), rtmp->rmp.r_type);
+			    EnetStr(rtmp), rtmp->rmp.r_type);
 			RemoveConn(rtmp);
 		}
 }
@@ -331,10 +334,10 @@ FindClient(RMPCONN *rconn)
 
 	for (ctmp = Clients; ctmp != NULL; ctmp = ctmp->next)
 		if (bcmp((char *)&rconn->rmp.hp_hdr.saddr[0],
-		         (char *)&ctmp->addr[0], RMP_ADDRLEN) == 0)
+			(char *)&ctmp->addr[0], RMP_ADDRLEN) == 0)
 			break;
 
-	return(ctmp);
+	return (ctmp);
 }
 
 /*
@@ -407,7 +410,7 @@ void
 DebugOff(int signo __unused)
 {
 	if (DbgFp != NULL)
-		(void) fclose(DbgFp);
+		(void)fclose(DbgFp);
 
 	DbgFp = NULL;
 }

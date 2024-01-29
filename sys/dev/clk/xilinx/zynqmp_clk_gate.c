@@ -26,21 +26,19 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 
 #include <dev/clk/clk.h>
-
 #include <dev/clk/xilinx/zynqmp_clk_gate.h>
 
 #include "clkdev_if.h"
 #include "zynqmp_firmware_if.h"
 
 struct zynqmp_clk_gate_softc {
-	device_t	firmware;
-	uint32_t	id;
+	device_t firmware;
+	uint32_t id;
 };
 
 static int
@@ -63,10 +61,8 @@ zynqmp_clk_set_gate(struct clknode *clk, bool enable)
 	else
 		rv = ZYNQMP_FIRMWARE_CLOCK_DISABLE(sc->firmware, sc->id);
 	if (rv != 0) {
-		printf("%s: Error %sbling %s\n",
-		    __func__,
-		    enable == true ? "ena" : "disa",
-		    clknode_get_name(clk));
+		printf("%s: Error %sbling %s\n", __func__,
+		    enable == true ? "ena" : "disa", clknode_get_name(clk));
 		return (EINVAL);
 	}
 	return (0);
@@ -74,16 +70,17 @@ zynqmp_clk_set_gate(struct clknode *clk, bool enable)
 
 static clknode_method_t zynqmp_clk_gate_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,	zynqmp_clk_gate_init),
-	CLKNODEMETHOD(clknode_set_gate,	zynqmp_clk_set_gate),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_init, zynqmp_clk_gate_init),
+	CLKNODEMETHOD(clknode_set_gate, zynqmp_clk_set_gate), CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(zynqmp_clk_gate_clknode, zynqmp_clk_gate_clknode_class,
-    zynqmp_clk_gate_clknode_methods, sizeof(struct zynqmp_clk_gate_softc), clknode_class);
+    zynqmp_clk_gate_clknode_methods, sizeof(struct zynqmp_clk_gate_softc),
+    clknode_class);
 
 int
-zynqmp_clk_gate_register(struct clkdom *clkdom, device_t fw, struct clknode_init_def *clkdef)
+zynqmp_clk_gate_register(struct clkdom *clkdom, device_t fw,
+    struct clknode_init_def *clkdef)
 {
 	struct clknode *clk;
 	struct zynqmp_clk_gate_softc *sc;

@@ -93,8 +93,8 @@ priv_vfs_chown_mygid_setup(int asroot, int injail, struct test *test)
 	 * Create a file with a matching uid to the test process, but not a
 	 * matching gid.
 	 */
-	setup_file("priv_vfs_chown_mygid: fpath", fpath, asroot ? UID_ROOT :
-	    UID_OWNER, GID_OTHER, 0600);
+	setup_file("priv_vfs_chown_mygid: fpath", fpath,
+	    asroot ? UID_ROOT : UID_OWNER, GID_OTHER, 0600);
 	fpath_initialized = 1;
 	return (0);
 }
@@ -127,8 +127,9 @@ priv_vfs_chown_othergid_setup(int asroot, int injail, struct test *test)
 	 * Create a file with a matching uid to the test process with a
 	 * matching gid.
 	 */
-	setup_file("priv_vfs_chown_othergid: fpath", fpath, asroot ? UID_ROOT
-	    : UID_OWNER, asroot ? GID_WHEEL : GID_OWNER, 0600);
+	setup_file("priv_vfs_chown_othergid: fpath", fpath,
+	    asroot ? UID_ROOT : UID_OWNER, asroot ? GID_WHEEL : GID_OWNER,
+	    0600);
 	fpath_initialized = 1;
 	return (0);
 }

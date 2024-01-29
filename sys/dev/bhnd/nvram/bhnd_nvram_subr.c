@@ -31,11 +31,11 @@
 
 #ifdef _KERNEL
 
+#include <sys/systm.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
 
 #include <machine/_inttypes.h>
 
@@ -46,18 +46,17 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #endif /* _KERNEL */
 
 #include "bhnd_nvram_io.h"
+#include "bhnd_nvram_map_data.h"
 #include "bhnd_nvram_private.h"
 #include "bhnd_nvram_value.h"
-
-#include "bhnd_nvram_map_data.h"
 
 /*
  * Common NVRAM/SPROM support, including NVRAM variable map
@@ -71,42 +70,38 @@ MALLOC_DEFINE(M_BHND_NVRAM, "bhnd_nvram", "bhnd nvram data");
 /*
  * CRC-8 lookup table used to checksum SPROM and NVRAM data via
  * bhnd_nvram_crc8().
- * 
+ *
  * Generated with following parameters:
  * 	polynomial:	CRC-8 (x^8 + x^7 + x^6 + x^4 + x^2 + 1)
  * 	reflected bits:	false
  * 	reversed:	true
  */
-const uint8_t bhnd_nvram_crc8_tab[] = {
-	0x00, 0xf7, 0xb9, 0x4e, 0x25, 0xd2, 0x9c, 0x6b, 0x4a, 0xbd, 0xf3,
-	0x04, 0x6f, 0x98, 0xd6, 0x21, 0x94, 0x63, 0x2d, 0xda, 0xb1, 0x46,
-	0x08, 0xff, 0xde, 0x29, 0x67, 0x90, 0xfb, 0x0c, 0x42, 0xb5, 0x7f,
-	0x88, 0xc6, 0x31, 0x5a, 0xad, 0xe3, 0x14, 0x35, 0xc2, 0x8c, 0x7b,
-	0x10, 0xe7, 0xa9, 0x5e, 0xeb, 0x1c, 0x52, 0xa5, 0xce, 0x39, 0x77,
-	0x80, 0xa1, 0x56, 0x18, 0xef, 0x84, 0x73, 0x3d, 0xca, 0xfe, 0x09,
-	0x47, 0xb0, 0xdb, 0x2c, 0x62, 0x95, 0xb4, 0x43, 0x0d, 0xfa, 0x91,
-	0x66, 0x28, 0xdf, 0x6a, 0x9d, 0xd3, 0x24, 0x4f, 0xb8, 0xf6, 0x01,
-	0x20, 0xd7, 0x99, 0x6e, 0x05, 0xf2, 0xbc, 0x4b, 0x81, 0x76, 0x38,
-	0xcf, 0xa4, 0x53, 0x1d, 0xea, 0xcb, 0x3c, 0x72, 0x85, 0xee, 0x19,
-	0x57, 0xa0, 0x15, 0xe2, 0xac, 0x5b, 0x30, 0xc7, 0x89, 0x7e, 0x5f,
-	0xa8, 0xe6, 0x11, 0x7a, 0x8d, 0xc3, 0x34, 0xab, 0x5c, 0x12, 0xe5,
-	0x8e, 0x79, 0x37, 0xc0, 0xe1, 0x16, 0x58, 0xaf, 0xc4, 0x33, 0x7d,
-	0x8a, 0x3f, 0xc8, 0x86, 0x71, 0x1a, 0xed, 0xa3, 0x54, 0x75, 0x82,
-	0xcc, 0x3b, 0x50, 0xa7, 0xe9, 0x1e, 0xd4, 0x23, 0x6d, 0x9a, 0xf1,
-	0x06, 0x48, 0xbf, 0x9e, 0x69, 0x27, 0xd0, 0xbb, 0x4c, 0x02, 0xf5,
-	0x40, 0xb7, 0xf9, 0x0e, 0x65, 0x92, 0xdc, 0x2b, 0x0a, 0xfd, 0xb3,
-	0x44, 0x2f, 0xd8, 0x96, 0x61, 0x55, 0xa2, 0xec, 0x1b, 0x70, 0x87,
-	0xc9, 0x3e, 0x1f, 0xe8, 0xa6, 0x51, 0x3a, 0xcd, 0x83, 0x74, 0xc1,
-	0x36, 0x78, 0x8f, 0xe4, 0x13, 0x5d, 0xaa, 0x8b, 0x7c, 0x32, 0xc5,
-	0xae, 0x59, 0x17, 0xe0, 0x2a, 0xdd, 0x93, 0x64, 0x0f, 0xf8, 0xb6,
-	0x41, 0x60, 0x97, 0xd9, 0x2e, 0x45, 0xb2, 0xfc, 0x0b, 0xbe, 0x49,
-	0x07, 0xf0, 0x9b, 0x6c, 0x22, 0xd5, 0xf4, 0x03, 0x4d, 0xba, 0xd1,
-	0x26, 0x68, 0x9f
-};
+const uint8_t bhnd_nvram_crc8_tab[] = { 0x00, 0xf7, 0xb9, 0x4e, 0x25, 0xd2,
+	0x9c, 0x6b, 0x4a, 0xbd, 0xf3, 0x04, 0x6f, 0x98, 0xd6, 0x21, 0x94, 0x63,
+	0x2d, 0xda, 0xb1, 0x46, 0x08, 0xff, 0xde, 0x29, 0x67, 0x90, 0xfb, 0x0c,
+	0x42, 0xb5, 0x7f, 0x88, 0xc6, 0x31, 0x5a, 0xad, 0xe3, 0x14, 0x35, 0xc2,
+	0x8c, 0x7b, 0x10, 0xe7, 0xa9, 0x5e, 0xeb, 0x1c, 0x52, 0xa5, 0xce, 0x39,
+	0x77, 0x80, 0xa1, 0x56, 0x18, 0xef, 0x84, 0x73, 0x3d, 0xca, 0xfe, 0x09,
+	0x47, 0xb0, 0xdb, 0x2c, 0x62, 0x95, 0xb4, 0x43, 0x0d, 0xfa, 0x91, 0x66,
+	0x28, 0xdf, 0x6a, 0x9d, 0xd3, 0x24, 0x4f, 0xb8, 0xf6, 0x01, 0x20, 0xd7,
+	0x99, 0x6e, 0x05, 0xf2, 0xbc, 0x4b, 0x81, 0x76, 0x38, 0xcf, 0xa4, 0x53,
+	0x1d, 0xea, 0xcb, 0x3c, 0x72, 0x85, 0xee, 0x19, 0x57, 0xa0, 0x15, 0xe2,
+	0xac, 0x5b, 0x30, 0xc7, 0x89, 0x7e, 0x5f, 0xa8, 0xe6, 0x11, 0x7a, 0x8d,
+	0xc3, 0x34, 0xab, 0x5c, 0x12, 0xe5, 0x8e, 0x79, 0x37, 0xc0, 0xe1, 0x16,
+	0x58, 0xaf, 0xc4, 0x33, 0x7d, 0x8a, 0x3f, 0xc8, 0x86, 0x71, 0x1a, 0xed,
+	0xa3, 0x54, 0x75, 0x82, 0xcc, 0x3b, 0x50, 0xa7, 0xe9, 0x1e, 0xd4, 0x23,
+	0x6d, 0x9a, 0xf1, 0x06, 0x48, 0xbf, 0x9e, 0x69, 0x27, 0xd0, 0xbb, 0x4c,
+	0x02, 0xf5, 0x40, 0xb7, 0xf9, 0x0e, 0x65, 0x92, 0xdc, 0x2b, 0x0a, 0xfd,
+	0xb3, 0x44, 0x2f, 0xd8, 0x96, 0x61, 0x55, 0xa2, 0xec, 0x1b, 0x70, 0x87,
+	0xc9, 0x3e, 0x1f, 0xe8, 0xa6, 0x51, 0x3a, 0xcd, 0x83, 0x74, 0xc1, 0x36,
+	0x78, 0x8f, 0xe4, 0x13, 0x5d, 0xaa, 0x8b, 0x7c, 0x32, 0xc5, 0xae, 0x59,
+	0x17, 0xe0, 0x2a, 0xdd, 0x93, 0x64, 0x0f, 0xf8, 0xb6, 0x41, 0x60, 0x97,
+	0xd9, 0x2e, 0x45, 0xb2, 0xfc, 0x0b, 0xbe, 0x49, 0x07, 0xf0, 0x9b, 0x6c,
+	0x22, 0xd5, 0xf4, 0x03, 0x4d, 0xba, 0xd1, 0x26, 0x68, 0x9f };
 
 /**
  * Return a human readable name for @p type.
- * 
+ *
  * @param type The type to query.
  */
 const char *
@@ -169,9 +164,9 @@ bhnd_nvram_type_name(bhnd_nvram_type type)
 
 /**
  * Return true if @p type is a signed integer type, false otherwise.
- * 
+ *
  * Will return false for all array types.
- * 
+ *
  * @param type The type to query.
  */
 bool
@@ -214,7 +209,7 @@ bhnd_nvram_is_signed_type(bhnd_nvram_type type)
 
 /**
  * Return true if @p type is an unsigned integer type, false otherwise.
- * 
+ *
  * @param type The type to query.
  *
  * @return Will return false for all array types.
@@ -233,7 +228,7 @@ bhnd_nvram_is_unsigned_type(bhnd_nvram_type type)
 /**
  * Return true if bhnd_nvram_is_signed_type() or bhnd_nvram_is_unsigned_type()
  * returns true for @p type.
- * 
+ *
  * @param type The type to query.
  */
 bool
@@ -275,7 +270,7 @@ bhnd_nvram_is_int_type(bhnd_nvram_type type)
 
 /**
  * Return true if @p type is an array type, false otherwise.
- * 
+ *
  * @param type The type to query.
  */
 bool
@@ -318,7 +313,7 @@ bhnd_nvram_is_array_type(bhnd_nvram_type type)
 /**
  * If @p type is an array type, return the base element type. Otherwise,
  * returns @p type.
- * 
+ *
  * @param type The type to query.
  */
 bhnd_nvram_type
@@ -340,17 +335,28 @@ bhnd_nvram_base_type(bhnd_nvram_type type)
 	case BHND_NVRAM_TYPE_DATA:
 		return (type);
 
-	case BHND_NVRAM_TYPE_UINT8_ARRAY:	return (BHND_NVRAM_TYPE_UINT8);
-	case BHND_NVRAM_TYPE_UINT16_ARRAY:	return (BHND_NVRAM_TYPE_UINT16);
-	case BHND_NVRAM_TYPE_UINT32_ARRAY:	return (BHND_NVRAM_TYPE_UINT32);
-	case BHND_NVRAM_TYPE_UINT64_ARRAY:	return (BHND_NVRAM_TYPE_UINT64);
-	case BHND_NVRAM_TYPE_INT8_ARRAY:	return (BHND_NVRAM_TYPE_INT8);
-	case BHND_NVRAM_TYPE_INT16_ARRAY:	return (BHND_NVRAM_TYPE_INT16);
-	case BHND_NVRAM_TYPE_INT32_ARRAY:	return (BHND_NVRAM_TYPE_INT32);
-	case BHND_NVRAM_TYPE_INT64_ARRAY:	return (BHND_NVRAM_TYPE_INT64);
-	case BHND_NVRAM_TYPE_CHAR_ARRAY:	return (BHND_NVRAM_TYPE_CHAR);
-	case BHND_NVRAM_TYPE_STRING_ARRAY:	return (BHND_NVRAM_TYPE_STRING);
-	case BHND_NVRAM_TYPE_BOOL_ARRAY:	return (BHND_NVRAM_TYPE_BOOL);
+	case BHND_NVRAM_TYPE_UINT8_ARRAY:
+		return (BHND_NVRAM_TYPE_UINT8);
+	case BHND_NVRAM_TYPE_UINT16_ARRAY:
+		return (BHND_NVRAM_TYPE_UINT16);
+	case BHND_NVRAM_TYPE_UINT32_ARRAY:
+		return (BHND_NVRAM_TYPE_UINT32);
+	case BHND_NVRAM_TYPE_UINT64_ARRAY:
+		return (BHND_NVRAM_TYPE_UINT64);
+	case BHND_NVRAM_TYPE_INT8_ARRAY:
+		return (BHND_NVRAM_TYPE_INT8);
+	case BHND_NVRAM_TYPE_INT16_ARRAY:
+		return (BHND_NVRAM_TYPE_INT16);
+	case BHND_NVRAM_TYPE_INT32_ARRAY:
+		return (BHND_NVRAM_TYPE_INT32);
+	case BHND_NVRAM_TYPE_INT64_ARRAY:
+		return (BHND_NVRAM_TYPE_INT64);
+	case BHND_NVRAM_TYPE_CHAR_ARRAY:
+		return (BHND_NVRAM_TYPE_CHAR);
+	case BHND_NVRAM_TYPE_STRING_ARRAY:
+		return (BHND_NVRAM_TYPE_STRING);
+	case BHND_NVRAM_TYPE_BOOL_ARRAY:
+		return (BHND_NVRAM_TYPE_BOOL);
 	}
 
 	/* Quiesce gcc4.2 */
@@ -416,7 +422,7 @@ bhnd_nvram_raw_type(bhnd_nvram_type type)
 /**
  * Return the size, in bytes, of a single element of @p type, or 0
  * if @p type is a variable-width type.
- * 
+ *
  * @param type	The type to query.
  */
 size_t
@@ -468,7 +474,7 @@ bhnd_nvram_type_width(bhnd_nvram_type type)
 
 /**
  * Return the native host alignment for values of @p type.
- * 
+ *
  * @param type The type to query.
  */
 size_t
@@ -530,7 +536,7 @@ bhnd_nvram_type_host_align(bhnd_nvram_type type)
  * @param		prev	The pointer previously returned by
  *				bhnd_nvram_string_array_next(), or NULL to begin
  *				iteration.
-* @param[in,out]	olen	If @p prev is non-NULL, @p olen must be a
+ * @param[in,out]	olen	If @p prev is non-NULL, @p olen must be a
  *				pointer to the length previously returned by
  *				bhnd_nvram_string_array_next(). On success, will
  *				be set to the next element's length, in bytes.
@@ -559,11 +565,11 @@ bhnd_nvram_find_vardefn_compare(const void *key, const void *rhs)
 
 /**
  * Find and return the variable definition for @p varname, if any.
- * 
+ *
  * @param varname variable name
- * 
+ *
  * @retval bhnd_nvram_vardefn If a valid definition for @p varname is found.
- * @retval NULL If no definition for @p varname is found. 
+ * @retval NULL If no definition for @p varname is found.
  */
 const struct bhnd_nvram_vardefn *
 bhnd_nvram_find_vardefn(const char *varname)
@@ -574,16 +580,15 @@ bhnd_nvram_find_vardefn(const char *varname)
 
 /**
  * Return the variable ID for a variable definition.
- * 
+ *
  * @param defn Variable definition previously returned by
  * bhnd_nvram_find_vardefn() or bhnd_nvram_get_vardefn().
  */
 size_t
 bhnd_nvram_get_vardefn_id(const struct bhnd_nvram_vardefn *defn)
 {
-	BHND_NV_ASSERT(
-	    defn >= bhnd_nvram_vardefns &&
-	    defn <= &bhnd_nvram_vardefns[bhnd_nvram_num_vardefns-1],
+	BHND_NV_ASSERT(defn >= bhnd_nvram_vardefns &&
+		defn <= &bhnd_nvram_vardefns[bhnd_nvram_num_vardefns - 1],
 	    ("invalid variable definition pointer %p", defn));
 
 	return (defn - bhnd_nvram_vardefns);
@@ -592,11 +597,11 @@ bhnd_nvram_get_vardefn_id(const struct bhnd_nvram_vardefn *defn)
 /**
  * Return the variable definition with the given @p id, or NULL
  * if no such variable ID is defined.
- * 
+ *
  * @param id variable ID.
  *
  * @retval bhnd_nvram_vardefn If a valid definition for @p id is found.
- * @retval NULL If no definition for @p id is found. 
+ * @retval NULL If no definition for @p id is found.
  */
 const struct bhnd_nvram_vardefn *
 bhnd_nvram_get_vardefn(size_t id)
@@ -609,13 +614,13 @@ bhnd_nvram_get_vardefn(size_t id)
 
 /**
  * Validate an NVRAM variable name.
- * 
+ *
  * Scans for special characters (path delimiters, value delimiters, path
  * alias prefixes), returning false if the given name cannot be used
  * as a relative NVRAM key.
  *
  * @param name A relative NVRAM variable name to validate.
- * 
+ *
  * @retval true If @p name is a valid relative NVRAM key.
  * @retval false If @p name should not be used as a relative NVRAM key.
  */
@@ -628,8 +633,8 @@ bhnd_nvram_validate_name(const char *name)
 
 	/* Reject device path alias declarations (devpath[1-9][0-9]*.*\0) */
 	if (strncmp(name, "devpath", strlen("devpath")) == 0) {
-		const char	*p;
-		char		*endp;
+		const char *p;
+		char *endp;
 
 		/* Check for trailing [1-9][0-9]* */
 		p = name + strlen("devpath");
@@ -642,8 +647,16 @@ bhnd_nvram_validate_name(const char *name)
 	for (const char *p = name; *p != '\0'; p++) {
 		switch (*p) {
 		/* [0-9_] */
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 		case '_':
 			break;
 
@@ -662,7 +675,7 @@ bhnd_nvram_validate_name(const char *name)
  * Parses the string in the optionally NUL-terminated @p str to as an integer
  * value of @p otype, accepting any integer format supported by the standard
  * strtoul().
- * 
+ *
  * - Any leading whitespace in @p str -- as defined by the equivalent of
  *   calling isspace_l() with an ASCII locale -- will be ignored.
  * - A @p str may be prefixed with a single optional '+' or '-' sign denoting
@@ -671,7 +684,7 @@ bhnd_nvram_validate_name(const char *name)
  *   base 16 integer follows.
  * - An octal @p str may include a '0' prefix, denoting that an octal integer
  *   follows.
- * 
+ *
  * If a @p base of 0 is specified, the base will be determined according
  * to the string's initial prefix, as per strtoul()'s documented behavior.
  *
@@ -705,15 +718,15 @@ bhnd_nvram_validate_name(const char *name)
  *			represented as a value of @p otype.
  */
 int
-bhnd_nvram_parse_int(const char *str, size_t maxlen,  u_int base,
-    size_t *nbytes, void *outp, size_t *olen, bhnd_nvram_type otype)
+bhnd_nvram_parse_int(const char *str, size_t maxlen, u_int base, size_t *nbytes,
+    void *outp, size_t *olen, bhnd_nvram_type otype)
 {
-	uint64_t	value;
-	uint64_t	carry_max, value_max;
-	uint64_t	type_max;
-	size_t		limit, local_nbytes;
-	size_t		ndigits;
-	bool		negative, sign, twos_compl;
+	uint64_t value;
+	uint64_t carry_max, value_max;
+	uint64_t type_max;
+	size_t limit, local_nbytes;
+	size_t ndigits;
+	bool negative, sign, twos_compl;
 
 	/* Must be an integer type */
 	if (!bhnd_nvram_is_int_type(otype))
@@ -768,8 +781,7 @@ bhnd_nvram_parse_int(const char *str, size_t maxlen,  u_int base,
 	if (base == 16 || base == 0) {
 		/* Check for (and skip) 0x/0X prefix */
 		if (maxlen - *nbytes >= 2 && str[*nbytes] == '0' &&
-		    (str[*nbytes+1] == 'x' || str[*nbytes+1] == 'X'))
-		{
+		    (str[*nbytes + 1] == 'x' || str[*nbytes + 1] == 'X')) {
 			base = 16;
 			(*nbytes) += 2;
 		}
@@ -860,8 +872,8 @@ bhnd_nvram_parse_int(const char *str, size_t maxlen,  u_int base,
 
 	/* Consume input until we hit maxlen or a non-digit character */
 	for (; *nbytes < maxlen; (*nbytes)++) {
-		u_long	carry;
-		char	c;
+		u_long carry;
+		char c;
 
 		/* Parse carry value */
 		c = str[*nbytes];
@@ -952,16 +964,16 @@ bhnd_nvram_parse_int(const char *str, size_t maxlen,  u_int base,
 /**
  * Trim leading path (pci/1/1) or path alias (0:) prefix from @p name, if any,
  * returning a pointer to the start of the relative variable name.
- * 
+ *
  * @par Examples
- * 
+ *
  * - "/foo"		-> "foo"
  * - "dev/pci/foo"	-> "foo"
  * - "0:foo"		-> "foo"
  * - "foo"		-> "foo"
- * 
+ *
  * @param name The string to be trimmed.
- * 
+ *
  * @return A pointer to the start of the relative variable name in @p name.
  */
 const char *
@@ -975,14 +987,14 @@ bhnd_nvram_trim_path_name(const char *name)
 		strtoul(name, &endp, 10);
 		if (endp != name && *endp == ':') {
 			/* Variable name follows 0: prefix */
-			return (endp+1);
+			return (endp + 1);
 		}
 	}
 
 	/* device path prefix? (pci/1/1/varname) */
 	if ((endp = strrchr(name, '/')) != NULL) {
 		/* Variable name follows the final path separator '/' */
-		return (endp+1);
+		return (endp + 1);
 	}
 
 	/* variable name is not prefixed */
@@ -991,7 +1003,7 @@ bhnd_nvram_trim_path_name(const char *name)
 
 /**
  * Parse a 'name=value' string.
- * 
+ *
  * @param env The string to be parsed.
  * @param env_len The length of @p envp.
  * @param delim The delimiter used in @p envp. This will generally be '='.
@@ -1003,7 +1015,7 @@ bhnd_nvram_trim_path_name(const char *name)
  * may be NULL.
  * @param[out] value_len On success, the length of the value substring. This
  * argument may be NULL.
- * 
+ *
  * @retval 0 success
  * @retval EINVAL if parsing @p envp fails.
  */
@@ -1052,10 +1064,11 @@ bhnd_nvram_parse_env(const char *env, size_t env_len, char delim,
 size_t
 bhnd_nvram_parse_field(const char **inp, size_t ilen, char delim)
 {
-	const char	*p, *sp;
+	const char *p, *sp;
 
 	/* Skip any leading whitespace */
-	for (sp = *inp; (size_t)(sp-*inp) < ilen && bhnd_nv_isspace(*sp); sp++)
+	for (sp = *inp; (size_t)(sp - *inp) < ilen && bhnd_nv_isspace(*sp);
+	     sp++)
 		continue;
 
 	*inp = sp;
@@ -1085,8 +1098,8 @@ bhnd_nvram_parse_field(const char **inp, size_t ilen, char delim)
 size_t
 bhnd_nvram_trim_field(const char **inp, size_t ilen, char delim)
 {
-	const char	*sp;
-	size_t		 plen;
+	const char *sp;
+	size_t plen;
 
 	plen = bhnd_nvram_parse_field(inp, ilen, delim);
 
@@ -1095,7 +1108,7 @@ bhnd_nvram_trim_field(const char **inp, size_t ilen, char delim)
 	while (plen > 0) {
 		if (!bhnd_nv_isspace(*(sp + plen - 1)))
 			break;
-		
+
 		plen--;
 	}
 

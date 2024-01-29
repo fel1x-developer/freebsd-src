@@ -39,24 +39,22 @@
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
 #include <machine/bus.h>
 
 #include <dev/bfe/if_bfereg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 MODULE_DEPEND(bfe, pci, 1, 1, 1);
 MODULE_DEPEND(bfe, ether, 1, 1, 1);
@@ -65,90 +63,84 @@ MODULE_DEPEND(bfe, miibus, 1, 1, 1);
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 
-#define BFE_DEVDESC_MAX		64	/* Maximum device description length */
+#define BFE_DEVDESC_MAX 64 /* Maximum device description length */
 
-static struct bfe_type bfe_devs[] = {
-	{ BCOM_VENDORID, BCOM_DEVICEID_BCM4401,
-		"Broadcom BCM4401 Fast Ethernet" },
+static struct bfe_type bfe_devs[] = { { BCOM_VENDORID, BCOM_DEVICEID_BCM4401,
+					  "Broadcom BCM4401 Fast Ethernet" },
 	{ BCOM_VENDORID, BCOM_DEVICEID_BCM4401B0,
-		"Broadcom BCM4401-B0 Fast Ethernet" },
-		{ 0, 0, NULL }
-};
+	    "Broadcom BCM4401-B0 Fast Ethernet" },
+	{ 0, 0, NULL } };
 
-static int  bfe_probe				(device_t);
-static int  bfe_attach				(device_t);
-static int  bfe_detach				(device_t);
-static int  bfe_suspend				(device_t);
-static int  bfe_resume				(device_t);
-static void bfe_release_resources	(struct bfe_softc *);
-static void bfe_intr				(void *);
-static int  bfe_encap				(struct bfe_softc *, struct mbuf **);
-static void bfe_start				(if_t);
-static void bfe_start_locked			(if_t);
-static int  bfe_ioctl				(if_t, u_long, caddr_t);
-static void bfe_init				(void *);
-static void bfe_init_locked			(void *);
-static void bfe_stop				(struct bfe_softc *);
-static void bfe_watchdog			(struct bfe_softc *);
-static int  bfe_shutdown			(device_t);
-static void bfe_tick				(void *);
-static void bfe_txeof				(struct bfe_softc *);
-static void bfe_rxeof				(struct bfe_softc *);
-static void bfe_set_rx_mode			(struct bfe_softc *);
-static int  bfe_list_rx_init		(struct bfe_softc *);
-static void bfe_list_tx_init		(struct bfe_softc *);
-static void bfe_discard_buf		(struct bfe_softc *, int);
-static int  bfe_list_newbuf			(struct bfe_softc *, int);
-static void bfe_rx_ring_free		(struct bfe_softc *);
+static int bfe_probe(device_t);
+static int bfe_attach(device_t);
+static int bfe_detach(device_t);
+static int bfe_suspend(device_t);
+static int bfe_resume(device_t);
+static void bfe_release_resources(struct bfe_softc *);
+static void bfe_intr(void *);
+static int bfe_encap(struct bfe_softc *, struct mbuf **);
+static void bfe_start(if_t);
+static void bfe_start_locked(if_t);
+static int bfe_ioctl(if_t, u_long, caddr_t);
+static void bfe_init(void *);
+static void bfe_init_locked(void *);
+static void bfe_stop(struct bfe_softc *);
+static void bfe_watchdog(struct bfe_softc *);
+static int bfe_shutdown(device_t);
+static void bfe_tick(void *);
+static void bfe_txeof(struct bfe_softc *);
+static void bfe_rxeof(struct bfe_softc *);
+static void bfe_set_rx_mode(struct bfe_softc *);
+static int bfe_list_rx_init(struct bfe_softc *);
+static void bfe_list_tx_init(struct bfe_softc *);
+static void bfe_discard_buf(struct bfe_softc *, int);
+static int bfe_list_newbuf(struct bfe_softc *, int);
+static void bfe_rx_ring_free(struct bfe_softc *);
 
-static void bfe_pci_setup			(struct bfe_softc *, u_int32_t);
-static int  bfe_ifmedia_upd			(if_t);
-static void bfe_ifmedia_sts			(if_t, struct ifmediareq *);
-static int  bfe_miibus_readreg		(device_t, int, int);
-static int  bfe_miibus_writereg		(device_t, int, int, int);
-static void bfe_miibus_statchg		(device_t);
-static int  bfe_wait_bit			(struct bfe_softc *, u_int32_t, u_int32_t,
-		u_long, const int);
-static void bfe_get_config			(struct bfe_softc *sc);
-static void bfe_read_eeprom			(struct bfe_softc *, u_int8_t *);
-static void bfe_stats_update		(struct bfe_softc *);
-static void bfe_clear_stats			(struct bfe_softc *);
-static int  bfe_readphy				(struct bfe_softc *, u_int32_t, u_int32_t*);
-static int  bfe_writephy			(struct bfe_softc *, u_int32_t, u_int32_t);
-static int  bfe_resetphy			(struct bfe_softc *);
-static int  bfe_setupphy			(struct bfe_softc *);
-static void bfe_chip_reset			(struct bfe_softc *);
-static void bfe_chip_halt			(struct bfe_softc *);
-static void bfe_core_reset			(struct bfe_softc *);
-static void bfe_core_disable		(struct bfe_softc *);
-static int  bfe_dma_alloc			(struct bfe_softc *);
-static void bfe_dma_free		(struct bfe_softc *sc);
-static void bfe_dma_map				(void *, bus_dma_segment_t *, int, int);
-static void bfe_cam_write			(struct bfe_softc *, u_char *, int);
-static int  sysctl_bfe_stats		(SYSCTL_HANDLER_ARGS);
+static void bfe_pci_setup(struct bfe_softc *, u_int32_t);
+static int bfe_ifmedia_upd(if_t);
+static void bfe_ifmedia_sts(if_t, struct ifmediareq *);
+static int bfe_miibus_readreg(device_t, int, int);
+static int bfe_miibus_writereg(device_t, int, int, int);
+static void bfe_miibus_statchg(device_t);
+static int bfe_wait_bit(struct bfe_softc *, u_int32_t, u_int32_t, u_long,
+    const int);
+static void bfe_get_config(struct bfe_softc *sc);
+static void bfe_read_eeprom(struct bfe_softc *, u_int8_t *);
+static void bfe_stats_update(struct bfe_softc *);
+static void bfe_clear_stats(struct bfe_softc *);
+static int bfe_readphy(struct bfe_softc *, u_int32_t, u_int32_t *);
+static int bfe_writephy(struct bfe_softc *, u_int32_t, u_int32_t);
+static int bfe_resetphy(struct bfe_softc *);
+static int bfe_setupphy(struct bfe_softc *);
+static void bfe_chip_reset(struct bfe_softc *);
+static void bfe_chip_halt(struct bfe_softc *);
+static void bfe_core_reset(struct bfe_softc *);
+static void bfe_core_disable(struct bfe_softc *);
+static int bfe_dma_alloc(struct bfe_softc *);
+static void bfe_dma_free(struct bfe_softc *sc);
+static void bfe_dma_map(void *, bus_dma_segment_t *, int, int);
+static void bfe_cam_write(struct bfe_softc *, u_char *, int);
+static int sysctl_bfe_stats(SYSCTL_HANDLER_ARGS);
 
 static device_method_t bfe_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bfe_probe),
-	DEVMETHOD(device_attach,	bfe_attach),
-	DEVMETHOD(device_detach,	bfe_detach),
-	DEVMETHOD(device_shutdown,	bfe_shutdown),
-	DEVMETHOD(device_suspend,	bfe_suspend),
-	DEVMETHOD(device_resume,	bfe_resume),
+	DEVMETHOD(device_probe, bfe_probe),
+	DEVMETHOD(device_attach, bfe_attach),
+	DEVMETHOD(device_detach, bfe_detach),
+	DEVMETHOD(device_shutdown, bfe_shutdown),
+	DEVMETHOD(device_suspend, bfe_suspend),
+	DEVMETHOD(device_resume, bfe_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	bfe_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	bfe_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	bfe_miibus_statchg),
+	DEVMETHOD(miibus_readreg, bfe_miibus_readreg),
+	DEVMETHOD(miibus_writereg, bfe_miibus_writereg),
+	DEVMETHOD(miibus_statchg, bfe_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t bfe_driver = {
-	"bfe",
-	bfe_methods,
-	sizeof(struct bfe_softc)
-};
+static driver_t bfe_driver = { "bfe", bfe_methods, sizeof(struct bfe_softc) };
 
 DRIVER_MODULE(bfe, pci, bfe_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, bfe, bfe_devs,
@@ -178,7 +170,7 @@ bfe_probe(device_t dev)
 }
 
 struct bfe_dmamap_arg {
-	bus_addr_t	bfe_busaddr;
+	bus_addr_t bfe_busaddr;
 };
 
 static int
@@ -194,15 +186,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 	 * greater than 1GB.
 	 */
 	error = bus_dma_tag_create(bus_get_dma_tag(sc->bfe_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BFE_DMA_MAXADDR, 		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    1, 0,		     /* alignment, boundary */
+	    BFE_DMA_MAXADDR,	     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->bfe_parent_tag);
 	if (error != 0) {
 		device_printf(sc->bfe_dev, "cannot create parent DMA tag.\n");
@@ -211,15 +203,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 
 	/* Create tag for Tx ring. */
 	error = bus_dma_tag_create(sc->bfe_parent_tag, /* parent */
-	    BFE_TX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR, 		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BFE_TX_LIST_SIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    BFE_TX_LIST_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    BFE_TX_RING_ALIGN, 0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    BFE_TX_LIST_SIZE,			       /* maxsize */
+	    1,					       /* nsegments */
+	    BFE_TX_LIST_SIZE,			       /* maxsegsize */
+	    0,					       /* flags */
+	    NULL, NULL,				       /* lockfunc, lockarg */
 	    &sc->bfe_tx_tag);
 	if (error != 0) {
 		device_printf(sc->bfe_dev, "cannot create Tx ring DMA tag.\n");
@@ -228,15 +220,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 
 	/* Create tag for Rx ring. */
 	error = bus_dma_tag_create(sc->bfe_parent_tag, /* parent */
-	    BFE_RX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR, 		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BFE_RX_LIST_SIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    BFE_RX_LIST_SIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    BFE_RX_RING_ALIGN, 0,		       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    BFE_RX_LIST_SIZE,			       /* maxsize */
+	    1,					       /* nsegments */
+	    BFE_RX_LIST_SIZE,			       /* maxsegsize */
+	    0,					       /* flags */
+	    NULL, NULL,				       /* lockfunc, lockarg */
 	    &sc->bfe_rx_tag);
 	if (error != 0) {
 		device_printf(sc->bfe_dev, "cannot create Rx ring DMA tag.\n");
@@ -245,15 +237,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 
 	/* Create tag for Tx buffers. */
 	error = bus_dma_tag_create(sc->bfe_parent_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR, 		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES * BFE_MAXTXSEGS,	/* maxsize */
-	    BFE_MAXTXSEGS,		/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    1, 0,				       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    MCLBYTES * BFE_MAXTXSEGS,		       /* maxsize */
+	    BFE_MAXTXSEGS,			       /* nsegments */
+	    MCLBYTES,				       /* maxsegsize */
+	    0,					       /* flags */
+	    NULL, NULL,				       /* lockfunc, lockarg */
 	    &sc->bfe_txmbuf_tag);
 	if (error != 0) {
 		device_printf(sc->bfe_dev,
@@ -263,15 +255,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 
 	/* Create tag for Rx buffers. */
 	error = bus_dma_tag_create(sc->bfe_parent_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR, 		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    1, 0,				       /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,			       /* lowaddr */
+	    BUS_SPACE_MAXADDR,			       /* highaddr */
+	    NULL, NULL,				       /* filter, filterarg */
+	    MCLBYTES,				       /* maxsize */
+	    1,					       /* nsegments */
+	    MCLBYTES,				       /* maxsegsize */
+	    0,					       /* flags */
+	    NULL, NULL,				       /* lockfunc, lockarg */
 	    &sc->bfe_rxmbuf_tag);
 	if (error != 0) {
 		device_printf(sc->bfe_dev,
@@ -281,16 +273,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 
 	/* Allocate DMA'able memory and load DMA map. */
 	error = bus_dmamem_alloc(sc->bfe_tx_tag, (void *)&sc->bfe_tx_list,
-	  BUS_DMA_WAITOK | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->bfe_tx_map);
+	    BUS_DMA_WAITOK | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->bfe_tx_map);
 	if (error != 0) {
 		device_printf(sc->bfe_dev,
 		    "cannot allocate DMA'able memory for Tx ring.\n");
 		goto fail;
 	}
 	ctx.bfe_busaddr = 0;
-	error = bus_dmamap_load(sc->bfe_tx_tag, sc->bfe_tx_map,
-	    sc->bfe_tx_list, BFE_TX_LIST_SIZE, bfe_dma_map, &ctx,
-	    BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(sc->bfe_tx_tag, sc->bfe_tx_map, sc->bfe_tx_list,
+	    BFE_TX_LIST_SIZE, bfe_dma_map, &ctx, BUS_DMA_NOWAIT);
 	if (error != 0 || ctx.bfe_busaddr == 0) {
 		device_printf(sc->bfe_dev,
 		    "cannot load DMA'able memory for Tx ring.\n");
@@ -299,16 +290,15 @@ bfe_dma_alloc(struct bfe_softc *sc)
 	sc->bfe_tx_dma = BFE_ADDR_LO(ctx.bfe_busaddr);
 
 	error = bus_dmamem_alloc(sc->bfe_rx_tag, (void *)&sc->bfe_rx_list,
-	  BUS_DMA_WAITOK | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->bfe_rx_map);
+	    BUS_DMA_WAITOK | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->bfe_rx_map);
 	if (error != 0) {
 		device_printf(sc->bfe_dev,
 		    "cannot allocate DMA'able memory for Rx ring.\n");
 		goto fail;
 	}
 	ctx.bfe_busaddr = 0;
-	error = bus_dmamap_load(sc->bfe_rx_tag, sc->bfe_rx_map,
-	    sc->bfe_rx_list, BFE_RX_LIST_SIZE, bfe_dma_map, &ctx,
-	    BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(sc->bfe_rx_tag, sc->bfe_rx_map, sc->bfe_rx_list,
+	    BFE_RX_LIST_SIZE, bfe_dma_map, &ctx, BUS_DMA_NOWAIT);
 	if (error != 0 || ctx.bfe_busaddr == 0) {
 		device_printf(sc->bfe_dev,
 		    "cannot load DMA'able memory for Rx ring.\n");
@@ -332,7 +322,8 @@ bfe_dma_alloc(struct bfe_softc *sc)
 	/* Create spare DMA map for Rx buffers. */
 	error = bus_dmamap_create(sc->bfe_rxmbuf_tag, 0, &sc->bfe_rx_sparemap);
 	if (error != 0) {
-		device_printf(sc->bfe_dev, "cannot create spare DMA map for Rx.\n");
+		device_printf(sc->bfe_dev,
+		    "cannot create spare DMA map for Rx.\n");
 		goto fail;
 	}
 	/* Create DMA maps for Rx buffers. */
@@ -434,7 +425,7 @@ bfe_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 	mtx_init(&sc->bfe_mtx, device_get_nameunit(dev), MTX_NETWORK_LOCK,
-			MTX_DEF);
+	    MTX_DEF);
 	callout_init_mtx(&sc->bfe_stat_co, &sc->bfe_mtx, 0);
 
 	sc->bfe_dev = dev;
@@ -446,7 +437,7 @@ bfe_attach(device_t dev)
 
 	rid = PCIR_BAR(0);
 	sc->bfe_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-			RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->bfe_res == NULL) {
 		device_printf(dev, "couldn't map memory\n");
 		error = ENXIO;
@@ -457,7 +448,7 @@ bfe_attach(device_t dev)
 	rid = 0;
 
 	sc->bfe_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-			RF_SHAREABLE | RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->bfe_irq == NULL) {
 		device_printf(dev, "couldn't map interrupt\n");
 		error = ENXIO;
@@ -471,8 +462,8 @@ bfe_attach(device_t dev)
 	}
 
 	SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO,
-	    "stats", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
+	    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), OID_AUTO, "stats",
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, sc, 0,
 	    sysctl_bfe_stats, "I", "Statistics");
 
 	/* Set up ifnet structure */
@@ -519,7 +510,7 @@ bfe_attach(device_t dev)
 	 * Hook interrupt last to avoid having to lock softc
 	 */
 	error = bus_setup_intr(dev, sc->bfe_irq, INTR_TYPE_NET | INTR_MPSAFE,
-			NULL, bfe_intr, sc, &sc->bfe_intrhand);
+	    NULL, bfe_intr, sc, &sc->bfe_intrhand);
 
 	if (error) {
 		device_printf(dev, "couldn't set up irq\n");
@@ -676,7 +667,7 @@ bfe_miibus_statchg(device_t dev)
 		flow = CSR_READ_4(sc, BFE_RXCONF);
 		flow &= ~BFE_RXCONF_FLOW;
 		if ((IFM_OPTIONS(sc->sc_mii->mii_media_active) &
-		    IFM_ETH_RXPAUSE) != 0)
+			IFM_ETH_RXPAUSE) != 0)
 			flow |= BFE_RXCONF_FLOW;
 		CSR_WRITE_4(sc, BFE_RXCONF, flow);
 		/*
@@ -696,7 +687,7 @@ bfe_tx_ring_free(struct bfe_softc *sc)
 {
 	int i;
 
-	for(i = 0; i < BFE_TX_LIST_CNT; i++) {
+	for (i = 0; i < BFE_TX_LIST_CNT; i++) {
 		if (sc->bfe_tx_ring[i].bfe_mbuf != NULL) {
 			bus_dmamap_sync(sc->bfe_txmbuf_tag,
 			    sc->bfe_tx_ring[i].bfe_map, BUS_DMASYNC_POSTWRITE);
@@ -796,8 +787,8 @@ bfe_list_newbuf(struct bfe_softc *sc, int c)
 		return (ENOBUFS);
 	m->m_len = m->m_pkthdr.len = MCLBYTES;
 
-	if (bus_dmamap_load_mbuf_sg(sc->bfe_rxmbuf_tag, sc->bfe_rx_sparemap,
-	    m, segs, &nsegs, 0) != 0) {
+	if (bus_dmamap_load_mbuf_sg(sc->bfe_rxmbuf_tag, sc->bfe_rx_sparemap, m,
+		segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -820,8 +811,8 @@ bfe_list_newbuf(struct bfe_softc *sc, int c)
 	bus_dmamap_sync(sc->bfe_rxmbuf_tag, r->bfe_map, BUS_DMASYNC_PREREAD);
 
 	ctrl = segs[0].ds_len & BFE_DESC_LEN;
-	KASSERT(ctrl > ETHER_MAX_LEN + 32, ("%s: buffer size too small(%d)!",
-	    __func__, ctrl));
+	KASSERT(ctrl > ETHER_MAX_LEN + 32,
+	    ("%s: buffer size too small(%d)!", __func__, ctrl));
 	if (c == BFE_RX_LIST_CNT - 1)
 		ctrl |= BFE_DESC_EOT;
 	r->bfe_ctrl = ctrl;
@@ -939,8 +930,8 @@ bfe_chip_reset(struct bfe_softc *sc)
 		bfe_wait_bit(sc, BFE_ENET_CTRL, BFE_ENET_DISABLE, 100, 1);
 		CSR_WRITE_4(sc, BFE_DMATX_CTRL, 0);
 		if (CSR_READ_4(sc, BFE_DMARX_STAT) & BFE_STAT_EMASK)
-			bfe_wait_bit(sc, BFE_DMARX_STAT, BFE_STAT_SIDLE,
-			    100, 0);
+			bfe_wait_bit(sc, BFE_DMARX_STAT, BFE_STAT_SIDLE, 100,
+			    0);
 		CSR_WRITE_4(sc, BFE_DMARX_CTRL, 0);
 	}
 
@@ -971,8 +962,8 @@ bfe_chip_reset(struct bfe_softc *sc)
 	/* Reset or clear powerdown control bit  */
 	BFE_AND(sc, BFE_MAC_CTRL, ~BFE_CTRL_PDOWN);
 
-	CSR_WRITE_4(sc, BFE_RCV_LAZY, ((1 << BFE_LAZY_FC_SHIFT) &
-				BFE_LAZY_FC_MASK));
+	CSR_WRITE_4(sc, BFE_RCV_LAZY,
+	    ((1 << BFE_LAZY_FC_SHIFT) & BFE_LAZY_FC_MASK));
 
 	/*
 	 * We don't want lazy interrupts, so just send them at
@@ -981,8 +972,8 @@ bfe_chip_reset(struct bfe_softc *sc)
 	BFE_OR(sc, BFE_RCV_LAZY, 0);
 
 	/* Set max lengths, accounting for VLAN tags */
-	CSR_WRITE_4(sc, BFE_RXMAXLEN, ETHER_MAX_LEN+32);
-	CSR_WRITE_4(sc, BFE_TXMAXLEN, ETHER_MAX_LEN+32);
+	CSR_WRITE_4(sc, BFE_RXMAXLEN, ETHER_MAX_LEN + 32);
+	CSR_WRITE_4(sc, BFE_TXMAXLEN, ETHER_MAX_LEN + 32);
 
 	/* Set watermark XXX - magic */
 	CSR_WRITE_4(sc, BFE_TX_WMARK, 56);
@@ -994,8 +985,8 @@ bfe_chip_reset(struct bfe_softc *sc)
 	CSR_WRITE_4(sc, BFE_DMATX_CTRL, BFE_TX_CTRL_ENABLE);
 	CSR_WRITE_4(sc, BFE_DMATX_ADDR, sc->bfe_tx_dma + BFE_PCI_DMA);
 
-	CSR_WRITE_4(sc, BFE_DMARX_CTRL, (BFE_RX_OFFSET << BFE_RX_CTRL_ROSHIFT) |
-			BFE_RX_CTRL_ENABLE);
+	CSR_WRITE_4(sc, BFE_DMARX_CTRL,
+	    (BFE_RX_OFFSET << BFE_RX_CTRL_ROSHIFT) | BFE_RX_CTRL_ENABLE);
 	CSR_WRITE_4(sc, BFE_DMARX_ADDR, sc->bfe_rx_dma + BFE_PCI_DMA);
 
 	bfe_resetphy(sc);
@@ -1015,8 +1006,8 @@ bfe_core_disable(struct bfe_softc *sc)
 	CSR_WRITE_4(sc, BFE_SBTMSLOW, (BFE_REJECT | BFE_CLOCK));
 	bfe_wait_bit(sc, BFE_SBTMSLOW, BFE_REJECT, 1000, 0);
 	bfe_wait_bit(sc, BFE_SBTMSHIGH, BFE_BUSY, 1000, 1);
-	CSR_WRITE_4(sc, BFE_SBTMSLOW, (BFE_FGC | BFE_CLOCK | BFE_REJECT |
-				BFE_RESET));
+	CSR_WRITE_4(sc, BFE_SBTMSLOW,
+	    (BFE_FGC | BFE_CLOCK | BFE_REJECT | BFE_RESET));
 	CSR_READ_4(sc, BFE_SBTMSLOW);
 	DELAY(10);
 	/* Leave reset and reject set */
@@ -1060,17 +1051,16 @@ bfe_cam_write(struct bfe_softc *sc, u_char *data, int index)
 {
 	u_int32_t val;
 
-	val  = ((u_int32_t) data[2]) << 24;
-	val |= ((u_int32_t) data[3]) << 16;
-	val |= ((u_int32_t) data[4]) <<  8;
-	val |= ((u_int32_t) data[5]);
+	val = ((u_int32_t)data[2]) << 24;
+	val |= ((u_int32_t)data[3]) << 16;
+	val |= ((u_int32_t)data[4]) << 8;
+	val |= ((u_int32_t)data[5]);
 	CSR_WRITE_4(sc, BFE_CAM_DATA_LO, val);
-	val = (BFE_CAM_HI_VALID |
-			(((u_int32_t) data[0]) << 8) |
-			(((u_int32_t) data[1])));
+	val = (BFE_CAM_HI_VALID | (((u_int32_t)data[0]) << 8) |
+	    (((u_int32_t)data[1])));
 	CSR_WRITE_4(sc, BFE_CAM_DATA_HI, val);
-	CSR_WRITE_4(sc, BFE_CAM_CTRL, (BFE_CAM_WRITE |
-				((u_int32_t) index << BFE_CAM_INDEX_SHIFT)));
+	CSR_WRITE_4(sc, BFE_CAM_CTRL,
+	    (BFE_CAM_WRITE | ((u_int32_t)index << BFE_CAM_INDEX_SHIFT)));
 	bfe_wait_bit(sc, BFE_CAM_CTRL, BFE_CAM_BUSY, 10000, 1);
 }
 
@@ -1156,13 +1146,13 @@ bfe_read_eeprom(struct bfe_softc *sc, u_int8_t *data)
 	long i;
 	u_int16_t *ptr = (u_int16_t *)data;
 
-	for(i = 0; i < 128; i += 2)
-		ptr[i/2] = CSR_READ_4(sc, 4096 + i);
+	for (i = 0; i < 128; i += 2)
+		ptr[i / 2] = CSR_READ_4(sc, 4096 + i);
 }
 
 static int
-bfe_wait_bit(struct bfe_softc *sc, u_int32_t reg, u_int32_t bit,
-		u_long timeout, const int clear)
+bfe_wait_bit(struct bfe_softc *sc, u_int32_t reg, u_int32_t bit, u_long timeout,
+    const int clear)
 {
 	u_long i;
 
@@ -1178,7 +1168,8 @@ bfe_wait_bit(struct bfe_softc *sc, u_int32_t reg, u_int32_t bit,
 	if (i == timeout) {
 		device_printf(sc->bfe_dev,
 		    "BUG!  Timeout waiting for bit %08x of register "
-		    "%x to %s.\n", bit, reg, (clear ? "clear" : "set"));
+		    "%x to %s.\n",
+		    bit, reg, (clear ? "clear" : "set"));
 		return (-1);
 	}
 	return (0);
@@ -1191,11 +1182,11 @@ bfe_readphy(struct bfe_softc *sc, u_int32_t reg, u_int32_t *val)
 
 	/* Clear MII ISR */
 	CSR_WRITE_4(sc, BFE_EMAC_ISTAT, BFE_EMAC_INT_MII);
-	CSR_WRITE_4(sc, BFE_MDIO_DATA, (BFE_MDIO_SB_START |
-				(BFE_MDIO_OP_READ << BFE_MDIO_OP_SHIFT) |
-				(sc->bfe_phyaddr << BFE_MDIO_PMD_SHIFT) |
-				(reg << BFE_MDIO_RA_SHIFT) |
-				(BFE_MDIO_TA_VALID << BFE_MDIO_TA_SHIFT)));
+	CSR_WRITE_4(sc, BFE_MDIO_DATA,
+	    (BFE_MDIO_SB_START | (BFE_MDIO_OP_READ << BFE_MDIO_OP_SHIFT) |
+		(sc->bfe_phyaddr << BFE_MDIO_PMD_SHIFT) |
+		(reg << BFE_MDIO_RA_SHIFT) |
+		(BFE_MDIO_TA_VALID << BFE_MDIO_TA_SHIFT)));
 	err = bfe_wait_bit(sc, BFE_EMAC_ISTAT, BFE_EMAC_INT_MII, 100, 0);
 	*val = CSR_READ_4(sc, BFE_MDIO_DATA) & BFE_MDIO_DATA_DATA;
 
@@ -1208,12 +1199,12 @@ bfe_writephy(struct bfe_softc *sc, u_int32_t reg, u_int32_t val)
 	int status;
 
 	CSR_WRITE_4(sc, BFE_EMAC_ISTAT, BFE_EMAC_INT_MII);
-	CSR_WRITE_4(sc, BFE_MDIO_DATA, (BFE_MDIO_SB_START |
-				(BFE_MDIO_OP_WRITE << BFE_MDIO_OP_SHIFT) |
-				(sc->bfe_phyaddr << BFE_MDIO_PMD_SHIFT) |
-				(reg << BFE_MDIO_RA_SHIFT) |
-				(BFE_MDIO_TA_VALID << BFE_MDIO_TA_SHIFT) |
-				(val & BFE_MDIO_DATA_DATA)));
+	CSR_WRITE_4(sc, BFE_MDIO_DATA,
+	    (BFE_MDIO_SB_START | (BFE_MDIO_OP_WRITE << BFE_MDIO_OP_SHIFT) |
+		(sc->bfe_phyaddr << BFE_MDIO_PMD_SHIFT) |
+		(reg << BFE_MDIO_RA_SHIFT) |
+		(BFE_MDIO_TA_VALID << BFE_MDIO_TA_SHIFT) |
+		(val & BFE_MDIO_DATA_DATA)));
 	status = bfe_wait_bit(sc, BFE_EMAC_ISTAT, BFE_EMAC_INT_MII, 100, 0);
 
 	return (status);
@@ -1312,20 +1303,16 @@ bfe_stats_update(struct bfe_softc *sc)
 	/* Update counters in ifnet. */
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, (u_long)mib[MIB_TX_GOOD_P]);
 	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, (u_long)mib[MIB_TX_TCOLS]);
-	if_inc_counter(ifp, IFCOUNTER_OERRORS, (u_long)mib[MIB_TX_URUNS] +
-	    (u_long)mib[MIB_TX_ECOLS] +
-	    (u_long)mib[MIB_TX_DEFERED] +
-	    (u_long)mib[MIB_TX_CLOST]);
+	if_inc_counter(ifp, IFCOUNTER_OERRORS,
+	    (u_long)mib[MIB_TX_URUNS] + (u_long)mib[MIB_TX_ECOLS] +
+		(u_long)mib[MIB_TX_DEFERED] + (u_long)mib[MIB_TX_CLOST]);
 
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, (u_long)mib[MIB_RX_GOOD_P]);
 
-	if_inc_counter(ifp, IFCOUNTER_IERRORS, mib[MIB_RX_JABBER] +
-	    mib[MIB_RX_MISS] +
-	    mib[MIB_RX_CRCA] +
-	    mib[MIB_RX_USIZE] +
-	    mib[MIB_RX_CRC] +
-	    mib[MIB_RX_ALIGN] +
-	    mib[MIB_RX_SYM]);
+	if_inc_counter(ifp, IFCOUNTER_IERRORS,
+	    mib[MIB_RX_JABBER] + mib[MIB_RX_MISS] + mib[MIB_RX_CRCA] +
+		mib[MIB_RX_USIZE] + mib[MIB_RX_CRC] + mib[MIB_RX_ALIGN] +
+		mib[MIB_RX_SYM]);
 }
 
 static void
@@ -1392,22 +1379,22 @@ bfe_rxeof(struct bfe_softc *sc)
 	bus_dmamap_sync(sc->bfe_rx_tag, sc->bfe_rx_map,
 	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 
-	for (prog = 0; current != cons; prog++,
-	    BFE_INC(cons, BFE_RX_LIST_CNT)) {
+	for (prog = 0; current != cons;
+	     prog++, BFE_INC(cons, BFE_RX_LIST_CNT)) {
 		r = &sc->bfe_rx_ring[cons];
 		m = r->bfe_mbuf;
 		/*
 		 * Rx status should be read from mbuf such that we can't
 		 * delay bus_dmamap_sync(9). This hardware limiation
 		 * results in inefficient mbuf usage as bfe(4) couldn't
-		 * reuse mapped buffer from errored frame. 
+		 * reuse mapped buffer from errored frame.
 		 */
 		if (bfe_list_newbuf(sc, cons) != 0) {
 			if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
 			bfe_discard_buf(sc, cons);
 			continue;
 		}
-		rxheader = mtod(m, struct bfe_rxheader*);
+		rxheader = mtod(m, struct bfe_rxheader *);
 		len = le16toh(rxheader->len);
 		flags = le16toh(rxheader->flags);
 
@@ -1415,7 +1402,8 @@ bfe_rxeof(struct bfe_softc *sc)
 		len -= ETHER_CRC_LEN;
 
 		/* flag an error and try again */
-		if ((len > ETHER_MAX_LEN+32) || (flags & BFE_RX_FLAG_ERRORS)) {
+		if ((len > ETHER_MAX_LEN + 32) ||
+		    (flags & BFE_RX_FLAG_ERRORS)) {
 			m_freem(m);
 			continue;
 		}
@@ -1557,8 +1545,8 @@ bfe_encap(struct bfe_softc *sc, struct mbuf **m_head)
 			 */
 			d->bfe_ctrl |= htole32(BFE_DESC_EOT);
 		/* The chip needs all addresses to be added to BFE_PCI_DMA. */
-		d->bfe_addr = htole32(BFE_ADDR_LO(txsegs[i].ds_addr) +
-		    BFE_PCI_DMA);
+		d->bfe_addr = htole32(
+		    BFE_ADDR_LO(txsegs[i].ds_addr) + BFE_PCI_DMA);
 		BFE_INC(cur, BFE_TX_LIST_CNT);
 	}
 
@@ -1616,11 +1604,12 @@ bfe_start_locked(if_t ifp)
 	 * or we have nothing to send.
 	 */
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->bfe_flags & BFE_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->bfe_flags & BFE_FLAG_LINK) == 0)
 		return;
 
-	for (queued = 0; !if_sendq_empty(ifp) &&
-	    sc->bfe_tx_cnt < BFE_TX_LIST_CNT - 1;) {
+	for (queued = 0;
+	     !if_sendq_empty(ifp) && sc->bfe_tx_cnt < BFE_TX_LIST_CNT - 1;) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -1684,7 +1673,7 @@ bfe_init(void *xsc)
 static void
 bfe_init_locked(void *xsc)
 {
-	struct bfe_softc *sc = (struct bfe_softc*)xsc;
+	struct bfe_softc *sc = (struct bfe_softc *)xsc;
 	if_t ifp = sc->bfe_ifp;
 	struct mii_data *mii;
 
@@ -1738,7 +1727,7 @@ bfe_ifmedia_upd(if_t ifp)
 	BFE_LOCK(sc);
 
 	mii = device_get_softc(sc->bfe_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	BFE_UNLOCK(sc);
@@ -1767,7 +1756,7 @@ static int
 bfe_ioctl(if_t ifp, u_long command, caddr_t data)
 {
 	struct bfe_softc *sc = if_getsoftc(ifp);
-	struct ifreq *ifr = (struct ifreq *) data;
+	struct ifreq *ifr = (struct ifreq *)data;
 	struct mii_data *mii;
 	int error = 0;
 
@@ -1886,16 +1875,13 @@ sysctl_bfe_stats(SYSCTL_HANDLER_ARGS)
 	    (uintmax_t)stats->tx_good_octets);
 	printf("Transmit good frames : %ju\n",
 	    (uintmax_t)stats->tx_good_frames);
-	printf("Transmit octets : %ju\n",
-	    (uintmax_t)stats->tx_octets);
-	printf("Transmit frames : %ju\n",
-	    (uintmax_t)stats->tx_frames);
+	printf("Transmit octets : %ju\n", (uintmax_t)stats->tx_octets);
+	printf("Transmit frames : %ju\n", (uintmax_t)stats->tx_frames);
 	printf("Transmit broadcast frames : %ju\n",
 	    (uintmax_t)stats->tx_bcast_frames);
 	printf("Transmit multicast frames : %ju\n",
 	    (uintmax_t)stats->tx_mcast_frames);
-	printf("Transmit frames 64 bytes : %ju\n",
-	    (uint64_t)stats->tx_pkts_64);
+	printf("Transmit frames 64 bytes : %ju\n", (uint64_t)stats->tx_pkts_64);
 	printf("Transmit frames 65 to 127 bytes : %ju\n",
 	    (uint64_t)stats->tx_pkts_65_127);
 	printf("Transmit frames 128 to 255 bytes : %ju\n",
@@ -1921,20 +1907,15 @@ sysctl_bfe_stats(SYSCTL_HANDLER_ARGS)
 	printf("Transmit carrier losts : %u\n", stats->tx_carrier_losts);
 	printf("Transmit pause frames : %u\n", stats->tx_pause_frames);
 
-	printf("Receive good octets : %ju\n",
-	    (uintmax_t)stats->rx_good_octets);
-	printf("Receive good frames : %ju\n",
-	    (uintmax_t)stats->rx_good_frames);
-	printf("Receive octets : %ju\n",
-	    (uintmax_t)stats->rx_octets);
-	printf("Receive frames : %ju\n",
-	    (uintmax_t)stats->rx_frames);
+	printf("Receive good octets : %ju\n", (uintmax_t)stats->rx_good_octets);
+	printf("Receive good frames : %ju\n", (uintmax_t)stats->rx_good_frames);
+	printf("Receive octets : %ju\n", (uintmax_t)stats->rx_octets);
+	printf("Receive frames : %ju\n", (uintmax_t)stats->rx_frames);
 	printf("Receive broadcast frames : %ju\n",
 	    (uintmax_t)stats->rx_bcast_frames);
 	printf("Receive multicast frames : %ju\n",
 	    (uintmax_t)stats->rx_mcast_frames);
-	printf("Receive frames 64 bytes : %ju\n",
-	    (uint64_t)stats->rx_pkts_64);
+	printf("Receive frames 64 bytes : %ju\n", (uint64_t)stats->rx_pkts_64);
 	printf("Receive frames 65 to 127 bytes : %ju\n",
 	    (uint64_t)stats->rx_pkts_65_127);
 	printf("Receive frames 128 to 255 bytes : %ju\n",

@@ -46,34 +46,32 @@
  * Interface with the ddb(4) capture buffer of a live kernel using sysctl, or
  * for a crash dump using libkvm.
  */
-#define	SYSCTL_DDB_CAPTURE_BUFOFF	"debug.ddb.capture.bufoff"
-#define	SYSCTL_DDB_CAPTURE_BUFSIZE	"debug.ddb.capture.bufsize"
-#define	SYSCTL_DDB_CAPTURE_MAXBUFSIZE	"debug.ddb.capture.maxbufsize"
-#define	SYSCTL_DDB_CAPTURE_DATA		"debug.ddb.capture.data"
-#define	SYSCTL_DDB_CAPTURE_INPROGRESS	"debug.ddb.capture.inprogress"
+#define SYSCTL_DDB_CAPTURE_BUFOFF "debug.ddb.capture.bufoff"
+#define SYSCTL_DDB_CAPTURE_BUFSIZE "debug.ddb.capture.bufsize"
+#define SYSCTL_DDB_CAPTURE_MAXBUFSIZE "debug.ddb.capture.maxbufsize"
+#define SYSCTL_DDB_CAPTURE_DATA "debug.ddb.capture.data"
+#define SYSCTL_DDB_CAPTURE_INPROGRESS "debug.ddb.capture.inprogress"
 
 static struct nlist namelist[] = {
-#define X_DB_CAPTURE_BUF	0
+#define X_DB_CAPTURE_BUF 0
 	{ .n_name = "_db_capture_buf" },
-#define X_DB_CAPTURE_BUFSIZE	1
+#define X_DB_CAPTURE_BUFSIZE 1
 	{ .n_name = "_db_capture_bufsize" },
-#define X_DB_CAPTURE_MAXBUFSIZE	2
+#define X_DB_CAPTURE_MAXBUFSIZE 2
 	{ .n_name = "_db_capture_maxbufsize" },
-#define X_DB_CAPTURE_BUFOFF	3
+#define X_DB_CAPTURE_BUFOFF 3
 	{ .n_name = "_db_capture_bufoff" },
-#define	X_DB_CAPTURE_INPROGRESS	4
+#define X_DB_CAPTURE_INPROGRESS 4
 	{ .n_name = "_db_capture_inprogress" },
 	{ .n_name = "" },
 };
 
 static int
-kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size,
-    size_t offset)
+kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
-	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address,
-	    size);
+	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address, size);
 	if (ret < 0 || (size_t)ret != size)
 		return (-1);
 	return (0);
@@ -85,7 +83,8 @@ kread_symbol(kvm_t *kvm, int read_index, void *address, size_t size,
 {
 	ssize_t ret;
 
-	ret = kvm_read(kvm, namelist[read_index].n_value + offset, address, size);
+	ret = kvm_read(kvm, namelist[read_index].n_value + offset, address,
+	    size);
 	if (ret < 0 || (size_t)ret != size)
 		return (-1);
 	return (0);
@@ -98,17 +97,16 @@ ddb_capture_print_kvm(kvm_t *kvm)
 	char *buffer, *db_capture_buf;
 
 	if (kread_symbol(kvm, X_DB_CAPTURE_BUF, &db_capture_buf,
-	    sizeof(db_capture_buf), 0) < 0)
+		sizeof(db_capture_buf), 0) < 0)
 		errx(-1, "kvm: unable to read db_capture_buf");
 
 	if (kread_symbol(kvm, X_DB_CAPTURE_BUFOFF, &db_capture_bufoff,
-	    sizeof(db_capture_bufoff), 0) < 0)
+		sizeof(db_capture_bufoff), 0) < 0)
 		errx(-1, "kvm: unable to read db_capture_bufoff");
 
 	buffer = malloc(db_capture_bufoff + 1);
 	if (buffer == NULL)
-		err(-1, "malloc: db_capture_bufoff (%u)",
-		    db_capture_bufoff);
+		err(-1, "malloc: db_capture_bufoff (%u)", db_capture_bufoff);
 	bzero(buffer, db_capture_bufoff + 1);
 
 	if (kread(kvm, db_capture_buf, buffer, db_capture_bufoff, 0) < 0)
@@ -153,20 +151,19 @@ ddb_capture_status_kvm(kvm_t *kvm)
 	u_int db_capture_bufoff, db_capture_bufsize, db_capture_inprogress;
 
 	if (kread_symbol(kvm, X_DB_CAPTURE_BUFOFF, &db_capture_bufoff,
-	    sizeof(db_capture_bufoff), 0) < 0)
+		sizeof(db_capture_bufoff), 0) < 0)
 		errx(-1, "kvm: unable to read db_capture_bufoff");
 	if (kread_symbol(kvm, X_DB_CAPTURE_BUFSIZE, &db_capture_bufsize,
-	    sizeof(db_capture_bufsize), 0) < 0)
+		sizeof(db_capture_bufsize), 0) < 0)
 		errx(-1, "kvm: unable to read db_capture_bufsize");
-	if (kread_symbol(kvm, X_DB_CAPTURE_INPROGRESS,
-	    &db_capture_inprogress, sizeof(db_capture_inprogress), 0) < 0)
+	if (kread_symbol(kvm, X_DB_CAPTURE_INPROGRESS, &db_capture_inprogress,
+		sizeof(db_capture_inprogress), 0) < 0)
 		err(-1, "kvm: unable to read db_capture_inprogress");
 	printf("%u/%u bytes used\n", db_capture_bufoff, db_capture_bufsize);
 	if (db_capture_inprogress)
 		printf("capture is on\n");
 	else
 		printf("capture is off\n");
-
 }
 
 static void
@@ -177,15 +174,15 @@ ddb_capture_status_sysctl(void)
 
 	len = sizeof(db_capture_bufoff);
 	if (sysctlbyname(SYSCTL_DDB_CAPTURE_BUFOFF, &db_capture_bufoff, &len,
-	    NULL, 0) < 0)
+		NULL, 0) < 0)
 		err(EX_OSERR, "sysctl: %s", SYSCTL_DDB_CAPTURE_BUFOFF);
 	len = sizeof(db_capture_bufoff);
-	if (sysctlbyname(SYSCTL_DDB_CAPTURE_BUFSIZE, &db_capture_bufsize,
-	    &len, NULL, 0) < 0)
+	if (sysctlbyname(SYSCTL_DDB_CAPTURE_BUFSIZE, &db_capture_bufsize, &len,
+		NULL, 0) < 0)
 		err(EX_OSERR, "sysctl: %s", SYSCTL_DDB_CAPTURE_BUFSIZE);
 	len = sizeof(db_capture_inprogress);
-	if (sysctlbyname(SYSCTL_DDB_CAPTURE_INPROGRESS,
-	    &db_capture_inprogress, &len, NULL, 0) < 0)
+	if (sysctlbyname(SYSCTL_DDB_CAPTURE_INPROGRESS, &db_capture_inprogress,
+		&len, NULL, 0) < 0)
 		err(EX_OSERR, "sysctl: %s", SYSCTL_DDB_CAPTURE_INPROGRESS);
 	printf("%u/%u bytes used\n", db_capture_bufoff, db_capture_bufsize);
 	if (db_capture_inprogress)

@@ -27,41 +27,41 @@
  */
 
 #ifndef _NET_IF_PFLOG_H_
-#define	_NET_IF_PFLOG_H_
+#define _NET_IF_PFLOG_H_
 
 #include <sys/types.h>
 
 #include <net/if.h>
 
-#define	PFLOGIFS_MAX	16
+#define PFLOGIFS_MAX 16
 
-#define	PFLOG_RULESET_NAME_SIZE	16
+#define PFLOG_RULESET_NAME_SIZE 16
 
 struct pfloghdr {
-	u_int8_t	length;
-	sa_family_t	af;
-	u_int8_t	action;
-	u_int8_t	reason;
-	char		ifname[IFNAMSIZ];
-	char		ruleset[PFLOG_RULESET_NAME_SIZE];
-	u_int32_t	rulenr;
-	u_int32_t	subrulenr;
-	uid_t		uid;
-	pid_t		pid;
-	uid_t		rule_uid;
-	pid_t		rule_pid;
-	u_int8_t	dir;
-	u_int8_t	pad[3];
-	u_int32_t	ridentifier;
-	u_int8_t	reserve;	/* Appease broken software like Wireshark. */
-	u_int8_t	pad2[3];
+	u_int8_t length;
+	sa_family_t af;
+	u_int8_t action;
+	u_int8_t reason;
+	char ifname[IFNAMSIZ];
+	char ruleset[PFLOG_RULESET_NAME_SIZE];
+	u_int32_t rulenr;
+	u_int32_t subrulenr;
+	uid_t uid;
+	pid_t pid;
+	uid_t rule_uid;
+	pid_t rule_pid;
+	u_int8_t dir;
+	u_int8_t pad[3];
+	u_int32_t ridentifier;
+	u_int8_t reserve; /* Appease broken software like Wireshark. */
+	u_int8_t pad2[3];
 };
 
-#define PFLOG_ALIGNMENT		sizeof(uint32_t)
-#define PFLOG_ALIGN(x)		(((x) + PFLOG_ALIGNMENT - 1) & ~(PFLOG_ALIGNMENT - 1))
-#define	PFLOG_HDRLEN		PFLOG_ALIGN(offsetof(struct pfloghdr, pad2))
+#define PFLOG_ALIGNMENT sizeof(uint32_t)
+#define PFLOG_ALIGN(x) (((x) + PFLOG_ALIGNMENT - 1) & ~(PFLOG_ALIGNMENT - 1))
+#define PFLOG_HDRLEN PFLOG_ALIGN(offsetof(struct pfloghdr, pad2))
 /* minus pad, also used as a signature */
-#define	PFLOG_REAL_HDRLEN	offsetof(struct pfloghdr, pad2)
+#define PFLOG_REAL_HDRLEN offsetof(struct pfloghdr, pad2)
 
 #ifdef _KERNEL
 struct pf_rule;
@@ -69,9 +69,10 @@ struct pf_ruleset;
 struct pfi_kif;
 struct pf_pdesc;
 
-#define	PFLOG_PACKET(i,a,b,t,c,d,e,f,g,di) do {		\
-	if (pflog_packet_ptr != NULL)			\
-		pflog_packet_ptr(i,a,b,t,c,d,e,f,g,di);	\
-} while (0)
+#define PFLOG_PACKET(i, a, b, t, c, d, e, f, g, di)                      \
+	do {                                                             \
+		if (pflog_packet_ptr != NULL)                            \
+			pflog_packet_ptr(i, a, b, t, c, d, e, f, g, di); \
+	} while (0)
 #endif /* _KERNEL */
 #endif /* _NET_IF_PFLOG_H_ */

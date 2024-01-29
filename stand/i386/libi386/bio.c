@@ -24,7 +24,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "libi386.h"
 
 /*

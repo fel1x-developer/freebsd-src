@@ -27,26 +27,30 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/ata.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 #include <sys/sema.h>
 #include <sys/taskqueue.h>
+
 #include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/ata/ata-all.h>
 #include <dev/ata/ata-pci.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include <ata_if.h>
 
 /* local prototypes */
@@ -59,35 +63,35 @@ static int ata_cypress_setmode(device_t dev, int target, int mode);
 static int
 ata_cypress_probe(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-    /*
-     * the Cypress chip is a mess, it contains two ATA functions, but
-     * both channels are visible on the first one.
-     * simply ignore the second function for now, as the right
-     * solution (ignoring the second channel on the first function)
-     * doesn't work with the crappy ATA interrupt setup on the alpha.
-     */
-    if (pci_get_devid(dev) == ATA_CYPRESS_82C693 &&
-	pci_get_function(dev) == 1 &&
-	pci_get_subclass(dev) == PCIS_STORAGE_IDE) {
-	device_set_desc(dev, "Cypress 82C693 ATA controller");
-	ctlr->chipinit = ata_cypress_chipinit;
-	return (BUS_PROBE_LOW_PRIORITY);
-    }
-    return ENXIO;
+	/*
+	 * the Cypress chip is a mess, it contains two ATA functions, but
+	 * both channels are visible on the first one.
+	 * simply ignore the second function for now, as the right
+	 * solution (ignoring the second channel on the first function)
+	 * doesn't work with the crappy ATA interrupt setup on the alpha.
+	 */
+	if (pci_get_devid(dev) == ATA_CYPRESS_82C693 &&
+	    pci_get_function(dev) == 1 &&
+	    pci_get_subclass(dev) == PCIS_STORAGE_IDE) {
+		device_set_desc(dev, "Cypress 82C693 ATA controller");
+		ctlr->chipinit = ata_cypress_chipinit;
+		return (BUS_PROBE_LOW_PRIORITY);
+	}
+	return ENXIO;
 }
 
 static int
 ata_cypress_chipinit(device_t dev)
 {
-    struct ata_pci_controller *ctlr = device_get_softc(dev);
+	struct ata_pci_controller *ctlr = device_get_softc(dev);
 
-    if (ata_setup_interrupt(dev, ata_generic_intr))
-	return ENXIO;
+	if (ata_setup_interrupt(dev, ata_generic_intr))
+		return ENXIO;
 
-    ctlr->setmode = ata_cypress_setmode;
-    return 0;
+	ctlr->setmode = ata_cypress_setmode;
+	return 0;
 }
 
 static int
@@ -99,7 +103,7 @@ ata_cypress_setmode(device_t dev, int target, int mode)
 	mode = min(mode, ATA_WDMA2);
 
 	/* XXX SOS missing WDMA0+1 + PIO modes */
-	if (mode == ATA_WDMA2) { 
+	if (mode == ATA_WDMA2) {
 		pci_write_config(parent, ch->unit ? 0x4e : 0x4c, 0x2020, 2);
 	}
 	/* we could set PIO mode timings, but we assume the BIOS did that */

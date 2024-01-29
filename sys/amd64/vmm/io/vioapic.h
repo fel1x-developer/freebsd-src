@@ -28,31 +28,30 @@
  */
 
 #ifndef _VIOAPIC_H_
-#define	_VIOAPIC_H_
+#define _VIOAPIC_H_
 
-#define	VIOAPIC_BASE	0xFEC00000
-#define	VIOAPIC_SIZE	4096
+#define VIOAPIC_BASE 0xFEC00000
+#define VIOAPIC_SIZE 4096
 
 #ifdef _KERNEL
 struct vm_snapshot_meta;
 
 struct vioapic *vioapic_init(struct vm *vm);
-void	vioapic_cleanup(struct vioapic *vioapic);
+void vioapic_cleanup(struct vioapic *vioapic);
 
-int	vioapic_assert_irq(struct vm *vm, int irq);
-int	vioapic_deassert_irq(struct vm *vm, int irq);
-int	vioapic_pulse_irq(struct vm *vm, int irq);
+int vioapic_assert_irq(struct vm *vm, int irq);
+int vioapic_deassert_irq(struct vm *vm, int irq);
+int vioapic_pulse_irq(struct vm *vm, int irq);
 
-int	vioapic_mmio_write(struct vcpu *vcpu, uint64_t gpa,
-	    uint64_t wval, int size, void *arg);
-int	vioapic_mmio_read(struct vcpu *vcpu, uint64_t gpa,
-	    uint64_t *rval, int size, void *arg);
+int vioapic_mmio_write(struct vcpu *vcpu, uint64_t gpa, uint64_t wval, int size,
+    void *arg);
+int vioapic_mmio_read(struct vcpu *vcpu, uint64_t gpa, uint64_t *rval, int size,
+    void *arg);
 
-int	vioapic_pincount(struct vm *vm);
-void	vioapic_process_eoi(struct vm *vm, int vector);
+int vioapic_pincount(struct vm *vm);
+void vioapic_process_eoi(struct vm *vm, int vector);
 #ifdef BHYVE_SNAPSHOT
-int	vioapic_snapshot(struct vioapic *vioapic,
-			 struct vm_snapshot_meta *meta);
+int vioapic_snapshot(struct vioapic *vioapic, struct vm_snapshot_meta *meta);
 #endif
 
 #endif /* _KERNEL */

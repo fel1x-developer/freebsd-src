@@ -39,9 +39,8 @@
 #include <sys/module.h>
 #include <sys/sysctl.h>
 
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
-
+#include <dev/evdev/input.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
 #include <dev/hid/hidmap.h>
@@ -62,48 +61,63 @@ enum {
 	HMS_FINAL_CB,
 };
 
-static hidmap_cb_t	hms_final_cb;
+static hidmap_cb_t hms_final_cb;
 #ifdef IICHID_SAMPLING
-static hid_intr_t	hms_intr;
+static hid_intr_t hms_intr;
 #endif
 
-#define HMS_MAP_BUT_RG(usage_from, usage_to, code)	\
-	{ HIDMAP_KEY_RANGE(HUP_BUTTON, usage_from, usage_to, code) }
-#define HMS_MAP_BUT_MS(usage, code)	\
-	{ HIDMAP_KEY(HUP_MICROSOFT, usage, code) }
-#define HMS_MAP_ABS(usage, code)	\
-	{ HIDMAP_ABS(HUP_GENERIC_DESKTOP, usage, code) }
-#define HMS_MAP_REL(usage, code)	\
-	{ HIDMAP_REL(HUP_GENERIC_DESKTOP, usage, code) }
-#define HMS_MAP_REL_REV(usage, code)	\
-	{ HIDMAP_REL(HUP_GENERIC_DESKTOP, usage, code), .invert_value = true }
-#define HMS_MAP_REL_CN(usage, code)	\
-	{ HIDMAP_REL(HUP_CONSUMER, usage, code) }
-#define	HMS_FINAL_CB(cb)		\
-	{ HIDMAP_FINAL_CB(&cb) }
+#define HMS_MAP_BUT_RG(usage_from, usage_to, code)                       \
+	{                                                                \
+		HIDMAP_KEY_RANGE(HUP_BUTTON, usage_from, usage_to, code) \
+	}
+#define HMS_MAP_BUT_MS(usage, code)                    \
+	{                                              \
+		HIDMAP_KEY(HUP_MICROSOFT, usage, code) \
+	}
+#define HMS_MAP_ABS(usage, code)                             \
+	{                                                    \
+		HIDMAP_ABS(HUP_GENERIC_DESKTOP, usage, code) \
+	}
+#define HMS_MAP_REL(usage, code)                             \
+	{                                                    \
+		HIDMAP_REL(HUP_GENERIC_DESKTOP, usage, code) \
+	}
+#define HMS_MAP_REL_REV(usage, code)                          \
+	{                                                     \
+		HIDMAP_REL(HUP_GENERIC_DESKTOP, usage, code), \
+		    .invert_value = true                      \
+	}
+#define HMS_MAP_REL_CN(usage, code)                   \
+	{                                             \
+		HIDMAP_REL(HUP_CONSUMER, usage, code) \
+	}
+#define HMS_FINAL_CB(cb)             \
+	{                            \
+		HIDMAP_FINAL_CB(&cb) \
+	}
 
 static const struct hidmap_item hms_map[] = {
-	[HMS_REL_X]	= HMS_MAP_REL(HUG_X,		REL_X),
-	[HMS_REL_Y]	= HMS_MAP_REL(HUG_Y,		REL_Y),
-	[HMS_REL_Z]	= HMS_MAP_REL(HUG_Z,		REL_Z),
-	[HMS_ABS_X]	= HMS_MAP_ABS(HUG_X,		ABS_X),
-	[HMS_ABS_Y]	= HMS_MAP_ABS(HUG_Y,		ABS_Y),
-	[HMS_ABS_Z]	= HMS_MAP_ABS(HUG_Z,		ABS_Z),
-	[HMS_HWHEEL]	= HMS_MAP_REL_CN(HUC_AC_PAN,	REL_HWHEEL),
-	[HMS_BTN]	= HMS_MAP_BUT_RG(1, 16,		BTN_MOUSE),
-	[HMS_FINAL_CB]	= HMS_FINAL_CB(hms_final_cb),
+	[HMS_REL_X] = HMS_MAP_REL(HUG_X, REL_X),
+	[HMS_REL_Y] = HMS_MAP_REL(HUG_Y, REL_Y),
+	[HMS_REL_Z] = HMS_MAP_REL(HUG_Z, REL_Z),
+	[HMS_ABS_X] = HMS_MAP_ABS(HUG_X, ABS_X),
+	[HMS_ABS_Y] = HMS_MAP_ABS(HUG_Y, ABS_Y),
+	[HMS_ABS_Z] = HMS_MAP_ABS(HUG_Z, ABS_Z),
+	[HMS_HWHEEL] = HMS_MAP_REL_CN(HUC_AC_PAN, REL_HWHEEL),
+	[HMS_BTN] = HMS_MAP_BUT_RG(1, 16, BTN_MOUSE),
+	[HMS_FINAL_CB] = HMS_FINAL_CB(hms_final_cb),
 };
 
 static const struct hidmap_item hms_map_wheel[] = {
-	HMS_MAP_REL(HUG_WHEEL,		REL_WHEEL),
+	HMS_MAP_REL(HUG_WHEEL, REL_WHEEL),
 };
 static const struct hidmap_item hms_map_wheel_rev[] = {
-	HMS_MAP_REL_REV(HUG_WHEEL,	REL_WHEEL),
+	HMS_MAP_REL_REV(HUG_WHEEL, REL_WHEEL),
 };
 
 static const struct hidmap_item hms_map_kensington_slimblade[] = {
-	HMS_MAP_BUT_MS(1,	BTN_RIGHT),
-	HMS_MAP_BUT_MS(2,	BTN_MIDDLE),
+	HMS_MAP_BUT_MS(1, BTN_RIGHT),
+	HMS_MAP_BUT_MS(2, BTN_MIDDLE),
 };
 
 /* A match on these entries will load hms */
@@ -113,15 +127,15 @@ static const struct hid_device_id hms_devs[] = {
 };
 
 struct hms_softc {
-	struct hidmap		hm;
+	struct hidmap hm;
 	HIDMAP_CAPS(caps, hms_map);
 #ifdef IICHID_SAMPLING
-	bool			iichid_sampling;
-	void			*last_ir;
-	hid_size_t		last_irsize;
-	hid_size_t		isize;
-	uint32_t		drift_cnt;
-	uint32_t		drift_thresh;
+	bool iichid_sampling;
+	void *last_ir;
+	hid_size_t last_irsize;
+	hid_size_t isize;
+	uint32_t drift_cnt;
+	uint32_t drift_thresh;
 #endif
 };
 
@@ -193,7 +207,7 @@ hms_identify(driver_t *driver, device_t parent)
 	error = hid_get_report_descr(parent, &d_ptr, &d_len);
 	if ((error != 0 && hid_test_quirk(hw, HQ_HAS_MS_BOOTPROTO)) ||
 	    (error == 0 && hid_test_quirk(hw, HQ_MS_BOOTPROTO) &&
-	     hid_is_mouse(d_ptr, d_len)))
+		hid_is_mouse(d_ptr, d_len)))
 		(void)hid_set_report_descr(parent, hms_boot_desc,
 		    sizeof(hms_boot_desc));
 }
@@ -283,8 +297,7 @@ hms_attach(device_t dev)
 		return (error);
 
 	/* Count number of input usages of variable type mapped to buttons */
-	for (hi = sc->hm.hid_items;
-	     hi < sc->hm.hid_items + sc->hm.nhid_items;
+	for (hi = sc->hm.hid_items; hi < sc->hm.hid_items + sc->hm.nhid_items;
 	     hi++)
 		if (hi->type == HIDMAP_TYPE_VARIABLE && hi->evtype == EV_KEY)
 			nbuttons++;
@@ -293,11 +306,17 @@ hms_attach(device_t dev)
 	device_printf(dev, "%d buttons and [%s%s%s%s%s] coordinates ID=%u\n",
 	    nbuttons,
 	    (hidmap_test_cap(sc->caps, HMS_REL_X) ||
-	     hidmap_test_cap(sc->caps, HMS_ABS_X)) ? "X" : "",
+		hidmap_test_cap(sc->caps, HMS_ABS_X)) ?
+		"X" :
+		"",
 	    (hidmap_test_cap(sc->caps, HMS_REL_Y) ||
-	     hidmap_test_cap(sc->caps, HMS_ABS_Y)) ? "Y" : "",
+		hidmap_test_cap(sc->caps, HMS_ABS_Y)) ?
+		"Y" :
+		"",
 	    (hidmap_test_cap(sc->caps, HMS_REL_Z) ||
-	     hidmap_test_cap(sc->caps, HMS_ABS_Z)) ? "Z" : "",
+		hidmap_test_cap(sc->caps, HMS_ABS_Z)) ?
+		"Z" :
+		"",
 	    hidmap_test_cap(cap_wheel, 0) ? "W" : "",
 	    hidmap_test_cap(sc->caps, HMS_HWHEEL) ? "H" : "",
 	    sc->hm.hid_items[0].id);
@@ -319,14 +338,13 @@ hms_detach(device_t dev)
 	return (error);
 }
 
-static device_method_t hms_methods[] = {
-	DEVMETHOD(device_identify,	hms_identify),
-	DEVMETHOD(device_probe,		hms_probe),
-	DEVMETHOD(device_attach,	hms_attach),
-	DEVMETHOD(device_detach,	hms_detach),
+static device_method_t hms_methods[] = { DEVMETHOD(device_identify,
+					     hms_identify),
+	DEVMETHOD(device_probe, hms_probe),
+	DEVMETHOD(device_attach, hms_attach),
+	DEVMETHOD(device_detach, hms_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_0(hms, hms_driver, hms_methods, sizeof(struct hms_softc));
 DRIVER_MODULE(hms, hidbus, hms_driver, NULL, NULL);

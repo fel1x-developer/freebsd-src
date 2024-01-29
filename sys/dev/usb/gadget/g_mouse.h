@@ -26,12 +26,12 @@
  */
 
 #ifndef _G_MOUSE_H_
-#define	_G_MOUSE_H_
+#define _G_MOUSE_H_
 
-#define	G_MOUSE_MODE_SILENT 0
-#define	G_MOUSE_MODE_CIRCLE 1
-#define	G_MOUSE_MODE_BOX 2
-#define	G_MOUSE_MODE_SPIRAL 3
-#define	G_MOUSE_MODE_MAX 4
+#define G_MOUSE_MODE_SILENT 0
+#define G_MOUSE_MODE_CIRCLE 1
+#define G_MOUSE_MODE_BOX 2
+#define G_MOUSE_MODE_SPIRAL 3
+#define G_MOUSE_MODE_MAX 4
 
-#endif					/* _G_MOUSE_H_ */
+#endif /* _G_MOUSE_H_ */

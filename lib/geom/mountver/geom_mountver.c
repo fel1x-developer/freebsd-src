@@ -26,30 +26,21 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <libgeom.h>
+
 #include <geom/mountver/g_mountver.h>
+#include <libgeom.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "core/geom.h"
-
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_MOUNTVER_VERSION;
 
-struct g_command class_commands[] = {
-	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
-	    {
-		G_OPT_SENTINEL
-	    },
-	    "[-v] prov ..."
-	},
+struct g_command class_commands[] = { { "create",
+					  G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL,
+					  { G_OPT_SENTINEL }, "[-v] prov ..." },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name"
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name" },
+	G_CMD_SENTINEL };

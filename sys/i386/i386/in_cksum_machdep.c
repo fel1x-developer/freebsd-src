@@ -35,11 +35,11 @@
 #include <sys/systm.h>
 #include <sys/mbuf.h>
 
+#include <machine/in_cksum.h>
+
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-
-#include <machine/in_cksum.h>
 
 /*
  * Checksum routine for Internet Protocol family headers.
@@ -50,9 +50,15 @@
  * This implementation is 386 version.
  */
 
-#undef	ADDCARRY
-#define ADDCARRY(x)     if ((x) > 0xffff) (x) -= 0xffff
-#define REDUCE          {sum = (sum & 0xffff) + (sum >> 16); ADDCARRY(sum);}
+#undef ADDCARRY
+#define ADDCARRY(x)       \
+	if ((x) > 0xffff) \
+	(x) -= 0xffff
+#define REDUCE                                      \
+	{                                           \
+		sum = (sum & 0xffff) + (sum >> 16); \
+		ADDCARRY(sum);                      \
+	}
 
 /*
  * These asm statements require __volatile because they pass information
@@ -71,7 +77,10 @@ in_cksum_skip(struct mbuf *m, int len, int skip)
 	unsigned sum = 0;
 	int mlen = 0;
 	int byte_swapped = 0;
-	union { char	c[2]; u_short	s; } su;
+	union {
+		char c[2];
+		u_short s;
+	} su;
 
 	len -= skip;
 	for (; skip && m; m = m->m_next) {
@@ -84,7 +93,7 @@ in_cksum_skip(struct mbuf *m, int len, int skip)
 		}
 	}
 
-	for (;m && len; m = m->m_next) {
+	for (; m && len; m = m->m_next) {
 		if (m->m_len == 0)
 			continue;
 		w = mtod(m, u_short *);
@@ -105,7 +114,7 @@ in_cksum_skip(struct mbuf *m, int len, int skip)
 			len--;
 		} else
 			mlen = m->m_len;
-skip_start:
+	skip_start:
 		if (len < mlen)
 			mlen = len;
 		len -= mlen;
@@ -113,16 +122,16 @@ skip_start:
 		 * Force to long boundary so we do longword aligned
 		 * memory operations
 		 */
-		if (3 & (int) w) {
+		if (3 & (int)w) {
 			REDUCE;
-			if ((1 & (int) w) && (mlen > 0)) {
+			if ((1 & (int)w) && (mlen > 0)) {
 				sum <<= 8;
 				su.c[0] = *(char *)w;
 				w = (u_short *)((char *)w + 1);
 				mlen--;
 				byte_swapped = 1;
 			}
-			if ((2 & (int) w) && (mlen >= 2)) {
+			if ((2 & (int)w) && (mlen >= 2)) {
 				sum += *w++;
 				mlen -= 2;
 			}
@@ -130,25 +139,21 @@ skip_start:
 		/*
 		 * Advance to a 486 cache line boundary.
 		 */
-		if (4 & (int) w && mlen >= 4) {
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0])
-			);
+		if (4 & (int)w && mlen >= 4) {
+			__asm __volatile("addl %1, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[0]));
 			w += 2;
 			mlen -= 4;
 		}
-		if (8 & (int) w && mlen >= 8) {
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl %2, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1])
-			);
+		if (8 & (int)w && mlen >= 8) {
+			__asm __volatile("addl %1, %0\n"
+					 "adcl %2, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[0]),
+					 "g"(((const u_int32_t *)w)[1]));
 			w += 4;
 			mlen -= 8;
 		}
@@ -178,86 +183,78 @@ skip_start:
 			 * is initially 33 (not 32) to guaranteed that
 			 * the LOAD(32) is within bounds.
 			 */
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl %2, %0\n"
-				"adcl %3, %0\n"
-				"adcl %4, %0\n"
-				"adcl %5, %0\n"
-				"mov  %6, %%eax\n"
-				"adcl %7, %0\n"
-				"adcl %8, %0\n"
-				"adcl %9, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[4]),
-				  "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3]),
-				  "g" (((const u_int32_t *)w)[8]),
-				  "g" (((const u_int32_t *)w)[5]),
-				  "g" (((const u_int32_t *)w)[6]),
-				  "g" (((const u_int32_t *)w)[7])
-				: "eax"
-			);
+			__asm __volatile("addl %1, %0\n"
+					 "adcl %2, %0\n"
+					 "adcl %3, %0\n"
+					 "adcl %4, %0\n"
+					 "adcl %5, %0\n"
+					 "mov  %6, %%eax\n"
+					 "adcl %7, %0\n"
+					 "adcl %8, %0\n"
+					 "adcl %9, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[4]),
+					 "g"(((const u_int32_t *)w)[0]),
+					 "g"(((const u_int32_t *)w)[1]),
+					 "g"(((const u_int32_t *)w)[2]),
+					 "g"(((const u_int32_t *)w)[3]),
+					 "g"(((const u_int32_t *)w)[8]),
+					 "g"(((const u_int32_t *)w)[5]),
+					 "g"(((const u_int32_t *)w)[6]),
+					 "g"(((const u_int32_t *)w)[7])
+					 : "eax");
 			w += 16;
 		}
 		mlen += 32 + 1;
 		if (mlen >= 32) {
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl %2, %0\n"
-				"adcl %3, %0\n"
-				"adcl %4, %0\n"
-				"adcl %5, %0\n"
-				"adcl %6, %0\n"
-				"adcl %7, %0\n"
-				"adcl %8, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[4]),
-				  "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3]),
-				  "g" (((const u_int32_t *)w)[5]),
-				  "g" (((const u_int32_t *)w)[6]),
-				  "g" (((const u_int32_t *)w)[7])
-			);
+			__asm __volatile("addl %1, %0\n"
+					 "adcl %2, %0\n"
+					 "adcl %3, %0\n"
+					 "adcl %4, %0\n"
+					 "adcl %5, %0\n"
+					 "adcl %6, %0\n"
+					 "adcl %7, %0\n"
+					 "adcl %8, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[4]),
+					 "g"(((const u_int32_t *)w)[0]),
+					 "g"(((const u_int32_t *)w)[1]),
+					 "g"(((const u_int32_t *)w)[2]),
+					 "g"(((const u_int32_t *)w)[3]),
+					 "g"(((const u_int32_t *)w)[5]),
+					 "g"(((const u_int32_t *)w)[6]),
+					 "g"(((const u_int32_t *)w)[7]));
 			w += 16;
 			mlen -= 32;
 		}
 		if (mlen >= 16) {
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl %2, %0\n"
-				"adcl %3, %0\n"
-				"adcl %4, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1]),
-				  "g" (((const u_int32_t *)w)[2]),
-				  "g" (((const u_int32_t *)w)[3])
-			);
+			__asm __volatile("addl %1, %0\n"
+					 "adcl %2, %0\n"
+					 "adcl %3, %0\n"
+					 "adcl %4, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[0]),
+					 "g"(((const u_int32_t *)w)[1]),
+					 "g"(((const u_int32_t *)w)[2]),
+					 "g"(((const u_int32_t *)w)[3]));
 			w += 8;
 			mlen -= 16;
 		}
 		if (mlen >= 8) {
-			__asm __volatile (
-				"addl %1, %0\n"
-				"adcl %2, %0\n"
-				"adcl $0, %0"
-				: "+r" (sum)
-				: "g" (((const u_int32_t *)w)[0]),
-				  "g" (((const u_int32_t *)w)[1])
-			);
+			__asm __volatile("addl %1, %0\n"
+					 "adcl %2, %0\n"
+					 "adcl $0, %0"
+					 : "+r"(sum)
+					 : "g"(((const u_int32_t *)w)[0]),
+					 "g"(((const u_int32_t *)w)[1]));
 			w += 4;
 			mlen -= 8;
 		}
 		if (mlen == 0 && byte_swapped == 0)
-			continue;       /* worth 1% maybe ?? */
+			continue; /* worth 1% maybe ?? */
 		REDUCE;
 		while ((mlen -= 2) >= 0) {
 			sum += *w++;

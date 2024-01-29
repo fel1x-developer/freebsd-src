@@ -29,30 +29,33 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/endian.h>
+#include <sys/linker_set.h>
 #include <sys/procfs.h>
 #include <sys/ptrace.h>
 #include <sys/queue.h>
-#include <sys/linker_set.h>
 #include <sys/sbuf.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include <sys/wait.h>
-#include <machine/elf.h>
-#include <vm/vm_param.h>
+
 #include <vm/vm.h>
+#include <vm/vm_param.h>
+
+#include <machine/elf.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libutil.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libutil.h>
 
 #include "extern.h"
 
@@ -71,14 +74,14 @@ typedef void (*segment_callback)(struct map_entry *, void *);
 
 /* Closure for cb_put_phdr(). */
 struct phdr_closure {
-	Elf_Phdr *phdr;		/* Program header to fill in */
-	Elf_Off offset;		/* Offset of segment in core file */
+	Elf_Phdr *phdr; /* Program header to fill in */
+	Elf_Off offset; /* Offset of segment in core file */
 };
 
 /* Closure for cb_size_segment(). */
 struct sseg_closure {
-	int count;		/* Count of writable segments. */
-	size_t size;		/* Total size of all writable segments. */
+	int count;   /* Count of writable segments. */
+	size_t size; /* Total size of all writable segments. */
 };
 
 #ifdef ELFCORE_COMPAT_32
@@ -87,13 +90,13 @@ typedef struct prpsinfo32 elfcore_prpsinfo_t;
 typedef prpsinfo_t elfcore_prpsinfo_t;
 #endif
 
-typedef void* (*notefunc_t)(void *, size_t *);
+typedef void *(*notefunc_t)(void *, size_t *);
 
 static void cb_put_phdr(struct map_entry *, void *);
 static void cb_size_segment(struct map_entry *, void *);
 static void each_dumpable_segment(struct map_entry *, segment_callback,
     void *closure);
-static void elf_detach(void);	/* atexit() handler. */
+static void elf_detach(void); /* atexit() handler. */
 static void *elf_note_prpsinfo(void *, size_t *);
 #if defined(__i386__) || defined(__amd64__)
 static void *elf_note_x86_xstate(void *, size_t *);
@@ -120,8 +123,8 @@ static void freemap(struct map_entry *);
 static struct map_entry *readmap(pid_t);
 static void *procstat_sysctl(void *, int, size_t, size_t *sizep);
 
-static pid_t g_pid;		/* Pid being dumped, global for elf_detach */
-static int g_status;		/* proc status after ptrace attach */
+static pid_t g_pid;  /* Pid being dumped, global for elf_detach */
+static int g_status; /* proc status after ptrace attach */
 
 static int
 elf_ident(int efd, pid_t pid __unused, char *binfile __unused)
@@ -231,18 +234,18 @@ elf_coredump(int efd, int fd, pid_t pid)
 	if (n == -1)
 		err(1, "write");
 	if (n < segoff)
-              errx(1, "short write");
+		errx(1, "short write");
 
 	/* Write the contents of all of the writable segments. */
 	php = (Elf_Phdr *)((char *)hdr + sizeof(Elf_Ehdr)) + 1;
-	for (i = 0;  i < seginfo.count;  i++) {
+	for (i = 0; i < seginfo.count; i++) {
 		struct ptrace_io_desc iorequest;
 		uintmax_t nleft = php->p_filesz;
 
 		iorequest.piod_op = PIOD_READ_D;
 		iorequest.piod_offs = (caddr_t)(uintptr_t)php->p_vaddr;
 		while (nleft > 0) {
-			char buf[8*1024];
+			char buf[8 * 1024];
 			size_t nwant;
 			ssize_t ngot;
 
@@ -255,8 +258,8 @@ elf_coredump(int efd, int fd, pid_t pid)
 			ptrace(PT_IO, pid, (caddr_t)&iorequest, 0);
 			ngot = iorequest.piod_len;
 			if ((size_t)ngot < nwant)
-				errx(1, "short read wanted %zu, got %zd",
-				    nwant, ngot);
+				errx(1, "short read wanted %zu, got %zd", nwant,
+				    ngot);
 			ngot = write(fd, buf, nwant);
 			if (ngot == -1)
 				err(1, "write of segment %d failed", i);
@@ -598,10 +601,10 @@ readmap(pid_t pid)
 		    kve->kve_type == KVME_TYPE_DEAD ||
 		    kve->kve_type == KVME_TYPE_UNKNOWN ||
 		    ((pflags & PFLAGS_FULL) == 0 &&
-		    kve->kve_type != KVME_TYPE_DEFAULT &&
-		    kve->kve_type != KVME_TYPE_VNODE &&
-		    kve->kve_type != KVME_TYPE_SWAP &&
-		    kve->kve_type != KVME_TYPE_PHYS))
+			kve->kve_type != KVME_TYPE_DEFAULT &&
+			kve->kve_type != KVME_TYPE_VNODE &&
+			kve->kve_type != KVME_TYPE_SWAP &&
+			kve->kve_type != KVME_TYPE_PHYS))
 			continue;
 
 		ent = calloc(1, sizeof(*ent));
@@ -685,7 +688,7 @@ elf_note_x86_xstate(void *arg, size_t *sizep)
 	tid = *(lwpid_t *)arg;
 	if (!xsave_checked) {
 		if (ptrace(PT_GETXSTATE_INFO, tid, (void *)&info,
-		    sizeof(info)) != 0)
+			sizeof(info)) != 0)
 			info.xsave_len = 0;
 		xsave_checked = true;
 	}
@@ -712,8 +715,7 @@ elf_note_powerpc_vmx(void *arg, size_t *sizep)
 
 	tid = *(lwpid_t *)arg;
 	if (has_vmx) {
-		if (ptrace(PT_GETVRREGS, tid, (void *)&info,
-		    sizeof(info)) != 0)
+		if (ptrace(PT_GETVRREGS, tid, (void *)&info, sizeof(info)) != 0)
 			has_vmx = false;
 	}
 	if (!has_vmx) {
@@ -736,8 +738,7 @@ elf_note_powerpc_vsx(void *arg, size_t *sizep)
 
 	tid = *(lwpid_t *)arg;
 	if (has_vsx) {
-		if (ptrace(PT_GETVSRREGS, tid, (void *)vshr,
-		    sizeof(vshr)) != 0)
+		if (ptrace(PT_GETVSRREGS, tid, (void *)vshr, sizeof(vshr)) != 0)
 			has_vsx = false;
 	}
 	if (!has_vsx) {
@@ -829,16 +830,16 @@ static void *
 elf_note_procstat_psstrings(void *arg, size_t *sizep)
 {
 
-	return (procstat_sysctl(arg, KERN_PROC_PS_STRINGS,
-	    sizeof(vm_offset_t), sizep));
+	return (procstat_sysctl(arg, KERN_PROC_PS_STRINGS, sizeof(vm_offset_t),
+	    sizep));
 }
 
 static void *
 elf_note_procstat_auxv(void *arg, size_t *sizep)
 {
 
-	return (procstat_sysctl(arg, KERN_PROC_AUXV,
-	    sizeof(Elf_Auxinfo), sizep));
+	return (
+	    procstat_sysctl(arg, KERN_PROC_AUXV, sizeof(Elf_Auxinfo), sizep));
 }
 
 static void *

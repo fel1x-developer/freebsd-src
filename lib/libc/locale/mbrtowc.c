@@ -32,11 +32,12 @@
  */
 
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbrtowc_l(wchar_t * __restrict pwc, const char * __restrict s,
-    size_t n, mbstate_t * __restrict ps, locale_t locale)
+mbrtowc_l(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps, locale_t locale)
 {
 	FIX_LOCALE(locale);
 	if (ps == NULL)
@@ -45,8 +46,8 @@ mbrtowc_l(wchar_t * __restrict pwc, const char * __restrict s,
 }
 
 size_t
-mbrtowc(wchar_t * __restrict pwc, const char * __restrict s,
-    size_t n, mbstate_t * __restrict ps)
+mbrtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 	return mbrtowc_l(pwc, s, n, ps, __get_locale());
 }

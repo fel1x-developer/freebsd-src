@@ -31,19 +31,19 @@
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
 
-#include <dev/hyperv/vmbus/vmbus_reg.h>
 #include <dev/hyperv/vmbus/vmbus_brvar.h>
+#include <dev/hyperv/vmbus/vmbus_reg.h>
 
 /* Amount of space available for write */
-#define	VMBUS_BR_WAVAIL(r, w, z)	\
+#define VMBUS_BR_WAVAIL(r, w, z) \
 	(((w) >= (r)) ? ((z) - ((w) - (r))) : ((r) - (w)))
 
 /* Increase bufing index */
-#define VMBUS_BR_IDXINC(idx, inc, sz)	(((idx) + (inc)) % (sz))
+#define VMBUS_BR_IDXINC(idx, inc, sz) (((idx) + (inc)) % (sz))
 
-static int			vmbus_br_sysctl_state(SYSCTL_HANDLER_ARGS);
-static int			vmbus_br_sysctl_state_bin(SYSCTL_HANDLER_ARGS);
-static void			vmbus_br_setup(struct vmbus_br *, void *, int);
+static int vmbus_br_sysctl_state(SYSCTL_HANDLER_ARGS);
+static int vmbus_br_sysctl_state_bin(SYSCTL_HANDLER_ARGS);
+static void vmbus_br_setup(struct vmbus_br *, void *, int);
 
 static int
 vmbus_br_sysctl_state(SYSCTL_HANDLER_ARGS)
@@ -65,8 +65,8 @@ vmbus_br_sysctl_state(SYSCTL_HANDLER_ARGS)
 	snprintf(state, sizeof(state),
 	    "intrcnt:%ju rindex:%u windex:%u imask:%u psndsz:%u fvalue:%u "
 	    "ravail:%u wavail:%u",
-	    (uintmax_t)intrcnt, rindex, windex, imask, psndsz, fvalue,
-	    ravail, wavail);
+	    (uintmax_t)intrcnt, rindex, windex, imask, psndsz, fvalue, ravail,
+	    wavail);
 	return sysctl_handle_string(oidp, state, sizeof(state), req);
 }
 
@@ -76,14 +76,14 @@ vmbus_br_sysctl_state(SYSCTL_HANDLER_ARGS)
 static int
 vmbus_br_sysctl_state_bin(SYSCTL_HANDLER_ARGS)
 {
-#define BR_STATE_RIDX	0
-#define BR_STATE_WIDX	1
-#define BR_STATE_IMSK	2
-#define BR_STATE_PSSZ	3
-#define BR_STATE_FVAL	4
-#define BR_STATE_RSPC	5
-#define BR_STATE_WSPC	6
-#define BR_STATE_MAX	7
+#define BR_STATE_RIDX 0
+#define BR_STATE_WIDX 1
+#define BR_STATE_IMSK 2
+#define BR_STATE_PSSZ 3
+#define BR_STATE_FVAL 4
+#define BR_STATE_RSPC 5
+#define BR_STATE_WSPC 6
+#define BR_STATE_MAX 7
 
 	const struct vmbus_br *br = arg1;
 	uint32_t rindex, windex, wavail, state[BR_STATE_MAX];
@@ -110,20 +110,20 @@ vmbus_br_sysctl_create(struct sysctl_ctx_list *ctx, struct sysctl_oid *br_tree,
 	struct sysctl_oid *tree;
 	char desc[64];
 
-	tree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(br_tree), OID_AUTO,
-	    name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
+	tree = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(br_tree), OID_AUTO, name,
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "");
 	if (tree == NULL)
 		return;
 
 	snprintf(desc, sizeof(desc), "%s state", name);
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "state",
-	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    br, 0, vmbus_br_sysctl_state, "A", desc);
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, br, 0,
+	    vmbus_br_sysctl_state, "A", desc);
 
 	snprintf(desc, sizeof(desc), "%s binary state", name);
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "state_bin",
-	    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE,
-	    br, 0, vmbus_br_sysctl_state_bin, "IU", desc);
+	    CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, br, 0,
+	    vmbus_br_sysctl_state_bin, "IU", desc);
 }
 
 void
@@ -142,8 +142,8 @@ vmbus_rxbr_avail(const struct vmbus_rxbr *rbr)
 	rindex = atomic_load_acq_32(&rbr->rxbr_rindex);
 	windex = atomic_load_acq_32(&rbr->rxbr_windex);
 
-	return (rbr->rxbr_dsize -
-	    VMBUS_BR_WAVAIL(rindex, windex, rbr->rxbr_dsize));
+	return (
+	    rbr->rxbr_dsize - VMBUS_BR_WAVAIL(rindex, windex, rbr->rxbr_dsize));
 }
 
 uint32_t
@@ -251,7 +251,7 @@ vmbus_txbr_get_imask(const struct vmbus_txbr *tbr)
 {
 	mb();
 
-	return(tbr->txbr_imask);
+	return (tbr->txbr_imask);
 }
 
 void
@@ -360,10 +360,8 @@ vmbus_txbr_available(const struct vmbus_txbr *tbr)
  * Caller should hold lock to serialize ring buffer accesses.
  */
 int
-vmbus_txbr_write_call(struct vmbus_txbr *tbr,
-    const struct iovec iov[], int iovlen,
-    vmbus_br_copy_callback_t cb, void *cbarg,
-    boolean_t *need_sig)
+vmbus_txbr_write_call(struct vmbus_txbr *tbr, const struct iovec iov[],
+    int iovlen, vmbus_br_copy_callback_t cb, void *cbarg, boolean_t *need_sig)
 {
 	uint32_t old_windex, windex, total;
 	uint64_t save_windex;
@@ -374,7 +372,6 @@ vmbus_txbr_write_call(struct vmbus_txbr *tbr,
 	for (i = 0; i < iovlen; i++)
 		total += iov[i].iov_len;
 	total += sizeof(save_windex);
-
 
 	/*
 	 * NOTE:
@@ -396,8 +393,8 @@ vmbus_txbr_write_call(struct vmbus_txbr *tbr,
 	windex = old_windex;
 	for (i = 0; i < iovlen; i++) {
 		if (iov[i].iov_base != NULL) {
-			windex = vmbus_txbr_copyto(tbr, windex,
-			    iov[i].iov_base, iov[i].iov_len);
+			windex = vmbus_txbr_copyto(tbr, windex, iov[i].iov_base,
+			    iov[i].iov_len);
 		} else if (cb != NULL) {
 			windex = vmbus_txbr_copyto_call(tbr, windex,
 			    iov[i].iov_len, cb, cbarg, &cb_ret);
@@ -475,8 +472,8 @@ vmbus_txbr_write(struct vmbus_txbr *tbr, const struct iovec iov[], int iovlen,
 	 */
 	windex = old_windex;
 	for (i = 0; i < iovlen; i++) {
-		windex = vmbus_txbr_copyto(tbr, windex,
-		    iov[i].iov_base, iov[i].iov_len);
+		windex = vmbus_txbr_copyto(tbr, windex, iov[i].iov_base,
+		    iov[i].iov_len);
 	}
 
 	/*
@@ -501,8 +498,8 @@ vmbus_txbr_write(struct vmbus_txbr *tbr, const struct iovec iov[], int iovlen,
 }
 
 static __inline uint32_t
-vmbus_rxbr_copyfrom(const struct vmbus_rxbr *rbr, uint32_t rindex,
-    void *dst0, int cplen)
+vmbus_rxbr_copyfrom(const struct vmbus_rxbr *rbr, uint32_t rindex, void *dst0,
+    int cplen)
 {
 	uint8_t *dst = dst0;
 	const uint8_t *br_data = rbr->rxbr_data;
@@ -554,8 +551,8 @@ vmbus_rxbr_peek(struct vmbus_rxbr *rbr, void *data, int dlen)
 		mtx_unlock_spin(&rbr->rxbr_lock);
 		return (EAGAIN);
 	}
-	vmbus_rxbr_copyfrom(rbr,
-	    atomic_load_acq_32(&rbr->rxbr_rindex), data, dlen);
+	vmbus_rxbr_copyfrom(rbr, atomic_load_acq_32(&rbr->rxbr_rindex), data,
+	    dlen);
 
 	mtx_unlock_spin(&rbr->rxbr_lock);
 
@@ -623,16 +620,15 @@ vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data, int dlen,
 		atomic_store_rel_32(&rbr->rxbr_rindex, rindex);
 	}
 
-	vmbus_rxbr_copyfrom(rbr,
-	    atomic_load_acq_32(&rbr->rxbr_rindex), data, dlen);
+	vmbus_rxbr_copyfrom(rbr, atomic_load_acq_32(&rbr->rxbr_rindex), data,
+	    dlen);
 
 	mtx_unlock_spin(&rbr->rxbr_lock);
 
 	if (need_sig) {
 		if (idx_adv > 0)
-			*need_sig =
-			    vmbus_rxbr_need_signal(rbr, idx_adv +
-			    sizeof(uint64_t));
+			*need_sig = vmbus_rxbr_need_signal(rbr,
+			    idx_adv + sizeof(uint64_t));
 		else
 			*need_sig = false;
 	}
@@ -645,8 +641,7 @@ vmbus_rxbr_idxadv_peek(struct vmbus_rxbr *rbr, void *data, int dlen,
  * Just update the RX rb index.
  */
 int
-vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
-    boolean_t *need_sig)
+vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv, boolean_t *need_sig)
 {
 	uint32_t rindex, br_dsize = rbr->rxbr_dsize;
 
@@ -663,16 +658,16 @@ vmbus_rxbr_idxadv(struct vmbus_rxbr *rbr, uint32_t idx_adv,
 	 * Advance the read index, including the channel's 64bit
 	 * previous write offset.
 	 */
-	rindex = VMBUS_BR_IDXINC(rbr->rxbr_rindex,
-	    idx_adv + sizeof(uint64_t), br_dsize);
+	rindex = VMBUS_BR_IDXINC(rbr->rxbr_rindex, idx_adv + sizeof(uint64_t),
+	    br_dsize);
 	__compiler_membar();
 	atomic_store_rel_32(&rbr->rxbr_rindex, rindex);
 
 	mtx_unlock_spin(&rbr->rxbr_lock);
 
 	if (need_sig) {
-		*need_sig =
-		    vmbus_rxbr_need_signal(rbr, idx_adv + sizeof(uint64_t));
+		*need_sig = vmbus_rxbr_need_signal(rbr,
+		    idx_adv + sizeof(uint64_t));
 	}
 
 	return (0);
@@ -700,8 +695,8 @@ vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen, uint32_t skip,
 	/*
 	 * Copy channel packet from RX bufring.
 	 */
-	rindex = VMBUS_BR_IDXINC(atomic_load_acq_32(&rbr->rxbr_rindex),
-	    skip, br_dsize);
+	rindex = VMBUS_BR_IDXINC(atomic_load_acq_32(&rbr->rxbr_rindex), skip,
+	    br_dsize);
 	rindex = vmbus_rxbr_copyfrom(rbr, rindex, data, dlen);
 
 	/*
@@ -718,8 +713,7 @@ vmbus_rxbr_read(struct vmbus_rxbr *rbr, void *data, int dlen, uint32_t skip,
 	mtx_unlock_spin(&rbr->rxbr_lock);
 
 	if (need_sig) {
-		*need_sig =
-		    vmbus_rxbr_need_signal(rbr,
+		*need_sig = vmbus_rxbr_need_signal(rbr,
 		    dlen + skip + sizeof(uint64_t));
 	}
 

@@ -47,186 +47,206 @@ extern "C" {
 
 using namespace testing;
 
-class Write: public FuseTest {
+class Write : public FuseTest {
 
-public:
-void SetUp() {
-	FuseTest::SetUp();
-}
+    public:
+	void SetUp() { FuseTest::SetUp(); }
 
-void TearDown() {
-	struct sigaction sa;
+	void TearDown()
+	{
+		struct sigaction sa;
 
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = SIG_DFL;
-	sigaction(SIGXFSZ, &sa, NULL);
+		bzero(&sa, sizeof(sa));
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGXFSZ, &sa, NULL);
 
-	FuseTest::TearDown();
-}
+		FuseTest::TearDown();
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
-}
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
+	}
 
-void expect_release(uint64_t ino, ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_RELEASE &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(r));
-}
+	void expect_release(uint64_t ino, ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					return (
+					    in.header.opcode == FUSE_RELEASE &&
+					    in.header.nodeid == ino);
+				},
+				Eq(true)),
+			_))
+		    .WillRepeatedly(Invoke(r));
+	}
 
-void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
-	uint64_t osize, const void *contents)
-{
-	FuseTest::expect_write(ino, offset, isize, osize, 0, 0, contents);
-}
+	void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
+	    uint64_t osize, const void *contents)
+	{
+		FuseTest::expect_write(ino, offset, isize, osize, 0, 0,
+		    contents);
+	}
 
-/* Expect a write that may or may not come, depending on the cache mode */
-void maybe_expect_write(uint64_t ino, uint64_t offset, uint64_t size,
-	const void *contents)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *buf = (const char*)in.body.bytes +
-				sizeof(struct fuse_write_in);
+	/* Expect a write that may or may not come, depending on the cache mode
+	 */
+	void maybe_expect_write(uint64_t ino, uint64_t offset, uint64_t size,
+	    const void *contents)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *buf = (const char *)
+							      in.body.bytes +
+					    sizeof(struct fuse_write_in);
 
-			assert(size <= sizeof(in.body.bytes) -
-				sizeof(struct fuse_write_in));
-			return (in.header.opcode == FUSE_WRITE &&
-				in.header.nodeid == ino &&
-				in.body.write.offset == offset  &&
-				in.body.write.size == size &&
-				0 == bcmp(buf, contents, size));
-		}, Eq(true)),
-		_)
-	).Times(AtMost(1))
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-			SET_OUT_HEADER_LEN(out, write);
-			out.body.write.size = size;
-		})
-	));
-}
-
+					assert(size <= sizeof(in.body.bytes) -
+						sizeof(struct fuse_write_in));
+					return (
+					    in.header.opcode == FUSE_WRITE &&
+					    in.header.nodeid == ino &&
+					    in.body.write.offset == offset &&
+					    in.body.write.size == size &&
+					    0 == bcmp(buf, contents, size));
+				},
+				Eq(true)),
+			_))
+		    .Times(AtMost(1))
+		    .WillRepeatedly(Invoke(
+			ReturnImmediate([=](auto in __unused, auto &out) {
+				SET_OUT_HEADER_LEN(out, write);
+				out.body.write.size = size;
+			})));
+	}
 };
 
-class Write_7_8: public FuseTest {
+class Write_7_8 : public FuseTest {
 
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
-{
-	FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, size, 1);
-}
-
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
+	{
+		FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, size,
+		    1);
+	}
 };
 
-class AioWrite: public Write {
-virtual void SetUp() {
-	if (!is_unsafe_aio_enabled())
-		GTEST_SKIP() <<
-			"vfs.aio.enable_unsafe must be set for this test";
-	FuseTest::SetUp();
-}
+class AioWrite : public Write {
+	virtual void SetUp()
+	{
+		if (!is_unsafe_aio_enabled())
+			GTEST_SKIP()
+			    << "vfs.aio.enable_unsafe must be set for this test";
+		FuseTest::SetUp();
+	}
 };
 
 /* Tests for the writeback cache mode */
-class WriteBack: public Write {
-public:
-virtual void SetUp() {
-	m_init_flags |= FUSE_WRITEBACK_CACHE;
-	FuseTest::SetUp();
-	if (IsSkipped())
-		return;
-}
+class WriteBack : public Write {
+    public:
+	virtual void SetUp()
+	{
+		m_init_flags |= FUSE_WRITEBACK_CACHE;
+		FuseTest::SetUp();
+		if (IsSkipped())
+			return;
+	}
 
-void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
-	uint64_t osize, const void *contents)
-{
-	FuseTest::expect_write(ino, offset, isize, osize, FUSE_WRITE_CACHE, 0,
-		contents);
-}
+	void expect_write(uint64_t ino, uint64_t offset, uint64_t isize,
+	    uint64_t osize, const void *contents)
+	{
+		FuseTest::expect_write(ino, offset, isize, osize,
+		    FUSE_WRITE_CACHE, 0, contents);
+	}
 };
 
-class WriteBackAsync: public WriteBack {
-public:
-virtual void SetUp() {
-	m_async = true;
-	m_maxwrite = 65536;
-	WriteBack::SetUp();
-}
+class WriteBackAsync : public WriteBack {
+    public:
+	virtual void SetUp()
+	{
+		m_async = true;
+		m_maxwrite = 65536;
+		WriteBack::SetUp();
+	}
 };
 
-class TimeGran: public WriteBackAsync, public WithParamInterface<unsigned> {
-public:
-virtual void SetUp() {
-	m_time_gran = 1 << GetParam();
-	WriteBackAsync::SetUp();
-}
+class TimeGran : public WriteBackAsync, public WithParamInterface<unsigned> {
+    public:
+	virtual void SetUp()
+	{
+		m_time_gran = 1 << GetParam();
+		WriteBackAsync::SetUp();
+	}
 };
 
 /* Tests for clustered writes with WriteBack cacheing */
-class WriteCluster: public WriteBack {
-public:
-virtual void SetUp() {
-	m_async = true;
-	m_maxwrite = 1 << 25;	// Anything larger than MAXPHYS will suffice
-	WriteBack::SetUp();
-	if (m_maxphys < 2 * DFLTPHYS)
-		GTEST_SKIP() << "MAXPHYS must be at least twice DFLTPHYS"
-			<< " for this test";
-	if (m_maxphys < 2 * m_maxbcachebuf)
-		GTEST_SKIP() << "MAXPHYS must be at least twice maxbcachebuf"
-			<< " for this test";
-}
+class WriteCluster : public WriteBack {
+    public:
+	virtual void SetUp()
+	{
+		m_async = true;
+		m_maxwrite = 1
+		    << 25; // Anything larger than MAXPHYS will suffice
+		WriteBack::SetUp();
+		if (m_maxphys < 2 * DFLTPHYS)
+			GTEST_SKIP()
+			    << "MAXPHYS must be at least twice DFLTPHYS"
+			    << " for this test";
+		if (m_maxphys < 2 * m_maxbcachebuf)
+			GTEST_SKIP()
+			    << "MAXPHYS must be at least twice maxbcachebuf"
+			    << " for this test";
+	}
 };
 
 /* Tests relating to the server's max_write property */
-class WriteMaxWrite: public Write {
-public:
-virtual void SetUp() {
-	/*
-	 * For this test, m_maxwrite must be less than either m_maxbcachebuf or
-	 * maxphys.
-	 */
-	m_maxwrite = 32768;
-	Write::SetUp();
-}
+class WriteMaxWrite : public Write {
+    public:
+	virtual void SetUp()
+	{
+		/*
+		 * For this test, m_maxwrite must be less than either
+		 * m_maxbcachebuf or maxphys.
+		 */
+		m_maxwrite = 32768;
+		Write::SetUp();
+	}
 };
 
-class WriteEofDuringVnopStrategy: public Write, public WithParamInterface<int>
-{};
+class WriteEofDuringVnopStrategy : public Write,
+				   public WithParamInterface<int> { };
 
-class WriteRlimitFsize: public Write, public WithParamInterface<int> {
-public:
-static sig_atomic_t s_sigxfsz;
-struct rlimit	m_initial_limit;
+class WriteRlimitFsize : public Write, public WithParamInterface<int> {
+    public:
+	static sig_atomic_t s_sigxfsz;
+	struct rlimit m_initial_limit;
 
-void SetUp() {
-	s_sigxfsz = 0;
-	getrlimit(RLIMIT_FSIZE, &m_initial_limit);
-	FuseTest::SetUp();
-}
+	void SetUp()
+	{
+		s_sigxfsz = 0;
+		getrlimit(RLIMIT_FSIZE, &m_initial_limit);
+		FuseTest::SetUp();
+	}
 
-void TearDown() {
-	setrlimit(RLIMIT_FSIZE, &m_initial_limit);
+	void TearDown()
+	{
+		setrlimit(RLIMIT_FSIZE, &m_initial_limit);
 
-	FuseTest::TearDown();
-}
+		FuseTest::TearDown();
+	}
 };
 
 sig_atomic_t WriteRlimitFsize::s_sigxfsz = 0;
 
-void sigxfsz_handler(int __unused sig) {
+void
+sigxfsz_handler(int __unused sig)
+{
 	WriteRlimitFsize::s_sigxfsz = 1;
 }
 
@@ -260,7 +280,7 @@ TEST_F(AioWrite, DISABLED_aio_write)
 	leak(fd);
 }
 
-/* 
+/*
  * When a file is opened with O_APPEND, we should forward that flag to
  * FUSE_OPEN (tested by Open.o_append) but still attempt to calculate the
  * offset internally.  That way we'll work both with filesystems that
@@ -277,7 +297,7 @@ TEST_F(Write, append)
 	const char RELPATH[] = "some_file.txt";
 	const char CONTENTS[BUFSIZE] = "abcdefgh";
 	uint64_t ino = 42;
-	/* 
+	/*
 	 * Set offset to a maxbcachebuf boundary so we don't need to RMW when
 	 * using writeback caching
 	 */
@@ -305,7 +325,7 @@ TEST_F(Write, append_to_cached)
 	char *oldcontents, *oldbuf;
 	const char CONTENTS[BUFSIZE] = "abcdefgh";
 	uint64_t ino = 42;
-	/* 
+	/*
 	 * Set offset in between maxbcachebuf boundary to test buffer handling
 	 */
 	uint64_t oldsize = m_maxbcachebuf / 2;
@@ -325,7 +345,7 @@ TEST_F(Write, append_to_cached)
 
 	/* Read the old data into the cache */
 	ASSERT_EQ((ssize_t)oldsize, read(fd, oldbuf, oldsize))
-		<< strerror(errno);
+	    << strerror(errno);
 
 	/* Write the new data.  There should be no more read operations */
 	ASSERT_EQ(BUFSIZE, write(fd, CONTENTS, BUFSIZE)) << strerror(errno);
@@ -484,7 +504,7 @@ TEST_F(Write, indirect_io_very_long_write)
 	leak(fd);
 }
 
-/* 
+/*
  * When the direct_io option is used, filesystems are allowed to write less
  * data than requested.  We should return the short write to userland.
  */
@@ -535,9 +555,9 @@ TEST_F(Write, direct_io_short_write_iov)
 	fd = open(FULLPATH, O_WRONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
-	iov[0].iov_base = __DECONST(void*, CONTENTS0);
+	iov[0].iov_base = __DECONST(void *, CONTENTS0);
 	iov[0].iov_len = strlen(CONTENTS0);
-	iov[1].iov_base = __DECONST(void*, CONTENTS1);
+	iov[1].iov_base = __DECONST(void *, CONTENTS1);
 	iov[1].iov_len = strlen(CONTENTS1);
 	ASSERT_EQ(size0, writev(fd, iov, 2)) << strerror(errno);
 	leak(fd);
@@ -608,15 +628,13 @@ TEST_P(WriteRlimitFsize, rlimit_fsize_truncate)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(bufsize / 2, pwrite(fd, CONTENTS, bufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 	leak(fd);
 }
 
-INSTANTIATE_TEST_SUITE_P(W, WriteRlimitFsize,
-	Values(0, O_DIRECT)
-);
+INSTANTIATE_TEST_SUITE_P(W, WriteRlimitFsize, Values(0, O_DIRECT));
 
-/* 
+/*
  * A short read indicates EOF.  Test that nothing bad happens if we get EOF
  * during the R of a RMW operation.
  */
@@ -625,7 +643,7 @@ TEST_F(Write, eof_during_rmw)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const char *CONTENTS = "abcdefgh";
-	const char *INITIAL   = "XXXXXXXXXX";
+	const char *INITIAL = "XXXXXXXXXX";
 	uint64_t ino = 42;
 	uint64_t offset = 1;
 	ssize_t bufsize = strlen(CONTENTS) + 1;
@@ -642,7 +660,7 @@ TEST_F(Write, eof_during_rmw)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(bufsize, pwrite(fd, CONTENTS, bufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 	leak(fd);
 }
 
@@ -669,60 +687,63 @@ TEST_P(WriteEofDuringVnopStrategy, eof_during_vop_strategy)
 	contents = new char[filesize]();
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr.size = filesize;
-		out.body.entry.attr_valid = attr_valid;
-		out.body.entry.attr_valid_nsec = attr_valid_nsec;
-	})));
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = mode;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr.size = filesize;
+			out.body.entry.attr_valid = attr_valid;
+			out.body.entry.attr_valid_nsec = attr_valid_nsec;
+		})));
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(Between(ngetattrs - 1, ngetattrs))
-	.InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr_valid = attr_valid;
-		out.body.attr.attr_valid_nsec = attr_valid_nsec;
-		out.body.attr.attr.size = filesize;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr_valid = attr_valid;
-		out.body.attr.attr_valid_nsec = attr_valid_nsec;
-		out.body.attr.attr.size = filesize / 2;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(Between(ngetattrs - 1, ngetattrs))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = mode;
+			out.body.attr.attr_valid = attr_valid;
+			out.body.attr.attr_valid_nsec = attr_valid_nsec;
+			out.body.attr.attr.size = filesize;
+		})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = mode;
+			out.body.attr.attr_valid = attr_valid;
+			out.body.attr.attr_valid_nsec = attr_valid_nsec;
+			out.body.attr.attr.size = filesize / 2;
+		})));
 	expect_write(ino, 0, filesize / 2, filesize / 2, contents);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
 	ASSERT_EQ(filesize / 2, write(fd, contents, filesize / 2))
-		<< strerror(errno);
-
+	    << strerror(errno);
 }
 
-INSTANTIATE_TEST_SUITE_P(W, WriteEofDuringVnopStrategy,
-	Values(1, 2, 3)
-);
+INSTANTIATE_TEST_SUITE_P(W, WriteEofDuringVnopStrategy, Values(1, 2, 3));
 
 /*
  * If the kernel cannot be sure which uid, gid, or pid was responsible for a
@@ -746,12 +767,12 @@ TEST_F(Write, mmap)
 
 	zeros = new char[len]();
 	expected = new char[len]();
-	memmove((uint8_t*)expected + offset, CONTENTS, bufsize);
+	memmove((uint8_t *)expected + offset, CONTENTS, bufsize);
 
 	expect_lookup(RELPATH, ino, len);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, len, len, zeros);
-	/* 
+	/*
 	 * Writes from the pager may or may not be associated with the correct
 	 * pid, so they must set FUSE_WRITE_CACHE.
 	 */
@@ -765,10 +786,10 @@ TEST_F(Write, mmap)
 	p = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	ASSERT_NE(MAP_FAILED, p) << strerror(errno);
 
-	memmove((uint8_t*)p + offset, CONTENTS, bufsize);
+	memmove((uint8_t *)p + offset, CONTENTS, bufsize);
 
 	ASSERT_EQ(0, munmap(p, len)) << strerror(errno);
-	close(fd);	// Write mmap'd data on close
+	close(fd); // Write mmap'd data on close
 
 	delete[] expected;
 	delete[] zeros;
@@ -794,7 +815,7 @@ TEST_F(Write, pwrite)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(bufsize, pwrite(fd, CONTENTS, bufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 	leak(fd);
 }
 
@@ -872,7 +893,7 @@ TEST_F(WriteMaxWrite, write)
 	expect_open(ino, 0, 1);
 	maybe_expect_write(ino, 0, halfbufsize, contents);
 	maybe_expect_write(ino, halfbufsize, halfbufsize,
-		&contents[halfbufsize / sizeof(int)]);
+	    &contents[halfbufsize / sizeof(int)]);
 
 	fd = open(FULLPATH, O_WRONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -935,15 +956,18 @@ TEST_F(WriteBackAsync, close)
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, 0, 1);
 	expect_write(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;	// Must match nodeid
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino; // Must match nodeid
+		})));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, ReturnErrno(0));
 
@@ -986,15 +1010,14 @@ TEST_F(WriteCluster, clustering)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	for (i = 0; i < 4; i++) {
-		ASSERT_EQ(bufsize, write(fd, wbuf, bufsize))
-			<< strerror(errno);
+		ASSERT_EQ(bufsize, write(fd, wbuf, bufsize)) << strerror(errno);
 	}
 	close(fd);
 	delete[] wbuf2x;
 	delete[] wbuf;
 }
 
-/* 
+/*
  * When clustering writes, an I/O error to any of the cluster's children should
  * not panic the system on unmount
  */
@@ -1017,12 +1040,14 @@ TEST_F(WriteCluster, cluster_write_err)
 
 	expect_lookup(RELPATH, ino, filesize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_WRITE);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_WRITE);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(Invoke(ReturnErrno(EIO)));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, ReturnErrno(0));
 
@@ -1030,8 +1055,7 @@ TEST_F(WriteCluster, cluster_write_err)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	for (i = 0; i < 3; i++) {
-		ASSERT_EQ(bufsize, write(fd, wbuf, bufsize))
-			<< strerror(errno);
+		ASSERT_EQ(bufsize, write(fd, wbuf, bufsize)) << strerror(errno);
 	}
 	close(fd);
 	delete[] wbuf;
@@ -1046,7 +1070,7 @@ TEST_F(WriteBack, rmw)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const char *CONTENTS = "abcdefgh";
-	const char *INITIAL   = "XXXXXXXXXX";
+	const char *INITIAL = "XXXXXXXXXX";
 	uint64_t ino = 42;
 	uint64_t offset = 1;
 	off_t fsize = 10;
@@ -1062,7 +1086,7 @@ TEST_F(WriteBack, rmw)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(bufsize, pwrite(fd, CONTENTS, bufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 	leak(fd);
 }
 
@@ -1087,7 +1111,7 @@ TEST_F(WriteBack, cache)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(bufsize, write(fd, CONTENTS, bufsize)) << strerror(errno);
-	/* 
+	/*
 	 * A subsequent read should be serviced by cache, without querying the
 	 * filesystem daemon
 	 */
@@ -1114,7 +1138,7 @@ TEST_F(WriteBack, o_direct)
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, 0, 1);
 	FuseTest::expect_write(ino, 0, bufsize, bufsize, 0, FUSE_WRITE_CACHE,
-		CONTENTS);
+	    CONTENTS);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
 
 	fd = open(FULLPATH, O_RDWR | O_DIRECT);
@@ -1141,7 +1165,7 @@ TEST_F(WriteBack, direct_io)
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, FOPEN_DIRECT_IO, 1);
 	FuseTest::expect_write(ino, 0, bufsize, bufsize, 0, FUSE_WRITE_CACHE,
-		CONTENTS);
+	    CONTENTS);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
 
 	fd = open(FULLPATH, O_RDWR);
@@ -1190,10 +1214,10 @@ TEST_F(WriteBack, mmap_direct_io)
 	p = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	ASSERT_NE(MAP_FAILED, p) << strerror(errno);
 
-	memmove((uint8_t*)p, CONTENTS, bufsize);
+	memmove((uint8_t *)p, CONTENTS, bufsize);
 
 	ASSERT_EQ(0, munmap(p, len)) << strerror(errno);
-	close(fd);	// Write mmap'd data on close
+	close(fd); // Write mmap'd data on close
 
 	delete[] zeros;
 }
@@ -1213,12 +1237,14 @@ TEST_F(WriteBackAsync, delay)
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, 0, 1);
 	/* Write should be cached, but FUSE_WRITE shouldn't be sent */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_WRITE);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_WRITE);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1252,7 +1278,7 @@ TEST_F(WriteBackAsync, direct_io_ignores_unrelated_cached)
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, m_maxbcachebuf, m_maxbcachebuf, zeros);
 	FuseTest::expect_write(ino, m_maxbcachebuf, bufsize, bufsize, 0, 0,
-		CONTENTS1);
+	    CONTENTS1);
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1260,12 +1286,12 @@ TEST_F(WriteBackAsync, direct_io_ignores_unrelated_cached)
 	// Cache first block with dirty data.  This will entail first reading
 	// the existing data.
 	ASSERT_EQ(bufsize, pwrite(fd, CONTENTS0, bufsize, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 
 	// Write directly to second block
 	ASSERT_EQ(0, fcntl(fd, F_SETFL, O_DIRECT)) << strerror(errno);
 	ASSERT_EQ(bufsize, pwrite(fd, CONTENTS1, bufsize, m_maxbcachebuf))
-		<< strerror(errno);
+	    << strerror(errno);
 
 	// Read from the first block again.  Should be serviced by cache.
 	ASSERT_EQ(0, fcntl(fd, F_SETFL, 0)) << strerror(errno);
@@ -1296,7 +1322,7 @@ TEST_F(WriteBackAsync, direct_io_partially_overlaps_cached_block)
 	ones = new char[2 * bs];
 	memset(ones, 1, 2 * bs);
 	zeroones = new char[bs]();
-	memset((uint8_t*)zeroones + bs / 2, 1, bs / 2);
+	memset((uint8_t *)zeroones + bs / 2, 1, bs / 2);
 	onezeros = new char[bs]();
 	memset(onezeros, 1, bs / 2);
 
@@ -1316,7 +1342,7 @@ TEST_F(WriteBackAsync, direct_io_partially_overlaps_cached_block)
 	FuseTest::expect_write(ino, 0, bs, bs, 0, 0, zeros);
 	FuseTest::expect_write(ino, 2 * bs, bs, bs, 0, 0, zeros);
 	/* The direct write is split in two because of the m_maxwrite value */
-	FuseTest::expect_write(ino,     bs / 2, bs, bs, 0, 0, ones);
+	FuseTest::expect_write(ino, bs / 2, bs, bs, 0, 0, ones);
 	FuseTest::expect_write(ino, 3 * bs / 2, bs, bs, 0, 0, ones);
 	ASSERT_EQ(0, fcntl(fd, F_SETFL, O_DIRECT)) << strerror(errno);
 	ASSERT_EQ(2 * bs, pwrite(fd, ones, 2 * bs, bs / 2)) << strerror(errno);
@@ -1332,13 +1358,13 @@ TEST_F(WriteBackAsync, direct_io_partially_overlaps_cached_block)
 	ASSERT_EQ(bs / 2, pread(fd, readbuf, bs / 2, 0)) << strerror(errno);
 	EXPECT_EQ(0, memcmp(zeros, readbuf, bs / 2));
 	ASSERT_EQ(bs / 2, pread(fd, readbuf, bs / 2, 5 * bs / 2))
-		<< strerror(errno);
+	    << strerror(errno);
 	EXPECT_EQ(0, memcmp(zeros, readbuf, bs / 2));
 	ASSERT_EQ(bs / 2, pread(fd, readbuf, bs / 2, bs / 2))
-		<< strerror(errno);
+	    << strerror(errno);
 	EXPECT_EQ(0, memcmp(ones, readbuf, bs / 2));
 	ASSERT_EQ(bs / 2, pread(fd, readbuf, bs / 2, 2 * bs))
-		<< strerror(errno);
+	    << strerror(errno);
 	EXPECT_EQ(0, memcmp(ones, readbuf, bs / 2));
 
 	leak(fd);
@@ -1381,7 +1407,7 @@ TEST_F(WriteBackAsync, eof)
 
 	/* Write and cache data beyond EOF */
 	ASSERT_EQ(wbufsize, pwrite(fd, CONTENTS1, wbufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 
 	/* Read from the old EOF */
 	r = pread(fd, readbuf, rbufsize, 0);
@@ -1397,7 +1423,7 @@ TEST_F(WriteBackAsync, eof)
 	leak(fd);
 }
 
-/* 
+/*
  * When a file has dirty writes that haven't been flushed, the server's notion
  * of its mtime and ctime will be wrong.  The kernel should ignore those if it
  * gets them from a FUSE_GETATTR before flushing.
@@ -1418,33 +1444,35 @@ TEST_F(WriteBackAsync, timestamps)
 	struct stat sb;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = mode;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = attr_valid;
-		out.body.entry.attr_valid_nsec = attr_valid_nsec;
-	})));
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = mode;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr_valid = attr_valid;
+			out.body.entry.attr_valid_nsec = attr_valid_nsec;
+		})));
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(
-	ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr_valid = attr_valid;
-		out.body.attr.attr_valid_nsec = attr_valid_nsec;
-		out.body.attr.attr.atime = server_time;
-		out.body.attr.attr.mtime = server_time;
-		out.body.attr.attr.ctime = server_time;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = mode;
+			out.body.attr.attr_valid = attr_valid;
+			out.body.attr.attr_valid_nsec = attr_valid_nsec;
+			out.body.attr.attr.atime = server_time;
+			out.body.attr.attr.mtime = server_time;
+			out.body.attr.attr.ctime = server_time;
+		})));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1471,19 +1499,22 @@ TEST_F(WriteBackAsync, timestamps_during_setattr)
 
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			uint32_t valid = FATTR_MODE | FATTR_MTIME | FATTR_CTIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				uint32_t valid = FATTR_MODE | FATTR_MTIME |
+				    FATTR_CTIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1506,21 +1537,26 @@ TEST_P(TimeGran, timestamps_during_setattr)
 
 	expect_lookup(RELPATH, ino, 0);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			uint32_t valid = FATTR_MODE | FATTR_MTIME | FATTR_CTIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				in.body.setattr.mtimensec % m_time_gran == 0 &&
-				in.body.setattr.ctimensec % m_time_gran == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				uint32_t valid = FATTR_MODE | FATTR_MTIME |
+				    FATTR_CTIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    in.body.setattr.mtimensec % m_time_gran ==
+					0 &&
+				    in.body.setattr.ctimensec % m_time_gran ==
+					0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);

@@ -15,8 +15,8 @@
 #define SAL_HW_GEN_H
 
 #include "cpa.h"
-#include "sal_types_compression.h"
 #include "lac_sal_types_crypto.h"
+#include "sal_types_compression.h"
 
 /**
  ***************************************************************************
@@ -48,7 +48,7 @@ static inline CpaBoolean
 isDcGen2x(const sal_compression_service_t *pService)
 {
 	return ((pService->generic_service_info.gen == GEN2) ||
-		(pService->generic_service_info.gen == GEN3));
+	    (pService->generic_service_info.gen == GEN3));
 }
 
 /**
@@ -81,7 +81,7 @@ static inline CpaBoolean
 isCyGen2x(const sal_crypto_service_t *pService)
 {
 	return ((pService->generic_service_info.gen == GEN2) ||
-		(pService->generic_service_info.gen == GEN3));
+	    (pService->generic_service_info.gen == GEN3));
 }
 
 #endif /* SAL_HW_GEN_H */

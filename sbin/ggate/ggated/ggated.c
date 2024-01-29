@@ -35,61 +35,62 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <arpa/inet.h>
+
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
-#include <inttypes.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libgen.h>
 #include <libutil.h>
 #include <paths.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include "ggate.h"
 
-
-#define	GGATED_EXPORT_FILE	"/etc/gg.exports"
+#define GGATED_EXPORT_FILE "/etc/gg.exports"
 
 struct ggd_connection {
-	off_t		 c_mediasize;
-	unsigned	 c_sectorsize;
-	unsigned	 c_flags;	/* flags (RO/RW) */
-	int		 c_diskfd;
-	int		 c_sendfd;
-	int		 c_recvfd;
-	time_t		 c_birthtime;
-	char		*c_path;
-	uint64_t	 c_token;
-	in_addr_t	 c_srcip;
+	off_t c_mediasize;
+	unsigned c_sectorsize;
+	unsigned c_flags; /* flags (RO/RW) */
+	int c_diskfd;
+	int c_sendfd;
+	int c_recvfd;
+	time_t c_birthtime;
+	char *c_path;
+	uint64_t c_token;
+	in_addr_t c_srcip;
 	LIST_ENTRY(ggd_connection) c_next;
 };
 
 struct ggd_request {
-	struct g_gate_hdr	 r_hdr;
-	char			*r_data;
+	struct g_gate_hdr r_hdr;
+	char *r_data;
 	TAILQ_ENTRY(ggd_request) r_next;
 };
-#define	r_cmd		r_hdr.gh_cmd
-#define	r_offset	r_hdr.gh_offset
-#define	r_length	r_hdr.gh_length
-#define	r_error		r_hdr.gh_error
+#define r_cmd r_hdr.gh_cmd
+#define r_offset r_hdr.gh_offset
+#define r_length r_hdr.gh_length
+#define r_error r_hdr.gh_error
 
 struct ggd_export {
-	char		*e_path;	/* path to device/file */
-	in_addr_t	 e_ip;		/* remote IP address */
-	in_addr_t	 e_mask;	/* IP mask */
-	unsigned	 e_flags;	/* flags (RO/RW) */
+	char *e_path;	  /* path to device/file */
+	in_addr_t e_ip;	  /* remote IP address */
+	in_addr_t e_mask; /* IP mask */
+	unsigned e_flags; /* flags (RO/RW) */
 	SLIST_ENTRY(ggd_export) e_next;
 };
 
@@ -103,7 +104,8 @@ static pthread_mutex_t inqueue_mtx, outqueue_mtx;
 static pthread_cond_t inqueue_cond, outqueue_cond;
 
 static SLIST_HEAD(, ggd_export) exports = SLIST_HEAD_INITIALIZER(exports);
-static LIST_HEAD(, ggd_connection) connections = LIST_HEAD_INITIALIZER(connections);
+static LIST_HEAD(, ggd_connection) connections = LIST_HEAD_INITIALIZER(
+    connections);
 
 static void *recv_thread(void *arg);
 static void *disk_thread(void *arg);
@@ -113,8 +115,10 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: %s [-nv] [-a address] [-F pidfile] [-p port] "
-	    "[-R rcvbuf] [-S sndbuf] [exports file]\n", getprogname());
+	fprintf(stderr,
+	    "usage: %s [-nv] [-a address] [-F pidfile] [-p port] "
+	    "[-R rcvbuf] [-S sndbuf] [exports file]\n",
+	    getprogname());
 	exit(EXIT_FAILURE);
 }
 
@@ -123,11 +127,8 @@ ip2str(in_addr_t ip)
 {
 	static char sip[16];
 
-	snprintf(sip, sizeof(sip), "%u.%u.%u.%u",
-	    ((ip >> 24) & 0xff),
-	    ((ip >> 16) & 0xff),
-	    ((ip >> 8) & 0xff),
-	    (ip & 0xff));
+	snprintf(sip, sizeof(sip), "%u.%u.%u.%u", ((ip >> 24) & 0xff),
+	    ((ip >> 16) & 0xff), ((ip >> 8) & 0xff), (ip & 0xff));
 	return (sip);
 }
 
@@ -159,7 +160,7 @@ line_parse(char *line, unsigned lineno)
 	sflags = NULL;
 
 	for (i = 0, word = strtok(line, " \t"); word != NULL;
-	    i++, word = strtok(NULL, " \t")) {
+	     i++, word = strtok(NULL, " \t")) {
 		switch (i) {
 		case 0: /* IP address or host name */
 			ip = g_gate_str2ip(strsep(&word, "/"));
@@ -175,16 +176,18 @@ line_parse(char *line, unsigned lineno)
 				vmask = strtoul(word, NULL, 10);
 				if (vmask == 0 && errno != 0) {
 					g_gate_xlog("Invalid IP mask value at "
-					    "line %u.", lineno);
+						    "line %u.",
+					    lineno);
 				}
 				if ((unsigned)vmask > 32) {
-					g_gate_xlog("Invalid IP mask value at line %u.",
+					g_gate_xlog(
+					    "Invalid IP mask value at line %u.",
 					    lineno);
 				}
 			}
 			mask = countmask(vmask);
 			break;
-		case 1:	/* flags */
+		case 1: /* flags */
 			if (strcasecmp("rd", word) == 0 ||
 			    strcasecmp("ro", word) == 0) {
 				flags = O_RDONLY;
@@ -194,11 +197,12 @@ line_parse(char *line, unsigned lineno)
 				flags = O_RDWR;
 			} else {
 				g_gate_xlog("Invalid value in flags field at "
-				    "line %u.", lineno);
+					    "line %u.",
+				    lineno);
 			}
 			sflags = word;
 			break;
-		case 2:	/* path */
+		case 2: /* path */
 			if (strlen(word) >= MAXPATHLEN) {
 				g_gate_xlog("Path too long at line %u. ",
 				    lineno);
@@ -242,7 +246,7 @@ exports_clear(void)
 	}
 }
 
-#define	EXPORTS_LINE_SIZE	2048
+#define EXPORTS_LINE_SIZE 2048
 static void
 exports_get(void)
 {
@@ -313,32 +317,36 @@ exports_check(struct ggd_export *ex, struct g_gate_cinit *cinit,
 	strlcat(ipmask, ip2str(ex->e_mask), sizeof(ipmask));
 	if ((cinit->gc_flags & GGATE_FLAG_RDONLY) != 0) {
 		if (ex->e_flags == O_WRONLY) {
-			g_gate_log(LOG_WARNING, "Read-only access requested, "
-			    "but %s (%s) is exported write-only.", ex->e_path,
-			    ipmask);
+			g_gate_log(LOG_WARNING,
+			    "Read-only access requested, "
+			    "but %s (%s) is exported write-only.",
+			    ex->e_path, ipmask);
 			return (EPERM);
 		} else {
 			conn->c_flags |= GGATE_FLAG_RDONLY;
 		}
 	} else if ((cinit->gc_flags & GGATE_FLAG_WRONLY) != 0) {
 		if (ex->e_flags == O_RDONLY) {
-			g_gate_log(LOG_WARNING, "Write-only access requested, "
-			    "but %s (%s) is exported read-only.", ex->e_path,
-			    ipmask);
+			g_gate_log(LOG_WARNING,
+			    "Write-only access requested, "
+			    "but %s (%s) is exported read-only.",
+			    ex->e_path, ipmask);
 			return (EPERM);
 		} else {
 			conn->c_flags |= GGATE_FLAG_WRONLY;
 		}
 	} else {
 		if (ex->e_flags == O_RDONLY) {
-			g_gate_log(LOG_WARNING, "Read-write access requested, "
-			    "but %s (%s) is exported read-only.", ex->e_path,
-			    ipmask);
+			g_gate_log(LOG_WARNING,
+			    "Read-write access requested, "
+			    "but %s (%s) is exported read-only.",
+			    ex->e_path, ipmask);
 			return (EPERM);
 		} else if (ex->e_flags == O_WRONLY) {
-			g_gate_log(LOG_WARNING, "Read-write access requested, "
-			    "but %s (%s) is exported write-only.", ex->e_path,
-			    ipmask);
+			g_gate_log(LOG_WARNING,
+			    "Read-write access requested, "
+			    "but %s (%s) is exported write-only.",
+			    ex->e_path, ipmask);
 			return (EPERM);
 		}
 	}
@@ -350,7 +358,8 @@ exports_check(struct ggd_export *ex, struct g_gate_cinit *cinit,
 		flags = O_RDWR;
 	if (conn->c_diskfd != -1) {
 		if (strcmp(conn->c_path, ex->e_path) != 0) {
-			g_gate_log(LOG_ERR, "old %s and new %s: "
+			g_gate_log(LOG_ERR,
+			    "old %s and new %s: "
 			    "Path mismatch during handshakes.",
 			    conn->c_path, ex->e_path);
 			return (EPERM);
@@ -377,7 +386,7 @@ exports_find(struct sockaddr *s, struct g_gate_cinit *cinit,
 	int error;
 
 	ip = htonl(((struct sockaddr_in *)(void *)s)->sin_addr.s_addr);
-	SLIST_FOREACH(ex, &exports, e_next) {
+	SLIST_FOREACH (ex, &exports, e_next) {
 		if ((ip & ex->e_mask) != ex->e_ip) {
 			g_gate_log(LOG_DEBUG, "exports[%s]: IP mismatch.",
 			    ex->e_path);
@@ -412,7 +421,7 @@ connection_cleanups(void)
 	time_t now;
 
 	time(&now);
-	LIST_FOREACH_SAFE(conn, &connections, c_next, tconn) {
+	LIST_FOREACH_SAFE (conn, &connections, c_next, tconn) {
 		if (now - conn->c_birthtime > 10) {
 			LIST_REMOVE(conn, c_next);
 			g_gate_log(LOG_NOTICE,
@@ -432,7 +441,7 @@ connection_find(struct g_gate_cinit *cinit)
 {
 	struct ggd_connection *conn;
 
-	LIST_FOREACH(conn, &connections, c_next) {
+	LIST_FOREACH (conn, &connections, c_next) {
 		if (conn->c_token == cinit->gc_token)
 			break;
 	}
@@ -724,12 +733,13 @@ disk_thread(void *arg)
 		/*
 		 * Check the request.
 		 */
-		assert(req->r_offset + req->r_length <= (uintmax_t)conn->c_mediasize);
+		assert(req->r_offset + req->r_length <=
+		    (uintmax_t)conn->c_mediasize);
 		assert((req->r_offset % conn->c_sectorsize) == 0);
 		assert((req->r_length % conn->c_sectorsize) == 0);
 
 		g_gate_log(LOG_DEBUG, "%s: offset=%" PRIu64 " length=%" PRIu32,
-		     __func__, req->r_offset, req->r_length);
+		    __func__, req->r_offset, req->r_length);
 
 		/*
 		 * Do the request.
@@ -753,7 +763,8 @@ disk_thread(void *arg)
 				req->r_error = errno;
 			break;
 		default:
-			g_gate_log(LOG_DEBUG, "Unsupported request: %i", req->r_cmd);
+			g_gate_log(LOG_DEBUG, "Unsupported request: %i",
+			    req->r_cmd);
 			req->r_error = EOPNOTSUPP;
 			if (req->r_data != NULL) {
 				free(req->r_data);
@@ -836,7 +847,8 @@ send_thread(void *arg)
 			}
 			g_gate_log(LOG_DEBUG,
 			    "Sent %zd bytes (offset=%" PRIu64 ", size=%" PRIu32
-			    ").", data, req->r_offset, req->r_length);
+			    ").",
+			    data, req->r_offset, req->r_length);
 			free(req->r_data);
 		}
 		free(req);

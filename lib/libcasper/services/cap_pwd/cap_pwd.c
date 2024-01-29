@@ -34,13 +34,12 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <libcasper_service.h>
 
 #include "cap_pwd.h"
 
@@ -317,7 +316,7 @@ cap_endpwent(cap_channel_t *chan)
 }
 
 int
-cap_pwd_limit_cmds(cap_channel_t *chan, const char * const *cmds, size_t ncmds)
+cap_pwd_limit_cmds(cap_channel_t *chan, const char *const *cmds, size_t ncmds)
 {
 	nvlist_t *limits, *nvl;
 	unsigned int i;
@@ -338,7 +337,7 @@ cap_pwd_limit_cmds(cap_channel_t *chan, const char * const *cmds, size_t ncmds)
 }
 
 int
-cap_pwd_limit_fields(cap_channel_t *chan, const char * const *fields,
+cap_pwd_limit_fields(cap_channel_t *chan, const char *const *fields,
     size_t nfields)
 {
 	nvlist_t *limits, *nvl;
@@ -360,7 +359,7 @@ cap_pwd_limit_fields(cap_channel_t *chan, const char * const *fields,
 }
 
 int
-cap_pwd_limit_users(cap_channel_t *chan, const char * const *names,
+cap_pwd_limit_users(cap_channel_t *chan, const char *const *names,
     size_t nnames, uid_t *uids, size_t nuids)
 {
 	nvlist_t *limits, *users;
@@ -390,7 +389,6 @@ cap_pwd_limit_users(cap_channel_t *chan, const char * const *names,
 	nvlist_move_nvlist(limits, "users", users);
 	return (cap_limit_set(chan, limits));
 }
-
 
 /*
  * Service functions.
@@ -459,8 +457,8 @@ pwd_allowed_user(const nvlist_t *limits, const char *uname, uid_t uid)
 			break;
 		case NV_TYPE_STRING:
 			if (uname != NULL &&
-			    strcmp(nvlist_get_string(limits, name),
-			    uname) == 0) {
+			    strcmp(nvlist_get_string(limits, name), uname) ==
+				0) {
 				return (true);
 			}
 			break;

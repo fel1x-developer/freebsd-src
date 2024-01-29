@@ -46,14 +46,14 @@
 
 #include <machine/intr.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 
 #include <arm/arm/gic.h>
 #include <arm/arm/gic_common.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 struct gic_acpi_devinfo {
-	struct resource_list	rl;
+	struct resource_list rl;
 };
 
 static device_identify_t gic_acpi_identify;
@@ -64,9 +64,9 @@ static bool arm_gic_add_children(device_t);
 
 static device_method_t gic_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	gic_acpi_identify),
-	DEVMETHOD(device_probe,		gic_acpi_probe),
-	DEVMETHOD(device_attach,	gic_acpi_attach),
+	DEVMETHOD(device_identify, gic_acpi_identify),
+	DEVMETHOD(device_probe, gic_acpi_probe),
+	DEVMETHOD(device_attach, gic_acpi_attach),
 
 	/* Bus interface */
 	DEVMETHOD(bus_get_resource_list, gic_acpi_get_resource_list),
@@ -94,15 +94,15 @@ madt_handler(ACPI_SUBTABLE_HEADER *entry, void *arg)
 
 	madt_data = (struct madt_table_data *)arg;
 
-	switch(entry->Type) {
+	switch (entry->Type) {
 	case ACPI_MADT_TYPE_GENERIC_DISTRIBUTOR:
 		if (madt_data->dist != NULL) {
 			if (bootverbose)
 				device_printf(madt_data->parent,
 				    "gic: Already have a distributor table");
 		} else
-			madt_data->dist =
-			    (ACPI_MADT_GENERIC_DISTRIBUTOR *)entry;
+			madt_data->dist = (ACPI_MADT_GENERIC_DISTRIBUTOR *)
+			    entry;
 		break;
 	case ACPI_MADT_TYPE_GENERIC_INTERRUPT:
 		intr = (ACPI_MADT_GENERIC_INTERRUPT *)entry;
@@ -157,7 +157,7 @@ gic_acpi_identify(driver_t *driver, device_t parent)
 			} else if (intr->BaseAddress !=
 			    madt_data.intr[i]->BaseAddress) {
 				device_printf(parent,
-"gic: Not all CPU interfaces at the same address, this may fail\n");
+				    "gic: Not all CPU interfaces at the same address, this may fail\n");
 			}
 		}
 	}
@@ -175,8 +175,8 @@ gic_acpi_identify(driver_t *driver, device_t parent)
 
 	BUS_SET_RESOURCE(parent, dev, SYS_RES_MEMORY, 0,
 	    madt_data.dist->BaseAddress, 4 * 1024);
-	BUS_SET_RESOURCE(parent, dev, SYS_RES_MEMORY, 1,
-	    intr->BaseAddress, 4 * 1024);
+	BUS_SET_RESOURCE(parent, dev, SYS_RES_MEMORY, 1, intr->BaseAddress,
+	    4 * 1024);
 
 	acpi_set_private(dev, (void *)(uintptr_t)madt_data.dist->Version);
 out:
@@ -187,7 +187,7 @@ static int
 gic_acpi_probe(device_t dev)
 {
 
-	switch((uintptr_t)acpi_get_private(dev)) {
+	switch ((uintptr_t)acpi_get_private(dev)) {
 	case ACPI_MADT_GIC_VERSION_NONE:
 	case ACPI_MADT_GIC_VERSION_V1:
 	case ACPI_MADT_GIC_VERSION_V2:
@@ -250,7 +250,7 @@ gic_acpi_attach(device_t dev)
 
 cleanup:
 	arm_gic_detach(dev);
-	return(ENXIO);
+	return (ENXIO);
 }
 
 static struct resource_list *
@@ -346,8 +346,8 @@ arm_gicv2m_acpi_attach(device_t dev)
 
 static device_method_t arm_gicv2m_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		arm_gicv2m_acpi_probe),
-	DEVMETHOD(device_attach,	arm_gicv2m_acpi_attach),
+	DEVMETHOD(device_probe, arm_gicv2m_acpi_probe),
+	DEVMETHOD(device_attach, arm_gicv2m_acpi_attach),
 
 	/* End */
 	DEVMETHOD_END

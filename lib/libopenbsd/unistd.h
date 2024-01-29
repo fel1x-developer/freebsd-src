@@ -29,6 +29,6 @@
 
 #include_next <unistd.h>
 
-int	 getdtablecount(void);
+int getdtablecount(void);
 
 #endif

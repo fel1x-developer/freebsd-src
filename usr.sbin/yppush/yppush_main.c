@@ -33,7 +33,17 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/fcntl.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+
 #include <errno.h>
+#include <rpc/clnt.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
+#include <rpcsvc/ypclnt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,32 +51,24 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <sys/wait.h>
-#include <sys/param.h>
-#include <rpc/rpc.h>
-#include <rpc/clnt.h>
-#include <rpc/pmap_clnt.h>
-#include <rpcsvc/yp.h>
-#include <rpcsvc/ypclnt.h>
-#include "ypxfr_extern.h"
+
 #include "yppush_extern.h"
+#include "ypxfr_extern.h"
 
 char *progname = "yppush";
 int debug = 1;
 int _rpcpmstart = 0;
 char *yp_dir = _PATH_YP;
 
-static char *yppush_mapname = NULL;	/* Map to transfer. */
-static char *yppush_domain = NULL;	/* Domain in which map resides. */
-static char *yppush_master = NULL;	/* Master NIS server for said domain. */
-static int skip_master = 0;		/* Do not attempt to push map to master. */
-static int verbose = 0;		/* Toggle verbose mode. */
+static char *yppush_mapname = NULL; /* Map to transfer. */
+static char *yppush_domain = NULL;  /* Domain in which map resides. */
+static char *yppush_master = NULL;  /* Master NIS server for said domain. */
+static int skip_master = 0;	    /* Do not attempt to push map to master. */
+static int verbose = 0;		    /* Toggle verbose mode. */
 static unsigned long yppush_transid = 0;
-static int yppush_timeout = 80;	/* Default timeout. */
-static int yppush_jobs = 1;		/* Number of allowed concurrent jobs. */
-static int yppush_running_jobs = 0;	/* Number of currently running jobs. */
+static int yppush_timeout = 80;	    /* Default timeout. */
+static int yppush_jobs = 1;	    /* Number of allowed concurrent jobs. */
+static int yppush_running_jobs = 0; /* Number of currently running jobs. */
 
 /* Structure for holding information about a running job. */
 struct jobs {
@@ -80,7 +82,7 @@ struct jobs {
 	struct jobs *next;
 };
 
-static struct jobs *yppush_joblist;	/* Linked list of running jobs. */
+static struct jobs *yppush_joblist; /* Linked list of running jobs. */
 static int yppush_svc_run(int);
 
 /*
@@ -91,15 +93,15 @@ yppusherr_string(int err)
 {
 	switch (err) {
 	case YPPUSH_TIMEDOUT:
-		return("transfer or callback timed out");
+		return ("transfer or callback timed out");
 	case YPPUSH_YPSERV:
-		return("failed to contact ypserv");
+		return ("failed to contact ypserv");
 	case YPPUSH_NOHOST:
-		return("no such host");
+		return ("no such host");
 	case YPPUSH_PMAP:
-		return("portmapper failure");
+		return ("portmapper failure");
 	default:
-		return("unknown error code");
+		return ("unknown error code");
 	}
 }
 
@@ -120,29 +122,30 @@ yppush_show_status(ypxfrstat status, unsigned long tid)
 	}
 
 	if (job == NULL) {
-		yp_error("warning: received callback with invalid transaction ID: %lu",
-			 tid);
+		yp_error(
+		    "warning: received callback with invalid transaction ID: %lu",
+		    tid);
 		return (0);
 	}
 
 	if (job->polled) {
-		yp_error("warning: received callback with duplicate transaction ID: %lu",
-			 tid);
+		yp_error(
+		    "warning: received callback with duplicate transaction ID: %lu",
+		    tid);
 		return (0);
 	}
 
 	if (verbose > 1) {
 		yp_error("checking return status: transaction ID: %lu",
-								job->tid);
+		    job->tid);
 	}
 
 	if (status != YPXFR_SUCC || verbose) {
-		yp_error("transfer of map %s to server %s %s",
-		 	job->map, job->server, status == YPXFR_SUCC ?
-		 	"succeeded" : "failed");
-		yp_error("status returned by ypxfr: %s", status > YPXFR_AGE ?
-			yppusherr_string(status) :
-			ypxfrerr_string(status));
+		yp_error("transfer of map %s to server %s %s", job->map,
+		    job->server, status == YPXFR_SUCC ? "succeeded" : "failed");
+		yp_error("status returned by ypxfr: %s",
+		    status > YPXFR_AGE ? yppusherr_string(status) :
+					 ypxfrerr_string(status));
 	}
 
 	job->polled = 1;
@@ -150,7 +153,7 @@ yppush_show_status(ypxfrstat status, unsigned long tid)
 	svc_unregister(job->prognum, 1);
 
 	yppush_running_jobs--;
-	return(0);
+	return (0);
 }
 
 /* Exit routine. */
@@ -169,20 +172,20 @@ yppush_exit(int now)
 				still_pending++;
 				if (verbose > 1)
 					yp_error("%s has not responded",
-						  jptr->server);
+					    jptr->server);
 			} else {
 				if (verbose > 1)
 					yp_error("%s has responded",
-						  jptr->server);
+					    jptr->server);
 			}
 			jptr = jptr->next;
 		}
 		if (still_pending) {
 			if (verbose > 1)
 				yp_error("%d transfer%sstill pending",
-					still_pending,
-					still_pending > 1 ? "s " : " ");
-			if (yppush_svc_run (YPPUSH_RESPONSE_TIMEOUT) == 0) {
+				    still_pending,
+				    still_pending > 1 ? "s " : " ");
+			if (yppush_svc_run(YPPUSH_RESPONSE_TIMEOUT) == 0) {
 				yp_error("timed out");
 				now = 1;
 			}
@@ -193,13 +196,13 @@ yppush_exit(int now)
 		}
 	}
 
-
 	/* All stats collected and reported -- kill all the stragglers. */
 	jptr = yppush_joblist;
 	while (jptr) {
 		if (!jptr->polled)
 			yp_error("warning: exiting with transfer \
-to %s (transid = %lu) still pending", jptr->server, jptr->tid);
+to %s (transid = %lu) still pending",
+			    jptr->server, jptr->tid);
 		svc_unregister(jptr->prognum, 1);
 		jptr = jptr->next;
 	}
@@ -214,7 +217,7 @@ to %s (transid = %lu) still pending", jptr->server, jptr->tid);
 static void
 handler(int sig)
 {
-	yppush_exit (1);
+	yppush_exit(1);
 }
 
 /*
@@ -259,17 +262,17 @@ retry:
 void *
 yppushproc_null_1_svc(void *argp, struct svc_req *rqstp)
 {
-	static char * result;
+	static char *result;
 	/* Do nothing -- RPC conventions call for all a null proc. */
-	return((void *) &result);
+	return ((void *)&result);
 }
 
 void *
 yppushproc_xfrresp_1_svc(yppushresp_xfr *argp, struct svc_req *rqstp)
 {
-	static char * result;
+	static char *result;
 	yppush_show_status(argp->status, argp->transid);
-	return((void *) &result);
+	return ((void *)&result);
 }
 
 /*
@@ -279,7 +282,7 @@ static int
 yppush_send_xfr(struct jobs *job)
 {
 	ypreq_xfr req;
-/*	ypresp_xfr *resp; */
+	/*	ypresp_xfr *resp; */
 	DBT key, data;
 	CLIENT *clnt;
 	struct rpc_err err;
@@ -296,14 +299,13 @@ yppush_send_xfr(struct jobs *job)
 	 * for the sake of completeness.
 	 */
 	key.data = "YP_LAST_MODIFIED";
-	key.size = sizeof ("YP_LAST_MODIFIED") - 1;
+	key.size = sizeof("YP_LAST_MODIFIED") - 1;
 
-	if (yp_get_record(yppush_domain, yppush_mapname, &key, &data,
-			  1) != YP_TRUE) {
+	if (yp_get_record(yppush_domain, yppush_mapname, &key, &data, 1) !=
+	    YP_TRUE) {
 		yp_error("failed to read order number from %s: %s: %s",
-			  yppush_mapname, yperr_string(yp_errno),
-			  strerror(errno));
-		return(1);
+		    yppush_mapname, yperr_string(yp_errno), strerror(errno));
+		return (1);
 	}
 
 	/* Fill in the request arguments */
@@ -317,20 +319,20 @@ yppush_send_xfr(struct jobs *job)
 
 	/* Get a handle to the remote ypserv. */
 	if ((clnt = clnt_create(job->server, YPPROG, YPVERS, "udp")) == NULL) {
-		yp_error("%s: %s",job->server,clnt_spcreateerror("couldn't \
+		yp_error("%s: %s", job->server, clnt_spcreateerror("couldn't \
 create udp handle to NIS server"));
 		switch (rpc_createerr.cf_stat) {
-			case RPC_UNKNOWNHOST:
-				job->stat = YPPUSH_NOHOST;
-				break;
-			case RPC_PMAPFAILURE:
-				job->stat = YPPUSH_PMAP;
-				break;
-			default:
-				job->stat = YPPUSH_RPC;
-				break;
-			}
-		return(1);
+		case RPC_UNKNOWNHOST:
+			job->stat = YPPUSH_NOHOST;
+			break;
+		case RPC_PMAPFAILURE:
+			job->stat = YPPUSH_PMAP;
+			break;
+		default:
+			job->stat = YPPUSH_RPC;
+			break;
+		}
+		return (1);
 	}
 
 	/*
@@ -345,17 +347,17 @@ create udp handle to NIS server"));
 		clnt_geterr(clnt, &err);
 		if (err.re_status != RPC_SUCCESS &&
 		    err.re_status != RPC_TIMEDOUT) {
-			yp_error("%s: %s", job->server, clnt_sperror(clnt,
-							"yp_xfr failed"));
+			yp_error("%s: %s", job->server,
+			    clnt_sperror(clnt, "yp_xfr failed"));
 			job->stat = YPPUSH_YPSERV;
 			clnt_destroy(clnt);
-			return(1);
+			return (1);
 		}
 	}
 
 	clnt_destroy(clnt);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -374,9 +376,9 @@ yp_push(char *server, char *map, unsigned long tid)
 	/* Register the job in our linked list of jobs. */
 
 	/* First allocate job structure */
-	if ((job = (struct jobs *)malloc(sizeof (struct jobs))) == NULL) {
+	if ((job = (struct jobs *)malloc(sizeof(struct jobs))) == NULL) {
 		yp_error("malloc failed");
-		yppush_exit (1);
+		yppush_exit(1);
 	}
 
 	/*
@@ -385,13 +387,13 @@ yp_push(char *server, char *map, unsigned long tid)
 	 */
 	xprt = svcudp_create(sock);
 	for (prognum = 0x40000000; prognum < 0x5FFFFFFF; prognum++) {
-		if (svc_register(xprt, prognum, 1,
-		    yppush_xfrrespprog_1, IPPROTO_UDP) == TRUE)
+		if (svc_register(xprt, prognum, 1, yppush_xfrrespprog_1,
+			IPPROTO_UDP) == TRUE)
 			break;
 	}
 	if (prognum == 0x5FFFFFFF) {
-		yp_error ("can't register yppush_xfrrespprog_1");
-		yppush_exit (1);
+		yp_error("can't register yppush_xfrrespprog_1");
+		yppush_exit(1);
 	}
 
 	/* Initialize the info for this job. */
@@ -407,7 +409,7 @@ yp_push(char *server, char *map, unsigned long tid)
 
 	if (verbose) {
 		yp_error("initiating transfer: %s -> %s (transid = %lu)",
-			yppush_mapname, server, tid);
+		    yppush_mapname, server, tid);
 	}
 
 	/*
@@ -415,16 +417,16 @@ yp_push(char *server, char *map, unsigned long tid)
 	 * a response here since we handle them asynchronously.
 	 */
 
-	if (yppush_send_xfr(job)){
+	if (yppush_send_xfr(job)) {
 		/* Transfer request blew up. */
-		yppush_show_status(job->stat ? job->stat :
-			YPPUSH_YPSERV,job->tid);
+		yppush_show_status(job->stat ? job->stat : YPPUSH_YPSERV,
+		    job->tid);
 	} else {
 		if (verbose > 1)
 			yp_error("%s has been called", server);
 	}
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -460,13 +462,14 @@ yppush_foreach(int status, char *key, int keylen, char *val, int vallen,
 	 * of jobs have already been dispatched and are still pending,
 	 * wait for one of them to finish so we can reuse its slot.
 	 */
-	while (yppush_running_jobs >= yppush_jobs && (yppush_svc_run (yppush_timeout) > 0))
+	while (yppush_running_jobs >= yppush_jobs &&
+	    (yppush_svc_run(yppush_timeout) > 0))
 		;
 
 	/* Cleared for takeoff: set everything in motion. */
 	if (yp_push(server, yppush_mapname, yppush_transid)) {
 		free(server);
-		return(yp_errno);
+		return (yp_errno);
 	}
 
 	/* Bump the job counter and transaction ID. */
@@ -479,9 +482,9 @@ yppush_foreach(int status, char *key, int keylen, char *val, int vallen,
 static void
 usage()
 {
-	fprintf (stderr, "%s\n%s\n",
-	"usage: yppush [-d domain] [-t timeout] [-j #parallel jobs] [-h host]",
-	"              [-p path] mapname");
+	fprintf(stderr, "%s\n%s\n",
+	    "usage: yppush [-d domain] [-t timeout] [-j #parallel jobs] [-h host]",
+	    "              [-p path] mapname");
 	exit(1);
 }
 
@@ -515,7 +518,8 @@ main(int argc, char *argv[])
 			yp_dir = optarg;
 			break;
 		case 'h': /* we can handle multiple hosts */
-			if ((tmp = (struct hostlist *)malloc(sizeof(struct hostlist))) == NULL) {
+			if ((tmp = (struct hostlist *)malloc(
+				 sizeof(struct hostlist))) == NULL) {
 				yp_error("malloc failed");
 				yppush_exit(1);
 			}
@@ -541,7 +545,7 @@ main(int argc, char *argv[])
 	yppush_mapname = argv[0];
 
 	if (yppush_mapname == NULL) {
-	/* "No guts, no glory." */
+		/* "No guts, no glory." */
 		usage();
 	}
 
@@ -552,7 +556,7 @@ main(int argc, char *argv[])
 	if (yppush_domain == NULL) {
 		char *yppush_check_domain;
 		if (!yp_get_default_domain(&yppush_check_domain) &&
-			!_yp_check(&yppush_check_domain)) {
+		    !_yp_check(&yppush_check_domain)) {
 			yp_error("no domain specified and NIS not running");
 			usage();
 		} else
@@ -561,19 +565,19 @@ main(int argc, char *argv[])
 
 	/* Check to see that we are the master for this map. */
 
-	if (gethostname ((char *)&myname, sizeof(myname))) {
+	if (gethostname((char *)&myname, sizeof(myname))) {
 		yp_error("failed to get name of local host: %s",
-			strerror(errno));
+		    strerror(errno));
 		yppush_exit(1);
 	}
 
 	key.data = "YP_MASTER_NAME";
 	key.size = sizeof("YP_MASTER_NAME") - 1;
 
-	if (yp_get_record(yppush_domain, yppush_mapname,
-			  &key, &data, 1) != YP_TRUE) {
+	if (yp_get_record(yppush_domain, yppush_mapname, &key, &data, 1) !=
+	    YP_TRUE) {
 		yp_error("couldn't open %s map: %s", yppush_mapname,
-			 strerror(errno));
+		    strerror(errno));
 		yppush_exit(1);
 	}
 
@@ -585,7 +589,7 @@ main(int argc, char *argv[])
 			skip_master = 1;
 	} else {
 		yp_error("warning: this host is not the master for %s",
-							yppush_mapname);
+		    yppush_mapname);
 #ifdef NITPICKY
 		yppush_exit(1);
 #endif
@@ -603,10 +607,10 @@ main(int argc, char *argv[])
 	yppush_transid = time((time_t *)NULL);
 
 	if (yppush_hostlist) {
-	/*
-	 * Host list was specified on the command line:
-	 * kick off the transfers by hand.
-	 */
+		/*
+		 * Host list was specified on the command line:
+		 * kick off the transfers by hand.
+		 */
 		tmp = yppush_hostlist;
 		while (tmp) {
 			yppush_foreach(YP_TRUE, NULL, 0, tmp->name,
@@ -614,12 +618,12 @@ main(int argc, char *argv[])
 			tmp = tmp->next;
 		}
 	} else {
-	/*
-	 * Do a yp_all() on the ypservers map and initiate a ypxfr
-	 * for each one.
-	 */
-		ypxfr_get_map("ypservers", yppush_domain,
-			      "localhost", yppush_foreach);
+		/*
+		 * Do a yp_all() on the ypservers map and initiate a ypxfr
+		 * for each one.
+		 */
+		ypxfr_get_map("ypservers", yppush_domain, "localhost",
+		    yppush_foreach);
 	}
 
 	if (verbose > 1)

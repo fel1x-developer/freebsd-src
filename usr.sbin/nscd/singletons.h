@@ -27,14 +27,14 @@
 #ifndef __NSCD_SINGLETONS_H__
 #define __NSCD_SINGLETONS_H__
 
+#include "agent.h"
 #include "cachelib.h"
 #include "config.h"
-#include "agent.h"
 
 struct runtime_env {
-	int	queue;
-	int	sockfd;
-	int	finished;	/* for future use */
+	int queue;
+	int sockfd;
+	int finished; /* for future use */
 };
 
 extern struct configuration *s_configuration;

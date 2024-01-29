@@ -27,13 +27,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
 #include <sys/fbio.h>
-
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
-#include <dev/vt/colors/vt_termcolors.h>
+#include <sys/kernel.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -41,48 +37,50 @@
 #include <machine/bus.h>
 #include <machine/cpu.h>
 
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_pci.h>
 #include <dev/ofw/ofw_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/vt/colors/vt_termcolors.h>
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
 
 struct ofwfb_softc {
-	struct fb_info	fb;
+	struct fb_info fb;
 
-	phandle_t	sc_node;
-	ihandle_t	sc_handle;
-	bus_space_tag_t	sc_memt;
-	int		iso_palette;
-	int		argb;
-	int		endian_flip;
-	uint32_t	vendor_id;
+	phandle_t sc_node;
+	ihandle_t sc_handle;
+	bus_space_tag_t sc_memt;
+	int iso_palette;
+	int argb;
+	int endian_flip;
+	uint32_t vendor_id;
 };
 
-#define PCI_VID_NVIDIA	0x10de	/* NVIDIA Corporation */
-#define PCI_VID_ASPEED	0x1a03	/* ASPEED Technology, Inc. */
+#define PCI_VID_NVIDIA 0x10de /* NVIDIA Corporation */
+#define PCI_VID_ASPEED 0x1a03 /* ASPEED Technology, Inc. */
 
 static void ofwfb_initialize(struct vt_device *vd);
-static vd_probe_t	ofwfb_probe;
-static vd_init_t	ofwfb_init;
-static vd_bitblt_text_t	ofwfb_bitblt_text;
-static vd_bitblt_bmp_t	ofwfb_bitblt_bitmap;
+static vd_probe_t ofwfb_probe;
+static vd_init_t ofwfb_init;
+static vd_bitblt_text_t ofwfb_bitblt_text;
+static vd_bitblt_bmp_t ofwfb_bitblt_bitmap;
 
 static const struct vt_driver vt_ofwfb_driver = {
-	.vd_name	= "ofwfb",
-	.vd_probe	= ofwfb_probe,
-	.vd_init	= ofwfb_init,
-	.vd_blank	= vt_fb_blank,
-	.vd_bitblt_text	= ofwfb_bitblt_text,
-	.vd_bitblt_bmp	= ofwfb_bitblt_bitmap,
-	.vd_fb_ioctl	= vt_fb_ioctl,
-	.vd_fb_mmap	= vt_fb_mmap,
-	.vd_priority	= VD_PRIORITY_GENERIC+1,
+	.vd_name = "ofwfb",
+	.vd_probe = ofwfb_probe,
+	.vd_init = ofwfb_init,
+	.vd_blank = vt_fb_blank,
+	.vd_bitblt_text = ofwfb_bitblt_text,
+	.vd_bitblt_bmp = ofwfb_bitblt_bitmap,
+	.vd_fb_ioctl = vt_fb_ioctl,
+	.vd_fb_mmap = vt_fb_mmap,
+	.vd_priority = VD_PRIORITY_GENERIC + 1,
 };
 
 static unsigned char ofw_colors[16] = {
 	/* See "16-color Text Extension" Open Firmware document, page 4 */
-	0, 4, 2, 6, 1, 5, 3, 7,
-	8, 12, 10, 14, 9, 13, 11, 15
+	0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14, 9, 13, 11, 15
 };
 
 static struct ofwfb_softc ofwfb_conssoftc;
@@ -129,9 +127,9 @@ ofwfb_probe(struct vt_device *vd)
 
 static void
 ofwfb_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
-    const uint8_t *pattern, const uint8_t *mask,
-    unsigned int width, unsigned int height,
-    unsigned int x, unsigned int y, term_color_t fg, term_color_t bg)
+    const uint8_t *pattern, const uint8_t *mask, unsigned int width,
+    unsigned int height, unsigned int x, unsigned int y, term_color_t fg,
+    term_color_t bg)
 {
 	struct fb_info *sc = vd->vd_softc;
 	u_long line;
@@ -140,7 +138,7 @@ ofwfb_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
 	uint8_t b, m;
 	union {
 		uint32_t l;
-		uint8_t	 c[4];
+		uint8_t c[4];
 	} ch1, ch2;
 
 #ifdef __powerpc__
@@ -165,11 +163,11 @@ ofwfb_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
 		bg = ofw_colors[bg];
 	}
 
-	line = (sc->fb_stride * y) + x * sc->fb_bpp/8;
+	line = (sc->fb_stride * y) + x * sc->fb_bpp / 8;
 	if (mask == NULL && sc->fb_bpp == 8 && (width % 8 == 0)) {
 		/* Don't try to put off screen pixels */
-		if (((x + width) > vd->vd_width) || ((y + height) >
-		    vd->vd_height))
+		if (((x + width) > vd->vd_width) ||
+		    ((y + height) > vd->vd_height))
 			return;
 
 		for (; height > 0; height--) {
@@ -187,29 +185,37 @@ ofwfb_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
 				 * Calculate 2 x 4-chars at a time, and then
 				 * write these out.
 				 */
-				if (b & 0x80) ch1.c[0] = fg;
-				if (b & 0x40) ch1.c[1] = fg;
-				if (b & 0x20) ch1.c[2] = fg;
-				if (b & 0x10) ch1.c[3] = fg;
+				if (b & 0x80)
+					ch1.c[0] = fg;
+				if (b & 0x40)
+					ch1.c[1] = fg;
+				if (b & 0x20)
+					ch1.c[2] = fg;
+				if (b & 0x10)
+					ch1.c[3] = fg;
 
-				if (b & 0x08) ch2.c[0] = fg;
-				if (b & 0x04) ch2.c[1] = fg;
-				if (b & 0x02) ch2.c[2] = fg;
-				if (b & 0x01) ch2.c[3] = fg;
+				if (b & 0x08)
+					ch2.c[0] = fg;
+				if (b & 0x04)
+					ch2.c[1] = fg;
+				if (b & 0x02)
+					ch2.c[2] = fg;
+				if (b & 0x01)
+					ch2.c[3] = fg;
 
 				*(uint32_t *)(sc->fb_vbase + line + c) = ch1.l;
-				*(uint32_t *)(sc->fb_vbase + line + c + 4) =
-				    ch2.l;
+				*(uint32_t *)(sc->fb_vbase + line + c +
+				    4) = ch2.l;
 			}
 			line += sc->fb_stride;
 		}
 	} else {
 		for (l = 0;
-		    l < height && y + l < vw->vw_draw_area.tr_end.tp_row;
-		    l++) {
-			for (c = 0;
-			    c < width && x + c < vw->vw_draw_area.tr_end.tp_col;
-			    c++) {
+		     l < height && y + l < vw->vw_draw_area.tr_end.tp_row;
+		     l++) {
+			for (c = 0; c < width &&
+			     x + c < vw->vw_draw_area.tr_end.tp_col;
+			     c++) {
 				if (c % 8 == 0)
 					b = *pattern++;
 				else
@@ -223,14 +229,14 @@ ofwfb_bitblt_bitmap(struct vt_device *vd, const struct vt_window *vw,
 					if ((m & 0x80) == 0)
 						continue;
 				}
-				switch(sc->fb_bpp) {
+				switch (sc->fb_bpp) {
 				case 8:
-					*(uint8_t *)(sc->fb_vbase + line + c) =
-					    b & 0x80 ? fg : bg;
+					*(uint8_t *)(sc->fb_vbase + line +
+					    c) = b & 0x80 ? fg : bg;
 					break;
 				case 32:
-					*(uint32_t *)(sc->fb_vbase + line + 4*c)
-					    = (b & 0x80) ? fgc : bgc;
+					*(uint32_t *)(sc->fb_vbase + line +
+					    4 * c) = (b & 0x80) ? fgc : bgc;
 					break;
 				default:
 					/* panic? */
@@ -256,7 +262,7 @@ ofwfb_bitblt_text(struct vt_device *vd, const struct vt_window *vw,
 
 	for (row = area->tr_begin.tp_row; row < area->tr_end.tp_row; ++row) {
 		for (col = area->tr_begin.tp_col; col < area->tr_end.tp_col;
-		    ++col) {
+		     ++col) {
 			x = col * vf->vf_width +
 			    vw->vw_draw_area.tr_begin.tp_col;
 			y = row * vf->vf_height +
@@ -267,9 +273,8 @@ ofwfb_bitblt_text(struct vt_device *vd, const struct vt_window *vw,
 			vt_determine_colors(c,
 			    VTBUF_ISCURSOR(&vw->vw_buf, row, col), &fg, &bg);
 
-			ofwfb_bitblt_bitmap(vd, vw,
-			    pattern, NULL, vf->vf_width, vf->vf_height,
-			    x, y, fg, bg);
+			ofwfb_bitblt_bitmap(vd, vw, pattern, NULL, vf->vf_width,
+			    vf->vf_height, x, y, fg, bg);
 		}
 	}
 
@@ -285,16 +290,15 @@ ofwfb_bitblt_text(struct vt_device *vd, const struct vt_window *vw,
 	drawn_area.tr_end.tp_row = area->tr_end.tp_row * vf->vf_height;
 
 	if (vt_is_cursor_in_area(vd, &drawn_area)) {
-		ofwfb_bitblt_bitmap(vd, vw,
-		    vd->vd_mcursor->map, vd->vd_mcursor->mask,
-		    vd->vd_mcursor->width, vd->vd_mcursor->height,
+		ofwfb_bitblt_bitmap(vd, vw, vd->vd_mcursor->map,
+		    vd->vd_mcursor->mask, vd->vd_mcursor->width,
+		    vd->vd_mcursor->height,
 		    vd->vd_mx_drawn + vw->vw_draw_area.tr_begin.tp_col,
 		    vd->vd_my_drawn + vw->vw_draw_area.tr_begin.tp_row,
 		    vd->vd_mcursor_fg, vd->vd_mcursor_bg);
 	}
 #endif
 }
-
 
 /*
  * Decode OpenFirmware/IEEE 1275-1994 "ranges" property
@@ -329,16 +333,17 @@ decode_pci_ranges_host_addr(phandle_t pcinode)
 		return (0);
 
 	if (OF_getencprop(pcinode, "#size-cells", &scells, sizeof(scells)) !=
-		sizeof(scells))
+	    sizeof(scells))
 		return (0);
 
 	if (OF_searchencprop(OF_parent(pcinode), "#address-cells",
-		&host_address_cells, sizeof(host_address_cells)) !=
-		sizeof(host_address_cells))
+		&host_address_cells,
+		sizeof(host_address_cells)) != sizeof(host_address_cells))
 		return (0);
 
 	nbase_ranges = OF_getproplen(pcinode, "ranges");
-	nranges = nbase_ranges / sizeof(cell_t) / (acells + host_address_cells + scells);
+	nranges = nbase_ranges / sizeof(cell_t) /
+	    (acells + host_address_cells + scells);
 
 	/* prevent buffer overflow during iteration */
 	if (nranges > sizeof(ranges) / sizeof(ranges[0]))
@@ -416,8 +421,8 @@ ofwfb_initialize(struct vt_device *vd)
 		 * No color format issues here, since we are passing the RGB
 		 * components separately to Open Firmware.
 		 */
-		vt_config_cons_colors(&sc->fb, COLOR_FORMAT_RGB, 255,
-		    16, 255, 8, 255, 0);
+		vt_config_cons_colors(&sc->fb, COLOR_FORMAT_RGB, 255, 16, 255,
+		    8, 255, 0);
 
 		for (i = 0; i < 16; i++) {
 			err = OF_call_method("color!", sc->sc_handle, 4, 1,
@@ -441,7 +446,8 @@ ofwfb_initialize(struct vt_device *vd)
 		 * for BE systems.
 		 *
 		 * PowerMacs use either, depending on the video card option.
-		 * NVidia cards tend to be RGBA32, and ATI cards tend to be ARGB32.
+		 * NVidia cards tend to be RGBA32, and ATI cards tend to be
+		 * ARGB32.
 		 *
 		 * There is no good way to determine the correct option, as this
 		 * is independent of endian swapping.
@@ -463,14 +469,14 @@ ofwfb_initialize(struct vt_device *vd)
 			else
 				r = 0, g = 8, b = 16;
 		}
-		vt_config_cons_colors(&sc->fb,
-		    COLOR_FORMAT_RGB, 255, r, 255, g, 255, b);
+		vt_config_cons_colors(&sc->fb, COLOR_FORMAT_RGB, 255, r, 255, g,
+		    255, b);
 		break;
 
 	default:
 		panic("Unknown color space depth %d", sc->fb.fb_bpp);
 		break;
-        }
+	}
 }
 
 static int
@@ -494,7 +500,7 @@ ofwfb_init(struct vt_device *vd)
 	node = -1;
 	chosen = OF_finddevice("/chosen");
 	if (OF_getencprop(chosen, "stdout", &sc->sc_handle,
-	    sizeof(ihandle_t)) == sizeof(ihandle_t))
+		sizeof(ihandle_t)) == sizeof(ihandle_t))
 		node = OF_instance_to_package(sc->sc_handle);
 	if (node == -1)
 		/* Try "/chosen/stdout-path" now */
@@ -521,7 +527,7 @@ ofwfb_init(struct vt_device *vd)
 	 * ofwfb_initialize()
 	 */
 	if (OF_getencprop(OF_parent(node), "vendor-id", &vendor_id,
-	    sizeof(vendor_id)) == sizeof(vendor_id))
+		sizeof(vendor_id)) == sizeof(vendor_id))
 		sc->vendor_id = vendor_id;
 
 	/* Keep track of the OF node */
@@ -550,8 +556,7 @@ ofwfb_init(struct vt_device *vd)
 	OF_getencprop(node, "width", &width, sizeof(width));
 	if (OF_getencprop(node, "linebytes", &stride, sizeof(stride)) !=
 	    sizeof(stride))
-		stride = width*depth/8;
-
+		stride = width * depth / 8;
 
 	sc->fb.fb_height = height;
 	sc->fb.fb_width = width;
@@ -565,13 +570,12 @@ ofwfb_init(struct vt_device *vd)
 #if BYTE_ORDER == BIG_ENDIAN
 		sc->endian_flip = 1;
 #endif
-        } else if (OF_hasprop(node, "big-endian")) {
+	} else if (OF_hasprop(node, "big-endian")) {
 		sc->sc_memt = &bs_be_tag;
 #if BYTE_ORDER == LITTLE_ENDIAN
 		sc->endian_flip = 1;
 #endif
-	}
-	else {
+	} else {
 		/* Assume the framebuffer is in native endian. */
 #if BYTE_ORDER == BIG_ENDIAN
 		sc->sc_memt = &bs_be_tag;
@@ -582,9 +586,8 @@ ofwfb_init(struct vt_device *vd)
 #elif defined(__arm__)
 	sc->sc_memt = fdtbus_bs_tag;
 #else
-	#error Unsupported platform!
+#error Unsupported platform!
 #endif
-
 
 	/*
 	 * Grab the physical address of the framebuffer, and then map it
@@ -639,8 +642,9 @@ ofwfb_init(struct vt_device *vd)
 		len = OF_getencprop(node, "assigned-addresses",
 		    (pcell_t *)pciaddrs, sizeof(pciaddrs));
 		if (len == -1) {
-			len = OF_getencprop(OF_parent(node), "assigned-addresses",
-			    (pcell_t *)pciaddrs, sizeof(pciaddrs));
+			len = OF_getencprop(OF_parent(node),
+			    "assigned-addresses", (pcell_t *)pciaddrs,
+			    sizeof(pciaddrs));
 		}
 		if (len == -1)
 			len = 0;
@@ -653,7 +657,7 @@ ofwfb_init(struct vt_device *vd)
 				continue;
 			/* If it is not memory, it isn't either */
 			if (!(pciaddrs[i].phys_hi &
-			    OFW_PCI_PHYS_HI_SPACE_MEM32))
+				OFW_PCI_PHYS_HI_SPACE_MEM32))
 				continue;
 
 			/* This could be the framebuffer */
@@ -667,7 +671,8 @@ ofwfb_init(struct vt_device *vd)
 		if (j == num_pciaddrs) /* No candidates found */
 			return (CN_DEAD);
 
-		if (ofw_reg_to_paddr(node, j, &fb_phys, &fb_phys_size, NULL) < 0)
+		if (ofw_reg_to_paddr(node, j, &fb_phys, &fb_phys_size, NULL) <
+		    0)
 			return (CN_DEAD);
 
 		sc->fb.fb_pbase = (vm_paddr_t)fb_phys;
@@ -675,16 +680,15 @@ ofwfb_init(struct vt_device *vd)
 		/* No ability to interpret assigned-addresses otherwise */
 		return (CN_DEAD);
 #endif
-        }
+	}
 
 	if (!sc->fb.fb_pbase)
 		return (CN_DEAD);
 
 	bus_space_map(sc->sc_memt, sc->fb.fb_pbase, sc->fb.fb_size,
-	    BUS_SPACE_MAP_PREFETCHABLE,
-	    (bus_space_handle_t *)&sc->fb.fb_vbase);
+	    BUS_SPACE_MAP_PREFETCHABLE, (bus_space_handle_t *)&sc->fb.fb_vbase);
 
-	#if defined(__powerpc__)
+#if defined(__powerpc__)
 	/*
 	 * If we are running on PowerPC in real mode (supported only on AIM
 	 * CPUs), the frame buffer may be inaccessible (real mode does not
@@ -694,7 +698,7 @@ ofwfb_init(struct vt_device *vd)
 	 */
 	if (!(cpu_features & PPC_FEATURE_BOOKE) && !(mfmsr() & PSL_DR))
 		sc->fb.fb_flags |= FB_FLAG_NOWRITE;
-	#endif
+#endif
 	ofwfb_initialize(vd);
 	vt_fb_init(vd);
 

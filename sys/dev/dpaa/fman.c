@@ -24,21 +24,21 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_platform.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+
+#include <machine/bus.h>
 
 #include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <machine/bus.h>
-
-#include "opt_platform.h"
 
 #include <contrib/ncsw/inc/Peripherals/fm_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_muram_ext.h>
@@ -47,22 +47,15 @@
 
 #include "fman.h"
 
-
 static MALLOC_DEFINE(M_FMAN, "fman", "fman devices information");
 
 /**
  * @group FMan private defines.
  * @{
  */
-enum fman_irq_enum {
-	FMAN_IRQ_NUM		= 0,
-	FMAN_ERR_IRQ_NUM	= 1
-};
+enum fman_irq_enum { FMAN_IRQ_NUM = 0, FMAN_ERR_IRQ_NUM = 1 };
 
-enum fman_mu_ram_map {
-	FMAN_MURAM_OFF		= 0x0,
-	FMAN_MURAM_SIZE		= 0x28000
-};
+enum fman_mu_ram_map { FMAN_MURAM_OFF = 0x0, FMAN_MURAM_SIZE = 0x28000 };
 
 struct fman_config {
 	device_t fman_device;
@@ -102,7 +95,7 @@ fman_activate_resource(device_t bus, device_t child, int type, int rid,
 				rv = bus_space_subregion(bt,
 				    rman_get_bushandle(sc->mem_res),
 				    rman_get_start(res) -
-				    rman_get_start(sc->mem_res),
+					rman_get_start(sc->mem_res),
 				    rman_get_size(res), &bh);
 				if (rv != 0)
 					return (rv);
@@ -127,7 +120,7 @@ fman_release_resource(device_t bus, device_t child, int type, int rid,
 	passthrough = (device_get_parent(child) != bus);
 	rl = BUS_GET_RESOURCE_LIST(bus, child);
 	if (type != SYS_RES_IRQ) {
-		if ((rman_get_flags(res) & RF_ACTIVE) != 0 ){
+		if ((rman_get_flags(res) & RF_ACTIVE) != 0) {
 			rv = bus_deactivate_resource(child, type, rid, res);
 			if (rv != 0)
 				return (rv);
@@ -140,7 +133,7 @@ fman_release_resource(device_t bus, device_t child, int type, int rid,
 			KASSERT(rle != NULL,
 			    ("%s: resource entry not found!", __func__));
 			KASSERT(rle->res != NULL,
-			   ("%s: resource entry is not busy", __func__));
+			    ("%s: resource entry is not busy", __func__));
 			rle->res = NULL;
 		}
 		return (0);
@@ -182,8 +175,9 @@ fman_alloc_resource(device_t bus, device_t child, int type, int *rid,
 		res = NULL;
 		/* Map fman ranges to nexus ranges. */
 		for (i = 0; i < sc->sc_base.nranges; i++) {
-			if (start >= sc->sc_base.ranges[i].bus && end <
-			    sc->sc_base.ranges[i].bus + sc->sc_base.ranges[i].size) {
+			if (start >= sc->sc_base.ranges[i].bus &&
+			    end < sc->sc_base.ranges[i].bus +
+				    sc->sc_base.ranges[i].size) {
 				start += rman_get_start(sc->mem_res);
 				end += rman_get_start(sc->mem_res);
 				res = rman_reserve_resource(&sc->rman, start,
@@ -191,8 +185,9 @@ fman_alloc_resource(device_t bus, device_t child, int type, int *rid,
 				if (res == NULL)
 					return (NULL);
 				rman_set_rid(res, *rid);
-				if ((flags & RF_ACTIVE) != 0 && bus_activate_resource(
-				    child, type, *rid, res) != 0) {
+				if ((flags & RF_ACTIVE) != 0 &&
+				    bus_activate_resource(child, type, *rid,
+					res) != 0) {
 					rman_release_resource(res);
 					return (NULL);
 				}
@@ -231,8 +226,8 @@ fman_fill_ranges(phandle_t node, struct simplebus_softc *sc)
 	if (sc->nranges == 0)
 		return (0);
 
-	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]),
-	    M_DEVBUF, M_WAITOK);
+	sc->ranges = malloc(sc->nranges * sizeof(sc->ranges[0]), M_DEVBUF,
+	    M_WAITOK);
 	base_ranges = malloc(nbase_ranges, M_DEVBUF, M_WAITOK);
 	OF_getencprop(node, "ranges", base_ranges, nbase_ranges);
 
@@ -271,9 +266,11 @@ fman_init(struct fman_softc *sc, struct fman_config *cfg)
 
 	/* MURAM configuration */
 	muram_handle = FM_MURAM_ConfigAndInit(cfg->mem_base_addr +
-	    FMAN_MURAM_OFF, FMAN_MURAM_SIZE);
+		FMAN_MURAM_OFF,
+	    FMAN_MURAM_SIZE);
 	if (muram_handle == NULL) {
-		device_printf(cfg->fman_device, "couldn't init FM MURAM module"
+		device_printf(cfg->fman_device,
+		    "couldn't init FM MURAM module"
 		    "\n");
 		return (NULL);
 	}
@@ -306,11 +303,12 @@ fman_init(struct fman_softc *sc, struct fman_config *cfg)
 	fm_params.errIrq = cfg->err_irq_num;
 
 	fm_params.firmware.size = fman_firmware_size;
-	fm_params.firmware.p_Code = (uint32_t*)fman_firmware;
+	fm_params.firmware.p_Code = (uint32_t *)fman_firmware;
 
 	fm_handle = FM_Config(&fm_params);
 	if (fm_handle == NULL) {
-		device_printf(cfg->fman_device, "couldn't configure FM "
+		device_printf(cfg->fman_device,
+		    "couldn't configure FM "
 		    "module\n");
 		goto err;
 	}
@@ -373,7 +371,6 @@ fman_error_callback(t_Handle app_handle, e_FmPortType port_type,
 }
 /** @} */
 
-
 /**
  * @group FMan driver interface.
  * @{
@@ -428,7 +425,7 @@ fman_attach(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 	if (OF_getencprop(node, "fsl,qman-channel-range", qchan_range,
-	    sizeof(qchan_range)) <= 0) {
+		sizeof(qchan_range)) <= 0) {
 		device_printf(dev, "Missing QMan channel range property!\n");
 		return (ENXIO);
 	}
@@ -538,8 +535,8 @@ int
 fman_qman_channel_id(device_t dev, int port)
 {
 	struct fman_softc *sc;
-	int qman_port_id[] = {0x31, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e,
-	    0x2f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
+	int qman_port_id[] = { 0x31, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e,
+		0x2f, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
 	int i;
 
 	sc = device_get_softc(dev);

@@ -3,7 +3,7 @@
  *
  * Copyright (C) 1995, 1996, 1997, 1998, and 1999 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -15,7 +15,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,44 +32,49 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <netinet6/in6.h>
 #include <netipsec/ipsec.h>
+
 #include <stdlib.h>
 #include <string.h>
 
-
 char *requests[] = {
-"must_error",		/* must be error */
-"ipsec must_error",	/* must be error */
-"ipsec esp/must_error",	/* must be error */
-"discard",
-"none",
-"entrust",
-"bypass",		/* may be error */
-"ipsec esp",		/* must be error */
-"ipsec ah/require",
-"ipsec ah/use/",
-"ipsec esp/require ah/default/203.178.141.194",
-"ipsec ah/use/203.178.141.195 esp/use/203.178.141.194",
-"ipsec esp/elf.wide.ydc.co.jp esp/www.wide.ydc.co.jp"
-"
-ipsec esp/require ah/use esp/require/10.0.0.1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1 ah/use/3ffe:501:481d::1
-ah/use/3ffe:501:481d::1  ah/use/3ffe:501:481d::1ah/use/3ffe:501:481d::1
-",
+	"must_error",		/* must be error */
+	"ipsec must_error",	/* must be error */
+	"ipsec esp/must_error", /* must be error */
+	"discard",
+	"none",
+	"entrust",
+	"bypass",    /* may be error */
+	"ipsec esp", /* must be error */
+	"ipsec ah/require",
+	"ipsec ah/use/",
+	"ipsec esp/require ah/default/203.178.141.194",
+	"ipsec ah/use/203.178.141.195 esp/use/203.178.141.194",
+	"ipsec esp/elf.wide.ydc.co.jp esp/www.wide.ydc.co.jp"
+	"
+	    ipsec esp /
+	    require ah / use esp / require / 10.0.0.1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1 ah / use / 3ffe : 501 : 481d ::1 ah / use /
+	    3ffe : 501 : 481d ::1ah / use / 3ffe : 501 : 481d ::1 ",
 };
 
-u_char	*p_secpolicy;
+u_char *p_secpolicy;
 
-int	test(char *buf, int family);
-char	*setpolicy(char *req);
+int test(char *buf, int family);
+char *setpolicy(char *req);
 
 main()
 {
@@ -91,7 +96,8 @@ main()
 	}
 }
 
-int test(char *policy, int family)
+int
+test(char *policy, int family)
 {
 	int so, proto, optname;
 	int len;
@@ -119,23 +125,24 @@ int test(char *policy, int family)
 	if (getsockopt(so, proto, optname, getbuf, &len) < 0)
 		perror("getsockopt");
 
-    {
-	char *buf = NULL;
+	{
+		char *buf = NULL;
 
-	printf("\tgetlen:%d\n", len);
+		printf("\tgetlen:%d\n", len);
 
-	if ((buf = ipsec_dump_policy(getbuf, NULL)) == NULL)
-		ipsec_strerror();
-	else
-		printf("\t[%s]\n", buf);
+		if ((buf = ipsec_dump_policy(getbuf, NULL)) == NULL)
+			ipsec_strerror();
+		else
+			printf("\t[%s]\n", buf);
 
-	free(buf);
-    }
+		free(buf);
+	}
 
-	close (so);
+	close(so);
 }
 
-char *setpolicy(char *req)
+char *
+setpolicy(char *req)
 {
 	int len;
 	char *buf;

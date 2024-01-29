@@ -32,15 +32,17 @@
 #include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
-#define	FLASH_BUF_SIZE	(64 * 1024)
+#define FLASH_BUF_SIZE (64 * 1024)
 
 static int
 display_pending_firmware(int fd)
@@ -169,7 +171,8 @@ flash_adapter(int ac, char **av)
 	}
 
 	/* Kick off the flash. */
-	printf("WARNING: Firmware flash in progress, do not reboot machine... ");
+	printf(
+	    "WARNING: Firmware flash in progress, do not reboot machine... ");
 	fflush(stdout);
 	mfi_dcmd_command(fd, MFI_DCMD_FLASH_FW_FLASH, &dummy, sizeof(dummy),
 	    NULL, 0, &status);

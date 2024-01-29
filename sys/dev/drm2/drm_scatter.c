@@ -33,13 +33,15 @@
 
 #define DEBUG_SCATTER 0
 
-static inline void *drm_vmalloc_dma(vm_size_t size)
+static inline void *
+drm_vmalloc_dma(vm_size_t size)
 {
 	return kmem_alloc_attr(size, M_NOWAIT | M_ZERO, 0,
 	    BUS_SPACE_MAXADDR_32BIT, VM_MEMATTR_WRITE_COMBINING);
 }
 
-void drm_sg_cleanup(struct drm_sg_mem * entry)
+void
+drm_sg_cleanup(struct drm_sg_mem *entry)
 {
 	if (entry == NULL)
 		return;
@@ -51,7 +53,8 @@ void drm_sg_cleanup(struct drm_sg_mem * entry)
 	free(entry, DRM_MEM_DRIVER);
 }
 
-int drm_sg_alloc(struct drm_device *dev, struct drm_scatter_gather * request)
+int
+drm_sg_alloc(struct drm_device *dev, struct drm_scatter_gather *request)
 {
 	struct drm_sg_mem *entry;
 	vm_size_t size;
@@ -88,31 +91,31 @@ int drm_sg_alloc(struct drm_device *dev, struct drm_scatter_gather * request)
 	}
 
 	for (pindex = 0; pindex < entry->pages; pindex++) {
-		entry->busaddr[pindex] =
-		    vtophys((uintptr_t)entry->vaddr + IDX_TO_OFF(pindex));
+		entry->busaddr[pindex] = vtophys(
+		    (uintptr_t)entry->vaddr + IDX_TO_OFF(pindex));
 	}
 
 	request->handle = (uintptr_t)entry->vaddr;
 
 	dev->sg = entry;
 
-	DRM_DEBUG("allocated %ju pages @ %p, contents=%08lx\n",
-	    entry->pages, entry->vaddr, *(unsigned long *)entry->vaddr);
+	DRM_DEBUG("allocated %ju pages @ %p, contents=%08lx\n", entry->pages,
+	    entry->vaddr, *(unsigned long *)entry->vaddr);
 
 	return 0;
 }
 
-int drm_sg_alloc_ioctl(struct drm_device *dev, void *data,
-		       struct drm_file *file_priv)
+int
+drm_sg_alloc_ioctl(struct drm_device *dev, void *data,
+    struct drm_file *file_priv)
 {
 	struct drm_scatter_gather *request = data;
 
 	return drm_sg_alloc(dev, request);
-
 }
 
-int drm_sg_free(struct drm_device *dev, void *data,
-		struct drm_file *file_priv)
+int
+drm_sg_free(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_scatter_gather *request = data;
 	struct drm_sg_mem *entry;

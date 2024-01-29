@@ -30,46 +30,46 @@
 #include <sys/types.h>
 #include <sys/queue.h>
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "libc_private.h"
-#include "thr_private.h"
 #include "static_tls.h"
+#include "thr_private.h"
 
 /*#define DEBUG_THREAD_LIST */
 #ifdef DEBUG_THREAD_LIST
-#define DBG_MSG		stdout_debug
+#define DBG_MSG stdout_debug
 #else
 #define DBG_MSG(x...)
 #endif
 
-#define MAX_THREADS		100000
+#define MAX_THREADS 100000
 
 /*
  * Define a high water mark for the maximum number of threads that
  * will be cached.  Once this level is reached, any extra threads
  * will be free()'d.
  */
-#define	MAX_CACHED_THREADS	100
+#define MAX_CACHED_THREADS 100
 
 /*
  * We've got to keep track of everything that is allocated, not only
  * to have a speedy free list, but also so they can be deallocated
  * after a fork().
  */
-static TAILQ_HEAD(, pthread)	free_threadq;
-static struct umutex		free_thread_lock = DEFAULT_UMUTEX;
-static struct umutex		tcb_lock = DEFAULT_UMUTEX;
-static int			free_thread_count = 0;
-static int			inited = 0;
-static int			total_threads;
+static TAILQ_HEAD(, pthread) free_threadq;
+static struct umutex free_thread_lock = DEFAULT_UMUTEX;
+static struct umutex tcb_lock = DEFAULT_UMUTEX;
+static int free_thread_count = 0;
+static int inited = 0;
+static int total_threads;
 
 LIST_HEAD(thread_hash_head, pthread);
-#define HASH_QUEUES	128
-static struct thread_hash_head	thr_hashtable[HASH_QUEUES];
-#define	THREAD_HASH(thrd)	(((unsigned long)thrd >> 8) % HASH_QUEUES)
+#define HASH_QUEUES 128
+static struct thread_hash_head thr_hashtable[HASH_QUEUES];
+#define THREAD_HASH(thrd) (((unsigned long)thrd >> 8) % HASH_QUEUES)
 
 static void thr_destroy(struct pthread *curthread, struct pthread *thread);
 
@@ -102,7 +102,7 @@ _thr_gc(struct pthread *curthread)
 	THREAD_LIST_WRLOCK(curthread);
 
 	/* Check the threads waiting for GC. */
-	TAILQ_FOREACH_SAFE(td, &_thread_gc_list, gcle, td_next) {
+	TAILQ_FOREACH_SAFE (td, &_thread_gc_list, gcle, td_next) {
 		if (td->tid != TID_TERMINATED) {
 			/* make sure we are not still in userland */
 			continue;
@@ -131,8 +131,8 @@ _thr_gc(struct pthread *curthread)
 struct pthread *
 _thr_alloc(struct pthread *curthread)
 {
-	struct pthread	*thread = NULL;
-	struct tcb	*tcb;
+	struct pthread *thread = NULL;
+	struct tcb *tcb;
 
 	if (curthread != NULL) {
 		if (GC_NEEDED())
@@ -162,8 +162,9 @@ _thr_alloc(struct pthread *curthread)
 			return (NULL);
 		}
 	} else {
-		bzero(&thread->_pthread_startzero, 
-			__rangeof(struct pthread, _pthread_startzero, _pthread_endzero));
+		bzero(&thread->_pthread_startzero,
+		    __rangeof(struct pthread, _pthread_startzero,
+			_pthread_endzero));
 	}
 	if (curthread != NULL) {
 		THR_LOCK_ACQUIRE(curthread, &tcb_lock);
@@ -272,7 +273,7 @@ _thr_hash_find(struct pthread *thread)
 	struct thread_hash_head *head;
 
 	head = &thr_hashtable[THREAD_HASH(thread)];
-	LIST_FOREACH(td, head, hle) {
+	LIST_FOREACH (td, head, hle) {
 		if (td == thread)
 			return (thread);
 	}
@@ -386,7 +387,7 @@ __pthread_distribute_static_tls(size_t offset, void *src, size_t len,
 	}
 	curthread = _get_curthread();
 	THREAD_LIST_RDLOCK(curthread);
-	TAILQ_FOREACH(thrd, &_thread_list, tle) {
+	TAILQ_FOREACH (thrd, &_thread_list, tle) {
 		tlsbase = _get_static_tls_base(thrd, offset);
 		thr_distribute_static_tls(tlsbase, src, len, total_len);
 	}

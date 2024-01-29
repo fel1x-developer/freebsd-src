@@ -30,8 +30,8 @@
  * SOFTWARE.
  */
 
-#include <dev/mlx5/mlx5_fpga/xfer.h>
 #include <dev/mlx5/mlx5_fpga/conn.h>
+#include <dev/mlx5/mlx5_fpga/xfer.h>
 
 struct xfer_state {
 	const struct mlx5_fpga_transaction *xfer;
@@ -54,9 +54,10 @@ struct xfer_transaction {
 };
 
 static void trans_complete(const struct mlx5_fpga_transaction *complete,
-			   u8 status);
+    u8 status);
 
-static void xfer_complete(struct xfer_state *xfer_state)
+static void
+xfer_complete(struct xfer_state *xfer_state)
 {
 	const struct mlx5_fpga_transaction *xfer = xfer_state->xfer;
 	u8 status = xfer_state->status;
@@ -66,7 +67,8 @@ static void xfer_complete(struct xfer_state *xfer_state)
 }
 
 /* Xfer state spin lock must be locked */
-static int exec_more(struct xfer_state *xfer_state)
+static int
+exec_more(struct xfer_state *xfer_state)
 {
 	struct xfer_transaction *xfer_trans;
 	size_t left, cur_size, page_size;
@@ -76,7 +78,8 @@ static int exec_more(struct xfer_state *xfer_state)
 
 	ddr_base = mlx5_fpga_ddr_base_get(xfer_state->xfer->conn->fdev);
 	page_size = (xfer_state->xfer->addr + xfer_state->pos < ddr_base) ?
-		    sizeof(u32) : (1 << MLX5_FPGA_TRANSACTION_SEND_PAGE_BITS);
+	    sizeof(u32) :
+	    (1 << MLX5_FPGA_TRANSACTION_SEND_PAGE_BITS);
 
 	do {
 		if (xfer_state->status != IB_WC_SUCCESS) {
@@ -114,13 +117,11 @@ static int exec_more(struct xfer_state *xfer_state)
 
 		xfer_state->start_count++;
 		xfer_state->inflight_count++;
-		mlx5_fpga_dbg(xfer_state->xfer->conn->fdev, "Starting %zu bytes at %p done; %u started %u inflight %u done %u error\n",
-			      xfer_trans->transaction.size,
-			      xfer_trans->transaction.data,
-			      xfer_state->start_count,
-			      xfer_state->inflight_count,
-			      xfer_state->done_count,
-			      xfer_state->error_count);
+		mlx5_fpga_dbg(xfer_state->xfer->conn->fdev,
+		    "Starting %zu bytes at %p done; %u started %u inflight %u done %u error\n",
+		    xfer_trans->transaction.size, xfer_trans->transaction.data,
+		    xfer_state->start_count, xfer_state->inflight_count,
+		    xfer_state->done_count, xfer_state->error_count);
 		ret = mlx5_fpga_trans_exec(&xfer_trans->transaction);
 		if (ret) {
 			xfer_state->start_count--;
@@ -129,10 +130,11 @@ static int exec_more(struct xfer_state *xfer_state)
 				ret = 0;
 
 			if (ret) {
-				mlx5_fpga_warn(xfer_state->xfer->conn->fdev, "Transfer failed to start transaction: %d. %u started %u done %u error\n",
-					       ret, xfer_state->start_count,
-					       xfer_state->done_count,
-					       xfer_state->error_count);
+				mlx5_fpga_warn(xfer_state->xfer->conn->fdev,
+				    "Transfer failed to start transaction: %d. %u started %u done %u error\n",
+				    ret, xfer_state->start_count,
+				    xfer_state->done_count,
+				    xfer_state->error_count);
 				xfer_state->status = IB_WC_GENERAL_ERR;
 			}
 			kfree(xfer_trans);
@@ -146,8 +148,8 @@ static int exec_more(struct xfer_state *xfer_state)
 	return ret;
 }
 
-static void trans_complete(const struct mlx5_fpga_transaction *complete,
-			   u8 status)
+static void
+trans_complete(const struct mlx5_fpga_transaction *complete, u8 status)
 {
 	struct xfer_transaction *xfer_trans;
 	struct xfer_state *xfer_state;
@@ -156,23 +158,23 @@ static void trans_complete(const struct mlx5_fpga_transaction *complete,
 	int ret;
 
 	xfer_trans = container_of(complete, struct xfer_transaction,
-				  transaction);
+	    transaction);
 	xfer_state = xfer_trans->xfer_state;
-	mlx5_fpga_dbg(complete->conn->fdev, "Transaction %zu bytes at %p done, status %u; %u started %u inflight %u done %u error\n",
-		      xfer_trans->transaction.size,
-		      xfer_trans->transaction.data, status,
-		      xfer_state->start_count, xfer_state->inflight_count,
-		      xfer_state->done_count, xfer_state->error_count);
+	mlx5_fpga_dbg(complete->conn->fdev,
+	    "Transaction %zu bytes at %p done, status %u; %u started %u inflight %u done %u error\n",
+	    xfer_trans->transaction.size, xfer_trans->transaction.data, status,
+	    xfer_state->start_count, xfer_state->inflight_count,
+	    xfer_state->done_count, xfer_state->error_count);
 	kfree(xfer_trans);
 
 	spin_lock_irqsave(&xfer_state->lock, flags);
 
 	if (status != IB_WC_SUCCESS) {
 		xfer_state->error_count++;
-		mlx5_fpga_warn(complete->conn->fdev, "Transaction failed during transfer. %u started %u inflight %u done %u error\n",
-			       xfer_state->start_count,
-			       xfer_state->inflight_count,
-			       xfer_state->done_count, xfer_state->error_count);
+		mlx5_fpga_warn(complete->conn->fdev,
+		    "Transaction failed during transfer. %u started %u inflight %u done %u error\n",
+		    xfer_state->start_count, xfer_state->inflight_count,
+		    xfer_state->done_count, xfer_state->error_count);
 		if (xfer_state->status == IB_WC_SUCCESS)
 			xfer_state->status = status;
 	} else {
@@ -190,7 +192,8 @@ static void trans_complete(const struct mlx5_fpga_transaction *complete,
 		xfer_complete(xfer_state);
 }
 
-int mlx5_fpga_xfer_exec(const struct mlx5_fpga_transaction *xfer)
+int
+mlx5_fpga_xfer_exec(const struct mlx5_fpga_transaction *xfer)
 {
 	u64 base = mlx5_fpga_ddr_base_get(xfer->conn->fdev);
 	u64 size = mlx5_fpga_ddr_size_get(xfer->conn->fdev);
@@ -200,26 +203,29 @@ int mlx5_fpga_xfer_exec(const struct mlx5_fpga_transaction *xfer)
 	int ret = 0;
 
 	if (xfer->addr + xfer->size > base + size) {
-		mlx5_fpga_warn(xfer->conn->fdev, "Transfer ends at %jx outside of DDR range %jx\n",
-			       (uintmax_t)(xfer->addr + xfer->size), (uintmax_t)(base + size));
+		mlx5_fpga_warn(xfer->conn->fdev,
+		    "Transfer ends at %jx outside of DDR range %jx\n",
+		    (uintmax_t)(xfer->addr + xfer->size),
+		    (uintmax_t)(base + size));
 		return -EINVAL;
 	}
 
 	if (xfer->addr & MLX5_FPGA_TRANSACTION_SEND_ALIGN_BITS) {
-		mlx5_fpga_warn(xfer->conn->fdev, "Transfer address %jx not aligned\n",
-			       (uintmax_t)xfer->addr);
+		mlx5_fpga_warn(xfer->conn->fdev,
+		    "Transfer address %jx not aligned\n",
+		    (uintmax_t)xfer->addr);
 		return -EINVAL;
 	}
 
 	if (xfer->size & MLX5_FPGA_TRANSACTION_SEND_ALIGN_BITS) {
-		mlx5_fpga_warn(xfer->conn->fdev, "Transfer size %zu not aligned\n",
-			       xfer->size);
+		mlx5_fpga_warn(xfer->conn->fdev,
+		    "Transfer size %zu not aligned\n", xfer->size);
 		return -EINVAL;
 	}
 
 	if (xfer->size < 1) {
-		mlx5_fpga_warn(xfer->conn->fdev, "Empty transfer size %zu not allowed\n",
-			       xfer->size);
+		mlx5_fpga_warn(xfer->conn->fdev,
+		    "Empty transfer size %zu not allowed\n", xfer->size);
 		return -EINVAL;
 	}
 

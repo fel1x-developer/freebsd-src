@@ -30,15 +30,15 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <rtld_db.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <rtld_db.h>
-
 #include "_libproc.h"
 
-static void	rdl2prmap(const rd_loadobj_t *, prmap_t *);
+static void rdl2prmap(const rd_loadobj_t *, prmap_t *);
 
 static int
 map_iter(const rd_loadobj_t *lop, void *arg)
@@ -69,7 +69,7 @@ map_iter(const rd_loadobj_t *lop, void *arg)
 		/* Look for an existing mapping of the same file. */
 		for (i = 0; i < phdl->nmappings; i++)
 			if (strcmp(mapping->map.pr_mapname,
-			    phdl->mappings[i].map.pr_mapname) == 0) {
+				phdl->mappings[i].map.pr_mapname) == 0) {
 				file = phdl->mappings[i].file;
 				break;
 			}
@@ -103,8 +103,7 @@ rdl2prmap(const rd_loadobj_t *rdl, prmap_t *map)
 		map->pr_mflags |= MA_WRITE;
 	if (rdl->rdl_prot & RD_RDL_X)
 		map->pr_mflags |= MA_EXEC;
-	(void)strlcpy(map->pr_mapname, rdl->rdl_path,
-	    sizeof(map->pr_mapname));
+	(void)strlcpy(map->pr_mapname, rdl->rdl_path, sizeof(map->pr_mapname));
 }
 
 rd_agent_t *

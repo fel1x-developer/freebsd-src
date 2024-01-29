@@ -3,12 +3,13 @@
  */
 
 #include <sys/param.h>
-#include <sys/errno.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/linker.h>
-#include <sys/firmware.h>
 #include <sys/systm.h>
+#include <sys/errno.h>
+#include <sys/firmware.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/module.h>
+
 #include <cxgb_t3fw.h>
 #include <t3b_protocol_sram.h>
 #include <t3b_tp_eeprom.h>
@@ -23,9 +24,8 @@ cxgb_t3fw_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("cxgb_t3fw", t3fw, 
-				       (size_t)t3fw_length,
-				       0, NULL);
+		fp = firmware_register("cxgb_t3fw", t3fw, (size_t)t3fw_length,
+		    0, NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -38,11 +38,7 @@ cxgb_t3fw_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t cxgb_t3fw_mod = {
-        "cxgb_t3fw",
-        cxgb_t3fw_modevent,
-        0
-};
+static moduledata_t cxgb_t3fw_mod = { "cxgb_t3fw", cxgb_t3fw_modevent, 0 };
 DECLARE_MODULE(cxgb_t3fw, cxgb_t3fw_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(cxgb_t3fw, 1);
 MODULE_DEPEND(cxgb_t3fw, firmware, 1, 1, 1);
@@ -55,9 +51,9 @@ cxgb_t3b_protocol_sram_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("cxgb_t3b_protocol_sram", t3b_protocol_sram, 
-				       (size_t)t3b_protocol_sram_length,
-				       0, NULL);
+		fp = firmware_register("cxgb_t3b_protocol_sram",
+		    t3b_protocol_sram, (size_t)t3b_protocol_sram_length, 0,
+		    NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -70,12 +66,10 @@ cxgb_t3b_protocol_sram_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t cxgb_t3b_protocol_sram_mod = {
-        "cxgb_t3b_protocol_sram",
-        cxgb_t3b_protocol_sram_modevent,
-        0
-};
-DECLARE_MODULE(cxgb_t3b_protocol_sram, cxgb_t3b_protocol_sram_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
+static moduledata_t cxgb_t3b_protocol_sram_mod = { "cxgb_t3b_protocol_sram",
+	cxgb_t3b_protocol_sram_modevent, 0 };
+DECLARE_MODULE(cxgb_t3b_protocol_sram, cxgb_t3b_protocol_sram_mod,
+    SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(cxgb_t3b_protocol_sram, 1);
 MODULE_DEPEND(cxgb_t3b_protocol_sram, firmware, 1, 1, 1);
 
@@ -87,9 +81,8 @@ cxgb_t3b_tp_eeprom_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("cxgb_t3b_tp_eeprom", t3b_tp_eeprom, 
-				       (size_t)t3b_tp_eeprom_length,
-				       0, NULL);
+		fp = firmware_register("cxgb_t3b_tp_eeprom", t3b_tp_eeprom,
+		    (size_t)t3b_tp_eeprom_length, 0, NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -102,12 +95,10 @@ cxgb_t3b_tp_eeprom_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t cxgb_t3b_tp_eeprom_mod = {
-        "cxgb_t3b_tp_eeprom",
-        cxgb_t3b_tp_eeprom_modevent,
-        0
-};
-DECLARE_MODULE(cxgb_t3b_tp_eeprom, cxgb_t3b_tp_eeprom_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
+static moduledata_t cxgb_t3b_tp_eeprom_mod = { "cxgb_t3b_tp_eeprom",
+	cxgb_t3b_tp_eeprom_modevent, 0 };
+DECLARE_MODULE(cxgb_t3b_tp_eeprom, cxgb_t3b_tp_eeprom_mod, SI_SUB_DRIVERS,
+    SI_ORDER_FIRST);
 MODULE_VERSION(cxgb_t3b_tp_eeprom, 1);
 MODULE_DEPEND(cxgb_t3b_tp_eeprom, firmware, 1, 1, 1);
 
@@ -119,9 +110,9 @@ cxgb_t3c_protocol_sram_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("cxgb_t3c_protocol_sram", t3c_protocol_sram, 
-				       (size_t)t3c_protocol_sram_length,
-				       0, NULL);
+		fp = firmware_register("cxgb_t3c_protocol_sram",
+		    t3c_protocol_sram, (size_t)t3c_protocol_sram_length, 0,
+		    NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -134,12 +125,10 @@ cxgb_t3c_protocol_sram_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t cxgb_t3c_protocol_sram_mod = {
-        "cxgb_t3c_protocol_sram",
-        cxgb_t3c_protocol_sram_modevent,
-        0
-};
-DECLARE_MODULE(cxgb_t3c_protocol_sram, cxgb_t3c_protocol_sram_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
+static moduledata_t cxgb_t3c_protocol_sram_mod = { "cxgb_t3c_protocol_sram",
+	cxgb_t3c_protocol_sram_modevent, 0 };
+DECLARE_MODULE(cxgb_t3c_protocol_sram, cxgb_t3c_protocol_sram_mod,
+    SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(cxgb_t3c_protocol_sram, 1);
 MODULE_DEPEND(cxgb_t3c_protocol_sram, firmware, 1, 1, 1);
 
@@ -151,9 +140,8 @@ cxgb_t3c_tp_eeprom_modevent(module_t mod, int type, void *unused)
 	switch (type) {
 	case MOD_LOAD:
 
-		fp = firmware_register("cxgb_t3c_tp_eeprom", t3c_tp_eeprom, 
-				       (size_t)t3c_tp_eeprom_length,
-				       0, NULL);
+		fp = firmware_register("cxgb_t3c_tp_eeprom", t3c_tp_eeprom,
+		    (size_t)t3c_tp_eeprom_length, 0, NULL);
 		if (fp == NULL)
 			goto fail_0;
 		return (0);
@@ -166,11 +154,9 @@ cxgb_t3c_tp_eeprom_modevent(module_t mod, int type, void *unused)
 	return (EINVAL);
 }
 
-static moduledata_t cxgb_t3c_tp_eeprom_mod = {
-        "cxgb_t3c_tp_eeprom",
-        cxgb_t3c_tp_eeprom_modevent,
-        0
-};
-DECLARE_MODULE(cxgb_t3c_tp_eeprom, cxgb_t3c_tp_eeprom_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
+static moduledata_t cxgb_t3c_tp_eeprom_mod = { "cxgb_t3c_tp_eeprom",
+	cxgb_t3c_tp_eeprom_modevent, 0 };
+DECLARE_MODULE(cxgb_t3c_tp_eeprom, cxgb_t3c_tp_eeprom_mod, SI_SUB_DRIVERS,
+    SI_ORDER_FIRST);
 MODULE_VERSION(cxgb_t3c_tp_eeprom, 1);
 MODULE_DEPEND(cxgb_t3c_tp_eeprom, firmware, 1, 1, 1);

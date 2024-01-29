@@ -35,20 +35,22 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbsrtowcs_l(wchar_t * __restrict dst, const char ** __restrict src, size_t len,
-    mbstate_t * __restrict ps, locale_t locale)
+mbsrtowcs_l(wchar_t *__restrict dst, const char **__restrict src, size_t len,
+    mbstate_t *__restrict ps, locale_t locale)
 {
 	FIX_LOCALE(locale);
 	if (ps == NULL)
 		ps = &(XLOCALE_CTYPE(locale)->mbsrtowcs);
-	return (XLOCALE_CTYPE(locale)->__mbsnrtowcs(dst, src, SIZE_T_MAX, len, ps));
+	return (
+	    XLOCALE_CTYPE(locale)->__mbsnrtowcs(dst, src, SIZE_T_MAX, len, ps));
 }
 size_t
-mbsrtowcs(wchar_t * __restrict dst, const char ** __restrict src, size_t len,
-    mbstate_t * __restrict ps)
+mbsrtowcs(wchar_t *__restrict dst, const char **__restrict src, size_t len,
+    mbstate_t *__restrict ps)
 {
 	return mbsrtowcs_l(dst, src, len, ps, __get_locale());
 }

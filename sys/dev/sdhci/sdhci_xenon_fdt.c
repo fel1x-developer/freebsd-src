@@ -24,25 +24,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_mmccam.h"
+#include "opt_soc.h"
+
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/types.h>
-#include <sys/taskqueue.h>
 #include <sys/module.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/fdt/fdt_common.h>
 #include <dev/mmc/bridge.h>
+#include <dev/mmc/mmc_fdt_helpers.h>
 #include <dev/mmc/mmcbrvar.h>
 #include <dev/mmc/mmcreg.h>
-
-#include <dev/fdt/fdt_common.h>
-#include <dev/mmc/mmc_fdt_helpers.h>
-
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/sdhci/sdhci.h>
 #include <dev/sdhci/sdhci_fdt_gpio.h>
 #include <dev/sdhci/sdhci_xenon.h>
@@ -50,18 +50,14 @@
 #include "mmcbr_if.h"
 #include "sdhci_if.h"
 
-#include "opt_mmccam.h"
-#include "opt_soc.h"
-
-static struct ofw_compat_data compat_data[] = {
-	{ "marvell,armada-3700-sdhci",	1 },
+static struct ofw_compat_data compat_data[] = { { "marvell,armada-3700-sdhci",
+						    1 },
 #ifdef SOC_MARVELL_8K
-	{ "marvell,armada-cp110-sdhci",	1 },
-	{ "marvell,armada-ap806-sdhci",	1 },
-	{ "marvell,armada-ap807-sdhci",	1 },
+	{ "marvell,armada-cp110-sdhci", 1 },
+	{ "marvell,armada-ap806-sdhci", 1 },
+	{ "marvell,armada-ap807-sdhci", 1 },
 #endif
-	{ NULL, 0 }
-};
+	{ NULL, 0 } };
 
 static bool
 sdhci_xenon_fdt_get_card_present(device_t dev, struct sdhci_slot *slot)
@@ -147,9 +143,9 @@ sdhci_xenon_fdt_detach(device_t dev)
 
 static device_method_t sdhci_xenon_fdt_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe,		sdhci_xenon_fdt_probe),
-	DEVMETHOD(device_attach,	sdhci_xenon_fdt_attach),
-	DEVMETHOD(device_detach,	sdhci_xenon_fdt_detach),
+	DEVMETHOD(device_probe, sdhci_xenon_fdt_probe),
+	DEVMETHOD(device_attach, sdhci_xenon_fdt_attach),
+	DEVMETHOD(device_detach, sdhci_xenon_fdt_detach),
 
 	DEVMETHOD(sdhci_get_card_present, sdhci_xenon_fdt_get_card_present),
 

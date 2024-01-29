@@ -84,7 +84,7 @@ drm_gem_name_ref(struct drm_gem_names *names, uint32_t name,
 	struct drm_gem_name *n;
 
 	mtx_lock(&names->lock);
-	LIST_FOREACH(n, gem_name_hash_index(names, name), link) {
+	LIST_FOREACH (n, gem_name_hash_index(names, name), link) {
 		if (n->name == name) {
 			if (ref != NULL)
 				ref(n->ptr);
@@ -132,7 +132,7 @@ drm_gem_find_ptr(struct drm_gem_names *names, uint32_t name)
 	void *res;
 
 	mtx_lock(&names->lock);
-	LIST_FOREACH(n, gem_name_hash_index(names, name), link) {
+	LIST_FOREACH (n, gem_name_hash_index(names, name), link) {
 		if (n->name == name) {
 			res = n->ptr;
 			mtx_unlock(&names->lock);
@@ -185,7 +185,7 @@ drm_gem_names_remove(struct drm_gem_names *names, uint32_t name)
 	void *res;
 
 	mtx_lock(&names->lock);
-	LIST_FOREACH(n, gem_name_hash_index(names, name), link) {
+	LIST_FOREACH (n, gem_name_hash_index(names, name), link) {
 		if (n->name == name) {
 			res = n->ptr;
 			drm_gem_names_delete_name(names, n);
@@ -208,7 +208,7 @@ drm_gem_names_foreach(struct drm_gem_names *names,
 	marker.name = -1;
 	mtx_lock(&names->lock);
 	for (i = 0; i <= names->hash_mask; i++) {
-		for (np = LIST_FIRST(&names->names_hash[i]); np != NULL; ) {
+		for (np = LIST_FIRST(&names->names_hash[i]); np != NULL;) {
 			if (np->name == -1) {
 				np = LIST_NEXT(np, link);
 				continue;

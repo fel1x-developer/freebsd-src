@@ -32,17 +32,18 @@
 #include <nsswitch.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
-#include "nscachedcli.h"
+
 #include "nscache.h"
+#include "nscachedcli.h"
+#include "un-namespace.h"
 
-#define NSS_CACHE_KEY_INITIAL_SIZE	(256)
-#define NSS_CACHE_KEY_SIZE_LIMIT	(NSS_CACHE_KEY_INITIAL_SIZE << 4)
+#define NSS_CACHE_KEY_INITIAL_SIZE (256)
+#define NSS_CACHE_KEY_SIZE_LIMIT (NSS_CACHE_KEY_INITIAL_SIZE << 4)
 
-#define NSS_CACHE_BUFFER_INITIAL_SIZE	(1024)
-#define NSS_CACHE_BUFFER_SIZE_LIMIT	(NSS_CACHE_BUFFER_INITIAL_SIZE << 8)
+#define NSS_CACHE_BUFFER_INITIAL_SIZE (1024)
+#define NSS_CACHE_BUFFER_SIZE_LIMIT (NSS_CACHE_BUFFER_INITIAL_SIZE << 8)
 
-#define CACHED_SOCKET_PATH 		"/var/run/nscd"
+#define CACHED_SOCKET_PATH "/var/run/nscd"
 
 int
 __nss_cache_handler(void *retval, void *mdata, va_list ap)

@@ -31,22 +31,20 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
 #include <machine/stdarg.h>
 
-#include <xen/xen-os.h>
 #include <xen/features.h>
-#include <xen/hypervisor.h>
 #include <xen/hvm.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
 #include <xen/xen_intr.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
 #include <dev/xen/xenpci/xenpcivar.h>
 
 static int
@@ -54,10 +52,9 @@ xenpci_irq_init(device_t device, struct xenpci_softc *scp)
 {
 	int error;
 
-	error = BUS_SETUP_INTR(device_get_parent(device), device,
-			       scp->res_irq, INTR_MPSAFE|INTR_TYPE_MISC,
-			       xen_intr_handle_upcall, NULL, NULL,
-			       &scp->intr_cookie);
+	error = BUS_SETUP_INTR(device_get_parent(device), device, scp->res_irq,
+	    INTR_MPSAFE | INTR_TYPE_MISC, xen_intr_handle_upcall, NULL, NULL,
+	    &scp->intr_cookie);
 	if (error)
 		return error;
 
@@ -69,8 +66,8 @@ xenpci_irq_init(device_t device, struct xenpci_softc *scp)
 	 * need to bind it to vCPU#0 in order to ensure that
 	 * xen_intr_handle_upcall always gets called on vCPU#0.
 	 */
-	error = BUS_BIND_INTR(device_get_parent(device), device,
-	                      scp->res_irq, 0);
+	error = BUS_BIND_INTR(device_get_parent(device), device, scp->res_irq,
+	    0);
 	if (error)
 		return error;
 #endif
@@ -88,10 +85,10 @@ xenpci_deallocate_resources(device_t dev)
 	struct xenpci_softc *scp = device_get_softc(dev);
 
 	if (scp->res_irq != 0) {
-		bus_deactivate_resource(dev, SYS_RES_IRQ,
-			scp->rid_irq, scp->res_irq);
-		bus_release_resource(dev, SYS_RES_IRQ,
-			scp->rid_irq, scp->res_irq);
+		bus_deactivate_resource(dev, SYS_RES_IRQ, scp->rid_irq,
+		    scp->res_irq);
+		bus_release_resource(dev, SYS_RES_IRQ, scp->rid_irq,
+		    scp->res_irq);
 		scp->res_irq = 0;
 	}
 
@@ -106,8 +103,8 @@ xenpci_allocate_resources(device_t dev)
 {
 	struct xenpci_softc *scp = device_get_softc(dev);
 
-	scp->res_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-			&scp->rid_irq, RF_SHAREABLE|RF_ACTIVE);
+	scp->res_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &scp->rid_irq,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (scp->res_irq == NULL) {
 		printf("xenpci Could not allocate irq.\n");
 		goto errexit;
@@ -156,8 +153,7 @@ xenpci_attach(device_t dev)
 	 */
 	error = xenpci_irq_init(dev, scp);
 	if (error) {
-		device_printf(dev, "xenpci_irq_init failed(%d).\n",
-			error);
+		device_printf(dev, "xenpci_irq_init failed(%d).\n", error);
 		goto errexit;
 	}
 
@@ -185,8 +181,8 @@ xenpci_detach(device_t dev)
 	 * that can handle this irq.
 	 */
 	if (scp->intr_cookie != NULL) {
-		if (BUS_TEARDOWN_INTR(parent, dev,
-		    scp->res_irq, scp->intr_cookie) != 0)
+		if (BUS_TEARDOWN_INTR(parent, dev, scp->res_irq,
+			scp->intr_cookie) != 0)
 			device_printf(dev,
 			    "intr teardown failed.. continuing\n");
 		scp->intr_cookie = NULL;
@@ -208,10 +204,10 @@ xenpci_resume(device_t dev)
 
 static device_method_t xenpci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		xenpci_probe),
-	DEVMETHOD(device_attach,	xenpci_attach),
-	DEVMETHOD(device_detach,	xenpci_detach),
-	DEVMETHOD(device_resume,	xenpci_resume),
+	DEVMETHOD(device_probe, xenpci_probe),
+	DEVMETHOD(device_attach, xenpci_attach),
+	DEVMETHOD(device_detach, xenpci_detach),
+	DEVMETHOD(device_resume, xenpci_resume),
 
 	DEVMETHOD_END
 };

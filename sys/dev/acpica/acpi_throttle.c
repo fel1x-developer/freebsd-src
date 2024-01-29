@@ -25,8 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
@@ -37,10 +38,10 @@
 
 #include <machine/bus.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-
 #include <dev/acpica/acpivar.h>
 #include <dev/pci/pcivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "cpufreq_if.h"
 
@@ -53,66 +54,63 @@
  */
 
 struct acpi_throttle_softc {
-	device_t	 cpu_dev;
-	ACPI_HANDLE	 cpu_handle;
-	uint32_t	 cpu_p_blk;	/* ACPI P_BLK location */
-	uint32_t	 cpu_p_blk_len;	/* P_BLK length (must be 6). */
-	struct resource	*cpu_p_cnt;	/* Throttling control register */
-	int		 cpu_p_type;	/* Resource type for cpu_p_cnt. */
-	uint32_t	 cpu_thr_state;	/* Current throttle setting. */
+	device_t cpu_dev;
+	ACPI_HANDLE cpu_handle;
+	uint32_t cpu_p_blk;	    /* ACPI P_BLK location */
+	uint32_t cpu_p_blk_len;	    /* P_BLK length (must be 6). */
+	struct resource *cpu_p_cnt; /* Throttling control register */
+	int cpu_p_type;		    /* Resource type for cpu_p_cnt. */
+	uint32_t cpu_thr_state;	    /* Current throttle setting. */
 };
 
-#define THR_GET_REG(reg) 					\
-	(bus_space_read_4(rman_get_bustag((reg)), 		\
-			  rman_get_bushandle((reg)), 0))
-#define THR_SET_REG(reg, val)					\
-	(bus_space_write_4(rman_get_bustag((reg)), 		\
-			   rman_get_bushandle((reg)), 0, (val)))
+#define THR_GET_REG(reg) \
+	(bus_space_read_4(rman_get_bustag((reg)), rman_get_bushandle((reg)), 0))
+#define THR_SET_REG(reg, val)                                                 \
+	(bus_space_write_4(rman_get_bustag((reg)), rman_get_bushandle((reg)), \
+	    0, (val)))
 
 /*
  * Speeds are stored in counts, from 1 to CPU_MAX_SPEED, and
  * reported to the user in hundredths of a percent.
  */
-#define CPU_MAX_SPEED		(1 << cpu_duty_width)
-#define CPU_SPEED_PERCENT(x)	((10000 * (x)) / CPU_MAX_SPEED)
-#define CPU_SPEED_PRINTABLE(x)	(CPU_SPEED_PERCENT(x) / 10),	\
-				(CPU_SPEED_PERCENT(x) % 10)
-#define CPU_P_CNT_THT_EN	(1<<4)
-#define CPU_QUIRK_NO_THROTTLE	(1<<1)	/* Throttling is not usable. */
+#define CPU_MAX_SPEED (1 << cpu_duty_width)
+#define CPU_SPEED_PERCENT(x) ((10000 * (x)) / CPU_MAX_SPEED)
+#define CPU_SPEED_PRINTABLE(x) \
+	(CPU_SPEED_PERCENT(x) / 10), (CPU_SPEED_PERCENT(x) % 10)
+#define CPU_P_CNT_THT_EN (1 << 4)
+#define CPU_QUIRK_NO_THROTTLE (1 << 1) /* Throttling is not usable. */
 
-#define PCI_VENDOR_INTEL	0x8086
-#define PCI_DEVICE_82371AB_3	0x7113	/* PIIX4 chipset for quirks. */
-#define PCI_REVISION_A_STEP	0
-#define PCI_REVISION_B_STEP	1
+#define PCI_VENDOR_INTEL 0x8086
+#define PCI_DEVICE_82371AB_3 0x7113 /* PIIX4 chipset for quirks. */
+#define PCI_REVISION_A_STEP 0
+#define PCI_REVISION_B_STEP 1
 
-static uint32_t	cpu_duty_offset;	/* Offset in P_CNT of throttle val. */
-static uint32_t	cpu_duty_width;		/* Bit width of throttle value. */
-static int	thr_rid;		/* Driver-wide resource id. */
-static int	thr_quirks;		/* Indicate any hardware bugs. */
+static uint32_t cpu_duty_offset; /* Offset in P_CNT of throttle val. */
+static uint32_t cpu_duty_width;	 /* Bit width of throttle value. */
+static int thr_rid;		 /* Driver-wide resource id. */
+static int thr_quirks;		 /* Indicate any hardware bugs. */
 
-static void	acpi_throttle_identify(driver_t *driver, device_t parent);
-static int	acpi_throttle_probe(device_t dev);
-static int	acpi_throttle_attach(device_t dev);
-static int	acpi_throttle_evaluate(struct acpi_throttle_softc *sc);
-static void	acpi_throttle_quirks(struct acpi_throttle_softc *sc);
-static int	acpi_thr_settings(device_t dev, struct cf_setting *sets,
-		    int *count);
-static int	acpi_thr_set(device_t dev, const struct cf_setting *set);
-static int	acpi_thr_get(device_t dev, struct cf_setting *set);
-static int	acpi_thr_type(device_t dev, int *type);
+static void acpi_throttle_identify(driver_t *driver, device_t parent);
+static int acpi_throttle_probe(device_t dev);
+static int acpi_throttle_attach(device_t dev);
+static int acpi_throttle_evaluate(struct acpi_throttle_softc *sc);
+static void acpi_throttle_quirks(struct acpi_throttle_softc *sc);
+static int acpi_thr_settings(device_t dev, struct cf_setting *sets, int *count);
+static int acpi_thr_set(device_t dev, const struct cf_setting *set);
+static int acpi_thr_get(device_t dev, struct cf_setting *set);
+static int acpi_thr_type(device_t dev, int *type);
 
 static device_method_t acpi_throttle_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	acpi_throttle_identify),
-	DEVMETHOD(device_probe,		acpi_throttle_probe),
-	DEVMETHOD(device_attach,	acpi_throttle_attach),
+	DEVMETHOD(device_identify, acpi_throttle_identify),
+	DEVMETHOD(device_probe, acpi_throttle_probe),
+	DEVMETHOD(device_attach, acpi_throttle_attach),
 
 	/* cpufreq interface */
-	DEVMETHOD(cpufreq_drv_set,	acpi_thr_set),
-	DEVMETHOD(cpufreq_drv_get,	acpi_thr_get),
-	DEVMETHOD(cpufreq_drv_type,	acpi_thr_type),
-	DEVMETHOD(cpufreq_drv_settings,	acpi_thr_settings),
-	DEVMETHOD_END
+	DEVMETHOD(cpufreq_drv_set, acpi_thr_set),
+	DEVMETHOD(cpufreq_drv_get, acpi_thr_get),
+	DEVMETHOD(cpufreq_drv_type, acpi_thr_type),
+	DEVMETHOD(cpufreq_drv_settings, acpi_thr_settings), DEVMETHOD_END
 };
 
 static driver_t acpi_throttle_driver = {
@@ -154,7 +152,7 @@ acpi_throttle_identify(driver_t *driver, device_t parent)
 	if ((obj->Processor.PblkAddress && obj->Processor.PblkLength >= 4) ||
 	    ACPI_SUCCESS(AcpiEvaluateObject(handle, "_PTC", NULL, NULL))) {
 		if (BUS_ADD_CHILD(parent, 0, "acpi_throttle",
-		    device_get_unit(parent)) == NULL)
+			device_get_unit(parent)) == NULL)
 			device_printf(parent, "add throttle child failed\n");
 	}
 	AcpiOsFree(obj);
@@ -275,8 +273,8 @@ acpi_throttle_evaluate(struct acpi_throttle_softc *sc)
 			return (ENXIO);
 		}
 		memcpy(&gas, obj.Buffer.Pointer + 3, sizeof(gas));
-		acpi_bus_alloc_gas(sc->cpu_dev, &sc->cpu_p_type, &thr_rid,
-		    &gas, &sc->cpu_p_cnt, 0);
+		acpi_bus_alloc_gas(sc->cpu_dev, &sc->cpu_p_type, &thr_rid, &gas,
+		    &sc->cpu_p_cnt, 0);
 		if (sc->cpu_p_cnt != NULL && bootverbose) {
 			device_printf(sc->cpu_dev, "P_CNT from _PTC %#jx\n",
 			    gas.Address);
@@ -285,7 +283,7 @@ acpi_throttle_evaluate(struct acpi_throttle_softc *sc)
 
 	/* If _PTC not present or other failure, try the P_BLK. */
 	if (sc->cpu_p_cnt == NULL) {
-		/* 
+		/*
 		 * The spec says P_BLK must be 6 bytes long.  However, some
 		 * systems use it to indicate a fractional set of features
 		 * present so we take anything >= 4.
@@ -295,8 +293,8 @@ acpi_throttle_evaluate(struct acpi_throttle_softc *sc)
 		gas.Address = sc->cpu_p_blk;
 		gas.SpaceId = ACPI_ADR_SPACE_SYSTEM_IO;
 		gas.BitWidth = 32;
-		acpi_bus_alloc_gas(sc->cpu_dev, &sc->cpu_p_type, &thr_rid,
-		    &gas, &sc->cpu_p_cnt, 0);
+		acpi_bus_alloc_gas(sc->cpu_dev, &sc->cpu_p_type, &thr_rid, &gas,
+		    &sc->cpu_p_cnt, 0);
 		if (sc->cpu_p_cnt != NULL) {
 			if (bootverbose)
 				device_printf(sc->cpu_dev,
@@ -376,8 +374,8 @@ acpi_thr_set(device_t dev, const struct cf_setting *set)
 	 * integer from [1 .. CPU_MAX_SPEED].
 	 */
 	speed = set->freq * CPU_MAX_SPEED / 10000;
-	if (speed * 10000 != set->freq * CPU_MAX_SPEED ||
-	    speed < 1 || speed > CPU_MAX_SPEED)
+	if (speed * 10000 != set->freq * CPU_MAX_SPEED || speed < 1 ||
+	    speed > CPU_MAX_SPEED)
 		return (EINVAL);
 
 	/* If we're at this setting, don't bother applying it again. */

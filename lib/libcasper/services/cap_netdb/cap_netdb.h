@@ -23,8 +23,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CAP_NETDB_H_
-#define	_CAP_NETDB_H_
+#ifndef _CAP_NETDB_H_
+#define _CAP_NETDB_H_
 
 #ifdef HAVE_CASPER
 #define WITH_CASPER
@@ -41,7 +41,7 @@ struct protoent *cap_getprotobyname(cap_channel_t *chan, const char *name);
 
 __END_DECLS
 #else
-#define	cap_getprotobyname(chan, name)		 getprotobyname(name)
+#define cap_getprotobyname(chan, name) getprotobyname(name)
 #endif
 
-#endif	/* !_CAP_NETDB_H_ */
+#endif /* !_CAP_NETDB_H_ */

@@ -5,6 +5,7 @@
  */
 
 #include <sys/systm.h>
+
 #include <vm/vm_param.h>
 
 #include <atf-c.h>
@@ -13,7 +14,6 @@ extern int checkstack(void);
 
 static int jumpstack0(void) __noinline;
 static int jumpstack1(void) __noinline;
-
 
 static int
 jumpstack0(void)

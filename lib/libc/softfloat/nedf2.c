@@ -4,8 +4,8 @@
  * Written by Ben Harris, 2000.  This file is in the Public Domain.
  */
 
-#include "softfloat-for-gcc.h"
 #include "milieu.h"
+#include "softfloat-for-gcc.h"
 #include "softfloat.h"
 
 flag __nedf2(float64, float64);

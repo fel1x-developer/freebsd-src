@@ -25,13 +25,13 @@
  */
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/cpuset.h>
 #include <sys/event.h>
-#include <sys/param.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/module.h>
 #include <sys/pmc.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <ctype.h>
@@ -60,9 +60,9 @@ void
 pmcstat_process_aout_exec(struct pmcstat_process *pp,
     struct pmcstat_image *image, uintptr_t baseaddr)
 {
-	(void) pp;
-	(void) image;
-	(void) baseaddr;
+	(void)pp;
+	(void)image;
+	(void)baseaddr;
 	/* TODO Implement a.out handling */
 }
 
@@ -114,8 +114,8 @@ pmcstat_process_elf_exec(struct pmcstat_process *pp,
 		 * address where the runtime loader's file object had
 		 * been mapped to.
 		 */
-		rtldimage = pmcstat_image_from_path(image->pi_dynlinkerpath,
-		    0, args, plugins);
+		rtldimage = pmcstat_image_from_path(image->pi_dynlinkerpath, 0,
+		    args, plugins);
 		if (rtldimage == NULL) {
 			warnx("WARNING: Cannot find image for \"%s\".",
 			    pmcstat_string_unintern(image->pi_dynlinkerpath));
@@ -142,15 +142,13 @@ pmcstat_process_elf_exec(struct pmcstat_process *pp,
  */
 
 void
-pmcstat_process_exec(struct pmcstat_process *pp,
-    pmcstat_interned_string path, uintptr_t baseaddr, uintptr_t dynaddr,
-    struct pmcstat_args *args, struct pmc_plugins *plugins,
-    struct pmcstat_stats *pmcstat_stats)
+pmcstat_process_exec(struct pmcstat_process *pp, pmcstat_interned_string path,
+    uintptr_t baseaddr, uintptr_t dynaddr, struct pmcstat_args *args,
+    struct pmc_plugins *plugins, struct pmcstat_stats *pmcstat_stats)
 {
 	struct pmcstat_image *image;
 
-	if ((image = pmcstat_image_from_path(path, 0,
-	    args, plugins)) == NULL) {
+	if ((image = pmcstat_image_from_path(path, 0, args, plugins)) == NULL) {
 		pmcstat_stats->ps_exec_errors++;
 		return;
 	}
@@ -164,8 +162,8 @@ pmcstat_process_exec(struct pmcstat_process *pp,
 	case PMCSTAT_IMAGE_ELF32:
 	case PMCSTAT_IMAGE_ELF64:
 		pmcstat_stats->ps_exec_elf++;
-		pmcstat_process_elf_exec(pp, image, baseaddr, dynaddr,
-		    args, plugins, pmcstat_stats);
+		pmcstat_process_elf_exec(pp, image, baseaddr, dynaddr, args,
+		    plugins, pmcstat_stats);
 		break;
 
 	case PMCSTAT_IMAGE_AOUT:
@@ -193,7 +191,7 @@ pmcstat_process_find_map(struct pmcstat_process *p, uintfptr_t pc)
 {
 	struct pmcstat_pcmap *ppm;
 
-	TAILQ_FOREACH(ppm, &p->pp_map, ppm_next) {
+	TAILQ_FOREACH (ppm, &p->pp_map, ppm_next) {
 		if (pc >= ppm->ppm_lowpc && pc < ppm->ppm_highpc)
 			return (ppm);
 		if (pc < ppm->ppm_lowpc)
@@ -219,14 +217,14 @@ pmcstat_process_lookup(pid_t pid, int allocate)
 	struct pmcstat_pcmap *ppm, *ppmtmp;
 	struct pmcstat_process *pp, *pptmp;
 
-	hash = (uint32_t) pid & PMCSTAT_HASH_MASK;	/* simplicity wins */
+	hash = (uint32_t)pid & PMCSTAT_HASH_MASK; /* simplicity wins */
 
-	LIST_FOREACH_SAFE(pp, &pmcstat_process_hash[hash], pp_next, pptmp)
+	LIST_FOREACH_SAFE (pp, &pmcstat_process_hash[hash], pp_next, pptmp)
 		if (pp->pp_pid == pid) {
 			/* Found a descriptor, check and process zombies */
 			if (allocate && pp->pp_isactive == 0) {
 				/* remove maps */
-				TAILQ_FOREACH_SAFE(ppm, &pp->pp_map, ppm_next,
+				TAILQ_FOREACH_SAFE (ppm, &pp->pp_map, ppm_next,
 				    ppmtmp) {
 					TAILQ_REMOVE(&pp->pp_map, ppm,
 					    ppm_next);
@@ -272,8 +270,8 @@ pmcstat_create_process(int *pmcstat_sockpair, struct pmcstat_args *args,
 		err(EX_OSERR, "ERROR: cannot fork");
 		/*NOTREACHED*/
 
-	case 0:		/* child */
-		(void) close(pmcstat_sockpair[PARENTSOCKET]);
+	case 0: /* child */
+		(void)close(pmcstat_sockpair[PARENTSOCKET]);
 
 		/* Write a token to tell our parent we've started executing. */
 		if (write(pmcstat_sockpair[CHILDSOCKET], "+", 1) != 1)
@@ -282,7 +280,7 @@ pmcstat_create_process(int *pmcstat_sockpair, struct pmcstat_args *args,
 		/* Wait for our parent to signal us to start. */
 		if (read(pmcstat_sockpair[CHILDSOCKET], &token, 1) < 0)
 			err(EX_OSERR, "ERROR (child): cannot read token");
-		(void) close(pmcstat_sockpair[CHILDSOCKET]);
+		(void)close(pmcstat_sockpair[CHILDSOCKET]);
 
 		/* exec() the program requested */
 		execvp(*args->pa_argv, args->pa_argv);
@@ -291,14 +289,13 @@ pmcstat_create_process(int *pmcstat_sockpair, struct pmcstat_args *args,
 		err(EX_OSERR, "ERROR: execvp \"%s\" failed", *args->pa_argv);
 		/*NOTREACHED*/
 
-	default:	/* parent */
-		(void) close(pmcstat_sockpair[CHILDSOCKET]);
+	default: /* parent */
+		(void)close(pmcstat_sockpair[CHILDSOCKET]);
 		break;
 	}
 
 	/* Ask to be notified via a kevent when the target process exits. */
-	EV_SET(&kev, pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0,
-	    NULL);
+	EV_SET(&kev, pid, EVFILT_PROC, EV_ADD | EV_ONESHOT, NOTE_EXIT, 0, NULL);
 	if (kevent(pmcstat_kq, &kev, 1, NULL, 0, NULL) < 0)
 		err(EX_OSERR, "ERROR: cannot monitor child process %d", pid);
 
@@ -330,7 +327,7 @@ pmcstat_start_process(int *pmcstat_sockpair)
 	if (write(pmcstat_sockpair[PARENTSOCKET], "!", 1) != 1)
 		err(EX_OSERR, "ERROR (parent): write of token failed");
 
-	(void) close(pmcstat_sockpair[PARENTSOCKET]);
+	(void)close(pmcstat_sockpair[PARENTSOCKET]);
 }
 
 void
@@ -342,15 +339,15 @@ pmcstat_attach_pmcs(struct pmcstat_args *args)
 
 	/* Attach all process PMCs to target processes. */
 	count = 0;
-	STAILQ_FOREACH(ev, &args->pa_events, ev_next) {
+	STAILQ_FOREACH (ev, &args->pa_events, ev_next) {
 		if (PMC_IS_SYSTEM_MODE(ev->ev_mode))
 			continue;
-		SLIST_FOREACH(pt, &args->pa_targets, pt_next) {
+		SLIST_FOREACH (pt, &args->pa_targets, pt_next) {
 			if (pmc_attach(ev->ev_pmcid, pt->pt_pid) == 0)
 				count++;
 			else if (errno != ESRCH)
 				err(EX_OSERR,
-"ERROR: cannot attach pmc \"%s\" to process %d",
+				    "ERROR: cannot attach pmc \"%s\" to process %d",
 				    ev->ev_name, (int)pt->pt_pid);
 		}
 	}

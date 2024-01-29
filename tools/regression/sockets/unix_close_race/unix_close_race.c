@@ -40,22 +40,24 @@
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/un.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
+#include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <strings.h>
+#include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
-#include <err.h>
 
 static char socket_path[] = "tmp.XXXXXXXX";
 
-#define	USLEEP	100
-#define	LOOPS	100000
+#define USLEEP 100
+#define LOOPS 100000
 
 int
 main(void)
@@ -87,8 +89,7 @@ main(void)
 	bzero(&servaddr, sizeof(servaddr));
 	servaddr.sun_family = AF_LOCAL;
 	strcpy(servaddr.sun_path, socket_path);
-	if (bind(listenfd, (struct sockaddr *) &servaddr,
-	    sizeof(servaddr)) < 0)
+	if (bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
 		err(1, "parent: bind error");
 	if (listen(listenfd, 1024) < 0)
 		err(1, "parent: listen error");
@@ -112,8 +113,8 @@ main(void)
 				err(1, "parent: socket error");
 			}
 			if (connect(connfd, (struct sockaddr *)&servaddr,
-			    sizeof(servaddr)) < 0) {
-			    	(void)kill(pid, SIGTERM);
+				sizeof(servaddr)) < 0) {
+				(void)kill(pid, SIGTERM);
 				err(1, "parent: connect error");
 			}
 			if (close(connfd) < 0) {
@@ -128,9 +129,9 @@ main(void)
 		 * In the child, loop accepting and closing.  We may pick up
 		 * the race here so report errors from close().
 		 */
-		for ( ; ; ) {
-			if ((connfd = accept(listenfd,
-			    (struct sockaddr *)NULL, NULL)) < 0)
+		for (;;) {
+			if ((connfd = accept(listenfd, (struct sockaddr *)NULL,
+				 NULL)) < 0)
 				err(1, "child: accept error");
 			if (close(connfd) < 0)
 				err(1, "child: close error");

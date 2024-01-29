@@ -30,9 +30,9 @@
 #include "opt_ddb.h"
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/systm.h>
 #include <sys/pcpu.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -40,11 +40,12 @@
 #include <machine/segments.h>
 #include <machine/vmm.h>
 #include <machine/vmm_snapshot.h>
-#include "vmm_host.h"
-#include "vmx_cpufunc.h"
-#include "vmcs.h"
+
 #include "ept.h"
+#include "vmcs.h"
+#include "vmm_host.h"
 #include "vmx.h"
+#include "vmx_cpufunc.h"
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -53,8 +54,8 @@
 SYSCTL_DECL(_hw_vmm_vmx);
 
 static int no_flush_rsb;
-SYSCTL_INT(_hw_vmm_vmx, OID_AUTO, no_flush_rsb, CTLFLAG_RW,
-    &no_flush_rsb, 0, "Do not flush RSB upon vmexit");
+SYSCTL_INT(_hw_vmm_vmx, OID_AUTO, no_flush_rsb, CTLFLAG_RW, &no_flush_rsb, 0,
+    "Do not flush RSB upon vmexit");
 
 static uint64_t
 vmcs_fix_regval(uint32_t encoding, uint64_t val)
@@ -122,7 +123,6 @@ vmcs_field_encoding(int ident)
 	default:
 		return (-1);
 	}
-
 }
 
 static int
@@ -410,12 +410,12 @@ vmcs_init(struct vmcs *vmcs)
 
 	/* instruction pointer */
 	if (no_flush_rsb) {
-		if ((error = vmwrite(VMCS_HOST_RIP,
-		    (u_long)vmx_exit_guest)) != 0)
+		if ((error = vmwrite(VMCS_HOST_RIP, (u_long)vmx_exit_guest)) !=
+		    0)
 			goto done;
 	} else {
 		if ((error = vmwrite(VMCS_HOST_RIP,
-		    (u_long)vmx_exit_guest_flush_rsb)) != 0)
+			 (u_long)vmx_exit_guest_flush_rsb)) != 0)
 			goto done;
 	}
 
@@ -462,7 +462,7 @@ vmcs_setany(struct vmcs *vmcs, int running, int ident, uint64_t val)
 
 int
 vmcs_snapshot_reg(struct vmcs *vmcs, int running, int ident,
-		  struct vm_snapshot_meta *meta)
+    struct vm_snapshot_meta *meta)
 {
 	int ret;
 	uint64_t val;
@@ -490,7 +490,7 @@ done:
 
 int
 vmcs_snapshot_desc(struct vmcs *vmcs, int running, int seg,
-		   struct vm_snapshot_meta *meta)
+    struct vm_snapshot_meta *meta)
 {
 	int ret;
 	struct seg_desc desc;
@@ -522,7 +522,7 @@ done:
 
 int
 vmcs_snapshot_any(struct vmcs *vmcs, int running, int ident,
-		  struct vm_snapshot_meta *meta)
+    struct vm_snapshot_meta *meta)
 {
 	int ret;
 	uint64_t val;

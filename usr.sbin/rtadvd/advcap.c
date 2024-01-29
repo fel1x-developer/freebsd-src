@@ -38,31 +38,33 @@
  */
 #include <sys/types.h>
 #include <sys/uio.h>
-#include <unistd.h>
-#include <fcntl.h>
+
 #include <ctype.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <syslog.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "pathnames.h"
 
 #ifndef BUFSIZ
-#define	BUFSIZ		1024
+#define BUFSIZ 1024
 #endif
-#define MAXHOP		32		/* max number of tc= indirections */
+#define MAXHOP 32 /* max number of tc= indirections */
 
-#define	tgetent		agetent
-#define	tnchktc		anchktc
-#define	tnamatch	anamatch
-#define	tgetnum		agetnum
-#define	tgetflag	agetflag
-#define	tgetstr		agetstr
+#define tgetent agetent
+#define tnchktc anchktc
+#define tnamatch anamatch
+#define tgetnum agetnum
+#define tgetflag agetflag
+#define tgetstr agetstr
 
 #if 0
-#define V_TERMCAP	"REMOTE"
-#define V_TERM		"HOST"
+#define V_TERMCAP "REMOTE"
+#define V_TERM "HOST"
 #endif
 
 /*
@@ -79,8 +81,8 @@
  * doesn't, and because living w/o it is not hard.
  */
 
-static	char *tbuf;
-static	int hopcount;	/* detect infinite loops in termcap, init 0 */
+static char *tbuf;
+static int hopcount; /* detect infinite loops in termcap, init 0 */
 
 extern const char *conffile;
 
@@ -127,8 +129,7 @@ getent(char *bp, char *name, const char *cfile)
 		tf = open(cfile, O_RDONLY);
 
 	if (tf < 0) {
-		syslog(LOG_INFO,
-		       "<%s> open: %s", __func__, strerror(errno));
+		syslog(LOG_INFO, "<%s> open: %s", __func__, strerror(errno));
 		return (-2);
 	}
 	for (;;) {
@@ -180,12 +181,12 @@ int
 tnchktc(void)
 {
 	char *p, *q;
-	char tcname[16];	/* name of similar terminal */
+	char tcname[16]; /* name of similar terminal */
 	char tcbuf[BUFSIZ];
 	char *holdtbuf = tbuf;
 	int l;
 
-	p = tbuf + strlen(tbuf) - 2;	/* before the last colon */
+	p = tbuf + strlen(tbuf) - 2; /* before the last colon */
 	while (*--p != ':')
 		if (p < tbuf) {
 			write(STDERR_FILENO, "Bad remcap entry\n", 18);
@@ -207,12 +208,12 @@ tnchktc(void)
 	if (getent(tcbuf, tcname, conffile) != 1) {
 		return (0);
 	}
-	for (q = tcbuf; *q++ != ':'; )
+	for (q = tcbuf; *q++ != ':';)
 		;
 	l = p - holdtbuf + strlen(q);
 	if (l > BUFSIZ) {
 		write(STDERR_FILENO, "Remcap entry too long\n", 23);
-		q[BUFSIZ - (p-holdtbuf)] = 0;
+		q[BUFSIZ - (p - holdtbuf)] = 0;
 	}
 	strcpy(p, q);
 	tbuf = holdtbuf;
@@ -408,7 +409,7 @@ again:
 		case '\\':
 			dp = "E\033^^\\\\::n\nr\rt\tb\bf\f\"\"";
 			c = *str++;
-nextc:
+		nextc:
 			if (*dp++ == c) {
 				c = *dp++;
 				break;

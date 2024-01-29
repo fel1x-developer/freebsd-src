@@ -24,8 +24,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #ifdef __i386__
 #include "opt_apic.h"
 #endif
@@ -42,7 +43,7 @@
 #include <sys/systm.h>
 #include <sys/asan.h>
 #include <sys/bus.h>
-#include <sys/cons.h>	/* cngetc() */
+#include <sys/cons.h> /* cngetc() */
 #include <sys/cpuset.h>
 #include <sys/csan.h>
 #include <sys/interrupt.h>
@@ -60,34 +61,36 @@
 #include <sys/sysctl.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
-#include <vm/vm_kern.h>
 #include <vm/vm_extern.h>
+#include <vm/vm_kern.h>
 #include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
-#include <x86/apicreg.h>
 #include <machine/clock.h>
 #include <machine/cpu.h>
 #include <machine/cputypes.h>
-#include <x86/mca.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/psl.h>
 #include <machine/smp.h>
 #include <machine/specialreg.h>
 #include <machine/stack.h>
+
+#include <x86/apicreg.h>
+#include <x86/mca.h>
 #include <x86/ucode.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 static MALLOC_DEFINE(M_CPUS, "cpus", "CPU items");
 
-int	mp_naps;		/* # of Applications processors */
-int	boot_cpu_id = -1;	/* designated BSP */
+int mp_naps;	      /* # of Applications processors */
+int boot_cpu_id = -1; /* designated BSP */
 
 /* AP uses this during bootstrap.  Do not staticize.  */
 char *bootSTK;
@@ -141,22 +144,21 @@ _Static_assert(MAXCPU <= MAX_APIC_ID,
 _Static_assert(xAPIC_MAX_APIC_ID <= MAX_APIC_ID,
     "xAPIC_MAX_APIC_ID cannot be larger that MAX_APIC_ID");
 
-static void	release_aps(void *dummy);
-static void	cpustop_handler_post(u_int cpu);
+static void release_aps(void *dummy);
+static void cpustop_handler_post(u_int cpu);
 
-static int	hyperthreading_allowed = 1;
+static int hyperthreading_allowed = 1;
 SYSCTL_INT(_machdep, OID_AUTO, hyperthreading_allowed, CTLFLAG_RDTUN,
-	&hyperthreading_allowed, 0, "Use Intel HTT logical CPUs");
+    &hyperthreading_allowed, 0, "Use Intel HTT logical CPUs");
 
-static int	hyperthreading_intr_allowed = 0;
+static int hyperthreading_intr_allowed = 0;
 SYSCTL_INT(_machdep, OID_AUTO, hyperthreading_intr_allowed, CTLFLAG_RDTUN,
-	&hyperthreading_intr_allowed, 0,
-	"Allow interrupts on HTT logical CPUs");
+    &hyperthreading_intr_allowed, 0, "Allow interrupts on HTT logical CPUs");
 
-static int	intr_apic_id_limit = -1;
+static int intr_apic_id_limit = -1;
 SYSCTL_INT(_machdep, OID_AUTO, intr_apic_id_limit, CTLFLAG_RDTUN,
-	&intr_apic_id_limit, 0,
-	"Maximum permitted APIC ID for interrupt delivery (-1 is unlimited)");
+    &intr_apic_id_limit, 0,
+    "Maximum permitted APIC ID for interrupt delivery (-1 is unlimited)");
 
 static struct topo_node topo_root;
 
@@ -166,8 +168,8 @@ static int core_id_shift;
 static int disabled_cpus;
 
 struct cache_info {
-	int	id_shift;
-	int	present;
+	int id_shift;
+	int present;
 } static caches[MAX_CACHE_LEVELS];
 
 static bool stop_mwait = false;
@@ -224,14 +226,14 @@ add_deterministic_cache(int type, int level, int share_count)
 
 	if (caches[level - 1].id_shift > pkg_id_shift) {
 		printf("WARNING: L%u data cache covers more "
-		    "APIC IDs than a package (%u > %u)\n", level,
-		    caches[level - 1].id_shift, pkg_id_shift);
+		       "APIC IDs than a package (%u > %u)\n",
+		    level, caches[level - 1].id_shift, pkg_id_shift);
 		caches[level - 1].id_shift = pkg_id_shift;
 	}
 	if (caches[level - 1].id_shift < core_id_shift) {
 		printf("WARNING: L%u data cache covers fewer "
-		    "APIC IDs than a core (%u < %u)\n", level,
-		    caches[level - 1].id_shift, core_id_shift);
+		       "APIC IDs than a core (%u < %u)\n",
+		    level, caches[level - 1].id_shift, core_id_shift);
 		caches[level - 1].id_shift = core_id_shift;
 	}
 
@@ -285,8 +287,8 @@ topo_probe_amd(void)
 
 	/* For 0Fh family. */
 	if (pkg_id_shift == 0)
-		pkg_id_shift =
-		    mask_width((cpu_procinfo2 & AMDID_CMP_CORES) + 1);
+		pkg_id_shift = mask_width(
+		    (cpu_procinfo2 & AMDID_CMP_CORES) + 1);
 
 	/*
 	 * Families prior to 16h define the following value as
@@ -314,7 +316,7 @@ topo_probe_amd(void)
 	}
 
 	if ((amd_feature2 & AMDID2_TOPOLOGY) != 0) {
-		for (i = 0; ; i++) {
+		for (i = 0;; i++) {
 			cpuid_count(0x8000001d, i, p);
 			type = p[0] & 0x1f;
 			level = (p[0] >> 5) & 0x7;
@@ -348,8 +350,8 @@ topo_probe_amd(void)
 					v = rdmsr(0xc001100c);
 					nodes_per_socket = 1 + ((v >> 3) & 0x7);
 				}
-				caches[2].id_shift =
-				    pkg_id_shift - mask_width(nodes_per_socket);
+				caches[2].id_shift = pkg_id_shift -
+				    mask_width(nodes_per_socket);
 				caches[2].present = 1;
 			}
 		}
@@ -374,7 +376,8 @@ topo_probe_intel_0x4(void)
 
 	/* Both zero and one here mean one logical processor per package. */
 	max_logical = (cpu_feature & CPUID_HTT) != 0 ?
-	    (cpu_procinfo & CPUID_HTT_CORES) >> 16 : 1;
+	    (cpu_procinfo & CPUID_HTT_CORES) >> 16 :
+	    1;
 	if (max_logical <= 1)
 		return;
 
@@ -384,9 +387,8 @@ topo_probe_intel_0x4(void)
 	} else
 		max_cores = 1;
 
-	core_id_shift = mask_width(max_logical/max_cores);
-	KASSERT(core_id_shift >= 0,
-	    ("intel topo: max_cores > max_logical\n"));
+	core_id_shift = mask_width(max_logical / max_cores);
+	KASSERT(core_id_shift >= 0, ("intel topo: max_cores > max_logical\n"));
 	pkg_id_shift = core_id_shift + mask_width(max_cores);
 }
 
@@ -425,7 +427,7 @@ topo_probe_intel_0xb(void)
 	}
 
 	/* We only support three levels for now. */
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		cpuid_count(leaf, i, p);
 
 		bits = p[0] & 0x1f;
@@ -439,7 +441,8 @@ topo_probe_intel_0xb(void)
 		else if (type == CPUID_TYPE_CORE)
 			pkg_id_shift = bits;
 		else if (bootverbose)
-			printf("Topology level type %d shift: %d\n", type, bits);
+			printf("Topology level type %d shift: %d\n", type,
+			    bits);
 	}
 
 	if (pkg_id_shift < core_id_shift) {
@@ -479,7 +482,7 @@ topo_probe_intel_caches(void)
 		return;
 	}
 
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		cpuid_count(0x4, i, p);
 		type = p[0] & 0x1f;
 		level = (p[0] >> 5) & 0x7;
@@ -583,11 +586,11 @@ topo_probe(void)
 		if (caches[i].present) {
 			if (node_id_shift != 0)
 				KASSERT(caches[i].id_shift <= node_id_shift,
-					("bug in APIC topology discovery"));
+				    ("bug in APIC topology discovery"));
 			KASSERT(caches[i].id_shift <= pkg_id_shift,
-				("bug in APIC topology discovery"));
+			    ("bug in APIC topology discovery"));
 			KASSERT(caches[i].id_shift >= core_id_shift,
-				("bug in APIC topology discovery"));
+			    ("bug in APIC topology discovery"));
 
 			topo_layers[nlayers].type = TOPO_TYPE_CACHE;
 			topo_layers[nlayers].subtype = i + 1;
@@ -617,7 +620,9 @@ topo_probe(void)
 	if (vm_ndomains > 1) {
 		for (layer = 0; layer < nlayers; ++layer) {
 			for (i = 0; i <= max_apic_id; ++i) {
-				if ((i & ((1 << topo_layers[layer].id_shift) - 1)) == 0)
+				if ((i &
+					((1 << topo_layers[layer].id_shift) -
+					    1)) == 0)
 					domain = -1;
 				if (!cpu_info[i].cpu_present)
 					continue;
@@ -630,7 +635,7 @@ topo_probe(void)
 				break;
 		}
 		KASSERT(layer < nlayers, ("NUMA domain smaller than PU"));
-		memmove(&topo_layers[layer+1], &topo_layers[layer],
+		memmove(&topo_layers[layer + 1], &topo_layers[layer],
 		    sizeof(*topo_layers) * (nlayers - layer));
 		topo_layers[layer].type = TOPO_TYPE_NODE;
 		topo_layers[layer].subtype = CG_SHARE_NONE;
@@ -666,8 +671,7 @@ topo_probe(void)
 #endif
 			node_id = boot_cpu_id >> topo_layers[layer].id_shift;
 		node = topo_find_node_by_hwid(parent, node_id,
-		    topo_layers[layer].type,
-		    topo_layers[layer].subtype);
+		    topo_layers[layer].type, topo_layers[layer].subtype);
 		topo_promote_child(node);
 		parent = node;
 	}
@@ -693,7 +697,8 @@ assign_cpu_ids(void)
 	 */
 	mp_ncpus = 0;
 	nhyper = 0;
-	TOPO_FOREACH(node, &topo_root) {
+	TOPO_FOREACH(node, &topo_root)
+	{
 		if (node->type != TOPO_TYPE_PU)
 			continue;
 
@@ -731,7 +736,7 @@ assign_cpu_ids(void)
 
 	KASSERT(mp_maxid >= mp_ncpus - 1,
 	    ("%s: counters out of sync: max %d, count %d", __func__, mp_maxid,
-	    mp_ncpus));
+		mp_ncpus));
 
 	mp_ncores = mp_ncpus - nhyper;
 	smp_threads_per_core = mp_ncpus / mp_ncores;
@@ -793,7 +798,8 @@ cpu_mp_announce(void)
 	if (!bootverbose)
 		return;
 
-	TOPO_FOREACH(node, &topo_root) {
+	TOPO_FOREACH(node, &topo_root)
+	{
 		switch (node->type) {
 		case TOPO_TYPE_PKG:
 			printf("Package HW ID = %u\n", node->hwid);
@@ -809,7 +815,8 @@ cpu_mp_announce(void)
 
 			if (node->subtype == 0)
 				printf("\t\tCPU (AP%s): APIC ID: %u"
-				    "(disabled)\n", hyperthread, node->hwid);
+				       "(disabled)\n",
+				    hyperthread, node->hwid);
 			else if (node->id == 0)
 				printf("\t\tCPU0 (BSP): APIC ID: %u\n",
 				    node->hwid);
@@ -838,8 +845,9 @@ x86topo_add_sched_group(struct topo_node *root, struct cpu_group *cg_root)
 	int ncores;
 	int i;
 
-	KASSERT(root->type == TOPO_TYPE_SYSTEM || root->type == TOPO_TYPE_CACHE ||
-	    root->type == TOPO_TYPE_NODE || root->type == TOPO_TYPE_GROUP,
+	KASSERT(root->type == TOPO_TYPE_SYSTEM ||
+		root->type == TOPO_TYPE_CACHE || root->type == TOPO_TYPE_NODE ||
+		root->type == TOPO_TYPE_GROUP,
 	    ("x86topo_add_sched_group: bad type: %u", root->type));
 	CPU_COPY(&root->cpuset, &cg_root->cg_mask);
 	cg_root->cg_count = root->cpu_count;
@@ -869,8 +877,8 @@ x86topo_add_sched_group(struct topo_node *root, struct cpu_group *cg_root)
 		node = topo_next_nonchild_node(root, node);
 	}
 
-	if (cg_root->cg_level != CG_SHARE_NONE &&
-	    root->cpu_count > 1 && ncores < 2)
+	if (cg_root->cg_level != CG_SHARE_NONE && root->cpu_count > 1 &&
+	    ncores < 2)
 		cg_root->cg_flags |= CG_FLAG_SMT;
 
 	/*
@@ -944,8 +952,8 @@ x86topo_add_sched_group(struct topo_node *root, struct cpu_group *cg_root)
 	i = 0;
 	while (node != NULL) {
 		if ((node->type != TOPO_TYPE_GROUP &&
-		    node->type != TOPO_TYPE_NODE &&
-		    node->type != TOPO_TYPE_CACHE) ||
+			node->type != TOPO_TYPE_NODE &&
+			node->type != TOPO_TYPE_CACHE) ||
 		    CPU_CMP(&node->cpuset, &root->cpuset) == 0 ||
 		    CPU_EMPTY(&node->cpuset)) {
 			node = topo_next_node(root, node);
@@ -998,19 +1006,19 @@ cpu_add(u_int apic_id, char boot_cpu)
 	if (apic_id > max_apic_id)
 		panic("SMP: APIC ID %d too high", apic_id);
 
-	KASSERT(cpu_info[apic_id].cpu_present == 0, ("CPU %u added twice",
-	    apic_id));
+	KASSERT(cpu_info[apic_id].cpu_present == 0,
+	    ("CPU %u added twice", apic_id));
 	cpu_info[apic_id].cpu_present = 1;
 	if (boot_cpu) {
 		KASSERT(boot_cpu_id == -1,
 		    ("CPU %u claims to be BSP, but CPU %u already is", apic_id,
-		    boot_cpu_id));
+			boot_cpu_id));
 		boot_cpu_id = apic_id;
 		cpu_info[apic_id].cpu_bsp = 1;
 	}
 	if (bootverbose)
-		printf("SMP: Added CPU %u (%s)\n", apic_id, boot_cpu ? "BSP" :
-		    "AP");
+		printf("SMP: Added CPU %u (%s)\n", apic_id,
+		    boot_cpu ? "BSP" : "AP");
 }
 
 void
@@ -1104,8 +1112,8 @@ init_secondary_tail(void)
 	if (bootverbose)
 		printf("SMP: AP CPU #%d Launched!\n", cpuid);
 	else
-		printf("%s%d%s", smp_cpus == 2 ? "Launching APs: " : "",
-		    cpuid, smp_cpus == mp_ncpus ? "\n" : " ");
+		printf("%s%d%s", smp_cpus == 2 ? "Launching APs: " : "", cpuid,
+		    smp_cpus == mp_ncpus ? "\n" : " ");
 
 	/* Determine if we are a logical CPU. */
 	if (cpu_info[PCPU_GET(apic_id)].cpu_hyperthread)
@@ -1202,8 +1210,7 @@ set_interrupt_apic_ids(void)
 u_int xhits_gbl[MAXCPU];
 u_int xhits_pg[MAXCPU];
 u_int xhits_rng[MAXCPU];
-static SYSCTL_NODE(_debug, OID_AUTO, xhits, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "");
+static SYSCTL_NODE(_debug, OID_AUTO, xhits, CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "");
 SYSCTL_OPAQUE(_debug_xhits, OID_AUTO, global, CTLFLAG_RW, &xhits_gbl,
     sizeof(xhits_gbl), "IU", "");
 SYSCTL_OPAQUE(_debug_xhits, OID_AUTO, page, CTLFLAG_RW, &xhits_pg,
@@ -1243,15 +1250,16 @@ ipi_startup(int apic_id, int vector)
 	 * ignored.
 	 */
 	lapic_ipi_raw(APIC_DEST_DESTFLD | APIC_TRIGMOD_LEVEL |
-	    APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_INIT, apic_id);
+		APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_INIT,
+	    apic_id);
 	lapic_ipi_wait(100);
 
 	/* Explicitly deassert the INIT IPI. */
 	lapic_ipi_raw(APIC_DEST_DESTFLD | APIC_TRIGMOD_LEVEL |
-	    APIC_LEVEL_DEASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_INIT,
+		APIC_LEVEL_DEASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_INIT,
 	    apic_id);
 
-	DELAY(10000);		/* wait ~10mS */
+	DELAY(10000); /* wait ~10mS */
 
 	/*
 	 * next we do a STARTUP IPI: the previous INIT IPI might still be
@@ -1262,12 +1270,13 @@ ipi_startup(int apic_id, int vector)
 	 * will run.
 	 */
 	lapic_ipi_raw(APIC_DEST_DESTFLD | APIC_TRIGMOD_EDGE |
-	    APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_STARTUP |
-	    vector, apic_id);
+		APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_STARTUP |
+		vector,
+	    apic_id);
 	if (!lapic_ipi_wait(100))
 		panic("Failed to deliver first STARTUP IPI to APIC %d",
 		    apic_id);
-	DELAY(200);		/* wait ~200uS */
+	DELAY(200); /* wait ~200uS */
 
 	/*
 	 * finally we do a 2nd STARTUP IPI: this 2nd STARTUP IPI should run IF
@@ -1276,13 +1285,14 @@ ipi_startup(int apic_id, int vector)
 	 * recognized after hardware RESET or INIT IPI.
 	 */
 	lapic_ipi_raw(APIC_DEST_DESTFLD | APIC_TRIGMOD_EDGE |
-	    APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_STARTUP |
-	    vector, apic_id);
+		APIC_LEVEL_ASSERT | APIC_DESTMODE_PHY | APIC_DELMODE_STARTUP |
+		vector,
+	    apic_id);
 	if (!lapic_ipi_wait(100))
 		panic("Failed to deliver second STARTUP IPI to APIC %d",
 		    apic_id);
 
-	DELAY(200);		/* wait ~200uS */
+	DELAY(200); /* wait ~200uS */
 }
 
 static bool
@@ -1333,8 +1343,8 @@ ipi_bitmap_handler(struct trapframe frame)
 	kasan_mark(&frame, sizeof(frame), sizeof(frame), 0);
 
 	td = curthread;
-	ipi_bitmap = atomic_readandclear_int(&cpuid_to_pcpu[cpu]->
-	    pc_ipi_bitmap);
+	ipi_bitmap = atomic_readandclear_int(
+	    &cpuid_to_pcpu[cpu]->pc_ipi_bitmap);
 
 	/*
 	 * sched_preempt() must be called to clear the pending preempt
@@ -1393,7 +1403,7 @@ ipi_selected(cpuset_t cpus, u_int ipi)
 	if (ipi == IPI_STOP_HARD)
 		CPU_OR_ATOMIC(&ipi_stop_nmi_pending, &cpus);
 
-	CPU_FOREACH_ISSET(cpu, &cpus) {
+	CPU_FOREACH_ISSET (cpu, &cpus) {
 		CTR3(KTR_SMP, "%s: cpu: %d ipi: %x", __func__, cpu, ipi);
 		ipi_send_cpu(cpu, ipi);
 	}
@@ -1441,7 +1451,7 @@ ipi_all_but_self(u_int ipi)
 	CTR2(KTR_SMP, "%s: ipi: %x", __func__, ipi);
 	if (IPI_IS_BITMAPED(ipi)) {
 		cpu = PCPU_GET(cpuid);
-		CPU_FOREACH(c) {
+		CPU_FOREACH (c) {
 			if (c != cpu)
 				ipi_bitmap_set(c, ipi);
 		}
@@ -1528,8 +1538,7 @@ cpustop_handler(void)
 	    !mwait_cpustop_broken);
 	if (use_mwait) {
 		mb = PCPU_PTR(monitorbuf);
-		atomic_store_int(&mb->stop_state,
-		    MONITOR_STOPSTATE_STOPPED);
+		atomic_store_int(&mb->stop_state, MONITOR_STOPSTATE_STOPPED);
 	}
 
 	/* Indicate that we are stopped */
@@ -1690,7 +1699,7 @@ static void
 release_aps(void *dummy __unused)
 {
 
-	if (mp_ncpus == 1) 
+	if (mp_ncpus == 1)
 		return;
 	atomic_store_rel_int(&aps_ready, 1);
 	while (smp_started == 0)
@@ -1708,7 +1717,7 @@ mp_ipi_intrcnt(void *dummy)
 	char buf[64];
 	int i;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		snprintf(buf, sizeof(buf), "cpu%d:invltlb", i);
 		intrcnt_add(buf, &ipi_invltlb_counts[i]);
 		snprintf(buf, sizeof(buf), "cpu%d:invlrng", i);

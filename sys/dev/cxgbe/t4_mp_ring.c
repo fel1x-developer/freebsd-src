@@ -33,6 +33,7 @@
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
+
 #include <machine/cpu.h>
 
 #include "t4_mp_ring.h"
@@ -70,12 +71,12 @@ union ring_state {
 };
 
 enum {
-	IDLE = 0,	/* tx is all caught up, nothing to do. */
-	COALESCING,	/* IDLE, but tx frames are being held for coalescing */
-	BUSY,		/* consumer is running already, or will be shortly. */
-	TOO_BUSY,	/* consumer is running and is beyond its budget */
-	TAKING_OVER,	/* new consumer taking over from a TOO_BUSY consumer */
-	STALLED,	/* consumer stopped due to lack of resources. */
+	IDLE = 0,    /* tx is all caught up, nothing to do. */
+	COALESCING,  /* IDLE, but tx frames are being held for coalescing */
+	BUSY,	     /* consumer is running already, or will be shortly. */
+	TOO_BUSY,    /* consumer is running and is beyond its budget */
+	TAKING_OVER, /* new consumer taking over from a TOO_BUSY consumer */
+	STALLED,     /* consumer stopped due to lack of resources. */
 };
 
 enum {
@@ -152,7 +153,7 @@ drain_ring(struct mp_ring *r, int budget)
 				else
 					ns.flags = STALLED;
 			} while (atomic_fcmpset_64(&r->state, &os.state,
-			    ns.state) == 0);
+				     ns.state) == 0);
 			critical_exit();
 			if (os.flags == TAKING_OVER)
 				counter_u64_add(r->abdications, 1);
@@ -188,7 +189,8 @@ drain_ring(struct mp_ring *r, int budget)
 			MPASS(os.flags == BUSY);
 			if (pending < 32)
 				break;
-		} while (atomic_fcmpset_acq_64(&r->state, &os.state, ns.state) == 0);
+		} while (
+		    atomic_fcmpset_acq_64(&r->state, &os.state, ns.state) == 0);
 
 		if (__predict_false(os.flags == TAKING_OVER)) {
 			MPASS(ns.flags == BUSY);
@@ -386,7 +388,8 @@ mp_ring_enqueue(struct mp_ring *r, void **items, int n, int budget)
 			MPASS(os.pidx_tail == os.cidx);
 			if (os.pidx_head == os.pidx_tail) {
 				cons = C_FAST;
-				ns.pidx_tail = increment_idx(r, os.pidx_tail, n);
+				ns.pidx_tail = increment_idx(r, os.pidx_tail,
+				    n);
 			} else
 				cons = C_2;
 			ns.flags = BUSY;
@@ -479,7 +482,7 @@ mp_ring_check_drainage(struct mp_ring *r, int budget)
 
 	os.state = atomic_load_64(&r->state);
 	if (os.flags == STALLED && r->can_drain(r)) {
-		MPASS(os.cidx != os.pidx_tail);	/* implied by STALLED */
+		MPASS(os.cidx != os.pidx_tail); /* implied by STALLED */
 		ns.state = os.state;
 		ns.flags = BUSY;
 		if (atomic_cmpset_acq_64(&r->state, os.state, ns.state)) {
@@ -534,38 +537,35 @@ mp_ring_sysctls(struct mp_ring *r, struct sysctl_ctx_list *ctx,
 {
 	struct sysctl_oid *oid;
 
-	oid = SYSCTL_ADD_NODE(ctx, children, OID_AUTO, "mp_ring", CTLFLAG_RD |
-	    CTLFLAG_MPSAFE, NULL, "mp_ring statistics");
+	oid = SYSCTL_ADD_NODE(ctx, children, OID_AUTO, "mp_ring",
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "mp_ring statistics");
 	children = SYSCTL_CHILDREN(oid);
 
 	SYSCTL_ADD_U64(ctx, children, OID_AUTO, "state", CTLFLAG_RD,
 	    __DEVOLATILE(uint64_t *, &r->state), 0, "ring state");
 	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "dropped", CTLFLAG_RD,
 	    &r->dropped, "# of items dropped");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumed",
-	    CTLFLAG_RD, &r->consumed, "# of items consumed");
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumed", CTLFLAG_RD,
+	    &r->consumed, "# of items consumed");
 	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "fast_consumer",
 	    CTLFLAG_RD, &r->consumer[C_FAST],
 	    "# of times producer became consumer (fast)");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumer2",
-	    CTLFLAG_RD, &r->consumer[C_2],
-	    "# of times producer became consumer (2)");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumer3",
-	    CTLFLAG_RD, &r->consumer[C_3],
-	    "# of times producer became consumer (3)");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "takeovers",
-	    CTLFLAG_RD, &r->consumer[C_TAKEOVER],
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumer2", CTLFLAG_RD,
+	    &r->consumer[C_2], "# of times producer became consumer (2)");
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "consumer3", CTLFLAG_RD,
+	    &r->consumer[C_3], "# of times producer became consumer (3)");
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "takeovers", CTLFLAG_RD,
+	    &r->consumer[C_TAKEOVER],
 	    "# of times producer took over from another consumer.");
 	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "not_consumer",
 	    CTLFLAG_RD, &r->not_consumer,
 	    "# of times producer did not become consumer");
 	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "abdications",
 	    CTLFLAG_RD, &r->abdications, "# of consumer abdications");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "stalls",
-	    CTLFLAG_RD, &r->stalls, "# of consumer stalls");
-	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "cons_idle",
-	    CTLFLAG_RD, &r->cons_idle,
-	    "# of times consumer ran fully to completion");
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "stalls", CTLFLAG_RD,
+	    &r->stalls, "# of consumer stalls");
+	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "cons_idle", CTLFLAG_RD,
+	    &r->cons_idle, "# of times consumer ran fully to completion");
 	SYSCTL_ADD_COUNTER_U64(ctx, children, OID_AUTO, "cons_idle2",
 	    CTLFLAG_RD, &r->cons_idle2,
 	    "# of times consumer idled when another enqueue was in progress");

@@ -91,8 +91,8 @@ SYSCTL_INT(_hw_iavf, OID_AUTO, shared_debug_mask, CTLFLAG_RDTUN,
  * Controls the default interrupt throttling rate for receive interrupts.
  */
 int iavf_rx_itr = IAVF_ITR_8K;
-SYSCTL_INT(_hw_iavf, OID_AUTO, rx_itr, CTLFLAG_RDTUN,
-    &iavf_rx_itr, 0, "RX Interrupt Rate");
+SYSCTL_INT(_hw_iavf, OID_AUTO, rx_itr, CTLFLAG_RDTUN, &iavf_rx_itr, 0,
+    "RX Interrupt Rate");
 
 /**
  * @var iavf_tx_itr
@@ -101,8 +101,8 @@ SYSCTL_INT(_hw_iavf, OID_AUTO, rx_itr, CTLFLAG_RDTUN,
  * Controls the default interrupt throttling rate for transmit interrupts.
  */
 int iavf_tx_itr = IAVF_ITR_4K;
-SYSCTL_INT(_hw_iavf, OID_AUTO, tx_itr, CTLFLAG_RDTUN,
-    &iavf_tx_itr, 0, "TX Interrupt Rate");
+SYSCTL_INT(_hw_iavf, OID_AUTO, tx_itr, CTLFLAG_RDTUN, &iavf_tx_itr, 0,
+    "TX Interrupt Rate");
 
 /**
  * iavf_save_tunables - Sanity check and save off tunable values
@@ -125,7 +125,8 @@ iavf_save_tunables(struct iavf_sc *sc)
 	    pci_device_id == IAVF_DEV_ID_X722_VF)
 		sc->vsi.enable_head_writeback = !!(iavf_enable_head_writeback);
 	else if (iavf_enable_head_writeback) {
-		device_printf(dev, "Head writeback can only be enabled on 700 series Virtual Functions\n");
+		device_printf(dev,
+		    "Head writeback can only be enabled on 700 series Virtual Functions\n");
 		device_printf(dev, "Using descriptor writeback instead...\n");
 		sc->vsi.enable_head_writeback = 0;
 	}
@@ -133,7 +134,8 @@ iavf_save_tunables(struct iavf_sc *sc)
 	if (iavf_tx_itr < 0 || iavf_tx_itr > IAVF_MAX_ITR) {
 		device_printf(dev, "Invalid tx_itr value of %d set!\n",
 		    iavf_tx_itr);
-		device_printf(dev, "tx_itr must be between %d and %d, "
+		device_printf(dev,
+		    "tx_itr must be between %d and %d, "
 		    "inclusive\n",
 		    0, IAVF_MAX_ITR);
 		device_printf(dev, "Using default value of %d instead\n",
@@ -145,7 +147,8 @@ iavf_save_tunables(struct iavf_sc *sc)
 	if (iavf_rx_itr < 0 || iavf_rx_itr > IAVF_MAX_ITR) {
 		device_printf(dev, "Invalid rx_itr value of %d set!\n",
 		    iavf_rx_itr);
-		device_printf(dev, "rx_itr must be between %d and %d, "
+		device_printf(dev,
+		    "rx_itr must be between %d and %d, "
 		    "inclusive\n",
 		    0, IAVF_MAX_ITR);
 		device_printf(dev, "Using default value of %d instead\n",

@@ -28,65 +28,66 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/linker_set.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/time.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <unistd.h>
 #include <assert.h>
-#include <pthread.h>
-#include <pthread_np.h>
-
+#include <cam/ctl/ctl.h>
+#include <cam/ctl/ctl_backend.h>
+#include <cam/ctl/ctl_io.h>
+#include <cam/ctl/ctl_ioctl.h>
+#include <cam/ctl/ctl_scsi_all.h>
+#include <cam/ctl/ctl_util.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
-#include <cam/ctl/ctl.h>
-#include <cam/ctl/ctl_io.h>
-#include <cam/ctl/ctl_backend.h>
-#include <cam/ctl/ctl_ioctl.h>
-#include <cam/ctl/ctl_util.h>
-#include <cam/ctl/ctl_scsi_all.h>
 #include <camlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <pthread_np.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "bhyverun.h"
 #include "config.h"
 #include "debug.h"
+#include "iov.h"
 #include "pci_emul.h"
 #include "virtio.h"
-#include "iov.h"
 
-#define VTSCSI_RINGSZ		64
-#define	VTSCSI_REQUESTQ		1
-#define	VTSCSI_THR_PER_Q	16
-#define	VTSCSI_MAXQ		(VTSCSI_REQUESTQ + 2)
-#define	VTSCSI_MAXSEG		64
+#define VTSCSI_RINGSZ 64
+#define VTSCSI_REQUESTQ 1
+#define VTSCSI_THR_PER_Q 16
+#define VTSCSI_MAXQ (VTSCSI_REQUESTQ + 2)
+#define VTSCSI_MAXSEG 64
 
-#define	VTSCSI_IN_HEADER_LEN(_sc)	\
+#define VTSCSI_IN_HEADER_LEN(_sc) \
 	(sizeof(struct pci_vtscsi_req_cmd_rd) + _sc->vss_config.cdb_size)
 
-#define	VTSCSI_OUT_HEADER_LEN(_sc) 	\
+#define VTSCSI_OUT_HEADER_LEN(_sc) \
 	(sizeof(struct pci_vtscsi_req_cmd_wr) + _sc->vss_config.sense_size)
 
-#define	VIRTIO_SCSI_MAX_CHANNEL	0
-#define	VIRTIO_SCSI_MAX_TARGET	0
-#define	VIRTIO_SCSI_MAX_LUN	16383
+#define VIRTIO_SCSI_MAX_CHANNEL 0
+#define VIRTIO_SCSI_MAX_TARGET 0
+#define VIRTIO_SCSI_MAX_LUN 16383
 
-#define	VIRTIO_SCSI_F_INOUT	(1 << 0)
-#define	VIRTIO_SCSI_F_HOTPLUG	(1 << 1)
-#define	VIRTIO_SCSI_F_CHANGE	(1 << 2)
+#define VIRTIO_SCSI_F_INOUT (1 << 0)
+#define VIRTIO_SCSI_F_HOTPLUG (1 << 1)
+#define VIRTIO_SCSI_F_CHANGE (1 << 2)
 
 static int pci_vtscsi_debug = 0;
-#define	WPRINTF(msg, params...) PRINTLN("virtio-scsi: " msg, ##params)
-#define	DPRINTF(msg, params...) if (pci_vtscsi_debug) WPRINTF(msg, ##params)
+#define WPRINTF(msg, params...) PRINTLN("virtio-scsi: " msg, ##params)
+#define DPRINTF(msg, params...) \
+	if (pci_vtscsi_debug)   \
+	WPRINTF(msg, ##params)
 
 struct pci_vtscsi_config {
 	uint32_t num_queues;
@@ -102,29 +103,29 @@ struct pci_vtscsi_config {
 } __attribute__((packed));
 
 struct pci_vtscsi_queue {
-	struct pci_vtscsi_softc *         vsq_sc;
-	struct vqueue_info *              vsq_vq;
-	pthread_mutex_t                   vsq_mtx;
-	pthread_mutex_t                   vsq_qmtx;
-	pthread_cond_t                    vsq_cv;
+	struct pci_vtscsi_softc *vsq_sc;
+	struct vqueue_info *vsq_vq;
+	pthread_mutex_t vsq_mtx;
+	pthread_mutex_t vsq_qmtx;
+	pthread_cond_t vsq_cv;
 	STAILQ_HEAD(, pci_vtscsi_request) vsq_requests;
-	LIST_HEAD(, pci_vtscsi_worker)    vsq_workers;
+	LIST_HEAD(, pci_vtscsi_worker) vsq_workers;
 };
 
 struct pci_vtscsi_worker {
-	struct pci_vtscsi_queue *     vsw_queue;
-	pthread_t                     vsw_thread;
-	bool                          vsw_exiting;
+	struct pci_vtscsi_queue *vsw_queue;
+	pthread_t vsw_thread;
+	bool vsw_exiting;
 	LIST_ENTRY(pci_vtscsi_worker) vsw_link;
 };
 
 struct pci_vtscsi_request {
-	struct pci_vtscsi_queue * vsr_queue;
-	struct iovec              vsr_iov_in[VTSCSI_MAXSEG];
-	int                       vsr_niov_in;
-	struct iovec              vsr_iov_out[VTSCSI_MAXSEG];
-	int                       vsr_niov_out;
-	uint32_t                  vsr_idx;
+	struct pci_vtscsi_queue *vsr_queue;
+	struct iovec vsr_iov_in[VTSCSI_MAXSEG];
+	int vsr_niov_in;
+	struct iovec vsr_iov_out[VTSCSI_MAXSEG];
+	int vsr_niov_out;
+	uint32_t vsr_idx;
 	STAILQ_ENTRY(pci_vtscsi_request) vsr_link;
 };
 
@@ -132,30 +133,30 @@ struct pci_vtscsi_request {
  * Per-device softc
  */
 struct pci_vtscsi_softc {
-	struct virtio_softc      vss_vs;
-	struct vqueue_info       vss_vq[VTSCSI_MAXQ];
-	struct pci_vtscsi_queue  vss_queues[VTSCSI_REQUESTQ];
-	pthread_mutex_t          vss_mtx;
-	int                      vss_iid;
-	int                      vss_ctl_fd;
-	uint32_t                 vss_features;
+	struct virtio_softc vss_vs;
+	struct vqueue_info vss_vq[VTSCSI_MAXQ];
+	struct pci_vtscsi_queue vss_queues[VTSCSI_REQUESTQ];
+	pthread_mutex_t vss_mtx;
+	int vss_iid;
+	int vss_ctl_fd;
+	uint32_t vss_features;
 	struct pci_vtscsi_config vss_config;
 };
 
-#define	VIRTIO_SCSI_T_TMF			0
-#define	VIRTIO_SCSI_T_TMF_ABORT_TASK		0
-#define	VIRTIO_SCSI_T_TMF_ABORT_TASK_SET	1
-#define	VIRTIO_SCSI_T_TMF_CLEAR_ACA		2
-#define	VIRTIO_SCSI_T_TMF_CLEAR_TASK_SET	3
-#define	VIRTIO_SCSI_T_TMF_I_T_NEXUS_RESET	4
-#define	VIRTIO_SCSI_T_TMF_LOGICAL_UNIT_RESET	5
-#define	VIRTIO_SCSI_T_TMF_QUERY_TASK		6
-#define	VIRTIO_SCSI_T_TMF_QUERY_TASK_SET 	7
+#define VIRTIO_SCSI_T_TMF 0
+#define VIRTIO_SCSI_T_TMF_ABORT_TASK 0
+#define VIRTIO_SCSI_T_TMF_ABORT_TASK_SET 1
+#define VIRTIO_SCSI_T_TMF_CLEAR_ACA 2
+#define VIRTIO_SCSI_T_TMF_CLEAR_TASK_SET 3
+#define VIRTIO_SCSI_T_TMF_I_T_NEXUS_RESET 4
+#define VIRTIO_SCSI_T_TMF_LOGICAL_UNIT_RESET 5
+#define VIRTIO_SCSI_T_TMF_QUERY_TASK 6
+#define VIRTIO_SCSI_T_TMF_QUERY_TASK_SET 7
 
 /* command-specific response values */
-#define	VIRTIO_SCSI_S_FUNCTION_COMPLETE		0
-#define	VIRTIO_SCSI_S_FUNCTION_SUCCEEDED	10
-#define	VIRTIO_SCSI_S_FUNCTION_REJECTED		11
+#define VIRTIO_SCSI_S_FUNCTION_COMPLETE 0
+#define VIRTIO_SCSI_S_FUNCTION_SUCCEEDED 10
+#define VIRTIO_SCSI_S_FUNCTION_REJECTED 11
 
 struct pci_vtscsi_ctrl_tmf {
 	uint32_t type;
@@ -165,13 +166,13 @@ struct pci_vtscsi_ctrl_tmf {
 	uint8_t response;
 } __attribute__((packed));
 
-#define	VIRTIO_SCSI_T_AN_QUERY			1
-#define	VIRTIO_SCSI_EVT_ASYNC_OPERATIONAL_CHANGE 2
-#define	VIRTIO_SCSI_EVT_ASYNC_POWER_MGMT	4
-#define	VIRTIO_SCSI_EVT_ASYNC_EXTERNAL_REQUEST	8
-#define	VIRTIO_SCSI_EVT_ASYNC_MEDIA_CHANGE	16
-#define	VIRTIO_SCSI_EVT_ASYNC_MULTI_HOST	32
-#define	VIRTIO_SCSI_EVT_ASYNC_DEVICE_BUSY	64
+#define VIRTIO_SCSI_T_AN_QUERY 1
+#define VIRTIO_SCSI_EVT_ASYNC_OPERATIONAL_CHANGE 2
+#define VIRTIO_SCSI_EVT_ASYNC_POWER_MGMT 4
+#define VIRTIO_SCSI_EVT_ASYNC_EXTERNAL_REQUEST 8
+#define VIRTIO_SCSI_EVT_ASYNC_MEDIA_CHANGE 16
+#define VIRTIO_SCSI_EVT_ASYNC_MULTI_HOST 32
+#define VIRTIO_SCSI_EVT_ASYNC_DEVICE_BUSY 64
 
 struct pci_vtscsi_ctrl_an {
 	uint32_t type;
@@ -182,23 +183,23 @@ struct pci_vtscsi_ctrl_an {
 } __attribute__((packed));
 
 /* command-specific response values */
-#define	VIRTIO_SCSI_S_OK 			0
-#define	VIRTIO_SCSI_S_OVERRUN			1
-#define	VIRTIO_SCSI_S_ABORTED			2
-#define	VIRTIO_SCSI_S_BAD_TARGET		3
-#define	VIRTIO_SCSI_S_RESET			4
-#define	VIRTIO_SCSI_S_BUSY			5
-#define	VIRTIO_SCSI_S_TRANSPORT_FAILURE		6
-#define	VIRTIO_SCSI_S_TARGET_FAILURE		7
-#define	VIRTIO_SCSI_S_NEXUS_FAILURE		8
-#define	VIRTIO_SCSI_S_FAILURE			9
-#define	VIRTIO_SCSI_S_INCORRECT_LUN		12
+#define VIRTIO_SCSI_S_OK 0
+#define VIRTIO_SCSI_S_OVERRUN 1
+#define VIRTIO_SCSI_S_ABORTED 2
+#define VIRTIO_SCSI_S_BAD_TARGET 3
+#define VIRTIO_SCSI_S_RESET 4
+#define VIRTIO_SCSI_S_BUSY 5
+#define VIRTIO_SCSI_S_TRANSPORT_FAILURE 6
+#define VIRTIO_SCSI_S_TARGET_FAILURE 7
+#define VIRTIO_SCSI_S_NEXUS_FAILURE 8
+#define VIRTIO_SCSI_S_FAILURE 9
+#define VIRTIO_SCSI_S_INCORRECT_LUN 12
 
 /* task_attr */
-#define	VIRTIO_SCSI_S_SIMPLE			0
-#define	VIRTIO_SCSI_S_ORDERED			1
-#define	VIRTIO_SCSI_S_HEAD			2
-#define	VIRTIO_SCSI_S_ACA			3
+#define VIRTIO_SCSI_S_SIMPLE 0
+#define VIRTIO_SCSI_S_ORDERED 1
+#define VIRTIO_SCSI_S_HEAD 2
+#define VIRTIO_SCSI_S_ACA 3
 
 struct pci_vtscsi_event {
 	uint32_t event;
@@ -240,19 +241,19 @@ static int pci_vtscsi_request_handle(struct pci_vtscsi_queue *, struct iovec *,
 static void pci_vtscsi_controlq_notify(void *, struct vqueue_info *);
 static void pci_vtscsi_eventq_notify(void *, struct vqueue_info *);
 static void pci_vtscsi_requestq_notify(void *, struct vqueue_info *);
-static int  pci_vtscsi_init_queue(struct pci_vtscsi_softc *,
+static int pci_vtscsi_init_queue(struct pci_vtscsi_softc *,
     struct pci_vtscsi_queue *, int);
 static int pci_vtscsi_init(struct pci_devinst *, nvlist_t *);
 
 static struct virtio_consts vtscsi_vi_consts = {
-	.vc_name =	"vtscsi",
-	.vc_nvq =	VTSCSI_MAXQ,
-	.vc_cfgsize =	sizeof(struct pci_vtscsi_config),
-	.vc_reset =	pci_vtscsi_reset,
-	.vc_cfgread =	pci_vtscsi_cfgread,
-	.vc_cfgwrite =	pci_vtscsi_cfgwrite,
+	.vc_name = "vtscsi",
+	.vc_nvq = VTSCSI_MAXQ,
+	.vc_cfgsize = sizeof(struct pci_vtscsi_config),
+	.vc_reset = pci_vtscsi_reset,
+	.vc_cfgread = pci_vtscsi_cfgread,
+	.vc_cfgwrite = pci_vtscsi_cfgwrite,
 	.vc_apply_features = pci_vtscsi_neg_features,
-	.vc_hv_caps =	0,
+	.vc_hv_caps = 0,
 };
 
 static void *
@@ -266,8 +267,7 @@ pci_vtscsi_proc(void *arg)
 	for (;;) {
 		pthread_mutex_lock(&q->vsq_mtx);
 
-		while (STAILQ_EMPTY(&q->vsq_requests)
-		    && !worker->vsw_exiting)
+		while (STAILQ_EMPTY(&q->vsq_requests) && !worker->vsw_exiting)
 			pthread_cond_wait(&q->vsq_cv, &q->vsq_mtx);
 
 		if (worker->vsw_exiting)
@@ -304,7 +304,7 @@ pci_vtscsi_reset(void *vsc)
 	vi_reset_dev(&sc->vss_vs);
 
 	/* initialize config structure */
-	sc->vss_config = (struct pci_vtscsi_config){
+	sc->vss_config = (struct pci_vtscsi_config) {
 		.num_queues = VTSCSI_REQUESTQ,
 		/* Leave room for the request and the response. */
 		.seg_max = VTSCSI_MAXSEG - 2,
@@ -597,7 +597,7 @@ pci_vtscsi_controlq_notify(void *vsc, struct vqueue_info *vq)
 		 */
 		vq_relchain(vq, req.idx, iolen);
 	}
-	vq_endchains(vq, 1);	/* Generate interrupt if appropriate. */
+	vq_endchains(vq, 1); /* Generate interrupt if appropriate. */
 	free(buf);
 }
 
@@ -759,12 +759,9 @@ pci_vtscsi_init(struct pci_devinst *pi, nvlist_t *nvl)
 	return (0);
 }
 
-
-static const struct pci_devemu pci_de_vscsi = {
-	.pe_emu =	"virtio-scsi",
-	.pe_init =	pci_vtscsi_init,
+static const struct pci_devemu pci_de_vscsi = { .pe_emu = "virtio-scsi",
+	.pe_init = pci_vtscsi_init,
 	.pe_legacy_config = pci_vtscsi_legacy_config,
-	.pe_barwrite =	vi_pci_write,
-	.pe_barread =	vi_pci_read
-};
+	.pe_barwrite = vi_pci_write,
+	.pe_barread = vi_pci_read };
 PCI_EMUL_SET(pci_de_vscsi);

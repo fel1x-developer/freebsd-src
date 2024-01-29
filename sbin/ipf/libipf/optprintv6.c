@@ -8,8 +8,7 @@
  */
 #include "ipf.h"
 
-
-#ifdef	USE_INET6
+#ifdef USE_INET6
 
 void
 optprintv6(u_short *sec, u_long optmsk, u_long optbits)
@@ -34,12 +33,11 @@ optprintv6(u_short *sec, u_long optmsk, u_long optbits)
 			for (io = v6ionames; io->on_name; io++)
 				if ((io->on_bit & optmsk) &&
 				    ((io->on_bit & optmsk) !=
-				     (io->on_bit & optbits))) {
+					(io->on_bit & optbits))) {
 					printf("%s%s", s, io->on_name);
 					s = ",";
 				}
 		}
-
 	}
 }
 #endif

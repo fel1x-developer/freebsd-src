@@ -32,28 +32,28 @@
 #ifndef _ICE_DEFS_H_
 #define _ICE_DEFS_H_
 
-#define ETH_ALEN	6
+#define ETH_ALEN 6
 
-#define ETH_HEADER_LEN	14
+#define ETH_HEADER_LEN 14
 
 #define BIT(a) (1UL << (a))
 #ifndef BIT_ULL
 #define BIT_ULL(a) (1ULL << (a))
 #endif /* !BIT_ULL */
 
-#define BITS_PER_BYTE	8
+#define BITS_PER_BYTE 8
 
 #define _FORCE_
 
-#define ICE_BYTES_PER_WORD	2
-#define ICE_BYTES_PER_DWORD	4
-#define ICE_MAX_TRAFFIC_CLASS	8
+#define ICE_BYTES_PER_WORD 2
+#define ICE_BYTES_PER_DWORD 4
+#define ICE_MAX_TRAFFIC_CLASS 8
 
 #ifndef MIN_T
-#define MIN_T(_t, _a, _b)	min((_t)(_a), (_t)(_b))
+#define MIN_T(_t, _a, _b) min((_t)(_a), (_t)(_b))
 #endif /* !MIN_T */
 
-#define IS_ASCII(_ch)	((_ch) < 0x80)
+#define IS_ASCII(_ch) ((_ch) < 0x80)
 
 #define STRUCT_HACK_VAR_LEN
 /**

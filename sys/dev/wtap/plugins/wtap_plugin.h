@@ -31,13 +31,13 @@
 #ifndef _WTAP_PLUGIN_H_
 #define _WTAP_PLUGIN_H_
 
-#include "../if_wtapvar.h"
 #include "../if_medium.h"
+#include "../if_wtapvar.h"
 #include "../wtap_hal/hal.h"
 
 struct wtap_plugin {
-	struct cdev	*wp_sdev;
-	struct wtap_hal	*wp_hal;
+	struct cdev *wp_sdev;
+	struct wtap_hal *wp_hal;
 	void (*init)(struct wtap_plugin *);
 	void (*deinit)(struct wtap_plugin *);
 	void (*work)(struct wtap_plugin *, struct packet *p);

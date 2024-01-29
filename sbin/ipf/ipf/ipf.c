@@ -4,62 +4,61 @@
  *
  * See the IPFILTER.LICENCE file for details on licencing.
  */
-#include "ipf.h"
-#include <fcntl.h>
-#include <ctype.h>
 #include <sys/ioctl.h>
+
+#include <ctype.h>
+#include <fcntl.h>
+
+#include "ipf.h"
 #include "netinet/ipl.h"
 
-
 #if !defined(__SVR4) && defined(__GNUC__)
-extern	char	*index(const char *, int);
+extern char *index(const char *, int);
 #endif
 
-extern	char	*optarg;
-extern	int	optind;
-extern	frentry_t *frtop;
+extern char *optarg;
+extern int optind;
+extern frentry_t *frtop;
 
+void ipf_frsync(void);
+void zerostats(void);
+int main(int, char *[]);
 
-void	ipf_frsync(void);
-void	zerostats(void);
-int	main(int, char *[]);
+int opts = 0;
+int outputc = 0;
+int use_inet6 = 0;
+int exitstatus = 0;
 
-int	opts = 0;
-int	outputc = 0;
-int	use_inet6 = 0;
-int	exitstatus = 0;
+static void procfile(char *);
+static void flushfilter(char *, int *);
+static void set_state(u_int);
+static void showstats(friostat_t *);
+static void packetlogon(char *);
+static void swapactive(void);
+static int opendevice(char *, int);
+static void closedevice(void);
+static char *ipfname = IPL_NAME;
+static void usage(void);
+static int showversion(void);
+static int get_flags(void);
+static int ipf_interceptadd(int, ioctlfunc_t, void *);
 
-static	void	procfile(char *);
-static	void	flushfilter(char *, int *);
-static	void	set_state(u_int);
-static	void	showstats(friostat_t *);
-static	void	packetlogon(char *);
-static	void	swapactive(void);
-static	int	opendevice(char *, int);
-static	void	closedevice(void);
-static	char	*ipfname = IPL_NAME;
-static	void	usage(void);
-static	int	showversion(void);
-static	int	get_flags(void);
-static	int	ipf_interceptadd(int, ioctlfunc_t, void *);
-
-static	int	fd = -1;
-static	ioctlfunc_t	iocfunctions[IPL_LOGSIZE] = { ioctl, ioctl, ioctl,
-						      ioctl, ioctl, ioctl,
-						      ioctl, ioctl };
+static int fd = -1;
+static ioctlfunc_t iocfunctions[IPL_LOGSIZE] = { ioctl, ioctl, ioctl, ioctl,
+	ioctl, ioctl, ioctl, ioctl };
 
 /* XXX	The following was added to satisfy a rescue/rescue/ build
    XXX	requirement.  */
-int	nohdrfields;
+int nohdrfields;
 
-static void usage()
+static void
+usage()
 {
 	fprintf(stderr, "usage: ipf [-6AdDEInoPrRsvVyzZ] %s %s %s\n",
-		"[-l block|pass|nomatch|state|nat]", "[-cc] [-F i|o|a|s|S|u]",
-		"[-f filename] [-T <tuneopts>]");
+	    "[-l block|pass|nomatch|state|nat]", "[-cc] [-F i|o|a|s|S|u]",
+	    "[-f filename] [-T <tuneopts>]");
 	exit(1);
 }
-
 
 int
 main(int argc, char *argv[])
@@ -71,84 +70,84 @@ main(int argc, char *argv[])
 
 	assigndefined(getenv("IPF_PREDEFINED"));
 
-	while ((c = getopt(argc, argv, "46Ac:dDEf:F:Il:m:noPrRsT:vVyzZ")) != -1) {
-		switch (c)
-		{
-		case '?' :
+	while (
+	    (c = getopt(argc, argv, "46Ac:dDEf:F:Il:m:noPrRsT:vVyzZ")) != -1) {
+		switch (c) {
+		case '?':
 			usage();
 			break;
-		case '4' :
+		case '4':
 			use_inet6 = -1;
 			break;
-		case '6' :
+		case '6':
 			use_inet6 = 1;
 			break;
-		case 'A' :
+		case 'A':
 			opts &= ~OPT_INACTIVE;
 			break;
-		case 'c' :
+		case 'c':
 			if (strcmp(optarg, "c") == 0)
 				outputc = 1;
 			break;
-		case 'E' :
+		case 'E':
 			set_state((u_int)1);
 			break;
-		case 'D' :
+		case 'D':
 			set_state((u_int)0);
 			break;
-		case 'd' :
+		case 'd':
 			opts ^= OPT_DEBUG;
 			break;
-		case 'f' :
+		case 'f':
 			procfile(optarg);
 			break;
-		case 'F' :
+		case 'F':
 			flushfilter(optarg, filter);
 			break;
-		case 'I' :
+		case 'I':
 			opts ^= OPT_INACTIVE;
 			break;
-		case 'l' :
+		case 'l':
 			packetlogon(optarg);
 			break;
-		case 'm' :
+		case 'm':
 			filter = parseipfexpr(optarg, NULL);
 			break;
-		case 'n' :
-			opts ^= OPT_DONOTHING|OPT_DONTOPEN;
+		case 'n':
+			opts ^= OPT_DONOTHING | OPT_DONTOPEN;
 			break;
-		case 'o' :
+		case 'o':
 			break;
-		case 'P' :
+		case 'P':
 			ipfname = IPAUTH_NAME;
 			break;
-		case 'R' :
+		case 'R':
 			opts ^= OPT_NORESOLVE;
 			break;
-		case 'r' :
+		case 'r':
 			opts ^= OPT_REMOVE;
 			break;
-		case 's' :
+		case 's':
 			swapactive();
 			break;
-		case 'T' :
+		case 'T':
 			if (opendevice(ipfname, 1) >= 0)
 				ipf_dotuning(fd, optarg, ioctl);
 			break;
-		case 'v' :
+		case 'v':
 			opts += OPT_VERBOSE;
 			break;
-		case 'V' :
+		case 'V':
 			if (showversion())
 				exit(1);
 			break;
-		case 'y' :
+		case 'y':
 			ipf_frsync();
 			break;
-		case 'z' :
+		case 'z':
 			opts ^= OPT_ZERORULEST;
 			break;
-		case 'Z' :
+		case 'Z':
 			zerostats();
 			break;
 		}
@@ -158,12 +157,11 @@ main(int argc, char *argv[])
 		usage();
 
 	if (fd != -1)
-		(void) close(fd);
+		(void)close(fd);
 
 	return (exitstatus);
 	/* NOTREACHED */
 }
-
 
 static int
 opendevice(char *ipfdev, int check)
@@ -186,14 +184,12 @@ opendevice(char *ipfdev, int check)
 	return (fd);
 }
 
-
 static void
 closedevice(void)
 {
 	close(fd);
 	fd = -1;
 }
-
 
 static int
 get_flags(void)
@@ -208,7 +204,6 @@ get_flags(void)
 	return (i);
 }
 
-
 static void
 set_state(u_int enable)
 {
@@ -216,7 +211,7 @@ set_state(u_int enable)
 		if (ioctl(fd, SIOCFRENB, &enable) == -1) {
 			if (errno == EBUSY) {
 				fprintf(stderr,
-					"IP FIlter: already initialized\n");
+				    "IP FIlter: already initialized\n");
 			} else {
 				ipferror(fd, "SIOCFRENB");
 			}
@@ -225,11 +220,10 @@ set_state(u_int enable)
 	return;
 }
 
-
 static void
 procfile(char *file)
 {
-	(void) opendevice(ipfname, 1);
+	(void)opendevice(ipfname, 1);
 
 	initparse();
 
@@ -242,7 +236,6 @@ procfile(char *file)
 	}
 }
 
-
 static int
 ipf_interceptadd(int fd, ioctlfunc_t ioctlfunc, void *ptr)
 {
@@ -254,19 +247,18 @@ ipf_interceptadd(int fd, ioctlfunc_t ioctlfunc, void *ptr)
 	return (0);
 }
 
-
 static void
 packetlogon(char *opt)
 {
-	int	flag, xfd, logopt, change = 0;
+	int flag, xfd, logopt, change = 0;
 
 	flag = get_flags();
 	if (flag != 0) {
-		if ((opts & (OPT_DONOTHING|OPT_VERBOSE)) == OPT_VERBOSE)
+		if ((opts & (OPT_DONOTHING | OPT_VERBOSE)) == OPT_VERBOSE)
 			printf("log flag is currently %#x\n", flag);
 	}
 
-	flag &= ~(FF_LOGPASS|FF_LOGNOMATCH|FF_LOGBLOCK);
+	flag &= ~(FF_LOGPASS | FF_LOGNOMATCH | FF_LOGBLOCK);
 
 	if (strstr(opt, "pass")) {
 		flag |= FF_LOGPASS;
@@ -298,7 +290,7 @@ packetlogon(char *opt)
 			ipferror(fd, "ioctl(SIOCSETFF)");
 	}
 
-	if ((opts & (OPT_DONOTHING|OPT_VERBOSE)) == OPT_VERBOSE) {
+	if ((opts & (OPT_DONOTHING | OPT_VERBOSE)) == OPT_VERBOSE) {
 		flag = get_flags();
 		printf("log flags are now %#x\n", flag);
 	}
@@ -338,11 +330,10 @@ packetlogon(char *opt)
 	}
 }
 
-
 static void
 flushfilter(char *arg, int *filter)
 {
-	int	fl = 0, rem;
+	int fl = 0, rem;
 
 	if (!arg || !*arg)
 		return;
@@ -362,7 +353,7 @@ flushfilter(char *arg, int *filter)
 		if (!(opts & OPT_DONOTHING)) {
 			if (use_inet6) {
 				fprintf(stderr,
-					"IPv6 rules are no longer separate\n");
+				    "IPv6 rules are no longer separate\n");
 			} else if (filter != NULL) {
 				ipfobj_t obj;
 
@@ -383,10 +374,10 @@ flushfilter(char *arg, int *filter)
 				}
 			}
 		}
-		if ((opts & (OPT_DONOTHING|OPT_DEBUG)) == OPT_DEBUG) {
+		if ((opts & (OPT_DONOTHING | OPT_DEBUG)) == OPT_DEBUG) {
 			printf("remove flags %s (%d)\n", arg, rem);
 		}
-		if ((opts & (OPT_DONOTHING|OPT_VERBOSE)) == OPT_VERBOSE) {
+		if ((opts & (OPT_DONOTHING | OPT_VERBOSE)) == OPT_VERBOSE) {
 			printf("%d state entries removed\n", fl);
 		}
 		closedevice();
@@ -396,7 +387,7 @@ flushfilter(char *arg, int *filter)
 	else if (strchr(arg, 'o') || strchr(arg, 'O'))
 		fl = FR_OUTQUE;
 	else if (strchr(arg, 'a') || strchr(arg, 'A'))
-		fl = FR_OUTQUE|FR_INQUE;
+		fl = FR_OUTQUE | FR_INQUE;
 	else {
 		fprintf(stderr, "Incorrect flush argument: %s\n", arg);
 		usage();
@@ -422,16 +413,15 @@ flushfilter(char *arg, int *filter)
 		}
 	}
 
-	if ((opts & (OPT_DONOTHING|OPT_DEBUG)) == OPT_DEBUG) {
+	if ((opts & (OPT_DONOTHING | OPT_DEBUG)) == OPT_DEBUG) {
 		printf("remove flags %s%s (%d)\n", (rem & FR_INQUE) ? "I" : "",
-			(rem & FR_OUTQUE) ? "O" : "", rem);
+		    (rem & FR_OUTQUE) ? "O" : "", rem);
 	}
-	if ((opts & (OPT_DONOTHING|OPT_VERBOSE)) == OPT_VERBOSE) {
+	if ((opts & (OPT_DONOTHING | OPT_VERBOSE)) == OPT_VERBOSE) {
 		printf("%d filter rules removed\n", fl);
 	}
 	return;
 }
-
 
 static void
 swapactive(void)
@@ -444,7 +434,6 @@ swapactive(void)
 		printf("Set %d now inactive\n", in);
 }
 
-
 void
 ipf_frsync(void)
 {
@@ -456,12 +445,11 @@ ipf_frsync(void)
 		printf("filter sync'd\n");
 }
 
-
 void
 zerostats(void)
 {
-	ipfobj_t	obj;
-	friostat_t	fio;
+	ipfobj_t obj;
+	friostat_t fio;
 
 	obj.ipfo_rev = IPFILTER_VERSION;
 	obj.ipfo_type = IPFOBJ_IPFSTAT;
@@ -476,9 +464,7 @@ zerostats(void)
 		}
 		showstats(&fio);
 	}
-
 }
-
 
 /*
  * read the kernel stats for packets blocked and passed
@@ -486,22 +472,19 @@ zerostats(void)
 static void
 showstats(friostat_t *fp)
 {
-	printf("bad packets:\t\tin %lu\tout %lu\n",
-			fp->f_st[0].fr_bad, fp->f_st[1].fr_bad);
+	printf("bad packets:\t\tin %lu\tout %lu\n", fp->f_st[0].fr_bad,
+	    fp->f_st[1].fr_bad);
 	printf(" input packets:\t\tblocked %lu passed %lu nomatch %lu",
-			fp->f_st[0].fr_block, fp->f_st[0].fr_pass,
-			fp->f_st[0].fr_nom);
+	    fp->f_st[0].fr_block, fp->f_st[0].fr_pass, fp->f_st[0].fr_nom);
 	printf(" counted %lu\n", fp->f_st[0].fr_acct);
 	printf("output packets:\t\tblocked %lu passed %lu nomatch %lu",
-			fp->f_st[1].fr_block, fp->f_st[1].fr_pass,
-			fp->f_st[1].fr_nom);
+	    fp->f_st[1].fr_block, fp->f_st[1].fr_pass, fp->f_st[1].fr_nom);
 	printf(" counted %lu\n", fp->f_st[0].fr_acct);
 	printf(" input packets logged:\tblocked %lu passed %lu\n",
-			fp->f_st[0].fr_bpkl, fp->f_st[0].fr_ppkl);
+	    fp->f_st[0].fr_bpkl, fp->f_st[0].fr_ppkl);
 	printf("output packets logged:\tblocked %lu passed %lu\n",
-			fp->f_st[1].fr_bpkl, fp->f_st[1].fr_ppkl);
+	    fp->f_st[1].fr_bpkl, fp->f_st[1].fr_ppkl);
 }
-
 
 static int
 showversion(void)
@@ -534,7 +517,7 @@ showversion(void)
 	flags = get_flags();
 
 	printf("Kernel: %-*.*s\n", (int)sizeof(fio.f_version),
-		(int)sizeof(fio.f_version), fio.f_version);
+	    (int)sizeof(fio.f_version), fio.f_version);
 	printf("Running: %s\n", (fio.f_running > 0) ? "yes" : "no");
 	printf("Log Flags: %#x = ", flags);
 	s = "";

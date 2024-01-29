@@ -27,6 +27,7 @@
  */
 
 #include <sys/types.h>
+
 #include <stdbool.h>
 #include <syslog.h>
 
@@ -49,19 +50,21 @@ __arc4random_stir_fbsd11(void)
 	static bool warned = false;
 
 	if (!warned)
-		syslog(LOG_DEBUG, "Deprecated function arc4random_stir() called");
+		syslog(LOG_DEBUG,
+		    "Deprecated function arc4random_stir() called");
 	warned = true;
 }
 
 void
-__arc4random_addrandom_fbsd11(u_char * dummy1 __unused, int dummy2 __unused)
+__arc4random_addrandom_fbsd11(u_char *dummy1 __unused, int dummy2 __unused)
 {
 	static bool warned = false;
 
 	if (!warned)
-		syslog(LOG_DEBUG, "Deprecated function arc4random_addrandom() called");
+		syslog(LOG_DEBUG,
+		    "Deprecated function arc4random_addrandom() called");
 	warned = true;
 }
 
-__sym_compat(arc4random_stir, __arc4random_stir_fbsd11, FBSD_1.0);
-__sym_compat(arc4random_addrandom, __arc4random_addrandom_fbsd11, FBSD_1.0);
+__sym_compat(arc4random_stir, __arc4random_stir_fbsd11, FBSD_1 .0);
+__sym_compat(arc4random_addrandom, __arc4random_addrandom_fbsd11, FBSD_1 .0);

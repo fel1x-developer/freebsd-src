@@ -24,10 +24,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_MIRROR_H__
-#define	__AR40XX_HW_MIRROR_H__
+#ifndef __AR40XX_HW_MIRROR_H__
+#define __AR40XX_HW_MIRROR_H__
 
-extern	int ar40xx_hw_mirror_set_registers(struct ar40xx_softc *sc);
+extern int ar40xx_hw_mirror_set_registers(struct ar40xx_softc *sc);
 
-#endif	/* __AR40XX_HW_H__ */
-
+#endif /* __AR40XX_HW_H__ */

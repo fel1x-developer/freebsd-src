@@ -65,19 +65,19 @@ struct uart_devinfo {
 	SLIST_ENTRY(uart_devinfo) next;
 	struct uart_ops *ops;
 	struct uart_bas bas;
-	int	baudrate;
-	int	databits;
-	int	stopbits;
-	int	parity;
-	int	type;
-#define	UART_DEV_CONSOLE	0
-#define	UART_DEV_DBGPORT	1
-#define	UART_DEV_KEYBOARD	2
-	int	(*attach)(struct uart_softc*);
-	int	(*detach)(struct uart_softc*);
-	void	*cookie;		/* Type dependent use. */
+	int baudrate;
+	int databits;
+	int stopbits;
+	int parity;
+	int type;
+#define UART_DEV_CONSOLE 0
+#define UART_DEV_DBGPORT 1
+#define UART_DEV_KEYBOARD 2
+	int (*attach)(struct uart_softc *);
+	int (*detach)(struct uart_softc *);
+	void *cookie; /* Type dependent use. */
 	struct mtx *hwmtx;
-	struct uart_softc *sc;		/* valid only from start of attach */
+	struct uart_softc *sc; /* valid only from start of attach */
 	struct uart_pci_info pci_info;
 };
 

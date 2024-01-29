@@ -25,6 +25,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -32,31 +34,28 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/regulator/regulator.h>
-#include <dev/gpio/gpiobusvar.h>
-
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "audio_dai_if.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{ "simple-audio-amplifier",	1},
-	{ NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "simple-audio-amplifier", 1 },
+	{ NULL, 0 } };
 
 struct simple_amp_softc {
-	device_t	dev;
-	regulator_t	supply_vcc;
-	gpio_pin_t	gpio_enable;
-	bool		gpio_is_valid;
+	device_t dev;
+	regulator_t supply_vcc;
+	gpio_pin_t gpio_enable;
+	bool gpio_is_valid;
 };
 
 static int simple_amp_probe(device_t dev);
@@ -87,8 +86,8 @@ simple_amp_attach(device_t dev)
 	sc->dev = dev;
 	node = ofw_bus_get_node(dev);
 
-	error = gpio_pin_get_by_ofw_property(dev, node,
-	    "enable-gpios", &sc->gpio_enable);
+	error = gpio_pin_get_by_ofw_property(dev, node, "enable-gpios",
+	    &sc->gpio_enable);
 	if (error != 0)
 		sc->gpio_is_valid = false;
 	else
@@ -121,7 +120,7 @@ simple_amp_dai_init(device_t dev, uint32_t format)
 static int
 simple_amp_dai_trigger(device_t dev, int go, int pcm_dir)
 {
-	struct simple_amp_softc	*sc;
+	struct simple_amp_softc *sc;
 	int error;
 
 	if ((pcm_dir != PCMDIR_PLAY) && (pcm_dir != PCMDIR_REC))
@@ -179,12 +178,12 @@ simple_amp_dai_trigger(device_t dev, int go, int pcm_dir)
 
 static device_method_t simple_amp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		simple_amp_probe),
-	DEVMETHOD(device_attach,	simple_amp_attach),
-	DEVMETHOD(device_detach,	simple_amp_detach),
+	DEVMETHOD(device_probe, simple_amp_probe),
+	DEVMETHOD(device_attach, simple_amp_attach),
+	DEVMETHOD(device_detach, simple_amp_detach),
 
-	DEVMETHOD(audio_dai_init,	simple_amp_dai_init),
-	DEVMETHOD(audio_dai_trigger,	simple_amp_dai_trigger),
+	DEVMETHOD(audio_dai_init, simple_amp_dai_init),
+	DEVMETHOD(audio_dai_trigger, simple_amp_dai_trigger),
 
 	DEVMETHOD_END
 };

@@ -36,20 +36,19 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include <string.h>
-
 #include <net/if.h>
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet/in_systm.h>
-
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
 
-#include "stand.h"
+#include <string.h>
+
 #include "net.h"
+#include "stand.h"
 
 /* Caller must leave room for ethernet, ip and udp headers in front!! */
 ssize_t
@@ -60,13 +59,13 @@ sendudp(struct iodesc *d, void *pkt, size_t len)
 	struct udphdr *uh;
 
 #ifdef NET_DEBUG
- 	if (debug) {
+	if (debug) {
 		printf("sendudp: d=%lx called.\n", (long)d);
 		if (d) {
-			printf("saddr: %s:%d",
-			    inet_ntoa(d->myip), ntohs(d->myport));
-			printf(" daddr: %s:%d\n",
-			    inet_ntoa(d->destip), ntohs(d->destport));
+			printf("saddr: %s:%d", inet_ntoa(d->myip),
+			    ntohs(d->myport));
+			printf(" daddr: %s:%d\n", inet_ntoa(d->destip),
+			    ntohs(d->destport));
 		}
 	}
 #endif
@@ -87,7 +86,7 @@ sendudp(struct iodesc *d, void *pkt, size_t len)
 	ui->ui_dst = d->destip;
 
 #ifndef UDP_NO_CKSUM
-	uh->uh_sum = in_cksum(ui, len + sizeof (struct ip));
+	uh->uh_sum = in_cksum(ui, len + sizeof(struct ip));
 #endif
 
 	cc = sendip(d, uh, len, IPPROTO_UDP);
@@ -124,8 +123,8 @@ readudp(struct iodesc *d, void **pkt, void **payload, time_t tleft)
 	if (uh->uh_dport != d->myport) {
 #ifdef NET_DEBUG
 		if (debug)
-			printf("readudp: bad dport %d != %d\n",
-				d->myport, ntohs(uh->uh_dport));
+			printf("readudp: bad dport %d != %d\n", d->myport,
+			    ntohs(uh->uh_dport));
 #endif
 		free(ptr);
 		return (-1);
@@ -160,14 +159,15 @@ readudp(struct iodesc *d, void **pkt, void **payload, time_t tleft)
 #ifdef NET_DEBUG
 		if (debug)
 			printf("readudp: bad udp len %d < %d\n",
-				ntohs(uh->uh_ulen), (int)sizeof(*uh));
+			    ntohs(uh->uh_ulen), (int)sizeof(*uh));
 #endif
 		free(ptr);
 		return (-1);
 	}
 
-	n = (n > (ntohs(uh->uh_ulen) - sizeof(*uh))) ? 
-	    ntohs(uh->uh_ulen) - sizeof(*uh) : n;
+	n = (n > (ntohs(uh->uh_ulen) - sizeof(*uh))) ?
+	    ntohs(uh->uh_ulen) - sizeof(*uh) :
+	    n;
 	*pkt = ptr;
 	*payload = (void *)((uintptr_t)uh + sizeof(*uh));
 	return (n);

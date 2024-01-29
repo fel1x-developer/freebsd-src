@@ -14,11 +14,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ *and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ *without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -44,65 +44,61 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/selinfo.h>
-#include <sys/module.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/bio.h>
-#include <sys/malloc.h>
-#include <sys/uio.h>
-#include <sys/sysctl.h>
 #include <sys/endian.h>
-#include <sys/queue.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/taskqueue.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/pcpu.h> /* XXX for PCPU_GET */
+#include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/sbuf.h>
+#include <sys/selinfo.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/time.h> /* XXX for pcpu.h */
+#include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
 #include <machine/stdarg.h>
+
+#include <dev/nvme/nvme.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/cam_debug.h>
-#include <cam/cam_sim.h>
-#include <cam/cam_xpt_sim.h>
-#include <cam/cam_xpt_periph.h>
 #include <cam/cam_periph.h>
+#include <cam/cam_sim.h>
+#include <cam/cam_xpt_periph.h>
+#include <cam/cam_xpt_sim.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 #include <cam/scsi/smp_all.h>
 
-#include <dev/nvme/nvme.h>
 #include "mpi/mpi30_api.h"
-#include "mpi3mr_cam.h"
 #include "mpi3mr.h"
-#include <sys/time.h>			/* XXX for pcpu.h */
-#include <sys/pcpu.h>			/* XXX for PCPU_GET */
+#include "mpi3mr_cam.h"
 
-#define	smp_processor_id()  PCPU_GET(cpuid)
+#define smp_processor_id() PCPU_GET(cpuid)
 
-static void
-mpi3mr_enqueue_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm);
-static void
-mpi3mr_map_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm);
-void
-mpi3mr_release_simq_reinit(struct mpi3mr_cam_softc *cam_sc);
-static void
-mpi3mr_freeup_events(struct mpi3mr_softc *sc);
+static void mpi3mr_enqueue_request(struct mpi3mr_softc *sc,
+    struct mpi3mr_cmd *cm);
+static void mpi3mr_map_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm);
+void mpi3mr_release_simq_reinit(struct mpi3mr_cam_softc *cam_sc);
+static void mpi3mr_freeup_events(struct mpi3mr_softc *sc);
 
-extern int
-mpi3mr_register_events(struct mpi3mr_softc *sc);
+extern int mpi3mr_register_events(struct mpi3mr_softc *sc);
 extern void mpi3mr_add_sg_single(void *paddr, U8 flags, U32 length,
     bus_addr_t dma_addr);
 
 static U32 event_count;
 
-static void mpi3mr_prepare_sgls(void *arg,
-	bus_dma_segment_t *segs, int nsegs, int error)
+static void
+mpi3mr_prepare_sgls(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
 	struct mpi3mr_softc *sc;
 	struct mpi3mr_cmd *cm;
@@ -119,14 +115,15 @@ static void mpi3mr_prepare_sgls(void *arg,
 	struct mpi3mr_chain *chain_req;
 	Mpi3SCSIIORequest_t *scsiio_req;
 	union ccb *ccb;
-	
+
 	cm = (struct mpi3mr_cmd *)arg;
 	sc = cm->sc;
-	scsiio_req = (Mpi3SCSIIORequest_t *) &cm->io_request;
+	scsiio_req = (Mpi3SCSIIORequest_t *)&cm->io_request;
 	ccb = cm->ccb;
 
 	if (error) {
-		device_printf(sc->mpi3mr_dev, "%s: error=%d\n",__func__, error);
+		device_printf(sc->mpi3mr_dev, "%s: error=%d\n", __func__,
+		    error);
 		if (error == EFBIG) {
 			mpi3mr_set_ccbstatus(ccb, CAM_REQ_TOO_BIG);
 		} else {
@@ -136,7 +133,7 @@ static void mpi3mr_prepare_sgls(void *arg,
 		xpt_done(ccb);
 		return;
 	}
-	
+
 	if (cm->data_dir == MPI3MR_READ)
 		bus_dmamap_sync(sc->buffer_dmat, cm->dmamap,
 		    BUS_DMASYNC_PREREAD);
@@ -145,15 +142,15 @@ static void mpi3mr_prepare_sgls(void *arg,
 		    BUS_DMASYNC_PREWRITE);
 
 	KASSERT(nsegs <= MPI3MR_SG_DEPTH && nsegs > 0,
-	    ("%s: bad SGE count: %d\n", device_get_nameunit(sc->mpi3mr_dev), nsegs));
+	    ("%s: bad SGE count: %d\n", device_get_nameunit(sc->mpi3mr_dev),
+		nsegs));
 	KASSERT(scsiio_req->DataLength != 0,
 	    ("%s: Data segments (%d), but DataLength == 0\n",
 		device_get_nameunit(sc->mpi3mr_dev), nsegs));
 
 	simple_sgl_flags = MPI3_SGE_FLAGS_ELEMENT_TYPE_SIMPLE |
 	    MPI3_SGE_FLAGS_DLAS_SYSTEM;
-	simple_sgl_flags_last = simple_sgl_flags |
-	    MPI3_SGE_FLAGS_END_OF_LIST;
+	simple_sgl_flags_last = simple_sgl_flags | MPI3_SGE_FLAGS_END_OF_LIST;
 	last_chain_sgl_flags = MPI3_SGE_FLAGS_ELEMENT_TYPE_LAST_CHAIN |
 	    MPI3_SGE_FLAGS_DLAS_SYSTEM;
 
@@ -162,20 +159,21 @@ static void mpi3mr_prepare_sgls(void *arg,
 	sges_left = nsegs;
 
 	sges_in_segment = (sc->facts.op_req_sz -
-	    offsetof(Mpi3SCSIIORequest_t, SGL))/sizeof(Mpi3SGESimple_t);
+			      offsetof(Mpi3SCSIIORequest_t, SGL)) /
+	    sizeof(Mpi3SGESimple_t);
 
 	i = 0;
 
-	mpi3mr_dprint(sc, MPI3MR_TRACE, "SGE count: %d IO size: %d\n",
-		nsegs, scsiio_req->DataLength);
+	mpi3mr_dprint(sc, MPI3MR_TRACE, "SGE count: %d IO size: %d\n", nsegs,
+	    scsiio_req->DataLength);
 
 	if (sges_left <= sges_in_segment)
 		goto fill_in_last_segment;
 
 	/* fill in main message segment when there is a chain following */
 	while (sges_in_segment > 1) {
-		mpi3mr_add_sg_single(sg_local, simple_sgl_flags,
-		    segs[i].ds_len, segs[i].ds_addr);
+		mpi3mr_add_sg_single(sg_local, simple_sgl_flags, segs[i].ds_len,
+		    segs[i].ds_addr);
 		sg_local += sizeof(Mpi3SGESimple_t);
 		sges_left--;
 		sges_in_segment--;
@@ -183,24 +181,23 @@ static void mpi3mr_prepare_sgls(void *arg,
 	}
 
 	chain_req = &sc->chain_sgl_list[cm->hosttag];
-	
+
 	chain = chain_req->buf;
 	chain_dma = chain_req->buf_phys;
 	memset(chain_req->buf, 0, PAGE_SIZE);
 	sges_in_segment = sges_left;
 	chain_length = sges_in_segment * sizeof(Mpi3SGESimple_t);
 
-	mpi3mr_add_sg_single(sg_local, last_chain_sgl_flags,
-	    chain_length, chain_dma);
+	mpi3mr_add_sg_single(sg_local, last_chain_sgl_flags, chain_length,
+	    chain_dma);
 
 	sg_local = chain;
 
 fill_in_last_segment:
 	while (sges_left > 0) {
 		if (sges_left == 1)
-			mpi3mr_add_sg_single(sg_local,
-			    simple_sgl_flags_last, segs[i].ds_len,
-			    segs[i].ds_addr);
+			mpi3mr_add_sg_single(sg_local, simple_sgl_flags_last,
+			    segs[i].ds_len, segs[i].ds_addr);
 		else
 			mpi3mr_add_sg_single(sg_local, simple_sgl_flags,
 			    segs[i].ds_len, segs[i].ds_addr);
@@ -232,16 +229,16 @@ mpi3mr_map_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 	if (cm->data != NULL) {
 		mtx_lock(&sc->io_lock);
 		/* Map data buffer into bus space */
-		retcode = bus_dmamap_load_ccb(sc->buffer_dmat, cm->dmamap,
-		    ccb, mpi3mr_prepare_sgls, cm, 0);
+		retcode = bus_dmamap_load_ccb(sc->buffer_dmat, cm->dmamap, ccb,
+		    mpi3mr_prepare_sgls, cm, 0);
 		mtx_unlock(&sc->io_lock);
 		if (retcode != 0 && retcode != EINPROGRESS) {
 			device_printf(sc->mpi3mr_dev,
 			    "bus_dmamap_load(): retcode = %d\n", retcode);
 			/*
 			 * Any other error means prepare_sgls wasn't called, and
-			 * will never be called, so we have to mop up. This error
-			 * should never happen, though.
+			 * will never be called, so we have to mop up. This
+			 * error should never happen, though.
 			 */
 			mpi3mr_set_ccbstatus(ccb, CAM_REQ_CMP_ERR);
 			mpi3mr_release_command(cm);
@@ -260,9 +257,11 @@ mpi3mr_unmap_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd)
 {
 	if (cmd->data != NULL) {
 		if (cmd->data_dir == MPI3MR_READ)
-			bus_dmamap_sync(sc->buffer_dmat, cmd->dmamap, BUS_DMASYNC_POSTREAD);
+			bus_dmamap_sync(sc->buffer_dmat, cmd->dmamap,
+			    BUS_DMASYNC_POSTREAD);
 		if (cmd->data_dir == MPI3MR_WRITE)
-			bus_dmamap_sync(sc->buffer_dmat, cmd->dmamap, BUS_DMASYNC_POSTWRITE);
+			bus_dmamap_sync(sc->buffer_dmat, cmd->dmamap,
+			    BUS_DMASYNC_POSTWRITE);
 		mtx_lock(&sc->io_lock);
 		bus_dmamap_unload(sc->buffer_dmat, cmd->dmamap);
 		mtx_unlock(&sc->io_lock);
@@ -281,16 +280,17 @@ mpi3mr_unmap_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd)
  *
  * Return: TRUE for allowed unmap, FALSE otherwise.
  */
-static bool mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc,
-	union ccb *ccb)
+static bool
+mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc, union ccb *ccb)
 {
 	struct ccb_scsiio *csio;
 	uint16_t param_list_len, block_desc_len, trunc_param_len = 0;
 
 	csio = &ccb->csio;
-	param_list_len = (uint16_t) ((scsiio_cdb_ptr(csio)[7] << 8) | scsiio_cdb_ptr(csio)[8]);
+	param_list_len = (uint16_t)((scsiio_cdb_ptr(csio)[7] << 8) |
+	    scsiio_cdb_ptr(csio)[8]);
 
-	switch(pci_get_revid(sc->mpi3mr_dev)) {
+	switch (pci_get_revid(sc->mpi3mr_dev)) {
 	case SAS4116_CHIP_REV_A0:
 		if (!param_list_len) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
@@ -308,15 +308,14 @@ static bool mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc,
 			    __func__, param_list_len);
 			mpi3mr_print_cdb(ccb);
 			scsi_set_sense_data(&ccb->csio.sense_data,
-				/*sense_format*/ SSD_TYPE_FIXED,
-				/*current_error*/ 1,
-				/*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
-				/*asc*/ 0x1A,
-				/*ascq*/ 0x00,
-				/*extra args*/ SSD_ELEM_NONE);
+			    /*sense_format*/ SSD_TYPE_FIXED,
+			    /*current_error*/ 1,
+			    /*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
+			    /*asc*/ 0x1A,
+			    /*ascq*/ 0x00,
+			    /*extra args*/ SSD_ELEM_NONE);
 			ccb->csio.scsi_status = SCSI_STATUS_CHECK_COND;
-			ccb->ccb_h.status =
-			    CAM_SCSI_STATUS_ERROR |
+			ccb->ccb_h.status = CAM_SCSI_STATUS_ERROR |
 			    CAM_AUTOSNS_VALID;
 			return false;
 		}
@@ -327,21 +326,21 @@ static bool mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc,
 			    __func__, param_list_len, csio->dxfer_len);
 			mpi3mr_print_cdb(ccb);
 			scsi_set_sense_data(&ccb->csio.sense_data,
-				/*sense_format*/ SSD_TYPE_FIXED,
-				/*current_error*/ 1,
-				/*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
-				/*asc*/ 0x1A,
-				/*ascq*/ 0x00,
-				/*extra args*/ SSD_ELEM_NONE);
+			    /*sense_format*/ SSD_TYPE_FIXED,
+			    /*current_error*/ 1,
+			    /*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
+			    /*asc*/ 0x1A,
+			    /*ascq*/ 0x00,
+			    /*extra args*/ SSD_ELEM_NONE);
 			ccb->csio.scsi_status = SCSI_STATUS_CHECK_COND;
-			ccb->ccb_h.status =
-			    CAM_SCSI_STATUS_ERROR |
+			ccb->ccb_h.status = CAM_SCSI_STATUS_ERROR |
 			    CAM_AUTOSNS_VALID;
 			xpt_done(ccb);
 			return false;
 		}
-		
-		block_desc_len = (uint16_t) (csio->data_ptr[2] << 8 | csio->data_ptr[3]);
+
+		block_desc_len = (uint16_t)(csio->data_ptr[2] << 8 |
+		    csio->data_ptr[3]);
 
 		if (block_desc_len < 16) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
@@ -349,15 +348,14 @@ static bool mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc,
 			    __func__, block_desc_len);
 			mpi3mr_print_cdb(ccb);
 			scsi_set_sense_data(&ccb->csio.sense_data,
-				/*sense_format*/ SSD_TYPE_FIXED,
-				/*current_error*/ 1,
-				/*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
-				/*asc*/ 0x26,
-				/*ascq*/ 0x00,
-				/*extra args*/ SSD_ELEM_NONE);
+			    /*sense_format*/ SSD_TYPE_FIXED,
+			    /*current_error*/ 1,
+			    /*sense_key*/ SSD_KEY_ILLEGAL_REQUEST,
+			    /*asc*/ 0x26,
+			    /*ascq*/ 0x00,
+			    /*extra args*/ SSD_ELEM_NONE);
 			ccb->csio.scsi_status = SCSI_STATUS_CHECK_COND;
-			ccb->ccb_h.status =
-			    CAM_SCSI_STATUS_ERROR |
+			ccb->ccb_h.status = CAM_SCSI_STATUS_ERROR |
 			    CAM_AUTOSNS_VALID;
 			xpt_done(ccb);
 			return false;
@@ -401,7 +399,8 @@ static bool mpi3mr_allow_unmap_to_fw(struct mpi3mr_softc *sc,
  *
  * Return: response code string.
  */
-static const char* mpi3mr_tm_response_name(U8 resp_code)
+static const char *
+mpi3mr_tm_response_name(U8 resp_code)
 {
 	char *desc;
 
@@ -441,7 +440,8 @@ static const char* mpi3mr_tm_response_name(U8 resp_code)
 	return desc;
 }
 
-void mpi3mr_poll_pend_io_completions(struct mpi3mr_softc *sc)
+void
+mpi3mr_poll_pend_io_completions(struct mpi3mr_softc *sc)
 {
 	int i;
 	int num_of_reply_queues = sc->num_queues;
@@ -454,10 +454,12 @@ void mpi3mr_poll_pend_io_completions(struct mpi3mr_softc *sc)
 }
 
 void
-trigger_reset_from_watchdog(struct mpi3mr_softc *sc, U8 reset_type, U32 reset_reason)
+trigger_reset_from_watchdog(struct mpi3mr_softc *sc, U8 reset_type,
+    U32 reset_reason)
 {
 	if (sc->reset_in_progress) {
-		mpi3mr_dprint(sc, MPI3MR_INFO, "Another reset is in progress, no need to trigger the reset\n");
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "Another reset is in progress, no need to trigger the reset\n");
 		return;
 	}
 	sc->reset.type = reset_type;
@@ -486,8 +488,8 @@ trigger_reset_from_watchdog(struct mpi3mr_softc *sc, U8 reset_type, U32 reset_re
  * Return: 0 on success, non-zero on errors
  */
 static int
-mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
-		U8 tm_type, unsigned long timeout)
+mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd, U8 tm_type,
+    unsigned long timeout)
 {
 	int retval = 0;
 	MPI3_SCSI_TASK_MGMT_REQUEST tm_req;
@@ -498,36 +500,39 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 	union ccb *ccb;
 	U8 resp_code;
 
-	
 	if (sc->unrecoverable) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"Controller is in unrecoverable state!! TM not required\n");
+		    "Controller is in unrecoverable state!! TM not required\n");
 		return retval;
 	}
 	if (sc->reset_in_progress) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"controller reset in progress!! TM not required\n");
+		    "controller reset in progress!! TM not required\n");
 		return retval;
 	}
-	
+
 	if (!cmd->ccb) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "SCSIIO command timed-out with NULL ccb\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "SCSIIO command timed-out with NULL ccb\n");
 		return retval;
 	}
 	ccb = cmd->ccb;
 
 	tgtdev = cmd->targ;
-	if (tgtdev == NULL)  {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Device does not exist target ID:0x%x,"
-			      "TM is not required\n", ccb->ccb_h.target_id);
+	if (tgtdev == NULL) {
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Device does not exist target ID:0x%x,"
+		    "TM is not required\n",
+		    ccb->ccb_h.target_id);
 		return retval;
 	}
-	if (tgtdev->dev_removed == 1)  {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "Device(0x%x) is removed, TM is not required\n",
-			      ccb->ccb_h.target_id);
+	if (tgtdev->dev_removed == 1) {
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "Device(0x%x) is removed, TM is not required\n",
+		    ccb->ccb_h.target_id);
 		return retval;
 	}
-	
+
 	drv_cmd = &sc->host_tm_cmds;
 	mtx_lock(&drv_cmd->lock);
 
@@ -548,30 +553,30 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 			tm_req.TaskRequestQueueID = htole16(op_req_q->qid);
 		}
 	}
-	
+
 	if (tgtdev)
 		mpi3mr_atomic_inc(&tgtdev->block_io);
 
 	if (tgtdev && (tgtdev->dev_type == MPI3_DEVICE_DEVFORM_PCIE)) {
-		if ((tm_type == MPI3_SCSITASKMGMT_TASKTYPE_ABORT_TASK)
-		     && tgtdev->dev_spec.pcie_inf.abort_to)
- 			timeout = tgtdev->dev_spec.pcie_inf.abort_to;
-		else if ((tm_type == MPI3_SCSITASKMGMT_TASKTYPE_TARGET_RESET)
-			 && tgtdev->dev_spec.pcie_inf.reset_to)
-			 timeout = tgtdev->dev_spec.pcie_inf.reset_to;
+		if ((tm_type == MPI3_SCSITASKMGMT_TASKTYPE_ABORT_TASK) &&
+		    tgtdev->dev_spec.pcie_inf.abort_to)
+			timeout = tgtdev->dev_spec.pcie_inf.abort_to;
+		else if ((tm_type == MPI3_SCSITASKMGMT_TASKTYPE_TARGET_RESET) &&
+		    tgtdev->dev_spec.pcie_inf.reset_to)
+			timeout = tgtdev->dev_spec.pcie_inf.reset_to;
 	}
-	
+
 	sc->tm_chan = (void *)&drv_cmd;
-	
+
 	mpi3mr_dprint(sc, MPI3MR_DEBUG_TM,
-		      "posting task management request: type(%d), handle(0x%04x)\n",
-		       tm_type, tgtdev->dev_handle);
+	    "posting task management request: type(%d), handle(0x%04x)\n",
+	    tm_type, tgtdev->dev_handle);
 
 	init_completion(&drv_cmd->completion);
 	retval = mpi3mr_submit_admin_cmd(sc, &tm_req, sizeof(tm_req));
 	if (retval) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR,
-			      "posting task management request is failed\n");
+		    "posting task management request is failed\n");
 		retval = -1;
 		goto out_unlock;
 	}
@@ -582,12 +587,16 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 		retval = -1;
 		if (!(drv_cmd->state & MPI3MR_CMD_RESET)) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
-				      "task management request timed out after %ld seconds\n", timeout);
+			    "task management request timed out after %ld seconds\n",
+			    timeout);
 			if (sc->mpi3mr_debug & MPI3MR_DEBUG_TM) {
-				mpi3mr_dprint(sc, MPI3MR_INFO, "tm_request dump\n");
+				mpi3mr_dprint(sc, MPI3MR_INFO,
+				    "tm_request dump\n");
 				mpi3mr_hexdump(&tm_req, sizeof(tm_req), 8);
 			}
-			trigger_reset_from_watchdog(sc, MPI3MR_TRIGGER_SOFT_RESET, MPI3MR_RESET_FROM_TM_TIMEOUT);
+			trigger_reset_from_watchdog(sc,
+			    MPI3MR_TRIGGER_SOFT_RESET,
+			    MPI3MR_RESET_FROM_TM_TIMEOUT);
 			retval = ETIMEDOUT;
 		}
 		goto out_unlock;
@@ -595,7 +604,7 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 
 	if (!(drv_cmd->state & MPI3MR_CMD_REPLYVALID)) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR,
-			      "invalid task management reply message\n");
+		    "invalid task management reply message\n");
 		retval = -1;
 		goto out_unlock;
 	}
@@ -610,8 +619,9 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 		break;
 	default:
 		mpi3mr_dprint(sc, MPI3MR_ERROR,
-			      "task management request to handle(0x%04x) is failed with ioc_status(0x%04x) log_info(0x%08x)\n",
-			       tgtdev->dev_handle, drv_cmd->ioc_status, drv_cmd->ioc_loginfo);
+		    "task management request to handle(0x%04x) is failed with ioc_status(0x%04x) log_info(0x%08x)\n",
+		    tgtdev->dev_handle, drv_cmd->ioc_status,
+		    drv_cmd->ioc_loginfo);
 		retval = -1;
 		goto out_unlock;
 	}
@@ -628,12 +638,14 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 		retval = -1;
 		break;
 	}
-	
+
 	mpi3mr_dprint(sc, MPI3MR_DEBUG_TM,
-		      "task management request type(%d) completed for handle(0x%04x) with ioc_status(0x%04x), log_info(0x%08x)"
-		      "termination_count(%u), response:%s(0x%x)\n", tm_type, tgtdev->dev_handle, drv_cmd->ioc_status, drv_cmd->ioc_loginfo,
-		      tm_reply->TerminationCount, mpi3mr_tm_response_name(resp_code), resp_code);
-	
+	    "task management request type(%d) completed for handle(0x%04x) with ioc_status(0x%04x), log_info(0x%08x)"
+	    "termination_count(%u), response:%s(0x%x)\n",
+	    tm_type, tgtdev->dev_handle, drv_cmd->ioc_status,
+	    drv_cmd->ioc_loginfo, tm_reply->TerminationCount,
+	    mpi3mr_tm_response_name(resp_code), resp_code);
+
 	if (retval)
 		goto out_unlock;
 
@@ -646,30 +658,31 @@ mpi3mr_issue_tm(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cmd,
 	case MPI3_SCSITASKMGMT_TASKTYPE_ABORT_TASK:
 		if (cmd->state == MPI3MR_CMD_STATE_IN_TM) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
-				      "%s: task abort returned success from firmware but corresponding CCB (%p) was not terminated"
-				      "marking task abort failed!\n", sc->name, cmd->ccb);
+			    "%s: task abort returned success from firmware but corresponding CCB (%p) was not terminated"
+			    "marking task abort failed!\n",
+			    sc->name, cmd->ccb);
 			retval = -1;
 		}
 		break;
 	case MPI3_SCSITASKMGMT_TASKTYPE_TARGET_RESET:
 		if (mpi3mr_atomic_read(&tgtdev->outstanding)) {
 			mpi3mr_dprint(sc, MPI3MR_ERROR,
-				      "%s: target reset returned success from firmware but IOs are still pending on the target (%p)"
-				      "marking target reset failed!\n",
-				      sc->name, tgtdev);
+			    "%s: target reset returned success from firmware but IOs are still pending on the target (%p)"
+			    "marking target reset failed!\n",
+			    sc->name, tgtdev);
 			retval = -1;
 		}
 		break;
 	default:
 		break;
 	}
-	
+
 out_unlock:
 	drv_cmd->state = MPI3MR_CMD_NOTUSED;
 	mtx_unlock(&drv_cmd->lock);
 	if (tgtdev && mpi3mr_atomic_read(&tgtdev->block_io) > 0)
 		mpi3mr_atomic_dec(&tgtdev->block_io);
-	
+
 	return retval;
 }
 
@@ -683,7 +696,8 @@ out_unlock:
  *
  * Return: SUCCESS of successful abort the SCSI command else FAILED
  */
-static int mpi3mr_task_abort(struct mpi3mr_cmd *cmd)
+static int
+mpi3mr_task_abort(struct mpi3mr_cmd *cmd)
 {
 	int retval = 0;
 	struct mpi3mr_softc *sc;
@@ -692,29 +706,31 @@ static int mpi3mr_task_abort(struct mpi3mr_cmd *cmd)
 	sc = cmd->sc;
 
 	if (!cmd->ccb) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "SCSIIO command timed-out with NULL ccb\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "SCSIIO command timed-out with NULL ccb\n");
 		return retval;
 	}
 	ccb = cmd->ccb;
-	
-	mpi3mr_dprint(sc, MPI3MR_INFO,
-		      "attempting abort task for ccb(%p)\n", ccb);
-	
+
+	mpi3mr_dprint(sc, MPI3MR_INFO, "attempting abort task for ccb(%p)\n",
+	    ccb);
+
 	mpi3mr_print_cdb(ccb);
 
 	if (cmd->state != MPI3MR_CMD_STATE_BUSY) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			      "%s: ccb is not in driver scope, abort task is not required\n",
-			      sc->name);
+		    "%s: ccb is not in driver scope, abort task is not required\n",
+		    sc->name);
 		return retval;
 	}
 	cmd->state = MPI3MR_CMD_STATE_IN_TM;
 
-	retval = mpi3mr_issue_tm(sc, cmd, MPI3_SCSITASKMGMT_TASKTYPE_ABORT_TASK, MPI3MR_ABORTTM_TIMEOUT);
-	
-	mpi3mr_dprint(sc, MPI3MR_INFO,
-		      "abort task is %s for ccb(%p)\n", ((retval == 0) ? "SUCCESS" : "FAILED"), ccb);
-	
+	retval = mpi3mr_issue_tm(sc, cmd, MPI3_SCSITASKMGMT_TASKTYPE_ABORT_TASK,
+	    MPI3MR_ABORTTM_TIMEOUT);
+
+	mpi3mr_dprint(sc, MPI3MR_INFO, "abort task is %s for ccb(%p)\n",
+	    ((retval == 0) ? "SUCCESS" : "FAILED"), ccb);
+
 	return retval;
 }
 
@@ -728,37 +744,40 @@ static int mpi3mr_task_abort(struct mpi3mr_cmd *cmd)
  * Return: SUCCESS of successful termination of the SCSI commands else
  *         FAILED
  */
-static int mpi3mr_target_reset(struct mpi3mr_cmd *cmd)
+static int
+mpi3mr_target_reset(struct mpi3mr_cmd *cmd)
 {
 	int retval = 0;
 	struct mpi3mr_softc *sc;
 	struct mpi3mr_target *target;
 
 	sc = cmd->sc;
-	
+
 	target = cmd->targ;
-	if (target == NULL)  {
-		mpi3mr_dprint(sc, MPI3MR_XINFO, "Device does not exist for target:0x%p,"
-			      "target reset is not required\n", target);
+	if (target == NULL) {
+		mpi3mr_dprint(sc, MPI3MR_XINFO,
+		    "Device does not exist for target:0x%p,"
+		    "target reset is not required\n",
+		    target);
 		return retval;
 	}
-	
-	mpi3mr_dprint(sc, MPI3MR_INFO,
-		      "attempting target reset on target(%d)\n", target->per_id);
 
-	
+	mpi3mr_dprint(sc, MPI3MR_INFO,
+	    "attempting target reset on target(%d)\n", target->per_id);
+
 	if (mpi3mr_atomic_read(&target->outstanding)) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			      "no outstanding IOs on the target(%d),"
-			      " target reset not required.\n", target->per_id);
+		    "no outstanding IOs on the target(%d),"
+		    " target reset not required.\n",
+		    target->per_id);
 		return retval;
 	}
-	
-	retval = mpi3mr_issue_tm(sc, cmd, MPI3_SCSITASKMGMT_TASKTYPE_TARGET_RESET, MPI3MR_RESETTM_TIMEOUT);
 
-	mpi3mr_dprint(sc, MPI3MR_INFO,
-		      "target reset is %s for target(%d)\n", ((retval == 0) ? "SUCCESS" : "FAILED"),
-		      target->per_id);
+	retval = mpi3mr_issue_tm(sc, cmd,
+	    MPI3_SCSITASKMGMT_TASKTYPE_TARGET_RESET, MPI3MR_RESETTM_TIMEOUT);
+
+	mpi3mr_dprint(sc, MPI3MR_INFO, "target reset is %s for target(%d)\n",
+	    ((retval == 0) ? "SUCCESS" : "FAILED"), target->per_id);
 
 	return retval;
 }
@@ -771,7 +790,8 @@ static int mpi3mr_target_reset(struct mpi3mr_cmd *cmd)
  *
  * Return: Number of pending I/Os
  */
-static inline int mpi3mr_get_fw_pending_ios(struct mpi3mr_softc *sc)
+static inline int
+mpi3mr_get_fw_pending_ios(struct mpi3mr_softc *sc)
 {
 	U16 i, pend_ios = 0;
 
@@ -790,41 +810,48 @@ static inline int mpi3mr_get_fw_pending_ios(struct mpi3mr_softc *sc)
  *
  * Return: Nothing
  */
-static int mpi3mr_wait_for_host_io(struct mpi3mr_softc *sc, U32 timeout)
+static int
+mpi3mr_wait_for_host_io(struct mpi3mr_softc *sc, U32 timeout)
 {
 	enum mpi3mr_iocstate iocstate;
 
 	iocstate = mpi3mr_get_iocstate(sc);
 	if (iocstate != MRIOC_STATE_READY) {
-		mpi3mr_dprint(sc, MPI3MR_XINFO, "%s :Controller is in NON-READY state! Proceed with Reset\n", __func__);
+		mpi3mr_dprint(sc, MPI3MR_XINFO,
+		    "%s :Controller is in NON-READY state! Proceed with Reset\n",
+		    __func__);
 		return -1;
 	}
 
 	if (!mpi3mr_get_fw_pending_ios(sc))
 		return 0;
-	
+
 	mpi3mr_dprint(sc, MPI3MR_INFO,
-		      "%s :Waiting for %d seconds prior to reset for %d pending I/Os to complete\n",
-		      __func__, timeout, mpi3mr_get_fw_pending_ios(sc));
+	    "%s :Waiting for %d seconds prior to reset for %d pending I/Os to complete\n",
+	    __func__, timeout, mpi3mr_get_fw_pending_ios(sc));
 
 	int i;
 	for (i = 0; i < timeout; i++) {
 		if (!mpi3mr_get_fw_pending_ios(sc)) {
-			mpi3mr_dprint(sc, MPI3MR_INFO, "%s :All pending I/Os got completed while waiting! Reset not required\n", __func__);
+			mpi3mr_dprint(sc, MPI3MR_INFO,
+			    "%s :All pending I/Os got completed while waiting! Reset not required\n",
+			    __func__);
 			return 0;
-			
 		}
 		iocstate = mpi3mr_get_iocstate(sc);
 		if (iocstate != MRIOC_STATE_READY) {
-			mpi3mr_dprint(sc, MPI3MR_XINFO, "%s :Controller state becomes NON-READY while waiting! dont wait further"
-				      "Proceed with Reset\n", __func__);
+			mpi3mr_dprint(sc, MPI3MR_XINFO,
+			    "%s :Controller state becomes NON-READY while waiting! dont wait further"
+			    "Proceed with Reset\n",
+			    __func__);
 			return -1;
 		}
 		DELAY(1000 * 1000);
 	}
 
-	mpi3mr_dprint(sc, MPI3MR_INFO, "%s :Pending I/Os after wait exaust is %d! Proceed with Reset\n", __func__,
-		      mpi3mr_get_fw_pending_ios(sc));
+	mpi3mr_dprint(sc, MPI3MR_INFO,
+	    "%s :Pending I/Os after wait exaust is %d! Proceed with Reset\n",
+	    __func__, mpi3mr_get_fw_pending_ios(sc));
 
 	return -1;
 }
@@ -844,26 +871,31 @@ mpi3mr_scsiio_timeout(void *data)
 	sc = cmd->sc;
 
 	if (cmd->ccb == NULL) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "SCSIIO command timed-out with NULL ccb\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "SCSIIO command timed-out with NULL ccb\n");
 		return;
 	}
 
 	/*
-	 * TMs are not supported for IO timeouts on VD/LD, so directly issue controller reset
-	 * with max timeout for outstanding IOs to complete is 180sec.
+	 * TMs are not supported for IO timeouts on VD/LD, so directly issue
+	 * controller reset with max timeout for outstanding IOs to complete is
+	 * 180sec.
 	 */
 	targ_dev = cmd->targ;
 	if (targ_dev && (targ_dev->dev_type == MPI3_DEVICE_DEVFORM_VD)) {
-		if (mpi3mr_wait_for_host_io(sc, MPI3MR_RAID_ERRREC_RESET_TIMEOUT))
-			trigger_reset_from_watchdog(sc, MPI3MR_TRIGGER_SOFT_RESET, MPI3MR_RESET_FROM_SCSIIO_TIMEOUT);
+		if (mpi3mr_wait_for_host_io(sc,
+			MPI3MR_RAID_ERRREC_RESET_TIMEOUT))
+			trigger_reset_from_watchdog(sc,
+			    MPI3MR_TRIGGER_SOFT_RESET,
+			    MPI3MR_RESET_FROM_SCSIIO_TIMEOUT);
 		return;
- 	}
-	
+	}
+
 	/* Issue task abort to recover the timed out IO */
 	retval = mpi3mr_task_abort(cmd);
 	if (!retval || (retval == ETIMEDOUT))
 		return;
-	
+
 	/*
 	 * task abort has failed to recover the timed out IO,
 	 * try with the target reset
@@ -873,40 +905,44 @@ mpi3mr_scsiio_timeout(void *data)
 		return;
 
 	/*
-	 * task abort and target reset has failed. So issue Controller reset(soft reset)
-	 * through OCR thread context
+	 * task abort and target reset has failed. So issue Controller
+	 * reset(soft reset) through OCR thread context
 	 */
-	trigger_reset_from_watchdog(sc, MPI3MR_TRIGGER_SOFT_RESET, MPI3MR_RESET_FROM_SCSIIO_TIMEOUT);
+	trigger_reset_from_watchdog(sc, MPI3MR_TRIGGER_SOFT_RESET,
+	    MPI3MR_RESET_FROM_SCSIIO_TIMEOUT);
 
 	return;
 }
 
-void int_to_lun(unsigned int lun, U8 *req_lun)
+void
+int_to_lun(unsigned int lun, U8 *req_lun)
 {
 	int i;
-	
+
 	memset(req_lun, 0, sizeof(*req_lun));
 
 	for (i = 0; i < sizeof(lun); i += 2) {
 		req_lun[i] = (lun >> 8) & 0xFF;
-		req_lun[i+1] = lun & 0xFF;
+		req_lun[i + 1] = lun & 0xFF;
 		lun = lun >> 16;
 	}
-
 }
 
-static U16 get_req_queue_index(struct mpi3mr_softc *sc)
+static U16
+get_req_queue_index(struct mpi3mr_softc *sc)
 {
 	U16 i = 0, reply_q_index = 0, reply_q_pend_ios = 0;
-	
+
 	reply_q_pend_ios = mpi3mr_atomic_read(&sc->op_reply_q[0].pend_ios);
 	for (i = 0; i < sc->num_queues; i++) {
-		if (reply_q_pend_ios > mpi3mr_atomic_read(&sc->op_reply_q[i].pend_ios)) {
-			reply_q_pend_ios = mpi3mr_atomic_read(&sc->op_reply_q[i].pend_ios);
+		if (reply_q_pend_ios >
+		    mpi3mr_atomic_read(&sc->op_reply_q[i].pend_ios)) {
+			reply_q_pend_ios = mpi3mr_atomic_read(
+			    &sc->op_reply_q[i].pend_ios);
 			reply_q_index = i;
 		}
 	}
-	
+
 	return reply_q_index;
 }
 
@@ -923,7 +959,7 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 
 	sc = cam_sc->sc;
 	mtx_assert(&sc->mpi3mr_mtx, MA_OWNED);
-	
+
 	if (sc->unrecoverable) {
 		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 		xpt_done(ccb);
@@ -933,54 +969,60 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 	csio = &ccb->csio;
 	KASSERT(csio->ccb_h.target_id < cam_sc->maxtargets,
 	    ("Target %d out of bounds in XPT_SCSI_IO\n",
-	     csio->ccb_h.target_id));
-	
+		csio->ccb_h.target_id));
+
 	scsi_opcode = scsiio_cdb_ptr(csio)[0];
-	
+
 	if ((sc->mpi3mr_flags & MPI3MR_FLAGS_SHUTDOWN) &&
 	    !((scsi_opcode == SYNCHRONIZE_CACHE) ||
-	      (scsi_opcode == START_STOP_UNIT))) {
+		(scsi_opcode == START_STOP_UNIT))) {
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_CMP);
 		xpt_done(ccb);
 		return;
 	}
 
 	targ = mpi3mr_find_target_by_per_id(cam_sc, csio->ccb_h.target_id);
-	if (targ == NULL)  {
-		mpi3mr_dprint(sc, MPI3MR_XINFO, "Device with target ID: 0x%x does not exist\n",
-			      csio->ccb_h.target_id);
-		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
-		xpt_done(ccb);
-		return;
-	}
-	
-	if (targ && targ->is_hidden)  {
-		mpi3mr_dprint(sc, MPI3MR_XINFO, "Device with target ID: 0x%x is hidden\n",
-			      csio->ccb_h.target_id);
+	if (targ == NULL) {
+		mpi3mr_dprint(sc, MPI3MR_XINFO,
+		    "Device with target ID: 0x%x does not exist\n",
+		    csio->ccb_h.target_id);
 		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 		xpt_done(ccb);
 		return;
 	}
 
-	if (targ->dev_removed == 1)  {
-		mpi3mr_dprint(sc, MPI3MR_XINFO, "Device with target ID: 0x%x is removed\n", csio->ccb_h.target_id);
+	if (targ && targ->is_hidden) {
+		mpi3mr_dprint(sc, MPI3MR_XINFO,
+		    "Device with target ID: 0x%x is hidden\n",
+		    csio->ccb_h.target_id);
+		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
+		xpt_done(ccb);
+		return;
+	}
+
+	if (targ->dev_removed == 1) {
+		mpi3mr_dprint(sc, MPI3MR_XINFO,
+		    "Device with target ID: 0x%x is removed\n",
+		    csio->ccb_h.target_id);
 		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 		xpt_done(ccb);
 		return;
 	}
 
 	if (targ->dev_handle == 0x0) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "%s NULL handle for target 0x%x\n",
-		    __func__, csio->ccb_h.target_id);
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "%s NULL handle for target 0x%x\n", __func__,
+		    csio->ccb_h.target_id);
 		mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 		xpt_done(ccb);
 		return;
 	}
 
 	if (mpi3mr_atomic_read(&targ->block_io) ||
-		(sc->reset_in_progress == 1) || (sc->prepare_for_reset == 1)) {
-		mpi3mr_dprint(sc, MPI3MR_TRACE, "%s target is busy target_id: 0x%x\n",
-		    __func__, csio->ccb_h.target_id);
+	    (sc->reset_in_progress == 1) || (sc->prepare_for_reset == 1)) {
+		mpi3mr_dprint(sc, MPI3MR_TRACE,
+		    "%s target is busy target_id: 0x%x\n", __func__,
+		    csio->ccb_h.target_id);
 		mpi3mr_set_ccbstatus(ccb, CAM_REQUEUE_REQ);
 		xpt_done(ccb);
 		return;
@@ -992,8 +1034,10 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 	 * this here and complete the command without error.
 	 */
 	if (mpi3mr_get_ccbstatus(ccb) != CAM_REQ_INPROG) {
-		mpi3mr_dprint(sc, MPI3MR_TRACE, "%s Command is not in progress for "
-		    "target %u\n", __func__, csio->ccb_h.target_id);
+		mpi3mr_dprint(sc, MPI3MR_TRACE,
+		    "%s Command is not in progress for "
+		    "target %u\n",
+		    __func__, csio->ccb_h.target_id);
 		xpt_done(ccb);
 		return;
 	}
@@ -1012,9 +1056,9 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 	}
 
 	if ((scsi_opcode == UNMAP) &&
-		(pci_get_device(sc->mpi3mr_dev) == MPI3_MFGPAGE_DEVID_SAS4116) &&
-		(targ->dev_type == MPI3_DEVICE_DEVFORM_PCIE) &&
-		(mpi3mr_allow_unmap_to_fw(sc, ccb) == false))
+	    (pci_get_device(sc->mpi3mr_dev) == MPI3_MFGPAGE_DEVID_SAS4116) &&
+	    (targ->dev_type == MPI3_DEVICE_DEVFORM_PCIE) &&
+	    (mpi3mr_allow_unmap_to_fw(sc, ccb) == false))
 		return;
 
 	cm = mpi3mr_get_command(sc);
@@ -1086,8 +1130,10 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 	else {
 		KASSERT(csio->cdb_len <= IOCDBLEN,
 		    ("cdb_len %d is greater than IOCDBLEN but CAM_CDB_POINTER "
-		    "is not set", csio->cdb_len));
-		bcopy(csio->cdb_io.cdb_bytes, &req->CDB.CDB32[0],csio->cdb_len);
+		     "is not set",
+			csio->cdb_len));
+		bcopy(csio->cdb_io.cdb_bytes, &req->CDB.CDB32[0],
+		    csio->cdb_len);
 	}
 
 	cm->length = csio->dxfer_len;
@@ -1097,22 +1143,24 @@ mpi3mr_action_scsiio(struct mpi3mr_cam_softc *cam_sc, union ccb *ccb)
 	csio->ccb_h.qos.sim_data = sbinuptime();
 	queue_idx = get_req_queue_index(sc);
 	cm->req_qidx = queue_idx;
-	
-	mpi3mr_dprint(sc, MPI3MR_TRACE, "[QID:%d]: func: %s line:%d CDB: 0x%x targetid: %x SMID: 0x%x\n",
-		(queue_idx + 1), __func__, __LINE__, scsi_opcode, csio->ccb_h.target_id, cm->hosttag);
+
+	mpi3mr_dprint(sc, MPI3MR_TRACE,
+	    "[QID:%d]: func: %s line:%d CDB: 0x%x targetid: %x SMID: 0x%x\n",
+	    (queue_idx + 1), __func__, __LINE__, scsi_opcode,
+	    csio->ccb_h.target_id, cm->hosttag);
 
 	switch ((ccb->ccb_h.flags & CAM_DATA_MASK)) {
 	case CAM_DATA_PADDR:
 	case CAM_DATA_SG_PADDR:
-		device_printf(sc->mpi3mr_dev, "%s: physical addresses not supported\n",
-		    __func__);
+		device_printf(sc->mpi3mr_dev,
+		    "%s: physical addresses not supported\n", __func__);
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_INVALID);
 		mpi3mr_release_command(cm);
 		xpt_done(ccb);
 		return;
 	case CAM_DATA_SG:
-		device_printf(sc->mpi3mr_dev, "%s: scatter gather is not supported\n",
-		    __func__);
+		device_printf(sc->mpi3mr_dev,
+		    "%s: scatter gather is not supported\n", __func__);
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_INVALID);
 		mpi3mr_release_command(cm);
 		xpt_done(ccb);
@@ -1163,38 +1211,45 @@ mpi3mr_enqueue_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 			tracked_io_sz = data_len_blks;
 			tg = targ->throttle_group;
 			if (tg) {
-				mpi3mr_atomic_add(&sc->pend_large_data_sz, data_len_blks);
-				mpi3mr_atomic_add(&tg->pend_large_data_sz, data_len_blks);
-				
-				ioc_pend_data_len = mpi3mr_atomic_read(&sc->pend_large_data_sz);
-				tg_pend_data_len = mpi3mr_atomic_read(&tg->pend_large_data_sz);
+				mpi3mr_atomic_add(&sc->pend_large_data_sz,
+				    data_len_blks);
+				mpi3mr_atomic_add(&tg->pend_large_data_sz,
+				    data_len_blks);
+
+				ioc_pend_data_len = mpi3mr_atomic_read(
+				    &sc->pend_large_data_sz);
+				tg_pend_data_len = mpi3mr_atomic_read(
+				    &tg->pend_large_data_sz);
 
 				if (ratelimit % 1000) {
 					mpi3mr_dprint(sc, MPI3MR_IOT,
-						"large vd_io persist_id(%d), handle(0x%04x), data_len(%d),"
-						"ioc_pending(%d), tg_pending(%d), ioc_high(%d), tg_high(%d)\n",
-						targ->per_id, targ->dev_handle,
-						data_len_blks, ioc_pend_data_len,
-						tg_pend_data_len, sc->io_throttle_high,
-						tg->high);
+					    "large vd_io persist_id(%d), handle(0x%04x), data_len(%d),"
+					    "ioc_pending(%d), tg_pending(%d), ioc_high(%d), tg_high(%d)\n",
+					    targ->per_id, targ->dev_handle,
+					    data_len_blks, ioc_pend_data_len,
+					    tg_pend_data_len,
+					    sc->io_throttle_high, tg->high);
 					ratelimit++;
 				}
 
-				if (!tg->io_divert  && ((ioc_pend_data_len >=
-				    sc->io_throttle_high) ||
-				    (tg_pend_data_len >= tg->high))) {
+				if (!tg->io_divert &&
+				    ((ioc_pend_data_len >=
+					 sc->io_throttle_high) ||
+					(tg_pend_data_len >= tg->high))) {
 					tg->io_divert = 1;
 					mpi3mr_dprint(sc, MPI3MR_IOT,
-						"VD: Setting divert flag for tg_id(%d), persist_id(%d)\n",
-						tg->id, targ->per_id);
+					    "VD: Setting divert flag for tg_id(%d), persist_id(%d)\n",
+					    tg->id, targ->per_id);
 					if (sc->mpi3mr_debug | MPI3MR_IOT)
 						mpi3mr_print_cdb(ccb);
-					mpi3mr_set_io_divert_for_all_vd_in_tg(sc,
-					    tg, 1);
+					mpi3mr_set_io_divert_for_all_vd_in_tg(
+					    sc, tg, 1);
 				}
 			} else {
-				mpi3mr_atomic_add(&sc->pend_large_data_sz, data_len_blks);
-				ioc_pend_data_len = mpi3mr_atomic_read(&sc->pend_large_data_sz);
+				mpi3mr_atomic_add(&sc->pend_large_data_sz,
+				    data_len_blks);
+				ioc_pend_data_len = mpi3mr_atomic_read(
+				    &sc->pend_large_data_sz);
 				if (ratelimit % 1000) {
 					mpi3mr_dprint(sc, MPI3MR_IOT,
 					    "large pd_io persist_id(%d), handle(0x%04x), data_len(%d), ioc_pending(%d), ioc_high(%d)\n",
@@ -1207,8 +1262,8 @@ mpi3mr_enqueue_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 				if (ioc_pend_data_len >= sc->io_throttle_high) {
 					targ->io_divert = 1;
 					mpi3mr_dprint(sc, MPI3MR_IOT,
-						"PD: Setting divert flag for persist_id(%d)\n",
-						targ->per_id);
+					    "PD: Setting divert flag for persist_id(%d)\n",
+					    targ->per_id);
 					if (sc->mpi3mr_debug | MPI3MR_IOT)
 						mpi3mr_print_cdb(ccb);
 				}
@@ -1216,16 +1271,20 @@ mpi3mr_enqueue_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 		}
 
 		if (targ->io_divert) {
-			req->MsgFlags |= MPI3_SCSIIO_MSGFLAGS_DIVERT_TO_FIRMWARE;
-			req->Flags = htole32(le32toh(req->Flags) | MPI3_SCSIIO_FLAGS_DIVERT_REASON_IO_THROTTLING);
+			req->MsgFlags |=
+			    MPI3_SCSIIO_MSGFLAGS_DIVERT_TO_FIRMWARE;
+			req->Flags = htole32(le32toh(req->Flags) |
+			    MPI3_SCSIIO_FLAGS_DIVERT_REASON_IO_THROTTLING);
 		}
 	}
 
 	if (mpi3mr_submit_io(sc, opreqq, (U8 *)&cm->io_request)) {
 		if (tracked_io_sz) {
-			mpi3mr_atomic_sub(&sc->pend_large_data_sz, tracked_io_sz);
+			mpi3mr_atomic_sub(&sc->pend_large_data_sz,
+			    tracked_io_sz);
 			if (tg)
-				mpi3mr_atomic_sub(&tg->pend_large_data_sz, tracked_io_sz);
+				mpi3mr_atomic_sub(&tg->pend_large_data_sz,
+				    tracked_io_sz);
 		}
 		mpi3mr_set_ccbstatus(ccb, CAM_RESRC_UNAVAIL);
 		mpi3mr_release_command(cm);
@@ -1236,7 +1295,8 @@ mpi3mr_enqueue_request(struct mpi3mr_softc *sc, struct mpi3mr_cmd *cm)
 		cm->callout_owner = true;
 		mpi3mr_atomic_inc(&sc->fw_outstanding);
 		mpi3mr_atomic_inc(&targ->outstanding);
-		if (mpi3mr_atomic_read(&sc->fw_outstanding) > sc->io_cmds_highwater)
+		if (mpi3mr_atomic_read(&sc->fw_outstanding) >
+		    sc->io_cmds_highwater)
 			sc->io_cmds_highwater++;
 	}
 
@@ -1255,7 +1315,7 @@ mpi3mr_cam_poll(struct cam_sim *sim)
 	sc = cam_sc->sc;
 
 	mpi3mr_dprint(cam_sc->sc, MPI3MR_TRACE, "func: %s line: %d is called\n",
-		__func__, __LINE__);
+	    __func__, __LINE__);
 
 	for (i = 0; i < sc->num_queues; i++) {
 		irq_ctx = sc->irq_ctx + i;
@@ -1273,18 +1333,18 @@ mpi3mr_cam_action(struct cam_sim *sim, union ccb *ccb)
 
 	cam_sc = cam_sim_softc(sim);
 
-	mpi3mr_dprint(cam_sc->sc, MPI3MR_TRACE, "ccb func_code 0x%x target id: 0x%x\n",
-	    ccb->ccb_h.func_code, ccb->ccb_h.target_id);
+	mpi3mr_dprint(cam_sc->sc, MPI3MR_TRACE,
+	    "ccb func_code 0x%x target id: 0x%x\n", ccb->ccb_h.func_code,
+	    ccb->ccb_h.target_id);
 
 	mtx_assert(&cam_sc->sc->mpi3mr_mtx, MA_OWNED);
 
 	switch (ccb->ccb_h.func_code) {
-	case XPT_PATH_INQ:
-	{
+	case XPT_PATH_INQ: {
 		struct ccb_pathinq *cpi = &ccb->cpi;
 
 		cpi->version_num = 1;
-		cpi->hba_inquiry = PI_SDTR_ABLE|PI_TAG_ABLE|PI_WIDE_16;
+		cpi->hba_inquiry = PI_SDTR_ABLE | PI_TAG_ABLE | PI_WIDE_16;
 		cpi->target_sprt = 0;
 		cpi->hba_misc = PIM_NOBUSRESET | PIM_UNMAPPED | PIM_NOSCAN;
 		cpi->hba_eng_cnt = 0;
@@ -1311,27 +1371,27 @@ mpi3mr_cam_action(struct cam_sim *sim, union ccb *ccb)
 		cpi->protocol = PROTO_SCSI;
 		cpi->protocol_version = SCSI_REV_SPC;
 
-		targ = mpi3mr_find_target_by_per_id(cam_sc, ccb->ccb_h.target_id);
+		targ = mpi3mr_find_target_by_per_id(cam_sc,
+		    ccb->ccb_h.target_id);
 
 		if (targ && (targ->dev_type == MPI3_DEVICE_DEVFORM_PCIE) &&
 		    ((targ->dev_spec.pcie_inf.dev_info &
-		    MPI3_DEVICE0_PCIE_DEVICE_INFO_TYPE_MASK) ==
-		    MPI3_DEVICE0_PCIE_DEVICE_INFO_TYPE_NVME_DEVICE)) {
+			 MPI3_DEVICE0_PCIE_DEVICE_INFO_TYPE_MASK) ==
+			MPI3_DEVICE0_PCIE_DEVICE_INFO_TYPE_NVME_DEVICE)) {
 			cpi->maxio = targ->dev_spec.pcie_inf.mdts;
 			mpi3mr_dprint(cam_sc->sc, MPI3MR_XINFO,
-				"PCI device target_id: %u max io size: %u\n",
-				ccb->ccb_h.target_id, cpi->maxio);
+			    "PCI device target_id: %u max io size: %u\n",
+			    ccb->ccb_h.target_id, cpi->maxio);
 		} else {
 			cpi->maxio = PAGE_SIZE * (MPI3MR_SG_DEPTH - 1);
 		}
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_CMP);
 		break;
 	}
-	case XPT_GET_TRAN_SETTINGS:
-	{
-		struct ccb_trans_settings	*cts;
-		struct ccb_trans_settings_sas	*sas;
-		struct ccb_trans_settings_scsi	*scsi;
+	case XPT_GET_TRAN_SETTINGS: {
+		struct ccb_trans_settings *cts;
+		struct ccb_trans_settings_sas *sas;
+		struct ccb_trans_settings_scsi *scsi;
 
 		cts = &ccb->cts;
 		sas = &cts->xport_specific.sas;
@@ -1339,17 +1399,19 @@ mpi3mr_cam_action(struct cam_sim *sim, union ccb *ccb)
 
 		KASSERT(cts->ccb_h.target_id < cam_sc->maxtargets,
 		    ("Target %d out of bounds in XPT_GET_TRAN_SETTINGS\n",
-		    cts->ccb_h.target_id));
-		targ = mpi3mr_find_target_by_per_id(cam_sc, cts->ccb_h.target_id);
-		
+			cts->ccb_h.target_id));
+		targ = mpi3mr_find_target_by_per_id(cam_sc,
+		    cts->ccb_h.target_id);
+
 		if (targ == NULL) {
-			mpi3mr_dprint(cam_sc->sc, MPI3MR_TRACE, "Device with target ID: 0x%x does not exist\n",
-			cts->ccb_h.target_id);
+			mpi3mr_dprint(cam_sc->sc, MPI3MR_TRACE,
+			    "Device with target ID: 0x%x does not exist\n",
+			    cts->ccb_h.target_id);
 			mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 			break;
 		}
 
-		if ((targ->dev_handle == 0x0) || (targ->dev_removed == 1))  {
+		if ((targ->dev_handle == 0x0) || (targ->dev_removed == 1)) {
 			mpi3mr_set_ccbstatus(ccb, CAM_DEV_NOT_THERE);
 			break;
 		}
@@ -1359,7 +1421,7 @@ mpi3mr_cam_action(struct cam_sim *sim, union ccb *ccb)
 		cts->transport_version = 0;
 
 		sas->valid = CTS_SAS_VALID_SPEED;
-		
+
 		switch (targ->link_rate) {
 		case 0x08:
 			sas->bitrate = 150000;
@@ -1385,17 +1447,19 @@ mpi3mr_cam_action(struct cam_sim *sim, union ccb *ccb)
 		break;
 	}
 	case XPT_CALC_GEOMETRY:
-		cam_calc_geometry(&ccb->ccg, /*extended*/1);
+		cam_calc_geometry(&ccb->ccg, /*extended*/ 1);
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_CMP);
 		break;
 	case XPT_RESET_DEV:
-		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO, "mpi3mr_action "
+		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO,
+		    "mpi3mr_action "
 		    "XPT_RESET_DEV\n");
 		return;
 	case XPT_RESET_BUS:
 	case XPT_ABORT:
 	case XPT_TERM_IO:
-		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO, "mpi3mr_action faking success "
+		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO,
+		    "mpi3mr_action faking success "
 		    "for abort or reset\n");
 		mpi3mr_set_ccbstatus(ccb, CAM_REQ_CMP);
 		break;
@@ -1419,8 +1483,8 @@ mpi3mr_startup_increment(struct mpi3mr_cam_softc *cam_sc)
 			    "%s freezing simq\n", __func__);
 			xpt_hold_boot();
 		}
-		mpi3mr_dprint(cam_sc->sc, MPI3MR_XINFO, "%s refcount %u\n", __func__,
-		    cam_sc->startup_refcount);
+		mpi3mr_dprint(cam_sc->sc, MPI3MR_XINFO, "%s refcount %u\n",
+		    __func__, cam_sc->startup_refcount);
 	}
 }
 
@@ -1430,7 +1494,8 @@ mpi3mr_release_simq_reinit(struct mpi3mr_cam_softc *cam_sc)
 	if (cam_sc->flags & MPI3MRSAS_QUEUE_FROZEN) {
 		cam_sc->flags &= ~MPI3MRSAS_QUEUE_FROZEN;
 		xpt_release_simq(cam_sc->sim, 1);
-		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO, "Unfreezing SIM queue\n");
+		mpi3mr_dprint(cam_sc->sc, MPI3MR_INFO,
+		    "Unfreezing SIM queue\n");
 	}
 }
 
@@ -1453,13 +1518,15 @@ mpi3mr_rescan_target(struct mpi3mr_softc *sc, struct mpi3mr_target *targ)
 	 */
 	ccb = xpt_alloc_ccb_nowait();
 	if (ccb == NULL) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "unable to alloc CCB for rescan\n");
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "unable to alloc CCB for rescan\n");
 		return;
 	}
 
 	if (xpt_create_path(&ccb->ccb_h.path, NULL, pathid, targetid,
-	    CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
-		mpi3mr_dprint(sc, MPI3MR_ERROR, "unable to create path for rescan\n");
+		CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+		mpi3mr_dprint(sc, MPI3MR_ERROR,
+		    "unable to create path for rescan\n");
 		xpt_free_ccb(ccb);
 		return;
 	}
@@ -1469,7 +1536,8 @@ mpi3mr_rescan_target(struct mpi3mr_softc *sc, struct mpi3mr_target *targ)
 	else
 		ccb->ccb_h.func_code = XPT_SCAN_TGT;
 
-	mpi3mr_dprint(sc, MPI3MR_EVENT, "%s target id 0x%x\n", __func__, targetid);
+	mpi3mr_dprint(sc, MPI3MR_EVENT, "%s target id 0x%x\n", __func__,
+	    targetid);
 	xpt_rescan(ccb);
 }
 
@@ -1487,13 +1555,14 @@ mpi3mr_startup_decrement(struct mpi3mr_cam_softc *cam_sc)
 			xpt_release_simq(cam_sc->sim, 1);
 			xpt_release_boot();
 		}
-		mpi3mr_dprint(cam_sc->sc, MPI3MR_XINFO, "%s refcount %u\n", __func__,
-		    cam_sc->startup_refcount);
+		mpi3mr_dprint(cam_sc->sc, MPI3MR_XINFO, "%s refcount %u\n",
+		    __func__, cam_sc->startup_refcount);
 	}
 }
 
 static void
-mpi3mr_fw_event_free(struct mpi3mr_softc *sc, struct mpi3mr_fw_event_work *fw_event)
+mpi3mr_fw_event_free(struct mpi3mr_softc *sc,
+    struct mpi3mr_fw_event_work *fw_event)
 {
 	if (!fw_event)
 		return;
@@ -1521,7 +1590,7 @@ mpi3mr_freeup_events(struct mpi3mr_softc *sc)
 
 static void
 mpi3mr_sastopochg_evt_debug(struct mpi3mr_softc *sc,
-	Mpi3EventDataSasTopologyChangeList_t *event_data)
+    Mpi3EventDataSasTopologyChangeList_t *event_data)
 {
 	int i;
 	U16 handle;
@@ -1534,7 +1603,7 @@ mpi3mr_sastopochg_evt_debug(struct mpi3mr_softc *sc,
 		status_str = "remove";
 		break;
 	case MPI3_EVENT_SAS_TOPO_ES_RESPONDING:
-		status_str =  "responding";
+		status_str = "responding";
 		break;
 	case MPI3_EVENT_SAS_TOPO_ES_DELAY_NOT_RESPONDING:
 		status_str = "remove delay";
@@ -1550,11 +1619,11 @@ mpi3mr_sastopochg_evt_debug(struct mpi3mr_softc *sc,
 	mpi3mr_dprint(sc, MPI3MR_INFO, "%s :sas topology change: (%s)\n",
 	    __func__, status_str);
 	mpi3mr_dprint(sc, MPI3MR_INFO,
-		"%s :\texpander_handle(0x%04x), enclosure_handle(0x%04x) "
-	    "start_phy(%02d), num_entries(%d)\n", __func__,
-	    (event_data->ExpanderDevHandle),
-	    (event_data->EnclosureHandle),
-	    event_data->StartPhyNum, event_data->NumEntries);
+	    "%s :\texpander_handle(0x%04x), enclosure_handle(0x%04x) "
+	    "start_phy(%02d), num_entries(%d)\n",
+	    __func__, (event_data->ExpanderDevHandle),
+	    (event_data->EnclosureHandle), event_data->StartPhyNum,
+	    event_data->NumEntries);
 	for (i = 0; i < event_data->NumEntries; i++) {
 		handle = (event_data->PhyEntry[i].AttachedDevHandle);
 		if (!handle)
@@ -1581,45 +1650,48 @@ mpi3mr_sastopochg_evt_debug(struct mpi3mr_softc *sc,
 		}
 		link_rate = event_data->PhyEntry[i].LinkRate >> 4;
 		prev_link_rate = event_data->PhyEntry[i].LinkRate & 0xF;
-		mpi3mr_dprint(sc, MPI3MR_INFO, "%s :\tphy(%02d), attached_handle(0x%04x): %s:"
-		    " link rate: new(0x%02x), old(0x%02x)\n", __func__,
-		    phy_number, handle, status_str, link_rate, prev_link_rate);
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "%s :\tphy(%02d), attached_handle(0x%04x): %s:"
+		    " link rate: new(0x%02x), old(0x%02x)\n",
+		    __func__, phy_number, handle, status_str, link_rate,
+		    prev_link_rate);
 	}
 }
 
 static void
-mpi3mr_process_sastopochg_evt(struct mpi3mr_softc *sc, struct mpi3mr_fw_event_work *fwevt)
+mpi3mr_process_sastopochg_evt(struct mpi3mr_softc *sc,
+    struct mpi3mr_fw_event_work *fwevt)
 {
 
 	Mpi3EventDataSasTopologyChangeList_t *event_data =
-		    (Mpi3EventDataSasTopologyChangeList_t *)fwevt->event_data;
+	    (Mpi3EventDataSasTopologyChangeList_t *)fwevt->event_data;
 	int i;
 	U16 handle;
 	U8 reason_code, link_rate;
 	struct mpi3mr_target *target = NULL;
-	
-	
+
 	mpi3mr_sastopochg_evt_debug(sc, event_data);
 
 	for (i = 0; i < event_data->NumEntries; i++) {
 		handle = le16toh(event_data->PhyEntry[i].AttachedDevHandle);
 		link_rate = event_data->PhyEntry[i].LinkRate >> 4;
-		
+
 		if (!handle)
 			continue;
 		target = mpi3mr_find_target_by_dev_handle(sc->cam_sc, handle);
 
 		if (!target)
 			continue;
-		
+
 		target->link_rate = link_rate;
 		reason_code = event_data->PhyEntry[i].Status &
-			MPI3_EVENT_SAS_TOPO_PHY_RC_MASK;
+		    MPI3_EVENT_SAS_TOPO_PHY_RC_MASK;
 
 		switch (reason_code) {
 		case MPI3_EVENT_SAS_TOPO_PHY_RC_TARG_NOT_RESPONDING:
 			if (target->exposed_to_os)
-				mpi3mr_remove_device_from_os(sc, target->dev_handle);
+				mpi3mr_remove_device_from_os(sc,
+				    target->dev_handle);
 			mpi3mr_remove_device_from_list(sc, target, false);
 			break;
 		case MPI3_EVENT_SAS_TOPO_PHY_RC_PHY_CHANGED:
@@ -1640,15 +1712,14 @@ mpi3mr_process_sastopochg_evt(struct mpi3mr_softc *sc, struct mpi3mr_fw_event_wo
 
 static inline void
 mpi3mr_logdata_evt_bh(struct mpi3mr_softc *sc,
-		      struct mpi3mr_fw_event_work *fwevt)
+    struct mpi3mr_fw_event_work *fwevt)
 {
-	mpi3mr_app_save_logdata(sc, fwevt->event_data,
-				fwevt->event_data_size);
+	mpi3mr_app_save_logdata(sc, fwevt->event_data, fwevt->event_data_size);
 }
 
 static void
 mpi3mr_pcietopochg_evt_debug(struct mpi3mr_softc *sc,
-	Mpi3EventDataPcieTopologyChangeList_t *event_data)
+    Mpi3EventDataPcieTopologyChangeList_t *event_data)
 {
 	int i;
 	U16 handle;
@@ -1662,7 +1733,7 @@ mpi3mr_pcietopochg_evt_debug(struct mpi3mr_softc *sc,
 		status_str = "remove";
 		break;
 	case MPI3_EVENT_PCIE_TOPO_SS_RESPONDING:
-		status_str =  "responding";
+		status_str = "responding";
 		break;
 	case MPI3_EVENT_PCIE_TOPO_SS_DELAY_NOT_RESPONDING:
 		status_str = "remove delay";
@@ -1675,16 +1746,15 @@ mpi3mr_pcietopochg_evt_debug(struct mpi3mr_softc *sc,
 		break;
 	}
 	mpi3mr_dprint(sc, MPI3MR_INFO, "%s :pcie topology change: (%s)\n",
-		__func__, status_str);
+	    __func__, status_str);
 	mpi3mr_dprint(sc, MPI3MR_INFO,
-		"%s :\tswitch_handle(0x%04x), enclosure_handle(0x%04x)"
-		"start_port(%02d), num_entries(%d)\n", __func__,
-		le16toh(event_data->SwitchDevHandle),
-		le16toh(event_data->EnclosureHandle),
-		event_data->StartPortNum, event_data->NumEntries);
+	    "%s :\tswitch_handle(0x%04x), enclosure_handle(0x%04x)"
+	    "start_port(%02d), num_entries(%d)\n",
+	    __func__, le16toh(event_data->SwitchDevHandle),
+	    le16toh(event_data->EnclosureHandle), event_data->StartPortNum,
+	    event_data->NumEntries);
 	for (i = 0; i < event_data->NumEntries; i++) {
-		handle =
-			le16toh(event_data->PortEntry[i].AttachedDevHandle);
+		handle = le16toh(event_data->PortEntry[i].AttachedDevHandle);
 		if (!handle)
 			continue;
 		port_number = event_data->StartPortNum + i;
@@ -1707,39 +1777,40 @@ mpi3mr_pcietopochg_evt_debug(struct mpi3mr_softc *sc,
 			break;
 		}
 		link_rate = event_data->PortEntry[i].CurrentPortInfo &
-			MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
+		    MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
 		prev_link_rate = event_data->PortEntry[i].PreviousPortInfo &
-			MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
-		mpi3mr_dprint(sc, MPI3MR_INFO, "%s :\tport(%02d), attached_handle(0x%04x): %s:"
-		    " link rate: new(0x%02x), old(0x%02x)\n", __func__,
-		    port_number, handle, status_str, link_rate, prev_link_rate);
+		    MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "%s :\tport(%02d), attached_handle(0x%04x): %s:"
+		    " link rate: new(0x%02x), old(0x%02x)\n",
+		    __func__, port_number, handle, status_str, link_rate,
+		    prev_link_rate);
 	}
 }
 
-static void mpi3mr_process_pcietopochg_evt(struct mpi3mr_softc *sc,
+static void
+mpi3mr_process_pcietopochg_evt(struct mpi3mr_softc *sc,
     struct mpi3mr_fw_event_work *fwevt)
 {
 	Mpi3EventDataPcieTopologyChangeList_t *event_data =
-		    (Mpi3EventDataPcieTopologyChangeList_t *)fwevt->event_data;
+	    (Mpi3EventDataPcieTopologyChangeList_t *)fwevt->event_data;
 	int i;
 	U16 handle;
 	U8 reason_code, link_rate;
 	struct mpi3mr_target *target = NULL;
-	
 
 	mpi3mr_pcietopochg_evt_debug(sc, event_data);
 
 	for (i = 0; i < event_data->NumEntries; i++) {
-		handle =
-			le16toh(event_data->PortEntry[i].AttachedDevHandle);
+		handle = le16toh(event_data->PortEntry[i].AttachedDevHandle);
 		if (!handle)
 			continue;
 		target = mpi3mr_find_target_by_dev_handle(sc->cam_sc, handle);
 		if (!target)
 			continue;
-		
+
 		link_rate = event_data->PortEntry[i].CurrentPortInfo &
-			MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
+		    MPI3_EVENT_PCIE_TOPO_PI_RATE_MASK;
 		target->link_rate = link_rate;
 
 		reason_code = event_data->PortEntry[i].PortStatus;
@@ -1747,7 +1818,8 @@ static void mpi3mr_process_pcietopochg_evt(struct mpi3mr_softc *sc,
 		switch (reason_code) {
 		case MPI3_EVENT_PCIE_TOPO_PS_NOT_RESPONDING:
 			if (target->exposed_to_os)
-				mpi3mr_remove_device_from_os(sc, target->dev_handle);
+				mpi3mr_remove_device_from_os(sc,
+				    target->dev_handle);
 			mpi3mr_remove_device_from_list(sc, target, false);
 			break;
 		case MPI3_EVENT_PCIE_TOPO_PS_PORT_CHANGED:
@@ -1766,33 +1838,36 @@ static void mpi3mr_process_pcietopochg_evt(struct mpi3mr_softc *sc,
 	return;
 }
 
-void mpi3mr_add_device(struct mpi3mr_softc *sc, U16 per_id)
+void
+mpi3mr_add_device(struct mpi3mr_softc *sc, U16 per_id)
 {
 	struct mpi3mr_target *target;
 
-	mpi3mr_dprint(sc, MPI3MR_EVENT,
-		"Adding device(persistent id: 0x%x)\n", per_id);
+	mpi3mr_dprint(sc, MPI3MR_EVENT, "Adding device(persistent id: 0x%x)\n",
+	    per_id);
 
 	mpi3mr_startup_increment(sc->cam_sc);
 	target = mpi3mr_find_target_by_per_id(sc->cam_sc, per_id);
-	
+
 	if (!target) {
-		mpi3mr_dprint(sc, MPI3MR_INFO, "Not available in driver's"
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "Not available in driver's"
 		    "internal target list, persistent_id: %d\n",
 		    per_id);
 		goto out;
 	}
 
 	if (target->is_hidden) {
-		mpi3mr_dprint(sc, MPI3MR_EVENT, "Target is hidden, persistent_id: %d\n",
-			per_id);
+		mpi3mr_dprint(sc, MPI3MR_EVENT,
+		    "Target is hidden, persistent_id: %d\n", per_id);
 		goto out;
 	}
 
 	if (!target->exposed_to_os && !sc->reset_in_progress) {
 		mpi3mr_rescan_target(sc, target);
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"Added device persistent_id: %d dev_handle: %d\n", per_id, target->dev_handle);
+		    "Added device persistent_id: %d dev_handle: %d\n", per_id,
+		    target->dev_handle);
 		target->exposed_to_os = 1;
 	}
 
@@ -1800,21 +1875,22 @@ out:
 	mpi3mr_startup_decrement(sc->cam_sc);
 }
 
-int mpi3mr_remove_device_from_os(struct mpi3mr_softc *sc, U16 handle)
+int
+mpi3mr_remove_device_from_os(struct mpi3mr_softc *sc, U16 handle)
 {
 	U32 i = 0;
 	int retval = 0;
 	struct mpi3mr_target *target;
 
-	mpi3mr_dprint(sc, MPI3MR_EVENT,
-		"Removing Device (dev_handle: %d)\n", handle);
-			
+	mpi3mr_dprint(sc, MPI3MR_EVENT, "Removing Device (dev_handle: %d)\n",
+	    handle);
+
 	target = mpi3mr_find_target_by_dev_handle(sc->cam_sc, handle);
-	
+
 	if (!target) {
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"Device (persistent_id: %d dev_handle: %d) is already removed from driver's list\n",
-			target->per_id, handle);
+		    "Device (persistent_id: %d dev_handle: %d) is already removed from driver's list\n",
+		    target->per_id, handle);
 		mpi3mr_rescan_target(sc, NULL);
 		retval = -1;
 		goto out;
@@ -1832,11 +1908,12 @@ int mpi3mr_remove_device_from_os(struct mpi3mr_softc *sc, U16 handle)
 		}
 		DELAY(1000 * 1000);
 	}
-	
+
 	if (target->exposed_to_os && !sc->reset_in_progress) {
 		mpi3mr_rescan_target(sc, target);
 		mpi3mr_dprint(sc, MPI3MR_INFO,
-			"Removed device(persistent_id: %d dev_handle: %d)\n", target->per_id, handle);
+		    "Removed device(persistent_id: %d dev_handle: %d)\n",
+		    target->per_id, handle);
 		target->exposed_to_os = 0;
 	}
 
@@ -1845,8 +1922,9 @@ out:
 	return retval;
 }
 
-void mpi3mr_remove_device_from_list(struct mpi3mr_softc *sc,
-	struct mpi3mr_target *target, bool must_delete)
+void
+mpi3mr_remove_device_from_list(struct mpi3mr_softc *sc,
+    struct mpi3mr_target *target, bool must_delete)
 {
 	mtx_lock_spin(&sc->target_lock);
 	if ((target->state == MPI3MR_DEV_REMOVE_HS_STARTED) ||
@@ -1857,10 +1935,10 @@ void mpi3mr_remove_device_from_list(struct mpi3mr_softc *sc,
 	mtx_unlock_spin(&sc->target_lock);
 
 	if (target->state == MPI3MR_DEV_DELETED) {
- 		free(target, M_MPI3MR);
- 		target = NULL;
- 	}
-	
+		free(target, M_MPI3MR);
+		target = NULL;
+	}
+
 	return;
 }
 
@@ -1875,16 +1953,15 @@ void mpi3mr_remove_device_from_list(struct mpi3mr_softc *sc,
  *
  * Return: Nothing.
  */
-static void mpi3mr_devstatuschg_evt_bh(struct mpi3mr_softc *sc,
-	struct mpi3mr_fw_event_work *fwevt)
+static void
+mpi3mr_devstatuschg_evt_bh(struct mpi3mr_softc *sc,
+    struct mpi3mr_fw_event_work *fwevt)
 {
 	U16 dev_handle = 0;
 	U8 uhide = 0, delete = 0, cleanup = 0;
 	struct mpi3mr_target *tgtdev = NULL;
 	Mpi3EventDataDeviceStatusChange_t *evtdata =
 	    (Mpi3EventDataDeviceStatusChange_t *)fwevt->event_data;
-	
-
 
 	dev_handle = le16toh(evtdata->DevHandle);
 	mpi3mr_dprint(sc, MPI3MR_INFO,
@@ -1902,7 +1979,8 @@ static void mpi3mr_devstatuschg_evt_bh(struct mpi3mr_softc *sc,
 		cleanup = 1;
 		break;
 	default:
-		mpi3mr_dprint(sc, MPI3MR_INFO, "%s :Unhandled reason code(0x%x)\n", __func__,
+		mpi3mr_dprint(sc, MPI3MR_INFO,
+		    "%s :Unhandled reason code(0x%x)\n", __func__,
 		    evtdata->ReasonCode);
 		break;
 	}
@@ -1935,8 +2013,8 @@ static void mpi3mr_devstatuschg_evt_bh(struct mpi3mr_softc *sc,
  *
  * Return: Nothing.
  */
-static void mpi3mr_devinfochg_evt_bh(struct mpi3mr_softc *sc,
-	Mpi3DevicePage0_t *dev_pg0)
+static void
+mpi3mr_devinfochg_evt_bh(struct mpi3mr_softc *sc, Mpi3DevicePage0_t *dev_pg0)
 {
 	struct mpi3mr_target *tgtdev = NULL;
 	U16 dev_handle = 0, perst_id = 0;
@@ -1949,7 +2027,7 @@ static void mpi3mr_devinfochg_evt_bh(struct mpi3mr_softc *sc,
 	tgtdev = mpi3mr_find_target_by_dev_handle(sc->cam_sc, dev_handle);
 	if (!tgtdev)
 		return;
-	
+
 	mpi3mr_update_device(sc, tgtdev, dev_pg0, false);
 	if (!tgtdev->is_hidden && !tgtdev->exposed_to_os)
 		mpi3mr_add_device(sc, perst_id);
@@ -1971,58 +2049,51 @@ mpi3mr_fw_work(struct mpi3mr_softc *sc, struct mpi3mr_fw_event_work *fw_event)
 	    event_count++, __func__, fw_event->event);
 
 	switch (fw_event->event) {
-	case MPI3_EVENT_DEVICE_ADDED:
-	{
-		Mpi3DevicePage0_t *dev_pg0 =
-			(Mpi3DevicePage0_t *) fw_event->event_data;
+	case MPI3_EVENT_DEVICE_ADDED: {
+		Mpi3DevicePage0_t *dev_pg0 = (Mpi3DevicePage0_t *)
+						 fw_event->event_data;
 		mpi3mr_add_device(sc, dev_pg0->PersistentID);
 		break;
 	}
-	case MPI3_EVENT_DEVICE_INFO_CHANGED:
-	{
+	case MPI3_EVENT_DEVICE_INFO_CHANGED: {
 		mpi3mr_devinfochg_evt_bh(sc,
-		    (Mpi3DevicePage0_t *) fw_event->event_data);
+		    (Mpi3DevicePage0_t *)fw_event->event_data);
 		break;
 	}
-	case MPI3_EVENT_DEVICE_STATUS_CHANGE:
-	{
+	case MPI3_EVENT_DEVICE_STATUS_CHANGE: {
 		mpi3mr_devstatuschg_evt_bh(sc, fw_event);
 		break;
 	}
-	case MPI3_EVENT_SAS_TOPOLOGY_CHANGE_LIST:
-	{
+	case MPI3_EVENT_SAS_TOPOLOGY_CHANGE_LIST: {
 		mpi3mr_process_sastopochg_evt(sc, fw_event);
 		break;
 	}
-	case MPI3_EVENT_PCIE_TOPOLOGY_CHANGE_LIST:
-	{
+	case MPI3_EVENT_PCIE_TOPOLOGY_CHANGE_LIST: {
 		mpi3mr_process_pcietopochg_evt(sc, fw_event);
 		break;
 	}
-	case MPI3_EVENT_LOG_DATA:
-	{
+	case MPI3_EVENT_LOG_DATA: {
 		mpi3mr_logdata_evt_bh(sc, fw_event);
 		break;
 	}
 	default:
-		mpi3mr_dprint(sc, MPI3MR_TRACE,"Unhandled event 0x%0X\n",
+		mpi3mr_dprint(sc, MPI3MR_TRACE, "Unhandled event 0x%0X\n",
 		    fw_event->event);
 		break;
-
 	}
 
 evt_ack:
 	if (fw_event->send_ack) {
-		mpi3mr_dprint(sc, MPI3MR_EVENT,"Process event ACK for event 0x%0X\n",
-		    fw_event->event);
+		mpi3mr_dprint(sc, MPI3MR_EVENT,
+		    "Process event ACK for event 0x%0X\n", fw_event->event);
 		mpi3mr_process_event_ack(sc, fw_event->event,
 		    fw_event->event_context);
 	}
 
 out:
-	mpi3mr_dprint(sc, MPI3MR_EVENT, "(%d)->(%s) Event Free: [%x]\n", event_count,
-	    __func__, fw_event->event);
-	
+	mpi3mr_dprint(sc, MPI3MR_EVENT, "(%d)->(%s) Event Free: [%x]\n",
+	    event_count, __func__, fw_event->event);
+
 	mpi3mr_fw_event_free(sc, fw_event);
 }
 
@@ -2044,7 +2115,6 @@ mpi3mr_firmware_event_work(void *arg, int pending)
 	mtx_unlock(&sc->fwevt_lock);
 }
 
-
 /*
  * mpi3mr_cam_attach - CAM layer registration
  * @sc: Adapter reference
@@ -2063,7 +2133,8 @@ mpi3mr_cam_attach(struct mpi3mr_softc *sc)
 
 	mpi3mr_dprint(sc, MPI3MR_XINFO, "Starting CAM Attach\n");
 
-	cam_sc = malloc(sizeof(struct mpi3mr_cam_softc), M_MPI3MR, M_WAITOK|M_ZERO);
+	cam_sc = malloc(sizeof(struct mpi3mr_cam_softc), M_MPI3MR,
+	    M_WAITOK | M_ZERO);
 	if (!cam_sc) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR,
 		    "Failed to allocate memory for controller CAM instance\n");
@@ -2073,7 +2144,7 @@ mpi3mr_cam_attach(struct mpi3mr_softc *sc)
 	cam_sc->maxtargets = sc->facts.max_perids + 1;
 
 	TAILQ_INIT(&cam_sc->tgt_list);
-	
+
 	sc->cam_sc = cam_sc;
 	cam_sc->sc = sc;
 
@@ -2086,8 +2157,8 @@ mpi3mr_cam_attach(struct mpi3mr_softc *sc)
 	}
 
 	unit = device_get_unit(sc->mpi3mr_dev);
-	cam_sc->sim = cam_sim_alloc(mpi3mr_cam_action, mpi3mr_cam_poll, "mpi3mr", cam_sc,
-	    unit, &sc->mpi3mr_mtx, reqs, reqs, cam_sc->devq);
+	cam_sc->sim = cam_sim_alloc(mpi3mr_cam_action, mpi3mr_cam_poll,
+	    "mpi3mr", cam_sc, unit, &sc->mpi3mr_mtx, reqs, reqs, cam_sc->devq);
 	if (cam_sc->sim == NULL) {
 		mpi3mr_dprint(sc, MPI3MR_ERROR, "Failed to allocate SIM\n");
 		error = EINVAL;
@@ -2132,7 +2203,7 @@ mpi3mr_cam_attach(struct mpi3mr_softc *sc)
 	 * Register for async events so we can determine the EEDP
 	 * capabilities of devices.
 	 */
-	status = xpt_create_path(&cam_sc->path, /*periph*/NULL,
+	status = xpt_create_path(&cam_sc->path, /*periph*/ NULL,
 	    cam_sim_path(sc->cam_sc->sim), CAM_TARGET_WILDCARD,
 	    CAM_LUN_WILDCARD);
 	if (status != CAM_REQ_CMP) {
@@ -2154,7 +2225,8 @@ mpi3mr_cam_attach(struct mpi3mr_softc *sc)
 	error = mpi3mr_register_events(sc);
 
 out:
-	mpi3mr_dprint(sc, MPI3MR_XINFO, "%s Exiting CAM attach, error: 0x%x n", __func__, error);
+	mpi3mr_dprint(sc, MPI3MR_XINFO, "%s Exiting CAM attach, error: 0x%x n",
+	    __func__, error);
 	return (error);
 }
 
@@ -2169,9 +2241,9 @@ mpi3mr_cam_detach(struct mpi3mr_softc *sc)
 		return (0);
 
 	cam_sc = sc->cam_sc;
-	
+
 	mpi3mr_freeup_events(sc);
-	
+
 	/*
 	 * Drain and free the event handling taskqueue with the lock
 	 * unheld so that any parallel processing tasks drain properly
@@ -2206,8 +2278,8 @@ mpi3mr_cam_detach(struct mpi3mr_softc *sc)
 
 get_target:
 	mtx_lock_spin(&sc->target_lock);
- 	TAILQ_FOREACH(target, &cam_sc->tgt_list, tgt_next) {
- 		TAILQ_REMOVE(&sc->cam_sc->tgt_list, target, tgt_next);
+	TAILQ_FOREACH (target, &cam_sc->tgt_list, tgt_next) {
+		TAILQ_REMOVE(&sc->cam_sc->tgt_list, target, tgt_next);
 		mtx_unlock_spin(&sc->target_lock);
 		goto out_tgt_free;
 	}
@@ -2217,7 +2289,7 @@ out_tgt_free:
 		free(target, M_MPI3MR);
 		target = NULL;
 		goto get_target;
- 	}
+	}
 
 	free(cam_sc, M_MPI3MR);
 	sc->cam_sc = NULL;

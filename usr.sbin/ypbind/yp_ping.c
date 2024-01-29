@@ -36,27 +36,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 /*
@@ -65,24 +65,26 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+#include <sys/signal.h>
+#include <sys/socket.h>
+
+#include <net/if.h>
+
+#include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
+#include <pthread.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/pmap_prot.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
-#include <rpc/pmap_prot.h>
-#include <rpcsvc/yp.h>
-#include <sys/types.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
-#include <sys/signal.h>
-#include <sys/ioctl.h>
-#include <arpa/inet.h>
-#include <net/if.h>
 
 #include "yp_ping.h"
 
@@ -92,7 +94,6 @@
  *
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
-
 
 static struct timeval timeout = { 1, 0 };
 static struct timeval tottimeout = { 1, 0 };
@@ -113,17 +114,16 @@ __pmap_getport(struct sockaddr_in *address, u_long program, u_long version,
 
 	address->sin_port = htons(PMAPPORT);
 
-	client = clntudp_bufcreate(address, PMAPPROG,
-	    PMAPVERS, timeout, &sock, RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
+	client = clntudp_bufcreate(address, PMAPPROG, PMAPVERS, timeout, &sock,
+	    RPCSMALLMSGSIZE, RPCSMALLMSGSIZE);
 	if (client != (CLIENT *)NULL) {
 		parms.pm_prog = program;
 		parms.pm_vers = version;
 		parms.pm_prot = protocol;
-		parms.pm_port = 0;  /* not needed or used */
-		if (CLNT_CALL(client, PMAPPROC_GETPORT,
-			(xdrproc_t)xdr_pmap, &parms,
-			(xdrproc_t)xdr_u_short, &port,
-			tottimeout) != RPC_SUCCESS){
+		parms.pm_port = 0; /* not needed or used */
+		if (CLNT_CALL(client, PMAPPROC_GETPORT, (xdrproc_t)xdr_pmap,
+			&parms, (xdrproc_t)xdr_u_short, &port,
+			tottimeout) != RPC_SUCCESS) {
 			rpc_createerr.cf_stat = RPC_PMAPFAILURE;
 			clnt_geterr(client, &rpc_createerr.cf_error);
 		} else if (port == 0) {
@@ -146,10 +146,9 @@ ypproc_domain_nonack_2_send(domainname *argp, CLIENT *clnt)
 	static bool_t clnt_res;
 	struct timeval TIMEOUT = { 0, 0 };
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, YPPROC_DOMAIN_NONACK,
-		(xdrproc_t) xdr_domainname, (caddr_t) argp,
-		(xdrproc_t) xdr_bool, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call(clnt, YPPROC_DOMAIN_NONACK, (xdrproc_t)xdr_domainname,
+		(caddr_t)argp, (xdrproc_t)xdr_bool, (caddr_t)&clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
@@ -165,10 +164,9 @@ ypproc_domain_nonack_2_recv(domainname *argp, CLIENT *clnt)
 	static bool_t clnt_res;
 	struct timeval TIMEOUT = { 0, 0 };
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, YPPROC_DOMAIN_NONACK,
-		(xdrproc_t) NULL, (caddr_t) argp,
-		(xdrproc_t) xdr_bool, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call(clnt, YPPROC_DOMAIN_NONACK, (xdrproc_t)NULL,
+		(caddr_t)argp, (xdrproc_t)xdr_bool, (caddr_t)&clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
@@ -198,25 +196,25 @@ ypproc_domain_nonack_2_recv(domainname *argp, CLIENT *clnt)
  */
 
 struct ping_req {
-	struct sockaddr_in	sin;
-	u_int32_t		xid;
+	struct sockaddr_in sin;
+	u_int32_t xid;
 };
 
 int
 __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 {
-	struct timeval		tv = { 5, 0 };
-	struct ping_req		**reqs;
-	unsigned long		i;
-	int			async;
-	struct sockaddr_in	sin, *any = NULL;
-	struct netbuf		addr;
-	int			winner = -1;
-	u_int32_t		xid_seed, xid_lookup;
-	int			sock, dontblock = 1;
-	CLIENT			*clnt;
-	char			*foo = dom;
-	int			validsrvs = 0;
+	struct timeval tv = { 5, 0 };
+	struct ping_req **reqs;
+	unsigned long i;
+	int async;
+	struct sockaddr_in sin, *any = NULL;
+	struct netbuf addr;
+	int winner = -1;
+	u_int32_t xid_seed, xid_lookup;
+	int sock, dontblock = 1;
+	CLIENT *clnt;
+	char *foo = dom;
+	int validsrvs = 0;
 
 	/* Set up handles. */
 	reqs = calloc(cnt, sizeof(struct ping_req *));
@@ -225,10 +223,10 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 	for (i = 0; i < cnt; i++) {
 		bzero((char *)&sin, sizeof(sin));
 		sin.sin_family = AF_INET;
-		bcopy((char *)&restricted_addrs[i],
-			(char *)&sin.sin_addr, sizeof(struct in_addr));
-		sin.sin_port = htons(__pmap_getport(&sin, YPPROG,
-					YPVERS, IPPROTO_UDP));
+		bcopy((char *)&restricted_addrs[i], (char *)&sin.sin_addr,
+		    sizeof(struct in_addr));
+		sin.sin_port = htons(
+		    __pmap_getport(&sin, YPPROG, YPVERS, IPPROTO_UDP));
 		if (sin.sin_port == 0)
 			continue;
 		reqs[i] = calloc(1, sizeof(struct ping_req));
@@ -242,7 +240,7 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 	/* Make sure at least one server was assigned */
 	if (!validsrvs) {
 		free(reqs);
-		return(-1);
+		return (-1);
 	}
 
 	/* Create RPC handle */
@@ -254,7 +252,7 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 			if (reqs[i] != NULL)
 				free(reqs[i]);
 		free(reqs);
-		return(-1);
+		return (-1);
 	}
 	clnt->cl_auth = authunix_create_default();
 	tv.tv_sec = 0;
@@ -269,7 +267,7 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 		if (reqs[i] != NULL) {
 			clnt_control(clnt, CLSET_XID, (char *)&reqs[i]->xid);
 			addr.len = sizeof(reqs[i]->sin);
-			addr.buf = (char *) &reqs[i]->sin;
+			addr.buf = (char *)&reqs[i]->sin;
 			clnt_control(clnt, CLSET_SVC_ADDR, &addr);
 			ypproc_domain_nonack_2_send(&foo, clnt);
 		}
@@ -297,5 +295,5 @@ __yp_ping(struct in_addr *restricted_addrs, int cnt, char *dom, short *port)
 			free(reqs[i]);
 	free(reqs);
 
-	return(winner);
+	return (winner);
 }

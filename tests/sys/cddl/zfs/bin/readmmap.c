@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 /*
  * --------------------------------------------------------------
  *	BugId 5047993 : Getting bad read data.
@@ -39,13 +38,14 @@
  *		0 : no errors
  * --------------------------------------------------------------
  */
+#include <sys/mman.h>
+
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/mman.h>
 
 int
 main(int argc, char **argv)
@@ -59,8 +59,7 @@ main(int argc, char **argv)
 	unsigned seed;
 
 	if (argc < 2 || optind == argc) {
-		(void) fprintf(stderr,
-		    "usage: %s <file name>\n", argv[0]);
+		(void)fprintf(stderr, "usage: %s <file name>\n", argv[0]);
 		exit(1);
 	}
 
@@ -71,9 +70,9 @@ main(int argc, char **argv)
 
 	filename = argv[optind];
 
-	(void) remove(filename);
+	(void)remove(filename);
 
-	fd = open(filename, O_RDWR|O_CREAT|O_TRUNC, 0666);
+	fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0666);
 	if (fd == -1) {
 		perror("open to create");
 		retval = 1;
@@ -82,12 +81,12 @@ main(int argc, char **argv)
 
 	bytes = write(fd, buf, size);
 	if (bytes != size) {
-		(void) printf("short write: %d != %zu\n", bytes, size);
+		(void)printf("short write: %d != %zu\n", bytes, size);
 		retval = 1;
 		goto end;
 	}
 
-	map = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	map = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (map == MAP_FAILED) {
 		perror("mmap");
 		retval = 1;
@@ -113,23 +112,23 @@ main(int argc, char **argv)
 
 	bytes = pread(fd, buf, size, 0);
 	if (bytes != size) {
-		(void) printf("short read: %d != %zu\n", bytes, size);
+		(void)printf("short read: %d != %zu\n", bytes, size);
 		retval = 1;
 		goto end;
 	}
 
 	if (buf[idx] != 1) {
-		(void) printf(
-		    "bad data from read!  got buf[%zu]=%d, expected 1\n",
-		    idx, buf[idx]);
+		(void)
+		    printf("bad data from read!  got buf[%zu]=%d, expected 1\n",
+			idx, buf[idx]);
 		retval = 1;
 		goto end;
 	}
 
-	(void) printf("good data from read: buf[%zu]=1\n", idx);
+	(void)printf("good data from read: buf[%zu]=1\n", idx);
 end:
 	if (fd != -1) {
-		(void) close(fd);
+		(void)close(fd);
 	}
 	if (buf != NULL) {
 		free(buf);

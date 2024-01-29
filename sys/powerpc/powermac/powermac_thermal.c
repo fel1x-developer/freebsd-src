@@ -26,23 +26,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/systm.h>
-
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/kthread.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/reboot.h>
 #include <sys/sysctl.h>
-#include <sys/queue.h>
 
 #include "powermac_thermal.h"
 
 /* A 10 second timer for spinning down fans. */
-#define FAN_HYSTERESIS_TIMER	10
+#define FAN_HYSTERESIS_TIMER 10
 
 static void fan_management_proc(void);
 static void pmac_therm_manage_fans(void);
@@ -50,34 +49,31 @@ static void pmac_therm_manage_fans(void);
 static struct proc *pmac_them_proc;
 static int enable_pmac_thermal = 1;
 
-static struct kproc_desc pmac_therm_kp = {
-	"pmac_thermal",
-	fan_management_proc,
-	&pmac_them_proc
-};
+static struct kproc_desc pmac_therm_kp = { "pmac_thermal", fan_management_proc,
+	&pmac_them_proc };
 
 SYSINIT(pmac_therm_setup, SI_SUB_KTHREAD_IDLE, SI_ORDER_ANY, kproc_start,
     &pmac_therm_kp);
-SYSCTL_INT(_machdep, OID_AUTO, manage_fans, CTLFLAG_RWTUN,
-    &enable_pmac_thermal, 1, "Enable automatic fan management");
+SYSCTL_INT(_machdep, OID_AUTO, manage_fans, CTLFLAG_RWTUN, &enable_pmac_thermal,
+    1, "Enable automatic fan management");
 static MALLOC_DEFINE(M_PMACTHERM, "pmactherm", "Powermac Thermal Management");
 
 struct pmac_fan_le {
-	struct pmac_fan			*fan;
-	int				last_val;
-	int				timer;
-	SLIST_ENTRY(pmac_fan_le)	entries;
+	struct pmac_fan *fan;
+	int last_val;
+	int timer;
+	SLIST_ENTRY(pmac_fan_le) entries;
 };
 struct pmac_sens_le {
-	struct pmac_therm		*sensor;
-	int				last_val;
+	struct pmac_therm *sensor;
+	int last_val;
 #define MAX_CRITICAL_COUNT 6
-	int				critical_count;
-	SLIST_ENTRY(pmac_sens_le)	entries;
+	int critical_count;
+	SLIST_ENTRY(pmac_sens_le) entries;
 };
 static SLIST_HEAD(pmac_fans, pmac_fan_le) fans = SLIST_HEAD_INITIALIZER(fans);
-static SLIST_HEAD(pmac_sensors, pmac_sens_le) sensors =
-    SLIST_HEAD_INITIALIZER(sensors);
+static SLIST_HEAD(pmac_sensors, pmac_sens_le) sensors = SLIST_HEAD_INITIALIZER(
+    sensors);
 
 static void
 fan_management_proc(void)
@@ -106,7 +102,7 @@ pmac_therm_manage_fans(void)
 		return;
 
 	/* Read all the sensors */
-	SLIST_FOREACH(sensor, &sensors, entries) {
+	SLIST_FOREACH (sensor, &sensors, entries) {
 		temp = sensor->sensor->read(sensor->sensor);
 		if (temp > 0) /* Use the previous temp in case of error */
 			sensor->last_val = temp;
@@ -114,8 +110,8 @@ pmac_therm_manage_fans(void)
 		if (sensor->last_val > sensor->sensor->max_temp) {
 			sensor->critical_count++;
 			printf("WARNING: Current temperature (%s: %d.%d C) "
-			    "exceeds critical temperature (%d.%d C); "
-			    "count=%d\n",
+			       "exceeds critical temperature (%d.%d C); "
+			       "count=%d\n",
 			    sensor->sensor->name,
 			    (sensor->last_val - ZERO_C_TO_K) / 10,
 			    (sensor->last_val - ZERO_C_TO_K) % 10,
@@ -123,7 +119,8 @@ pmac_therm_manage_fans(void)
 			    (sensor->sensor->max_temp - ZERO_C_TO_K) % 10,
 			    sensor->critical_count);
 			if (sensor->critical_count >= MAX_CRITICAL_COUNT) {
-				printf("WARNING: %s temperature exceeded "
+				printf(
+				    "WARNING: %s temperature exceeded "
 				    "critical temperature %d times in a row; "
 				    "shutting down!\n",
 				    sensor->sensor->name,
@@ -137,15 +134,13 @@ pmac_therm_manage_fans(void)
 	}
 
 	/* Set all the fans */
-	SLIST_FOREACH(fan, &fans, entries) {
+	SLIST_FOREACH (fan, &fans, entries) {
 		nsens = nsens_zone = 0;
 		average_excess = max_excess_zone = 0;
-		SLIST_FOREACH(sensor, &sensors, entries) {
-			temp = imin(sensor->last_val,
-			    sensor->sensor->max_temp);
-			frac_excess = (temp -
-			    sensor->sensor->target_temp)*100 /
-			    (sensor->sensor->max_temp - temp + 1);
+		SLIST_FOREACH (sensor, &sensors, entries) {
+			temp = imin(sensor->last_val, sensor->sensor->max_temp);
+			frac_excess = (temp - sensor->sensor->target_temp) *
+			    100 / (sensor->sensor->max_temp - temp + 1);
 			if (frac_excess < 0)
 				frac_excess = 0;
 			if (sensor->sensor->zone == fan->fan->zone) {
@@ -172,18 +167,18 @@ pmac_therm_manage_fans(void)
 		 * thermal zone.
 		 */
 		max_excess_zone = imin(max_excess_zone, 100);
-		fan_speed = max_excess_zone * 
-		    (fan->fan->max_rpm - fan->fan->min_rpm)/100 +
+		fan_speed = max_excess_zone *
+			(fan->fan->max_rpm - fan->fan->min_rpm) / 100 +
 		    fan->fan->min_rpm;
 		if (fan_speed >= fan->last_val) {
-		    fan->timer = FAN_HYSTERESIS_TIMER;
-		    fan->last_val = fan_speed;
+			fan->timer = FAN_HYSTERESIS_TIMER;
+			fan->last_val = fan_speed;
 		} else {
-		    fan->timer--;
-		    if (fan->timer == 0) {
-		    	fan->last_val = fan_speed;
-		    	fan->timer = FAN_HYSTERESIS_TIMER;
-		    }
+			fan->timer--;
+			if (fan->timer == 0) {
+				fan->last_val = fan_speed;
+				fan->timer = FAN_HYSTERESIS_TIMER;
+			}
 		}
 		fan->fan->set(fan->fan, fan->last_val);
 	}

@@ -69,14 +69,14 @@ int (*openfirmware)(void *);
 phandle_t chosen;
 ihandle_t mmu;
 ihandle_t memory;
-int	  real_mode = 0;
+int real_mode = 0;
 
-#define IN(x)		htobe32((cell_t)x)
-#define OUT(x)		be32toh(x)
-#define SETUP(a, b, c, d)		\
-	a.name = IN( (b) );		\
-	a.nargs = IN( (c) );		\
-	a.nreturns = IN( (d) );
+#define IN(x) htobe32((cell_t)x)
+#define OUT(x) be32toh(x)
+#define SETUP(a, b, c, d)  \
+	a.name = IN((b));  \
+	a.nargs = IN((c)); \
+	a.nreturns = IN((d));
 
 /* Initialiser */
 
@@ -84,7 +84,7 @@ void
 OF_init(int (*openfirm)(void *))
 {
 	phandle_t options;
-	char	  mode[sizeof("true")];
+	char mode[sizeof("true")];
 
 	openfirmware = openfirm;
 
@@ -284,7 +284,7 @@ OF_getencprop(phandle_t package, const char *propname, cell_t *buf, int buflen)
 	if (retval == -1)
 		return (retval);
 
-	for (i = 0; i < buflen/4; i++)
+	for (i = 0; i < buflen / 4; i++)
 		buf[i] = be32toh((uint32_t)buf[i]);
 
 	return (retval);
@@ -457,7 +457,8 @@ OF_call_method(char *method, ihandle_t instance, int nargs, int nreturns, ...)
 		return (OUT(args.args_n_results[nargs]));
 	/* XXX what if ihandles or phandles are returned */
 	for (cp = (cell_t *)(args.args_n_results + nargs +
-	    (n = be32toh(args.nreturns))); --n > 0;)
+		 (n = be32toh(args.nreturns)));
+	     --n > 0;)
 		*va_arg(ap, cell_t *) = OUT(*--cp);
 	va_end(ap);
 	return (0);
@@ -624,7 +625,7 @@ OF_block_size(ihandle_t instance)
 	return (OUT(args.size));
 }
 
-/* 
+/*
  * Memory functions
  */
 
@@ -687,7 +688,7 @@ OF_boot(char *bootspec)
 
 	args.bootspec = IN(bootspec);
 	openfirmware(&args);
-	for (;;)			/* just in case */
+	for (;;) /* just in case */
 		;
 }
 
@@ -718,7 +719,7 @@ OF_exit(void)
 	SETUP(args, "exit", 0, 0);
 
 	openfirmware(&args);
-	for (;;)			/* just in case */
+	for (;;) /* just in case */
 		;
 }
 
@@ -770,7 +771,7 @@ OF_chain(void *virt, u_int size, void (*entry)(), void *arg, u_int len)
 	if (size > 0)
 		OF_release(virt, size);
 #endif
-	((int (*)(u_long, u_long, u_long, void *, u_long))entry)
-	    (0, 0, (u_long)openfirmware, arg, len);
+	((int (*)(u_long, u_long, u_long, void *, u_long))entry)(0, 0,
+	    (u_long)openfirmware, arg, len);
 }
 #endif

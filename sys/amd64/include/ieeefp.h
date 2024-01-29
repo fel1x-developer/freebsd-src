@@ -49,20 +49,20 @@
 /*
  * SSE mxcsr register bit-field masks.
  */
-#define	SSE_STKY_FLD	0x3f	/* exception flags */
-#define	SSE_DAZ_FLD	0x40	/* Denormals are zero */
-#define	SSE_MSKS_FLD	0x1f80	/* exception masks field */
-#define	SSE_RND_FLD	0x6000	/* rounding control */
-#define	SSE_FZ_FLD	0x8000	/* flush to zero on underflow */
+#define SSE_STKY_FLD 0x3f   /* exception flags */
+#define SSE_DAZ_FLD 0x40    /* Denormals are zero */
+#define SSE_MSKS_FLD 0x1f80 /* exception masks field */
+#define SSE_RND_FLD 0x6000  /* rounding control */
+#define SSE_FZ_FLD 0x8000   /* flush to zero on underflow */
 
 /*
  * SSE mxcsr register bit-field offsets (shift counts).
  */
-#define	SSE_STKY_OFF	0	/* exception flags offset */
-#define	SSE_DAZ_OFF	6	/* DAZ exception mask offset */
-#define	SSE_MSKS_OFF	7	/* other exception masks offset */
-#define	SSE_RND_OFF	13	/* rounding control offset */
-#define	SSE_FZ_OFF	15	/* flush to zero offset */
+#define SSE_STKY_OFF 0 /* exception flags offset */
+#define SSE_DAZ_OFF 6  /* DAZ exception mask offset */
+#define SSE_MSKS_OFF 7 /* other exception masks offset */
+#define SSE_RND_OFF 13 /* rounding control offset */
+#define SSE_FZ_OFF 15  /* flush to zero offset */
 
 /*
  * General notes about conflicting SSE vs FP status bits.
@@ -181,26 +181,26 @@ __fpgetsticky(void)
 
 #if !defined(__IEEEFP_NOINLINES__)
 
-#define	fpgetmask()	__fpgetmask()
-#define	fpgetprec()	__fpgetprec()
-#define	fpgetround()	__fpgetround()
-#define	fpgetsticky()	__fpgetsticky()
-#define	fpsetmask(m)	__fpsetmask(m)
-#define	fpsetprec(m)	__fpsetprec(m)
-#define	fpsetround(m)	__fpsetround(m)
+#define fpgetmask() __fpgetmask()
+#define fpgetprec() __fpgetprec()
+#define fpgetround() __fpgetround()
+#define fpgetsticky() __fpgetsticky()
+#define fpsetmask(m) __fpsetmask(m)
+#define fpsetprec(m) __fpsetprec(m)
+#define fpsetround(m) __fpsetround(m)
 
 #else /* __IEEEFP_NOINLINES__ */
 
 /* Augment the userland declarations. */
 __BEGIN_DECLS
-extern fp_rnd_t    fpgetround(void);
-extern fp_rnd_t    fpsetround(fp_rnd_t);
+extern fp_rnd_t fpgetround(void);
+extern fp_rnd_t fpsetround(fp_rnd_t);
 extern fp_except_t fpgetmask(void);
 extern fp_except_t fpsetmask(fp_except_t);
 extern fp_except_t fpgetsticky(void);
 extern fp_except_t fpsetsticky(fp_except_t);
-fp_prec_t	fpgetprec(void);
-fp_prec_t	fpsetprec(fp_prec_t);
+fp_prec_t fpgetprec(void);
+fp_prec_t fpsetprec(fp_prec_t);
 __END_DECLS
 
 #endif /* !__IEEEFP_NOINLINES__ */

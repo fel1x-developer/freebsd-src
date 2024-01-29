@@ -27,14 +27,15 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
+
 #include <errno.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int
 _entry_matches(const acl_entry_t a, const acl_entry_t b)
@@ -47,7 +48,8 @@ _entry_matches(const acl_entry_t a, const acl_entry_t b)
 	 */
 	switch (_entry_brand(a)) {
 	case ACL_BRAND_NFS4:
-		if (a->ae_tag != b->ae_tag || a->ae_entry_type != b->ae_entry_type)
+		if (a->ae_tag != b->ae_tag ||
+		    a->ae_entry_type != b->ae_entry_type)
 			return (0);
 
 		/* If ae_ids matter, compare them as well. */
@@ -100,14 +102,15 @@ acl_delete_entry(acl_t acl, acl_entry_t entry_d)
 			/* ...shift the remaining entries... */
 			for (j = i; j < acl->ats_acl.acl_cnt - 1; ++j)
 				acl->ats_acl.acl_entry[j] =
-				    acl->ats_acl.acl_entry[j+1];
+				    acl->ats_acl.acl_entry[j + 1];
 			/* ...drop the count and zero the unused entry... */
 			acl->ats_acl.acl_cnt--;
 			bzero(&acl->ats_acl.acl_entry[j],
 			    sizeof(struct acl_entry));
 			acl->ats_cur_entry = 0;
-			
-			/* Continue with the loop to remove all matching entries. */
+
+			/* Continue with the loop to remove all matching
+			 * entries. */
 			found = 1;
 		} else
 			i++;
@@ -146,12 +149,10 @@ acl_delete_entry_np(acl_t acl, int offset)
 
 	/* ...shift the remaining entries... */
 	for (i = offset; i < acl->ats_acl.acl_cnt - 1; ++i)
-		acl->ats_acl.acl_entry[i] =
-		    acl->ats_acl.acl_entry[i+1];
+		acl->ats_acl.acl_entry[i] = acl->ats_acl.acl_entry[i + 1];
 	/* ...drop the count and zero the unused entry... */
 	acl->ats_acl.acl_cnt--;
-	bzero(&acl->ats_acl.acl_entry[i],
-	    sizeof(struct acl_entry));
+	bzero(&acl->ats_acl.acl_entry[i], sizeof(struct acl_entry));
 	acl->ats_cur_entry = 0;
 
 	return (0);

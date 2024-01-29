@@ -38,33 +38,32 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <db.h>
 #include <dirent.h>
 #include <errno.h>
+#include <libgen.h>
+#include <libutil.h>
 #include <limits.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/yp.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libgen.h>
-#include <libutil.h>
-
-#include <rpc/rpc.h>
-#include <rpcsvc/yp.h>
 struct dom_binding;
 #include <rpcsvc/ypclnt.h>
-#include "yppasswdd_extern.h"
+
+#include "yp_extern.h"
 #include "yppasswd.h"
 #include "yppasswd_private.h"
+#include "yppasswdd_extern.h"
 #include "ypxfr_extern.h"
-#include "yp_extern.h"
 
 static struct passwd yp_password;
 
@@ -98,23 +97,25 @@ copy_yp_pass(char *p, int x, int m)
 	/* Turn all colons into NULLs */
 	while (strchr(s, ':')) {
 		s = (strchr(s, ':') + 1);
-		*(s - 1)= '\0';
+		*(s - 1) = '\0';
 	}
 
 	t = buf;
-#define EXPAND(e) do { \
-	e = t; \
-	while ((*t++ = *p++)); \
-} while (0)
-        EXPAND(yp_password.pw_name);
+#define EXPAND(e)                     \
+	do {                          \
+		e = t;                \
+		while ((*t++ = *p++)) \
+			;             \
+	} while (0)
+	EXPAND(yp_password.pw_name);
 	yp_password.pw_fields |= _PWF_NAME;
-        EXPAND(yp_password.pw_passwd);
+	EXPAND(yp_password.pw_passwd);
 	yp_password.pw_fields |= _PWF_PASSWD;
 	yp_password.pw_uid = atoi(p);
-        p += (strlen(p) + 1);
+	p += (strlen(p) + 1);
 	yp_password.pw_fields |= _PWF_UID;
 	yp_password.pw_gid = atoi(p);
-        p += (strlen(p) + 1);
+	p += (strlen(p) + 1);
 	yp_password.pw_fields |= _PWF_GID;
 	if (x) {
 		EXPAND(yp_password.pw_class);
@@ -126,11 +127,11 @@ copy_yp_pass(char *p, int x, int m)
 		p += (strlen(p) + 1);
 		yp_password.pw_fields |= _PWF_EXPIRE;
 	}
-        EXPAND(yp_password.pw_gecos);
+	EXPAND(yp_password.pw_gecos);
 	yp_password.pw_fields |= _PWF_GECOS;
-        EXPAND(yp_password.pw_dir);
+	EXPAND(yp_password.pw_dir);
 	yp_password.pw_fields |= _PWF_DIR;
-        EXPAND(yp_password.pw_shell);
+	EXPAND(yp_password.pw_shell);
 	yp_password.pw_fields |= _PWF_SHELL;
 }
 
@@ -142,19 +143,19 @@ validchars(char *arg)
 	for (i = 0; i < strlen(arg); i++) {
 		if (iscntrl(arg[i])) {
 			yp_error("string contains a control character");
-			return(1);
+			return (1);
 		}
 		if (arg[i] == ':') {
 			yp_error("string contains a colon");
-			return(1);
+			return (1);
 		}
 		/* Be evil: truncate strings with \n in them silently. */
 		if (arg[i] == '\n') {
 			arg[i] = '\0';
-			return(0);
+			return (0);
 		}
 	}
-	return(0);
+	return (0);
 }
 
 static int
@@ -163,24 +164,24 @@ validate_master(struct passwd *opw __unused, struct x_master_passwd *npw)
 
 	if (npw->pw_name[0] == '+' || npw->pw_name[0] == '-') {
 		yp_error("client tried to modify an NIS entry");
-		return(1);
+		return (1);
 	}
 
 	if (validchars(npw->pw_shell)) {
 		yp_error("specified shell contains invalid characters");
-		return(1);
+		return (1);
 	}
 
 	if (validchars(npw->pw_gecos)) {
 		yp_error("specified gecos field contains invalid characters");
-		return(1);
+		return (1);
 	}
 
 	if (validchars(npw->pw_passwd)) {
 		yp_error("specified password contains invalid characters");
-		return(1);
+		return (1);
 	}
-	return(0);
+	return (0);
 }
 
 static int
@@ -189,23 +190,23 @@ validate(struct passwd *opw, struct x_passwd *npw)
 
 	if (npw->pw_name[0] == '+' || npw->pw_name[0] == '-') {
 		yp_error("client tried to modify an NIS entry");
-		return(1);
+		return (1);
 	}
 
 	if ((uid_t)npw->pw_uid != opw->pw_uid) {
 		yp_error("UID mismatch: client says user %s has UID %d",
-			 npw->pw_name, npw->pw_uid);
+		    npw->pw_name, npw->pw_uid);
 		yp_error("database says user %s has UID %d", opw->pw_name,
-			 opw->pw_uid);
-		return(1);
+		    opw->pw_uid);
+		return (1);
 	}
 
 	if ((gid_t)npw->pw_gid != opw->pw_gid) {
 		yp_error("GID mismatch: client says user %s has GID %d",
-			 npw->pw_name, npw->pw_gid);
+		    npw->pw_name, npw->pw_gid);
 		yp_error("database says user %s has GID %d", opw->pw_name,
-			 opw->pw_gid);
-		return(1);
+		    opw->pw_gid);
+		return (1);
 	}
 
 	/*
@@ -214,24 +215,24 @@ validate(struct passwd *opw, struct x_passwd *npw)
 	 */
 	if (!no_chsh && !ok_shell(npw->pw_shell)) {
 		yp_error("%s is not a valid shell", npw->pw_shell);
-		return(1);
+		return (1);
 	}
 
 	if (!no_chsh && validchars(npw->pw_shell)) {
 		yp_error("specified shell contains invalid characters");
-		return(1);
+		return (1);
 	}
 
 	if (validchars(npw->pw_gecos)) {
 		yp_error("specified gecos field contains invalid characters");
-		return(1);
+		return (1);
 	}
 
 	if (validchars(npw->pw_passwd)) {
 		yp_error("specified password contains invalid characters");
-		return(1);
+		return (1);
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -259,25 +260,25 @@ find_domain(struct x_passwd *pw)
 
 	if ((dird = opendir(yp_dir)) == NULL) {
 		yp_error("opendir(%s) failed: %s", yp_dir, strerror(errno));
-		return(NULL);
+		return (NULL);
 	}
 
 	while ((dirp = readdir(dird)) != NULL) {
-		snprintf(yp_mapdir, sizeof yp_mapdir, "%s/%s",
-							yp_dir, dirp->d_name);
+		snprintf(yp_mapdir, sizeof yp_mapdir, "%s/%s", yp_dir,
+		    dirp->d_name);
 		if (stat(yp_mapdir, &statbuf) < 0) {
 			yp_error("stat(%s) failed: %s", yp_mapdir,
-							strerror(errno));
+			    strerror(errno));
 			closedir(dird);
-			return(NULL);
+			return (NULL);
 		}
 		if (S_ISDIR(statbuf.st_mode)) {
 			tmp = (char *)dirp->d_name;
 			key.data = pw->pw_name;
 			key.size = strlen(pw->pw_name);
 
-			if (yp_get_record(tmp,"master.passwd.byname",
-			  		&key, &data, 0) != YP_TRUE) {
+			if (yp_get_record(tmp, "master.passwd.byname", &key,
+				&data, 0) != YP_TRUE) {
 				continue;
 			}
 			*((char *)data.data + data.size) = '\0';
@@ -293,24 +294,17 @@ find_domain(struct x_passwd *pw)
 	closedir(dird);
 	if (hit > 1) {
 		yp_error("found same user in two different domains");
-		return(NULL);
+		return (NULL);
 	} else
-		return((char *)&domain);
+		return ((char *)&domain);
 }
 
-static const char *maps[] = {
-	"master.passwd.byname",
-	"master.passwd.byuid",
-	"passwd.byname",
-	"passwd.byuid"
-};
+static const char *maps[] = { "master.passwd.byname", "master.passwd.byuid",
+	"passwd.byname", "passwd.byuid" };
 
-static const char *formats[] = {
-	"%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s",
-	"%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s",
-	"%s:%s:%d:%d:%s:%s:%s",
-	"%s:%s:%d:%d:%s:%s:%s"
-};
+static const char *formats[] = { "%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s",
+	"%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s", "%s:%s:%d:%d:%s:%s:%s",
+	"%s:%s:%d:%d:%s:%s:%s" };
 
 static int
 update_inplace(struct passwd *pw, char *domain)
@@ -332,8 +326,8 @@ update_inplace(struct passwd *pw, char *domain)
 	for (i = 0; i < 4; i++) {
 
 		if (i % 2) {
-			snprintf(keybuf, sizeof keybuf,
-			    "%llu", (unsigned long long)pw->pw_uid);
+			snprintf(keybuf, sizeof keybuf, "%llu",
+			    (unsigned long long)pw->pw_uid);
 			key.data = &keybuf;
 			key.size = strlen(keybuf);
 		} else {
@@ -357,9 +351,9 @@ update_inplace(struct passwd *pw, char *domain)
 		 * field. If it's not an '*', then we put the real crypted
 		 * password in.
 		 */
-		if (yp_get_record(domain,maps[i],&key,&data,1) != YP_TRUE) {
-			yp_error("couldn't read %s/%s: %s", domain,
-						maps[i], strerror(errno));
+		if (yp_get_record(domain, maps[i], &key, &data, 1) != YP_TRUE) {
+			yp_error("couldn't read %s/%s: %s", domain, maps[i],
+			    strerror(errno));
 			goto ret1;
 		}
 
@@ -375,9 +369,10 @@ update_inplace(struct passwd *pw, char *domain)
 		 */
 		if (i % 2) {
 			if (strncmp(data.data, pw->pw_name,
-							strlen(pw->pw_name))) {
+				strlen(pw->pw_name))) {
 				yp_error("warning: found entry for UID %d \
-in map %s@%s with wrong name (%.*s)", pw->pw_uid, maps[i], domain,
+in map %s@%s with wrong name (%.*s)",
+				    pw->pw_uid, maps[i], domain,
 				    (int)(ptr - (char *)data.data),
 				    (char *)data.data);
 				yp_error("there may be more than one user \
@@ -397,7 +392,8 @@ with the same UID - continuing");
 			}
 			if (!strstr(data.data, pwbuf)) {
 				yp_error("warning: found entry for user %s \
-in map %s@%s with wrong UID", pw->pw_name, maps[i], domain);
+in map %s@%s with wrong UID",
+				    pw->pw_name, maps[i], domain);
 				yp_error("there may be more than one user \
 with the same name - continuing");
 				continue;
@@ -406,28 +402,26 @@ with the same name - continuing");
 
 		if (i < 2) {
 			free(pwbuf);
-			asprintf(&pwbuf, formats[i],
-			   pw->pw_name, pw->pw_passwd, pw->pw_uid,
-			   pw->pw_gid, pw->pw_class, pw->pw_change,
-			   pw->pw_expire, pw->pw_gecos, pw->pw_dir,
-			   pw->pw_shell);
+			asprintf(&pwbuf, formats[i], pw->pw_name, pw->pw_passwd,
+			    pw->pw_uid, pw->pw_gid, pw->pw_class, pw->pw_change,
+			    pw->pw_expire, pw->pw_gecos, pw->pw_dir,
+			    pw->pw_shell);
 		} else {
 			free(pwbuf);
-			asprintf(&pwbuf, formats[i],
-			   pw->pw_name, *(ptr+1) == '*' ? "*" : pw->pw_passwd,
-			   pw->pw_uid, pw->pw_gid, pw->pw_gecos, pw->pw_dir,
-			   pw->pw_shell);
+			asprintf(&pwbuf, formats[i], pw->pw_name,
+			    *(ptr + 1) == '*' ? "*" : pw->pw_passwd, pw->pw_uid,
+			    pw->pw_gid, pw->pw_gecos, pw->pw_dir, pw->pw_shell);
 		}
 		if (pwbuf == NULL) {
 			yp_error("no memory");
 			goto ret1;
 		}
 
-#define FLAGS O_RDWR|O_CREAT
+#define FLAGS O_RDWR | O_CREAT
 
 		if ((dbp = yp_open_db_rw(domain, maps[i], FLAGS)) == NULL) {
-			yp_error("couldn't open %s/%s r/w: %s",domain,
-						maps[i],strerror(errno));
+			yp_error("couldn't open %s/%s r/w: %s", domain, maps[i],
+			    strerror(errno));
 			goto ret1;
 		}
 
@@ -436,7 +430,7 @@ with the same name - continuing");
 
 		if (yp_put_record(dbp, &key, &data, 1) != YP_TRUE) {
 			yp_error("failed to update record in %s/%s", domain,
-								maps[i]);
+			    maps[i]);
 			(void)(dbp->close)(dbp);
 			goto ret1;
 		}
@@ -448,7 +442,7 @@ with the same name - continuing");
 
 		if (yp_put_record(dbp, &key, &data, 1) != YP_TRUE) {
 			yp_error("failed to update timestamp in %s/%s", domain,
-								maps[i]);
+			    maps[i]);
 			(void)(dbp->close)(dbp);
 			goto ret1;
 		}
@@ -466,7 +460,7 @@ ret1:
 int *
 yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 {
-	static int  result;
+	static int result;
 	struct sockaddr_in *rqhost;
 	DBT key, data;
 	int rval = 0;
@@ -498,12 +492,12 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 
 	gettimeofday(&t_test, NULL);
 	if (!bcmp(rqhost, &clntaddr, sizeof *rqhost) &&
-		t_test.tv_sec > t_saved.tv_sec &&
-		t_test.tv_sec - t_saved.tv_sec < 300) {
+	    t_test.tv_sec > t_saved.tv_sec &&
+	    t_test.tv_sec - t_saved.tv_sec < 300) {
 
 		bzero(&clntaddr, sizeof clntaddr);
 		bzero(&t_saved, sizeof t_saved);
-		return(NULL);
+		return (NULL);
 	}
 
 	bcopy(rqhost, &clntaddr, sizeof clntaddr);
@@ -512,7 +506,7 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	if (yp_access(resvport ? "master.passwd.byname" : NULL, rqstp)) {
 		yp_error("rejected update request from unauthorized host");
 		svcerr_auth(rqstp->rq_xprt, AUTH_BADCRED);
-		return(&result);
+		return (&result);
 	}
 
 	/*
@@ -527,25 +521,25 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	if (multidomain) {
 		if ((domain = find_domain(&argp->newpw)) == NULL) {
 			yp_error("multidomain lookup failed - aborting update");
-			return(&result);
+			return (&result);
 		} else
 			yp_error("updating user %s in domain %s",
-					argp->newpw.pw_name, domain);
+			    argp->newpw.pw_name, domain);
 	}
 
 	key.data = argp->newpw.pw_name;
 	key.size = strlen(argp->newpw.pw_name);
 
-	if ((rval = yp_get_record(domain,"master.passwd.byname",
-		  	&key, &data, 0)) != YP_TRUE) {
+	if ((rval = yp_get_record(domain, "master.passwd.byname", &key, &data,
+		 0)) != YP_TRUE) {
 		if (rval == YP_NOKEY) {
 			yp_error("user %s not found in passwd database",
-			 	argp->newpw.pw_name);
+			    argp->newpw.pw_name);
 		} else {
 			yp_error("database access error: %s",
-			 	yperr_string(rval));
+			    yperr_string(rval));
 		}
-		return(&result);
+		return (&result);
 	}
 
 	/* Nul terminate, please. */
@@ -559,9 +553,8 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	if (cryptpw == NULL || strcmp(cryptpw, yp_password.pw_passwd)) {
 		yp_error("rejected change attempt -- bad password");
 		yp_error("client address: %s username: %s",
-			  inet_ntoa(rqhost->sin_addr),
-			  argp->newpw.pw_name);
-		return(&result);
+		    inet_ntoa(rqhost->sin_addr), argp->newpw.pw_name);
+		return (&result);
 	}
 
 	/* Step 3: validate the arguments passed to us by the client. */
@@ -569,10 +562,9 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	if (validate(&yp_password, &argp->newpw)) {
 		yp_error("rejecting change attempt: bad arguments");
 		yp_error("client address: %s username: %s",
-			 inet_ntoa(rqhost->sin_addr),
-			 argp->newpw.pw_name);
+		    inet_ntoa(rqhost->sin_addr), argp->newpw.pw_name);
 		svcerr_decode(rqstp->rq_xprt);
-		return(&result);
+		return (&result);
 	}
 
 	/* Step 4: update the user's passwd structure. */
@@ -582,7 +574,6 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 		yp_password.pw_shell = argp->newpw.pw_shell;
 		shell_changed++;
 	}
-
 
 	if (!no_chfn && strcmp(argp->newpw.pw_gecos, yp_password.pw_gecos)) {
 		oldgecos = yp_password.pw_gecos;
@@ -603,7 +594,7 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 
 	if (strcmp(domain, yppasswd_domain)) {
 		snprintf(passfile_buf, sizeof(passfile_buf),
-			"%s/%s/master.passwd", yp_dir, domain);
+		    "%s/%s/master.passwd", yp_dir, domain);
 		passfile = (char *)&passfile_buf;
 	}
 
@@ -611,10 +602,9 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	 * Create a filename to hold the original master.passwd
 	 * so if our call to yppwupdate fails we can roll back
 	 */
-	snprintf(passfile_hold_buf, sizeof(passfile_hold_buf),
-	    "%s.hold", passfile);
+	snprintf(passfile_hold_buf, sizeof(passfile_hold_buf), "%s.hold",
+	    passfile);
 	passfile_hold = (char *)&passfile_hold_buf;
-
 
 	/* Step 5: make a new password file with the updated info. */
 
@@ -642,12 +632,11 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	}
 	if (rename(passfile, passfile_hold) == -1) {
 		pw_fini();
-		yp_error("rename of %s to %s failed", passfile,
-		    passfile_hold);
+		yp_error("rename of %s to %s failed", passfile, passfile_hold);
 		return &result;
 	}
 
-	if (strcmp(passfile, _PATH_MASTERPASSWD) == 0) { 
+	if (strcmp(passfile, _PATH_MASTERPASSWD) == 0) {
 		/*
 		 * NIS server is exporting the system's master.passwd.
 		 * Call pw_mkdb to rebuild passwd and the .db files
@@ -665,8 +654,8 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 		 */
 		if (rename(pw_tempname(), passfile) == -1) {
 			pw_fini();
-			yp_error("rename of %s to %s failed",
-			    pw_tempname(), passfile);
+			yp_error("rename of %s to %s failed", pw_tempname(),
+			    passfile);
 			rename(passfile_hold, passfile);
 			return &result;
 		}
@@ -683,23 +672,23 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 	switch ((pid = fork())) {
 	case 0:
 		if (inplace && !rval) {
-    			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
-				yppasswd_domain, "pushpw", (char *)NULL);
+			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
+			    yppasswd_domain, "pushpw", (char *)NULL);
 		} else {
-    			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
-				yppasswd_domain, (char *)NULL);
+			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
+			    yppasswd_domain, (char *)NULL);
 		}
-    		yp_error("couldn't exec map update process: %s",
-					strerror(errno));
+		yp_error("couldn't exec map update process: %s",
+		    strerror(errno));
 		unlink(passfile);
 		rename(passfile_hold, passfile);
-    		exit(1);
+		exit(1);
 		break;
 	case -1:
 		yp_error("fork() failed: %s", strerror(errno));
 		unlink(passfile);
 		rename(passfile_hold, passfile);
-		return(&result);
+		return (&result);
 		break;
 	default:
 		unlink(passfile_hold);
@@ -714,12 +703,12 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
 			yp_error("password changed");
 
 		if (gecos_changed)
-			yp_error("gecos changed ('%s' -> '%s')",
-					oldgecos, argp->newpw.pw_gecos);
+			yp_error("gecos changed ('%s' -> '%s')", oldgecos,
+			    argp->newpw.pw_gecos);
 
 		if (shell_changed)
-			yp_error("shell changed ('%s' -> '%s')",
-					oldshell, argp->newpw.pw_shell);
+			yp_error("shell changed ('%s' -> '%s')", oldshell,
+			    argp->newpw.pw_shell);
 	}
 
 	result = 0;
@@ -732,8 +721,7 @@ yppasswdproc_update_1_svc(yppasswd *argp, struct svc_req *rqstp)
  * it is assumed that the caller knows what he's doing.
  */
 int *
-yppasswdproc_update_master_1_svc(master_yppasswd *argp,
-    struct svc_req *rqstp)
+yppasswdproc_update_master_1_svc(master_yppasswd *argp, struct svc_req *rqstp)
 {
 	static int result;
 	int pfd, tfd;
@@ -747,7 +735,7 @@ yppasswdproc_update_master_1_svc(master_yppasswd *argp,
 	char passfile_buf[MAXPATHLEN + 2];
 	char passfile_hold_buf[MAXPATHLEN + 2];
 	struct sockaddr_in *rqhost;
-	SVCXPRT	*transp;
+	SVCXPRT *transp;
 	struct passwd newpasswd;
 
 	result = 1;
@@ -759,28 +747,29 @@ yppasswdproc_update_master_1_svc(master_yppasswd *argp,
 	rqhost = svc_getcaller(transp);
 	if (rqhost->sin_family != AF_UNIX) {
 		yp_error("Alert! %s/%d attempted to use superuser-only \
-procedure!\n", inet_ntoa(rqhost->sin_addr), rqhost->sin_port);
+procedure!\n",
+		    inet_ntoa(rqhost->sin_addr), rqhost->sin_port);
 		svcerr_auth(transp, AUTH_BADCRED);
-		return(&result);
+		return (&result);
 	}
 
 	if (rqstp->rq_cred.oa_flavor != AUTH_SYS) {
 		yp_error("caller didn't send proper credentials");
 		svcerr_auth(transp, AUTH_BADCRED);
-		return(&result);
+		return (&result);
 	}
 
 	if (__rpc_get_local_uid(transp, &uid) < 0) {
 		yp_error("caller didn't send proper credentials");
 		svcerr_auth(transp, AUTH_BADCRED);
-		return(&result);
+		return (&result);
 	}
 
 	if (uid) {
 		yp_error("caller euid is %d, expecting 0 -- rejecting request",
 		    uid);
 		svcerr_auth(rqstp->rq_xprt, AUTH_BADCRED);
-		return(&result);
+		return (&result);
 	}
 
 	passfile = passfile_default;
@@ -793,23 +782,25 @@ procedure!\n", inet_ntoa(rqhost->sin_addr), rqhost->sin_port);
 	 * rpc.yppasswdd is started with the -a flag. Paranoia
 	 * prevents me from allowing additions by default.
 	 */
-	if ((rval = yp_get_record(argp->domain, "master.passwd.byname",
-			  &key, &data, 0)) != YP_TRUE) {
+	if ((rval = yp_get_record(argp->domain, "master.passwd.byname", &key,
+		 &data, 0)) != YP_TRUE) {
 		if (rval == YP_NOKEY) {
 			yp_error("user %s not found in passwd database",
-				 argp->newpw.pw_name);
+			    argp->newpw.pw_name);
 			if (allow_additions)
 				yp_error("notice: adding user %s to \
-master.passwd database for domain %s", argp->newpw.pw_name, argp->domain);
+master.passwd database for domain %s",
+				    argp->newpw.pw_name, argp->domain);
 			else
-				yp_error("restart rpc.yppasswdd with the -a flag to \
+				yp_error(
+				    "restart rpc.yppasswdd with the -a flag to \
 allow additions to be made to the password database");
 		} else {
 			yp_error("database access error: %s",
-				 yperr_string(rval));
+			    yperr_string(rval));
 		}
 		if (!allow_additions)
-			return(&result);
+			return (&result);
 	} else {
 
 		/* Nul terminate, please. */
@@ -821,10 +812,11 @@ allow additions to be made to the password database");
 	/*
 	 * Perform a small bit of sanity checking.
 	 */
-	if (validate_master(rval == YP_TRUE ? &yp_password:NULL,&argp->newpw)){
+	if (validate_master(rval == YP_TRUE ? &yp_password : NULL,
+		&argp->newpw)) {
 		yp_error("rejecting update attempt for %s: bad arguments",
-			 argp->newpw.pw_name);
-		return(&result);
+		    argp->newpw.pw_name);
+		return (&result);
 	}
 
 	/*
@@ -834,7 +826,7 @@ allow additions to be made to the password database");
 
 	if (strcmp(argp->domain, yppasswd_domain)) {
 		snprintf(passfile_buf, sizeof(passfile_buf),
-			"%s/%s/master.passwd", yp_dir, argp->domain);
+		    "%s/%s/master.passwd", yp_dir, argp->domain);
 		passfile = (char *)&passfile_buf;
 	}
 
@@ -842,8 +834,8 @@ allow additions to be made to the password database");
 	 * Create a filename to hold the original master.passwd
 	 * so if our call to yppwupdate fails we can roll back
 	 */
-	snprintf(passfile_hold_buf, sizeof(passfile_hold_buf),
-	    "%s.hold", passfile);
+	snprintf(passfile_hold_buf, sizeof(passfile_hold_buf), "%s.hold",
+	    passfile);
 	passfile_hold = (char *)&passfile_hold_buf;
 
 	snprintf(passdir_buf, sizeof(passdir_buf), "%s", passfile);
@@ -871,8 +863,7 @@ allow additions to be made to the password database");
 	}
 	if (rename(passfile, passfile_hold) == -1) {
 		pw_fini();
-		yp_error("rename of %s to %s failed", passfile,
-		    passfile_hold);
+		yp_error("rename of %s to %s failed", passfile, passfile_hold);
 		return &result;
 	}
 	if (strcmp(passfile, _PATH_MASTERPASSWD) == 0) {
@@ -893,8 +884,8 @@ allow additions to be made to the password database");
 		 */
 		if (rename(pw_tempname(), passfile) == -1) {
 			pw_fini();
-			yp_error("rename of %s to %s failed",
-			    pw_tempname(), passfile);
+			yp_error("rename of %s to %s failed", pw_tempname(),
+			    passfile);
 			rename(passfile_hold, passfile);
 			return &result;
 		}
@@ -911,23 +902,23 @@ allow additions to be made to the password database");
 	switch ((pid = fork())) {
 	case 0:
 		if (inplace && !rval) {
-    			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
-				argp->domain, "pushpw", (char *)NULL);
-    		} else {
 			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
-				argp->domain, (char *)NULL);
+			    argp->domain, "pushpw", (char *)NULL);
+		} else {
+			execlp(MAP_UPDATE_PATH, MAP_UPDATE, passfile,
+			    argp->domain, (char *)NULL);
 		}
-    		yp_error("couldn't exec map update process: %s",
-					strerror(errno));
+		yp_error("couldn't exec map update process: %s",
+		    strerror(errno));
 		unlink(passfile);
 		rename(passfile_hold, passfile);
-    		exit(1);
+		exit(1);
 		break;
 	case -1:
 		yp_error("fork() failed: %s", strerror(errno));
 		unlink(passfile);
 		rename(passfile_hold, passfile);
-		return(&result);
+		return (&result);
 		break;
 	default:
 		unlink(passfile_hold);
@@ -935,10 +926,8 @@ allow additions to be made to the password database");
 	}
 
 	yp_error("performed update of user %s (uid %d) domain %s",
-						argp->newpw.pw_name,
-						argp->newpw.pw_uid,
-						argp->domain);
+	    argp->newpw.pw_name, argp->newpw.pw_uid, argp->domain);
 
 	result = 0;
-	return(&result);
+	return (&result);
 }

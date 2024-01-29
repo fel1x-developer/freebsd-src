@@ -26,5 +26,5 @@
 float
 gammaf_r(float x, int *signgamp)
 {
-	return lgammaf_r(x,signgamp);
+	return lgammaf_r(x, signgamp);
 }

@@ -25,17 +25,17 @@
  */
 
 #ifndef _MACHINE_MACHDEP_H_
-#define	_MACHINE_MACHDEP_H_
+#define _MACHINE_MACHDEP_H_
 
 #ifdef _KERNEL
 
 struct arm64_bootparams {
-	vm_offset_t	modulep;
-	vm_offset_t	kern_stack;
-	vm_paddr_t	kern_ttbr0;
-	uint64_t	hcr_el2;
-	int		boot_el;	/* EL the kernel booted from */
-	int		pad;
+	vm_offset_t modulep;
+	vm_offset_t kern_stack;
+	vm_paddr_t kern_ttbr0;
+	uint64_t hcr_el2;
+	int boot_el; /* EL the kernel booted from */
+	int pad;
 };
 
 enum arm64_bus {

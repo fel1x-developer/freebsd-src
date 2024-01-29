@@ -30,11 +30,11 @@
 #define _MPS_TABLE_H
 
 struct mps_table_lookup {
-	char	*string;
-	u_int	code;
+	char *string;
+	u_int code;
 };
 
-char * mps_describe_table(struct mps_table_lookup *table, u_int code);
+char *mps_describe_table(struct mps_table_lookup *table, u_int code);
 void mps_describe_devinfo(uint32_t devinfo, char *string, int len);
 
 extern struct mps_table_lookup mps_event_names[];
@@ -54,13 +54,13 @@ void mps_print_sasphy0(struct mps_softc *, MPI2_CONFIG_PAGE_SAS_PHY_0 *);
 void mps_print_sgl(struct mps_softc *, struct mps_command *, int);
 void mps_print_scsiio_cmd(struct mps_softc *, struct mps_command *);
 
-#define MPS_DPRINT_PAGE(sc, level, func, buf)		\
-do {							\
-	if ((sc)->mps_debug & level)			\
-		mps_print_##func((sc), buf);		\
-} while (0)
+#define MPS_DPRINT_PAGE(sc, level, func, buf)        \
+	do {                                         \
+		if ((sc)->mps_debug & level)         \
+			mps_print_##func((sc), buf); \
+	} while (0)
 
-#define MPS_DPRINT_EVENT(sc, func, buf)			\
+#define MPS_DPRINT_EVENT(sc, func, buf) \
 	MPS_DPRINT_PAGE(sc, MPS_EVENT, evt_##func, buf)
 
 #endif

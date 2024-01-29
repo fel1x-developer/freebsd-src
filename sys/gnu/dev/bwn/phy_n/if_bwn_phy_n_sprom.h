@@ -33,22 +33,22 @@
 
 struct bwn_mac;
 
-#define	BWN_NPHY_NUM_CORE_PWR	4
+#define BWN_NPHY_NUM_CORE_PWR 4
 
 struct bwn_phy_n_core_pwr_info {
-    uint8_t itssi_2g;
-    uint8_t itssi_5g;
-    uint8_t maxpwr_2g;
-    uint8_t maxpwr_5gl;
-    uint8_t maxpwr_5g;
-    uint8_t maxpwr_5gh;
-    int16_t pa_2g[3];
-    int16_t pa_5gl[4];
-    int16_t pa_5g[4];
-    int16_t pa_5gh[4];
+	uint8_t itssi_2g;
+	uint8_t itssi_5g;
+	uint8_t maxpwr_2g;
+	uint8_t maxpwr_5gl;
+	uint8_t maxpwr_5g;
+	uint8_t maxpwr_5gh;
+	int16_t pa_2g[3];
+	int16_t pa_5gl[4];
+	int16_t pa_5g[4];
+	int16_t pa_5gh[4];
 };
 
-int	bwn_nphy_get_core_power_info(struct bwn_mac *mac, int core,
-	    struct bwn_phy_n_core_pwr_info *c);
+int bwn_nphy_get_core_power_info(struct bwn_mac *mac, int core,
+    struct bwn_phy_n_core_pwr_info *c);
 
 #endif /* _IF_BWN_PHY_N_SPROM_H_ */

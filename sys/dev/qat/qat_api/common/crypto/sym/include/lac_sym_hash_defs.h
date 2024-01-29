@@ -269,30 +269,30 @@
  * This is got from the maximum size supported by the accelerator which stores
  * the size in an 8bit field */
 
-#define LAC_MAX_HASH_STATE_STORAGE_SIZE                                        \
+#define LAC_MAX_HASH_STATE_STORAGE_SIZE \
 	(sizeof(icp_qat_hw_auth_counter_t) + LAC_HASH_SHA3_STATEFUL_STATE_SIZE)
 /**< Maximum size of the hash state storage section of the hash state prefix
  * buffer */
 
-#define LAC_MAX_HASH_STATE_BUFFER_SIZE_BYTES                                   \
-	LAC_MAX_HASH_STATE_STORAGE_SIZE +                                      \
-	    (LAC_ALIGN_POW2_ROUNDUP(LAC_MAX_INNER_OUTER_PREFIX_SIZE_BYTES,     \
-				    LAC_QUAD_WORD_IN_BYTES) *                  \
-	     2)
+#define LAC_MAX_HASH_STATE_BUFFER_SIZE_BYTES                               \
+	LAC_MAX_HASH_STATE_STORAGE_SIZE +                                  \
+	    (LAC_ALIGN_POW2_ROUNDUP(LAC_MAX_INNER_OUTER_PREFIX_SIZE_BYTES, \
+		 LAC_QUAD_WORD_IN_BYTES) *                                 \
+		2)
 /**< Maximum size of the hash state prefix buffer will be for nested hash when
  * there is the maximum sized inner prefix and outer prefix */
 
 #define LAC_MAX_AAD_SIZE_BYTES 256
 /**< Maximum size of AAD in bytes */
 
-#define IS_HMAC_ALG(algorithm)                                                 \
-	((algorithm == CPA_CY_SYM_HASH_MD5) ||                                 \
-	 (algorithm == CPA_CY_SYM_HASH_SHA1) ||                                \
-	 (algorithm == CPA_CY_SYM_HASH_SHA224) ||                              \
-	 (algorithm == CPA_CY_SYM_HASH_SHA256) ||                              \
-	 (algorithm == CPA_CY_SYM_HASH_SHA384) ||                              \
-	 (algorithm == CPA_CY_SYM_HASH_SHA512) ||                              \
-	 (algorithm == CPA_CY_SYM_HASH_SM3)) ||                                \
+#define IS_HMAC_ALG(algorithm)                       \
+	((algorithm == CPA_CY_SYM_HASH_MD5) ||       \
+	    (algorithm == CPA_CY_SYM_HASH_SHA1) ||   \
+	    (algorithm == CPA_CY_SYM_HASH_SHA224) || \
+	    (algorithm == CPA_CY_SYM_HASH_SHA256) || \
+	    (algorithm == CPA_CY_SYM_HASH_SHA384) || \
+	    (algorithm == CPA_CY_SYM_HASH_SHA512) || \
+	    (algorithm == CPA_CY_SYM_HASH_SM3)) ||   \
 	    (LAC_HASH_IS_SHA3(algorithm))
 /**< @ingroup LacSymQatHash
  * Macro to detect if the hash algorithm is a HMAC algorithm */
@@ -307,27 +307,27 @@
  * Macro to detect is qat hash mode is set to 2. This is used for TLS and
  * mode 2 HMAC (no preompute mode) */
 
-#define IS_HASH_MODE_2_AUTH(qatHashMode, hashMode)                             \
-	((IS_HASH_MODE_2(qatHashMode)) &&                                      \
-	 (CPA_CY_SYM_HASH_MODE_AUTH == hashMode))
+#define IS_HASH_MODE_2_AUTH(qatHashMode, hashMode) \
+	((IS_HASH_MODE_2(qatHashMode)) &&          \
+	    (CPA_CY_SYM_HASH_MODE_AUTH == hashMode))
 /**< @ingroup LacSymQatHash
  * Macro to check for qat hash mode is set to 2 and the hash mode is
  * Auth. This applies to HMAC algorithms (no pre compute). This is used
  * to differntiate between TLS and HMAC */
 
-#define IS_HASH_MODE_2_NESTED(qatHashMode, hashMode)                           \
-	((IS_HASH_MODE_2(qatHashMode)) &&                                      \
-	 (CPA_CY_SYM_HASH_MODE_NESTED == hashMode))
+#define IS_HASH_MODE_2_NESTED(qatHashMode, hashMode) \
+	((IS_HASH_MODE_2(qatHashMode)) &&            \
+	    (CPA_CY_SYM_HASH_MODE_NESTED == hashMode))
 /**< @ingroup LacSymQatHash
  * Macro to check for qat hash mode is set to 2 and the LAC hash mode is
  * Nested. This applies to TLS. This is used to differentiate between
  * TLS and HMAC */
 
-#define LAC_HASH_IS_SHA3(algo)                                                 \
-	((algo == CPA_CY_SYM_HASH_SHA3_224) ||                                 \
-	 (algo == CPA_CY_SYM_HASH_SHA3_256) ||                                 \
-	 (algo == CPA_CY_SYM_HASH_SHA3_384) ||                                 \
-	 (algo == CPA_CY_SYM_HASH_SHA3_512))
+#define LAC_HASH_IS_SHA3(algo)                    \
+	((algo == CPA_CY_SYM_HASH_SHA3_224) ||    \
+	    (algo == CPA_CY_SYM_HASH_SHA3_256) || \
+	    (algo == CPA_CY_SYM_HASH_SHA3_384) || \
+	    (algo == CPA_CY_SYM_HASH_SHA3_512))
 /**< @ingroup LacSymQatHash
  * Macro to check if the hash algorithm is SHA3 */
 

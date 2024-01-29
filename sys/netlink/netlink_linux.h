@@ -38,13 +38,12 @@ struct nl_pstate;
 struct nl_writer;
 
 typedef bool msgs_to_linux_cb_t(struct nl_writer *nw, struct nlpcb *nlp);
-typedef struct nlmsghdr *msg_from_linux_cb_t(int netlink_family, struct nlmsghdr *hdr,
-    struct nl_pstate *npt);
+typedef struct nlmsghdr *msg_from_linux_cb_t(int netlink_family,
+    struct nlmsghdr *hdr, struct nl_pstate *npt);
 
 struct linux_netlink_provider {
-	msgs_to_linux_cb_t	*msgs_to_linux;
-	msg_from_linux_cb_t	*msg_from_linux;
-
+	msgs_to_linux_cb_t *msgs_to_linux;
+	msg_from_linux_cb_t *msg_from_linux;
 };
 
 extern struct linux_netlink_provider *linux_netlink_p;

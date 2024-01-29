@@ -14,8 +14,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/gpt.h>
 #include <sys/dirent.h>
+#include <sys/gpt.h>
 #include <sys/reboot.h>
 
 #include <machine/bootinfo.h>
@@ -23,74 +23,58 @@
 #include <machine/pc/bios.h>
 #include <machine/psl.h>
 
+#include <a.out.h>
+#include <btxv86.h>
 #include <stdarg.h>
 
-#include <a.out.h>
-
-#include <btxv86.h>
-
+#include "bootargs.h"
+#include "cons.h"
+#include "drv.h"
+#include "gpt.h"
+#include "lib.h"
+#include "paths.h"
+#include "rbx.h"
 #include "stand.h"
 
-#include "bootargs.h"
-#include "lib.h"
-#include "rbx.h"
-#include "drv.h"
-#include "cons.h"
-#include "gpt.h"
-#include "paths.h"
+#define ARGS 0x900
+#define NOPT 14
+#define NDEV 3
+#define MEM_BASE 0x12
+#define MEM_EXT 0x15
 
-#define ARGS		0x900
-#define NOPT		14
-#define NDEV		3
-#define MEM_BASE	0x12
-#define MEM_EXT 	0x15
+#define DRV_HARD 0x80
+#define DRV_MASK 0x7f
 
-#define DRV_HARD	0x80
-#define DRV_MASK	0x7f
-
-#define TYPE_AD		0
-#define TYPE_DA		1
-#define TYPE_MAXHARD	TYPE_DA
-#define TYPE_FD		2
+#define TYPE_AD 0
+#define TYPE_DA 1
+#define TYPE_MAXHARD TYPE_DA
+#define TYPE_FD 2
 
 extern uint32_t _end;
 
 static const char optstr[NOPT] = "DhaCcdgmnpqrsv"; /* Also 'P', 'S' */
-static const unsigned char flags[NOPT] = {
-	RBX_DUAL,
-	RBX_SERIAL,
-	RBX_ASKNAME,
-	RBX_CDROM,
-	RBX_CONFIG,
-	RBX_KDB,
-	RBX_GDB,
-	RBX_MUTE,
-	RBX_NOINTR,
-	RBX_PAUSE,
-	RBX_QUIET,
-	RBX_DFLTROOT,
-	RBX_SINGLE,
-	RBX_VERBOSE
-};
+static const unsigned char flags[NOPT] = { RBX_DUAL, RBX_SERIAL, RBX_ASKNAME,
+	RBX_CDROM, RBX_CONFIG, RBX_KDB, RBX_GDB, RBX_MUTE, RBX_NOINTR,
+	RBX_PAUSE, RBX_QUIET, RBX_DFLTROOT, RBX_SINGLE, RBX_VERBOSE };
 uint32_t opts;
 
-static const char *const dev_nm[NDEV] = {"ad", "da", "fd"};
-static const unsigned char dev_maj[NDEV] = {30, 4, 2};
+static const char *const dev_nm[NDEV] = { "ad", "da", "fd" };
+static const unsigned char dev_maj[NDEV] = { 30, 4, 2 };
 
 static struct dsk dsk;
 static char kname[1024];
 static int comspeed = SIOSPD;
 static struct bootinfo bootinfo;
 
-static vm_offset_t	high_heap_base;
-static uint32_t		bios_basemem, bios_extmem, high_heap_size;
+static vm_offset_t high_heap_base;
+static uint32_t bios_basemem, bios_extmem, high_heap_size;
 
 static struct bios_smap smap;
 
 /*
  * The minimum amount of memory to reserve in bios_extmem for the heap.
  */
-#define	HEAP_MIN	(3 * 1024 * 1024)
+#define HEAP_MIN (3 * 1024 * 1024)
 
 static char *heap_next;
 static char *heap_end;
@@ -125,7 +109,7 @@ bios_getmem(void)
 	v86.ebx = 0;
 	do {
 		v86.ctl = V86_FLAGS;
-		v86.addr = MEM_EXT;		/* int 0x15 function 0xe820*/
+		v86.addr = MEM_EXT; /* int 0x15 function 0xe820*/
 		v86.eax = 0xe820;
 		v86.ecx = sizeof(struct bios_smap);
 		v86.edx = SMAP_SIG;
@@ -148,8 +132,8 @@ bios_getmem(void)
 		 * Look for the largest segment in 'extended' memory beyond
 		 * 1MB but below 4GB.
 		 */
-		if ((smap.type == SMAP_TYPE_MEMORY) &&
-		    (smap.base > 0x100000) && (smap.base < 0x100000000ull)) {
+		if ((smap.type == SMAP_TYPE_MEMORY) && (smap.base > 0x100000) &&
+		    (smap.base < 0x100000000ull)) {
 			size = smap.length;
 
 			/*
@@ -169,7 +153,7 @@ bios_getmem(void)
 	/* Fall back to the old compatibility function for base memory */
 	if (bios_basemem == 0) {
 		v86.ctl = 0;
-		v86.addr = 0x12;		/* int 0x12 */
+		v86.addr = 0x12; /* int 0x12 */
 		v86int();
 
 		bios_basemem = (v86.eax & 0xffff) * 1024;
@@ -181,17 +165,18 @@ bios_getmem(void)
 	 */
 	if (bios_extmem == 0) {
 		v86.ctl = V86_FLAGS;
-		v86.addr = 0x15;		/* int 0x15 function 0xe801*/
+		v86.addr = 0x15; /* int 0x15 function 0xe801*/
 		v86.eax = 0xe801;
 		v86int();
 		if (!(v86.efl & 1)) {
 			bios_extmem = ((v86.ecx & 0xffff) +
-			    ((v86.edx & 0xffff) * 64)) * 1024;
+					  ((v86.edx & 0xffff) * 64)) *
+			    1024;
 		}
 	}
 	if (bios_extmem == 0) {
 		v86.ctl = 0;
-		v86.addr = 0x15;		/* int 0x15 function 0x88*/
+		v86.addr = 0x15; /* int 0x15 function 0x88*/
 		v86.eax = 0x8800;
 		v86int();
 		bios_extmem = (v86.eax & 0xffff) * 1024;
@@ -222,8 +207,9 @@ main(void)
 		heap_end = PTOV(high_heap_base + high_heap_size);
 		heap_next = PTOV(high_heap_base);
 	} else {
-		heap_next = (char *)
-		    (roundup2(__base + (int32_t)&_end, 0x10000) - __base);
+		heap_next = (char *)(roundup2(__base + (int32_t)&_end,
+					 0x10000) -
+		    __base);
 		heap_end = (char *)PTOV(bios_basemem);
 	}
 	setheap(heap_next, heap_end);
@@ -287,8 +273,8 @@ main(void)
 	for (;;) {
 		if (!OPT_CHECK(RBX_QUIET)) {
 			printf("\nFreeBSD/x86 boot\n"
-			    "Default: %u:%s(%up%u)%s\n"
-			    "boot: ",
+			       "Default: %u:%s(%up%u)%s\n"
+			       "boot: ",
 			    dsk.drive & DRV_MASK, dev_nm[dsk.type], dsk.unit,
 			    dsk.part, kname);
 		}
@@ -313,7 +299,8 @@ void
 exit(int x)
 {
 
-	while (1);
+	while (1)
+		;
 	__unreachable();
 }
 
@@ -333,9 +320,8 @@ load(void)
 
 	if (!(ino = cd9660_lookup(kname))) {
 		if (!ls) {
-			printf("%s: No %s on %u:%s(%up%u)\n", BOOTPROG,
-			    kname, dsk.drive & DRV_MASK, dev_nm[dsk.type],
-			    dsk.unit,
+			printf("%s: No %s on %u:%s(%up%u)\n", BOOTPROG, kname,
+			    dsk.drive & DRV_MASK, dev_nm[dsk.type], dsk.unit,
 			    dsk.part);
 		}
 		return;
@@ -393,8 +379,8 @@ load(void)
 		p += roundup2(ep[1].p_memsz, PAGE_SIZE);
 		bootinfo.bi_symtab = VTOP(p);
 		if (hdr.eh.e_shnum == hdr.eh.e_shstrndx + 3) {
-			fs_off = hdr.eh.e_shoff + sizeof(es[0]) *
-			    (hdr.eh.e_shstrndx + 1);
+			fs_off = hdr.eh.e_shoff +
+			    sizeof(es[0]) * (hdr.eh.e_shstrndx + 1);
 			if (xfsread(ino, &es, sizeof(es)))
 				return;
 			for (i = 0; i < 2; i++) {
@@ -413,8 +399,8 @@ load(void)
 	bootinfo.bi_kernelname = VTOP(kname);
 	bootinfo.bi_bios_dev = dsk.drive;
 	__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK),
-	    MAKEBOOTDEV(dev_maj[dsk.type], 0, dsk.unit, 0),
-	    0, 0, 0, VTOP(&bootinfo));
+	    MAKEBOOTDEV(dev_maj[dsk.type], 0, dsk.unit, 0), 0, 0, 0,
+	    VTOP(&bootinfo));
 }
 
 static int
@@ -431,7 +417,8 @@ parse_cmds(char *cmdstr, int *dskupdated)
 	while ((c = *arg++)) {
 		if (c == ' ' || c == '\t' || c == '\n')
 			continue;
-		for (p = arg; *p && *p != '\n' && *p != ' ' && *p != '\t'; p++);
+		for (p = arg; *p && *p != '\n' && *p != ' ' && *p != '\t'; p++)
+			;
 		ep = p;
 		if (*p)
 			*p++ = 0;
@@ -449,8 +436,8 @@ parse_cmds(char *cmdstr, int *dskupdated)
 					continue;
 				} else if (c == 'S') {
 					j = 0;
-					while ((unsigned int)(i = *arg++ - '0')
-					    <= 9)
+					while ((unsigned int)(i = *arg++ -
+						       '0') <= 9)
 						j = j * 10 + i;
 					if (j > 0 && i == -'0') {
 						comspeed = j;
@@ -466,14 +453,17 @@ parse_cmds(char *cmdstr, int *dskupdated)
 						return (-1);
 				opts ^= OPT_SET(flags[i]);
 			}
-			ioctrl = OPT_CHECK(RBX_DUAL) ? (IO_SERIAL|IO_KEYBOARD) :
-			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL : IO_KEYBOARD;
+			ioctrl = OPT_CHECK(RBX_DUAL) ?
+			    (IO_SERIAL | IO_KEYBOARD) :
+			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL :
+						    IO_KEYBOARD;
 			if (ioctrl & IO_SERIAL) {
 				if (sio_init(115200 / comspeed) != 0)
 					ioctrl &= ~IO_SERIAL;
 			}
 		} else {
-			for (q = arg--; *q && *q != '('; q++);
+			for (q = arg--; *q && *q != '('; q++)
+				;
 			if (*q) {
 				drv = -1;
 				if (arg[1] == ':') {
@@ -485,7 +475,8 @@ parse_cmds(char *cmdstr, int *dskupdated)
 				if (q - arg != 2)
 					return (-1);
 				for (i = 0; arg[0] != dev_nm[i][0] ||
-				    arg[1] != dev_nm[i][1]; i++)
+				     arg[1] != dev_nm[i][1];
+				     i++)
 					if (i == NDEV - 1)
 						return (-1);
 				dsk.type = i;
@@ -503,8 +494,10 @@ parse_cmds(char *cmdstr, int *dskupdated)
 				arg++;
 				if (drv == -1)
 					drv = dsk.unit;
-				dsk.drive = (dsk.type <= TYPE_MAXHARD
-				    ? DRV_HARD : 0) + drv;
+				dsk.drive = (dsk.type <= TYPE_MAXHARD ?
+						    DRV_HARD :
+						    0) +
+				    drv;
 				*dskupdated = 1;
 			}
 			if ((i = ep - arg)) {

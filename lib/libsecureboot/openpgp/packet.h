@@ -62,18 +62,18 @@ typedef struct OpenPGP_sig {
 } OpenPGP_sig;
 
 void openpgp_trust_add(OpenPGP_key *key);
-OpenPGP_key * openpgp_trust_get(const char *keyID);
-OpenPGP_key * load_key_file(const char *kfile);
-OpenPGP_key * load_key_id(const char *keyID);
+OpenPGP_key *openpgp_trust_get(const char *keyID);
+OpenPGP_key *load_key_file(const char *kfile);
+OpenPGP_key *load_key_id(const char *keyID);
 void initialize(void);
-char * get_error_string(void);
+char *get_error_string(void);
 int openpgp_verify(const char *filename, unsigned char *fdata, size_t fbytes,
     unsigned char *sdata, size_t sbytes, int flags);
 int openpgp_verify_file(const char *filename, unsigned char *fdata,
     size_t nbytes);
 
 /* packet decoders */
-#define DECODER_DECL(x)							\
+#define DECODER_DECL(x) \
 	ssize_t decode_##x(int, unsigned char **, size_t, OpenPGP_##x *)
 
 DECODER_DECL(user);

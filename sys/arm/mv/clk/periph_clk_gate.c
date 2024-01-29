@@ -31,16 +31,15 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_mux.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -68,12 +67,12 @@ a37x0_periph_gate_register_gate(struct clkdom *clkdom,
 		parent_name = device_def->common_def.pname;
 
 	a37x0_periph_set_props(&gate->clkdef, &parent_name, 1);
-	error = a37x0_periph_create_gate(clkdom, gate,
-	    dev_id);
-	if (error) goto fail;
+	error = a37x0_periph_create_gate(clkdom, gate, dev_id);
+	if (error)
+		goto fail;
 
-	fail:
-		return (error);
+fail:
+	return (error);
 
 	return (0);
 }

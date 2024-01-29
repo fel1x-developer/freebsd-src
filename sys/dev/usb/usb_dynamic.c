@@ -28,34 +28,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
 #include <dev/usb/usb_core.h>
-#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_device.h>
 #include <dev/usb/usb_dynamic.h>
+#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_request.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /* function prototypes */
 static usb_handle_req_t usb_temp_get_desc_w;
@@ -69,7 +68,8 @@ static usb_quirk_ioctl_t usb_quirk_ioctl_w;
 
 /* global variables */
 usb_handle_req_t *usb_temp_get_desc_p = &usb_temp_get_desc_w;
-usb_temp_setup_by_index_t *usb_temp_setup_by_index_p = &usb_temp_setup_by_index_w;
+usb_temp_setup_by_index_t *usb_temp_setup_by_index_p =
+    &usb_temp_setup_by_index_w;
 #if USB_HAVE_COMPAT_LINUX
 usb_linux_free_device_t *usb_linux_free_device_p = &usb_linux_free_device_w;
 #endif
@@ -87,7 +87,7 @@ usb_temp_setup_by_index_w(struct usb_device *udev, uint16_t index)
 static uint8_t
 usb_test_quirk_w(const struct usbd_lookup_info *info, uint16_t quirk)
 {
-	return (0);			/* no match */
+	return (0); /* no match */
 }
 
 static int
@@ -97,7 +97,8 @@ usb_quirk_ioctl_w(unsigned long cmd, caddr_t data, int fflag, struct thread *td)
 }
 
 static usb_error_t
-usb_temp_get_desc_w(struct usb_device *udev, struct usb_device_request *req, const void **pPtr, uint16_t *pLength)
+usb_temp_get_desc_w(struct usb_device *udev, struct usb_device_request *req,
+    const void **pPtr, uint16_t *pLength)
 {
 	/* stall */
 	return (USB_ERR_STALLED);
@@ -170,7 +171,7 @@ usb_linux_unload(void *arg)
 	/* reset function pointers */
 
 	usb_linux_free_device_p = &usb_linux_free_device_w;
-  
+
 	/* wait for CPU to exit the loaded functions, if any */
 
 	/* XXX this is a tradeoff */

@@ -36,7 +36,7 @@
 #include "pwupd.h"
 
 char *
-getgrpath(const char * file)
+getgrpath(const char *file)
 {
 	static char pathbuf[MAXPATHLEN];
 
@@ -46,7 +46,7 @@ getgrpath(const char * file)
 }
 
 static int
-gr_update(struct group * grp, char const * group)
+gr_update(struct group *grp, char const *group)
 {
 	int pfd, tfd;
 	struct group *gr = NULL;
@@ -85,21 +85,20 @@ gr_update(struct group * grp, char const * group)
 	return 0;
 }
 
-
 int
-addgrent(struct group * grp)
+addgrent(struct group *grp)
 {
 	return gr_update(grp, NULL);
 }
 
 int
-chggrent(char const * login, struct group * grp)
+chggrent(char const *login, struct group *grp)
 {
 	return gr_update(grp, login);
 }
 
 int
-delgrent(struct group * grp)
+delgrent(struct group *grp)
 {
 
 	return (gr_update(NULL, grp->gr_name));

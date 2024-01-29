@@ -24,12 +24,12 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_LIST_IMPL_H
-#define	_SYS_LIST_IMPL_H
+#ifndef _SYS_LIST_IMPL_H
+#define _SYS_LIST_IMPL_H
 
 #include <sys/types.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -39,13 +39,13 @@ struct list_node {
 };
 
 struct list {
-	size_t	list_size;
-	size_t	list_offset;
+	size_t list_size;
+	size_t list_offset;
 	struct list_node list_head;
 };
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_LIST_IMPL_H */
+#endif /* _SYS_LIST_IMPL_H */

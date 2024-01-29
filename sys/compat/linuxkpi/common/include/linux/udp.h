@@ -28,18 +28,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_UDP_H
-#define	_LINUXKPI_LINUX_UDP_H
+#ifndef _LINUXKPI_LINUX_UDP_H
+#define _LINUXKPI_LINUX_UDP_H
 
 #include <sys/types.h>
+
 #include <linux/skbuff.h>
 
 /* (u) unconfirmed structure field names. */
 struct udphdr {
-	uint16_t	source;		/* (u) */
-	uint16_t	dest;
-	uint16_t	len;		/* (u) */
-	uint16_t	check;
+	uint16_t source; /* (u) */
+	uint16_t dest;
+	uint16_t len; /* (u) */
+	uint16_t check;
 };
 
 static __inline struct udphdr *
@@ -49,4 +50,4 @@ udp_hdr(struct sk_buff *skb)
 	return (struct udphdr *)skb_transport_header(skb);
 }
 
-#endif	/* _LINUXKPI_LINUX_UDP_H */
+#endif /* _LINUXKPI_LINUX_UDP_H */

@@ -32,59 +32,55 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
-#include <sys/syslog.h>
-#include <sys/wait.h>
-#include <sys/mount.h>
 #include <sys/fcntl.h>
 #include <sys/linker.h>
 #include <sys/module.h>
-#include <sys/types.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
 #include <sys/ucred.h>
+#include <sys/wait.h>
 
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
-#include <rpcsvc/nfs_prot.h>
-
-#include <netdb.h>
 #include <arpa/inet.h>
-#include <nfs/nfssvc.h>
-
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfs.h>
-
 #include <err.h>
 #include <errno.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
+#include <getopt.h>
+#include <netdb.h>
+#include <nfs/nfssvc.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/nfs_prot.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sysexits.h>
+#include <unistd.h>
 
-#include <getopt.h>
+static int debug = 0;
 
-static int	debug = 0;
-
-#define	NFSD_STABLERESTART	"/var/db/nfs-stablerestart"
-#define	NFSD_STABLEBACKUP	"/var/db/nfs-stablerestart.bak"
-#define	MAXNFSDCNT	256
-#define	DEFNFSDCNT	 4
-#define	NFS_VER2	 2
-#define NFS_VER3	 3
-#define NFS_VER4	 4
+#define NFSD_STABLERESTART "/var/db/nfs-stablerestart"
+#define NFSD_STABLEBACKUP "/var/db/nfs-stablerestart.bak"
+#define MAXNFSDCNT 256
+#define DEFNFSDCNT 4
+#define NFS_VER2 2
+#define NFS_VER3 3
+#define NFS_VER4 4
 static pid_t children[MAXNFSDCNT]; /* PIDs of children */
 static pid_t masterpid;		   /* PID of master/parent */
-static int nfsdcnt;		/* number of children */
+static int nfsdcnt;		   /* number of children */
 static int nfsdcnt_set;
 static int minthreads;
 static int maxthreads;
-static int nfssvc_nfsd;		/* Set to correct NFSSVC_xxx flag */
-static int stablefd = -1;	/* Fd for the stable restart file */
-static int backupfd;		/* Fd for the backup stable restart file */
+static int nfssvc_nfsd;	  /* Set to correct NFSSVC_xxx flag */
+static int stablefd = -1; /* Fd for the stable restart file */
+static int backupfd;	  /* Fd for the backup stable restart file */
 static const char *getopt_shortopts;
 static const char *getopt_usage;
 static int nfs_minvers = NFS_VER2;
@@ -92,31 +88,28 @@ static int nfs_minvers = NFS_VER2;
 static int minthreads_set;
 static int maxthreads_set;
 
-static struct option longopts[] = {
-	{ "debug", no_argument, &debug, 1 },
+static struct option longopts[] = { { "debug", no_argument, &debug, 1 },
 	{ "minthreads", required_argument, &minthreads_set, 1 },
 	{ "maxthreads", required_argument, &maxthreads_set, 1 },
 	{ "pnfs", required_argument, NULL, 'p' },
-	{ "mirror", required_argument, NULL, 'm' },
-	{ NULL, 0, NULL, 0}
-};
+	{ "mirror", required_argument, NULL, 'm' }, { NULL, 0, NULL, 0 } };
 
-static void	cleanup(int);
-static void	child_cleanup(int);
-static void	killchildren(void);
-static void	nfsd_exit(int);
-static void	nonfs(int);
-static void	reapchild(int);
-static int	setbindhost(struct addrinfo **ia, const char *bindhost,
-		    struct addrinfo hints);
-static void	start_server(int, struct nfsd_nfsd_args *, const char *vhost);
-static void	unregistration(void);
-static void	usage(void);
-static void	open_stable(int *, int *);
-static void	copy_stable(int, int);
-static void	backup_stable(int);
-static void	set_nfsdcnt(int);
-static void	parse_dsserver(const char *, struct nfsd_nfsd_args *);
+static void cleanup(int);
+static void child_cleanup(int);
+static void killchildren(void);
+static void nfsd_exit(int);
+static void nonfs(int);
+static void reapchild(int);
+static int setbindhost(struct addrinfo **ia, const char *bindhost,
+    struct addrinfo hints);
+static void start_server(int, struct nfsd_nfsd_args *, const char *vhost);
+static void unregistration(void);
+static void usage(void);
+static void open_stable(int *, int *);
+static void copy_stable(int, int);
+static void backup_stable(int);
+static void set_nfsdcnt(int);
+static void parse_dsserver(const char *, struct nfsd_nfsd_args *);
 
 /*
  * Nfs server daemon mostly just a user context for nfssvc()
@@ -196,11 +189,12 @@ main(int argc, char **argv)
 			break;
 		case 'h':
 			bindhostc++;
-			bindhost = realloc(bindhost,sizeof(char *)*bindhostc);
-			if (bindhost == NULL) 
+			bindhost = realloc(bindhost,
+			    sizeof(char *) * bindhostc);
+			if (bindhost == NULL)
 				errx(1, "Out of memory");
-			bindhost[bindhostc-1] = strdup(optarg);
-			if (bindhost[bindhostc-1] == NULL)
+			bindhost[bindhostc - 1] = strdup(optarg);
+			if (bindhost[bindhostc - 1] == NULL)
 				errx(1, "Out of memory");
 			break;
 		case 'r':
@@ -249,7 +243,8 @@ main(int argc, char **argv)
 	if (minthreads_set && maxthreads_set && minthreads > maxthreads)
 		errx(EX_USAGE,
 		    "error: minthreads(%d) can't be greater than "
-		    "maxthreads(%d)", minthreads, maxthreads);
+		    "maxthreads(%d)",
+		    minthreads, maxthreads);
 
 	/*
 	 * XXX
@@ -277,7 +272,7 @@ main(int argc, char **argv)
 			err(1, "socket");
 		ip6flag = 0;
 	} else if (getnetconfigent("udp6") == NULL ||
-		getnetconfigent("tcp6") == NULL) {
+	    getnetconfigent("tcp6") == NULL) {
 		ip6flag = 0;
 	}
 	if (s != -1)
@@ -285,11 +280,11 @@ main(int argc, char **argv)
 
 	if (bindhostc == 0 || bindanyflag) {
 		bindhostc++;
-		bindhost = realloc(bindhost,sizeof(char *)*bindhostc);
-		if (bindhost == NULL) 
+		bindhost = realloc(bindhost, sizeof(char *) * bindhostc);
+		if (bindhost == NULL)
 			errx(1, "Out of memory");
-		bindhost[bindhostc-1] = strdup("*");
-		if (bindhost[bindhostc-1] == NULL) 
+		bindhost[bindhostc - 1] = strdup("*");
+		if (bindhost[bindhostc - 1] == NULL)
 			errx(1, "Out of memory");
 	}
 
@@ -300,7 +295,7 @@ main(int argc, char **argv)
 		 * since registering with rpcbind.
 		 */
 		unregistration();
-		exit (0);
+		exit(0);
 	}
 
 	nfs_minvers_size = sizeof(nfs_minvers);
@@ -308,7 +303,7 @@ main(int argc, char **argv)
 	    &nfs_minvers_size, NULL, 0);
 	if (error != 0 || nfs_minvers < NFS_VER2 || nfs_minvers > NFS_VER4) {
 		warnx("sysctlbyname(vfs.nfsd.server_min_nfsvers) failed,"
-		    " defaulting to NFSv2");
+		      " defaulting to NFSv2");
 		nfs_minvers = NFS_VER2;
 	}
 
@@ -321,7 +316,8 @@ main(int argc, char **argv)
 			hints.ai_protocol = IPPROTO_UDP;
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_udp);
 			if (ecode != 0)
-				err(1, "getaddrinfo udp: %s", gai_strerror(ecode));
+				err(1, "getaddrinfo udp: %s",
+				    gai_strerror(ecode));
 			nconf_udp = getnetconfigent("udp");
 			if (nconf_udp == NULL)
 				err(1, "getnetconfigent udp failed");
@@ -329,11 +325,11 @@ main(int argc, char **argv)
 			nb_udp.len = nb_udp.maxlen = ai_udp->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_udp,
-				    &nb_udp))
+					&nb_udp))
 					err(1, "rpcb_set udp failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_udp,
-				    &nb_udp))
+					&nb_udp))
 					err(1, "rpcb_set udp failed");
 			freeaddrinfo(ai_udp);
 		}
@@ -345,7 +341,8 @@ main(int argc, char **argv)
 			hints.ai_protocol = IPPROTO_UDP;
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_udp6);
 			if (ecode != 0)
-				err(1, "getaddrinfo udp6: %s", gai_strerror(ecode));
+				err(1, "getaddrinfo udp6: %s",
+				    gai_strerror(ecode));
 			nconf_udp6 = getnetconfigent("udp6");
 			if (nconf_udp6 == NULL)
 				err(1, "getnetconfigent udp6 failed");
@@ -353,11 +350,11 @@ main(int argc, char **argv)
 			nb_udp6.len = nb_udp6.maxlen = ai_udp6->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_udp6,
-				    &nb_udp6))
+					&nb_udp6))
 					err(1, "rpcb_set udp6 failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_udp6,
-				    &nb_udp6))
+					&nb_udp6))
 					err(1, "rpcb_set udp6 failed");
 			freeaddrinfo(ai_udp6);
 		}
@@ -369,7 +366,8 @@ main(int argc, char **argv)
 			hints.ai_protocol = IPPROTO_TCP;
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_tcp);
 			if (ecode != 0)
-				err(1, "getaddrinfo tcp: %s", gai_strerror(ecode));
+				err(1, "getaddrinfo tcp: %s",
+				    gai_strerror(ecode));
 			nconf_tcp = getnetconfigent("tcp");
 			if (nconf_tcp == NULL)
 				err(1, "getnetconfigent tcp failed");
@@ -377,11 +375,11 @@ main(int argc, char **argv)
 			nb_tcp.len = nb_tcp.maxlen = ai_tcp->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_tcp,
-				    &nb_tcp))
+					&nb_tcp))
 					err(1, "rpcb_set tcp failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_tcp,
-				    &nb_tcp))
+					&nb_tcp))
 					err(1, "rpcb_set tcp failed");
 			freeaddrinfo(ai_tcp);
 		}
@@ -393,7 +391,8 @@ main(int argc, char **argv)
 			hints.ai_protocol = IPPROTO_TCP;
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_tcp6);
 			if (ecode != 0)
-				err(1, "getaddrinfo tcp6: %s", gai_strerror(ecode));
+				err(1, "getaddrinfo tcp6: %s",
+				    gai_strerror(ecode));
 			nconf_tcp6 = getnetconfigent("tcp6");
 			if (nconf_tcp6 == NULL)
 				err(1, "getnetconfigent tcp6 failed");
@@ -401,15 +400,15 @@ main(int argc, char **argv)
 			nb_tcp6.len = nb_tcp6.maxlen = ai_tcp6->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_tcp6,
-				    &nb_tcp6))
+					&nb_tcp6))
 					err(1, "rpcb_set tcp6 failed");
 			if (nfs_minvers <= NFS_VER3)
-				if (!rpcb_set(NFS_PROGRAM, 3, nconf_tcp6, 
-				   &nb_tcp6))
+				if (!rpcb_set(NFS_PROGRAM, 3, nconf_tcp6,
+					&nb_tcp6))
 					err(1, "rpcb_set tcp6 failed");
 			freeaddrinfo(ai_tcp6);
 		}
-		exit (0);
+		exit(0);
 	}
 	if (debug == 0) {
 		daemon(0, 0);
@@ -419,7 +418,7 @@ main(int argc, char **argv)
 		 * nfsd sits in the kernel most of the time.  It needs
 		 * to ignore SIGTERM/SIGQUIT in order to stay alive as long
 		 * as possible during a shutdown, otherwise loopback
-		 * mounts will not be able to unmount. 
+		 * mounts will not be able to unmount.
 		 */
 		(void)signal(SIGTERM, SIG_IGN);
 		(void)signal(SIGQUIT, SIG_IGN);
@@ -457,12 +456,14 @@ main(int argc, char **argv)
 			sysctlbyname("security.jail.jailed", &jailed,
 			    &jailed_size, NULL, 0);
 			if (jailed != 0)
-				syslog(LOG_ERR, "nfssvc stablerestart failed: "
+				syslog(LOG_ERR,
+				    "nfssvc stablerestart failed: "
 				    "allow.nfsd might not be configured");
 			else
 				syslog(LOG_ERR, "nfssvc stablerestart failed");
 		} else if (errno == ENXIO)
-			syslog(LOG_ERR, "nfssvc stablerestart failed: is nfsd "
+			syslog(LOG_ERR,
+			    "nfssvc stablerestart failed: is nfsd "
 			    "already running?");
 		else
 			syslog(LOG_ERR, "Can't read stable storage file: %m\n");
@@ -494,7 +495,7 @@ main(int argc, char **argv)
 
 	(void)signal(SIGUSR1, cleanup);
 	FD_ZERO(&sockbits);
- 
+
 	rpcbregcnt = 0;
 	/* Set up the socket for udp and rpcb register it. */
 	if (udpflag) {
@@ -509,14 +510,14 @@ main(int argc, char **argv)
 				rpcbreg = 1;
 				rpcbregcnt++;
 				if ((sock = socket(ai_udp->ai_family,
-				    ai_udp->ai_socktype,
-				    ai_udp->ai_protocol)) < 0) {
+					 ai_udp->ai_socktype,
+					 ai_udp->ai_protocol)) < 0) {
 					syslog(LOG_ERR,
 					    "can't create udp socket");
 					nfsd_exit(1);
 				}
 				if (bind(sock, ai_udp->ai_addr,
-				    ai_udp->ai_addrlen) < 0) {
+					ai_udp->ai_addrlen) < 0) {
 					syslog(LOG_ERR,
 					    "can't bind udp addr %s: %m",
 					    bindhost[i]);
@@ -542,7 +543,7 @@ main(int argc, char **argv)
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_udp);
 			if (ecode != 0) {
 				syslog(LOG_ERR, "getaddrinfo udp: %s",
-				   gai_strerror(ecode));
+				    gai_strerror(ecode));
 				nfsd_exit(1);
 			}
 			nconf_udp = getnetconfigent("udp");
@@ -552,11 +553,11 @@ main(int argc, char **argv)
 			nb_udp.len = nb_udp.maxlen = ai_udp->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_udp,
-				    &nb_udp))
+					&nb_udp))
 					err(1, "rpcb_set udp failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_udp,
-				    &nb_udp))
+					&nb_udp))
 					err(1, "rpcb_set udp failed");
 			freeaddrinfo(ai_udp);
 		}
@@ -575,21 +576,21 @@ main(int argc, char **argv)
 				rpcbreg = 1;
 				rpcbregcnt++;
 				if ((sock = socket(ai_udp6->ai_family,
-				    ai_udp6->ai_socktype,
-				    ai_udp6->ai_protocol)) < 0) {
+					 ai_udp6->ai_socktype,
+					 ai_udp6->ai_protocol)) < 0) {
 					syslog(LOG_ERR,
-						"can't create udp6 socket");
+					    "can't create udp6 socket");
 					nfsd_exit(1);
 				}
 				if (setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY,
-				    &on, sizeof on) < 0) {
+					&on, sizeof on) < 0) {
 					syslog(LOG_ERR,
 					    "can't set v6-only binding for "
 					    "udp6 socket: %m");
 					nfsd_exit(1);
 				}
 				if (bind(sock, ai_udp6->ai_addr,
-				    ai_udp6->ai_addrlen) < 0) {
+					ai_udp6->ai_addrlen) < 0) {
 					syslog(LOG_ERR,
 					    "can't bind udp6 addr %s: %m",
 					    bindhost[i]);
@@ -604,7 +605,7 @@ main(int argc, char **argv)
 					    "can't add UDP6 socket");
 					nfsd_exit(1);
 				}
-				(void)close(sock);    
+				(void)close(sock);
 			}
 		}
 		if (rpcbreg == 1) {
@@ -616,7 +617,7 @@ main(int argc, char **argv)
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_udp6);
 			if (ecode != 0) {
 				syslog(LOG_ERR, "getaddrinfo udp6: %s",
-				   gai_strerror(ecode));
+				    gai_strerror(ecode));
 				nfsd_exit(1);
 			}
 			nconf_udp6 = getnetconfigent("udp6");
@@ -626,14 +627,12 @@ main(int argc, char **argv)
 			nb_udp6.len = nb_udp6.maxlen = ai_udp6->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_udp6,
-				    &nb_udp6))
-					err(1,
-					    "rpcb_set udp6 failed");
+					&nb_udp6))
+					err(1, "rpcb_set udp6 failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_udp6,
-				    &nb_udp6))
-					err(1,
-					    "rpcb_set udp6 failed");
+					&nb_udp6))
+					err(1, "rpcb_set udp6 failed");
 			freeaddrinfo(ai_udp6);
 		}
 	}
@@ -651,18 +650,18 @@ main(int argc, char **argv)
 				rpcbreg = 1;
 				rpcbregcnt++;
 				if ((tcpsock = socket(AF_INET, SOCK_STREAM,
-				    0)) < 0) {
+					 0)) < 0) {
 					syslog(LOG_ERR,
 					    "can't create tcp socket");
 					nfsd_exit(1);
 				}
 				if (setsockopt(tcpsock, SOL_SOCKET,
-				    SO_REUSEADDR,
-				    (char *)&on, sizeof(on)) < 0)
+					SO_REUSEADDR, (char *)&on,
+					sizeof(on)) < 0)
 					syslog(LOG_ERR,
-					     "setsockopt SO_REUSEADDR: %m");
+					    "setsockopt SO_REUSEADDR: %m");
 				if (bind(tcpsock, ai_tcp->ai_addr,
-				    ai_tcp->ai_addrlen) < 0) {
+					ai_tcp->ai_addrlen) < 0) {
 					syslog(LOG_ERR,
 					    "can't bind tcp addr %s: %m",
 					    bindhost[i]);
@@ -684,11 +683,10 @@ main(int argc, char **argv)
 			hints.ai_family = AF_INET;
 			hints.ai_socktype = SOCK_STREAM;
 			hints.ai_protocol = IPPROTO_TCP;
-			ecode = getaddrinfo(NULL, "nfs", &hints,
-			     &ai_tcp);
+			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_tcp);
 			if (ecode != 0) {
 				syslog(LOG_ERR, "getaddrinfo tcp: %s",
-				   gai_strerror(ecode));
+				    gai_strerror(ecode));
 				nfsd_exit(1);
 			}
 			nconf_tcp = getnetconfigent("tcp");
@@ -698,11 +696,11 @@ main(int argc, char **argv)
 			nb_tcp.len = nb_tcp.maxlen = ai_tcp->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_tcp,
-				    &nb_tcp))
+					&nb_tcp))
 					err(1, "rpcb_set tcp failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_tcp,
-				    &nb_tcp))
+					&nb_tcp))
 					err(1, "rpcb_set tcp failed");
 			freeaddrinfo(ai_tcp);
 		}
@@ -721,26 +719,26 @@ main(int argc, char **argv)
 				rpcbreg = 1;
 				rpcbregcnt++;
 				if ((tcp6sock = socket(ai_tcp6->ai_family,
-				    ai_tcp6->ai_socktype,
-				    ai_tcp6->ai_protocol)) < 0) {
+					 ai_tcp6->ai_socktype,
+					 ai_tcp6->ai_protocol)) < 0) {
 					syslog(LOG_ERR,
 					    "can't create tcp6 socket");
 					nfsd_exit(1);
 				}
 				if (setsockopt(tcp6sock, SOL_SOCKET,
-				    SO_REUSEADDR,
-				    (char *)&on, sizeof(on)) < 0)
+					SO_REUSEADDR, (char *)&on,
+					sizeof(on)) < 0)
 					syslog(LOG_ERR,
 					    "setsockopt SO_REUSEADDR: %m");
 				if (setsockopt(tcp6sock, IPPROTO_IPV6,
-				    IPV6_V6ONLY, &on, sizeof on) < 0) {
+					IPV6_V6ONLY, &on, sizeof on) < 0) {
 					syslog(LOG_ERR,
-					"can't set v6-only binding for tcp6 "
+					    "can't set v6-only binding for tcp6 "
 					    "socket: %m");
 					nfsd_exit(1);
 				}
 				if (bind(tcp6sock, ai_tcp6->ai_addr,
-				    ai_tcp6->ai_addrlen) < 0) {
+					ai_tcp6->ai_addrlen) < 0) {
 					syslog(LOG_ERR,
 					    "can't bind tcp6 addr %s: %m",
 					    bindhost[i]);
@@ -766,7 +764,7 @@ main(int argc, char **argv)
 			ecode = getaddrinfo(NULL, "nfs", &hints, &ai_tcp6);
 			if (ecode != 0) {
 				syslog(LOG_ERR, "getaddrinfo tcp6: %s",
-				   gai_strerror(ecode));
+				    gai_strerror(ecode));
 				nfsd_exit(1);
 			}
 			nconf_tcp6 = getnetconfigent("tcp6");
@@ -776,11 +774,11 @@ main(int argc, char **argv)
 			nb_tcp6.len = nb_tcp6.maxlen = ai_tcp6->ai_addrlen;
 			if (nfs_minvers == NFS_VER2)
 				if (!rpcb_set(NFS_PROGRAM, 2, nconf_tcp6,
-				    &nb_tcp6))
+					&nb_tcp6))
 					err(1, "rpcb_set tcp6 failed");
 			if (nfs_minvers <= NFS_VER3)
 				if (!rpcb_set(NFS_PROGRAM, 3, nconf_tcp6,
-				    &nb_tcp6))
+					&nb_tcp6))
 					err(1, "rpcb_set tcp6 failed");
 			freeaddrinfo(ai_tcp6);
 		}
@@ -814,8 +812,7 @@ main(int argc, char **argv)
 	for (;;) {
 		ready = sockbits;
 		if (connect_type_cnt > 1) {
-			if (select(maxsock + 1,
-			    &ready, NULL, NULL, NULL) < 1) {
+			if (select(maxsock + 1, &ready, NULL, NULL, NULL) < 1) {
 				error = errno;
 				if (error == EINTR)
 					continue;
@@ -827,7 +824,7 @@ main(int argc, char **argv)
 			if (FD_ISSET(tcpsock, &ready)) {
 				len = sizeof(peer);
 				if ((msgsock = accept(tcpsock,
-				    (struct sockaddr *)&peer, &len)) < 0) {
+					 (struct sockaddr *)&peer, &len)) < 0) {
 					error = errno;
 					syslog(LOG_ERR, "accept failed: %m");
 					if (error == ECONNABORTED ||
@@ -836,7 +833,8 @@ main(int argc, char **argv)
 					nfsd_exit(1);
 				}
 				if (setsockopt(msgsock, SOL_SOCKET,
-				    SO_KEEPALIVE, (char *)&on, sizeof(on)) < 0)
+					SO_KEEPALIVE, (char *)&on,
+					sizeof(on)) < 0)
 					syslog(LOG_ERR,
 					    "setsockopt SO_KEEPALIVE: %m");
 				addsockargs.sock = msgsock;
@@ -853,7 +851,7 @@ static int
 setbindhost(struct addrinfo **ai, const char *bindhost, struct addrinfo hints)
 {
 	int ecode;
-	u_int32_t host_addr[4];  /* IPv4 or IPv6 */
+	u_int32_t host_addr[4]; /* IPv4 or IPv6 */
 	const char *hostptr;
 
 	if (bindhost == NULL || strcmp("*", bindhost) == 0)
@@ -867,8 +865,8 @@ setbindhost(struct addrinfo **ai, const char *bindhost, struct addrinfo hints)
 			if (inet_pton(AF_INET, hostptr, host_addr) == 1) {
 				hints.ai_flags = AI_NUMERICHOST;
 			} else {
-				if (inet_pton(AF_INET6, hostptr,
-				    host_addr) == 1)
+				if (inet_pton(AF_INET6, hostptr, host_addr) ==
+				    1)
 					return (1);
 			}
 			break;
@@ -876,8 +874,7 @@ setbindhost(struct addrinfo **ai, const char *bindhost, struct addrinfo hints)
 			if (inet_pton(AF_INET6, hostptr, host_addr) == 1) {
 				hints.ai_flags = AI_NUMERICHOST;
 			} else {
-				if (inet_pton(AF_INET, hostptr,
-				    host_addr) == 1)
+				if (inet_pton(AF_INET, hostptr, host_addr) == 1)
 					return (1);
 			}
 			break;
@@ -885,7 +882,7 @@ setbindhost(struct addrinfo **ai, const char *bindhost, struct addrinfo hints)
 			break;
 		}
 	}
-	
+
 	ecode = getaddrinfo(hostptr, "nfs", &hints, ai);
 	if (ecode != 0) {
 		syslog(LOG_ERR, "getaddrinfo %s: %s", bindhost,
@@ -992,7 +989,8 @@ get_tuned_nfsdcount(void)
 	ncpu_size = sizeof(ncpu);
 	error = sysctlbyname("hw.ncpu", &ncpu, &ncpu_size, NULL, 0);
 	if (error) {
-		warnx("sysctlbyname(hw.ncpu) failed defaulting to %d nfs servers",
+		warnx(
+		    "sysctlbyname(hw.ncpu) failed defaulting to %d nfs servers",
 		    DEFNFSDCNT);
 		tuned_nfsdcnt = DEFNFSDCNT;
 	} else {
@@ -1011,22 +1009,21 @@ start_server(int master, struct nfsd_nfsd_args *nfsdargp, const char *vhost)
 
 	status = 0;
 	if (vhost == NULL)
-		gethostname(hostname, sizeof (hostname));
+		gethostname(hostname, sizeof(hostname));
 	else
-		strlcpy(hostname, vhost, sizeof (hostname));
-	snprintf(principal, sizeof (principal), "nfs@%s", hostname);
-	if ((cp = strchr(hostname, '.')) == NULL ||
-	    *(cp + 1) == '\0') {
+		strlcpy(hostname, vhost, sizeof(hostname));
+	snprintf(principal, sizeof(principal), "nfs@%s", hostname);
+	if ((cp = strchr(hostname, '.')) == NULL || *(cp + 1) == '\0') {
 		/* If not fully qualified, try getaddrinfo() */
-		memset((void *)&hints, 0, sizeof (hints));
+		memset((void *)&hints, 0, sizeof(hints));
 		hints.ai_flags = AI_CANONNAME;
 		error = getaddrinfo(hostname, NULL, &hints, &aip);
 		if (error == 0) {
 			if (aip->ai_canonname != NULL &&
-			    (cp = strchr(aip->ai_canonname, '.')) !=
-			    NULL && *(cp + 1) != '\0')
-				snprintf(principal, sizeof (principal),
-				    "nfs@%s", aip->ai_canonname);
+			    (cp = strchr(aip->ai_canonname, '.')) != NULL &&
+			    *(cp + 1) != '\0')
+				snprintf(principal, sizeof(principal), "nfs@%s",
+				    aip->ai_canonname);
 			freeaddrinfo(aip);
 		}
 	}
@@ -1035,8 +1032,10 @@ start_server(int master, struct nfsd_nfsd_args *nfsdargp, const char *vhost)
 	if (nfsdcnt_set)
 		nfsdargp->minthreads = nfsdargp->maxthreads = nfsdcnt;
 	else {
-		nfsdargp->minthreads = minthreads_set ? minthreads : get_tuned_nfsdcount();
-		nfsdargp->maxthreads = maxthreads_set ? maxthreads : nfsdargp->minthreads;
+		nfsdargp->minthreads = minthreads_set ? minthreads :
+							get_tuned_nfsdcount();
+		nfsdargp->maxthreads = maxthreads_set ? maxthreads :
+							nfsdargp->minthreads;
 		if (nfsdargp->maxthreads < nfsdargp->minthreads)
 			nfsdargp->maxthreads = nfsdargp->minthreads;
 	}
@@ -1274,7 +1273,8 @@ parse_dsserver(const char *optionarg, struct nfsd_nfsd_args *nfsdargp)
 		for (res = ai_tcp; res != NULL; res = res->ai_next) {
 			if (res->ai_addr->sa_family == AF_INET) {
 				if (res->ai_addrlen < sizeof(sin))
-					err(1, "getaddrinfo() returned "
+					err(1,
+					    "getaddrinfo() returned "
 					    "undersized IPv4 address");
 				/*
 				 * Mips cares about sockaddr_in alignment,
@@ -1285,7 +1285,8 @@ parse_dsserver(const char *optionarg, struct nfsd_nfsd_args *nfsdargp)
 				break;
 			} else if (res->ai_family == AF_INET6) {
 				if (res->ai_addrlen < sizeof(sin6))
-					err(1, "getaddrinfo() returned "
+					err(1,
+					    "getaddrinfo() returned "
 					    "undersized IPv6 address");
 				/*
 				 * Mips cares about sockaddr_in6 alignment,
@@ -1346,4 +1347,3 @@ parse_dsserver(const char *optionarg, struct nfsd_nfsd_args *nfsdargp)
 	nfsdargp->mdspathlen = mdspathcnt;
 	freeaddrinfo(ai_tcp);
 }
-

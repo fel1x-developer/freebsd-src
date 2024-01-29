@@ -19,71 +19,66 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/linker.h>
 #include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include "usbdevs.h"
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_nop.h>
-
-#include <dev/rtwn/usb/rtwn_usb_var.h>
-
+#include <dev/rtwn/if_rtwnvar.h>
+#include <dev/rtwn/rtl8192c/r92c_reg.h>
 #include <dev/rtwn/usb/rtwn_usb_attach.h>
 #include <dev/rtwn/usb/rtwn_usb_ep.h>
 #include <dev/rtwn/usb/rtwn_usb_reg.h>
 #include <dev/rtwn/usb/rtwn_usb_tx.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usbdi.h>
 
-#include <dev/rtwn/rtl8192c/r92c_reg.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
-static device_probe_t	rtwn_usb_match;
-static device_attach_t	rtwn_usb_attach;
-static device_detach_t	rtwn_usb_detach;
-static device_suspend_t	rtwn_usb_suspend;
-static device_resume_t	rtwn_usb_resume;
+#include "usbdevs.h"
 
-static int	rtwn_usb_alloc_list(struct rtwn_softc *,
-		    struct rtwn_data[], int, int);
-static int	rtwn_usb_alloc_rx_list(struct rtwn_softc *);
-static int	rtwn_usb_alloc_tx_list(struct rtwn_softc *);
-static void	rtwn_usb_free_list(struct rtwn_softc *,
-		    struct rtwn_data data[], int);
-static void	rtwn_usb_free_rx_list(struct rtwn_softc *);
-static void	rtwn_usb_free_tx_list(struct rtwn_softc *);
-static void	rtwn_usb_reset_lists(struct rtwn_softc *,
-		    struct ieee80211vap *);
-static void	rtwn_usb_reset_tx_list(struct rtwn_usb_softc *,
-		    rtwn_datahead *, struct ieee80211vap *);
-static void	rtwn_usb_reset_rx_list(struct rtwn_usb_softc *);
-static void	rtwn_usb_start_xfers(struct rtwn_softc *);
-static void	rtwn_usb_abort_xfers(struct rtwn_softc *);
-static int	rtwn_usb_fw_write_block(struct rtwn_softc *,
-		    const uint8_t *, uint16_t, int);
-static void	rtwn_usb_drop_incorrect_tx(struct rtwn_softc *);
-static void	rtwn_usb_attach_methods(struct rtwn_softc *);
-static void	rtwn_usb_sysctlattach(struct rtwn_softc *);
+static device_probe_t rtwn_usb_match;
+static device_attach_t rtwn_usb_attach;
+static device_detach_t rtwn_usb_detach;
+static device_suspend_t rtwn_usb_suspend;
+static device_resume_t rtwn_usb_resume;
 
-#define RTWN_CONFIG_INDEX	0
+static int rtwn_usb_alloc_list(struct rtwn_softc *, struct rtwn_data[], int,
+    int);
+static int rtwn_usb_alloc_rx_list(struct rtwn_softc *);
+static int rtwn_usb_alloc_tx_list(struct rtwn_softc *);
+static void rtwn_usb_free_list(struct rtwn_softc *, struct rtwn_data data[],
+    int);
+static void rtwn_usb_free_rx_list(struct rtwn_softc *);
+static void rtwn_usb_free_tx_list(struct rtwn_softc *);
+static void rtwn_usb_reset_lists(struct rtwn_softc *, struct ieee80211vap *);
+static void rtwn_usb_reset_tx_list(struct rtwn_usb_softc *, rtwn_datahead *,
+    struct ieee80211vap *);
+static void rtwn_usb_reset_rx_list(struct rtwn_usb_softc *);
+static void rtwn_usb_start_xfers(struct rtwn_softc *);
+static void rtwn_usb_abort_xfers(struct rtwn_softc *);
+static int rtwn_usb_fw_write_block(struct rtwn_softc *, const uint8_t *,
+    uint16_t, int);
+static void rtwn_usb_drop_incorrect_tx(struct rtwn_softc *);
+static void rtwn_usb_attach_methods(struct rtwn_softc *);
+static void rtwn_usb_sysctlattach(struct rtwn_softc *);
+
+#define RTWN_CONFIG_INDEX 0
 
 static int
 rtwn_usb_match(device_t self)
@@ -101,8 +96,8 @@ rtwn_usb_match(device_t self)
 }
 
 static int
-rtwn_usb_alloc_list(struct rtwn_softc *sc, struct rtwn_data data[],
-    int ndata, int maxsz)
+rtwn_usb_alloc_list(struct rtwn_softc *sc, struct rtwn_data data[], int ndata,
+    int maxsz)
 {
 	int i, error;
 
@@ -231,8 +226,8 @@ rtwn_usb_reset_lists(struct rtwn_softc *sc, struct ieee80211vap *vap)
 }
 
 static void
-rtwn_usb_reset_tx_list(struct rtwn_usb_softc *uc,
-    rtwn_datahead *head, struct ieee80211vap *vap)
+rtwn_usb_reset_tx_list(struct rtwn_usb_softc *uc, rtwn_datahead *head,
+    struct ieee80211vap *vap)
 {
 	struct rtwn_vap *uvp = RTWN_VAP(vap);
 	struct rtwn_data *dp, *tmp;
@@ -240,9 +235,10 @@ rtwn_usb_reset_tx_list(struct rtwn_usb_softc *uc,
 
 	id = (uvp != NULL ? uvp->id : RTWN_VAP_ID_INVALID);
 
-	STAILQ_FOREACH_SAFE(dp, head, next, tmp) {
-		if (vap == NULL || (dp->ni == NULL &&
-		    (dp->id == id || id == RTWN_VAP_ID_INVALID)) ||
+	STAILQ_FOREACH_SAFE (dp, head, next, tmp) {
+		if (vap == NULL ||
+		    (dp->ni == NULL &&
+			(dp->id == id || id == RTWN_VAP_ID_INVALID)) ||
 		    (dp->ni != NULL && dp->ni->ni_vap == vap)) {
 			if (dp->ni != NULL) {
 				ieee80211_free_node(dp->ni);
@@ -301,8 +297,8 @@ rtwn_usb_abort_xfers(struct rtwn_softc *sc)
 }
 
 static int
-rtwn_usb_fw_write_block(struct rtwn_softc *sc, const uint8_t *buf,
-    uint16_t reg, int mlen)
+rtwn_usb_fw_write_block(struct rtwn_softc *sc, const uint8_t *buf, uint16_t reg,
+    int mlen)
 {
 	int error;
 
@@ -324,26 +320,26 @@ rtwn_usb_drop_incorrect_tx(struct rtwn_softc *sc)
 static void
 rtwn_usb_attach_methods(struct rtwn_softc *sc)
 {
-	sc->sc_write_1		= rtwn_usb_write_1;
-	sc->sc_write_2		= rtwn_usb_write_2;
-	sc->sc_write_4		= rtwn_usb_write_4;
-	sc->sc_read_1		= rtwn_usb_read_1;
-	sc->sc_read_2		= rtwn_usb_read_2;
-	sc->sc_read_4		= rtwn_usb_read_4;
-	sc->sc_delay		= rtwn_usb_delay;
-	sc->sc_tx_start		= rtwn_usb_tx_start;
-	sc->sc_start_xfers	= rtwn_usb_start_xfers;
-	sc->sc_reset_lists	= rtwn_usb_reset_lists;
-	sc->sc_abort_xfers	= rtwn_usb_abort_xfers;
-	sc->sc_fw_write_block	= rtwn_usb_fw_write_block;
-	sc->sc_get_qmap		= rtwn_usb_get_qmap;
-	sc->sc_set_desc_addr	= rtwn_nop_softc;
+	sc->sc_write_1 = rtwn_usb_write_1;
+	sc->sc_write_2 = rtwn_usb_write_2;
+	sc->sc_write_4 = rtwn_usb_write_4;
+	sc->sc_read_1 = rtwn_usb_read_1;
+	sc->sc_read_2 = rtwn_usb_read_2;
+	sc->sc_read_4 = rtwn_usb_read_4;
+	sc->sc_delay = rtwn_usb_delay;
+	sc->sc_tx_start = rtwn_usb_tx_start;
+	sc->sc_start_xfers = rtwn_usb_start_xfers;
+	sc->sc_reset_lists = rtwn_usb_reset_lists;
+	sc->sc_abort_xfers = rtwn_usb_abort_xfers;
+	sc->sc_fw_write_block = rtwn_usb_fw_write_block;
+	sc->sc_get_qmap = rtwn_usb_get_qmap;
+	sc->sc_set_desc_addr = rtwn_nop_softc;
 	sc->sc_drop_incorrect_tx = rtwn_usb_drop_incorrect_tx;
 	sc->sc_beacon_update_begin = rtwn_nop_softc_vap;
 	sc->sc_beacon_update_end = rtwn_nop_softc_vap;
-	sc->sc_beacon_unload	= rtwn_nop_softc_int;
+	sc->sc_beacon_unload = rtwn_nop_softc_int;
 
-	sc->bcn_check_interval	= 100;
+	sc->bcn_check_interval = 100;
 }
 
 static void
@@ -356,15 +352,14 @@ rtwn_usb_sysctlattach(struct rtwn_softc *sc)
 	int ret;
 
 	ret = snprintf(str, sizeof(str),
-	    "Rx buffer size, 512-byte units [%d...%d]",
-	    RTWN_USB_RXBUFSZ_MIN, RTWN_USB_RXBUFSZ_MAX);
+	    "Rx buffer size, 512-byte units [%d...%d]", RTWN_USB_RXBUFSZ_MIN,
+	    RTWN_USB_RXBUFSZ_MAX);
 	KASSERT(ret > 0, ("ret (%d) <= 0!\n", ret));
-	(void) ret;
+	(void)ret;
 
 	uc->uc_rx_buf_size = RTWN_USB_RXBUFSZ_DEF;
-	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "rx_buf_size", CTLFLAG_RDTUN, &uc->uc_rx_buf_size,
-	    uc->uc_rx_buf_size, str);
+	SYSCTL_ADD_INT(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "rx_buf_size",
+	    CTLFLAG_RDTUN, &uc->uc_rx_buf_size, uc->uc_rx_buf_size, str);
 	if (uc->uc_rx_buf_size < RTWN_USB_RXBUFSZ_MIN)
 		uc->uc_rx_buf_size = RTWN_USB_RXBUFSZ_MIN;
 	if (uc->uc_rx_buf_size > RTWN_USB_RXBUFSZ_MAX)
@@ -414,7 +409,7 @@ rtwn_usb_attach(device_t self)
 	return (0);
 
 detach:
-	rtwn_usb_detach(self);		/* failure */
+	rtwn_usb_detach(self); /* failure */
 	return (ENXIO);
 }
 
@@ -462,20 +457,17 @@ rtwn_usb_resume(device_t self)
 
 static device_method_t rtwn_usb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		rtwn_usb_match),
-	DEVMETHOD(device_attach,	rtwn_usb_attach),
-	DEVMETHOD(device_detach,	rtwn_usb_detach),
-	DEVMETHOD(device_suspend,	rtwn_usb_suspend),
-	DEVMETHOD(device_resume,	rtwn_usb_resume),
+	DEVMETHOD(device_probe, rtwn_usb_match),
+	DEVMETHOD(device_attach, rtwn_usb_attach),
+	DEVMETHOD(device_detach, rtwn_usb_detach),
+	DEVMETHOD(device_suspend, rtwn_usb_suspend),
+	DEVMETHOD(device_resume, rtwn_usb_resume),
 
 	DEVMETHOD_END
 };
 
-static driver_t rtwn_usb_driver = {
-	"rtwn",
-	rtwn_usb_methods,
-	sizeof(struct rtwn_usb_softc)
-};
+static driver_t rtwn_usb_driver = { "rtwn", rtwn_usb_methods,
+	sizeof(struct rtwn_usb_softc) };
 
 DRIVER_MODULE(rtwn_usb, uhub, rtwn_usb_driver, NULL, NULL);
 MODULE_VERSION(rtwn_usb, 1);

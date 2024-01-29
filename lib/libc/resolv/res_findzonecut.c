@@ -20,77 +20,74 @@
 
 /* Import. */
 
-#include "port_before.h"
-
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-
 #include <errno.h>
+#include <isc/list.h>
 #include <limits.h>
 #include <netdb.h>
+#include <resolv.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <isc/list.h>
-
 #include "port_after.h"
-
-#include <resolv.h>
+#include "port_before.h"
 
 /* Data structures. */
 
 typedef struct rr_a {
-	LINK(struct rr_a)	link;
+	LINK(struct rr_a) link;
 	union res_sockaddr_union addr;
 } rr_a;
 typedef LIST(rr_a) rrset_a;
 
 typedef struct rr_ns {
-	LINK(struct rr_ns)	link;
-	const char *		name;
-	unsigned int		flags;
-	rrset_a			addrs;
+	LINK(struct rr_ns) link;
+	const char *name;
+	unsigned int flags;
+	rrset_a addrs;
 } rr_ns;
 typedef LIST(rr_ns) rrset_ns;
 
-#define	RR_NS_HAVE_V4		0x01
-#define	RR_NS_HAVE_V6		0x02
+#define RR_NS_HAVE_V4 0x01
+#define RR_NS_HAVE_V6 0x02
 
 /* Forward. */
 
-static int	satisfy(res_state, const char *, rrset_ns *,
-			union res_sockaddr_union *, int);
-static int	add_addrs(res_state, rr_ns *,
-			  union res_sockaddr_union *, int);
-static int	get_soa(res_state, const char *, ns_class, int,
-			char *, size_t, char *, size_t,
-			rrset_ns *);
-static int	get_ns(res_state, const char *, ns_class, int, rrset_ns *);
-static int	get_glue(res_state, ns_class, int, rrset_ns *);
-static int	save_ns(res_state, ns_msg *, ns_sect,
-			const char *, ns_class, int, rrset_ns *);
-static int	save_a(res_state, ns_msg *, ns_sect,
-		       const char *, ns_class, int, rr_ns *);
-static void	free_nsrrset(rrset_ns *);
-static void	free_nsrr(rrset_ns *, rr_ns *);
-static rr_ns *	find_ns(rrset_ns *, const char *);
-static int	do_query(res_state, const char *, ns_class, ns_type,
-			 u_char *, ns_msg *);
-static void	res_dprintf(const char *, ...) ISC_FORMAT_PRINTF(1, 2);
+static int satisfy(res_state, const char *, rrset_ns *,
+    union res_sockaddr_union *, int);
+static int add_addrs(res_state, rr_ns *, union res_sockaddr_union *, int);
+static int get_soa(res_state, const char *, ns_class, int, char *, size_t,
+    char *, size_t, rrset_ns *);
+static int get_ns(res_state, const char *, ns_class, int, rrset_ns *);
+static int get_glue(res_state, ns_class, int, rrset_ns *);
+static int save_ns(res_state, ns_msg *, ns_sect, const char *, ns_class, int,
+    rrset_ns *);
+static int save_a(res_state, ns_msg *, ns_sect, const char *, ns_class, int,
+    rr_ns *);
+static void free_nsrrset(rrset_ns *);
+static void free_nsrr(rrset_ns *, rr_ns *);
+static rr_ns *find_ns(rrset_ns *, const char *);
+static int do_query(res_state, const char *, ns_class, ns_type, u_char *,
+    ns_msg *);
+static void res_dprintf(const char *, ...) ISC_FORMAT_PRINTF(1, 2);
 
 /* Macros. */
 
-#define DPRINTF(x) do {\
-		int save_errno = errno; \
-		if ((statp->options & RES_DEBUG) != 0U) res_dprintf x; \
-		errno = save_errno; \
+#define DPRINTF(x)                                      \
+	do {                                            \
+		int save_errno = errno;                 \
+		if ((statp->options & RES_DEBUG) != 0U) \
+			res_dprintf x;                  \
+		errno = save_errno;                     \
 	} while (0)
 
 /* Public. */
@@ -152,21 +149,20 @@ static void	res_dprintf(const char *, ...) ISC_FORMAT_PRINTF(1, 2);
 #ifndef _LIBC
 int
 res_findzonecut(res_state statp, const char *dname, ns_class class, int opts,
-		char *zname, size_t zsize, struct in_addr *addrs, int naddrs)
+    char *zname, size_t zsize, struct in_addr *addrs, int naddrs)
 {
 	int result, i;
 	union res_sockaddr_union *u;
 
-	
 	opts |= RES_IPV4ONLY;
 	opts &= ~RES_IPV6ONLY;
 
 	u = calloc(naddrs, sizeof(*u));
 	if (u == NULL)
-		return(-1);
+		return (-1);
 
-	result = res_findzonecut2(statp, dname, class, opts, zname, zsize,
-				  u, naddrs);
+	result = res_findzonecut2(statp, dname, class, opts, zname, zsize, u,
+	    naddrs);
 
 	for (i = 0; i < result; i++) {
 		addrs[i] = u[i].sin.sin_addr;
@@ -178,40 +174,38 @@ res_findzonecut(res_state statp, const char *dname, ns_class class, int opts,
 
 int
 res_findzonecut2(res_state statp, const char *dname, ns_class class, int opts,
-		 char *zname, size_t zsize, union res_sockaddr_union *addrs,
-		 int naddrs)
+    char *zname, size_t zsize, union res_sockaddr_union *addrs, int naddrs)
 {
 	char mname[NS_MAXDNAME];
 	u_long save_pfcode;
 	rrset_ns nsrrs;
 	int n;
 
-	DPRINTF(("START dname='%s' class=%s, zsize=%ld, naddrs=%d",
-		 dname, p_class(class), (long)zsize, naddrs));
+	DPRINTF(("START dname='%s' class=%s, zsize=%ld, naddrs=%d", dname,
+	    p_class(class), (long)zsize, naddrs));
 	save_pfcode = statp->pfcode;
 	statp->pfcode |= RES_PRF_HEAD2 | RES_PRF_HEAD1 | RES_PRF_HEADX |
-			 RES_PRF_QUES | RES_PRF_ANS |
-			 RES_PRF_AUTH | RES_PRF_ADD;
+	    RES_PRF_QUES | RES_PRF_ANS | RES_PRF_AUTH | RES_PRF_ADD;
 	INIT_LIST(nsrrs);
 
 	DPRINTF(("get the soa, and see if it has enough glue"));
-	if ((n = get_soa(statp, dname, class, opts, zname, zsize,
-			 mname, sizeof mname, &nsrrs)) < 0 ||
+	if ((n = get_soa(statp, dname, class, opts, zname, zsize, mname,
+		 sizeof mname, &nsrrs)) < 0 ||
 	    ((opts & RES_EXHAUSTIVE) == 0 &&
-	     (n = satisfy(statp, mname, &nsrrs, addrs, naddrs)) > 0))
+		(n = satisfy(statp, mname, &nsrrs, addrs, naddrs)) > 0))
 		goto done;
 
 	DPRINTF(("get the ns rrset and see if it has enough glue"));
 	if ((n = get_ns(statp, zname, class, opts, &nsrrs)) < 0 ||
 	    ((opts & RES_EXHAUSTIVE) == 0 &&
-	     (n = satisfy(statp, mname, &nsrrs, addrs, naddrs)) > 0))
+		(n = satisfy(statp, mname, &nsrrs, addrs, naddrs)) > 0))
 		goto done;
 
 	DPRINTF(("get the missing glue and see if it's finally enough"));
 	if ((n = get_glue(statp, class, opts, &nsrrs)) >= 0)
 		n = satisfy(statp, mname, &nsrrs, addrs, naddrs);
 
- done:
+done:
 	DPRINTF(("FINISH n=%d (%s)", n, (n < 0) ? strerror(errno) : "OK"));
 	free_nsrrset(&nsrrs);
 	statp->pfcode = save_pfcode;
@@ -222,7 +216,7 @@ res_findzonecut2(res_state statp, const char *dname, ns_class class, int opts,
 
 static int
 satisfy(res_state statp, const char *mname, rrset_ns *nsrrsp,
-	union res_sockaddr_union *addrs, int naddrs)
+    union res_sockaddr_union *addrs, int naddrs)
 {
 	rr_ns *nsrr;
 	int n, x;
@@ -235,8 +229,7 @@ satisfy(res_state statp, const char *mname, rrset_ns *nsrrsp,
 		naddrs -= x;
 		n += x;
 	}
-	for (nsrr = HEAD(*nsrrsp);
-	     nsrr != NULL && naddrs > 0;
+	for (nsrr = HEAD(*nsrrsp); nsrr != NULL && naddrs > 0;
 	     nsrr = NEXT(nsrr, link))
 		if (ns_samename(nsrr->name, mname) != 1) {
 			x = add_addrs(statp, nsrr, addrs, naddrs);
@@ -249,8 +242,8 @@ satisfy(res_state statp, const char *mname, rrset_ns *nsrrsp,
 }
 
 static int
-add_addrs(res_state statp, rr_ns *nsrr,
-	  union res_sockaddr_union *addrs, int naddrs)
+add_addrs(res_state statp, rr_ns *nsrr, union res_sockaddr_union *addrs,
+    int naddrs)
 {
 	rr_a *arr;
 	int n = 0;
@@ -268,8 +261,7 @@ add_addrs(res_state statp, rr_ns *nsrr,
 
 static int
 get_soa(res_state statp, const char *dname, ns_class class, int opts,
-	char *zname, size_t zsize, char *mname, size_t msize,
-	rrset_ns *nsrrsp)
+    char *zname, size_t zsize, char *mname, size_t msize, rrset_ns *nsrrsp)
 {
 	char tname[NS_MAXDNAME];
 	u_char *resp = NULL;
@@ -301,7 +293,7 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 		n = do_query(statp, dname, class, ns_t_soa, resp, &msg);
 		if (n < 0) {
 			DPRINTF(("get_soa: do_query('%s', %s) failed (%d)",
-				 dname, p_class(class), n));
+			    dname, p_class(class), n));
 			goto cleanup;
 		}
 		if (n > 0) {
@@ -325,7 +317,7 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 
 			if (ns_parserr(&msg, sect, i, &rr) < 0) {
 				DPRINTF(("get_soa: ns_parserr(%s, %d) failed",
-					 p_section(sect, ns_o_query), i));
+				    p_section(sect, ns_o_query), i));
 				goto cleanup;
 			}
 			if (ns_rr_type(rr) == ns_t_cname ||
@@ -338,10 +330,9 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 			switch (sect) {
 			case ns_s_an:
 				if (ns_samedomain(dname, t) == 0) {
-					DPRINTF(
-				    ("get_soa: ns_samedomain('%s', '%s') == 0",
-						dname, t)
-						);
+					DPRINTF((
+					    "get_soa: ns_samedomain('%s', '%s') == 0",
+					    dname, t));
 					errno = EPROTOTYPE;
 					goto cleanup;
 				}
@@ -349,10 +340,9 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 			case ns_s_ns:
 				if (ns_samename(dname, t) == 1 ||
 				    ns_samedomain(dname, t) == 0) {
-					DPRINTF(
-		       ("get_soa: ns_samename() || !ns_samedomain('%s', '%s')",
-						dname, t)
-						);
+					DPRINTF((
+					    "get_soa: ns_samename() || !ns_samedomain('%s', '%s')",
+					    dname, t));
 					errno = EPROTOTYPE;
 					goto cleanup;
 				}
@@ -362,21 +352,20 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 			}
 			if (strlen(t) + 1 > zsize) {
 				DPRINTF(("get_soa: zname(%lu) too small (%lu)",
-					 (unsigned long)zsize,
-					 (unsigned long)strlen(t) + 1));
+				    (unsigned long)zsize,
+				    (unsigned long)strlen(t) + 1));
 				errno = EMSGSIZE;
 				goto cleanup;
 			}
 			strcpy(zname, t);
 			rdata = ns_rr_rdata(rr);
 			if (ns_name_uncompress(resp, ns_msg_end(msg), rdata,
-					       mname, msize) < 0) {
-				DPRINTF(("get_soa: ns_name_uncompress failed")
-					);
+				mname, msize) < 0) {
+				DPRINTF(("get_soa: ns_name_uncompress failed"));
 				goto cleanup;
 			}
-			if (save_ns(statp, &msg, ns_s_ns,
-				    zname, class, opts, nsrrsp) < 0) {
+			if (save_ns(statp, &msg, ns_s_ns, zname, class, opts,
+				nsrrsp) < 0) {
 				DPRINTF(("get_soa: save_ns failed"));
 				goto cleanup;
 			}
@@ -400,7 +389,7 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 	}
 	DPRINTF(("get_soa: out of labels"));
 	errno = EDESTADDRREQ;
- cleanup:
+cleanup:
 	if (resp != NULL)
 		free(resp);
 	return (-1);
@@ -408,7 +397,7 @@ get_soa(res_state statp, const char *dname, ns_class class, int opts,
 
 static int
 get_ns(res_state statp, const char *zname, ns_class class, int opts,
-      rrset_ns *nsrrsp)
+    rrset_ns *nsrrsp)
 {
 	u_char *resp;
 	ns_msg msg;
@@ -421,16 +410,16 @@ get_ns(res_state statp, const char *zname, ns_class class, int opts,
 	/* Go and get the NS RRs for this zone. */
 	n = do_query(statp, zname, class, ns_t_ns, resp, &msg);
 	if (n != 0) {
-		DPRINTF(("get_ns: do_query('%s', %s) failed (%d)",
-			 zname, p_class(class), n));
+		DPRINTF(("get_ns: do_query('%s', %s) failed (%d)", zname,
+		    p_class(class), n));
 		free(resp);
 		return (-1);
 	}
 
 	/* Remember the NS RRs and associated A RRs that came back. */
 	if (save_ns(statp, &msg, ns_s_an, zname, class, opts, nsrrsp) < 0) {
-		DPRINTF(("get_ns save_ns('%s', %s) failed",
-			 zname, p_class(class)));
+		DPRINTF(
+		    ("get_ns save_ns('%s', %s) failed", zname, p_class(class)));
 		free(resp);
 		return (-1);
 	}
@@ -440,13 +429,14 @@ get_ns(res_state statp, const char *zname, ns_class class, int opts,
 }
 
 static int
-get_glue(res_state statp, ns_class class, int opts, rrset_ns *nsrrsp) {
+get_glue(res_state statp, ns_class class, int opts, rrset_ns *nsrrsp)
+{
 	rr_ns *nsrr, *nsrr_n;
 	u_char *resp;
 
 	resp = malloc(NS_MAXMSG);
 	if (resp == NULL)
-		return(-1);
+		return (-1);
 
 	/* Go and get the A RRs for each empty NS RR on our list. */
 	for (nsrr = HEAD(*nsrrsp); nsrr != NULL; nsrr = nsrr_n) {
@@ -456,68 +446,65 @@ get_glue(res_state statp, ns_class class, int opts, rrset_ns *nsrrsp) {
 		nsrr_n = NEXT(nsrr, link);
 
 		if ((nsrr->flags & RR_NS_HAVE_V4) == 0) {
-			n = do_query(statp, nsrr->name, class, ns_t_a,
-				     resp, &msg);
+			n = do_query(statp, nsrr->name, class, ns_t_a, resp,
+			    &msg);
 			if (n < 0) {
-				DPRINTF(
-				       ("get_glue: do_query('%s', %s') failed",
-					nsrr->name, p_class(class)));
+				DPRINTF(("get_glue: do_query('%s', %s') failed",
+				    nsrr->name, p_class(class)));
 				goto cleanup;
 			}
 			if (n > 0) {
 				DPRINTF((
-			"get_glue: do_query('%s', %s') CNAME or DNAME found",
-					 nsrr->name, p_class(class)));
+				    "get_glue: do_query('%s', %s') CNAME or DNAME found",
+				    nsrr->name, p_class(class)));
 			}
 			if (save_a(statp, &msg, ns_s_an, nsrr->name, class,
-				   opts, nsrr) < 0) {
+				opts, nsrr) < 0) {
 				DPRINTF(("get_glue: save_r('%s', %s) failed",
-					 nsrr->name, p_class(class)));
+				    nsrr->name, p_class(class)));
 				goto cleanup;
 			}
 		}
 
 		if ((nsrr->flags & RR_NS_HAVE_V6) == 0) {
-			n = do_query(statp, nsrr->name, class, ns_t_aaaa,
-				     resp, &msg);
+			n = do_query(statp, nsrr->name, class, ns_t_aaaa, resp,
+			    &msg);
 			if (n < 0) {
-				DPRINTF(
-				       ("get_glue: do_query('%s', %s') failed",
-					nsrr->name, p_class(class)));
+				DPRINTF(("get_glue: do_query('%s', %s') failed",
+				    nsrr->name, p_class(class)));
 				goto cleanup;
 			}
 			if (n > 0) {
 				DPRINTF((
-			"get_glue: do_query('%s', %s') CNAME or DNAME found",
-					 nsrr->name, p_class(class)));
+				    "get_glue: do_query('%s', %s') CNAME or DNAME found",
+				    nsrr->name, p_class(class)));
 			}
 			if (save_a(statp, &msg, ns_s_an, nsrr->name, class,
-				   opts, nsrr) < 0) {
+				opts, nsrr) < 0) {
 				DPRINTF(("get_glue: save_r('%s', %s) failed",
-					 nsrr->name, p_class(class)));
+				    nsrr->name, p_class(class)));
 				goto cleanup;
 			}
 		}
 
 		/* If it's still empty, it's just chaff. */
 		if (EMPTY(nsrr->addrs)) {
-			DPRINTF(("get_glue: removing empty '%s' NS",
-				 nsrr->name));
+			DPRINTF(
+			    ("get_glue: removing empty '%s' NS", nsrr->name));
 			free_nsrr(nsrrsp, nsrr);
 		}
 	}
 	free(resp);
 	return (0);
 
- cleanup:
+cleanup:
 	free(resp);
 	return (-1);
 }
 
 static int
-save_ns(res_state statp, ns_msg *msg, ns_sect sect,
-	const char *owner, ns_class class, int opts,
-	rrset_ns *nsrrsp)
+save_ns(res_state statp, ns_msg *msg, ns_sect sect, const char *owner,
+    ns_class class, int opts, rrset_ns *nsrrsp)
 {
 	int i;
 
@@ -529,11 +516,10 @@ save_ns(res_state statp, ns_msg *msg, ns_sect sect,
 
 		if (ns_parserr(msg, sect, i, &rr) < 0) {
 			DPRINTF(("save_ns: ns_parserr(%s, %d) failed",
-				 p_section(sect, ns_o_query), i));
+			    p_section(sect, ns_o_query), i));
 			return (-1);
 		}
-		if (ns_rr_type(rr) != ns_t_ns ||
-		    ns_rr_class(rr) != class ||
+		if (ns_rr_type(rr) != ns_t_ns || ns_rr_class(rr) != class ||
 		    ns_samename(ns_rr_name(rr), owner) != 1)
 			continue;
 		nsrr = find_ns(nsrrsp, ns_rr_name(rr));
@@ -545,10 +531,9 @@ save_ns(res_state statp, ns_msg *msg, ns_sect sect,
 			}
 			rdata = ns_rr_rdata(rr);
 			if (ns_name_uncompress(ns_msg_base(*msg),
-					       ns_msg_end(*msg), rdata,
-					       tname, sizeof tname) < 0) {
-				DPRINTF(("save_ns: ns_name_uncompress failed")
-					);
+				ns_msg_end(*msg), rdata, tname,
+				sizeof tname) < 0) {
+				DPRINTF(("save_ns: ns_name_uncompress failed"));
 				free(nsrr);
 				return (-1);
 			}
@@ -563,10 +548,10 @@ save_ns(res_state statp, ns_msg *msg, ns_sect sect,
 			nsrr->flags = 0;
 			APPEND(*nsrrsp, nsrr, link);
 		}
-		if (save_a(statp, msg, ns_s_ar,
-			   nsrr->name, class, opts, nsrr) < 0) {
-			DPRINTF(("save_ns: save_r('%s', %s) failed",
-				 nsrr->name, p_class(class)));
+		if (save_a(statp, msg, ns_s_ar, nsrr->name, class, opts, nsrr) <
+		    0) {
+			DPRINTF(("save_ns: save_r('%s', %s) failed", nsrr->name,
+			    p_class(class)));
 			return (-1);
 		}
 	}
@@ -574,9 +559,8 @@ save_ns(res_state statp, ns_msg *msg, ns_sect sect,
 }
 
 static int
-save_a(res_state statp, ns_msg *msg, ns_sect sect,
-       const char *owner, ns_class class, int opts,
-       rr_ns *nsrr)
+save_a(res_state statp, ns_msg *msg, ns_sect sect, const char *owner,
+    ns_class class, int opts, rr_ns *nsrr)
 {
 	int i;
 
@@ -586,11 +570,10 @@ save_a(res_state statp, ns_msg *msg, ns_sect sect,
 
 		if (ns_parserr(msg, sect, i, &rr) < 0) {
 			DPRINTF(("save_a: ns_parserr(%s, %d) failed",
-				 p_section(sect, ns_o_query), i));
+			    p_section(sect, ns_o_query), i));
 			return (-1);
 		}
-		if ((ns_rr_type(rr) != ns_t_a &&
-		     ns_rr_type(rr) != ns_t_aaaa) ||
+		if ((ns_rr_type(rr) != ns_t_a && ns_rr_type(rr) != ns_t_aaaa) ||
 		    ns_rr_class(rr) != class ||
 		    ns_samename(ns_rr_name(rr), owner) != 1 ||
 		    ns_rr_rdlen(rr) != NS_INADDRSZ)
@@ -613,7 +596,7 @@ save_a(res_state statp, ns_msg *msg, ns_sect sect,
 			arr->addr.sin.sin_len = sizeof(arr->addr.sin);
 #endif
 			memcpy(&arr->addr.sin.sin_addr, ns_rr_rdata(rr),
-			       NS_INADDRSZ);
+			    NS_INADDRSZ);
 			arr->addr.sin.sin_port = htons(NAMESERVER_PORT);
 			nsrr->flags |= RR_NS_HAVE_V4;
 			break;
@@ -635,7 +618,8 @@ save_a(res_state statp, ns_msg *msg, ns_sect sect,
 }
 
 static void
-free_nsrrset(rrset_ns *nsrrsp) {
+free_nsrrset(rrset_ns *nsrrsp)
+{
 	rr_ns *nsrr;
 
 	while ((nsrr = HEAD(*nsrrsp)) != NULL)
@@ -643,7 +627,8 @@ free_nsrrset(rrset_ns *nsrrsp) {
 }
 
 static void
-free_nsrr(rrset_ns *nsrrsp, rr_ns *nsrr) {
+free_nsrr(rrset_ns *nsrrsp, rr_ns *nsrr)
+{
 	rr_a *arr;
 	char *tmp;
 
@@ -658,7 +643,8 @@ free_nsrr(rrset_ns *nsrrsp, rr_ns *nsrr) {
 }
 
 static rr_ns *
-find_ns(rrset_ns *nsrrsp, const char *dname) {
+find_ns(rrset_ns *nsrrsp, const char *dname)
+{
 	rr_ns *nsrr;
 
 	for (nsrr = HEAD(*nsrrsp); nsrr != NULL; nsrr = NEXT(nsrr, link))
@@ -669,13 +655,13 @@ find_ns(rrset_ns *nsrrsp, const char *dname) {
 
 static int
 do_query(res_state statp, const char *dname, ns_class class, ns_type qtype,
-	 u_char *resp, ns_msg *msg)
+    u_char *resp, ns_msg *msg)
 {
 	u_char req[NS_PACKETSZ];
 	int i, n;
 
-	n = res_nmkquery(statp, ns_o_query, dname, class, qtype,
-			 NULL, 0, NULL, req, NS_PACKETSZ);
+	n = res_nmkquery(statp, ns_o_query, dname, class, qtype, NULL, 0, NULL,
+	    req, NS_PACKETSZ);
 	if (n < 0) {
 		DPRINTF(("do_query: res_nmkquery failed"));
 		return (-1);
@@ -703,14 +689,15 @@ do_query(res_state statp, const char *dname, ns_class class, ns_type qtype,
 			return (-1);
 		}
 		n += (ns_rr_class(rr) == class &&
-		      (ns_rr_type(rr) == ns_t_cname ||
-		       ns_rr_type(rr) == ns_t_dname));
+		    (ns_rr_type(rr) == ns_t_cname ||
+			ns_rr_type(rr) == ns_t_dname));
 	}
 	return (n);
 }
 
 static void
-res_dprintf(const char *fmt, ...) {
+res_dprintf(const char *fmt, ...)
+{
 	va_list ap;
 
 	va_start(ap, fmt);

@@ -34,36 +34,32 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sx.h>
 
 #include <machine/bus.h>
 
-#include <dev/regulator/regulator.h>
 #include <dev/fdt/fdt_pinctrl.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/iicbus/pmic/act8846.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/iicbus/pmic/act8846.h>
+#include <dev/regulator/regulator.h>
 
 #include "regdev_if.h"
 
-static struct ofw_compat_data compat_data[] = {
-	{"active-semi,act8846",	1},
-	{NULL,			0}
-};
+static struct ofw_compat_data compat_data[] = { { "active-semi,act8846", 1 },
+	{ NULL, 0 } };
 
-#define	LOCK(_sc)		sx_xlock(&(_sc)->lock)
-#define	UNLOCK(_sc)		sx_xunlock(&(_sc)->lock)
-#define	LOCK_INIT(_sc)		sx_init(&(_sc)->lock, "act8846")
-#define	LOCK_DESTROY(_sc)	sx_destroy(&(_sc)->lock);
-#define	ASSERT_LOCKED(_sc)	sx_assert(&(_sc)->lock, SA_XLOCKED);
-#define	ASSERT_UNLOCKED(_sc)	sx_assert(&(_sc)->lock, SA_UNLOCKED);
-
+#define LOCK(_sc) sx_xlock(&(_sc)->lock)
+#define UNLOCK(_sc) sx_xunlock(&(_sc)->lock)
+#define LOCK_INIT(_sc) sx_init(&(_sc)->lock, "act8846")
+#define LOCK_DESTROY(_sc) sx_destroy(&(_sc)->lock);
+#define ASSERT_LOCKED(_sc) sx_assert(&(_sc)->lock, SA_XLOCKED);
+#define ASSERT_UNLOCKED(_sc) sx_assert(&(_sc)->lock, SA_UNLOCKED);
 
 /*
  * Raw register access function.
@@ -74,8 +70,8 @@ act8846_read(struct act8846_softc *sc, uint8_t reg, uint8_t *val)
 	uint8_t addr;
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, &addr},
-		{0, IIC_M_RD, 1, val},
+		{ 0, IIC_M_WR, 1, &addr },
+		{ 0, IIC_M_RD, 1, val },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -85,21 +81,22 @@ act8846_read(struct act8846_softc *sc, uint8_t reg, uint8_t *val)
 	rv = iicbus_transfer_excl(sc->dev, msgs, 2, IIC_INTRWAIT);
 	if (rv != 0) {
 		device_printf(sc->dev,
-		    "Error when reading reg 0x%02X, rv: %d\n", reg,  rv);
+		    "Error when reading reg 0x%02X, rv: %d\n", reg, rv);
 		return (EIO);
 	}
 
 	return (0);
 }
 
-int act8846_read_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
+int
+act8846_read_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
     size_t size)
 {
 	uint8_t addr;
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, &addr},
-		{0, IIC_M_RD, size, buf},
+		{ 0, IIC_M_WR, 1, &addr },
+		{ 0, IIC_M_RD, size, buf },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -109,7 +106,7 @@ int act8846_read_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
 	rv = iicbus_transfer_excl(sc->dev, msgs, 2, IIC_INTRWAIT);
 	if (rv != 0) {
 		device_printf(sc->dev,
-		    "Error when reading reg 0x%02X, rv: %d\n", reg,  rv);
+		    "Error when reading reg 0x%02X, rv: %d\n", reg, rv);
 		return (EIO);
 	}
 
@@ -123,7 +120,7 @@ act8846_write(struct act8846_softc *sc, uint8_t reg, uint8_t val)
 	int rv;
 
 	struct iic_msg msgs[1] = {
-		{0, IIC_M_WR, 2, data},
+		{ 0, IIC_M_WR, 2, data },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -139,14 +136,15 @@ act8846_write(struct act8846_softc *sc, uint8_t reg, uint8_t val)
 	return (0);
 }
 
-int act8846_write_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
+int
+act8846_write_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
     size_t size)
 {
 	uint8_t data[1];
 	int rv;
 	struct iic_msg msgs[2] = {
-		{0, IIC_M_WR, 1, data},
-		{0, IIC_M_WR | IIC_M_NOSTART, size, buf},
+		{ 0, IIC_M_WR, 1, data },
+		{ 0, IIC_M_WR | IIC_M_NOSTART, size, buf },
 	};
 
 	msgs[0].slave = sc->bus_addr;
@@ -163,7 +161,8 @@ int act8846_write_buf(struct act8846_softc *sc, uint8_t reg, uint8_t *buf,
 }
 
 int
-act8846_modify(struct act8846_softc *sc, uint8_t reg, uint8_t clear, uint8_t set)
+act8846_modify(struct act8846_softc *sc, uint8_t reg, uint8_t clear,
+    uint8_t set)
 {
 	uint8_t val;
 	int rv;
@@ -210,7 +209,6 @@ act8846_attach(device_t dev)
 	rv = 0;
 	LOCK_INIT(sc);
 
-
 	rv = act8846_regulator_attach(sc, node);
 	if (rv != 0)
 		goto fail;
@@ -235,20 +233,20 @@ act8846_detach(device_t dev)
 
 static device_method_t act8846_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		act8846_probe),
-	DEVMETHOD(device_attach,	act8846_attach),
-	DEVMETHOD(device_detach,	act8846_detach),
+	DEVMETHOD(device_probe, act8846_probe),
+	DEVMETHOD(device_attach, act8846_attach),
+	DEVMETHOD(device_detach, act8846_detach),
 
 	/* Regdev interface */
-	DEVMETHOD(regdev_map,		act8846_regulator_map),
+	DEVMETHOD(regdev_map, act8846_regulator_map),
 
 	DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(act8846_pmu, act8846_driver, act8846_methods,
     sizeof(struct act8846_softc));
-EARLY_DRIVER_MODULE(act8846_pmic, iicbus, act8846_driver,
-    NULL, NULL, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LAST);
+EARLY_DRIVER_MODULE(act8846_pmic, iicbus, act8846_driver, NULL, NULL,
+    BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LAST);
 MODULE_VERSION(act8846_pmic, 1);
 MODULE_DEPEND(act8846_pmic, iicbus, IICBUS_MINVER, IICBUS_PREFVER,
     IICBUS_MAXVER);

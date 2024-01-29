@@ -32,56 +32,53 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
-#include <dev/ofw/openfirm.h>
+#include <dev/clk/clk.h>
+#include <dev/fdt/simple_mfd.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/fdt/simple_mfd.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/phy/phy.h>
 #include <dev/regulator/regulator.h>
 #include <dev/syscon/syscon.h>
-#include <dev/phy/phy.h>
 
 #include <contrib/device-tree/include/dt-bindings/phy/phy.h>
 
-#include "syscon_if.h"
 #include "phydev_if.h"
 #include "phynode_if.h"
+#include "syscon_if.h"
 
-#define	GRF_PCIE30PHY_CON1		0x04
-#define	GRF_PCIE30PHY_CON4		0x10
-#define	GRF_PCIE30PHY_CON5		0x14
-#define	GRF_PCIE30PHY_CON6		0x18
-#define	 GRF_BIFURCATION_LANE_1		0
-#define	 GRF_BIFURCATION_LANE_2		1
-#define	 GRF_PCIE30PHY_WR_EN		(0xf << 16)
-#define	GRF_PCIE30PHY_CON9		0x24
-#define	 GRF_PCIE30PHY_DA_OCM_MASK	(1 << (15 + 16))
-#define	 GRF_PCIE30PHY_DA_OCM		((1 << 15) | GRF_PCIE30PHY_DA_OCM_MASK)
-#define	GRF_PCIE30PHY_STATUS0		0x80
-#define	 SRAM_INIT_DONE			(1 << 14)
+#define GRF_PCIE30PHY_CON1 0x04
+#define GRF_PCIE30PHY_CON4 0x10
+#define GRF_PCIE30PHY_CON5 0x14
+#define GRF_PCIE30PHY_CON6 0x18
+#define GRF_BIFURCATION_LANE_1 0
+#define GRF_BIFURCATION_LANE_2 1
+#define GRF_PCIE30PHY_WR_EN (0xf << 16)
+#define GRF_PCIE30PHY_CON9 0x24
+#define GRF_PCIE30PHY_DA_OCM_MASK (1 << (15 + 16))
+#define GRF_PCIE30PHY_DA_OCM ((1 << 15) | GRF_PCIE30PHY_DA_OCM_MASK)
+#define GRF_PCIE30PHY_STATUS0 0x80
+#define SRAM_INIT_DONE (1 << 14)
 
 static struct ofw_compat_data compat_data[] = {
-	{"rockchip,rk3568-pcie3-phy",	1},
-	{NULL, 0}
+	{ "rockchip,rk3568-pcie3-phy", 1 }, { NULL, 0 }
 };
 
 struct rk3568_pciephy_softc {
-	device_t	dev;
-	phandle_t	node;
-	struct resource	*mem;
-	struct phynode	*phynode;
-	struct syscon	*phy_grf;
-	clk_t		refclk_m;
-	clk_t		refclk_n;
-	clk_t		pclk;
-	hwreset_t	phy_reset;
+	device_t dev;
+	phandle_t node;
+	struct resource *mem;
+	struct phynode *phynode;
+	struct syscon *phy_grf;
+	clk_t refclk_m;
+	clk_t refclk_n;
+	clk_t pclk;
+	hwreset_t phy_reset;
 };
-
 
 static void
 rk3568_pciephy_bifurcate(device_t dev, int control, uint32_t lane)
@@ -137,13 +134,12 @@ rk3568_pciephy_enable(struct phynode *phynode, bool enable)
 }
 
 static phynode_method_t rk3568_pciephy_phynode_methods[] = {
-	PHYNODEMETHOD(phynode_enable,	rk3568_pciephy_enable),
+	PHYNODEMETHOD(phynode_enable, rk3568_pciephy_enable),
 
 	PHYNODEMETHOD_END
 };
 DEFINE_CLASS_1(rk3568_pciephy_phynode, rk3568_pciephy_phynode_class,
     rk3568_pciephy_phynode_methods, 0, phynode_class);
-
 
 /* Device class and methods */
 static int
@@ -172,7 +168,7 @@ rk3568_pciephy_attach(device_t dev)
 
 	/* Get memory resource */
 	if (!(sc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE))) {
+		  RF_ACTIVE))) {
 		device_printf(dev, "Cannot allocate memory resources\n");
 		return (ENXIO);
 	}
@@ -180,7 +176,7 @@ rk3568_pciephy_attach(device_t dev)
 	/* Get syncons handle */
 	if (OF_hasprop(sc->node, "rockchip,phy-grf") &&
 	    syscon_get_by_ofw_property(dev, sc->node, "rockchip,phy-grf",
-	    &sc->phy_grf))
+		&sc->phy_grf))
 		return (ENXIO);
 
 	/* Get & enable clocks */
@@ -215,9 +211,8 @@ rk3568_pciephy_attach(device_t dev)
 	if (OF_hasprop(sc->node, "data-lanes")) {
 		OF_getencprop(sc->node, "data-lanes", data_lanes,
 		    sizeof(data_lanes));
-	} else
-		if (bootverbose)
-			device_printf(dev, "lane 1 & 2 @pcie3x2\n");
+	} else if (bootverbose)
+		device_printf(dev, "lane 1 & 2 @pcie3x2\n");
 
 	/* Deassert PCIe PMA output clamp mode */
 	SYSCON_WRITE_4(sc->phy_grf, GRF_PCIE30PHY_CON9, GRF_PCIE30PHY_DA_OCM);
@@ -237,7 +232,7 @@ rk3568_pciephy_attach(device_t dev)
 	phy_init.id = PHY_NONE;
 	phy_init.ofw_node = sc->node;
 	if (!(phynode = phynode_create(dev, &rk3568_pciephy_phynode_class,
-	    &phy_init))) {
+		  &phy_init))) {
 		device_printf(dev, "failed to create pciephy PHY\n");
 		return (ENXIO);
 	}
@@ -250,14 +245,13 @@ rk3568_pciephy_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t rk3568_pciephy_methods[] = {
-	DEVMETHOD(device_probe,		rk3568_pciephy_probe),
-	DEVMETHOD(device_attach,	rk3568_pciephy_attach),
+static device_method_t rk3568_pciephy_methods[] = { DEVMETHOD(device_probe,
+							rk3568_pciephy_probe),
+	DEVMETHOD(device_attach, rk3568_pciephy_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(rk3568_pciephy, rk3568_pciephy_driver, rk3568_pciephy_methods,
     sizeof(struct simple_mfd_softc), simple_mfd_driver);
-EARLY_DRIVER_MODULE(rk3568_pciephy, simplebus, rk3568_pciephy_driver,
-    0, 0, BUS_PASS_RESOURCE + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(rk3568_pciephy, simplebus, rk3568_pciephy_driver, 0, 0,
+    BUS_PASS_RESOURCE + BUS_PASS_ORDER_LATE);

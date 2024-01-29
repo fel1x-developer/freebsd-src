@@ -29,22 +29,22 @@
  *
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/capsicum.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+
 #include <assert.h>
 #include <capsicum_helpers.h>
 #include <err.h>
 #include <errno.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
 
 #include "uefisign.h"
 
@@ -138,7 +138,7 @@ digest(struct executable *x)
 	 */
 	digest_range(x, mdctx, x->x_checksum_off + x->x_checksum_len,
 	    x->x_certificate_entry_off -
-	    (x->x_checksum_off + x->x_checksum_len));
+		(x->x_checksum_off + x->x_checksum_len));
 
 	/*
 	 * Then, from after the Certificate entry to the end of headers.
@@ -146,7 +146,7 @@ digest(struct executable *x)
 	digest_range(x, mdctx,
 	    x->x_certificate_entry_off + x->x_certificate_entry_len,
 	    x->x_headers_len -
-	    (x->x_certificate_entry_off + x->x_certificate_entry_len));
+		(x->x_certificate_entry_off + x->x_certificate_entry_len));
 
 	/*
 	 * Then, each section in turn, as specified in the PE Section Table.
@@ -155,8 +155,8 @@ digest(struct executable *x)
 	 */
 	sum_of_bytes_hashed = x->x_headers_len;
 	for (i = 0; i < x->x_nsections; i++) {
-		digest_range(x, mdctx,
-		    x->x_section_off[i], x->x_section_len[i]);
+		digest_range(x, mdctx, x->x_section_off[i],
+		    x->x_section_len[i]);
 		sum_of_bytes_hashed += x->x_section_len[i];
 	}
 
@@ -222,8 +222,8 @@ save(struct executable *x, FILE *fp, const char *path)
 }
 
 int
-child(const char *inpath, const char *outpath, int pipefd,
-    bool Vflag, bool vflag)
+child(const char *inpath, const char *outpath, int pipefd, bool Vflag,
+    bool vflag)
 {
 	FILE *outfp = NULL, *infp = NULL;
 	struct executable *x;

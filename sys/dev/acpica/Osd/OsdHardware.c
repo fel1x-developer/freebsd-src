@@ -30,12 +30,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <contrib/dev/acpica/include/acpi.h>
 
 #include <machine/iodev.h>
 #include <machine/pci_cfgreg.h>
 
-extern int	acpi_susp_bounce;
+#include <contrib/dev/acpica/include/acpi.h>
+
+extern int acpi_susp_bounce;
 
 ACPI_STATUS
 AcpiOsEnterSleep(UINT8 SleepState, UINT32 RegaValue, UINT32 RegbValue)
@@ -61,38 +62,38 @@ ACPI_STATUS
 AcpiOsReadPort(ACPI_IO_ADDRESS InPort, UINT32 *Value, UINT32 Width)
 {
 
-    switch (Width) {
-    case 8:
-	*Value = iodev_read_1(InPort);
-	break;
-    case 16:
-	*Value = iodev_read_2(InPort);
-	break;
-    case 32:
-	*Value = iodev_read_4(InPort);
-	break;
-    }
+	switch (Width) {
+	case 8:
+		*Value = iodev_read_1(InPort);
+		break;
+	case 16:
+		*Value = iodev_read_2(InPort);
+		break;
+	case 32:
+		*Value = iodev_read_4(InPort);
+		break;
+	}
 
-    return (AE_OK);
+	return (AE_OK);
 }
 
 ACPI_STATUS
-AcpiOsWritePort(ACPI_IO_ADDRESS OutPort, UINT32	Value, UINT32 Width)
+AcpiOsWritePort(ACPI_IO_ADDRESS OutPort, UINT32 Value, UINT32 Width)
 {
 
-    switch (Width) {
-    case 8:
-	iodev_write_1(OutPort, Value);
-	break;
-    case 16:
-	iodev_write_2(OutPort, Value);
-	break;
-    case 32:
-	iodev_write_4(OutPort, Value);
-	break;
-    }
+	switch (Width) {
+	case 8:
+		iodev_write_1(OutPort, Value);
+		break;
+	case 16:
+		iodev_write_2(OutPort, Value);
+		break;
+	case 32:
+		iodev_write_4(OutPort, Value);
+		break;
+	}
 
-    return (AE_OK);
+	return (AE_OK);
 }
 
 ACPI_STATUS
@@ -101,40 +102,40 @@ AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 *Value,
 {
 
 #ifdef __aarch64__
-    /* ARM64TODO: Add pci support */
-    return (AE_SUPPORT);
-#else
-    if (Width == 64)
+	/* ARM64TODO: Add pci support */
 	return (AE_SUPPORT);
+#else
+	if (Width == 64)
+		return (AE_SUPPORT);
 
-    if (!pci_cfgregopen())
-	return (AE_NOT_EXIST);
+	if (!pci_cfgregopen())
+		return (AE_NOT_EXIST);
 
-    *(UINT64 *)Value = pci_cfgregread(PciId->Segment, PciId->Bus, PciId->Device,
-	PciId->Function, Register, Width / 8);
+	*(UINT64 *)Value = pci_cfgregread(PciId->Segment, PciId->Bus,
+	    PciId->Device, PciId->Function, Register, Width / 8);
 
-    return (AE_OK);
+	return (AE_OK);
 #endif
 }
 
 ACPI_STATUS
-AcpiOsWritePciConfiguration (ACPI_PCI_ID *PciId, UINT32 Register,
-    UINT64 Value, UINT32 Width)
+AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 Value,
+    UINT32 Width)
 {
 
 #ifdef __aarch64__
-    /* ARM64TODO: Add pci support */
-    return (AE_SUPPORT);
-#else
-    if (Width == 64)
+	/* ARM64TODO: Add pci support */
 	return (AE_SUPPORT);
+#else
+	if (Width == 64)
+		return (AE_SUPPORT);
 
-    if (!pci_cfgregopen())
-    	return (AE_NOT_EXIST);
+	if (!pci_cfgregopen())
+		return (AE_NOT_EXIST);
 
-    pci_cfgregwrite(PciId->Segment, PciId->Bus, PciId->Device, PciId->Function,
-	Register, Value, Width / 8);
+	pci_cfgregwrite(PciId->Segment, PciId->Bus, PciId->Device,
+	    PciId->Function, Register, Value, Width / 8);
 
-    return (AE_OK);
+	return (AE_OK);
 #endif
 }

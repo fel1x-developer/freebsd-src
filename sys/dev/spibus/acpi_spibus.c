@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
@@ -33,36 +34,35 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sbuf.h>
-#include <sys/systm.h>
 
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/amlcode.h>
 #include <dev/acpica/acpivar.h>
-
 #include <dev/spibus/spibusvar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/amlcode.h>
 
 /*
  * Make a copy of ACPI_RESOURCE_SPI_SERIALBUS type and replace "pointer to ACPI
  * object name string" field with pointer to ACPI object itself.
  * This saves us extra strdup()/free() pair on acpi_spibus_get_acpi_res call.
  */
-typedef	ACPI_RESOURCE_SPI_SERIALBUS	ACPI_SPIBUS_RESOURCE_SPI_SERIALBUS;
-#define	ResourceSource_Handle	ResourceSource.StringPtr
+typedef ACPI_RESOURCE_SPI_SERIALBUS ACPI_SPIBUS_RESOURCE_SPI_SERIALBUS;
+#define ResourceSource_Handle ResourceSource.StringPtr
 
 /* Hooks for the ACPI CA debugging infrastructure. */
-#define	_COMPONENT	ACPI_BUS
+#define _COMPONENT ACPI_BUS
 ACPI_MODULE_NAME("SPI")
 
-#if defined (__amd64__) || defined (__i386__)
+#if defined(__amd64__) || defined(__i386__)
 static bool is_apple;
 #endif
 
 struct acpi_spibus_ivar {
-	struct spibus_ivar	super_ivar;
-	ACPI_HANDLE		handle;
+	struct spibus_ivar super_ivar;
+	ACPI_HANDLE handle;
 };
 
 static inline bool
@@ -105,23 +105,23 @@ acpi_spibus_dump_res(device_t dev, ACPI_SPIBUS_RESOURCE_SPI_SERIALBUS *sb)
 	printf("  DeviceSelection:   0x%04hx\n", sb->DeviceSelection);
 	printf("  ConnectionSpeed:   %uHz\n", sb->ConnectionSpeed);
 	printf("  WireMode:          %s\n",
-	    sb->WireMode == ACPI_SPI_4WIRE_MODE ?
-	    "FourWireMode" : "ThreeWireMode");
+	    sb->WireMode == ACPI_SPI_4WIRE_MODE ? "FourWireMode" :
+						  "ThreeWireMode");
 	printf("  DevicePolarity:    %s\n",
-	     sb->DevicePolarity == ACPI_SPI_ACTIVE_LOW ?
-	    "PolarityLow" : "PolarityHigh");
+	    sb->DevicePolarity == ACPI_SPI_ACTIVE_LOW ? "PolarityLow" :
+							"PolarityHigh");
 	printf("  DataBitLength:     %uBit\n", sb->DataBitLength);
 	printf("  ClockPhase:        %s\n",
-	    sb->ClockPhase == ACPI_SPI_FIRST_PHASE ?
-	    "ClockPhaseFirst" : "ClockPhaseSecond");
+	    sb->ClockPhase == ACPI_SPI_FIRST_PHASE ? "ClockPhaseFirst" :
+						     "ClockPhaseSecond");
 	printf("  ClockPolarity:     %s\n",
-	    sb->ClockPolarity == ACPI_SPI_START_LOW ?
-	    "ClockPolarityLow" : "ClockPolarityHigh");
+	    sb->ClockPolarity == ACPI_SPI_START_LOW ? "ClockPolarityLow" :
+						      "ClockPolarityHigh");
 	printf("  SlaveMode:         %s\n",
-	    sb->SlaveMode == ACPI_CONTROLLER_INITIATED ?
-	    "ControllerInitiated" : "DeviceInitiated");
-	printf("  ConnectionSharing: %s\n", sb->ConnectionSharing == 0 ?
-	    "Exclusive" : "Shared");
+	    sb->SlaveMode == ACPI_CONTROLLER_INITIATED ? "ControllerInitiated" :
+							 "DeviceInitiated");
+	printf("  ConnectionSharing: %s\n",
+	    sb->ConnectionSharing == 0 ? "Exclusive" : "Shared");
 }
 
 static int
@@ -136,7 +136,7 @@ acpi_spibus_get_acpi_res(device_t spibus, ACPI_HANDLE dev,
 	 */
 	bzero(&sb, sizeof(ACPI_SPIBUS_RESOURCE_SPI_SERIALBUS));
 	if (ACPI_FAILURE(AcpiWalkResources(dev, "_CRS",
-	    acpi_spibus_get_acpi_res_cb, &sb)))
+		acpi_spibus_get_acpi_res_cb, &sb)))
 		return (ENXIO);
 	if (sb.ResourceSource_Handle !=
 	    acpi_get_handle(device_get_parent(spibus)))
@@ -150,27 +150,41 @@ acpi_spibus_get_acpi_res(device_t spibus, ACPI_HANDLE dev,
 	 */
 	if (sb.DeviceSelection != 0 &&
 	    (acpi_MatchHid(sb.ResourceSource_Handle, "80860F0E") ||
-	     acpi_MatchHid(sb.ResourceSource_Handle, "8086228E")))
+		acpi_MatchHid(sb.ResourceSource_Handle, "8086228E")))
 		res->cs = sb.DeviceSelection - 1;
 	else
 		res->cs = sb.DeviceSelection;
-	res->mode =
-	    (sb.ClockPhase != ACPI_SPI_FIRST_PHASE ? SPIBUS_MODE_CPHA : 0) |
+	res->mode = (sb.ClockPhase != ACPI_SPI_FIRST_PHASE ? SPIBUS_MODE_CPHA :
+							     0) |
 	    (sb.ClockPolarity != ACPI_SPI_START_LOW ? SPIBUS_MODE_CPOL : 0);
-	res->clock =  sb.ConnectionSpeed;
+	res->clock = sb.ConnectionSpeed;
 
 	return (0);
 }
 
-#if defined (__amd64__) || defined (__i386__)
+#if defined(__amd64__) || defined(__i386__)
 static int
 acpi_spibus_get_apple_res(device_t spibus, ACPI_HANDLE dev,
     struct spibus_ivar *ivar)
 {
 	/* a0b5b7c6-1318-441c-b0c9-fe695eaf949b */
 	static const uint8_t apple_guid[ACPI_UUID_LENGTH] = {
-	    0xC6, 0xB7, 0xB5, 0xA0, 0x18, 0x13, 0x1C, 0x44,
-	    0xB0, 0xC9, 0xFE, 0x69, 0x5E, 0xAF, 0x94, 0x9B,
+		0xC6,
+		0xB7,
+		0xB5,
+		0xA0,
+		0x18,
+		0x13,
+		0x1C,
+		0x44,
+		0xB0,
+		0xC9,
+		0xFE,
+		0x69,
+		0x5E,
+		0xAF,
+		0x94,
+		0x9B,
 	};
 	ACPI_BUFFER buf;
 	ACPI_OBJECT *pkg, *comp;
@@ -183,8 +197,8 @@ acpi_spibus_get_apple_res(device_t spibus, ACPI_HANDLE dev,
 		return (ENXIO);
 	if (parent != acpi_get_handle(device_get_parent(spibus)))
 		return (ENXIO);
-	if (ACPI_FAILURE(acpi_EvaluateDSMTyped(dev, apple_guid,
-			 1, 1, NULL, &buf, ACPI_TYPE_PACKAGE)))
+	if (ACPI_FAILURE(acpi_EvaluateDSMTyped(dev, apple_guid, 1, 1, NULL,
+		&buf, ACPI_TYPE_PACKAGE)))
 		return (ENXIO);
 
 	pkg = ((ACPI_OBJECT *)buf.Pointer);
@@ -199,18 +213,20 @@ acpi_spibus_get_apple_res(device_t spibus, ACPI_HANDLE dev,
 		device_printf(spibus, "found ACPI child\n");
 
 	for (comp = pkg->Package.Elements;
-	     comp < pkg->Package.Elements + pkg->Package.Count;
-	     comp += 2) {
+	     comp < pkg->Package.Elements + pkg->Package.Count; comp += 2) {
 
 		if (comp[0].Type != ACPI_TYPE_STRING ||
 		    comp[1].Type != ACPI_TYPE_BUFFER) {
-			device_printf(spibus, "expected string+buffer, "
-			    "got %d+%d\n", comp[0].Type, comp[1].Type);
+			device_printf(spibus,
+			    "expected string+buffer, "
+			    "got %d+%d\n",
+			    comp[0].Type, comp[1].Type);
 			continue;
 		}
 		k = comp[0].String.Pointer;
 		val = comp[1].Buffer.Length >= 8 ?
-		    *(uint64_t *)comp[1].Buffer.Pointer : 0;
+		    *(uint64_t *)comp[1].Buffer.Pointer :
+		    0;
 
 		if (bootverbose)
 			printf("  %s: %ju\n", k, (intmax_t)val);
@@ -260,13 +276,13 @@ acpi_spibus_delete_acpi_child(ACPI_HANDLE handle)
 static device_t
 acpi_spibus_add_child(device_t dev, u_int order, const char *name, int unit)
 {
-	return (spibus_add_child_common(
-	    dev, order, name, unit, sizeof(struct acpi_spibus_ivar)));
+	return (spibus_add_child_common(dev, order, name, unit,
+	    sizeof(struct acpi_spibus_ivar)));
 }
 
 static ACPI_STATUS
-acpi_spibus_enumerate_child(ACPI_HANDLE handle, UINT32 level,
-    void *context, void **result)
+acpi_spibus_enumerate_child(ACPI_HANDLE handle, UINT32 level, void *context,
+    void **result)
 {
 	device_t spibus, child;
 	struct spibus_ivar res;
@@ -290,7 +306,7 @@ acpi_spibus_enumerate_child(ACPI_HANDLE handle, UINT32 level,
 	bzero(&res, sizeof(res));
 	if (acpi_spibus_get_acpi_res(spibus, handle, &res) == 0)
 		found = true;
-#if defined (__amd64__) || defined (__i386__)
+#if defined(__amd64__) || defined(__i386__)
 	if (!found && is_apple &&
 	    acpi_spibus_get_apple_res(spibus, handle, &res) == 0)
 		found = true;
@@ -374,11 +390,11 @@ static int
 acpi_spibus_attach(device_t dev)
 {
 
-#if defined (__amd64__) || defined (__i386__)
+#if defined(__amd64__) || defined(__i386__)
 	char *vendor = kern_getenv("smbios.bios.vendor");
 	if (vendor != NULL &&
 	    (strcmp(vendor, "Apple Inc.") == 0 ||
-	     strcmp(vendor, "Apple Computer, Inc.") == 0))
+		strcmp(vendor, "Apple Computer, Inc.") == 0))
 		is_apple = true;
 #endif
 
@@ -424,15 +440,15 @@ acpi_spibus_alloc_resource(device_t dev, device_t child, int type, int *rid,
 	struct resource *res;
 
 	if (device_get_parent(child) != dev)
-		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child,
-		    type, rid, start, end, count, flags));
+		return (BUS_ALLOC_RESOURCE(device_get_parent(dev), child, type,
+		    rid, start, end, count, flags));
 
 	rl = BUS_GET_RESOURCE_LIST(dev, child);
 	if (rl == NULL)
 		return (NULL);
 
-	res = resource_list_alloc(rl, dev, child, type, rid,
-	    start, end, count, flags);
+	res = resource_list_alloc(rl, dev, child, type, rid, start, end, count,
+	    flags);
 	if (res != NULL && type == SYS_RES_IRQ &&
 	    ACPI_SUCCESS(acpi_lookup_irq_resource(child, *rid, res, &ares)))
 		acpi_config_intr(child, &ares);
@@ -550,25 +566,25 @@ acpi_spibus_child_pnpinfo(device_t bus, device_t child, struct sbuf *sb)
 
 static device_method_t acpi_spibus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		acpi_spibus_probe),
-	DEVMETHOD(device_attach,	acpi_spibus_attach),
-	DEVMETHOD(device_detach,	acpi_spibus_detach),
-	DEVMETHOD(device_suspend,	acpi_spibus_suspend),
-	DEVMETHOD(device_resume,	acpi_spibus_resume),
+	DEVMETHOD(device_probe, acpi_spibus_probe),
+	DEVMETHOD(device_attach, acpi_spibus_attach),
+	DEVMETHOD(device_detach, acpi_spibus_detach),
+	DEVMETHOD(device_suspend, acpi_spibus_suspend),
+	DEVMETHOD(device_resume, acpi_spibus_resume),
 
-	/* Bus interface */
+/* Bus interface */
 #ifndef INTRNG
-	DEVMETHOD(bus_alloc_resource,   acpi_spibus_alloc_resource),
+	DEVMETHOD(bus_alloc_resource, acpi_spibus_alloc_resource),
 #endif
-	DEVMETHOD(bus_add_child,	acpi_spibus_add_child),
-	DEVMETHOD(bus_probe_nomatch,	acpi_spibus_probe_nomatch),
-	DEVMETHOD(bus_driver_added,	acpi_spibus_driver_added),
-	DEVMETHOD(bus_child_deleted,	acpi_spibus_child_deleted),
-	DEVMETHOD(bus_read_ivar,	acpi_spibus_read_ivar),
-	DEVMETHOD(bus_write_ivar,	acpi_spibus_write_ivar),
-	DEVMETHOD(bus_child_location,	acpi_spibus_child_location),
-	DEVMETHOD(bus_child_pnpinfo,	acpi_spibus_child_pnpinfo),
-	DEVMETHOD(bus_get_device_path,	acpi_get_acpi_device_path),
+	DEVMETHOD(bus_add_child, acpi_spibus_add_child),
+	DEVMETHOD(bus_probe_nomatch, acpi_spibus_probe_nomatch),
+	DEVMETHOD(bus_driver_added, acpi_spibus_driver_added),
+	DEVMETHOD(bus_child_deleted, acpi_spibus_child_deleted),
+	DEVMETHOD(bus_read_ivar, acpi_spibus_read_ivar),
+	DEVMETHOD(bus_write_ivar, acpi_spibus_write_ivar),
+	DEVMETHOD(bus_child_location, acpi_spibus_child_location),
+	DEVMETHOD(bus_child_pnpinfo, acpi_spibus_child_pnpinfo),
+	DEVMETHOD(bus_get_device_path, acpi_get_acpi_device_path),
 
 	DEVMETHOD_END,
 };

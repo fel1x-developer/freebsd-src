@@ -24,11 +24,12 @@
  * Use is subject to license terms.
  */
 
-
-#include "file_common.h"
 #include <sys/param.h>
+
 #include <signal.h>
 #include <stdio.h>
+
+#include "file_common.h"
 
 /*
  * --------------------------------------------------------------
@@ -44,25 +45,25 @@
  *	then the last byte can be accessed.
  * --------------------------------------------------------------
  */
-static void	sigxfsz(int);
-static void	usage(char *);
+static void sigxfsz(int);
+static void usage(char *);
 
 int
 main(int argc, char **argv)
 {
-	int		fd = 0;
-	off_t		offset = (OFF_MAX - 1);
-	off_t		lseek_ret = 0;
-	int		write_ret = 0;
-	int		err = 0;
-	char		mybuf[5];
-	char		*testfile;
+	int fd = 0;
+	off_t offset = (OFF_MAX - 1);
+	off_t lseek_ret = 0;
+	int write_ret = 0;
+	int err = 0;
+	char mybuf[5];
+	char *testfile;
 
 	if (argc != 2) {
 		usage(argv[0]);
 	}
 
-	(void) sigset(SIGXFSZ, sigxfsz);
+	(void)sigset(SIGXFSZ, sigxfsz);
 
 	testfile = strdup(argv[1]);
 
@@ -98,19 +99,19 @@ main(int argc, char **argv)
 	write_ret = write(fd, mybuf, 1);
 	if (write_ret < 0) {
 		if (errno == EFBIG) {
-			(void) printf("write errno=EFBIG: success\n");
+			(void)printf("write errno=EFBIG: success\n");
 			err = 0;
 		} else {
 			perror("Did not receive EFBIG");
 			err = errno;
 		}
 	} else {
-		(void) printf("write completed successfully, test failed\n");
+		(void)printf("write completed successfully, test failed\n");
 		err = 1;
 	}
 
 out:
-	(void) unlink(testfile);
+	(void)unlink(testfile);
 	free(testfile);
 	return (err);
 }
@@ -118,7 +119,7 @@ out:
 static void
 usage(char *name)
 {
-	(void) printf("%s <testfile>\n", name);
+	(void)printf("%s <testfile>\n", name);
 	exit(1);
 }
 
@@ -126,5 +127,5 @@ usage(char *name)
 static void
 sigxfsz(int signo)
 {
-	(void) printf("\nlargest_file: sigxfsz() caught SIGXFSZ\n");
+	(void)printf("\nlargest_file: sigxfsz() caught SIGXFSZ\n");
 }

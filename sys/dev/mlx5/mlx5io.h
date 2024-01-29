@@ -60,15 +60,15 @@ struct mlx5_eeprom_get {
 	size_t eeprom_info_out_len;
 };
 
-#define	MLX5_FWDUMP_GET		_IOWR('m', 1, struct mlx5_fwdump_get)
-#define	MLX5_FWDUMP_RESET	_IOW('m', 2, struct mlx5_tool_addr)
-#define	MLX5_FWDUMP_FORCE	_IOW('m', 3, struct mlx5_tool_addr)
-#define	MLX5_FW_UPDATE		_IOW('m', 4, struct mlx5_fw_update)
-#define	MLX5_FW_RESET		_IOW('m', 5, struct mlx5_tool_addr)
-#define	MLX5_EEPROM_GET		_IOWR('m', 6, struct mlx5_eeprom_get)
+#define MLX5_FWDUMP_GET _IOWR('m', 1, struct mlx5_fwdump_get)
+#define MLX5_FWDUMP_RESET _IOW('m', 2, struct mlx5_tool_addr)
+#define MLX5_FWDUMP_FORCE _IOW('m', 3, struct mlx5_tool_addr)
+#define MLX5_FW_UPDATE _IOW('m', 4, struct mlx5_fw_update)
+#define MLX5_FW_RESET _IOW('m', 5, struct mlx5_tool_addr)
+#define MLX5_EEPROM_GET _IOWR('m', 6, struct mlx5_eeprom_get)
 
 #ifndef _KERNEL
-#define	MLX5_DEV_PATH	_PATH_DEV"mlx5ctl"
+#define MLX5_DEV_PATH _PATH_DEV "mlx5ctl"
 #endif
 
 enum mlx5_fpga_id {
@@ -140,18 +140,18 @@ struct mlx5_fpga_temperature {
 	char sensor_name[16];
 };
 
-#define	MLX5_FPGA_CAP_ARR_SZ 0x40
+#define MLX5_FPGA_CAP_ARR_SZ 0x40
 
-#define	MLX5_FPGA_ACCESS_TYPE	_IOWINT('m', 0x80)
-#define	MLX5_FPGA_LOAD		_IOWINT('m', 0x81)
-#define	MLX5_FPGA_RESET		_IO('m', 0x82)
-#define	MLX5_FPGA_IMAGE_SEL	_IOWINT('m', 0x83)
-#define	MLX5_FPGA_QUERY		_IOR('m', 0x84, struct mlx5_fpga_query)
-#define	MLX5_FPGA_CAP		_IOR('m', 0x85, uint32_t[MLX5_FPGA_CAP_ARR_SZ])
-#define	MLX5_FPGA_TEMPERATURE	_IOWR('m', 0x86, struct mlx5_fpga_temperature)
-#define	MLX5_FPGA_CONNECT	_IOWR('m', 0x87, enum mlx5_fpga_connect)
-#define	MLX5_FPGA_RELOAD	_IO('m', 0x88)
+#define MLX5_FPGA_ACCESS_TYPE _IOWINT('m', 0x80)
+#define MLX5_FPGA_LOAD _IOWINT('m', 0x81)
+#define MLX5_FPGA_RESET _IO('m', 0x82)
+#define MLX5_FPGA_IMAGE_SEL _IOWINT('m', 0x83)
+#define MLX5_FPGA_QUERY _IOR('m', 0x84, struct mlx5_fpga_query)
+#define MLX5_FPGA_CAP _IOR('m', 0x85, uint32_t[MLX5_FPGA_CAP_ARR_SZ])
+#define MLX5_FPGA_TEMPERATURE _IOWR('m', 0x86, struct mlx5_fpga_temperature)
+#define MLX5_FPGA_CONNECT _IOWR('m', 0x87, enum mlx5_fpga_connect)
+#define MLX5_FPGA_RELOAD _IO('m', 0x88)
 
-#define	MLX5_FPGA_TOOLS_NAME_SUFFIX	"_mlx5_fpga_tools"
+#define MLX5_FPGA_TOOLS_NAME_SUFFIX "_mlx5_fpga_tools"
 
 #endif

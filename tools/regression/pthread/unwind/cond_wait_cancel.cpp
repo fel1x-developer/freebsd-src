@@ -1,8 +1,8 @@
 /* Test stack unwinding for pthread_cond_wait function */
 
 #include <pthread.h>
-#include <stdio.h>
 #include <semaphore.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include "Test.cpp"

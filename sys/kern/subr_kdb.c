@@ -26,17 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_kdb.h"
 #include "opt_stack.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/cons.h>
 #include <sys/kdb.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/pcpu.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
@@ -64,20 +64,20 @@ struct thread *kdb_thread = NULL;
 struct trapframe *kdb_frame = NULL;
 
 #ifdef BREAK_TO_DEBUGGER
-#define	KDB_BREAK_TO_DEBUGGER	1
+#define KDB_BREAK_TO_DEBUGGER 1
 #else
-#define	KDB_BREAK_TO_DEBUGGER	0
+#define KDB_BREAK_TO_DEBUGGER 0
 #endif
 
 #ifdef ALT_BREAK_TO_DEBUGGER
-#define	KDB_ALT_BREAK_TO_DEBUGGER	1
+#define KDB_ALT_BREAK_TO_DEBUGGER 1
 #else
-#define	KDB_ALT_BREAK_TO_DEBUGGER	0
+#define KDB_ALT_BREAK_TO_DEBUGGER 0
 #endif
 
-static int	kdb_break_to_debugger = KDB_BREAK_TO_DEBUGGER;
-static int	kdb_alt_break_to_debugger = KDB_ALT_BREAK_TO_DEBUGGER;
-static int	kdb_enter_securelevel = 0;
+static int kdb_break_to_debugger = KDB_BREAK_TO_DEBUGGER;
+static int kdb_alt_break_to_debugger = KDB_ALT_BREAK_TO_DEBUGGER;
+static int kdb_enter_securelevel = 0;
 
 KDB_BACKEND(null, NULL, NULL, NULL, NULL);
 
@@ -94,24 +94,20 @@ static SYSCTL_NODE(_debug, OID_AUTO, kdb, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
     "KDB nodes");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, available,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_available, "A",
-    "list of available KDB backends");
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, kdb_sysctl_available,
+    "A", "list of available KDB backends");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, current,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_current, "A",
-    "currently selected KDB backend");
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0, kdb_sysctl_current,
+    "A", "currently selected KDB backend");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, enter,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_enter, "I",
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0, kdb_sysctl_enter, "I",
     "set to enter the debugger");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, panic,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_SECURE | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_panic, "I",
-    "set to panic the kernel");
+    kdb_sysctl_panic, "I", "set to panic the kernel");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, panic_str,
     CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_SECURE | CTLFLAG_MPSAFE, NULL, 0,
@@ -120,36 +116,30 @@ SYSCTL_PROC(_debug_kdb, OID_AUTO, panic_str,
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, trap,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_SECURE | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_trap, "I",
-    "set to cause a page fault via data access");
+    kdb_sysctl_trap, "I", "set to cause a page fault via data access");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, trap_code,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_SECURE | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_trap_code, "I",
-    "set to cause a page fault via code access");
+    kdb_sysctl_trap_code, "I", "set to cause a page fault via code access");
 
 SYSCTL_PROC(_debug_kdb, OID_AUTO, stack_overflow,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_SECURE | CTLFLAG_MPSAFE, NULL, 0,
-    kdb_sysctl_stack_overflow, "I",
-    "set to cause a stack overflow");
+    kdb_sysctl_stack_overflow, "I", "set to cause a stack overflow");
 
-SYSCTL_INT(_debug_kdb, OID_AUTO, break_to_debugger,
-    CTLFLAG_RWTUN,
+SYSCTL_INT(_debug_kdb, OID_AUTO, break_to_debugger, CTLFLAG_RWTUN,
     &kdb_break_to_debugger, 0, "Enable break to debugger");
 
-SYSCTL_INT(_debug_kdb, OID_AUTO, alt_break_to_debugger,
-    CTLFLAG_RWTUN,
+SYSCTL_INT(_debug_kdb, OID_AUTO, alt_break_to_debugger, CTLFLAG_RWTUN,
     &kdb_alt_break_to_debugger, 0, "Enable alternative break to debugger");
 
 SYSCTL_INT(_debug_kdb, OID_AUTO, enter_securelevel,
-    CTLFLAG_RWTUN | CTLFLAG_SECURE,
-    &kdb_enter_securelevel, 0,
+    CTLFLAG_RWTUN | CTLFLAG_SECURE, &kdb_enter_securelevel, 0,
     "Maximum securelevel to enter a KDB backend");
 
 /*
  * Flag to indicate to debuggers why the debugger was entered.
  */
-const char * volatile kdb_why = KDB_WHY_UNSET;
+const char *volatile kdb_why = KDB_WHY_UNSET;
 
 static int
 kdb_sysctl_available(SYSCTL_HANDLER_ARGS)
@@ -159,7 +149,8 @@ kdb_sysctl_available(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	sbuf_new_for_sysctl(&sbuf, NULL, 64, req);
-	SET_FOREACH(iter, kdb_dbbe_set) {
+	SET_FOREACH(iter, kdb_dbbe_set)
+	{
 		if ((*iter)->dbbe_active == 0)
 			sbuf_printf(&sbuf, "%s ", (*iter)->dbbe_name);
 	}
@@ -267,7 +258,7 @@ kdb_sysctl_trap_code(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-static void kdb_stack_overflow(volatile int *x)  __noinline;
+static void kdb_stack_overflow(volatile int *x) __noinline;
 static void
 kdb_stack_overflow(volatile int *x)
 {
@@ -324,11 +315,11 @@ kdb_reboot(void)
  * its arguments.  Its up to the caller to ensure that the state variable is
  * consistent.
  */
-#define	KEY_CR		13	/* CR '\r' */
-#define	KEY_TILDE	126	/* ~ */
-#define	KEY_CRTLB	2	/* ^B */
-#define	KEY_CRTLP	16	/* ^P */
-#define	KEY_CRTLR	18	/* ^R */
+#define KEY_CR 13     /* CR '\r' */
+#define KEY_TILDE 126 /* ~ */
+#define KEY_CRTLB 2   /* ^B */
+#define KEY_CRTLP 16  /* ^P */
+#define KEY_CRTLR 18  /* ^R */
 
 /* States of th KDB "alternate break sequence" detecting state machine. */
 enum {
@@ -490,7 +481,8 @@ kdb_dbbe_select(const char *name)
 	if (error)
 		return (error);
 
-	SET_FOREACH(iter, kdb_dbbe_set) {
+	SET_FOREACH(iter, kdb_dbbe_set)
+	{
 		be = *iter;
 		if (be->dbbe_active == 0 && strcmp(be->dbbe_name, name) == 0) {
 			kdb_dbbe = be;
@@ -570,7 +562,8 @@ kdb_init(void)
 	kdb_active = 0;
 	kdb_dbbe = NULL;
 	cur_pri = -1;
-	SET_FOREACH(iter, kdb_dbbe_set) {
+	SET_FOREACH(iter, kdb_dbbe_set)
+	{
 		be = *iter;
 		pri = (be->dbbe_init != NULL) ? be->dbbe_init() : -1;
 		be->dbbe_active = (pri >= 0) ? 0 : -1;
@@ -581,14 +574,14 @@ kdb_init(void)
 	}
 	if (kdb_dbbe != NULL) {
 		printf("KDB: debugger backends:");
-		SET_FOREACH(iter, kdb_dbbe_set) {
+		SET_FOREACH(iter, kdb_dbbe_set)
+		{
 			be = *iter;
 			if (be->dbbe_active == 0)
 				printf(" %s", be->dbbe_name);
 		}
 		printf("\n");
-		printf("KDB: current backend: %s\n",
-		    kdb_dbbe->dbbe_name);
+		printf("KDB: current backend: %s\n", kdb_dbbe->dbbe_name);
 	}
 	TSEXIT();
 }
@@ -644,7 +637,7 @@ kdb_thr_ctx(struct thread *thr)
 		return (&kdb_pcb);
 
 #ifdef SMP
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu)  {
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu) {
 		if (pc->pc_curthread == thr &&
 		    CPU_ISSET(pc->pc_cpuid, &stopped_cpus))
 			return (&stoppcbs[pc->pc_cpuid]);
@@ -665,7 +658,7 @@ kdb_thr_first(void)
 		return (&thread0);
 
 	for (i = 0; i <= pidhash; i++) {
-		LIST_FOREACH(p, &pidhashtbl[i], p_hash) {
+		LIST_FOREACH (p, &pidhashtbl[i], p_hash) {
 			thr = FIRST_THREAD_IN_PROC(p);
 			if (thr != NULL)
 				return (thr);
@@ -679,7 +672,7 @@ kdb_thr_from_pid(pid_t pid)
 {
 	struct proc *p;
 
-	LIST_FOREACH(p, PIDHASH(pid), p_hash) {
+	LIST_FOREACH (p, PIDHASH(pid), p_hash) {
 		if (p->p_pid == pid)
 			return (FIRST_THREAD_IN_PROC(p));
 	}

@@ -35,23 +35,23 @@
 #include "mlx4_ib.h"
 
 struct mlx4_ib_user_db_page {
-	struct list_head	list;
-	struct ib_umem	       *umem;
-	unsigned long		user_virt;
-	int			refcnt;
+	struct list_head list;
+	struct ib_umem *umem;
+	unsigned long user_virt;
+	int refcnt;
 };
 
-int mlx4_ib_db_map_user(struct mlx4_ib_ucontext *context, unsigned long virt,
-			struct mlx4_db *db)
+int
+mlx4_ib_db_map_user(struct mlx4_ib_ucontext *context, unsigned long virt,
+    struct mlx4_db *db)
 {
 	struct mlx4_ib_user_db_page *page;
 	int err = 0;
 
 	mutex_lock(&context->db_page_mutex);
 
-	list_for_each_entry(page, &context->db_page_list, list)
-		if (page->user_virt == (virt & PAGE_MASK))
-			goto found;
+	list_for_each_entry(page, &context->db_page_list,
+	    list) if (page->user_virt == (virt & PAGE_MASK)) goto found;
 
 	page = kmalloc(sizeof *page, GFP_KERNEL);
 	if (!page) {
@@ -60,9 +60,9 @@ int mlx4_ib_db_map_user(struct mlx4_ib_ucontext *context, unsigned long virt,
 	}
 
 	page->user_virt = (virt & PAGE_MASK);
-	page->refcnt    = 0;
-	page->umem      = ib_umem_get(&context->ibucontext, virt & PAGE_MASK,
-				      PAGE_SIZE, 0, 0);
+	page->refcnt = 0;
+	page->umem = ib_umem_get(&context->ibucontext, virt & PAGE_MASK,
+	    PAGE_SIZE, 0, 0);
 	if (IS_ERR(page->umem)) {
 		err = PTR_ERR(page->umem);
 		kfree(page);
@@ -82,7 +82,8 @@ out:
 	return err;
 }
 
-void mlx4_ib_db_unmap_user(struct mlx4_ib_ucontext *context, struct mlx4_db *db)
+void
+mlx4_ib_db_unmap_user(struct mlx4_ib_ucontext *context, struct mlx4_db *db)
 {
 	mutex_lock(&context->db_page_mutex);
 

@@ -23,12 +23,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#include <sys/param.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/param.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include "../pathconv.h"
 
 int
@@ -48,7 +50,7 @@ main(int argc, char *argv[])
 		}
 	} else
 		strcpy(cwd, argv[2]);
-	
+
 	if (rel2abs(argv[1], cwd, result, MAXPATHLEN)) {
 		printf("%s\n", result);
 	} else

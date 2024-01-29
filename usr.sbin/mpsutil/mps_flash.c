@@ -9,7 +9,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -24,13 +24,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/param.h>
-#include <sys/mman.h>
 #include <sys/endian.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -89,14 +89,15 @@ flash_save(int argc, char **argv)
 	close(fd);
 	if (size > 0) {
 		fd = open(firmware_file, O_CREAT | O_TRUNC | O_RDWR, 0644);
-		if (fd <0) {
+		if (fd < 0) {
 			error = errno;
 			warn("open");
 			free(firmware_buffer);
 			return (error);
 		}
 		while (written != size) {
-			if ((ret = write(fd, firmware_buffer + written, size - written)) <0) {
+			if ((ret = write(fd, firmware_buffer + written,
+				 size - written)) < 0) {
 				error = errno;
 				warn("write");
 				free(firmware_buffer);
@@ -186,7 +187,7 @@ flash_update(int argc, char **argv)
 
 	if (bios) {
 		/* Check boot record magic number */
-		if (((mem[0x01]<<8) + mem[0x00]) != 0xaa55) {
+		if (((mem[0x01] << 8) + mem[0x00]) != 0xaa55) {
 			warnx("Invalid bios: no boot record magic number");
 			munmap(mem, st.st_size);
 			close(fd);
@@ -206,7 +207,8 @@ flash_update(int argc, char **argv)
 			warnx("Invalid firmware:");
 			warnx("  Expected Vendor ID: %04x",
 			    MPI2_MFGPAGE_VENDORID_LSI);
-			warnx("  Image Vendor ID: %04x", le16toh(fwheader->VendorID));
+			warnx("  Image Vendor ID: %04x",
+			    le16toh(fwheader->VendorID));
 			munmap(mem, st.st_size);
 			close(fd);
 			free(facts);
@@ -216,7 +218,8 @@ flash_update(int argc, char **argv)
 		if (le16toh(fwheader->ProductID) != facts->ProductID) {
 			warnx("Invalid image:");
 			warnx("  Expected Product ID: %04x", facts->ProductID);
-			warnx("  Image Product ID: %04x", le16toh(fwheader->ProductID));
+			warnx("  Image Product ID: %04x",
+			    le16toh(fwheader->ProductID));
 			munmap(mem, st.st_size);
 			close(fd);
 			free(facts);

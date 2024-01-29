@@ -24,9 +24,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
-#include <sys/cdefs.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -35,9 +35,7 @@
 #include <sys/mutex.h>
 
 #include <dev/evdev/input.h>
-
 #include <dev/hid/hid.h>
-
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus_xact.h>
 #include <dev/hyperv/utilities/hv_utilreg.h>
@@ -47,28 +45,28 @@
 #include "hid_if.h"
 #include "vmbus_if.h"
 
-#define	HV_HID_VER_MAJOR	2
-#define	HV_HID_VER_MINOR	0
-#define	HV_HID_VER		(HV_HID_VER_MINOR | (HV_HID_VER_MAJOR) << 16)
+#define HV_HID_VER_MAJOR 2
+#define HV_HID_VER_MINOR 0
+#define HV_HID_VER (HV_HID_VER_MINOR | (HV_HID_VER_MAJOR) << 16)
 
-#define	HV_BUFSIZ		(4 * PAGE_SIZE)
-#define	HV_HID_RINGBUFF_SEND_SZ	(10 * PAGE_SIZE)
-#define	HV_HID_RINGBUFF_RECV_SZ	(10 * PAGE_SIZE)
+#define HV_BUFSIZ (4 * PAGE_SIZE)
+#define HV_HID_RINGBUFF_SEND_SZ (10 * PAGE_SIZE)
+#define HV_HID_RINGBUFF_RECV_SZ (10 * PAGE_SIZE)
 
 typedef struct {
-	device_t		dev;
-	struct mtx		mtx;
+	device_t dev;
+	struct mtx mtx;
 	/* vmbus */
-	struct vmbus_channel	*hs_chan;
-	struct vmbus_xact_ctx	*hs_xact_ctx;
-	uint8_t			*buf;
-	int			buflen;
+	struct vmbus_channel *hs_chan;
+	struct vmbus_xact_ctx *hs_xact_ctx;
+	uint8_t *buf;
+	int buflen;
 	/* hid */
-	struct hid_device_info	hdi;
-	hid_intr_t		*intr;
-	bool			intr_on;
-	void			*intr_ctx;
-	uint8_t			*rdesc;
+	struct hid_device_info hdi;
+	hid_intr_t *intr;
+	bool intr_on;
+	void *intr_ctx;
+	uint8_t *rdesc;
 } hv_hid_sc;
 
 typedef enum {
@@ -80,63 +78,63 @@ typedef enum {
 } sh_msg_type;
 
 typedef struct {
-	sh_msg_type	type;
-	uint32_t	size;
+	sh_msg_type type;
+	uint32_t size;
 } __packed sh_msg_hdr;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	char		data[];
+	sh_msg_hdr hdr;
+	char data[];
 } __packed sh_msg;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	uint32_t	ver;
+	sh_msg_hdr hdr;
+	uint32_t ver;
 } __packed sh_proto_req;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	uint32_t	ver;
-	uint32_t	app;
+	sh_msg_hdr hdr;
+	uint32_t ver;
+	uint32_t app;
 } __packed sh_proto_resp;
 
 typedef struct {
-	u_int		size;
-	u_short		vendor;
-	u_short		product;
-	u_short		version;
-	u_short		reserved[11];
+	u_int size;
+	u_short vendor;
+	u_short product;
+	u_short version;
+	u_short reserved[11];
 } __packed sh_devinfo;
 
 /* Copied from linux/hid.h */
 typedef struct {
-	uint8_t		bDescriptorType;
-	uint16_t	wDescriptorLength;
+	uint8_t bDescriptorType;
+	uint16_t wDescriptorLength;
 } __packed sh_hcdesc;
 
 typedef struct {
-	uint8_t		bLength;
-	uint8_t		bDescriptorType;
-	uint16_t	bcdHID;
-	uint8_t		bCountryCode;
-	uint8_t		bNumDescriptors;
-	sh_hcdesc	hcdesc[1];
+	uint8_t bLength;
+	uint8_t bDescriptorType;
+	uint16_t bcdHID;
+	uint8_t bCountryCode;
+	uint8_t bNumDescriptors;
+	sh_hcdesc hcdesc[1];
 } __packed sh_hdesc;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	sh_devinfo	devinfo;
-	sh_hdesc	hdesc;
+	sh_msg_hdr hdr;
+	sh_devinfo devinfo;
+	sh_hdesc hdesc;
 } __packed sh_devinfo_resp;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	uint8_t		rsvd;
+	sh_msg_hdr hdr;
+	uint8_t rsvd;
 } __packed sh_devinfo_ack;
 
 typedef struct {
-	sh_msg_hdr	hdr;
-	char		buffer[];
+	sh_msg_hdr hdr;
+	char buffer[];
 } __packed sh_input_report;
 
 typedef enum {
@@ -145,46 +143,44 @@ typedef enum {
 } hv_hid_msg_type;
 
 typedef struct {
-	hv_hid_msg_type	type;
-	uint32_t	size;
-	char		data[];
+	hv_hid_msg_type type;
+	uint32_t size;
+	char data[];
 } hv_hid_pmsg;
 
 typedef struct {
-	hv_hid_msg_type	type;
-	uint32_t	size;
+	hv_hid_msg_type type;
+	uint32_t size;
 	union {
-		sh_msg		msg;
-		sh_proto_req	req;
-		sh_proto_resp	resp;
-		sh_devinfo_resp	dresp;
-		sh_devinfo_ack	ack;
-		sh_input_report	irep;
+		sh_msg msg;
+		sh_proto_req req;
+		sh_proto_resp resp;
+		sh_devinfo_resp dresp;
+		sh_devinfo_ack ack;
+		sh_input_report irep;
 	};
 } hv_hid_msg;
 
-#define	HV_HID_REQ_SZ	(sizeof(hv_hid_pmsg) + sizeof(sh_proto_req))
-#define	HV_HID_RESP_SZ	(sizeof(hv_hid_pmsg) + sizeof(sh_proto_resp))
-#define	HV_HID_ACK_SZ	(sizeof(hv_hid_pmsg) + sizeof(sh_devinfo_ack))
+#define HV_HID_REQ_SZ (sizeof(hv_hid_pmsg) + sizeof(sh_proto_req))
+#define HV_HID_RESP_SZ (sizeof(hv_hid_pmsg) + sizeof(sh_proto_resp))
+#define HV_HID_ACK_SZ (sizeof(hv_hid_pmsg) + sizeof(sh_devinfo_ack))
 
 /* Somewhat arbitrary, enough to get the devinfo response */
-#define	HV_HID_REQ_MAX	256
-#define	HV_HID_RESP_MAX	256
+#define HV_HID_REQ_MAX 256
+#define HV_HID_RESP_MAX 256
 
 static const struct vmbus_ic_desc vmbus_hid_descs[] = {
-	{
-		.ic_guid = { .hv_guid = {
-		    0x9e, 0xb6, 0xa8, 0xcf, 0x4a, 0x5b, 0xc0, 0x4c,
-		    0xb9, 0x8b, 0x8b, 0xa1, 0xa1, 0xf3, 0xf9, 0x5a} },
-		.ic_desc = "Hyper-V HID device"
-	},
+	{ .ic_guid = { .hv_guid = { 0x9e, 0xb6, 0xa8, 0xcf, 0x4a, 0x5b, 0xc0,
+			   0x4c, 0xb9, 0x8b, 0x8b, 0xa1, 0xa1, 0xf3, 0xf9,
+			   0x5a } },
+	    .ic_desc = "Hyper-V HID device" },
 	VMBUS_IC_DESC_END
 };
 
 /* TODO: add GUID support to devmatch(8) to export vmbus_hid_descs directly */
 const struct {
 	char *guid;
-} vmbus_hid_descs_pnp[] = {{ "cfa8b69e-5b4a-4cc0-b98b-8ba1a1f3f95a" }};
+} vmbus_hid_descs_pnp[] = { { "cfa8b69e-5b4a-4cc0-b98b-8ba1a1f3f95a" } };
 
 static int hv_hid_attach(device_t dev);
 static int hv_hid_detach(device_t dev);
@@ -192,11 +188,11 @@ static int hv_hid_detach(device_t dev);
 static int
 hv_hid_connect_vsp(hv_hid_sc *sc)
 {
-	struct vmbus_xact	*xact;
-	hv_hid_msg		*req;
-	const hv_hid_msg	*resp;
-	size_t			resplen;
-	int			ret;
+	struct vmbus_xact *xact;
+	hv_hid_msg *req;
+	const hv_hid_msg *resp;
+	size_t resplen;
+	int ret;
 
 	xact = vmbus_xact_get(sc->hs_xact_ctx, HV_HID_REQ_SZ);
 	if (xact == NULL) {
@@ -211,10 +207,9 @@ hv_hid_connect_vsp(hv_hid_sc *sc)
 	req->req.ver = HV_HID_VER;
 
 	vmbus_xact_activate(xact);
-	ret = vmbus_chan_send(sc->hs_chan,
-	    VMBUS_CHANPKT_TYPE_INBAND,
-	    VMBUS_CHANPKT_FLAG_RC,
-	    req, HV_HID_REQ_SZ, (uint64_t)(uintptr_t)xact);
+	ret = vmbus_chan_send(sc->hs_chan, VMBUS_CHANPKT_TYPE_INBAND,
+	    VMBUS_CHANPKT_FLAG_RC, req, HV_HID_REQ_SZ,
+	    (uint64_t)(uintptr_t)xact);
 	if (ret != 0) {
 		device_printf(sc->dev, "failed to send proto req\n");
 		vmbus_xact_deactivate(xact);
@@ -233,10 +228,10 @@ hv_hid_connect_vsp(hv_hid_sc *sc)
 static void
 hv_hid_receive(hv_hid_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 {
-	const hv_hid_msg	*msg;
-	sh_msg_type		msg_type;
-	uint32_t		msg_len;
-	void			*rdesc;
+	const hv_hid_msg *msg;
+	sh_msg_type msg_type;
+	uint32_t msg_len;
+	void *rdesc;
 
 	msg = VMBUS_CHANPKT_CONST_DATA(pkt);
 	msg_len = VMBUS_CHANPKT_DATALEN(pkt);
@@ -262,11 +257,11 @@ hv_hid_receive(hv_hid_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 		break;
 	}
 	case SH_DEVINFO: {
-		struct vmbus_xact	*xact;
-		struct hid_device_info	*hdi;
-		hv_hid_msg		ack;
-		const sh_devinfo	*devinfo;
-		const sh_hdesc		*hdesc;
+		struct vmbus_xact *xact;
+		struct hid_device_info *hdi;
+		hv_hid_msg ack;
+		const sh_devinfo *devinfo;
+		const sh_hdesc *hdesc;
 
 		/* Send ack */
 		ack.type = HV_HID_MSG_DATA;
@@ -279,8 +274,8 @@ hv_hid_receive(hv_hid_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 		if (xact == NULL)
 			break;
 		vmbus_xact_activate(xact);
-		(void) vmbus_chan_send(sc->hs_chan, VMBUS_CHANPKT_TYPE_INBAND,
-		    0, &ack, HV_HID_ACK_SZ, (uint64_t)(uintptr_t)xact);
+		(void)vmbus_chan_send(sc->hs_chan, VMBUS_CHANPKT_TYPE_INBAND, 0,
+		    &ack, HV_HID_ACK_SZ, (uint64_t)(uintptr_t)xact);
 		vmbus_xact_deactivate(xact);
 		vmbus_xact_put(xact);
 
@@ -330,10 +325,10 @@ hv_hid_receive(hv_hid_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 static void
 hv_hid_read_channel(struct vmbus_channel *channel, void *ctx)
 {
-	hv_hid_sc	*sc;
-	uint8_t		*buf;
-	int		buflen;
-	int		ret;
+	hv_hid_sc *sc;
+	uint8_t *buf;
+	int buflen;
+	int ret;
 
 	sc = ctx;
 	buf = sc->buf;
@@ -382,8 +377,8 @@ hv_hid_read_channel(struct vmbus_channel *channel, void *ctx)
 static int
 hv_hid_probe(device_t dev)
 {
-	device_t			bus;
-	const struct vmbus_ic_desc	*d;
+	device_t bus;
+	const struct vmbus_ic_desc *d;
 
 	if (resource_disabled(device_get_name(dev), 0))
 		return (ENXIO);
@@ -402,9 +397,9 @@ hv_hid_probe(device_t dev)
 static int
 hv_hid_attach(device_t dev)
 {
-	device_t	child;
-	hv_hid_sc	*sc;
-	int		ret;
+	device_t child;
+	hv_hid_sc *sc;
+	int ret;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -455,8 +450,8 @@ out:
 static int
 hv_hid_detach(device_t dev)
 {
-	hv_hid_sc	*sc;
-	int		ret;
+	hv_hid_sc *sc;
+	int ret;
 
 	sc = device_get_softc(dev);
 	ret = device_delete_children(dev);
@@ -476,7 +471,7 @@ static void
 hv_hid_intr_setup(device_t dev, device_t child __unused, hid_intr_t intr,
     void *ctx, struct hid_rdesc_info *rdesc)
 {
-	hv_hid_sc	*sc;
+	hv_hid_sc *sc;
 
 	if (intr == NULL)
 		return;
@@ -491,7 +486,7 @@ hv_hid_intr_setup(device_t dev, device_t child __unused, hid_intr_t intr,
 static void
 hv_hid_intr_unsetup(device_t dev, device_t child __unused)
 {
-	hv_hid_sc	*sc;
+	hv_hid_sc *sc;
 
 	sc = device_get_softc(dev);
 	sc->intr = NULL;
@@ -502,7 +497,7 @@ hv_hid_intr_unsetup(device_t dev, device_t child __unused)
 static int
 hv_hid_intr_start(device_t dev, device_t child __unused)
 {
-	hv_hid_sc	*sc;
+	hv_hid_sc *sc;
 
 	sc = device_get_softc(dev);
 	mtx_lock(&sc->mtx);
@@ -514,7 +509,7 @@ hv_hid_intr_start(device_t dev, device_t child __unused)
 static int
 hv_hid_intr_stop(device_t dev, device_t child __unused)
 {
-	hv_hid_sc	*sc;
+	hv_hid_sc *sc;
 
 	sc = device_get_softc(dev);
 	mtx_lock(&sc->mtx);
@@ -527,7 +522,7 @@ static int
 hv_hid_get_rdesc(device_t dev, device_t child __unused, void *buf,
     hid_size_t len)
 {
-	hv_hid_sc	*sc;
+	hv_hid_sc *sc;
 
 	sc = device_get_softc(dev);
 	if (len < sc->hdi.rdescsize)
@@ -537,16 +532,16 @@ hv_hid_get_rdesc(device_t dev, device_t child __unused, void *buf,
 }
 
 static device_method_t hv_hid_methods[] = {
-	DEVMETHOD(device_probe,		hv_hid_probe),
-	DEVMETHOD(device_attach,	hv_hid_attach),
-	DEVMETHOD(device_detach,	hv_hid_detach),
+	DEVMETHOD(device_probe, hv_hid_probe),
+	DEVMETHOD(device_attach, hv_hid_attach),
+	DEVMETHOD(device_detach, hv_hid_detach),
 
-	DEVMETHOD(hid_intr_setup,	hv_hid_intr_setup),
-	DEVMETHOD(hid_intr_unsetup,	hv_hid_intr_unsetup),
-	DEVMETHOD(hid_intr_start,	hv_hid_intr_start),
-	DEVMETHOD(hid_intr_stop,	hv_hid_intr_stop),
+	DEVMETHOD(hid_intr_setup, hv_hid_intr_setup),
+	DEVMETHOD(hid_intr_unsetup, hv_hid_intr_unsetup),
+	DEVMETHOD(hid_intr_start, hv_hid_intr_start),
+	DEVMETHOD(hid_intr_stop, hv_hid_intr_stop),
 
-	DEVMETHOD(hid_get_rdesc,	hv_hid_get_rdesc),
+	DEVMETHOD(hid_get_rdesc, hv_hid_get_rdesc),
 	DEVMETHOD_END,
 };
 

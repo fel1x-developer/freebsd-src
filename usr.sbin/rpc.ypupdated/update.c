@@ -35,38 +35,41 @@
 /*
  * Administrative tool to add a new user to the publickey database
  */
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <rpc/rpc.h>
-#include <rpc/key_prot.h>
 #ifdef YP
+#include <sys/wait.h>
+
+#include <netdb.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
-#include <sys/wait.h>
-#include <netdb.h>
-#endif	/* YP */
+#endif /* YP */
+#include <sys/resource.h>
+
 #include <pwd.h>
 #include <string.h>
-#include <sys/resource.h>
+
 #include "ypupdated_extern.h"
 
 #ifdef YP
-#define	MAXMAPNAMELEN 256
+#define MAXMAPNAMELEN 256
 #else
-#define	YPOP_CHANGE 1			/* change, do not add */
-#define	YPOP_INSERT 2			/* add, do not change */
-#define	YPOP_DELETE 3			/* delete this entry */
-#define	YPOP_STORE  4			/* add, or change */
+#define YPOP_CHANGE 1 /* change, do not add */
+#define YPOP_INSERT 2 /* add, do not change */
+#define YPOP_DELETE 3 /* delete this entry */
+#define YPOP_STORE 4  /* add, or change */
 #endif
 
 #ifdef YP
 static char SHELL[] = "/bin/sh";
-static char YPDBPATH[]="/var/yp";	/* This is defined but not used! */
+static char YPDBPATH[] = "/var/yp"; /* This is defined but not used! */
 static char PKMAP[] = "publickey.byname";
 static char UPDATEFILE[] = "updaters";
 static char PKFILE[] = "/etc/publickey";
-#endif	/* YP */
+#endif /* YP */
 
 #ifdef YP
 static int _openchild(char *, FILE **, FILE **);
@@ -91,12 +94,11 @@ mapupdate(char *requester, char *mapname, u_int op, u_int keylen, char *key,
 	pid_t pid;
 	u_int yperrno;
 
-
 #ifdef DEBUG
 	printf("%s %s\n", key, data);
 #endif
 	(void)sprintf(updater, "make -s -f %s/%s %s", YPDBPATH, /* !!! */
-					UPDATEFILE, mapname);
+	    UPDATEFILE, mapname);
 	pid = _openchild(updater, &childargs, &childrslt);
 	if (pid < 0) {
 		return (YPERR_YPERR);
@@ -164,9 +166,9 @@ _openchild(char *command, FILE **fto, FILE **ffrom)
 		(void)dup(pdfrom[1]);
 		getrlimit(RLIMIT_NOFILE, &rl);
 		for (i = rl.rlim_max - 1; i >= 3; i--) {
-			(void) close(i);
+			(void)close(i);
 		}
-		com = malloc((unsigned) strlen(command) + 6);
+		com = malloc((unsigned)strlen(command) + 6);
 		if (com == NULL) {
 			_exit(~0);
 		}
@@ -212,7 +214,7 @@ basename(char *path)
 	}
 }
 
-#else /* YP */
+#else  /* YP */
 
 static int match(char *, char *);
 
@@ -265,7 +267,7 @@ localupdate(char *name, char *filename, u_int op, u_int keylen __unused,
 		goto cleanup;
 	}
 	err = -1;
-	while (fgets(line, sizeof (line), rf)) {
+	while (fgets(line, sizeof(line), rf)) {
 		if (err < 0 && match(line, name)) {
 			switch (op) {
 			case YPOP_INSERT:
@@ -323,6 +325,6 @@ match(char *line, char *name)
 
 	len = strlen(name);
 	return (strncmp(line, name, len) == 0 &&
-		(line[len] == ' ' || line[len] == '\t'));
+	    (line[len] == ' ' || line[len] == '\t'));
 }
 #endif /* !YP */

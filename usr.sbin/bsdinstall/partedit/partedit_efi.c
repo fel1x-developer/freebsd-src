@@ -28,6 +28,7 @@
  */
 
 #include <sys/types.h>
+
 #include <string.h>
 
 #include "partedit.h"
@@ -38,7 +39,7 @@
  */
 
 /* EFI partition size in bytes */
-#define	EFI_BOOTPART_SIZE	(260 * 1024 * 1024)
+#define EFI_BOOTPART_SIZE (260 * 1024 * 1024)
 
 const char *
 default_scheme(void)
@@ -101,4 +102,3 @@ partcode_path(const char *part_type, const char *fs_type)
 	/* No boot partition data. */
 	return (NULL);
 }
-

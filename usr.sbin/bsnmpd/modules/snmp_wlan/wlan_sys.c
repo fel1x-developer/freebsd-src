@@ -28,10 +28,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/ioctl.h>
 #include <sys/param.h>
-#include <sys/module.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
+#include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
@@ -44,51 +44,51 @@
 #include <net80211/ieee80211_ioctl.h>
 #include <net80211/ieee80211_regdomain.h>
 
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
 #include <ifaddrs.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "wlan_tree.h"
+#define SNMPTREE_TYPES
 #include "wlan_snmp.h"
+#include "wlan_tree.h"
 
 static int sock = -1;
 
-static int	wlan_ioctl(char *, uint16_t, int *, void *, size_t *, int);
-static int	wlan_kmod_load(const char *);
-static uint32_t	wlan_drivercaps_to_snmp(uint32_t);
-static uint32_t	wlan_cryptocaps_to_snmp(uint32_t);
-static uint32_t	wlan_htcaps_to_snmp(uint32_t);
-static uint32_t	wlan_peerstate_to_snmp(uint32_t);
-static uint32_t	wlan_peercaps_to_snmp(uint32_t );
+static int wlan_ioctl(char *, uint16_t, int *, void *, size_t *, int);
+static int wlan_kmod_load(const char *);
+static uint32_t wlan_drivercaps_to_snmp(uint32_t);
+static uint32_t wlan_cryptocaps_to_snmp(uint32_t);
+static uint32_t wlan_htcaps_to_snmp(uint32_t);
+static uint32_t wlan_peerstate_to_snmp(uint32_t);
+static uint32_t wlan_peercaps_to_snmp(uint32_t);
 static enum WlanIfPhyMode wlan_channel_flags_to_snmp_phy(uint32_t);
 static enum WlanRegDomainCode wlan_regdomain_to_snmp(int);
-static uint32_t	wlan_snmp_to_scan_flags(int);
-static int	wlan_config_snmp2ioctl(int);
-static int	wlan_snmp_to_regdomain(enum WlanRegDomainCode);
-static int	wlan_config_get_country(struct wlan_iface *);
-static int	wlan_config_set_country(struct wlan_iface *, char *, int);
-static int	wlan_config_get_dchannel(struct wlan_iface *wif);
-static int	wlan_config_set_dchannel(struct wlan_iface *wif, uint32_t);
-static int	wlan_config_get_bssid(struct wlan_iface *);
-static int	wlan_config_set_bssid(struct wlan_iface *, uint8_t *);
-static void	wlan_config_set_snmp_intval(struct wlan_iface *, int, int);
-static int	wlan_config_snmp2value(int, int, int *);
-static int	wlan_config_check(struct wlan_iface *, int);
-static int	wlan_config_get_intval(struct wlan_iface *, int);
-static int	wlan_config_set_intval(struct wlan_iface *, int, int);
-static int	wlan_add_new_scan_result(struct wlan_iface *,
+static uint32_t wlan_snmp_to_scan_flags(int);
+static int wlan_config_snmp2ioctl(int);
+static int wlan_snmp_to_regdomain(enum WlanRegDomainCode);
+static int wlan_config_get_country(struct wlan_iface *);
+static int wlan_config_set_country(struct wlan_iface *, char *, int);
+static int wlan_config_get_dchannel(struct wlan_iface *wif);
+static int wlan_config_set_dchannel(struct wlan_iface *wif, uint32_t);
+static int wlan_config_get_bssid(struct wlan_iface *);
+static int wlan_config_set_bssid(struct wlan_iface *, uint8_t *);
+static void wlan_config_set_snmp_intval(struct wlan_iface *, int, int);
+static int wlan_config_snmp2value(int, int, int *);
+static int wlan_config_check(struct wlan_iface *, int);
+static int wlan_config_get_intval(struct wlan_iface *, int);
+static int wlan_config_set_intval(struct wlan_iface *, int, int);
+static int wlan_add_new_scan_result(struct wlan_iface *,
     const struct ieee80211req_scan_result *, uint8_t *);
-static int	wlan_add_mac_macinfo(struct wlan_iface *,
+static int wlan_add_mac_macinfo(struct wlan_iface *,
     const struct ieee80211req_maclist *);
-static struct wlan_peer *wlan_add_peerinfo(const struct ieee80211req_sta_info *);
+static struct wlan_peer *wlan_add_peerinfo(
+    const struct ieee80211req_sta_info *);
 
 int
 wlan_ioctl_init(void)
@@ -110,12 +110,7 @@ enum wlan_kmodules {
 	WLAN_KMODS_MAX
 };
 
-static const char *wmod_names[] = {
-	"wlan",
-	"wlan_wlan_acl",
-	"wlan_wep",
-	NULL
-};
+static const char *wmod_names[] = { "wlan", "wlan_wlan_acl", "wlan_wep", NULL };
 
 static int
 wlan_kmod_load(const char *modname)
@@ -126,7 +121,7 @@ wlan_kmod_load(const char *modname)
 	mstat.version = sizeof(struct module_stat);
 	for (fileid = kldnext(0); fileid > 0; fileid = kldnext(fileid)) {
 		for (modid = kldfirstmod(fileid); modid > 0;
-			modid = modfnext(modid)) {
+		     modid = modfnext(modid)) {
 			if (modstat(modid, &mstat) < 0)
 				continue;
 			if (strcmp(modname, mstat.name) == 0)
@@ -164,7 +159,7 @@ wlan_kmodules_load(void)
 /* XXX: FIXME */
 static int
 wlan_ioctl(char *wif_name, uint16_t req_type, int *val, void *arg,
-     size_t *argsize, int set)
+    size_t *argsize, int set)
 {
 	struct ieee80211req ireq;
 
@@ -177,9 +172,10 @@ wlan_ioctl(char *wif_name, uint16_t req_type, int *val, void *arg,
 	ireq.i_data = arg;
 
 	if (ioctl(sock, set ? SIOCS80211 : SIOCG80211, &ireq) < 0) {
-		syslog(LOG_ERR, "iface %s - %s param: ioctl(%d) "
-		    "failed: %s", wif_name, set ? "set" : "get",
-		    req_type, strerror(errno));
+		syslog(LOG_ERR,
+		    "iface %s - %s param: ioctl(%d) "
+		    "failed: %s",
+		    wif_name, set ? "set" : "get", req_type, strerror(errno));
 		return (-1);
 	}
 
@@ -198,7 +194,7 @@ wlan_check_media(char *ifname)
 	strlcpy(ifmr.ifm_name, ifname, sizeof(ifmr.ifm_name));
 
 	if (ioctl(sock, SIOCGIFMEDIA, &ifmr) < 0 || ifmr.ifm_count == 0)
-		return (0);     /* Interface doesn't support SIOCGIFMEDIA. */
+		return (0); /* Interface doesn't support SIOCGIFMEDIA. */
 
 	if ((ifmr.ifm_status & IFM_AVALID) == 0)
 		return (0);
@@ -241,15 +237,17 @@ wlan_get_opmode(struct wlan_iface *wif)
 int
 wlan_config_state(struct wlan_iface *wif, uint8_t set)
 {
-	int	flags;
+	int flags;
 	struct ifreq ifr;
 
 	memset(&ifr, 0, sizeof(ifr));
 	strcpy(ifr.ifr_name, wif->wname);
 
-	if (ioctl(sock, SIOCGIFFLAGS, (caddr_t) &ifr) < 0) {
-		syslog(LOG_ERR, "set %s status: ioctl(SIOCGIFFLAGS) "
-		    "failed: %s", wif->wname, strerror(errno));
+	if (ioctl(sock, SIOCGIFFLAGS, (caddr_t)&ifr) < 0) {
+		syslog(LOG_ERR,
+		    "set %s status: ioctl(SIOCGIFFLAGS) "
+		    "failed: %s",
+		    wif->wname, strerror(errno));
 		return (-1);
 	}
 
@@ -270,9 +268,9 @@ wlan_config_state(struct wlan_iface *wif, uint8_t set)
 
 	ifr.ifr_flags = flags & 0xffff;
 	ifr.ifr_flagshigh = flags >> 16;
-	if (ioctl(sock, SIOCSIFFLAGS, (caddr_t) &ifr) < 0) {
+	if (ioctl(sock, SIOCSIFFLAGS, (caddr_t)&ifr) < 0) {
 		syslog(LOG_ERR, "set %s %s: ioctl(SIOCSIFFLAGS) failed: %s",
-		    wif->wname, wif->state == wlanIfaceState_up?"up":"down",
+		    wif->wname, wif->state == wlanIfaceState_up ? "up" : "down",
 		    strerror(errno));
 		return (-1);
 	}
@@ -320,32 +318,32 @@ wlan_get_parent(struct wlan_iface *wif __unused)
 }
 
 /* XXX */
-#define	IEEE80211_C_STA		0x00000001	/* CAPABILITY: STA available */
-#define	IEEE80211_C_8023ENCAP	0x00000002	/* CAPABILITY: 802.3 encap */
-#define	IEEE80211_C_FF		0x00000040	/* CAPABILITY: ATH FF avail */
-#define	IEEE80211_C_TURBOP	0x00000080	/* CAPABILITY: ATH Turbo avail*/
-#define	IEEE80211_C_IBSS	0x00000100	/* CAPABILITY: IBSS available */
-#define	IEEE80211_C_PMGT	0x00000200	/* CAPABILITY: Power mgmt */
-#define	IEEE80211_C_HOSTAP	0x00000400	/* CAPABILITY: HOSTAP avail */
-#define	IEEE80211_C_AHDEMO	0x00000800	/* CAPABILITY: Old Adhoc Demo */
-#define	IEEE80211_C_SWRETRY	0x00001000	/* CAPABILITY: sw tx retry */
-#define	IEEE80211_C_TXPMGT	0x00002000	/* CAPABILITY: tx power mgmt */
-#define	IEEE80211_C_SHSLOT	0x00004000	/* CAPABILITY: short slottime */
-#define	IEEE80211_C_SHPREAMBLE	0x00008000	/* CAPABILITY: short preamble */
-#define	IEEE80211_C_MONITOR	0x00010000	/* CAPABILITY: monitor mode */
-#define	IEEE80211_C_DFS		0x00020000	/* CAPABILITY: DFS/radar avail*/
-#define	IEEE80211_C_MBSS	0x00040000	/* CAPABILITY: MBSS available */
+#define IEEE80211_C_STA 0x00000001	  /* CAPABILITY: STA available */
+#define IEEE80211_C_8023ENCAP 0x00000002  /* CAPABILITY: 802.3 encap */
+#define IEEE80211_C_FF 0x00000040	  /* CAPABILITY: ATH FF avail */
+#define IEEE80211_C_TURBOP 0x00000080	  /* CAPABILITY: ATH Turbo avail*/
+#define IEEE80211_C_IBSS 0x00000100	  /* CAPABILITY: IBSS available */
+#define IEEE80211_C_PMGT 0x00000200	  /* CAPABILITY: Power mgmt */
+#define IEEE80211_C_HOSTAP 0x00000400	  /* CAPABILITY: HOSTAP avail */
+#define IEEE80211_C_AHDEMO 0x00000800	  /* CAPABILITY: Old Adhoc Demo */
+#define IEEE80211_C_SWRETRY 0x00001000	  /* CAPABILITY: sw tx retry */
+#define IEEE80211_C_TXPMGT 0x00002000	  /* CAPABILITY: tx power mgmt */
+#define IEEE80211_C_SHSLOT 0x00004000	  /* CAPABILITY: short slottime */
+#define IEEE80211_C_SHPREAMBLE 0x00008000 /* CAPABILITY: short preamble */
+#define IEEE80211_C_MONITOR 0x00010000	  /* CAPABILITY: monitor mode */
+#define IEEE80211_C_DFS 0x00020000	  /* CAPABILITY: DFS/radar avail*/
+#define IEEE80211_C_MBSS 0x00040000	  /* CAPABILITY: MBSS available */
 /* 0x7c0000 available */
-#define	IEEE80211_C_WPA1	0x00800000	/* CAPABILITY: WPA1 avail */
-#define	IEEE80211_C_WPA2	0x01000000	/* CAPABILITY: WPA2 avail */
-#define	IEEE80211_C_WPA		0x01800000	/* CAPABILITY: WPA1+WPA2 avail*/
-#define	IEEE80211_C_BURST	0x02000000	/* CAPABILITY: frame bursting */
-#define	IEEE80211_C_WME		0x04000000	/* CAPABILITY: WME avail */
-#define	IEEE80211_C_WDS		0x08000000	/* CAPABILITY: 4-addr support */
+#define IEEE80211_C_WPA1 0x00800000  /* CAPABILITY: WPA1 avail */
+#define IEEE80211_C_WPA2 0x01000000  /* CAPABILITY: WPA2 avail */
+#define IEEE80211_C_WPA 0x01800000   /* CAPABILITY: WPA1+WPA2 avail*/
+#define IEEE80211_C_BURST 0x02000000 /* CAPABILITY: frame bursting */
+#define IEEE80211_C_WME 0x04000000   /* CAPABILITY: WME avail */
+#define IEEE80211_C_WDS 0x08000000   /* CAPABILITY: 4-addr support */
 /* 0x10000000 reserved */
-#define	IEEE80211_C_BGSCAN	0x20000000	/* CAPABILITY: bg scanning */
-#define	IEEE80211_C_TXFRAG	0x40000000	/* CAPABILITY: tx fragments */
-#define	IEEE80211_C_TDMA	0x80000000	/* CAPABILITY: TDMA avail */
+#define IEEE80211_C_BGSCAN 0x20000000 /* CAPABILITY: bg scanning */
+#define IEEE80211_C_TXFRAG 0x40000000 /* CAPABILITY: tx fragments */
+#define IEEE80211_C_TDMA 0x80000000   /* CAPABILITY: TDMA avail */
 
 static uint32_t
 wlan_drivercaps_to_snmp(uint32_t dcaps)
@@ -426,12 +424,12 @@ wlan_cryptocaps_to_snmp(uint32_t ccaps)
 	return (scaps);
 }
 
-#define	IEEE80211_HTC_AMPDU	0x00010000	/* CAPABILITY: A-MPDU tx */
-#define	IEEE80211_HTC_AMSDU	0x00020000	/* CAPABILITY: A-MSDU tx */
+#define IEEE80211_HTC_AMPDU 0x00010000 /* CAPABILITY: A-MPDU tx */
+#define IEEE80211_HTC_AMSDU 0x00020000 /* CAPABILITY: A-MSDU tx */
 /* NB: HT40 is implied by IEEE80211_HTCAP_CHWIDTH40 */
-#define	IEEE80211_HTC_HT	0x00040000	/* CAPABILITY: HT operation */
-#define	IEEE80211_HTC_SMPS	0x00080000	/* CAPABILITY: MIMO power save*/
-#define	IEEE80211_HTC_RIFS	0x00100000	/* CAPABILITY: RIFS support */
+#define IEEE80211_HTC_HT 0x00040000   /* CAPABILITY: HT operation */
+#define IEEE80211_HTC_SMPS 0x00080000 /* CAPABILITY: MIMO power save*/
+#define IEEE80211_HTC_RIFS 0x00100000 /* CAPABILITY: RIFS support */
 
 static uint32_t
 wlan_htcaps_to_snmp(uint32_t hcaps)
@@ -477,11 +475,12 @@ wlan_htcaps_to_snmp(uint32_t hcaps)
 }
 
 /* XXX: Not here? */
-#define	WLAN_SET_TDMA_OPMODE(w) do {						\
-	if ((w)->mode == WlanIfaceOperatingModeType_adhocDemo &&		\
-	    ((w)->drivercaps & WlanDriverCaps_tdma) != 0)			\
-		(w)->mode = WlanIfaceOperatingModeType_tdma;			\
-} while (0)
+#define WLAN_SET_TDMA_OPMODE(w)                                          \
+	do {                                                             \
+		if ((w)->mode == WlanIfaceOperatingModeType_adhocDemo && \
+		    ((w)->drivercaps & WlanDriverCaps_tdma) != 0)        \
+			(w)->mode = WlanIfaceOperatingModeType_tdma;     \
+	} while (0)
 int
 wlan_get_driver_caps(struct wlan_iface *wif)
 {
@@ -492,8 +491,8 @@ wlan_get_driver_caps(struct wlan_iface *wif)
 	memset(&dc, 0, sizeof(struct ieee80211_devcaps_req));
 	argsize = sizeof(struct ieee80211_devcaps_req);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_DEVCAPS, &val, &dc,
-	    &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_DEVCAPS, &val, &dc, &argsize,
+		0) < 0)
 		return (-1);
 
 	wif->drivercaps = wlan_drivercaps_to_snmp(dc.dc_drivercaps);
@@ -580,7 +579,7 @@ wlan_channel_flags_to_snmp(uint32_t cflags)
 }
 
 /* XXX: */
-#define WLAN_SNMP_MAX_CHANS	256
+#define WLAN_SNMP_MAX_CHANS 256
 int
 wlan_get_channel_list(struct wlan_iface *wif)
 {
@@ -598,18 +597,18 @@ wlan_get_channel_list(struct wlan_iface *wif)
 		return (-1);
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CHANINFO, &val, chaninfo,
-	    &argsize, 0) < 0)
+		&argsize, 0) < 0)
 		return (-1);
 
 	argsize = sizeof(active);
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CHANLIST, &val, &active,
-	    &argsize, 0) < 0)
+		&argsize, 0) < 0)
 		goto error;
 
 	for (i = 0, nchans = 0; i < chaninfo->ic_nchans; i++) {
 		c = &chaninfo->ic_chans[i];
 		if (!isset(active.ic_channels, c->ic_ieee))
-				continue;
+			continue;
 		nchans++;
 	}
 	wif->chanlist = (struct ieee80211_channel *)reallocf(wif->chanlist,
@@ -620,8 +619,8 @@ wlan_get_channel_list(struct wlan_iface *wif)
 	for (i = 0, nchans = 0; i < chaninfo->ic_nchans; i++) {
 		c = &chaninfo->ic_chans[i];
 		if (!isset(active.ic_channels, c->ic_ieee))
-				continue;
-		memcpy(wif->chanlist + nchans, c, sizeof (*c));
+			continue;
+		memcpy(wif->chanlist + nchans, c, sizeof(*c));
 		nchans++;
 	}
 
@@ -669,8 +668,8 @@ wlan_get_roam_params(struct wlan_iface *wif)
 	size_t argsize;
 
 	argsize = sizeof(struct ieee80211_roamparams_req);
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_ROAM, &val,
-	    &wif->roamparams, &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_ROAM, &val, &wif->roamparams,
+		&argsize, 0) < 0)
 		return (-1);
 
 	return (0);
@@ -687,8 +686,8 @@ wlan_get_tx_params(struct wlan_iface *wif)
 	 * and IEEE80211_MODE_11NG modes.
 	 */
 	argsize = sizeof(struct ieee80211_txparams_req);
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_TXPARAMS, &val,
-	    &wif->txparams, &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_TXPARAMS, &val, &wif->txparams,
+		&argsize, 0) < 0)
 		return (-1);
 
 	return (0);
@@ -705,8 +704,8 @@ wlan_set_tx_params(struct wlan_iface *wif, int32_t pmode __unused)
 	 * and IEEE80211_MODE_11NG modes.
 	 */
 	argsize = sizeof(struct ieee80211_txparams_req);
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_TXPARAMS, &val,
-	    &wif->txparams, &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_TXPARAMS, &val, &wif->txparams,
+		&argsize, 1) < 0)
 		return (-1);
 
 	return (0);
@@ -774,11 +773,13 @@ wlan_clone_create(struct wlan_iface *wif)
 	}
 
 	strlcpy(ifr.ifr_name, wif->wname, IFNAMSIZ);
-	ifr.ifr_data = (caddr_t) &wcp;
+	ifr.ifr_data = (caddr_t)&wcp;
 
-	if (ioctl(sock, SIOCIFCREATE2, (caddr_t) &ifr) < 0) {
-		syslog(LOG_ERR, "wlan clone create: ioctl(SIOCIFCREATE2) "
-		    "failed: %s", strerror(errno));
+	if (ioctl(sock, SIOCIFCREATE2, (caddr_t)&ifr) < 0) {
+		syslog(LOG_ERR,
+		    "wlan clone create: ioctl(SIOCIFCREATE2) "
+		    "failed: %s",
+		    strerror(errno));
 		return (SNMP_ERR_GENERR);
 	}
 
@@ -797,8 +798,10 @@ wlan_clone_destroy(struct wlan_iface *wif)
 	strcpy(ifr.ifr_name, wif->wname);
 
 	if (ioctl(sock, SIOCIFDESTROY, &ifr) < 0) {
-		syslog(LOG_ERR, "wlan clone destroy: ioctl(SIOCIFDESTROY) "
-		    "failed: %s", strerror(errno));
+		syslog(LOG_ERR,
+		    "wlan clone destroy: ioctl(SIOCIFDESTROY) "
+		    "failed: %s",
+		    strerror(errno));
 		return (SNMP_ERR_GENERR);
 	}
 
@@ -1099,7 +1102,7 @@ wlan_config_get_country(struct wlan_iface *wif)
 	argsize = sizeof(regdomain);
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_REGDOMAIN, &val, &regdomain,
-	    &argsize, 0) < 0)
+		&argsize, 0) < 0)
 		return (-1);
 
 	wif->reg_domain = wlan_regdomain_to_snmp(regdomain.regdomain);
@@ -1127,7 +1130,7 @@ wlan_config_set_country(struct wlan_iface *wif, char *ccode, int rdomain)
 	}
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_TXPOWMAX, &txpowermax, 0,
-	    &argsize, 0) < 0)
+		&argsize, 0) < 0)
 		return (-1);
 
 	regdomain = malloc(IEEE80211_REGDOMAIN_SIZE(wif->nchannels));
@@ -1152,7 +1155,7 @@ wlan_config_set_country(struct wlan_iface *wif, char *ccode, int rdomain)
 	wif->state = wlanIfaceState_down;
 	if (wlan_config_state(wif, 1) < 0 ||
 	    wlan_ioctl(wif->wname, IEEE80211_IOC_REGDOMAIN, &val, regdomain,
-	    &argsize, 1) < 0) {
+		&argsize, 1) < 0) {
 		free(regdomain);
 		return (-1);
 	}
@@ -1178,9 +1181,10 @@ wlan_config_get_dssid(struct wlan_iface *wif)
 	memset(ssid, 0, IEEE80211_NWID_LEN + 1);
 
 	if (wlan_ioctl(wif->wname,
-	    (wif->mode == WlanIfaceOperatingModeType_meshPoint) ?
-	    IEEE80211_IOC_MESH_ID : IEEE80211_IOC_SSID, &val, ssid,
-	    &argsize, 0) < 0)
+		(wif->mode == WlanIfaceOperatingModeType_meshPoint) ?
+		    IEEE80211_IOC_MESH_ID :
+		    IEEE80211_IOC_SSID,
+		&val, ssid, &argsize, 0) < 0)
 		return (-1);
 
 	if (argsize > IEEE80211_NWID_LEN)
@@ -1198,9 +1202,10 @@ wlan_config_set_dssid(struct wlan_iface *wif, char *ssid, int slen)
 	size_t argsize = slen;
 
 	if (wlan_ioctl(wif->wname,
-	    (wif->mode == WlanIfaceOperatingModeType_meshPoint) ?
-	    IEEE80211_IOC_MESH_ID : IEEE80211_IOC_SSID, &val, ssid,
-	    &argsize, 1) < 0)
+		(wif->mode == WlanIfaceOperatingModeType_meshPoint) ?
+		    IEEE80211_IOC_MESH_ID :
+		    IEEE80211_IOC_SSID,
+		&val, ssid, &argsize, 1) < 0)
 		return (-1);
 
 	if (argsize > IEEE80211_NWID_LEN)
@@ -1223,8 +1228,8 @@ wlan_config_get_dchannel(struct wlan_iface *wif)
 		return (-1);
 
 	memset(&chan, 0, sizeof(chan));
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CURCHAN, &val, &chan,
-	    &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CURCHAN, &val, &chan, &argsize,
+		0) < 0)
 		return (-1);
 
 	for (i = 0; i < wif->nchannels; i++)
@@ -1251,8 +1256,8 @@ wlan_config_set_dchannel(struct wlan_iface *wif, uint32_t dchannel)
 		return (-1);
 
 	memcpy(&chan, wif->chanlist + dchannel - 1, sizeof(chan));
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CURCHAN, &val, &chan,
-	    &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_CURCHAN, &val, &chan, &argsize,
+		1) < 0)
 		return (-1);
 
 	wif->desired_channel = dchannel;
@@ -1269,8 +1274,9 @@ wlan_config_get_bssid(struct wlan_iface *wif)
 
 	memset(bssid, 0, IEEE80211_ADDR_LEN);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_BSSID, &val, bssid,
-	    &argsize, 0) < 0 || argsize != IEEE80211_ADDR_LEN)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_BSSID, &val, bssid, &argsize,
+		0) < 0 ||
+	    argsize != IEEE80211_ADDR_LEN)
 		return (-1);
 
 	memcpy(wif->desired_bssid, bssid, IEEE80211_ADDR_LEN);
@@ -1284,8 +1290,9 @@ wlan_config_set_bssid(struct wlan_iface *wif, uint8_t *bssid)
 	int val = 0;
 	size_t argsize = IEEE80211_ADDR_LEN;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_BSSID, &val, bssid,
-	    &argsize, 1) < 0 || argsize != IEEE80211_ADDR_LEN)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_BSSID, &val, bssid, &argsize,
+		1) < 0 ||
+	    argsize != IEEE80211_ADDR_LEN)
 		return (-1);
 
 	memcpy(wif->desired_bssid, bssid, IEEE80211_ADDR_LEN);
@@ -1655,7 +1662,8 @@ wlan_config_snmp2value(int which, int sval, int *value)
 		*value = sval;
 		break;
 	case IEEE80211_IOC_BMISSTHRESHOLD:
-		if (sval < IEEE80211_HWBMISS_MIN || sval > IEEE80211_HWBMISS_MAX)
+		if (sval < IEEE80211_HWBMISS_MIN ||
+		    sval > IEEE80211_HWBMISS_MAX)
 			return (SNMP_ERR_INCONS_VALUE);
 		*value = sval;
 		break;
@@ -1677,7 +1685,8 @@ wlan_config_snmp2value(int which, int sval, int *value)
 		}
 		break;
 	case IEEE80211_IOC_BEACON_INTERVAL:
-		if (sval < IEEE80211_BINTVAL_MIN || sval > IEEE80211_BINTVAL_MAX)
+		if (sval < IEEE80211_BINTVAL_MIN ||
+		    sval > IEEE80211_BINTVAL_MAX)
 			return (SNMP_ERR_INCONS_VALUE);
 		*value = sval;
 		break;
@@ -1835,7 +1844,7 @@ wlan_config_snmp2value(int which, int sval, int *value)
 		*value = sval;
 		break;
 	case IEEE80211_IOC_TDMA_SLOTLEN:
-		if (sval < 2*100 || sval > 0xfffff) /* XXX */
+		if (sval < 2 * 100 || sval > 0xfffff) /* XXX */
 			return (SNMP_ERR_INCONS_VALUE);
 		*value = sval;
 		break;
@@ -1871,8 +1880,8 @@ wlan_config_check(struct wlan_iface *wif, int op)
 		}
 		break;
 	case IEEE80211_IOC_FF:
-		if ((wif->drivercaps & (0x1 << WlanDriverCaps_athFastFrames))
-		    == 0) {
+		if ((wif->drivercaps & (0x1 << WlanDriverCaps_athFastFrames)) ==
+		    0) {
 			wif->fast_frames = TruthValue_false;
 			return (-1);
 		}
@@ -1948,8 +1957,9 @@ wlan_config_check(struct wlan_iface *wif, int op)
 		}
 		break;
 	case IEEE80211_IOC_SHORTGI:
-		if ((wif->htcaps & (0x1 << WlanHTCaps_shortGi20 |
-		    0x1 << WlanHTCaps_shortGi40)) == 0) {
+		if ((wif->htcaps &
+			(0x1 << WlanHTCaps_shortGi20 |
+			    0x1 << WlanHTCaps_shortGi40)) == 0) {
 			wif->short_gi = TruthValue_false;
 			return (-1);
 		}
@@ -2029,46 +2039,44 @@ wlan_config_get_ioctl(struct wlan_iface *wif, int which)
 	int op;
 
 	switch (which) {
-		case LEAF_wlanIfaceCountryCode:
-			/* FALLTHROUGH */
-		case LEAF_wlanIfaceRegDomain:
-			return (wlan_config_get_country(wif));
-		case LEAF_wlanIfaceDesiredSsid:
-			return (wlan_config_get_dssid(wif));
-		case LEAF_wlanIfaceDesiredChannel:
-			return (wlan_config_get_dchannel(wif));
-		case LEAF_wlanIfaceDesiredBssid:
-			return (wlan_config_get_bssid(wif));
-		default:
-			op = wlan_config_snmp2ioctl(which);
-			return (wlan_config_get_intval(wif, op));
+	case LEAF_wlanIfaceCountryCode:
+		/* FALLTHROUGH */
+	case LEAF_wlanIfaceRegDomain:
+		return (wlan_config_get_country(wif));
+	case LEAF_wlanIfaceDesiredSsid:
+		return (wlan_config_get_dssid(wif));
+	case LEAF_wlanIfaceDesiredChannel:
+		return (wlan_config_get_dchannel(wif));
+	case LEAF_wlanIfaceDesiredBssid:
+		return (wlan_config_get_bssid(wif));
+	default:
+		op = wlan_config_snmp2ioctl(which);
+		return (wlan_config_get_intval(wif, op));
 	}
 
 	return (-1);
 }
 
 int
-wlan_config_set_ioctl(struct wlan_iface *wif, int which, int val,
-    char *strval, int len)
+wlan_config_set_ioctl(struct wlan_iface *wif, int which, int val, char *strval,
+    int len)
 {
 	int op;
 
 	switch (which) {
-		case LEAF_wlanIfaceCountryCode:
-			return (wlan_config_set_country(wif, strval,
-			    wif->reg_domain));
-		case LEAF_wlanIfaceRegDomain:
-			return (wlan_config_set_country(wif, wif->country_code,
-			    val));
-		case LEAF_wlanIfaceDesiredSsid:
-			return (wlan_config_set_dssid(wif, strval, len));
-		case LEAF_wlanIfaceDesiredChannel:
-			return (wlan_config_set_dchannel(wif, val));
-		case LEAF_wlanIfaceDesiredBssid:
-			return (wlan_config_set_bssid(wif, strval));
-		default:
-			op = wlan_config_snmp2ioctl(which);
-			return (wlan_config_set_intval(wif, op, val));
+	case LEAF_wlanIfaceCountryCode:
+		return (wlan_config_set_country(wif, strval, wif->reg_domain));
+	case LEAF_wlanIfaceRegDomain:
+		return (wlan_config_set_country(wif, wif->country_code, val));
+	case LEAF_wlanIfaceDesiredSsid:
+		return (wlan_config_set_dssid(wif, strval, len));
+	case LEAF_wlanIfaceDesiredChannel:
+		return (wlan_config_set_dchannel(wif, val));
+	case LEAF_wlanIfaceDesiredBssid:
+		return (wlan_config_set_bssid(wif, strval));
+	default:
+		op = wlan_config_snmp2ioctl(which);
+		return (wlan_config_set_intval(wif, op, val));
 	}
 
 	return (-1);
@@ -2108,7 +2116,6 @@ wlan_set_scan_config(struct wlan_iface *wif)
 	size_t argsize;
 	struct ieee80211_scan_req sr;
 
-
 	memset(&sr, 0, sizeof(sr));
 	argsize = sizeof(struct ieee80211_scan_req);
 	sr.sr_flags = wlan_snmp_to_scan_flags(wif->scan_flags);
@@ -2118,8 +2125,8 @@ wlan_set_scan_config(struct wlan_iface *wif)
 	sr.sr_maxdwell = wif->scan_maxdwell;
 	sr.sr_nssid = 0;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_SCAN_REQ,
-	    &val, &sr, &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_SCAN_REQ, &val, &sr, &argsize,
+		1) < 0)
 		return (-1);
 
 	wif->scan_status = wlanScanConfigStatus_running;
@@ -2193,7 +2200,7 @@ wlan_get_scan_results(struct wlan_iface *wif)
 
 	argsize = sizeof(buf);
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_SCAN_RESULTS, &val, &buf,
-	    &argsize, 0) < 0)
+		&argsize, 0) < 0)
 		return (-1);
 
 	if (argsize < sizeof(struct ieee80211req_scan_result))
@@ -2231,7 +2238,7 @@ wlan_get_stats(struct wlan_iface *wif)
 	memset(&ifr, 0, sizeof(struct ifreq));
 	strlcpy(ifr.ifr_name, wif->wname, IFNAMSIZ);
 
-	ifr.ifr_data = (caddr_t) &wif->stats;
+	ifr.ifr_data = (caddr_t)&wif->stats;
 
 	if (ioctl(sock, SIOCG80211STATS, &ifr) < 0) {
 		syslog(LOG_ERR, "iface %s - ioctl(SIOCG80211STATS) failed: %s",
@@ -2248,8 +2255,9 @@ wlan_get_wepmode(struct wlan_iface *wif)
 	int val = 0;
 	size_t argsize = 0;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEP, &val, NULL,
-	    &argsize, 0) < 0 || val == IEEE80211_WEP_NOSUP) {
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEP, &val, NULL, &argsize, 0) <
+		0 ||
+	    val == IEEE80211_WEP_NOSUP) {
 		wif->wepsupported = 0; /* XXX */
 		wif->wepmode = wlanWepMode_off;
 		wif->weptxkey = 0;
@@ -2298,8 +2306,8 @@ wlan_set_wepmode(struct wlan_iface *wif)
 		return (-1);
 	}
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEP, &val, NULL,
-	    &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEP, &val, NULL, &argsize, 1) <
+	    0)
 		return (-1);
 
 	return (0);
@@ -2314,8 +2322,8 @@ wlan_get_weptxkey(struct wlan_iface *wif)
 	if (!wif->wepsupported)
 		return (0);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEPTXKEY, &val, NULL,
-	    &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEPTXKEY, &val, NULL, &argsize,
+		0) < 0)
 		return (-1);
 
 	if (val == IEEE80211_KEYIX_NONE)
@@ -2342,8 +2350,8 @@ wlan_set_weptxkey(struct wlan_iface *wif)
 		val = IEEE80211_KEYIX_NONE;
 	else
 		val = wif->weptxkey - 1;
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEPTXKEY, &val, NULL,
-	    &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_WEPTXKEY, &val, NULL, &argsize,
+		1) < 0)
 		return (-1);
 
 	return (0);
@@ -2377,9 +2385,10 @@ wlan_get_mac_policy(struct wlan_iface *wif)
 
 	if (ioctl(sock, SIOCG80211, &ireq) < 0) {
 		if (errno != EINVAL) {
-			syslog(LOG_ERR, "iface %s - get param: ioctl(%d) "
-			    "failed: %s", wif->wname, ireq.i_type,
-			    strerror(errno));
+			syslog(LOG_ERR,
+			    "iface %s - get param: ioctl(%d) "
+			    "failed: %s",
+			    wif->wname, ireq.i_type, strerror(errno));
 			wif->macsupported = 0;
 			return (-1);
 		} else {
@@ -2387,7 +2396,6 @@ wlan_get_mac_policy(struct wlan_iface *wif)
 			wif->mac_policy = wlanMACAccessControlPolicy_open;
 			return (0);
 		}
-
 	}
 
 	wif->macsupported = 1;
@@ -2411,8 +2419,8 @@ wlan_get_mac_policy(struct wlan_iface *wif)
 
 	argsize = 0;
 	val = IEEE80211_MACCMD_LIST;
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL,
-	    &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL, &argsize,
+		0) < 0)
 		return (-1);
 
 	wif->mac_nacls = argsize / sizeof(struct ieee80211req_maclist *);
@@ -2445,8 +2453,8 @@ wlan_set_mac_policy(struct wlan_iface *wif)
 		return (-1);
 	}
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL,
-	    &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL, &argsize,
+		1) < 0)
 		return (-1);
 
 	return (0);
@@ -2458,8 +2466,8 @@ wlan_flush_mac_mac(struct wlan_iface *wif)
 	int val = IEEE80211_MACCMD_FLUSH;
 	size_t argsize = 0;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL,
-	    &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, NULL, &argsize,
+		1) < 0)
 		return (-1);
 
 	return (0);
@@ -2502,12 +2510,12 @@ wlan_get_mac_acl_macs(struct wlan_iface *wif)
 	ireq.i_type = IEEE80211_IOC_MACCMD;
 	ireq.i_val = IEEE80211_MACCMD_LIST;
 
-
 	if (ioctl(sock, SIOCG80211, &ireq) < 0) {
 		if (errno != EINVAL) {
-			syslog(LOG_ERR, "iface %s - get param: ioctl(%d) "
-			    "failed: %s", wif->wname, ireq.i_type,
-			    strerror(errno));
+			syslog(LOG_ERR,
+			    "iface %s - get param: ioctl(%d) "
+			    "failed: %s",
+			    wif->wname, ireq.i_type, strerror(errno));
 			wif->macsupported = 0;
 			return (-1);
 		}
@@ -2521,12 +2529,12 @@ wlan_get_mac_acl_macs(struct wlan_iface *wif)
 	if ((data = (uint8_t *)malloc(argsize)) == NULL)
 		return (-1);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, data,
-	    &argsize, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MACCMD, &val, data, &argsize,
+		0) < 0)
 		return (-1);
 
 	nacls = argsize / sizeof(*acllist);
-	acllist = (struct ieee80211req_maclist *) data;
+	acllist = (struct ieee80211req_maclist *)data;
 	for (i = 0; i < nacls; i++)
 		(void)wlan_add_mac_macinfo(wif, acllist + i);
 
@@ -2541,8 +2549,8 @@ wlan_add_mac_acl_mac(struct wlan_iface *wif, struct wlan_mac_mac *mmac)
 	size_t argsize = IEEE80211_ADDR_LEN;
 	struct ieee80211req_mlme mlme;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_ADDMAC, &val,
-	    mmac->mac, &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_ADDMAC, &val, mmac->mac,
+		&argsize, 1) < 0)
 		return (-1);
 
 	mmac->mac_status = RowStatus_active;
@@ -2557,8 +2565,9 @@ wlan_add_mac_acl_mac(struct wlan_iface *wif, struct wlan_mac_mac *mmac)
 	memcpy(mlme.im_macaddr, mmac->mac, IEEE80211_ADDR_LEN);
 	argsize = sizeof(struct ieee80211req_mlme);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MLME, &val, &mlme,
-	    &argsize, 1) < 0 && errno != ENOENT)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MLME, &val, &mlme, &argsize,
+		1) < 0 &&
+	    errno != ENOENT)
 		return (-1);
 
 	return (0);
@@ -2571,8 +2580,8 @@ wlan_del_mac_acl_mac(struct wlan_iface *wif, struct wlan_mac_mac *mmac)
 	size_t argsize = IEEE80211_ADDR_LEN;
 	struct ieee80211req_mlme mlme;
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_DELMAC, &val,
-	    mmac->mac, &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_DELMAC, &val, mmac->mac,
+		&argsize, 1) < 0)
 		return (-1);
 
 	mmac->mac_status = RowStatus_active;
@@ -2587,8 +2596,9 @@ wlan_del_mac_acl_mac(struct wlan_iface *wif, struct wlan_mac_mac *mmac)
 	memcpy(mlme.im_macaddr, mmac->mac, IEEE80211_ADDR_LEN);
 	argsize = sizeof(struct ieee80211req_mlme);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MLME, &val, &mlme,
-	    &argsize, 1) < 0 && errno != ENOENT)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MLME, &val, &mlme, &argsize,
+		1) < 0 &&
+	    errno != ENOENT)
 		return (-1);
 
 	return (0);
@@ -2605,8 +2615,8 @@ wlan_peer_set_vlan(struct wlan_iface *wif, struct wlan_peer *wip, int vlan)
 	vreq.sv_vlan = vlan;
 	argsize = sizeof(struct ieee80211req_sta_vlan);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_STA_VLAN,
-	    &val, &vreq, &argsize, 1) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_STA_VLAN, &val, &vreq,
+		&argsize, 1) < 0)
 		return (-1);
 
 	wip->vlan = vlan;
@@ -2616,25 +2626,25 @@ wlan_peer_set_vlan(struct wlan_iface *wif, struct wlan_peer *wip, int vlan)
 
 /* XXX */
 #ifndef IEEE80211_NODE_AUTH
-#define	IEEE80211_NODE_AUTH	0x000001	/* authorized for data */
-#define	IEEE80211_NODE_QOS	0x000002	/* QoS enabled */
-#define	IEEE80211_NODE_ERP	0x000004	/* ERP enabled */
-#define	IEEE80211_NODE_PWR_MGT	0x000010	/* power save mode enabled */
-#define	IEEE80211_NODE_AREF	0x000020	/* authentication ref held */
-#define	IEEE80211_NODE_HT	0x000040	/* HT enabled */
-#define	IEEE80211_NODE_HTCOMPAT	0x000080	/* HT setup w/ vendor OUI's */
-#define	IEEE80211_NODE_WPS	0x000100	/* WPS association */
-#define	IEEE80211_NODE_TSN	0x000200	/* TSN association */
-#define	IEEE80211_NODE_AMPDU_RX	0x000400	/* AMPDU rx enabled */
-#define	IEEE80211_NODE_AMPDU_TX	0x000800	/* AMPDU tx enabled */
-#define	IEEE80211_NODE_MIMO_PS	0x001000	/* MIMO power save enabled */
-#define	IEEE80211_NODE_MIMO_RTS	0x002000	/* send RTS in MIMO PS */
-#define	IEEE80211_NODE_RIFS	0x004000	/* RIFS enabled */
-#define	IEEE80211_NODE_SGI20	0x008000	/* Short GI in HT20 enabled */
-#define	IEEE80211_NODE_SGI40	0x010000	/* Short GI in HT40 enabled */
-#define	IEEE80211_NODE_ASSOCID	0x020000	/* xmit requires associd */
-#define	IEEE80211_NODE_AMSDU_RX	0x040000	/* AMSDU rx enabled */
-#define	IEEE80211_NODE_AMSDU_TX	0x080000	/* AMSDU tx enabled */
+#define IEEE80211_NODE_AUTH 0x000001	 /* authorized for data */
+#define IEEE80211_NODE_QOS 0x000002	 /* QoS enabled */
+#define IEEE80211_NODE_ERP 0x000004	 /* ERP enabled */
+#define IEEE80211_NODE_PWR_MGT 0x000010	 /* power save mode enabled */
+#define IEEE80211_NODE_AREF 0x000020	 /* authentication ref held */
+#define IEEE80211_NODE_HT 0x000040	 /* HT enabled */
+#define IEEE80211_NODE_HTCOMPAT 0x000080 /* HT setup w/ vendor OUI's */
+#define IEEE80211_NODE_WPS 0x000100	 /* WPS association */
+#define IEEE80211_NODE_TSN 0x000200	 /* TSN association */
+#define IEEE80211_NODE_AMPDU_RX 0x000400 /* AMPDU rx enabled */
+#define IEEE80211_NODE_AMPDU_TX 0x000800 /* AMPDU tx enabled */
+#define IEEE80211_NODE_MIMO_PS 0x001000	 /* MIMO power save enabled */
+#define IEEE80211_NODE_MIMO_RTS 0x002000 /* send RTS in MIMO PS */
+#define IEEE80211_NODE_RIFS 0x004000	 /* RIFS enabled */
+#define IEEE80211_NODE_SGI20 0x008000	 /* Short GI in HT20 enabled */
+#define IEEE80211_NODE_SGI40 0x010000	 /* Short GI in HT40 enabled */
+#define IEEE80211_NODE_ASSOCID 0x020000	 /* xmit requires associd */
+#define IEEE80211_NODE_AMSDU_RX 0x040000 /* AMSDU rx enabled */
+#define IEEE80211_NODE_AMSDU_TX 0x080000 /* AMSDU tx enabled */
 #endif
 
 static uint32_t
@@ -2687,12 +2697,12 @@ wlan_add_peerinfo(const struct ieee80211req_sta_info *si)
 {
 	struct wlan_peer *wip;
 
-	if ((wip = wlan_new_peer(si->isi_macaddr))== NULL)
+	if ((wip = wlan_new_peer(si->isi_macaddr)) == NULL)
 		return (NULL);
 
 	wip->associd = IEEE80211_AID(si->isi_associd);
 	wip->vlan = si->isi_vlan;
-	wip->frequency =  si->isi_freq;
+	wip->frequency = si->isi_freq;
 	wip->fflags = si->isi_flags;
 	wip->txrate = si->isi_txrate;
 	wip->rssi = si->isi_rssi;
@@ -2722,17 +2732,17 @@ wlan_get_peerinfo(struct wlan_iface *wif)
 	struct wlan_peer *wip;
 
 	/* Get all stations - broadcast address */
-	(void) memset(u.req.is_u.macaddr, 0xff, IEEE80211_ADDR_LEN);
-	len =  sizeof(u);
+	(void)memset(u.req.is_u.macaddr, 0xff, IEEE80211_ADDR_LEN);
+	len = sizeof(u);
 
-	if (wlan_ioctl(wif->wname, IEEE80211_IOC_STA_INFO,
-	    & val, &u, &len, 0) < 0)
+	if (wlan_ioctl(wif->wname, IEEE80211_IOC_STA_INFO, &val, &u, &len, 0) <
+	    0)
 		return (-1);
 
 	if (len < sizeof(struct ieee80211req_sta_info))
 		return (-1);
 
-	cp = (const uint8_t *) u.req.info;
+	cp = (const uint8_t *)u.req.info;
 	do {
 		memcpy(&si, cp, sizeof(struct ieee80211req_sta_info));
 		if ((wip = wlan_add_peerinfo(&si)) != NULL &&
@@ -2817,9 +2827,10 @@ wlan_do_sysctl(struct wlan_config *cfg, enum wlan_syscl which, int set)
 
 	strlcpy(mib_name, wlan_sysctl_name, sizeof(mib_name));
 	strlcat(mib_name, wlan_sysctl[which], sizeof(mib_name));
-	len = sizeof (val);
+	len = sizeof(val);
 
-	if (sysctlbyname(mib_name, &val, &len, (set? &sval : NULL), vlen) < 0) {
+	if (sysctlbyname(mib_name, &val, &len, (set ? &sval : NULL), vlen) <
+	    0) {
 		syslog(LOG_ERR, "sysctl(%s) failed - %s", mib_name,
 		    strerror(errno));
 		return (-1);
@@ -2984,7 +2995,7 @@ wlan_mesh_config_set(struct wlan_iface *wif, int which)
 	if (wlan_ioctl(wif->wname, op, &val, pd, &argsize, 1) < 0)
 		return (-1);
 
-	return(0);
+	return (0);
 }
 
 int
@@ -2994,7 +3005,7 @@ wlan_mesh_flush_routes(struct wlan_iface *wif)
 	size_t argsize = 0;
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MESH_RTCMD, &val, NULL,
-	    &argsize, 1) < 0)
+		&argsize, 1) < 0)
 		return (-1);
 
 	return (0);
@@ -3007,7 +3018,7 @@ wlan_mesh_add_route(struct wlan_iface *wif, struct wlan_mesh_route *wmr)
 	size_t argsize = IEEE80211_ADDR_LEN;
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MESH_RTCMD, &val,
-	    wmr->imroute.imr_dest, &argsize, 1) < 0)
+		wmr->imroute.imr_dest, &argsize, 1) < 0)
 		return (-1);
 
 	wmr->mroute_status = RowStatus_active;
@@ -3022,7 +3033,7 @@ wlan_mesh_del_route(struct wlan_iface *wif, struct wlan_mesh_route *wmr)
 	size_t argsize = IEEE80211_ADDR_LEN;
 
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MESH_RTCMD, &val,
-	    wmr->imroute.imr_dest, &argsize, 1) < 0)
+		wmr->imroute.imr_dest, &argsize, 1) < 0)
 		return (-1);
 
 	wmr->mroute_status = RowStatus_destroy;
@@ -3041,7 +3052,7 @@ wlan_mesh_get_routelist(struct wlan_iface *wif)
 
 	argsize = sizeof(routes);
 	if (wlan_ioctl(wif->wname, IEEE80211_IOC_MESH_RTCMD, &val, routes,
-	    &argsize, 0) < 0) /* XXX: ENOMEM? */
+		&argsize, 0) < 0) /* XXX: ENOMEM? */
 		return (-1);
 
 	nroutes = argsize / sizeof(*rt);

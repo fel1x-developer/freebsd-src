@@ -34,16 +34,18 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/stat.h>
-#include <signal.h>
-#include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
+#include <sys/time.h>
+
 #include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
-#include "pax.h"
+
 #include "extern.h"
+#include "pax.h"
 
 static void wr_archive(ARCHD *, int is_app);
 static int get_arc(void);
@@ -54,8 +56,8 @@ static int next_head(ARCHD *);
  * the user: list, append, read ...
  */
 
-static char hdbuf[BLKMULT];		/* space for archive header on read */
-u_long flcnt;				/* number of files processed */
+static char hdbuf[BLKMULT]; /* space for archive header on read */
+u_long flcnt;		    /* number of files processed */
 
 /*
  * list()
@@ -426,8 +428,8 @@ wr_archive(ARCHD *arcn, int is_app)
 			 * the link table).
 			 */
 			if ((fd = open(arcn->org_name, O_RDONLY, 0)) < 0) {
-				syswarn(1,errno, "Unable to open %s to read",
-					arcn->org_name);
+				syswarn(1, errno, "Unable to open %s to read",
+				    arcn->org_name);
 				purg_lnk(arcn);
 				continue;
 			}
@@ -612,7 +614,7 @@ append(void)
 	 */
 	if (vflag) {
 		(void)fprintf(listf,
-			"%s: Reading archive to position at the end...", argv0);
+		    "%s: Reading archive to position at the end...", argv0);
 		vfpart = 1;
 	}
 
@@ -726,7 +728,7 @@ copy(void)
 	int fdsrc = -1;
 	struct stat sb;
 	ARCHD archd;
-	char dirbuf[PAXPATHLEN+1];
+	char dirbuf[PAXPATHLEN + 1];
 
 	arcn = &archd;
 	/*
@@ -735,7 +737,7 @@ copy(void)
 	 */
 	dlen = l_strncpy(dirbuf, dirptr, sizeof(dirbuf) - 1);
 	dest_pt = dirbuf + dlen;
-	if (*(dest_pt-1) != '/') {
+	if (*(dest_pt - 1) != '/') {
 		*dest_pt++ = '/';
 		++dlen;
 	}
@@ -744,7 +746,7 @@ copy(void)
 
 	if (stat(dirptr, &sb) < 0) {
 		syswarn(1, errno, "Cannot access destination directory %s",
-			dirptr);
+		    dirptr);
 		return;
 	}
 	if (!S_ISDIR(sb.st_mode)) {
@@ -805,7 +807,7 @@ copy(void)
 				res = 0;
 			if ((arcn->nlen - res) > drem) {
 				paxwarn(1, "Destination pathname too long %s",
-					arcn->name);
+				    arcn->name);
 				continue;
 			}
 			(void)strncpy(dest_pt, arcn->name + res, drem);
@@ -817,10 +819,11 @@ copy(void)
 			res = lstat(dirbuf, &sb);
 			*dest_pt = '\0';
 
-		    	if (res == 0) {
+			if (res == 0) {
 				if (uflag && Dflag) {
-					if ((arcn->sb.st_mtime<=sb.st_mtime) &&
-			    		    (arcn->sb.st_ctime<=sb.st_ctime))
+					if ((arcn->sb.st_mtime <=
+						sb.st_mtime) &&
+					    (arcn->sb.st_ctime <= sb.st_ctime))
 						continue;
 				} else if (Dflag) {
 					if (arcn->sb.st_ctime <= sb.st_ctime)
@@ -971,9 +974,9 @@ next_head(ARCHD *arcn)
 	int res;
 	int shftsz;
 	int hsz;
-	int in_resync = 0; 	/* set when we are in resync mode */
-	int cnt = 0;			/* counter for trailer function */
-	int first = 1;			/* on 1st read, EOF isn't premature. */
+	int in_resync = 0; /* set when we are in resync mode */
+	int cnt = 0;	   /* counter for trailer function */
+	int first = 1;	   /* on 1st read, EOF isn't premature. */
 
 	/*
 	 * set up initial conditions, we want a whole frmt->hsz block as we
@@ -982,7 +985,7 @@ next_head(ARCHD *arcn)
 	res = hsz = frmt->hsz;
 	hdend = hdbuf;
 	shftsz = hsz - 1;
-	for(;;) {
+	for (;;) {
 		/*
 		 * keep looping until we get a contiguous FULL buffer
 		 * (frmt->hsz is the proper size)
@@ -999,7 +1002,7 @@ next_head(ARCHD *arcn)
 			 * them, so exit gracefully.
 			 */
 			if (first && ret == 0)
-				return(-1);
+				return (-1);
 			first = 0;
 
 			/*
@@ -1007,16 +1010,18 @@ next_head(ARCHD *arcn)
 			 * storage device, better give the user the bad news.
 			 */
 			if ((ret == 0) || (rd_sync() < 0)) {
-				paxwarn(1,"Premature end of file on archive read");
-				return(-1);
+				paxwarn(1,
+				    "Premature end of file on archive read");
+				return (-1);
 			}
 			if (!in_resync) {
 				if (act == APPND) {
 					paxwarn(1,
-					  "Archive I/O error, cannot continue");
-					return(-1);
+					    "Archive I/O error, cannot continue");
+					return (-1);
 				}
-				paxwarn(1,"Archive I/O error. Trying to recover.");
+				paxwarn(1,
+				    "Archive I/O error. Trying to recover.");
 				++in_resync;
 			}
 
@@ -1046,12 +1051,13 @@ next_head(ARCHD *arcn)
 			/*
 			 * this format has trailers outside of valid headers
 			 */
-			if ((ret = (*frmt->trail_tar)(hdbuf,in_resync,&cnt)) == 0){
+			if ((ret = (*frmt->trail_tar)(hdbuf, in_resync,
+				 &cnt)) == 0) {
 				/*
 				 * valid trailer found, drain input as required
 				 */
 				ar_drain();
-				return(-1);
+				return (-1);
 			}
 
 			if (ret == 1) {
@@ -1077,13 +1083,15 @@ next_head(ARCHD *arcn)
 		 */
 		if (!in_resync) {
 			if (act == APPND) {
-				paxwarn(1,"Unable to append, archive header flaw");
-				return(-1);
+				paxwarn(1,
+				    "Unable to append, archive header flaw");
+				return (-1);
 			}
-			paxwarn(1,"Invalid header, starting valid header search.");
+			paxwarn(1,
+			    "Invalid header, starting valid header search.");
 			++in_resync;
 		}
-		memmove(hdbuf, hdbuf+1, shftsz);
+		memmove(hdbuf, hdbuf + 1, shftsz);
 		res = 1;
 		hdend = hdbuf + shftsz;
 	}
@@ -1097,11 +1105,11 @@ next_head(ARCHD *arcn)
 		 * valid trailer found, drain input as required
 		 */
 		ar_drain();
-		return(-1);
+		return (-1);
 	}
 
 	++flcnt;
-	return(0);
+	return (0);
 }
 
 /*
@@ -1133,11 +1141,11 @@ get_arc(void)
 			minhd = fsub[ford[i]].hsz;
 	}
 	if (rd_start() < 0)
-		return(-1);
+		return (-1);
 	res = BLKMULT;
 	hdsz = 0;
 	hdend = hdbuf;
-	for(;;) {
+	for (;;) {
 		for (;;) {
 			/*
 			 * fill the buffer with at least the smallest header
@@ -1165,8 +1173,9 @@ get_arc(void)
 			hdend = hdbuf;
 			if (!notice) {
 				if (act == APPND)
-					return(-1);
-				paxwarn(1,"Cannot identify format. Searching...");
+					return (-1);
+				paxwarn(1,
+				    "Cannot identify format. Searching...");
 				++notice;
 			}
 		}
@@ -1191,7 +1200,7 @@ get_arc(void)
 			 * adding all the special case code is far worse.
 			 */
 			pback(hdbuf, hdsz);
-			return(0);
+			return (0);
 		}
 
 		/*
@@ -1200,7 +1209,7 @@ get_arc(void)
 		 */
 		if (!notice) {
 			if (act == APPND)
-				return(-1);
+				return (-1);
 			paxwarn(1, "Cannot identify format. Searching...");
 			++notice;
 		}
@@ -1212,7 +1221,7 @@ get_arc(void)
 		 * portable manner
 		 */
 		if (--hdsz > 0) {
-			memmove(hdbuf, hdbuf+1, hdsz);
+			memmove(hdbuf, hdbuf + 1, hdsz);
 			res = BLKMULT - hdsz;
 			hdend = hdbuf + hdsz;
 		} else {
@@ -1222,10 +1231,10 @@ get_arc(void)
 		}
 	}
 
-    out:
+out:
 	/*
 	 * we cannot find a header, bow, apologize and quit
 	 */
 	paxwarn(1, "Sorry, unable to determine archive format.");
-	return(-1);
+	return (-1);
 }

@@ -31,18 +31,17 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/isci.h>
+#include <dev/isci/scil/scic_phy.h>
+#include <dev/isci/scil/scic_port.h>
+#include <dev/isci/scil/scif_controller.h>
+#include <dev/isci/scil/scif_domain.h>
+#include <dev/isci/scil/scif_task_request.h>
+#include <dev/isci/scil/scif_user_callback.h>
 
 #include <cam/cam_periph.h>
 #include <cam/cam_xpt_periph.h>
-
-#include <dev/isci/scil/scif_task_request.h>
-#include <dev/isci/scil/scif_controller.h>
-#include <dev/isci/scil/scif_domain.h>
-#include <dev/isci/scil/scif_user_callback.h>
-
-#include <dev/isci/scil/scic_port.h>
-#include <dev/isci/scil/scic_phy.h>
 
 /**
  * @brief This callback method informs the framework user that the remote
@@ -63,8 +62,8 @@ scif_cb_remote_device_ready(SCI_CONTROLLER_HANDLE_T controller,
 {
 	struct ISCI_REMOTE_DEVICE *isci_remote_device =
 	    sci_object_get_association(remote_device);
-	struct ISCI_CONTROLLER *isci_controller =
-	    sci_object_get_association(controller);
+	struct ISCI_CONTROLLER *isci_controller = sci_object_get_association(
+	    controller);
 	uint32_t device_index = isci_remote_device->index;
 
 	if (isci_controller->remote_device[device_index] == NULL) {
@@ -112,7 +111,6 @@ void
 scif_cb_remote_device_not_ready(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device)
 {
-
 }
 
 /**
@@ -136,7 +134,6 @@ scif_cb_remote_device_failed(SCI_CONTROLLER_HANDLE_T controller,
     SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device,
     SCI_STATUS status)
 {
-
 }
 
 void
@@ -154,10 +151,10 @@ isci_remote_device_reset(struct ISCI_REMOTE_DEVICE *remote_device,
 	}
 
 	if (sci_pool_empty(controller->request_pool)) {
-		/* No requests are available in our request pool.  If this reset is tied
-		 *  to a CCB, ask CAM to requeue it.  Otherwise, we need to put it on our
-		 *  pending device reset list, so that the reset will occur when a request
-		 *  frees up.
+		/* No requests are available in our request pool.  If this reset
+		 * is tied to a CCB, ask CAM to requeue it.  Otherwise, we need
+		 * to put it on our pending device reset list, so that the reset
+		 * will occur when a request frees up.
 		 */
 		if (ccb == NULL)
 			sci_fast_list_insert_tail(
@@ -174,8 +171,7 @@ isci_remote_device_reset(struct ISCI_REMOTE_DEVICE *remote_device,
 	isci_log_message(0, "ISCI",
 	    "Sending reset to device on controller %d domain %d CAM index %d\n",
 	    controller->index, remote_device->domain->index,
-	    remote_device->index
-	);
+	    remote_device->index);
 
 	sci_pool_get(controller->request_pool, request);
 	task_request = (struct ISCI_TASK_REQUEST *)request;
@@ -185,10 +181,10 @@ isci_remote_device_reset(struct ISCI_REMOTE_DEVICE *remote_device,
 
 	remote_device->is_resetting = TRUE;
 
-	status = (SCI_STATUS) scif_task_request_construct(
+	status = (SCI_STATUS)scif_task_request_construct(
 	    controller->scif_controller_handle, remote_device->sci_object,
 	    SCI_CONTROLLER_INVALID_IO_TAG, (void *)task_request,
-	    (void *)((char*)task_request + sizeof(struct ISCI_TASK_REQUEST)),
+	    (void *)((char *)task_request + sizeof(struct ISCI_TASK_REQUEST)),
 	    &task_request->sci_object);
 
 	if (status != SCI_SUCCESS) {
@@ -203,8 +199,7 @@ isci_remote_device_reset(struct ISCI_REMOTE_DEVICE *remote_device,
 	    task_request->sci_object, SCI_CONTROLLER_INVALID_IO_TAG);
 
 	if (status != SCI_SUCCESS) {
-		isci_task_request_complete(
-		    controller->scif_controller_handle,
+		isci_task_request_complete(controller->scif_controller_handle,
 		    remote_device->sci_object, task_request->sci_object,
 		    (SCI_TASK_STATUS)status);
 		return;
@@ -238,8 +233,8 @@ isci_remote_device_get_bitrate(struct ISCI_REMOTE_DEVICE *remote_device)
 	}
 
 	/* get the properties for the lowest numbered phy */
-	scic_controller_get_phy_handle(
-	    scif_controller_get_scic_handle(controller->scif_controller_handle),
+	scic_controller_get_phy_handle(scif_controller_get_scic_handle(
+					   controller->scif_controller_handle),
 	    phy_index, &phy_handle);
 	scic_phy_get_properties(phy_handle, &phy_properties);
 
@@ -288,8 +283,7 @@ isci_remote_device_release_lun_queue(struct ISCI_REMOTE_DEVICE *remote_device,
 }
 
 void
-isci_remote_device_release_device_queue(
-    struct ISCI_REMOTE_DEVICE *device)
+isci_remote_device_release_device_queue(struct ISCI_REMOTE_DEVICE *device)
 {
 	if (TAILQ_EMPTY(&device->queued_ccbs)) {
 		lun_id_t lun;

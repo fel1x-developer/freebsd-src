@@ -2,30 +2,30 @@
 
   Copyright (c) 2013-2018, Intel Corporation
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
+
+  Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
-  
-   1. Redistributions of source code must retain the above copyright notice, 
+
+   1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-  
-   2. Redistributions in binary form must reproduce the above copyright 
-      notice, this list of conditions and the following disclaimer in the 
+
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-  
-   3. Neither the name of the Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+   3. Neither the name of the Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 
@@ -46,14 +46,14 @@
 /*********************************************************************
  *  Driver version
  *********************************************************************/
-#define IXL_DRIVER_VERSION_MAJOR	2
-#define IXL_DRIVER_VERSION_MINOR	3
-#define IXL_DRIVER_VERSION_BUILD	3
+#define IXL_DRIVER_VERSION_MAJOR 2
+#define IXL_DRIVER_VERSION_MINOR 3
+#define IXL_DRIVER_VERSION_BUILD 3
 
-#define IXL_DRIVER_VERSION_STRING			\
-    __XSTRING(IXL_DRIVER_VERSION_MAJOR) "."		\
-    __XSTRING(IXL_DRIVER_VERSION_MINOR) "."		\
-    __XSTRING(IXL_DRIVER_VERSION_BUILD) "-k"
+#define IXL_DRIVER_VERSION_STRING                              \
+	__XSTRING(IXL_DRIVER_VERSION_MAJOR)                    \
+	"." __XSTRING(IXL_DRIVER_VERSION_MINOR) "." __XSTRING( \
+	    IXL_DRIVER_VERSION_BUILD) "-k"
 
 /*********************************************************************
  *  PCI Device ID Table
@@ -63,29 +63,49 @@
  *  ( Vendor ID, Device ID, Branding String )
  *********************************************************************/
 
-static const pci_vendor_info_t ixl_vendor_info_array[] =
-{
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_XL710, "Intel(R) Ethernet Controller X710 for 10GbE SFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_B, "Intel(R) Ethernet Controller XL710 for 40GbE backplane"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_C, "Intel(R) Ethernet Controller X710 for 10GbE backplane"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_A, "Intel(R) Ethernet Controller XL710 for 40GbE QSFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_B, "Intel(R) Ethernet Controller XL710 for 40GbE QSFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_C, "Intel(R) Ethernet Controller X710 for 10GbE QSFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T, "Intel(R) Ethernet Controller X710 for 10GBASE-T"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T4, "Intel(R) Ethernet Controller X710/X557-AT 10GBASE-T"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_X722, "Intel(R) Ethernet Connection X722 for 10GbE backplane"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_X722, "Intel(R) Ethernet Connection X722 for 10GbE QSFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_X722, "Intel(R) Ethernet Connection X722 for 10GbE SFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_1G_BASE_T_X722, "Intel(R) Ethernet Connection X722 for 1GbE"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T_X722, "Intel(R) Ethernet Connection X722 for 10GBASE-T"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_I_X722, "Intel(R) Ethernet Connection X722 for 10GbE SFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_25G_B, "Intel(R) Ethernet Controller XXV710 for 25GbE backplane"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_25G_SFP28, "Intel(R) Ethernet Controller XXV710 for 25GbE SFP28"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T_BC, "Intel(R) Ethernet Controller X710 for 10GBASE-T"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_SFP, "Intel(R) Ethernet Controller X710 for 10GbE SFP+"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_B, "Intel(R) Ethernet Controller X710 for 10GbE backplane"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_5G_BASE_T_BC, "Intel(R) Ethernet Controller V710 for 5GBASE-T"),
-	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_1G_BASE_T_BC, "Intel(R) Ethernet Controller I710 for 1GBASE-T"),
+static const pci_vendor_info_t ixl_vendor_info_array[] = {
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_XL710,
+	    "Intel(R) Ethernet Controller X710 for 10GbE SFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_B,
+	    "Intel(R) Ethernet Controller XL710 for 40GbE backplane"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_C,
+	    "Intel(R) Ethernet Controller X710 for 10GbE backplane"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_A,
+	    "Intel(R) Ethernet Controller XL710 for 40GbE QSFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_B,
+	    "Intel(R) Ethernet Controller XL710 for 40GbE QSFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_C,
+	    "Intel(R) Ethernet Controller X710 for 10GbE QSFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T,
+	    "Intel(R) Ethernet Controller X710 for 10GBASE-T"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T4,
+	    "Intel(R) Ethernet Controller X710/X557-AT 10GBASE-T"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_KX_X722,
+	    "Intel(R) Ethernet Connection X722 for 10GbE backplane"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_QSFP_X722,
+	    "Intel(R) Ethernet Connection X722 for 10GbE QSFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_X722,
+	    "Intel(R) Ethernet Connection X722 for 10GbE SFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_1G_BASE_T_X722,
+	    "Intel(R) Ethernet Connection X722 for 1GbE"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T_X722,
+	    "Intel(R) Ethernet Connection X722 for 10GBASE-T"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_SFP_I_X722,
+	    "Intel(R) Ethernet Connection X722 for 10GbE SFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_25G_B,
+	    "Intel(R) Ethernet Controller XXV710 for 25GbE backplane"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_25G_SFP28,
+	    "Intel(R) Ethernet Controller XXV710 for 25GbE SFP28"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_BASE_T_BC,
+	    "Intel(R) Ethernet Controller X710 for 10GBASE-T"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_SFP,
+	    "Intel(R) Ethernet Controller X710 for 10GbE SFP+"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_10G_B,
+	    "Intel(R) Ethernet Controller X710 for 10GbE backplane"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_5G_BASE_T_BC,
+	    "Intel(R) Ethernet Controller V710 for 5GBASE-T"),
+	PVIDV(I40E_INTEL_VENDOR_ID, I40E_DEV_ID_1G_BASE_T_BC,
+	    "Intel(R) Ethernet Controller I710 for 1GBASE-T"),
 	/* required last entry */
 	PVID_END
 };
@@ -94,43 +114,45 @@ static const pci_vendor_info_t ixl_vendor_info_array[] =
  *  Function prototypes
  *********************************************************************/
 /*** IFLIB interface ***/
-static void	*ixl_register(device_t dev);
-static int	 ixl_if_attach_pre(if_ctx_t ctx);
-static int	 ixl_if_attach_post(if_ctx_t ctx);
-static int	 ixl_if_detach(if_ctx_t ctx);
-static int	 ixl_if_shutdown(if_ctx_t ctx);
-static int	 ixl_if_suspend(if_ctx_t ctx);
-static int	 ixl_if_resume(if_ctx_t ctx);
-static int	 ixl_if_msix_intr_assign(if_ctx_t ctx, int msix);
-static void	 ixl_if_enable_intr(if_ctx_t ctx);
-static void	 ixl_if_disable_intr(if_ctx_t ctx);
-static int	 ixl_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t rxqid);
-static int	 ixl_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid);
-static int	 ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs, int ntxqsets);
-static int	 ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nqs, int nqsets);
-static void	 ixl_if_queues_free(if_ctx_t ctx);
-static void	 ixl_if_update_admin_status(if_ctx_t ctx);
-static void	 ixl_if_multi_set(if_ctx_t ctx);
-static int	 ixl_if_mtu_set(if_ctx_t ctx, uint32_t mtu);
-static void	 ixl_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr);
-static int	 ixl_if_media_change(if_ctx_t ctx);
-static int	 ixl_if_promisc_set(if_ctx_t ctx, int flags);
-static void	 ixl_if_timer(if_ctx_t ctx, uint16_t qid);
-static void	 ixl_if_vlan_register(if_ctx_t ctx, u16 vtag);
-static void	 ixl_if_vlan_unregister(if_ctx_t ctx, u16 vtag);
-static uint64_t	 ixl_if_get_counter(if_ctx_t ctx, ift_counter cnt);
-static int	 ixl_if_i2c_req(if_ctx_t ctx, struct ifi2creq *req);
-static int	 ixl_if_priv_ioctl(if_ctx_t ctx, u_long command, caddr_t data);
-static bool	 ixl_if_needs_restart(if_ctx_t ctx, enum iflib_restart_event event);
+static void *ixl_register(device_t dev);
+static int ixl_if_attach_pre(if_ctx_t ctx);
+static int ixl_if_attach_post(if_ctx_t ctx);
+static int ixl_if_detach(if_ctx_t ctx);
+static int ixl_if_shutdown(if_ctx_t ctx);
+static int ixl_if_suspend(if_ctx_t ctx);
+static int ixl_if_resume(if_ctx_t ctx);
+static int ixl_if_msix_intr_assign(if_ctx_t ctx, int msix);
+static void ixl_if_enable_intr(if_ctx_t ctx);
+static void ixl_if_disable_intr(if_ctx_t ctx);
+static int ixl_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t rxqid);
+static int ixl_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid);
+static int ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int ntxqs, int ntxqsets);
+static int ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int nqs, int nqsets);
+static void ixl_if_queues_free(if_ctx_t ctx);
+static void ixl_if_update_admin_status(if_ctx_t ctx);
+static void ixl_if_multi_set(if_ctx_t ctx);
+static int ixl_if_mtu_set(if_ctx_t ctx, uint32_t mtu);
+static void ixl_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr);
+static int ixl_if_media_change(if_ctx_t ctx);
+static int ixl_if_promisc_set(if_ctx_t ctx, int flags);
+static void ixl_if_timer(if_ctx_t ctx, uint16_t qid);
+static void ixl_if_vlan_register(if_ctx_t ctx, u16 vtag);
+static void ixl_if_vlan_unregister(if_ctx_t ctx, u16 vtag);
+static uint64_t ixl_if_get_counter(if_ctx_t ctx, ift_counter cnt);
+static int ixl_if_i2c_req(if_ctx_t ctx, struct ifi2creq *req);
+static int ixl_if_priv_ioctl(if_ctx_t ctx, u_long command, caddr_t data);
+static bool ixl_if_needs_restart(if_ctx_t ctx, enum iflib_restart_event event);
 #ifdef PCI_IOV
-static void	 ixl_if_vflr_handle(if_ctx_t ctx);
+static void ixl_if_vflr_handle(if_ctx_t ctx);
 #endif
 
 /*** Other ***/
-static void	 ixl_save_pf_tunables(struct ixl_pf *);
-static int	 ixl_allocate_pci_resources(struct ixl_pf *);
-static void	 ixl_setup_ssctx(struct ixl_pf *pf);
-static void	 ixl_admin_timer(void *arg);
+static void ixl_save_pf_tunables(struct ixl_pf *);
+static int ixl_allocate_pci_resources(struct ixl_pf *);
+static void ixl_setup_ssctx(struct ixl_pf *pf);
+static void ixl_admin_timer(void *arg);
 
 /*********************************************************************
  *  FreeBSD Device Interface Entry Points
@@ -152,7 +174,9 @@ static device_method_t ixl_methods[] = {
 };
 
 static driver_t ixl_driver = {
-	"ixl", ixl_methods, sizeof(struct ixl_pf),
+	"ixl",
+	ixl_methods,
+	sizeof(struct ixl_pf),
 };
 
 DRIVER_MODULE(ixl, pci, ixl_driver, 0, 0);
@@ -163,15 +187,14 @@ MODULE_DEPEND(ixl, pci, 1, 1, 1);
 MODULE_DEPEND(ixl, ether, 1, 1, 1);
 MODULE_DEPEND(ixl, iflib, 1, 1, 1);
 
-static device_method_t ixl_if_methods[] = {
-	DEVMETHOD(ifdi_attach_pre, ixl_if_attach_pre),
+static device_method_t ixl_if_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						ixl_if_attach_pre),
 	DEVMETHOD(ifdi_attach_post, ixl_if_attach_post),
 	DEVMETHOD(ifdi_detach, ixl_if_detach),
 	DEVMETHOD(ifdi_shutdown, ixl_if_shutdown),
 	DEVMETHOD(ifdi_suspend, ixl_if_suspend),
 	DEVMETHOD(ifdi_resume, ixl_if_resume),
-	DEVMETHOD(ifdi_init, ixl_if_init),
-	DEVMETHOD(ifdi_stop, ixl_if_stop),
+	DEVMETHOD(ifdi_init, ixl_if_init), DEVMETHOD(ifdi_stop, ixl_if_stop),
 	DEVMETHOD(ifdi_msix_intr_assign, ixl_if_msix_intr_assign),
 	DEVMETHOD(ifdi_intr_enable, ixl_if_enable_intr),
 	DEVMETHOD(ifdi_intr_disable, ixl_if_disable_intr),
@@ -201,12 +224,10 @@ static device_method_t ixl_if_methods[] = {
 #endif
 	// ifdi_led_func
 	// ifdi_debug
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t ixl_if_driver = {
-	"ixl_if", ixl_if_methods, sizeof(struct ixl_pf)
-};
+static driver_t ixl_if_driver = { "ixl_if", ixl_if_methods,
+	sizeof(struct ixl_pf) };
 
 /*
 ** TUNEABLE PARAMETERS:
@@ -221,8 +242,7 @@ static SYSCTL_NODE(_hw, OID_AUTO, ixl, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
  * frames (or other control frames) from software
  */
 static int ixl_enable_tx_fc_filter = 1;
-TUNABLE_INT("hw.ixl.enable_tx_fc_filter",
-    &ixl_enable_tx_fc_filter);
+TUNABLE_INT("hw.ixl.enable_tx_fc_filter", &ixl_enable_tx_fc_filter);
 SYSCTL_INT(_hw_ixl, OID_AUTO, enable_tx_fc_filter, CTLFLAG_RDTUN,
     &ixl_enable_tx_fc_filter, 0,
     "Filter out packets with Ethertype 0x8808 from being sent out by non-HW sources");
@@ -230,48 +250,40 @@ SYSCTL_INT(_hw_ixl, OID_AUTO, enable_tx_fc_filter, CTLFLAG_RDTUN,
 
 #ifdef IXL_DEBUG
 static int ixl_debug_recovery_mode = 0;
-TUNABLE_INT("hw.ixl.debug_recovery_mode",
-    &ixl_debug_recovery_mode);
+TUNABLE_INT("hw.ixl.debug_recovery_mode", &ixl_debug_recovery_mode);
 SYSCTL_INT(_hw_ixl, OID_AUTO, debug_recovery_mode, CTLFLAG_RDTUN,
     &ixl_debug_recovery_mode, 0,
     "Act like when FW entered recovery mode (for debugging)");
 #endif
 
 static int ixl_i2c_access_method = 0;
-TUNABLE_INT("hw.ixl.i2c_access_method",
-    &ixl_i2c_access_method);
+TUNABLE_INT("hw.ixl.i2c_access_method", &ixl_i2c_access_method);
 SYSCTL_INT(_hw_ixl, OID_AUTO, i2c_access_method, CTLFLAG_RDTUN,
-    &ixl_i2c_access_method, 0,
-    IXL_SYSCTL_HELP_I2C_METHOD);
+    &ixl_i2c_access_method, 0, IXL_SYSCTL_HELP_I2C_METHOD);
 
 static int ixl_enable_vf_loopback = 1;
-TUNABLE_INT("hw.ixl.enable_vf_loopback",
-    &ixl_enable_vf_loopback);
+TUNABLE_INT("hw.ixl.enable_vf_loopback", &ixl_enable_vf_loopback);
 SYSCTL_INT(_hw_ixl, OID_AUTO, enable_vf_loopback, CTLFLAG_RDTUN,
-    &ixl_enable_vf_loopback, 0,
-    IXL_SYSCTL_HELP_VF_LOOPBACK);
+    &ixl_enable_vf_loopback, 0, IXL_SYSCTL_HELP_VF_LOOPBACK);
 
 /*
  * Different method for processing TX descriptor
  * completion.
  */
 static int ixl_enable_head_writeback = 1;
-TUNABLE_INT("hw.ixl.enable_head_writeback",
-    &ixl_enable_head_writeback);
+TUNABLE_INT("hw.ixl.enable_head_writeback", &ixl_enable_head_writeback);
 SYSCTL_INT(_hw_ixl, OID_AUTO, enable_head_writeback, CTLFLAG_RDTUN,
     &ixl_enable_head_writeback, 0,
     "For detecting last completed TX descriptor by hardware, use value written by HW instead of checking descriptors");
 
 static int ixl_core_debug_mask = 0;
-TUNABLE_INT("hw.ixl.core_debug_mask",
-    &ixl_core_debug_mask);
+TUNABLE_INT("hw.ixl.core_debug_mask", &ixl_core_debug_mask);
 SYSCTL_INT(_hw_ixl, OID_AUTO, core_debug_mask, CTLFLAG_RDTUN,
     &ixl_core_debug_mask, 0,
     "Display debug statements that are printed in non-shared code");
 
 static int ixl_shared_debug_mask = 0;
-TUNABLE_INT("hw.ixl.shared_debug_mask",
-    &ixl_shared_debug_mask);
+TUNABLE_INT("hw.ixl.shared_debug_mask", &ixl_shared_debug_mask);
 SYSCTL_INT(_hw_ixl, OID_AUTO, shared_debug_mask, CTLFLAG_RDTUN,
     &ixl_shared_debug_mask, 0,
     "Display debug statements that are printed in shared code");
@@ -295,23 +307,23 @@ SYSCTL_INT(_hw_ixl, OID_AUTO, dynamic_tx_itr, CTLFLAG_RDTUN,
 
 static int ixl_rx_itr = IXL_ITR_8K;
 TUNABLE_INT("hw.ixl.rx_itr", &ixl_rx_itr);
-SYSCTL_INT(_hw_ixl, OID_AUTO, rx_itr, CTLFLAG_RDTUN,
-    &ixl_rx_itr, 0, "RX Interrupt Rate");
+SYSCTL_INT(_hw_ixl, OID_AUTO, rx_itr, CTLFLAG_RDTUN, &ixl_rx_itr, 0,
+    "RX Interrupt Rate");
 
 static int ixl_tx_itr = IXL_ITR_4K;
 TUNABLE_INT("hw.ixl.tx_itr", &ixl_tx_itr);
-SYSCTL_INT(_hw_ixl, OID_AUTO, tx_itr, CTLFLAG_RDTUN,
-    &ixl_tx_itr, 0, "TX Interrupt Rate");
+SYSCTL_INT(_hw_ixl, OID_AUTO, tx_itr, CTLFLAG_RDTUN, &ixl_tx_itr, 0,
+    "TX Interrupt Rate");
 
 static int ixl_flow_control = -1;
-SYSCTL_INT(_hw_ixl, OID_AUTO, flow_control, CTLFLAG_RDTUN,
-    &ixl_flow_control, 0, "Initial Flow Control setting");
+SYSCTL_INT(_hw_ixl, OID_AUTO, flow_control, CTLFLAG_RDTUN, &ixl_flow_control, 0,
+    "Initial Flow Control setting");
 
 #ifdef IXL_IW
 int ixl_enable_iwarp = 0;
 TUNABLE_INT("hw.ixl.enable_iwarp", &ixl_enable_iwarp);
-SYSCTL_INT(_hw_ixl, OID_AUTO, enable_iwarp, CTLFLAG_RDTUN,
-    &ixl_enable_iwarp, 0, "iWARP enabled");
+SYSCTL_INT(_hw_ixl, OID_AUTO, enable_iwarp, CTLFLAG_RDTUN, &ixl_enable_iwarp, 0,
+    "iWARP enabled");
 
 int ixl_limit_iwarp_msix = IXL_IW_MAX_MSIX;
 TUNABLE_INT("hw.ixl.limit_iwarp_msix", &ixl_limit_iwarp_msix);
@@ -340,14 +352,15 @@ static struct if_shared_ctx ixl_sctx_init = {
 	.isc_vendor_info = ixl_vendor_info_array,
 	.isc_driver_version = IXL_DRIVER_VERSION_STRING,
 	.isc_driver = &ixl_if_driver,
-	.isc_flags = IFLIB_NEED_SCRATCH | IFLIB_NEED_ZERO_CSUM | IFLIB_TSO_INIT_IP | IFLIB_ADMIN_ALWAYS_RUN,
+	.isc_flags = IFLIB_NEED_SCRATCH | IFLIB_NEED_ZERO_CSUM |
+	    IFLIB_TSO_INIT_IP | IFLIB_ADMIN_ALWAYS_RUN,
 
-	.isc_nrxd_min = {IXL_MIN_RING},
-	.isc_ntxd_min = {IXL_MIN_RING},
-	.isc_nrxd_max = {IXL_MAX_RING},
-	.isc_ntxd_max = {IXL_MAX_RING},
-	.isc_nrxd_default = {IXL_DEFAULT_RING},
-	.isc_ntxd_default = {IXL_DEFAULT_RING},
+	.isc_nrxd_min = { IXL_MIN_RING },
+	.isc_ntxd_min = { IXL_MIN_RING },
+	.isc_nrxd_max = { IXL_MAX_RING },
+	.isc_ntxd_max = { IXL_MAX_RING },
+	.isc_nrxd_default = { IXL_DEFAULT_RING },
+	.isc_ntxd_default = { IXL_DEFAULT_RING },
 };
 
 /*** Functions ***/
@@ -362,15 +375,16 @@ ixl_allocate_pci_resources(struct ixl_pf *pf)
 {
 	device_t dev = iflib_get_dev(pf->vsi.ctx);
 	struct i40e_hw *hw = &pf->hw;
-	int             rid;
+	int rid;
 
 	/* Map BAR0 */
 	rid = PCIR_BAR(0);
-	pf->pci_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE);
+	pf->pci_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
 	if (!(pf->pci_mem)) {
-		device_printf(dev, "Unable to allocate bus resource: PCI memory\n");
+		device_printf(dev,
+		    "Unable to allocate bus resource: PCI memory\n");
 		return (ENXIO);
 	}
 
@@ -378,27 +392,23 @@ ixl_allocate_pci_resources(struct ixl_pf *pf)
 	hw->vendor_id = pci_get_vendor(dev);
 	hw->device_id = pci_get_device(dev);
 	hw->revision_id = pci_read_config(dev, PCIR_REVID, 1);
-	hw->subsystem_vendor_id =
-	    pci_read_config(dev, PCIR_SUBVEND_0, 2);
-	hw->subsystem_device_id =
-	    pci_read_config(dev, PCIR_SUBDEV_0, 2);
+	hw->subsystem_vendor_id = pci_read_config(dev, PCIR_SUBVEND_0, 2);
+	hw->subsystem_device_id = pci_read_config(dev, PCIR_SUBDEV_0, 2);
 
 	hw->bus.device = pci_get_slot(dev);
 	hw->bus.func = pci_get_function(dev);
 
 	/* Save off register access information */
-	pf->osdep.mem_bus_space_tag =
-		rman_get_bustag(pf->pci_mem);
-	pf->osdep.mem_bus_space_handle =
-		rman_get_bushandle(pf->pci_mem);
+	pf->osdep.mem_bus_space_tag = rman_get_bustag(pf->pci_mem);
+	pf->osdep.mem_bus_space_handle = rman_get_bushandle(pf->pci_mem);
 	pf->osdep.mem_bus_space_size = rman_get_size(pf->pci_mem);
 	pf->osdep.flush_reg = I40E_GLGEN_STAT;
 	pf->osdep.dev = dev;
 
-	pf->hw.hw_addr = (u8 *) &pf->osdep.mem_bus_space_handle;
+	pf->hw.hw_addr = (u8 *)&pf->osdep.mem_bus_space_handle;
 	pf->hw.back = &pf->osdep;
 
- 	return (0);
+	return (0);
 }
 
 static void
@@ -416,18 +426,22 @@ ixl_setup_ssctx(struct ixl_pf *pf)
 		scctx->isc_ntxqsets_max = scctx->isc_nrxqsets_max = 64;
 
 	if (pf->vsi.enable_head_writeback) {
-		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0]
-		    * sizeof(struct i40e_tx_desc) + sizeof(u32), DBA_ALIGN);
+		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0] *
+			    sizeof(struct i40e_tx_desc) +
+			sizeof(u32),
+		    DBA_ALIGN);
 		scctx->isc_txrx = &ixl_txrx_hwb;
 	} else {
-		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0]
-		    * sizeof(struct i40e_tx_desc), DBA_ALIGN);
+		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0] *
+			sizeof(struct i40e_tx_desc),
+		    DBA_ALIGN);
 		scctx->isc_txrx = &ixl_txrx_dwb;
 	}
 
 	scctx->isc_txrx->ift_legacy_intr = ixl_intr;
-	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0]
-	    * sizeof(union i40e_32byte_rx_desc), DBA_ALIGN);
+	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0] *
+		sizeof(union i40e_32byte_rx_desc),
+	    DBA_ALIGN);
 	scctx->isc_msix_bar = PCIR_BAR(IXL_MSIX_BAR);
 	scctx->isc_tx_nsegments = IXL_MAX_TX_SEGS;
 	scctx->isc_tx_tso_segments_max = IXL_MAX_TSO_SEGS;
@@ -459,9 +473,12 @@ ixl_admin_timer(void *arg)
 			    __func__, i40e_stat_str(hw, status),
 			    i40e_aq_str(hw, hw->aq.asq_last_status));
 			stime = getsbinuptime();
-			if (stime - pf->link_poll_start > IXL_PF_MAX_LINK_POLL) {
-				device_printf(pf->dev, "Polling link status failed\n");
-				ixl_clear_state(&pf->state, IXL_STATE_LINK_POLLING);
+			if (stime - pf->link_poll_start >
+			    IXL_PF_MAX_LINK_POLL) {
+				device_printf(pf->dev,
+				    "Polling link status failed\n");
+				ixl_clear_state(&pf->state,
+				    IXL_STATE_LINK_POLLING);
 			}
 		}
 	}
@@ -470,7 +487,7 @@ ixl_admin_timer(void *arg)
 	iflib_admin_intr_deferred(pf->vsi.ctx);
 
 	/* Reschedule the admin timer */
-	callout_schedule(&pf->admin_timer, hz/2);
+	callout_schedule(&pf->admin_timer, hz / 2);
 }
 
 static int
@@ -480,7 +497,8 @@ ixl_attach_pre_recovery_mode(struct ixl_pf *pf)
 	struct i40e_hw *hw = &pf->hw;
 	device_t dev = pf->dev;
 
-	device_printf(dev, "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
+	device_printf(dev,
+	    "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
 
 	i40e_get_mac_addr(hw, hw->mac.addr);
 
@@ -524,8 +542,8 @@ ixl_if_attach_pre(if_ctx_t ctx)
 	vsi->media = iflib_get_media(ctx);
 	vsi->shared = iflib_get_softc_ctx(ctx);
 
-	snprintf(pf->admin_mtx_name, sizeof(pf->admin_mtx_name),
-	    "%s:admin", device_get_nameunit(dev));
+	snprintf(pf->admin_mtx_name, sizeof(pf->admin_mtx_name), "%s:admin",
+	    device_get_nameunit(dev));
 	mtx_init(&pf->admin_mtx, pf->admin_mtx_name, NULL, MTX_DEF);
 	callout_init_mtx(&pf->admin_timer, &pf->admin_mtx, 0);
 
@@ -550,7 +568,8 @@ ixl_if_attach_pre(if_ctx_t ctx)
 	/* Initialize the shared code */
 	status = i40e_init_shared_code(hw);
 	if (status) {
-		device_printf(dev, "Unable to initialize shared code, error %s\n",
+		device_printf(dev,
+		    "Unable to initialize shared code, error %s\n",
 		    i40e_stat_str(hw, status));
 		error = EIO;
 		goto err_out;
@@ -564,7 +583,8 @@ ixl_if_attach_pre(if_ctx_t ctx)
 
 	status = i40e_init_adminq(hw);
 	if (status != 0 && status != I40E_ERR_FIRMWARE_API_VERSION) {
-		device_printf(dev, "Unable to initialize Admin Queue, error %s\n",
+		device_printf(dev,
+		    "Unable to initialize Admin Queue, error %s\n",
 		    i40e_stat_str(hw, status));
 		error = EIO;
 		goto err_out;
@@ -572,22 +592,27 @@ ixl_if_attach_pre(if_ctx_t ctx)
 	ixl_print_nvm_version(pf);
 
 	if (status == I40E_ERR_FIRMWARE_API_VERSION) {
-		device_printf(dev, "The driver for the device stopped "
+		device_printf(dev,
+		    "The driver for the device stopped "
 		    "because the NVM image is newer than expected.\n");
-		device_printf(dev, "You must install the most recent version of "
+		device_printf(dev,
+		    "You must install the most recent version of "
 		    "the network driver.\n");
 		error = EIO;
 		goto err_out;
 	}
 
-        if (hw->aq.api_maj_ver == I40E_FW_API_VERSION_MAJOR &&
+	if (hw->aq.api_maj_ver == I40E_FW_API_VERSION_MAJOR &&
 	    hw->aq.api_min_ver > I40E_FW_MINOR_VERSION(hw)) {
-		device_printf(dev, "The driver for the device detected "
+		device_printf(dev,
+		    "The driver for the device detected "
 		    "a newer version of the NVM image than expected.\n");
-		device_printf(dev, "Please install the most recent version "
+		device_printf(dev,
+		    "Please install the most recent version "
 		    "of the network driver.\n");
 	} else if (hw->aq.api_maj_ver == 1 && hw->aq.api_min_ver < 4) {
-		device_printf(dev, "The driver for the device detected "
+		device_printf(dev,
+		    "The driver for the device detected "
 		    "an older version of the NVM image than expected.\n");
 		device_printf(dev, "Please update the NVM image.\n");
 	}
@@ -605,8 +630,7 @@ ixl_if_attach_pre(if_ctx_t ctx)
 	/* Get capabilities from the device */
 	error = ixl_get_hw_capabilities(pf);
 	if (error) {
-		device_printf(dev, "get_hw_capabilities failed: %d\n",
-		    error);
+		device_printf(dev, "get_hw_capabilities failed: %d\n", error);
 		goto err_get_cap;
 	}
 
@@ -651,11 +675,9 @@ ixl_if_attach_pre(if_ctx_t ctx)
 	/* Query device FW LLDP status */
 	if (i40e_get_fw_lldp_status(hw, &lldp_status) == I40E_SUCCESS) {
 		if (lldp_status == I40E_GET_FW_LLDP_STATUS_DISABLED) {
-			ixl_set_state(&pf->state,
-			    IXL_STATE_FW_LLDP_DISABLED);
+			ixl_set_state(&pf->state, IXL_STATE_FW_LLDP_DISABLED);
 		} else {
-			ixl_clear_state(&pf->state,
-			    IXL_STATE_FW_LLDP_DISABLED);
+			ixl_clear_state(&pf->state, IXL_STATE_FW_LLDP_DISABLED);
 		}
 	}
 
@@ -723,7 +745,7 @@ ixl_if_attach_post(if_ctx_t ctx)
 
 		/* Start the admin timer */
 		mtx_lock(&pf->admin_mtx);
-		callout_reset(&pf->admin_timer, hz/2, ixl_admin_timer, pf);
+		callout_reset(&pf->admin_timer, hz / 2, ixl_admin_timer, pf);
 		mtx_unlock(&pf->admin_mtx);
 		return (0);
 	}
@@ -731,7 +753,7 @@ ixl_if_attach_post(if_ctx_t ctx)
 	error = ixl_switch_config(pf);
 	if (error) {
 		device_printf(dev, "Initial ixl_switch_config() failed: %d\n",
-		     error);
+		    error);
 		goto err;
 	}
 
@@ -741,7 +763,8 @@ ixl_if_attach_post(if_ctx_t ctx)
 	/* Init queue allocation manager */
 	error = ixl_pf_qmgr_init(&pf->qmgr, hw->func_caps.num_tx_qp);
 	if (error) {
-		device_printf(dev, "Failed to init queue manager for PF queues, error %d\n",
+		device_printf(dev,
+		    "Failed to init queue manager for PF queues, error %d\n",
 		    error);
 		goto err;
 	}
@@ -749,11 +772,13 @@ ixl_if_attach_post(if_ctx_t ctx)
 	error = ixl_pf_qmgr_alloc_contiguous(&pf->qmgr,
 	    max(vsi->num_rx_queues, vsi->num_tx_queues), &pf->qtag);
 	if (error) {
-		device_printf(dev, "Failed to reserve queues for PF LAN VSI, error %d\n",
+		device_printf(dev,
+		    "Failed to reserve queues for PF LAN VSI, error %d\n",
 		    error);
 		goto err;
 	}
-	device_printf(dev, "Allocating %d queues for PF LAN VSI; %d queues active\n",
+	device_printf(dev,
+	    "Allocating %d queues for PF LAN VSI; %d queues active\n",
 	    pf->qtag.num_allocated, pf->qtag.num_active);
 
 	/* Determine link state */
@@ -762,11 +787,12 @@ ixl_if_attach_post(if_ctx_t ctx)
 		goto err;
 
 	/* Limit PHY interrupts to link, autoneg, and modules failure */
-	status = i40e_aq_set_phy_int_mask(hw, IXL_DEFAULT_PHY_INT_MASK,
-	    NULL);
-        if (status) {
-		device_printf(dev, "i40e_aq_set_phy_mask() failed: err %s,"
-		    " aq_err %s\n", i40e_stat_str(hw, status),
+	status = i40e_aq_set_phy_int_mask(hw, IXL_DEFAULT_PHY_INT_MASK, NULL);
+	if (status) {
+		device_printf(dev,
+		    "i40e_aq_set_phy_mask() failed: err %s,"
+		    " aq_err %s\n",
+		    i40e_stat_str(hw, status),
 		    i40e_aq_str(hw, hw->aq.asq_last_status));
 		goto err;
 	}
@@ -776,8 +802,8 @@ ixl_if_attach_post(if_ctx_t ctx)
 
 	/* Keep admin queue interrupts active while driver is loaded */
 	if (vsi->shared->isc_intr == IFLIB_INTR_MSIX) {
- 		ixl_configure_intr0_msix(pf);
- 		ixl_enable_intr0(hw);
+		ixl_configure_intr0_msix(pf);
+		ixl_enable_intr0(hw);
 	}
 
 	/* Set initial advertised speed sysctl value */
@@ -793,13 +819,13 @@ ixl_if_attach_post(if_ctx_t ctx)
 	 * Driver may have been reloaded. Ensure that the link state
 	 * is consistent with current settings.
 	 */
-	ixl_set_link(pf, ixl_test_state(&pf->state, IXL_STATE_LINK_ACTIVE_ON_DOWN));
+	ixl_set_link(pf,
+	    ixl_test_state(&pf->state, IXL_STATE_LINK_ACTIVE_ON_DOWN));
 
 	hw->phy.get_link_info = true;
 	status = i40e_get_link_status(hw, &pf->link_up);
 	if (status != I40E_SUCCESS) {
-		device_printf(dev,
-		    "%s get link status, status: %s aq_err=%s\n",
+		device_printf(dev, "%s get link status, status: %s aq_err=%s\n",
 		    __func__, i40e_stat_str(hw, status),
 		    i40e_aq_str(hw, hw->aq.asq_last_status));
 		/*
@@ -828,7 +854,8 @@ ixl_if_attach_post(if_ctx_t ctx)
 			} else
 				device_printf(dev, "iWARP ready\n");
 		} else
-			device_printf(dev, "iWARP disabled on this device "
+			device_printf(dev,
+			    "iWARP disabled on this device "
 			    "(no MSI-X vectors)\n");
 	} else {
 		pf->iw_enabled = false;
@@ -837,7 +864,7 @@ ixl_if_attach_post(if_ctx_t ctx)
 #endif
 	/* Start the admin timer */
 	mtx_lock(&pf->admin_mtx);
-	callout_reset(&pf->admin_timer, hz/2, ixl_admin_timer, pf);
+	callout_reset(&pf->admin_timer, hz / 2, ixl_admin_timer, pf);
 	mtx_unlock(&pf->admin_mtx);
 
 	INIT_DBG_DEV(dev, "end");
@@ -860,9 +887,9 @@ ixl_if_detach(if_ctx_t ctx)
 	struct ixl_vsi *vsi = &pf->vsi;
 	struct i40e_hw *hw = &pf->hw;
 	device_t dev = pf->dev;
-	enum i40e_status_code	status;
+	enum i40e_status_code status;
 #ifdef IXL_IW
-	int			error;
+	int error;
 #endif
 
 	INIT_DBG_DEV(dev, "begin");
@@ -878,7 +905,7 @@ ixl_if_detach(if_ctx_t ctx)
 		error = ixl_iw_pf_detach(pf);
 		if (error == EBUSY) {
 			device_printf(dev, "iwarp in use; stop it first.\n");
-			//return (error);
+			// return (error);
 		}
 	}
 #endif
@@ -952,18 +979,18 @@ ixl_if_init(if_ctx_t ctx)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw	*hw = &pf->hw;
+	struct i40e_hw *hw = &pf->hw;
 	if_t ifp = iflib_get_ifp(ctx);
-	device_t 	dev = iflib_get_dev(ctx);
-	u8		tmpaddr[ETHER_ADDR_LEN];
-	int		ret;
+	device_t dev = iflib_get_dev(ctx);
+	u8 tmpaddr[ETHER_ADDR_LEN];
+	int ret;
 
 	if (IXL_PF_IN_RECOVERY_MODE(pf))
 		return;
 	/*
-	 * If the aq is dead here, it probably means something outside of the driver
-	 * did something to the adapter, like a PF reset.
-	 * So, rebuild the driver's state here if that occurs.
+	 * If the aq is dead here, it probably means something outside of the
+	 * driver did something to the adapter, like a PF reset. So, rebuild the
+	 * driver's state here if that occurs.
 	 */
 	if (!i40e_check_asq_alive(&pf->hw)) {
 		device_printf(dev, "Admin Queue is down; resetting...\n");
@@ -978,8 +1005,7 @@ ixl_if_init(if_ctx_t ctx)
 		ixl_del_all_vlan_filters(vsi, hw->mac.addr);
 		bcopy(tmpaddr, hw->mac.addr, ETH_ALEN);
 		ret = i40e_aq_mac_address_write(hw,
-		    I40E_AQC_WRITE_TYPE_LAA_ONLY,
-		    hw->mac.addr, NULL);
+		    I40E_AQC_WRITE_TYPE_LAA_ONLY, hw->mac.addr, NULL);
 		if (ret) {
 			device_printf(dev, "LLA address change failed!!\n");
 			return;
@@ -1032,8 +1058,8 @@ ixl_if_init(if_ctx_t ctx)
 	if (ixl_enable_iwarp && pf->iw_enabled) {
 		ret = ixl_iw_pf_init(pf);
 		if (ret)
-			device_printf(dev,
-			    "initialize iwarp failed, code %d\n", ret);
+			device_printf(dev, "initialize iwarp failed, code %d\n",
+			    ret);
 	}
 #endif
 }
@@ -1050,7 +1076,7 @@ ixl_if_stop(if_ctx_t ctx)
 	if (IXL_PF_IN_RECOVERY_MODE(pf))
 		return;
 
-	// TODO: This may need to be reworked
+		// TODO: This may need to be reworked
 #ifdef IXL_IW
 	/* Stop iWARP device */
 	if (ixl_enable_iwarp && pf->iw_enabled)
@@ -1099,17 +1125,19 @@ ixl_if_msix_intr_assign(if_ctx_t ctx, int msix)
 #endif
 
 	/* Now set up the stations */
-	for (i = 0, vector = 1; i < vsi->shared->isc_nrxqsets; i++, vector++, rx_que++) {
+	for (i = 0, vector = 1; i < vsi->shared->isc_nrxqsets;
+	     i++, vector++, rx_que++) {
 		rid = vector + 1;
 
 		snprintf(buf, sizeof(buf), "rxq%d", i);
 		err = iflib_irq_alloc_generic(ctx, &rx_que->que_irq, rid,
 		    IFLIB_INTR_RXTX, ixl_msix_que, rx_que, rx_que->rxr.me, buf);
-		/* XXX: Does the driver work as expected if there are fewer num_rx_queues than
-		 * what's expected in the iflib context? */
+		/* XXX: Does the driver work as expected if there are fewer
+		 * num_rx_queues than what's expected in the iflib context? */
 		if (err) {
 			device_printf(iflib_get_dev(ctx),
-			    "Failed to allocate queue RX int vector %d, err: %d\n", i, err);
+			    "Failed to allocate queue RX int vector %d, err: %d\n",
+			    i, err);
 			vsi->num_rx_queues = i + 1;
 			goto fail;
 		}
@@ -1124,9 +1152,10 @@ ixl_if_msix_intr_assign(if_ctx_t ctx, int msix)
 		    &vsi->rx_queues[i % vsi->shared->isc_nrxqsets].que_irq,
 		    IFLIB_INTR_TX, tx_que, tx_que->txr.me, buf);
 
-		/* TODO: Maybe call a strategy function for this to figure out which
-		* interrupts to map Tx queues to. I don't know if there's an immediately
-		* better way than this other than a user-supplied map, though. */
+		/* TODO: Maybe call a strategy function for this to figure out
+		 * which interrupts to map Tx queues to. I don't know if there's
+		 * an immediately better way than this other than a
+		 * user-supplied map, though. */
 		tx_que->msix = (i % vsi->shared->isc_nrxqsets) + 1;
 	}
 
@@ -1150,8 +1179,8 @@ ixl_if_enable_intr(if_ctx_t ctx)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw		*hw = vsi->hw;
-	struct ixl_rx_queue	*que = vsi->rx_queues;
+	struct i40e_hw *hw = vsi->hw;
+	struct ixl_rx_queue *que = vsi->rx_queues;
 
 	ixl_enable_intr0(hw);
 	/* Enable queue interrupts */
@@ -1170,8 +1199,8 @@ ixl_if_disable_intr(if_ctx_t ctx)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw		*hw = vsi->hw;
-	struct ixl_rx_queue	*rx_que = vsi->rx_queues;
+	struct i40e_hw *hw = vsi->hw;
+	struct ixl_rx_queue *rx_que = vsi->rx_queues;
 
 	if (vsi->shared->isc_intr == IFLIB_INTR_MSIX) {
 		for (int i = 0; i < vsi->num_rx_queues; i++, rx_que++)
@@ -1188,8 +1217,8 @@ ixl_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t rxqid)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw		*hw = vsi->hw;
-	struct ixl_rx_queue	*rx_que = &vsi->rx_queues[rxqid];
+	struct i40e_hw *hw = vsi->hw;
+	struct ixl_rx_queue *rx_que = &vsi->rx_queues[rxqid];
 
 	ixl_enable_queue(hw, rx_que->msix - 1);
 	return (0);
@@ -1208,7 +1237,8 @@ ixl_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid)
 }
 
 static int
-ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs, int ntxqsets)
+ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
+    int ntxqs, int ntxqsets)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
@@ -1221,9 +1251,11 @@ ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxq
 	MPASS(scctx->isc_ntxqsets == ntxqsets);
 
 	/* Allocate queue structure memory */
-	if (!(vsi->tx_queues =
-	    (struct ixl_tx_queue *) malloc(sizeof(struct ixl_tx_queue) *ntxqsets, M_IXL, M_NOWAIT | M_ZERO))) {
-		device_printf(iflib_get_dev(ctx), "Unable to allocate TX ring memory\n");
+	if (!(vsi->tx_queues = (struct ixl_tx_queue *)
+		    malloc(sizeof(struct ixl_tx_queue) * ntxqsets, M_IXL,
+			M_NOWAIT | M_ZERO))) {
+		device_printf(iflib_get_dev(ctx),
+		    "Unable to allocate TX ring memory\n");
 		return (ENOMEM);
 	}
 
@@ -1235,8 +1267,11 @@ ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxq
 
 		if (!vsi->enable_head_writeback) {
 			/* Allocate report status array */
-			if (!(txr->tx_rsq = malloc(sizeof(qidx_t) * scctx->isc_ntxd[0], M_IXL, M_NOWAIT))) {
-				device_printf(iflib_get_dev(ctx), "failed to allocate tx_rsq memory\n");
+			if (!(txr->tx_rsq = malloc(sizeof(qidx_t) *
+				      scctx->isc_ntxd[0],
+				  M_IXL, M_NOWAIT))) {
+				device_printf(iflib_get_dev(ctx),
+				    "failed to allocate tx_rsq memory\n");
 				error = ENOMEM;
 				goto fail;
 			}
@@ -1244,7 +1279,8 @@ ixl_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxq
 			for (j = 0; j < scctx->isc_ntxd[0]; j++)
 				txr->tx_rsq[j] = QIDX_INVALID;
 		}
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		txr->tail = I40E_QTX_TAIL(txr->me);
 		txr->tx_base = (struct i40e_tx_desc *)vaddrs[i * ntxqs];
 		txr->tx_paddr = paddrs[i * ntxqs];
@@ -1258,7 +1294,8 @@ fail:
 }
 
 static int
-ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrxqs, int nrxqsets)
+ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
+    int nrxqs, int nrxqsets)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
@@ -1273,10 +1310,11 @@ ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrxq
 #endif
 
 	/* Allocate queue structure memory */
-	if (!(vsi->rx_queues =
-	    (struct ixl_rx_queue *) malloc(sizeof(struct ixl_rx_queue) *
-	    nrxqsets, M_IXL, M_NOWAIT | M_ZERO))) {
-		device_printf(iflib_get_dev(ctx), "Unable to allocate RX ring memory\n");
+	if (!(vsi->rx_queues = (struct ixl_rx_queue *)
+		    malloc(sizeof(struct ixl_rx_queue) * nrxqsets, M_IXL,
+			M_NOWAIT | M_ZERO))) {
+		device_printf(iflib_get_dev(ctx),
+		    "Unable to allocate RX ring memory\n");
 		error = ENOMEM;
 		goto fail;
 	}
@@ -1287,7 +1325,8 @@ ixl_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrxq
 		rxr->me = i;
 		que->vsi = vsi;
 
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		rxr->tail = I40E_QRX_TAIL(rxr->me);
 		rxr->rx_base = (union i40e_rx_desc *)vaddrs[i * nrxqs];
 		rxr->rx_paddr = paddrs[i * nrxqs];
@@ -1310,7 +1349,8 @@ ixl_if_queues_free(if_ctx_t ctx)
 		struct ixl_tx_queue *que;
 		int i = 0;
 
-		for (i = 0, que = vsi->tx_queues; i < vsi->num_tx_queues; i++, que++) {
+		for (i = 0, que = vsi->tx_queues; i < vsi->num_tx_queues;
+		     i++, que++) {
 			struct tx_ring *txr = &que->txr;
 			if (txr->tx_rsq != NULL) {
 				free(txr->tx_rsq, M_IXL);
@@ -1342,8 +1382,10 @@ ixl_update_link_status(struct ixl_pf *pf)
 	if (pf->link_up) {
 		if (vsi->link_active == FALSE) {
 			vsi->link_active = TRUE;
-			baudrate = ixl_max_aq_speed_to_value(hw->phy.link_info.link_speed);
-			iflib_link_state_change(vsi->ctx, LINK_STATE_UP, baudrate);
+			baudrate = ixl_max_aq_speed_to_value(
+			    hw->phy.link_info.link_speed);
+			iflib_link_state_change(vsi->ctx, LINK_STATE_UP,
+			    baudrate);
 			ixl_link_up_msg(pf);
 #ifdef PCI_IOV
 			ixl_broadcast_link_state(pf);
@@ -1366,7 +1408,8 @@ ixl_handle_lan_overflow_event(struct ixl_pf *pf, struct i40e_arq_event_info *e)
 	device_t dev = pf->dev;
 	u32 rxq_idx, qtx_ctl;
 
-	rxq_idx = (e->desc.params.external.param0 & I40E_PRTDCB_RUPTQ_RXQNUM_MASK) >>
+	rxq_idx = (e->desc.params.external.param0 &
+		      I40E_PRTDCB_RUPTQ_RXQNUM_MASK) >>
 	    I40E_PRTDCB_RUPTQ_RXQNUM_SHIFT;
 	qtx_ctl = e->desc.params.external.param1;
 
@@ -1387,8 +1430,10 @@ ixl_process_adminq(struct ixl_pf *pf, u16 *pending)
 	event.buf_len = IXL_AQ_BUF_SZ;
 	event.msg_buf = malloc(event.buf_len, M_IXL, M_NOWAIT | M_ZERO);
 	if (!event.msg_buf) {
-		device_printf(dev, "%s: Unable to allocate memory for Admin"
-		    " Queue event!\n", __func__);
+		device_printf(dev,
+		    "%s: Unable to allocate memory for Admin"
+		    " Queue event!\n",
+		    __func__);
 		return (ENOMEM);
 	}
 
@@ -1398,8 +1443,7 @@ ixl_process_adminq(struct ixl_pf *pf, u16 *pending)
 		if (status)
 			break;
 		opcode = LE16_TO_CPU(event.desc.opcode);
-		ixl_dbg(pf, IXL_DBG_AQ,
-		    "Admin Queue event: %#06x\n", opcode);
+		ixl_dbg(pf, IXL_DBG_AQ, "Admin Queue event: %#06x\n", opcode);
 		switch (opcode) {
 		case i40e_aqc_opc_get_link_status:
 			ixl_link_event(pf, &event);
@@ -1434,9 +1478,9 @@ ixl_process_adminq(struct ixl_pf *pf, u16 *pending)
 static void
 ixl_if_update_admin_status(if_ctx_t ctx)
 {
-	struct ixl_pf	*pf = iflib_get_softc(ctx);
-	struct i40e_hw	*hw = &pf->hw;
-	u16		pending;
+	struct ixl_pf *pf = iflib_get_softc(ctx);
+	struct i40e_hw *hw = &pf->hw;
+	u16 pending;
 
 	if (IXL_PF_IS_RESETTING(pf))
 		ixl_handle_empr_reset(pf);
@@ -1480,8 +1524,8 @@ ixl_if_multi_set(if_ctx_t ctx)
 
 	mcnt = min(if_llmaddr_count(iflib_get_ifp(ctx)), MAX_MULTICAST_ADDR);
 	if (__predict_false(mcnt == MAX_MULTICAST_ADDR)) {
-		i40e_aq_set_vsi_multicast_promiscuous(hw,
-		    vsi->seid, TRUE, NULL);
+		i40e_aq_set_vsi_multicast_promiscuous(hw, vsi->seid, TRUE,
+		    NULL);
 		ixl_del_multi(vsi, true);
 		return;
 	}
@@ -1502,7 +1546,7 @@ ixl_if_mtu_set(if_ctx_t ctx, uint32_t mtu)
 		return (EINVAL);
 
 	vsi->shared->isc_max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN +
-		ETHER_VLAN_ENCAP_LEN;
+	    ETHER_VLAN_ENCAP_LEN;
 
 	return (0);
 }
@@ -1511,7 +1555,7 @@ static void
 ixl_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
-	struct i40e_hw  *hw = &pf->hw;
+	struct i40e_hw *hw = &pf->hw;
 
 	INIT_DEBUGOUT("ixl_media_status: begin");
 
@@ -1527,119 +1571,119 @@ ixl_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr)
 	ifmr->ifm_active |= IFM_FDX;
 
 	switch (hw->phy.link_info.phy_type) {
-		/* 100 M */
-		case I40E_PHY_TYPE_100BASE_TX:
-			ifmr->ifm_active |= IFM_100_TX;
-			break;
-		/* 1 G */
-		case I40E_PHY_TYPE_1000BASE_T:
-			ifmr->ifm_active |= IFM_1000_T;
-			break;
-		case I40E_PHY_TYPE_1000BASE_SX:
-			ifmr->ifm_active |= IFM_1000_SX;
-			break;
-		case I40E_PHY_TYPE_1000BASE_LX:
-			ifmr->ifm_active |= IFM_1000_LX;
-			break;
-		case I40E_PHY_TYPE_1000BASE_T_OPTICAL:
-			ifmr->ifm_active |= IFM_1000_T;
-			break;
-		/* 2.5 G */
-		case I40E_PHY_TYPE_2_5GBASE_T_LINK_STATUS:
-			ifmr->ifm_active |= IFM_2500_T;
-			break;
-		/* 5 G */
-		case I40E_PHY_TYPE_5GBASE_T_LINK_STATUS:
-			ifmr->ifm_active |= IFM_5000_T;
-			break;
-		/* 10 G */
-		case I40E_PHY_TYPE_10GBASE_SFPP_CU:
-			ifmr->ifm_active |= IFM_10G_TWINAX;
-			break;
-		case I40E_PHY_TYPE_10GBASE_SR:
-			ifmr->ifm_active |= IFM_10G_SR;
-			break;
-		case I40E_PHY_TYPE_10GBASE_LR:
-			ifmr->ifm_active |= IFM_10G_LR;
-			break;
-		case I40E_PHY_TYPE_10GBASE_T:
-			ifmr->ifm_active |= IFM_10G_T;
-			break;
-		case I40E_PHY_TYPE_XAUI:
-		case I40E_PHY_TYPE_XFI:
-			ifmr->ifm_active |= IFM_10G_TWINAX;
-			break;
-		case I40E_PHY_TYPE_10GBASE_AOC:
-			ifmr->ifm_active |= IFM_10G_AOC;
-			break;
-		/* 25 G */
-		case I40E_PHY_TYPE_25GBASE_KR:
-			ifmr->ifm_active |= IFM_25G_KR;
-			break;
-		case I40E_PHY_TYPE_25GBASE_CR:
-			ifmr->ifm_active |= IFM_25G_CR;
-			break;
-		case I40E_PHY_TYPE_25GBASE_SR:
-			ifmr->ifm_active |= IFM_25G_SR;
-			break;
-		case I40E_PHY_TYPE_25GBASE_LR:
-			ifmr->ifm_active |= IFM_25G_LR;
-			break;
-		case I40E_PHY_TYPE_25GBASE_AOC:
-			ifmr->ifm_active |= IFM_25G_AOC;
-			break;
-		case I40E_PHY_TYPE_25GBASE_ACC:
-			ifmr->ifm_active |= IFM_25G_ACC;
-			break;
-		/* 40 G */
-		case I40E_PHY_TYPE_40GBASE_CR4:
-		case I40E_PHY_TYPE_40GBASE_CR4_CU:
-			ifmr->ifm_active |= IFM_40G_CR4;
-			break;
-		case I40E_PHY_TYPE_40GBASE_SR4:
-			ifmr->ifm_active |= IFM_40G_SR4;
-			break;
-		case I40E_PHY_TYPE_40GBASE_LR4:
-			ifmr->ifm_active |= IFM_40G_LR4;
-			break;
-		case I40E_PHY_TYPE_XLAUI:
-			ifmr->ifm_active |= IFM_OTHER;
-			break;
-		case I40E_PHY_TYPE_1000BASE_KX:
-			ifmr->ifm_active |= IFM_1000_KX;
-			break;
-		case I40E_PHY_TYPE_SGMII:
-			ifmr->ifm_active |= IFM_1000_SGMII;
-			break;
-		/* ERJ: What's the difference between these? */
-		case I40E_PHY_TYPE_10GBASE_CR1_CU:
-		case I40E_PHY_TYPE_10GBASE_CR1:
-			ifmr->ifm_active |= IFM_10G_CR1;
-			break;
-		case I40E_PHY_TYPE_10GBASE_KX4:
-			ifmr->ifm_active |= IFM_10G_KX4;
-			break;
-		case I40E_PHY_TYPE_10GBASE_KR:
-			ifmr->ifm_active |= IFM_10G_KR;
-			break;
-		case I40E_PHY_TYPE_SFI:
-			ifmr->ifm_active |= IFM_10G_SFI;
-			break;
-		/* Our single 20G media type */
-		case I40E_PHY_TYPE_20GBASE_KR2:
-			ifmr->ifm_active |= IFM_20G_KR2;
-			break;
-		case I40E_PHY_TYPE_40GBASE_KR4:
-			ifmr->ifm_active |= IFM_40G_KR4;
-			break;
-		case I40E_PHY_TYPE_XLPPI:
-		case I40E_PHY_TYPE_40GBASE_AOC:
-			ifmr->ifm_active |= IFM_40G_XLPPI;
-			break;
-		/* Unknown to driver */
-		default:
-			ifmr->ifm_active |= IFM_UNKNOWN;
-			break;
+	/* 100 M */
+	case I40E_PHY_TYPE_100BASE_TX:
+		ifmr->ifm_active |= IFM_100_TX;
+		break;
+	/* 1 G */
+	case I40E_PHY_TYPE_1000BASE_T:
+		ifmr->ifm_active |= IFM_1000_T;
+		break;
+	case I40E_PHY_TYPE_1000BASE_SX:
+		ifmr->ifm_active |= IFM_1000_SX;
+		break;
+	case I40E_PHY_TYPE_1000BASE_LX:
+		ifmr->ifm_active |= IFM_1000_LX;
+		break;
+	case I40E_PHY_TYPE_1000BASE_T_OPTICAL:
+		ifmr->ifm_active |= IFM_1000_T;
+		break;
+	/* 2.5 G */
+	case I40E_PHY_TYPE_2_5GBASE_T_LINK_STATUS:
+		ifmr->ifm_active |= IFM_2500_T;
+		break;
+	/* 5 G */
+	case I40E_PHY_TYPE_5GBASE_T_LINK_STATUS:
+		ifmr->ifm_active |= IFM_5000_T;
+		break;
+	/* 10 G */
+	case I40E_PHY_TYPE_10GBASE_SFPP_CU:
+		ifmr->ifm_active |= IFM_10G_TWINAX;
+		break;
+	case I40E_PHY_TYPE_10GBASE_SR:
+		ifmr->ifm_active |= IFM_10G_SR;
+		break;
+	case I40E_PHY_TYPE_10GBASE_LR:
+		ifmr->ifm_active |= IFM_10G_LR;
+		break;
+	case I40E_PHY_TYPE_10GBASE_T:
+		ifmr->ifm_active |= IFM_10G_T;
+		break;
+	case I40E_PHY_TYPE_XAUI:
+	case I40E_PHY_TYPE_XFI:
+		ifmr->ifm_active |= IFM_10G_TWINAX;
+		break;
+	case I40E_PHY_TYPE_10GBASE_AOC:
+		ifmr->ifm_active |= IFM_10G_AOC;
+		break;
+	/* 25 G */
+	case I40E_PHY_TYPE_25GBASE_KR:
+		ifmr->ifm_active |= IFM_25G_KR;
+		break;
+	case I40E_PHY_TYPE_25GBASE_CR:
+		ifmr->ifm_active |= IFM_25G_CR;
+		break;
+	case I40E_PHY_TYPE_25GBASE_SR:
+		ifmr->ifm_active |= IFM_25G_SR;
+		break;
+	case I40E_PHY_TYPE_25GBASE_LR:
+		ifmr->ifm_active |= IFM_25G_LR;
+		break;
+	case I40E_PHY_TYPE_25GBASE_AOC:
+		ifmr->ifm_active |= IFM_25G_AOC;
+		break;
+	case I40E_PHY_TYPE_25GBASE_ACC:
+		ifmr->ifm_active |= IFM_25G_ACC;
+		break;
+	/* 40 G */
+	case I40E_PHY_TYPE_40GBASE_CR4:
+	case I40E_PHY_TYPE_40GBASE_CR4_CU:
+		ifmr->ifm_active |= IFM_40G_CR4;
+		break;
+	case I40E_PHY_TYPE_40GBASE_SR4:
+		ifmr->ifm_active |= IFM_40G_SR4;
+		break;
+	case I40E_PHY_TYPE_40GBASE_LR4:
+		ifmr->ifm_active |= IFM_40G_LR4;
+		break;
+	case I40E_PHY_TYPE_XLAUI:
+		ifmr->ifm_active |= IFM_OTHER;
+		break;
+	case I40E_PHY_TYPE_1000BASE_KX:
+		ifmr->ifm_active |= IFM_1000_KX;
+		break;
+	case I40E_PHY_TYPE_SGMII:
+		ifmr->ifm_active |= IFM_1000_SGMII;
+		break;
+	/* ERJ: What's the difference between these? */
+	case I40E_PHY_TYPE_10GBASE_CR1_CU:
+	case I40E_PHY_TYPE_10GBASE_CR1:
+		ifmr->ifm_active |= IFM_10G_CR1;
+		break;
+	case I40E_PHY_TYPE_10GBASE_KX4:
+		ifmr->ifm_active |= IFM_10G_KX4;
+		break;
+	case I40E_PHY_TYPE_10GBASE_KR:
+		ifmr->ifm_active |= IFM_10G_KR;
+		break;
+	case I40E_PHY_TYPE_SFI:
+		ifmr->ifm_active |= IFM_10G_SFI;
+		break;
+	/* Our single 20G media type */
+	case I40E_PHY_TYPE_20GBASE_KR2:
+		ifmr->ifm_active |= IFM_20G_KR2;
+		break;
+	case I40E_PHY_TYPE_40GBASE_KR4:
+		ifmr->ifm_active |= IFM_40G_KR4;
+		break;
+	case I40E_PHY_TYPE_XLPPI:
+	case I40E_PHY_TYPE_40GBASE_AOC:
+		ifmr->ifm_active |= IFM_40G_XLPPI;
+		break;
+	/* Unknown to driver */
+	default:
+		ifmr->ifm_active |= IFM_UNKNOWN;
+		break;
 	}
 	/* Report flow control status as well */
 	if (hw->phy.link_info.an_info & I40E_AQ_LINK_PAUSE_TX)
@@ -1668,22 +1712,21 @@ ixl_if_promisc_set(if_ctx_t ctx, int flags)
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
 	if_t ifp = iflib_get_ifp(ctx);
-	struct i40e_hw	*hw = vsi->hw;
-	int		err;
-	bool		uni = FALSE, multi = FALSE;
+	struct i40e_hw *hw = vsi->hw;
+	int err;
+	bool uni = FALSE, multi = FALSE;
 
 	if (flags & IFF_PROMISC)
 		uni = multi = TRUE;
-	else if (flags & IFF_ALLMULTI || if_llmaddr_count(ifp) >=
-	    MAX_MULTICAST_ADDR)
+	else if (flags & IFF_ALLMULTI ||
+	    if_llmaddr_count(ifp) >= MAX_MULTICAST_ADDR)
 		multi = TRUE;
 
-	err = i40e_aq_set_vsi_unicast_promiscuous(hw,
-	    vsi->seid, uni, NULL, true);
+	err = i40e_aq_set_vsi_unicast_promiscuous(hw, vsi->seid, uni, NULL,
+	    true);
 	if (err)
 		return (err);
-	err = i40e_aq_set_vsi_multicast_promiscuous(hw,
-	    vsi->seid, multi, NULL);
+	err = i40e_aq_set_vsi_multicast_promiscuous(hw, vsi->seid, multi, NULL);
 	return (err);
 }
 
@@ -1703,10 +1746,10 @@ ixl_if_vlan_register(if_ctx_t ctx, u16 vtag)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw	*hw = vsi->hw;
+	struct i40e_hw *hw = vsi->hw;
 	if_t ifp = iflib_get_ifp(ctx);
 
-	if ((vtag == 0) || (vtag > 4095))	/* Invalid */
+	if ((vtag == 0) || (vtag > 4095)) /* Invalid */
 		return;
 
 	/*
@@ -1740,10 +1783,10 @@ ixl_if_vlan_unregister(if_ctx_t ctx, u16 vtag)
 {
 	struct ixl_pf *pf = iflib_get_softc(ctx);
 	struct ixl_vsi *vsi = &pf->vsi;
-	struct i40e_hw	*hw = vsi->hw;
+	struct i40e_hw *hw = vsi->hw;
 	if_t ifp = iflib_get_ifp(ctx);
 
-	if ((vtag == 0) || (vtag > 4095))	/* Invalid */
+	if ((vtag == 0) || (vtag > 4095)) /* Invalid */
 		return;
 
 	--vsi->num_vlans;
@@ -1812,14 +1855,14 @@ ixl_if_vflr_handle(if_ctx_t ctx)
 static int
 ixl_if_i2c_req(if_ctx_t ctx, struct ifi2creq *req)
 {
-	struct ixl_pf		*pf = iflib_get_softc(ctx);
+	struct ixl_pf *pf = iflib_get_softc(ctx);
 
 	if (pf->read_i2c_byte == NULL)
 		return (EINVAL);
 
 	for (int i = 0; i < req->len; i++)
-		if (pf->read_i2c_byte(pf, req->offset + i,
-		    req->dev_addr, &req->data[i]))
+		if (pf->read_i2c_byte(pf, req->offset + i, req->dev_addr,
+			&req->data[i]))
 			return (EIO);
 	return (0);
 }
@@ -1838,7 +1881,7 @@ ixl_if_priv_ioctl(if_ctx_t ctx, u_long command, caddr_t data)
 	 * executed by privileged threads.
 	 */
 
-	switch(command) {
+	switch (command) {
 	case SIOCGDRVSPEC:
 	case SIOCSDRVSPEC:
 		/* NVM update command */
@@ -1908,7 +1951,8 @@ ixl_save_pf_tunables(struct ixl_pf *pf)
 	if (ixl_tx_itr < 0 || ixl_tx_itr > IXL_MAX_ITR) {
 		device_printf(dev, "Invalid tx_itr value of %d set!\n",
 		    ixl_tx_itr);
-		device_printf(dev, "tx_itr must be between %d and %d, "
+		device_printf(dev,
+		    "tx_itr must be between %d and %d, "
 		    "inclusive\n",
 		    0, IXL_MAX_ITR);
 		device_printf(dev, "Using default value of %d instead\n",
@@ -1920,7 +1964,8 @@ ixl_save_pf_tunables(struct ixl_pf *pf)
 	if (ixl_rx_itr < 0 || ixl_rx_itr > IXL_MAX_ITR) {
 		device_printf(dev, "Invalid rx_itr value of %d set!\n",
 		    ixl_rx_itr);
-		device_printf(dev, "rx_itr must be between %d and %d, "
+		device_printf(dev,
+		    "rx_itr must be between %d and %d, "
 		    "inclusive\n",
 		    0, IXL_MAX_ITR);
 		device_printf(dev, "Using default value of %d instead\n",
@@ -1937,11 +1982,11 @@ ixl_save_pf_tunables(struct ixl_pf *pf)
 			    ixl_flow_control);
 			device_printf(dev,
 			    "flow_control must be between %d and %d, "
-			    "inclusive\n", 0, 3);
+			    "inclusive\n",
+			    0, 3);
 			device_printf(dev,
 			    "Using default configuration instead\n");
 		} else
 			pf->fc = ixl_flow_control;
 	}
 }
-

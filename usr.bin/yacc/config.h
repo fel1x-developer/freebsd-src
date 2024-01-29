@@ -8,13 +8,13 @@
 #define GCC_PRINTF 1
 
 /* Define to printf-attribute for gcc */
-#define GCC_PRINTFLIKE(fmt,var) __attribute__((format(printf,fmt,var)))
+#define GCC_PRINTFLIKE(fmt, var) __attribute__((format(printf, fmt, var)))
 
 /* Define to 1 if the compiler supports gcc-like scanf attribute. */
 #define GCC_SCANF 1
 
 /* Define to sscanf-attribute for gcc */
-#define GCC_SCANFLIKE(fmt,var) __attribute__((format(scanf,fmt,var)))
+#define GCC_SCANFLIKE(fmt, var) __attribute__((format(scanf, fmt, var)))
 
 /* Define to unused-attribute for gcc */
 #define GCC_UNUSED __attribute__((unused))

@@ -60,7 +60,7 @@ decode_embedded_bp_compressed(const blkptr_t *bp, void *buf)
 	 * Low bits of first word are the first byte (little endian).
 	 */
 	for (int i = 0; i < psize; i++) {
-		if (i % sizeof (w) == 0) {
+		if (i % sizeof(w) == 0) {
 			/* beginning of a word */
 			ASSERT3P(bp64, <, bp + 1);
 			w = *bp64;
@@ -68,6 +68,6 @@ decode_embedded_bp_compressed(const blkptr_t *bp, void *buf)
 			if (!BPE_IS_PAYLOADWORD(bp, bp64))
 				bp64++;
 		}
-		buf8[i] = BF64_GET(w, (i % sizeof (w)) * NBBY, NBBY);
+		buf8[i] = BF64_GET(w, (i % sizeof(w)) * NBBY, NBBY);
 	}
 }

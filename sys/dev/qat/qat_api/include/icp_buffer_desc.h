@@ -43,8 +43,8 @@ typedef struct icp_flat_buffer_desc_s {
 	Cpa32U reserved;
 	icp_qat_addr_width_t phyBuffer;
 	/**< The client will allocate memory for this using API function calls
-	  *  and the access layer will fill it and the QAT will read it.
-	  */
+	 *  and the access layer will fill it and the QAT will read it.
+	 */
 } icp_flat_buffer_desc_t;
 
 /**
@@ -67,10 +67,10 @@ typedef struct icp_buffer_list_desc_s {
 	Cpa32U reserved;
 	icp_flat_buffer_desc_t phyBuffers[];
 	/**< Unbounded array of physical buffer pointers, these point to the
-	  *  FlatBufferDescs. The client will allocate memory for this using
-	  *  API function calls and the access layer will fill it and the QAT
-	  *  will read it.
-	  */
+	 *  FlatBufferDescs. The client will allocate memory for this using
+	 *  API function calls and the access layer will fill it and the QAT
+	 *  will read it.
+	 */
 } icp_buffer_list_desc_t;
 
 #endif /* ICP_BUFFER_DESC_H */

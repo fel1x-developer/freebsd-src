@@ -29,6 +29,7 @@
  */
 
 #include <sys/param.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
@@ -63,7 +64,7 @@ dump_hid_table(void)
 		printf("%d\t%s\n", pages[i].usage, pages[i].name);
 		for (j = 0; j < pages[i].pagesize; j++) {
 			printf("\t%d\t%s\n", pages[i].page_contents[j].usage,
-			       pages[i].page_contents[j].name);
+			    pages[i].page_contents[j].name);
 		}
 	}
 }
@@ -84,7 +85,7 @@ hid_init(const char *hidname)
 	f = fopen(hidname, "r");
 	if (f == NULL)
 		err(1, "%s", hidname);
-	for (lineno = 1; ; lineno++) {
+	for (lineno = 1;; lineno++) {
 		if (fgets(line, sizeof line, f) == NULL)
 			break;
 		if (line[0] == '#')
@@ -96,9 +97,9 @@ hid_init(const char *hidname)
 		if (sscanf(line, " * %[^\n]", name) == 1)
 			no = -1;
 		else if (sscanf(line, " 0x%x %[^\n]", &no, name) != 2 &&
-			 sscanf(line, " %d %[^\n]", &no, name) != 2)
-			errx(1, "file %s, line %d, syntax error",
-			     hidname, lineno);
+		    sscanf(line, " %d %[^\n]", &no, name) != 2)
+			errx(1, "file %s, line %d, syntax error", hidname,
+			    lineno);
 		for (p = name; *p; p++)
 			if (isspace(*p) || *p == '.')
 				*p = '_';
@@ -108,13 +109,13 @@ hid_init(const char *hidname)
 		if (isspace(line[0])) {
 			if (!curpage)
 				errx(1, "file %s, line %d, syntax error",
-				     hidname, lineno);
+				    hidname, lineno);
 			if (curpage->pagesize >= curpage->pagesizemax) {
 				curpage->pagesizemax += 10;
 				curpage->page_contents =
-					realloc(curpage->page_contents,
-						curpage->pagesizemax *
-						sizeof (struct usage_in_page));
+				    realloc(curpage->page_contents,
+					curpage->pagesizemax *
+					    sizeof(struct usage_in_page));
 				if (!curpage->page_contents)
 					err(1, "realloc");
 			}
@@ -126,12 +127,12 @@ hid_init(const char *hidname)
 				if (pages == NULL) {
 					npagesmax = 5;
 					pages = malloc(npagesmax *
-						  sizeof (struct usage_page));
+					    sizeof(struct usage_page));
 				} else {
 					npagesmax += 5;
 					pages = realloc(pages,
-						   npagesmax *
-						   sizeof (struct usage_page));
+					    npagesmax *
+						sizeof(struct usage_page));
 				}
 				if (!pages)
 					err(1, "alloc");
@@ -141,9 +142,8 @@ hid_init(const char *hidname)
 			curpage->usage = no;
 			curpage->pagesize = 0;
 			curpage->pagesizemax = 10;
-			curpage->page_contents =
-				malloc(curpage->pagesizemax *
-				       sizeof (struct usage_in_page));
+			curpage->page_contents = malloc(curpage->pagesizemax *
+			    sizeof(struct usage_in_page));
 			if (!curpage->page_contents)
 				err(1, "malloc");
 		}
@@ -187,14 +187,13 @@ hid_usage_in_page(unsigned int u)
 		us = pages[k].page_contents[j].usage;
 		if (us == -1) {
 			sprintf(b,
-			    fmtcheck(pages[k].page_contents[j].name, "%d"),
-			    i);
+			    fmtcheck(pages[k].page_contents[j].name, "%d"), i);
 			return b;
 		}
 		if (us == i)
 			return pages[k].page_contents[j].name;
 	}
- bad:
+bad:
 	sprintf(b, "0x%04x", i);
 	return b;
 }
@@ -229,10 +228,11 @@ hid_parse_usage_in_page(const char *name)
 		if (strncmp(pages[k].name, name, l) == 0)
 			goto found;
 	return -1;
- found:
+found:
 	sep++;
 	for (j = 0; j < pages[k].pagesize; j++)
 		if (strcmp(pages[k].page_contents[j].name, sep) == 0)
-			return (pages[k].usage << 16) | pages[k].page_contents[j].usage;
+			return (pages[k].usage << 16) |
+			    pages[k].page_contents[j].usage;
 	return (-1);
 }

@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: sdp.c,v 1.2 2008/12/06 20:01:14 plunky Exp $");
 
@@ -41,14 +40,8 @@ __RCSID("$NetBSD: sdp.c,v 1.2 2008/12/06 20:01:14 plunky Exp $");
  */
 
 /* Bluetooth Base UUID */
-static const uuid_t BASE_UUID = {
-	0x00000000,
-	0x0000,
-	0x1000,
-	0x80,
-	0x00,
-	{ 0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb }
-};
+static const uuid_t BASE_UUID = { 0x00000000, 0x0000, 0x1000, 0x80, 0x00,
+	{ 0x00, 0x80, 0x5f, 0x9b, 0x34, 0xfb } };
 
 /*
  * _sdp_match_uuid16(ptr, limit, uuid)
@@ -66,8 +59,7 @@ _sdp_match_uuid16(uint8_t **ptr, uint8_t *limit, uint16_t uuid)
 	memcpy(&u1, &BASE_UUID, sizeof(uuid_t));
 	u1.time_low = uuid;
 
-	if (!_sdp_get_uuid(&p, limit, &u2)
-	    || !uuid_equal(&u1, &u2, NULL))
+	if (!_sdp_get_uuid(&p, limit, &u2) || !uuid_equal(&u1, &u2, NULL))
 		return false;
 
 	*ptr = p;

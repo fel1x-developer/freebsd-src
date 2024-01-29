@@ -23,24 +23,23 @@
  * SUCH DAMAGE.
  */
 
-#include "diag.h"
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ah.h"
 #include "ah_internal.h"
-
-#include <getopt.h>
-#include <errno.h>
-#include <err.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
+#include "diag.h"
 
 struct radarhandler {
-	struct		ath_diag atd;
-	int		s;
-	struct ifreq	ifr;
-	int		ah_devid;
+	struct ath_diag atd;
+	int s;
+	struct ifreq ifr;
+	int ah_devid;
 };
 
 int
@@ -54,11 +53,11 @@ radar_opendev(struct radarhandler *radar, const char *devid)
 		return 0;
 	}
 
-	strncpy(radar->atd.ad_name, devid, sizeof (radar->atd.ad_name));
+	strncpy(radar->atd.ad_name, devid, sizeof(radar->atd.ad_name));
 
 	/* Get the hardware revision, just to verify things are working */
 	radar->atd.ad_id = HAL_DIAG_REVS;
-	radar->atd.ad_out_data = (caddr_t) &revs;
+	radar->atd.ad_out_data = (caddr_t)&revs;
 	radar->atd.ad_out_size = sizeof(revs);
 	if (ioctl(radar->s, SIOCGATHDIAG, &radar->atd) < 0) {
 		warn(radar->atd.ad_name);
@@ -149,7 +148,7 @@ radarset(struct radarhandler *radar, int op, u_int32_t param)
 	radar->atd.ad_id = DFS_SET_THRESH | ATH_DIAG_IN;
 	radar->atd.ad_out_data = NULL;
 	radar->atd.ad_out_size = 0;
-	radar->atd.ad_in_data = (caddr_t) &pe;
+	radar->atd.ad_in_data = (caddr_t)&pe;
 	radar->atd.ad_in_size = sizeof(HAL_PHYERR_PARAM);
 	if (ioctl(radar->s, SIOCGATHPHYERR, &radar->atd) < 0)
 		err(1, radar->atd.ad_name);
@@ -165,7 +164,7 @@ radar_get(struct radarhandler *radar)
 
 	radar->atd.ad_in_data = NULL;
 	radar->atd.ad_in_size = 0;
-	radar->atd.ad_out_data = (caddr_t) &pe;
+	radar->atd.ad_out_data = (caddr_t)&pe;
 	radar->atd.ad_out_size = sizeof(pe);
 
 	if (ioctl(radar->s, SIOCGATHPHYERR, &radar->atd) < 0)
@@ -190,8 +189,7 @@ radar_get(struct radarhandler *radar)
 }
 
 static int
-radar_set_param(struct radarhandler *radar, const char *param,
-    const char *val)
+radar_set_param(struct radarhandler *radar, const char *param, const char *val)
 {
 	int v;
 
@@ -271,7 +269,8 @@ main(int argc, char *argv[])
 			exit(127);
 		}
 		devname = argv[2];
-		argc -= 2; argv += 2;
+		argc -= 2;
+		argv += 2;
 	}
 
 	/* At this point we require at least one command */

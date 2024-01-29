@@ -32,22 +32,23 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "fvwrite.h"
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Write `count' objects (each size `size') from memory to the given file.
  * Return the number of whole objects written.
  */
 size_t
-fwrite_unlocked(const void * __restrict buf, size_t size, size_t count,
-    FILE * __restrict fp)
+fwrite_unlocked(const void *__restrict buf, size_t size, size_t count,
+    FILE *__restrict fp)
 {
 	size_t n;
 	struct __suio uio;
@@ -65,8 +66,7 @@ fwrite_unlocked(const void * __restrict buf, size_t size, size_t count,
 	 * values are less than that, their product can't possibly overflow
 	 * (size_t is always at least 32 bits on FreeBSD).
 	 */
-	if (((count | size) > 0xFFFF) &&
-	    (count > SIZE_MAX / size)) {
+	if (((count | size) > 0xFFFF) && (count > SIZE_MAX / size)) {
 		errno = EINVAL;
 		fp->_flags |= __SERR;
 		return (0);
@@ -86,13 +86,13 @@ fwrite_unlocked(const void * __restrict buf, size_t size, size_t count,
 	 * generally slow and since this occurs whenever size==0.
 	 */
 	if (__sfvwrite(fp, &uio) != 0)
-	    count = (n - uio.uio_resid) / size;
+		count = (n - uio.uio_resid) / size;
 	return (count);
 }
 
 size_t
-fwrite(const void * __restrict buf, size_t size, size_t count,
-    FILE * __restrict fp)
+fwrite(const void *__restrict buf, size_t size, size_t count,
+    FILE *__restrict fp)
 {
 	size_t n;
 

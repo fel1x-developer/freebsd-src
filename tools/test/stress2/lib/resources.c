@@ -28,21 +28,23 @@
 /* Get various resource limits for the tests */
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/mount.h>
-#include <kvm.h>
+#include <sys/stat.h>
+#include <sys/sysctl.h>
+
 #include <vm/vm_param.h>
-#include <errno.h>
+
 #include <err.h>
-#include <stdarg.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <kvm.h>
 #include <libutil.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "stress.h"
 
@@ -55,7 +57,7 @@ static char dfpath[128];
 static int64_t
 inodes(void)
 {
-	char path[MAXPATHLEN+1];
+	char path[MAXPATHLEN + 1];
 	struct statfs buf;
 
 	if (op->inodes != 0)
@@ -66,18 +68,18 @@ inodes(void)
 	if (statfs(path, &buf) < 0)
 		err(1, "statfs(%s)", path);
 	if (!strcmp(buf.f_fstypename, "msdosfs"))
-			buf.f_ffree = 9999;
+		buf.f_ffree = 9999;
 	flags = buf.f_flags & MNT_VISFLAGMASK;
 	if (op->verbose > 2)
-		printf("Free inodes on %s (%s): %jd\n", path,
-		    buf.f_mntonname, buf.f_ffree);
+		printf("Free inodes on %s (%s): %jd\n", path, buf.f_mntonname,
+		    buf.f_ffree);
 	return (buf.f_ffree);
 }
 
 static int64_t
 df(void)
 {
-	char path[MAXPATHLEN+1];
+	char path[MAXPATHLEN + 1];
 	struct statfs buf;
 
 	if (op->kblocks != 0)
@@ -94,8 +96,8 @@ df(void)
 		buf.f_bavail = 100;
 	}
 	if (op->verbose > 2)
-		printf("Free space on %s: %jd Mb\n", path, buf.f_bavail *
-		    buf.f_bsize / 1024 / 1024);
+		printf("Free space on %s: %jd Mb\n", path,
+		    buf.f_bavail * buf.f_bsize / 1024 / 1024);
 	return (buf.f_bavail * buf.f_bsize);
 }
 
@@ -113,7 +115,7 @@ swap(void)
 	if (sysctlnametomib("vm.swap_info", mib, &mibsize) == -1)
 		err(1, "sysctlnametomib()");
 
-	for (n = 0; ; ++n) {
+	for (n = 0;; ++n) {
 		mib[mibsize] = n;
 		size = sizeof xsw;
 		if (sysctl(mib, mibsize + 1, &xsw, &size, NULL, 0) == -1)
@@ -127,7 +129,7 @@ swap(void)
 
 	if (op->verbose > 2)
 		printf("Total free swap space %jd Mb\n",
-			sz * getpagesize() / 1024 / 1024);
+		    sz * getpagesize() / 1024 / 1024);
 
 	return (sz * getpagesize());
 }
@@ -142,8 +144,7 @@ usermem(void)
 		err(1, "sysctlbyname() %s:%d", __FILE__, __LINE__);
 
 	if (op->verbose > 2)
-		printf("Total free user memory %lu Mb\n",
-			mem / 1024 / 1024);
+		printf("Total free user memory %lu Mb\n", mem / 1024 / 1024);
 
 	return (mem);
 }
@@ -164,12 +165,13 @@ getdf(int64_t *block, int64_t *inode)
 	for (j = 0; j < 2; j++) {
 		for (i = 0; i < 10000; i++) {
 			if ((lockfd = open(lockpath,
-			    O_CREAT | O_TRUNC | O_WRONLY |
-			    O_EXCL, 0644)) != -1)
+				 O_CREAT | O_TRUNC | O_WRONLY | O_EXCL,
+				 0644)) != -1)
 				break;
 			usleep(10000); /* sleep 1/100 sec */
 			if (i > 0 && i % 1000 == 0)
-				fprintf(stderr, "%s is waiting for lock file"
+				fprintf(stderr,
+				    "%s is waiting for lock file"
 				    " %s\n",
 				    getprogname(), lockpath);
 		}
@@ -183,11 +185,10 @@ getdf(int64_t *block, int64_t *inode)
 		errx(1, "%s. Can not create %s\n", getprogname(), lockpath);
 	snprintf(dfpath, sizeof(dfpath), "%s/df", op->cd);
 	if ((dffd = open(dfpath, O_RDWR, 0644)) == -1) {
-		if ((dffd = open(dfpath,
-				O_CREAT | O_TRUNC | O_WRONLY, 0644)) == -1) {
+		if ((dffd = open(dfpath, O_CREAT | O_TRUNC | O_WRONLY, 0644)) ==
+		    -1) {
 			unlink(lockpath);
-			err(1, "creat(%s) %s:%d", dfpath, __FILE__,
-			    __LINE__);
+			err(1, "creat(%s) %s:%d", dfpath, __FILE__, __LINE__);
 		}
 		atexit(cleanupdf);
 		*block = df();
@@ -195,7 +196,7 @@ getdf(int64_t *block, int64_t *inode)
 		snprintf(buf, sizeof(buf), "%jd %jd", *block, *inode);
 
 		if (write(dffd, buf, strlen(buf) + 1) !=
-		    (ssize_t)strlen(buf) +1)
+		    (ssize_t)strlen(buf) + 1)
 			err(1, "write df. %s:%d", __FILE__, __LINE__);
 	} else {
 		if (read(dffd, buf, sizeof(buf)) < 1) {
@@ -227,8 +228,7 @@ reservedf(int64_t blks, int64_t inos)
 
 	if (op->verbose > 2)
 		printf("%-8s: reservefd(%9jdK, %6jd) out of (%9jdK, %6jd)\n",
-				getprogname(), blks/1024, inos, blocks/1024,
-				inodes);
+		    getprogname(), blks / 1024, inos, blocks / 1024, inodes);
 	blocks -= blks;
 	inodes -= inos;
 
@@ -238,7 +238,7 @@ reservedf(int64_t blks, int64_t inos)
 		    getprogname(), buf);
 	if (lseek(dffd, 0, 0) == -1)
 		err(1, "lseek. %s:%d", __FILE__, __LINE__);
-	if (write(dffd, buf, strlen(buf) + 1) != (ssize_t)strlen(buf) +1)
+	if (write(dffd, buf, strlen(buf) + 1) != (ssize_t)strlen(buf) + 1)
 		warn("write df. %s:%d", __FILE__, __LINE__);
 err:
 	close(dffd);

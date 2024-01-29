@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-#define MPPE_KEY_LEN	16
+#define MPPE_KEY_LEN 16
 extern const struct ccp_algorithm MPPEAlgorithm;
 extern int MPPE_MasterKeyValid;
 extern int MPPE_IsServer;

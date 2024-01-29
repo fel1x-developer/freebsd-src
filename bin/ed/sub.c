@@ -27,12 +27,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "ed.h"
 
-
-static char *rhbuf;		/* rhs substitution buffer */
-static int rhbufsz;		/* rhs substitution buffer size */
-static int rhbufi;		/* rhs substitution buffer index */
+static char *rhbuf; /* rhs substitution buffer */
+static int rhbufsz; /* rhs substitution buffer size */
+static int rhbufi;  /* rhs substitution buffer index */
 
 /* extract_subst_tail: extract substitution tail from the command buffer */
 int
@@ -46,7 +46,7 @@ extract_subst_tail(int *flagp, long *np)
 		*flagp = GPR;
 		return 0;
 	} else if (extract_subst_template() == NULL)
-		return  ERR;
+		return ERR;
 	else if (*ibufp == '\n') {
 		*flagp = GPR;
 		return 0;
@@ -62,7 +62,6 @@ extract_subst_tail(int *flagp, long *np)
 	}
 	return 0;
 }
-
 
 /* extract_subst_template: return pointer to copy of substitution template
    in the command buffer */
@@ -99,12 +98,11 @@ extract_subst_template(void)
 	}
 	REALLOC(rhbuf, rhbufsz, i + 1, NULL);
 	rhbuf[rhbufi = i] = '\0';
-	return  rhbuf;
+	return rhbuf;
 }
 
-
-static char *rbuf;		/* substitute_matching_text buffer */
-static int rbufsz;		/* substitute_matching_text buffer size */
+static char *rbuf; /* substitute_matching_text buffer */
+static int rbufsz; /* substitute_matching_text buffer size */
 
 /* search_and_replace: for each line in a range, change text matching a pattern
    according to a substitution template; return status  */
@@ -137,9 +135,11 @@ search_and_replace(pattern_t *pat, int gflag, int kth)
 					SPL0();
 					return ERR;
 				} else if (up)
-					up->t = get_addressed_line_node(current_addr);
+					up->t = get_addressed_line_node(
+					    current_addr);
 				else if ((up = push_undo_stack(UADD,
-				    current_addr, current_addr)) == NULL) {
+					      current_addr, current_addr)) ==
+				    NULL) {
 					SPL0();
 					return ERR;
 				}
@@ -150,7 +150,7 @@ search_and_replace(pattern_t *pat, int gflag, int kth)
 		}
 	}
 	current_addr = xa;
-	if  (nsubs == 0 && !(gflag & GLB)) {
+	if (nsubs == 0 && !(gflag & GLB)) {
 		errmsg = "no match";
 		return ERR;
 	} else if ((gflag & (GPR | GLS | GNP)) &&
@@ -158,7 +158,6 @@ search_and_replace(pattern_t *pat, int gflag, int kth)
 		return ERR;
 	return 0;
 }
-
 
 /* substitute_matching_text: replace text matched by a pattern according to
    a substitution template; return pointer to the modified text */
@@ -189,7 +188,7 @@ substitute_matching_text(pattern_t *pat, line_t *lp, int gflag, int kth)
 				memcpy(rbuf + off, txt, i);
 				off += i;
 				if ((off = apply_subst_template(txt, rm, off,
-				    pat->re_nsub)) < 0)
+					 pat->re_nsub)) < 0)
 					return ERR;
 			} else {
 				i = rm[0].rm_eo;
@@ -200,14 +199,13 @@ substitute_matching_text(pattern_t *pat, line_t *lp, int gflag, int kth)
 				off += i;
 			}
 			txt += rm[0].rm_eo;
-		} while (*txt &&
-                        (!changed || ((gflag & GSG) && rm[0].rm_eo)) &&
-		        !regexec(pat, txt, SE_MAX, rm, REG_NOTBOL));
+		} while (*txt && (!changed || ((gflag & GSG) && rm[0].rm_eo)) &&
+		    !regexec(pat, txt, SE_MAX, rm, REG_NOTBOL));
 		i = eot - txt;
 		REALLOC(rbuf, rbufsz, off + i + 2, ERR);
 		if (i > 0 && !rm[0].rm_eo && (gflag & GSG)) {
 			errmsg = "infinite substitution loop";
-			return  ERR;
+			return ERR;
 		}
 		if (isbinary)
 			NEWLINE_TO_NUL(txt, i);
@@ -216,7 +214,6 @@ substitute_matching_text(pattern_t *pat, line_t *lp, int gflag, int kth)
 	}
 	return changed ? off + i + 1 : 0;
 }
-
 
 /* apply_subst_template: modify text according to a substitution template;
    return offset to end of modified text */

@@ -33,28 +33,24 @@ __RCSID("$NetBSD: resolv.c,v 1.6 2004/05/23 16:59:11 christos Exp $");
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <errno.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdatomic.h>
 #include <netdb.h>
+#include <pthread.h>
+#include <stdatomic.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stringlist.h>
+#include <unistd.h>
 
-#include <atf-c.h>
+#define NTHREADS 10
+#define NHOSTS 100
+#define WS " \t\n\r"
 
-#define NTHREADS	10
-#define NHOSTS		100
-#define WS		" \t\n\r"
-
-enum method {
-	METHOD_GETADDRINFO,
-	METHOD_GETHOSTBY,
-	METHOD_GETIPNODEBY
-};
+enum method { METHOD_GETADDRINFO, METHOD_GETHOSTBY, METHOD_GETIPNODEBY };
 
 static StringList *hosts = NULL;
 static _Atomic(int) *ask = NULL;
@@ -66,9 +62,10 @@ static void resolvone(long, int, enum method);
 static void *resolvloop(void *);
 static pthread_t run(int, enum method, long);
 
-#define	DBG(...) do {					\
-	if (debug_output)				\
-		dprintf(STDOUT_FILENO, __VA_ARGS__);	\
+#define DBG(...)                                             \
+	do {                                                 \
+		if (debug_output)                            \
+			dprintf(STDOUT_FILENO, __VA_ARGS__); \
 	} while (0)
 
 static void
@@ -173,7 +170,7 @@ resolv_getipnodeby(long threadnum, char *host, const char **errstr)
 static void
 resolvone(long threadnum, int n, enum method method)
 {
-	const char* errstr = NULL;
+	const char *errstr = NULL;
 	size_t i = (random() & 0x0fffffff) % hosts->sl_cur;
 	char *host = hosts->sl_str[i];
 	int error;
@@ -302,18 +299,20 @@ run_tests(const char *hostlist_file, enum method method)
 	return c;
 }
 
-#define	HOSTLIST_FILE	"mach"
+#define HOSTLIST_FILE "mach"
 
-#define	RUN_TESTS(tc, method) \
-do {									\
-	char *_hostlist_file;						\
-	ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",		\
-	    atf_tc_get_config_var(tc, "srcdir"), HOSTLIST_FILE));	\
-	ATF_REQUIRE(run_tests(_hostlist_file, method) == 0);		\
-} while(0)
+#define RUN_TESTS(tc, method)                                            \
+	do {                                                             \
+		char *_hostlist_file;                                    \
+		ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",       \
+				    atf_tc_get_config_var(tc, "srcdir"), \
+				    HOSTLIST_FILE));                     \
+		ATF_REQUIRE(run_tests(_hostlist_file, method) == 0);     \
+	} while (0)
 
 ATF_TC(getaddrinfo_test);
-ATF_TC_HEAD(getaddrinfo_test, tc) {
+ATF_TC_HEAD(getaddrinfo_test, tc)
+{
 	atf_tc_set_md_var(tc, "timeout", "1200");
 }
 ATF_TC_BODY(getaddrinfo_test, tc)
@@ -323,7 +322,8 @@ ATF_TC_BODY(getaddrinfo_test, tc)
 }
 
 ATF_TC(gethostby_test);
-ATF_TC_HEAD(gethostby_test, tc) {
+ATF_TC_HEAD(gethostby_test, tc)
+{
 	atf_tc_set_md_var(tc, "timeout", "1200");
 }
 ATF_TC_BODY(gethostby_test, tc)
@@ -333,7 +333,8 @@ ATF_TC_BODY(gethostby_test, tc)
 }
 
 ATF_TC(getipnodeby_test);
-ATF_TC_HEAD(getipnodeby_test, tc) {
+ATF_TC_HEAD(getipnodeby_test, tc)
+{
 
 	atf_tc_set_md_var(tc, "timeout", "1200");
 }

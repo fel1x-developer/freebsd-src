@@ -43,7 +43,8 @@
 
 #if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 199901L
 #if !defined(_GNU_SOURCE)
-#warning "Attempting to use limits.h with -std=c89/without _GNU_SOURCE, many macros will be missing"
+#warning \
+    "Attempting to use limits.h with -std=c89/without _GNU_SOURCE, many macros will be missing"
 #endif
 
 #else /* Not C89 */

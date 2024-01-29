@@ -25,20 +25,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_TCSR_VAR_H__
-#define	__QCOM_TCSR_VAR_H__
+#ifndef __QCOM_TCSR_VAR_H__
+#define __QCOM_TCSR_VAR_H__
 
-#define	QCOM_TCSR_READ_4(sc, reg)	bus_read_4((sc)->sc_mem_res, (reg))
-#define	QCOM_TCSR_WRITE_4(sc, reg, val)	bus_write_4((sc)->sc_mem_res,	\
-	    (reg), (val))
+#define QCOM_TCSR_READ_4(sc, reg) bus_read_4((sc)->sc_mem_res, (reg))
+#define QCOM_TCSR_WRITE_4(sc, reg, val) \
+	bus_write_4((sc)->sc_mem_res, (reg), (val))
 
 struct qcom_tcsr_softc {
-	device_t		sc_dev;
+	device_t sc_dev;
 
-	struct resource		*sc_mem_res;
-	uint32_t		hw_version;
+	struct resource *sc_mem_res;
+	uint32_t hw_version;
 
-	struct mtx		sc_mtx;
+	struct mtx sc_mtx;
 };
 
-#endif	/* __QCOM_TCSR_VAR_H__ */
+#endif /* __QCOM_TCSR_VAR_H__ */

@@ -25,23 +25,33 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H
-#define	_LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H
+#ifndef _LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H
+#define _LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H
 
-struct mtk_wed_device {
-};
+struct mtk_wed_device { };
 
-#define	WED_WO_STA_REC	0x6
+#define WED_WO_STA_REC 0x6
 
-#define	mtk_wed_device_start(_dev, _mask)		do { } while(0)
-#define	mtk_wed_device_detach(_dev)			do { } while(0)
-#define	mtk_wed_device_irq_get(_dev, _mask)		0
-#define	mtk_wed_device_irq_set_mask(_dev, _mask)	do { } while(0)
-#define	mtk_wed_device_update_msg(_dev, _id, _msg, _len)	(-ENODEV)
-#define	mtk_wed_device_dma_reset(_dev)			do {} while (0)
-#define	mtk_wed_device_ppe_check(_dev, _skb, _reason, _entry) \
-    do {} while (0)
-#define	mtk_wed_device_stop(_dev)			do { } while(0)
+#define mtk_wed_device_start(_dev, _mask) \
+	do {                              \
+	} while (0)
+#define mtk_wed_device_detach(_dev) \
+	do {                        \
+	} while (0)
+#define mtk_wed_device_irq_get(_dev, _mask) 0
+#define mtk_wed_device_irq_set_mask(_dev, _mask) \
+	do {                                     \
+	} while (0)
+#define mtk_wed_device_update_msg(_dev, _id, _msg, _len) (-ENODEV)
+#define mtk_wed_device_dma_reset(_dev) \
+	do {                           \
+	} while (0)
+#define mtk_wed_device_ppe_check(_dev, _skb, _reason, _entry) \
+	do {                                                  \
+	} while (0)
+#define mtk_wed_device_stop(_dev) \
+	do {                      \
+	} while (0)
 
 static inline bool
 mtk_wed_device_active(struct mtk_wed_device *dev __unused)
@@ -57,4 +67,4 @@ mtk_wed_get_rx_capa(struct mtk_wed_device *dev __unused)
 	return (false);
 }
 
-#endif	/* _LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H */
+#endif /* _LINUXKPI_LINUX_SOC_MEDIATEK_MTK_WED_H */

@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <fenv.h>
 #include <float.h>
 #include <math.h>
@@ -55,37 +56,41 @@
  * XXX The volatile here is to avoid gcc's bogus constant folding and work
  *     around the lack of support for the FENV_ACCESS pragma.
  */
-#define	test(func, x, result, exceptmask, excepts)	do {		\
-	volatile long double _d = x;					\
-	ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));		\
-	CHECK_FPEQUAL((func)(_d), (result));			\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)",	\
-	    #func, #x);							\
-} while (0)
+#define test(func, x, result, exceptmask, excepts)                         \
+	do {                                                               \
+		volatile long double _d = x;                               \
+		ATF_REQUIRE_EQ(0, feclearexcept(FE_ALL_EXCEPT));           \
+		CHECK_FPEQUAL((func)(_d), (result));                       \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)", \
+		    #func, #x);                                            \
+	} while (0)
 
 /* Test all the functions that compute b^x. */
-#define	_testall0(x, result, exceptmask, excepts)	do {		\
-	test(exp, x, result, exceptmask, excepts);			\
-	test(expf, x, result, exceptmask, excepts);			\
-	test(exp2, x, result, exceptmask, excepts);			\
-	test(exp2f, x, result, exceptmask, excepts);			\
-} while (0)
+#define _testall0(x, result, exceptmask, excepts)            \
+	do {                                                 \
+		test(exp, x, result, exceptmask, excepts);   \
+		test(expf, x, result, exceptmask, excepts);  \
+		test(exp2, x, result, exceptmask, excepts);  \
+		test(exp2f, x, result, exceptmask, excepts); \
+	} while (0)
 
 /* Skip over exp2l on platforms that don't support it. */
 #if LDBL_PREC == 53
-#define	testall0	_testall0
+#define testall0 _testall0
 #else
-#define	testall0(x, result, exceptmask, excepts)	do {		\
-	_testall0(x, result, exceptmask, excepts); 			\
-	test(exp2l, x, result, exceptmask, excepts);			\
-} while (0)
+#define testall0(x, result, exceptmask, excepts)             \
+	do {                                                 \
+		_testall0(x, result, exceptmask, excepts);   \
+		test(exp2l, x, result, exceptmask, excepts); \
+	} while (0)
 #endif
 
 /* Test all the functions that compute b^x - 1. */
-#define	testall1(x, result, exceptmask, excepts)	do {		\
-	test(expm1, x, result, exceptmask, excepts);			\
-	test(expm1f, x, result, exceptmask, excepts);			\
-} while (0)
+#define testall1(x, result, exceptmask, excepts)              \
+	do {                                                  \
+		test(expm1, x, result, exceptmask, excepts);  \
+		test(expm1f, x, result, exceptmask, excepts); \
+	} while (0)
 
 static void
 run_generic_tests(void)
@@ -119,7 +124,6 @@ run_generic_tests(void)
 #endif
 	testall1(-50000.0, -1.0, ALL_STD_EXCEPT, FE_INEXACT);
 }
-
 
 /*
  * We should insist that exp2() return exactly the correct

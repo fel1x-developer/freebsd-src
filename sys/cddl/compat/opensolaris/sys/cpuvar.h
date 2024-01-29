@@ -25,31 +25,31 @@
  */
 
 #ifndef _COMPAT_OPENSOLARIS_SYS_CPUVAR_H
-#define	_COMPAT_OPENSOLARIS_SYS_CPUVAR_H
+#define _COMPAT_OPENSOLARIS_SYS_CPUVAR_H
 
-#include <sys/mutex.h>
 #include <sys/cpuvar_defs.h>
+#include <sys/mutex.h>
 
 #ifdef _KERNEL
 
 struct cyc_cpu;
 
 typedef struct {
-	int		cpuid;
-	uint32_t	cpu_flags;
-	uint_t		cpu_intr_actv;
-	uintptr_t	cpu_dtrace_caller;	/* DTrace: caller, if any */
-	hrtime_t	cpu_dtrace_chillmark;	/* DTrace: chill mark time */
-	hrtime_t	cpu_dtrace_chilled;	/* DTrace: total chill time */
-} solaris_cpu_t; 
+	int cpuid;
+	uint32_t cpu_flags;
+	uint_t cpu_intr_actv;
+	uintptr_t cpu_dtrace_caller;   /* DTrace: caller, if any */
+	hrtime_t cpu_dtrace_chillmark; /* DTrace: chill mark time */
+	hrtime_t cpu_dtrace_chilled;   /* DTrace: total chill time */
+} solaris_cpu_t;
 
 /* Some code may choose to redefine this if pcpu_t would be more useful. */
-#define cpu_t	solaris_cpu_t
-#define	cpu_id	cpuid
+#define cpu_t solaris_cpu_t
+#define cpu_id cpuid
 
-extern solaris_cpu_t    solaris_cpu[];
+extern solaris_cpu_t solaris_cpu[];
 
-#define	CPU_CACHE_COHERENCE_SIZE	64
+#define CPU_CACHE_COHERENCE_SIZE 64
 
 /*
  * The cpu_core structure consists of per-CPU state available in any context.
@@ -58,21 +58,20 @@ extern solaris_cpu_t    solaris_cpu[];
  * is up to the platform to assure that this is performed properly.  Note that
  * the structure is sized to avoid false sharing.
  */
-#define	CPUC_SIZE		(sizeof (uint16_t) + sizeof (uintptr_t) + \
-				sizeof (kmutex_t))
-#define	CPUC_SIZE1		roundup(CPUC_SIZE, CPU_CACHE_COHERENCE_SIZE)
-#define	CPUC_PADSIZE		CPUC_SIZE1 - CPUC_SIZE
+#define CPUC_SIZE (sizeof(uint16_t) + sizeof(uintptr_t) + sizeof(kmutex_t))
+#define CPUC_SIZE1 roundup(CPUC_SIZE, CPU_CACHE_COHERENCE_SIZE)
+#define CPUC_PADSIZE CPUC_SIZE1 - CPUC_SIZE
 
 typedef struct cpu_core {
-	uint16_t	cpuc_dtrace_flags;	/* DTrace flags */
-	uint8_t		cpuc_pad[CPUC_PADSIZE];	/* padding */
-	uintptr_t	cpuc_dtrace_illval;	/* DTrace illegal value */
-	kmutex_t	cpuc_pid_lock;		/* DTrace pid provider lock */
+	uint16_t cpuc_dtrace_flags;	/* DTrace flags */
+	uint8_t cpuc_pad[CPUC_PADSIZE]; /* padding */
+	uintptr_t cpuc_dtrace_illval;	/* DTrace illegal value */
+	kmutex_t cpuc_pid_lock;		/* DTrace pid provider lock */
 } cpu_core_t;
 
 extern cpu_core_t cpu_core[];
 
-extern kmutex_t	cpu_lock;
+extern kmutex_t cpu_lock;
 #endif /* _KERNEL */
 
 /*
@@ -105,16 +104,16 @@ extern kmutex_t	cpu_lock;
  * CPU_OFFLINE, and CPU_POWEROFF.  The following flags are cleared:
  * CPU_RUNNING, CPU_READY, CPU_EXISTS, and CPU_ENABLE.
  */
-#define	CPU_RUNNING	0x001		/* CPU running */
-#define	CPU_READY	0x002		/* CPU ready for cross-calls */
-#define	CPU_QUIESCED	0x004		/* CPU will stay in idle */
-#define	CPU_EXISTS	0x008		/* CPU is configured */
-#define	CPU_ENABLE	0x010		/* CPU enabled for interrupts */
-#define	CPU_OFFLINE	0x020		/* CPU offline via p_online */
-#define	CPU_POWEROFF	0x040		/* CPU is powered off */
-#define	CPU_FROZEN	0x080		/* CPU is frozen via CPR suspend */
-#define	CPU_SPARE	0x100		/* CPU offline available for use */
-#define	CPU_FAULTED	0x200		/* CPU offline diagnosed faulty */
+#define CPU_RUNNING 0x001  /* CPU running */
+#define CPU_READY 0x002	   /* CPU ready for cross-calls */
+#define CPU_QUIESCED 0x004 /* CPU will stay in idle */
+#define CPU_EXISTS 0x008   /* CPU is configured */
+#define CPU_ENABLE 0x010   /* CPU enabled for interrupts */
+#define CPU_OFFLINE 0x020  /* CPU offline via p_online */
+#define CPU_POWEROFF 0x040 /* CPU is powered off */
+#define CPU_FROZEN 0x080   /* CPU is frozen via CPR suspend */
+#define CPU_SPARE 0x100	   /* CPU offline available for use */
+#define CPU_FAULTED 0x200  /* CPU offline diagnosed faulty */
 
 typedef enum {
 	CPU_INIT,
@@ -127,6 +126,5 @@ typedef enum {
 } cpu_setup_t;
 
 typedef int cpu_setup_func_t(cpu_setup_t, int, void *);
-
 
 #endif /* _COMPAT_OPENSOLARIS_SYS_CPUVAR_H */

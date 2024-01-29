@@ -34,6 +34,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/extattr.h>
 #include <sys/wait.h>
+
 #include <semaphore.h>
 #include <signal.h>
 #include <string.h>
@@ -48,120 +49,141 @@ const char FULLPATH[] = "mountpoint/some_file.txt";
 const char RELPATH[] = "some_file.txt";
 static sem_t killer_semaphore;
 
-void* killer(void* target) {
-	pid_t pid = *(pid_t*)target;
+void *
+killer(void *target)
+{
+	pid_t pid = *(pid_t *)target;
 	sem_wait(&killer_semaphore);
 	if (verbosity > 1)
 		printf("Killing! pid %d\n", pid);
 	kill(pid, SIGINT);
 
-	return(NULL);
+	return (NULL);
 }
 
-class Xattr: public FuseTest {
-public:
-void expect_listxattr(uint64_t ino, uint32_t size, ProcessMockerT r,
-    Sequence *seq = NULL)
-{
-	if (seq == NULL) {
-		EXPECT_CALL(*m_mock, process(
-			ResultOf([=](auto in) {
-				return (in.header.opcode == FUSE_LISTXATTR &&
-					in.header.nodeid == ino &&
-					in.body.listxattr.size == size);
-			}, Eq(true)),
-			_)
-		).WillOnce(Invoke(r))
-		.RetiresOnSaturation();
-	} else {
-		EXPECT_CALL(*m_mock, process(
-			ResultOf([=](auto in) {
-				return (in.header.opcode == FUSE_LISTXATTR &&
-					in.header.nodeid == ino &&
-					in.body.listxattr.size == size);
-			}, Eq(true)),
-			_)
-		).InSequence(*seq)
-		.WillOnce(Invoke(r))
-		.RetiresOnSaturation();
+class Xattr : public FuseTest {
+    public:
+	void expect_listxattr(uint64_t ino, uint32_t size, ProcessMockerT r,
+	    Sequence *seq = NULL)
+	{
+		if (seq == NULL) {
+			EXPECT_CALL(*m_mock,
+			    process(ResultOf(
+					[=](auto in) {
+						return (in.header.opcode ==
+							FUSE_LISTXATTR &&
+						    in.header.nodeid == ino &&
+						    in.body.listxattr.size ==
+							size);
+					},
+					Eq(true)),
+				_))
+			    .WillOnce(Invoke(r))
+			    .RetiresOnSaturation();
+		} else {
+			EXPECT_CALL(*m_mock,
+			    process(ResultOf(
+					[=](auto in) {
+						return (in.header.opcode ==
+							FUSE_LISTXATTR &&
+						    in.header.nodeid == ino &&
+						    in.body.listxattr.size ==
+							size);
+					},
+					Eq(true)),
+				_))
+			    .InSequence(*seq)
+			    .WillOnce(Invoke(r))
+			    .RetiresOnSaturation();
+		}
 	}
-}
 
-void expect_removexattr(uint64_t ino, const char *attr, int error)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *a = (const char*)in.body.bytes;
-			return (in.header.opcode == FUSE_REMOVEXATTR &&
-				in.header.nodeid == ino &&
-				0 == strcmp(attr, a));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(error)));
-}
+	void expect_removexattr(uint64_t ino, const char *attr, int error)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *a = (const char *)
+							    in.body.bytes;
+					return (in.header.opcode ==
+						FUSE_REMOVEXATTR &&
+					    in.header.nodeid == ino &&
+					    0 == strcmp(attr, a));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(ReturnErrno(error)));
+	}
 
-void expect_setxattr(uint64_t ino, const char *attr, const char *value,
-	ProcessMockerT r)
-{
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *a = (const char*)in.body.bytes +
-				sizeof(fuse_setxattr_in);
-			const char *v = a + strlen(a) + 1;
-			return (in.header.opcode == FUSE_SETXATTR &&
-				in.header.nodeid == ino &&
-				0 == strcmp(attr, a) &&
-				0 == strcmp(value, v));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(r));
-}
-
+	void expect_setxattr(uint64_t ino, const char *attr, const char *value,
+	    ProcessMockerT r)
+	{
+		EXPECT_CALL(*m_mock,
+		    process(ResultOf(
+				[=](auto in) {
+					const char *a = (const char *)
+							    in.body.bytes +
+					    sizeof(fuse_setxattr_in);
+					const char *v = a + strlen(a) + 1;
+					return (
+					    in.header.opcode == FUSE_SETXATTR &&
+					    in.header.nodeid == ino &&
+					    0 == strcmp(attr, a) &&
+					    0 == strcmp(value, v));
+				},
+				Eq(true)),
+			_))
+		    .WillOnce(Invoke(r));
+	}
 };
 
-class Getxattr: public Xattr {};
+class Getxattr : public Xattr { };
 
-class Listxattr: public Xattr {};
+class Listxattr : public Xattr { };
 
 /* Listxattr tests that need to use a signal */
-class ListxattrSig: public Listxattr {
-public:
-pthread_t m_killer_th;
-pid_t m_child;
+class ListxattrSig : public Listxattr {
+    public:
+	pthread_t m_killer_th;
+	pid_t m_child;
 
-void SetUp() {
-	/*
-	 * Mount with -o nointr so the mount can't get interrupted while
-	 * waiting for a response from the server
-	 */
-	m_nointr = true;
-	FuseTest::SetUp();
+	void SetUp()
+	{
+		/*
+		 * Mount with -o nointr so the mount can't get interrupted while
+		 * waiting for a response from the server
+		 */
+		m_nointr = true;
+		FuseTest::SetUp();
 
-	ASSERT_EQ(0, sem_init(&killer_semaphore, 0, 0)) << strerror(errno);
-}
-
-void TearDown() {
-	if (m_killer_th != NULL) {
-		pthread_join(m_killer_th, NULL);
+		ASSERT_EQ(0, sem_init(&killer_semaphore, 0, 0))
+		    << strerror(errno);
 	}
 
-	sem_destroy(&killer_semaphore);
+	void TearDown()
+	{
+		if (m_killer_th != NULL) {
+			pthread_join(m_killer_th, NULL);
+		}
 
-	FuseTest::TearDown();
-}
+		sem_destroy(&killer_semaphore);
+
+		FuseTest::TearDown();
+	}
 };
 
-class Removexattr: public Xattr {};
-class Setxattr: public Xattr {};
-class RofsXattr: public Xattr {
-public:
-virtual void SetUp() {
-	m_ro = true;
-	Xattr::SetUp();
-}
+class Removexattr : public Xattr { };
+class Setxattr : public Xattr { };
+class RofsXattr : public Xattr {
+    public:
+	virtual void SetUp()
+	{
+		m_ro = true;
+		Xattr::SetUp();
+	}
 };
 
-/* 
+/*
  * If the extended attribute does not exist on this file, the daemon should
  * return ENOATTR (ENODATA on Linux, but it's up to the daemon to choose the
  * correct errror code)
@@ -245,14 +267,14 @@ TEST_F(Getxattr, size_only)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_getxattr(ino, "user.foo",
-		ReturnImmediate([](auto in __unused, auto& out) {
-			SET_OUT_HEADER_LEN(out, getxattr);
-			out.body.getxattr.size = 99;
-		})
-	);
+	    ReturnImmediate([](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, getxattr);
+		    out.body.getxattr.size = 99;
+	    }));
 
 	ASSERT_EQ(99, extattr_get_file(FULLPATH, ns, "foo", NULL, 0))
-		<< strerror(errno);;
+	    << strerror(errno);
+	;
 }
 
 /*
@@ -269,14 +291,13 @@ TEST_F(Getxattr, system)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_getxattr(ino, "system.foo",
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			memcpy((void*)out.body.bytes, value, value_len);
-			out.header.len = sizeof(out.header) + value_len;
-		})
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((void *)out.body.bytes, value, value_len);
+		    out.header.len = sizeof(out.header) + value_len;
+	    }));
 
 	r = extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data));
-	ASSERT_EQ(value_len, r)  << strerror(errno);
+	ASSERT_EQ(value_len, r) << strerror(errno);
 	EXPECT_STREQ(value, data);
 }
 
@@ -294,14 +315,13 @@ TEST_F(Getxattr, user)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_getxattr(ino, "user.foo",
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			memcpy((void*)out.body.bytes, value, value_len);
-			out.header.len = sizeof(out.header) + value_len;
-		})
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((void *)out.body.bytes, value, value_len);
+		    out.header.len = sizeof(out.header) + value_len;
+	    }));
 
 	r = extattr_get_file(FULLPATH, ns, "foo", data, sizeof(data));
-	ASSERT_EQ(value_len, r)  << strerror(errno);
+	ASSERT_EQ(value_len, r) << strerror(errno);
 	EXPECT_STREQ(value, data);
 }
 
@@ -357,28 +377,27 @@ TEST_F(Listxattr, erange)
 	uint64_t ino = 42;
 	int ns = EXTATTR_NAMESPACE_USER;
 	char attrs[9] = "user.foo";
-	char expected[3] = {3, 'f', 'o'};
+	char expected[3] = { 3, 'f', 'o' };
 	char buf[3];
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out)
-	{
-		out.body.listxattr.size = sizeof(attrs);
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 	expect_listxattr(ino, sizeof(attrs),
-	ReturnImmediate([&](auto in __unused, auto& out) {
-		memcpy((void*)out.body.bytes, attrs, sizeof(attrs));
-		out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
-	}));
-
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((void *)out.body.bytes, attrs, sizeof(attrs));
+		    out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
+	    }));
 
 	ASSERT_EQ(static_cast<ssize_t>(sizeof(buf)),
-		  extattr_list_file(FULLPATH, ns, buf, sizeof(buf)));
+	    extattr_list_file(FULLPATH, ns, buf, sizeof(buf)));
 	ASSERT_EQ(0, memcmp(expected, buf, sizeof(buf)));
 }
 
-/* 
+/*
  * A buggy or malicious file system always returns ERANGE, even if we pass an
  * appropriately sized buffer.  That will send the kernel into an infinite
  * loop.  This test will ensure that the loop is interruptible by killing the
@@ -390,60 +409,70 @@ TEST_F(ListxattrSig, erange_forever)
 	uint32_t lie_size = 10;
 	int status;
 
-	fork(false, &status, [&] {
-		EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-		.WillRepeatedly(Invoke(
-			ReturnImmediate([=](auto in __unused, auto& out) {
-			SET_OUT_HEADER_LEN(out, entry);
-			out.body.entry.attr.mode = S_IFREG | 0644;
-			out.body.entry.nodeid = ino;
-			out.body.entry.attr.nlink = 1;
-			out.body.entry.attr_valid = UINT64_MAX;
-			out.body.entry.entry_valid = UINT64_MAX;
-		})));
-		EXPECT_CALL(*m_mock, process(
-			ResultOf([=](auto in) {
-				return (in.header.opcode == FUSE_LISTXATTR &&
-					in.header.nodeid == ino &&
-					in.body.listxattr.size == 0);
-			}, Eq(true)),
-			_)
-		).WillRepeatedly(ReturnImmediate([=](auto i __unused, auto& out)
-		{
-			/* The file system requests 10 bytes, but it's a lie */
-			out.body.listxattr.size = lie_size;
-			SET_OUT_HEADER_LEN(out, listxattr);
-			/*
-			 * We can send the signal any time after fusefs enters
-			 * VOP_LISTEXTATTR
-			 */
-			sem_post(&killer_semaphore);
-		}));
-		/* 
-		 * Even though the kernel faithfully respects our size request,
-		 * we'll return ERANGE anyway.
-		 */
-		EXPECT_CALL(*m_mock, process(
-			ResultOf([=](auto in) {
-				return (in.header.opcode == FUSE_LISTXATTR &&
-					in.header.nodeid == ino &&
-					in.body.listxattr.size == lie_size);
-			}, Eq(true)),
-			_)
-		).WillRepeatedly(ReturnErrno(ERANGE));
+	fork(
+	    false, &status,
+	    [&] {
+		    EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
+			.WillRepeatedly(Invoke(
+			    ReturnImmediate([=](auto in __unused, auto &out) {
+				    SET_OUT_HEADER_LEN(out, entry);
+				    out.body.entry.attr.mode = S_IFREG | 0644;
+				    out.body.entry.nodeid = ino;
+				    out.body.entry.attr.nlink = 1;
+				    out.body.entry.attr_valid = UINT64_MAX;
+				    out.body.entry.entry_valid = UINT64_MAX;
+			    })));
+		    EXPECT_CALL(*m_mock,
+			process(ResultOf(
+				    [=](auto in) {
+					    return (in.header.opcode ==
+						    FUSE_LISTXATTR &&
+						in.header.nodeid == ino &&
+						in.body.listxattr.size == 0);
+				    },
+				    Eq(true)),
+			    _))
+			.WillRepeatedly(
+			    ReturnImmediate([=](auto i __unused, auto &out) {
+				    /* The file system requests 10 bytes, but
+				     * it's a lie */
+				    out.body.listxattr.size = lie_size;
+				    SET_OUT_HEADER_LEN(out, listxattr);
+				    /*
+				     * We can send the signal any time after
+				     * fusefs enters VOP_LISTEXTATTR
+				     */
+				    sem_post(&killer_semaphore);
+			    }));
+		    /*
+		     * Even though the kernel faithfully respects our size
+		     * request, we'll return ERANGE anyway.
+		     */
+		    EXPECT_CALL(*m_mock,
+			process(ResultOf(
+				    [=](auto in) {
+					    return (in.header.opcode ==
+						    FUSE_LISTXATTR &&
+						in.header.nodeid == ino &&
+						in.body.listxattr.size ==
+						    lie_size);
+				    },
+				    Eq(true)),
+			    _))
+			.WillRepeatedly(ReturnErrno(ERANGE));
 
-		ASSERT_EQ(0, pthread_create(&m_killer_th, NULL, killer,
-					    &m_mock->m_child_pid))
+		    ASSERT_EQ(0,
+			pthread_create(&m_killer_th, NULL, killer,
+			    &m_mock->m_child_pid))
 			<< strerror(errno);
-
-	}, [] {
-		/* Child process will block until it gets signaled */
-		int ns = EXTATTR_NAMESPACE_USER;
-		char buf[3];
-		extattr_list_file(FULLPATH, ns, buf, sizeof(buf));
-		return 0;
-	}
-	);
+	    },
+	    [] {
+		    /* Child process will block until it gets signaled */
+		    int ns = EXTATTR_NAMESPACE_USER;
+		    char buf[3];
+		    extattr_list_file(FULLPATH, ns, buf, sizeof(buf));
+		    return 0;
+	    });
 
 	ASSERT_TRUE(WIFSIGNALED(status));
 }
@@ -457,13 +486,14 @@ TEST_F(Listxattr, size_only_empty)
 	int ns = EXTATTR_NAMESPACE_USER;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out) {
-		out.body.listxattr.size = 0;
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = 0;
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 
 	ASSERT_EQ(0, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /*
@@ -479,22 +509,21 @@ TEST_F(Listxattr, size_only_nonempty)
 	char attrs[9] = "user.foo";
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out)
-	{
-		out.body.listxattr.size = sizeof(attrs);
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 
 	expect_listxattr(ino, sizeof(attrs),
-		ReturnImmediate([=](auto in __unused, auto& out) {
-			size_t l = sizeof(attrs);
-			strlcpy((char*)out.body.bytes, attrs, l);
-			out.header.len = sizeof(fuse_out_header) + l;
-		})
-	);
+	    ReturnImmediate([=](auto in __unused, auto &out) {
+		    size_t l = sizeof(attrs);
+		    strlcpy((char *)out.body.bytes, attrs, l);
+		    out.header.len = sizeof(fuse_out_header) + l;
+	    }));
 
 	ASSERT_EQ(4, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /*
@@ -510,44 +539,45 @@ TEST_F(Listxattr, size_only_race_bigger)
 	Sequence seq;
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillRepeatedly(Invoke(
-		ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = ino;
-		out.body.entry.attr.nlink = 1;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.entry_valid = UINT64_MAX;
-	})));
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out)
-	{
-		out.body.listxattr.size = sizeof(attrs0);
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}), &seq);
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, entry);
+			out.body.entry.attr.mode = S_IFREG | 0644;
+			out.body.entry.nodeid = ino;
+			out.body.entry.attr.nlink = 1;
+			out.body.entry.attr_valid = UINT64_MAX;
+			out.body.entry.entry_valid = UINT64_MAX;
+		})));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs0);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }),
+	    &seq);
 
-	/* 
+	/*
 	 * After the first FUSE_LISTXATTR the list grew, so the second
 	 * operation returns ERANGE.
 	 */
 	expect_listxattr(ino, sizeof(attrs0), ReturnErrno(ERANGE), &seq);
 
 	/* And now the kernel retries */
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out)
-	{
-		out.body.listxattr.size = sizeof(attrs1);
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}), &seq);
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs1);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }),
+	    &seq);
 	expect_listxattr(ino, sizeof(attrs1),
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			memcpy((char*)out.body.bytes, attrs1, sizeof(attrs1));
-			out.header.len = sizeof(fuse_out_header) +
-			    sizeof(attrs1);
-		}), &seq
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((char *)out.body.bytes, attrs1, sizeof(attrs1));
+		    out.header.len = sizeof(fuse_out_header) + sizeof(attrs1);
+	    }),
+	    &seq);
 
 	/* Userspace should never know about the retry */
 	ASSERT_EQ(8, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /*
@@ -562,21 +592,19 @@ TEST_F(Listxattr, size_only_race_smaller)
 	char attrs1[9] = "user.foo";
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out)
-	{
-		out.body.listxattr.size = sizeof(attrs0);
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs0);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 	expect_listxattr(ino, sizeof(attrs0),
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			strlcpy((char*)out.body.bytes, attrs1, sizeof(attrs1));
-			out.header.len = sizeof(fuse_out_header) +
-			    sizeof(attrs1);
-		})
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    strlcpy((char *)out.body.bytes, attrs1, sizeof(attrs1));
+		    out.header.len = sizeof(fuse_out_header) + sizeof(attrs1);
+	    }));
 
 	ASSERT_EQ(4, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 TEST_F(Listxattr, size_only_really_big)
@@ -585,26 +613,26 @@ TEST_F(Listxattr, size_only_really_big)
 	int ns = EXTATTR_NAMESPACE_USER;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
-	expect_listxattr(ino, 0, ReturnImmediate([](auto i __unused, auto& out) {
-		out.body.listxattr.size = 16000;
-		SET_OUT_HEADER_LEN(out, listxattr);
-	}));
+	expect_listxattr(ino, 0,
+	    ReturnImmediate([](auto i __unused, auto &out) {
+		    out.body.listxattr.size = 16000;
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 
 	expect_listxattr(ino, 16000,
-		ReturnImmediate([](auto in __unused, auto& out) {
-			const char l[16] = "user.foobarbang";
-			for (int i=0; i < 1000; i++) {
-				memcpy(&out.body.bytes[16 * i], l, 16);
-			}
-			out.header.len = sizeof(fuse_out_header) + 16000;
-		})
-	);
+	    ReturnImmediate([](auto in __unused, auto &out) {
+		    const char l[16] = "user.foobarbang";
+		    for (int i = 0; i < 1000; i++) {
+			    memcpy(&out.body.bytes[16 * i], l, 16);
+		    }
+		    out.header.len = sizeof(fuse_out_header) + 16000;
+	    }));
 
 	ASSERT_EQ(11000, extattr_list_file(FULLPATH, ns, NULL, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
-/* 
+/*
  * List all of the user attributes of a file which has both user and system
  * attributes
  */
@@ -613,30 +641,29 @@ TEST_F(Listxattr, user)
 	uint64_t ino = 42;
 	int ns = EXTATTR_NAMESPACE_USER;
 	char data[80];
-	char expected[9] = {3, 'f', 'o', 'o', 4, 'b', 'a', 'n', 'g'};
+	char expected[9] = { 3, 'f', 'o', 'o', 4, 'b', 'a', 'n', 'g' };
 	char attrs[28] = "user.foo\0system.x\0user.bang";
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_listxattr(ino, 0,
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			out.body.listxattr.size = sizeof(attrs);
-			SET_OUT_HEADER_LEN(out, listxattr);
-		})
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 
 	expect_listxattr(ino, sizeof(attrs),
-	ReturnImmediate([&](auto in __unused, auto& out) {
-		memcpy((void*)out.body.bytes, attrs, sizeof(attrs));
-		out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
-	}));
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((void *)out.body.bytes, attrs, sizeof(attrs));
+		    out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
+	    }));
 
 	ASSERT_EQ(static_cast<ssize_t>(sizeof(expected)),
-		extattr_list_file(FULLPATH, ns, data, sizeof(data)))
-		<< strerror(errno);
+	    extattr_list_file(FULLPATH, ns, data, sizeof(data)))
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(expected, data, sizeof(expected)));
 }
 
-/* 
+/*
  * List all of the system attributes of a file which has both user and system
  * attributes
  */
@@ -645,26 +672,25 @@ TEST_F(Listxattr, system)
 	uint64_t ino = 42;
 	int ns = EXTATTR_NAMESPACE_SYSTEM;
 	char data[80];
-	char expected[2] = {1, 'x'};
+	char expected[2] = { 1, 'x' };
 	char attrs[28] = "user.foo\0system.x\0user.bang";
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_listxattr(ino, 0,
-		ReturnImmediate([&](auto in __unused, auto& out) {
-			out.body.listxattr.size = sizeof(attrs);
-			SET_OUT_HEADER_LEN(out, listxattr);
-		})
-	);
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    out.body.listxattr.size = sizeof(attrs);
+		    SET_OUT_HEADER_LEN(out, listxattr);
+	    }));
 
 	expect_listxattr(ino, sizeof(attrs),
-	ReturnImmediate([&](auto in __unused, auto& out) {
-		memcpy((void*)out.body.bytes, attrs, sizeof(attrs));
-		out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
-	}));
+	    ReturnImmediate([&](auto in __unused, auto &out) {
+		    memcpy((void *)out.body.bytes, attrs, sizeof(attrs));
+		    out.header.len = sizeof(fuse_out_header) + sizeof(attrs);
+	    }));
 
 	ASSERT_EQ(static_cast<ssize_t>(sizeof(expected)),
-		extattr_list_file(FULLPATH, ns, data, sizeof(data)))
-		<< strerror(errno);
+	    extattr_list_file(FULLPATH, ns, data, sizeof(data)))
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(expected, data, sizeof(expected)));
 }
 
@@ -712,7 +738,7 @@ TEST_F(Removexattr, user)
 	expect_removexattr(ino, "user.foo", 0);
 
 	ASSERT_EQ(0, extattr_delete_file(FULLPATH, ns, "foo"))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /* Successfully remove a system xattr */
@@ -725,7 +751,7 @@ TEST_F(Removexattr, system)
 	expect_removexattr(ino, "system.foo", 0);
 
 	ASSERT_EQ(0, extattr_delete_file(FULLPATH, ns, "foo"))
-		<< strerror(errno);
+	    << strerror(errno);
 }
 
 /*
@@ -744,14 +770,14 @@ TEST_F(Setxattr, enosys)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 2);
 	expect_setxattr(ino, "user.foo", value, ReturnErrno(ENOSYS));
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(-1, r);
 	EXPECT_EQ(EOPNOTSUPP, errno);
 
 	/* Subsequent attempts should not query the filesystem at all */
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(-1, r);
 	EXPECT_EQ(EOPNOTSUPP, errno);
 }
@@ -771,8 +797,8 @@ TEST_F(Setxattr, enotsup)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_setxattr(ino, "user.foo", value, ReturnErrno(ENOTSUP));
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(-1, r);
 	EXPECT_EQ(ENOTSUP, errno);
 }
@@ -791,8 +817,8 @@ TEST_F(Setxattr, user)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_setxattr(ino, "user.foo", value, ReturnErrno(0));
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(value_len, r) << strerror(errno);
 }
 
@@ -810,8 +836,8 @@ TEST_F(Setxattr, system)
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 	expect_setxattr(ino, "system.foo", value, ReturnErrno(0));
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(value_len, r) << strerror(errno);
 }
 
@@ -836,8 +862,8 @@ TEST_F(RofsXattr, setextattr_erofs)
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, 0, 1);
 
-	r = extattr_set_file(FULLPATH, ns, "foo", (const void*)value,
-		value_len);
+	r = extattr_set_file(FULLPATH, ns, "foo", (const void *)value,
+	    value_len);
 	ASSERT_EQ(-1, r);
 	EXPECT_EQ(EROFS, errno);
 }

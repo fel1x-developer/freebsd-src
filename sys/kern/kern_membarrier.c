@@ -38,19 +38,18 @@
 #include <sys/syscallsubr.h>
 #include <sys/sysproto.h>
 
-#include <vm/vm_param.h>
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
-#define MEMBARRIER_SUPPORTED_CMDS	(			\
-    MEMBARRIER_CMD_GLOBAL |					\
-    MEMBARRIER_CMD_GLOBAL_EXPEDITED |				\
-    MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED |			\
-    MEMBARRIER_CMD_PRIVATE_EXPEDITED |				\
-    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED |			\
-    MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE |		\
-    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE)
+#define MEMBARRIER_SUPPORTED_CMDS                                  \
+	(MEMBARRIER_CMD_GLOBAL | MEMBARRIER_CMD_GLOBAL_EXPEDITED | \
+	    MEMBARRIER_CMD_REGISTER_GLOBAL_EXPEDITED |             \
+	    MEMBARRIER_CMD_PRIVATE_EXPEDITED |                     \
+	    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED |            \
+	    MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE |           \
+	    MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE)
 
 static void
 membarrier_action_seqcst(void *arg __unused)
@@ -140,7 +139,7 @@ kern_membarrier(struct thread *td, int cmd, unsigned flags, int cpu_id)
 		sched_pin();
 		CPU_SET(PCPU_GET(cpuid), &cs);
 		for (first = true; error == 0; first = false) {
-			CPU_FOREACH(c)
+			CPU_FOREACH (c)
 				check_cpu_switched(c, &cs, swt, first);
 			if (CPU_CMP(&cs, &all_cpus) == 0)
 				break;
@@ -158,7 +157,7 @@ kern_membarrier(struct thread *td, int cmd, unsigned flags, int cpu_id)
 			error = EPERM;
 		} else {
 			CPU_ZERO(&cs);
-			CPU_FOREACH(c) {
+			CPU_FOREACH (c) {
 				td1 = cpuid_to_pcpu[c]->pc_curthread;
 				p1 = td1->td_proc;
 				if (p1 != NULL &&

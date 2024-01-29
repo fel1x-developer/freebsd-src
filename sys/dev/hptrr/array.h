@@ -42,90 +42,86 @@ extern "C" {
 #define MAX_ARRAY_NAME 16
 
 #ifndef MAX_MEMBERS
-#define MAX_MEMBERS    16
+#define MAX_MEMBERS 16
 #endif
 
-#if MAX_MEMBERS<=16
+#if MAX_MEMBERS <= 16
 typedef HPT_U16 HPT_MMASK;
-#elif MAX_MEMBERS<=32
+#elif MAX_MEMBERS <= 32
 typedef HPT_U32 HPT_MMASK;
-#elif MAX_MEMBERS<=64
+#elif MAX_MEMBERS <= 64
 typedef HPT_U64 HPT_MMASK;
-#else 
+#else
 #error "MAX_MEMBERS too large"
 #endif
 
-#define HPT_MMASK_VALUE(x) (HPT_MMASK)((HPT_MMASK)1<<(x))
+#define HPT_MMASK_VALUE(x) (HPT_MMASK)((HPT_MMASK)1 << (x))
 
-#if MAX_MEMBERS<32
+#if MAX_MEMBERS < 32
 #define HPT_MMASK_VALUE_SAFE(x) HPT_MMASK_VALUE(x)
-#else 
-#define HPT_MMASK_VALUE_SAFE(x) ((x)>=MAX_MEMBERS? (HPT_MMASK)0 : HPT_MMASK_VALUE(x))
+#else
+#define HPT_MMASK_VALUE_SAFE(x) \
+	((x) >= MAX_MEMBERS ? (HPT_MMASK)0 : HPT_MMASK_VALUE(x))
 #endif
 
 #define MAX_REBUILD_SECTORS 128
 
 typedef struct _RAID_FLAGS {
-	HPT_UINT rf_need_initialize : 1;    
-	HPT_UINT rf_need_rebuild: 1;        
-	HPT_UINT rf_need_sync: 1;           
+	HPT_UINT rf_need_initialize : 1;
+	HPT_UINT rf_need_rebuild : 1;
+	HPT_UINT rf_need_sync : 1;
 	/* ioctl flags */
-	HPT_UINT rf_auto_rebuild: 1;
-	HPT_UINT rf_rebuilding: 1;          
-	HPT_UINT rf_verifying: 1;
-	HPT_UINT rf_initializing: 1;        
-	HPT_UINT rf_abort_verifying: 1;
-	HPT_UINT rf_raid15: 1;
+	HPT_UINT rf_auto_rebuild : 1;
+	HPT_UINT rf_rebuilding : 1;
+	HPT_UINT rf_verifying : 1;
+	HPT_UINT rf_initializing : 1;
+	HPT_UINT rf_abort_verifying : 1;
+	HPT_UINT rf_raid15 : 1;
 	HPT_UINT rf_v3_format : 1;
 	HPT_UINT rf_need_transform : 1;
 	HPT_UINT rf_transforming : 1;
 	HPT_UINT rf_abort_transform : 1;
-	HPT_UINT rf_log_write: 1;           
+	HPT_UINT rf_log_write : 1;
 } RAID_FLAGS;
 
-typedef struct transform_cmd_ext
-{
+typedef struct transform_cmd_ext {
 	HPT_LBA lba;
 	HPT_U16 total_sectors;
 	HPT_U16 finished_sectors;
-} TRANSFORM_CMD_EXT , *PTRANSFORM_CMD_EXT;
+} TRANSFORM_CMD_EXT, *PTRANSFORM_CMD_EXT;
 
-
-#define TO_MOVE_DATA        0
-#define TO_INITIALIZE       1
-#define TO_INITIALIZE_ONLY  2
-#define TO_MOVE_DATA_ONLY   3
-typedef struct hpt_transform
-{
+#define TO_MOVE_DATA 0
+#define TO_INITIALIZE 1
+#define TO_INITIALIZE_ONLY 2
+#define TO_MOVE_DATA_ONLY 3
+typedef struct hpt_transform {
 	HPT_U32 stamp;
 	PVDEV source;
 	PVDEV target;
 	struct list_head link;
 	HPT_U8 transform_from_tail;
 	struct tq_item task;
-	
+
 	struct lock_request lock;
 	TRANSFORM_CMD_EXT cmdext;
 
 	HPT_U64 transform_point;
 	HPT_U16 transform_sectors_per_step;
-	HPT_U8  operation;
-	HPT_U8  disabled; 
+	HPT_U8 operation;
+	HPT_U8 disabled;
 } HPT_TRANSFORM, *PHPT_TRANSFORM;
 
-typedef struct hpt_array
-{
+typedef struct hpt_array {
 	HPT_U32 array_stamp;
-	HPT_U32 data_stamp;  
+	HPT_U32 data_stamp;
 
-	HPT_U8  ndisk;
-	HPT_U8  block_size_shift;
+	HPT_U8 ndisk;
+	HPT_U8 block_size_shift;
 	HPT_U16 strip_width;
-	HPT_U8  sector_size_shift; /*sector size = 512B<<sector_size_shift*/
-	HPT_U8  jid; 
-	HPT_U8  reserved[2];
+	HPT_U8 sector_size_shift; /*sector size = 512B<<sector_size_shift*/
+	HPT_U8 jid;
+	HPT_U8 reserved[2];
 
-	
 	HPT_MMASK outdated_members;
 	HPT_MMASK offline_members;
 
@@ -135,20 +131,19 @@ typedef struct hpt_array
 
 	HPT_U64 rebuilt_sectors;
 
-	
 	HPT_U8 name[MAX_ARRAY_NAME];
 	PHPT_TRANSFORM transform;
 
-	TIME_RECORD create_time;        
-	HPT_U8  description[64];        
-	HPT_U8  create_manager[16];     
+	TIME_RECORD create_time;
+	HPT_U8 description[64];
+	HPT_U8 create_manager[16];
 
 #ifdef OS_SUPPORT_TASK
 	int floating_priority;
 	OSM_TASK ioctl_task;
 	IOCTL_ARG ioctl_arg;
-	
-	char ioctl_inbuf[sizeof(PVDEV)+sizeof(HPT_U64)+sizeof(HPT_U16)];
+
+	char ioctl_inbuf[sizeof(PVDEV) + sizeof(HPT_U64) + sizeof(HPT_U16)];
 	char ioctl_outbuf[sizeof(HPT_UINT)];
 #endif
 
@@ -156,24 +151,23 @@ typedef struct hpt_array
 
 #ifdef OS_SUPPORT_TASK
 void ldm_start_rebuild(struct _VDEV *pArray);
-#else 
+#else
 #define ldm_start_rebuild(pArray)
 #endif
 
-typedef struct _raw_partition{
-	struct _raw_partition * next;
+typedef struct _raw_partition {
+	struct _raw_partition *next;
 	__HPT_RAW_LBA start;
 	__HPT_RAW_LBA capacity;
-	PVDEV   vd_part;
+	PVDEV vd_part;
 } RAW_PARTITION, *PRAW_PARTITION;
 
-typedef struct hpt_partiton
-{
+typedef struct hpt_partiton {
 	PVDEV raw_disk;
 	__HPT_RAW_LBA des_location;
 	PRAW_PARTITION raw_part;
-	HPT_U8  del_mbr;
-	HPT_U8  reserved[3];
+	HPT_U8 del_mbr;
+	HPT_U8 reserved[3];
 } HPT_PARTITION, *PHPT_PARTITION;
 
 HPT_U16 get_strip_size(PVDEV vd);

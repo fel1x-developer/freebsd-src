@@ -34,8 +34,8 @@
 #include <sys/kthread.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
@@ -47,8 +47,8 @@
 #include <sys/vnode.h>
 
 #ifdef GJ_MEMDEBUG
-#include <sys/stack.h>
 #include <sys/kdb.h>
+#include <sys/stack.h>
 #endif
 
 #include <vm/vm.h>
@@ -79,10 +79,7 @@ static MALLOC_DEFINE(M_JOURNAL, "journal_data", "GEOM_JOURNAL Data");
 static struct mtx g_journal_cache_mtx;
 MTX_SYSINIT(g_journal_cache, &g_journal_cache_mtx, "cache usage", MTX_DEF);
 
-const struct g_journal_desc *g_journal_filesystems[] = {
-	&g_journal_ufs,
-	NULL
-};
+const struct g_journal_desc *g_journal_filesystems[] = { &g_journal_ufs, NULL };
 
 SYSCTL_DECL(_kern_geom);
 
@@ -95,11 +92,10 @@ static u_int g_journal_accept_immediately = 64;
 static u_int g_journal_record_entries = GJ_RECORD_HEADER_NENTRIES;
 static u_int g_journal_do_optimize = 1;
 
-static SYSCTL_NODE(_kern_geom, OID_AUTO, journal,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "GEOM_JOURNAL stuff");
-SYSCTL_INT(_kern_geom_journal, OID_AUTO, debug, CTLFLAG_RWTUN, &g_journal_debug, 0,
-    "Debug level");
+static SYSCTL_NODE(_kern_geom, OID_AUTO, journal, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "GEOM_JOURNAL stuff");
+SYSCTL_INT(_kern_geom_journal, OID_AUTO, debug, CTLFLAG_RWTUN, &g_journal_debug,
+    0, "Debug level");
 SYSCTL_UINT(_kern_geom_journal, OID_AUTO, switch_time, CTLFLAG_RW,
     &g_journal_switch_time, 0, "Switch journals every N seconds");
 SYSCTL_UINT(_kern_geom_journal, OID_AUTO, force_switch, CTLFLAG_RW,
@@ -144,8 +140,7 @@ static u_int g_journal_cache_alloc_failures = 0;
 static u_long g_journal_cache_low = 0;
 
 static SYSCTL_NODE(_kern_geom_journal, OID_AUTO, cache,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "GEOM_JOURNAL cache");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "GEOM_JOURNAL cache");
 SYSCTL_ULONG(_kern_geom_journal_cache, OID_AUTO, used, CTLFLAG_RD,
     &g_journal_cache_used, 0, "Number of allocated bytes");
 static int
@@ -164,8 +159,7 @@ g_journal_cache_limit_sysctl(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_kern_geom_journal_cache, OID_AUTO, limit,
     CTLTYPE_ULONG | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, NULL, 0,
-    g_journal_cache_limit_sysctl, "I",
-    "Maximum number of allocated bytes");
+    g_journal_cache_limit_sysctl, "I", "Maximum number of allocated bytes");
 SYSCTL_UINT(_kern_geom_journal_cache, OID_AUTO, divisor, CTLFLAG_RDTUN,
     &g_journal_cache_divisor, 0,
     "(kmem_size / kern.geom.journal.cache.divisor) == cache size");
@@ -202,8 +196,7 @@ static u_long g_journal_stats_journal_full = 0;
 static u_long g_journal_stats_low_mem = 0;
 
 static SYSCTL_NODE(_kern_geom_journal, OID_AUTO, stats,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "GEOM_JOURNAL statistics");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "GEOM_JOURNAL statistics");
 SYSCTL_ULONG(_kern_geom_journal_stats, OID_AUTO, skipped_bytes, CTLFLAG_RW,
     &g_journal_stats_bytes_skipped, 0, "Number of skipped bytes");
 SYSCTL_ULONG(_kern_geom_journal_stats, OID_AUTO, combined_ios, CTLFLAG_RW,
@@ -224,15 +217,13 @@ static g_dumpconf_t g_journal_dumpconf;
 static g_init_t g_journal_init;
 static g_fini_t g_journal_fini;
 
-struct g_class g_journal_class = {
-	.name = G_JOURNAL_CLASS_NAME,
+struct g_class g_journal_class = { .name = G_JOURNAL_CLASS_NAME,
 	.version = G_VERSION,
 	.taste = g_journal_taste,
 	.ctlreq = g_journal_config,
 	.dumpconf = g_journal_dumpconf,
 	.init = g_journal_init,
-	.fini = g_journal_fini
-};
+	.fini = g_journal_fini };
 
 static int g_journal_destroy(struct g_journal_softc *sc);
 static void g_journal_metadata_update(struct g_journal_softc *sc);
@@ -240,9 +231,9 @@ static void g_journal_start_switcher(struct g_class *mp);
 static void g_journal_stop_switcher(void);
 static void g_journal_switch_wait(struct g_journal_softc *sc);
 
-#define	GJ_SWITCHER_WORKING	0
-#define	GJ_SWITCHER_DIE		1
-#define	GJ_SWITCHER_DIED	2
+#define GJ_SWITCHER_WORKING 0
+#define GJ_SWITCHER_DIE 1
+#define GJ_SWITCHER_DIED 2
 static struct proc *g_journal_switcher_proc = NULL;
 static int g_journal_switcher_state = GJ_SWITCHER_WORKING;
 static int g_journal_switcher_wokenup = 0;
@@ -250,8 +241,8 @@ static int g_journal_sync_requested = 0;
 
 #ifdef GJ_MEMDEBUG
 struct meminfo {
-	size_t		mi_size;
-	struct stack	mi_stack;
+	size_t mi_size;
+	struct stack mi_stack;
 };
 #endif
 
@@ -346,14 +337,13 @@ g_journal_check_overflow(struct g_journal_softc *sc)
 	off_t length, used;
 
 	if ((sc->sc_active.jj_offset < sc->sc_inactive.jj_offset &&
-	     sc->sc_journal_offset >= sc->sc_inactive.jj_offset) ||
+		sc->sc_journal_offset >= sc->sc_inactive.jj_offset) ||
 	    (sc->sc_active.jj_offset > sc->sc_inactive.jj_offset &&
-	     sc->sc_journal_offset >= sc->sc_inactive.jj_offset &&
-	     sc->sc_journal_offset < sc->sc_active.jj_offset)) {
+		sc->sc_journal_offset >= sc->sc_inactive.jj_offset &&
+		sc->sc_journal_offset < sc->sc_active.jj_offset)) {
 		panic("Journal overflow "
-		    "(id = %u joffset=%jd active=%jd inactive=%jd)",
-		    (unsigned)sc->sc_id,
-		    (intmax_t)sc->sc_journal_offset,
+		      "(id = %u joffset=%jd active=%jd inactive=%jd)",
+		    (unsigned)sc->sc_id, (intmax_t)sc->sc_journal_offset,
 		    (intmax_t)sc->sc_active.jj_offset,
 		    (intmax_t)sc->sc_inactive.jj_offset);
 	}
@@ -379,10 +369,10 @@ g_journal_check_overflow(struct g_journal_softc *sc)
 	 */
 	KASSERT(length > 0,
 	    ("length=%jd used=%jd active=%jd inactive=%jd joffset=%jd",
-	    (intmax_t)length, (intmax_t)used,
-	    (intmax_t)sc->sc_active.jj_offset,
-	    (intmax_t)sc->sc_inactive.jj_offset,
-	    (intmax_t)sc->sc_journal_offset));
+		(intmax_t)length, (intmax_t)used,
+		(intmax_t)sc->sc_active.jj_offset,
+		(intmax_t)sc->sc_inactive.jj_offset,
+		(intmax_t)sc->sc_journal_offset));
 	if ((used * 100) / length > g_journal_force_switch) {
 		g_journal_stats_journal_full++;
 		GJ_DEBUG(1, "Journal %s %jd%% full, forcing journal switch.",
@@ -411,9 +401,10 @@ g_journal_orphan(struct g_consumer *cp)
 	if (error == 0)
 		GJ_DEBUG(0, "Journal %s destroyed.", name);
 	else {
-		GJ_DEBUG(0, "Cannot destroy journal %s (error=%d). "
-		    "Destroy it manually after last close.", sc->sc_name,
-		    error);
+		GJ_DEBUG(0,
+		    "Cannot destroy journal %s (error=%d). "
+		    "Destroy it manually after last close.",
+		    sc->sc_name, error);
 	}
 }
 
@@ -424,8 +415,8 @@ g_journal_access(struct g_provider *pp, int acr, int acw, int ace)
 	int dcw;
 
 	g_topology_assert();
-	GJ_DEBUG(2, "Access request for %s: r%dw%de%d.", pp->name,
-	    acr, acw, ace);
+	GJ_DEBUG(2, "Access request for %s: r%dw%de%d.", pp->name, acr, acw,
+	    ace);
 
 	dcw = pp->acw + acw;
 
@@ -792,10 +783,10 @@ g_journal_new_bio(off_t start, off_t end, off_t joffset, u_char *data,
 	return (bp);
 }
 
-#define	g_journal_insert_bio(head, bp, flags)				\
-	g_journal_insert((head), (bp)->bio_offset,			\
-		(bp)->bio_offset + (bp)->bio_length, (bp)->bio_joffset,	\
-		(bp)->bio_data, flags)
+#define g_journal_insert_bio(head, bp, flags)                       \
+	g_journal_insert((head), (bp)->bio_offset,                  \
+	    (bp)->bio_offset + (bp)->bio_length, (bp)->bio_joffset, \
+	    (bp)->bio_data, flags)
 /*
  * The function below does a lot more than just inserting bio to the queue.
  * It keeps the queue sorted by offset and ensures that there are no doubled
@@ -816,7 +807,8 @@ g_journal_insert(struct bio **head, off_t nstart, off_t nend, off_t joffset,
 	    joffset);
 	n = 0;
 	pbp = NULL;
-	GJQ_FOREACH(*head, cbp) {
+	GJQ_FOREACH(*head, cbp)
+	{
 		cstart = cbp->bio_offset;
 		cend = cbp->bio_offset + cbp->bio_length;
 
@@ -1003,7 +995,8 @@ g_journal_insert(struct bio **head, off_t nstart, off_t nend, off_t joffset,
 	GJ_DEBUG(3, "INSERT(%p): 8 (nbp=%p pbp=%p)", *head, nbp, pbp);
 end:
 	if (g_journal_debug >= 3) {
-		GJQ_FOREACH(*head, cbp) {
+		GJQ_FOREACH(*head, cbp)
+		{
 			GJ_DEBUG(3, "ELEMENT: %p (%jd, %jd, %jd, %p)", cbp,
 			    (intmax_t)cbp->bio_offset,
 			    (intmax_t)cbp->bio_length,
@@ -1028,7 +1021,8 @@ g_journal_optimize(struct bio *head)
 
 	n = 0;
 	pbp = NULL;
-	GJQ_FOREACH(head, cbp) {
+	GJQ_FOREACH(head, cbp)
+	{
 		/* Skip bios which has to be read first. */
 		if (cbp->bio_data == NULL) {
 			pbp = NULL;
@@ -1042,11 +1036,12 @@ g_journal_optimize(struct bio *head)
 		/* Is this a neighbour bio? */
 		if (pbp->bio_offset + pbp->bio_length != cbp->bio_offset) {
 			/* Be sure that bios queue is sorted. */
-			KASSERT(pbp->bio_offset + pbp->bio_length < cbp->bio_offset,
+			KASSERT(pbp->bio_offset + pbp->bio_length <
+				cbp->bio_offset,
 			    ("poffset=%jd plength=%jd coffset=%jd",
-			    (intmax_t)pbp->bio_offset,
-			    (intmax_t)pbp->bio_length,
-			    (intmax_t)cbp->bio_offset));
+				(intmax_t)pbp->bio_offset,
+				(intmax_t)pbp->bio_length,
+				(intmax_t)cbp->bio_offset));
 			pbp = cbp;
 			continue;
 		}
@@ -1486,7 +1481,8 @@ g_journal_read_find(struct bio *head, int sorted, struct bio *pbp, off_t ostart,
 	off_t cstart, cend;
 	struct bio *bp;
 
-	GJQ_FOREACH(head, bp) {
+	GJQ_FOREACH(head, bp)
+	{
 		if (bp->bio_offset == -1)
 			continue;
 		cstart = MAX(ostart, bp->bio_offset);
@@ -1545,24 +1541,24 @@ g_journal_read(struct g_journal_softc *sc, struct bio *pbp, off_t ostart,
 	head = NULL;
 	for (i = 1; i <= 5; i++) {
 		switch (i) {
-		case 1:	/* Not-yet-send data. */
+		case 1: /* Not-yet-send data. */
 			head = sc->sc_current_queue;
 			sorted = 1;
 			break;
 		case 2: /* Skip flush queue as they are also in active queue */
 			continue;
-		case 3:	/* Active journal. */
+		case 3: /* Active journal. */
 			head = sc->sc_active.jj_queue;
 			sorted = 1;
 			break;
-		case 4:	/* Inactive journal. */
+		case 4: /* Inactive journal. */
 			/*
 			 * XXX: Here could be a race with g_journal_lowmem().
 			 */
 			head = sc->sc_inactive.jj_queue;
 			sorted = 1;
 			break;
-		case 5:	/* In-flight to the data provider. */
+		case 5: /* In-flight to the data provider. */
 			head = sc->sc_copy_queue;
 			sorted = 0;
 			break;
@@ -1576,8 +1572,9 @@ g_journal_read(struct g_journal_softc *sc, struct bio *pbp, off_t ostart,
 		} else if (bp != NULL) {
 			cstart = MAX(ostart, bp->bio_offset);
 			cend = MIN(oend, bp->bio_offset + bp->bio_length);
-			GJ_DEBUG(2, "Got part of the request from %u (%jd-%jd).",
-			    i, (intmax_t)cstart, (intmax_t)cend);
+			GJ_DEBUG(2,
+			    "Got part of the request from %u (%jd-%jd).", i,
+			    (intmax_t)cstart, (intmax_t)cend);
 			break;
 		}
 	}
@@ -1585,10 +1582,10 @@ g_journal_read(struct g_journal_softc *sc, struct bio *pbp, off_t ostart,
 		if (bp->bio_data == NULL) {
 			nbp = g_duplicate_bio(pbp);
 			nbp->bio_cflags = GJ_BIO_READ;
-			nbp->bio_data =
-			    pbp->bio_data + cstart - pbp->bio_offset;
-			nbp->bio_offset =
-			    bp->bio_joffset + cstart - bp->bio_offset;
+			nbp->bio_data = pbp->bio_data + cstart -
+			    pbp->bio_offset;
+			nbp->bio_offset = bp->bio_joffset + cstart -
+			    bp->bio_offset;
 			nbp->bio_length = cend - cstart;
 			nbp->bio_done = g_journal_read_done;
 			g_io_request(nbp, sc->sc_jconsumer);
@@ -1683,8 +1680,8 @@ g_journal_switch(struct g_journal_softc *sc)
 		sc->sc_inactive.jj_offset = sc->sc_active.jj_offset;
 		sc->sc_inactive.jj_queue = sc->sc_active.jj_queue;
 
-		sc->sc_active.jj_offset =
-		    sc->sc_journal_offset - pp->sectorsize;
+		sc->sc_active.jj_offset = sc->sc_journal_offset -
+		    pp->sectorsize;
 		sc->sc_active.jj_queue = NULL;
 
 		/*
@@ -1833,7 +1830,8 @@ g_journal_sync(struct g_journal_softc *sc)
 			 */
 			error = g_journal_header_decode(buf, &jhdr);
 			if (error != 0) {
-				GJ_DEBUG(1, "Not a journal header at %jd (error=%d).",
+				GJ_DEBUG(1,
+				    "Not a journal header at %jd (error=%d).",
 				    (intmax_t)offset, error);
 				/*
 				 * Nope, this is not journal header, which
@@ -1848,9 +1846,11 @@ g_journal_sync(struct g_journal_softc *sc)
 			 * verify if this is header of the _next_ journal.
 			 */
 			if (jhdr.jh_journal_id != id) {
-				GJ_DEBUG(1, "Journal ID mismatch at %jd "
-				    "(0x%08x != 0x%08x).", (intmax_t)offset,
-				    (u_int)jhdr.jh_journal_id, (u_int)id);
+				GJ_DEBUG(1,
+				    "Journal ID mismatch at %jd "
+				    "(0x%08x != 0x%08x).",
+				    (intmax_t)offset, (u_int)jhdr.jh_journal_id,
+				    (u_int)id);
 				error = ENOENT;
 				break;
 			}
@@ -1860,8 +1860,8 @@ g_journal_sync(struct g_journal_softc *sc)
 			GJ_DEBUG(1, "Found termination at %jd (id=0x%08x).",
 			    (intmax_t)offset, (u_int)id);
 			sc->sc_active.jj_offset = offset;
-			sc->sc_journal_offset =
-			    offset + cp->provider->sectorsize;
+			sc->sc_journal_offset = offset +
+			    cp->provider->sectorsize;
 			sc->sc_journal_id = id;
 			id = sc->sc_journal_next_id = jhdr.jh_journal_next_id;
 
@@ -1915,7 +1915,8 @@ g_journal_sync(struct g_journal_softc *sc)
 		}
 		if (sc->sc_flags & GJF_DEVICE_CHECKSUM) {
 			MD5Final(sum, &ctx);
-			if (bcmp(sum, rhdr.jrh_sum, sizeof(rhdr.jrh_sum)) != 0) {
+			if (bcmp(sum, rhdr.jrh_sum, sizeof(rhdr.jrh_sum)) !=
+			    0) {
 				GJ_DEBUG(0, "MD5 hash mismatch at %jd!",
 				    (intmax_t)offset);
 			}
@@ -2024,7 +2025,7 @@ g_journal_worker(void *arg)
 	thread_unlock(curthread);
 
 	sc = arg;
-	type = 0;	/* gcc */
+	type = 0; /* gcc */
 
 	if (sc->sc_flags & GJF_DEVICE_CLEAN) {
 		GJ_DEBUG(0, "Journal %s clean.", sc->sc_name);
@@ -2087,7 +2088,7 @@ g_journal_worker(void *arg)
 				type = GJ_BIO_REGULAR;
 		}
 		if (bp == NULL) {
-try_switch:
+		try_switch:
 			if ((sc->sc_flags & GJF_DEVICE_SWITCH) ||
 			    (sc->sc_flags & GJF_DEVICE_DESTROY)) {
 				if (sc->sc_current_count > 0) {
@@ -2108,14 +2109,16 @@ try_switch:
 				continue;
 			}
 			if (sc->sc_flags & GJF_DEVICE_DESTROY) {
-				GJ_DEBUG(1, "Shutting down worker "
-				    "thread for %s.", gp->name);
+				GJ_DEBUG(1,
+				    "Shutting down worker "
+				    "thread for %s.",
+				    gp->name);
 				sc->sc_worker = NULL;
 				wakeup(&sc->sc_worker);
 				mtx_unlock(&sc->sc_mtx);
 				kproc_exit(0);
 			}
-sleep:
+		sleep:
 			g_journal_wait(sc, last_write);
 			continue;
 		}
@@ -2205,7 +2208,7 @@ g_journal_create(struct g_class *mp, struct g_provider *pp,
 	struct g_consumer *cp;
 	int error;
 
-	sc = NULL;	/* gcc */
+	sc = NULL; /* gcc */
 
 	g_topology_assert();
 	/*
@@ -2214,7 +2217,7 @@ g_journal_create(struct g_class *mp, struct g_provider *pp,
 	 * 2. Data and journals are all on separated providers.
 	 */
 	/* Look for journal device with the same ID. */
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -2301,8 +2304,8 @@ g_journal_create(struct g_class *mp, struct g_provider *pp,
 			sc->sc_flags |= GJF_DEVICE_CHECKSUM;
 		cp = g_new_consumer(gp);
 		error = g_attach(cp, pp);
-		KASSERT(error == 0, ("Cannot attach to %s (error=%d).",
-		    pp->name, error));
+		KASSERT(error == 0,
+		    ("Cannot attach to %s (error=%d).", pp->name, error));
 		error = g_access(cp, 1, 1, 1);
 		if (error != 0) {
 			GJ_DEBUG(0, "Cannot access %s (error=%d).", pp->name,
@@ -2325,8 +2328,9 @@ g_journal_create(struct g_class *mp, struct g_provider *pp,
 		if (cp == NULL) {
 			cp = g_new_consumer(gp);
 			error = g_attach(cp, pp);
-			KASSERT(error == 0, ("Cannot attach to %s (error=%d).",
-			    pp->name, error));
+			KASSERT(error == 0,
+			    ("Cannot attach to %s (error=%d).", pp->name,
+				error));
 			error = g_access(cp, 1, 1, 1);
 			if (error != 0) {
 				GJ_DEBUG(0, "Cannot access %s (error=%d).",
@@ -2439,7 +2443,7 @@ g_journal_destroy(struct g_journal_softc *sc)
 	}
 
 	gp->softc = NULL;
-	LIST_FOREACH(cp, &gp->consumer, consumer) {
+	LIST_FOREACH (cp, &gp->consumer, consumer) {
 		if (cp->acr + cp->acw + cp->ace > 0)
 			g_access(cp, -1, -1, -1);
 		/*
@@ -2459,8 +2463,8 @@ static void
 g_journal_taste_orphan(struct g_consumer *cp)
 {
 
-	KASSERT(1 == 0, ("%s called while tasting %s.", __func__,
-	    cp->provider->name));
+	KASSERT(1 == 0,
+	    ("%s called while tasting %s.", __func__, cp->provider->name));
 }
 
 static struct g_geom *
@@ -2514,7 +2518,7 @@ g_journal_find_device(struct g_class *mp, const char *name)
 
 	if (strncmp(name, _PATH_DEV, 5) == 0)
 		name += 5;
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -2666,7 +2670,7 @@ g_journal_shutdown_post_sync(void *arg, int howto)
 
 	mp = arg;
 	g_topology_lock();
-	LIST_FOREACH_SAFE(gp, &mp->geom, geom, gp2) {
+	LIST_FOREACH_SAFE (gp, &mp->geom, geom, gp2) {
 		if (gp->softc == NULL)
 			continue;
 		GJ_DEBUG(0, "Shutting down geom %s.", gp->name);
@@ -2679,7 +2683,7 @@ g_journal_shutdown_post_sync(void *arg, int howto)
  * Free cached requests from inactive queue in case of low memory.
  * We free GJ_FREE_AT_ONCE elements at once.
  */
-#define	GJ_FREE_AT_ONCE	4
+#define GJ_FREE_AT_ONCE 4
 static void
 g_journal_lowmem(void *arg, int howto __unused)
 {
@@ -2692,13 +2696,13 @@ g_journal_lowmem(void *arg, int howto __unused)
 	g_journal_stats_low_mem++;
 	mp = arg;
 	g_topology_lock();
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL || (sc->sc_flags & GJF_DEVICE_DESTROY))
 			continue;
 		mtx_lock(&sc->sc_mtx);
 		for (bp = sc->sc_inactive.jj_queue; nfree > 0 && bp != NULL;
-		    nfree--, bp = bp->bio_next) {
+		     nfree--, bp = bp->bio_next) {
 			/*
 			 * This is safe to free the bio_data, because:
 			 * 1. If bio_data is NULL it will be read from the
@@ -2736,8 +2740,8 @@ g_journal_init(struct g_class *mp)
 	}
 	if (g_journal_cache_limit > 0) {
 		g_journal_cache_limit = vm_kmem_size / g_journal_cache_divisor;
-		g_journal_cache_low =
-		    (g_journal_cache_limit / 100) * g_journal_cache_switch;
+		g_journal_cache_low = (g_journal_cache_limit / 100) *
+		    g_journal_cache_switch;
 	}
 	g_journal_event_shutdown = EVENTHANDLER_REGISTER(shutdown_post_sync,
 	    g_journal_shutdown_post_sync, mp, EVENTHANDLER_PRI_FIRST);
@@ -2829,7 +2833,7 @@ g_journal_do_switch(struct g_class *classp)
 	int error, save;
 
 	g_topology_lock();
-	LIST_FOREACH(gp, &classp->geom, geom) {
+	LIST_FOREACH (gp, &classp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -2844,7 +2848,7 @@ g_journal_do_switch(struct g_class *classp)
 	g_topology_unlock();
 
 	mtx_lock(&mountlist_mtx);
-	TAILQ_FOREACH(mp, &mountlist, mnt_list) {
+	TAILQ_FOREACH (mp, &mountlist, mnt_list) {
 		if (mp->mnt_gjprovider == NULL)
 			continue;
 		if (mp->mnt_flag & MNT_RDONLY)
@@ -2929,7 +2933,7 @@ g_journal_do_switch(struct g_class *classp)
 		mtx_unlock(&sc->sc_mtx);
 
 		vfs_write_resume(mp, 0);
-next:
+	next:
 		mtx_lock(&mountlist_mtx);
 		vfs_unbusy(mp);
 	}
@@ -2938,12 +2942,13 @@ next:
 	sc = NULL;
 	for (;;) {
 		g_topology_lock();
-		LIST_FOREACH(gp, &g_journal_class.geom, geom) {
+		LIST_FOREACH (gp, &g_journal_class.geom, geom) {
 			sc = gp->softc;
 			if (sc == NULL)
 				continue;
 			mtx_lock(&sc->sc_mtx);
-			if ((sc->sc_type & GJ_TYPE_COMPLETE) == GJ_TYPE_COMPLETE &&
+			if ((sc->sc_type & GJ_TYPE_COMPLETE) ==
+				GJ_TYPE_COMPLETE &&
 			    !(sc->sc_flags & GJF_DEVICE_DESTROY) &&
 			    (sc->sc_flags & GJF_DEVICE_BEFORE_SWITCH)) {
 				break;
@@ -3009,8 +3014,10 @@ g_journal_switcher(void *arg)
 			kproc_exit(0);
 		}
 		if (error == 0 && g_journal_sync_requested == 0) {
-			GJ_DEBUG(1, "Out of cache, force switch (used=%jd "
-			    "limit=%jd).", (intmax_t)g_journal_cache_used,
+			GJ_DEBUG(1,
+			    "Out of cache, force switch (used=%jd "
+			    "limit=%jd).",
+			    (intmax_t)g_journal_cache_used,
 			    (intmax_t)g_journal_cache_limit);
 		}
 		GJ_TIMER_START(1, &bt);

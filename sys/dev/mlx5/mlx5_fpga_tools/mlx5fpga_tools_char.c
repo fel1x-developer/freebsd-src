@@ -33,8 +33,9 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
-#include <dev/mlx5/mlx5io.h>
+
 #include <dev/mlx5/mlx5_fpga_tools/tools_char.h>
+#include <dev/mlx5/mlx5io.h>
 
 #define CHUNK_SIZE (128 * 1024)
 
@@ -63,8 +64,8 @@ tools_char_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 }
 
 static int
-mem_read(struct mlx5_fpga_tools_dev *tdev, void *buf, size_t count,
-    u64 address, enum mlx5_fpga_access_type access_type, size_t *retcnt)
+mem_read(struct mlx5_fpga_tools_dev *tdev, void *buf, size_t count, u64 address,
+    enum mlx5_fpga_access_type access_type, size_t *retcnt)
 {
 	int ret;
 
@@ -75,8 +76,8 @@ mem_read(struct mlx5_fpga_tools_dev *tdev, void *buf, size_t count,
 	sx_xunlock(&tdev->lock);
 	if (ret < 0) {
 		dev_dbg(mlx5_fpga_dev(tdev->fdev),
-			"Failed to read %zu bytes at address 0x%jx: %d\n",
-			count, (uintmax_t)address, ret);
+		    "Failed to read %zu bytes at address 0x%jx: %d\n", count,
+		    (uintmax_t)address, ret);
 		return (-ret);
 	}
 	*retcnt = ret;
@@ -96,8 +97,8 @@ mem_write(struct mlx5_fpga_tools_dev *tdev, void *buf, size_t count,
 	sx_xunlock(&tdev->lock);
 	if (ret < 0) {
 		dev_dbg(mlx5_fpga_dev(tdev->fdev),
-			"Failed to write %zu bytes at address 0x%jx: %d\n",
-			count, (uintmax_t)address, ret);
+		    "Failed to write %zu bytes at address 0x%jx: %d\n", count,
+		    (uintmax_t)address, ret);
 		return (-ret);
 	}
 	*retcnt = ret;
@@ -140,7 +141,7 @@ tools_char_read(struct cdev *dev, struct uio *uio, int ioflag)
 		return (ret);
 	dev_dbg(mlx5_fpga_dev(context->tdev->fdev),
 	    "tools char device reading %zu bytes at 0x%jx\n", uio->uio_resid,
-	     (uintmax_t)uio->uio_offset);
+	    (uintmax_t)uio->uio_offset);
 
 	tools_char_llseek(context, uio, &len);
 	if (len == 0)
@@ -200,7 +201,7 @@ tools_char_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	struct mlx5_fpga_query query;
 	struct mlx5_fpga_temperature *temperature;
 	enum mlx5_fpga_connect *connect;
-	u32 fpga_cap[MLX5_ST_SZ_DW(fpga_cap)] = {0};
+	u32 fpga_cap[MLX5_ST_SZ_DW(fpga_cap)] = { 0 };
 	int arg, err;
 
 	err = devfs_get_cdevpriv((void **)&context);
@@ -214,8 +215,8 @@ tools_char_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	case MLX5_FPGA_ACCESS_TYPE:
 		arg = *(int *)data;
 		if (arg > MLX5_FPGA_ACCESS_TYPE_MAX) {
-			dev_err(mlx5_fpga_dev(fdev),
-			    "unknown access type %u\n", arg);
+			dev_err(mlx5_fpga_dev(fdev), "unknown access type %u\n",
+			    arg);
 			err = EINVAL;
 			break;
 		}
@@ -224,8 +225,8 @@ tools_char_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	case MLX5_FPGA_LOAD:
 		arg = *(int *)data;
 		if (arg > MLX5_FPGA_IMAGE_FACTORY) {
-			dev_err(mlx5_fpga_dev(fdev),
-				"unknown image type %u\n", arg);
+			dev_err(mlx5_fpga_dev(fdev), "unknown image type %u\n",
+			    arg);
 			err = EINVAL;
 			break;
 		}
@@ -240,8 +241,8 @@ tools_char_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 	case MLX5_FPGA_IMAGE_SEL:
 		arg = *(int *)data;
 		if (arg > MLX5_FPGA_IMAGE_FACTORY) {
-			dev_err(mlx5_fpga_dev(fdev),
-			    "unknown image type %u\n", arg);
+			dev_err(mlx5_fpga_dev(fdev), "unknown image type %u\n",
+			    arg);
 			err = EINVAL;
 			break;
 		}
@@ -266,22 +267,22 @@ tools_char_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		connect = (enum mlx5_fpga_connect *)data;
 		mlx5_fpga_connectdisconnect(fdev, connect);
 		err = 0; /* XXXKIB */
- 		break;
+		break;
 	default:
-		dev_err(mlx5_fpga_dev(fdev),
-			"unknown ioctl command %#08lx\n", cmd);
+		dev_err(mlx5_fpga_dev(fdev), "unknown ioctl command %#08lx\n",
+		    cmd);
 		err = ENOTTY;
 	}
 	return (err);
 }
 
 static struct cdevsw mlx5_tools_char_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_name =	"mlx5_tools_char",
-	.d_open =	tools_char_open,
-	.d_read =	tools_char_read,
-	.d_write =	tools_char_write,
-	.d_ioctl =	tools_char_ioctl,
+	.d_version = D_VERSION,
+	.d_name = "mlx5_tools_char",
+	.d_open = tools_char_open,
+	.d_read = tools_char_read,
+	.d_write = tools_char_write,
+	.d_ioctl = tools_char_ioctl,
 };
 
 int
@@ -317,7 +318,8 @@ mlx5_fpga_tools_char_add_one(struct mlx5_fpga_tools_dev *tdev)
 	return (0);
 }
 
-void mlx5_fpga_tools_char_remove_one(struct mlx5_fpga_tools_dev *tdev)
+void
+mlx5_fpga_tools_char_remove_one(struct mlx5_fpga_tools_dev *tdev)
 {
 
 	dev_err(mlx5_fpga_dev(tdev->fdev), "tools char device %s destroyed\n",

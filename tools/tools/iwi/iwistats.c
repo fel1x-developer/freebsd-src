@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <sysexits.h>
 
-static void	get_statistics(const char *);
+static void get_statistics(const char *);
 
 int
 main(int argc, char **argv)
@@ -44,18 +44,16 @@ main(int argc, char **argv)
 }
 
 static const struct statistic {
-	int 		index;
-	const char	*desc;
-} tbl[] = {
-	{  1, "Current transmission rate" },
-	{  2, "Fragmentation threshold" },
-	{  3, "RTS threshold" },
-	{  4, "Number of frames submitted for transfer" },
-	{  5, "Number of frames transmitted" },
-	{  6, "Number of unicast frames transmitted" },
-	{  7, "Number of unicast 802.11b frames transmitted at 1Mb/s" },
-	{  8, "Number of unicast 802.11b frames transmitted at 2Mb/s" },
-	{  9, "Number of unicast 802.11b frames transmitted at 5.5Mb/s" },
+	int index;
+	const char *desc;
+} tbl[] = { { 1, "Current transmission rate" },
+	{ 2, "Fragmentation threshold" }, { 3, "RTS threshold" },
+	{ 4, "Number of frames submitted for transfer" },
+	{ 5, "Number of frames transmitted" },
+	{ 6, "Number of unicast frames transmitted" },
+	{ 7, "Number of unicast 802.11b frames transmitted at 1Mb/s" },
+	{ 8, "Number of unicast 802.11b frames transmitted at 2Mb/s" },
+	{ 9, "Number of unicast 802.11b frames transmitted at 5.5Mb/s" },
 	{ 10, "Number of unicast 802.11b frames transmitted at 11Mb/s" },
 
 	{ 19, "Number of unicast 802.11g frames transmitted at 1Mb/s" },
@@ -92,16 +90,13 @@ static const struct statistic {
 	{ 57, "Number of transmission failures" },
 	{ 58, "Number of CRC errors" },
 
-	{ 61, "Number of full scans" },
-	{ 62, "Number of partial scans" },
+	{ 61, "Number of full scans" }, { 62, "Number of partial scans" },
 
-	{ 64, "Number of bytes transmitted" },
-	{ 65, "Current RSSI" },
+	{ 64, "Number of bytes transmitted" }, { 65, "Current RSSI" },
 	{ 66, "Number of beacons received" },
 	{ 67, "Number of beacons missed" },
 
-	{ -1, NULL }
-};
+	{ -1, NULL } };
 
 static void
 get_statistics(const char *iface)

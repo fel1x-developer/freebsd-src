@@ -34,12 +34,13 @@
  * Thomas Hellström <thomas-at-tungstengraphics-dot-com>
  */
 
+#include <sys/hash.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_hashtab.h>
 
-#include <sys/hash.h>
-
-int drm_ht_create(struct drm_open_hash *ht, unsigned int order)
+int
+drm_ht_create(struct drm_open_hash *ht, unsigned int order)
 {
 	ht->size = 1 << order;
 	ht->order = order;
@@ -54,7 +55,8 @@ int drm_ht_create(struct drm_open_hash *ht, unsigned int order)
 }
 EXPORT_SYMBOL(drm_ht_create);
 
-void drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
+void
+drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
 {
 	struct drm_hash_item *entry;
 	struct drm_hash_item_list *h_list;
@@ -64,12 +66,12 @@ void drm_ht_verbose_list(struct drm_open_hash *ht, unsigned long key)
 	hashed_key = hash32_buf(&key, sizeof(key), ht->order);
 	DRM_DEBUG("Key is 0x%08lx, Hashed key is 0x%08x\n", key, hashed_key);
 	h_list = &ht->table[hashed_key & ht->mask];
-	LIST_FOREACH(entry, h_list, head)
+	LIST_FOREACH (entry, h_list, head)
 		DRM_DEBUG("count %d, key: 0x%08lx\n", count++, entry->key);
 }
 
-static struct drm_hash_item *drm_ht_find_key(struct drm_open_hash *ht,
-					  unsigned long key)
+static struct drm_hash_item *
+drm_ht_find_key(struct drm_open_hash *ht, unsigned long key)
 {
 	struct drm_hash_item *entry;
 	struct drm_hash_item_list *h_list;
@@ -77,7 +79,7 @@ static struct drm_hash_item *drm_ht_find_key(struct drm_open_hash *ht,
 
 	hashed_key = hash32_buf(&key, sizeof(key), ht->order);
 	h_list = &ht->table[hashed_key & ht->mask];
-	LIST_FOREACH(entry, h_list, head) {
+	LIST_FOREACH (entry, h_list, head) {
 		if (entry->key == key)
 			return entry;
 		if (entry->key > key)
@@ -86,8 +88,8 @@ static struct drm_hash_item *drm_ht_find_key(struct drm_open_hash *ht,
 	return NULL;
 }
 
-
-int drm_ht_insert_item(struct drm_open_hash *ht, struct drm_hash_item *item)
+int
+drm_ht_insert_item(struct drm_open_hash *ht, struct drm_hash_item *item)
 {
 	struct drm_hash_item *entry, *parent;
 	struct drm_hash_item_list *h_list;
@@ -97,7 +99,7 @@ int drm_ht_insert_item(struct drm_open_hash *ht, struct drm_hash_item *item)
 	hashed_key = hash32_buf(&key, sizeof(key), ht->order);
 	h_list = &ht->table[hashed_key & ht->mask];
 	parent = NULL;
-	LIST_FOREACH(entry, h_list, head) {
+	LIST_FOREACH (entry, h_list, head) {
 		if (entry->key == key)
 			return -EINVAL;
 		if (entry->key > key)
@@ -117,9 +119,9 @@ EXPORT_SYMBOL(drm_ht_insert_item);
  * Just insert an item and return any "bits" bit key that hasn't been
  * used before.
  */
-int drm_ht_just_insert_please(struct drm_open_hash *ht, struct drm_hash_item *item,
-			      unsigned long seed, int bits, int shift,
-			      unsigned long add)
+int
+drm_ht_just_insert_please(struct drm_open_hash *ht, struct drm_hash_item *item,
+    unsigned long seed, int bits, int shift, unsigned long add)
 {
 	int ret;
 	unsigned long mask = (1 << bits) - 1;
@@ -132,7 +134,7 @@ int drm_ht_just_insert_please(struct drm_open_hash *ht, struct drm_hash_item *it
 		ret = drm_ht_insert_item(ht, item);
 		if (ret)
 			unshifted_key = (unshifted_key + 1) & mask;
-	} while(ret && (unshifted_key != first));
+	} while (ret && (unshifted_key != first));
 
 	if (ret) {
 		DRM_ERROR("Available key bit space exhausted\n");
@@ -142,8 +144,9 @@ int drm_ht_just_insert_please(struct drm_open_hash *ht, struct drm_hash_item *it
 }
 EXPORT_SYMBOL(drm_ht_just_insert_please);
 
-int drm_ht_find_item(struct drm_open_hash *ht, unsigned long key,
-		     struct drm_hash_item **item)
+int
+drm_ht_find_item(struct drm_open_hash *ht, unsigned long key,
+    struct drm_hash_item **item)
 {
 	struct drm_hash_item *entry;
 
@@ -156,7 +159,8 @@ int drm_ht_find_item(struct drm_open_hash *ht, unsigned long key,
 }
 EXPORT_SYMBOL(drm_ht_find_item);
 
-int drm_ht_remove_key(struct drm_open_hash *ht, unsigned long key)
+int
+drm_ht_remove_key(struct drm_open_hash *ht, unsigned long key)
 {
 	struct drm_hash_item *entry;
 
@@ -168,14 +172,16 @@ int drm_ht_remove_key(struct drm_open_hash *ht, unsigned long key)
 	return -EINVAL;
 }
 
-int drm_ht_remove_item(struct drm_open_hash *ht, struct drm_hash_item *item)
+int
+drm_ht_remove_item(struct drm_open_hash *ht, struct drm_hash_item *item)
 {
 	LIST_REMOVE(item, head);
 	return 0;
 }
 EXPORT_SYMBOL(drm_ht_remove_item);
 
-void drm_ht_remove(struct drm_open_hash *ht)
+void
+drm_ht_remove(struct drm_open_hash *ht)
 {
 	if (ht->table) {
 		hashdestroy(ht->table, DRM_MEM_HASHTAB, ht->mask);

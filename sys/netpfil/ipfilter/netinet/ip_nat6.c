@@ -4,64 +4,64 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define        KERNEL	1
-# define        _KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
-#include <sys/errno.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/errno.h>
 #include <sys/file.h>
+#include <sys/time.h>
 #if defined(_KERNEL) && defined(__NetBSD_Version__) && \
     (__NetBSD_Version__ >= 399002000)
-# include <sys/kauth.h>
+#include <sys/kauth.h>
 #endif
 #if !defined(_KERNEL)
-# include <stdio.h>
-# include <string.h>
-# include <stdlib.h>
-# define _KERNEL
-# ifdef ipf_nat6__OpenBSD__
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define _KERNEL
+#ifdef ipf_nat6__OpenBSD__
 struct file;
-# endif
-# include <sys/uio.h>
-# undef _KERNEL
+#endif
+#include <sys/uio.h>
+#undef _KERNEL
 #endif
 #if defined(_KERNEL) && defined(__FreeBSD__)
-# include <sys/filio.h>
-# include <sys/fcntl.h>
+#include <sys/fcntl.h>
+#include <sys/filio.h>
 #else
-# include <sys/ioctl.h>
+#include <sys/ioctl.h>
 #endif
-# include <sys/fcntl.h>
-# include <sys/protosw.h>
+#include <sys/fcntl.h>
+#include <sys/protosw.h>
 #include <sys/socket.h>
 #if defined(_KERNEL)
-# include <sys/systm.h>
-# if !defined(__SVR4)
-#  include <sys/mbuf.h>
-# endif
+#include <sys/systm.h>
+#if !defined(__SVR4)
+#include <sys/mbuf.h>
+#endif
 #endif
 #if defined(__SVR4)
-# include <sys/filio.h>
-# include <sys/byteorder.h>
-# ifdef _KERNEL
-#  include <sys/dditypes.h>
-# endif
-# include <sys/stream.h>
-# include <sys/kmem.h>
+#include <sys/byteorder.h>
+#include <sys/filio.h>
+#ifdef _KERNEL
+#include <sys/dditypes.h>
+#endif
+#include <sys/kmem.h>
+#include <sys/stream.h>
 #endif
 #if defined(__FreeBSD__)
-# include <sys/queue.h>
+#include <sys/queue.h>
 #endif
 #include <net/if.h>
 #if defined(__FreeBSD__)
-# include <net/if_var.h>
+#include <net/if_var.h>
 #endif
 #ifdef sun
-# include <net/af.h>
+#include <net/af.h>
 #endif
 #include <net/route.h>
 #include <netinet/in.h>
@@ -69,72 +69,67 @@ struct file;
 #include <netinet/ip.h>
 
 #ifdef RFC1825
-# include <vpn/md5.h>
-# include <vpn/ipsec.h>
+#include <vpn/ipsec.h>
+#include <vpn/md5.h>
 extern struct ifnet vpnif;
 #endif
 
-# include <netinet/ip_var.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
-#include "netinet/ip_compat.h"
+#include <netinet/ip_var.h>
+#include <netinet/tcp.h>
 #include <netinet/tcpip.h>
-#include "netinet/ip_fil.h"
-#include "netinet/ip_nat.h"
-#include "netinet/ip_frag.h"
-#include "netinet/ip_state.h"
-#include "netinet/ip_proxy.h"
-#include "netinet/ip_lookup.h"
+#include <netinet/udp.h>
+
+#include "netinet/ip_compat.h"
 #include "netinet/ip_dstlist.h"
+#include "netinet/ip_fil.h"
+#include "netinet/ip_frag.h"
+#include "netinet/ip_lookup.h"
+#include "netinet/ip_nat.h"
+#include "netinet/ip_proxy.h"
+#include "netinet/ip_state.h"
 #include "netinet/ip_sync.h"
 #if defined(__FreeBSD__)
-# include <sys/malloc.h>
+#include <sys/malloc.h>
 #endif
 #ifdef HAS_SYS_MD5_H
-# include <sys/md5.h>
+#include <sys/md5.h>
 #else
-# include "md5.h"
+#include "md5.h"
 #endif
 /* END OF INCLUDES */
 
-#undef	SOCKADDR_IN
-#define	SOCKADDR_IN	struct sockaddr_in
-
+#undef SOCKADDR_IN
+#define SOCKADDR_IN struct sockaddr_in
 
 #ifdef USE_INET6
 static struct hostmap *ipf_nat6_hostmap(ipf_nat_softc_t *, ipnat_t *,
-					     i6addr_t *, i6addr_t *,
-					     i6addr_t *, u_32_t);
+    i6addr_t *, i6addr_t *, i6addr_t *, u_32_t);
 static int ipf_nat6_match(fr_info_t *, ipnat_t *);
 static void ipf_nat6_tabmove(ipf_nat_softc_t *, nat_t *);
 static int ipf_nat6_decap(fr_info_t *, nat_t *);
-static int ipf_nat6_nextaddr(fr_info_t *, nat_addr_t *, i6addr_t *,
-				  i6addr_t *);
+static int ipf_nat6_nextaddr(fr_info_t *, nat_addr_t *, i6addr_t *, i6addr_t *);
 static int ipf_nat6_icmpquerytype(int);
 static int ipf_nat6_out(fr_info_t *, nat_t *, int, u_32_t);
 static int ipf_nat6_in(fr_info_t *, nat_t *, int, u_32_t);
 static int ipf_nat6_builddivertmp(ipf_nat_softc_t *, ipnat_t *);
-static int ipf_nat6_nextaddrinit(ipf_main_softc_t *, char *,
-				      nat_addr_t *, int, void *);
-static int ipf_nat6_insert(ipf_main_softc_t *, ipf_nat_softc_t *,
-				nat_t *);
+static int ipf_nat6_nextaddrinit(ipf_main_softc_t *, char *, nat_addr_t *, int,
+    void *);
+static int ipf_nat6_insert(ipf_main_softc_t *, ipf_nat_softc_t *, nat_t *);
 
-
-#define	NINCLSIDE6(y,x)	ATOMIC_INCL(softn->ipf_nat_stats.ns_side6[y].x)
-#define	NBUMPSIDE(y,x)	softn->ipf_nat_stats.ns_side[y].x++
-#define	NBUMPSIDE6(y,x)	softn->ipf_nat_stats.ns_side6[y].x++
-#define	NBUMPSIDE6D(y,x) \
-			do { \
-				softn->ipf_nat_stats.ns_side6[y].x++; \
-				DT(x); \
-			} while (0)
-#define	NBUMPSIDE6DX(y,x,z) \
-			do { \
-				softn->ipf_nat_stats.ns_side6[y].x++; \
-				DT(z); \
-			} while (0)
-
+#define NINCLSIDE6(y, x) ATOMIC_INCL(softn->ipf_nat_stats.ns_side6[y].x)
+#define NBUMPSIDE(y, x) softn->ipf_nat_stats.ns_side[y].x++
+#define NBUMPSIDE6(y, x) softn->ipf_nat_stats.ns_side6[y].x++
+#define NBUMPSIDE6D(y, x)                             \
+	do {                                          \
+		softn->ipf_nat_stats.ns_side6[y].x++; \
+		DT(x);                                \
+	} while (0)
+#define NBUMPSIDE6DX(y, x, z)                         \
+	do {                                          \
+		softn->ipf_nat_stats.ns_side6[y].x++; \
+		DT(z);                                \
+	} while (0)
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_ruleaddrinit                                       */
@@ -147,7 +142,7 @@ static int ipf_nat6_insert(ipf_main_softc_t *, ipf_nat_softc_t *,
 /* ------------------------------------------------------------------------ */
 int
 ipf_nat6_ruleaddrinit(ipf_main_softc_t *softc, ipf_nat_softc_t *softn,
-	ipnat_t *n)
+    ipnat_t *n)
 {
 	int idx, error;
 
@@ -156,7 +151,6 @@ ipf_nat6_ruleaddrinit(ipf_main_softc_t *softc, ipf_nat_softc_t *softn,
 		n->in_ndstmsk6 = n->in_osrcmsk6;
 		n->in_odstip6 = n->in_nsrcip6;
 		n->in_odstmsk6 = n->in_nsrcmsk6;
-
 	}
 
 	if (n->in_redir & NAT_REDIRECT)
@@ -167,22 +161,22 @@ ipf_nat6_ruleaddrinit(ipf_main_softc_t *softc, ipf_nat_softc_t *softn,
 	 * Initialise all of the address fields.
 	 */
 	error = ipf_nat6_nextaddrinit(softc, n->in_names, &n->in_osrc, 1,
-				      n->in_ifps[idx]);
+	    n->in_ifps[idx]);
 	if (error != 0)
 		return (error);
 
 	error = ipf_nat6_nextaddrinit(softc, n->in_names, &n->in_odst, 1,
-				      n->in_ifps[idx]);
+	    n->in_ifps[idx]);
 	if (error != 0)
 		return (error);
 
 	error = ipf_nat6_nextaddrinit(softc, n->in_names, &n->in_nsrc, 1,
-				      n->in_ifps[idx]);
+	    n->in_ifps[idx]);
 	if (error != 0)
 		return (error);
 
 	error = ipf_nat6_nextaddrinit(softc, n->in_names, &n->in_ndst, 1,
-				      n->in_ifps[idx]);
+	    n->in_ifps[idx]);
 	if (error != 0)
 		return (error);
 
@@ -190,7 +184,6 @@ ipf_nat6_ruleaddrinit(ipf_main_softc_t *softc, ipf_nat_softc_t *softn,
 		ipf_nat6_builddivertmp(softn, n);
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_addrdr                                             */
@@ -238,7 +231,6 @@ ipf_nat6_addrdr(ipf_nat_softc_t *softn, ipnat_t *n)
 	*np = n;
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_addmap                                             */
 /* Returns:     Nil                                                         */
@@ -279,7 +271,6 @@ ipf_nat6_addmap(ipf_nat_softc_t *softn, ipnat_t *n)
 	*np = n;
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_del_rdr                                             */
 /* Returns:     Nil                                                         */
@@ -311,7 +302,6 @@ ipf_nat6_delrdr(ipf_nat_softc_t *softn, ipnat_t *n)
 	n->in_use--;
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_delmap                                             */
 /* Returns:     Nil                                                         */
@@ -340,7 +330,6 @@ ipf_nat6_delmap(ipf_nat_softc_t *softn, ipnat_t *n)
 	n->in_use--;
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_hostmap                                            */
 /* Returns:     struct hostmap* - NULL if no hostmap could be created,      */
@@ -356,8 +345,8 @@ ipf_nat6_delmap(ipf_nat_softc_t *softn, ipnat_t *n)
 /* create a new entry if a non-NULL NAT rule pointer has been supplied.     */
 /* ------------------------------------------------------------------------ */
 static struct hostmap *
-ipf_nat6_hostmap(ipf_nat_softc_t *softn, ipnat_t *np,
-	i6addr_t *src, i6addr_t *dst, i6addr_t *map, u_32_t port)
+ipf_nat6_hostmap(ipf_nat_softc_t *softn, ipnat_t *np, i6addr_t *src,
+    i6addr_t *dst, i6addr_t *map, u_32_t port)
 {
 	hostmap_t *hm;
 	u_int hv;
@@ -376,8 +365,7 @@ ipf_nat6_hostmap(ipf_nat_softc_t *softn, ipnat_t *np,
 	hv += dst->i6[0];
 	hv %= softn->ipf_nat_hostmap_sz;
 	for (hm = softn->ipf_hm_maptable[hv]; hm; hm = hm->hm_next)
-		if (IP6_EQ(&hm->hm_osrc6, src) &&
-		    IP6_EQ(&hm->hm_odst6, dst) &&
+		if (IP6_EQ(&hm->hm_osrc6, src) && IP6_EQ(&hm->hm_odst6, dst) &&
 		    ((np == NULL) || (np == hm->hm_ipnat)) &&
 		    ((port == 0) || (port == hm->hm_port))) {
 			softn->ipf_nat_stats.ns_hm_addref++;
@@ -421,7 +409,6 @@ ipf_nat6_hostmap(ipf_nat_softc_t *softn, ipnat_t *np,
 	}
 	return (hm);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_newmap                                             */
@@ -482,7 +469,7 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 			 * setup for this IP address pair.
 			 */
 			hm = ipf_nat6_hostmap(softn, np, &fin->fin_src6,
-					      &fin->fin_dst6, &in, 0);
+			    &fin->fin_dst6, &in, 0);
 			if (hm != NULL)
 				in = hm->hm_nsrcip6;
 		} else if ((l == 1) && (hm != NULL)) {
@@ -505,20 +492,20 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 			 * map the address block in a 1:1 fashion
 			 */
 			temp.i6[0] = fin->fin_src6.i6[0] &
-				     ~np->in_osrcmsk6.i6[0];
+			    ~np->in_osrcmsk6.i6[0];
 			temp.i6[1] = fin->fin_src6.i6[1] &
-				     ~np->in_osrcmsk6.i6[1];
+			    ~np->in_osrcmsk6.i6[1];
 			temp.i6[2] = fin->fin_src6.i6[2] &
-				     ~np->in_osrcmsk6.i6[0];
+			    ~np->in_osrcmsk6.i6[0];
 			temp.i6[3] = fin->fin_src6.i6[3] &
-				     ~np->in_osrcmsk6.i6[3];
+			    ~np->in_osrcmsk6.i6[3];
 			in = np->in_nsrcip6;
 			IP6_MERGE(&in, &temp, &np->in_osrc);
 
 #ifdef NEED_128BIT_MATH
 		} else if (np->in_redir & NAT_MAPBLK) {
-			if ((l >= np->in_ppip) || ((l > 0) &&
-			     !(flags & IPN_TCPUDP))) {
+			if ((l >= np->in_ppip) ||
+			    ((l > 0) && !(flags & IPN_TCPUDP))) {
 				NBUMPSIDE6DX(1, ns_exhausted, ns_exhausted_2);
 				return (-1);
 			}
@@ -534,32 +521,31 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 			/*
 			 * Calculate destination port.
 			 */
-			if ((flags & IPN_TCPUDP) &&
-			    (np->in_ppip != 0)) {
+			if ((flags & IPN_TCPUDP) && (np->in_ppip != 0)) {
 				port = ntohs(sport) + l;
 				port %= np->in_ppip;
 				port += np->in_ppip *
-					(inb.s_addr % np->in_ippip);
+				    (inb.s_addr % np->in_ippip);
 				port += MAPBLK_MINPORT;
 				port = htons(port);
 			}
 #endif
 
 		} else if (IP6_ISZERO(&np->in_nsrcaddr) &&
-			   IP6_ISONES(&np->in_nsrcmsk)) {
+		    IP6_ISONES(&np->in_nsrcmsk)) {
 			/*
 			 * 0/32 - use the interface's IP address.
 			 */
 			if ((l > 0) ||
-			    ipf_ifpaddr(softc, 6, FRI_NORMAL, fin->fin_ifp,
-				       &in, NULL) == -1) {
+			    ipf_ifpaddr(softc, 6, FRI_NORMAL, fin->fin_ifp, &in,
+				NULL) == -1) {
 				NBUMPSIDE6DX(1, ns_new_ifpaddr,
-					     ns_new_ifpaddr_1);
+				    ns_new_ifpaddr_1);
 				return (-1);
 			}
 
 		} else if (IP6_ISZERO(&np->in_nsrcip6) &&
-			   IP6_ISZERO(&np->in_nsrcmsk6)) {
+		    IP6_ISZERO(&np->in_nsrcmsk6)) {
 			/*
 			 * 0/0 - use the original source address/port.
 			 */
@@ -570,7 +556,7 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 			in = fin->fin_src6;
 
 		} else if (!IP6_ISONES(&np->in_nsrcmsk6) &&
-			   (np->in_spnext == 0) && ((l > 0) || (hm == NULL))) {
+		    (np->in_spnext == 0) && ((l > 0) || (hm == NULL))) {
 			IP6_INC(&np->in_snip6);
 		}
 
@@ -594,27 +580,26 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 				port += (l % np->in_ppip);
 				port %= np->in_ppip;
 				port += np->in_ppip *
-					(ntohl(fin->fin_src6) %
-					 np->in_ippip);
+				    (ntohl(fin->fin_src6) % np->in_ippip);
 				port += MAPBLK_MINPORT;
 				port = htons(port);
 			}
 #endif
 
 		} else if (((np->in_redir & NAT_MAPBLK) == 0) &&
-			   (flags & IPN_TCPUDPICMP) && (np->in_spnext != 0)) {
-		        /*
-		         * Standard port translation.  Select next port.
-		         */
-		        if (np->in_flags & IPN_SEQUENTIAL) {
-		                port = np->in_spnext;
-		        } else {
-				port = ipf_random() % (np->in_spmax -
-						       np->in_spmin + 1);
-		                port += np->in_spmin;
-		        }
-		        port = htons(port);
-		        np->in_spnext++;
+		    (flags & IPN_TCPUDPICMP) && (np->in_spnext != 0)) {
+			/*
+			 * Standard port translation.  Select next port.
+			 */
+			if (np->in_flags & IPN_SEQUENTIAL) {
+				port = np->in_spnext;
+			} else {
+				port = ipf_random() %
+				    (np->in_spmax - np->in_spmin + 1);
+				port += np->in_spmin;
+			}
+			port = htons(port);
+			np->in_spnext++;
 
 			if (np->in_spnext > np->in_spmax) {
 				np->in_spnext = np->in_spmin;
@@ -640,7 +625,7 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 			}
 		}
 
-		if ((port == 0) && (flags & (IPN_TCPUDPICMP|IPN_ICMPQUERY)))
+		if ((port == 0) && (flags & (IPN_TCPUDPICMP | IPN_ICMPQUERY)))
 			port = sport;
 
 		/*
@@ -657,9 +642,8 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 		dp = fin->fin_data[1];
 		fin->fin_data[0] = fin->fin_data[1];
 		fin->fin_data[1] = ntohs(port);
-		natl = ipf_nat6_inlookup(fin, flags & ~(SI_WILDP|NAT_SEARCH),
-					 (u_int)fin->fin_p, &fin->fin_dst6.in6,
-					 &in.in6);
+		natl = ipf_nat6_inlookup(fin, flags & ~(SI_WILDP | NAT_SEARCH),
+		    (u_int)fin->fin_p, &fin->fin_dst6.in6, &in.in6);
 		fin->fin_data[0] = sp;
 		fin->fin_data[1] = dp;
 
@@ -667,10 +651,10 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 		 * Has the search wrapped around and come back to the
 		 * start ?
 		 */
-		if ((natl != NULL) &&
-		    (np->in_spnext != 0) && (st_port == np->in_spnext) &&
+		if ((natl != NULL) && (np->in_spnext != 0) &&
+		    (st_port == np->in_spnext) &&
 		    (!IP6_ISZERO(&np->in_snip6) &&
-		     IP6_EQ(&st_ip, &np->in_snip6))) {
+			IP6_EQ(&st_ip, &np->in_snip6))) {
 			NBUMPSIDE6D(1, ns_wrap);
 			return (-1);
 		}
@@ -684,12 +668,11 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 	nat->nat_ndst6 = fin->fin_dst6;
 	if (nat->nat_hm == NULL)
 		nat->nat_hm = ipf_nat6_hostmap(softn, np, &fin->fin_src6,
-					       &fin->fin_dst6,
-					       &nat->nat_nsrc6, 0);
+		    &fin->fin_dst6, &nat->nat_nsrc6, 0);
 
 	if (flags & IPN_TCPUDP) {
 		nat->nat_osport = sport;
-		nat->nat_nsport = port;	/* sport */
+		nat->nat_nsport = port; /* sport */
 		nat->nat_odport = dport;
 		nat->nat_ndport = dport;
 		((tcphdr_t *)fin->fin_dp)->th_sport = port;
@@ -700,7 +683,6 @@ ipf_nat6_newmap(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 	}
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_newrdr                                             */
@@ -747,7 +729,6 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 
 	/* TRACE sport, dport */
 
-
 	/*
 	 * If the matching rule has IPN_STICKY set, then we want to have the
 	 * same rule kick in as before.  Why would this happen?  If you have
@@ -755,10 +736,10 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 	 * packet might match a different one to the previous connection but
 	 * we want the same destination to be used.
 	 */
-	if (((np->in_flags & (IPN_ROUNDR|IPN_SPLIT)) != 0) &&
+	if (((np->in_flags & (IPN_ROUNDR | IPN_SPLIT)) != 0) &&
 	    ((np->in_flags & IPN_STICKY) != 0)) {
 		hm = ipf_nat6_hostmap(softn, NULL, &fin->fin_src6,
-				      &fin->fin_dst6, &in, (u_32_t)dport);
+		    &fin->fin_dst6, &in, (u_32_t)dport);
 		if (hm != NULL) {
 			in = hm->hm_ndstip6;
 			np = hm->hm_ipnat;
@@ -776,10 +757,9 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 	if (np->in_flags & IPN_SPLIT) {
 		in = np->in_dnip6;
 
-		if ((np->in_flags & (IPN_ROUNDR|IPN_STICKY)) == IPN_STICKY) {
+		if ((np->in_flags & (IPN_ROUNDR | IPN_STICKY)) == IPN_STICKY) {
 			hm = ipf_nat6_hostmap(softn, NULL, &fin->fin_src6,
-					      &fin->fin_dst6, &in,
-					      (u_32_t)dport);
+			    &fin->fin_dst6, &in, (u_32_t)dport);
 			if (hm != NULL) {
 				in = hm->hm_ndstip6;
 				move = 0;
@@ -796,25 +776,25 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 		}
 
 	} else if (IP6_ISZERO(&np->in_ndstaddr) &&
-		   IP6_ISONES(&np->in_ndstmsk)) {
+	    IP6_ISONES(&np->in_ndstmsk)) {
 		/*
 		 * 0/32 - use the interface's IP address.
 		 */
-		if (ipf_ifpaddr(softc, 6, FRI_NORMAL, fin->fin_ifp,
-			       &in, NULL) == -1) {
+		if (ipf_ifpaddr(softc, 6, FRI_NORMAL, fin->fin_ifp, &in,
+			NULL) == -1) {
 			NBUMPSIDE6DX(0, ns_new_ifpaddr, ns_new_ifpaddr_2);
 			return (-1);
 		}
 
 	} else if (IP6_ISZERO(&np->in_ndstip6) &&
-		   IP6_ISZERO(&np->in_ndstmsk6)) {
+	    IP6_ISZERO(&np->in_ndstmsk6)) {
 		/*
 		 * 0/0 - use the original destination address/port.
 		 */
 		in = fin->fin_dst6;
 
 	} else if (np->in_redir == NAT_BIMAP &&
-		   IP6_EQ(&np->in_ndstmsk6, &np->in_odstmsk6)) {
+	    IP6_EQ(&np->in_ndstmsk6, &np->in_odstmsk6)) {
 		i6addr_t temp;
 		/*
 		 * map the address block in a 1:1 fashion
@@ -863,16 +843,15 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 
 	/*
 	 * Check to see if this redirect mapping already exists and if
-	* it does, return "failure" (allowing it to be created will just
+	 * it does, return "failure" (allowing it to be created will just
 	 * cause one or both of these "connections" to stop working.)
 	 */
 	sp = fin->fin_data[0];
 	dp = fin->fin_data[1];
 	fin->fin_data[1] = fin->fin_data[0];
 	fin->fin_data[0] = ntohs(nport);
-	natl = ipf_nat6_outlookup(fin, flags & ~(SI_WILDP|NAT_SEARCH),
-				  (u_int)fin->fin_p, &in.in6,
-				  &fin->fin_src6.in6);
+	natl = ipf_nat6_outlookup(fin, flags & ~(SI_WILDP | NAT_SEARCH),
+	    (u_int)fin->fin_p, &in.in6, &fin->fin_src6.in6);
 	fin->fin_data[0] = sp;
 	fin->fin_data[1] = dp;
 	if (natl != NULL) {
@@ -886,8 +865,7 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 	nat->nat_osrc6 = fin->fin_src6;
 	if ((nat->nat_hm == NULL) && ((np->in_flags & IPN_STICKY) != 0))
 		nat->nat_hm = ipf_nat6_hostmap(softn, np, &fin->fin_src6,
-					       &fin->fin_dst6, &in,
-					       (u_32_t)dport);
+		    &fin->fin_dst6, &in, (u_32_t)dport);
 
 	if (flags & IPN_TCPUDP) {
 		nat->nat_odport = dport;
@@ -928,7 +906,7 @@ ipf_nat6_newrdr(fr_info_t *fin, nat_t *nat, natinfo_t *ni)
 /* ------------------------------------------------------------------------ */
 nat_t *
 ipf_nat6_add(fr_info_t *fin, ipnat_t *np, nat_t **natsave, u_int flags,
-	int direction)
+    int direction)
 {
 	ipf_main_softc_t *softc = fin->fin_main_soft;
 	ipf_nat_softc_t *softn = softc->ipf_nat_soft;
@@ -976,7 +954,7 @@ ipf_nat6_add(fr_info_t *fin, ipnat_t *np, nat_t **natsave, u_int flags,
 		    (nsp->ns_active > 100)) {
 			softn->ipf_nat_table_max = nsp->ns_active - 100;
 			printf("table_max reduced to %d\n",
-				softn->ipf_nat_table_max);
+			    softn->ipf_nat_table_max);
 		}
 		return (NULL);
 	}
@@ -1023,8 +1001,7 @@ ipf_nat6_add(fr_info_t *fin, ipnat_t *np, nat_t **natsave, u_int flags,
 		 * this function.
 		 */
 		natl = ipf_nat6_outlookup(fin, nflags, (u_int)fin->fin_p,
-					  &fin->fin_src6.in6,
-					  &fin->fin_dst6.in6);
+		    &fin->fin_src6.in6, &fin->fin_dst6.in6);
 		if (natl != NULL) {
 			KFREE(nat);
 			nat = natl;
@@ -1037,8 +1014,7 @@ ipf_nat6_add(fr_info_t *fin, ipnat_t *np, nat_t **natsave, u_int flags,
 		 * NAT_INBOUND is used for redirects rules
 		 */
 		natl = ipf_nat6_inlookup(fin, nflags, (u_int)fin->fin_p,
-					 &fin->fin_src6.in6,
-					 &fin->fin_dst6.in6);
+		    &fin->fin_src6.in6, &fin->fin_dst6.in6);
 		if (natl != NULL) {
 			KFREE(nat);
 			nat = natl;
@@ -1083,10 +1059,11 @@ ipf_nat6_add(fr_info_t *fin, ipnat_t *np, nat_t **natsave, u_int flags,
 	np->in_use++;
 
 	if ((move == 1) && (np->in_flags & IPN_ROUNDR)) {
-		if ((np->in_redir & (NAT_REDIRECT|NAT_MAP)) == NAT_REDIRECT) {
+		if ((np->in_redir & (NAT_REDIRECT | NAT_MAP)) == NAT_REDIRECT) {
 			ipf_nat6_delrdr(softn, np);
 			ipf_nat6_addrdr(softn, np);
-		} else if ((np->in_redir & (NAT_REDIRECT|NAT_MAP)) == NAT_MAP) {
+		} else if ((np->in_redir & (NAT_REDIRECT | NAT_MAP)) ==
+		    NAT_MAP) {
 			ipf_nat6_delmap(softn, np);
 			ipf_nat6_addmap(softn, np);
 		}
@@ -1111,7 +1088,6 @@ done:
 	return (nat);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_finalise                                           */
 /* Returns:     int - 0 == sucess, -1 == failure                            */
@@ -1134,9 +1110,8 @@ ipf_nat6_finalise(fr_info_t *fin, nat_t *nat)
 
 	flags = nat->nat_flags;
 
-	switch (fin->fin_p)
-	{
-	case IPPROTO_ICMPV6 :
+	switch (fin->fin_p) {
+	case IPPROTO_ICMPV6:
 		sum1 = LONG_SUM6(&nat->nat_osrc6);
 		sum1 += ntohs(nat->nat_oicmpid);
 		sum2 = LONG_SUM6(&nat->nat_nsrc6);
@@ -1150,8 +1125,8 @@ ipf_nat6_finalise(fr_info_t *fin, nat_t *nat)
 		nat->nat_sumd[0] += (sumd & 0xffff) + (sumd >> 16);
 		break;
 
-	case IPPROTO_TCP :
-	case IPPROTO_UDP :
+	case IPPROTO_TCP:
+	case IPPROTO_UDP:
 		sum1 = LONG_SUM6(&nat->nat_osrc6);
 		sum1 += ntohs(nat->nat_osport);
 		sum2 = LONG_SUM6(&nat->nat_nsrc6);
@@ -1167,7 +1142,7 @@ ipf_nat6_finalise(fr_info_t *fin, nat_t *nat)
 		nat->nat_sumd[0] += (sumd & 0xffff) + (sumd >> 16);
 		break;
 
-	default :
+	default:
 		sum1 = LONG_SUM6(&nat->nat_osrc6);
 		sum2 = LONG_SUM6(&nat->nat_nsrc6);
 		CALC_SUMD(sum1, sum2, sumd);
@@ -1230,7 +1205,6 @@ ipf_nat6_finalise(fr_info_t *fin, nat_t *nat)
 	return (-1);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_insert                                             */
 /* Returns:     int - 0 == sucess, -1 == failure                            */
@@ -1250,10 +1224,10 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 	ipnat_t *in;
 
 	/*
-	* Try and return an error as early as possible, so calculate the hash
+	 * Try and return an error as early as possible, so calculate the hash
 	 * entry numbers first and then proceed.
 	 */
-	if ((nat->nat_flags & (SI_W_SPORT|SI_W_DPORT)) == 0) {
+	if ((nat->nat_flags & (SI_W_SPORT | SI_W_DPORT)) == 0) {
 		if ((nat->nat_flags & IPN_TCPUDP) != 0) {
 			sp = nat->nat_osport;
 			dp = nat->nat_odport;
@@ -1266,7 +1240,7 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 		}
 		hv1 = NAT_HASH_FN6(&nat->nat_osrc6, sp, 0xffffffff);
 		hv1 = NAT_HASH_FN6(&nat->nat_odst6, hv1 + dp,
-				   softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 
 		/*
 		 * TRACE nat6_osrc6, nat6_osport, nat6_odst6,
@@ -1285,7 +1259,7 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 		}
 		hv2 = NAT_HASH_FN6(&nat->nat_nsrc6, sp, 0xffffffff);
 		hv2 = NAT_HASH_FN6(&nat->nat_ndst6, hv2 + dp,
-				   softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 		/*
 		 * TRACE nat6_nsrcaddr, nat6_nsport, nat6_ndstaddr,
 		 * nat6_ndport, hv1
@@ -1293,12 +1267,12 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 	} else {
 		hv1 = NAT_HASH_FN6(&nat->nat_osrc6, 0, 0xffffffff);
 		hv1 = NAT_HASH_FN6(&nat->nat_odst6, hv1,
-				   softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 		/* TRACE nat6_osrcip6, nat6_odstip6, hv1 */
 
 		hv2 = NAT_HASH_FN6(&nat->nat_nsrc6, 0, 0xffffffff);
 		hv2 = NAT_HASH_FN6(&nat->nat_ndst6, hv2,
-				   softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 		/* TRACE nat6_nsrcip6, nat6_ndstip6, hv2 */
 	}
 
@@ -1312,19 +1286,19 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 
 	nat->nat_ifnames[0][LIFNAMSIZ - 1] = '\0';
 	nat->nat_ifps[0] = ipf_resolvenic(softc, nat->nat_ifnames[0],
-					  nat->nat_v[0]);
+	    nat->nat_v[0]);
 
 	if (nat->nat_ifnames[1][0] != '\0') {
 		nat->nat_ifnames[1][LIFNAMSIZ - 1] = '\0';
 		nat->nat_ifps[1] = ipf_resolvenic(softc, nat->nat_ifnames[1],
-						  nat->nat_v[1]);
+		    nat->nat_v[1]);
 	} else if (in->in_ifnames[1] != -1) {
 		char *name;
 
 		name = in->in_names + in->in_ifnames[1];
 		if (name[1] != '\0' && name[0] != '-' && name[0] != '*') {
-			(void) strncpy(nat->nat_ifnames[1],
-				       nat->nat_ifnames[0], LIFNAMSIZ);
+			(void)strncpy(nat->nat_ifnames[1], nat->nat_ifnames[0],
+			    LIFNAMSIZ);
 			nat->nat_ifnames[1][LIFNAMSIZ - 1] = '\0';
 			nat->nat_ifps[1] = nat->nat_ifps[0];
 		}
@@ -1338,7 +1312,6 @@ ipf_nat6_insert(ipf_main_softc_t *softc, ipf_nat_softc_t *softn, nat_t *nat)
 
 	return (ipf_nat_hashtab_add(softc, softn, nat));
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_icmperrorlookup                                    */
@@ -1396,24 +1369,24 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 	 * do the pullup early in ipf_check() and thus can't gaurantee it is
 	 * all here now.
 	 */
-#ifdef  _KERNEL
+#ifdef _KERNEL
 	{
-	mb_t *m;
+		mb_t *m;
 
-	m = fin->fin_m;
-# if SOLARIS
-	if ((char *)oip6 + fin->fin_dlen - ICMPERR_ICMPHLEN >
-	    (char *)m->b_wptr) {
-		ATOMIC_INCL(nside->ns_icmp_mbuf);
-		return (NULL);
-	}
-# else
-	if ((char *)oip6 + fin->fin_dlen - ICMPERR_ICMPHLEN >
-	    (char *)fin->fin_ip + M_LEN(m)) {
-		ATOMIC_INCL(nside->ns_icmp_mbuf);
-		return (NULL);
-	}
-# endif
+		m = fin->fin_m;
+#if SOLARIS
+		if ((char *)oip6 + fin->fin_dlen - ICMPERR_ICMPHLEN >
+		    (char *)m->b_wptr) {
+			ATOMIC_INCL(nside->ns_icmp_mbuf);
+			return (NULL);
+		}
+#else
+		if ((char *)oip6 + fin->fin_dlen - ICMPERR_ICMPHLEN >
+		    (char *)fin->fin_ip + M_LEN(m)) {
+			ATOMIC_INCL(nside->ns_icmp_mbuf);
+			return (NULL);
+		}
+#endif
 	}
 #endif
 
@@ -1437,7 +1410,7 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 			fin->fin_data[0] = 0;
 			fin->fin_data[1] = orgicmp->icmp6_id;
 
-			flags = IPN_ICMPERR|IPN_ICMPQUERY;
+			flags = IPN_ICMPERR | IPN_ICMPQUERY;
 			/*
 			 * NOTE : dir refers to the direction of the original
 			 *        ip packet. By definition the icmp error
@@ -1445,12 +1418,10 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 			 */
 			if (dir == NAT_INBOUND)
 				nat = ipf_nat6_inlookup(fin, flags, p,
-						        &oip6->ip6_dst,
-						        &oip6->ip6_src);
+				    &oip6->ip6_dst, &oip6->ip6_src);
 			else
 				nat = ipf_nat6_outlookup(fin, flags, p,
-							 &oip6->ip6_dst,
-							 &oip6->ip6_src);
+				    &oip6->ip6_dst, &oip6->ip6_src);
 			fin->fin_data[0] = data[0];
 			fin->fin_data[1] = data[1];
 			return (nat);
@@ -1458,7 +1429,7 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 	}
 
 	if (flags & IPN_TCPUDP) {
-		minlen += 8;		/* + 64bits of data to get ports */
+		minlen += 8; /* + 64bits of data to get ports */
 		/* TRACE (fin,minlen) */
 		if (fin->fin_plen < ICMPERR_IPICMPHLEN + minlen) {
 			ATOMIC_INCL(nside->ns_icmp_short);
@@ -1473,10 +1444,10 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 
 		if (dir == NAT_INBOUND) {
 			nat = ipf_nat6_inlookup(fin, flags, p, &oip6->ip6_dst,
-						&oip6->ip6_src);
+			    &oip6->ip6_src);
 		} else {
 			nat = ipf_nat6_outlookup(fin, flags, p, &oip6->ip6_dst,
-						 &oip6->ip6_src);
+			    &oip6->ip6_src);
 		}
 		fin->fin_data[0] = data[0];
 		fin->fin_data[1] = data[1];
@@ -1484,14 +1455,13 @@ ipf_nat6_icmperrorlookup(fr_info_t *fin, int dir)
 	}
 	if (dir == NAT_INBOUND)
 		nat = ipf_nat6_inlookup(fin, 0, p, &oip6->ip6_dst,
-					&oip6->ip6_src);
+		    &oip6->ip6_src);
 	else
 		nat = ipf_nat6_outlookup(fin, 0, p, &oip6->ip6_dst,
-					 &oip6->ip6_src);
+		    &oip6->ip6_src);
 
 	return (nat);
 }
-
 
 /* result = ip1 - ip2 */
 u_32_t
@@ -1531,7 +1501,6 @@ ipf_nat6_ip6subtract(i6addr_t *ip1, i6addr_t *ip2)
 	return (r);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_icmperror                                          */
 /* Returns:     nat6_t* - point to matching NAT structure                    */
@@ -1560,13 +1529,13 @@ ipf_nat6_icmperror(fr_info_t *fin, u_int *nflags, int dir)
 	nat_t *nat;
 	void *dp;
 
-	if ((fin->fin_flx & (FI_SHORT|FI_FRAGBODY))) {
+	if ((fin->fin_flx & (FI_SHORT | FI_FRAGBODY))) {
 		NBUMPSIDE6D(fin->fin_out, ns_icmp_short);
 		return (NULL);
 	}
 
 	/*
-	* ipf_nat6_icmperrorlookup() will return NULL for `defective' packets.
+	 * ipf_nat6_icmperrorlookup() will return NULL for `defective' packets.
 	 */
 	if ((fin->fin_v != 6) || !(nat = ipf_nat6_icmperrorlookup(fin, dir))) {
 		NBUMPSIDE6D(fin->fin_out, ns_icmp_notfound);
@@ -1787,8 +1756,8 @@ ipf_nat6_icmperror(fr_info_t *fin, u_int *nflags, int dir)
 				sumd2 = (sumd2 & 0xffff) + (sumd2 >> 16);
 				sumd2 = (sumd2 & 0xffff) + (sumd2 >> 16);
 				sumd2 = (sumd2 & 0xffff) + (sumd2 >> 16);
-				ipf_fix_incksum(0, &icmp6->icmp6_cksum,
-						sumd2, 0);
+				ipf_fix_incksum(0, &icmp6->icmp6_cksum, sumd2,
+				    0);
 			}
 		}
 	} else if (((flags & IPN_ICMPQUERY) != 0) && (dlen >= 8)) {
@@ -1827,7 +1796,6 @@ ipf_nat6_icmperror(fr_info_t *fin, u_int *nflags, int dir)
 	return (nat);
 }
 
-
 /*
  *       MAP-IN    MAP-OUT   RDR-IN   RDR-OUT
  * osrc    X       == src    == src      X
@@ -1863,8 +1831,8 @@ ipf_nat6_icmperror(fr_info_t *fin, u_int *nflags, int dir)
 /*            the packet is of said protocol                                */
 /* ------------------------------------------------------------------------ */
 nat_t *
-ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p,
-	struct in6_addr *src , struct in6_addr *mapdst)
+ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p, struct in6_addr *src,
+    struct in6_addr *mapdst)
 {
 	ipf_main_softc_t *softc = fin->fin_main_soft;
 	ipf_nat_softc_t *softn = softc->ipf_nat_soft;
@@ -1885,23 +1853,21 @@ ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p,
 	dst.in6 = *mapdst;
 	sflags = flags & NAT_TCPUDPICMP;
 
-	switch (p)
-	{
-	case IPPROTO_TCP :
-	case IPPROTO_UDP :
+	switch (p) {
+	case IPPROTO_TCP:
+	case IPPROTO_UDP:
 		sport = htons(fin->fin_data[0]);
 		dport = htons(fin->fin_data[1]);
 		break;
-	case IPPROTO_ICMPV6 :
+	case IPPROTO_ICMPV6:
 		if (flags & IPN_ICMPERR)
 			sport = fin->fin_data[1];
 		else
 			dport = fin->fin_data[1];
 		break;
-	default :
+	default:
 		break;
 	}
-
 
 	if ((flags & SI_WILDP) != 0)
 		goto find_in_wild_ports;
@@ -1920,9 +1886,8 @@ ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p,
 		if (nat->nat_pr[0] != p)
 			continue;
 
-		switch (nat->nat_dir)
-		{
-		case NAT_INBOUND :
+		switch (nat->nat_dir) {
+		case NAT_INBOUND:
 			if (nat->nat_v[0] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_osrc6, src) ||
@@ -1940,7 +1905,7 @@ ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p,
 				}
 			}
 			break;
-		case NAT_OUTBOUND :
+		case NAT_OUTBOUND:
 			if (nat->nat_v[1] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_ndst6, src) ||
@@ -1959,7 +1924,6 @@ ipf_nat6_inlookup(fr_info_t *fin, u_int flags, u_int p,
 			}
 			break;
 		}
-
 
 		if ((nat->nat_flags & IPN_TCPUDP) != 0) {
 			ipn = nat->nat_ptr;
@@ -2010,16 +1974,15 @@ find_in_wild_ports:
 		if (nat->nat_pr[0] != fin->fin_p)
 			continue;
 
-		switch (nat->nat_dir)
-		{
-		case NAT_INBOUND :
+		switch (nat->nat_dir) {
+		case NAT_INBOUND:
 			if (nat->nat_v[0] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_osrc6, src) ||
 			    IP6_NEQ(&nat->nat_odst6, &dst))
 				continue;
 			break;
-		case NAT_OUTBOUND :
+		case NAT_OUTBOUND:
 			if (nat->nat_v[1] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_ndst6, src) ||
@@ -2029,11 +1992,11 @@ find_in_wild_ports:
 		}
 
 		nflags = nat->nat_flags;
-		if (!(nflags & (NAT_TCPUDP|SI_WILDP)))
+		if (!(nflags & (NAT_TCPUDP | SI_WILDP)))
 			continue;
 
 		if (ipf_nat_wildok(nat, (int)sport, (int)dport, nflags,
-				   NAT_INBOUND) == 1) {
+			NAT_INBOUND) == 1) {
 			if ((fin->fin_flx & FI_IGNORE) != 0)
 				break;
 			if ((nflags & SI_CLONE) != 0) {
@@ -2069,7 +2032,7 @@ find_in_wild_ports:
 				nat->nat_ifps[0] = ifp;
 				nat->nat_mtu[0] = GETIFMTU_6(ifp);
 			}
-			nat->nat_flags &= ~(SI_W_DPORT|SI_W_SPORT);
+			nat->nat_flags &= ~(SI_W_DPORT | SI_W_SPORT);
 			ipf_nat6_tabmove(softn, nat);
 			break;
 		}
@@ -2082,7 +2045,6 @@ find_in_wild_ports:
 	}
 	return (nat);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_tabmove                                            */
@@ -2120,23 +2082,23 @@ ipf_nat6_tabmove(ipf_nat_softc_t *softn, nat_t *nat)
 	 * Add into the NAT table in the new position
 	 */
 	if (nat->nat_dir == NAT_INBOUND || nat->nat_dir == NAT_DIVERTIN) {
-		hv1 = NAT_HASH_FN6(&nat->nat_osrc6,
-			nat->nat_osport, 0xffffffff);
+		hv1 = NAT_HASH_FN6(&nat->nat_osrc6, nat->nat_osport,
+		    0xffffffff);
 		hv1 = NAT_HASH_FN6(&nat->nat_odst6, hv1 + nat->nat_odport,
-			softn->ipf_nat_table_sz);
-		hv0 = NAT_HASH_FN6(&nat->nat_nsrc6,
-			nat->nat_nsport, 0xffffffff);
+		    softn->ipf_nat_table_sz);
+		hv0 = NAT_HASH_FN6(&nat->nat_nsrc6, nat->nat_nsport,
+		    0xffffffff);
 		hv0 = NAT_HASH_FN6(&nat->nat_ndst6, hv0 + nat->nat_ndport,
-			softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 	} else {
-		hv0 = NAT_HASH_FN6(&nat->nat_osrc6,
-			nat->nat_osport, 0xffffffff);
+		hv0 = NAT_HASH_FN6(&nat->nat_osrc6, nat->nat_osport,
+		    0xffffffff);
 		hv0 = NAT_HASH_FN6(&nat->nat_odst6, hv0 + nat->nat_odport,
-			softn->ipf_nat_table_sz);
-		hv1 = NAT_HASH_FN6(&nat->nat_nsrc6,
-			nat->nat_nsport, 0xffffffff);
+		    softn->ipf_nat_table_sz);
+		hv1 = NAT_HASH_FN6(&nat->nat_nsrc6, nat->nat_nsport,
+		    0xffffffff);
 		hv1 = NAT_HASH_FN6(&nat->nat_ndst6, hv1 + nat->nat_ndport,
-			softn->ipf_nat_table_sz);
+		    softn->ipf_nat_table_sz);
 	}
 
 	/* TRACE nat_osrc6, nat_osport, nat_odst6, nat_odport, hv0 */
@@ -2160,7 +2122,6 @@ ipf_nat6_tabmove(ipf_nat_softc_t *softn, nat_t *nat)
 	*natp = nat;
 	softn->ipf_nat_stats.ns_side[1].ns_bucketlen[hv1]++;
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_outlookup                                          */
@@ -2186,8 +2147,8 @@ ipf_nat6_tabmove(ipf_nat_softc_t *softn, nat_t *nat)
 /*            the packet is of said protocol                                */
 /* ------------------------------------------------------------------------ */
 nat_t *
-ipf_nat6_outlookup(fr_info_t *fin, u_int flags, u_int p,
-	struct in6_addr *src, struct in6_addr *dst)
+ipf_nat6_outlookup(fr_info_t *fin, u_int flags, u_int p, struct in6_addr *src,
+    struct in6_addr *dst)
 {
 	ipf_main_softc_t *softc = fin->fin_main_soft;
 	ipf_nat_softc_t *softn = softc->ipf_nat_soft;
@@ -2203,20 +2164,19 @@ ipf_nat6_outlookup(fr_info_t *fin, u_int flags, u_int p,
 	sport = 0;
 	dport = 0;
 
-	switch (p)
-	{
-	case IPPROTO_TCP :
-	case IPPROTO_UDP :
+	switch (p) {
+	case IPPROTO_TCP:
+	case IPPROTO_UDP:
 		sport = htons(fin->fin_data[0]);
 		dport = htons(fin->fin_data[1]);
 		break;
-	case IPPROTO_ICMPV6 :
+	case IPPROTO_ICMPV6:
 		if (flags & IPN_ICMPERR)
 			sport = fin->fin_data[1];
 		else
 			dport = fin->fin_data[1];
 		break;
-	default :
+	default:
 		break;
 	}
 
@@ -2238,9 +2198,8 @@ ipf_nat6_outlookup(fr_info_t *fin, u_int flags, u_int p,
 		if (nat->nat_pr[1] != p)
 			continue;
 
-		switch (nat->nat_dir)
-		{
-		case NAT_INBOUND :
+		switch (nat->nat_dir) {
+		case NAT_INBOUND:
 			if (nat->nat_v[1] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_ndst6, src) ||
@@ -2259,7 +2218,7 @@ ipf_nat6_outlookup(fr_info_t *fin, u_int flags, u_int p,
 				}
 			}
 			break;
-		case NAT_OUTBOUND :
+		case NAT_OUTBOUND:
 			if (nat->nat_v[0] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_osrc6, src) ||
@@ -2328,29 +2287,28 @@ find_out_wild_ports:
 		if (nat->nat_pr[1] != fin->fin_p)
 			continue;
 
-		switch (nat->nat_dir)
-		{
-		case NAT_INBOUND :
+		switch (nat->nat_dir) {
+		case NAT_INBOUND:
 			if (nat->nat_v[1] != 6)
 				continue;
 			if (IP6_NEQ(&nat->nat_ndst6, src) ||
 			    IP6_NEQ(&nat->nat_nsrc6, dst))
 				continue;
 			break;
-		case NAT_OUTBOUND :
+		case NAT_OUTBOUND:
 			if (nat->nat_v[0] != 6)
-			continue;
+				continue;
 			if (IP6_NEQ(&nat->nat_osrc6, src) ||
 			    IP6_NEQ(&nat->nat_odst6, dst))
 				continue;
 			break;
 		}
 
-		if (!(nat->nat_flags & (NAT_TCPUDP|SI_WILDP)))
+		if (!(nat->nat_flags & (NAT_TCPUDP | SI_WILDP)))
 			continue;
 
 		if (ipf_nat_wildok(nat, (int)sport, (int)dport, nat->nat_flags,
-				   NAT_OUTBOUND) == 1) {
+			NAT_OUTBOUND) == 1) {
 			if ((fin->fin_flx & FI_IGNORE) != 0)
 				break;
 			if ((nat->nat_flags & SI_CLONE) != 0) {
@@ -2386,7 +2344,7 @@ find_out_wild_ports:
 				nat->nat_ifps[1] = ifp;
 				nat->nat_mtu[1] = GETIFMTU_6(ifp);
 			}
-			nat->nat_flags &= ~(SI_W_DPORT|SI_W_SPORT);
+			nat->nat_flags &= ~(SI_W_DPORT | SI_W_SPORT);
 			ipf_nat6_tabmove(softn, nat);
 			break;
 		}
@@ -2399,7 +2357,6 @@ find_out_wild_ports:
 	}
 	return (nat);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_lookupredir                                        */
@@ -2438,7 +2395,7 @@ ipf_nat6_lookupredir(natlookup_t *np)
 		fi.fin_p = IPPROTO_TCP;
 	else if (np->nl_flags & IPN_UDP)
 		fi.fin_p = IPPROTO_UDP;
-	else if (np->nl_flags & (IPN_ICMPERR|IPN_ICMPQUERY))
+	else if (np->nl_flags & (IPN_ICMPERR | IPN_ICMPQUERY))
 		fi.fin_p = IPPROTO_ICMPV6;
 
 	/*
@@ -2448,8 +2405,7 @@ ipf_nat6_lookupredir(natlookup_t *np)
 	 */
 	if (np->nl_flags & IPN_IN) {
 		if ((nat = ipf_nat6_inlookup(&fi, np->nl_flags, fi.fin_p,
-					     &np->nl_realip6,
-					     &np->nl_outip6))) {
+			 &np->nl_realip6, &np->nl_outip6))) {
 			np->nl_inip6 = nat->nat_odst6.in6;
 			np->nl_inport = nat->nat_odport;
 		}
@@ -2459,7 +2415,7 @@ ipf_nat6_lookupredir(natlookup_t *np)
 		 * ip address. Else, we use the fake.
 		 */
 		if ((nat = ipf_nat6_outlookup(&fi, np->nl_flags, fi.fin_p,
-					      &np->nl_inip6, &np->nl_outip6))) {
+			 &np->nl_inip6, &np->nl_outip6))) {
 
 			if ((np->nl_flags & IPN_FINDFORWARD) != 0) {
 				fr_info_t fin;
@@ -2468,10 +2424,8 @@ ipf_nat6_lookupredir(natlookup_t *np)
 				fin.fin_data[0] = ntohs(nat->nat_ndport);
 				fin.fin_data[1] = ntohs(nat->nat_nsport);
 				if (ipf_nat6_inlookup(&fin, np->nl_flags,
-						     fin.fin_p,
-						     &nat->nat_ndst6.in6,
-						     &nat->nat_nsrc6.in6) !=
-				    NULL) {
+					fin.fin_p, &nat->nat_ndst6.in6,
+					&nat->nat_nsrc6.in6) != NULL) {
 					np->nl_flags &= ~IPN_FINDFORWARD;
 				}
 			}
@@ -2479,11 +2433,10 @@ ipf_nat6_lookupredir(natlookup_t *np)
 			np->nl_realip6 = nat->nat_odst6.in6;
 			np->nl_realport = nat->nat_odport;
 		}
- 	}
+	}
 
 	return (nat);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_match                                              */
@@ -2502,15 +2455,14 @@ ipf_nat6_match(fr_info_t *fin, ipnat_t *np)
 	int match;
 
 	match = 0;
-	switch (np->in_osrcatype)
-	{
-	case FRI_NORMAL :
+	switch (np->in_osrcatype) {
+	case FRI_NORMAL:
 		match = IP6_MASKNEQ(&fin->fin_src6, &np->in_osrcmsk6,
-				    &np->in_osrcip6);
+		    &np->in_osrcip6);
 		break;
-	case FRI_LOOKUP :
+	case FRI_LOOKUP:
 		match = (*np->in_osrcfunc)(fin->fin_main_soft, np->in_osrcptr,
-					   6, &fin->fin_src6, fin->fin_plen);
+		    6, &fin->fin_src6, fin->fin_plen);
 		break;
 	}
 	match ^= ((np->in_flags & IPN_NOTSRC) != 0);
@@ -2518,15 +2470,14 @@ ipf_nat6_match(fr_info_t *fin, ipnat_t *np)
 		return (0);
 
 	match = 0;
-	switch (np->in_odstatype)
-	{
-	case FRI_NORMAL :
+	switch (np->in_odstatype) {
+	case FRI_NORMAL:
 		match = IP6_MASKNEQ(&fin->fin_dst6, &np->in_odstmsk6,
-				    &np->in_odstip6);
+		    &np->in_odstip6);
 		break;
-	case FRI_LOOKUP :
+	case FRI_LOOKUP:
 		match = (*np->in_odstfunc)(fin->fin_main_soft, np->in_odstptr,
-					   6, &fin->fin_dst6, fin->fin_plen);
+		    6, &fin->fin_dst6, fin->fin_plen);
 		break;
 	}
 
@@ -2536,7 +2487,7 @@ ipf_nat6_match(fr_info_t *fin, ipnat_t *np)
 
 	ft = &np->in_tuc;
 	if (!(fin->fin_flx & FI_TCPUDP) ||
-	    (fin->fin_flx & (FI_SHORT|FI_FRAGBODY))) {
+	    (fin->fin_flx & (FI_SHORT | FI_FRAGBODY))) {
 		if (ft->ftu_scmp || ft->ftu_dcmp)
 			return (0);
 		return (1);
@@ -2544,7 +2495,6 @@ ipf_nat6_match(fr_info_t *fin, ipnat_t *np)
 
 	return (ipf_tcpudpchk(&fin->fin_fi, ft));
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_checkout                                           */
@@ -2592,15 +2542,14 @@ ipf_nat6_checkout(fr_info_t *fin, u_32_t *passp)
 	ifp = fin->fin_ifp;
 
 	if (!(fin->fin_flx & FI_SHORT) && (fin->fin_off == 0)) {
-		switch (fin->fin_p)
-		{
-		case IPPROTO_TCP :
+		switch (fin->fin_p) {
+		case IPPROTO_TCP:
 			nflags = IPN_TCP;
 			break;
-		case IPPROTO_UDP :
+		case IPPROTO_UDP:
 			nflags = IPN_UDP;
 			break;
-		case IPPROTO_ICMPV6 :
+		case IPPROTO_ICMPV6:
 			icmp6 = fin->fin_dp;
 
 			/*
@@ -2618,7 +2567,7 @@ ipf_nat6_checkout(fr_info_t *fin, u_32_t *passp)
 			if ((fin->fin_flx & FI_ICMPQUERY) != 0)
 				nflags = IPN_ICMPQUERY;
 			break;
-		default :
+		default:
 			break;
 		}
 
@@ -2635,10 +2584,9 @@ ipf_nat6_checkout(fr_info_t *fin, u_32_t *passp)
 		/*EMPTY*/;
 	else if ((fin->fin_flx & FI_FRAG) && (nat = ipf_frag_natknown(fin)))
 		natadd = 0;
-	else if ((nat = ipf_nat6_outlookup(fin, nflags|NAT_SEARCH,
-					   (u_int)fin->fin_p,
-					   &fin->fin_src6.in6,
-					   &fin->fin_dst6.in6))) {
+	else if ((nat = ipf_nat6_outlookup(fin, nflags | NAT_SEARCH,
+		      (u_int)fin->fin_p, &fin->fin_src6.in6,
+		      &fin->fin_dst6.in6))) {
 		nflags = nat->nat_flags;
 	} else if (fin->fin_off == 0) {
 		u_32_t hv, nmsk = 0;
@@ -2648,7 +2596,7 @@ ipf_nat6_checkout(fr_info_t *fin, u_32_t *passp)
 		 * If there is no current entry in the nat table for this IP#,
 		 * create one for it (if there is a matching rule).
 		 */
-maskloop:
+	maskloop:
 		msk = &softn->ipf_nat6_map_active_masks[nmsk];
 		IP6_AND(&ipa, msk, &iph);
 		hv = NAT_HASH_FN6(&iph, 0, softn->ipf_nat_maprules_sz);
@@ -2659,23 +2607,21 @@ maskloop:
 				continue;
 			if (np->in_pr[1] && (np->in_pr[1] != fin->fin_p))
 				continue;
-			if ((np->in_flags & IPN_RF) &&
-			    !(np->in_flags & nflags))
+			if ((np->in_flags & IPN_RF) && !(np->in_flags & nflags))
 				continue;
 			if (np->in_flags & IPN_FILTER) {
-				switch (ipf_nat6_match(fin, np))
-				{
-				case 0 :
+				switch (ipf_nat6_match(fin, np)) {
+				case 0:
 					continue;
-				case -1 :
+				case -1:
 					rval = -1;
 					goto outmatchfail;
-				case 1 :
-				default :
+				case 1:
+				default:
 					break;
 				}
 			} else if (!IP6_MASKEQ(&ipa, &np->in_osrcmsk,
-					       &np->in_osrcip6))
+				       &np->in_osrcip6))
 				continue;
 
 			if ((fr != NULL) &&
@@ -2726,9 +2672,8 @@ maskloop:
 outmatchfail:
 	RWLOCK_EXIT(&softc->ipf_nat);
 
-	switch (rval)
-	{
-	case -1 :
+	switch (rval) {
+	case -1:
 		if (passp != NULL) {
 			NBUMPSIDE6D(1, ns_drop);
 			*passp = FR_BLOCK;
@@ -2737,10 +2682,10 @@ outmatchfail:
 		fin->fin_flx |= FI_BADNAT;
 		NBUMPSIDE6D(1, ns_badnat);
 		break;
-	case 0 :
+	case 0:
 		NBUMPSIDE6D(1, ns_ignored);
 		break;
-	case 1 :
+	case 1:
 		NBUMPSIDE6D(1, ns_translated);
 		break;
 	}
@@ -2775,7 +2720,7 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 	np = nat->nat_ptr;
 
 	if ((natadd != 0) && (fin->fin_flx & FI_FRAG) && (np != NULL))
-		(void) ipf_frag_natnew(softc, fin, 0, nat);
+		(void)ipf_frag_natnew(softc, fin, 0, nat);
 
 	/*
 	 * Address assignment is after the checksum modification because
@@ -2783,24 +2728,22 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 	 * correct checksum offset (the ICMP error could be coming from
 	 * anyone...)
 	 */
-	switch (nat->nat_dir)
-	{
-	case NAT_OUTBOUND :
+	switch (nat->nat_dir) {
+	case NAT_OUTBOUND:
 		fin->fin_ip6->ip6_src = nat->nat_nsrc6.in6;
 		fin->fin_src6 = nat->nat_nsrc6;
 		fin->fin_ip6->ip6_dst = nat->nat_ndst6.in6;
 		fin->fin_dst6 = nat->nat_ndst6;
 		break;
 
-	case NAT_INBOUND :
+	case NAT_INBOUND:
 		fin->fin_ip6->ip6_src = nat->nat_odst6.in6;
 		fin->fin_src6 = nat->nat_ndst6;
 		fin->fin_ip6->ip6_dst = nat->nat_osrc6.in6;
 		fin->fin_dst6 = nat->nat_nsrc6;
 		break;
 
-	case NAT_DIVERTIN :
-	    {
+	case NAT_DIVERTIN: {
 		mb_t *m;
 
 		skip = ipf_nat6_decap(fin, nat);
@@ -2817,10 +2760,10 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		m->m_data += skip;
 		m->m_len -= skip;
 
-# ifdef M_PKTHDR
+#ifdef M_PKTHDR
 		if (m->m_flags & M_PKTHDR)
 			m->m_pkthdr.len -= skip;
-# endif
+#endif
 #endif
 
 		MUTEX_ENTER(&nat->nat_lock);
@@ -2831,10 +2774,9 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 			fin->fin_nattag = &np->in_tag;
 		return (1);
 		/* NOTREACHED */
-	    }
+	}
 
-	case NAT_DIVERTOUT :
-	    {
+	case NAT_DIVERTOUT: {
 		udphdr_t *uh;
 		ip6_t *ip6;
 		mb_t *m;
@@ -2855,15 +2797,15 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		PREP_MB_T(fin, m);
 
 		fin->fin_ip6 = ip6;
-		fin->fin_plen += sizeof(ip6_t) + 8;	/* UDP + new IPv4 hdr */
-		fin->fin_dlen += sizeof(ip6_t) + 8;	/* UDP + old IPv4 hdr */
+		fin->fin_plen += sizeof(ip6_t) + 8; /* UDP + new IPv4 hdr */
+		fin->fin_dlen += sizeof(ip6_t) + 8; /* UDP + old IPv4 hdr */
 
 		nflags &= ~IPN_TCPUDPICMP;
 
 		break;
-	    }
+	}
 
-	default :
+	default:
 		break;
 	}
 
@@ -2873,16 +2815,15 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		if ((nat->nat_nsport != 0) && (nflags & IPN_TCPUDP)) {
 			tcp = fin->fin_dp;
 
-			switch (nat->nat_dir)
-			{
-			case NAT_OUTBOUND :
+			switch (nat->nat_dir) {
+			case NAT_OUTBOUND:
 				tcp->th_sport = nat->nat_nsport;
 				fin->fin_data[0] = ntohs(nat->nat_nsport);
 				tcp->th_dport = nat->nat_ndport;
 				fin->fin_data[1] = ntohs(nat->nat_ndport);
 				break;
 
-			case NAT_INBOUND :
+			case NAT_INBOUND:
 				tcp->th_sport = nat->nat_odport;
 				fin->fin_data[0] = ntohs(nat->nat_odport);
 				tcp->th_dport = nat->nat_osport;
@@ -2905,14 +2846,12 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		if (csump != NULL) {
 			if (nat->nat_dir == NAT_OUTBOUND)
 				ipf_fix_outcksum(fin->fin_cksum, csump,
-						 nat->nat_sumd[0],
-						 nat->nat_sumd[1] +
-						 fin->fin_dlen);
+				    nat->nat_sumd[0],
+				    nat->nat_sumd[1] + fin->fin_dlen);
 			else
 				ipf_fix_incksum(fin->fin_cksum, csump,
-						nat->nat_sumd[0],
-						nat->nat_sumd[1] +
-						fin->fin_dlen);
+				    nat->nat_sumd[0],
+				    nat->nat_sumd[1] + fin->fin_dlen);
 		}
 	}
 
@@ -2938,7 +2877,6 @@ ipf_nat6_out(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 	fin->fin_flx |= FI_NATED;
 	return (i);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_checkin                                            */
@@ -2982,15 +2920,14 @@ ipf_nat6_checkin(fr_info_t *fin, u_32_t *passp)
 	ifp = fin->fin_ifp;
 
 	if (!(fin->fin_flx & FI_SHORT) && (fin->fin_off == 0)) {
-		switch (fin->fin_p)
-		{
-		case IPPROTO_TCP :
+		switch (fin->fin_p) {
+		case IPPROTO_TCP:
 			nflags = IPN_TCP;
 			break;
-		case IPPROTO_UDP :
+		case IPPROTO_UDP:
 			nflags = IPN_UDP;
 			break;
-		case IPPROTO_ICMPV6 :
+		case IPPROTO_ICMPV6:
 			icmp6 = fin->fin_dp;
 
 			/*
@@ -3008,8 +2945,9 @@ ipf_nat6_checkin(fr_info_t *fin, u_32_t *passp)
 			if ((fin->fin_flx & FI_ICMPQUERY) != 0) {
 				nflags = IPN_ICMPQUERY;
 				dport = icmp6->icmp6_id;
-			} break;
-		default :
+			}
+			break;
+		default:
 			break;
 		}
 
@@ -3028,9 +2966,8 @@ ipf_nat6_checkin(fr_info_t *fin, u_32_t *passp)
 		/*EMPTY*/;
 	else if ((fin->fin_flx & FI_FRAG) && (nat = ipf_frag_natknown(fin)))
 		natadd = 0;
-	else if ((nat = ipf_nat6_inlookup(fin, nflags|NAT_SEARCH,
-					  (u_int)fin->fin_p,
-					  &fin->fin_src6.in6, &ipa.in6))) {
+	else if ((nat = ipf_nat6_inlookup(fin, nflags | NAT_SEARCH,
+		      (u_int)fin->fin_p, &fin->fin_src6.in6, &ipa.in6))) {
 		nflags = nat->nat_flags;
 	} else if (fin->fin_off == 0) {
 		u_32_t hv, rmsk = 0;
@@ -3040,7 +2977,7 @@ ipf_nat6_checkin(fr_info_t *fin, u_32_t *passp)
 		 * If there is no current entry in the nat table for this IP#,
 		 * create one for it (if there is a matching rule).
 		 */
-maskloop:
+	maskloop:
 		msk = &softn->ipf_nat6_rdr_active_masks[rmsk];
 		IP6_AND(&ipa, msk, &iph);
 		hv = NAT_HASH_FN6(&iph, 0, softn->ipf_nat_rdrrules_sz);
@@ -3054,25 +2991,24 @@ maskloop:
 			if ((np->in_flags & IPN_RF) && !(np->in_flags & nflags))
 				continue;
 			if (np->in_flags & IPN_FILTER) {
-				switch (ipf_nat6_match(fin, np))
-				{
-				case 0 :
+				switch (ipf_nat6_match(fin, np)) {
+				case 0:
 					continue;
-				case -1 :
+				case -1:
 					rval = -1;
 					goto inmatchfail;
-				case 1 :
-				default :
+				case 1:
+				default:
 					break;
 				}
 			} else {
 				if (!IP6_MASKEQ(&ipa, &np->in_odstmsk6,
-						&np->in_odstip6)) {
+					&np->in_odstip6)) {
 					continue;
 				}
 				if (np->in_odport &&
 				    ((np->in_dtop < dport) ||
-				     (dport < np->in_odport)))
+					(dport < np->in_odport)))
 					continue;
 			}
 
@@ -3119,9 +3055,8 @@ inmatchfail:
 	RWLOCK_EXIT(&softc->ipf_nat);
 
 	DT2(frb_natv6in, fr_info_t *, fin, int, rval);
-	switch (rval)
-	{
-	case -1 :
+	switch (rval) {
+	case -1:
 		if (passp != NULL) {
 			NBUMPSIDE6D(0, ns_drop);
 			*passp = FR_BLOCK;
@@ -3130,16 +3065,15 @@ inmatchfail:
 		fin->fin_flx |= FI_BADNAT;
 		NBUMPSIDE6D(0, ns_badnat);
 		break;
-	case 0 :
+	case 0:
 		NBUMPSIDE6D(0, ns_ignored);
 		break;
-	case 1 :
+	case 1:
 		NBUMPSIDE6D(0, ns_translated);
 		break;
 	}
 	return (rval);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_in                                                 */
@@ -3172,18 +3106,22 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 
 	if (np != NULL) {
 		if ((natadd != 0) && (fin->fin_flx & FI_FRAG))
-			(void) ipf_frag_natnew(softc, fin, 0, nat);
+			(void)ipf_frag_natnew(softc, fin, 0, nat);
 
-	/* ------------------------------------------------------------- */
-	/* A few quick notes:                                            */
-	/*      Following are test conditions prior to calling the       */
-	/*      ipf_proxy_check routine.                                 */
-	/*                                                               */
-	/*      A NULL tcp indicates a non TCP/UDP packet.  When dealing */
-	/*      with a map rule, we attempt to match the packet's        */
-	/*      source port against in_dport, otherwise we'd compare the */
-	/*      packet's destination.                                    */
-	/* ------------------------------------------------------------- */
+		/* -------------------------------------------------------------
+		 */
+		/* A few quick notes: */
+		/*      Following are test conditions prior to calling the */
+		/*      ipf_proxy_check routine. */
+		/*                                                               */
+		/*      A NULL tcp indicates a non TCP/UDP packet.  When dealing
+		 */
+		/*      with a map rule, we attempt to match the packet's */
+		/*      source port against in_dport, otherwise we'd compare the
+		 */
+		/*      packet's destination. */
+		/* -------------------------------------------------------------
+		 */
 		if (np->in_apr != NULL) {
 			i = ipf_proxy_check(fin, nat);
 			if (i == -1) {
@@ -3206,9 +3144,8 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 	 * header checksum offloading, perhaps it is a moot point.
 	 */
 
-	switch (nat->nat_dir)
-	{
-	case NAT_INBOUND :
+	switch (nat->nat_dir) {
+	case NAT_INBOUND:
 		if ((fin->fin_flx & FI_ICMPERR) == 0) {
 			fin->fin_ip6->ip6_src = nat->nat_nsrc6.in6;
 			fin->fin_src6 = nat->nat_nsrc6;
@@ -3217,7 +3154,7 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		fin->fin_dst6 = nat->nat_ndst6;
 		break;
 
-	case NAT_OUTBOUND :
+	case NAT_OUTBOUND:
 		if ((fin->fin_flx & FI_ICMPERR) == 0) {
 			fin->fin_ip6->ip6_src = nat->nat_odst6.in6;
 			fin->fin_src6 = nat->nat_odst6;
@@ -3226,8 +3163,7 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		fin->fin_dst6 = nat->nat_osrc6;
 		break;
 
-	case NAT_DIVERTIN :
-	    {
+	case NAT_DIVERTIN: {
 		udphdr_t *uh;
 		ip6_t *ip6;
 		mb_t *m;
@@ -3247,16 +3183,15 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		PREP_MB_T(fin, m);
 
 		fin->fin_ip6 = ip6;
-		fin->fin_plen += sizeof(ip6_t) + 8;	/* UDP + new IPv6 hdr */
-		fin->fin_dlen += sizeof(ip6_t) + 8;	/* UDP + old IPv6 hdr */
+		fin->fin_plen += sizeof(ip6_t) + 8; /* UDP + new IPv6 hdr */
+		fin->fin_dlen += sizeof(ip6_t) + 8; /* UDP + old IPv6 hdr */
 
 		nflags &= ~IPN_TCPUDPICMP;
 
 		break;
-	    }
+	}
 
-	case NAT_DIVERTOUT :
-	    {
+	case NAT_DIVERTOUT: {
 		mb_t *m;
 
 		skip = ipf_nat6_decap(fin, nat);
@@ -3273,10 +3208,10 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		m->m_data += skip;
 		m->m_len -= skip;
 
-# ifdef M_PKTHDR
+#ifdef M_PKTHDR
 		if (m->m_flags & M_PKTHDR)
 			m->m_pkthdr.len -= skip;
-# endif
+#endif
 #endif
 
 		ipf_nat_update(fin, nat);
@@ -3285,23 +3220,22 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 			fin->fin_nattag = &np->in_tag;
 		return (1);
 		/* NOTREACHED */
-	    }
+	}
 	}
 	if (nflags & IPN_TCPUDP)
 		tcp = fin->fin_dp;
 
 	if (!(fin->fin_flx & FI_SHORT) && (fin->fin_off == 0)) {
 		if ((nat->nat_odport != 0) && (nflags & IPN_TCPUDP)) {
-			switch (nat->nat_dir)
-			{
-			case NAT_INBOUND :
+			switch (nat->nat_dir) {
+			case NAT_INBOUND:
 				tcp->th_sport = nat->nat_nsport;
 				fin->fin_data[0] = ntohs(nat->nat_nsport);
 				tcp->th_dport = nat->nat_ndport;
 				fin->fin_data[1] = ntohs(nat->nat_ndport);
 				break;
 
-			case NAT_OUTBOUND :
+			case NAT_OUTBOUND:
 				tcp->th_sport = nat->nat_odport;
 				fin->fin_data[0] = ntohs(nat->nat_odport);
 				tcp->th_dport = nat->nat_osport;
@@ -3309,7 +3243,6 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 				break;
 			}
 		}
-
 
 		if ((nat->nat_odport != 0) && (nflags & IPN_ICMPQUERY)) {
 			icmp6 = fin->fin_dp;
@@ -3334,7 +3267,6 @@ ipf_nat6_in(fr_info_t *fin, nat_t *nat, int natadd, u_32_t nflags)
 		fin->fin_nattag = &np->in_tag;
 	return (1);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_newrewrite                                         */
@@ -3389,7 +3321,7 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 		 * Find a new source address
 		 */
 		if (ipf_nat6_nextaddr(fin, &np->in_nsrc, &frnat.fin_src6,
-				 &frnat.fin_src6) == -1) {
+			&frnat.fin_src6) == -1) {
 			return (-1);
 		}
 
@@ -3400,7 +3332,7 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 				np->in_stepnext = 1;
 
 		} else if (IP6_ISZERO(&np->in_nsrcip6) &&
-			   IP6_ISZERO(&np->in_nsrcmsk6)) {
+		    IP6_ISZERO(&np->in_nsrcmsk6)) {
 			src_search = 0;
 			if (np->in_stepnext == 0)
 				np->in_stepnext = 1;
@@ -3427,8 +3359,8 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 			 */
 			if ((flags & IPN_FIXEDSPORT) != 0) {
 				np->in_stepnext = 2;
-			} else if ((np->in_stepnext == 1) &&
-				   (changed == -1) && (natl != NULL)) {
+			} else if ((np->in_stepnext == 1) && (changed == -1) &&
+			    (natl != NULL)) {
 				np->in_spnext++;
 				np->in_stepnext++;
 				changed = 1;
@@ -3446,7 +3378,7 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 		/* TRACE (fin, np, l, frnat) */
 
 		if (ipf_nat6_nextaddr(fin, &np->in_ndst, &frnat.fin_dst6,
-				      &frnat.fin_dst6) == -1)
+			&frnat.fin_dst6) == -1)
 			return (-1);
 
 		if (IP6_ISZERO(&np->in_ndstip6) &&
@@ -3456,7 +3388,7 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 				np->in_stepnext = 3;
 
 		} else if (IP6_ISZERO(&np->in_ndstip6) &&
-			   IP6_ISZERO(&np->in_ndstmsk6)) {
+		    IP6_ISZERO(&np->in_ndstmsk6)) {
 			dst_search = 0;
 			if (np->in_stepnext == 2)
 				np->in_stepnext = 3;
@@ -3519,17 +3451,15 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 		}
 		if (fin->fin_out == 1) {
 			natl = ipf_nat6_inlookup(&frnat,
-					    flags & ~(SI_WILDP|NAT_SEARCH),
-					    (u_int)frnat.fin_p,
-					    &frnat.fin_dst6.in6,
-					    &frnat.fin_src6.in6);
+			    flags & ~(SI_WILDP | NAT_SEARCH),
+			    (u_int)frnat.fin_p, &frnat.fin_dst6.in6,
+			    &frnat.fin_src6.in6);
 
 		} else {
 			natl = ipf_nat6_outlookup(&frnat,
-					     flags & ~(SI_WILDP|NAT_SEARCH),
-					     (u_int)frnat.fin_p,
-					     &frnat.fin_dst6.in6,
-					     &frnat.fin_src6.in6);
+			    flags & ~(SI_WILDP | NAT_SEARCH),
+			    (u_int)frnat.fin_p, &frnat.fin_dst6.in6,
+			    &frnat.fin_src6.in6);
 		}
 		if (flags & IPN_TCPUDP) {
 			swap = frnat.fin_data[0];
@@ -3539,7 +3469,7 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 
 		/* TRACE natl, in_stepnext, l */
 
-		if ((natl != NULL) && (l > 8))	/* XXX 8 is arbitrary */
+		if ((natl != NULL) && (l > 8)) /* XXX 8 is arbitrary */
 			return (-1);
 
 		np->in_stepnext &= 0x3;
@@ -3564,7 +3494,6 @@ ipf_nat6_newrewrite(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_newdivert                                          */
@@ -3613,11 +3542,11 @@ ipf_nat6_newdivert(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 
 	if (fin->fin_out == 1) {
 		natl = ipf_nat6_inlookup(&frnat, 0, p, &frnat.fin_dst6.in6,
-					 &frnat.fin_src6.in6);
+		    &frnat.fin_src6.in6);
 
 	} else {
 		natl = ipf_nat6_outlookup(&frnat, 0, p, &frnat.fin_dst6.in6,
-					  &frnat.fin_src6.in6);
+		    &frnat.fin_src6.in6);
 	}
 
 	if (natl != NULL) {
@@ -3641,7 +3570,6 @@ ipf_nat6_newdivert(fr_info_t *fin, nat_t *nat, natinfo_t *nai)
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    nat6_builddivertmp                                          */
@@ -3697,8 +3625,7 @@ ipf_nat6_builddivertmp(ipf_nat_softc_t *softn, ipnat_t *np)
 	return (0);
 }
 
-
-#define	MINDECAP	(sizeof(ip6_t) + sizeof(udphdr_t) + sizeof(ip6_t))
+#define MINDECAP (sizeof(ip6_t) + sizeof(udphdr_t) + sizeof(ip6_t))
 
 /* ------------------------------------------------------------------------ */
 /* Function:    nat6_decap                                                  */
@@ -3731,21 +3658,20 @@ ipf_nat6_decap(fr_info_t *fin, nat_t *nat)
 	m = fin->fin_m;
 	skip = fin->fin_hlen;
 
-	switch (nat->nat_dir)
-	{
-	case NAT_DIVERTIN :
-	case NAT_DIVERTOUT :
+	switch (nat->nat_dir) {
+	case NAT_DIVERTIN:
+	case NAT_DIVERTOUT:
 		if (fin->fin_plen < MINDECAP)
 			return (-1);
 		skip += sizeof(udphdr_t);
 		break;
 
-	case NAT_ENCAPIN :
-	case NAT_ENCAPOUT :
+	case NAT_ENCAPIN:
+	case NAT_ENCAPOUT:
 		if (fin->fin_plen < (skip + sizeof(ip6_t)))
 			return (-1);
 		break;
-	default :
+	default:
 		return (-1);
 		/* NOTREACHED */
 	}
@@ -3781,7 +3707,6 @@ ipf_nat6_decap(fr_info_t *fin, nat_t *nat)
 	return (skip);
 }
 
-
 /* ------------------------------------------------------------------------ */
 /* Function:    nat6_nextaddr                                               */
 /* Returns:     int - -1 == bad input (no new address),                     */
@@ -3811,15 +3736,14 @@ ipf_nat6_nextaddr(fr_info_t *fin, nat_addr_t *na, i6addr_t *old, i6addr_t *dst)
 	new.i6[3] = 0;
 	amin = na->na_addr[0].in4.s_addr;
 
-	switch (na->na_atype)
-	{
-	case FRI_RANGE :
+	switch (na->na_atype) {
+	case FRI_RANGE:
 		amax = na->na_addr[1].in4.s_addr;
 		break;
 
-	case FRI_NETMASKED :
-	case FRI_DYNAMIC :
-	case FRI_NORMAL :
+	case FRI_NETMASKED:
+	case FRI_DYNAMIC:
+	case FRI_NORMAL:
 		/*
 		 * Compute the maximum address by adding the inverse of the
 		 * netmask to the minimum address.
@@ -3828,25 +3752,23 @@ ipf_nat6_nextaddr(fr_info_t *fin, nat_addr_t *na, i6addr_t *old, i6addr_t *dst)
 		amax |= amin;
 		break;
 
-	case FRI_LOOKUP :
+	case FRI_LOOKUP:
 		break;
 
-	case FRI_BROADCAST :
-	case FRI_PEERADDR :
-	case FRI_NETWORK :
-	default :
+	case FRI_BROADCAST:
+	case FRI_PEERADDR:
+	case FRI_NETWORK:
+	default:
 		return (-1);
 	}
 
 	error = -1;
-	switch (na->na_function)
-	{
-	case IPLT_DSTLIST :
-		error = ipf_dstlist_select_node(fin, na->na_ptr, dst->i6,
-						NULL);
+	switch (na->na_function) {
+	case IPLT_DSTLIST:
+		error = ipf_dstlist_select_node(fin, na->na_ptr, dst->i6, NULL);
 		break;
 
-	case IPLT_NONE :
+	case IPLT_NONE:
 		/*
 		 * 0/0 as the new address means leave it alone.
 		 */
@@ -3854,13 +3776,13 @@ ipf_nat6_nextaddr(fr_info_t *fin, nat_addr_t *na, i6addr_t *old, i6addr_t *dst)
 		    na->na_addr[1].in4.s_addr == 0) {
 			new = *old;
 
-		/*
-		 * 0/32 means get the interface's address
-		 */
+			/*
+			 * 0/32 means get the interface's address
+			 */
 		} else if (IP6_ISZERO(&na->na_addr[0].in6) &&
-			   IP6_ISONES(&na->na_addr[1].in6)) {
-			if (ipf_ifpaddr(softc, 6, na->na_atype,
-				       fin->fin_ifp, &newip, NULL) == -1) {
+		    IP6_ISONES(&na->na_addr[1].in6)) {
+			if (ipf_ifpaddr(softc, 6, na->na_atype, fin->fin_ifp,
+				&newip, NULL) == -1) {
 				NBUMPSIDE6(fin->fin_out, ns_ifpaddrfail);
 				return (-1);
 			}
@@ -3872,14 +3794,13 @@ ipf_nat6_nextaddr(fr_info_t *fin, nat_addr_t *na, i6addr_t *old, i6addr_t *dst)
 		error = 0;
 		break;
 
-	default :
+	default:
 		NBUMPSIDE6(fin->fin_out, ns_badnextaddr);
 		break;
 	}
 
 	return (error);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_nextaddrinit                                       */
@@ -3903,21 +3824,16 @@ ipf_nat6_nextaddr(fr_info_t *fin, nat_addr_t *na, i6addr_t *old, i6addr_t *dst)
 /* ------------------------------------------------------------------------ */
 static int
 ipf_nat6_nextaddrinit(ipf_main_softc_t *softc, char *base, nat_addr_t *na,
-	int initial, void *ifp)
+    int initial, void *ifp)
 {
-	switch (na->na_atype)
-	{
-	case FRI_LOOKUP :
+	switch (na->na_atype) {
+	case FRI_LOOKUP:
 		if (na->na_subtype == 0) {
 			na->na_ptr = ipf_lookup_res_num(softc, IPL_LOGNAT,
-							na->na_type,
-							na->na_num,
-							&na->na_func);
+			    na->na_type, na->na_num, &na->na_func);
 		} else if (na->na_subtype == 1) {
 			na->na_ptr = ipf_lookup_res_name(softc, IPL_LOGNAT,
-							 na->na_type,
-							 base + na->na_num,
-							 &na->na_func);
+			    na->na_type, base + na->na_num, &na->na_func);
 		}
 		if (na->na_func == NULL) {
 			IPFERROR(60072);
@@ -3928,32 +3844,31 @@ ipf_nat6_nextaddrinit(ipf_main_softc_t *softc, char *base, nat_addr_t *na,
 			return (ESRCH);
 		}
 		break;
-	case FRI_DYNAMIC :
-	case FRI_BROADCAST :
-	case FRI_NETWORK :
-	case FRI_NETMASKED :
-	case FRI_PEERADDR :
+	case FRI_DYNAMIC:
+	case FRI_BROADCAST:
+	case FRI_NETWORK:
+	case FRI_NETMASKED:
+	case FRI_PEERADDR:
 		if (ifp != NULL)
-			(void )ipf_ifpaddr(softc, 6, na->na_atype, ifp,
-					   &na->na_addr[0],
-					   &na->na_addr[1]);
+			(void)ipf_ifpaddr(softc, 6, na->na_atype, ifp,
+			    &na->na_addr[0], &na->na_addr[1]);
 		break;
 
-	case FRI_SPLIT :
-	case FRI_RANGE :
+	case FRI_SPLIT:
+	case FRI_RANGE:
 		if (initial)
 			na->na_nextip6 = na->na_addr[0].in6;
 		break;
 
-	case FRI_NONE :
+	case FRI_NONE:
 		IP6_ANDASSIGN(&na->na_addr[0].in6, &na->na_addr[1].in6);
 		return (0);
 
-	case FRI_NORMAL :
+	case FRI_NORMAL:
 		IP6_ANDASSIGN(&na->na_addr[0].in6, &na->na_addr[1].in6);
 		break;
 
-	default :
+	default:
 		IPFERROR(60074);
 		return (EINVAL);
 	}
@@ -3974,7 +3889,6 @@ ipf_nat6_nextaddrinit(ipf_main_softc_t *softc, char *base, nat_addr_t *na,
 
 	return (0);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_nat6_icmpquerytype                                      */
@@ -3998,8 +3912,7 @@ ipf_nat6_icmpquerytype(int icmptype)
 	 * as it is defined in the IPv4 specification
 	 */
 
-	switch (icmptype)
-	{
+	switch (icmptype) {
 
 	case ICMP6_ECHO_REPLY:
 	case ICMP6_ECHO_REQUEST:

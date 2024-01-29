@@ -18,7 +18,7 @@
  * Permission to use, copy, and modify this software without fee
  * is hereby granted, provided that this entire notice is included in
  * all source code copies of any software which is or includes a copy or
- * modification of this software. 
+ * modification of this software.
  *
  * THIS SOFTWARE IS BEING PROVIDED "AS IS", WITHOUT ANY EXPRESS OR
  * IMPLIED WARRANTY. IN PARTICULAR, NONE OF THE AUTHORS MAKES ANY
@@ -32,16 +32,16 @@
 
 #include <sys/types.h>
 
-#include <opencrypto/deflate.h>
 #include <opencrypto/cryptodev.h>
+#include <opencrypto/deflate.h>
 
 /* Declarations */
 struct comp_algo {
 	int type;
 	char *name;
 	size_t minlen;
-	uint32_t (*compress) (uint8_t *, uint32_t, uint8_t **);
-	uint32_t (*decompress) (uint8_t *, uint32_t, uint8_t **);
+	uint32_t (*compress)(uint8_t *, uint32_t, uint8_t **);
+	uint32_t (*decompress)(uint8_t *, uint32_t, uint8_t **);
 };
 
 extern const struct comp_algo comp_algo_deflate;

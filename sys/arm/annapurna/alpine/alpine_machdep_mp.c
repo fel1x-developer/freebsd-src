@@ -29,46 +29,46 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/cpuset.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/smp.h>
-#include <sys/cpuset.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/smp.h>
+#include <machine/cpu.h>
 #include <machine/fdt.h>
 #include <machine/intr.h>
-#include <machine/cpu.h>
 #include <machine/platformvar.h>
+#include <machine/smp.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_cpu.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_cpu.h>
+#include <dev/ofw/openfirm.h>
 
 #include <arm/annapurna/alpine/alpine_mp.h>
 
-#define AL_CPU_RESUME_WATERMARK_REG		0x00
-#define AL_CPU_RESUME_FLAGS_REG			0x04
-#define AL_CPU_RESUME_PCPU_RADDR_REG(cpu)	(0x08 + 0x04 + 8*(cpu))
-#define AL_CPU_RESUME_PCPU_FLAGS(cpu)		(0x08 + 8*(cpu))
+#define AL_CPU_RESUME_WATERMARK_REG 0x00
+#define AL_CPU_RESUME_FLAGS_REG 0x04
+#define AL_CPU_RESUME_PCPU_RADDR_REG(cpu) (0x08 + 0x04 + 8 * (cpu))
+#define AL_CPU_RESUME_PCPU_FLAGS(cpu) (0x08 + 8 * (cpu))
 
 /* Per-CPU flags */
-#define AL_CPU_RESUME_FLG_PERCPU_DONT_RESUME	(1 << 2)
+#define AL_CPU_RESUME_FLG_PERCPU_DONT_RESUME (1 << 2)
 
 /* The expected magic number for validating the resume addresses */
-#define AL_CPU_RESUME_MAGIC_NUM			0xf0e1d200
-#define AL_CPU_RESUME_MAGIC_NUM_MASK		0xffffff00
+#define AL_CPU_RESUME_MAGIC_NUM 0xf0e1d200
+#define AL_CPU_RESUME_MAGIC_NUM_MASK 0xffffff00
 
 /* The expected minimal version number for validating the capabilities */
-#define AL_CPU_RESUME_MIN_VER			0x000000c3
-#define AL_CPU_RESUME_MIN_VER_MASK		0x000000ff
+#define AL_CPU_RESUME_MIN_VER 0x000000c3
+#define AL_CPU_RESUME_MIN_VER_MASK 0x000000ff
 
 /* Field controlling the boot-up of companion cores */
-#define AL_NB_INIT_CONTROL		(0x8)
-#define AL_NB_CONFIG_STATUS_PWR_CTRL(cpu)	(0x2020 + (cpu)*0x100)
+#define AL_NB_INIT_CONTROL (0x8)
+#define AL_NB_CONFIG_STATUS_PWR_CTRL(cpu) (0x2020 + (cpu) * 0x100)
 
 extern bus_addr_t al_devmap_pa;
 extern bus_addr_t al_devmap_size;
@@ -133,8 +133,8 @@ alpine_get_cpu_resume_base(u_long *pbase, u_long *psize)
 	if ((node = OF_finddevice("/")) == -1)
 		return (EFAULT);
 
-	if ((node =
-	    ofw_bus_find_compatible(node, "annapurna-labs,al-cpu-resume")) == 0)
+	if ((node = ofw_bus_find_compatible(node,
+		 "annapurna-labs,al-cpu-resume")) == 0)
 		return (EFAULT);
 
 	if (fdt_regsize(node, &base, &size))
@@ -159,8 +159,8 @@ alpine_get_nb_base(u_long *pbase, u_long *psize)
 	if ((node = OF_finddevice("/")) == -1)
 		return (EFAULT);
 
-	if ((node =
-	    ofw_bus_find_compatible(node, "annapurna-labs,al-nb-service")) == 0)
+	if ((node = ofw_bus_find_compatible(node,
+		 "annapurna-labs,al-nb-service")) == 0)
 		return (EFAULT);
 
 	if (fdt_regsize(node, &base, &size))
@@ -195,10 +195,10 @@ alpine_mp_start_ap(platform_t plat)
 
 	/* Proceed with start addresses for additional CPUs */
 	if (bus_space_map(fdtbus_bs_tag, al_devmap_pa + cpu_resume_base,
-	    cpu_resume_size, 0, &cpu_resume_baddr))
+		cpu_resume_size, 0, &cpu_resume_baddr))
 		panic("Couldn't map CPU-resume area");
-	if (bus_space_map(fdtbus_bs_tag, al_devmap_pa + nb_base,
-	    nb_size, 0, &nb_baddr))
+	if (bus_space_map(fdtbus_bs_tag, al_devmap_pa + nb_base, nb_size, 0,
+		&nb_baddr))
 		panic("Couldn't map NB-service area");
 
 	/* Proceed with start addresses for additional CPUs */
@@ -233,8 +233,8 @@ alpine_mp_start_ap(platform_t plat)
 	}
 
 	/* Release cores from reset */
-	if (bus_space_map(fdtbus_bs_tag, al_devmap_pa + nb_base,
-	    nb_size, 0, &nb_baddr))
+	if (bus_space_map(fdtbus_bs_tag, al_devmap_pa + nb_base, nb_size, 0,
+		&nb_baddr))
 		panic("Couldn't map NB-service area");
 
 	start_mask = (1 << platform_mp_get_core_cnt()) - 1;

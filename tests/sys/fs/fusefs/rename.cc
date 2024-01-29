@@ -38,12 +38,13 @@ extern "C" {
 
 using namespace testing;
 
-class Rename: public FuseTest {
-	public:
+class Rename : public FuseTest {
+    public:
 	int tmpfd = -1;
 	char tmpfile[80] = "/tmp/fuse.rename.XXXXXX";
 
-	virtual void TearDown() {
+	virtual void TearDown()
+	{
 		if (tmpfd >= 0) {
 			close(tmpfd);
 			unlink(tmpfile);
@@ -78,7 +79,7 @@ TEST_F(Rename, enoent)
 	// FUSE hardcodes the mountpoint to inode 1
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELSRC)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
 	ASSERT_NE(0, rename(FULLSRC, FULLDST));
 	ASSERT_EQ(ENOENT, errno);
@@ -95,30 +96,32 @@ TEST_F(Rename, entry_cache_negative)
 	const char RELSRC[] = "src";
 	uint64_t dst_dir_ino = FUSE_ROOT_ID;
 	uint64_t ino = 42;
-	/* 
+	/*
 	 * Set entry_valid = 0 because this test isn't concerned with whether
 	 * or not we actually cache negative entries, only with whether we
 	 * interpret negative cache responses correctly.
 	 */
-	struct timespec entry_valid = {.tv_sec = 0, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = 0, .tv_nsec = 0 };
 
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, 0, 1);
 	/* LOOKUP returns a negative cache entry for dst */
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(ReturnNegativeCache(&entry_valid));
+	    .WillOnce(ReturnNegativeCache(&entry_valid));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *src = (const char*)in.body.bytes +
-				sizeof(fuse_rename_in);
-			const char *dst = src + strlen(src) + 1;
-			return (in.header.opcode == FUSE_RENAME &&
-				in.body.rename.newdir == dst_dir_ino &&
-				(0 == strcmp(RELDST, dst)) &&
-				(0 == strcmp(RELSRC, src)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *src = (const char *)in.body.bytes +
+				    sizeof(fuse_rename_in);
+				const char *dst = src + strlen(src) + 1;
+				return (in.header.opcode == FUSE_RENAME &&
+				    in.body.rename.newdir == dst_dir_ino &&
+				    (0 == strcmp(RELDST, dst)) &&
+				    (0 == strcmp(RELSRC, src)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
 }
@@ -134,26 +137,28 @@ TEST_F(Rename, entry_cache_negative_purge)
 	const char RELSRC[] = "src";
 	uint64_t dst_dir_ino = FUSE_ROOT_ID;
 	uint64_t ino = 42;
-	struct timespec entry_valid = {.tv_sec = TIME_T_MAX, .tv_nsec = 0};
+	struct timespec entry_valid = { .tv_sec = TIME_T_MAX, .tv_nsec = 0 };
 
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, 0, 1);
 	/* LOOKUP returns a negative cache entry for dst */
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(ReturnNegativeCache(&entry_valid))
-	.RetiresOnSaturation();
+	    .WillOnce(ReturnNegativeCache(&entry_valid))
+	    .RetiresOnSaturation();
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *src = (const char*)in.body.bytes +
-				sizeof(fuse_rename_in);
-			const char *dst = src + strlen(src) + 1;
-			return (in.header.opcode == FUSE_RENAME &&
-				in.body.rename.newdir == dst_dir_ino &&
-				(0 == strcmp(RELDST, dst)) &&
-				(0 == strcmp(RELSRC, src)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *src = (const char *)in.body.bytes +
+				    sizeof(fuse_rename_in);
+				const char *dst = src + strlen(src) + 1;
+				return (in.header.opcode == FUSE_RENAME &&
+				    in.body.rename.newdir == dst_dir_ino &&
+				    (0 == strcmp(RELDST, dst)) &&
+				    (0 == strcmp(RELSRC, src)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
 
@@ -193,20 +198,22 @@ TEST_F(Rename, ok)
 
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, 0, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDST)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *src = (const char*)in.body.bytes +
-				sizeof(fuse_rename_in);
-			const char *dst = src + strlen(src) + 1;
-			return (in.header.opcode == FUSE_RENAME &&
-				in.body.rename.newdir == dst_dir_ino &&
-				(0 == strcmp(RELDST, dst)) &&
-				(0 == strcmp(RELSRC, src)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *src = (const char *)in.body.bytes +
+				    sizeof(fuse_rename_in);
+				const char *dst = src + strlen(src) + 1;
+				return (in.header.opcode == FUSE_RENAME &&
+				    in.body.rename.newdir == dst_dir_ino &&
+				    (0 == strcmp(RELDST, dst)) &&
+				    (0 == strcmp(RELSRC, src)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
 }
@@ -228,64 +235,68 @@ TEST_F(Rename, parent)
 
 	expect_lookup(RELSRC, ino, S_IFDIR | 0755, 0, 1);
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDSTDIR)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = dst_dir_ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.attr.ino = dst_dir_ino;
-		out.body.entry.attr.nlink = 2;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = dst_dir_ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.attr.ino = dst_dir_ino;
+		    out.body.entry.attr.nlink = 2;
+	    })));
 	EXPECT_LOOKUP(dst_dir_ino, RELDST)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnErrno(ENOENT)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *src = (const char*)in.body.bytes +
-				sizeof(fuse_rename_in);
-			const char *dst = src + strlen(src) + 1;
-			return (in.header.opcode == FUSE_RENAME &&
-				in.body.rename.newdir == dst_dir_ino &&
-				(0 == strcmp(RELDST, dst)) &&
-				(0 == strcmp(RELSRC, src)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == 1);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr_valid = UINT64_MAX;
-		out.body.attr.attr.ino = 1;
-		out.body.attr.attr.mode = S_IFDIR | 0755;
-		out.body.attr.attr.nlink = 2;
-	})));
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnErrno(ENOENT)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *src = (const char *)in.body.bytes +
+				    sizeof(fuse_rename_in);
+				const char *dst = src + strlen(src) + 1;
+				return (in.header.opcode == FUSE_RENAME &&
+				    in.body.rename.newdir == dst_dir_ino &&
+				    (0 == strcmp(RELDST, dst)) &&
+				    (0 == strcmp(RELSRC, src)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == 1);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr_valid = UINT64_MAX;
+		    out.body.attr.attr.ino = 1;
+		    out.body.attr.attr.mode = S_IFDIR | 0755;
+		    out.body.attr.attr.nlink = 2;
+	    })));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELDSTDIR)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.nodeid = dst_dir_ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.attr.ino = dst_dir_ino;
-		out.body.entry.attr.nlink = 3;
-	})));
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.nodeid = dst_dir_ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.attr.ino = dst_dir_ino;
+		    out.body.entry.attr.nlink = 3;
+	    })));
 	EXPECT_LOOKUP(dst_dir_ino, RELDST)
-	.InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.attr.mode = S_IFDIR | 0755;
-		out.body.entry.nodeid = ino;
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr_valid = UINT64_MAX;
-	})));
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.attr.mode = S_IFDIR | 0755;
+		    out.body.entry.nodeid = ino;
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr_valid = UINT64_MAX;
+	    })));
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
 
@@ -313,18 +324,20 @@ TEST_F(Rename, overwrite)
 
 	expect_lookup(RELSRC, ino, S_IFREG | 0644, 0, 1);
 	expect_lookup(RELDST, dst_ino, S_IFREG | 0644, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			const char *src = (const char*)in.body.bytes +
-				sizeof(fuse_rename_in);
-			const char *dst = src + strlen(src) + 1;
-			return (in.header.opcode == FUSE_RENAME &&
-				in.body.rename.newdir == dst_dir_ino &&
-				(0 == strcmp(RELDST, dst)) &&
-				(0 == strcmp(RELSRC, src)));
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(0)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				const char *src = (const char *)in.body.bytes +
+				    sizeof(fuse_rename_in);
+				const char *dst = src + strlen(src) + 1;
+				return (in.header.opcode == FUSE_RENAME &&
+				    in.body.rename.newdir == dst_dir_ino &&
+				    (0 == strcmp(RELDST, dst)) &&
+				    (0 == strcmp(RELSRC, src)));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(0)));
 
 	ASSERT_EQ(0, rename(FULLSRC, FULLDST)) << strerror(errno);
 }

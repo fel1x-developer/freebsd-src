@@ -37,23 +37,24 @@
 #include <sys/ptrace.h>
 #include <sys/reg.h>
 #include <sys/sysent.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
-#include <machine/frame.h>
 #include <machine/vmparam.h>
 
 #ifdef COMPAT_FREEBSD32
 struct ptrace_xstate_info32 {
-	uint32_t	xsave_mask1, xsave_mask2;
-	uint32_t	xsave_len;
+	uint32_t xsave_mask1, xsave_mask2;
+	uint32_t xsave_len;
 };
 #endif
 
 static bool
-get_segbases(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_segbases(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	struct segbasereg *reg;
 	struct pcb *pcb;
@@ -73,8 +74,7 @@ get_segbases(struct regset *rs, struct thread *td, void *buf,
 }
 
 static bool
-set_segbases(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_segbases(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
 	struct segbasereg *reg;
 	struct pcb *pcb;
@@ -102,8 +102,7 @@ ELF_REGSET(regset_segbases);
 
 #ifdef COMPAT_FREEBSD32
 static bool
-get_segbases32(struct regset *rs, struct thread *td, void *buf,
-    size_t *sizep)
+get_segbases32(struct regset *rs, struct thread *td, void *buf, size_t *sizep)
 {
 	struct segbasereg32 *reg;
 	struct pcb *pcb;
@@ -123,8 +122,7 @@ get_segbases32(struct regset *rs, struct thread *td, void *buf,
 }
 
 static bool
-set_segbases32(struct regset *rs, struct thread *td, void *buf,
-    size_t size)
+set_segbases32(struct regset *rs, struct thread *td, void *buf, size_t size)
 {
 	struct segbasereg32 *reg;
 	struct pcb *pcb;
@@ -201,7 +199,7 @@ cpu_ptrace_xstate(struct thread *td, int req, void *addr, int data)
 #endif
 		{
 			if (data != sizeof(info)) {
-				error  = EINVAL;
+				error = EINVAL;
 			} else {
 				bzero(&info, sizeof(info));
 				info.xsave_len = cpu_max_ext_state_size;
@@ -227,8 +225,8 @@ cpu_ptrace_xstate(struct thread *td, int req, void *addr, int data)
 		error = copyin(addr, savefpu, data);
 		if (error == 0)
 			error = fpusetregs(td, (struct savefpu *)savefpu,
-			    savefpu + sizeof(struct savefpu), data -
-			    sizeof(struct savefpu));
+			    savefpu + sizeof(struct savefpu),
+			    data - sizeof(struct savefpu));
 		free(savefpu, M_TEMP);
 		break;
 
@@ -257,8 +255,8 @@ cpu_ptrace_setbase(struct thread *td, int req, register_t r)
 }
 
 #ifdef COMPAT_FREEBSD32
-#define PT_I386_GETXMMREGS	(PT_FIRSTMACH + 0)
-#define PT_I386_SETXMMREGS	(PT_FIRSTMACH + 1)
+#define PT_I386_GETXMMREGS (PT_FIRSTMACH + 0)
+#define PT_I386_SETXMMREGS (PT_FIRSTMACH + 1)
 
 static int
 cpu32_ptrace(struct thread *td, int req, void *addr, int data)

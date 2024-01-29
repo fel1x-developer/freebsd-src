@@ -38,9 +38,10 @@
 #include <sys/malloc.h>
 #include <sys/queue.h>
 #include <sys/reboot.h>
-#include <sys/sysctl.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
+#include <sys/sysctl.h>
+
+#include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
@@ -53,17 +54,17 @@
 
 const char uart_driver_name[] = "uart";
 
-SLIST_HEAD(uart_devinfo_list, uart_devinfo) uart_sysdevs =
-    SLIST_HEAD_INITIALIZER(uart_sysdevs);
+SLIST_HEAD(uart_devinfo_list,
+    uart_devinfo) uart_sysdevs = SLIST_HEAD_INITIALIZER(uart_sysdevs);
 
 static MALLOC_DEFINE(M_UART, "UART", "UART driver");
 
-#ifndef	UART_POLL_FREQ
-#define	UART_POLL_FREQ		50
+#ifndef UART_POLL_FREQ
+#define UART_POLL_FREQ 50
 #endif
 static int uart_poll_freq = UART_POLL_FREQ;
-SYSCTL_INT(_debug, OID_AUTO, uart_poll_freq, CTLFLAG_RDTUN, &uart_poll_freq,
-    0, "UART poll frequency");
+SYSCTL_INT(_debug, OID_AUTO, uart_poll_freq, CTLFLAG_RDTUN, &uart_poll_freq, 0,
+    "UART poll frequency");
 
 static int uart_force_poll;
 SYSCTL_INT(_debug, OID_AUTO, uart_force_poll, CTLFLAG_RDTUN, &uart_force_poll,
@@ -74,7 +75,7 @@ uart_pps_mode_valid(int pps_mode)
 {
 	int opt;
 
-	switch(pps_mode & UART_PPS_SIGNAL_MASK) {
+	switch (pps_mode & UART_PPS_SIGNAL_MASK) {
 	case UART_PPS_DISABLED:
 	case UART_PPS_CTS:
 	case UART_PPS_DCD:
@@ -95,7 +96,7 @@ uart_pps_print_mode(struct uart_softc *sc)
 {
 
 	device_printf(sc->sc_dev, "PPS capture mode: ");
-	switch(sc->sc_pps_mode & UART_PPS_SIGNAL_MASK) {
+	switch (sc->sc_pps_mode & UART_PPS_SIGNAL_MASK) {
 	case UART_PPS_DISABLED:
 		printf("disabled");
 		break;
@@ -130,7 +131,7 @@ uart_pps_mode_sysctl(SYSCTL_HANDLER_ARGS)
 	if (!uart_pps_mode_valid(tmp))
 		return (EINVAL);
 	sc->sc_pps_mode = tmp;
-	return(0);
+	return (0);
 }
 
 static void
@@ -140,7 +141,7 @@ uart_pps_process(struct uart_softc *sc, int ser_sig)
 	int is_assert, pps_sig;
 
 	/* Which signal is configured as PPS?  Early out if none. */
-	switch(sc->sc_pps_mode & UART_PPS_SIGNAL_MASK) {
+	switch (sc->sc_pps_mode & UART_PPS_SIGNAL_MASK) {
 	case UART_PPS_CTS:
 		pps_sig = SER_CTS;
 		break;
@@ -173,12 +174,12 @@ uart_pps_process(struct uart_softc *sc, int ser_sig)
 			pps_event(&sc->sc_pps, PPS_CAPTUREASSERT);
 			pps_event(&sc->sc_pps, PPS_CAPTURECLEAR);
 		}
-	} else  {
+	} else {
 		is_assert = ser_sig & pps_sig;
 		if (sc->sc_pps_mode & UART_PPS_INVERT_PULSE)
 			is_assert = !is_assert;
-		pps_event(&sc->sc_pps, is_assert ? PPS_CAPTUREASSERT :
-		    PPS_CAPTURECLEAR);
+		pps_event(&sc->sc_pps,
+		    is_assert ? PPS_CAPTUREASSERT : PPS_CAPTURECLEAR);
 	}
 }
 
@@ -206,11 +207,12 @@ uart_pps_init(struct uart_softc *sc)
 	TUNABLE_INT_FETCH("hw.uart.pps_mode", &sc->sc_pps_mode);
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "pps_mode",
 	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, sc, 0,
-	    uart_pps_mode_sysctl, "I", "pulse mode: 0/1/2=disabled/CTS/DCD; "
+	    uart_pps_mode_sysctl, "I",
+	    "pulse mode: 0/1/2=disabled/CTS/DCD; "
 	    "add 0x10 to invert, 0x20 for narrow pulse");
 
 	if (!uart_pps_mode_valid(sc->sc_pps_mode)) {
-		device_printf(sc->sc_dev, 
+		device_printf(sc->sc_dev,
 		    "Invalid pps_mode 0x%02x configured; disabling PPS capture\n",
 		    sc->sc_pps_mode);
 		sc->sc_pps_mode = UART_PPS_DISABLED;
@@ -359,7 +361,7 @@ uart_intr_rxready(void *arg)
 	if (sc->sc_opened)
 		uart_sched_softih(sc, SER_INT_RXREADY);
 	else
-		sc->sc_rxput = sc->sc_rxget;	/* Ignore received data. */
+		sc->sc_rxput = sc->sc_rxget; /* Ignore received data. */
 	return (1);
 }
 
@@ -396,7 +398,7 @@ uart_intr_sigchg(void *arg)
 	do {
 		old = sc->sc_ttypend;
 		new = old & ~SER_MASK_STATE;
-		new |= sig & SER_INT_SIGMASK;
+		new |= sig &SER_INT_SIGMASK;
 	} while (!atomic_cmpset_32(&sc->sc_ttypend, old, new));
 
 	if (sc->sc_opened)
@@ -450,8 +452,8 @@ uart_intr(void *arg)
 	}
 
 	return ((cnt == 0) ? FILTER_STRAY :
-	    ((testintr && cnt == 20) ? FILTER_SCHEDULE_THREAD :
-	    FILTER_HANDLED));
+			     ((testintr && cnt == 20) ? FILTER_SCHEDULE_THREAD :
+							FILTER_HANDLED));
 }
 
 serdev_intr_t *
@@ -492,7 +494,8 @@ uart_bus_sysdev(device_t dev)
 }
 
 int
-uart_bus_probe(device_t dev, int regshft, int regiowidth, int rclk, int rid, int chan, int quirks)
+uart_bus_probe(device_t dev, int regshft, int regiowidth, int rclk, int rid,
+    int chan, int quirks)
 {
 	struct uart_softc *sc;
 	struct uart_devinfo *sysdev;
@@ -554,7 +557,7 @@ uart_bus_probe(device_t dev, int regshft, int regiowidth, int rclk, int rid, int
 	sc->sc_bas.rclk = (rclk == 0) ? sc->sc_class->uc_rclk : rclk;
 	sc->sc_bas.busy_detect = !!(quirks & UART_F_BUSY_DETECT);
 
-	SLIST_FOREACH(sysdev, &uart_sysdevs, next) {
+	SLIST_FOREACH (sysdev, &uart_sysdevs, next) {
 		if (chan == sysdev->bas.chan &&
 		    uart_cpu_eqres(&sc->sc_bas, &sysdev->bas)) {
 			/* XXX check if ops matches class. */
@@ -583,7 +586,7 @@ uart_bus_attach(device_t dev)
 	 */
 	sc0 = device_get_softc(dev);
 	if (sc0->sc_class->size > device_get_driver(dev)->size) {
-		sc = malloc(sc0->sc_class->size, M_UART, M_WAITOK|M_ZERO);
+		sc = malloc(sc0->sc_class->size, M_UART, M_WAITOK | M_ZERO);
 		bcopy(sc0, sc, sizeof(*sc));
 		device_set_softc(dev, sc);
 	} else
@@ -627,10 +630,10 @@ uart_bus_attach(device_t dev)
 	 * size of 384 bytes (handles the typical small-FIFO case).
 	 */
 	sc->sc_rxbufsz = MAX(384, sc->sc_rxfifosz * 3);
-	sc->sc_rxbuf = malloc(sc->sc_rxbufsz * sizeof(*sc->sc_rxbuf),
-	    M_UART, M_WAITOK);
-	sc->sc_txbuf = malloc(sc->sc_txfifosz * sizeof(*sc->sc_txbuf),
-	    M_UART, M_WAITOK);
+	sc->sc_rxbuf = malloc(sc->sc_rxbufsz * sizeof(*sc->sc_rxbuf), M_UART,
+	    M_WAITOK);
+	sc->sc_txbuf = malloc(sc->sc_txfifosz * sizeof(*sc->sc_txbuf), M_UART,
+	    M_WAITOK);
 
 	error = UART_ATTACH(sc);
 	if (error)
@@ -653,7 +656,7 @@ uart_bus_attach(device_t dev)
 	if (sc->sc_sysdev != NULL) {
 		if (sc->sc_sysdev->baudrate == 0) {
 			if (UART_IOCTL(sc, UART_IOCTL_BAUD,
-			    (intptr_t)&sc->sc_sysdev->baudrate) != 0)
+				(intptr_t)&sc->sc_sysdev->baudrate) != 0)
 				sc->sc_sysdev->baudrate = -1;
 		}
 		switch (sc->sc_sysdev->type) {
@@ -671,8 +674,8 @@ uart_bus_attach(device_t dev)
 			break;
 		}
 		printf(" (%d,%c,%d,%d)\n", sc->sc_sysdev->baudrate,
-		    "noems"[sc->sc_sysdev->parity], sc->sc_sysdev->databits,
-		    sc->sc_sysdev->stopbits);
+		    "noems"[sc->sc_sysdev->parity], sc -> sc_sysdev -> databits,
+		    sc -> sc_sysdev -> stopbits);
 	}
 
 	sc->sc_leaving = 0;
@@ -748,7 +751,7 @@ uart_bus_attach(device_t dev)
 
 	return (0);
 
- fail:
+fail:
 	free(sc->sc_txbuf, M_UART);
 	free(sc->sc_rxbuf, M_UART);
 

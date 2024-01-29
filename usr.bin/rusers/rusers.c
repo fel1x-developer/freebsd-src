@@ -33,34 +33,31 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
-#include <rpcsvc/rnusers.h>
-
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <netdb.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/rnusers.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <timeconv.h>
 #include <unistd.h>
 
-#define MAX_INT		0x7fffffff
-#define HOST_WIDTH	20
-#define LINE_WIDTH	15
+#define MAX_INT 0x7fffffff
+#define HOST_WIDTH 20
+#define LINE_WIDTH 15
 
 static int longopt;
 static int allopt;
 
 static struct host_list {
-	struct	host_list *next;
-	struct	in_addr addr;
+	struct host_list *next;
+	struct in_addr addr;
 } *hosts;
 
 static int
@@ -140,8 +137,8 @@ rusers_reply(void *replyp, struct sockaddr_in *raddrp)
 			if (idle > 60)
 				sprintf(idle_time, "%d:%02d", minutes, seconds);
 			if (idle >= (60 * 60))
-				sprintf(idle_time, "%d:%02d:%02d",
-				    hours, minutes, seconds);
+				sprintf(idle_time, "%d:%02d:%02d", hours,
+				    minutes, seconds);
 			if (idle >= (24 * 60 * 60))
 				sprintf(idle_time, "%d days, %d:%02d:%02d",
 				    days, hours, minutes, seconds);
@@ -155,13 +152,12 @@ rusers_reply(void *replyp, struct sockaddr_in *raddrp)
 
 		if (longopt)
 			printf("%-8.8s %*s:%-*.*s %-12.12s  %6s %.18s\n",
-			    up->utmpidlearr_val[x].ui_utmp.ut_name,
-			    HOST_WIDTH, host, LINE_WIDTH, LINE_WIDTH,
+			    up->utmpidlearr_val[x].ui_utmp.ut_name, HOST_WIDTH,
+			    host, LINE_WIDTH, LINE_WIDTH,
 			    up->utmpidlearr_val[x].ui_utmp.ut_line, date,
-			    idle_time, remote );
+			    idle_time, remote);
 		else
-			printf("%s ",
-			    up->utmpidlearr_val[x].ui_utmp.ut_name);
+			printf("%s ", up->utmpidlearr_val[x].ui_utmp.ut_name);
 	}
 	if (!longopt)
 		putchar('\n');
@@ -188,10 +184,10 @@ onehost(char *host)
 		errx(1, "%s", clnt_spcreateerror(""));
 
 	memset(&up, 0, sizeof(up));
-	tv.tv_sec = 15;	/* XXX ?? */
+	tv.tv_sec = 15; /* XXX ?? */
 	tv.tv_usec = 0;
 	if (clnt_call(rusers_clnt, RUSERSPROC_NAMES, (xdrproc_t)xdr_void, NULL,
-	    (xdrproc_t)xdr_utmpidlearr, &up, tv) != RPC_SUCCESS)
+		(xdrproc_t)xdr_utmpidlearr, &up, tv) != RPC_SUCCESS)
 		errx(1, "%s", clnt_sperror(rusers_clnt, ""));
 	memcpy(&addr.sin_addr.s_addr, hp->h_addr, sizeof(addr.sin_addr.s_addr));
 	rusers_reply(&up, &addr);

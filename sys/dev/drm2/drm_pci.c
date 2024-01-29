@@ -37,9 +37,10 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 
-static int drm_msi = 1;	/* Enable by default. */
+static int drm_msi = 1; /* Enable by default. */
 SYSCTL_NODE(_hw, OID_AUTO, drm, CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
     "DRM device");
 SYSCTL_INT(_hw_drm, OID_AUTO, msi, CTLFLAG_RDTUN, &drm_msi, 1,
@@ -50,7 +51,8 @@ SYSCTL_INT(_hw_drm, OID_AUTO, msi, CTLFLAG_RDTUN, &drm_msi, 1,
 /*@{*/
 
 static void
-drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
+drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs,
+    int error)
 {
 	drm_dma_handle_t *dmah = arg;
 
@@ -64,8 +66,9 @@ drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error
 /**
  * \brief Allocate a PCI consistent memory block, for DMA.
  */
-drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size,
-    size_t align, dma_addr_t maxaddr)
+drm_dma_handle_t *
+drm_pci_alloc(struct drm_device *dev, size_t size, size_t align,
+    dma_addr_t maxaddr)
 {
 	drm_dma_handle_t *dmah;
 	int ret;
@@ -84,15 +87,14 @@ drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size,
 	/* Make sure we aren't holding mutexes here */
 	mtx_assert(&dev->dma_lock, MA_NOTOWNED);
 	if (mtx_owned(&dev->dma_lock))
-	    DRM_ERROR("called while holding dma_lock\n");
+		DRM_ERROR("called while holding dma_lock\n");
 
-	ret = bus_dma_tag_create(
-	    bus_get_dma_tag(dev->dev), /* parent */
-	    align, 0, /* align, boundary */
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev->dev), /* parent */
+	    align, 0,			/* align, boundary */
 	    maxaddr, BUS_SPACE_MAXADDR, /* lowaddr, highaddr */
-	    NULL, NULL, /* filtfunc, filtfuncargs */
-	    size, 1, size, /* maxsize, nsegs, maxsegsize */
-	    0, NULL, NULL, /* flags, lockfunc, lockfuncargs */
+	    NULL, NULL,			/* filtfunc, filtfuncargs */
+	    size, 1, size,		/* maxsize, nsegs, maxsegsize */
+	    0, NULL, NULL,		/* flags, lockfunc, lockfuncargs */
 	    &dmah->tag);
 	if (ret != 0) {
 		free(dmah, DRM_MEM_DMA);
@@ -126,7 +128,8 @@ EXPORT_SYMBOL(drm_pci_alloc);
  *
  * This function is for internal use in the Linux-specific DRM core code.
  */
-void __drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
+void
+__drm_pci_free(struct drm_device *dev, drm_dma_handle_t *dmah)
 {
 	if (dmah == NULL)
 		return;
@@ -139,7 +142,8 @@ void __drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
 /**
  * \brief Free a PCI consistent memory block
  */
-void drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
+void
+drm_pci_free(struct drm_device *dev, drm_dma_handle_t *dmah)
 {
 	__drm_pci_free(dev, dmah);
 	free(dmah, DRM_MEM_DMA);
@@ -147,47 +151,51 @@ void drm_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
 
 EXPORT_SYMBOL(drm_pci_free);
 
-static int drm_get_pci_domain(struct drm_device *dev)
+static int
+drm_get_pci_domain(struct drm_device *dev)
 {
 	return dev->pci_domain;
 }
 
-static int drm_pci_get_irq(struct drm_device *dev)
+static int
+drm_pci_get_irq(struct drm_device *dev)
 {
 
 	if (dev->irqr)
 		return (dev->irq);
 
-	dev->irqr = bus_alloc_resource_any(dev->dev, SYS_RES_IRQ,
-	    &dev->irqrid, RF_SHAREABLE);
+	dev->irqr = bus_alloc_resource_any(dev->dev, SYS_RES_IRQ, &dev->irqrid,
+	    RF_SHAREABLE);
 	if (!dev->irqr) {
 		dev_err(dev->dev, "Failed to allocate IRQ\n");
 		return (0);
 	}
 
-	dev->irq = (int) rman_get_start(dev->irqr);
+	dev->irq = (int)rman_get_start(dev->irqr);
 
 	return (dev->irq);
 }
 
-static void drm_pci_free_irq(struct drm_device *dev)
+static void
+drm_pci_free_irq(struct drm_device *dev)
 {
 	if (dev->irqr == NULL)
 		return;
 
-	bus_release_resource(dev->dev, SYS_RES_IRQ,
-	    dev->irqrid, dev->irqr);
+	bus_release_resource(dev->dev, SYS_RES_IRQ, dev->irqrid, dev->irqr);
 
 	dev->irqr = NULL;
 	dev->irq = 0;
 }
 
-static const char *drm_pci_get_name(struct drm_device *dev)
+static const char *
+drm_pci_get_name(struct drm_device *dev)
 {
 	return dev->driver->name;
 }
 
-int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
+int
+drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
 {
 	int len, ret;
 	master->unique_len = 40;
@@ -196,13 +204,9 @@ int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
 	if (master->unique == NULL)
 		return -ENOMEM;
 
-
 	len = snprintf(master->unique, master->unique_len,
-		       "pci:%04x:%02x:%02x.%d",
-		       dev->pci_domain,
-		       dev->pci_bus,
-		       dev->pci_slot,
-		       dev->pci_func);
+	    "pci:%04x:%02x:%02x.%d", dev->pci_domain, dev->pci_bus,
+	    dev->pci_slot, dev->pci_func);
 
 	if (len >= master->unique_len) {
 		DRM_ERROR("buffer overflow");
@@ -216,9 +220,9 @@ err:
 	return ret;
 }
 
-int drm_pci_set_unique(struct drm_device *dev,
-		       struct drm_master *master,
-		       struct drm_unique *u)
+int
+drm_pci_set_unique(struct drm_device *dev, struct drm_master *master,
+    struct drm_unique *u)
 {
 	int domain, bus, slot, func, ret;
 
@@ -249,10 +253,8 @@ int drm_pci_set_unique(struct drm_device *dev,
 	domain = bus >> 8;
 	bus &= 0xff;
 
-	if ((domain != dev->pci_domain) ||
-	    (bus != dev->pci_bus) ||
-	    (slot != dev->pci_slot) ||
-	    (func != dev->pci_func)) {
+	if ((domain != dev->pci_domain) || (bus != dev->pci_bus) ||
+	    (slot != dev->pci_slot) || (func != dev->pci_func)) {
 		ret = -EINVAL;
 		goto err;
 	}
@@ -261,35 +263,39 @@ err:
 	return ret;
 }
 
-
-static int drm_pci_irq_by_busid(struct drm_device *dev, struct drm_irq_busid *p)
+static int
+drm_pci_irq_by_busid(struct drm_device *dev, struct drm_irq_busid *p)
 {
 	if ((p->busnum >> 8) != drm_get_pci_domain(dev) ||
-	    (p->busnum & 0xff) != dev->pci_bus ||
-	    p->devnum != dev->pci_slot || p->funcnum != dev->pci_func)
+	    (p->busnum & 0xff) != dev->pci_bus || p->devnum != dev->pci_slot ||
+	    p->funcnum != dev->pci_func)
 		return -EINVAL;
 
 	p->irq = dev->irq;
 
 	DRM_DEBUG("%d:%d:%d => IRQ %d\n", p->busnum, p->devnum, p->funcnum,
-		  p->irq);
+	    p->irq);
 	return 0;
 }
 
-int drm_pci_agp_init(struct drm_device *dev)
+int
+drm_pci_agp_init(struct drm_device *dev)
 {
 	if (drm_core_has_AGP(dev)) {
 		if (drm_pci_device_is_agp(dev))
 			dev->agp = drm_agp_init(dev);
-		if (drm_core_check_feature(dev, DRIVER_REQUIRE_AGP)
-		    && (dev->agp == NULL)) {
+		if (drm_core_check_feature(dev, DRIVER_REQUIRE_AGP) &&
+		    (dev->agp == NULL)) {
 			DRM_ERROR("Cannot initialize the agpgart module.\n");
 			return -EINVAL;
 		}
 		if (drm_core_has_MTRR(dev)) {
-			if (dev->agp && dev->agp->agp_info.ai_aperture_base != 0) {
-				if (drm_mtrr_add(dev->agp->agp_info.ai_aperture_base,
-				    dev->agp->agp_info.ai_aperture_size, DRM_MTRR_WC) == 0)
+			if (dev->agp &&
+			    dev->agp->agp_info.ai_aperture_base != 0) {
+				if (drm_mtrr_add(
+					dev->agp->agp_info.ai_aperture_base,
+					dev->agp->agp_info.ai_aperture_size,
+					DRM_MTRR_WC) == 0)
 					dev->agp->agp_mtrr = 1;
 				else
 					dev->agp->agp_mtrr = -1;
@@ -321,8 +327,9 @@ static struct drm_bus drm_pci_bus = {
  * then register the character device and inter module information.
  * Try and register, if we fail to register, backout previous work.
  */
-int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
-		    struct drm_driver *driver)
+int
+drm_get_pci_dev(device_t kdev, struct drm_device *dev,
+    struct drm_driver *driver)
 {
 	int ret;
 
@@ -359,8 +366,7 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 		goto err_g3;
 
 	if (dev->driver->load) {
-		ret = dev->driver->load(dev,
-		    dev->id_entry->driver_private);
+		ret = dev->driver->load(dev, dev->id_entry->driver_private);
 		if (ret)
 			goto err_g4;
 	}
@@ -368,7 +374,7 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 	/* setup the grouping for the legacy output */
 	if (drm_core_check_feature(dev, DRIVER_MODESET)) {
 		ret = drm_mode_group_init_legacy_group(dev,
-						&dev->primary->mode_group);
+		    &dev->primary->mode_group);
 		if (ret)
 			goto err_g5;
 	}
@@ -378,8 +384,8 @@ int drm_get_pci_dev(device_t kdev, struct drm_device *dev,
 #endif /* FREEBSD_NOTYET */
 
 	DRM_INFO("Initialized %s %d.%d.%d %s for %s on minor %d\n",
-		 driver->name, driver->major, driver->minor, driver->patchlevel,
-		 driver->date, device_get_nameunit(dev->dev), dev->primary->index);
+	    driver->name, driver->major, driver->minor, driver->patchlevel,
+	    driver->date, device_get_nameunit(dev->dev), dev->primary->index);
 
 	sx_xunlock(&drm_global_mutex);
 	return 0;
@@ -435,7 +441,8 @@ drm_pci_disable_msi(struct drm_device *dev)
 	dev->irqrid = 0;
 }
 
-int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
+int
+drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 {
 	device_t root;
 	int pos;
@@ -445,11 +452,10 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 	if (!drm_pci_device_is_pcie(dev))
 		return -EINVAL;
 
-	root =
-	    device_get_parent( /* pcib             */
-	    device_get_parent( /* `-- pci          */
-	    device_get_parent( /*     `-- vgapci   */
-	    dev->dev)));       /*         `-- drmn */
+	root = device_get_parent( /* pcib             */
+	    device_get_parent(	  /* `-- pci          */
+		device_get_parent(/*     `-- vgapci   */
+		    dev->dev)));  /*         `-- drmn */
 
 	pos = 0;
 	pci_find_cap(root, PCIY_EXPRESS, &pos);
@@ -467,9 +473,9 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 	lnkcap &= PCIEM_LINK_CAP_MAX_SPEED;
 	lnkcap2 &= 0xfe;
 
-#define	PCI_EXP_LNKCAP2_SLS_2_5GB 0x02	/* Supported Link Speed 2.5GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_5_0GB 0x04	/* Supported Link Speed 5.0GT/s */
-#define	PCI_EXP_LNKCAP2_SLS_8_0GB 0x08	/* Supported Link Speed 8.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_2_5GB 0x02 /* Supported Link Speed 2.5GT/s */
+#define PCI_EXP_LNKCAP2_SLS_5_0GB 0x04 /* Supported Link Speed 5.0GT/s */
+#define PCI_EXP_LNKCAP2_SLS_8_0GB 0x08 /* Supported Link Speed 8.0GT/s */
 
 	if (lnkcap2) { /* PCIE GEN 3.0 */
 		if (lnkcap2 & PCI_EXP_LNKCAP2_SLS_2_5GB)
@@ -485,7 +491,8 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 			*mask |= DRM_PCIE_SPEED_50;
 	}
 
-	DRM_INFO("probing gen 2 caps for device %x:%x = %x/%x\n", pci_get_vendor(root), pci_get_device(root), lnkcap, lnkcap2);
+	DRM_INFO("probing gen 2 caps for device %x:%x = %x/%x\n",
+	    pci_get_vendor(root), pci_get_device(root), lnkcap, lnkcap2);
 	return 0;
 }
 EXPORT_SYMBOL(drm_pcie_get_speed_cap_mask);

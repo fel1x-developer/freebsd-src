@@ -25,6 +25,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -36,33 +37,33 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
 
 #include <dev/etherswitch/etherswitch.h>
-#include <dev/etherswitch/mtkswitch/mtkswitchvar.h>
 #include <dev/etherswitch/mtkswitch/mtkswitch_mt7620.h>
+#include <dev/etherswitch/mtkswitch/mtkswitchvar.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 static int
 mtkswitch_phy_read_locked(struct mtkswitch_softc *sc, int phy, int reg)
 {
 	uint32_t data;
-        
-	MTKSWITCH_WRITE(sc, MTKSWITCH_PIAC, PIAC_PHY_ACS_ST | PIAC_MDIO_ST |
-	    (reg << PIAC_MDIO_REG_ADDR_OFF) | (phy << PIAC_MDIO_PHY_ADDR_OFF) |
-	    PIAC_MDIO_CMD_READ);
-	while ((data = MTKSWITCH_READ(sc, MTKSWITCH_PIAC)) & PIAC_PHY_ACS_ST);
-        
+
+	MTKSWITCH_WRITE(sc, MTKSWITCH_PIAC,
+	    PIAC_PHY_ACS_ST | PIAC_MDIO_ST | (reg << PIAC_MDIO_REG_ADDR_OFF) |
+		(phy << PIAC_MDIO_PHY_ADDR_OFF) | PIAC_MDIO_CMD_READ);
+	while ((data = MTKSWITCH_READ(sc, MTKSWITCH_PIAC)) & PIAC_PHY_ACS_ST)
+		;
+
 	return ((int)(data & PIAC_MDIO_RW_DATA_MASK));
 }
 
@@ -88,10 +89,12 @@ mtkswitch_phy_write_locked(struct mtkswitch_softc *sc, int phy, int reg,
     int val)
 {
 
-	MTKSWITCH_WRITE(sc, MTKSWITCH_PIAC, PIAC_PHY_ACS_ST | PIAC_MDIO_ST |
-	    (reg << PIAC_MDIO_REG_ADDR_OFF) | (phy << PIAC_MDIO_PHY_ADDR_OFF) |
-	    (val & PIAC_MDIO_RW_DATA_MASK) | PIAC_MDIO_CMD_WRITE);
-	while (MTKSWITCH_READ(sc, MTKSWITCH_PIAC) & PIAC_PHY_ACS_ST);
+	MTKSWITCH_WRITE(sc, MTKSWITCH_PIAC,
+	    PIAC_PHY_ACS_ST | PIAC_MDIO_ST | (reg << PIAC_MDIO_REG_ADDR_OFF) |
+		(phy << PIAC_MDIO_PHY_ADDR_OFF) |
+		(val & PIAC_MDIO_RW_DATA_MASK) | PIAC_MDIO_CMD_WRITE);
+	while (MTKSWITCH_READ(sc, MTKSWITCH_PIAC) & PIAC_PHY_ACS_ST)
+		;
 
 	return (0);
 }
@@ -276,10 +279,12 @@ mtkswitch_atu_flush(struct mtkswitch_softc *sc)
 	MTKSWITCH_LOCK_ASSERT(sc, MA_OWNED);
 
 	/* Flush all non-static MAC addresses */
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_ATC) & ATC_BUSY);
-	sc->hal.mtkswitch_write(sc, MTKSWITCH_ATC, ATC_BUSY |
-	    ATC_AC_MAT_NON_STATIC_MACS | ATC_AC_CMD_CLEAN);
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_ATC) & ATC_BUSY);
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_ATC) & ATC_BUSY)
+		;
+	sc->hal.mtkswitch_write(sc, MTKSWITCH_ATC,
+	    ATC_BUSY | ATC_AC_MAT_NON_STATIC_MACS | ATC_AC_CMD_CLEAN);
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_ATC) & ATC_BUSY)
+		;
 
 	return (0);
 }
@@ -293,8 +298,9 @@ mtkswitch_port_vlan_setup(struct mtkswitch_softc *sc, etherswitch_port_t *p)
 	 * Port behaviour wrt tag/untag/stack is currently defined per-VLAN.
 	 * So we say we don't support it here.
 	 */
-	if ((p->es_flags & (ETHERSWITCH_PORT_DOUBLE_TAG |
-	    ETHERSWITCH_PORT_ADDTAG | ETHERSWITCH_PORT_STRIPTAG)) != 0)
+	if ((p->es_flags &
+		(ETHERSWITCH_PORT_DOUBLE_TAG | ETHERSWITCH_PORT_ADDTAG |
+		    ETHERSWITCH_PORT_STRIPTAG)) != 0)
 		return (ENOTSUP);
 
 	MTKSWITCH_LOCK_ASSERT(sc, MA_NOTOWNED);
@@ -340,10 +346,12 @@ static void
 mtkswitch_invalidate_vlan(struct mtkswitch_softc *sc, uint32_t vid)
 {
 
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY);
-	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR, VTCR_BUSY |
-	    VTCR_FUNC_VID_INVALID | (vid & VTCR_VID_MASK));
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY);
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY)
+		;
+	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR,
+	    VTCR_BUSY | VTCR_FUNC_VID_INVALID | (vid & VTCR_VID_MASK));
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY)
+		;
 }
 
 static void
@@ -409,16 +417,19 @@ mtkswitch_vlan_getvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 	MTKSWITCH_LOCK(sc);
 	if (sc->sc_switchtype == MTK_SWITCH_MT7620) {
 		v->es_vid = (sc->hal.mtkswitch_read(sc,
-		    MTKSWITCH_VTIM(v->es_vlangroup)) >>
-		    VTIM_OFF(v->es_vlangroup)) & VTIM_MASK;
+				 MTKSWITCH_VTIM(v->es_vlangroup)) >>
+				VTIM_OFF(v->es_vlangroup)) &
+		    VTIM_MASK;
 	} else {
 		v->es_vid = v->es_vlangroup;
 	}
 
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY);
-	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR, VTCR_BUSY |
-	    VTCR_FUNC_VID_READ | (v->es_vlangroup & VTCR_VID_MASK));
-	while ((val = sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR)) & VTCR_BUSY);
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY)
+		;
+	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR,
+	    VTCR_BUSY | VTCR_FUNC_VID_READ | (v->es_vlangroup & VTCR_VID_MASK));
+	while ((val = sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR)) & VTCR_BUSY)
+		;
 	if (val & VTCR_IDX_INVALID) {
 		MTKSWITCH_UNLOCK(sc);
 		return (0);
@@ -436,7 +447,7 @@ mtkswitch_vlan_getvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 	val = sc->hal.mtkswitch_read(sc, MTKSWITCH_VAWD2);
 	for (i = 0; i < sc->info.es_nports; i++) {
 		if ((val & VAWD2_PORT_MASK(i)) == VAWD2_PORT_UNTAGGED(i))
-			v->es_untagged_ports |= (1<<i);
+			v->es_untagged_ports |= (1 << i);
 	}
 
 	MTKSWITCH_UNLOCK(sc);
@@ -459,7 +470,8 @@ mtkswitch_vlan_setvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 		return (EINVAL);
 
 	MTKSWITCH_LOCK(sc);
-	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY);
+	while (sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR) & VTCR_BUSY)
+		;
 	if (sc->sc_switchtype == MTK_SWITCH_MT7620) {
 		val = sc->hal.mtkswitch_read(sc,
 		    MTKSWITCH_VTIM(v->es_vlangroup));
@@ -479,14 +491,15 @@ mtkswitch_vlan_setvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 	/* Set tagged ports */
 	val = 0;
 	for (i = 0; i < sc->info.es_nports; i++)
-		if (((1<<i) & v->es_untagged_ports) == 0)
+		if (((1 << i) & v->es_untagged_ports) == 0)
 			val |= VAWD2_PORT_TAGGED(i);
 	sc->hal.mtkswitch_write(sc, MTKSWITCH_VAWD2, val);
 
 	/* Write the VLAN entry */
-	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR, VTCR_BUSY |
-	    VTCR_FUNC_VID_WRITE | (vid & VTCR_VID_MASK));
-	while ((val = sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR)) & VTCR_BUSY);
+	sc->hal.mtkswitch_write(sc, MTKSWITCH_VTCR,
+	    VTCR_BUSY | VTCR_FUNC_VID_WRITE | (vid & VTCR_VID_MASK));
+	while ((val = sc->hal.mtkswitch_read(sc, MTKSWITCH_VTCR)) & VTCR_BUSY)
+		;
 
 	MTKSWITCH_UNLOCK(sc);
 
@@ -505,7 +518,7 @@ mtkswitch_vlan_get_pvid(struct mtkswitch_softc *sc, int port, int *pvid)
 	*pvid = sc->hal.mtkswitch_read(sc, MTKSWITCH_PPBV1(port));
 	*pvid = PPBV_VID_FROM_REG(*pvid);
 
-	return (0); 
+	return (0);
 }
 
 static int

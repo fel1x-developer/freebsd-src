@@ -31,27 +31,31 @@
  * Machine-dependent thread prototypes/definitions.
  */
 #ifndef _PTHREAD_MD_H_
-#define	_PTHREAD_MD_H_
+#define _PTHREAD_MD_H_
 
-#include <stddef.h>
 #include <sys/types.h>
+
 #include <machine/tls.h>
 
-#define	CPU_SPINWAIT		__asm __volatile("pause")
+#include <stddef.h>
+
+#define CPU_SPINWAIT __asm __volatile("pause")
 
 /* For use in _Static_assert to check structs will fit in a page */
-#define	THR_PAGE_SIZE_MIN	PAGE_SIZE
+#define THR_PAGE_SIZE_MIN PAGE_SIZE
 
 static __inline struct pthread *
 _get_curthread(void)
 {
 	struct pthread *thr;
 
-	__asm __volatile("movl %%gs:%1, %0" : "=r" (thr)
-	    : "m" (*(volatile u_int *)offsetof(struct tcb, tcb_thread)));
+	__asm __volatile(
+	    "movl %%gs:%1, %0"
+	    : "=r"(thr)
+	    : "m"(*(volatile u_int *)offsetof(struct tcb, tcb_thread)));
 	return (thr);
 }
 
-#define HAS__UMTX_OP_ERR	1
+#define HAS__UMTX_OP_ERR 1
 
 #endif

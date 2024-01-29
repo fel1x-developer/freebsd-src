@@ -34,10 +34,13 @@
 #include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
+
 #include <machine/atomic.h>
 #include <machine/specialreg.h>
 #include <machine/vmm.h>
+
 #include <netinet/in.h>
+
 #include <assert.h>
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
@@ -67,11 +70,15 @@
  * GDB_SIGNAL_* numbers are part of the GDB remote protocol.  Most stops
  * use SIGTRAP.
  */
-#define	GDB_SIGNAL_TRAP		5
+#define GDB_SIGNAL_TRAP 5
 
-#define	GDB_BP_SIZE		1
-#define	GDB_BP_INSTR		(uint8_t []){0xcc}
-#define	GDB_PC_REGNAME		VM_REG_GUEST_RIP
+#define GDB_BP_SIZE 1
+#define GDB_BP_INSTR \
+	(uint8_t[])  \
+	{            \
+		0xcc \
+	}
+#define GDB_PC_REGNAME VM_REG_GUEST_RIP
 
 _Static_assert(sizeof(GDB_BP_INSTR) == GDB_BP_SIZE,
     "GDB_BP_INSTR has wrong size");
@@ -175,8 +182,7 @@ static const struct gdb_reg {
 #include <stdarg.h>
 #include <stdio.h>
 
-static void __printflike(1, 2)
-debug(const char *fmt, ...)
+static void __printflike(1, 2) debug(const char *fmt, ...)
 {
 	static FILE *logfile;
 	va_list ap;
@@ -202,18 +208,14 @@ debug(const char *fmt, ...)
 #define debug(...)
 #endif
 
-static void	remove_all_sw_breakpoints(void);
+static void remove_all_sw_breakpoints(void);
 
 static int
 guest_paging_info(struct vcpu *vcpu, struct vm_guest_paging *paging)
 {
 	uint64_t regs[4];
-	const int regset[4] = {
-		VM_REG_GUEST_CR0,
-		VM_REG_GUEST_CR3,
-		VM_REG_GUEST_CR4,
-		VM_REG_GUEST_EFER
-	};
+	const int regset[4] = { VM_REG_GUEST_CR0, VM_REG_GUEST_CR3,
+		VM_REG_GUEST_CR4, VM_REG_GUEST_EFER };
 
 	if (vm_get_register_set(vcpu, nitems(regset), regset, regs) == -1)
 		return (-1);
@@ -237,7 +239,8 @@ guest_paging_info(struct vcpu *vcpu, struct vm_guest_paging *paging)
 		paging->paging_mode = PAGING_MODE_32;
 	else if (regs[3] & EFER_LME)
 		paging->paging_mode = (regs[2] & CR4_LA57) ?
-		    PAGING_MODE_64_LA57 :  PAGING_MODE_64;
+		    PAGING_MODE_64_LA57 :
+		    PAGING_MODE_64;
 	else
 		paging->paging_mode = PAGING_MODE_PAE;
 	return (0);
@@ -263,7 +266,7 @@ guest_vaddr2paddr(struct vcpu *vcpu, uint64_t vaddr, uint64_t *paddr)
 	 * accessible, not if the current vCPU can write.
 	 */
 	if (vm_gla2gpa_nofault(vcpu, &paging, vaddr, PROT_READ, paddr,
-	    &fault) == -1)
+		&fault) == -1)
 		return (-1);
 	if (fault)
 		return (0);
@@ -923,7 +926,7 @@ find_breakpoint(uint64_t gpa)
 {
 	struct breakpoint *bp;
 
-	TAILQ_FOREACH(bp, &breakpoints, link) {
+	TAILQ_FOREACH (bp, &breakpoints, link) {
 		if (bp->gpa == gpa)
 			return (bp);
 	}
@@ -956,7 +959,8 @@ gdb_cpu_breakpoint(struct vcpu *vcpu, struct vm_exit *vmexit)
 		vm_set_register(vcpu, GDB_PC_REGNAME, guest_pc(vmexit));
 		for (;;) {
 			if (stopped_vcpu == -1) {
-				debug("$vCPU %d reporting breakpoint at rip %#lx\n",
+				debug(
+				    "$vCPU %d reporting breakpoint at rip %#lx\n",
 				    vcpuid, guest_pc(vmexit));
 				stopped_vcpu = vcpuid;
 				gdb_suspend_vcpus();
@@ -1024,8 +1028,8 @@ gdb_read_regs(void)
 
 	for (size_t i = 0; i < nitems(gdb_regset); i++)
 		regnums[i] = gdb_regset[i].id;
-	if (vm_get_register_set(vcpus[cur_vcpu], nitems(gdb_regset),
-	    regnums, regvals) == -1) {
+	if (vm_get_register_set(vcpus[cur_vcpu], nitems(gdb_regset), regnums,
+		regvals) == -1) {
 		send_error(errno);
 		return;
 	}
@@ -1271,7 +1275,7 @@ set_breakpoint_caps(bool enable)
 		vcpu = CPU_FFS(&mask) - 1;
 		CPU_CLR(vcpu, &mask);
 		if (vm_set_capability(vcpus[vcpu], VM_CAP_BPT_EXIT,
-		    enable ? 1 : 0) < 0)
+			enable ? 1 : 0) < 0)
 			return (false);
 		debug("$vCPU %d %sabled breakpoint exits\n", vcpu,
 		    enable ? "en" : "dis");
@@ -1288,7 +1292,7 @@ remove_all_sw_breakpoints(void)
 	if (TAILQ_EMPTY(&breakpoints))
 		return;
 
-	TAILQ_FOREACH_SAFE(bp, &breakpoints, link, nbp) {
+	TAILQ_FOREACH_SAFE (bp, &breakpoints, link, nbp) {
 		debug("remove breakpoint at %#lx\n", bp->gpa);
 		cp = paddr_guest2host(ctx, bp->gpa, sizeof(bp->shadow_inst));
 		memcpy(cp, bp->shadow_inst, sizeof(bp->shadow_inst));
@@ -1576,8 +1580,8 @@ handle_command(const uint8_t *data, size_t len)
 {
 
 	/* Reject packets with a sequence-id. */
-	if (len >= 3 && data[0] >= '0' && data[0] <= '9' &&
-	    data[0] >= '0' && data[0] <= '9' && data[2] == ':') {
+	if (len >= 3 && data[0] >= '0' && data[0] <= '9' && data[0] >= '0' &&
+	    data[0] <= '9' && data[2] == ':') {
 		send_empty_response();
 		return;
 	}
@@ -1731,7 +1735,7 @@ check_command(int fd)
 
 			if (response_pending()) {
 				warnx("New GDB command while response in "
-				    "progress");
+				      "progress");
 				io_buffer_reset(&cur_resp);
 			}
 
@@ -1914,8 +1918,8 @@ init_gdb(struct vmctx *_ctx)
 		saddr = "localhost";
 	}
 
-	debug("==> starting on %s:%s, %swaiting\n",
-	    saddr, sport, wait ? "" : "not ");
+	debug("==> starting on %s:%s, %swaiting\n", saddr, sport,
+	    wait ? "" : "not ");
 
 	error = pthread_mutex_init(&gdb_lock, NULL);
 	if (error != 0)

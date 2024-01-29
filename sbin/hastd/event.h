@@ -26,21 +26,21 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_EVENT_H_
-#define	_EVENT_H_
+#ifndef _EVENT_H_
+#define _EVENT_H_
 
-#define	EVENT_NONE		0
-#define	EVENT_CONNECT		1
-#define	EVENT_DISCONNECT	2
-#define	EVENT_SYNCSTART		3
-#define	EVENT_SYNCDONE		4
-#define	EVENT_SYNCINTR		5
-#define	EVENT_SPLITBRAIN	6
+#define EVENT_NONE 0
+#define EVENT_CONNECT 1
+#define EVENT_DISCONNECT 2
+#define EVENT_SYNCSTART 3
+#define EVENT_SYNCDONE 4
+#define EVENT_SYNCINTR 5
+#define EVENT_SPLITBRAIN 6
 
-#define	EVENT_MIN		EVENT_CONNECT
-#define	EVENT_MAX		EVENT_SPLITBRAIN
+#define EVENT_MIN EVENT_CONNECT
+#define EVENT_MAX EVENT_SPLITBRAIN
 
 void event_send(const struct hast_resource *res, int event);
 int event_recv(const struct hast_resource *res);
 
-#endif	/* !_EVENT_H_ */
+#endif /* !_EVENT_H_ */

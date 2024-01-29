@@ -28,15 +28,17 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#include <errno.h>
+#include <signal.h>
 #include <stddef.h>
 #include <string.h>
-#include <signal.h>
-#include <errno.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int __waitid(idtype_t, id_t, siginfo_t *, int);
 
@@ -46,7 +48,7 @@ __waitid(idtype_t idtype, id_t id, siginfo_t *info, int flags)
 	int status;
 	pid_t ret;
 
-	ret = ((pid_t (*)(idtype_t, id_t, int *, int, struct __wrusage *,
+	ret = ((pid_t(*)(idtype_t, id_t, int *, int, struct __wrusage *,
 	    siginfo_t *))__libc_interposing[INTERPOS_wait6])(idtype, id,
 	    &status, flags, NULL, info);
 

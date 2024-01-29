@@ -34,45 +34,45 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-
-#include <dev/agp/agppriv.h>
-#include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
-#include <vm/vm_object.h>
 #include <vm/pmap.h>
+#include <vm/vm_object.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#define	NVIDIA_VENDORID		0x10de
-#define	NVIDIA_DEVICEID_NFORCE	0x01a4
-#define	NVIDIA_DEVICEID_NFORCE2	0x01e0
+#include <dev/agp/agppriv.h>
+#include <dev/agp/agpreg.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#define NVIDIA_VENDORID 0x10de
+#define NVIDIA_DEVICEID_NFORCE 0x01a4
+#define NVIDIA_DEVICEID_NFORCE2 0x01e0
 
 struct agp_nvidia_softc {
-	struct agp_softc	agp;
-	u_int32_t		initial_aperture; /* aperture size at startup */
-	struct agp_gatt *	gatt;
+	struct agp_softc agp;
+	u_int32_t initial_aperture; /* aperture size at startup */
+	struct agp_gatt *gatt;
 
-	device_t		dev;		/* AGP Controller */
-	device_t		mc1_dev;	/* Memory Controller */
-	device_t		mc2_dev;	/* Memory Controller */
-	device_t		bdev;		/* Bridge */
+	device_t dev;	  /* AGP Controller */
+	device_t mc1_dev; /* Memory Controller */
+	device_t mc2_dev; /* Memory Controller */
+	device_t bdev;	  /* Bridge */
 
-	u_int32_t		wbc_mask;
-	int			num_dirs;
-	int			num_active_entries;
-	off_t			pg_offset;
+	u_int32_t wbc_mask;
+	int num_dirs;
+	int num_active_entries;
+	off_t pg_offset;
 };
 
 static const char *agp_nvidia_match(device_t dev);
@@ -87,7 +87,7 @@ static int agp_nvidia_unbind_page(device_t, vm_offset_t);
 static int nvidia_init_iorr(u_int32_t, u_int32_t);
 
 static const char *
-agp_nvidia_match (device_t dev)
+agp_nvidia_match(device_t dev)
 {
 	if (pci_get_class(dev) != PCIC_BRIDGE ||
 	    pci_get_subclass(dev) != PCIS_BRIDGE_HOST ||
@@ -104,7 +104,7 @@ agp_nvidia_match (device_t dev)
 }
 
 static int
-agp_nvidia_probe (device_t dev)
+agp_nvidia_probe(device_t dev)
 {
 	const char *desc;
 
@@ -119,7 +119,7 @@ agp_nvidia_probe (device_t dev)
 }
 
 static int
-agp_nvidia_attach (device_t dev)
+agp_nvidia_attach(device_t dev)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
 	struct agp_gatt *gatt;
@@ -149,7 +149,7 @@ agp_nvidia_attach (device_t dev)
 	sc->mc1_dev = pci_find_bsf(pci_get_bus(dev), 0, 1);
 	if (sc->mc1_dev == NULL) {
 		device_printf(dev,
-			"Unable to find NVIDIA Memory Controller 1.\n");
+		    "Unable to find NVIDIA Memory Controller 1.\n");
 		return (ENODEV);
 	}
 
@@ -157,7 +157,7 @@ agp_nvidia_attach (device_t dev)
 	sc->mc2_dev = pci_find_bsf(pci_get_bus(dev), 0, 2);
 	if (sc->mc2_dev == NULL) {
 		device_printf(dev,
-			"Unable to find NVIDIA Memory Controller 2.\n");
+		    "Unable to find NVIDIA Memory Controller 2.\n");
 		return (ENODEV);
 	}
 
@@ -165,7 +165,7 @@ agp_nvidia_attach (device_t dev)
 	sc->bdev = pci_find_bsf(pci_get_bus(dev), 30, 0);
 	if (sc->bdev == NULL) {
 		device_printf(dev,
-			"Unable to find NVIDIA AGP Host to PCI Bridge.\n");
+		    "Unable to find NVIDIA AGP Host to PCI Bridge.\n");
 		return (ENODEV);
 	}
 
@@ -210,14 +210,16 @@ agp_nvidia_attach (device_t dev)
 		sc->num_dirs = 1;
 		sc->num_active_entries /= (64 / size);
 		sc->pg_offset = rounddown2(apbase & (64 * 1024 * 1024 - 1),
-		    AGP_GET_APERTURE(dev)) / PAGE_SIZE;
+				    AGP_GET_APERTURE(dev)) /
+		    PAGE_SIZE;
 	}
 
 	/* (G)ATT Base Address */
 	for (i = 0; i < 8; i++) {
 		pci_write_config(sc->mc2_dev, AGP_NVIDIA_2_ATTBASE(i),
-				 (sc->gatt->ag_physical +
-				   (i % sc->num_dirs) * 64 * 1024) | 1, 4);
+		    (sc->gatt->ag_physical + (i % sc->num_dirs) * 64 * 1024) |
+			1,
+		    4);
 	}
 
 	/* GTLB Control */
@@ -235,7 +237,7 @@ fail:
 }
 
 static int
-agp_nvidia_detach (device_t dev)
+agp_nvidia_detach(device_t dev)
 {
 	struct agp_nvidia_softc *sc = device_get_softc(dev);
 	u_int32_t temp;
@@ -255,7 +257,7 @@ agp_nvidia_detach (device_t dev)
 
 	/* restore iorr for previous aperture size */
 	nvidia_init_iorr(rman_get_start(sc->agp.as_aperture),
-			 sc->initial_aperture);
+	    sc->initial_aperture);
 
 	agp_free_gatt(sc->gatt);
 	agp_free_res(dev);
@@ -267,11 +269,16 @@ static u_int32_t
 agp_nvidia_get_aperture(device_t dev)
 {
 	switch (pci_read_config(dev, AGP_NVIDIA_0_APSIZE, 1) & 0x0f) {
-	case 0: return (512 * 1024 * 1024);
-	case 8: return (256 * 1024 * 1024);
-	case 12: return (128 * 1024 * 1024);
-	case 14: return (64 * 1024 * 1024);
-	case 15: return (32 * 1024 * 1024);
+	case 0:
+		return (512 * 1024 * 1024);
+	case 8:
+		return (256 * 1024 * 1024);
+	case 12:
+		return (128 * 1024 * 1024);
+	case 14:
+		return (64 * 1024 * 1024);
+	case 15:
+		return (32 * 1024 * 1024);
 	default:
 		device_printf(dev, "Invalid aperture setting 0x%x\n",
 		    pci_read_config(dev, AGP_NVIDIA_0_APSIZE, 1));
@@ -286,14 +293,24 @@ agp_nvidia_set_aperture(device_t dev, u_int32_t aperture)
 	u_int8_t key;
 
 	switch (aperture) {
-	case (512 * 1024 * 1024): key = 0; break;
-	case (256 * 1024 * 1024): key = 8; break;
-	case (128 * 1024 * 1024): key = 12; break;
-	case (64 * 1024 * 1024): key = 14; break;
-	case (32 * 1024 * 1024): key = 15; break;
+	case (512 * 1024 * 1024):
+		key = 0;
+		break;
+	case (256 * 1024 * 1024):
+		key = 8;
+		break;
+	case (128 * 1024 * 1024):
+		key = 12;
+		break;
+	case (64 * 1024 * 1024):
+		key = 14;
+		break;
+	case (32 * 1024 * 1024):
+		key = 15;
+		break;
 	default:
 		device_printf(dev, "Invalid aperture size (%dMb)\n",
-				aperture / 1024 / 1024);
+		    aperture / 1024 / 1024);
 		return (EINVAL);
 	}
 	val = pci_read_config(dev, AGP_NVIDIA_0_APSIZE, 1);
@@ -333,7 +350,7 @@ agp_nvidia_unbind_page(device_t dev, vm_offset_t offset)
 }
 
 static void
-agp_nvidia_flush_tlb (device_t dev)
+agp_nvidia_flush_tlb(device_t dev)
 {
 	struct agp_nvidia_softc *sc;
 	u_int32_t wbc_reg;
@@ -349,8 +366,8 @@ agp_nvidia_flush_tlb (device_t dev)
 
 		/* Wait no more than 3 seconds. */
 		for (i = 0; i < 3000; i++) {
-			wbc_reg = pci_read_config(sc->mc1_dev,
-						  AGP_NVIDIA_1_WBC, 4);
+			wbc_reg = pci_read_config(sc->mc1_dev, AGP_NVIDIA_1_WBC,
+			    4);
 			if ((sc->wbc_mask & wbc_reg) == 0)
 				break;
 			else
@@ -358,23 +375,23 @@ agp_nvidia_flush_tlb (device_t dev)
 		}
 		if (i == 3000)
 			device_printf(dev,
-				"TLB flush took more than 3 seconds.\n");
+			    "TLB flush took more than 3 seconds.\n");
 	}
 
 	ag_virtual = (volatile u_int32_t *)sc->gatt->ag_virtual;
 
 	/* Flush TLB entries. */
 	pages = sc->gatt->ag_entries * sizeof(u_int32_t) / PAGE_SIZE;
-	for(i = 0; i < pages; i++)
+	for (i = 0; i < pages; i++)
 		(void)ag_virtual[i * PAGE_SIZE / sizeof(u_int32_t)];
-	for(i = 0; i < pages; i++)
+	for (i = 0; i < pages; i++)
 		(void)ag_virtual[i * PAGE_SIZE / sizeof(u_int32_t)];
 }
 
-#define	SYSCFG		0xC0010010
-#define	IORR_BASE0	0xC0010016
-#define	IORR_MASK0	0xC0010017
-#define	AMD_K7_NUM_IORR	2
+#define SYSCFG 0xC0010010
+#define IORR_BASE0 0xC0010016
+#define IORR_MASK0 0xC0010017
+#define AMD_K7_NUM_IORR 2
 
 static int
 nvidia_init_iorr(u_int32_t addr, u_int32_t size)
@@ -385,7 +402,7 @@ nvidia_init_iorr(u_int32_t addr, u_int32_t size)
 	/* Find the iorr that is already used for the addr */
 	/* If not found, determine the uppermost available iorr */
 	free_iorr_addr = AMD_K7_NUM_IORR;
-	for(iorr_addr = 0; iorr_addr < AMD_K7_NUM_IORR; iorr_addr++) {
+	for (iorr_addr = 0; iorr_addr < AMD_K7_NUM_IORR; iorr_addr++) {
 		base = rdmsr(IORR_BASE0 + 2 * iorr_addr);
 		mask = rdmsr(IORR_MASK0 + 2 * iorr_addr);
 
@@ -416,26 +433,25 @@ nvidia_init_iorr(u_int32_t addr, u_int32_t size)
 
 static device_method_t agp_nvidia_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		agp_nvidia_probe),
-	DEVMETHOD(device_attach,	agp_nvidia_attach),
-	DEVMETHOD(device_detach,	agp_nvidia_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, agp_nvidia_probe),
+	DEVMETHOD(device_attach, agp_nvidia_attach),
+	DEVMETHOD(device_detach, agp_nvidia_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* AGP interface */
-	DEVMETHOD(agp_get_aperture,	agp_nvidia_get_aperture),
-	DEVMETHOD(agp_set_aperture,	agp_nvidia_set_aperture),
-	DEVMETHOD(agp_bind_page,	agp_nvidia_bind_page),
-	DEVMETHOD(agp_unbind_page,	agp_nvidia_unbind_page),
-	DEVMETHOD(agp_flush_tlb,	agp_nvidia_flush_tlb),
+	DEVMETHOD(agp_get_aperture, agp_nvidia_get_aperture),
+	DEVMETHOD(agp_set_aperture, agp_nvidia_set_aperture),
+	DEVMETHOD(agp_bind_page, agp_nvidia_bind_page),
+	DEVMETHOD(agp_unbind_page, agp_nvidia_unbind_page),
+	DEVMETHOD(agp_flush_tlb, agp_nvidia_flush_tlb),
 
-	DEVMETHOD(agp_enable,		agp_generic_enable),
-	DEVMETHOD(agp_alloc_memory,	agp_generic_alloc_memory),
-	DEVMETHOD(agp_free_memory,	agp_generic_free_memory),
-	DEVMETHOD(agp_bind_memory,	agp_generic_bind_memory),
-	DEVMETHOD(agp_unbind_memory,	agp_generic_unbind_memory),
-	{ 0, 0 }
+	DEVMETHOD(agp_enable, agp_generic_enable),
+	DEVMETHOD(agp_alloc_memory, agp_generic_alloc_memory),
+	DEVMETHOD(agp_free_memory, agp_generic_free_memory),
+	DEVMETHOD(agp_bind_memory, agp_generic_bind_memory),
+	DEVMETHOD(agp_unbind_memory, agp_generic_unbind_memory), { 0, 0 }
 };
 
 static driver_t agp_nvidia_driver = {

@@ -30,9 +30,9 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 
-#include <machine/metadata.h>
 #include <machine/elf.h>
 #include <machine/md_var.h>
+#include <machine/metadata.h>
 
 #include <stand.h>
 
@@ -44,7 +44,7 @@ int
 ppc64_uboot_elf_loadfile(char *filename, uint64_t dest,
     struct preloaded_file **result)
 {
-	int	r;
+	int r;
 
 	r = __elfN(loadfile)(filename, dest, result);
 	if (r != 0)
@@ -55,29 +55,29 @@ ppc64_uboot_elf_loadfile(char *filename, uint64_t dest,
 	 * be done by the kernel after relocation.
 	 */
 	if (!strcmp((*result)->f_type, "elf kernel"))
-		__syncicache((void *) (*result)->f_addr, (*result)->f_size);
+		__syncicache((void *)(*result)->f_addr, (*result)->f_size);
 	return (0);
 }
 
 int
 ppc64_uboot_elf_exec(struct preloaded_file *fp)
 {
-	struct file_metadata	*fmp;
-	vm_offset_t		mdp, dtbp;
-	Elf_Ehdr		*e;
-	int			error;
-	void			(*entry)(void *);
+	struct file_metadata *fmp;
+	vm_offset_t mdp, dtbp;
+	Elf_Ehdr *e;
+	int error;
+	void (*entry)(void *);
 
 	if ((fmp = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL) {
-		return(EFTYPE);
+		return (EFTYPE);
 	}
 	e = (Elf_Ehdr *)&fmp->md_data;
-	
+
 	/* Handle function descriptor for ELFv1 kernels */
 	if ((e->e_flags & 3) == 2)
-		entry = (void (*)(void*))(intptr_t)e->e_entry;
+		entry = (void (*)(void *))(intptr_t)e->e_entry;
 	else
-		entry = *(void (*)(void*))(uint64_t *)(intptr_t)e->e_entry;
+		entry = *(void (*)(void *))(uint64_t *)(intptr_t)e->e_entry;
 
 	if ((error = md_load64(fp->f_args, &mdp, &dtbp)) != 0)
 		return (error);
@@ -89,8 +89,5 @@ ppc64_uboot_elf_exec(struct preloaded_file *fp)
 	panic("exec returned");
 }
 
-struct file_format	uboot_elf64 =
-{
-	ppc64_uboot_elf_loadfile,
-	ppc64_uboot_elf_exec
-};
+struct file_format uboot_elf64 = { ppc64_uboot_elf_loadfile,
+	ppc64_uboot_elf_exec };

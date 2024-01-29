@@ -32,20 +32,20 @@
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <net/if.h>
 
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/in_var.h>
+
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ifaddrs.h>
-
-#include <netinet/in.h>
-#include <netinet/in_var.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 
 #include "ifconfig.h"
 #include "ifconfig_netlink.h"
@@ -55,22 +55,22 @@ static struct in_aliasreq in_addreq;
 static struct ifreq in_ridreq;
 #else
 struct in_px {
-	struct in_addr		addr;
-	int			plen;
-	bool			addrset;
-	bool			maskset;
+	struct in_addr addr;
+	int plen;
+	bool addrset;
+	bool maskset;
 };
 struct in_pdata {
-	struct in_px		addr;
-	struct in_px		dst_addr;
-	struct in_px		brd_addr;
-	uint32_t		flags;
-	uint32_t		vhid;
+	struct in_px addr;
+	struct in_px dst_addr;
+	struct in_px brd_addr;
+	uint32_t flags;
+	uint32_t vhid;
 };
 static struct in_pdata in_add, in_del;
 #endif
 
-static char addr_buf[NI_MAXHOST];	/*for getnameinfo()*/
+static char addr_buf[NI_MAXHOST]; /*for getnameinfo()*/
 extern char *f_inet, *f_addr;
 
 static void
@@ -86,11 +86,11 @@ print_addr(struct sockaddr_in *sin)
 		n_flags = NI_NUMERICHOST;
 
 	error = getnameinfo((struct sockaddr *)sin, sin->sin_len, addr_buf,
-			    sizeof(addr_buf), NULL, 0, n_flags);
+	    sizeof(addr_buf), NULL, 0, n_flags);
 
 	if (error)
 		inet_ntop(AF_INET, &sin->sin_addr, addr_buf, sizeof(addr_buf));
-	
+
 	printf("\tinet %s", addr_buf);
 }
 
@@ -131,7 +131,8 @@ in_status(if_ctx *ctx __unused, const struct ifaddrs *ifa)
 	} else if (f_inet != NULL && strcmp(f_inet, "dotted") == 0)
 		printf(" netmask %s", inet_ntoa(sin->sin_addr));
 	else
-		printf(" netmask 0x%lx", (unsigned long)ntohl(sin->sin_addr.s_addr));
+		printf(" netmask 0x%lx",
+		    (unsigned long)ntohl(sin->sin_addr.s_addr));
 
 	if (ifa->ifa_flags & IFF_BROADCAST) {
 		sin = satosin(ifa->ifa_broadaddr);
@@ -173,9 +174,10 @@ in_status_nl(if_ctx *ctx __unused, if_link_t *link, if_addr_t *ifa)
 	} else if (f_inet != NULL && strcmp(f_inet, "dotted") == 0)
 		printf(" netmask %s", inet_ntoa(get_mask(plen)));
 	else
-		printf(" netmask 0x%lx", (unsigned long)ntohl(get_mask(plen).s_addr));
+		printf(" netmask 0x%lx",
+		    (unsigned long)ntohl(get_mask(plen).s_addr));
 
-	if ((link->ifi_flags & IFF_BROADCAST) && plen != 0)  {
+	if ((link->ifi_flags & IFF_BROADCAST) && plen != 0) {
 		struct sockaddr_in *brd = satosin(ifa->ifa_broadcast);
 		if (brd != NULL)
 			printf(" broadcast %s", inet_ntoa(brd->sin_addr));
@@ -188,13 +190,11 @@ in_status_nl(if_ctx *ctx __unused, if_link_t *link, if_addr_t *ifa)
 }
 #endif
 
-
 #ifdef WITHOUT_NETLINK
-#define SIN(x) ((struct sockaddr_in *) &(x))
-static struct sockaddr_in *sintab[] = {
-	SIN(in_ridreq.ifr_addr), SIN(in_addreq.ifra_addr),
-	SIN(in_addreq.ifra_mask), SIN(in_addreq.ifra_broadaddr)
-};
+#define SIN(x) ((struct sockaddr_in *)&(x))
+static struct sockaddr_in *sintab[] = { SIN(in_ridreq.ifr_addr),
+	SIN(in_addreq.ifra_addr), SIN(in_addreq.ifra_mask),
+	SIN(in_addreq.ifra_broadaddr) };
 
 static void
 in_copyaddr(if_ctx *ctx __unused, int to, int from)
@@ -215,7 +215,7 @@ in_getaddr(const char *s, int which)
 	if (which == ADDR) {
 		char *p = NULL;
 
-		if((p = strrchr(s, '/')) != NULL) {
+		if ((p = strrchr(s, '/')) != NULL) {
 			const char *errstr;
 			/* address is `name/masklen' */
 			int masklen = 0;
@@ -231,15 +231,15 @@ in_getaddr(const char *s, int which)
 			}
 			min->sin_family = AF_INET;
 			min->sin_len = sizeof(*min);
-			min->sin_addr.s_addr = htonl(~((1LL << (32 - masklen)) - 1) & 
-				              0xffffffff);
+			min->sin_addr.s_addr = htonl(
+			    ~((1LL << (32 - masklen)) - 1) & 0xffffffff);
 		}
 	}
 
 	if (inet_aton(s, &sin->sin_addr))
 		return;
 	if ((hp = gethostbyname(s)) != NULL)
-		bcopy(hp->h_addr, (char *)&sin->sin_addr, 
+		bcopy(hp->h_addr, (char *)&sin->sin_addr,
 		    MIN((size_t)hp->h_length, sizeof(sin->sin_addr)));
 	else if ((np = getnetbyname(s)) != NULL)
 		sin->sin_addr = inet_makeaddr(np->n_net, INADDR_ANY);
@@ -250,11 +250,11 @@ in_getaddr(const char *s, int which)
 #else
 
 static struct in_px *sintab_nl[] = {
-	&in_del.addr,		/* RIDADDR */
-	&in_add.addr,		/* ADDR */
-	NULL,			/* MASK */
-	&in_add.dst_addr,	/* DSTADDR*/
-	&in_add.brd_addr,	/* BRDADDR*/
+	&in_del.addr,	  /* RIDADDR */
+	&in_add.addr,	  /* ADDR */
+	NULL,		  /* MASK */
+	&in_add.dst_addr, /* DSTADDR*/
+	&in_add.brd_addr, /* BRDADDR*/
 };
 
 static void
@@ -284,7 +284,7 @@ in_getip(const char *addr_str, struct in_addr *ip)
 static void
 in_getaddr(const char *s, int which)
 {
-        struct in_px *px = sintab_nl[which];
+	struct in_px *px = sintab_nl[which];
 
 	if (which == MASK) {
 		struct in_px *px_addr = sintab_nl[ADDR];
@@ -299,7 +299,7 @@ in_getaddr(const char *s, int which)
 	if (which == ADDR) {
 		char *p = NULL;
 
-		if((p = strrchr(s, '/')) != NULL) {
+		if ((p = strrchr(s, '/')) != NULL) {
 			const char *errstr;
 			/* address is `name/masklen' */
 			int masklen;
@@ -326,8 +326,8 @@ in_getaddr(const char *s, int which)
  *
  * This function provides SIOCDIFADDR semantics missing in Netlink.
  * When no valid IPv4 address is specified (sin_family or sin_len is wrong) to
- * the SIOCDIFADDR call, it deletes the first found IPv4 address on the interface.
- * 'ifconfig IFNAME inet addr/prefix' relies on that behavior, as it
+ * the SIOCDIFADDR call, it deletes the first found IPv4 address on the
+ * interface. 'ifconfig IFNAME inet addr/prefix' relies on that behavior, as it
  *  executes empty SIOCDIFADDR before adding a new address.
  */
 static int
@@ -355,7 +355,7 @@ in_delete_first_nl(if_ctx *ctx)
 	ifahdr->ifa_family = AF_INET;
 	ifahdr->ifa_index = ifindex;
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (EINVAL);
 
 	nlmsg_seq = hdr->nlmsg_seq;
@@ -386,7 +386,7 @@ in_delete_first_nl(if_ctx *ctx)
 	ifahdr->ifa_index = ifindex;
 	snl_add_msg_attr_ip4(&nw, IFA_LOCAL, &addr);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (EINVAL);
 	memset(&e, 0, sizeof(e));
 	snl_read_reply_code(ss, hdr->nlmsg_seq, &e);
@@ -395,7 +395,6 @@ in_delete_first_nl(if_ctx *ctx)
 
 	return (e.error);
 }
-
 
 static int
 in_exec_nl(if_ctx *ctx, unsigned long action, void *data)
@@ -408,7 +407,8 @@ in_exec_nl(if_ctx *ctx, unsigned long action, void *data)
 
 	snl_init_writer(ctx->io_ss, &nw);
 	struct nlmsghdr *hdr = snl_create_msg_request(&nw, action);
-	struct ifaddrmsg *ifahdr = snl_reserve_msg_object(&nw, struct ifaddrmsg);
+	struct ifaddrmsg *ifahdr = snl_reserve_msg_object(&nw,
+	    struct ifaddrmsg);
 
 	ifahdr->ifa_family = AF_INET;
 	ifahdr->ifa_prefixlen = pdata->addr.plen;
@@ -426,7 +426,8 @@ in_exec_nl(if_ctx *ctx, unsigned long action, void *data)
 		snl_add_msg_attr_u32(&nw, IFAF_VHID, pdata->vhid);
 	snl_end_attr_nested(&nw, off);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ctx->io_ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) ||
+	    !snl_send_message(ctx->io_ss, hdr))
 		return (0);
 
 	struct snl_errmsg_data e = {};
@@ -440,7 +441,7 @@ in_exec_nl(if_ctx *ctx, unsigned long action, void *data)
 static void
 in_setdefaultmask_nl(void)
 {
-        struct in_px *px = sintab_nl[ADDR];
+	struct in_px *px = sintab_nl[ADDR];
 
 	in_addr_t i = ntohl(px->addr.s_addr);
 
@@ -463,23 +464,24 @@ in_setdefaultmask_nl(void)
 static void
 warn_nomask(int ifflags)
 {
-    if ((ifflags & (IFF_POINTOPOINT | IFF_LOOPBACK)) == 0) {
-	warnx("WARNING: setting interface address without mask "
-	    "is deprecated,\ndefault mask may not be correct.");
-    }
+	if ((ifflags & (IFF_POINTOPOINT | IFF_LOOPBACK)) == 0) {
+		warnx("WARNING: setting interface address without mask "
+		      "is deprecated,\ndefault mask may not be correct.");
+	}
 }
 
 static void
 in_postproc(if_ctx *ctx __unused, int newaddr, int ifflags)
 {
 #ifdef WITHOUT_NETLINK
-	if (sintab[ADDR]->sin_len != 0 && sintab[MASK]->sin_len == 0 && newaddr) {
+	if (sintab[ADDR]->sin_len != 0 && sintab[MASK]->sin_len == 0 &&
+	    newaddr) {
 		warn_nomask(ifflags);
 	}
 #else
 	if (sintab_nl[ADDR]->addrset && !sintab_nl[ADDR]->maskset && newaddr) {
 		warn_nomask(ifflags);
-	    in_setdefaultmask_nl();
+		in_setdefaultmask_nl();
 	}
 #endif
 }
@@ -490,7 +492,7 @@ in_status_tunnel(if_ctx *ctx)
 	char src[NI_MAXHOST];
 	char dst[NI_MAXHOST];
 	struct ifreq ifr;
-	const struct sockaddr *sa = (const struct sockaddr *) &ifr.ifr_addr;
+	const struct sockaddr *sa = (const struct sockaddr *)&ifr.ifr_addr;
 
 	memset(&ifr, 0, sizeof(ifr));
 	strlcpy(ifr.ifr_name, ctx->ifname, IFNAMSIZ);
@@ -499,14 +501,16 @@ in_status_tunnel(if_ctx *ctx)
 		return;
 	if (sa->sa_family != AF_INET)
 		return;
-	if (getnameinfo(sa, sa->sa_len, src, sizeof(src), 0, 0, NI_NUMERICHOST) != 0)
+	if (getnameinfo(sa, sa->sa_len, src, sizeof(src), 0, 0,
+		NI_NUMERICHOST) != 0)
 		src[0] = '\0';
 
 	if (ioctl_ctx(ctx, SIOCGIFPDSTADDR, (caddr_t)&ifr) < 0)
 		return;
 	if (sa->sa_family != AF_INET)
 		return;
-	if (getnameinfo(sa, sa->sa_len, dst, sizeof(dst), 0, 0, NI_NUMERICHOST) != 0)
+	if (getnameinfo(sa, sa->sa_len, dst, sizeof(dst), 0, 0,
+		NI_NUMERICHOST) != 0)
 		dst[0] = '\0';
 
 	printf("\ttunnel inet %s --> %s\n", src, dst);
@@ -537,31 +541,31 @@ in_set_vhid(int vhid)
 }
 
 static struct afswtch af_inet = {
-	.af_name	= "inet",
-	.af_af		= AF_INET,
+	.af_name = "inet",
+	.af_af = AF_INET,
 #ifdef WITHOUT_NETLINK
-	.af_status	= in_status,
+	.af_status = in_status,
 #else
-	.af_status	= in_status_nl,
+	.af_status = in_status_nl,
 #endif
-	.af_getaddr	= in_getaddr,
-	.af_copyaddr	= in_copyaddr,
-	.af_postproc	= in_postproc,
+	.af_getaddr = in_getaddr,
+	.af_copyaddr = in_copyaddr,
+	.af_postproc = in_postproc,
 	.af_status_tunnel = in_status_tunnel,
-	.af_settunnel	= in_set_tunnel,
-	.af_setvhid	= in_set_vhid,
+	.af_settunnel = in_set_tunnel,
+	.af_setvhid = in_set_vhid,
 #ifdef WITHOUT_NETLINK
-	.af_difaddr	= SIOCDIFADDR,
-	.af_aifaddr	= SIOCAIFADDR,
-	.af_ridreq	= &in_ridreq,
-	.af_addreq	= &in_addreq,
-	.af_exec	= af_exec_ioctl,
+	.af_difaddr = SIOCDIFADDR,
+	.af_aifaddr = SIOCAIFADDR,
+	.af_ridreq = &in_ridreq,
+	.af_addreq = &in_addreq,
+	.af_exec = af_exec_ioctl,
 #else
-	.af_difaddr	= NL_RTM_DELADDR,
-	.af_aifaddr	= NL_RTM_NEWADDR,
-	.af_ridreq	= &in_del,
-	.af_addreq	= &in_add,
-	.af_exec	= in_exec_nl,
+	.af_difaddr = NL_RTM_DELADDR,
+	.af_aifaddr = NL_RTM_NEWADDR,
+	.af_ridreq = &in_del,
+	.af_addreq = &in_add,
+	.af_exec = in_exec_nl,
 #endif
 };
 

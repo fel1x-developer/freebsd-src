@@ -30,8 +30,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_PJDLOG_H_
-#define	_PJDLOG_H_
+#ifndef _PJDLOG_H_
+#define _PJDLOG_H_
 
 #include <sys/cdefs.h>
 
@@ -39,8 +39,8 @@
 #include <sysexits.h>
 #include <syslog.h>
 
-#define	PJDLOG_MODE_STD		0
-#define	PJDLOG_MODE_SYSLOG	1
+#define PJDLOG_MODE_STD 0
+#define PJDLOG_MODE_SYSLOG 1
 
 void pjdlog_init(int mode);
 void pjdlog_fini(void);
@@ -62,56 +62,67 @@ void pjdlogv_common(int loglevel, int debuglevel, int error, const char *fmt,
 void pjdlog(int loglevel, const char *fmt, ...) __printflike(2, 3);
 void pjdlogv(int loglevel, const char *fmt, va_list ap) __printflike(2, 0);
 
-#define	pjdlogv_emergency(fmt, ap)	pjdlogv(LOG_EMERG, (fmt), (ap))
-#define	pjdlog_emergency(...)		pjdlog(LOG_EMERG, __VA_ARGS__)
-#define	pjdlogv_alert(fmt, ap)		pjdlogv(LOG_ALERT, (fmt), (ap))
-#define	pjdlog_alert(...)		pjdlog(LOG_ALERT, __VA_ARGS__)
-#define	pjdlogv_critical(fmt, ap)	pjdlogv(LOG_CRIT, (fmt), (ap))
-#define	pjdlog_critical(...)		pjdlog(LOG_CRIT, __VA_ARGS__)
-#define	pjdlogv_error(fmt, ap)		pjdlogv(LOG_ERR, (fmt), (ap))
-#define	pjdlog_error(...)		pjdlog(LOG_ERR, __VA_ARGS__)
-#define	pjdlogv_warning(fmt, ap)	pjdlogv(LOG_WARNING, (fmt), (ap))
-#define	pjdlog_warning(...)		pjdlog(LOG_WARNING, __VA_ARGS__)
-#define	pjdlogv_notice(fmt, ap)		pjdlogv(LOG_NOTICE, (fmt), (ap))
-#define	pjdlog_notice(...)		pjdlog(LOG_NOTICE, __VA_ARGS__)
-#define	pjdlogv_info(fmt, ap)		pjdlogv(LOG_INFO, (fmt), (ap))
-#define	pjdlog_info(...)		pjdlog(LOG_INFO, __VA_ARGS__)
+#define pjdlogv_emergency(fmt, ap) pjdlogv(LOG_EMERG, (fmt), (ap))
+#define pjdlog_emergency(...) pjdlog(LOG_EMERG, __VA_ARGS__)
+#define pjdlogv_alert(fmt, ap) pjdlogv(LOG_ALERT, (fmt), (ap))
+#define pjdlog_alert(...) pjdlog(LOG_ALERT, __VA_ARGS__)
+#define pjdlogv_critical(fmt, ap) pjdlogv(LOG_CRIT, (fmt), (ap))
+#define pjdlog_critical(...) pjdlog(LOG_CRIT, __VA_ARGS__)
+#define pjdlogv_error(fmt, ap) pjdlogv(LOG_ERR, (fmt), (ap))
+#define pjdlog_error(...) pjdlog(LOG_ERR, __VA_ARGS__)
+#define pjdlogv_warning(fmt, ap) pjdlogv(LOG_WARNING, (fmt), (ap))
+#define pjdlog_warning(...) pjdlog(LOG_WARNING, __VA_ARGS__)
+#define pjdlogv_notice(fmt, ap) pjdlogv(LOG_NOTICE, (fmt), (ap))
+#define pjdlog_notice(...) pjdlog(LOG_NOTICE, __VA_ARGS__)
+#define pjdlogv_info(fmt, ap) pjdlogv(LOG_INFO, (fmt), (ap))
+#define pjdlog_info(...) pjdlog(LOG_INFO, __VA_ARGS__)
 
 void pjdlog_debug(int debuglevel, const char *fmt, ...) __printflike(2, 3);
-void pjdlogv_debug(int debuglevel, const char *fmt, va_list ap) __printflike(2, 0);
+void pjdlogv_debug(int debuglevel, const char *fmt, va_list ap)
+    __printflike(2, 0);
 
 void pjdlog_errno(int loglevel, const char *fmt, ...) __printflike(2, 3);
-void pjdlogv_errno(int loglevel, const char *fmt, va_list ap) __printflike(2, 0);
+void pjdlogv_errno(int loglevel, const char *fmt, va_list ap)
+    __printflike(2, 0);
 
 void pjdlog_exit(int exitcode, const char *fmt, ...) __printflike(2, 3) __dead2;
-void pjdlogv_exit(int exitcode, const char *fmt, va_list ap) __printflike(2, 0) __dead2;
+void pjdlogv_exit(int exitcode, const char *fmt, va_list ap)
+    __printflike(2, 0) __dead2;
 
-void pjdlog_exitx(int exitcode, const char *fmt, ...) __printflike(2, 3) __dead2;
-void pjdlogv_exitx(int exitcode, const char *fmt, va_list ap) __printflike(2, 0) __dead2;
+void pjdlog_exitx(int exitcode, const char *fmt, ...)
+    __printflike(2, 3) __dead2;
+void pjdlogv_exitx(int exitcode, const char *fmt, va_list ap)
+    __printflike(2, 0) __dead2;
 
 void pjdlog_abort(const char *func, const char *file, int line,
     const char *failedexpr, const char *fmt, ...) __printflike(5, 6) __dead2;
 
-#define	PJDLOG_VERIFY(expr)	do {					\
-	if (!(expr)) {							\
-		pjdlog_abort(__func__, __FILE__, __LINE__, #expr,	\
-		    __func__);						\
-	}								\
-} while (0)
-#define	PJDLOG_RVERIFY(expr, ...)	do {				\
-	if (!(expr)) {							\
-		pjdlog_abort(__func__, __FILE__, __LINE__, #expr,	\
-		    __VA_ARGS__);					\
-	}								\
-} while (0)
-#define	PJDLOG_ABORT(...)	pjdlog_abort(__func__, __FILE__,	\
-				    __LINE__, NULL, __VA_ARGS__)
+#define PJDLOG_VERIFY(expr)                                               \
+	do {                                                              \
+		if (!(expr)) {                                            \
+			pjdlog_abort(__func__, __FILE__, __LINE__, #expr, \
+			    __func__);                                    \
+		}                                                         \
+	} while (0)
+#define PJDLOG_RVERIFY(expr, ...)                                         \
+	do {                                                              \
+		if (!(expr)) {                                            \
+			pjdlog_abort(__func__, __FILE__, __LINE__, #expr, \
+			    __VA_ARGS__);                                 \
+		}                                                         \
+	} while (0)
+#define PJDLOG_ABORT(...) \
+	pjdlog_abort(__func__, __FILE__, __LINE__, NULL, __VA_ARGS__)
 #ifdef NDEBUG
-#define	PJDLOG_ASSERT(expr)	do { } while (0)
-#define	PJDLOG_RASSERT(...)	do { } while (0)
+#define PJDLOG_ASSERT(expr) \
+	do {                \
+	} while (0)
+#define PJDLOG_RASSERT(...) \
+	do {                \
+	} while (0)
 #else
-#define	PJDLOG_ASSERT(expr)	PJDLOG_VERIFY(expr)
-#define	PJDLOG_RASSERT(...)	PJDLOG_RVERIFY(__VA_ARGS__)
+#define PJDLOG_ASSERT(expr) PJDLOG_VERIFY(expr)
+#define PJDLOG_RASSERT(...) PJDLOG_RVERIFY(__VA_ARGS__)
 #endif
 
-#endif	/* !_PJDLOG_H_ */
+#endif /* !_PJDLOG_H_ */

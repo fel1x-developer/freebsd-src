@@ -36,11 +36,11 @@
  * unset the secret key on local machine
  */
 
+#include <rpc/key_prot.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <rpc/key_prot.h>
 
 int
 main(int argc, char **argv)
@@ -48,11 +48,11 @@ main(int argc, char **argv)
 	static char secret[HEXKEYBYTES + 1];
 
 	if (geteuid() == 0) {
-		if ((argc != 2 ) || (strcmp(argv[1], "-f") != 0)) {
+		if ((argc != 2) || (strcmp(argv[1], "-f") != 0)) {
 			fprintf(stderr,
-"keylogout by root would break all servers that use secure rpc!\n");
+			    "keylogout by root would break all servers that use secure rpc!\n");
 			fprintf(stderr,
-"root may use keylogout -f to do this (at your own risk)!\n");
+			    "root may use keylogout -f to do this (at your own risk)!\n");
 			exit(1);
 		}
 	}

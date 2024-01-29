@@ -38,8 +38,8 @@
  * Pager routine interface definition.
  */
 
-#ifndef	_VM_PAGER_
-#define	_VM_PAGER_
+#ifndef _VM_PAGER_
+#define _VM_PAGER_
 
 #include <sys/systm.h>
 
@@ -71,25 +71,25 @@ typedef void pgo_page_removed_t(vm_object_t object, vm_page_t m);
 typedef boolean_t pgo_can_alloc_page_t(vm_object_t object, vm_pindex_t pindex);
 
 struct pagerops {
-	int			pgo_kvme_type;
-	pgo_init_t		*pgo_init;		/* Initialize pager. */
-	pgo_alloc_t		*pgo_alloc;		/* Allocate pager. */
-	pgo_dealloc_t		*pgo_dealloc;		/* Disassociate. */
-	pgo_getpages_t		*pgo_getpages;		/* Get (read) page. */
-	pgo_getpages_async_t	*pgo_getpages_async;	/* Get page asyncly. */
-	pgo_putpages_t		*pgo_putpages;		/* Put (write) page. */
-	pgo_haspage_t		*pgo_haspage;		/* Query page. */
-	pgo_populate_t		*pgo_populate;		/* Bulk spec pagein. */
-	pgo_pageunswapped_t	*pgo_pageunswapped;
-	pgo_writecount_t	*pgo_update_writecount;
-	pgo_writecount_t	*pgo_release_writecount;
+	int pgo_kvme_type;
+	pgo_init_t *pgo_init;			  /* Initialize pager. */
+	pgo_alloc_t *pgo_alloc;			  /* Allocate pager. */
+	pgo_dealloc_t *pgo_dealloc;		  /* Disassociate. */
+	pgo_getpages_t *pgo_getpages;		  /* Get (read) page. */
+	pgo_getpages_async_t *pgo_getpages_async; /* Get page asyncly. */
+	pgo_putpages_t *pgo_putpages;		  /* Put (write) page. */
+	pgo_haspage_t *pgo_haspage;		  /* Query page. */
+	pgo_populate_t *pgo_populate;		  /* Bulk spec pagein. */
+	pgo_pageunswapped_t *pgo_pageunswapped;
+	pgo_writecount_t *pgo_update_writecount;
+	pgo_writecount_t *pgo_release_writecount;
 	pgo_set_writeable_dirty_t *pgo_set_writeable_dirty;
-	pgo_mightbedirty_t	*pgo_mightbedirty;
-	pgo_getvp_t		*pgo_getvp;
-	pgo_freespace_t		*pgo_freespace;
-	pgo_page_inserted_t	*pgo_page_inserted;
-	pgo_page_removed_t	*pgo_page_removed;
-	pgo_can_alloc_page_t	*pgo_can_alloc_page;
+	pgo_mightbedirty_t *pgo_mightbedirty;
+	pgo_getvp_t *pgo_getvp;
+	pgo_freespace_t *pgo_freespace;
+	pgo_page_inserted_t *pgo_page_inserted;
+	pgo_page_removed_t *pgo_page_removed;
+	pgo_can_alloc_page_t *pgo_can_alloc_page;
 };
 
 extern const struct pagerops defaultpagerops;
@@ -110,17 +110,17 @@ extern const struct pagerops swaptmpfspagerops;
  * ERROR error while accessing data that is in range and exists
  * AGAIN temporary resource shortage prevented operation from happening
  */
-#define	VM_PAGER_OK	0
-#define	VM_PAGER_BAD	1
-#define	VM_PAGER_FAIL	2
-#define	VM_PAGER_PEND	3
-#define	VM_PAGER_ERROR	4
-#define VM_PAGER_AGAIN	5
+#define VM_PAGER_OK 0
+#define VM_PAGER_BAD 1
+#define VM_PAGER_FAIL 2
+#define VM_PAGER_PEND 3
+#define VM_PAGER_ERROR 4
+#define VM_PAGER_AGAIN 5
 
-#define	VM_PAGER_PUT_SYNC		0x0001
-#define	VM_PAGER_PUT_INVAL		0x0002
-#define	VM_PAGER_PUT_NOREUSE		0x0004
-#define VM_PAGER_CLUSTER_OK		0x0008
+#define VM_PAGER_PUT_SYNC 0x0001
+#define VM_PAGER_PUT_INVAL 0x0002
+#define VM_PAGER_PUT_NOREUSE 0x0004
+#define VM_PAGER_CLUSTER_OK 0x0008
 
 #ifdef _KERNEL
 
@@ -131,7 +131,7 @@ extern struct mtx_padalign pbuf_mtx;
  * Number of pages that pbuf buffer can store in b_pages.
  * It is +1 to allow for unaligned data buffer of maxphys size.
  */
-#define	PBUF_PAGES	(atop(maxphys) + 1)
+#define PBUF_PAGES (atop(maxphys) + 1)
 
 vm_object_t vm_pager_allocate(objtype_t, void *, vm_ooffset_t, vm_prot_t,
     vm_ooffset_t, struct ucred *);
@@ -148,8 +148,8 @@ vm_pager_put_pages(vm_object_t object, vm_page_t *m, int count, int flags,
     int *rtvals)
 {
 	VM_OBJECT_ASSERT_WLOCKED(object);
-	(*pagertab[object->type]->pgo_putpages)
-	    (object, m, count, flags, rtvals);
+	(*pagertab[object->type]->pgo_putpages)(object, m, count, flags,
+	    rtvals);
 }
 
 /*
@@ -169,10 +169,10 @@ vm_pager_has_page(vm_object_t object, vm_pindex_t offset, int *before,
 	boolean_t ret;
 
 	VM_OBJECT_ASSERT_LOCKED(object);
-	ret = (*pagertab[object->type]->pgo_haspage)
-	    (object, offset, before, after);
+	ret = (*pagertab[object->type]->pgo_haspage)(object, offset, before,
+	    after);
 	return (ret);
-} 
+}
 
 static __inline int
 vm_pager_populate(vm_object_t object, vm_pindex_t pidx, int fault_type,
@@ -186,11 +186,11 @@ vm_pager_populate(vm_object_t object, vm_pindex_t pidx, int fault_type,
 	    fault_type, max_prot, first, last));
 }
 
-/* 
+/*
  *      vm_pager_page_unswapped
- * 
+ *
  *	Destroy swap associated with the page.
- * 
+ *
  *	XXX: A much better name would be "vm_pager_page_dirtied()"
  *	XXX: It is not obvious if this could be profitably used by any
  *	XXX: pagers besides the swap_pager or if it should even be a
@@ -242,8 +242,7 @@ vm_pager_getvp(vm_object_t object, struct vnode **vpp, bool *vp_heldp)
 }
 
 static __inline void
-vm_pager_freespace(vm_object_t object, vm_pindex_t start,
-    vm_size_t size)
+vm_pager_freespace(vm_object_t object, vm_pindex_t start, vm_size_t size)
 {
 	pgo_freespace_t *method;
 
@@ -285,8 +284,8 @@ int vm_pager_alloc_dyn_type(struct pagerops *ops, int base_type);
 void vm_pager_free_dyn_type(objtype_t type);
 
 struct cdev_pager_ops {
-	int (*cdev_pg_fault)(vm_object_t vm_obj, vm_ooffset_t offset,
-	    int prot, vm_page_t *mres);
+	int (*cdev_pg_fault)(vm_object_t vm_obj, vm_ooffset_t offset, int prot,
+	    vm_page_t *mres);
 	int (*cdev_pg_populate)(vm_object_t vm_obj, vm_pindex_t pidx,
 	    int fault_type, vm_prot_t max_prot, vm_pindex_t *first,
 	    vm_pindex_t *last);
@@ -307,7 +306,7 @@ struct phys_pager_ops {
 	int (*phys_pg_populate)(vm_object_t vm_obj, vm_pindex_t pidx,
 	    int fault_type, vm_prot_t max_prot, vm_pindex_t *first,
 	    vm_pindex_t *last);
-	boolean_t (*phys_pg_haspage)(vm_object_t obj,  vm_pindex_t pindex,
+	boolean_t (*phys_pg_haspage)(vm_object_t obj, vm_pindex_t pindex,
 	    int *before, int *after);
 	void (*phys_pg_ctor)(vm_object_t vm_obj, vm_prot_t prot,
 	    vm_ooffset_t foff, struct ucred *cred);
@@ -318,5 +317,5 @@ vm_object_t phys_pager_allocate(void *handle, const struct phys_pager_ops *ops,
     void *data, vm_ooffset_t size, vm_prot_t prot, vm_ooffset_t foff,
     struct ucred *cred);
 
-#endif				/* _KERNEL */
-#endif				/* _VM_PAGER_ */
+#endif /* _KERNEL */
+#endif /* _VM_PAGER_ */

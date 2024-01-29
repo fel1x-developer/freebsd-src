@@ -26,10 +26,10 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "mech_switch.h"
 #include "name.h"
@@ -46,8 +46,8 @@
  * GSS_C_NT_USER_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_USER_NAME_storage =
-	{10, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01")};
+static gss_OID_desc GSS_C_NT_USER_NAME_storage = { 10,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x01") };
 gss_OID GSS_C_NT_USER_NAME = &GSS_C_NT_USER_NAME_storage;
 
 /*
@@ -61,8 +61,8 @@ gss_OID GSS_C_NT_USER_NAME = &GSS_C_NT_USER_NAME_storage;
  * The constant GSS_C_NT_MACHINE_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_MACHINE_UID_NAME_storage =
-	{10, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02")};
+static gss_OID_desc GSS_C_NT_MACHINE_UID_NAME_storage = { 10,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x02") };
 gss_OID GSS_C_NT_MACHINE_UID_NAME = &GSS_C_NT_MACHINE_UID_NAME_storage;
 
 /*
@@ -76,8 +76,8 @@ gss_OID GSS_C_NT_MACHINE_UID_NAME = &GSS_C_NT_MACHINE_UID_NAME_storage;
  * The constant GSS_C_NT_STRING_UID_NAME should be
  * initialized to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_STRING_UID_NAME_storage =
-	{10, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03")};
+static gss_OID_desc GSS_C_NT_STRING_UID_NAME_storage = { 10,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x03") };
 gss_OID GSS_C_NT_STRING_UID_NAME = &GSS_C_NT_STRING_UID_NAME_storage;
 
 /*
@@ -97,8 +97,8 @@ gss_OID GSS_C_NT_STRING_UID_NAME = &GSS_C_NT_STRING_UID_NAME_storage;
  * parameter, but should not be emitted by GSS-API
  * implementations
  */
-static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_X_storage =
-	{6, __DECONST(void *, "\x2b\x06\x01\x05\x06\x02")};
+static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_X_storage = { 6,
+	__DECONST(void *, "\x2b\x06\x01\x05\x06\x02") };
 gss_OID GSS_C_NT_HOSTBASED_SERVICE_X = &GSS_C_NT_HOSTBASED_SERVICE_X_storage;
 
 /*
@@ -112,8 +112,8 @@ gss_OID GSS_C_NT_HOSTBASED_SERVICE_X = &GSS_C_NT_HOSTBASED_SERVICE_X_storage;
  * GSS_C_NT_HOSTBASED_SERVICE should be initialized
  * to point to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_storage =
-	{10, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04")};
+static gss_OID_desc GSS_C_NT_HOSTBASED_SERVICE_storage = { 10,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x01\x04") };
 gss_OID GSS_C_NT_HOSTBASED_SERVICE = &GSS_C_NT_HOSTBASED_SERVICE_storage;
 
 /*
@@ -126,8 +126,8 @@ gss_OID GSS_C_NT_HOSTBASED_SERVICE = &GSS_C_NT_HOSTBASED_SERVICE_storage;
  * and GSS_C_NT_ANONYMOUS should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_ANONYMOUS_storage =
-	{6, __DECONST(void *, "\x2b\x06\01\x05\x06\x03")};
+static gss_OID_desc GSS_C_NT_ANONYMOUS_storage = { 6,
+	__DECONST(void *, "\x2b\x06\01\x05\x06\x03") };
 gss_OID GSS_C_NT_ANONYMOUS = &GSS_C_NT_ANONYMOUS_storage;
 
 /*
@@ -140,8 +140,8 @@ gss_OID GSS_C_NT_ANONYMOUS = &GSS_C_NT_ANONYMOUS_storage;
  * GSS_C_NT_EXPORT_NAME should be initialized to point
  * to that gss_OID_desc.
  */
-static gss_OID_desc GSS_C_NT_EXPORT_NAME_storage =
-	{6, __DECONST(void *, "\x2b\x06\x01\x05\x06\x04")};
+static gss_OID_desc GSS_C_NT_EXPORT_NAME_storage = { 6,
+	__DECONST(void *, "\x2b\x06\x01\x05\x06\x04") };
 gss_OID GSS_C_NT_EXPORT_NAME = &GSS_C_NT_EXPORT_NAME_storage;
 
 /*
@@ -150,8 +150,8 @@ gss_OID GSS_C_NT_EXPORT_NAME = &GSS_C_NT_EXPORT_NAME_storage;
  *   krb5(2) krb5_name(1)}.  The recommended symbolic name for this type
  *   is "GSS_KRB5_NT_PRINCIPAL_NAME".
  */
-static gss_OID_desc GSS_KRB5_NT_PRINCIPAL_NAME_storage =
-        {10, __DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01")};
+static gss_OID_desc GSS_KRB5_NT_PRINCIPAL_NAME_storage = { 10,
+	__DECONST(void *, "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02\x01") };
 gss_OID GSS_KRB5_NT_PRINCIPAL_NAME = &GSS_KRB5_NT_PRINCIPAL_NAME_storage;
 
 /*
@@ -180,7 +180,7 @@ gss_OID GSS_KRB5_NT_STRING_UID_NAME = &GSS_C_NT_STRING_UID_NAME_storage;
 
 OM_uint32
 _gss_find_mn(OM_uint32 *minor_status, struct _gss_name *name, gss_OID mech,
-	     struct _gss_mechanism_name **output_mn)
+    struct _gss_mechanism_name **output_mn)
 {
 	OM_uint32 major_status;
 	struct _gss_mech_switch *m;
@@ -188,7 +188,7 @@ _gss_find_mn(OM_uint32 *minor_status, struct _gss_name *name, gss_OID mech,
 
 	*output_mn = NULL;
 
-	SLIST_FOREACH(mn, &name->gn_mn, gmn_link) {
+	SLIST_FOREACH (mn, &name->gn_mn, gmn_link) {
 		if (gss_oid_equal(mech, mn->gmn_mech_oid))
 			break;
 	}
@@ -209,10 +209,8 @@ _gss_find_mn(OM_uint32 *minor_status, struct _gss_name *name, gss_OID mech,
 		if (!mn)
 			return (GSS_S_FAILURE);
 
-		major_status = m->gm_import_name(minor_status,
-		    &name->gn_value,
-		    (name->gn_type.elements
-			? &name->gn_type : GSS_C_NO_OID),
+		major_status = m->gm_import_name(minor_status, &name->gn_value,
+		    (name->gn_type.elements ? &name->gn_type : GSS_C_NO_OID),
 		    &mn->gmn_name);
 		if (major_status != GSS_S_COMPLETE) {
 			_gss_mg_error(m, major_status, *minor_status);
@@ -227,7 +225,6 @@ _gss_find_mn(OM_uint32 *minor_status, struct _gss_name *name, gss_OID mech,
 	*output_mn = mn;
 	return (GSS_S_COMPLETE);
 }
-
 
 /*
  * Make a name from an MN.
@@ -257,4 +254,3 @@ _gss_make_name(struct _gss_mech_switch *m, gss_name_t new_mn)
 
 	return (name);
 }
-

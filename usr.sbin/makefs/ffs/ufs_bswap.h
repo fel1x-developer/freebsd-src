@@ -39,13 +39,13 @@
 
 /* Macros to access UFS flags */
 #ifdef FFS_EI
-#define	UFS_MPNEEDSWAP(mp)	(VFSTOUFS(mp)->um_flags & UFS_NEEDSWAP)
-#define UFS_FSNEEDSWAP(fs)	((fs)->fs_flags & FS_SWAPPED)
-#define	UFS_IPNEEDSWAP(ip)	UFS_MPNEEDSWAP(ITOV(ip)->v_mount)
+#define UFS_MPNEEDSWAP(mp) (VFSTOUFS(mp)->um_flags & UFS_NEEDSWAP)
+#define UFS_FSNEEDSWAP(fs) ((fs)->fs_flags & FS_SWAPPED)
+#define UFS_IPNEEDSWAP(ip) UFS_MPNEEDSWAP(ITOV(ip)->v_mount)
 #else
-#define	UFS_MPNEEDSWAP(mp) (0)
+#define UFS_MPNEEDSWAP(mp) (0)
 #define UFS_FSNEEDSWAP(fs) (0)
-#define	UFS_IPNEEDSWAP(ip) (0)
+#define UFS_IPNEEDSWAP(ip) (0)
 #endif
 
 #if !defined(_KERNEL) || defined(FFS_EI)
@@ -53,17 +53,17 @@
 static __inline u_int16_t
 ufs_rw16(u_int16_t a, int ns)
 {
-	return ((ns) ?  bswap16(a) : (a));
+	return ((ns) ? bswap16(a) : (a));
 }
 static __inline u_int32_t
 ufs_rw32(u_int32_t a, int ns)
 {
-	return ((ns) ?  bswap32(a) : (a));
+	return ((ns) ? bswap32(a) : (a));
 }
 static __inline u_int64_t
 ufs_rw64(u_int64_t a, int ns)
 {
-	return ((ns) ?  bswap64(a) : (a));
+	return ((ns) ? bswap64(a) : (a));
 }
 #else
 #define ufs_rw16(a, ns) ((uint16_t)(a))
@@ -71,11 +71,8 @@ ufs_rw64(u_int64_t a, int ns)
 #define ufs_rw64(a, ns) ((uint64_t)(a))
 #endif
 
-#define ufs_add16(a, b, ns) \
-	(a) = ufs_rw16(ufs_rw16((a), (ns)) + (b), (ns))
-#define ufs_add32(a, b, ns) \
-	(a) = ufs_rw32(ufs_rw32((a), (ns)) + (b), (ns))
-#define ufs_add64(a, b, ns) \
-	(a) = ufs_rw64(ufs_rw64((a), (ns)) + (b), (ns))
+#define ufs_add16(a, b, ns) (a) = ufs_rw16(ufs_rw16((a), (ns)) + (b), (ns))
+#define ufs_add32(a, b, ns) (a) = ufs_rw32(ufs_rw32((a), (ns)) + (b), (ns))
+#define ufs_add64(a, b, ns) (a) = ufs_rw64(ufs_rw64((a), (ns)) + (b), (ns))
 
 #endif /* !_UFS_UFS_BSWAP_H_ */

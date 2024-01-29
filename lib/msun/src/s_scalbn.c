@@ -10,9 +10,13 @@
 #include <math.h>
 #include <stdint.h>
 
-double scalbn(double x, int n)
+double
+scalbn(double x, int n)
 {
-	union {double f; uint64_t i;} u;
+	union {
+		double f;
+		uint64_t i;
+	} u;
 	double_t y = x;
 
 	if (n > 1023) {
@@ -36,7 +40,7 @@ double scalbn(double x, int n)
 				n = -1022;
 		}
 	}
-	u.i = (uint64_t)(0x3ff+n)<<52;
+	u.i = (uint64_t)(0x3ff + n) << 52;
 	x = y * u.f;
 	return x;
 }

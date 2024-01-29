@@ -26,28 +26,28 @@
  */
 
 #include <sys/types.h>
-#include <sys/syscall.h>
 #include <sys/module.h>
+#include <sys/syscall.h>
 
-#include <stdio.h>
-#include <string.h>
 #include <err.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <krb5.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
+#include <krb5.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 struct gsstest_2_args {
-	int step;		/* test step number */
-	gss_buffer_desc input_token; /* token from userland */
+	int step;		      /* test step number */
+	gss_buffer_desc input_token;  /* token from userland */
 	gss_buffer_desc output_token; /* buffer to receive reply token */
 };
 struct gsstest_2_res {
-	OM_uint32 maj_stat;	/* maj_stat from kernel */
-	OM_uint32 min_stat;	/* min_stat from kernel */
-	gss_buffer_desc output_token; /* reply token (using space from gsstest_2_args.output) */
+	OM_uint32 maj_stat;	      /* maj_stat from kernel */
+	OM_uint32 min_stat;	      /* min_stat from kernel */
+	gss_buffer_desc output_token; /* reply token (using space from
+					 gsstest_2_args.output) */
 };
 
 static void
@@ -60,9 +60,9 @@ report_error(gss_OID mech, OM_uint32 maj, OM_uint32 min)
 	printf("major_stat=%d, minor_stat=%d\n", maj, min);
 	message_context = 0;
 	do {
-		maj_stat = gss_display_status(&min_stat, maj,
-		    GSS_C_GSS_CODE, GSS_C_NO_OID, &message_context, &buf);
-		printf("%.*s\n", (int)buf.length, (char *) buf.value);
+		maj_stat = gss_display_status(&min_stat, maj, GSS_C_GSS_CODE,
+		    GSS_C_NO_OID, &message_context, &buf);
+		printf("%.*s\n", (int)buf.length, (char *)buf.value);
 		gss_release_buffer(&min_stat, &buf);
 	} while (message_context);
 	if (mech) {
@@ -70,7 +70,7 @@ report_error(gss_OID mech, OM_uint32 maj, OM_uint32 min)
 		do {
 			maj_stat = gss_display_status(&min_stat, min,
 			    GSS_C_MECH_CODE, mech, &message_context, &buf);
-			printf("%.*s\n", (int)buf.length, (char *) buf.value);
+			printf("%.*s\n", (int)buf.length, (char *)buf.value);
 			gss_release_buffer(&min_stat, &buf);
 		} while (message_context);
 	}
@@ -126,8 +126,8 @@ main(int argc, char **argv)
 			args.output_token.value = token_buffer;
 
 			gethostname(hostname, sizeof(hostname));
-			snprintf(token_buffer, sizeof(token_buffer),
-			    "nfs@%s", hostname);
+			snprintf(token_buffer, sizeof(token_buffer), "nfs@%s",
+			    hostname);
 			name_buf.length = strlen(token_buffer);
 			name_buf.value = token_buffer;
 			maj_stat = gss_import_name(&min_stat, &name_buf,
@@ -138,8 +138,8 @@ main(int argc, char **argv)
 				goto out;
 			}
 
-			maj_stat = gss_acquire_cred(&min_stat, GSS_C_NO_NAME,
-			    0, GSS_C_NO_OID_SET, GSS_C_INITIATE, &client_cred,
+			maj_stat = gss_acquire_cred(&min_stat, GSS_C_NO_NAME, 0,
+			    GSS_C_NO_OID_SET, GSS_C_INITIATE, &client_cred,
 			    NULL, NULL);
 			if (GSS_ERROR(maj_stat)) {
 				printf("gss_acquire_cred (client) failed\n");
@@ -150,7 +150,8 @@ main(int argc, char **argv)
 			maj_stat = gss_krb5_set_allowable_enctypes(&min_stat,
 			    client_cred, 1, &enctypes[i]);
 			if (GSS_ERROR(maj_stat)) {
-				printf("gss_krb5_set_allowable_enctypes failed\n");
+				printf(
+				    "gss_krb5_set_allowable_enctypes failed\n");
 				report_error(mech_type, maj_stat, min_stat);
 				goto out;
 			}
@@ -160,25 +161,18 @@ main(int argc, char **argv)
 			established = 0;
 			while (!established) {
 				maj_stat = gss_init_sec_context(&min_stat,
-				    client_cred,
-				    &client_context,
-				    name,
+				    client_cred, &client_context, name,
 				    GSS_C_NO_OID,
-				    (GSS_C_MUTUAL_FLAG
-					|GSS_C_CONF_FLAG
-					|GSS_C_INTEG_FLAG
-					|GSS_C_SEQUENCE_FLAG
-					|GSS_C_REPLAY_FLAG),
-				    0,
-				    GSS_C_NO_CHANNEL_BINDINGS,
-				    &res.output_token,
-				    &mech_type,
-				    &args.input_token,
-				    NULL,
-				    NULL);
+				    (GSS_C_MUTUAL_FLAG | GSS_C_CONF_FLAG |
+					GSS_C_INTEG_FLAG | GSS_C_SEQUENCE_FLAG |
+					GSS_C_REPLAY_FLAG),
+				    0, GSS_C_NO_CHANNEL_BINDINGS,
+				    &res.output_token, &mech_type,
+				    &args.input_token, NULL, NULL);
 				if (GSS_ERROR(maj_stat)) {
 					printf("gss_init_sec_context failed\n");
-					report_error(mech_type, maj_stat, min_stat);
+					report_error(mech_type, maj_stat,
+					    min_stat);
 					goto out;
 				}
 				if (args.input_token.length) {
@@ -186,11 +180,13 @@ main(int argc, char **argv)
 					syscall(syscall_num, 2, &args, &res);
 					gss_release_buffer(&min_stat,
 					    &args.input_token);
-					if (res.maj_stat != GSS_S_COMPLETE
-					    && res.maj_stat != GSS_S_CONTINUE_NEEDED) {
-						printf("gss_accept_sec_context (kernel) failed\n");
-						report_error(mech_type, res.maj_stat,
-						    res.min_stat);
+					if (res.maj_stat != GSS_S_COMPLETE &&
+					    res.maj_stat !=
+						GSS_S_CONTINUE_NEEDED) {
+						printf(
+						    "gss_accept_sec_context (kernel) failed\n");
+						report_error(mech_type,
+						    res.maj_stat, res.min_stat);
 						goto out;
 					}
 				}
@@ -199,7 +195,7 @@ main(int argc, char **argv)
 			}
 
 			message_buf.value = "Hello world";
-			message_buf.length = strlen((char *) message_buf.value);
+			message_buf.length = strlen((char *)message_buf.value);
 
 			maj_stat = gss_get_mic(&min_stat, client_context,
 			    GSS_C_QOP_DEFAULT, &message_buf, &args.input_token);
@@ -208,13 +204,14 @@ main(int argc, char **argv)
 				report_error(mech_type, maj_stat, min_stat);
 				goto out;
 			}
-		
+
 			args.step = 2;
 			syscall(syscall_num, 2, &args, &res);
 			gss_release_buffer(&min_stat, &args.input_token);
 			if (GSS_ERROR(res.maj_stat)) {
 				printf("kernel gss_verify_mic failed\n");
-				report_error(mech_type, res.maj_stat, res.min_stat);
+				report_error(mech_type, res.maj_stat,
+				    res.min_stat);
 				goto out;
 			}
 
@@ -226,8 +223,8 @@ main(int argc, char **argv)
 				goto out;
 			}
 
-			maj_stat = gss_wrap(&min_stat, client_context,
-			    TRUE, GSS_C_QOP_DEFAULT, &message_buf, NULL,
+			maj_stat = gss_wrap(&min_stat, client_context, TRUE,
+			    GSS_C_QOP_DEFAULT, &message_buf, NULL,
 			    &args.input_token);
 			if (GSS_ERROR(maj_stat)) {
 				printf("gss_wrap failed\n");
@@ -240,7 +237,8 @@ main(int argc, char **argv)
 			gss_release_buffer(&min_stat, &args.input_token);
 			if (GSS_ERROR(res.maj_stat)) {
 				printf("kernel gss_unwrap failed\n");
-				report_error(mech_type, res.maj_stat, res.min_stat);
+				report_error(mech_type, res.maj_stat,
+				    res.min_stat);
 				goto out;
 			}
 
@@ -253,8 +251,8 @@ main(int argc, char **argv)
 			}
 			gss_release_buffer(&min_stat, &message_buf);
 
-			maj_stat = gss_wrap(&min_stat, client_context,
-			    FALSE, GSS_C_QOP_DEFAULT, &message_buf, NULL,
+			maj_stat = gss_wrap(&min_stat, client_context, FALSE,
+			    GSS_C_QOP_DEFAULT, &message_buf, NULL,
 			    &args.input_token);
 			if (GSS_ERROR(maj_stat)) {
 				printf("gss_wrap failed\n");
@@ -267,7 +265,8 @@ main(int argc, char **argv)
 			gss_release_buffer(&min_stat, &args.input_token);
 			if (GSS_ERROR(res.maj_stat)) {
 				printf("kernel gss_unwrap failed\n");
-				report_error(mech_type, res.maj_stat, res.min_stat);
+				report_error(mech_type, res.maj_stat,
+				    res.min_stat);
 				goto out;
 			}
 

@@ -25,11 +25,11 @@ struct tpm_softc {
 #endif
 	void *sc_ih;
 
-	int	(*sc_init)(struct tpm_softc *, int, const char *);
-	int	(*sc_start)(struct tpm_softc *, int);
-	int	(*sc_read)(struct tpm_softc *, void *, int, size_t *, int);
-	int	(*sc_write)(struct tpm_softc *, void *, int);
-	int	(*sc_end)(struct tpm_softc *, int, int);
+	int (*sc_init)(struct tpm_softc *, int, const char *);
+	int (*sc_start)(struct tpm_softc *, int);
+	int (*sc_read)(struct tpm_softc *, void *, int, size_t *, int);
+	int (*sc_write)(struct tpm_softc *, void *, int);
+	int (*sc_end)(struct tpm_softc *, int, int);
 
 	bus_space_tag_t sc_bt, sc_batm;
 	bus_space_handle_t sc_bh, sc_bahm;
@@ -40,20 +40,20 @@ struct tpm_softc {
 	u_int32_t sc_capabilities;
 
 	int sc_flags;
-#define	TPM_OPEN	0x0001
+#define TPM_OPEN 0x0001
 
-	int	 sc_vector;
+	int sc_vector;
 #ifdef __FreeBSD__
-	void	*intr_cookie;
+	void *intr_cookie;
 	int mem_rid, irq_rid;
 	struct resource *mem_res, *irq_res;
 	struct cdev *sc_cdev;
 #endif
 
 #ifndef __FreeBSD__
-	void	*sc_powerhook;
+	void *sc_powerhook;
 #endif
-	int	 sc_suspend;
+	int sc_suspend;
 };
 
 int tpm_tis12_probe(bus_space_tag_t iot, bus_space_handle_t ioh);

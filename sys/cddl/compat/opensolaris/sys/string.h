@@ -25,13 +25,13 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_STRING_H_
-#define	_OPENSOLARIS_SYS_STRING_H_
+#define _OPENSOLARIS_SYS_STRING_H_
 
 #include <sys/libkern.h>
 
-char	*strpbrk(const char *, const char *);
-void	 strident_canon(char *, size_t);
-char	*kmem_asprintf(const char *, ...);
-void	 strfree(char *);
+char *strpbrk(const char *, const char *);
+void strident_canon(char *, size_t);
+char *kmem_asprintf(const char *, ...);
+void strfree(char *);
 
-#endif	/* _OPENSOLARIS_SYS_STRING_H_ */
+#endif /* _OPENSOLARIS_SYS_STRING_H_ */

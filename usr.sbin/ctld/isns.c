@@ -28,11 +28,13 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/wait.h>
 #include <sys/endian.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdbool.h>
@@ -205,8 +207,8 @@ isns_req_send(int s, struct isns_req *req)
 
 	hdr = (struct isns_hdr *)req->ir_buf;
 	be16enc(hdr->ih_length, req->ir_usedlen - sizeof(*hdr));
-	be16enc(hdr->ih_flags, be16dec(hdr->ih_flags) |
-	    ISNS_FLAG_LAST | ISNS_FLAG_FIRST);
+	be16enc(hdr->ih_flags,
+	    be16dec(hdr->ih_flags) | ISNS_FLAG_LAST | ISNS_FLAG_FIRST);
 	be16enc(hdr->ih_transaction, 0);
 	be16enc(hdr->ih_sequence, 0);
 

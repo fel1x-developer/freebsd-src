@@ -69,32 +69,31 @@ extern "C" {
 
 #include <dev/isci/scil/sci_types.h>
 
-
 /* The following is a list of verbosity levels that can be used to enable */
 /* logging for specific log objects.                                      */
 
 /** Enable/disable error level logging for the associated logger object(s). */
-#define SCI_LOG_VERBOSITY_ERROR      0x00
+#define SCI_LOG_VERBOSITY_ERROR 0x00
 
 /** Enable/disable warning level logging for the associated logger object(s). */
-#define SCI_LOG_VERBOSITY_WARNING    0x01
+#define SCI_LOG_VERBOSITY_WARNING 0x01
 
 /**
  * Enable/disable informative level logging for the associated logger object(s).
  */
-#define SCI_LOG_VERBOSITY_INFO       0x02
+#define SCI_LOG_VERBOSITY_INFO 0x02
 
 /**
  * This constant is used to enable function trace (enter/exit) level
  * logging for the associated log object(s).
  */
-#define SCI_LOG_VERBOSITY_TRACE      0x03
+#define SCI_LOG_VERBOSITY_TRACE 0x03
 
 /**
  * This constant is used to enable state tracing information it will emit a
  * log message each time a state is entered for the associated log object(s).
  */
-#define SCI_LOG_VERBOSITY_STATES     0x04
+#define SCI_LOG_VERBOSITY_STATES 0x04
 
 #ifdef SCI_LOGGING
 
@@ -125,10 +124,7 @@ extern "C" {
  * @retval SCI_LOGGER_VERBOSITY_STATES This value indicates that the states
  *         transition verbosity level was set for the supplied log_object
  */
-U8 sci_logger_get_verbosity_mask(
-   SCI_LOGGER_HANDLE_T  logger,
-   U32                  log_object
-);
+U8 sci_logger_get_verbosity_mask(SCI_LOGGER_HANDLE_T logger, U32 log_object);
 
 /**
  * @brief This method simply returns the log object mask.  This mask
@@ -155,10 +151,7 @@ U8 sci_logger_get_verbosity_mask(
  * @return This method will return the log object mask indicating each of
  *         the log objects for which logging is enabled at the supplied level.
  */
-U32 sci_logger_get_object_mask(
-   SCI_LOGGER_HANDLE_T  logger,
-   U8                   verbosity
-);
+U32 sci_logger_get_object_mask(SCI_LOGGER_HANDLE_T logger, U8 verbosity);
 
 /**
  * @brief This method will enable each of the supplied log objects in
@@ -179,11 +172,8 @@ U32 sci_logger_get_object_mask(
  *
  * @return none
  */
-void sci_logger_enable(
-   SCI_LOGGER_HANDLE_T  logger,
-   U32                  log_object_mask,
-   U8                   verbosity_mask
-);
+void sci_logger_enable(SCI_LOGGER_HANDLE_T logger, U32 log_object_mask,
+    U8 verbosity_mask);
 
 /**
  * @brief This method will disable each of the supplied log objects in
@@ -204,12 +194,8 @@ void sci_logger_enable(
  *
  * @return none
  */
-void sci_logger_disable(
-   SCI_LOGGER_HANDLE_T  logger,
-   U32                  log_object_mask,
-   U8                   verbosity_mask
-);
-
+void sci_logger_disable(SCI_LOGGER_HANDLE_T logger, U32 log_object_mask,
+    U8 verbosity_mask);
 
 /**
  * @brief this macro checks whether it is ok to log.
@@ -225,12 +211,8 @@ void sci_logger_disable(
  *
  * @return TRUE or FALSE
  */
-BOOL sci_logger_is_enabled(
-   SCI_LOGGER_HANDLE_T  logger,
-   U32                  log_object_mask,
-   U8                   verbosity_mask
-);
-
+BOOL sci_logger_is_enabled(SCI_LOGGER_HANDLE_T logger, U32 log_object_mask,
+    U8 verbosity_mask);
 
 #else // SCI_LOGGING
 
@@ -247,4 +229,3 @@ BOOL sci_logger_is_enabled(
 #endif // __cplusplus
 
 #endif // _SCI_LOGGER_H_
-

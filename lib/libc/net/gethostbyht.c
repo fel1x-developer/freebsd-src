@@ -51,17 +51,20 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <stdio.h>
+#include <arpa/nameser.h> /* XXX */
 #include <ctype.h>
 #include <errno.h>
-#include <string.h>
-#include <stdarg.h>
+#include <netdb.h>
 #include <nsswitch.h>
-#include <arpa/nameser.h>	/* XXX */
-#include <resolv.h>		/* XXX */
+#include <resolv.h> /* XXX */
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "netdb_private.h"
 
 void
@@ -78,7 +81,7 @@ void
 _endhosthtent(struct hostent_data *hed)
 {
 	if (hed->hostf && !hed->stayopen) {
-		(void) fclose(hed->hostf);
+		(void)fclose(hed->hostf);
 		hed->hostf = NULL;
 	}
 }
@@ -96,7 +99,7 @@ gethostent_p(struct hostent *he, struct hostent_data *hed, int mapped,
 		RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
 		return (-1);
 	}
- again:
+again:
 	if (!(p = fgets(hostbuf, sizeof hostbuf, hed->hostf))) {
 		RES_SET_H_ERRNO(statp, HOST_NOT_FOUND);
 		return (-1);
@@ -208,7 +211,7 @@ gethostent(void)
 	if ((hd = __hostdata_init()) == NULL)
 		return (NULL);
 	if (gethostent_r(&hd->host, hd->data, sizeof(hd->data), &rval,
-	    &ret_h_errno) != 0)
+		&ret_h_errno) != 0)
 		return (NULL);
 	return (rval);
 }

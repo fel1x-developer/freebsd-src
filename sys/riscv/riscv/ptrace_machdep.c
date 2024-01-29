@@ -84,4 +84,3 @@ ptrace_clear_single_step(struct thread *td)
 	/* TODO; */
 	return (EOPNOTSUPP);
 }
-

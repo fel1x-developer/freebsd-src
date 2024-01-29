@@ -39,33 +39,33 @@
 #include <machine/_limits.h>
 
 struct _sem {
-	__uint32_t	_magic;
-	struct _usem2	_kern;
-	__uint32_t	_padding;	/* Preserve structure size */
+	__uint32_t _magic;
+	struct _usem2 _kern;
+	__uint32_t _padding; /* Preserve structure size */
 };
 
-typedef	struct _sem	sem_t;
+typedef struct _sem sem_t;
 
-#define	SEM_FAILED	((sem_t *)0)
-#define	SEM_VALUE_MAX	__INT_MAX
+#define SEM_FAILED ((sem_t *)0)
+#define SEM_VALUE_MAX __INT_MAX
 
 struct timespec;
 
 __BEGIN_DECLS
 #if __BSD_VISIBLE
-int	 sem_clockwait_np(sem_t * __restrict, __clockid_t, int,
-	    const struct timespec *, struct timespec *);
+int sem_clockwait_np(sem_t *__restrict, __clockid_t, int,
+    const struct timespec *, struct timespec *);
 #endif
-int	 sem_close(sem_t *);
-int	 sem_destroy(sem_t *);
-int	 sem_getvalue(sem_t * __restrict, int * __restrict);
-int	 sem_init(sem_t *, int, unsigned int);
-sem_t	*sem_open(const char *, int, ...);
-int	 sem_post(sem_t *);
-int	 sem_timedwait(sem_t * __restrict, const struct timespec * __restrict);
-int	 sem_trywait(sem_t *);
-int	 sem_unlink(const char *);
-int	 sem_wait(sem_t *);
+int sem_close(sem_t *);
+int sem_destroy(sem_t *);
+int sem_getvalue(sem_t *__restrict, int *__restrict);
+int sem_init(sem_t *, int, unsigned int);
+sem_t *sem_open(const char *, int, ...);
+int sem_post(sem_t *);
+int sem_timedwait(sem_t *__restrict, const struct timespec *__restrict);
+int sem_trywait(sem_t *);
+int sem_unlink(const char *);
+int sem_wait(sem_t *);
 __END_DECLS
 
 #endif /* !_SEMAPHORE_H_ */

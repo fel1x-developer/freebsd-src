@@ -31,24 +31,25 @@
 #include <sys/module.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
+
+#include <assert.h>
 #include <ctype.h>
+#include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
+#include <geom.h>
+#include <inttypes.h>
+#include <libgen.h>
+#include <libgeom.h>
+#include <libutil.h>
 #include <paths.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libgen.h>
-#include <libutil.h>
-#include <inttypes.h>
-#include <dlfcn.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom.h>
 
 #include "misc/subr.h"
 
@@ -64,10 +65,10 @@ static uint32_t *version = NULL;
 static int verbose = 0;
 static struct g_command *class_commands = NULL;
 
-#define	GEOM_CLASS_CMDS		0x01
-#define	GEOM_STD_CMDS		0x02
+#define GEOM_CLASS_CMDS 0x01
+#define GEOM_STD_CMDS 0x02
 
-#define	GEOM_CLASS_WIDTH	10
+#define GEOM_CLASS_WIDTH 10
 
 static struct g_command *find_command(const char *cmdstr, int flags);
 static void list_one_geom_by_provider(const char *provider_name);
@@ -81,29 +82,20 @@ static void std_status(struct gctl_req *req, unsigned flags);
 static void std_load(struct gctl_req *req, unsigned flags);
 static void std_unload(struct gctl_req *req, unsigned flags);
 
-static struct g_command std_commands[] = {
-	{ "help", 0, std_help, G_NULL_OPTS, NULL },
+static struct g_command std_commands[] = { { "help", 0, std_help, G_NULL_OPTS,
+					       NULL },
 	{ "list", 0, std_list,
-	    {
-		{ 'a', "all", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-a] [name ...]"
-	},
+	    { { 'a', "all", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-a] [name ...]" },
 	{ "status", 0, std_status,
-	    {
-		{ 'a', "all", NULL, G_TYPE_BOOL },
+	    { { 'a', "all", NULL, G_TYPE_BOOL },
 		{ 'g', "geoms", NULL, G_TYPE_BOOL },
-		{ 's', "script", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-ags] [name ...]"
-	},
+		{ 's', "script", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-ags] [name ...]" },
 	{ "load", G_FLAG_VERBOSE | G_FLAG_LOADKLD, std_load, G_NULL_OPTS,
 	    NULL },
 	{ "unload", G_FLAG_VERBOSE, std_unload, G_NULL_OPTS, NULL },
-	G_CMD_SENTINEL
-};
+	G_CMD_SENTINEL };
 
 static void
 usage_command(struct g_command *cmd, const char *prefix)
@@ -128,7 +120,7 @@ usage_command(struct g_command *cmd, const char *prefix)
 	fprintf(stderr, "%s %s %s", prefix, comm, cmd->gc_name);
 	if ((cmd->gc_flags & G_FLAG_VERBOSE) != 0)
 		fprintf(stderr, " [-v]");
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		opt = &cmd->gc_options[i];
 		if (opt->go_name == NULL)
 			break;
@@ -161,7 +153,7 @@ usage(void)
 
 		prefix = "usage:";
 		if (class_commands != NULL) {
-			for (i = 0; ; i++) {
+			for (i = 0;; i++) {
 				cmd = &class_commands[i];
 				if (cmd->gc_name == NULL)
 					break;
@@ -169,7 +161,7 @@ usage(void)
 				prefix = "      ";
 			}
 		}
-		for (i = 0; ; i++) {
+		for (i = 0;; i++) {
 			cmd = &std_commands[i];
 			if (cmd->gc_name == NULL)
 				break;
@@ -231,7 +223,7 @@ find_option(struct g_command *cmd, char ch)
 	struct g_option *opt;
 	unsigned i;
 
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		opt = &cmd->gc_options[i];
 		if (opt->go_name == NULL)
 			return (NULL);
@@ -256,7 +248,8 @@ set_option(struct gctl_req *req, struct g_option *opt, const char *val)
 		size_t optnamesize;
 
 		if (G_OPT_NUM(opt) == UCHAR_MAX)
-			errx(EXIT_FAILURE, "Too many -%c options.", opt->go_char);
+			errx(EXIT_FAILURE, "Too many -%c options.",
+			    opt->go_char);
 
 		/*
 		 * Base option name length plus 3 bytes for option number
@@ -266,7 +259,8 @@ set_option(struct gctl_req *req, struct g_option *opt, const char *val)
 		ptr = malloc(optnamesize);
 		if (ptr == NULL)
 			errx(EXIT_FAILURE, "No memory.");
-		snprintf(ptr, optnamesize, "%s%u", opt->go_name, G_OPT_NUM(opt));
+		snprintf(ptr, optnamesize, "%s%u", opt->go_name,
+		    G_OPT_NUM(opt));
 		G_OPT_NUMINC(opt);
 		optname = ptr;
 	} else {
@@ -318,7 +312,7 @@ parse_arguments(struct g_command *cmd, struct gctl_req *req, int *argc,
 	*opts = '\0';
 	if ((cmd->gc_flags & G_FLAG_VERBOSE) != 0)
 		strlcat(opts, "v", sizeof(opts));
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		opt = &cmd->gc_options[i];
 		if (opt->go_name == NULL)
 			break;
@@ -343,7 +337,8 @@ parse_arguments(struct g_command *cmd, struct gctl_req *req, int *argc,
 		/* Options passed to kernel. */
 		opt = find_option(cmd, ch);
 		if (opt == NULL) {
-			if (ch == 'v' && (cmd->gc_flags & G_FLAG_VERBOSE) != 0){
+			if (ch == 'v' &&
+			    (cmd->gc_flags & G_FLAG_VERBOSE) != 0) {
 				if (++vcount < 2)
 					continue;
 				else
@@ -368,7 +363,7 @@ parse_arguments(struct g_command *cmd, struct gctl_req *req, int *argc,
 	/*
 	 * Add not specified arguments, but with default values.
 	 */
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		opt = &cmd->gc_options[i];
 		if (opt->go_name == NULL)
 			break;
@@ -416,7 +411,7 @@ find_command(const char *cmdstr, int flags)
 	 * First try to find command defined by loaded library.
 	 */
 	if ((flags & GEOM_CLASS_CMDS) != 0 && class_commands != NULL) {
-		for (i = 0; ; i++) {
+		for (i = 0;; i++) {
 			cmd = &class_commands[i];
 			if (cmd->gc_name == NULL)
 				break;
@@ -428,7 +423,7 @@ find_command(const char *cmdstr, int flags)
 	 * Now try to find in standard commands.
 	 */
 	if ((flags & GEOM_STD_CMDS) != 0) {
-		for (i = 0; ; i++) {
+		for (i = 0;; i++) {
 			cmd = &std_commands[i];
 			if (cmd->gc_name == NULL)
 				break;
@@ -472,7 +467,8 @@ run_command(int argc, char *argv[])
 		}
 		if (!std_available(cmd->gc_name)) {
 			warnx("Command '%s' not available; "
-			    "try 'load' first.", argv[0]);
+			      "try 'load' first.",
+			    argv[0]);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -595,7 +591,7 @@ load_library(void)
 		exit(EXIT_FAILURE);
 	}
 }
-#endif	/* !STATIC_GEOM_CLASSES */
+#endif /* !STATIC_GEOM_CLASSES */
 
 /*
  * Class name should be all capital letters.
@@ -673,9 +669,9 @@ find_geom_by_provider(struct gmesh *mesh, const char *name)
 	struct ggeom *gp;
 	struct gprovider *pp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 				if (strcmp(pp->lg_name, name) == 0)
 					return (gp);
 			}
@@ -696,11 +692,11 @@ compute_tree_width_geom(struct gmesh *mesh, struct ggeom *gp, int indent)
 
 	max_width = width = indent + strlen(gp->lg_name);
 
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
-		LIST_FOREACH(classp2, &mesh->lg_class, lg_class) {
-			LIST_FOREACH(gp2, &classp2->lg_geom, lg_geom) {
-				LIST_FOREACH(cp2,
-				    &gp2->lg_consumer, lg_consumer) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
+		LIST_FOREACH (classp2, &mesh->lg_class, lg_class) {
+			LIST_FOREACH (gp2, &classp2->lg_geom, lg_geom) {
+				LIST_FOREACH (cp2, &gp2->lg_consumer,
+				    lg_consumer) {
 					if (pp != cp2->lg_provider)
 						continue;
 					width = compute_tree_width_geom(mesh,
@@ -724,8 +720,8 @@ compute_tree_width(struct gmesh *mesh)
 
 	max_width = width = 0;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (!LIST_EMPTY(&gp->lg_consumer))
 				continue;
 			width = compute_tree_width_geom(mesh, gp, 0);
@@ -746,26 +742,25 @@ show_tree_geom(struct gmesh *mesh, struct ggeom *gp, int indent, int width)
 	struct gprovider *pp;
 
 	if (LIST_EMPTY(&gp->lg_provider)) {
-		printf("%*s%-*.*s %-*.*s\n", indent, "",
-		    width - indent, width - indent, gp->lg_name,
-		    GEOM_CLASS_WIDTH, GEOM_CLASS_WIDTH, gp->lg_class->lg_name);
+		printf("%*s%-*.*s %-*.*s\n", indent, "", width - indent,
+		    width - indent, gp->lg_name, GEOM_CLASS_WIDTH,
+		    GEOM_CLASS_WIDTH, gp->lg_class->lg_name);
 		return;
 	}
 
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
-		printf("%*s%-*.*s %-*.*s %s\n", indent, "",
-		    width - indent, width - indent, gp->lg_name,
-		    GEOM_CLASS_WIDTH, GEOM_CLASS_WIDTH, gp->lg_class->lg_name,
-		    pp->lg_name);
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
+		printf("%*s%-*.*s %-*.*s %s\n", indent, "", width - indent,
+		    width - indent, gp->lg_name, GEOM_CLASS_WIDTH,
+		    GEOM_CLASS_WIDTH, gp->lg_class->lg_name, pp->lg_name);
 
-		LIST_FOREACH(classp2, &mesh->lg_class, lg_class) {
-			LIST_FOREACH(gp2, &classp2->lg_geom, lg_geom) {
-				LIST_FOREACH(cp2,
-				    &gp2->lg_consumer, lg_consumer) {
+		LIST_FOREACH (classp2, &mesh->lg_class, lg_class) {
+			LIST_FOREACH (gp2, &classp2->lg_geom, lg_geom) {
+				LIST_FOREACH (cp2, &gp2->lg_consumer,
+				    lg_consumer) {
 					if (pp != cp2->lg_provider)
 						continue;
-					show_tree_geom(mesh, gp2,
-					    indent + 2, width);
+					show_tree_geom(mesh, gp2, indent + 2,
+					    width);
 				}
 			}
 		}
@@ -786,13 +781,11 @@ show_tree(void)
 
 	width = compute_tree_width(&mesh);
 
-	printf("%-*.*s %-*.*s %s\n",
-	    width, width, "Geom",
-	    GEOM_CLASS_WIDTH, GEOM_CLASS_WIDTH, "Class",
-	    "Provider");
+	printf("%-*.*s %-*.*s %s\n", width, width, "Geom", GEOM_CLASS_WIDTH,
+	    GEOM_CLASS_WIDTH, "Class", "Provider");
 
-	LIST_FOREACH(classp, &mesh.lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (classp, &mesh.lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (!LIST_EMPTY(&gp->lg_consumer))
 				continue;
 			show_tree_geom(&mesh, gp, 0, width);
@@ -859,7 +852,7 @@ find_class(struct gmesh *mesh, const char *name)
 {
 	struct gclass *classp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, name) == 0)
 			return (classp);
 	}
@@ -874,7 +867,7 @@ find_geom(struct gclass *classp, const char *name)
 	if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
 		name += sizeof(_PATH_DEV) - 1;
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 		if (strcmp(gp->lg_name, name) == 0)
 			return (gp);
 	}
@@ -898,7 +891,7 @@ list_one_provider(struct gprovider *pp, const char *prefix)
 		printf("%sStripeoffset: %ju\n", prefix, pp->lg_stripeoffset);
 	}
 	printf("%sMode: %s\n", prefix, pp->lg_mode);
-	LIST_FOREACH(conf, &pp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &pp->lg_config, lg_config) {
 		printf("%s%s: %s\n", prefix, conf->lg_name, conf->lg_val);
 	}
 }
@@ -922,12 +915,14 @@ list_one_consumer(struct gconsumer *cp, const char *prefix)
 		    (intmax_t)pp->lg_mediasize, buf);
 		printf("%sSectorsize: %u\n", prefix, pp->lg_sectorsize);
 		if (pp->lg_stripesize > 0 || pp->lg_stripeoffset > 0) {
-			printf("%sStripesize: %ju\n", prefix, pp->lg_stripesize);
-			printf("%sStripeoffset: %ju\n", prefix, pp->lg_stripeoffset);
+			printf("%sStripesize: %ju\n", prefix,
+			    pp->lg_stripesize);
+			printf("%sStripeoffset: %ju\n", prefix,
+			    pp->lg_stripeoffset);
 		}
 		printf("%sMode: %s\n", prefix, cp->lg_mode);
 	}
-	LIST_FOREACH(conf, &cp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &cp->lg_config, lg_config) {
 		printf("%s%s: %s\n", prefix, conf->lg_name, conf->lg_val);
 	}
 }
@@ -941,13 +936,13 @@ list_one_geom(struct ggeom *gp)
 	unsigned n;
 
 	printf("Geom name: %s\n", gp->lg_name);
-	LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 		printf("%s: %s\n", conf->lg_name, conf->lg_val);
 	}
 	if (!LIST_EMPTY(&gp->lg_provider)) {
 		printf("Providers:\n");
 		n = 1;
-		LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+		LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 			printf("%u. ", n++);
 			list_one_provider(pp, "   ");
 		}
@@ -955,7 +950,7 @@ list_one_geom(struct ggeom *gp)
 	if (!LIST_EMPTY(&gp->lg_consumer)) {
 		printf("Consumers:\n");
 		n = 1;
-		LIST_FOREACH(cp, &gp->lg_consumer, lg_consumer) {
+		LIST_FOREACH (cp, &gp->lg_consumer, lg_consumer) {
 			printf("%u. ", n++);
 			list_one_consumer(cp, "   ");
 		}
@@ -1034,14 +1029,15 @@ std_list(struct gctl_req *req, unsigned flags __unused)
 			name = gctl_get_ascii(req, "arg%d", i);
 			gp = find_geom(classp, name);
 			if (gp == NULL) {
-				errx(EXIT_FAILURE, "Class '%s' does not have "
+				errx(EXIT_FAILURE,
+				    "Class '%s' does not have "
 				    "an instance named '%s'.",
 				    gclass_name, name);
 			}
 			list_one_geom(gp);
 		}
 	} else {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider) && !all)
 				continue;
 			list_one_geom(gp);
@@ -1071,7 +1067,7 @@ status_update_len(struct ggeom *gp, int *name_len, int *status_len)
 	len = strlen(gp->lg_name);
 	if (*name_len < len)
 		*name_len = len;
-	LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 		if (strcasecmp(conf->lg_name, "state") == 0) {
 			len = strlen(conf->lg_val);
 			if (*status_len < len)
@@ -1092,18 +1088,18 @@ status_update_len_prs(struct ggeom *gp, int *name_len, int *status_len)
 	assert(status_len != NULL);
 
 	glen = 0;
-	LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 		if (strcasecmp(conf->lg_name, "state") == 0) {
 			glen = strlen(conf->lg_val);
 			break;
 		}
 	}
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		len = strlen(pp->lg_name);
 		if (*name_len < len)
 			*name_len = len;
 		len = glen;
-		LIST_FOREACH(conf, &pp->lg_config, lg_config) {
+		LIST_FOREACH (conf, &pp->lg_config, lg_config) {
 			if (strcasecmp(conf->lg_name, "state") == 0) {
 				len = strlen(conf->lg_val);
 				break;
@@ -1127,7 +1123,7 @@ status_one_consumer(struct gconsumer *cp)
 		return (NULL);
 	state = NULL;
 	syncr = NULL;
-	LIST_FOREACH(conf, &cp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &cp->lg_config, lg_config) {
 		if (strcasecmp(conf->lg_name, "state") == 0)
 			state = conf->lg_val;
 		if (strcasecmp(conf->lg_name, "synchronized") == 0)
@@ -1136,8 +1132,8 @@ status_one_consumer(struct gconsumer *cp)
 	if (state == NULL && syncr == NULL)
 		snprintf(buf, sizeof(buf), "%s", pp->lg_name);
 	else if (state != NULL && syncr != NULL) {
-		snprintf(buf, sizeof(buf), "%s (%s, %s)", pp->lg_name,
-		    state, syncr);
+		snprintf(buf, sizeof(buf), "%s (%s, %s)", pp->lg_name, state,
+		    syncr);
 	} else {
 		snprintf(buf, sizeof(buf), "%s (%s)", pp->lg_name,
 		    state ? state : syncr);
@@ -1155,14 +1151,14 @@ status_one_geom(struct ggeom *gp, int script, int name_len, int status_len)
 
 	name = gp->lg_name;
 	status = "N/A";
-	LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+	LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 		if (strcasecmp(conf->lg_name, "state") == 0) {
 			status = conf->lg_val;
 			break;
 		}
 	}
 	gotone = 0;
-	LIST_FOREACH(cp, &gp->lg_consumer, lg_consumer) {
+	LIST_FOREACH (cp, &gp->lg_consumer, lg_consumer) {
 		component = status_one_consumer(cp);
 		if (component == NULL)
 			continue;
@@ -1187,35 +1183,35 @@ status_one_geom_prs(struct ggeom *gp, int script, int name_len, int status_len)
 	const char *name, *status, *component;
 	int gotone;
 
-	LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+	LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 		name = pp->lg_name;
 		status = "N/A";
-		LIST_FOREACH(conf, &gp->lg_config, lg_config) {
+		LIST_FOREACH (conf, &gp->lg_config, lg_config) {
 			if (strcasecmp(conf->lg_name, "state") == 0) {
 				status = conf->lg_val;
 				break;
 			}
 		}
-		LIST_FOREACH(conf, &pp->lg_config, lg_config) {
+		LIST_FOREACH (conf, &pp->lg_config, lg_config) {
 			if (strcasecmp(conf->lg_name, "state") == 0) {
 				status = conf->lg_val;
 				break;
 			}
 		}
 		gotone = 0;
-		LIST_FOREACH(cp, &gp->lg_consumer, lg_consumer) {
+		LIST_FOREACH (cp, &gp->lg_consumer, lg_consumer) {
 			component = status_one_consumer(cp);
 			if (component == NULL)
 				continue;
 			gotone = 1;
-			printf("%*s  %*s  %s\n", name_len, name,
-			    status_len, status, component);
+			printf("%*s  %*s  %s\n", name_len, name, status_len,
+			    status, component);
 			if (!script)
 				name = status = "";
 		}
 		if (!gotone) {
-			printf("%*s  %*s  %s\n", name_len, name,
-			    status_len, status, "N/A");
+			printf("%*s  %*s  %s\n", name_len, name, status_len,
+			    status, "N/A");
 		}
 	}
 }
@@ -1254,11 +1250,10 @@ std_status(struct gctl_req *req, unsigned flags __unused)
 			if (gp == NULL)
 				errx(EXIT_FAILURE, "No such geom: %s.", name);
 			if (geoms) {
-				status_update_len(gp,
-				    &name_len, &status_len);
+				status_update_len(gp, &name_len, &status_len);
 			} else {
-				status_update_len_prs(gp,
-				    &name_len, &status_len);
+				status_update_len_prs(gp, &name_len,
+				    &status_len);
 			}
 			n++;
 		}
@@ -1266,15 +1261,14 @@ std_status(struct gctl_req *req, unsigned flags __unused)
 			goto end;
 	} else {
 		n = 0;
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider) && !all)
 				continue;
 			if (geoms) {
-				status_update_len(gp,
-				    &name_len, &status_len);
+				status_update_len(gp, &name_len, &status_len);
 			} else {
-				status_update_len_prs(gp,
-				    &name_len, &status_len);
+				status_update_len_prs(gp, &name_len,
+				    &status_len);
 			}
 			n++;
 		}
@@ -1300,7 +1294,7 @@ std_status(struct gctl_req *req, unsigned flags __unused)
 			}
 		}
 	} else {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider) && !all)
 				continue;
 			if (geoms) {

@@ -24,20 +24,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/sysctl.h>
+
+#include <dev/acpica/acpivar.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
 
 #include "acpi_if.h"
-#include <sys/module.h>
-#include <dev/acpica/acpivar.h>
-#include <sys/sysctl.h>
 
-#define _COMPONENT	ACPI_OEM
+#define _COMPONENT ACPI_OEM
 ACPI_MODULE_NAME("Sony")
 
 #define ACPI_SONY_GET_PID "GPID"
@@ -47,7 +49,7 @@ ACPI_MODULE_NAME("Sony")
  *   This is the ACPI handle for the "Sony Notebook Control" driver under
  *   Windows.
  *   It provides several methods within the ACPI namespace, including:
- *  [GS]BRT [GS]PBR [GS]CTR [GS]PCR [GS]CMI [CDPW GCDP]? GWDP PWAK PWRN 
+ *  [GS]BRT [GS]PBR [GS]CTR [GS]PCR [GS]CMI [CDPW GCDP]? GWDP PWAK PWRN
  *
  * SNY6001
  *   This is the ACPI handle for the "Sony Programmable I/O" driver under
@@ -60,32 +62,28 @@ ACPI_MODULE_NAME("Sony")
 struct acpi_sony_softc {
 	int pid;
 };
-static struct acpi_sony_name_list
-{
+static struct acpi_sony_name_list {
 	char *nodename;
 	char *getmethod;
 	char *setmethod;
 	char *comment;
-} acpi_sony_oids[] = {
-	{ "brightness", "GBRT", "SBRT", "Display Brightness"},
-	{ "brightness_default", "GPBR", "SPBR", "Default Display Brightness"},
-	{ "contrast", "GCTR", "SCTR", "Display Contrast"},
-	{ "bass_gain", "GMGB", "SMGB", "Multimedia Bass Gain"},
-	{ "pcr", "GPCR", "SPCR", "???"},
+} acpi_sony_oids[] = { { "brightness", "GBRT", "SBRT", "Display Brightness" },
+	{ "brightness_default", "GPBR", "SPBR", "Default Display Brightness" },
+	{ "contrast", "GCTR", "SCTR", "Display Contrast" },
+	{ "bass_gain", "GMGB", "SMGB", "Multimedia Bass Gain" },
+	{ "pcr", "GPCR", "SPCR", "???" },
 #if 0
 	{ "cmi", "GCMI", "SCMI", "???"},
 #endif
-	{ "wdp", "GWDP", NULL, "???"},
-	{ "cdp", "GCDP", "CDPW", "CD Power"},  /*shares [\GL03]&0x8 flag*/
-	{ "azp", "GAZP", "AZPW", "Audio Power"}, 
-	{ "lnp", "GLNP", "LNPW", "LAN Power"},
-	{ NULL, NULL, NULL }
-};
+	{ "wdp", "GWDP", NULL, "???" },
+	{ "cdp", "GCDP", "CDPW", "CD Power" }, /*shares [\GL03]&0x8 flag*/
+	{ "azp", "GAZP", "AZPW", "Audio Power" },
+	{ "lnp", "GLNP", "LNPW", "LAN Power" }, { NULL, NULL, NULL } };
 
-static int	acpi_sony_probe(device_t dev);
-static int	acpi_sony_attach(device_t dev);
-static int 	acpi_sony_detach(device_t dev);
-static int	sysctl_acpi_sony_gen_handler(SYSCTL_HANDLER_ARGS);
+static int acpi_sony_probe(device_t dev);
+static int acpi_sony_attach(device_t dev);
+static int acpi_sony_detach(device_t dev);
+static int sysctl_acpi_sony_gen_handler(SYSCTL_HANDLER_ARGS);
 
 static device_method_t acpi_sony_methods[] = {
 	/* Device interface */
@@ -96,7 +94,7 @@ static device_method_t acpi_sony_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t	acpi_sony_driver = {
+static driver_t acpi_sony_driver = {
 	"acpi_sony",
 	acpi_sony_methods,
 	sizeof(struct acpi_sony_softc),
@@ -104,7 +102,7 @@ static driver_t	acpi_sony_driver = {
 
 DRIVER_MODULE(acpi_sony, acpi, acpi_sony_driver, 0, 0);
 MODULE_DEPEND(acpi_sony, acpi, 1, 1, 1);
-static char    *sny_id[] = {"SNY5001", NULL};
+static char *sny_id[] = { "SNY5001", NULL };
 
 static int
 acpi_sony_probe(device_t dev)
@@ -127,27 +125,27 @@ acpi_sony_attach(device_t dev)
 	sc = device_get_softc(dev);
 	acpi_GetInteger(acpi_get_handle(dev), ACPI_SONY_GET_PID, &sc->pid);
 	device_printf(dev, "PID %x\n", sc->pid);
-	for (i = 0 ; acpi_sony_oids[i].nodename != NULL; i++) {
+	for (i = 0; acpi_sony_oids[i].nodename != NULL; i++) {
 		if (acpi_sony_oids[i].setmethod != NULL) {
 			SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-			    i, acpi_sony_oids[i].nodename ,
-			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE,
-			    dev, i, sysctl_acpi_sony_gen_handler, "I",
+			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), i,
+			    acpi_sony_oids[i].nodename,
+			    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, i,
+			    sysctl_acpi_sony_gen_handler, "I",
 			    acpi_sony_oids[i].comment);
 		} else {
 			SYSCTL_ADD_PROC(device_get_sysctl_ctx(dev),
-			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)),
-			    i, acpi_sony_oids[i].nodename ,
-			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			    dev, i, sysctl_acpi_sony_gen_handler, "I",
+			    SYSCTL_CHILDREN(device_get_sysctl_tree(dev)), i,
+			    acpi_sony_oids[i].nodename,
+			    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, i,
+			    sysctl_acpi_sony_gen_handler, "I",
 			    acpi_sony_oids[i].comment);
 		}
 	}
 	return (0);
 }
 
-static int 
+static int
 acpi_sony_detach(device_t dev)
 {
 	return (0);
@@ -168,12 +166,12 @@ acpi_sony_resume(device_t dev)
 }
 #endif
 
-static int 
+static int
 sysctl_acpi_sony_gen_handler(SYSCTL_HANDLER_ARGS)
 {
-	device_t	dev = arg1;
-	int 	function = oidp->oid_arg2;
-	int		error = 0, val;
+	device_t dev = arg1;
+	int function = oidp->oid_arg2;
+	int error = 0, val;
 
 	acpi_GetInteger(acpi_get_handle(dev),
 	    acpi_sony_oids[function].getmethod, &val);

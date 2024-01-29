@@ -27,6 +27,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <string.h>
 
 size_t __strcspn(const char *, const char *);

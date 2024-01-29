@@ -26,8 +26,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_BWN_UTIL_H__
-#define	__IF_BWN_UTIL_H__
+#ifndef __IF_BWN_UTIL_H__
+#define __IF_BWN_UTIL_H__
 
 /* Hamming weight; used in the PHY routines */
 static inline int
@@ -54,11 +54,11 @@ bwn_clamp_val(int val, int lo, int hi)
 }
 
 /* Q52 format - used in PHY routines */
-#define	INT_TO_Q52(i)		((i) << 2)
-#define	Q52_TO_INT(q52)		((q52) >> 2)
-#define	Q52_FMT			"%u.%u"
-#define	Q52_ARG(q52)		Q52_TO_INT(q52), ((((q52) & 0x3) * 100) / 4)
+#define INT_TO_Q52(i) ((i) << 2)
+#define Q52_TO_INT(q52) ((q52) >> 2)
+#define Q52_FMT "%u.%u"
+#define Q52_ARG(q52) Q52_TO_INT(q52), ((((q52) & 0x3) * 100) / 4)
 
-extern	unsigned int bwn_sqrt(struct bwn_mac *mac, unsigned int x);
+extern unsigned int bwn_sqrt(struct bwn_mac *mac, unsigned int x);
 
-#endif	/* __IF_BWN_UTIL_H__ */
+#endif /* __IF_BWN_UTIL_H__ */

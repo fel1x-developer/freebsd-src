@@ -56,80 +56,82 @@
  *
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR udbp_debug
-#include <dev/usb/usb_debug.h>
-
+#define USB_DEBUG_VAR udbp_debug
 #include <sys/mbuf.h>
 
-#include <netgraph/ng_message.h>
-#include <netgraph/netgraph.h>
-#include <netgraph/ng_parse.h>
-#include <netgraph/bluetooth/include/ng_bluetooth.h>
-
 #include <dev/usb/misc/udbp.h>
+#include <dev/usb/usb_debug.h>
+
+#include <netgraph/bluetooth/include/ng_bluetooth.h>
+#include <netgraph/netgraph.h>
+#include <netgraph/ng_message.h>
+#include <netgraph/ng_parse.h>
 
 #ifdef USB_DEBUG
 static int udbp_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, udbp, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB udbp");
-SYSCTL_INT(_hw_usb_udbp, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &udbp_debug, 0, "udbp debug level");
+SYSCTL_INT(_hw_usb_udbp, OID_AUTO, debug, CTLFLAG_RWTUN, &udbp_debug, 0,
+    "udbp debug level");
 #endif
 
-#define	UDBP_TIMEOUT	2000		/* timeout on outbound transfers, in
-					 * msecs */
-#define	UDBP_BUFFERSIZE	MCLBYTES	/* maximum number of bytes in one
-					 * transfer */
-#define	UDBP_T_WR       0
-#define	UDBP_T_RD       1
-#define	UDBP_T_WR_CS    2
-#define	UDBP_T_RD_CS    3
-#define	UDBP_T_MAX      4
-#define	UDBP_Q_MAXLEN   50
+#define UDBP_TIMEOUT                              \
+	2000 /* timeout on outbound transfers, in \
+	      * msecs */
+#define UDBP_BUFFERSIZE                            \
+	MCLBYTES /* maximum number of bytes in one \
+		  * transfer */
+#define UDBP_T_WR 0
+#define UDBP_T_RD 1
+#define UDBP_T_WR_CS 2
+#define UDBP_T_RD_CS 3
+#define UDBP_T_MAX 4
+#define UDBP_Q_MAXLEN 50
 
 struct udbp_softc {
 	struct mtx sc_mtx;
-	struct ng_bt_mbufq sc_xmitq_hipri;	/* hi-priority transmit queue */
-	struct ng_bt_mbufq sc_xmitq;	/* low-priority transmit queue */
+	struct ng_bt_mbufq sc_xmitq_hipri; /* hi-priority transmit queue */
+	struct ng_bt_mbufq sc_xmitq;	   /* low-priority transmit queue */
 
 	struct usb_xfer *sc_xfer[UDBP_T_MAX];
-	node_p	sc_node;		/* back pointer to node */
-	hook_p	sc_hook;		/* pointer to the hook */
+	node_p sc_node; /* back pointer to node */
+	hook_p sc_hook; /* pointer to the hook */
 	struct mbuf *sc_bulk_in_buffer;
 
-	uint32_t sc_packets_in;		/* packets in from downstream */
-	uint32_t sc_packets_out;	/* packets out towards downstream */
+	uint32_t sc_packets_in;	 /* packets in from downstream */
+	uint32_t sc_packets_out; /* packets out towards downstream */
 
-	uint8_t	sc_flags;
-#define	UDBP_FLAG_READ_STALL    0x01	/* read transfer stalled */
-#define	UDBP_FLAG_WRITE_STALL   0x02	/* write transfer stalled */
+	uint8_t sc_flags;
+#define UDBP_FLAG_READ_STALL 0x01  /* read transfer stalled */
+#define UDBP_FLAG_WRITE_STALL 0x02 /* write transfer stalled */
 
-	uint8_t	sc_name[16];
+	uint8_t sc_name[16];
 };
 
 /* prototypes */
@@ -145,43 +147,34 @@ static usb_callback_t udbp_bulk_read_clear_stall_callback;
 static usb_callback_t udbp_bulk_write_callback;
 static usb_callback_t udbp_bulk_write_clear_stall_callback;
 
-static void	udbp_bulk_read_complete(node_p, hook_p, void *, int);
+static void udbp_bulk_read_complete(node_p, hook_p, void *, int);
 
-static ng_constructor_t	ng_udbp_constructor;
-static ng_rcvmsg_t	ng_udbp_rcvmsg;
-static ng_shutdown_t	ng_udbp_rmnode;
-static ng_newhook_t	ng_udbp_newhook;
-static ng_connect_t	ng_udbp_connect;
-static ng_rcvdata_t	ng_udbp_rcvdata;
-static ng_disconnect_t	ng_udbp_disconnect;
+static ng_constructor_t ng_udbp_constructor;
+static ng_rcvmsg_t ng_udbp_rcvmsg;
+static ng_shutdown_t ng_udbp_rmnode;
+static ng_newhook_t ng_udbp_newhook;
+static ng_connect_t ng_udbp_connect;
+static ng_rcvdata_t ng_udbp_rcvdata;
+static ng_disconnect_t ng_udbp_disconnect;
 
 /* Parse type for struct ngudbpstat */
-static const struct ng_parse_struct_field
-	ng_udbp_stat_type_fields[] = NG_UDBP_STATS_TYPE_INFO;
+static const struct ng_parse_struct_field ng_udbp_stat_type_fields[] =
+    NG_UDBP_STATS_TYPE_INFO;
 
-static const struct ng_parse_type ng_udbp_stat_type = {
-	&ng_parse_struct_type,
-	&ng_udbp_stat_type_fields
-};
+static const struct ng_parse_type ng_udbp_stat_type = { &ng_parse_struct_type,
+	&ng_udbp_stat_type_fields };
 
 /* List of commands and how to convert arguments to/from ASCII */
-static const struct ng_cmdlist ng_udbp_cmdlist[] = {
-	{
-		NGM_UDBP_COOKIE,
-		NGM_UDBP_GET_STATUS,
-		"getstatus",
-		NULL,
-		&ng_udbp_stat_type,
-	},
-	{
-		NGM_UDBP_COOKIE,
-		NGM_UDBP_SET_FLAG,
-		"setflag",
-		&ng_parse_int32_type,
-		NULL
-	},
-	{0}
-};
+static const struct ng_cmdlist ng_udbp_cmdlist[] = { {
+							 NGM_UDBP_COOKIE,
+							 NGM_UDBP_GET_STATUS,
+							 "getstatus",
+							 NULL,
+							 &ng_udbp_stat_type,
+						     },
+	{ NGM_UDBP_COOKIE, NGM_UDBP_SET_FLAG, "setflag", &ng_parse_int32_type,
+	    NULL },
+	{ 0 } };
 
 /* Netgraph node type descriptor */
 static struct ng_type ng_udbp_typestruct = {
@@ -255,14 +248,14 @@ static driver_t udbp_driver = {
 };
 
 static const STRUCT_USB_HOST_ID udbp_devs[] = {
-	{USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U258, 0)},
-	{USB_VPI(USB_VENDOR_NETCHIP, USB_PRODUCT_NETCHIP_TURBOCONNECT, 0)},
-	{USB_VPI(USB_VENDOR_NETCHIP, USB_PRODUCT_NETCHIP_GADGETZERO, 0)},
-	{USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL2301, 0)},
-	{USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL2302, 0)},
-	{USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL27A1, 0)},
-	{USB_VPI(USB_VENDOR_ANCHOR, USB_PRODUCT_ANCHOR_EZLINK, 0)},
-	{USB_VPI(USB_VENDOR_GENESYS, USB_PRODUCT_GENESYS_GL620USB, 0)},
+	{ USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U258, 0) },
+	{ USB_VPI(USB_VENDOR_NETCHIP, USB_PRODUCT_NETCHIP_TURBOCONNECT, 0) },
+	{ USB_VPI(USB_VENDOR_NETCHIP, USB_PRODUCT_NETCHIP_GADGETZERO, 0) },
+	{ USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL2301, 0) },
+	{ USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL2302, 0) },
+	{ USB_VPI(USB_VENDOR_PROLIFIC, USB_PRODUCT_PROLIFIC_PL27A1, 0) },
+	{ USB_VPI(USB_VENDOR_ANCHOR, USB_PRODUCT_ANCHOR_EZLINK, 0) },
+	{ USB_VPI(USB_VENDOR_GENESYS, USB_PRODUCT_GENESYS_GL620USB, 0) },
 };
 
 DRIVER_MODULE(udbp, uhub, udbp_driver, udbp_modload, NULL);
@@ -281,7 +274,7 @@ udbp_modload(module_t mod, int event, void *data)
 		error = ng_newtype(&ng_udbp_typestruct);
 		if (error != 0) {
 			printf("%s: Could not register "
-			    "Netgraph node type, error=%d\n",
+			       "Netgraph node type, error=%d\n",
 			    NG_UDBP_NODE_TYPE, error);
 		}
 		break;
@@ -321,8 +314,8 @@ udbp_attach(device_t dev)
 
 	device_set_usb_desc(dev);
 
-	snprintf(sc->sc_name, sizeof(sc->sc_name),
-	    "%s", device_get_nameunit(dev));
+	snprintf(sc->sc_name, sizeof(sc->sc_name), "%s",
+	    device_get_nameunit(dev));
 
 	mtx_init(&sc->sc_mtx, "udbp lock", NULL, MTX_DEF | MTX_RECURSE);
 
@@ -339,16 +332,14 @@ udbp_attach(device_t dev)
 	/* create Netgraph node */
 
 	if (ng_make_node_common(&ng_udbp_typestruct, &sc->sc_node) != 0) {
-		printf("%s: Could not create Netgraph node\n",
-		    sc->sc_name);
+		printf("%s: Could not create Netgraph node\n", sc->sc_name);
 		sc->sc_node = NULL;
 		goto detach;
 	}
 	/* name node */
 
 	if (ng_name_node(sc->sc_node, sc->sc_name) != 0) {
-		printf("%s: Could not name node\n",
-		    sc->sc_name);
+		printf("%s: Could not name node\n", sc->sc_name);
 		NG_NODE_UNREF(sc->sc_node);
 		sc->sc_node = NULL;
 		goto detach;
@@ -357,11 +348,11 @@ udbp_attach(device_t dev)
 
 	/* the device is now operational */
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	udbp_detach(dev);
-	return (ENOMEM);		/* failure */
+	return (ENOMEM); /* failure */
 }
 
 static int
@@ -393,7 +384,7 @@ udbp_detach(device_t dev)
 		m_freem(sc->sc_bulk_in_buffer);
 		sc->sc_bulk_in_buffer = NULL;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 }
 
 static void
@@ -431,9 +422,10 @@ udbp_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		DPRINTF("received package %d bytes\n", actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		if (sc->sc_bulk_in_buffer) {
-			ng_send_fn(sc->sc_node, NULL, &udbp_bulk_read_complete, NULL, 0);
+			ng_send_fn(sc->sc_node, NULL, &udbp_bulk_read_complete,
+			    NULL, 0);
 			return;
 		}
 		if (sc->sc_flags & UDBP_FLAG_READ_STALL) {
@@ -444,7 +436,7 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			sc->sc_flags |= UDBP_FLAG_READ_STALL;
@@ -484,8 +476,7 @@ udbp_bulk_read_complete(node_p node, hook_p hook, void *arg1, int arg2)
 	if (m) {
 		sc->sc_bulk_in_buffer = NULL;
 
-		if ((sc->sc_hook == NULL) ||
-		    NG_HOOK_NOT_VALID(sc->sc_hook)) {
+		if ((sc->sc_hook == NULL) || NG_HOOK_NOT_VALID(sc->sc_hook)) {
 			DPRINTF("No upstream hook\n");
 			goto done;
 		}
@@ -535,8 +526,8 @@ udbp_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		if (m->m_pkthdr.len > MCLBYTES) {
 			DPRINTF("truncating large packet "
-			    "from %d to %d bytes\n", m->m_pkthdr.len,
-			    MCLBYTES);
+				"from %d to %d bytes\n",
+			    m->m_pkthdr.len, MCLBYTES);
 			m->m_pkthdr.len = MCLBYTES;
 		}
 		pc = usbd_xfer_get_frame(xfer, 0);
@@ -551,7 +542,7 @@ udbp_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			sc->sc_flags |= UDBP_FLAG_WRITE_STALL;
@@ -647,37 +638,35 @@ ng_udbp_rcvmsg(node_p node, item_p item, hook_p lasthook)
 	switch (msg->header.typecookie) {
 	case NGM_UDBP_COOKIE:
 		switch (msg->header.cmd) {
-		case NGM_UDBP_GET_STATUS:
-			{
-				struct ngudbpstat *stats;
+		case NGM_UDBP_GET_STATUS: {
+			struct ngudbpstat *stats;
 
-				NG_MKRESPONSE(resp, msg, sizeof(*stats), M_NOWAIT);
-				if (!resp) {
-					error = ENOMEM;
-					break;
-				}
-				stats = (struct ngudbpstat *)resp->data;
-				mtx_lock(&sc->sc_mtx);
-				stats->packets_in = sc->sc_packets_in;
-				stats->packets_out = sc->sc_packets_out;
-				mtx_unlock(&sc->sc_mtx);
+			NG_MKRESPONSE(resp, msg, sizeof(*stats), M_NOWAIT);
+			if (!resp) {
+				error = ENOMEM;
 				break;
 			}
+			stats = (struct ngudbpstat *)resp->data;
+			mtx_lock(&sc->sc_mtx);
+			stats->packets_in = sc->sc_packets_in;
+			stats->packets_out = sc->sc_packets_out;
+			mtx_unlock(&sc->sc_mtx);
+			break;
+		}
 		case NGM_UDBP_SET_FLAG:
 			if (msg->header.arglen != sizeof(uint32_t)) {
 				error = EINVAL;
 				break;
 			}
-			DPRINTF("flags = 0x%08x\n",
-			    *((uint32_t *)msg->data));
+			DPRINTF("flags = 0x%08x\n", *((uint32_t *)msg->data));
 			break;
 		default:
-			error = EINVAL;	/* unknown command */
+			error = EINVAL; /* unknown command */
 			break;
 		}
 		break;
 	default:
-		error = EINVAL;		/* unknown cookie type */
+		error = EINVAL; /* unknown cookie type */
 		break;
 	}
 
@@ -709,8 +698,7 @@ ng_udbp_rcvdata(hook_p hook, item_p item)
 	/*
 	 * Now queue the data for when it can be sent
 	 */
-	ptag = (void *)m_tag_locate(m, NGM_GENERIC_COOKIE,
-	    NG_TAG_PRIO, NULL);
+	ptag = (void *)m_tag_locate(m, NGM_GENERIC_COOKIE, NG_TAG_PRIO, NULL);
 
 	if (ptag && (ptag->priority > NG_PRIO_CUTOFF))
 		queue_ptr = &sc->sc_xmitq_hipri;
@@ -749,22 +737,20 @@ ng_udbp_rmnode(node_p node)
 
 	/* Let old node go */
 	NG_NODE_SET_PRIVATE(node, NULL);
-	NG_NODE_UNREF(node);		/* forget it ever existed */
+	NG_NODE_UNREF(node); /* forget it ever existed */
 
 	if (sc == NULL) {
 		goto done;
 	}
 	/* Create Netgraph node */
 	if (ng_make_node_common(&ng_udbp_typestruct, &sc->sc_node) != 0) {
-		printf("%s: Could not create Netgraph node\n",
-		    sc->sc_name);
+		printf("%s: Could not create Netgraph node\n", sc->sc_name);
 		sc->sc_node = NULL;
 		goto done;
 	}
 	/* Name node */
 	if (ng_name_node(sc->sc_node, sc->sc_name) != 0) {
-		printf("%s: Could not name Netgraph node\n",
-		    sc->sc_name);
+		printf("%s: Could not name Netgraph node\n", sc->sc_name);
 		NG_NODE_UNREF(sc->sc_node);
 		sc->sc_node = NULL;
 		goto done;
@@ -792,8 +778,7 @@ ng_udbp_connect(hook_p hook)
 
 	mtx_lock(&sc->sc_mtx);
 
-	sc->sc_flags |= (UDBP_FLAG_READ_STALL |
-	    UDBP_FLAG_WRITE_STALL);
+	sc->sc_flags |= (UDBP_FLAG_READ_STALL | UDBP_FLAG_WRITE_STALL);
 
 	/* start bulk-in transfer */
 	usbd_transfer_start(sc->sc_xfer[UDBP_T_RD]);
@@ -844,8 +829,8 @@ ng_udbp_disconnect(hook_p hook)
 
 		mtx_unlock(&sc->sc_mtx);
 	}
-	if ((NG_NODE_NUMHOOKS(NG_HOOK_NODE(hook)) == 0)
-	    && (NG_NODE_IS_VALID(NG_HOOK_NODE(hook))))
+	if ((NG_NODE_NUMHOOKS(NG_HOOK_NODE(hook)) == 0) &&
+	    (NG_NODE_IS_VALID(NG_HOOK_NODE(hook))))
 		ng_rmnode_self(NG_HOOK_NODE(hook));
 
 	return (error);

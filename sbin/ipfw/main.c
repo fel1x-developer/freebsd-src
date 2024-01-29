@@ -19,16 +19,17 @@
  */
 
 #include <sys/wait.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <libgen.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <libgen.h>
 
 #include "ipfw2.h"
 
@@ -37,54 +38,52 @@ help(void)
 {
 	if (is_ipfw()) {
 		fprintf(stderr,
-"ipfw syntax summary (but please do read the ipfw(8) manpage):\n\n"
-"\tipfw [-abcdefhnNqStTv] <command>\n\n"
-"where <command> is one of the following:\n\n"
-"add [num] [set N] [prob x] RULE-BODY\n"
-"{pipe|queue} N config PIPE-BODY\n"
-"[pipe|queue] {zero|delete|show} [N{,N}]\n"
-"nat N config {ip IPADDR|if IFNAME|log|deny_in|same_ports|unreg_only|unreg_cgn|\n"
-"		reset|reverse|proxy_only|redirect_addr linkspec|\n"
-"		redirect_port linkspec|redirect_proto linkspec|\n"
-"		port_range lower-upper}\n"
-"set [disable N... enable N...] | move [rule] X to Y | swap X Y | show\n"
-"set N {show|list|zero|resetlog|delete} [N{,N}] | flush\n"
-"table N {add ip[/bits] [value] | delete ip[/bits] | flush | list}\n"
-"table all {flush | list}\n"
-"\n"
-"RULE-BODY:	check-state [PARAMS] | ACTION [PARAMS] ADDR [OPTION_LIST]\n"
-"ACTION:	check-state | allow | count | deny | unreach{,6} CODE |\n"
-"               skipto N | {divert|tee} PORT | forward ADDR |\n"
-"               pipe N | queue N | nat N | setfib FIB | reass\n"
-"PARAMS: 	[log [logamount LOGLIMIT]] [altq QUEUE_NAME]\n"
-"ADDR:		[ MAC dst src ether_type ] \n"
-"		[ ip from IPADDR [ PORT ] to IPADDR [ PORTLIST ] ]\n"
-"		[ ipv6|ip6 from IP6ADDR [ PORT ] to IP6ADDR [ PORTLIST ] ]\n"
-"IPADDR:	[not] { any | me | ip/bits{x,y,z} | table(t[,v]) | IPLIST }\n"
-"IP6ADDR:	[not] { any | me | me6 | ip6/bits | IP6LIST }\n"
-"IP6LIST:	{ ip6 | ip6/bits }[,IP6LIST]\n"
-"IPLIST:	{ ip | ip/bits | ip:mask }[,IPLIST]\n"
-"OPTION_LIST:	OPTION [OPTION_LIST]\n"
-"OPTION:	bridged | diverted | diverted-loopback | diverted-output |\n"
-"	{dst-ip|src-ip} IPADDR | {dst-ip6|src-ip6|dst-ipv6|src-ipv6} IP6ADDR |\n"
-"	{dst-port|src-port} LIST |\n"
-"	estab | frag | {gid|uid} N | icmptypes LIST | in | out | ipid LIST |\n"
-"	iplen LIST | ipoptions SPEC | ipprecedence | ipsec | iptos SPEC |\n"
-"	ipttl LIST | ipversion VER | keep-state | layer2 | limit ... |\n"
-"	icmp6types LIST | ext6hdr LIST | flow-id N[,N] | fib FIB |\n"
-"	mac ... | mac-type LIST | proto LIST | {recv|xmit|via} {IF|IPADDR} |\n"
-"	setup | {tcpack|tcpseq|tcpwin} NN | tcpflags SPEC | tcpoptions SPEC |\n"
-"	tcpdatalen LIST | verrevpath | versrcreach | antispoof\n"
-);
+		    "ipfw syntax summary (but please do read the ipfw(8) manpage):\n\n"
+		    "\tipfw [-abcdefhnNqStTv] <command>\n\n"
+		    "where <command> is one of the following:\n\n"
+		    "add [num] [set N] [prob x] RULE-BODY\n"
+		    "{pipe|queue} N config PIPE-BODY\n"
+		    "[pipe|queue] {zero|delete|show} [N{,N}]\n"
+		    "nat N config {ip IPADDR|if IFNAME|log|deny_in|same_ports|unreg_only|unreg_cgn|\n"
+		    "		reset|reverse|proxy_only|redirect_addr linkspec|\n"
+		    "		redirect_port linkspec|redirect_proto linkspec|\n"
+		    "		port_range lower-upper}\n"
+		    "set [disable N... enable N...] | move [rule] X to Y | swap X Y | show\n"
+		    "set N {show|list|zero|resetlog|delete} [N{,N}] | flush\n"
+		    "table N {add ip[/bits] [value] | delete ip[/bits] | flush | list}\n"
+		    "table all {flush | list}\n"
+		    "\n"
+		    "RULE-BODY:	check-state [PARAMS] | ACTION [PARAMS] ADDR [OPTION_LIST]\n"
+		    "ACTION:	check-state | allow | count | deny | unreach{,6} CODE |\n"
+		    "               skipto N | {divert|tee} PORT | forward ADDR |\n"
+		    "               pipe N | queue N | nat N | setfib FIB | reass\n"
+		    "PARAMS: 	[log [logamount LOGLIMIT]] [altq QUEUE_NAME]\n"
+		    "ADDR:		[ MAC dst src ether_type ] \n"
+		    "		[ ip from IPADDR [ PORT ] to IPADDR [ PORTLIST ] ]\n"
+		    "		[ ipv6|ip6 from IP6ADDR [ PORT ] to IP6ADDR [ PORTLIST ] ]\n"
+		    "IPADDR:	[not] { any | me | ip/bits{x,y,z} | table(t[,v]) | IPLIST }\n"
+		    "IP6ADDR:	[not] { any | me | me6 | ip6/bits | IP6LIST }\n"
+		    "IP6LIST:	{ ip6 | ip6/bits }[,IP6LIST]\n"
+		    "IPLIST:	{ ip | ip/bits | ip:mask }[,IPLIST]\n"
+		    "OPTION_LIST:	OPTION [OPTION_LIST]\n"
+		    "OPTION:	bridged | diverted | diverted-loopback | diverted-output |\n"
+		    "	{dst-ip|src-ip} IPADDR | {dst-ip6|src-ip6|dst-ipv6|src-ipv6} IP6ADDR |\n"
+		    "	{dst-port|src-port} LIST |\n"
+		    "	estab | frag | {gid|uid} N | icmptypes LIST | in | out | ipid LIST |\n"
+		    "	iplen LIST | ipoptions SPEC | ipprecedence | ipsec | iptos SPEC |\n"
+		    "	ipttl LIST | ipversion VER | keep-state | layer2 | limit ... |\n"
+		    "	icmp6types LIST | ext6hdr LIST | flow-id N[,N] | fib FIB |\n"
+		    "	mac ... | mac-type LIST | proto LIST | {recv|xmit|via} {IF|IPADDR} |\n"
+		    "	setup | {tcpack|tcpseq|tcpwin} NN | tcpflags SPEC | tcpoptions SPEC |\n"
+		    "	tcpdatalen LIST | verrevpath | versrcreach | antispoof\n");
 	} else {
 		fprintf(stderr,
-"dnctl syntax summary (but please do read the dnctl(8) manpage):\n\n"
-"\tdnctl [-hnsv] <command>\n\n"
-"where <command> is one of the following:\n\n"
-"[pipe|queue|sched] N config PIPE-BODY\n"
-"[pipe|queue|sched] {delete|list|show} [N{,N}]\n"
-"\n"
-);
+		    "dnctl syntax summary (but please do read the dnctl(8) manpage):\n\n"
+		    "\tdnctl [-hnsv] <command>\n\n"
+		    "where <command> is one of the following:\n\n"
+		    "[pipe|queue|sched] N config PIPE-BODY\n"
+		    "[pipe|queue|sched] {delete|list|show} [N{,N}]\n"
+		    "\n");
 	}
 
 	exit(0);
@@ -108,14 +107,14 @@ ipfw_main(int oldac, char **oldav)
 	int ch, ac;
 	const char *errstr;
 	char **av, **save_av;
-	int do_acct = 0;		/* Show packet/byte count */
-	int try_next = 0;		/* set if pipe cmd not found */
-	int av_size;			/* compute the av size */
-	char *av_p;			/* used to build the av list */
+	int do_acct = 0;  /* Show packet/byte count */
+	int try_next = 0; /* set if pipe cmd not found */
+	int av_size;	  /* compute the av size */
+	char *av_p;	  /* used to build the av list */
 
-#define WHITESP		" \t\f\v\n\r"
+#define WHITESP " \t\f\v\n\r"
 	if (oldac < 2)
-		return 1;	/* need at least one argument */
+		return 1; /* need at least one argument */
 
 	if (oldac == 2) {
 		/*
@@ -123,13 +122,13 @@ ipfw_main(int oldac, char **oldav)
 		 * words for subsequent parsing. Spaces after a ',' are
 		 * removed by copying the string in-place.
 		 */
-		char *arg = oldav[1];	/* The string is the first arg. */
+		char *arg = oldav[1]; /* The string is the first arg. */
 		int l = strlen(arg);
-		int copy = 0;		/* 1 if we need to copy, 0 otherwise */
+		int copy = 0; /* 1 if we need to copy, 0 otherwise */
 		int i, j;
 
 		for (i = j = 0; i < l; i++) {
-			if (arg[i] == '#')	/* comment marker */
+			if (arg[i] == '#') /* comment marker */
 				break;
 			if (copy) {
 				arg[j++] = arg[i];
@@ -140,11 +139,11 @@ ipfw_main(int oldac, char **oldav)
 					arg[j++] = arg[i];
 			}
 		}
-		if (!copy && j > 0)	/* last char was a 'blank', remove it */
+		if (!copy && j > 0) /* last char was a 'blank', remove it */
 			j--;
-		l = j;			/* the new argument length */
+		l = j; /* the new argument length */
 		arg[j++] = '\0';
-		if (l == 0)		/* empty string! */
+		if (l == 0) /* empty string! */
 			return 1;
 
 		/*
@@ -162,8 +161,8 @@ ipfw_main(int oldac, char **oldav)
 		 * because getopt expects it, and a NULL at the end
 		 * to simplify further parsing.
 		 */
-		ac++;		/* add 1 for the program name */
-		av_size = (ac+1) * sizeof(char *) + l + 1;
+		ac++; /* add 1 for the program name */
+		av_size = (ac + 1) * sizeof(char *) + l + 1;
 		av = safe_calloc(av_size, 1);
 
 		/*
@@ -171,14 +170,14 @@ ipfw_main(int oldac, char **oldav)
 		 * and copy arguments from arg[] to av[]. For each one,
 		 * j is the initial character, i is the one past the end.
 		 */
-		av_p = (char *)&av[ac+1];
+		av_p = (char *)&av[ac + 1];
 		for (ac = 1, i = j = 0; i < l; i++) {
-			if (strchr(WHITESP, arg[i]) != NULL || i == l-1) {
-				if (i == l-1)
+			if (strchr(WHITESP, arg[i]) != NULL || i == l - 1) {
+				if (i == l - 1)
 					i++;
-				bcopy(arg+j, av_p, i-j);
+				bcopy(arg + j, av_p, i - j);
 				av[ac] = av_p;
-				av_p += i-j;	/* the length of the string */
+				av_p += i - j; /* the length of the string */
 				*av_p++ = '\0';
 				ac++;
 				j = i + 1;
@@ -188,7 +187,7 @@ ipfw_main(int oldac, char **oldav)
 		/*
 		 * If an argument ends with ',' join with the next one.
 		 */
-		int first, i, l=0;
+		int first, i, l = 0;
 
 		/*
 		 * Allocate the argument list structure as a single block
@@ -198,33 +197,33 @@ ipfw_main(int oldac, char **oldav)
 		 * We add an extra pointer to the end of the array,
 		 * to make simpler further parsing.
 		 */
-		for (i=0; i<oldac; i++)
+		for (i = 0; i < oldac; i++)
 			l += strlen(oldav[i]);
 
-		av_size = (oldac+1) * sizeof(char *) + l + oldac;
+		av_size = (oldac + 1) * sizeof(char *) + l + oldac;
 		av = safe_calloc(av_size, 1);
 
 		/*
 		 * Init the argument pointer to the end of the array
 		 * and copy arguments from arg[] to av[]
 		 */
-		av_p = (char *)&av[oldac+1];
+		av_p = (char *)&av[oldac + 1];
 		for (first = i = ac = 1, l = 0; i < oldac; i++) {
 			char *arg = oldav[i];
 			int k = strlen(arg);
 
 			l += k;
-			if (arg[k-1] != ',' || i == oldac-1) {
+			if (arg[k - 1] != ',' || i == oldac - 1) {
 				/* Time to copy. */
 				av[ac] = av_p;
-				for (l=0; first <= i; first++) {
+				for (l = 0; first <= i; first++) {
 					strcat(av_p, oldav[first]);
 					av_p += strlen(oldav[first]);
 				}
 				*av_p++ = '\0';
 				ac++;
 				l = 0;
-				first = i+1;
+				first = i + 1;
 			}
 		}
 	}
@@ -241,29 +240,28 @@ ipfw_main(int oldac, char **oldav)
 		g_co.do_force = !isatty(STDIN_FILENO);
 
 #ifdef EMULATE_SYSCTL /* sysctl emulation */
-	if (is_ipfw() && ac >= 2 &&
-	    !strcmp(av[1], "sysctl")) {
+	if (is_ipfw() && ac >= 2 && !strcmp(av[1], "sysctl")) {
 		char *s;
 		int i;
 
 		if (ac != 3) {
-			printf(	"sysctl emulation usage:\n"
-				"	ipfw sysctl name[=value]\n"
-				"	ipfw sysctl -a\n");
+			printf("sysctl emulation usage:\n"
+			       "	ipfw sysctl name[=value]\n"
+			       "	ipfw sysctl -a\n");
 			return 0;
 		}
 		s = strchr(av[2], '=');
 		if (s == NULL) {
 			s = !strcmp(av[2], "-a") ? NULL : av[2];
 			sysctlbyname(s, NULL, NULL, NULL, 0);
-		} else {	/* ipfw sysctl x.y.z=value */
+		} else { /* ipfw sysctl x.y.z=value */
 			/* assume an INT value, will extend later */
 			if (s[1] == '\0') {
 				printf("ipfw sysctl: missing value\n\n");
 				return 0;
 			}
 			*s = '\0';
-			i = strtol(s+1, NULL, 0);
+			i = strtol(s + 1, NULL, 0);
 			sysctlbyname(av[2], NULL, NULL, &i, sizeof(int));
 		}
 		return 0;
@@ -273,7 +271,7 @@ ipfw_main(int oldac, char **oldav)
 	/* Save arguments for final freeing of memory. */
 	save_av = av;
 
-	optind = optreset = 1;	/* restart getopt() */
+	optind = optreset = 1; /* restart getopt() */
 	if (is_ipfw()) {
 		while ((ch = getopt(ac, av, "abcdDefhinNp:qs:STtvx")) != -1)
 			switch (ch) {
@@ -309,7 +307,7 @@ ipfw_main(int oldac, char **oldav)
 			case 'h': /* help */
 				free(save_av);
 				help();
-				break;	/* NOTREACHED */
+				break; /* NOTREACHED */
 
 			case 'i':
 				g_co.do_value_as_ip = 1;
@@ -324,7 +322,8 @@ ipfw_main(int oldac, char **oldav)
 				break;
 
 			case 'p':
-				errx(EX_USAGE, "An absolute pathname must be used "
+				errx(EX_USAGE,
+				    "An absolute pathname must be used "
 				    "with -p option.");
 				/* NOTREACHED */
 
@@ -367,7 +366,7 @@ ipfw_main(int oldac, char **oldav)
 			case 'h': /* help */
 				free(save_av);
 				help();
-				break;	/* NOTREACHED */
+				break; /* NOTREACHED */
 
 			case 'n':
 				g_co.test_only = 1;
@@ -385,7 +384,6 @@ ipfw_main(int oldac, char **oldav)
 				free(save_av);
 				return 1;
 			}
-
 	}
 
 	ac -= optind;
@@ -423,11 +421,13 @@ ipfw_main(int oldac, char **oldav)
 	else if (is_ipfw() && !strncmp(*av, "set", strlen(*av))) {
 		if (ac > 1 && isdigit(av[1][0])) {
 			g_co.use_set = strtonum(av[1], 0, resvd_set_number,
-					&errstr);
+			    &errstr);
 			if (errstr)
-				errx(EX_DATAERR,
-				    "invalid set number %s\n", av[1]);
-			ac -= 2; av += 2; g_co.use_set++;
+				errx(EX_DATAERR, "invalid set number %s\n",
+				    av[1]);
+			ac -= 2;
+			av += 2;
+			g_co.use_set++;
 		}
 	}
 
@@ -449,7 +449,7 @@ ipfw_main(int oldac, char **oldav)
 		av[1] = p;
 	}
 
-	if (! is_ipfw() && g_co.do_pipe == 0) {
+	if (!is_ipfw() && g_co.do_pipe == 0) {
 		help();
 	}
 
@@ -457,11 +457,11 @@ ipfw_main(int oldac, char **oldav)
 		if (is_ipfw() && _substrcmp(*av, "add") == 0)
 			ipfw_add(av);
 		else if (g_co.do_nat && _substrcmp(*av, "show") == 0)
- 			ipfw_show_nat(ac, av);
+			ipfw_show_nat(ac, av);
 		else if (g_co.do_pipe && _substrcmp(*av, "config") == 0)
 			ipfw_config_pipe(ac, av);
 		else if (g_co.do_nat && _substrcmp(*av, "config") == 0)
- 			ipfw_config_nat(ac, av);
+			ipfw_config_nat(ac, av);
 		else if (is_ipfw() && _substrcmp(*av, "set") == 0)
 			ipfw_sets_handler(av);
 		else if (is_ipfw() && _substrcmp(*av, "table") == 0)
@@ -492,7 +492,7 @@ ipfw_main(int oldac, char **oldav)
 		else if (is_ipfw() && _substrcmp(*av, "resetlog") == 0)
 			ipfw_zero(ac, av, 1 /* IP_FW_RESETLOG */);
 		else if (_substrcmp(*av, "print") == 0 ||
-			 _substrcmp(*av, "list") == 0)
+		    _substrcmp(*av, "list") == 0)
 			ipfw_list(ac, av, do_acct);
 		else if (_substrcmp(*av, "show") == 0)
 			ipfw_list(ac, av, 1 /* show counters */);
@@ -509,22 +509,21 @@ ipfw_main(int oldac, char **oldav)
 	return 0;
 }
 
-
 static void
 ipfw_readfile(int ac, char *av[])
 {
-#define MAX_ARGS	32
+#define MAX_ARGS 32
 	char buf[4096];
-	char *progname = av[0];		/* original program name */
-	const char *cmd = NULL;		/* preprocessor name, if any */
-	const char *filename = av[ac-1]; /* file to read */
-	int	c, lineno=0;
-	FILE	*f = NULL;
-	pid_t	preproc = 0;
+	char *progname = av[0];		   /* original program name */
+	const char *cmd = NULL;		   /* preprocessor name, if any */
+	const char *filename = av[ac - 1]; /* file to read */
+	int c, lineno = 0;
+	FILE *f = NULL;
+	pid_t preproc = 0;
 
 	if (is_ipfw()) {
 		while ((c = getopt(ac, av, "cfNnp:qS")) != -1) {
-			switch(c) {
+			switch (c) {
 			case 'c':
 				g_co.do_compact = 1;
 				break;
@@ -560,7 +559,7 @@ ipfw_readfile(int ac, char *av[])
 				if (optind == ac)
 					errx(EX_USAGE, "no filename argument");
 				cmd = optarg;
-				av[ac-1] = NULL;
+				av[ac - 1] = NULL;
 				av += optind - 1;
 				ac -= optind;
 				optind = ac;
@@ -575,13 +574,14 @@ ipfw_readfile(int ac, char *av[])
 				break;
 
 			default:
-				errx(EX_USAGE, "bad arguments, for usage"
-				     " summary ``ipfw''");
+				errx(EX_USAGE,
+				    "bad arguments, for usage"
+				    " summary ``ipfw''");
 			}
 		}
 	} else {
 		while ((c = getopt(ac, av, "nq")) != -1) {
-			switch(c) {
+			switch (c) {
 			case 'n':
 				g_co.test_only = 1;
 				break;
@@ -591,19 +591,20 @@ ipfw_readfile(int ac, char *av[])
 				break;
 
 			default:
-				errx(EX_USAGE, "bad arguments, for usage"
-				     " summary ``dnctl''");
+				errx(EX_USAGE,
+				    "bad arguments, for usage"
+				    " summary ``dnctl''");
 			}
 		}
 	}
 
 	if (cmd == NULL && ac != optind + 1)
-		errx(EX_USAGE, "extraneous filename arguments %s", av[ac-1]);
+		errx(EX_USAGE, "extraneous filename arguments %s", av[ac - 1]);
 
 	if ((f = fopen(filename, "r")) == NULL)
 		err(EX_UNAVAILABLE, "fopen: %s", filename);
 
-	if (cmd != NULL) {			/* pipe through preprocessor */
+	if (cmd != NULL) { /* pipe through preprocessor */
 		int pipedes[2];
 
 		if (pipe(pipedes) == -1)
@@ -618,8 +619,8 @@ ipfw_readfile(int ac, char *av[])
 			 * Child, will run the preprocessor with the
 			 * file on stdin and the pipe on stdout.
 			 */
-			if (dup2(fileno(f), 0) == -1
-			    || dup2(pipedes[1], 1) == -1)
+			if (dup2(fileno(f), 0) == -1 ||
+			    dup2(pipedes[1], 1) == -1)
 				err(EX_OSERR, "dup2()");
 			fclose(f);
 			close(pipedes[1]);
@@ -639,7 +640,7 @@ ipfw_readfile(int ac, char *av[])
 		}
 	}
 
-	while (fgets(buf, sizeof(buf), f)) {		/* read commands */
+	while (fgets(buf, sizeof(buf), f)) { /* read commands */
 		char linename[20];
 		char *args[2];
 
@@ -673,7 +674,7 @@ main(int ac, char *av[])
 #if defined(_WIN32) && defined(TCC)
 	{
 		WSADATA wsaData;
-		int ret=0;
+		int ret = 0;
 		unsigned short wVersionRequested = MAKEWORD(2, 2);
 		ret = WSAStartup(wVersionRequested, &wsaData);
 		if (ret != 0) {
@@ -704,8 +705,8 @@ main(int ac, char *av[])
 		if (ipfw_main(ac, av)) {
 			errx(EX_USAGE,
 			    "usage: %s [options]\n"
-			    "do \"%s -h\" or \"man %s\" for details", av[0],
-			    av[0], av[0]);
+			    "do \"%s -h\" or \"man %s\" for details",
+			    av[0], av[0], av[0]);
 		}
 	}
 	return EX_OK;

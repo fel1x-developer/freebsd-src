@@ -31,6 +31,8 @@
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/cpuvar.h>
+#include <sys/dtrace.h>
+#include <sys/dtrace_bsd.h>
 #include <sys/endian.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
@@ -51,20 +53,18 @@
 #include <sys/sysctl.h>
 #include <sys/uio.h>
 #include <sys/unistd.h>
+
 #include <machine/cpu.h>
 #include <machine/stdarg.h>
 
-#include <sys/dtrace.h>
-#include <sys/dtrace_bsd.h>
-
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 
-#define	PROF_NAMELEN		15
+#define PROF_NAMELEN 15
 
-#define	PROF_PROFILE		0
-#define	PROF_TICK		1
-#define	PROF_PREFIX_PROFILE	"profile-"
-#define	PROF_PREFIX_TICK	"tick-"
+#define PROF_PROFILE 0
+#define PROF_TICK 1
+#define PROF_PREFIX_PROFILE "profile-"
+#define PROF_PREFIX_TICK "tick-"
 
 /*
  * Regardless of platform, there are five artificial frames in the case of the
@@ -89,10 +89,10 @@
  * allow for a manual override in case we get it completely wrong.
  */
 #ifdef __amd64
-#define	PROF_ARTIFICIAL_FRAMES	10
+#define PROF_ARTIFICIAL_FRAMES 10
 #else
 #ifdef __i386
-#define	PROF_ARTIFICIAL_FRAMES	6
+#define PROF_ARTIFICIAL_FRAMES 6
 #endif
 #endif
 
@@ -100,67 +100,60 @@
 /*
  * This value is bogus just to make module compilable on powerpc
  */
-#define	PROF_ARTIFICIAL_FRAMES	8
+#define PROF_ARTIFICIAL_FRAMES 8
 #endif
 
 struct profile_probe_percpu;
 
 #ifdef __arm__
-#define	PROF_ARTIFICIAL_FRAMES	3
+#define PROF_ARTIFICIAL_FRAMES 3
 #endif
 
 #ifdef __aarch64__
-#define	PROF_ARTIFICIAL_FRAMES	12
+#define PROF_ARTIFICIAL_FRAMES 12
 #endif
 
 #ifdef __riscv
-#define	PROF_ARTIFICIAL_FRAMES	12
+#define PROF_ARTIFICIAL_FRAMES 12
 #endif
 
 typedef struct profile_probe {
-	char		prof_name[PROF_NAMELEN];
-	dtrace_id_t	prof_id;
-	int		prof_kind;
+	char prof_name[PROF_NAMELEN];
+	dtrace_id_t prof_id;
+	int prof_kind;
 #ifdef illumos
-	hrtime_t	prof_interval;
-	cyclic_id_t	prof_cyclic;
+	hrtime_t prof_interval;
+	cyclic_id_t prof_cyclic;
 #else
-	sbintime_t	prof_interval;
-	struct callout	prof_cyclic;
-	sbintime_t	prof_expected;
+	sbintime_t prof_interval;
+	struct callout prof_cyclic;
+	sbintime_t prof_expected;
 	struct profile_probe_percpu **prof_pcpus;
 #endif
 } profile_probe_t;
 
 typedef struct profile_probe_percpu {
-	hrtime_t	profc_expected;
-	hrtime_t	profc_interval;
-	profile_probe_t	*profc_probe;
+	hrtime_t profc_expected;
+	hrtime_t profc_interval;
+	profile_probe_t *profc_probe;
 #ifdef __FreeBSD__
-	struct callout	profc_cyclic;
+	struct callout profc_cyclic;
 #endif
 } profile_probe_percpu_t;
 
-static int	profile_unload(void);
-static void	profile_create(hrtime_t, char *, int);
-static void	profile_destroy(void *, dtrace_id_t, void *);
-static void	profile_enable(void *, dtrace_id_t, void *);
-static void	profile_disable(void *, dtrace_id_t, void *);
-static void	profile_load(void *);
-static void	profile_provide(void *, dtrace_probedesc_t *);
+static int profile_unload(void);
+static void profile_create(hrtime_t, char *, int);
+static void profile_destroy(void *, dtrace_id_t, void *);
+static void profile_enable(void *, dtrace_id_t, void *);
+static void profile_disable(void *, dtrace_id_t, void *);
+static void profile_load(void *);
+static void profile_provide(void *, dtrace_probedesc_t *);
 
-static int profile_rates[] = {
-    97, 199, 499, 997, 1999,
-    4001, 4999, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0
-};
+static int profile_rates[] = { 97, 199, 499, 997, 1999, 4001, 4999, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static int profile_ticks[] = {
-    1, 10, 100, 500, 1000,
-    5000, 0, 0, 0, 0,
-    0, 0, 0, 0, 0
-};
+static int profile_ticks[] = { 1, 10, 100, 500, 1000, 5000, 0, 0, 0, 0, 0, 0, 0,
+	0, 0 };
 
 /*
  * profile_max defines the upper bound on the number of profile probes that
@@ -169,41 +162,44 @@ static int profile_ticks[] = {
  * this gets its value from PROFILE_MAX_DEFAULT or profile-max-probes if it's
  * present in the profile.conf file.
  */
-#define	PROFILE_MAX_DEFAULT	1000	/* default max. number of probes */
+#define PROFILE_MAX_DEFAULT 1000 /* default max. number of probes */
 static uint32_t profile_max = PROFILE_MAX_DEFAULT;
-					/* maximum number of profile probes */
-static uint32_t profile_total;		/* current number of profile probes */
+/* maximum number of profile probes */
+static uint32_t profile_total; /* current number of profile probes */
 
 static dtrace_pattr_t profile_attr = {
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
 };
 
-static dtrace_pops_t profile_pops = {
-	.dtps_provide =		profile_provide,
-	.dtps_provide_module =	NULL,
-	.dtps_enable =		profile_enable,
-	.dtps_disable =		profile_disable,
-	.dtps_suspend =		NULL,
-	.dtps_resume =		NULL,
-	.dtps_getargdesc =	NULL,
-	.dtps_getargval =	NULL,
-	.dtps_usermode =	NULL,
-	.dtps_destroy =		profile_destroy
-};
+static dtrace_pops_t profile_pops = { .dtps_provide = profile_provide,
+	.dtps_provide_module = NULL,
+	.dtps_enable = profile_enable,
+	.dtps_disable = profile_disable,
+	.dtps_suspend = NULL,
+	.dtps_resume = NULL,
+	.dtps_getargdesc = NULL,
+	.dtps_getargval = NULL,
+	.dtps_usermode = NULL,
+	.dtps_destroy = profile_destroy };
 
-static dtrace_provider_id_t	profile_id;
-static hrtime_t			profile_interval_min = NANOSEC / 5000;	/* 5000 hz */
-static int			profile_aframes = PROF_ARTIFICIAL_FRAMES;
+static dtrace_provider_id_t profile_id;
+static hrtime_t profile_interval_min = NANOSEC / 5000; /* 5000 hz */
+static int profile_aframes = PROF_ARTIFICIAL_FRAMES;
 
 SYSCTL_DECL(_kern_dtrace);
 SYSCTL_NODE(_kern_dtrace, OID_AUTO, profile, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "DTrace profile parameters");
-SYSCTL_INT(_kern_dtrace_profile, OID_AUTO, aframes, CTLFLAG_RW, &profile_aframes,
-    0, "Skipped frames for profile provider");
+SYSCTL_INT(_kern_dtrace_profile, OID_AUTO, aframes, CTLFLAG_RW,
+    &profile_aframes, 0, "Skipped frames for profile provider");
 
 static sbintime_t
 nsec_to_sbt(hrtime_t nsec)
@@ -269,8 +265,8 @@ profile_fire(void *arg)
 
 	profile_probe(prof, late);
 	pcpu->profc_expected += pcpu->profc_interval;
-	callout_schedule_sbt_curcpu(&pcpu->profc_cyclic,
-	    pcpu->profc_expected, 0, C_DIRECT_EXEC | C_ABSOLUTE);
+	callout_schedule_sbt_curcpu(&pcpu->profc_cyclic, pcpu->profc_expected,
+	    0, C_DIRECT_EXEC | C_ABSOLUTE);
 }
 
 static void
@@ -280,8 +276,8 @@ profile_tick(void *arg)
 
 	profile_probe(prof, 0);
 	prof->prof_expected += prof->prof_interval;
-	callout_schedule_sbt(&prof->prof_cyclic,
-	    prof->prof_expected, 0, C_DIRECT_EXEC | C_ABSOLUTE);
+	callout_schedule_sbt(&prof->prof_cyclic, prof->prof_expected, 0,
+	    C_DIRECT_EXEC | C_ABSOLUTE);
 }
 
 static void
@@ -301,8 +297,8 @@ profile_create(hrtime_t interval, char *name, int kind)
 		return;
 	}
 
-	prof = kmem_zalloc(sizeof (profile_probe_t), KM_SLEEP);
-	(void) strcpy(prof->prof_name, name);
+	prof = kmem_zalloc(sizeof(profile_probe_t), KM_SLEEP);
+	(void)strcpy(prof->prof_name, name);
 #ifdef illumos
 	prof->prof_interval = interval;
 	prof->prof_cyclic = CYCLIC_NONE;
@@ -311,8 +307,7 @@ profile_create(hrtime_t interval, char *name, int kind)
 	callout_init(&prof->prof_cyclic, 1);
 #endif
 	prof->prof_kind = kind;
-	prof->prof_id = dtrace_probe_create(profile_id,
-	    NULL, NULL, name,
+	prof->prof_id = dtrace_probe_create(profile_id, NULL, NULL, name,
 	    profile_aframes, prof);
 }
 
@@ -327,33 +322,23 @@ profile_provide(void *arg, dtrace_probedesc_t *desc)
 	const struct {
 		char *prefix;
 		int kind;
-	} types[] = {
-		{ PROF_PREFIX_PROFILE, PROF_PROFILE },
-		{ PROF_PREFIX_TICK, PROF_TICK },
-		{ 0, 0 }
-	};
+	} types[] = { { PROF_PREFIX_PROFILE, PROF_PROFILE },
+		{ PROF_PREFIX_TICK, PROF_TICK }, { 0, 0 } };
 
 	const struct {
 		char *name;
 		hrtime_t mult;
-	} suffixes[] = {
-		{ "ns", 	NANOSEC / NANOSEC },
-		{ "nsec",	NANOSEC / NANOSEC },
-		{ "us",		NANOSEC / MICROSEC },
-		{ "usec",	NANOSEC / MICROSEC },
-		{ "ms",		NANOSEC / MILLISEC },
-		{ "msec",	NANOSEC / MILLISEC },
-		{ "s",		NANOSEC / SEC },
-		{ "sec",	NANOSEC / SEC },
-		{ "m",		NANOSEC * (hrtime_t)60 },
-		{ "min",	NANOSEC * (hrtime_t)60 },
-		{ "h",		NANOSEC * (hrtime_t)(60 * 60) },
-		{ "hour",	NANOSEC * (hrtime_t)(60 * 60) },
-		{ "d",		NANOSEC * (hrtime_t)(24 * 60 * 60) },
-		{ "day",	NANOSEC * (hrtime_t)(24 * 60 * 60) },
-		{ "hz",		0 },
-		{ NULL }
-	};
+	} suffixes[] = { { "ns", NANOSEC / NANOSEC },
+		{ "nsec", NANOSEC / NANOSEC }, { "us", NANOSEC / MICROSEC },
+		{ "usec", NANOSEC / MICROSEC }, { "ms", NANOSEC / MILLISEC },
+		{ "msec", NANOSEC / MILLISEC }, { "s", NANOSEC / SEC },
+		{ "sec", NANOSEC / SEC }, { "m", NANOSEC * (hrtime_t)60 },
+		{ "min", NANOSEC * (hrtime_t)60 },
+		{ "h", NANOSEC * (hrtime_t)(60 * 60) },
+		{ "hour", NANOSEC * (hrtime_t)(60 * 60) },
+		{ "d", NANOSEC * (hrtime_t)(24 * 60 * 60) },
+		{ "day", NANOSEC * (hrtime_t)(24 * 60 * 60) }, { "hz", 0 },
+		{ NULL } };
 
 	if (desc == NULL) {
 		char n[PROF_NAMELEN];
@@ -361,20 +346,20 @@ profile_provide(void *arg, dtrace_probedesc_t *desc)
 		/*
 		 * If no description was provided, provide all of our probes.
 		 */
-		for (i = 0; i < sizeof (profile_rates) / sizeof (int); i++) {
+		for (i = 0; i < sizeof(profile_rates) / sizeof(int); i++) {
 			if ((rate = profile_rates[i]) == 0)
 				continue;
 
-			(void) snprintf(n, PROF_NAMELEN, "%s%d",
+			(void)snprintf(n, PROF_NAMELEN, "%s%d",
 			    PROF_PREFIX_PROFILE, rate);
 			profile_create(NANOSEC / rate, n, PROF_PROFILE);
 		}
 
-		for (i = 0; i < sizeof (profile_ticks) / sizeof (int); i++) {
+		for (i = 0; i < sizeof(profile_ticks) / sizeof(int); i++) {
 			if ((rate = profile_ticks[i]) == 0)
 				continue;
 
-			(void) snprintf(n, PROF_NAMELEN, "%s%d",
+			(void)snprintf(n, PROF_NAMELEN, "%s%d",
 			    PROF_PREFIX_TICK, rate);
 			profile_create(NANOSEC / rate, n, PROF_TICK);
 		}
@@ -459,7 +444,7 @@ profile_destroy(void *arg, dtrace_id_t id, void *parg)
 #else
 	ASSERT(!callout_active(&prof->prof_cyclic) && prof->prof_pcpus == NULL);
 #endif
-	kmem_free(prof, sizeof (profile_probe_t));
+	kmem_free(prof, sizeof(profile_probe_t));
 
 	ASSERT(profile_total >= 1);
 	atomic_add_32(&profile_total, -1);
@@ -473,7 +458,7 @@ profile_online(void *arg, cpu_t *cpu, cyc_handler_t *hdlr, cyc_time_t *when)
 	profile_probe_t *prof = arg;
 	profile_probe_percpu_t *pcpu;
 
-	pcpu = kmem_zalloc(sizeof (profile_probe_percpu_t), KM_SLEEP);
+	pcpu = kmem_zalloc(sizeof(profile_probe_percpu_t), KM_SLEEP);
 	pcpu->profc_probe = prof;
 
 	hdlr->cyh_func = profile_fire;
@@ -493,7 +478,7 @@ profile_offline(void *arg, cpu_t *cpu, void *oarg)
 	profile_probe_percpu_t *pcpu = oarg;
 
 	ASSERT(pcpu->profc_probe == arg);
-	kmem_free(pcpu, sizeof (profile_probe_percpu_t));
+	kmem_free(pcpu, sizeof(profile_probe_percpu_t));
 }
 
 /* ARGSUSED */
@@ -550,16 +535,15 @@ profile_enable_omni(profile_probe_t *prof)
 	int cpu;
 
 	prof->prof_pcpus = kmem_zalloc((mp_maxid + 1) * sizeof(pcpu), KM_SLEEP);
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		pcpu = kmem_zalloc(sizeof(profile_probe_percpu_t), KM_SLEEP);
 		prof->prof_pcpus[cpu] = pcpu;
 		pcpu->profc_probe = prof;
 		pcpu->profc_expected = sbinuptime() + prof->prof_interval;
 		pcpu->profc_interval = prof->prof_interval;
 		callout_init(&pcpu->profc_cyclic, 1);
-		callout_reset_sbt_on(&pcpu->profc_cyclic,
-		    pcpu->profc_expected, 0, profile_fire, pcpu,
-		    cpu, C_DIRECT_EXEC | C_ABSOLUTE);
+		callout_reset_sbt_on(&pcpu->profc_cyclic, pcpu->profc_expected,
+		    0, profile_fire, pcpu, cpu, C_DIRECT_EXEC | C_ABSOLUTE);
 	}
 }
 
@@ -570,7 +554,7 @@ profile_disable_omni(profile_probe_t *prof)
 	int cpu;
 
 	ASSERT(prof->prof_pcpus != NULL);
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		pcpu = prof->prof_pcpus[cpu];
 		ASSERT(pcpu->profc_probe == prof);
 		ASSERT(callout_active(&pcpu->profc_cyclic));
@@ -590,9 +574,8 @@ profile_enable(void *arg, dtrace_id_t id, void *parg)
 
 	if (prof->prof_kind == PROF_TICK) {
 		prof->prof_expected = sbinuptime() + prof->prof_interval;
-		callout_reset_sbt(&prof->prof_cyclic,
-		    prof->prof_expected, 0, profile_tick, prof,
-		    C_DIRECT_EXEC | C_ABSOLUTE);
+		callout_reset_sbt(&prof->prof_cyclic, prof->prof_expected, 0,
+		    profile_tick, prof, C_DIRECT_EXEC | C_ABSOLUTE);
 	} else {
 		ASSERT(prof->prof_kind == PROF_PROFILE);
 		profile_enable_omni(prof);
@@ -619,11 +602,10 @@ profile_disable(void *arg, dtrace_id_t id, void *parg)
 static void
 profile_load(void *dummy)
 {
-	if (dtrace_register("profile", &profile_attr, DTRACE_PRIV_USER,
-	    NULL, &profile_pops, NULL, &profile_id) != 0)
+	if (dtrace_register("profile", &profile_attr, DTRACE_PRIV_USER, NULL,
+		&profile_pops, NULL, &profile_id) != 0)
 		return;
 }
-
 
 static int
 profile_unload(void)
@@ -655,13 +637,13 @@ profile_modevent(module_t mod __unused, int type, void *data __unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 	return (error);
 }
 
 SYSINIT(profile_load, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, profile_load, NULL);
-SYSUNINIT(profile_unload, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, profile_unload, NULL);
+SYSUNINIT(profile_unload, SI_SUB_DTRACE_PROVIDER, SI_ORDER_ANY, profile_unload,
+    NULL);
 
 DEV_MODULE(profile, profile_modevent, NULL);
 MODULE_VERSION(profile, 1);

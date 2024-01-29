@@ -29,14 +29,14 @@
 #include <sys/types.h>
 
 #include <err.h>
-#include <pwd.h>
 #include <libutil.h>
+#include <pwd.h>
 #include <unistd.h>
 
 #include "pw.h"
 
 static int
-pw_nisupdate(const char * path, struct passwd * pwd, char const * user)
+pw_nisupdate(const char *path, struct passwd *pwd, char const *user)
 {
 	int pfd, tfd;
 	struct passwd *pw = NULL;
@@ -50,7 +50,7 @@ pw_nisupdate(const char * path, struct passwd * pwd, char const * user)
 		old_pw = GETPWNAM(user);
 
 	if (pw_init(NULL, path))
-		err(1,"pw_init()");
+		err(1, "pw_init()");
 	if ((pfd = pw_lock()) == -1) {
 		pw_fini();
 		err(1, "pw_lock()");
@@ -78,13 +78,13 @@ pw_nisupdate(const char * path, struct passwd * pwd, char const * user)
 }
 
 int
-addnispwent(const char *path, struct passwd * pwd)
+addnispwent(const char *path, struct passwd *pwd)
 {
 	return pw_nisupdate(path, pwd, NULL);
 }
 
 int
-chgnispwent(const char *path, char const * login, struct passwd * pwd)
+chgnispwent(const char *path, char const *login, struct passwd *pwd)
 {
 	return pw_nisupdate(path, pwd, login);
 }

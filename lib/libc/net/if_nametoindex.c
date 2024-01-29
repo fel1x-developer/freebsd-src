@@ -27,17 +27,20 @@
  *	BSDI Id: if_nametoindex.c,v 2.3 2000/04/17 22:38:05 dab Exp
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
+
+#include <errno.h>
 #include <ifaddrs.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*
@@ -79,15 +82,14 @@ if_nametoindex(const char *ifname)
 	}
 
 	if (getifaddrs(&ifaddrs) < 0)
-		return(0);
+		return (0);
 
 	ni = 0;
 
 	for (ifa = ifaddrs; ifa != NULL; ifa = ifa->ifa_next) {
-		if (ifa->ifa_addr &&
-		    ifa->ifa_addr->sa_family == AF_LINK &&
+		if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK &&
 		    strcmp(ifa->ifa_name, ifname) == 0) {
-			ni = LLINDEX((struct sockaddr_dl*)ifa->ifa_addr);
+			ni = LLINDEX((struct sockaddr_dl *)ifa->ifa_addr);
 			break;
 		}
 	}
@@ -95,5 +97,5 @@ if_nametoindex(const char *ifname)
 	freeifaddrs(ifaddrs);
 	if (!ni)
 		errno = ENXIO;
-	return(ni);
+	return (ni);
 }

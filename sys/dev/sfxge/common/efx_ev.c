@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 #if EFSYS_OPT_MON_MCDI
@@ -38,102 +39,80 @@
 #endif
 
 #if EFSYS_OPT_QSTATS
-#define	EFX_EV_QSTAT_INCR(_eep, _stat)					\
-	do {								\
-		(_eep)->ee_stat[_stat]++;				\
-	_NOTE(CONSTANTCONDITION)					\
+#define EFX_EV_QSTAT_INCR(_eep, _stat)    \
+	do {                              \
+		(_eep)->ee_stat[_stat]++; \
+		_NOTE(CONSTANTCONDITION)  \
 	} while (B_FALSE)
 #else
-#define	EFX_EV_QSTAT_INCR(_eep, _stat)
+#define EFX_EV_QSTAT_INCR(_eep, _stat)
 #endif
 
-#define	EFX_EV_PRESENT(_qword)						\
-	(EFX_QWORD_FIELD((_qword), EFX_DWORD_0) != 0xffffffff &&	\
-	EFX_QWORD_FIELD((_qword), EFX_DWORD_1) != 0xffffffff)
+#define EFX_EV_PRESENT(_qword)                                   \
+	(EFX_QWORD_FIELD((_qword), EFX_DWORD_0) != 0xffffffff && \
+	    EFX_QWORD_FIELD((_qword), EFX_DWORD_1) != 0xffffffff)
 
 #if EFSYS_OPT_SIENA
 
-static	__checkReturn	efx_rc_t
-siena_ev_init(
-	__in		efx_nic_t *enp);
+static __checkReturn efx_rc_t siena_ev_init(__in efx_nic_t *enp);
 
-static			void
-siena_ev_fini(
-	__in		efx_nic_t *enp);
+static void siena_ev_fini(__in efx_nic_t *enp);
 
-static	__checkReturn	efx_rc_t
-siena_ev_qcreate(
-	__in		efx_nic_t *enp,
-	__in		unsigned int index,
-	__in		efsys_mem_t *esmp,
-	__in		size_t ndescs,
-	__in		uint32_t id,
-	__in		uint32_t us,
-	__in		uint32_t flags,
-	__in		efx_evq_t *eep);
+static __checkReturn efx_rc_t siena_ev_qcreate(__in efx_nic_t *enp,
+    __in unsigned int index, __in efsys_mem_t *esmp, __in size_t ndescs,
+    __in uint32_t id, __in uint32_t us, __in uint32_t flags,
+    __in efx_evq_t *eep);
 
-static			void
-siena_ev_qdestroy(
-	__in		efx_evq_t *eep);
+static void siena_ev_qdestroy(__in efx_evq_t *eep);
 
-static	__checkReturn	efx_rc_t
-siena_ev_qprime(
-	__in		efx_evq_t *eep,
-	__in		unsigned int count);
+static __checkReturn efx_rc_t siena_ev_qprime(__in efx_evq_t *eep,
+    __in unsigned int count);
 
-static			void
-siena_ev_qpost(
-	__in	efx_evq_t *eep,
-	__in	uint16_t data);
+static void siena_ev_qpost(__in efx_evq_t *eep, __in uint16_t data);
 
-static	__checkReturn	efx_rc_t
-siena_ev_qmoderate(
-	__in		efx_evq_t *eep,
-	__in		unsigned int us);
+static __checkReturn efx_rc_t siena_ev_qmoderate(__in efx_evq_t *eep,
+    __in unsigned int us);
 
 #if EFSYS_OPT_QSTATS
-static			void
-siena_ev_qstats_update(
-	__in				efx_evq_t *eep,
-	__inout_ecount(EV_NQSTATS)	efsys_stat_t *stat);
+static void siena_ev_qstats_update(__in efx_evq_t *eep,
+    __inout_ecount(EV_NQSTATS) efsys_stat_t *stat);
 
 #endif
 
 #endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_SIENA
-static const efx_ev_ops_t	__efx_ev_siena_ops = {
-	siena_ev_init,				/* eevo_init */
-	siena_ev_fini,				/* eevo_fini */
-	siena_ev_qcreate,			/* eevo_qcreate */
-	siena_ev_qdestroy,			/* eevo_qdestroy */
-	siena_ev_qprime,			/* eevo_qprime */
-	siena_ev_qpost,				/* eevo_qpost */
-	siena_ev_qmoderate,			/* eevo_qmoderate */
+static const efx_ev_ops_t __efx_ev_siena_ops = {
+	siena_ev_init,	    /* eevo_init */
+	siena_ev_fini,	    /* eevo_fini */
+	siena_ev_qcreate,   /* eevo_qcreate */
+	siena_ev_qdestroy,  /* eevo_qdestroy */
+	siena_ev_qprime,    /* eevo_qprime */
+	siena_ev_qpost,	    /* eevo_qpost */
+	siena_ev_qmoderate, /* eevo_qmoderate */
 #if EFSYS_OPT_QSTATS
-	siena_ev_qstats_update,			/* eevo_qstats_update */
+	siena_ev_qstats_update, /* eevo_qstats_update */
 #endif
 };
 #endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
-static const efx_ev_ops_t	__efx_ev_ef10_ops = {
-	ef10_ev_init,				/* eevo_init */
-	ef10_ev_fini,				/* eevo_fini */
-	ef10_ev_qcreate,			/* eevo_qcreate */
-	ef10_ev_qdestroy,			/* eevo_qdestroy */
-	ef10_ev_qprime,				/* eevo_qprime */
-	ef10_ev_qpost,				/* eevo_qpost */
-	ef10_ev_qmoderate,			/* eevo_qmoderate */
+static const efx_ev_ops_t __efx_ev_ef10_ops = {
+	ef10_ev_init,	   /* eevo_init */
+	ef10_ev_fini,	   /* eevo_fini */
+	ef10_ev_qcreate,   /* eevo_qcreate */
+	ef10_ev_qdestroy,  /* eevo_qdestroy */
+	ef10_ev_qprime,	   /* eevo_qprime */
+	ef10_ev_qpost,	   /* eevo_qpost */
+	ef10_ev_qmoderate, /* eevo_qmoderate */
 #if EFSYS_OPT_QSTATS
-	ef10_ev_qstats_update,			/* eevo_qstats_update */
+	ef10_ev_qstats_update, /* eevo_qstats_update */
 #endif
 };
 #endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-	__checkReturn	efx_rc_t
-efx_ev_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_ev_init(__in efx_nic_t *enp)
 {
 	const efx_ev_ops_t *eevop;
 	efx_rc_t rc;
@@ -197,9 +176,8 @@ fail1:
 	return (rc);
 }
 
-		void
-efx_ev_fini(
-	__in	efx_nic_t *enp)
+void
+efx_ev_fini(__in efx_nic_t *enp)
 {
 	const efx_ev_ops_t *eevop = enp->en_eevop;
 
@@ -216,16 +194,10 @@ efx_ev_fini(
 	enp->en_mod_flags &= ~EFX_MOD_EV;
 }
 
-	__checkReturn	efx_rc_t
-efx_ev_qcreate(
-	__in		efx_nic_t *enp,
-	__in		unsigned int index,
-	__in		efsys_mem_t *esmp,
-	__in		size_t ndescs,
-	__in		uint32_t id,
-	__in		uint32_t us,
-	__in		uint32_t flags,
-	__deref_out	efx_evq_t **eepp)
+__checkReturn efx_rc_t
+efx_ev_qcreate(__in efx_nic_t *enp, __in unsigned int index,
+    __in efsys_mem_t *esmp, __in size_t ndescs, __in uint32_t id,
+    __in uint32_t us, __in uint32_t flags, __deref_out efx_evq_t **eepp)
 {
 	const efx_ev_ops_t *eevop = enp->en_eevop;
 	efx_evq_t *eep;
@@ -234,8 +206,7 @@ efx_ev_qcreate(
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
 	EFSYS_ASSERT3U(enp->en_mod_flags, &, EFX_MOD_EV);
 
-	EFSYS_ASSERT3U(enp->en_ev_qcount + 1, <,
-	    enp->en_nic_cfg.enc_evq_limit);
+	EFSYS_ASSERT3U(enp->en_ev_qcount + 1, <, enp->en_nic_cfg.enc_evq_limit);
 
 	switch (flags & EFX_EVQ_FLAGS_NOTIFY_MASK) {
 	case EFX_EVQ_FLAGS_NOTIFY_INTERRUPT:
@@ -252,7 +223,7 @@ efx_ev_qcreate(
 	}
 
 	/* Allocate an EVQ object */
-	EFSYS_KMEM_ALLOC(enp->en_esip, sizeof (efx_evq_t), eep);
+	EFSYS_KMEM_ALLOC(enp->en_esip, sizeof(efx_evq_t), eep);
 	if (eep == NULL) {
 		rc = ENOMEM;
 		goto fail3;
@@ -277,7 +248,7 @@ efx_ev_qcreate(
 	*eepp = eep;
 
 	if ((rc = eevop->eevo_qcreate(enp, index, esmp, ndescs, id, us, flags,
-	    eep)) != 0)
+		 eep)) != 0)
 		goto fail4;
 
 	return (0);
@@ -287,7 +258,7 @@ fail4:
 
 	*eepp = NULL;
 	enp->en_ev_qcount--;
-	EFSYS_KMEM_FREE(enp->en_esip, sizeof (efx_evq_t), eep);
+	EFSYS_KMEM_FREE(enp->en_esip, sizeof(efx_evq_t), eep);
 fail3:
 	EFSYS_PROBE(fail3);
 fail2:
@@ -297,9 +268,8 @@ fail1:
 	return (rc);
 }
 
-		void
-efx_ev_qdestroy(
-	__in	efx_evq_t *eep)
+void
+efx_ev_qdestroy(__in efx_evq_t *eep)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	const efx_ev_ops_t *eevop = enp->en_eevop;
@@ -312,13 +282,11 @@ efx_ev_qdestroy(
 	eevop->eevo_qdestroy(eep);
 
 	/* Free the EVQ object */
-	EFSYS_KMEM_FREE(enp->en_esip, sizeof (efx_evq_t), eep);
+	EFSYS_KMEM_FREE(enp->en_esip, sizeof(efx_evq_t), eep);
 }
 
-	__checkReturn	efx_rc_t
-efx_ev_qprime(
-	__in		efx_evq_t *eep,
-	__in		unsigned int count)
+__checkReturn efx_rc_t
+efx_ev_qprime(__in efx_evq_t *eep, __in unsigned int count)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	const efx_ev_ops_t *eevop = enp->en_eevop;
@@ -343,17 +311,15 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	boolean_t
-efx_ev_qpending(
-	__in		efx_evq_t *eep,
-	__in		unsigned int count)
+__checkReturn boolean_t
+efx_ev_qpending(__in efx_evq_t *eep, __in unsigned int count)
 {
 	size_t offset;
 	efx_qword_t qword;
 
 	EFSYS_ASSERT3U(eep->ee_magic, ==, EFX_EVQ_MAGIC);
 
-	offset = (count & eep->ee_mask) * sizeof (efx_qword_t);
+	offset = (count & eep->ee_mask) * sizeof(efx_qword_t);
 	EFSYS_MEM_READQ(eep->ee_esmp, offset, &qword);
 
 	return (EFX_EV_PRESENT(qword));
@@ -361,29 +327,24 @@ efx_ev_qpending(
 
 #if EFSYS_OPT_EV_PREFETCH
 
-			void
-efx_ev_qprefetch(
-	__in		efx_evq_t *eep,
-	__in		unsigned int count)
+void
+efx_ev_qprefetch(__in efx_evq_t *eep, __in unsigned int count)
 {
 	unsigned int offset;
 
 	EFSYS_ASSERT3U(eep->ee_magic, ==, EFX_EVQ_MAGIC);
 
-	offset = (count & eep->ee_mask) * sizeof (efx_qword_t);
+	offset = (count & eep->ee_mask) * sizeof(efx_qword_t);
 	EFSYS_MEM_PREFETCH(eep->ee_esmp, offset);
 }
 
-#endif	/* EFSYS_OPT_EV_PREFETCH */
+#endif /* EFSYS_OPT_EV_PREFETCH */
 
-#define	EFX_EV_BATCH	8
+#define EFX_EV_BATCH 8
 
-			void
-efx_ev_qpoll(
-	__in		efx_evq_t *eep,
-	__inout		unsigned int *countp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+void
+efx_ev_qpoll(__in efx_evq_t *eep, __inout unsigned int *countp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	efx_qword_t ev[EFX_EV_BATCH];
 	unsigned int batch;
@@ -399,11 +360,11 @@ efx_ev_qpoll(
 	EFX_STATIC_ASSERT(ESE_DZ_EV_CODE_RX_EV == FSE_AZ_EV_CODE_RX_EV);
 	EFX_STATIC_ASSERT(ESE_DZ_EV_CODE_TX_EV == FSE_AZ_EV_CODE_TX_EV);
 	EFX_STATIC_ASSERT(ESE_DZ_EV_CODE_DRIVER_EV == FSE_AZ_EV_CODE_DRIVER_EV);
-	EFX_STATIC_ASSERT(ESE_DZ_EV_CODE_DRV_GEN_EV ==
-	    FSE_AZ_EV_CODE_DRV_GEN_EV);
+	EFX_STATIC_ASSERT(
+	    ESE_DZ_EV_CODE_DRV_GEN_EV == FSE_AZ_EV_CODE_DRV_GEN_EV);
 #if EFSYS_OPT_MCDI
-	EFX_STATIC_ASSERT(ESE_DZ_EV_CODE_MCDI_EV ==
-	    FSE_AZ_EV_CODE_MCDI_EVRESPONSE);
+	EFX_STATIC_ASSERT(
+	    ESE_DZ_EV_CODE_MCDI_EV == FSE_AZ_EV_CODE_MCDI_EVRESPONSE);
 #endif
 
 	EFSYS_ASSERT3U(eep->ee_magic, ==, EFX_EVQ_MAGIC);
@@ -414,7 +375,7 @@ efx_ev_qpoll(
 	do {
 		/* Read up until the end of the batch period */
 		batch = EFX_EV_BATCH - (count & (EFX_EV_BATCH - 1));
-		offset = (count & eep->ee_mask) * sizeof (efx_qword_t);
+		offset = (count & eep->ee_mask) * sizeof(efx_qword_t);
 		for (total = 0; total < batch; ++total) {
 			EFSYS_MEM_READQ(eep->ee_esmp, offset, &(ev[total]));
 
@@ -425,7 +386,7 @@ efx_ev_qpoll(
 			    uint32_t, EFX_QWORD_FIELD(ev[total], EFX_DWORD_1),
 			    uint32_t, EFX_QWORD_FIELD(ev[total], EFX_DWORD_0));
 
-			offset += sizeof (efx_qword_t);
+			offset += sizeof(efx_qword_t);
 		}
 
 #if EFSYS_OPT_EV_PREFETCH && (EFSYS_OPT_EV_PREFETCH_PERIOD > 1)
@@ -436,7 +397,7 @@ efx_ev_qpoll(
 		 */
 		if (total == batch && total < EFSYS_OPT_EV_PREFETCH_PERIOD)
 			EFSYS_MEM_PREFETCH(eep->ee_esmp, offset);
-#endif	/* EFSYS_OPT_EV_PREFETCH */
+#endif /* EFSYS_OPT_EV_PREFETCH */
 
 		/* Process the batch of events */
 		for (index = 0; index < total; ++index) {
@@ -448,27 +409,27 @@ efx_ev_qpoll(
 			if (total == batch &&
 			    index + EFSYS_OPT_EV_PREFETCH_PERIOD == total) {
 				offset = (count + batch) & eep->ee_mask;
-				offset *= sizeof (efx_qword_t);
+				offset *= sizeof(efx_qword_t);
 
 				EFSYS_MEM_PREFETCH(eep->ee_esmp, offset);
 			}
-#endif	/* EFSYS_OPT_EV_PREFETCH */
+#endif /* EFSYS_OPT_EV_PREFETCH */
 
 			EFX_EV_QSTAT_INCR(eep, EV_ALL);
 
 			code = EFX_QWORD_FIELD(ev[index], FSF_AZ_EV_CODE);
 			switch (code) {
 			case FSE_AZ_EV_CODE_RX_EV:
-				should_abort = eep->ee_rx(eep,
-				    &(ev[index]), eecp, arg);
+				should_abort = eep->ee_rx(eep, &(ev[index]),
+				    eecp, arg);
 				break;
 			case FSE_AZ_EV_CODE_TX_EV:
-				should_abort = eep->ee_tx(eep,
-				    &(ev[index]), eecp, arg);
+				should_abort = eep->ee_tx(eep, &(ev[index]),
+				    eecp, arg);
 				break;
 			case FSE_AZ_EV_CODE_DRIVER_EV:
-				should_abort = eep->ee_driver(eep,
-				    &(ev[index]), eecp, arg);
+				should_abort = eep->ee_driver(eep, &(ev[index]),
+				    eecp, arg);
 				break;
 			case FSE_AZ_EV_CODE_DRV_GEN_EV:
 				should_abort = eep->ee_drv_gen(eep,
@@ -476,8 +437,8 @@ efx_ev_qpoll(
 				break;
 #if EFSYS_OPT_MCDI
 			case FSE_AZ_EV_CODE_MCDI_EVRESPONSE:
-				should_abort = eep->ee_mcdi(eep,
-				    &(ev[index]), eecp, arg);
+				should_abort = eep->ee_mcdi(eep, &(ev[index]),
+				    eecp, arg);
 				break;
 #endif
 			case FSE_AZ_EV_CODE_GLOBAL_EV:
@@ -488,16 +449,15 @@ efx_ev_qpoll(
 				}
 				/* else fallthrough */
 			default:
-				EFSYS_PROBE3(bad_event,
-				    unsigned int, eep->ee_index,
-				    uint32_t,
+				EFSYS_PROBE3(bad_event, unsigned int,
+				    eep->ee_index, uint32_t,
 				    EFX_QWORD_FIELD(ev[index], EFX_DWORD_1),
 				    uint32_t,
 				    EFX_QWORD_FIELD(ev[index], EFX_DWORD_0));
 
 				EFSYS_ASSERT(eecp->eec_exception != NULL);
-				(void) eecp->eec_exception(arg,
-					EFX_EXCEPTION_EV_ERROR, code);
+				(void)eecp->eec_exception(arg,
+				    EFX_EXCEPTION_EV_ERROR, code);
 				should_abort = B_TRUE;
 			}
 			if (should_abort) {
@@ -521,10 +481,10 @@ efx_ev_qpoll(
 		 * care to only clear out events that we've processed
 		 */
 		EFX_SET_QWORD(ev[0]);
-		offset = (count & eep->ee_mask) * sizeof (efx_qword_t);
+		offset = (count & eep->ee_mask) * sizeof(efx_qword_t);
 		for (index = 0; index < total; ++index) {
 			EFSYS_MEM_WRITEQ(eep->ee_esmp, offset, &(ev[0]));
-			offset += sizeof (efx_qword_t);
+			offset += sizeof(efx_qword_t);
 		}
 
 		count += total;
@@ -534,27 +494,22 @@ efx_ev_qpoll(
 	*countp = count;
 }
 
-			void
-efx_ev_qpost(
-	__in	efx_evq_t *eep,
-	__in	uint16_t data)
+void
+efx_ev_qpost(__in efx_evq_t *eep, __in uint16_t data)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	const efx_ev_ops_t *eevop = enp->en_eevop;
 
 	EFSYS_ASSERT3U(eep->ee_magic, ==, EFX_EVQ_MAGIC);
 
-	EFSYS_ASSERT(eevop != NULL &&
-	    eevop->eevo_qpost != NULL);
+	EFSYS_ASSERT(eevop != NULL && eevop->eevo_qpost != NULL);
 
 	eevop->eevo_qpost(eep, data);
 }
 
-	__checkReturn	efx_rc_t
-efx_ev_usecs_to_ticks(
-	__in		efx_nic_t *enp,
-	__in		unsigned int us,
-	__out		unsigned int *ticksp)
+__checkReturn efx_rc_t
+efx_ev_usecs_to_ticks(__in efx_nic_t *enp, __in unsigned int us,
+    __out unsigned int *ticksp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	unsigned int ticks;
@@ -563,7 +518,7 @@ efx_ev_usecs_to_ticks(
 	if (us == 0)
 		ticks = 0;
 	else if (us * 1000 < encp->enc_evq_timer_quantum_ns)
-		ticks = 1;	/* Never round down to zero */
+		ticks = 1; /* Never round down to zero */
 	else
 		ticks = us * 1000 / encp->enc_evq_timer_quantum_ns;
 
@@ -571,10 +526,8 @@ efx_ev_usecs_to_ticks(
 	return (0);
 }
 
-	__checkReturn	efx_rc_t
-efx_ev_qmoderate(
-	__in		efx_evq_t *eep,
-	__in		unsigned int us)
+__checkReturn efx_rc_t
+efx_ev_qmoderate(__in efx_evq_t *eep, __in unsigned int us)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	const efx_ev_ops_t *eevop = enp->en_eevop;
@@ -601,12 +554,12 @@ fail1:
 }
 
 #if EFSYS_OPT_QSTATS
-					void
-efx_ev_qstats_update(
-	__in				efx_evq_t *eep,
-	__inout_ecount(EV_NQSTATS)	efsys_stat_t *stat)
+void
+efx_ev_qstats_update(__in efx_evq_t *eep,
+    __inout_ecount(EV_NQSTATS) efsys_stat_t *stat)
 
-{	efx_nic_t *enp = eep->ee_enp;
+{
+	efx_nic_t *enp = eep->ee_enp;
 	const efx_ev_ops_t *eevop = enp->en_eevop;
 
 	EFSYS_ASSERT3U(eep->ee_magic, ==, EFX_EVQ_MAGIC);
@@ -614,13 +567,12 @@ efx_ev_qstats_update(
 	eevop->eevo_qstats_update(eep, stat);
 }
 
-#endif	/* EFSYS_OPT_QSTATS */
+#endif /* EFSYS_OPT_QSTATS */
 
 #if EFSYS_OPT_SIENA
 
-static	__checkReturn	efx_rc_t
-siena_ev_init(
-	__in		efx_nic_t *enp)
+static __checkReturn efx_rc_t
+siena_ev_init(__in efx_nic_t *enp)
 {
 	efx_oword_t oword;
 
@@ -633,16 +585,11 @@ siena_ev_init(
 	EFX_BAR_WRITEO(enp, FR_AZ_DP_CTRL_REG, &oword);
 
 	return (0);
-
 }
 
-static  __checkReturn   boolean_t
-siena_ev_rx_not_ok(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		uint32_t label,
-	__in		uint32_t id,
-	__inout		uint16_t *flagsp)
+static __checkReturn boolean_t
+siena_ev_rx_not_ok(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in uint32_t label, __in uint32_t id, __inout uint16_t *flagsp)
 {
 	boolean_t ignore = B_FALSE;
 
@@ -677,7 +624,7 @@ siena_ev_rx_not_ok(
 		    (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_JUMBO_CONT) == 0) &&
 		    (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_BYTE_CNT) == 0))
 			ignore = B_TRUE;
-#endif	/* EFSYS_OPT_RX_SCATTER */
+#endif /* EFSYS_OPT_RX_SCATTER */
 	}
 
 	if (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_ETH_CRC_ERR) != 0) {
@@ -726,12 +673,9 @@ siena_ev_rx_not_ok(
 	return (ignore);
 }
 
-static	__checkReturn	boolean_t
-siena_ev_rx(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_rx(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	uint32_t id;
 	uint32_t size;
@@ -740,7 +684,7 @@ siena_ev_rx(
 #if EFSYS_OPT_RX_SCATTER
 	boolean_t sop;
 	boolean_t jumbo_cont;
-#endif	/* EFSYS_OPT_RX_SCATTER */
+#endif /* EFSYS_OPT_RX_SCATTER */
 	uint32_t hdr_type;
 	boolean_t is_v6;
 	uint16_t flags;
@@ -758,7 +702,7 @@ siena_ev_rx(
 #if EFSYS_OPT_RX_SCATTER
 	sop = (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_SOP) != 0);
 	jumbo_cont = (EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_JUMBO_CONT) != 0);
-#endif	/* EFSYS_OPT_RX_SCATTER */
+#endif /* EFSYS_OPT_RX_SCATTER */
 
 	hdr_type = EFX_QWORD_FIELD(*eqp, FSF_AZ_RX_EV_HDR_TYPE);
 
@@ -818,7 +762,7 @@ siena_ev_rx(
 		flags |= EFX_PKT_START;
 	if (jumbo_cont)
 		flags |= EFX_PKT_CONT;
-#endif	/* EFSYS_OPT_RX_SCATTER */
+#endif /* EFSYS_OPT_RX_SCATTER */
 
 	/* Detect errors included in the FSF_AZ_RX_EV_PKT_OK indication */
 	if (!ok) {
@@ -871,8 +815,8 @@ siena_ev_rx(
 			flags |= EFX_PKT_VLAN_TAGGED;
 	}
 
-	EFSYS_PROBE4(rx_complete, uint32_t, label, uint32_t, id,
-	    uint32_t, size, uint16_t, flags);
+	EFSYS_PROBE4(rx_complete, uint32_t, label, uint32_t, id, uint32_t, size,
+	    uint16_t, flags);
 
 	EFSYS_ASSERT(eecp->eec_rx != NULL);
 	should_abort = eecp->eec_rx(arg, label, id, size, flags);
@@ -880,12 +824,9 @@ siena_ev_rx(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
-siena_ev_tx(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_tx(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	uint32_t id;
 	uint32_t label;
@@ -909,9 +850,9 @@ siena_ev_tx(
 	}
 
 	if (EFX_QWORD_FIELD(*eqp, FSF_AZ_TX_EV_COMP) != 0)
-		EFSYS_PROBE3(bad_event, unsigned int, eep->ee_index,
-			    uint32_t, EFX_QWORD_FIELD(*eqp, EFX_DWORD_1),
-			    uint32_t, EFX_QWORD_FIELD(*eqp, EFX_DWORD_0));
+		EFSYS_PROBE3(bad_event, unsigned int, eep->ee_index, uint32_t,
+		    EFX_QWORD_FIELD(*eqp, EFX_DWORD_1), uint32_t,
+		    EFX_QWORD_FIELD(*eqp, EFX_DWORD_0));
 
 	if (EFX_QWORD_FIELD(*eqp, FSF_AZ_TX_EV_PKT_ERR) != 0)
 		EFX_EV_QSTAT_INCR(eep, EV_TX_PKT_ERR);
@@ -926,12 +867,9 @@ siena_ev_tx(
 	return (B_FALSE);
 }
 
-static	__checkReturn	boolean_t
-siena_ev_global(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_global(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	_NOTE(ARGUNUSED(eqp, eecp, arg))
 
@@ -940,12 +878,9 @@ siena_ev_global(
 	return (B_FALSE);
 }
 
-static	__checkReturn	boolean_t
-siena_ev_driver(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_driver(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	boolean_t should_abort;
 
@@ -983,7 +918,7 @@ siena_ev_driver(
 			EFSYS_PROBE1(rx_descq_fls_failed, uint32_t, rxq_index);
 
 			should_abort = eecp->eec_rxq_flush_failed(arg,
-								    rxq_index);
+			    rxq_index);
 		} else {
 			EFX_EV_QSTAT_INCR(eep, EV_DRIVER_RX_DESCQ_FLS_DONE);
 
@@ -1047,7 +982,7 @@ siena_ev_driver(
 
 		EFSYS_ASSERT(eecp->eec_exception != NULL);
 		should_abort = eecp->eec_exception(arg,
-			EFX_EXCEPTION_RX_DSC_ERROR, 0);
+		    EFX_EXCEPTION_RX_DSC_ERROR, 0);
 
 		break;
 
@@ -1058,7 +993,7 @@ siena_ev_driver(
 
 		EFSYS_ASSERT(eecp->eec_exception != NULL);
 		should_abort = eecp->eec_exception(arg,
-			EFX_EXCEPTION_TX_DSC_ERROR, 0);
+		    EFX_EXCEPTION_TX_DSC_ERROR, 0);
 
 		break;
 
@@ -1069,12 +1004,9 @@ siena_ev_driver(
 	return (should_abort);
 }
 
-static	__checkReturn	boolean_t
-siena_ev_drv_gen(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_drv_gen(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	uint32_t data;
 	boolean_t should_abort;
@@ -1083,9 +1015,9 @@ siena_ev_drv_gen(
 
 	data = EFX_QWORD_FIELD(*eqp, FSF_AZ_EV_DATA_DW0);
 	if (data >= ((uint32_t)1 << 16)) {
-		EFSYS_PROBE3(bad_event, unsigned int, eep->ee_index,
-			    uint32_t, EFX_QWORD_FIELD(*eqp, EFX_DWORD_1),
-			    uint32_t, EFX_QWORD_FIELD(*eqp, EFX_DWORD_0));
+		EFSYS_PROBE3(bad_event, unsigned int, eep->ee_index, uint32_t,
+		    EFX_QWORD_FIELD(*eqp, EFX_DWORD_1), uint32_t,
+		    EFX_QWORD_FIELD(*eqp, EFX_DWORD_0));
 		return (B_TRUE);
 	}
 
@@ -1097,12 +1029,9 @@ siena_ev_drv_gen(
 
 #if EFSYS_OPT_MCDI
 
-static	__checkReturn	boolean_t
-siena_ev_mcdi(
-	__in		efx_evq_t *eep,
-	__in		efx_qword_t *eqp,
-	__in		const efx_ev_callbacks_t *eecp,
-	__in_opt	void *arg)
+static __checkReturn boolean_t
+siena_ev_mcdi(__in efx_evq_t *eep, __in efx_qword_t *eqp,
+    __in const efx_ev_callbacks_t *eecp, __in_opt void *arg)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	unsigned int code;
@@ -1128,8 +1057,7 @@ siena_ev_mcdi(
 		break;
 
 	case MCDI_EVENT_CODE_CMDDONE:
-		efx_mcdi_ev_cpl(enp,
-		    MCDI_EV_FIELD(eqp, CMDDONE_SEQ),
+		efx_mcdi_ev_cpl(enp, MCDI_EV_FIELD(eqp, CMDDONE_SEQ),
 		    MCDI_EV_FIELD(eqp, CMDDONE_DATALEN),
 		    MCDI_EV_FIELD(eqp, CMDDONE_ERRNO));
 		break;
@@ -1151,10 +1079,10 @@ siena_ev_mcdi(
 			should_abort = eecp->eec_monitor(arg, id, value);
 		else if (rc == ENOTSUP) {
 			should_abort = eecp->eec_exception(arg,
-				EFX_EXCEPTION_UNKNOWN_SENSOREVT,
-				MCDI_EV_FIELD(eqp, DATA));
+			    EFX_EXCEPTION_UNKNOWN_SENSOREVT,
+			    MCDI_EV_FIELD(eqp, DATA));
 		} else
-			EFSYS_ASSERT(rc == ENODEV);	/* Wrong port */
+			EFSYS_ASSERT(rc == ENODEV); /* Wrong port */
 #else
 		should_abort = B_FALSE;
 #endif
@@ -1182,12 +1110,12 @@ siena_ev_mcdi(
 
 		if (reason == MCDI_EVENT_FWALERT_REASON_SRAM_ACCESS)
 			should_abort = eecp->eec_exception(arg,
-				EFX_EXCEPTION_FWALERT_SRAM,
-				MCDI_EV_FIELD(eqp, FWALERT_DATA));
+			    EFX_EXCEPTION_FWALERT_SRAM,
+			    MCDI_EV_FIELD(eqp, FWALERT_DATA));
 		else
 			should_abort = eecp->eec_exception(arg,
-				EFX_EXCEPTION_UNKNOWN_FWALERT,
-				MCDI_EV_FIELD(eqp, DATA));
+			    EFX_EXCEPTION_UNKNOWN_FWALERT,
+			    MCDI_EV_FIELD(eqp, DATA));
 		break;
 	}
 
@@ -1200,12 +1128,10 @@ out:
 	return (should_abort);
 }
 
-#endif	/* EFSYS_OPT_MCDI */
+#endif /* EFSYS_OPT_MCDI */
 
-static	__checkReturn	efx_rc_t
-siena_ev_qprime(
-	__in		efx_evq_t *eep,
-	__in		unsigned int count)
+static __checkReturn efx_rc_t
+siena_ev_qprime(__in efx_evq_t *eep, __in unsigned int count)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	uint32_t rptr;
@@ -1215,16 +1141,14 @@ siena_ev_qprime(
 
 	EFX_POPULATE_DWORD_1(dword, FRF_AZ_EVQ_RPTR, rptr);
 
-	EFX_BAR_TBL_WRITED(enp, FR_AZ_EVQ_RPTR_REG, eep->ee_index,
-			    &dword, B_FALSE);
+	EFX_BAR_TBL_WRITED(enp, FR_AZ_EVQ_RPTR_REG, eep->ee_index, &dword,
+	    B_FALSE);
 
 	return (0);
 }
 
-static		void
-siena_ev_qpost(
-	__in	efx_evq_t *eep,
-	__in	uint16_t data)
+static void
+siena_ev_qpost(__in efx_evq_t *eep, __in uint16_t data)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	efx_qword_t ev;
@@ -1234,16 +1158,14 @@ siena_ev_qpost(
 	    FSF_AZ_EV_DATA_DW0, (uint32_t)data);
 
 	EFX_POPULATE_OWORD_3(oword, FRF_AZ_DRV_EV_QID, eep->ee_index,
-	    EFX_DWORD_0, EFX_QWORD_FIELD(ev, EFX_DWORD_0),
-	    EFX_DWORD_1, EFX_QWORD_FIELD(ev, EFX_DWORD_1));
+	    EFX_DWORD_0, EFX_QWORD_FIELD(ev, EFX_DWORD_0), EFX_DWORD_1,
+	    EFX_QWORD_FIELD(ev, EFX_DWORD_1));
 
 	EFX_BAR_WRITEO(enp, FR_AZ_DRV_EV_REG, &oword);
 }
 
-static	__checkReturn	efx_rc_t
-siena_ev_qmoderate(
-	__in		efx_evq_t *eep,
-	__in		unsigned int us)
+static __checkReturn efx_rc_t
+siena_ev_qmoderate(__in efx_evq_t *eep, __in unsigned int us)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
@@ -1258,9 +1180,8 @@ siena_ev_qmoderate(
 
 	/* If the value is zero then disable the timer */
 	if (us == 0) {
-		EFX_POPULATE_DWORD_2(dword,
-		    FRF_CZ_TC_TIMER_MODE, FFE_CZ_TIMER_MODE_DIS,
-		    FRF_CZ_TC_TIMER_VAL, 0);
+		EFX_POPULATE_DWORD_2(dword, FRF_CZ_TC_TIMER_MODE,
+		    FFE_CZ_TIMER_MODE_DIS, FRF_CZ_TC_TIMER_VAL, 0);
 	} else {
 		unsigned int ticks;
 
@@ -1268,15 +1189,15 @@ siena_ev_qmoderate(
 			goto fail2;
 
 		EFSYS_ASSERT(ticks > 0);
-		EFX_POPULATE_DWORD_2(dword,
-		    FRF_CZ_TC_TIMER_MODE, FFE_CZ_TIMER_MODE_INT_HLDOFF,
-		    FRF_CZ_TC_TIMER_VAL, ticks - 1);
+		EFX_POPULATE_DWORD_2(dword, FRF_CZ_TC_TIMER_MODE,
+		    FFE_CZ_TIMER_MODE_INT_HLDOFF, FRF_CZ_TC_TIMER_VAL,
+		    ticks - 1);
 	}
 
 	locked = (eep->ee_index == 0) ? 1 : 0;
 
-	EFX_BAR_TBL_WRITED(enp, FR_BZ_TIMER_COMMAND_REGP0,
-	    eep->ee_index, &dword, locked);
+	EFX_BAR_TBL_WRITED(enp, FR_BZ_TIMER_COMMAND_REGP0, eep->ee_index,
+	    &dword, locked);
 
 	return (0);
 
@@ -1288,16 +1209,10 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-siena_ev_qcreate(
-	__in		efx_nic_t *enp,
-	__in		unsigned int index,
-	__in		efsys_mem_t *esmp,
-	__in		size_t ndescs,
-	__in		uint32_t id,
-	__in		uint32_t us,
-	__in		uint32_t flags,
-	__in		efx_evq_t *eep)
+static __checkReturn efx_rc_t
+siena_ev_qcreate(__in efx_nic_t *enp, __in unsigned int index,
+    __in efsys_mem_t *esmp, __in size_t ndescs, __in uint32_t id,
+    __in uint32_t us, __in uint32_t flags, __in efx_evq_t *eep)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t size;
@@ -1310,8 +1225,8 @@ siena_ev_qcreate(
 	EFX_STATIC_ASSERT(ISP2(EFX_EVQ_MAXNEVS));
 	EFX_STATIC_ASSERT(ISP2(EFX_EVQ_MINNEVS));
 
-	if (!ISP2(ndescs) ||
-	    (ndescs < EFX_EVQ_MINNEVS) || (ndescs > EFX_EVQ_MAXNEVS)) {
+	if (!ISP2(ndescs) || (ndescs < EFX_EVQ_MINNEVS) ||
+	    (ndescs > EFX_EVQ_MAXNEVS)) {
 		rc = EINVAL;
 		goto fail1;
 	}
@@ -1327,7 +1242,7 @@ siena_ev_qcreate(
 	}
 #endif
 	for (size = 0; (1 << size) <= (EFX_EVQ_MAXNEVS / EFX_EVQ_MINNEVS);
-	    size++)
+	     size++)
 		if ((1 << size) == (int)(ndescs / EFX_EVQ_MINNEVS))
 			break;
 	if (id + (1 << size) >= encp->enc_buftbl_limit) {
@@ -1336,22 +1251,22 @@ siena_ev_qcreate(
 	}
 
 	/* Set up the handler table */
-	eep->ee_rx	= siena_ev_rx;
-	eep->ee_tx	= siena_ev_tx;
-	eep->ee_driver	= siena_ev_driver;
-	eep->ee_global	= siena_ev_global;
-	eep->ee_drv_gen	= siena_ev_drv_gen;
+	eep->ee_rx = siena_ev_rx;
+	eep->ee_tx = siena_ev_tx;
+	eep->ee_driver = siena_ev_driver;
+	eep->ee_global = siena_ev_global;
+	eep->ee_drv_gen = siena_ev_drv_gen;
 #if EFSYS_OPT_MCDI
-	eep->ee_mcdi	= siena_ev_mcdi;
-#endif	/* EFSYS_OPT_MCDI */
+	eep->ee_mcdi = siena_ev_mcdi;
+#endif /* EFSYS_OPT_MCDI */
 
 	notify_mode = ((flags & EFX_EVQ_FLAGS_NOTIFY_MASK) !=
 	    EFX_EVQ_FLAGS_NOTIFY_INTERRUPT);
 
 	/* Set up the new event queue */
 	EFX_POPULATE_OWORD_3(oword, FRF_CZ_TIMER_Q_EN, 1,
-	    FRF_CZ_HOST_NOTIFY_MODE, notify_mode,
-	    FRF_CZ_TIMER_MODE, FFE_CZ_TIMER_MODE_DIS);
+	    FRF_CZ_HOST_NOTIFY_MODE, notify_mode, FRF_CZ_TIMER_MODE,
+	    FFE_CZ_TIMER_MODE_DIS);
 	EFX_BAR_TBL_WRITEO(enp, FR_AZ_TIMER_TBL, index, &oword, B_TRUE);
 
 	EFX_POPULATE_OWORD_3(oword, FRF_AZ_EVQ_EN, 1, FRF_AZ_EVQ_SIZE, size,
@@ -1383,7 +1298,7 @@ fail1:
 #if EFSYS_OPT_QSTATS
 #if EFSYS_OPT_NAMES
 /* START MKCONFIG GENERATED EfxEventQueueStatNamesBlock c0f3bc5083b40532 */
-static const char * const __efx_ev_qstat_name[] = {
+static const char *const __efx_ev_qstat_name[] = {
 	"all",
 	"rx",
 	"rx_ok",
@@ -1424,10 +1339,8 @@ static const char * const __efx_ev_qstat_name[] = {
 };
 /* END MKCONFIG GENERATED EfxEventQueueStatNamesBlock */
 
-		const char *
-efx_ev_qstat_name(
-	__in	efx_nic_t *enp,
-	__in	unsigned int id)
+const char *
+efx_ev_qstat_name(__in efx_nic_t *enp, __in unsigned int id)
 {
 	_NOTE(ARGUNUSED(enp))
 
@@ -1436,16 +1349,15 @@ efx_ev_qstat_name(
 
 	return (__efx_ev_qstat_name[id]);
 }
-#endif	/* EFSYS_OPT_NAMES */
-#endif	/* EFSYS_OPT_QSTATS */
+#endif /* EFSYS_OPT_NAMES */
+#endif /* EFSYS_OPT_QSTATS */
 
 #if EFSYS_OPT_SIENA
 
 #if EFSYS_OPT_QSTATS
-static					void
-siena_ev_qstats_update(
-	__in				efx_evq_t *eep,
-	__inout_ecount(EV_NQSTATS)	efsys_stat_t *stat)
+static void
+siena_ev_qstats_update(__in efx_evq_t *eep,
+    __inout_ecount(EV_NQSTATS) efsys_stat_t *stat)
 {
 	unsigned int id;
 
@@ -1456,11 +1368,10 @@ siena_ev_qstats_update(
 		eep->ee_stat[id] = 0;
 	}
 }
-#endif	/* EFSYS_OPT_QSTATS */
+#endif /* EFSYS_OPT_QSTATS */
 
-static		void
-siena_ev_qdestroy(
-	__in	efx_evq_t *eep)
+static void
+siena_ev_qdestroy(__in efx_evq_t *eep)
 {
 	efx_nic_t *enp = eep->ee_enp;
 	efx_oword_t oword;
@@ -1468,16 +1379,15 @@ siena_ev_qdestroy(
 	/* Purge event queue */
 	EFX_ZERO_OWORD(oword);
 
-	EFX_BAR_TBL_WRITEO(enp, FR_AZ_EVQ_PTR_TBL,
-	    eep->ee_index, &oword, B_TRUE);
+	EFX_BAR_TBL_WRITEO(enp, FR_AZ_EVQ_PTR_TBL, eep->ee_index, &oword,
+	    B_TRUE);
 
 	EFX_ZERO_OWORD(oword);
 	EFX_BAR_TBL_WRITEO(enp, FR_AZ_TIMER_TBL, eep->ee_index, &oword, B_TRUE);
 }
 
-static		void
-siena_ev_fini(
-	__in	efx_nic_t *enp)
+static void
+siena_ev_fini(__in efx_nic_t *enp)
 {
 	_NOTE(ARGUNUSED(enp))
 }

@@ -27,20 +27,20 @@
 #include <err.h>
 #include <errno.h>
 #include <fnmatch.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 #include <unistd.h>
 
 #include "diff.h"
 
 static int selectfile(const struct dirent *);
-static void diffit(struct dirent *, char *, size_t, struct dirent *,
-	char *, size_t, int);
+static void diffit(struct dirent *, char *, size_t, struct dirent *, char *,
+    size_t, int);
 static void print_only(const char *, size_t, const char *);
 
-#define d_status	d_type		/* we need to store status for -l */
+#define d_status d_type /* we need to store status for -l */
 
 /*
  * Diff directory traversal. Will be called recursively if -r was specified.
@@ -122,19 +122,22 @@ diffdir(char *p1, char *p2, int flags)
 		dent1 = dp1 != edp1 ? *dp1 : NULL;
 		dent2 = dp2 != edp2 ? *dp2 : NULL;
 
-		pos = dent1 == NULL ? 1 : dent2 == NULL ? -1 :
-		    ignore_file_case ? strcasecmp(dent1->d_name, dent2->d_name) :
-		    strcmp(dent1->d_name, dent2->d_name) ;
+		pos = dent1 == NULL ? 1 :
+		    dent2 == NULL   ? -1 :
+		    ignore_file_case ?
+				    strcasecmp(dent1->d_name, dent2->d_name) :
+				    strcmp(dent1->d_name, dent2->d_name);
 		if (pos == 0) {
 			/* file exists in both dirs, diff it */
-			diffit(dent1, path1, dirlen1, dent2, path2, dirlen2, flags);
+			diffit(dent1, path1, dirlen1, dent2, path2, dirlen2,
+			    flags);
 			dp1++;
 			dp2++;
 		} else if (pos < 0) {
 			/* file only in first dir, only diff if -N */
 			if (Nflag) {
 				diffit(dent1, path1, dirlen1, dent2, path2,
-					dirlen2, flags);
+				    dirlen2, flags);
 			} else {
 				print_only(path1, dirlen1, dent1->d_name);
 				status |= 1;
@@ -144,7 +147,7 @@ diffdir(char *p1, char *p2, int flags)
 			/* file only in second dir, only diff if -N or -P */
 			if (Nflag || Pflag)
 				diffit(dent2, path1, dirlen1, dent1, path2,
-					dirlen2, flags);
+				    dirlen2, flags);
 			else {
 				print_only(path2, dirlen2, dent2->d_name);
 				status |= 1;
@@ -171,7 +174,7 @@ closem:
  */
 static void
 diffit(struct dirent *dp, char *path1, size_t plen1, struct dirent *dp2,
-	char *path2, size_t plen2, int flags)
+    char *path2, size_t plen2, int flags)
 {
 	flags |= D_HEADER;
 	strlcpy(path1 + plen1, dp->d_name, PATH_MAX - plen1);
@@ -207,7 +210,7 @@ diffit(struct dirent *dp, char *path1, size_t plen1, struct dirent *dp2,
 		if (stb1.st_mode == 0)
 			stb1.st_mode = stb2.st_mode;
 		if (S_ISLNK(stb1.st_mode) || S_ISLNK(stb2.st_mode)) {
-			if  (S_ISLNK(stb1.st_mode) && S_ISLNK(stb2.st_mode)) {
+			if (S_ISLNK(stb1.st_mode) && S_ISLNK(stb2.st_mode)) {
 				char buf1[PATH_MAX];
 				char buf2[PATH_MAX];
 				ssize_t len1 = 0;
@@ -223,22 +226,31 @@ diffit(struct dirent *dp, char *path1, size_t plen1, struct dirent *dp2,
 				buf1[len1] = '\0';
 				buf2[len2] = '\0';
 
-				if (len1 != len2 || strncmp(buf1, buf2, len1) != 0) {
-					printf("Symbolic links %s and %s differ\n",
-						path1, path2);
+				if (len1 != len2 ||
+				    strncmp(buf1, buf2, len1) != 0) {
+					printf(
+					    "Symbolic links %s and %s differ\n",
+					    path1, path2);
 					status |= 1;
 				}
 
 				return;
 			}
 
-			printf("File %s is a %s while file %s is a %s\n",
-				path1, S_ISLNK(stb1.st_mode) ? "symbolic link" :
-					(S_ISDIR(stb1.st_mode) ? "directory" :
-					(S_ISREG(stb1.st_mode) ? "file" : "error")),
-				path2, S_ISLNK(stb2.st_mode) ? "symbolic link" :
-					(S_ISDIR(stb2.st_mode) ? "directory" :
-					(S_ISREG(stb2.st_mode) ? "file" : "error")));
+			printf("File %s is a %s while file %s is a %s\n", path1,
+			    S_ISLNK(stb1.st_mode) ?
+				"symbolic link" :
+				(S_ISDIR(stb1.st_mode) ?
+					"directory" :
+					(S_ISREG(stb1.st_mode) ? "file" :
+								 "error")),
+			    path2,
+			    S_ISLNK(stb2.st_mode) ?
+				"symbolic link" :
+				(S_ISDIR(stb2.st_mode) ?
+					"directory" :
+					(S_ISREG(stb2.st_mode) ? "file" :
+								 "error")));
 			status |= 1;
 			return;
 		}
@@ -268,8 +280,8 @@ diffit(struct dirent *dp, char *path1, size_t plen1, struct dirent *dp2,
 		if (rflag)
 			diffdir(path1, path2, flags);
 		else
-			printf("Common subdirectories: %s and %s\n",
-			    path1, path2);
+			printf("Common subdirectories: %s and %s\n", path1,
+			    path2);
 		return;
 	}
 	if (!S_ISREG(stb1.st_mode) && !S_ISDIR(stb1.st_mode))
@@ -294,8 +306,9 @@ selectfile(const struct dirent *dp)
 		return (0);
 
 	/* always skip "." and ".." */
-	if (dp->d_name[0] == '.' && (dp->d_name[1] == '\0' ||
-	    (dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
+	if (dp->d_name[0] == '.' &&
+	    (dp->d_name[1] == '\0' ||
+		(dp->d_name[1] == '.' && dp->d_name[2] == '\0')))
 		return (0);
 
 	/* check excludes list */

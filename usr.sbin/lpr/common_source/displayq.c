@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/param.h>
 #include <sys/stat.h>
 
@@ -42,8 +41,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #define psignal foil_gcc_psignal
-#define	sys_siglist foil_gcc_siglist
+#define sys_siglist foil_gcc_siglist
 #include <unistd.h>
 #undef psignal
 #undef sys_siglist
@@ -55,35 +56,35 @@
 /*
  * Routines to display the state of the queue.
  */
-#define JOBCOL	40		/* column for job # in -l format */
-#define OWNCOL	7		/* start of Owner column in normal */
-#define SIZCOL	62		/* start of Size column in normal */
+#define JOBCOL 40 /* column for job # in -l format */
+#define OWNCOL 7  /* start of Owner column in normal */
+#define SIZCOL 62 /* start of Size column in normal */
 
 /*
  * isprint() takes a parameter of 'int', but expect values in the range
  * of unsigned char.  Define a wrapper which takes a value of type 'char',
  * whether signed or unsigned, and ensure it ends up in the right range.
  */
-#define	isprintch(Anychar) isprint((u_char)(Anychar))
+#define isprintch(Anychar) isprint((u_char)(Anychar))
 
 /*
  * Stuff for handling job specifications
  */
-static int	col;		/* column on screen */
-static char	current[MAXNAMLEN+1];	/* current file being printed */
-static char	file[MAXNAMLEN+1];	/* print file name */
-static int	first;		/* first file in ``files'' column? */
-static int	garbage;	/* # of garbage cf files */
-static int	lflag;		/* long output option */
-static int	rank;		/* order to be printed (-1=none, 0=active) */
-static long	totsize;	/* total print job size in bytes */
+static int col;			    /* column on screen */
+static char current[MAXNAMLEN + 1]; /* current file being printed */
+static char file[MAXNAMLEN + 1];    /* print file name */
+static int first;		    /* first file in ``files'' column? */
+static int garbage;		    /* # of garbage cf files */
+static int lflag;		    /* long output option */
+static int rank;     /* order to be printed (-1=none, 0=active) */
+static long totsize; /* total print job size in bytes */
 
-static const char  *head0 = "Rank   Owner      Job  Files";
-static const char  *head1 = "Total Size\n";
+static const char *head0 = "Rank   Owner      Job  Files";
+static const char *head1 = "Total Size\n";
 
-static void	alarmhandler(int _signo);
-static void	filtered_write(char *_obuffer, int _wlen, FILE *_wstream);
-static void	daemonwarn(const struct printer *_pp);
+static void alarmhandler(int _signo);
+static void filtered_write(char *_obuffer, int _wlen, FILE *_wstream);
+static void daemonwarn(const struct printer *_pp);
 
 /*
  * Display the current state of the queue. Format = 1 if long format.
@@ -115,7 +116,7 @@ displayq(struct printer *pp, int format)
 	PRIV_START
 	if (chdir(pp->spool_dir) < 0)
 		fatal(pp, "cannot chdir to spooling directory: %s",
-		      strerror(errno));
+		    strerror(errno));
 	PRIV_END
 	if ((nitems = getq(pp, &queue)) < 0)
 		fatal(pp, "cannot examine spooling area\n");
@@ -128,20 +129,20 @@ displayq(struct printer *pp, int format)
 				printf("%s: ", local_host);
 			printf("Warning: %s is down: ", pp->printer);
 			PRIV_START
-			fd = open(pp->status_file, O_RDONLY|O_SHLOCK);
+			fd = open(pp->status_file, O_RDONLY | O_SHLOCK);
 			PRIV_END
 			if (fd >= 0) {
 				while ((i = read(fd, line, sizeof(line))) > 0)
-					(void) fwrite(line, 1, i, stdout);
-				(void) close(fd);	/* unlocks as well */
+					(void)fwrite(line, 1, i, stdout);
+				(void)close(fd); /* unlocks as well */
 			} else
 				putchar('\n');
 		}
 		if (statb.st_mode & LFM_QUEUE_DIS) {
 			if (pp->remote)
 				printf("%s: ", local_host);
-			printf("Warning: %s queue is turned off\n", 
-			       pp->printer);
+			printf("Warning: %s queue is turned off\n",
+			    pp->printer);
 		}
 	}
 
@@ -185,17 +186,17 @@ displayq(struct printer *pp, int format)
 				if (pp->remote)
 					printf("%s: ", local_host);
 				PRIV_START
-				fd = open(pp->status_file, O_RDONLY|O_SHLOCK);
+				fd = open(pp->status_file, O_RDONLY | O_SHLOCK);
 				PRIV_END
 				if (fd >= 0) {
 					while ((i = read(fd, line,
-							 sizeof(line))) > 0)
+						    sizeof(line))) > 0)
 						fwrite(line, 1, i, stdout);
-					close(fd);	/* unlocks as well */
+					close(fd); /* unlocks as well */
 				} else
 					putchar('\n');
 			}
-			(void) fclose(fp);
+			(void)fclose(fp);
 		}
 		/*
 		 * Now, examine the control files and print out the jobs to
@@ -222,18 +223,19 @@ displayq(struct printer *pp, int format)
 	 */
 	if (nitems)
 		putchar('\n');
-	(void) snprintf(line, sizeof(line), "%c%s", format ? '\4' : '\3',
-			pp->remote_queue);
+	(void)snprintf(line, sizeof(line), "%c%s", format ? '\4' : '\3',
+	    pp->remote_queue);
 	cp = line;
-	for (i = 0; i < requests && cp-line+10 < sizeof(line) - 1; i++) {
+	for (i = 0; i < requests && cp - line + 10 < sizeof(line) - 1; i++) {
 		cp += strlen(cp);
-		(void) sprintf(cp, " %d", requ[i]);
+		(void)sprintf(cp, " %d", requ[i]);
 	}
-	for (i = 0; i < users && cp - line + 1 + strlen(user[i]) < 
-		sizeof(line) - 1; i++) {
+	for (i = 0;
+	     i < users && cp - line + 1 + strlen(user[i]) < sizeof(line) - 1;
+	     i++) {
 		cp += strlen(cp);
 		*cp++ = ' ';
-		(void) strcpy(cp, user[i]);
+		(void)strcpy(cp, user[i]);
 	}
 	strcat(line, "\n");
 	savealrm = signal(SIGALRM, alarmhandler);
@@ -245,15 +247,14 @@ displayq(struct printer *pp, int format)
 		if (from_host != local_host)
 			printf("%s: ", local_host);
 		printf("connection to %s is down\n", pp->remote_host);
-	}
-	else {
+	} else {
 		i = strlen(line);
 		if (write(fd, line, i) != i)
 			fatal(pp, "Lost connection");
 		while ((i = read(fd, line, sizeof(line))) > 0)
 			filtered_write(line, i, stdout);
 		filtered_write(NULL, -1, stdout);
-		(void) close(fd);
+		(void)close(fd);
 	}
 }
 
@@ -324,7 +325,7 @@ filtered_write(char *wbuffer, int wlen, FILE *wstream)
 		}
 		if (*chkptr == '\r')
 			*dest_ch++ = '\n';
-#if 0		/* XXX - don't translate unprintable characters (yet) */
+#if 0 /* XXX - don't translate unprintable characters (yet) */
 		else if (*chkptr != '\t' && *chkptr != '\n' &&
 		    !isprintch(*chkptr))
 			*dest_ch++ = '?';
@@ -332,7 +333,7 @@ filtered_write(char *wbuffer, int wlen, FILE *wstream)
 		else
 			*dest_ch++ = *chkptr;
 
-check_next:
+	check_next:
 		chkptr = nxtptr;
 		nxtptr = chkptr + 1;
 		if (dest_ch >= dest_end) {
@@ -368,7 +369,7 @@ void
 header(void)
 {
 	printf("%s", head0);
-	col = strlen(head0)+1;
+	col = strlen(head0) + 1;
 	blankfill(SIZCOL);
 	printf("%s", head1);
 }
@@ -377,8 +378,8 @@ void
 inform(const struct printer *pp, char *cf)
 {
 	int copycnt, jnum;
-	char	 savedname[MAXPATHLEN+1];
-	FILE	*cfp;
+	char savedname[MAXPATHLEN + 1];
+	FILE *cfp;
 
 	/*
 	 * There's a chance the control file has gone away
@@ -412,21 +413,21 @@ inform(const struct printer *pp, char *cf)
 	while (get_line(cfp)) {
 		switch (line[0]) {
 		case 'P': /* Was this file specified in the user's list? */
-			if (!inlist(line+1, cf)) {
+			if (!inlist(line + 1, cf)) {
 				fclose(cfp);
 				return;
 			}
 			if (lflag) {
-				printf("\n%s: ", line+1);
-				col = strlen(line+1) + 2;
+				printf("\n%s: ", line + 1);
+				col = strlen(line + 1) + 2;
 				prank(rank);
 				blankfill(JOBCOL);
-				printf(" [job %s]\n", cf+3);
+				printf(" [job %s]\n", cf + 3);
 			} else {
 				col = 0;
 				prank(rank);
 				blankfill(OWNCOL);
-				printf("%-10s %-3d  ", line+1, jnum);
+				printf("%-10s %-3d  ", line + 1, jnum);
 				col += 16;
 				first = 1;
 			}
@@ -434,7 +435,7 @@ inform(const struct printer *pp, char *cf)
 		default: /* some format specifer and file name? */
 			if (line[0] < 'a' || line[0] > 'z')
 				break;
-			if (copycnt == 0 || strcmp(file, line+1) != 0) {
+			if (copycnt == 0 || strcmp(file, line + 1) != 0) {
 				strlcpy(file, line + 1, sizeof(file));
 			}
 			copycnt++;
@@ -479,21 +480,21 @@ inlist(char *uname, char *cfile)
 	const char *cfhost;
 
 	if (users == 0 && requests == 0)
-		return(1);
+		return (1);
 	/*
 	 * Check to see if it's in the user list
 	 */
 	for (u = user; u < &user[users]; u++)
 		if (!strcmp(*u, uname))
-			return(1);
+			return (1);
 	/*
 	 * Check the request list
 	 */
 	jnum = calc_jobnum(cfile, &cfhost);
 	for (r = requ; r < &requ[requests]; r++)
 		if (*r == jnum && !strcmp(cfhost, from_host))
-			return(1);
-	return(0);
+			return (1);
+	return (0);
 }
 
 void
@@ -525,22 +526,22 @@ dump(const char *nfile, const char *datafile, int copies)
 {
 	struct stat lbuf;
 	const char etctmpl[] = ", ...";
-	char	 etc[sizeof(etctmpl)];
-	char	*lastsep;
-	short	 fill, nlen;
-	short	 rem, remetc;
+	char etc[sizeof(etctmpl)];
+	char *lastsep;
+	short fill, nlen;
+	short rem, remetc;
 
 	/*
 	 * Print as many filenames as will fit
 	 *      (leaving room for the 'total size' field)
 	 */
-	fill = first ? 0 : 2;	/* fill space for ``, '' */
+	fill = first ? 0 : 2; /* fill space for ``, '' */
 	nlen = strlen(nfile);
 	rem = SIZCOL - 1 - col;
 	if (nlen + fill > rem) {
 		if (first) {
 			/* print the right-most part of the name */
-			printf("...%s ", &nfile[3+nlen-rem]);
+			printf("...%s ", &nfile[3 + nlen - rem]);
 			col = SIZCOL;
 		} else if (rem > 0) {
 			/* fit as much of the etc-string as we can */
@@ -591,7 +592,7 @@ ldump(const char *nfile, const char *datafile, int copies)
 	else
 		printf("%-32s", nfile);
 	if (*datafile && !stat(datafile, &lbuf))
-		printf(" %qd bytes", (long long) lbuf.st_size);
+		printf(" %qd bytes", (long long)lbuf.st_size);
 	else
 		printf(" ??? bytes");
 	putchar('\n');
@@ -605,19 +606,18 @@ void
 prank(int n)
 {
 	char rline[100];
-	static const char *r[] = {
-		"th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"
-	};
+	static const char *r[] = { "th", "st", "nd", "rd", "th", "th", "th",
+		"th", "th", "th" };
 
 	if (n == 0) {
 		printf("active");
 		col += 6;
 		return;
 	}
-	if ((n/10)%10 == 1)
+	if ((n / 10) % 10 == 1)
 		(void)snprintf(rline, sizeof(rline), "%dth", n);
 	else
-		(void)snprintf(rline, sizeof(rline), "%d%s", n, r[n%10]);
+		(void)snprintf(rline, sizeof(rline), "%d%s", n, r[n % 10]);
 	col += strlen(rline);
 	printf("%s", rline);
 }

@@ -16,8 +16,8 @@
 /*
  */
 
-int sio_init(int) __attribute__((regparm (3)));
+int sio_init(int) __attribute__((regparm(3)));
 int sio_flush(void);
-void sio_putc(int) __attribute__((regparm (3)));
+void sio_putc(int) __attribute__((regparm(3)));
 int sio_getc(void);
 int sio_ischar(void);

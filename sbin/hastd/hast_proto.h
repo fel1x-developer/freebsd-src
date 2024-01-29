@@ -29,13 +29,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HAST_PROTO_H_
-#define	_HAST_PROTO_H_
-
-#include <stdlib.h>	/* size_t */
+#ifndef _HAST_PROTO_H_
+#define _HAST_PROTO_H_
 
 #include <nv.h>
 #include <proto.h>
+#include <stdlib.h> /* size_t */
 
 int hast_proto_send(const struct hast_resource *res, struct proto_conn *conn,
     struct nv *nv, const void *data, size_t size);
@@ -43,4 +42,4 @@ int hast_proto_recv_hdr(const struct proto_conn *conn, struct nv **nvp);
 int hast_proto_recv_data(const struct hast_resource *res,
     struct proto_conn *conn, struct nv *nv, void *data, size_t size);
 
-#endif	/* !_HAST_PROTO_H_ */
+#endif /* !_HAST_PROTO_H_ */

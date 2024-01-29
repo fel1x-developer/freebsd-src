@@ -26,25 +26,24 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/cpu.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+
 #include <machine/bus.h>
 
 #include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 struct ofw_firmware_softc {
-	struct simplebus_softc	sc;
-	device_t		dev;
+	struct simplebus_softc sc;
+	device_t dev;
 };
 
 static struct simplebus_devinfo *
@@ -65,9 +64,11 @@ ofw_firmware_setup_dinfo(device_t dev, phandle_t node,
 		return (NULL);
 	}
 
-	/* reg resources is from the parent but interrupts is on the node itself */
+	/* reg resources is from the parent but interrupts is on the node itself
+	 */
 	resource_list_init(&ndi->rl);
-	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells, &ndi->rl);
+	ofw_bus_reg_to_rl(dev, OF_parent(node), sc->acells, sc->scells,
+	    &ndi->rl);
 	ofw_bus_intr_to_rl(dev, node, &ndi->rl, NULL);
 
 	return (ndi);
@@ -94,7 +95,7 @@ ofw_firmware_add_device(device_t dev, phandle_t node, u_int order,
 	}
 	device_set_ivars(cdev, ndi);
 
-	return(cdev);
+	return (cdev);
 }
 
 static int
@@ -130,16 +131,16 @@ ofw_firmware_attach(device_t dev)
 	node = ofw_bus_get_node(dev);
 
 	if (OF_getencprop(node, "#address-cells", &sc->sc.acells,
-	    sizeof(sc->sc.acells)) == -1) {
-		if (OF_getencprop(OF_parent(node), "#address-cells", &sc->sc.acells,
-		    sizeof(sc->sc.acells)) == -1) {
+		sizeof(sc->sc.acells)) == -1) {
+		if (OF_getencprop(OF_parent(node), "#address-cells",
+			&sc->sc.acells, sizeof(sc->sc.acells)) == -1) {
 			sc->sc.acells = 2;
 		}
 	}
 	if (OF_getencprop(node, "#size-cells", &sc->sc.scells,
-	    sizeof(sc->sc.scells)) == -1) {
-		if (OF_getencprop(OF_parent(node), "#size-cells", &sc->sc.scells,
-		    sizeof(sc->sc.scells)) == -1) {
+		sizeof(sc->sc.scells)) == -1) {
+		if (OF_getencprop(OF_parent(node), "#size-cells",
+			&sc->sc.scells, sizeof(sc->sc.scells)) == -1) {
 			sc->sc.scells = 1;
 		}
 	}
@@ -155,14 +156,14 @@ ofw_firmware_attach(device_t dev)
 
 static device_method_t ofw_firmware_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe, 	ofw_firmware_probe),
-	DEVMETHOD(device_attach, 	ofw_firmware_attach),
+	DEVMETHOD(device_probe, ofw_firmware_probe),
+	DEVMETHOD(device_attach, ofw_firmware_attach),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(ofw_firmware, ofw_firmware_driver, ofw_firmware_methods,
-  sizeof(struct ofw_firmware_softc), simplebus_driver);
+    sizeof(struct ofw_firmware_softc), simplebus_driver);
 
 EARLY_DRIVER_MODULE(ofw_firmware, simplebus, ofw_firmware_driver, 0, 0,
     BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);

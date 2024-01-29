@@ -34,31 +34,32 @@
  */
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stdint.h>
 #include <sys/sysctl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+
 #include <machine/cpufunc.h>
 
+#include <netinet/in.h>
+
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "mevent.h"
 
-#define TEST_PORT	4321
+#define TEST_PORT 4321
 
 static pthread_mutex_t accept_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t accept_condvar = PTHREAD_COND_INITIALIZER;
 
 static struct mevent *tevp;
 
-
 #define MEVENT_ECHO
 
 /* Number of timer events to capture */
-#define TEVSZ	4096
+#define TEVSZ 4096
 uint64_t tevbuf[TEVSZ];
 
 static void
@@ -77,7 +78,7 @@ timer_print(void)
 
 	for (j = 1; j < TEVSZ; j++) {
 		/* Convert a tsc diff into microseconds */
-		diff = (tevbuf[j] - tevbuf[j-1]) * 1000000 / tsc_freq;
+		diff = (tevbuf[j] - tevbuf[j - 1]) * 1000000 / tsc_freq;
 		sum += diff;
 		if (min > diff)
 			min = diff;
@@ -86,7 +87,7 @@ timer_print(void)
 	}
 
 	printf("timers done: usecs, min %ld, max %ld, mean %ld\n", min, max,
-	    sum/(TEVSZ - 1));
+	    sum / (TEVSZ - 1));
 }
 
 static void
@@ -105,11 +106,10 @@ timer_callback(int fd, enum ev_type type, void *param)
 	}
 }
 
-
 #ifdef MEVENT_ECHO
 struct esync {
-	pthread_mutex_t	e_mt;
-	pthread_cond_t	e_cond;
+	pthread_mutex_t e_mt;
+	pthread_cond_t e_cond;
 };
 
 static void
@@ -128,7 +128,7 @@ echoer(void *param)
 	struct esync sync;
 	struct mevent *mev;
 	char buf[128];
-	int fd = (int)(uintptr_t) param;
+	int fd = (int)(uintptr_t)param;
 	int len;
 
 	pthread_mutex_init(&sync.e_mt, NULL);
@@ -167,7 +167,7 @@ static void *
 echoer(void *param)
 {
 	char buf[128];
-	int fd = (int)(uintptr_t) param;
+	int fd = (int)(uintptr_t)param;
 	int len;
 
 	while ((len = read(fd, buf, sizeof(buf))) > 0) {
@@ -215,7 +215,7 @@ acceptor(void *param)
 		exit(4);
 	}
 
-	(void) mevent_add(s, EVF_READ, acceptor_callback, NULL);
+	(void)mevent_add(s, EVF_READ, acceptor_callback, NULL);
 
 	pthread_mutex_lock(&accept_mutex);
 
@@ -232,12 +232,12 @@ acceptor(void *param)
 				 */
 				first = 0;
 				tevp = mevent_add(1, EVF_TIMER, timer_callback,
-						  NULL);
+				    NULL);
 			}
 
 			printf("incoming connection, spawning thread\n");
 			pthread_create(&tid, NULL, echoer,
-				       (void *)(uintptr_t)news);
+			    (void *)(uintptr_t)news);
 		}
 	}
 

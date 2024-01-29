@@ -44,7 +44,7 @@ procstat_ptlwpinfo(struct procstat *prstat, struct kinfo_proc *kipp __unused)
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
 		xo_emit(
-	    "{T:/%6s %7s %5s %5s %5s %6s %5s} {[:/%d}{T:/%s}{]:} {T:/%s}\n",
+		    "{T:/%6s %7s %5s %5s %5s %6s %5s} {[:/%d}{T:/%s}{]:} {T:/%s}\n",
 		    "LWPID", "EVENT", "SIGNO", "CODE", "ERRNO", "PID", "UID",
 		    2 * sizeof(void *) + 2, "ADDR", "TDNAME");
 

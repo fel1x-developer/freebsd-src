@@ -30,13 +30,12 @@
 #include <sys/endian.h>
 
 #include <errno.h>
-#include <string.h>
-#include <strings.h>
-
 #include <hast.h>
 #include <lzf.h>
 #include <nv.h>
 #include <pjdlog.h>
+#include <string.h>
+#include <strings.h>
 
 #include "hast_compression.h"
 
@@ -59,7 +58,7 @@ allzeros(const void *data, size_t size)
 	 * first.
 	 */
 
-	size >>= 3;	/* divide by 8 */
+	size >>= 3; /* divide by 8 */
 	if ((p[0] | p[size >> 1] | p[size - 1]) != 0)
 		return (false);
 	v = 0;
@@ -118,7 +117,7 @@ hast_hole_decompress(const unsigned char *data, size_t *sizep)
 }
 
 /* Minimum block size to try to compress. */
-#define	HAST_LZF_COMPRESS_MIN	1024
+#define HAST_LZF_COMPRESS_MIN 1024
 
 static void *
 hast_lzf_compress(const unsigned char *data, size_t *sizep)
@@ -135,8 +134,7 @@ hast_lzf_compress(const unsigned char *data, size_t *sizep)
 	newsize = sizeof(origsize) + origsize - HAST_LZF_COMPRESS_MIN;
 	newbuf = malloc(newsize);
 	if (newbuf == NULL) {
-		pjdlog_warning("Unable to compress (no memory: %zu).",
-		    newsize);
+		pjdlog_warning("Unable to compress (no memory: %zu).", newsize);
 		return (NULL);
 	}
 	newsize = lzf_compress(data, *sizep, newbuf + sizeof(origsize),
@@ -257,7 +255,7 @@ compression_recv(const struct hast_resource *res __unused, struct nv *nv,
 
 	algo = nv_get_string(nv, "compression");
 	if (algo == NULL)
-		return (0);	/* No compression. */
+		return (0); /* No compression. */
 
 	newbuf = NULL;
 	size = *sizep;
@@ -268,7 +266,7 @@ compression_recv(const struct hast_resource *res __unused, struct nv *nv,
 		newbuf = hast_lzf_decompress(*datap, &size);
 	else {
 		pjdlog_error("Unknown compression algorithm '%s'.", algo);
-		return (-1);	/* Unknown compression algorithm. */
+		return (-1); /* Unknown compression algorithm. */
 	}
 
 	if (newbuf == NULL)

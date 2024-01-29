@@ -32,33 +32,30 @@
  */
 #include <sys/types.h>
 #include <sys/file.h>
-#include <sys/sockio.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
+
 #include <net/if.h>
 #include <net/if_media.h>
 
+#include <err.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <string.h>
 #include <unistd.h>
-#include <err.h>
-
-
-#include "net80211/ieee80211_ioctl.h"
-#include "net80211/ieee80211_radiotap.h"
 
 #include "if_iwn_ioctl.h"
+#include "net80211/ieee80211_ioctl.h"
+#include "net80211/ieee80211_radiotap.h"
 
 /*
  * This contains the register definitions for iwn; including
  * the statistics definitions.
  */
 #include "if_iwnreg.h"
-
-#include "iwnstats.h"
-
 #include "iwn_ioctl.h"
+#include "iwnstats.h"
 
 void
 iwn_zerostats(struct iwnstats *is)
@@ -77,7 +74,7 @@ iwn_collect(struct iwnstats *is)
 	printf("st: %p\n", &is->st);
 	d.dst_addr = &is->st;
 	d.dst_len = sizeof(is->st);
-	err = ioctl(is->s, SIOCGIWNSTATS, (caddr_t) &d);
+	err = ioctl(is->s, SIOCGIWNSTATS, (caddr_t)&d);
 	if (err < 0)
 		warn("ioctl");
 	return (err);

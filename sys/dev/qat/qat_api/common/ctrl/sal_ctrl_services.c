@@ -13,13 +13,13 @@
 
 /* QAT-API includes */
 #include "cpa.h"
-#include "cpa_cy_key.h"
-#include "cpa_cy_ln.h"
 #include "cpa_cy_dh.h"
 #include "cpa_cy_dsa.h"
-#include "cpa_cy_rsa.h"
 #include "cpa_cy_ec.h"
+#include "cpa_cy_key.h"
+#include "cpa_cy_ln.h"
 #include "cpa_cy_prime.h"
+#include "cpa_cy_rsa.h"
 #include "cpa_cy_sym.h"
 #include "cpa_dc.h"
 
@@ -27,28 +27,27 @@
 #include "qat_utils.h"
 
 /* ADF includes */
+#include "icp_accel_devices.h"
+#include "icp_adf_accel_mgr.h"
+#include "icp_adf_cfg.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "icp_accel_devices.h"
-#include "icp_adf_cfg.h"
-#include "icp_adf_init.h"
-#include "icp_adf_accel_mgr.h"
-#include "icp_adf_debug.h"
 
 /* FW includes */
 #include "icp_qat_fw_la.h"
 
 /* SAL includes */
+#include "icp_sal_versions.h"
+#include "lac_common.h"
+#include "lac_hooks.h"
+#include "lac_list.h"
 #include "lac_mem.h"
 #include "lac_mem_pools.h"
-#include "lac_list.h"
-#include "lac_hooks.h"
-#include "sal_string_parse.h"
-#include "lac_common.h"
-#include "lac_sal_types.h"
 #include "lac_sal.h"
 #include "lac_sal_ctrl.h"
-#include "icp_sal_versions.h"
+#include "lac_sal_types.h"
+#include "sal_string_parse.h"
 
 #define MAX_SUBSYSTEM_RETRY 64
 
@@ -100,10 +99,8 @@ SalCtrl_GetEnabledServices(icp_accel_dev_t *device, Cpa32U *pEnabledServices)
 	*pEnabledServices = 0;
 
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  "ServicesEnabled",
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    "ServicesEnabled", param_value);
 
 	if (CPA_STATUS_SUCCESS == status) {
 		running = param_value;
@@ -205,38 +202,38 @@ SalCtrl_GetSupportedServices(icp_accel_dev_t *device, Cpa32U enabled_services)
 
 	if (CPA_STATUS_SUCCESS == status) {
 		if (SalCtrl_IsServiceEnabled(enabled_services,
-					     SAL_SERVICE_TYPE_CRYPTO)) {
+			SAL_SERVICE_TYPE_CRYPTO)) {
 			if (!(capabilitiesMask &
-			      ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC) ||
+				ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC) ||
 			    !(capabilitiesMask &
-			      ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
+				ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
 				QAT_UTILS_LOG(
 				    "Device does not support Crypto service\n");
 				status = CPA_STATUS_FAIL;
 			}
 		}
 		if (SalCtrl_IsServiceEnabled(enabled_services,
-					     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+			SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
 			if (!(capabilitiesMask &
-			      ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
+				ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
 				QAT_UTILS_LOG(
 				    "Device does not support Asym service\n");
 				status = CPA_STATUS_FAIL;
 			}
 		}
 		if (SalCtrl_IsServiceEnabled(enabled_services,
-					     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+			SAL_SERVICE_TYPE_CRYPTO_SYM)) {
 			if (!(capabilitiesMask &
-			      ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) {
+				ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) {
 				QAT_UTILS_LOG(
 				    "Device does not support Sym service\n");
 				status = CPA_STATUS_FAIL;
 			}
 		}
 		if (SalCtrl_IsServiceEnabled(enabled_services,
-					     SAL_SERVICE_TYPE_COMPRESSION)) {
+			SAL_SERVICE_TYPE_COMPRESSION)) {
 			if (!(capabilitiesMask &
-			      ICP_ACCEL_CAPABILITIES_COMPRESSION)) {
+				ICP_ACCEL_CAPABILITIES_COMPRESSION)) {
 				QAT_UTILS_LOG(
 				    "Device does not support Compression service.\n");
 				status = CPA_STATUS_FAIL;
@@ -273,20 +270,20 @@ SalCtrl_GetSupportedServices(icp_accel_dev_t *device, Cpa32U enabled_services)
  *************************************************************************/
 CpaBoolean
 SalCtrl_IsServiceSupported(icp_accel_dev_t *device,
-			   sal_service_type_t service_to_check)
+    sal_service_type_t service_to_check)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	Cpa32U capabilitiesMask = 0;
 	CpaBoolean service_supported = CPA_TRUE;
 
 	if (!(SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				       SAL_SERVICE_TYPE_CRYPTO)) &&
+		SAL_SERVICE_TYPE_CRYPTO)) &&
 	    !(SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				       SAL_SERVICE_TYPE_CRYPTO_ASYM)) &&
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) &&
 	    !(SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				       SAL_SERVICE_TYPE_CRYPTO_SYM)) &&
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) &&
 	    !(SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				       SAL_SERVICE_TYPE_COMPRESSION))) {
+		SAL_SERVICE_TYPE_COMPRESSION))) {
 		QAT_UTILS_LOG("Invalid service type\n");
 		service_supported = CPA_FALSE;
 	}
@@ -299,34 +296,34 @@ SalCtrl_IsServiceSupported(icp_accel_dev_t *device,
 	}
 
 	if (SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
+		SAL_SERVICE_TYPE_CRYPTO)) {
 		if (!(capabilitiesMask &
-		      ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC) ||
+			ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC) ||
 		    !(capabilitiesMask &
-		      ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
+			ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
 			QAT_UTILS_LOG(
 			    "Device does not support Crypto service\n");
 			service_supported = CPA_FALSE;
 		}
 	}
 	if (SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
 		if (!(capabilitiesMask &
-		      ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
+			ICP_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)) {
 			QAT_UTILS_LOG("Device does not support Asym service\n");
 			service_supported = CPA_FALSE;
 		}
 	}
 	if (SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
 		if (!(capabilitiesMask &
-		      ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) {
+			ICP_ACCEL_CAPABILITIES_CRYPTO_SYMMETRIC)) {
 			QAT_UTILS_LOG("Device does not support Sym service\n");
 			service_supported = CPA_FALSE;
 		}
 	}
 	if (SalCtrl_IsServiceEnabled((Cpa32U)service_to_check,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
+		SAL_SERVICE_TYPE_COMPRESSION)) {
 		if (!(capabilitiesMask & ICP_ACCEL_CAPABILITIES_COMPRESSION)) {
 			QAT_UTILS_LOG(
 			    "Device does not support Compression service.\n");
@@ -368,13 +365,11 @@ SalCtrl_GetInstanceCount(icp_accel_dev_t *device, char *key, Cpa32U *pCount)
 	char param_value[ADF_CFG_MAX_VAL_LEN_IN_BYTES];
 
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  icpGetProcessName(),
-					  key,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, icpGetProcessName(), key,
+	    param_value);
 	if (CPA_STATUS_SUCCESS == status) {
-		*pCount =
-		    (Cpa32U)(Sal_Strtoul(param_value, NULL, SAL_CFG_BASE_DEC));
+		*pCount = (Cpa32U)(Sal_Strtoul(param_value, NULL,
+		    SAL_CFG_BASE_DEC));
 		if (*pCount > SAL_MAX_NUM_INSTANCES_PER_DEV) {
 			QAT_UTILS_LOG("Number of instances is out of range.\n");
 			status = CPA_STATUS_FAIL;
@@ -410,10 +405,8 @@ SalCtrl_GetInstanceCount(icp_accel_dev_t *device, char *key, Cpa32U *pCount)
  *
  ****************************************************************************/
 static CpaStatus
-SalCtrl_ServiceShutdown(icp_accel_dev_t *device,
-			sal_list_t **services,
-			debug_dir_info_t **debug_dir,
-			sal_service_type_t svc_type)
+SalCtrl_ServiceShutdown(icp_accel_dev_t *device, sal_list_t **services,
+    debug_dir_info_t **debug_dir, sal_service_type_t svc_type)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	sal_list_t *dyn_service = NULL;
@@ -434,9 +427,8 @@ SalCtrl_ServiceShutdown(icp_accel_dev_t *device,
 			inst = (sal_service_t *)SalList_getObject(dyn_service);
 			if (CPA_TRUE == inst->is_dyn) {
 				icp_adf_putDynInstance(device,
-						       (adf_service_type_t)
-							   svc_type,
-						       inst->instance);
+				    (adf_service_type_t)svc_type,
+				    inst->instance);
 			}
 			dyn_service = SalList_next(dyn_service);
 		}
@@ -447,8 +439,8 @@ SalCtrl_ServiceShutdown(icp_accel_dev_t *device,
 		sal_service_t *service = NULL;
 		curr_element = *services;
 		while (NULL != curr_element) {
-			service =
-			    (sal_service_t *)SalList_getObject(curr_element);
+			service = (sal_service_t *)SalList_getObject(
+			    curr_element);
 			service->state = SAL_SERVICE_STATE_RESTARTING;
 			curr_element = SalList_next(curr_element);
 		}
@@ -518,13 +510,9 @@ selectGeneration(device_type_t deviceType, sal_service_t *pInst)
  *
  *************************************************************************/
 static CpaStatus
-SalCtrl_ServiceInit(icp_accel_dev_t *device,
-		    sal_list_t **services,
-		    debug_dir_info_t **dbg_dir,
-		    char *dbg_dir_name,
-		    sal_list_t *tail_list,
-		    Cpa32U instance_count,
-		    sal_service_type_t svc_type)
+SalCtrl_ServiceInit(icp_accel_dev_t *device, sal_list_t **services,
+    debug_dir_info_t **dbg_dir, char *dbg_dir_name, sal_list_t *tail_list,
+    Cpa32U instance_count, sal_service_type_t svc_type)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	sal_service_t *pInst = NULL;
@@ -557,8 +545,8 @@ SalCtrl_ServiceInit(icp_accel_dev_t *device,
 
 			status = selectGeneration(device->deviceType, pInst);
 			if (CPA_STATUS_SUCCESS == status) {
-				status =
-				    SalList_add(services, &tail_list, pInst);
+				status = SalList_add(services, &tail_list,
+				    pInst);
 			}
 			if (CPA_STATUS_SUCCESS != status) {
 				free(pInst, M_QAT);
@@ -568,8 +556,8 @@ SalCtrl_ServiceInit(icp_accel_dev_t *device,
 		sal_list_t *curr_element = *services;
 		sal_service_t *service = NULL;
 		while (NULL != curr_element) {
-			service =
-			    (sal_service_t *)SalList_getObject(curr_element);
+			service = (sal_service_t *)SalList_getObject(
+			    curr_element);
 			service->debug_parent_dir = debug_dir;
 
 			if (CPA_TRUE == service->isInstanceStarted) {
@@ -594,11 +582,8 @@ SalCtrl_ServiceInit(icp_accel_dev_t *device,
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to initialise all service instances.\n");
 		/* shutdown all instances initialised before error */
-		SAL_FOR_EACH_STATE(*services,
-				   sal_service_t,
-				   device,
-				   shutdown,
-				   SAL_SERVICE_STATE_INITIALIZED);
+		SAL_FOR_EACH_STATE(*services, sal_service_t, device, shutdown,
+		    SAL_SERVICE_STATE_INITIALIZED);
 		icp_adf_debugRemoveDir(debug_dir);
 		LAC_OS_FREE(debug_dir);
 		debug_dir = NULL;
@@ -642,11 +627,8 @@ SalCtrl_ServiceStart(icp_accel_dev_t *device, sal_list_t *services)
 	if (CPA_STATUS_SUCCESS != status) {
 		QAT_UTILS_LOG("Failed to start all instances.\n");
 		/* stop all instances started before error */
-		SAL_FOR_EACH_STATE(services,
-				   sal_service_t,
-				   device,
-				   stop,
-				   SAL_SERVICE_STATE_RUNNING);
+		SAL_FOR_EACH_STATE(services, sal_service_t, device, stop,
+		    SAL_SERVICE_STATE_RUNNING);
 		return status;
 	}
 
@@ -654,11 +636,10 @@ SalCtrl_ServiceStart(icp_accel_dev_t *device, sal_list_t *services)
 		sal_list_t *curr_element = services;
 		sal_service_t *service = NULL;
 		while (NULL != curr_element) {
-			service =
-			    (sal_service_t *)SalList_getObject(curr_element);
+			service = (sal_service_t *)SalList_getObject(
+			    curr_element);
 			if (service->notification_cb) {
-				service->notification_cb(
-				    service,
+				service->notification_cb(service,
 				    service->cb_tag,
 				    CPA_INSTANCE_EVENT_RESTARTED);
 			}
@@ -701,11 +682,10 @@ SalCtrl_ServiceStop(icp_accel_dev_t *device, sal_list_t *services)
 		sal_list_t *curr_element = services;
 		sal_service_t *service = NULL;
 		while (NULL != curr_element) {
-			service =
-			    (sal_service_t *)SalList_getObject(curr_element);
+			service = (sal_service_t *)SalList_getObject(
+			    curr_element);
 			if (service->notification_cb) {
-				service->notification_cb(
-				    service,
+				service->notification_cb(service,
 				    service->cb_tag,
 				    CPA_INSTANCE_EVENT_RESTARTING);
 			}
@@ -730,9 +710,7 @@ SalCtrl_ServiceError(icp_accel_dev_t *device, sal_list_t *services)
 	while (NULL != curr_element) {
 		service = (sal_service_t *)SalList_getObject(curr_element);
 		if (service->notification_cb) {
-			service->notification_cb(
-			    service,
-			    service->cb_tag,
+			service->notification_cb(service, service->cb_tag,
 			    CPA_INSTANCE_EVENT_FATAL_ERROR);
 		}
 		curr_element = SalList_next(curr_element);
@@ -776,78 +754,55 @@ SalCtrl_VersionDebug(void *private_data, char *data, int size, int offset)
 	icp_accel_dev_t *device = (icp_accel_dev_t *)private_data;
 	char param_value[ADF_CFG_MAX_VAL_LEN_IN_BYTES] = { 0 };
 
-	len += snprintf(
-	    data + len,
-	    size - len,
+	len += snprintf(data + len, size - len,
 	    SEPARATOR BORDER
 	    " Hardware and Software versions for device %d      " BORDER
 	    "\n" SEPARATOR,
 	    device->accelId);
 
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ICP_CFG_HW_REV_ID_KEY,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ICP_CFG_HW_REV_ID_KEY, param_value);
 	LAC_CHECK_STATUS(status);
 
-	len += snprintf(data + len,
-			size - len,
-			" Hardware Version:             %s %s \n",
-			param_value,
-			get_sku_info(device->sku));
+	len += snprintf(data + len, size - len,
+	    " Hardware Version:             %s %s \n", param_value,
+	    get_sku_info(device->sku));
 
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ICP_CFG_UOF_VER_KEY,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ICP_CFG_UOF_VER_KEY, param_value);
 	LAC_CHECK_STATUS(status);
 
-	len += snprintf(data + len,
-			size - len,
-			" Firmware Version:             %s \n",
-			param_value);
+	len += snprintf(data + len, size - len,
+	    " Firmware Version:             %s \n", param_value);
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ICP_CFG_MMP_VER_KEY,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ICP_CFG_MMP_VER_KEY, param_value);
 	LAC_CHECK_STATUS(status);
 
-	len += snprintf(data + len,
-			size - len,
-			" MMP Version:                  %s \n",
-			param_value);
-	len += snprintf(data + len,
-			size - len,
-			" Driver Version:               %d.%d.%d \n",
-			SAL_INFO2_DRIVER_SW_VERSION_MAJ_NUMBER,
-			SAL_INFO2_DRIVER_SW_VERSION_MIN_NUMBER,
-			SAL_INFO2_DRIVER_SW_VERSION_PATCH_NUMBER);
+	len += snprintf(data + len, size - len,
+	    " MMP Version:                  %s \n", param_value);
+	len += snprintf(data + len, size - len,
+	    " Driver Version:               %d.%d.%d \n",
+	    SAL_INFO2_DRIVER_SW_VERSION_MAJ_NUMBER,
+	    SAL_INFO2_DRIVER_SW_VERSION_MIN_NUMBER,
+	    SAL_INFO2_DRIVER_SW_VERSION_PATCH_NUMBER);
 
 	memset(param_value, 0, ADF_CFG_MAX_VAL_LEN_IN_BYTES);
-	status = icp_adf_cfgGetParamValue(device,
-					  LAC_CFG_SECTION_GENERAL,
-					  ICP_CFG_LO_COMPATIBLE_DRV_KEY,
-					  param_value);
+	status = icp_adf_cfgGetParamValue(device, LAC_CFG_SECTION_GENERAL,
+	    ICP_CFG_LO_COMPATIBLE_DRV_KEY, param_value);
 	LAC_CHECK_STATUS(status);
 
-	len += snprintf(data + len,
-			size - len,
-			" Lowest Compatible Driver:     %s \n",
-			param_value);
+	len += snprintf(data + len, size - len,
+	    " Lowest Compatible Driver:     %s \n", param_value);
 
-	len += snprintf(data + len,
-			size - len,
-			" QuickAssist API CY Version:   %d.%d \n",
-			CPA_CY_API_VERSION_NUM_MAJOR,
-			CPA_CY_API_VERSION_NUM_MINOR);
-	len += snprintf(data + len,
-			size - len,
-			" QuickAssist API DC Version:   %d.%d \n",
-			CPA_DC_API_VERSION_NUM_MAJOR,
-			CPA_DC_API_VERSION_NUM_MINOR);
+	len += snprintf(data + len, size - len,
+	    " QuickAssist API CY Version:   %d.%d \n",
+	    CPA_CY_API_VERSION_NUM_MAJOR, CPA_CY_API_VERSION_NUM_MINOR);
+	len += snprintf(data + len, size - len,
+	    " QuickAssist API DC Version:   %d.%d \n",
+	    CPA_DC_API_VERSION_NUM_MAJOR, CPA_DC_API_VERSION_NUM_MINOR);
 
 	len += snprintf(data + len, size - len, SEPARATOR);
 	return 0;
@@ -889,48 +844,40 @@ SalCtrl_ServiceEventShutdown(icp_accel_dev_t *device, Cpa32U enabled_services)
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status =
-		    SalCtrl_ServiceShutdown(device,
-					    &service_container->crypto_services,
-					    &service_container->cy_dir,
-					    SAL_SERVICE_TYPE_CRYPTO);
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalCtrl_ServiceShutdown(device,
+		    &service_container->crypto_services,
+		    &service_container->cy_dir, SAL_SERVICE_TYPE_CRYPTO);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
-		status =
-		    SalCtrl_ServiceShutdown(device,
-					    &service_container->asym_services,
-					    &service_container->asym_dir,
-					    SAL_SERVICE_TYPE_CRYPTO_ASYM);
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		status = SalCtrl_ServiceShutdown(device,
+		    &service_container->asym_services,
+		    &service_container->asym_dir, SAL_SERVICE_TYPE_CRYPTO_ASYM);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
-		status =
-		    SalCtrl_ServiceShutdown(device,
-					    &service_container->sym_services,
-					    &service_container->sym_dir,
-					    SAL_SERVICE_TYPE_CRYPTO_SYM);
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		status = SalCtrl_ServiceShutdown(device,
+		    &service_container->sym_services,
+		    &service_container->sym_dir, SAL_SERVICE_TYPE_CRYPTO_SYM);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalCtrl_ServiceShutdown(
-		    device,
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalCtrl_ServiceShutdown(device,
 		    &service_container->compression_services,
-		    &service_container->dc_dir,
-		    SAL_SERVICE_TYPE_COMPRESSION);
+		    &service_container->dc_dir, SAL_SERVICE_TYPE_COMPRESSION);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
@@ -1026,81 +973,63 @@ SalCtrl_ServiceEventInit(icp_accel_dev_t *device, Cpa32U enabled_services)
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
-		status = SalCtrl_GetInstanceCount(device,
-						  "NumberCyInstances",
-						  &instance_count);
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		status = SalCtrl_GetInstanceCount(device, "NumberCyInstances",
+		    &instance_count);
 		if (CPA_STATUS_SUCCESS != status) {
 			instance_count = 0;
 		}
 		status = SalCtrl_ServiceInit(device,
-					     &service_container->asym_services,
-					     &service_container->asym_dir,
-					     asym_dir_name,
-					     tail_list,
-					     instance_count,
-					     SAL_SERVICE_TYPE_CRYPTO_ASYM);
+		    &service_container->asym_services,
+		    &service_container->asym_dir, asym_dir_name, tail_list,
+		    instance_count, SAL_SERVICE_TYPE_CRYPTO_ASYM);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_init;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
-		status = SalCtrl_GetInstanceCount(device,
-						  "NumberCyInstances",
-						  &instance_count);
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		status = SalCtrl_GetInstanceCount(device, "NumberCyInstances",
+		    &instance_count);
 		if (CPA_STATUS_SUCCESS != status) {
 			instance_count = 0;
 		}
 		status = SalCtrl_ServiceInit(device,
-					     &service_container->sym_services,
-					     &service_container->sym_dir,
-					     sym_dir_name,
-					     tail_list,
-					     instance_count,
-					     SAL_SERVICE_TYPE_CRYPTO_SYM);
+		    &service_container->sym_services,
+		    &service_container->sym_dir, sym_dir_name, tail_list,
+		    instance_count, SAL_SERVICE_TYPE_CRYPTO_SYM);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_init;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status = SalCtrl_GetInstanceCount(device,
-						  "NumberCyInstances",
-						  &instance_count);
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalCtrl_GetInstanceCount(device, "NumberCyInstances",
+		    &instance_count);
 		if (CPA_STATUS_SUCCESS != status) {
 			instance_count = 0;
 		}
-		status =
-		    SalCtrl_ServiceInit(device,
-					&service_container->crypto_services,
-					&service_container->cy_dir,
-					cy_dir_name,
-					tail_list,
-					instance_count,
-					SAL_SERVICE_TYPE_CRYPTO);
+		status = SalCtrl_ServiceInit(device,
+		    &service_container->crypto_services,
+		    &service_container->cy_dir, cy_dir_name, tail_list,
+		    instance_count, SAL_SERVICE_TYPE_CRYPTO);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_init;
 		}
 	}
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalCtrl_GetInstanceCount(device,
-						  "NumberDcInstances",
-						  &instance_count);
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalCtrl_GetInstanceCount(device, "NumberDcInstances",
+		    &instance_count);
 		if (CPA_STATUS_SUCCESS != status) {
 			instance_count = 0;
 		}
-		status = SalCtrl_ServiceInit(
-		    device,
+		status = SalCtrl_ServiceInit(device,
 		    &service_container->compression_services,
-		    &service_container->dc_dir,
-		    dc_dir_name,
-		    tail_list,
-		    instance_count,
-		    SAL_SERVICE_TYPE_COMPRESSION);
+		    &service_container->dc_dir, dc_dir_name, tail_list,
+		    instance_count, SAL_SERVICE_TYPE_COMPRESSION);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_init;
 		}
@@ -1147,37 +1076,36 @@ SalCtrl_ServiceEventStop(icp_accel_dev_t *device, Cpa32U enabled_services)
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
 		status = SalCtrl_ServiceStop(device,
-					     service_container->asym_services);
+		    service_container->asym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
 		status = SalCtrl_ServiceStop(device,
-					     service_container->sym_services);
+		    service_container->sym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status =
-		    SalCtrl_ServiceStop(device,
-					service_container->crypto_services);
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalCtrl_ServiceStop(device,
+		    service_container->crypto_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalCtrl_ServiceStop(
-		    device, service_container->compression_services);
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalCtrl_ServiceStop(device,
+		    service_container->compression_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
@@ -1219,37 +1147,36 @@ SalCtrl_ServiceEventError(icp_accel_dev_t *device, Cpa32U enabled_services)
 		return CPA_STATUS_FATAL;
 	}
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
 		status = SalCtrl_ServiceError(device,
-					      service_container->asym_services);
+		    service_container->asym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
 		status = SalCtrl_ServiceError(device,
-					      service_container->sym_services);
+		    service_container->sym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status =
-		    SalCtrl_ServiceError(device,
-					 service_container->crypto_services);
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalCtrl_ServiceError(device,
+		    service_container->crypto_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalCtrl_ServiceError(
-		    device, service_container->compression_services);
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalCtrl_ServiceError(device,
+		    service_container->compression_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			ret_status = status;
 		}
@@ -1291,37 +1218,36 @@ SalCtrl_ServiceEventStart(icp_accel_dev_t *device, Cpa32U enabled_services)
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_ASYM)) {
 		status = SalCtrl_ServiceStart(device,
-					      service_container->asym_services);
+		    service_container->asym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_start;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO_SYM)) {
+		SAL_SERVICE_TYPE_CRYPTO_SYM)) {
 		status = SalCtrl_ServiceStart(device,
-					      service_container->sym_services);
+		    service_container->sym_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_start;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_CRYPTO)) {
-		status =
-		    SalCtrl_ServiceStart(device,
-					 service_container->crypto_services);
+		SAL_SERVICE_TYPE_CRYPTO)) {
+		status = SalCtrl_ServiceStart(device,
+		    service_container->crypto_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_start;
 		}
 	}
 
 	if (SalCtrl_IsServiceEnabled(enabled_services,
-				     SAL_SERVICE_TYPE_COMPRESSION)) {
-		status = SalCtrl_ServiceStart(
-		    device, service_container->compression_services);
+		SAL_SERVICE_TYPE_COMPRESSION)) {
+		status = SalCtrl_ServiceStart(device,
+		    service_container->compression_services);
 		if (CPA_STATUS_SUCCESS != status) {
 			goto err_start;
 		}
@@ -1358,8 +1284,7 @@ err_start:
  ***********************************************************************/
 static CpaStatus
 SalCtrl_ServiceEventHandler(icp_accel_dev_t *device,
-			    icp_adf_subsystemEvent_t event,
-			    void *param)
+    icp_adf_subsystemEvent_t event, void *param)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	CpaStatus stats_status = CPA_STATUS_SUCCESS;

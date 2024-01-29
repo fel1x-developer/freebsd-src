@@ -29,7 +29,7 @@
  */
 
 #if !defined(__SORT_MEM_H__)
-#define	__SORT_MEM_H__
+#define __SORT_MEM_H__
 
 #include <errno.h>
 #include <stdbool.h>

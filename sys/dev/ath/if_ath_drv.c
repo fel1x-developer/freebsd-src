@@ -30,16 +30,16 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/proc.h>
-#include <sys/pcpu.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
 
 /*
  * This implements the "old" style ath(4) module behaviour, which loaded the

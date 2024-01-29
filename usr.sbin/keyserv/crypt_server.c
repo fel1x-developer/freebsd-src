@@ -32,14 +32,16 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+
 #include <dirent.h>
 #include <dlfcn.h>
 #include <err.h>
+#include <rpc/des.h>
+#include <rpc/des_crypt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <rpc/des_crypt.h>
-#include <rpc/des.h>
+
 #include "crypt.h"
 
 /*
@@ -64,81 +66,81 @@
  * the -p flag.
  */
 
- /* arcfour.h */
-typedef struct arcfour_key
-{      
-   unsigned char state[256];       
-   unsigned char x;        
-   unsigned char y;
+/* arcfour.h */
+typedef struct arcfour_key {
+	unsigned char state[256];
+	unsigned char x;
+	unsigned char y;
 } arcfour_key;
 
-static void prepare_key(unsigned char *key_data_ptr,int key_data_len,
-		 arcfour_key *key);
-static void arcfour(unsigned char *buffer_ptr,int buffer_len,arcfour_key * key);
+static void prepare_key(unsigned char *key_data_ptr, int key_data_len,
+    arcfour_key *key);
+static void arcfour(unsigned char *buffer_ptr, int buffer_len,
+    arcfour_key *key);
 static void swap_byte(unsigned char *a, unsigned char *b);
 
-static void prepare_key(unsigned char *key_data_ptr, int key_data_len,
-		 arcfour_key *key)
+static void
+prepare_key(unsigned char *key_data_ptr, int key_data_len, arcfour_key *key)
 {
-   unsigned char index1;
-   unsigned char index2;
-   unsigned char* state;
-   short counter;     
+	unsigned char index1;
+	unsigned char index2;
+	unsigned char *state;
+	short counter;
 
-   state = &key->state[0];         
-   for(counter = 0; counter < 256; counter++)              
-   state[counter] = counter;               
-   key->x = 0;     
-   key->y = 0;     
-   index1 = 0;     
-   index2 = 0;             
-   for(counter = 0; counter < 256; counter++)      
-   {               
-      index2 = (key_data_ptr[index1] + state[counter] +
-                index2) % 256;                
-      swap_byte(&state[counter], &state[index2]);            
-      
-      index1 = (index1 + 1) % key_data_len;  
-   }       
+	state = &key->state[0];
+	for (counter = 0; counter < 256; counter++)
+		state[counter] = counter;
+	key->x = 0;
+	key->y = 0;
+	index1 = 0;
+	index2 = 0;
+	for (counter = 0; counter < 256; counter++) {
+		index2 = (key_data_ptr[index1] + state[counter] + index2) % 256;
+		swap_byte(&state[counter], &state[index2]);
+
+		index1 = (index1 + 1) % key_data_len;
+	}
 }
 
-static void arcfour(unsigned char *buffer_ptr, int buffer_len, arcfour_key *key)
-{ 
-   unsigned char x;
-   unsigned char y;
-   unsigned char* state;
-   unsigned char xorIndex;
-   short counter;              
-   
-   x = key->x;     
-   y = key->y;     
-   
-   state = &key->state[0];         
-   for(counter = 0; counter < buffer_len; counter ++)      
-   {               
-      x = (x + 1) % 256;                      
-      y = (state[x] + y) % 256;               
-      swap_byte(&state[x], &state[y]);                        
-      
-      xorIndex = (state[x] + state[y]) % 256;                 
-      
-      buffer_ptr[counter] ^= state[xorIndex];         
-   }               
-   key->x = x;     
-   key->y = y;
+static void
+arcfour(unsigned char *buffer_ptr, int buffer_len, arcfour_key *key)
+{
+	unsigned char x;
+	unsigned char y;
+	unsigned char *state;
+	unsigned char xorIndex;
+	short counter;
+
+	x = key->x;
+	y = key->y;
+
+	state = &key->state[0];
+	for (counter = 0; counter < buffer_len; counter++) {
+		x = (x + 1) % 256;
+		y = (state[x] + y) % 256;
+		swap_byte(&state[x], &state[y]);
+
+		xorIndex = (state[x] + state[y]) % 256;
+
+		buffer_ptr[counter] ^= state[xorIndex];
+	}
+	key->x = x;
+	key->y = y;
 }
 
-static void swap_byte(unsigned char *a, unsigned char *b)
+static void
+swap_byte(unsigned char *a, unsigned char *b)
 {
-   unsigned char swapByte; 
-   
-   swapByte = *a; 
-   *a = *b;      
-   *b = swapByte;
+	unsigned char swapByte;
+
+	swapByte = *a;
+	*a = *b;
+	*b = swapByte;
 }
 
 /* Dummy _des_crypt function that uses ARCFOUR with a 40 bit key */
-int _arcfour_crypt(char *buf, int len, struct desparams *desp)
+int
+_arcfour_crypt(char *buf, int len, struct desparams *desp)
 {
 	struct arcfour_key arcfourk;
 
@@ -151,7 +153,7 @@ int _arcfour_crypt(char *buf, int len, struct desparams *desp)
 	prepare_key(desp->des_key, 5, &arcfourk);
 	arcfour(buf, len, &arcfourk);
 
-	return(DESERR_NOHWDEVICE);
+	return (DESERR_NOHWDEVICE);
 }
 
 int (*_my_crypt)(char *, int, struct desparams *) = NULL;
@@ -166,7 +168,8 @@ static void *dlhandle;
 #define LIBCRYPTO "libcrypto.so.2"
 #endif
 
-void load_des(int warn, char *libpath)
+void
+load_des(int warn, char *libpath)
 {
 	char dlpath[MAXPATHLEN];
 
@@ -184,16 +187,18 @@ void load_des(int warn, char *libpath)
 			dlclose(dlhandle);
 		_my_crypt = &_arcfour_crypt;
 		if (warn) {
-			printf ("DES support disabled -- using ARCFOUR instead.\n");
-			printf ("Warning: ARCFOUR cipher is not compatible with ");
-			printf ("other Secure RPC implementations.\nInstall ");
-			printf ("the FreeBSD 'des' distribution to enable");
-			printf (" DES encryption.\n");
+			printf(
+			    "DES support disabled -- using ARCFOUR instead.\n");
+			printf(
+			    "Warning: ARCFOUR cipher is not compatible with ");
+			printf("other Secure RPC implementations.\nInstall ");
+			printf("the FreeBSD 'des' distribution to enable");
+			printf(" DES encryption.\n");
 		}
 	} else {
 		if (warn) {
-			printf ("DES support enabled\n");
-			printf ("Using %s shared object.\n", dlpath);
+			printf("DES support enabled\n");
+			printf("Using %s shared object.\n", dlpath);
 		}
 	}
 }
@@ -201,14 +206,13 @@ void load_des(int warn, char *libpath)
 desresp *
 des_crypt_1_svc(desargs *argp, struct svc_req *rqstp)
 {
-	static desresp  result;
+	static desresp result;
 	struct desparams dparm;
 
 	if (argp->desbuf.desbuf_len > DES_MAXDATA) {
 		result.stat = DESERR_BADPARAM;
-		return(&result);
+		return (&result);
 	}
-
 
 	bcopy(argp->des_key, dparm.des_key, 8);
 	bcopy(argp->des_ivec, dparm.des_ivec, 8);
@@ -238,8 +242,8 @@ des_crypt_1_svc(desargs *argp, struct svc_req *rqstp)
 #else
 	if (_my_crypt != &_arcfour_crypt && argp->des_mode == ECB) {
 #endif
-		int			i;
-		char			*dptr;
+		int i;
+		char *dptr;
 
 		for (i = 0; i < argp->desbuf.desbuf_len / 8; i++) {
 			dptr = argp->desbuf.desbuf_val;
@@ -251,8 +255,7 @@ des_crypt_1_svc(desargs *argp, struct svc_req *rqstp)
 		}
 	} else {
 		result.stat = _my_crypt(argp->desbuf.desbuf_val,
-					argp->desbuf.desbuf_len,
-					&dparm);
+		    argp->desbuf.desbuf_len, &dparm);
 	}
 
 	if (result.stat == DESERR_NONE || result.stat == DESERR_NOHWDEVICE) {

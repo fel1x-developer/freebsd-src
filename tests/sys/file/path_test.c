@@ -47,6 +47,7 @@
 #include <sys/wait.h>
 
 #include <aio.h>
+#include <atf-c.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -56,12 +57,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
+#define FMT_ERR(s) s ": %s", strerror(errno)
 
-#define	FMT_ERR(s)		s ": %s", strerror(errno)
-
-#define	CHECKED_CLOSE(fd)	\
-	ATF_REQUIRE_MSG(close(fd) == 0, FMT_ERR("close"))
+#define CHECKED_CLOSE(fd) ATF_REQUIRE_MSG(close(fd) == 0, FMT_ERR("close"))
 
 /* Create a temporary regular file containing some data. */
 static void
@@ -98,8 +96,8 @@ waitchild(pid_t child, int exstatus)
 	ATF_REQUIRE_MSG(WIFEXITED(status), "child exited abnormally, status %d",
 	    status);
 	ATF_REQUIRE_MSG(WEXITSTATUS(status) == exstatus,
-	    "child exit status is %d, expected %d",
-	    WEXITSTATUS(status), exstatus);
+	    "child exit status is %d, expected %d", WEXITSTATUS(status),
+	    exstatus);
 }
 
 ATF_TC_WITHOUT_HEAD(path_access);
@@ -199,7 +197,8 @@ ATF_TC_BODY(path_capsicum, tc)
 		if (cap_rights_limit(truefd, &rights) != 0)
 			_exit(2);
 		(void)fexecve(truefd,
-		    (char * const[]){__DECONST(char *, "/usr/bin/true"), NULL},
+		    (char *const[]) { __DECONST(char *, "/usr/bin/true"),
+			NULL },
 		    NULL);
 		if (errno != ENOTCAPABLE)
 			_exit(3);
@@ -411,11 +410,12 @@ ATF_TC_BODY(path_empty, tc)
 	ATF_REQUIRE_MSG(fchmodat(pathfd, "", 0600, AT_EMPTY_PATH) == 0,
 	    FMT_ERR("fchmodat"));
 	ATF_REQUIRE_MSG(fchownat(pathfd, "", getuid(), getgid(),
-	    AT_EMPTY_PATH) == 0, FMT_ERR("fchownat"));
+			    AT_EMPTY_PATH) == 0,
+	    FMT_ERR("fchownat"));
 	ATF_REQUIRE_MSG(fstatat(pathfd, "", &sb, AT_EMPTY_PATH) == 0,
 	    FMT_ERR("fstatat"));
-	ATF_REQUIRE_MSG(sb.st_size == BUFSIZ,
-	    "unexpected size %ju", (uintmax_t)sb.st_size);
+	ATF_REQUIRE_MSG(sb.st_size == BUFSIZ, "unexpected size %ju",
+	    (uintmax_t)sb.st_size);
 	memset(ts, 0, sizeof(ts));
 	ATF_REQUIRE_MSG(utimensat(pathfd, "", ts, AT_EMPTY_PATH) == 0,
 	    FMT_ERR("utimensat"));
@@ -471,14 +471,14 @@ ATF_TC_BODY(path_empty_root, tc)
 	    FMT_ERR("fstatat"));
 
 	ATF_REQUIRE_MSG(linkat(pathfd, "", AT_FDCWD, "test", AT_EMPTY_PATH) ==
-	    0, FMT_ERR("linkat"));
+		0,
+	    FMT_ERR("linkat"));
 	ATF_REQUIRE_MSG(fstatat(AT_FDCWD, "test", &sb2, 0) == 0,
 	    FMT_ERR("fstatat"));
 	ATF_REQUIRE_MSG(sb.st_dev == sb2.st_dev, "st_dev mismatch");
 	ATF_REQUIRE_MSG(sb.st_ino == sb2.st_ino, "st_ino mismatch");
 
 	CHECKED_CLOSE(pathfd);
-
 }
 ATF_TC_CLEANUP(path_empty_root, tc)
 {
@@ -520,8 +520,8 @@ ATF_TC_BODY(path_event, tc)
 	ATF_REQUIRE_MSG(kevent(kq, NULL, 0, &ev, 1, NULL) == 1,
 	    FMT_ERR("kevent"));
 	ATF_REQUIRE_MSG((ev.flags & EV_ERROR) == 0, "EV_ERROR is set");
-	ATF_REQUIRE_MSG(ev.data == sizeof(buf),
-	    "data is %jd", (intmax_t)ev.data);
+	ATF_REQUIRE_MSG(ev.data == sizeof(buf), "data is %jd",
+	    (intmax_t)ev.data);
 	EV_SET(&ev, pathfd, EVFILT_READ, EV_DELETE, 0, 0, 0);
 	ATF_REQUIRE_MSG(kevent(kq, &ev, 1, NULL, 0, NULL) == 0,
 	    FMT_ERR("kevent"));
@@ -535,8 +535,8 @@ ATF_TC_BODY(path_event, tc)
 	    FMT_ERR("funlinkat"));
 	ATF_REQUIRE_MSG(kevent(kq, NULL, 0, &ev, 1, NULL) == 1,
 	    FMT_ERR("kevent"));
-	ATF_REQUIRE_MSG(ev.fflags == NOTE_DELETE,
-	    "unexpected fflags %#x", ev.fflags);
+	ATF_REQUIRE_MSG(ev.fflags == NOTE_DELETE, "unexpected fflags %#x",
+	    ev.fflags);
 	EV_SET(&ev, pathfd, EVFILT_VNODE, EV_DELETE, 0, 0, 0);
 	ATF_REQUIRE_MSG(kevent(kq, &ev, 1, NULL, 0, NULL) == 0,
 	    FMT_ERR("kevent"));
@@ -562,10 +562,8 @@ ATF_TC_BODY(path_fcntl, tc)
 	ATF_REQUIRE_MSG(flags != -1, FMT_ERR("fcntl"));
 	ATF_REQUIRE_MSG((flags & O_PATH) != 0, "O_PATH not set");
 
-	ATF_REQUIRE_ERRNO(EBADF,
-	    fcntl(pathfd, F_SETFL, flags & ~O_PATH));
-	ATF_REQUIRE_ERRNO(EBADF,
-	    fcntl(pathfd, F_SETFL, flags | O_APPEND));
+	ATF_REQUIRE_ERRNO(EBADF, fcntl(pathfd, F_SETFL, flags & ~O_PATH));
+	ATF_REQUIRE_ERRNO(EBADF, fcntl(pathfd, F_SETFL, flags | O_APPEND));
 
 	/* A dup'ed O_PATH fd had better have O_PATH set too. */
 	pathfd2 = fcntl(pathfd, F_DUPFD, 0);
@@ -586,8 +584,7 @@ ATF_TC_BODY(path_fcntl, tc)
 	/* It should be possible to set O_CLOEXEC. */
 	ATF_REQUIRE_MSG(fcntl(pathfd, F_SETFD, FD_CLOEXEC) == 0,
 	    FMT_ERR("fcntl"));
-	ATF_REQUIRE_MSG(fcntl(pathfd, F_GETFD) == FD_CLOEXEC,
-	    FMT_ERR("fcntl"));
+	ATF_REQUIRE_MSG(fcntl(pathfd, F_GETFD) == FD_CLOEXEC, FMT_ERR("fcntl"));
 
 	CHECKED_CLOSE(pathfd);
 }
@@ -607,7 +604,8 @@ ATF_TC_BODY(path_fexecve, tc)
 		if (pathfd < 0)
 			_exit(1);
 		fexecve(pathfd,
-		    (char * const[]){__DECONST(char *, "/usr/bin/true"), NULL},
+		    (char *const[]) { __DECONST(char *, "/usr/bin/true"),
+			NULL },
 		    NULL);
 		_exit(2);
 	}
@@ -702,18 +700,12 @@ ATF_TC_BODY(path_io, tc)
 	    write(pathfd, iov.iov_base, iov.iov_len) == -1);
 	ATF_REQUIRE_ERRNO(EBADF,
 	    pwrite(pathfd, iov.iov_base, iov.iov_len, 0) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    writev(pathfd, &iov, 1) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    pwritev(pathfd, &iov, 1, 0) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    read(pathfd, path, 1) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    pread(pathfd, path, 1, 0) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    readv(pathfd, &iov, 1) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    preadv(pathfd, &iov, 1, 0) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, writev(pathfd, &iov, 1) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, pwritev(pathfd, &iov, 1, 0) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, read(pathfd, path, 1) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, pread(pathfd, path, 1, 0) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, readv(pathfd, &iov, 1) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, preadv(pathfd, &iov, 1, 0) == -1);
 
 	/* copy_file_range() should not be permitted. */
 	mktfile(path2, "path_io.XXXXXX");
@@ -727,20 +719,18 @@ ATF_TC_BODY(path_io, tc)
 	/* sendfile() should not be permitted. */
 	ATF_REQUIRE_MSG(socketpair(PF_LOCAL, SOCK_STREAM, 0, sd) == 0,
 	    FMT_ERR("socketpair"));
-	ATF_REQUIRE_ERRNO(EBADF,
-	    sendfile(pathfd, sd[0], 0, 0, NULL, NULL, 0));
+	ATF_REQUIRE_ERRNO(EBADF, sendfile(pathfd, sd[0], 0, 0, NULL, NULL, 0));
 	CHECKED_CLOSE(sd[0]);
 	CHECKED_CLOSE(sd[1]);
 
 	/* No seeking. */
-	ATF_REQUIRE_ERRNO(ESPIPE,
-	    lseek(pathfd, 0, SEEK_SET) == -1);
+	ATF_REQUIRE_ERRNO(ESPIPE, lseek(pathfd, 0, SEEK_SET) == -1);
 
 	/* No operations on the file extent. */
-	ATF_REQUIRE_ERRNO(EINVAL,
-	    ftruncate(pathfd, 0) == -1);
+	ATF_REQUIRE_ERRNO(EINVAL, ftruncate(pathfd, 0) == -1);
 	error = posix_fallocate(pathfd, 0, sizeof(buf) * 2);
-	ATF_REQUIRE_MSG(error == ESPIPE, "posix_fallocate() returned %d", error);
+	ATF_REQUIRE_MSG(error == ESPIPE, "posix_fallocate() returned %d",
+	    error);
 	error = posix_fadvise(pathfd, 0, sizeof(buf), POSIX_FADV_NORMAL);
 	ATF_REQUIRE_MSG(error == ESPIPE, "posix_fadvise() returned %d", error);
 
@@ -748,13 +738,13 @@ ATF_TC_BODY(path_io, tc)
 	page_size = getpagesize();
 	ATF_REQUIRE_ERRNO(ENODEV,
 	    mmap(NULL, page_size, PROT_READ, MAP_SHARED, pathfd, 0) ==
-	    MAP_FAILED);
+		MAP_FAILED);
 	ATF_REQUIRE_ERRNO(ENODEV,
 	    mmap(NULL, page_size, PROT_NONE, MAP_SHARED, pathfd, 0) ==
-	    MAP_FAILED);
+		MAP_FAILED);
 	ATF_REQUIRE_ERRNO(ENODEV,
 	    mmap(NULL, page_size, PROT_READ, MAP_PRIVATE, pathfd, 0) ==
-	    MAP_FAILED);
+		MAP_FAILED);
 
 	/* No fsync() or fdatasync(). */
 	ATF_REQUIRE_ERRNO(EBADF, fsync(pathfd) == -1);
@@ -849,8 +839,8 @@ ATF_TC_BODY(path_pipe_fstatat, tc)
 	ATF_REQUIRE_MSG(pipe(fd) == 0, FMT_ERR("pipe"));
 	ATF_REQUIRE_MSG(fstatat(fd[0], "", &sb, AT_EMPTY_PATH) == 0,
 	    FMT_ERR("fstatat pipe"));
-	ATF_REQUIRE_ERRNO(EFAULT, fstatat(fd[0], NULL, &sb,
-	    AT_EMPTY_PATH) == -1);
+	ATF_REQUIRE_ERRNO(EFAULT,
+	    fstatat(fd[0], NULL, &sb, AT_EMPTY_PATH) == -1);
 	CHECKED_CLOSE(fd[0]);
 	CHECKED_CLOSE(fd[1]);
 }
@@ -903,8 +893,7 @@ ATF_TC_BODY(path_rights, tc)
 	msg.msg_control = cmsg;
 	msg.msg_controllen = CMSG_SPACE(sizeof(pathfd));
 
-	ATF_REQUIRE_MSG(recvmsg(sd[1], &msg, 0) == 1,
-	    FMT_ERR("recvmsg"));
+	ATF_REQUIRE_MSG(recvmsg(sd[1], &msg, 0) == 1, FMT_ERR("recvmsg"));
 	pathfd_copy = *(int *)(void *)CMSG_DATA(cmsg);
 	ATF_REQUIRE_MSG(pathfd_copy != pathfd,
 	    "pathfd and pathfd_copy are equal");
@@ -913,10 +902,8 @@ ATF_TC_BODY(path_rights, tc)
 	flags = fcntl(pathfd_copy, F_GETFL);
 	ATF_REQUIRE_MSG(flags != -1, FMT_ERR("fcntl"));
 	ATF_REQUIRE_MSG((flags & O_PATH) != 0, "O_PATH is not set");
-	ATF_REQUIRE_ERRNO(EBADF,
-	    read(pathfd_copy, &c, 1) == -1);
-	ATF_REQUIRE_ERRNO(EBADF,
-	    write(pathfd_copy, &c, 1) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, read(pathfd_copy, &c, 1) == -1);
+	ATF_REQUIRE_ERRNO(EBADF, write(pathfd_copy, &c, 1) == -1);
 
 	CHECKED_CLOSE(pathfd);
 	CHECKED_CLOSE(pathfd_copy);

@@ -40,12 +40,11 @@
 
 #include <capsicum_helpers.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <libcasper_service.h>
 
 #include "rtsold.h"
 

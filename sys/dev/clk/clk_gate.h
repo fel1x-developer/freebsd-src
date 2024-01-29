@@ -25,20 +25,20 @@
  */
 
 #ifndef _DEV_CLK_GATE_H_
-#define	_DEV_CLK_GATE_H_
+#define _DEV_CLK_GATE_H_
 
 #include <dev/clk/clk.h>
 
 struct clk_gate_def {
 	struct clknode_init_def clkdef;
-	uint32_t		offset;
-	uint32_t		shift;
-	uint32_t		mask;
-	uint32_t		on_value;
-	uint32_t		off_value;
-	int			gate_flags;
+	uint32_t offset;
+	uint32_t shift;
+	uint32_t mask;
+	uint32_t on_value;
+	uint32_t off_value;
+	int gate_flags;
 };
 
 int clknode_gate_register(struct clkdom *clkdom, struct clk_gate_def *clkdef);
 
-#endif	/* _DEV_CLK_GATE_H_ */
+#endif /* _DEV_CLK_GATE_H_ */

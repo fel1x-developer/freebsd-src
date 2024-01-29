@@ -35,13 +35,13 @@
  */
 #pragma once
 
-#include_next <unistd.h>
 #include <sys/types.h>
 #include <sys/random.h> /* getentropy() */
 #include <sys/signal.h>
 #include <sys/time.h>
 
 #include <fcntl.h>
+#include_next <unistd.h>
 
 __BEGIN_DECLS
 

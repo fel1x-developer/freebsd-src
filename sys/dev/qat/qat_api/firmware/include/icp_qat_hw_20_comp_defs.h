@@ -30,7 +30,7 @@ typedef enum {
 	/* Legacy CPM1.x Mode with SCB disabled. */
 } icp_qat_hw_comp_20_scb_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_CONTROL_DEFAULT_VAL                  \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SCB_CONTROL_DISABLE
 
 /*****************************************************************************/
@@ -51,7 +51,7 @@ typedef enum {
 	 */
 } icp_qat_hw_comp_20_rmb_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_RMB_CONTROL_DEFAULT_VAL                  \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_RMB_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_RMB_CONTROL_RESET_ALL
 
 /*****************************************************************************/
@@ -75,7 +75,7 @@ typedef enum {
 	/* Reserved. */
 } icp_qat_hw_comp_20_som_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SOM_CONTROL_DEFAULT_VAL                  \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SOM_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SOM_CONTROL_NORMAL_MODE
 
 /*****************************************************************************/
@@ -95,7 +95,7 @@ typedef enum {
 	/* Hash reads are skipped. */
 } icp_qat_hw_comp_20_skip_hash_rd_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_RD_CONTROL_DEFAULT_VAL         \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_RD_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SKIP_HASH_RD_CONTROL_NO_SKIP
 
 /*****************************************************************************/
@@ -115,7 +115,7 @@ typedef enum {
 	/* Does not unload the LFCT, but flushes the State Registers. */
 } icp_qat_hw_comp_20_scb_unload_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_UNLOAD_CONTROL_DEFAULT_VAL           \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_UNLOAD_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SCB_UNLOAD_CONTROL_UNLOAD
 
 /*****************************************************************************/
@@ -159,7 +159,7 @@ typedef enum {
 	/* LZ4 Block Maximum Size (LBMS) == 4 MB */
 } icp_qat_hw_comp_20_lbms_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_LBMS_DEFAULT_VAL                         \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_LBMS_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_LBMS_LBMS_64KB
 
 /*****************************************************************************/
@@ -180,7 +180,7 @@ typedef enum {
 	   HB, HT */
 } icp_qat_hw_comp_20_scb_mode_reset_mask_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_MODE_RESET_MASK_DEFAULT_VAL          \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SCB_MODE_RESET_MASK_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SCB_MODE_RESET_MASK_RESET_COUNTERS
 
 /*****************************************************************************/
@@ -213,7 +213,7 @@ typedef enum {
 	/* 000b - 32KB  */
 } icp_qat_hw_comp_20_hbs_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_HBS_CONTROL_DEFAULT_VAL                  \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_HBS_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_HBS_CONTROL_HBS_IS_32KB
 
 /*****************************************************************************/
@@ -233,7 +233,7 @@ typedef enum {
 	/* 1b - Feature disabled. */
 } icp_qat_hw_comp_20_abd_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_ABD_DEFAULT_VAL                          \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_ABD_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_ABD_ABD_ENABLED
 
 /*****************************************************************************/
@@ -254,7 +254,7 @@ typedef enum {
 	/* 1b - Feature disabled. */
 } icp_qat_hw_comp_20_lllbd_ctrl_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_LLLBD_CTRL_DEFAULT_VAL                   \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_LLLBD_CTRL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_LLLBD_CTRL_LLLBD_ENABLED
 
 /*****************************************************************************/
@@ -278,7 +278,7 @@ typedef enum {
 	/* 0001b - Level 9P (search depth = 2^12 = 4096) */
 } icp_qat_hw_comp_20_search_depth_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SEARCH_DEPTH_DEFAULT_VAL                 \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SEARCH_DEPTH_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SEARCH_DEPTH_LEVEL_1
 
 /*****************************************************************************/
@@ -305,7 +305,7 @@ typedef enum {
 	/* 011 - LZ4s. (Min_Match and HBSize must be set accordingly.) */
 } icp_qat_hw_comp_20_hw_comp_format_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_HW_COMP_FORMAT_DEFAULT_VAL               \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_HW_COMP_FORMAT_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_HW_COMP_FORMAT_DEFLATE
 
 /*****************************************************************************/
@@ -325,7 +325,7 @@ typedef enum {
 	/* 1 - Match 4 B */
 } icp_qat_hw_comp_20_min_match_control_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_MIN_MATCH_CONTROL_DEFAULT_VAL            \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_MIN_MATCH_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_MIN_MATCH_CONTROL_MATCH_3B
 
 /*****************************************************************************/
@@ -345,7 +345,7 @@ typedef enum {
 	/* When set to 0, hash collisions are allowed.  */
 } icp_qat_hw_comp_20_skip_hash_collision_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_COLLISION_DEFAULT_VAL          \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_COLLISION_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SKIP_HASH_COLLISION_ALLOW
 
 /*****************************************************************************/
@@ -365,7 +365,7 @@ typedef enum {
 	/* 1 - hash updates are skipped.  */
 } icp_qat_hw_comp_20_skip_hash_update_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_UPDATE_DEFAULT_VAL             \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_SKIP_HASH_UPDATE_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_SKIP_HASH_UPDATE_ALLOW
 
 /*****************************************************************************/
@@ -385,7 +385,7 @@ typedef enum {
 	/* 0 - Use 3-byte literal  */
 } icp_qat_hw_comp_20_byte_skip_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_BYTE_SKIP_DEFAULT_VAL                    \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_BYTE_SKIP_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_BYTE_SKIP_3BYTE_TOKEN
 
 /*****************************************************************************/
@@ -406,7 +406,7 @@ typedef enum {
 	/* 1 - EXTENDED_DELAY_MATCH_MODE enabled  */
 } icp_qat_hw_comp_20_extended_delay_match_mode_t;
 
-#define ICP_QAT_HW_COMP_20_CONFIG_CSR_EXTENDED_DELAY_MATCH_MODE_DEFAULT_VAL    \
+#define ICP_QAT_HW_COMP_20_CONFIG_CSR_EXTENDED_DELAY_MATCH_MODE_DEFAULT_VAL \
 	ICP_QAT_HW_COMP_20_EXTENDED_DELAY_MATCH_MODE_EDMM_DISABLED
 
 /*****************************************************************************/
@@ -447,7 +447,7 @@ typedef enum {
 	/* 1b - Disabled  */
 } icp_qat_hw_decomp_20_reserved4_control_t;
 
-#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_RESERVED4_CONTROL_DEFAULT_VAL          \
+#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_RESERVED4_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_DECOMP_20_RESERVED4_CONTROL_ENABLE
 
 /*****************************************************************************/
@@ -466,7 +466,7 @@ typedef enum {
 	/* 000b - 32KB  */
 } icp_qat_hw_decomp_20_hbs_control_t;
 
-#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_HBS_CONTROL_DEFAULT_VAL                \
+#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_HBS_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_DECOMP_20_HBS_CONTROL_HBS_IS_32KB
 
 /*****************************************************************************/
@@ -490,7 +490,7 @@ typedef enum {
 	/* LZ4 Block Maximum Size (LBMS) == 4 MB */
 } icp_qat_hw_decomp_20_lbms_t;
 
-#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_LBMS_DEFAULT_VAL                       \
+#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_LBMS_DEFAULT_VAL \
 	ICP_QAT_HW_DECOMP_20_LBMS_LBMS_64KB
 
 /*****************************************************************************/
@@ -515,7 +515,7 @@ typedef enum {
 	/* 011 - LZ4s. (Min_Match and HBSize must be set accordingly.) */
 } icp_qat_hw_decomp_20_hw_comp_format_t;
 
-#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_HW_DECOMP_FORMAT_DEFAULT_VAL           \
+#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_HW_DECOMP_FORMAT_DEFAULT_VAL \
 	ICP_QAT_HW_DECOMP_20_HW_DECOMP_FORMAT_DEFLATE
 
 /*****************************************************************************/
@@ -537,7 +537,7 @@ typedef enum {
 	/* 1 - Match 4 B */
 } icp_qat_hw_decomp_20_min_match_control_t;
 
-#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_MIN_MATCH_CONTROL_DEFAULT_VAL          \
+#define ICP_QAT_HW_DECOMP_20_CONFIG_CSR_MIN_MATCH_CONTROL_DEFAULT_VAL \
 	ICP_QAT_HW_DECOMP_20_MIN_MATCH_CONTROL_MATCH_3B
 
 /*****************************************************************************/

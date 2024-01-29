@@ -6,96 +6,99 @@
  */
 
 #if defined(KERNEL) || defined(_KERNEL)
-# undef KERNEL
-# undef _KERNEL
-# define	KERNEL	1
-# define	_KERNEL	1
+#undef KERNEL
+#undef _KERNEL
+#define KERNEL 1
+#define _KERNEL 1
 #endif
-#if defined(__FreeBSD__) && \
-    !defined(KLD_MODULE) && !defined(IPFILTER_LKM)
-# include "opt_inet6.h"
+#if defined(__FreeBSD__) && !defined(KLD_MODULE) && !defined(IPFILTER_LKM)
+#include "opt_inet6.h"
 #endif
-#include <sys/param.h>
-#include <sys/eventhandler.h>
-#include <sys/conf.h>
-#include <sys/errno.h>
 #include <sys/types.h>
-#include <sys/file.h>
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/conf.h>
+#include <sys/dirent.h>
+#include <sys/errno.h>
+#include <sys/eventhandler.h>
 #include <sys/fcntl.h>
+#include <sys/file.h>
 #include <sys/filio.h>
 #include <sys/time.h>
-#include <sys/systm.h>
-#include <sys/dirent.h>
 #if defined(__FreeBSD__)
-# include <sys/jail.h>
+#include <sys/jail.h>
 #endif
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/sockopt.h>
-#include <sys/socket.h>
 #include <sys/selinfo.h>
+#include <sys/socket.h>
+#include <sys/sockopt.h>
+
 #include <net/if.h>
 #include <net/if_var.h>
 #include <net/netisr.h>
 #include <net/route.h>
 #include <net/route/nhop.h>
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/in_fib.h>
 #include <netinet/in_pcb.h>
-#include <netinet/in_var.h>
 #include <netinet/in_systm.h>
+#include <netinet/in_var.h>
 #include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
 #include <netinet/ip_var.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_var.h>
-#include <net/vnet.h>
-#include <netinet/udp.h>
 #include <netinet/tcpip.h>
-#include <netinet/ip_icmp.h>
+#include <netinet/udp.h>
+
 #include "netinet/ip_compat.h"
 #ifdef USE_INET6
-# include <netinet/icmp6.h>
+#include <netinet/icmp6.h>
 #endif
-#include "netinet/ip_fil.h"
-#include "netinet/ip_nat.h"
-#include "netinet/ip_frag.h"
-#include "netinet/ip_state.h"
-#include "netinet/ip_proxy.h"
 #include "netinet/ip_auth.h"
-#include "netinet/ip_sync.h"
-#include "netinet/ip_lookup.h"
 #include "netinet/ip_dstlist.h"
-#ifdef	IPFILTER_SCAN
-# include "netinet/ip_scan.h"
+#include "netinet/ip_fil.h"
+#include "netinet/ip_frag.h"
+#include "netinet/ip_lookup.h"
+#include "netinet/ip_nat.h"
+#include "netinet/ip_proxy.h"
+#include "netinet/ip_state.h"
+#include "netinet/ip_sync.h"
+#ifdef IPFILTER_SCAN
+#include "netinet/ip_scan.h"
 #endif
-#include "netinet/ip_pool.h"
-#include <sys/malloc.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
+
+#include "netinet/ip_pool.h"
 #ifdef CSUM_DATA_VALID
-# include <machine/in_cksum.h>
+#include <machine/in_cksum.h>
 #endif
-extern	int	ip_optcopy(struct ip *, struct ip *);
+extern int ip_optcopy(struct ip *, struct ip *);
 
 #ifdef IPFILTER_M_IPFILTER
-MALLOC_DEFINE(M_IPFILTER, "ipfilter", "IP Filter packet filter data structures");
+MALLOC_DEFINE(M_IPFILTER, "ipfilter",
+    "IP Filter packet filter data structures");
 #endif
 
-
-static	int	ipf_send_ip(fr_info_t *, mb_t *);
-static void	ipf_timer_func(void *arg);
+static int ipf_send_ip(fr_info_t *, mb_t *);
+static void ipf_timer_func(void *arg);
 
 VNET_DEFINE(ipf_main_softc_t, ipfmain) = {
-	.ipf_running		= -2,
+	.ipf_running = -2,
 };
-#define	V_ipfmain		VNET(ipfmain)
+#define V_ipfmain VNET(ipfmain)
 
 #include <sys/conf.h>
+
 #include <net/pfil.h>
 
 VNET_DEFINE_STATIC(eventhandler_tag, ipf_arrivetag);
 VNET_DEFINE_STATIC(eventhandler_tag, ipf_departtag);
-#define	V_ipf_arrivetag		VNET(ipf_arrivetag)
-#define	V_ipf_departtag		VNET(ipf_departtag)
+#define V_ipf_arrivetag VNET(ipf_arrivetag)
+#define V_ipf_departtag VNET(ipf_departtag)
 #if 0
 /*
  * Disable the "cloner" event handler;  we are getting interface
@@ -106,12 +109,13 @@ VNET_DEFINE_STATIC(eventhandler_tag, ipf_departtag);
  * for it to deal with the ifc and the correct vnet.
  */
 VNET_DEFINE_STATIC(eventhandler_tag, ipf_clonetag);
-#define	V_ipf_clonetag		VNET(ipf_clonetag)
+#define V_ipf_clonetag VNET(ipf_clonetag)
 #endif
 
 static void ipf_ifevent(void *arg, struct ifnet *ifp);
 
-static void ipf_ifevent(void *arg, struct ifnet *ifp)
+static void
+ipf_ifevent(void *arg, struct ifnet *ifp)
 {
 
 	CURVNET_SET(ifp->if_vnet);
@@ -119,8 +123,6 @@ static void ipf_ifevent(void *arg, struct ifnet *ifp)
 		ipf_sync(&V_ipfmain, NULL);
 	CURVNET_RESTORE();
 }
-
-
 
 static pfil_return_t
 ipf_check_wrapper(struct mbuf **mp, struct ifnet *ifp, int flags,
@@ -150,16 +152,16 @@ ipf_check_wrapper6(struct mbuf **mp, struct ifnet *ifp, int flags,
 
 	return (rv == 0 ? PFIL_PASS : PFIL_DROPPED);
 }
-# endif
-#if	defined(IPFILTER_LKM)
-int ipf_identify(char *s)
+#endif
+#if defined(IPFILTER_LKM)
+int
+ipf_identify(char *s)
 {
 	if (strcmp(s, "ipl") == 0)
 		return (1);
 	return (0);
 }
 #endif /* IPFILTER_LKM */
-
 
 static void
 ipf_timer_func(void *arg)
@@ -179,13 +181,11 @@ ipf_timer_func(void *arg)
 #endif
 		callout_init(&softc->ipf_slow_ch, 1);
 		callout_reset(&softc->ipf_slow_ch,
-			(hz / IPF_HZ_DIVIDE) * IPF_HZ_MULT,
-			ipf_timer_func, softc);
+		    (hz / IPF_HZ_DIVIDE) * IPF_HZ_MULT, ipf_timer_func, softc);
 	}
 	RWLOCK_EXIT(&softc->ipf_global);
 	SPL_X(s);
 }
-
 
 int
 ipfattach(ipf_main_softc_t *softc)
@@ -205,7 +205,6 @@ ipfattach(ipf_main_softc_t *softc)
 		return (EIO);
 	}
 
-
 	bzero((char *)V_ipfmain.ipf_selwait, sizeof(V_ipfmain.ipf_selwait));
 	softc->ipf_running = 1;
 
@@ -219,10 +218,9 @@ ipfattach(ipf_main_softc_t *softc)
 #endif
 	callout_init(&softc->ipf_slow_ch, 1);
 	callout_reset(&softc->ipf_slow_ch, (hz / IPF_HZ_DIVIDE) * IPF_HZ_MULT,
-		ipf_timer_func, softc);
+	    ipf_timer_func, softc);
 	return (0);
 }
-
 
 /*
  * Disable the filter by removing the hooks from the IP input/output
@@ -256,22 +254,20 @@ ipfdetach(ipf_main_softc_t *softc)
 	return (0);
 }
 
-
 /*
  * Filter ioctl interface.
  */
 int
-ipfioctl(struct cdev *dev, ioctlcmd_t cmd, caddr_t data,
-	int mode, struct thread *p)
-#define	p_cred	td_ucred
-#define	p_uid	td_ucred->cr_ruid
+ipfioctl(struct cdev *dev, ioctlcmd_t cmd, caddr_t data, int mode,
+    struct thread *p)
+#define p_cred td_ucred
+#define p_uid td_ucred->cr_ruid
 {
 	int error = 0, unit = 0;
 	SPL_INT(s);
 
 	CURVNET_SET(TD_TO_VNET(p));
-	if (securelevel_ge(p->p_cred, 3) && (mode & FWRITE))
-	{
+	if (securelevel_ge(p->p_cred, 3) && (mode & FWRITE)) {
 		V_ipfmain.ipf_interror = 130001;
 		CURVNET_RESTORE();
 		return (EPERM);
@@ -297,9 +293,8 @@ ipfioctl(struct cdev *dev, ioctlcmd_t cmd, caddr_t data,
 			return (EIO);
 		}
 		if (cmd != SIOCIPFGETNEXT && cmd != SIOCIPFGET &&
-		    cmd != SIOCIPFSET && cmd != SIOCFRENB &&
-		    cmd != SIOCGETFS && cmd != SIOCGETFF &&
-		    cmd != SIOCIPFINTERROR) {
+		    cmd != SIOCIPFSET && cmd != SIOCFRENB && cmd != SIOCGETFS &&
+		    cmd != SIOCGETFF && cmd != SIOCIPFINTERROR) {
 			V_ipfmain.ipf_interror = 130004;
 			CURVNET_RESTORE();
 			return (EIO);
@@ -320,7 +315,6 @@ ipfioctl(struct cdev *dev, ioctlcmd_t cmd, caddr_t data,
 	return (error);
 }
 
-
 /*
  * ipf_send_reset - this could conceivably be a call to tcp_respond(), but that
  * requires a large amount of setting up and isn't any more efficient.
@@ -338,14 +332,14 @@ ipf_send_reset(fr_info_t *fin)
 
 	tcp = fin->fin_dp;
 	if (tcp->th_flags & TH_RST)
-		return (-1);		/* feedback loop */
+		return (-1); /* feedback loop */
 
 	if (ipf_checkl4sum(fin) == -1)
 		return (-1);
 
 	tlen = fin->fin_dlen - (TCP_OFF(tcp) << 2) +
-			((tcp->th_flags & TH_SYN) ? 1 : 0) +
-			((tcp->th_flags & TH_FIN) ? 1 : 0);
+	    ((tcp->th_flags & TH_SYN) ? 1 : 0) +
+	    ((tcp->th_flags & TH_FIN) ? 1 : 0);
 
 #ifdef USE_INET6
 	hlen = (fin->fin_v == 6) ? sizeof(ip6_t) : sizeof(ip_t);
@@ -388,7 +382,7 @@ ipf_send_reset(fr_info_t *fin)
 		tcp2->th_ack = ntohl(tcp->th_seq);
 		tcp2->th_ack += tlen;
 		tcp2->th_ack = htonl(tcp2->th_ack);
-		tcp_set_flags(tcp2, TH_RST|TH_ACK);
+		tcp_set_flags(tcp2, TH_RST | TH_ACK);
 	}
 	TCP_OFF_A(tcp2, sizeof(*tcp2) >> 2);
 	tcp2->th_win = tcp->th_win;
@@ -403,8 +397,8 @@ ipf_send_reset(fr_info_t *fin)
 		ip6->ip6_hlim = 0;
 		ip6->ip6_src = fin->fin_dst6.in6;
 		ip6->ip6_dst = fin->fin_src6.in6;
-		tcp2->th_sum = in6_cksum(m, IPPROTO_TCP,
-					 sizeof(*ip6), sizeof(*tcp2));
+		tcp2->th_sum = in6_cksum(m, IPPROTO_TCP, sizeof(*ip6),
+		    sizeof(*tcp2));
 		return (ipf_send_ip(fin, m));
 	}
 #endif
@@ -416,7 +410,6 @@ ipf_send_reset(fr_info_t *fin)
 	ip->ip_len = htons(hlen + sizeof(*tcp2));
 	return (ipf_send_ip(fin, m));
 }
-
 
 /*
  * ip_len must be in network byte order when called.
@@ -433,9 +426,8 @@ ipf_send_ip(fr_info_t *fin, mb_t *m)
 	fnew.fin_main_soft = fin->fin_main_soft;
 
 	IP_V_A(ip, fin->fin_v);
-	switch (fin->fin_v)
-	{
-	case 4 :
+	switch (fin->fin_v) {
+	case 4:
 		oip = fin->fin_ip;
 		hlen = sizeof(*oip);
 		fnew.fin_v = 4;
@@ -449,8 +441,7 @@ ipf_send_ip(fr_info_t *fin, mb_t *m)
 		ip->ip_sum = 0;
 		break;
 #ifdef USE_INET6
-	case 6 :
-	{
+	case 6: {
 		ip6_t *ip6 = (ip6_t *)ip;
 
 		ip6->ip6_vfc = 0x60;
@@ -463,7 +454,7 @@ ipf_send_ip(fr_info_t *fin, mb_t *m)
 		break;
 	}
 #endif
-	default :
+	default:
 		return (EINVAL);
 	}
 #ifdef IPSEC_SUPPORT
@@ -477,11 +468,10 @@ ipf_send_ip(fr_info_t *fin, mb_t *m)
 	fnew.fin_mp = &m;
 	fnew.fin_hlen = hlen;
 	fnew.fin_dp = (char *)ip + hlen;
-	(void) ipf_makefrip(hlen, ip, &fnew);
+	(void)ipf_makefrip(hlen, ip, &fnew);
 
 	return (ipf_fastroute(m, &m, &fnew, NULL));
 }
-
 
 int
 ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
@@ -503,7 +493,7 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 	code = fin->fin_icode;
 #ifdef USE_INET6
 	/* See NetBSD ip_fil_netbsd.c r1.4: */
-	if ((code < 0) || (code >= sizeof(icmptoicmp6unreach)/sizeof(int)))
+	if ((code < 0) || (code >= sizeof(icmptoicmp6unreach) / sizeof(int)))
 		return (-1);
 #endif
 
@@ -525,21 +515,20 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 	ifp = fin->fin_ifp;
 	if (fin->fin_v == 4) {
 		if ((fin->fin_p == IPPROTO_ICMP) && !(fin->fin_flx & FI_SHORT))
-			switch (ntohs(fin->fin_data[0]) >> 8)
-			{
-			case ICMP_ECHO :
-			case ICMP_TSTAMP :
-			case ICMP_IREQ :
-			case ICMP_MASKREQ :
+			switch (ntohs(fin->fin_data[0]) >> 8) {
+			case ICMP_ECHO:
+			case ICMP_TSTAMP:
+			case ICMP_IREQ:
+			case ICMP_MASKREQ:
 				break;
-			default :
+			default:
 				FREE_MB_T(m);
 				return (0);
 			}
 
 		if (dst == 0) {
-			if (ipf_ifpaddr(&V_ipfmain, 4, FRI_NORMAL, ifp,
-					&dst6, NULL) == -1) {
+			if (ipf_ifpaddr(&V_ipfmain, 4, FRI_NORMAL, ifp, &dst6,
+				NULL) == -1) {
 				FREE_MB_T(m);
 				return (-1);
 			}
@@ -575,8 +564,8 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 		xtra = MIN(fin->fin_plen, avail - iclen - max_linkhdr);
 		xtra = MIN(xtra, IPV6_MMTU - iclen);
 		if (dst == 0) {
-			if (ipf_ifpaddr(&V_ipfmain, 6, FRI_NORMAL, ifp,
-					&dst6, NULL) == -1) {
+			if (ipf_ifpaddr(&V_ipfmain, 6, FRI_NORMAL, ifp, &dst6,
+				NULL) == -1) {
 				FREE_MB_T(m);
 				return (-1);
 			}
@@ -616,7 +605,7 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 		} else if (ifp != NULL) {
 			icmp->icmp_nextmtu = htons(GETIFMTU_4(ifp));
 
-		} else {	/* make up a number... */
+		} else { /* make up a number... */
 			icmp->icmp_nextmtu = htons(fin->fin_plen - 20);
 		}
 	}
@@ -635,9 +624,9 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 		ip6->ip6_dst = fin->fin_src6.in6;
 		if (xtra > 0)
 			bcopy((char *)fin->fin_ip + ohlen,
-			      (char *)&icmp->icmp_ip + ohlen, xtra);
-		icmp->icmp_cksum = in6_cksum(m, IPPROTO_ICMPV6,
-					     sizeof(*ip6), iclen - hlen);
+			    (char *)&icmp->icmp_ip + ohlen, xtra);
+		icmp->icmp_cksum = in6_cksum(m, IPPROTO_ICMPV6, sizeof(*ip6),
+		    iclen - hlen);
 	} else
 #endif
 	{
@@ -647,18 +636,15 @@ ipf_send_icmp_err(int type, fr_info_t *fin, int dst)
 
 		if (xtra > 0)
 			bcopy((char *)fin->fin_ip + ohlen,
-			      (char *)&icmp->icmp_ip + ohlen, xtra);
+			    (char *)&icmp->icmp_ip + ohlen, xtra);
 		icmp->icmp_cksum = ipf_cksum((u_short *)icmp,
-					     sizeof(*icmp) + 8);
+		    sizeof(*icmp) + 8);
 		ip->ip_len = htons(iclen);
 		ip->ip_p = IPPROTO_ICMP;
 	}
 	err = ipf_send_ip(fin, m);
 	return (err);
 }
-
-
-
 
 /*
  * m0 - pointer to mbuf where the IP packet starts
@@ -682,16 +668,16 @@ ipf_fastroute(mb_t *m0, mb_t **mpp, fr_info_t *fin, frdest_t *fdp)
 
 #ifdef M_WRITABLE
 	/*
-	* HOT FIX/KLUDGE:
-	*
-	* If the mbuf we're about to send is not writable (because of
-	* a cluster reference, for example) we'll need to make a copy
-	* of it since this routine modifies the contents.
-	*
-	* If you have non-crappy network hardware that can transmit data
-	* from the mbuf, rather than making a copy, this is gonna be a
-	* problem.
-	*/
+	 * HOT FIX/KLUDGE:
+	 *
+	 * If the mbuf we're about to send is not writable (because of
+	 * a cluster reference, for example) we'll need to make a copy
+	 * of it since this routine modifies the contents.
+	 *
+	 * If you have non-crappy network hardware that can transmit data
+	 * from the mbuf, rather than making a copy, this is gonna be a
+	 * problem.
+	 */
 	if (M_WRITABLE(m) == 0) {
 		m0 = m_dup(m, M_NOWAIT);
 		if (m0 != NULL) {
@@ -723,7 +709,7 @@ ipf_fastroute(mb_t *m0, mb_t **mpp, fr_info_t *fin, frdest_t *fdp)
 	/*
 	 * Route packet.
 	 */
-	bzero(&ro, sizeof (ro));
+	bzero(&ro, sizeof(ro));
 	dst = (struct sockaddr_in *)&ro.ro_dst;
 	dst->sin_family = AF_INET;
 	dst->sin_addr = ip->ip_dst;
@@ -779,22 +765,21 @@ ipf_fastroute(mb_t *m0, mb_t **mpp, fr_info_t *fin, frdest_t *fdp)
 		sifp = fin->fin_ifp;
 		fin->fin_ifp = ifp;
 		fin->fin_out = 1;
-		(void) ipf_acctpkt(fin, NULL);
+		(void)ipf_acctpkt(fin, NULL);
 		fin->fin_fr = NULL;
 		if (!fr || !(fr->fr_flags & FR_RETMASK)) {
 			u_32_t pass;
 
-			(void) ipf_state_check(fin, &pass);
+			(void)ipf_state_check(fin, &pass);
 		}
 
-		switch (ipf_nat_checkout(fin, NULL))
-		{
-		case 0 :
+		switch (ipf_nat_checkout(fin, NULL)) {
+		case 0:
 			break;
-		case 1 :
+		case 1:
 			ip->ip_sum = 0;
 			break;
-		case -1 :
+		case -1:
 			error = -1;
 			goto bad;
 			break;
@@ -822,79 +807,81 @@ ipf_fastroute(mb_t *m0, mb_t **mpp, fr_info_t *fin, frdest_t *fdp)
 		error = EMSGSIZE;
 		goto bad;
 	}
-	len = (ifp->if_mtu - hlen) &~ 7;
+	len = (ifp->if_mtu - hlen) & ~7;
 	if (len < 8) {
 		error = EMSGSIZE;
 		goto bad;
 	}
 
-    {
-	int mhlen, firstlen = len;
-	struct mbuf **mnext = &m->m_act;
+	{
+		int mhlen, firstlen = len;
+		struct mbuf **mnext = &m->m_act;
 
-	/*
-	 * Loop through length of segment after first fragment,
-	 * make new header and copy data of each part and link onto chain.
-	 */
-	m0 = m;
-	mhlen = sizeof (struct ip);
-	for (off = hlen + len; off < ntohs(ip->ip_len); off += len) {
+		/*
+		 * Loop through length of segment after first fragment,
+		 * make new header and copy data of each part and link onto
+		 * chain.
+		 */
+		m0 = m;
+		mhlen = sizeof(struct ip);
+		for (off = hlen + len; off < ntohs(ip->ip_len); off += len) {
 #ifdef MGETHDR
-		MGETHDR(m, M_NOWAIT, MT_HEADER);
+			MGETHDR(m, M_NOWAIT, MT_HEADER);
 #else
-		MGET(m, M_NOWAIT, MT_HEADER);
+			MGET(m, M_NOWAIT, MT_HEADER);
 #endif
-		if (m == NULL) {
-			m = m0;
-			error = ENOBUFS;
-			goto bad;
+			if (m == NULL) {
+				m = m0;
+				error = ENOBUFS;
+				goto bad;
+			}
+			m->m_data += max_linkhdr;
+			mhip = mtod(m, struct ip *);
+			bcopy((char *)ip, (char *)mhip, sizeof(*ip));
+			if (hlen > sizeof(struct ip)) {
+				mhlen = ip_optcopy(ip, mhip) +
+				    sizeof(struct ip);
+				IP_HL_A(mhip, mhlen >> 2);
+			}
+			m->m_len = mhlen;
+			mhip->ip_off = ((off - hlen) >> 3) + ip_off;
+			if (off + len >= ntohs(ip->ip_len))
+				len = ntohs(ip->ip_len) - off;
+			else
+				mhip->ip_off |= IP_MF;
+			mhip->ip_len = htons((u_short)(len + mhlen));
+			*mnext = m;
+			m->m_next = m_copym(m0, off, len, M_NOWAIT);
+			if (m->m_next == 0) {
+				error = ENOBUFS; /* ??? */
+				goto sendorfree;
+			}
+			m->m_pkthdr.len = mhlen + len;
+			m->m_pkthdr.rcvif = NULL;
+			mhip->ip_off = htons((u_short)mhip->ip_off);
+			mhip->ip_sum = 0;
+			mhip->ip_sum = in_cksum(m, mhlen);
+			mnext = &m->m_act;
 		}
-		m->m_data += max_linkhdr;
-		mhip = mtod(m, struct ip *);
-		bcopy((char *)ip, (char *)mhip, sizeof(*ip));
-		if (hlen > sizeof (struct ip)) {
-			mhlen = ip_optcopy(ip, mhip) + sizeof (struct ip);
-			IP_HL_A(mhip, mhlen >> 2);
+		/*
+		 * Update first fragment by trimming what's been copied out
+		 * and updating header, then send each fragment (in order).
+		 */
+		m_adj(m0, hlen + firstlen - ip->ip_len);
+		ip->ip_len = htons((u_short)(hlen + firstlen));
+		ip->ip_off = htons((u_short)IP_MF);
+		ip->ip_sum = 0;
+		ip->ip_sum = in_cksum(m0, hlen);
+	sendorfree:
+		for (m = m0; m; m = m0) {
+			m0 = m->m_act;
+			m->m_act = 0;
+			if (error == 0)
+				error = (*ifp->if_output)(ifp, m, gw, &ro);
+			else
+				FREE_MB_T(m);
 		}
-		m->m_len = mhlen;
-		mhip->ip_off = ((off - hlen) >> 3) + ip_off;
-		if (off + len >= ntohs(ip->ip_len))
-			len = ntohs(ip->ip_len) - off;
-		else
-			mhip->ip_off |= IP_MF;
-		mhip->ip_len = htons((u_short)(len + mhlen));
-		*mnext = m;
-		m->m_next = m_copym(m0, off, len, M_NOWAIT);
-		if (m->m_next == 0) {
-			error = ENOBUFS;	/* ??? */
-			goto sendorfree;
-		}
-		m->m_pkthdr.len = mhlen + len;
-		m->m_pkthdr.rcvif = NULL;
-		mhip->ip_off = htons((u_short)mhip->ip_off);
-		mhip->ip_sum = 0;
-		mhip->ip_sum = in_cksum(m, mhlen);
-		mnext = &m->m_act;
 	}
-	/*
-	 * Update first fragment by trimming what's been copied out
-	 * and updating header, then send each fragment (in order).
-	 */
-	m_adj(m0, hlen + firstlen - ip->ip_len);
-	ip->ip_len = htons((u_short)(hlen + firstlen));
-	ip->ip_off = htons((u_short)IP_MF);
-	ip->ip_sum = 0;
-	ip->ip_sum = in_cksum(m0, hlen);
-sendorfree:
-	for (m = m0; m; m = m0) {
-		m0 = m->m_act;
-		m->m_act = 0;
-		if (error == 0)
-			error = (*ifp->if_output)(ifp, m, gw, &ro);
-		else
-			FREE_MB_T(m);
-	}
-    }
 done:
 	if (!error)
 		V_ipfmain.ipf_frouteok[0]++;
@@ -908,14 +895,13 @@ bad:
 		code = fin->fin_icode;
 		fin->fin_icode = ICMP_UNREACH_NEEDFRAG;
 		fin->fin_ifp = ifp;
-		(void) ipf_send_icmp_err(ICMP_UNREACH, fin, 1);
+		(void)ipf_send_icmp_err(ICMP_UNREACH, fin, 1);
 		fin->fin_ifp = sifp;
 		fin->fin_icode = code;
 	}
 	FREE_MB_T(m);
 	goto done;
 }
-
 
 int
 ipf_verifysrc(fr_info_t *fin)
@@ -929,13 +915,12 @@ ipf_verifysrc(fr_info_t *fin)
 	return (fin->fin_ifp == nh->nh_ifp);
 }
 
-
 /*
  * return the first IP Address associated with an interface
  */
 int
 ipf_ifpaddr(ipf_main_softc_t *softc, int v, int atype, void *ifptr,
-	i6addr_t *inp, i6addr_t *inpmask)
+    i6addr_t *inp, i6addr_t *inpmask)
 {
 #ifdef USE_INET6
 	struct in6_addr *ia6 = NULL;
@@ -992,15 +977,12 @@ ipf_ifpaddr(ipf_main_softc_t *softc, int v, int atype, void *ifptr,
 #ifdef USE_INET6
 	if (v == 6) {
 		return (ipf_ifpfillv6addr(atype, (struct sockaddr_in6 *)sock,
-					 (struct sockaddr_in6 *)mask,
-					 inp, inpmask));
+		    (struct sockaddr_in6 *)mask, inp, inpmask));
 	}
 #endif
 	return (ipf_ifpfillv4addr(atype, (struct sockaddr_in *)sock,
-				 (struct sockaddr_in *)mask,
-				 &inp->in4, &inpmask->in4));
+	    (struct sockaddr_in *)mask, &inp->in4, &inpmask->in4));
 }
-
 
 u_32_t
 ipf_newisn(fr_info_t *fin)
@@ -1009,7 +991,6 @@ ipf_newisn(fr_info_t *fin)
 	newiss = arc4random();
 	return (newiss);
 }
-
 
 int
 ipf_checkv4sum(fr_info_t *fin)
@@ -1036,17 +1017,19 @@ ipf_checkv4sum(fr_info_t *fin)
 	}
 	ip = fin->fin_ip;
 
-	if ((m->m_pkthdr.csum_flags & (CSUM_IP_CHECKED|CSUM_IP_VALID)) ==
+	if ((m->m_pkthdr.csum_flags & (CSUM_IP_CHECKED | CSUM_IP_VALID)) ==
 	    CSUM_IP_CHECKED) {
 		fin->fin_cksum = FI_CK_BAD;
 		fin->fin_flx |= FI_BAD;
-		DT2(ipf_fi_bad_checkv4sum_csum_ip_checked, fr_info_t *, fin, u_int, m->m_pkthdr.csum_flags & (CSUM_IP_CHECKED|CSUM_IP_VALID));
+		DT2(ipf_fi_bad_checkv4sum_csum_ip_checked, fr_info_t *, fin,
+		    u_int,
+		    m->m_pkthdr.csum_flags & (CSUM_IP_CHECKED | CSUM_IP_VALID));
 		return (-1);
 	}
 	if (m->m_pkthdr.csum_flags & CSUM_DATA_VALID) {
 		/* Depending on the driver, UDP may have zero checksum */
-		if (fin->fin_p == IPPROTO_UDP && (fin->fin_flx &
-		    (FI_FRAG|FI_SHORT|FI_BAD)) == 0) {
+		if (fin->fin_p == IPPROTO_UDP &&
+		    (fin->fin_flx & (FI_FRAG | FI_SHORT | FI_BAD)) == 0) {
 			udphdr_t *udp = fin->fin_dp;
 			if (udp->uh_sum == 0) {
 				/*
@@ -1064,13 +1047,14 @@ ipf_checkv4sum(fr_info_t *fin)
 			sum = m->m_pkthdr.csum_data;
 		else
 			sum = in_pseudo(ip->ip_src.s_addr, ip->ip_dst.s_addr,
-					htonl(m->m_pkthdr.csum_data +
-					fin->fin_dlen + fin->fin_p));
+			    htonl(m->m_pkthdr.csum_data + fin->fin_dlen +
+				fin->fin_p));
 		sum ^= 0xffff;
 		if (sum != 0) {
 			fin->fin_cksum = FI_CK_BAD;
 			fin->fin_flx |= FI_BAD;
-			DT2(ipf_fi_bad_checkv4sum_sum, fr_info_t *, fin, u_int, sum);
+			DT2(ipf_fi_bad_checkv4sum_sum, fr_info_t *, fin, u_int,
+			    sum);
 		} else {
 			fin->fin_cksum = FI_CK_SUMOK;
 			return (0);
@@ -1080,8 +1064,8 @@ ipf_checkv4sum(fr_info_t *fin)
 			fin->fin_cksum = FI_CK_L4FULL;
 			return (0);
 		} else if (m->m_pkthdr.csum_flags == CSUM_TCP ||
-			   m->m_pkthdr.csum_flags == CSUM_UDP ||
-			   m->m_pkthdr.csum_flags == CSUM_IP) {
+		    m->m_pkthdr.csum_flags == CSUM_UDP ||
+		    m->m_pkthdr.csum_flags == CSUM_IP) {
 			fin->fin_cksum = FI_CK_L4PART;
 			return (0);
 		} else {
@@ -1092,20 +1076,21 @@ skipauto:
 	if (manual != 0) {
 		if (ipf_checkl4sum(fin) == -1) {
 			fin->fin_flx |= FI_BAD;
-			DT2(ipf_fi_bad_checkv4sum_manual, fr_info_t *, fin, u_int, manual);
+			DT2(ipf_fi_bad_checkv4sum_manual, fr_info_t *, fin,
+			    u_int, manual);
 			return (-1);
 		}
 	}
 #else
 	if (ipf_checkl4sum(fin) == -1) {
 		fin->fin_flx |= FI_BAD;
-		DT2(ipf_fi_bad_checkv4sum_checkl4sum, fr_info_t *, fin, u_int, -1);
+		DT2(ipf_fi_bad_checkv4sum_checkl4sum, fr_info_t *, fin, u_int,
+		    -1);
 		return (-1);
 	}
 #endif
 	return (0);
 }
-
 
 #ifdef USE_INET6
 int
@@ -1128,13 +1113,13 @@ ipf_checkv6sum(fr_info_t *fin)
 
 	if (ipf_checkl4sum(fin) == -1) {
 		fin->fin_flx |= FI_BAD;
-		DT2(ipf_fi_bad_checkv6sum_checkl4sum, fr_info_t *, fin, u_int, -1);
+		DT2(ipf_fi_bad_checkv6sum_checkl4sum, fr_info_t *, fin, u_int,
+		    -1);
 		return (-1);
 	}
 	return (0);
 }
 #endif /* USE_INET6 */
-
 
 size_t
 mbufchainlen(struct mbuf *m0)
@@ -1151,7 +1136,6 @@ mbufchainlen(struct mbuf *m0)
 	}
 	return (len);
 }
-
 
 /* ------------------------------------------------------------------------ */
 /* Function:    ipf_pullup                                                  */
@@ -1223,8 +1207,7 @@ ipf_pullup(mb_t *xmin, fr_info_t *fin, int len)
 			m = NULL;
 			n = NULL;
 #endif
-		} else
-		{
+		} else {
 
 			m = m_pullup(m, len);
 		}
@@ -1259,15 +1242,13 @@ ipf_pullup(mb_t *xmin, fr_info_t *fin, int len)
 			fin->fin_dp = (char *)fin->fin_ip + dpoff;
 		if (fin->fin_fraghdr != NULL)
 			fin->fin_fraghdr = (char *)ip +
-					   ((char *)fin->fin_fraghdr -
-					    (char *)fin->fin_ip);
+			    ((char *)fin->fin_fraghdr - (char *)fin->fin_ip);
 	}
 
 	if (len == fin->fin_plen)
 		fin->fin_flx |= FI_COALESCE;
 	return (ip);
 }
-
 
 int
 ipf_inject(fr_info_t *fin, mb_t *m)
@@ -1290,10 +1271,12 @@ ipf_inject(fr_info_t *fin, mb_t *m)
 
 VNET_DEFINE_STATIC(pfil_hook_t, ipf_inet_hook);
 VNET_DEFINE_STATIC(pfil_hook_t, ipf_inet6_hook);
-#define	V_ipf_inet_hook		VNET(ipf_inet_hook)
-#define	V_ipf_inet6_hook	VNET(ipf_inet6_hook)
+#define V_ipf_inet_hook VNET(ipf_inet_hook)
+#define V_ipf_inet6_hook VNET(ipf_inet6_hook)
 
-int ipf_pfil_unhook(void) {
+int
+ipf_pfil_unhook(void)
+{
 
 	pfil_remove_hook(V_ipf_inet_hook);
 
@@ -1304,7 +1287,9 @@ int ipf_pfil_unhook(void) {
 	return (0);
 }
 
-int ipf_pfil_hook(void) {
+int
+ipf_pfil_hook(void)
+{
 	int error, error6;
 
 	struct pfil_hook_args pha = {
@@ -1350,12 +1335,10 @@ int ipf_pfil_hook(void) {
 void
 ipf_event_reg(void)
 {
-	V_ipf_arrivetag = EVENTHANDLER_REGISTER(ifnet_arrival_event, \
-					       ipf_ifevent, NULL, \
-					       EVENTHANDLER_PRI_ANY);
-	V_ipf_departtag = EVENTHANDLER_REGISTER(ifnet_departure_event, \
-					       ipf_ifevent, NULL, \
-					       EVENTHANDLER_PRI_ANY);
+	V_ipf_arrivetag = EVENTHANDLER_REGISTER(ifnet_arrival_event,
+	    ipf_ifevent, NULL, EVENTHANDLER_PRI_ANY);
+	V_ipf_departtag = EVENTHANDLER_REGISTER(ifnet_departure_event,
+	    ipf_ifevent, NULL, EVENTHANDLER_PRI_ANY);
 #if 0
 	V_ipf_clonetag  = EVENTHANDLER_REGISTER(if_clone_event, ipf_ifevent, \
 					       NULL, EVENTHANDLER_PRI_ANY);
@@ -1378,13 +1361,11 @@ ipf_event_dereg(void)
 #endif
 }
 
-
 u_32_t
 ipf_random(void)
 {
 	return (arc4random());
 }
-
 
 u_int
 ipf_pcksum(fr_info_t *fin, int hlen, u_int sum)
@@ -1411,11 +1392,11 @@ ipf_pcksum(fr_info_t *fin, int hlen, u_int sum)
 	return (sum2);
 }
 
-#ifdef	USE_INET6
+#ifdef USE_INET6
 u_int
 ipf_pcksum6(struct mbuf *m, ip6_t *ip6, u_int32_t off, u_int32_t len)
 {
-#ifdef	_KERNEL
+#ifdef _KERNEL
 	int sum;
 
 	if (m->m_len < sizeof(struct ip6_hdr)) {
@@ -1429,7 +1410,7 @@ ipf_pcksum6(struct mbuf *m, ip6_t *ip6, u_int32_t off, u_int32_t len)
 	u_int sum;
 
 	sp = (u_short *)&ip6->ip6_src;
-	sum = *sp++;   /* ip6_src */
+	sum = *sp++; /* ip6_src */
 	sum += *sp++;
 	sum += *sp++;
 	sum += *sp++;
@@ -1437,7 +1418,7 @@ ipf_pcksum6(struct mbuf *m, ip6_t *ip6, u_int32_t off, u_int32_t len)
 	sum += *sp++;
 	sum += *sp++;
 	sum += *sp++;
-	sum += *sp++;   /* ip6_dst */
+	sum += *sp++; /* ip6_dst */
 	sum += *sp++;
 	sum += *sp++;
 	sum += *sp++;
@@ -1453,6 +1434,5 @@ ipf_pcksum6(struct mbuf *m, ip6_t *ip6, u_int32_t off, u_int32_t len)
 void
 ipf_fbsd_kenv_get(ipf_main_softc_t *softc)
 {
-	TUNABLE_INT_FETCH("net.inet.ipf.large_nat",
-		&softc->ipf_large_nat);
+	TUNABLE_INT_FETCH("net.inet.ipf.large_nat", &softc->ipf_large_nat);
 }

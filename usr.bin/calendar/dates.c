@@ -28,39 +28,40 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <err.h>
 #include <time.h>
 
 #include "calendar.h"
 
 struct cal_year {
-	int year;	/* 19xx, 20xx, 21xx */
-	int easter;	/* Julian day */
-	int paskha;	/* Julian day */
-	int cny;	/* Julian day */
+	int year;	    /* 19xx, 20xx, 21xx */
+	int easter;	    /* Julian day */
+	int paskha;	    /* Julian day */
+	int cny;	    /* Julian day */
 	int firstdayofweek; /* 0 .. 6 */
 	struct cal_month *months;
-	struct cal_year	*nextyear;
+	struct cal_year *nextyear;
 };
 
 struct cal_month {
-	int month;			/* 01 .. 12 */
-	int firstdayjulian;		/* 000 .. 366 */
-	int firstdayofweek;		/* 0 .. 6 */
-	struct cal_year *year;		/* points back */
+	int month;	       /* 01 .. 12 */
+	int firstdayjulian;    /* 000 .. 366 */
+	int firstdayofweek;    /* 0 .. 6 */
+	struct cal_year *year; /* points back */
 	struct cal_day *days;
 	struct cal_month *nextmonth;
 };
 
 struct cal_day {
-	int dayofmonth;			/* 01 .. 31 */
-	int julianday;			/* 000 .. 366 */
-	int dayofweek;			/* 0 .. 6 */
+	int dayofmonth; /* 01 .. 31 */
+	int julianday;	/* 000 .. 366 */
+	int dayofweek;	/* 0 .. 6 */
 	struct cal_day *nextday;
-	struct cal_month *month;	/* points back */
-	struct cal_year	*year;		/* points back */
+	struct cal_month *month; /* points back */
+	struct cal_year *year;	 /* points back */
 	struct event *events;
 	struct event *lastevent;
 };
@@ -69,18 +70,18 @@ int debug_remember = 0;
 static struct cal_year *hyear = NULL;
 
 /* 1-based month, 0-based days, cumulative */
-int	cumdaytab[][14] = {
-	{0, -1, 30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333, 364},
-	{0, -1, 30, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
+int cumdaytab[][14] = {
+	{ 0, -1, 30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333, 364 },
+	{ 0, -1, 30, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 },
 };
 /* 1-based month, individual */
 static int *monthdays;
-int	monthdaytab[][14] = {
-	{0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 30},
-	{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 30},
+int monthdaytab[][14] = {
+	{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 30 },
+	{ 0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 30 },
 };
 
-static struct cal_day *	find_day(int yy, int mm, int dd);
+static struct cal_day *find_day(int yy, int mm, int dd);
 
 static void
 createdate(int y, int m, int d)
@@ -137,8 +138,9 @@ createdate(int y, int m, int d)
 		pm->month = m;
 		cumday = cumdaytab[isleap(y)];
 		pm->firstdayjulian = cumday[m] + 2;
-		pm->firstdayofweek =
-		    (py->firstdayofweek + pm->firstdayjulian -1) % 7;
+		pm->firstdayofweek = (py->firstdayofweek + pm->firstdayjulian -
+					 1) %
+		    7;
 		if (pmp != NULL)
 			pmp->nextmonth = pm;
 	}
@@ -152,7 +154,7 @@ createdate(int y, int m, int d)
 		pd = pd->nextday;
 	}
 
-	if (pd == NULL) {	/* Always true */
+	if (pd == NULL) { /* Always true */
 		pd = (struct cal_day *)calloc(1, sizeof(struct cal_day));
 		pd->month = pm;
 		pd->year = py;
@@ -366,7 +368,7 @@ first_dayofweek_of_month(int yy, int mm)
 	}
 
 	/* No data for this year.  Error? */
-        return (-1);
+	return (-1);
 }
 
 int

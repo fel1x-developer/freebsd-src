@@ -31,16 +31,16 @@
  */
 
 #include <sys/param.h>
+
+#include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
+#include <camlib.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <camlib.h>
-#include <cam/scsi/scsi_message.h>
-#include <cam/scsi/scsi_pass.h>
 
 #include "mptutil.h"
 
@@ -331,8 +331,7 @@ format_scsi_inquiry(struct mpt_standalone_disk *disk,
 		strcpy(rstr, "SAS");
 		break;
 	default:
-		snprintf(rstr, sizeof (rstr), "SCSI-%d",
-		    SID_ANSI_REV(inq_data));
+		snprintf(rstr, sizeof(rstr), "SCSI-%d", SID_ANSI_REV(inq_data));
 		break;
 	}
 	snprintf(disk->inqstring, sizeof(disk->inqstring), "<%s %s %s> %s",
@@ -405,7 +404,7 @@ mpt_fetch_disks(int fd, int *ndisks, struct mpt_standalone_disk **disksp)
 	if (error)
 		return (error);
 
-	for (count = 100;; count+= 100) {
+	for (count = 100;; count += 100) {
 		/* Try to fetch 'count' disks in one go. */
 		bzero(&ccb, sizeof(ccb));
 

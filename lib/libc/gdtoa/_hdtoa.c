@@ -35,11 +35,11 @@
 #include "gdtoaimp.h"
 
 /* Strings values used by dtoa() */
-#define	INFSTR	"Infinity"
-#define	NANSTR	"NaN"
+#define INFSTR "Infinity"
+#define NANSTR "NaN"
 
-#define	DBL_ADJ	(DBL_MAX_EXP - 2)
-#define	SIGFIGS	((DBL_MANT_DIG + 3) / 4 + 1)
+#define DBL_ADJ (DBL_MAX_EXP - 2)
+#define SIGFIGS ((DBL_MANT_DIG + 3) / 4 + 1)
 
 static const float one[] = { 1.0f, -1.0f };
 
@@ -93,14 +93,14 @@ __hdtoa(double d, const char *xdigs, int ndigits, int *decpt, int *sign,
 	case FP_INFINITE:
 		*decpt = INT_MAX;
 		return (nrv_alloc(INFSTR, rve, sizeof(INFSTR) - 1));
-	default:	/* FP_NAN or unrecognized */
+	default: /* FP_NAN or unrecognized */
 		*decpt = INT_MAX;
 		return (nrv_alloc(NANSTR, rve, sizeof(NANSTR) - 1));
 	}
 
 	/* FP_NORMAL or FP_SUBNORMAL */
 
-	if (ndigits == 0)		/* dtoa() compatibility */
+	if (ndigits == 0) /* dtoa() compatibility */
 		ndigits = 1;
 
 	/*

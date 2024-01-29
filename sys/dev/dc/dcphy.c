@@ -44,79 +44,66 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
+#include <sys/bus.h>
 #include <sys/errno.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_media.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/dc/if_dcreg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/dc/if_dcreg.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 
 #include "miibus_if.h"
+#include "miidevs.h"
 
-#define DC_SETBIT(sc, reg, x)                           \
-        CSR_WRITE_4(sc, reg,                            \
-                CSR_READ_4(sc, reg) | x)
+#define DC_SETBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | x)
 
-#define DC_CLRBIT(sc, reg, x)                           \
-        CSR_WRITE_4(sc, reg,                            \
-                CSR_READ_4(sc, reg) & ~x)
+#define DC_CLRBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~x)
 
-#define MIIF_AUTOTIMEOUT	0x0004
+#define MIIF_AUTOTIMEOUT 0x0004
 
 /*
  * This is the subsystem ID for the built-in 21143 ethernet
  * in several Compaq Presario systems.  Apparently these are
  * 10Mbps only, so we need to treat them specially.
  */
-#define COMPAQ_PRESARIO_ID	0xb0bb0e11
+#define COMPAQ_PRESARIO_ID 0xb0bb0e11
 
 static int dcphy_probe(device_t);
 static int dcphy_attach(device_t);
 
 static device_method_t dcphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		dcphy_probe),
-	DEVMETHOD(device_attach,	dcphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, dcphy_probe),
+	DEVMETHOD(device_attach, dcphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t dcphy_driver = {
-	"dcphy",
-	dcphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t dcphy_driver = { "dcphy", dcphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(dcphy, miibus, dcphy_driver, 0, 0);
 
-static int	dcphy_service(struct mii_softc *, struct mii_data *, int);
-static void	dcphy_status(struct mii_softc *);
-static void	dcphy_reset(struct mii_softc *);
-static int	dcphy_auto(struct mii_softc *);
+static int dcphy_service(struct mii_softc *, struct mii_data *, int);
+static void dcphy_status(struct mii_softc *);
+static void dcphy_reset(struct mii_softc *);
+static int dcphy_auto(struct mii_softc *);
 
-static const struct mii_phy_funcs dcphy_funcs = {
-	dcphy_service,
-	dcphy_status,
-	dcphy_reset
-};
+static const struct mii_phy_funcs dcphy_funcs = { dcphy_service, dcphy_status,
+	dcphy_reset };
 
 static int
 dcphy_probe(device_t dev)
@@ -129,8 +116,7 @@ dcphy_probe(device_t dev)
 	 * The dc driver will report the 21143 vendor and device
 	 * ID to let us know that it wants us to attach.
 	 */
-	if (ma->mii_id1 != DC_VENDORID_DEC ||
-	    ma->mii_id2 != DC_DEVICEID_21143)
+	if (ma->mii_id1 != DC_VENDORID_DEC || ma->mii_id2 != DC_DEVICEID_21143)
 		return (ENXIO);
 
 	device_set_desc(dev, "Intel 21143 NWAY media interface");
@@ -142,13 +128,13 @@ static int
 dcphy_attach(device_t dev)
 {
 	struct mii_softc *sc;
-	struct dc_softc		*dc_sc;
+	struct dc_softc *dc_sc;
 	device_t brdev;
 
 	sc = device_get_softc(dev);
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &dcphy_funcs, 0);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &dcphy_funcs,
+	    0);
 
 	/*PHY_RESET(sc);*/
 	dc_sc = if_getsoftc(sc->mii_pdata->mii_ifp);
@@ -163,12 +149,11 @@ dcphy_attach(device_t dev)
 		break;
 	default:
 		if (dc_sc->dc_pmode == DC_PMODE_SIA)
-			sc->mii_capabilities =
-			    BMSR_ANEG | BMSR_10TFDX | BMSR_10THDX;
+			sc->mii_capabilities = BMSR_ANEG | BMSR_10TFDX |
+			    BMSR_10THDX;
 		else
-			sc->mii_capabilities =
-			    BMSR_ANEG | BMSR_100TXFDX | BMSR_100TXHDX |
-			    BMSR_10TFDX | BMSR_10THDX;
+			sc->mii_capabilities = BMSR_ANEG | BMSR_100TXFDX |
+			    BMSR_100TXHDX | BMSR_10TFDX | BMSR_10THDX;
 		break;
 	}
 
@@ -184,10 +169,10 @@ dcphy_attach(device_t dev)
 static int
 dcphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 {
-	struct dc_softc		*dc_sc;
+	struct dc_softc *dc_sc;
 	struct ifmedia_entry *ife = mii->mii_media.ifm_cur;
 	int reg;
-	u_int32_t		mode;
+	u_int32_t mode;
 
 	dc_sc = if_getsoftc(mii->mii_ifp);
 
@@ -262,8 +247,8 @@ dcphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		if (!(reg & DC_TSTAT_LS10) || !(reg & DC_TSTAT_LS100))
 			break;
 
-                /*
-                 * Only retry autonegotiation every 5 seconds.
+		/*
+		 * Only retry autonegotiation every 5 seconds.
 		 *
 		 * Otherwise, fall through to calling dcphy_status()
 		 * since real Intel 21143 chips don't show valid link
@@ -271,8 +256,8 @@ dcphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 		 * that only happens in dcphy_status().  Without this,
 		 * successful autonegotiation is never recognised on
 		 * these chips.
-                 */
-                if (++sc->mii_ticks <= 50)
+		 */
+		if (++sc->mii_ticks <= 50)
 			break;
 
 		sc->mii_ticks = 0;
@@ -294,7 +279,7 @@ dcphy_status(struct mii_softc *sc)
 {
 	struct mii_data *mii = sc->mii_pdata;
 	int anlpar, tstat;
-	struct dc_softc		*dc_sc;
+	struct dc_softc *dc_sc;
 
 	dc_sc = if_getsoftc(mii->mii_ifp);
 
@@ -374,7 +359,7 @@ skip:
 static int
 dcphy_auto(struct mii_softc *mii)
 {
-	struct dc_softc		*sc;
+	struct dc_softc *sc;
 
 	sc = if_getsoftc(mii->mii_pdata->mii_ifp);
 
@@ -395,7 +380,7 @@ dcphy_auto(struct mii_softc *mii)
 static void
 dcphy_reset(struct mii_softc *mii)
 {
-	struct dc_softc		*sc;
+	struct dc_softc *sc;
 
 	sc = if_getsoftc(mii->mii_pdata->mii_ifp);
 

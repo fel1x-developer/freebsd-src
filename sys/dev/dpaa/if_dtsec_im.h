@@ -31,9 +31,9 @@
  * @group dTSEC Independent Mode API.
  * @{
  */
-int	dtsec_im_fm_port_tx_init(struct dtsec_softc *sc, int unit);
-int	dtsec_im_fm_port_rx_init(struct dtsec_softc *sc, int unit);
-void	dtsec_im_if_start_locked(struct dtsec_softc *sc);
+int dtsec_im_fm_port_tx_init(struct dtsec_softc *sc, int unit);
+int dtsec_im_fm_port_rx_init(struct dtsec_softc *sc, int unit);
+void dtsec_im_if_start_locked(struct dtsec_softc *sc);
 /** @} */
 
 #endif /* IF_DTSEC_IM_H_ */

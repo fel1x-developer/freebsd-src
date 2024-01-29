@@ -35,7 +35,7 @@ mod_event(module_t mod, int cmd, void *arg)
 
 	return (0);
 }
-static moduledata_t if_cxlv_mod = {"if_cxlv", mod_event};
+static moduledata_t if_cxlv_mod = { "if_cxlv", mod_event };
 DECLARE_MODULE(if_cxlv, if_cxlv_mod, SI_SUB_EXEC, SI_ORDER_ANY);
 MODULE_VERSION(if_cxlv, 1);
 MODULE_DEPEND(if_cxlv, cxlv, 1, 1, 1);

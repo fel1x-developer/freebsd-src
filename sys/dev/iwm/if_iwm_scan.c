@@ -102,59 +102,55 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_notif_wait.h>
+#include <dev/iwm/if_iwm_scan.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_notif_wait.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_scan.h>
 
 /*
  * BEGIN mvm/scan.c
@@ -192,8 +188,8 @@ iwm_scan_rate_n_flags(struct iwm_softc *sc, int flags, int no_cck)
 	uint32_t tx_ant;
 	int i, ind;
 
-	for (i = 0, ind = sc->sc_scan_last_antenna;
-	    i < IWM_RATE_MCS_ANT_NUM; i++) {
+	for (i = 0, ind = sc->sc_scan_last_antenna; i < IWM_RATE_MCS_ANT_NUM;
+	     i++) {
 		ind = (ind + 1) % IWM_RATE_MCS_ANT_NUM;
 		if (iwm_get_valid_tx_ant(sc) & (1 << ind)) {
 			sc->sc_scan_last_antenna = ind;
@@ -203,8 +199,8 @@ iwm_scan_rate_n_flags(struct iwm_softc *sc, int flags, int no_cck)
 	tx_ant = (1 << sc->sc_scan_last_antenna) << IWM_RATE_MCS_ANT_POS;
 
 	if ((flags & IEEE80211_CHAN_2GHZ) && !no_cck)
-		return htole32(IWM_RATE_1M_PLCP | IWM_RATE_MCS_CCK_MSK |
-				   tx_ant);
+		return htole32(
+		    IWM_RATE_1M_PLCP | IWM_RATE_MCS_CCK_MSK | tx_ant);
 	else
 		return htole32(IWM_RATE_6M_PLCP | tx_ant);
 }
@@ -240,8 +236,7 @@ iwm_offload_status_str(enum iwm_scan_offload_complete_status status)
 #endif
 
 void
-iwm_rx_lmac_scan_complete_notif(struct iwm_softc *sc,
-    struct iwm_rx_packet *pkt)
+iwm_rx_lmac_scan_complete_notif(struct iwm_softc *sc, struct iwm_rx_packet *pkt)
 {
 	struct iwm_periodic_scan_complete *scan_notif = (void *)pkt->data;
 
@@ -259,22 +254,19 @@ iwm_rx_lmac_scan_complete_notif(struct iwm_softc *sc,
 	    iwm_offload_status_str(scan_notif->status),
 	    iwm_ebs_status_str(scan_notif->ebs_status));
 
-	sc->last_ebs_successful =
-			scan_notif->ebs_status == IWM_SCAN_EBS_SUCCESS ||
-			scan_notif->ebs_status == IWM_SCAN_EBS_INACTIVE;
-
+	sc->last_ebs_successful = scan_notif->ebs_status ==
+		IWM_SCAN_EBS_SUCCESS ||
+	    scan_notif->ebs_status == IWM_SCAN_EBS_INACTIVE;
 }
 
 void
-iwm_rx_umac_scan_complete_notif(struct iwm_softc *sc,
-    struct iwm_rx_packet *pkt)
+iwm_rx_umac_scan_complete_notif(struct iwm_softc *sc, struct iwm_rx_packet *pkt)
 {
 	struct iwm_umac_scan_complete *notif = (void *)pkt->data;
 
 	IWM_DPRINTF(sc, IWM_DEBUG_SCAN,
 	    "Scan completed, uid %u, status %s, EBS status %s\n",
-	    le32toh(notif->uid),
-	    iwm_offload_status_str(notif->status),
+	    le32toh(notif->uid), iwm_offload_status_str(notif->status),
 	    iwm_ebs_status_str(notif->ebs_status));
 
 	if (notif->ebs_status != IWM_SCAN_EBS_SUCCESS &&
@@ -304,8 +296,8 @@ iwm_lmac_scan_fill_channels(struct iwm_softc *sc,
 	int j;
 
 	for (nchan = j = 0;
-	    j < ss->ss_last && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
-	    j++) {
+	     j < ss->ss_last && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
+	     j++) {
 		c = ss->ss_chans[j];
 		/*
 		 * Catch other channels, in case we have 900MHz channels or
@@ -319,8 +311,8 @@ iwm_lmac_scan_fill_channels(struct iwm_softc *sc,
 		}
 
 		IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_EEPROM,
-		    "Adding channel %d (%d Mhz) to the list\n",
-		    nchan, c->ic_freq);
+		    "Adding channel %d (%d Mhz) to the list\n", nchan,
+		    c->ic_freq);
 		chan->channel_num = htole16(ieee80211_mhz2ieee(c->ic_freq, 0));
 		chan->iter_count = htole16(1);
 		chan->iter_interval = htole32(0);
@@ -348,8 +340,8 @@ iwm_umac_scan_fill_channels(struct iwm_softc *sc,
 	int j;
 
 	for (nchan = j = 0;
-	    j < ss->ss_last && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
-	    j++) {
+	     j < ss->ss_last && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
+	     j++) {
 		c = ss->ss_chans[j];
 		/*
 		 * Catch other channels, in case we have 900MHz channels or
@@ -363,8 +355,8 @@ iwm_umac_scan_fill_channels(struct iwm_softc *sc,
 		}
 
 		IWM_DPRINTF(sc, IWM_DEBUG_RESET | IWM_DEBUG_EEPROM,
-		    "Adding channel %d (%d Mhz) to the list\n",
-		    nchan, c->ic_freq);
+		    "Adding channel %d (%d Mhz) to the list\n", nchan,
+		    c->ic_freq);
 		chan->channel_num = ieee80211_mhz2ieee(c->ic_freq, 0);
 		chan->iter_count = 1;
 		chan->iter_interval = htole16(0);
@@ -502,8 +494,8 @@ iwm_config_umac_scan(struct iwm_softc *sc)
 
 	scan_config->tx_chains = htole32(iwm_get_valid_tx_ant(sc));
 	scan_config->rx_chains = htole32(iwm_get_valid_rx_ant(sc));
-	scan_config->legacy_rates = htole32(rates |
-	    IWM_SCAN_CONFIG_SUPPORTED_RATE(rates));
+	scan_config->legacy_rates = htole32(
+	    rates | IWM_SCAN_CONFIG_SUPPORTED_RATE(rates));
 
 	/* These timings correspond to iwlwifi's UNASSOC scan. */
 	scan_config->dwell_active = 10;
@@ -522,8 +514,8 @@ iwm_config_umac_scan(struct iwm_softc *sc)
 	    IWM_CHANNEL_FLAG_PRE_SCAN_PASSIVE2ACTIVE;
 
 	for (nchan = j = 0;
-	    j < ic->ic_nchans && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
-	    j++) {
+	     j < ic->ic_nchans && nchan < sc->sc_fw.ucode_capa.n_scan_channels;
+	     j++) {
 		c = &ic->ic_channels[j];
 		/* For 2GHz, only populate 11b channels */
 		/* For 5GHz, only populate 11a channels */
@@ -545,7 +537,7 @@ iwm_config_umac_scan(struct iwm_softc *sc)
 	    IWM_SCAN_CONFIG_FLAG_SET_ALL_TIMES |
 	    IWM_SCAN_CONFIG_FLAG_SET_LEGACY_RATES |
 	    IWM_SCAN_CONFIG_FLAG_SET_MAC_ADDR |
-	    IWM_SCAN_CONFIG_FLAG_SET_CHANNEL_FLAGS|
+	    IWM_SCAN_CONFIG_FLAG_SET_CHANNEL_FLAGS |
 	    IWM_SCAN_CONFIG_N_CHANNELS(nchan) |
 	    IWM_SCAN_CONFIG_FLAG_CLEAR_FRAGMENTED);
 
@@ -575,7 +567,7 @@ iwm_scan_use_ebs(struct iwm_softc *sc)
 	 *	4. it's not a p2p find operation.
 	 */
 	return ((capa->flags & IWM_UCODE_TLV_FLAGS_EBS_SUPPORT) &&
-		sc->last_ebs_successful);
+	    sc->last_ebs_successful);
 }
 
 static int
@@ -667,7 +659,7 @@ iwm_umac_scan(struct iwm_softc *sc)
 
 		tail = (void *)((char *)&req->v7.data +
 		    sizeof(struct iwm_scan_channel_cfg_umac) *
-		    sc->sc_fw.ucode_capa.n_scan_channels);
+			sc->sc_fw.ucode_capa.n_scan_channels);
 	} else {
 		req->v1.active_dwell = 10;
 		req->v1.passive_dwell = 110;
@@ -680,7 +672,7 @@ iwm_umac_scan(struct iwm_softc *sc)
 
 		tail = (void *)((char *)&req->v1.data +
 		    sizeof(struct iwm_scan_channel_cfg_umac) *
-		    sc->sc_fw.ucode_capa.n_scan_channels);
+			sc->sc_fw.ucode_capa.n_scan_channels);
 	}
 
 	/* Check if we're doing an active directed scan. */
@@ -726,8 +718,7 @@ iwm_lmac_scan(struct iwm_softc *sc)
 	uint8_t i, nssid;
 	int ret;
 
-	IWM_DPRINTF(sc, IWM_DEBUG_SCAN,
-	    "Handling ieee80211 scan request\n");
+	IWM_DPRINTF(sc, IWM_DEBUG_SCAN, "Handling ieee80211 scan request\n");
 
 	req_len = iwm_scan_size(sc);
 	if (req_len > IWM_MAX_CMD_PAYLOAD_SIZE)
@@ -760,21 +751,21 @@ iwm_lmac_scan(struct iwm_softc *sc)
 
 	req->flags = iwm_scan_rxon_flags(sc->sc_ic.ic_scan->ss_chans[0]);
 
-	req->filter_flags =
-	    htole32(IWM_MAC_FILTER_ACCEPT_GRP | IWM_MAC_FILTER_IN_BEACON);
+	req->filter_flags = htole32(
+	    IWM_MAC_FILTER_ACCEPT_GRP | IWM_MAC_FILTER_IN_BEACON);
 
 	/* Tx flags 2 GHz. */
-	req->tx_cmd[0].tx_flags = htole32(IWM_TX_CMD_FLG_SEQ_CTL |
-	    IWM_TX_CMD_FLG_BT_DIS);
-	req->tx_cmd[0].rate_n_flags =
-	    iwm_scan_rate_n_flags(sc, IEEE80211_CHAN_2GHZ, 1/*XXX*/);
+	req->tx_cmd[0].tx_flags = htole32(
+	    IWM_TX_CMD_FLG_SEQ_CTL | IWM_TX_CMD_FLG_BT_DIS);
+	req->tx_cmd[0].rate_n_flags = iwm_scan_rate_n_flags(sc,
+	    IEEE80211_CHAN_2GHZ, 1 /*XXX*/);
 	req->tx_cmd[0].sta_id = sc->sc_aux_sta.sta_id;
 
 	/* Tx flags 5 GHz. */
-	req->tx_cmd[1].tx_flags = htole32(IWM_TX_CMD_FLG_SEQ_CTL |
-	    IWM_TX_CMD_FLG_BT_DIS);
-	req->tx_cmd[1].rate_n_flags =
-	    iwm_scan_rate_n_flags(sc, IEEE80211_CHAN_5GHZ, 1/*XXX*/);
+	req->tx_cmd[1].tx_flags = htole32(
+	    IWM_TX_CMD_FLG_SEQ_CTL | IWM_TX_CMD_FLG_BT_DIS);
+	req->tx_cmd[1].rate_n_flags = iwm_scan_rate_n_flags(sc,
+	    IEEE80211_CHAN_5GHZ, 1 /*XXX*/);
 	req->tx_cmd[1].sta_id = sc->sc_aux_sta.sta_id;
 
 	/* Check if we're doing an active directed scan. */
@@ -788,8 +779,7 @@ iwm_lmac_scan(struct iwm_softc *sc)
 		/* XXX debug */
 	}
 	if (nssid != 0) {
-		req->scan_flags |=
-		    htole32(IWM_LMAC_SCAN_FLAG_PRE_CONNECTION);
+		req->scan_flags |= htole32(IWM_LMAC_SCAN_FLAG_PRE_CONNECTION);
 	} else
 		req->scan_flags |= htole32(IWM_LMAC_SCAN_FLAG_PASSIVE);
 
@@ -797,9 +787,9 @@ iwm_lmac_scan(struct iwm_softc *sc)
 	    (struct iwm_scan_channel_cfg_lmac *)req->data, nssid);
 
 	ret = iwm_fill_probe_req(sc,
-			    (struct iwm_scan_probe_req_v1 *)(req->data +
-			    (sizeof(struct iwm_scan_channel_cfg_lmac) *
-			    sc->sc_fw.ucode_capa.n_scan_channels)));
+	    (struct iwm_scan_probe_req_v1 *)(req->data +
+		(sizeof(struct iwm_scan_channel_cfg_lmac) *
+		    sc->sc_fw.ucode_capa.n_scan_channels)));
 	if (ret) {
 		free(req, M_DEVBUF);
 		return ret;
@@ -810,18 +800,16 @@ iwm_lmac_scan(struct iwm_softc *sc)
 	req->schedule[0].full_scan_mul = 1;
 
 	if (iwm_scan_use_ebs(sc)) {
-		req->channel_opt[0].flags =
-			htole16(IWM_SCAN_CHANNEL_FLAG_EBS |
-				IWM_SCAN_CHANNEL_FLAG_EBS_ACCURATE |
-				IWM_SCAN_CHANNEL_FLAG_CACHE_ADD);
-		req->channel_opt[0].non_ebs_ratio =
-			htole16(IWM_DENSE_EBS_SCAN_RATIO);
-		req->channel_opt[1].flags =
-			htole16(IWM_SCAN_CHANNEL_FLAG_EBS |
-				IWM_SCAN_CHANNEL_FLAG_EBS_ACCURATE |
-				IWM_SCAN_CHANNEL_FLAG_CACHE_ADD);
-		req->channel_opt[1].non_ebs_ratio =
-			htole16(IWM_SPARSE_EBS_SCAN_RATIO);
+		req->channel_opt[0].flags = htole16(IWM_SCAN_CHANNEL_FLAG_EBS |
+		    IWM_SCAN_CHANNEL_FLAG_EBS_ACCURATE |
+		    IWM_SCAN_CHANNEL_FLAG_CACHE_ADD);
+		req->channel_opt[0].non_ebs_ratio = htole16(
+		    IWM_DENSE_EBS_SCAN_RATIO);
+		req->channel_opt[1].flags = htole16(IWM_SCAN_CHANNEL_FLAG_EBS |
+		    IWM_SCAN_CHANNEL_FLAG_EBS_ACCURATE |
+		    IWM_SCAN_CHANNEL_FLAG_CACHE_ADD);
+		req->channel_opt[1].non_ebs_ratio = htole16(
+		    IWM_SPARSE_EBS_SCAN_RATIO);
 	}
 
 	ret = iwm_send_cmd(sc, &hcmd);
@@ -857,8 +845,8 @@ iwm_lmac_scan_abort(struct iwm_softc *sc)
 		 * can occur if we send the scan abort before the
 		 * microcode has notified us that a scan is completed.
 		 */
-		IWM_DPRINTF(sc, IWM_DEBUG_SCAN,
-		    "SCAN OFFLOAD ABORT ret %d.\n", status);
+		IWM_DPRINTF(sc, IWM_DEBUG_SCAN, "SCAN OFFLOAD ABORT ret %d.\n",
+		    status);
 		ret = ENOENT;
 	}
 
@@ -877,9 +865,8 @@ iwm_umac_scan_abort(struct iwm_softc *sc)
 	IWM_DPRINTF(sc, IWM_DEBUG_SCAN, "Sending scan abort, uid %u\n", uid);
 
 	ret = iwm_send_cmd_pdu(sc,
-				   iwm_cmd_id(IWM_SCAN_ABORT_UMAC,
-					      IWM_ALWAYS_LONG_GROUP, 0),
-				   0, sizeof(cmd), &cmd);
+	    iwm_cmd_id(IWM_SCAN_ABORT_UMAC, IWM_ALWAYS_LONG_GROUP, 0), 0,
+	    sizeof(cmd), &cmd);
 
 	return ret;
 }
@@ -888,13 +875,14 @@ int
 iwm_scan_stop_wait(struct iwm_softc *sc)
 {
 	struct iwm_notification_wait wait_scan_done;
-	static const uint16_t scan_done_notif[] = { IWM_SCAN_COMPLETE_UMAC,
-						   IWM_SCAN_OFFLOAD_COMPLETE, };
+	static const uint16_t scan_done_notif[] = {
+		IWM_SCAN_COMPLETE_UMAC,
+		IWM_SCAN_OFFLOAD_COMPLETE,
+	};
 	int ret;
 
 	iwm_init_notification_wait(sc->sc_notif_wait, &wait_scan_done,
-				   scan_done_notif, nitems(scan_done_notif),
-				   NULL, NULL);
+	    scan_done_notif, nitems(scan_done_notif), NULL, NULL);
 
 	IWM_DPRINTF(sc, IWM_DEBUG_SCAN, "Preparing to stop scan\n");
 

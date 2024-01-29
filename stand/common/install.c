@@ -26,12 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
-#include <stand.h>
 #include <net.h>
+#include <stand.h>
 #include <string.h>
 
 #include "bootstrap.h"
@@ -217,36 +218,34 @@ install(char *pkgname)
 		currdev = getenv("currdev");
 		local = 1;
 
-		if (*s == '/') {	/* file:/// */
+		if (*s == '/') { /* file:/// */
 			if (devname == NULL)
 				devname = currdev;
 			if (devname == NULL)
 				devname = "disk1";
-		} else {		/* file://devname[:fstype]/ */
+		} else { /* file://devname[:fstype]/ */
 			devname = s;
 			e = strchr(devname, '/');
 			if (!e)
 				goto invalid_url;
 			devnamelen = e - devname;
-			s = e;		/* consume devname */
+			s = e; /* consume devname */
 		}
 		if ((e = strchr(devname, ':')) != NULL) {
 			/* could be :fstype */
 			devnamelen = e - devname;
 			switch (e[1]) {
-			case '\0':	/* just currdev */
+			case '\0': /* just currdev */
 				break;
 			case 'd':
 				proto = &dosfs_fsops;
 				break;
 #ifdef HOSTPROG
-			case 'h':
-				{
-					extern struct fs_ops host_fsops;
+			case 'h': {
+				extern struct fs_ops host_fsops;
 
-					proto = &host_fsops;
-				}
-				break;
+				proto = &host_fsops;
+			} break;
 #endif
 			case 'u':
 				proto = &ufs_fsops;
@@ -268,7 +267,7 @@ install(char *pkgname)
 			devnamelen--;
 	}
 
-	if (*s != '/' ) {
+	if (*s != '/') {
 		if (local)
 			goto invalid_url;
 
@@ -287,9 +286,9 @@ install(char *pkgname)
 	} else
 		pkgname = s;
 
-	i = snprintf(buf, sizeof(buf), "%.*s:%s",
-	    (int) devnamelen, devname, pkgname);
-	if (i >= (int) sizeof(buf)) {
+	i = snprintf(buf, sizeof(buf), "%.*s:%s", (int)devnamelen, devname,
+	    pkgname);
+	if (i >= (int)sizeof(buf)) {
 		command_errmsg = "package name too long";
 		return (CMD_ERROR);
 	}
@@ -363,15 +362,15 @@ install(char *pkgname)
 	error = CMD_ERROR;
 	command_errmsg = "unable to start installation";
 
- fail:
+fail:
 	sprintf(buf, "%s (error %d)", command_errmsg, error);
 	cleanup();
 	unload();
 	exclusive_file_system = NULL;
-	command_errmsg = buf;	/* buf is static. */
+	command_errmsg = buf; /* buf is static. */
 	return (CMD_ERROR);
 
- invalid_url:
+invalid_url:
 	command_errmsg = "invalid URL";
 	return (CMD_ERROR);
 }
@@ -386,8 +385,7 @@ command_install(int argc, char *argv[])
 	argidx = 1;
 	while (1) {
 		if (argc == argidx) {
-			command_errmsg =
-			    "usage: install [--format] <URL>";
+			command_errmsg = "usage: install [--format] <URL>";
 			return (CMD_ERROR);
 		}
 		if (!strcmp(argv[argidx], "--format")) {

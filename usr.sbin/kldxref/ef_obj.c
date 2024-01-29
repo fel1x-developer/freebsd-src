@@ -46,69 +46,69 @@
 #include "ef.h"
 
 typedef struct {
-	GElf_Addr	addr;
-	GElf_Off	offset;
-	GElf_Off	size;
-	int		flags;
-	int		sec;	/* Original section */
-	char		*name;
+	GElf_Addr addr;
+	GElf_Off offset;
+	GElf_Off size;
+	int flags;
+	int sec; /* Original section */
+	char *name;
 } Elf_progent;
 
 typedef struct {
-	GElf_Rel	*rel;
-	long		nrel;
-	int		sec;
+	GElf_Rel *rel;
+	long nrel;
+	int sec;
 } Elf_relent;
 
 typedef struct {
-	GElf_Rela	*rela;
-	long		nrela;
-	int		sec;
+	GElf_Rela *rela;
+	long nrela;
+	int sec;
 } Elf_relaent;
 
 struct ef_file {
-	char		*ef_name;
+	char *ef_name;
 	struct elf_file *ef_efile;
 
-	Elf_progent	*progtab;
-	int		nprogtab;
+	Elf_progent *progtab;
+	int nprogtab;
 
-	Elf_relaent	*relatab;
-	int		nrela;
+	Elf_relaent *relatab;
+	int nrela;
 
-	Elf_relent	*reltab;
-	int		nrel;
+	Elf_relent *reltab;
+	int nrel;
 
-	GElf_Sym	*ddbsymtab;	/* The symbol table we are using */
-	size_t		ddbsymcnt;	/* Number of symbols */
-	caddr_t		ddbstrtab;	/* String table */
-	long		ddbstrcnt;	/* number of bytes in string table */
+	GElf_Sym *ddbsymtab; /* The symbol table we are using */
+	size_t ddbsymcnt;    /* Number of symbols */
+	caddr_t ddbstrtab;   /* String table */
+	long ddbstrcnt;	     /* number of bytes in string table */
 
-	caddr_t		shstrtab;	/* Section name string table */
-	long		shstrcnt;	/* number of bytes in string table */
+	caddr_t shstrtab; /* Section name string table */
+	long shstrcnt;	  /* number of bytes in string table */
 
-	int		ef_verbose;
+	int ef_verbose;
 };
 
-static void	ef_obj_close(elf_file_t ef);
+static void ef_obj_close(elf_file_t ef);
 
-static int	ef_obj_seg_read_rel(elf_file_t ef, GElf_Addr address,
-		    size_t len, void *dest);
-static int	ef_obj_seg_read_string(elf_file_t ef, GElf_Addr address,
-		    size_t len, char *dest);
+static int ef_obj_seg_read_rel(elf_file_t ef, GElf_Addr address, size_t len,
+    void *dest);
+static int ef_obj_seg_read_string(elf_file_t ef, GElf_Addr address, size_t len,
+    char *dest);
 
 static GElf_Addr ef_obj_symaddr(elf_file_t ef, GElf_Size symidx);
-static int	ef_obj_lookup_set(elf_file_t ef, const char *name,
-		    GElf_Addr *startp, GElf_Addr *stopp, long *countp);
-static int	ef_obj_lookup_symbol(elf_file_t ef, const char *name,
-		    GElf_Sym **sym);
+static int ef_obj_lookup_set(elf_file_t ef, const char *name, GElf_Addr *startp,
+    GElf_Addr *stopp, long *countp);
+static int ef_obj_lookup_symbol(elf_file_t ef, const char *name,
+    GElf_Sym **sym);
 
 static struct elf_file_ops ef_obj_file_ops = {
-	.close			= ef_obj_close,
-	.seg_read_rel		= ef_obj_seg_read_rel,
-	.seg_read_string	= ef_obj_seg_read_string,
-	.symaddr		= ef_obj_symaddr,
-	.lookup_set		= ef_obj_lookup_set,
+	.close = ef_obj_close,
+	.seg_read_rel = ef_obj_seg_read_rel,
+	.seg_read_string = ef_obj_seg_read_string,
+	.symaddr = ef_obj_symaddr,
+	.lookup_set = ef_obj_lookup_set,
 };
 
 static GElf_Off
@@ -357,13 +357,13 @@ ef_obj_open(struct elf_file *efile, int verbose)
 	}
 
 	if (elf_read_symbols(efile, symtabindex, &ef->ddbsymcnt,
-	    &ef->ddbsymtab) != 0) {
+		&ef->ddbsymtab) != 0) {
 		printf("elf_read_symbols failed\n");
 		goto out;
 	}
 
 	if (elf_read_string_table(efile, &shdr[symstrindex], &ef->ddbstrcnt,
-	    &ef->ddbstrtab) != 0) {
+		&ef->ddbstrtab) != 0) {
 		printf("elf_read_string_table failed\n");
 		goto out;
 	}
@@ -372,7 +372,7 @@ ef_obj_open(struct elf_file *efile, int verbose)
 	if (hdr->e_shstrndx != 0 &&
 	    shdr[hdr->e_shstrndx].sh_type == SHT_STRTAB) {
 		if (elf_read_string_table(efile, &shdr[hdr->e_shstrndx],
-		    &ef->shstrcnt, &ef->shstrtab) != 0) {
+			&ef->shstrcnt, &ef->shstrtab) != 0) {
 			printf("elf_read_string_table failed\n");
 			goto out;
 		}
@@ -402,8 +402,8 @@ ef_obj_open(struct elf_file *efile, int verbose)
 			ef->progtab[pb].size = shdr[i].sh_size;
 			ef->progtab[pb].sec = i;
 			if (ef->shstrtab && shdr[i].sh_name != 0)
-				ef->progtab[pb].name =
-				    ef->shstrtab + shdr[i].sh_name;
+				ef->progtab[pb].name = ef->shstrtab +
+				    shdr[i].sh_name;
 
 			/* Update all symbol values with the offset. */
 			for (j = 0; j < ef->ddbsymcnt; j++) {
@@ -418,7 +418,7 @@ ef_obj_open(struct elf_file *efile, int verbose)
 		case SHT_REL:
 			ef->reltab[rl].sec = shdr[i].sh_info;
 			if (elf_read_rel(efile, i, &ef->reltab[rl].nrel,
-			    &ef->reltab[rl].rel) != 0) {
+				&ef->reltab[rl].rel) != 0) {
 				printf("elf_read_rel failed\n");
 				goto out;
 			}
@@ -427,7 +427,7 @@ ef_obj_open(struct elf_file *efile, int verbose)
 		case SHT_RELA:
 			ef->relatab[ra].sec = shdr[i].sh_info;
 			if (elf_read_rela(efile, i, &ef->relatab[ra].nrela,
-			    &ef->relatab[ra].rela) != 0) {
+				&ef->relatab[ra].rela) != 0) {
 				printf("elf_read_rela failed\n");
 				goto out;
 			}

@@ -40,8 +40,8 @@
 #include <sys/systm.h>
 #include <sys/dirent.h>
 #include <sys/fnv_hash.h>
-#include <sys/lock.h>
 #include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/mount.h>
 #include <sys/namei.h>
 #include <sys/priv.h>
@@ -53,17 +53,17 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
-#include <sys/vnode.h>
 #include <sys/vmmeter.h>
+#include <sys/vnode.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/swap_pager.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
 #include <vm/vm_pager.h>
-#include <vm/vm_extern.h>
-#include <vm/swap_pager.h>
+#include <vm/vm_param.h>
 
 #include <fs/tmpfs/tmpfs.h>
 #include <fs/tmpfs/tmpfs_fifoops.h>
@@ -122,7 +122,7 @@ tmpfs_pager_writecount_recalc(vm_object_t object, vm_offset_t old,
 	if (vp == NULL) {
 		KASSERT((object->flags & OBJ_TMPFS_VREF) == 0,
 		    ("object %p with OBJ_TMPFS_VREF but without vnode",
-		    object));
+			object));
 		VM_OBJECT_WUNLOCK(object);
 		return;
 	}
@@ -134,7 +134,7 @@ tmpfs_pager_writecount_recalc(vm_object_t object, vm_offset_t old,
 	} else {
 		VNASSERT((object->flags & OBJ_TMPFS_VREF) != 0, vp,
 		    ("object with writable mappings does not "
-		    "have a reference"));
+		     "have a reference"));
 	}
 
 	if (old == new) {
@@ -231,12 +231,12 @@ tmpfs_pager_freespace(vm_object_t obj, vm_pindex_t start, vm_size_t size)
 	tm = node->tn_reg.tn_tmp;
 
 	KASSERT(tm->tm_pages_used >= c,
-	    ("tmpfs tm %p pages %jd free %jd", tm,
-	    (uintmax_t)tm->tm_pages_used, (uintmax_t)c));
+	    ("tmpfs tm %p pages %jd free %jd", tm, (uintmax_t)tm->tm_pages_used,
+		(uintmax_t)c));
 	atomic_add_long(&tm->tm_pages_used, -c);
 	KASSERT(node->tn_reg.tn_pages >= c,
 	    ("tmpfs node %p pages %jd free %jd", node,
-	    (uintmax_t)node->tn_reg.tn_pages, (uintmax_t)c));
+		(uintmax_t)node->tn_reg.tn_pages, (uintmax_t)c));
 	node->tn_reg.tn_pages -= c;
 }
 
@@ -275,11 +275,11 @@ tmpfs_page_removed(vm_object_t obj, vm_page_t m)
 	if (!vm_pager_has_page(obj, m->pindex, NULL, NULL)) {
 		KASSERT(tm->tm_pages_used >= 1,
 		    ("tmpfs tm %p pages %jd free 1", tm,
-		    (uintmax_t)tm->tm_pages_used));
+			(uintmax_t)tm->tm_pages_used));
 		atomic_add_long(&tm->tm_pages_used, -1);
 		KASSERT(node->tn_reg.tn_pages >= 1,
 		    ("tmpfs node %p pages %jd free 1", node,
-		    (uintmax_t)node->tn_reg.tn_pages));
+			(uintmax_t)node->tn_reg.tn_pages));
 		node->tn_reg.tn_pages -= 1;
 	}
 }
@@ -362,13 +362,12 @@ tmpfs_node_fini(void *mem, int size)
 int
 tmpfs_subr_init(void)
 {
-	tmpfs_pager_type = vm_pager_alloc_dyn_type(&tmpfs_pager_ops,
-	    OBJT_SWAP);
+	tmpfs_pager_type = vm_pager_alloc_dyn_type(&tmpfs_pager_ops, OBJT_SWAP);
 	if (tmpfs_pager_type == -1)
 		return (EINVAL);
-	tmpfs_node_pool = uma_zcreate("TMPFS node",
-	    sizeof(struct tmpfs_node), tmpfs_node_ctor, tmpfs_node_dtor,
-	    tmpfs_node_init, tmpfs_node_fini, UMA_ALIGN_PTR, 0);
+	tmpfs_node_pool = uma_zcreate("TMPFS node", sizeof(struct tmpfs_node),
+	    tmpfs_node_ctor, tmpfs_node_dtor, tmpfs_node_init, tmpfs_node_fini,
+	    UMA_ALIGN_PTR, 0);
 	VFS_SMR_ZONE_SET(tmpfs_node_pool);
 
 	tmpfs_pages_avail_init = tmpfs_mem_avail();
@@ -421,7 +420,7 @@ sysctl_mem_percent(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 
-	if ((unsigned) percent > 100)
+	if ((unsigned)percent > 100)
 		return (EINVAL);
 
 	*(long *)arg1 = percent;
@@ -494,8 +493,8 @@ tmpfs_partial_page_invalidate(vm_object_t object, vm_pindex_t idx, int base,
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 	KASSERT(base >= 0, ("%s: base %d", __func__, base));
-	KASSERT(end - base <= PAGE_SIZE, ("%s: base %d end %d", __func__, base,
-	    end));
+	KASSERT(end - base <= PAGE_SIZE,
+	    ("%s: base %d end %d", __func__, base, end));
 	error = 0;
 
 retry:
@@ -503,8 +502,8 @@ retry:
 	if (m != NULL) {
 		MPASS(vm_page_all_valid(m));
 	} else if (vm_pager_has_page(object, idx, NULL, NULL)) {
-		m = vm_page_alloc(object, idx, VM_ALLOC_NORMAL |
-		    VM_ALLOC_WAITFAIL);
+		m = vm_page_alloc(object, idx,
+		    VM_ALLOC_NORMAL | VM_ALLOC_WAITFAIL);
 		if (m == NULL)
 			goto retry;
 		vm_object_pip_add(object, 1);
@@ -544,7 +543,7 @@ tmpfs_ref_node(struct tmpfs_node *node)
 
 	old =
 #endif
-	refcount_acquire(&node->tn_refcount);
+	    refcount_acquire(&node->tn_refcount);
 #ifdef INVARIANTS
 	KASSERT(old > 0, ("node %p zero refcount", node));
 #endif
@@ -573,9 +572,10 @@ tmpfs_ref_node(struct tmpfs_node *node)
  * Returns zero on success or an appropriate error code on failure.
  */
 int
-tmpfs_alloc_node(struct mount *mp, struct tmpfs_mount *tmp, __enum_uint8(vtype) type,
-    uid_t uid, gid_t gid, mode_t mode, struct tmpfs_node *parent,
-    const char *target, dev_t rdev, struct tmpfs_node **node)
+tmpfs_alloc_node(struct mount *mp, struct tmpfs_mount *tmp,
+    __enum_uint8(vtype) type, uid_t uid, gid_t gid, mode_t mode,
+    struct tmpfs_node *parent, const char *target, dev_t rdev,
+    struct tmpfs_node **node)
 {
 	struct tmpfs_node *nnode;
 	char *symlink;
@@ -693,9 +693,8 @@ tmpfs_alloc_node(struct mount *mp, struct tmpfs_mount *tmp, __enum_uint8(vtype) 
 		break;
 
 	case VREG:
-		nnode->tn_reg.tn_aobj =
-		    vm_pager_allocate(tmpfs_pager_type, NULL, 0,
-		    VM_PROT_DEFAULT, 0,
+		nnode->tn_reg.tn_aobj = vm_pager_allocate(tmpfs_pager_type,
+		    NULL, 0, VM_PROT_DEFAULT, 0,
 		    NULL /* XXXKIB - tmpfs needs swap reservation */);
 		nnode->tn_reg.tn_aobj->un_pager.swp.swp_priv = nnode;
 		vm_object_set_flag(nnode->tn_reg.tn_aobj, OBJ_TMPFS);
@@ -804,8 +803,8 @@ tmpfs_free_node_locked(struct tmpfs_mount *tmp, struct tmpfs_node *node,
 			vm_object_clear_flag(uobj, OBJ_TMPFS);
 			KASSERT(tmp->tm_pages_used >= node->tn_reg.tn_pages,
 			    ("tmpfs tmp %p node %p pages %jd free %jd", tmp,
-			    node, (uintmax_t)tmp->tm_pages_used,
-			    (uintmax_t)node->tn_reg.tn_pages));
+				node, (uintmax_t)tmp->tm_pages_used,
+				(uintmax_t)node->tn_reg.tn_pages));
 			atomic_add_long(&tmp->tm_pages_used,
 			    -node->tn_reg.tn_pages);
 			VM_OBJECT_WUNLOCK(uobj);
@@ -997,8 +996,7 @@ loop:
 	if ((vp = node->tn_vnode) != NULL) {
 		MPASS((node->tn_vpstate & TMPFS_VNODE_DOOMED) == 0);
 		if ((node->tn_type == VDIR && node->tn_dir.tn_parent == NULL) ||
-		    (VN_IS_DOOMED(vp) &&
-		     (lkflag & LK_NOWAIT) != 0)) {
+		    (VN_IS_DOOMED(vp) && (lkflag & LK_NOWAIT) != 0)) {
 			TMPFS_NODE_UNLOCK(node);
 			error = ENOENT;
 			vp = NULL;
@@ -1007,8 +1005,8 @@ loop:
 		if (VN_IS_DOOMED(vp)) {
 			node->tn_vpstate |= TMPFS_VNODE_WRECLAIM;
 			while ((node->tn_vpstate & TMPFS_VNODE_WRECLAIM) != 0) {
-				msleep(&node->tn_vnode, TMPFS_NODE_MTX(node),
-				    0, "tmpfsE", 0);
+				msleep(&node->tn_vnode, TMPFS_NODE_MTX(node), 0,
+				    "tmpfsE", 0);
 			}
 			goto loop;
 		}
@@ -1051,8 +1049,8 @@ loop:
 	 */
 	if (node->tn_vpstate & TMPFS_VNODE_ALLOCATING) {
 		node->tn_vpstate |= TMPFS_VNODE_WANT;
-		error = msleep((caddr_t) &node->tn_vpstate,
-		    TMPFS_NODE_MTX(node), 0, "tmpfs_alloc_vp", 0);
+		error = msleep((caddr_t)&node->tn_vpstate, TMPFS_NODE_MTX(node),
+		    0, "tmpfs_alloc_vp", 0);
 		if (error != 0)
 			goto out;
 		goto loop;
@@ -1062,14 +1060,16 @@ loop:
 	TMPFS_NODE_UNLOCK(node);
 
 	/* Get a new vnode and associate it with our node. */
-	error = getnewvnode("tmpfs", mp, VFS_TO_TMPFS(mp)->tm_nonc ?
-	    &tmpfs_vnodeop_nonc_entries : &tmpfs_vnodeop_entries, &vp);
+	error = getnewvnode("tmpfs", mp,
+	    VFS_TO_TMPFS(mp)->tm_nonc ? &tmpfs_vnodeop_nonc_entries :
+					&tmpfs_vnodeop_entries,
+	    &vp);
 	if (error != 0)
 		goto unlock;
 	MPASS(vp != NULL);
 
 	/* lkflag is ignored, the lock is exclusive */
-	(void) vn_lock(vp, LK_EXCLUSIVE | LK_RETRY);
+	(void)vn_lock(vp, LK_EXCLUSIVE | LK_RETRY);
 
 	vp->v_data = node;
 	vp->v_type = node->tn_type;
@@ -1092,15 +1092,14 @@ loop:
 		VM_OBJECT_WLOCK(object);
 		KASSERT((object->flags & OBJ_TMPFS_VREF) == 0,
 		    ("%s: object %p with OBJ_TMPFS_VREF but without vnode",
-		    __func__, object));
+			__func__, object));
 		KASSERT(object->un_pager.swp.writemappings == 0,
-		    ("%s: object %p has writemappings",
-		    __func__, object));
+		    ("%s: object %p has writemappings", __func__, object));
 		VI_LOCK(vp);
 		KASSERT(vp->v_object == NULL, ("Not NULL v_object in tmpfs"));
 		vp->v_object = object;
-		vn_irflag_set_locked(vp, (tm->tm_pgread ? VIRF_PGREAD : 0) |
-		    VIRF_TEXT_REF);
+		vn_irflag_set_locked(vp,
+		    (tm->tm_pgread ? VIRF_PGREAD : 0) | VIRF_TEXT_REF);
 		VI_UNLOCK(vp);
 		VM_OBJECT_WUNLOCK(object);
 		break;
@@ -1140,7 +1139,7 @@ unlock:
 	if (node->tn_vpstate & TMPFS_VNODE_WANT) {
 		node->tn_vpstate &= ~TMPFS_VNODE_WANT;
 		TMPFS_NODE_UNLOCK(node);
-		wakeup((caddr_t) &node->tn_vpstate);
+		wakeup((caddr_t)&node->tn_vpstate);
 	} else
 		TMPFS_NODE_UNLOCK(node);
 
@@ -1225,8 +1224,8 @@ tmpfs_alloc_file(struct vnode *dvp, struct vnode **vpp, struct vattr *vap,
 
 	/* Allocate a node that represents the new file. */
 	error = tmpfs_alloc_node(dvp->v_mount, tmp, vap->va_type,
-	    cnp->cn_cred->cr_uid, dnode->tn_gid, vap->va_mode, parent,
-	    target, vap->va_rdev, &node);
+	    cnp->cn_cred->cr_uid, dnode->tn_gid, vap->va_mode, parent, target,
+	    vap->va_rdev, &node);
 	if (error != 0)
 		return (error);
 
@@ -1320,7 +1319,7 @@ tmpfs_dir_lookup_cookie(struct tmpfs_node *node, off_t cookie,
 	}
 
 	if ((cookie & TMPFS_DIRCOOKIE_DUP) != 0) {
-		LIST_FOREACH(de, &node->tn_dir.tn_dupindex,
+		LIST_FOREACH (de, &node->tn_dir.tn_dupindex,
 		    uh.td_dup.index_entries) {
 			MPASS(tmpfs_dirent_dup(de));
 			if (de->td_cookie == cookie)
@@ -1354,8 +1353,7 @@ out:
 	dc->tdc_tree = de;
 	dc->tdc_current = de;
 	if (de != NULL && tmpfs_dirent_dup(de))
-		dc->tdc_tree = tmpfs_dir_xlookup_hash(node,
-		    de->td_hash);
+		dc->tdc_tree = tmpfs_dir_xlookup_hash(node, de->td_hash);
 	return (dc->tdc_current);
 }
 
@@ -1376,22 +1374,21 @@ tmpfs_dir_lookup(struct tmpfs_node *node, struct tmpfs_node *f,
 	uint32_t hash;
 
 	MPASS(IMPLIES(cnp->cn_namelen == 1, cnp->cn_nameptr[0] != '.'));
-	MPASS(IMPLIES(cnp->cn_namelen == 2, !(cnp->cn_nameptr[0] == '.' &&
-	    cnp->cn_nameptr[1] == '.')));
+	MPASS(IMPLIES(cnp->cn_namelen == 2,
+	    !(cnp->cn_nameptr[0] == '.' && cnp->cn_nameptr[1] == '.')));
 	TMPFS_VALIDATE_DIR(node);
 
 	hash = tmpfs_dirent_hash(cnp->cn_nameptr, cnp->cn_namelen);
 	de = tmpfs_dir_xlookup_hash(node, hash);
 	if (de != NULL && tmpfs_dirent_duphead(de)) {
 		duphead = &de->ud.td_duphead;
-		LIST_FOREACH(de, duphead, uh.td_dup.entries) {
+		LIST_FOREACH (de, duphead, uh.td_dup.entries) {
 			if (TMPFS_DIRENT_MATCHES(de, cnp->cn_nameptr,
-			    cnp->cn_namelen))
+				cnp->cn_namelen))
 				break;
 		}
 	} else if (de != NULL) {
-		if (!TMPFS_DIRENT_MATCHES(de, cnp->cn_nameptr,
-		    cnp->cn_namelen))
+		if (!TMPFS_DIRENT_MATCHES(de, cnp->cn_nameptr, cnp->cn_namelen))
 			de = NULL;
 	}
 	if (de != NULL && f != NULL && de->td_node != f)
@@ -1456,7 +1453,7 @@ tmpfs_dir_attach_dup(struct tmpfs_node *dnode,
 		}
 		if (de->td_cookie + 1 == pde->td_cookie ||
 		    de->td_cookie >= TMPFS_DIRCOOKIE_DUP_MAX)
-			continue;	/* No hole or invalid cookie. */
+			continue; /* No hole or invalid cookie. */
 		nde->td_cookie = de->td_cookie + 1;
 		MPASS(tmpfs_dirent_dup(nde));
 		MPASS(pde->td_cookie > nde->td_cookie);
@@ -1566,7 +1563,7 @@ tmpfs_dir_destroy(struct tmpfs_mount *tmp, struct tmpfs_node *dnode)
 {
 	struct tmpfs_dirent *de, *dde, *nde;
 
-	RB_FOREACH_SAFE(de, tmpfs_dir, &dnode->tn_dir.tn_dirhead, nde) {
+	RB_FOREACH_SAFE (de, tmpfs_dir, &dnode->tn_dir.tn_dirhead, nde) {
 		RB_REMOVE(tmpfs_dir, &dnode->tn_dir.tn_dirhead, de);
 		/* Node may already be destroyed. */
 		de->td_node = NULL;
@@ -1926,11 +1923,11 @@ tmpfs_reg_punch_hole(struct vnode *vp, off_t *offset, off_t *length)
 	off_t off, len;
 	int error;
 
-	KASSERT(*length <= OFF_MAX - *offset, ("%s: offset + length overflows",
-	    __func__));
+	KASSERT(*length <= OFF_MAX - *offset,
+	    ("%s: offset + length overflows", __func__));
 	node = VP_TO_TMPFS_NODE(vp);
-	KASSERT(node->tn_type == VREG, ("%s: node is not regular file",
-	    __func__));
+	KASSERT(node->tn_type == VREG,
+	    ("%s: node is not regular file", __func__));
 	object = node->tn_reg.tn_aobj;
 	off = *offset;
 	len = omin(node->tn_size - off, *length);
@@ -2003,8 +2000,8 @@ tmpfs_check_mtime(struct vnode *vp)
 		return;
 	obj = vp->v_object;
 	KASSERT(obj->type == tmpfs_pager_type &&
-	    (obj->flags & (OBJ_SWAP | OBJ_TMPFS)) ==
-	    (OBJ_SWAP | OBJ_TMPFS), ("non-tmpfs obj"));
+		(obj->flags & (OBJ_SWAP | OBJ_TMPFS)) == (OBJ_SWAP | OBJ_TMPFS),
+	    ("non-tmpfs obj"));
 	/* unlocked read */
 	if (obj->generation != obj->cleangeneration) {
 		VM_OBJECT_WLOCK(obj);
@@ -2034,10 +2031,11 @@ tmpfs_chflags(struct vnode *vp, u_long flags, struct ucred *cred,
 
 	node = VP_TO_TMPFS_NODE(vp);
 
-	if ((flags & ~(SF_APPEND | SF_ARCHIVED | SF_IMMUTABLE | SF_NOUNLINK |
-	    UF_APPEND | UF_ARCHIVE | UF_HIDDEN | UF_IMMUTABLE | UF_NODUMP |
-	    UF_NOUNLINK | UF_OFFLINE | UF_OPAQUE | UF_READONLY | UF_REPARSE |
-	    UF_SPARSE | UF_SYSTEM)) != 0)
+	if ((flags &
+		~(SF_APPEND | SF_ARCHIVED | SF_IMMUTABLE | SF_NOUNLINK |
+		    UF_APPEND | UF_ARCHIVE | UF_HIDDEN | UF_IMMUTABLE |
+		    UF_NODUMP | UF_NOUNLINK | UF_OFFLINE | UF_OPAQUE |
+		    UF_READONLY | UF_REPARSE | UF_SPARSE | UF_SYSTEM)) != 0)
 		return (EOPNOTSUPP);
 
 	/* Disallow this operation if the file system is mounted read-only. */
@@ -2055,15 +2053,13 @@ tmpfs_chflags(struct vnode *vp, u_long flags, struct ucred *cred,
 	 * flags, or modify flags if any system flags are set.
 	 */
 	if (!priv_check_cred(cred, PRIV_VFS_SYSFLAGS)) {
-		if (node->tn_flags &
-		    (SF_NOUNLINK | SF_IMMUTABLE | SF_APPEND)) {
+		if (node->tn_flags & (SF_NOUNLINK | SF_IMMUTABLE | SF_APPEND)) {
 			error = securelevel_gt(cred, 0);
 			if (error)
 				return (error);
 		}
 	} else {
-		if (node->tn_flags &
-		    (SF_NOUNLINK | SF_IMMUTABLE | SF_APPEND) ||
+		if (node->tn_flags & (SF_NOUNLINK | SF_IMMUTABLE | SF_APPEND) ||
 		    ((flags ^ node->tn_flags) & SF_SETTABLE))
 			return (EPERM);
 	}
@@ -2185,7 +2181,7 @@ tmpfs_chown(struct vnode *vp, uid_t uid, gid_t gid, struct ucred *cred,
 	 * privilege.
 	 */
 	if ((uid != node->tn_uid ||
-	    (gid != node->tn_gid && !groupmember(gid, cred))) &&
+		(gid != node->tn_gid && !groupmember(gid, cred))) &&
 	    (error = priv_check_cred(cred, PRIV_VFS_CHOWN)))
 		return (error);
 
@@ -2279,8 +2275,8 @@ tmpfs_chsize(struct vnode *vp, u_quad_t size, struct ucred *cred,
  * The vnode must be locked on entry and remain locked on exit.
  */
 int
-tmpfs_chtimes(struct vnode *vp, struct vattr *vap,
-    struct ucred *cred, struct thread *td)
+tmpfs_chtimes(struct vnode *vp, struct vattr *vap, struct ucred *cred,
+    struct thread *td)
 {
 	int error;
 	struct tmpfs_node *node;
@@ -2353,7 +2349,7 @@ tmpfs_itimes(struct vnode *vp, const struct timespec *acc,
 	TMPFS_NODE_LOCK(node);
 	if (node->tn_accessed) {
 		if (acc == NULL)
-			 acc = &now;
+			acc = &now;
 		node->tn_atime = *acc;
 	}
 	if (node->tn_status & TMPFS_NODE_MODIFIED) {
@@ -2367,7 +2363,8 @@ tmpfs_itimes(struct vnode *vp, const struct timespec *acc,
 	node->tn_accessed = false;
 	TMPFS_NODE_UNLOCK(node);
 
-	/* XXX: FIX? The entropy here is desirable, but the harvesting may be expensive */
+	/* XXX: FIX? The entropy here is desirable, but the harvesting may be
+	 * expensive */
 	random_harvest_queue(node, sizeof(*node), RANDOM_FS_ATIME);
 }
 
@@ -2383,8 +2380,8 @@ tmpfs_truncate(struct vnode *vp, off_t length)
 		return (EFBIG);
 
 	node = VP_TO_TMPFS_NODE(vp);
-	error = node->tn_size == length ? 0 : tmpfs_reg_resize(vp, length,
-	    FALSE);
+	error = node->tn_size == length ? 0 :
+					  tmpfs_reg_resize(vp, length, FALSE);
 	if (error == 0)
 		node->tn_status |= TMPFS_NODE_CHANGED | TMPFS_NODE_MODIFIED;
 	tmpfs_update(vp);

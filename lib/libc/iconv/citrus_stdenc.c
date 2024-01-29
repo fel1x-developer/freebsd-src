@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_stdenc.c,v 1.4 2011/11/19 18:39:58 tnozaki Exp $	*/
+/*	$NetBSD: citrus_stdenc.c,v 1.4 2011/11/19 18:39:58 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -28,28 +29,27 @@
  * SUCH DAMAGE.
  */
 
-
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_none.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 struct _citrus_stdenc _citrus_stdenc_default = {
-	&_citrus_NONE_stdenc_ops,	/* ce_ops */
-	NULL,				/* ce_closure */
-	NULL,				/* ce_module */
-	&_citrus_NONE_stdenc_traits,	/* ce_traits */
+	&_citrus_NONE_stdenc_ops,    /* ce_ops */
+	NULL,			     /* ce_closure */
+	NULL,			     /* ce_module */
+	&_citrus_NONE_stdenc_traits, /* ce_traits */
 };
 
 int
-_citrus_stdenc_open(struct _citrus_stdenc * __restrict * __restrict rce,
-    char const * __restrict encname, const void * __restrict variable,
+_citrus_stdenc_open(struct _citrus_stdenc *__restrict *__restrict rce,
+    char const *__restrict encname, const void *__restrict variable,
     size_t lenvar)
 {
 	struct _citrus_stdenc *ce;
@@ -95,13 +95,10 @@ _citrus_stdenc_open(struct _citrus_stdenc * __restrict * __restrict rce,
 		goto bad;
 
 	/* validation check */
-	if (ce->ce_ops->eo_init == NULL ||
-	    ce->ce_ops->eo_uninit == NULL ||
+	if (ce->ce_ops->eo_init == NULL || ce->ce_ops->eo_uninit == NULL ||
 	    ce->ce_ops->eo_init_state == NULL ||
-	    ce->ce_ops->eo_mbtocs == NULL ||
-	    ce->ce_ops->eo_cstomb == NULL ||
-	    ce->ce_ops->eo_mbtowc == NULL ||
-	    ce->ce_ops->eo_wctomb == NULL ||
+	    ce->ce_ops->eo_mbtocs == NULL || ce->ce_ops->eo_cstomb == NULL ||
+	    ce->ce_ops->eo_mbtowc == NULL || ce->ce_ops->eo_wctomb == NULL ||
 	    ce->ce_ops->eo_get_state_desc == NULL) {
 		ret = EINVAL;
 		goto bad;

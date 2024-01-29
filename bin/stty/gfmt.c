@@ -34,8 +34,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stty.h"
 #include "extern.h"
+#include "stty.h"
 
 static void gerr(const char *s) __dead2;
 
@@ -58,8 +58,8 @@ gprint(struct termios *tp, struct winsize *wp __unused, int ldisc __unused)
 	    (u_long)tp->c_oflag);
 	for (cp = cchars1; cp->name; ++cp)
 		(void)printf("%s=%x:", cp->name, tp->c_cc[cp->sub]);
-	(void)printf("ispeed=%lu:ospeed=%lu\n",
-	    (u_long)cfgetispeed(tp), (u_long)cfgetospeed(tp));
+	(void)printf("ispeed=%lu:ospeed=%lu\n", (u_long)cfgetispeed(tp),
+	    (u_long)cfgetospeed(tp));
 }
 
 void
@@ -80,7 +80,7 @@ gread(struct termios *tp, char *s)
 		*ep++ = '\0';
 		tmp = strtoul(ep, NULL, 0x10);
 
-#define	CHK(s)	(*p == s[0] && !strcmp(p, s))
+#define CHK(s) (*p == s[0] && !strcmp(p, s))
 		if (CHK("cflag")) {
 			tp->c_cflag = tmp;
 			continue;

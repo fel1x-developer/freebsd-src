@@ -18,28 +18,27 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
+#include "ah_desc.h" /* NB: for HAL_PHYERR* */
 #include "ah_devid.h"
-#include "ah_desc.h"                    /* NB: for HAL_PHYERR* */
-
+#include "ah_internal.h"
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
 /*
  * Default AR9280 spectral scan parameters
  */
-#define	AR5416_SPECTRAL_SCAN_ENA		0
-#define	AR5416_SPECTRAL_SCAN_ACTIVE		0
-#define	AR5416_SPECTRAL_SCAN_FFT_PERIOD		8
-#define	AR5416_SPECTRAL_SCAN_PERIOD		1
-#define	AR5416_SPECTRAL_SCAN_COUNT		16 //used to be 128
-#define	AR5416_SPECTRAL_SCAN_SHORT_REPEAT	1
+#define AR5416_SPECTRAL_SCAN_ENA 0
+#define AR5416_SPECTRAL_SCAN_ACTIVE 0
+#define AR5416_SPECTRAL_SCAN_FFT_PERIOD 8
+#define AR5416_SPECTRAL_SCAN_PERIOD 1
+#define AR5416_SPECTRAL_SCAN_COUNT 16 // used to be 128
+#define AR5416_SPECTRAL_SCAN_SHORT_REPEAT 1
 
 /* constants */
-#define	MAX_RADAR_RSSI_THRESH	0x3f
-#define	MAX_RADAR_HEIGHT	0x3f
-#define	ENABLE_ALL_PHYERR	0xffffffff
+#define MAX_RADAR_RSSI_THRESH 0x3f
+#define MAX_RADAR_HEIGHT 0x3f
+#define ENABLE_ALL_PHYERR 0xffffffff
 
 static void ar5416DisableRadar(struct ath_hal *ah);
 static void ar5416PrepSpectralScan(struct ath_hal *ah);
@@ -68,7 +67,7 @@ ar5416DisableRadar(struct ath_hal *ah)
 	OS_REG_WRITE(ah, AR_PHY_RADAR_EXT, val & ~AR_PHY_RADAR_EXT_ENA);
 
 	val = OS_REG_READ(ah, AR_RX_FILTER);
-	val |= (1<<13);
+	val |= (1 << 13);
 	OS_REG_WRITE(ah, AR_RX_FILTER, val);
 }
 
@@ -105,7 +104,7 @@ ar5416ConfigureSpectralScan(struct ath_hal *ah, HAL_SPECTRAL_PARAM *ss)
 	}
 
 	/* This section is different for Kiwi and Merlin */
-	if (AR_SREV_MERLIN(ah) ) {
+	if (AR_SREV_MERLIN(ah)) {
 		if (ss->ss_count != HAL_SPECTRAL_PARAM_NOVAL) {
 			val &= ~AR_PHY_SPECTRAL_SCAN_COUNT;
 			val |= SM(ss->ss_count, AR_PHY_SPECTRAL_SCAN_COUNT);
@@ -125,7 +124,8 @@ ar5416ConfigureSpectralScan(struct ath_hal *ah, HAL_SPECTRAL_PARAM *ss)
 			if (ss->ss_count == 128)
 				ss->ss_count = 0;
 			val &= ~AR_PHY_SPECTRAL_SCAN_COUNT_KIWI;
-			val |= SM(ss->ss_count, AR_PHY_SPECTRAL_SCAN_COUNT_KIWI);
+			val |= SM(ss->ss_count,
+			    AR_PHY_SPECTRAL_SCAN_COUNT_KIWI);
 		}
 
 		if (ss->ss_short_report == AH_TRUE) {
@@ -134,7 +134,7 @@ ar5416ConfigureSpectralScan(struct ath_hal *ah, HAL_SPECTRAL_PARAM *ss)
 			val &= ~AR_PHY_SPECTRAL_SCAN_SHORT_REPEAT_KIWI;
 		}
 
-		//Select the mask to be same as before
+		// Select the mask to be same as before
 		val |= AR_PHY_SPECTRAL_SCAN_PHYERR_MASK_SELECT_KIWI;
 	}
 	// Enable spectral scan
@@ -156,12 +156,14 @@ ar5416GetSpectralParams(struct ath_hal *ah, HAL_SPECTRAL_PARAM *ss)
 
 	ss->ss_fft_period = MS(val, AR_PHY_SPECTRAL_SCAN_FFT_PERIOD);
 	ss->ss_period = MS(val, AR_PHY_SPECTRAL_SCAN_PERIOD);
-	if (AR_SREV_MERLIN(ah) ) {
+	if (AR_SREV_MERLIN(ah)) {
 		ss->ss_count = MS(val, AR_PHY_SPECTRAL_SCAN_COUNT);
-		ss->ss_short_report = MS(val, AR_PHY_SPECTRAL_SCAN_SHORT_REPEAT);
+		ss->ss_short_report = MS(val,
+		    AR_PHY_SPECTRAL_SCAN_SHORT_REPEAT);
 	} else {
 		ss->ss_count = MS(val, AR_PHY_SPECTRAL_SCAN_COUNT_KIWI);
-		ss->ss_short_report = MS(val, AR_PHY_SPECTRAL_SCAN_SHORT_REPEAT_KIWI);
+		ss->ss_short_report = MS(val,
+		    AR_PHY_SPECTRAL_SCAN_SHORT_REPEAT_KIWI);
 	}
 	val = OS_REG_READ(ah, AR_PHY_RADAR_1);
 	ss->radar_bin_thresh_sel = MS(val, AR_PHY_RADAR_1_BIN_THRESH_SELECT);
@@ -182,7 +184,7 @@ ar5416IsSpectralEnabled(struct ath_hal *ah)
 	uint32_t val;
 
 	val = OS_REG_READ(ah, AR_PHY_SPECTRAL_SCAN);
-	return MS(val,AR_PHY_SPECTRAL_SCAN_ENA);
+	return MS(val, AR_PHY_SPECTRAL_SCAN_ENA);
 }
 
 void

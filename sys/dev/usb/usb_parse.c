@@ -28,34 +28,34 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
 
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_debug.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 /*------------------------------------------------------------------------*
  *	usb_desc_foreach
@@ -70,8 +70,7 @@
  *   Else: Next descriptor after "desc"
  *------------------------------------------------------------------------*/
 struct usb_descriptor *
-usb_desc_foreach(struct usb_config_descriptor *cd, 
-    struct usb_descriptor *_desc)
+usb_desc_foreach(struct usb_config_descriptor *cd, struct usb_descriptor *_desc)
 {
 	uint8_t *desc_next;
 	uint8_t *start;
@@ -95,16 +94,16 @@ usb_desc_foreach(struct usb_config_descriptor *cd,
 
 	/* Check that the next USB descriptor is within the range. */
 	if ((desc < start) || (desc >= end))
-		return (NULL);		/* out of range, or EOD */
+		return (NULL); /* out of range, or EOD */
 
 	/* Check that the second next USB descriptor is within range. */
 	desc_next = desc + desc[0];
 	if ((desc_next < start) || (desc_next > end))
-		return (NULL);		/* out of range */
+		return (NULL); /* out of range */
 
 	/* Check minimum descriptor length. */
 	if (desc[0] < 3)
-		return (NULL);		/* too short descriptor */
+		return (NULL); /* too short descriptor */
 
 	/* Return start of next descriptor. */
 	return ((struct usb_descriptor *)desc);
@@ -134,8 +133,8 @@ usb_idesc_foreach(struct usb_config_descriptor *cd,
 	new_iface = 1;
 
 	while (1) {
-		id = (struct usb_interface_descriptor *)
-		    usb_desc_foreach(cd, (struct usb_descriptor *)id);
+		id = (struct usb_interface_descriptor *)usb_desc_foreach(cd,
+		    (struct usb_descriptor *)id);
 		if (id == NULL)
 			break;
 		if ((id->bDescriptorType == UDESC_INTERFACE) &&
@@ -148,7 +147,8 @@ usb_idesc_foreach(struct usb_config_descriptor *cd,
 				 * variable.
 				 */
 				if (ps->iface_index_alt == 255) {
-					DPRINTF("Interface(%u) has more than 256 alternate settings\n",
+					DPRINTF(
+					    "Interface(%u) has more than 256 alternate settings\n",
 					    id->bInterfaceNumber);
 					continue;
 				}
@@ -163,11 +163,11 @@ usb_idesc_foreach(struct usb_config_descriptor *cd,
 		/* first time or zero descriptors */
 	} else if (new_iface) {
 		/* new interface */
-		ps->iface_index ++;
+		ps->iface_index++;
 		ps->iface_index_alt = 0;
 	} else {
 		/* new alternate interface */
-		ps->iface_index_alt ++;
+		ps->iface_index_alt++;
 	}
 #if (USB_IFACE_MAX <= 0)
 #error "USB_IFACE_MAX must be defined greater than zero"
@@ -269,7 +269,7 @@ usbd_get_no_descriptors(struct usb_config_descriptor *cd, uint8_t type)
 		if (desc->bDescriptorType == type) {
 			count++;
 			if (count == 0xFF)
-				break;			/* crazy */
+				break; /* crazy */
 		}
 	}
 	return (count);
@@ -309,7 +309,7 @@ usbd_get_no_alts(struct usb_config_descriptor *cd,
 			if (id->bInterfaceNumber == ifaceno) {
 				n++;
 				if (n == 0xFF)
-					break;		/* crazy */
+					break; /* crazy */
 			}
 		}
 	}

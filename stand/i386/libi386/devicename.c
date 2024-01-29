@@ -25,13 +25,15 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
+
 #include "bootstrap.h"
 #include "disk.h"
 #include "libi386.h"
 
-/* 
+/*
  * Point (dev) at an allocated device specifier for the device matching the
  * path in (devspec). If it contains an explicit device specification,
  * use that.  If not, use the default device.
@@ -39,25 +41,24 @@
 int
 i386_getdev(void **vdev, const char *devspec, const char **path)
 {
-    struct devdesc **dev = (struct devdesc **)vdev;
-    int				rv;
-    
-    /*
-     * If it looks like this is just a path and no
-     * device, go with the current device.
-     */
-    if ((devspec == NULL) || 
-	(devspec[0] == '/') || 
-	(strchr(devspec, ':') == NULL)) {
+	struct devdesc **dev = (struct devdesc **)vdev;
+	int rv;
 
-	if (((rv = devparse(dev, getenv("currdev"), NULL)) == 0) &&
-	    (path != NULL))
-		*path = devspec;
-	return(rv);
-    }
-    
-    /*
-     * Try to parse the device name off the beginning of the devspec
-     */
-    return(devparse(dev, devspec, path));
+	/*
+	 * If it looks like this is just a path and no
+	 * device, go with the current device.
+	 */
+	if ((devspec == NULL) || (devspec[0] == '/') ||
+	    (strchr(devspec, ':') == NULL)) {
+
+		if (((rv = devparse(dev, getenv("currdev"), NULL)) == 0) &&
+		    (path != NULL))
+			*path = devspec;
+		return (rv);
+	}
+
+	/*
+	 * Try to parse the device name off the beginning of the devspec
+	 */
+	return (devparse(dev, devspec, path));
 }

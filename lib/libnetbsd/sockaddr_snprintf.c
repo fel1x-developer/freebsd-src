@@ -1,4 +1,5 @@
-/*	$NetBSD: sockaddr_snprintf.c,v 1.14 2016/12/29 18:30:55 christos Exp $	*/
+/*	$NetBSD: sockaddr_snprintf.c,v 1.14 2016/12/29 18:30:55 christos Exp $
+ */
 
 /*-
  * Copyright (c) 2004, 2016 The NetBSD Foundation, Inc.
@@ -32,8 +33,8 @@
 #include "config.h"
 #endif
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -42,27 +43,27 @@
 #include <net/if_dl.h>
 #endif
 
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
-#include <stdlib.h>
-#include <util.h>
 #include <libutil.h>
 #include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <util.h>
 
 #ifdef BSD4_4
-# define SALEN(sa)	((sa)->sa ## _len)
+#define SALEN(sa) ((sa)->sa##_len)
 #else
-# define SALEN(sa)	((unsigned)sizeof(*sa))
+#define SALEN(sa) ((unsigned)sizeof(*sa))
 #endif
 
 static int
 debug_in(char *str, size_t len, const struct sockaddr_in *sin)
 {
-	return snprintf(str, len, "sin_len=%u, sin_family=%u, sin_port=%u, "
+	return snprintf(str, len,
+	    "sin_len=%u, sin_family=%u, sin_port=%u, "
 	    "sin_addr.s_addr=%08x",
-	    SALEN(sin), sin->sin_family, sin->sin_port,
-	    sin->sin_addr.s_addr);
+	    SALEN(sin), sin->sin_family, sin->sin_port, sin->sin_addr.s_addr);
 }
 
 static int
@@ -70,7 +71,8 @@ debug_in6(char *str, size_t len, const struct sockaddr_in6 *sin6)
 {
 	const uint8_t *s = sin6->sin6_addr.s6_addr;
 
-	return snprintf(str, len, "sin6_len=%u, sin6_family=%u, sin6_port=%u, "
+	return snprintf(str, len,
+	    "sin6_len=%u, sin6_family=%u, sin6_port=%u, "
 	    "sin6_flowinfo=%u, "
 	    "sin6_addr=%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:"
 	    "%02x:%02x:%02x:%02x:%02x:%02x, sin6_scope_id=%u",
@@ -94,19 +96,20 @@ debug_dl(char *str, size_t len, const struct sockaddr_dl *sdl)
 {
 	const uint8_t *s = (const void *)sdl->sdl_data;
 
-	return snprintf(str, len, "sdl_len=%u, sdl_family=%u, sdl_index=%u, "
+	return snprintf(str, len,
+	    "sdl_len=%u, sdl_family=%u, sdl_index=%u, "
 	    "sdl_type=%u, sdl_nlen=%u, sdl_alen=%u, sdl_slen=%u, sdl_data="
 	    "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-	    SALEN(sdl), sdl->sdl_family, sdl->sdl_index,
-	    sdl->sdl_type, sdl->sdl_nlen, sdl->sdl_alen, sdl->sdl_slen,
-	    s[0x0], s[0x1], s[0x2], s[0x3], s[0x4], s[0x5],
-	    s[0x6], s[0x7], s[0x8], s[0x9], s[0xa], s[0xb]);
+	    SALEN(sdl), sdl->sdl_family, sdl->sdl_index, sdl->sdl_type,
+	    sdl->sdl_nlen, sdl->sdl_alen, sdl->sdl_slen, s[0x0], s[0x1], s[0x2],
+	    s[0x3], s[0x4], s[0x5], s[0x6], s[0x7], s[0x8], s[0x9], s[0xa],
+	    s[0xb]);
 }
 #endif
 
 int
-sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
-    const struct sockaddr * const sa)
+sockaddr_snprintf(char *const sbuf, const size_t len, const char *const fmt,
+    const struct sockaddr *const sa)
 {
 	const void *a = NULL;
 	char abuf[1024], nbuf[1024], *addr = NULL;
@@ -124,12 +127,23 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 #endif
 	int na = 1;
 
-#define ADDC(c) do { if (buf < ebuf) *buf++ = c; else buf++; } \
-	while (/*CONSTCOND*/0)
-#define ADDS(p) do { for (s = p; *s; s++) ADDC(*s); } \
-	while (/*CONSTCOND*/0)
-#define ADDNA() do { if (na) ADDS("N/A"); } \
-	while (/*CONSTCOND*/0)
+#define ADDC(c)                     \
+	do {                        \
+		if (buf < ebuf)     \
+			*buf++ = c; \
+		else                \
+			buf++;      \
+	} while (/*CONSTCOND*/ 0)
+#define ADDS(p)                      \
+	do {                         \
+		for (s = p; *s; s++) \
+			ADDC(*s);    \
+	} while (/*CONSTCOND*/ 0)
+#define ADDNA()                      \
+	do {                         \
+		if (na)              \
+			ADDS("N/A"); \
+	} while (/*CONSTCOND*/ 0)
 
 	switch (sa->sa_family) {
 	case AF_UNSPEC:
@@ -155,19 +169,19 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 	case AF_LINK:
 		sdl = ((const struct sockaddr_dl *)(const void *)sa);
 		addr = abuf;
-		if (sdl->sdl_slen == 0 && sdl->sdl_nlen == 0
-		    && sdl->sdl_alen == 0) {
+		if (sdl->sdl_slen == 0 && sdl->sdl_nlen == 0 &&
+		    sdl->sdl_alen == 0) {
 			salen = sizeof(*sdl);
 			(void)snprintf(abuf, sizeof(abuf), "link#%hu",
 			    sdl->sdl_index);
 		} else {
-			salen = sdl->sdl_slen + sdl->sdl_nlen +  sdl->sdl_alen;
+			salen = sdl->sdl_slen + sdl->sdl_nlen + sdl->sdl_alen;
 			if (salen < sizeof(*sdl))
 				salen = sizeof(*sdl);
 			(void)strlcpy(abuf, link_ntoa(sdl), sizeof(abuf));
 			if ((w = strchr(addr, ':')) != NULL) {
-			    *w++ = '\0';
-			    addr = w;
+				*w++ = '\0';
+				addr = w;
 			}
 		}
 		break;
@@ -180,9 +194,10 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 	if (addr == abuf)
 		name = addr;
 
-	if (a && getnameinfo(sa, (socklen_t)salen, addr = abuf,
-	    (unsigned int)sizeof(abuf), NULL, 0,
-	    NI_NUMERICHOST|NI_NUMERICSERV) != 0)
+	if (a &&
+	    getnameinfo(sa, (socklen_t)salen, addr = abuf,
+		(unsigned int)sizeof(abuf), NULL, 0,
+		NI_NUMERICHOST | NI_NUMERICSERV) != 0)
 		return -1;
 
 	for (ptr = fmt; *ptr; ptr++) {
@@ -190,7 +205,7 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 			ADDC(*ptr);
 			continue;
 		}
-	  next_char:
+	next_char:
 		switch (*++ptr) {
 		case '?':
 			na = 0;
@@ -220,7 +235,7 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 				ADDNA();
 			else {
 				getnameinfo(sa, (socklen_t)salen, name = Abuf,
-					(unsigned int)sizeof(nbuf), NULL, 0, 0);
+				    (unsigned int)sizeof(nbuf), NULL, 0, 0);
 				ADDS(name);
 			}
 			break;
@@ -231,8 +246,7 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 				ADDNA();
 			else {
 				getnameinfo(sa, (socklen_t)salen, NULL, 0,
-					port = pbuf,
-					(unsigned int)sizeof(pbuf), 0);
+				    port = pbuf, (unsigned int)sizeof(pbuf), 0);
 				ADDS(port);
 			}
 			break;
@@ -266,11 +280,9 @@ sockaddr_snprintf(char * const sbuf, const size_t len, const char * const fmt,
 				ADDNA();
 			}
 			break;
-		case 'R':
-			{
-				ADDNA();
-			}
-			break;
+		case 'R': {
+			ADDNA();
+		} break;
 		case 'D':
 			switch (sa->sa_family) {
 			case AF_LOCAL:

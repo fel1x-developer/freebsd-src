@@ -14,19 +14,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/dirent.h>
 #include <sys/disklabel.h>
 #include <sys/diskmbr.h>
-#include <sys/dirent.h>
 #include <sys/reboot.h>
 
 #include <machine/bootinfo.h>
 #include <machine/elf.h>
 
-#include <stdarg.h>
-
 #include <a.out.h>
-
 #include <btxv86.h>
+#include <stdarg.h>
 
 #include "boot2.h"
 #include "lib.h"
@@ -38,8 +36,8 @@
 #define SERIAL 1
 #endif
 
-#define IO_KEYBOARD	1
-#define IO_SERIAL	2
+#define IO_KEYBOARD 1
+#define IO_SERIAL 2
 
 #if SERIAL
 #define DO_KBD (ioctrl & IO_KEYBOARD)
@@ -49,44 +47,31 @@
 #define DO_SIO (0)
 #endif
 
-#define SECOND		18	/* Circa that many ticks in a second. */
+#define SECOND 18 /* Circa that many ticks in a second. */
 
-#define ARGS		0x900
-#define NOPT		14
-#define NDEV		3
-#define MEM_BASE	0x12
-#define MEM_EXT 	0x15
+#define ARGS 0x900
+#define NOPT 14
+#define NDEV 3
+#define MEM_BASE 0x12
+#define MEM_EXT 0x15
 
-#define DRV_HARD	0x80
-#define DRV_MASK	0x7f
+#define DRV_HARD 0x80
+#define DRV_MASK 0x7f
 
-#define TYPE_AD		0
-#define TYPE_DA		1
-#define TYPE_MAXHARD	TYPE_DA
-#define TYPE_FD		2
+#define TYPE_AD 0
+#define TYPE_DA 1
+#define TYPE_MAXHARD TYPE_DA
+#define TYPE_FD 2
 
 extern uint32_t _end;
 
 static const char optstr[NOPT] = "DhaCcdgmnpqrsv"; /* Also 'P', 'S' */
-static const unsigned char flags[NOPT] = {
-	RBX_DUAL,
-	RBX_SERIAL,
-	RBX_ASKNAME,
-	RBX_CDROM,
-	RBX_CONFIG,
-	RBX_KDB,
-	RBX_GDB,
-	RBX_MUTE,
-	RBX_NOINTR,
-	RBX_PAUSE,
-	RBX_QUIET,
-	RBX_DFLTROOT,
-	RBX_SINGLE,
-	RBX_VERBOSE
-};
+static const unsigned char flags[NOPT] = { RBX_DUAL, RBX_SERIAL, RBX_ASKNAME,
+	RBX_CDROM, RBX_CONFIG, RBX_KDB, RBX_GDB, RBX_MUTE, RBX_NOINTR,
+	RBX_PAUSE, RBX_QUIET, RBX_DFLTROOT, RBX_SINGLE, RBX_VERBOSE };
 
-static const char *const dev_nm[NDEV] = {"ad", "da", "fd"};
-static const unsigned char dev_maj[NDEV] = {30, 4, 2};
+static const char *const dev_nm[NDEV] = { "ad", "da", "fd" };
+static const unsigned char dev_maj[NDEV] = { 30, 4, 2 };
 
 static struct dsk {
 	unsigned drive;
@@ -111,7 +96,7 @@ void exit(int);
 static void load(void);
 static int parse(void);
 static int dskread(void *, unsigned, unsigned);
-static void printf(const char *,...);
+static void printf(const char *, ...);
 static void putchar(int);
 static int drvread(void *, unsigned, unsigned);
 static int keyhit(unsigned);
@@ -137,11 +122,12 @@ static inline int
 strcmp(const char *s1, const char *s2)
 {
 
-	for (; *s1 == *s2 && *s1; s1++, s2++);
+	for (; *s1 == *s2 && *s1; s1++, s2++)
+		;
 	return ((unsigned char)*s1 - (unsigned char)*s2);
 }
 
-#define	UFS_SMALL_CGBASE
+#define UFS_SMALL_CGBASE
 #include "ufsread.c"
 
 static int
@@ -216,8 +202,7 @@ main(void)
 
 	autoboot = 1;
 
-	if ((ino = lookup(PATH_CONFIG)) ||
-	    (ino = lookup(PATH_DOTCONFIG))) {
+	if ((ino = lookup(PATH_CONFIG)) || (ino = lookup(PATH_DOTCONFIG))) {
 		nbyte = fsread(ino, cmd, sizeof(cmd) - 1);
 		cmd[nbyte] = '\0';
 	}
@@ -239,7 +224,7 @@ main(void)
 
 	if (!kname) {
 		kname = PATH_LOADER;
-		if (autoboot && !keyhit(3*SECOND)) {
+		if (autoboot && !keyhit(3 * SECOND)) {
 			load();
 			kname = PATH_KERNEL;
 		}
@@ -250,13 +235,13 @@ main(void)
 	for (;;) {
 		if (!autoboot || !OPT_CHECK(RBX_QUIET))
 			printf("\nFreeBSD/x86 boot\n"
-				 "Default: %u:%s(%u,%c)%s\n"
-				 "boot: ",
+			       "Default: %u:%s(%u,%c)%s\n"
+			       "boot: ",
 			    dsk.drive & DRV_MASK, dev_nm[dsk.type], dsk.unit,
 			    'a' + dsk.part, kname);
 		if (DO_SIO)
 			sio_flush();
-		if (!autoboot || keyhit(3*SECOND))
+		if (!autoboot || keyhit(3 * SECOND))
 			getstr();
 		else if (!autoboot || !OPT_CHECK(RBX_QUIET))
 			putchar('\n');
@@ -272,7 +257,6 @@ main(void)
 void
 exit(int x)
 {
-
 }
 
 static void
@@ -324,8 +308,8 @@ load(void)
 		p += roundup2(ep[1].p_memsz, PAGE_SIZE);
 		bootinfo.bi_symtab = VTOP(p);
 		if (hdr.eh.e_shnum == hdr.eh.e_shstrndx + 3) {
-			fs_off = hdr.eh.e_shoff + sizeof(es[0]) *
-			    (hdr.eh.e_shstrndx + 1);
+			fs_off = hdr.eh.e_shoff +
+			    sizeof(es[0]) * (hdr.eh.e_shstrndx + 1);
 			if (xfsread(ino, &es, sizeof(es)))
 				return;
 			for (i = 0; i < 2; i++) {
@@ -347,8 +331,8 @@ load(void)
 	bootinfo.bi_kernelname = VTOP(kname);
 	bootinfo.bi_bios_dev = dsk.drive;
 	__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK),
-	    MAKEBOOTDEV(dev_maj[dsk.type], dsk.slice, dsk.unit, dsk.part),
-	    0, 0, 0, VTOP(&bootinfo));
+	    MAKEBOOTDEV(dev_maj[dsk.type], dsk.slice, dsk.unit, dsk.part), 0, 0,
+	    0, VTOP(&bootinfo));
 }
 
 static int
@@ -365,7 +349,8 @@ parse(void)
 	while ((c = *arg++)) {
 		if (c == ' ' || c == '\t' || c == '\n')
 			continue;
-		for (p = arg; *p && *p != '\n' && *p != ' ' && *p != '\t'; p++);
+		for (p = arg; *p && *p != '\n' && *p != ' ' && *p != '\t'; p++)
+			;
 		ep = p;
 		if (*p)
 			*p++ = 0;
@@ -402,15 +387,18 @@ parse(void)
 				opts ^= OPT_SET(flags[i]);
 			}
 #if SERIAL
-			ioctrl = OPT_CHECK(RBX_DUAL) ? (IO_SERIAL|IO_KEYBOARD) :
-			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL : IO_KEYBOARD;
+			ioctrl = OPT_CHECK(RBX_DUAL) ?
+			    (IO_SERIAL | IO_KEYBOARD) :
+			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL :
+						    IO_KEYBOARD;
 			if (DO_SIO) {
 				if (sio_init(115200 / comspeed) != 0)
 					ioctrl &= ~IO_SERIAL;
 			}
 #endif
 		} else {
-			for (q = arg--; *q && *q != '('; q++);
+			for (q = arg--; *q && *q != '('; q++)
+				;
 			if (*q) {
 				drv = -1;
 				if (arg[1] == ':') {
@@ -422,7 +410,8 @@ parse(void)
 				if (q - arg != 2)
 					return (-1);
 				for (i = 0; arg[0] != dev_nm[i][0] ||
-				    arg[1] != dev_nm[i][1]; i++)
+				     arg[1] != dev_nm[i][1];
+				     i++)
 					if (i == NDEV - 1)
 						return (-1);
 				dsk.type = i;
@@ -446,8 +435,10 @@ parse(void)
 				arg += 2;
 				if (drv == -1)
 					drv = dsk.unit;
-				dsk.drive = (dsk.type <= TYPE_MAXHARD
-				    ? DRV_HARD : 0) + drv;
+				dsk.drive = (dsk.type <= TYPE_MAXHARD ?
+						    DRV_HARD :
+						    0) +
+				    drv;
 				dsk_meta = 0;
 			}
 			k = ep - arg;
@@ -531,7 +522,7 @@ error:
 }
 
 static void
-printf(const char *fmt,...)
+printf(const char *fmt, ...)
 {
 	va_list ap;
 	static char buf[10];
@@ -587,7 +578,7 @@ drvread(void *buf, unsigned lba, unsigned nblk)
 		xputc('\b');
 	}
 	v86.ctl = V86_ADDR | V86_CALLF | V86_FLAGS;
-	v86.addr = XREADORG;		/* call to xread in boot1 */
+	v86.addr = XREADORG; /* call to xread in boot1 */
 	v86.es = VTOPSEG(buf);
 	v86.eax = lba;
 	v86.ebx = VTOPOFF(buf);

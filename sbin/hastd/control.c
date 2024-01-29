@@ -39,18 +39,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "control.h"
 #include "hast.h"
-#include "hastd.h"
 #include "hast_checksum.h"
 #include "hast_compression.h"
 #include "hast_proto.h"
+#include "hastd.h"
 #include "hooks.h"
 #include "nv.h"
 #include "pjdlog.h"
 #include "proto.h"
 #include "subr.h"
-
-#include "control.h"
 
 void
 child_cleanup(struct hast_resource *res)
@@ -83,7 +82,7 @@ control_set_role_common(struct hastd_config *cfg, struct nv *nvout,
 		PJDLOG_ASSERT(cfg != NULL);
 		PJDLOG_ASSERT(name != NULL);
 
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (strcmp(res->hr_name, name) == 0)
 				break;
 		}
@@ -192,18 +191,18 @@ control_status_worker(struct hast_resource *res, struct nv *nvout,
 	}
 	nv_add_string(nvout, str, "status%u", no);
 	nv_add_uint64(nvout, nv_get_uint64(cnvin, "dirty"), "dirty%u", no);
-	nv_add_uint32(nvout, nv_get_uint32(cnvin, "extentsize"),
-	    "extentsize%u", no);
-	nv_add_uint32(nvout, nv_get_uint32(cnvin, "keepdirty"),
-	    "keepdirty%u", no);
-	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_read"),
-	    "stat_read%u", no);
-	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_write"),
-	    "stat_write%u", no);
+	nv_add_uint32(nvout, nv_get_uint32(cnvin, "extentsize"), "extentsize%u",
+	    no);
+	nv_add_uint32(nvout, nv_get_uint32(cnvin, "keepdirty"), "keepdirty%u",
+	    no);
+	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_read"), "stat_read%u",
+	    no);
+	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_write"), "stat_write%u",
+	    no);
 	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_delete"),
 	    "stat_delete%u", no);
-	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_flush"),
-	    "stat_flush%u", no);
+	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_flush"), "stat_flush%u",
+	    no);
 	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_activemap_update"),
 	    "stat_activemap_update%u", no);
 	nv_add_uint64(nvout, nv_get_uint64(cnvin, "stat_read_error"),
@@ -246,7 +245,7 @@ control_status(struct hastd_config *cfg, struct nv *nvout,
 	nv_add_string(nvout, name, "resource%u", no);
 
 	if (res == NULL) {
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			if (strcmp(res->hr_name, name) == 0)
 				break;
 		}
@@ -275,8 +274,7 @@ control_status(struct hastd_config *cfg, struct nv *nvout,
 		nv_add_string(nvout, "unknown", "replication%u", no);
 		break;
 	}
-	nv_add_string(nvout, checksum_name(res->hr_checksum),
-	    "checksum%u", no);
+	nv_add_string(nvout, checksum_name(res->hr_checksum), "checksum%u", no);
 	nv_add_string(nvout, compression_name(res->hr_compression),
 	    "compression%u", no);
 	nv_add_string(nvout, role2str(res->hr_role), "role%u", no);
@@ -367,7 +365,7 @@ control_handle(struct hastd_config *cfg)
 		/* All configured resources. */
 
 		ii = 0;
-		TAILQ_FOREACH(res, &cfg->hc_resources, hr_next) {
+		TAILQ_FOREACH (res, &cfg->hc_resources, hr_next) {
 			switch (cmd) {
 			case HASTCTL_CMD_SETROLE:
 				control_set_role_common(cfg, nvout, role, res,
@@ -387,7 +385,7 @@ control_handle(struct hastd_config *cfg)
 	} else {
 		/* Only selected resources. */
 
-		for (ii = 0; ; ii++) {
+		for (ii = 0;; ii++) {
 			str = nv_get_string(nvin, "resource%u", ii);
 			if (str == NULL)
 				break;
@@ -465,7 +463,8 @@ ctrl_thread(void *arg)
 				    (uint32_t)res->hr_keepdirty, "keepdirty");
 				nv_add_uint64(nvout,
 				    (uint64_t)(activemap_ndirty(res->hr_amp) *
-				    res->hr_extentsize), "dirty");
+					res->hr_extentsize),
+				    "dirty");
 			} else {
 				nv_add_uint32(nvout, (uint32_t)0, "keepdirty");
 				nv_add_uint64(nvout, (uint64_t)0, "dirty");
@@ -479,13 +478,15 @@ ctrl_thread(void *arg)
 			    "stat_activemap_update");
 			nv_add_uint64(nvout, res->hr_stat_read_error,
 			    "stat_read_error");
-			nv_add_uint64(nvout, res->hr_stat_write_error +
-			    res->hr_stat_activemap_write_error,
+			nv_add_uint64(nvout,
+			    res->hr_stat_write_error +
+				res->hr_stat_activemap_write_error,
 			    "stat_write_error");
 			nv_add_uint64(nvout, res->hr_stat_delete_error,
 			    "stat_delete_error");
-			nv_add_uint64(nvout, res->hr_stat_flush_error +
-			    res->hr_stat_activemap_flush_error,
+			nv_add_uint64(nvout,
+			    res->hr_stat_flush_error +
+				res->hr_stat_activemap_flush_error,
 			    "stat_flush_error");
 			res->output_status_aux(nvout);
 			nv_add_int16(nvout, 0, "error");
@@ -506,7 +507,8 @@ ctrl_thread(void *arg)
 		}
 		nv_free(nvin);
 		if (nv_error(nvout) != 0) {
-			pjdlog_error("Unable to create answer on control message.");
+			pjdlog_error(
+			    "Unable to create answer on control message.");
 			nv_free(nvout);
 			continue;
 		}

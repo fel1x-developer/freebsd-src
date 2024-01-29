@@ -24,18 +24,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/kobj.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -46,8 +47,8 @@
 
 #include <dev/clk/clk_fixed.h>
 
-#define	CLK_TYPE_FIXED		1
-#define	CLK_TYPE_FIXED_FACTOR	2
+#define CLK_TYPE_FIXED 1
+#define CLK_TYPE_FIXED_FACTOR 2
 
 static int clknode_fixed_init(struct clknode *clk, device_t dev);
 static int clknode_fixed_recalc(struct clknode *clk, uint64_t *freq);
@@ -55,21 +56,21 @@ static int clknode_fixed_set_freq(struct clknode *clk, uint64_t fin,
     uint64_t *fout, int flags, int *stop);
 
 struct clknode_fixed_sc {
-	int		fixed_flags;
-	uint64_t	freq;
-	uint32_t	mult;
-	uint32_t	div;
+	int fixed_flags;
+	uint64_t freq;
+	uint32_t mult;
+	uint32_t div;
 };
 
 static clknode_method_t clknode_fixed_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,	   clknode_fixed_init),
+	CLKNODEMETHOD(clknode_init, clknode_fixed_init),
 	CLKNODEMETHOD(clknode_recalc_freq, clknode_fixed_recalc),
-	CLKNODEMETHOD(clknode_set_freq,    clknode_fixed_set_freq),
+	CLKNODEMETHOD(clknode_set_freq, clknode_fixed_set_freq),
 	CLKNODEMETHOD_END
 };
 DEFINE_CLASS_1(clknode_fixed, clknode_fixed_class, clknode_fixed_methods,
-   sizeof(struct clknode_fixed_sc), clknode_class);
+    sizeof(struct clknode_fixed_sc), clknode_class);
 
 static int
 clknode_fixed_init(struct clknode *clk, device_t dev)
@@ -79,7 +80,7 @@ clknode_fixed_init(struct clknode *clk, device_t dev)
 	sc = clknode_get_softc(clk);
 	if (sc->freq == 0)
 		clknode_init_parent_idx(clk, 0);
-	return(0);
+	return (0);
 }
 
 static int
@@ -112,7 +113,7 @@ clknode_fixed_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	}
 	/* Fixed factor clock. */
 	*stop = 0;
-	*fout = (*fout / sc->mult) *  sc->div;
+	*fout = (*fout / sc->mult) * sc->div;
 	return (0);
 }
 
@@ -139,14 +140,14 @@ clknode_fixed_register(struct clkdom *clkdom, struct clk_fixed_def *clkdef)
 #ifdef FDT
 
 static struct ofw_compat_data compat_data[] = {
-	{"fixed-clock",		CLK_TYPE_FIXED},
-	{"fixed-factor-clock",  CLK_TYPE_FIXED_FACTOR},
-	{NULL,		 	0},
+	{ "fixed-clock", CLK_TYPE_FIXED },
+	{ "fixed-factor-clock", CLK_TYPE_FIXED_FACTOR },
+	{ NULL, 0 },
 };
 
 struct clk_fixed_softc {
-	device_t	dev;
-	struct clkdom	*clkdom;
+	device_t dev;
+	struct clkdom *clkdom;
 };
 
 static int
@@ -180,7 +181,7 @@ clk_fixed_init_fixed(struct clk_fixed_softc *sc, phandle_t node,
 	int rv;
 
 	def->clkdef.id = 1;
-	rv = OF_getencprop(node, "clock-frequency", &freq,  sizeof(freq));
+	rv = OF_getencprop(node, "clock-frequency", &freq, sizeof(freq));
 	if (rv <= 0)
 		return (ENXIO);
 	def->freq = freq;
@@ -192,13 +193,13 @@ clk_fixed_init_fixed_factor(struct clk_fixed_softc *sc, phandle_t node,
     struct clk_fixed_def *def)
 {
 	int rv;
-	clk_t  parent;
+	clk_t parent;
 
 	def->clkdef.id = 1;
-	rv = OF_getencprop(node, "clock-mult", &def->mult,  sizeof(def->mult));
+	rv = OF_getencprop(node, "clock-mult", &def->mult, sizeof(def->mult));
 	if (rv <= 0)
 		return (ENXIO);
-	rv = OF_getencprop(node, "clock-div", &def->div,  sizeof(def->div));
+	rv = OF_getencprop(node, "clock-div", &def->div, sizeof(def->div));
 	if (rv <= 0)
 		return (ENXIO);
 	/* Get name of parent clock */
@@ -207,7 +208,7 @@ clk_fixed_init_fixed_factor(struct clk_fixed_softc *sc, phandle_t node,
 		return (ENXIO);
 	def->clkdef.parent_names = malloc(sizeof(char *), M_OFWPROP, M_WAITOK);
 	def->clkdef.parent_names[0] = clk_get_name(parent);
-	def->clkdef.parent_cnt  = 1;
+	def->clkdef.parent_cnt = 1;
 	clk_release(parent);
 	return (0);
 }
@@ -223,7 +224,7 @@ clk_fixed_attach(device_t dev)
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
-	node  = ofw_bus_get_node(dev);
+	node = ofw_bus_get_node(dev);
 	clk_type = ofw_bus_search_compatible(dev, compat_data)->ocd_data;
 
 	bzero(&def, sizeof(def));
@@ -273,8 +274,8 @@ fail:
 
 static device_method_t clk_fixed_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		clk_fixed_probe),
-	DEVMETHOD(device_attach,	clk_fixed_attach),
+	DEVMETHOD(device_probe, clk_fixed_probe),
+	DEVMETHOD(device_attach, clk_fixed_attach),
 
 	DEVMETHOD_END
 };

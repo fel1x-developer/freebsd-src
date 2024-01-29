@@ -27,6 +27,7 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -54,11 +55,13 @@ setup(int nb)
 		size = in / op->incarnations;
 
 		if (size > 1000)
-			size = 1000;	/* arbitrary limit number of files pr. dir */
+			size =
+			    1000; /* arbitrary limit number of files pr. dir */
 
 		/* Resource requirements: */
 		while (size > 0) {
-			reserve_in =  2 * size * op->incarnations + 2 * op->incarnations;
+			reserve_in = 2 * size * op->incarnations +
+			    2 * op->incarnations;
 			reserve_bl = 30 * size * op->incarnations;
 			if (reserve_bl <= bl && reserve_in <= in)
 				break;
@@ -68,8 +71,10 @@ setup(int nb)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("rename(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-				size, op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "rename(size=%lu, incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    size, op->incarnations, bl / 1024, in,
+			    reserve_bl / 1024, reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(size);
 	} else {
@@ -97,39 +102,39 @@ test_rename(void)
 
 	pid = getpid();
 	for (i = 0; i < (int)size; i++) {
-		sprintf(file1,"p%05d.%05d", pid, i);
+		sprintf(file1, "p%05d.%05d", pid, i);
 		if (mkdir(file1, 0660) == -1) {
 			j = i;
 			errnotmp = errno;
 			while (j > 0) {
 				j--;
-				sprintf(file1,"p%05d.%05d", pid, j);
+				sprintf(file1, "p%05d.%05d", pid, j);
 				rmdir(file1);
 			}
 			errno = errnotmp;
-			sprintf(file1,"p%05d.%05d", pid, i);
+			sprintf(file1, "p%05d.%05d", pid, i);
 			err(1, "mkdir(%s), %s:%d", file1, __FILE__, __LINE__);
 		}
 	}
 	for (j = 0; j < 100 && done_testing == 0; j++) {
 		for (i = 0; i < (int)size; i++) {
-			sprintf(file1,"p%05d.%05d", pid, i);
-			sprintf(file2,"p%05d.%05d.togo", pid, i);
+			sprintf(file1, "p%05d.%05d", pid, i);
+			sprintf(file2, "p%05d.%05d.togo", pid, i);
 			if (rename(file1, file2) == -1)
 				err(1, "rename(%s, %s). %s:%d", file1, file2,
-						__FILE__, __LINE__);
+				    __FILE__, __LINE__);
 		}
 		for (i = 0; i < (int)size; i++) {
-			sprintf(file1,"p%05d.%05d", pid, i);
-			sprintf(file2,"p%05d.%05d.togo", pid, i);
+			sprintf(file1, "p%05d.%05d", pid, i);
+			sprintf(file2, "p%05d.%05d.togo", pid, i);
 			if (rename(file2, file1) == -1)
 				err(1, "rename(%s, %s). %s:%d", file2, file1,
-						__FILE__, __LINE__);
+				    __FILE__, __LINE__);
 		}
 	}
 
 	for (i = 0; i < (int)size; i++) {
-		sprintf(file1,"p%05d.%05d", pid, i);
+		sprintf(file1, "p%05d.%05d", pid, i);
 		if (rmdir(file1) == -1)
 			err(1, "unlink(%s), %s:%d", file1, __FILE__, __LINE__);
 	}

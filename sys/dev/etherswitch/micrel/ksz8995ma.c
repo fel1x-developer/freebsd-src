@@ -31,11 +31,12 @@
  * This is Micrel KSZ8995MA driver code. KSZ8995MA use SPI bus on control.
  * This code development on @SRCHACK's ksz8995ma board and FON2100 with
  * gpiospi.
- * etherswitchcfg command port option support addtag, ingress, striptag, 
+ * etherswitchcfg command port option support addtag, ingress, striptag,
  * dropuntagged.
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -46,127 +47,121 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
 
 #include <dev/etherswitch/etherswitch.h>
-
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 #include <dev/spibus/spi.h>
 
-#include "spibus_if.h"
-#include "miibus_if.h"
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+
 #include "etherswitch_if.h"
+#include "miibus_if.h"
+#include "spibus_if.h"
 
-#define	KSZ8995MA_SPI_READ		0x03
-#define	KSZ8995MA_SPI_WRITE		0x02
+#define KSZ8995MA_SPI_READ 0x03
+#define KSZ8995MA_SPI_WRITE 0x02
 
-#define	KSZ8995MA_CID0			0x00
-#define	KSZ8995MA_CID1			0x01
+#define KSZ8995MA_CID0 0x00
+#define KSZ8995MA_CID1 0x01
 
-#define	KSZ8995MA_GC0			0x02
-#define	KSZ8995MA_GC1			0x03
-#define	KSZ8995MA_GC2			0x04
-#define	KSZ8995MA_GC3			0x05
+#define KSZ8995MA_GC0 0x02
+#define KSZ8995MA_GC1 0x03
+#define KSZ8995MA_GC2 0x04
+#define KSZ8995MA_GC3 0x05
 
-#define	KSZ8995MA_PORT_SIZE		0x10
+#define KSZ8995MA_PORT_SIZE 0x10
 
-#define	KSZ8995MA_PC0_BASE		0x10
-#define	KSZ8995MA_PC1_BASE		0x11
-#define	KSZ8995MA_PC2_BASE		0x12
-#define	KSZ8995MA_PC3_BASE		0x13
-#define	KSZ8995MA_PC4_BASE		0x14
-#define	KSZ8995MA_PC5_BASE		0x15
-#define	KSZ8995MA_PC6_BASE		0x16
-#define	KSZ8995MA_PC7_BASE		0x17
-#define	KSZ8995MA_PC8_BASE		0x18
-#define	KSZ8995MA_PC9_BASE		0x19
-#define	KSZ8995MA_PC10_BASE		0x1a
-#define	KSZ8995MA_PC11_BASE		0x1b
-#define	KSZ8995MA_PC12_BASE		0x1c
-#define	KSZ8995MA_PC13_BASE		0x1d
+#define KSZ8995MA_PC0_BASE 0x10
+#define KSZ8995MA_PC1_BASE 0x11
+#define KSZ8995MA_PC2_BASE 0x12
+#define KSZ8995MA_PC3_BASE 0x13
+#define KSZ8995MA_PC4_BASE 0x14
+#define KSZ8995MA_PC5_BASE 0x15
+#define KSZ8995MA_PC6_BASE 0x16
+#define KSZ8995MA_PC7_BASE 0x17
+#define KSZ8995MA_PC8_BASE 0x18
+#define KSZ8995MA_PC9_BASE 0x19
+#define KSZ8995MA_PC10_BASE 0x1a
+#define KSZ8995MA_PC11_BASE 0x1b
+#define KSZ8995MA_PC12_BASE 0x1c
+#define KSZ8995MA_PC13_BASE 0x1d
 
-#define	KSZ8995MA_PS0_BASE		0x1e
+#define KSZ8995MA_PS0_BASE 0x1e
 
-#define	KSZ8995MA_PC14_BASE		0x1f
+#define KSZ8995MA_PC14_BASE 0x1f
 
-#define	KSZ8995MA_IAC0			0x6e
-#define	KSZ8995MA_IAC1			0x6f
-#define	KSZ8995MA_IDR8			0x70
-#define	KSZ8995MA_IDR7			0x71
-#define	KSZ8995MA_IDR6			0x72
-#define	KSZ8995MA_IDR5			0x73
-#define	KSZ8995MA_IDR4			0x74
-#define	KSZ8995MA_IDR3			0x75
-#define	KSZ8995MA_IDR2			0x76
-#define	KSZ8995MA_IDR1			0x77
-#define	KSZ8995MA_IDR0			0x78
+#define KSZ8995MA_IAC0 0x6e
+#define KSZ8995MA_IAC1 0x6f
+#define KSZ8995MA_IDR8 0x70
+#define KSZ8995MA_IDR7 0x71
+#define KSZ8995MA_IDR6 0x72
+#define KSZ8995MA_IDR5 0x73
+#define KSZ8995MA_IDR4 0x74
+#define KSZ8995MA_IDR3 0x75
+#define KSZ8995MA_IDR2 0x76
+#define KSZ8995MA_IDR1 0x77
+#define KSZ8995MA_IDR0 0x78
 
-#define	KSZ8995MA_FAMILI_ID		0x95
-#define	KSZ8995MA_CHIP_ID		0x00
-#define	KSZ8995MA_CHIP_ID_MASK		0xf0
-#define	KSZ8995MA_START			0x01
-#define	KSZ8995MA_VLAN_ENABLE		0x80
-#define	KSZ8995MA_TAG_INS		0x04
-#define	KSZ8995MA_TAG_RM		0x02
-#define	KSZ8995MA_INGR_FILT		0x40
-#define	KSZ8995MA_DROP_NONPVID		0x20
+#define KSZ8995MA_FAMILI_ID 0x95
+#define KSZ8995MA_CHIP_ID 0x00
+#define KSZ8995MA_CHIP_ID_MASK 0xf0
+#define KSZ8995MA_START 0x01
+#define KSZ8995MA_VLAN_ENABLE 0x80
+#define KSZ8995MA_TAG_INS 0x04
+#define KSZ8995MA_TAG_RM 0x02
+#define KSZ8995MA_INGR_FILT 0x40
+#define KSZ8995MA_DROP_NONPVID 0x20
 
-#define	KSZ8995MA_PDOWN			0x08
-#define	KSZ8995MA_STARTNEG		0x20
+#define KSZ8995MA_PDOWN 0x08
+#define KSZ8995MA_STARTNEG 0x20
 
-#define	KSZ8995MA_MII_STAT		0x7808
-#define	KSZ8995MA_MII_PHYID_H		0x0022
-#define	KSZ8995MA_MII_PHYID_L		0x1450
-#define	KSZ8995MA_MII_AA		0x0401
+#define KSZ8995MA_MII_STAT 0x7808
+#define KSZ8995MA_MII_PHYID_H 0x0022
+#define KSZ8995MA_MII_PHYID_L 0x1450
+#define KSZ8995MA_MII_AA 0x0401
 
-#define	KSZ8995MA_VLAN_TABLE_VALID	0x20
-#define	KSZ8995MA_VLAN_TABLE_READ	0x14
-#define	KSZ8995MA_VLAN_TABLE_WRITE	0x04
+#define KSZ8995MA_VLAN_TABLE_VALID 0x20
+#define KSZ8995MA_VLAN_TABLE_READ 0x14
+#define KSZ8995MA_VLAN_TABLE_WRITE 0x04
 
-#define	KSZ8995MA_MAX_PORT		5
+#define KSZ8995MA_MAX_PORT 5
 
 MALLOC_DECLARE(M_KSZ8995MA);
 MALLOC_DEFINE(M_KSZ8995MA, "ksz8995ma", "ksz8995ma data structures");
 
 struct ksz8995ma_softc {
-	struct mtx	sc_mtx;		/* serialize access to softc */
-	device_t	sc_dev;
-	int		vlan_mode;
-	int		media;		/* cpu port media */
-	int		cpuport;	/* which PHY is connected to the CPU */
-	int		phymask;	/* PHYs we manage */
-	int		numports;	/* number of ports */
-	int		ifpport[KSZ8995MA_MAX_PORT];
-	int		*portphy;
-	char		**ifname;
-	device_t	**miibus;
+	struct mtx sc_mtx; /* serialize access to softc */
+	device_t sc_dev;
+	int vlan_mode;
+	int media;    /* cpu port media */
+	int cpuport;  /* which PHY is connected to the CPU */
+	int phymask;  /* PHYs we manage */
+	int numports; /* number of ports */
+	int ifpport[KSZ8995MA_MAX_PORT];
+	int *portphy;
+	char **ifname;
+	device_t **miibus;
 	if_t *ifp;
-	struct callout	callout_tick;
-	etherswitch_info_t	info;
+	struct callout callout_tick;
+	etherswitch_info_t info;
 };
 
-#define	KSZ8995MA_LOCK(_sc)			\
-	    mtx_lock(&(_sc)->sc_mtx)
-#define	KSZ8995MA_UNLOCK(_sc)			\
-	    mtx_unlock(&(_sc)->sc_mtx)
-#define	KSZ8995MA_LOCK_ASSERT(_sc, _what)	\
-	    mtx_assert(&(_sc)->sc_mtx, (_what))
-#define	KSZ8995MA_TRYLOCK(_sc)			\
-	    mtx_trylock(&(_sc)->sc_mtx)
+#define KSZ8995MA_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define KSZ8995MA_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define KSZ8995MA_LOCK_ASSERT(_sc, _what) mtx_assert(&(_sc)->sc_mtx, (_what))
+#define KSZ8995MA_TRYLOCK(_sc) mtx_trylock(&(_sc)->sc_mtx)
 
 #if defined(DEBUG)
-#define	DPRINTF(dev, args...) device_printf(dev, args)
+#define DPRINTF(dev, args...) device_printf(dev, args)
 #else
-#define	DPRINTF(dev, args...)
+#define DPRINTF(dev, args...)
 #endif
 
 static inline int ksz8995ma_portforphy(struct ksz8995ma_softc *, int);
@@ -189,11 +184,12 @@ ksz8995ma_probe(device_t dev)
 	id0 = ksz8995ma_readreg(dev, KSZ8995MA_CID0);
 	id1 = ksz8995ma_readreg(dev, KSZ8995MA_CID1);
 	if (bootverbose)
-		device_printf(dev,"Chip Identifier Register %x %x\n", id0, id1);
+		device_printf(dev, "Chip Identifier Register %x %x\n", id0,
+		    id1);
 
 	/* check Product Code */
-	if (id0 != KSZ8995MA_FAMILI_ID || (id1 & KSZ8995MA_CHIP_ID_MASK) !=
-	    KSZ8995MA_CHIP_ID) {
+	if (id0 != KSZ8995MA_FAMILI_ID ||
+	    (id1 & KSZ8995MA_CHIP_ID_MASK) != KSZ8995MA_CHIP_ID) {
 		return (ENXIO);
 	}
 
@@ -220,7 +216,8 @@ ksz8995ma_attach_phys(struct ksz8995ma_softc *sc)
 		sc->portphy[port] = phy;
 		sc->ifp[port] = if_alloc(IFT_ETHER);
 		if (sc->ifp[port] == NULL) {
-			device_printf(sc->sc_dev, "couldn't allocate ifnet structure\n");
+			device_printf(sc->sc_dev,
+			    "couldn't allocate ifnet structure\n");
 			err = ENOMEM;
 			break;
 		}
@@ -236,14 +233,13 @@ ksz8995ma_attach_phys(struct ksz8995ma_softc *sc)
 			goto failed;
 		}
 		err = mii_attach(sc->sc_dev, sc->miibus[port], sc->ifp[port],
-		    ksz8995ma_ifmedia_upd, ksz8995ma_ifmedia_sts, \
+		    ksz8995ma_ifmedia_upd, ksz8995ma_ifmedia_sts,
 		    BMSR_DEFCAPMASK, phy, MII_OFFSET_ANY, 0);
 		DPRINTF(sc->sc_dev, "%s attached to pseudo interface %s\n",
 		    device_get_nameunit(*sc->miibus[port]),
 		    sc->ifp[port]->if_xname);
 		if (err != 0) {
-			device_printf(sc->sc_dev,
-			    "attaching PHY %d failed\n",
+			device_printf(sc->sc_dev, "attaching PHY %d failed\n",
 			    phy);
 			goto failed;
 		}
@@ -251,7 +247,7 @@ ksz8995ma_attach_phys(struct ksz8995ma_softc *sc)
 	}
 	sc->info.es_nports = port;
 	if (sc->cpuport != -1) {
-		/* cpu port is MAC5 on ksz8995ma */ 
+		/* cpu port is MAC5 on ksz8995ma */
 		sc->ifpport[sc->cpuport] = port;
 		sc->portphy[port] = sc->cpuport;
 		++sc->info.es_nports;
@@ -279,8 +275,8 @@ failed:
 static int
 ksz8995ma_attach(device_t dev)
 {
-	struct ksz8995ma_softc	*sc;
-	int			 err, reg;
+	struct ksz8995ma_softc *sc;
+	int err, reg;
 
 	err = 0;
 	sc = device_get_softc(dev);
@@ -296,7 +292,7 @@ ksz8995ma_attach(device_t dev)
 	sc->cpuport = -1;
 	sc->media = 100;
 
-	(void) resource_int_value(device_get_name(dev), device_get_unit(dev),
+	(void)resource_int_value(device_get_name(dev), device_get_unit(dev),
 	    "cpuport", &sc->cpuport);
 
 	sc->info.es_nvlangroups = 16;
@@ -329,16 +325,15 @@ ksz8995ma_attach(device_t dev)
 	err = bus_generic_attach(dev);
 	if (err != 0)
 		goto failed;
-	
+
 	callout_init(&sc->callout_tick, 0);
 
 	ksz8995ma_tick(sc);
-	
+
 	/* start switch */
 	sc->vlan_mode = 0;
 	reg = ksz8995ma_readreg(dev, KSZ8995MA_GC3);
-	ksz8995ma_writereg(dev, KSZ8995MA_GC3, 
-	    reg & ~KSZ8995MA_VLAN_ENABLE);
+	ksz8995ma_writereg(dev, KSZ8995MA_GC3, reg & ~KSZ8995MA_VLAN_ENABLE);
 	ksz8995ma_portvlanreset(dev);
 	ksz8995ma_writereg(dev, KSZ8995MA_CID1, KSZ8995MA_START);
 
@@ -360,8 +355,8 @@ failed:
 static int
 ksz8995ma_detach(device_t dev)
 {
-	struct ksz8995ma_softc	*sc;
-	int			 i, port;
+	struct ksz8995ma_softc *sc;
+	int i, port;
 
 	sc = device_get_softc(dev);
 
@@ -411,7 +406,7 @@ ksz8995ma_miiforport(struct ksz8995ma_softc *sc, int port)
 	return (device_get_softc(*sc->miibus[port]));
 }
 
-static inline if_t 
+static inline if_t
 ksz8995ma_ifpforport(struct ksz8995ma_softc *sc, int port)
 {
 
@@ -441,7 +436,7 @@ ksz8995ma_miipollstat(struct ksz8995ma_softc *sc)
 		if ((*sc->miibus[port]) == NULL)
 			continue;
 		mii = device_get_softc(*sc->miibus[port]);
-		LIST_FOREACH(miisc, &mii->mii_phys, mii_list) {
+		LIST_FOREACH (miisc, &mii->mii_phys, mii_list) {
 			if (IFM_INST(mii->mii_media.ifm_cur->ifm_media) !=
 			    miisc->mii_inst)
 				continue;
@@ -490,7 +485,7 @@ ksz8995ma_getinfo(device_t dev)
 	struct ksz8995ma_softc *sc;
 
 	sc = device_get_softc(dev);
-	
+
 	return (&sc->info);
 }
 
@@ -510,21 +505,21 @@ ksz8995ma_getport(device_t dev, etherswitch_port_t *p)
 		return (ENXIO);
 
 	if (sc->vlan_mode == ETHERSWITCH_VLAN_DOT1Q) {
-		tag1 = ksz8995ma_readreg(dev, KSZ8995MA_PC3_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
-		tag2 = ksz8995ma_readreg(dev, KSZ8995MA_PC4_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
+		tag1 = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC3_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
+		tag2 = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC4_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
 		p->es_pvid = (tag1 & 0x0f) << 8 | tag2;
 
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC0_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC0_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
 		if (portreg & KSZ8995MA_TAG_INS)
 			p->es_flags |= ETHERSWITCH_PORT_ADDTAG;
 		if (portreg & KSZ8995MA_TAG_RM)
 			p->es_flags |= ETHERSWITCH_PORT_STRIPTAG;
 
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC2_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC2_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
 		if (portreg & KSZ8995MA_DROP_NONPVID)
 			p->es_flags |= ETHERSWITCH_PORT_DROPUNTAGGED;
 		if (portreg & KSZ8995MA_INGR_FILT)
@@ -538,16 +533,16 @@ ksz8995ma_getport(device_t dev, etherswitch_port_t *p)
 		p->es_flags |= ETHERSWITCH_PORT_CPU;
 		ifmr->ifm_count = 0;
 		if (sc->media == 100)
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_100_TX | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_100_TX | IFM_FDX;
 		else
-			ifmr->ifm_current = ifmr->ifm_active =
-			    IFM_ETHER | IFM_1000_T | IFM_FDX;
+			ifmr->ifm_current = ifmr->ifm_active = IFM_ETHER |
+			    IFM_1000_T | IFM_FDX;
 		ifmr->ifm_mask = 0;
 		ifmr->ifm_status = IFM_ACTIVE | IFM_AVALID;
 	} else if (mii != NULL) {
-		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr,
-		    &mii->mii_media, SIOCGIFMEDIA);
+		err = ifmedia_ioctl(mii->mii_ifp, &p->es_ifr, &mii->mii_media,
+		    SIOCGIFMEDIA);
 		if (err)
 			return (err);
 	} else {
@@ -562,8 +557,8 @@ ksz8995ma_setport(device_t dev, etherswitch_port_t *p)
 {
 	struct ksz8995ma_softc *sc;
 	struct mii_data *mii;
-        struct ifmedia *ifm;
-        if_t ifp;
+	struct ifmedia *ifm;
+	if_t ifp;
 	int phy, err;
 	int portreg;
 
@@ -573,29 +568,31 @@ ksz8995ma_setport(device_t dev, etherswitch_port_t *p)
 		return (ENXIO);
 
 	if (sc->vlan_mode == ETHERSWITCH_VLAN_DOT1Q) {
-		ksz8995ma_writereg(dev, KSZ8995MA_PC4_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port, p->es_pvid & 0xff);
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC3_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
-		ksz8995ma_writereg(dev, KSZ8995MA_PC3_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port,
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC4_BASE + KSZ8995MA_PORT_SIZE * p->es_port,
+		    p->es_pvid & 0xff);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC3_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC3_BASE + KSZ8995MA_PORT_SIZE * p->es_port,
 		    (portreg & 0xf0) | ((p->es_pvid >> 8) & 0x0f));
 
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC0_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC0_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
 		if (p->es_flags & ETHERSWITCH_PORT_ADDTAG)
 			portreg |= KSZ8995MA_TAG_INS;
 		else
 			portreg &= ~KSZ8995MA_TAG_INS;
-		if (p->es_flags & ETHERSWITCH_PORT_STRIPTAG) 
+		if (p->es_flags & ETHERSWITCH_PORT_STRIPTAG)
 			portreg |= KSZ8995MA_TAG_RM;
 		else
 			portreg &= ~KSZ8995MA_TAG_RM;
-		ksz8995ma_writereg(dev, KSZ8995MA_PC0_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port, portreg);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC0_BASE + KSZ8995MA_PORT_SIZE * p->es_port,
+		    portreg);
 
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC2_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC2_BASE + KSZ8995MA_PORT_SIZE * p->es_port);
 		if (p->es_flags & ETHERSWITCH_PORT_DROPUNTAGGED)
 			portreg |= KSZ8995MA_DROP_NONPVID;
 		else
@@ -604,8 +601,9 @@ ksz8995ma_setport(device_t dev, etherswitch_port_t *p)
 			portreg |= KSZ8995MA_INGR_FILT;
 		else
 			portreg &= ~KSZ8995MA_INGR_FILT;
-		ksz8995ma_writereg(dev, KSZ8995MA_PC2_BASE + 
-		    KSZ8995MA_PORT_SIZE * p->es_port, portreg);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC2_BASE + KSZ8995MA_PORT_SIZE * p->es_port,
+		    portreg);
 	}
 
 	phy = sc->portphy[p->es_port];
@@ -633,8 +631,9 @@ ksz8995ma_getvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 		if (vg->es_vlangroup < sc->numports) {
 			vg->es_vid = ETHERSWITCH_VID_VALID;
 			vg->es_vid |= vg->es_vlangroup;
-			data0 = ksz8995ma_readreg(dev, KSZ8995MA_PC1_BASE +
-			    KSZ8995MA_PORT_SIZE * vg->es_vlangroup);
+			data0 = ksz8995ma_readreg(dev,
+			    KSZ8995MA_PC1_BASE +
+				KSZ8995MA_PORT_SIZE * vg->es_vlangroup);
 			vg->es_member_ports = data0 & 0x1f;
 			vg->es_untagged_ports = vg->es_member_ports;
 			vg->es_fid = 0;
@@ -659,7 +658,7 @@ ksz8995ma_getvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 			vg->es_fid = 0;
 		}
 	}
-	
+
 	return (0);
 }
 
@@ -672,16 +671,17 @@ ksz8995ma_setvgroup(device_t dev, etherswitch_vlangroup_t *vg)
 	sc = device_get_softc(dev);
 
 	if (sc->vlan_mode == ETHERSWITCH_VLAN_PORT) {
-		data0 = ksz8995ma_readreg(dev, KSZ8995MA_PC1_BASE +
-		    KSZ8995MA_PORT_SIZE * vg->es_vlangroup);
-		ksz8995ma_writereg(dev, KSZ8995MA_PC1_BASE +
-		    KSZ8995MA_PORT_SIZE * vg->es_vlangroup,
+		data0 = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC1_BASE +
+			KSZ8995MA_PORT_SIZE * vg->es_vlangroup);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC1_BASE + KSZ8995MA_PORT_SIZE * vg->es_vlangroup,
 		    (data0 & 0xe0) | (vg->es_member_ports & 0x1f));
 	} else if (sc->vlan_mode == ETHERSWITCH_VLAN_DOT1Q) {
 		if (vg->es_member_ports != 0) {
 			ksz8995ma_writereg(dev, KSZ8995MA_IDR2,
 			    KSZ8995MA_VLAN_TABLE_VALID |
-			    (vg->es_member_ports & 0x1f));
+				(vg->es_member_ports & 0x1f));
 			ksz8995ma_writereg(dev, KSZ8995MA_IDR1,
 			    vg->es_fid << 4 | vg->es_vid >> 8);
 			ksz8995ma_writereg(dev, KSZ8995MA_IDR0,
@@ -713,7 +713,7 @@ ksz8995ma_getconf(device_t dev, etherswitch_conf_t *conf)
 	return (0);
 }
 
-static void 
+static void
 ksz8995ma_portvlanreset(device_t dev)
 {
 	int i, data;
@@ -722,10 +722,11 @@ ksz8995ma_portvlanreset(device_t dev)
 	sc = device_get_softc(dev);
 
 	for (i = 0; i < sc->numports; ++i) {
-		data = ksz8995ma_readreg(dev, KSZ8995MA_PC1_BASE +
-		    KSZ8995MA_PORT_SIZE * i);
-		ksz8995ma_writereg(dev, KSZ8995MA_PC1_BASE +
-		    KSZ8995MA_PORT_SIZE * i, (data & 0xe0) | 0x1f);
+		data = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC1_BASE + KSZ8995MA_PORT_SIZE * i);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC1_BASE + KSZ8995MA_PORT_SIZE * i,
+		    (data & 0xe0) | 0x1f);
 	}
 }
 
@@ -743,18 +744,18 @@ ksz8995ma_setconf(device_t dev, etherswitch_conf_t *conf)
 	if (conf->vlan_mode == ETHERSWITCH_VLAN_PORT) {
 		sc->vlan_mode = ETHERSWITCH_VLAN_PORT;
 		reg = ksz8995ma_readreg(dev, KSZ8995MA_GC3);
-		ksz8995ma_writereg(dev, KSZ8995MA_GC3, 
+		ksz8995ma_writereg(dev, KSZ8995MA_GC3,
 		    reg & ~KSZ8995MA_VLAN_ENABLE);
 		ksz8995ma_portvlanreset(dev);
 	} else if (conf->vlan_mode == ETHERSWITCH_VLAN_DOT1Q) {
 		sc->vlan_mode = ETHERSWITCH_VLAN_DOT1Q;
 		reg = ksz8995ma_readreg(dev, KSZ8995MA_GC3);
-		ksz8995ma_writereg(dev, KSZ8995MA_GC3, 
+		ksz8995ma_writereg(dev, KSZ8995MA_GC3,
 		    reg | KSZ8995MA_VLAN_ENABLE);
 	} else {
 		sc->vlan_mode = 0;
 		reg = ksz8995ma_readreg(dev, KSZ8995MA_GC3);
-		ksz8995ma_writereg(dev, KSZ8995MA_GC3, 
+		ksz8995ma_writereg(dev, KSZ8995MA_GC3,
 		    reg & ~KSZ8995MA_VLAN_ENABLE);
 		ksz8995ma_portvlanreset(dev);
 	}
@@ -805,16 +806,16 @@ ksz8995ma_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 ksz8995ma_readphy(device_t dev, int phy, int reg)
 {
-int portreg;
+	int portreg;
 
-	/* 
+	/*
 	 * This is no mdio/mdc connection code.
-         * simulate MIIM Registers via the SPI interface
+	 * simulate MIIM Registers via the SPI interface
 	 */
 	if (reg == MII_BMSR) {
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PS0_BASE + 
-			KSZ8995MA_PORT_SIZE * phy);
-		return (KSZ8995MA_MII_STAT | 
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PS0_BASE + KSZ8995MA_PORT_SIZE * phy);
+		return (KSZ8995MA_MII_STAT |
 		    (portreg & 0x20 ? BMSR_LINK : 0x00) |
 		    (portreg & 0x40 ? BMSR_ACOMP : 0x00));
 	} else if (reg == MII_PHYIDR1) {
@@ -822,12 +823,12 @@ int portreg;
 	} else if (reg == MII_PHYIDR2) {
 		return (KSZ8995MA_MII_PHYID_L);
 	} else if (reg == MII_ANAR) {
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC12_BASE + 
-			KSZ8995MA_PORT_SIZE * phy);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC12_BASE + KSZ8995MA_PORT_SIZE * phy);
 		return (KSZ8995MA_MII_AA | (portreg & 0x0f) << 5);
 	} else if (reg == MII_ANLPAR) {
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PS0_BASE + 
-			KSZ8995MA_PORT_SIZE * phy);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PS0_BASE + KSZ8995MA_PORT_SIZE * phy);
 		return (((portreg & 0x0f) << 5) | 0x01);
 	}
 
@@ -837,15 +838,15 @@ int portreg;
 static int
 ksz8995ma_writephy(device_t dev, int phy, int reg, int data)
 {
-int portreg;
+	int portreg;
 
-	/* 
+	/*
 	 * This is no mdio/mdc connection code.
-         * simulate MIIM Registers via the SPI interface
+	 * simulate MIIM Registers via the SPI interface
 	 */
 	if (reg == MII_BMCR) {
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC13_BASE + 
-			KSZ8995MA_PORT_SIZE * phy);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC13_BASE + KSZ8995MA_PORT_SIZE * phy);
 		if (data & BMCR_PDOWN)
 			portreg |= KSZ8995MA_PDOWN;
 		else
@@ -854,15 +855,15 @@ int portreg;
 			portreg |= KSZ8995MA_STARTNEG;
 		else
 			portreg &= ~KSZ8995MA_STARTNEG;
-		ksz8995ma_writereg(dev, KSZ8995MA_PC13_BASE + 
-			KSZ8995MA_PORT_SIZE * phy, portreg);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC13_BASE + KSZ8995MA_PORT_SIZE * phy, portreg);
 	} else if (reg == MII_ANAR) {
-		portreg = ksz8995ma_readreg(dev, KSZ8995MA_PC12_BASE + 
-			KSZ8995MA_PORT_SIZE * phy);
+		portreg = ksz8995ma_readreg(dev,
+		    KSZ8995MA_PC12_BASE + KSZ8995MA_PORT_SIZE * phy);
 		portreg &= 0xf;
 		portreg |= ((data >> 5) & 0x0f);
-		ksz8995ma_writereg(dev, KSZ8995MA_PC12_BASE + 
-			KSZ8995MA_PORT_SIZE * phy, portreg);
+		ksz8995ma_writereg(dev,
+		    KSZ8995MA_PC12_BASE + KSZ8995MA_PORT_SIZE * phy, portreg);
 	}
 	return (0);
 }
@@ -885,9 +886,9 @@ ksz8995ma_readreg(device_t dev, int addr)
 	cmd.rx_cmd = &rxBuf;
 	cmd.tx_cmd_sz = 3;
 	cmd.rx_cmd_sz = 3;
-        err = SPIBUS_TRANSFER(device_get_parent(dev), dev, &cmd);
+	err = SPIBUS_TRANSFER(device_get_parent(dev), dev, &cmd);
 	if (err)
-		return(0);
+		return (0);
 
 	return (rxBuf[2]);
 }
@@ -911,41 +912,41 @@ ksz8995ma_writereg(device_t dev, int addr, int value)
 	cmd.rx_cmd = &rxBuf;
 	cmd.tx_cmd_sz = 3;
 	cmd.rx_cmd_sz = 3;
-        err = SPIBUS_TRANSFER(device_get_parent(dev), dev, &cmd);
+	err = SPIBUS_TRANSFER(device_get_parent(dev), dev, &cmd);
 	if (err)
-		return(0);
+		return (0);
 
 	return (0);
 }
 
 static device_method_t ksz8995ma_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			ksz8995ma_probe),
-	DEVMETHOD(device_attach,		ksz8995ma_attach),
-	DEVMETHOD(device_detach,		ksz8995ma_detach),
-	
+	DEVMETHOD(device_probe, ksz8995ma_probe),
+	DEVMETHOD(device_attach, ksz8995ma_attach),
+	DEVMETHOD(device_detach, ksz8995ma_detach),
+
 	/* bus interface */
-	DEVMETHOD(bus_add_child,		device_add_child_ordered),
-	
+	DEVMETHOD(bus_add_child, device_add_child_ordered),
+
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,		ksz8995ma_readphy),
-	DEVMETHOD(miibus_writereg,		ksz8995ma_writephy),
-	DEVMETHOD(miibus_statchg,		ksz8995ma_statchg),
+	DEVMETHOD(miibus_readreg, ksz8995ma_readphy),
+	DEVMETHOD(miibus_writereg, ksz8995ma_writephy),
+	DEVMETHOD(miibus_statchg, ksz8995ma_statchg),
 
 	/* etherswitch interface */
-	DEVMETHOD(etherswitch_lock,		ksz8995ma_lock),
-	DEVMETHOD(etherswitch_unlock,		ksz8995ma_unlock),
-	DEVMETHOD(etherswitch_getinfo,		ksz8995ma_getinfo),
-	DEVMETHOD(etherswitch_readreg,		ksz8995ma_readreg),
-	DEVMETHOD(etherswitch_writereg,		ksz8995ma_writereg),
-	DEVMETHOD(etherswitch_readphyreg,	ksz8995ma_readphy),
-	DEVMETHOD(etherswitch_writephyreg,	ksz8995ma_writephy),
-	DEVMETHOD(etherswitch_getport,		ksz8995ma_getport),
-	DEVMETHOD(etherswitch_setport,		ksz8995ma_setport),
-	DEVMETHOD(etherswitch_getvgroup,	ksz8995ma_getvgroup),
-	DEVMETHOD(etherswitch_setvgroup,	ksz8995ma_setvgroup),
-	DEVMETHOD(etherswitch_setconf,		ksz8995ma_setconf),
-	DEVMETHOD(etherswitch_getconf,		ksz8995ma_getconf),
+	DEVMETHOD(etherswitch_lock, ksz8995ma_lock),
+	DEVMETHOD(etherswitch_unlock, ksz8995ma_unlock),
+	DEVMETHOD(etherswitch_getinfo, ksz8995ma_getinfo),
+	DEVMETHOD(etherswitch_readreg, ksz8995ma_readreg),
+	DEVMETHOD(etherswitch_writereg, ksz8995ma_writereg),
+	DEVMETHOD(etherswitch_readphyreg, ksz8995ma_readphy),
+	DEVMETHOD(etherswitch_writephyreg, ksz8995ma_writephy),
+	DEVMETHOD(etherswitch_getport, ksz8995ma_getport),
+	DEVMETHOD(etherswitch_setport, ksz8995ma_setport),
+	DEVMETHOD(etherswitch_getvgroup, ksz8995ma_getvgroup),
+	DEVMETHOD(etherswitch_setvgroup, ksz8995ma_setvgroup),
+	DEVMETHOD(etherswitch_setconf, ksz8995ma_setconf),
+	DEVMETHOD(etherswitch_getconf, ksz8995ma_getconf),
 
 	DEVMETHOD_END
 };
@@ -957,6 +958,6 @@ DRIVER_MODULE(ksz8995ma, spibus, ksz8995ma_driver, 0, 0);
 DRIVER_MODULE(miibus, ksz8995ma, miibus_driver, 0, 0);
 DRIVER_MODULE(etherswitch, ksz8995ma, etherswitch_driver, 0, 0);
 MODULE_VERSION(ksz8995ma, 1);
-MODULE_DEPEND(ksz8995ma, spibus, 1, 1, 1); /* XXX which versions? */
-MODULE_DEPEND(ksz8995ma, miibus, 1, 1, 1); /* XXX which versions? */
+MODULE_DEPEND(ksz8995ma, spibus, 1, 1, 1);	/* XXX which versions? */
+MODULE_DEPEND(ksz8995ma, miibus, 1, 1, 1);	/* XXX which versions? */
 MODULE_DEPEND(ksz8995ma, etherswitch, 1, 1, 1); /* XXX which versions? */

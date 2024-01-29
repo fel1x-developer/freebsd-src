@@ -23,16 +23,18 @@
  * SUCH DAMAGE.
  */
 
-{# THIS IS A TEMPLATE PROCESSED BY lib/libifconfig/sfp.lua #}
+{
+#THIS IS A TEMPLATE PROCESSED BY lib / libifconfig / sfp.lua #
+}
 
 #include <libifconfig_sfp_tables.h>
 #include <libifconfig_sfp_tables_internal.h>
 
 struct sfp_enum_metadata {
-	int		value;		/* numeric discriminant value */
-	const char	*symbol;	/* symbolic name */
-	const char	*description;	/* brief description */
-	const char	*display;	/* shortened display name */
+	int value;		 /* numeric discriminant value */
+	const char *symbol;	 /* symbolic name */
+	const char *description; /* brief description */
+	const char *display;	 /* shortened display name */
 };
 
 const struct sfp_enum_metadata *
@@ -46,18 +48,18 @@ find_metadata(const struct sfp_enum_metadata *table, int value)
 {%
 for _, ent in ipairs(enums) do
     if type(ent) == "string" then
-%}
+%
+}
 /*
  * {*ent*}
  */
 
-{%
-    else
-        local enum = ent
-        local name = "sfp_"..enum.name
-        local sym, desc, disp
-%}
-static const struct sfp_enum_metadata {*name*}_table_[] = {
+{
+	% else local enum = ent local name = "sfp_"..enum.name local sym, desc,
+		     disp %
+}
+static const struct sfp_enum_metadata {
+	*name *}_table_[] = {
 {%
         for _, item in ipairs(enum.values) do
             _, sym, desc, disp = table.unpack(item)
@@ -80,43 +82,38 @@ static const struct sfp_enum_metadata {*name*}_table_[] = {
 %}
 	{0}
 };
-const struct sfp_enum_metadata *{*name*}_table = {*name*}_table_;
+const struct sfp_enum_metadata * { *name *} _table = { *name * } _table_;
 
-const char *
-ifconfig_{*name*}_symbol(enum {*name*} v)
+const char *ifconfig_ { *name * } _symbol(enum { *name * } v)
 {
 	const struct sfp_enum_metadata *metadata;
 
-	if ((metadata = find_metadata({*name*}_table, v)) == NULL)
+	if ((metadata = find_metadata({ *name * } _table, v)) == NULL)
 		return (NULL);
 	return (metadata->symbol);
 }
 
-const char *
-ifconfig_{*name*}_description(enum {*name*} v)
+const char *ifconfig_ { *name * } _description(enum { *name * } v)
 {
 	const struct sfp_enum_metadata *metadata;
 
-	if ((metadata = find_metadata({*name*}_table, v)) == NULL)
+	if ((metadata = find_metadata({ *name * } _table, v)) == NULL)
 		return (NULL);
 	return (metadata->description);
 }
 
-{%
-        if disp then
-%}
-const char *
-ifconfig_{*name*}_display(enum {*name*} v)
+{
+	% if disp then %
+}
+const char *ifconfig_ { *name * } _display(enum { *name * } v)
 {
 	const struct sfp_enum_metadata *metadata;
 
-	if ((metadata = find_metadata({*name*}_table, v)) == NULL)
+	if ((metadata = find_metadata({ *name * } _table, v)) == NULL)
 		return (NULL);
 	return (metadata->display);
 }
 
-{%
-        end
-    end
-end
-%}
+{
+	% end end end %
+}

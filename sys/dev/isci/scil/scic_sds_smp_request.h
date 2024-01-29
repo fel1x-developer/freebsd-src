@@ -62,22 +62,17 @@ extern "C" {
 #include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/scic_sds_request.h>
 
-
 U32 scic_sds_smp_request_get_object_size(void);
 
-void scu_smp_request_construct_task_context(
-   SCIC_SDS_REQUEST_T *this_request,
-   SMP_REQUEST_T      *smp_request
+void scu_smp_request_construct_task_context(SCIC_SDS_REQUEST_T *this_request,
+    SMP_REQUEST_T *smp_request
 
 );
 
-void scic_sds_smp_request_copy_response(
-   SCIC_SDS_REQUEST_T * this_request
-);
+void scic_sds_smp_request_copy_response(SCIC_SDS_REQUEST_T *this_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_SDS_SMP_REQUEST_T_
-

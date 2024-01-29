@@ -39,25 +39,26 @@ extern "C" {
 using namespace testing;
 using namespace std;
 
-class Readdir: public FuseTest {
-public:
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
-}
+class Readdir : public FuseTest {
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFDIR | 0755, 0, 1);
+	}
 };
 
-class Readdir_7_8: public Readdir {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	Readdir::SetUp();
-}
+class Readdir_7_8 : public Readdir {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		Readdir::SetUp();
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino)
-{
-	FuseTest::expect_lookup_7_8(relpath, ino, S_IFDIR | 0755, 0, 1);
-}
+	void expect_lookup(const char *relpath, uint64_t ino)
+	{
+		FuseTest::expect_lookup_7_8(relpath, ino, S_IFDIR | 0755, 0, 1);
+	}
 };
 
 const char dot[] = ".";
@@ -125,14 +126,16 @@ TEST_F(Readdir, eio)
 
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READDIR &&
-				in.header.nodeid == ino &&
-				in.body.readdir.offset == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READDIR &&
+				    in.header.nodeid == ino &&
+				    in.body.readdir.offset == 0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EIO)));
 
 	errno = 0;
 	dir = opendir(FULLPATH);
@@ -162,17 +165,19 @@ TEST_F(Readdir, getdirentries_empty)
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READDIR &&
-				in.header.nodeid == ino &&
-				in.body.readdir.size == 8192);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.error = 0;
-		out.header.len = sizeof(out.header);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READDIR &&
+				    in.header.nodeid == ino &&
+				    in.body.readdir.size == 8192);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.error = 0;
+		    out.header.len = sizeof(out.header);
+	    })));
 
 	fd = open(FULLPATH, O_DIRECTORY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -224,21 +229,21 @@ TEST_F(Readdir, getdirentries_seek)
 	ASSERT_LE(0, fd) << strerror(errno);
 	r = getdirentries(fd, buf, sizeof(buf), 0);
 	ASSERT_LT(0, r) << strerror(errno);
-	de0 = (struct dirent*)&buf[0];
+	de0 = (struct dirent *)&buf[0];
 	ASSERT_EQ(2000, de0->d_off);
 	ASSERT_LT(de0->d_reclen + offsetof(struct dirent, d_fileno), bufsize);
-	de1 = (struct dirent*)(&(buf[de0->d_reclen]));
+	de1 = (struct dirent *)(&(buf[de0->d_reclen]));
 	ASSERT_EQ(3ul, de1->d_fileno);
 
 	r = lseek(fd, de0->d_off, SEEK_SET);
 	ASSERT_LE(0, r);
 	r = getdirentries(fd, buf, sizeof(buf), 0);
 	ASSERT_LT(0, r) << strerror(errno);
-	de0 = (struct dirent*)&buf[0];
+	de0 = (struct dirent *)&buf[0];
 	ASSERT_EQ(3000, de0->d_off);
 }
 
-/* 
+/*
  * Nothing bad should happen if getdirentries is called on two file descriptors
  * which were concurrently open, but one has already been closed.
  * This is a regression test for a specific bug dating from r238402.
@@ -255,18 +260,21 @@ TEST_F(Readdir, getdirentries_concurrent)
 	FuseTest::expect_lookup(RELPATH, ino, S_IFDIR | 0755, 0, 2);
 	expect_opendir(ino);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READDIR &&
-				in.header.nodeid == ino &&
-				in.body.readdir.size == 8192);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.error = 0;
-		out.header.len = sizeof(out.header);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READDIR &&
+				    in.header.nodeid == ino &&
+				    in.body.readdir.size == 8192);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+			out.header.error = 0;
+			out.header.len = sizeof(out.header);
+		})));
 
 	fd0 = open(FULLPATH, O_DIRECTORY);
 	ASSERT_LE(0, fd0) << strerror(errno);
@@ -300,16 +308,18 @@ TEST_F(Readdir, nodots)
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READDIR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.error = 0;
-		out.header.len = sizeof(out.header);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READDIR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.error = 0;
+		    out.header.len = sizeof(out.header);
+	    })));
 
 	errno = 0;
 	dir = opendir(FULLPATH);
@@ -364,7 +374,6 @@ TEST_F(Readdir, nul)
 	leakdir(dir);
 }
 
-
 /* telldir(3) and seekdir(3) should work with fuse */
 TEST_F(Readdir, seekdir)
 {
@@ -382,7 +391,7 @@ TEST_F(Readdir, seekdir)
 	long bookmark;
 	int i = 0;
 
-	for (auto& it: ents0) {
+	for (auto &it : ents0) {
 		snprintf(it.d_name, MAXNAMLEN, "file.%d", i);
 		it.d_fileno = 2 + i;
 		it.d_off = (2 + i) * 1000;
@@ -390,7 +399,7 @@ TEST_F(Readdir, seekdir)
 		it.d_type = DT_REG;
 		i++;
 	}
-	for (auto& it: ents1) {
+	for (auto &it : ents1) {
 		snprintf(it.d_name, MAXNAMLEN, "file.%d", i);
 		it.d_fileno = 2 + i;
 		it.d_off = (2 + i) * 1000;
@@ -398,7 +407,7 @@ TEST_F(Readdir, seekdir)
 		it.d_type = DT_REG;
 		i++;
 	}
-	for (auto& it: ents2) {
+	for (auto &it : ents2) {
 		snprintf(it.d_name, MAXNAMLEN, "file.%d", i);
 		it.d_fileno = 2 + i;
 		it.d_off = (2 + i) * 1000;
@@ -418,7 +427,7 @@ TEST_F(Readdir, seekdir)
 	dir = opendir(FULLPATH);
 	ASSERT_NE(nullptr, dir) << strerror(errno);
 
-	for (i=0; i < 128; i++) {
+	for (i = 0; i < 128; i++) {
 		errno = 0;
 		de = readdir(dir);
 		ASSERT_NE(nullptr, de) << strerror(errno);
@@ -494,16 +503,18 @@ TEST_F(Readdir_7_8, nodots)
 	expect_lookup(RELPATH, ino);
 	expect_opendir(ino);
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READDIR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.error = 0;
-		out.header.len = sizeof(out.header);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READDIR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.error = 0;
+		    out.header.len = sizeof(out.header);
+	    })));
 
 	errno = 0;
 	dir = opendir(FULLPATH);

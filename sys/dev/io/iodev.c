@@ -28,36 +28,34 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
-#include <sys/kernel.h>
 #include <sys/ioccom.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 
 #include <machine/iodev.h>
 
 #include <dev/io/iodev.h>
 
-static int	 ioopen(struct cdev *dev, int flags, int fmt,
-		    struct thread *td);
-static int	 ioclose(struct cdev *dev, int flags, int fmt,
-		    struct thread *td);
-static int	 ioioctl(struct cdev *dev, u_long cmd, caddr_t data,
-		    int fflag, struct thread *td);
+static int ioopen(struct cdev *dev, int flags, int fmt, struct thread *td);
+static int ioclose(struct cdev *dev, int flags, int fmt, struct thread *td);
+static int ioioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td);
 
-static int	 iopio_read(struct iodev_pio_req *req);
-static int	 iopio_write(struct iodev_pio_req *req);
+static int iopio_read(struct iodev_pio_req *req);
+static int iopio_write(struct iodev_pio_req *req);
 
 static struct cdev *iodev;
 
 static struct cdevsw io_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	ioopen,
-	.d_close =	ioclose,
-	.d_ioctl =	ioioctl,
-	.d_name =	"io",
+	.d_version = D_VERSION,
+	.d_open = ioopen,
+	.d_close = ioclose,
+	.d_ioctl = ioioctl,
+	.d_name = "io",
 };
 
 /* ARGSUSED */
@@ -75,7 +73,7 @@ ioopen(struct cdev *dev __unused, int flags __unused, int fmt __unused,
 		return (error);
 	error = iodev_open(td);
 
-        return (error);
+	return (error);
 }
 
 /* ARGSUSED */
@@ -89,8 +87,8 @@ ioclose(struct cdev *dev __unused, int flags __unused, int fmt __unused,
 
 /* ARGSUSED */
 static int
-ioioctl(struct cdev *dev __unused, u_long cmd, caddr_t data,
-    int fflag __unused, struct thread *td __unused)
+ioioctl(struct cdev *dev __unused, u_long cmd, caddr_t data, int fflag __unused,
+    struct thread *td __unused)
 {
 	struct iodev_pio_req *pio_req;
 	int error;
@@ -187,12 +185,12 @@ iopio_write(struct iodev_pio_req *req)
 static int
 io_modevent(module_t mod __unused, int type, void *data __unused)
 {
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		if (bootverbose)
 			printf("io: <I/O>\n");
-		iodev = make_dev(&io_cdevsw, 0,
-			UID_ROOT, GID_WHEEL, 0600, "io");
+		iodev = make_dev(&io_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+		    "io");
 		break;
 
 	case MOD_UNLOAD:
@@ -203,9 +201,8 @@ io_modevent(module_t mod __unused, int type, void *data __unused)
 		break;
 
 	default:
-		return(EOPNOTSUPP);
+		return (EOPNOTSUPP);
 		break;
-
 	}
 
 	return (0);

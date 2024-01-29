@@ -28,17 +28,16 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 
 OM_uint32
 gss_inquire_sec_context_by_oid(OM_uint32 *minor_status,
-    const gss_ctx_id_t context_handle,
-    const gss_OID desired_object,
+    const gss_ctx_id_t context_handle, const gss_OID desired_object,
     gss_buffer_set_t *result)
 {
 	OM_uint32 major_status;
-	struct _gss_context *ctx = (struct _gss_context *) context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)context_handle;
 	struct _gss_mech_switch *m;
 
 	*minor_status = 0;
@@ -48,8 +47,8 @@ gss_inquire_sec_context_by_oid(OM_uint32 *minor_status,
 
 	m = ctx->gc_mech;
 	if (m->gm_inquire_sec_context_by_oid) {
-		major_status = m->gm_inquire_sec_context_by_oid(
-			minor_status, ctx->gc_ctx, desired_object, result);
+		major_status = m->gm_inquire_sec_context_by_oid(minor_status,
+		    ctx->gc_ctx, desired_object, result);
 		if (major_status != GSS_S_COMPLETE)
 			_gss_mg_error(m, major_status, *minor_status);
 	} else {

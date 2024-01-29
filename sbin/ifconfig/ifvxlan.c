@@ -29,11 +29,6 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <netdb.h>
-
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_vxlan.h>
@@ -41,17 +36,19 @@
 #include <netinet/in.h>
 
 #include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <err.h>
 #include <errno.h>
+#include <netdb.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ifconfig.h"
 
 static struct ifvxlanparam params = {
-	.vxlp_vni	= VXLAN_VNI_MAX,
+	.vxlp_vni = VXLAN_VNI_MAX,
 };
 
 static int
@@ -115,11 +112,11 @@ vxlan_status(if_ctx *ctx)
 	if (vni >= VXLAN_VNI_MAX)
 		return;
 
-	if (getnameinfo(lsa, lsa->sa_len, src, sizeof(src),
-	    srcport, sizeof(srcport), NI_NUMERICHOST | NI_NUMERICSERV) != 0)
+	if (getnameinfo(lsa, lsa->sa_len, src, sizeof(src), srcport,
+		sizeof(srcport), NI_NUMERICHOST | NI_NUMERICSERV) != 0)
 		src[0] = srcport[0] = '\0';
-	if (getnameinfo(rsa, rsa->sa_len, dst, sizeof(dst),
-	    dstport, sizeof(dstport), NI_NUMERICHOST | NI_NUMERICSERV) != 0)
+	if (getnameinfo(rsa, rsa->sa_len, dst, sizeof(dst), dstport,
+		sizeof(dstport), NI_NUMERICHOST | NI_NUMERICSERV) != 0)
 		dst[0] = dstport[0] = '\0';
 
 	if (!ipv6) {
@@ -133,8 +130,8 @@ vxlan_status(if_ctx *ctx)
 	printf("\tvxlan vni %d", vni);
 	printf(" local %s%s%s:%s", ipv6 ? "[" : "", src, ipv6 ? "]" : "",
 	    srcport);
-	printf(" %s %s%s%s:%s", mc ? "group" : "remote", ipv6 ? "[" : "",
-	    dst, ipv6 ? "]" : "", dstport);
+	printf(" %s %s%s%s:%s", mc ? "group" : "remote", ipv6 ? "[" : "", dst,
+	    ipv6 ? "]" : "", dstport);
 
 	if (ctx->args->verbose) {
 		printf("\n\t\tconfig: ");
@@ -142,18 +139,17 @@ vxlan_status(if_ctx *ctx)
 		    cfg.vxlc_learn ? "" : "no", cfg.vxlc_port_min,
 		    cfg.vxlc_port_max, cfg.vxlc_ttl);
 		printf("\n\t\tftable: ");
-		printf("cnt %d max %d timeout %d",
-		    cfg.vxlc_ftable_cnt, cfg.vxlc_ftable_max,
-		    cfg.vxlc_ftable_timeout);
+		printf("cnt %d max %d timeout %d", cfg.vxlc_ftable_cnt,
+		    cfg.vxlc_ftable_max, cfg.vxlc_ftable_timeout);
 	}
 
 	putchar('\n');
 }
 
 #define _LOCAL_ADDR46 \
-    (VXLAN_PARAM_WITH_LOCAL_ADDR4 | VXLAN_PARAM_WITH_LOCAL_ADDR6)
+	(VXLAN_PARAM_WITH_LOCAL_ADDR4 | VXLAN_PARAM_WITH_LOCAL_ADDR6)
 #define _REMOTE_ADDR46 \
-    (VXLAN_PARAM_WITH_REMOTE_ADDR4 | VXLAN_PARAM_WITH_REMOTE_ADDR6)
+	(VXLAN_PARAM_WITH_REMOTE_ADDR4 | VXLAN_PARAM_WITH_REMOTE_ADDR6)
 
 static void
 vxlan_check_params(void)
@@ -164,9 +160,9 @@ vxlan_check_params(void)
 	if ((params.vxlp_with & _REMOTE_ADDR46) == _REMOTE_ADDR46)
 		errx(1, "cannot specify both remote IPv4 and IPv6 addresses");
 	if ((params.vxlp_with & VXLAN_PARAM_WITH_LOCAL_ADDR4 &&
-	     params.vxlp_with & VXLAN_PARAM_WITH_REMOTE_ADDR6) ||
+		params.vxlp_with & VXLAN_PARAM_WITH_REMOTE_ADDR6) ||
 	    (params.vxlp_with & VXLAN_PARAM_WITH_LOCAL_ADDR6 &&
-	     params.vxlp_with & VXLAN_PARAM_WITH_REMOTE_ADDR4))
+		params.vxlp_with & VXLAN_PARAM_WITH_REMOTE_ADDR4))
 		errx(1, "cannot mix IPv4 and IPv6 addresses");
 }
 
@@ -179,7 +175,7 @@ vxlan_create(if_ctx *ctx, struct ifreq *ifr)
 
 	vxlan_check_params();
 
-	ifr->ifr_data = (caddr_t) &params;
+	ifr->ifr_data = (caddr_t)&params;
 	ifcreate_ioctl(ctx, ifr);
 }
 
@@ -498,7 +494,7 @@ setvxlan_maxaddr(if_ctx *ctx, const char *arg, int dummy __unused)
 	u_long val;
 
 	if (get_val(arg, &val) < 0 || (val & ~0xFFFFFFFF) != 0)
-		errx(1, "invalid maxaddr value: %s",  arg);
+		errx(1, "invalid maxaddr value: %s", arg);
 
 	if (!vxlan_exists(ctx)) {
 		params.vxlp_with |= VXLAN_PARAM_WITH_FTABLE_MAX;
@@ -588,49 +584,49 @@ setvxlan_flush(if_ctx *ctx, const char *val __unused, int d)
 
 static struct cmd vxlan_cmds[] = {
 
-	DEF_CLONE_CMD_ARG("vni",                setvxlan_vni),
-	DEF_CLONE_CMD_ARG("vxlanid",		setvxlan_vni),
-	DEF_CLONE_CMD_ARG("vxlanlocal",		setvxlan_local),
-	DEF_CLONE_CMD_ARG("vxlanremote",	setvxlan_remote),
-	DEF_CLONE_CMD_ARG("vxlangroup",		setvxlan_group),
-	DEF_CLONE_CMD_ARG("vxlanlocalport",	setvxlan_local_port),
-	DEF_CLONE_CMD_ARG("vxlanremoteport",	setvxlan_remote_port),
-	DEF_CLONE_CMD_ARG2("vxlanportrange",	setvxlan_port_range),
-	DEF_CLONE_CMD_ARG("vxlantimeout",	setvxlan_timeout),
-	DEF_CLONE_CMD_ARG("vxlanmaxaddr",	setvxlan_maxaddr),
-	DEF_CLONE_CMD_ARG("vxlandev",		setvxlan_dev),
-	DEF_CLONE_CMD_ARG("vxlanttl",		setvxlan_ttl),
-	DEF_CLONE_CMD("vxlanlearn", 1,		setvxlan_learn),
-	DEF_CLONE_CMD("-vxlanlearn", 0,		setvxlan_learn),
+	DEF_CLONE_CMD_ARG("vni", setvxlan_vni),
+	DEF_CLONE_CMD_ARG("vxlanid", setvxlan_vni),
+	DEF_CLONE_CMD_ARG("vxlanlocal", setvxlan_local),
+	DEF_CLONE_CMD_ARG("vxlanremote", setvxlan_remote),
+	DEF_CLONE_CMD_ARG("vxlangroup", setvxlan_group),
+	DEF_CLONE_CMD_ARG("vxlanlocalport", setvxlan_local_port),
+	DEF_CLONE_CMD_ARG("vxlanremoteport", setvxlan_remote_port),
+	DEF_CLONE_CMD_ARG2("vxlanportrange", setvxlan_port_range),
+	DEF_CLONE_CMD_ARG("vxlantimeout", setvxlan_timeout),
+	DEF_CLONE_CMD_ARG("vxlanmaxaddr", setvxlan_maxaddr),
+	DEF_CLONE_CMD_ARG("vxlandev", setvxlan_dev),
+	DEF_CLONE_CMD_ARG("vxlanttl", setvxlan_ttl),
+	DEF_CLONE_CMD("vxlanlearn", 1, setvxlan_learn),
+	DEF_CLONE_CMD("-vxlanlearn", 0, setvxlan_learn),
 
-	DEF_CMD_ARG("vni",			setvxlan_vni),
-	DEF_CMD_ARG("vxlanid",			setvxlan_vni),
-	DEF_CMD_ARG("vxlanlocal",		setvxlan_local),
-	DEF_CMD_ARG("vxlanremote",		setvxlan_remote),
-	DEF_CMD_ARG("vxlangroup",		setvxlan_group),
-	DEF_CMD_ARG("vxlanlocalport",		setvxlan_local_port),
-	DEF_CMD_ARG("vxlanremoteport",		setvxlan_remote_port),
-	DEF_CMD_ARG2("vxlanportrange",		setvxlan_port_range),
-	DEF_CMD_ARG("vxlantimeout",		setvxlan_timeout),
-	DEF_CMD_ARG("vxlanmaxaddr",		setvxlan_maxaddr),
-	DEF_CMD_ARG("vxlandev",			setvxlan_dev),
-	DEF_CMD_ARG("vxlanttl",			setvxlan_ttl),
-	DEF_CMD("vxlanlearn", 1,		setvxlan_learn),
-	DEF_CMD("-vxlanlearn", 0,		setvxlan_learn),
+	DEF_CMD_ARG("vni", setvxlan_vni),
+	DEF_CMD_ARG("vxlanid", setvxlan_vni),
+	DEF_CMD_ARG("vxlanlocal", setvxlan_local),
+	DEF_CMD_ARG("vxlanremote", setvxlan_remote),
+	DEF_CMD_ARG("vxlangroup", setvxlan_group),
+	DEF_CMD_ARG("vxlanlocalport", setvxlan_local_port),
+	DEF_CMD_ARG("vxlanremoteport", setvxlan_remote_port),
+	DEF_CMD_ARG2("vxlanportrange", setvxlan_port_range),
+	DEF_CMD_ARG("vxlantimeout", setvxlan_timeout),
+	DEF_CMD_ARG("vxlanmaxaddr", setvxlan_maxaddr),
+	DEF_CMD_ARG("vxlandev", setvxlan_dev),
+	DEF_CMD_ARG("vxlanttl", setvxlan_ttl),
+	DEF_CMD("vxlanlearn", 1, setvxlan_learn),
+	DEF_CMD("-vxlanlearn", 0, setvxlan_learn),
 
-	DEF_CMD("vxlanflush", 0,		setvxlan_flush),
-	DEF_CMD("vxlanflushall", 1,		setvxlan_flush),
+	DEF_CMD("vxlanflush", 0, setvxlan_flush),
+	DEF_CMD("vxlanflushall", 1, setvxlan_flush),
 
-	DEF_CMD("vxlanhwcsum",	IFCAP_VXLAN_HWCSUM,	setifcap),
-	DEF_CMD("-vxlanhwcsum",	IFCAP_VXLAN_HWCSUM,	clearifcap),
-	DEF_CMD("vxlanhwtso",	IFCAP_VXLAN_HWTSO,	setifcap),
-	DEF_CMD("-vxlanhwtso",	IFCAP_VXLAN_HWTSO,	clearifcap),
+	DEF_CMD("vxlanhwcsum", IFCAP_VXLAN_HWCSUM, setifcap),
+	DEF_CMD("-vxlanhwcsum", IFCAP_VXLAN_HWCSUM, clearifcap),
+	DEF_CMD("vxlanhwtso", IFCAP_VXLAN_HWTSO, setifcap),
+	DEF_CMD("-vxlanhwtso", IFCAP_VXLAN_HWTSO, clearifcap),
 };
 
 static struct afswtch af_vxlan = {
-	.af_name		= "af_vxlan",
-	.af_af			= AF_UNSPEC,
-	.af_other_status	= vxlan_status,
+	.af_name = "af_vxlan",
+	.af_af = AF_UNSPEC,
+	.af_other_status = vxlan_status,
 };
 
 static __constructor void

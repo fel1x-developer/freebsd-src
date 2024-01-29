@@ -176,7 +176,7 @@ typedef struct dc_compression_cookie_s {
 void dcCompression_ProcessCallback(void *pRespMsg);
 
 CpaStatus dcCheckOpData(sal_compression_service_t *pService,
-			CpaDcOpData *pOpData);
+    CpaDcOpData *pOpData);
 
 /**
 *****************************************************************************

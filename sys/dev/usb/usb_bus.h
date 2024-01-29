@@ -26,7 +26,7 @@
  */
 
 #ifndef _USB_BUS_H_
-#define	_USB_BUS_H_
+#define _USB_BUS_H_
 
 struct usb_fs_privdata;
 
@@ -50,15 +50,15 @@ struct usb_bus {
 #endif
 
 /* convenience macros */
-#define	USB_BUS_TT_PROC(bus) USB_BUS_NON_GIANT_ISOC_PROC(bus)
-#define	USB_BUS_CS_PROC(bus) USB_BUS_NON_GIANT_ISOC_PROC(bus)
-  
+#define USB_BUS_TT_PROC(bus) USB_BUS_NON_GIANT_ISOC_PROC(bus)
+#define USB_BUS_CS_PROC(bus) USB_BUS_NON_GIANT_ISOC_PROC(bus)
+
 #if USB_HAVE_PER_BUS_PROCESS
-#define	USB_BUS_GIANT_PROC(bus) (&(bus)->giant_callback_proc)
-#define	USB_BUS_NON_GIANT_ISOC_PROC(bus) (&(bus)->non_giant_isoc_callback_proc)
-#define	USB_BUS_NON_GIANT_BULK_PROC(bus) (&(bus)->non_giant_bulk_callback_proc)
-#define	USB_BUS_EXPLORE_PROC(bus) (&(bus)->explore_proc)
-#define	USB_BUS_CONTROL_XFER_PROC(bus) (&(bus)->control_xfer_proc)
+#define USB_BUS_GIANT_PROC(bus) (&(bus)->giant_callback_proc)
+#define USB_BUS_NON_GIANT_ISOC_PROC(bus) (&(bus)->non_giant_isoc_callback_proc)
+#define USB_BUS_NON_GIANT_BULK_PROC(bus) (&(bus)->non_giant_bulk_callback_proc)
+#define USB_BUS_EXPLORE_PROC(bus) (&(bus)->explore_proc)
+#define USB_BUS_CONTROL_XFER_PROC(bus) (&(bus)->control_xfer_proc)
 	/*
 	 * There are three callback processes. One for Giant locked
 	 * callbacks. One for non-Giant locked non-periodic callbacks
@@ -86,7 +86,7 @@ struct usb_bus {
 	struct usb_bus_msg shutdown_msg[2];
 #if USB_HAVE_UGEN
 	struct usb_bus_msg cleanup_msg[2];
-	LIST_HEAD(,usb_fs_privdata) pd_cleanup_list;
+	LIST_HEAD(, usb_fs_privdata) pd_cleanup_list;
 #endif
 	/*
 	 * This mutex protects the USB hardware:
@@ -94,34 +94,34 @@ struct usb_bus {
 	struct mtx bus_mtx;
 	struct mtx bus_spin_lock;
 	struct usb_xfer_queue intr_q;
-	struct usb_callout power_wdog;	/* power management */
+	struct usb_callout power_wdog; /* power management */
 
 	device_t parent;
-	device_t bdev;			/* filled by HC driver */
+	device_t bdev; /* filled by HC driver */
 
 #if USB_HAVE_BUSDMA
 	struct usb_dma_parent_tag dma_parent_tag[1];
 	struct usb_dma_tag dma_tags[USB_BUS_DMA_TAG_MAX];
 #endif
-	const struct usb_bus_methods *methods;	/* filled by HC driver */
+	const struct usb_bus_methods *methods; /* filled by HC driver */
 	struct usb_device **devices;
 
-	struct ifnet *ifp;	/* only for USB Packet Filter */
+	struct ifnet *ifp; /* only for USB Packet Filter */
 
-	usb_power_mask_t hw_power_state;	/* see USB_HW_POWER_XXX */
+	usb_power_mask_t hw_power_state; /* see USB_HW_POWER_XXX */
 	usb_size_t uframe_usage[USB_HS_MICRO_FRAMES_MAX];
 
-	uint16_t isoc_time_last;	/* in milliseconds */
+	uint16_t isoc_time_last; /* in milliseconds */
 
-	uint8_t	alloc_failed;		/* Set if memory allocation failed. */
-	uint8_t	driver_added_refcount;	/* Current driver generation count */
-	enum usb_revision usbrev;	/* USB revision. See "USB_REV_XXX". */
+	uint8_t alloc_failed;	       /* Set if memory allocation failed. */
+	uint8_t driver_added_refcount; /* Current driver generation count */
+	enum usb_revision usbrev;      /* USB revision. See "USB_REV_XXX". */
 
-	uint8_t	devices_max;		/* maximum number of USB devices */
-	uint8_t	do_probe;		/* set if USB should be re-probed */
-	uint8_t no_explore;		/* don't explore USB ports */
-	uint8_t dma_bits;		/* number of DMA address lines */
-	uint8_t control_ep_quirk;	/* need 64kByte buffer for data stage */
+	uint8_t devices_max;	  /* maximum number of USB devices */
+	uint8_t do_probe;	  /* set if USB should be re-probed */
+	uint8_t no_explore;	  /* don't explore USB ports */
+	uint8_t dma_bits;	  /* number of DMA address lines */
+	uint8_t control_ep_quirk; /* need 64kByte buffer for data stage */
 };
 
-#endif					/* _USB_BUS_H_ */
+#endif /* _USB_BUS_H_ */

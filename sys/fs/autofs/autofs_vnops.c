@@ -31,10 +31,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/condvar.h>
 #include <sys/dirent.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
@@ -44,15 +44,17 @@
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 #include <sys/vnode.h>
-#include <machine/atomic.h>
+
 #include <vm/uma.h>
+
+#include <machine/atomic.h>
 
 #include <fs/autofs/autofs.h>
 
-static int	autofs_trigger_vn(struct vnode *vp, const char *path,
-		    int pathlen, struct vnode **newvp);
+static int autofs_trigger_vn(struct vnode *vp, const char *path, int pathlen,
+    struct vnode **newvp);
 
-extern struct autofs_softc	*autofs_softc;
+extern struct autofs_softc *autofs_softc;
 
 static int
 autofs_access(struct vop_access_args *ap)
@@ -95,8 +97,7 @@ autofs_getattr(struct vop_getattr_args *ap)
 			return (error);
 
 		if (newvp != NULL) {
-			error = VOP_GETATTR(newvp, ap->a_vap,
-			    ap->a_cred);
+			error = VOP_GETATTR(newvp, ap->a_vap, ap->a_cred);
 			vput(newvp);
 			return (error);
 		}
@@ -196,8 +197,7 @@ mounted:
 }
 
 static int
-autofs_vget_callback(struct mount *mp, void *arg, int flags,
-    struct vnode **vpp)
+autofs_vget_callback(struct mount *mp, void *arg, int flags, struct vnode **vpp)
 {
 
 	return (autofs_node_vn(arg, mp, flags, vpp));
@@ -248,8 +248,8 @@ autofs_lookup(struct vop_lookup_args *ap)
 
 	if (autofs_cached(anp, cnp->cn_nameptr, cnp->cn_namelen) == false &&
 	    autofs_ignore_thread(curthread) == false) {
-		error = autofs_trigger_vn(dvp,
-		    cnp->cn_nameptr, cnp->cn_namelen, &newvp);
+		error = autofs_trigger_vn(dvp, cnp->cn_nameptr, cnp->cn_namelen,
+		    &newvp);
 		if (error != 0)
 			return (error);
 
@@ -443,8 +443,8 @@ autofs_readdir(struct vop_readdir_args *ap)
 		if (uio->uio_offset != reclens)
 			return (EINVAL);
 		if (anp->an_parent == NULL) {
-			error = autofs_readdir_one(uio, "..",
-			    anp->an_fileno, &reclen);
+			error = autofs_readdir_one(uio, "..", anp->an_fileno,
+			    &reclen);
 		} else {
 			error = autofs_readdir_one(uio, "..",
 			    anp->an_parent->an_fileno, &reclen);
@@ -459,7 +459,7 @@ autofs_readdir(struct vop_readdir_args *ap)
 	 * Write out the directory entries for subdirectories.
 	 */
 	AUTOFS_SLOCK(amp);
-	RB_FOREACH(child, autofs_node_tree, &anp->an_children) {
+	RB_FOREACH (child, autofs_node_tree, &anp->an_children) {
 		/*
 		 * Check the offset to skip entries returned by previous
 		 * calls to getdents().
@@ -530,25 +530,25 @@ autofs_reclaim(struct vop_reclaim_args *ap)
 }
 
 struct vop_vector autofs_vnodeops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		autofs_access,
-	.vop_lookup =		autofs_lookup,
-	.vop_create =		VOP_EOPNOTSUPP,
-	.vop_getattr =		autofs_getattr,
-	.vop_link =		VOP_EOPNOTSUPP,
-	.vop_mkdir =		autofs_mkdir,
-	.vop_mknod =		VOP_EOPNOTSUPP,
-	.vop_print =		autofs_print,
-	.vop_read =		VOP_EOPNOTSUPP,
-	.vop_readdir =		autofs_readdir,
-	.vop_remove =		VOP_EOPNOTSUPP,
-	.vop_rename =		VOP_EOPNOTSUPP,
-	.vop_rmdir =		VOP_EOPNOTSUPP,
-	.vop_setattr =		VOP_EOPNOTSUPP,
-	.vop_symlink =		VOP_EOPNOTSUPP,
-	.vop_write =		VOP_EOPNOTSUPP,
-	.vop_reclaim =		autofs_reclaim,
+	.vop_access = autofs_access,
+	.vop_lookup = autofs_lookup,
+	.vop_create = VOP_EOPNOTSUPP,
+	.vop_getattr = autofs_getattr,
+	.vop_link = VOP_EOPNOTSUPP,
+	.vop_mkdir = autofs_mkdir,
+	.vop_mknod = VOP_EOPNOTSUPP,
+	.vop_print = autofs_print,
+	.vop_read = VOP_EOPNOTSUPP,
+	.vop_readdir = autofs_readdir,
+	.vop_remove = VOP_EOPNOTSUPP,
+	.vop_rename = VOP_EOPNOTSUPP,
+	.vop_rmdir = VOP_EOPNOTSUPP,
+	.vop_setattr = VOP_EOPNOTSUPP,
+	.vop_symlink = VOP_EOPNOTSUPP,
+	.vop_write = VOP_EOPNOTSUPP,
+	.vop_reclaim = autofs_reclaim,
 };
 VFS_VOP_VECTOR_REGISTER(autofs_vnodeops);
 
@@ -594,8 +594,8 @@ autofs_node_new(struct autofs_node *parent, struct autofs_mount *amp,
 }
 
 int
-autofs_node_find(struct autofs_node *parent, const char *name,
-    int namelen, struct autofs_node **anpp)
+autofs_node_find(struct autofs_node *parent, const char *name, int namelen,
+    struct autofs_node **anpp)
 {
 	struct autofs_node *anp, find;
 	int error;

@@ -30,38 +30,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/domainset.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/domainset.h>
 #include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
-#include <sys/proc.h>
+#include <sys/malloc.h>
 #include <sys/memdesc.h>
 #include <sys/msan.h>
 #include <sys/mutex.h>
-#include <sys/sysctl.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 #include <sys/uio.h>
 #include <sys/vmem.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
-#include <vm/vm_map.h>
-#include <dev/iommu/iommu.h>
+
 #include <machine/atomic.h>
 #include <machine/bus.h>
-#include <machine/md_var.h>
 #include <machine/iommu.h>
+#include <machine/md_var.h>
+
 #include <dev/iommu/busdma_iommu.h>
+#include <dev/iommu/iommu.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 /*
  * busdma_iommu.c, the implementation of the busdma(9) interface using
@@ -89,15 +92,14 @@ iommu_bus_dma_is_dev_disabled(int domain, int bus, int slot, int func)
 		freeenv(env);
 	}
 
-	snprintf(str, sizeof(str), "hw.busdma.pci%d.%d.%d.%d",
-	    domain, bus, slot, func);
+	snprintf(str, sizeof(str), "hw.busdma.pci%d.%d.%d.%d", domain, bus,
+	    slot, func);
 	env = kern_getenv(str);
 	if (env == NULL)
 		return (default_bounce != 0);
 	if (strcmp(env, bounce_str) == 0)
 		ret = true;
-	else if (strcmp(env, iommu_str) == 0 ||
-	    strcmp(env, dmar_str) == 0)
+	else if (strcmp(env, iommu_str) == 0 || strcmp(env, dmar_str) == 0)
 		ret = false;
 	else
 		ret = default_bounce != 0;
@@ -135,16 +137,20 @@ iommu_get_requester(device_t dev, uint16_t *rid)
 	 */
 	for (;;) {
 		pci = device_get_parent(l);
-		KASSERT(pci != NULL, ("iommu_get_requester(%s): NULL parent "
-		    "for %s", device_get_name(dev), device_get_name(l)));
+		KASSERT(pci != NULL,
+		    ("iommu_get_requester(%s): NULL parent "
+		     "for %s",
+			device_get_name(dev), device_get_name(l)));
 		KASSERT(device_get_devclass(pci) == pci_class,
 		    ("iommu_get_requester(%s): non-pci parent %s for %s",
-		    device_get_name(dev), device_get_name(pci),
-		    device_get_name(l)));
+			device_get_name(dev), device_get_name(pci),
+			device_get_name(l)));
 
 		pcib = device_get_parent(pci);
-		KASSERT(pcib != NULL, ("iommu_get_requester(%s): NULL bridge "
-		    "for %s", device_get_name(dev), device_get_name(pci)));
+		KASSERT(pcib != NULL,
+		    ("iommu_get_requester(%s): NULL bridge "
+		     "for %s",
+			device_get_name(dev), device_get_name(pci)));
 
 		/*
 		 * The parent of our "bridge" isn't another PCI bus,
@@ -172,7 +178,7 @@ iommu_get_requester(device_t dev, uint16_t *rid)
 			 * bridge is PCIe.
 			 */
 			bridge_is_pcie = pci_find_cap(pcib, PCIY_EXPRESS,
-			    &cap_offset) == 0;
+					     &cap_offset) == 0;
 			requester = pcib;
 
 			/*
@@ -182,8 +188,9 @@ iommu_get_requester(device_t dev, uint16_t *rid)
 			 * PCI bridge, then we know pcib is actually a
 			 * PCIe/PCI bridge.
 			 */
-			if (!bridge_is_pcie && pci_find_cap(pcibp,
-			    PCIY_EXPRESS, &cap_offset) == 0) {
+			if (!bridge_is_pcie &&
+			    pci_find_cap(pcibp, PCIY_EXPRESS, &cap_offset) ==
+				0) {
 				pcie_flags = pci_read_config(pcibp,
 				    cap_offset + PCIER_FLAGS, 2);
 				if ((pcie_flags & PCIEM_FLAGS_TYPE) !=
@@ -244,7 +251,7 @@ iommu_instantiate_ctx(struct iommu_unit *unit, device_t dev, bool rmrr)
 	 * context.
 	 */
 	disabled = iommu_bus_dma_is_dev_disabled(pci_get_domain(requester),
-	    pci_get_bus(requester), pci_get_slot(requester), 
+	    pci_get_bus(requester), pci_get_slot(requester),
 	    pci_get_function(requester));
 	ctx = iommu_get_ctx(unit, requester, rid, disabled, rmrr);
 	if (ctx == NULL)
@@ -334,8 +341,8 @@ iommu_set_buswide_ctx(struct iommu_unit *unit, u_int busno)
 
 	MPASS(busno <= PCI_BUSMAX);
 	IOMMU_LOCK(unit);
-	unit->buswide_ctxs[busno / NBBY / sizeof(uint32_t)] |=
-	    1 << (busno % (NBBY * sizeof(uint32_t)));
+	unit->buswide_ctxs[busno / NBBY / sizeof(uint32_t)] |= 1
+	    << (busno % (NBBY * sizeof(uint32_t)));
 	IOMMU_UNLOCK(unit);
 }
 
@@ -345,7 +352,7 @@ iommu_is_buswide_ctx(struct iommu_unit *unit, u_int busno)
 
 	MPASS(busno <= PCI_BUSMAX);
 	return ((unit->buswide_ctxs[busno / NBBY / sizeof(uint32_t)] &
-	    (1U << (busno % (NBBY * sizeof(uint32_t))))) != 0);
+		    (1U << (busno % (NBBY * sizeof(uint32_t))))) != 0);
 }
 
 static MALLOC_DEFINE(M_IOMMU_DMAMAP, "iommu_dmamap", "IOMMU DMA Map");
@@ -364,10 +371,11 @@ iommu_bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 
 	*dmat = NULL;
 	error = common_bus_dma_tag_create(parent != NULL ?
-	    &((struct bus_dma_tag_iommu *)parent)->common : NULL, alignment,
-	    boundary, lowaddr, highaddr, maxsize, nsegments, maxsegsz, flags,
-	    lockfunc, lockfuncarg, sizeof(struct bus_dma_tag_iommu),
-	    (void **)&newtag);
+		&((struct bus_dma_tag_iommu *)parent)->common :
+		NULL,
+	    alignment, boundary, lowaddr, highaddr, maxsize, nsegments,
+	    maxsegsz, flags, lockfunc, lockfuncarg,
+	    sizeof(struct bus_dma_tag_iommu), (void **)&newtag);
 	if (error != 0)
 		goto out;
 
@@ -378,9 +386,8 @@ iommu_bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 
 	*dmat = (bus_dma_tag_t)newtag;
 out:
-	CTR4(KTR_BUSDMA, "%s returned tag %p tag flags 0x%x error %d",
-	    __func__, newtag, (newtag != NULL ? newtag->common.flags : 0),
-	    error);
+	CTR4(KTR_BUSDMA, "%s returned tag %p tag flags 0x%x error %d", __func__,
+	    newtag, (newtag != NULL ? newtag->common.flags : 0), error);
 	return (error);
 }
 
@@ -437,8 +444,9 @@ iommu_bus_dmamap_create(bus_dma_tag_t dmat, int flags, bus_dmamap_t *mapp)
 	}
 	if (tag->segments == NULL) {
 		tag->segments = malloc_domainset(sizeof(bus_dma_segment_t) *
-		    tag->common.nsegments, M_IOMMU_DMAMAP,
-		    DOMAINSET_PREF(tag->common.domain), M_NOWAIT);
+			tag->common.nsegments,
+		    M_IOMMU_DMAMAP, DOMAINSET_PREF(tag->common.domain),
+		    M_NOWAIT);
 		if (tag->segments == NULL) {
 			free(map, M_IOMMU_DMAMAP);
 			*mapp = NULL;
@@ -477,9 +485,8 @@ iommu_bus_dmamap_destroy(bus_dma_tag_t dmat, bus_dmamap_t map1)
 	return (0);
 }
 
-
 static int
-iommu_bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
+iommu_bus_dmamem_alloc(bus_dma_tag_t dmat, void **vaddr, int flags,
     bus_dmamap_t *mapp)
 {
 	struct bus_dma_tag_iommu *tag;
@@ -494,7 +501,7 @@ iommu_bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 	mflags = (flags & BUS_DMA_NOWAIT) != 0 ? M_NOWAIT : M_WAITOK;
 	mflags |= (flags & BUS_DMA_ZERO) != 0 ? M_ZERO : 0;
 	attr = (flags & BUS_DMA_NOCACHE) != 0 ? VM_MEMATTR_UNCACHEABLE :
-	    VM_MEMATTR_DEFAULT;
+						VM_MEMATTR_DEFAULT;
 
 	tag = (struct bus_dma_tag_iommu *)dmat;
 	map = (struct bus_dmamap_iommu *)*mapp;
@@ -506,9 +513,9 @@ iommu_bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 		    DOMAINSET_PREF(tag->common.domain), mflags);
 		map->flags |= BUS_DMAMAP_IOMMU_MALLOC;
 	} else {
-		*vaddr = kmem_alloc_attr_domainset(
-		    DOMAINSET_PREF(tag->common.domain), tag->common.maxsize,
-		    mflags, 0ul, BUS_SPACE_MAXADDR, attr);
+		*vaddr = kmem_alloc_attr_domainset(DOMAINSET_PREF(
+						       tag->common.domain),
+		    tag->common.maxsize, mflags, 0ul, BUS_SPACE_MAXADDR, attr);
 		map->flags |= BUS_DMAMAP_IOMMU_KMEM_ALLOC;
 	}
 	if (*vaddr == NULL) {
@@ -569,8 +576,8 @@ iommu_bus_dmamap_load_something1(struct bus_dma_tag_iommu *tag,
 			error = EFBIG;
 			break;
 		}
-		buflen1 = buflen > tag->common.maxsegsz ?
-		    tag->common.maxsegsz : buflen;
+		buflen1 = buflen > tag->common.maxsegsz ? tag->common.maxsegsz :
+							  buflen;
 
 		/*
 		 * (Too) optimistically allow split if there are more
@@ -580,8 +587,8 @@ iommu_bus_dmamap_load_something1(struct bus_dma_tag_iommu *tag,
 		if (seg + 1 < tag->common.nsegments)
 			gas_flags |= IOMMU_MF_CANSPLIT;
 
-		error = iommu_gas_map(domain, &tag->common, buflen1,
-		    offset, e_flags, gas_flags, ma + idx, &entry);
+		error = iommu_gas_map(domain, &tag->common, buflen1, offset,
+		    e_flags, gas_flags, ma + idx, &entry);
 		if (error != 0)
 			break;
 		/* Update buflen1 in case buffer split. */
@@ -589,27 +596,29 @@ iommu_bus_dmamap_load_something1(struct bus_dma_tag_iommu *tag,
 			buflen1 = entry->end - entry->start - offset;
 
 		KASSERT(vm_addr_align_ok(entry->start + offset,
-		    tag->common.alignment),
+			    tag->common.alignment),
 		    ("alignment failed: ctx %p start 0x%jx offset %x "
-		    "align 0x%jx", ctx, (uintmax_t)entry->start, offset,
-		    (uintmax_t)tag->common.alignment));
+		     "align 0x%jx",
+			ctx, (uintmax_t)entry->start, offset,
+			(uintmax_t)tag->common.alignment));
 		KASSERT(entry->end <= tag->common.lowaddr ||
-		    entry->start >= tag->common.highaddr,
+			entry->start >= tag->common.highaddr,
 		    ("entry placement failed: ctx %p start 0x%jx end 0x%jx "
-		    "lowaddr 0x%jx highaddr 0x%jx", ctx,
-		    (uintmax_t)entry->start, (uintmax_t)entry->end,
-		    (uintmax_t)tag->common.lowaddr,
-		    (uintmax_t)tag->common.highaddr));
+		     "lowaddr 0x%jx highaddr 0x%jx",
+			ctx, (uintmax_t)entry->start, (uintmax_t)entry->end,
+			(uintmax_t)tag->common.lowaddr,
+			(uintmax_t)tag->common.highaddr));
 		KASSERT(vm_addr_bound_ok(entry->start + offset, buflen1,
-		    tag->common.boundary),
+			    tag->common.boundary),
 		    ("boundary failed: ctx %p start 0x%jx end 0x%jx "
-		    "boundary 0x%jx", ctx, (uintmax_t)entry->start,
-		    (uintmax_t)entry->end, (uintmax_t)tag->common.boundary));
+		     "boundary 0x%jx",
+			ctx, (uintmax_t)entry->start, (uintmax_t)entry->end,
+			(uintmax_t)tag->common.boundary));
 		KASSERT(buflen1 <= tag->common.maxsegsz,
 		    ("segment too large: ctx %p start 0x%jx end 0x%jx "
-		    "buflen1 0x%jx maxsegsz 0x%jx", ctx,
-		    (uintmax_t)entry->start, (uintmax_t)entry->end,
-		    (uintmax_t)buflen1, (uintmax_t)tag->common.maxsegsz));
+		     "buflen1 0x%jx maxsegsz 0x%jx",
+			ctx, (uintmax_t)entry->start, (uintmax_t)entry->end,
+			(uintmax_t)buflen1, (uintmax_t)tag->common.maxsegsz));
 
 		KASSERT((entry->flags & IOMMU_MAP_ENTRY_MAP) != 0,
 		    ("entry %p missing IOMMU_MAP_ENTRY_MAP", entry));
@@ -643,8 +652,8 @@ iommu_bus_dmamap_load_something(struct bus_dma_tag_iommu *tag,
 	atomic_add_long(&ctx->loads, 1);
 
 	TAILQ_INIT(&entries);
-	error = iommu_bus_dmamap_load_something1(tag, map, ma, offset,
-	    buflen, flags, segs, segp, &entries);
+	error = iommu_bus_dmamap_load_something1(tag, map, ma, offset, buflen,
+	    flags, segs, segp, &entries);
 	if (error == 0) {
 		IOMMU_DMAMAP_LOCK(map);
 		TAILQ_CONCAT(&map->map_entries, &entries, dmamap_link);
@@ -662,8 +671,7 @@ iommu_bus_dmamap_load_something(struct bus_dma_tag_iommu *tag,
 		    &domain->unload_task);
 	}
 
-	if (error == ENOMEM && (flags & BUS_DMA_NOWAIT) == 0 &&
-	    !map->cansleep)
+	if (error == ENOMEM && (flags & BUS_DMA_NOWAIT) == 0 && !map->cansleep)
 		error = EINPROGRESS;
 	if (error == EINPROGRESS)
 		iommu_bus_schedule_dmamap(domain->iommu, map);
@@ -1024,8 +1032,8 @@ bus_dma_iommu_load_ident(bus_dma_tag_t dmat, bus_dmamap_t map1,
 		return (ENOMEM);
 	entry->start = start;
 	entry->end = start + length;
-	ma = malloc(sizeof(vm_page_t) * atop(length), M_TEMP, waitok ?
-	    M_WAITOK : M_NOWAIT);
+	ma = malloc(sizeof(vm_page_t) * atop(length), M_TEMP,
+	    waitok ? M_WAITOK : M_NOWAIT);
 	if (ma == NULL) {
 		iommu_gas_free_entry(entry);
 		return (ENOMEM);
@@ -1034,9 +1042,11 @@ bus_dma_iommu_load_ident(bus_dma_tag_t dmat, bus_dmamap_t map1,
 		ma[i] = vm_page_getfake(entry->start + PAGE_SIZE * i,
 		    VM_MEMATTR_DEFAULT);
 	}
-	error = iommu_gas_map_region(domain, entry, IOMMU_MAP_ENTRY_READ |
-	    ((flags & BUS_DMA_NOWRITE) ? 0 : IOMMU_MAP_ENTRY_WRITE) |
-	    IOMMU_MAP_ENTRY_MAP, waitok ? IOMMU_MF_CANWAIT : 0, ma);
+	error = iommu_gas_map_region(domain, entry,
+	    IOMMU_MAP_ENTRY_READ |
+		((flags & BUS_DMA_NOWRITE) ? 0 : IOMMU_MAP_ENTRY_WRITE) |
+		IOMMU_MAP_ENTRY_MAP,
+	    waitok ? IOMMU_MF_CANWAIT : 0, ma);
 	if (error == 0) {
 		IOMMU_DMAMAP_LOCK(map);
 		TAILQ_INSERT_TAIL(&map->map_entries, entry, dmamap_link);
@@ -1061,8 +1071,8 @@ iommu_domain_unload_task(void *arg, int pending)
 
 	for (;;) {
 		IOMMU_DOMAIN_LOCK(domain);
-		TAILQ_SWAP(&domain->unload_entries, &entries,
-		    iommu_map_entry, dmamap_link);
+		TAILQ_SWAP(&domain->unload_entries, &entries, iommu_map_entry,
+		    dmamap_link);
 		IOMMU_DOMAIN_UNLOCK(domain);
 		if (TAILQ_EMPTY(&entries))
 			break;

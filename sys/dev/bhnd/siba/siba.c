@@ -32,12 +32,12 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/refcount.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -45,12 +45,11 @@
 #include <dev/bhnd/cores/chipc/pwrctl/bhnd_pwrctl.h>
 
 #include "siba_eromvar.h"
-
 #include "sibareg.h"
 #include "sibavar.h"
 
 /* RID used when allocating EROM resources */
-#define	SIBA_EROM_RID	0
+#define SIBA_EROM_RID 0
 
 static bhnd_erom_class_t *
 siba_get_erom_class(driver_t *driver)
@@ -67,7 +66,7 @@ siba_probe(device_t dev)
 
 /**
  * Default siba(4) bus driver implementation of DEVICE_ATTACH().
- * 
+ *
  * This implementation initializes internal siba(4) state and performs
  * bus enumeration, and must be called by subclassing drivers in
  * DEVICE_ATTACH() before any other bus methods.
@@ -75,8 +74,8 @@ siba_probe(device_t dev)
 int
 siba_attach(device_t dev)
 {
-	struct siba_softc	*sc;
-	int			 error;
+	struct siba_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -96,8 +95,8 @@ siba_attach(device_t dev)
 int
 siba_detach(device_t dev)
 {
-	struct siba_softc	*sc;
-	int			 error;
+	struct siba_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -124,9 +123,9 @@ siba_suspend(device_t dev)
 static int
 siba_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 {
-	struct siba_softc		*sc;
-	const struct siba_devinfo	*dinfo;
-	const struct bhnd_core_info	*cfg;
+	struct siba_softc *sc;
+	const struct siba_devinfo *dinfo;
+	const struct bhnd_core_info *cfg;
 
 	sc = device_get_softc(dev);
 	dinfo = device_get_ivars(child);
@@ -146,10 +145,10 @@ siba_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 		*result = bhnd_core_class(cfg);
 		return (0);
 	case BHND_IVAR_VENDOR_NAME:
-		*result = (uintptr_t) bhnd_vendor_name(cfg->vendor);
+		*result = (uintptr_t)bhnd_vendor_name(cfg->vendor);
 		return (0);
 	case BHND_IVAR_DEVICE_NAME:
-		*result = (uintptr_t) bhnd_core_name(cfg);
+		*result = (uintptr_t)bhnd_core_name(cfg);
 		return (0);
 	case BHND_IVAR_CORE_INDEX:
 		*result = cfg->core_idx;
@@ -188,8 +187,8 @@ siba_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 static int
 siba_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
 
 	sc = device_get_softc(dev);
 	dinfo = device_get_ivars(child);
@@ -217,7 +216,8 @@ siba_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 		case SIBA_PMU_PWRCTL:
 		case SIBA_PMU_FIXED:
 			panic("bhnd_set_pmu_info() called with siba PMU state "
-			    "%d", dinfo->pmu_state);
+			      "%d",
+			    dinfo->pmu_state);
 			return (ENXIO);
 		}
 
@@ -240,13 +240,13 @@ siba_get_resource_list(device_t dev, device_t child)
 static int
 siba_alloc_pmu(device_t dev, device_t child)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
-	device_t		 chipc;
-	device_t		 pwrctl;
-	struct chipc_caps	 ccaps;
-	siba_pmu_state		 pmu_state;
-	int			 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	device_t chipc;
+	device_t pwrctl;
+	struct chipc_caps ccaps;
+	siba_pmu_state pmu_state;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -279,7 +279,7 @@ siba_alloc_pmu(device_t dev, device_t child)
 	/*
 	 * This is either a legacy PWRCTL chipset, or the device does not
 	 * support dynamic clock control.
-	 * 
+	 *
 	 * We need to map all bhnd(4) bus PMU to PWRCTL or no-op operations.
 	 */
 	if (ccaps.pwr_ctrl) {
@@ -316,10 +316,10 @@ siba_alloc_pmu(device_t dev, device_t child)
 static int
 siba_release_pmu(device_t dev, device_t child)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
-	device_t		 pwrctl;
-	int			 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	device_t pwrctl;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -328,7 +328,7 @@ siba_release_pmu(device_t dev, device_t child)
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("pmu over-release for %s", device_get_nameunit(child));
 		SIBA_UNLOCK(sc);
@@ -376,9 +376,9 @@ static int
 siba_get_clock_latency(device_t dev, device_t child, bhnd_clock clock,
     u_int *latency)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
-	int			 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -387,7 +387,7 @@ siba_get_clock_latency(device_t dev, device_t child, bhnd_clock clock,
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -396,15 +396,15 @@ siba_get_clock_latency(device_t dev, device_t child, bhnd_clock clock,
 
 	case SIBA_PMU_BHND:
 		SIBA_UNLOCK(sc);
-		return (bhnd_generic_get_clock_latency(dev, child, clock,
-		    latency));
+		return (
+		    bhnd_generic_get_clock_latency(dev, child, clock, latency));
 
 	case SIBA_PMU_PWRCTL:
-		 error = bhnd_pwrctl_get_clock_latency(dinfo->pmu.pwrctl, clock,
+		error = bhnd_pwrctl_get_clock_latency(dinfo->pmu.pwrctl, clock,
 		    latency);
-		 SIBA_UNLOCK(sc);
+		SIBA_UNLOCK(sc);
 
-		 return (error);
+		return (error);
 
 	case SIBA_PMU_FIXED:
 		SIBA_UNLOCK(sc);
@@ -428,12 +428,11 @@ siba_get_clock_latency(device_t dev, device_t child, bhnd_clock clock,
 
 /* BHND_BUS_GET_CLOCK_FREQ() */
 static int
-siba_get_clock_freq(device_t dev, device_t child, bhnd_clock clock,
-    u_int *freq)
+siba_get_clock_freq(device_t dev, device_t child, bhnd_clock clock, u_int *freq)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
-	int			 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -442,7 +441,7 @@ siba_get_clock_freq(device_t dev, device_t child, bhnd_clock clock,
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -473,8 +472,8 @@ siba_get_clock_freq(device_t dev, device_t child, bhnd_clock clock,
 static int
 siba_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -483,7 +482,7 @@ siba_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -508,8 +507,8 @@ siba_request_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 static int
 siba_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -518,7 +517,7 @@ siba_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -543,9 +542,9 @@ siba_release_ext_rsrc(device_t dev, device_t child, u_int rsrc)
 static int
 siba_request_clock(device_t dev, device_t child, bhnd_clock clock)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
-	int			 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -554,7 +553,7 @@ siba_request_clock(device_t dev, device_t child, bhnd_clock clock)
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -596,8 +595,8 @@ siba_request_clock(device_t dev, device_t child, bhnd_clock clock)
 static int
 siba_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 {
-	struct siba_softc	*sc;
-	struct siba_devinfo	*dinfo;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -606,7 +605,7 @@ siba_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 	dinfo = device_get_ivars(child);
 
 	SIBA_LOCK(sc);
-	switch(dinfo->pmu_state) {
+	switch (dinfo->pmu_state) {
 	case SIBA_PMU_NONE:
 		panic("no active PMU request state");
 
@@ -622,10 +621,8 @@ siba_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 		SIBA_UNLOCK(sc);
 
 		/* All (supported) clocks are already enabled by default */
-		clocks &= ~(BHND_CLOCK_DYN |
-			    BHND_CLOCK_ILP |
-			    BHND_CLOCK_ALP |
-			    BHND_CLOCK_HT);
+		clocks &= ~(BHND_CLOCK_DYN | BHND_CLOCK_ILP | BHND_CLOCK_ALP |
+		    BHND_CLOCK_HT);
 
 		if (clocks != 0) {
 			device_printf(dev, "%s requested unknown clocks: %#x\n",
@@ -642,8 +639,8 @@ siba_enable_clocks(device_t dev, device_t child, uint32_t clocks)
 static int
 siba_read_iost(device_t dev, device_t child, uint16_t *iost)
 {
-	uint32_t	tmhigh;
-	int		error;
+	uint32_t tmhigh;
+	int error;
 
 	error = bhnd_read_config(child, SIBA_CFG0_TMSTATEHIGH, &tmhigh, 4);
 	if (error)
@@ -656,8 +653,8 @@ siba_read_iost(device_t dev, device_t child, uint16_t *iost)
 static int
 siba_read_ioctl(device_t dev, device_t child, uint16_t *ioctl)
 {
-	uint32_t	ts_low;
-	int		error;
+	uint32_t ts_low;
+	int error;
 
 	if ((error = bhnd_read_config(child, SIBA_CFG0_TMSTATELOW, &ts_low, 4)))
 		return (error);
@@ -669,9 +666,9 @@ siba_read_ioctl(device_t dev, device_t child, uint16_t *ioctl)
 static int
 siba_write_ioctl(device_t dev, device_t child, uint16_t value, uint16_t mask)
 {
-	struct siba_devinfo	*dinfo;
-	struct bhnd_resource	*r;
-	uint32_t		 ts_low, ts_mask;
+	struct siba_devinfo *dinfo;
+	struct bhnd_resource *r;
+	uint32_t ts_low, ts_mask;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -685,17 +682,17 @@ siba_write_ioctl(device_t dev, device_t child, uint16_t value, uint16_t mask)
 	ts_mask = (mask << SIBA_TML_SICF_SHIFT) & SIBA_TML_SICF_MASK;
 	ts_low = (value << SIBA_TML_SICF_SHIFT) & ts_mask;
 
-	siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW,
-	    ts_low, ts_mask);
+	siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW, ts_low,
+	    ts_mask);
 	return (0);
 }
 
 static bool
 siba_is_hw_suspended(device_t dev, device_t child)
 {
-	uint32_t		ts_low;
-	uint16_t		ioctl;
-	int			error;
+	uint32_t ts_low;
+	uint16_t ioctl;
+	int error;
 
 	/* Fetch target state */
 	error = bhnd_read_config(child, SIBA_CFG0_TMSTATELOW, &ts_low, 4);
@@ -725,11 +722,11 @@ static int
 siba_reset_hw(device_t dev, device_t child, uint16_t ioctl,
     uint16_t reset_ioctl)
 {
-	struct siba_devinfo		*dinfo;
-	struct bhnd_resource		*r;
-	uint32_t			 ts_low, imstate;
-	uint16_t			 clkflags;
-	int				 error;
+	struct siba_devinfo *dinfo;
+	struct bhnd_resource *r;
+	uint32_t ts_low, imstate;
+	uint16_t clkflags;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -752,13 +749,12 @@ siba_reset_hw(device_t dev, device_t child, uint16_t ioctl,
 	/* Set RESET, clear REJ, set the caller's IOCTL flags, and
 	 * force clocks to ensure the signal propagates throughout the
 	 * core. */
-	ts_low = SIBA_TML_RESET |
-		 (ioctl << SIBA_TML_SICF_SHIFT) |
-		 (BHND_IOCTL_CLK_EN << SIBA_TML_SICF_SHIFT) |
-		 (BHND_IOCTL_CLK_FORCE << SIBA_TML_SICF_SHIFT);
+	ts_low = SIBA_TML_RESET | (ioctl << SIBA_TML_SICF_SHIFT) |
+	    (BHND_IOCTL_CLK_EN << SIBA_TML_SICF_SHIFT) |
+	    (BHND_IOCTL_CLK_FORCE << SIBA_TML_SICF_SHIFT);
 
-	siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW,
-	    ts_low, UINT32_MAX);
+	siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW, ts_low,
+	    UINT32_MAX);
 
 	/* Clear any target errors */
 	if (bhnd_bus_read_4(r, SIBA_CFG0_TMSTATEHIGH) & SIBA_TMH_SERR) {
@@ -768,9 +764,9 @@ siba_reset_hw(device_t dev, device_t child, uint16_t ioctl,
 
 	/* Clear any initiator errors */
 	imstate = bhnd_bus_read_4(r, SIBA_CFG0_IMSTATE);
-	if (imstate & (SIBA_IM_IBE|SIBA_IM_TO)) {
+	if (imstate & (SIBA_IM_IBE | SIBA_IM_TO)) {
 		siba_write_target_state(child, dinfo, SIBA_CFG0_IMSTATE, 0x0,
-		    SIBA_IM_IBE|SIBA_IM_TO);
+		    SIBA_IM_IBE | SIBA_IM_TO);
 	}
 
 	/* Release from RESET while leaving clocks forced, ensuring the
@@ -789,12 +785,12 @@ siba_reset_hw(device_t dev, device_t child, uint16_t ioctl,
 static int
 siba_suspend_hw(device_t dev, device_t child, uint16_t ioctl)
 {
-	struct siba_softc		*sc;
-	struct siba_devinfo		*dinfo;
-	struct bhnd_resource		*r;
-	uint32_t			 idl, ts_low, ts_mask;
-	uint16_t			 cflags, clkflags;
-	int				 error;
+	struct siba_softc *sc;
+	struct siba_devinfo *dinfo;
+	struct bhnd_resource *r;
+	uint32_t idl, ts_low, ts_mask;
+	uint16_t cflags, clkflags;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		return (EINVAL);
@@ -821,7 +817,7 @@ siba_suspend_hw(device_t dev, device_t child, uint16_t ioctl)
 	cflags = SIBA_REG_GET(ts_low, TML_SICF);
 	if (!(cflags & BHND_IOCTL_CLK_EN)) {
 		ts_low = SIBA_TML_RESET | SIBA_TML_REJ |
-			 (ioctl << SIBA_TML_SICF_SHIFT);
+		    (ioctl << SIBA_TML_SICF_SHIFT);
 		ts_mask = SIBA_TML_RESET | SIBA_TML_REJ | SIBA_TML_SICF_MASK;
 
 		siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW,
@@ -835,8 +831,8 @@ siba_suspend_hw(device_t dev, device_t child, uint16_t ioctl)
 
 	/* Wait for transaction busy flag to clear for all transactions
 	 * initiated by this core */
-	error = siba_wait_target_state(child, dinfo, SIBA_CFG0_TMSTATEHIGH,
-	    0x0, SIBA_TMH_BUSY, 100000);
+	error = siba_wait_target_state(child, dinfo, SIBA_CFG0_TMSTATEHIGH, 0x0,
+	    SIBA_TMH_BUSY, 100000);
 	if (error)
 		return (error);
 
@@ -858,12 +854,10 @@ siba_suspend_hw(device_t dev, device_t child, uint16_t ioctl)
 	/* Put the core into RESET, set the caller's IOCTL flags, and
 	 * force clocks to ensure the RESET signal propagates throughout the
 	 * core. */
-	ts_low = SIBA_TML_RESET |
-		 (ioctl << SIBA_TML_SICF_SHIFT) |
-		 (BHND_IOCTL_CLK_EN << SIBA_TML_SICF_SHIFT) |
-		 (BHND_IOCTL_CLK_FORCE << SIBA_TML_SICF_SHIFT);
-	ts_mask = SIBA_TML_RESET |
-		  SIBA_TML_SICF_MASK;
+	ts_low = SIBA_TML_RESET | (ioctl << SIBA_TML_SICF_SHIFT) |
+	    (BHND_IOCTL_CLK_EN << SIBA_TML_SICF_SHIFT) |
+	    (BHND_IOCTL_CLK_FORCE << SIBA_TML_SICF_SHIFT);
+	ts_mask = SIBA_TML_RESET | SIBA_TML_SICF_MASK;
 
 	siba_write_target_state(child, dinfo, SIBA_CFG0_TMSTATELOW, ts_low,
 	    ts_mask);
@@ -895,8 +889,10 @@ siba_suspend_hw(device_t dev, device_t child, uint16_t ioctl)
 		SIBA_UNLOCK(sc);
 
 		if (error) {
-			device_printf(child, "failed to release clock request: "
-			    "%d", error);
+			device_printf(child,
+			    "failed to release clock request: "
+			    "%d",
+			    error);
 			return (error);
 		}
 
@@ -911,8 +907,8 @@ static int
 siba_read_config(device_t dev, device_t child, bus_size_t offset, void *value,
     u_int width)
 {
-	struct siba_devinfo	*dinfo;
-	rman_res_t		 r_size;
+	struct siba_devinfo *dinfo;
+	rman_res_t r_size;
 
 	/* Must be directly attached */
 	if (device_get_parent(child) != dev)
@@ -950,9 +946,9 @@ static int
 siba_write_config(device_t dev, device_t child, bus_size_t offset,
     const void *value, u_int width)
 {
-	struct siba_devinfo	*dinfo;
-	struct bhnd_resource	*r;
-	rman_res_t		 r_size;
+	struct siba_devinfo *dinfo;
+	struct bhnd_resource *r;
+	rman_res_t r_size;
 
 	/* Must be directly attached */
 	if (device_get_parent(child) != dev)
@@ -1001,7 +997,7 @@ static u_int
 siba_get_region_count(device_t dev, device_t child, bhnd_port_type type,
     u_int port)
 {
-	struct siba_devinfo	*dinfo;
+	struct siba_devinfo *dinfo;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev)
@@ -1016,9 +1012,9 @@ static int
 siba_get_port_rid(device_t dev, device_t child, bhnd_port_type port_type,
     u_int port_num, u_int region_num)
 {
-	struct siba_devinfo	*dinfo;
-	struct siba_addrspace	*addrspace;
-	struct siba_cfg_block	*cfg;
+	struct siba_devinfo *dinfo;
+	struct siba_addrspace *addrspace;
+	struct siba_cfg_block *cfg;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev)
@@ -1045,7 +1041,7 @@ static int
 siba_decode_port_rid(device_t dev, device_t child, int type, int rid,
     bhnd_port_type *port_type, u_int *port_num, u_int *region_num)
 {
-	struct siba_devinfo	*dinfo;
+	struct siba_devinfo *dinfo;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev)
@@ -1088,9 +1084,9 @@ static int
 siba_get_region_addr(device_t dev, device_t child, bhnd_port_type port_type,
     u_int port_num, u_int region_num, bhnd_addr_t *addr, bhnd_size_t *size)
 {
-	struct siba_devinfo	*dinfo;
-	struct siba_addrspace	*addrspace;
-	struct siba_cfg_block	*cfg;
+	struct siba_devinfo *dinfo;
+	struct siba_addrspace *addrspace;
+	struct siba_cfg_block *cfg;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev) {
@@ -1126,7 +1122,7 @@ siba_get_region_addr(device_t dev, device_t child, bhnd_port_type port_type,
 u_int
 siba_get_intr_count(device_t dev, device_t child)
 {
-	struct siba_devinfo	*dinfo;
+	struct siba_devinfo *dinfo;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev)
@@ -1148,7 +1144,7 @@ siba_get_intr_count(device_t dev, device_t child)
 int
 siba_get_intr_ivec(device_t dev, device_t child, u_int intr, u_int *ivec)
 {
-	struct siba_devinfo	*dinfo;
+	struct siba_devinfo *dinfo;
 
 	/* delegate non-bus-attached devices to our parent */
 	if (device_get_parent(child) != dev)
@@ -1180,10 +1176,10 @@ siba_get_intr_ivec(device_t dev, device_t child, u_int intr, u_int *ivec)
 static int
 siba_map_cfg_resources(device_t dev, struct siba_devinfo *dinfo)
 {
-	struct siba_addrspace	*addrspace;
-	rman_res_t		 r_start, r_count, r_end;
-	uint8_t			 num_cfg;
-	int			 rid;
+	struct siba_addrspace *addrspace;
+	rman_res_t r_start, r_count, r_end;
+	uint8_t num_cfg;
+	int rid;
 
 	num_cfg = dinfo->core_id.num_cfg_blocks;
 	if (num_cfg > SIBA_MAX_CFG) {
@@ -1212,17 +1208,15 @@ siba_map_cfg_resources(device_t dev, struct siba_devinfo *dinfo)
 		    r_start, r_end, r_count);
 
 		/* Initialize config block descriptor */
-		dinfo->cfg[i] = ((struct siba_cfg_block) {
-			.cb_base = r_start,
-			.cb_size = SIBA_CFG_SIZE,
-			.cb_rid = rid
-		});
+		dinfo->cfg[i] = ((struct siba_cfg_block) { .cb_base = r_start,
+		    .cb_size = SIBA_CFG_SIZE,
+		    .cb_rid = rid });
 
 		/* Map the config resource for bus-level access */
 		dinfo->cfg_rid[i] = SIBA_CFG_RID(dinfo, i);
 		dinfo->cfg_res[i] = BHND_BUS_ALLOC_RESOURCE(dev, dev,
-		    SYS_RES_MEMORY, &dinfo->cfg_rid[i], r_start, r_end,
-		    r_count, RF_ACTIVE|RF_SHAREABLE);
+		    SYS_RES_MEMORY, &dinfo->cfg_rid[i], r_start, r_end, r_count,
+		    RF_ACTIVE | RF_SHAREABLE);
 
 		if (dinfo->cfg_res[i] == NULL) {
 			device_printf(dev, "failed to allocate SIBA_CFG%hhu\n",
@@ -1237,8 +1231,8 @@ siba_map_cfg_resources(device_t dev, struct siba_devinfo *dinfo)
 static device_t
 siba_add_child(device_t dev, u_int order, const char *name, int unit)
 {
-	struct siba_devinfo	*dinfo;
-	device_t		 child;
+	struct siba_devinfo *dinfo;
+	device_t child;
 
 	child = device_add_child_ordered(dev, order, name, unit);
 	if (child == NULL)
@@ -1257,7 +1251,7 @@ siba_add_child(device_t dev, u_int order, const char *name, int unit)
 static void
 siba_child_deleted(device_t dev, device_t child)
 {
-	struct siba_devinfo	*dinfo;
+	struct siba_devinfo *dinfo;
 
 	/* Call required bhnd(4) implementation */
 	bhnd_generic_child_deleted(dev, child);
@@ -1272,19 +1266,19 @@ siba_child_deleted(device_t dev, device_t child)
 /**
  * Scan the core table and add all valid discovered cores to
  * the bus.
- * 
+ *
  * @param dev The siba bus device.
  */
 int
 siba_add_children(device_t dev)
 {
-	bhnd_erom_t			*erom;
-	struct siba_erom		*siba_erom;
-	struct bhnd_erom_io		*eio;
-	const struct bhnd_chipid	*cid;
-	struct siba_core_id		*cores;
-	device_t			*children;
-	int				 error;
+	bhnd_erom_t *erom;
+	struct siba_erom *siba_erom;
+	struct bhnd_erom_io *eio;
+	const struct bhnd_chipid *cid;
+	struct siba_core_id *cores;
+	device_t *children;
+	int error;
 
 	cid = BHND_BUS_GET_CHIPID(dev, dev);
 
@@ -1303,7 +1297,7 @@ siba_add_children(device_t dev)
 
 	/*
 	 * Add child devices for all discovered cores.
-	 * 
+	 *
 	 * On bridged devices, we'll exhaust our available register windows if
 	 * we map config blocks on unpopulated/disabled cores. To avoid this, we
 	 * defer mapping of the per-core siba(4) config blocks until all cores
@@ -1311,8 +1305,8 @@ siba_add_children(device_t dev)
 	 */
 	siba_erom = (struct siba_erom *)erom;
 	for (u_int i = 0; i < cid->ncores; i++) {
-		struct siba_devinfo	*dinfo;
-		device_t		 child;
+		struct siba_devinfo *dinfo;
+		device_t child;
 
 		if ((error = siba_erom_get_core_id(siba_erom, i, &cores[i])))
 			goto failed;
@@ -1348,8 +1342,8 @@ siba_add_children(device_t dev)
 	/* Map all valid core's config register blocks and perform interrupt
 	 * assignment */
 	for (u_int i = 0; i < cid->ncores; i++) {
-		struct siba_devinfo	*dinfo;
-		device_t		 child;
+		struct siba_devinfo *dinfo;
+		device_t child;
 
 		child = children[i];
 
@@ -1390,49 +1384,50 @@ failed:
 
 static device_method_t siba_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			siba_probe),
-	DEVMETHOD(device_attach,		siba_attach),
-	DEVMETHOD(device_detach,		siba_detach),
-	DEVMETHOD(device_resume,		siba_resume),
-	DEVMETHOD(device_suspend,		siba_suspend),
+	DEVMETHOD(device_probe, siba_probe),
+	DEVMETHOD(device_attach, siba_attach),
+	DEVMETHOD(device_detach, siba_detach),
+	DEVMETHOD(device_resume, siba_resume),
+	DEVMETHOD(device_suspend, siba_suspend),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,		siba_add_child),
-	DEVMETHOD(bus_child_deleted,		siba_child_deleted),
-	DEVMETHOD(bus_read_ivar,		siba_read_ivar),
-	DEVMETHOD(bus_write_ivar,		siba_write_ivar),
-	DEVMETHOD(bus_get_resource_list,	siba_get_resource_list),
+	DEVMETHOD(bus_add_child, siba_add_child),
+	DEVMETHOD(bus_child_deleted, siba_child_deleted),
+	DEVMETHOD(bus_read_ivar, siba_read_ivar),
+	DEVMETHOD(bus_write_ivar, siba_write_ivar),
+	DEVMETHOD(bus_get_resource_list, siba_get_resource_list),
 
 	/* BHND interface */
-	DEVMETHOD(bhnd_bus_get_erom_class,	siba_get_erom_class),
-	DEVMETHOD(bhnd_bus_alloc_pmu,		siba_alloc_pmu),
-	DEVMETHOD(bhnd_bus_release_pmu,		siba_release_pmu),
-	DEVMETHOD(bhnd_bus_request_clock,	siba_request_clock),
-	DEVMETHOD(bhnd_bus_enable_clocks,	siba_enable_clocks),
-	DEVMETHOD(bhnd_bus_request_ext_rsrc,	siba_request_ext_rsrc),
-	DEVMETHOD(bhnd_bus_release_ext_rsrc,	siba_release_ext_rsrc),
-	DEVMETHOD(bhnd_bus_get_clock_freq,	siba_get_clock_freq),
-	DEVMETHOD(bhnd_bus_get_clock_latency,	siba_get_clock_latency),
-	DEVMETHOD(bhnd_bus_read_ioctl,		siba_read_ioctl),
-	DEVMETHOD(bhnd_bus_write_ioctl,		siba_write_ioctl),
-	DEVMETHOD(bhnd_bus_read_iost,		siba_read_iost),
-	DEVMETHOD(bhnd_bus_is_hw_suspended,	siba_is_hw_suspended),
-	DEVMETHOD(bhnd_bus_reset_hw,		siba_reset_hw),
-	DEVMETHOD(bhnd_bus_suspend_hw,		siba_suspend_hw),
-	DEVMETHOD(bhnd_bus_read_config,		siba_read_config),
-	DEVMETHOD(bhnd_bus_write_config,	siba_write_config),
-	DEVMETHOD(bhnd_bus_get_port_count,	siba_get_port_count),
-	DEVMETHOD(bhnd_bus_get_region_count,	siba_get_region_count),
-	DEVMETHOD(bhnd_bus_get_port_rid,	siba_get_port_rid),
-	DEVMETHOD(bhnd_bus_decode_port_rid,	siba_decode_port_rid),
-	DEVMETHOD(bhnd_bus_get_region_addr,	siba_get_region_addr),
-	DEVMETHOD(bhnd_bus_get_intr_count,	siba_get_intr_count),
-	DEVMETHOD(bhnd_bus_get_intr_ivec,	siba_get_intr_ivec),
+	DEVMETHOD(bhnd_bus_get_erom_class, siba_get_erom_class),
+	DEVMETHOD(bhnd_bus_alloc_pmu, siba_alloc_pmu),
+	DEVMETHOD(bhnd_bus_release_pmu, siba_release_pmu),
+	DEVMETHOD(bhnd_bus_request_clock, siba_request_clock),
+	DEVMETHOD(bhnd_bus_enable_clocks, siba_enable_clocks),
+	DEVMETHOD(bhnd_bus_request_ext_rsrc, siba_request_ext_rsrc),
+	DEVMETHOD(bhnd_bus_release_ext_rsrc, siba_release_ext_rsrc),
+	DEVMETHOD(bhnd_bus_get_clock_freq, siba_get_clock_freq),
+	DEVMETHOD(bhnd_bus_get_clock_latency, siba_get_clock_latency),
+	DEVMETHOD(bhnd_bus_read_ioctl, siba_read_ioctl),
+	DEVMETHOD(bhnd_bus_write_ioctl, siba_write_ioctl),
+	DEVMETHOD(bhnd_bus_read_iost, siba_read_iost),
+	DEVMETHOD(bhnd_bus_is_hw_suspended, siba_is_hw_suspended),
+	DEVMETHOD(bhnd_bus_reset_hw, siba_reset_hw),
+	DEVMETHOD(bhnd_bus_suspend_hw, siba_suspend_hw),
+	DEVMETHOD(bhnd_bus_read_config, siba_read_config),
+	DEVMETHOD(bhnd_bus_write_config, siba_write_config),
+	DEVMETHOD(bhnd_bus_get_port_count, siba_get_port_count),
+	DEVMETHOD(bhnd_bus_get_region_count, siba_get_region_count),
+	DEVMETHOD(bhnd_bus_get_port_rid, siba_get_port_rid),
+	DEVMETHOD(bhnd_bus_decode_port_rid, siba_decode_port_rid),
+	DEVMETHOD(bhnd_bus_get_region_addr, siba_get_region_addr),
+	DEVMETHOD(bhnd_bus_get_intr_count, siba_get_intr_count),
+	DEVMETHOD(bhnd_bus_get_intr_ivec, siba_get_intr_ivec),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(bhnd, siba_driver, siba_methods, sizeof(struct siba_softc), bhnd_driver);
+DEFINE_CLASS_1(bhnd, siba_driver, siba_methods, sizeof(struct siba_softc),
+    bhnd_driver);
 
 MODULE_VERSION(siba, 1);
 MODULE_DEPEND(siba, bhnd, 1, 1, 1);

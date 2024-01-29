@@ -1,4 +1,5 @@
-/*	$KAME: ipsec_get_policylen.c,v 1.5 2000/05/07 05:25:03 itojun Exp $	*/
+/*	$KAME: ipsec_get_policylen.c,v 1.5 2000/05/07 05:25:03 itojun Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-3-Clause
@@ -34,9 +35,8 @@
 #include <sys/types.h>
 #include <sys/param.h>
 
-#include <netipsec/ipsec.h>
-
 #include <net/pfkeyv2.h>
+#include <netipsec/ipsec.h>
 
 #include "ipsec_strerror.h"
 

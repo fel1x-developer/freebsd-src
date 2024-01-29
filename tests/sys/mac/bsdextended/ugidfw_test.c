@@ -28,12 +28,11 @@
 #include <sys/mac.h>
 #include <sys/mount.h>
 
-#include <security/mac_bsdextended/mac_bsdextended.h>
-
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
 #include <pwd.h>
+#include <security/mac_bsdextended/mac_bsdextended.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -137,8 +136,8 @@ static const char *test_strings[] = {
 	"subject object ! type d mode n",
 	/* All out nonsense */
 	"subject uid root ! gid wheel:bin ! jailid 1 "
-	    "object ! uid root:daemon gid daemon filesys / suid sgid uid_of_subject gid_of_subject ! type r "
-	    "mode rsx",
+	"object ! uid root:daemon gid daemon filesys / suid sgid uid_of_subject gid_of_subject ! type r "
+	"mode rsx",
 };
 
 static void
@@ -152,16 +151,20 @@ test_libugidfw_strings(void)
 
 	for (i = 0; i < nitems(test_users); i++, test_num++) {
 		if (getpwnam(test_users[i]) == NULL)
-			printf("not ok %d # test_libugidfw_strings: getpwnam(%s) "
-			    "failed: %s\n", test_num, test_users[i], strerror(errno));
+			printf(
+			    "not ok %d # test_libugidfw_strings: getpwnam(%s) "
+			    "failed: %s\n",
+			    test_num, test_users[i], strerror(errno));
 		else
 			printf("ok %d\n", test_num);
 	}
 
 	for (i = 0; i < nitems(test_groups); i++, test_num++) {
 		if (getgrnam(test_groups[i]) == NULL)
-			printf("not ok %d # test_libugidfw_strings: getgrnam(%s) "
-			    "failed: %s\n", test_num, test_groups[i], strerror(errno));
+			printf(
+			    "not ok %d # test_libugidfw_strings: getgrnam(%s) "
+			    "failed: %s\n",
+			    test_num, test_groups[i], strerror(errno));
 		else
 			printf("ok %d\n", test_num);
 	}
@@ -171,7 +174,8 @@ test_libugidfw_strings(void)
 		    sizeof(errorstr), errorstr);
 		if (error == -1)
 			printf("not ok %d # bsde_parse_rule_string: '%s' (%zu) "
-			    "failed: %s\n", test_num, test_strings[i], i, errorstr);
+			       "failed: %s\n",
+			    test_num, test_strings[i], i, errorstr);
 		else
 			printf("ok %d\n", test_num);
 		test_num++;
@@ -179,14 +183,16 @@ test_libugidfw_strings(void)
 		error = bsde_rule_to_string(&rule, rulestr, sizeof(rulestr));
 		if (error < 0)
 			printf("not ok %d # bsde_rule_to_string: rule for '%s' "
-			    "returned %d\n", test_num, test_strings[i], error);
+			       "returned %d\n",
+			    test_num, test_strings[i], error);
 		else
 			printf("ok %d\n", test_num);
 		test_num++;
 
 		if (strcmp(test_strings[i], rulestr) != 0)
 			printf("not ok %d # test_libugidfw: '%s' in, '%s' "
-			    "out\n", test_num, test_strings[i], rulestr);
+			       "out\n",
+			    test_num, test_strings[i], rulestr);
 		else
 			printf("ok %d\n", test_num);
 		test_num++;
@@ -220,8 +226,9 @@ main(void)
 		return (0);
 	}
 
-	printf("1..%zu\n", nitems(test_users) + nitems(test_groups) +
-	    3 * nitems(test_strings) + 2);
+	printf("1..%zu\n",
+	    nitems(test_users) + nitems(test_groups) +
+		3 * nitems(test_strings) + 2);
 
 	test_libugidfw_strings();
 

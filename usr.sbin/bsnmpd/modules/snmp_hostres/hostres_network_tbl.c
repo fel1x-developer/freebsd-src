@@ -41,6 +41,7 @@
 #include <net/if_mib.h>
 
 #include <assert.h>
+#include <bsnmp/snmp_mibII.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -51,23 +52,20 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
-
-#include <bsnmp/snmp_mibII.h>
 
 /*
  * This structure is used to hold a SNMP table entry
  * for HOST-RESOURCES-MIB's hrNetworkTable
  */
 struct network_entry {
-	int32_t		index;
-	int32_t		ifIndex;
+	int32_t index;
+	int32_t ifIndex;
 	TAILQ_ENTRY(network_entry) link;
-#define	HR_NETWORK_FOUND		0x001
-	uint32_t	flags;
-
+#define HR_NETWORK_FOUND 0x001
+	uint32_t flags;
 };
 TAILQ_HEAD(network_tbl, network_entry);
 
@@ -111,7 +109,7 @@ network_entry_create(const struct device_entry *devEntry)
  * Delete an entry in the network table
  */
 static void
-network_entry_delete(struct network_entry* entry)
+network_entry_delete(struct network_entry *entry)
 {
 
 	TAILQ_REMOVE(&network_tbl, entry, link);
@@ -146,8 +144,10 @@ network_get_interfaces(void)
 		/* get the original name */
 		len = 0;
 		if (sysctl(name, 6, NULL, &len, 0, 0) < 0) {
-			syslog(LOG_ERR, "sysctl(net.link.ifdata.%d."
-			    "drivername): %m", ifp->sysindex);
+			syslog(LOG_ERR,
+			    "sysctl(net.link.ifdata.%d."
+			    "drivername): %m",
+			    ifp->sysindex);
 			continue;
 		}
 		if ((dname = malloc(len)) == NULL) {
@@ -155,8 +155,10 @@ network_get_interfaces(void)
 			continue;
 		}
 		if (sysctl(name, 6, dname, &len, 0, 0) < 0) {
-			syslog(LOG_ERR, "sysctl(net.link.ifdata.%d."
-			    "drivername): %m", ifp->sysindex);
+			syslog(LOG_ERR,
+			    "sysctl(net.link.ifdata.%d."
+			    "drivername): %m",
+			    ifp->sysindex);
 			free(dname);
 			continue;
 		}
@@ -176,7 +178,7 @@ network_get_interfaces(void)
 		free(dname);
 
 		/* Then check hrNetworkTable for this device */
-		TAILQ_FOREACH(net, &network_tbl, link)
+		TAILQ_FOREACH (net, &network_tbl, link)
 			if (net->index == dev->index)
 				break;
 
@@ -231,7 +233,7 @@ refresh_network_tbl(void)
 	}
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &network_tbl, link)
+	TAILQ_FOREACH (entry, &network_tbl, link)
 		entry->flags &= ~HR_NETWORK_FOUND;
 
 	network_get_interfaces();
@@ -239,7 +241,7 @@ refresh_network_tbl(void)
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(entry, &network_tbl, link, entry_tmp) {
+	TAILQ_FOREACH_SAFE (entry, &network_tbl, link, entry_tmp) {
 		if (!(entry->flags & HR_NETWORK_FOUND))
 			network_entry_delete(entry);
 	}
@@ -263,22 +265,22 @@ op_hrNetworkTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&network_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&network_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&network_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&network_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&network_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&network_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
@@ -288,13 +290,12 @@ op_hrNetworkTable(struct snmp_context *ctx __unused, struct snmp_value *value,
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrNetworkIfIndex:
 		value->v.integer = entry->ifIndex;
 		return (SNMP_ERR_NOERROR);
-
 	}
 	abort();
 }

@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_euctw.c,v 1.11 2008/06/14 16:01:07 tnozaki Exp $	*/
+/*	$NetBSD: citrus_euctw.c,v 1.11 2008/06/14 16:01:07 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -53,7 +54,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	$Citrus: xpg4dl/FreeBSD/lib/libc/locale/euctw.c,v 1.13 2001/06/21 01:51:44 yamt Exp $
+ *	$Citrus: xpg4dl/FreeBSD/lib/libc/locale/euctw.c,v 1.13 2001/06/21
+ *01:51:44 yamt Exp $
  */
 
 #include <sys/types.h>
@@ -67,38 +69,37 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_euctw.h"
-
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	int	 chlen;
-	char	 ch[4];
+	int chlen;
+	char ch[4];
 } _EUCTWState;
 
 typedef struct {
-	int	 dummy;
+	int dummy;
 } _EUCTWEncodingInfo;
 
-#define	_SS2	0x008e
-#define	_SS3	0x008f
+#define _SS2 0x008e
+#define _SS3 0x008f
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_EUCTW_##m
-#define _ENCODING_INFO			_EUCTWEncodingInfo
-#define _ENCODING_STATE			_EUCTWState
-#define _ENCODING_MB_CUR_MAX(_ei_)	4
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_EUCTW_##m
+#define _ENCODING_INFO _EUCTWEncodingInfo
+#define _ENCODING_STATE _EUCTWState
+#define _ENCODING_MB_CUR_MAX(_ei_) 4
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline int
 _citrus_EUCTW_cs(unsigned int c)
@@ -129,8 +130,8 @@ _citrus_EUCTW_count(int cs)
 
 static __inline void
 /*ARGSUSED*/
-_citrus_EUCTW_init_state(_EUCTWEncodingInfo * __restrict ei __unused,
-    _EUCTWState * __restrict s)
+_citrus_EUCTW_init_state(_EUCTWEncodingInfo *__restrict ei __unused,
+    _EUCTWState *__restrict s)
 {
 
 	memset(s, 0, sizeof(*s));
@@ -158,8 +159,8 @@ _citrus_EUCTW_unpack_state(_EUCTWEncodingInfo * __restrict ei __unused,
 
 static int
 /*ARGSUSED*/
-_citrus_EUCTW_encoding_module_init(_EUCTWEncodingInfo * __restrict ei,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_EUCTW_encoding_module_init(_EUCTWEncodingInfo *__restrict ei,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 
 	memset((void *)ei, 0, sizeof(*ei));
@@ -171,13 +172,12 @@ static void
 /*ARGSUSED*/
 _citrus_EUCTW_encoding_module_uninit(_EUCTWEncodingInfo *ei __unused)
 {
-
 }
 
 static int
-_citrus_EUCTW_mbrtowc_priv(_EUCTWEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s,
-    size_t n, _EUCTWState * __restrict psenc, size_t * __restrict nresult)
+_citrus_EUCTW_mbrtowc_priv(_EUCTWEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _EUCTWState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	wchar_t wchar;
@@ -267,9 +267,9 @@ restart:
 }
 
 static int
-_citrus_EUCTW_wcrtomb_priv(_EUCTWEncodingInfo * __restrict ei __unused,
-    char * __restrict s, size_t n, wchar_t wc,
-    _EUCTWState * __restrict psenc __unused, size_t * __restrict nresult)
+_citrus_EUCTW_wcrtomb_priv(_EUCTWEncodingInfo *__restrict ei __unused,
+    char *__restrict s, size_t n, wchar_t wc,
+    _EUCTWState *__restrict psenc __unused, size_t *__restrict nresult)
 {
 	wchar_t cs, v;
 	int clen, i, ret;
@@ -329,20 +329,20 @@ err:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUCTW_stdenc_wctocs(_EUCTWEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_EUCTW_stdenc_wctocs(_EUCTWEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = (_csid_t)(wc >> 24) & 0xFF;
-	*idx  = (_index_t)(wc & 0x7F7F);
+	*idx = (_index_t)(wc & 0x7F7F);
 
 	return (0);
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUCTW_stdenc_cstowc(_EUCTWEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_EUCTW_stdenc_cstowc(_EUCTWEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid == 0) {
@@ -360,12 +360,13 @@ _citrus_EUCTW_stdenc_cstowc(_EUCTWEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUCTW_stdenc_get_state_desc_generic(_EUCTWEncodingInfo * __restrict ei __unused,
-    _EUCTWState * __restrict psenc, int * __restrict rstate)
+_citrus_EUCTW_stdenc_get_state_desc_generic(
+    _EUCTWEncodingInfo *__restrict ei __unused, _EUCTWState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 

@@ -29,7 +29,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _SIBA_SIBAVAR_H_
@@ -41,9 +41,9 @@
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 
 #include "siba.h"
 
@@ -58,179 +58,182 @@ struct siba_devinfo;
 struct siba_core_id;
 struct siba_softc;
 
-int			 siba_probe(device_t dev);
-int			 siba_attach(device_t dev);
-int			 siba_detach(device_t dev);
-int			 siba_resume(device_t dev);
-int			 siba_suspend(device_t dev);
-u_int			 siba_get_intr_count(device_t dev, device_t child);
-int			 siba_get_intr_ivec(device_t dev, device_t child,
-			     u_int intr, u_int *ivec);
+int siba_probe(device_t dev);
+int siba_attach(device_t dev);
+int siba_detach(device_t dev);
+int siba_resume(device_t dev);
+int siba_suspend(device_t dev);
+u_int siba_get_intr_count(device_t dev, device_t child);
+int siba_get_intr_ivec(device_t dev, device_t child, u_int intr, u_int *ivec);
 
-uint16_t		 siba_get_bhnd_mfgid(uint16_t ocp_vendor);
+uint16_t siba_get_bhnd_mfgid(uint16_t ocp_vendor);
 
-int			 siba_add_children(device_t bus);
+int siba_add_children(device_t bus);
 
-struct siba_devinfo	*siba_alloc_dinfo(device_t dev);
-int			 siba_init_dinfo(device_t dev, device_t child,
-			     struct siba_devinfo *dinfo,
-			     const struct siba_core_id *core_id);
-void			 siba_free_dinfo(device_t dev, device_t child,
-			     struct siba_devinfo *dinfo);
+struct siba_devinfo *siba_alloc_dinfo(device_t dev);
+int siba_init_dinfo(device_t dev, device_t child, struct siba_devinfo *dinfo,
+    const struct siba_core_id *core_id);
+void siba_free_dinfo(device_t dev, device_t child, struct siba_devinfo *dinfo);
 
-u_int			 siba_port_count(struct siba_core_id *core_id,
-			     bhnd_port_type port_type);
-bool			 siba_is_port_valid(struct siba_core_id *core_id,
-			     bhnd_port_type port_type, u_int port);
+u_int siba_port_count(struct siba_core_id *core_id, bhnd_port_type port_type);
+bool siba_is_port_valid(struct siba_core_id *core_id, bhnd_port_type port_type,
+    u_int port);
 
-u_int			 siba_port_region_count(
-			     struct siba_core_id *core_id,
-			     bhnd_port_type port_type, u_int port);
+u_int siba_port_region_count(struct siba_core_id *core_id,
+    bhnd_port_type port_type, u_int port);
 
-int			 siba_cfg_index(struct siba_core_id *core_id,
-			     bhnd_port_type type, u_int port, u_int region,
-			     u_int *cfgidx);
+int siba_cfg_index(struct siba_core_id *core_id, bhnd_port_type type,
+    u_int port, u_int region, u_int *cfgidx);
 
-int			 siba_addrspace_index(struct siba_core_id *core_id,
-			     bhnd_port_type type, u_int port, u_int region,
-			     u_int *addridx);
+int siba_addrspace_index(struct siba_core_id *core_id, bhnd_port_type type,
+    u_int port, u_int region, u_int *addridx);
 
-u_int			 siba_addrspace_device_port(u_int addrspace);
-u_int			 siba_addrspace_device_region(u_int addrspace);
+u_int siba_addrspace_device_port(u_int addrspace);
+u_int siba_addrspace_device_region(u_int addrspace);
 
-u_int			 siba_cfg_agent_port(u_int cfg);
-u_int			 siba_cfg_agent_region(u_int cfg);
+u_int siba_cfg_agent_port(u_int cfg);
+u_int siba_cfg_agent_region(u_int cfg);
 
-struct siba_addrspace	*siba_find_addrspace(struct siba_devinfo *dinfo,
-			     bhnd_port_type type, u_int port, u_int region);
+struct siba_addrspace *siba_find_addrspace(struct siba_devinfo *dinfo,
+    bhnd_port_type type, u_int port, u_int region);
 
-struct siba_cfg_block	*siba_find_cfg_block(struct siba_devinfo *dinfo,
-			     bhnd_port_type type, u_int port, u_int region);
+struct siba_cfg_block *siba_find_cfg_block(struct siba_devinfo *dinfo,
+    bhnd_port_type type, u_int port, u_int region);
 
-u_int			 siba_admatch_offset(uint8_t addrspace);
-int			 siba_parse_admatch(uint32_t am,
-			    struct siba_admatch *admatch);
+u_int siba_admatch_offset(uint8_t addrspace);
+int siba_parse_admatch(uint32_t am, struct siba_admatch *admatch);
 
-void			 siba_write_target_state(device_t dev,
-			     struct siba_devinfo *dinfo, bus_size_t reg,
-			     uint32_t value, uint32_t mask);
-int			 siba_wait_target_state(device_t dev,
-			     struct siba_devinfo *dinfo, bus_size_t reg,
-			     uint32_t value, uint32_t mask, u_int usec);
+void siba_write_target_state(device_t dev, struct siba_devinfo *dinfo,
+    bus_size_t reg, uint32_t value, uint32_t mask);
+int siba_wait_target_state(device_t dev, struct siba_devinfo *dinfo,
+    bus_size_t reg, uint32_t value, uint32_t mask, u_int usec);
 
-							     
 /* Sonics configuration register blocks */
-#define	SIBA_CFG_NUM_2_2	1			/**< sonics <= 2.2 maps SIBA_CFG0. */
-#define	SIBA_CFG_NUM_2_3	2			/**< sonics <= 2.3 maps SIBA_CFG0 and SIBA_CFG1 */
-#define	SIBA_MAX_CFG		SIBA_CFG_NUM_2_3	/**< maximum number of supported config
-							     register blocks */
+#define SIBA_CFG_NUM_2_2 1 /**< sonics <= 2.2 maps SIBA_CFG0. */
+#define SIBA_CFG_NUM_2_3 2 /**< sonics <= 2.3 maps SIBA_CFG0 and SIBA_CFG1 */
+#define SIBA_MAX_CFG                                             \
+	SIBA_CFG_NUM_2_3 /**< maximum number of supported config \
+			      register blocks */
 
-#define	SIBA_CFG_RID_BASE	100			/**< base resource ID for SIBA_CFG* register allocations */
-#define	SIBA_CFG_RID(_dinfo, _cfg)	\
-	(SIBA_CFG_RID_BASE + (_cfg) +	\
+#define SIBA_CFG_RID_BASE \
+	100 /**< base resource ID for SIBA_CFG* register allocations */
+#define SIBA_CFG_RID(_dinfo, _cfg)    \
+	(SIBA_CFG_RID_BASE + (_cfg) + \
 	    (_dinfo->core_id.core_info.core_idx * SIBA_MAX_CFG))
 
 /* Sonics/OCP address space mappings */
-#define	SIBA_CORE_ADDRSPACE	0	/**< Address space mapping the primary
-					     device registers */
+#define SIBA_CORE_ADDRSPACE                      \
+	0 /**< Address space mapping the primary \
+	       device registers */
 
-#define	SIBA_MAX_ADDRSPACE	4	/**< Maximum number of Sonics/OCP
-					  *  address space mappings for a
-					  *  single core. */
+#define SIBA_MAX_ADDRSPACE                  \
+	4 /**< Maximum number of Sonics/OCP \
+	   *  address space mappings for a  \
+	   *  single core. */
 
 /* bhnd(4) (port,region) representation of siba address space mappings */
-#define	SIBA_MAX_PORT		2	/**< maximum number of advertised
-					  *  bhnd(4) ports */
+#define SIBA_MAX_PORT                       \
+	2 /**< maximum number of advertised \
+	   *  bhnd(4) ports */
 
 /** siba(4) address match descriptor */
 struct siba_admatch {
-	uint32_t	am_base;	/**< base address. */
-	uint32_t	am_size;	/**< size. */
-	bool		am_negative;	/**< if true, negative matching is performed. */
-	bool		am_enabled;	/**< if true, matching on this entry is enabled. */
+	uint32_t am_base; /**< base address. */
+	uint32_t am_size; /**< size. */
+	bool am_negative; /**< if true, negative matching is performed. */
+	bool am_enabled;  /**< if true, matching on this entry is enabled. */
 };
 
 /** siba(4) address space descriptor */
 struct siba_addrspace {
-	uint32_t	sa_base;	/**< base address */
-	uint32_t	sa_size;	/**< size */
-	int		sa_rid;		/**< bus resource id */
-	uint32_t	sa_bus_reserved;/**< number of bytes at high end of
-					  *  address space reserved for the bus */
+	uint32_t sa_base;	  /**< base address */
+	uint32_t sa_size;	  /**< size */
+	int sa_rid;		  /**< bus resource id */
+	uint32_t sa_bus_reserved; /**< number of bytes at high end of
+				   *  address space reserved for the bus */
 };
 
 /** siba(4) config block descriptor */
 struct siba_cfg_block {
-	uint32_t	cb_base;	/**< base address */
-	uint32_t	cb_size;	/**< size */
-	int		cb_rid;		/**< bus resource id */
+	uint32_t cb_base; /**< base address */
+	uint32_t cb_size; /**< size */
+	int cb_rid;	  /**< bus resource id */
 };
 
 /** siba(4) backplane interrupt flag descriptor */
 struct siba_intr {
-	bool		mapped;	/**< if an irq has been mapped */
-	int		rid;	/**< bus resource id, or -1 if unassigned */
-	rman_res_t	irq;	/**< the mapped bus irq, if any */
+	bool mapped;	/**< if an irq has been mapped */
+	int rid;	/**< bus resource id, or -1 if unassigned */
+	rman_res_t irq; /**< the mapped bus irq, if any */
 };
 
 /**
  * siba(4) per-core identification info.
  */
 struct siba_core_id {
-	struct bhnd_core_info	core_info;			/**< standard bhnd(4) core info */
-	uint16_t		sonics_vendor;			/**< OCP vendor identifier used to generate
-								  *  the JEDEC-106 bhnd(4) vendor identifier. */
-	uint8_t			sonics_rev;			/**< sonics backplane revision code */
-	bool			intr_en;			/**< if backplane interrupt distribution is enabled for this core */
-	u_int			intr_flag;			/**< backplane interrupt flag # */
-	struct siba_admatch	admatch[SIBA_MAX_ADDRSPACE];	/**< active address match descriptors defined by this core. */
-	uint8_t			num_admatch;			/**< number of address match descriptors. */
-	uint8_t			num_cfg_blocks;			/**< number of Sonics configuration register
-								     blocks mapped to the core's enumeration
-								     space */
+	struct bhnd_core_info core_info; /**< standard bhnd(4) core info */
+	uint16_t sonics_vendor; /**< OCP vendor identifier used to generate
+				 *  the JEDEC-106 bhnd(4) vendor identifier. */
+	uint8_t sonics_rev;	/**< sonics backplane revision code */
+	bool intr_en;	 /**< if backplane interrupt distribution is enabled for
+			    this core */
+	u_int intr_flag; /**< backplane interrupt flag # */
+	struct siba_admatch
+	    admatch[SIBA_MAX_ADDRSPACE]; /**< active address match descriptors
+					    defined by this core. */
+	uint8_t num_admatch;	/**< number of address match descriptors. */
+	uint8_t num_cfg_blocks; /**< number of Sonics configuration register
+				     blocks mapped to the core's enumeration
+				     space */
 };
 
 /**
  * siba(4) per-core PMU allocation state.
  */
 typedef enum {
-	SIBA_PMU_NONE,		/**< If the core has not yet allocated PMU state */
-	SIBA_PMU_BHND,		/**< If standard bhnd(4) PMU support should be used */
-	SIBA_PMU_PWRCTL,	/**< If legacy PWRCTL PMU support should be used */
-	SIBA_PMU_FIXED,		/**< If legacy fixed (no-op) PMU support should be used */
+	SIBA_PMU_NONE,	 /**< If the core has not yet allocated PMU state */
+	SIBA_PMU_BHND,	 /**< If standard bhnd(4) PMU support should be used */
+	SIBA_PMU_PWRCTL, /**< If legacy PWRCTL PMU support should be used */
+	SIBA_PMU_FIXED,	 /**< If legacy fixed (no-op) PMU support should be used
+			  */
 } siba_pmu_state;
 
 /**
  * siba(4) per-device info
  */
 struct siba_devinfo {
-	struct resource_list	 resources;			/**< per-core memory regions. */
-	struct siba_core_id	 core_id;			/**< core identification info */
-	struct siba_addrspace	 addrspace[SIBA_MAX_ADDRSPACE];	/**< memory map descriptors */
-	struct siba_cfg_block	 cfg[SIBA_MAX_CFG];		/**< config block descriptors */
-	struct siba_intr	 intr;				/**< interrupt flag mapping, if any */
+	struct resource_list resources; /**< per-core memory regions. */
+	struct siba_core_id core_id;	/**< core identification info */
+	struct siba_addrspace
+	    addrspace[SIBA_MAX_ADDRSPACE]; /**< memory map descriptors */
+	struct siba_cfg_block
+	    cfg[SIBA_MAX_CFG]; /**< config block descriptors */
+	struct siba_intr intr; /**< interrupt flag mapping, if any */
 
-	struct bhnd_resource	*cfg_res[SIBA_MAX_CFG];		/**< bus-mapped config block registers */
-	int			 cfg_rid[SIBA_MAX_CFG];		/**< bus-mapped config block resource IDs */
-	siba_pmu_state		 pmu_state;			/**< per-core PMU state */
+	struct bhnd_resource
+	    *cfg_res[SIBA_MAX_CFG]; /**< bus-mapped config block registers */
+	int cfg_rid[SIBA_MAX_CFG];  /**< bus-mapped config block resource IDs */
+	siba_pmu_state pmu_state;   /**< per-core PMU state */
 	union {
-		void		*bhnd_info;	/**< if SIBA_PMU_BHND, bhnd(4)-managed per-core PMU info. */
-		device_t	 pwrctl;	/**< if SIBA_PMU_PWRCTL, legacy PWRCTL provider. */
+		void *bhnd_info; /**< if SIBA_PMU_BHND, bhnd(4)-managed per-core
+				    PMU info. */
+		device_t
+		    pwrctl; /**< if SIBA_PMU_PWRCTL, legacy PWRCTL provider. */
 	} pmu;
 };
 
 /** siba(4) per-instance state */
 struct siba_softc {
-	struct bhnd_softc		bhnd_sc;	/**< bhnd state */
-	device_t			dev;		/**< siba device */
-	struct mtx			mtx;		/**< state mutex */
+	struct bhnd_softc bhnd_sc; /**< bhnd state */
+	device_t dev;		   /**< siba device */
+	struct mtx mtx;		   /**< state mutex */
 };
 
-#define	SIBA_LOCK_INIT(sc)	\
-    mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), NULL, MTX_DEF)
-#define	SIBA_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	SIBA_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	SIBA_LOCK_ASSERT(sc, what)	mtx_assert(&(sc)->mtx, what)
-#define	SIBA_LOCK_DESTROY(sc)		mtx_destroy(&(sc)->mtx)
+#define SIBA_LOCK_INIT(sc) \
+	mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), NULL, MTX_DEF)
+#define SIBA_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define SIBA_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define SIBA_LOCK_ASSERT(sc, what) mtx_assert(&(sc)->mtx, what)
+#define SIBA_LOCK_DESTROY(sc) mtx_destroy(&(sc)->mtx)
 
 #endif /* _SIBA_SIBAVAR_H_ */

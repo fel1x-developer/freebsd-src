@@ -41,11 +41,11 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
 
 #include <arm64/coresight/coresight.h>
 #include <arm64/coresight/coresight_funnel.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 static int
 funnel_acpi_probe(device_t dev)
@@ -57,16 +57,15 @@ funnel_acpi_probe(device_t dev)
 
 	sc = device_get_softc(dev);
 
-	error = ACPI_ID_PROBE(device_get_parent(dev), dev,
-	    static_funnel_ids, NULL);
+	error = ACPI_ID_PROBE(device_get_parent(dev), dev, static_funnel_ids,
+	    NULL);
 	if (error <= 0) {
 		sc->hwtype = HWTYPE_STATIC_FUNNEL;
 		device_set_desc(dev, "ARM Coresight Static Funnel");
 		return (error);
 	}
 
-	error = ACPI_ID_PROBE(device_get_parent(dev), dev,
-	    funnel_ids, NULL);
+	error = ACPI_ID_PROBE(device_get_parent(dev), dev, funnel_ids, NULL);
 	if (error <= 0) {
 		sc->hwtype = HWTYPE_FUNNEL;
 		device_set_desc(dev, "ARM Coresight Funnel");
@@ -89,8 +88,8 @@ funnel_acpi_attach(device_t dev)
 
 static device_method_t funnel_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			funnel_acpi_probe),
-	DEVMETHOD(device_attach,		funnel_acpi_attach),
+	DEVMETHOD(device_probe, funnel_acpi_probe),
+	DEVMETHOD(device_attach, funnel_acpi_attach),
 
 	/* End */
 	DEVMETHOD_END

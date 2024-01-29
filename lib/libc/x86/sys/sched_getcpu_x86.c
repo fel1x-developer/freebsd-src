@@ -27,12 +27,16 @@
  */
 
 #include <sys/param.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 #include <machine/sysarch.h>
+
 #include <x86/ifunc.h>
+
 #include <errno.h>
 #include <sched.h>
+
 #include "libc_private.h"
 
 static int
@@ -46,7 +50,7 @@ sched_getcpu_rdpid(void)
 {
 	register_t res;
 
-	__asm("rdpid	%0" : "=r" (res));
+	__asm("rdpid	%0" : "=r"(res));
 	return ((int)res);
 }
 
@@ -55,7 +59,7 @@ sched_getcpu_rdtscp(void)
 {
 	int res;
 
-	__asm("rdtscp" : "=c" (res) : : "eax", "edx");
+	__asm("rdtscp" : "=c"(res) : : "eax", "edx");
 	return (res);
 }
 
@@ -76,6 +80,6 @@ DEFINE_UIFUNC(, int, sched_getcpu, (void))
 		}
 	}
 
-	return ((amd_feature & AMDID_RDTSCP) == 0 ?
-	    sched_getcpu_sys : sched_getcpu_rdtscp);
+	return ((amd_feature & AMDID_RDTSCP) == 0 ? sched_getcpu_sys :
+						    sched_getcpu_rdtscp);
 }

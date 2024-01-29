@@ -27,23 +27,23 @@
  */
 
 #include <sys/cdefs.h>
-#include <errno.h>
-#include <string.h>
-#include <strings.h>
 
+#include <errno.h>
 #include <hast.h>
 #include <nv.h>
-#include <sha256.h>
-#include <zlib.h>
 #include <pjdlog.h>
+#include <sha256.h>
+#include <string.h>
+#include <strings.h>
+#include <zlib.h>
 
 #include "hast_checksum.h"
 
-#define	MAX_HASH_SIZE	SHA256_DIGEST_LENGTH
+#define MAX_HASH_SIZE SHA256_DIGEST_LENGTH
 
 static void
-hast_crc32_checksum(const unsigned char *data, size_t size,
-    unsigned char *hash, size_t *hsizep)
+hast_crc32_checksum(const unsigned char *data, size_t size, unsigned char *hash,
+    size_t *hsizep)
 {
 	uint32_t crc;
 
@@ -121,11 +121,11 @@ checksum_recv(const struct hast_resource *res __unused, struct nv *nv,
 
 	algo = nv_get_string(nv, "checksum");
 	if (algo == NULL)
-		return (0);	/* No checksum. */
+		return (0); /* No checksum. */
 	rhash = nv_get_uint8_array(nv, &rhsize, "hash");
 	if (rhash == NULL) {
 		pjdlog_error("Hash is missing.");
-		return (-1);	/* Hash not found. */
+		return (-1); /* Hash not found. */
 	}
 	if (strcmp(algo, "crc32") == 0)
 		hast_crc32_checksum(*datap, *sizep, chash, &chsize);
@@ -133,16 +133,16 @@ checksum_recv(const struct hast_resource *res __unused, struct nv *nv,
 		hast_sha256_checksum(*datap, *sizep, chash, &chsize);
 	else {
 		pjdlog_error("Unknown checksum algorithm '%s'.", algo);
-		return (-1);	/* Unknown checksum algorithm. */
+		return (-1); /* Unknown checksum algorithm. */
 	}
 	if (rhsize != chsize) {
 		pjdlog_error("Invalid hash size (%zu) for %s, should be %zu.",
 		    rhsize, algo, chsize);
-		return (-1);	/* Different hash size. */
+		return (-1); /* Different hash size. */
 	}
 	if (bcmp(rhash, chash, chsize) != 0) {
 		pjdlog_error("Hash mismatch.");
-		return (-1);	/* Hash mismatch. */
+		return (-1); /* Hash mismatch. */
 	}
 
 	return (0);

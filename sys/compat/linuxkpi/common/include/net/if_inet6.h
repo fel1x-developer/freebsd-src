@@ -27,9 +27,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _LINUXKPI_NET_IF_INET6_H_
-#define	_LINUXKPI_NET_IF_INET6_H_
+#define _LINUXKPI_NET_IF_INET6_H_
 
 #include <sys/types.h>
+
 #include <netinet/in.h>
 
 #include <asm/types.h>
@@ -38,18 +39,19 @@ struct inet6_dev {
 	/* XXX currently unused but in a declaration. */
 };
 
-static inline void ipv6_eth_mc_map(const struct in6_addr *addr, char *buf)
+static inline void
+ipv6_eth_mc_map(const struct in6_addr *addr, char *buf)
 {
-/*
- *      +-------+-------+-------+-------+-------+-------+
- *      |   33  |   33  | DST13 | DST14 | DST15 | DST16 |
- *      +-------+-------+-------+-------+-------+-------+
- */
+	/*
+	 *      +-------+-------+-------+-------+-------+-------+
+	 *      |   33  |   33  | DST13 | DST14 | DST15 | DST16 |
+	 *      +-------+-------+-------+-------+-------+-------+
+	 */
 
-	buf[0]= 0x33;
-	buf[1]= 0x33;
+	buf[0] = 0x33;
+	buf[1] = 0x33;
 
 	memcpy(buf + 2, &addr->s6_addr32[3], sizeof(__u32));
 }
 
-#endif	/* _LINUXKPI_NET_IF_INET6_H_ */
+#endif /* _LINUXKPI_NET_IF_INET6_H_ */

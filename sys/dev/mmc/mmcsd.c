@@ -72,9 +72,6 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <geom/geom.h>
-#include <geom/geom_disk.h>
-
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmc_ioctl.h>
 #include <dev/mmc/mmc_subr.h>
@@ -82,16 +79,19 @@
 #include <dev/mmc/mmcreg.h>
 #include <dev/mmc/mmcvar.h>
 
+#include <geom/geom.h>
+#include <geom/geom_disk.h>
+
 #include "mmcbus_if.h"
 
-#define	MMCSD_CMD_RETRIES	5
+#define MMCSD_CMD_RETRIES 5
 
-#define	MMCSD_FMT_BOOT		"mmcsd%dboot"
-#define	MMCSD_FMT_GP		"mmcsd%dgp"
-#define	MMCSD_FMT_RPMB		"mmcsd%drpmb"
-#define	MMCSD_LABEL_ENH		"enh"
+#define MMCSD_FMT_BOOT "mmcsd%dboot"
+#define MMCSD_FMT_GP "mmcsd%dgp"
+#define MMCSD_FMT_RPMB "mmcsd%drpmb"
+#define MMCSD_LABEL_ENH "enh"
 
-#define	MMCSD_PART_NAMELEN	(16 + 1)
+#define MMCSD_PART_NAMELEN (16 + 1)
 
 struct mmcsd_softc;
 
@@ -102,7 +102,7 @@ struct mmcsd_part {
 	struct disk *disk;
 	struct proc *p;
 	struct bio_queue_head bio_queue;
-	daddr_t eblock, eend;	/* Range remaining after the last erase. */
+	daddr_t eblock, eend; /* Range remaining after the last erase. */
 	u_int cnt;
 	u_int type;
 	int running;
@@ -117,36 +117,28 @@ struct mmcsd_softc {
 	device_t mmcbus;
 	struct mmcsd_part *part[MMC_PART_MAX];
 	enum mmc_card_mode mode;
-	u_int max_data;		/* Maximum data size [blocks] */
-	u_int erase_sector;	/* Device native erase sector size [blocks] */
-	uint8_t	high_cap;	/* High Capacity device (block addressed) */
-	uint8_t part_curr;	/* Partition currently switched to */
+	u_int max_data;	    /* Maximum data size [blocks] */
+	u_int erase_sector; /* Device native erase sector size [blocks] */
+	uint8_t high_cap;   /* High Capacity device (block addressed) */
+	uint8_t part_curr;  /* Partition currently switched to */
 	uint8_t ext_csd[MMC_EXTCSD_SIZE];
 	uint16_t rca;
 	uint32_t flags;
-#define	MMCSD_INAND_CMD38	0x0001
-#define	MMCSD_USE_TRIM		0x0002
-#define	MMCSD_FLUSH_CACHE	0x0004
-#define	MMCSD_DIRTY		0x0008
-	uint32_t cmd6_time;	/* Generic switch timeout [us] */
-	uint32_t part_time;	/* Partition switch timeout [us] */
-	off_t enh_base;		/* Enhanced user data area slice base ... */
-	off_t enh_size;		/* ... and size [bytes] */
+#define MMCSD_INAND_CMD38 0x0001
+#define MMCSD_USE_TRIM 0x0002
+#define MMCSD_FLUSH_CACHE 0x0004
+#define MMCSD_DIRTY 0x0008
+	uint32_t cmd6_time; /* Generic switch timeout [us] */
+	uint32_t part_time; /* Partition switch timeout [us] */
+	off_t enh_base;	    /* Enhanced user data area slice base ... */
+	off_t enh_size;	    /* ... and size [bytes] */
 	int log_count;
 	struct timeval log_time;
 	struct cdev *rpmb_dev;
 };
 
-static const char *errmsg[] =
-{
-	"None",
-	"Timeout",
-	"Bad CRC",
-	"Fifo",
-	"Failed",
-	"Invalid",
-	"NO MEMORY"
-};
+static const char *errmsg[] = { "None", "Timeout", "Bad CRC", "Fifo", "Failed",
+	"Invalid", "NO MEMORY" };
 
 static SYSCTL_NODE(_hw, OID_AUTO, mmcsd, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "mmcsd driver");
@@ -155,7 +147,7 @@ static int mmcsd_cache = 1;
 SYSCTL_INT(_hw_mmcsd, OID_AUTO, cache, CTLFLAG_RDTUN, &mmcsd_cache, 0,
     "Device R/W cache enabled if present");
 
-#define	LOG_PPS		5 /* Log no more than 5 errors per second. */
+#define LOG_PPS 5 /* Log no more than 5 errors per second. */
 
 /* bus entry points */
 static int mmcsd_attach(device_t dev);
@@ -176,8 +168,8 @@ static void mmcsd_task(void *arg);
 static int mmcsd_ioctl_rpmb(struct cdev *dev, u_long cmd, caddr_t data,
     int fflag, struct thread *td);
 
-static void mmcsd_add_part(struct mmcsd_softc *sc, u_int type,
-    const char *name, u_int cnt, off_t media_size, bool ro);
+static void mmcsd_add_part(struct mmcsd_softc *sc, u_int type, const char *name,
+    u_int cnt, off_t media_size, bool ro);
 static int mmcsd_bus_bit_width(device_t dev);
 static daddr_t mmcsd_delete(struct mmcsd_part *part, struct bio *bp);
 static const char *mmcsd_errmsg(int e);
@@ -194,24 +186,24 @@ static int mmcsd_slicer(device_t dev, const char *provider,
 static int mmcsd_switch_part(device_t bus, device_t dev, uint16_t rca,
     u_int part);
 
-#define	MMCSD_DISK_LOCK(_part)		mtx_lock(&(_part)->disk_mtx)
-#define	MMCSD_DISK_UNLOCK(_part)	mtx_unlock(&(_part)->disk_mtx)
-#define	MMCSD_DISK_LOCK_INIT(_part)					\
+#define MMCSD_DISK_LOCK(_part) mtx_lock(&(_part)->disk_mtx)
+#define MMCSD_DISK_UNLOCK(_part) mtx_unlock(&(_part)->disk_mtx)
+#define MMCSD_DISK_LOCK_INIT(_part) \
 	mtx_init(&(_part)->disk_mtx, (_part)->name, "mmcsd disk", MTX_DEF)
-#define	MMCSD_DISK_LOCK_DESTROY(_part)	mtx_destroy(&(_part)->disk_mtx);
-#define	MMCSD_DISK_ASSERT_LOCKED(_part)					\
+#define MMCSD_DISK_LOCK_DESTROY(_part) mtx_destroy(&(_part)->disk_mtx);
+#define MMCSD_DISK_ASSERT_LOCKED(_part) \
 	mtx_assert(&(_part)->disk_mtx, MA_OWNED);
-#define	MMCSD_DISK_ASSERT_UNLOCKED(_part)				\
+#define MMCSD_DISK_ASSERT_UNLOCKED(_part) \
 	mtx_assert(&(_part)->disk_mtx, MA_NOTOWNED);
 
-#define	MMCSD_IOCTL_LOCK(_part)		mtx_lock(&(_part)->ioctl_mtx)
-#define	MMCSD_IOCTL_UNLOCK(_part)	mtx_unlock(&(_part)->ioctl_mtx)
-#define	MMCSD_IOCTL_LOCK_INIT(_part)					\
+#define MMCSD_IOCTL_LOCK(_part) mtx_lock(&(_part)->ioctl_mtx)
+#define MMCSD_IOCTL_UNLOCK(_part) mtx_unlock(&(_part)->ioctl_mtx)
+#define MMCSD_IOCTL_LOCK_INIT(_part) \
 	mtx_init(&(_part)->ioctl_mtx, (_part)->name, "mmcsd IOCTL", MTX_DEF)
-#define	MMCSD_IOCTL_LOCK_DESTROY(_part)	mtx_destroy(&(_part)->ioctl_mtx);
-#define	MMCSD_IOCTL_ASSERT_LOCKED(_part)				\
+#define MMCSD_IOCTL_LOCK_DESTROY(_part) mtx_destroy(&(_part)->ioctl_mtx);
+#define MMCSD_IOCTL_ASSERT_LOCKED(_part) \
 	mtx_assert(&(_part)->ioctl_mtx, MA_OWNED);
-#define	MMCSD_IOCLT_ASSERT_UNLOCKED(_part)				\
+#define MMCSD_IOCLT_ASSERT_UNLOCKED(_part) \
 	mtx_assert(&(_part)->ioctl_mtx, MA_NOTOWNED);
 
 static int
@@ -283,7 +275,7 @@ mmcsd_attach(device_t dev)
 	 * insecure and secure TRIM.
 	 */
 	if ((ext_csd[EXT_CSD_SEC_FEATURE_SUPPORT] &
-	    EXT_CSD_SEC_FEATURE_SUPPORT_GB_CL_EN) != 0 &&
+		EXT_CSD_SEC_FEATURE_SUPPORT_GB_CL_EN) != 0 &&
 	    (quirks & MMC_QUIRK_BROKEN_TRIM) == 0) {
 		if (bootverbose)
 			device_printf(dev, "taking advantage of TRIM\n");
@@ -343,7 +335,7 @@ mmcsd_attach(device_t dev)
 	    (ext_csd[EXT_CSD_ENH_SIZE_MULT + 2] << 16);
 	if (rev >= 4 && comp == TRUE && size > 0 &&
 	    (ext_csd[EXT_CSD_PART_SUPPORT] &
-	    EXT_CSD_PART_SUPPORT_ENH_ATTR_EN) != 0 &&
+		EXT_CSD_PART_SUPPORT_ENH_ATTR_EN) != 0 &&
 	    (ext_csd[EXT_CSD_PART_ATTR] & (EXT_CSD_PART_ATTR_ENH_USR)) != 0) {
 		erase_size = ext_csd[EXT_CSD_ERASE_GRP_SIZE] * 1024 *
 		    MMC_SECTOR_SIZE;
@@ -351,8 +343,8 @@ mmcsd_attach(device_t dev)
 		size *= erase_size * wp_size;
 		if (size != mmc_get_media_size(dev) * sector_size) {
 			sc->enh_size = size;
-			sc->enh_base =
-			    le32dec(&ext_csd[EXT_CSD_ENH_START_ADDR]) *
+			sc->enh_base = le32dec(
+					   &ext_csd[EXT_CSD_ENH_START_ADDR]) *
 			    (sc->high_cap == 0 ? MMC_SECTOR_SIZE : 1);
 		} else if (bootverbose)
 			device_printf(dev,
@@ -374,9 +366,9 @@ mmcsd_attach(device_t dev)
 	if (sc->enh_size != 0) {
 		bytes = mmcsd_pretty_size(size, unit);
 		printf(FLASH_SLICES_FMT ": %ju%sB enhanced user data area "
-		    "slice offset 0x%jx at %s\n", device_get_nameunit(dev),
-		    MMCSD_LABEL_ENH, bytes, unit, (uintmax_t)sc->enh_base,
-		    device_get_nameunit(dev));
+					"slice offset 0x%jx at %s\n",
+		    device_get_nameunit(dev), MMCSD_LABEL_ENH, bytes, unit,
+		    (uintmax_t)sc->enh_base, device_get_nameunit(dev));
 	}
 
 	/*
@@ -391,19 +383,21 @@ mmcsd_attach(device_t dev)
 	if (size > 0 && (mmcbr_get_caps(mmcbus) & MMC_CAP_BOOT_NOACC) == 0) {
 		mmcsd_add_part(sc, EXT_CSD_PART_CONFIG_ACC_BOOT0,
 		    MMCSD_FMT_BOOT, 0, size,
-		    ro | ((ext_csd[EXT_CSD_BOOT_WP_STATUS] &
-		    EXT_CSD_BOOT_WP_STATUS_BOOT0_MASK) != 0));
+		    ro |
+			((ext_csd[EXT_CSD_BOOT_WP_STATUS] &
+			     EXT_CSD_BOOT_WP_STATUS_BOOT0_MASK) != 0));
 		mmcsd_add_part(sc, EXT_CSD_PART_CONFIG_ACC_BOOT1,
 		    MMCSD_FMT_BOOT, 1, size,
-		    ro | ((ext_csd[EXT_CSD_BOOT_WP_STATUS] &
-		    EXT_CSD_BOOT_WP_STATUS_BOOT1_MASK) != 0));
+		    ro |
+			((ext_csd[EXT_CSD_BOOT_WP_STATUS] &
+			     EXT_CSD_BOOT_WP_STATUS_BOOT1_MASK) != 0));
 	}
 
 	/* Add RPMB partition, which also is of a fixed multiple of 128 KB. */
 	size = ext_csd[EXT_CSD_RPMB_MULT] * MMC_BOOT_RPMB_BLOCK_SIZE;
 	if (rev >= 5 && size > 0)
-		mmcsd_add_part(sc, EXT_CSD_PART_CONFIG_ACC_RPMB,
-		    MMCSD_FMT_RPMB, 0, size, ro);
+		mmcsd_add_part(sc, EXT_CSD_PART_CONFIG_ACC_RPMB, MMCSD_FMT_RPMB,
+		    0, size, ro);
 
 	if (rev <= 3 || comp == FALSE)
 		return (0);
@@ -468,11 +462,9 @@ mmcsd_pretty_size(off_t size, char *unit)
 	return (bytes);
 }
 
-static struct cdevsw mmcsd_rpmb_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_name		= "mmcsdrpmb",
-	.d_ioctl	= mmcsd_ioctl_rpmb
-};
+static struct cdevsw mmcsd_rpmb_cdevsw = { .d_version = D_VERSION,
+	.d_name = "mmcsdrpmb",
+	.d_ioctl = mmcsd_ioctl_rpmb };
 
 static void
 mmcsd_add_part(struct mmcsd_softc *sc, u_int type, const char *name, u_int cnt,
@@ -579,45 +571,47 @@ mmcsd_add_part(struct mmcsd_softc *sc, u_int type, const char *name, u_int cnt,
 			ext_csd = sc->ext_csd;
 			gp = type - EXT_CSD_PART_CONFIG_ACC_GP0;
 			if ((ext_csd[EXT_CSD_PART_SUPPORT] &
-			    EXT_CSD_PART_SUPPORT_ENH_ATTR_EN) != 0 &&
+				EXT_CSD_PART_SUPPORT_ENH_ATTR_EN) != 0 &&
 			    (ext_csd[EXT_CSD_PART_ATTR] &
-			    (EXT_CSD_PART_ATTR_ENH_GP0 << gp)) != 0)
+				(EXT_CSD_PART_ATTR_ENH_GP0 << gp)) != 0)
 				enh = true;
 			else if ((ext_csd[EXT_CSD_PART_SUPPORT] &
-			    EXT_CSD_PART_SUPPORT_EXT_ATTR_EN) != 0) {
+				     EXT_CSD_PART_SUPPORT_EXT_ATTR_EN) != 0) {
 				extattr = (ext_csd[EXT_CSD_EXT_PART_ATTR +
-				    (gp / 2)] >> (4 * (gp % 2))) & 0xF;
+					       (gp / 2)] >>
+					      (4 * (gp % 2))) &
+				    0xF;
 				switch (extattr) {
-					case EXT_CSD_EXT_PART_ATTR_DEFAULT:
-						break;
-					case EXT_CSD_EXT_PART_ATTR_SYSTEMCODE:
-						ext = "system code";
-						break;
-					case EXT_CSD_EXT_PART_ATTR_NPERSISTENT:
-						ext = "non-persistent";
-						break;
-					default:
-						ext = "reserved";
-						break;
+				case EXT_CSD_EXT_PART_ATTR_DEFAULT:
+					break;
+				case EXT_CSD_EXT_PART_ATTR_SYSTEMCODE:
+					ext = "system code";
+					break;
+				case EXT_CSD_EXT_PART_ATTR_NPERSISTENT:
+					ext = "non-persistent";
+					break;
+				default:
+					ext = "reserved";
+					break;
 				}
 			}
 		}
 		if (ext == NULL)
 			printf("%s%d: %ju%sB partition %d%s%s at %s\n",
-			    part->name, cnt, bytes, unit, type, enh ?
-			    " enhanced" : "", ro ? " (read-only)" : "",
+			    part->name, cnt, bytes, unit, type,
+			    enh ? " enhanced" : "", ro ? " (read-only)" : "",
 			    device_get_nameunit(dev));
 		else
 			printf("%s%d: %ju%sB partition %d extended 0x%x "
-			    "(%s)%s at %s\n", part->name, cnt, bytes, unit,
-			    type, extattr, ext, ro ? " (read-only)" : "",
-			    device_get_nameunit(dev));
+			       "(%s)%s at %s\n",
+			    part->name, cnt, bytes, unit, type, extattr, ext,
+			    ro ? " (read-only)" : "", device_get_nameunit(dev));
 	}
 }
 
 static int
-mmcsd_slicer(device_t dev, const char *provider,
-    struct flash_slice *slices, int *nslices)
+mmcsd_slicer(device_t dev, const char *provider, struct flash_slice *slices,
+    int *nslices)
 {
 	char name[MMCSD_PART_NAMELEN];
 	struct mmcsd_softc *sc;
@@ -808,8 +802,8 @@ mmcsd_strategy(struct bio *bp)
 }
 
 static int
-mmcsd_ioctl_rpmb(struct cdev *dev, u_long cmd, caddr_t data,
-    int fflag, struct thread *td)
+mmcsd_ioctl_rpmb(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 
 	return (mmcsd_ioctl(dev->si_drv1, cmd, data, fflag, td));
@@ -929,7 +923,7 @@ mmcsd_ioctl_cmd(struct mmcsd_part *part, struct mmc_ioc_cmd *mic, int fflag)
 		data.len = len;
 		data.data = dp;
 		data.flags = mic->write_flag != 0 ? MMC_DATA_WRITE :
-		    MMC_DATA_READ;
+						    MMC_DATA_READ;
 		cmd.data = &data;
 	}
 	sc = part->sc;
@@ -963,7 +957,7 @@ mmcsd_ioctl_cmd(struct mmcsd_part *part, struct mmc_ioc_cmd *mic, int fflag)
 		 */
 		if (cmd.opcode == MMC_SWITCH_FUNC && dp != NULL &&
 		    (((uint8_t *)dp)[EXT_CSD_PART_CONFIG] &
-		    EXT_CSD_PART_CONFIG_ACC_MASK) != part->type) {
+			EXT_CSD_PART_CONFIG_ACC_MASK) != part->type) {
 			err = EINVAL;
 			goto out;
 		}
@@ -1108,7 +1102,7 @@ mmcsd_switch_part(device_t bus, device_t dev, uint16_t rca, u_int part)
 {
 	struct mmcsd_softc *sc;
 	int err;
-	uint8_t	value;
+	uint8_t value;
 
 	sc = device_get_softc(dev);
 
@@ -1132,7 +1126,8 @@ mmcsd_switch_part(device_t bus, device_t dev, uint16_t rca, u_int part)
 		return (MMC_ERR_NONE);
 
 	value = (sc->ext_csd[EXT_CSD_PART_CONFIG] &
-	    ~EXT_CSD_PART_CONFIG_ACC_MASK) | part;
+		    ~EXT_CSD_PART_CONFIG_ACC_MASK) |
+	    part;
 	/* Jump! */
 	err = mmc_switch(bus, dev, rca, EXT_CSD_CMD_SET_NORMAL,
 	    EXT_CSD_PART_CONFIG, value, sc->part_time, true);
@@ -1222,7 +1217,7 @@ mmcsd_rw(struct mmcsd_part *part, struct bio *bp)
 		MMCBUS_WAIT_FOR_REQUEST(mmcbus, dev, &req);
 		if (req.cmd->error != MMC_ERR_NONE) {
 			if (ppsratecheck(&sc->log_time, &sc->log_count,
-			    LOG_PPS))
+				LOG_PPS))
 				device_printf(dev, "Error indicated: %d %s\n",
 				    req.cmd->error,
 				    mmcsd_errmsg(req.cmd->error));
@@ -1264,9 +1259,9 @@ mmcsd_delete(struct mmcsd_part *part, struct bio *bp)
 			end = part->eend;
 		/* Safely round to the erase sector boundaries. */
 		erase_sector = sc->erase_sector;
-		start = block + erase_sector - 1;	 /* Round up. */
+		start = block + erase_sector - 1; /* Round up. */
 		start -= start % erase_sector;
-		stop = end;				/* Round down. */
+		stop = end; /* Round down. */
 		stop -= end % erase_sector;
 		/*
 		 * We can't erase an area smaller than an erase sector, so
@@ -1281,8 +1276,9 @@ mmcsd_delete(struct mmcsd_part *part, struct bio *bp)
 
 	if ((sc->flags & MMCSD_INAND_CMD38) != 0) {
 		err = mmc_switch(mmcbus, dev, sc->rca, EXT_CSD_CMD_SET_NORMAL,
-		    EXT_CSD_INAND_CMD38, use_trim == true ?
-		    EXT_CSD_INAND_CMD38_TRIM : EXT_CSD_INAND_CMD38_ERASE,
+		    EXT_CSD_INAND_CMD38,
+		    use_trim == true ? EXT_CSD_INAND_CMD38_TRIM :
+				       EXT_CSD_INAND_CMD38_ERASE,
 		    sc->cmd6_time, true);
 		if (err != MMC_ERR_NONE) {
 			device_printf(dev,
@@ -1355,10 +1351,10 @@ mmcsd_delete(struct mmcsd_part *part, struct bio *bp)
 	if (use_trim == false) {
 		/* Store one of the remaining parts for the next call. */
 		if (bp->bio_pblkno >= part->eblock || block == start) {
-			part->eblock = stop;	/* Predict next forward. */
+			part->eblock = stop; /* Predict next forward. */
 			part->eend = end;
 		} else {
-			part->eblock = block;	/* Predict next backward. */
+			part->eblock = block; /* Predict next backward. */
 			part->eend = start;
 		}
 	}
@@ -1463,7 +1459,7 @@ mmcsd_task(void *arg)
 		err = mmcsd_switch_part(mmcbus, dev, sc->rca, part->type);
 		if (err != MMC_ERR_NONE) {
 			if (ppsratecheck(&sc->log_time, &sc->log_count,
-			    LOG_PPS))
+				LOG_PPS))
 				device_printf(dev, "Partition switch error\n");
 			goto release;
 		}
@@ -1476,7 +1472,7 @@ mmcsd_task(void *arg)
 			block = mmcsd_delete(part, bp);
 		else
 			bio_error = EOPNOTSUPP;
-release:
+	release:
 		MMCBUS_RELEASE_BUS(mmcbus, dev);
 		if (block < end) {
 			bp->bio_error = (bio_error == 0) ? EIO : bio_error;
@@ -1530,15 +1526,12 @@ mmcsd_flush_cache(struct mmcsd_softc *sc)
 	return (err);
 }
 
-static device_method_t mmcsd_methods[] = {
-	DEVMETHOD(device_probe, mmcsd_probe),
+static device_method_t mmcsd_methods[] = { DEVMETHOD(device_probe, mmcsd_probe),
 	DEVMETHOD(device_attach, mmcsd_attach),
 	DEVMETHOD(device_detach, mmcsd_detach),
 	DEVMETHOD(device_shutdown, mmcsd_shutdown),
 	DEVMETHOD(device_suspend, mmcsd_suspend),
-	DEVMETHOD(device_resume, mmcsd_resume),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_resume, mmcsd_resume), DEVMETHOD_END };
 
 static driver_t mmcsd_driver = {
 	"mmcsd",

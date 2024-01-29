@@ -75,18 +75,18 @@ sinl(long double x)
 
 	switch (e0 & 3) {
 	case 0:
-	    hi = __kernel_sinl(hi, lo, 1);
-	    break;
+		hi = __kernel_sinl(hi, lo, 1);
+		break;
 	case 1:
-	    hi = __kernel_cosl(hi, lo);
-	    break;
+		hi = __kernel_cosl(hi, lo);
+		break;
 	case 2:
-	    hi = - __kernel_sinl(hi, lo, 1);
-	    break;
+		hi = -__kernel_sinl(hi, lo, 1);
+		break;
 	case 3:
-	    hi = - __kernel_cosl(hi, lo);
-	    break;
+		hi = -__kernel_cosl(hi, lo);
+		break;
 	}
-	
+
 	RETURNI(hi);
 }

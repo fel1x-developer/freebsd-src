@@ -48,50 +48,50 @@
  * reset again after that to function, except as directed by ioctl() calls.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbdi_util.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usbdi.h>
+#include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR uftdi_debug
+#define USB_DEBUG_VAR uftdi_debug
+#include <dev/usb/serial/uftdi_reg.h>
+#include <dev/usb/serial/usb_serial.h>
+#include <dev/usb/uftdiio.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
-#include <dev/usb/serial/uftdi_reg.h>
-#include <dev/usb/uftdiio.h>
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uftdi, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uftdi");
 
 #ifdef USB_DEBUG
 static int uftdi_debug = 0;
-SYSCTL_INT(_hw_usb_uftdi, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uftdi_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_uftdi, OID_AUTO, debug, CTLFLAG_RWTUN, &uftdi_debug, 0,
+    "Debug level");
 #endif
 
-#define	UFTDI_CONFIG_INDEX	0
+#define UFTDI_CONFIG_INDEX 0
 
 /*
  * IO buffer sizes and FTDI device procotol sizes.
@@ -117,10 +117,10 @@ SYSCTL_INT(_hw_usb_uftdi, OID_AUTO, debug, CTLFLAG_RWTUN,
  * high speed).  We loop to extract the headers and payloads from the packets
  * packed into an input buffer.
  */
-#define	UFTDI_IBUFSIZE	2048
-#define	UFTDI_IHDRSIZE	   2
-#define	UFTDI_OBUFSIZE	2048
-#define	UFTDI_OPKTSIZE	  64
+#define UFTDI_IBUFSIZE 2048
+#define UFTDI_IHDRSIZE 2
+#define UFTDI_OBUFSIZE 2048
+#define UFTDI_OPKTSIZE 64
 
 enum {
 	UFTDI_BULK_DT_WR,
@@ -132,7 +132,7 @@ enum {
 	DEVT_SIO,
 	DEVT_232A,
 	DEVT_232B,
-	DEVT_2232D,	/* Includes 2232C */
+	DEVT_2232D, /* Includes 2232C */
 	DEVT_232R,
 	DEVT_2232H,
 	DEVT_4232H,
@@ -140,8 +140,8 @@ enum {
 	DEVT_230X,
 };
 
-#define	DEVF_BAUDBITS_HINDEX	0x01	/* Baud bits in high byte of index. */
-#define	DEVF_BAUDCLK_12M	0X02	/* Base baud clock is 12MHz. */
+#define DEVF_BAUDBITS_HINDEX 0x01 /* Baud bits in high byte of index. */
+#define DEVF_BAUDCLK_12M 0X02	  /* Base baud clock is 12MHz. */
 
 struct uftdi_softc {
 	struct ucom_super_softc sc_super_ucom;
@@ -159,9 +159,9 @@ struct uftdi_softc {
 
 	uint8_t sc_devtype;
 	uint8_t sc_devflags;
-	uint8_t	sc_hdrlen;
-	uint8_t	sc_msr;
-	uint8_t	sc_lsr;
+	uint8_t sc_hdrlen;
+	uint8_t sc_msr;
+	uint8_t sc_lsr;
 	uint8_t sc_bitmode;
 };
 
@@ -169,9 +169,9 @@ struct uftdi_param_config {
 	uint16_t baud_lobits;
 	uint16_t baud_hibits;
 	uint16_t lcr;
-	uint8_t	v_start;
-	uint8_t	v_stop;
-	uint8_t	v_flow;
+	uint8_t v_start;
+	uint8_t v_stop;
+	uint8_t v_flow;
 };
 
 /* prototypes */
@@ -184,32 +184,31 @@ static void uftdi_free_softc(struct uftdi_softc *);
 static usb_callback_t uftdi_write_callback;
 static usb_callback_t uftdi_read_callback;
 
-static void	uftdi_free(struct ucom_softc *);
-static void	uftdi_cfg_open(struct ucom_softc *);
-static void	uftdi_cfg_close(struct ucom_softc *);
-static void	uftdi_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	uftdi_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	uftdi_cfg_set_break(struct ucom_softc *, uint8_t);
-static int	uftdi_set_parm_soft(struct ucom_softc *, struct termios *,
-		    struct uftdi_param_config *);
-static int	uftdi_pre_param(struct ucom_softc *, struct termios *);
-static void	uftdi_cfg_param(struct ucom_softc *, struct termios *);
-static void	uftdi_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static int	uftdi_reset(struct ucom_softc *, int);
-static int	uftdi_set_bitmode(struct ucom_softc *, uint8_t, uint8_t);
-static int	uftdi_get_bitmode(struct ucom_softc *, uint8_t *, uint8_t *);
-static int	uftdi_set_latency(struct ucom_softc *, int);
-static int	uftdi_get_latency(struct ucom_softc *, int *);
-static int	uftdi_set_event_char(struct ucom_softc *, int);
-static int	uftdi_set_error_char(struct ucom_softc *, int);
-static int	uftdi_ioctl(struct ucom_softc *, uint32_t, caddr_t, int,
-		    struct thread *);
-static void	uftdi_start_read(struct ucom_softc *);
-static void	uftdi_stop_read(struct ucom_softc *);
-static void	uftdi_start_write(struct ucom_softc *);
-static void	uftdi_stop_write(struct ucom_softc *);
-static void	uftdi_poll(struct ucom_softc *ucom);
+static void uftdi_free(struct ucom_softc *);
+static void uftdi_cfg_open(struct ucom_softc *);
+static void uftdi_cfg_close(struct ucom_softc *);
+static void uftdi_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void uftdi_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void uftdi_cfg_set_break(struct ucom_softc *, uint8_t);
+static int uftdi_set_parm_soft(struct ucom_softc *, struct termios *,
+    struct uftdi_param_config *);
+static int uftdi_pre_param(struct ucom_softc *, struct termios *);
+static void uftdi_cfg_param(struct ucom_softc *, struct termios *);
+static void uftdi_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static int uftdi_reset(struct ucom_softc *, int);
+static int uftdi_set_bitmode(struct ucom_softc *, uint8_t, uint8_t);
+static int uftdi_get_bitmode(struct ucom_softc *, uint8_t *, uint8_t *);
+static int uftdi_set_latency(struct ucom_softc *, int);
+static int uftdi_get_latency(struct ucom_softc *, int *);
+static int uftdi_set_event_char(struct ucom_softc *, int);
+static int uftdi_set_error_char(struct ucom_softc *, int);
+static int uftdi_ioctl(struct ucom_softc *, uint32_t, caddr_t, int,
+    struct thread *);
+static void uftdi_start_read(struct ucom_softc *);
+static void uftdi_stop_read(struct ucom_softc *);
+static void uftdi_start_write(struct ucom_softc *);
+static void uftdi_stop_write(struct ucom_softc *);
+static void uftdi_poll(struct ucom_softc *ucom);
 
 static const struct usb_config uftdi_config[UFTDI_N_TRANSFER] = {
 	[UFTDI_BULK_DT_WR] = {
@@ -253,8 +252,7 @@ static device_method_t uftdi_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, uftdi_probe),
 	DEVMETHOD(device_attach, uftdi_attach),
-	DEVMETHOD(device_detach, uftdi_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_detach, uftdi_detach), DEVMETHOD_END
 };
 
 static driver_t uftdi_driver = {
@@ -264,8 +262,10 @@ static driver_t uftdi_driver = {
 };
 
 static const STRUCT_USB_HOST_ID uftdi_devs[] = {
-#define	UFTDI_DEV(v, p, i) \
-  { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
+#define UFTDI_DEV(v, p, i)                                        \
+	{                                                         \
+		USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) \
+	}
 	UFTDI_DEV(ACTON, SPECTRAPRO, 0),
 	UFTDI_DEV(ALTI2, N3, 0),
 	UFTDI_DEV(ANALOGDEVICES, GNICE, UFTDI_JTAG_IFACE(0)),
@@ -927,11 +927,11 @@ USB_PNP_HOST_INFO(uftdi_devs);
  * beginning and end of each product name string in table.
  */
 static const struct jtag_by_name {
-	const char *	product_name;
-	uint32_t	jtag_interfaces;
+	const char *product_name;
+	uint32_t jtag_interfaces;
 } jtag_products_by_name[] = {
-        /* TI Beaglebone and TI XDS100Vn jtag product line. */
-	{"XDS100V",	UFTDI_JTAG_IFACE(0)},
+	/* TI Beaglebone and TI XDS100Vn jtag product line. */
+	{ "XDS100V", UFTDI_JTAG_IFACE(0) },
 };
 
 /*
@@ -946,7 +946,7 @@ static boolean_t
 is_jtag_interface(struct usb_attach_arg *uaa, const struct usb_device_id *id)
 {
 	int i, iface_bit;
-	const char * product_name;
+	const char *product_name;
 	const struct jtag_by_name *jbn;
 
 	/* We only allocate 8 flag bits for jtag interface flags. */
@@ -980,9 +980,9 @@ is_jtag_interface(struct usb_attach_arg *uaa, const struct usb_device_id *id)
  * silicon the difference is that the D series has CPU FIFO mode and C doesn't.
  * I haven't found any way of determining the C/D difference from info provided
  * by the chip other than trying to set CPU FIFO mode and having it work or not.
- * 
- * Due to a hardware bug, a 232B chip without an eeprom reports itself as a 
- * 232A, but if the serial number is also zero we know it's really a 232B. 
+ *
+ * Due to a hardware bug, a 232B chip without an eeprom reports itself as a
+ * 232A, but if the serial number is also zero we know it's really a 232B.
  */
 static void
 uftdi_devtype_setup(struct uftdi_softc *sc, struct usb_attach_arg *uaa)
@@ -1040,8 +1040,9 @@ uftdi_devtype_setup(struct uftdi_softc *sc, struct usb_attach_arg *uaa)
 			sc->sc_hdrlen = 1;
 		} else {
 			sc->sc_devtype = DEVT_232R;
-			device_printf(sc->sc_dev, "Warning: unknown FTDI "
-			    "device type, bcdDevice=0x%04x, assuming 232R\n", 
+			device_printf(sc->sc_dev,
+			    "Warning: unknown FTDI "
+			    "device type, bcdDevice=0x%04x, assuming 232R\n",
 			    uaa->info.bcdDevice);
 		}
 		sc->sc_ucom.sc_portno = 0;
@@ -1066,14 +1067,12 @@ uftdi_probe(device_t dev)
 	 * Attach to all present interfaces unless this is a JTAG one, which
 	 * we leave for userland.
 	 */
-	id = usbd_lookup_id_by_info(uftdi_devs, sizeof(uftdi_devs),
-	    &uaa->info);
+	id = usbd_lookup_id_by_info(uftdi_devs, sizeof(uftdi_devs), &uaa->info);
 	if (id == NULL)
 		return (ENXIO);
 	if (skip_jtag_interfaces && is_jtag_interface(uaa, id)) {
 		printf("%s: skipping JTAG interface #%d for '%s' at %u.%u\n",
-		    device_get_name(dev),
-		    uaa->info.bIfaceIndex,
+		    device_get_name(dev), uaa->info.bIfaceIndex,
 		    usb_get_product(uaa->device),
 		    usbd_get_bus_index(uaa->device),
 		    usbd_get_device_index(uaa->device));
@@ -1103,12 +1102,12 @@ uftdi_attach(device_t dev)
 
 	uftdi_devtype_setup(sc, uaa);
 
-	error = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, uftdi_config,
-	    UFTDI_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &uaa->info.bIfaceIndex,
+	    sc->sc_xfer, uftdi_config, UFTDI_N_TRANSFER, sc, &sc->sc_mtx);
 
 	if (error) {
-		device_printf(dev, "allocating USB "
+		device_printf(dev,
+		    "allocating USB "
 		    "transfers failed\n");
 		goto detach;
 	}
@@ -1120,10 +1119,8 @@ uftdi_attach(device_t dev)
 
 	/* set a valid "lcr" value */
 
-	sc->sc_last_lcr =
-	    (FTDI_SIO_SET_DATA_STOP_BITS_2 |
-	    FTDI_SIO_SET_DATA_PARITY_NONE |
-	    FTDI_SIO_SET_DATA_BITS(8));
+	sc->sc_last_lcr = (FTDI_SIO_SET_DATA_STOP_BITS_2 |
+	    FTDI_SIO_SET_DATA_PARITY_NONE | FTDI_SIO_SET_DATA_BITS(8));
 
 	/* Indicate tx bits in sc_lsr can be used to determine busy vs idle. */
 	ucom_use_lsr_txbits(&sc->sc_ucom);
@@ -1135,7 +1132,7 @@ uftdi_attach(device_t dev)
 	}
 	ucom_set_pnpinfo_usb(&sc->sc_super_ucom, dev);
 
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	uftdi_detach(dev);
@@ -1212,7 +1209,7 @@ uftdi_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		/*
 		 * If output packets don't require headers (the common case) we
 		 * can just load the buffer up with payload bytes all at once.
@@ -1227,16 +1224,16 @@ tr_setup:
 		 */
 		pc = usbd_xfer_get_frame(xfer, 0);
 		if (sc->sc_hdrlen == 0) {
-			if (ucom_get_data(&sc->sc_ucom, pc, 0, UFTDI_OBUFSIZE, 
-			    &buflen) == 0)
+			if (ucom_get_data(&sc->sc_ucom, pc, 0, UFTDI_OBUFSIZE,
+				&buflen) == 0)
 				break;
 		} else {
 			buflen = 0;
 			while (buflen < UFTDI_OBUFSIZE - sc->sc_hdrlen - 1 &&
-			    ucom_get_data(&sc->sc_ucom, pc, buflen + 
-			    sc->sc_hdrlen, UFTDI_OPKTSIZE - sc->sc_hdrlen, 
-			    &pktlen) != 0) {
-				buf[0] = FTDI_OUT_TAG(pktlen, 
+			    ucom_get_data(&sc->sc_ucom, pc,
+				buflen + sc->sc_hdrlen,
+				UFTDI_OPKTSIZE - sc->sc_hdrlen, &pktlen) != 0) {
+				buf[0] = FTDI_OUT_TAG(pktlen,
 				    sc->sc_ucom.sc_portno);
 				usbd_copy_in(pc, buflen, buf, 1);
 				buflen += pktlen + sc->sc_hdrlen;
@@ -1247,7 +1244,7 @@ tr_setup:
 			usbd_transfer_submit(xfer);
 		}
 		break;
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -1305,8 +1302,7 @@ uftdi_read_callback(struct usb_xfer *xfer, usb_error_t error)
 				msr |= SER_RI;
 			pktlen = min(buflen, pktmax);
 			if (pktlen != 0) {
-				ucom_put_data(&sc->sc_ucom, pc, offset, 
-				    pktlen);
+				ucom_put_data(&sc->sc_ucom, pc, offset, pktlen);
 				offset += pktlen;
 				buflen -= pktlen;
 			}
@@ -1324,8 +1320,8 @@ uftdi_read_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		if (sc->sc_msr != msr || sc->sc_lsr != lsr) {
 			DPRINTF("status change msr=0x%02x (0x%02x) "
-			    "lsr=0x%02x (0x%02x)\n", msr, sc->sc_msr,
-			    lsr, sc->sc_lsr);
+				"lsr=0x%02x (0x%02x)\n",
+			    msr, sc->sc_msr, lsr, sc->sc_lsr);
 
 			sc->sc_msr = msr;
 			sc->sc_lsr = lsr;
@@ -1334,12 +1330,12 @@ uftdi_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -1366,8 +1362,7 @@ uftdi_cfg_set_dtr(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wValue, wValue);
 	USETW(req.wIndex, wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -1387,8 +1382,7 @@ uftdi_cfg_set_rts(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wValue, wValue);
 	USETW(req.wIndex, wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -1414,8 +1408,7 @@ uftdi_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 	USETW(req.wValue, wValue);
 	USETW(req.wIndex, wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 /*
@@ -1425,18 +1418,17 @@ uftdi_cfg_set_break(struct ucom_softc *ucom, uint8_t onoff)
 static inline boolean_t
 uftdi_baud_within_tolerance(uint64_t speed, uint64_t target)
 {
-	return ((speed >= (target * 100) / 103) &&
-	    (speed <= (target * 100) / 97));
+	return (
+	    (speed >= (target * 100) / 103) && (speed <= (target * 100) / 97));
 }
 
 static int
 uftdi_sio_encode_baudrate(struct uftdi_softc *sc, speed_t speed,
-	struct uftdi_param_config *cfg)
+    struct uftdi_param_config *cfg)
 {
 	u_int i;
-	const speed_t sio_speeds[] = {
-		300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200
-	};
+	const speed_t sio_speeds[] = { 300, 600, 1200, 2400, 4800, 9600, 19200,
+		38400, 57600, 115200 };
 
 	/*
 	 * The original SIO chips were limited to a small choice of speeds
@@ -1454,12 +1446,26 @@ uftdi_sio_encode_baudrate(struct uftdi_softc *sc, speed_t speed,
 
 static int
 uftdi_encode_baudrate(struct uftdi_softc *sc, speed_t speed,
-	struct uftdi_param_config *cfg)
+    struct uftdi_param_config *cfg)
 {
-	static const uint8_t encoded_fraction[8] = {0, 3, 2, 4, 1, 5, 6, 7};
+	static const uint8_t encoded_fraction[8] = { 0, 3, 2, 4, 1, 5, 6, 7 };
 	static const uint8_t roundoff_232a[16] = {
-		0,  1,  0,  1,  0, -1,  2,  1,
-		0, -1, -2, -3,  4,  3,  2,  1,
+		0,
+		1,
+		0,
+		1,
+		0,
+		-1,
+		2,
+		1,
+		0,
+		-1,
+		-2,
+		-3,
+		4,
+		3,
+		2,
+		1,
 	};
 	uint32_t clk, divisor, fastclk_flag, frac, hwspeed;
 
@@ -1510,7 +1516,7 @@ uftdi_encode_baudrate(struct uftdi_softc *sc, speed_t speed,
 	else if (sc->sc_devtype == DEVT_232A)
 		divisor += roundoff_232a[divisor & 0x0f];
 	else
-		divisor += 1;  /* Rounds odd 16ths up to next 8th. */
+		divisor += 1; /* Rounds odd 16ths up to next 8th. */
 	divisor >>= 1;
 
 	/*
@@ -1538,12 +1544,12 @@ uftdi_encode_baudrate(struct uftdi_softc *sc, speed_t speed,
 	divisor >>= 3;
 	if (divisor == 1) {
 		if (frac == 0)
-			divisor = 0;  /* 1.0 becomes 0.0 */
+			divisor = 0; /* 1.0 becomes 0.0 */
 		else
-			frac = 0;     /* 1.5 becomes 1.0 */
+			frac = 0; /* 1.5 becomes 1.0 */
 	}
 	divisor |= (encoded_fraction[frac] << 14) | fastclk_flag;
-        
+
 	cfg->baud_lobits = (uint16_t)divisor;
 	cfg->baud_hibits = (uint16_t)(divisor >> 16);
 
@@ -1651,24 +1657,21 @@ uftdi_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	USETW(req.wValue, cfg.baud_lobits);
 	USETW(req.wIndex, cfg.baud_hibits | wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 
 	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
 	req.bRequest = FTDI_SIO_SET_DATA;
 	USETW(req.wValue, cfg.lcr);
 	USETW(req.wIndex, wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 
 	req.bmRequestType = UT_WRITE_VENDOR_DEVICE;
 	req.bRequest = FTDI_SIO_SET_FLOW_CTRL;
 	USETW2(req.wValue, cfg.v_stop, cfg.v_start);
 	USETW2(req.wIndex, cfg.v_flow, wIndex);
 	USETW(req.wLength, 0);
-	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0, 1000);
 }
 
 static void
@@ -1716,9 +1719,9 @@ uftdi_set_bitmode(struct ucom_softc *ucom, uint8_t bitmode, uint8_t iomask)
 	USETW(req.wLength, 0);
 
 	if (bitmode == UFTDI_BITMODE_NONE)
-	    USETW2(req.wValue, 0, 0);
+		USETW2(req.wValue, 0, 0);
 	else
-	    USETW2(req.wValue, (1 << bitmode), iomask);
+		USETW2(req.wValue, (1 << bitmode), iomask);
 
 	rv = usbd_do_request(sc->sc_udev, &sc->sc_mtx, &req, NULL);
 	if (rv == USB_ERR_NORMAL_COMPLETION)
@@ -1740,7 +1743,7 @@ uftdi_get_bitmode(struct ucom_softc *ucom, uint8_t *bitmode, uint8_t *iomask)
 
 	USETW(req.wIndex, sc->sc_ucom.sc_portno);
 	USETW(req.wLength, 1);
-	USETW(req.wValue,  0);
+	USETW(req.wValue, 0);
 
 	*bitmode = sc->sc_bitmode;
 	return (usbd_do_request(sc->sc_udev, &sc->sc_mtx, &req, iomask));
@@ -1915,21 +1918,22 @@ uftdi_erase_eeprom(struct ucom_softc *ucom, int confirmation)
 }
 
 static int
-uftdi_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data,
-    int flag, struct thread *td)
+uftdi_ioctl(struct ucom_softc *ucom, uint32_t cmd, caddr_t data, int flag,
+    struct thread *td)
 {
 	struct uftdi_softc *sc = ucom->sc_parent;
 	int err;
-	struct uftdi_bitmode * mode;
+	struct uftdi_bitmode *mode;
 
 	switch (cmd) {
 	case UFTDIIOC_RESET_IO:
 	case UFTDIIOC_RESET_RX:
 	case UFTDIIOC_RESET_TX:
-		err = uftdi_reset(ucom, 
-		    cmd == UFTDIIOC_RESET_IO ? FTDI_SIO_RESET_SIO :
-		    (cmd == UFTDIIOC_RESET_RX ? FTDI_SIO_RESET_PURGE_RX :
-		    FTDI_SIO_RESET_PURGE_TX));
+		err = uftdi_reset(ucom,
+		    cmd == UFTDIIOC_RESET_IO ?
+			FTDI_SIO_RESET_SIO :
+			(cmd == UFTDIIOC_RESET_RX ? FTDI_SIO_RESET_PURGE_RX :
+						    FTDI_SIO_RESET_PURGE_TX));
 		break;
 	case UFTDIIOC_SET_BITMODE:
 		mode = (struct uftdi_bitmode *)data;

@@ -52,7 +52,7 @@
  */
 
 #ifndef DEV_MMC_BRIDGE_H
-#define	DEV_MMC_BRIDGE_H
+#define DEV_MMC_BRIDGE_H
 
 #include <sys/bus.h>
 
@@ -81,48 +81,63 @@
  * states and the bus width.
  */
 enum mmc_vdd {
-	vdd_150 = 0, vdd_155, vdd_160, vdd_165, vdd_170, vdd_180,
-	vdd_190, vdd_200, vdd_210, vdd_220, vdd_230, vdd_240, vdd_250,
-	vdd_260, vdd_270, vdd_280, vdd_290, vdd_300, vdd_310, vdd_320,
-	vdd_330, vdd_340, vdd_350, vdd_360
+	vdd_150 = 0,
+	vdd_155,
+	vdd_160,
+	vdd_165,
+	vdd_170,
+	vdd_180,
+	vdd_190,
+	vdd_200,
+	vdd_210,
+	vdd_220,
+	vdd_230,
+	vdd_240,
+	vdd_250,
+	vdd_260,
+	vdd_270,
+	vdd_280,
+	vdd_290,
+	vdd_300,
+	vdd_310,
+	vdd_320,
+	vdd_330,
+	vdd_340,
+	vdd_350,
+	vdd_360
 };
 
-enum mmc_vccq {
-	vccq_120 = 0, vccq_180, vccq_330
-};
+enum mmc_vccq { vccq_120 = 0, vccq_180, vccq_330 };
 
-enum mmc_power_mode {
-	power_off = 0, power_up, power_on
-};
+enum mmc_power_mode { power_off = 0, power_up, power_on };
 
-enum mmc_bus_mode {
-	opendrain = 1, pushpull
-};
+enum mmc_bus_mode { opendrain = 1, pushpull };
 
-enum mmc_chip_select {
-	cs_dontcare = 0, cs_high, cs_low
-};
+enum mmc_chip_select { cs_dontcare = 0, cs_high, cs_low };
 
-enum mmc_bus_width {
-	bus_width_1 = 0, bus_width_4 = 2, bus_width_8 = 3
-};
+enum mmc_bus_width { bus_width_1 = 0, bus_width_4 = 2, bus_width_8 = 3 };
 
-enum mmc_drv_type {
-	drv_type_b = 0, drv_type_a, drv_type_c, drv_type_d
-};
+enum mmc_drv_type { drv_type_b = 0, drv_type_a, drv_type_c, drv_type_d };
 
 enum mmc_bus_timing {
-	bus_timing_normal = 0, bus_timing_hs, bus_timing_uhs_sdr12,
-	bus_timing_uhs_sdr25, bus_timing_uhs_sdr50, bus_timing_uhs_ddr50,
-	bus_timing_uhs_sdr104, bus_timing_mmc_ddr52, bus_timing_mmc_hs200,
-	bus_timing_mmc_hs400, bus_timing_mmc_hs400es, bus_timing_max =
-	bus_timing_mmc_hs400es
+	bus_timing_normal = 0,
+	bus_timing_hs,
+	bus_timing_uhs_sdr12,
+	bus_timing_uhs_sdr25,
+	bus_timing_uhs_sdr50,
+	bus_timing_uhs_ddr50,
+	bus_timing_uhs_sdr104,
+	bus_timing_mmc_ddr52,
+	bus_timing_mmc_hs200,
+	bus_timing_mmc_hs400,
+	bus_timing_mmc_hs400es,
+	bus_timing_max = bus_timing_mmc_hs400es
 };
 
 struct mmc_ios {
-	uint32_t	clock;	/* Speed of the clock in Hz to move data */
-	enum mmc_vdd	vdd;	/* Voltage to apply to the power pins */
-	enum mmc_vccq	vccq;	/* Voltage to use for signaling */
+	uint32_t clock;	    /* Speed of the clock in Hz to move data */
+	enum mmc_vdd vdd;   /* Voltage to apply to the power pins */
+	enum mmc_vccq vccq; /* Voltage to use for signaling */
 	enum mmc_bus_mode bus_mode;
 	enum mmc_chip_select chip_select;
 	enum mmc_bus_width bus_width;
@@ -131,12 +146,12 @@ struct mmc_ios {
 	enum mmc_drv_type drv_type;
 };
 
-enum mmc_card_mode {
-	mode_mmc, mode_sd
-};
+enum mmc_card_mode { mode_mmc, mode_sd };
 
 enum mmc_retune_req {
-	retune_req_none = 0, retune_req_normal, retune_req_reset
+	retune_req_none = 0,
+	retune_req_normal,
+	retune_req_reset
 };
 
 struct mmc_host {
@@ -145,47 +160,47 @@ struct mmc_host {
 	uint32_t host_ocr;
 	uint32_t ocr;
 	uint32_t caps;
-#define	MMC_CAP_4_BIT_DATA	(1 <<  0) /* Can do 4-bit data transfers */
-#define	MMC_CAP_8_BIT_DATA	(1 <<  1) /* Can do 8-bit data transfers */
-#define	MMC_CAP_HSPEED		(1 <<  2) /* Can do High Speed transfers */
-#define	MMC_CAP_BOOT_NOACC	(1 <<  4) /* Cannot access boot partitions */
-#define	MMC_CAP_WAIT_WHILE_BUSY	(1 <<  5) /* Host waits for busy responses */
-#define	MMC_CAP_UHS_SDR12	(1 <<  6) /* Can do UHS SDR12 */
-#define	MMC_CAP_UHS_SDR25	(1 <<  7) /* Can do UHS SDR25 */
-#define	MMC_CAP_UHS_SDR50	(1 <<  8) /* Can do UHS SDR50 */
-#define	MMC_CAP_UHS_SDR104	(1 <<  9) /* Can do UHS SDR104 */
-#define	MMC_CAP_UHS_DDR50	(1 << 10) /* Can do UHS DDR50 */
-#define	MMC_CAP_MMC_DDR52_120	(1 << 11) /* Can do eMMC DDR52 at 1.2 V */
-#define	MMC_CAP_MMC_DDR52_180	(1 << 12) /* Can do eMMC DDR52 at 1.8 V */
-#define	MMC_CAP_MMC_DDR52	(MMC_CAP_MMC_DDR52_120 | MMC_CAP_MMC_DDR52_180)
-#define	MMC_CAP_MMC_HS200_120	(1 << 13) /* Can do eMMC HS200 at 1.2 V */
-#define	MMC_CAP_MMC_HS200_180	(1 << 14) /* Can do eMMC HS200 at 1.8 V */
-#define	MMC_CAP_MMC_HS200	(MMC_CAP_MMC_HS200_120| MMC_CAP_MMC_HS200_180)
-#define	MMC_CAP_MMC_HS400_120	(1 << 15) /* Can do eMMC HS400 at 1.2 V */
-#define	MMC_CAP_MMC_HS400_180	(1 << 16) /* Can do eMMC HS400 at 1.8 V */
-#define	MMC_CAP_MMC_HS400	(MMC_CAP_MMC_HS400_120 | MMC_CAP_MMC_HS400_180)
-#define	MMC_CAP_MMC_HSX00_120	(MMC_CAP_MMC_HS200_120 | MMC_CAP_MMC_HS400_120)
-#define	MMC_CAP_MMC_ENH_STROBE	(1 << 17) /* Can do eMMC Enhanced Strobe */
-#define	MMC_CAP_SIGNALING_120	(1 << 18) /* Can do signaling at 1.2 V */
-#define	MMC_CAP_SIGNALING_180	(1 << 19) /* Can do signaling at 1.8 V */
-#define	MMC_CAP_SIGNALING_330	(1 << 20) /* Can do signaling at 3.3 V */
-#define	MMC_CAP_DRIVER_TYPE_A	(1 << 21) /* Can do Driver Type A */
-#define	MMC_CAP_DRIVER_TYPE_C	(1 << 22) /* Can do Driver Type C */
-#define	MMC_CAP_DRIVER_TYPE_D	(1 << 23) /* Can do Driver Type D */
+#define MMC_CAP_4_BIT_DATA (1 << 0)	 /* Can do 4-bit data transfers */
+#define MMC_CAP_8_BIT_DATA (1 << 1)	 /* Can do 8-bit data transfers */
+#define MMC_CAP_HSPEED (1 << 2)		 /* Can do High Speed transfers */
+#define MMC_CAP_BOOT_NOACC (1 << 4)	 /* Cannot access boot partitions */
+#define MMC_CAP_WAIT_WHILE_BUSY (1 << 5) /* Host waits for busy responses */
+#define MMC_CAP_UHS_SDR12 (1 << 6)	 /* Can do UHS SDR12 */
+#define MMC_CAP_UHS_SDR25 (1 << 7)	 /* Can do UHS SDR25 */
+#define MMC_CAP_UHS_SDR50 (1 << 8)	 /* Can do UHS SDR50 */
+#define MMC_CAP_UHS_SDR104 (1 << 9)	 /* Can do UHS SDR104 */
+#define MMC_CAP_UHS_DDR50 (1 << 10)	 /* Can do UHS DDR50 */
+#define MMC_CAP_MMC_DDR52_120 (1 << 11)	 /* Can do eMMC DDR52 at 1.2 V */
+#define MMC_CAP_MMC_DDR52_180 (1 << 12)	 /* Can do eMMC DDR52 at 1.8 V */
+#define MMC_CAP_MMC_DDR52 (MMC_CAP_MMC_DDR52_120 | MMC_CAP_MMC_DDR52_180)
+#define MMC_CAP_MMC_HS200_120 (1 << 13) /* Can do eMMC HS200 at 1.2 V */
+#define MMC_CAP_MMC_HS200_180 (1 << 14) /* Can do eMMC HS200 at 1.8 V */
+#define MMC_CAP_MMC_HS200 (MMC_CAP_MMC_HS200_120 | MMC_CAP_MMC_HS200_180)
+#define MMC_CAP_MMC_HS400_120 (1 << 15) /* Can do eMMC HS400 at 1.2 V */
+#define MMC_CAP_MMC_HS400_180 (1 << 16) /* Can do eMMC HS400 at 1.8 V */
+#define MMC_CAP_MMC_HS400 (MMC_CAP_MMC_HS400_120 | MMC_CAP_MMC_HS400_180)
+#define MMC_CAP_MMC_HSX00_120 (MMC_CAP_MMC_HS200_120 | MMC_CAP_MMC_HS400_120)
+#define MMC_CAP_MMC_ENH_STROBE (1 << 17) /* Can do eMMC Enhanced Strobe */
+#define MMC_CAP_SIGNALING_120 (1 << 18)	 /* Can do signaling at 1.2 V */
+#define MMC_CAP_SIGNALING_180 (1 << 19)	 /* Can do signaling at 1.8 V */
+#define MMC_CAP_SIGNALING_330 (1 << 20)	 /* Can do signaling at 3.3 V */
+#define MMC_CAP_DRIVER_TYPE_A (1 << 21)	 /* Can do Driver Type A */
+#define MMC_CAP_DRIVER_TYPE_C (1 << 22)	 /* Can do Driver Type C */
+#define MMC_CAP_DRIVER_TYPE_D (1 << 23)	 /* Can do Driver Type D */
 	enum mmc_card_mode mode;
-	struct mmc_ios ios;	/* Current state of the host */
+	struct mmc_ios ios; /* Current state of the host */
 };
 
 #ifdef _KERNEL
-extern driver_t   mmc_driver;
+extern driver_t mmc_driver;
 
-#define	MMC_VERSION	5
+#define MMC_VERSION 5
 
-#define	MMC_DECLARE_BRIDGE(name)					\
-    DRIVER_MODULE(mmc, name, mmc_driver, NULL, NULL);			\
-    MODULE_DEPEND(name, mmc, MMC_VERSION, MMC_VERSION, MMC_VERSION);
-#define	MMC_DEPEND(name)						\
-    MODULE_DEPEND(name, mmc, MMC_VERSION, MMC_VERSION, MMC_VERSION);
+#define MMC_DECLARE_BRIDGE(name)                          \
+	DRIVER_MODULE(mmc, name, mmc_driver, NULL, NULL); \
+	MODULE_DEPEND(name, mmc, MMC_VERSION, MMC_VERSION, MMC_VERSION);
+#define MMC_DEPEND(name) \
+	MODULE_DEPEND(name, mmc, MMC_VERSION, MMC_VERSION, MMC_VERSION);
 #endif /* _KERNEL */
 
 #endif /* DEV_MMC_BRIDGE_H */

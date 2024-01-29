@@ -60,24 +60,18 @@
 #ifndef _SATI_WRITE_LONG_H_
 #define _SATI_WRITE_LONG_H_
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
 #define SATI_WRITE_LONG_GET_COR_WR_PB_BITS(cdb) \
-   (( sati_get_cdb_byte(cdb, 1) &  0xE0) \
-    >> 5)
+	((sati_get_cdb_byte(cdb, 1) & 0xE0) >> 5)
 
+SATI_STATUS
+sati_write_long_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_write_long_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
-
-SATI_STATUS sati_write_long_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_write_long_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 #endif // _SATI_WRITE_LONG_H_

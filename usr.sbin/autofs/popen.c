@@ -44,12 +44,12 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <paths.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <paths.h>
+#include <unistd.h>
 
 #include "common.h"
 
@@ -63,7 +63,7 @@ struct pid {
 };
 static SLIST_HEAD(, pid) pidlist = SLIST_HEAD_INITIALIZER(pidlist);
 
-#define	ARGV_LEN	42
+#define ARGV_LEN 42
 
 /*
  * Replacement for popen(3), without stdin (which we do not use), but with
@@ -110,10 +110,10 @@ auto_popen(const char *argv0, ...)
 	cur->command = checked_strdup(command);
 
 	switch (pid = fork()) {
-	case -1:			/* Error. */
+	case -1: /* Error. */
 		log_err(1, "fork");
 		/* NOTREACHED */
-	case 0:				/* Child. */
+	case 0: /* Child. */
 		dup2(nullfd, STDIN_FILENO);
 		dup2(outfds[1], STDOUT_FILENO);
 
@@ -121,7 +121,7 @@ auto_popen(const char *argv0, ...)
 		close(outfds[0]);
 		close(outfds[1]);
 
-		SLIST_FOREACH(p, &pidlist, next)
+		SLIST_FOREACH (p, &pidlist, next)
 			close(fileno(p->outfp));
 		execvp(argv[0], argv);
 		log_err(1, "failed to execute %s", argv[0]);
@@ -152,7 +152,7 @@ auto_pclose(FILE *iop)
 	/*
 	 * Find the appropriate file pointer and remove it from the list.
 	 */
-	SLIST_FOREACH(cur, &pidlist, next) {
+	SLIST_FOREACH (cur, &pidlist, next) {
 		if (cur->outfp == iop)
 			break;
 		last = cur;

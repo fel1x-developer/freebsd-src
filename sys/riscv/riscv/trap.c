@@ -32,16 +32,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/bus.h>
 #include <sys/proc.h>
 #include <sys/ptrace.h>
 #include <sys/syscall.h>
@@ -52,26 +52,25 @@
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_map.h>
 #include <vm/vm_param.h>
-#include <vm/vm_extern.h>
 
 #include <machine/fpe.h>
 #include <machine/frame.h>
+#include <machine/intr.h>
 #include <machine/pcb.h>
 #include <machine/pcpu.h>
-
 #include <machine/resource.h>
-#include <machine/intr.h>
 
 #ifdef KDTRACE_HOOKS
 #include <sys/dtrace_bsd.h>
 #endif
 
 #ifdef DDB
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
 
 void intr_irq_handler(struct trapframe *tf);
@@ -110,7 +109,8 @@ cpu_fetch_syscall_args(struct thread *td)
 	sa->code = td->td_frame->tf_t[0];
 	sa->original_code = sa->code;
 
-	if (__predict_false(sa->code == SYS_syscall || sa->code == SYS___syscall)) {
+	if (__predict_false(
+		sa->code == SYS_syscall || sa->code == SYS___syscall)) {
 		sa->code = *ap++;
 	} else {
 		*dst_ap++ = *ap++;
@@ -231,7 +231,7 @@ page_fault_handler(struct trapframe *frame, int usermode)
 
 	if (td->td_critnest != 0 || td->td_intr_nesting_level != 0 ||
 	    WITNESS_CHECK(WARN_SLEEPOK | WARN_GIANTOK, NULL,
-	    "Kernel page fault") != 0)
+		"Kernel page fault") != 0)
 		goto fatal;
 
 	if (usermode) {
@@ -311,7 +311,8 @@ do_trap_supervisor(struct trapframe *frame)
 
 	/* Ensure we came from supervisor mode, interrupts disabled */
 	KASSERT((csr_read(sstatus) & (SSTATUS_SPP | SSTATUS_SIE)) ==
-	    SSTATUS_SPP, ("Came from S mode with interrupts enabled"));
+		SSTATUS_SPP,
+	    ("Came from S mode with interrupts enabled"));
 
 	KASSERT((csr_read(sstatus) & (SSTATUS_SUM)) == 0,
 	    ("Came from S mode with SUM enabled"));
@@ -336,8 +337,8 @@ do_trap_supervisor(struct trapframe *frame)
 	case SCAUSE_STORE_ACCESS_FAULT:
 	case SCAUSE_INST_ACCESS_FAULT:
 		dump_regs(frame);
-		panic("Memory access exception at %#lx: %#lx",
-		    frame->tf_sepc, frame->tf_stval);
+		panic("Memory access exception at %#lx: %#lx", frame->tf_sepc,
+		    frame->tf_stval);
 		break;
 	case SCAUSE_LOAD_MISALIGNED:
 	case SCAUSE_STORE_MISALIGNED:
@@ -355,7 +356,7 @@ do_trap_supervisor(struct trapframe *frame)
 #ifdef KDTRACE_HOOKS
 		if (dtrace_invop_jump_addr != NULL &&
 		    dtrace_invop_jump_addr(frame) == 0)
-				break;
+			break;
 #endif
 #ifdef KDB
 		kdb_trap(exception, 0, frame);
@@ -367,8 +368,8 @@ do_trap_supervisor(struct trapframe *frame)
 	case SCAUSE_ILLEGAL_INSTRUCTION:
 		dump_regs(frame);
 		panic("Illegal instruction 0x%0*lx at %#lx",
-		    (frame->tf_stval & 0x3) != 0x3 ? 4 : 8,
-		    frame->tf_stval, frame->tf_sepc);
+		    (frame->tf_stval & 0x3) != 0x3 ? 4 : 8, frame->tf_stval,
+		    frame->tf_sepc);
 		break;
 	default:
 		dump_regs(frame);
@@ -429,7 +430,7 @@ do_trap_user(struct trapframe *frame)
 		page_fault_handler(frame, 1);
 		break;
 	case SCAUSE_ECALL_USER:
-		frame->tf_sepc += 4;	/* Next instruction */
+		frame->tf_sepc += 4; /* Next instruction */
 		ecall_handler();
 		break;
 	case SCAUSE_ILLEGAL_INSTRUCTION:

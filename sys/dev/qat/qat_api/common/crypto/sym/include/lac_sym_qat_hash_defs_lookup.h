@@ -56,7 +56,7 @@ typedef struct lac_sym_qat_hash_alg_info_s {
 *      algorithm.
 *****************************************************************************/
 typedef struct lac_sym_qat_hash_qat_info_s {
-	Cpa32U algoEnc;      /**< QAT Algorithm encoding */
+	Cpa32U algoEnc;	     /**< QAT Algorithm encoding */
 	Cpa32U authCounter;  /**< Counter value for Auth */
 	Cpa32U state1Length; /**< QAT state1 length in bytes */
 	Cpa32U state2Length; /**< QAT state2 length in bytes */
@@ -111,8 +111,8 @@ CpaStatus LacSymQat_HashLookupInit(CpaInstanceHandle instanceHandle);
 *
 *****************************************************************************/
 void LacSymQat_HashAlgLookupGet(CpaInstanceHandle instanceHandle,
-				CpaCySymHashAlgorithm hashAlgorithm,
-				lac_sym_qat_hash_alg_info_t **ppHashAlgInfo);
+    CpaCySymHashAlgorithm hashAlgorithm,
+    lac_sym_qat_hash_alg_info_t **ppHashAlgInfo);
 
 /**
 *******************************************************************************
@@ -132,7 +132,7 @@ void LacSymQat_HashAlgLookupGet(CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 void LacSymQat_HashDefsLookupGet(CpaInstanceHandle instanceHandle,
-				 CpaCySymHashAlgorithm hashAlgorithm,
-				 lac_sym_qat_hash_defs_t **ppHashDefsInfo);
+    CpaCySymHashAlgorithm hashAlgorithm,
+    lac_sym_qat_hash_defs_t **ppHashDefsInfo);
 
 #endif /* LAC_SYM_QAT_HASH_DEFS_LOOKUP_P_H */

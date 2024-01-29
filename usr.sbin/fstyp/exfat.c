@@ -46,48 +46,51 @@
  */
 
 struct exfat_vbr {
-	char		ev_jmp[3];
-	char		ev_fsname[8];
-	char		ev_zeros[53];
-	uint64_t	ev_part_offset;
-	uint64_t	ev_vol_length;
-	uint32_t	ev_fat_offset;
-	uint32_t	ev_fat_length;
-	uint32_t	ev_cluster_offset;
-	uint32_t	ev_cluster_count;
-	uint32_t	ev_rootdir_cluster;
-	uint32_t	ev_vol_serial;
-	uint16_t	ev_fs_revision;
-	uint16_t	ev_vol_flags;
-	uint8_t		ev_log_bytes_per_sect;
-	uint8_t		ev_log_sect_per_clust;
-	uint8_t		ev_num_fats;
-	uint8_t		ev_drive_sel;
-	uint8_t		ev_percent_used;
+	char ev_jmp[3];
+	char ev_fsname[8];
+	char ev_zeros[53];
+	uint64_t ev_part_offset;
+	uint64_t ev_vol_length;
+	uint32_t ev_fat_offset;
+	uint32_t ev_fat_length;
+	uint32_t ev_cluster_offset;
+	uint32_t ev_cluster_count;
+	uint32_t ev_rootdir_cluster;
+	uint32_t ev_vol_serial;
+	uint16_t ev_fs_revision;
+	uint16_t ev_vol_flags;
+	uint8_t ev_log_bytes_per_sect;
+	uint8_t ev_log_sect_per_clust;
+	uint8_t ev_num_fats;
+	uint8_t ev_drive_sel;
+	uint8_t ev_percent_used;
 } __packed;
 
 struct exfat_dirent {
-	uint8_t		xde_type;
-#define	XDE_TYPE_INUSE_MASK	0x80	/* 1=in use */
-#define	XDE_TYPE_INUSE_SHIFT	7
-#define	XDE_TYPE_CATEGORY_MASK	0x40	/* 0=primary */
-#define	XDE_TYPE_CATEGORY_SHIFT	6
-#define	XDE_TYPE_IMPORTNC_MASK	0x20	/* 0=critical */
-#define	XDE_TYPE_IMPORTNC_SHIFT	5
-#define	XDE_TYPE_CODE_MASK	0x1f
+	uint8_t xde_type;
+#define XDE_TYPE_INUSE_MASK 0x80 /* 1=in use */
+#define XDE_TYPE_INUSE_SHIFT 7
+#define XDE_TYPE_CATEGORY_MASK 0x40 /* 0=primary */
+#define XDE_TYPE_CATEGORY_SHIFT 6
+#define XDE_TYPE_IMPORTNC_MASK 0x20 /* 0=critical */
+#define XDE_TYPE_IMPORTNC_SHIFT 5
+#define XDE_TYPE_CODE_MASK 0x1f
 /* InUse=0, ..., TypeCode=0: EOD. */
-#define	XDE_TYPE_EOD		0x00
-#define	XDE_TYPE_ALLOC_BITMAP	(XDE_TYPE_INUSE_MASK | 0x01)
-#define	XDE_TYPE_UPCASE_TABLE	(XDE_TYPE_INUSE_MASK | 0x02)
-#define	XDE_TYPE_VOL_LABEL	(XDE_TYPE_INUSE_MASK | 0x03)
-#define	XDE_TYPE_FILE		(XDE_TYPE_INUSE_MASK | 0x05)
-#define	XDE_TYPE_VOL_GUID	(XDE_TYPE_INUSE_MASK | XDE_TYPE_IMPORTNC_MASK)
-#define	XDE_TYPE_STREAM_EXT	(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK)
-#define	XDE_TYPE_FILE_NAME	(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | 0x01)
-#define	XDE_TYPE_VENDOR		(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | XDE_TYPE_IMPORTNC_MASK)
-#define	XDE_TYPE_VENDOR_ALLOC	(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | XDE_TYPE_IMPORTNC_MASK | 0x01)
+#define XDE_TYPE_EOD 0x00
+#define XDE_TYPE_ALLOC_BITMAP (XDE_TYPE_INUSE_MASK | 0x01)
+#define XDE_TYPE_UPCASE_TABLE (XDE_TYPE_INUSE_MASK | 0x02)
+#define XDE_TYPE_VOL_LABEL (XDE_TYPE_INUSE_MASK | 0x03)
+#define XDE_TYPE_FILE (XDE_TYPE_INUSE_MASK | 0x05)
+#define XDE_TYPE_VOL_GUID (XDE_TYPE_INUSE_MASK | XDE_TYPE_IMPORTNC_MASK)
+#define XDE_TYPE_STREAM_EXT (XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK)
+#define XDE_TYPE_FILE_NAME (XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | 0x01)
+#define XDE_TYPE_VENDOR \
+	(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | XDE_TYPE_IMPORTNC_MASK)
+#define XDE_TYPE_VENDOR_ALLOC                           \
+	(XDE_TYPE_INUSE_MASK | XDE_TYPE_CATEGORY_MASK | \
+	    XDE_TYPE_IMPORTNC_MASK | 0x01)
 	union {
-		uint8_t	xde_generic_[19];
+		uint8_t xde_generic_[19];
 		struct exde_primary {
 			/*
 			 * Count of "secondary" dirents following this one.
@@ -96,42 +99,42 @@ struct exfat_dirent {
 			 * sequence of several dirents, starting with a primary
 			 * one; the rest are secondary dirents.
 			 */
-			uint8_t		xde_secondary_count_;
-			uint16_t	xde_set_chksum_;
-			uint16_t	xde_prim_flags_;
-			uint8_t		xde_prim_generic_[14];
+			uint8_t xde_secondary_count_;
+			uint16_t xde_set_chksum_;
+			uint16_t xde_prim_flags_;
+			uint8_t xde_prim_generic_[14];
 		} __packed xde_primary_;
 		struct exde_secondary {
-			uint8_t		xde_sec_flags_;
-			uint8_t		xde_sec_generic_[18];
+			uint8_t xde_sec_flags_;
+			uint8_t xde_sec_generic_[18];
 		} __packed xde_secondary_;
 	} u;
-	uint32_t	xde_first_cluster;
-	uint64_t	xde_data_len;
+	uint32_t xde_first_cluster;
+	uint64_t xde_data_len;
 };
-#define	xde_generic		u.xde_generic_
-#define	xde_secondary_count	u.xde_primary_.xde_secondary_count
-#define	xde_set_chksum		u.xde_primary_.xde_set_chksum_
-#define	xde_prim_flags		u.xde_primary_.xde_prim_flags_
-#define	xde_sec_flags		u.xde_secondary_.xde_sec_flags_
+#define xde_generic u.xde_generic_
+#define xde_secondary_count u.xde_primary_.xde_secondary_count
+#define xde_set_chksum u.xde_primary_.xde_set_chksum_
+#define xde_prim_flags u.xde_primary_.xde_prim_flags_
+#define xde_sec_flags u.xde_secondary_.xde_sec_flags_
 _Static_assert(sizeof(struct exfat_dirent) == 32, "spec");
 
 struct exfat_de_label {
-	uint8_t		xdel_type;	/* XDE_TYPE_VOL_LABEL */
-	uint8_t		xdel_char_cnt;	/* Length of UCS-2 label */
-	uint16_t	xdel_vol_lbl[11];
-	uint8_t		xdel_reserved[8];
+	uint8_t xdel_type;     /* XDE_TYPE_VOL_LABEL */
+	uint8_t xdel_char_cnt; /* Length of UCS-2 label */
+	uint16_t xdel_vol_lbl[11];
+	uint8_t xdel_reserved[8];
 };
 _Static_assert(sizeof(struct exfat_de_label) == 32, "spec");
 
-#define	MAIN_BOOT_REGION_SECT	0
-#define	BACKUP_BOOT_REGION_SECT	12
+#define MAIN_BOOT_REGION_SECT 0
+#define BACKUP_BOOT_REGION_SECT 12
 
-#define	SUBREGION_CHKSUM_SECT	11
+#define SUBREGION_CHKSUM_SECT 11
 
-#define	FIRST_CLUSTER		2
-#define	BAD_BLOCK_SENTINEL	0xfffffff7u
-#define	END_CLUSTER_SENTINEL	0xffffffffu
+#define FIRST_CLUSTER 2
+#define BAD_BLOCK_SENTINEL 0xfffffff7u
+#define END_CLUSTER_SENTINEL 0xffffffffu
 
 static inline void *
 read_sectn(FILE *fp, off_t sect, unsigned count, unsigned bytespersec)
@@ -185,8 +188,8 @@ exfat_compute_boot_chksum(FILE *fp, unsigned region, unsigned bytespersec,
 
 #ifdef WITH_ICONV
 static void
-convert_label(const uint16_t *ucs2label /* LE */, unsigned ucs2len, char
-    *label_out, size_t label_sz)
+convert_label(const uint16_t *ucs2label /* LE */, unsigned ucs2len,
+    char *label_out, size_t label_sz)
 {
 	const char *label;
 	char *label_out_orig;
@@ -277,9 +280,8 @@ exfat_find_label(FILE *fp, const struct exfat_vbr *ev, unsigned BPS,
 		return;
 	}
 
-
 	for (; rootdir_cluster != END_CLUSTER_SENTINEL;
-	    rootdir_cluster = exfat_fat_next(fp, ev, BPS, rootdir_cluster)) {
+	     rootdir_cluster = exfat_fat_next(fp, ev, BPS, rootdir_cluster)) {
 		if (rootdir_cluster == BAD_BLOCK_SENTINEL) {
 			warnx("%s: Bogus bad block in root directory chain",
 			    __func__);
@@ -287,10 +289,12 @@ exfat_find_label(FILE *fp, const struct exfat_vbr *ev, unsigned BPS,
 		}
 
 		rootdir_sect = (rootdir_cluster - FIRST_CLUSTER) *
-		    sects_per_clust + cluster_offset_sect;
+			sects_per_clust +
+		    cluster_offset_sect;
 		declust = read_sectn(fp, rootdir_sect, sects_per_clust, BPS);
 		for (it = declust;
-		    it < declust + (sects_per_clust * BPS / sizeof(*it)); it++) {
+		     it < declust + (sects_per_clust * BPS / sizeof(*it));
+		     it++) {
 			bool eod = false;
 
 			/*
@@ -302,12 +306,12 @@ exfat_find_label(FILE *fp, const struct exfat_vbr *ev, unsigned BPS,
 				eod = true;
 				break;
 			case XDE_TYPE_VOL_LABEL: {
-				struct exfat_de_label *lde = (void*)it;
+				struct exfat_de_label *lde = (void *)it;
 				convert_label(lde->xdel_vol_lbl,
 				    lde->xdel_char_cnt, label_out, label_sz);
 				free(declust);
 				return;
-				}
+			}
 			}
 
 			if (eod)

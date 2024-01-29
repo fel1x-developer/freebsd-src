@@ -37,43 +37,38 @@
 
 #include <sys/param.h>
 #include <sys/elf.h>
-#include <sys/time.h>
 #include <sys/resourcevar.h>
-#define	_WANT_UCRED
+#include <sys/time.h>
+#define _WANT_UCRED
 #include <sys/ucred.h>
 #undef _WANT_UCRED
 #include <sys/proc.h>
-#include <sys/user.h>
-#include <sys/stat.h>
-#include <sys/vnode.h>
 #include <sys/socket.h>
-#define	_WANT_SOCKET
-#include <sys/socketvar.h>
+#include <sys/stat.h>
+#include <sys/user.h>
+#include <sys/vnode.h>
+#define _WANT_SOCKET
 #include <sys/domain.h>
 #include <sys/protosw.h>
+#include <sys/socketvar.h>
 #include <sys/un.h>
-#define	_WANT_UNPCB
-#include <sys/unpcb.h>
-#include <sys/sysctl.h>
-#include <sys/tty.h>
+#define _WANT_UNPCB
 #include <sys/filedesc.h>
 #include <sys/queue.h>
-#define	_WANT_FILE
-#include <sys/file.h>
+#include <sys/sysctl.h>
+#include <sys/tty.h>
+#include <sys/unpcb.h>
+#define _WANT_FILE
+#include <sys/capsicum.h>
 #include <sys/conf.h>
+#include <sys/file.h>
 #include <sys/ksem.h>
 #include <sys/mman.h>
-#include <sys/capsicum.h>
 #include <sys/ptrace.h>
-#define	_WANT_MOUNT
-#include <sys/mount.h>
+#define _WANT_MOUNT
 #include <sys/filedesc.h>
+#include <sys/mount.h>
 #include <sys/pipe.h>
-#include <fs/devfs/devfs.h>
-#include <fs/devfs/devfs_int.h>
-#include <nfs/nfsproto.h>
-#include <nfsclient/nfs.h>
-#include <nfsclient/nfsnode.h>
 
 #include <vm/vm.h>
 #include <vm/vm_map.h>
@@ -83,7 +78,13 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#define	_WANT_INPCB
+
+#include <fs/devfs/devfs.h>
+#include <fs/devfs/devfs_int.h>
+#include <nfs/nfsproto.h>
+#include <nfsclient/nfs.h>
+#include <nfsclient/nfsnode.h>
+#define _WANT_INPCB
 #include <netinet/in_pcb.h>
 
 #include <assert.h>
@@ -91,93 +92,90 @@
 #include <err.h>
 #include <fcntl.h>
 #include <kvm.h>
+#include <libprocstat.h>
 #include <libutil.h>
 #include <limits.h>
+#include <netdb.h>
 #include <paths.h>
 #include <pwd.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 #include <unistd.h>
-#include <netdb.h>
 
-#include <libprocstat.h>
-#include "libprocstat_internal.h"
 #include "common_kvm.h"
 #include "core.h"
+#include "libprocstat_internal.h"
 
-int     statfs(const char *, struct statfs *);	/* XXX */
+int statfs(const char *, struct statfs *); /* XXX */
 
-#define	PROCSTAT_KVM	1
-#define	PROCSTAT_SYSCTL	2
-#define	PROCSTAT_CORE	3
+#define PROCSTAT_KVM 1
+#define PROCSTAT_SYSCTL 2
+#define PROCSTAT_CORE 3
 
-static char	**getargv(struct procstat *procstat, struct kinfo_proc *kp,
+static char **getargv(struct procstat *procstat, struct kinfo_proc *kp,
     size_t nchr, int env);
-static char	*getmnton(kvm_t *kd, struct mount *m);
-static struct kinfo_vmentry *	kinfo_getvmmap_core(struct procstat_core *core,
+static char *getmnton(kvm_t *kd, struct mount *m);
+static struct kinfo_vmentry *kinfo_getvmmap_core(struct procstat_core *core,
     int *cntp);
-static Elf_Auxinfo	*procstat_getauxv_core(struct procstat_core *core,
+static Elf_Auxinfo *procstat_getauxv_core(struct procstat_core *core,
     unsigned int *cntp);
-static Elf_Auxinfo	*procstat_getauxv_sysctl(pid_t pid, unsigned int *cntp);
-static struct filestat_list	*procstat_getfiles_kvm(
-    struct procstat *procstat, struct kinfo_proc *kp, int mmapped);
-static struct filestat_list	*procstat_getfiles_sysctl(
-    struct procstat *procstat, struct kinfo_proc *kp, int mmapped);
-static int	procstat_get_pipe_info_sysctl(struct filestat *fst,
+static Elf_Auxinfo *procstat_getauxv_sysctl(pid_t pid, unsigned int *cntp);
+static struct filestat_list *procstat_getfiles_kvm(struct procstat *procstat,
+    struct kinfo_proc *kp, int mmapped);
+static struct filestat_list *procstat_getfiles_sysctl(struct procstat *procstat,
+    struct kinfo_proc *kp, int mmapped);
+static int procstat_get_pipe_info_sysctl(struct filestat *fst,
     struct pipestat *pipe, char *errbuf);
-static int	procstat_get_pipe_info_kvm(kvm_t *kd, struct filestat *fst,
+static int procstat_get_pipe_info_kvm(kvm_t *kd, struct filestat *fst,
     struct pipestat *pipe, char *errbuf);
-static int	procstat_get_pts_info_sysctl(struct filestat *fst,
+static int procstat_get_pts_info_sysctl(struct filestat *fst,
     struct ptsstat *pts, char *errbuf);
-static int	procstat_get_pts_info_kvm(kvm_t *kd, struct filestat *fst,
+static int procstat_get_pts_info_kvm(kvm_t *kd, struct filestat *fst,
     struct ptsstat *pts, char *errbuf);
-static int	procstat_get_sem_info_sysctl(struct filestat *fst,
+static int procstat_get_sem_info_sysctl(struct filestat *fst,
     struct semstat *sem, char *errbuf);
-static int	procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst,
+static int procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst,
     struct semstat *sem, char *errbuf);
-static int	procstat_get_shm_info_sysctl(struct filestat *fst,
+static int procstat_get_shm_info_sysctl(struct filestat *fst,
     struct shmstat *shm, char *errbuf);
-static int	procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst,
+static int procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst,
     struct shmstat *shm, char *errbuf);
-static int	procstat_get_socket_info_sysctl(struct filestat *fst,
+static int procstat_get_socket_info_sysctl(struct filestat *fst,
     struct sockstat *sock, char *errbuf);
-static int	procstat_get_socket_info_kvm(kvm_t *kd, struct filestat *fst,
+static int procstat_get_socket_info_kvm(kvm_t *kd, struct filestat *fst,
     struct sockstat *sock, char *errbuf);
-static int	to_filestat_flags(int flags);
-static int	procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst,
+static int to_filestat_flags(int flags);
+static int procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst,
     struct vnstat *vn, char *errbuf);
-static int	procstat_get_vnode_info_sysctl(struct filestat *fst,
+static int procstat_get_vnode_info_sysctl(struct filestat *fst,
     struct vnstat *vn, char *errbuf);
-static gid_t	*procstat_getgroups_core(struct procstat_core *core,
+static gid_t *procstat_getgroups_core(struct procstat_core *core,
     unsigned int *count);
-static gid_t *	procstat_getgroups_kvm(kvm_t *kd, struct kinfo_proc *kp,
+static gid_t *procstat_getgroups_kvm(kvm_t *kd, struct kinfo_proc *kp,
     unsigned int *count);
-static gid_t	*procstat_getgroups_sysctl(pid_t pid, unsigned int *count);
-static struct kinfo_kstack	*procstat_getkstack_sysctl(pid_t pid,
-    int *cntp);
-static int	procstat_getosrel_core(struct procstat_core *core,
-    int *osrelp);
-static int	procstat_getosrel_kvm(kvm_t *kd, struct kinfo_proc *kp,
-    int *osrelp);
-static int	procstat_getosrel_sysctl(pid_t pid, int *osrelp);
-static int	procstat_getpathname_core(struct procstat_core *core,
-    char *pathname, size_t maxlen);
-static int	procstat_getpathname_sysctl(pid_t pid, char *pathname,
+static gid_t *procstat_getgroups_sysctl(pid_t pid, unsigned int *count);
+static struct kinfo_kstack *procstat_getkstack_sysctl(pid_t pid, int *cntp);
+static int procstat_getosrel_core(struct procstat_core *core, int *osrelp);
+static int procstat_getosrel_kvm(kvm_t *kd, struct kinfo_proc *kp, int *osrelp);
+static int procstat_getosrel_sysctl(pid_t pid, int *osrelp);
+static int procstat_getpathname_core(struct procstat_core *core, char *pathname,
     size_t maxlen);
-static int	procstat_getrlimit_core(struct procstat_core *core, int which,
-    struct rlimit* rlimit);
-static int	procstat_getrlimit_kvm(kvm_t *kd, struct kinfo_proc *kp,
-    int which, struct rlimit* rlimit);
-static int	procstat_getrlimit_sysctl(pid_t pid, int which,
-    struct rlimit* rlimit);
-static int	procstat_getumask_core(struct procstat_core *core,
+static int procstat_getpathname_sysctl(pid_t pid, char *pathname,
+    size_t maxlen);
+static int procstat_getrlimit_core(struct procstat_core *core, int which,
+    struct rlimit *rlimit);
+static int procstat_getrlimit_kvm(kvm_t *kd, struct kinfo_proc *kp, int which,
+    struct rlimit *rlimit);
+static int procstat_getrlimit_sysctl(pid_t pid, int which,
+    struct rlimit *rlimit);
+static int procstat_getumask_core(struct procstat_core *core,
     unsigned short *maskp);
-static int	procstat_getumask_kvm(kvm_t *kd, struct kinfo_proc *kp,
+static int procstat_getumask_kvm(kvm_t *kd, struct kinfo_proc *kp,
     unsigned short *maskp);
-static int	procstat_getumask_sysctl(pid_t pid, unsigned short *maskp);
-static int	vntype2psfsttype(int type);
+static int procstat_getumask_sysctl(pid_t pid, unsigned short *maskp);
+static int vntype2psfsttype(int type);
 
 void
 procstat_close(struct procstat *procstat)
@@ -309,7 +307,8 @@ procstat_getprocs(struct procstat *procstat, int what, int arg,
 		}
 		/* Perform simple consistency checks. */
 		if ((len % sizeof(*p)) != 0 || p->ki_structsize != sizeof(*p)) {
-			warnx("kinfo_proc structure size mismatch (len = %zu)", len);
+			warnx("kinfo_proc structure size mismatch (len = %zu)",
+			    len);
 			goto fail;
 		}
 		*count = len / sizeof(*p);
@@ -363,7 +362,7 @@ procstat_freefiles(struct procstat *procstat, struct filestat_list *head)
 {
 	struct filestat *fst, *tmp;
 
-	STAILQ_FOREACH_SAFE(fst, head, next, tmp) {
+	STAILQ_FOREACH_SAFE (fst, head, next, tmp) {
 		if (fst->fs_path != NULL)
 			free(fst->fs_path);
 		free(fst);
@@ -412,13 +411,13 @@ getctty(kvm_t *kd, struct kinfo_proc *kp)
 	struct proc proc;
 	struct session sess;
 	int error;
-                        
+
 	assert(kp);
 	error = kvm_read_all(kd, (unsigned long)kp->ki_paddr, &proc,
 	    sizeof(proc));
 	if (error == 0) {
-		warnx("can't read proc struct at %p for pid %d",
-		    kp->ki_paddr, kp->ki_pid);
+		warnx("can't read proc struct at %p for pid %d", kp->ki_paddr,
+		    kp->ki_pid);
 		return (NULL);
 	}
 	if (proc.p_pgrp == NULL)
@@ -426,8 +425,8 @@ getctty(kvm_t *kd, struct kinfo_proc *kp)
 	error = kvm_read_all(kd, (unsigned long)proc.p_pgrp, &pgrp,
 	    sizeof(pgrp));
 	if (error == 0) {
-		warnx("can't read pgrp struct at %p for pid %d",
-		    proc.p_pgrp, kp->ki_pid);
+		warnx("can't read pgrp struct at %p for pid %d", proc.p_pgrp,
+		    kp->ki_pid);
 		return (NULL);
 	}
 	error = kvm_read_all(kd, (unsigned long)pgrp.pg_session, &sess,
@@ -450,7 +449,8 @@ procstat_vm_map_reader(void *token, vm_map_entry_t addr, vm_map_entry_t dest)
 }
 
 static struct filestat_list *
-procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmapped)
+procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp,
+    int mmapped)
 {
 	struct file file;
 	struct filedesc filed;
@@ -482,12 +482,12 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 	if (kp->ki_fd == NULL || kp->ki_pd == NULL)
 		return (NULL);
 	if (!kvm_read_all(kd, (unsigned long)kp->ki_fd, &filed,
-	    sizeof(filed))) {
+		sizeof(filed))) {
 		warnx("can't read filedesc at %p", (void *)kp->ki_fd);
 		return (NULL);
 	}
 	if (!kvm_read_all(kd, (unsigned long)kp->ki_pd, &pathsd,
-	    sizeof(pathsd))) {
+		sizeof(pathsd))) {
 		warnx("can't read pwddesc at %p", (void *)kp->ki_pd);
 		return (NULL);
 	}
@@ -512,22 +512,25 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 	/* root directory vnode, if one. */
 	if (haspwd) {
 		if (pwd.pwd_rdir) {
-			entry = filestat_new_entry(pwd.pwd_rdir, PS_FST_TYPE_VNODE, -1,
-			    PS_FST_FFLAG_READ, PS_FST_UFLAG_RDIR, 0, 0, NULL, NULL);
+			entry = filestat_new_entry(pwd.pwd_rdir,
+			    PS_FST_TYPE_VNODE, -1, PS_FST_FFLAG_READ,
+			    PS_FST_UFLAG_RDIR, 0, 0, NULL, NULL);
 			if (entry != NULL)
 				STAILQ_INSERT_TAIL(head, entry, next);
 		}
 		/* current working directory vnode. */
 		if (pwd.pwd_cdir) {
-			entry = filestat_new_entry(pwd.pwd_cdir, PS_FST_TYPE_VNODE, -1,
-			    PS_FST_FFLAG_READ, PS_FST_UFLAG_CDIR, 0, 0, NULL, NULL);
+			entry = filestat_new_entry(pwd.pwd_cdir,
+			    PS_FST_TYPE_VNODE, -1, PS_FST_FFLAG_READ,
+			    PS_FST_UFLAG_CDIR, 0, 0, NULL, NULL);
 			if (entry != NULL)
 				STAILQ_INSERT_TAIL(head, entry, next);
 		}
 		/* jail root, if any. */
 		if (pwd.pwd_jdir) {
-			entry = filestat_new_entry(pwd.pwd_jdir, PS_FST_TYPE_VNODE, -1,
-			    PS_FST_FFLAG_READ, PS_FST_UFLAG_JAIL, 0, 0, NULL, NULL);
+			entry = filestat_new_entry(pwd.pwd_jdir,
+			    PS_FST_TYPE_VNODE, -1, PS_FST_FFLAG_READ,
+			    PS_FST_UFLAG_JAIL, 0, 0, NULL, NULL);
 			if (entry != NULL)
 				STAILQ_INSERT_TAIL(head, entry, next);
 		}
@@ -535,8 +538,8 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 	/* ktrace vnode, if one */
 	if (kp->ki_tracep) {
 		entry = filestat_new_entry(kp->ki_tracep, PS_FST_TYPE_VNODE, -1,
-		    PS_FST_FFLAG_READ | PS_FST_FFLAG_WRITE,
-		    PS_FST_UFLAG_TRACE, 0, 0, NULL, NULL);
+		    PS_FST_FFLAG_READ | PS_FST_FFLAG_WRITE, PS_FST_UFLAG_TRACE,
+		    0, 0, NULL, NULL);
 		if (entry != NULL)
 			STAILQ_INSERT_TAIL(head, entry, next);
 	}
@@ -550,14 +553,14 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 	/* Controlling terminal. */
 	if ((vp = getctty(kd, kp)) != NULL) {
 		entry = filestat_new_entry(vp, PS_FST_TYPE_VNODE, -1,
-		    PS_FST_FFLAG_READ | PS_FST_FFLAG_WRITE,
-		    PS_FST_UFLAG_CTTY, 0, 0, NULL, NULL);
+		    PS_FST_FFLAG_READ | PS_FST_FFLAG_WRITE, PS_FST_UFLAG_CTTY,
+		    0, 0, NULL, NULL);
 		if (entry != NULL)
 			STAILQ_INSERT_TAIL(head, entry, next);
 	}
 
 	if (!kvm_read_all(kd, (unsigned long)filed.fd_files, &nfiles,
-	    sizeof(nfiles))) {
+		sizeof(nfiles))) {
 		warnx("can't read fd_files at %p", (void *)filed.fd_files);
 		return (NULL);
 	}
@@ -569,7 +572,8 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 		goto do_mmapped;
 	}
 	if (!kvm_read_all(kd, (unsigned long)filed.fd_files, fdt, fdt_size)) {
-		warnx("cannot read file structures at %p", (void *)filed.fd_files);
+		warnx("cannot read file structures at %p",
+		    (void *)filed.fd_files);
 		free(fdt);
 		goto do_mmapped;
 	}
@@ -577,8 +581,9 @@ procstat_getfiles_kvm(struct procstat *procstat, struct kinfo_proc *kp, int mmap
 		if (fdt->fdt_ofiles[i].fde_file == NULL) {
 			continue;
 		}
-		if (!kvm_read_all(kd, (unsigned long)fdt->fdt_ofiles[i].fde_file, &file,
-		    sizeof(struct file))) {
+		if (!kvm_read_all(kd,
+			(unsigned long)fdt->fdt_ofiles[i].fde_file, &file,
+			sizeof(struct file))) {
 			warnx("can't read file %d at %p", i,
 			    (void *)fdt->fdt_ofiles[i].fde_file);
 			continue;
@@ -644,23 +649,25 @@ do_mmapped:
 	 */
 	if (mmapped) {
 		if (!kvm_read_all(kd, (unsigned long)kp->ki_vmspace, &vmspace,
-		    sizeof(vmspace))) {
+			sizeof(vmspace))) {
 			warnx("can't read vmspace at %p",
 			    (void *)kp->ki_vmspace);
 			goto exit;
 		}
 
 		vmentry = vmspace.vm_map.header;
-		for (entryp = vm_map_entry_read_succ(kd, &vmentry, procstat_vm_map_reader);
-		    entryp != NULL && entryp != &kp->ki_vmspace->vm_map.header;
-		     entryp = vm_map_entry_read_succ(kd, &vmentry, procstat_vm_map_reader)) {
+		for (entryp = vm_map_entry_read_succ(kd, &vmentry,
+			 procstat_vm_map_reader);
+		     entryp != NULL && entryp != &kp->ki_vmspace->vm_map.header;
+		     entryp = vm_map_entry_read_succ(kd, &vmentry,
+			 procstat_vm_map_reader)) {
 			if (vmentry.eflags & MAP_ENTRY_IS_SUB_MAP)
 				continue;
 			if ((objp = vmentry.object.vm_object) == NULL)
 				continue;
 			for (; objp; objp = object.backing_object) {
 				if (!kvm_read_all(kd, (unsigned long)objp,
-				    &object, sizeof(object))) {
+					&object, sizeof(object))) {
 					warnx("can't read vm_object at %p",
 					    (void *)objp);
 					break;
@@ -683,8 +690,8 @@ do_mmapped:
 			 * Create filestat entry.
 			 */
 			entry = filestat_new_entry(object.handle,
-			    PS_FST_TYPE_VNODE, -1, fflags,
-			    PS_FST_UFLAG_MMAP, 0, 0, NULL, NULL);
+			    PS_FST_TYPE_VNODE, -1, fflags, PS_FST_UFLAG_MMAP, 0,
+			    0, NULL, NULL);
 			if (entry != NULL)
 				STAILQ_INSERT_TAIL(head, entry, next);
 		}
@@ -702,10 +709,9 @@ static int
 kinfo_type2fst(int kftype)
 {
 	static struct {
-		int	kf_type;
-		int	fst_type;
-	} kftypes2fst[] = {
-		{ KF_TYPE_PROCDESC, PS_FST_TYPE_PROCDESC },
+		int kf_type;
+		int fst_type;
+	} kftypes2fst[] = { { KF_TYPE_PROCDESC, PS_FST_TYPE_PROCDESC },
 		{ KF_TYPE_DEV, PS_FST_TYPE_DEV },
 		{ KF_TYPE_FIFO, PS_FST_TYPE_FIFO },
 		{ KF_TYPE_KQUEUE, PS_FST_TYPE_KQUEUE },
@@ -718,9 +724,8 @@ kinfo_type2fst(int kftype)
 		{ KF_TYPE_SOCKET, PS_FST_TYPE_SOCKET },
 		{ KF_TYPE_VNODE, PS_FST_TYPE_VNODE },
 		{ KF_TYPE_EVENTFD, PS_FST_TYPE_EVENTFD },
-		{ KF_TYPE_UNKNOWN, PS_FST_TYPE_UNKNOWN }
-	};
-#define NKFTYPES	(sizeof(kftypes2fst) / sizeof(*kftypes2fst))
+		{ KF_TYPE_UNKNOWN, PS_FST_TYPE_UNKNOWN } };
+#define NKFTYPES (sizeof(kftypes2fst) / sizeof(*kftypes2fst))
 	unsigned int i;
 
 	for (i = 0; i < NKFTYPES; i++)
@@ -738,10 +743,9 @@ static int
 kinfo_fflags2fst(int kfflags)
 {
 	static struct {
-		int	kf_flag;
-		int	fst_flag;
-	} kfflags2fst[] = {
-		{ KF_FLAG_APPEND, PS_FST_FFLAG_APPEND },
+		int kf_flag;
+		int fst_flag;
+	} kfflags2fst[] = { { KF_FLAG_APPEND, PS_FST_FFLAG_APPEND },
 		{ KF_FLAG_ASYNC, PS_FST_FFLAG_ASYNC },
 		{ KF_FLAG_CREAT, PS_FST_FFLAG_CREAT },
 		{ KF_FLAG_DIRECT, PS_FST_FFLAG_DIRECT },
@@ -755,9 +759,8 @@ kinfo_fflags2fst(int kfflags)
 		{ KF_FLAG_READ, PS_FST_FFLAG_READ },
 		{ KF_FLAG_SHLOCK, PS_FST_FFLAG_SHLOCK },
 		{ KF_FLAG_TRUNC, PS_FST_FFLAG_TRUNC },
-		{ KF_FLAG_WRITE, PS_FST_FFLAG_WRITE }
-	};
-#define NKFFLAGS	(sizeof(kfflags2fst) / sizeof(*kfflags2fst))
+		{ KF_FLAG_WRITE, PS_FST_FFLAG_WRITE } };
+#define NKFFLAGS (sizeof(kfflags2fst) / sizeof(*kfflags2fst))
 	unsigned int i;
 	int flags;
 
@@ -843,7 +846,7 @@ kinfo_getfile_core(struct procstat_core *core, int *cntp)
 	}
 	free(buf);
 	*cntp = cnt;
-	return (kif);	/* Caller must free() return value */
+	return (kif); /* Caller must free() return value */
 }
 
 static struct filestat_list *
@@ -947,10 +950,10 @@ procstat_get_pipe_info(struct procstat *procstat, struct filestat *fst,
 
 	assert(ps);
 	if (procstat->type == PROCSTAT_KVM) {
-		return (procstat_get_pipe_info_kvm(procstat->kd, fst, ps,
-		    errbuf));
+		return (
+		    procstat_get_pipe_info_kvm(procstat->kd, fst, ps, errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
-		procstat->type == PROCSTAT_CORE) {
+	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_pipe_info_sysctl(fst, ps, errbuf));
 	} else {
 		warnx("unknown access method: %d", procstat->type);
@@ -961,8 +964,8 @@ procstat_get_pipe_info(struct procstat *procstat, struct filestat *fst,
 }
 
 static int
-procstat_get_pipe_info_kvm(kvm_t *kd, struct filestat *fst,
-    struct pipestat *ps, char *errbuf)
+procstat_get_pipe_info_kvm(kvm_t *kd, struct filestat *fst, struct pipestat *ps,
+    char *errbuf)
 {
 	struct pipe pi;
 	void *pipep;
@@ -1014,10 +1017,10 @@ procstat_get_pts_info(struct procstat *procstat, struct filestat *fst,
 
 	assert(pts);
 	if (procstat->type == PROCSTAT_KVM) {
-		return (procstat_get_pts_info_kvm(procstat->kd, fst, pts,
-		    errbuf));
+		return (
+		    procstat_get_pts_info_kvm(procstat->kd, fst, pts, errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
-		procstat->type == PROCSTAT_CORE) {
+	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_pts_info_sysctl(fst, pts, errbuf));
 	} else {
 		warnx("unknown access method: %d", procstat->type);
@@ -1028,8 +1031,8 @@ procstat_get_pts_info(struct procstat *procstat, struct filestat *fst,
 }
 
 static int
-procstat_get_pts_info_kvm(kvm_t *kd, struct filestat *fst,
-    struct ptsstat *pts, char *errbuf)
+procstat_get_pts_info_kvm(kvm_t *kd, struct filestat *fst, struct ptsstat *pts,
+    char *errbuf)
 {
 	struct tty tty;
 	void *ttyp;
@@ -1079,8 +1082,8 @@ procstat_get_sem_info(struct procstat *procstat, struct filestat *fst,
 
 	assert(sem);
 	if (procstat->type == PROCSTAT_KVM) {
-		return (procstat_get_sem_info_kvm(procstat->kd, fst, sem,
-		    errbuf));
+		return (
+		    procstat_get_sem_info_kvm(procstat->kd, fst, sem, errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
 	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_sem_info_sysctl(fst, sem, errbuf));
@@ -1093,8 +1096,8 @@ procstat_get_sem_info(struct procstat *procstat, struct filestat *fst,
 }
 
 static int
-procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst,
-    struct semstat *sem, char *errbuf)
+procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst, struct semstat *sem,
+    char *errbuf)
 {
 	struct ksem ksem;
 	void *ksemp;
@@ -1109,7 +1112,7 @@ procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst,
 	if (ksemp == NULL)
 		goto fail;
 	if (!kvm_read_all(kd, (unsigned long)ksemp, &ksem,
-	    sizeof(struct ksem))) {
+		sizeof(struct ksem))) {
 		warnx("can't read ksem at %p", (void *)ksemp);
 		goto fail;
 	}
@@ -1119,7 +1122,7 @@ procstat_get_sem_info_kvm(kvm_t *kd, struct filestat *fst,
 		path = malloc(MAXPATHLEN);
 		for (i = 0; i < MAXPATHLEN - 1; i++) {
 			if (!kvm_read_all(kd, (unsigned long)ksem.ks_path + i,
-			    path + i, 1))
+				path + i, 1))
 				break;
 			if (path[i] == '\0')
 				break;
@@ -1162,8 +1165,8 @@ procstat_get_shm_info(struct procstat *procstat, struct filestat *fst,
 
 	assert(shm);
 	if (procstat->type == PROCSTAT_KVM) {
-		return (procstat_get_shm_info_kvm(procstat->kd, fst, shm,
-		    errbuf));
+		return (
+		    procstat_get_shm_info_kvm(procstat->kd, fst, shm, errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
 	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_shm_info_sysctl(fst, shm, errbuf));
@@ -1176,8 +1179,8 @@ procstat_get_shm_info(struct procstat *procstat, struct filestat *fst,
 }
 
 static int
-procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst,
-    struct shmstat *shm, char *errbuf)
+procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst, struct shmstat *shm,
+    char *errbuf)
 {
 	struct shmfd shmfd;
 	void *shmfdp;
@@ -1192,7 +1195,7 @@ procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst,
 	if (shmfdp == NULL)
 		goto fail;
 	if (!kvm_read_all(kd, (unsigned long)shmfdp, &shmfd,
-	    sizeof(struct shmfd))) {
+		sizeof(struct shmfd))) {
 		warnx("can't read shmfd at %p", (void *)shmfdp);
 		goto fail;
 	}
@@ -1202,7 +1205,7 @@ procstat_get_shm_info_kvm(kvm_t *kd, struct filestat *fst,
 		path = malloc(MAXPATHLEN);
 		for (i = 0; i < MAXPATHLEN - 1; i++) {
 			if (!kvm_read_all(kd, (unsigned long)shmfd.shm_path + i,
-			    path + i, 1))
+				path + i, 1))
 				break;
 			if (path[i] == '\0')
 				break;
@@ -1245,10 +1248,10 @@ procstat_get_vnode_info(struct procstat *procstat, struct filestat *fst,
 
 	assert(vn);
 	if (procstat->type == PROCSTAT_KVM) {
-		return (procstat_get_vnode_info_kvm(procstat->kd, fst, vn,
-		    errbuf));
+		return (
+		    procstat_get_vnode_info_kvm(procstat->kd, fst, vn, errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
-		procstat->type == PROCSTAT_CORE) {
+	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_vnode_info_sysctl(fst, vn, errbuf));
 	} else {
 		warnx("unknown access method: %d", procstat->type);
@@ -1259,28 +1262,30 @@ procstat_get_vnode_info(struct procstat *procstat, struct filestat *fst,
 }
 
 static int
-procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst,
-    struct vnstat *vn, char *errbuf)
+procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst, struct vnstat *vn,
+    char *errbuf)
 {
-	/* Filesystem specific handlers. */
-	#define FSTYPE(fst)     {#fst, fst##_filestat}
+/* Filesystem specific handlers. */
+#define FSTYPE(fst)                  \
+	{                            \
+		#fst, fst##_filestat \
+	}
 	struct {
-		const char	*tag;
-		int		(*handler)(kvm_t *kd, struct vnode *vp,
-		    struct vnstat *vn);
+		const char *tag;
+		int (*handler)(kvm_t *kd, struct vnode *vp, struct vnstat *vn);
 	} fstypes[] = {
 		FSTYPE(devfs),
 		FSTYPE(isofs),
 		FSTYPE(msdosfs),
 		FSTYPE(nfs),
 		FSTYPE(smbfs),
-		FSTYPE(udf), 
+		FSTYPE(udf),
 		FSTYPE(ufs),
 #ifdef LIBPROCSTAT_ZFS
 		FSTYPE(zfs),
 #endif
 	};
-#define	NTYPES	(sizeof(fstypes) / sizeof(*fstypes))
+#define NTYPES (sizeof(fstypes) / sizeof(*fstypes))
 	struct vnode vnode;
 	char tagstr[12];
 	void *vp;
@@ -1302,8 +1307,9 @@ procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst,
 	vn->vn_type = vntype2psfsttype(vnode.v_type);
 	if (vnode.v_type == VNON || vnode.v_type == VBAD)
 		return (0);
-	error = kvm_read_all(kd, (unsigned long)vnode.v_lock.lock_object.lo_name,
-	    tagstr, sizeof(tagstr));
+	error = kvm_read_all(kd,
+	    (unsigned long)vnode.v_lock.lock_object.lo_name, tagstr,
+	    sizeof(tagstr));
 	if (error == 0) {
 		warnx("can't read lo_name at %p", (void *)vp);
 		goto fail;
@@ -1327,7 +1333,7 @@ procstat_get_vnode_info_kvm(kvm_t *kd, struct filestat *fst,
 	}
 	vn->vn_mntdir = getmnton(kd, vnode.v_mount);
 	if ((vnode.v_type == VBLK || vnode.v_type == VCHR) &&
-	    vnode.v_rdev != NULL){
+	    vnode.v_rdev != NULL) {
 		vn->vn_dev = dev2udev(kd, vnode.v_rdev);
 		(void)kdevtoname(kd, vnode.v_rdev, vn->vn_devname);
 	} else {
@@ -1348,10 +1354,9 @@ static int
 kinfo_vtype2fst(int kfvtype)
 {
 	static struct {
-		int	kf_vtype; 
-		int	fst_vtype;
-	} kfvtypes2fst[] = {
-		{ KF_VTYPE_VBAD, PS_FST_VTYPE_VBAD },
+		int kf_vtype;
+		int fst_vtype;
+	} kfvtypes2fst[] = { { KF_VTYPE_VBAD, PS_FST_VTYPE_VBAD },
 		{ KF_VTYPE_VBLK, PS_FST_VTYPE_VBLK },
 		{ KF_VTYPE_VCHR, PS_FST_VTYPE_VCHR },
 		{ KF_VTYPE_VDIR, PS_FST_VTYPE_VDIR },
@@ -1359,9 +1364,8 @@ kinfo_vtype2fst(int kfvtype)
 		{ KF_VTYPE_VLNK, PS_FST_VTYPE_VLNK },
 		{ KF_VTYPE_VNON, PS_FST_VTYPE_VNON },
 		{ KF_VTYPE_VREG, PS_FST_VTYPE_VREG },
-		{ KF_VTYPE_VSOCK, PS_FST_VTYPE_VSOCK }
-	};
-#define	NKFVTYPES	(sizeof(kfvtypes2fst) / sizeof(*kfvtypes2fst))
+		{ KF_VTYPE_VSOCK, PS_FST_VTYPE_VSOCK } };
+#define NKFVTYPES (sizeof(kfvtypes2fst) / sizeof(*kfvtypes2fst))
 	unsigned int i;
 
 	for (i = 0; i < NKFVTYPES; i++)
@@ -1433,13 +1437,11 @@ procstat_get_vnode_info_sysctl(struct filestat *fst, struct vnstat *vn,
 	if (vntype == PS_FST_VTYPE_VBLK) {
 		name = devname(rdev, S_IFBLK);
 		if (name != NULL)
-			strlcpy(vn->vn_devname, name,
-			    sizeof(vn->vn_devname));
+			strlcpy(vn->vn_devname, name, sizeof(vn->vn_devname));
 	} else if (vntype == PS_FST_VTYPE_VCHR) {
 		name = devname(vn->vn_dev, S_IFCHR);
 		if (name != NULL)
-			strlcpy(vn->vn_devname, name,
-			    sizeof(vn->vn_devname));
+			strlcpy(vn->vn_devname, name, sizeof(vn->vn_devname));
 	}
 	vn->vn_fsid = fsid;
 	vn->vn_fileid = fileid;
@@ -1458,7 +1460,7 @@ procstat_get_socket_info(struct procstat *procstat, struct filestat *fst,
 		return (procstat_get_socket_info_kvm(procstat->kd, fst, sock,
 		    errbuf));
 	} else if (procstat->type == PROCSTAT_SYSCTL ||
-		procstat->type == PROCSTAT_CORE) {
+	    procstat->type == PROCSTAT_CORE) {
 		return (procstat_get_socket_info_sysctl(fst, sock, errbuf));
 	} else {
 		warnx("unknown access method: %d", procstat->type);
@@ -1489,32 +1491,29 @@ procstat_get_socket_info_kvm(kvm_t *kd, struct filestat *fst,
 		goto fail;
 	sock->so_addr = (uintptr_t)so;
 	/* fill in socket */
-	if (!kvm_read_all(kd, (unsigned long)so, &s,
-	    sizeof(struct socket))) {
+	if (!kvm_read_all(kd, (unsigned long)so, &s, sizeof(struct socket))) {
 		warnx("can't read sock at %p", (void *)so);
 		goto fail;
 	}
 	/* fill in protosw entry */
 	if (!kvm_read_all(kd, (unsigned long)s.so_proto, &proto,
-	    sizeof(struct protosw))) {
+		sizeof(struct protosw))) {
 		warnx("can't read protosw at %p", (void *)s.so_proto);
 		goto fail;
 	}
 	/* fill in domain */
 	if (!kvm_read_all(kd, (unsigned long)proto.pr_domain, &dom,
-	    sizeof(struct domain))) {
-		warnx("can't read domain at %p",
-		    (void *)proto.pr_domain);
+		sizeof(struct domain))) {
+		warnx("can't read domain at %p", (void *)proto.pr_domain);
 		goto fail;
 	}
 	if ((len = kvm_read(kd, (unsigned long)dom.dom_name, sock->dname,
-	    sizeof(sock->dname) - 1)) < 0) {
+		 sizeof(sock->dname) - 1)) < 0) {
 		warnx("can't read domain name at %p", (void *)dom.dom_name);
 		sock->dname[0] = '\0';
-	}
-	else
+	} else
 		sock->dname[len] = '\0';
-	
+
 	/*
 	 * Fill in known data.
 	 */
@@ -1532,13 +1531,13 @@ procstat_get_socket_info_kvm(kvm_t *kd, struct filestat *fst,
 		if (proto.pr_protocol == IPPROTO_TCP) {
 			if (s.so_pcb) {
 				if (kvm_read(kd, (u_long)s.so_pcb,
-				    (char *)&inpcb, sizeof(struct inpcb))
-				    != sizeof(struct inpcb)) {
+					(char *)&inpcb, sizeof(struct inpcb)) !=
+				    sizeof(struct inpcb)) {
 					warnx("can't read inpcb at %p",
 					    (void *)s.so_pcb);
 				} else
-					sock->inp_ppcb =
-					    (uintptr_t)inpcb.inp_ppcb;
+					sock->inp_ppcb = (uintptr_t)
+							     inpcb.inp_ppcb;
 				sock->sendq = s.so_snd.sb_ccc;
 				sock->recvq = s.so_rcv.sb_ccc;
 			}
@@ -1547,7 +1546,7 @@ procstat_get_socket_info_kvm(kvm_t *kd, struct filestat *fst,
 	case AF_UNIX:
 		if (s.so_pcb) {
 			if (kvm_read(kd, (u_long)s.so_pcb, (char *)&unpcb,
-			    sizeof(struct unpcb)) != sizeof(struct unpcb)){
+				sizeof(struct unpcb)) != sizeof(struct unpcb)) {
 				warnx("can't read unpcb at %p",
 				    (void *)s.so_pcb);
 			} else if (unpcb.unp_conn) {
@@ -1614,8 +1613,7 @@ procstat_get_socket_info_sysctl(struct filestat *fst, struct sockstat *sock,
 			    kif->kf_un.kf_sock.kf_sock_rcv_sb_state;
 			sock->so_snd_sb_state =
 			    kif->kf_un.kf_sock.kf_sock_snd_sb_state;
-			sock->unp_conn =
-			    kif->kf_un.kf_sock.kf_sock_unpconn;
+			sock->unp_conn = kif->kf_un.kf_sock.kf_sock_unpconn;
 			sock->sendq = kif->kf_un.kf_sock.kf_sock_sendq;
 			sock->recvq = kif->kf_un.kf_sock.kf_sock_recvq;
 		}
@@ -1635,23 +1633,20 @@ to_filestat_flags(int flags)
 	static struct {
 		int flag;
 		int fst_flag;
-	} fstflags[] = {
-		{ FREAD, PS_FST_FFLAG_READ },
+	} fstflags[] = { { FREAD, PS_FST_FFLAG_READ },
 		{ FWRITE, PS_FST_FFLAG_WRITE },
 		{ O_APPEND, PS_FST_FFLAG_APPEND },
 		{ O_ASYNC, PS_FST_FFLAG_ASYNC },
 		{ O_CREAT, PS_FST_FFLAG_CREAT },
 		{ O_DIRECT, PS_FST_FFLAG_DIRECT },
-		{ O_EXCL, PS_FST_FFLAG_EXCL },
-		{ O_EXEC, PS_FST_FFLAG_EXEC },
+		{ O_EXCL, PS_FST_FFLAG_EXCL }, { O_EXEC, PS_FST_FFLAG_EXEC },
 		{ O_EXLOCK, PS_FST_FFLAG_EXLOCK },
 		{ O_NOFOLLOW, PS_FST_FFLAG_NOFOLLOW },
 		{ O_NONBLOCK, PS_FST_FFLAG_NONBLOCK },
 		{ O_SHLOCK, PS_FST_FFLAG_SHLOCK },
 		{ O_SYNC, PS_FST_FFLAG_SYNC },
-		{ O_TRUNC, PS_FST_FFLAG_TRUNC }
-	};
-#define NFSTFLAGS	(sizeof(fstflags) / sizeof(*fstflags))
+		{ O_TRUNC, PS_FST_FFLAG_TRUNC } };
+#define NFSTFLAGS (sizeof(fstflags) / sizeof(*fstflags))
 	int fst_flags;
 	unsigned int i;
 
@@ -1669,20 +1664,14 @@ static int
 vntype2psfsttype(int type)
 {
 	static struct {
-		int	vtype; 
-		int	fst_vtype;
-	} vt2fst[] = {
-		{ VBAD, PS_FST_VTYPE_VBAD },
-		{ VBLK, PS_FST_VTYPE_VBLK },
-		{ VCHR, PS_FST_VTYPE_VCHR },
-		{ VDIR, PS_FST_VTYPE_VDIR },
-		{ VFIFO, PS_FST_VTYPE_VFIFO },
-		{ VLNK, PS_FST_VTYPE_VLNK },
-		{ VNON, PS_FST_VTYPE_VNON },
-		{ VREG, PS_FST_VTYPE_VREG },
-		{ VSOCK, PS_FST_VTYPE_VSOCK }
-	};
-#define	NVFTYPES	(sizeof(vt2fst) / sizeof(*vt2fst))
+		int vtype;
+		int fst_vtype;
+	} vt2fst[] = { { VBAD, PS_FST_VTYPE_VBAD }, { VBLK, PS_FST_VTYPE_VBLK },
+		{ VCHR, PS_FST_VTYPE_VCHR }, { VDIR, PS_FST_VTYPE_VDIR },
+		{ VFIFO, PS_FST_VTYPE_VFIFO }, { VLNK, PS_FST_VTYPE_VLNK },
+		{ VNON, PS_FST_VTYPE_VNON }, { VREG, PS_FST_VTYPE_VREG },
+		{ VSOCK, PS_FST_VTYPE_VSOCK } };
+#define NVFTYPES (sizeof(vt2fst) / sizeof(*vt2fst))
 	unsigned int i, fst_type;
 
 	fst_type = PS_FST_VTYPE_UNKNOWN;
@@ -1713,7 +1702,7 @@ getmnton(kvm_t *kd, struct mount *m)
 		warnx("can't read mount table at %p", (void *)m);
 		return (NULL);
 	}
-	if ((mt = malloc(sizeof (struct mtab))) == NULL)
+	if ((mt = malloc(sizeof(struct mtab))) == NULL)
 		err(1, NULL);
 	mt->m = m;
 	bcopy(&mnt.mnt_stat.f_mntonname[0], &mt->mntonname[0], MNAMELEN);
@@ -1728,10 +1717,10 @@ getmnton(kvm_t *kd, struct mount *m)
  * command line arguments.
  */
 struct argvec {
-	char	*buf;
-	size_t	bufsize;
-	char	**argv;
-	size_t	argc;
+	char *buf;
+	size_t bufsize;
+	char **argv;
+	size_t argc;
 };
 
 static struct argvec *
@@ -1759,7 +1748,7 @@ argvec_alloc(size_t bufsize)
 }
 
 static void
-argvec_free(struct argvec * av)
+argvec_free(struct argvec *av)
 {
 
 	free(av->argv);
@@ -1794,11 +1783,9 @@ getargv(struct procstat *procstat, struct kinfo_proc *kp, size_t nchr, int env)
 	avp = (struct argvec **)(env ? &procstat->argv : &procstat->envv);
 	av = *avp;
 
-	if (av == NULL)
-	{
+	if (av == NULL) {
 		av = argvec_alloc(nchr);
-		if (av == NULL)
-		{
+		if (av == NULL) {
 			warn("malloc(%zu)", nchr);
 			return (NULL);
 		}
@@ -1824,8 +1811,8 @@ getargv(struct procstat *procstat, struct kinfo_proc *kp, size_t nchr, int env)
 	} else /* procstat->type == PROCSTAT_CORE */ {
 		type = env ? PSC_TYPE_ENVV : PSC_TYPE_ARGV;
 		len = nchr;
-		if (procstat_core_get(procstat->core, type, av->buf, &len)
-		    == NULL) {
+		if (procstat_core_get(procstat->core, type, av->buf, &len) ==
+		    NULL) {
 			return (NULL);
 		}
 	}
@@ -1952,7 +1939,7 @@ kinfo_getvmmap_core(struct procstat_core *core, int *cntp)
 	}
 	free(buf);
 	*cntp = cnt;
-	return (kiv);	/* Caller must free() return value */
+	return (kiv); /* Caller must free() return value */
 }
 
 struct kinfo_vmentry *
@@ -1993,17 +1980,17 @@ procstat_getgroups_kvm(kvm_t *kd, struct kinfo_proc *kp, unsigned int *cntp)
 	assert(kd != NULL);
 	assert(kp != NULL);
 	if (!kvm_read_all(kd, (unsigned long)kp->ki_paddr, &proc,
-	    sizeof(proc))) {
-		warnx("can't read proc struct at %p for pid %d",
-		    kp->ki_paddr, kp->ki_pid);
+		sizeof(proc))) {
+		warnx("can't read proc struct at %p for pid %d", kp->ki_paddr,
+		    kp->ki_pid);
 		return (NULL);
 	}
 	if (proc.p_ucred == NOCRED)
 		return (NULL);
 	if (!kvm_read_all(kd, (unsigned long)proc.p_ucred, &ucred,
-	    sizeof(ucred))) {
-		warnx("can't read ucred struct at %p for pid %d",
-		    proc.p_ucred, kp->ki_pid);
+		sizeof(ucred))) {
+		warnx("can't read ucred struct at %p for pid %d", proc.p_ucred,
+		    kp->ki_pid);
 		return (NULL);
 	}
 	len = ucred.cr_ngroups * sizeof(gid_t);
@@ -2013,8 +2000,8 @@ procstat_getgroups_kvm(kvm_t *kd, struct kinfo_proc *kp, unsigned int *cntp)
 		return (NULL);
 	}
 	if (!kvm_read_all(kd, (unsigned long)ucred.cr_groups, groups, len)) {
-		warnx("can't read groups at %p for pid %d",
-		    ucred.cr_groups, kp->ki_pid);
+		warnx("can't read groups at %p for pid %d", ucred.cr_groups,
+		    kp->ki_pid);
 		free(groups);
 		return (NULL);
 	}
@@ -2158,7 +2145,7 @@ procstat_getumask(struct procstat *procstat, struct kinfo_proc *kp,
 
 static int
 procstat_getrlimit_kvm(kvm_t *kd, struct kinfo_proc *kp, int which,
-    struct rlimit* rlimit)
+    struct rlimit *rlimit)
 {
 	struct proc proc;
 	unsigned long offset;
@@ -2167,9 +2154,9 @@ procstat_getrlimit_kvm(kvm_t *kd, struct kinfo_proc *kp, int which,
 	assert(kp != NULL);
 	assert(which >= 0 && which < RLIM_NLIMITS);
 	if (!kvm_read_all(kd, (unsigned long)kp->ki_paddr, &proc,
-	    sizeof(proc))) {
-		warnx("can't read proc struct at %p for pid %d",
-		    kp->ki_paddr, kp->ki_pid);
+		sizeof(proc))) {
+		warnx("can't read proc struct at %p for pid %d", kp->ki_paddr,
+		    kp->ki_pid);
 		return (-1);
 	}
 	if (proc.p_limit == NULL)
@@ -2184,7 +2171,7 @@ procstat_getrlimit_kvm(kvm_t *kd, struct kinfo_proc *kp, int which,
 }
 
 static int
-procstat_getrlimit_sysctl(pid_t pid, int which, struct rlimit* rlimit)
+procstat_getrlimit_sysctl(pid_t pid, int which, struct rlimit *rlimit)
 {
 	int error, name[5];
 	size_t len;
@@ -2207,10 +2194,10 @@ procstat_getrlimit_sysctl(pid_t pid, int which, struct rlimit* rlimit)
 
 static int
 procstat_getrlimit_core(struct procstat_core *core, int which,
-    struct rlimit* rlimit)
+    struct rlimit *rlimit)
 {
 	size_t len;
-	struct rlimit* rlimits;
+	struct rlimit *rlimits;
 
 	if (which < 0 || which >= RLIM_NLIMITS) {
 		errno = EINVAL;
@@ -2231,12 +2218,12 @@ procstat_getrlimit_core(struct procstat_core *core, int which,
 
 int
 procstat_getrlimit(struct procstat *procstat, struct kinfo_proc *kp, int which,
-    struct rlimit* rlimit)
+    struct rlimit *rlimit)
 {
 	switch (procstat->type) {
 	case PROCSTAT_KVM:
-		return (procstat_getrlimit_kvm(procstat->kd, kp, which,
-		    rlimit));
+		return (
+		    procstat_getrlimit_kvm(procstat->kd, kp, which, rlimit));
 	case PROCSTAT_SYSCTL:
 		return (procstat_getrlimit_sysctl(kp->ki_pid, which, rlimit));
 	case PROCSTAT_CORE:
@@ -2299,8 +2286,8 @@ procstat_getpathname(struct procstat *procstat, struct kinfo_proc *kp,
 			pathname[0] = '\0';
 		return (0);
 	case PROCSTAT_SYSCTL:
-		return (procstat_getpathname_sysctl(kp->ki_pid, pathname,
-		    maxlen));
+		return (
+		    procstat_getpathname_sysctl(kp->ki_pid, pathname, maxlen));
 	case PROCSTAT_CORE:
 		return (procstat_getpathname_core(procstat->core, pathname,
 		    maxlen));
@@ -2318,9 +2305,9 @@ procstat_getosrel_kvm(kvm_t *kd, struct kinfo_proc *kp, int *osrelp)
 	assert(kd != NULL);
 	assert(kp != NULL);
 	if (!kvm_read_all(kd, (unsigned long)kp->ki_paddr, &proc,
-	    sizeof(proc))) {
-		warnx("can't read proc struct at %p for pid %d",
-		    kp->ki_paddr, kp->ki_pid);
+		sizeof(proc))) {
+		warnx("can't read proc struct at %p for pid %d", kp->ki_paddr,
+		    kp->ki_pid);
 		return (-1);
 	}
 	*osrelp = proc.p_osrel;
@@ -2378,7 +2365,7 @@ procstat_getosrel(struct procstat *procstat, struct kinfo_proc *kp, int *osrelp)
 	}
 }
 
-#define PROC_AUXV_MAX	256
+#define PROC_AUXV_MAX 256
 
 #ifdef PS_ARCH_HAS_FREEBSD32
 static const char *elf32_sv_names[] = {
@@ -2568,7 +2555,7 @@ procstat_getptlwpinfo(struct procstat *procstat, unsigned int *cntp)
 		warnx("sysctl method is not supported");
 		return (NULL);
 	case PROCSTAT_CORE:
-	 	return (procstat_getptlwpinfo_core(procstat->core, cntp));
+		return (procstat_getptlwpinfo_core(procstat->core, cntp));
 	default:
 		warnx("unknown access method: %d", procstat->type);
 		return (NULL);
@@ -2602,7 +2589,7 @@ procstat_getkstack_sysctl(pid_t pid, int *cntp)
 	}
 	if (error == -1 && errno == ENOENT) {
 		warnx("sysctl: kern.proc.kstack unavailable"
-		    " (options DDB or options STACK required in kernel)");
+		      " (options DDB or options STACK required in kernel)");
 		return (NULL);
 	}
 	if (error == -1)
@@ -2687,7 +2674,7 @@ procstat_getadvlock_sysctl(struct procstat *procstat __unused)
 	}
 
 	for (c = buf; (char *)c < (char *)buf + buf_len;
-	    c += kl->kl_structsize) {
+	     c += kl->kl_structsize) {
 		kl = (struct kinfo_lockf *)(void *)c;
 		if (sizeof(*kl) < (size_t)kl->kl_structsize) {
 			warn("ABI broken");
@@ -2777,10 +2764,9 @@ procstat_freeadvlock(struct procstat *procstat __unused,
 {
 	struct advlock *a, *a1;
 
-	STAILQ_FOREACH_SAFE(a, lst, next, a1) {
+	STAILQ_FOREACH_SAFE (a, lst, next, a1) {
 		free(__DECONST(char *, a->path));
 		free(a);
 	}
 	free(lst);
 }
-

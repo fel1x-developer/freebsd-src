@@ -51,7 +51,7 @@
  */
 
 #ifndef DEV_MMC_PRIVATE_H
-#define	DEV_MMC_PRIVATE_H
+#define DEV_MMC_PRIVATE_H
 
 struct mmc_softc {
 	device_t dev;
@@ -64,7 +64,7 @@ struct mmc_softc {
 	uint16_t retune_paused;
 	uint8_t retune_needed;
 	uint8_t retune_ongoing;
-	uint16_t squelched;	/* suppress reporting of (expected) errors */
+	uint16_t squelched; /* suppress reporting of (expected) errors */
 	int log_count;
 	struct timeval log_time;
 };

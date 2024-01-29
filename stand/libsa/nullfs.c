@@ -30,72 +30,80 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *  
+ *
  *
  * Copyright (c) 1989, 1990, 1991 Carnegie Mellon University
  * All Rights Reserved.
  *
  * Author: Alessandro Forin
- * 
+ *
  * Permission to use, copy, modify and distribute this software and its
  * documentation is hereby granted, provided that both the copyright
  * notice and this permission notice appear in all copies of the
  * software, derivative works or modified versions, and any portions
  * thereof, and that both notices appear in supporting documentation.
- * 
+ *
  * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
  * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
  * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
- * 
+ *
  * Carnegie Mellon requests users of this software to return to
- * 
+ *
  *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
  *  School of Computer Science
  *  Carnegie Mellon University
  *  Pittsburgh PA 15213-3890
- * 
+ *
  * any improvements or extensions that they make and grant Carnegie the
  * rights to redistribute these changes.
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
 /*
  * Null filesystem
  */
-int	null_open (const char *path, struct open_file *f)
+int
+null_open(const char *path, struct open_file *f)
 {
 	return EINVAL;
 }
 
-int	null_close(struct open_file *f)
+int
+null_close(struct open_file *f)
 {
 	return 0;
 }
 
-int	null_read (struct open_file *f, void *buf, size_t size, size_t *resid)
+int
+null_read(struct open_file *f, void *buf, size_t size, size_t *resid)
 {
 	return EIO;
 }
 
-int	null_write (struct open_file *f, const void *buf, size_t size, size_t *resid)
+int
+null_write(struct open_file *f, const void *buf, size_t size, size_t *resid)
 {
 	return EROFS;
 }
 
-off_t	null_seek (struct open_file *f, off_t offset, int where)
+off_t
+null_seek(struct open_file *f, off_t offset, int where)
 {
 	errno = EIO;
 	return -1;
 }
 
-int	null_stat (struct open_file *f, struct stat *sb)
+int
+null_stat(struct open_file *f, struct stat *sb)
 {
 	return EIO;
 }
 
-int	null_readdir(struct open_file *f, struct dirent *d)
+int
+null_readdir(struct open_file *f, struct dirent *d)
 {
 	return EIO;
 }

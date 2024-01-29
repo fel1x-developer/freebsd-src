@@ -26,40 +26,42 @@
  * SUCH DAMAGE.
  */
 
-
 #if defined(__FreeBSD__)
 #include <sys/cdefs.h> /* prerequisite */
 #include <sys/types.h>
-#include <sys/param.h>	/* defines used in kernel.h */
-#include <sys/filio.h>	/* FIONBIO */
+#include <sys/param.h> /* defines used in kernel.h */
+#include <sys/endian.h>
+#include <sys/filio.h> /* FIONBIO */
 #include <sys/malloc.h>
-#include <sys/socketvar.h>	/* struct socket */
-#include <sys/socket.h> /* sockaddrs */
+#include <sys/socket.h>	   /* sockaddrs */
+#include <sys/socketvar.h> /* struct socket */
 #include <sys/sysctl.h>
+
+#include <machine/bus.h> /* bus_dmamap_* */
+
+#include <net/bpf.h> /* BIOCIMMEDIATE */
 #include <net/if.h>
 #include <net/if_var.h>
-#include <net/bpf.h>		/* BIOCIMMEDIATE */
-#include <machine/bus.h>	/* bus_dmamap_* */
-#include <sys/endian.h>
 #elif defined(linux)
 #include "bsd_glue.h"
 #elif defined(__APPLE__)
 #warning OSX support is only partial
 #include "osx_glue.h"
-#elif defined (_WIN32)
+#elif defined(_WIN32)
 #include "win_glue.h"
 #endif
 
 /*
  * common headers
  */
-#include <net/netmap.h>
-#include <dev/netmap/netmap_kern.h>
 #include <dev/netmap/netmap_bdg.h>
+#include <dev/netmap/netmap_kern.h>
+
+#include <net/netmap.h>
 
 static int
 nmreq_register_from_legacy(struct nmreq *nmr, struct nmreq_header *hdr,
-				struct nmreq_register *req)
+    struct nmreq_register *req)
 {
 	req->nr_offset = nmr->nr_offset;
 	req->nr_memsize = nmr->nr_memsize;
@@ -89,13 +91,13 @@ nmreq_register_from_legacy(struct nmreq *nmr, struct nmreq_header *hdr,
 
 	/* Fix nr_name, nr_mode and nr_ringid to handle pipe requests. */
 	if (req->nr_mode == NR_REG_PIPE_MASTER ||
-			req->nr_mode == NR_REG_PIPE_SLAVE) {
+	    req->nr_mode == NR_REG_PIPE_SLAVE) {
 		char suffix[10];
 		snprintf(suffix, sizeof(suffix), "%c%d",
-			(req->nr_mode == NR_REG_PIPE_MASTER ? '{' : '}'),
-			req->nr_ringid);
-		if (strlen(hdr->nr_name) + strlen(suffix)
-					>= sizeof(hdr->nr_name)) {
+		    (req->nr_mode == NR_REG_PIPE_MASTER ? '{' : '}'),
+		    req->nr_ringid);
+		if (strlen(hdr->nr_name) + strlen(suffix) >=
+		    sizeof(hdr->nr_name)) {
 			/* No space for the pipe suffix. */
 			return ENOBUFS;
 		}
@@ -144,7 +146,9 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 		case 0: {
 			/* Regular NIOCREGIF operation. */
 			struct nmreq_register *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = NETMAP_REQ_REGISTER;
 			if (nmreq_register_from_legacy(nmr, hdr, req)) {
@@ -153,8 +157,11 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 			break;
 		}
 		case NETMAP_BDG_ATTACH: {
-			struct nmreq_vale_attach *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			struct nmreq_vale_attach *req = nm_os_malloc(
+			    sizeof(*req));
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = NETMAP_REQ_VALE_ATTACH;
 			if (nmreq_register_from_legacy(nmr, hdr, &req->reg)) {
@@ -170,22 +177,29 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 		}
 		case NETMAP_BDG_DETACH: {
 			hdr->nr_reqtype = NETMAP_REQ_VALE_DETACH;
-			hdr->nr_body = (uintptr_t)nm_os_malloc(sizeof(struct nmreq_vale_detach));
+			hdr->nr_body = (uintptr_t)nm_os_malloc(
+			    sizeof(struct nmreq_vale_detach));
 			break;
 		}
 		case NETMAP_BDG_VNET_HDR:
 		case NETMAP_VNET_HDR_GET: {
 			struct nmreq_port_hdr *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = (nmr->nr_cmd == NETMAP_BDG_VNET_HDR) ?
-				NETMAP_REQ_PORT_HDR_SET : NETMAP_REQ_PORT_HDR_GET;
+			    NETMAP_REQ_PORT_HDR_SET :
+			    NETMAP_REQ_PORT_HDR_GET;
 			req->nr_hdr_len = nmr->nr_arg1;
 			break;
 		}
-		case NETMAP_BDG_NEWIF : {
-			struct nmreq_vale_newif *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+		case NETMAP_BDG_NEWIF: {
+			struct nmreq_vale_newif *req = nm_os_malloc(
+			    sizeof(*req));
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = NETMAP_REQ_VALE_NEWIF;
 			req->nr_tx_slots = nmr->nr_tx_slots;
@@ -201,12 +215,16 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 		}
 		case NETMAP_BDG_POLLING_ON:
 		case NETMAP_BDG_POLLING_OFF: {
-			struct nmreq_vale_polling *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			struct nmreq_vale_polling *req = nm_os_malloc(
+			    sizeof(*req));
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
-			hdr->nr_reqtype = (nmr->nr_cmd == NETMAP_BDG_POLLING_ON) ?
-				NETMAP_REQ_VALE_POLLING_ENABLE :
-				NETMAP_REQ_VALE_POLLING_DISABLE;
+			hdr->nr_reqtype = (nmr->nr_cmd ==
+					      NETMAP_BDG_POLLING_ON) ?
+			    NETMAP_REQ_VALE_POLLING_ENABLE :
+			    NETMAP_REQ_VALE_POLLING_DISABLE;
 			switch (nmr->nr_flags & NR_REG_MASK) {
 			default:
 				req->nr_mode = 0; /* invalid */
@@ -218,7 +236,8 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 				req->nr_mode = NETMAP_POLLING_MODE_SINGLE_CPU;
 				break;
 			}
-			req->nr_first_cpu_id = nmr->nr_ringid & NETMAP_RING_MASK;
+			req->nr_first_cpu_id = nmr->nr_ringid &
+			    NETMAP_RING_MASK;
 			req->nr_num_polling_cpus = nmr->nr_arg1;
 			break;
 		}
@@ -233,16 +252,22 @@ nmreq_from_legacy(struct nmreq *nmr, u_long ioctl_cmd)
 	}
 	case NIOCGINFO: {
 		if (nmr->nr_cmd == NETMAP_BDG_LIST) {
-			struct nmreq_vale_list *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			struct nmreq_vale_list *req = nm_os_malloc(
+			    sizeof(*req));
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = NETMAP_REQ_VALE_LIST;
 			req->nr_bridge_idx = nmr->nr_arg1;
 			req->nr_port_idx = nmr->nr_arg2;
 		} else {
 			/* Regular NIOCGINFO. */
-			struct nmreq_port_info_get *req = nm_os_malloc(sizeof(*req));
-			if (!req) { goto oom; }
+			struct nmreq_port_info_get *req = nm_os_malloc(
+			    sizeof(*req));
+			if (!req) {
+				goto oom;
+			}
 			hdr->nr_body = (uintptr_t)req;
 			hdr->nr_reqtype = NETMAP_REQ_PORT_INFO_GET;
 			req->nr_memsize = nmr->nr_memsize;
@@ -297,13 +322,13 @@ nmreq_to_legacy(struct nmreq_header *hdr, struct nmreq *nmr)
 	switch (hdr->nr_reqtype) {
 	case NETMAP_REQ_REGISTER: {
 		struct nmreq_register *req =
-			(struct nmreq_register *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_register *)(uintptr_t)hdr->nr_body;
 		nmreq_register_to_legacy(req, nmr);
 		break;
 	}
 	case NETMAP_REQ_PORT_INFO_GET: {
 		struct nmreq_port_info_get *req =
-			(struct nmreq_port_info_get *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_port_info_get *)(uintptr_t)hdr->nr_body;
 		nmr->nr_memsize = req->nr_memsize;
 		nmr->nr_tx_slots = req->nr_tx_slots;
 		nmr->nr_rx_slots = req->nr_rx_slots;
@@ -314,7 +339,7 @@ nmreq_to_legacy(struct nmreq_header *hdr, struct nmreq *nmr)
 	}
 	case NETMAP_REQ_VALE_ATTACH: {
 		struct nmreq_vale_attach *req =
-			(struct nmreq_vale_attach *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_vale_attach *)(uintptr_t)hdr->nr_body;
 		nmreq_register_to_legacy(&req->reg, nmr);
 		break;
 	}
@@ -323,7 +348,7 @@ nmreq_to_legacy(struct nmreq_header *hdr, struct nmreq *nmr)
 	}
 	case NETMAP_REQ_VALE_LIST: {
 		struct nmreq_vale_list *req =
-			(struct nmreq_vale_list *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_vale_list *)(uintptr_t)hdr->nr_body;
 		strlcpy(nmr->nr_name, hdr->nr_name, sizeof(nmr->nr_name));
 		nmr->nr_arg1 = req->nr_bridge_idx;
 		nmr->nr_arg2 = req->nr_port_idx;
@@ -332,13 +357,13 @@ nmreq_to_legacy(struct nmreq_header *hdr, struct nmreq *nmr)
 	case NETMAP_REQ_PORT_HDR_SET:
 	case NETMAP_REQ_PORT_HDR_GET: {
 		struct nmreq_port_hdr *req =
-			(struct nmreq_port_hdr *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_port_hdr *)(uintptr_t)hdr->nr_body;
 		nmr->nr_arg1 = req->nr_hdr_len;
 		break;
 	}
 	case NETMAP_REQ_VALE_NEWIF: {
 		struct nmreq_vale_newif *req =
-			(struct nmreq_vale_newif *)(uintptr_t)hdr->nr_body;
+		    (struct nmreq_vale_newif *)(uintptr_t)hdr->nr_body;
 		nmr->nr_tx_slots = req->nr_tx_slots;
 		nmr->nr_rx_slots = req->nr_rx_slots;
 		nmr->nr_tx_rings = req->nr_tx_rings;
@@ -358,7 +383,7 @@ nmreq_to_legacy(struct nmreq_header *hdr, struct nmreq *nmr)
 
 int
 netmap_ioctl_legacy(struct netmap_priv_d *priv, u_long cmd, caddr_t data,
-			struct thread *td)
+    struct thread *td)
 {
 	int error = 0;
 
@@ -367,7 +392,7 @@ netmap_ioctl_legacy(struct netmap_priv_d *priv, u_long cmd, caddr_t data,
 	case NIOCREGIF: {
 		/* Request for the legacy control API. Convert it to a
 		 * NIOCCTRL request. */
-		struct nmreq *nmr = (struct nmreq *) data;
+		struct nmreq *nmr = (struct nmreq *)data;
 		struct nmreq_header *hdr;
 
 		if (nmr->nr_version < 14) {
@@ -380,7 +405,7 @@ netmap_ioctl_legacy(struct netmap_priv_d *priv, u_long cmd, caddr_t data,
 			return ENOMEM;
 		}
 		error = netmap_ioctl(priv, NIOCCTRL, (caddr_t)hdr, td,
-					/*nr_body_is_user=*/0);
+		    /*nr_body_is_user=*/0);
 		if (error == 0) {
 			nmreq_to_legacy(hdr, nmr);
 		}
@@ -410,8 +435,8 @@ netmap_ioctl_legacy(struct netmap_priv_d *priv, u_long cmd, caddr_t data,
 		/* Ignore these commands. */
 		break;
 
-	default:	/* allow device-specific ioctls */
-	    {
+	default: /* allow device-specific ioctls */
+	{
 		struct nmreq *nmr = (struct nmreq *)data;
 		if_t ifp = ifunit_ref(nmr->nr_name);
 		if (ifp == NULL) {
@@ -426,9 +451,9 @@ netmap_ioctl_legacy(struct netmap_priv_d *priv, u_long cmd, caddr_t data,
 			if_rele(ifp);
 		}
 		break;
-	    }
+	}
 
-#else /* linux */
+#else  /* linux */
 	default:
 		error = EOPNOTSUPP;
 #endif /* linux */

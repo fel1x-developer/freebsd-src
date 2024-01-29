@@ -33,7 +33,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * i386 machine dependent routines for kvm.  Hopefully, the forthcoming
  * vm code will one day obsolete this module.
@@ -41,27 +40,29 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+
+#include <vm/vm.h>
+
+#include <kvm.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <vm/vm.h>
-#include <kvm.h>
 
 #ifdef __i386__
-#include <machine/vmparam.h>		/* For KERNBASE. */
+#include <machine/vmparam.h> /* For KERNBASE. */
 #endif
 
 #include <limits.h>
 
-#include "kvm_private.h"
 #include "kvm_i386.h"
+#include "kvm_private.h"
 
 struct vmstate {
-	void		*PTD;
-	int		pae;
-	size_t		phnum;
-	GElf_Phdr	*phdr;
+	void *PTD;
+	int pae;
+	size_t phnum;
+	GElf_Phdr *phdr;
 };
 
 /*
@@ -115,8 +116,8 @@ _i386_initvtop(kvm_t *kd)
 	struct kvm_nlist nl[2];
 	i386_physaddr_t pa;
 	kvaddr_t kernbase;
-	char		*PTD;
-	int		i;
+	char *PTD;
+	int i;
 
 	kd->vmst = (struct vmstate *)_kvm_malloc(kd, sizeof(struct vmstate));
 	if (kd->vmst == NULL) {
@@ -127,7 +128,7 @@ _i386_initvtop(kvm_t *kd)
 
 	if (kd->rawdump == 0) {
 		if (_kvm_read_core_phdrs(kd, &kd->vmst->phnum,
-		    &kd->vmst->phdr) == -1)
+			&kd->vmst->phdr) == -1)
 			return (-1);
 	}
 
@@ -136,7 +137,7 @@ _i386_initvtop(kvm_t *kd)
 
 	if (kvm_nlist2(kd, nl) != 0) {
 #ifdef __i386__
-		kernbase = KERNBASE;	/* for old kernels */
+		kernbase = KERNBASE; /* for old kernels */
 #else
 		_kvm_err(kd, kd->program, "cannot resolve kernbase");
 		return (-1);
@@ -151,7 +152,7 @@ _i386_initvtop(kvm_t *kd)
 		i386_physaddr_pae_t pa64;
 
 		if (kvm_read2(kd, (nl[0].n_value - kernbase), &pa,
-		    sizeof(pa)) != sizeof(pa)) {
+			sizeof(pa)) != sizeof(pa)) {
 			_kvm_err(kd, kd->program, "cannot read IdlePDPT");
 			return (-1);
 		}
@@ -163,15 +164,15 @@ _i386_initvtop(kvm_t *kd)
 		}
 		for (i = 0; i < 4; i++) {
 			if (kvm_read2(kd, pa + (i * sizeof(pa64)), &pa64,
-			    sizeof(pa64)) != sizeof(pa64)) {
+				sizeof(pa64)) != sizeof(pa64)) {
 				_kvm_err(kd, kd->program, "Cannot read PDPT");
 				free(PTD);
 				return (-1);
 			}
 			pa64 = le64toh(pa64);
 			if (kvm_read2(kd, pa64 & I386_PG_FRAME_PAE,
-			    PTD + (i * I386_PAGE_SIZE), I386_PAGE_SIZE) !=
-			    I386_PAGE_SIZE) {
+				PTD + (i * I386_PAGE_SIZE),
+				I386_PAGE_SIZE) != I386_PAGE_SIZE) {
 				_kvm_err(kd, kd->program, "cannot read PDPT");
 				free(PTD);
 				return (-1);
@@ -188,7 +189,7 @@ _i386_initvtop(kvm_t *kd)
 			return (-1);
 		}
 		if (kvm_read2(kd, (nl[0].n_value - kernbase), &pa,
-		    sizeof(pa)) != sizeof(pa)) {
+			sizeof(pa)) != sizeof(pa)) {
 			_kvm_err(kd, kd->program, "cannot read IdlePTD");
 			return (-1);
 		}

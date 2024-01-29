@@ -16,22 +16,23 @@
 #include "math.h"
 #include "math_private.h"
 
-static const float
-two25 = 3.355443200e+07;		/* 0x4c000000 */
+static const float two25 = 3.355443200e+07; /* 0x4c000000 */
 
 float
 logbf(float x)
 {
 	int32_t ix;
-	GET_FLOAT_WORD(ix,x);
-	ix &= 0x7fffffff;			/* high |x| */
-	if(ix==0) return (float)-1.0/fabsf(x);
-	if(ix>=0x7f800000) return x*x;
-	if(ix<0x00800000) {
-		x *= two25;		 /* convert subnormal x to normal */
-		GET_FLOAT_WORD(ix,x);
+	GET_FLOAT_WORD(ix, x);
+	ix &= 0x7fffffff; /* high |x| */
+	if (ix == 0)
+		return (float)-1.0 / fabsf(x);
+	if (ix >= 0x7f800000)
+		return x * x;
+	if (ix < 0x00800000) {
+		x *= two25; /* convert subnormal x to normal */
+		GET_FLOAT_WORD(ix, x);
 		ix &= 0x7fffffff;
-		return (float) ((ix>>23)-127-25);
+		return (float)((ix >> 23) - 127 - 25);
 	} else
-		return (float) ((ix>>23)-127);
+		return (float)((ix >> 23) - 127);
 }

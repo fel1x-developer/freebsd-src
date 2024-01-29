@@ -38,13 +38,12 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <libutil.h>
-
-static void	usage(void);
+static void usage(void);
 
 int
 main(int argc, char **argv)
@@ -67,8 +66,8 @@ main(int argc, char **argv)
 	fd = -1;
 	rsize = tsize = sz = off = 0;
 	len = -1;
-	do_dealloc = no_create = do_relative = do_round = do_refer =
-	    got_size = 0;
+	do_dealloc = no_create = do_relative = do_round = do_refer = got_size =
+	    0;
 	do_truncate = 1;
 	error = r = 0;
 	rname = NULL;
@@ -91,19 +90,19 @@ main(int argc, char **argv)
 			} else if (*optarg == '%' || *optarg == '/') {
 				do_round = 1;
 			}
-			if (expand_number(do_relative || do_round ?
-			    optarg + 1 : optarg,
-			    &usz) == -1 || (off_t)usz < 0)
-				errx(EXIT_FAILURE,
-				    "invalid size argument `%s'", optarg);
+			if (expand_number(do_relative || do_round ? optarg + 1 :
+								    optarg,
+				&usz) == -1 ||
+			    (off_t)usz < 0)
+				errx(EXIT_FAILURE, "invalid size argument `%s'",
+				    optarg);
 
-			sz = (*optarg == '-' || *optarg == '/') ?
-				-(off_t)usz : (off_t)usz;
+			sz = (*optarg == '-' || *optarg == '/') ? -(off_t)usz :
+								  (off_t)usz;
 			got_size = 1;
 			break;
 		case 'o':
-			if (expand_number(optarg, &usz) == -1 ||
-			    (off_t)usz < 0)
+			if (expand_number(optarg, &usz) == -1 || (off_t)usz < 0)
 				errx(EXIT_FAILURE,
 				    "invalid offset argument `%s'", optarg);
 

@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,10 +37,9 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
-#include "qcom_clk_freqtbl.h"
-#include "qcom_clk_apssdiv.h"
-
 #include "clkdev_if.h"
+#include "qcom_clk_apssdiv.h"
+#include "qcom_clk_freqtbl.h"
 
 /*
  * This is a combination gate, divisor/PLL configuration
@@ -104,8 +104,8 @@ qcom_clk_apssdiv_recalc(struct clknode *clk, uint64_t *freq)
 
 	*freq = qcom_clk_apssdiv_calc_rate(clk, *freq, cdiv);
 
-	DPRINTF(clknode_get_device(sc->clknode),
-	    "%s: called; freq is %llu\n", __func__, *freq);
+	DPRINTF(clknode_get_device(sc->clknode), "%s: called; freq is %llu\n",
+	    __func__, *freq);
 	return (0);
 }
 
@@ -154,19 +154,17 @@ qcom_clk_apssdiv_set_gate(struct clknode *clk, bool enable)
 		return (ENXIO);
 	}
 
-	DPRINTF(clknode_get_device(sc->clknode),
-	    "%s: called; enable=%d\n", __func__, enable);
+	DPRINTF(clknode_get_device(sc->clknode), "%s: called; enable=%d\n",
+	    __func__, enable);
 
 	CLKDEV_DEVICE_LOCK(clknode_get_device(sc->clknode));
-	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->enable_offset,
-	    &reg);
+	CLKDEV_READ_4(clknode_get_device(sc->clknode), sc->enable_offset, &reg);
 	if (enable) {
 		reg |= (1U << sc->enable_shift);
 	} else {
 		reg &= ~(1U << sc->enable_shift);
 	}
-	CLKDEV_WRITE_4(clknode_get_device(sc->clknode), sc->enable_offset,
-	    reg);
+	CLKDEV_WRITE_4(clknode_get_device(sc->clknode), sc->enable_offset, reg);
 	CLKDEV_DEVICE_UNLOCK(clknode_get_device(sc->clknode));
 
 	return (0);
@@ -210,9 +208,8 @@ qcom_clk_apssdiv_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 	DPRINTF(clknode_get_device(sc->clknode),
 	    "%s: dryrun: %d, fin=%llu fout=%llu f_freq=%llu pre_div=%u"
 	    " target_freq=%llu\n",
-	    __func__,
-	    !! (flags & CLK_SET_DRYRUN),
-	    fin, *fout, f_freq, f->pre_div, f->freq);
+	    __func__, !!(flags & CLK_SET_DRYRUN), fin, *fout, f_freq,
+	    f->pre_div, f->freq);
 
 	if (flags & CLK_SET_DRYRUN) {
 		*fout = f_freq;
@@ -243,10 +240,10 @@ qcom_clk_apssdiv_set_freq(struct clknode *clk, uint64_t fin, uint64_t *fout,
 
 static clknode_method_t qcom_clk_apssdiv_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_apssdiv_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qcom_clk_apssdiv_recalc),
-	CLKNODEMETHOD(clknode_set_gate,		qcom_clk_apssdiv_set_gate),
-	CLKNODEMETHOD(clknode_set_freq,		qcom_clk_apssdiv_set_freq),
+	CLKNODEMETHOD(clknode_init, qcom_clk_apssdiv_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qcom_clk_apssdiv_recalc),
+	CLKNODEMETHOD(clknode_set_gate, qcom_clk_apssdiv_set_gate),
+	CLKNODEMETHOD(clknode_set_freq, qcom_clk_apssdiv_set_freq),
 	CLKNODEMETHOD_END
 };
 

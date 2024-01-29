@@ -36,26 +36,26 @@
 
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/amlcode.h>
 #include <dev/acpica/acpivar.h>
-
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
-#define	ACPI_IICBUS_LOCAL_BUFSIZE	32	/* Fits max SMBUS block size */
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/amlcode.h>
+
+#define ACPI_IICBUS_LOCAL_BUFSIZE 32 /* Fits max SMBUS block size */
 
 /*
  * Make a copy of ACPI_RESOURCE_I2C_SERIALBUS type and replace "pointer to ACPI
  * object name string" field with pointer to ACPI object itself.
  * This saves us extra strdup()/free() pair on acpi_iicbus_get_i2cres call.
  */
-typedef	ACPI_RESOURCE_I2C_SERIALBUS	ACPI_IICBUS_RESOURCE_I2C_SERIALBUS;
-#define	ResourceSource_Handle	ResourceSource.StringPtr
+typedef ACPI_RESOURCE_I2C_SERIALBUS ACPI_IICBUS_RESOURCE_I2C_SERIALBUS;
+#define ResourceSource_Handle ResourceSource.StringPtr
 
 /* Hooks for the ACPI CA debugging infrastructure. */
-#define	_COMPONENT	ACPI_BUS
+#define _COMPONENT ACPI_BUS
 ACPI_MODULE_NAME("IIC")
 
 struct gsb_buffer {
@@ -65,14 +65,14 @@ struct gsb_buffer {
 } __packed;
 
 struct acpi_iicbus_softc {
-	struct iicbus_softc	super_sc;
-	ACPI_CONNECTION_INFO	space_handler_info;
-	bool			space_handler_installed;
+	struct iicbus_softc super_sc;
+	ACPI_CONNECTION_INFO space_handler_info;
+	bool space_handler_installed;
 };
 
 struct acpi_iicbus_ivars {
-	struct iicbus_ivar	super_ivar;
-	ACPI_HANDLE		handle;
+	struct iicbus_ivar super_ivar;
+	ACPI_HANDLE handle;
 };
 
 static int install_space_handler = 0;
@@ -93,7 +93,7 @@ static int
 acpi_iicbus_sendb(device_t dev, u_char slave, char byte)
 {
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_WR, 1, &byte },
+		{ slave, IIC_M_WR, 1, &byte },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -104,7 +104,7 @@ acpi_iicbus_recvb(device_t dev, u_char slave, char *byte)
 {
 	char buf;
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_RD, 1, &buf },
+		{ slave, IIC_M_RD, 1, &buf },
 	};
 	int error;
 
@@ -120,8 +120,8 @@ acpi_iicbus_write(device_t dev, u_char slave, char cmd, void *buf,
     uint16_t buflen)
 {
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	    { slave, IIC_M_WR | IIC_M_NOSTART, buflen, buf },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_WR | IIC_M_NOSTART, buflen, buf },
 	};
 
 	return (iicbus_transfer(dev, msgs, nitems(msgs)));
@@ -133,8 +133,8 @@ acpi_iicbus_read(device_t dev, u_char slave, char cmd, void *buf,
 {
 	uint8_t local_buffer[ACPI_IICBUS_LOCAL_BUFSIZE];
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	    { slave, IIC_M_RD, buflen, NULL },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_RD, buflen, NULL },
 	};
 	int error;
 
@@ -152,12 +152,13 @@ acpi_iicbus_read(device_t dev, u_char slave, char cmd, void *buf,
 }
 
 static int
-acpi_iicbus_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
+acpi_iicbus_bwrite(device_t dev, u_char slave, char cmd, u_char count,
+    char *buf)
 {
 	uint8_t bytes[2] = { cmd, count };
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_WR | IIC_M_NOSTOP, nitems(bytes), bytes },
-	    { slave, IIC_M_WR | IIC_M_NOSTART, count, buf },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, nitems(bytes), bytes },
+		{ slave, IIC_M_WR | IIC_M_NOSTART, count, buf },
 	};
 
 	if (count == 0)
@@ -167,16 +168,17 @@ acpi_iicbus_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf
 }
 
 static int
-acpi_iicbus_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
+acpi_iicbus_bread(device_t dev, u_char slave, char cmd, u_char *count,
+    char *buf)
 {
 	uint8_t local_buffer[ACPI_IICBUS_LOCAL_BUFSIZE];
 	u_char len;
 	struct iic_msg msgs[] = {
-	    { slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
-	    { slave, IIC_M_RD | IIC_M_NOSTOP, 1, &len },
+		{ slave, IIC_M_WR | IIC_M_NOSTOP, 1, &cmd },
+		{ slave, IIC_M_RD | IIC_M_NOSTOP, 1, &len },
 	};
 	struct iic_msg block_msg[] = {
-	    { slave, IIC_M_RD | IIC_M_NOSTART, 0, NULL },
+		{ slave, IIC_M_RD | IIC_M_NOSTART, 0, NULL },
 	};
 	device_t parent = device_get_parent(dev);
 	int error;
@@ -247,8 +249,8 @@ acpi_iicbus_space_handler(UINT32 Function, ACPI_PHYSICAL_ADDRESS Address,
 		goto err;
 	}
 
-#define	AML_FIELD_ATTRIB_MASK		0x0F
-#define	AML_FIELD_ATTRIO(attr, io)	(((attr) << 16) | (io))
+#define AML_FIELD_ATTRIB_MASK 0x0F
+#define AML_FIELD_ATTRIO(attr, io) (((attr) << 16) | (io))
 
 	Function &= AML_FIELD_ATTRIO(AML_FIELD_ATTRIB_MASK, ACPI_IO_MASK);
 	sc = __containerof(info, struct acpi_iicbus_softc, space_handler_info);
@@ -384,8 +386,8 @@ static ACPI_STATUS
 acpi_iicbus_get_i2cres(ACPI_HANDLE handle, ACPI_RESOURCE_I2C_SERIALBUS *sb)
 {
 
-	return (AcpiWalkResources(handle, "_CRS",
-	    acpi_iicbus_get_i2cres_cb, sb));
+	return (
+	    AcpiWalkResources(handle, "_CRS", acpi_iicbus_get_i2cres_cb, sb));
 }
 
 static ACPI_STATUS
@@ -396,7 +398,7 @@ acpi_iicbus_parse_resources_cb(ACPI_RESOURCE *res, void *context)
 	struct resource_list *rl = &super_devi->rl;
 	int irq, gpio_pin;
 
-	switch(res->Type) {
+	switch (res->Type) {
 	case ACPI_RESOURCE_TYPE_EXTENDED_IRQ:
 		if (res->Data.ExtendedIrq.InterruptCount > 0) {
 			irq = res->Data.ExtendedIrq.Interrupts[0];
@@ -438,24 +440,24 @@ acpi_iicbus_dump_res(device_t dev, ACPI_IICBUS_RESOURCE_I2C_SERIALBUS *sb)
 	printf("  SlaveAddress:      0x%04hx\n", sb->SlaveAddress);
 	printf("  ConnectionSpeed:   %uHz\n", sb->ConnectionSpeed);
 	printf("  SlaveMode:         %s\n",
-	    sb->SlaveMode == ACPI_CONTROLLER_INITIATED ?
-	    "ControllerInitiated" : "DeviceInitiated");
+	    sb->SlaveMode == ACPI_CONTROLLER_INITIATED ? "ControllerInitiated" :
+							 "DeviceInitiated");
 	printf("  AddressingMode:    %uBit\n", sb->AccessMode == 0 ? 7 : 10);
-	printf("  ConnectionSharing: %s\n", sb->ConnectionSharing == 0 ?
-	    "Exclusive" : "Shared");
+	printf("  ConnectionSharing: %s\n",
+	    sb->ConnectionSharing == 0 ? "Exclusive" : "Shared");
 }
 
 static device_t
 acpi_iicbus_add_child(device_t dev, u_int order, const char *name, int unit)
 {
 
-	return (iicbus_add_child_common(
-	    dev, order, name, unit, sizeof(struct acpi_iicbus_ivars)));
+	return (iicbus_add_child_common(dev, order, name, unit,
+	    sizeof(struct acpi_iicbus_ivars)));
 }
 
 static ACPI_STATUS
-acpi_iicbus_enumerate_child(ACPI_HANDLE handle, UINT32 level,
-    void *context, void **result)
+acpi_iicbus_enumerate_child(ACPI_HANDLE handle, UINT32 level, void *context,
+    void **result)
 {
 	device_t iicbus, child, acpi_child, acpi0;
 	struct iicbus_softc *super_sc;
@@ -746,22 +748,22 @@ acpi_iicbus_child_pnpinfo(device_t bus, device_t child, struct sbuf *sb)
 
 static device_method_t acpi_iicbus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		acpi_iicbus_probe),
-	DEVMETHOD(device_attach,	acpi_iicbus_attach),
-	DEVMETHOD(device_detach,	acpi_iicbus_detach),
-	DEVMETHOD(device_suspend,	acpi_iicbus_suspend),
-	DEVMETHOD(device_resume,	acpi_iicbus_resume),
+	DEVMETHOD(device_probe, acpi_iicbus_probe),
+	DEVMETHOD(device_attach, acpi_iicbus_attach),
+	DEVMETHOD(device_detach, acpi_iicbus_detach),
+	DEVMETHOD(device_suspend, acpi_iicbus_suspend),
+	DEVMETHOD(device_resume, acpi_iicbus_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_add_child,	acpi_iicbus_add_child),
-	DEVMETHOD(bus_probe_nomatch,	acpi_iicbus_probe_nomatch),
-	DEVMETHOD(bus_driver_added,	acpi_iicbus_driver_added),
-	DEVMETHOD(bus_child_deleted,	acpi_iicbus_child_deleted),
-	DEVMETHOD(bus_read_ivar,	acpi_iicbus_read_ivar),
-	DEVMETHOD(bus_write_ivar,	acpi_iicbus_write_ivar),
-	DEVMETHOD(bus_child_location,	acpi_iicbus_child_location),
-	DEVMETHOD(bus_child_pnpinfo,	acpi_iicbus_child_pnpinfo),
-	DEVMETHOD(bus_get_device_path,	acpi_get_acpi_device_path),
+	DEVMETHOD(bus_add_child, acpi_iicbus_add_child),
+	DEVMETHOD(bus_probe_nomatch, acpi_iicbus_probe_nomatch),
+	DEVMETHOD(bus_driver_added, acpi_iicbus_driver_added),
+	DEVMETHOD(bus_child_deleted, acpi_iicbus_child_deleted),
+	DEVMETHOD(bus_read_ivar, acpi_iicbus_read_ivar),
+	DEVMETHOD(bus_write_ivar, acpi_iicbus_write_ivar),
+	DEVMETHOD(bus_child_location, acpi_iicbus_child_location),
+	DEVMETHOD(bus_child_pnpinfo, acpi_iicbus_child_pnpinfo),
+	DEVMETHOD(bus_get_device_path, acpi_get_acpi_device_path),
 
 	DEVMETHOD_END,
 };

@@ -64,11 +64,9 @@ priv_netinet_raw(int asroot, int injail, struct test *test)
 	if (asroot && !injail)
 		expect("priv_netinet_raw(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
-		expect("priv_netinet_raw(!asroot, injail)", error, -1,
-		    EPERM);
+		expect("priv_netinet_raw(!asroot, injail)", error, -1, EPERM);
 	if (!asroot && !injail)
-		expect("priv_netinet_raw(!asroot, !injail)", error,
-		    -1, EPERM);
+		expect("priv_netinet_raw(!asroot, !injail)", error, -1, EPERM);
 	if (fd >= 0)
 		(void)close(fd);
 }
@@ -76,5 +74,4 @@ priv_netinet_raw(int asroot, int injail, struct test *test)
 void
 priv_netinet_raw_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

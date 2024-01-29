@@ -27,14 +27,14 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <stdio.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * acl_calc_mask() (23.4.2): calculate and set the permissions
@@ -45,9 +45,9 @@
 int
 acl_calc_mask(acl_t *acl_p)
 {
-	struct acl	*acl_int, *acl_int_new;
-	acl_t		acl_new;
-	int		i, mask_mode, mask_num;
+	struct acl *acl_int, *acl_int_new;
+	acl_t acl_new;
+	int i, mask_mode, mask_num;
 
 	/*
 	 * (23.4.2.4) requires acl_p to point to a pointer to a valid ACL.
@@ -83,12 +83,12 @@ acl_calc_mask(acl_t *acl_p)
 
 	/* gather permissions and find a mask entry */
 	for (i = 0; i < acl_int_new->acl_cnt; i++) {
-		switch(acl_int_new->acl_entry[i].ae_tag) {
+		switch (acl_int_new->acl_entry[i].ae_tag) {
 		case ACL_USER:
 		case ACL_GROUP:
 		case ACL_GROUP_OBJ:
-			mask_mode |=
-			    acl_int_new->acl_entry[i].ae_perm & ACL_PERM_BITS;
+			mask_mode |= acl_int_new->acl_entry[i].ae_perm &
+			    ACL_PERM_BITS;
 			break;
 		case ACL_MASK:
 			mask_num = i;

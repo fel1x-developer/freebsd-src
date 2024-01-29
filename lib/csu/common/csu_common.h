@@ -47,4 +47,4 @@ extern int etext;
 
 int main(int, char **, char **);
 
-#endif	/* _CSU_COMMON_H_ */
+#endif /* _CSU_COMMON_H_ */

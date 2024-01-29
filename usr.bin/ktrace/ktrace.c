@@ -31,10 +31,10 @@
 
 #include <sys/param.h>
 #include <sys/file.h>
+#include <sys/ktrace.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/uio.h>
-#include <sys/ktrace.h>
 
 #include <err.h>
 #include <errno.h>
@@ -65,8 +65,8 @@ main(int argc, char *argv[])
 	append = ops = inherit = 0;
 	trpoints = DEF_POINTS;
 	tracefile = def_tracefile;
-	while ((ch = getopt(argc,argv,"aCcdf:g:ip:t:")) != -1)
-		switch((char)ch) {
+	while ((ch = getopt(argc, argv, "aCcdf:g:ip:t:")) != -1)
+		switch ((char)ch) {
 		case 'a':
 			append = 1;
 			break;
@@ -131,10 +131,10 @@ main(int argc, char *argv[])
 		exit(0);
 	}
 
-	omask = umask(S_IRWXG|S_IRWXO);
+	omask = umask(S_IRWXG | S_IRWXO);
 	if (append) {
 		if ((fd = open(tracefile, O_CREAT | O_WRONLY | O_NONBLOCK,
-		    DEFFILEMODE)) < 0)
+			 DEFFILEMODE)) < 0)
 			err(1, "%s", tracefile);
 		if (fstat(fd, &sb) != 0 || sb.st_uid != getuid())
 			errx(1, "refuse to append to %s not owned by you",
@@ -145,7 +145,7 @@ main(int argc, char *argv[])
 		if (unlink(tracefile) == -1 && errno != ENOENT)
 			err(1, "unlink %s", tracefile);
 		if ((fd = open(tracefile, O_CREAT | O_EXCL | O_WRONLY,
-		    DEFFILEMODE)) < 0)
+			 DEFFILEMODE)) < 0)
 			err(1, "%s", tracefile);
 	}
 	(void)umask(omask);
@@ -153,7 +153,7 @@ main(int argc, char *argv[])
 
 	trpoints |= PROC_ABI_POINTS;
 
-	if (argc > 0) { 
+	if (argc > 0) {
 		if (ktrace(tracefile, ops, trpoints, getpid()) < 0)
 			err(1, "%s", tracefile);
 		execvp(*argv, argv);
@@ -223,5 +223,5 @@ no_ktrace(int sig __unused)
 	fprintf(stderr, "error:\t%s\n\t%s\n",
 	    "ktrace() system call not supported in the running kernel",
 	    "re-compile kernel with 'options KTRACE'");
-        exit(1);
+	exit(1);
 }

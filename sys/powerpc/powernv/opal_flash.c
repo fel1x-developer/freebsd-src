@@ -33,7 +33,6 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <geom/geom_disk.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -41,6 +40,9 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
+
+#include <geom/geom_disk.h>
+
 #include "opal.h"
 
 /*
@@ -61,39 +63,36 @@
  * NAND::device.
  */
 struct opalflash_softc {
-	device_t		 sc_dev;
-	struct mtx		 sc_mtx;
-	struct disk		*sc_disk;
-	struct proc		*sc_p;
-	struct bio_queue_head	 sc_bio_queue;
-	int		 	 sc_opal_id;
-	bool			 sc_erase; /* Erase is needed before write. */
+	device_t sc_dev;
+	struct mtx sc_mtx;
+	struct disk *sc_disk;
+	struct proc *sc_p;
+	struct bio_queue_head sc_bio_queue;
+	int sc_opal_id;
+	bool sc_erase; /* Erase is needed before write. */
 };
 
-#define	OPALFLASH_LOCK(sc)		mtx_lock(&(sc)->sc_mtx)
-#define	OPALFLASH_UNLOCK(sc)		mtx_unlock(&(sc)->sc_mtx)
-#define	OPALFLASH_LOCK_INIT(sc) \
+#define OPALFLASH_LOCK(sc) mtx_lock(&(sc)->sc_mtx)
+#define OPALFLASH_UNLOCK(sc) mtx_unlock(&(sc)->sc_mtx)
+#define OPALFLASH_LOCK_INIT(sc)                                    \
 	mtx_init(&(sc)->sc_mtx, device_get_nameunit((sc)->sc_dev), \
 	    "opalflash", MTX_DEF)
 
-#define	FLASH_BLOCKSIZE			512
+#define FLASH_BLOCKSIZE 512
 
-static int	opalflash_probe(device_t);
-static int	opalflash_attach(device_t);
+static int opalflash_probe(device_t);
+static int opalflash_attach(device_t);
 
-static device_method_t  opalflash_methods[] = {
+static device_method_t opalflash_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		opalflash_probe),
-	DEVMETHOD(device_attach,	opalflash_attach),
+	DEVMETHOD(device_probe, opalflash_probe),
+	DEVMETHOD(device_attach, opalflash_attach),
 
 	DEVMETHOD_END
 };
 
-static driver_t opalflash_driver = {
-	"opalflash",
-	opalflash_methods,
-	sizeof(struct opalflash_softc)
-};
+static driver_t opalflash_driver = { "opalflash", opalflash_methods,
+	sizeof(struct opalflash_softc) };
 
 DRIVER_MODULE(opalflash, opal, opalflash_driver, 0, 0);
 
@@ -114,7 +113,7 @@ opalflash_close(struct disk *dp)
 
 static int
 opalflash_ioctl(struct disk *dp, u_long cmd, void *data, int fflag,
-	struct thread *td)
+    struct thread *td)
 {
 
 	return (EINVAL);
@@ -155,8 +154,7 @@ opalflash_strategy(struct bio *bp)
 }
 
 static int
-opalflash_read(struct opalflash_softc *sc, off_t off,
-    caddr_t data, off_t count)
+opalflash_read(struct opalflash_softc *sc, off_t off, caddr_t data, off_t count)
 {
 	struct opal_msg msg;
 	int rv, size, token;
@@ -228,8 +226,8 @@ opalflash_erase(struct opalflash_softc *sc, off_t off, off_t count)
 }
 
 static int
-opalflash_write(struct opalflash_softc *sc, off_t off,
-    caddr_t data, off_t count)
+opalflash_write(struct opalflash_softc *sc, off_t off, caddr_t data,
+    off_t count)
 {
 	struct opal_msg msg;
 	int rv, size, token;
@@ -240,10 +238,10 @@ opalflash_write(struct opalflash_softc *sc, off_t off,
 		return (EIO);
 
 	if (sc->sc_erase) {
-	    /* Erase the full block first, then write in page chunks. */
-	    rv = opalflash_erase(sc, off, count);
-	    if (rv != 0)
-		    return (rv);
+		/* Erase the full block first, then write in page chunks. */
+		rv = opalflash_erase(sc, off, count);
+		if (rv != 0)
+			return (rv);
 	}
 
 	token = opal_alloc_async_token();
@@ -345,8 +343,8 @@ opalflash_attach(device_t dev)
 	OF_getencprop(node, "ibm,opal-id", &opal_id, sizeof(opal_id));
 	sc->sc_opal_id = opal_id;
 
-	if (OF_getencprop(node, "ibm,flash-block-size",
-	    &flash_blocksize, sizeof(flash_blocksize)) < 0) {
+	if (OF_getencprop(node, "ibm,flash-block-size", &flash_blocksize,
+		sizeof(flash_blocksize)) < 0) {
 		device_printf(dev, "Cannot determine flash block size.\n");
 		return (ENXIO);
 	}
@@ -373,7 +371,7 @@ opalflash_attach(device_t dev)
 	sc->sc_disk->d_mediasize = regs[1];
 	sc->sc_disk->d_unit = device_get_unit(sc->sc_dev);
 	sc->sc_disk->d_sectorsize = FLASH_BLOCKSIZE;
-	    sc->sc_disk->d_stripesize = flash_blocksize;
+	sc->sc_disk->d_stripesize = flash_blocksize;
 	sc->sc_disk->d_dump = NULL;
 
 	disk_create(sc->sc_disk, DISK_VERSION);

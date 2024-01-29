@@ -26,9 +26,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
 #include <sys/cpu.h>
@@ -36,6 +35,7 @@
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
@@ -46,60 +46,55 @@
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
+
 #include <powerpc/powermac/powermac_thermal.h>
 
 struct adm1030_softc {
 	struct pmac_fan fan;
-	device_t	sc_dev;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t	sc_addr;
-	int		sc_pwm;
+	uint32_t sc_addr;
+	int sc_pwm;
 };
 
 /* Regular bus attachment functions */
-static int	adm1030_probe(device_t);
-static int	adm1030_attach(device_t);
+static int adm1030_probe(device_t);
+static int adm1030_attach(device_t);
 
 /* Utility functions */
-static void	adm1030_start(void *xdev);
-static int	adm1030_write_byte(device_t dev, uint32_t addr, uint8_t reg, uint8_t buf);
-static int	adm1030_set(struct adm1030_softc *fan, int pwm);
-static int	adm1030_sysctl(SYSCTL_HANDLER_ARGS);
+static void adm1030_start(void *xdev);
+static int adm1030_write_byte(device_t dev, uint32_t addr, uint8_t reg,
+    uint8_t buf);
+static int adm1030_set(struct adm1030_softc *fan, int pwm);
+static int adm1030_sysctl(SYSCTL_HANDLER_ARGS);
 
 static device_method_t adm1030_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, adm1030_probe),
 	DEVMETHOD(device_attach, adm1030_attach),
-	{0, 0},
+	{ 0, 0 },
 };
 
-static driver_t	adm1030_driver = {
-	"adm1030",
-	adm1030_methods,
-	sizeof(struct adm1030_softc)
-};
+static driver_t adm1030_driver = { "adm1030", adm1030_methods,
+	sizeof(struct adm1030_softc) };
 
 DRIVER_MODULE(adm1030, iicbus, adm1030_driver, 0, 0);
 
 static int
 adm1030_write_byte(device_t dev, uint32_t addr, uint8_t reg, uint8_t byte)
 {
-	unsigned char	buf[4];
+	unsigned char buf[4];
 	int try = 0;
 
-	struct iic_msg	msg[] = {
-		{addr, IIC_M_WR, 0, buf}
-	};
+	struct iic_msg msg[] = { { addr, IIC_M_WR, 0, buf } };
 
 	msg[0].len = 2;
 	buf[0] = reg;
 	buf[1] = byte;
 
-	for (;;)
-	{
+	for (;;) {
 		if (iicbus_transfer(dev, msg, 1) == 0)
 			return (0);
 
@@ -114,10 +109,10 @@ adm1030_write_byte(device_t dev, uint32_t addr, uint8_t reg, uint8_t byte)
 static int
 adm1030_probe(device_t dev)
 {
-	const char     *name, *compatible;
+	const char *name, *compatible;
 	struct adm1030_softc *sc;
-	phandle_t	handle;
-	phandle_t	thermostat;
+	phandle_t handle;
+	phandle_t thermostat;
 
 	name = ofw_bus_get_name(dev);
 	compatible = ofw_bus_get_compat(dev);
@@ -130,7 +125,8 @@ adm1030_probe(device_t dev)
 		return (ENXIO);
 
 	/* This driver can only be used if there's an associated temp sensor. */
-	if (OF_getprop(handle, "platform-getTemp", &thermostat, sizeof(thermostat)) < 0)
+	if (OF_getprop(handle, "platform-getTemp", &thermostat,
+		sizeof(thermostat)) < 0)
 		return (ENXIO);
 
 	sc = device_get_softc(dev);
@@ -155,8 +151,8 @@ adm1030_attach(device_t dev)
 	sc->enum_hook.ich_arg = dev;
 
 	/*
-	 * Wait until interrupts are available, which won't be until the openpic is
-	 * intialized.
+	 * Wait until interrupts are available, which won't be until the openpic
+	 * is intialized.
 	 */
 
 	if (config_intrhook_establish(&sc->enum_hook) != 0)
@@ -165,8 +161,8 @@ adm1030_attach(device_t dev)
 	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "pwm",
-			CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev,
-			0, adm1030_sysctl, "I", "Fan PWM Rate");
+	    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0, adm1030_sysctl,
+	    "I", "Fan PWM Rate");
 
 	return (0);
 }
@@ -176,7 +172,7 @@ adm1030_start(void *xdev)
 {
 	struct adm1030_softc *sc;
 
-	device_t	dev = (device_t) xdev;
+	device_t dev = (device_t)xdev;
 
 	sc = device_get_softc(dev);
 
@@ -199,7 +195,8 @@ adm1030_start(void *xdev)
 	pmac_thermal_fan_register(&sc->fan);
 }
 
-static int adm1030_set(struct adm1030_softc *fan, int pwm)
+static int
+adm1030_set(struct adm1030_softc *fan, int pwm)
 {
 	/* Clamp the PWM to 0-0xF, one nibble. */
 	if (pwm > 0xF)

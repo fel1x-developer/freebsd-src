@@ -39,7 +39,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  *      lpr -- off line print
  *
@@ -50,70 +50,71 @@
 #include <sys/param.h>
 #include <sys/stat.h>
 
-#include <netinet/in.h>		/* N_BADMAG uses ntohl() */
+#include <netinet/in.h> /* N_BADMAG uses ntohl() */
 
+#include <ctype.h>
 #include <dirent.h>
-#include <fcntl.h>
 #include <err.h>
-#include <locale.h>
-#include <signal.h>
-#include <syslog.h>
-#include <pwd.h>
+#include <fcntl.h>
 #include <grp.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <locale.h>
+#include <pwd.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
+#include <unistd.h>
+
 #include "lp.h"
 #include "lp.local.h"
 #include "pathnames.h"
 
-static char	*cfname;	/* daemon control files, linked from tf's */
-static char	*class = local_host;	/* class title on header page */
-static char	*dfname;	/* data files */
-static char	*fonts[4];	/* troff font names */
-static char	 format = 'f';	/* format char for printing files */
-static int	 hdr = 1;	/* print header or not (default is yes) */
-static int	 iflag;		/* indentation wanted */
-static int	 inchar;	/* location to increment char in file names */
-static int	 indent;	/* amount to indent */
-static const char *jobname;	/* job name on header page */
-static int	 mailflg;	/* send mail */
-static int	 nact;		/* number of jobs to act on */
-static int	 ncopies = 1;	/* # of copies to make */
-static char	*lpr_username;  /* person sending the print job(s) */
-static int	 qflag;		/* q job, but don't exec daemon */
-static int	 rflag;		/* remove files upon completion */
-static int	 sflag;		/* symbolic link flag */
-static int	 tfd;		/* control file descriptor */
-static char	*tfname;	/* tmp copy of cf before linking */
-static char	*title;		/* pr'ing title */
-static char     *locale;        /* pr'ing locale */
-static int	 userid;	/* user id */
-static char	*Uflag;		/* user name specified with -U flag */
-static char	*width;		/* width for versatec printing */
-static char	*Zflag;		/* extra filter options for LPRng servers */
+static char *cfname;		 /* daemon control files, linked from tf's */
+static char *class = local_host; /* class title on header page */
+static char *dfname;		 /* data files */
+static char *fonts[4];		 /* troff font names */
+static char format = 'f';	 /* format char for printing files */
+static int hdr = 1;		 /* print header or not (default is yes) */
+static int iflag;		 /* indentation wanted */
+static int inchar;		 /* location to increment char in file names */
+static int indent;		 /* amount to indent */
+static const char *jobname;	 /* job name on header page */
+static int mailflg;		 /* send mail */
+static int nact;		 /* number of jobs to act on */
+static int ncopies = 1;		 /* # of copies to make */
+static char *lpr_username;	 /* person sending the print job(s) */
+static int qflag;		 /* q job, but don't exec daemon */
+static int rflag;		 /* remove files upon completion */
+static int sflag;		 /* symbolic link flag */
+static int tfd;			 /* control file descriptor */
+static char *tfname;		 /* tmp copy of cf before linking */
+static char *title;		 /* pr'ing title */
+static char *locale;		 /* pr'ing locale */
+static int userid;		 /* user id */
+static char *Uflag;		 /* user name specified with -U flag */
+static char *width;		 /* width for versatec printing */
+static char *Zflag;		 /* extra filter options for LPRng servers */
 
 static struct stat statb;
 
-static void	 card(int _c, const char *_p2);
-static int	 checkwriteperm(const char *_file, const char *_directory);
-static void	 chkprinter(const char *_ptrname, struct printer *_pp);
-static void	 cleanup(int _signo);
-static void	 copy(const struct printer *_pp, int _f, const char _n[]);
-static char	*itoa(int _i);
-static const char  *linked(const char *_file);
-int		 main(int _argc, char *_argv[]);
-static char	*lmktemp(const struct printer *_pp, const char *_id,
-		    int _num, int len);
-static void	 mktemps(const struct printer *_pp);
-static int	 nfile(char *_n);
-static int	 test(const char *_file);
-static void	 usage(void);
+static void card(int _c, const char *_p2);
+static int checkwriteperm(const char *_file, const char *_directory);
+static void chkprinter(const char *_ptrname, struct printer *_pp);
+static void cleanup(int _signo);
+static void copy(const struct printer *_pp, int _f, const char _n[]);
+static char *itoa(int _i);
+static const char *linked(const char *_file);
+int main(int _argc, char *_argv[]);
+static char *lmktemp(const struct printer *_pp, const char *_id, int _num,
+    int len);
+static void mktemps(const struct printer *_pp);
+static int nfile(char *_n);
+static int test(const char *_file);
+static void usage(void);
 
-uid_t	uid, euid;
+uid_t uid, euid;
 
 int
 main(int argc, char *argv[])
@@ -124,7 +125,7 @@ main(int argc, char *argv[])
 	char *p;
 	char buf[BUFSIZ];
 	int c, i, f, errs;
-	int	 ret, didlink;
+	int ret, didlink;
 	struct stat stb;
 	struct stat statb1, statb2;
 	struct printer myprinter, *pp = &myprinter;
@@ -148,10 +149,9 @@ main(int argc, char *argv[])
 
 	errs = 0;
 	while ((c = getopt(argc, argv,
-			   ":#:1:2:3:4:C:J:L:P:T:U:Z:cdfghi:lnmprstvw:"))
-	       != -1)
+		    ":#:1:2:3:4:C:J:L:P:T:U:Z:cdfghi:lnmprstvw:")) != -1)
 		switch (c) {
-		case '#':		/* n copies */
+		case '#': /* n copies */
 			i = strtol(optarg, &p, 10);
 			if (*p)
 				errx(1, "Bad argument to -#, number expected");
@@ -159,36 +159,36 @@ main(int argc, char *argv[])
 				ncopies = i;
 			break;
 
-		case '1':		/* troff fonts */
+		case '1': /* troff fonts */
 		case '2':
 		case '3':
 		case '4':
 			fonts[optopt - '1'] = optarg;
 			break;
 
-		case 'C':		/* classification spec */
+		case 'C': /* classification spec */
 			hdr++;
 			class = optarg;
 			break;
 
-		case 'J':		/* job name */
+		case 'J': /* job name */
 			hdr++;
 			jobname = optarg;
 			break;
 
-		case 'P':		/* specify printer name */
+		case 'P': /* specify printer name */
 			printer = optarg;
 			break;
 
-		case 'L':               /* pr's locale */
+		case 'L': /* pr's locale */
 			locale = optarg;
 			break;
 
-		case 'T':		/* pr's title line */
+		case 'T': /* pr's title line */
 			title = optarg;
 			break;
 
-		case 'U':		/* user name */
+		case 'U': /* user name */
 			hdr++;
 			Uflag = optarg;
 			break;
@@ -197,53 +197,53 @@ main(int argc, char *argv[])
 			Zflag = optarg;
 			break;
 
-		case 'c':		/* print cifplot output */
-		case 'd':		/* print tex output (dvi files) */
-		case 'g':		/* print graph(1G) output */
-		case 'l':		/* literal output */
-		case 'n':		/* print ditroff output */
-		case 't':		/* print troff output (cat files) */
-		case 'p':		/* print using ``pr'' */
-		case 'v':		/* print vplot output */
+		case 'c': /* print cifplot output */
+		case 'd': /* print tex output (dvi files) */
+		case 'g': /* print graph(1G) output */
+		case 'l': /* literal output */
+		case 'n': /* print ditroff output */
+		case 't': /* print troff output (cat files) */
+		case 'p': /* print using ``pr'' */
+		case 'v': /* print vplot output */
 			format = optopt;
 			break;
 
-		case 'f':		/* print fortran output */
+		case 'f': /* print fortran output */
 			format = 'r';
 			break;
 
-		case 'h':		/* nulifiy header page */
+		case 'h': /* nulifiy header page */
 			hdr = 0;
 			break;
 
-		case 'i':		/* indent output */
+		case 'i': /* indent output */
 			iflag++;
 			indent = strtol(optarg, &p, 10);
 			if (*p)
 				errx(1, "Bad argument to -i, number expected");
 			break;
 
-		case 'm':		/* send mail when done */
+		case 'm': /* send mail when done */
 			mailflg++;
 			break;
 
-		case 'q':		/* just queue job */
+		case 'q': /* just queue job */
 			qflag++;
 			break;
 
-		case 'r':		/* remove file when done */
+		case 'r': /* remove file when done */
 			rflag++;
 			break;
 
-		case 's':		/* try to link files */
+		case 's': /* try to link files */
 			sflag++;
 			break;
 
-		case 'w':		/* versatec page width */
+		case 'w': /* versatec page width */
 			width = optarg;
 			break;
 
-		case ':':		/* catch "missing argument" error */
+		case ':': /* catch "missing argument" error */
 			if (optopt == 'i') {
 				iflag++; /* -i without args is valid */
 				indent = 8;
@@ -276,9 +276,9 @@ main(int argc, char *argv[])
 	if (Uflag) {
 		if (userid != 0 && userid != pp->daemon_user)
 			errx(1, "only privileged users may use the `-U' flag");
-		lpr_username = Uflag;		/* -U person doing 'lpr' */
+		lpr_username = Uflag; /* -U person doing 'lpr' */
 	} else {
-		lpr_username = getlogin();	/* person doing 'lpr' */
+		lpr_username = getlogin(); /* person doing 'lpr' */
 		if (userid != pp->daemon_user || lpr_username == 0) {
 			if ((pw = getpwuid(userid)) == NULL)
 				errx(1, "Who are you?");
@@ -313,8 +313,7 @@ main(int argc, char *argv[])
 	 */
 	mktemps(pp);
 	tfd = nfile(tfname);
-	PRIV_START
-	(void) fchown(tfd, pp->daemon_user, -1);
+	PRIV_START(void) fchown(tfd, pp->daemon_user, -1);
 	/* owned by daemon for protection */
 	PRIV_END
 	card('H', local_host);
@@ -325,8 +324,9 @@ main(int argc, char *argv[])
 			if (argc == 0)
 				jobname = "stdin";
 			else
-				jobname = ((arg = strrchr(argv[0], '/'))
-					   ? arg + 1 : argv[0]);
+				jobname = ((arg = strrchr(argv[0], '/')) ?
+					arg + 1 :
+					argv[0]);
 		}
 		card('J', jobname);
 		card('L', lpr_username);
@@ -340,7 +340,7 @@ main(int argc, char *argv[])
 	if (format == 't' || format == 'n' || format == 'd')
 		for (i = 0; i < 4; i++)
 			if (fonts[i] != NULL)
-				card('1'+i, fonts[i]);
+				card('1' + i, fonts[i]);
 	if (width != NULL)
 		card('W', width);
 	/*
@@ -363,124 +363,131 @@ main(int argc, char *argv[])
 	 */
 	if (argc == 0)
 		copy(pp, 0, " ");
-	else while (argc--) {
-		if (argv[0][0] == '-' && argv[0][1] == '\0') {
-			/* use stdin */
-			copy(pp, 0, " ");
-			argv++;
-			continue;
-		}
-		if ((f = test(arg = *argv++)) < 0)
-			continue;	/* file unreasonable */
+	else
+		while (argc--) {
+			if (argv[0][0] == '-' && argv[0][1] == '\0') {
+				/* use stdin */
+				copy(pp, 0, " ");
+				argv++;
+				continue;
+			}
+			if ((f = test(arg = *argv++)) < 0)
+				continue; /* file unreasonable */
 
-		if (sflag && (cp = linked(arg)) != NULL) {
-			(void)snprintf(buf, sizeof(buf), "%ju %ju",
-			    (uintmax_t)statb.st_dev, (uintmax_t)statb.st_ino);
-			card('S', buf);
-			if (format == 'p')
-				card('T', title ? title : arg);
-			for (i = 0; i < ncopies; i++)
-				card(format, &dfname[inchar-2]);
-			card('U', &dfname[inchar-2]);
-			if (f)
-				card('U', cp);
-			card('N', arg);
-			dfname[inchar]++;
-			nact++;
-			continue;
-		}
-		if (sflag)
-			printf("%s: %s: not linked, copying instead\n",
-			    progname, arg);
+			if (sflag && (cp = linked(arg)) != NULL) {
+				(void)snprintf(buf, sizeof(buf), "%ju %ju",
+				    (uintmax_t)statb.st_dev,
+				    (uintmax_t)statb.st_ino);
+				card('S', buf);
+				if (format == 'p')
+					card('T', title ? title : arg);
+				for (i = 0; i < ncopies; i++)
+					card(format, &dfname[inchar - 2]);
+				card('U', &dfname[inchar - 2]);
+				if (f)
+					card('U', cp);
+				card('N', arg);
+				dfname[inchar]++;
+				nact++;
+				continue;
+			}
+			if (sflag)
+				printf("%s: %s: not linked, copying instead\n",
+				    progname, arg);
 
-		if (f) {
-			/*
-			 * The user wants the file removed after it is copied
-			 * to the spool area, so see if the file can be moved
-			 * instead of copy/unlink'ed.  This is much faster and
-			 * uses less spool space than copying the file.  This
-			 * can be very significant when running services like
-			 * samba, pcnfs, CAP, et al.
-			 */
-			PRIV_START
-			didlink = 0;
-			/*
-			 * There are several things to check to avoid any
-			 * security issues.  Some of these are redundant
-			 * under BSD's, but are necessary when lpr is built
-			 * under some other OS's (which I do do...)
-			 */
-			if (lstat(arg, &statb1) < 0)
-				goto nohardlink;
-			if (S_ISLNK(statb1.st_mode))
-				goto nohardlink;
-			if (link(arg, dfname) != 0)
-				goto nohardlink;
-			didlink = 1;
-			/*
-			 * Make sure the user hasn't tried to trick us via
-			 * any race conditions
-			 */
-			if (lstat(dfname, &statb2) < 0)
-				goto nohardlink;
-			if (statb1.st_dev != statb2.st_dev)
-				goto nohardlink;
-			if (statb1.st_ino != statb2.st_ino)
-				goto nohardlink;
-			/*
-			 * Skip if the file already had multiple hard links,
-			 * because changing the owner and access-bits would
-			 * change ALL versions of the file
-			 */
-			if (statb2.st_nlink > 2)
-				goto nohardlink;
-			/*
-			 * If we can access and remove the original file
-			 * without special setuid-ness then this method is
-			 * safe.  Otherwise, abandon the move and fall back
-			 * to the (usual) copy method.
-			 */
-			PRIV_END
-			ret = access(dfname, R_OK);
-			if (ret == 0)
-				ret = unlink(arg);
-			PRIV_START
-			if (ret != 0)
-				goto nohardlink;
-			/*
-			 * Unlink of user file was successful.  Change the
-			 * owner and permissions, add entries to the control
-			 * file, and skip the file copying step.
-			 */
-			chown(dfname, pp->daemon_user, getegid());
-			chmod(dfname, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-			PRIV_END
-			if (format == 'p')
-				card('T', title ? title : arg);
-			for (i = 0; i < ncopies; i++)
-				card(format, &dfname[inchar-2]);
-			card('U', &dfname[inchar-2]);
-			card('N', arg);
-			nact++;
-			continue;
-		nohardlink:
-			if (didlink)
-				unlink(dfname);
-			PRIV_END           /* restore old uid */
-		} /* end: if (f) */
+			if (f) {
+				/*
+				 * The user wants the file removed after it is
+				 * copied to the spool area, so see if the file
+				 * can be moved instead of copy/unlink'ed.  This
+				 * is much faster and uses less spool space than
+				 * copying the file.  This can be very
+				 * significant when running services like samba,
+				 * pcnfs, CAP, et al.
+				 */
+				PRIV_START
+				didlink = 0;
+				/*
+				 * There are several things to check to avoid
+				 * any security issues.  Some of these are
+				 * redundant under BSD's, but are necessary when
+				 * lpr is built under some other OS's (which I
+				 * do do...)
+				 */
+				if (lstat(arg, &statb1) < 0)
+					goto nohardlink;
+				if (S_ISLNK(statb1.st_mode))
+					goto nohardlink;
+				if (link(arg, dfname) != 0)
+					goto nohardlink;
+				didlink = 1;
+				/*
+				 * Make sure the user hasn't tried to trick us
+				 * via any race conditions
+				 */
+				if (lstat(dfname, &statb2) < 0)
+					goto nohardlink;
+				if (statb1.st_dev != statb2.st_dev)
+					goto nohardlink;
+				if (statb1.st_ino != statb2.st_ino)
+					goto nohardlink;
+				/*
+				 * Skip if the file already had multiple hard
+				 * links, because changing the owner and
+				 * access-bits would change ALL versions of the
+				 * file
+				 */
+				if (statb2.st_nlink > 2)
+					goto nohardlink;
+				/*
+				 * If we can access and remove the original file
+				 * without special setuid-ness then this method
+				 * is safe.  Otherwise, abandon the move and
+				 * fall back to the (usual) copy method.
+				 */
+				PRIV_END
+				ret = access(dfname, R_OK);
+				if (ret == 0)
+					ret = unlink(arg);
+				PRIV_START
+				if (ret != 0)
+					goto nohardlink;
+				/*
+				 * Unlink of user file was successful.  Change
+				 * the owner and permissions, add entries to the
+				 * control file, and skip the file copying step.
+				 */
+				chown(dfname, pp->daemon_user, getegid());
+				chmod(dfname,
+				    S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+				PRIV_END
+				if (format == 'p')
+					card('T', title ? title : arg);
+				for (i = 0; i < ncopies; i++)
+					card(format, &dfname[inchar - 2]);
+				card('U', &dfname[inchar - 2]);
+				card('N', arg);
+				nact++;
+				continue;
+			nohardlink:
+				if (didlink)
+					unlink(dfname);
+				PRIV_END /* restore old uid */
+			}		 /* end: if (f) */
 
-		if ((i = open(arg, O_RDONLY)) < 0) {
-			printf("%s: cannot open %s\n", progname, arg);
-		} else {
-			copy(pp, i, arg);
-			(void) close(i);
-			if (f && unlink(arg) < 0)
-				printf("%s: %s: not removed\n", progname, arg);
+			if ((i = open(arg, O_RDONLY)) < 0) {
+				printf("%s: cannot open %s\n", progname, arg);
+			} else {
+				copy(pp, i, arg);
+				(void)close(i);
+				if (f && unlink(arg) < 0)
+					printf("%s: %s: not removed\n",
+					    progname, arg);
+			}
 		}
-	}
 
 	if (nact) {
-		(void) close(tfd);
+		(void)close(tfd);
 		tfname[inchar]--;
 		/*
 		 * Touch the control file to fix position in the queue.
@@ -497,7 +504,7 @@ main(int argc, char *argv[])
 				tfname[inchar]++;
 				cleanup(0);
 			}
-			(void) close(tfd);
+			(void)close(tfd);
 		}
 		if (link(tfname, cfname) < 0) {
 			printf("%s: cannot rename %s\n", progname, cfname);
@@ -506,7 +513,7 @@ main(int argc, char *argv[])
 		}
 		unlink(tfname);
 		PRIV_END
-		if (qflag)		/* just q things up */
+		if (qflag) /* just q things up */
 			exit(0);
 		if (!startdaemon(pp))
 			printf("jobs queued, but cannot start daemon.\n");
@@ -529,8 +536,8 @@ copy(const struct printer *pp, int f, const char n[])
 	if (format == 'p')
 		card('T', title ? title : n);
 	for (i = 0; i < ncopies; i++)
-		card(format, &dfname[inchar-2]);
-	card('U', &dfname[inchar-2]);
+		card(format, &dfname[inchar - 2]);
+	card('U', &dfname[inchar - 2]);
 	card('N', n);
 	fd = nfile(dfname);
 	nr = nc = 0;
@@ -550,10 +557,9 @@ copy(const struct printer *pp, int f, const char n[])
 			}
 		}
 	}
-	(void) close(fd);
-	if (nc==0 && nr==0)
-		printf("%s: %s: empty input file\n", progname,
-		    f ? n : "stdin");
+	(void)close(fd);
+	if (nc == 0 && nr == 0)
+		printf("%s: %s: empty input file\n", progname, f ? n : "stdin");
 	else
 		nact++;
 }
@@ -571,7 +577,7 @@ linked(const char *file)
 
 	if (*file != '/') {
 		if (getcwd(buf, sizeof(buf)) == NULL)
-			return(NULL);
+			return (NULL);
 		while (file[0] == '.') {
 			switch (file[1]) {
 			case '/':
@@ -594,7 +600,7 @@ linked(const char *file)
 	PRIV_START
 	ret = symlink(file, dfname);
 	PRIV_END
-	return(ret ? NULL : file);
+	return (ret ? NULL : file);
 }
 
 /*
@@ -623,29 +629,29 @@ static int
 nfile(char *n)
 {
 	register int f;
-	int oldumask = umask(0);		/* should block signals */
+	int oldumask = umask(0); /* should block signals */
 
 	PRIV_START
 	f = open(n, O_WRONLY | O_EXCL | O_CREAT, FILMOD);
-	(void) umask(oldumask);
+	(void)umask(oldumask);
 	if (f < 0) {
 		printf("%s: cannot create %s\n", progname, n);
 		cleanup(0);
 	}
 	if (fchown(f, userid, -1) < 0) {
 		printf("%s: cannot chown %s\n", progname, n);
-		cleanup(0);	/* cleanup does exit */
+		cleanup(0); /* cleanup does exit */
 	}
 	PRIV_END
 	if (++n[inchar] > 'z') {
-		if (++n[inchar-2] == 't') {
+		if (++n[inchar - 2] == 't') {
 			printf("too many files - break up the job\n");
 			cleanup(0);
 		}
 		n[inchar] = 'A';
 	} else if (n[inchar] == '[')
 		n[inchar] = 'a';
-	return(f);
+	return (f);
 }
 
 /*
@@ -676,7 +682,7 @@ cleanup(int signo __unused)
 				unlink(dfname);
 			while (dfname[i]-- != 'A');
 			dfname[i] = 'z';
-		} while (dfname[i-2]-- != 'd');
+		} while (dfname[i - 2]-- != 'd');
 	exit(1);
 }
 
@@ -694,25 +700,25 @@ test(const char *file)
 
 	if (access(file, 4) < 0) {
 		printf("%s: cannot access %s\n", progname, file);
-		return(-1);
+		return (-1);
 	}
 	if (stat(file, &statb) < 0) {
 		printf("%s: cannot stat %s\n", progname, file);
-		return(-1);
+		return (-1);
 	}
 	if ((statb.st_mode & S_IFMT) == S_IFDIR) {
 		printf("%s: %s is a directory\n", progname, file);
-		return(-1);
+		return (-1);
 	}
 	if (statb.st_size == 0) {
 		printf("%s: %s is an empty file\n", progname, file);
-		return(-1);
- 	}
+		return (-1);
+	}
 	if ((fd = open(file, O_RDONLY)) < 0) {
 		printf("%s: cannot open %s\n", progname, file);
-		return(-1);
+		return (-1);
 	}
-	(void) close(fd);
+	(void)close(fd);
 	if (rflag) {
 		/*
 		 * aside: note that 'cp' is technically a 'const char *'
@@ -720,11 +726,11 @@ test(const char *file)
 		 * returns a value of type 'char *'.
 		 */
 		if ((cp = strrchr(file, '/')) == NULL) {
-			if (checkwriteperm(file,".") == 0)
-				return(1);
+			if (checkwriteperm(file, ".") == 0)
+				return (1);
 		} else {
 			if (cp == file) {
-				fd = checkwriteperm(file,"/");
+				fd = checkwriteperm(file, "/");
 			} else {
 				/* strlcpy will change the '/' to '\0' */
 				dlen = cp - file + 1;
@@ -734,27 +740,28 @@ test(const char *file)
 				free(dirpath);
 			}
 			if (fd == 0)
-				return(1);
+				return (1);
 		}
 		printf("%s: %s: is not removable by you\n", progname, file);
 	}
-	return(0);
+	return (0);
 }
 
 static int
 checkwriteperm(const char *file, const char *directory)
 {
-	struct	stat	stats;
+	struct stat stats;
 	if (access(directory, W_OK) == 0) {
 		stat(directory, &stats);
 		if (stats.st_mode & S_ISVTX) {
 			stat(file, &stats);
-			if(stats.st_uid == userid) {
-				return(0);
+			if (stats.st_uid == userid) {
+				return (0);
 			}
-		} else return(0);
+		} else
+			return (0);
 	}
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -768,9 +775,9 @@ itoa(int i)
 
 	p = &b[8];
 	do
-		*p-- = i%10 + '0';
+		*p-- = i % 10 + '0';
 	while (i /= 10);
-	return(++p);
+	return (++p);
 }
 
 /*
@@ -783,7 +790,7 @@ chkprinter(const char *ptrname, struct printer *pp)
 
 	init_printer(pp);
 	status = getprintcap(ptrname, pp);
-	switch(status) {
+	switch (status) {
 	case PCAPERR_OSERR:
 	case PCAPERR_TCLOOP:
 		errx(1, "%s: %s", ptrname, pcaperr(status));
@@ -801,12 +808,11 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n",
-"usage: lpr [-Pprinter] [-#num] [-C class] [-J job] [-T title] [-U user]\n"
-	"\t[-Z daemon-options] [-i[numcols]] [-i[numcols]] [-1234 font]\n"
-	"\t[-L locale] [-wnum] [-cdfghlnmprstv] [name ...]");
+	    "usage: lpr [-Pprinter] [-#num] [-C class] [-J job] [-T title] [-U user]\n"
+	    "\t[-Z daemon-options] [-i[numcols]] [-i[numcols]] [-1234 font]\n"
+	    "\t[-L locale] [-wnum] [-cdfghlnmprstv] [name ...]");
 	exit(1);
 }
-
 
 /*
  * Make the temp files.
@@ -818,9 +824,9 @@ mktemps(const struct printer *pp)
 	register char *cp;
 	char buf[BUFSIZ];
 
-	(void) snprintf(buf, sizeof(buf), "%s/.seq", pp->spool_dir);
+	(void)snprintf(buf, sizeof(buf), "%s/.seq", pp->spool_dir);
 	PRIV_START
-	if ((fd = open(buf, O_RDWR|O_CREAT, 0664)) < 0) {
+	if ((fd = open(buf, O_RDWR | O_CREAT, 0664)) < 0) {
 		printf("%s: cannot create %s\n", progname, buf);
 		exit(1);
 	}
@@ -831,7 +837,7 @@ mktemps(const struct printer *pp)
 	PRIV_END
 	n = 0;
 	if ((len = read(fd, buf, sizeof(buf))) > 0) {
-		for (cp = buf; len--; ) {
+		for (cp = buf; len--;) {
 			if (*cp < '0' || *cp > '9')
 				break;
 			n = n * 10 + (*cp++ - '0');
@@ -843,10 +849,10 @@ mktemps(const struct printer *pp)
 	dfname = lmktemp(pp, "df", n, len);
 	inchar = strlen(pp->spool_dir) + 3;
 	n = (n + 1) % 1000;
-	(void) lseek(fd, (off_t)0, 0);
+	(void)lseek(fd, (off_t)0, 0);
 	snprintf(buf, sizeof(buf), "%03d\n", n);
-	(void) write(fd, buf, strlen(buf));
-	(void) close(fd);	/* unlocks as well */
+	(void)write(fd, buf, strlen(buf));
+	(void)close(fd); /* unlocks as well */
 }
 
 /*
@@ -859,7 +865,7 @@ lmktemp(const struct printer *pp, const char *id, int num, int len)
 
 	if ((s = malloc(len)) == NULL)
 		errx(1, "out of memory");
-	(void) snprintf(s, len, "%s/%sA%03d%s", pp->spool_dir, id, num,
+	(void)snprintf(s, len, "%s/%sA%03d%s", pp->spool_dir, id, num,
 	    local_host);
-	return(s);
+	return (s);
 }

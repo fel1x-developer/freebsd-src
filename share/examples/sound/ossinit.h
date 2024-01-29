@@ -26,13 +26,13 @@
  */
 
 #include <sys/soundcard.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 
 #ifndef SAMPLE_SIZE
 #define SAMPLE_SIZE 16
@@ -41,21 +41,19 @@
 /* Format can be unsigned, in which case replace S with U */
 #if SAMPLE_SIZE == 32
 typedef int32_t sample_t;
-int	format = AFMT_S32_NE;		/* Signed 32bit native endian format */
+int format = AFMT_S32_NE; /* Signed 32bit native endian format */
 #elif SAMPLE_SIZE == 16
 typedef int16_t sample_t;
-int	format = AFMT_S16_NE;		/* Signed 16bit native endian format */
+int format = AFMT_S16_NE; /* Signed 16bit native endian format */
 #elif SAMPLE_SIZE == 8
 typedef int8_t sample_t;
-int	format = AFMT_S8_NE;		/* Signed 8bit native endian format */
+int format = AFMT_S8_NE; /* Signed 8bit native endian format */
 #else
 #error Unsupported sample format!
 typedef int32_t sample_t;
-int	format = AFMT_S32_NE;		/* Not a real value, just silencing
-					 * compiler errors */
+int format = AFMT_S32_NE; /* Not a real value, just silencing
+			   * compiler errors */
 #endif
-
-
 
 /*
  * Minimal configuration for OSS
@@ -63,20 +61,19 @@ int	format = AFMT_S32_NE;		/* Not a real value, just silencing
  * more fields
  */
 typedef struct config {
-	char   *device;
-	int	channels;
-	int	fd;
-	int	format;
-	int	frag;
-	int	sample_count;
-	int	sample_rate;
-	int	sample_size;
-	int	chsamples;
-	int	mmap;
+	char *device;
+	int channels;
+	int fd;
+	int format;
+	int frag;
+	int sample_count;
+	int sample_rate;
+	int sample_size;
+	int chsamples;
+	int mmap;
 	oss_audioinfo audio_info;
 	audio_buf_info buffer_info;
 } config_t;
-
 
 /*
  * Error state is indicated by value=-1 in which case application exits
@@ -91,8 +88,6 @@ check_error(const int value, const char *message)
 	}
 }
 
-
-
 /* Calculate frag by giving it minimal size of buffer */
 static inline int
 size2frag(int x)
@@ -104,7 +99,6 @@ size2frag(int x)
 	}
 	return frag;
 }
-
 
 /*
  * Split input buffer into channels. Input buffer is in interleaved format
@@ -125,7 +119,6 @@ oss_split(config_t *config, sample_t *input, sample_t *output)
 	}
 }
 
-
 /*
  * Convert channels into interleaved format and place it in output
  * buffer
@@ -135,7 +128,8 @@ oss_merge(config_t *config, sample_t *input, sample_t *output)
 {
 	for (int channel = 0; channel < config->channels; ++channel) {
 		for (int index = 0; index < config->chsamples; ++index) {
-			output[index * config->channels + channel] = input[channel * index];
+			output[index * config->channels + channel] =
+			    input[channel * index];
 		}
 	}
 }
@@ -158,7 +152,8 @@ oss_init(config_t *config)
 	printf("max_channels: %d\n", config->audio_info.max_channels);
 	printf("latency: %d\n", config->audio_info.latency);
 	printf("handle: %s\n", config->audio_info.handle);
-	if (config->audio_info.min_rate > config->sample_rate || config->sample_rate > config->audio_info.max_rate) {
+	if (config->audio_info.min_rate > config->sample_rate ||
+	    config->sample_rate > config->audio_info.max_rate) {
 		fprintf(stderr, "%s doesn't support chosen ", config->device);
 		fprintf(stderr, "samplerate of %dHz!\n", config->sample_rate);
 		exit(1);
@@ -168,23 +163,24 @@ oss_init(config_t *config)
 	}
 
 	/*
-         * If device is going to be used in mmap mode, disable all format
-         * conversions. Official OSS documentation states error code should not be
-         * checked. http://manuals.opensound.com/developer/mmap_test.c.html#LOC10
-         */
+	 * If device is going to be used in mmap mode, disable all format
+	 * conversions. Official OSS documentation states error code should not
+	 * be checked.
+	 * http://manuals.opensound.com/developer/mmap_test.c.html#LOC10
+	 */
 	if (config->mmap) {
 		tmp = 0;
 		ioctl(config->fd, SNDCTL_DSP_COOKEDMODE, &tmp);
 	}
 
 	/*
-         * Set number of channels. If number of channels is chosen to the value
-         * near the one wanted, save it in config
-         */
+	 * Set number of channels. If number of channels is chosen to the value
+	 * near the one wanted, save it in config
+	 */
 	tmp = config->channels;
 	error = ioctl(config->fd, SNDCTL_DSP_CHANNELS, &tmp);
 	check_error(error, "SNDCTL_DSP_CHANNELS");
-	if (tmp != config->channels) {	/* or check if tmp is close enough? */
+	if (tmp != config->channels) { /* or check if tmp is close enough? */
 		fprintf(stderr, "%s doesn't support chosen ", config->device);
 		fprintf(stderr, "channel count of %d", config->channels);
 		fprintf(stderr, ", set to %d!\n", tmp);
@@ -196,7 +192,8 @@ oss_init(config_t *config)
 	error = ioctl(config->fd, SNDCTL_DSP_SETFMT, &tmp);
 	check_error(error, "SNDCTL_DSP_SETFMT");
 	if (tmp != config->format) {
-		fprintf(stderr, "%s doesn't support chosen sample format!\n", config->device);
+		fprintf(stderr, "%s doesn't support chosen sample format!\n",
+		    config->device);
 		exit(1);
 	}
 
@@ -206,7 +203,8 @@ oss_init(config_t *config)
 	check_error(error, "SNDCTL_DSP_SPEED");
 
 	/* Get and check device capabilities */
-	error = ioctl(config->fd, SNDCTL_DSP_GETCAPS, &(config->audio_info.caps));
+	error = ioctl(config->fd, SNDCTL_DSP_GETCAPS,
+	    &(config->audio_info.caps));
 	check_error(error, "SNDCTL_DSP_GETCAPS");
 	if (!(config->audio_info.caps & PCM_CAP_DUPLEX)) {
 		fprintf(stderr, "Device doesn't support full duplex!\n");
@@ -224,11 +222,11 @@ oss_init(config_t *config)
 	}
 
 	/*
-         * If desired frag is smaller than minimum, based on number of channels
-         * and format (size in bits: 8, 16, 24, 32), set that as frag. Buffer size
-         * is 2^frag, but the real size of the buffer will be read when the
-         * configuration of the device is successfull
-         */
+	 * If desired frag is smaller than minimum, based on number of channels
+	 * and format (size in bits: 8, 16, 24, 32), set that as frag. Buffer
+	 * size is 2^frag, but the real size of the buffer will be read when the
+	 * configuration of the device is successfull
+	 */
 	int min_frag = size2frag(config->sample_size * config->channels);
 
 	if (config->frag < min_frag) {
@@ -236,9 +234,9 @@ oss_init(config_t *config)
 	}
 
 	/*
-         * Allocate buffer in fragments. Total buffer will be split in number
-         * of fragments (2 by default)
-         */
+	 * Allocate buffer in fragments. Total buffer will be split in number
+	 * of fragments (2 by default)
+	 */
 	if (config->buffer_info.fragments < 0) {
 		config->buffer_info.fragments = 2;
 	}
@@ -250,11 +248,8 @@ oss_init(config_t *config)
 	error = ioctl(config->fd, SNDCTL_DSP_GETOSPACE, &(config->buffer_info));
 	check_error(error, "SNDCTL_DSP_GETOSPACE");
 	if (config->buffer_info.bytes < 1) {
-		fprintf(
-		    stderr,
-		    "OSS buffer error: buffer size can not be %d\n",
-		    config->buffer_info.bytes
-		    );
+		fprintf(stderr, "OSS buffer error: buffer size can not be %d\n",
+		    config->buffer_info.bytes);
 		exit(1);
 	}
 	config->sample_count = config->buffer_info.bytes / config->sample_size;

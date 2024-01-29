@@ -38,38 +38,35 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
+#include <net/bpf.h>
+#include <net/ethernet.h> /* XXX for ether_sprintf */
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
+#include <net/if_media.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_var.h>
 
-#include <net/bpf.h>
-
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
 #include <dev/ath/if_ath_btcoex.h>
 #include <dev/ath/if_ath_btcoex_mci.h>
+#include <dev/ath/if_athvar.h>
 
 MALLOC_DECLARE(M_ATHDEV);
 
@@ -89,7 +86,7 @@ ath_btcoex_cfg_wb195(struct ath_softc *sc)
 	HAL_BT_COEX_CONFIG btconfig;
 	struct ath_hal *ah = sc->sc_ah;
 
-	if (! ath_hal_btcoex_supported(ah))
+	if (!ath_hal_btcoex_supported(ah))
 		return (EINVAL);
 
 	bzero(&btinfo, sizeof(btinfo));
@@ -106,21 +103,21 @@ ath_btcoex_cfg_wb195(struct ath_softc *sc)
 	btinfo.bt_gpio_bt_active = 6;
 	btinfo.bt_gpio_bt_priority = 7;
 	btinfo.bt_gpio_wlan_active = 5;
-	btinfo.bt_active_polarity = 1;	/* XXX not used */
-	btinfo.bt_single_ant = 1;	/* 1 antenna on ar9285 ? */
-	btinfo.bt_isolation = 0;	/* in dB, not used */
+	btinfo.bt_active_polarity = 1; /* XXX not used */
+	btinfo.bt_single_ant = 1;      /* 1 antenna on ar9285 ? */
+	btinfo.bt_isolation = 0;       /* in dB, not used */
 
 	ath_hal_btcoex_set_info(ah, &btinfo);
 
 	btconfig.bt_time_extend = 0;
-	btconfig.bt_txstate_extend = 1;	/* true */
-	btconfig.bt_txframe_extend = 1;	/* true */
+	btconfig.bt_txstate_extend = 1; /* true */
+	btconfig.bt_txframe_extend = 1; /* true */
 	btconfig.bt_mode = HAL_BT_COEX_MODE_SLOTTED;
-	btconfig.bt_quiet_collision = 1;	/* true */
-	btconfig.bt_rxclear_polarity = 1;	/* true */
+	btconfig.bt_quiet_collision = 1;  /* true */
+	btconfig.bt_rxclear_polarity = 1; /* true */
 	btconfig.bt_priority_time = 2;
 	btconfig.bt_first_slot_time = 5;
-	btconfig.bt_hold_rxclear = 1;	/* true */
+	btconfig.bt_hold_rxclear = 1; /* true */
 
 	ath_hal_btcoex_set_config(ah, &btconfig);
 
@@ -145,7 +142,7 @@ ath_btcoex_cfg_wb225(struct ath_softc *sc)
 	HAL_BT_COEX_CONFIG btconfig;
 	struct ath_hal *ah = sc->sc_ah;
 
-	if (! ath_hal_btcoex_supported(ah))
+	if (!ath_hal_btcoex_supported(ah))
 		return (EINVAL);
 
 	bzero(&btinfo, sizeof(btinfo));
@@ -153,7 +150,7 @@ ath_btcoex_cfg_wb225(struct ath_softc *sc)
 
 	device_printf(sc->sc_dev, "Enabling WB225 BTCOEX\n");
 
-	btinfo.bt_module = HAL_BT_MODULE_JANUS;	/* XXX not used? */
+	btinfo.bt_module = HAL_BT_MODULE_JANUS; /* XXX not used? */
 	btinfo.bt_coex_config = HAL_BT_COEX_CFG_3WIRE;
 	/*
 	 * These are the three GPIO pins hooked up between the AR9485 and
@@ -163,21 +160,21 @@ ath_btcoex_cfg_wb225(struct ath_softc *sc)
 	btinfo.bt_gpio_bt_priority = 8;
 	btinfo.bt_gpio_wlan_active = 5;
 
-	btinfo.bt_active_polarity = 1;	/* XXX not used */
-	btinfo.bt_single_ant = 1;	/* 1 antenna on ar9285 ? */
-	btinfo.bt_isolation = 0;	/* in dB, not used */
+	btinfo.bt_active_polarity = 1; /* XXX not used */
+	btinfo.bt_single_ant = 1;      /* 1 antenna on ar9285 ? */
+	btinfo.bt_isolation = 0;       /* in dB, not used */
 
 	ath_hal_btcoex_set_info(ah, &btinfo);
 
 	btconfig.bt_time_extend = 0;
-	btconfig.bt_txstate_extend = 1;	/* true */
-	btconfig.bt_txframe_extend = 1;	/* true */
+	btconfig.bt_txstate_extend = 1; /* true */
+	btconfig.bt_txframe_extend = 1; /* true */
 	btconfig.bt_mode = HAL_BT_COEX_MODE_SLOTTED;
-	btconfig.bt_quiet_collision = 1;	/* true */
-	btconfig.bt_rxclear_polarity = 1;	/* true */
+	btconfig.bt_quiet_collision = 1;  /* true */
+	btconfig.bt_rxclear_polarity = 1; /* true */
 	btconfig.bt_priority_time = 2;
 	btconfig.bt_first_slot_time = 5;
-	btconfig.bt_hold_rxclear = 1;	/* true */
+	btconfig.bt_hold_rxclear = 1; /* true */
 
 	ath_hal_btcoex_set_config(ah, &btconfig);
 
@@ -196,7 +193,7 @@ ath_btcoex_cfg_mci(struct ath_softc *sc, uint32_t mci_cfg, int do_btdiv)
 	HAL_BT_COEX_CONFIG btconfig;
 	struct ath_hal *ah = sc->sc_ah;
 
-	if (! ath_hal_btcoex_supported(ah))
+	if (!ath_hal_btcoex_supported(ah))
 		return (EINVAL);
 
 	bzero(&btinfo, sizeof(btinfo));
@@ -209,7 +206,7 @@ ath_btcoex_cfg_mci(struct ath_softc *sc, uint32_t mci_cfg, int do_btdiv)
 		return (EINVAL);
 	}
 
-	btinfo.bt_module = HAL_BT_MODULE_JANUS;	/* XXX not used? */
+	btinfo.bt_module = HAL_BT_MODULE_JANUS; /* XXX not used? */
 	btinfo.bt_coex_config = HAL_BT_COEX_CFG_MCI;
 
 	/*
@@ -226,21 +223,21 @@ ath_btcoex_cfg_mci(struct ath_softc *sc, uint32_t mci_cfg, int do_btdiv)
 	btinfo.bt_gpio_bt_priority = 8;
 	btinfo.bt_gpio_wlan_active = 5;
 
-	btinfo.bt_active_polarity = 1;	/* XXX not used */
-	btinfo.bt_single_ant = 0;	/* 2 antenna on WB335 */
-	btinfo.bt_isolation = 0;	/* in dB, not used */
+	btinfo.bt_active_polarity = 1; /* XXX not used */
+	btinfo.bt_single_ant = 0;      /* 2 antenna on WB335 */
+	btinfo.bt_isolation = 0;       /* in dB, not used */
 
 	ath_hal_btcoex_set_info(ah, &btinfo);
 
 	btconfig.bt_time_extend = 0;
-	btconfig.bt_txstate_extend = 1;	/* true */
-	btconfig.bt_txframe_extend = 1;	/* true */
+	btconfig.bt_txstate_extend = 1; /* true */
+	btconfig.bt_txframe_extend = 1; /* true */
 	btconfig.bt_mode = HAL_BT_COEX_MODE_SLOTTED;
-	btconfig.bt_quiet_collision = 1;	/* true */
-	btconfig.bt_rxclear_polarity = 1;	/* true */
+	btconfig.bt_quiet_collision = 1;  /* true */
+	btconfig.bt_rxclear_polarity = 1; /* true */
 	btconfig.bt_priority_time = 2;
 	btconfig.bt_first_slot_time = 5;
-	btconfig.bt_hold_rxclear = 1;	/* true */
+	btconfig.bt_hold_rxclear = 1; /* true */
 
 	ath_hal_btcoex_set_config(ah, &btconfig);
 
@@ -294,12 +291,12 @@ ath_btcoex_cfg_wb335b(struct ath_softc *sc)
 	 */
 	if (sc->sc_pci_devinfo & ATH_PCI_AR9565_1ANT) {
 		flags &= ~ATH_MCI_CONFIG_ANT_ARCH;
-		flags |= ATH_MCI_ANT_ARCH_1_ANT_PA_LNA_SHARED <<
-		    ATH_MCI_CONFIG_ANT_ARCH_S;
+		flags |= ATH_MCI_ANT_ARCH_1_ANT_PA_LNA_SHARED
+		    << ATH_MCI_CONFIG_ANT_ARCH_S;
 	} else if (sc->sc_pci_devinfo & ATH_PCI_AR9565_2ANT) {
 		flags &= ~ATH_MCI_CONFIG_ANT_ARCH;
-		flags |= ATH_MCI_ANT_ARCH_2_ANT_PA_LNA_NON_SHARED <<
-		    ATH_MCI_CONFIG_ANT_ARCH_S;
+		flags |= ATH_MCI_ANT_ARCH_2_ANT_PA_LNA_NON_SHARED
+		    << ATH_MCI_CONFIG_ANT_ARCH_S;
 	}
 
 	if (sc->sc_pci_devinfo & ATH_PCI_BT_ANT_DIV) {
@@ -347,7 +344,7 @@ ath_btcoex_attach(struct ath_softc *sc)
 	/*
 	 * No chipset bluetooth coexistence? Then do nothing.
 	 */
-	if (! ath_hal_btcoex_supported(ah))
+	if (!ath_hal_btcoex_supported(ah))
 		return (0);
 
 	/*
@@ -355,9 +352,7 @@ ath_btcoex_attach(struct ath_softc *sc)
 	 * profile to configure.
 	 */
 	ret = resource_string_value(device_get_name(sc->sc_dev),
-	    device_get_unit(sc->sc_dev),
-	    "btcoex_profile",
-	    &profname);
+	    device_get_unit(sc->sc_dev), "btcoex_profile", &profname);
 	if (ret != 0) {
 		/* nothing to do */
 		return (0);
@@ -432,7 +427,7 @@ ath_btcoex_ioctl(struct ath_softc *sc, struct ath_diag *ad)
 	u_int32_t insize = ad->ad_in_size;
 	u_int32_t outsize = ad->ad_out_size;
 	int error = 0;
-//	int val;
+	//	int val;
 
 	if (ad->ad_id & ATH_DIAG_IN) {
 		/*
@@ -462,9 +457,9 @@ ath_btcoex_ioctl(struct ath_softc *sc, struct ath_diag *ad)
 		}
 	}
 	switch (id) {
-		default:
-			error = EINVAL;
-			goto bad;
+	default:
+		error = EINVAL;
+		goto bad;
 	}
 	if (outsize < ad->ad_out_size)
 		ad->ad_out_size = outsize;

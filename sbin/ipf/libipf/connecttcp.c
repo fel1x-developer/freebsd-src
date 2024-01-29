@@ -6,8 +6,9 @@
  * $Id: connecttcp.c,v 1.3.2.2 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include "ipf.h"
 #include <ctype.h>
+
+#include "ipf.h"
 
 /*
  * Format expected is one address per line, at the start of each line.
@@ -32,7 +33,7 @@ connecttcp(char *server, int port)
 		if (host == NULL)
 			return (-1);
 		memcpy(&sin.sin_addr, host->h_addr_list[0],
-		       sizeof(sin.sin_addr));
+		    sizeof(sin.sin_addr));
 	}
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);

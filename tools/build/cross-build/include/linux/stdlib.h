@@ -58,7 +58,9 @@ int cgetustr(char *, const char *, char **);
 const char *getprogname(void);
 void setprogname(const char *progname);
 
-void *reallocf(void *, size_t) __result_use_check __alloc_size(2);
+void *
+reallocf(void *, size_t)
+__result_use_check __alloc_size(2);
 
 unsigned arc4random(void);
 void arc4random_buf(void *, size_t);

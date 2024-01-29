@@ -4,12 +4,12 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 
-#include "ipf.h"
 #include <ctype.h>
 
+#include "ipf.h"
 
 void
-printdstlistdata( ippool_dst_t *pool, int opts)
+printdstlistdata(ippool_dst_t *pool, int opts)
 {
 
 	if ((opts & OPT_DEBUG) == 0) {

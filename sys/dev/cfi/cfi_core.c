@@ -35,9 +35,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cfi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -45,7 +45,7 @@
 #include <sys/endian.h>
 #include <sys/kenv.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>   
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
@@ -159,11 +159,11 @@ cfi_read_qry(struct cfi_softc *sc, u_int ofs)
 {
 	uint8_t val;
 
-	cfi_write(sc, CFI_QRY_CMD_ADDR * sc->sc_width, CFI_QRY_CMD_DATA); 
+	cfi_write(sc, CFI_QRY_CMD_ADDR * sc->sc_width, CFI_QRY_CMD_DATA);
 	val = cfi_read(sc, ofs * sc->sc_width);
 	cfi_reset_default(sc);
 	return (val);
-} 
+}
 
 static void
 cfi_amd_write(struct cfi_softc *sc, u_int ofs, u_int addr, u_int data)
@@ -283,13 +283,13 @@ cfi_probe(device_t dev)
 	    cfi_fmtsize(sc->sc_size));
 	device_set_desc_copy(dev, desc);
 
- out:
+out:
 	bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_rid, sc->sc_res);
 	return (error);
 }
 
 int
-cfi_attach(device_t dev) 
+cfi_attach(device_t dev)
 {
 	struct cfi_softc *sc;
 	u_int blksz, blocks;
@@ -377,8 +377,8 @@ cfi_attach(device_t dev)
 		    ttoexp + mtoexp);
 		return (EINVAL);
 	}
-	sc->sc_typical_timeouts[CFI_TIMEOUT_BUFWRITE] =
-	    SBT_1US * (1ULL << cfi_read_qry(sc, CFI_QRY_TTO_BUFWRITE));
+	sc->sc_typical_timeouts[CFI_TIMEOUT_BUFWRITE] = SBT_1US *
+	    (1ULL << cfi_read_qry(sc, CFI_QRY_TTO_BUFWRITE));
 	sc->sc_max_timeouts[CFI_TIMEOUT_BUFWRITE] =
 	    sc->sc_typical_timeouts[CFI_TIMEOUT_BUFWRITE] *
 	    (1ULL << cfi_read_qry(sc, CFI_QRY_MTO_BUFWRITE));
@@ -386,7 +386,7 @@ cfi_attach(device_t dev)
 	/* Get the maximum size of a multibyte program */
 	if (sc->sc_typical_timeouts[CFI_TIMEOUT_BUFWRITE] != 0)
 		sc->sc_maxbuf = 1 << (cfi_read_qry(sc, CFI_QRY_MAXBUF) |
-		    cfi_read_qry(sc, CFI_QRY_MAXBUF) << 8);
+				    cfi_read_qry(sc, CFI_QRY_MAXBUF) << 8);
 	else
 		sc->sc_maxbuf = 0;
 
@@ -401,8 +401,7 @@ cfi_attach(device_t dev)
 
 		blksz = cfi_read_qry(sc, CFI_QRY_REGION(r) + 2) |
 		    (cfi_read_qry(sc, CFI_QRY_REGION(r) + 3) << 8);
-		sc->sc_region[r].r_blksz = (blksz == 0) ? 128 :
-		    blksz * 256;
+		sc->sc_region[r].r_blksz = (blksz == 0) ? 128 : blksz * 256;
 	}
 
 	/* Reset the device to a default state. */
@@ -417,7 +416,7 @@ cfi_attach(device_t dev)
 		}
 	}
 
-	if (sc->sc_cmdset == CFI_VEND_AMD_ECS  ||
+	if (sc->sc_cmdset == CFI_VEND_AMD_ECS ||
 	    sc->sc_cmdset == CFI_VEND_AMD_SCS) {
 		cfi_amd_write(sc, 0, AMD_ADDR_START, CFI_AMD_AUTO_SELECT);
 		sc->sc_manid = cfi_read(sc, 0);
@@ -428,8 +427,8 @@ cfi_attach(device_t dev)
 	}
 
 	u = device_get_unit(dev);
-	sc->sc_nod = make_dev(&cfi_cdevsw, u, UID_ROOT, GID_WHEEL, 0600,
-	    "%s%u", cfi_driver_name, u);
+	sc->sc_nod = make_dev(&cfi_cdevsw, u, UID_ROOT, GID_WHEEL, 0600, "%s%u",
+	    cfi_driver_name, u);
 	sc->sc_nod->si_drv1 = sc;
 
 	cfi_add_sysctls(sc);
@@ -441,10 +440,10 @@ cfi_attach(device_t dev)
 	 */
 	if (cfi_intel_get_factory_pr(sc, &ppr) == 0) {
 		if (snprintf(name, sizeof(name), "%s.factory_ppr",
-		    device_get_nameunit(dev)) < (sizeof(name) - 1) &&
+			device_get_nameunit(dev)) < (sizeof(name) - 1) &&
 		    snprintf(value, sizeof(value), "0x%016jx", ppr) <
-		    (sizeof(value) - 1))
-			(void) kern_setenv(name, value);
+			(sizeof(value) - 1))
+			(void)kern_setenv(name, value);
 	}
 #endif
 
@@ -463,31 +462,27 @@ cfi_add_sysctls(struct cfi_softc *sc)
 	ctx = device_get_sysctl_ctx(sc->sc_dev);
 	children = SYSCTL_CHILDREN(device_get_sysctl_tree(sc->sc_dev));
 
-	SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-	    "typical_erase_timout_count",
-	    CTLFLAG_RD, &sc->sc_tto_counts[CFI_TIMEOUT_ERASE],
-	    0, "Number of times the typical erase timeout was exceeded");
-	SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-	    "max_erase_timout_count",
+	SYSCTL_ADD_UINT(ctx, children, OID_AUTO, "typical_erase_timout_count",
+	    CTLFLAG_RD, &sc->sc_tto_counts[CFI_TIMEOUT_ERASE], 0,
+	    "Number of times the typical erase timeout was exceeded");
+	SYSCTL_ADD_UINT(ctx, children, OID_AUTO, "max_erase_timout_count",
 	    CTLFLAG_RD, &sc->sc_mto_counts[CFI_TIMEOUT_ERASE], 0,
 	    "Number of times the maximum erase timeout was exceeded");
-	SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-	    "typical_write_timout_count",
+	SYSCTL_ADD_UINT(ctx, children, OID_AUTO, "typical_write_timout_count",
 	    CTLFLAG_RD, &sc->sc_tto_counts[CFI_TIMEOUT_WRITE], 0,
 	    "Number of times the typical write timeout was exceeded");
-	SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-	    "max_write_timout_count",
+	SYSCTL_ADD_UINT(ctx, children, OID_AUTO, "max_write_timout_count",
 	    CTLFLAG_RD, &sc->sc_mto_counts[CFI_TIMEOUT_WRITE], 0,
 	    "Number of times the maximum write timeout was exceeded");
 	if (sc->sc_maxbuf > 0) {
 		SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-		    "typical_bufwrite_timout_count",
-		    CTLFLAG_RD, &sc->sc_tto_counts[CFI_TIMEOUT_BUFWRITE], 0,
+		    "typical_bufwrite_timout_count", CTLFLAG_RD,
+		    &sc->sc_tto_counts[CFI_TIMEOUT_BUFWRITE], 0,
 		    "Number of times the typical buffered write timeout was "
 		    "exceeded");
 		SYSCTL_ADD_UINT(ctx, children, OID_AUTO,
-		    "max_bufwrite_timout_count",
-		    CTLFLAG_RD, &sc->sc_mto_counts[CFI_TIMEOUT_BUFWRITE], 0,
+		    "max_bufwrite_timout_count", CTLFLAG_RD,
+		    &sc->sc_mto_counts[CFI_TIMEOUT_BUFWRITE], 0,
 		    "Number of times the maximum buffered write timeout was "
 		    "exceeded");
 	}
@@ -563,8 +558,8 @@ cfi_wait_ready(struct cfi_softc *sc, u_int ofs, sbintime_t start,
 			if (done) {
 				/* NB: bit 0 is reserved */
 				st &= ~(CFI_INTEL_XSTATUS_RSVD |
-					CFI_INTEL_STATUS_WSMS |
-					CFI_INTEL_STATUS_RSVD);
+				    CFI_INTEL_STATUS_WSMS |
+				    CFI_INTEL_STATUS_RSVD);
 				if (st & CFI_INTEL_STATUS_DPS)
 					error = EPERM;
 				else if (st & CFI_INTEL_STATUS_PSLBS)
@@ -613,9 +608,9 @@ int
 cfi_write_block(struct cfi_softc *sc)
 {
 	union {
-		uint8_t		*x8;
-		uint16_t	*x16;
-		uint32_t	*x32;
+		uint8_t *x8;
+		uint16_t *x16;
+		uint32_t *x32;
 	} ptr, cpyprt;
 	register_t intr;
 	int error, i, j, neederase = 0;
@@ -662,12 +657,12 @@ cfi_write_block(struct cfi_softc *sc)
 			}
 			cfi_amd_write(sc, sc->sc_wrofs, AMD_ADDR_START,
 			    CFI_AMD_ERASE_SECTOR);
-			cfi_amd_write(sc, sc->sc_wrofs, 
+			cfi_amd_write(sc, sc->sc_wrofs,
 			    sc->sc_wrofs >> (ffs(minsz) - 1),
 			    CFI_AMD_BLOCK_ERASE);
 			for (i = 0; i < CFI_AMD_MAXCHK; ++i) {
 				if (cfi_check_erase(sc, sc->sc_wrofs,
-				    sc->sc_wrbufsz))
+					sc->sc_wrbufsz))
 					break;
 				DELAY(10);
 			}
@@ -682,7 +677,7 @@ cfi_write_block(struct cfi_softc *sc)
 			return (ENODEV);
 		}
 		intr_restore(intr);
-		error = cfi_wait_ready(sc, sc->sc_wrofs, start, 
+		error = cfi_wait_ready(sc, sc->sc_wrofs, start,
 		    CFI_TIMEOUT_ERASE);
 		if (error)
 			goto out;
@@ -705,12 +700,14 @@ cfi_write_block(struct cfi_softc *sc)
 				do {
 					cfi_write(sc, sc->sc_wrofs + i,
 					    CFI_BCS_BUF_PROG_SETUP);
-					if (sbinuptime() > start + sc->sc_max_timeouts[CFI_TIMEOUT_BUFWRITE]) {
+					if (sbinuptime() > start +
+						sc->sc_max_timeouts
+						    [CFI_TIMEOUT_BUFWRITE]) {
 						error = ETIMEDOUT;
 						goto out;
 					}
 					st = cfi_read(sc, sc->sc_wrofs + i);
-				} while (! (st & CFI_INTEL_STATUS_WSMS));
+				} while (!(st & CFI_INTEL_STATUS_WSMS));
 
 				cfi_write(sc, sc->sc_wrofs + i,
 				    (wlen / sc->sc_width) - 1);
@@ -755,15 +752,15 @@ cfi_write_block(struct cfi_softc *sc)
 		if (!neederase) {
 			switch (sc->sc_width) {
 			case 1:
-				if(*(ptr.x8 + i) == *(cpyprt.x8 + i))
+				if (*(ptr.x8 + i) == *(cpyprt.x8 + i))
 					continue;
 				break;
 			case 2:
-				if(*(ptr.x16 + i / 2) == *(cpyprt.x16 + i / 2))
+				if (*(ptr.x16 + i / 2) == *(cpyprt.x16 + i / 2))
 					continue;
 				break;
 			case 4:
-				if(*(ptr.x32 + i / 4) == *(cpyprt.x32 + i / 4))
+				if (*(ptr.x32 + i / 4) == *(cpyprt.x32 + i / 4))
 					continue;
 				break;
 			}
@@ -801,10 +798,10 @@ cfi_write_block(struct cfi_softc *sc)
 			    sc->sc_wrofs + i, *(ptr.x32 + i / 4));
 			break;
 		}
-		
+
 		intr_restore(intr);
 
-		if (sc->sc_cmdset == CFI_VEND_AMD_ECS  ||
+		if (sc->sc_cmdset == CFI_VEND_AMD_ECS ||
 		    sc->sc_cmdset == CFI_VEND_AMD_SCS) {
 			for (j = 0; j < CFI_AMD_MAXCHK; ++j) {
 				switch (sc->sc_width) {
@@ -821,7 +818,7 @@ cfi_write_block(struct cfi_softc *sc)
 
 				if (cfi_read(sc, sc->sc_wrofs + i) == val)
 					break;
-					
+
 				DELAY(10);
 			}
 			if (j == CFI_AMD_MAXCHK) {
@@ -831,7 +828,7 @@ cfi_write_block(struct cfi_softc *sc)
 			}
 		} else {
 			error = cfi_wait_ready(sc, sc->sc_wrofs, start,
-			   CFI_TIMEOUT_WRITE);
+			    CFI_TIMEOUT_WRITE);
 			if (error)
 				goto out;
 		}
@@ -839,7 +836,7 @@ cfi_write_block(struct cfi_softc *sc)
 
 	/* error is 0. */
 
- out:
+out:
 	cfi_reset_default(sc);
 
 	/* Relock Intel flash */
@@ -870,7 +867,7 @@ cfi_write_block(struct cfi_softc *sc)
 static uint16_t
 cfi_get16(struct cfi_softc *sc, int off)
 {
-	uint16_t v = bus_space_read_2(sc->sc_tag, sc->sc_handle, off<<1);
+	uint16_t v = bus_space_read_2(sc->sc_tag, sc->sc_handle, off << 1);
 	return v;
 }
 
@@ -878,14 +875,14 @@ cfi_get16(struct cfi_softc *sc, int off)
 static void
 cfi_put16(struct cfi_softc *sc, int off, uint16_t v)
 {
-	bus_space_write_2(sc->sc_tag, sc->sc_handle, off<<1, v);
+	bus_space_write_2(sc->sc_tag, sc->sc_handle, off << 1, v);
 }
 #endif
 
 /*
  * Read the factory-defined 64-bit segment of the PR.
  */
-int 
+int
 cfi_intel_get_factory_pr(struct cfi_softc *sc, uint64_t *id)
 {
 	if (sc->sc_cmdset != CFI_VEND_INTEL_ECS)
@@ -893,10 +890,10 @@ cfi_intel_get_factory_pr(struct cfi_softc *sc, uint64_t *id)
 	KASSERT(sc->sc_width == 2, ("sc_width %d", sc->sc_width));
 
 	cfi_write(sc, 0, CFI_INTEL_READ_ID);
-	*id = ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(0)))<<48 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(1)))<<32 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(2)))<<16 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(3)));
+	*id = ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(0))) << 48 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(1))) << 32 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(2))) << 16 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(3)));
 	cfi_write(sc, 0, CFI_BCS_READ_ARRAY);
 	return 0;
 }
@@ -904,7 +901,7 @@ cfi_intel_get_factory_pr(struct cfi_softc *sc, uint64_t *id)
 /*
  * Read the User/OEM 64-bit segment of the PR.
  */
-int 
+int
 cfi_intel_get_oem_pr(struct cfi_softc *sc, uint64_t *id)
 {
 	if (sc->sc_cmdset != CFI_VEND_INTEL_ECS)
@@ -912,10 +909,10 @@ cfi_intel_get_oem_pr(struct cfi_softc *sc, uint64_t *id)
 	KASSERT(sc->sc_width == 2, ("sc_width %d", sc->sc_width));
 
 	cfi_write(sc, 0, CFI_INTEL_READ_ID);
-	*id = ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(4)))<<48 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(5)))<<32 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(6)))<<16 |
-	      ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(7)));
+	*id = ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(4))) << 48 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(5))) << 32 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(6))) << 16 |
+	    ((uint64_t)cfi_get16(sc, CFI_INTEL_PR(7)));
 	cfi_write(sc, 0, CFI_BCS_READ_ARRAY);
 	return 0;
 }
@@ -942,7 +939,7 @@ cfi_intel_set_oem_pr(struct cfi_softc *sc, uint64_t id)
 		intr = intr_disable();
 		start = sbinuptime();
 		cfi_write(sc, 0, CFI_INTEL_PP_SETUP);
-		cfi_put16(sc, CFI_INTEL_PR(i), id&0xffff);
+		cfi_put16(sc, CFI_INTEL_PR(i), id & 0xffff);
 		intr_restore(intr);
 		error = cfi_wait_ready(sc, CFI_BCS_READ_STATUS, start,
 		    CFI_TIMEOUT_WRITE);
@@ -952,8 +949,10 @@ cfi_intel_set_oem_pr(struct cfi_softc *sc, uint64_t id)
 	cfi_write(sc, 0, CFI_BCS_READ_ARRAY);
 	return error;
 #else
-	device_printf(sc->sc_dev, "%s: OEM PR not set, "
-	    "CFI_ARMEDANDDANGEROUS not configured\n", __func__);
+	device_printf(sc->sc_dev,
+	    "%s: OEM PR not set, "
+	    "CFI_ARMEDANDDANGEROUS not configured\n",
+	    __func__);
 	return ENXIO;
 #endif
 }
@@ -961,7 +960,7 @@ cfi_intel_set_oem_pr(struct cfi_softc *sc, uint64_t id)
 /*
  * Read the contents of the Protection Lock Register.
  */
-int 
+int
 cfi_intel_get_plr(struct cfi_softc *sc, uint32_t *plr)
 {
 	if (sc->sc_cmdset != CFI_VEND_INTEL_ECS)
@@ -979,7 +978,7 @@ cfi_intel_get_plr(struct cfi_softc *sc, uint32_t *plr)
  * user-settable segment of the Protection Register.
  * NOTE: this operation is not reversible.
  */
-int 
+int
 cfi_intel_set_plr(struct cfi_softc *sc)
 {
 #ifdef CFI_ARMEDANDDANGEROUS
@@ -1004,8 +1003,10 @@ cfi_intel_set_plr(struct cfi_softc *sc)
 	cfi_write(sc, 0, CFI_BCS_READ_ARRAY);
 	return error;
 #else
-	device_printf(sc->sc_dev, "%s: PLR not set, "
-	    "CFI_ARMEDANDDANGEROUS not configured\n", __func__);
+	device_printf(sc->sc_dev,
+	    "%s: PLR not set, "
+	    "CFI_ARMEDANDDANGEROUS not configured\n",
+	    __func__);
 	return ENXIO;
 #endif
 }

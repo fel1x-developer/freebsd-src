@@ -31,13 +31,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/queue.h>
-#include <sys/uio.h>
 #include <sys/endian.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/uio.h>
+#include <sys/wait.h>
+
 #include <dev/filemon/filemon.h>
 
 #include <err.h>
@@ -81,7 +82,7 @@ static struct termios tt;
 
 #ifndef TSTAMP_FMT
 /* useful for tool and human reading */
-# define TSTAMP_FMT "%n@ %s [%Y-%m-%d %T]%n"
+#define TSTAMP_FMT "%n@ %s [%Y-%m-%d %T]%n"
 #endif
 static const char *tstamp_fmt = TSTAMP_FMT;
 static int tflg;
@@ -114,19 +115,19 @@ main(int argc, char *argv[])
 	usesleep = 1;
 	rawout = 0;
 	flushtime = 30;
-	fm_fd = -1;	/* Shut up stupid "may be used uninitialized" GCC
-			   warning. (not needed w/clang) */
+	fm_fd = -1; /* Shut up stupid "may be used uninitialized" GCC
+		       warning. (not needed w/clang) */
 	showexit = 0;
 
 	while ((ch = getopt(argc, argv, "adeFfkpqrT:t:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			aflg = 1;
 			break;
 		case 'd':
 			usesleep = 0;
 			break;
-		case 'e':	/* Default behavior, accepted for linux compat */
+		case 'e': /* Default behavior, accepted for linux compat */
 			break;
 		case 'F':
 			Fflg = 1;
@@ -180,8 +181,8 @@ main(int argc, char *argv[])
 		if ((fm_fd = open("/dev/filemon", O_RDWR | O_CLOEXEC)) == -1)
 			err(1, "open(\"/dev/filemon\", O_RDWR)");
 		if ((fm_log = open(fmfname,
-		    O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
-		    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
+			 O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC,
+			 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
 			err(1, "open(%s)", fmfname);
 		if (ioctl(fm_fd, FILEMON_SET_FD, &fm_log) < 0)
 			err(1, "Cannot set filemon log file descriptor");
@@ -220,9 +221,9 @@ main(int argc, char *argv[])
 			if (argv[0]) {
 				showexit = 1;
 				fprintf(fscript, "Command: ");
-				for (k = 0 ; argv[k] ; ++k)
+				for (k = 0; argv[k]; ++k)
 					fprintf(fscript, "%s%s", k ? " " : "",
-						argv[k]);
+					    argv[k]);
 				fprintf(fscript, "\n");
 			}
 		}
@@ -315,11 +316,11 @@ main(int argc, char *argv[])
 					done(1);
 				}
 				if (cc == 0)
-					break;		/* retry later ? */
+					break; /* retry later ? */
 				if (kflg && tcgetattr(master, &stt) >= 0 &&
 				    ((stt.c_lflag & ECHO) == 0)) {
-					(void)fwrite(be->ibuf + be->rpos,
-					    1, cc, fscript);
+					(void)fwrite(be->ibuf + be->rpos, 1, cc,
+					    fscript);
 				}
 				be->len -= cc;
 				if (be->len == 0) {
@@ -331,7 +332,7 @@ main(int argc, char *argv[])
 			}
 		}
 		if (n > 0 && FD_ISSET(master, &rfd)) {
-			cc = read(master, obuf, sizeof (obuf));
+			cc = read(master, obuf, sizeof(obuf));
 			if (cc <= 0)
 				break;
 			(void)write(STDOUT_FILENO, obuf, cc);
@@ -357,8 +358,7 @@ usage(void)
 {
 	(void)fprintf(stderr,
 	    "usage: script [-aeFfkpqr] [-t time] [file [command ...]]\n");
-	(void)fprintf(stderr,
-	    "       script -p [-deq] [-T fmt] [file]\n");
+	(void)fprintf(stderr, "       script -p [-deq] [-T fmt] [file]\n");
 	exit(1);
 }
 
@@ -415,9 +415,11 @@ done(int eno)
 	if (!qflg) {
 		if (!rawout) {
 			if (showexit)
-				(void)fprintf(fscript, "\nCommand exit status:"
-				    " %d", eno);
-			(void)fprintf(fscript,"\nScript done on %s",
+				(void)fprintf(fscript,
+				    "\nCommand exit status:"
+				    " %d",
+				    eno);
+			(void)fprintf(fscript, "\nScript done on %s",
 			    ctime(&tvec));
 		}
 		(void)printf("\nScript done, output file is %s\n", fname);
@@ -459,8 +461,7 @@ consume(FILE *fp, off_t len, char *buf, int reg)
 	if (reg) {
 		if (fseeko(fp, len, SEEK_CUR) == -1)
 			err(1, NULL);
-	}
-	else {
+	} else {
 		while (len > 0) {
 			l = MIN(DEF_BUF, len);
 			if (fread(buf, sizeof(char), l, fp) != l)
@@ -470,14 +471,15 @@ consume(FILE *fp, off_t len, char *buf, int reg)
 	}
 }
 
-#define swapstamp(stamp) do { \
-	if (stamp.scr_direction > 0xff) { \
-		stamp.scr_len = bswap64(stamp.scr_len); \
-		stamp.scr_sec = bswap64(stamp.scr_sec); \
-		stamp.scr_usec = bswap32(stamp.scr_usec); \
-		stamp.scr_direction = bswap32(stamp.scr_direction); \
-	} \
-} while (0/*CONSTCOND*/)
+#define swapstamp(stamp)                                                    \
+	do {                                                                \
+		if (stamp.scr_direction > 0xff) {                           \
+			stamp.scr_len = bswap64(stamp.scr_len);             \
+			stamp.scr_sec = bswap64(stamp.scr_sec);             \
+			stamp.scr_usec = bswap32(stamp.scr_usec);           \
+			stamp.scr_direction = bswap32(stamp.scr_direction); \
+		}                                                           \
+	} while (0 /*CONSTCOND*/)
 
 static void
 termset(void)
@@ -534,8 +536,8 @@ playback(FILE *fp)
 		swapstamp(stamp);
 		save_len = sizeof(stamp);
 
-		if (reg && stamp.scr_len >
-		    (uint64_t)(pst.st_size - save_len) - nread)
+		if (reg &&
+		    stamp.scr_len > (uint64_t)(pst.st_size - save_len) - nread)
 			errx(1, "invalid stamp");
 
 		save_len += stamp.scr_len;
@@ -548,8 +550,8 @@ playback(FILE *fp)
 		switch (stamp.scr_direction) {
 		case 's':
 			if (!qflg)
-			    (void)printf("Script started on %s",
-				ctime(&tclock));
+				(void)printf("Script started on %s",
+				    ctime(&tclock));
 			tsi = tso;
 			(void)consume(fp, stamp.scr_len, buf, reg);
 			termset();
@@ -571,9 +573,9 @@ playback(FILE *fp)
 				if (stamp.scr_len == 0)
 					continue;
 				if (tclock - lclock > 0) {
-				    l = strftime(buf, sizeof buf, tstamp_fmt,
-					localtime(&tclock));
-				    (void)write(STDOUT_FILENO, buf, l);
+					l = strftime(buf, sizeof buf,
+					    tstamp_fmt, localtime(&tclock));
+					(void)write(STDOUT_FILENO, buf, l);
 				}
 				lclock = tclock;
 			} else {

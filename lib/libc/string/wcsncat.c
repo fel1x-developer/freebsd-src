@@ -37,7 +37,7 @@ __RCSID("$NetBSD: wcsncat.c,v 1.1 2000/12/23 23:14:36 itojun Exp $");
 #include <wchar.h>
 
 wchar_t *
-wcsncat(wchar_t * __restrict s1, const wchar_t * __restrict s2, size_t n)
+wcsncat(wchar_t *__restrict s1, const wchar_t *__restrict s2, size_t n)
 {
 	wchar_t *p;
 	wchar_t *q;

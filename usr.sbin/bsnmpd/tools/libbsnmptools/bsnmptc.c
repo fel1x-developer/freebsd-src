@@ -34,6 +34,11 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <bsnmp/asn1.h>
+#include <bsnmp/snmp.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -44,11 +49,6 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-
-#include <bsnmp/asn1.h>
-#include <bsnmp/snmp.h>
 #include "bsnmptc.h"
 #include "bsnmptools.h"
 
@@ -59,7 +59,7 @@ static int parse_octetstring(struct snmp_value *, char *);
 
 /* DateAndTime */
 static char *snmp_octstr2date(uint32_t, char *, char *);
-static char *snmp_date2asn_oid(char * , struct asn_oid *);
+static char *snmp_date2asn_oid(char *, struct asn_oid *);
 static int parse_dateandtime(struct snmp_value *, char *);
 
 /* PhysAddress */
@@ -92,48 +92,48 @@ static char *snmp_bits2oct(char *str, struct asn_oid *oid);
 static int32_t parse_bits(struct snmp_value *value, char *string);
 
 static struct snmp_text_conv {
-	enum snmp_tc	tc;
-	const char	*tc_str;
-	int32_t		len;
-	snmp_oct2tc_f	oct2tc;
-	snmp_tc2oid_f	tc2oid;
-	snmp_tc2oct_f	tc2oct;
+	enum snmp_tc tc;
+	const char *tc_str;
+	int32_t len;
+	snmp_oct2tc_f oct2tc;
+	snmp_tc2oid_f tc2oid;
+	snmp_tc2oct_f tc2oct;
 } text_convs[] = {
-	{ SNMP_STRING, "OctetString", SNMP_VAR_STRSZ,
-	  snmp_oct2str, snmp_str2asn_oid, parse_octetstring },
+	{ SNMP_STRING, "OctetString", SNMP_VAR_STRSZ, snmp_oct2str,
+	    snmp_str2asn_oid, parse_octetstring },
 
-	{ SNMP_DISPLAYSTRING, "DisplayString" , SNMP_VAR_STRSZ,
-	  snmp_oct2str, snmp_str2asn_oid, parse_octetstring },
+	{ SNMP_DISPLAYSTRING, "DisplayString", SNMP_VAR_STRSZ, snmp_oct2str,
+	    snmp_str2asn_oid, parse_octetstring },
 
 	{ SNMP_DATEANDTIME, "DateAndTime", SNMP_DATETIME_STRSZ,
-	  snmp_octstr2date, snmp_date2asn_oid, parse_dateandtime },
+	    snmp_octstr2date, snmp_date2asn_oid, parse_dateandtime },
 
-	{ SNMP_PHYSADDR, "PhysAddress", SNMP_PHYSADDR_STRSZ,
-	  snmp_oct2physAddr, snmp_addr2asn_oid, parse_physaddress },
+	{ SNMP_PHYSADDR, "PhysAddress", SNMP_PHYSADDR_STRSZ, snmp_oct2physAddr,
+	    snmp_addr2asn_oid, parse_physaddress },
 
-	{ SNMP_ATMESI, "AtmESI", SNMP_PHYSADDR_STRSZ,
-	  snmp_oct2physAddr, snmp_addr2asn_oid, parse_physaddress },
+	{ SNMP_ATMESI, "AtmESI", SNMP_PHYSADDR_STRSZ, snmp_oct2physAddr,
+	    snmp_addr2asn_oid, parse_physaddress },
 
 	{ SNMP_NTP_TIMESTAMP, "NTPTimeStamp", SNMP_NTP_TS_STRSZ,
-	  snmp_oct2ntp_ts, snmp_ntp_ts2asn_oid, parse_ntp_ts },
+	    snmp_oct2ntp_ts, snmp_ntp_ts2asn_oid, parse_ntp_ts },
 
-	{ SNMP_MACADDRESS, "MacAddress", SNMP_PHYSADDR_STRSZ,
-	  snmp_oct2physAddr, snmp_addr2asn_oid, parse_physaddress },
+	{ SNMP_MACADDRESS, "MacAddress", SNMP_PHYSADDR_STRSZ, snmp_oct2physAddr,
+	    snmp_addr2asn_oid, parse_physaddress },
 
-	{ SNMP_BRIDGE_ID, "BridgeId", SNMP_BRIDGEID_STRSZ,
-	  snmp_oct2bridgeid, snmp_bridgeid2oct, parse_bridge_id },
+	{ SNMP_BRIDGE_ID, "BridgeId", SNMP_BRIDGEID_STRSZ, snmp_oct2bridgeid,
+	    snmp_bridgeid2oct, parse_bridge_id },
 
-	{ SNMP_BPORT_ID, "BridgePortId", SNMP_BPORT_STRSZ,
-	  snmp_oct2bport_id, snmp_bport_id2oct, parse_bport_id },
+	{ SNMP_BPORT_ID, "BridgePortId", SNMP_BPORT_STRSZ, snmp_oct2bport_id,
+	    snmp_bport_id2oct, parse_bport_id },
 
 	{ SNMP_INETADDRESS, "InetAddress", SNMP_INADDRS_STRSZ,
-	  snmp_oct2inetaddr, snmp_inetaddr2oct, parse_inetaddr },
+	    snmp_oct2inetaddr, snmp_inetaddr2oct, parse_inetaddr },
 
-	{ SNMP_TC_OWN, "BITS", SNMP_VAR_STRSZ,
-	  snmp_oct2bits, snmp_bits2oct, parse_bits },
+	{ SNMP_TC_OWN, "BITS", SNMP_VAR_STRSZ, snmp_oct2bits, snmp_bits2oct,
+	    parse_bits },
 
 	{ SNMP_UNKNOWN, "Unknown", SNMP_VAR_STRSZ, snmp_oct2str,
-	  snmp_str2asn_oid, parse_octetstring }	/* keep last */
+	    snmp_str2asn_oid, parse_octetstring } /* keep last */
 };
 
 /* Common API */
@@ -143,7 +143,7 @@ snmp_get_tc(char *str)
 	int i;
 	for (i = 0; i < SNMP_UNKNOWN; i++) {
 		if (!strncmp(text_convs[i].tc_str, str,
-		    strlen(text_convs[i].tc_str)))
+			strlen(text_convs[i].tc_str)))
 			return (text_convs[i].tc);
 	}
 
@@ -154,7 +154,7 @@ char *
 snmp_oct2tc(enum snmp_tc tc, uint32_t len, char *octets)
 {
 	uint32_t tc_len;
-	char * buf;
+	char *buf;
 
 	if (tc > SNMP_UNKNOWN)
 		tc = SNMP_UNKNOWN;
@@ -164,7 +164,7 @@ snmp_oct2tc(enum snmp_tc tc, uint32_t len, char *octets)
 	else
 		tc_len = 2 * len + 3;
 
-	if ((buf = malloc(tc_len)) == NULL ) {
+	if ((buf = malloc(tc_len)) == NULL) {
 		syslog(LOG_ERR, "malloc failed - %s", strerror(errno));
 		return (NULL);
 	}
@@ -197,8 +197,8 @@ snmp_tc2oct(enum snmp_tc tc, struct snmp_value *value, char *string)
 }
 
 /*****************************************************
-* Basic OctetString type.
-*/
+ * Basic OctetString type.
+ */
 static char *
 snmp_oct2str(uint32_t len, char *octets, char *buf)
 {
@@ -243,11 +243,11 @@ snmp_str2asn_oid(char *str, struct asn_oid *oid)
 	if (len >= ASN_MAXOIDLEN)
 		return (NULL);
 
-	if (snmp_suboid_append(oid, (asn_subid_t) len) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)len) < 0)
 		return (NULL);
 
 	for (i = 0; i < len; i++)
-		if (snmp_suboid_append(oid, (asn_subid_t) *(str + i)) < 0)
+		if (snmp_suboid_append(oid, (asn_subid_t) * (str + i)) < 0)
 			return (NULL);
 
 	return (str + len);
@@ -319,15 +319,15 @@ snmp_octstr2date(uint32_t len, char *octets, char *buf)
 	if (len != SNMP_DATETIME_OCTETS || octets == NULL || buf == NULL)
 		return (NULL);
 
-	buf[0]= '\0';
+	buf[0] = '\0';
 	year = (octets[0] << 8);
 	year += (octets[1]);
 
 	ptr = buf;
-	ptr += sprintf(ptr, "%4.4d-%.2d-%.2d, ", year, octets[2],octets[3]);
-	ptr += sprintf(ptr, "%2.2d:%2.2d:%2.2d.%.2d, ", octets[4],octets[5],
-	    octets[6],octets[7]);
-	ptr += sprintf(ptr, "%c%.2d:%.2d", octets[8],octets[9],octets[10]);
+	ptr += sprintf(ptr, "%4.4d-%.2d-%.2d, ", year, octets[2], octets[3]);
+	ptr += sprintf(ptr, "%2.2d:%2.2d:%2.2d.%.2d, ", octets[4], octets[5],
+	    octets[6], octets[7]);
+	ptr += sprintf(ptr, "%c%.2d:%.2d", octets[8], octets[9], octets[10]);
 
 	return (buf);
 }
@@ -340,7 +340,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 	int32_t saved_errno;
 	uint32_t v;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) SNMP_DATETIME_OCTETS) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)SNMP_DATETIME_OCTETS) < 0)
 		return (NULL);
 
 	/* Read 'YYYY-' and write it in two subs. */
@@ -354,9 +354,9 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != '-')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) ((v & 0xff00) >> 8)) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)((v & 0xff00) >> 8)) < 0)
 		return (NULL);
-	if (snmp_suboid_append(oid, (asn_subid_t) (v & 0xff)) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)(v & 0xff)) < 0)
 		return (NULL);
 
 	/* 'MM-' */
@@ -370,7 +370,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != '-')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'DD,' */
@@ -384,7 +384,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != '-')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'HH:' */
@@ -398,7 +398,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != ':')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'MM:' */
@@ -412,7 +412,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != ':')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'SS.' */
@@ -426,7 +426,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != '.')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'M(mseconds),' */
@@ -440,7 +440,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != ',')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'UTC' - optional */
@@ -450,7 +450,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 
 	/* '+/-' */
 	if (*ptr == '-' || *ptr == '+') {
-		if (snmp_suboid_append(oid, (asn_subid_t) (*ptr)) < 0)
+		if (snmp_suboid_append(oid, (asn_subid_t)(*ptr)) < 0)
 			return (NULL);
 	} else
 		goto error1;
@@ -466,7 +466,7 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		errno = saved_errno;
 	if (*endptr != ':')
 		goto error1;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	/* 'MM' - last one - ignore endptr here. */
@@ -478,14 +478,14 @@ snmp_date2asn_oid(char *str, struct asn_oid *oid)
 		goto error;
 	else
 		errno = saved_errno;
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	return (endptr);
 
-  error:
+error:
 	errno = saved_errno;
-  error1:
+error1:
 	warnx("Date value %s not supported", str);
 	return (NULL);
 }
@@ -496,7 +496,7 @@ parse_dateandtime(struct snmp_value *sv, char *val)
 {
 	char *endptr;
 	uint32_t v;
-	uint8_t	date[SNMP_DATETIME_OCTETS];
+	uint8_t date[SNMP_DATETIME_OCTETS];
 
 	/* 'YYYY-' */
 	v = strtoul(val, &endptr, 10);
@@ -551,7 +551,7 @@ parse_dateandtime(struct snmp_value *sv, char *val)
 	/* offset - '+/-' */
 	if (*val != '-' && *val != '+')
 		goto error;
-	date[8] = (uint8_t) *val;
+	date[8] = (uint8_t)*val;
 	val = endptr + 1;
 
 	/* 'HH:' - offset from UTC */
@@ -577,7 +577,7 @@ parse_dateandtime(struct snmp_value *sv, char *val)
 	sv->syntax = SNMP_SYNTAX_OCTETSTRING;
 	return (1);
 
-  error:
+error:
 	warnx("Date value %s not supported", val);
 	return (-1);
 }
@@ -594,7 +594,7 @@ snmp_oct2physAddr(uint32_t len, char *octets, char *buf)
 	if (len != SNMP_PHYSADDR_OCTETS || octets == NULL || buf == NULL)
 		return (NULL);
 
-	buf[0]= '\0';
+	buf[0] = '\0';
 
 	ptr = buf;
 	ptr += sprintf(ptr, "%2.2x", octets[0]);
@@ -611,7 +611,7 @@ snmp_addr2asn_oid(char *str, struct asn_oid *oid)
 	uint32_t v, i;
 	int saved_errno;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) SNMP_PHYSADDR_OCTETS) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)SNMP_PHYSADDR_OCTETS) < 0)
 		return (NULL);
 
 	ptr = str;
@@ -627,7 +627,7 @@ snmp_addr2asn_oid(char *str, struct asn_oid *oid)
 			warnx("Failed adding oid - %s", str);
 			return (NULL);
 		}
-		if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+		if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 			return (NULL);
 		ptr = endptr + 1;
 	}
@@ -640,7 +640,7 @@ snmp_addr2asn_oid(char *str, struct asn_oid *oid)
 		warnx("Integer value %s not supported", str);
 		return (NULL);
 	}
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	return (endptr);
@@ -652,7 +652,7 @@ parse_physaddress(struct snmp_value *sv, char *val)
 	char *endptr;
 	int32_t i;
 	uint32_t v;
-	uint8_t	phys_addr[SNMP_PHYSADDR_OCTETS];
+	uint8_t phys_addr[SNMP_PHYSADDR_OCTETS];
 
 	for (i = 0; i < 5; i++) {
 		v = strtoul(val, &endptr, 16);
@@ -660,7 +660,7 @@ parse_physaddress(struct snmp_value *sv, char *val)
 			warnx("Integer value %s not supported", val);
 			return (-1);
 		}
-		if(*endptr != ':') {
+		if (*endptr != ':') {
 			warnx("Failed reading octet - %s", val);
 			return (-1);
 		}
@@ -707,7 +707,7 @@ snmp_oct2ntp_ts(uint32_t len, char *octets, char *buf)
 	if (len != SNMP_NTP_TS_OCTETS || octets == NULL || buf == NULL)
 		return (NULL);
 
-	buf[0]= '\0';
+	buf[0] = '\0';
 
 	ptr = buf;
 	i = octets[0] * 1000 + octets[1] * 100 + octets[2] * 10 + octets[3];
@@ -726,7 +726,7 @@ snmp_ntp_ts2asn_oid(char *str, struct asn_oid *oid)
 	struct asn_oid suboid;
 	int saved_errno;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) SNMP_NTP_TS_OCTETS) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)SNMP_NTP_TS_OCTETS) < 0)
 		return (NULL);
 
 	ptr = str;
@@ -781,7 +781,7 @@ parse_ntp_ts(struct snmp_value *sv, char *val)
 	char *endptr;
 	int32_t i, d, saved_errno;
 	uint32_t v;
-	uint8_t	ntp_ts[SNMP_NTP_TS_OCTETS];
+	uint8_t ntp_ts[SNMP_NTP_TS_OCTETS];
 
 	saved_errno = errno;
 	errno = 0;
@@ -857,7 +857,7 @@ snmp_oct2bridgeid(uint32_t len, char *octets, char *buf)
 	if (len != SNMP_BRIDGEID_OCTETS || octets == NULL || buf == NULL)
 		return (NULL);
 
-	buf[0]= '\0';
+	buf[0] = '\0';
 	ptr = buf;
 
 	priority = octets[0] << 8;
@@ -883,7 +883,7 @@ snmp_bridgeid2oct(char *str, struct asn_oid *oid)
 	uint32_t v, i;
 	int32_t saved_errno;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) SNMP_BRIDGEID_OCTETS) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)SNMP_BRIDGEID_OCTETS) < 0)
 		return (NULL);
 
 	ptr = str;
@@ -898,10 +898,10 @@ snmp_bridgeid2oct(char *str, struct asn_oid *oid)
 		return (NULL);
 	}
 
-	if (snmp_suboid_append(oid, (asn_subid_t) (v & 0xff00)) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)(v & 0xff00)) < 0)
 		return (NULL);
 
-	if (snmp_suboid_append(oid, (asn_subid_t) (v & 0xff)) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)(v & 0xff)) < 0)
 		return (NULL);
 
 	ptr = endptr + 1;
@@ -915,10 +915,10 @@ snmp_bridgeid2oct(char *str, struct asn_oid *oid)
 			return (NULL);
 		}
 		if (*endptr != ':') {
-			warnx("Failed adding oid - %s",str);
+			warnx("Failed adding oid - %s", str);
 			return (NULL);
 		}
-		if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+		if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 			return (NULL);
 		ptr = endptr + 1;
 	}
@@ -932,7 +932,7 @@ snmp_bridgeid2oct(char *str, struct asn_oid *oid)
 		warnx("Integer value %s not supported", str);
 		return (NULL);
 	}
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	return (endptr);
@@ -944,7 +944,7 @@ parse_bridge_id(struct snmp_value *sv, char *string)
 	char *endptr;
 	int32_t i, saved_errno;
 	uint32_t v;
-	uint8_t	bridge_id[SNMP_BRIDGEID_OCTETS];
+	uint8_t bridge_id[SNMP_BRIDGEID_OCTETS];
 
 	/* Read the priority. */
 	saved_errno = errno;
@@ -968,7 +968,7 @@ parse_bridge_id(struct snmp_value *sv, char *string)
 			warnx("Integer value %s not supported", string);
 			return (-1);
 		}
-		if(*endptr != ':') {
+		if (*endptr != ':') {
 			warnx("Failed reading octet - %s", string);
 			return (-1);
 		}
@@ -1015,7 +1015,7 @@ snmp_oct2bport_id(uint32_t len, char *octets, char *buf)
 	if (len != SNMP_BPORT_OCTETS || octets == NULL || buf == NULL)
 		return (NULL);
 
-	buf[0]= '\0';
+	buf[0] = '\0';
 	ptr = buf;
 
 	ptr += sprintf(ptr, "%d.", octets[0]);
@@ -1031,7 +1031,7 @@ snmp_bport_id2oct(char *str, struct asn_oid *oid)
 	uint32_t v;
 	int saved_errno;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) SNMP_BPORT_OCTETS) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)SNMP_BPORT_OCTETS) < 0)
 		return (NULL);
 
 	ptr = str;
@@ -1046,7 +1046,7 @@ snmp_bport_id2oct(char *str, struct asn_oid *oid)
 		return (NULL);
 	}
 
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	saved_errno = errno;
@@ -1059,7 +1059,7 @@ snmp_bport_id2oct(char *str, struct asn_oid *oid)
 		return (NULL);
 	}
 
-	if (snmp_suboid_append(oid, (asn_subid_t) v) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)v) < 0)
 		return (NULL);
 
 	return (endptr);
@@ -1071,7 +1071,7 @@ parse_bport_id(struct snmp_value *value, char *string)
 	char *endptr;
 	int saved_errno;
 	uint32_t v;
-	uint8_t	bport_id[SNMP_BPORT_OCTETS];
+	uint8_t bport_id[SNMP_BPORT_OCTETS];
 
 	/* Read the priority. */
 	saved_errno = errno;
@@ -1150,29 +1150,29 @@ snmp_oct2inetaddr(uint32_t len, char *octets, char *buf)
 {
 	int af;
 	void *ip;
-	struct in_addr	ipv4;
-	struct in6_addr	ipv6;
+	struct in_addr ipv4;
+	struct in6_addr ipv6;
 
 	if (len > MAX_OCTSTRING_LEN || octets == NULL || buf == NULL)
 		return (NULL);
 
 	switch (len) {
-		/* XXX: FIXME - IPv4*/
-		case 4:
-			memcpy(&ipv4.s_addr, octets, sizeof(ipv4.s_addr));
-			af = AF_INET;
-			ip = &ipv4;
-			break;
+	/* XXX: FIXME - IPv4*/
+	case 4:
+		memcpy(&ipv4.s_addr, octets, sizeof(ipv4.s_addr));
+		af = AF_INET;
+		ip = &ipv4;
+		break;
 
-		/* XXX: FIXME - IPv4*/
-		case 16:
-			memcpy(ipv6.s6_addr, octets, sizeof(ipv6.s6_addr));
-			af = AF_INET6;
-			ip = &ipv6;
-			break;
+	/* XXX: FIXME - IPv4*/
+	case 16:
+		memcpy(ipv6.s6_addr, octets, sizeof(ipv6.s6_addr));
+		af = AF_INET6;
+		ip = &ipv6;
+		break;
 
-		default:
-			return (NULL);
+	default:
+		return (NULL);
 	}
 
 	if (inet_ntop(af, ip, buf, SNMP_INADDRS_STRSZ) == NULL) {
@@ -1210,8 +1210,8 @@ snmp_oct2bits(uint32_t len, char *octets, char *buf)
 	for (i = len, value = 0, bits = 0; i > 0; i--, bits += 8)
 		value += octets[i] << bits;
 
-	buf[0]= '\0';
-	sprintf(buf, "0x%llx.",(long long unsigned) value);
+	buf[0] = '\0';
+	sprintf(buf, "0x%llx.", (long long unsigned)value);
 
 	return (buf);
 }
@@ -1244,12 +1244,12 @@ snmp_bits2oct(char *str, struct asn_oid *oid)
 	if (size == 0)
 		size = 1;
 
-	if (snmp_suboid_append(oid, (asn_subid_t) size) < 0)
+	if (snmp_suboid_append(oid, (asn_subid_t)size) < 0)
 		return (NULL);
 
 	for (i = 0, bits = 0; i < size; i++, bits += 8)
-		if (snmp_suboid_append(oid,
-		    (asn_subid_t)((v & mask) >> bits)) < 0)
+		if (snmp_suboid_append(oid, (asn_subid_t)((v & mask) >> bits)) <
+		    0)
 			return (NULL);
 
 	return (endptr);

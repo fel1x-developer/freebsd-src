@@ -34,7 +34,6 @@
 #include <sys/module.h>
 
 #include <ddb/ddb.h>
-
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
 #include <security/mac/mac_policy.h>
@@ -67,12 +66,12 @@ mac_ddb_command_register(struct db_command_table *table, struct db_command *cmd)
 }
 
 int
-mac_ddb_command_exec(struct db_command *cmd, db_expr_t addr,
-    bool have_addr, db_expr_t count, char *modif)
+mac_ddb_command_exec(struct db_command *cmd, db_expr_t addr, bool have_addr,
+    db_expr_t count, char *modif)
 {
 	int error = 0;
 
-	MAC_POLICY_CHECK_NOSLEEP(ddb_command_exec, cmd, addr, have_addr,
-	    count, modif);
+	MAC_POLICY_CHECK_NOSLEEP(ddb_command_exec, cmd, addr, have_addr, count,
+	    modif);
 	return (error);
 }

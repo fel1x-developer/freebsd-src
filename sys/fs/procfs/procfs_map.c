@@ -35,8 +35,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
 #include <sys/filedesc.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
@@ -50,15 +50,15 @@
 #include <sys/user.h>
 #include <sys/vnode.h>
 
-#include <fs/pseudofs/pseudofs.h>
-#include <fs/procfs/procfs.h>
-
 #include <vm/vm.h>
-#include <vm/vm_extern.h>
 #include <vm/pmap.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_map.h>
-#include <vm/vm_page.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
+
+#include <fs/procfs/procfs.h>
+#include <fs/pseudofs/pseudofs.h>
 
 #define MEBUFFERSIZE 256
 
@@ -116,7 +116,7 @@ procfs_doprocmap(PFS_FILL_ARGS)
 		return (ESRCH);
 	map = &vm->vm_map;
 	vm_map_lock_read(map);
-	VM_MAP_ENTRY_FOREACH(entry, map) {
+	VM_MAP_ENTRY_FOREACH (entry, map) {
 		if (entry->eflags & MAP_ENTRY_IS_SUB_MAP)
 			continue;
 
@@ -135,7 +135,7 @@ procfs_doprocmap(PFS_FILL_ARGS)
 		cred = (entry->cred) ? entry->cred : (obj ? obj->cred : NULL);
 
 		for (lobj = tobj = obj; tobj != NULL;
-		    tobj = tobj->backing_object) {
+		     tobj = tobj->backing_object) {
 			if (tobj != obj)
 				VM_OBJECT_RLOCK(tobj);
 			lobj = tobj;
@@ -204,21 +204,19 @@ procfs_doprocmap(PFS_FILL_ARGS)
 		 */
 		error = sbuf_printf(sb,
 		    "0x%lx 0x%lx %d %d %p %s%s%s %d %d 0x%x %s %s %s %s %s %d\n",
-			(u_long)e_start, (u_long)e_end,
-			resident, privateresident,
+		    (u_long)e_start, (u_long)e_end, resident, privateresident,
 #ifdef COMPAT_FREEBSD32
-			wrap32 ? NULL : obj,	/* Hide 64 bit value */
+		    wrap32 ? NULL : obj, /* Hide 64 bit value */
 #else
-			obj,
+		    obj,
 #endif
-			(e_prot & VM_PROT_READ)?"r":"-",
-			(e_prot & VM_PROT_WRITE)?"w":"-",
-			(e_prot & VM_PROT_EXECUTE)?"x":"-",
-			ref_count, shadow_count, flags,
-			(e_eflags & MAP_ENTRY_COW)?"COW":"NCOW",
-			(e_eflags & MAP_ENTRY_NEEDS_COPY)?"NC":"NNC",
-			type, fullpath,
-			cred ? "CH":"NCH", cred ? cred->cr_ruid : -1);
+		    (e_prot & VM_PROT_READ) ? "r" : "-",
+		    (e_prot & VM_PROT_WRITE) ? "w" : "-",
+		    (e_prot & VM_PROT_EXECUTE) ? "x" : "-", ref_count,
+		    shadow_count, flags,
+		    (e_eflags & MAP_ENTRY_COW) ? "COW" : "NCOW",
+		    (e_eflags & MAP_ENTRY_NEEDS_COPY) ? "NC" : "NNC", type,
+		    fullpath, cred ? "CH" : "NCH", cred ? cred->cr_ruid : -1);
 
 		if (freepath != NULL)
 			free(freepath, M_TEMP);

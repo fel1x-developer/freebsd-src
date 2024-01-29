@@ -20,14 +20,14 @@
 #include "cpa_cy_sym.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
+#include "lac_common.h"
+#include "lac_list.h"
 #include "lac_log.h"
 #include "lac_mem.h"
-#include "lac_sym.h"
-#include "lac_common.h"
-#include "lac_sym_qat.h"
-#include "lac_list.h"
 #include "lac_sal_types.h"
 #include "lac_sal_types_crypto.h"
+#include "lac_sym.h"
+#include "lac_sym_qat.h"
 #include "lac_sym_qat_hash.h"
 #include "lac_sym_qat_hash_defs_lookup.h"
 #include "sal_hw_gen.h"
@@ -71,14 +71,11 @@ typedef struct lac_hash_blk_ptrs_optimised_s {
  */
 static void
 LacSymQat_HashHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock,
-			      void *pHwBlockBase,
-			      lac_hash_blk_ptrs_t *pHashBlkPtrs);
+    void *pHwBlockBase, lac_hash_blk_ptrs_t *pHashBlkPtrs);
 
-static void
-LacSymQat_HashSetupBlockOptimisedFormatInit(
+static void LacSymQat_HashSetupBlockOptimisedFormatInit(
     const CpaCySymHashSetupData *pHashSetupData,
-    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock,
-    void *pHwBlockBase,
+    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock, void *pHwBlockBase,
     icp_qat_hw_auth_mode_t qatHashMode,
     lac_sym_qat_hash_precompute_info_t *pPrecompute,
     lac_sym_qat_hash_defs_t *pHashDefs,
@@ -102,21 +99,18 @@ LacSymQat_HashSetupBlockOptimisedFormatInit(
  */
 static void
 LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
-			     icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock,
-			     void *pHwBlockBase,
-			     icp_qat_hw_auth_mode_t qatHashMode,
-			     lac_sym_qat_hash_precompute_info_t *pPrecompute,
-			     lac_sym_qat_hash_defs_t *pHashDefs,
-			     lac_sym_qat_hash_defs_t *pOuterHashDefs);
+    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock, void *pHwBlockBase,
+    icp_qat_hw_auth_mode_t qatHashMode,
+    lac_sym_qat_hash_precompute_info_t *pPrecompute,
+    lac_sym_qat_hash_defs_t *pHashDefs,
+    lac_sym_qat_hash_defs_t *pOuterHashDefs);
 
 /** @ingroup LacSymQatHash */
 void
 LacSymQat_HashGetCfgData(CpaInstanceHandle pInstance,
-			 icp_qat_hw_auth_mode_t qatHashMode,
-			 CpaCySymHashMode apiHashMode,
-			 CpaCySymHashAlgorithm apiHashAlgorithm,
-			 icp_qat_hw_auth_algo_t *pQatAlgorithm,
-			 CpaBoolean *pQatNested)
+    icp_qat_hw_auth_mode_t qatHashMode, CpaCySymHashMode apiHashMode,
+    CpaCySymHashAlgorithm apiHashAlgorithm,
+    icp_qat_hw_auth_algo_t *pQatAlgorithm, CpaBoolean *pQatNested)
 {
 	lac_sym_qat_hash_defs_t *pHashDefs = NULL;
 
@@ -141,17 +135,13 @@ LacSymQat_HashGetCfgData(CpaInstanceHandle pInstance,
 /** @ingroup LacSymQatHash */
 void
 LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
-			      CpaInstanceHandle instanceHandle,
-			      const CpaCySymHashSetupData *pHashSetupData,
-			      void *pHwBlockBase,
-			      Cpa32U hwBlockOffsetInQuadWords,
-			      icp_qat_fw_slice_t nextSlice,
-			      icp_qat_hw_auth_mode_t qatHashMode,
-			      CpaBoolean useSymConstantsTable,
-			      CpaBoolean useOptimisedContentDesc,
-			      CpaBoolean useStatefulSha3ContentDesc,
-			      lac_sym_qat_hash_precompute_info_t *pPrecompute,
-			      Cpa32U *pHashBlkSizeInBytes)
+    CpaInstanceHandle instanceHandle,
+    const CpaCySymHashSetupData *pHashSetupData, void *pHwBlockBase,
+    Cpa32U hwBlockOffsetInQuadWords, icp_qat_fw_slice_t nextSlice,
+    icp_qat_hw_auth_mode_t qatHashMode, CpaBoolean useSymConstantsTable,
+    CpaBoolean useOptimisedContentDesc, CpaBoolean useStatefulSha3ContentDesc,
+    lac_sym_qat_hash_precompute_info_t *pPrecompute,
+    Cpa32U *pHashBlkSizeInBytes)
 {
 	icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl =
 	    (icp_qat_fw_auth_cd_ctrl_hdr_t *)&(pMsg->cd_ctrl);
@@ -166,15 +156,14 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 	ICP_QAT_FW_COMN_CURR_ID_SET(cd_ctrl, ICP_QAT_FW_SLICE_AUTH);
 
 	LacSymQat_HashDefsLookupGet(instanceHandle,
-				    pHashSetupData->hashAlgorithm,
-				    &pHashDefs);
+	    pHashSetupData->hashAlgorithm, &pHashDefs);
 
 	/* Hmac in mode 2 TLS */
 	if (IS_HASH_MODE_2(qatHashMode)) {
 		if (isCyGen4x((sal_crypto_service_t *)instanceHandle)) {
 			/* CPM2.0 has a dedicated bit for HMAC mode2 */
 			ICP_QAT_FW_HASH_FLAG_MODE2_SET(cd_ctrl->hash_flags,
-						       QAT_FW_LA_MODE2);
+			    QAT_FW_LA_MODE2);
 		} else {
 			/* Set bit for nested hashing.
 			 * Make sure not to overwrite other flags in hash_flags
@@ -190,13 +179,13 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 		/* Set bit for nested hashing.
 		 * Make sure not to overwrite other flags in hash_flags byte.
 		 */
-		ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(
-		    cd_ctrl->hash_flags, ICP_QAT_FW_AUTH_HDR_FLAG_DO_NESTED);
+		ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(cd_ctrl->hash_flags,
+		    ICP_QAT_FW_AUTH_HDR_FLAG_DO_NESTED);
 	}
 	/* mode0 - plain or mode1 - auth */
 	else {
-		ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(
-		    cd_ctrl->hash_flags, ICP_QAT_FW_AUTH_HDR_FLAG_NO_NESTED);
+		ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(cd_ctrl->hash_flags,
+		    ICP_QAT_FW_AUTH_HDR_FLAG_NO_NESTED);
 	}
 
 	/* Set skip state load flags */
@@ -214,13 +203,11 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 
 	/* set the state1 size */
 	if (useStatefulSha3ContentDesc) {
-		cd_ctrl->inner_state1_sz =
-		    LAC_ALIGN_POW2_ROUNDUP(LAC_HASH_SHA3_STATEFUL_STATE_SIZE,
-					   LAC_QUAD_WORD_IN_BYTES);
+		cd_ctrl->inner_state1_sz = LAC_ALIGN_POW2_ROUNDUP(
+		    LAC_HASH_SHA3_STATEFUL_STATE_SIZE, LAC_QUAD_WORD_IN_BYTES);
 	} else {
-		cd_ctrl->inner_state1_sz =
-		    LAC_ALIGN_POW2_ROUNDUP(pHashDefs->qatInfo->state1Length,
-					   LAC_QUAD_WORD_IN_BYTES);
+		cd_ctrl->inner_state1_sz = LAC_ALIGN_POW2_ROUNDUP(
+		    pHashDefs->qatInfo->state1Length, LAC_QUAD_WORD_IN_BYTES);
 	}
 
 	/* set the inner result size to the digest length */
@@ -230,24 +217,23 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 	if (IS_HASH_MODE_1(qatHashMode) ||
 	    pHashSetupData->hashAlgorithm == CPA_CY_SYM_HASH_AES_CBC_MAC ||
 	    pHashSetupData->hashAlgorithm == CPA_CY_SYM_HASH_ZUC_EIA3) {
-		cd_ctrl->inner_state2_sz =
-		    LAC_ALIGN_POW2_ROUNDUP(pHashDefs->qatInfo->state2Length,
-					   LAC_QUAD_WORD_IN_BYTES);
+		cd_ctrl->inner_state2_sz = LAC_ALIGN_POW2_ROUNDUP(
+		    pHashDefs->qatInfo->state2Length, LAC_QUAD_WORD_IN_BYTES);
 	} else {
 		cd_ctrl->inner_state2_sz = 0;
 	}
 
 	if (useSymConstantsTable) {
-		cd_ctrl->inner_state2_offset =
-		    LAC_BYTES_TO_QUADWORDS(cd_ctrl->inner_state1_sz);
+		cd_ctrl->inner_state2_offset = LAC_BYTES_TO_QUADWORDS(
+		    cd_ctrl->inner_state1_sz);
 
 		/* size of inner part of hash setup block */
-		hashSetupBlkSize =
-		    cd_ctrl->inner_state1_sz + cd_ctrl->inner_state2_sz;
+		hashSetupBlkSize = cd_ctrl->inner_state1_sz +
+		    cd_ctrl->inner_state2_sz;
 	} else {
 		cd_ctrl->inner_state2_offset = cd_ctrl->hash_cfg_offset +
 		    LAC_BYTES_TO_QUADWORDS(sizeof(icp_qat_hw_auth_setup_t) +
-					   cd_ctrl->inner_state1_sz);
+			cd_ctrl->inner_state1_sz);
 
 		/* size of inner part of hash setup block */
 		hashSetupBlkSize = sizeof(icp_qat_hw_auth_setup_t) +
@@ -259,14 +245,13 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 	    IS_HASH_MODE_2(qatHashMode)) {
 		/* For nested - use the outer algorithm. This covers TLS and
 		 * nested hash. For HMAC mode2 use inner algorithm again */
-		CpaCySymHashAlgorithm outerAlg =
-		    (CPA_CY_SYM_HASH_MODE_NESTED == pHashSetupData->hashMode) ?
+		CpaCySymHashAlgorithm outerAlg = (CPA_CY_SYM_HASH_MODE_NESTED ==
+						     pHashSetupData->hashMode) ?
 		    pHashSetupData->nestedModeSetupData.outerHashAlgorithm :
 		    pHashSetupData->hashAlgorithm;
 
-		LacSymQat_HashDefsLookupGet(instanceHandle,
-					    outerAlg,
-					    &pOuterHashDefs);
+		LacSymQat_HashDefsLookupGet(instanceHandle, outerAlg,
+		    &pOuterHashDefs);
 
 		/* outer config offset */
 		cd_ctrl->outer_config_offset = cd_ctrl->inner_state2_offset +
@@ -292,8 +277,8 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 		 * will be setup where ReqParams are set up */
 
 		/* add on size of outer part of hash block */
-		hashSetupBlkSize +=
-		    sizeof(icp_qat_hw_auth_setup_t) + cd_ctrl->outer_state1_sz;
+		hashSetupBlkSize += sizeof(icp_qat_hw_auth_setup_t) +
+		    cd_ctrl->outer_state1_sz;
 	} else {
 		cd_ctrl->outer_config_offset = 0;
 		cd_ctrl->outer_state1_sz = 0;
@@ -311,23 +296,15 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
 
 	if (useOptimisedContentDesc) {
 		LacSymQat_HashSetupBlockOptimisedFormatInit(pHashSetupData,
-							    cd_ctrl,
-							    pHwBlockBase,
-							    qatHashMode,
-							    pPrecompute,
-							    pHashDefs,
-							    pOuterHashDefs);
+		    cd_ctrl, pHwBlockBase, qatHashMode, pPrecompute, pHashDefs,
+		    pOuterHashDefs);
 	} else if (!useSymConstantsTable) {
 		/*****************************************************************************
 		 *                        Populate Hash Setup block *
 		 *****************************************************************************/
-		LacSymQat_HashSetupBlockInit(pHashSetupData,
-					     cd_ctrl,
-					     pHwBlockBase,
-					     qatHashMode,
-					     pPrecompute,
-					     pHashDefs,
-					     pOuterHashDefs);
+		LacSymQat_HashSetupBlockInit(pHashSetupData, cd_ctrl,
+		    pHwBlockBase, qatHashMode, pPrecompute, pHashDefs,
+		    pOuterHashDefs);
 	}
 }
 
@@ -341,36 +318,32 @@ LacSymQat_HashContentDescInit(icp_qat_la_bulk_req_ftr_t *pMsg,
  *
  */
 void
-LacSymQat_HashSetupReqParamsMetaData(
-    icp_qat_la_bulk_req_ftr_t *pMsg,
+LacSymQat_HashSetupReqParamsMetaData(icp_qat_la_bulk_req_ftr_t *pMsg,
     CpaInstanceHandle instanceHandle,
-    const CpaCySymHashSetupData *pHashSetupData,
-    CpaBoolean hashStateBuffer,
-    icp_qat_hw_auth_mode_t qatHashMode,
-    CpaBoolean digestVerify)
+    const CpaCySymHashSetupData *pHashSetupData, CpaBoolean hashStateBuffer,
+    icp_qat_hw_auth_mode_t qatHashMode, CpaBoolean digestVerify)
 {
 	icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl = NULL;
 	icp_qat_la_auth_req_params_t *pHashReqParams = NULL;
 	lac_sym_qat_hash_defs_t *pHashDefs = NULL;
 
 	cd_ctrl = (icp_qat_fw_auth_cd_ctrl_hdr_t *)&(pMsg->cd_ctrl);
-	pHashReqParams =
-	    (icp_qat_la_auth_req_params_t *)(&(pMsg->serv_specif_rqpars));
+	pHashReqParams = (icp_qat_la_auth_req_params_t *)(&(
+	    pMsg->serv_specif_rqpars));
 
 	LacSymQat_HashDefsLookupGet(instanceHandle,
-				    pHashSetupData->hashAlgorithm,
-				    &pHashDefs);
+	    pHashSetupData->hashAlgorithm, &pHashDefs);
 
 	/* Hmac in mode 2 TLS */
 	if (IS_HASH_MODE_2(qatHashMode)) {
 		/* Inner and outer prefixes are the block length */
 		pHashReqParams->u2.inner_prefix_sz =
 		    (Cpa8U)pHashDefs->algInfo->blockLength;
-		cd_ctrl->outer_prefix_sz =
-		    (Cpa8U)pHashDefs->algInfo->blockLength;
+		cd_ctrl->outer_prefix_sz = (Cpa8U)
+					       pHashDefs->algInfo->blockLength;
 		cd_ctrl->outer_prefix_offset = LAC_BYTES_TO_QUADWORDS(
 		    LAC_ALIGN_POW2_ROUNDUP((pHashReqParams->u2.inner_prefix_sz),
-					   LAC_QUAD_WORD_IN_BYTES));
+			LAC_QUAD_WORD_IN_BYTES));
 	}
 	/* Nested hash in mode 0 */
 	else if (CPA_CY_SYM_HASH_MODE_NESTED == pHashSetupData->hashMode) {
@@ -384,7 +357,7 @@ LacSymQat_HashSetupReqParamsMetaData(
 			.outerPrefixLenInBytes;
 		cd_ctrl->outer_prefix_offset = LAC_BYTES_TO_QUADWORDS(
 		    LAC_ALIGN_POW2_ROUNDUP((pHashReqParams->u2.inner_prefix_sz),
-					   LAC_QUAD_WORD_IN_BYTES));
+			LAC_QUAD_WORD_IN_BYTES));
 	}
 	/* mode0 - plain or mode1 - auth */
 	else {
@@ -413,20 +386,17 @@ LacSymQat_HashSetupReqParamsMetaData(
 
 			/* round the aad size to the multiple of CCM block
 			 * size.*/
-			pHashReqParams->u2.aad_sz =
-			    LAC_ALIGN_POW2_ROUNDUP(aadDataSize,
-						   LAC_HASH_AES_CCM_BLOCK_SIZE);
+			pHashReqParams->u2.aad_sz = LAC_ALIGN_POW2_ROUNDUP(
+			    aadDataSize, LAC_HASH_AES_CCM_BLOCK_SIZE);
 		} else if (CPA_CY_SYM_HASH_AES_GCM ==
-			   pHashSetupData->hashAlgorithm) {
-			aadDataSize =
-			    (Cpa16U)
-				pHashSetupData->authModeSetupData.aadLenInBytes;
+		    pHashSetupData->hashAlgorithm) {
+			aadDataSize = (Cpa16U)pHashSetupData->authModeSetupData
+					  .aadLenInBytes;
 
 			/* round the aad size to the multiple of GCM hash block
 			 * size. */
-			pHashReqParams->u2.aad_sz =
-			    LAC_ALIGN_POW2_ROUNDUP(aadDataSize,
-						   LAC_HASH_AES_GCM_BLOCK_SIZE);
+			pHashReqParams->u2.aad_sz = LAC_ALIGN_POW2_ROUNDUP(
+			    aadDataSize, LAC_HASH_AES_GCM_BLOCK_SIZE);
 		} else {
 			pHashReqParams->u2.aad_sz = 0;
 		}
@@ -440,9 +410,9 @@ LacSymQat_HashSetupReqParamsMetaData(
 		/* Note, this sets up size for both aad and non-aad cases */
 		pHashReqParams->hash_state_sz = LAC_BYTES_TO_QUADWORDS(
 		    LAC_ALIGN_POW2_ROUNDUP(pHashReqParams->u2.inner_prefix_sz,
-					   LAC_QUAD_WORD_IN_BYTES) +
+			LAC_QUAD_WORD_IN_BYTES) +
 		    LAC_ALIGN_POW2_ROUNDUP(cd_ctrl->outer_prefix_sz,
-					   LAC_QUAD_WORD_IN_BYTES));
+			LAC_QUAD_WORD_IN_BYTES));
 	} else {
 		pHashReqParams->hash_state_sz = 0;
 	}
@@ -461,14 +431,12 @@ LacSymQat_HashSetupReqParamsMetaData(
 
 void
 LacSymQat_HashHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl,
-			      void *pHwBlockBase,
-			      lac_hash_blk_ptrs_t *pHashBlkPtrs)
+    void *pHwBlockBase, lac_hash_blk_ptrs_t *pHashBlkPtrs)
 {
 	/* encoded offset for inner config is converted to a byte offset. */
 	pHashBlkPtrs->pInHashSetup =
 	    (icp_qat_hw_auth_setup_t *)((Cpa8U *)pHwBlockBase +
-					(cd_ctrl->hash_cfg_offset *
-					 LAC_QUAD_WORD_IN_BYTES));
+		(cd_ctrl->hash_cfg_offset * LAC_QUAD_WORD_IN_BYTES));
 
 	pHashBlkPtrs->pInHashInitState1 = (Cpa8U *)pHashBlkPtrs->pInHashSetup +
 	    sizeof(icp_qat_hw_auth_setup_t);
@@ -477,10 +445,9 @@ LacSymQat_HashHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl,
 	    (Cpa8U *)(pHashBlkPtrs->pInHashInitState1) +
 	    cd_ctrl->inner_state1_sz;
 
-	pHashBlkPtrs->pOutHashSetup =
-	    (icp_qat_hw_auth_setup_t *)((Cpa8U *)(pHashBlkPtrs
-						      ->pInHashInitState2) +
-					cd_ctrl->inner_state2_sz);
+	pHashBlkPtrs->pOutHashSetup = (icp_qat_hw_auth_setup_t
+		*)((Cpa8U *)(pHashBlkPtrs->pInHashInitState2) +
+	    cd_ctrl->inner_state2_sz);
 
 	pHashBlkPtrs->pOutHashInitState1 =
 	    (Cpa8U *)(pHashBlkPtrs->pOutHashSetup) +
@@ -489,23 +456,19 @@ LacSymQat_HashHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl,
 
 static void
 LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
-			     icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock,
-			     void *pHwBlockBase,
-			     icp_qat_hw_auth_mode_t qatHashMode,
-			     lac_sym_qat_hash_precompute_info_t *pPrecompute,
-			     lac_sym_qat_hash_defs_t *pHashDefs,
-			     lac_sym_qat_hash_defs_t *pOuterHashDefs)
+    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock, void *pHwBlockBase,
+    icp_qat_hw_auth_mode_t qatHashMode,
+    lac_sym_qat_hash_precompute_info_t *pPrecompute,
+    lac_sym_qat_hash_defs_t *pHashDefs, lac_sym_qat_hash_defs_t *pOuterHashDefs)
 {
 	Cpa32U innerConfig = 0;
 	lac_hash_blk_ptrs_t hashBlkPtrs = { 0 };
 	Cpa32U aedHashCmpLength = 0;
 
-	LacSymQat_HashHwBlockPtrsInit(pHashControlBlock,
-				      pHwBlockBase,
-				      &hashBlkPtrs);
+	LacSymQat_HashHwBlockPtrsInit(pHashControlBlock, pHwBlockBase,
+	    &hashBlkPtrs);
 
-	innerConfig = ICP_QAT_HW_AUTH_CONFIG_BUILD(
-	    qatHashMode,
+	innerConfig = ICP_QAT_HW_AUTH_CONFIG_BUILD(qatHashMode,
 	    pHashDefs->qatInfo->algoEnc,
 	    pHashSetupData->digestResultLenInBytes);
 
@@ -527,25 +490,25 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 
 		/* state 1 is set to 0 for the following algorithms */
 		if ((CPA_CY_SYM_HASH_AES_XCBC ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_CMAC ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_CBC_MAC ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_KASUMI_F9 ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_SNOW3G_UIA2 ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_CCM ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_GMAC ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_AES_GCM ==
-		     pHashSetupData->hashAlgorithm) ||
+			pHashSetupData->hashAlgorithm) ||
 		    (CPA_CY_SYM_HASH_ZUC_EIA3 ==
-		     pHashSetupData->hashAlgorithm)) {
+			pHashSetupData->hashAlgorithm)) {
 			LAC_OS_BZERO(hashBlkPtrs.pInHashInitState1,
-				     pHashDefs->qatInfo->state1Length);
+			    pHashDefs->qatInfo->state1Length);
 		}
 
 		/* Pad remaining bytes of sha1 precomputes */
@@ -570,14 +533,14 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 			if (state1PadLen > 0) {
 
 				LAC_OS_BZERO(hashBlkPtrs.pInHashInitState1 +
-						 pHashDefs->algInfo->stateSize,
-					     state1PadLen);
+					pHashDefs->algInfo->stateSize,
+				    state1PadLen);
 			}
 
 			if (state2PadLen > 0) {
 				LAC_OS_BZERO(hashBlkPtrs.pInHashInitState2 +
-						 pHashDefs->algInfo->stateSize,
-					     state2PadLen);
+					pHashDefs->algInfo->stateSize,
+				    state2PadLen);
 			}
 		}
 
@@ -602,13 +565,13 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 
 		/* set the inner hash state 1 */
 		memcpy(hashBlkPtrs.pInHashInitState1,
-		       pHashDefs->algInfo->initState,
-		       pHashDefs->algInfo->stateSize);
+		    pHashDefs->algInfo->initState,
+		    pHashDefs->algInfo->stateSize);
 
 		if (padLen > 0) {
 			LAC_OS_BZERO(hashBlkPtrs.pInHashInitState1 +
-					 pHashDefs->algInfo->stateSize,
-				     padLen);
+				pHashDefs->algInfo->stateSize,
+			    padLen);
 		}
 	}
 
@@ -616,10 +579,9 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 
 	/* Fill in the outer part of the hash setup block */
 	if ((CPA_CY_SYM_HASH_MODE_NESTED == pHashSetupData->hashMode ||
-	     IS_HASH_MODE_2(qatHashMode)) &&
+		IS_HASH_MODE_2(qatHashMode)) &&
 	    (NULL != pOuterHashDefs)) {
-		Cpa32U outerConfig = ICP_QAT_HW_AUTH_CONFIG_BUILD(
-		    qatHashMode,
+		Cpa32U outerConfig = ICP_QAT_HW_AUTH_CONFIG_BUILD(qatHashMode,
 		    pOuterHashDefs->qatInfo->algoEnc,
 		    pHashSetupData->digestResultLenInBytes);
 
@@ -636,13 +598,13 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 
 		/* set outer hash state 1 */
 		memcpy(hashBlkPtrs.pOutHashInitState1,
-		       pOuterHashDefs->algInfo->initState,
-		       pOuterHashDefs->algInfo->stateSize);
+		    pOuterHashDefs->algInfo->initState,
+		    pOuterHashDefs->algInfo->stateSize);
 
 		if (padLen > 0) {
 			LAC_OS_BZERO(hashBlkPtrs.pOutHashInitState1 +
-					 pOuterHashDefs->algInfo->stateSize,
-				     padLen);
+				pOuterHashDefs->algInfo->stateSize,
+			    padLen);
 		}
 	}
 
@@ -650,22 +612,20 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 		icp_qat_hw_cipher_config_t *pCipherConfig =
 		    (icp_qat_hw_cipher_config_t *)hashBlkPtrs.pOutHashSetup;
 
-		pCipherConfig->val = ICP_QAT_HW_CIPHER_CONFIG_BUILD(
-		    ICP_QAT_HW_CIPHER_ECB_MODE,
-		    ICP_QAT_HW_CIPHER_ALGO_SNOW_3G_UEA2,
-		    ICP_QAT_HW_CIPHER_KEY_CONVERT,
-		    ICP_QAT_HW_CIPHER_ENCRYPT,
-		    aedHashCmpLength);
+		pCipherConfig->val =
+		    ICP_QAT_HW_CIPHER_CONFIG_BUILD(ICP_QAT_HW_CIPHER_ECB_MODE,
+			ICP_QAT_HW_CIPHER_ALGO_SNOW_3G_UEA2,
+			ICP_QAT_HW_CIPHER_KEY_CONVERT,
+			ICP_QAT_HW_CIPHER_ENCRYPT, aedHashCmpLength);
 
 		pCipherConfig->reserved = 0;
 
 		memcpy((Cpa8U *)pCipherConfig +
-			   sizeof(icp_qat_hw_cipher_config_t),
-		       pHashSetupData->authModeSetupData.authKey,
-		       pHashSetupData->authModeSetupData.authKeyLenInBytes);
+			sizeof(icp_qat_hw_cipher_config_t),
+		    pHashSetupData->authModeSetupData.authKey,
+		    pHashSetupData->authModeSetupData.authKeyLenInBytes);
 
-		LAC_OS_BZERO(
-		    (Cpa8U *)pCipherConfig +
+		LAC_OS_BZERO((Cpa8U *)pCipherConfig +
 			sizeof(icp_qat_hw_cipher_config_t) +
 			pHashSetupData->authModeSetupData.authKeyLenInBytes,
 		    ICP_QAT_HW_SNOW_3G_UEA2_IV_SZ);
@@ -673,22 +633,20 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 		icp_qat_hw_cipher_config_t *pCipherConfig =
 		    (icp_qat_hw_cipher_config_t *)hashBlkPtrs.pOutHashSetup;
 
-		pCipherConfig->val = ICP_QAT_HW_CIPHER_CONFIG_BUILD(
-		    ICP_QAT_HW_CIPHER_ECB_MODE,
-		    ICP_QAT_HW_CIPHER_ALGO_ZUC_3G_128_EEA3,
-		    ICP_QAT_HW_CIPHER_KEY_CONVERT,
-		    ICP_QAT_HW_CIPHER_ENCRYPT,
-		    aedHashCmpLength);
+		pCipherConfig->val =
+		    ICP_QAT_HW_CIPHER_CONFIG_BUILD(ICP_QAT_HW_CIPHER_ECB_MODE,
+			ICP_QAT_HW_CIPHER_ALGO_ZUC_3G_128_EEA3,
+			ICP_QAT_HW_CIPHER_KEY_CONVERT,
+			ICP_QAT_HW_CIPHER_ENCRYPT, aedHashCmpLength);
 
 		pCipherConfig->reserved = 0;
 
 		memcpy((Cpa8U *)pCipherConfig +
-			   sizeof(icp_qat_hw_cipher_config_t),
-		       pHashSetupData->authModeSetupData.authKey,
-		       pHashSetupData->authModeSetupData.authKeyLenInBytes);
+			sizeof(icp_qat_hw_cipher_config_t),
+		    pHashSetupData->authModeSetupData.authKey,
+		    pHashSetupData->authModeSetupData.authKeyLenInBytes);
 
-		LAC_OS_BZERO(
-		    (Cpa8U *)pCipherConfig +
+		LAC_OS_BZERO((Cpa8U *)pCipherConfig +
 			sizeof(icp_qat_hw_cipher_config_t) +
 			pHashSetupData->authModeSetupData.authKeyLenInBytes,
 		    ICP_QAT_HW_ZUC_3G_EEA3_IV_SZ);
@@ -697,8 +655,7 @@ LacSymQat_HashSetupBlockInit(const CpaCySymHashSetupData *pHashSetupData,
 
 static void
 LacSymQat_HashOpHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl,
-				void *pHwBlockBase,
-				lac_hash_blk_ptrs_optimised_t *pHashBlkPtrs)
+    void *pHwBlockBase, lac_hash_blk_ptrs_optimised_t *pHashBlkPtrs)
 {
 	pHashBlkPtrs->pInHashInitState1 = (((Cpa8U *)pHwBlockBase) + 16);
 	pHashBlkPtrs->pInHashInitState2 =
@@ -709,12 +666,10 @@ LacSymQat_HashOpHwBlockPtrsInit(icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl,
 static void
 LacSymQat_HashSetupBlockOptimisedFormatInit(
     const CpaCySymHashSetupData *pHashSetupData,
-    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock,
-    void *pHwBlockBase,
+    icp_qat_fw_auth_cd_ctrl_hdr_t *pHashControlBlock, void *pHwBlockBase,
     icp_qat_hw_auth_mode_t qatHashMode,
     lac_sym_qat_hash_precompute_info_t *pPrecompute,
-    lac_sym_qat_hash_defs_t *pHashDefs,
-    lac_sym_qat_hash_defs_t *pOuterHashDefs)
+    lac_sym_qat_hash_defs_t *pHashDefs, lac_sym_qat_hash_defs_t *pOuterHashDefs)
 {
 
 	Cpa32U state1PadLen = 0;
@@ -722,9 +677,8 @@ LacSymQat_HashSetupBlockOptimisedFormatInit(
 
 	lac_hash_blk_ptrs_optimised_t pHashBlkPtrs = { 0 };
 
-	LacSymQat_HashOpHwBlockPtrsInit(pHashControlBlock,
-					pHwBlockBase,
-					&pHashBlkPtrs);
+	LacSymQat_HashOpHwBlockPtrsInit(pHashControlBlock, pHwBlockBase,
+	    &pHashBlkPtrs);
 
 	if (pHashControlBlock->inner_state1_sz >
 	    pHashDefs->algInfo->stateSize) {
@@ -741,15 +695,15 @@ LacSymQat_HashSetupBlockOptimisedFormatInit(
 	if (state1PadLen > 0) {
 
 		LAC_OS_BZERO(pHashBlkPtrs.pInHashInitState1 +
-				 pHashDefs->algInfo->stateSize,
-			     state1PadLen);
+			pHashDefs->algInfo->stateSize,
+		    state1PadLen);
 	}
 
 	if (state2PadLen > 0) {
 
 		LAC_OS_BZERO(pHashBlkPtrs.pInHashInitState2 +
-				 pHashDefs->algInfo->stateSize,
-			     state2PadLen);
+			pHashDefs->algInfo->stateSize,
+		    state2PadLen);
 	}
 	pPrecompute->state1Size = pHashDefs->qatInfo->state1Length;
 	pPrecompute->state2Size = pHashDefs->qatInfo->state2Length;
@@ -762,16 +716,15 @@ LacSymQat_HashSetupBlockOptimisedFormatInit(
 }
 
 void
-LacSymQat_HashStatePrefixAadBufferSizeGet(
-    icp_qat_la_bulk_req_ftr_t *pMsg,
+LacSymQat_HashStatePrefixAadBufferSizeGet(icp_qat_la_bulk_req_ftr_t *pMsg,
     lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf)
 {
 	const icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl;
 	icp_qat_la_auth_req_params_t *pHashReqParams;
 
 	cd_ctrl = (icp_qat_fw_auth_cd_ctrl_hdr_t *)&(pMsg->cd_ctrl);
-	pHashReqParams =
-	    (icp_qat_la_auth_req_params_t *)(&(pMsg->serv_specif_rqpars));
+	pHashReqParams = (icp_qat_la_auth_req_params_t *)(&(
+	    pMsg->serv_specif_rqpars));
 
 	/* hash state storage needed to support partial packets. Space reserved
 	 * for this in all cases */
@@ -784,11 +737,8 @@ LacSymQat_HashStatePrefixAadBufferSizeGet(
 void
 LacSymQat_HashStatePrefixAadBufferPopulate(
     lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf,
-    icp_qat_la_bulk_req_ftr_t *pMsg,
-    Cpa8U *pInnerPrefixAad,
-    Cpa8U innerPrefixSize,
-    Cpa8U *pOuterPrefix,
-    Cpa8U outerPrefixSize)
+    icp_qat_la_bulk_req_ftr_t *pMsg, Cpa8U *pInnerPrefixAad,
+    Cpa8U innerPrefixSize, Cpa8U *pOuterPrefix, Cpa8U outerPrefixSize)
 {
 	const icp_qat_fw_auth_cd_ctrl_hdr_t *cd_ctrl =
 	    (icp_qat_fw_auth_cd_ctrl_hdr_t *)&(pMsg->cd_ctrl);
@@ -814,12 +764,11 @@ LacSymQat_HashStatePrefixAadBufferPopulate(
 	 *
 	 */
 	if (NULL != pInnerPrefixAad) {
-		Cpa8U *pLocalInnerPrefix =
-		    (Cpa8U *)(pHashStateBuf->pData) +
+		Cpa8U *pLocalInnerPrefix = (Cpa8U *)(pHashStateBuf->pData) +
 		    LAC_QUADWORDS_TO_BYTES(
 			pHashStateBuf->stateStorageSzQuadWords);
-		Cpa8U padding =
-		    pHashReqParams->u2.inner_prefix_sz - innerPrefixSize;
+		Cpa8U padding = pHashReqParams->u2.inner_prefix_sz -
+		    innerPrefixSize;
 		/* copy the inner prefix or aad data */
 		memcpy(pLocalInnerPrefix, pInnerPrefixAad, innerPrefixSize);
 
@@ -827,13 +776,12 @@ LacSymQat_HashStatePrefixAadBufferPopulate(
 		 */
 		if (0 < padding) {
 			LAC_OS_BZERO(pLocalInnerPrefix + innerPrefixSize,
-				     padding);
+			    padding);
 		}
 	}
 
 	if (NULL != pOuterPrefix) {
-		Cpa8U *pLocalOuterPrefix =
-		    (Cpa8U *)pHashStateBuf->pData +
+		Cpa8U *pLocalOuterPrefix = (Cpa8U *)pHashStateBuf->pData +
 		    LAC_QUADWORDS_TO_BYTES(
 			pHashStateBuf->stateStorageSzQuadWords +
 			cd_ctrl->outer_prefix_offset);
@@ -848,39 +796,33 @@ LacSymQat_HashStatePrefixAadBufferPopulate(
 		 */
 		if (0 < padding) {
 			LAC_OS_BZERO(pLocalOuterPrefix + outerPrefixSize,
-				     padding);
+			    padding);
 		}
 	}
 }
 
 inline CpaStatus
-LacSymQat_HashRequestParamsPopulate(
-    icp_qat_fw_la_bulk_req_t *pReq,
-    Cpa32U authOffsetInBytes,
-    Cpa32U authLenInBytes,
-    sal_service_t *pService,
-    lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf,
-    Cpa32U packetType,
-    Cpa32U hashResultSize,
-    CpaBoolean digestVerify,
-    Cpa8U *pAuthResult,
-    CpaCySymHashAlgorithm alg,
-    void *pHKDFSecret)
+LacSymQat_HashRequestParamsPopulate(icp_qat_fw_la_bulk_req_t *pReq,
+    Cpa32U authOffsetInBytes, Cpa32U authLenInBytes, sal_service_t *pService,
+    lac_sym_qat_hash_state_buffer_info_t *pHashStateBuf, Cpa32U packetType,
+    Cpa32U hashResultSize, CpaBoolean digestVerify, Cpa8U *pAuthResult,
+    CpaCySymHashAlgorithm alg, void *pHKDFSecret)
 {
 	Cpa64U authResultPhys = 0;
 	icp_qat_fw_la_auth_req_params_t *pHashReqParams;
 
-	pHashReqParams = (icp_qat_fw_la_auth_req_params_t
-			      *)((Cpa8U *)&(pReq->serv_specif_rqpars) +
-				 ICP_QAT_FW_HASH_REQUEST_PARAMETERS_OFFSET);
+	pHashReqParams =
+	    (icp_qat_fw_la_auth_req_params_t *)((Cpa8U *)&(
+						    pReq->serv_specif_rqpars) +
+		ICP_QAT_FW_HASH_REQUEST_PARAMETERS_OFFSET);
 
 	pHashReqParams->auth_off = authOffsetInBytes;
 	pHashReqParams->auth_len = authLenInBytes;
 
 	/* Set the physical location of secret for HKDF */
 	if (NULL != pHKDFSecret) {
-		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(
-		    (*pService), pHashReqParams->u1.aad_adr, pHKDFSecret);
+		LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL((*pService),
+		    pHashReqParams->u1.aad_adr, pHKDFSecret);
 
 		if (0 == pHashReqParams->u1.aad_adr) {
 			LAC_LOG_ERROR(
@@ -894,9 +836,8 @@ LacSymQat_HashRequestParamsPopulate(
 	 * pointer
 	 * and the auth result field */
 	if (NULL != pAuthResult) {
-		authResultPhys =
-		    LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
-						 (void *)pAuthResult);
+		authResultPhys = LAC_OS_VIRT_TO_PHYS_EXTERNAL((*pService),
+		    (void *)pAuthResult);
 
 		if (authResultPhys == 0) {
 			LAC_LOG_ERROR(
@@ -927,7 +868,7 @@ LacSymQat_HashRequestParamsPopulate(
 		 * mode (when
 		 * the prefix data is > 0) */
 		if ((pHashStateBuf->stateStorageSzQuadWords +
-		     pHashStateBuf->prefixAadSzQuadWords) > 0) {
+			pHashStateBuf->prefixAadSzQuadWords) > 0) {
 			/* For the first partial packet, the QAT expects the
 			 * pointer to the
 			 * inner prefix even if there is no memory allocated for
@@ -939,9 +880,9 @@ LacSymQat_HashRequestParamsPopulate(
 				// prefix_addr changed to auth_partial_st_prefix
 				pHashReqParams->u1.auth_partial_st_prefix =
 				    ((pHashStateBuf->pDataPhys) +
-				     LAC_QUADWORDS_TO_BYTES(
-					 pHashStateBuf
-					     ->stateStorageSzQuadWords));
+					LAC_QUADWORDS_TO_BYTES(
+					    pHashStateBuf
+						->stateStorageSzQuadWords));
 			} else {
 				pHashReqParams->u1.auth_partial_st_prefix =
 				    pHashStateBuf->pDataPhys;
@@ -959,7 +900,7 @@ LacSymQat_HashRequestParamsPopulate(
 		    (ICP_QAT_FW_LA_PARTIAL_END == packetType)) {
 			pHashReqParams->hash_state_sz =
 			    (pHashStateBuf->stateStorageSzQuadWords +
-			     pHashStateBuf->prefixAadSzQuadWords);
+				pHashStateBuf->prefixAadSzQuadWords);
 		}
 		/* For full packets and first partials set the state size to
 		 * that of

@@ -25,20 +25,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <string.h>
-
 #include <sys/param.h>
 #include <sys/linker.h>
+
 #include <machine/elf.h>
 
 #include <bootstrap.h>
-
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
+#include <string.h>
 
-#include "loader_efi.h"
 #include "cache.h"
+#include "loader_efi.h"
 
 static int elf64_exec(struct preloaded_file *amp);
 static int elf64_obj_exec(struct preloaded_file *amp);
@@ -46,15 +45,9 @@ static int elf64_obj_exec(struct preloaded_file *amp);
 int bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp,
     bool exit_bs);
 
-static struct file_format arm64_elf = {
-	elf64_loadfile,
-	elf64_exec
-};
+static struct file_format arm64_elf = { elf64_loadfile, elf64_exec };
 
-struct file_format *file_formats[] = {
-	&arm64_elf,
-	NULL
-};
+struct file_format *file_formats[] = { &arm64_elf, NULL };
 
 static int
 elf64_exec(struct preloaded_file *fp)
@@ -68,7 +61,7 @@ elf64_exec(struct preloaded_file *fp)
 	void (*entry)(vm_offset_t);
 
 	if ((md = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL)
-        	return(EFTYPE);
+		return (EFTYPE);
 
 	ehdr = (Elf_Ehdr *)&(md->md_data);
 	entry = efi_translate(ehdr->e_entry);
@@ -101,4 +94,3 @@ elf64_obj_exec(struct preloaded_file *fp)
 	    fp->f_name);
 	return (ENOSYS);
 }
-

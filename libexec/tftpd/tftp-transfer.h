@@ -26,6 +26,6 @@
  */
 
 #include <sys/cdefs.h>
-int	tftp_send(int peer, uint16_t *block, struct tftp_stats *tp);
-int	tftp_receive(int peer, uint16_t *block, struct tftp_stats *tp,
-	    struct tftphdr *firstblock, size_t fb_size);
+int tftp_send(int peer, uint16_t *block, struct tftp_stats *tp);
+int tftp_receive(int peer, uint16_t *block, struct tftp_stats *tp,
+    struct tftphdr *firstblock, size_t fb_size);

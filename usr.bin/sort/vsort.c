@@ -104,7 +104,7 @@ find_suffix(bwstring_iterator si, bwstring_iterator se, size_t *len)
 	 * then the code stays commented.
 	 *
 	 if (expect_alpha)
-	 	sfx = false;
+		sfx = false;
 	 */
 
 	if (!sfx)
@@ -130,17 +130,17 @@ cmp_chars(wchar_t c1, wchar_t c2)
 		return (+1);
 
 	if (isalpha_clocale(c1))
-		return ((isalpha_clocale(c2)) ? ((int) c1 - (int) c2) : -1);
+		return ((isalpha_clocale(c2)) ? ((int)c1 - (int)c2) : -1);
 
 	if (isalpha_clocale(c2))
 		return (+1);
 
-	return ((int) c1 - (int) c2);
+	return ((int)c1 - (int)c2);
 }
 
 static int
-cmpversions(bwstring_iterator si1, bwstring_iterator se1,
-    bwstring_iterator si2, bwstring_iterator se2)
+cmpversions(bwstring_iterator si1, bwstring_iterator se1, bwstring_iterator si2,
+    bwstring_iterator se2)
 {
 	int cmp, diff;
 
@@ -148,8 +148,9 @@ cmpversions(bwstring_iterator si1, bwstring_iterator se1,
 		diff = 0;
 
 		while (((si1 < se1) &&
-		    !isdigit_clocale(bws_get_iter_value(si1))) ||
-		    ((si2 < se2) && !isdigit_clocale(bws_get_iter_value(si2)))) {
+			   !isdigit_clocale(bws_get_iter_value(si1))) ||
+		    ((si2 < se2) &&
+			!isdigit_clocale(bws_get_iter_value(si2)))) {
 			wchar_t c1, c2;
 
 			c1 = (si1 < se1) ? bws_get_iter_value(si1) : 0;
@@ -258,7 +259,7 @@ vcmp(struct bwstring *s1, struct bwstring *s2)
 	    bws_iterator_inc(si2, len2));
 
 	if (cmp_res == 0)
-	  cmp_res = cmp_bytes;
+		cmp_res = cmp_bytes;
 
 	return (cmp_res);
 }

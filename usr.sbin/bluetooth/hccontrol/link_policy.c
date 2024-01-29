@@ -35,15 +35,16 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "hccontrol.h"
 
 /* Send Role Discovery to the unit */
 static int
 hci_role_discovery(int s, int argc, char **argv)
 {
-	ng_hci_role_discovery_cp	cp;
-	ng_hci_role_discovery_rp	rp;
-	int				n;
+	ng_hci_role_discovery_cp cp;
+	ng_hci_role_discovery_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -52,7 +53,7 @@ hci_role_discovery(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n <= 0 || n > 0x0eff)
 			return (USAGE);
 
-		cp.con_handle = (uint16_t) (n & 0x0fff);
+		cp.con_handle = (uint16_t)(n & 0x0fff);
 		cp.con_handle = htole16(cp.con_handle);
 		break;
 
@@ -62,21 +63,21 @@ hci_role_discovery(int s, int argc, char **argv)
 
 	/* send request */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
-			NG_HCI_OCF_ROLE_DISCOVERY), 
-			(char const *) &cp, sizeof(cp), 
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
+		    NG_HCI_OCF_ROLE_DISCOVERY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Connection handle: %d\n", le16toh(rp.con_handle));
 	fprintf(stdout, "Role: %s [%#x]\n",
-		(rp.role == NG_HCI_ROLE_MASTER)? "Master" : "Slave", rp.role);
+	    (rp.role == NG_HCI_ROLE_MASTER) ? "Master" : "Slave", rp.role);
 
 	return (OK);
 } /* hci_role_discovery */
@@ -85,17 +86,17 @@ hci_role_discovery(int s, int argc, char **argv)
 static int
 hci_switch_role(int s, int argc, char **argv)
 {
-	int			 n0;
-	char			 b[512];
-	ng_hci_switch_role_cp	 cp;
-	ng_hci_event_pkt_t	*e = (ng_hci_event_pkt_t *) b; 
+	int n0;
+	char b[512];
+	ng_hci_switch_role_cp cp;
+	ng_hci_event_pkt_t *e = (ng_hci_event_pkt_t *)b;
 
 	/* parse command parameters */
 	switch (argc) {
 	case 2:
 		/* bdaddr */
 		if (!bt_aton(argv[0], &cp.bdaddr)) {
-			struct hostent	*he = NULL;
+			struct hostent *he = NULL;
 
 			if ((he = bt_gethostbyname(argv[0])) == NULL)
 				return (USAGE);
@@ -107,7 +108,7 @@ hci_switch_role(int s, int argc, char **argv)
 		if (sscanf(argv[1], "%d", &n0) != 1)
 			return (USAGE);
 
-		cp.role = n0? NG_HCI_ROLE_SLAVE : NG_HCI_ROLE_MASTER;
+		cp.role = n0 ? NG_HCI_ROLE_SLAVE : NG_HCI_ROLE_MASTER;
 		break;
 
 	default:
@@ -116,9 +117,9 @@ hci_switch_role(int s, int argc, char **argv)
 
 	/* send request and expect status response */
 	n0 = sizeof(b);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
-			NG_HCI_OCF_SWITCH_ROLE),
-			(char const *) &cp, sizeof(cp), b, &n0) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY, NG_HCI_OCF_SWITCH_ROLE),
+		(char const *)&cp, sizeof(cp), b, &n0) == ERROR)
 		return (ERROR);
 
 	if (*b != 0x00)
@@ -135,18 +136,18 @@ again:
 	}
 
 	if (e->event == NG_HCI_EVENT_ROLE_CHANGE) {
-		ng_hci_role_change_ep	*ep = (ng_hci_role_change_ep *)(e + 1);
+		ng_hci_role_change_ep *ep = (ng_hci_role_change_ep *)(e + 1);
 
 		if (ep->status != 0x00) {
-			fprintf(stdout, "Status: %s [%#02x]\n", 
-				hci_status2str(ep->status), ep->status);
+			fprintf(stdout, "Status: %s [%#02x]\n",
+			    hci_status2str(ep->status), ep->status);
 			return (FAILED);
 		}
 
 		fprintf(stdout, "BD_ADDR: %s\n", hci_bdaddr2str(&ep->bdaddr));
 		fprintf(stdout, "Role: %s [%#x]\n",
-			(ep->role == NG_HCI_ROLE_MASTER)? "Master" : "Slave",
-			ep->role);
+		    (ep->role == NG_HCI_ROLE_MASTER) ? "Master" : "Slave",
+		    ep->role);
 	} else
 		goto again;
 
@@ -157,9 +158,9 @@ again:
 static int
 hci_read_link_policy_settings(int s, int argc, char **argv)
 {
-	ng_hci_read_link_policy_settings_cp	cp;
-	ng_hci_read_link_policy_settings_rp	rp;
-	int					n;
+	ng_hci_read_link_policy_settings_cp cp;
+	ng_hci_read_link_policy_settings_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -168,7 +169,7 @@ hci_read_link_policy_settings(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n <= 0 || n > 0x0eff)
 			return (USAGE);
 
-		cp.con_handle = (uint16_t) (n & 0x0fff);
+		cp.con_handle = (uint16_t)(n & 0x0fff);
 		cp.con_handle = htole16(cp.con_handle);
 		break;
 
@@ -178,15 +179,15 @@ hci_read_link_policy_settings(int s, int argc, char **argv)
 
 	/* send request */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
-			NG_HCI_OCF_READ_LINK_POLICY_SETTINGS), 
-			(char const *) &cp, sizeof(cp), 
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
+		    NG_HCI_OCF_READ_LINK_POLICY_SETTINGS),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -200,9 +201,9 @@ hci_read_link_policy_settings(int s, int argc, char **argv)
 static int
 hci_write_link_policy_settings(int s, int argc, char **argv)
 {
-	ng_hci_write_link_policy_settings_cp	cp;
-	ng_hci_write_link_policy_settings_rp	rp;
-	int					n;
+	ng_hci_write_link_policy_settings_cp cp;
+	ng_hci_write_link_policy_settings_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -211,14 +212,14 @@ hci_write_link_policy_settings(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n <= 0 || n > 0x0eff)
 			return (USAGE);
 
-		cp.con_handle = (uint16_t) (n & 0x0fff);
+		cp.con_handle = (uint16_t)(n & 0x0fff);
 		cp.con_handle = htole16(cp.con_handle);
 
 		/* link policy settings */
 		if (sscanf(argv[1], "%x", &n) != 1)
 			return (USAGE);
 
-		cp.settings = (uint16_t) (n & 0x0ffff);
+		cp.settings = (uint16_t)(n & 0x0ffff);
 		cp.settings = htole16(cp.settings);
 		break;
 
@@ -228,80 +229,72 @@ hci_write_link_policy_settings(int s, int argc, char **argv)
 
 	/* send request */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
-			NG_HCI_OCF_WRITE_LINK_POLICY_SETTINGS), 
-			(char const *) &cp, sizeof(cp), 
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_LINK_POLICY,
+		    NG_HCI_OCF_WRITE_LINK_POLICY_SETTINGS),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	return (OK);
 } /* hci_write_link_policy_settings */
 
-struct hci_command	link_policy_commands[] = {
-{
-"role_discovery <connection_handle>",
-"\nThe Role_Discovery command is used for a Bluetooth device to determine\n" \
-"which role the device is performing for a particular Connection Handle.\n" \
-"The connection handle must be a connection handle for an ACL connection.\n\n" \
-"\t<connection_handle> - dddd; connection handle",
-&hci_role_discovery
-},
-{
-"switch_role <BD_ADDR> <role>",
-"\nThe Switch_Role command is used for a Bluetooth device to switch the\n" \
-"current role the device is performing for a particular connection with\n" \
-"another specified Bluetooth device. The BD_ADDR command parameter indicates\n"\
-"for which connection the role switch is to be performed. The Role indicates\n"\
-"the requested new role that the local device performs. Note: the BD_ADDR\n" \
-"command parameter must specify a Bluetooth device for which a connection\n"
-"already exists.\n\n" \
-"\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name\n" \
-"\t<role>    - dd; role; 0 - Master, 1 - Slave",
-&hci_switch_role
-},
-{
-"read_link_policy_settings <connection_handle>",
-"\nThis command will read the Link Policy setting for the specified connection\n"\
-"handle. The link policy settings parameter determines the behavior of the\n" \
-"local Link Manager when it receives a request from a remote device or it\n" \
-"determines itself to change the master-slave role or to enter the hold,\n" \
-"sniff, or park mode. The local Link Manager will automatically accept or\n" \
-"reject such a request from the remote device, and may even autonomously\n" \
-"request itself, depending on the value of the link policy settings parameter\n"\
-"for the corresponding connection handle. The connection handle must be a\n" \
-"connection handle for an ACL connection.\n\n" \
-"\t<connection_handle> - dddd; connection handle",
-&hci_read_link_policy_settings
-},
-{
-"write_link_policy_settings <connection_handle> <settings>",
-"\nThis command will write the Link Policy setting for the specified connection\n"\
-"handle. The link policy settings parameter determines the behavior of the\n" \
-"local Link Manager when it receives a request from a remote device or it\n" \
-"determines itself to change the master-slave role or to enter the hold,\n" \
-"sniff, or park mode. The local Link Manager will automatically accept or\n" \
-"reject such a request from the remote device, and may even autonomously\n" \
-"request itself, depending on the value of the link policy settings parameter\n"\
-"for the corresponding connection handle. The connection handle must be a\n" \
-"connection handle for an ACL connection. Multiple Link Manager policies may\n"\
-"be specified for the link policy settings parameter by performing a bitwise\n"\
-"OR operation of the different activity types.\n\n" \
-"\t<connection_handle> - dddd; connection handle\n" \
-"\t<settings>          - xxxx; settings\n" \
-"\t\t0x0000 - Disable All LM Modes (Default)\n" \
-"\t\t0x0001 - Enable Master Slave Switch\n" \
-"\t\t0x0002 - Enable Hold Mode\n" \
-"\t\t0x0004 - Enable Sniff Mode\n" \
-"\t\t0x0008 - Enable Park Mode\n",
-&hci_write_link_policy_settings
-},
-{
-NULL,
-}};
-
+struct hci_command link_policy_commands[] = {
+	{ "role_discovery <connection_handle>",
+	    "\nThe Role_Discovery command is used for a Bluetooth device to determine\n"
+	    "which role the device is performing for a particular Connection Handle.\n"
+	    "The connection handle must be a connection handle for an ACL connection.\n\n"
+	    "\t<connection_handle> - dddd; connection handle",
+	    &hci_role_discovery },
+	{ "switch_role <BD_ADDR> <role>",
+	    "\nThe Switch_Role command is used for a Bluetooth device to switch the\n"
+	    "current role the device is performing for a particular connection with\n"
+	    "another specified Bluetooth device. The BD_ADDR command parameter indicates\n"
+	    "for which connection the role switch is to be performed. The Role indicates\n"
+	    "the requested new role that the local device performs. Note: the BD_ADDR\n"
+	    "command parameter must specify a Bluetooth device for which a connection\n"
+	    "already exists.\n\n"
+	    "\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name\n"
+	    "\t<role>    - dd; role; 0 - Master, 1 - Slave",
+	    &hci_switch_role },
+	{ "read_link_policy_settings <connection_handle>",
+	    "\nThis command will read the Link Policy setting for the specified connection\n"
+	    "handle. The link policy settings parameter determines the behavior of the\n"
+	    "local Link Manager when it receives a request from a remote device or it\n"
+	    "determines itself to change the master-slave role or to enter the hold,\n"
+	    "sniff, or park mode. The local Link Manager will automatically accept or\n"
+	    "reject such a request from the remote device, and may even autonomously\n"
+	    "request itself, depending on the value of the link policy settings parameter\n"
+	    "for the corresponding connection handle. The connection handle must be a\n"
+	    "connection handle for an ACL connection.\n\n"
+	    "\t<connection_handle> - dddd; connection handle",
+	    &hci_read_link_policy_settings },
+	{ "write_link_policy_settings <connection_handle> <settings>",
+	    "\nThis command will write the Link Policy setting for the specified connection\n"
+	    "handle. The link policy settings parameter determines the behavior of the\n"
+	    "local Link Manager when it receives a request from a remote device or it\n"
+	    "determines itself to change the master-slave role or to enter the hold,\n"
+	    "sniff, or park mode. The local Link Manager will automatically accept or\n"
+	    "reject such a request from the remote device, and may even autonomously\n"
+	    "request itself, depending on the value of the link policy settings parameter\n"
+	    "for the corresponding connection handle. The connection handle must be a\n"
+	    "connection handle for an ACL connection. Multiple Link Manager policies may\n"
+	    "be specified for the link policy settings parameter by performing a bitwise\n"
+	    "OR operation of the different activity types.\n\n"
+	    "\t<connection_handle> - dddd; connection handle\n"
+	    "\t<settings>          - xxxx; settings\n"
+	    "\t\t0x0000 - Disable All LM Modes (Default)\n"
+	    "\t\t0x0001 - Enable Master Slave Switch\n"
+	    "\t\t0x0002 - Enable Hold Mode\n"
+	    "\t\t0x0004 - Enable Sniff Mode\n"
+	    "\t\t0x0008 - Enable Park Mode\n",
+	    &hci_write_link_policy_settings },
+	{
+	    NULL,
+	}
+};

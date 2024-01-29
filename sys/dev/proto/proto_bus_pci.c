@@ -29,14 +29,14 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
 #include <sys/sbuf.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
 #include <dev/proto/proto.h>
 
 static int proto_pci_probe(device_t dev);
@@ -44,10 +44,9 @@ static int proto_pci_attach(device_t dev);
 
 static device_method_t proto_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		proto_pci_probe),
-	DEVMETHOD(device_attach,	proto_pci_attach),
-	DEVMETHOD(device_detach,	proto_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, proto_pci_probe),
+	DEVMETHOD(device_attach, proto_pci_attach),
+	DEVMETHOD(device_detach, proto_detach), DEVMETHOD_END
 };
 
 static driver_t proto_pci_driver = {

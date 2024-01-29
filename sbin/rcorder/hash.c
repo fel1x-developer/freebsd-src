@@ -57,8 +57,8 @@
 #ifndef ORDER
 #include "make.h"
 #endif /* ORDER */
-#include "hash.h"
 #include "ealloc.h"
+#include "hash.h"
 
 /*
  * Forward references to local procedures that are used before they're
@@ -91,13 +91,12 @@ static void RebuildTable(Hash_Table *);
  */
 
 void
-Hash_InitTable(
-	register Hash_Table *t,	/* Structure to use to hold table. */
-	int numBuckets)		/* How many buckets to create for starters.
-				 * This number is rounded up to a power of
-				 * two.   If <= 0, a reasonable default is
-				 * chosen. The table will grow in size later
-				 * as needed. */
+Hash_InitTable(register Hash_Table *t, /* Structure to use to hold table. */
+    int numBuckets) /* How many buckets to create for starters.
+		     * This number is rounded up to a power of
+		     * two.   If <= 0, a reasonable default is
+		     * chosen. The table will grow in size later
+		     * as needed. */
 {
 	register int i;
 	register struct Hash_Entry **hp;
@@ -109,7 +108,7 @@ Hash_InitTable(
 		i = 16;
 	else {
 		for (i = 2; i < numBuckets; i <<= 1)
-			 continue;
+			continue;
 	}
 	t->numEntries = 0;
 	t->size = i;
@@ -177,9 +176,8 @@ Hash_DeleteTable(Hash_Table *t)
  */
 
 Hash_Entry *
-Hash_FindEntry(
-	Hash_Table *t,		/* Hash table to search. */
-	char *key)		/* A hash key. */
+Hash_FindEntry(Hash_Table *t, /* Hash table to search. */
+    char *key)		      /* A hash key. */
 {
 	register Hash_Entry *e;
 	register unsigned h;
@@ -214,11 +212,10 @@ Hash_FindEntry(
  */
 
 Hash_Entry *
-Hash_CreateEntry(
-	register Hash_Table *t,	/* Hash table to search. */
-	char *key,		/* A hash key. */
-	Boolean *newPtr)	/* Filled in with TRUE if new entry created,
-				 * FALSE otherwise. */
+Hash_CreateEntry(register Hash_Table *t, /* Hash table to search. */
+    char *key,				 /* A hash key. */
+    Boolean *newPtr) /* Filled in with TRUE if new entry created,
+		      * FALSE otherwise. */
 {
 	register Hash_Entry *e;
 	register unsigned h;
@@ -249,13 +246,13 @@ Hash_CreateEntry(
 	 */
 	if (t->numEntries >= rebuildLimit * t->size)
 		RebuildTable(t);
-	e = (Hash_Entry *) emalloc(sizeof(*e) + keylen);
+	e = (Hash_Entry *)emalloc(sizeof(*e) + keylen);
 	hp = &t->bucketPtr[h & t->mask];
 	e->next = *hp;
 	*hp = e;
 	e->clientData = NULL;
 	e->namehash = h;
-	(void) strcpy(e->name, p);
+	(void)strcpy(e->name, p);
 	t->numEntries++;
 
 	if (newPtr != NULL)
@@ -287,8 +284,8 @@ Hash_DeleteEntry(Hash_Table *t, Hash_Entry *e)
 
 	if (e == NULL)
 		return;
-	for (hp = &t->bucketPtr[e->namehash & t->mask];
-	     (p = *hp) != NULL; hp = &p->next) {
+	for (hp = &t->bucketPtr[e->namehash & t->mask]; (p = *hp) != NULL;
+	     hp = &p->next) {
 		if (p == e) {
 			*hp = p->next;
 			free((char *)p);
@@ -320,10 +317,9 @@ Hash_DeleteEntry(Hash_Table *t, Hash_Entry *e)
  */
 
 Hash_Entry *
-Hash_EnumFirst(
-	Hash_Table *t,			/* Table to be searched. */
-	register Hash_Search *searchPtr)/* Area in which to keep state
-					 * about search.*/
+Hash_EnumFirst(Hash_Table *t,	     /* Table to be searched. */
+    register Hash_Search *searchPtr) /* Area in which to keep state
+				      * about search.*/
 {
 	searchPtr->tablePtr = t;
 	searchPtr->nextIndex = 0;
@@ -350,9 +346,8 @@ Hash_EnumFirst(
  */
 
 Hash_Entry *
-Hash_EnumNext(
-	register Hash_Search *searchPtr) /* Area used to keep state about
-					    search. */
+Hash_EnumNext(register Hash_Search *searchPtr) /* Area used to keep state about
+						  search. */
 {
 	register Hash_Entry *e;
 	Hash_Table *t = searchPtr->tablePtr;
@@ -400,7 +395,7 @@ RebuildTable(register Hash_Table *t)
 {
 	register Hash_Entry *e, *next = NULL, **hp, **xp;
 	register int i, mask;
-        register Hash_Entry **oldhp;
+	register Hash_Entry **oldhp;
 	int oldsize;
 
 	oldhp = t->bucketPtr;
@@ -408,7 +403,7 @@ RebuildTable(register Hash_Table *t)
 	i <<= 1;
 	t->size = i;
 	t->mask = mask = i - 1;
-	t->bucketPtr = hp = (struct Hash_Entry **) emalloc(sizeof(*hp) * i);
+	t->bucketPtr = hp = (struct Hash_Entry **)emalloc(sizeof(*hp) * i);
 	while (--i >= 0)
 		*hp++ = NULL;
 	for (hp = oldhp, i = oldsize; --i >= 0;) {

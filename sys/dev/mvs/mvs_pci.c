@@ -27,22 +27,26 @@
  */
 
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/sbuf.h>
-#include <vm/uma.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <dev/pci/pcivar.h>
+#include <sys/sbuf.h>
+
+#include <vm/uma.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include "mvs.h"
 
 /* local prototypes */
@@ -53,26 +57,24 @@ static int mvs_resume(device_t dev);
 static int mvs_ctlr_setup(device_t dev);
 
 static struct {
-	uint32_t	id;
-	uint8_t		rev;
-	const char	*name;
-	int		ports;
-	int		quirks;
-} mvs_ids[] = {
-	{0x504011ab, 0x00, "Marvell 88SX5040",	4,	MVS_Q_GENI},
-	{0x504111ab, 0x00, "Marvell 88SX5041",	4,	MVS_Q_GENI},
-	{0x508011ab, 0x00, "Marvell 88SX5080",	8,	MVS_Q_GENI},
-	{0x508111ab, 0x00, "Marvell 88SX5081",	8,	MVS_Q_GENI},
-	{0x604011ab, 0x00, "Marvell 88SX6040",	4,	MVS_Q_GENII},
-	{0x604111ab, 0x00, "Marvell 88SX6041",	4,	MVS_Q_GENII},
-	{0x604211ab, 0x00, "Marvell 88SX6042",	4,	MVS_Q_GENIIE},
-	{0x608011ab, 0x00, "Marvell 88SX6080",	8,	MVS_Q_GENII},
-	{0x608111ab, 0x00, "Marvell 88SX6081",	8,	MVS_Q_GENII},
-	{0x704211ab, 0x00, "Marvell 88SX7042",	4,	MVS_Q_GENIIE|MVS_Q_CT},
-	{0x02419005, 0x00, "Adaptec 1420SA",	4,	MVS_Q_GENII},
-	{0x02439005, 0x00, "Adaptec 1430SA",	4,	MVS_Q_GENIIE|MVS_Q_CT},
-	{0x00000000, 0x00, NULL,	0,	0}
-};
+	uint32_t id;
+	uint8_t rev;
+	const char *name;
+	int ports;
+	int quirks;
+} mvs_ids[] = { { 0x504011ab, 0x00, "Marvell 88SX5040", 4, MVS_Q_GENI },
+	{ 0x504111ab, 0x00, "Marvell 88SX5041", 4, MVS_Q_GENI },
+	{ 0x508011ab, 0x00, "Marvell 88SX5080", 8, MVS_Q_GENI },
+	{ 0x508111ab, 0x00, "Marvell 88SX5081", 8, MVS_Q_GENI },
+	{ 0x604011ab, 0x00, "Marvell 88SX6040", 4, MVS_Q_GENII },
+	{ 0x604111ab, 0x00, "Marvell 88SX6041", 4, MVS_Q_GENII },
+	{ 0x604211ab, 0x00, "Marvell 88SX6042", 4, MVS_Q_GENIIE },
+	{ 0x608011ab, 0x00, "Marvell 88SX6080", 8, MVS_Q_GENII },
+	{ 0x608111ab, 0x00, "Marvell 88SX6081", 8, MVS_Q_GENII },
+	{ 0x704211ab, 0x00, "Marvell 88SX7042", 4, MVS_Q_GENIIE | MVS_Q_CT },
+	{ 0x02419005, 0x00, "Adaptec 1420SA", 4, MVS_Q_GENII },
+	{ 0x02439005, 0x00, "Adaptec 1430SA", 4, MVS_Q_GENIIE | MVS_Q_CT },
+	{ 0x00000000, 0x00, NULL, 0, 0 } };
 
 static int
 mvs_probe(device_t dev)
@@ -83,8 +85,7 @@ mvs_probe(device_t dev)
 	uint8_t revid = pci_get_revid(dev);
 
 	for (i = 0; mvs_ids[i].id != 0; i++) {
-		if (mvs_ids[i].id == devid &&
-		    mvs_ids[i].rev <= revid) {
+		if (mvs_ids[i].id == devid && mvs_ids[i].rev <= revid) {
 			snprintf(buf, sizeof(buf), "%s SATA controller",
 			    mvs_ids[i].name);
 			device_set_desc_copy(dev, buf);
@@ -99,45 +100,41 @@ mvs_attach(device_t dev)
 {
 	struct mvs_controller *ctlr = device_get_softc(dev);
 	device_t child;
-	int	error, unit, i;
+	int error, unit, i;
 	uint32_t devid = pci_get_devid(dev);
 	uint8_t revid = pci_get_revid(dev);
 
 	ctlr->dev = dev;
 	i = 0;
 	while (mvs_ids[i].id != 0 &&
-	    (mvs_ids[i].id != devid ||
-	     mvs_ids[i].rev > revid))
+	    (mvs_ids[i].id != devid || mvs_ids[i].rev > revid))
 		i++;
 	ctlr->channels = mvs_ids[i].ports;
 	ctlr->quirks = mvs_ids[i].quirks;
 	ctlr->ccc = 0;
-	resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "ccc", &ctlr->ccc);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "ccc",
+	    &ctlr->ccc);
 	ctlr->cccc = 8;
-	resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "cccc", &ctlr->cccc);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "cccc",
+	    &ctlr->cccc);
 	if (ctlr->ccc == 0 || ctlr->cccc == 0) {
 		ctlr->ccc = 0;
 		ctlr->cccc = 0;
 	}
 	if (ctlr->ccc > 100000)
 		ctlr->ccc = 100000;
-	device_printf(dev,
-	    "Gen-%s, %d %sGbps ports, Port Multiplier %s%s\n",
-	    ((ctlr->quirks & MVS_Q_GENI) ? "I" :
-	     ((ctlr->quirks & MVS_Q_GENII) ? "II" : "IIe")),
-	    ctlr->channels,
-	    ((ctlr->quirks & MVS_Q_GENI) ? "1.5" : "3"),
+	device_printf(dev, "Gen-%s, %d %sGbps ports, Port Multiplier %s%s\n",
 	    ((ctlr->quirks & MVS_Q_GENI) ?
-	    "not supported" : "supported"),
-	    ((ctlr->quirks & MVS_Q_GENIIE) ?
-	    " with FBS" : ""));
+		    "I" :
+		    ((ctlr->quirks & MVS_Q_GENII) ? "II" : "IIe")),
+	    ctlr->channels, ((ctlr->quirks & MVS_Q_GENI) ? "1.5" : "3"),
+	    ((ctlr->quirks & MVS_Q_GENI) ? "not supported" : "supported"),
+	    ((ctlr->quirks & MVS_Q_GENIIE) ? " with FBS" : ""));
 	mtx_init(&ctlr->mtx, "MVS controller lock", NULL, MTX_DEF);
 	/* We should have a memory BAR(0). */
 	ctlr->r_rid = PCIR_BAR(0);
 	if (!(ctlr->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &ctlr->r_rid, RF_ACTIVE)))
+		  &ctlr->r_rid, RF_ACTIVE)))
 		return ENXIO;
 	/* Setup our own memory management for channels. */
 	ctlr->sc_iomem.rm_start = rman_get_start(ctlr->r_mem);
@@ -145,12 +142,15 @@ mvs_attach(device_t dev)
 	ctlr->sc_iomem.rm_type = RMAN_ARRAY;
 	ctlr->sc_iomem.rm_descr = "I/O memory addresses";
 	if ((error = rman_init(&ctlr->sc_iomem)) != 0) {
-		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid, ctlr->r_mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid,
+		    ctlr->r_mem);
 		return (error);
 	}
 	if ((error = rman_manage_region(&ctlr->sc_iomem,
-	    rman_get_start(ctlr->r_mem), rman_get_end(ctlr->r_mem))) != 0) {
-		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid, ctlr->r_mem);
+		 rman_get_start(ctlr->r_mem), rman_get_end(ctlr->r_mem))) !=
+	    0) {
+		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid,
+		    ctlr->r_mem);
 		rman_fini(&ctlr->sc_iomem);
 		return (error);
 	}
@@ -158,7 +158,8 @@ mvs_attach(device_t dev)
 	mvs_ctlr_setup(dev);
 	/* Setup interrupts. */
 	if (mvs_setup_interrupt(dev)) {
-		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid, ctlr->r_mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid,
+		    ctlr->r_mem);
 		rman_fini(&ctlr->sc_iomem);
 		return ENXIO;
 	}
@@ -184,16 +185,16 @@ mvs_detach(device_t dev)
 
 	/* Free interrupt. */
 	if (ctlr->irq.r_irq) {
-		bus_teardown_intr(dev, ctlr->irq.r_irq,
-		    ctlr->irq.handle);
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    ctlr->irq.r_irq_rid, ctlr->irq.r_irq);
+		bus_teardown_intr(dev, ctlr->irq.r_irq, ctlr->irq.handle);
+		bus_release_resource(dev, SYS_RES_IRQ, ctlr->irq.r_irq_rid,
+		    ctlr->irq.r_irq);
 	}
 	pci_release_msi(dev);
 	/* Free memory. */
 	rman_fini(&ctlr->sc_iomem);
 	if (ctlr->r_mem)
-		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid, ctlr->r_mem);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctlr->r_rid,
+		    ctlr->r_mem);
 	mtx_destroy(&ctlr->mtx);
 	return (0);
 }
@@ -211,9 +212,8 @@ mvs_ctlr_setup(device_t dev)
 	/* Clear PCI interrupts */
 	ATA_OUTL(ctlr->r_mem, CHIP_PCIIC, 0x00000000);
 	if (ccc && bootverbose) {
-		device_printf(dev,
-		    "CCC with %dus/%dcmd enabled\n",
-		    ctlr->ccc, ctlr->cccc);
+		device_printf(dev, "CCC with %dus/%dcmd enabled\n", ctlr->ccc,
+		    ctlr->cccc);
 	}
 	ccc *= 150;
 	/* Configure chip-global CCC */
@@ -236,8 +236,8 @@ mvs_ctlr_setup(device_t dev)
 		ATA_OUTL(ctlr->r_mem, HC_BASE(i) + HC_IC, 0x00000000);
 	}
 	/* Enable chip interrupts */
-	ctlr->gmim = (ccim ? ccim : (IC_DONE_HC0 | IC_DONE_HC1)) |
-	     IC_ERR_HC0 | IC_ERR_HC1;
+	ctlr->gmim = (ccim ? ccim : (IC_DONE_HC0 | IC_DONE_HC1)) | IC_ERR_HC0 |
+	    IC_ERR_HC1;
 	ctlr->mim = ctlr->gmim | ctlr->pmim;
 	ATA_OUTL(ctlr->r_mem, CHIP_MIM, ctlr->mim);
 	/* Enable PCI interrupts */
@@ -250,7 +250,7 @@ mvs_edma(device_t dev, device_t child, int mode)
 {
 	struct mvs_controller *ctlr = device_get_softc(dev);
 	int unit = ((struct mvs_channel *)device_get_softc(child))->unit;
-	int bit = IC_DONE_IRQ << (unit * 2 + unit / 4) ;
+	int bit = IC_DONE_IRQ << (unit * 2 + unit / 4);
 
 	if (ctlr->ccc == 0)
 		return;
@@ -294,8 +294,8 @@ mvs_setup_interrupt(device_t dev)
 	int msi = 0;
 
 	/* Process hints. */
-	resource_int_value(device_get_name(dev),
-	    device_get_unit(dev), "msi", &msi);
+	resource_int_value(device_get_name(dev), device_get_unit(dev), "msi",
+	    &msi);
 	if (msi < 0)
 		msi = 0;
 	else if (msi > 0)
@@ -307,15 +307,15 @@ mvs_setup_interrupt(device_t dev)
 	/* Allocate all IRQs. */
 	ctlr->irq.r_irq_rid = msi ? 1 : 0;
 	if (!(ctlr->irq.r_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &ctlr->irq.r_irq_rid, RF_SHAREABLE | RF_ACTIVE))) {
+		  &ctlr->irq.r_irq_rid, RF_SHAREABLE | RF_ACTIVE))) {
 		device_printf(dev, "unable to map interrupt\n");
 		return (ENXIO);
 	}
 	if ((bus_setup_intr(dev, ctlr->irq.r_irq, ATA_INTR_FLAGS, NULL,
-	    mvs_intr, ctlr, &ctlr->irq.handle))) {
+		mvs_intr, ctlr, &ctlr->irq.handle))) {
 		device_printf(dev, "unable to setup interrupt\n");
-		bus_release_resource(dev, SYS_RES_IRQ,
-		    ctlr->irq.r_irq_rid, ctlr->irq.r_irq);
+		bus_release_resource(dev, SYS_RES_IRQ, ctlr->irq.r_irq_rid,
+		    ctlr->irq.r_irq);
 		ctlr->irq.r_irq = NULL;
 		return (ENXIO);
 	}
@@ -370,7 +370,7 @@ mvs_intr(void *data)
 			ATA_OUTL(ctlr->r_mem, HC_BASE(p == 4) + HC_IC, ~aic);
 		}
 		/* Call per-port interrupt handler. */
-		arg.cause = ic & (IC_ERR_IRQ|IC_DONE_IRQ);
+		arg.cause = ic & (IC_ERR_IRQ | IC_DONE_IRQ);
 		if ((arg.cause != 0) &&
 		    (function = ctlr->interrupt[p].function)) {
 			arg.arg = ctlr->interrupt[p].argument;
@@ -381,7 +381,7 @@ mvs_intr(void *data)
 	if (ctlr->msi) {
 		/* Unmasking MSI triggers next interrupt, if needed. */
 		mtx_lock(&ctlr->mtx);
-		ctlr->msia = 0;	/* Allow MIM update. */
+		ctlr->msia = 0; /* Allow MIM update. */
 		ATA_OUTL(ctlr->r_mem, CHIP_MIM, ctlr->mim);
 		mtx_unlock(&ctlr->mtx);
 	}
@@ -389,8 +389,7 @@ mvs_intr(void *data)
 
 static struct resource *
 mvs_alloc_resource(device_t dev, device_t child, int type, int *rid,
-		       rman_res_t start, rman_res_t end, rman_res_t count,
-		       u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
 	struct mvs_controller *ctlr = device_get_softc(dev);
 	int unit = ((struct mvs_channel *)device_get_softc(child))->unit;
@@ -423,7 +422,7 @@ mvs_alloc_resource(device_t dev, device_t child, int type, int *rid,
 
 static int
 mvs_release_resource(device_t dev, device_t child, int type, int rid,
-			 struct resource *r)
+    struct resource *r)
 {
 
 	switch (type) {
@@ -439,9 +438,9 @@ mvs_release_resource(device_t dev, device_t child, int type, int rid,
 }
 
 static int
-mvs_setup_intr(device_t dev, device_t child, struct resource *irq, 
-		   int flags, driver_filter_t *filter, driver_intr_t *function, 
-		   void *argument, void **cookiep)
+mvs_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
+    driver_filter_t *filter, driver_intr_t *function, void *argument,
+    void **cookiep)
 {
 	struct mvs_controller *ctlr = device_get_softc(dev);
 	int unit = (intptr_t)device_get_ivars(child);
@@ -457,7 +456,7 @@ mvs_setup_intr(device_t dev, device_t child, struct resource *irq,
 
 static int
 mvs_teardown_intr(device_t dev, device_t child, struct resource *irq,
-		      void *cookie)
+    void *cookie)
 {
 	struct mvs_controller *ctlr = device_get_softc(dev);
 	int unit = (intptr_t)device_get_ivars(child);
@@ -484,8 +483,7 @@ static int
 mvs_child_location(device_t dev, device_t child, struct sbuf *sb)
 {
 
-	sbuf_printf(sb, "channel=%d",
-	    (int)(intptr_t)device_get_ivars(child));
+	sbuf_printf(sb, "channel=%d", (int)(intptr_t)device_get_ivars(child));
 	return (0);
 }
 
@@ -496,29 +494,22 @@ mvs_get_dma_tag(device_t bus, device_t child)
 	return (bus_get_dma_tag(bus));
 }
 
-static device_method_t mvs_methods[] = {
-	DEVMETHOD(device_probe,     mvs_probe),
-	DEVMETHOD(device_attach,    mvs_attach),
-	DEVMETHOD(device_detach,    mvs_detach),
-	DEVMETHOD(device_suspend,   mvs_suspend),
-	DEVMETHOD(device_resume,    mvs_resume),
-	DEVMETHOD(bus_print_child,  mvs_print_child),
-	DEVMETHOD(bus_alloc_resource,       mvs_alloc_resource),
-	DEVMETHOD(bus_release_resource,     mvs_release_resource),
-	DEVMETHOD(bus_setup_intr,   mvs_setup_intr),
-	DEVMETHOD(bus_teardown_intr,mvs_teardown_intr),
+static device_method_t mvs_methods[] = { DEVMETHOD(device_probe, mvs_probe),
+	DEVMETHOD(device_attach, mvs_attach),
+	DEVMETHOD(device_detach, mvs_detach),
+	DEVMETHOD(device_suspend, mvs_suspend),
+	DEVMETHOD(device_resume, mvs_resume),
+	DEVMETHOD(bus_print_child, mvs_print_child),
+	DEVMETHOD(bus_alloc_resource, mvs_alloc_resource),
+	DEVMETHOD(bus_release_resource, mvs_release_resource),
+	DEVMETHOD(bus_setup_intr, mvs_setup_intr),
+	DEVMETHOD(bus_teardown_intr, mvs_teardown_intr),
 	DEVMETHOD(bus_child_location, mvs_child_location),
-	DEVMETHOD(bus_get_dma_tag,  mvs_get_dma_tag),
-	DEVMETHOD(mvs_edma,         mvs_edma),
-	{ 0, 0 }
-};
-static driver_t mvs_driver = {
-        "mvs",
-        mvs_methods,
-        sizeof(struct mvs_controller)
-};
+	DEVMETHOD(bus_get_dma_tag, mvs_get_dma_tag),
+	DEVMETHOD(mvs_edma, mvs_edma), { 0, 0 } };
+static driver_t mvs_driver = { "mvs", mvs_methods,
+	sizeof(struct mvs_controller) };
 DRIVER_MODULE(mvs, pci, mvs_driver, 0, 0);
-MODULE_PNP_INFO("W32:vendor/device", pci, mvs, mvs_ids,
-    nitems(mvs_ids) - 1);
+MODULE_PNP_INFO("W32:vendor/device", pci, mvs, mvs_ids, nitems(mvs_ids) - 1);
 MODULE_VERSION(mvs, 1);
 MODULE_DEPEND(mvs, cam, 1, 1, 1);

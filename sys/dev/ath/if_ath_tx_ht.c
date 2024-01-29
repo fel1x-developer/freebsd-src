@@ -29,41 +29,40 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#include <sys/cdefs.h>
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -74,41 +73,43 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
+#include <dev/ath/if_athvar.h>
 
 #ifdef ATH_TX99_DIAG
 #include <dev/ath/ath_tx99/ath_tx99.h>
 #endif
 
-#include <dev/ath/if_ath_tx.h>		/* XXX for some support functions */
+#include <dev/ath/if_ath_debug.h>
+#include <dev/ath/if_ath_tx.h> /* XXX for some support functions */
 #include <dev/ath/if_ath_tx_ht.h>
 #include <dev/ath/if_athrate.h>
-#include <dev/ath/if_ath_debug.h>
 
 /*
  * XXX net80211?
  */
-#define	IEEE80211_AMPDU_SUBFRAME_DEFAULT		32
+#define IEEE80211_AMPDU_SUBFRAME_DEFAULT 32
 
-#define	ATH_AGGR_DELIM_SZ	4	/* delimiter size */
-#define	ATH_AGGR_MINPLEN	256	/* in bytes, minimum packet length */
+#define ATH_AGGR_DELIM_SZ 4  /* delimiter size */
+#define ATH_AGGR_MINPLEN 256 /* in bytes, minimum packet length */
 /* number of delimiters for encryption padding */
-#define	ATH_AGGR_ENCRYPTDELIM	10
+#define ATH_AGGR_ENCRYPTDELIM 10
 
 /*
  * returns delimiter padding required given the packet length
  */
-#define	ATH_AGGR_GET_NDELIM(_len)					\
-	    (((((_len) + ATH_AGGR_DELIM_SZ) < ATH_AGGR_MINPLEN) ?	\
-	    (ATH_AGGR_MINPLEN - (_len) - ATH_AGGR_DELIM_SZ) : 0) >> 2)
+#define ATH_AGGR_GET_NDELIM(_len)                                \
+	(((((_len) + ATH_AGGR_DELIM_SZ) < ATH_AGGR_MINPLEN) ?    \
+		 (ATH_AGGR_MINPLEN - (_len)-ATH_AGGR_DELIM_SZ) : \
+		 0) >>                                           \
+	    2)
 
-#define	PADBYTES(_len)		((4 - ((_len) % 4)) % 4)
+#define PADBYTES(_len) ((4 - ((_len) % 4)) % 4)
 
 int ath_max_4ms_framelen[4][32] = {
 	[MCS_HT20] = {
@@ -141,69 +142,69 @@ int ath_max_4ms_framelen[4][32] = {
  * XXX should be in net80211
  */
 static int ieee80211_mpdudensity_map[] = {
-	0,		/* IEEE80211_HTCAP_MPDUDENSITY_NA */
-	25,		/* IEEE80211_HTCAP_MPDUDENSITY_025 */
-	50,		/* IEEE80211_HTCAP_MPDUDENSITY_05 */
-	100,		/* IEEE80211_HTCAP_MPDUDENSITY_1 */
-	200,		/* IEEE80211_HTCAP_MPDUDENSITY_2 */
-	400,		/* IEEE80211_HTCAP_MPDUDENSITY_4 */
-	800,		/* IEEE80211_HTCAP_MPDUDENSITY_8 */
-	1600,		/* IEEE80211_HTCAP_MPDUDENSITY_16 */
+	0,    /* IEEE80211_HTCAP_MPDUDENSITY_NA */
+	25,   /* IEEE80211_HTCAP_MPDUDENSITY_025 */
+	50,   /* IEEE80211_HTCAP_MPDUDENSITY_05 */
+	100,  /* IEEE80211_HTCAP_MPDUDENSITY_1 */
+	200,  /* IEEE80211_HTCAP_MPDUDENSITY_2 */
+	400,  /* IEEE80211_HTCAP_MPDUDENSITY_4 */
+	800,  /* IEEE80211_HTCAP_MPDUDENSITY_8 */
+	1600, /* IEEE80211_HTCAP_MPDUDENSITY_16 */
 };
 
 /*
  * XXX should be in the HAL/net80211 ?
  */
-#define	BITS_PER_BYTE		8
-#define	OFDM_PLCP_BITS		22
-#define	HT_RC_2_MCS(_rc)	((_rc) & 0x7f)
-#define	HT_RC_2_STREAMS(_rc)	((((_rc) & 0x78) >> 3) + 1)
-#define	L_STF			8
-#define	L_LTF			8
-#define	L_SIG			4
-#define	HT_SIG			8
-#define	HT_STF			4
-#define	HT_LTF(_ns)		(4 * (_ns))
-#define	SYMBOL_TIME(_ns)	((_ns) << 2)		// ns * 4 us
-#define	SYMBOL_TIME_HALFGI(_ns)	(((_ns) * 18 + 4) / 5)	// ns * 3.6 us
-#define	NUM_SYMBOLS_PER_USEC(_usec)	(_usec >> 2)
-#define	NUM_SYMBOLS_PER_USEC_HALFGI(_usec)	(((_usec*5)-4)/18)
-#define	IS_HT_RATE(_rate)	((_rate) & 0x80)
+#define BITS_PER_BYTE 8
+#define OFDM_PLCP_BITS 22
+#define HT_RC_2_MCS(_rc) ((_rc) & 0x7f)
+#define HT_RC_2_STREAMS(_rc) ((((_rc) & 0x78) >> 3) + 1)
+#define L_STF 8
+#define L_LTF 8
+#define L_SIG 4
+#define HT_SIG 8
+#define HT_STF 4
+#define HT_LTF(_ns) (4 * (_ns))
+#define SYMBOL_TIME(_ns) ((_ns) << 2)		       // ns * 4 us
+#define SYMBOL_TIME_HALFGI(_ns) (((_ns) * 18 + 4) / 5) // ns * 3.6 us
+#define NUM_SYMBOLS_PER_USEC(_usec) (_usec >> 2)
+#define NUM_SYMBOLS_PER_USEC_HALFGI(_usec) (((_usec * 5) - 4) / 18)
+#define IS_HT_RATE(_rate) ((_rate) & 0x80)
 
 const uint32_t bits_per_symbol[][2] = {
-    /* 20MHz 40MHz */
-    {    26,   54 },     //  0: BPSK
-    {    52,  108 },     //  1: QPSK 1/2
-    {    78,  162 },     //  2: QPSK 3/4
-    {   104,  216 },     //  3: 16-QAM 1/2
-    {   156,  324 },     //  4: 16-QAM 3/4
-    {   208,  432 },     //  5: 64-QAM 2/3
-    {   234,  486 },     //  6: 64-QAM 3/4
-    {   260,  540 },     //  7: 64-QAM 5/6
-    {    52,  108 },     //  8: BPSK
-    {   104,  216 },     //  9: QPSK 1/2
-    {   156,  324 },     // 10: QPSK 3/4
-    {   208,  432 },     // 11: 16-QAM 1/2
-    {   312,  648 },     // 12: 16-QAM 3/4
-    {   416,  864 },     // 13: 64-QAM 2/3
-    {   468,  972 },     // 14: 64-QAM 3/4
-    {   520, 1080 },     // 15: 64-QAM 5/6
-    {    78,  162 },     // 16: BPSK
-    {   156,  324 },     // 17: QPSK 1/2
-    {   234,  486 },     // 18: QPSK 3/4
-    {   312,  648 },     // 19: 16-QAM 1/2
-    {   468,  972 },     // 20: 16-QAM 3/4
-    {   624, 1296 },     // 21: 64-QAM 2/3
-    {   702, 1458 },     // 22: 64-QAM 3/4
-    {   780, 1620 },     // 23: 64-QAM 5/6
-    {   104,  216 },     // 24: BPSK
-    {   208,  432 },     // 25: QPSK 1/2
-    {   312,  648 },     // 26: QPSK 3/4
-    {   416,  864 },     // 27: 16-QAM 1/2
-    {   624, 1296 },     // 28: 16-QAM 3/4
-    {   832, 1728 },     // 29: 64-QAM 2/3
-    {   936, 1944 },     // 30: 64-QAM 3/4
-    {  1040, 2160 },     // 31: 64-QAM 5/6
+	/* 20MHz 40MHz */
+	{ 26, 54 },	//  0: BPSK
+	{ 52, 108 },	//  1: QPSK 1/2
+	{ 78, 162 },	//  2: QPSK 3/4
+	{ 104, 216 },	//  3: 16-QAM 1/2
+	{ 156, 324 },	//  4: 16-QAM 3/4
+	{ 208, 432 },	//  5: 64-QAM 2/3
+	{ 234, 486 },	//  6: 64-QAM 3/4
+	{ 260, 540 },	//  7: 64-QAM 5/6
+	{ 52, 108 },	//  8: BPSK
+	{ 104, 216 },	//  9: QPSK 1/2
+	{ 156, 324 },	// 10: QPSK 3/4
+	{ 208, 432 },	// 11: 16-QAM 1/2
+	{ 312, 648 },	// 12: 16-QAM 3/4
+	{ 416, 864 },	// 13: 64-QAM 2/3
+	{ 468, 972 },	// 14: 64-QAM 3/4
+	{ 520, 1080 },	// 15: 64-QAM 5/6
+	{ 78, 162 },	// 16: BPSK
+	{ 156, 324 },	// 17: QPSK 1/2
+	{ 234, 486 },	// 18: QPSK 3/4
+	{ 312, 648 },	// 19: 16-QAM 1/2
+	{ 468, 972 },	// 20: 16-QAM 3/4
+	{ 624, 1296 },	// 21: 64-QAM 2/3
+	{ 702, 1458 },	// 22: 64-QAM 3/4
+	{ 780, 1620 },	// 23: 64-QAM 5/6
+	{ 104, 216 },	// 24: BPSK
+	{ 208, 432 },	// 25: QPSK 1/2
+	{ 312, 648 },	// 26: QPSK 3/4
+	{ 416, 864 },	// 27: 16-QAM 1/2
+	{ 624, 1296 },	// 28: 16-QAM 3/4
+	{ 832, 1728 },	// 29: 64-QAM 2/3
+	{ 936, 1944 },	// 30: 64-QAM 3/4
+	{ 1040, 2160 }, // 31: 64-QAM 5/6
 };
 
 /*
@@ -262,7 +263,7 @@ ath_tx_rate_fill_rcflags(struct ath_softc *sc, struct ath_buf *bf)
 		/*
 		 * Only enable short preamble for legacy rates
 		 */
-		if ((! IS_HT_RATE(rate)) && bf->bf_state.bfs_shpream)
+		if ((!IS_HT_RATE(rate)) && bf->bf_state.bfs_shpream)
 			rate |= rt->info[rc[i].rix].shortPreamble;
 
 		/*
@@ -277,7 +278,7 @@ ath_tx_rate_fill_rcflags(struct ath_softc *sc, struct ath_buf *bf)
 		/*
 		 * If we can't do LDPC, don't.
 		 */
-		if (! IS_HT_RATE(rate))
+		if (!IS_HT_RATE(rate))
 			do_ldpc = 0;
 
 		/* Only enable shortgi, 2040, dual-stream if HT is set */
@@ -366,8 +367,8 @@ ath_tx_rate_fill_rcflags(struct ath_softc *sc, struct ath_buf *bf)
 		} else
 			rc[i].max4msframelen = 0;
 		DPRINTF(sc, ATH_DEBUG_SW_TX_AGGR,
-		    "%s: i=%d, rate=0x%x, flags=0x%x, max4ms=%d\n",
-		    __func__, i, rate, rc[i].flags, rc[i].max4msframelen);
+		    "%s: i=%d, rate=0x%x, flags=0x%x, max4ms=%d\n", __func__, i,
+		    rate, rc[i].flags, rc[i].max4msframelen);
 	}
 
 	/*
@@ -408,8 +409,8 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 	struct ieee80211_node *ni = first_bf->bf_node;
 	struct ieee80211vap *vap = ni->ni_vap;
 	int ndelim, mindelim = 0;
-	int mpdudensity;	/* in 1/100'th of a microsecond */
-	int peer_mpdudensity;	/* net80211 value */
+	int mpdudensity;      /* in 1/100'th of a microsecond */
+	int peer_mpdudensity; /* net80211 value */
 	uint8_t rc, rix, flags;
 	int width, half_gi;
 	uint32_t nsymbits, nsymbols;
@@ -418,8 +419,8 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 	/*
 	 * Get the advertised density from the node.
 	 */
-	peer_mpdudensity =
-	    _IEEE80211_MASKSHIFT(ni->ni_htparam, IEEE80211_HTCAP_MPDUDENSITY);
+	peer_mpdudensity = _IEEE80211_MASKSHIFT(ni->ni_htparam,
+	    IEEE80211_HTCAP_MPDUDENSITY);
 
 	/*
 	 * vap->iv_ampdu_density is a net80211 value, rather than the actual
@@ -435,7 +436,7 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 	 * value for subsequent calculations.
 	 */
 	if (peer_mpdudensity > IEEE80211_HTCAP_MPDUDENSITY_16)
-		mpdudensity = 1600;		/* maximum density */
+		mpdudensity = 1600; /* maximum density */
 	else
 		mpdudensity = ieee80211_mpdudensity_map[peer_mpdudensity];
 
@@ -462,8 +463,8 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 	 * this exchange, and (b) (done) this is the first sub-frame
 	 * in the aggregate.
 	 */
-	if (sc->sc_use_ent && (sc->sc_ent_cfg & AH_ENT_RTSCTS_DELIM_WAR)
-	    && ndelim < AH_FIRST_DESC_NDELIMS && is_first)
+	if (sc->sc_use_ent && (sc->sc_ent_cfg & AH_ENT_RTSCTS_DELIM_WAR) &&
+	    ndelim < AH_FIRST_DESC_NDELIMS && is_first)
 		ndelim = AH_FIRST_DESC_NDELIMS;
 
 	/*
@@ -474,8 +475,8 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 		ndelim = MAX(ndelim, sc->sc_delim_min_pad);
 
 	DPRINTF(sc, ATH_DEBUG_SW_TX_AGGR,
-	    "%s: pktlen=%d, ndelim=%d, mpdudensity=%d\n",
-	    __func__, pktlen, ndelim, mpdudensity);
+	    "%s: pktlen=%d, ndelim=%d, mpdudensity=%d\n", __func__, pktlen,
+	    ndelim, mpdudensity);
 
 	/*
 	 * If the MPDU density is 0, we can return here.
@@ -494,8 +495,8 @@ ath_compute_num_delims(struct ath_softc *sc, struct ath_buf *first_bf,
 	rix = first_bf->bf_state.bfs_rc[0].rix;
 	rc = rt->info[rix].rateCode;
 	flags = first_bf->bf_state.bfs_rc[0].flags;
-	width = !! (flags & ATH_RC_CW40_FLAG);
-	half_gi = !! (flags & ATH_RC_SGI_FLAG);
+	width = !!(flags & ATH_RC_CW40_FLAG);
+	half_gi = !!(flags & ATH_RC_SGI_FLAG);
 
 	/*
 	 * mpdudensity is in 1/100th of a usec, so divide by 100
@@ -579,8 +580,9 @@ ath_get_aggr_limit(struct ath_softc *sc, struct ieee80211_node *ni,
 	 * Check the HTCAP field for the maximum size the node has
 	 * negotiated.  If it's smaller than what we have, cap it there.
 	 */
-	amin = MIN(amin, ath_rx_ampdu_to_byte(
-	    _IEEE80211_MASKSHIFT(ni->ni_htparam, IEEE80211_HTCAP_MAXRXAMPDU)));
+	amin = MIN(amin,
+	    ath_rx_ampdu_to_byte(_IEEE80211_MASKSHIFT(ni->ni_htparam,
+		IEEE80211_HTCAP_MAXRXAMPDU)));
 
 	for (i = 0; i < ATH_RC_NUM; i++) {
 		if (bf->bf_state.bfs_rc[i].tries == 0)
@@ -591,9 +593,7 @@ ath_get_aggr_limit(struct ath_softc *sc, struct ieee80211_node *ni,
 	DPRINTF(sc, ATH_DEBUG_SW_TX_AGGR,
 	    "%s: aggr_limit=%d, iv_ampdu_limit=%d, "
 	    "peer maxrxampdu=%d, max frame len=%d\n",
-	    __func__,
-	    sc->sc_aggr_limit,
-	    vap->iv_ampdu_limit,
+	    __func__, sc->sc_aggr_limit, vap->iv_ampdu_limit,
 	    _IEEE80211_MASKSHIFT(ni->ni_htparam, IEEE80211_HTCAP_MAXRXAMPDU),
 	    amin);
 
@@ -640,7 +640,7 @@ ath_rateseries_setup(struct ath_softc *sc, struct ieee80211_node *ni,
 	 * XXX fields.
 	 */
 	memset(series, 0, sizeof(HAL_11N_RATE_SERIES) * 4);
-	for (i = 0; i < ATH_RC_NUM;  i++) {
+	for (i = 0; i < ATH_RC_NUM; i++) {
 		/* Only set flags for actual TX attempts */
 		if (rc[i].tries == 0)
 			continue;
@@ -694,37 +694,32 @@ ath_rateseries_setup(struct ath_softc *sc, struct ieee80211_node *ni,
 		 * it's just the packet duration
 		 */
 		if (rc[i].flags & ATH_RC_HT_FLAG) {
-			series[i].PktDuration =
-			    ath_computedur_ht(pktlen
-				, series[i].Rate
-				, HT_RC_2_STREAMS(series[i].Rate)
-				, series[i].RateFlags & HAL_RATESERIES_2040
-				, series[i].RateFlags & HAL_RATESERIES_HALFGI);
+			series[i].PktDuration = ath_computedur_ht(pktlen,
+			    series[i].Rate, HT_RC_2_STREAMS(series[i].Rate),
+			    series[i].RateFlags & HAL_RATESERIES_2040,
+			    series[i].RateFlags & HAL_RATESERIES_HALFGI);
 		} else {
 			if (shortPreamble)
 				series[i].Rate |=
 				    rt->info[rc[i].rix].shortPreamble;
 			/* XXX TODO: don't include SIFS */
-			series[i].PktDuration = ath_hal_computetxtime(ah,
-			    rt, pktlen, rc[i].rix, shortPreamble, AH_TRUE);
+			series[i].PktDuration = ath_hal_computetxtime(ah, rt,
+			    pktlen, rc[i].rix, shortPreamble, AH_TRUE);
 		}
 	}
 }
 
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 static void
 ath_rateseries_print(struct ath_softc *sc, HAL_11N_RATE_SERIES *series)
 {
 	int i;
 	for (i = 0; i < ATH_RC_NUM; i++) {
-		device_printf(sc->sc_dev ,"series %d: rate %x; tries %d; "
+		device_printf(sc->sc_dev,
+		    "series %d: rate %x; tries %d; "
 		    "pktDuration %d; chSel %d; txpowcap %d, rateFlags %x\n",
-		    i,
-		    series[i].Rate,
-		    series[i].Tries,
-		    series[i].PktDuration,
-		    series[i].ChSel,
-		    series[i].tx_power_cap,
+		    i, series[i].Rate, series[i].Tries, series[i].PktDuration,
+		    series[i].ChSel, series[i].tx_power_cap,
 		    series[i].RateFlags);
 	}
 }
@@ -753,7 +748,7 @@ ath_buf_set_rate(struct ath_softc *sc, struct ieee80211_node *ni,
 
 	ath_rateseries_setup(sc, ni, bf, series);
 
-#ifdef	ATH_DEBUG
+#ifdef ATH_DEBUG
 	if (sc->sc_debug & ATH_DEBUG_XMIT)
 		ath_rateseries_print(sc, series);
 #endif
@@ -764,7 +759,7 @@ ath_buf_set_rate(struct ath_softc *sc, struct ieee80211_node *ni,
 	 * ps-poll packets.
 	 */
 	ath_hal_set11nratescenario(ah, ds,
-	    !is_pspoll,	/* whether to override the duration or not */
+	    !is_pspoll, /* whether to override the duration or not */
 	    ctsrate,	/* rts/cts rate */
 	    series,	/* 11n rate series */
 	    4,		/* number of series */
@@ -779,7 +774,7 @@ ath_buf_set_rate(struct ath_softc *sc, struct ieee80211_node *ni,
 	 *
 	 * .. and it's highly likely this won't ever be implemented
 	 */
-	//ath_hal_set11nburstduration(ah, ds, 8192);
+	// ath_hal_set11nburstduration(ah, ds, 8192);
 }
 
 /*
@@ -815,17 +810,17 @@ ath_buf_set_rate(struct ath_softc *sc, struct ieee80211_node *ni,
  * dispatch aggregate frames to the hardware), please keep this in mind.
  */
 ATH_AGGR_STATUS
-ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
-    struct ath_tid *tid, ath_bufhead *bf_q)
+ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an, struct ath_tid *tid,
+    ath_bufhead *bf_q)
 {
-	//struct ieee80211_node *ni = &an->an_node;
+	// struct ieee80211_node *ni = &an->an_node;
 	struct ath_buf *bf, *bf_first = NULL, *bf_prev = NULL;
 	int nframes = 0;
 	uint16_t aggr_limit = 0, al = 0, bpad = 0, al_delta, h_baw;
 	struct ieee80211_tx_ampdu *tap;
 	int status = ATH_AGGR_DONE;
-	int prev_frames = 0;	/* XXX for AR5416 burst, not done here */
-	int prev_al = 0;	/* XXX also for AR5416 burst */
+	int prev_frames = 0; /* XXX for AR5416 burst, not done here */
+	int prev_al = 0;     /* XXX also for AR5416 burst */
 
 	ATH_TX_LOCK_ASSERT(sc);
 
@@ -877,7 +872,7 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		 * can then TX what's in the list thus far and then
 		 * TX the frame individually.
 		 */
-		if (! bf->bf_state.bfs_dobaw) {
+		if (!bf->bf_state.bfs_dobaw) {
 			status = ATH_AGGR_NONAGGR;
 			break;
 		}
@@ -906,8 +901,8 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		if (bf_first->bf_state.bfs_txflags &
 		    (HAL_TXDESC_CTSENA | HAL_TXDESC_RTSENA)) {
 			if (nframes &&
-			   (sc->sc_rts_aggr_limit <
-			     (al + bpad + al_delta + prev_al))) {
+			    (sc->sc_rts_aggr_limit <
+				(al + bpad + al_delta + prev_al))) {
 				status = ATH_AGGR_8K_LIMITED;
 				break;
 			}
@@ -916,8 +911,8 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		/*
 		 * Do not exceed subframe limit.
 		 */
-		if ((nframes + prev_frames) >= MIN((h_baw),
-		    IEEE80211_AMPDU_SUBFRAME_DEFAULT)) {
+		if ((nframes + prev_frames) >=
+		    MIN((h_baw), IEEE80211_AMPDU_SUBFRAME_DEFAULT)) {
 			status = ATH_AGGR_LIMITED;
 			break;
 		}
@@ -928,8 +923,8 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		 * subsequent frame with this config.
 		 */
 		if (bf != bf_first) {
-			bf->bf_state.bfs_txflags &=
-			    ~ (HAL_TXDESC_RTSENA | HAL_TXDESC_CTSENA);
+			bf->bf_state.bfs_txflags &= ~(
+			    HAL_TXDESC_RTSENA | HAL_TXDESC_CTSENA);
 			bf->bf_state.bfs_txflags |=
 			    bf_first->bf_state.bfs_txflags &
 			    (HAL_TXDESC_RTSENA | HAL_TXDESC_CTSENA);
@@ -939,8 +934,8 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		 * If the packet has a sequence number, do not
 		 * step outside of the block-ack window.
 		 */
-		if (! BAW_WITHIN(tap->txa_start, tap->txa_wnd,
-		    SEQNO(bf->bf_state.bfs_seqno))) {
+		if (!BAW_WITHIN(tap->txa_start, tap->txa_wnd,
+			SEQNO(bf->bf_state.bfs_seqno))) {
 			status = ATH_AGGR_BAW_CLOSED;
 			break;
 		}
@@ -971,7 +966,7 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		 * aggregate frame list.
 		 */
 		TAILQ_INSERT_TAIL(bf_q, bf, bf_list);
-		nframes ++;
+		nframes++;
 
 		/* Completion handler */
 		bf->bf_comp = ath_tx_aggr_comp;
@@ -984,8 +979,7 @@ ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
 		/*
 		 * Calculate delimiters needed for the current frame
 		 */
-		bf->bf_state.bfs_ndelim =
-		    ath_compute_num_delims(sc, bf_first,
+		bf->bf_state.bfs_ndelim = ath_compute_num_delims(sc, bf_first,
 		    bf->bf_state.bfs_pktlen, (bf_first == bf));
 
 		/*
@@ -1030,8 +1024,8 @@ finish:
 	 */
 	if (bf_first) {
 		DPRINTF(sc, ATH_DEBUG_SW_TX_AGGR,
-		"%s: al=%d bytes; requested %d bytes\n",
-		__func__, al, bf_first->bf_state.bfs_rc_maxpktlen);
+		    "%s: al=%d bytes; requested %d bytes\n", __func__, al,
+		    bf_first->bf_state.bfs_rc_maxpktlen);
 
 		bf_first->bf_state.bfs_al = al;
 		bf_first->bf_state.bfs_nframes = nframes;

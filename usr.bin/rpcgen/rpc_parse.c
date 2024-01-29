@@ -33,6 +33,7 @@
  */
 #include <stdio.h>
 #include <string.h>
+
 #include "rpc/types.h"
 #include "rpc_parse.h"
 #include "rpc_scan.h"
@@ -40,17 +41,17 @@
 
 #define ARGNAME "arg"
 
-static void isdefined( definition * );
-static void def_struct( definition * );
-static void def_program( definition * );
-static void def_enum( definition * );
-static void def_const( definition * );
-static void def_union( definition * );
-static void def_typedef( definition * );
-static void get_declaration( declaration *, defkind );
-static void get_prog_declaration( declaration *, defkind, int );
+static void isdefined(definition *);
+static void def_struct(definition *);
+static void def_program(definition *);
+static void def_enum(definition *);
+static void def_const(definition *);
+static void def_union(definition *);
+static void def_typedef(definition *);
+static void get_declaration(declaration *, defkind);
+static void get_prog_declaration(declaration *, defkind, int);
 static void get_type(const char **, const char **, defkind);
-static void unsigned_dec(const char ** );
+static void unsigned_dec(const char **);
 
 /*
  * return the next definition you see
@@ -138,7 +139,7 @@ def_program(definition *defp)
 	proc_list *plist;
 	proc_list **ptailp;
 	int num_args;
-	bool_t isvoid = FALSE;	/* whether first argument is void */
+	bool_t isvoid = FALSE; /* whether first argument is void */
 	defp->def_kind = DEF_PROGRAM;
 	scan(TOK_IDENT, &tok);
 	defp->def_name = tok.str;
@@ -156,7 +157,7 @@ def_program(definition *defp)
 			/* get result type */
 			plist = XALLOC(proc_list);
 			get_type(&plist->res_prefix, &plist->res_type,
-				 DEF_PROGRAM);
+			    DEF_PROGRAM);
 			if (streq(plist->res_type, "opaque")) {
 				error("illegal result type");
 			}
@@ -182,7 +183,7 @@ def_program(definition *defp)
 			while (peekscan(TOK_COMMA, &tok)) {
 				num_args++;
 				get_prog_declaration(&dec, DEF_STRUCT,
-						     num_args);
+				    num_args);
 				decls = XALLOC(decl_list);
 				decls->decl = dec;
 				*tailp = decls;
@@ -195,7 +196,8 @@ def_program(definition *defp)
 				error("only one argument is allowed");
 			}
 			if (isvoid && num_args > 1) {
-				error("illegal use of void in program definition");
+				error(
+				    "illegal use of void in program definition");
 			}
 			*tailp = NULL;
 			scan(TOK_RPAREN, &tok);
@@ -216,10 +218,9 @@ def_program(definition *defp)
 		scan_num(&tok);
 		vlist->vers_num = tok.str;
 		/* make the argument structure name for each arg */
-		for (plist = vlist->procs; plist != NULL;
-		     plist = plist->next) {
+		for (plist = vlist->procs; plist != NULL; plist = plist->next) {
 			plist->args.argname = make_argname(plist->proc_name,
-							   vlist->vers_num);
+			    vlist->vers_num);
 			/* free the memory ?? */
 		}
 		scan(TOK_SEMICOLON, &tok);
@@ -230,7 +231,6 @@ def_program(definition *defp)
 	defp->def.pr.prog_num = tok.str;
 	*vtailp = NULL;
 }
-
 
 static void
 def_enum(definition *defp)
@@ -299,7 +299,7 @@ def_union(definition *defp)
 		cases->case_name = tok.str;
 		scan(TOK_COLON, &tok);
 		/* now peek at next token */
-		if (peekscan(TOK_CASE, &tok)){
+		if (peekscan(TOK_CASE, &tok)) {
 			do {
 				scan2(TOK_IDENT, TOK_CHARCONST, &tok);
 				cases->contflag = 1;
@@ -334,29 +334,11 @@ def_union(definition *defp)
 	}
 }
 
-static const char *reserved_words[] =
-{
-	"array",
-	"bytes",
-	"destroy",
-	"free",
-	"getpos",
-	"inline",
-	"pointer",
-	"reference",
-	"setpos",
-	"sizeof",
-	"union",
-	"vector",
-	NULL
-	};
+static const char *reserved_words[] = { "array", "bytes", "destroy", "free",
+	"getpos", "inline", "pointer", "reference", "setpos", "sizeof", "union",
+	"vector", NULL };
 
-static const char *reserved_types[] =
-{
-	"opaque",
-	"string",
-	NULL
-	};
+static const char *reserved_types[] = { "opaque", "string", NULL };
 
 /*
  * check that the given name is not one that would eventually result in
@@ -371,8 +353,8 @@ check_type_name(const char *name, int new_type)
 	for (i = 0; reserved_words[i] != NULL; i++) {
 		if (strcmp(name, reserved_words[i]) == 0) {
 			sprintf(tmp,
-				"illegal (reserved) name :\'%s\' in type definition",
-				name);
+			    "illegal (reserved) name :\'%s\' in type definition",
+			    name);
 			error(tmp);
 		}
 	}
@@ -380,15 +362,13 @@ check_type_name(const char *name, int new_type)
 		for (i = 0; reserved_types[i] != NULL; i++) {
 			if (strcmp(name, reserved_types[i]) == 0) {
 				sprintf(tmp,
-					"illegal (reserved) name :\'%s\' in type definition",
-					name);
+				    "illegal (reserved) name :\'%s\' in type definition",
+				    name);
 				error(tmp);
 			}
 		}
 	}
 }
-
-
 
 static void
 def_typedef(definition *defp)
@@ -425,7 +405,8 @@ get_declaration(declaration *dec, defkind dkind)
 	dec->name = tok.str;
 	if (peekscan(TOK_LBRACKET, &tok)) {
 		if (dec->rel == REL_POINTER) {
-			error("no array-of-pointer declarations -- use typedef");
+			error(
+			    "no array-of-pointer declarations -- use typedef");
 		}
 		dec->rel = REL_VECTOR;
 		scan_num(&tok);
@@ -433,11 +414,12 @@ get_declaration(declaration *dec, defkind dkind)
 		scan(TOK_RBRACKET, &tok);
 	} else if (peekscan(TOK_LANGLE, &tok)) {
 		if (dec->rel == REL_POINTER) {
-			error("no array-of-pointer declarations -- use typedef");
+			error(
+			    "no array-of-pointer declarations -- use typedef");
 		}
 		dec->rel = REL_ARRAY;
 		if (peekscan(TOK_RANGLE, &tok)) {
-			dec->array_max = "~0";	/* unspecified size, use max */
+			dec->array_max = "~0"; /* unspecified size, use max */
 		} else {
 			scan_num(&tok);
 			dec->array_max = tok.str;
@@ -455,12 +437,11 @@ get_declaration(declaration *dec, defkind dkind)
 	}
 }
 
-
 static void
 get_prog_declaration(declaration *dec, defkind dkind, int num)
 {
 	token tok;
-	char name[10];		/* argument name */
+	char name[10]; /* argument name */
 
 	if (dkind == DEF_PROGRAM) {
 		peek(&tok);
@@ -480,7 +461,7 @@ get_prog_declaration(declaration *dec, defkind dkind, int num)
 		sprintf(name, "%s%d", ARGNAME, num);
 	/* default name of argument */
 
-	dec->name = (char *) xstrdup(name);
+	dec->name = (char *)xstrdup(name);
 	if (streq(dec->type, "void")) {
 		return;
 	}
@@ -490,7 +471,8 @@ get_prog_declaration(declaration *dec, defkind dkind, int num)
 	}
 	if (peekscan(TOK_STAR, &tok)) {
 		if (streq(dec->type, "string")) {
-			error("pointer to string not allowed in program arguments");
+			error(
+			    "pointer to string not allowed in program arguments");
 		}
 		dec->rel = REL_POINTER;
 		if (peekscan(TOK_IDENT, &tok)) {
@@ -500,7 +482,8 @@ get_prog_declaration(declaration *dec, defkind dkind, int num)
 	}
 	if (peekscan(TOK_LANGLE, &tok)) {
 		if (!streq(dec->type, "string")) {
-			error("arrays cannot be declared as arguments to procedures -- use typedef");
+			error(
+			    "arrays cannot be declared as arguments to procedures -- use typedef");
 		}
 		dec->rel = REL_ARRAY;
 		if (peekscan(TOK_RANGLE, &tok)) {
@@ -525,8 +508,6 @@ get_prog_declaration(declaration *dec, defkind dkind, int num)
 	}
 }
 
-
-
 static void
 get_type(const char **prefixp, const char **typep, defkind dkind)
 {
@@ -550,20 +531,21 @@ get_type(const char **prefixp, const char **typep, defkind dkind)
 		break;
 	case TOK_SHORT:
 		*typep = "short";
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 	case TOK_LONG:
 		*typep = "long";
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 	case TOK_HYPER:
 		*typep = "int64_t";
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 
 	case TOK_VOID:
 		if (dkind != DEF_UNION && dkind != DEF_PROGRAM) {
-			error("voids allowed only inside union and program definitions with one argument");
+			error(
+			    "voids allowed only inside union and program definitions with one argument");
 		}
 		*typep = tok.str;
 		break;
@@ -596,18 +578,18 @@ unsigned_dec(const char **typep)
 	case TOK_SHORT:
 		get_token(&tok);
 		*typep = "u_short";
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 	case TOK_LONG:
 		get_token(&tok);
 		*typep = "u_long";
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 	case TOK_HYPER:
 		get_token(&tok);
 		*typep = "u_int64_t";
 
-		(void) peekscan(TOK_INT, &tok);
+		(void)peekscan(TOK_INT, &tok);
 		break;
 	case TOK_INT:
 		get_token(&tok);

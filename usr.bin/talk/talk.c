@@ -52,7 +52,7 @@
 int
 main(int argc, char **argv)
 {
-	(void) setlocale(LC_CTYPE, "");
+	(void)setlocale(LC_CTYPE, "");
 
 	get_names(argc, argv);
 	setproctitle(" ");

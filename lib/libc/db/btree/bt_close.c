@@ -32,18 +32,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 
+#include <db.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include <db.h>
 #include "btree.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int bt_meta(BTREE *);
 

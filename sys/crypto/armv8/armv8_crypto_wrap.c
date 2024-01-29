@@ -45,12 +45,11 @@
 #include <sys/malloc.h>
 #include <sys/queue.h>
 
+#include <arm_neon.h>
+#include <crypto/armv8/armv8_crypto.h>
+#include <crypto/rijndael/rijndael.h>
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/gmac.h>
-#include <crypto/rijndael/rijndael.h>
-#include <crypto/armv8/armv8_crypto.h>
-
-#include <arm_neon.h>
 
 static uint8x16_t
 armv8_aes_enc(int rounds, const uint8x16_t *keysched, const uint8x16_t from)
@@ -84,7 +83,7 @@ armv8_aes_dec(int rounds, const uint8x16_t *keysched, const uint8x16_t from)
 	for (i = 0; i < rounds - 1; i += 2) {
 		tmp = vaesdq_u8(tmp, keysched[i]);
 		tmp = vaesimcq_u8(tmp);
-		tmp = vaesdq_u8(tmp, keysched[i+1]);
+		tmp = vaesdq_u8(tmp, keysched[i + 1]);
 		tmp = vaesimcq_u8(tmp);
 	}
 
@@ -125,7 +124,7 @@ armv8_aes_encrypt_cbc(const AES_key_t *key, size_t len,
 			seglen = AES_BLOCK_LEN;
 		} else {
 			for (oseglen = seglen; seglen >= AES_BLOCK_LEN;
-			    seglen -= AES_BLOCK_LEN) {
+			     seglen -= AES_BLOCK_LEN) {
 				tmp = vld1q_u8(from);
 				tot = armv8_aes_enc(key->aes_rounds - 1,
 				    (const void *)key->aes_key,
@@ -173,7 +172,7 @@ armv8_aes_decrypt_cbc(const AES_key_t *key, size_t len,
 			seglen = AES_BLOCK_LEN;
 		} else {
 			for (oseglen = seglen; seglen >= AES_BLOCK_LEN;
-			    seglen -= AES_BLOCK_LEN) {
+			     seglen -= AES_BLOCK_LEN) {
 				nextiv = vld1q_u8(from);
 				tmp = armv8_aes_dec(key->aes_rounds - 1,
 				    (const void *)key->aes_key, nextiv);
@@ -191,14 +190,14 @@ armv8_aes_decrypt_cbc(const AES_key_t *key, size_t len,
 	explicit_bzero(block, sizeof(block));
 }
 
-#define	AES_XTS_BLOCKSIZE	16
-#define	AES_XTS_IVSIZE		8
-#define	AES_XTS_ALPHA		0x87	/* GF(2^128) generator polynomial */
+#define AES_XTS_BLOCKSIZE 16
+#define AES_XTS_IVSIZE 8
+#define AES_XTS_ALPHA 0x87 /* GF(2^128) generator polynomial */
 
 static inline int32x4_t
 xts_crank_lfsr(int32x4_t inp)
 {
-	const int32x4_t alphamask = {AES_XTS_ALPHA, 1, 1, 1};
+	const int32x4_t alphamask = { AES_XTS_ALPHA, 1, 1, 1 };
 	int32x4_t xtweak, ret;
 
 	/* set up xor mask */
@@ -228,7 +227,8 @@ armv8_aes_crypt_xts_block(int rounds, const uint8x16_t *key_schedule,
 
 	vst1q_u8(to, block ^ *tweak);
 
-	*tweak = vreinterpretq_u8_s32(xts_crank_lfsr(vreinterpretq_s32_u8(*tweak)));
+	*tweak = vreinterpretq_u8_s32(
+	    xts_crank_lfsr(vreinterpretq_s32_u8(*tweak)));
 }
 
 static void
@@ -273,7 +273,7 @@ armv8_aes_crypt_xts(int rounds, const uint8x16_t *data_schedule,
 			seglen = AES_XTS_BLOCKSIZE;
 		} else {
 			for (oseglen = seglen; seglen >= AES_XTS_BLOCKSIZE;
-			    seglen -= AES_XTS_BLOCKSIZE) {
+			     seglen -= AES_XTS_BLOCKSIZE) {
 				armv8_aes_crypt_xts_block(rounds, data_schedule,
 				    &tweakreg, from, to, do_encrypt);
 				from += AES_XTS_BLOCKSIZE;
@@ -289,8 +289,8 @@ armv8_aes_crypt_xts(int rounds, const uint8x16_t *data_schedule,
 }
 
 void
-armv8_aes_encrypt_xts(AES_key_t *data_schedule,
-    const void *tweak_schedule, size_t len, struct crypto_buffer_cursor *fromc,
+armv8_aes_encrypt_xts(AES_key_t *data_schedule, const void *tweak_schedule,
+    size_t len, struct crypto_buffer_cursor *fromc,
     struct crypto_buffer_cursor *toc, const uint8_t iv[static AES_BLOCK_LEN])
 {
 	armv8_aes_crypt_xts(data_schedule->aes_rounds,
@@ -299,22 +299,19 @@ armv8_aes_encrypt_xts(AES_key_t *data_schedule,
 }
 
 void
-armv8_aes_decrypt_xts(AES_key_t *data_schedule,
-    const void *tweak_schedule, size_t len,
-    struct crypto_buffer_cursor *fromc, struct crypto_buffer_cursor *toc,
-    const uint8_t iv[static AES_BLOCK_LEN])
+armv8_aes_decrypt_xts(AES_key_t *data_schedule, const void *tweak_schedule,
+    size_t len, struct crypto_buffer_cursor *fromc,
+    struct crypto_buffer_cursor *toc, const uint8_t iv[static AES_BLOCK_LEN])
 {
 	armv8_aes_crypt_xts(data_schedule->aes_rounds,
 	    (const void *)&data_schedule->aes_key, tweak_schedule, len, fromc,
 	    toc, iv, 0);
-
 }
-#define	AES_INC_COUNTER(counter)				\
-	do {							\
-		for (int pos = AES_BLOCK_LEN - 1;		\
-		     pos >= 0; pos--)				\
-			if (++(counter)[pos])			\
-				break;				\
+#define AES_INC_COUNTER(counter)                                   \
+	do {                                                       \
+		for (int pos = AES_BLOCK_LEN - 1; pos >= 0; pos--) \
+			if (++(counter)[pos])                      \
+				break;                             \
 	} while (0)
 
 struct armv8_gcm_state {
@@ -359,8 +356,8 @@ armv8_aes_gmac_setup(struct armv8_gcm_state *s, AES_key_t *aes_key,
 }
 
 static void
-armv8_aes_gmac_finish(struct armv8_gcm_state *s, size_t len,
-    size_t authdatalen, const __uint128_val_t *Htable)
+armv8_aes_gmac_finish(struct armv8_gcm_state *s, size_t len, size_t authdatalen,
+    const __uint128_val_t *Htable)
 {
 	/* Lengths block */
 	s->lenblock.u[0] = s->lenblock.u[1] = 0;
@@ -394,8 +391,7 @@ armv8_aes_encrypt_gcm(AES_key_t *aes_key, size_t len,
     struct crypto_buffer_cursor *fromc, struct crypto_buffer_cursor *toc,
     size_t authdatalen, const uint8_t *authdata,
     uint8_t tag[static GMAC_DIGEST_LEN],
-    const uint8_t iv[static AES_GCM_IV_LEN],
-    const __uint128_val_t *Htable)
+    const uint8_t iv[static AES_GCM_IV_LEN], const __uint128_val_t *Htable)
 {
 	struct armv8_gcm_state s;
 	uint8_t block[AES_BLOCK_LEN] __aligned(AES_BLOCK_LEN);
@@ -429,7 +425,7 @@ armv8_aes_encrypt_gcm(AES_key_t *aes_key, size_t len,
 			crypto_cursor_copyback(toc, (int)seglen, block);
 		} else {
 			for (oseglen = seglen; seglen >= AES_BLOCK_LEN;
-			    seglen -= AES_BLOCK_LEN) {
+			     seglen -= AES_BLOCK_LEN) {
 				armv8_aes_encrypt_gcm_block(&s, aes_key, from64,
 				    to64);
 				gcm_ghash_v8(s.Xi.u, Htable, (uint8_t *)to64,
@@ -457,8 +453,7 @@ armv8_aes_decrypt_gcm(AES_key_t *aes_key, size_t len,
     struct crypto_buffer_cursor *fromc, struct crypto_buffer_cursor *toc,
     size_t authdatalen, const uint8_t *authdata,
     const uint8_t tag[static GMAC_DIGEST_LEN],
-    const uint8_t iv[static AES_GCM_IV_LEN],
-    const __uint128_val_t *Htable)
+    const uint8_t iv[static AES_GCM_IV_LEN], const __uint128_val_t *Htable)
 {
 	struct armv8_gcm_state s;
 	struct crypto_buffer_cursor fromcc;
@@ -510,7 +505,7 @@ armv8_aes_decrypt_gcm(AES_key_t *aes_key, size_t len,
 			crypto_cursor_copyback(toc, (int)seglen, block);
 		} else {
 			for (oseglen = seglen; seglen >= AES_BLOCK_LEN;
-			    seglen -= AES_BLOCK_LEN) {
+			     seglen -= AES_BLOCK_LEN) {
 				armv8_aes_decrypt_gcm_block(&s, aes_key, from64,
 				    to64);
 

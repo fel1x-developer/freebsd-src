@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -38,7 +38,6 @@
  * Copyright (C) 1984, Sun Microsystems, Inc.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
@@ -46,19 +45,20 @@
 
 #include <net/if.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/pmap_prot.h>
+#include <rpc/pmap_rmt.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <rpc/rpc.h>
-#include <rpc/pmap_prot.h>
-#include <rpc/pmap_clnt.h>
-#include <rpc/pmap_rmt.h>
+#include "namespace.h"
 #include "un-namespace.h"
 
 static const struct timeval timeout = { 3, 0 };
@@ -69,10 +69,10 @@ static const struct timeval timeout = { 3, 0 };
  * which will look up a service program in the port maps, and then
  * remotely call that routine with the given parameters.  This allows
  * programs to do a lookup and call in one step.
-*/
+ */
 enum clnt_stat
 pmap_rmtcall(struct sockaddr_in *addr, u_long prog, u_long vers, u_long proc,
-    xdrproc_t xdrargs, caddr_t argsp, xdrproc_t xdrres, caddr_t resp, 
+    xdrproc_t xdrargs, caddr_t argsp, xdrproc_t xdrres, caddr_t resp,
     struct timeval tout, u_long *port_ptr)
 {
 	int sock = -1;
@@ -106,7 +106,6 @@ pmap_rmtcall(struct sockaddr_in *addr, u_long prog, u_long vers, u_long proc,
 	return (stat);
 }
 
-
 /*
  * XDR remote call arguments
  * written for XDR_ENCODE direction only
@@ -119,20 +118,19 @@ xdr_rmtcall_args(XDR *xdrs, struct rmtcallargs *cap)
 	assert(xdrs != NULL);
 	assert(cap != NULL);
 
-	if (xdr_u_long(xdrs, &(cap->prog)) &&
-	    xdr_u_long(xdrs, &(cap->vers)) &&
+	if (xdr_u_long(xdrs, &(cap->prog)) && xdr_u_long(xdrs, &(cap->vers)) &&
 	    xdr_u_long(xdrs, &(cap->proc))) {
 		lenposition = XDR_GETPOS(xdrs);
-		if (! xdr_u_long(xdrs, &(cap->arglen)))
-		    return (FALSE);
+		if (!xdr_u_long(xdrs, &(cap->arglen)))
+			return (FALSE);
 		argposition = XDR_GETPOS(xdrs);
-		if (! (*(cap->xdr_args))(xdrs, cap->args_ptr))
-		    return (FALSE);
+		if (!(*(cap->xdr_args))(xdrs, cap->args_ptr))
+			return (FALSE);
 		position = XDR_GETPOS(xdrs);
 		cap->arglen = (u_long)position - (u_long)argposition;
 		XDR_SETPOS(xdrs, lenposition);
-		if (! xdr_u_long(xdrs, &(cap->arglen)))
-		    return (FALSE);
+		if (!xdr_u_long(xdrs, &(cap->arglen)))
+			return (FALSE);
 		XDR_SETPOS(xdrs, position);
 		return (TRUE);
 	}
@@ -152,8 +150,9 @@ xdr_rmtcallres(XDR *xdrs, struct rmtcallres *crp)
 	assert(crp != NULL);
 
 	port_ptr = (caddr_t)(void *)crp->port_ptr;
-	if (xdr_reference(xdrs, &port_ptr, sizeof (u_long),
-	    (xdrproc_t)xdr_u_long) && xdr_u_long(xdrs, &crp->resultslen)) {
+	if (xdr_reference(xdrs, &port_ptr, sizeof(u_long),
+		(xdrproc_t)xdr_u_long) &&
+	    xdr_u_long(xdrs, &crp->resultslen)) {
 		crp->port_ptr = (u_long *)(void *)port_ptr;
 		return ((*(crp->xdr_results))(xdrs, crp->results_ptr));
 	}

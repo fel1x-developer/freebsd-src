@@ -19,48 +19,46 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v14.h"
-
+#include "ah_internal.h"
 #include "ar5416/ar5416.h"
-#include "ar5416/ar5416reg.h"
 #include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 
-#define N(a)    (sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 
 struct ar2133State {
-	RF_HAL_FUNCS	base;		/* public state, must be first */
-	uint16_t	pcdacTable[1];
+	RF_HAL_FUNCS base; /* public state, must be first */
+	uint16_t pcdacTable[1];
 
-	uint32_t	*Bank0Data;
-	uint32_t	*Bank1Data;
-	uint32_t	*Bank2Data;
-	uint32_t	*Bank3Data;
-	uint32_t	*Bank6Data;
-	uint32_t	*Bank7Data;
+	uint32_t *Bank0Data;
+	uint32_t *Bank1Data;
+	uint32_t *Bank2Data;
+	uint32_t *Bank3Data;
+	uint32_t *Bank6Data;
+	uint32_t *Bank7Data;
 
 	/* NB: Bank*Data storage follows */
 };
-#define	AR2133(ah)	((struct ar2133State *) AH5212(ah)->ah_rfHal)
+#define AR2133(ah) ((struct ar2133State *)AH5212(ah)->ah_rfHal)
 
-#define	ar5416ModifyRfBuffer	ar5212ModifyRfBuffer	/*XXX*/
+#define ar5416ModifyRfBuffer ar5212ModifyRfBuffer /*XXX*/
 
-void	ar5416ModifyRfBuffer(uint32_t *rfBuf, uint32_t reg32,
-	    uint32_t numBits, uint32_t firstBit, uint32_t column);
+void ar5416ModifyRfBuffer(uint32_t *rfBuf, uint32_t reg32, uint32_t numBits,
+    uint32_t firstBit, uint32_t column);
 
 static void
 ar2133WriteRegs(struct ath_hal *ah, u_int modesIndex, u_int freqIndex,
-	int writes)
+    int writes)
 {
-	(void) ath_hal_ini_write(ah, &AH5416(ah)->ah_ini_bb_rfgain,
-		freqIndex, writes);
+	(void)ath_hal_ini_write(ah, &AH5416(ah)->ah_ini_bb_rfgain, freqIndex,
+	    writes);
 }
 
 /*
  * Fix on 2.4 GHz band for orientation sensitivity issue by increasing
  * rf_pwd_icsyndiv.
- * 
+ *
  * Theoretical Rules:
  *   if 2 GHz band
  *      if forceBiasAuto
@@ -87,33 +85,34 @@ ar2133WriteRegs(struct ath_hal *ah, u_int modesIndex, u_int freqIndex,
 static void
 ar2133ForceBias(struct ath_hal *ah, uint16_t synth_freq)
 {
-        uint32_t tmp_reg;
-        int reg_writes = 0;
-        uint32_t new_bias = 0;
+	uint32_t tmp_reg;
+	int reg_writes = 0;
+	uint32_t new_bias = 0;
 	struct ar2133State *priv = AR2133(ah);
 
 	/* XXX this is a bit of a silly check for 2.4ghz channels -adrian */
-        if (synth_freq >= 3000)
-                return;
+	if (synth_freq >= 3000)
+		return;
 
-        if (synth_freq < 2412)
-                new_bias = 0;
-        else if (synth_freq < 2422)
-                new_bias = 1;
-        else
-                new_bias = 2;
+	if (synth_freq < 2412)
+		new_bias = 0;
+	else if (synth_freq < 2422)
+		new_bias = 1;
+	else
+		new_bias = 2;
 
-        /* pre-reverse this field */
-        tmp_reg = ath_hal_reverseBits(new_bias, 3);
+	/* pre-reverse this field */
+	tmp_reg = ath_hal_reverseBits(new_bias, 3);
 
-        HALDEBUG(ah, HAL_DEBUG_ANY, "%s: Force rf_pwd_icsyndiv to %1d on %4d\n",
-                  __func__, new_bias, synth_freq);
+	HALDEBUG(ah, HAL_DEBUG_ANY, "%s: Force rf_pwd_icsyndiv to %1d on %4d\n",
+	    __func__, new_bias, synth_freq);
 
-        /* swizzle rf_pwd_icsyndiv */
-        ar5416ModifyRfBuffer(priv->Bank6Data, tmp_reg, 3, 181, 3);
+	/* swizzle rf_pwd_icsyndiv */
+	ar5416ModifyRfBuffer(priv->Bank6Data, tmp_reg, 3, 181, 3);
 
-        /* write Bank 6 with new params */
-        ath_hal_ini_bank_write(ah, &AH5416(ah)->ah_ini_bank6, priv->Bank6Data, reg_writes);
+	/* write Bank 6 with new params */
+	ath_hal_ini_bank_write(ah, &AH5416(ah)->ah_ini_bank6, priv->Bank6Data,
+	    reg_writes);
 }
 
 /*
@@ -124,15 +123,15 @@ ar2133ForceBias(struct ath_hal *ah, uint16_t synth_freq)
 static HAL_BOOL
 ar2133SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 {
-	uint32_t channelSel  = 0;
-	uint32_t bModeSynth  = 0;
+	uint32_t channelSel = 0;
+	uint32_t bModeSynth = 0;
 	uint32_t aModeRefSel = 0;
-	uint32_t reg32       = 0;
+	uint32_t reg32 = 0;
 	uint16_t freq;
 	CHAN_CENTERS centers;
-    
+
 	OS_MARK(ah, AH_MARK_SETCHANNEL, chan->ic_freq);
-    
+
 	ar5416GetChannelCenters(ah, chan, &centers);
 	freq = centers.synth_center;
 
@@ -140,7 +139,7 @@ ar2133SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		uint32_t txctl;
 
 		if (((freq - 2192) % 5) == 0) {
-			channelSel = ((freq - 672) * 2 - 3040)/10;
+			channelSel = ((freq - 672) * 2 - 3040) / 10;
 			bModeSynth = 0;
 		} else if (((freq - 2224) % 5) == 0) {
 			channelSel = ((freq - 704) * 2 - 3040) / 10;
@@ -158,30 +157,30 @@ ar2133SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		if (freq == 2484) {
 			/* Enable channel spreading for channel 14 */
 			OS_REG_WRITE(ah, AR_PHY_CCK_TX_CTRL,
-				txctl | AR_PHY_CCK_TX_CTRL_JAPAN);
+			    txctl | AR_PHY_CCK_TX_CTRL_JAPAN);
 		} else {
 			OS_REG_WRITE(ah, AR_PHY_CCK_TX_CTRL,
- 			txctl &~ AR_PHY_CCK_TX_CTRL_JAPAN);
+			    txctl & ~AR_PHY_CCK_TX_CTRL_JAPAN);
 		}
-	/*
-	 * Handle programming the RF synth for odd frequencies in the
-	 * 4.9->5GHz range.  This matches the programming from the
-	 * later model 802.11abg RF synths.
-	 *
-	 * This interoperates on the quarter rate channels with the
-	 * AR5112 and later RF synths.  Please note that the synthesiser
-	 * isn't able to completely accurately represent these frequencies
-	 * (as the resolution in this reference is 2.5MHz) and thus it will
-	 * be slightly "off centre."  This matches the same slightly
-	 * incorrect * centre frequency behaviour that the AR5112 and later
-	 * channel selection code has.
-	 *
-	 * This is disabled because it hasn't been tested for regulatory
-	 * compliance and neither have the NICs which would use it.
-	 * So if you enable this code, you must first ensure that you've
-	 * re-certified the NICs in question beforehand or you will be
-	 * violating your local regulatory rules and breaking the law.
-	 */
+		/*
+		 * Handle programming the RF synth for odd frequencies in the
+		 * 4.9->5GHz range.  This matches the programming from the
+		 * later model 802.11abg RF synths.
+		 *
+		 * This interoperates on the quarter rate channels with the
+		 * AR5112 and later RF synths.  Please note that the synthesiser
+		 * isn't able to completely accurately represent these
+		 * frequencies (as the resolution in this reference is 2.5MHz)
+		 * and thus it will be slightly "off centre."  This matches the
+		 * same slightly incorrect * centre frequency behaviour that the
+		 * AR5112 and later channel selection code has.
+		 *
+		 * This is disabled because it hasn't been tested for regulatory
+		 * compliance and neither have the NICs which would use it.
+		 * So if you enable this code, you must first ensure that you've
+		 * re-certified the NICs in question beforehand or you will be
+		 * violating your local regulatory rules and breaking the law.
+		 */
 #if 0
 	} else if (((freq % 5) == 2) && (freq <= 5435)) {
 		freq = freq - 2;
@@ -207,8 +206,7 @@ ar2133SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		aModeRefSel = ath_hal_reverseBits(1, 2);
 	} else {
 		HALDEBUG(ah, HAL_DEBUG_UNMASKABLE,
-		    "%s: invalid channel %u MHz\n",
-		    __func__, freq);
+		    "%s: invalid channel %u MHz\n", __func__, freq);
 		return AH_FALSE;
 	}
 
@@ -217,13 +215,12 @@ ar2133SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 		ar2133ForceBias(ah, freq);
 
 	reg32 = (channelSel << 8) | (aModeRefSel << 2) | (bModeSynth << 1) |
-		(1 << 5) | 0x1;
+	    (1 << 5) | 0x1;
 
 	OS_REG_WRITE(ah, AR_PHY(0x37), reg32);
 
 	AH_PRIVATE(ah)->ah_curchan = chan;
 	return AH_TRUE;
-
 }
 
 /*
@@ -236,11 +233,16 @@ ar2133GetRfBank(struct ath_hal *ah, int bank)
 
 	HALASSERT(priv != AH_NULL);
 	switch (bank) {
-	case 1: return priv->Bank1Data;
-	case 2: return priv->Bank2Data;
-	case 3: return priv->Bank3Data;
-	case 6: return priv->Bank6Data;
-	case 7: return priv->Bank7Data;
+	case 1:
+		return priv->Bank1Data;
+	case 2:
+		return priv->Bank2Data;
+	case 3:
+		return priv->Bank3Data;
+	case 6:
+		return priv->Bank6Data;
+	case 7:
+		return priv->Bank7Data;
 	}
 	HALDEBUG(ah, HAL_DEBUG_ANY, "%s: unknown RF Bank %d requested\n",
 	    __func__, bank);
@@ -255,7 +257,7 @@ ar2133GetRfBank(struct ath_hal *ah, int bank)
  */
 static HAL_BOOL
 ar2133SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
-                uint16_t modesIndex, uint16_t *rfXpdGain)
+    uint16_t modesIndex, uint16_t *rfXpdGain)
 {
 	struct ar2133State *priv = AR2133(ah);
 	int writes;
@@ -272,16 +274,17 @@ ar2133SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 	ath_hal_ini_bank_setup(priv->Bank2Data, &AH5416(ah)->ah_ini_bank2, 1);
 
 	/* Setup Bank 3 Write */
-	ath_hal_ini_bank_setup(priv->Bank3Data, &AH5416(ah)->ah_ini_bank3, modesIndex);
+	ath_hal_ini_bank_setup(priv->Bank3Data, &AH5416(ah)->ah_ini_bank3,
+	    modesIndex);
 
 	/* Setup Bank 6 Write */
-	ath_hal_ini_bank_setup(priv->Bank6Data, &AH5416(ah)->ah_ini_bank6, modesIndex);
+	ath_hal_ini_bank_setup(priv->Bank6Data, &AH5416(ah)->ah_ini_bank6,
+	    modesIndex);
 
 	/* Only the 5 or 2 GHz OB/DB need to be set for a mode */
 	if (IEEE80211_IS_CHAN_2GHZ(chan)) {
 		HALDEBUG(ah, HAL_DEBUG_EEPROM, "%s: 2ghz: OB_2:%d, DB_2:%d\n",
-		    __func__,
-		    ath_hal_eepromGet(ah, AR_EEP_OB_2, AH_NULL),
+		    __func__, ath_hal_eepromGet(ah, AR_EEP_OB_2, AH_NULL),
 		    ath_hal_eepromGet(ah, AR_EEP_DB_2, AH_NULL));
 		ar5416ModifyRfBuffer(priv->Bank6Data,
 		    ath_hal_eepromGet(ah, AR_EEP_OB_2, AH_NULL), 3, 197, 0);
@@ -289,8 +292,7 @@ ar2133SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 		    ath_hal_eepromGet(ah, AR_EEP_DB_2, AH_NULL), 3, 194, 0);
 	} else {
 		HALDEBUG(ah, HAL_DEBUG_EEPROM, "%s: 5ghz: OB_5:%d, DB_5:%d\n",
-		    __func__,
-		    ath_hal_eepromGet(ah, AR_EEP_OB_5, AH_NULL),
+		    __func__, ath_hal_eepromGet(ah, AR_EEP_OB_5, AH_NULL),
 		    ath_hal_eepromGet(ah, AR_EEP_DB_5, AH_NULL));
 		ar5416ModifyRfBuffer(priv->Bank6Data,
 		    ath_hal_eepromGet(ah, AR_EEP_OB_5, AH_NULL), 3, 203, 0);
@@ -311,11 +313,11 @@ ar2133SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 	    priv->Bank3Data, writes);
 	writes = ath_hal_ini_bank_write(ah, &AH5416(ah)->ah_ini_bank6,
 	    priv->Bank6Data, writes);
-	(void) ath_hal_ini_bank_write(ah, &AH5416(ah)->ah_ini_bank7,
+	(void)ath_hal_ini_bank_write(ah, &AH5416(ah)->ah_ini_bank7,
 	    priv->Bank7Data, writes);
 
 	return AH_TRUE;
-#undef  RF_BANK_SETUP
+#undef RF_BANK_SETUP
 }
 
 /*
@@ -325,8 +327,8 @@ ar2133SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
  */
 
 static HAL_BOOL
-ar2133SetPowerTable(struct ath_hal *ah, int16_t *pPowerMin, int16_t *pPowerMax, 
-	const struct ieee80211_channel *chan, uint16_t *rfXpdGain)
+ar2133SetPowerTable(struct ath_hal *ah, int16_t *pPowerMin, int16_t *pPowerMax,
+    const struct ieee80211_channel *chan, uint16_t *rfXpdGain)
 {
 	return AH_TRUE;
 }
@@ -361,8 +363,7 @@ ar2133GetMinPower(struct ath_hal *ah, EXPN_DATA_PER_CHANNEL_5112 *data)
 
 static HAL_BOOL
 ar2133GetChannelMaxMinPower(struct ath_hal *ah,
-	const struct ieee80211_channel *chan,
-	int16_t *maxPow, int16_t *minPow)
+    const struct ieee80211_channel *chan, int16_t *maxPow, int16_t *minPow)
 {
 #if 0
     struct ath_hal_5212 *ahp = AH5212(ah);
@@ -417,8 +418,8 @@ ar2133GetChannelMaxMinPower(struct ath_hal *ah,
             return(AH_FALSE);
     }
 #else
-    // XXX TODO: actually go implement for 11n chips!
-    *maxPow = *minPow = 0;
+	// XXX TODO: actually go implement for 11n chips!
+	*maxPow = *minPow = 0;
 	return AH_FALSE;
 #endif
 }
@@ -433,7 +434,7 @@ ar2133GetChannelMaxMinPower(struct ath_hal *ah,
  * nfarray[4]:	Chain 1 ext
  * nfarray[5]:	Chain 2 ext
  */
-static void 
+static void
 ar2133GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 {
 	struct ath_hal_5416 *ahp = AH5416(ah);
@@ -447,7 +448,7 @@ ar2133GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 	nfarray[3] = nfarray[4] = nfarray[5] = 0;
 
 	switch (ahp->ah_rx_chainmask) {
-        case 0x7:
+	case 0x7:
 		nf = MS(OS_REG_READ(ah, AR_PHY_CH2_CCA), AR_PHY_CH2_MINCCA_PWR);
 		if (nf & 0x100)
 			nf = 0 - ((nf ^ 0x1ff) + 1);
@@ -455,15 +456,16 @@ ar2133GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 		    "NF calibrated [ctl] [chain 2] is %d\n", nf);
 		nfarray[2] = nf;
 
-		nf = MS(OS_REG_READ(ah, AR_PHY_CH2_EXT_CCA), AR_PHY_CH2_EXT_MINCCA_PWR);
+		nf = MS(OS_REG_READ(ah, AR_PHY_CH2_EXT_CCA),
+		    AR_PHY_CH2_EXT_MINCCA_PWR);
 		if (nf & 0x100)
 			nf = 0 - ((nf ^ 0x1ff) + 1);
 		HALDEBUG(ah, HAL_DEBUG_NFCAL,
 		    "NF calibrated [ext] [chain 2] is %d\n", nf);
 		nfarray[5] = nf;
 		/* fall thru... */
-        case 0x3:
-        case 0x5:
+	case 0x3:
+	case 0x5:
 		nf = MS(OS_REG_READ(ah, AR_PHY_CH1_CCA), AR_PHY_CH1_MINCCA_PWR);
 		if (nf & 0x100)
 			nf = 0 - ((nf ^ 0x1ff) + 1);
@@ -471,14 +473,15 @@ ar2133GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 		    "NF calibrated [ctl] [chain 1] is %d\n", nf);
 		nfarray[1] = nf;
 
-		nf = MS(OS_REG_READ(ah, AR_PHY_CH1_EXT_CCA), AR_PHY_CH1_EXT_MINCCA_PWR);
+		nf = MS(OS_REG_READ(ah, AR_PHY_CH1_EXT_CCA),
+		    AR_PHY_CH1_EXT_MINCCA_PWR);
 		if (nf & 0x100)
 			nf = 0 - ((nf ^ 0x1ff) + 1);
 		HALDEBUG(ah, HAL_DEBUG_NFCAL,
 		    "NF calibrated [ext] [chain 1] is %d\n", nf);
 		nfarray[4] = nf;
 		/* fall thru... */
-        case 0x1:
+	case 0x1:
 		nf = MS(OS_REG_READ(ah, AR_PHY_CCA), AR_PHY_MINCCA_PWR);
 		if (nf & 0x100)
 			nf = 0 - ((nf ^ 0x1ff) + 1);
@@ -534,30 +537,29 @@ ar2133RfAttach(struct ath_hal *ah, HAL_STATUS *status)
 	HALDEBUG(ah, HAL_DEBUG_ATTACH, "%s: attach AR2133 radio\n", __func__);
 
 	HALASSERT(ahp->ah_rfHal == AH_NULL);
-	priv = ath_hal_malloc(sizeof(struct ar2133State)
-	    + AH5416(ah)->ah_ini_bank0.rows * sizeof(uint32_t)
-	    + AH5416(ah)->ah_ini_bank1.rows * sizeof(uint32_t)
-	    + AH5416(ah)->ah_ini_bank2.rows * sizeof(uint32_t)
-	    + AH5416(ah)->ah_ini_bank3.rows * sizeof(uint32_t)
-	    + AH5416(ah)->ah_ini_bank6.rows * sizeof(uint32_t)
-	    + AH5416(ah)->ah_ini_bank7.rows * sizeof(uint32_t)
-	);
+	priv = ath_hal_malloc(sizeof(struct ar2133State) +
+	    AH5416(ah)->ah_ini_bank0.rows * sizeof(uint32_t) +
+	    AH5416(ah)->ah_ini_bank1.rows * sizeof(uint32_t) +
+	    AH5416(ah)->ah_ini_bank2.rows * sizeof(uint32_t) +
+	    AH5416(ah)->ah_ini_bank3.rows * sizeof(uint32_t) +
+	    AH5416(ah)->ah_ini_bank6.rows * sizeof(uint32_t) +
+	    AH5416(ah)->ah_ini_bank7.rows * sizeof(uint32_t));
 	if (priv == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: cannot allocate private state\n", __func__);
-		*status = HAL_ENOMEM;		/* XXX */
+		*status = HAL_ENOMEM; /* XXX */
 		return AH_FALSE;
 	}
-	priv->base.rfDetach		= ar2133RfDetach;
-	priv->base.writeRegs		= ar2133WriteRegs;
-	priv->base.getRfBank		= ar2133GetRfBank;
-	priv->base.setChannel		= ar2133SetChannel;
-	priv->base.setRfRegs		= ar2133SetRfRegs;
-	priv->base.setPowerTable	= ar2133SetPowerTable;
+	priv->base.rfDetach = ar2133RfDetach;
+	priv->base.writeRegs = ar2133WriteRegs;
+	priv->base.getRfBank = ar2133GetRfBank;
+	priv->base.setChannel = ar2133SetChannel;
+	priv->base.setRfRegs = ar2133SetRfRegs;
+	priv->base.setPowerTable = ar2133SetPowerTable;
 	priv->base.getChannelMaxMinPower = ar2133GetChannelMaxMinPower;
-	priv->base.getNfAdjust		= ar2133GetNfAdjust;
+	priv->base.getNfAdjust = ar2133GetNfAdjust;
 
-	bankData = (uint32_t *) &priv[1];
+	bankData = (uint32_t *)&priv[1];
 	priv->Bank0Data = bankData, bankData += AH5416(ah)->ah_ini_bank0.rows;
 	priv->Bank1Data = bankData, bankData += AH5416(ah)->ah_ini_bank1.rows;
 	priv->Bank2Data = bankData, bankData += AH5416(ah)->ah_ini_bank2.rows;

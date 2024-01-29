@@ -25,10 +25,10 @@
  * SUCH DAMAGE.
  */
 
-#include <tests/ktest.h>
 #include <sys/cdefs.h>
 #include <sys/systm.h>
 
+#include <tests/ktest.h>
 
 static int
 test_something(struct ktest_test_context *ctx)
@@ -62,16 +62,17 @@ test_failed2(struct ktest_test_context *ctx)
 }
 
 #include <sys/malloc.h>
+
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 
 struct test1_attrs {
-	uint32_t	arg1;
-	uint32_t	arg2;
-	char		*text;
+	uint32_t arg1;
+	uint32_t arg2;
+	char *text;
 };
 
-#define	_OUT(_field)	offsetof(struct test1_attrs, _field)
+#define _OUT(_field) offsetof(struct test1_attrs, _field)
 static const struct nlattr_parser nla_p_test1[] = {
 	{ .type = 1, .off = _OUT(arg1), .cb = nlattr_get_uint32 },
 	{ .type = 2, .off = _OUT(arg2), .cb = nlattr_get_uint32 },
@@ -105,30 +106,30 @@ test_with_params(struct ktest_test_context *ctx)
 
 static const struct ktest_test_info tests[] = {
 	{
-		.name = "test_something",
-		.desc = "example description",
-		.func = &test_something,
+	    .name = "test_something",
+	    .desc = "example description",
+	    .func = &test_something,
 	},
 	{
-		.name = "test_something_else",
-		.desc = "example description 2",
-		.func = &test_something_else,
+	    .name = "test_something_else",
+	    .desc = "example description 2",
+	    .func = &test_something_else,
 	},
 	{
-		.name = "test_failed",
-		.desc = "always failing test",
-		.func = &test_failed,
+	    .name = "test_failed",
+	    .desc = "always failing test",
+	    .func = &test_failed,
 	},
 	{
-		.name = "test_failed2",
-		.desc = "always failing test",
-		.func = &test_failed2,
+	    .name = "test_failed2",
+	    .desc = "always failing test",
+	    .func = &test_failed2,
 	},
 	{
-		.name = "test_with_params",
-		.desc = "test summing integers",
-		.func = &test_with_params,
-		.parse = &test_with_params_parser,
+	    .name = "test_with_params",
+	    .desc = "test summing integers",
+	    .func = &test_with_params,
+	    .parse = &test_with_params_parser,
 	},
 };
 KTEST_MODULE_DECLARE(ktest_example, tests);

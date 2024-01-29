@@ -44,14 +44,14 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define	MAXELEMENTS	32
+#define MAXELEMENTS 32
 
 static void
 usage(void)
 {
 
 	fprintf(stderr, "setpmac [label] [command] [args ...]\n");
-	exit (EX_USAGE);
+	exit(EX_USAGE);
 }
 
 int
@@ -60,7 +60,6 @@ main(int argc, char *argv[])
 	const char *shell;
 	mac_t label;
 	int error;
-
 
 	if (argc < 3)
 		usage();

@@ -35,75 +35,60 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-#include <sys/endian.h>
-#include <sys/sbuf.h>
-#include <sys/queue.h>
 #include <sys/chio.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <limits.h>
-#include <err.h>
-#include <locale.h>
+#include <sys/endian.h>
+#include <sys/ioctl.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stdint.h>
 
 #include <cam/cam.h>
-#include <cam/cam_debug.h>
 #include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
 #include <cam/scsi/scsi_all.h>
-#include <cam/scsi/scsi_da.h>
-#include <cam/scsi/scsi_pass.h>
 #include <cam/scsi/scsi_ch.h>
+#include <cam/scsi/scsi_da.h>
 #include <cam/scsi/scsi_message.h>
+#include <cam/scsi/scsi_pass.h>
 #include <camlib.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <limits.h>
+#include <locale.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <unistd.h>
+
 #include "camcontrol.h"
 
-static struct scsi_nv zone_cmd_map[] = {
-	{ "rz", ZBC_IN_SA_REPORT_ZONES },
+static struct scsi_nv zone_cmd_map[] = { { "rz", ZBC_IN_SA_REPORT_ZONES },
 	{ "reportzones", ZBC_IN_SA_REPORT_ZONES },
-	{ "close", ZBC_OUT_SA_CLOSE },
-	{ "finish", ZBC_OUT_SA_FINISH },
-	{ "open", ZBC_OUT_SA_OPEN },
-	{ "rwp", ZBC_OUT_SA_RWP }
-};
+	{ "close", ZBC_OUT_SA_CLOSE }, { "finish", ZBC_OUT_SA_FINISH },
+	{ "open", ZBC_OUT_SA_OPEN }, { "rwp", ZBC_OUT_SA_RWP } };
 
-static struct scsi_nv zone_rep_opts[] = {
-	{ "all", ZBC_IN_REP_ALL_ZONES },
-	{ "empty", ZBC_IN_REP_EMPTY },
-	{ "imp_open", ZBC_IN_REP_IMP_OPEN },
-	{ "exp_open", ZBC_IN_REP_EXP_OPEN },
-	{ "closed", ZBC_IN_REP_CLOSED },
-	{ "full", ZBC_IN_REP_FULL },
-	{ "readonly", ZBC_IN_REP_READONLY },
-	{ "ro", ZBC_IN_REP_READONLY },
-	{ "offline", ZBC_IN_REP_OFFLINE },
-	{ "rwp", ZBC_IN_REP_RESET },
-	{ "reset", ZBC_IN_REP_RESET },
-	{ "nonseq", ZBC_IN_REP_NON_SEQ },
-	{ "nonwp", ZBC_IN_REP_NON_WP }
-};
+static struct scsi_nv zone_rep_opts[] = { { "all", ZBC_IN_REP_ALL_ZONES },
+	{ "empty", ZBC_IN_REP_EMPTY }, { "imp_open", ZBC_IN_REP_IMP_OPEN },
+	{ "exp_open", ZBC_IN_REP_EXP_OPEN }, { "closed", ZBC_IN_REP_CLOSED },
+	{ "full", ZBC_IN_REP_FULL }, { "readonly", ZBC_IN_REP_READONLY },
+	{ "ro", ZBC_IN_REP_READONLY }, { "offline", ZBC_IN_REP_OFFLINE },
+	{ "rwp", ZBC_IN_REP_RESET }, { "reset", ZBC_IN_REP_RESET },
+	{ "nonseq", ZBC_IN_REP_NON_SEQ }, { "nonwp", ZBC_IN_REP_NON_WP } };
 
 typedef enum {
-	ZONE_OF_NORMAL	= 0x00,
-	ZONE_OF_SUMMARY	= 0x01,
-	ZONE_OF_SCRIPT	= 0x02
+	ZONE_OF_NORMAL = 0x00,
+	ZONE_OF_SUMMARY = 0x01,
+	ZONE_OF_SCRIPT = 0x02
 } zone_output_flags;
 
-static struct scsi_nv zone_print_opts[] = {
-	{ "normal", ZONE_OF_NORMAL },
-	{ "summary", ZONE_OF_SUMMARY },
-	{ "script", ZONE_OF_SCRIPT }
-};
+static struct scsi_nv zone_print_opts[] = { { "normal", ZONE_OF_NORMAL },
+	{ "summary", ZONE_OF_SUMMARY }, { "script", ZONE_OF_SCRIPT } };
 
-#define	ZAC_ATA_SECTOR_COUNT(bcount)	(((bcount) / 512) & 0xffff)
+#define ZAC_ATA_SECTOR_COUNT(bcount) (((bcount) / 512) & 0xffff)
 
 typedef enum {
 	ZONE_PRINT_OK,
@@ -123,14 +108,12 @@ typedef enum {
 } zone_field_widths;
 
 zone_print_status zone_rz_print(uint8_t *data_ptr, uint32_t valid_len,
-				int ata_format, zone_output_flags out_flags,
-				int first_pass, uint64_t *next_start_lba);
-
+    int ata_format, zone_output_flags out_flags, int first_pass,
+    uint64_t *next_start_lba);
 
 zone_print_status
 zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
-	      zone_output_flags out_flags, int first_pass,
-	      uint64_t *next_start_lba)
+    zone_output_flags out_flags, int first_pass, uint64_t *next_start_lba)
 {
 	struct scsi_report_zones_hdr *hdr = NULL;
 	struct scsi_report_zones_desc *desc = NULL;
@@ -175,8 +158,7 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 	else
 		word_sep = ' ';
 
-	if ((out_flags != ZONE_OF_SCRIPT)
-	 && (first_pass != 0)) {
+	if ((out_flags != ZONE_OF_SCRIPT) && (first_pass != 0)) {
 		printf("%zu zones, Maximum LBA %#jx (%ju)\n",
 		    hdr_len / sizeof(*desc), (uintmax_t)max_lba,
 		    (uintmax_t)max_lba);
@@ -190,7 +172,7 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 			break;
 		case SRZ_SAME_LAST_DIFFERENT:
 			printf("Zone types are the same, last zone length "
-			    "differs\n");
+			       "differs\n");
 			break;
 		case SRZ_SAME_TYPES_DIFFERENT:
 			printf("Zone lengths are the same, types vary\n");
@@ -206,8 +188,7 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 		goto bailout;
 	}
 
-	if ((out_flags == ZONE_OF_NORMAL)
-	 && (first_pass != 0)) {
+	if ((out_flags == ZONE_OF_NORMAL) && (first_pass != 0)) {
 		printf("%*s  %*s  %*s  %*s  %*s  %*s  %*s\n",
 		    field_widths[ZONE_FW_START], "Start LBA",
 		    field_widths[ZONE_FW_LEN], "Length",
@@ -243,15 +224,16 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 			break;
 		case SRZ_TYPE_SEQ_PREFERRED:
 		case SRZ_TYPE_SEQ_REQUIRED:
-			snprintf(tmpstr, sizeof(tmpstr), "Seq%c%s",
-			    word_sep, ((desc->zone_type & SRZ_TYPE_MASK) ==
-			    SRZ_TYPE_SEQ_PREFERRED) ? "Preferred" :
-			    "Required");
+			snprintf(tmpstr, sizeof(tmpstr), "Seq%c%s", word_sep,
+			    ((desc->zone_type & SRZ_TYPE_MASK) ==
+				SRZ_TYPE_SEQ_PREFERRED) ?
+				"Preferred" :
+				"Required");
 			break;
 		default:
 			snprintf(tmpstr, sizeof(tmpstr), "Zone%ctype%c%#x",
-			    word_sep, word_sep,desc->zone_type &
-			    SRZ_TYPE_MASK);
+			    word_sep, word_sep,
+			    desc->zone_type & SRZ_TYPE_MASK);
 			break;
 		}
 		printf("%*s, ", field_widths[ZONE_FW_TYPE], tmpstr);
@@ -264,7 +246,7 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 			snprintf(tmpstr, sizeof(tmpstr), "Empty");
 			break;
 		case SRZ_ZONE_COND_IMP_OPEN:
-			snprintf(tmpstr, sizeof(tmpstr), "Implicit%cOpen", 
+			snprintf(tmpstr, sizeof(tmpstr), "Implicit%cOpen",
 			    word_sep);
 			break;
 		case SRZ_ZONE_COND_EXP_OPEN:
@@ -307,7 +289,7 @@ zone_rz_print(uint8_t *data_ptr, uint32_t valid_len, int ata_format,
 			    word_sep, word_sep);
 
 		printf("%*s\n", field_widths[ZONE_FW_RESET], tmpstr);
-		
+
 		next_lba = start_lba + length;
 	}
 bailout:
@@ -318,7 +300,7 @@ bailout:
 
 int
 zone(struct cam_device *device, int argc, char **argv, char *combinedopt,
-     int task_attr, int retry_count, int timeout, int verbosemode __unused)
+    int task_attr, int retry_count, int timeout, int verbosemode __unused)
 {
 	union ccb *ccb = NULL;
 	int action = -1, rep_option = -1;
@@ -360,8 +342,9 @@ zone(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "zone command",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "zone command", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -387,15 +370,16 @@ zone(struct cam_device *device, int argc, char **argv, char *combinedopt,
 			int entry_num;
 
 			status = scsi_get_nv(zone_rep_opts,
-			    (sizeof(zone_rep_opts) /sizeof(zone_rep_opts[0])),
+			    (sizeof(zone_rep_opts) / sizeof(zone_rep_opts[0])),
 			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				rep_option = zone_rep_opts[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "report zones",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "report zones", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -407,15 +391,16 @@ zone(struct cam_device *device, int argc, char **argv, char *combinedopt,
 
 			status = scsi_get_nv(zone_print_opts,
 			    (sizeof(zone_print_opts) /
-			    sizeof(zone_print_opts[0])), optarg, &entry_num,
-			    SCSI_NV_FLAG_IG_CASE);
+				sizeof(zone_print_opts[0])),
+			    optarg, &entry_num, SCSI_NV_FLAG_IG_CASE);
 			if (status == SCSI_NV_FOUND)
 				out_flags = zone_print_opts[entry_num].value;
 			else {
 				warnx("%s: %s: %s option %s", __func__,
 				    (status == SCSI_NV_AMBIGUOUS) ?
-				    "ambiguous" : "invalid", "print",
-				    optarg);
+					"ambiguous" :
+					"invalid",
+				    "print", optarg);
 				error = 1;
 				goto bailout;
 			}
@@ -441,9 +426,9 @@ zone(struct cam_device *device, int argc, char **argv, char *combinedopt,
 		if (data_ptr == NULL)
 			err(1, "unable to allocate %u bytes", alloc_len);
 
-restart_report:
+	restart_report:
 		bzero(data_ptr, alloc_len);
-		
+
 		switch (devtype) {
 		case CC_DT_SCSI:
 			scsi_zbc_in(&ccb->csio,
@@ -452,8 +437,8 @@ restart_report:
 			    /*tag_action*/ task_attr,
 			    /*service_action*/ action,
 			    /*zone_start_lba*/ lba,
-			    /*zone_options*/ (rep_option != -1) ?
-					      rep_option : 0,
+			    /*zone_options*/
+				(rep_option != -1) ? rep_option : 0,
 			    /*data_ptr*/ data_ptr,
 			    /*dxfer_len*/ alloc_len,
 			    /*sense_len*/ SSD_FULL_SIZE,
@@ -473,12 +458,13 @@ restart_report:
 				command = ATA_ZAC_MANAGEMENT_IN;
 				features = action;
 				if (rep_option != -1)
-					features |= (rep_option << 8);	
+					features |= (rep_option << 8);
 				sector_count = ZAC_ATA_SECTOR_COUNT(alloc_len);
 				protocol = AP_PROTO_DMA;
 			} else {
 				if (cdb_storage == NULL)
-					cdb_storage = calloc(cdb_storage_len, 1);
+					cdb_storage = calloc(cdb_storage_len,
+					    1);
 				if (cdb_storage == NULL)
 					err(1, "couldn't allocate memory");
 
@@ -497,15 +483,14 @@ restart_report:
 			    /*tag_action*/ task_attr,
 			    /*protocol*/ protocol,
 			    /*ata_flags*/ AP_FLAG_BYT_BLOK_BLOCKS |
-					  AP_FLAG_TLEN_SECT_CNT |
-					  AP_FLAG_TDIR_FROM_DEV,
+				AP_FLAG_TLEN_SECT_CNT | AP_FLAG_TDIR_FROM_DEV,
 			    /*features*/ features,
 			    /*sector_count*/ sector_count,
 			    /*lba*/ lba,
 			    /*command*/ command,
 			    /*auxiliary*/ auxiliary,
 			    /*data_ptr*/ data_ptr,
-			    /*dxfer_len*/ ZAC_ATA_SECTOR_COUNT(alloc_len)*512,
+			    /*dxfer_len*/ ZAC_ATA_SECTOR_COUNT(alloc_len) * 512,
 			    /*cdb_storage*/ cdb_storage,
 			    /*cdb_storage_len*/ cdb_storage_len,
 			    /*sense_len*/ SSD_FULL_SIZE,
@@ -515,7 +500,8 @@ restart_report:
 
 			if (error != 0) {
 				warnx("%s: build_ata_cmd() failed, likely "
-				    "programmer error", __func__);
+				      "programmer error",
+				    __func__);
 				goto bailout;
 			}
 
@@ -524,7 +510,7 @@ restart_report:
 			break;
 		}
 		default:
-			warnx("%s: Unknown device type %d", __func__,devtype);
+			warnx("%s: Unknown device type %d", __func__, devtype);
 			error = 1;
 			goto bailout;
 			break; /*NOTREACHED*/
@@ -583,14 +569,13 @@ restart_report:
 					auxiliary |= (ZBC_OUT_ALL << 8);
 			}
 
-
 			error = build_ata_cmd(ccb,
 			    /*retry_count*/ retry_count,
 			    /*flags*/ CAM_DIR_NONE | CAM_DEV_QFRZDIS,
 			    /*tag_action*/ task_attr,
 			    /*protocol*/ protocol,
 			    /*ata_flags*/ AP_FLAG_BYT_BLOK_BYTES |
-					  AP_FLAG_TLEN_NO_DATA,
+				AP_FLAG_TLEN_NO_DATA,
 			    /*features*/ features,
 			    /*sector_count*/ sector_count,
 			    /*lba*/ lba,
@@ -606,14 +591,15 @@ restart_report:
 			    /*devtype*/ devtype);
 			if (error != 0) {
 				warnx("%s: build_ata_cmd() failed, likely "
-				    "programmer error", __func__);
+				      "programmer error",
+				    __func__);
 				goto bailout;
 			}
 			ata_format = 1;
 			break;
 		}
 		default:
-			warnx("%s: Unknown device type %d", __func__,devtype);
+			warnx("%s: Unknown device type %d", __func__, devtype);
 			error = 1;
 			goto bailout;
 			break; /*NOTREACHED*/
@@ -626,15 +612,15 @@ restart_report:
 
 	error = cam_send_ccb(device, ccb);
 	if (error != 0) {
-		warn("error sending %s %s CCB", (devtype == CC_DT_SCSI) ?
-		     "ZBC" : "ZAC Management",
-		     (action == ZBC_IN_SA_REPORT_ZONES) ? "In" : "Out");
+		warn("error sending %s %s CCB",
+		    (devtype == CC_DT_SCSI) ? "ZBC" : "ZAC Management",
+		    (action == ZBC_IN_SA_REPORT_ZONES) ? "In" : "Out");
 		error = -1;
 		goto bailout;
 	}
 
 	if ((ccb->ccb_h.status & CAM_STATUS_MASK) != CAM_REQ_CMP) {
-		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL,stderr);
+		cam_error_print(device, ccb, CAM_ESF_ALL, CAM_EPF_ALL, stderr);
 		error = 1;
 		goto bailout;
 	}

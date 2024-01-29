@@ -51,7 +51,7 @@ static PLAN *yankexpr(PLAN **);
 static PLAN *
 yanknode(PLAN **planp)
 {
-	PLAN *node;		/* top node removed from the plan */
+	PLAN *node; /* top node removed from the plan */
 
 	if ((node = (*planp)) == NULL)
 		return (NULL);
@@ -69,10 +69,10 @@ yanknode(PLAN **planp)
 static PLAN *
 yankexpr(PLAN **planp)
 {
-	PLAN *next;		/* temp node holding subexpression results */
-	PLAN *node;		/* pointer to returned node or expression */
-	PLAN *tail;		/* pointer to tail of subplan */
-	PLAN *subplan;		/* pointer to head of ( ) expression */
+	PLAN *next;    /* temp node holding subexpression results */
+	PLAN *node;    /* pointer to returned node or expression */
+	PLAN *tail;    /* pointer to tail of subplan */
+	PLAN *subplan; /* pointer to head of ( ) expression */
 
 	/* first pull the top node from the plan */
 	if ((node = yanknode(planp)) == NULL)
@@ -121,9 +121,9 @@ yankexpr(PLAN **planp)
 PLAN *
 paren_squish(PLAN *plan)
 {
-	PLAN *expr;		/* pointer to next expression */
-	PLAN *tail;		/* pointer to tail of result plan */
-	PLAN *result;		/* pointer to head of result plan */
+	PLAN *expr;   /* pointer to next expression */
+	PLAN *tail;   /* pointer to tail of result plan */
+	PLAN *result; /* pointer to head of result plan */
 
 	result = tail = NULL;
 
@@ -158,10 +158,10 @@ paren_squish(PLAN *plan)
 PLAN *
 not_squish(PLAN *plan)
 {
-	PLAN *next;		/* next node being processed */
-	PLAN *node;		/* temporary node used in f_not processing */
-	PLAN *tail;		/* pointer to tail of result plan */
-	PLAN *result;		/* pointer to head of result plan */
+	PLAN *next;   /* next node being processed */
+	PLAN *node;   /* temporary node used in f_not processing */
+	PLAN *tail;   /* pointer to tail of result plan */
+	PLAN *result; /* pointer to head of result plan */
 
 	tail = result = NULL;
 
@@ -221,9 +221,9 @@ not_squish(PLAN *plan)
 PLAN *
 or_squish(PLAN *plan)
 {
-	PLAN *next;		/* next node being processed */
-	PLAN *tail;		/* pointer to tail of result plan */
-	PLAN *result;		/* pointer to head of result plan */
+	PLAN *next;   /* next node being processed */
+	PLAN *tail;   /* pointer to tail of result plan */
+	PLAN *result; /* pointer to head of result plan */
 
 	tail = result = next = NULL;
 

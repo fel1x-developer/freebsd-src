@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,8 +25,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #define _BSD_SOURCE /* to get dprintf() prototype in stdio.h below */
 #include <dialog.h>
@@ -62,15 +62,15 @@ static char rpath[PATH_MAX];
 
 /* Extra display information */
 static uint8_t multiple = FALSE; /* `-m' */
-static char *pgm; /* set to argv[0] by main() */
+static char *pgm;		 /* set to argv[0] by main() */
 
 /* Function prototypes */
-static void	sig_int(int sig);
-static void	usage(void);
-int		main(int argc, char *argv[]);
-static int	operate_common(struct dpv_file_node *file, int out);
-static int	operate_on_bytes(struct dpv_file_node *file, int out);
-static int	operate_on_lines(struct dpv_file_node *file, int out);
+static void sig_int(int sig);
+static void usage(void);
+int main(int argc, char *argv[]);
+static int operate_common(struct dpv_file_node *file, int out);
+static int operate_on_bytes(struct dpv_file_node *file, int out);
+static int operate_on_lines(struct dpv_file_node *file, int out);
 
 static int
 operate_common(struct dpv_file_node *file, int out)
@@ -106,7 +106,7 @@ operate_common(struct dpv_file_node *file, int out)
 			 * previous answer. If instead we told dpv(3) to
 			 * prepare a pipe output, subtract two.
 			 */
-			switch(output_type) {
+			switch (output_type) {
 			case DPV_OUTPUT_FILE:
 				fd -= 1;
 				break;
@@ -139,7 +139,7 @@ operate_common(struct dpv_file_node *file, int out)
 			bsize = MIN(BUFSIZE_MAX, MAXPHYS * 8);
 
 		/* Attempt to allocate */
-		if ((buf = malloc(bsize+1)) == NULL) {
+		if ((buf = malloc(bsize + 1)) == NULL) {
 			end_dialog();
 			err(EXIT_FAILURE, "Out of memory?!");
 		}
@@ -180,13 +180,13 @@ operate_on_bytes(struct dpv_file_node *file, int out)
 
 	/* Calculate percentage of completion (if possible) */
 	if (file->length >= 0) {
-		progress = (file->read * 100 / (file->length > 0 ?
-		    file->length : 1));
+		progress = (file->read * 100 /
+		    (file->length > 0 ? file->length : 1));
 
 		/* If no_overrun, do not return 100% until read >= length */
 		if (no_overrun && progress == 100 && file->read < file->length)
 			progress--;
-			
+
 		return (progress);
 	} else
 		return (-1);
@@ -233,7 +233,7 @@ operate_on_lines(struct dpv_file_node *file, int out)
 		/* If no_overrun, do not return 100% until read >= length */
 		if (no_overrun && progress == 100 && file->read < file->length)
 			progress--;
-			
+
 		return (progress);
 	} else
 		return (-1);
@@ -269,8 +269,8 @@ main(int argc, char *argv[])
 	 * Process command-line options
 	 */
 	while ((ch = getopt(argc, argv,
-	    "a:b:dDhi:I:klL:mn:No:p:P:t:TU:wx:X")) != -1) {
-		switch(ch) {
+		    "a:b:dDhi:I:klL:mn:No:p:P:t:TU:wx:X")) != -1) {
+		switch (ch) {
 		case 'a': /* additional message text to append */
 			if (config->aprompt == NULL) {
 				config->aprompt = malloc(DPV_APROMPT_MAX);
@@ -299,7 +299,7 @@ main(int argc, char *argv[])
 		case 'h': /* help/usage */
 			usage();
 			break; /* NOTREACHED */
-		case 'i': /* status line format string for single-file */
+		case 'i':      /* status line format string for single-file */
 			config->status_solo = optarg;
 			break;
 		case 'I': /* status line format string for many-files */
@@ -312,8 +312,8 @@ main(int argc, char *argv[])
 			line_mode = TRUE;
 			break;
 		case 'L': /* custom label size */
-			config->label_size =
-			    (int)strtol(optarg, (char **)NULL, 10);
+			config->label_size = (int)strtol(optarg, (char **)NULL,
+			    10);
 			if (config->label_size == 0 && errno == EINVAL)
 				errx(EXIT_FAILURE,
 				    "`-L' argument must be numeric");
@@ -329,8 +329,8 @@ main(int argc, char *argv[])
 			config->output = optarg;
 			break;
 		case 'n': /* custom number of files per `page' */
-			config->display_limit =
-				(int)strtol(optarg, (char **)NULL, 10);
+			config->display_limit = (int)strtol(optarg,
+			    (char **)NULL, 10);
 			if (config->display_limit == 0 && errno == EINVAL)
 				errx(EXIT_FAILURE,
 				    "`-n' argument must be numeric");
@@ -352,8 +352,8 @@ main(int argc, char *argv[])
 			    optarg);
 			break;
 		case 'P': /* custom size for mini-progressbar */
-			config->pbar_size =
-			    (int)strtol(optarg, (char **)NULL, 10);
+			config->pbar_size = (int)strtol(optarg, (char **)NULL,
+			    10);
 			if (config->pbar_size == 0 && errno == EINVAL)
 				errx(EXIT_FAILURE,
 				    "`-P' argument must be numeric");
@@ -373,8 +373,8 @@ main(int argc, char *argv[])
 			config->options |= DPV_TEST_MODE;
 			break;
 		case 'U': /* updates per second */
-			config->status_updates_per_second =
-			    (int)strtol(optarg, (char **)NULL, 10);
+			config->status_updates_per_second = (int)strtol(optarg,
+			    (char **)NULL, 10);
 			if (config->status_updates_per_second == 0 &&
 			    errno == EINVAL)
 				errx(EXIT_FAILURE,
@@ -392,8 +392,8 @@ main(int argc, char *argv[])
 			config->display_type = DPV_DISPLAY_XDIALOG;
 			break;
 		case '?': /* unknown argument (based on optstring) */
-			/* FALLTHROUGH */
-		default: /* unhandled argument (based on switch) */
+			  /* FALLTHROUGH */
+		default:  /* unhandled argument (based on switch) */
 			usage();
 			/* NOTREACHED */
 		}
@@ -421,7 +421,7 @@ main(int argc, char *argv[])
 
 		/* Read possible `lines:' prefix from label syntax */
 		if (sscanf(curfile->name, "%lli:%c", &(curfile->length),
-		    &dummy) == 2)
+			&dummy) == 2)
 			curfile->name = strchr(curfile->name, ':') + 1;
 		else
 			curfile->length = -1;
@@ -429,8 +429,10 @@ main(int argc, char *argv[])
 		/* Read path argument if enabled */
 		if (multiple) {
 			if (++n >= argc)
-				errx(EXIT_FAILURE, "Missing path argument "
-				    "for label number %i", nfiles);
+				errx(EXIT_FAILURE,
+				    "Missing path argument "
+				    "for label number %i",
+				    nfiles);
 			curfile->path = argv[n];
 		} else
 			break;
@@ -495,8 +497,10 @@ usage(void)
 		exit(EXIT_FAILURE);
 
 	fprintf(stderr, "Usage: %s [options] [bytes:]label\n", pgm);
-	fprintf(stderr, "       %s [options] -m [bytes1:]label1 path1 "
-	    "[[bytes2:]label2 path2 ...]\n", pgm);
+	fprintf(stderr,
+	    "       %s [options] -m [bytes1:]label1 path1 "
+	    "[[bytes2:]label2 path2 ...]\n",
+	    pgm);
 	fprintf(stderr, "OPTIONS:\n");
 #define OPTFMT "\t%-14s %s\n"
 	fprintf(stderr, OPTFMT, "-a text",

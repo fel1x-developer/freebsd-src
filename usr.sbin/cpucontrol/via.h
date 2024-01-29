@@ -26,38 +26,38 @@
  */
 
 #ifndef VIA_H
-#define	VIA_H
+#define VIA_H
 
 /*
  * Prototypes.
  */
-ucode_probe_t	via_probe;
-ucode_update_t	via_update;
+ucode_probe_t via_probe;
+ucode_update_t via_update;
 
 typedef struct via_fw_header {
-	uint32_t	signature;		/* Signature. */
-	int32_t		revision;		/* Unique version number. */
-	uint32_t	date;			/* Date of creation in BCD. */
-	uint32_t	cpu_signature;		/* Extended family, extended
-						   model, type, family, model
-						   and stepping. */
-	uint32_t	checksum;		/* Sum of all DWORDS should
-						   be 0. */
-	uint32_t	loader_revision;	/* Version of the loader
-						   required to load update. */
-	uint32_t	reserverd1;		/* Platform IDs encoded in
-						   the lower 8 bits. */
-	uint32_t	data_size;
-	uint32_t	total_size;
-	uint8_t		reserved2[12];
+	uint32_t signature;	  /* Signature. */
+	int32_t revision;	  /* Unique version number. */
+	uint32_t date;		  /* Date of creation in BCD. */
+	uint32_t cpu_signature;	  /* Extended family, extended
+				     model, type, family, model
+				     and stepping. */
+	uint32_t checksum;	  /* Sum of all DWORDS should
+				     be 0. */
+	uint32_t loader_revision; /* Version of the loader
+				     required to load update. */
+	uint32_t reserverd1;	  /* Platform IDs encoded in
+				     the lower 8 bits. */
+	uint32_t data_size;
+	uint32_t total_size;
+	uint8_t reserved2[12];
 } via_fw_header_t;
 
 typedef struct via_cpu_signature {
-	uint32_t	cpu_signature;
-	uint32_t	checksum;
+	uint32_t cpu_signature;
+	uint32_t checksum;
 } via_cpu_signature_t;
 
-#define VIA_HEADER_SIGNATURE	0x53415252
-#define VIA_LOADER_REVISION	0x00000001
+#define VIA_HEADER_SIGNATURE 0x53415252
+#define VIA_LOADER_REVISION 0x00000001
 
 #endif /* !VIA_H */

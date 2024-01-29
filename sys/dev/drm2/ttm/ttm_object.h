@@ -124,9 +124,9 @@ struct ttm_base_object {
 	bool shareable;
 	struct ttm_object_file *tfile;
 	u_int refcount;
-	void (*refcount_release) (struct ttm_base_object **base);
-	void (*ref_obj_release) (struct ttm_base_object *base,
-				 enum ttm_ref_type ref_type);
+	void (*refcount_release)(struct ttm_base_object **base);
+	void (*ref_obj_release)(struct ttm_base_object *base,
+	    enum ttm_ref_type ref_type);
 };
 
 /**
@@ -144,15 +144,10 @@ struct ttm_base_object {
  */
 
 extern int ttm_base_object_init(struct ttm_object_file *tfile,
-				struct ttm_base_object *base,
-				bool shareable,
-				enum ttm_object_type type,
-				void (*refcount_release) (struct ttm_base_object
-							  **),
-				void (*ref_obj_release) (struct ttm_base_object
-							 *,
-							 enum ttm_ref_type
-							 ref_type));
+    struct ttm_base_object *base, bool shareable, enum ttm_object_type type,
+    void (*refcount_release)(struct ttm_base_object **),
+    void (*ref_obj_release)(struct ttm_base_object *,
+	enum ttm_ref_type ref_type));
 
 /**
  * ttm_base_object_lookup
@@ -165,8 +160,8 @@ extern int ttm_base_object_init(struct ttm_object_file *tfile,
  * comparing the @tfile argument and checking the object shareable flag.
  */
 
-extern struct ttm_base_object *ttm_base_object_lookup(struct ttm_object_file
-						      *tfile, uint32_t key);
+extern struct ttm_base_object *
+ttm_base_object_lookup(struct ttm_object_file *tfile, uint32_t key);
 
 /**
  * ttm_base_object_unref
@@ -199,8 +194,7 @@ extern void ttm_base_object_unref(struct ttm_base_object **p_base);
  * will hold a single reference on a base object.
  */
 extern int ttm_ref_object_add(struct ttm_object_file *tfile,
-			      struct ttm_base_object *base,
-			      enum ttm_ref_type ref_type, bool *existed);
+    struct ttm_base_object *base, enum ttm_ref_type ref_type, bool *existed);
 /**
  * ttm_ref_object_base_unref
  *
@@ -213,8 +207,7 @@ extern int ttm_ref_object_add(struct ttm_object_file *tfile,
  * will be unreferenced.
  */
 extern int ttm_ref_object_base_unref(struct ttm_object_file *tfile,
-				     unsigned long key,
-				     enum ttm_ref_type ref_type);
+    unsigned long key, enum ttm_ref_type ref_type);
 
 /**
  * ttm_object_file_init - initialize a struct ttm_object file
@@ -225,9 +218,8 @@ extern int ttm_ref_object_base_unref(struct ttm_object_file *tfile,
  * This is typically called by the file_ops::open function.
  */
 
-extern struct ttm_object_file *ttm_object_file_init(struct ttm_object_device
-						    *tdev,
-						    unsigned int hash_order);
+extern struct ttm_object_file *
+ttm_object_file_init(struct ttm_object_device *tdev, unsigned int hash_order);
 
 /**
  * ttm_object_file_release - release data held by a ttm_object_file
@@ -251,8 +243,9 @@ extern void ttm_object_file_release(struct ttm_object_file **p_tfile);
  * data structures needed for ttm base and ref objects.
  */
 
-extern struct ttm_object_device *ttm_object_device_init
-    (struct ttm_mem_global *mem_glob, unsigned int hash_order);
+extern struct ttm_object_device *
+ttm_object_device_init(struct ttm_mem_global *mem_glob,
+    unsigned int hash_order);
 
 /**
  * ttm_object_device_release - release data held by a ttm_object_device

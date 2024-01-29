@@ -41,46 +41,45 @@
  * sharing of code between *BSD's
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-#include <dev/usb/usb_debug.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/usb_pci.h>
 #include <dev/usb/controller/uhci.h>
 #include <dev/usb/controller/uhcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_debug.h>
+#include <dev/usb/usb_pci.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+
 #include "usb_if.h"
 
-#define	PCI_UHCI_VENDORID_INTEL		0x8086
-#define	PCI_UHCI_VENDORID_HP		0x103c
-#define	PCI_UHCI_VENDORID_VIA		0x1106
-#define	PCI_UHCI_VENDORID_VMWARE	0x15ad
-#define	PCI_UHCI_VENDORID_ZHAOXIN	0x1d17
+#define PCI_UHCI_VENDORID_INTEL 0x8086
+#define PCI_UHCI_VENDORID_HP 0x103c
+#define PCI_UHCI_VENDORID_VIA 0x1106
+#define PCI_UHCI_VENDORID_VMWARE 0x15ad
+#define PCI_UHCI_VENDORID_ZHAOXIN 0x1d17
 
 /* PIIX4E has no separate stepping */
 
@@ -295,7 +294,7 @@ uhci_pci_attach(device_t self)
 
 	/* get all DMA memory */
 	if (usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
-	    &uhci_iterate_hw_softc)) {
+		&uhci_iterate_hw_softc)) {
 		return ENOMEM;
 	}
 	sc->sc_dev = self;
@@ -368,7 +367,8 @@ uhci_pci_attach(device_t self)
 		break;
 	default:
 		/* Quirk for Parallels Desktop 4.0 */
-		device_printf(self, "USB revision is unknown. Assuming v1.1.\n");
+		device_printf(self,
+		    "USB revision is unknown. Assuming v1.1.\n");
 		sc->sc_bus.usbrev = USB_REV_1_1;
 		break;
 	}
@@ -433,7 +433,8 @@ uhci_pci_detach(device_t self)
 	pci_disable_busmaster(self);
 
 	if (sc->sc_irq_res && sc->sc_intr_hdl) {
-		int err = bus_teardown_intr(self, sc->sc_irq_res, sc->sc_intr_hdl);
+		int err = bus_teardown_intr(self, sc->sc_irq_res,
+		    sc->sc_intr_hdl);
 
 		if (err) {
 			/* XXX or should we panic? */

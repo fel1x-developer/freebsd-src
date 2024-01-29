@@ -33,46 +33,47 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/mman.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+
+#include <bsdxml.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/queue.h>
-#include <sys/sbuf.h>
-#include <err.h>
-#include <bsdxml.h>
 
 FILE *fsubs;
 
 struct node {
-	LIST_HEAD(, node)	children;
-	LIST_ENTRY(node)	siblings;
-	struct node		*parent;
-	const char		*name;
-	struct sbuf		*cont;
-	struct sbuf		*key;
-	char			*id;
-	char			*ref;
+	LIST_HEAD(, node) children;
+	LIST_ENTRY(node) siblings;
+	struct node *parent;
+	const char *name;
+	struct sbuf *cont;
+	struct sbuf *key;
+	char *id;
+	char *ref;
 };
 
 struct mytree {
-	struct node		*top;
-	struct node		*cur;
-	int			indent;
-	int			ignore;
+	struct node *top;
+	struct node *cur;
+	int indent;
+	int ignore;
 };
 
 struct ref {
-	LIST_ENTRY(ref)		next;
-	char 			*k1;
-	char			*k2;
+	LIST_ENTRY(ref) next;
+	char *k1;
+	char *k2;
 };
 
-LIST_HEAD(, ref)		refs = LIST_HEAD_INITIALIZER(refs);
+LIST_HEAD(, ref) refs = LIST_HEAD_INITIALIZER(refs);
 
 static struct node *
 new_node(void)
@@ -112,9 +113,9 @@ StartElement(void *userData, const char *name, const char **attr)
 	np = new_node();
 	for (i = 0; attr[i]; i += 2) {
 		if (!strcmp(attr[i], "id"))
-			np->id = strdup(attr[i+1]);
+			np->id = strdup(attr[i + 1]);
 		else if (!strcmp(attr[i], "ref"))
-			np->ref = strdup(attr[i+1]);
+			np->ref = strdup(attr[i + 1]);
 	}
 	np->name = strdup(name);
 	sbuf_cat(np->key, name);
@@ -136,7 +137,7 @@ EndElement(void *userData, const char *name __unused)
 
 	mt->indent -= 2;
 	sbuf_finish(mt->cur->cont);
-	LIST_FOREACH(np, &mt->cur->children, siblings) {
+	LIST_FOREACH (np, &mt->cur->children, siblings) {
 		if (strcmp(np->name, "name"))
 			continue;
 		sbuf_cat(mt->cur->key, sbuf_data(np->cont));
@@ -147,7 +148,7 @@ EndElement(void *userData, const char *name __unused)
 }
 
 static void
-CharData(void *userData , const XML_Char *s , int len)
+CharData(void *userData, const XML_Char *s, int len)
 {
 	struct mytree *mt;
 	const char *b, *e;
@@ -190,7 +191,7 @@ dofile(char *filename)
 	if (fd < 0)
 		err(1, filename);
 	fstat(fd, &st);
-	p = mmap(NULL, st.st_size, PROT_READ, MAP_NOCORE|MAP_PRIVATE, fd, 0);
+	p = mmap(NULL, st.st_size, PROT_READ, MAP_NOCORE | MAP_PRIVATE, fd, 0);
 	i = XML_Parse(parser, p, st.st_size, 1);
 	if (i != 1)
 		errx(1, "XML_Parse complained -> %d", i);
@@ -207,7 +208,8 @@ dofile(char *filename)
 static void
 print_node(struct node *np)
 {
-	printf("\"%s\" -- \"%s\" -- \"%s\"", np->name, sbuf_data(np->cont), sbuf_data(np->key));
+	printf("\"%s\" -- \"%s\" -- \"%s\"", np->name, sbuf_data(np->cont),
+	    sbuf_data(np->key));
 	if (np->id)
 		printf(" id=\"%s\"", np->id);
 	if (np->ref)
@@ -220,8 +222,9 @@ print_tree(struct node *np, int n)
 {
 	struct node *np1;
 
-	indent(n); printf("%s id=%s ref=%s\n", np->name, np->id, np->ref);
-	LIST_FOREACH(np1, &np->children, siblings)
+	indent(n);
+	printf("%s id=%s ref=%s\n", np->name, np->id, np->ref);
+	LIST_FOREACH (np1, &np->children, siblings)
 		print_tree(np1, n + 2);
 }
 
@@ -231,7 +234,7 @@ sort_node(struct node *np)
 	struct node *np1, *np2;
 	int n;
 
-	LIST_FOREACH(np1, &np->children, siblings)
+	LIST_FOREACH (np1, &np->children, siblings)
 		sort_node(np1);
 	do {
 		np1 = LIST_FIRST(&np->children);
@@ -242,7 +245,8 @@ sort_node(struct node *np)
 			np2 = LIST_NEXT(np1, siblings);
 			if (np2 == NULL)
 				return;
-			if (strcmp(sbuf_data(np1->key), sbuf_data(np2->key)) > 0) {
+			if (strcmp(sbuf_data(np1->key), sbuf_data(np2->key)) >
+			    0) {
 				LIST_REMOVE(np2, siblings);
 				LIST_INSERT_BEFORE(np1, np2, siblings);
 				n++;
@@ -258,7 +262,7 @@ refcmp(char *r1, char *r2)
 {
 	struct ref *r;
 
-	LIST_FOREACH(r, &refs, next) {
+	LIST_FOREACH (r, &refs, next) {
 		if (!strcmp(r1, r->k1))
 			return (strcmp(r2, r->k2));
 	}
@@ -347,8 +351,6 @@ compare_node2(struct node *n1, struct node *n2, int in)
 	return (i);
 }
 
-
-
 int
 main(int argc, char **argv)
 {
@@ -372,4 +374,3 @@ main(int argc, char **argv)
 	i = compare_node(t1->top, t2->top, 0);
 	return (i);
 }
-

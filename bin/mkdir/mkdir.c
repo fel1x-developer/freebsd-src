@@ -41,10 +41,10 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-static int	build(char *, mode_t);
-static void	usage(void);
+static int build(char *, mode_t);
+static void usage(void);
 
-static int	vflag;
+static int vflag;
 
 int
 main(int argc, char *argv[])
@@ -57,7 +57,7 @@ main(int argc, char *argv[])
 	omode = pflag = 0;
 	mode = NULL;
 	while ((ch = getopt(argc, argv, "m:pv")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'm':
 			mode = optarg;
 			break;
@@ -118,7 +118,6 @@ main(int argc, char *argv[])
 	exit(exitval);
 }
 
-
 /*
  * Returns 1 if a directory has been created,
  * 2 if it already existed, and 0 on failure.
@@ -134,9 +133,9 @@ build(char *path, mode_t omode)
 	p = path;
 	oumask = 0;
 	retval = 1;
-	if (p[0] == '/')		/* Skip leading '/'. */
+	if (p[0] == '/') /* Skip leading '/'. */
 		++p;
-	for (first = 1, last = 0; !last ; ++p) {
+	for (first = 1, last = 0; !last; ++p) {
 		if (p[0] == '\0')
 			last = 1;
 		else if (p[0] != '/')
@@ -164,7 +163,8 @@ build(char *path, mode_t omode)
 		}
 		if (last)
 			(void)umask(oumask);
-		if (mkdir(path, last ? omode : S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
+		if (mkdir(path, last ? omode : S_IRWXU | S_IRWXG | S_IRWXO) <
+		    0) {
 			if (errno == EEXIST || errno == EISDIR) {
 				if (stat(path, &sb) < 0) {
 					warn("%s", path);
@@ -189,7 +189,7 @@ build(char *path, mode_t omode)
 		} else if (vflag)
 			printf("%s\n", path);
 		if (!last)
-		    *p = '/';
+			*p = '/';
 	}
 	if (!first && !last)
 		(void)umask(oumask);
@@ -202,5 +202,5 @@ usage(void)
 
 	(void)fprintf(stderr,
 	    "usage: mkdir [-pv] [-m mode] directory_name ...\n");
-	exit (EX_USAGE);
+	exit(EX_USAGE);
 }

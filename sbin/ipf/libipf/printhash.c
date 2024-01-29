@@ -7,10 +7,9 @@
 
 #include "ipf.h"
 
-
 iphtable_t *
-printhash( iphtable_t *hp, copyfunc_t copyfunc, char *name, int opts,
-	wordtab_t *fields)
+printhash(iphtable_t *hp, copyfunc_t copyfunc, char *name, int opts,
+    wordtab_t *fields)
 {
 	iphtent_t *ipep, **table;
 	iphtable_t iph;
@@ -37,7 +36,7 @@ printhash( iphtable_t *hp, copyfunc_t copyfunc, char *name, int opts,
 	if ((*copyfunc)((char *)iph.iph_table, (char *)table, sz))
 		return (NULL);
 
-	for (printed = 0, ipep = iph.iph_list; ipep != NULL; ) {
+	for (printed = 0, ipep = iph.iph_list; ipep != NULL;) {
 		ipep = printhashnode(&iph, ipep, copyfunc, opts, fields);
 		printed++;
 	}

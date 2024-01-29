@@ -92,18 +92,19 @@
 #include <netinet/in.h>
 
 #ifdef IPSEC
-#include <netipsec/ipsec.h>
 #include <netipsec/ah_var.h>
 #include <netipsec/esp_var.h>
 #include <netipsec/ipcomp_var.h>
+#include <netipsec/ipsec.h>
 #endif
 
+#include <libxo/xo.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <libxo/xo.h>
+
 #include "netstat.h"
 
 #ifdef IPSEC
@@ -113,35 +114,98 @@ struct val2str {
 };
 
 static struct val2str ipsec_ahnames[] = {
-	{ SADB_AALG_NONE, "none", },
-	{ SADB_AALG_SHA1HMAC, "hmac-sha1", },
-	{ SADB_X_AALG_NULL, "null", },
-	{ SADB_X_AALG_SHA2_256, "hmac-sha2-256", },
-	{ SADB_X_AALG_SHA2_384, "hmac-sha2-384", },
-	{ SADB_X_AALG_SHA2_512, "hmac-sha2-512", },
-	{ SADB_X_AALG_AES_XCBC_MAC, "aes-xcbc-mac", },
-	{ SADB_X_AALG_TCP_MD5, "tcp-md5", },
-	{ SADB_X_AALG_AES128GMAC, "aes-gmac-128", },
-	{ SADB_X_AALG_AES192GMAC, "aes-gmac-192", },
-	{ SADB_X_AALG_AES256GMAC, "aes-gmac-256", },
+	{
+	    SADB_AALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_AALG_SHA1HMAC,
+	    "hmac-sha1",
+	},
+	{
+	    SADB_X_AALG_NULL,
+	    "null",
+	},
+	{
+	    SADB_X_AALG_SHA2_256,
+	    "hmac-sha2-256",
+	},
+	{
+	    SADB_X_AALG_SHA2_384,
+	    "hmac-sha2-384",
+	},
+	{
+	    SADB_X_AALG_SHA2_512,
+	    "hmac-sha2-512",
+	},
+	{
+	    SADB_X_AALG_AES_XCBC_MAC,
+	    "aes-xcbc-mac",
+	},
+	{
+	    SADB_X_AALG_TCP_MD5,
+	    "tcp-md5",
+	},
+	{
+	    SADB_X_AALG_AES128GMAC,
+	    "aes-gmac-128",
+	},
+	{
+	    SADB_X_AALG_AES192GMAC,
+	    "aes-gmac-192",
+	},
+	{
+	    SADB_X_AALG_AES256GMAC,
+	    "aes-gmac-256",
+	},
 	{ -1, NULL },
 };
 
 static struct val2str ipsec_espnames[] = {
-	{ SADB_EALG_NONE, "none", },
-	{ SADB_EALG_NULL, "null", },
-	{ SADB_X_EALG_AESCBC, "aes-cbc", },
-	{ SADB_X_EALG_AESCTR, "aes-ctr", },
-	{ SADB_X_EALG_AESGCM16, "aes-gcm-16", },
-	{ SADB_X_EALG_AESGMAC, "aes-gmac", },
+	{
+	    SADB_EALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_EALG_NULL,
+	    "null",
+	},
+	{
+	    SADB_X_EALG_AESCBC,
+	    "aes-cbc",
+	},
+	{
+	    SADB_X_EALG_AESCTR,
+	    "aes-ctr",
+	},
+	{
+	    SADB_X_EALG_AESGCM16,
+	    "aes-gcm-16",
+	},
+	{
+	    SADB_X_EALG_AESGMAC,
+	    "aes-gmac",
+	},
 	{ -1, NULL },
 };
 
 static struct val2str ipsec_compnames[] = {
-	{ SADB_X_CALG_NONE, "none", },
-	{ SADB_X_CALG_OUI, "oui", },
-	{ SADB_X_CALG_DEFLATE, "deflate", },
-	{ SADB_X_CALG_LZS, "lzs", },
+	{
+	    SADB_X_CALG_NONE,
+	    "none",
+	},
+	{
+	    SADB_X_CALG_OUI,
+	    "oui",
+	},
+	{
+	    SADB_X_CALG_DEFLATE,
+	    "deflate",
+	},
+	{
+	    SADB_X_CALG_LZS,
+	    "lzs",
+	},
 	{ -1, NULL },
 };
 
@@ -150,36 +214,51 @@ print_ipsecstats(const char *tag, const struct ipsecstat *ipsecstat)
 {
 	xo_open_container(tag);
 
-#define	p(f, m) if (ipsecstat->f || sflag <= 1) \
+#define p(f, m)                         \
+	if (ipsecstat->f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)ipsecstat->f, plural(ipsecstat->f))
-#define	p2(f, m) if (ipsecstat->f || sflag <= 1) \
+#define p2(f, m)                        \
+	if (ipsecstat->f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)ipsecstat->f, plurales(ipsecstat->f))
 
-	p(ips_in_polvio, "\t{:dropped-policy-violation/%ju} "
+	p(ips_in_polvio,
+	    "\t{:dropped-policy-violation/%ju} "
 	    "{N:/inbound packet%s violated process security policy}\n");
-	p(ips_in_nomem, "\t{:dropped-no-memory/%ju} "
+	p(ips_in_nomem,
+	    "\t{:dropped-no-memory/%ju} "
 	    "{N:/inbound packet%s failed due to insufficient memory}\n");
-	p(ips_in_inval, "\t{:dropped-invalid/%ju} "
+	p(ips_in_inval,
+	    "\t{:dropped-invalid/%ju} "
 	    "{N:/invalid inbound packet%s}\n");
-	p(ips_out_polvio, "\t{:discarded-policy-violation/%ju} "
+	p(ips_out_polvio,
+	    "\t{:discarded-policy-violation/%ju} "
 	    "{N:/outbound packet%s violated process security policy}\n");
-	p(ips_out_nosa, "\t{:discarded-no-sa/%ju} "
+	p(ips_out_nosa,
+	    "\t{:discarded-no-sa/%ju} "
 	    "{N:/outbound packet%s with no SA available}\n");
-	p(ips_out_nomem, "\t{:discarded-no-memory/%ju} "
+	p(ips_out_nomem,
+	    "\t{:discarded-no-memory/%ju} "
 	    "{N:/outbound packet%s failed due to insufficient memory}\n");
-	p(ips_out_noroute, "\t{:discarded-no-route/%ju} "
+	p(ips_out_noroute,
+	    "\t{:discarded-no-route/%ju} "
 	    "{N:/outbound packet%s with no route available}\n");
-	p(ips_out_inval, "\t{:discarded-invalid/%ju} "
+	p(ips_out_inval,
+	    "\t{:discarded-invalid/%ju} "
 	    "{N:/invalid outbound packet%s}\n");
-	p(ips_out_bundlesa, "\t{:send-bundled-sa/%ju} "
+	p(ips_out_bundlesa,
+	    "\t{:send-bundled-sa/%ju} "
 	    "{N:/outbound packet%s with bundled SAs}\n");
-	p(ips_spdcache_hits, "\t{:spdcache-hits/%ju} "
+	p(ips_spdcache_hits,
+	    "\t{:spdcache-hits/%ju} "
 	    "{N:/spd cache hit%s}\n");
-	p2(ips_spdcache_misses, "\t{:spdcache-misses/%ju} "
+	p2(ips_spdcache_misses,
+	    "\t{:spdcache-misses/%ju} "
 	    "{N:/spd cache miss%s}\n");
-	p(ips_clcopied, "\t{:clusters-copied-during-clone/%ju} "
+	p(ips_clcopied,
+	    "\t{:clusters-copied-during-clone/%ju} "
 	    "{N:/cluster%s copied during clone}\n");
-	p(ips_mbinserted, "\t{:mbufs-inserted/%ju} "
+	p(ips_mbinserted,
+	    "\t{:mbufs-inserted/%ju} "
 	    "{N:/mbuf%s inserted during makespace}\n");
 #undef p2
 #undef p
@@ -193,13 +272,13 @@ ipsec_stats(u_long off, const char *name, int af1 __unused, int proto __unused)
 	const char *tag;
 
 	if (strcmp(name, "ipsec6") == 0) {
-		if (fetch_stats("net.inet6.ipsec6.ipsecstats", off,&ipsecstat,
-				sizeof(ipsecstat), kread_counters) != 0)
+		if (fetch_stats("net.inet6.ipsec6.ipsecstats", off, &ipsecstat,
+			sizeof(ipsecstat), kread_counters) != 0)
 			return;
 		tag = "ipsec6-statistics";
 	} else {
 		if (fetch_stats("net.inet.ipsec.ipsecstats", off, &ipsecstat,
-				sizeof(ipsecstat), kread_counters) != 0)
+			sizeof(ipsecstat), kread_counters) != 0)
 			return;
 		tag = "ipsec-statistics";
 	}
@@ -209,7 +288,6 @@ ipsec_stats(u_long off, const char *name, int af1 __unused, int proto __unused)
 	print_ipsecstats(tag, &ipsecstat);
 }
 
-
 static void print_ahstats(const struct ahstat *ahstat);
 static void print_espstats(const struct espstat *espstat);
 static void print_ipcompstats(const struct ipcompstat *ipcompstat);
@@ -218,8 +296,8 @@ static void print_ipcompstats(const struct ipcompstat *ipcompstat);
  * Dump IPSEC statistics structure.
  */
 static void
-ipsec_hist_new(const uint64_t *hist, size_t histmax,
-    const struct val2str *name, const char *title, const char *cname)
+ipsec_hist_new(const uint64_t *hist, size_t histmax, const struct val2str *name,
+    const char *title, const char *cname)
 {
 	int first;
 	size_t proto;
@@ -257,11 +335,12 @@ print_ahstats(const struct ahstat *ahstat)
 {
 	xo_open_container("ah-statictics");
 
-#define	p(f, n, m) if (ahstat->f || sflag <= 1) \
-	xo_emit("\t{:" n "/%ju} {N:/" m "}\n",	\
-	    (uintmax_t)ahstat->f, plural(ahstat->f))
-#define	hist(f, n, t, c) \
-	ipsec_hist_new((f), sizeof(f)/sizeof(f[0]), (n), (t), (c))
+#define p(f, n, m)                                                   \
+	if (ahstat->f || sflag <= 1)                                 \
+	xo_emit("\t{:" n "/%ju} {N:/" m "}\n", (uintmax_t)ahstat->f, \
+	    plural(ahstat->f))
+#define hist(f, n, t, c) \
+	ipsec_hist_new((f), sizeof(f) / sizeof(f[0]), (n), (t), (c))
 
 	p(ahs_hdrops, "dropped-short-header",
 	    "packet%s shorter than header shows");
@@ -290,8 +369,8 @@ print_ahstats(const struct ahstat *ahstat)
 	    "packet%s blocked due to policy");
 	p(ahs_crypto, "crypto-failures", "crypto processing failure%s");
 	p(ahs_tunnel, "tunnel-failures", "tunnel sanity check failure%s");
-	hist(ahstat->ahs_hist, ipsec_ahnames,
-	    "AH output", "ah-output-histogram");
+	hist(ahstat->ahs_hist, ipsec_ahnames, "AH output",
+	    "ah-output-histogram");
 
 #undef p
 #undef hist
@@ -303,8 +382,8 @@ ah_stats(u_long off, const char *name, int family __unused, int proto __unused)
 {
 	struct ahstat ahstat;
 
-	if (fetch_stats("net.inet.ah.stats", off, &ahstat,
-	    sizeof(ahstat), kread_counters) != 0)
+	if (fetch_stats("net.inet.ah.stats", off, &ahstat, sizeof(ahstat),
+		kread_counters) != 0)
 		return;
 
 	xo_emit("{T:/%s}:\n", name);
@@ -316,11 +395,12 @@ static void
 print_espstats(const struct espstat *espstat)
 {
 	xo_open_container("esp-statictics");
-#define	p(f, n, m) if (espstat->f || sflag <= 1)	\
-	xo_emit("\t{:" n "/%ju} {N:/" m "}\n",		\
-	    (uintmax_t)espstat->f, plural(espstat->f))
-#define	hist(f, n, t, c) \
-	ipsec_hist_new((f), sizeof(f)/sizeof(f[0]), (n), (t), (c));
+#define p(f, n, m)                                                    \
+	if (espstat->f || sflag <= 1)                                 \
+	xo_emit("\t{:" n "/%ju} {N:/" m "}\n", (uintmax_t)espstat->f, \
+	    plural(espstat->f))
+#define hist(f, n, t, c) \
+	ipsec_hist_new((f), sizeof(f) / sizeof(f[0]), (n), (t), (c));
 
 	p(esps_hdrops, "dropped-short-header",
 	    "packet%s shorter than header shows");
@@ -350,8 +430,8 @@ print_espstats(const struct espstat *espstat)
 	    "packet%s blocked due to policy");
 	p(esps_crypto, "crypto-failures", "crypto processing failure%s");
 	p(esps_tunnel, "tunnel-failures", "tunnel sanity check failure%s");
-	hist(espstat->esps_hist, ipsec_espnames,
-	    "ESP output", "esp-output-histogram");
+	hist(espstat->esps_hist, ipsec_espnames, "ESP output",
+	    "esp-output-histogram");
 
 #undef p
 #undef hist
@@ -363,8 +443,8 @@ esp_stats(u_long off, const char *name, int family __unused, int proto __unused)
 {
 	struct espstat espstat;
 
-	if (fetch_stats("net.inet.esp.stats", off, &espstat,
-	    sizeof(espstat), kread_counters) != 0)
+	if (fetch_stats("net.inet.esp.stats", off, &espstat, sizeof(espstat),
+		kread_counters) != 0)
 		return;
 
 	xo_emit("{T:/%s}:\n", name);
@@ -377,11 +457,12 @@ print_ipcompstats(const struct ipcompstat *ipcompstat)
 {
 	xo_open_container("ipcomp-statictics");
 
-#define	p(f, n, m) if (ipcompstat->f || sflag <= 1)	\
-	xo_emit("\t{:" n "/%ju} {N:/" m "}\n",		\
-	    (uintmax_t)ipcompstat->f, plural(ipcompstat->f))
-#define	hist(f, n, t, c) \
-	ipsec_hist_new((f), sizeof(f)/sizeof(f[0]), (n), (t), (c));
+#define p(f, n, m)                                                       \
+	if (ipcompstat->f || sflag <= 1)                                 \
+	xo_emit("\t{:" n "/%ju} {N:/" m "}\n", (uintmax_t)ipcompstat->f, \
+	    plural(ipcompstat->f))
+#define hist(f, n, t, c) \
+	ipsec_hist_new((f), sizeof(f) / sizeof(f[0]), (n), (t), (c));
 
 	p(ipcomps_hdrops, "dropped-short-header",
 	    "packet%s shorter than header shows");
@@ -403,8 +484,8 @@ print_ipcompstats(const struct ipcompstat *ipcompstat)
 	p(ipcomps_pdrops, "dropped-policy-violation",
 	    "packet%s blocked due to policy");
 	p(ipcomps_crypto, "crypto-failure", "crypto processing failure%s");
-	hist(ipcompstat->ipcomps_hist, ipsec_compnames,
-	    "COMP output", "comp-output-histogram");
+	hist(ipcompstat->ipcomps_hist, ipsec_compnames, "COMP output",
+	    "comp-output-histogram");
 	p(ipcomps_threshold, "sent-uncompressed-small-packets",
 	    "packet%s sent uncompressed; size < compr. algo. threshold");
 	p(ipcomps_uncompr, "sent-uncompressed-useless-packets",
@@ -422,7 +503,7 @@ ipcomp_stats(u_long off, const char *name, int family __unused,
 	struct ipcompstat ipcompstat;
 
 	if (fetch_stats("net.inet.ipcomp.stats", off, &ipcompstat,
-	    sizeof(ipcompstat), kread_counters) != 0)
+		sizeof(ipcompstat), kread_counters) != 0)
 		return;
 
 	xo_emit("{T:/%s}:\n", name);

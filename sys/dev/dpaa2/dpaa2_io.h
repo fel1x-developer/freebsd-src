@@ -25,26 +25,23 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_IO_H
-#define	_DPAA2_IO_H
+#ifndef _DPAA2_IO_H
+#define _DPAA2_IO_H
 
-#include <sys/rman.h>
 #include <sys/bus.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 
-#include "dpaa2_types.h"
 #include "dpaa2_mcp.h"
 #include "dpaa2_swp.h"
+#include "dpaa2_types.h"
 
 /* Maximum resources per DPIO: 3 SYS_MEM + 1 DPMCP. */
-#define DPAA2_IO_MAX_RESOURCES	4
+#define DPAA2_IO_MAX_RESOURCES 4
 /* Maximum number of MSIs supported by the DPIO objects. */
-#define DPAA2_IO_MSI_COUNT	1
+#define DPAA2_IO_MSI_COUNT 1
 
-enum dpaa2_io_chan_mode {
-	DPAA2_IO_NO_CHANNEL,
-	DPAA2_IO_LOCAL_CHANNEL
-};
+enum dpaa2_io_chan_mode { DPAA2_IO_NO_CHANNEL, DPAA2_IO_LOCAL_CHANNEL };
 
 /**
  * @brief Attributes of the DPIO object.
@@ -60,14 +57,14 @@ enum dpaa2_io_chan_mode {
  * chan_mode:	 Notification channel mode.
  */
 struct dpaa2_io_attr {
-	uint64_t		 swp_ce_paddr;
-	uint64_t		 swp_ci_paddr;
-	uint32_t		 swp_version;
-	uint32_t		 swp_clk;
-	uint32_t		 id;
-	uint16_t		 swp_id;
-	uint8_t			 priors_num;
-	enum dpaa2_io_chan_mode	 chan_mode;
+	uint64_t swp_ce_paddr;
+	uint64_t swp_ci_paddr;
+	uint32_t swp_version;
+	uint32_t swp_clk;
+	uint32_t id;
+	uint16_t swp_id;
+	uint8_t priors_num;
+	enum dpaa2_io_chan_mode chan_mode;
 };
 
 /**
@@ -75,31 +72,31 @@ struct dpaa2_io_attr {
  * (CDAN) on a particular WQ channel.
  */
 struct dpaa2_io_notif_ctx {
-	device_t		 io_dev;
-	void			*channel;
-	uint64_t		 qman_ctx;
-	uint16_t		 fq_chan_id;
-	bool			 cdan_en;
+	device_t io_dev;
+	void *channel;
+	uint64_t qman_ctx;
+	uint16_t fq_chan_id;
+	bool cdan_en;
 };
 
 /**
  * @brief Software context for the DPAA2 I/O driver.
  */
 struct dpaa2_io_softc {
-	device_t		 dev;
-	struct dpaa2_swp_desc	 swp_desc;
-	struct dpaa2_swp	*swp;
-	struct dpaa2_io_attr	 attr;
+	device_t dev;
+	struct dpaa2_swp_desc swp_desc;
+	struct dpaa2_swp *swp;
+	struct dpaa2_io_attr attr;
 
-	struct resource 	*res[DPAA2_IO_MAX_RESOURCES];
-	struct resource_map	 map[DPAA2_IO_MAX_RESOURCES];
+	struct resource *res[DPAA2_IO_MAX_RESOURCES];
+	struct resource_map map[DPAA2_IO_MAX_RESOURCES];
 
-	int			 irq_rid[DPAA2_IO_MSI_COUNT];
-	struct resource		*irq_resource;
-	void			*intr; /* interrupt handle */
+	int irq_rid[DPAA2_IO_MSI_COUNT];
+	struct resource *irq_resource;
+	void *intr; /* interrupt handle */
 
-	int			 cpu;
-	cpuset_t		 cpu_mask;
+	int cpu;
+	cpuset_t cpu_mask;
 };
 
 extern struct resource_spec dpaa2_io_spec[];

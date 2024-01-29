@@ -57,4 +57,3 @@ __aeabi_unwind_cpp_pr2(void)
 {
 	abort();
 }
-

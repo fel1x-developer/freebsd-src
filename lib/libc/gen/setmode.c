@@ -32,7 +32,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
@@ -45,32 +44,34 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "namespace.h"
+
 #ifdef SETMODE_DEBUG
 #include <stdio.h>
 #endif
-#include "un-namespace.h"
 #include "libc_private.h"
+#include "un-namespace.h"
 
-#define	SET_LEN	6		/* initial # of bitcmd struct to malloc */
-#define	SET_LEN_INCR 4		/* # of bitcmd structs to add as needed */
+#define SET_LEN 6      /* initial # of bitcmd struct to malloc */
+#define SET_LEN_INCR 4 /* # of bitcmd structs to add as needed */
 
 typedef struct bitcmd {
-	char	cmd;
-	char	cmd2;
-	mode_t	bits;
+	char cmd;
+	char cmd2;
+	mode_t bits;
 } BITCMD;
 
-#define	CMD2_CLR	0x01
-#define	CMD2_SET	0x02
-#define	CMD2_GBITS	0x04
-#define	CMD2_OBITS	0x08
-#define	CMD2_UBITS	0x10
+#define CMD2_CLR 0x01
+#define CMD2_SET 0x02
+#define CMD2_GBITS 0x04
+#define CMD2_OBITS 0x08
+#define CMD2_UBITS 0x10
 
-static mode_t	 get_current_umask(void);
-static BITCMD	*addcmd(BITCMD *, mode_t, mode_t, mode_t, mode_t);
-static void	 compress_mode(BITCMD *);
+static mode_t get_current_umask(void);
+static BITCMD *addcmd(BITCMD *, mode_t, mode_t, mode_t, mode_t);
+static void compress_mode(BITCMD *);
 #ifdef SETMODE_DEBUG
-static void	 dumpmode(BITCMD *);
+static void dumpmode(BITCMD *);
 #endif
 
 /*
@@ -88,7 +89,7 @@ getmode(const void *bbox, mode_t omode)
 	set = (const BITCMD *)bbox;
 	newmode = omode;
 	for (value = 0;; set++)
-		switch(set->cmd) {
+		switch (set->cmd) {
 		/*
 		 * When copying the user, group or other bits around, we "know"
 		 * where the bits are in the mode so that we can do shifts to
@@ -105,21 +106,22 @@ getmode(const void *bbox, mode_t omode)
 
 		case 'o':
 			value = newmode & S_IRWXO;
-common:			if (set->cmd2 & CMD2_CLR) {
-				clrval =
-				    (set->cmd2 & CMD2_SET) ?  S_IRWXO : value;
+		common:
+			if (set->cmd2 & CMD2_CLR) {
+				clrval = (set->cmd2 & CMD2_SET) ? S_IRWXO :
+								  value;
 				if (set->cmd2 & CMD2_UBITS)
-					newmode &= ~((clrval<<6) & set->bits);
+					newmode &= ~((clrval << 6) & set->bits);
 				if (set->cmd2 & CMD2_GBITS)
-					newmode &= ~((clrval<<3) & set->bits);
+					newmode &= ~((clrval << 3) & set->bits);
 				if (set->cmd2 & CMD2_OBITS)
 					newmode &= ~(clrval & set->bits);
 			}
 			if (set->cmd2 & CMD2_SET) {
 				if (set->cmd2 & CMD2_UBITS)
-					newmode |= (value<<6) & set->bits;
+					newmode |= (value << 6) & set->bits;
 				if (set->cmd2 & CMD2_GBITS)
-					newmode |= (value<<3) & set->bits;
+					newmode |= (value << 3) & set->bits;
 				if (set->cmd2 & CMD2_OBITS)
 					newmode |= value & set->bits;
 			}
@@ -134,7 +136,7 @@ common:			if (set->cmd2 & CMD2_CLR) {
 			break;
 
 		case 'X':
-			if (omode & (S_IFDIR|S_IXUSR|S_IXGRP|S_IXOTH))
+			if (omode & (S_IFDIR | S_IXUSR | S_IXGRP | S_IXOTH))
 				newmode |= set->bits;
 			break;
 
@@ -147,20 +149,20 @@ common:			if (set->cmd2 & CMD2_CLR) {
 		}
 }
 
-#define	ADDCMD(a, b, c, d)						\
-	if (set >= endset) {						\
-		BITCMD *newset;						\
-		setlen += SET_LEN_INCR;					\
-		newset = reallocarray(saveset, setlen, sizeof(BITCMD));	\
-		if (newset == NULL)					\
-			goto out;					\
-		set = newset + (set - saveset);				\
-		saveset = newset;					\
-		endset = newset + (setlen - 2);				\
-	}								\
+#define ADDCMD(a, b, c, d)                                              \
+	if (set >= endset) {                                            \
+		BITCMD *newset;                                         \
+		setlen += SET_LEN_INCR;                                 \
+		newset = reallocarray(saveset, setlen, sizeof(BITCMD)); \
+		if (newset == NULL)                                     \
+			goto out;                                       \
+		set = newset + (set - saveset);                         \
+		saveset = newset;                                       \
+		endset = newset + (setlen - 2);                         \
+	}                                                               \
 	set = addcmd(set, (mode_t)(a), (mode_t)(b), (mode_t)(c), (d))
 
-#define	STANDARD_BITS	(S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO)
+#define STANDARD_BITS (S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO)
 
 void *
 setmode(const char *p)
@@ -204,12 +206,12 @@ setmode(const char *p)
 		}
 		if (errno == ERANGE && (perml == LONG_MAX || perml == LONG_MIN))
 			goto out;
-		if (perml & ~(STANDARD_BITS|S_ISTXT)) {
+		if (perml & ~(STANDARD_BITS | S_ISTXT)) {
 			errno = EINVAL;
 			goto out;
 		}
 		perm = (mode_t)perml;
-		ADDCMD('=', (STANDARD_BITS|S_ISTXT), perm, mask);
+		ADDCMD('=', (STANDARD_BITS | S_ISTXT), perm, mask);
 		set->cmd = 0;
 		return (saveset);
 	}
@@ -227,10 +229,10 @@ setmode(const char *p)
 				who |= STANDARD_BITS;
 				break;
 			case 'u':
-				who |= S_ISUID|S_IRWXU;
+				who |= S_ISUID | S_IRWXU;
 				break;
 			case 'g':
-				who |= S_ISGID|S_IRWXG;
+				who |= S_ISGID | S_IRWXG;
 				break;
 			case 'o':
 				who |= S_IRWXO;
@@ -240,7 +242,8 @@ setmode(const char *p)
 			}
 		}
 
-getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
+	getop:
+		if ((op = *p++) != '+' && op != '-' && op != '=') {
 			errno = EINVAL;
 			goto out;
 		}
@@ -251,12 +254,12 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 		for (perm = 0, permXbits = 0;; ++p) {
 			switch (*p) {
 			case 'r':
-				perm |= S_IRUSR|S_IRGRP|S_IROTH;
+				perm |= S_IRUSR | S_IRGRP | S_IROTH;
 				break;
 			case 's':
 				/* If only "other" bits ignore set-id. */
 				if (!who || who & ~S_IRWXO)
-					perm |= S_ISUID|S_ISGID;
+					perm |= S_ISUID | S_ISGID;
 				break;
 			case 't':
 				/* If only "other" bits ignore sticky. */
@@ -266,13 +269,13 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 				}
 				break;
 			case 'w':
-				perm |= S_IWUSR|S_IWGRP|S_IWOTH;
+				perm |= S_IWUSR | S_IWGRP | S_IWOTH;
 				break;
 			case 'X':
-				permXbits = S_IXUSR|S_IXGRP|S_IXOTH;
+				permXbits = S_IXUSR | S_IXGRP | S_IXOTH;
 				break;
 			case 'x':
-				perm |= S_IXUSR|S_IXGRP|S_IXOTH;
+				perm |= S_IXUSR | S_IXGRP | S_IXOTH;
 				break;
 			case 'u':
 			case 'g':
@@ -314,7 +317,8 @@ getop:		if ((op = *p++) != '+' && op != '-' && op != '=') {
 			}
 		}
 
-apply:		if (!*p)
+	apply:
+		if (!*p)
 			break;
 		if (*p != ',')
 			goto getop;
@@ -353,8 +357,8 @@ get_current_umask(void)
 	 * security.bsd.unprivileged_proc_debug is set to 0.
 	 */
 	len = sizeof(smask);
-	if (sysctl((int[4]){ CTL_KERN, KERN_PROC, KERN_PROC_UMASK, 0 },
-	    4, &smask, &len, NULL, 0) == 0)
+	if (sysctl((int[4]) { CTL_KERN, KERN_PROC, KERN_PROC_UMASK, 0 }, 4,
+		&smask, &len, NULL, 0) == 0)
 		return (smask);
 #endif
 	/*
@@ -392,8 +396,8 @@ addcmd(BITCMD *set, mode_t op, mode_t who, mode_t oparg, mode_t mask)
 		set->cmd = op;
 		if (who) {
 			set->cmd2 = ((who & S_IRUSR) ? CMD2_UBITS : 0) |
-				    ((who & S_IRGRP) ? CMD2_GBITS : 0) |
-				    ((who & S_IROTH) ? CMD2_OBITS : 0);
+			    ((who & S_IRGRP) ? CMD2_GBITS : 0) |
+			    ((who & S_IROTH) ? CMD2_OBITS : 0);
 			set->bits = (mode_t)~0;
 		} else {
 			set->cmd2 = CMD2_UBITS | CMD2_GBITS | CMD2_OBITS;
@@ -405,7 +409,7 @@ addcmd(BITCMD *set, mode_t op, mode_t who, mode_t oparg, mode_t mask)
 		else if (oparg == '-')
 			set->cmd2 |= CMD2_CLR;
 		else if (oparg == '=')
-			set->cmd2 |= CMD2_SET|CMD2_CLR;
+			set->cmd2 |= CMD2_SET | CMD2_CLR;
 		break;
 	}
 	return (set + 1);
@@ -416,8 +420,8 @@ static void
 dumpmode(BITCMD *set)
 {
 	for (; set->cmd; ++set)
-		(void)printf("cmd: '%c' bits %04o%s%s%s%s%s%s\n",
-		    set->cmd, set->bits, set->cmd2 ? " cmd2:" : "",
+		(void)printf("cmd: '%c' bits %04o%s%s%s%s%s%s\n", set->cmd,
+		    set->bits, set->cmd2 ? " cmd2:" : "",
 		    set->cmd2 & CMD2_CLR ? " CLR" : "",
 		    set->cmd2 & CMD2_SET ? " SET" : "",
 		    set->cmd2 & CMD2_UBITS ? " UBITS" : "",

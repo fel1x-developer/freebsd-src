@@ -39,43 +39,42 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
 #include <sys/watchdog.h>
 
 #include <machine/bus.h>
-#include <machine/fdt.h>
-#include <machine/cpu.h>
 #include <machine/cache.h>
+#include <machine/cpu.h>
+#include <machine/fdt.h>
 
+#include <dev/altera/pio/pio.h>
+#include <dev/beri/virtio/virtio_mmio_platform.h>
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/beri/virtio/virtio_mmio_platform.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/virtio/mmio/virtio_mmio.h>
-#include <dev/altera/pio/pio.h>
 
-#include "virtio_mmio_if.h"
 #include "pio_if.h"
+#include "virtio_mmio_if.h"
 
 static void platform_intr(void *arg);
 
 struct virtio_mmio_platform_softc {
-	struct resource		*res[1];
-	void			*ih;
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	device_t		dev;
-	void			(*intr_handler)(void *);
-	void			*ih_user;
-	device_t		pio_recv;
-	device_t		pio_send;
-	int			use_pio;
+	struct resource *res[1];
+	void *ih;
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	device_t dev;
+	void (*intr_handler)(void *);
+	void *ih_user;
+	device_t pio_recv;
+	device_t pio_send;
+	int use_pio;
 };
 
 static int
@@ -89,17 +88,15 @@ setup_pio(struct virtio_mmio_platform_softc *sc, char *name, device_t *dev)
 	if ((node = ofw_bus_get_node(sc->dev)) == -1)
 		return (ENXIO);
 
-	if (OF_searchencprop(node, name, &xref,
-		sizeof(xref)) == -1) {
+	if (OF_searchencprop(node, name, &xref, sizeof(xref)) == -1) {
 		return (ENXIO);
 	}
 
 	pio_node = OF_node_from_xref(xref);
-	SLIST_FOREACH(ic, &fdt_ic_list_head, fdt_ics) {
+	SLIST_FOREACH (ic, &fdt_ic_list_head, fdt_ics) {
 		if (ic->iph == pio_node) {
 			*dev = ic->dev;
-			PIO_CONFIGURE(*dev, PIO_OUT_ALL,
-					PIO_UNMASK_ALL);
+			PIO_CONFIGURE(*dev, PIO_OUT_ALL, PIO_UNMASK_ALL);
 			return (0);
 		}
 	}
@@ -139,7 +136,7 @@ virtio_mmio_platform_attach(device_t dev)
 	if ((node = ofw_bus_get_node(sc->dev)) == -1)
 		return (ENXIO);
 
-	fic = malloc(sizeof(*fic), M_DEVBUF, M_WAITOK|M_ZERO);
+	fic = malloc(sizeof(*fic), M_DEVBUF, M_WAITOK | M_ZERO);
 	fic->iph = node;
 	fic->dev = dev;
 	SLIST_INSERT_HEAD(&fdt_ic_list_head, fic, fdt_ics);
@@ -201,7 +198,7 @@ platform_note(device_t dev, size_t offset, int val)
 
 		PIO_SET(sc->pio_send, note, 1);
 
-		/* 
+		/*
 		 * Wait until host ack the request.
 		 * Usually done within few cycles.
 		 * TODO: bad
@@ -243,8 +240,8 @@ platform_intr(void *arg)
 }
 
 static int
-platform_setup_intr(device_t dev, device_t mmio_dev,
-			void *intr_handler, void *ih_user)
+platform_setup_intr(device_t dev, device_t mmio_dev, void *intr_handler,
+    void *ih_user)
 {
 	struct virtio_mmio_platform_softc *sc;
 	int rid;
@@ -260,15 +257,14 @@ platform_setup_intr(device_t dev, device_t mmio_dev,
 	}
 
 	rid = 0;
-	sc->res[0] = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-		RF_ACTIVE);
+	sc->res[0] = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (!sc->res[0]) {
 		device_printf(dev, "Can't allocate interrupt\n");
 		return (ENXIO);
 	}
 
-	if (bus_setup_intr(dev, sc->res[0], INTR_TYPE_MISC | INTR_MPSAFE,
-		NULL, platform_intr, sc, &sc->ih)) {
+	if (bus_setup_intr(dev, sc->res[0], INTR_TYPE_MISC | INTR_MPSAFE, NULL,
+		platform_intr, sc, &sc->ih)) {
 		device_printf(dev, "Can't setup the interrupt\n");
 		return (ENXIO);
 	}
@@ -286,15 +282,14 @@ platform_poll(device_t dev)
 }
 
 static device_method_t virtio_mmio_platform_methods[] = {
-	DEVMETHOD(device_probe,		virtio_mmio_platform_probe),
-	DEVMETHOD(device_attach,	virtio_mmio_platform_attach),
+	DEVMETHOD(device_probe, virtio_mmio_platform_probe),
+	DEVMETHOD(device_attach, virtio_mmio_platform_attach),
 
 	/* virtio_mmio_if.h */
-	DEVMETHOD(virtio_mmio_prewrite,		platform_prewrite),
-	DEVMETHOD(virtio_mmio_note,		platform_note),
-	DEVMETHOD(virtio_mmio_poll,		platform_poll),
-	DEVMETHOD(virtio_mmio_setup_intr,	platform_setup_intr),
-	DEVMETHOD_END
+	DEVMETHOD(virtio_mmio_prewrite, platform_prewrite),
+	DEVMETHOD(virtio_mmio_note, platform_note),
+	DEVMETHOD(virtio_mmio_poll, platform_poll),
+	DEVMETHOD(virtio_mmio_setup_intr, platform_setup_intr), DEVMETHOD_END
 };
 
 static driver_t virtio_mmio_platform_driver = {
@@ -303,5 +298,5 @@ static driver_t virtio_mmio_platform_driver = {
 	sizeof(struct virtio_mmio_platform_softc),
 };
 
-DRIVER_MODULE(virtio_mmio_platform, simplebus, virtio_mmio_platform_driver,
-    0, 0);
+DRIVER_MODULE(virtio_mmio_platform, simplebus, virtio_mmio_platform_driver, 0,
+    0);

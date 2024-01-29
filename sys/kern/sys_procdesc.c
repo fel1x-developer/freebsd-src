@@ -63,6 +63,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
@@ -75,26 +76,25 @@
 #include <sys/procdesc.h>
 #include <sys/resourcevar.h>
 #include <sys/stat.h>
-#include <sys/sysproto.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+#include <sys/sysproto.h>
 #include <sys/ucred.h>
 #include <sys/user.h>
 
-#include <security/audit/audit.h>
-
 #include <vm/uma.h>
+
+#include <security/audit/audit.h>
 
 FEATURE(process_descriptors, "Process Descriptors");
 
 MALLOC_DEFINE(M_PROCDESC, "procdesc", "process descriptors");
 
-static fo_poll_t	procdesc_poll;
-static fo_kqfilter_t	procdesc_kqfilter;
-static fo_stat_t	procdesc_stat;
-static fo_close_t	procdesc_close;
-static fo_fill_kinfo_t	procdesc_fill_kinfo;
-static fo_cmp_t		procdesc_cmp;
+static fo_poll_t procdesc_poll;
+static fo_kqfilter_t procdesc_kqfilter;
+static fo_stat_t procdesc_stat;
+static fo_close_t procdesc_close;
+static fo_fill_kinfo_t procdesc_fill_kinfo;
+static fo_cmp_t procdesc_cmp;
 
 static struct fileops procdesc_ops = {
 	.fo_read = invfo_rdwr,
@@ -118,8 +118,7 @@ static struct fileops procdesc_ops = {
  * died.
  */
 int
-procdesc_find(struct thread *td, int fd, cap_rights_t *rightsp,
-    struct proc **p)
+procdesc_find(struct thread *td, int fd, cap_rights_t *rightsp, struct proc **p)
 {
 	struct procdesc *pd;
 	struct file *fp;
@@ -155,7 +154,7 @@ procdesc_pid(struct file *fp_procdesc)
 	struct procdesc *pd;
 
 	KASSERT(fp_procdesc->f_type == DTYPE_PROCDESC,
-	   ("procdesc_pid: !procdesc"));
+	    ("procdesc_pid: !procdesc"));
 
 	pd = fp_procdesc->f_data;
 	return (pd->pd_pid);

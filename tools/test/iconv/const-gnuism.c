@@ -38,8 +38,8 @@ main(void)
 	size_t inbytes, outbytes;
 	char *str1 = "FOOBAR";
 	const char *str2 = "FOOBAR";
-	char ** in1;
-	const char ** in2 = &str2;
+	char **in1;
+	const char **in2 = &str2;
 	char *out1, *out2;
 
 	inbytes = outbytes = strlen("FOOBAR");
@@ -63,5 +63,4 @@ main(void)
 		err(1, NULL);
 
 	return (EXIT_SUCCESS);
-
 }

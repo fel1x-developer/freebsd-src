@@ -97,39 +97,37 @@
 #endif
 
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <net/bpf.h>
+#include <sys/sockio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/mii_bitbang.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#define	DC_USEIOSPACE
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+
+#define DC_USEIOSPACE
 
 #include <dev/dc/if_dcreg.h>
 
@@ -146,87 +144,86 @@ MODULE_DEPEND(dc, miibus, 1, 1, 1);
 /*
  * Various supported device vendors/types and their names.
  */
-static const struct dc_type dc_devs[] = {
-	{ DC_DEVID(DC_VENDORID_DEC, DC_DEVICEID_21143), 0,
-		"Intel 21143 10/100BaseTX" },
+static const struct dc_type dc_devs[] = { { DC_DEVID(DC_VENDORID_DEC,
+						DC_DEVICEID_21143),
+					      0, "Intel 21143 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_DAVICOM, DC_DEVICEID_DM9009), 0,
-		"Davicom DM9009 10/100BaseTX" },
+	    "Davicom DM9009 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_DAVICOM, DC_DEVICEID_DM9100), 0,
-		"Davicom DM9100 10/100BaseTX" },
-	{ DC_DEVID(DC_VENDORID_DAVICOM, DC_DEVICEID_DM9102), DC_REVISION_DM9102A,
-		"Davicom DM9102A 10/100BaseTX" },
+	    "Davicom DM9100 10/100BaseTX" },
+	{ DC_DEVID(DC_VENDORID_DAVICOM, DC_DEVICEID_DM9102),
+	    DC_REVISION_DM9102A, "Davicom DM9102A 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_DAVICOM, DC_DEVICEID_DM9102), 0,
-		"Davicom DM9102 10/100BaseTX" },
+	    "Davicom DM9102 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ADMTEK, DC_DEVICEID_AL981), 0,
-		"ADMtek AL981 10/100BaseTX" },
+	    "ADMtek AL981 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ADMTEK, DC_DEVICEID_AN983), 0,
-		"ADMtek AN983 10/100BaseTX" },
+	    "ADMtek AN983 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ADMTEK, DC_DEVICEID_AN985), 0,
-		"ADMtek AN985 CardBus 10/100BaseTX or clone" },
+	    "ADMtek AN985 CardBus 10/100BaseTX or clone" },
 	{ DC_DEVID(DC_VENDORID_ADMTEK, DC_DEVICEID_ADM9511), 0,
-		"ADMtek ADM9511 10/100BaseTX" },
+	    "ADMtek ADM9511 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ADMTEK, DC_DEVICEID_ADM9513), 0,
-		"ADMtek ADM9513 10/100BaseTX" },
+	    "ADMtek ADM9513 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ASIX, DC_DEVICEID_AX88140A), DC_REVISION_88141,
-		"ASIX AX88141 10/100BaseTX" },
+	    "ASIX AX88141 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ASIX, DC_DEVICEID_AX88140A), 0,
-		"ASIX AX88140A 10/100BaseTX" },
+	    "ASIX AX88140A 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_98713), DC_REVISION_98713A,
-		"Macronix 98713A 10/100BaseTX" },
+	    "Macronix 98713A 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_98713), 0,
-		"Macronix 98713 10/100BaseTX" },
+	    "Macronix 98713 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_CP, DC_DEVICEID_98713_CP), DC_REVISION_98713A,
-		"Compex RL100-TX 10/100BaseTX" },
+	    "Compex RL100-TX 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_CP, DC_DEVICEID_98713_CP), 0,
-		"Compex RL100-TX 10/100BaseTX" },
+	    "Compex RL100-TX 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_987x5), DC_REVISION_98725,
-		"Macronix 98725 10/100BaseTX" },
+	    "Macronix 98725 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_987x5), DC_REVISION_98715AEC_C,
-		"Macronix 98715AEC-C 10/100BaseTX" },
+	    "Macronix 98715AEC-C 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_987x5), 0,
-		"Macronix 98715/98715A 10/100BaseTX" },
+	    "Macronix 98715/98715A 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_MX, DC_DEVICEID_98727), 0,
-		"Macronix 98727/98732 10/100BaseTX" },
+	    "Macronix 98727/98732 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_LO, DC_DEVICEID_82C115), 0,
-		"LC82C115 PNIC II 10/100BaseTX" },
+	    "LC82C115 PNIC II 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_LO, DC_DEVICEID_82C168), DC_REVISION_82C169,
-		"82c169 PNIC 10/100BaseTX" },
+	    "82c169 PNIC 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_LO, DC_DEVICEID_82C168), 0,
-		"82c168 PNIC 10/100BaseTX" },
+	    "82c168 PNIC 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ACCTON, DC_DEVICEID_EN1217), 0,
-		"Accton EN1217 10/100BaseTX" },
+	    "Accton EN1217 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ACCTON, DC_DEVICEID_EN2242), 0,
-		"Accton EN2242 MiniPCI 10/100BaseTX" },
+	    "Accton EN2242 MiniPCI 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_XIRCOM, DC_DEVICEID_X3201), 0,
-		"Xircom X3201 10/100BaseTX" },
+	    "Xircom X3201 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_DLINK, DC_DEVICEID_DRP32TXD), 0,
-		"Neteasy DRP-32TXD Cardbus 10/100" },
+	    "Neteasy DRP-32TXD Cardbus 10/100" },
 	{ DC_DEVID(DC_VENDORID_ABOCOM, DC_DEVICEID_FE2500), 0,
-		"Abocom FE2500 10/100BaseTX" },
+	    "Abocom FE2500 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_ABOCOM, DC_DEVICEID_FE2500MX), 0,
-		"Abocom FE2500MX 10/100BaseTX" },
+	    "Abocom FE2500MX 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_CONEXANT, DC_DEVICEID_RS7112), 0,
-		"Conexant LANfinity MiniPCI 10/100BaseTX" },
+	    "Conexant LANfinity MiniPCI 10/100BaseTX" },
 	{ DC_DEVID(DC_VENDORID_HAWKING, DC_DEVICEID_HAWKING_PN672TX), 0,
-		"Hawking CB102 CardBus 10/100" },
+	    "Hawking CB102 CardBus 10/100" },
 	{ DC_DEVID(DC_VENDORID_PLANEX, DC_DEVICEID_FNW3602T), 0,
-		"PlaneX FNW-3602-T CardBus 10/100" },
+	    "PlaneX FNW-3602-T CardBus 10/100" },
 	{ DC_DEVID(DC_VENDORID_3COM, DC_DEVICEID_3CSOHOB), 0,
-		"3Com OfficeConnect 10/100B" },
+	    "3Com OfficeConnect 10/100B" },
 	{ DC_DEVID(DC_VENDORID_MICROSOFT, DC_DEVICEID_MSMN120), 0,
-		"Microsoft MN-120 CardBus 10/100" },
+	    "Microsoft MN-120 CardBus 10/100" },
 	{ DC_DEVID(DC_VENDORID_MICROSOFT, DC_DEVICEID_MSMN130), 0,
-		"Microsoft MN-130 10/100" },
+	    "Microsoft MN-130 10/100" },
 	{ DC_DEVID(DC_VENDORID_LINKSYS, DC_DEVICEID_PCMPC200_AB08), 0,
-		"Linksys PCMPC200 CardBus 10/100" },
+	    "Linksys PCMPC200 CardBus 10/100" },
 	{ DC_DEVID(DC_VENDORID_LINKSYS, DC_DEVICEID_PCMPC200_AB09), 0,
-		"Linksys PCMPC200 CardBus 10/100" },
+	    "Linksys PCMPC200 CardBus 10/100" },
 	{ DC_DEVID(DC_VENDORID_ULI, DC_DEVICEID_M5261), 0,
-		"ULi M5261 FastEthernet" },
+	    "ULi M5261 FastEthernet" },
 	{ DC_DEVID(DC_VENDORID_ULI, DC_DEVICEID_M5263), 0,
-		"ULi M5263 FastEthernet" },
-	{ 0, 0, NULL }
-};
+	    "ULi M5263 FastEthernet" },
+	{ 0, 0, NULL } };
 
 static int dc_probe(device_t);
 static int dc_attach(device_t);
@@ -304,63 +301,54 @@ static int dc_check_multiport(struct dc_softc *);
 static uint32_t dc_mii_bitbang_read(device_t);
 static void dc_mii_bitbang_write(device_t, uint32_t);
 
-static const struct mii_bitbang_ops dc_mii_bitbang_ops = {
-	dc_mii_bitbang_read,
+static const struct mii_bitbang_ops dc_mii_bitbang_ops = { dc_mii_bitbang_read,
 	dc_mii_bitbang_write,
 	{
-		DC_SIO_MII_DATAOUT,	/* MII_BIT_MDO */
-		DC_SIO_MII_DATAIN,	/* MII_BIT_MDI */
-		DC_SIO_MII_CLK,		/* MII_BIT_MDC */
-		0,			/* MII_BIT_DIR_HOST_PHY */
-		DC_SIO_MII_DIR,		/* MII_BIT_DIR_PHY_HOST */
-	}
-};
+	    DC_SIO_MII_DATAOUT, /* MII_BIT_MDO */
+	    DC_SIO_MII_DATAIN,	/* MII_BIT_MDI */
+	    DC_SIO_MII_CLK,	/* MII_BIT_MDC */
+	    0,			/* MII_BIT_DIR_HOST_PHY */
+	    DC_SIO_MII_DIR,	/* MII_BIT_DIR_PHY_HOST */
+	} };
 
 #ifdef DC_USEIOSPACE
-#define	DC_RES			SYS_RES_IOPORT
-#define	DC_RID			DC_PCI_CFBIO
+#define DC_RES SYS_RES_IOPORT
+#define DC_RID DC_PCI_CFBIO
 #else
-#define	DC_RES			SYS_RES_MEMORY
-#define	DC_RID			DC_PCI_CFBMA
+#define DC_RES SYS_RES_MEMORY
+#define DC_RID DC_PCI_CFBMA
 #endif
 
 static device_method_t dc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dc_probe),
-	DEVMETHOD(device_attach,	dc_attach),
-	DEVMETHOD(device_detach,	dc_detach),
-	DEVMETHOD(device_suspend,	dc_suspend),
-	DEVMETHOD(device_resume,	dc_resume),
-	DEVMETHOD(device_shutdown,	dc_shutdown),
+	DEVMETHOD(device_probe, dc_probe), DEVMETHOD(device_attach, dc_attach),
+	DEVMETHOD(device_detach, dc_detach),
+	DEVMETHOD(device_suspend, dc_suspend),
+	DEVMETHOD(device_resume, dc_resume),
+	DEVMETHOD(device_shutdown, dc_shutdown),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	dc_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	dc_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	dc_miibus_statchg),
-	DEVMETHOD(miibus_mediainit,	dc_miibus_mediainit),
+	DEVMETHOD(miibus_readreg, dc_miibus_readreg),
+	DEVMETHOD(miibus_writereg, dc_miibus_writereg),
+	DEVMETHOD(miibus_statchg, dc_miibus_statchg),
+	DEVMETHOD(miibus_mediainit, dc_miibus_mediainit),
 
 	DEVMETHOD_END
 };
 
-static driver_t dc_driver = {
-	"dc",
-	dc_methods,
-	sizeof(struct dc_softc)
-};
+static driver_t dc_driver = { "dc", dc_methods, sizeof(struct dc_softc) };
 
 DRIVER_MODULE_ORDERED(dc, pci, dc_driver, NULL, NULL, SI_ORDER_ANY);
 MODULE_PNP_INFO("W32:vendor/device;U8:revision;D:#", pci, dc, dc_devs,
     nitems(dc_devs) - 1);
 DRIVER_MODULE(miibus, dc, miibus_driver, NULL, NULL);
 
-#define	DC_SETBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | (x))
+#define DC_SETBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | (x))
 
-#define	DC_CLRBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~(x))
+#define DC_CLRBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~(x))
 
-#define	SIO_SET(x)	DC_SETBIT(sc, DC_SIO, (x))
-#define	SIO_CLR(x)	DC_CLRBIT(sc, DC_SIO, (x))
+#define SIO_SET(x) DC_SETBIT(sc, DC_SIO, (x))
+#define SIO_CLR(x) DC_CLRBIT(sc, DC_SIO, (x))
 
 static void
 dc_delay(struct dc_softc *sc)
@@ -472,7 +460,7 @@ dc_eeprom_putbyte(struct dc_softc *sc, int addr)
 	int d, i;
 
 	d = DC_EECMD_READ >> 6;
-	for (i = 3; i--; ) {
+	for (i = 3; i--;) {
 		if (d & (1 << i))
 			DC_SETBIT(sc, DC_SIO, DC_SIO_EE_DATAIN);
 		else
@@ -560,7 +548,7 @@ dc_eeprom_getword(struct dc_softc *sc, int addr, uint16_t *dest)
 	/* Enter EEPROM access mode. */
 	CSR_WRITE_4(sc, DC_SIO, DC_SIO_EESEL);
 	dc_delay(sc);
-	DC_SETBIT(sc, DC_SIO,  DC_SIO_ROMCTL_READ);
+	DC_SETBIT(sc, DC_SIO, DC_SIO_ROMCTL_READ);
 	dc_delay(sc);
 	DC_CLRBIT(sc, DC_SIO, DC_SIO_EE_CLK);
 	dc_delay(sc);
@@ -660,10 +648,10 @@ dc_miibus_readreg(device_t dev, int phy, int reg)
 		if (phy == (MII_NPHY - 1)) {
 			switch (reg) {
 			case MII_BMSR:
-			/*
-			 * Fake something to make the probe
-			 * code think there's a PHY here.
-			 */
+				/*
+				 * Fake something to make the probe
+				 * code think there's a PHY here.
+				 */
 				return (BMSR_MEDIAMASK);
 			case MII_PHYIDR1:
 				if (DC_IS_PNIC(sc))
@@ -681,8 +669,8 @@ dc_miibus_readreg(device_t dev, int phy, int reg)
 	}
 
 	if (DC_IS_PNIC(sc)) {
-		CSR_WRITE_4(sc, DC_PN_MII, DC_PN_MIIOPCODE_READ |
-		    (phy << 23) | (reg << 18));
+		CSR_WRITE_4(sc, DC_PN_MII,
+		    DC_PN_MIIOPCODE_READ | (phy << 23) | (reg << 18));
 		for (i = 0; i < DC_TIMEOUT; i++) {
 			DELAY(1);
 			rval = CSR_READ_4(sc, DC_PN_MII);
@@ -697,8 +685,8 @@ dc_miibus_readreg(device_t dev, int phy, int reg)
 	if (sc->dc_type == DC_TYPE_ULI_M5263) {
 		CSR_WRITE_4(sc, DC_ROM,
 		    ((phy << DC_ULI_PHY_ADDR_SHIFT) & DC_ULI_PHY_ADDR_MASK) |
-		    ((reg << DC_ULI_PHY_REG_SHIFT) & DC_ULI_PHY_REG_MASK) |
-		    DC_ULI_PHY_OP_READ);
+			((reg << DC_ULI_PHY_REG_SHIFT) & DC_ULI_PHY_REG_MASK) |
+			DC_ULI_PHY_OP_READ);
 		for (i = 0; i < DC_TIMEOUT; i++) {
 			DELAY(1);
 			rval = CSR_READ_4(sc, DC_ROM);
@@ -766,8 +754,8 @@ dc_miibus_writereg(device_t dev, int phy, int reg, int data)
 	sc = device_get_softc(dev);
 
 	if (DC_IS_PNIC(sc)) {
-		CSR_WRITE_4(sc, DC_PN_MII, DC_PN_MIIOPCODE_WRITE |
-		    (phy << 23) | (reg << 10) | data);
+		CSR_WRITE_4(sc, DC_PN_MII,
+		    DC_PN_MIIOPCODE_WRITE | (phy << 23) | (reg << 10) | data);
 		for (i = 0; i < DC_TIMEOUT; i++) {
 			if (!(CSR_READ_4(sc, DC_PN_MII) & DC_PN_MII_BUSY))
 				break;
@@ -778,9 +766,10 @@ dc_miibus_writereg(device_t dev, int phy, int reg, int data)
 	if (sc->dc_type == DC_TYPE_ULI_M5263) {
 		CSR_WRITE_4(sc, DC_ROM,
 		    ((phy << DC_ULI_PHY_ADDR_SHIFT) & DC_ULI_PHY_ADDR_MASK) |
-		    ((reg << DC_ULI_PHY_REG_SHIFT) & DC_ULI_PHY_REG_MASK) |
-		    ((data << DC_ULI_PHY_DATA_SHIFT) & DC_ULI_PHY_DATA_MASK) |
-		    DC_ULI_PHY_OP_WRITE);
+			((reg << DC_ULI_PHY_REG_SHIFT) & DC_ULI_PHY_REG_MASK) |
+			((data << DC_ULI_PHY_DATA_SHIFT) &
+			    DC_ULI_PHY_DATA_MASK) |
+			DC_ULI_PHY_OP_WRITE);
 		DELAY(1);
 		return (0);
 	}
@@ -891,9 +880,9 @@ dc_miibus_mediainit(device_t dev)
 		ifmedia_add(ifm, IFM_ETHER | IFM_HPNA_1, 0, NULL);
 }
 
-#define	DC_BITS_512	9
-#define	DC_BITS_128	7
-#define	DC_BITS_64	6
+#define DC_BITS_512 9
+#define DC_BITS_128 7
+#define DC_BITS_64 6
 
 static uint32_t
 dc_mchash_le(struct dc_softc *sc, const uint8_t *addr)
@@ -920,8 +909,8 @@ dc_mchash_le(struct dc_softc *sc, const uint8_t *addr)
 		if ((crc & 0x180) == 0x180)
 			return ((crc & 0x0F) + (crc & 0x70) * 3 + (14 << 4));
 		else
-			return ((crc & 0x1F) + ((crc >> 1) & 0xF0) * 3 +
-			    (12 << 4));
+			return (
+			    (crc & 0x1F) + ((crc >> 1) & 0xF0) * 3 + (12 << 4));
 	}
 
 	return (crc & ((1 << DC_BITS_512) - 1));
@@ -967,7 +956,7 @@ dc_hash_maddr_21143(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 dc_setfilt_21143(struct dc_softc *sc)
 {
-	uint16_t eaddr[(ETHER_ADDR_LEN+1)/2];
+	uint16_t eaddr[(ETHER_ADDR_LEN + 1) / 2];
 	struct dc_desc *sframe;
 	uint32_t h, *sp;
 	if_t ifp;
@@ -1013,8 +1002,8 @@ dc_setfilt_21143(struct dc_softc *sc)
 	sp[41] = DC_SP_MAC(eaddr[2]);
 
 	sframe->dc_status = htole32(DC_TXSTAT_OWN);
-	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	bus_dmamap_sync(sc->dc_stag, sc->dc_smap, BUS_DMASYNC_PREWRITE);
 	CSR_WRITE_4(sc, DC_TXSTART, 0xFFFFFFFF);
 
@@ -1069,14 +1058,14 @@ dc_setfilt_admtek(struct dc_softc *sc)
 {
 	uint8_t eaddr[ETHER_ADDR_LEN];
 	if_t ifp;
-	struct dc_hash_maddr_admtek_le_ctx ctx = { sc, { 0, 0 }};
+	struct dc_hash_maddr_admtek_le_ctx ctx = { sc, { 0, 0 } };
 
 	ifp = sc->dc_ifp;
 
 	/* Init our MAC address. */
 	bcopy(if_getlladdr(sc->dc_ifp), eaddr, ETHER_ADDR_LEN);
-	CSR_WRITE_4(sc, DC_AL_PAR0, eaddr[3] << 24 | eaddr[2] << 16 |
-	    eaddr[1] << 8 | eaddr[0]);
+	CSR_WRITE_4(sc, DC_AL_PAR0,
+	    eaddr[3] << 24 | eaddr[2] << 16 | eaddr[1] << 8 | eaddr[0]);
 	CSR_WRITE_4(sc, DC_AL_PAR1, eaddr[5] << 8 | eaddr[4]);
 
 	/* If we want promiscuous mode, set the allframes bit. */
@@ -1114,7 +1103,7 @@ dc_setfilt_admtek(struct dc_softc *sc)
 static void
 dc_setfilt_asix(struct dc_softc *sc)
 {
-	uint32_t eaddr[(ETHER_ADDR_LEN+3)/4];
+	uint32_t eaddr[(ETHER_ADDR_LEN + 3) / 4];
 	if_t ifp;
 	uint32_t hashes[2] = { 0, 0 };
 
@@ -1249,8 +1238,8 @@ dc_setfilt_uli(struct dc_softc *sc)
 		CSR_WRITE_4(sc, DC_NETCFG, filter);
 
 	sframe->dc_status = htole32(DC_TXSTAT_OWN);
-	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	bus_dmamap_sync(sc->dc_stag, sc->dc_smap, BUS_DMASYNC_PREWRITE);
 	CSR_WRITE_4(sc, DC_TXSTART, 0xFFFFFFFF);
 
@@ -1276,7 +1265,7 @@ dc_hash_maddr_xircom(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 dc_setfilt_xircom(struct dc_softc *sc)
 {
-	uint16_t eaddr[(ETHER_ADDR_LEN+1)/2];
+	uint16_t eaddr[(ETHER_ADDR_LEN + 1) / 2];
 	if_t ifp;
 	struct dc_desc *sframe;
 	uint32_t h, *sp;
@@ -1325,8 +1314,8 @@ dc_setfilt_xircom(struct dc_softc *sc)
 	DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_TX_ON);
 	DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_RX_ON);
 	sframe->dc_status = htole32(DC_TXSTAT_OWN);
-	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	bus_dmamap_sync(sc->dc_stag, sc->dc_smap, BUS_DMASYNC_PREWRITE);
 	CSR_WRITE_4(sc, DC_TXSTART, 0xFFFFFFFF);
 
@@ -1369,7 +1358,7 @@ dc_netcfg_wait(struct dc_softc *sc)
 		isr = CSR_READ_4(sc, DC_ISR);
 		if (isr & DC_ISR_TX_IDLE &&
 		    ((isr & DC_ISR_RX_STATE) == DC_RXSTATE_STOPPED ||
-		    (isr & DC_ISR_RX_STATE) == DC_RXSTATE_WAIT))
+			(isr & DC_ISR_RX_STATE) == DC_RXSTATE_WAIT))
 			break;
 		DELAY(10);
 	}
@@ -1378,7 +1367,7 @@ dc_netcfg_wait(struct dc_softc *sc)
 			device_printf(sc->dc_dev,
 			    "%s: failed to force tx to idle state\n", __func__);
 		if (!((isr & DC_ISR_RX_STATE) == DC_RXSTATE_STOPPED ||
-		    (isr & DC_ISR_RX_STATE) == DC_RXSTATE_WAIT) &&
+			(isr & DC_ISR_RX_STATE) == DC_RXSTATE_WAIT) &&
 		    !DC_HAS_BROKEN_RXSTATE(sc))
 			device_printf(sc->dc_dev,
 			    "%s: failed to force rx to idle state\n", __func__);
@@ -1409,7 +1398,8 @@ dc_setcfg(struct dc_softc *sc, int media)
 		DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_HEARTBEAT);
 		if (sc->dc_pmode == DC_PMODE_MII) {
 			if (DC_IS_INTEL(sc)) {
-			/* There's a write enable bit here that reads as 1. */
+				/* There's a write enable bit here that reads
+				 * as 1. */
 				watchdogreg = CSR_READ_4(sc, DC_WATCHDOG);
 				watchdogreg &= ~DC_WDOG_CTLWREN;
 				watchdogreg |= DC_WDOG_JABBERDIS;
@@ -1417,11 +1407,12 @@ dc_setcfg(struct dc_softc *sc, int media)
 			} else {
 				DC_SETBIT(sc, DC_WATCHDOG, DC_WDOG_JABBERDIS);
 			}
-			DC_CLRBIT(sc, DC_NETCFG, (DC_NETCFG_PCS |
-			    DC_NETCFG_PORTSEL | DC_NETCFG_SCRAMBLER));
+			DC_CLRBIT(sc, DC_NETCFG,
+			    (DC_NETCFG_PCS | DC_NETCFG_PORTSEL |
+				DC_NETCFG_SCRAMBLER));
 			if (sc->dc_type == DC_TYPE_98713)
-				DC_SETBIT(sc, DC_NETCFG, (DC_NETCFG_PCS |
-				    DC_NETCFG_SCRAMBLER));
+				DC_SETBIT(sc, DC_NETCFG,
+				    (DC_NETCFG_PCS | DC_NETCFG_SCRAMBLER));
 			if (!DC_IS_DAVICOM(sc))
 				DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_PORTSEL);
 			DC_CLRBIT(sc, DC_10BTCTRL, 0xFFFF);
@@ -1450,8 +1441,9 @@ dc_setcfg(struct dc_softc *sc, int media)
 			} else {
 				DC_SETBIT(sc, DC_WATCHDOG, DC_WDOG_JABBERDIS);
 			}
-			DC_CLRBIT(sc, DC_NETCFG, (DC_NETCFG_PCS |
-			    DC_NETCFG_PORTSEL | DC_NETCFG_SCRAMBLER));
+			DC_CLRBIT(sc, DC_NETCFG,
+			    (DC_NETCFG_PCS | DC_NETCFG_PORTSEL |
+				DC_NETCFG_SCRAMBLER));
 			if (sc->dc_type == DC_TYPE_98713)
 				DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_PCS);
 			if (!DC_IS_DAVICOM(sc))
@@ -1474,8 +1466,7 @@ dc_setcfg(struct dc_softc *sc, int media)
 				else
 					DC_SETBIT(sc, DC_10BTCTRL, 0x7F3F);
 				DC_SETBIT(sc, DC_SIARESET, DC_SIA_RESET);
-				DC_CLRBIT(sc, DC_10BTCTRL,
-				    DC_TCTL_AUTONEGENBL);
+				DC_CLRBIT(sc, DC_10BTCTRL, DC_TCTL_AUTONEGENBL);
 				DELAY(20000);
 			}
 		}
@@ -1660,12 +1651,11 @@ dc_decode_leaf_sia(struct dc_softc *sc, struct dc_eblock_sia *l)
 	 */
 	if (l->dc_sia_code & DC_SIA_CODE_EXT) {
 		m->dc_gp_len = 2;
-		m->dc_gp_ptr =
-		(uint8_t *)&l->dc_un.dc_sia_ext.dc_sia_gpio_ctl;
+		m->dc_gp_ptr = (uint8_t *)&l->dc_un.dc_sia_ext.dc_sia_gpio_ctl;
 	} else {
 		m->dc_gp_len = 2;
 		m->dc_gp_ptr =
-		(uint8_t *)&l->dc_un.dc_sia_noext.dc_sia_gpio_ctl;
+		    (uint8_t *)&l->dc_un.dc_sia_noext.dc_sia_gpio_ctl;
 	}
 
 	m->dc_next = sc->dc_mi;
@@ -1764,7 +1754,7 @@ dc_parse_21143_srom(struct dc_softc *sc)
 	for (i = 0; i < lhdr->dc_mcnt; i++) {
 		hdr = (struct dc_eblock_hdr *)ptr;
 		if (hdr->dc_type == DC_EBLOCK_MII)
-		    have_mii++;
+			have_mii++;
 
 		ptr += (hdr->dc_len & 0x7F);
 		ptr++;
@@ -1781,15 +1771,16 @@ dc_parse_21143_srom(struct dc_softc *sc)
 		hdr = (struct dc_eblock_hdr *)ptr;
 		switch (hdr->dc_type) {
 		case DC_EBLOCK_MII:
-			error = dc_decode_leaf_mii(sc, (struct dc_eblock_mii *)hdr);
+			error = dc_decode_leaf_mii(sc,
+			    (struct dc_eblock_mii *)hdr);
 			break;
 		case DC_EBLOCK_SIA:
-			if (! have_mii)
+			if (!have_mii)
 				error = dc_decode_leaf_sia(sc,
 				    (struct dc_eblock_sia *)hdr);
 			break;
 		case DC_EBLOCK_SYM:
-			if (! have_mii)
+			if (!have_mii)
 				error = dc_decode_leaf_sym(sc,
 				    (struct dc_eblock_sym *)hdr);
 			break;
@@ -1821,8 +1812,8 @@ dc_dma_alloc(struct dc_softc *sc)
 
 	error = bus_dma_tag_create(bus_get_dma_tag(sc->dc_dev), 1, 0,
 	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
-	    BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT, 0,
-	    NULL, NULL, &sc->dc_ptag);
+	    BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL,
+	    &sc->dc_ptag);
 	if (error) {
 		device_printf(sc->dc_dev,
 		    "failed to allocate parent DMA tag\n");
@@ -1848,8 +1839,8 @@ dc_dma_alloc(struct dc_softc *sc)
 
 	/* RX descriptor list. */
 	error = bus_dmamem_alloc(sc->dc_rx_ltag,
-	    (void **)&sc->dc_ldata.dc_rx_list, BUS_DMA_NOWAIT |
-	    BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->dc_rx_lmap);
+	    (void **)&sc->dc_ldata.dc_rx_list,
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->dc_rx_lmap);
 	if (error) {
 		device_printf(sc->dc_dev,
 		    "failed to allocate DMA'able memory for RX list\n");
@@ -1865,8 +1856,8 @@ dc_dma_alloc(struct dc_softc *sc)
 	}
 	/* TX descriptor list. */
 	error = bus_dmamem_alloc(sc->dc_tx_ltag,
-	    (void **)&sc->dc_ldata.dc_tx_list, BUS_DMA_NOWAIT |
-	    BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->dc_tx_lmap);
+	    (void **)&sc->dc_ldata.dc_tx_list,
+	    BUS_DMA_NOWAIT | BUS_DMA_ZERO | BUS_DMA_COHERENT, &sc->dc_tx_lmap);
 	if (error) {
 		device_printf(sc->dc_dev,
 		    "failed to allocate DMA'able memory for TX list\n");
@@ -1911,18 +1902,17 @@ dc_dma_alloc(struct dc_softc *sc)
 
 	/* Allocate a busdma tag for RX mbufs. */
 	error = bus_dma_tag_create(sc->dc_ptag, DC_RXBUF_ALIGN, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    MCLBYTES, 1, MCLBYTES, 0, NULL, NULL, &sc->dc_rx_mtag);
+	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, MCLBYTES, 1,
+	    MCLBYTES, 0, NULL, NULL, &sc->dc_rx_mtag);
 	if (error) {
 		device_printf(sc->dc_dev, "failed to create RX mbuf tag\n");
 		goto fail;
 	}
 
 	/* Allocate a busdma tag for TX mbufs. */
-	error = bus_dma_tag_create(sc->dc_ptag, 1, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    MCLBYTES * DC_MAXFRAGS, DC_MAXFRAGS, MCLBYTES,
-	    0, NULL, NULL, &sc->dc_tx_mtag);
+	error = bus_dma_tag_create(sc->dc_ptag, 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, MCLBYTES * DC_MAXFRAGS, DC_MAXFRAGS,
+	    MCLBYTES, 0, NULL, NULL, &sc->dc_tx_mtag);
 	if (error) {
 		device_printf(sc->dc_dev, "failed to create TX mbuf tag\n");
 		goto fail;
@@ -2023,7 +2013,7 @@ dc_dma_free(struct dc_softc *sc)
 static int
 dc_attach(device_t dev)
 {
-	uint32_t eaddr[(ETHER_ADDR_LEN+3)/4];
+	uint32_t eaddr[(ETHER_ADDR_LEN + 3) / 4];
 	uint32_t command;
 	struct dc_softc *sc;
 	if_t ifp;
@@ -2074,9 +2064,9 @@ dc_attach(device_t dev)
 	error = 0;
 	/* Get the eeprom width, but PNIC and XIRCOM have diff eeprom */
 	if (sc->dc_info->dc_devid !=
-	    DC_DEVID(DC_VENDORID_LO, DC_DEVICEID_82C168) &&
+		DC_DEVID(DC_VENDORID_LO, DC_DEVICEID_82C168) &&
 	    sc->dc_info->dc_devid !=
-	    DC_DEVID(DC_VENDORID_XIRCOM, DC_DEVICEID_X3201))
+		DC_DEVID(DC_VENDORID_XIRCOM, DC_DEVICEID_X3201))
 		dc_eeprom_width(sc);
 
 	switch (sc->dc_info->dc_devid) {
@@ -2193,7 +2183,7 @@ dc_attach(device_t dev)
 	case DC_DEVID(DC_VENDORID_XIRCOM, DC_DEVICEID_X3201):
 		sc->dc_type = DC_TYPE_XIRCOM;
 		sc->dc_flags |= DC_TX_INTR_ALWAYS | DC_TX_COALESCE |
-				DC_TX_ALIGN;
+		    DC_TX_ALIGN;
 		/*
 		 * We don't actually need to coalesce, but we're doing
 		 * it to obtain a double word aligned buffer.
@@ -2269,7 +2259,7 @@ dc_attach(device_t dev)
 	/*
 	 * Get station address from the EEPROM.
 	 */
-	switch(sc->dc_type) {
+	switch (sc->dc_type) {
 	case DC_TYPE_98713:
 	case DC_TYPE_98713A:
 	case DC_TYPE_987x5:
@@ -2355,7 +2345,7 @@ dc_attach(device_t dev)
 	 */
 	if ((sc->dc_eaddr[0] == 0 && (sc->dc_eaddr[1] & ~0xffff) == 0) ||
 	    (sc->dc_eaddr[0] == 0xffffffff &&
-	    (sc->dc_eaddr[1] & 0xffff) == 0xffff)) {
+		(sc->dc_eaddr[1] & 0xffff) == 0xffff)) {
 		error = dc_check_multiport(sc);
 		if (error == 0) {
 			bcopy(sc->dc_eaddr, eaddr, sizeof(eaddr));
@@ -2414,11 +2404,13 @@ dc_attach(device_t dev)
 	 * we can actually see them.
 	 */
 	if (DC_IS_XIRCOM(sc)) {
-		CSR_WRITE_4(sc, DC_SIAGP, DC_SIAGP_WRITE_EN | DC_SIAGP_INT1_EN |
-		    DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
+		CSR_WRITE_4(sc, DC_SIAGP,
+		    DC_SIAGP_WRITE_EN | DC_SIAGP_INT1_EN |
+			DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
 		DELAY(10);
-		CSR_WRITE_4(sc, DC_SIAGP, DC_SIAGP_INT1_EN |
-		    DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
+		CSR_WRITE_4(sc, DC_SIAGP,
+		    DC_SIAGP_INT1_EN | DC_SIAGP_MD_GP2_OUTPUT |
+			DC_SIAGP_MD_GP0_OUTPUT);
 		DELAY(10);
 	}
 
@@ -2458,7 +2450,7 @@ dc_attach(device_t dev)
 		 * on them. (I.e. you suddenly can't get a link.)
 		 */
 		if (!(pci_get_subvendor(dev) == 0x1033 &&
-		    pci_get_subdevice(dev) == 0x8028))
+			pci_get_subdevice(dev) == 0x8028))
 			sc->dc_flags |= DC_TULIP_LEDS;
 		error = mii_attach(dev, &sc->dc_miibus, ifp, dc_ifmedia_upd,
 		    dc_ifmedia_sts, BMSR_DEFCAPMASK, MII_PHY_ANY,
@@ -2661,14 +2653,14 @@ dc_newbuf(struct dc_softc *sc, int i)
 	if (sc->dc_flags & DC_PNIC_RX_BUG_WAR)
 		bzero(mtod(m, char *), m->m_len);
 
-	error = bus_dmamap_load_mbuf_sg(sc->dc_rx_mtag, sc->dc_sparemap,
-	    m, segs, &nseg, 0);
+	error = bus_dmamap_load_mbuf_sg(sc->dc_rx_mtag, sc->dc_sparemap, m,
+	    segs, &nseg, 0);
 	if (error) {
 		m_freem(m);
 		return (error);
 	}
-	KASSERT(nseg == 1, ("%s: wrong number of segments (%d)", __func__,
-	    nseg));
+	KASSERT(nseg == 1,
+	    ("%s: wrong number of segments (%d)", __func__, nseg));
 	if (sc->dc_cdata.dc_rx_chain[i] != NULL)
 		bus_dmamap_unload(sc->dc_rx_mtag, sc->dc_cdata.dc_rx_map[i]);
 
@@ -2680,8 +2672,8 @@ dc_newbuf(struct dc_softc *sc, int i)
 	    BUS_DMASYNC_PREREAD);
 
 	sc->dc_ldata.dc_rx_list[i].dc_ctl = htole32(DC_RXCTL_RLINK | DC_RXLEN);
-	sc->dc_ldata.dc_rx_list[i].dc_data =
-	    htole32(DC_ADDR_LO(segs[0].ds_addr));
+	sc->dc_ldata.dc_rx_list[i].dc_data = htole32(
+	    DC_ADDR_LO(segs[0].ds_addr));
 	sc->dc_ldata.dc_rx_list[i].dc_status = htole32(DC_RXSTAT_OWN);
 	bus_dmamap_sync(sc->dc_rx_ltag, sc->dc_rx_lmap,
 	    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
@@ -2740,7 +2732,7 @@ dc_newbuf(struct dc_softc *sc, int i)
  * the time.
  */
 
-#define	DC_WHOLEFRAME	(DC_RXSTAT_FIRSTFRAG | DC_RXSTAT_LASTFRAG)
+#define DC_WHOLEFRAME (DC_RXSTAT_FIRSTFRAG | DC_RXSTAT_LASTFRAG)
 static void
 dc_pnic_rx_bug_war(struct dc_softc *sc, int idx)
 {
@@ -2843,8 +2835,8 @@ dc_discard_rxbuf(struct dc_softc *sc, int i)
 
 	sc->dc_ldata.dc_rx_list[i].dc_ctl = htole32(DC_RXCTL_RLINK | DC_RXLEN);
 	sc->dc_ldata.dc_rx_list[i].dc_status = htole32(DC_RXSTAT_OWN);
-	bus_dmamap_sync(sc->dc_rx_ltag, sc->dc_rx_lmap, BUS_DMASYNC_PREREAD |
-	    BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(sc->dc_rx_ltag, sc->dc_rx_lmap,
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 }
 
 /*
@@ -2865,11 +2857,11 @@ dc_rxeof(struct dc_softc *sc)
 	ifp = sc->dc_ifp;
 	rx_npkts = 0;
 
-	bus_dmamap_sync(sc->dc_rx_ltag, sc->dc_rx_lmap, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(sc->dc_rx_ltag, sc->dc_rx_lmap,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	for (i = sc->dc_cdata.dc_rx_prod;
-	    (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0;
-	    DC_INC(i, DC_RX_LIST_CNT)) {
+	     (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0;
+	     DC_INC(i, DC_RX_LIST_CNT)) {
 #ifdef DEVICE_POLLING
 		if (if_getcapenable(ifp) & IFCAP_POLLING) {
 			if (sc->rxcycles <= 0)
@@ -2908,17 +2900,20 @@ dc_rxeof(struct dc_softc *sc)
 		 */
 		if ((rxstat & DC_RXSTAT_RXERR)) {
 			if (!(rxstat & DC_RXSTAT_GIANT) ||
-			    (rxstat & (DC_RXSTAT_CRCERR | DC_RXSTAT_DRIBBLE |
-				       DC_RXSTAT_MIIERE | DC_RXSTAT_COLLSEEN |
-				       DC_RXSTAT_RUNT   | DC_RXSTAT_DE))) {
+			    (rxstat &
+				(DC_RXSTAT_CRCERR | DC_RXSTAT_DRIBBLE |
+				    DC_RXSTAT_MIIERE | DC_RXSTAT_COLLSEEN |
+				    DC_RXSTAT_RUNT | DC_RXSTAT_DE))) {
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 				if (rxstat & DC_RXSTAT_COLLSEEN)
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
 				dc_discard_rxbuf(sc, i);
 				if (rxstat & DC_RXSTAT_CRCERR)
 					continue;
 				else {
-					if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
+					if_setdrvflagbits(ifp, 0,
+					    IFF_DRV_RUNNING);
 					dc_init_locked(sc);
 					return (rx_npkts);
 				}
@@ -2948,8 +2943,8 @@ dc_rxeof(struct dc_softc *sc)
 		{
 			struct mbuf *m0;
 
-			m0 = m_devget(mtod(m, char *), total_len,
-				ETHER_ALIGN, ifp, NULL);
+			m0 = m_devget(mtod(m, char *), total_len, ETHER_ALIGN,
+			    ifp, NULL);
 			dc_discard_rxbuf(sc, i);
 			if (m0 == NULL) {
 				if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
@@ -2990,11 +2985,11 @@ dc_txeof(struct dc_softc *sc)
 	 * Go through our tx list and free mbufs for those
 	 * frames that have been transmitted.
 	 */
-	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap, BUS_DMASYNC_POSTREAD |
-	    BUS_DMASYNC_POSTWRITE);
+	bus_dmamap_sync(sc->dc_tx_ltag, sc->dc_tx_lmap,
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	setup = 0;
 	for (idx = sc->dc_cdata.dc_tx_cons; idx != sc->dc_cdata.dc_tx_prod;
-	    DC_INC(idx, DC_TX_LIST_CNT), sc->dc_cdata.dc_tx_cnt--) {
+	     DC_INC(idx, DC_TX_LIST_CNT), sc->dc_cdata.dc_tx_cnt--) {
 		cur_tx = &sc->dc_ldata.dc_tx_list[idx];
 		txstat = le32toh(cur_tx->dc_status);
 		ctl = le32toh(cur_tx->dc_ctl);
@@ -3038,14 +3033,15 @@ dc_txeof(struct dc_softc *sc)
 			 */
 			if (/*sc->dc_type == DC_TYPE_21143 &&*/
 			    sc->dc_pmode == DC_PMODE_MII &&
-			    ((txstat & 0xFFFF) & ~(DC_TXSTAT_ERRSUM |
-			    DC_TXSTAT_NOCARRIER)))
+			    ((txstat & 0xFFFF) &
+				~(DC_TXSTAT_ERRSUM | DC_TXSTAT_NOCARRIER)))
 				txstat &= ~DC_TXSTAT_ERRSUM;
 		} else {
 			if (/*sc->dc_type == DC_TYPE_21143 &&*/
 			    sc->dc_pmode == DC_PMODE_MII &&
-			    ((txstat & 0xFFFF) & ~(DC_TXSTAT_ERRSUM |
-			    DC_TXSTAT_NOCARRIER | DC_TXSTAT_CARRLOST)))
+			    ((txstat & 0xFFFF) &
+				~(DC_TXSTAT_ERRSUM | DC_TXSTAT_NOCARRIER |
+				    DC_TXSTAT_CARRLOST)))
 				txstat &= ~DC_TXSTAT_ERRSUM;
 		}
 
@@ -3062,7 +3058,8 @@ dc_txeof(struct dc_softc *sc)
 			}
 		} else
 			if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
-		if_inc_counter(ifp, IFCOUNTER_COLLISIONS, (txstat & DC_TXSTAT_COLLCNT) >> 3);
+		if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+		    (txstat & DC_TXSTAT_COLLCNT) >> 3);
 
 		bus_dmamap_sync(sc->dc_tx_mtag, sc->dc_cdata.dc_tx_map[idx],
 		    BUS_DMASYNC_POSTWRITE);
@@ -3105,13 +3102,13 @@ dc_tick(void *xsc)
 	if (sc->dc_flags & DC_REDUCED_MII_POLL) {
 		if (sc->dc_flags & DC_21143_NWAY) {
 			r = CSR_READ_4(sc, DC_10BTSTAT);
-			if (IFM_SUBTYPE(mii->mii_media_active) ==
-			    IFM_100_TX && (r & DC_TSTAT_LS100)) {
+			if (IFM_SUBTYPE(mii->mii_media_active) == IFM_100_TX &&
+			    (r & DC_TSTAT_LS100)) {
 				sc->dc_link = 0;
 				mii_mediachg(mii);
 			}
-			if (IFM_SUBTYPE(mii->mii_media_active) ==
-			    IFM_10_T && (r & DC_TSTAT_LS10)) {
+			if (IFM_SUBTYPE(mii->mii_media_active) == IFM_10_T &&
+			    (r & DC_TSTAT_LS10)) {
 				sc->dc_link = 0;
 				mii_mediachg(mii);
 			}
@@ -3122,8 +3119,9 @@ dc_tick(void *xsc)
 			 * For NICs which never report DC_RXSTATE_WAIT, we
 			 * have to bite the bullet...
 			 */
-			if ((DC_HAS_BROKEN_RXSTATE(sc) || (CSR_READ_4(sc,
-			    DC_ISR) & DC_ISR_RX_STATE) == DC_RXSTATE_WAIT) &&
+			if ((DC_HAS_BROKEN_RXSTATE(sc) ||
+				(CSR_READ_4(sc, DC_ISR) & DC_ISR_RX_STATE) ==
+				    DC_RXSTATE_WAIT) &&
 			    sc->dc_cdata.dc_tx_cnt == 0)
 				mii_tick(mii);
 		}
@@ -3153,7 +3151,7 @@ dc_tick(void *xsc)
 		dc_start_locked(ifp);
 
 	if (sc->dc_flags & DC_21143_NWAY && !sc->dc_link)
-		callout_reset(&sc->dc_stat_ch, hz/10, dc_tick, sc);
+		callout_reset(&sc->dc_stat_ch, hz / 10, dc_tick, sc);
 	else
 		callout_reset(&sc->dc_stat_ch, hz, dc_tick, sc);
 }
@@ -3237,17 +3235,16 @@ dc_poll(if_t ifp, enum poll_cmd cmd, int count)
 	sc->rxcycles = count;
 	rx_npkts = dc_rxeof(sc);
 	dc_txeof(sc);
-	if (!if_sendq_empty(ifp) &&
-	    !(if_getdrvflags(ifp) & IFF_DRV_OACTIVE))
+	if (!if_sendq_empty(ifp) && !(if_getdrvflags(ifp) & IFF_DRV_OACTIVE))
 		dc_start_locked(ifp);
 
 	if (cmd == POLL_AND_CHECK_STATUS) { /* also check status register */
-		uint32_t	status;
+		uint32_t status;
 
 		status = CSR_READ_4(sc, DC_ISR);
 		status &= (DC_ISR_RX_WATDOGTIMEO | DC_ISR_RX_NOBUF |
-			DC_ISR_TX_NOBUF | DC_ISR_TX_IDLE | DC_ISR_TX_UNDERRUN |
-			DC_ISR_BUS_ERR);
+		    DC_ISR_TX_NOBUF | DC_ISR_TX_IDLE | DC_ISR_TX_UNDERRUN |
+		    DC_ISR_BUS_ERR);
 		if (!status) {
 			DC_UNLOCK(sc);
 			return (rx_npkts);
@@ -3257,7 +3254,8 @@ dc_poll(if_t ifp, enum poll_cmd cmd, int count)
 
 		if (status & (DC_ISR_RX_WATDOGTIMEO | DC_ISR_RX_NOBUF)) {
 			uint32_t r = CSR_READ_4(sc, DC_FRAMESDISCARDED);
-			if_inc_counter(ifp, IFCOUNTER_IERRORS, (r & 0xffff) + ((r >> 17) & 0x7ff));
+			if_inc_counter(ifp, IFCOUNTER_IERRORS,
+			    (r & 0xffff) + ((r >> 17) & 0x7ff));
 
 			if (dc_rx_resync(sc))
 				dc_rxeof(sc);
@@ -3336,10 +3334,11 @@ dc_intr(void *arg)
 		if (status & DC_ISR_TX_UNDERRUN)
 			dc_tx_underrun(sc);
 
-		if ((status & DC_ISR_RX_WATDOGTIMEO)
-		    || (status & DC_ISR_RX_NOBUF)) {
+		if ((status & DC_ISR_RX_WATDOGTIMEO) ||
+		    (status & DC_ISR_RX_NOBUF)) {
 			r = CSR_READ_4(sc, DC_FRAMESDISCARDED);
-			if_inc_counter(ifp, IFCOUNTER_IERRORS, (r & 0xffff) + ((r >> 17) & 0x7ff));
+			if_inc_counter(ifp, IFCOUNTER_IERRORS,
+			    (r & 0xffff) + ((r >> 17) & 0x7ff));
 			if (dc_rxeof(sc) == 0) {
 				while (dc_rx_resync(sc))
 					dc_rxeof(sc);
@@ -3398,7 +3397,7 @@ dc_encap(struct dc_softc *sc, struct mbuf **m_head)
 			i++;
 		if (i > DC_TX_LIST_CNT / 4 ||
 		    DC_TX_LIST_CNT - i + sc->dc_cdata.dc_tx_cnt <=
-		    DC_TX_LIST_RSVD) {
+			DC_TX_LIST_RSVD) {
 			m = m_collapse(*m_head, M_NOWAIT, DC_MAXFRAGS);
 			defragged = 1;
 		}
@@ -3416,8 +3415,8 @@ dc_encap(struct dc_softc *sc, struct mbuf **m_head)
 	error = bus_dmamap_load_mbuf_sg(sc->dc_tx_mtag,
 	    sc->dc_cdata.dc_tx_map[idx], *m_head, segs, &nseg, 0);
 	if (error == EFBIG) {
-		if (defragged != 0 || (m = m_collapse(*m_head, M_NOWAIT,
-		    DC_MAXFRAGS)) == NULL) {
+		if (defragged != 0 ||
+		    (m = m_collapse(*m_head, M_NOWAIT, DC_MAXFRAGS)) == NULL) {
 			m_freem(*m_head);
 			*m_head = NULL;
 			return (defragged != 0 ? error : ENOBUFS);
@@ -3477,8 +3476,7 @@ dc_encap(struct dc_softc *sc, struct mbuf **m_head)
 	sc->dc_cdata.dc_tx_chain[cur] = *m_head;
 	sc->dc_ldata.dc_tx_list[cur].dc_ctl |= htole32(DC_TXCTL_LASTFRAG);
 	if (sc->dc_flags & DC_TX_INTR_FIRSTFRAG)
-		sc->dc_ldata.dc_tx_list[first].dc_ctl |=
-		    htole32(DC_TXCTL_FINT);
+		sc->dc_ldata.dc_tx_list[first].dc_ctl |= htole32(DC_TXCTL_FINT);
 	if (sc->dc_flags & DC_TX_INTR_ALWAYS)
 		sc->dc_ldata.dc_tx_list[cur].dc_ctl |= htole32(DC_TXCTL_FINT);
 	if (sc->dc_flags & DC_TX_USE_TX_INTR &&
@@ -3532,12 +3530,13 @@ dc_start_locked(if_t ifp)
 	DC_LOCK_ASSERT(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || sc->dc_link == 0)
+		IFF_DRV_RUNNING ||
+	    sc->dc_link == 0)
 		return;
 
 	sc->dc_cdata.dc_tx_first = sc->dc_cdata.dc_tx_prod;
 
-	for (queued = 0; !if_sendq_empty(ifp); ) {
+	for (queued = 0; !if_sendq_empty(ifp);) {
 		/*
 		 * If there's no way we can send any packets, return now.
 		 */
@@ -3630,7 +3629,7 @@ dc_init_locked(struct dc_softc *sc)
 	}
 	if (sc->dc_flags & DC_TX_POLL)
 		DC_SETBIT(sc, DC_BUSCTL, DC_TXPOLL_1);
-	switch(sc->dc_cachesize) {
+	switch (sc->dc_cachesize) {
 	case 32:
 		DC_SETBIT(sc, DC_BUSCTL, DC_CACHEALIGN_32LONG);
 		break;
@@ -3681,11 +3680,13 @@ dc_init_locked(struct dc_softc *sc)
 		 * setup General Purpose Port mode and data so the tulip
 		 * can talk to the MII.
 		 */
-		CSR_WRITE_4(sc, DC_SIAGP, DC_SIAGP_WRITE_EN | DC_SIAGP_INT1_EN |
-			   DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
+		CSR_WRITE_4(sc, DC_SIAGP,
+		    DC_SIAGP_WRITE_EN | DC_SIAGP_INT1_EN |
+			DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
 		DELAY(10);
-		CSR_WRITE_4(sc, DC_SIAGP, DC_SIAGP_INT1_EN |
-			   DC_SIAGP_MD_GP2_OUTPUT | DC_SIAGP_MD_GP0_OUTPUT);
+		CSR_WRITE_4(sc, DC_SIAGP,
+		    DC_SIAGP_INT1_EN | DC_SIAGP_MD_GP2_OUTPUT |
+			DC_SIAGP_MD_GP0_OUTPUT);
 		DELAY(10);
 	}
 
@@ -3724,13 +3725,13 @@ dc_init_locked(struct dc_softc *sc)
 		CSR_WRITE_4(sc, DC_IMR, 0x00000000);
 	else
 #endif
-	CSR_WRITE_4(sc, DC_IMR, DC_INTRS);
+		CSR_WRITE_4(sc, DC_IMR, DC_INTRS);
 	CSR_WRITE_4(sc, DC_ISR, 0xFFFFFFFF);
 
 	/* Initialize TX jabber and RX watchdog timer. */
 	if (DC_IS_ULI(sc))
-		CSR_WRITE_4(sc, DC_WATCHDOG, DC_WDOG_JABBERCLK |
-		    DC_WDOG_HOSTUNJAB);
+		CSR_WRITE_4(sc, DC_WATCHDOG,
+		    DC_WDOG_JABBERCLK | DC_WDOG_HOSTUNJAB);
 
 	/* Enable transmitter. */
 	DC_SETBIT(sc, DC_NETCFG, DC_NETCFG_TX_ON);
@@ -3771,7 +3772,7 @@ dc_init_locked(struct dc_softc *sc)
 		sc->dc_link = 1;
 	else {
 		if (sc->dc_flags & DC_21143_NWAY)
-			callout_reset(&sc->dc_stat_ch, hz/10, dc_tick, sc);
+			callout_reset(&sc->dc_stat_ch, hz / 10, dc_tick, sc);
 		else
 			callout_reset(&sc->dc_stat_ch, hz, dc_tick, sc);
 	}
@@ -3860,8 +3861,9 @@ dc_ioctl(if_t ifp, u_long command, caddr_t data)
 	case SIOCSIFFLAGS:
 		DC_LOCK(sc);
 		if (if_getflags(ifp) & IFF_UP) {
-			int need_setfilt = (if_getflags(ifp) ^ sc->dc_if_flags) &
-				(IFF_PROMISC | IFF_ALLMULTI);
+			int need_setfilt = (if_getflags(ifp) ^
+					       sc->dc_if_flags) &
+			    (IFF_PROMISC | IFF_ALLMULTI);
 
 			if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 				if (need_setfilt)
@@ -3895,7 +3897,7 @@ dc_ioctl(if_t ifp, u_long command, caddr_t data)
 		    !(if_getcapenable(ifp) & IFCAP_POLLING)) {
 			error = ether_poll_register(dc_poll, ifp);
 			if (error)
-				return(error);
+				return (error);
 			DC_LOCK(sc);
 			/* Disable interrupts */
 			CSR_WRITE_4(sc, DC_IMR, 0x00000000);
@@ -3976,7 +3978,7 @@ dc_stop(struct dc_softc *sc)
 	netcfg = CSR_READ_4(sc, DC_NETCFG);
 	if (netcfg & (DC_NETCFG_RX_ON | DC_NETCFG_TX_ON))
 		CSR_WRITE_4(sc, DC_NETCFG,
-		   netcfg & ~(DC_NETCFG_RX_ON | DC_NETCFG_TX_ON));
+		    netcfg & ~(DC_NETCFG_RX_ON | DC_NETCFG_TX_ON));
 	CSR_WRITE_4(sc, DC_IMR, 0x00000000);
 	/* Wait the completion of TX/RX SM. */
 	if (netcfg & (DC_NETCFG_RX_ON | DC_NETCFG_TX_ON))
@@ -3990,10 +3992,9 @@ dc_stop(struct dc_softc *sc)
 	 */
 	for (i = 0; i < DC_RX_LIST_CNT; i++) {
 		if (cd->dc_rx_chain[i] != NULL) {
-			bus_dmamap_sync(sc->dc_rx_mtag,
-			    cd->dc_rx_map[i], BUS_DMASYNC_POSTREAD);
-			bus_dmamap_unload(sc->dc_rx_mtag,
-			    cd->dc_rx_map[i]);
+			bus_dmamap_sync(sc->dc_rx_mtag, cd->dc_rx_map[i],
+			    BUS_DMASYNC_POSTREAD);
+			bus_dmamap_unload(sc->dc_rx_mtag, cd->dc_rx_map[i]);
 			m_freem(cd->dc_rx_chain[i]);
 			cd->dc_rx_chain[i] = NULL;
 		}

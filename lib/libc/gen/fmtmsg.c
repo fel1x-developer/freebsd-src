@@ -32,17 +32,16 @@
 #include <string.h>
 
 /* Default value for MSGVERB. */
-#define	DFLT_MSGVERB	"label:severity:text:action:tag"
+#define DFLT_MSGVERB "label:severity:text:action:tag"
 
 /* Maximum valid size for a MSGVERB. */
-#define	MAX_MSGVERB	sizeof(DFLT_MSGVERB)
+#define MAX_MSGVERB sizeof(DFLT_MSGVERB)
 
-static char	*printfmt(char *, long, const char *, int, const char *,
-		    const char *, const char *);
-static char	*nextcomp(const char *);
-static const char
-		*sevinfo(int);
-static int	 validmsgverb(const char *);
+static char *printfmt(char *, long, const char *, int, const char *,
+    const char *, const char *);
+static char *nextcomp(const char *);
+static const char *sevinfo(int);
+static int validmsgverb(const char *);
 
 int
 fmtmsg(long class, const char *label, int sev, const char *text,
@@ -61,7 +60,7 @@ fmtmsg(long class, const char *label, int sev, const char *text,
 				goto def;
 			}
 		} else {
-def:
+		def:
 			if ((msgverb = strdup(DFLT_MSGVERB)) == NULL)
 				return (MM_NOTOK);
 		}
@@ -77,8 +76,8 @@ def:
 		free(output);
 	}
 	if (class & MM_CONSOLE) {
-		output = printfmt(DFLT_MSGVERB, class, label, sev, text,
-		    action, tag);
+		output = printfmt(DFLT_MSGVERB, class, label, sev, text, action,
+		    tag);
 		if (output == NULL)
 			return (MM_NOCON);
 		if (*output != '\0') {
@@ -94,15 +93,15 @@ def:
 	return (MM_OK);
 }
 
-#define INSERT_COLON							\
-	if (*output != '\0')						\
-		strlcat(output, ": ", size)
-#define INSERT_NEWLINE							\
-	if (*output != '\0')						\
-		strlcat(output, "\n", size)
-#define INSERT_SPACE							\
-	if (*output != '\0')						\
-		strlcat(output, " ", size)
+#define INSERT_COLON         \
+	if (*output != '\0') \
+	strlcat(output, ": ", size)
+#define INSERT_NEWLINE       \
+	if (*output != '\0') \
+	strlcat(output, "\n", size)
+#define INSERT_SPACE         \
+	if (*output != '\0') \
+	strlcat(output, " ", size)
 
 /*
  * Returns NULL on memory allocation failure, otherwise returns a pointer to
@@ -164,7 +163,7 @@ nextcomp(const char *msgverb)
 {
 	static char lmsgverb[MAX_MSGVERB], *state;
 	char *retval;
-	
+
 	if (*lmsgverb == '\0') {
 		strlcpy(lmsgverb, msgverb, sizeof(lmsgverb));
 		retval = strtok_r(lmsgverb, ":", &state);

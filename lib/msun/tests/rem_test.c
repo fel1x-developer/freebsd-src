@@ -43,11 +43,12 @@ static void testl(long double, long double, long double, int);
 static void testd(double, double, double, int);
 static void testf(float, float, float, int);
 
-#define	test(x, y, e_r, e_q) do {	\
-	testl(x, y, e_r, e_q);		\
-	testd(x, y, e_r, e_q);		\
-	testf(x, y, e_r, e_q);		\
-} while (0)
+#define test(x, y, e_r, e_q)           \
+	do {                           \
+		testl(x, y, e_r, e_q); \
+		testd(x, y, e_r, e_q); \
+		testf(x, y, e_r, e_q); \
+	} while (0)
 
 ATF_TC_WITHOUT_HEAD(rem1);
 ATF_TC_BODY(rem1, tc)

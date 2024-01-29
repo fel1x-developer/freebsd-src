@@ -5,7 +5,7 @@
  *	Doug Rabson
  * Copyright (c) 2002-2003
  * 	Hidetoshi Shimokawa. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -22,7 +22,7 @@
  * 4. Neither the name of the author nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -34,7 +34,7 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
@@ -43,28 +43,30 @@
 #endif
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
-#include <sys/module.h>
-#include <sys/bus.h>
+
 #include <machine/bus.h>
 
-#include <net/bpf.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/firewire.h>
-#include <net/if_arp.h>
-#include <net/if_types.h>
 #include <dev/firewire/firewire.h>
 #include <dev/firewire/firewirereg.h>
 #include <dev/firewire/iec13213.h>
 #include <dev/firewire/if_fwipvar.h>
+
+#include <net/bpf.h>
+#include <net/firewire.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 /*
  * We really need a mechanism for allocating regions in the FIFO
@@ -73,21 +75,23 @@
  * send responses for us, which is fine since we don't have any
  * important information to put in the response anyway.
  */
-#define INET_FIFO	0xfffe00000000LL
+#define INET_FIFO 0xfffe00000000LL
 
-#define FWIPDEBUG	if (fwipdebug) if_printf
-#define TX_MAX_QUEUE	(FWMAXQUEUE - 1)
+#define FWIPDEBUG      \
+	if (fwipdebug) \
+	if_printf
+#define TX_MAX_QUEUE (FWMAXQUEUE - 1)
 
 /* network interface */
-static void fwip_start (if_t);
-static int fwip_ioctl (if_t, u_long, caddr_t);
-static void fwip_init (void *);
+static void fwip_start(if_t);
+static int fwip_ioctl(if_t, u_long, caddr_t);
+static void fwip_init(void *);
 
-static void fwip_post_busreset (void *);
-static void fwip_output_callback (struct fw_xfer *);
-static void fwip_async_output (struct fwip_softc *, if_t);
-static void fwip_start_send (void *, int);
-static void fwip_stream_input (struct fw_xferq *);
+static void fwip_post_busreset(void *);
+static void fwip_output_callback(struct fw_xfer *);
+static void fwip_async_output(struct fwip_softc *, if_t);
+static void fwip_start_send(void *, int);
+static void fwip_stream_input(struct fw_xferq *);
 static void fwip_unicast_input(struct fw_xfer *);
 
 static int fwipdebug = 0;
@@ -99,9 +103,9 @@ static MALLOC_DEFINE(M_FWIP, "if_fwip", "IP over FireWire interface");
 SYSCTL_INT(_debug, OID_AUTO, if_fwip_debug, CTLFLAG_RW, &fwipdebug, 0, "");
 SYSCTL_DECL(_hw_firewire);
 static SYSCTL_NODE(_hw_firewire, OID_AUTO, fwip, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-	"Firewire ip subsystem");
-SYSCTL_INT(_hw_firewire_fwip, OID_AUTO, rx_queue_len, CTLFLAG_RWTUN, &rx_queue_len,
-	0, "Length of the receive queue");
+    "Firewire ip subsystem");
+SYSCTL_INT(_hw_firewire_fwip, OID_AUTO, rx_queue_len, CTLFLAG_RWTUN,
+    &rx_queue_len, 0, "Length of the receive queue");
 
 #ifdef DEVICE_POLLING
 static poll_handler_t fwip_poll;
@@ -117,7 +121,7 @@ fwip_poll(if_t ifp, enum poll_cmd cmd, int count)
 
 	fwip = ((struct fwip_eth_softc *)if_getsoftc(ifp))->fwip;
 	fc = fwip->fd.fc;
-	fc->poll(fc, (cmd == POLL_AND_CHECK_STATUS)?0:1, count);
+	fc->poll(fc, (cmd == POLL_AND_CHECK_STATUS) ? 0 : 1, count);
 	return (0);
 }
 #endif /* DEVICE_POLLING */
@@ -181,14 +185,14 @@ fwip_attach(device_t dev)
 	hwaddr->sender_unicast_FIFO_hi = htons((uint16_t)(INET_FIFO >> 32));
 	hwaddr->sender_unicast_FIFO_lo = htonl((uint32_t)INET_FIFO);
 
-	/* fill the rest and attach interface */	
+	/* fill the rest and attach interface */
 	if_setsoftc(ifp, &fwip->fw_softc);
 
 	if_initname(ifp, device_get_name(dev), unit);
 	if_setinitfn(ifp, fwip_init);
 	if_setstartfn(ifp, fwip_start);
 	if_setioctlfn(ifp, fwip_ioctl);
-	if_setflags(ifp, (IFF_BROADCAST|IFF_SIMPLEX|IFF_MULTICAST));
+	if_setflags(ifp, (IFF_BROADCAST | IFF_SIMPLEX | IFF_MULTICAST));
 	if_setsendqlen(ifp, TX_MAX_QUEUE);
 #ifdef DEVICE_POLLING
 	if_setcapabilitiesbit(ifp, IFCAP_POLLING, 0);
@@ -218,10 +222,10 @@ fwip_stop(struct fwip_softc *fwip)
 
 		if (xferq->flag & FWXFERQ_RUNNING)
 			fc->irx_disable(fc, fwip->dma_ch);
-		xferq->flag &= 
-			~(FWXFERQ_MODEMASK | FWXFERQ_OPEN | FWXFERQ_STREAM |
-			FWXFERQ_EXTBUF | FWXFERQ_HANDLER | FWXFERQ_CHTAGMASK);
-		xferq->hand =  NULL;
+		xferq->flag &= ~(FWXFERQ_MODEMASK | FWXFERQ_OPEN |
+		    FWXFERQ_STREAM | FWXFERQ_EXTBUF | FWXFERQ_HANDLER |
+		    FWXFERQ_CHTAGMASK);
+		xferq->hand = NULL;
 
 		for (i = 0; i < xferq->bnchunk; i++)
 			m_freem(xferq->bulkxfer[i].mbuf);
@@ -229,19 +233,19 @@ fwip_stop(struct fwip_softc *fwip)
 
 		fw_bindremove(fc, &fwip->fwb);
 		for (xfer = STAILQ_FIRST(&fwip->fwb.xferlist); xfer != NULL;
-					xfer = next) {
+		     xfer = next) {
 			next = STAILQ_NEXT(xfer, link);
 			fw_xfer_free(xfer);
 		}
 
 		for (xfer = STAILQ_FIRST(&fwip->xferlist); xfer != NULL;
-					xfer = next) {
+		     xfer = next) {
 			next = STAILQ_NEXT(xfer, link);
 			fw_xfer_free(xfer);
 		}
 		STAILQ_INIT(&fwip->xferlist);
 
-		xferq->bulkxfer =  NULL;
+		xferq->bulkxfer = NULL;
 		fwip->dma_ch = -1;
 	}
 
@@ -290,25 +294,25 @@ fwip_init(void *arg)
 	fc = fwip->fd.fc;
 #define START 0
 	if (fwip->dma_ch < 0) {
-		fwip->dma_ch = fw_open_isodma(fc, /* tx */0);
+		fwip->dma_ch = fw_open_isodma(fc, /* tx */ 0);
 		if (fwip->dma_ch < 0)
 			return;
 		xferq = fc->ir[fwip->dma_ch];
-		xferq->flag |= FWXFERQ_EXTBUF |
-				FWXFERQ_HANDLER | FWXFERQ_STREAM;
+		xferq->flag |= FWXFERQ_EXTBUF | FWXFERQ_HANDLER |
+		    FWXFERQ_STREAM;
 		xferq->flag &= ~0xff;
 		xferq->flag |= broadcast_channel & 0xff;
 		/* register fwip_input handler */
-		xferq->sc = (caddr_t) fwip;
+		xferq->sc = (caddr_t)fwip;
 		xferq->hand = fwip_stream_input;
 		xferq->bnchunk = rx_queue_len;
 		xferq->bnpacket = 1;
 		xferq->psize = MCLBYTES;
 		xferq->queued = 0;
 		xferq->buf = NULL;
-		xferq->bulkxfer = (struct fw_bulkxfer *) malloc(
-			sizeof(struct fw_bulkxfer) * xferq->bnchunk,
-							M_FWIP, M_WAITOK);
+		xferq->bulkxfer = (struct fw_bulkxfer *)
+		    malloc(sizeof(struct fw_bulkxfer) * xferq->bnchunk, M_FWIP,
+			M_WAITOK);
 		if (xferq->bulkxfer == NULL) {
 			printf("if_fwip: malloc failed\n");
 			return;
@@ -321,8 +325,8 @@ fwip_init(void *arg)
 			m = m_getcl(M_WAITOK, MT_DATA, M_PKTHDR);
 			xferq->bulkxfer[i].mbuf = m;
 			m->m_len = m->m_pkthdr.len = m->m_ext.ext_size;
-			STAILQ_INSERT_TAIL(&xferq->stfree,
-					&xferq->bulkxfer[i], link);
+			STAILQ_INSERT_TAIL(&xferq->stfree, &xferq->bulkxfer[i],
+			    link);
 		}
 
 		fwip->fwb.start = INET_FIFO;
@@ -378,7 +382,8 @@ fwip_init(void *arg)
 static int
 fwip_ioctl(if_t ifp, u_long cmd, caddr_t data)
 {
-	struct fwip_softc *fwip = ((struct fwip_eth_softc *)if_getsoftc(ifp))->fwip;
+	struct fwip_softc *fwip =
+	    ((struct fwip_eth_softc *)if_getsoftc(ifp))->fwip;
 	int s, error;
 
 	switch (cmd) {
@@ -398,8 +403,8 @@ fwip_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		break;
 	case SIOCSIFCAP:
 #ifdef DEVICE_POLLING
-	    {
-		struct ifreq *ifr = (struct ifreq *) data;
+	{
+		struct ifreq *ifr = (struct ifreq *)data;
 		struct firewire_comm *fc = fwip->fd.fc;
 
 		if (ifr->ifr_reqcap & IFCAP_POLLING &&
@@ -420,9 +425,9 @@ fwip_ioctl(if_t ifp, u_long cmd, caddr_t data)
 			if_setcapenablebit(ifp, 0, IFCAP_POLLING);
 			return (error);
 		}
-	    }
+	}
 #endif /* DEVICE_POLLING */
-		break;
+	break;
 	default:
 		s = splimp();
 		error = firewire_ioctl(ifp, cmd, data);
@@ -495,13 +500,14 @@ fwip_output_callback(struct fw_xfer *xfer)
 static void
 fwip_start(if_t ifp)
 {
-	struct fwip_softc *fwip = ((struct fwip_eth_softc *)if_getsoftc(ifp))->fwip;
+	struct fwip_softc *fwip =
+	    ((struct fwip_eth_softc *)if_getsoftc(ifp))->fwip;
 	int s;
 
 	FWIPDEBUG(ifp, "starting\n");
 
 	if (fwip->dma_ch < 0) {
-		struct mbuf	*m = NULL;
+		struct mbuf *m = NULL;
 
 		FWIPDEBUG(ifp, "not ready\n");
 
@@ -544,8 +550,7 @@ fwip_async_output(struct fwip_softc *fwip, if_t ifp)
 
 	xfer = NULL;
 	xferq = fc->atq;
-	while ((xferq->queued < xferq->maxq - 1) &&
-			!if_sendq_empty(ifp)) {
+	while ((xferq->queued < xferq->maxq - 1) && !if_sendq_empty(ifp)) {
 		FWIP_LOCK(fwip);
 		xfer = STAILQ_FIRST(&fwip->xferlist);
 		if (xfer == NULL) {
@@ -576,8 +581,7 @@ fwip_async_output(struct fwip_softc *fwip, if_t ifp)
 		if (mtag == NULL)
 			destfw = NULL;
 		else
-			destfw = (struct fw_hwaddr *) (mtag + 1);
-
+			destfw = (struct fw_hwaddr *)(mtag + 1);
 
 		/*
 		 * We don't do any bpf stuff here - the generic code
@@ -607,7 +611,7 @@ fwip_async_output(struct fwip_softc *fwip, if_t ifp)
 			 */
 			uint32_t *p;
 
-			M_PREPEND(m, 2*sizeof(uint32_t), M_NOWAIT);
+			M_PREPEND(m, 2 * sizeof(uint32_t), M_NOWAIT);
 			p = mtod(m, uint32_t *);
 			fp->mode.stream.len = m->m_pkthdr.len;
 			fp->mode.stream.chtag = broadcast_channel;
@@ -637,21 +641,22 @@ fwip_async_output(struct fwip_softc *fwip, if_t ifp)
 				fd = fw_noderesolve_eui64(fc, &eui);
 				if (!fd) {
 					/* error */
-					if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
+					if_inc_counter(ifp, IFCOUNTER_OERRORS,
+					    1);
 					/* XXX set error code */
 					fwip_output_callback(xfer);
 					continue;
-
 				}
-				fwip->last_hdr.mode.wreqb.dst = FWLOCALBUS | fd->dst;
+				fwip->last_hdr.mode.wreqb.dst = FWLOCALBUS |
+				    fd->dst;
 				fwip->last_hdr.mode.wreqb.tlrt = 0;
 				fwip->last_hdr.mode.wreqb.tcode = FWTCODE_WREQB;
 				fwip->last_hdr.mode.wreqb.pri = 0;
 				fwip->last_hdr.mode.wreqb.src = nodeid;
-				fwip->last_hdr.mode.wreqb.dest_hi =
-					ntohs(destfw->sender_unicast_FIFO_hi);
-				fwip->last_hdr.mode.wreqb.dest_lo =
-					ntohl(destfw->sender_unicast_FIFO_lo);
+				fwip->last_hdr.mode.wreqb.dest_hi = ntohs(
+				    destfw->sender_unicast_FIFO_hi);
+				fwip->last_hdr.mode.wreqb.dest_lo = ntohl(
+				    destfw->sender_unicast_FIFO_lo);
 				fwip->last_hdr.mode.wreqb.extcode = 0;
 				fwip->last_dest = eui;
 			}
@@ -696,7 +701,7 @@ fwip_async_output(struct fwip_softc *fwip, if_t ifp)
 }
 
 static void
-fwip_start_send (void *arg, int count)
+fwip_start_send(void *arg, int count)
 {
 	struct fwip_softc *fwip = arg;
 
@@ -743,14 +748,14 @@ fwip_stream_input(struct fw_xferq *xferq)
 		 * stream header even though that isn't accounted for
 		 * in mode.stream.len.
 		 */
-		if (sxfer->resp != 0 || fp->mode.stream.len <
-		    2*sizeof(uint32_t)) {
+		if (sxfer->resp != 0 ||
+		    fp->mode.stream.len < 2 * sizeof(uint32_t)) {
 			m_freem(m);
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			continue;
 		}
-		m->m_len = m->m_pkthdr.len = fp->mode.stream.len
-			+ sizeof(fp->mode.stream);
+		m->m_len = m->m_pkthdr.len = fp->mode.stream.len +
+		    sizeof(fp->mode.stream);
 
 		/*
 		 * If we received the packet on the broadcast channel,
@@ -767,8 +772,9 @@ fwip_stream_input(struct fw_xferq *xferq)
 		 * version.
 		 */
 		p = mtod(m, uint32_t *);
-		if ((((ntohl(p[1]) & 0xffff) << 8) | ntohl(p[2]) >> 24) != 0x00005e
-		    || (ntohl(p[2]) & 0xffffff) != 1) {
+		if ((((ntohl(p[1]) & 0xffff) << 8) | ntohl(p[2]) >> 24) !=
+			0x00005e ||
+		    (ntohl(p[2]) & 0xffffff) != 1) {
 			FWIPDEBUG(ifp, "Unrecognised GASP header %#08x %#08x\n",
 			    ntohl(p[1]), ntohl(p[2]));
 			m_freem(m);
@@ -782,12 +788,12 @@ fwip_stream_input(struct fw_xferq *xferq)
 		src = ntohl(p[1]) >> 16;
 		if (bpf_peers_present_if(ifp)) {
 			mtag = m_tag_alloc(MTAG_FIREWIRE,
-			    MTAG_FIREWIRE_SENDER_EUID,
-			    2*sizeof(uint32_t), M_NOWAIT);
+			    MTAG_FIREWIRE_SENDER_EUID, 2 * sizeof(uint32_t),
+			    M_NOWAIT);
 			if (mtag) {
 				/* bpf wants it in network byte order */
 				struct fw_device *fd;
-				uint32_t *p = (uint32_t *) (mtag + 1);
+				uint32_t *p = (uint32_t *)(mtag + 1);
 				fd = fw_noderesolve_nodeid(fwip->fd.fc,
 				    src & 0x3f);
 				if (fd) {
@@ -804,7 +810,7 @@ fwip_stream_input(struct fw_xferq *xferq)
 		/*
 		 * Trim off the GASP header
 		 */
-		m_adj(m, 3*sizeof(uint32_t));
+		m_adj(m, 3 * sizeof(uint32_t));
 		m->m_pkthdr.rcvif = ifp;
 		firewire_input(ifp, m, src);
 		if_inc_counter(ifp, IFCOUNTER_IPACKETS, 1);
@@ -841,7 +847,7 @@ fwip_unicast_input(struct fw_xfer *xfer)
 	if_t ifp;
 	struct fwip_softc *fwip;
 	struct fw_pkt *fp;
-	//struct fw_pkt *sfp;
+	// struct fw_pkt *sfp;
 	int rtcode;
 
 	fwip = (struct fwip_softc *)xfer->sc;
@@ -854,8 +860,8 @@ fwip_unicast_input(struct fw_xfer *xfer)
 	 * Check the fifo address - we only accept addresses of
 	 * exactly INET_FIFO.
 	 */
-	address = ((uint64_t)fp->mode.wreqb.dest_hi << 32)
-		| fp->mode.wreqb.dest_lo;
+	address = ((uint64_t)fp->mode.wreqb.dest_hi << 32) |
+	    fp->mode.wreqb.dest_lo;
 	if (fp->mode.wreqb.tcode != FWTCODE_WREQB) {
 		rtcode = FWRCODE_ER_TYPE;
 	} else if (address != INET_FIFO) {
@@ -885,11 +891,11 @@ fwip_unicast_input(struct fw_xfer *xfer)
 		 * Record the sender ID for possible BPF usage.
 		 */
 		mtag = m_tag_alloc(MTAG_FIREWIRE, MTAG_FIREWIRE_SENDER_EUID,
-		    2*sizeof(uint32_t), M_NOWAIT);
+		    2 * sizeof(uint32_t), M_NOWAIT);
 		if (mtag) {
 			/* bpf wants it in network byte order */
 			struct fw_device *fd;
-			uint32_t *p = (uint32_t *) (mtag + 1);
+			uint32_t *p = (uint32_t *)(mtag + 1);
 			fd = fw_noderesolve_nodeid(fwip->fd.fc,
 			    fp->mode.wreqb.src & 0x3f);
 			if (fd) {
@@ -905,7 +911,7 @@ fwip_unicast_input(struct fw_xfer *xfer)
 
 	/*
 	 * Hand off to the generic encapsulation code. We don't use
-	 * ifp->if_input so that we can pass the source nodeid as an 
+	 * ifp->if_input so that we can pass the source nodeid as an
 	 * argument to facilitate link-level fragment reassembly.
 	 */
 	m->m_len = m->m_pkthdr.len = fp->mode.wreqb.len;
@@ -918,19 +924,17 @@ done:
 
 static device_method_t fwip_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	fwip_identify),
-	DEVMETHOD(device_probe,		fwip_probe),
-	DEVMETHOD(device_attach,	fwip_attach),
-	DEVMETHOD(device_detach,	fwip_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, fwip_identify),
+	DEVMETHOD(device_probe, fwip_probe),
+	DEVMETHOD(device_attach, fwip_attach),
+	DEVMETHOD(device_detach, fwip_detach), { 0, 0 }
 };
 
 static driver_t fwip_driver = {
-        "fwip",
+	"fwip",
 	fwip_methods,
 	sizeof(struct fwip_softc),
 };
-
 
 DRIVER_MODULE(fwip, firewire, fwip_driver, 0, 0);
 MODULE_VERSION(fwip, 1);

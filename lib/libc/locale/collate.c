@@ -36,52 +36,46 @@
  * Adapted to xlocale by John Marino <draco@marino.st>
  */
 
-#include "namespace.h"
-
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
 #include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
-#include <errno.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include "un-namespace.h"
+#include <wchar.h>
 
 #include "collate.h"
-#include "setlocale.h"
 #include "ldpart.h"
 #include "libc_private.h"
+#include "namespace.h"
+#include "setlocale.h"
+#include "un-namespace.h"
 
-struct xlocale_collate __xlocale_global_collate = {
-	{{0}, "C"}, 1, 0, 0, 0
-};
+struct xlocale_collate __xlocale_global_collate = { { { 0 }, "C" }, 1, 0, 0,
+	0 };
 
-struct xlocale_collate __xlocale_C_collate = {
-	{{0}, "C"}, 1, 0, 0, 0
-};
+struct xlocale_collate __xlocale_C_collate = { { { 0 }, "C" }, 1, 0, 0, 0 };
 
-struct xlocale_collate __xlocale_POSIX_collate = {
-	{{0}, "POSIX"}, 1, 0, 0, 0
-};
+struct xlocale_collate __xlocale_POSIX_collate = { { { 0 }, "POSIX" }, 1, 0, 0,
+	0 };
 
-struct xlocale_collate __xlocale_CUTF8_collate = {
-	{{0}, "C.UTF-8"}, 1, 0, 0, 0
-};
+struct xlocale_collate __xlocale_CUTF8_collate = { { { 0 }, "C.UTF-8" }, 1, 0,
+	0, 0 };
 
-static int
-__collate_load_tables_l(const char *encoding, struct xlocale_collate *table);
+static int __collate_load_tables_l(const char *encoding,
+    struct xlocale_collate *table);
 
 static void
 destruct_collate(void *t)
 {
 	struct xlocale_collate *table = t;
 	if (table->map && (table->maplen > 0)) {
-		(void) munmap(table->map, table->maplen);
+		(void)munmap(table->map, table->maplen);
 	}
 	free(t);
 }
@@ -151,67 +145,66 @@ __collate_load_tables_l(const char *encoding, struct xlocale_collate *table)
 	}
 	free(buf);
 	if (_fstat(fd, &sbuf) < 0) {
-		(void) _close(fd);
+		(void)_close(fd);
 		return (_LDP_ERROR);
 	}
-	if (sbuf.st_size < (COLLATE_FMT_VERSION_LEN +
-			    XLOCALE_DEF_VERSION_LEN +
-			    sizeof (*info))) {
-		(void) _close(fd);
+	if (sbuf.st_size < (COLLATE_FMT_VERSION_LEN + XLOCALE_DEF_VERSION_LEN +
+			       sizeof(*info))) {
+		(void)_close(fd);
 		errno = EINVAL;
 		return (_LDP_ERROR);
 	}
 	map = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	(void) _close(fd);
+	(void)_close(fd);
 	if ((TMP = map) == MAP_FAILED) {
 		return (_LDP_ERROR);
 	}
 
 	if (strncmp(TMP, COLLATE_FMT_VERSION, COLLATE_FMT_VERSION_LEN) != 0) {
-		(void) munmap(map, sbuf.st_size);
+		(void)munmap(map, sbuf.st_size);
 		errno = EINVAL;
 		return (_LDP_ERROR);
 	}
 	TMP += COLLATE_FMT_VERSION_LEN;
-	strlcat(table->header.version, TMP, sizeof (table->header.version));
+	strlcat(table->header.version, TMP, sizeof(table->header.version));
 	TMP += XLOCALE_DEF_VERSION_LEN;
 
 	info = (void *)TMP;
-	TMP += sizeof (*info);
+	TMP += sizeof(*info);
 
 	if ((info->directive_count < 1) ||
 	    (info->directive_count >= COLL_WEIGHTS_MAX) ||
 	    ((chains = info->chain_count) < 0)) {
-		(void) munmap(map, sbuf.st_size);
+		(void)munmap(map, sbuf.st_size);
 		errno = EINVAL;
 		return (_LDP_ERROR);
 	}
 
-	i = (sizeof (collate_char_t) * (UCHAR_MAX + 1)) +
-	    (sizeof (collate_chain_t) * chains) +
-	    (sizeof (collate_large_t) * info->large_count);
+	i = (sizeof(collate_char_t) * (UCHAR_MAX + 1)) +
+	    (sizeof(collate_chain_t) * chains) +
+	    (sizeof(collate_large_t) * info->large_count);
 	for (z = 0; z < info->directive_count; z++) {
-		i += sizeof (collate_subst_t) * info->subst_count[z];
+		i += sizeof(collate_subst_t) * info->subst_count[z];
 	}
 	if (i != (sbuf.st_size - (TMP - map))) {
-		(void) munmap(map, sbuf.st_size);
+		(void)munmap(map, sbuf.st_size);
 		errno = EINVAL;
 		return (_LDP_ERROR);
 	}
 
 	if (table->map && (table->maplen > 0)) {
-		(void) munmap(table->map, table->maplen);
+		(void)munmap(table->map, table->maplen);
 	}
 	table->map = map;
 	table->maplen = sbuf.st_size;
 	table->info = info;
 	table->char_pri_table = (void *)TMP;
-	TMP += sizeof (collate_char_t) * (UCHAR_MAX + 1);
+	TMP += sizeof(collate_char_t) * (UCHAR_MAX + 1);
 
 	for (z = 0; z < info->directive_count; z++) {
 		if (info->subst_count[z] > 0) {
 			table->subst_table[z] = (void *)TMP;
-			TMP += info->subst_count[z] * sizeof (collate_subst_t);
+			TMP += info->subst_count[z] * sizeof(collate_subst_t);
 		} else {
 			table->subst_table[z] = NULL;
 		}
@@ -219,7 +212,7 @@ __collate_load_tables_l(const char *encoding, struct xlocale_collate *table)
 
 	if (chains > 0) {
 		table->chain_pri_table = (void *)TMP;
-		TMP += chains * sizeof (collate_chain_t);
+		TMP += chains * sizeof(collate_chain_t);
 	} else
 		table->chain_pri_table = NULL;
 	if (info->large_count > 0)
@@ -406,7 +399,6 @@ _collate_lookup(struct xlocale_collate *table, const wchar_t *t, int *len,
 			*state = *sptr ? sptr : NULL;
 		}
 	}
-
 }
 
 /*
@@ -417,16 +409,16 @@ size_t
 _collate_wxfrm(struct xlocale_collate *table, const wchar_t *src, wchar_t *xf,
     size_t room)
 {
-	int		pri;
-	int		len;
-	const wchar_t	*t;
-	wchar_t		*tr = NULL;
-	int		direc;
-	int		pass;
-	const int32_t 	*state;
-	size_t		want = 0;
-	size_t		need = 0;
-	int		ndir = table->info->directive_count;
+	int pri;
+	int len;
+	const wchar_t *t;
+	wchar_t *tr = NULL;
+	int direc;
+	int pass;
+	const int32_t *state;
+	size_t want = 0;
+	size_t need = 0;
+	int ndir = table->info->directive_count;
 
 	assert(src);
 
@@ -471,7 +463,8 @@ _collate_wxfrm(struct xlocale_collate *table, const wchar_t *src, wchar_t *xf,
 
 		if (direc & DIRECTIVE_POSITION) {
 			while (*t || state) {
-				_collate_lookup(table, t, &len, &pri, pass, &state);
+				_collate_lookup(table, t, &len, &pri, pass,
+				    &state);
 				t += len;
 				if (pri <= 0) {
 					if (pri < 0) {
@@ -490,7 +483,8 @@ _collate_wxfrm(struct xlocale_collate *table, const wchar_t *src, wchar_t *xf,
 			}
 		} else {
 			while (*t || state) {
-				_collate_lookup(table, t, &len, &pri, pass, &state);
+				_collate_lookup(table, t, &len, &pri, pass,
+				    &state);
 				t += len;
 				if (pri <= 0) {
 					if (pri < 0) {
@@ -535,11 +529,11 @@ fail:
  * priority for us, and ideally also give us a mask, and then we could
  * severely limit what we expand to.
  */
-#define	XFRM_BYTES	6
-#define	XFRM_OFFSET	('0')	/* make all printable characters */
-#define	XFRM_SHIFT	6
-#define	XFRM_MASK	((1 << XFRM_SHIFT) - 1)
-#define	XFRM_SEP	('.')	/* chosen to be less than XFRM_OFFSET */
+#define XFRM_BYTES 6
+#define XFRM_OFFSET ('0') /* make all printable characters */
+#define XFRM_SHIFT 6
+#define XFRM_MASK ((1 << XFRM_SHIFT) - 1)
+#define XFRM_SEP ('.') /* chosen to be less than XFRM_OFFSET */
 
 static int
 xfrm(struct xlocale_collate *table, unsigned char *p, int pri, int pass)
@@ -562,18 +556,18 @@ size_t
 _collate_sxfrm(struct xlocale_collate *table, const wchar_t *src, char *xf,
     size_t room)
 {
-	int		pri;
-	int		len;
-	const wchar_t	*t;
-	wchar_t		*tr = NULL;
-	int		direc;
-	int		pass;
-	const int32_t 	*state;
-	size_t		want = 0;
-	size_t		need = 0;
-	int		b;
-	uint8_t		buf[XFRM_BYTES];
-	int		ndir = table->info->directive_count;
+	int pri;
+	int len;
+	const wchar_t *t;
+	wchar_t *tr = NULL;
+	int direc;
+	int pass;
+	const int32_t *state;
+	size_t want = 0;
+	size_t need = 0;
+	int b;
+	uint8_t buf[XFRM_BYTES];
+	int ndir = table->info->directive_count;
 
 	assert(src);
 
@@ -619,7 +613,8 @@ _collate_sxfrm(struct xlocale_collate *table, const wchar_t *src, char *xf,
 		if (direc & DIRECTIVE_POSITION) {
 			while (*t || state) {
 
-				_collate_lookup(table, t, &len, &pri, pass, &state);
+				_collate_lookup(table, t, &len, &pri, pass,
+				    &state);
 				t += len;
 				if (pri <= 0) {
 					if (pri < 0) {
@@ -645,7 +640,8 @@ _collate_sxfrm(struct xlocale_collate *table, const wchar_t *src, char *xf,
 			}
 		} else {
 			while (*t || state) {
-				_collate_lookup(table, t, &len, &pri, pass, &state);
+				_collate_lookup(table, t, &len, &pri, pass,
+				    &state);
 				t += len;
 				if (pri <= 0) {
 					if (pri < 0) {
@@ -695,8 +691,8 @@ __collate_equiv_value(locale_t locale, const wchar_t *str, size_t len)
 		return (-1);
 
 	FIX_LOCALE(locale);
-	struct xlocale_collate *table =
-		(struct xlocale_collate*)locale->components[XLC_COLLATE];
+	struct xlocale_collate *table = (struct xlocale_collate *)
+					    locale->components[XLC_COLLATE];
 
 	if (table->__collate_load_error)
 		return ((len == 1 && *str <= UCHAR_MAX) ? *str : -1);
@@ -720,7 +716,7 @@ __collate_equiv_value(locale_t locale, const wchar_t *str, size_t len)
 		collate_chain_t *match_chain;
 		int clen;
 
-		wcsncpy (name, str, len);
+		wcsncpy(name, str, len);
 		name[len] = 0;
 		match_chain = chainsearch(table, name, &clen);
 		if (match_chain) {

@@ -31,66 +31,66 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_VPD
 
-#define	TAG_TYPE_LBN 7
-#define	TAG_TYPE_WIDTH 1
-#define	TAG_TYPE_LARGE_ITEM_DECODE 1
-#define	TAG_TYPE_SMALL_ITEM_DECODE 0
+#define TAG_TYPE_LBN 7
+#define TAG_TYPE_WIDTH 1
+#define TAG_TYPE_LARGE_ITEM_DECODE 1
+#define TAG_TYPE_SMALL_ITEM_DECODE 0
 
-#define	TAG_SMALL_ITEM_NAME_LBN 3
-#define	TAG_SMALL_ITEM_NAME_WIDTH 4
-#define	TAG_SMALL_ITEM_SIZE_LBN 0
-#define	TAG_SMALL_ITEM_SIZE_WIDTH 3
+#define TAG_SMALL_ITEM_NAME_LBN 3
+#define TAG_SMALL_ITEM_NAME_WIDTH 4
+#define TAG_SMALL_ITEM_SIZE_LBN 0
+#define TAG_SMALL_ITEM_SIZE_WIDTH 3
 
-#define	TAG_LARGE_ITEM_NAME_LBN 0
-#define	TAG_LARGE_ITEM_NAME_WIDTH 7
+#define TAG_LARGE_ITEM_NAME_LBN 0
+#define TAG_LARGE_ITEM_NAME_WIDTH 7
 
-#define	TAG_NAME_END_DECODE 0x0f
-#define	TAG_NAME_ID_STRING_DECODE 0x02
-#define	TAG_NAME_VPD_R_DECODE 0x10
-#define	TAG_NAME_VPD_W_DECODE 0x11
+#define TAG_NAME_END_DECODE 0x0f
+#define TAG_NAME_ID_STRING_DECODE 0x02
+#define TAG_NAME_VPD_R_DECODE 0x10
+#define TAG_NAME_VPD_W_DECODE 0x11
 
 #if EFSYS_OPT_SIENA
 
-static const efx_vpd_ops_t	__efx_vpd_siena_ops = {
-	siena_vpd_init,		/* evpdo_init */
-	siena_vpd_size,		/* evpdo_size */
-	siena_vpd_read,		/* evpdo_read */
-	siena_vpd_verify,	/* evpdo_verify */
-	siena_vpd_reinit,	/* evpdo_reinit */
-	siena_vpd_get,		/* evpdo_get */
-	siena_vpd_set,		/* evpdo_set */
-	siena_vpd_next,		/* evpdo_next */
-	siena_vpd_write,	/* evpdo_write */
-	siena_vpd_fini,		/* evpdo_fini */
+static const efx_vpd_ops_t __efx_vpd_siena_ops = {
+	siena_vpd_init,	  /* evpdo_init */
+	siena_vpd_size,	  /* evpdo_size */
+	siena_vpd_read,	  /* evpdo_read */
+	siena_vpd_verify, /* evpdo_verify */
+	siena_vpd_reinit, /* evpdo_reinit */
+	siena_vpd_get,	  /* evpdo_get */
+	siena_vpd_set,	  /* evpdo_set */
+	siena_vpd_next,	  /* evpdo_next */
+	siena_vpd_write,  /* evpdo_write */
+	siena_vpd_fini,	  /* evpdo_fini */
 };
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2
 
-static const efx_vpd_ops_t	__efx_vpd_ef10_ops = {
-	ef10_vpd_init,		/* evpdo_init */
-	ef10_vpd_size,		/* evpdo_size */
-	ef10_vpd_read,		/* evpdo_read */
-	ef10_vpd_verify,	/* evpdo_verify */
-	ef10_vpd_reinit,	/* evpdo_reinit */
-	ef10_vpd_get,		/* evpdo_get */
-	ef10_vpd_set,		/* evpdo_set */
-	ef10_vpd_next,		/* evpdo_next */
-	ef10_vpd_write,		/* evpdo_write */
-	ef10_vpd_fini,		/* evpdo_fini */
+static const efx_vpd_ops_t __efx_vpd_ef10_ops = {
+	ef10_vpd_init,	 /* evpdo_init */
+	ef10_vpd_size,	 /* evpdo_size */
+	ef10_vpd_read,	 /* evpdo_read */
+	ef10_vpd_verify, /* evpdo_verify */
+	ef10_vpd_reinit, /* evpdo_reinit */
+	ef10_vpd_get,	 /* evpdo_get */
+	ef10_vpd_set,	 /* evpdo_set */
+	ef10_vpd_next,	 /* evpdo_next */
+	ef10_vpd_write,	 /* evpdo_write */
+	ef10_vpd_fini,	 /* evpdo_fini */
 };
 
-#endif	/* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_HUNTINGTON || EFSYS_OPT_MEDFORD || EFSYS_OPT_MEDFORD2 */
 
-	__checkReturn		efx_rc_t
-efx_vpd_init(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_vpd_init(__in efx_nic_t *enp)
 {
 	const efx_vpd_ops_t *evpdop;
 	efx_rc_t rc;
@@ -104,25 +104,25 @@ efx_vpd_init(
 	case EFX_FAMILY_SIENA:
 		evpdop = &__efx_vpd_siena_ops;
 		break;
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */
 
 #if EFSYS_OPT_HUNTINGTON
 	case EFX_FAMILY_HUNTINGTON:
 		evpdop = &__efx_vpd_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_HUNTINGTON */
+#endif /* EFSYS_OPT_HUNTINGTON */
 
 #if EFSYS_OPT_MEDFORD
 	case EFX_FAMILY_MEDFORD:
 		evpdop = &__efx_vpd_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD */
+#endif /* EFSYS_OPT_MEDFORD */
 
 #if EFSYS_OPT_MEDFORD2
 	case EFX_FAMILY_MEDFORD2:
 		evpdop = &__efx_vpd_ef10_ops;
 		break;
-#endif	/* EFSYS_OPT_MEDFORD2 */
+#endif /* EFSYS_OPT_MEDFORD2 */
 
 	default:
 		EFSYS_ASSERT(0);
@@ -148,10 +148,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_size(
-	__in			efx_nic_t *enp,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+efx_vpd_size(__in efx_nic_t *enp, __out size_t *sizep)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -170,11 +168,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_read(
-	__in			efx_nic_t *enp,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+efx_vpd_read(__in efx_nic_t *enp, __out_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -193,11 +189,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_verify(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+efx_vpd_verify(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -216,11 +210,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_reinit(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+efx_vpd_reinit(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -246,12 +238,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_get(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__inout			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+efx_vpd_get(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size, __inout efx_vpd_value_t *evvp)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -274,12 +263,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_set(
-	__in			efx_nic_t *enp,
-	__inout_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+efx_vpd_set(__in efx_nic_t *enp, __inout_bcount(size) caddr_t data,
+    __in size_t size, __in efx_vpd_value_t *evvp)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -298,13 +284,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_next(
-	__in			efx_nic_t *enp,
-	__inout_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__out			efx_vpd_value_t *evvp,
-	__inout			unsigned int *contp)
+__checkReturn efx_rc_t
+efx_vpd_next(__in efx_nic_t *enp, __inout_bcount(size) caddr_t data,
+    __in size_t size, __out efx_vpd_value_t *evvp, __inout unsigned int *contp)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -323,11 +305,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_write(
-	__in			efx_nic_t *enp,
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+efx_vpd_write(__in efx_nic_t *enp, __in_bcount(size) caddr_t data,
+    __in size_t size)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 	efx_rc_t rc;
@@ -346,13 +326,10 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-efx_vpd_next_tag(
-	__in			caddr_t data,
-	__in			size_t size,
-	__inout			unsigned int *offsetp,
-	__out			efx_vpd_tag_t *tagp,
-	__out			uint16_t *lengthp)
+static __checkReturn efx_rc_t
+efx_vpd_next_tag(__in caddr_t data, __in size_t size,
+    __inout unsigned int *offsetp, __out efx_vpd_tag_t *tagp,
+    __out uint16_t *lengthp)
 {
 	efx_byte_t byte;
 	efx_word_t word;
@@ -386,9 +363,8 @@ efx_vpd_next_tag(
 		}
 
 		name = EFX_BYTE_FIELD(byte, TAG_LARGE_ITEM_NAME);
-		EFX_POPULATE_WORD_2(word,
-				    EFX_BYTE_0, data[*offsetp + 1],
-				    EFX_BYTE_1, data[*offsetp + 2]);
+		EFX_POPULATE_WORD_2(word, EFX_BYTE_0, data[*offsetp + 1],
+		    EFX_BYTE_1, data[*offsetp + 2]);
 		length = EFX_WORD_FIELD(word, EFX_WORD_0);
 
 		break;
@@ -407,8 +383,7 @@ efx_vpd_next_tag(
 	EFX_STATIC_ASSERT(TAG_NAME_ID_STRING_DECODE == EFX_VPD_ID);
 	EFX_STATIC_ASSERT(TAG_NAME_VPD_R_DECODE == EFX_VPD_RO);
 	EFX_STATIC_ASSERT(TAG_NAME_VPD_W_DECODE == EFX_VPD_RW);
-	if (name != EFX_VPD_END && name != EFX_VPD_ID &&
-	    name != EFX_VPD_RO) {
+	if (name != EFX_VPD_END && name != EFX_VPD_ID && name != EFX_VPD_RO) {
 		rc = EFAULT;
 		goto fail4;
 	}
@@ -431,13 +406,10 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-efx_vpd_next_keyword(
-	__in_bcount(size)	caddr_t tag,
-	__in			size_t size,
-	__in			unsigned int pos,
-	__out			efx_vpd_keyword_t *keywordp,
-	__out			uint8_t *lengthp)
+static __checkReturn efx_rc_t
+efx_vpd_next_keyword(__in_bcount(size) caddr_t tag, __in size_t size,
+    __in unsigned int pos, __out efx_vpd_keyword_t *keywordp,
+    __out uint8_t *lengthp)
 {
 	efx_vpd_keyword_t keyword;
 	uint8_t length;
@@ -469,11 +441,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_hunk_length(
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__out			size_t *lengthp)
+__checkReturn efx_rc_t
+efx_vpd_hunk_length(__in_bcount(size) caddr_t data, __in size_t size,
+    __out size_t *lengthp)
 {
 	efx_vpd_tag_t tag;
 	unsigned int offset;
@@ -483,8 +453,8 @@ efx_vpd_hunk_length(
 	offset = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &tag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &tag,
+			 &taglen)) != 0)
 			goto fail1;
 		offset += taglen;
 		if (tag == EFX_VPD_END)
@@ -501,11 +471,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_hunk_verify(
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__out_opt		boolean_t *cksummedp)
+__checkReturn efx_rc_t
+efx_vpd_hunk_verify(__in_bcount(size) caddr_t data, __in size_t size,
+    __out_opt boolean_t *cksummedp)
 {
 	efx_vpd_tag_t tag;
 	efx_vpd_keyword_t keyword;
@@ -525,8 +493,8 @@ efx_vpd_hunk_verify(
 	offset = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &tag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &tag,
+			 &taglen)) != 0)
 			goto fail1;
 		if (tag == EFX_VPD_END)
 			break;
@@ -540,8 +508,8 @@ efx_vpd_hunk_verify(
 				goto fail2;
 			}
 
-			if ((rc = efx_vpd_next_keyword(data + offset,
-			    taglen, pos, &keyword, &keylen)) != 0)
+			if ((rc = efx_vpd_next_keyword(data + offset, taglen,
+				 pos, &keyword, &keylen)) != 0)
 				goto fail3;
 
 			if (keyword == EFX_VPD_KEYWORD('R', 'V')) {
@@ -586,27 +554,31 @@ fail1:
 	return (rc);
 }
 
-static	uint8_t	__efx_vpd_blank_pid[] = {
+static uint8_t __efx_vpd_blank_pid[] = {
 	/* Large resource type ID length 1 */
-	0x82, 0x01, 0x00,
+	0x82,
+	0x01,
+	0x00,
 	/* Product name ' ' */
 	0x32,
 };
 
 static uint8_t __efx_vpd_blank_r[] = {
 	/* Large resource type VPD-R length 4 */
-	0x90, 0x04, 0x00,
+	0x90,
+	0x04,
+	0x00,
 	/* RV keyword length 1 */
-	'R', 'V', 0x01,
+	'R',
+	'V',
+	0x01,
 	/* RV payload checksum */
 	0x00,
 };
 
-	__checkReturn		efx_rc_t
-efx_vpd_hunk_reinit(
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			boolean_t wantpid)
+__checkReturn efx_rc_t
+efx_vpd_hunk_reinit(__in_bcount(size) caddr_t data, __in size_t size,
+    __in boolean_t wantpid)
 {
 	unsigned int offset = 0;
 	unsigned int pos;
@@ -621,12 +593,12 @@ efx_vpd_hunk_reinit(
 
 	if (wantpid) {
 		memcpy(data + offset, __efx_vpd_blank_pid,
-		    sizeof (__efx_vpd_blank_pid));
-		offset += sizeof (__efx_vpd_blank_pid);
+		    sizeof(__efx_vpd_blank_pid));
+		offset += sizeof(__efx_vpd_blank_pid);
 	}
 
-	memcpy(data + offset, __efx_vpd_blank_r, sizeof (__efx_vpd_blank_r));
-	offset += sizeof (__efx_vpd_blank_r);
+	memcpy(data + offset, __efx_vpd_blank_r, sizeof(__efx_vpd_blank_r));
+	offset += sizeof(__efx_vpd_blank_r);
 
 	/* Update checksum */
 	cksum = 0;
@@ -635,10 +607,8 @@ efx_vpd_hunk_reinit(
 	data[offset - 1] -= cksum;
 
 	/* Append trailing tag */
-	EFX_POPULATE_BYTE_3(byte,
-			    TAG_TYPE, TAG_TYPE_SMALL_ITEM_DECODE,
-			    TAG_SMALL_ITEM_NAME, TAG_NAME_END_DECODE,
-			    TAG_SMALL_ITEM_SIZE, 0);
+	EFX_POPULATE_BYTE_3(byte, TAG_TYPE, TAG_TYPE_SMALL_ITEM_DECODE,
+	    TAG_SMALL_ITEM_NAME, TAG_NAME_END_DECODE, TAG_SMALL_ITEM_SIZE, 0);
 	data[offset] = EFX_BYTE_FIELD(byte, EFX_BYTE_0);
 	offset++;
 
@@ -650,15 +620,11 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn			efx_rc_t
-efx_vpd_hunk_next(
-	__in_bcount(size)		caddr_t data,
-	__in				size_t size,
-	__out				efx_vpd_tag_t *tagp,
-	__out				efx_vpd_keyword_t *keywordp,
-	__out_opt			unsigned int *payloadp,
-	__out_opt			uint8_t *paylenp,
-	__inout				unsigned int *contp)
+__checkReturn efx_rc_t
+efx_vpd_hunk_next(__in_bcount(size) caddr_t data, __in size_t size,
+    __out efx_vpd_tag_t *tagp, __out efx_vpd_keyword_t *keywordp,
+    __out_opt unsigned int *payloadp, __out_opt uint8_t *paylenp,
+    __inout unsigned int *contp)
 {
 	efx_vpd_tag_t tag;
 	efx_vpd_keyword_t keyword = 0;
@@ -673,8 +639,8 @@ efx_vpd_hunk_next(
 	offset = index = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &tag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &tag,
+			 &taglen)) != 0)
 			goto fail1;
 
 		if (tag == EFX_VPD_END) {
@@ -695,7 +661,7 @@ efx_vpd_hunk_next(
 		} else {
 			for (pos = 0; pos != taglen; pos += 3 + keylen) {
 				if ((rc = efx_vpd_next_keyword(data + offset,
-				    taglen, pos, &keyword, &keylen)) != 0)
+					 taglen, pos, &keyword, &keylen)) != 0)
 					goto fail2;
 
 				if (index++ == *contp) {
@@ -729,14 +695,10 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_hunk_get(
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			efx_vpd_tag_t tag,
-	__in			efx_vpd_keyword_t keyword,
-	__out			unsigned int *payloadp,
-	__out			uint8_t *paylenp)
+__checkReturn efx_rc_t
+efx_vpd_hunk_get(__in_bcount(size) caddr_t data, __in size_t size,
+    __in efx_vpd_tag_t tag, __in efx_vpd_keyword_t keyword,
+    __out unsigned int *payloadp, __out uint8_t *paylenp)
 {
 	efx_vpd_tag_t itag;
 	efx_vpd_keyword_t ikeyword;
@@ -749,8 +711,8 @@ efx_vpd_hunk_get(
 	offset = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &itag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &itag,
+			 &taglen)) != 0)
 			goto fail1;
 		if (itag == EFX_VPD_END)
 			break;
@@ -766,7 +728,7 @@ efx_vpd_hunk_get(
 
 			for (pos = 0; pos != taglen; pos += 3 + keylen) {
 				if ((rc = efx_vpd_next_keyword(data + offset,
-				    taglen, pos, &ikeyword, &keylen)) != 0)
+					 taglen, pos, &ikeyword, &keylen)) != 0)
 					goto fail2;
 
 				if (ikeyword == keyword) {
@@ -791,11 +753,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-efx_vpd_hunk_set(
-	__in_bcount(size)	caddr_t data,
-	__in			size_t size,
-	__in			efx_vpd_value_t *evvp)
+__checkReturn efx_rc_t
+efx_vpd_hunk_set(__in_bcount(size) caddr_t data, __in size_t size,
+    __in efx_vpd_value_t *evvp)
 {
 	efx_word_t word;
 	efx_vpd_tag_t tag;
@@ -846,8 +806,8 @@ efx_vpd_hunk_set(
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
 		taghead = offset;
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &tag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &tag,
+			 &taglen)) != 0)
 			goto fail3;
 		if (tag == EFX_VPD_END)
 			break;
@@ -876,8 +836,8 @@ efx_vpd_hunk_set(
 		EFSYS_ASSERT3U(tag, ==, EFX_VPD_RO);
 		source = dest = 0;
 		for (pos = 0; pos != taglen; pos += 3 + keylen) {
-			if ((rc = efx_vpd_next_keyword(data + offset,
-			    taglen, pos, &keyword, &keylen)) != 0)
+			if ((rc = efx_vpd_next_keyword(data + offset, taglen,
+				 pos, &keyword, &keylen)) != 0)
 				goto fail5;
 
 			if (keyword == evvp->evv_keyword &&
@@ -919,7 +879,7 @@ efx_vpd_hunk_set(
 		}
 
 		/* Move trailing data */
-		(void) memmove(data + dest, data + source, used - source);
+		(void)memmove(data + dest, data + source, used - source);
 
 		/* Copy contents */
 		memcpy(data + dest - evvp->evv_length, evvp->evv_value,
@@ -928,11 +888,11 @@ efx_vpd_hunk_set(
 		/* Insert new keyword header if required */
 		if (tag != EFX_VPD_ID && evvp->evv_length > 0) {
 			EFX_POPULATE_WORD_1(word, EFX_WORD_0,
-					    evvp->evv_keyword);
-			data[offset + pos + 0] =
-			    EFX_WORD_FIELD(word, EFX_BYTE_0);
-			data[offset + pos + 1] =
-			    EFX_WORD_FIELD(word, EFX_BYTE_1);
+			    evvp->evv_keyword);
+			data[offset + pos + 0] = EFX_WORD_FIELD(word,
+			    EFX_BYTE_0);
+			data[offset + pos + 1] = EFX_WORD_FIELD(word,
+			    EFX_BYTE_1);
 			data[offset + pos + 2] = evvp->evv_length;
 		}
 
@@ -954,15 +914,15 @@ checksum:
 	offset = 0;
 	_NOTE(CONSTANTCONDITION)
 	while (1) {
-		if ((rc = efx_vpd_next_tag(data, size, &offset,
-		    &tag, &taglen)) != 0)
+		if ((rc = efx_vpd_next_tag(data, size, &offset, &tag,
+			 &taglen)) != 0)
 			goto fail8;
 		if (tag == EFX_VPD_END)
 			break;
 		if (tag == EFX_VPD_RO) {
 			for (pos = 0; pos != taglen; pos += 3 + keylen) {
 				if ((rc = efx_vpd_next_keyword(data + offset,
-				    taglen, pos, &keyword, &keylen)) != 0)
+					 taglen, pos, &keyword, &keylen)) != 0)
 					goto fail9;
 
 				if (keyword == EFX_VPD_KEYWORD('R', 'V')) {
@@ -979,7 +939,7 @@ checksum:
 	}
 
 	/* Zero out the unused portion */
-	(void) memset(data + offset + taglen, 0xff, size - offset - taglen);
+	(void)memset(data + offset + taglen, 0xff, size - offset - taglen);
 
 	return (0);
 
@@ -1005,9 +965,8 @@ fail1:
 	return (rc);
 }
 
-				void
-efx_vpd_fini(
-	__in			efx_nic_t *enp)
+void
+efx_vpd_fini(__in efx_nic_t *enp)
 {
 	const efx_vpd_ops_t *evpdop = enp->en_evpdop;
 
@@ -1022,4 +981,4 @@ efx_vpd_fini(
 	enp->en_mod_flags &= ~EFX_MOD_VPD;
 }
 
-#endif	/* EFSYS_OPT_VPD */
+#endif /* EFSYS_OPT_VPD */

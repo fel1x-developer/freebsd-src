@@ -1,5 +1,5 @@
 #ifndef _DUMPREGS_
-#define	_DUMPREGS_
+#define _DUMPREGS_
 /*-
  * Copyright (c) 2002-2008 Sam Leffler, Errno Consulting
  * All rights reserved.
@@ -29,68 +29,69 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#define	__constructor	__attribute__((constructor))
+#define __constructor __attribute__((constructor))
 
 struct dumpreg {
-	uint32_t	addr;
-	const char	*name;
-	const char	*bits;
-	int		type;
-	u_int		srevMin, srevMax;
-	u_int		phyMin, phyMax;
+	uint32_t addr;
+	const char *name;
+	const char *bits;
+	int type;
+	u_int srevMin, srevMax;
+	u_int phyMin, phyMax;
 };
-#define	SREV(v,r)	(((v) << 16) | (r))
-#define	MAC_MATCH(dr, mv, mr) \
-	((dr)->srevMin <= SREV(mv,mr) && SREV(mv,mr) < (dr)->srevMax)
+#define SREV(v, r) (((v) << 16) | (r))
+#define MAC_MATCH(dr, mv, mr) \
+	((dr)->srevMin <= SREV(mv, mr) && SREV(mv, mr) < (dr)->srevMax)
 
-#define	PHY_MATCH(dr, pr) \
-	((dr)->phyMin <= (pr) && (pr) < (dr)->phyMax)
-#define	PHYANY	0,0xffff
+#define PHY_MATCH(dr, pr) ((dr)->phyMin <= (pr) && (pr) < (dr)->phyMax)
+#define PHYANY 0, 0xffff
 
 enum {
-	DUMP_BASIC	= 0x0001,	/* basic/default registers */
-	DUMP_KEYCACHE	= 0x0002,	/* key cache */
-	DUMP_BASEBAND	= 0x0004,	/* baseband */
-	DUMP_INTERRUPT	= 0x0008,	/* interrupt state */
-	DUMP_XR		= 0x0010,	/* XR state */
-	DUMP_QCU	= 0x0020,	/* QCU state */
-	DUMP_DCU	= 0x0040,	/* DCU state */
+	DUMP_BASIC = 0x0001,	 /* basic/default registers */
+	DUMP_KEYCACHE = 0x0002,	 /* key cache */
+	DUMP_BASEBAND = 0x0004,	 /* baseband */
+	DUMP_INTERRUPT = 0x0008, /* interrupt state */
+	DUMP_XR = 0x0010,	 /* XR state */
+	DUMP_QCU = 0x0020,	 /* QCU state */
+	DUMP_DCU = 0x0040,	 /* DCU state */
 
-	DUMP_PUBLIC	= 0x0061,	/* public = BASIC+QCU+DCU */
-	DUMP_ALL	= 0xffff
+	DUMP_PUBLIC = 0x0061, /* public = BASIC+QCU+DCU */
+	DUMP_ALL = 0xffff
 };
 
-#define	_DEFREG(_addr, _name, _type) \
-    { .addr = _addr, .name = _name, .type = _type }
-#define	_DEFREGx(_addr, _name, _type, _srevmin, _srevmax) \
-    { .addr = _addr, .name = _name, .type = _type, \
-     .srevMin = _srevmin, .srevMax = _srevmax }
-#define	_DEFREGfmt(_addr, _name, _type, _fmt) \
-    { .addr = _addr, .name = _name, .type = _type, .bits = _fmt }
-#define	DEFVOID(_addr, _name)	_DEFREG(_addr, _name, 0)
-#define	DEFVOIDx(_addr, _name, _smin, _smax) \
+#define _DEFREG(_addr, _name, _type)                        \
+	{                                                   \
+		.addr = _addr, .name = _name, .type = _type \
+	}
+#define _DEFREGx(_addr, _name, _type, _srevmin, _srevmax)    \
+	{                                                    \
+		.addr = _addr, .name = _name, .type = _type, \
+		.srevMin = _srevmin, .srevMax = _srevmax     \
+	}
+#define _DEFREGfmt(_addr, _name, _type, _fmt)                             \
+	{                                                                 \
+		.addr = _addr, .name = _name, .type = _type, .bits = _fmt \
+	}
+#define DEFVOID(_addr, _name) _DEFREG(_addr, _name, 0)
+#define DEFVOIDx(_addr, _name, _smin, _smax) \
 	__DEFREGx(_addr, _name, _smin, _smax, 0)
-#define	DEFVOIDfmt(_addr, _name, _fmt) \
-	_DEFREGfmt(_addr, _name, 0, _fmt)
-#define	DEFBASIC(_addr, _name)	_DEFREG(_addr, _name, DUMP_BASIC)
-#define	DEFBASICfmt(_addr, _name, _fmt) \
+#define DEFVOIDfmt(_addr, _name, _fmt) _DEFREGfmt(_addr, _name, 0, _fmt)
+#define DEFBASIC(_addr, _name) _DEFREG(_addr, _name, DUMP_BASIC)
+#define DEFBASICfmt(_addr, _name, _fmt) \
 	_DEFREGfmt(_addr, _name, DUMP_BASIC, _fmt)
-#define	DEFBASICx(_addr, _name, _smin, _smax) \
+#define DEFBASICx(_addr, _name, _smin, _smax) \
 	_DEFREGx(_addr, _name, DUMP_BASIC, _smin, _smax)
-#define	DEFBB(_addr, _name)	_DEFREG(_addr, _name, DUMP_BASEBAND)
-#define	DEFINT(_addr, _name)	_DEFREG(_addr, _name, DUMP_INTERRUPT)
-#define	DEFINTfmt(_addr, _name, _fmt) \
+#define DEFBB(_addr, _name) _DEFREG(_addr, _name, DUMP_BASEBAND)
+#define DEFINT(_addr, _name) _DEFREG(_addr, _name, DUMP_INTERRUPT)
+#define DEFINTfmt(_addr, _name, _fmt) \
 	_DEFREGfmt(_addr, _name, DUMP_INTERRUPT, _fmt)
-#define	DEFQCU(_addr, _name)	_DEFREG(_addr, _name, DUMP_QCU)
-#define	DEFDCU(_addr, _name)	_DEFREG(_addr, _name, DUMP_DCU)
+#define DEFQCU(_addr, _name) _DEFREG(_addr, _name, DUMP_QCU)
+#define DEFDCU(_addr, _name) _DEFREG(_addr, _name, DUMP_DCU)
 
-void	register_regs(struct dumpreg *_regs, u_int _nregs,
-	    int def_srev_min, int def_srev_max,
-	    int def_phy_min, int def_phy_max);
-void	register_keycache(u_int nslots,
-	    int def_srev_min, int def_srev_max,
-	    int def_phy_min, int def_phy_max);
-void	register_range(u_int brange, u_int erange, int what,
-	    int def_srev_min, int def_srev_max,
-	    int def_phy_min, int def_phy_max);
+void register_regs(struct dumpreg *_regs, u_int _nregs, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max);
+void register_keycache(u_int nslots, int def_srev_min, int def_srev_max,
+    int def_phy_min, int def_phy_max);
+void register_range(u_int brange, u_int erange, int what, int def_srev_min,
+    int def_srev_max, int def_phy_min, int def_phy_max);
 #endif /* _DUMPREGS_ */

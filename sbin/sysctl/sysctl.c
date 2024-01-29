@@ -30,15 +30,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/vmmeter.h>
+
 #include <dev/evdev/input.h>
 
 #ifdef __amd64__
 #include <sys/efi.h>
+
 #include <machine/metadata.h>
 #endif
 
@@ -61,20 +63,20 @@
 
 static const char *conffile;
 
-static int	aflag, bflag, Bflag, dflag, eflag, hflag, iflag;
-static int	Nflag, nflag, oflag, qflag, tflag, Tflag, Wflag, xflag;
-static bool	Fflag, lflag;
+static int aflag, bflag, Bflag, dflag, eflag, hflag, iflag;
+static int Nflag, nflag, oflag, qflag, tflag, Tflag, Wflag, xflag;
+static bool Fflag, lflag;
 
-static int	oidfmt(int *, int, char *, u_int *);
-static int	parsefile(const char *);
-static int	parse(const char *, int);
-static int	show_var(int *, int, bool);
-static int	sysctl_all(int *, int);
-static int	name2oid(const char *, int *);
+static int oidfmt(int *, int, char *, u_int *);
+static int parsefile(const char *);
+static int parse(const char *, int);
+static int show_var(int *, int, bool);
+static int sysctl_all(int *, int);
+static int name2oid(const char *, int *);
 
-static int	strIKtoi(const char *, char **, const char *);
+static int strIKtoi(const char *, char **, const char *);
 
-static int ctl_sign[CTLTYPE+1] = {
+static int ctl_sign[CTLTYPE + 1] = {
 	[CTLTYPE_INT] = 1,
 	[CTLTYPE_LONG] = 1,
 	[CTLTYPE_S8] = 1,
@@ -83,7 +85,7 @@ static int ctl_sign[CTLTYPE+1] = {
 	[CTLTYPE_S64] = 1,
 };
 
-static int ctl_size[CTLTYPE+1] = {
+static int ctl_size[CTLTYPE + 1] = {
 	[CTLTYPE_INT] = sizeof(int),
 	[CTLTYPE_UINT] = sizeof(u_int),
 	[CTLTYPE_LONG] = sizeof(long),
@@ -98,7 +100,7 @@ static int ctl_size[CTLTYPE+1] = {
 	[CTLTYPE_U64] = sizeof(uint64_t),
 };
 
-static const char *ctl_typename[CTLTYPE+1] = {
+static const char *ctl_typename[CTLTYPE + 1] = {
 	[CTLTYPE_INT] = "integer",
 	[CTLTYPE_UINT] = "unsigned integer",
 	[CTLTYPE_LONG] = "long integer",
@@ -133,8 +135,8 @@ main(int argc, char **argv)
 	int warncount = 0;
 
 	setlocale(LC_NUMERIC, "");
-	setbuf(stdout,0);
-	setbuf(stderr,0);
+	setbuf(stdout, 0);
+	setbuf(stderr, 0);
 
 	while ((ch = getopt(argc, argv, "AabB:def:FhilNnoqtTwWxX")) != -1) {
 		switch (ch) {
@@ -255,7 +257,7 @@ parse_numeric(const char *newvalstr, const char *fmt, u_int kind,
 	uint64_t u64val;
 	size_t valsize;
 	char *endptr = NULL;
-	
+
 	errno = 0;
 
 	switch (kind & CTLTYPE) {
@@ -268,7 +270,7 @@ parse_numeric(const char *newvalstr, const char *fmt, u_int kind,
 		valsize = sizeof(intval);
 		break;
 	case CTLTYPE_UINT:
-		uintval = (int) strtoul(newvalstr, &endptr, 0);
+		uintval = (int)strtoul(newvalstr, &endptr, 0);
 		newval = &uintval;
 		valsize = sizeof(uintval);
 		break;
@@ -326,7 +328,7 @@ parse_numeric(const char *newvalstr, const char *fmt, u_int kind,
 		/* NOTREACHED */
 		abort();
 	}
-	
+
 	if (errno != 0 || endptr == newvalstr ||
 	    (endptr != NULL && *endptr != '\0'))
 		return (false);
@@ -337,7 +339,7 @@ parse_numeric(const char *newvalstr, const char *fmt, u_int kind,
 	memcpy((char *)newbuf + *newsizep, newval, valsize);
 	*newbufp = newbuf;
 	*newsizep += valsize;
-	
+
 	return (true);
 }
 
@@ -490,8 +492,8 @@ parse(const char *string, int lineno)
 	case CTLTYPE_STRING:
 		break;
 	default:
-		warnx("oid '%s' is type %d, cannot set that%s",
-		    bufp, kind & CTLTYPE, line);
+		warnx("oid '%s' is type %d, cannot set that%s", bufp,
+		    kind & CTLTYPE, line);
 		free(buf);
 		return (1);
 	}
@@ -531,16 +533,15 @@ parse(const char *string, int lineno)
 			putchar('\n');
 		switch (save_errno) {
 		case EOPNOTSUPP:
-			warnx("%s: value is not available%s",
-			    string, line);
+			warnx("%s: value is not available%s", string, line);
 			return (1);
 		case ENOTDIR:
-			warnx("%s: specification is incomplete%s",
-			    string, line);
+			warnx("%s: specification is incomplete%s", string,
+			    line);
 			return (1);
 		case ENOMEM:
-			warnx("%s: type is unknown to this program%s",
-			    string, line);
+			warnx("%s: type is unknown to this program%s", string,
+			    line);
 			return (1);
 		default:
 			warnc(save_errno, "%s%s", string, line);
@@ -577,16 +578,16 @@ parsefile(const char *filename)
 		pq = strchr(line, '\'');
 		pdq = strchr(line, '\"');
 		/* Replace the first # with \0. */
-		while((p = strchr(p, '#')) != NULL) {
+		while ((p = strchr(p, '#')) != NULL) {
 			if (pq != NULL && p > pq) {
-				if ((p = strchr(pq+1, '\'')) != NULL)
+				if ((p = strchr(pq + 1, '\'')) != NULL)
 					*(++p) = '\0';
 				break;
 			} else if (pdq != NULL && p > pdq) {
-				if ((p = strchr(pdq+1, '\"')) != NULL)
+				if ((p = strchr(pdq + 1, '\"')) != NULL)
 					*(++p) = '\0';
 				break;
-			} else if (p == line || *(p-1) != '\\') {
+			} else if (p == line || *(p - 1) != '\\') {
 				*p = '\0';
 				break;
 			}
@@ -616,38 +617,38 @@ parsefile(const char *filename)
 static int
 S_clockinfo(size_t l2, void *p)
 {
-	struct clockinfo *ci = (struct clockinfo*)p;
+	struct clockinfo *ci = (struct clockinfo *)p;
 
 	if (l2 != sizeof(*ci)) {
 		warnx("S_clockinfo %zu != %zu", l2, sizeof(*ci));
 		return (1);
 	}
 	printf(hflag ? "{ hz = %'d, tick = %'d, profhz = %'d, stathz = %'d }" :
-		"{ hz = %d, tick = %d, profhz = %d, stathz = %d }",
-		ci->hz, ci->tick, ci->profhz, ci->stathz);
+		       "{ hz = %d, tick = %d, profhz = %d, stathz = %d }",
+	    ci->hz, ci->tick, ci->profhz, ci->stathz);
 	return (0);
 }
 
 static int
 S_loadavg(size_t l2, void *p)
 {
-	struct loadavg *tv = (struct loadavg*)p;
+	struct loadavg *tv = (struct loadavg *)p;
 
 	if (l2 != sizeof(*tv)) {
 		warnx("S_loadavg %zu != %zu", l2, sizeof(*tv));
 		return (1);
 	}
 	printf(hflag ? "{ %'.2f %'.2f %'.2f }" : "{ %.2f %.2f %.2f }",
-		(double)tv->ldavg[0]/(double)tv->fscale,
-		(double)tv->ldavg[1]/(double)tv->fscale,
-		(double)tv->ldavg[2]/(double)tv->fscale);
+	    (double)tv->ldavg[0] / (double)tv->fscale,
+	    (double)tv->ldavg[1] / (double)tv->fscale,
+	    (double)tv->ldavg[2] / (double)tv->fscale);
 	return (0);
 }
 
 static int
 S_timeval(size_t l2, void *p)
 {
-	struct timeval *tv = (struct timeval*)p;
+	struct timeval *tv = (struct timeval *)p;
 	time_t tv_sec;
 	char *p1, *p2;
 
@@ -656,11 +657,11 @@ S_timeval(size_t l2, void *p)
 		return (1);
 	}
 	printf(hflag ? "{ sec = %'jd, usec = %'ld } " :
-		"{ sec = %jd, usec = %ld } ",
-		(intmax_t)tv->tv_sec, tv->tv_usec);
+		       "{ sec = %jd, usec = %ld } ",
+	    (intmax_t)tv->tv_sec, tv->tv_usec);
 	tv_sec = tv->tv_sec;
 	p1 = strdup(ctime(&tv_sec));
-	for (p2=p1; *p2 ; p2++)
+	for (p2 = p1; *p2; p2++)
 		if (*p2 == '\n')
 			*p2 = '\0';
 	fputs(p1, stdout);
@@ -682,17 +683,17 @@ S_vmtotal(size_t l2, void *p)
 	v = p;
 	pageKilo = getpagesize() / 1024;
 
-#define	pg2k(a)	((uintmax_t)(a) * pageKilo)
+#define pg2k(a) ((uintmax_t)(a) * pageKilo)
 	printf("\nSystem wide totals computed every five seconds:"
-	    " (values in kilobytes)\n");
+	       " (values in kilobytes)\n");
 	printf("===============================================\n");
 	printf("Processes:\t\t(RUNQ: %d Disk Wait: %d Page Wait: "
-	    "%d Sleep: %d)\n",
+	       "%d Sleep: %d)\n",
 	    v->t_rq, v->t_dw, v->t_pw, v->t_sl);
-	printf("Virtual Memory:\t\t(Total: %juK Active: %juK)\n",
-	    pg2k(v->t_vm), pg2k(v->t_avm));
-	printf("Real Memory:\t\t(Total: %juK Active: %juK)\n",
-	    pg2k(v->t_rm), pg2k(v->t_arm));
+	printf("Virtual Memory:\t\t(Total: %juK Active: %juK)\n", pg2k(v->t_vm),
+	    pg2k(v->t_avm));
+	printf("Real Memory:\t\t(Total: %juK Active: %juK)\n", pg2k(v->t_rm),
+	    pg2k(v->t_arm));
 	printf("Shared Virtual Memory:\t(Total: %juK Active: %juK)\n",
 	    pg2k(v->t_vmshr), pg2k(v->t_avmshr));
 	printf("Shared Real Memory:\t(Total: %juK Active: %juK)\n",
@@ -712,7 +713,7 @@ S_input_id(size_t l2, void *p)
 	}
 
 	printf("{ bustype = 0x%04x, vendor = 0x%04x, "
-	    "product = 0x%04x, version = 0x%04x }",
+	       "product = 0x%04x, version = 0x%04x }",
 	    id->bustype, id->vendor, id->product, id->version);
 	return (0);
 }
@@ -728,9 +729,9 @@ S_pagesizes(size_t l2, void *p)
 	l = snprintf(buf, sizeof(buf), "{ ");
 	ps = p;
 	for (i = 0; i * sizeof(*ps) < l2 && ps[i] != 0 && l < sizeof(buf);
-	    i++) {
-		l += snprintf(&buf[l], sizeof(buf) - l,
-		    "%s%lu", i == 0 ? "" : ", ", ps[i]);
+	     i++) {
+		l += snprintf(&buf[l], sizeof(buf) - l, "%s%lu",
+		    i == 0 ? "" : ", ", ps[i]);
 	}
 	if (l < sizeof(buf))
 		(void)snprintf(&buf[l], sizeof(buf) - l, " }");
@@ -750,21 +751,21 @@ S_efi_map(size_t l2, void *p)
 	size_t efisz;
 	int ndesc, i;
 
-	static const char * const types[] = {
-		[EFI_MD_TYPE_NULL] =	"Reserved",
-		[EFI_MD_TYPE_CODE] =	"LoaderCode",
-		[EFI_MD_TYPE_DATA] =	"LoaderData",
-		[EFI_MD_TYPE_BS_CODE] =	"BootServicesCode",
-		[EFI_MD_TYPE_BS_DATA] =	"BootServicesData",
-		[EFI_MD_TYPE_RT_CODE] =	"RuntimeServicesCode",
-		[EFI_MD_TYPE_RT_DATA] =	"RuntimeServicesData",
-		[EFI_MD_TYPE_FREE] =	"ConventionalMemory",
-		[EFI_MD_TYPE_BAD] =	"UnusableMemory",
-		[EFI_MD_TYPE_RECLAIM] =	"ACPIReclaimMemory",
+	static const char *const types[] = {
+		[EFI_MD_TYPE_NULL] = "Reserved",
+		[EFI_MD_TYPE_CODE] = "LoaderCode",
+		[EFI_MD_TYPE_DATA] = "LoaderData",
+		[EFI_MD_TYPE_BS_CODE] = "BootServicesCode",
+		[EFI_MD_TYPE_BS_DATA] = "BootServicesData",
+		[EFI_MD_TYPE_RT_CODE] = "RuntimeServicesCode",
+		[EFI_MD_TYPE_RT_DATA] = "RuntimeServicesData",
+		[EFI_MD_TYPE_FREE] = "ConventionalMemory",
+		[EFI_MD_TYPE_BAD] = "UnusableMemory",
+		[EFI_MD_TYPE_RECLAIM] = "ACPIReclaimMemory",
 		[EFI_MD_TYPE_FIRMWARE] = "ACPIMemoryNVS",
-		[EFI_MD_TYPE_IOMEM] =	"MemoryMappedIO",
-		[EFI_MD_TYPE_IOPORT] =	"MemoryMappedIOPortSpace",
-		[EFI_MD_TYPE_PALCODE] =	"PalCode",
+		[EFI_MD_TYPE_IOMEM] = "MemoryMappedIO",
+		[EFI_MD_TYPE_IOPORT] = "MemoryMappedIOPortSpace",
+		[EFI_MD_TYPE_PALCODE] = "PalCode",
 		[EFI_MD_TYPE_PERSISTENT] = "PersistentMemory",
 	};
 
@@ -783,17 +784,17 @@ S_efi_map(size_t l2, void *p)
 	if (efihdr->descriptor_size == 0)
 		return (0);
 	if (l2 != efisz + efihdr->memory_size) {
-		warnx("S_efi_map length mismatch %zu vs %zu", l2, efisz +
-		    efihdr->memory_size);
+		warnx("S_efi_map length mismatch %zu vs %zu", l2,
+		    efisz + efihdr->memory_size);
 		return (1);
 	}
 	ndesc = efihdr->memory_size / efihdr->descriptor_size;
 
-	printf("\n%23s %12s %12s %8s %4s",
-	    "Type", "Physical", "Virtual", "#Pages", "Attr");
+	printf("\n%23s %12s %12s %8s %4s", "Type", "Physical", "Virtual",
+	    "#Pages", "Attr");
 
-	for (i = 0; i < ndesc; i++,
-	    map = efi_next_descriptor(map, efihdr->descriptor_size)) {
+	for (i = 0; i < ndesc;
+	     i++, map = efi_next_descriptor(map, efihdr->descriptor_size)) {
 		type = NULL;
 		if (map->md_type < nitems(types))
 			type = types[map->md_type];
@@ -932,7 +933,7 @@ name2oid(const char *name, int *oidp)
 static int
 oidfmt(int *oid, int len, char *fmt, u_int *kind)
 {
-	int qoid[CTL_MAXNAME+2];
+	int qoid[CTL_MAXNAME + 2];
 	u_char buf[BUFSIZ];
 	int i;
 	size_t j;
@@ -961,7 +962,8 @@ oidfmt(int *oid, int len, char *fmt, u_int *kind)
  * Returns one if there is an error.
  */
 static int
-show_info(char *name, const char *sep, int ctltype, char *fmt, int *qoid, int nlen)
+show_info(char *name, const char *sep, int ctltype, char *fmt, int *qoid,
+    int nlen)
 {
 	u_char buf[BUFSIZ];
 	const char *prntype;
@@ -1019,7 +1021,7 @@ show_var(int *oid, int nlen, bool honor_skip)
 	u_char *val, *oval, *p;
 	char name[BUFSIZ], fmt[BUFSIZ];
 	const char *sep, *sep1;
-	int qoid[CTL_MAXNAME+2];
+	int qoid[CTL_MAXNAME + 2];
 	uintmax_t umv;
 	intmax_t mv;
 	int i, hexlen, sign, ctltype;
@@ -1276,7 +1278,8 @@ sysctl_all(int *oid, int len)
 
 	name1[0] = CTL_SYSCTL;
 	name1[1] = (oid != NULL || Nflag || dflag || tflag) ?
-	    CTL_SYSCTL_NEXTNOSKIP : CTL_SYSCTL_NEXT;
+	    CTL_SYSCTL_NEXTNOSKIP :
+	    CTL_SYSCTL_NEXT;
 	l1 = 2;
 	if (len) {
 		memcpy(name1 + 2, oid, len * sizeof(int));

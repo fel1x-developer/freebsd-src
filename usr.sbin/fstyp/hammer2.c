@@ -29,20 +29,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <err.h>
-#include <assert.h>
-
 #include <sys/types.h>
 
-#include "hammer2_disk.h"
+#include <assert.h>
+#include <err.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "fstyp.h"
+#include "hammer2_disk.h"
 
-static hammer2_volume_data_t*
+static hammer2_volume_data_t *
 read_voldata(FILE *fp)
 {
 	hammer2_volume_data_t *voldata;
@@ -64,7 +63,7 @@ test_voldata(const hammer2_volume_data_t *voldata)
 	return (0);
 }
 
-static hammer2_media_data_t*
+static hammer2_media_data_t *
 read_media(FILE *fp, const hammer2_blockref_t *bref, size_t *media_bytes)
 {
 	hammer2_media_data_t *media;
@@ -133,14 +132,15 @@ find_pfs(FILE *fp, const hammer2_blockref_t *bref, const char *pfs, bool *res)
 			bcount = 0;
 			if (ipdata.meta.op_flags & HAMMER2_OPFLAG_PFSROOT) {
 				if (memchr(ipdata.filename, 0,
-				    sizeof(ipdata.filename))) {
-					if (!strcmp(
-					    (const char*)ipdata.filename, pfs))
+					sizeof(ipdata.filename))) {
+					if (!strcmp((const char *)
+							ipdata.filename,
+						pfs))
 						*res = true;
 				} else {
 					if (strlen(pfs) > 0 &&
 					    !memcmp(ipdata.filename, pfs,
-					    strlen(pfs)))
+						strlen(pfs)))
 						*res = true;
 				}
 			} else
@@ -170,7 +170,7 @@ find_pfs(FILE *fp, const hammer2_blockref_t *bref, const char *pfs, bool *res)
 	return (0);
 }
 
-static char*
+static char *
 extract_device_name(const char *devpath)
 {
 	char *p, *head;

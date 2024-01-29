@@ -32,28 +32,28 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/sysctl.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <elf.h>
 #include <errno.h>
 #include <limits.h>
 #include <paths.h>
-#include <pthread.h>		/* we just need the limits */
+#include <pthread.h> /* we just need the limits */
 #include <semaphore.h>
 #include <time.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "../stdlib/atexit.h"
-#include "tzfile.h"		/* from ../../../contrib/tzcode/stdtime */
 #include "libc_private.h"
+#include "namespace.h"
+#include "tzfile.h" /* from ../../../contrib/tzcode/stdtime */
+#include "un-namespace.h"
 
-#define	_PATH_ZONEINFO	TZDIR	/* from tzfile.h */
+#define _PATH_ZONEINFO TZDIR /* from tzfile.h */
 
 /*
  * sysconf --
@@ -180,7 +180,7 @@ sysconf(int name)
 		return (_POSIX2_UPE);
 	case _SC_TZNAME_MAX:
 		path = _PATH_ZONEINFO;
-do_NAME_MAX:
+	do_NAME_MAX:
 		sverrno = errno;
 		errno = 0;
 		lvalue = pathconf(path, _PC_NAME_MAX);
@@ -303,7 +303,7 @@ do_NAME_MAX:
 	case _SC_TIMER_MAX:
 		mib[0] = CTL_P1003_1B;
 		mib[1] = CTL_P1003_1B_TIMER_MAX;
-yesno:
+	yesno:
 		len = sizeof(value);
 		if (sysctl(mib, 2, &value, &len, NULL, 0) == -1)
 			return (-1);
@@ -515,15 +515,14 @@ yesno:
 #if _XOPEN_REALTIME == 0
 		sverrno = errno;
 		value = sysconf(_SC_ASYNCHRONOUS_IO) > 0 &&
-			sysconf(_SC_MEMLOCK) > 0 &&
-			sysconf(_SC_MEMLOCK_RANGE) > 0 &&
-			sysconf(_SC_MESSAGE_PASSING) > 0 &&
-			sysconf(_SC_PRIORITY_SCHEDULING) > 0 &&
-			sysconf(_SC_REALTIME_SIGNALS) > 0 &&
-			sysconf(_SC_SEMAPHORES) > 0 &&
-			sysconf(_SC_SHARED_MEMORY_OBJECTS) > 0 &&
-			sysconf(_SC_SYNCHRONIZED_IO) > 0 &&
-			sysconf(_SC_TIMERS) > 0;
+		    sysconf(_SC_MEMLOCK) > 0 &&
+		    sysconf(_SC_MEMLOCK_RANGE) > 0 &&
+		    sysconf(_SC_MESSAGE_PASSING) > 0 &&
+		    sysconf(_SC_PRIORITY_SCHEDULING) > 0 &&
+		    sysconf(_SC_REALTIME_SIGNALS) > 0 &&
+		    sysconf(_SC_SEMAPHORES) > 0 &&
+		    sysconf(_SC_SHARED_MEMORY_OBJECTS) > 0 &&
+		    sysconf(_SC_SYNCHRONIZED_IO) > 0 && sysconf(_SC_TIMERS) > 0;
 		errno = sverrno;
 		if (value)
 			return (200112L);
@@ -541,8 +540,8 @@ yesno:
 	case _SC_XOPEN_SHM:
 		len = sizeof(lvalue);
 		sverrno = errno;
-		if (sysctlbyname("kern.ipc.shmmin", &lvalue, &len, NULL,
-		    0) == -1) {
+		if (sysctlbyname("kern.ipc.shmmin", &lvalue, &len, NULL, 0) ==
+		    -1) {
 			errno = sverrno;
 			return (-1);
 		}
@@ -598,7 +597,7 @@ yesno:
 	case _SC_CPUSET_SIZE:
 		len = sizeof(value);
 		if (sysctlbyname("kern.sched.cpusetsize", &value, &len, NULL,
-		    0) == -1)
+			0) == -1)
 			return (-1);
 		return ((long)value);
 #endif

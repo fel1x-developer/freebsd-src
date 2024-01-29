@@ -68,31 +68,31 @@
 #include <compat/linux/linux_misc.h>
 
 struct l_elf_siginfo {
-	l_int		si_signo;
-	l_int		si_code;
-	l_int		si_errno;
+	l_int si_signo;
+	l_int si_code;
+	l_int si_errno;
 };
 
 typedef struct linux_pt_regset l_elf_gregset_t;
 
 struct linux_elf_prstatus {
 	struct l_elf_siginfo pr_info;
-	l_short		pr_cursig;
-	l_ulong		pr_sigpend;
-	l_ulong		pr_sighold;
-	l_pid_t		pr_pid;
-	l_pid_t		pr_ppid;
-	l_pid_t		pr_pgrp;
-	l_pid_t		pr_sid;
-	l_timeval	pr_utime;
-	l_timeval	pr_stime;
-	l_timeval	pr_cutime;
-	l_timeval	pr_cstime;
-	l_elf_gregset_t	pr_reg;
-	l_int		pr_fpvalid;
+	l_short pr_cursig;
+	l_ulong pr_sigpend;
+	l_ulong pr_sighold;
+	l_pid_t pr_pid;
+	l_pid_t pr_ppid;
+	l_pid_t pr_pgrp;
+	l_pid_t pr_sid;
+	l_timeval pr_utime;
+	l_timeval pr_stime;
+	l_timeval pr_cutime;
+	l_timeval pr_cstime;
+	l_elf_gregset_t pr_reg;
+	l_int pr_fpvalid;
 };
 
-#define	LINUX_NT_AUXV	6
+#define LINUX_NT_AUXV 6
 
 static void __linuxN(note_fpregset)(void *, struct sbuf *, size_t *);
 static void __linuxN(note_prpsinfo)(void *, struct sbuf *, size_t *);
@@ -119,19 +119,19 @@ __linuxN(prepare_notes)(struct thread *td, struct note_info_list *list,
 	 */
 	thr = td;
 	while (thr != NULL) {
-		size += __elfN(register_note)(td, list,
-		    NT_PRSTATUS, __linuxN(note_prstatus), thr);
-		size += __elfN(register_note)(td, list,
-		    NT_PRPSINFO, __linuxN(note_prpsinfo), p);
-		size += __elfN(register_note)(td, list,
-		    LINUX_NT_AUXV, __linuxN(note_nt_auxv), p);
-		size += __elfN(register_note)(td, list,
-		    NT_FPREGSET, __linuxN(note_fpregset), thr);
-		size += __elfN(register_note)(td, list,
-		    -1, __linuxN(note_threadmd), thr);
+		size += __elfN(register_note)(td, list, NT_PRSTATUS,
+		    __linuxN(note_prstatus), thr);
+		size += __elfN(register_note)(td, list, NT_PRPSINFO,
+		    __linuxN(note_prpsinfo), p);
+		size += __elfN(register_note)(td, list, LINUX_NT_AUXV,
+		    __linuxN(note_nt_auxv), p);
+		size += __elfN(register_note)(td, list, NT_FPREGSET,
+		    __linuxN(note_fpregset), thr);
+		size += __elfN(
+		    register_note)(td, list, -1, __linuxN(note_threadmd), thr);
 
 		thr = thr == td ? TAILQ_FIRST(&p->p_threads) :
-		    TAILQ_NEXT(thr, td_plist);
+				  TAILQ_NEXT(thr, td_plist);
 		if (thr == td)
 			thr = TAILQ_NEXT(thr, td_plist);
 	}
@@ -195,7 +195,7 @@ __linuxN(note_prpsinfo)(void *arg, struct sbuf *sb, size_t *sizep)
 		else {
 			KASSERT(len < sizeof(psinfo->pr_psargs),
 			    ("len is too long: %zu vs %zu", len,
-			    sizeof(psinfo->pr_psargs)));
+				sizeof(psinfo->pr_psargs)));
 			cp = psinfo->pr_psargs;
 			end = cp + len - 1;
 			for (;;) {
@@ -337,7 +337,7 @@ __linuxN(copyout_strings)(struct image_params *imgp, uintptr_t *stack_base)
 	int error;
 
 	p = imgp->proc;
-	destp =	PROC_PS_STRINGS(p);
+	destp = PROC_PS_STRINGS(p);
 	arginfo = imgp->ps_strings = (void *)destp;
 
 	/*
@@ -510,7 +510,7 @@ __linuxN(copyout_auxargs)(struct image_params *imgp, uintptr_t base)
 	 * is not present.
 	 * Also see linux_times() implementation.
 	 */
-	if (linux_kernver(td) >= LINUX_KERNVER(2,4,0))
+	if (linux_kernver(td) >= LINUX_KERNVER(2, 4, 0))
 		AUXARGS_ENTRY(pos, LINUX_AT_CLKTCK, stclohz);
 	AUXARGS_ENTRY(pos, AT_PAGESZ, args->pagesz);
 	AUXARGS_ENTRY(pos, AT_PHDR, args->phdr);
@@ -524,13 +524,14 @@ __linuxN(copyout_auxargs)(struct image_params *imgp, uintptr_t base)
 	AUXARGS_ENTRY(pos, AT_GID, imgp->proc->p_ucred->cr_rgid);
 	AUXARGS_ENTRY(pos, AT_EGID, imgp->proc->p_ucred->cr_svgid);
 	AUXARGS_ENTRY(pos, LINUX_AT_SECURE, issetugid);
-	if (linux_kernver(td) >= LINUX_KERNVER(2,6,30))
+	if (linux_kernver(td) >= LINUX_KERNVER(2, 6, 30))
 		AUXARGS_ENTRY_PTR(pos, LINUX_AT_RANDOM, imgp->canary);
-	if (linux_kernver(td) >= LINUX_KERNVER(2,6,26) && imgp->execpathp != 0)
+	if (linux_kernver(td) >= LINUX_KERNVER(2, 6, 26) &&
+	    imgp->execpathp != 0)
 		AUXARGS_ENTRY(pos, LINUX_AT_EXECFN, PTROUT(imgp->execpathp));
 	if (args->execfd != -1)
 		AUXARGS_ENTRY(pos, AT_EXECFD, args->execfd);
-	if (linux_kernver(td) >= LINUX_KERNVER(5,13,0))
+	if (linux_kernver(td) >= LINUX_KERNVER(5, 13, 0))
 		AUXARGS_ENTRY(pos, LINUX_AT_MINSIGSTKSZ,
 		    imgp->sysent->sv_minsigstksz);
 	AUXARGS_ENTRY(pos, AT_NULL, 0);

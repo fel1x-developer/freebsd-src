@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -39,9 +39,10 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/jail.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
@@ -51,30 +52,28 @@
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <net/vnet.h>
 
 #include <rpc/rpc.h>
-
 #include <rpc/rpc_com.h>
 
 static enum xprt_stat svc_dg_stat(SVCXPRT *);
-static bool_t svc_dg_recv(SVCXPRT *, struct rpc_msg *,
-    struct sockaddr **, struct mbuf **);
-static bool_t svc_dg_reply(SVCXPRT *, struct rpc_msg *,
-    struct sockaddr *, struct mbuf *, uint32_t *);
+static bool_t svc_dg_recv(SVCXPRT *, struct rpc_msg *, struct sockaddr **,
+    struct mbuf **);
+static bool_t svc_dg_reply(SVCXPRT *, struct rpc_msg *, struct sockaddr *,
+    struct mbuf *, uint32_t *);
 static void svc_dg_destroy(SVCXPRT *);
 static bool_t svc_dg_control(SVCXPRT *, const u_int, void *);
 static int svc_dg_soupcall(struct socket *so, void *arg, int waitflag);
 
 static const struct xp_ops svc_dg_ops = {
-	.xp_recv =	svc_dg_recv,
-	.xp_stat =	svc_dg_stat,
-	.xp_reply =	svc_dg_reply,
-	.xp_destroy =	svc_dg_destroy,
-	.xp_control =	svc_dg_control,
+	.xp_recv = svc_dg_recv,
+	.xp_stat = svc_dg_stat,
+	.xp_reply = svc_dg_reply,
+	.xp_destroy = svc_dg_destroy,
+	.xp_control = svc_dg_control,
 };
 
 /*
@@ -136,7 +135,7 @@ svc_dg_create(SVCPOOL *pool, struct socket *so, size_t sendsize,
 
 	return (xprt);
 freedata:
-	(void) printf(svc_dg_str, __no_mem_str);
+	(void)printf(svc_dg_str, __no_mem_str);
 	svc_xprt_free(xprt);
 
 	return (NULL);
@@ -154,8 +153,8 @@ svc_dg_stat(SVCXPRT *xprt)
 }
 
 static bool_t
-svc_dg_recv(SVCXPRT *xprt, struct rpc_msg *msg,
-    struct sockaddr **addrp, struct mbuf **mp)
+svc_dg_recv(SVCXPRT *xprt, struct rpc_msg *msg, struct sockaddr **addrp,
+    struct mbuf **mp)
 {
 	struct uio uio;
 	struct sockaddr *raddr;
@@ -210,7 +209,7 @@ svc_dg_recv(SVCXPRT *xprt, struct rpc_msg *msg,
 	sx_xunlock(&xprt->xp_lock);
 
 	xdrmbuf_create(&xdrs, mreq, XDR_DECODE);
-	if (! xdr_callmsg(&xdrs, msg)) {
+	if (!xdr_callmsg(&xdrs, msg)) {
 		XDR_DESTROY(&xdrs);
 		return (FALSE);
 	}
@@ -223,8 +222,8 @@ svc_dg_recv(SVCXPRT *xprt, struct rpc_msg *msg,
 }
 
 static bool_t
-svc_dg_reply(SVCXPRT *xprt, struct rpc_msg *msg,
-    struct sockaddr *addr, struct mbuf *m, uint32_t *seq)
+svc_dg_reply(SVCXPRT *xprt, struct rpc_msg *msg, struct sockaddr *addr,
+    struct mbuf *m, uint32_t *seq)
 {
 	XDR xdrs;
 	struct mbuf *mrep;
@@ -247,8 +246,8 @@ svc_dg_reply(SVCXPRT *xprt, struct rpc_msg *msg,
 
 	if (stat) {
 		m_fixhdr(mrep);
-		error = sosend(xprt->xp_socket, addr, NULL, mrep, NULL,
-		    0, curthread);
+		error = sosend(xprt->xp_socket, addr, NULL, mrep, NULL, 0,
+		    curthread);
 		if (!error) {
 			stat = TRUE;
 		}
@@ -275,7 +274,7 @@ svc_dg_destroy(SVCXPRT *xprt)
 		(void)soclose(xprt->xp_socket);
 
 	if (xprt->xp_netid)
-		(void) mem_free(xprt->xp_netid, strlen(xprt->xp_netid) + 1);
+		(void)mem_free(xprt->xp_netid, strlen(xprt->xp_netid) + 1);
 	svc_xprt_free(xprt);
 }
 
@@ -290,7 +289,7 @@ svc_dg_control(SVCXPRT *xprt, const u_int rq, void *in)
 static int
 svc_dg_soupcall(struct socket *so, void *arg, int waitflag)
 {
-	SVCXPRT *xprt = (SVCXPRT *) arg;
+	SVCXPRT *xprt = (SVCXPRT *)arg;
 
 	xprt_active(xprt);
 	return (SU_OK);

@@ -5,47 +5,46 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  *
  */
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
+#include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
+
+#include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <netdb.h>
 #include <string.h>
+#include <unistd.h>
+
 #include "ipsend.h"
 
-
-extern	char	*optarg;
-extern	int	optind;
-#ifndef	NO_IPF
-extern	struct	ipread	pcap, iphex, iptext;
+extern char *optarg;
+extern int optind;
+#ifndef NO_IPF
+extern struct ipread pcap, iphex, iptext;
 #endif
 
-int	opts = 0;
-#ifndef	DEFAULT_DEVICE
-#  ifdef	sun
-char	default_device[] = "le0";
-#  else
-char	default_device[] = "lan0";
-#  endif
+int opts = 0;
+#ifndef DEFAULT_DEVICE
+#ifdef sun
+char default_device[] = "le0";
 #else
-char	default_device[] = DEFAULT_DEVICE;
+char default_device[] = "lan0";
+#endif
+#else
+char default_device[] = DEFAULT_DEVICE;
 #endif
 
+static void usage(char *);
+int main(int, char **);
 
-static	void	usage(char *);
-int	main(int, char **);
-
-
-static void usage(prog)
-	char	*prog;
+static void usage(prog) char *prog;
 {
 	fprintf(stderr, "Usage: %s [options] <-r filename|-R filename>\n\
 \t\t-r filename\tsnoop data file to resend\n\
@@ -54,54 +53,52 @@ static void usage(prog)
 \t\t-d device\tSend out on this device\n\
 \t\t-g gateway\tIP gateway to use if non-local dest.\n\
 \t\t-m mtu\t\tfake MTU to use when sending out\n\
-", prog);
+",
+	    prog);
 	exit(1);
 }
-
 
 int
 main(int argc, char **argv)
 {
-	struct	in_addr	gwip;
-	struct	ipread	*ipr = NULL;
-	char	*name =  argv[0], *gateway = NULL, *dev = NULL;
-	char	*resend = NULL;
-	int	mtu = 1500, c;
+	struct in_addr gwip;
+	struct ipread *ipr = NULL;
+	char *name = argv[0], *gateway = NULL, *dev = NULL;
+	char *resend = NULL;
+	int mtu = 1500, c;
 
 	while ((c = getopt(argc, argv, "EHPRSTXd:g:m:r:")) != -1)
-		switch (c)
-		{
-		case 'd' :
+		switch (c) {
+		case 'd':
 			dev = optarg;
 			break;
-		case 'g' :
+		case 'g':
 			gateway = optarg;
 			break;
-		case 'm' :
+		case 'm':
 			mtu = atoi(optarg);
-			if (mtu < 28)
-			    {
+			if (mtu < 28) {
 				fprintf(stderr, "mtu must be > 28\n");
 				exit(1);
-			    }
-		case 'r' :
+			}
+		case 'r':
 			resend = optarg;
 			break;
-		case 'R' :
+		case 'R':
 			opts |= OPT_RAW;
 			break;
-#ifndef	NO_IPF
-		case 'H' :
+#ifndef NO_IPF
+		case 'H':
 			ipr = &iphex;
 			break;
-		case 'P' :
+		case 'P':
 			ipr = &pcap;
 			break;
-		case 'X' :
+		case 'X':
 			ipr = &iptext;
 			break;
 #endif
-		default :
+		default:
 			fprintf(stderr, "Unknown option \"%c\"\n", c);
 			usage(name);
 		}
@@ -110,11 +107,10 @@ main(int argc, char **argv)
 		usage(name);
 
 	gwip.s_addr = 0;
-	if (gateway && resolve(gateway, (char *)&gwip) == -1)
-	    {
-		fprintf(stderr,"Cant resolve %s\n", gateway);
+	if (gateway && resolve(gateway, (char *)&gwip) == -1) {
+		fprintf(stderr, "Cant resolve %s\n", gateway);
 		exit(2);
-	    }
+	}
 
 	if (!dev)
 		dev = default_device;

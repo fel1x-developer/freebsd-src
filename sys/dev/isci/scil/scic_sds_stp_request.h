@@ -68,80 +68,83 @@ extern "C" {
  * @brief This structure represents the additional information that is
  *        required to handle SATA PIO requests.
  */
-typedef struct SCIC_SDS_STP_REQUEST
-{
-   SCIC_SDS_REQUEST_T parent;
+typedef struct SCIC_SDS_STP_REQUEST {
+	SCIC_SDS_REQUEST_T parent;
 
-   SATA_FIS_REG_D2H_T d2h_reg_fis;
+	SATA_FIS_REG_D2H_T d2h_reg_fis;
 
-   union
-   {
-      U32 ncq;
+	union {
+		U32 ncq;
 
-      U32 udma;
+		U32 udma;
 
-      struct
-      {
-         /**
-          * Total transfer for the entire PIO request recorded at request construction
-          * time.
-          *
-          * @todo Should we just decrement this value for each byte of data transitted
-          *       or received to elemenate the current_transfer_bytes field?
-          */
-         U32 total_transfer_bytes;
+		struct {
+			/**
+			 * Total transfer for the entire PIO request recorded at
+			 * request construction time.
+			 *
+			 * @todo Should we just decrement this value for each
+			 * byte of data transitted or received to elemenate the
+			 * current_transfer_bytes field?
+			 */
+			U32 total_transfer_bytes;
 
-         /**
-          * Total number of bytes received/transmitted in data frames since the start
-          * of the IO request.  At the end of the IO request this should equal the
-          * total_transfer_bytes.
-          */
-         U32 current_transfer_bytes;
+			/**
+			 * Total number of bytes received/transmitted in data
+			 * frames since the start of the IO request.  At the end
+			 * of the IO request this should equal the
+			 * total_transfer_bytes.
+			 */
+			U32 current_transfer_bytes;
 
-         /**
-          * The number of bytes requested in the in the PIO setup.
-          */
-         U32 pio_transfer_bytes;
+			/**
+			 * The number of bytes requested in the in the PIO
+			 * setup.
+			 */
+			U32 pio_transfer_bytes;
 
-         /**
-          * PIO Setup ending status value to tell us if we need to wait for another FIS
-          * or if the transfer is complete. On the receipt of a D2H FIS this will be
-          * the status field of that FIS.
-          */
-         U8  ending_status;
+			/**
+			 * PIO Setup ending status value to tell us if we need
+			 * to wait for another FIS or if the transfer is
+			 * complete. On the receipt of a D2H FIS this will be
+			 * the status field of that FIS.
+			 */
+			U8 ending_status;
 
-         /**
-          * On receipt of a D2H FIS this will be the ending error field if the
-          * ending_status has the SATA_STATUS_ERR bit set.
-          */
-         U8  ending_error;
+			/**
+			 * On receipt of a D2H FIS this will be the ending error
+			 * field if the ending_status has the SATA_STATUS_ERR
+			 * bit set.
+			 */
+			U8 ending_error;
 
-         /**
-          * Protocol Type. This is filled in by core during IO Request construction type.
-          */
-         U8  sat_protocol;
+			/**
+			 * Protocol Type. This is filled in by core during IO
+			 * Request construction type.
+			 */
+			U8 sat_protocol;
 
-         /**
-         * This field keeps track of sgl pair to be retrieved from OS memory for processing.
-         */
-         U8  sgl_pair_index;
+			/**
+			 * This field keeps track of sgl pair to be retrieved
+			 * from OS memory for processing.
+			 */
+			U8 sgl_pair_index;
 
-         struct
-         {
-            SCU_SGL_ELEMENT_PAIR_T * sgl_pair;
-            U8                       sgl_set;
-            U32                      sgl_offset;
-         } request_current;
-      } pio;
+			struct {
+				SCU_SGL_ELEMENT_PAIR_T *sgl_pair;
+				U8 sgl_set;
+				U32 sgl_offset;
+			} request_current;
+		} pio;
 
-      struct
-      {
-         /**
-          * The number of bytes requested in the PIO setup before CDB data frame.
-          */
-         U32 device_preferred_cdb_length;
-      } packet;
-   } type;
+		struct {
+			/**
+			 * The number of bytes requested in the PIO setup before
+			 * CDB data frame.
+			 */
+			U32 device_preferred_cdb_length;
+		} packet;
+	} type;
 
 } SCIC_SDS_STP_REQUEST_T;
 
@@ -151,12 +154,11 @@ typedef struct SCIC_SDS_STP_REQUEST
  * @brief This enumeration depicts the various sub-states associated with
  *        a SATA/STP UDMA protocol operation.
  */
-enum SCIC_SDS_STP_REQUEST_STARTED_UDMA_SUBSTATES
-{
-   SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE,
-   SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE,
+enum SCIC_SDS_STP_REQUEST_STARTED_UDMA_SUBSTATES {
+	SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_TC_COMPLETION_SUBSTATE,
+	SCIC_SDS_STP_REQUEST_STARTED_UDMA_AWAIT_D2H_REG_FIS_SUBSTATE,
 
-   SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES
+	SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES
 };
 
 /**
@@ -165,11 +167,10 @@ enum SCIC_SDS_STP_REQUEST_STARTED_UDMA_SUBSTATES
  * @brief This enumeration depicts the various sub-states associated with
  *        a SATA/STP non-data protocol operation.
  */
-enum SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_SUBSTATES
-{
-   SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_H2D_COMPLETION_SUBSTATE,
-   SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_D2H_SUBSTATE,
-   SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES
+enum SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_SUBSTATES {
+	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_H2D_COMPLETION_SUBSTATE,
+	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_AWAIT_D2H_SUBSTATE,
+	SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES
 };
 
 /**
@@ -178,39 +179,34 @@ enum SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_SUBSTATES
  * @brief THis enumeration depicts the various sub-states associated with a
  *        SATA/STP soft reset operation.
  */
-enum SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_SUBSTATES
-{
-   SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_ASSERTED_COMPLETION_SUBSTATE,
-   SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_DIAGNOSTIC_COMPLETION_SUBSTATE,
-   SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_D2H_RESPONSE_FRAME_SUBSTATE,
+enum SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_SUBSTATES {
+	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_ASSERTED_COMPLETION_SUBSTATE,
+	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_H2D_DIAGNOSTIC_COMPLETION_SUBSTATE,
+	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_AWAIT_D2H_RESPONSE_FRAME_SUBSTATE,
 
-   SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES
+	SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES
 };
 
 extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
-   scic_sds_stp_request_started_udma_substate_handler_table
-      [SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
+    scic_sds_stp_request_started_udma_substate_handler_table
+	[SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
 
-extern SCI_BASE_STATE_T
-   scic_sds_stp_request_started_udma_substate_table
-      [SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
-
-extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
-   scic_sds_stp_request_started_non_data_substate_handler_table
-      [SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
-
-extern SCI_BASE_STATE_T
-   scic_sds_stp_request_started_non_data_substate_table
-      [SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
-
+extern SCI_BASE_STATE_T scic_sds_stp_request_started_udma_substate_table
+    [SCIC_SDS_STP_REQUEST_STARTED_UDMA_MAX_SUBSTATES];
 
 extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
-   scic_sds_stp_request_started_soft_reset_substate_handler_table
-      [SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
+    scic_sds_stp_request_started_non_data_substate_handler_table
+	[SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
 
-extern SCI_BASE_STATE_T
-   scic_sds_stp_request_started_soft_reset_substate_table
-      [SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
+extern SCI_BASE_STATE_T scic_sds_stp_request_started_non_data_substate_table
+    [SCIC_SDS_STP_REQUEST_STARTED_NON_DATA_MAX_SUBSTATES];
+
+extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
+    scic_sds_stp_request_started_soft_reset_substate_handler_table
+	[SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
+
+extern SCI_BASE_STATE_T scic_sds_stp_request_started_soft_reset_substate_table
+    [SCIC_SDS_STP_REQUEST_STARTED_SOFT_RESET_MAX_SUBSTATES];
 
 // ---------------------------------------------------------------------------
 
@@ -218,60 +214,40 @@ U32 scic_sds_stp_request_get_object_size(void);
 
 U32 scic_sds_stp_task_request_get_object_size(void);
 
-void scu_sata_reqeust_construct_task_context(
-   SCIC_SDS_REQUEST_T * this_request,
-   SCU_TASK_CONTEXT_T * task_context
-);
+void scu_sata_reqeust_construct_task_context(SCIC_SDS_REQUEST_T *this_request,
+    SCU_TASK_CONTEXT_T *task_context);
 
-void scic_sds_stp_non_ncq_request_construct(
-   SCIC_SDS_REQUEST_T *this_request
-);
+void scic_sds_stp_non_ncq_request_construct(SCIC_SDS_REQUEST_T *this_request);
 
-SCI_STATUS scic_sds_stp_pio_request_construct(
-   SCIC_SDS_REQUEST_T  * scic_io_request,
-   U8                    sat_protocol,
-   BOOL                  copy_rx_frame
-);
+SCI_STATUS
+scic_sds_stp_pio_request_construct(SCIC_SDS_REQUEST_T *scic_io_request,
+    U8 sat_protocol, BOOL copy_rx_frame);
 
-SCI_STATUS scic_sds_stp_pio_request_construct_pass_through (
-   SCIC_SDS_REQUEST_T  * scic_io_request,
-   SCIC_STP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb
-);
+SCI_STATUS scic_sds_stp_pio_request_construct_pass_through(
+    SCIC_SDS_REQUEST_T *scic_io_request,
+    SCIC_STP_PASSTHRU_REQUEST_CALLBACKS_T *passthru_cb);
 
-SCI_STATUS scic_sds_stp_udma_request_construct(
-   SCIC_SDS_REQUEST_T * this_request,
-   U32 transfer_length,
-   SCI_IO_REQUEST_DATA_DIRECTION data_direction
-);
+SCI_STATUS scic_sds_stp_udma_request_construct(SCIC_SDS_REQUEST_T *this_request,
+    U32 transfer_length, SCI_IO_REQUEST_DATA_DIRECTION data_direction);
 
 SCI_STATUS scic_sds_stp_non_data_request_construct(
-   SCIC_SDS_REQUEST_T * this_request
-);
+    SCIC_SDS_REQUEST_T *this_request);
 
 SCI_STATUS scic_sds_stp_soft_reset_request_construct(
-   SCIC_SDS_REQUEST_T * this_request
-);
+    SCIC_SDS_REQUEST_T *this_request);
 
-SCI_STATUS scic_sds_stp_ncq_request_construct(
-   SCIC_SDS_REQUEST_T * this_request,
-   U32 transfer_length,
-   SCI_IO_REQUEST_DATA_DIRECTION data_direction
-);
+SCI_STATUS scic_sds_stp_ncq_request_construct(SCIC_SDS_REQUEST_T *this_request,
+    U32 transfer_length, SCI_IO_REQUEST_DATA_DIRECTION data_direction);
 
 void scu_stp_raw_request_construct_task_context(
-   SCIC_SDS_STP_REQUEST_T * this_request,
-   SCU_TASK_CONTEXT_T     * task_context
+    SCIC_SDS_STP_REQUEST_T *this_request, SCU_TASK_CONTEXT_T *task_context
 
 );
 
-SCI_STATUS scic_sds_io_request_construct_sata(
-   SCIC_SDS_REQUEST_T          * this_request,
-   U8                            sat_protocol,
-   U32                           transfer_length,
-   SCI_IO_REQUEST_DATA_DIRECTION data_direction,
-   BOOL                          copy_rx_frame,
-   BOOL                          do_translate_sgl
-);
+SCI_STATUS scic_sds_io_request_construct_sata(SCIC_SDS_REQUEST_T *this_request,
+    U8 sat_protocol, U32 transfer_length,
+    SCI_IO_REQUEST_DATA_DIRECTION data_direction, BOOL copy_rx_frame,
+    BOOL do_translate_sgl);
 
 #ifdef __cplusplus
 }

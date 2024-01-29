@@ -22,11 +22,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	CSU_COMMON_NOTES_H
-#define	CSU_COMMON_NOTES_H
+#ifndef CSU_COMMON_NOTES_H
+#define CSU_COMMON_NOTES_H
 
-#define NOTE_FREEBSD_VENDOR	"FreeBSD"
+#define NOTE_FREEBSD_VENDOR "FreeBSD"
 
-#define NOTE_SECTION		".note.tag"
+#define NOTE_SECTION ".note.tag"
 
 #endif

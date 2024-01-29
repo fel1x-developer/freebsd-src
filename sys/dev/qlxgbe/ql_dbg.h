@@ -36,49 +36,70 @@
 #define _QL_DBG_H_
 
 extern void ql_dump_buf8(qla_host_t *ha, const char *str, void *dbuf,
-		uint32_t len);
+    uint32_t len);
 extern void ql_dump_buf16(qla_host_t *ha, const char *str, void *dbuf,
-		uint32_t len16);
+    uint32_t len16);
 extern void ql_dump_buf32(qla_host_t *ha, const char *str, void *dbuf,
-		uint32_t len32);
+    uint32_t len32);
 
-#define INJCT_RX_RXB_INVAL				0x00001
-#define INJCT_RX_MP_NULL				0x00002
-#define INJCT_LRO_RXB_INVAL				0x00003
-#define INJCT_LRO_MP_NULL				0x00004
-#define INJCT_NUM_HNDLE_INVALID				0x00005
-#define INJCT_RDWR_INDREG_FAILURE			0x00006
-#define INJCT_RDWR_OFFCHIPMEM_FAILURE			0x00007
-#define INJCT_MBX_CMD_FAILURE				0x00008
-#define INJCT_HEARTBEAT_FAILURE				0x00009
-#define INJCT_TEMPERATURE_FAILURE			0x0000A
-#define INJCT_M_GETCL_M_GETJCL_FAILURE			0x0000B
-#define INJCT_INV_CONT_OPCODE				0x0000C
-#define INJCT_SGL_RCV_INV_DESC_COUNT			0x0000D
-#define INJCT_SGL_LRO_INV_DESC_COUNT			0x0000E
-#define INJCT_PEER_PORT_FAILURE_ERR_RECOVERY		0x0000F
-#define INJCT_TXBUF_MBUF_NON_NULL			0x00010
+#define INJCT_RX_RXB_INVAL 0x00001
+#define INJCT_RX_MP_NULL 0x00002
+#define INJCT_LRO_RXB_INVAL 0x00003
+#define INJCT_LRO_MP_NULL 0x00004
+#define INJCT_NUM_HNDLE_INVALID 0x00005
+#define INJCT_RDWR_INDREG_FAILURE 0x00006
+#define INJCT_RDWR_OFFCHIPMEM_FAILURE 0x00007
+#define INJCT_MBX_CMD_FAILURE 0x00008
+#define INJCT_HEARTBEAT_FAILURE 0x00009
+#define INJCT_TEMPERATURE_FAILURE 0x0000A
+#define INJCT_M_GETCL_M_GETJCL_FAILURE 0x0000B
+#define INJCT_INV_CONT_OPCODE 0x0000C
+#define INJCT_SGL_RCV_INV_DESC_COUNT 0x0000D
+#define INJCT_SGL_LRO_INV_DESC_COUNT 0x0000E
+#define INJCT_PEER_PORT_FAILURE_ERR_RECOVERY 0x0000F
+#define INJCT_TXBUF_MBUF_NON_NULL 0x00010
 
 #ifdef QL_DBG
 
-#define QL_DPRINT1(ha, x)	if (ha->dbg_level & 0x0001) device_printf x
-#define QL_DPRINT2(ha, x)	if (ha->dbg_level & 0x0002) device_printf x
-#define QL_DPRINT4(ha, x)	if (ha->dbg_level & 0x0004) device_printf x
-#define QL_DPRINT8(ha, x)	if (ha->dbg_level & 0x0008) device_printf x
-#define QL_DPRINT10(ha, x)	if (ha->dbg_level & 0x0010) device_printf x
-#define QL_DPRINT20(ha, x)	if (ha->dbg_level & 0x0020) device_printf x
-#define QL_DPRINT40(ha, x)	if (ha->dbg_level & 0x0040) device_printf x
-#define QL_DPRINT80(ha, x)	if (ha->dbg_level & 0x0080) device_printf x
+#define QL_DPRINT1(ha, x)           \
+	if (ha->dbg_level & 0x0001) \
+	device_printf x
+#define QL_DPRINT2(ha, x)           \
+	if (ha->dbg_level & 0x0002) \
+	device_printf x
+#define QL_DPRINT4(ha, x)           \
+	if (ha->dbg_level & 0x0004) \
+	device_printf x
+#define QL_DPRINT8(ha, x)           \
+	if (ha->dbg_level & 0x0008) \
+	device_printf x
+#define QL_DPRINT10(ha, x)          \
+	if (ha->dbg_level & 0x0010) \
+	device_printf x
+#define QL_DPRINT20(ha, x)          \
+	if (ha->dbg_level & 0x0020) \
+	device_printf x
+#define QL_DPRINT40(ha, x)          \
+	if (ha->dbg_level & 0x0040) \
+	device_printf x
+#define QL_DPRINT80(ha, x)          \
+	if (ha->dbg_level & 0x0080) \
+	device_printf x
 
-#define QL_DUMP_BUFFER8(h, s, b, n) if (h->dbg_level & 0x08000000)\
-					qla_dump_buf8(h, s, b, n)
-#define QL_DUMP_BUFFER16(h, s, b, n) if (h->dbg_level & 0x08000000)\
-					qla_dump_buf16(h, s, b, n)
-#define QL_DUMP_BUFFER32(h, s, b, n) if (h->dbg_level & 0x08000000)\
-					qla_dump_buf32(h, s, b, n)
+#define QL_DUMP_BUFFER8(h, s, b, n)    \
+	if (h->dbg_level & 0x08000000) \
+	qla_dump_buf8(h, s, b, n)
+#define QL_DUMP_BUFFER16(h, s, b, n)   \
+	if (h->dbg_level & 0x08000000) \
+	qla_dump_buf16(h, s, b, n)
+#define QL_DUMP_BUFFER32(h, s, b, n)   \
+	if (h->dbg_level & 0x08000000) \
+	qla_dump_buf32(h, s, b, n)
 
-#define QL_ASSERT(ha, x, y)		if (!x && !ha->err_inject) panic y
-#define QL_ERR_INJECT(ha, val)		(ha->err_inject == val)
+#define QL_ASSERT(ha, x, y)        \
+	if (!x && !ha->err_inject) \
+	panic y
+#define QL_ERR_INJECT(ha, val) (ha->err_inject == val)
 
 #else
 
@@ -96,7 +117,7 @@ extern void ql_dump_buf32(qla_host_t *ha, const char *str, void *dbuf,
 #define QL_DUMP_BUFFER32(h, s, b, n)
 
 #define QL_ASSERT(ha, x, y)
-#define QL_ERR_INJECT(ha, val)		0
+#define QL_ERR_INJECT(ha, val) 0
 
 #endif
 

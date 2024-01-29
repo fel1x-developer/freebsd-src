@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,26 +26,26 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <err.h>
-#include <errno.h>
-#include <assert.h>
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/bio.h>
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/syslog.h>
+#include <sys/time.h>
 
+#include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <geom/gate/g_gate.h>
-#include "ggate.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
+#include "ggate.h"
 
 static enum { UNSET, CREATE, DESTROY, LIST, RESCUE } action = UNSET;
 
@@ -60,10 +60,14 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: %s create [-v] [-o <ro|wo|rw>] "
-	    "[-s sectorsize] [-t timeout] [-u unit] <path>\n", getprogname());
-	fprintf(stderr, "       %s rescue [-v] [-o <ro|wo|rw>] <-u unit> "
-	    "<path>\n", getprogname());
+	fprintf(stderr,
+	    "usage: %s create [-v] [-o <ro|wo|rw>] "
+	    "[-s sectorsize] [-t timeout] [-u unit] <path>\n",
+	    getprogname());
+	fprintf(stderr,
+	    "       %s rescue [-v] [-o <ro|wo|rw>] <-u unit> "
+	    "<path>\n",
+	    getprogname());
 	fprintf(stderr, "       %s destroy [-f] <-u unit>\n", getprogname());
 	fprintf(stderr, "       %s list [-v] [-u unit]\n", getprogname());
 	exit(EXIT_FAILURE);
@@ -99,7 +103,7 @@ g_gatel_serve(int fd)
 	ggio.gctl_data = malloc(bsize);
 	for (;;) {
 		int error;
-once_again:
+	once_again:
 		ggio.gctl_length = bsize;
 		ggio.gctl_error = 0;
 		g_gate_ioctl(G_GATE_CMD_START, &ggio);
@@ -143,7 +147,7 @@ once_again:
 			}
 			if (error == 0) {
 				if (pread(fd, ggio.gctl_data, ggio.gctl_length,
-				    ggio.gctl_offset) == -1) {
+					ggio.gctl_offset) == -1) {
 					error = errno;
 				}
 			}
@@ -151,7 +155,7 @@ once_again:
 		case BIO_DELETE:
 		case BIO_WRITE:
 			if (pwrite(fd, ggio.gctl_data, ggio.gctl_length,
-			    ggio.gctl_offset) == -1) {
+				ggio.gctl_offset) == -1) {
 				error = errno;
 			}
 			break;

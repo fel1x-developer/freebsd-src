@@ -39,14 +39,14 @@
 
 #include <errno.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdarg.h>
-#include "xlocale_private.h"
+#include <stdio.h>
 
 #include "local.h"
+#include "xlocale_private.h"
 
 int
-snprintf(char * __restrict str, size_t n, char const * __restrict fmt, ...)
+snprintf(char *__restrict str, size_t n, char const *__restrict fmt, ...)
 {
 	size_t on;
 	int ret;
@@ -72,8 +72,8 @@ snprintf(char * __restrict str, size_t n, char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-snprintf_l(char * __restrict str, size_t n, locale_t locale,
-		char const * __restrict fmt, ...)
+snprintf_l(char *__restrict str, size_t n, locale_t locale,
+    char const *__restrict fmt, ...)
 {
 	size_t on;
 	int ret;

@@ -11,7 +11,7 @@
  */
 
 #ifndef _MACHINE__BUS_H_
-#define	_MACHINE__BUS_H_
+#define _MACHINE__BUS_H_
 
 /*
  * Addresses (in bus space).

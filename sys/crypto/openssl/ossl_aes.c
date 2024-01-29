@@ -28,34 +28,31 @@
 #include <sys/param.h>
 #include <sys/malloc.h>
 
-#include <opencrypto/cryptodev.h>
-#include <opencrypto/gmac.h>
-
 #include <crypto/openssl/ossl.h>
 #include <crypto/openssl/ossl_aes_gcm.h>
 #include <crypto/openssl/ossl_cipher.h>
+#include <opencrypto/cryptodev.h>
+#include <opencrypto/gmac.h>
 
 #if defined(__amd64__) || defined(__i386__)
 #include <crypto/openssl/ossl_x86.h>
-#elif defined (__aarch64__)
+#elif defined(__aarch64__)
 #include <crypto/openssl/ossl_aarch64.h>
-#elif defined (__arm__)
+#elif defined(__arm__)
 #include <crypto/openssl/ossl_arm.h>
 #endif
 
 static ossl_cipher_process_t ossl_aes_cbc;
 static ossl_cipher_process_t ossl_aes_gcm;
 
-struct ossl_cipher ossl_cipher_aes_cbc = {
-	.type = CRYPTO_AES_CBC,
+struct ossl_cipher ossl_cipher_aes_cbc = { .type = CRYPTO_AES_CBC,
 	.blocksize = AES_BLOCK_LEN,
 	.ivsize = AES_BLOCK_LEN,
 
 	/* Filled during initialization based on CPU caps. */
 	.set_encrypt_key = NULL,
 	.set_decrypt_key = NULL,
-	.process = ossl_aes_cbc
-};
+	.process = ossl_aes_cbc };
 
 struct ossl_cipher ossl_cipher_aes_gcm = {
 	.type = CRYPTO_AES_NIST_GCM_16,
@@ -207,7 +204,7 @@ ossl_aes_gcm(struct ossl_session_cipher *s, struct cryptop *crp,
 		crypto_cursor_init(&cc_in, &crp->crp_buf);
 		crypto_cursor_advance(&cc_in, crp->crp_aad_start);
 		for (size_t alen = crp->crp_aad_length; alen > 0;
-		    alen -= seglen) {
+		     alen -= seglen) {
 			inseg = crypto_cursor_segment(&cc_in, &inlen);
 			seglen = MIN(alen, inlen);
 			if (ctx.ops->aad(&ctx, inseg, seglen) != 0)

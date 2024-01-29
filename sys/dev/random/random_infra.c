@@ -38,8 +38,7 @@
 SYSCTL_NODE(_kern, OID_AUTO, random, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Cryptographically Secure Random Number Generator");
 SYSCTL_NODE(_kern_random, OID_AUTO, initial_seeding,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "Initial seeding control and information");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "Initial seeding control and information");
 
 /*
  * N.B., this is a dangerous default, but it matches the behavior prior to
@@ -47,9 +46,9 @@ SYSCTL_NODE(_kern_random, OID_AUTO, initial_seeding,
  * entropy from the prior boot because of their KARL system, on RW media).
  */
 bool random_bypass_before_seeding = true;
-SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
-    bypass_before_seeding, CTLFLAG_RDTUN, &random_bypass_before_seeding,
-    0, "If set non-zero, bypass the random device in requests for random "
+SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO, bypass_before_seeding,
+    CTLFLAG_RDTUN, &random_bypass_before_seeding, 0,
+    "If set non-zero, bypass the random device in requests for random "
     "data when the random device is not yet seeded.  This is considered "
     "dangerous.  Ordinarily, the random device will block requests until "
     "it is seeded by sufficient entropy.");
@@ -62,7 +61,8 @@ SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
 bool read_random_bypassed_before_seeding = false;
 SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
     read_random_bypassed_before_seeding, CTLFLAG_RD,
-    &read_random_bypassed_before_seeding, 0, "If non-zero, the random device "
+    &read_random_bypassed_before_seeding, 0,
+    "If non-zero, the random device "
     "was bypassed because the 'bypass_before_seeding' knob was enabled and a "
     "request was submitted prior to initial seeding.");
 
@@ -75,7 +75,8 @@ SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
 bool arc4random_bypassed_before_seeding = false;
 SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
     arc4random_bypassed_before_seeding, CTLFLAG_RD,
-    &arc4random_bypassed_before_seeding, 0, "If non-zero, the random device "
+    &arc4random_bypassed_before_seeding, 0,
+    "If non-zero, the random device "
     "was bypassed when initially seeding the kernel arc4random(9), because "
     "the 'bypass_before_seeding' knob was enabled and a request was submitted "
     "prior to initial seeding.");
@@ -86,13 +87,14 @@ SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
  * diagnostic sysctls.
  */
 bool random_bypass_disable_warnings = false;
-SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO,
-    disable_bypass_warnings, CTLFLAG_RDTUN,
-    &random_bypass_disable_warnings, 0, "If non-zero, do not log a warning "
+SYSCTL_BOOL(_kern_random_initial_seeding, OID_AUTO, disable_bypass_warnings,
+    CTLFLAG_RDTUN, &random_bypass_disable_warnings, 0,
+    "If non-zero, do not log a warning "
     "if the 'bypass_before_seeding' knob is enabled and a request is "
     "submitted prior to initial seeding.");
 
-MALLOC_DEFINE(M_ENTROPY, "entropy", "Entropy harvesting buffers and data structures");
+MALLOC_DEFINE(M_ENTROPY, "entropy",
+    "Entropy harvesting buffers and data structures");
 
 #if defined(RANDOM_LOADABLE)
 const struct random_algorithm *p_random_alg_context;

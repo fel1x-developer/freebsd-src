@@ -31,7 +31,7 @@
 #define _DEV_VIDEOMODE_H
 
 struct videomode {
-	int dot_clock;		/* Dot clock frequency in kHz. */
+	int dot_clock; /* Dot clock frequency in kHz. */
 	int hdisplay;
 	int hsync_start;
 	int hsync_end;
@@ -40,7 +40,7 @@ struct videomode {
 	int vsync_start;
 	int vsync_end;
 	int vtotal;
-	int flags;		/* Video mode flags; see below. */
+	int flags; /* Video mode flags; see below. */
 	const char *name;
 	int hskew;
 };
@@ -49,20 +49,20 @@ struct videomode {
  * Video mode flags.
  */
 
-#define VID_PHSYNC	0x0001
-#define VID_NHSYNC	0x0002
-#define VID_PVSYNC	0x0004
-#define VID_NVSYNC	0x0008
-#define VID_INTERLACE	0x0010
-#define VID_DBLSCAN	0x0020
-#define VID_CSYNC	0x0040
-#define VID_PCSYNC	0x0080
-#define VID_NCSYNC	0x0100
-#define VID_HSKEW	0x0200
-#define VID_BCAST	0x0400
-#define VID_PIXMUX	0x1000
-#define VID_DBLCLK	0x2000
-#define VID_CLKDIV2	0x4000
+#define VID_PHSYNC 0x0001
+#define VID_NHSYNC 0x0002
+#define VID_PVSYNC 0x0004
+#define VID_NVSYNC 0x0008
+#define VID_INTERLACE 0x0010
+#define VID_DBLSCAN 0x0020
+#define VID_CSYNC 0x0040
+#define VID_PCSYNC 0x0080
+#define VID_NCSYNC 0x0100
+#define VID_HSKEW 0x0200
+#define VID_BCAST 0x0400
+#define VID_PIXMUX 0x1000
+#define VID_DBLCLK 0x2000
+#define VID_CLKDIV2 0x4000
 
 extern const struct videomode videomode_list[];
 extern const int videomode_count;

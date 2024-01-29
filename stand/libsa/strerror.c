@@ -30,56 +30,42 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "stand.h"
 
-static struct 
-{
-    int		err;
-    char	*msg;
-} errtab[] = {
-    {0,		"no error"},
-    /* standard errors */
-    {EPERM,		"operation not permitted"},
-    {ENOENT,		"no such file or directory"},
-    {EIO,		"input/output error"},
-    {ENXIO,		"device not configured"},
-    {ENOEXEC,		"exec format error"},
-    {EBADF,		"bad file descriptor"},
-    {ENOMEM,		"cannot allocate memory"},
-    {ENODEV,		"operation not supported by device"},
-    {ENOTDIR,		"not a directory"},
-    {EISDIR,		"is a directory"},
-    {EINVAL,		"invalid argument"},
-    {EMFILE,		"too many open files"},
-    {EFBIG,		"file too large"},
-    {EROFS,		"read-only filesystem"},
-    {EOPNOTSUPP,	"operation not supported"},
-    {ETIMEDOUT,		"operation timed out"},
-    {ESTALE,		"stale NFS file handle"},
-    {EBADRPC,		"RPC struct is bad"},
-    {EFTYPE,		"inappropriate file type or format"},
+static struct {
+	int err;
+	char *msg;
+} errtab[] = { { 0, "no error" },
+	/* standard errors */
+	{ EPERM, "operation not permitted" },
+	{ ENOENT, "no such file or directory" }, { EIO, "input/output error" },
+	{ ENXIO, "device not configured" }, { ENOEXEC, "exec format error" },
+	{ EBADF, "bad file descriptor" }, { ENOMEM, "cannot allocate memory" },
+	{ ENODEV, "operation not supported by device" },
+	{ ENOTDIR, "not a directory" }, { EISDIR, "is a directory" },
+	{ EINVAL, "invalid argument" }, { EMFILE, "too many open files" },
+	{ EFBIG, "file too large" }, { EROFS, "read-only filesystem" },
+	{ EOPNOTSUPP, "operation not supported" },
+	{ ETIMEDOUT, "operation timed out" },
+	{ ESTALE, "stale NFS file handle" }, { EBADRPC, "RPC struct is bad" },
+	{ EFTYPE, "inappropriate file type or format" },
 
-    {EADAPT,		"bad adaptor number"},
-    {ECTLR,		"bad controller number"},
-    {EUNIT,		"bad unit number"},
-    {ESLICE,		"bad slice number"},
-    {EPART,		"bad partition"},
-    {ERDLAB,		"can't read disk label"},
-    {EUNLAB,		"disk unlabelled"},
-    {EOFFSET,		"illegal seek"},
-    {0,		NULL}
-};
-
+	{ EADAPT, "bad adaptor number" }, { ECTLR, "bad controller number" },
+	{ EUNIT, "bad unit number" }, { ESLICE, "bad slice number" },
+	{ EPART, "bad partition" }, { ERDLAB, "can't read disk label" },
+	{ EUNLAB, "disk unlabelled" }, { EOFFSET, "illegal seek" },
+	{ 0, NULL } };
 
 char *
 strerror(int err)
 {
-    static char	msg[32];
-    int		i;
+	static char msg[32];
+	int i;
 
-    for (i = 0; errtab[i].msg != NULL; i++)
-	if (errtab[i].err == err)
-	    return(errtab[i].msg);
-    sprintf(msg, "unknown error (%d)", err);
-    return(msg);
+	for (i = 0; errtab[i].msg != NULL; i++)
+		if (errtab[i].err == err)
+			return (errtab[i].msg);
+	sprintf(msg, "unknown error (%d)", err);
+	return (msg);
 }

@@ -31,23 +31,24 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
+
+#include <assert.h>
 #include <errno.h>
 #include <grp.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-#define ACL_STRING_PERM_WRITE   'w'
-#define ACL_STRING_PERM_READ    'r'
-#define ACL_STRING_PERM_EXEC    'x'
-#define ACL_STRING_PERM_NONE    '-'
+#define ACL_STRING_PERM_WRITE 'w'
+#define ACL_STRING_PERM_READ 'r'
+#define ACL_STRING_PERM_EXEC 'x'
+#define ACL_STRING_PERM_NONE '-'
 
 /*
  * Return 0, if both ACLs are identical.
@@ -134,7 +135,7 @@ _posix1e_acl_sort(acl_t acl)
 	acl_int = &acl->ats_acl;
 
 	qsort(&acl_int->acl_entry[0], acl_int->acl_cnt,
-	    sizeof(struct acl_entry), (compare) _posix1e_acl_entry_compare);
+	    sizeof(struct acl_entry), (compare)_posix1e_acl_entry_compare);
 }
 
 /*
@@ -170,12 +171,12 @@ int
 _posix1e_acl_check(acl_t acl)
 {
 	struct acl *acl_int;
-	struct acl_entry	*entry; 	/* current entry */
-	uid_t	highest_uid=0, highest_gid=0;
-	int	stage = ACL_USER_OBJ;
-	int	i = 0;
-	int	count_user_obj=0, count_user=0, count_group_obj=0,
-		count_group=0, count_mask=0, count_other=0;
+	struct acl_entry *entry; /* current entry */
+	uid_t highest_uid = 0, highest_gid = 0;
+	int stage = ACL_USER_OBJ;
+	int i = 0;
+	int count_user_obj = 0, count_user = 0, count_group_obj = 0,
+	    count_group = 0, count_mask = 0, count_other = 0;
 
 	acl_int = &acl->ats_acl;
 
@@ -187,7 +188,7 @@ _posix1e_acl_check(acl_t acl)
 		if ((entry->ae_perm | ACL_PERM_BITS) != ACL_PERM_BITS)
 			return (EINVAL);
 
-		switch(entry->ae_tag) {
+		switch (entry->ae_tag) {
 		case ACL_USER_OBJ:
 			/* printf("_posix1e_acl_check: %d: ACL_USER_OBJ\n",
 			    i); */
@@ -284,7 +285,7 @@ _posix1e_acl_perm_to_string(acl_perm_t perm, ssize_t buf_len, char *buf)
 		return (-1);
 	}
 
-	buf[3] = 0;	/* null terminate */
+	buf[3] = 0; /* null terminate */
 
 	if (perm & ACL_READ)
 		buf[0] = ACL_STRING_PERM_READ;
@@ -310,12 +311,12 @@ _posix1e_acl_perm_to_string(acl_perm_t perm, ssize_t buf_len, char *buf)
 int
 _posix1e_acl_string_to_perm(char *string, acl_perm_t *perm)
 {
-	acl_perm_t	myperm = ACL_PERM_NONE;
-	char	*ch;
+	acl_perm_t myperm = ACL_PERM_NONE;
+	char *ch;
 
 	ch = string;
 	while (*ch) {
-		switch(*ch) {
+		switch (*ch) {
 		case ACL_STRING_PERM_READ:
 			myperm |= ACL_READ;
 			break;
@@ -343,8 +344,8 @@ _posix1e_acl_string_to_perm(char *string, acl_perm_t *perm)
 int
 _posix1e_acl_add_entry(acl_t acl, acl_tag_t tag, uid_t id, acl_perm_t perm)
 {
-	struct acl		*acl_int;
-	struct acl_entry	*e;
+	struct acl *acl_int;
+	struct acl_entry *e;
 
 	acl_int = &acl->ats_acl;
 
@@ -395,7 +396,7 @@ string_skip_whitespace(char *string)
 void
 string_trim_trailing_whitespace(char *string)
 {
-	char	*end;
+	char *end;
 
 	if (*string == '\0')
 		return;

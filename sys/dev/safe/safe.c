@@ -35,16 +35,20 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/proc.h>
+#include <sys/bus.h>
+#include <sys/endian.h>
 #include <sys/errno.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
+#include <sys/kobj.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
+#include <sys/random.h>
+#include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/endian.h>
 #include <sys/uio.h>
 
 #include <vm/vm.h>
@@ -52,18 +56,14 @@
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform_auth.h>
-#include <sys/random.h>
-#include <sys/kobj.h>
 
 #include "cryptodev_if.h"
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 
 #ifdef SAFE_RNDTEST
 #include <dev/rndtest/rndtest.h>
@@ -72,46 +72,43 @@
 #include <dev/safe/safevar.h>
 
 #ifndef bswap32
-#define	bswap32	NTOHL
+#define bswap32 NTOHL
 #endif
 
 /*
  * Prototypes and count for the pci_device structure
  */
-static	int safe_probe(device_t);
-static	int safe_attach(device_t);
-static	int safe_detach(device_t);
-static	int safe_suspend(device_t);
-static	int safe_resume(device_t);
-static	int safe_shutdown(device_t);
+static int safe_probe(device_t);
+static int safe_attach(device_t);
+static int safe_detach(device_t);
+static int safe_suspend(device_t);
+static int safe_resume(device_t);
+static int safe_shutdown(device_t);
 
-static	int safe_probesession(device_t, const struct crypto_session_params *);
-static	int safe_newsession(device_t, crypto_session_t,
-	    const struct crypto_session_params *);
-static	int safe_process(device_t, struct cryptop *, int);
+static int safe_probesession(device_t, const struct crypto_session_params *);
+static int safe_newsession(device_t, crypto_session_t,
+    const struct crypto_session_params *);
+static int safe_process(device_t, struct cryptop *, int);
 
 static device_method_t safe_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		safe_probe),
-	DEVMETHOD(device_attach,	safe_attach),
-	DEVMETHOD(device_detach,	safe_detach),
-	DEVMETHOD(device_suspend,	safe_suspend),
-	DEVMETHOD(device_resume,	safe_resume),
-	DEVMETHOD(device_shutdown,	safe_shutdown),
+	DEVMETHOD(device_probe, safe_probe),
+	DEVMETHOD(device_attach, safe_attach),
+	DEVMETHOD(device_detach, safe_detach),
+	DEVMETHOD(device_suspend, safe_suspend),
+	DEVMETHOD(device_resume, safe_resume),
+	DEVMETHOD(device_shutdown, safe_shutdown),
 
 	/* crypto device methods */
 	DEVMETHOD(cryptodev_probesession, safe_probesession),
-	DEVMETHOD(cryptodev_newsession,	safe_newsession),
-	DEVMETHOD(cryptodev_process,	safe_process),
+	DEVMETHOD(cryptodev_newsession, safe_newsession),
+	DEVMETHOD(cryptodev_process, safe_process),
 
 	DEVMETHOD_END
 };
 
-static driver_t safe_driver = {
-	"safe",
-	safe_methods,
-	sizeof (struct safe_softc)
-};
+static driver_t safe_driver = { "safe", safe_methods,
+	sizeof(struct safe_softc) };
 
 DRIVER_MODULE(safe, pci, safe_driver, 0, 0);
 MODULE_DEPEND(safe, crypto, 1, 1, 1);
@@ -119,69 +116,70 @@ MODULE_DEPEND(safe, crypto, 1, 1, 1);
 MODULE_DEPEND(safe, rndtest, 1, 1, 1);
 #endif
 
-static	void safe_intr(void *);
-static	void safe_callback(struct safe_softc *, struct safe_ringentry *);
-static	void safe_feed(struct safe_softc *, struct safe_ringentry *);
-static	void safe_mcopy(struct mbuf *, struct mbuf *, u_int);
+static void safe_intr(void *);
+static void safe_callback(struct safe_softc *, struct safe_ringentry *);
+static void safe_feed(struct safe_softc *, struct safe_ringentry *);
+static void safe_mcopy(struct mbuf *, struct mbuf *, u_int);
 #ifndef SAFE_NO_RNG
-static	void safe_rng_init(struct safe_softc *);
-static	void safe_rng(void *);
+static void safe_rng_init(struct safe_softc *);
+static void safe_rng(void *);
 #endif /* SAFE_NO_RNG */
-static	int safe_dma_malloc(struct safe_softc *, bus_size_t,
-	        struct safe_dma_alloc *, int);
-#define	safe_dma_sync(_dma, _flags) \
+static int safe_dma_malloc(struct safe_softc *, bus_size_t,
+    struct safe_dma_alloc *, int);
+#define safe_dma_sync(_dma, _flags) \
 	bus_dmamap_sync((_dma)->dma_tag, (_dma)->dma_map, (_flags))
-static	void safe_dma_free(struct safe_softc *, struct safe_dma_alloc *);
-static	int safe_dmamap_aligned(const struct safe_operand *);
-static	int safe_dmamap_uniform(const struct safe_operand *);
+static void safe_dma_free(struct safe_softc *, struct safe_dma_alloc *);
+static int safe_dmamap_aligned(const struct safe_operand *);
+static int safe_dmamap_uniform(const struct safe_operand *);
 
-static	void safe_reset_board(struct safe_softc *);
-static	void safe_init_board(struct safe_softc *);
-static	void safe_init_pciregs(device_t dev);
-static	void safe_cleanchip(struct safe_softc *);
-static	void safe_totalreset(struct safe_softc *);
+static void safe_reset_board(struct safe_softc *);
+static void safe_init_board(struct safe_softc *);
+static void safe_init_pciregs(device_t dev);
+static void safe_cleanchip(struct safe_softc *);
+static void safe_totalreset(struct safe_softc *);
 
-static	int safe_free_entry(struct safe_softc *, struct safe_ringentry *);
+static int safe_free_entry(struct safe_softc *, struct safe_ringentry *);
 
 static SYSCTL_NODE(_hw, OID_AUTO, safe, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "SafeNet driver parameters");
 
 #ifdef SAFE_DEBUG
-static	void safe_dump_dmastatus(struct safe_softc *, const char *);
-static	void safe_dump_ringstate(struct safe_softc *, const char *);
-static	void safe_dump_intrstate(struct safe_softc *, const char *);
-static	void safe_dump_request(struct safe_softc *, const char *,
-		struct safe_ringentry *);
+static void safe_dump_dmastatus(struct safe_softc *, const char *);
+static void safe_dump_ringstate(struct safe_softc *, const char *);
+static void safe_dump_intrstate(struct safe_softc *, const char *);
+static void safe_dump_request(struct safe_softc *, const char *,
+    struct safe_ringentry *);
 
-static	struct safe_softc *safec;		/* for use by hw.safe.dump */
+static struct safe_softc *safec; /* for use by hw.safe.dump */
 
-static	int safe_debug = 0;
-SYSCTL_INT(_hw_safe, OID_AUTO, debug, CTLFLAG_RW, &safe_debug,
-	    0, "control debugging msgs");
-#define	DPRINTF(_x)	if (safe_debug) printf _x
+static int safe_debug = 0;
+SYSCTL_INT(_hw_safe, OID_AUTO, debug, CTLFLAG_RW, &safe_debug, 0,
+    "control debugging msgs");
+#define DPRINTF(_x)     \
+	if (safe_debug) \
+	printf _x
 #else
-#define	DPRINTF(_x)
+#define DPRINTF(_x)
 #endif
 
-#define	READ_REG(sc,r) \
-	bus_space_read_4((sc)->sc_st, (sc)->sc_sh, (r))
+#define READ_REG(sc, r) bus_space_read_4((sc)->sc_st, (sc)->sc_sh, (r))
 
-#define WRITE_REG(sc,reg,val) \
+#define WRITE_REG(sc, reg, val) \
 	bus_space_write_4((sc)->sc_st, (sc)->sc_sh, reg, val)
 
 struct safe_stats safestats;
-SYSCTL_STRUCT(_hw_safe, OID_AUTO, stats, CTLFLAG_RD, &safestats,
-	    safe_stats, "driver statistics");
+SYSCTL_STRUCT(_hw_safe, OID_AUTO, stats, CTLFLAG_RD, &safestats, safe_stats,
+    "driver statistics");
 #ifndef SAFE_NO_RNG
-static	int safe_rnginterval = 1;		/* poll once a second */
-SYSCTL_INT(_hw_safe, OID_AUTO, rnginterval, CTLFLAG_RW, &safe_rnginterval,
-	    0, "RNG polling interval (secs)");
-static	int safe_rngbufsize = 16;		/* 64 bytes each poll  */
-SYSCTL_INT(_hw_safe, OID_AUTO, rngbufsize, CTLFLAG_RW, &safe_rngbufsize,
-	    0, "RNG polling buffer size (32-bit words)");
-static	int safe_rngmaxalarm = 8;		/* max alarms before reset */
-SYSCTL_INT(_hw_safe, OID_AUTO, rngmaxalarm, CTLFLAG_RW, &safe_rngmaxalarm,
-	    0, "RNG max alarms before reset");
+static int safe_rnginterval = 1; /* poll once a second */
+SYSCTL_INT(_hw_safe, OID_AUTO, rnginterval, CTLFLAG_RW, &safe_rnginterval, 0,
+    "RNG polling interval (secs)");
+static int safe_rngbufsize = 16; /* 64 bytes each poll  */
+SYSCTL_INT(_hw_safe, OID_AUTO, rngbufsize, CTLFLAG_RW, &safe_rngbufsize, 0,
+    "RNG polling buffer size (32-bit words)");
+static int safe_rngmaxalarm = 8; /* max alarms before reset */
+SYSCTL_INT(_hw_safe, OID_AUTO, rngmaxalarm, CTLFLAG_RW, &safe_rngmaxalarm, 0,
+    "RNG max alarms before reset");
 #endif /* SAFE_NO_RNG */
 
 static int
@@ -193,14 +191,15 @@ safe_probe(device_t dev)
 	return (ENXIO);
 }
 
-static const char*
+static const char *
 safe_partname(struct safe_softc *sc)
 {
 	/* XXX sprintf numbers when not decoded */
 	switch (pci_get_vendor(sc->sc_dev)) {
 	case PCI_VENDOR_SAFENET:
 		switch (pci_get_device(sc->sc_dev)) {
-		case PCI_PRODUCT_SAFEXCEL: return "SafeNet SafeXcel-1141";
+		case PCI_PRODUCT_SAFEXCEL:
+			return "SafeNet SafeXcel-1141";
 		}
 		return "SafeNet unknown-part";
 	}
@@ -224,19 +223,19 @@ safe_attach(device_t dev)
 	u_int32_t i;
 	int rid;
 
-	bzero(sc, sizeof (*sc));
+	bzero(sc, sizeof(*sc));
 	sc->sc_dev = dev;
 
 	/* XXX handle power management */
 
 	pci_enable_busmaster(dev);
 
-	/* 
+	/*
 	 * Setup memory-mapping of PCI registers.
 	 */
 	rid = BS_BAR;
 	sc->sc_sr = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-					   RF_ACTIVE);
+	    RF_ACTIVE);
 	if (sc->sc_sr == NULL) {
 		device_printf(dev, "cannot map register space\n");
 		goto bad;
@@ -249,7 +248,7 @@ safe_attach(device_t dev)
 	 */
 	rid = 0;
 	sc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-					    RF_SHAREABLE|RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (sc->sc_irq == NULL) {
 		device_printf(dev, "could not map interrupt\n");
 		goto bad1;
@@ -258,8 +257,8 @@ safe_attach(device_t dev)
 	 * NB: Network code assumes we are blocked with splimp()
 	 *     so make sure the IRQ is mapped appropriately.
 	 */
-	if (bus_setup_intr(dev, sc->sc_irq, INTR_TYPE_NET | INTR_MPSAFE,
-			   NULL, safe_intr, sc, &sc->sc_ih)) {
+	if (bus_setup_intr(dev, sc->sc_irq, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+		safe_intr, sc, &sc->sc_ih)) {
 		device_printf(dev, "could not establish interrupt\n");
 		goto bad2;
 	}
@@ -272,38 +271,38 @@ safe_attach(device_t dev)
 	}
 
 	sc->sc_chiprev = READ_REG(sc, SAFE_DEVINFO) &
-		(SAFE_DEVINFO_REV_MAJ | SAFE_DEVINFO_REV_MIN);
+	    (SAFE_DEVINFO_REV_MAJ | SAFE_DEVINFO_REV_MIN);
 
 	/*
 	 * Setup DMA descriptor area.
 	 */
-	if (bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       1,			/* alignment */
-			       SAFE_DMA_BOUNDARY,	/* boundary */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       SAFE_MAX_DMA,		/* maxsize */
-			       SAFE_MAX_PART,		/* nsegments */
-			       SAFE_MAX_SSIZE,		/* maxsegsize */
-			       BUS_DMA_ALLOCNOW,	/* flags */
-			       NULL, NULL,		/* locking */
-			       &sc->sc_srcdmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		1,				     /* alignment */
+		SAFE_DMA_BOUNDARY,		     /* boundary */
+		BUS_SPACE_MAXADDR_32BIT,	     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		SAFE_MAX_DMA,			     /* maxsize */
+		SAFE_MAX_PART,			     /* nsegments */
+		SAFE_MAX_SSIZE,			     /* maxsegsize */
+		BUS_DMA_ALLOCNOW,		     /* flags */
+		NULL, NULL,			     /* locking */
+		&sc->sc_srcdmat)) {
 		device_printf(dev, "cannot allocate DMA tag\n");
 		goto bad4;
 	}
-	if (bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       1,			/* alignment */
-			       SAFE_MAX_DSIZE,		/* boundary */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       SAFE_MAX_DMA,		/* maxsize */
-			       SAFE_MAX_PART,		/* nsegments */
-			       SAFE_MAX_DSIZE,		/* maxsegsize */
-			       BUS_DMA_ALLOCNOW,	/* flags */
-			       NULL, NULL,		/* locking */
-			       &sc->sc_dstdmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		1,				     /* alignment */
+		SAFE_MAX_DSIZE,			     /* boundary */
+		BUS_SPACE_MAXADDR_32BIT,	     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		SAFE_MAX_DMA,			     /* maxsize */
+		SAFE_MAX_PART,			     /* nsegments */
+		SAFE_MAX_DSIZE,			     /* maxsegsize */
+		BUS_DMA_ALLOCNOW,		     /* flags */
+		NULL, NULL,			     /* locking */
+		&sc->sc_dstdmat)) {
 		device_printf(dev, "cannot allocate DMA tag\n");
 		goto bad4;
 	}
@@ -311,9 +310,8 @@ safe_attach(device_t dev)
 	/*
 	 * Allocate packet engine descriptors.
 	 */
-	if (safe_dma_malloc(sc,
-	    SAFE_MAX_NQUEUE * sizeof (struct safe_ringentry),
-	    &sc->sc_ringalloc, 0)) {
+	if (safe_dma_malloc(sc, SAFE_MAX_NQUEUE * sizeof(struct safe_ringentry),
+		&sc->sc_ringalloc, 0)) {
 		device_printf(dev, "cannot allocate PE descriptor ring\n");
 		bus_dma_tag_destroy(sc->sc_srcdmat);
 		goto bad4;
@@ -321,7 +319,7 @@ safe_attach(device_t dev)
 	/*
 	 * Hookup the static portion of all our data structures.
 	 */
-	sc->sc_ring = (struct safe_ringentry *) sc->sc_ringalloc.dma_vaddr;
+	sc->sc_ring = (struct safe_ringentry *)sc->sc_ringalloc.dma_vaddr;
 	sc->sc_ringtop = sc->sc_ring + SAFE_MAX_NQUEUE;
 	sc->sc_front = sc->sc_ring;
 	sc->sc_back = sc->sc_ring;
@@ -331,43 +329,45 @@ safe_attach(device_t dev)
 		struct safe_ringentry *re = &sc->sc_ring[i];
 
 		re->re_desc.d_sa = raddr +
-			offsetof(struct safe_ringentry, re_sa);
+		    offsetof(struct safe_ringentry, re_sa);
 		re->re_sa.sa_staterec = raddr +
-			offsetof(struct safe_ringentry, re_sastate);
+		    offsetof(struct safe_ringentry, re_sastate);
 
-		raddr += sizeof (struct safe_ringentry);
+		raddr += sizeof(struct safe_ringentry);
 	}
 	mtx_init(&sc->sc_ringmtx, device_get_nameunit(dev),
-		"packet engine ring", MTX_DEF);
+	    "packet engine ring", MTX_DEF);
 
 	/*
 	 * Allocate scatter and gather particle descriptors.
 	 */
-	if (safe_dma_malloc(sc, SAFE_TOTAL_SPART * sizeof (struct safe_pdesc),
-	    &sc->sc_spalloc, 0)) {
-		device_printf(dev, "cannot allocate source particle "
-			"descriptor ring\n");
+	if (safe_dma_malloc(sc, SAFE_TOTAL_SPART * sizeof(struct safe_pdesc),
+		&sc->sc_spalloc, 0)) {
+		device_printf(dev,
+		    "cannot allocate source particle "
+		    "descriptor ring\n");
 		mtx_destroy(&sc->sc_ringmtx);
 		safe_dma_free(sc, &sc->sc_ringalloc);
 		bus_dma_tag_destroy(sc->sc_srcdmat);
 		goto bad4;
 	}
-	sc->sc_spring = (struct safe_pdesc *) sc->sc_spalloc.dma_vaddr;
+	sc->sc_spring = (struct safe_pdesc *)sc->sc_spalloc.dma_vaddr;
 	sc->sc_springtop = sc->sc_spring + SAFE_TOTAL_SPART;
 	sc->sc_spfree = sc->sc_spring;
 	bzero(sc->sc_spring, SAFE_TOTAL_SPART * sizeof(struct safe_pdesc));
 
-	if (safe_dma_malloc(sc, SAFE_TOTAL_DPART * sizeof (struct safe_pdesc),
-	    &sc->sc_dpalloc, 0)) {
-		device_printf(dev, "cannot allocate destination particle "
-			"descriptor ring\n");
+	if (safe_dma_malloc(sc, SAFE_TOTAL_DPART * sizeof(struct safe_pdesc),
+		&sc->sc_dpalloc, 0)) {
+		device_printf(dev,
+		    "cannot allocate destination particle "
+		    "descriptor ring\n");
 		mtx_destroy(&sc->sc_ringmtx);
 		safe_dma_free(sc, &sc->sc_spalloc);
 		safe_dma_free(sc, &sc->sc_ringalloc);
 		bus_dma_tag_destroy(sc->sc_dstdmat);
 		goto bad4;
 	}
-	sc->sc_dpring = (struct safe_pdesc *) sc->sc_dpalloc.dma_vaddr;
+	sc->sc_dpring = (struct safe_pdesc *)sc->sc_dpalloc.dma_vaddr;
 	sc->sc_dpringtop = sc->sc_dpring + SAFE_TOTAL_DPART;
 	sc->sc_dpfree = sc->sc_dpring;
 	bzero(sc->sc_dpring, SAFE_TOTAL_DPART * sizeof(struct safe_pdesc));
@@ -400,9 +400,9 @@ safe_attach(device_t dev)
 	/* XXX other supported algorithms */
 	printf("\n");
 
-	safe_reset_board(sc);		/* reset h/w */
-	safe_init_pciregs(dev);		/* init pci settings */
-	safe_init_board(sc);		/* init h/w */
+	safe_reset_board(sc);	/* reset h/w */
+	safe_init_pciregs(dev); /* init pci settings */
+	safe_init_board(sc);	/* init h/w */
 
 #ifndef SAFE_NO_RNG
 	if (sc->sc_flags & SAFE_FLAGS_RNG) {
@@ -418,11 +418,12 @@ safe_attach(device_t dev)
 		safe_rng_init(sc);
 
 		callout_init(&sc->sc_rngto, 1);
-		callout_reset(&sc->sc_rngto, hz*safe_rnginterval, safe_rng, sc);
+		callout_reset(&sc->sc_rngto, hz * safe_rnginterval, safe_rng,
+		    sc);
 	}
 #endif /* SAFE_NO_RNG */
 #ifdef SAFE_DEBUG
-	safec = sc;			/* for use by hw.safe.dump */
+	safec = sc; /* for use by hw.safe.dump */
 #endif
 	return (0);
 bad4:
@@ -447,7 +448,7 @@ safe_detach(device_t dev)
 
 	/* XXX wait/abort active ops */
 
-	WRITE_REG(sc, SAFE_HI_MASK, 0);		/* disable interrupts */
+	WRITE_REG(sc, SAFE_HI_MASK, 0); /* disable interrupts */
 
 	callout_stop(&sc->sc_rngto);
 
@@ -526,10 +527,10 @@ safe_intr(void *arg)
 	volatile u_int32_t stat;
 
 	stat = READ_REG(sc, SAFE_HM_STAT);
-	if (stat == 0)			/* shared irq, not for us */
+	if (stat == 0) /* shared irq, not for us */
 		return;
 
-	WRITE_REG(sc, SAFE_HI_CLR, stat);	/* IACK */
+	WRITE_REG(sc, SAFE_HI_CLR, stat); /* IACK */
 
 	if ((stat & SAFE_INT_PE_DDONE)) {
 		/*
@@ -570,8 +571,8 @@ safe_intr(void *arg)
 	 * Check to see if we got any DMA Error
 	 */
 	if (stat & SAFE_INT_PE_ERROR) {
-		DPRINTF(("dmaerr dmastat %08x\n",
-			READ_REG(sc, SAFE_PE_DMASTAT)));
+		DPRINTF(
+		    ("dmaerr dmastat %08x\n", READ_REG(sc, SAFE_PE_DMASTAT)));
 		safestats.st_dmaerr++;
 		safe_totalreset(sc);
 #if 0
@@ -579,10 +580,10 @@ safe_intr(void *arg)
 #endif
 	}
 
-	if (sc->sc_needwakeup) {		/* XXX check high watermark */
+	if (sc->sc_needwakeup) { /* XXX check high watermark */
 		int wakeup = sc->sc_needwakeup & CRYPTO_SYMQ;
-		DPRINTF(("%s: wakeup crypto %x\n", __func__,
-			sc->sc_needwakeup));
+		DPRINTF(
+		    ("%s: wakeup crypto %x\n", __func__, sc->sc_needwakeup));
 		sc->sc_needwakeup &= ~wakeup;
 		crypto_unblock(sc->sc_cid, wakeup);
 	}
@@ -597,10 +598,10 @@ safe_feed(struct safe_softc *sc, struct safe_ringentry *re)
 	bus_dmamap_sync(sc->sc_srcdmat, re->re_src_map, BUS_DMASYNC_PREWRITE);
 	if (re->re_dst_map != NULL)
 		bus_dmamap_sync(sc->sc_dstdmat, re->re_dst_map,
-			BUS_DMASYNC_PREREAD);
+		    BUS_DMASYNC_PREREAD);
 	/* XXX have no smaller granularity */
 	safe_dma_sync(&sc->sc_ringalloc,
-		BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	safe_dma_sync(&sc->sc_spalloc, BUS_DMASYNC_PREWRITE);
 	safe_dma_sync(&sc->sc_dpalloc, BUS_DMASYNC_PREWRITE);
 
@@ -617,7 +618,7 @@ safe_feed(struct safe_softc *sc, struct safe_ringentry *re)
 	WRITE_REG(sc, SAFE_HI_RD_DESCR, 0);
 }
 
-#define	N(a)	(sizeof(a) / sizeof (a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 static void
 safe_setup_enckey(struct safe_session *ses, const void *key)
 {
@@ -680,8 +681,7 @@ safe_cipher_supported(struct safe_softc *sc,
 			return (false);
 		if (csp->csp_ivlen != 16)
 			return (false);
-		if (csp->csp_cipher_klen != 16 &&
-		    csp->csp_cipher_klen != 24 &&
+		if (csp->csp_cipher_klen != 16 && csp->csp_cipher_klen != 24 &&
 		    csp->csp_cipher_klen != 32)
 			return (false);
 		break;
@@ -753,18 +753,17 @@ safe_op_cb(void *arg, bus_dma_segment_t *seg, int nsegs, int error)
 {
 	struct safe_operand *op = arg;
 
-	DPRINTF(("%s: nsegs %d error %d\n", __func__,
-		nsegs, error));
+	DPRINTF(("%s: nsegs %d error %d\n", __func__, nsegs, error));
 	if (error != 0)
 		return;
 	op->nsegs = nsegs;
-	bcopy(seg, op->segs, nsegs * sizeof (seg[0]));
+	bcopy(seg, op->segs, nsegs * sizeof(seg[0]));
 }
 
 static int
 safe_process(device_t dev, struct cryptop *crp, int hint)
 {
-	struct safe_softc *sc = device_get_softc(dev);	
+	struct safe_softc *sc = device_get_softc(dev);
 	const struct crypto_session_params *csp;
 	int err = 0, i, nicealign, uniform;
 	int bypass, oplen;
@@ -784,10 +783,10 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	}
 	re = sc->sc_front;
 
-	staterec = re->re_sa.sa_staterec;	/* save */
+	staterec = re->re_sa.sa_staterec; /* save */
 	/* NB: zero everything but the PE descriptor */
 	bzero(&re->re_sa, sizeof(struct safe_ringentry) - sizeof(re->re_desc));
-	re->re_sa.sa_staterec = staterec;	/* restore */
+	re->re_sa.sa_staterec = staterec; /* restore */
 
 	re->re_crp = crp;
 
@@ -795,7 +794,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	ses = crypto_get_driver_session(crp->crp_session);
 	csp = crypto_get_params(crp->crp_session);
 
-	cmd0 = SAFE_SA_CMD0_BASIC;		/* basic group operation */
+	cmd0 = SAFE_SA_CMD0_BASIC; /* basic group operation */
 	cmd1 = 0;
 	switch (csp->csp_mode) {
 	case CSP_MODE_DIGEST:
@@ -818,11 +817,11 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 			cmd0 |= SAFE_SA_CMD0_AES;
 			cmd1 |= SAFE_SA_CMD1_CBC;
 			if (ses->ses_klen * 8 == 128)
-			     cmd1 |=  SAFE_SA_CMD1_AES128;
+				cmd1 |= SAFE_SA_CMD1_AES128;
 			else if (ses->ses_klen * 8 == 192)
-			     cmd1 |=  SAFE_SA_CMD1_AES192;
+				cmd1 |= SAFE_SA_CMD1_AES192;
 			else
-			     cmd1 |=  SAFE_SA_CMD1_AES256;
+				cmd1 |= SAFE_SA_CMD1_AES256;
 		}
 
 		/*
@@ -871,7 +870,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 		switch (csp->csp_auth_alg) {
 		case CRYPTO_SHA1_HMAC:
 			cmd0 |= SAFE_SA_CMD0_SHA1;
-			cmd1 |= SAFE_SA_CMD1_HMAC;	/* NB: enable HMAC */
+			cmd1 |= SAFE_SA_CMD1_HMAC; /* NB: enable HMAC */
 			break;
 		}
 
@@ -882,9 +881,9 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 		 */
 		/* XXX assert digest bufs have the same size */
 		bcopy(ses->ses_hminner, sa->sa_indigest,
-			sizeof(sa->sa_indigest));
+		    sizeof(sa->sa_indigest));
 		bcopy(ses->ses_hmouter, sa->sa_outdigest,
-			sizeof(sa->sa_outdigest));
+		    sizeof(sa->sa_outdigest));
 
 		cmd0 |= SAFE_SA_CMD0_HSLD_SA | SAFE_SA_CMD0_SAVEHASH;
 		re->re_flags |= SAFE_QFLAGS_COPYOUTICV;
@@ -897,7 +896,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 		 */
 		if (crp->crp_aad_length != 0 &&
 		    crp->crp_aad_start + crp->crp_aad_length !=
-		    crp->crp_payload_start) {
+			crp->crp_payload_start) {
 			safestats.st_lenmismatch++;
 			err = EINVAL;
 			goto errout;
@@ -916,21 +915,21 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 			printf("payload: skip %d, len %d, IV %d\n",
 			    crp->crp_payload_start, crp->crp_payload_length,
 			    crp->crp_iv_start);
-			printf("bypass %d coffset %d oplen %d\n",
-				bypass, coffset, oplen);
+			printf("bypass %d coffset %d oplen %d\n", bypass,
+			    coffset, oplen);
 		}
 #endif
-		if (coffset & 3) {	/* offset must be 32-bit aligned */
-			DPRINTF(("%s: coffset %u misaligned\n",
-				__func__, coffset));
+		if (coffset & 3) { /* offset must be 32-bit aligned */
+			DPRINTF(
+			    ("%s: coffset %u misaligned\n", __func__, coffset));
 			safestats.st_coffmisaligned++;
 			err = EINVAL;
 			goto errout;
 		}
 		coffset >>= 2;
-		if (coffset > 255) {	/* offset must be <256 dwords */
-			DPRINTF(("%s: coffset %u too big\n",
-				__func__, coffset));
+		if (coffset > 255) { /* offset must be <256 dwords */
+			DPRINTF(
+			    ("%s: coffset %u too big\n", __func__, coffset));
 			safestats.st_cofftoobig++;
 			err = EINVAL;
 			goto errout;
@@ -938,7 +937,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 		/*
 		 * Tell the hardware to copy the header to the output.
 		 * The header is defined as the data from the end of
-		 * the bypass to the start of data to be encrypted. 
+		 * the bypass to the start of data to be encrypted.
 		 * Typically this is the inline IV.  Note that you need
 		 * to do this even if src+dst are the same; it appears
 		 * that w/o this bit the crypted data is written
@@ -956,20 +955,21 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 		coffset = 0;
 	}
 	/* XXX verify multiple of 4 when using s/g */
-	if (bypass > 96) {		/* bypass offset must be <= 96 bytes */
+	if (bypass > 96) { /* bypass offset must be <= 96 bytes */
 		DPRINTF(("%s: bypass %u too big\n", __func__, bypass));
 		safestats.st_bypasstoobig++;
 		err = EINVAL;
 		goto errout;
 	}
 
-	if (bus_dmamap_create(sc->sc_srcdmat, BUS_DMA_NOWAIT, &re->re_src_map)) {
+	if (bus_dmamap_create(sc->sc_srcdmat, BUS_DMA_NOWAIT,
+		&re->re_src_map)) {
 		safestats.st_nomap++;
 		err = ENOMEM;
 		goto errout;
 	}
 	if (bus_dmamap_load_crp(sc->sc_srcdmat, re->re_src_map, crp, safe_op_cb,
-	    &re->re_src, BUS_DMA_NOWAIT) != 0) {
+		&re->re_src, BUS_DMA_NOWAIT) != 0) {
 		bus_dmamap_destroy(sc->sc_srcdmat, re->re_src_map);
 		re->re_src_map = NULL;
 		safestats.st_noload++;
@@ -980,20 +980,20 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	nicealign = safe_dmamap_aligned(&re->re_src);
 	uniform = safe_dmamap_uniform(&re->re_src);
 
-	DPRINTF(("src nicealign %u uniform %u nsegs %u\n",
-		nicealign, uniform, re->re_src.nsegs));
+	DPRINTF(("src nicealign %u uniform %u nsegs %u\n", nicealign, uniform,
+	    re->re_src.nsegs));
 	if (re->re_src.nsegs > 1) {
 		re->re_desc.d_src = sc->sc_spalloc.dma_paddr +
-			((caddr_t) sc->sc_spfree - (caddr_t) sc->sc_spring);
+		    ((caddr_t)sc->sc_spfree - (caddr_t)sc->sc_spring);
 		for (i = 0; i < re->re_src_nsegs; i++) {
 			/* NB: no need to check if there's space */
 			pd = sc->sc_spfree;
 			if (++(sc->sc_spfree) == sc->sc_springtop)
 				sc->sc_spfree = sc->sc_spring;
 
-			KASSERT((pd->pd_flags&3) == 0 ||
-				(pd->pd_flags&3) == SAFE_PD_DONE,
-				("bogus source particle descriptor; flags %x",
+			KASSERT((pd->pd_flags & 3) == 0 ||
+				(pd->pd_flags & 3) == SAFE_PD_DONE,
+			    ("bogus source particle descriptor; flags %x",
 				pd->pd_flags));
 			pd->pd_addr = re->re_src_segs[i].ds_addr;
 			pd->pd_size = re->re_src_segs[i].ds_len;
@@ -1028,14 +1028,14 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 			 * rest.
 			 */
 			if (bus_dmamap_create(sc->sc_dstdmat, BUS_DMA_NOWAIT,
-			    &re->re_dst_map)) {
+				&re->re_dst_map)) {
 				safestats.st_nomap++;
 				err = ENOMEM;
 				goto errout;
 			}
 			if (bus_dmamap_load_crp(sc->sc_dstdmat, re->re_dst_map,
-			    crp, safe_op_cb, &re->re_dst, BUS_DMA_NOWAIT) !=
-			    0) {
+				crp, safe_op_cb, &re->re_dst,
+				BUS_DMA_NOWAIT) != 0) {
 				bus_dmamap_destroy(sc->sc_dstdmat,
 				    re->re_dst_map);
 				re->re_dst_map = NULL;
@@ -1063,8 +1063,9 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 			if (crp->crp_buf.cb_mbuf->m_flags & M_PKTHDR) {
 				len = MHLEN;
 				MGETHDR(m, M_NOWAIT, MT_DATA);
-				if (m && !m_dup_pkthdr(m, crp->crp_buf.cb_mbuf,
-				    M_NOWAIT)) {
+				if (m &&
+				    !m_dup_pkthdr(m, crp->crp_buf.cb_mbuf,
+					M_NOWAIT)) {
 					m_free(m);
 					m = NULL;
 				}
@@ -1081,8 +1082,7 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 				if (!(MCLGET(m, M_NOWAIT))) {
 					m_free(m);
 					safestats.st_nomcl++;
-					err = sc->sc_nqchip ?
-					    ERESTART : ENOMEM;
+					err = sc->sc_nqchip ? ERESTART : ENOMEM;
 					goto errout;
 				}
 				len = MCLBYTES;
@@ -1097,8 +1097,8 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 					if (m == NULL) {
 						m_freem(top);
 						safestats.st_nombuf++;
-						err = sc->sc_nqchip ?
-						    ERESTART : ENOMEM;
+						err = sc->sc_nqchip ? ERESTART :
+								      ENOMEM;
 						goto errout;
 					}
 					len = MLEN;
@@ -1108,8 +1108,8 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 						*mp = m;
 						m_freem(top);
 						safestats.st_nomcl++;
-						err = sc->sc_nqchip ?
-						    ERESTART : ENOMEM;
+						err = sc->sc_nqchip ? ERESTART :
+								      ENOMEM;
 						goto errout;
 					}
 					len = MCLBYTES;
@@ -1120,15 +1120,15 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 				mp = &m->m_next;
 			}
 			re->re_dst_m = top;
-			if (bus_dmamap_create(sc->sc_dstdmat,
-			    BUS_DMA_NOWAIT, &re->re_dst_map) != 0) {
+			if (bus_dmamap_create(sc->sc_dstdmat, BUS_DMA_NOWAIT,
+				&re->re_dst_map) != 0) {
 				safestats.st_nomap++;
 				err = ENOMEM;
 				goto errout;
 			}
 			if (bus_dmamap_load_mbuf_sg(sc->sc_dstdmat,
-			    re->re_dst_map, top, re->re_dst_segs,
-			    &re->re_dst_nsegs, 0) != 0) {
+				re->re_dst_map, top, re->re_dst_segs,
+				&re->re_dst_nsegs, 0) != 0) {
 				bus_dmamap_destroy(sc->sc_dstdmat,
 				    re->re_dst_map);
 				re->re_dst_map = NULL;
@@ -1146,8 +1146,9 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 				 * to the new mbufs
 				 */
 				if (!(csp->csp_mode == CSP_MODE_ETA &&
-				    (re->re_src.mapsize-oplen) == ses->ses_mlen &&
-				    crp->crp_digest_start == oplen))
+					(re->re_src.mapsize - oplen) ==
+					    ses->ses_mlen &&
+					crp->crp_digest_start == oplen))
 					safe_mcopy(crp->crp_buf.cb_mbuf,
 					    re->re_dst_m, oplen);
 				else
@@ -1180,13 +1181,13 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 
 		if (re->re_dst.nsegs > 1) {
 			re->re_desc.d_dst = sc->sc_dpalloc.dma_paddr +
-			    ((caddr_t) sc->sc_dpfree - (caddr_t) sc->sc_dpring);
+			    ((caddr_t)sc->sc_dpfree - (caddr_t)sc->sc_dpring);
 			for (i = 0; i < re->re_dst_nsegs; i++) {
 				pd = sc->sc_dpfree;
-				KASSERT((pd->pd_flags&3) == 0 ||
-					(pd->pd_flags&3) == SAFE_PD_DONE,
-					("bogus dest particle descriptor; flags %x",
-						pd->pd_flags));
+				KASSERT((pd->pd_flags & 3) == 0 ||
+					(pd->pd_flags & 3) == SAFE_PD_DONE,
+				    ("bogus dest particle descriptor; flags %x",
+					pd->pd_flags));
 				if (++(sc->sc_dpfree) == sc->sc_dpringtop)
 					sc->sc_dpfree = sc->sc_dpring;
 				pd->pd_addr = re->re_dst_segs[i].ds_addr;
@@ -1207,11 +1208,9 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	 * is now ready for submission to the hardware.
 	 */
 	sa->sa_cmd0 = cmd0 | SAFE_SA_CMD0_IPCI | SAFE_SA_CMD0_OPCI;
-	sa->sa_cmd1 = cmd1
-		    | (coffset << SAFE_SA_CMD1_OFFSET_S)
-		    | SAFE_SA_CMD1_SAREV1	/* Rev 1 SA data structure */
-		    | SAFE_SA_CMD1_SRPCI
-		    ;
+	sa->sa_cmd1 = cmd1 | (coffset << SAFE_SA_CMD1_OFFSET_S) |
+	    SAFE_SA_CMD1_SAREV1 /* Rev 1 SA data structure */
+	    | SAFE_SA_CMD1_SRPCI;
 	/*
 	 * NB: the order of writes is important here.  In case the
 	 * chip is scanning the ring because of an outstanding request
@@ -1223,10 +1222,8 @@ safe_process(device_t dev, struct cryptop *crp, int hint)
 	re->re_desc.d_csr = SAFE_PE_CSR_READY | SAFE_PE_CSR_SAPCI;
 	if (csp->csp_auth_alg != 0)
 		re->re_desc.d_csr |= SAFE_PE_CSR_LOADSA | SAFE_PE_CSR_HASHFINAL;
-	re->re_desc.d_len = oplen
-			  | SAFE_PE_LEN_READY
-			  | (bypass << SAFE_PE_LEN_BYPASS_S)
-			  ;
+	re->re_desc.d_len = oplen | SAFE_PE_LEN_READY |
+	    (bypass << SAFE_PE_LEN_BYPASS_S);
 
 	safestats.st_ipackets++;
 	safestats.st_ibytes += oplen;
@@ -1277,13 +1274,12 @@ safe_callback(struct safe_softc *sc, struct safe_ringentry *re)
 	safestats.st_obytes += re->re_dst.mapsize;
 
 	safe_dma_sync(&sc->sc_ringalloc,
-		BUS_DMASYNC_POSTREAD|BUS_DMASYNC_POSTWRITE);
+	    BUS_DMASYNC_POSTREAD | BUS_DMASYNC_POSTWRITE);
 	if (re->re_desc.d_csr & SAFE_PE_CSR_STATUS) {
 		device_printf(sc->sc_dev, "csr 0x%x cmd0 0x%x cmd1 0x%x\n",
-			re->re_desc.d_csr,
-			re->re_sa.sa_cmd0, re->re_sa.sa_cmd1);
+		    re->re_desc.d_csr, re->re_sa.sa_cmd0, re->re_sa.sa_cmd1);
 		safestats.st_peoperr++;
-		crp->crp_etype = EIO;		/* something more meaningful? */
+		crp->crp_etype = EIO; /* something more meaningful? */
 	}
 
 	/*
@@ -1307,19 +1303,19 @@ safe_callback(struct safe_softc *sc, struct safe_ringentry *re)
 			 * SHA-1 ICV's are byte-swapped; fix 'em up
 			 * before copying them to their destination.
 			 */
-			re->re_sastate.sa_saved_indigest[0] =
-			    bswap32(re->re_sastate.sa_saved_indigest[0]);
-			re->re_sastate.sa_saved_indigest[1] =
-			    bswap32(re->re_sastate.sa_saved_indigest[1]);
-			re->re_sastate.sa_saved_indigest[2] =
-			    bswap32(re->re_sastate.sa_saved_indigest[2]);
+			re->re_sastate.sa_saved_indigest[0] = bswap32(
+			    re->re_sastate.sa_saved_indigest[0]);
+			re->re_sastate.sa_saved_indigest[1] = bswap32(
+			    re->re_sastate.sa_saved_indigest[1]);
+			re->re_sastate.sa_saved_indigest[2] = bswap32(
+			    re->re_sastate.sa_saved_indigest[2]);
 		}
 
 		if (crp->crp_op & CRYPTO_OP_VERIFY_DIGEST) {
 			crypto_copydata(crp, crp->crp_digest_start,
 			    ses->ses_mlen, hash);
 			if (timingsafe_bcmp(re->re_sastate.sa_saved_indigest,
-			    hash, ses->ses_mlen) != 0)
+				hash, ses->ses_mlen) != 0)
 				crp->crp_etype = EBADMSG;
 		} else
 			crypto_copyback(crp, crp->crp_digest_start,
@@ -1386,7 +1382,7 @@ safe_mcopy(struct mbuf *srcm, struct mbuf *dstm, u_int offset)
 }
 
 #ifndef SAFE_NO_RNG
-#define	SAFE_RNG_MAXWAIT	1000
+#define SAFE_RNG_MAXWAIT 1000
 
 static void
 safe_rng_init(struct safe_softc *sc)
@@ -1396,7 +1392,7 @@ safe_rng_init(struct safe_softc *sc)
 
 	WRITE_REG(sc, SAFE_RNG_CTRL, 0);
 	/* use default value according to the manual */
-	WRITE_REG(sc, SAFE_RNG_CNFG, 0x834);	/* magic from SafeNet */
+	WRITE_REG(sc, SAFE_RNG_CNFG, 0x834); /* magic from SafeNet */
 	WRITE_REG(sc, SAFE_RNG_ALM_CNT, 0);
 
 	/*
@@ -1409,7 +1405,7 @@ safe_rng_init(struct safe_softc *sc)
 	 * status reg in the read in case it is initialized.  Then read
 	 * the data register until it changes from the first read.
 	 * Once it changes read the data register until it changes
-	 * again.  At this time the RNG is considered initialized. 
+	 * again.  At this time the RNG is considered initialized.
 	 * This could take between 750ms - 1000ms in time.
 	 */
 	i = 0;
@@ -1437,14 +1433,14 @@ static __inline void
 safe_rng_disable_short_cycle(struct safe_softc *sc)
 {
 	WRITE_REG(sc, SAFE_RNG_CTRL,
-		READ_REG(sc, SAFE_RNG_CTRL) &~ SAFE_RNG_CTRL_SHORTEN);
+	    READ_REG(sc, SAFE_RNG_CTRL) & ~SAFE_RNG_CTRL_SHORTEN);
 }
 
 static __inline void
 safe_rng_enable_short_cycle(struct safe_softc *sc)
 {
-	WRITE_REG(sc, SAFE_RNG_CTRL, 
-		READ_REG(sc, SAFE_RNG_CTRL) | SAFE_RNG_CTRL_SHORTEN);
+	WRITE_REG(sc, SAFE_RNG_CTRL,
+	    READ_REG(sc, SAFE_RNG_CTRL) | SAFE_RNG_CTRL_SHORTEN);
 }
 
 static __inline u_int32_t
@@ -1462,7 +1458,7 @@ static void
 safe_rng(void *arg)
 {
 	struct safe_softc *sc = arg;
-	u_int32_t buf[SAFE_RNG_MAXBUFSIZ];	/* NB: maybe move to softc */
+	u_int32_t buf[SAFE_RNG_MAXBUFSIZ]; /* NB: maybe move to softc */
 	u_int maxwords;
 	int i;
 
@@ -1485,7 +1481,7 @@ retry:
 		u_int32_t freq_inc, w;
 
 		DPRINTF(("%s: alarm count %u exceeds threshold %u\n", __func__,
-			READ_REG(sc, SAFE_RNG_ALM_CNT), safe_rngmaxalarm));
+		    READ_REG(sc, SAFE_RNG_ALM_CNT), safe_rngmaxalarm));
 		safestats.st_rngalarm++;
 		safe_rng_enable_short_cycle(sc);
 		freq_inc = 18;
@@ -1497,7 +1493,7 @@ retry:
 
 			WRITE_REG(sc, SAFE_RNG_ALM_CNT, 0);
 
-			(void) safe_rng_read(sc);
+			(void)safe_rng_read(sc);
 			DELAY(25);
 
 			if (READ_REG(sc, SAFE_RNG_ALM_CNT) == 0) {
@@ -1510,63 +1506,61 @@ retry:
 	} else
 		WRITE_REG(sc, SAFE_RNG_ALM_CNT, 0);
 
-	(*sc->sc_harvest)(sc->sc_rndtest, buf, maxwords*sizeof (u_int32_t));
+	(*sc->sc_harvest)(sc->sc_rndtest, buf, maxwords * sizeof(u_int32_t));
 	callout_reset(&sc->sc_rngto,
-		hz * (safe_rnginterval ? safe_rnginterval : 1), safe_rng, sc);
+	    hz * (safe_rnginterval ? safe_rnginterval : 1), safe_rng, sc);
 }
 #endif /* SAFE_NO_RNG */
 
 static void
 safe_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int error)
 {
-	bus_addr_t *paddr = (bus_addr_t*) arg;
+	bus_addr_t *paddr = (bus_addr_t *)arg;
 	*paddr = segs->ds_addr;
 }
 
 static int
-safe_dma_malloc(
-	struct safe_softc *sc,
-	bus_size_t size,
-	struct safe_dma_alloc *dma,
-	int mapflags
-)
+safe_dma_malloc(struct safe_softc *sc, bus_size_t size,
+    struct safe_dma_alloc *dma, int mapflags)
 {
 	int r;
 
-	r = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev),	/* parent */
-			       sizeof(u_int32_t), 0,	/* alignment, bounds */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       size,			/* maxsize */
-			       1,			/* nsegments */
-			       size,			/* maxsegsize */
-			       BUS_DMA_ALLOCNOW,	/* flags */
-			       NULL, NULL,		/* locking */
-			       &dma->dma_tag);
+	r = bus_dma_tag_create(bus_get_dma_tag(sc->sc_dev), /* parent */
+	    sizeof(u_int32_t), 0,    /* alignment, bounds */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    size,		     /* maxsize */
+	    1,			     /* nsegments */
+	    size,		     /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,	     /* flags */
+	    NULL, NULL,		     /* locking */
+	    &dma->dma_tag);
 	if (r != 0) {
-		device_printf(sc->sc_dev, "safe_dma_malloc: "
-			"bus_dma_tag_create failed; error %u\n", r);
+		device_printf(sc->sc_dev,
+		    "safe_dma_malloc: "
+		    "bus_dma_tag_create failed; error %u\n",
+		    r);
 		goto fail_0;
 	}
 
-	r = bus_dmamem_alloc(dma->dma_tag, (void**) &dma->dma_vaddr,
-			     BUS_DMA_NOWAIT, &dma->dma_map);
+	r = bus_dmamem_alloc(dma->dma_tag, (void **)&dma->dma_vaddr,
+	    BUS_DMA_NOWAIT, &dma->dma_map);
 	if (r != 0) {
-		device_printf(sc->sc_dev, "safe_dma_malloc: "
-			"bus_dmammem_alloc failed; size %ju, error %u\n",
-			(uintmax_t)size, r);
+		device_printf(sc->sc_dev,
+		    "safe_dma_malloc: "
+		    "bus_dmammem_alloc failed; size %ju, error %u\n",
+		    (uintmax_t)size, r);
 		goto fail_1;
 	}
 
-	r = bus_dmamap_load(dma->dma_tag, dma->dma_map, dma->dma_vaddr,
-		            size,
-			    safe_dmamap_cb,
-			    &dma->dma_paddr,
-			    mapflags | BUS_DMA_NOWAIT);
+	r = bus_dmamap_load(dma->dma_tag, dma->dma_map, dma->dma_vaddr, size,
+	    safe_dmamap_cb, &dma->dma_paddr, mapflags | BUS_DMA_NOWAIT);
 	if (r != 0) {
-		device_printf(sc->sc_dev, "safe_dma_malloc: "
-			"bus_dmamap_load failed; error %u\n", r);
+		device_printf(sc->sc_dev,
+		    "safe_dma_malloc: "
+		    "bus_dmamap_load failed; error %u\n",
+		    r);
 		goto fail_2;
 	}
 
@@ -1603,13 +1597,12 @@ safe_reset_board(struct safe_softc *sc)
 	 * Reset the device.  The manual says no delay
 	 * is needed between marking and clearing reset.
 	 */
-	v = READ_REG(sc, SAFE_PE_DMACFG) &~
-		(SAFE_PE_DMACFG_PERESET | SAFE_PE_DMACFG_PDRRESET |
-		 SAFE_PE_DMACFG_SGRESET);
-	WRITE_REG(sc, SAFE_PE_DMACFG, v
-				    | SAFE_PE_DMACFG_PERESET
-				    | SAFE_PE_DMACFG_PDRRESET
-				    | SAFE_PE_DMACFG_SGRESET);
+	v = READ_REG(sc, SAFE_PE_DMACFG) &
+	    ~(SAFE_PE_DMACFG_PERESET | SAFE_PE_DMACFG_PDRRESET |
+		SAFE_PE_DMACFG_SGRESET);
+	WRITE_REG(sc, SAFE_PE_DMACFG,
+	    v | SAFE_PE_DMACFG_PERESET | SAFE_PE_DMACFG_PDRRESET |
+		SAFE_PE_DMACFG_SGRESET);
 	WRITE_REG(sc, SAFE_PE_DMACFG, v);
 }
 
@@ -1622,20 +1615,20 @@ safe_init_board(struct safe_softc *sc)
 	u_int32_t v, dwords;
 
 	v = READ_REG(sc, SAFE_PE_DMACFG);
-	v &=~ SAFE_PE_DMACFG_PEMODE;
-	v |= SAFE_PE_DMACFG_FSENA		/* failsafe enable */
-	  |  SAFE_PE_DMACFG_GPRPCI		/* gather ring on PCI */
-	  |  SAFE_PE_DMACFG_SPRPCI		/* scatter ring on PCI */
-	  |  SAFE_PE_DMACFG_ESDESC		/* endian-swap descriptors */
-	  |  SAFE_PE_DMACFG_ESSA		/* endian-swap SA's */
-	  |  SAFE_PE_DMACFG_ESPDESC		/* endian-swap part. desc's */
-	  ;
+	v &= ~SAFE_PE_DMACFG_PEMODE;
+	v |= SAFE_PE_DMACFG_FSENA    /* failsafe enable */
+	    | SAFE_PE_DMACFG_GPRPCI  /* gather ring on PCI */
+	    | SAFE_PE_DMACFG_SPRPCI  /* scatter ring on PCI */
+	    | SAFE_PE_DMACFG_ESDESC  /* endian-swap descriptors */
+	    | SAFE_PE_DMACFG_ESSA    /* endian-swap SA's */
+	    | SAFE_PE_DMACFG_ESPDESC /* endian-swap part. desc's */
+	    ;
 	WRITE_REG(sc, SAFE_PE_DMACFG, v);
 #if 0
 	/* XXX select byte swap based on host byte order */
 	WRITE_REG(sc, SAFE_ENDIAN, 0x1b);
 #endif
-	if (sc->sc_chiprev == SAFE_REV(1,0)) {
+	if (sc->sc_chiprev == SAFE_REV(1, 0)) {
 		/*
 		 * Avoid large PCI DMA transfers.  Rev 1.0 has a bug where
 		 * "target mode transfers" done while the chip is DMA'ing
@@ -1645,10 +1638,9 @@ safe_init_board(struct safe_softc *sc)
 		 */
 		WRITE_REG(sc, SAFE_DMA_CFG, 256);
 		device_printf(sc->sc_dev,
-			"Reduce max DMA size to %u words for rev %u.%u WAR\n",
-			(READ_REG(sc, SAFE_DMA_CFG)>>2) & 0xff,
-			SAFE_REV_MAJ(sc->sc_chiprev),
-			SAFE_REV_MIN(sc->sc_chiprev));
+		    "Reduce max DMA size to %u words for rev %u.%u WAR\n",
+		    (READ_REG(sc, SAFE_DMA_CFG) >> 2) & 0xff,
+		    SAFE_REV_MAJ(sc->sc_chiprev), SAFE_REV_MIN(sc->sc_chiprev));
 	}
 
 	/* NB: operands+results are overlaid */
@@ -1658,16 +1650,16 @@ safe_init_board(struct safe_softc *sc)
 	 * Configure ring entry size and number of items in the ring.
 	 */
 	KASSERT((sizeof(struct safe_ringentry) % sizeof(u_int32_t)) == 0,
-		("PE ring entry not 32-bit aligned!"));
+	    ("PE ring entry not 32-bit aligned!"));
 	dwords = sizeof(struct safe_ringentry) / sizeof(u_int32_t);
 	WRITE_REG(sc, SAFE_PE_RINGCFG,
-		(dwords << SAFE_PE_RINGCFG_OFFSET_S) | SAFE_MAX_NQUEUE);
-	WRITE_REG(sc, SAFE_PE_RINGPOLL, 0);	/* disable polling */
+	    (dwords << SAFE_PE_RINGCFG_OFFSET_S) | SAFE_MAX_NQUEUE);
+	WRITE_REG(sc, SAFE_PE_RINGPOLL, 0); /* disable polling */
 
 	WRITE_REG(sc, SAFE_PE_GRNGBASE, sc->sc_spalloc.dma_paddr);
 	WRITE_REG(sc, SAFE_PE_SRNGBASE, sc->sc_dpalloc.dma_paddr);
 	WRITE_REG(sc, SAFE_PE_PARTSIZE,
-		(SAFE_TOTAL_DPART<<16) | SAFE_TOTAL_SPART);
+	    (SAFE_TOTAL_DPART << 16) | SAFE_TOTAL_SPART);
 	/*
 	 * NB: destination particles are fixed size.  We use
 	 *     an mbuf cluster and require all results go to
@@ -1738,7 +1730,7 @@ safe_free_entry(struct safe_softc *sc, struct safe_ringentry *re)
 
 	crp->crp_etype = EFAULT;
 	crypto_done(crp);
-	return(0);
+	return (0);
 }
 
 /*
@@ -1789,7 +1781,7 @@ safe_dmamap_uniform(const struct safe_operand *op)
 	if (op->nsegs > 0) {
 		int i;
 
-		for (i = 0; i < op->nsegs-1; i++) {
+		for (i = 0; i < op->nsegs - 1; i++) {
 			if (op->segs[i].ds_len % SAFE_MAX_DSIZE)
 				return (0);
 			if (op->segs[i].ds_len != SAFE_MAX_DSIZE)
@@ -1803,26 +1795,19 @@ safe_dmamap_uniform(const struct safe_operand *op)
 static void
 safe_dump_dmastatus(struct safe_softc *sc, const char *tag)
 {
-	printf("%s: ENDIAN 0x%x SRC 0x%x DST 0x%x STAT 0x%x\n"
-		, tag
-		, READ_REG(sc, SAFE_DMA_ENDIAN)
-		, READ_REG(sc, SAFE_DMA_SRCADDR)
-		, READ_REG(sc, SAFE_DMA_DSTADDR)
-		, READ_REG(sc, SAFE_DMA_STAT)
-	);
+	printf("%s: ENDIAN 0x%x SRC 0x%x DST 0x%x STAT 0x%x\n", tag,
+	    READ_REG(sc, SAFE_DMA_ENDIAN), READ_REG(sc, SAFE_DMA_SRCADDR),
+	    READ_REG(sc, SAFE_DMA_DSTADDR), READ_REG(sc, SAFE_DMA_STAT));
 }
 
 static void
 safe_dump_intrstate(struct safe_softc *sc, const char *tag)
 {
-	printf("%s: HI_CFG 0x%x HI_MASK 0x%x HI_DESC_CNT 0x%x HU_STAT 0x%x HM_STAT 0x%x\n"
-		, tag
-		, READ_REG(sc, SAFE_HI_CFG)
-		, READ_REG(sc, SAFE_HI_MASK)
-		, READ_REG(sc, SAFE_HI_DESC_CNT)
-		, READ_REG(sc, SAFE_HU_STAT)
-		, READ_REG(sc, SAFE_HM_STAT)
-	);
+	printf(
+	    "%s: HI_CFG 0x%x HI_MASK 0x%x HI_DESC_CNT 0x%x HU_STAT 0x%x HM_STAT 0x%x\n",
+	    tag, READ_REG(sc, SAFE_HI_CFG), READ_REG(sc, SAFE_HI_MASK),
+	    READ_REG(sc, SAFE_HI_DESC_CNT), READ_REG(sc, SAFE_HU_STAT),
+	    READ_REG(sc, SAFE_HM_STAT));
 }
 
 static void
@@ -1831,38 +1816,31 @@ safe_dump_ringstate(struct safe_softc *sc, const char *tag)
 	u_int32_t estat = READ_REG(sc, SAFE_PE_ERNGSTAT);
 
 	/* NB: assume caller has lock on ring */
-	printf("%s: ERNGSTAT %x (next %u) back %lu front %lu\n",
-		tag,
-		estat, (estat >> SAFE_PE_ERNGSTAT_NEXT_S),
-		(unsigned long)(sc->sc_back - sc->sc_ring),
-		(unsigned long)(sc->sc_front - sc->sc_ring));
+	printf("%s: ERNGSTAT %x (next %u) back %lu front %lu\n", tag, estat,
+	    (estat >> SAFE_PE_ERNGSTAT_NEXT_S),
+	    (unsigned long)(sc->sc_back - sc->sc_ring),
+	    (unsigned long)(sc->sc_front - sc->sc_ring));
 }
 
 static void
-safe_dump_request(struct safe_softc *sc, const char* tag, struct safe_ringentry *re)
+safe_dump_request(struct safe_softc *sc, const char *tag,
+    struct safe_ringentry *re)
 {
 	int ix, nsegs;
 
 	ix = re - sc->sc_ring;
-	printf("%s: %p (%u): csr %x src %x dst %x sa %x len %x\n"
-		, tag
-		, re, ix
-		, re->re_desc.d_csr
-		, re->re_desc.d_src
-		, re->re_desc.d_dst
-		, re->re_desc.d_sa
-		, re->re_desc.d_len
-	);
+	printf("%s: %p (%u): csr %x src %x dst %x sa %x len %x\n", tag, re, ix,
+	    re->re_desc.d_csr, re->re_desc.d_src, re->re_desc.d_dst,
+	    re->re_desc.d_sa, re->re_desc.d_len);
 	if (re->re_src.nsegs > 1) {
 		ix = (re->re_desc.d_src - sc->sc_spalloc.dma_paddr) /
-			sizeof(struct safe_pdesc);
+		    sizeof(struct safe_pdesc);
 		for (nsegs = re->re_src.nsegs; nsegs; nsegs--) {
-			printf(" spd[%u] %p: %p size %u flags %x"
-				, ix, &sc->sc_spring[ix]
-				, (caddr_t)(uintptr_t) sc->sc_spring[ix].pd_addr
-				, sc->sc_spring[ix].pd_size
-				, sc->sc_spring[ix].pd_flags
-			);
+			printf(" spd[%u] %p: %p size %u flags %x", ix,
+			    &sc->sc_spring[ix],
+			    (caddr_t)(uintptr_t)sc->sc_spring[ix].pd_addr,
+			    sc->sc_spring[ix].pd_size,
+			    sc->sc_spring[ix].pd_flags);
 			if (sc->sc_spring[ix].pd_size == 0)
 				printf(" (zero!)");
 			printf("\n");
@@ -1872,57 +1850,37 @@ safe_dump_request(struct safe_softc *sc, const char* tag, struct safe_ringentry 
 	}
 	if (re->re_dst.nsegs > 1) {
 		ix = (re->re_desc.d_dst - sc->sc_dpalloc.dma_paddr) /
-			sizeof(struct safe_pdesc);
+		    sizeof(struct safe_pdesc);
 		for (nsegs = re->re_dst.nsegs; nsegs; nsegs--) {
-			printf(" dpd[%u] %p: %p flags %x\n"
-				, ix, &sc->sc_dpring[ix]
-				, (caddr_t)(uintptr_t) sc->sc_dpring[ix].pd_addr
-				, sc->sc_dpring[ix].pd_flags
-			);
+			printf(" dpd[%u] %p: %p flags %x\n", ix,
+			    &sc->sc_dpring[ix],
+			    (caddr_t)(uintptr_t)sc->sc_dpring[ix].pd_addr,
+			    sc->sc_dpring[ix].pd_flags);
 			if (++ix == SAFE_TOTAL_DPART)
 				ix = 0;
 		}
 	}
-	printf("sa: cmd0 %08x cmd1 %08x staterec %x\n",
-		re->re_sa.sa_cmd0, re->re_sa.sa_cmd1, re->re_sa.sa_staterec);
-	printf("sa: key %x %x %x %x %x %x %x %x\n"
-		, re->re_sa.sa_key[0]
-		, re->re_sa.sa_key[1]
-		, re->re_sa.sa_key[2]
-		, re->re_sa.sa_key[3]
-		, re->re_sa.sa_key[4]
-		, re->re_sa.sa_key[5]
-		, re->re_sa.sa_key[6]
-		, re->re_sa.sa_key[7]
-	);
-	printf("sa: indigest %x %x %x %x %x\n"
-		, re->re_sa.sa_indigest[0]
-		, re->re_sa.sa_indigest[1]
-		, re->re_sa.sa_indigest[2]
-		, re->re_sa.sa_indigest[3]
-		, re->re_sa.sa_indigest[4]
-	);
-	printf("sa: outdigest %x %x %x %x %x\n"
-		, re->re_sa.sa_outdigest[0]
-		, re->re_sa.sa_outdigest[1]
-		, re->re_sa.sa_outdigest[2]
-		, re->re_sa.sa_outdigest[3]
-		, re->re_sa.sa_outdigest[4]
-	);
-	printf("sr: iv %x %x %x %x\n"
-		, re->re_sastate.sa_saved_iv[0]
-		, re->re_sastate.sa_saved_iv[1]
-		, re->re_sastate.sa_saved_iv[2]
-		, re->re_sastate.sa_saved_iv[3]
-	);
-	printf("sr: hashbc %u indigest %x %x %x %x %x\n"
-		, re->re_sastate.sa_saved_hashbc
-		, re->re_sastate.sa_saved_indigest[0]
-		, re->re_sastate.sa_saved_indigest[1]
-		, re->re_sastate.sa_saved_indigest[2]
-		, re->re_sastate.sa_saved_indigest[3]
-		, re->re_sastate.sa_saved_indigest[4]
-	);
+	printf("sa: cmd0 %08x cmd1 %08x staterec %x\n", re->re_sa.sa_cmd0,
+	    re->re_sa.sa_cmd1, re->re_sa.sa_staterec);
+	printf("sa: key %x %x %x %x %x %x %x %x\n", re->re_sa.sa_key[0],
+	    re->re_sa.sa_key[1], re->re_sa.sa_key[2], re->re_sa.sa_key[3],
+	    re->re_sa.sa_key[4], re->re_sa.sa_key[5], re->re_sa.sa_key[6],
+	    re->re_sa.sa_key[7]);
+	printf("sa: indigest %x %x %x %x %x\n", re->re_sa.sa_indigest[0],
+	    re->re_sa.sa_indigest[1], re->re_sa.sa_indigest[2],
+	    re->re_sa.sa_indigest[3], re->re_sa.sa_indigest[4]);
+	printf("sa: outdigest %x %x %x %x %x\n", re->re_sa.sa_outdigest[0],
+	    re->re_sa.sa_outdigest[1], re->re_sa.sa_outdigest[2],
+	    re->re_sa.sa_outdigest[3], re->re_sa.sa_outdigest[4]);
+	printf("sr: iv %x %x %x %x\n", re->re_sastate.sa_saved_iv[0],
+	    re->re_sastate.sa_saved_iv[1], re->re_sastate.sa_saved_iv[2],
+	    re->re_sastate.sa_saved_iv[3]);
+	printf("sr: hashbc %u indigest %x %x %x %x %x\n",
+	    re->re_sastate.sa_saved_hashbc, re->re_sastate.sa_saved_indigest[0],
+	    re->re_sastate.sa_saved_indigest[1],
+	    re->re_sastate.sa_saved_indigest[2],
+	    re->re_sastate.sa_saved_indigest[3],
+	    re->re_sastate.sa_saved_indigest[4]);
 }
 
 static void
@@ -1971,7 +1929,6 @@ sysctl_hw_safe_dump(SYSCTL_HANDLER_ARGS)
 	return error;
 }
 SYSCTL_PROC(_hw_safe, OID_AUTO, dump,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT, 0, 0,
-    sysctl_hw_safe_dump, "A",
-    "Dump driver state");
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_NEEDGIANT, 0, 0, sysctl_hw_safe_dump,
+    "A", "Dump driver state");
 #endif /* SAFE_DEBUG */

@@ -40,25 +40,23 @@
 #include <sys/sysctl.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_pflog.h>
+#include <net/if_var.h>
 #include <net/pfil.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_fw.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip_var.h>
-#include <netinet/ip_fw.h>
-#include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include <netinet6/ip_fw_nat64.h>
-
 #include <netpfil/ipfw/ip_fw_private.h>
 #include <netpfil/pf/pf.h>
 
 #include "nat64clat.h"
 
-#define	NAT64_LOOKUP(chain, cmd)	\
+#define NAT64_LOOKUP(chain, cmd) \
 	(struct nat64clat_cfg *)SRV_OBJECT((chain), (cmd)->arg1)
 
 static void
@@ -88,7 +86,7 @@ nat64clat_handle_ip4(struct ip_fw_chain *chain, struct nat64clat_cfg *cfg,
 	struct in6_addr saddr, daddr;
 	struct ip *ip;
 
-	ip = mtod(m, struct ip*);
+	ip = mtod(m, struct ip *);
 	/* source address for CLAT may be private with no harm */
 	if (nat64_check_ip4(ip->ip_src.s_addr) != 0 ||
 	    nat64_check_ip4(ip->ip_dst.s_addr) != 0 ||
@@ -104,8 +102,7 @@ nat64clat_handle_ip4(struct ip_fw_chain *chain, struct nat64clat_cfg *cfg,
 		nat64clat_log(logdata, m, AF_INET, cfg->no.kidx);
 	} else
 		logdata = NULL;
-	return (nat64_do_handle_ip4(m, &saddr, &daddr, 0, &cfg->base,
-	    logdata));
+	return (nat64_do_handle_ip4(m, &saddr, &daddr, 0, &cfg->base, logdata));
 }
 
 static int
@@ -124,11 +121,11 @@ nat64clat_handle_ip6(struct ip_fw_chain *chain, struct nat64clat_cfg *cfg,
 	ip6 = mtod(m, struct ip6_hdr *);
 	/* Check ip6_dst matches configured prefix */
 	if (memcmp(&ip6->ip6_dst, &cfg->base.clat_prefix,
-	    cfg->base.clat_plen / 8) != 0)
+		cfg->base.clat_plen / 8) != 0)
 		return (NAT64SKIP);
 	/* Check ip6_src matches configured prefix */
 	if (memcmp(&ip6->ip6_src, &cfg->base.plat_prefix,
-	    cfg->base.plat_plen / 8) != 0)
+		cfg->base.plat_plen / 8) != 0)
 		return (NAT64SKIP);
 
 	if (cfg->base.flags & NAT64_LOG) {
@@ -211,8 +208,7 @@ ipfw_nat64clat(struct ip_fw_chain *chain, struct ip_fw_args *args,
 
 	*done = 0; /* try next rule if not matched */
 	icmd = cmd + 1;
-	if (cmd->opcode != O_EXTERNAL_ACTION ||
-	    cmd->arg1 != V_nat64clat_eid ||
+	if (cmd->opcode != O_EXTERNAL_ACTION || cmd->arg1 != V_nat64clat_eid ||
 	    icmd->opcode != O_EXTERNAL_INSTANCE ||
 	    (cfg = NAT64_LOOKUP(chain, icmd)) == NULL)
 		return (0);

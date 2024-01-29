@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define NLOOPS	10
+#define NLOOPS 10
 
 static pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
@@ -73,9 +73,10 @@ main(void)
 		result = NULL;
 		pthread_join(td, &result);
 		if (result == PTHREAD_CANCELED) {
-			printf("the condition variable implementation does not\n"
-			       "conform to SUSv3, a thread unblocked from\n"
-			       "condition variable still can be canceled.\n");
+			printf(
+			    "the condition variable implementation does not\n"
+			    "conform to SUSv3, a thread unblocked from\n"
+			    "condition variable still can be canceled.\n");
 			return (1);
 		}
 	}

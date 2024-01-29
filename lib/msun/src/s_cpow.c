@@ -46,6 +46,7 @@
 #include <complex.h>
 #include <float.h>
 #include <math.h>
+
 #include "math_private.h"
 
 double complex
@@ -54,19 +55,19 @@ cpow(double complex a, double complex z)
 	double complex w;
 	double x, y, r, theta, absa, arga;
 
-	x = creal (z);
-	y = cimag (z);
-	absa = cabs (a);
+	x = creal(z);
+	y = cimag(z);
+	absa = cabs(a);
 	if (absa == 0.0) {
 		return (CMPLX(0.0, 0.0));
 	}
-	arga = carg (a);
-	r = pow (absa, x);
+	arga = carg(a);
+	r = pow(absa, x);
 	theta = x * arga;
 	if (y != 0.0) {
-		r = r * exp (-y * arga);
-		theta = theta + y * log (absa);
+		r = r * exp(-y * arga);
+		theta = theta + y * log(absa);
 	}
-	w = CMPLX(r * cos (theta),  r * sin (theta));
+	w = CMPLX(r * cos(theta), r * sin(theta));
 	return (w);
 }

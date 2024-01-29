@@ -34,113 +34,113 @@
 
 struct table_algo;
 struct tables_config {
-	struct namedobj_instance	*namehash;
-	struct namedobj_instance	*valhash;
-	uint32_t			val_size;
-	uint32_t			algo_count;
-	struct table_algo 		*algo[256];
-	struct table_algo		*def_algo[IPFW_TABLE_MAXTYPE + 1];
-	TAILQ_HEAD(op_state_l,op_state)	state_list;
+	struct namedobj_instance *namehash;
+	struct namedobj_instance *valhash;
+	uint32_t val_size;
+	uint32_t algo_count;
+	struct table_algo *algo[256];
+	struct table_algo *def_algo[IPFW_TABLE_MAXTYPE + 1];
+	TAILQ_HEAD(op_state_l, op_state) state_list;
 };
-#define	CHAIN_TO_TCFG(chain)	((struct tables_config *)(chain)->tblcfg)
+#define CHAIN_TO_TCFG(chain) ((struct tables_config *)(chain)->tblcfg)
 
 struct table_info {
-	table_lookup_t	*lookup;	/* Lookup function */
-	void		*state;		/* Lookup radix/other structure */
-	void		*xstate;	/* eXtended state */
-	u_long		data;		/* Hints for given func */
+	table_lookup_t *lookup; /* Lookup function */
+	void *state;		/* Lookup radix/other structure */
+	void *xstate;		/* eXtended state */
+	u_long data;		/* Hints for given func */
 };
 
 struct table_value;
 struct tentry_info {
-	void		*paddr;
-	struct table_value	*pvalue;
-	void		*ptv;		/* Temporary field to hold obj	*/		
-	uint8_t		masklen;	/* mask length			*/
-	uint8_t		subtype;
-	uint16_t	flags;		/* record flags			*/
-	uint32_t	value;		/* value index			*/
+	void *paddr;
+	struct table_value *pvalue;
+	void *ptv;	 /* Temporary field to hold obj	*/
+	uint8_t masklen; /* mask length			*/
+	uint8_t subtype;
+	uint16_t flags; /* record flags			*/
+	uint32_t value; /* value index			*/
 };
-#define	TEI_FLAGS_UPDATE	0x0001	/* Add or update rec if exists	*/
-#define	TEI_FLAGS_UPDATED	0x0002	/* Entry has been updated	*/
-#define	TEI_FLAGS_COMPAT	0x0004	/* Called from old ABI		*/
-#define	TEI_FLAGS_DONTADD	0x0008	/* Do not create new rec	*/
-#define	TEI_FLAGS_ADDED		0x0010	/* Entry was added		*/
-#define	TEI_FLAGS_DELETED	0x0020	/* Entry was deleted		*/
-#define	TEI_FLAGS_LIMIT		0x0040	/* Limit was hit		*/
-#define	TEI_FLAGS_ERROR		0x0080	/* Unknown request error	*/
-#define	TEI_FLAGS_NOTFOUND	0x0100	/* Entry was not found		*/
-#define	TEI_FLAGS_EXISTS	0x0200	/* Entry already exists		*/
+#define TEI_FLAGS_UPDATE 0x0001	  /* Add or update rec if exists	*/
+#define TEI_FLAGS_UPDATED 0x0002  /* Entry has been updated	*/
+#define TEI_FLAGS_COMPAT 0x0004	  /* Called from old ABI		*/
+#define TEI_FLAGS_DONTADD 0x0008  /* Do not create new rec	*/
+#define TEI_FLAGS_ADDED 0x0010	  /* Entry was added		*/
+#define TEI_FLAGS_DELETED 0x0020  /* Entry was deleted		*/
+#define TEI_FLAGS_LIMIT 0x0040	  /* Limit was hit		*/
+#define TEI_FLAGS_ERROR 0x0080	  /* Unknown request error	*/
+#define TEI_FLAGS_NOTFOUND 0x0100 /* Entry was not found		*/
+#define TEI_FLAGS_EXISTS 0x0200	  /* Entry already exists		*/
 
-typedef int (ta_init)(struct ip_fw_chain *ch, void **ta_state,
+typedef int(ta_init)(struct ip_fw_chain *ch, void **ta_state,
     struct table_info *ti, char *data, uint8_t tflags);
-typedef void (ta_destroy)(void *ta_state, struct table_info *ti);
-typedef int (ta_prepare_add)(struct ip_fw_chain *ch, struct tentry_info *tei,
+typedef void(ta_destroy)(void *ta_state, struct table_info *ti);
+typedef int(ta_prepare_add)(struct ip_fw_chain *ch, struct tentry_info *tei,
     void *ta_buf);
-typedef int (ta_prepare_del)(struct ip_fw_chain *ch, struct tentry_info *tei,
+typedef int(ta_prepare_del)(struct ip_fw_chain *ch, struct tentry_info *tei,
     void *ta_buf);
-typedef int (ta_add)(void *ta_state, struct table_info *ti,
+typedef int(ta_add)(void *ta_state, struct table_info *ti,
     struct tentry_info *tei, void *ta_buf, uint32_t *pnum);
-typedef int (ta_del)(void *ta_state, struct table_info *ti,
+typedef int(ta_del)(void *ta_state, struct table_info *ti,
     struct tentry_info *tei, void *ta_buf, uint32_t *pnum);
-typedef void (ta_flush_entry)(struct ip_fw_chain *ch, struct tentry_info *tei,
+typedef void(ta_flush_entry)(struct ip_fw_chain *ch, struct tentry_info *tei,
     void *ta_buf);
 
-typedef int (ta_need_modify)(void *ta_state, struct table_info *ti,
+typedef int(ta_need_modify)(void *ta_state, struct table_info *ti,
     uint32_t count, uint64_t *pflags);
-typedef int (ta_prepare_mod)(void *ta_buf, uint64_t *pflags);
-typedef int (ta_fill_mod)(void *ta_state, struct table_info *ti,
-    void *ta_buf, uint64_t *pflags);
-typedef void (ta_modify)(void *ta_state, struct table_info *ti,
-    void *ta_buf, uint64_t pflags);
-typedef void (ta_flush_mod)(void *ta_buf);
+typedef int(ta_prepare_mod)(void *ta_buf, uint64_t *pflags);
+typedef int(ta_fill_mod)(void *ta_state, struct table_info *ti, void *ta_buf,
+    uint64_t *pflags);
+typedef void(ta_modify)(void *ta_state, struct table_info *ti, void *ta_buf,
+    uint64_t pflags);
+typedef void(ta_flush_mod)(void *ta_buf);
 
-typedef void (ta_change_ti)(void *ta_state, struct table_info *ti);
-typedef void (ta_print_config)(void *ta_state, struct table_info *ti, char *buf,
+typedef void(ta_change_ti)(void *ta_state, struct table_info *ti);
+typedef void(ta_print_config)(void *ta_state, struct table_info *ti, char *buf,
     size_t bufsize);
 
 typedef int ta_foreach_f(void *node, void *arg);
 typedef void ta_foreach(void *ta_state, struct table_info *ti, ta_foreach_f *f,
-  void *arg);
+    void *arg);
 typedef int ta_dump_tentry(void *ta_state, struct table_info *ti, void *e,
     ipfw_obj_tentry *tent);
 typedef int ta_find_tentry(void *ta_state, struct table_info *ti,
     ipfw_obj_tentry *tent);
-typedef void ta_dump_tinfo(void *ta_state, struct table_info *ti, 
+typedef void ta_dump_tinfo(void *ta_state, struct table_info *ti,
     ipfw_ta_tinfo *tinfo);
 typedef uint32_t ta_get_count(void *ta_state, struct table_info *ti);
 
 struct table_algo {
-	char		name[16];
-	uint32_t	idx;
-	uint32_t	type;
-	uint32_t	refcnt;
-	uint32_t	flags;
-	uint32_t	vlimit;
-	size_t		ta_buf_size;
-	ta_init		*init;
-	ta_destroy	*destroy;
-	ta_prepare_add	*prepare_add;
-	ta_prepare_del	*prepare_del;
-	ta_add		*add;
-	ta_del		*del;
-	ta_flush_entry	*flush_entry;
-	ta_find_tentry	*find_tentry;
-	ta_need_modify	*need_modify;
-	ta_prepare_mod	*prepare_mod;
-	ta_fill_mod	*fill_mod;
-	ta_modify	*modify;
-	ta_flush_mod	*flush_mod;
-	ta_change_ti	*change_ti;
-	ta_foreach	*foreach;
-	ta_dump_tentry	*dump_tentry;
-	ta_print_config	*print_config;
-	ta_dump_tinfo	*dump_tinfo;
-	ta_get_count	*get_count;
+	char name[16];
+	uint32_t idx;
+	uint32_t type;
+	uint32_t refcnt;
+	uint32_t flags;
+	uint32_t vlimit;
+	size_t ta_buf_size;
+	ta_init *init;
+	ta_destroy *destroy;
+	ta_prepare_add *prepare_add;
+	ta_prepare_del *prepare_del;
+	ta_add *add;
+	ta_del *del;
+	ta_flush_entry *flush_entry;
+	ta_find_tentry *find_tentry;
+	ta_need_modify *need_modify;
+	ta_prepare_mod *prepare_mod;
+	ta_fill_mod *fill_mod;
+	ta_modify *modify;
+	ta_flush_mod *flush_mod;
+	ta_change_ti *change_ti;
+	ta_foreach *foreach;
+	ta_dump_tentry *dump_tentry;
+	ta_print_config *print_config;
+	ta_dump_tinfo *dump_tinfo;
+	ta_get_count *get_count;
 };
-#define	TA_FLAG_DEFAULT		0x01	/* Algo is default for given type */
-#define	TA_FLAG_READONLY	0x02	/* Algo does not support modifications*/
-#define	TA_FLAG_EXTCOUNTER	0x04	/* Algo has external counter available*/
+#define TA_FLAG_DEFAULT 0x01	/* Algo is default for given type */
+#define TA_FLAG_READONLY 0x02	/* Algo does not support modifications*/
+#define TA_FLAG_EXTCOUNTER 0x04 /* Algo has external counter available*/
 
 int ipfw_add_table_algo(struct ip_fw_chain *ch, struct table_algo *ta,
     size_t size, int *idx);
@@ -198,14 +198,14 @@ void tc_ref(struct table_config *tc);
 void tc_unref(struct table_config *tc);
 
 struct op_state;
-typedef void (op_rollback_f)(void *object, struct op_state *state);
+typedef void(op_rollback_f)(void *object, struct op_state *state);
 struct op_state {
-	TAILQ_ENTRY(op_state)	next;	/* chain link */
-	op_rollback_f		*func;
+	TAILQ_ENTRY(op_state) next; /* chain link */
+	op_rollback_f *func;
 };
 
 struct tableop_state {
-	struct op_state	opstate;
+	struct op_state opstate;
 	struct ip_fw_chain *ch;
 	struct table_config *tc;
 	struct table_algo *ta;

@@ -59,284 +59,271 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
-#include <machine/resource.h>
 #include <sys/watchdog.h>
 
-#include <isa/isavar.h>
-#include <dev/pci/pcivar.h>
-
-#include <dev/ichwd/ichwd.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <x86/pci_cfgreg.h>
-#include <dev/pci/pcivar.h>
+
+#include <dev/ichwd/ichwd.h>
 #include <dev/pci/pci_private.h>
+#include <dev/pci/pcivar.h>
+
+#include <isa/isavar.h>
 
 static struct ichwd_device ichwd_devices[] = {
-	{ DEVICEID_82801AA,  "Intel 82801AA watchdog timer",	1, 1 },
-	{ DEVICEID_82801AB,  "Intel 82801AB watchdog timer",	1, 1 },
-	{ DEVICEID_82801BA,  "Intel 82801BA watchdog timer",	2, 1 },
-	{ DEVICEID_82801BAM, "Intel 82801BAM watchdog timer",	2, 1 },
-	{ DEVICEID_82801CA,  "Intel 82801CA watchdog timer",	3, 1 },
-	{ DEVICEID_82801CAM, "Intel 82801CAM watchdog timer",	3, 1 },
-	{ DEVICEID_82801DB,  "Intel 82801DB watchdog timer",	4, 1 },
-	{ DEVICEID_82801DBM, "Intel 82801DBM watchdog timer",	4, 1 },
-	{ DEVICEID_82801E,   "Intel 82801E watchdog timer",	5, 1 },
-	{ DEVICEID_82801EB,  "Intel 82801EB watchdog timer",	5, 1 },
-	{ DEVICEID_82801EBR, "Intel 82801EB/ER watchdog timer",	5, 1 },
-	{ DEVICEID_6300ESB,  "Intel 6300ESB watchdog timer",	5, 1 },
-	{ DEVICEID_82801FBR, "Intel 82801FB/FR watchdog timer",	6, 2 },
-	{ DEVICEID_ICH6M,    "Intel ICH6M watchdog timer",	6, 2 },
-	{ DEVICEID_ICH6W,    "Intel ICH6W watchdog timer",	6, 2 },
-	{ DEVICEID_ICH7,     "Intel ICH7 watchdog timer",	7, 2 },
-	{ DEVICEID_ICH7DH,   "Intel ICH7DH watchdog timer",	7, 2 },
-	{ DEVICEID_ICH7M,    "Intel ICH7M watchdog timer",	7, 2 },
-	{ DEVICEID_ICH7MDH,  "Intel ICH7MDH watchdog timer",	7, 2 },
-	{ DEVICEID_NM10,     "Intel NM10 watchdog timer",	7, 2 },
-	{ DEVICEID_ICH8,     "Intel ICH8 watchdog timer",	8, 2 },
-	{ DEVICEID_ICH8DH,   "Intel ICH8DH watchdog timer",	8, 2 },
-	{ DEVICEID_ICH8DO,   "Intel ICH8DO watchdog timer",	8, 2 },
-	{ DEVICEID_ICH8M,    "Intel ICH8M watchdog timer",	8, 2 },
-	{ DEVICEID_ICH8ME,   "Intel ICH8M-E watchdog timer",	8, 2 },
-	{ DEVICEID_63XXESB,  "Intel 63XXESB watchdog timer",	8, 2 },
-	{ DEVICEID_ICH9,     "Intel ICH9 watchdog timer",	9, 2 },
-	{ DEVICEID_ICH9DH,   "Intel ICH9DH watchdog timer",	9, 2 },
-	{ DEVICEID_ICH9DO,   "Intel ICH9DO watchdog timer",	9, 2 },
-	{ DEVICEID_ICH9M,    "Intel ICH9M watchdog timer",	9, 2 },
-	{ DEVICEID_ICH9ME,   "Intel ICH9M-E watchdog timer",	9, 2 },
-	{ DEVICEID_ICH9R,    "Intel ICH9R watchdog timer",	9, 2 },
-	{ DEVICEID_ICH10,    "Intel ICH10 watchdog timer",	10, 2 },
-	{ DEVICEID_ICH10D,   "Intel ICH10D watchdog timer",	10, 2 },
-	{ DEVICEID_ICH10DO,  "Intel ICH10DO watchdog timer",	10, 2 },
-	{ DEVICEID_ICH10R,   "Intel ICH10R watchdog timer",	10, 2 },
-	{ DEVICEID_PCH,      "Intel PCH watchdog timer",	10, 2 },
-	{ DEVICEID_PCHM,     "Intel PCH watchdog timer",	10, 2 },
-	{ DEVICEID_P55,      "Intel P55 watchdog timer",	10, 2 },
-	{ DEVICEID_PM55,     "Intel PM55 watchdog timer",	10, 2 },
-	{ DEVICEID_H55,      "Intel H55 watchdog timer",	10, 2 },
-	{ DEVICEID_QM57,     "Intel QM57 watchdog timer",       10, 2 },
-	{ DEVICEID_H57,      "Intel H57 watchdog timer",        10, 2 },
-	{ DEVICEID_HM55,     "Intel HM55 watchdog timer",       10, 2 },
-	{ DEVICEID_Q57,      "Intel Q57 watchdog timer",        10, 2 },
-	{ DEVICEID_HM57,     "Intel HM57 watchdog timer",       10, 2 },
-	{ DEVICEID_PCHMSFF,  "Intel PCHMSFF watchdog timer",    10, 2 },
-	{ DEVICEID_QS57,     "Intel QS57 watchdog timer",       10, 2 },
-	{ DEVICEID_3400,     "Intel 3400 watchdog timer",       10, 2 },
-	{ DEVICEID_3420,     "Intel 3420 watchdog timer",       10, 2 },
-	{ DEVICEID_3450,     "Intel 3450 watchdog timer",       10, 2 },
-	{ DEVICEID_CPT0,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT1,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT2,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT3,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT4,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT5,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT6,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT7,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT8,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT9,     "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT10,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT11,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT12,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT13,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT14,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT15,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT16,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT17,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT18,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT19,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT20,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT21,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT22,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT23,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT24,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT25,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT26,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT27,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT28,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT29,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT30,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_CPT31,    "Intel Cougar Point watchdog timer",	10, 2 },
-	{ DEVICEID_PATSBURG_LPC1, "Intel Patsburg watchdog timer",	10, 2 },
-	{ DEVICEID_PATSBURG_LPC2, "Intel Patsburg watchdog timer",	10, 2 },
-	{ DEVICEID_PPT0,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT1,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT2,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT3,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT4,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT5,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT6,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT7,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT8,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT9,     "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT10,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT11,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT12,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT13,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT14,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT15,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT16,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT17,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT18,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT19,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT20,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT21,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT22,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT23,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT24,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT25,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT26,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT27,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT28,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT29,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT30,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_PPT31,    "Intel Panther Point watchdog timer",	10, 2 },
-	{ DEVICEID_LPT0,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT1,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT2,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT3,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT4,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT5,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT6,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT7,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT8,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT9,     "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT10,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT11,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT12,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT13,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT14,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT15,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT16,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT17,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT18,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT19,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT20,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT21,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT22,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT23,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT24,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT25,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT26,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT27,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT28,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT29,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT30,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_LPT31,    "Intel Lynx Point watchdog timer",		10, 2 },
-	{ DEVICEID_WCPT1,    "Intel Wildcat Point watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT2,    "Intel Wildcat Point watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT3,    "Intel Wildcat Point watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT4,    "Intel Wildcat Point watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT6,    "Intel Wildcat Point watchdog timer",	10, 2 },
-	{ DEVICEID_WBG0,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG1,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG2,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG3,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG4,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG5,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG6,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG7,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG8,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG9,     "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG10,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG11,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG12,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG13,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG14,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG15,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG16,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG17,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG18,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG19,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG20,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG21,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG22,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG23,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG24,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG25,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG26,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG27,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG28,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG29,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG30,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_WBG31,    "Intel Wellsburg watchdog timer",		10, 2 },
-	{ DEVICEID_LPT_LP0,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP1,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP2,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP3,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP4,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP5,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP6,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_LPT_LP7,  "Intel Lynx Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP1, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP2, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP3, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP5, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP6, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP7, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_WCPT_LP9, "Intel Wildcat Point-LP watchdog timer",	10, 2 },
-	{ DEVICEID_DH89XXCC_LPC,  "Intel DH89xxCC watchdog timer",	10, 2 },
-	{ DEVICEID_COLETOCRK_LPC, "Intel Coleto Creek watchdog timer",  10, 2 },
-	{ DEVICEID_AVN0,     "Intel Avoton/Rangeley SoC watchdog timer",10, 3 },
-	{ DEVICEID_AVN1,     "Intel Avoton/Rangeley SoC watchdog timer",10, 3 },
-	{ DEVICEID_AVN2,     "Intel Avoton/Rangeley SoC watchdog timer",10, 3 },
-	{ DEVICEID_AVN3,     "Intel Avoton/Rangeley SoC watchdog timer",10, 3 },
-	{ DEVICEID_BAYTRAIL, "Intel Bay Trail SoC watchdog timer",	10, 3 },
-	{ DEVICEID_BRASWELL, "Intel Braswell SoC watchdog timer",	10, 3 },
+	{ DEVICEID_82801AA, "Intel 82801AA watchdog timer", 1, 1 },
+	{ DEVICEID_82801AB, "Intel 82801AB watchdog timer", 1, 1 },
+	{ DEVICEID_82801BA, "Intel 82801BA watchdog timer", 2, 1 },
+	{ DEVICEID_82801BAM, "Intel 82801BAM watchdog timer", 2, 1 },
+	{ DEVICEID_82801CA, "Intel 82801CA watchdog timer", 3, 1 },
+	{ DEVICEID_82801CAM, "Intel 82801CAM watchdog timer", 3, 1 },
+	{ DEVICEID_82801DB, "Intel 82801DB watchdog timer", 4, 1 },
+	{ DEVICEID_82801DBM, "Intel 82801DBM watchdog timer", 4, 1 },
+	{ DEVICEID_82801E, "Intel 82801E watchdog timer", 5, 1 },
+	{ DEVICEID_82801EB, "Intel 82801EB watchdog timer", 5, 1 },
+	{ DEVICEID_82801EBR, "Intel 82801EB/ER watchdog timer", 5, 1 },
+	{ DEVICEID_6300ESB, "Intel 6300ESB watchdog timer", 5, 1 },
+	{ DEVICEID_82801FBR, "Intel 82801FB/FR watchdog timer", 6, 2 },
+	{ DEVICEID_ICH6M, "Intel ICH6M watchdog timer", 6, 2 },
+	{ DEVICEID_ICH6W, "Intel ICH6W watchdog timer", 6, 2 },
+	{ DEVICEID_ICH7, "Intel ICH7 watchdog timer", 7, 2 },
+	{ DEVICEID_ICH7DH, "Intel ICH7DH watchdog timer", 7, 2 },
+	{ DEVICEID_ICH7M, "Intel ICH7M watchdog timer", 7, 2 },
+	{ DEVICEID_ICH7MDH, "Intel ICH7MDH watchdog timer", 7, 2 },
+	{ DEVICEID_NM10, "Intel NM10 watchdog timer", 7, 2 },
+	{ DEVICEID_ICH8, "Intel ICH8 watchdog timer", 8, 2 },
+	{ DEVICEID_ICH8DH, "Intel ICH8DH watchdog timer", 8, 2 },
+	{ DEVICEID_ICH8DO, "Intel ICH8DO watchdog timer", 8, 2 },
+	{ DEVICEID_ICH8M, "Intel ICH8M watchdog timer", 8, 2 },
+	{ DEVICEID_ICH8ME, "Intel ICH8M-E watchdog timer", 8, 2 },
+	{ DEVICEID_63XXESB, "Intel 63XXESB watchdog timer", 8, 2 },
+	{ DEVICEID_ICH9, "Intel ICH9 watchdog timer", 9, 2 },
+	{ DEVICEID_ICH9DH, "Intel ICH9DH watchdog timer", 9, 2 },
+	{ DEVICEID_ICH9DO, "Intel ICH9DO watchdog timer", 9, 2 },
+	{ DEVICEID_ICH9M, "Intel ICH9M watchdog timer", 9, 2 },
+	{ DEVICEID_ICH9ME, "Intel ICH9M-E watchdog timer", 9, 2 },
+	{ DEVICEID_ICH9R, "Intel ICH9R watchdog timer", 9, 2 },
+	{ DEVICEID_ICH10, "Intel ICH10 watchdog timer", 10, 2 },
+	{ DEVICEID_ICH10D, "Intel ICH10D watchdog timer", 10, 2 },
+	{ DEVICEID_ICH10DO, "Intel ICH10DO watchdog timer", 10, 2 },
+	{ DEVICEID_ICH10R, "Intel ICH10R watchdog timer", 10, 2 },
+	{ DEVICEID_PCH, "Intel PCH watchdog timer", 10, 2 },
+	{ DEVICEID_PCHM, "Intel PCH watchdog timer", 10, 2 },
+	{ DEVICEID_P55, "Intel P55 watchdog timer", 10, 2 },
+	{ DEVICEID_PM55, "Intel PM55 watchdog timer", 10, 2 },
+	{ DEVICEID_H55, "Intel H55 watchdog timer", 10, 2 },
+	{ DEVICEID_QM57, "Intel QM57 watchdog timer", 10, 2 },
+	{ DEVICEID_H57, "Intel H57 watchdog timer", 10, 2 },
+	{ DEVICEID_HM55, "Intel HM55 watchdog timer", 10, 2 },
+	{ DEVICEID_Q57, "Intel Q57 watchdog timer", 10, 2 },
+	{ DEVICEID_HM57, "Intel HM57 watchdog timer", 10, 2 },
+	{ DEVICEID_PCHMSFF, "Intel PCHMSFF watchdog timer", 10, 2 },
+	{ DEVICEID_QS57, "Intel QS57 watchdog timer", 10, 2 },
+	{ DEVICEID_3400, "Intel 3400 watchdog timer", 10, 2 },
+	{ DEVICEID_3420, "Intel 3420 watchdog timer", 10, 2 },
+	{ DEVICEID_3450, "Intel 3450 watchdog timer", 10, 2 },
+	{ DEVICEID_CPT0, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT1, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT2, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT3, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT4, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT5, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT6, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT7, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT8, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT9, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT10, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT11, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT12, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT13, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT14, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT15, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT16, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT17, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT18, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT19, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT20, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT21, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT22, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT23, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT24, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT25, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT26, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT27, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT28, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT29, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT30, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_CPT31, "Intel Cougar Point watchdog timer", 10, 2 },
+	{ DEVICEID_PATSBURG_LPC1, "Intel Patsburg watchdog timer", 10, 2 },
+	{ DEVICEID_PATSBURG_LPC2, "Intel Patsburg watchdog timer", 10, 2 },
+	{ DEVICEID_PPT0, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT1, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT2, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT3, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT4, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT5, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT6, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT7, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT8, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT9, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT10, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT11, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT12, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT13, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT14, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT15, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT16, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT17, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT18, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT19, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT20, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT21, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT22, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT23, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT24, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT25, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT26, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT27, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT28, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT29, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT30, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_PPT31, "Intel Panther Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT0, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT1, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT2, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT3, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT4, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT5, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT6, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT7, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT8, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT9, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT10, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT11, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT12, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT13, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT14, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT15, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT16, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT17, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT18, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT19, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT20, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT21, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT22, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT23, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT24, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT25, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT26, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT27, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT28, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT29, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT30, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_LPT31, "Intel Lynx Point watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT1, "Intel Wildcat Point watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT2, "Intel Wildcat Point watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT3, "Intel Wildcat Point watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT4, "Intel Wildcat Point watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT6, "Intel Wildcat Point watchdog timer", 10, 2 },
+	{ DEVICEID_WBG0, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG1, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG2, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG3, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG4, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG5, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG6, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG7, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG8, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG9, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG10, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG11, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG12, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG13, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG14, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG15, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG16, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG17, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG18, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG19, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG20, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG21, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG22, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG23, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG24, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG25, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG26, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG27, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG28, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG29, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG30, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_WBG31, "Intel Wellsburg watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP0, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP1, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP2, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP3, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP4, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP5, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP6, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_LPT_LP7, "Intel Lynx Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP1, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP2, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP3, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP5, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP6, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP7, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_WCPT_LP9, "Intel Wildcat Point-LP watchdog timer", 10, 2 },
+	{ DEVICEID_DH89XXCC_LPC, "Intel DH89xxCC watchdog timer", 10, 2 },
+	{ DEVICEID_COLETOCRK_LPC, "Intel Coleto Creek watchdog timer", 10, 2 },
+	{ DEVICEID_AVN0, "Intel Avoton/Rangeley SoC watchdog timer", 10, 3 },
+	{ DEVICEID_AVN1, "Intel Avoton/Rangeley SoC watchdog timer", 10, 3 },
+	{ DEVICEID_AVN2, "Intel Avoton/Rangeley SoC watchdog timer", 10, 3 },
+	{ DEVICEID_AVN3, "Intel Avoton/Rangeley SoC watchdog timer", 10, 3 },
+	{ DEVICEID_BAYTRAIL, "Intel Bay Trail SoC watchdog timer", 10, 3 },
+	{ DEVICEID_BRASWELL, "Intel Braswell SoC watchdog timer", 10, 3 },
 	{ 0, NULL, 0, 0 },
 };
 
 static struct ichwd_device ichwd_smb_devices[] = {
-	{ DEVICEID_LEWISBURG_SMB, "Lewisburg watchdog timer",		10, 4 },
-	{ DEVICEID_LEWISBURG_SMB_SSKU, "Lewisburg watchdog timer",	10, 4 },
-	{ DEVICEID_CANNON_SMB,    "Cannon Lake watchdog timer",		10, 4, PMC_HIDDEN},
-	{ DEVICEID_COMET_SMB,     "Comet Lake watchdog timer",		10, 4, PMC_HIDDEN},
-	{ DEVICEID_SRPTLP_SMB,    "Sunrise Point-LP watchdog timer",	10, 4 },
-	{ DEVICEID_C3000,         "Intel Atom C3000 watchdog timer",	10, 4 },
+	{ DEVICEID_LEWISBURG_SMB, "Lewisburg watchdog timer", 10, 4 },
+	{ DEVICEID_LEWISBURG_SMB_SSKU, "Lewisburg watchdog timer", 10, 4 },
+	{ DEVICEID_CANNON_SMB, "Cannon Lake watchdog timer", 10, 4,
+	    PMC_HIDDEN },
+	{ DEVICEID_COMET_SMB, "Comet Lake watchdog timer", 10, 4, PMC_HIDDEN },
+	{ DEVICEID_SRPTLP_SMB, "Sunrise Point-LP watchdog timer", 10, 4 },
+	{ DEVICEID_C3000, "Intel Atom C3000 watchdog timer", 10, 4 },
 	{ 0, NULL, 0, 0 },
 };
 
-#define ichwd_read_tco_1(sc, off) \
-	bus_read_1((sc)->tco_res, (off))
-#define ichwd_read_tco_2(sc, off) \
-	bus_read_2((sc)->tco_res, (off))
-#define ichwd_read_tco_4(sc, off) \
-	bus_read_4((sc)->tco_res, (off))
-#define ichwd_read_smi_4(sc, off) \
-	bus_read_4((sc)->smi_res, (off))
-#define ichwd_read_gcs_4(sc, off) \
-	bus_read_4((sc)->gcs_res, (off))
+#define ichwd_read_tco_1(sc, off) bus_read_1((sc)->tco_res, (off))
+#define ichwd_read_tco_2(sc, off) bus_read_2((sc)->tco_res, (off))
+#define ichwd_read_tco_4(sc, off) bus_read_4((sc)->tco_res, (off))
+#define ichwd_read_smi_4(sc, off) bus_read_4((sc)->smi_res, (off))
+#define ichwd_read_gcs_4(sc, off) bus_read_4((sc)->gcs_res, (off))
 /* NB: TCO version 3 devices use the gcs_res resource for the PMC register. */
-#define ichwd_read_pmc_4(sc, off) \
-	bus_read_4((sc)->gcs_res, (off))
-#define ichwd_read_gc_4(sc, off) \
-	bus_read_4((sc)->gc_res, (off))
+#define ichwd_read_pmc_4(sc, off) bus_read_4((sc)->gcs_res, (off))
+#define ichwd_read_gc_4(sc, off) bus_read_4((sc)->gc_res, (off))
 
-#define ichwd_write_tco_1(sc, off, val) \
-	bus_write_1((sc)->tco_res, (off), (val))
-#define ichwd_write_tco_2(sc, off, val) \
-	bus_write_2((sc)->tco_res, (off), (val))
-#define ichwd_write_tco_4(sc, off, val) \
-	bus_write_4((sc)->tco_res, (off), (val))
-#define ichwd_write_smi_4(sc, off, val) \
-	bus_write_4((sc)->smi_res, (off), (val))
-#define ichwd_write_gcs_4(sc, off, val) \
-	bus_write_4((sc)->gcs_res, (off), (val))
+#define ichwd_write_tco_1(sc, off, val) bus_write_1((sc)->tco_res, (off), (val))
+#define ichwd_write_tco_2(sc, off, val) bus_write_2((sc)->tco_res, (off), (val))
+#define ichwd_write_tco_4(sc, off, val) bus_write_4((sc)->tco_res, (off), (val))
+#define ichwd_write_smi_4(sc, off, val) bus_write_4((sc)->smi_res, (off), (val))
+#define ichwd_write_gcs_4(sc, off, val) bus_write_4((sc)->gcs_res, (off), (val))
 /* NB: TCO version 3 devices use the gcs_res resource for the PMC register. */
-#define ichwd_write_pmc_4(sc, off, val) \
-	bus_write_4((sc)->gcs_res, (off), (val))
-#define ichwd_write_gc_4(sc, off, val) \
-	bus_write_4((sc)->gc_res, (off), (val))
+#define ichwd_write_pmc_4(sc, off, val) bus_write_4((sc)->gcs_res, (off), (val))
+#define ichwd_write_gc_4(sc, off, val) bus_write_4((sc)->gc_res, (off), (val))
 
-#define ichwd_verbose_printf(dev, ...) \
-	do {						\
-		if (bootverbose)			\
-			device_printf(dev, __VA_ARGS__);\
+#define ichwd_verbose_printf(dev, ...)                   \
+	do {                                             \
+		if (bootverbose)                         \
+			device_printf(dev, __VA_ARGS__); \
 	} while (0)
 
 /*
@@ -350,7 +337,8 @@ static struct ichwd_device ichwd_smb_devices[] = {
 static __inline void
 ichwd_smi_disable(struct ichwd_softc *sc)
 {
-	ichwd_write_smi_4(sc, SMI_EN, ichwd_read_smi_4(sc, SMI_EN) & ~SMI_TCO_EN);
+	ichwd_write_smi_4(sc, SMI_EN,
+	    ichwd_read_smi_4(sc, SMI_EN) & ~SMI_TCO_EN);
 }
 
 /*
@@ -359,7 +347,8 @@ ichwd_smi_disable(struct ichwd_softc *sc)
 static __inline void
 ichwd_smi_enable(struct ichwd_softc *sc)
 {
-	ichwd_write_smi_4(sc, SMI_EN, ichwd_read_smi_4(sc, SMI_EN) | SMI_TCO_EN);
+	ichwd_write_smi_4(sc, SMI_EN,
+	    ichwd_read_smi_4(sc, SMI_EN) | SMI_TCO_EN);
 }
 
 /*
@@ -537,13 +526,13 @@ ichwd_event(void *arg, unsigned int cmd, int *error)
 
 	/* convert from power-of-two-ns to WDT ticks */
 	cmd &= WD_INTERVAL;
-	
+
 	if (sc->tco_version == 3) {
 		timeout = ((uint64_t)1 << cmd) / ICHWD_TCO_V3_TICK;
 	} else {
 		timeout = ((uint64_t)1 << cmd) / ICHWD_TICK;
 	}
-	
+
 	if (cmd) {
 		if (!sc->active)
 			ichwd_tmr_enable(sc);
@@ -656,8 +645,7 @@ ichwd_identify(driver_t *driver, device_t parent)
 		/* get RCBA (root complex base address) */
 		base_address = pci_read_config(ich, ICH_RCBA, 4);
 		rc = bus_set_resource(ich, SYS_RES_MEMORY, 0,
-		    (base_address & 0xffffc000) + ICH_GCS_OFFSET,
-		    ICH_GCS_SIZE);
+		    (base_address & 0xffffc000) + ICH_GCS_OFFSET, ICH_GCS_SIZE);
 		if (rc)
 			ichwd_verbose_printf(dev,
 			    "Can not set TCO v%d memory resource for RCBA\n",
@@ -667,8 +655,7 @@ ichwd_identify(driver_t *driver, device_t parent)
 		/* get PBASE (Power Management Controller base address) */
 		base_address = pci_read_config(ich, ICH_PBASE, 4);
 		rc = bus_set_resource(ich, SYS_RES_MEMORY, 0,
-		    (base_address & 0xfffffe00) + ICH_PMC_OFFSET,
-		    ICH_PMC_SIZE);
+		    (base_address & 0xfffffe00) + ICH_PMC_OFFSET, ICH_PMC_SIZE);
 		if (rc)
 			ichwd_verbose_printf(dev,
 			    "Can not set TCO v%d memory resource for PBASE\n",
@@ -788,13 +775,14 @@ ichwd_smb_attach(device_t dev)
 	if (pmdev == NULL) {
 		if (id_p->quirks & PMC_HIDDEN) {
 			/*
-			 * Since the PMC is hidden, we take the default value for the
-			 * given device, which happens to be the same for the ones we
-			 * support.
+			 * Since the PMC is hidden, we take the default value
+			 * for the given device, which happens to be the same
+			 * for the ones we support.
 			 */
 			acpi_base = ACPI_DEFAULT_CANNON;
 		} else {
-			device_printf(dev, "unable to find Power Management device\n");
+			device_printf(dev,
+			    "unable to find Power Management device\n");
 			return (ENXIO);
 		}
 	} else {
@@ -865,7 +853,7 @@ ichwd_lpc_attach(device_t dev)
 	sc->gcs_rid = 0;
 	if (sc->tco_version >= 2) {
 		sc->gcs_res = bus_alloc_resource_any(ich, SYS_RES_MEMORY,
-		    &sc->gcs_rid, RF_ACTIVE|RF_SHAREABLE);
+		    &sc->gcs_rid, RF_ACTIVE | RF_SHAREABLE);
 		if (sc->gcs_res == NULL) {
 			device_printf(dev, "unable to reserve GCS registers\n");
 			return (ENXIO);
@@ -912,20 +900,20 @@ ichwd_attach(device_t dev)
 	ichwd_smi_disable(sc);
 
 	return (0);
- fail:
+fail:
 	sc = device_get_softc(dev);
 	if (sc->tco_res != NULL)
-		bus_release_resource(dev, SYS_RES_IOPORT,
-		    sc->tco_rid, sc->tco_res);
+		bus_release_resource(dev, SYS_RES_IOPORT, sc->tco_rid,
+		    sc->tco_res);
 	if (sc->smi_res != NULL)
-		bus_release_resource(dev, SYS_RES_IOPORT,
-		    sc->smi_rid, sc->smi_res);
+		bus_release_resource(dev, SYS_RES_IOPORT, sc->smi_rid,
+		    sc->smi_res);
 	if (sc->gcs_res != NULL)
-		bus_release_resource(sc->ich, SYS_RES_MEMORY,
-		    sc->gcs_rid, sc->gcs_res);
+		bus_release_resource(sc->ich, SYS_RES_MEMORY, sc->gcs_rid,
+		    sc->gcs_res);
 	if (sc->gc_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    sc->gc_rid, sc->gc_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->gc_rid,
+		    sc->gc_res);
 
 	return (ENXIO);
 }
@@ -968,14 +956,12 @@ ichwd_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t ichwd_methods[] = {
-	DEVMETHOD(device_identify, ichwd_identify),
-	DEVMETHOD(device_probe,	ichwd_probe),
+static device_method_t ichwd_methods[] = { DEVMETHOD(device_identify,
+					       ichwd_identify),
+	DEVMETHOD(device_probe, ichwd_probe),
 	DEVMETHOD(device_attach, ichwd_attach),
 	DEVMETHOD(device_detach, ichwd_detach),
-	DEVMETHOD(device_shutdown, ichwd_detach),
-	{0,0}
-};
+	DEVMETHOD(device_shutdown, ichwd_detach), { 0, 0 } };
 
 static driver_t ichwd_driver = {
 	"ichwd",

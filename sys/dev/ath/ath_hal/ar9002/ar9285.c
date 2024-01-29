@@ -19,14 +19,12 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v14.h"
-
+#include "ah_internal.h"
+#include "ar5416/ar5416phy.h"
+#include "ar5416/ar5416reg.h"
 #include "ar9002/ar9280.h"
 #include "ar9002/ar9285.h"
-#include "ar5416/ar5416reg.h"
-#include "ar5416/ar5416phy.h"
 
 /*
  * The ordering of nfarray is thus:
@@ -46,15 +44,15 @@ ar9285GetNoiseFloor(struct ath_hal *ah, int16_t nfarray[])
 	nf = MS(OS_REG_READ(ah, AR_PHY_CCA), AR9280_PHY_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ctl] [chain 0] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ctl] [chain 0] is %d\n",
+	    nf);
 	nfarray[0] = nf;
 
 	nf = MS(OS_REG_READ(ah, AR_PHY_EXT_CCA), AR9280_PHY_EXT_MINCCA_PWR);
 	if (nf & 0x100)
 		nf = 0 - ((nf ^ 0x1ff) + 1);
-	HALDEBUG(ah, HAL_DEBUG_NFCAL,
-	    "NF calibrated [ext] [chain 0] is %d\n", nf);
+	HALDEBUG(ah, HAL_DEBUG_NFCAL, "NF calibrated [ext] [chain 0] is %d\n",
+	    nf);
 	nfarray[3] = nf;
 
 	/* Chain 1 - invalid */

@@ -32,40 +32,41 @@
  */
 
 #include <sys/syscall.h>
+
 #include <machine/asm.h>
 
-#define	_SYSCALL(name)						\
-	.text;							\
-	.align 2;						\
-	li	0,(SYS_##name);					\
+#define _SYSCALL(name)      \
+	.text;              \
+	.align 2;           \
+	li 0, (SYS_##name); \
 	sc
 
-#define _SYSCALL_BODY(name)					\
-	_SYSCALL(name);						\
-	bnslr;							\
-	mflr	%r0;						\
-	std	%r0,16(%r1);					\
-	stdu	%r1,-48(%r1);					\
-	bl	CNAME(HIDENAME(cerror));			\
-	nop;							\
-	addi	%r1,%r1,48;					\
-	ld	%r0,16(%r1);					\
-	mtlr	%r0;						\
+#define _SYSCALL_BODY(name)         \
+	_SYSCALL(name);             \
+	bnslr;                      \
+	mflr % r0;                  \
+	std % r0, 16(% r1);         \
+	stdu % r1, -48(% r1);       \
+	bl CNAME(HIDENAME(cerror)); \
+	nop;                        \
+	addi % r1, % r1, 48;        \
+	ld % r0, 16(% r1);          \
+	mtlr % r0;                  \
 	blr
 
-#define	PSEUDO(name)						\
-	.text;							\
-	.align 2;						\
-ENTRY(__sys_##name);						\
-	WEAK_REFERENCE(__sys_##name, _##name);			\
-	_SYSCALL_BODY(name);					\
-END(__sys_##name)
+#define PSEUDO(name)                           \
+	.text;                                 \
+	.align 2;                              \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL_BODY(name);                   \
+	END(__sys_##name)
 
-#define	RSYSCALL(name)						\
-	.text;							\
-	.align 2;						\
-ENTRY(__sys_##name);						\
-	WEAK_REFERENCE(__sys_##name, name);			\
-	WEAK_REFERENCE(__sys_##name, _##name);			\
-	_SYSCALL_BODY(name);					\
-END(__sys_##name)
+#define RSYSCALL(name)                         \
+	.text;                                 \
+	.align 2;                              \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, name);    \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL_BODY(name);                   \
+	END(__sys_##name)

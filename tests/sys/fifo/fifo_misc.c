@@ -49,7 +49,7 @@
  * All activity occurs within a temporary directory created early in the
  * test.
  */
-static char	temp_dir[PATH_MAX];
+static char temp_dir[PATH_MAX];
 
 static void __unused
 atexit_temp_dir(void)
@@ -192,14 +192,14 @@ test_ioctl(void)
 	/*
 	 * Set and remove the non-blocking I/O flag.
 	 */
-	if (test_ioctl_setclearflag(reader_fd, FIONBIO, __func__,
-	    "reader_fd", "FIONBIO") < 0) {
+	if (test_ioctl_setclearflag(reader_fd, FIONBIO, __func__, "reader_fd",
+		"FIONBIO") < 0) {
 		cleanfifo("testfifo", reader_fd, writer_fd);
 		exit(-1);
 	}
 
-	if (test_ioctl_setclearflag(writer_fd, FIONBIO, __func__,
-	    "writer_fd", "FIONBIO") < 0) {
+	if (test_ioctl_setclearflag(writer_fd, FIONBIO, __func__, "writer_fd",
+		"FIONBIO") < 0) {
 		cleanfifo("testfifo", reader_fd, writer_fd);
 		exit(-1);
 	}
@@ -207,14 +207,14 @@ test_ioctl(void)
 	/*
 	 * Set and remove the async I/O flag.
 	 */
-	if (test_ioctl_setclearflag(reader_fd, FIOASYNC, __func__,
-	    "reader_fd", "FIOASYNC") < 0) {
+	if (test_ioctl_setclearflag(reader_fd, FIOASYNC, __func__, "reader_fd",
+		"FIOASYNC") < 0) {
 		cleanfifo("testfifo", reader_fd, writer_fd);
 		exit(-1);
 	}
 
-	if (test_ioctl_setclearflag(writer_fd, FIOASYNC, __func__,
-	    "writer_fd", "FIONASYNC") < 0) {
+	if (test_ioctl_setclearflag(writer_fd, FIOASYNC, __func__, "writer_fd",
+		"FIONASYNC") < 0) {
 		cleanfifo("testfifo", reader_fd, writer_fd);
 		exit(-1);
 	}

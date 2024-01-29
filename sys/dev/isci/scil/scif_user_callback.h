@@ -61,17 +61,15 @@
  *        be implemented by an SCI Framework user.
  */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
-#include <dev/isci/scil/sci_controller.h>
 #include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sci_controller.h>
 #include <dev/isci/scil/sci_memory_descriptor_list.h>
-
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This callback method asks the user to create a timer and provide
@@ -93,11 +91,8 @@ extern "C" {
  *         user.  The handle will be utilized for all further interactions
  *         relating to this timer.
  */
-void * scif_cb_timer_create(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_TIMER_CALLBACK_T      timer_callback,
-   void                    * cookie
-);
+void *scif_cb_timer_create(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_TIMER_CALLBACK_T timer_callback, void *cookie);
 
 /**
  * @brief This callback method asks the user to destroy the supplied timer.
@@ -108,10 +103,7 @@ void * scif_cb_timer_create(
  *
  * @return none
  */
-void scif_cb_timer_destroy(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer
-);
+void scif_cb_timer_destroy(SCI_CONTROLLER_HANDLE_T controller, void *timer);
 
 /**
  * @brief This callback method asks the user to start the supplied timer.
@@ -132,11 +124,8 @@ void scif_cb_timer_destroy(
  *
  * @return none
  */
-void scif_cb_timer_start(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer,
-   U32                       milliseconds
-);
+void scif_cb_timer_start(SCI_CONTROLLER_HANDLE_T controller, void *timer,
+    U32 milliseconds);
 
 /**
  * @brief This callback method asks the user to stop the supplied timer.
@@ -147,10 +136,7 @@ void scif_cb_timer_start(
  *
  * @return none
  */
-void scif_cb_timer_stop(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   void                    * timer
-);
+void scif_cb_timer_stop(SCI_CONTROLLER_HANDLE_T controller, void *timer);
 
 /**
  * @brief This callback method asks the user to associate the supplied
@@ -166,10 +152,8 @@ void scif_cb_timer_stop(
  *
  * @return none.
  */
-void scif_cb_lock_associate(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_LOCK_HANDLE_T         lock
-);
+void scif_cb_lock_associate(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_LOCK_HANDLE_T lock);
 
 /**
  * @brief This callback method asks the user to de-associate the supplied
@@ -185,11 +169,8 @@ void scif_cb_lock_associate(
  *
  * @return none.
  */
-void scif_cb_lock_disassociate(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_LOCK_HANDLE_T         lock
-);
-
+void scif_cb_lock_disassociate(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_LOCK_HANDLE_T lock);
 
 /**
  * @brief This callback method asks the user to acquire/get the lock.
@@ -201,10 +182,8 @@ void scif_cb_lock_disassociate(
  *
  * @return none
  */
-void scif_cb_lock_acquire(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_LOCK_HANDLE_T         lock
-);
+void scif_cb_lock_acquire(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_LOCK_HANDLE_T lock);
 
 /**
  * @brief This callback method asks the user to release a lock.
@@ -215,10 +194,8 @@ void scif_cb_lock_acquire(
  *
  * @return none
  */
-void scif_cb_lock_release(
-   SCI_CONTROLLER_HANDLE_T   controller,
-   SCI_LOCK_HANDLE_T         lock
-);
+void scif_cb_lock_release(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_LOCK_HANDLE_T lock);
 
 /**
  * @brief This user callback will inform the user that the controller has
@@ -231,10 +208,8 @@ void scif_cb_lock_release(
  *
  * @return none
  */
-void scif_cb_controller_error(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_CONTROLLER_ERROR error
-);
+void scif_cb_controller_error(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_CONTROLLER_ERROR error);
 
 /**
  * @brief This user callback will inform the user that the controller has
@@ -248,10 +223,8 @@ void scif_cb_controller_error(
  *
  * @return none
  */
-void scif_cb_controller_start_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_STATUS               completion_status
-);
+void scif_cb_controller_start_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_STATUS completion_status);
 
 /**
  * @brief This user callback will inform the user that the controller has
@@ -268,10 +241,8 @@ void scif_cb_controller_start_complete(
  *
  * @return none
  */
-void scif_cb_controller_stop_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_STATUS               completion_status
-);
+void scif_cb_controller_stop_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_STATUS completion_status);
 
 /**
  * @brief This method simply returns the virtual address associated
@@ -292,10 +263,8 @@ void scif_cb_controller_stop_complete(
  * @return A virtual address pointer to the location specified by the
  *         parameters.
  */
-U8 * scif_cb_io_request_get_virtual_address_from_sgl(
-   void * scif_user_io_request,
-   U32    byte_offset
-);
+U8 *scif_cb_io_request_get_virtual_address_from_sgl(void *scif_user_io_request,
+    U32 byte_offset);
 
 #ifdef ENABLE_OSSL_COPY_BUFFER
 /**
@@ -315,12 +284,8 @@ U8 * scif_cb_io_request_get_virtual_address_from_sgl(
  *
  * @return    None
  */
-void scif_cb_io_request_copy_buffer(
-   void * scic_user_io_request,
-   U8   *source_addr,
-   U32   offset,
-   U32   length
-);
+void scif_cb_io_request_copy_buffer(void *scic_user_io_request, U8 *source_addr,
+    U32 offset, U32 length);
 #endif
 
 /**
@@ -339,12 +304,9 @@ void scif_cb_io_request_copy_buffer(
  *
  * @return none
  */
-void scif_cb_io_request_complete(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_IO_REQUEST_HANDLE_T     io_request,
-   SCI_IO_STATUS               completion_status
-);
+void scif_cb_io_request_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_IO_REQUEST_HANDLE_T io_request, SCI_IO_STATUS completion_status);
 
 /**
  * @brief This user callback will inform the user that a task management
@@ -362,12 +324,9 @@ void scif_cb_io_request_complete(
  *
  * @return none
  */
-void scif_cb_task_request_complete(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_TASK_REQUEST_HANDLE_T   task_request,
-   SCI_TASK_STATUS             completion_status
-);
+void scif_cb_task_request_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_TASK_REQUEST_HANDLE_T task_request, SCI_TASK_STATUS completion_status);
 
 /**
  * @brief This callback method asks the user to provide the number of
@@ -380,9 +339,7 @@ void scif_cb_task_request_complete(
  * @return This method returns the number of payload data bytes to be
  *         transferred for this IO request.
  */
-U32 scif_cb_io_request_get_transfer_length(
-   void * scif_user_io_request
-);
+U32 scif_cb_io_request_get_transfer_length(void *scif_user_io_request);
 
 /**
  * @brief This callback method asks the user to provide the data direction
@@ -396,8 +353,7 @@ U32 scif_cb_io_request_get_transfer_length(
  *         SCI_IO_REQUEST_DATA_IN, or SCI_IO_REQUEST_NO_DATA.
  */
 SCI_IO_REQUEST_DATA_DIRECTION scif_cb_io_request_get_data_direction(
-   void * scif_user_io_request
-);
+    void *scif_user_io_request);
 
 #ifndef SCI_SGL_OPTIMIZATION_ENABLED
 /**
@@ -424,11 +380,8 @@ SCI_IO_REQUEST_DATA_DIRECTION scif_cb_io_request_get_data_direction(
  *
  * @return None.
  */
-void scif_cb_io_request_get_next_sge(
-   void * scif_user_io_request,
-   void * current_sge_address,
-   void ** next_sge
-);
+void scif_cb_io_request_get_next_sge(void *scif_user_io_request,
+    void *current_sge_address, void **next_sge);
 #endif
 
 /**
@@ -444,10 +397,8 @@ void scif_cb_io_request_get_next_sge(
  * @return A physical address specifying the contents of the SGE's address
  *         field.
  */
-SCI_PHYSICAL_ADDRESS scif_cb_sge_get_address_field(
-   void * scif_user_io_request,
-   void * sge_address
-);
+SCI_PHYSICAL_ADDRESS scif_cb_sge_get_address_field(void *scif_user_io_request,
+    void *sge_address);
 
 /**
  * @brief This callback method asks the user to provide the contents of the
@@ -462,10 +413,7 @@ SCI_PHYSICAL_ADDRESS scif_cb_sge_get_address_field(
  * @return This method returns the length field specified inside the SGE
  *         referenced by the sge_address parameter.
  */
-U32 scif_cb_sge_get_length_field(
-   void * scif_user_io_request,
-   void * sge_address
-);
+U32 scif_cb_sge_get_length_field(void *scif_user_io_request, void *sge_address);
 
 /**
  * @brief This callback method asks the user to provide the address for
@@ -477,9 +425,7 @@ U32 scif_cb_sge_get_length_field(
  *
  * @return This method returns the virtual address of the CDB.
  */
-void * scif_cb_io_request_get_cdb_address(
-   void * scif_user_io_request
-);
+void *scif_cb_io_request_get_cdb_address(void *scif_user_io_request);
 
 /**
  * @brief This callback method asks the user to provide the length of
@@ -491,9 +437,7 @@ void * scif_cb_io_request_get_cdb_address(
  *
  * @return This method returns the length of the CDB.
  */
-U32 scif_cb_io_request_get_cdb_length(
-   void * scif_user_io_request
-);
+U32 scif_cb_io_request_get_cdb_length(void *scif_user_io_request);
 
 /**
  * @brief This callback method asks the user to provide the Logical Unit (LUN)
@@ -510,9 +454,7 @@ U32 scif_cb_io_request_get_cdb_length(
  *
  * @return This method returns the LUN associated with this request.
  */
-U32 scif_cb_io_request_get_lun(
-   void * scif_user_io_request
-);
+U32 scif_cb_io_request_get_lun(void *scif_user_io_request);
 
 /**
  * @brief This callback method asks the user to provide the task attribute
@@ -530,9 +472,7 @@ U32 scif_cb_io_request_get_lun(
  * @return This method returns the task attribute associated with this
  *         IO request.
  */
-U32 scif_cb_io_request_get_task_attribute(
-   void * scif_user_io_request
-);
+U32 scif_cb_io_request_get_task_attribute(void *scif_user_io_request);
 
 /**
  * @brief This callback method asks the user to provide the command priority
@@ -550,9 +490,7 @@ U32 scif_cb_io_request_get_task_attribute(
  * @return This method returns the command priority associated with this
  *         IO request.
  */
-U32 scif_cb_io_request_get_command_priority(
-   void * scif_user_io_request
-);
+U32 scif_cb_io_request_get_command_priority(void *scif_user_io_request);
 
 /**
  * @brief This method returns the Logical Unit to be utilized for this
@@ -570,9 +508,7 @@ U32 scif_cb_io_request_get_command_priority(
  * @return This method returns the LUN associated with this request.
  * @todo This should be U64?
  */
-U32 scif_cb_task_request_get_lun(
-   void * scif_user_task_request
-);
+U32 scif_cb_task_request_get_lun(void *scif_user_task_request);
 
 /**
  * @brief This method returns the task management function to be utilized
@@ -590,9 +526,7 @@ U32 scif_cb_task_request_get_lun(
  * @return This method returns an unsigned byte representing the task
  *         management function to be performed.
  */
-U8 scif_cb_task_request_get_function(
-   void * scif_user_task_request
-);
+U8 scif_cb_task_request_get_function(void *scif_user_task_request);
 
 /**
  * @brief This method returns the task management IO tag to be managed.
@@ -606,9 +540,7 @@ U8 scif_cb_task_request_get_function(
  * @return This method returns an unsigned 16-bit word depicting the IO
  *         tag to be managed.
  */
-U16 scif_cb_task_request_get_io_tag_to_manage(
-   void * scif_user_task_request
-);
+U16 scif_cb_task_request_get_io_tag_to_manage(void *scif_user_task_request);
 
 /**
  * @brief This callback method asks the user to provide the virtual
@@ -621,9 +553,8 @@ U16 scif_cb_task_request_get_io_tag_to_manage(
  * @return This method returns the virtual address for the response data buffer
  *         associated with this IO request.
  */
-void * scif_cb_task_request_get_response_data_address(
-   void * scif_user_task_request
-);
+void *scif_cb_task_request_get_response_data_address(
+    void *scif_user_task_request);
 
 /**
  * @brief This callback method asks the user to provide the length of the
@@ -636,9 +567,7 @@ void * scif_cb_task_request_get_response_data_address(
  * @return This method returns the length of the response buffer data
  *         associated with this IO request.
  */
-U32 scif_cb_task_request_get_response_data_length(
-   void * scif_user_task_request
-);
+U32 scif_cb_task_request_get_response_data_length(void *scif_user_task_request);
 
 /**
  * @brief In this method the user is expected to log the supplied
@@ -654,12 +583,8 @@ U32 scif_cb_task_request_get_response_data_length(
  *
  * @return none
  */
-void scif_cb_logger_log_error(
-   SCI_LOGGER_HANDLE_T   logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void scif_cb_logger_log_error(SCI_LOGGER_HANDLE_T logger_object,
+    U32 log_object_mask, char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied warning
@@ -675,12 +600,8 @@ void scif_cb_logger_log_error(
  *
  * @return none
  */
-void scif_cb_logger_log_warning(
-   SCI_LOGGER_HANDLE_T   logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
+void scif_cb_logger_log_warning(SCI_LOGGER_HANDLE_T logger_object,
+    U32 log_object_mask, char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied debug
@@ -696,13 +617,8 @@ void scif_cb_logger_log_warning(
  *
  * @return none
  */
-void scif_cb_logger_log_info(
-   SCI_LOGGER_HANDLE_T   logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
-
+void scif_cb_logger_log_info(SCI_LOGGER_HANDLE_T logger_object,
+    U32 log_object_mask, char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied function
@@ -719,13 +635,8 @@ void scif_cb_logger_log_info(
  *
  * @return none
  */
-void scif_cb_logger_log_trace(
-   SCI_LOGGER_HANDLE_T   logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
-
+void scif_cb_logger_log_trace(SCI_LOGGER_HANDLE_T logger_object,
+    U32 log_object_mask, char *log_message, ...);
 
 /**
  * @brief In this method the user is expected to log the supplied state
@@ -741,13 +652,8 @@ void scif_cb_logger_log_trace(
  *
  * @return none
  */
-void scif_cb_logger_log_states(
-   SCI_LOGGER_HANDLE_T   logger_object,
-   U32                   log_object_mask,
-   char                * log_message,
-   ...
-);
-
+void scif_cb_logger_log_states(SCI_LOGGER_HANDLE_T logger_object,
+    U32 log_object_mask, char *log_message, ...);
 
 /**
  * @brief This callback method informs the framework user that something
@@ -770,11 +676,8 @@ void scif_cb_logger_log_states(
  *
  * @return none
  */
-void scif_cb_domain_change_notification(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_DOMAIN_HANDLE_T      domain
-);
-
+void scif_cb_domain_change_notification(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain);
 
 /**
  * @brief This callback method informs the framework user that a previously
@@ -789,11 +692,8 @@ void scif_cb_domain_change_notification(
  *
  * @return none
  */
-void scif_cb_domain_discovery_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_DOMAIN_HANDLE_T      domain,
-   SCI_STATUS               completion_status
-);
+void scif_cb_domain_discovery_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_STATUS completion_status);
 
 /**
  * @brief This callback method informs the framework user that a previously
@@ -808,11 +708,8 @@ void scif_cb_domain_discovery_complete(
  *
  * @return none
  */
-void scif_cb_domain_reset_complete(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_DOMAIN_HANDLE_T      domain,
-   SCI_STATUS               completion_status
-);
+void scif_cb_domain_reset_complete(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_STATUS completion_status);
 
 /**
  * @brief This callback method informs the framework user that the domain
@@ -826,10 +723,8 @@ void scif_cb_domain_reset_complete(
  *
  * @return none
  */
-void scif_cb_domain_ready(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_DOMAIN_HANDLE_T      domain
-);
+void scif_cb_domain_ready(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain);
 
 /**
  * @brief This callback method informs the framework user that the domain
@@ -843,10 +738,8 @@ void scif_cb_domain_ready(
  *
  * @return none
  */
-void scif_cb_domain_not_ready(
-   SCI_CONTROLLER_HANDLE_T  controller,
-   SCI_DOMAIN_HANDLE_T      domain
-);
+void scif_cb_domain_not_ready(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain);
 
 /**
  * @brief This callback method informs the framework user that a new
@@ -863,12 +756,9 @@ void scif_cb_domain_not_ready(
  *
  * @return none
  */
-void scif_cb_domain_da_device_added(
-   SCI_CONTROLLER_HANDLE_T                      controller,
-   SCI_DOMAIN_HANDLE_T                          domain,
-   SCI_SAS_ADDRESS_T                          * sas_address,
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T * protocols
-);
+void scif_cb_domain_da_device_added(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_SAS_ADDRESS_T *sas_address,
+    SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T *protocols);
 
 /**
  * @brief This callback method informs the framework user that a new
@@ -885,12 +775,9 @@ void scif_cb_domain_da_device_added(
  *
  * @return none
  */
-void scif_cb_domain_ea_device_added(
-   SCI_CONTROLLER_HANDLE_T      controller,
-   SCI_DOMAIN_HANDLE_T          domain,
-   SCI_REMOTE_DEVICE_HANDLE_T   containing_device,
-   SMP_RESPONSE_DISCOVER_T    * smp_response
-);
+void scif_cb_domain_ea_device_added(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T containing_device,
+    SMP_RESPONSE_DISCOVER_T *smp_response);
 
 /**
  * @brief This callback method informs the framework user that a device
@@ -905,11 +792,8 @@ void scif_cb_domain_ea_device_added(
  *
  * @return none
  */
-void scif_cb_domain_device_removed(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_DOMAIN_HANDLE_T         domain,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+void scif_cb_domain_device_removed(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This callback method informs the framework user that the remote
@@ -924,11 +808,8 @@ void scif_cb_domain_device_removed(
  *
  * @return none
  */
-void scif_cb_remote_device_ready(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_DOMAIN_HANDLE_T         domain,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+void scif_cb_remote_device_ready(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This callback method informs the framework user that the remote
@@ -944,11 +825,8 @@ void scif_cb_remote_device_ready(
  *
  * @return none
  */
-void scif_cb_remote_device_not_ready(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_DOMAIN_HANDLE_T         domain,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device
-);
+void scif_cb_remote_device_not_ready(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device);
 
 /**
  * @brief This callback method informs the framework user that the remote
@@ -966,14 +844,9 @@ void scif_cb_remote_device_not_ready(
  *
  * @return none
  */
-void scif_cb_remote_device_failed(
-   SCI_CONTROLLER_HANDLE_T     controller,
-   SCI_DOMAIN_HANDLE_T         domain,
-   SCI_REMOTE_DEVICE_HANDLE_T  remote_device,
-   SCI_STATUS                  status
-);
-
-
+void scif_cb_remote_device_failed(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_DOMAIN_HANDLE_T domain, SCI_REMOTE_DEVICE_HANDLE_T remote_device,
+    SCI_STATUS status);
 
 /**
  * @brief This callback method creates an OS specific deferred task
@@ -985,10 +858,7 @@ void scif_cb_remote_device_failed(
  *
  * @return none
  */
-void scif_cb_start_internal_io_task_create(
-   SCI_CONTROLLER_HANDLE_T controller
-);
-
+void scif_cb_start_internal_io_task_create(SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This callback method schedules a OS specific deferred task.
@@ -1003,11 +873,8 @@ void scif_cb_start_internal_io_task_create(
  *
  * @return none
  */
-void scif_cb_start_internal_io_task_schedule(
-   SCI_CONTROLLER_HANDLE_T controller,
-   FUNCPTR                 start_internal_io_task_routine,
-   void                  * context
-);
+void scif_cb_start_internal_io_task_schedule(SCI_CONTROLLER_HANDLE_T controller,
+    FUNCPTR start_internal_io_task_routine, void *context);
 
 /**
  * @brief This method will be invoked to allocate memory dynamically.
@@ -1020,10 +887,8 @@ void scif_cb_start_internal_io_task_schedule(
  *
  * @return none
  */
-void scif_cb_controller_allocate_memory(
-   SCI_CONTROLLER_HANDLE_T            controller,
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T * mde
-);
+void scif_cb_controller_allocate_memory(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde);
 
 /**
  * @brief This method will be invoked to allocate memory dynamically.
@@ -1036,14 +901,11 @@ void scif_cb_controller_allocate_memory(
  *
  * @return none
  */
-void scif_cb_controller_free_memory(
-   SCI_CONTROLLER_HANDLE_T            controller,
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T * mde
-);
+void scif_cb_controller_free_memory(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_USER_CALLBACK_H_
-

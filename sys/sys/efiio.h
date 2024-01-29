@@ -23,45 +23,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_SYS_EFIIO_H_
-#define	_SYS_EFIIO_H_
+#ifndef _SYS_EFIIO_H_
+#define _SYS_EFIIO_H_
 
+#include <sys/efi.h>
 #include <sys/ioccom.h>
 #include <sys/uuid.h>
-#include <sys/efi.h>
 
-struct efi_get_table_ioc
-{
-	void *buf;		/* Pointer to userspace buffer */
-	struct uuid uuid;	/* UUID to look up */
-	size_t table_len;	/* Table size */
-	size_t buf_len;		/* Size of the buffer */
+struct efi_get_table_ioc {
+	void *buf;	  /* Pointer to userspace buffer */
+	struct uuid uuid; /* UUID to look up */
+	size_t table_len; /* Table size */
+	size_t buf_len;	  /* Size of the buffer */
 };
 
-struct efi_var_ioc
-{
-	efi_char *name;		/* User pointer to name, in wide chars */
-	size_t namesize;	/* Number of wide characters in name */
-	struct uuid vendor;	/* Vendor's UUID for variable */
-	uint32_t attrib;	/* Attributes */
-	void *data;		/* User pointer to the data */
-	size_t datasize;	/* Number of *bytes* in the data */
+struct efi_var_ioc {
+	efi_char *name;	    /* User pointer to name, in wide chars */
+	size_t namesize;    /* Number of wide characters in name */
+	struct uuid vendor; /* Vendor's UUID for variable */
+	uint32_t attrib;    /* Attributes */
+	void *data;	    /* User pointer to the data */
+	size_t datasize;    /* Number of *bytes* in the data */
 };
 
-struct efi_waketime_ioc
-{
-	struct efi_tm	waketime;
-	uint8_t		enabled;
-	uint8_t		pending;
+struct efi_waketime_ioc {
+	struct efi_tm waketime;
+	uint8_t enabled;
+	uint8_t pending;
 };
 
-#define EFIIOC_GET_TABLE	_IOWR('E',  1, struct efi_get_table_ioc)
-#define EFIIOC_GET_TIME		_IOR('E',   2, struct efi_tm)
-#define EFIIOC_SET_TIME		_IOW('E',   3, struct efi_tm)
-#define EFIIOC_VAR_GET		_IOWR('E',  4, struct efi_var_ioc)
-#define EFIIOC_VAR_NEXT		_IOWR('E',  5, struct efi_var_ioc)
-#define EFIIOC_VAR_SET		_IOWR('E',  6, struct efi_var_ioc)
-#define EFIIOC_GET_WAKETIME	_IOR('E',   7, struct efi_waketime_ioc)
-#define EFIIOC_SET_WAKETIME	_IOW('E',   8, struct efi_waketime_ioc)
+#define EFIIOC_GET_TABLE _IOWR('E', 1, struct efi_get_table_ioc)
+#define EFIIOC_GET_TIME _IOR('E', 2, struct efi_tm)
+#define EFIIOC_SET_TIME _IOW('E', 3, struct efi_tm)
+#define EFIIOC_VAR_GET _IOWR('E', 4, struct efi_var_ioc)
+#define EFIIOC_VAR_NEXT _IOWR('E', 5, struct efi_var_ioc)
+#define EFIIOC_VAR_SET _IOWR('E', 6, struct efi_var_ioc)
+#define EFIIOC_GET_WAKETIME _IOR('E', 7, struct efi_waketime_ioc)
+#define EFIIOC_SET_WAKETIME _IOW('E', 8, struct efi_waketime_ioc)
 
 #endif /* _SYS_EFIIO_H_ */

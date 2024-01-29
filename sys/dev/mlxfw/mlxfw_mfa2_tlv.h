@@ -33,6 +33,7 @@
 #define _MLXFW_MFA2_TLV_H
 
 #include <linux/kernel.h>
+
 #include "mlxfw_mfa2_file.h"
 
 struct mlxfw_mfa2_tlv {
@@ -46,20 +47,21 @@ static inline const struct mlxfw_mfa2_tlv *
 mlxfw_mfa2_tlv_get(const struct mlxfw_mfa2_file *mfa2_file, const u8 *ptr)
 {
 	if (!mlxfw_mfa2_valid_ptr(mfa2_file, ptr) ||
-	    !mlxfw_mfa2_valid_ptr(mfa2_file, ptr + sizeof(struct mlxfw_mfa2_tlv)))
+	    !mlxfw_mfa2_valid_ptr(mfa2_file,
+		ptr + sizeof(struct mlxfw_mfa2_tlv)))
 		return NULL;
-	return (const struct mlxfw_mfa2_tlv *) ptr;
+	return (const struct mlxfw_mfa2_tlv *)ptr;
 }
 
 static inline const void *
 mlxfw_mfa2_tlv_payload_get(const struct mlxfw_mfa2_file *mfa2_file,
-			   const struct mlxfw_mfa2_tlv *tlv, u8 payload_type,
-			   size_t payload_size, bool varsize)
+    const struct mlxfw_mfa2_tlv *tlv, u8 payload_type, size_t payload_size,
+    bool varsize)
 {
 	const u8 *tlv_top;
 
-	tlv_top = (const u8 *) tlv + be16_to_cpu(tlv->len) - 1;
-	if (!mlxfw_mfa2_valid_ptr(mfa2_file, (const u8 *) tlv) ||
+	tlv_top = (const u8 *)tlv + be16_to_cpu(tlv->len) - 1;
+	if (!mlxfw_mfa2_valid_ptr(mfa2_file, (const u8 *)tlv) ||
 	    !mlxfw_mfa2_valid_ptr(mfa2_file, tlv_top))
 		return NULL;
 	if (tlv->type != payload_type)
@@ -72,24 +74,22 @@ mlxfw_mfa2_tlv_payload_get(const struct mlxfw_mfa2_file *mfa2_file,
 	return tlv->data;
 }
 
-#define MLXFW_MFA2_TLV(name, payload_type, tlv_type)			       \
-static inline const payload_type *					       \
-mlxfw_mfa2_tlv_ ## name ## _get(const struct mlxfw_mfa2_file *mfa2_file,       \
-				const struct mlxfw_mfa2_tlv *tlv)	       \
-{									       \
-	return mlxfw_mfa2_tlv_payload_get(mfa2_file, tlv,		       \
-					  tlv_type, sizeof(payload_type),      \
-					  false);			       \
-}
+#define MLXFW_MFA2_TLV(name, payload_type, tlv_type)                        \
+	static inline const payload_type *mlxfw_mfa2_tlv_##name##_get(      \
+	    const struct mlxfw_mfa2_file *mfa2_file,                        \
+	    const struct mlxfw_mfa2_tlv *tlv)                               \
+	{                                                                   \
+		return mlxfw_mfa2_tlv_payload_get(mfa2_file, tlv, tlv_type, \
+		    sizeof(payload_type), false);                           \
+	}
 
-#define MLXFW_MFA2_TLV_VARSIZE(name, payload_type, tlv_type)		       \
-static inline const payload_type *					       \
-mlxfw_mfa2_tlv_ ## name ## _get(const struct mlxfw_mfa2_file *mfa2_file,       \
-				const struct mlxfw_mfa2_tlv *tlv)	       \
-{									       \
-	return mlxfw_mfa2_tlv_payload_get(mfa2_file, tlv,		       \
-					  tlv_type, sizeof(payload_type),      \
-					  true);			       \
-}
+#define MLXFW_MFA2_TLV_VARSIZE(name, payload_type, tlv_type)                \
+	static inline const payload_type *mlxfw_mfa2_tlv_##name##_get(      \
+	    const struct mlxfw_mfa2_file *mfa2_file,                        \
+	    const struct mlxfw_mfa2_tlv *tlv)                               \
+	{                                                                   \
+		return mlxfw_mfa2_tlv_payload_get(mfa2_file, tlv, tlv_type, \
+		    sizeof(payload_type), true);                            \
+	}
 
 #endif

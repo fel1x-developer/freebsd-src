@@ -32,21 +32,21 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#ifndef	__DEV_WTAP_MEDIUM_H__
-#define	__DEV_WTAP_MEDIUM_H__
+#ifndef __DEV_WTAP_MEDIUM_H__
+#define __DEV_WTAP_MEDIUM_H__
 
 #include "if_wtapvar.h"
 #include "wtap_hal/handler.h"
 
 struct packet {
-	STAILQ_ENTRY(packet)	pf_list;
-	struct mbuf *		m;
-	int			id;
+	STAILQ_ENTRY(packet) pf_list;
+	struct mbuf *m;
+	int id;
 };
 typedef STAILQ_HEAD(, packet) md_pkthead;
 
 struct wtap_medium {
-	struct mtx 			md_mtx;
+	struct mtx md_mtx;
 #if 0
 	int				visibility[MAX_NBR_WTAP];
 	struct stailhead 		*headp;
@@ -56,17 +56,17 @@ struct wtap_medium {
 	/* = STAILQ_HEAD_INITIALIZER(head); */
 #endif
 	/* 0 means we drop packets, 1 we queue them */
-	int				open;
-	md_pkthead			md_pktbuf;	/* master queue */
-	struct eventhandler		*tx_handler;
-	struct timehandler		*bc_handler;
+	int open;
+	md_pkthead md_pktbuf; /* master queue */
+	struct eventhandler *tx_handler;
+	struct timehandler *bc_handler;
 };
 
-extern	void init_medium(struct wtap_medium *);
-extern	void deinit_medium(struct wtap_medium *);
-extern	void medium_open(struct wtap_medium *);
-extern	void medium_close(struct wtap_medium *);
-extern	int medium_transmit(struct wtap_medium *, int id, struct mbuf*);
-extern	struct packet *medium_get_next_packet(struct wtap_medium *);
+extern void init_medium(struct wtap_medium *);
+extern void deinit_medium(struct wtap_medium *);
+extern void medium_open(struct wtap_medium *);
+extern void medium_close(struct wtap_medium *);
+extern int medium_transmit(struct wtap_medium *, int id, struct mbuf *);
+extern struct packet *medium_get_next_packet(struct wtap_medium *);
 
-#endif	/* __DEV_WTAP_MEDIUM_H__ */
+#endif /* __DEV_WTAP_MEDIUM_H__ */

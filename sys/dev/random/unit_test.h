@@ -24,20 +24,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef UNIT_TEST_H_INCLUDED
-#define	UNIT_TEST_H_INCLUDED
+#define UNIT_TEST_H_INCLUDED
 
 #ifdef _KERNEL
 #error "Random unit tests cannot be compiled into the kernel."
 #endif
 
 #include <sys/types.h>
+
 #include <inttypes.h>
 #include <stdint.h>
 
 #if defined(clang) && __has_builtin(__builtin_readcyclecounter)
-#define	rdtsc __builtin_readcyclecounter
+#define rdtsc __builtin_readcyclecounter
 #else /* !clang */
 #if defined(__amd64__) || defined(__i386__)
 static __inline uint64_t
@@ -45,7 +45,7 @@ rdtsc(void)
 {
 	uint32_t low, high;
 
-	__asm __volatile("rdtsc" : "=a" (low), "=d" (high));
+	__asm __volatile("rdtsc" : "=a"(low), "=d"(high));
 	return (low | ((uint64_t)high << 32));
 }
 #else /* __amd64__ || __i386__ */
@@ -60,8 +60,8 @@ get_cyclecount(void)
 	return (rdtsc());
 }
 
-#define	HARVESTSIZE	2
-#define RANDOM_BLOCKSIZE	16
+#define HARVESTSIZE 2
+#define RANDOM_BLOCKSIZE 16
 
 enum random_entropy_source {
 	RANDOM_START = 0,
@@ -70,22 +70,23 @@ enum random_entropy_source {
 };
 
 struct harvest_event {
-	uintmax_t			he_somecounter;		/* fast counter for clock jitter */
-	uint32_t			he_entropy[HARVESTSIZE];/* some harvested entropy */
-	uint8_t				he_size;		/* harvested entropy byte count */
-	uint8_t				he_destination;		/* destination pool of this entropy */
-	enum random_entropy_source	he_source;		/* origin of the entropy */
-	void *				he_next;		/* next item on the list */
+	uintmax_t he_somecounter;	  /* fast counter for clock jitter */
+	uint32_t he_entropy[HARVESTSIZE]; /* some harvested entropy */
+	uint8_t he_size;		  /* harvested entropy byte count */
+	uint8_t he_destination;		  /* destination pool of this entropy */
+	enum random_entropy_source he_source; /* origin of the entropy */
+	void *he_next;			      /* next item on the list */
 };
 
 struct sysctl_ctx_list;
 
-#define	CTASSERT(x)	_Static_assert(x, "compile-time assertion failed")
-#define	KASSERT(exp,msg) do {	\
-	if (!(exp)) {		\
-		printf msg;	\
-		exit(0);	\
-	}			\
-} while (0)
+#define CTASSERT(x) _Static_assert(x, "compile-time assertion failed")
+#define KASSERT(exp, msg)           \
+	do {                        \
+		if (!(exp)) {       \
+			printf msg; \
+			exit(0);    \
+		}                   \
+	} while (0)
 
 #endif /* UNIT_TEST_H_INCLUDED */

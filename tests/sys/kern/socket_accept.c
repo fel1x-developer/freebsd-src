@@ -26,12 +26,13 @@
  */
 
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 static int
 tcp4_listensock(struct sockaddr_in *sin)
@@ -39,16 +40,16 @@ tcp4_listensock(struct sockaddr_in *sin)
 	int l;
 
 	ATF_REQUIRE((l = socket(PF_INET, SOCK_STREAM, 0)) > 0);
-	ATF_REQUIRE(setsockopt(l, SOL_SOCKET, SO_REUSEADDR, &(socklen_t){1},
-	    sizeof(int)) == 0);
-	*sin = (struct sockaddr_in){
+	ATF_REQUIRE(setsockopt(l, SOL_SOCKET, SO_REUSEADDR, &(socklen_t) { 1 },
+			sizeof(int)) == 0);
+	*sin = (struct sockaddr_in) {
 		.sin_len = sizeof(sin),
 		.sin_family = AF_INET,
 		.sin_addr.s_addr = htonl(INADDR_LOOPBACK),
 	};
 	ATF_REQUIRE(bind(l, (struct sockaddr *)sin, sizeof(*sin)) == 0);
 	ATF_REQUIRE(getsockname(l, (struct sockaddr *)sin,
-	    &(socklen_t){ sizeof(*sin) }) == 0);
+			&(socklen_t) { sizeof(*sin) }) == 0);
 	ATF_REQUIRE(listen(l, -1) == 0);
 
 	return (l);
@@ -68,14 +69,15 @@ tcp4_clientsock(struct sockaddr_in *sin)
 ATF_TC_WITHOUT_HEAD(tcp4_zerolen);
 ATF_TC_BODY(tcp4_zerolen, tc)
 {
-	static char canary[sizeof(struct sockaddr_in)] =
-	    { [0 ... sizeof(struct sockaddr_in) - 1] = 0xa };
+	static char canary[sizeof(struct sockaddr_in)] = {
+		[0 ... sizeof(struct sockaddr_in) - 1] = 0xa
+	};
 	struct sockaddr_in sin, ret;
 	socklen_t salen;
 	int l;
 
 	l = tcp4_listensock(&sin);
-	(void )tcp4_clientsock(&sin);
+	(void)tcp4_clientsock(&sin);
 
 	memcpy(&ret, &canary, sizeof(ret));
 	salen = 0;
@@ -101,7 +103,7 @@ ATF_TC_BODY(tcp4, tc)
 	ATF_REQUIRE(accept(l, (struct sockaddr *)&ret, &salen) > 0);
 	ATF_REQUIRE(salen == sizeof(struct sockaddr_in));
 	ATF_REQUIRE(getsockname(s, (struct sockaddr *)&sin,
-	    &(socklen_t){ sizeof(sin) }) == 0);
+			&(socklen_t) { sizeof(sin) }) == 0);
 	ATF_REQUIRE(memcmp(&ret, &sin, sizeof(sin)) == 0);
 }
 
@@ -112,7 +114,7 @@ ATF_TC_BODY(tcp4_noaddr, tc)
 	int l;
 
 	l = tcp4_listensock(&sin);
-	(void )tcp4_clientsock(&sin);
+	(void)tcp4_clientsock(&sin);
 
 	ATF_REQUIRE(accept(l, NULL, NULL) > 0);
 }

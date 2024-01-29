@@ -26,25 +26,25 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_pcfclock.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/sockio.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/sockio.h>
 #include <sys/uio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_msq.h>
+#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppbio.h>
 
 #include "ppbus_if.h"
@@ -56,16 +56,16 @@ struct pcfclock_data {
 	struct cdev *cdev;
 };
 
-static	d_open_t		pcfclock_open;
-static	d_close_t		pcfclock_close;
-static	d_read_t		pcfclock_read;
+static d_open_t pcfclock_open;
+static d_close_t pcfclock_close;
+static d_read_t pcfclock_read;
 
 static struct cdevsw pcfclock_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	pcfclock_open,
-	.d_close =	pcfclock_close,
-	.d_read =	pcfclock_read,
-	.d_name =	PCFCLOCK_NAME,
+	.d_version = D_VERSION,
+	.d_open = pcfclock_open,
+	.d_close = pcfclock_close,
+	.d_read = pcfclock_read,
+	.d_name = PCFCLOCK_NAME,
 };
 
 #ifndef PCFCLOCK_MAX_RETRIES
@@ -76,34 +76,30 @@ static struct cdevsw pcfclock_cdevsw = {
 #define AFC_LO AUTOFEED
 
 /* AUTO FEED is used as clock */
-#define AUTOFEED_CLOCK(val) \
-	ctr = (ctr & ~(AUTOFEED)) ^ (val); ppb_wctr(ppbus, ctr)
+#define AUTOFEED_CLOCK(val)                \
+	ctr = (ctr & ~(AUTOFEED)) ^ (val); \
+	ppb_wctr(ppbus, ctr)
 
 /* SLCT is used as clock */
-#define CLOCK_OK \
-	((ppb_rstr(ppbus) & SELECT) == (i & 1 ? SELECT : 0))
+#define CLOCK_OK ((ppb_rstr(ppbus) & SELECT) == (i & 1 ? SELECT : 0))
 
 /* PE is used as data */
-#define BIT_SET (ppb_rstr(ppbus)&PERROR)
+#define BIT_SET (ppb_rstr(ppbus) & PERROR)
 
 /* the first byte sent as reply must be 00001001b */
 #define PCFCLOCK_CORRECT_SYNC(buf) (buf[0] == 9)
 
-#define NR(buf, off) (buf[off+1]*10+buf[off])
+#define NR(buf, off) (buf[off + 1] * 10 + buf[off])
 
 /* check for correct input values */
-#define PCFCLOCK_CORRECT_FORMAT(buf) (\
-	NR(buf, 14) <= 99 && \
-	NR(buf, 12) <= 12 && \
-	NR(buf, 10) <= 31 && \
-	NR(buf,  6) <= 23 && \
-	NR(buf,  4) <= 59 && \
-	NR(buf,  2) <= 59)
+#define PCFCLOCK_CORRECT_FORMAT(buf)                                    \
+	(NR(buf, 14) <= 99 && NR(buf, 12) <= 12 && NR(buf, 10) <= 31 && \
+	    NR(buf, 6) <= 23 && NR(buf, 4) <= 59 && NR(buf, 2) <= 59)
 
 #define PCFCLOCK_BATTERY_STATUS_LOW(buf) (buf[8] & 4)
 
-#define PCFCLOCK_CMD_TIME 0		/* send current time */
-#define PCFCLOCK_CMD_COPY 7 	/* copy received signal to PC */
+#define PCFCLOCK_CMD_TIME 0 /* send current time */
+#define PCFCLOCK_CMD_COPY 7 /* copy received signal to PC */
 
 static void
 pcfclock_identify(driver_t *driver, device_t parent)
@@ -133,8 +129,8 @@ pcfclock_attach(device_t dev)
 	unit = device_get_unit(dev);
 
 	sc->dev = dev;
-	sc->cdev = make_dev(&pcfclock_cdevsw, unit,
-			UID_ROOT, GID_WHEEL, 0400, PCFCLOCK_NAME "%d", unit);
+	sc->cdev = make_dev(&pcfclock_cdevsw, unit, UID_ROOT, GID_WHEEL, 0400,
+	    PCFCLOCK_NAME "%d", unit);
 	if (sc->cdev == NULL) {
 		device_printf(dev, "Failed to create character device\n");
 		return (ENXIO);
@@ -209,11 +205,11 @@ pcfclock_display_data(struct cdev *dev, char buf[18])
 	if (year < 70)
 		year += 100;
 
-	device_printf(sc->dev, "%02d.%02d.%4d %02d:%02d:%02d, "
-			"battery status: %s\n",
-			NR(buf, 10), NR(buf, 12), 1900 + year,
-			NR(buf, 6), NR(buf, 4), NR(buf, 2),
-			PCFCLOCK_BATTERY_STATUS_LOW(buf) ? "LOW" : "ok");
+	device_printf(sc->dev,
+	    "%02d.%02d.%4d %02d:%02d:%02d, "
+	    "battery status: %s\n",
+	    NR(buf, 10), NR(buf, 12), 1900 + year, NR(buf, 6), NR(buf, 4),
+	    NR(buf, 2), PCFCLOCK_BATTERY_STATUS_LOW(buf) ? "LOW" : "ok");
 #else
 	if (PCFCLOCK_BATTERY_STATUS_LOW(buf))
 		device_printf(sc->dev, "BATTERY STATUS LOW ON\n");
@@ -318,10 +314,9 @@ pcfclock_read(struct cdev *dev, struct uio *uio, int ioflag)
 
 static device_method_t pcfclock_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	pcfclock_identify),
-	DEVMETHOD(device_probe,		pcfclock_probe),
-	DEVMETHOD(device_attach,	pcfclock_attach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, pcfclock_identify),
+	DEVMETHOD(device_probe, pcfclock_probe),
+	DEVMETHOD(device_attach, pcfclock_attach), { 0, 0 }
 };
 
 static driver_t pcfclock_driver = {

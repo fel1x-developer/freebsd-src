@@ -57,31 +57,34 @@
  * XXX The volatile here is to avoid gcc's bogus constant folding and work
  *     around the lack of support for the FENV_ACCESS pragma.
  */
-#define	test(func, x, result, exceptmask, excepts)	do {		\
-	volatile long double _d = x;					\
-	ATF_CHECK(feclearexcept(FE_ALL_EXCEPT) == 0);			\
-	CHECK_FPEQUAL((func)(_d), (result));			\
-	CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)",	\
-	    #func, #x);							\
-} while (0)
+#define test(func, x, result, exceptmask, excepts)                         \
+	do {                                                               \
+		volatile long double _d = x;                               \
+		ATF_CHECK(feclearexcept(FE_ALL_EXCEPT) == 0);              \
+		CHECK_FPEQUAL((func)(_d), (result));                       \
+		CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, "for %s(%s)", \
+		    #func, #x);                                            \
+	} while (0)
 
-#define	testall(prefix, x, result, exceptmask, excepts)	do {		\
-	test(prefix, x, (double)result, exceptmask, excepts);		\
-	test(prefix##f, x, (float)result, exceptmask, excepts);		\
-	test(prefix##l, x, result, exceptmask, excepts);		\
-} while (0)
+#define testall(prefix, x, result, exceptmask, excepts)                 \
+	do {                                                            \
+		test(prefix, x, (double)result, exceptmask, excepts);   \
+		test(prefix##f, x, (float)result, exceptmask, excepts); \
+		test(prefix##l, x, result, exceptmask, excepts);        \
+	} while (0)
 
-#define	testdf(prefix, x, result, exceptmask, excepts)	do {		\
-	test(prefix, x, (double)result, exceptmask, excepts);		\
-	test(prefix##f, x, (float)result, exceptmask, excepts);		\
-} while (0)
+#define testdf(prefix, x, result, exceptmask, excepts)                  \
+	do {                                                            \
+		test(prefix, x, (double)result, exceptmask, excepts);   \
+		test(prefix##f, x, (float)result, exceptmask, excepts); \
+	} while (0)
 
 ATF_TC(special);
 ATF_TC_HEAD(special, tc)
 {
 
 	atf_tc_set_md_var(tc, "descr",
- 	    "test special cases in sin(), cos(), and tan()");
+	    "test special cases in sin(), cos(), and tan()");
 }
 ATF_TC_BODY(special, tc)
 {
@@ -114,7 +117,7 @@ ATF_TC_HEAD(reduction, tc)
 {
 
 	atf_tc_set_md_var(tc, "descr",
- 	    "tests to ensure argument reduction for large arguments is accurate");
+	    "tests to ensure argument reduction for large arguments is accurate");
 }
 ATF_TC_BODY(reduction, tc)
 {
@@ -229,33 +232,33 @@ ATF_TC_BODY(accuracy, tc)
 
 	/* For small args, sin(x) = tan(x) = x, and cos(x) = 1. */
 	testall(sin, 0xd.50ee515fe4aea16p-114L, 0xd.50ee515fe4aea16p-114L,
-	     ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testall(tan, 0xd.50ee515fe4aea16p-114L, 0xd.50ee515fe4aea16p-114L,
-	     ALL_STD_EXCEPT, FE_INEXACT);
-	testall(cos, 0xd.50ee515fe4aea16p-114L, 1.0,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
+	testall(cos, 0xd.50ee515fe4aea16p-114L, 1.0, ALL_STD_EXCEPT,
+	    FE_INEXACT);
 
 	/*
 	 * These tests should pass for f32, d64, and ld80 as long as
 	 * the error is <= 0.75 ulp (round to nearest)
 	 */
 #if LDBL_MANT_DIG <= 64
-#define	testacc	testall
+#define testacc testall
 #else
-#define	testacc	testdf
+#define testacc testdf
 #endif
 	testacc(sin, 0.17255452780841205174L, 0.17169949801444412683L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testacc(sin, -0.75431944555904520893L, -0.68479288156557286353L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testacc(cos, 0.70556358769838947292L, 0.76124620693117771850L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testacc(cos, -0.34061437849088045332L, 0.94254960031831729956L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testacc(tan, -0.15862817413325692897L, -0.15997221861309522115L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 	testacc(tan, 0.38374784931303813530L, 0.40376500259976759951L,
-		ALL_STD_EXCEPT, FE_INEXACT);
+	    ALL_STD_EXCEPT, FE_INEXACT);
 
 	/*
 	 * XXX missing:

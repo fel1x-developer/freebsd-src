@@ -27,14 +27,13 @@
  */
 
 #ifndef _LINUXKPI_LINUX_HASH_H_
-#define	_LINUXKPI_LINUX_HASH_H_
+#define _LINUXKPI_LINUX_HASH_H_
 
-#include <sys/hash.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/hash.h>
 
 #include <asm/types.h>
-
 #include <linux/bitops.h>
 
 static inline u64
@@ -68,9 +67,9 @@ hash_32(u32 val, u8 bits)
 }
 
 #if BITS_PER_LONG == 64
-#define	hash_long(...) hash_64(__VA_ARGS__)
+#define hash_long(...) hash_64(__VA_ARGS__)
 #else
-#define	hash_long(...) hash_32(__VA_ARGS__)
+#define hash_long(...) hash_32(__VA_ARGS__)
 #endif
 
-#endif					/* _LINUXKPI_LINUX_HASH_H_ */
+#endif /* _LINUXKPI_LINUX_HASH_H_ */

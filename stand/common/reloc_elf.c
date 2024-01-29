@@ -28,15 +28,15 @@
  */
 
 #include <sys/types.h>
+#include <sys/link_elf.h>
+
 #include <machine/elf.h>
 
 #include <stand.h>
 
-#include <sys/link_elf.h>
-
 #include "bootstrap.h"
 
-#define COPYOUT(s,d,l)	archsw.arch_copyout((vm_offset_t)(s), d, l)
+#define COPYOUT(s, d, l) archsw.arch_copyout((vm_offset_t)(s), d, l)
 
 /*
  * Apply a single intra-module relocation to the data. `relbase' is the
@@ -92,16 +92,16 @@ __elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr, const void *reldata,
 		addend = *where;
 
 #if defined(__aarch64__)
-#define	RELOC_RELATIVE		R_AARCH64_RELATIVE
-#define	RELOC_IRELATIVE		R_AARCH64_IRELATIVE
+#define RELOC_RELATIVE R_AARCH64_RELATIVE
+#define RELOC_IRELATIVE R_AARCH64_IRELATIVE
 #elif defined(__amd64__) || defined(__i386__)
 /* XXX, definitions not available on i386. */
-#define	R_X86_64_64		1
-#define	R_X86_64_RELATIVE	8
-#define	R_X86_64_IRELATIVE	37
+#define R_X86_64_64 1
+#define R_X86_64_RELATIVE 8
+#define R_X86_64_IRELATIVE 37
 
-#define	RELOC_RELATIVE		R_X86_64_RELATIVE
-#define	RELOC_IRELATIVE		R_X86_64_IRELATIVE
+#define RELOC_RELATIVE R_X86_64_RELATIVE
+#define RELOC_IRELATIVE R_X86_64_IRELATIVE
 #endif
 
 	switch (rtype) {
@@ -114,7 +114,7 @@ __elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr, const void *reldata,
 		/* leave it to kernel */
 		break;
 #if defined(__amd64__) || defined(__i386__)
-	case R_X86_64_64:		/* S + A */
+	case R_X86_64_64: /* S + A */
 		addr = symaddr(ef, symidx);
 		if (addr == 0)
 			return (ESRCH);
@@ -163,17 +163,17 @@ __elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr, const void *reldata,
 		addend = *where;
 
 /* XXX, definitions not available on amd64. */
-#define R_386_32	1	/* Add symbol value. */
-#define R_386_GLOB_DAT	6	/* Set GOT entry to data address. */
-#define R_386_RELATIVE	8	/* Add load address of shared object. */
-#define	R_386_IRELATIVE	42
+#define R_386_32 1	 /* Add symbol value. */
+#define R_386_GLOB_DAT 6 /* Set GOT entry to data address. */
+#define R_386_RELATIVE 8 /* Add load address of shared object. */
+#define R_386_IRELATIVE 42
 
 	switch (rtype) {
 	case R_386_RELATIVE:
 		addr = addend + relbase;
 		*where = addr;
 		break;
-	case R_386_32:		/* S + A */
+	case R_386_32: /* S + A */
 		addr = symaddr(ef, symidx);
 		if (addr == 0)
 			return (ESRCH);
@@ -205,12 +205,14 @@ __elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr, const void *reldata,
 			case R_RISCV_RELATIVE:
 #endif
 				w = relbase + rela->r_addend;
-				bcopy(&w, (u_char *)data + (relbase +
-				      rela->r_offset - dataaddr), sizeof(w));
+				bcopy(&w,
+				    (u_char *)data +
+					(relbase + rela->r_offset - dataaddr),
+				    sizeof(w));
 				break;
 			default:
 				printf("\nunhandled relocation type %u\n",
-				       (u_int)ELF_R_TYPE(rela->r_info));
+				    (u_int)ELF_R_TYPE(rela->r_info));
 				return (EFTYPE);
 			}
 		}

@@ -7,10 +7,9 @@
 
 #include "ipf.h"
 
-
 ip_pool_t *
 printpool(ip_pool_t *pp, copyfunc_t copyfunc, char *name, int opts,
-	wordtab_t *fields)
+    wordtab_t *fields)
 {
 	ip_pool_node_t *ipnp, *ipnpn, ipn, **pnext;
 	ip_pool_t ipp;

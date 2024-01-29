@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <getopt.h>
 #include <libgen.h>
@@ -33,7 +34,6 @@
 
 #include "cd9660.h"
 #include "cd9660_eltorito.h"
-
 #include "etdump.h"
 
 const char *
@@ -91,9 +91,9 @@ static bool
 boot_catalog_valid(char *entry)
 {
 	boot_catalog_validation_entry *ve;
-	int16_t		checksum, sum;
-	unsigned char	*csptr;
-	size_t		i;
+	int16_t checksum, sum;
+	unsigned char *csptr;
+	size_t i;
 
 	ve = (boot_catalog_validation_entry *)entry;
 
@@ -108,7 +108,7 @@ boot_catalog_valid(char *entry)
 	if (sum + checksum != 0) {
 		return (false);
 	}
-	
+
 	cd9660_721(checksum, ve->checksum);
 	return (true);
 }
@@ -161,7 +161,7 @@ dump_eltorito(FILE *iso, const char *filename, FILE *outfile,
 
 	if (read_sector(iso, 17, buffer) != 0)
 		err(1, "failed to read from image");
-	
+
 	bvd = (boot_volume_descriptor *)buffer;
 	if (memcmp(bvd->identifier, ISO_VOLUME_DESCRIPTOR_STANDARD_ID, 5) != 0)
 		warnx("%s: not a valid ISO", filename);
@@ -173,13 +173,13 @@ dump_eltorito(FILE *iso, const char *filename, FILE *outfile,
 
 	if (read_sector(iso, boot_catalog, buffer) != 0)
 		err(1, "failed to read from image");
-	
+
 	entry = buffer;
 	offset = 0;
 
 	if (!boot_catalog_valid(entry))
 		warnx("%s: boot catalog checksum is invalid", filename);
-	
+
 	if (outputter->output_image != NULL)
 		outputter->output_image(outfile, filename, bvd);
 
@@ -229,9 +229,9 @@ main(int argc, char **argv)
 	outputter = output_text;
 
 	static struct option longopts[] = {
-		{ "format",	required_argument,	NULL,	'f' },
-		{ "output",	required_argument,	NULL,	'o' },
-		{ NULL,		0,			NULL,	0 },
+		{ "format", required_argument, NULL, 'f' },
+		{ "output", required_argument, NULL, 'o' },
+		{ NULL, 0, NULL, 0 },
 	};
 
 	while ((ch = getopt_long(argc, argv, "f:o:", longopts, NULL)) != -1) {

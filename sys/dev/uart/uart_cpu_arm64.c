@@ -30,10 +30,10 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -45,10 +45,11 @@
 #include <dev/uart/uart_cpu.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <contrib/dev/acpica/include/actables.h>
 #include <dev/uart/uart_cpu_acpi.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+#include <contrib/dev/acpica/include/actables.h>
 #endif
 
 #ifdef FDT
@@ -78,15 +79,16 @@ uart_cpu_eqres(struct uart_bas *b1, struct uart_bas *b2)
 
 #ifdef FDT
 static int
-uart_cpu_fdt_setup(struct uart_class *class, int devtype, struct uart_devinfo *di)
+uart_cpu_fdt_setup(struct uart_class *class, int devtype,
+    struct uart_devinfo *di)
 {
 	bus_space_handle_t bsh;
 	bus_space_tag_t bst;
 	u_int rclk, shift, iowidth;
 	int br, err;
 
-	err = uart_cpu_fdt_probe(&class, &bst, &bsh, &br, &rclk,
-	    &shift, &iowidth, devtype);
+	err = uart_cpu_fdt_probe(&class, &bst, &bsh, &br, &rclk, &shift,
+	    &iowidth, devtype);
 	if (err != 0)
 		return (err);
 

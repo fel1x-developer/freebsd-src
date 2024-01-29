@@ -37,43 +37,39 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
-#include <net80211/ieee80211_var.h>
 
 #include <net/bpf.h>
+#include <net/ethernet.h> /* XXX for ether_sprintf */
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/if_ath_spectral.h>
-#include <dev/ath/if_ath_misc.h>
-
 #include <dev/ath/ath_hal/ah_desc.h>
+#include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_ath_spectral.h>
+#include <dev/ath/if_athvar.h>
 
 struct ath_spectral_state {
-	HAL_SPECTRAL_PARAM	spectral_state;
+	HAL_SPECTRAL_PARAM spectral_state;
 
 	/*
 	 * Should we enable spectral scan upon
@@ -107,11 +103,11 @@ ath_spectral_attach(struct ath_softc *sc)
 	 * If spectral isn't supported, don't error - just
 	 * quietly complete.
 	 */
-	if (! ath_hal_spectral_supported(sc->sc_ah))
+	if (!ath_hal_spectral_supported(sc->sc_ah))
 		return (0);
 
-	ss = malloc(sizeof(struct ath_spectral_state),
-	    M_TEMP, M_WAITOK | M_ZERO);
+	ss = malloc(sizeof(struct ath_spectral_state), M_TEMP,
+	    M_WAITOK | M_ZERO);
 
 	if (ss == NULL) {
 		device_printf(sc->sc_dev, "%s: failed to alloc memory\n",
@@ -121,7 +117,7 @@ ath_spectral_attach(struct ath_softc *sc)
 
 	sc->sc_spectral = ss;
 
-	(void) ath_hal_spectral_get_config(sc->sc_ah, &ss->spectral_state);
+	(void)ath_hal_spectral_get_config(sc->sc_ah, &ss->spectral_state);
 
 	return (0);
 }
@@ -133,7 +129,7 @@ int
 ath_spectral_detach(struct ath_softc *sc)
 {
 
-	if (! ath_hal_spectral_supported(sc->sc_ah))
+	if (!ath_hal_spectral_supported(sc->sc_ah))
 		return (0);
 
 	if (sc->sc_spectral != NULL) {
@@ -158,9 +154,8 @@ ath_spectral_enable(struct ath_softc *sc, struct ieee80211_channel *ch)
 		return (0);
 
 	if (ss->spectral_enable_after_reset) {
-		ath_hal_spectral_configure(sc->sc_ah,
-		    &ss->spectral_state);
-		(void) ath_hal_spectral_start(sc->sc_ah);
+		ath_hal_spectral_configure(sc->sc_ah, &ss->spectral_state);
+		(void)ath_hal_spectral_start(sc->sc_ah);
 		sc->sc_dospectral = 1;
 	}
 	return (0);
@@ -187,7 +182,7 @@ ath_ioctl_spectral(struct ath_softc *sc, struct ath_diag *ad)
 	struct ath_spectral_state *ss = sc->sc_spectral;
 	int val;
 
-	if (! ath_hal_spectral_supported(sc->sc_ah))
+	if (!ath_hal_spectral_supported(sc->sc_ah))
 		return (EINVAL);
 
 	ATH_LOCK(sc);
@@ -222,63 +217,60 @@ ath_ioctl_spectral(struct ath_softc *sc, struct ath_diag *ad)
 		}
 	}
 	switch (id) {
-		case SPECTRAL_CONTROL_GET_PARAMS:
-			memset(&peout, 0, sizeof(peout));
-			outsize = sizeof(HAL_SPECTRAL_PARAM);
-			ath_hal_spectral_get_config(sc->sc_ah, &peout);
-			pe = (HAL_SPECTRAL_PARAM *) outdata;
-			memcpy(pe, &peout, sizeof(*pe));
-			break;
-		case SPECTRAL_CONTROL_SET_PARAMS:
-			if (insize < sizeof(HAL_SPECTRAL_PARAM)) {
-				error = EINVAL;
-				break;
-			}
-			pe = (HAL_SPECTRAL_PARAM *) indata;
-			ath_hal_spectral_configure(sc->sc_ah, pe);
-			/* Save a local copy of the updated parameters */
-			ath_hal_spectral_get_config(sc->sc_ah,
-			    &ss->spectral_state);
-			break;
-		case SPECTRAL_CONTROL_START:
-			ath_hal_spectral_configure(sc->sc_ah,
-			    &ss->spectral_state);
-			(void) ath_hal_spectral_start(sc->sc_ah);
-			sc->sc_dospectral = 1;
-			/* XXX need to update the PHY mask in the driver */
-			break;
-		case SPECTRAL_CONTROL_STOP:
-			(void) ath_hal_spectral_stop(sc->sc_ah);
-			sc->sc_dospectral = 0;
-			/* XXX need to update the PHY mask in the driver */
-			break;
-		case SPECTRAL_CONTROL_ENABLE_AT_RESET:
-			if (insize < sizeof(int)) {
-				device_printf(sc->sc_dev, "%d != %d\n",
-				    insize,
-				    (int) sizeof(int));
-				error = EINVAL;
-				break;
-			}
-			if (indata == NULL) {
-				device_printf(sc->sc_dev, "indata=NULL\n");
-				error = EINVAL;
-				break;
-			}
-			val = * ((int *) indata);
-			if (val == 0)
-				ss->spectral_enable_after_reset = 0;
-			else
-				ss->spectral_enable_after_reset = 1;
-			break;
-		case SPECTRAL_CONTROL_ENABLE:
-			/* XXX TODO */
-		case SPECTRAL_CONTROL_DISABLE:
-			/* XXX TODO */
+	case SPECTRAL_CONTROL_GET_PARAMS:
+		memset(&peout, 0, sizeof(peout));
+		outsize = sizeof(HAL_SPECTRAL_PARAM);
+		ath_hal_spectral_get_config(sc->sc_ah, &peout);
+		pe = (HAL_SPECTRAL_PARAM *)outdata;
+		memcpy(pe, &peout, sizeof(*pe));
 		break;
-		default:
+	case SPECTRAL_CONTROL_SET_PARAMS:
+		if (insize < sizeof(HAL_SPECTRAL_PARAM)) {
 			error = EINVAL;
-			goto bad;
+			break;
+		}
+		pe = (HAL_SPECTRAL_PARAM *)indata;
+		ath_hal_spectral_configure(sc->sc_ah, pe);
+		/* Save a local copy of the updated parameters */
+		ath_hal_spectral_get_config(sc->sc_ah, &ss->spectral_state);
+		break;
+	case SPECTRAL_CONTROL_START:
+		ath_hal_spectral_configure(sc->sc_ah, &ss->spectral_state);
+		(void)ath_hal_spectral_start(sc->sc_ah);
+		sc->sc_dospectral = 1;
+		/* XXX need to update the PHY mask in the driver */
+		break;
+	case SPECTRAL_CONTROL_STOP:
+		(void)ath_hal_spectral_stop(sc->sc_ah);
+		sc->sc_dospectral = 0;
+		/* XXX need to update the PHY mask in the driver */
+		break;
+	case SPECTRAL_CONTROL_ENABLE_AT_RESET:
+		if (insize < sizeof(int)) {
+			device_printf(sc->sc_dev, "%d != %d\n", insize,
+			    (int)sizeof(int));
+			error = EINVAL;
+			break;
+		}
+		if (indata == NULL) {
+			device_printf(sc->sc_dev, "indata=NULL\n");
+			error = EINVAL;
+			break;
+		}
+		val = *((int *)indata);
+		if (val == 0)
+			ss->spectral_enable_after_reset = 0;
+		else
+			ss->spectral_enable_after_reset = 1;
+		break;
+	case SPECTRAL_CONTROL_ENABLE:
+		/* XXX TODO */
+	case SPECTRAL_CONTROL_DISABLE:
+		/* XXX TODO */
+		break;
+	default:
+		error = EINVAL;
+		goto bad;
 	}
 	if (outsize < ad->ad_out_size)
 		ad->ad_out_size = outsize;

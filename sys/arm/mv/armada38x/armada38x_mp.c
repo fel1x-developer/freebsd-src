@@ -30,10 +30,10 @@
 #include <sys/bus.h>
 #include <sys/smp.h>
 
-#include <machine/smp.h>
 #include <machine/fdt.h>
 #include <machine/intr.h>
 #include <machine/platformvar.h>
+#include <machine/smp.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
@@ -112,7 +112,7 @@ platform_cnt_cpus(void)
 
 	val = bus_space_read_4(fdtbus_bs_tag, vaddr_scu, MV_SCU_REG_CONFIG);
 	bus_space_unmap(fdtbus_bs_tag, vaddr_scu, MV_SCU_REGS_LEN);
-        reg_cpu_count = (val & SCU_CFG_REG_NCPU_MASK) + 1;
+	reg_cpu_count = (val & SCU_CFG_REG_NCPU_MASK) + 1;
 
 	/* Set mp_ncpus to number of cpus in FDT unless SOC contains only one */
 	mp_ncpus = min(reg_cpu_count, fdt_cpu_count);

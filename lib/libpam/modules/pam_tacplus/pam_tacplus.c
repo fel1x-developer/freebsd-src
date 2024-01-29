@@ -48,29 +48,29 @@
 #define PAM_SM_AUTH
 
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
-#define PAM_OPT_CONF		"conf"
-#define PAM_OPT_TEMPLATE_USER	"template_user"
+#define PAM_OPT_CONF "conf"
+#define PAM_OPT_TEMPLATE_USER "template_user"
 
 typedef int (*set_func)(struct tac_handle *, const char *);
 
-static int	 do_item(pam_handle_t *, struct tac_handle *, int,
-		    set_func, const char *);
-static char	*get_msg(struct tac_handle *);
-static int	 set_msg(struct tac_handle *, const char *);
+static int do_item(pam_handle_t *, struct tac_handle *, int, set_func,
+    const char *);
+static char *get_msg(struct tac_handle *);
+static int set_msg(struct tac_handle *, const char *);
 
 static int
-do_item(pam_handle_t *pamh, struct tac_handle *tach, int item,
-    set_func func, const char *funcname)
+do_item(pam_handle_t *pamh, struct tac_handle *tach, int item, set_func func,
+    const char *funcname)
 {
 	int retval;
 	const void *value;
 
 	retval = pam_get_item(pamh, item, &value);
 	if (retval != PAM_SUCCESS)
-	    return retval;
+		return retval;
 	if (value != NULL && (*func)(tach, (const char *)value) == -1) {
 		syslog(LOG_CRIT, "%s: %s", funcname, tac_strerror(tach));
 		tac_close(tach);
@@ -105,8 +105,8 @@ set_msg(struct tac_handle *tach, const char *msg)
 }
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	int retval;
 	struct tac_handle *tach;
@@ -126,7 +126,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 		return (PAM_SERVICE_ERR);
 	}
 	if (tac_create_authen(tach, TAC_AUTHEN_LOGIN, TAC_AUTHEN_TYPE_ASCII,
-	    TAC_AUTHEN_SVC_LOGIN) == -1) {
+		TAC_AUTHEN_SVC_LOGIN) == -1) {
 		syslog(LOG_CRIT, "tac_create_authen: %s", tac_strerror(tach));
 		tac_close(tach);
 		return (PAM_SERVICE_ERR);
@@ -211,8 +211,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 				retval = pam_get_user(pamh, &user_msg,
 				    *srvr_msg ? srvr_msg : NULL);
 			else if (status == TAC_AUTHEN_STATUS_GETPASS)
-				retval = pam_get_authtok(pamh,
-				    PAM_AUTHTOK, &user_msg,
+				retval = pam_get_authtok(pamh, PAM_AUTHTOK,
+				    &user_msg,
 				    *srvr_msg ? srvr_msg : "Password:");
 			free(srvr_msg);
 			if (retval != PAM_SUCCESS) {
@@ -229,7 +229,8 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 				return (PAM_SERVICE_ERR);
 			retval = pam_prompt(pamh,
 			    openpam_get_option(pamh, PAM_OPT_ECHO_PASS) ?
-			    PAM_PROMPT_ECHO_ON : PAM_PROMPT_ECHO_OFF,
+				PAM_PROMPT_ECHO_ON :
+				PAM_PROMPT_ECHO_OFF,
 			    &data_msg, "%s", *srvr_msg ? srvr_msg : "Data:");
 			free(srvr_msg);
 			if (retval != PAM_SUCCESS) {
@@ -247,11 +248,12 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 		case TAC_AUTHEN_STATUS_ERROR:
 			srvr_msg = (char *)tac_get_data(tach, &msg_len);
 			if (srvr_msg != NULL && msg_len != 0) {
-				syslog(LOG_CRIT, "tac_send_authen:"
-				    " server detected error: %s", srvr_msg);
+				syslog(LOG_CRIT,
+				    "tac_send_authen:"
+				    " server detected error: %s",
+				    srvr_msg);
 				free(srvr_msg);
-			}
-			else
+			} else
 				syslog(LOG_CRIT,
 				    "tac_send_authen: server detected error");
 			tac_close(tach);

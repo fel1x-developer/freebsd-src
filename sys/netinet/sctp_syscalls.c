@@ -28,37 +28,37 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_capsicum.h"
-#include "opt_sctp.h"
 #include "opt_ktrace.h"
+#include "opt_sctp.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/capsicum.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/sysproto.h>
-#include <sys/malloc.h>
-#include <sys/filedesc.h>
 #include <sys/event.h>
-#include <sys/proc.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
+#include <sys/filedesc.h>
 #include <sys/filio.h>
 #include <sys/jail.h>
-#include <sys/mount.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/protosw.h>
 #include <sys/sf_buf.h>
-#include <sys/sysent.h>
+#include <sys/signalvar.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/signalvar.h>
 #include <sys/syscall.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
+#include <sys/sysent.h>
+#include <sys/sysproto.h>
 #include <sys/uio.h>
 #include <sys/vnode.h>
 #ifdef KTRACE
@@ -71,13 +71,12 @@
 #endif
 
 #include <net/vnet.h>
-
-#include <security/audit/audit.h>
-#include <security/mac/mac_framework.h>
-
 #include <netinet/sctp.h>
 #include <netinet/sctp_os_bsd.h>
 #include <netinet/sctp_peeloff.h>
+
+#include <security/audit/audit.h>
+#include <security/mac/mac_framework.h>
 
 static struct syscall_helper_data sctp_syscalls[] = {
 	SYSCALL_INIT_HELPER_F(sctp_peeloff, SYF_CAPENABLED),
@@ -92,8 +91,7 @@ static struct syscall_helper_data sctp32_syscalls[] = {
 	SYSCALL32_INIT_HELPER_COMPAT(sctp_peeloff),
 	SYSCALL32_INIT_HELPER_COMPAT(sctp_generic_sendmsg),
 	SYSCALL32_INIT_HELPER_COMPAT(sctp_generic_sendmsg_iov),
-	SYSCALL32_INIT_HELPER_COMPAT(sctp_generic_recvmsg),
-	SYSCALL_INIT_LAST
+	SYSCALL32_INIT_HELPER_COMPAT(sctp_generic_recvmsg), SYSCALL_INIT_LAST
 };
 #endif
 
@@ -204,7 +202,8 @@ done2:
 }
 
 int
-sys_sctp_generic_sendmsg(struct thread *td, struct sctp_generic_sendmsg_args *uap)
+sys_sctp_generic_sendmsg(struct thread *td,
+    struct sctp_generic_sendmsg_args *uap)
 {
 	struct sctp_sndrcvinfo sinfo, *u_sinfo = NULL;
 	struct socket *so;
@@ -219,7 +218,7 @@ sys_sctp_generic_sendmsg(struct thread *td, struct sctp_generic_sendmsg_args *ua
 	int error = 0, len;
 
 	if (uap->sinfo != NULL) {
-		error = copyin(uap->sinfo, &sinfo, sizeof (sinfo));
+		error = copyin(uap->sinfo, &sinfo, sizeof(sinfo));
 		if (error != 0)
 			return (error);
 		u_sinfo = &sinfo;
@@ -258,12 +257,12 @@ sys_sctp_generic_sendmsg(struct thread *td, struct sctp_generic_sendmsg_args *ua
 		goto sctp_bad;
 #endif /* MAC */
 
-	auio.uio_iov =  iov;
+	auio.uio_iov = iov;
 	auio.uio_iovcnt = 1;
 	auio.uio_segflg = UIO_USERSPACE;
 	auio.uio_rw = UIO_WRITE;
 	auio.uio_td = td;
-	auio.uio_offset = 0;			/* XXX */
+	auio.uio_offset = 0; /* XXX */
 	auio.uio_resid = 0;
 #ifdef KTRACE
 	if (KTRPOINT(td, KTR_GENIO))
@@ -275,8 +274,9 @@ sys_sctp_generic_sendmsg(struct thread *td, struct sctp_generic_sendmsg_args *ua
 	    (struct mbuf *)NULL, uap->flags, u_sinfo, td);
 	CURVNET_RESTORE();
 	if (error != 0) {
-		if (auio.uio_resid != len && (error == ERESTART ||
-		    error == EINTR || error == EWOULDBLOCK))
+		if (auio.uio_resid != len &&
+		    (error == ERESTART || error == EINTR ||
+			error == EWOULDBLOCK))
 			error = 0;
 		/* Generation of SIGPIPE can be controlled per socket. */
 		if (error == EPIPE && !(so->so_options & SO_NOSIGPIPE) &&
@@ -303,7 +303,8 @@ sctp_bad2:
 }
 
 int
-sys_sctp_generic_sendmsg_iov(struct thread *td, struct sctp_generic_sendmsg_iov_args *uap)
+sys_sctp_generic_sendmsg_iov(struct thread *td,
+    struct sctp_generic_sendmsg_iov_args *uap)
 {
 	struct sctp_sndrcvinfo sinfo, *u_sinfo = NULL;
 	struct socket *so;
@@ -319,7 +320,7 @@ sys_sctp_generic_sendmsg_iov(struct thread *td, struct sctp_generic_sendmsg_iov_
 	int error, i;
 
 	if (uap->sinfo != NULL) {
-		error = copyin(uap->sinfo, &sinfo, sizeof (sinfo));
+		error = copyin(uap->sinfo, &sinfo, sizeof(sinfo));
 		if (error != 0)
 			return (error);
 		u_sinfo = &sinfo;
@@ -369,10 +370,10 @@ sys_sctp_generic_sendmsg_iov(struct thread *td, struct sctp_generic_sendmsg_iov_
 	auio.uio_segflg = UIO_USERSPACE;
 	auio.uio_rw = UIO_WRITE;
 	auio.uio_td = td;
-	auio.uio_offset = 0;			/* XXX */
+	auio.uio_offset = 0; /* XXX */
 	auio.uio_resid = 0;
 	tiov = iov;
-	for (i = 0; i <uap->iovlen; i++, tiov++) {
+	for (i = 0; i < uap->iovlen; i++, tiov++) {
 		if ((auio.uio_resid += tiov->iov_len) < 0) {
 			error = EINVAL;
 			goto sctp_bad;
@@ -384,13 +385,13 @@ sys_sctp_generic_sendmsg_iov(struct thread *td, struct sctp_generic_sendmsg_iov_
 #endif /* KTRACE */
 	len = auio.uio_resid;
 	CURVNET_SET(so->so_vnet);
-	error = sctp_lower_sosend(so, to, &auio,
-		    (struct mbuf *)NULL, (struct mbuf *)NULL,
-		    uap->flags, u_sinfo, td);
+	error = sctp_lower_sosend(so, to, &auio, (struct mbuf *)NULL,
+	    (struct mbuf *)NULL, uap->flags, u_sinfo, td);
 	CURVNET_RESTORE();
 	if (error != 0) {
-		if (auio.uio_resid != len && (error == ERESTART ||
-		    error == EINTR || error == EWOULDBLOCK))
+		if (auio.uio_resid != len &&
+		    (error == ERESTART || error == EINTR ||
+			error == EWOULDBLOCK))
 			error = 0;
 		/* Generation of SIGPIPE can be controlled per socket */
 		if (error == EPIPE && !(so->so_options & SO_NOSIGPIPE) &&
@@ -419,7 +420,8 @@ sctp_bad2:
 }
 
 int
-sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *uap)
+sys_sctp_generic_recvmsg(struct thread *td,
+    struct sctp_generic_recvmsg_args *uap)
 {
 	uint8_t sockbufstore[256];
 	struct uio auio;
@@ -462,14 +464,14 @@ sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *ua
 #endif /* MAC */
 
 	if (uap->fromlenaddr != NULL) {
-		error = copyin(uap->fromlenaddr, &fromlen, sizeof (fromlen));
+		error = copyin(uap->fromlenaddr, &fromlen, sizeof(fromlen));
 		if (error != 0)
 			goto out;
 	} else {
 		fromlen = 0;
 	}
 	if (uap->msg_flags) {
-		error = copyin(uap->msg_flags, &msg_flags, sizeof (int));
+		error = copyin(uap->msg_flags, &msg_flags, sizeof(int));
 		if (error != 0)
 			goto out;
 	} else {
@@ -480,10 +482,10 @@ sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *ua
 	auio.uio_segflg = UIO_USERSPACE;
 	auio.uio_rw = UIO_READ;
 	auio.uio_td = td;
-	auio.uio_offset = 0;			/* XXX */
+	auio.uio_offset = 0; /* XXX */
 	auio.uio_resid = 0;
 	tiov = iov;
-	for (i = 0; i <uap->iovlen; i++, tiov++) {
+	for (i = 0; i < uap->iovlen; i++, tiov++) {
 		if ((auio.uio_resid += tiov->iov_len) < 0) {
 			error = EINVAL;
 			goto out;
@@ -498,17 +500,17 @@ sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *ua
 #endif /* KTRACE */
 	memset(&sinfo, 0, sizeof(struct sctp_sndrcvinfo));
 	CURVNET_SET(so->so_vnet);
-	error = sctp_sorecvmsg(so, &auio, (struct mbuf **)NULL,
-		    fromsa, fromlen, &msg_flags,
-		    (struct sctp_sndrcvinfo *)&sinfo, 1);
+	error = sctp_sorecvmsg(so, &auio, (struct mbuf **)NULL, fromsa, fromlen,
+	    &msg_flags, (struct sctp_sndrcvinfo *)&sinfo, 1);
 	CURVNET_RESTORE();
 	if (error != 0) {
-		if (auio.uio_resid != len && (error == ERESTART ||
-		    error == EINTR || error == EWOULDBLOCK))
+		if (auio.uio_resid != len &&
+		    (error == ERESTART || error == EINTR ||
+			error == EWOULDBLOCK))
 			error = 0;
 	} else {
 		if (uap->sinfo)
-			error = copyout(&sinfo, uap->sinfo, sizeof (sinfo));
+			error = copyout(&sinfo, uap->sinfo, sizeof(sinfo));
 	}
 #ifdef KTRACE
 	if (ktruio != NULL) {
@@ -530,7 +532,7 @@ sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *ua
 			if (error != 0)
 				goto out;
 		}
-		error = copyout(&len, uap->fromlenaddr, sizeof (socklen_t));
+		error = copyout(&len, uap->fromlenaddr, sizeof(socklen_t));
 		if (error != 0)
 			goto out;
 	}
@@ -539,7 +541,7 @@ sys_sctp_generic_recvmsg(struct thread *td, struct sctp_generic_recvmsg_args *ua
 		ktrsockaddr(fromsa);
 #endif
 	if (uap->msg_flags) {
-		error = copyout(&msg_flags, uap->msg_flags, sizeof (int));
+		error = copyout(&msg_flags, uap->msg_flags, sizeof(int));
 		if (error != 0)
 			goto out;
 	}

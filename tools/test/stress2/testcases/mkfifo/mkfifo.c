@@ -39,11 +39,12 @@
 
 #include "stress.h"
 
-static char path[MAXPATHLEN+1];
+static char path[MAXPATHLEN + 1];
 static int bufsize, freespace;
 
 static void
-reader(void) {
+reader(void)
+{
 	fd_set set;
 	struct timeval tv;
 	int *buf, fd, n;
@@ -52,7 +53,7 @@ reader(void) {
 	if ((fd = open(path, O_RDONLY | O_NONBLOCK)) < 0)
 		err(1, "open(%s)", path);
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	n = 0;
 	FD_ZERO(&set);
 	FD_SET(fd, &set);
@@ -67,7 +68,8 @@ reader(void) {
 }
 
 static void
-writer(void) {
+writer(void)
+{
 	int *buf, fd;
 
 	setproctitle("writer");
@@ -76,7 +78,7 @@ writer(void) {
 		err(1, "open(%s)", path);
 	}
 	if ((buf = malloc(bufsize)) == NULL)
-			err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
+		err(1, "malloc(%d), %s:%d", bufsize, __FILE__, __LINE__);
 	memset(buf, 0, bufsize);
 
 	if (write(fd, buf, bufsize) < 0)
@@ -97,15 +99,17 @@ setup(int nb)
 		getdf(&bl, &in);
 
 		/* Resource requirements: */
-		reserve_in =  200 * op->incarnations;
+		reserve_in = 200 * op->incarnations;
 		reserve_bl = 2048 * op->incarnations;
 		freespace = (reserve_bl <= bl && reserve_in <= in);
 		if (!freespace)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("mkfifo(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-			    op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "mkfifo(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    op->incarnations, bl / 1024, in, reserve_bl / 1024,
+			    reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(freespace);
 		fflush(stdout);
@@ -158,7 +162,7 @@ test(void)
 		if (waitpid(pid, &status, 0) == -1)
 			warn("waitpid(%d)", pid);
 	} else
-		err(1, "fork(), %s:%d",  __FILE__, __LINE__);
+		err(1, "fork(), %s:%d", __FILE__, __LINE__);
 
 	unlink(path);
 

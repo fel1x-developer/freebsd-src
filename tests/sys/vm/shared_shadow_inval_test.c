@@ -63,26 +63,27 @@
 #include <unistd.h>
 
 #ifdef STANDALONE
-#define	ATF_REQUIRE(x)	do {		\
-	if (!(x))			\
-		errx(1, "%s", #x);	\
-} while (0)
+#define ATF_REQUIRE(x)                     \
+	do {                               \
+		if (!(x))                  \
+			errx(1, "%s", #x); \
+	} while (0)
 #else
 #include <atf-c.h>
 #endif
 
 #ifdef DEBUG
-#define	dprintf(...)	printf(__VA_ARGS__)
+#define dprintf(...) printf(__VA_ARGS__)
 #else
-#define	dprintf(...)
+#define dprintf(...)
 #endif
 
-#define	DEPTH	5
+#define DEPTH 5
 
-#define	FLAG_COLLAPSE		0x1
-#define	FLAG_BLOCK_XFER		0x2
-#define	FLAG_FULLMOD		0x4
-#define FLAG_MASK		(FLAG_COLLAPSE | FLAG_BLOCK_XFER | FLAG_FULLMOD)
+#define FLAG_COLLAPSE 0x1
+#define FLAG_BLOCK_XFER 0x2
+#define FLAG_FULLMOD 0x4
+#define FLAG_MASK (FLAG_COLLAPSE | FLAG_BLOCK_XFER | FLAG_FULLMOD)
 
 struct shared_state {
 	void *p;
@@ -111,17 +112,19 @@ struct shared_state {
  * defeat a COW optimization.
  */
 
-#define	child_err(...)	do {						\
-	ss->exit = true;						\
-	err(1, __VA_ARGS__);						\
-} while (0)
+#define child_err(...)               \
+	do {                         \
+		ss->exit = true;     \
+		err(1, __VA_ARGS__); \
+	} while (0)
 
-#define	child_errx(...)	do {						\
-	ss->exit = true;						\
-	errx(1, __VA_ARGS__);						\
-} while (0)
+#define child_errx(...)               \
+	do {                          \
+		ss->exit = true;      \
+		errx(1, __VA_ARGS__); \
+	} while (0)
 
-#define	SLEEP_TIME_US	1000
+#define SLEEP_TIME_US 1000
 
 static void child(struct shared_state *ss, int depth);
 
@@ -360,24 +363,23 @@ do_shared_shadow_inval(bool lazy_cow)
 	size_t largepagesize, pagesize, pagesizes[MAXPAGESIZES], sysctllen;
 
 	sysctllen = sizeof(pagesizes);
-	ATF_REQUIRE(sysctlbyname("hw.pagesizes", pagesizes, &sysctllen, NULL,
-	    0) == 0);
+	ATF_REQUIRE(
+	    sysctlbyname("hw.pagesizes", pagesizes, &sysctllen, NULL, 0) == 0);
 	ATF_REQUIRE(sysctllen >= sizeof(size_t));
 
 	pagesize = pagesizes[0];
-	largepagesize = MAXPAGESIZES >= 2 &&
-	    sysctllen >= 2 * sizeof(size_t) && pagesizes[1] != 0 ?
-	    pagesizes[1] : 2 * 1024 * 1024;
+	largepagesize = MAXPAGESIZES >= 2 && sysctllen >= 2 * sizeof(size_t) &&
+		pagesizes[1] != 0 ?
+	    pagesizes[1] :
+	    2 * 1024 * 1024;
 
 	for (unsigned int i = 0; i <= FLAG_MASK; i++) {
-		do_one_shared_shadow_inval(lazy_cow, pagesize,
-		    pagesize, i);
-		do_one_shared_shadow_inval(lazy_cow, pagesize,
-		    2 * pagesize, i);
+		do_one_shared_shadow_inval(lazy_cow, pagesize, pagesize, i);
+		do_one_shared_shadow_inval(lazy_cow, pagesize, 2 * pagesize, i);
 		do_one_shared_shadow_inval(lazy_cow, pagesize,
 		    largepagesize - pagesize, i);
-		do_one_shared_shadow_inval(lazy_cow, pagesize,
-		    largepagesize, i);
+		do_one_shared_shadow_inval(lazy_cow, pagesize, largepagesize,
+		    i);
 		do_one_shared_shadow_inval(lazy_cow, pagesize,
 		    largepagesize + pagesize, i);
 	}

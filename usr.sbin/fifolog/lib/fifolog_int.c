@@ -26,6 +26,10 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/disk.h>
+#include <sys/endian.h>
+#include <sys/stat.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -34,13 +38,9 @@
 #include <unistd.h>
 #include <zlib.h>
 
-#include <sys/disk.h>
-#include <sys/endian.h>
-#include <sys/stat.h>
-
-#include "miniobj.h"
 #include "fifolog.h"
 #include "libfifolog_int.h"
+#include "miniobj.h"
 
 /*
  * Open a fifolog file or partition for reading or writing.
@@ -121,7 +121,7 @@ fifolog_int_open_i(struct fifolog_file *f, const char *fname, int mode)
 	if (f->logsize < 10)
 		return ("less than 10 records in fifolog");
 
-	f->logsize--;		/* the label record */
+	f->logsize--; /* the label record */
 
 	/* Initialize zlib handling */
 
@@ -184,7 +184,6 @@ fifolog_int_file_assert(const struct fifolog_file *ff)
 	assert(ff->recbuf != NULL);
 }
 
-
 /*
  * Read a record.
  *
@@ -199,7 +198,7 @@ fifolog_int_read(const struct fifolog_file *ff, off_t recno)
 	fifolog_int_file_assert(ff);
 	if (recno >= ff->logsize)
 		return (-1);
-	recno++;			/* label sector */
+	recno++; /* label sector */
 	i = pread(ff->fd, ff->recbuf, ff->recsize, recno * ff->recsize);
 	if (i < 0)
 		return (-2);
@@ -226,7 +225,7 @@ fifolog_int_findend(const struct fifolog_file *ff, off_t *last)
 	o = 0;
 	e = fifolog_int_read(ff, o);
 	if (e)
-		return("Read error, first record");
+		return ("Read error, first record");
 
 	seq0 = be32dec(ff->recbuf);
 

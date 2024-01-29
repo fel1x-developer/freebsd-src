@@ -27,13 +27,13 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_syscons.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/consio.h>
+#include <sys/kernel.h>
 
 #include <dev/syscons/syscons.h>
 
@@ -54,7 +54,7 @@ sc_move_cursor(scr_stat *scp, int x, int y)
 		y = scp->ysize - 1;
 	scp->xpos = x;
 	scp->ypos = y;
-	scp->cursor_pos = scp->ypos*scp->xsize + scp->xpos;
+	scp->cursor_pos = scp->ypos * scp->xsize + scp->xpos;
 }
 
 void
@@ -67,8 +67,8 @@ sc_clear_screen(scr_stat *scp)
 
 /* terminal emulator manager routines */
 
-static LIST_HEAD(, sc_term_sw) sc_term_list = 
-	LIST_HEAD_INITIALIZER(sc_term_list);
+static LIST_HEAD(, sc_term_sw) sc_term_list = LIST_HEAD_INITIALIZER(
+    sc_term_list);
 
 int
 sc_term_add(sc_term_sw_t *sw)
@@ -84,24 +84,25 @@ sc_term_remove(sc_term_sw_t *sw)
 	return 0;
 }
 
-sc_term_sw_t
-*sc_term_match(char *name)
+sc_term_sw_t *
+sc_term_match(char *name)
 {
 	sc_term_sw_t **list;
 	sc_term_sw_t *p;
 
 	if (!LIST_EMPTY(&sc_term_list)) {
-		LIST_FOREACH(p, &sc_term_list, link) {
-			if ((strcmp(name, p->te_name) == 0)
-			    || (strcmp(name, "*") == 0)) {
+		LIST_FOREACH (p, &sc_term_list, link) {
+			if ((strcmp(name, p->te_name) == 0) ||
+			    (strcmp(name, "*") == 0)) {
 				return p;
 			}
 		}
 	} else {
-		SET_FOREACH(list, scterm_set) {
+		SET_FOREACH(list, scterm_set)
+		{
 			p = *list;
-			if ((strcmp(name, p->te_name) == 0)
-			    || (strcmp(name, "*") == 0)) {
+			if ((strcmp(name, p->te_name) == 0) ||
+			    (strcmp(name, "*") == 0)) {
 				return p;
 			}
 		}
@@ -110,14 +111,14 @@ sc_term_sw_t
 	return NULL;
 }
 
-sc_term_sw_t
-*sc_term_match_by_number(int index)
+sc_term_sw_t *
+sc_term_match_by_number(int index)
 {
 	sc_term_sw_t *p;
 
 	if (index <= 0)
 		return NULL;
-	LIST_FOREACH(p, &sc_term_list, link) {
+	LIST_FOREACH (p, &sc_term_list, link) {
 		if (--index <= 0)
 			return p;
 	}

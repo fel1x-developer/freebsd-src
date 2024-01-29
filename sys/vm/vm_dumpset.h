@@ -25,8 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_SYS_DUMPSET_H_
-#define	_SYS_DUMPSET_H_
+#ifndef _SYS_DUMPSET_H_
+#define _SYS_DUMPSET_H_
 
 #include <sys/_bitset.h>
 #include <sys/bitset.h>
@@ -36,8 +36,8 @@ extern long vm_page_dump_pages;
 extern vm_paddr_t dump_avail[PHYS_AVAIL_COUNT];
 
 /* For the common case: add/remove a page from the minidump bitset. */
-#define	dump_add_page(pa)	vm_page_dump_add(vm_page_dump, pa)
-#define	dump_drop_page(pa)	vm_page_dump_drop(vm_page_dump, pa)
+#define dump_add_page(pa) vm_page_dump_add(vm_page_dump, pa)
+#define dump_drop_page(pa) vm_page_dump_drop(vm_page_dump, pa)
 
 static inline void
 vm_page_dump_add(struct bitset *bitset, vm_paddr_t pa)
@@ -50,7 +50,8 @@ vm_page_dump_add(struct bitset *bitset, vm_paddr_t pa)
 		if (pa >= dump_avail[i] && pa < dump_avail[i + 1]) {
 			BIT_SET_ATOMIC(vm_page_dump_pages,
 			    (pa >> PAGE_SHIFT) - (dump_avail[i] >> PAGE_SHIFT) +
-			    adj, bitset);
+				adj,
+			    bitset);
 			return;
 		}
 		adj += howmany(dump_avail[i + 1], PAGE_SIZE) -
@@ -69,7 +70,8 @@ vm_page_dump_drop(struct bitset *bitset, vm_paddr_t pa)
 		if (pa >= dump_avail[i] && pa < dump_avail[i + 1]) {
 			BIT_CLR_ATOMIC(vm_page_dump_pages,
 			    (pa >> PAGE_SHIFT) - (dump_avail[i] >> PAGE_SHIFT) +
-			    adj, bitset);
+				adj,
+			    bitset);
 			return;
 		}
 		adj += howmany(dump_avail[i + 1], PAGE_SIZE) -
@@ -93,9 +95,9 @@ vm_page_dump_index_to_pa(int bit)
 	return (0);
 }
 
-#define VM_PAGE_DUMP_FOREACH(bitset, pa)				\
-	for (vm_pindex_t __b = BIT_FFS(vm_page_dump_pages, bitset);	\
-	    (pa) = vm_page_dump_index_to_pa(__b - 1), __b != 0;		\
-	    __b = BIT_FFS_AT(vm_page_dump_pages, bitset, __b))
+#define VM_PAGE_DUMP_FOREACH(bitset, pa)                            \
+	for (vm_pindex_t __b = BIT_FFS(vm_page_dump_pages, bitset); \
+	     (pa) = vm_page_dump_index_to_pa(__b - 1), __b != 0;    \
+	     __b = BIT_FFS_AT(vm_page_dump_pages, bitset, __b))
 
-#endif	/* _SYS_DUMPSET_H_ */
+#endif /* _SYS_DUMPSET_H_ */

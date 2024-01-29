@@ -40,7 +40,6 @@
 #include "libifconfig.h"
 #include "libifconfig_internal.h"
 
-
 static int
 inet6_prefixlen(struct in6_addr *addr)
 {
@@ -58,8 +57,8 @@ inet6_prefixlen(struct in6_addr *addr)
 }
 
 int
-ifconfig_inet6_get_addrinfo(ifconfig_handle_t *h,
-    const char *name, struct ifaddrs *ifa, struct ifconfig_inet6_addr *addr)
+ifconfig_inet6_get_addrinfo(ifconfig_handle_t *h, const char *name,
+    struct ifaddrs *ifa, struct ifconfig_inet6_addr *addr)
 {
 	struct sockaddr_in6 *netmask;
 	struct in6_ifreq ifr6;

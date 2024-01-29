@@ -34,41 +34,41 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_capsicum.h"
 #include "opt_ktrace.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysproto.h>
+#include <sys/bio.h>
+#include <sys/buf.h>
 #include <sys/capsicum.h>
-#include <sys/filedesc.h>
-#include <sys/filio.h>
+#include <sys/condvar.h>
+#include <sys/eventfd.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
-#include <sys/lock.h>
-#include <sys/proc.h>
-#include <sys/signalvar.h>
-#include <sys/socketvar.h>
-#include <sys/uio.h>
-#include <sys/eventfd.h>
+#include <sys/filedesc.h>
+#include <sys/filio.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/poll.h>
+#include <sys/proc.h>
 #include <sys/resourcevar.h>
 #include <sys/selinfo.h>
+#include <sys/signalvar.h>
 #include <sys/sleepqueue.h>
+#include <sys/socketvar.h>
 #include <sys/specialfd.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
-#include <sys/vnode.h>
+#include <sys/sysproto.h>
+#include <sys/uio.h>
 #include <sys/unistd.h>
-#include <sys/bio.h>
-#include <sys/buf.h>
-#include <sys/condvar.h>
+#include <sys/vnode.h>
 #ifdef KTRACE
 #include <sys/ktrace.h>
 #endif
@@ -86,13 +86,13 @@
  * currently hard-aligned to a 8-byte boundary on the stack. This
  * should currently be sufficient for all supported platforms.
  */
-#define	SYS_IOCTL_SMALL_SIZE	128	/* bytes */
-#define	SYS_IOCTL_SMALL_ALIGN	8	/* bytes */
+#define SYS_IOCTL_SMALL_SIZE 128 /* bytes */
+#define SYS_IOCTL_SMALL_ALIGN 8	 /* bytes */
 
 #ifdef __LP64__
 static int iosize_max_clamp = 0;
-SYSCTL_INT(_debug, OID_AUTO, iosize_max_clamp, CTLFLAG_RW,
-    &iosize_max_clamp, 0, "Clamp max i/o size to INT_MAX");
+SYSCTL_INT(_debug, OID_AUTO, iosize_max_clamp, CTLFLAG_RW, &iosize_max_clamp, 0,
+    "Clamp max i/o size to INT_MAX");
 static int devfs_iosize_max_clamp = 1;
 SYSCTL_INT(_debug, OID_AUTO, devfs_iosize_max_clamp, CTLFLAG_RW,
     &devfs_iosize_max_clamp, 0, "Clamp max i/o size to INT_MAX for devices");
@@ -109,22 +109,21 @@ static MALLOC_DEFINE(M_IOCTLOPS, "ioctlops", "ioctl data buffer");
 static MALLOC_DEFINE(M_SELECT, "select", "select() buffer");
 MALLOC_DEFINE(M_IOV, "iov", "large iov's");
 
-static int	pollout(struct thread *, struct pollfd *, struct pollfd *,
-		    u_int);
-static int	pollscan(struct thread *, struct pollfd *, u_int);
-static int	pollrescan(struct thread *);
-static int	selscan(struct thread *, fd_mask **, fd_mask **, int);
-static int	selrescan(struct thread *, fd_mask **, fd_mask **);
-static void	selfdalloc(struct thread *, void *);
-static void	selfdfree(struct seltd *, struct selfd *);
-static int	dofileread(struct thread *, int, struct file *, struct uio *,
-		    off_t, int);
-static int	dofilewrite(struct thread *, int, struct file *, struct uio *,
-		    off_t, int);
-static void	doselwakeup(struct selinfo *, int);
-static void	seltdinit(struct thread *);
-static int	seltdwait(struct thread *, sbintime_t, sbintime_t);
-static void	seltdclear(struct thread *);
+static int pollout(struct thread *, struct pollfd *, struct pollfd *, u_int);
+static int pollscan(struct thread *, struct pollfd *, u_int);
+static int pollrescan(struct thread *);
+static int selscan(struct thread *, fd_mask **, fd_mask **, int);
+static int selrescan(struct thread *, fd_mask **, fd_mask **);
+static void selfdalloc(struct thread *, void *);
+static void selfdfree(struct seltd *, struct selfd *);
+static int dofileread(struct thread *, int, struct file *, struct uio *, off_t,
+    int);
+static int dofilewrite(struct thread *, int, struct file *, struct uio *, off_t,
+    int);
+static void doselwakeup(struct selinfo *, int);
+static void seltdinit(struct thread *);
+static int seltdwait(struct thread *, sbintime_t, sbintime_t);
+static void seltdclear(struct thread *);
 
 /*
  * One seltd per-thread allocated on demand as needed.
@@ -133,28 +132,28 @@ static void	seltdclear(struct thread *);
  * 	k - Only accessed by curthread or read-only
  */
 struct seltd {
-	STAILQ_HEAD(, selfd)	st_selq;	/* (k) List of selfds. */
-	struct selfd		*st_free1;	/* (k) free fd for read set. */
-	struct selfd		*st_free2;	/* (k) free fd for write set. */
-	struct mtx		st_mtx;		/* Protects struct seltd */
-	struct cv		st_wait;	/* (t) Wait channel. */
-	int			st_flags;	/* (t) SELTD_ flags. */
+	STAILQ_HEAD(, selfd) st_selq; /* (k) List of selfds. */
+	struct selfd *st_free1;	      /* (k) free fd for read set. */
+	struct selfd *st_free2;	      /* (k) free fd for write set. */
+	struct mtx st_mtx;	      /* Protects struct seltd */
+	struct cv st_wait;	      /* (t) Wait channel. */
+	int st_flags;		      /* (t) SELTD_ flags. */
 };
 
-#define	SELTD_PENDING	0x0001			/* We have pending events. */
-#define	SELTD_RESCAN	0x0002			/* Doing a rescan. */
+#define SELTD_PENDING 0x0001 /* We have pending events. */
+#define SELTD_RESCAN 0x0002  /* Doing a rescan. */
 
 /*
  * One selfd allocated per-thread per-file-descriptor.
  *	f - protected by sf_mtx
  */
 struct selfd {
-	STAILQ_ENTRY(selfd)	sf_link;	/* (k) fds owned by this td. */
-	TAILQ_ENTRY(selfd)	sf_threads;	/* (f) fds on this selinfo. */
-	struct selinfo		*sf_si;		/* (f) selinfo when linked. */
-	struct mtx		*sf_mtx;	/* Pointer to selinfo mtx. */
-	struct seltd		*sf_td;		/* (k) owning seltd. */
-	void			*sf_cookie;	/* (k) fd or pollfd. */
+	STAILQ_ENTRY(selfd) sf_link;   /* (k) fds owned by this td. */
+	TAILQ_ENTRY(selfd) sf_threads; /* (f) fds on this selinfo. */
+	struct selinfo *sf_si;	       /* (f) selinfo when linked. */
+	struct mtx *sf_mtx;	       /* Pointer to selinfo mtx. */
+	struct seltd *sf_td;	       /* (k) owning seltd. */
+	void *sf_cookie;	       /* (k) fd or pollfd. */
 };
 
 MALLOC_DEFINE(M_SELFD, "selfd", "selfd");
@@ -166,23 +165,24 @@ devfs_iosize_max(void)
 {
 
 	return (devfs_iosize_max_clamp || SV_CURPROC_FLAG(SV_ILP32) ?
-	    INT_MAX : SSIZE_MAX);
+		INT_MAX :
+		SSIZE_MAX);
 }
 
 size_t
 iosize_max(void)
 {
 
-	return (iosize_max_clamp || SV_CURPROC_FLAG(SV_ILP32) ?
-	    INT_MAX : SSIZE_MAX);
+	return (iosize_max_clamp || SV_CURPROC_FLAG(SV_ILP32) ? INT_MAX :
+								SSIZE_MAX);
 }
 #endif
 
 #ifndef _SYS_SYSPROTO_H_
 struct read_args {
-	int	fd;
-	void	*buf;
-	size_t	nbyte;
+	int fd;
+	void *buf;
+	size_t nbyte;
 };
 #endif
 int
@@ -209,11 +209,11 @@ sys_read(struct thread *td, struct read_args *uap)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct pread_args {
-	int	fd;
-	void	*buf;
-	size_t	nbyte;
-	int	pad;
-	off_t	offset;
+	int fd;
+	void *buf;
+	size_t nbyte;
+	int pad;
+	off_t offset;
 };
 #endif
 int
@@ -256,9 +256,9 @@ freebsd6_pread(struct thread *td, struct freebsd6_pread_args *uap)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct readv_args {
-	int	fd;
-	struct	iovec *iovp;
-	u_int	iovcnt;
+	int fd;
+	struct iovec *iovp;
+	u_int iovcnt;
 };
 #endif
 int
@@ -294,10 +294,10 @@ kern_readv(struct thread *td, int fd, struct uio *auio)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct preadv_args {
-	int	fd;
-	struct	iovec *iovp;
-	u_int	iovcnt;
-	off_t	offset;
+	int fd;
+	struct iovec *iovp;
+	u_int iovcnt;
+	off_t offset;
 };
 #endif
 int
@@ -359,13 +359,14 @@ dofileread(struct thread *td, int fd, struct file *fp, struct uio *auio,
 	auio->uio_offset = offset;
 	auio->uio_td = td;
 #ifdef KTRACE
-	if (KTRPOINT(td, KTR_GENIO)) 
+	if (KTRPOINT(td, KTR_GENIO))
 		ktruio = cloneuio(auio);
 #endif
 	cnt = auio->uio_resid;
 	if ((error = fo_read(fp, auio, td->td_ucred, flags, td))) {
-		if (auio->uio_resid != cnt && (error == ERESTART ||
-		    error == EINTR || error == EWOULDBLOCK))
+		if (auio->uio_resid != cnt &&
+		    (error == ERESTART || error == EINTR ||
+			error == EWOULDBLOCK))
 			error = 0;
 	}
 	cnt -= auio->uio_resid;
@@ -381,9 +382,9 @@ dofileread(struct thread *td, int fd, struct file *fp, struct uio *auio,
 
 #ifndef _SYS_SYSPROTO_H_
 struct write_args {
-	int	fd;
+	int fd;
 	const void *buf;
-	size_t	nbyte;
+	size_t nbyte;
 };
 #endif
 int
@@ -410,11 +411,11 @@ sys_write(struct thread *td, struct write_args *uap)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct pwrite_args {
-	int	fd;
+	int fd;
 	const void *buf;
-	size_t	nbyte;
-	int	pad;
-	off_t	offset;
+	size_t nbyte;
+	int pad;
+	off_t offset;
 };
 #endif
 int
@@ -458,9 +459,9 @@ freebsd6_pwrite(struct thread *td, struct freebsd6_pwrite_args *uap)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct writev_args {
-	int	fd;
-	struct	iovec *iovp;
-	u_int	iovcnt;
+	int fd;
+	struct iovec *iovp;
+	u_int iovcnt;
 };
 #endif
 int
@@ -496,10 +497,10 @@ kern_writev(struct thread *td, int fd, struct uio *auio)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct pwritev_args {
-	int	fd;
-	struct	iovec *iovp;
-	u_int	iovcnt;
-	off_t	offset;
+	int fd;
+	struct iovec *iovp;
+	u_int iovcnt;
+	off_t offset;
 };
 #endif
 int
@@ -565,8 +566,9 @@ dofilewrite(struct thread *td, int fd, struct file *fp, struct uio *auio,
 	 * see sousrsend().
 	 */
 	if (error != 0 && fp->f_type != DTYPE_SOCKET) {
-		if (auio->uio_resid != cnt && (error == ERESTART ||
-		    error == EINTR || error == EWOULDBLOCK))
+		if (auio->uio_resid != cnt &&
+		    (error == ERESTART || error == EINTR ||
+			error == EWOULDBLOCK))
 			error = 0;
 		if (error == EPIPE) {
 			PROC_LOCK(td->td_proc);
@@ -615,9 +617,9 @@ kern_ftruncate(struct thread *td, int fd, off_t length)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ftruncate_args {
-	int	fd;
-	int	pad;
-	off_t	length;
+	int fd;
+	int pad;
+	off_t length;
 };
 #endif
 int
@@ -630,8 +632,8 @@ sys_ftruncate(struct thread *td, struct ftruncate_args *uap)
 #if defined(COMPAT_43)
 #ifndef _SYS_SYSPROTO_H_
 struct oftruncate_args {
-	int	fd;
-	long	length;
+	int fd;
+	long length;
 };
 #endif
 int
@@ -644,9 +646,9 @@ oftruncate(struct thread *td, struct oftruncate_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ioctl_args {
-	int	fd;
-	u_long	com;
-	caddr_t	data;
+	int fd;
+	u_long com;
+	caddr_t data;
 };
 #endif
 /* ARGSUSED */
@@ -661,8 +663,7 @@ sys_ioctl(struct thread *td, struct ioctl_args *uap)
 
 #ifdef INVARIANTS
 	if (uap->com > 0xffffffff) {
-		printf(
-		    "WARNING pid %d (%s): ioctl sign-extension ioctl %lx\n",
+		printf("WARNING pid %d (%s): ioctl sign-extension ioctl %lx\n",
 		    td->td_proc->p_pid, td->td_name, uap->com);
 	}
 #endif
@@ -674,7 +675,7 @@ sys_ioctl(struct thread *td, struct ioctl_args *uap)
 	 */
 	size = IOCPARM_LEN(com);
 	if ((size > IOCPARM_MAX) ||
-	    ((com & (IOC_VOID  | IOC_IN | IOC_OUT)) == 0) ||
+	    ((com & (IOC_VOID | IOC_IN | IOC_OUT)) == 0) ||
 #if defined(COMPAT_FREEBSD5) || defined(COMPAT_FREEBSD4) || defined(COMPAT_43)
 	    ((com & IOC_OUT) && size == 0) ||
 #else
@@ -691,7 +692,8 @@ sys_ioctl(struct thread *td, struct ioctl_args *uap)
 			size = 0;
 		} else {
 			if (size > SYS_IOCTL_SMALL_SIZE)
-				data = malloc((u_long)size, M_IOCTLOPS, M_WAITOK);
+				data = malloc((u_long)size, M_IOCTLOPS,
+				    M_WAITOK);
 			else
 				data = smalldata;
 		}
@@ -754,7 +756,7 @@ kern_ioctl(struct thread *td, int fd, u_long com, caddr_t data)
 		goto out;
 	}
 	if ((error = cap_ioctl_check(fdp, fd, com)) != 0) {
-		fp = NULL;	/* fhold() was not called yet */
+		fp = NULL; /* fhold() was not called yet */
 		goto out;
 	}
 	if (!fhold(fp)) {
@@ -857,7 +859,7 @@ kern_posix_fallocate(struct thread *td, int fd, off_t offset, off_t len)
 	}
 
 	error = fo_fallocate(fp, offset, len, td);
- out:
+out:
 	fdrop(fp, td);
 	return (error);
 }
@@ -872,8 +874,7 @@ sys_fspacectl(struct thread *td, struct fspacectl_args *uap)
 	if (error != 0)
 		return (error);
 
-	error = kern_fspacectl(td, uap->fd, uap->cmd, &rqsr, uap->flags,
-	    &rmsr);
+	error = kern_fspacectl(td, uap->fd, uap->cmd, &rqsr, uap->flags, &rmsr);
 	if (uap->rmsr != NULL) {
 		cerror = copyout(&rmsr, uap->rmsr, sizeof(rmsr));
 		if (error == 0)
@@ -900,8 +901,7 @@ kern_fspacectl(struct thread *td, int fd, int cmd,
 	if (rmsrp != NULL)
 		*rmsrp = rmsr;
 
-	if (cmd != SPACECTL_DEALLOC ||
-	    rqsr->r_offset < 0 || rqsr->r_len <= 0 ||
+	if (cmd != SPACECTL_DEALLOC || rqsr->r_offset < 0 || rqsr->r_len <= 0 ||
 	    rqsr->r_offset > OFF_MAX - rqsr->r_len ||
 	    (flags & ~SPACECTL_F_SUPPORTED) != 0)
 		return (EINVAL);
@@ -922,8 +922,8 @@ kern_fspacectl(struct thread *td, int fd, int cmd,
 	error = fo_fspacectl(fp, cmd, &rmsr.r_offset, &rmsr.r_len, flags,
 	    td->td_ucred, td);
 	/* fspacectl is not restarted after signals if the file is modified. */
-	if (rmsr.r_len != rqsr->r_len && (error == ERESTART ||
-	    error == EINTR || error == EWOULDBLOCK))
+	if (rmsr.r_len != rqsr->r_len &&
+	    (error == ERESTART || error == EINTR || error == EWOULDBLOCK))
 		error = 0;
 	if (rmsrp != NULL)
 		*rmsrp = rmsr;
@@ -979,8 +979,8 @@ sys___specialfd(struct thread *td, struct __specialfd_args *args)
 		error = copyin(args->req, &ae, sizeof(ae));
 		if (error != 0)
 			break;
-		if ((ae.flags & ~(EFD_CLOEXEC | EFD_NONBLOCK |
-		    EFD_SEMAPHORE)) != 0) {
+		if ((ae.flags &
+			~(EFD_CLOEXEC | EFD_NONBLOCK | EFD_SEMAPHORE)) != 0) {
 			error = EINVAL;
 			break;
 		}
@@ -1020,7 +1020,7 @@ sys_pselect(struct thread *td, struct pselect_args *uap)
 	if (uap->ts != NULL) {
 		error = copyin(uap->ts, &ts, sizeof(ts));
 		if (error != 0)
-		    return (error);
+			return (error);
 		TIMESPEC_TO_TIMEVAL(&tv, &ts);
 		tvp = &tv;
 	} else
@@ -1032,8 +1032,8 @@ sys_pselect(struct thread *td, struct pselect_args *uap)
 		uset = &set;
 	} else
 		uset = NULL;
-	return (kern_pselect(td, uap->nd, uap->in, uap->ou, uap->ex, tvp,
-	    uset, NFDBITS));
+	return (kern_pselect(td, uap->nd, uap->in, uap->ou, uap->ex, tvp, uset,
+	    NFDBITS));
 }
 
 int
@@ -1061,9 +1061,9 @@ kern_pselect(struct thread *td, int nd, fd_set *in, fd_set *ou, fd_set *ex,
 
 #ifndef _SYS_SYSPROTO_H_
 struct select_args {
-	int	nd;
-	fd_set	*in, *ou, *ex;
-	struct	timeval *tv;
+	int nd;
+	fd_set *in, *ou, *ex;
+	struct timeval *tv;
 };
 #endif
 int
@@ -1080,8 +1080,8 @@ sys_select(struct thread *td, struct select_args *uap)
 	} else
 		tvp = NULL;
 
-	return (kern_select(td, uap->nd, uap->in, uap->ou, uap->ex, tvp,
-	    NFDBITS));
+	return (
+	    kern_select(td, uap->nd, uap->in, uap->ou, uap->ex, tvp, NFDBITS));
 }
 
 /*
@@ -1193,27 +1193,27 @@ kern_select(struct thread *td, int nd, fd_set *fd_in, fd_set *fd_ou,
 	 * together.
 	 */
 	sbp = selbits;
-#define	getbits(name, x) \
-	do {								\
-		if (name == NULL) {					\
-			ibits[x] = NULL;				\
-			obits[x] = NULL;				\
-		} else {						\
-			ibits[x] = sbp + nbufbytes / 2 / sizeof *sbp;	\
-			obits[x] = sbp;					\
-			sbp += ncpbytes / sizeof *sbp;			\
-			error = copyin(name, ibits[x], ncpubytes);	\
-			if (error != 0)					\
-				goto done;				\
-			if (ncpbytes != ncpubytes)			\
-				bzero((char *)ibits[x] + ncpubytes,	\
-				    ncpbytes - ncpubytes);		\
-		}							\
+#define getbits(name, x)                                              \
+	do {                                                          \
+		if (name == NULL) {                                   \
+			ibits[x] = NULL;                              \
+			obits[x] = NULL;                              \
+		} else {                                              \
+			ibits[x] = sbp + nbufbytes / 2 / sizeof *sbp; \
+			obits[x] = sbp;                               \
+			sbp += ncpbytes / sizeof *sbp;                \
+			error = copyin(name, ibits[x], ncpubytes);    \
+			if (error != 0)                               \
+				goto done;                            \
+			if (ncpbytes != ncpubytes)                    \
+				bzero((char *)ibits[x] + ncpubytes,   \
+				    ncpbytes - ncpubytes);            \
+		}                                                     \
 	} while (0)
 	getbits(fd_in, 0);
 	getbits(fd_ou, 1);
 	getbits(fd_ex, 2);
-#undef	getbits
+#undef getbits
 
 #if BYTE_ORDER == BIG_ENDIAN && defined(__LP64__)
 	/*
@@ -1221,11 +1221,11 @@ kern_select(struct thread *td, int nd, fd_set *fd_in, fd_set *fd_ou,
 	 * we are running under 32-bit emulation. This should be more
 	 * generic.
 	 */
-#define swizzle_fdset(bits)						\
-	if (abi_nfdbits != NFDBITS && bits != NULL) {			\
-		int i;							\
-		for (i = 0; i < ncpbytes / sizeof *sbp; i++)		\
-			bits[i] = (bits[i] >> 32) | (bits[i] << 32);	\
+#define swizzle_fdset(bits)                                          \
+	if (abi_nfdbits != NFDBITS && bits != NULL) {                \
+		int i;                                               \
+		for (i = 0; i < ncpbytes / sizeof *sbp; i++)         \
+			bits[i] = (bits[i] >> 32) | (bits[i] << 32); \
 	}
 #else
 #define swizzle_fdset(bits)
@@ -1291,7 +1291,7 @@ done:
 	swizzle_fdset(obits[2]);
 #undef swizzle_fdset
 
-#define	putbits(name, x) \
+#define putbits(name, x)                                           \
 	if (name && (error2 = copyout(obits[x], name, ncpubytes))) \
 		error = error2;
 	if (error == 0) {
@@ -1307,17 +1307,14 @@ done:
 
 	return (error);
 }
-/* 
+/*
  * Convert a select bit set to poll flags.
  *
  * The backend always returns POLLHUP/POLLERR if appropriate and we
  * return this as a set bit in any set.
  */
-static const int select_flags[3] = {
-    POLLRDNORM | POLLHUP | POLLERR,
-    POLLWRNORM | POLLHUP | POLLERR,
-    POLLRDBAND | POLLERR
-};
+static const int select_flags[3] = { POLLRDNORM | POLLHUP | POLLERR,
+	POLLWRNORM | POLLHUP | POLLERR, POLLRDBAND | POLLERR };
 
 /*
  * Compute the fo_poll flags required for a fd given by the index and
@@ -1395,7 +1392,7 @@ selrescan(struct thread *td, fd_mask **ibits, fd_mask **obits)
 	stp = td->td_sel;
 	n = 0;
 	only_user = FILEDESC_IS_ONLY_USER(fdp);
-	STAILQ_FOREACH_SAFE(sfp, &stp->st_selq, sf_link, sfn) {
+	STAILQ_FOREACH_SAFE (sfp, &stp->st_selq, sf_link, sfn) {
 		fd = (int)(uintptr_t)sfp->sf_cookie;
 		si = sfp->sf_si;
 		selfdfree(stp, sfp);
@@ -1449,9 +1446,11 @@ selscan(struct thread *td, fd_mask **ibits, fd_mask **obits, int nfd)
 			if (flags == 0)
 				continue;
 			if (only_user)
-				error = fget_only_user(fdp, fd, &cap_event_rights, &fp);
+				error = fget_only_user(fdp, fd,
+				    &cap_event_rights, &fp);
 			else
-				error = fget_unlocked(td, fd, &cap_event_rights, &fp);
+				error = fget_unlocked(td, fd, &cap_event_rights,
+				    &fp);
 			if (__predict_false(error != 0))
 				return (error);
 			selfdalloc(td, (void *)(uintptr_t)fd);
@@ -1644,7 +1643,7 @@ pollrescan(struct thread *td)
 	fdp = td->td_proc->p_fd;
 	stp = td->td_sel;
 	only_user = FILEDESC_IS_ONLY_USER(fdp);
-	STAILQ_FOREACH_SAFE(sfp, &stp->st_selq, sf_link, sfn) {
+	STAILQ_FOREACH_SAFE (sfp, &stp->st_selq, sf_link, sfn) {
 		fd = (struct pollfd *)sfp->sf_cookie;
 		si = sfp->sf_si;
 		selfdfree(stp, sfp);
@@ -1652,9 +1651,11 @@ pollrescan(struct thread *td)
 		if (si != NULL)
 			continue;
 		if (only_user)
-			error = fget_only_user(fdp, fd->fd, &cap_event_rights, &fp);
+			error = fget_only_user(fdp, fd->fd, &cap_event_rights,
+			    &fp);
 		else
-			error = fget_unlocked(td, fd->fd, &cap_event_rights, &fp);
+			error = fget_unlocked(td, fd->fd, &cap_event_rights,
+			    &fp);
 		if (__predict_false(error != 0)) {
 			fd->revents = POLLNVAL;
 			n++;
@@ -1715,9 +1716,11 @@ pollscan(struct thread *td, struct pollfd *fds, u_int nfd)
 			continue;
 		}
 		if (only_user)
-			error = fget_only_user(fdp, fds->fd, &cap_event_rights, &fp);
+			error = fget_only_user(fdp, fds->fd, &cap_event_rights,
+			    &fp);
 		else
-			error = fget_unlocked(td, fds->fd, &cap_event_rights, &fp);
+			error = fget_unlocked(td, fds->fd, &cap_event_rights,
+			    &fp);
 		if (__predict_false(error != 0)) {
 			fds->revents = POLLNVAL;
 			n++;
@@ -1728,8 +1731,7 @@ pollscan(struct thread *td, struct pollfd *fds, u_int nfd)
 		 * POLLERR if appropriate.
 		 */
 		selfdalloc(td, fds);
-		fds->revents = fo_poll(fp, fds->events,
-		    td->td_ucred, td);
+		fds->revents = fo_poll(fp, fds->events, td->td_ucred, td);
 		if (only_user)
 			fput_only_user(fdp, fp);
 		else
@@ -1761,11 +1763,10 @@ selsocket(struct socket *so, int events, struct timeval *tvp, struct thread *td)
 	sbintime_t asbt, precision, rsbt;
 	int error;
 
-	precision = 0;	/* stupid gcc! */
+	precision = 0; /* stupid gcc! */
 	if (tvp != NULL) {
 		rtv = *tvp;
-		if (rtv.tv_sec < 0 || rtv.tv_usec < 0 || 
-		    rtv.tv_usec >= 1000000)
+		if (rtv.tv_sec < 0 || rtv.tv_usec < 0 || rtv.tv_usec >= 1000000)
 			return (EINVAL);
 		if (!timevalisset(&rtv))
 			asbt = 0;
@@ -1815,11 +1816,13 @@ selfdalloc(struct thread *td, void *cookie)
 
 	stp = td->td_sel;
 	if (stp->st_free1 == NULL)
-		stp->st_free1 = malloc(sizeof(*stp->st_free1), M_SELFD, M_WAITOK|M_ZERO);
+		stp->st_free1 = malloc(sizeof(*stp->st_free1), M_SELFD,
+		    M_WAITOK | M_ZERO);
 	stp->st_free1->sf_td = stp;
 	stp->st_free1->sf_cookie = cookie;
 	if (stp->st_free2 == NULL)
-		stp->st_free2 = malloc(sizeof(*stp->st_free2), M_SELFD, M_WAITOK|M_ZERO);
+		stp->st_free2 = malloc(sizeof(*stp->st_free2), M_SELFD,
+		    M_WAITOK | M_ZERO);
 	stp->st_free2->sf_td = stp;
 	stp->st_free2->sf_cookie = cookie;
 }
@@ -1854,7 +1857,7 @@ seldrain(struct selinfo *sip)
 	 * detaching, but, again, the races are just the same as
 	 * selwakeup().
 	 */
-        doselwakeup(sip, -1);
+	doselwakeup(sip, -1);
 }
 
 /*
@@ -1938,7 +1941,7 @@ doselwakeup(struct selinfo *sip, int pri)
 	 * Locking the selinfo locks all selfds associated with it.
 	 */
 	mtx_lock(sip->si_mtx);
-	TAILQ_FOREACH_SAFE(sfp, &sip->si_tdlist, sf_threads, sfn) {
+	TAILQ_FOREACH_SAFE (sfp, &sip->si_tdlist, sf_threads, sfn) {
 		/*
 		 * Once we remove this sfp from the list and clear the
 		 * sf_si seltdclear will know to ignore this si.
@@ -1971,7 +1974,7 @@ seltdinit(struct thread *td)
 		MPASS(STAILQ_EMPTY(&stp->st_selq));
 		return;
 	}
-	stp = malloc(sizeof(*stp), M_SELECT, M_WAITOK|M_ZERO);
+	stp = malloc(sizeof(*stp), M_SELECT, M_WAITOK | M_ZERO);
 	mtx_init(&stp->st_mtx, "sellck", NULL, MTX_DEF);
 	cv_init(&stp->st_wait, "select");
 	stp->st_flags = 0;
@@ -2002,8 +2005,8 @@ seltdwait(struct thread *td, sbintime_t sbt, sbintime_t precision)
 	if (sbt == 0)
 		error = EWOULDBLOCK;
 	else if (sbt != -1)
-		error = cv_timedwait_sig_sbt(&stp->st_wait, &stp->st_mtx,
-		    sbt, precision, C_ABSOLUTE);
+		error = cv_timedwait_sig_sbt(&stp->st_wait, &stp->st_mtx, sbt,
+		    precision, C_ABSOLUTE);
 	else
 		error = cv_wait_sig(&stp->st_wait, &stp->st_mtx);
 	mtx_unlock(&stp->st_mtx);
@@ -2043,7 +2046,7 @@ seltdclear(struct thread *td)
 	struct selfd *sfn;
 
 	stp = td->td_sel;
-	STAILQ_FOREACH_SAFE(sfp, &stp->st_selq, sf_link, sfn)
+	STAILQ_FOREACH_SAFE (sfp, &stp->st_selq, sf_link, sfn)
 		selfdfree(stp, sfp);
 	stp->st_flags = 0;
 }
@@ -2094,8 +2097,8 @@ kcmp_pget(struct thread *td, pid_t pid, struct proc **pp)
 }
 
 int
-kern_kcmp(struct thread *td, pid_t pid1, pid_t pid2, int type,
-    uintptr_t idx1, uintptr_t idx2)
+kern_kcmp(struct thread *td, pid_t pid1, pid_t pid2, int type, uintptr_t idx1,
+    uintptr_t idx2)
 {
 	struct proc *p1, *p2;
 	struct file *fp1, *fp2;
@@ -2155,8 +2158,8 @@ out:
 int
 sys_kcmp(struct thread *td, struct kcmp_args *uap)
 {
-	return (kern_kcmp(td, uap->pid1, uap->pid2, uap->type,
-	    uap->idx1, uap->idx2));
+	return (kern_kcmp(td, uap->pid1, uap->pid2, uap->type, uap->idx1,
+	    uap->idx2));
 }
 
 int

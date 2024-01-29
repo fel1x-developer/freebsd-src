@@ -40,22 +40,26 @@
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
 #include <sys/vmem.h>
+
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+
 #include <machine/bus.h>
 #include <machine/intr_machdep.h>
+
 #include <x86/include/apicreg.h>
 #include <x86/include/apicvar.h>
 #include <x86/include/busdma_impl.h>
-#include <dev/iommu/busdma_iommu.h>
-#include <x86/iommu/intel_reg.h>
 #include <x86/iommu/intel_dmar.h>
+#include <x86/iommu/intel_reg.h>
 #include <x86/iommu/iommu_intrmap.h>
+
+#include <dev/iommu/busdma_iommu.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 static struct dmar_unit *dmar_ir_find(device_t src, uint16_t *rid,
     int *is_dmar);
@@ -120,9 +124,9 @@ iommu_map_msi_intr(device_t src, u_int cpu, u_int vector, u_int cookie,
 		return (EOPNOTSUPP);
 
 	low = (DMAR_X2APIC(unit) ? DMAR_IRTE1_DST_x2APIC(cpu) :
-	    DMAR_IRTE1_DST_xAPIC(cpu)) | DMAR_IRTE1_V(vector) |
-	    DMAR_IRTE1_DLM_FM | DMAR_IRTE1_TM_EDGE | DMAR_IRTE1_RH_DIRECT |
-	    DMAR_IRTE1_DM_PHYSICAL | DMAR_IRTE1_P;
+				   DMAR_IRTE1_DST_xAPIC(cpu)) |
+	    DMAR_IRTE1_V(vector) | DMAR_IRTE1_DLM_FM | DMAR_IRTE1_TM_EDGE |
+	    DMAR_IRTE1_RH_DIRECT | DMAR_IRTE1_DM_PHYSICAL | DMAR_IRTE1_P;
 	dmar_ir_program_irte(unit, cookie, low, rid);
 
 	if (addr != NULL) {
@@ -189,7 +193,7 @@ iommu_map_ioapic_intr(u_int ioapic_id, u_int cpu, u_int vector, bool edge,
 		break;
 	}
 	low |= (DMAR_X2APIC(unit) ? DMAR_IRTE1_DST_x2APIC(cpu) :
-	    DMAR_IRTE1_DST_xAPIC(cpu)) |
+				    DMAR_IRTE1_DST_xAPIC(cpu)) |
 	    (edge ? DMAR_IRTE1_TM_EDGE : DMAR_IRTE1_TM_LEVEL) |
 	    DMAR_IRTE1_RH_DIRECT | DMAR_IRTE1_DM_PHYSICAL | DMAR_IRTE1_P;
 	dmar_ir_program_irte(unit, idx, low, rid);
@@ -202,8 +206,8 @@ iommu_map_ioapic_intr(u_int ioapic_id, u_int cpu, u_int vector, bool edge,
 		iorte = (1ULL << 48) | ((uint64_t)(idx & 0x7fff) << 49) |
 		    ((idx & 0x8000) != 0 ? (1 << 11) : 0) |
 		    (edge ? IOART_TRGREDG : IOART_TRGRLVL) |
-		    (activehi ? IOART_INTAHI : IOART_INTALO) |
-		    IOART_DELFIXED | vector;
+		    (activehi ? IOART_INTAHI : IOART_INTALO) | IOART_DELFIXED |
+		    vector;
 		*hi = iorte >> 32;
 		*lo = iorte;
 	}
@@ -267,12 +271,11 @@ dmar_ir_program_irte(struct dmar_unit *unit, u_int idx, uint64_t low,
 	KASSERT(idx < unit->irte_cnt,
 	    ("bad cookie %d %d", idx, unit->irte_cnt));
 	irte = &(unit->irt[idx]);
-	high = DMAR_IRTE2_SVT_RID | DMAR_IRTE2_SQ_RID |
-	    DMAR_IRTE2_SID_RID(rid);
+	high = DMAR_IRTE2_SVT_RID | DMAR_IRTE2_SQ_RID | DMAR_IRTE2_SID_RID(rid);
 	if (bootverbose) {
 		device_printf(unit->dev,
-		    "programming irte[%d] rid %#x high %#jx low %#jx\n",
-		    idx, rid, (uintmax_t)high, (uintmax_t)low);
+		    "programming irte[%d] rid %#x high %#jx low %#jx\n", idx,
+		    rid, (uintmax_t)high, (uintmax_t)low);
 	}
 	DMAR_LOCK(unit);
 	if ((irte->irte1 & DMAR_IRTE1_P) != 0) {
@@ -284,7 +287,7 @@ dmar_ir_program_irte(struct dmar_unit *unit, u_int idx, uint64_t low,
 		 */
 		KASSERT(irte->irte2 == high,
 		    ("irte2 mismatch, %jx %jx", (uintmax_t)irte->irte2,
-		    (uintmax_t)high));
+			(uintmax_t)high));
 		dmar_pte_update(&irte->irte1, low);
 	} else {
 		dmar_pte_store(&irte->irte2, high);
@@ -292,7 +295,6 @@ dmar_ir_program_irte(struct dmar_unit *unit, u_int idx, uint64_t low,
 	}
 	dmar_qi_invalidate_iec(unit, idx, 1);
 	DMAR_UNLOCK(unit);
-
 }
 
 static int
@@ -335,14 +337,14 @@ dmar_init_irt(struct dmar_unit *unit)
 		unit->ir_enabled = 0;
 		if (bootverbose)
 			device_printf(unit->dev,
-	     "QI disabled, disabling interrupt remapping\n");
+			    "QI disabled, disabling interrupt remapping\n");
 		return (0);
 	}
 	unit->irte_cnt = clp2(num_io_irqs);
 	unit->irt = kmem_alloc_contig(unit->irte_cnt * sizeof(dmar_irte_t),
 	    M_ZERO | M_WAITOK, 0, dmar_high, PAGE_SIZE, 0,
-	    DMAR_IS_COHERENT(unit) ?
-	    VM_MEMATTR_DEFAULT : VM_MEMATTR_UNCACHEABLE);
+	    DMAR_IS_COHERENT(unit) ? VM_MEMATTR_DEFAULT :
+				     VM_MEMATTR_UNCACHEABLE);
 	if (unit->irt == NULL)
 		return (ENOMEM);
 	unit->irt_phys = pmap_kextract((vm_offset_t)unit->irt);

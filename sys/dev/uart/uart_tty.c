@@ -36,9 +36,10 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/reboot.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
 #include <sys/tty.h>
+
+#include <machine/bus.h>
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
@@ -67,10 +68,7 @@ static tsw_modem_t uart_tty_modem;
 static tsw_free_t uart_tty_free;
 static tsw_busy_t uart_tty_busy;
 
-CONSOLE_DRIVER(
-	uart,
-	.cn_resume = uart_cnresume,
-);
+CONSOLE_DRIVER(uart, .cn_resume = uart_cnresume, );
 
 static struct uart_devinfo uart_console;
 
@@ -230,7 +228,7 @@ uart_tty_inwakeup(struct tty *tp)
 
 	if (sc->sc_isquelch) {
 		if ((tp->t_termios.c_cflag & CRTS_IFLOW) && !sc->sc_hwiflow)
-			UART_SETSIG(sc, SER_DRTS|SER_RTS);
+			UART_SETSIG(sc, SER_DRTS | SER_RTS);
 		sc->sc_isquelch = 0;
 		uart_sched_softih(sc, SER_INT_RXREADY);
 	}
@@ -272,15 +270,23 @@ uart_tty_param(struct tty *tp, struct termios *t)
 		return (0);
 	}
 	switch (t->c_cflag & CSIZE) {
-	case CS5:	databits = 5; break;
-	case CS6:	databits = 6; break;
-	case CS7:	databits = 7; break;
-	default:	databits = 8; break;
+	case CS5:
+		databits = 5;
+		break;
+	case CS6:
+		databits = 6;
+		break;
+	case CS7:
+		databits = 7;
+		break;
+	default:
+		databits = 8;
+		break;
 	}
 	stopbits = (t->c_cflag & CSTOPB) ? 2 : 1;
 	if (t->c_cflag & PARENB)
 		parity = (t->c_cflag & PARODD) ? UART_PARITY_ODD :
-		    UART_PARITY_EVEN;
+						 UART_PARITY_EVEN;
 	else
 		parity = UART_PARITY_NONE;
 	if (UART_PARAM(sc, t->c_ospeed, databits, stopbits, parity) != 0)
@@ -388,7 +394,7 @@ uart_tty_busy(struct tty *tp)
 
 	sc = tty_softc(tp);
 	if (sc == NULL || sc->sc_leaving)
-                return (false);
+		return (false);
 
 	/*
 	 * The tty locking is sufficient here; we may lose the race against
@@ -404,16 +410,16 @@ uart_tty_busy(struct tty *tp)
 }
 
 static struct ttydevsw uart_tty_class = {
-	.tsw_flags	= TF_INITLOCK|TF_CALLOUT,
-	.tsw_open	= uart_tty_open,
-	.tsw_close	= uart_tty_close,
-	.tsw_outwakeup	= uart_tty_outwakeup,
-	.tsw_inwakeup	= uart_tty_inwakeup,
-	.tsw_ioctl	= uart_tty_ioctl,
-	.tsw_param	= uart_tty_param,
-	.tsw_modem	= uart_tty_modem,
-	.tsw_free	= uart_tty_free,
-	.tsw_busy	= uart_tty_busy,
+	.tsw_flags = TF_INITLOCK | TF_CALLOUT,
+	.tsw_open = uart_tty_open,
+	.tsw_close = uart_tty_close,
+	.tsw_outwakeup = uart_tty_outwakeup,
+	.tsw_inwakeup = uart_tty_inwakeup,
+	.tsw_ioctl = uart_tty_ioctl,
+	.tsw_param = uart_tty_param,
+	.tsw_modem = uart_tty_modem,
+	.tsw_free = uart_tty_free,
+	.tsw_busy = uart_tty_busy,
 };
 
 int

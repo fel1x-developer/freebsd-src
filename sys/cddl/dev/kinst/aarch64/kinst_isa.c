@@ -10,8 +10,8 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
+
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 
 #include "kinst.h"
@@ -57,32 +57,32 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 			imm |= 0xfffffffffffc0000;
 		cond = instr & 0xf;
 		switch ((cond >> 1) & 0x7) {
-		case 0b000:	/* eq/ne */
+		case 0b000: /* eq/ne */
 			res = (frame->tf_spsr & PSR_Z) != 0;
 			break;
-		case 0b001:	/* cs/cc */
+		case 0b001: /* cs/cc */
 			res = (frame->tf_spsr & PSR_C) != 0;
 			break;
-		case 0b010:	/* mi/pl */
+		case 0b010: /* mi/pl */
 			res = (frame->tf_spsr & PSR_N) != 0;
 			break;
-		case 0b011:	/* vs/vc */
+		case 0b011: /* vs/vc */
 			res = (frame->tf_spsr & PSR_V) != 0;
 			break;
-		case 0b100:	/* hi/ls */
+		case 0b100: /* hi/ls */
 			res = ((frame->tf_spsr & PSR_C) != 0) &&
 			    ((frame->tf_spsr & PSR_Z) == 0);
 			break;
-		case 0b101:	/* ge/lt */
+		case 0b101: /* ge/lt */
 			res = ((frame->tf_spsr & PSR_N) != 0) ==
 			    ((frame->tf_spsr & PSR_V) != 0);
 			break;
-		case 0b110:	/* gt/le */
+		case 0b110: /* gt/le */
 			res = ((frame->tf_spsr & PSR_Z) == 0) &&
 			    (((frame->tf_spsr & PSR_N) != 0) ==
-			    ((frame->tf_spsr & PSR_V) != 0));
+				((frame->tf_spsr & PSR_V) != 0));
 			break;
-		case 0b111:	/* al */
+		case 0b111: /* al */
 			res = 1;
 			break;
 		}
@@ -204,7 +204,7 @@ kinst_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch)
 		return (kinst_jump_next_instr(frame, ks->kp));
 	}
 
-	LIST_FOREACH(kp, KINST_GETPROBE(addr), kp_hashnext) {
+	LIST_FOREACH (kp, KINST_GETPROBE(addr), kp_hashnext) {
 		if ((uintptr_t)kp->kp_patchpoint == addr)
 			break;
 	}
@@ -255,17 +255,17 @@ kinst_instr_dissect(struct kinst_probe *kp)
 	kpmd->emulate = false;
 
 	if (((instr >> 24) & 0x1f) == 0b10000)
-		kpmd->emulate = true;	/* adr/adrp */
+		kpmd->emulate = true; /* adr/adrp */
 	else if (((instr >> 26) & 0x3f) == 0b000101)
-		kpmd->emulate = true;	/* b */
+		kpmd->emulate = true; /* b */
 	else if (((instr >> 24) & 0xff) == 0b01010100)
-		kpmd->emulate = true;	/* b.cond */
+		kpmd->emulate = true; /* b.cond */
 	else if (((instr >> 26) & 0x3f) == 0b100101)
-		kpmd->emulate = true;	/* bl */
+		kpmd->emulate = true; /* bl */
 	else if (((instr >> 25) & 0x3f) == 0b011010)
-		kpmd->emulate = true;	/* cbnz/cbz */
+		kpmd->emulate = true; /* cbnz/cbz */
 	else if (((instr >> 25) & 0x3f) == 0b011011)
-		kpmd->emulate = true;	/* tbnz/tbz */
+		kpmd->emulate = true; /* tbnz/tbz */
 
 	if (!kpmd->emulate)
 		kinst_trampoline_populate(kp);
@@ -392,7 +392,7 @@ kinst_make_probe(linker_file_t lf, int symindx, linker_symval_t *symval,
 		 * Prevent separate dtrace(1) instances from creating copies of
 		 * the same probe.
 		 */
-		LIST_FOREACH(kp, KINST_GETPROBE(instr), kp_hashnext) {
+		LIST_FOREACH (kp, KINST_GETPROBE(instr), kp_hashnext) {
 			if (strcmp(kp->kp_func, func) == 0 &&
 			    strtol(kp->kp_name, NULL, 10) == off)
 				return (0);
@@ -428,7 +428,7 @@ kinst_md_init(void)
 	struct kinst_cpu_state *ks;
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		ks = DPCPU_PTR(kinst_state);
 		ks->state = KINST_PROBE_ARMED;
 	}
@@ -449,7 +449,7 @@ kinst_md_excluded(const char *name)
 {
 	if (strcmp(name, "handle_el1h_sync") == 0 ||
 	    strcmp(name, "do_el1h_sync") == 0)
-                return (true);
+		return (true);
 
 	return (false);
 }

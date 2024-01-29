@@ -53,8 +53,8 @@ set_funcname(char *bufp, size_t bufsize)
 void
 checkptr(caddr_t expected, caddr_t got, const char *desc)
 {
-	int  len;
-	int  failed;
+	int len;
+	int failed;
 	char sbuf[LINESIZE];
 
 	memset((void *)sbuf, 0, LINESIZE);
@@ -72,8 +72,8 @@ checkptr(caddr_t expected, caddr_t got, const char *desc)
 		    (unsigned int)expected, (unsigned int)got);
 		g_fail++;
 	}
-	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)",
-	    g_total, g_funcname, g_testdesc);
+	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)", g_total,
+	    g_funcname, g_testdesc);
 	printf(sbuf);
 	if (failed)
 		printf(g_errbuf);
@@ -86,8 +86,8 @@ checkptr(caddr_t expected, caddr_t got, const char *desc)
 void
 checkstr(const char *expected, const char *got, size_t explen, const char *desc)
 {
-	int  len;
-	int  failed;
+	int len;
+	int failed;
 	char sbuf[LINESIZE];
 
 	memset((void *)sbuf, 0, LINESIZE);
@@ -101,12 +101,12 @@ checkstr(const char *expected, const char *got, size_t explen, const char *desc)
 		failed = 0;
 	} else {
 		len = snprintf(sbuf, LINESIZE, "not ok");
-		snprintf(g_errbuf, LINESIZE,
-		    " : Expected %s, but got %s", expected, got);
+		snprintf(g_errbuf, LINESIZE, " : Expected %s, but got %s",
+		    expected, got);
 		g_fail++;
 	}
-	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)",
-	    g_total, g_funcname, g_testdesc);
+	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)", g_total,
+	    g_funcname, g_testdesc);
 	printf(sbuf);
 	if (failed)
 		printf(g_errbuf);
@@ -119,9 +119,9 @@ checkstr(const char *expected, const char *got, size_t explen, const char *desc)
 void
 checknum(int expected, int got, int cmp, const char *desc)
 {
-	int  len;
-	int  pass;
-	int  failed;
+	int len;
+	int pass;
+	int failed;
 	char sbuf[LINESIZE];
 
 	memset((void *)sbuf, 0, LINESIZE);
@@ -130,7 +130,7 @@ checknum(int expected, int got, int cmp, const char *desc)
 	failed = 1;
 	pass = 0;
 	g_total++;
-	switch(cmp) {
+	switch (cmp) {
 	case 0:
 		pass = (got == expected) ? 1 : 0;
 		break;
@@ -147,12 +147,12 @@ checknum(int expected, int got, int cmp, const char *desc)
 		failed = 0;
 	} else {
 		len = snprintf(sbuf, LINESIZE, "not ok");
-		snprintf(g_errbuf, LINESIZE,
-		    " : Expected %d, but got %d", expected, got);
+		snprintf(g_errbuf, LINESIZE, " : Expected %d, but got %d",
+		    expected, got);
 		g_fail++;
 	}
-	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)",
-	    g_total, g_funcname, g_testdesc);
+	snprintf(sbuf + len, LINESIZE - len, " %d - %s (%s)", g_total,
+	    g_funcname, g_testdesc);
 	printf(sbuf);
 	if (failed)
 		printf(g_errbuf);

@@ -29,12 +29,13 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <rpc/rpc.h>
 #include <sys/socket.h>
-#include <signal.h>
-#include <syslog.h>
+
+#include <rpc/rpc.h>
 #include <rpcsvc/rnusers.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <syslog.h>
 
 #include "extern.h"
 
@@ -43,8 +44,8 @@ int from_inetd = 1;
 static void
 cleanup(int sig __unused)
 {
-	(void) rpcb_unset(RUSERSPROG, RUSERSVERS_IDLE, NULL);
-	(void) rpcb_unset(RUSERSPROG, RUSERSVERS_ORIG, NULL);
+	(void)rpcb_unset(RUSERSPROG, RUSERSVERS_IDLE, NULL);
+	(void)rpcb_unset(RUSERSPROG, RUSERSVERS_ORIG, NULL);
 	exit(0);
 }
 
@@ -67,15 +68,15 @@ main(int argc __unused, char *argv[] __unused)
 	if (!from_inetd) {
 		daemon(0, 0);
 
-		(void) rpcb_unset(RUSERSPROG, RUSERSVERS_IDLE, NULL);
-		(void) rpcb_unset(RUSERSPROG, RUSERSVERS_ORIG, NULL);
+		(void)rpcb_unset(RUSERSPROG, RUSERSVERS_IDLE, NULL);
+		(void)rpcb_unset(RUSERSPROG, RUSERSVERS_ORIG, NULL);
 
-		(void) signal(SIGINT, cleanup);
-		(void) signal(SIGTERM, cleanup);
-		(void) signal(SIGHUP, cleanup);
+		(void)signal(SIGINT, cleanup);
+		(void)signal(SIGTERM, cleanup);
+		(void)signal(SIGHUP, cleanup);
 	}
 
-	openlog("rpc.rusersd", LOG_CONS|LOG_PID, LOG_DAEMON);
+	openlog("rpc.rusersd", LOG_CONS | LOG_PID, LOG_DAEMON);
 
 	if (from_inetd) {
 		transp = svc_tli_create(0, NULL, NULL, 0, 0);
@@ -84,22 +85,26 @@ main(int argc __unused, char *argv[] __unused)
 			exit(1);
 		}
 		ok = svc_reg(transp, RUSERSPROG, RUSERSVERS_IDLE,
-			     rusers_service, NULL);
+		    rusers_service, NULL);
 	} else
-		ok = svc_create(rusers_service,
-				RUSERSPROG, RUSERSVERS_IDLE, "udp");
+		ok = svc_create(rusers_service, RUSERSPROG, RUSERSVERS_IDLE,
+		    "udp");
 	if (!ok) {
-		syslog(LOG_ERR, "unable to register (RUSERSPROG, RUSERSVERS_IDLE, %s)", (!from_inetd)?"udp":"(inetd)");
+		syslog(LOG_ERR,
+		    "unable to register (RUSERSPROG, RUSERSVERS_IDLE, %s)",
+		    (!from_inetd) ? "udp" : "(inetd)");
 		exit(1);
 	}
 	if (from_inetd)
 		ok = svc_reg(transp, RUSERSPROG, RUSERSVERS_ORIG,
-			     rusers_service, NULL);
+		    rusers_service, NULL);
 	else
-		ok = svc_create(rusers_service,
-				RUSERSPROG, RUSERSVERS_ORIG, "udp");
+		ok = svc_create(rusers_service, RUSERSPROG, RUSERSVERS_ORIG,
+		    "udp");
 	if (!ok) {
-		syslog(LOG_ERR, "unable to register (RUSERSPROG, RUSERSVERS_ORIG, %s)", (!from_inetd)?"udp":"(inetd)");
+		syslog(LOG_ERR,
+		    "unable to register (RUSERSPROG, RUSERSVERS_ORIG, %s)",
+		    (!from_inetd) ? "udp" : "(inetd)");
 		exit(1);
 	}
 

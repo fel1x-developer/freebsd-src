@@ -1,4 +1,5 @@
-/*	$NetBSD: timespec_get.c,v 1.2 2016/10/04 12:48:15 christos Exp $	*/
+/*	$NetBSD: timespec_get.c,v 1.2 2016/10/04 12:48:15 christos Exp $
+ */
 
 /*-
  * Copyright (c) 2016 The NetBSD Foundation, Inc.

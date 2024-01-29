@@ -63,33 +63,33 @@
  *	for builtin pagers.
  */
 
-#include <sys/cdefs.h>
 #include "opt_param.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/vnode.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/ucred.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/rwlock.h>
+#include <sys/ucred.h>
 #include <sys/user.h>
+#include <sys/vnode.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/uma.h>
+#include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pager.h>
-#include <vm/vm_extern.h>
-#include <vm/uma.h>
+#include <vm/vm_param.h>
 
 uma_zone_t pbuf_zone;
-static int	pbuf_init(void *, int, int);
-static int	pbuf_ctor(void *, int, void *, int);
-static void	pbuf_dtor(void *, int, void *);
+static int pbuf_init(void *, int, int);
+static int pbuf_ctor(void *, int, void *, int);
+static void pbuf_dtor(void *, int, void *);
 
 static int dead_pager_getpages(vm_object_t, vm_page_t *, int, int *, int *);
 static vm_object_t dead_pager_alloc(void *, vm_ooffset_t, vm_prot_t,
@@ -116,8 +116,8 @@ dead_pager_alloc(void *handle, vm_ooffset_t size, vm_prot_t prot,
 }
 
 static void
-dead_pager_putpages(vm_object_t object, vm_page_t *m, int count,
-    int flags, int *rtvals)
+dead_pager_putpages(vm_object_t object, vm_page_t *m, int count, int flags,
+    int *rtvals)
 {
 	int i;
 
@@ -139,7 +139,6 @@ dead_pager_haspage(vm_object_t object, vm_pindex_t pindex, int *prev, int *next)
 static void
 dead_pager_dealloc(vm_object_t object)
 {
-
 }
 
 static void
@@ -153,22 +152,22 @@ dead_pager_getvp(vm_object_t object, struct vnode **vpp, bool *vp_heldp)
 
 static const struct pagerops deadpagerops = {
 	.pgo_kvme_type = KVME_TYPE_DEAD,
-	.pgo_alloc = 	dead_pager_alloc,
-	.pgo_dealloc =	dead_pager_dealloc,
-	.pgo_getpages =	dead_pager_getpages,
-	.pgo_putpages =	dead_pager_putpages,
-	.pgo_haspage =	dead_pager_haspage,
-	.pgo_getvp =	dead_pager_getvp,
+	.pgo_alloc = dead_pager_alloc,
+	.pgo_dealloc = dead_pager_dealloc,
+	.pgo_getpages = dead_pager_getpages,
+	.pgo_putpages = dead_pager_putpages,
+	.pgo_haspage = dead_pager_haspage,
+	.pgo_getvp = dead_pager_getvp,
 };
 
 const struct pagerops *pagertab[16] __read_mostly = {
-	[OBJT_SWAP] =		&swappagerops,
-	[OBJT_VNODE] =		&vnodepagerops,
-	[OBJT_DEVICE] =		&devicepagerops,
-	[OBJT_PHYS] =		&physpagerops,
-	[OBJT_DEAD] =		&deadpagerops,
-	[OBJT_SG] = 		&sgpagerops,
-	[OBJT_MGTDEVICE] = 	&mgtdevicepagerops,
+	[OBJT_SWAP] = &swappagerops,
+	[OBJT_VNODE] = &vnodepagerops,
+	[OBJT_DEVICE] = &devicepagerops,
+	[OBJT_PHYS] = &physpagerops,
+	[OBJT_DEAD] = &deadpagerops,
+	[OBJT_SG] = &sgpagerops,
+	[OBJT_MGTDEVICE] = &mgtdevicepagerops,
 };
 static struct mtx pagertab_lock;
 
@@ -198,9 +197,8 @@ vm_pager_bufferinit(void)
 
 	/* Main zone for paging bufs. */
 	pbuf_zone = uma_zcreate("pbuf",
-	    sizeof(struct buf) + PBUF_PAGES * sizeof(vm_page_t),
-	    pbuf_ctor, pbuf_dtor, pbuf_init, NULL, UMA_ALIGN_CACHE,
-	    UMA_ZONE_NOFREE);
+	    sizeof(struct buf) + PBUF_PAGES * sizeof(vm_page_t), pbuf_ctor,
+	    pbuf_dtor, pbuf_init, NULL, UMA_ALIGN_CACHE, UMA_ZONE_NOFREE);
 	/* Few systems may still use this zone directly, so it needs a limit. */
 	nswbuf_max += uma_zone_set_max(pbuf_zone, NSWBUF_MIN);
 }
@@ -273,7 +271,7 @@ vm_pager_deallocate(vm_object_t object)
 
 	VM_OBJECT_ASSERT_WLOCKED(object);
 	MPASS(object->type < nitems(pagertab));
-	(*pagertab[object->type]->pgo_dealloc) (object);
+	(*pagertab[object->type]->pgo_dealloc)(object);
 }
 
 static void
@@ -290,7 +288,7 @@ vm_pager_assert_in(vm_object_t object, vm_page_t *m, int count)
 	VM_OBJECT_ASSERT_UNLOCKED(object);
 	VM_OBJECT_ASSERT_PAGING(object);
 	KASSERT(count > 0, ("%s: 0 count", __func__));
-	for (int i = 0 ; i < count; i++) {
+	for (int i = 0; i < count; i++) {
 		if (m[i] == bogus_page) {
 			KASSERT(i != 0 && i != count - 1,
 			    ("%s: page %d is the bogus page", __func__, i));
@@ -339,8 +337,8 @@ vm_pager_get_pages(vm_object_t object, vm_page_t *m, int count, int *rbehind,
 		 */
 #ifdef INVARIANTS
 		KASSERT(m[i] == vm_page_relookup(object, pindex++),
-		    ("%s: mismatch page %p pindex %ju", __func__,
-		    m[i], (uintmax_t )pindex - 1));
+		    ("%s: mismatch page %p pindex %ju", __func__, m[i],
+			(uintmax_t)pindex - 1));
 #endif
 
 		/*
@@ -360,8 +358,8 @@ vm_pager_get_pages_async(vm_object_t object, vm_page_t *m, int count,
 	MPASS(object->type < nitems(pagertab));
 	vm_pager_assert_in(object, m, count);
 
-	return ((*pagertab[object->type]->pgo_getpages_async)(object, m,
-	    count, rbehind, rahead, iodone, arg));
+	return ((*pagertab[object->type]->pgo_getpages_async)(object, m, count,
+	    rbehind, rahead, iodone, arg));
 }
 
 /*
@@ -381,7 +379,7 @@ vm_pager_object_lookup(struct pagerlst *pg_list, void *handle)
 {
 	vm_object_t object;
 
-	TAILQ_FOREACH(object, pg_list, pager_object_list) {
+	TAILQ_FOREACH (object, pg_list, pager_object_list) {
 		if (object->handle == handle) {
 			VM_OBJECT_WLOCK(object);
 			if ((object->flags & OBJ_DEAD) == 0) {
@@ -413,9 +411,9 @@ vm_pager_alloc_dyn_type(struct pagerops *ops, int base_type)
 	}
 	if (base_type != -1) {
 		MPASS(pagertab[base_type] != NULL);
-#define	FIX(n)								\
-		if (ops->pgo_##n == NULL)				\
-			ops->pgo_##n = pagertab[base_type]->pgo_##n
+#define FIX(n)                    \
+	if (ops->pgo_##n == NULL) \
+	ops->pgo_##n = pagertab[base_type]->pgo_##n
 		FIX(init);
 		FIX(alloc);
 		FIX(dealloc);
@@ -436,7 +434,7 @@ vm_pager_alloc_dyn_type(struct pagerops *ops, int base_type)
 		FIX(can_alloc_page);
 #undef FIX
 	}
-	pagertab[res] = ops;	/* XXXKIB should be rel, but acq is too much */
+	pagertab[res] = ops; /* XXXKIB should be rel, but acq is too much */
 	mtx_unlock(&pagertab_lock);
 	return (res);
 }
@@ -463,7 +461,7 @@ pbuf_ctor(void *mem, int size, void *arg, int flags)
 	/* copied from initpbuf() */
 	bp->b_rcred = NOCRED;
 	bp->b_wcred = NOCRED;
-	bp->b_qindex = 0;       /* On no queue (QUEUE_NONE) */
+	bp->b_qindex = 0; /* On no queue (QUEUE_NONE) */
 	bp->b_data = bp->b_kvabase;
 	bp->b_xflags = 0;
 	bp->b_flags = B_MAXPHYS;

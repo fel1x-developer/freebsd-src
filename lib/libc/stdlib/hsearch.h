@@ -29,10 +29,10 @@
 #include <search.h>
 
 struct __hsearch {
-	size_t offset_basis;	/* Initial value for FNV-1a hashing. */
-	size_t index_mask;	/* Bitmask for indexing the table. */
-	size_t entries_used;	/* Number of entries currently used. */
-	ENTRY *entries;		/* Hash table entries. */
+	size_t offset_basis; /* Initial value for FNV-1a hashing. */
+	size_t index_mask;   /* Bitmask for indexing the table. */
+	size_t entries_used; /* Number of entries currently used. */
+	ENTRY *entries;	     /* Hash table entries. */
 };
 
 #endif

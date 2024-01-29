@@ -27,20 +27,19 @@
 
 #include <sys/param.h>
 
+#include <atf-c.h>
 #include <locale.h>
 
-#include <atf-c.h>
-
 struct {
-	int		lpmask;
-	const char	*lpname;
+	int lpmask;
+	const char *lpname;
 } lparts[] = {
-	{ LC_COLLATE_MASK,	"LC_COLLATE" },
-	{ LC_CTYPE_MASK,	"LC_CTYPE" },
-	{ LC_MONETARY_MASK,	"LC_MONETARY" },
-	{ LC_NUMERIC_MASK,	"LC_NUMERIC" },
-	{ LC_TIME_MASK,		"LC_TIME" },
-	{ LC_MESSAGES_MASK,	"LC_MESSAGES" },
+	{ LC_COLLATE_MASK, "LC_COLLATE" },
+	{ LC_CTYPE_MASK, "LC_CTYPE" },
+	{ LC_MONETARY_MASK, "LC_MONETARY" },
+	{ LC_NUMERIC_MASK, "LC_NUMERIC" },
+	{ LC_TIME_MASK, "LC_TIME" },
+	{ LC_MESSAGES_MASK, "LC_MESSAGES" },
 };
 
 static void

@@ -38,27 +38,28 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/ioctl.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <stdio.h>
+#include <sys/time.h>
+
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
 #include <limits.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "kttcpio.h"
 
-#define	KTTCP_PORT		"22222"
-#define	KTTCP_XMITSIZE		(10*1024*1024)
-#define	KTTCP_SOCKBUF_DEFAULT	65536
+#define KTTCP_PORT "22222"
+#define KTTCP_XMITSIZE (10 * 1024 * 1024)
+#define KTTCP_SOCKBUF_DEFAULT 65536
 
-#define	KTTCP_DEVICE		"/dev/kttcp"
+#define KTTCP_DEVICE "/dev/kttcp"
 
 static void
 usage(void)
@@ -67,8 +68,7 @@ usage(void)
 	    "usage: kttcp -r [-b sockbufsize] [-p port] [-q] [-v]\n"
 	    "                [-4] [-6]\n"
 	    "       kttcp -t [-b sockbufsize] [-n bytes] [-q] [-v] [-p port]\n"
-	    "                [-4] [-6] host\n"
-	);
+	    "                [-4] [-6] host\n");
 	exit(1);
 }
 
@@ -140,8 +140,8 @@ main(int argc, char *argv[])
 		case 'b':
 			ull = get_bytes(optarg);
 			if (ull > INT_MAX)
-				errx(1,
-				    "invalid socket buffer size: %s\n", optarg);
+				errx(1, "invalid socket buffer size: %s\n",
+				    optarg);
 			bufsize = ull;
 			break;
 		case 'n':
@@ -217,18 +217,17 @@ main(int argc, char *argv[])
 		if (connect(s, res->ai_addr, res->ai_addrlen) < 0)
 			err(2, "connect");
 		if (verbose) {
-			getnameinfo(res->ai_addr, res->ai_addrlen,
-			    connecthost, sizeof connecthost, NULL, 0,
-			    NI_NUMERICHOST);
+			getnameinfo(res->ai_addr, res->ai_addrlen, connecthost,
+			    sizeof connecthost, NULL, 0, NI_NUMERICHOST);
 			printf("kttcp: connected to %s\n", connecthost);
 		}
-		if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof (int))
-		    < 0)
+		if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &bufsize,
+			sizeof(int)) < 0)
 			err(2, "setsockopt sndbuf");
 		kio.kio_socket = s;
 	} else {
-		if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one,
-		    sizeof (int)) < 0)
+		if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(int)) <
+		    0)
 			err(2, "setsockopt reuseaddr");
 		if (bind(s, res->ai_addr, res->ai_addrlen) < 0)
 			err(2, "bind");
@@ -247,7 +246,7 @@ main(int argc, char *argv[])
 			printf("kttcp: connect from %s\n", connecthost);
 		}
 		if (setsockopt(s2, SOL_SOCKET, SO_RCVBUF, &bufsize,
-		    sizeof (int)) < 0)
+			sizeof(int)) < 0)
 			err(2, "setsockopt rcvbuf");
 		kio.kio_socket = s2;
 	}
@@ -264,19 +263,22 @@ main(int argc, char *argv[])
 
 	bytespersec = kio.kio_bytesdone * 1000000LL / usecs;
 	bitspersec = bytespersec * NBBY;
-	printf("kttcp: %llu bytes in %ld.%03ld real seconds ==> %llu bytes/sec\n",
+	printf(
+	    "kttcp: %llu bytes in %ld.%03ld real seconds ==> %llu bytes/sec\n",
 	    kio.kio_bytesdone, kio.kio_elapsed.tv_sec,
 	    kio.kio_elapsed.tv_usec / 1000, bytespersec);
 	if (verbose > 1) {
 		timersub(&ruend.ru_stime, &rustart.ru_stime, &tvtmp);
 		bytespersec = kio.kio_bytesdone * 1000000LL /
 		    (tvtmp.tv_sec * 1000000ULL + tvtmp.tv_usec);
-		printf("kttcp: %llu bytes in %ld.%03ld CPU seconds ==> %llu bytes/CPU sec\n",
-		    kio.kio_bytesdone, tvtmp.tv_sec, tvtmp.tv_usec / 1000, bytespersec);
+		printf(
+		    "kttcp: %llu bytes in %ld.%03ld CPU seconds ==> %llu bytes/CPU sec\n",
+		    kio.kio_bytesdone, tvtmp.tv_sec, tvtmp.tv_usec / 1000,
+		    bytespersec);
 	}
 	printf("       %g (%g) Megabits/sec\n",
-	    ((double) bitspersec / 1024.0) / 1024.0,
-	    ((double) bitspersec / 1000.0) / 1000.0);
+	    ((double)bitspersec / 1024.0) / 1024.0,
+	    ((double)bitspersec / 1000.0) / 1000.0);
 
 	timersub(&ruend.ru_utime, &rustart.ru_utime, &tvtmp);
 	/* XXX
@@ -294,7 +296,6 @@ main(int argc, char *argv[])
 	printf(" %lld.%lldreal", usecs / 1000000, (usecs % 1000000) / 10000);
 	printf(" %lld%%", ull * 100 / usecs);
 	printf("\n");
-
 
 	close(kio.kio_socket);
 	if (cmd == KTTCP_IO_RECV)

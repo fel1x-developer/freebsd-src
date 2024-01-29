@@ -34,14 +34,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "xlocale_private.h"
 
 /*
  * See wcstod() for comments as to the logic used.
  */
 float
-wcstof_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
-		locale_t locale)
+wcstof_l(const wchar_t *__restrict nptr, wchar_t **__restrict endptr,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -86,7 +87,7 @@ wcstof_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr,
 	return (val);
 }
 float
-wcstof(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr)
+wcstof(const wchar_t *__restrict nptr, wchar_t **__restrict endptr)
 {
 	return wcstof_l(nptr, endptr, __get_locale());
 }

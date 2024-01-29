@@ -29,8 +29,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "ipfw2.h"
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip_fw.h>
+#include <netinet6/ip_fw_nat64.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -41,14 +45,9 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/ip_fw.h>
-#include <netinet6/ip_fw_nat64.h>
-#include <arpa/inet.h>
+#include "ipfw2.h"
 
-typedef int (nat64stl_cb_t)(ipfw_nat64stl_cfg *i, const char *name,
-    uint8_t set);
+typedef int(nat64stl_cb_t)(ipfw_nat64stl_cfg *i, const char *name, uint8_t set);
 static int nat64stl_foreach(nat64stl_cb_t *f, const char *name, uint8_t set,
     int sort);
 
@@ -62,21 +61,16 @@ static int nat64stl_show_cb(ipfw_nat64stl_cfg *cfg, const char *name,
 static int nat64stl_destroy_cb(ipfw_nat64stl_cfg *cfg, const char *name,
     uint8_t set);
 
-static struct _s_x nat64cmds[] = {
-      { "create",	TOK_CREATE },
-      { "config",	TOK_CONFIG },
-      { "destroy",	TOK_DESTROY },
-      { "list",		TOK_LIST },
-      { "show",		TOK_LIST },
-      { "stats",	TOK_STATS },
-      { NULL, 0 }
-};
+static struct _s_x nat64cmds[] = { { "create", TOK_CREATE },
+	{ "config", TOK_CONFIG }, { "destroy", TOK_DESTROY },
+	{ "list", TOK_LIST }, { "show", TOK_LIST }, { "stats", TOK_STATS },
+	{ NULL, 0 } };
 
-#define	IPV6_ADDR_INT32_WKPFX	htonl(0x64ff9b)
-#define	IN6_IS_ADDR_WKPFX(a)					\
-    ((a)->__u6_addr.__u6_addr32[0] == IPV6_ADDR_INT32_WKPFX &&	\
-	(a)->__u6_addr.__u6_addr32[1] == 0 &&			\
-	(a)->__u6_addr.__u6_addr32[2] == 0)
+#define IPV6_ADDR_INT32_WKPFX htonl(0x64ff9b)
+#define IN6_IS_ADDR_WKPFX(a)                                       \
+	((a)->__u6_addr.__u6_addr32[0] == IPV6_ADDR_INT32_WKPFX && \
+	    (a)->__u6_addr.__u6_addr32[1] == 0 &&                  \
+	    (a)->__u6_addr.__u6_addr32[2] == 0)
 int
 ipfw_check_nat64prefix(const struct in6_addr *prefix, int length)
 {
@@ -105,10 +99,7 @@ ipfw_check_nat64prefix(const struct in6_addr *prefix, int length)
 	return (EINVAL);
 }
 
-static struct _s_x nat64statscmds[] = {
-      { "reset",	TOK_RESET },
-      { NULL, 0 }
-};
+static struct _s_x nat64statscmds[] = { { "reset", TOK_RESET }, { NULL, 0 } };
 
 /*
  * This one handles all nat64stl-related commands
@@ -117,7 +108,7 @@ static struct _s_x nat64statscmds[] = {
  *	ipfw [set N] nat64stl {NAME | all} destroy
  *	ipfw [set N] nat64stl {NAME | all} {list | show}
  */
-#define	nat64stl_check_name	table_check_name
+#define nat64stl_check_name table_check_name
 void
 ipfw_nat64stl_handler(int ac, char *av[])
 {
@@ -129,7 +120,8 @@ ipfw_nat64stl_handler(int ac, char *av[])
 		set = g_co.use_set - 1;
 	else
 		set = 0;
-	ac--; av++;
+	ac--;
+	av++;
 
 	NEED1("nat64stl needs instance name");
 	name = *av;
@@ -140,7 +132,8 @@ ipfw_nat64stl_handler(int ac, char *av[])
 			errx(EX_USAGE, "nat64stl instance name %s is invalid",
 			    name);
 	}
-	ac--; av++;
+	ac--;
+	av++;
 	NEED1("nat64stl needs command");
 
 	tcmd = get_token(nat64cmds, *av, "nat64stl command");
@@ -148,11 +141,13 @@ ipfw_nat64stl_handler(int ac, char *av[])
 		errx(EX_USAGE, "nat64stl instance name required");
 	switch (tcmd) {
 	case TOK_CREATE:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64stl_create(name, set, ac, av);
 		break;
 	case TOK_CONFIG:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64stl_config(name, set, ac, av);
 		break;
 	case TOK_LIST:
@@ -165,7 +160,8 @@ ipfw_nat64stl_handler(int ac, char *av[])
 			nat64stl_destroy(name, set);
 		break;
 	case TOK_STATS:
-		ac--; av++;
+		ac--;
+		av++;
 		if (ac == 0) {
 			nat64stl_stats(name, set);
 			break;
@@ -175,7 +171,6 @@ ipfw_nat64stl_handler(int ac, char *av[])
 			nat64stl_reset_stats(name, set);
 	}
 }
-
 
 static void
 nat64stl_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
@@ -188,25 +183,20 @@ nat64stl_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name, uint8_t set)
 	strlcpy(ntlv->name, name, sizeof(ntlv->name));
 }
 
-static struct _s_x nat64newcmds[] = {
-      { "table4",	TOK_TABLE4 },
-      { "table6",	TOK_TABLE6 },
-      { "prefix6",	TOK_PREFIX6 },
-      { "log",		TOK_LOG },
-      { "-log",		TOK_LOGOFF },
-      { "allow_private", TOK_PRIVATE },
-      { "-allow_private", TOK_PRIVATEOFF },
-      { NULL, 0 }
-};
+static struct _s_x nat64newcmds[] = { { "table4", TOK_TABLE4 },
+	{ "table6", TOK_TABLE6 }, { "prefix6", TOK_PREFIX6 },
+	{ "log", TOK_LOG }, { "-log", TOK_LOGOFF },
+	{ "allow_private", TOK_PRIVATE }, { "-allow_private", TOK_PRIVATEOFF },
+	{ NULL, 0 } };
 
 /*
  * Creates new nat64stl instance
  * ipfw nat64stl <NAME> create table4 <name> table6 <name> [ prefix6 <prefix>]
  * Request: [ ipfw_obj_lheader ipfw_nat64stl_cfg ]
  */
-#define	NAT64STL_HAS_TABLE4	0x01
-#define	NAT64STL_HAS_TABLE6	0x02
-#define	NAT64STL_HAS_PREFIX6	0x04
+#define NAT64STL_HAS_TABLE4 0x01
+#define NAT64STL_HAS_TABLE6 0x02
+#define NAT64STL_HAS_PREFIX6 0x04
 static void
 nat64stl_create(const char *name, uint8_t set, int ac, char *av[])
 {
@@ -227,38 +217,40 @@ nat64stl_create(const char *name, uint8_t set, int ac, char *av[])
 	flags = NAT64STL_HAS_PREFIX6;
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_TABLE4:
 			NEED1("table name required");
 			table_fill_ntlv(&cfg->ntlv4, *av, set, 4);
 			flags |= NAT64STL_HAS_TABLE4;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_TABLE6:
 			NEED1("table name required");
 			table_fill_ntlv(&cfg->ntlv6, *av, set, 6);
 			flags |= NAT64STL_HAS_TABLE6;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_PREFIX6:
 			NEED1("IPv6 prefix6 required");
 			if ((p = strchr(*av, '/')) != NULL)
 				*p++ = '\0';
 			else
-				errx(EX_USAGE,
-				    "Prefix length required: %s", *av);
+				errx(EX_USAGE, "Prefix length required: %s",
+				    *av);
 			if (inet_pton(AF_INET6, *av, &cfg->prefix6) != 1)
-				errx(EX_USAGE,
-				    "Bad prefix: %s", *av);
+				errx(EX_USAGE, "Bad prefix: %s", *av);
 			cfg->plen6 = strtol(p, NULL, 10);
-			if (ipfw_check_nat64prefix(&cfg->prefix6,
-			    cfg->plen6) != 0)
-				errx(EX_USAGE,
-				    "Bad prefix length: %s", p);
+			if (ipfw_check_nat64prefix(&cfg->prefix6, cfg->plen6) !=
+			    0)
+				errx(EX_USAGE, "Bad prefix length: %s", p);
 			flags |= NAT64STL_HAS_PREFIX6;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_LOG:
 			cfg->flags |= NAT64_LOG;
@@ -320,7 +312,8 @@ nat64stl_config(const char *name, uint8_t set, int ac, char **av)
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
 		opt = *av;
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 #if 0
@@ -413,10 +406,8 @@ nat64stl_stats(const char *name, uint8_t set)
 	    (uintmax_t)stats.opcnt64);
 	printf("\t%ju packets translated from IPv4 to IPv6\n",
 	    (uintmax_t)stats.opcnt46);
-	printf("\t%ju IPv6 fragments created\n",
-	    (uintmax_t)stats.ofrags);
-	printf("\t%ju IPv4 fragments received\n",
-	    (uintmax_t)stats.ifrags);
+	printf("\t%ju IPv6 fragments created\n", (uintmax_t)stats.ofrags);
+	printf("\t%ju IPv4 fragments received\n", (uintmax_t)stats.ifrags);
 	printf("\t%ju output packets dropped due to no bufs, etc.\n",
 	    (uintmax_t)stats.oerrors);
 	printf("\t%ju output packets discarded due to no IPv4 route\n",
@@ -460,8 +451,8 @@ nat64stl_show_cb(ipfw_nat64stl_cfg *cfg, const char *name, uint8_t set)
 	if (g_co.use_set != 0 || cfg->set != 0)
 		printf("set %u ", cfg->set);
 
-	printf("nat64stl %s table4 %s table6 %s",
-	    cfg->name, cfg->ntlv4.name, cfg->ntlv6.name);
+	printf("nat64stl %s table4 %s table6 %s", cfg->name, cfg->ntlv4.name,
+	    cfg->ntlv6.name);
 	inet_ntop(AF_INET6, &cfg->prefix6, abuf, sizeof(abuf));
 	printf(" prefix6 %s/%u", abuf, cfg->plen6);
 	if (cfg->flags & NAT64_LOG)
@@ -483,7 +474,6 @@ nat64stl_destroy_cb(ipfw_nat64stl_cfg *cfg, const char *name __unused,
 	nat64stl_destroy(cfg->name, cfg->set);
 	return (0);
 }
-
 
 /*
  * Compare nat64stl instances names.
@@ -535,8 +525,7 @@ nat64stl_foreach(nat64stl_cb_t *f, const char *name, uint8_t set, int sort)
 		}
 
 		if (sort != 0)
-			qsort(olh + 1, olh->count, olh->objsize,
-			    nat64name_cmp);
+			qsort(olh + 1, olh->count, olh->objsize, nat64name_cmp);
 
 		cfg = (ipfw_nat64stl_cfg *)(olh + 1);
 		for (i = 0; i < olh->count; i++) {
@@ -549,4 +538,3 @@ nat64stl_foreach(nat64stl_cb_t *f, const char *name, uint8_t set, int sort)
 	}
 	return (0);
 }
-

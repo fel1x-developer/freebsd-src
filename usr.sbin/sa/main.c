@@ -36,6 +36,7 @@
 
 #include <sys/types.h>
 #include <sys/acct.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -46,19 +47,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "extern.h"
 #include "pathnames.h"
 
-static FILE	*acct_load(const char *, int);
-static int	 cmp_comm(const char *, const char *);
-static int	 cmp_usrsys(const DBT *, const DBT *);
-static int	 cmp_avgusrsys(const DBT *, const DBT *);
-static int	 cmp_dkio(const DBT *, const DBT *);
-static int	 cmp_avgdkio(const DBT *, const DBT *);
-static int	 cmp_cpumem(const DBT *, const DBT *);
-static int	 cmp_avgcpumem(const DBT *, const DBT *);
-static int	 cmp_calls(const DBT *, const DBT *);
-static void	 usage(void);
+static FILE *acct_load(const char *, int);
+static int cmp_comm(const char *, const char *);
+static int cmp_usrsys(const DBT *, const DBT *);
+static int cmp_avgusrsys(const DBT *, const DBT *);
+static int cmp_dkio(const DBT *, const DBT *);
+static int cmp_avgdkio(const DBT *, const DBT *);
+static int cmp_cpumem(const DBT *, const DBT *);
+static int cmp_avgcpumem(const DBT *, const DBT *);
+static int cmp_calls(const DBT *, const DBT *);
+static void usage(void);
 
 int aflag, bflag, cflag, dflag, Dflag, fflag, iflag, jflag, kflag;
 int Kflag, lflag, mflag, qflag, rflag, sflag, tflag, uflag, vflag;
@@ -66,11 +68,11 @@ u_quad_t cutoff = 1;
 const char *pdb_file = _PATH_SAVACCT;
 const char *usrdb_file = _PATH_USRACCT;
 
-static char	*dfltargv[] = { NULL };
-static int	dfltargc = (sizeof dfltargv/sizeof(char *));
+static char *dfltargv[] = { NULL };
+static int dfltargc = (sizeof dfltargv / sizeof(char *));
 
 /* default to comparing by sum of user + system time */
-cmpf_t   sa_cmp = cmp_usrsys;
+cmpf_t sa_cmp = cmp_usrsys;
 
 int
 main(int argc, char **argv)
@@ -83,99 +85,99 @@ main(int argc, char **argv)
 
 	while ((ch = getopt(argc, argv, "abcdDfijkKlmnP:qrstuU:v:")) != -1)
 		switch (ch) {
-			case 'a':
-				/* print all commands */
-				aflag = 1;
-				break;
-			case 'b':
-				/* sort by per-call user/system time average */
-				bflag = 1;
-				sa_cmp = cmp_avgusrsys;
-				break;
-			case 'c':
-				/* print percentage total time */
-				cflag = 1;
-				break;
-			case 'd':
-				/* sort by averge number of disk I/O ops */
-				dflag = 1;
-				sa_cmp = cmp_avgdkio;
-				break;
-			case 'D':
-				/* print and sort by total disk I/O ops */
-				Dflag = 1;
-				sa_cmp = cmp_dkio;
-				break;
-			case 'f':
-				/* force no interactive threshold comprison */
-				fflag = 1;
-				break;
-			case 'i':
-				/* do not read in summary file */
-				iflag = 1;
-				break;
-			case 'j':
-				/* instead of total minutes, give sec/call */
-				jflag = 1;
-				break;
-			case 'k':
-				/* sort by cpu-time average memory usage */
-				kflag = 1;
-				sa_cmp = cmp_avgcpumem;
-				break;
-			case 'K':
-				/* print and sort by cpu-storage integral */
-				sa_cmp = cmp_cpumem;
-				Kflag = 1;
-				break;
-			case 'l':
-				/* separate system and user time */
-				lflag = 1;
-				break;
-			case 'm':
-				/* print procs and time per-user */
-				mflag = 1;
-				break;
-			case 'n':
-				/* sort by number of calls */
-				sa_cmp = cmp_calls;
-				break;
-			case 'P':
-				/* specify program database summary file */
-				pdb_file = optarg;
-				break;
-			case 'q':
-				/* quiet; error messages only */
-				qflag = 1;
-				break;
-			case 'r':
-				/* reverse order of sort */
-				rflag = 1;
-				break;
-			case 's':
-				/* merge accounting file into summaries */
-				sflag = 1;
-				break;
-			case 't':
-				/* report ratio of user and system times */
-				tflag = 1;
-				break;
-			case 'u':
-				/* first, print uid and command name */
-				uflag = 1;
-				break;
-			case 'U':
-				/* specify user database summary file */
-				usrdb_file = optarg;
-				break;
-			case 'v':
-				/* cull junk */
-				vflag = 1;
-				cutoff = atoi(optarg);
-				break;
-			case '?':
-	                default:
-				usage();
+		case 'a':
+			/* print all commands */
+			aflag = 1;
+			break;
+		case 'b':
+			/* sort by per-call user/system time average */
+			bflag = 1;
+			sa_cmp = cmp_avgusrsys;
+			break;
+		case 'c':
+			/* print percentage total time */
+			cflag = 1;
+			break;
+		case 'd':
+			/* sort by averge number of disk I/O ops */
+			dflag = 1;
+			sa_cmp = cmp_avgdkio;
+			break;
+		case 'D':
+			/* print and sort by total disk I/O ops */
+			Dflag = 1;
+			sa_cmp = cmp_dkio;
+			break;
+		case 'f':
+			/* force no interactive threshold comprison */
+			fflag = 1;
+			break;
+		case 'i':
+			/* do not read in summary file */
+			iflag = 1;
+			break;
+		case 'j':
+			/* instead of total minutes, give sec/call */
+			jflag = 1;
+			break;
+		case 'k':
+			/* sort by cpu-time average memory usage */
+			kflag = 1;
+			sa_cmp = cmp_avgcpumem;
+			break;
+		case 'K':
+			/* print and sort by cpu-storage integral */
+			sa_cmp = cmp_cpumem;
+			Kflag = 1;
+			break;
+		case 'l':
+			/* separate system and user time */
+			lflag = 1;
+			break;
+		case 'm':
+			/* print procs and time per-user */
+			mflag = 1;
+			break;
+		case 'n':
+			/* sort by number of calls */
+			sa_cmp = cmp_calls;
+			break;
+		case 'P':
+			/* specify program database summary file */
+			pdb_file = optarg;
+			break;
+		case 'q':
+			/* quiet; error messages only */
+			qflag = 1;
+			break;
+		case 'r':
+			/* reverse order of sort */
+			rflag = 1;
+			break;
+		case 's':
+			/* merge accounting file into summaries */
+			sflag = 1;
+			break;
+		case 't':
+			/* report ratio of user and system times */
+			tflag = 1;
+			break;
+		case 'u':
+			/* first, print uid and command name */
+			uflag = 1;
+			break;
+		case 'U':
+			/* specify user database summary file */
+			usrdb_file = optarg;
+			break;
+		case 'v':
+			/* cull junk */
+			vflag = 1;
+			cutoff = atoi(optarg);
+			break;
+		case '?':
+		default:
+			usage();
 		}
 
 	argc -= optind;
@@ -295,7 +297,7 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: sa [-abcdDfijkKlmnqrstu] [-P file] [-U file] [-v cutoff] [file ...]\n");
+	    "usage: sa [-abcdDfijkKlmnqrstu] [-P file] [-U file] [-v cutoff] [file ...]\n");
 	exit(1);
 }
 
@@ -333,7 +335,7 @@ acct_load(const char *pn, int wr)
 		/* decode it */
 		ci.ci_calls = 1;
 		for (i = 0; i < (int)sizeof ac.ac_comm && ac.ac_comm[i] != '\0';
-		    i++) {
+		     i++) {
 			char c = ac.ac_comm[i];
 
 			if (!isascii(c) || iscntrl(c)) {
@@ -360,10 +362,8 @@ acct_load(const char *pn, int wr)
 				usracct_add(&ci);
 		} else if (!qflag)
 			printf("%6u %12.3lf cpu %12.0lfk mem %12.0lf io %s\n",
-			    ci.ci_uid,
-			    (ci.ci_utime + ci.ci_stime) / 1000000,
-			    ci.ci_mem, ci.ci_io,
-			    ci.ci_comm);
+			    ci.ci_uid, (ci.ci_utime + ci.ci_stime) / 1000000,
+			    ci.ci_mem, ci.ci_io, ci.ci_comm);
 	}
 
 	/* Finally, return the file stream for possible truncation. */
@@ -414,10 +414,10 @@ cmp_avgusrsys(const DBT *d1, const DBT *d2)
 	memcpy(&c2, d2->data, sizeof(c2));
 
 	t1 = c1.ci_utime + c1.ci_stime;
-	t1 /= (double) (c1.ci_calls ? c1.ci_calls : 1);
+	t1 /= (double)(c1.ci_calls ? c1.ci_calls : 1);
 
 	t2 = c2.ci_utime + c2.ci_stime;
-	t2 /= (double) (c2.ci_calls ? c2.ci_calls : 1);
+	t2 /= (double)(c2.ci_calls ? c2.ci_calls : 1);
 
 	if (t1 < t2)
 		return -1;
@@ -454,8 +454,8 @@ cmp_avgdkio(const DBT *d1, const DBT *d2)
 	memcpy(&c1, d1->data, sizeof(c1));
 	memcpy(&c2, d2->data, sizeof(c2));
 
-	n1 = c1.ci_io / (double) (c1.ci_calls ? c1.ci_calls : 1);
-	n2 = c2.ci_io / (double) (c2.ci_calls ? c2.ci_calls : 1);
+	n1 = c1.ci_io / (double)(c1.ci_calls ? c1.ci_calls : 1);
+	n2 = c2.ci_io / (double)(c2.ci_calls ? c2.ci_calls : 1);
 
 	if (n1 < n2)
 		return -1;

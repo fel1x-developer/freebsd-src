@@ -35,12 +35,11 @@
 #define _LIO_RXTX_H_
 
 /* Bit mask values for lio->ifstate */
-#define LIO_IFSTATE_DROQ_OPS	0x01
-#define LIO_IFSTATE_REGISTERED	0x02
-#define LIO_IFSTATE_RUNNING	0x04
-#define LIO_IFSTATE_DETACH	0x08
-#define LIO_IFSTATE_RESETTING	0x10
-
+#define LIO_IFSTATE_DROQ_OPS 0x01
+#define LIO_IFSTATE_REGISTERED 0x02
+#define LIO_IFSTATE_RUNNING 0x04
+#define LIO_IFSTATE_DETACH 0x08
+#define LIO_IFSTATE_RESETTING 0x10
 
 /*
  * Structure of a node in list of gather components maintained by
@@ -48,38 +47,38 @@
  */
 struct lio_gather {
 	/* List manipulation. Next and prev pointers. */
-	struct lio_stailq_node	node;
+	struct lio_stailq_node node;
 
 	/* Size of the gather component at sg in bytes. */
-	int	sg_size;
+	int sg_size;
 
 	/*
 	 * Gather component that can accommodate max sized fragment list
 	 * received from the IP layer.
 	 */
-	struct lio_sg_entry	*sg;
+	struct lio_sg_entry *sg;
 
-	uint64_t		sg_dma_ptr;
+	uint64_t sg_dma_ptr;
 };
 
 union lio_tx_info {
-	uint64_t	tx_info64;
+	uint64_t tx_info64;
 	struct {
 #if _BYTE_ORDER == _BIG_ENDIAN
-		uint16_t	gso_size;
-		uint16_t	gso_segs;
-		uint32_t	reserved;
-#else	/* _BYTE_ORDER == _LITTLE_ENDIAN */
-		uint32_t	reserved;
-		uint16_t	gso_segs;
-		uint16_t	gso_size;
+		uint16_t gso_size;
+		uint16_t gso_segs;
+		uint32_t reserved;
+#else /* _BYTE_ORDER == _LITTLE_ENDIAN */
+		uint32_t reserved;
+		uint16_t gso_segs;
+		uint16_t gso_size;
 #endif
-	}	s;
+	} s;
 };
 
-int	lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
-		 struct mbuf **m_headp);
-int	lio_mq_start_locked(if_t ifp, struct lio_instr_queue *iq);
-int	lio_mq_start(if_t ifp, struct mbuf *m);
-void	lio_qflush(if_t ifp);
-#endif	/* _LIO_RXTX_H_ */
+int lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
+    struct mbuf **m_headp);
+int lio_mq_start_locked(if_t ifp, struct lio_instr_queue *iq);
+int lio_mq_start(if_t ifp, struct mbuf *m);
+void lio_qflush(if_t ifp);
+#endif /* _LIO_RXTX_H_ */

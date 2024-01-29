@@ -23,8 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <libsecureboot.h>
 
+#include <libsecureboot.h>
 #include <vse.h>
 
 /**

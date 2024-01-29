@@ -28,15 +28,15 @@
 
 #pragma once
 
-#define LSB_ENTRY_SIZE		32	/* bytes, or 256 bits */
-#define LSB_REGION_LENGTH	16	/* entries */
+#define LSB_ENTRY_SIZE 32    /* bytes, or 256 bits */
+#define LSB_REGION_LENGTH 16 /* entries */
 
 /* For now, just statically allocate some LSB entries for specific purposes. */
-#define LSB_ENTRY_KEY		0
-#define LSB_ENTRY_IV		2
-#define LSB_ENTRY_SHA		4
-#define LSB_ENTRY_GHASH		6
-#define LSB_ENTRY_GHASH_IN	7
+#define LSB_ENTRY_KEY 0
+#define LSB_ENTRY_IV 2
+#define LSB_ENTRY_SHA 4
+#define LSB_ENTRY_GHASH 6
+#define LSB_ENTRY_GHASH_IN 7
 
 void ccp_queue_decode_lsb_regions(struct ccp_softc *sc, uint64_t lsbmask,
     unsigned queue);

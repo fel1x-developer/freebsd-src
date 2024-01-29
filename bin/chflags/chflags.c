@@ -107,7 +107,8 @@ main(int argc, char *argv[])
 
 	if (Rflag) {
 		if (hflag)
-			errx(1, "the -R and -h options may not be "
+			errx(1,
+			    "the -R and -h options may not be "
 			    "specified together.");
 		if (Lflag) {
 			fts_options = FTS_LOGICAL;
@@ -133,19 +134,19 @@ main(int argc, char *argv[])
 		if (val < 0)
 			errno = ERANGE;
 		if (errno)
-                        err(1, "invalid flags: %s", flags);
-                if (*ep)
-                        errx(1, "invalid flags: %s", flags);
+			err(1, "invalid flags: %s", flags);
+		if (*ep)
+			errx(1, "invalid flags: %s", flags);
 		set = val;
-                oct = 1;
+		oct = 1;
 	} else {
 		if (strtofflags(&flags, &set, &clear))
-                        errx(1, "invalid flag: %s", flags);
+			errx(1, "invalid flag: %s", flags);
 		clear = ~clear;
 		oct = 0;
 	}
 
-	if ((ftsp = fts_open(++argv, fts_options , 0)) == NULL)
+	if ((ftsp = fts_open(++argv, fts_options, 0)) == NULL)
 		err(1, NULL);
 
 	for (rval = 0; errno = 0, (p = fts_read(ftsp)) != NULL;) {
@@ -153,21 +154,21 @@ main(int argc, char *argv[])
 
 		if ((fts_options & FTS_LOGICAL) ||
 		    ((fts_options & FTS_COMFOLLOW) &&
-		    p->fts_level == FTS_ROOTLEVEL))
+			p->fts_level == FTS_ROOTLEVEL))
 			atflag = 0;
 		else
 			atflag = AT_SYMLINK_NOFOLLOW;
 
 		switch (p->fts_info) {
-		case FTS_D:	/* Change it at FTS_DP if we're recursive. */
+		case FTS_D: /* Change it at FTS_DP if we're recursive. */
 			if (!Rflag)
 				fts_set(ftsp, p, FTS_SKIP);
 			continue;
-		case FTS_DNR:			/* Warn, chflags. */
+		case FTS_DNR: /* Warn, chflags. */
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
 			break;
-		case FTS_ERR:			/* Warn, continue. */
+		case FTS_ERR: /* Warn, continue. */
 		case FTS_NS:
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
 			rval = 1;
@@ -181,16 +182,16 @@ main(int argc, char *argv[])
 			newflags = (p->fts_statp->st_flags | set) & clear;
 		if (newflags == p->fts_statp->st_flags)
 			continue;
-		if (chflagsat(AT_FDCWD, p->fts_accpath, newflags,
-		    atflag) == -1 && !fflag) {
+		if (chflagsat(AT_FDCWD, p->fts_accpath, newflags, atflag) ==
+			-1 &&
+		    !fflag) {
 			warn("%s", p->fts_path);
 			rval = 1;
 		} else if (vflag || siginfo) {
 			(void)printf("%s", p->fts_path);
 			if (vflag > 1 || siginfo)
 				(void)printf(": 0%lo -> 0%lo",
-				    (u_long)p->fts_statp->st_flags,
-				    newflags);
+				    (u_long)p->fts_statp->st_flags, newflags);
 			(void)printf("\n");
 			siginfo = 0;
 		}

@@ -33,20 +33,20 @@
 #define _CITRUS_MEMSTREAM_H_
 
 struct _citrus_memory_stream {
-	struct _citrus_region	ms_region;
-	size_t			ms_pos;
+	struct _citrus_region ms_region;
+	size_t ms_pos;
 };
 
 __BEGIN_DECLS
-const char	*_citrus_memory_stream_getln(
-		    struct _citrus_memory_stream * __restrict,
-		    size_t * __restrict);
-const char	*_citrus_memory_stream_matchline(
-		    struct _citrus_memory_stream * __restrict,
-		    const char * __restrict, size_t * __restrict, int);
-void		*_citrus_memory_stream_chr(struct _citrus_memory_stream *,
-		    struct _citrus_region *, char);
-void		_citrus_memory_stream_skip_ws(struct _citrus_memory_stream *);
+const char *
+_citrus_memory_stream_getln(struct _citrus_memory_stream *__restrict,
+    size_t *__restrict);
+const char *
+_citrus_memory_stream_matchline(struct _citrus_memory_stream *__restrict,
+    const char *__restrict, size_t *__restrict, int);
+void *_citrus_memory_stream_chr(struct _citrus_memory_stream *,
+    struct _citrus_region *, char);
+void _citrus_memory_stream_skip_ws(struct _citrus_memory_stream *);
 __END_DECLS
 
 static __inline int
@@ -57,8 +57,8 @@ _citrus_memory_stream_iseof(struct _citrus_memory_stream *ms)
 }
 
 static __inline void
-_citrus_memory_stream_bind(struct _citrus_memory_stream * __restrict ms,
-    const struct _citrus_region * __restrict r)
+_citrus_memory_stream_bind(struct _citrus_memory_stream *__restrict ms,
+    const struct _citrus_region *__restrict r)
 {
 
 	ms->ms_region = *r;
@@ -66,7 +66,7 @@ _citrus_memory_stream_bind(struct _citrus_memory_stream * __restrict ms,
 }
 
 static __inline void
-_citrus_memory_stream_bind_ptr(struct _citrus_memory_stream * __restrict ms,
+_citrus_memory_stream_bind_ptr(struct _citrus_memory_stream *__restrict ms,
     void *ptr, size_t sz)
 {
 	struct _citrus_region r;
@@ -95,9 +95,9 @@ _citrus_memory_stream_remainder(struct _citrus_memory_stream *ms)
 	size_t sz;
 
 	sz = _citrus_region_size(&ms->ms_region);
-	if (ms->ms_pos>sz)
+	if (ms->ms_pos > sz)
 		return (0);
-	return (sz-ms->ms_pos);
+	return (sz - ms->ms_pos);
 }
 
 static __inline int

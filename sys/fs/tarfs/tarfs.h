@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FS_TARFS_TARFS_H_
-#define	_FS_TARFS_TARFS_H_
+#ifndef _FS_TARFS_TARFS_H_
+#define _FS_TARFS_TARFS_H_
 
 #ifndef _KERNEL
 #error Should only be included by kernel
@@ -49,57 +49,57 @@ struct vnode;
  * Internal representation of a tarfs file system node.
  */
 struct tarfs_node {
-	TAILQ_ENTRY(tarfs_node)	entries;
-	TAILQ_ENTRY(tarfs_node)	dirents;
+	TAILQ_ENTRY(tarfs_node) entries;
+	TAILQ_ENTRY(tarfs_node) dirents;
 
-	struct mtx		 lock;
+	struct mtx lock;
 
-	struct vnode		*vnode;
-	struct tarfs_mount	*tmp;
-	__enum_uint8(vtype)	 type;
-	ino_t			 ino;
-	off_t			 offset;
-	size_t			 size;
-	size_t			 physize;
-	char			*name;
-	size_t			 namelen;
+	struct vnode *vnode;
+	struct tarfs_mount *tmp;
+	__enum_uint8(vtype) type;
+	ino_t ino;
+	off_t offset;
+	size_t size;
+	size_t physize;
+	char *name;
+	size_t namelen;
 
 	/* Node attributes */
-	uid_t			 uid;
-	gid_t			 gid;
-	mode_t			 mode;
-	unsigned int		 flags;
-	nlink_t			 nlink;
-	struct timespec		 atime;
-	struct timespec		 mtime;
-	struct timespec		 ctime;
-	struct timespec		 birthtime;
-	unsigned long		 gen;
+	uid_t uid;
+	gid_t gid;
+	mode_t mode;
+	unsigned int flags;
+	nlink_t nlink;
+	struct timespec atime;
+	struct timespec mtime;
+	struct timespec ctime;
+	struct timespec birthtime;
+	unsigned long gen;
 
 	/* Block map */
-	size_t			 nblk;
-	struct tarfs_blk	*blk;
+	size_t nblk;
+	struct tarfs_blk *blk;
 
-	struct tarfs_node	*parent;
+	struct tarfs_node *parent;
 	union {
 		/* VDIR */
 		struct {
 			TAILQ_HEAD(, tarfs_node) dirhead;
-			off_t			 lastcookie;
-			struct tarfs_node	*lastnode;
+			off_t lastcookie;
+			struct tarfs_node *lastnode;
 		} dir;
 
 		/* VLNK */
 		struct {
-			char			*name;
-			size_t			 namelen;
+			char *name;
+			size_t namelen;
 		} link;
 
 		/* VBLK or VCHR */
-		dev_t			 rdev;
+		dev_t rdev;
 
 		/* VREG */
-		struct tarfs_node	*other;
+		struct tarfs_node *other;
 	};
 };
 
@@ -107,9 +107,9 @@ struct tarfs_node {
  * Entry in sparse file block map.
  */
 struct tarfs_blk {
-	off_t	 i;		/* input (physical) offset */
-	off_t	 o;		/* output (logical) offset */
-	size_t	 l;		/* length */
+	off_t i;  /* input (physical) offset */
+	off_t o;  /* output (logical) offset */
+	size_t l; /* length */
 };
 
 /*
@@ -117,9 +117,9 @@ struct tarfs_blk {
  */
 #define TARFS_ZBUF_SIZE 1048576
 struct tarfs_zbuf {
-	u_char		 buf[TARFS_ZBUF_SIZE];
-	size_t		 off; /* offset of contents */
-	size_t		 len; /* length of contents */
+	u_char buf[TARFS_ZBUF_SIZE];
+	size_t off; /* offset of contents */
+	size_t len; /* length of contents */
 };
 
 /*
@@ -127,89 +127,86 @@ struct tarfs_zbuf {
  */
 struct tarfs_mount {
 	TAILQ_HEAD(, tarfs_node) allnodes;
-	struct mtx		 allnode_lock;
+	struct mtx allnode_lock;
 
-	struct tarfs_node	*root;
-	struct vnode		*vp;
-	struct mount		*vfs;
-	ino_t			 ino;
-	struct unrhdr		*ino_unr;
-	size_t			 iosize;
-	size_t			 nblocks;
-	size_t			 nfiles;
-	time_t			 mtime; /* default mtime for directories */
+	struct tarfs_node *root;
+	struct vnode *vp;
+	struct mount *vfs;
+	ino_t ino;
+	struct unrhdr *ino_unr;
+	size_t iosize;
+	size_t nblocks;
+	size_t nfiles;
+	time_t mtime; /* default mtime for directories */
 
-	struct tarfs_zio	*zio;
-	struct vnode		*znode;
+	struct tarfs_zio *zio;
+	struct vnode *znode;
 };
 
 struct tarfs_zio {
-	struct tarfs_mount	*tmp;
+	struct tarfs_mount *tmp;
 
 	/* decompression state */
 #ifdef ZSTDIO
-	struct tarfs_zstd	*zstd; /* decompression state (zstd) */
+	struct tarfs_zstd *zstd; /* decompression state (zstd) */
 #endif
-	off_t			 ipos; /* current input position */
-	off_t			 opos; /* current output position */
+	off_t ipos; /* current input position */
+	off_t opos; /* current output position */
 
 	/* index of compression frames */
-	unsigned int		 curidx; /* current index position*/
-	unsigned int		 nidx; /* number of index entries */
-	unsigned int		 szidx; /* index capacity */
-	struct tarfs_idx { off_t i, o; } *idx;
+	unsigned int curidx; /* current index position*/
+	unsigned int nidx;   /* number of index entries */
+	unsigned int szidx;  /* index capacity */
+	struct tarfs_idx {
+		off_t i, o;
+	} *idx;
 };
 
 struct tarfs_fid {
-	u_short			 len;	/* length of data in bytes */
-	u_short			 data0;	/* force alignment */
-	ino_t			 ino;
-	unsigned long		 gen;
+	u_short len;   /* length of data in bytes */
+	u_short data0; /* force alignment */
+	ino_t ino;
+	unsigned long gen;
 };
 
-#define	TARFS_NODE_LOCK(tnp) \
-	mtx_lock(&(tnp)->lock)
-#define	TARFS_NODE_UNLOCK(tnp) \
-	mtx_unlock(&(tnp)->lock)
-#define	TARFS_ALLNODES_LOCK(tnp) \
-	mtx_lock(&(tmp)->allnode_lock)
-#define	TARFS_ALLNODES_UNLOCK(tnp) \
-	mtx_unlock(&(tmp)->allnode_lock)
+#define TARFS_NODE_LOCK(tnp) mtx_lock(&(tnp)->lock)
+#define TARFS_NODE_UNLOCK(tnp) mtx_unlock(&(tnp)->lock)
+#define TARFS_ALLNODES_LOCK(tnp) mtx_lock(&(tmp)->allnode_lock)
+#define TARFS_ALLNODES_UNLOCK(tnp) mtx_unlock(&(tmp)->allnode_lock)
 
 /*
  * Data and metadata within tar files are aligned on 512-byte boundaries,
  * to match the block size of the magnetic tapes they were originally
  * intended for.
  */
-#define	TARFS_BSHIFT		9
-#define	TARFS_BLOCKSIZE		(size_t)(1U << TARFS_BSHIFT)
-#define	TARFS_BLKOFF(l)		((l) % TARFS_BLOCKSIZE)
-#define	TARFS_BLKNUM(l)		((l) >> TARFS_BSHIFT)
-#define	TARFS_SZ2BLKS(sz)	(((sz) + TARFS_BLOCKSIZE - 1) / TARFS_BLOCKSIZE)
+#define TARFS_BSHIFT 9
+#define TARFS_BLOCKSIZE (size_t)(1U << TARFS_BSHIFT)
+#define TARFS_BLKOFF(l) ((l) % TARFS_BLOCKSIZE)
+#define TARFS_BLKNUM(l) ((l) >> TARFS_BSHIFT)
+#define TARFS_SZ2BLKS(sz) (((sz) + TARFS_BLOCKSIZE - 1) / TARFS_BLOCKSIZE)
 
 /*
  * Our preferred I/O size.
  */
 extern unsigned int tarfs_ioshift;
-#define	TARFS_IOSHIFT_MIN	TARFS_BSHIFT
-#define	TARFS_IOSHIFT_DEFAULT	PAGE_SHIFT
-#define	TARFS_IOSHIFT_MAX	PAGE_SHIFT
+#define TARFS_IOSHIFT_MIN TARFS_BSHIFT
+#define TARFS_IOSHIFT_DEFAULT PAGE_SHIFT
+#define TARFS_IOSHIFT_MAX PAGE_SHIFT
 
-#define	TARFS_ROOTINO		((ino_t)3)
-#define	TARFS_ZIOINO		((ino_t)4)
-#define	TARFS_MININO		((ino_t)65535)
+#define TARFS_ROOTINO ((ino_t)3)
+#define TARFS_ZIOINO ((ino_t)4)
+#define TARFS_MININO ((ino_t)65535)
 
-#define	TARFS_COOKIE_DOT	0
-#define	TARFS_COOKIE_DOTDOT	1
-#define	TARFS_COOKIE_EOF	OFF_MAX
+#define TARFS_COOKIE_DOT 0
+#define TARFS_COOKIE_DOTDOT 1
+#define TARFS_COOKIE_EOF OFF_MAX
 
-#define	TARFS_ZIO_NAME		".tar"
-#define	TARFS_ZIO_NAMELEN	(sizeof(TARFS_ZIO_NAME) - 1)
+#define TARFS_ZIO_NAME ".tar"
+#define TARFS_ZIO_NAMELEN (sizeof(TARFS_ZIO_NAME) - 1)
 
 extern struct vop_vector tarfs_vnodeops;
 
-static inline
-struct tarfs_mount *
+static inline struct tarfs_mount *
 MP_TO_TARFS_MOUNT(struct mount *mp)
 {
 
@@ -217,8 +214,7 @@ MP_TO_TARFS_MOUNT(struct mount *mp)
 	return (mp->mnt_data);
 }
 
-static inline
-struct tarfs_node *
+static inline struct tarfs_node *
 VP_TO_TARFS_NODE(struct vnode *vp)
 {
 
@@ -226,27 +222,22 @@ VP_TO_TARFS_NODE(struct vnode *vp)
 	return (vp->v_data);
 }
 
-int	tarfs_alloc_node(struct tarfs_mount *tmp, const char *name,
-	    size_t namelen, __enum_uint8(vtype) type, off_t off, size_t sz,
-	    time_t mtime, uid_t uid, gid_t gid, mode_t mode,
-	    unsigned int flags, const char *linkname, dev_t rdev,
-	    struct tarfs_node *parent, struct tarfs_node **node);
-int	tarfs_load_blockmap(struct tarfs_node *tnp, size_t realsize);
-void	tarfs_free_node(struct tarfs_node *tnp);
-struct tarfs_node *
-	tarfs_lookup_dir(struct tarfs_node *tnp, off_t cookie);
-struct tarfs_node *
-	tarfs_lookup_node(struct tarfs_node *tnp, struct tarfs_node *f,
-	    struct componentname *cnp);
-int	tarfs_read_file(struct tarfs_node *tnp, size_t len, struct uio *uiop);
+int tarfs_alloc_node(struct tarfs_mount *tmp, const char *name, size_t namelen,
+    __enum_uint8(vtype) type, off_t off, size_t sz, time_t mtime, uid_t uid,
+    gid_t gid, mode_t mode, unsigned int flags, const char *linkname,
+    dev_t rdev, struct tarfs_node *parent, struct tarfs_node **node);
+int tarfs_load_blockmap(struct tarfs_node *tnp, size_t realsize);
+void tarfs_free_node(struct tarfs_node *tnp);
+struct tarfs_node *tarfs_lookup_dir(struct tarfs_node *tnp, off_t cookie);
+struct tarfs_node *tarfs_lookup_node(struct tarfs_node *tnp,
+    struct tarfs_node *f, struct componentname *cnp);
+int tarfs_read_file(struct tarfs_node *tnp, size_t len, struct uio *uiop);
 
-int	tarfs_io_init(struct tarfs_mount *tmp);
-int	tarfs_io_fini(struct tarfs_mount *tmp);
-int	tarfs_io_read(struct tarfs_mount *tmp, bool raw,
-    struct uio *uiop);
-ssize_t	tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw,
-    void *buf, off_t off, size_t len);
-unsigned int
-	tarfs_strtofflags(const char *str, char **end);
+int tarfs_io_init(struct tarfs_mount *tmp);
+int tarfs_io_fini(struct tarfs_mount *tmp);
+int tarfs_io_read(struct tarfs_mount *tmp, bool raw, struct uio *uiop);
+ssize_t tarfs_io_read_buf(struct tarfs_mount *tmp, bool raw, void *buf,
+    off_t off, size_t len);
+unsigned int tarfs_strtofflags(const char *str, char **end);
 
-#endif	/* _FS_TARFS_TARFS_H_ */
+#endif /* _FS_TARFS_TARFS_H_ */

@@ -28,7 +28,7 @@
  */
 
 #ifndef _SYS_UMTXVAR_H_
-#define	_SYS_UMTXVAR_H_
+#define _SYS_UMTXVAR_H_
 
 #ifdef _KERNEL
 
@@ -54,32 +54,32 @@ enum {
 
 /* Key to represent a unique userland synchronous object */
 struct umtx_key {
-	int	hash;
-	int	type;
-	int	shared;
+	int hash;
+	int type;
+	int shared;
 	union {
 		struct {
 			struct vm_object *object;
-			uintptr_t	offset;
+			uintptr_t offset;
 		} shared;
 		struct {
-			struct vmspace	*vs;
-			uintptr_t	addr;
+			struct vmspace *vs;
+			uintptr_t addr;
 		} private;
 		struct {
-			void		*a;
-			uintptr_t	b;
+			void *a;
+			uintptr_t b;
 		} both;
 	} info;
 };
 
-#define THREAD_SHARE		0
-#define PROCESS_SHARE		1
-#define AUTO_SHARE		2
+#define THREAD_SHARE 0
+#define PROCESS_SHARE 1
+#define AUTO_SHARE 2
 
 struct umtx_abs_timeout {
 	int clockid;
-	bool is_abs_real;	/* TIMER_ABSTIME && CLOCK_REALTIME* */
+	bool is_abs_real; /* TIMER_ABSTIME && CLOCK_REALTIME* */
 	struct timespec cur;
 	struct timespec end;
 };
@@ -89,73 +89,73 @@ struct thread;
 /* Priority inheritance mutex info. */
 struct umtx_pi {
 	/* Owner thread */
-	struct thread		*pi_owner;
+	struct thread *pi_owner;
 
 	/* Reference count */
-	int			pi_refcount;
+	int pi_refcount;
 
 	/* List entry to link umtx holding by thread */
-	TAILQ_ENTRY(umtx_pi)	pi_link;
+	TAILQ_ENTRY(umtx_pi) pi_link;
 
 	/* List entry in hash */
-	TAILQ_ENTRY(umtx_pi)	pi_hashlink;
+	TAILQ_ENTRY(umtx_pi) pi_hashlink;
 
 	/* List for waiters */
-	TAILQ_HEAD(,umtx_q)	pi_blocked;
+	TAILQ_HEAD(, umtx_q) pi_blocked;
 
 	/* Identify a userland lock object */
-	struct umtx_key		pi_key;
+	struct umtx_key pi_key;
 };
 
 /* A userland synchronous object user. */
 struct umtx_q {
 	/* Linked list for the hash. */
-	TAILQ_ENTRY(umtx_q)	uq_link;
+	TAILQ_ENTRY(umtx_q) uq_link;
 
 	/* Umtx key. */
-	struct umtx_key		uq_key;
+	struct umtx_key uq_key;
 
 	/* Umtx flags. */
-	int			uq_flags;
-#define UQF_UMTXQ	0x0001
+	int uq_flags;
+#define UQF_UMTXQ 0x0001
 
 	/* Futex bitset mask */
-	u_int			uq_bitset;
+	u_int uq_bitset;
 
 	/* The thread waits on. */
-	struct thread		*uq_thread;
+	struct thread *uq_thread;
 
 	/*
 	 * Blocked on PI mutex. read can use chain lock
 	 * or umtx_lock, write must have both chain lock and
 	 * umtx_lock being hold.
 	 */
-	struct umtx_pi		*uq_pi_blocked;
+	struct umtx_pi *uq_pi_blocked;
 
 	/* On blocked list */
-	TAILQ_ENTRY(umtx_q)	uq_lockq;
+	TAILQ_ENTRY(umtx_q) uq_lockq;
 
 	/* Thread contending with us */
-	TAILQ_HEAD(,umtx_pi)	uq_pi_contested;
+	TAILQ_HEAD(, umtx_pi) uq_pi_contested;
 
 	/* Inherited priority from PP mutex */
-	u_char			uq_inherited_pri;
+	u_char uq_inherited_pri;
 
 	/* Spare queue ready to be reused */
-	struct umtxq_queue	*uq_spare_queue;
+	struct umtxq_queue *uq_spare_queue;
 
 	/* The queue we on */
-	struct umtxq_queue	*uq_cur_queue;
+	struct umtxq_queue *uq_cur_queue;
 };
 
 TAILQ_HEAD(umtxq_head, umtx_q);
 
 /* Per-key wait-queue */
 struct umtxq_queue {
-	struct umtxq_head	head;
-	struct umtx_key		key;
-	LIST_ENTRY(umtxq_queue)	link;
-	int			length;
+	struct umtxq_head head;
+	struct umtx_key key;
+	LIST_ENTRY(umtxq_queue) link;
+	int length;
 };
 
 LIST_HEAD(umtxq_list, umtxq_queue);
@@ -163,27 +163,27 @@ LIST_HEAD(umtxq_list, umtxq_queue);
 /* Userland lock object's wait-queue chain */
 struct umtxq_chain {
 	/* Lock for this chain. */
-	struct mtx		uc_lock;
+	struct mtx uc_lock;
 
 	/* List of sleep queues. */
-	struct umtxq_list	uc_queue[2];
-#define UMTX_SHARED_QUEUE	0
-#define UMTX_EXCLUSIVE_QUEUE	1
+	struct umtxq_list uc_queue[2];
+#define UMTX_SHARED_QUEUE 0
+#define UMTX_EXCLUSIVE_QUEUE 1
 
 	LIST_HEAD(, umtxq_queue) uc_spare_queue;
 
 	/* Busy flag */
-	char			uc_busy;
+	char uc_busy;
 
 	/* Chain lock waiters */
-	int			uc_waiters;
+	int uc_waiters;
 
 	/* All PI in the list */
-	TAILQ_HEAD(,umtx_pi)	uc_pi_list;
+	TAILQ_HEAD(, umtx_pi) uc_pi_list;
 
 #ifdef UMTX_PROFILING
-	u_int			length;
-	u_int			max_length;
+	u_int length;
+	u_int max_length;
 #endif
 };
 
@@ -191,8 +191,7 @@ static inline int
 umtx_key_match(const struct umtx_key *k1, const struct umtx_key *k2)
 {
 
-	return (k1->type == k2->type &&
-	    k1->info.both.a == k2->info.both.a &&
+	return (k1->type == k2->type && k1->info.both.a == k2->info.both.a &&
 	    k1->info.both.b == k2->info.both.b);
 }
 
@@ -211,10 +210,9 @@ void umtxq_insert_queue(struct umtx_q *, int);
 void umtxq_remove_queue(struct umtx_q *, int);
 int umtxq_requeue(struct umtx_key *, int, struct umtx_key *, int);
 int umtxq_signal_mask(struct umtx_key *, int, u_int);
-int umtxq_sleep(struct umtx_q *, const char *,
-    struct umtx_abs_timeout *);
-int umtxq_sleep_pi(struct umtx_q *, struct umtx_pi *, uint32_t,
-    const char *, struct umtx_abs_timeout *, bool);
+int umtxq_sleep(struct umtx_q *, const char *, struct umtx_abs_timeout *);
+int umtxq_sleep_pi(struct umtx_q *, struct umtx_pi *, uint32_t, const char *,
+    struct umtx_abs_timeout *, bool);
 void umtxq_unbusy(struct umtx_key *);
 void umtxq_unbusy_unlocked(struct umtx_key *);
 int kern_umtx_wake(struct thread *, void *, int, int);
@@ -232,21 +230,22 @@ void umtx_thread_fini(struct thread *);
 void umtx_thread_alloc(struct thread *);
 void umtx_thread_exit(struct thread *);
 
-#define umtxq_insert(uq)	umtxq_insert_queue((uq), UMTX_SHARED_QUEUE)
-#define umtxq_remove(uq)	umtxq_remove_queue((uq), UMTX_SHARED_QUEUE)
+#define umtxq_insert(uq) umtxq_insert_queue((uq), UMTX_SHARED_QUEUE)
+#define umtxq_remove(uq) umtxq_remove_queue((uq), UMTX_SHARED_QUEUE)
 
 /*
  * Lock a chain.
  *
  * The code is a macro so that file/line information is taken from the caller.
  */
-#define umtxq_lock(key) do {		\
-	struct umtx_key *_key = (key);	\
-	struct umtxq_chain *_uc;	\
-					\
-	_uc = umtxq_getchain(_key);	\
-	mtx_lock(&_uc->uc_lock);	\
-} while (0)
+#define umtxq_lock(key)                        \
+	do {                                   \
+		struct umtx_key *_key = (key); \
+		struct umtxq_chain *_uc;       \
+                                               \
+		_uc = umtxq_getchain(_key);    \
+		mtx_lock(&_uc->uc_lock);       \
+	} while (0)
 
 /*
  * Unlock a chain.

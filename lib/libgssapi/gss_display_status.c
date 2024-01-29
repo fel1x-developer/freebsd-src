@@ -91,11 +91,12 @@
  */
 
 #include <sys/param.h>
+
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <string.h>
 
 #include "mech_switch.h"
 #include "utils.h"
@@ -103,87 +104,88 @@
 static const char *
 calling_error(OM_uint32 v)
 {
-    static const char *msgs[] = {
-	[0] = "",
-	[1] = "A required input parameter could not be read.",
-	[2] = "A required output parameter could not be written.",
-	[3] = "A parameter was malformed",
-    };
+	static const char *msgs[] = {
+		[0] = "",
+		[1] = "A required input parameter could not be read.",
+		[2] = "A required output parameter could not be written.",
+		[3] = "A parameter was malformed",
+	};
 
-    v >>= GSS_C_CALLING_ERROR_OFFSET;
+	v >>= GSS_C_CALLING_ERROR_OFFSET;
 
-    if (v >= nitems(msgs))
-	return "unknown calling error";
-    else
-	return msgs[v];
+	if (v >= nitems(msgs))
+		return "unknown calling error";
+	else
+		return msgs[v];
 }
 
 static const char *
 routine_error(OM_uint32 v)
 {
-    static const char *msgs[] = {
-	[0] = "Function completed successfully",
-	[1] = "An unsupported mechanism was requested",
-	[2] = "An invalid name was supplied",
-	[3] = "A supplied name was of an unsupported type",
-	[4] = "Incorrect channel bindings were supplied",
-	[5] = "An invalid status code was supplied",
-	[6] = "A token had an invalid MIC",
-	[7] = ("No credentials were supplied, "
-	    "or the credentials were unavailable or inaccessible."),
-	[8] = "No context has been established",
-	[9] = "A token was invalid",
-	[10] = "A credential was invalid",
-	[11] =  "The referenced credentials have expired",
-	[12] = "The context has expired",
-	[13] = "Miscellaneous failure (see text)",
-	[14] = "The quality-of-protection requested could not be provide",
-	[15] = "The operation is forbidden by local security policy",
-	[16] = "The operation or option is not available",
-	[17] = "The requested credential element already exists",
-	[18] = "The provided name was not a mechanism name.",
-    };
+	static const char *msgs[] = {
+		[0] = "Function completed successfully",
+		[1] = "An unsupported mechanism was requested",
+		[2] = "An invalid name was supplied",
+		[3] = "A supplied name was of an unsupported type",
+		[4] = "Incorrect channel bindings were supplied",
+		[5] = "An invalid status code was supplied",
+		[6] = "A token had an invalid MIC",
+		[7] = ("No credentials were supplied, "
+		       "or the credentials were unavailable or inaccessible."),
+		[8] = "No context has been established",
+		[9] = "A token was invalid",
+		[10] = "A credential was invalid",
+		[11] = "The referenced credentials have expired",
+		[12] = "The context has expired",
+		[13] = "Miscellaneous failure (see text)",
+		[14] =
+		    "The quality-of-protection requested could not be provide",
+		[15] = "The operation is forbidden by local security policy",
+		[16] = "The operation or option is not available",
+		[17] = "The requested credential element already exists",
+		[18] = "The provided name was not a mechanism name.",
+	};
 
-    v >>= GSS_C_ROUTINE_ERROR_OFFSET;
+	v >>= GSS_C_ROUTINE_ERROR_OFFSET;
 
-    if (v >= nitems(msgs))
-	return "unknown routine error";
-    else
-	return msgs[v];
+	if (v >= nitems(msgs))
+		return "unknown routine error";
+	else
+		return msgs[v];
 }
 
 static const char *
 supplementary_error(OM_uint32 v)
 {
-    static const char *msgs[] = {
-	[0] = "normal completion",
-	[1] = "continuation call to routine required",
-	[2] = "duplicate per-message token detected",
-	[3] = "timed-out per-message token detected",
-	[4] = "reordered (early) per-message token detected",
-	[5] = "skipped predecessor token(s) detected",
-    };
+	static const char *msgs[] = {
+		[0] = "normal completion",
+		[1] = "continuation call to routine required",
+		[2] = "duplicate per-message token detected",
+		[3] = "timed-out per-message token detected",
+		[4] = "reordered (early) per-message token detected",
+		[5] = "skipped predecessor token(s) detected",
+	};
 
-    v >>= GSS_C_SUPPLEMENTARY_OFFSET;
+	v >>= GSS_C_SUPPLEMENTARY_OFFSET;
 
-    if (v >= nitems(msgs))
-	return "unknown routine error";
-    else
-	return msgs[v];
+	if (v >= nitems(msgs))
+		return "unknown routine error";
+	else
+		return msgs[v];
 }
 
 struct mg_thread_ctx {
-    gss_OID mech;
-    OM_uint32 maj_stat;
-    OM_uint32 min_stat;
-    gss_buffer_desc maj_error;
-    gss_buffer_desc min_error;
+	gss_OID mech;
+	OM_uint32 maj_stat;
+	OM_uint32 min_stat;
+	gss_buffer_desc maj_error;
+	gss_buffer_desc min_error;
 };
 static __thread struct mg_thread_ctx last_error_context;
 
 static OM_uint32
-_gss_mg_get_error(const gss_OID mech, OM_uint32 type,
-		  OM_uint32 value, gss_buffer_t string)
+_gss_mg_get_error(const gss_OID mech, OM_uint32 type, OM_uint32 value,
+    gss_buffer_t string)
 {
 	struct mg_thread_ctx *mg;
 
@@ -233,22 +235,14 @@ _gss_mg_error(struct _gss_mech_switch *m, OM_uint32 maj, OM_uint32 min)
 	mg->maj_stat = maj;
 	mg->min_stat = min;
 
-	major_status = m->gm_display_status(&minor_status,
-	    maj,
-	    GSS_C_GSS_CODE,
-	    &m->gm_mech_oid,
-	    &message_content,
-	    &mg->maj_error);
+	major_status = m->gm_display_status(&minor_status, maj, GSS_C_GSS_CODE,
+	    &m->gm_mech_oid, &message_content, &mg->maj_error);
 	if (GSS_ERROR(major_status)) {
 		mg->maj_error.value = NULL;
 		mg->maj_error.length = 0;
 	}
-	major_status = m->gm_display_status(&minor_status,
-	    min,
-	    GSS_C_MECH_CODE,
-	    &m->gm_mech_oid,
-	    &message_content,
-	    &mg->min_error);
+	major_status = m->gm_display_status(&minor_status, min, GSS_C_MECH_CODE,
+	    &m->gm_mech_oid, &message_content, &mg->min_error);
 	if (GSS_ERROR(major_status)) {
 		mg->min_error.value = NULL;
 		mg->min_error.length = 0;
@@ -256,11 +250,8 @@ _gss_mg_error(struct _gss_mech_switch *m, OM_uint32 maj, OM_uint32 min)
 }
 
 OM_uint32
-gss_display_status(OM_uint32 *minor_status,
-    OM_uint32 status_value,
-    int status_type,
-    const gss_OID mech_type,
-    OM_uint32 *message_content,
+gss_display_status(OM_uint32 *minor_status, OM_uint32 status_value,
+    int status_type, const gss_OID mech_type, OM_uint32 *message_content,
     gss_buffer_t status_string)
 {
 	OM_uint32 major_status;
@@ -268,8 +259,8 @@ gss_display_status(OM_uint32 *minor_status,
 	_gss_buffer_zero(status_string);
 	*message_content = 0;
 
-	major_status = _gss_mg_get_error(mech_type, status_type,
-					 status_value, status_string);
+	major_status = _gss_mg_get_error(mech_type, status_type, status_value,
+	    status_string);
 	if (major_status == GSS_S_COMPLETE) {
 
 		*message_content = 0;
@@ -283,18 +274,19 @@ gss_display_status(OM_uint32 *minor_status,
 		char *buf;
 
 		if (GSS_SUPPLEMENTARY_INFO(status_value))
-		    asprintf(&buf, "%s", supplementary_error(
-		        GSS_SUPPLEMENTARY_INFO(status_value)));
+			asprintf(&buf, "%s",
+			    supplementary_error(
+				GSS_SUPPLEMENTARY_INFO(status_value)));
 		else
-		    asprintf (&buf, "%s %s",
-		        calling_error(GSS_CALLING_ERROR(status_value)),
-			routine_error(GSS_ROUTINE_ERROR(status_value)));
+			asprintf(&buf, "%s %s",
+			    calling_error(GSS_CALLING_ERROR(status_value)),
+			    routine_error(GSS_ROUTINE_ERROR(status_value)));
 
 		if (buf == NULL)
 			break;
 
 		status_string->length = strlen(buf);
-		status_string->value  = buf;
+		status_string->value = buf;
 
 		return (GSS_S_COMPLETE);
 	}
@@ -309,17 +301,17 @@ gss_display_status(OM_uint32 *minor_status,
 			oid.length = 7;
 		}
 
-		asprintf (&buf, "unknown mech-code %lu for mech %.*s",
-			  (unsigned long)status_value,
-			  (int)oid.length, (char *)oid.value);
+		asprintf(&buf, "unknown mech-code %lu for mech %.*s",
+		    (unsigned long)status_value, (int)oid.length,
+		    (char *)oid.value);
 		if (maj_junk == GSS_S_COMPLETE)
 			gss_release_buffer(&min_junk, &oid);
 
 		if (buf == NULL)
-		    break;
+			break;
 
 		status_string->length = strlen(buf);
-		status_string->value  = buf;
+		status_string->value = buf;
 
 		return (GSS_S_COMPLETE);
 	}

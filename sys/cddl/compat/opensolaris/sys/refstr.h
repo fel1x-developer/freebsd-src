@@ -26,8 +26,8 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_REFSTR_H_
-#define	_OPENSOLARIS_SYS_REFSTR_H_
+#define _OPENSOLARIS_SYS_REFSTR_H_
 
-#define	refstr_value(str)	(str)
+#define refstr_value(str) (str)
 
-#endif	/* _OPENSOLARIS_SYS_REFSTR_H_ */
+#endif /* _OPENSOLARIS_SYS_REFSTR_H_ */

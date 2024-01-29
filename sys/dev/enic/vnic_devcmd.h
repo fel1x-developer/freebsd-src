@@ -6,28 +6,28 @@
 #ifndef _VNIC_DEVCMD_H_
 #define _VNIC_DEVCMD_H_
 
-#define _CMD_NBITS	14
-#define _CMD_VTYPEBITS	10
-#define _CMD_FLAGSBITS	6
-#define _CMD_DIRBITS	2
+#define _CMD_NBITS 14
+#define _CMD_VTYPEBITS 10
+#define _CMD_FLAGSBITS 6
+#define _CMD_DIRBITS 2
 
-#define _CMD_NMASK	((1 << _CMD_NBITS)-1)
-#define _CMD_VTYPEMASK	((1 << _CMD_VTYPEBITS)-1)
-#define _CMD_FLAGSMASK  ((1 << _CMD_FLAGSBITS)-1)
-#define _CMD_DIRMASK	((1 << _CMD_DIRBITS)-1)
+#define _CMD_NMASK ((1 << _CMD_NBITS) - 1)
+#define _CMD_VTYPEMASK ((1 << _CMD_VTYPEBITS) - 1)
+#define _CMD_FLAGSMASK ((1 << _CMD_FLAGSBITS) - 1)
+#define _CMD_DIRMASK ((1 << _CMD_DIRBITS) - 1)
 
-#define _CMD_NSHIFT	0
-#define _CMD_VTYPESHIFT	(_CMD_NSHIFT+_CMD_NBITS)
-#define _CMD_FLAGSSHIFT	(_CMD_VTYPESHIFT+_CMD_VTYPEBITS)
-#define _CMD_DIRSHIFT	(_CMD_FLAGSSHIFT+_CMD_FLAGSBITS)
+#define _CMD_NSHIFT 0
+#define _CMD_VTYPESHIFT (_CMD_NSHIFT + _CMD_NBITS)
+#define _CMD_FLAGSSHIFT (_CMD_VTYPESHIFT + _CMD_VTYPEBITS)
+#define _CMD_DIRSHIFT (_CMD_FLAGSSHIFT + _CMD_FLAGSBITS)
 
 /*
  * Direction bits (from host perspective).
  */
-#define _CMD_DIR_NONE	0U
-#define _CMD_DIR_WRITE	1U
-#define _CMD_DIR_READ	2U
-#define _CMD_DIR_RW	(_CMD_DIR_WRITE | _CMD_DIR_READ)
+#define _CMD_DIR_NONE 0U
+#define _CMD_DIR_WRITE 1U
+#define _CMD_DIR_READ 2U
+#define _CMD_DIR_RW (_CMD_DIR_WRITE | _CMD_DIR_READ)
 
 /*
  * Flag bits.
@@ -38,35 +38,33 @@
 /*
  * vNIC type bits.
  */
-#define _CMD_VTYPE_NONE	0U
-#define _CMD_VTYPE_ENET	1U
-#define _CMD_VTYPE_FC	2U
-#define _CMD_VTYPE_SCSI	4U
-#define _CMD_VTYPE_ALL	(_CMD_VTYPE_ENET | _CMD_VTYPE_FC | _CMD_VTYPE_SCSI)
+#define _CMD_VTYPE_NONE 0U
+#define _CMD_VTYPE_ENET 1U
+#define _CMD_VTYPE_FC 2U
+#define _CMD_VTYPE_SCSI 4U
+#define _CMD_VTYPE_ALL (_CMD_VTYPE_ENET | _CMD_VTYPE_FC | _CMD_VTYPE_SCSI)
 
 /*
  * Used to create cmds..
  */
-#define _CMDCF(dir, flags, vtype, nr)  \
-	(((dir)   << _CMD_DIRSHIFT) |  \
-	((flags) << _CMD_FLAGSSHIFT) | \
-	((vtype) << _CMD_VTYPESHIFT) | \
-	((nr)    << _CMD_NSHIFT))
-#define _CMDC(dir, vtype, nr)	_CMDCF(dir, 0, vtype, nr)
-#define _CMDCNW(dir, vtype, nr)	_CMDCF(dir, _CMD_FLAGS_NOWAIT, vtype, nr)
+#define _CMDCF(dir, flags, vtype, nr)                              \
+	(((dir) << _CMD_DIRSHIFT) | ((flags) << _CMD_FLAGSSHIFT) | \
+	    ((vtype) << _CMD_VTYPESHIFT) | ((nr) << _CMD_NSHIFT))
+#define _CMDC(dir, vtype, nr) _CMDCF(dir, 0, vtype, nr)
+#define _CMDCNW(dir, vtype, nr) _CMDCF(dir, _CMD_FLAGS_NOWAIT, vtype, nr)
 
 /*
  * Used to decode cmds..
  */
-#define _CMD_DIR(cmd)	(((cmd) >> _CMD_DIRSHIFT) & _CMD_DIRMASK)
-#define _CMD_FLAGS(cmd)	(((cmd) >> _CMD_FLAGSSHIFT) & _CMD_FLAGSMASK)
-#define _CMD_VTYPE(cmd)	(((cmd) >> _CMD_VTYPESHIFT) & _CMD_VTYPEMASK)
-#define _CMD_N(cmd)	(((cmd) >> _CMD_NSHIFT) & _CMD_NMASK)
+#define _CMD_DIR(cmd) (((cmd) >> _CMD_DIRSHIFT) & _CMD_DIRMASK)
+#define _CMD_FLAGS(cmd) (((cmd) >> _CMD_FLAGSSHIFT) & _CMD_FLAGSMASK)
+#define _CMD_VTYPE(cmd) (((cmd) >> _CMD_VTYPESHIFT) & _CMD_VTYPEMASK)
+#define _CMD_N(cmd) (((cmd) >> _CMD_NSHIFT) & _CMD_NMASK)
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 enum vnic_devcmd_cmd {
-	CMD_NONE                = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_NONE, 0),
+	CMD_NONE = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_NONE, 0),
 
 	/*
 	 * mcpu fw info in mem:
@@ -77,7 +75,7 @@ enum vnic_devcmd_cmd {
 	 * note:
 	 *   An old definition of CMD_MCPU_FW_INFO
 	 */
-	CMD_MCPU_FW_INFO_OLD    = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 1),
+	CMD_MCPU_FW_INFO_OLD = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 1),
 
 	/*
 	 * mcpu fw info in mem:
@@ -95,48 +93,47 @@ enum vnic_devcmd_cmd {
 	 *   CMD_MCPU_FW_INFO and CMD_MCPU_FW_INFO_OLD have the same enum 1
 	 *   for source compatibility.
 	 */
-	CMD_MCPU_FW_INFO        = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 1),
+	CMD_MCPU_FW_INFO = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 1),
 
 	/* dev-specific block member:
 	 *    in: (u16)a0=offset,(u8)a1=size
 	 *    out: a0=value
 	 */
-	CMD_DEV_SPEC            = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 2),
+	CMD_DEV_SPEC = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 2),
 
 	/* stats clear */
-	CMD_STATS_CLEAR         = _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 3),
+	CMD_STATS_CLEAR = _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 3),
 
 	/* stats dump in mem: (u64)a0=paddr to stats area,
 	 *                    (u16)a1=sizeof stats area */
-	CMD_STATS_DUMP          = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 4),
+	CMD_STATS_DUMP = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 4),
 
 	/* set Rx packet filter: (u32)a0=filters (see CMD_PFILTER_*) */
-	CMD_PACKET_FILTER	= _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 7),
+	CMD_PACKET_FILTER = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 7),
 
 	/* set Rx packet filter for all: (u32)a0=filters (see CMD_PFILTER_*) */
-	CMD_PACKET_FILTER_ALL   = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 7),
+	CMD_PACKET_FILTER_ALL = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 7),
 
 	/* hang detection notification */
-	CMD_HANG_NOTIFY         = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 8),
+	CMD_HANG_NOTIFY = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 8),
 
 	/* MAC address in (u48)a0 */
-	CMD_MAC_ADDR            = _CMDC(_CMD_DIR_READ,
-					_CMD_VTYPE_ENET | _CMD_VTYPE_FC, 9),
-#define CMD_GET_MAC_ADDR CMD_MAC_ADDR   /* some uses are aliased */
+	CMD_MAC_ADDR = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ENET | _CMD_VTYPE_FC, 9),
+#define CMD_GET_MAC_ADDR CMD_MAC_ADDR /* some uses are aliased */
 
 	/* add addr from (u48)a0 */
-	CMD_ADDR_ADD            = _CMDCNW(_CMD_DIR_WRITE,
-					_CMD_VTYPE_ENET | _CMD_VTYPE_FC, 12),
+	CMD_ADDR_ADD = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET | _CMD_VTYPE_FC,
+	    12),
 
 	/* del addr from (u48)a0 */
-	CMD_ADDR_DEL            = _CMDCNW(_CMD_DIR_WRITE,
-					_CMD_VTYPE_ENET | _CMD_VTYPE_FC, 13),
+	CMD_ADDR_DEL = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET | _CMD_VTYPE_FC,
+	    13),
 
 	/* add VLAN id in (u16)a0 */
-	CMD_VLAN_ADD            = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 14),
+	CMD_VLAN_ADD = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 14),
 
 	/* del VLAN id in (u16)a0 */
-	CMD_VLAN_DEL            = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 15),
+	CMD_VLAN_DEL = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 15),
 
 	/*
 	 * nic_cfg in (u32)a0
@@ -146,7 +143,7 @@ enum vnic_devcmd_cmd {
 	 *      (u64) a1= (NIC_CFG bits supported) | (flags << 32)
 	 *                              (flags are CMD_NIC_CFG_CAPF_xxx)
 	 */
-	CMD_NIC_CFG             = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 16),
+	CMD_NIC_CFG = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 16),
 
 	/*
 	 * nic_cfg_chk  (same as nic_cfg, but may return error)
@@ -157,20 +154,20 @@ enum vnic_devcmd_cmd {
 	 *      (u64) a1= (NIC_CFG bits supported) | (flags << 32)
 	 *                              (flags are CMD_NIC_CFG_CAPF_xxx)
 	 */
-	CMD_NIC_CFG_CHK         = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 16),
+	CMD_NIC_CFG_CHK = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 16),
 
 	/* union vnic_rss_key in mem: (u64)a0=paddr, (u16)a1=len */
-	CMD_RSS_KEY             = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 17),
+	CMD_RSS_KEY = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 17),
 
 	/* union vnic_rss_cpu in mem: (u64)a0=paddr, (u16)a1=len */
-	CMD_RSS_CPU             = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 18),
+	CMD_RSS_CPU = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 18),
 
 	/* initiate softreset */
-	CMD_SOFT_RESET          = _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 19),
+	CMD_SOFT_RESET = _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 19),
 
 	/* softreset status:
 	 *    out: a0=0 reset complete, a0=1 reset in progress */
-	CMD_SOFT_RESET_STATUS   = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 20),
+	CMD_SOFT_RESET_STATUS = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 20),
 
 	/* set struct vnic_devcmd_notify buffer in mem:
 	 * in:
@@ -180,84 +177,84 @@ enum vnic_devcmd_cmd {
 	 * out:
 	 *   (u32)a1 = effective size
 	 */
-	CMD_NOTIFY              = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 21),
+	CMD_NOTIFY = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 21),
 
 	/* UNDI API: (u64)a0=paddr to s_PXENV_UNDI_ struct,
 	 *           (u8)a1=PXENV_UNDI_xxx */
-	CMD_UNDI                = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 22),
+	CMD_UNDI = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 22),
 
 	/* initiate open sequence (u32)a0=flags (see CMD_OPENF_*) */
-	CMD_OPEN		= _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 23),
+	CMD_OPEN = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 23),
 
 	/* open status:
 	 *    out: a0=0 open complete, a0=1 open in progress */
-	CMD_OPEN_STATUS		= _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 24),
+	CMD_OPEN_STATUS = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 24),
 
 	/* close vnic */
-	CMD_CLOSE		= _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 25),
+	CMD_CLOSE = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 25),
 
 	/* initialize virtual link: (u32)a0=flags (see CMD_INITF_*) */
-/***** Replaced by CMD_INIT *****/
-	CMD_INIT_v1		= _CMDCNW(_CMD_DIR_READ, _CMD_VTYPE_ALL, 26),
+	/***** Replaced by CMD_INIT *****/
+	CMD_INIT_v1 = _CMDCNW(_CMD_DIR_READ, _CMD_VTYPE_ALL, 26),
 
 	/* variant of CMD_INIT, with provisioning info
 	 *     (u64)a0=paddr of vnic_devcmd_provinfo
 	 *     (u32)a1=sizeof provision info */
-	CMD_INIT_PROV_INFO	= _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 27),
+	CMD_INIT_PROV_INFO = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 27),
 
 	/* enable virtual link */
-	CMD_ENABLE		= _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 28),
+	CMD_ENABLE = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 28),
 
 	/* enable virtual link, waiting variant. */
-	CMD_ENABLE_WAIT		= _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 28),
+	CMD_ENABLE_WAIT = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 28),
 
 	/* disable virtual link */
-	CMD_DISABLE		= _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 29),
+	CMD_DISABLE = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 29),
 
 	/* stats dump sum of all vnic stats on same uplink in mem:
 	 *     (u64)a0=paddr
 	 *     (u16)a1=sizeof stats area */
-	CMD_STATS_DUMP_ALL	= _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 30),
+	CMD_STATS_DUMP_ALL = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 30),
 
 	/* init status:
 	 *    out: a0=0 init complete, a0=1 init in progress
 	 *         if a0=0, a1=errno */
-	CMD_INIT_STATUS		= _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 31),
+	CMD_INIT_STATUS = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 31),
 
 	/* INT13 API: (u64)a0=paddr to vnic_int13_params struct
 	 *            (u32)a1=INT13_CMD_xxx */
-	CMD_INT13               = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_FC, 32),
+	CMD_INT13 = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_FC, 32),
 
 	/* logical uplink enable/disable: (u64)a0: 0/1=disable/enable */
-	CMD_LOGICAL_UPLINK      = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 33),
+	CMD_LOGICAL_UPLINK = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 33),
 
 	/* undo initialize of virtual link */
-	CMD_DEINIT		= _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 34),
+	CMD_DEINIT = _CMDCNW(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 34),
 
 	/* initialize virtual link: (u32)a0=flags (see CMD_INITF_*) */
-	CMD_INIT		= _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 35),
+	CMD_INIT = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 35),
 
 	/* check fw capability of a cmd:
 	 * in:  (u32)a0=cmd
 	 * out: (u32)a0=errno, 0:valid cmd, a1=supported VNIC_STF_* bits */
-	CMD_CAPABILITY		= _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 36),
+	CMD_CAPABILITY = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 36),
 
 	/* persistent binding info
 	 * in:  (u64)a0=paddr of arg
 	 *      (u32)a1=CMD_PERBI_XXX */
-	CMD_PERBI		= _CMDC(_CMD_DIR_RW, _CMD_VTYPE_FC, 37),
+	CMD_PERBI = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_FC, 37),
 
 	/* Interrupt Assert Register functionality
 	 * in: (u16)a0=interrupt number to assert
 	 */
-	CMD_IAR			= _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 38),
+	CMD_IAR = _CMDCNW(_CMD_DIR_WRITE, _CMD_VTYPE_ALL, 38),
 
 	/* initiate hangreset, like softreset after hang detected */
-	CMD_HANG_RESET		= _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 39),
+	CMD_HANG_RESET = _CMDC(_CMD_DIR_NONE, _CMD_VTYPE_ALL, 39),
 
 	/* hangreset status:
 	 *    out: a0=0 reset complete, a0=1 reset in progress */
-	CMD_HANG_RESET_STATUS   = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 40),
+	CMD_HANG_RESET_STATUS = _CMDC(_CMD_DIR_READ, _CMD_VTYPE_ALL, 40),
 
 	/*
 	 * Set hw ingress packet vlan rewrite mode:
@@ -271,13 +268,13 @@ enum vnic_devcmd_cmd {
 	 *      a2-a15=args to cmd in a1
 	 * out: (u32)a0=status of proxied cmd
 	 *      a1-a15=out args of proxied cmd */
-	CMD_PROXY_BY_BDF =	_CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 42),
+	CMD_PROXY_BY_BDF = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 42),
 
 	/*
 	 * As for BY_BDF except a0 is index of hvnlink subordinate vnic
 	 * or SR-IOV virtual vnic
 	 */
-	CMD_PROXY_BY_INDEX =    _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 43),
+	CMD_PROXY_BY_INDEX = _CMDC(_CMD_DIR_RW, _CMD_VTYPE_ALL, 43),
 
 	/*
 	 * For HPP toggle:
@@ -309,7 +306,7 @@ enum vnic_devcmd_cmd {
 	 * the vnic until CMD_ENABLE2 is issued.
 	 *     (u64)a0=paddr of vnic_devcmd_provinfo
 	 *     (u32)a1=sizeof provision info */
-	CMD_INIT_PROV_INFO2  = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 47),
+	CMD_INIT_PROV_INFO2 = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 47),
 
 	/* enable2:
 	 *      (u32)a0=0                  ==> standby
@@ -541,8 +538,7 @@ enum vnic_devcmd_cmd {
 	 *          a1 = OVERLAY_OFFLOAD_DISABLE : Disable or
 	 *          a1 = OVERLAY_OFFLOAD_ENABLE_V2 : Enable with version 2
 	 */
-	CMD_OVERLAY_OFFLOAD_CTRL =
-				_CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 72),
+	CMD_OVERLAY_OFFLOAD_CTRL = _CMDC(_CMD_DIR_WRITE, _CMD_VTYPE_ENET, 72),
 
 	/*
 	 * Configuration of overlay offloads feature on a given vNIC
@@ -649,40 +645,40 @@ enum vnic_devcmd_cmd {
  *    V1: bitmasks of supported filters and actions are returned
  */
 enum filter_cap_mode {
-	FILTER_CAP_MODE_V0 = 0,  /* Must always be 0 for legacy drivers */
+	FILTER_CAP_MODE_V0 = 0, /* Must always be 0 for legacy drivers */
 	FILTER_CAP_MODE_V1 = 1,
 };
 #define FILTER_CAP_MODE_V1_FLAG (1 << FILTER_CAP_MODE_V1)
 
 /* CMD_ENABLE2 flags */
 #define CMD_ENABLE2_STANDBY 0x0
-#define CMD_ENABLE2_ACTIVE  0x1
+#define CMD_ENABLE2_ACTIVE 0x1
 
 /* flags for CMD_OPEN */
-#define CMD_OPENF_OPROM		0x1	/* open coming from option rom */
-#define CMD_OPENF_IG_DESCCACHE	0x2	/* Do not flush IG DESC cache */
+#define CMD_OPENF_OPROM 0x1	   /* open coming from option rom */
+#define CMD_OPENF_IG_DESCCACHE 0x2 /* Do not flush IG DESC cache */
 
 /* flags for CMD_INIT */
-#define CMD_INITF_DEFAULT_MAC	0x1	/* init with default mac addr */
+#define CMD_INITF_DEFAULT_MAC 0x1 /* init with default mac addr */
 
 /* flags for CMD_NIC_CFG */
-#define CMD_NIC_CFG_CAPF_UDP_WEAK	(1ULL << 0) /* Bodega-style UDP RSS */
+#define CMD_NIC_CFG_CAPF_UDP_WEAK (1ULL << 0) /* Bodega-style UDP RSS */
 
 /* flags for CMD_PACKET_FILTER */
-#define CMD_PFILTER_DIRECTED		0x01
-#define CMD_PFILTER_MULTICAST		0x02
-#define CMD_PFILTER_BROADCAST		0x04
-#define CMD_PFILTER_PROMISCUOUS		0x08
-#define CMD_PFILTER_ALL_MULTICAST	0x10
+#define CMD_PFILTER_DIRECTED 0x01
+#define CMD_PFILTER_MULTICAST 0x02
+#define CMD_PFILTER_BROADCAST 0x04
+#define CMD_PFILTER_PROMISCUOUS 0x08
+#define CMD_PFILTER_ALL_MULTICAST 0x10
 
 /* Commands for CMD_QP_ENABLE/CM_QP_DISABLE */
-#define CMD_QP_RQWQ                     0x0
+#define CMD_QP_RQWQ 0x0
 
 /* rewrite modes for CMD_IG_VLAN_REWRITE_MODE */
-#define IG_VLAN_REWRITE_MODE_DEFAULT_TRUNK              0
-#define IG_VLAN_REWRITE_MODE_UNTAG_DEFAULT_VLAN         1
-#define IG_VLAN_REWRITE_MODE_PRIORITY_TAG_DEFAULT_VLAN  2
-#define IG_VLAN_REWRITE_MODE_PASS_THRU                  3
+#define IG_VLAN_REWRITE_MODE_DEFAULT_TRUNK 0
+#define IG_VLAN_REWRITE_MODE_UNTAG_DEFAULT_VLAN 1
+#define IG_VLAN_REWRITE_MODE_PRIORITY_TAG_DEFAULT_VLAN 2
+#define IG_VLAN_REWRITE_MODE_PASS_THRU 3
 
 enum vnic_devcmd_status {
 	STAT_NONE = 0,
@@ -733,26 +729,24 @@ enum fwinfo_asic_type {
 };
 
 struct vnic_devcmd_notify {
-	u32 csum;		/* checksum over following words */
+	u32 csum; /* checksum over following words */
 
-	u32 link_state;		/* link up == 1 */
-	u32 port_speed;		/* effective port speed (rate limit) */
-	u32 mtu;		/* MTU */
-	u32 msglvl;		/* requested driver msg lvl */
-	u32 uif;		/* uplink interface */
-	u32 status;		/* status bits (see VNIC_STF_*) */
-	u32 error;		/* error code (see ERR_*) for first ERR */
-	u32 link_down_cnt;	/* running count of link down transitions */
-	u32 perbi_rebuild_cnt;	/* running count of perbi rebuilds */
+	u32 link_state;	       /* link up == 1 */
+	u32 port_speed;	       /* effective port speed (rate limit) */
+	u32 mtu;	       /* MTU */
+	u32 msglvl;	       /* requested driver msg lvl */
+	u32 uif;	       /* uplink interface */
+	u32 status;	       /* status bits (see VNIC_STF_*) */
+	u32 error;	       /* error code (see ERR_*) for first ERR */
+	u32 link_down_cnt;     /* running count of link down transitions */
+	u32 perbi_rebuild_cnt; /* running count of perbi rebuilds */
 };
-#define VNIC_STF_FATAL_ERR	0x0001	/* fatal fw error */
-#define VNIC_STF_STD_PAUSE	0x0002	/* standard link-level pause on */
-#define VNIC_STF_PFC_PAUSE	0x0004	/* priority flow control pause on */
+#define VNIC_STF_FATAL_ERR 0x0001 /* fatal fw error */
+#define VNIC_STF_STD_PAUSE 0x0002 /* standard link-level pause on */
+#define VNIC_STF_PFC_PAUSE 0x0004 /* priority flow control pause on */
 /* all supported status flags */
-#define VNIC_STF_ALL		(VNIC_STF_FATAL_ERR |\
-				 VNIC_STF_STD_PAUSE |\
-				 VNIC_STF_PFC_PAUSE |\
-				 0)
+#define VNIC_STF_ALL \
+	(VNIC_STF_FATAL_ERR | VNIC_STF_STD_PAUSE | VNIC_STF_PFC_PAUSE | 0)
 
 struct vnic_devcmd_provinfo {
 	u8 oui[3];
@@ -766,15 +760,14 @@ struct vnic_devcmd_provinfo {
  */
 #define FILTER_FIELD_VALID(fld) (1 << (fld - 1))
 
-#define FILTER_FIELD_USNIC_VLAN    FILTER_FIELD_VALID(1)
+#define FILTER_FIELD_USNIC_VLAN FILTER_FIELD_VALID(1)
 #define FILTER_FIELD_USNIC_ETHTYPE FILTER_FIELD_VALID(2)
-#define FILTER_FIELD_USNIC_PROTO   FILTER_FIELD_VALID(3)
-#define FILTER_FIELD_USNIC_ID      FILTER_FIELD_VALID(4)
+#define FILTER_FIELD_USNIC_PROTO FILTER_FIELD_VALID(3)
+#define FILTER_FIELD_USNIC_ID FILTER_FIELD_VALID(4)
 
-#define FILTER_FIELDS_USNIC (FILTER_FIELD_USNIC_VLAN | \
-			     FILTER_FIELD_USNIC_ETHTYPE | \
-			     FILTER_FIELD_USNIC_PROTO | \
-			     FILTER_FIELD_USNIC_ID)
+#define FILTER_FIELDS_USNIC                                     \
+	(FILTER_FIELD_USNIC_VLAN | FILTER_FIELD_USNIC_ETHTYPE | \
+	    FILTER_FIELD_USNIC_PROTO | FILTER_FIELD_USNIC_ID)
 
 struct filter_usnic_id {
 	u32 flags;
@@ -784,17 +777,16 @@ struct filter_usnic_id {
 	u32 usnic_id;
 } __attribute__((packed));
 
-#define FILTER_FIELD_5TUP_PROTO  FILTER_FIELD_VALID(1)
+#define FILTER_FIELD_5TUP_PROTO FILTER_FIELD_VALID(1)
 #define FILTER_FIELD_5TUP_SRC_AD FILTER_FIELD_VALID(2)
 #define FILTER_FIELD_5TUP_DST_AD FILTER_FIELD_VALID(3)
 #define FILTER_FIELD_5TUP_SRC_PT FILTER_FIELD_VALID(4)
 #define FILTER_FIELD_5TUP_DST_PT FILTER_FIELD_VALID(5)
 
-#define FILTER_FIELDS_IPV4_5TUPLE (FILTER_FIELD_5TUP_PROTO | \
-				   FILTER_FIELD_5TUP_SRC_AD | \
-				   FILTER_FIELD_5TUP_DST_AD | \
-				   FILTER_FIELD_5TUP_SRC_PT | \
-				   FILTER_FIELD_5TUP_DST_PT)
+#define FILTER_FIELDS_IPV4_5TUPLE                                 \
+	(FILTER_FIELD_5TUP_PROTO | FILTER_FIELD_5TUP_SRC_AD |     \
+	    FILTER_FIELD_5TUP_DST_AD | FILTER_FIELD_5TUP_SRC_PT | \
+	    FILTER_FIELD_5TUP_DST_PT)
 
 /* Enums for the protocol field. */
 enum protocol_e {
@@ -813,13 +805,12 @@ struct filter_ipv4_5tuple {
 	u16 dst_port;
 } __attribute__((packed));
 
-#define FILTER_FIELD_VMQ_VLAN   FILTER_FIELD_VALID(1)
-#define FILTER_FIELD_VMQ_MAC    FILTER_FIELD_VALID(2)
+#define FILTER_FIELD_VMQ_VLAN FILTER_FIELD_VALID(1)
+#define FILTER_FIELD_VMQ_MAC FILTER_FIELD_VALID(2)
 
-#define FILTER_FIELDS_MAC_VLAN (FILTER_FIELD_VMQ_VLAN | \
-				FILTER_FIELD_VMQ_MAC)
+#define FILTER_FIELDS_MAC_VLAN (FILTER_FIELD_VMQ_VLAN | FILTER_FIELD_VMQ_MAC)
 
-#define FILTER_FIELDS_NVGRE    FILTER_FIELD_VMQ_MAC
+#define FILTER_FIELDS_NVGRE FILTER_FIELD_VMQ_MAC
 
 struct filter_mac_vlan {
 	u32 flags;
@@ -827,17 +818,17 @@ struct filter_mac_vlan {
 	u8 mac_addr[6];
 } __attribute__((packed));
 
-#define FILTER_FIELD_VLAN_IP_3TUP_VLAN      FILTER_FIELD_VALID(1)
-#define FILTER_FIELD_VLAN_IP_3TUP_L3_PROTO  FILTER_FIELD_VALID(2)
-#define FILTER_FIELD_VLAN_IP_3TUP_DST_AD    FILTER_FIELD_VALID(3)
-#define FILTER_FIELD_VLAN_IP_3TUP_L4_PROTO  FILTER_FIELD_VALID(4)
-#define FILTER_FIELD_VLAN_IP_3TUP_DST_PT    FILTER_FIELD_VALID(5)
+#define FILTER_FIELD_VLAN_IP_3TUP_VLAN FILTER_FIELD_VALID(1)
+#define FILTER_FIELD_VLAN_IP_3TUP_L3_PROTO FILTER_FIELD_VALID(2)
+#define FILTER_FIELD_VLAN_IP_3TUP_DST_AD FILTER_FIELD_VALID(3)
+#define FILTER_FIELD_VLAN_IP_3TUP_L4_PROTO FILTER_FIELD_VALID(4)
+#define FILTER_FIELD_VLAN_IP_3TUP_DST_PT FILTER_FIELD_VALID(5)
 
-#define FILTER_FIELDS_VLAN_IP_3TUP (FILTER_FIELD_VLAN_IP_3TUP_VLAN | \
-				    FILTER_FIELD_VLAN_IP_3TUP_L3_PROTO | \
-				    FILTER_FIELD_VLAN_IP_3TUP_DST_AD | \
-				    FILTER_FIELD_VLAN_IP_3TUP_L4_PROTO | \
-				    FILTER_FIELD_VLAN_IP_3TUP_DST_PT)
+#define FILTER_FIELDS_VLAN_IP_3TUP                                             \
+	(FILTER_FIELD_VLAN_IP_3TUP_VLAN | FILTER_FIELD_VLAN_IP_3TUP_L3_PROTO | \
+	    FILTER_FIELD_VLAN_IP_3TUP_DST_AD |                                 \
+	    FILTER_FIELD_VLAN_IP_3TUP_L4_PROTO |                               \
+	    FILTER_FIELD_VLAN_IP_3TUP_DST_PT)
 
 struct filter_vlan_ip_3tuple {
 	u32 flags;
@@ -861,14 +852,14 @@ enum filter_generic_1_layer {
 	FILTER_GENERIC_1_NUM_LAYERS
 };
 
-#define FILTER_GENERIC_1_IPV4       (1 << 0)
-#define FILTER_GENERIC_1_IPV6       (1 << 1)
-#define FILTER_GENERIC_1_UDP        (1 << 2)
-#define FILTER_GENERIC_1_TCP        (1 << 3)
+#define FILTER_GENERIC_1_IPV4 (1 << 0)
+#define FILTER_GENERIC_1_IPV6 (1 << 1)
+#define FILTER_GENERIC_1_UDP (1 << 2)
+#define FILTER_GENERIC_1_TCP (1 << 3)
 #define FILTER_GENERIC_1_TCP_OR_UDP (1 << 4)
-#define FILTER_GENERIC_1_IP4SUM_OK  (1 << 5)
-#define FILTER_GENERIC_1_L4SUM_OK   (1 << 6)
-#define FILTER_GENERIC_1_IPFRAG     (1 << 7)
+#define FILTER_GENERIC_1_IP4SUM_OK (1 << 5)
+#define FILTER_GENERIC_1_L4SUM_OK (1 << 6)
+#define FILTER_GENERIC_1_IPFRAG (1 << 7)
 
 #define FILTER_GENERIC_1_KEY_LEN 64
 
@@ -877,7 +868,7 @@ enum filter_generic_1_layer {
  * position is only 16 bits, reserving positions > 64k to be used by firmware
  */
 struct filter_generic_1 {
-	u16 position;       /* lower position comes first */
+	u16 position; /* lower position comes first */
 	u32 mask_flags;
 	u32 val_flags;
 	u16 mask_vlan;
@@ -889,11 +880,7 @@ struct filter_generic_1 {
 } __attribute__((packed));
 
 /* Specifies the filter_action type. */
-enum {
-	FILTER_ACTION_RQ_STEERING = 0,
-	FILTER_ACTION_V2 = 1,
-	FILTER_ACTION_MAX
-};
+enum { FILTER_ACTION_RQ_STEERING = 0, FILTER_ACTION_V2 = 1, FILTER_ACTION_MAX };
 
 struct filter_action {
 	u32 type;
@@ -902,14 +889,13 @@ struct filter_action {
 	} u;
 } __attribute__((packed));
 
-#define FILTER_ACTION_RQ_STEERING_FLAG	(1 << 0)
-#define FILTER_ACTION_FILTER_ID_FLAG	(1 << 1)
-#define FILTER_ACTION_DROP_FLAG		(1 << 2)
-#define FILTER_ACTION_COUNTER_FLAG      (1 << 3)
-#define FILTER_ACTION_V2_ALL		(FILTER_ACTION_RQ_STEERING_FLAG \
-					 | FILTER_ACTION_FILTER_ID_FLAG \
-					 | FILTER_ACTION_DROP_FLAG \
-					 | FILTER_ACTION_COUNTER_FLAG)
+#define FILTER_ACTION_RQ_STEERING_FLAG (1 << 0)
+#define FILTER_ACTION_FILTER_ID_FLAG (1 << 1)
+#define FILTER_ACTION_DROP_FLAG (1 << 2)
+#define FILTER_ACTION_COUNTER_FLAG (1 << 3)
+#define FILTER_ACTION_V2_ALL                                             \
+	(FILTER_ACTION_RQ_STEERING_FLAG | FILTER_ACTION_FILTER_ID_FLAG | \
+	    FILTER_ACTION_DROP_FLAG | FILTER_ACTION_COUNTER_FLAG)
 
 /* Version 2 of filter action must be a strict extension of struct filter_action
  * where the first fields exactly match in size and meaning.
@@ -917,10 +903,10 @@ struct filter_action {
 struct filter_action_v2 {
 	u32 type;
 	u32 rq_idx;
-	u32 flags;                     /* use FILTER_ACTION_XXX_FLAG defines */
+	u32 flags; /* use FILTER_ACTION_XXX_FLAG defines */
 	u16 filter_id;
 	u32 counter_index;
-	uint8_t reserved[28];         /* for future expansion */
+	uint8_t reserved[28]; /* for future expansion */
 } __attribute__((packed));
 
 /* Specifies the filter type. */
@@ -935,20 +921,17 @@ enum filter_type {
 	FILTER_MAX
 };
 
-#define FILTER_USNIC_ID_FLAG		(1 << FILTER_USNIC_ID)
-#define FILTER_IPV4_5TUPLE_FLAG		(1 << FILTER_IPV4_5TUPLE)
-#define FILTER_MAC_VLAN_FLAG		(1 << FILTER_MAC_VLAN)
-#define FILTER_VLAN_IP_3TUPLE_FLAG	(1 << FILTER_VLAN_IP_3TUPLE)
-#define FILTER_NVGRE_VMQ_FLAG		(1 << FILTER_NVGRE_VMQ)
-#define FILTER_USNIC_IP_FLAG		(1 << FILTER_USNIC_IP)
-#define FILTER_DPDK_1_FLAG		(1 << FILTER_DPDK_1)
-#define FILTER_V1_ALL			(FILTER_USNIC_ID_FLAG | \
-					FILTER_IPV4_5TUPLE_FLAG | \
-					FILTER_MAC_VLAN_FLAG | \
-					FILTER_VLAN_IP_3TUPLE_FLAG | \
-					FILTER_NVGRE_VMQ_FLAG | \
-					FILTER_USNIC_IP_FLAG | \
-					FILTER_DPDK_1_FLAG)
+#define FILTER_USNIC_ID_FLAG (1 << FILTER_USNIC_ID)
+#define FILTER_IPV4_5TUPLE_FLAG (1 << FILTER_IPV4_5TUPLE)
+#define FILTER_MAC_VLAN_FLAG (1 << FILTER_MAC_VLAN)
+#define FILTER_VLAN_IP_3TUPLE_FLAG (1 << FILTER_VLAN_IP_3TUPLE)
+#define FILTER_NVGRE_VMQ_FLAG (1 << FILTER_NVGRE_VMQ)
+#define FILTER_USNIC_IP_FLAG (1 << FILTER_USNIC_IP)
+#define FILTER_DPDK_1_FLAG (1 << FILTER_DPDK_1)
+#define FILTER_V1_ALL                                           \
+	(FILTER_USNIC_ID_FLAG | FILTER_IPV4_5TUPLE_FLAG |       \
+	    FILTER_MAC_VLAN_FLAG | FILTER_VLAN_IP_3TUPLE_FLAG | \
+	    FILTER_NVGRE_VMQ_FLAG | FILTER_USNIC_IP_FLAG | FILTER_DPDK_1_FLAG)
 
 struct filter {
 	u32 type;
@@ -993,9 +976,9 @@ struct filter_tlv {
 
 /* Data for CMD_ADD_FILTER is 2 TLV and filter + action structs */
 #define FILTER_MAX_BUF_SIZE 100
-#define FILTER_V2_MAX_BUF_SIZE (sizeof(struct filter_v2) + \
-	sizeof(struct filter_action_v2) + \
-	(2 * sizeof(struct filter_tlv)))
+#define FILTER_V2_MAX_BUF_SIZE                                        \
+	(sizeof(struct filter_v2) + sizeof(struct filter_action_v2) + \
+	    (2 * sizeof(struct filter_tlv)))
 
 /*
  * Compute actual structure size given filter type.  To be "future-proof,"
@@ -1078,14 +1061,14 @@ vnic_action_size(struct filter_action_v2 *fap)
 /* Make sizeof(vnic_devcmd) a power-of-2 for I/O BAR. */
 #define VNIC_DEVCMD_NARGS 15
 struct vnic_devcmd {
-	u32 status;			/* RO */
-	u32 cmd;			/* RW */
-	u64 args[VNIC_DEVCMD_NARGS];	/* RW cmd args (little-endian) */
+	u32 status;		     /* RO */
+	u32 cmd;		     /* RW */
+	u64 args[VNIC_DEVCMD_NARGS]; /* RW cmd args (little-endian) */
 };
 
-#define DEVCMD_STATUS 	0
-#define DEVCMD_CMD      4
-#define DEVCMD_ARGS(x)  (8 + (VNIC_DEVCMD_NARGS * x))
+#define DEVCMD_STATUS 0
+#define DEVCMD_CMD 4
+#define DEVCMD_ARGS(x) (8 + (VNIC_DEVCMD_NARGS * x))
 
 /*
  * Version 2 of the interface.
@@ -1097,29 +1080,29 @@ struct vnic_devcmd {
  * Flags for vnic_devcmd2.flags
  */
 
-#define DEVCMD2_FNORESULT       0x1     /* Don't copy result to host */
+#define DEVCMD2_FNORESULT 0x1 /* Don't copy result to host */
 
-#define VNIC_DEVCMD2_NARGS      VNIC_DEVCMD_NARGS
+#define VNIC_DEVCMD2_NARGS VNIC_DEVCMD_NARGS
 struct vnic_devcmd2 {
 	u16 pad;
 	u16 flags;
-	u32 cmd;                /* same command #defines as original */
+	u32 cmd; /* same command #defines as original */
 	u64 args[VNIC_DEVCMD2_NARGS];
 };
 
-#define VNIC_DEVCMD2_NRESULTS   VNIC_DEVCMD_NARGS
+#define VNIC_DEVCMD2_NRESULTS VNIC_DEVCMD_NARGS
 struct devcmd2_result {
 	u64 results[VNIC_DEVCMD2_NRESULTS];
 	u32 pad;
-	u16 completed_index;    /* into copy WQ */
-	u8  error;              /* same error codes as original */
-	u8  color;              /* 0 or 1 as with completion queues */
+	u16 completed_index; /* into copy WQ */
+	u8 error;	     /* same error codes as original */
+	u8 color;	     /* 0 or 1 as with completion queues */
 };
 
-#define DEVCMD2_RING_SIZE   32
-#define DEVCMD2_DESC_SIZE   128
+#define DEVCMD2_RING_SIZE 32
+#define DEVCMD2_DESC_SIZE 128
 
-#define DEVCMD2_RESULTS_SIZE_MAX   ((1 << 16) - 1)
+#define DEVCMD2_RESULTS_SIZE_MAX ((1 << 16) - 1)
 
 /* Overlay related definitions */
 
@@ -1132,9 +1115,9 @@ typedef enum {
 	OVERLAY_FEATURE_MAX,
 } overlay_feature_t;
 
-#define OVERLAY_OFFLOAD_ENABLE          0
-#define OVERLAY_OFFLOAD_DISABLE         1
-#define OVERLAY_OFFLOAD_ENABLE_V2       2
+#define OVERLAY_OFFLOAD_ENABLE 0
+#define OVERLAY_OFFLOAD_DISABLE 1
+#define OVERLAY_OFFLOAD_ENABLE_V2 2
 
 #define OVERLAY_CFG_VXLAN_PORT_UPDATE 0
 
@@ -1154,12 +1137,11 @@ typedef enum {
  * to indicate the host driver about the VxLAN and Multi WQ features
  * supported
  */
-#define FEATURE_VXLAN_IPV6_INNER	(1 << 0)
-#define FEATURE_VXLAN_IPV6_OUTER	(1 << 1)
-#define FEATURE_VXLAN_MULTI_WQ		(1 << 2)
+#define FEATURE_VXLAN_IPV6_INNER (1 << 0)
+#define FEATURE_VXLAN_IPV6_OUTER (1 << 1)
+#define FEATURE_VXLAN_MULTI_WQ (1 << 2)
 
-#define FEATURE_VXLAN_IPV6		(FEATURE_VXLAN_IPV6_INNER | \
-					 FEATURE_VXLAN_IPV6_OUTER)
+#define FEATURE_VXLAN_IPV6 (FEATURE_VXLAN_IPV6_INNER | FEATURE_VXLAN_IPV6_OUTER)
 
 /*
  * CMD_CONFIG_GRPINTR subcommands

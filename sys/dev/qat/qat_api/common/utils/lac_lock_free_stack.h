@@ -46,8 +46,7 @@ pop(lock_free_stack_t *stack)
 		new_top.ptr = (uintptr_t)next->pNext;
 		new_top.ctr = old_top.ctr + 1;
 	} while (!__sync_bool_compare_and_swap(&stack->top.atomic,
-					       old_top.atomic,
-					       new_top.atomic));
+	    old_top.atomic, new_top.atomic));
 
 	return next;
 }
@@ -64,8 +63,7 @@ push(lock_free_stack_t *stack, lac_mem_blk_t *val)
 		new_top.ptr = (uintptr_t)val;
 		new_top.ctr = old_top.ctr + 1;
 	} while (!__sync_bool_compare_and_swap(&stack->top.atomic,
-					       old_top.atomic,
-					       new_top.atomic));
+	    old_top.atomic, new_top.atomic));
 }
 
 static inline lock_free_stack_t

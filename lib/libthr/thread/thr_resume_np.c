@@ -30,13 +30,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_resume_np, pthread_resume_np);
 __weak_reference(_pthread_resume_all_np, pthread_resume_all_np);
@@ -51,7 +52,8 @@ _pthread_resume_np(pthread_t thread)
 	int ret;
 
 	/* Add a reference to the thread: */
-	if ((ret = _thr_find_thread(curthread, thread, /*include dead*/0)) == 0) {
+	if ((ret = _thr_find_thread(curthread, thread, /*include dead*/ 0)) ==
+	    0) {
 		/* Lock the threads scheduling queue: */
 		resume_common(thread);
 		THR_THREAD_UNLOCK(curthread, thread);
@@ -72,7 +74,7 @@ _pthread_resume_all_np(void)
 	/* Take the thread list lock: */
 	THREAD_LIST_RDLOCK(curthread);
 
-	TAILQ_FOREACH(thread, &_thread_list, tle) {
+	TAILQ_FOREACH (thread, &_thread_list, tle) {
 		if (thread != curthread) {
 			THR_THREAD_LOCK(curthread, thread);
 			resume_common(thread);

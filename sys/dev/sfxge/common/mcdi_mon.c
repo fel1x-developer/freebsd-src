@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 #include "mcdi_mon.h"
@@ -38,20 +39,18 @@
 #if EFSYS_OPT_MON_STATS
 
 /* Get port mask from one-based MCDI port number */
-#define	MCDI_MON_PORT_MASK(_emip) (1U << ((_emip)->emi_port - 1))
+#define MCDI_MON_PORT_MASK(_emip) (1U << ((_emip)->emi_port - 1))
 
-#define	MCDI_STATIC_SENSOR_ASSERT(_field)				\
-	EFX_STATIC_ASSERT(MC_CMD_SENSOR_STATE_ ## _field		\
-			    == EFX_MON_STAT_STATE_ ## _field)
+#define MCDI_STATIC_SENSOR_ASSERT(_field) \
+	EFX_STATIC_ASSERT(                \
+	    MC_CMD_SENSOR_STATE_##_field == EFX_MON_STAT_STATE_##_field)
 
-static						void
-mcdi_mon_decode_stats(
-	__in					efx_nic_t *enp,
-	__in_bcount(sensor_mask_size)		uint32_t *sensor_mask,
-	__in					size_t sensor_mask_size,
-	__in_opt				efsys_mem_t *esmp,
-	__out_bcount_opt(sensor_mask_size)	uint32_t *stat_maskp,
-	__inout_ecount_opt(EFX_MON_NSTATS)	efx_mon_stat_value_t *stat)
+static void
+mcdi_mon_decode_stats(__in efx_nic_t *enp,
+    __in_bcount(sensor_mask_size) uint32_t *sensor_mask,
+    __in size_t sensor_mask_size, __in_opt efsys_mem_t *esmp,
+    __out_bcount_opt(sensor_mask_size) uint32_t *stat_maskp,
+    __inout_ecount_opt(EFX_MON_NSTATS) efx_mon_stat_value_t *stat)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_mon_stat_portmask_t port_mask;
@@ -73,7 +72,7 @@ mcdi_mon_decode_stats(
 	EFSYS_ASSERT(emip->emi_port > 0); /* MCDI port number is one-based */
 	port_mask = (efx_mon_stat_portmask_t)MCDI_MON_PORT_MASK(emip);
 
-	memset(stat_mask, 0, sizeof (stat_mask));
+	memset(stat_mask, 0, sizeof(stat_mask));
 
 	/*
 	 * The MCDI sensor readings in the DMA buffer are a packed array of
@@ -109,8 +108,8 @@ mcdi_mon_decode_stats(
 		 */
 
 		decode_ok = efx_mon_mcdi_to_efx_stat(sensor, &id);
-		decode_ok =
-		    decode_ok && efx_mon_get_stat_portmap(id, &stat_portmask);
+		decode_ok = decode_ok &&
+		    efx_mon_get_stat_portmap(id, &stat_portmask);
 
 		if (!(decode_ok && (stat_portmask & port_mask)))
 			continue;
@@ -126,8 +125,8 @@ mcdi_mon_decode_stats(
 		 * map then the sensor reading is used for the value of the
 		 * monitor statistic.
 		 */
-		stat_mask[id / EFX_MON_MASK_ELEMENT_SIZE] |=
-		    (1U << (id % EFX_MON_MASK_ELEMENT_SIZE));
+		stat_mask[id / EFX_MON_MASK_ELEMENT_SIZE] |= (1U
+		    << (id % EFX_MON_MASK_ELEMENT_SIZE));
 
 		if (stat != NULL && esmp != NULL && !EFSYS_MEM_IS_NULL(esmp)) {
 			efx_dword_t dword;
@@ -142,23 +141,21 @@ mcdi_mon_decode_stats(
 			stat[id].emsv_state = (uint16_t)EFX_DWORD_FIELD(dword,
 			    MC_CMD_SENSOR_VALUE_ENTRY_TYPEDEF_STATE);
 
-			stat[id].emsv_unit =
-			    efx_mon_get_stat_unit(id, &stat_unit) ?
-			    stat_unit : EFX_MON_STAT_UNIT_UNKNOWN;
+			stat[id].emsv_unit = efx_mon_get_stat_unit(id,
+						 &stat_unit) ?
+			    stat_unit :
+			    EFX_MON_STAT_UNIT_UNKNOWN;
 		}
 	}
 
 	if (stat_maskp != NULL) {
-		memcpy(stat_maskp, stat_mask, sizeof (stat_mask));
+		memcpy(stat_maskp, stat_mask, sizeof(stat_mask));
 	}
 }
 
-	__checkReturn			efx_rc_t
-mcdi_mon_ev(
-	__in				efx_nic_t *enp,
-	__in				efx_qword_t *eqp,
-	__out				efx_mon_stat_t *idp,
-	__out				efx_mon_stat_value_t *valuep)
+__checkReturn efx_rc_t
+mcdi_mon_ev(__in efx_nic_t *enp, __in efx_qword_t *eqp,
+    __out efx_mon_stat_t *idp, __out efx_mon_stat_value_t *valuep)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_mon_stat_portmask_t port_mask, sensor_port_mask;
@@ -181,8 +178,9 @@ mcdi_mon_ev(
 	EFSYS_ASSERT((sensor % (MC_CMD_SENSOR_PAGE0_NEXT + 1)) !=
 	    MC_CMD_SENSOR_PAGE0_NEXT);
 	EFSYS_ASSERT(enp->en_nic_cfg.enc_mcdi_sensor_maskp != NULL);
-	EFSYS_ASSERT((enp->en_nic_cfg.enc_mcdi_sensor_maskp[
-		    sensor / (MC_CMD_SENSOR_PAGE0_NEXT + 1)] &
+	EFSYS_ASSERT(
+	    (enp->en_nic_cfg.enc_mcdi_sensor_maskp[sensor /
+		 (MC_CMD_SENSOR_PAGE0_NEXT + 1)] &
 		(1U << (sensor % (MC_CMD_SENSOR_PAGE0_NEXT + 1)))) != 0);
 
 	/* And we need to understand it, to get port-map */
@@ -208,15 +206,13 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_read_sensors(
-	__in		efx_nic_t *enp,
-	__in		efsys_mem_t *esmp,
-	__in		uint32_t size)
+static __checkReturn efx_rc_t
+efx_mcdi_read_sensors(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __in uint32_t size)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_READ_SENSORS_EXT_IN_LEN,
-		MC_CMD_READ_SENSORS_EXT_OUT_LEN);
+	    MC_CMD_READ_SENSORS_EXT_OUT_LEN);
 	uint32_t addr_lo, addr_hi;
 	efx_rc_t rc;
 
@@ -248,14 +244,12 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn	efx_rc_t
-efx_mcdi_sensor_info_npages(
-	__in		efx_nic_t *enp,
-	__out		uint32_t *npagesp)
+static __checkReturn efx_rc_t
+efx_mcdi_sensor_info_npages(__in efx_nic_t *enp, __out uint32_t *npagesp)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_SENSOR_INFO_EXT_IN_LEN,
-		MC_CMD_SENSOR_INFO_OUT_LENMAX);
+	    MC_CMD_SENSOR_INFO_OUT_LENMAX);
 	int page;
 	efx_rc_t rc;
 
@@ -263,7 +257,7 @@ efx_mcdi_sensor_info_npages(
 
 	page = 0;
 	do {
-		(void) memset(payload, 0, sizeof (payload));
+		(void)memset(payload, 0, sizeof(payload));
 		req.emr_cmd = MC_CMD_SENSOR_INFO;
 		req.emr_in_buf = payload;
 		req.emr_in_length = MC_CMD_SENSOR_INFO_EXT_IN_LEN;
@@ -291,15 +285,13 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-efx_mcdi_sensor_info(
-	__in			efx_nic_t *enp,
-	__out_ecount(npages)	uint32_t *sensor_maskp,
-	__in			size_t npages)
+static __checkReturn efx_rc_t
+efx_mcdi_sensor_info(__in efx_nic_t *enp,
+    __out_ecount(npages) uint32_t *sensor_maskp, __in size_t npages)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_SENSOR_INFO_EXT_IN_LEN,
-		MC_CMD_SENSOR_INFO_OUT_LENMAX);
+	    MC_CMD_SENSOR_INFO_OUT_LENMAX);
 	uint32_t page;
 	efx_rc_t rc;
 
@@ -313,7 +305,7 @@ efx_mcdi_sensor_info(
 	for (page = 0; page < npages; page++) {
 		uint32_t mask;
 
-		(void) memset(payload, 0, sizeof (payload));
+		(void)memset(payload, 0, sizeof(payload));
 		req.emr_cmd = MC_CMD_SENSOR_INFO;
 		req.emr_in_buf = payload;
 		req.emr_in_length = MC_CMD_SENSOR_INFO_EXT_IN_LEN;
@@ -358,17 +350,14 @@ fail1:
 	return (rc);
 }
 
-static	__checkReturn		efx_rc_t
-efx_mcdi_sensor_info_page(
-	__in			efx_nic_t *enp,
-	__in			uint32_t page,
-	__out			uint32_t *mask_part,
-	__out_ecount((sizeof (*mask_part) * 8) - 1)
-				efx_mon_stat_limits_t *limits)
+static __checkReturn efx_rc_t
+efx_mcdi_sensor_info_page(__in efx_nic_t *enp, __in uint32_t page,
+    __out uint32_t *mask_part,
+    __out_ecount((sizeof(*mask_part) * 8) - 1) efx_mon_stat_limits_t *limits)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_SENSOR_INFO_EXT_IN_LEN,
-		MC_CMD_SENSOR_INFO_OUT_LENMAX);
+	    MC_CMD_SENSOR_INFO_OUT_LENMAX);
 	efx_rc_t rc;
 	uint32_t mask_copy;
 	efx_dword_t *maskp;
@@ -378,7 +367,7 @@ efx_mcdi_sensor_info_page(
 	EFSYS_ASSERT(limits != NULL);
 
 	memset(limits, 0,
-	    ((sizeof (*mask_part) * 8) - 1) * sizeof (efx_mon_stat_limits_t));
+	    ((sizeof(*mask_part) * 8) - 1) * sizeof(efx_mon_stat_limits_t));
 
 	req.emr_cmd = MC_CMD_SENSOR_INFO;
 	req.emr_in_buf = payload;
@@ -395,8 +384,8 @@ efx_mcdi_sensor_info_page(
 	if (rc != 0)
 		goto fail1;
 
-	EFSYS_ASSERT(sizeof (*limit_info) ==
-	    MC_CMD_SENSOR_INFO_ENTRY_TYPEDEF_LEN);
+	EFSYS_ASSERT(
+	    sizeof(*limit_info) == MC_CMD_SENSOR_INFO_ENTRY_TYPEDEF_LEN);
 	maskp = MCDI_OUT2(req, efx_dword_t, SENSOR_INFO_OUT_MASK);
 	limit_info = (efx_qword_t *)(maskp + 1);
 
@@ -437,11 +426,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn			efx_rc_t
-mcdi_mon_stats_update(
-	__in				efx_nic_t *enp,
-	__in				efsys_mem_t *esmp,
-	__inout_ecount(EFX_MON_NSTATS)	efx_mon_stat_value_t *values)
+__checkReturn efx_rc_t
+mcdi_mon_stats_update(__in efx_nic_t *enp, __in efsys_mem_t *esmp,
+    __inout_ecount(EFX_MON_NSTATS) efx_mon_stat_value_t *values)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t size = encp->enc_mon_stat_dma_buf_size;
@@ -452,10 +439,8 @@ mcdi_mon_stats_update(
 
 	EFSYS_DMA_SYNC_FOR_KERNEL(esmp, 0, size);
 
-	mcdi_mon_decode_stats(enp,
-	    encp->enc_mcdi_sensor_maskp,
-	    encp->enc_mcdi_sensor_mask_size,
-	    esmp, NULL, values);
+	mcdi_mon_decode_stats(enp, encp->enc_mcdi_sensor_maskp,
+	    encp->enc_mcdi_sensor_mask_size, esmp, NULL, values);
 
 	return (0);
 
@@ -465,12 +450,9 @@ fail1:
 	return (rc);
 }
 
-static		void
-lowest_set_bit(
-	__in	uint32_t input_mask,
-	__out	uint32_t *lowest_bit_mask,
-	__out	uint32_t *lowest_bit_num
-)
+static void
+lowest_set_bit(__in uint32_t input_mask, __out uint32_t *lowest_bit_mask,
+    __out uint32_t *lowest_bit_num)
 {
 	uint32_t x;
 	uint32_t set_bit, bit_index;
@@ -496,16 +478,15 @@ lowest_set_bit(
 	*lowest_bit_num = bit_index;
 }
 
-	__checkReturn			efx_rc_t
-mcdi_mon_limits_update(
-	__in				efx_nic_t *enp,
-	__inout_ecount(EFX_MON_NSTATS)	efx_mon_stat_limits_t *values)
+__checkReturn efx_rc_t
+mcdi_mon_limits_update(__in efx_nic_t *enp,
+    __inout_ecount(EFX_MON_NSTATS) efx_mon_stat_limits_t *values)
 {
 	efx_rc_t rc;
 	uint32_t page;
 	uint32_t page_mask;
 	uint32_t limit_index;
-	efx_mon_stat_limits_t limits[sizeof (page_mask) * 8];
+	efx_mon_stat_limits_t limits[sizeof(page_mask) * 8];
 	efx_mon_stat_t stat;
 
 	page = 0;
@@ -529,8 +510,8 @@ mcdi_mon_limits_update(
 			lowest_set_bit(page_mask, &set_bit, &page_index);
 			page_mask = page_mask & ~set_bit;
 
-			mcdi_index =
-			    page_index + (sizeof (page_mask) * 8 * page);
+			mcdi_index = page_index +
+			    (sizeof(page_mask) * 8 * page);
 
 			/*
 			 * This can fail if MCDI reports newer stats than the
@@ -555,9 +536,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-mcdi_mon_cfg_build(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+mcdi_mon_cfg_build(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 	uint32_t npages;
@@ -594,12 +574,11 @@ mcdi_mon_cfg_build(
 	if ((rc = efx_mcdi_sensor_info_npages(enp, &npages)) != 0)
 		goto fail2;
 
-	encp->enc_mon_stat_dma_buf_size	= npages * EFX_MON_STATS_PAGE_SIZE;
-	encp->enc_mcdi_sensor_mask_size = npages * sizeof (uint32_t);
+	encp->enc_mon_stat_dma_buf_size = npages * EFX_MON_STATS_PAGE_SIZE;
+	encp->enc_mcdi_sensor_mask_size = npages * sizeof(uint32_t);
 
 	/* Allocate mc sensor mask */
-	EFSYS_KMEM_ALLOC(enp->en_esip,
-	    encp->enc_mcdi_sensor_mask_size,
+	EFSYS_KMEM_ALLOC(enp->en_esip, encp->enc_mcdi_sensor_mask_size,
 	    encp->enc_mcdi_sensor_maskp);
 
 	if (encp->enc_mcdi_sensor_maskp == NULL) {
@@ -608,23 +587,20 @@ mcdi_mon_cfg_build(
 	}
 
 	/* Read mc sensor mask */
-	if ((rc = efx_mcdi_sensor_info(enp,
-		    encp->enc_mcdi_sensor_maskp,
-		    npages)) != 0)
+	if ((rc = efx_mcdi_sensor_info(enp, encp->enc_mcdi_sensor_maskp,
+		 npages)) != 0)
 		goto fail4;
 
 	/* Build monitor statistics mask */
-	mcdi_mon_decode_stats(enp,
-	    encp->enc_mcdi_sensor_maskp,
-	    encp->enc_mcdi_sensor_mask_size,
-	    NULL, encp->enc_mon_stat_mask, NULL);
+	mcdi_mon_decode_stats(enp, encp->enc_mcdi_sensor_maskp,
+	    encp->enc_mcdi_sensor_mask_size, NULL, encp->enc_mon_stat_mask,
+	    NULL);
 
 	return (0);
 
 fail4:
 	EFSYS_PROBE(fail4);
-	EFSYS_KMEM_FREE(enp->en_esip,
-	    encp->enc_mcdi_sensor_mask_size,
+	EFSYS_KMEM_FREE(enp->en_esip, encp->enc_mcdi_sensor_mask_size,
 	    encp->enc_mcdi_sensor_maskp);
 
 fail3:
@@ -639,19 +615,17 @@ fail1:
 	return (rc);
 }
 
-			void
-mcdi_mon_cfg_free(
-	__in		efx_nic_t *enp)
+void
+mcdi_mon_cfg_free(__in efx_nic_t *enp)
 {
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
 
 	if (encp->enc_mcdi_sensor_maskp != NULL) {
-		EFSYS_KMEM_FREE(enp->en_esip,
-		    encp->enc_mcdi_sensor_mask_size,
+		EFSYS_KMEM_FREE(enp->en_esip, encp->enc_mcdi_sensor_mask_size,
 		    encp->enc_mcdi_sensor_maskp);
 	}
 }
 
-#endif	/* EFSYS_OPT_MON_STATS */
+#endif /* EFSYS_OPT_MON_STATS */
 
-#endif	/* EFSYS_OPT_MON_MCDI */
+#endif /* EFSYS_OPT_MON_MCDI */

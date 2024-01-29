@@ -28,81 +28,82 @@
 
 /* PCIe external MAC root complex driver (PEM) for Cavium Thunder SOC */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/endian.h>
 
 #include <vm/vm.h>
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pci_host_generic.h>
-#include <dev/pci/pcib_private.h>
-
 #include <machine/bus.h>
+#include <machine/intr.h>
 #include <machine/resource.h>
 #include <machine/smp.h>
-#include <machine/intr.h>
+
+#include <dev/pci/pci_host_generic.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <arm64/cavium/thunder_pcie_common.h>
 #include <arm64/cavium/thunder_pcie_pem.h>
+
 #include "pcib_if.h"
 
-#define	THUNDER_PEM_DEVICE_ID		0xa020
-#define	THUNDER_PEM_VENDOR_ID		0x177d
+#define THUNDER_PEM_DEVICE_ID 0xa020
+#define THUNDER_PEM_VENDOR_ID 0x177d
 
 /* ThunderX specific defines */
-#define	THUNDER_PEMn_REG_BASE(unit)	(0x87e0c0000000UL | ((unit) << 24))
-#define	PCIERC_CFG002			0x08
-#define	PCIERC_CFG006			0x18
-#define	PCIERC_CFG032			0x80
-#define	PCIERC_CFG006_SEC_BUS(reg)	(((reg) >> 8) & 0xFF)
-#define	PEM_CFG_RD_REG_ALIGN(reg)	((reg) & ~0x3)
-#define	PEM_CFG_RD_REG_DATA(val)	(((val) >> 32) & 0xFFFFFFFF)
-#define	PEM_CFG_RD			0x30
-#define	PEM_CFG_LINK_MASK		0x3
-#define	PEM_CFG_LINK_RDY		0x3
-#define	PEM_CFG_SLIX_TO_REG(slix)	((slix) << 4)
-#define	SBNUM_OFFSET			0x8
-#define	SBNUM_MASK			0xFF
-#define	PEM_ON_REG			0x420
-#define	PEM_CTL_STATUS			0x0
-#define	PEM_LINK_ENABLE			(1 << 4)
-#define	PEM_LINK_DLLA			(1 << 29)
-#define	PEM_LINK_LT			(1 << 27)
-#define	PEM_BUS_SHIFT			(24)
-#define	PEM_SLOT_SHIFT			(19)
-#define	PEM_FUNC_SHIFT			(16)
-#define	SLIX_S2M_REGX_ACC		0x874001000000UL
-#define	SLIX_S2M_REGX_ACC_SIZE		0x1000
-#define	SLIX_S2M_REGX_ACC_SPACING	0x001000000000UL
-#define	SLI_BASE			0x880000000000UL
-#define	SLI_WINDOW_SPACING		0x004000000000UL
-#define	SLI_PCI_OFFSET			0x001000000000UL
-#define	SLI_NODE_SHIFT			(44)
-#define	SLI_NODE_MASK			(3)
-#define	SLI_GROUP_SHIFT			(40)
-#define	SLI_ID_SHIFT			(24)
-#define	SLI_ID_MASK			(7)
-#define	SLI_PEMS_PER_GROUP		(3)
-#define	SLI_GROUPS_PER_NODE		(2)
-#define	SLI_PEMS_PER_NODE		(SLI_PEMS_PER_GROUP * SLI_GROUPS_PER_NODE)
-#define	SLI_ACC_REG_CNT			(256)
+#define THUNDER_PEMn_REG_BASE(unit) (0x87e0c0000000UL | ((unit) << 24))
+#define PCIERC_CFG002 0x08
+#define PCIERC_CFG006 0x18
+#define PCIERC_CFG032 0x80
+#define PCIERC_CFG006_SEC_BUS(reg) (((reg) >> 8) & 0xFF)
+#define PEM_CFG_RD_REG_ALIGN(reg) ((reg) & ~0x3)
+#define PEM_CFG_RD_REG_DATA(val) (((val) >> 32) & 0xFFFFFFFF)
+#define PEM_CFG_RD 0x30
+#define PEM_CFG_LINK_MASK 0x3
+#define PEM_CFG_LINK_RDY 0x3
+#define PEM_CFG_SLIX_TO_REG(slix) ((slix) << 4)
+#define SBNUM_OFFSET 0x8
+#define SBNUM_MASK 0xFF
+#define PEM_ON_REG 0x420
+#define PEM_CTL_STATUS 0x0
+#define PEM_LINK_ENABLE (1 << 4)
+#define PEM_LINK_DLLA (1 << 29)
+#define PEM_LINK_LT (1 << 27)
+#define PEM_BUS_SHIFT (24)
+#define PEM_SLOT_SHIFT (19)
+#define PEM_FUNC_SHIFT (16)
+#define SLIX_S2M_REGX_ACC 0x874001000000UL
+#define SLIX_S2M_REGX_ACC_SIZE 0x1000
+#define SLIX_S2M_REGX_ACC_SPACING 0x001000000000UL
+#define SLI_BASE 0x880000000000UL
+#define SLI_WINDOW_SPACING 0x004000000000UL
+#define SLI_PCI_OFFSET 0x001000000000UL
+#define SLI_NODE_SHIFT (44)
+#define SLI_NODE_MASK (3)
+#define SLI_GROUP_SHIFT (40)
+#define SLI_ID_SHIFT (24)
+#define SLI_ID_MASK (7)
+#define SLI_PEMS_PER_GROUP (3)
+#define SLI_GROUPS_PER_NODE (2)
+#define SLI_PEMS_PER_NODE (SLI_PEMS_PER_GROUP * SLI_GROUPS_PER_NODE)
+#define SLI_ACC_REG_CNT (256)
 
 /*
  * Each PEM device creates its own bus with
@@ -113,18 +114,18 @@
  * 0x00000000 - 0x000FFFFF	IO
  * 0x00100000 - 0xFFFFFFFF	Memory
  */
-#define	PCI_IO_BASE		0x00000000UL
-#define	PCI_IO_SIZE		0x00100000UL
-#define	PCI_MEMORY_BASE		PCI_IO_SIZE
-#define	PCI_MEMORY_SIZE		0xFFF00000UL
+#define PCI_IO_BASE 0x00000000UL
+#define PCI_IO_SIZE 0x00100000UL
+#define PCI_MEMORY_BASE PCI_IO_SIZE
+#define PCI_MEMORY_SIZE 0xFFF00000UL
 
-#define	RID_PEM_SPACE		1
+#define RID_PEM_SPACE 1
 
 static int thunder_pem_activate_resource(device_t, device_t, int, int,
     struct resource *);
 static int thunder_pem_adjust_resource(device_t, device_t, int,
     struct resource *, rman_res_t, rman_res_t);
-static struct resource * thunder_pem_alloc_resource(device_t, device_t, int,
+static struct resource *thunder_pem_alloc_resource(device_t, device_t, int,
     int *, rman_res_t, rman_res_t, rman_res_t, u_int);
 static int thunder_pem_alloc_msi(device_t, device_t, int, int, int *);
 static int thunder_pem_release_msi(device_t, device_t, int, int *);
@@ -152,7 +153,7 @@ static int thunder_pem_read_ivar(device_t, device_t, int, uintptr_t *);
 static void thunder_pem_release_all(device_t);
 static int thunder_pem_release_resource(device_t, device_t, int, int,
     struct resource *);
-static struct rman * thunder_pem_get_rman(device_t, int, u_int);
+static struct rman *thunder_pem_get_rman(device_t, int, u_int);
 static void thunder_pem_slix_s2m_regx_acc_modify(struct thunder_pem_softc *,
     int, int);
 static void thunder_pem_write_config(device_t, u_int, u_int, u_int, u_int,
@@ -165,36 +166,36 @@ static bus_space_handle_t sli1_s2m_regx_base = 0;
 
 static device_method_t thunder_pem_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			thunder_pem_probe),
-	DEVMETHOD(device_attach,		thunder_pem_attach),
-	DEVMETHOD(device_detach,		thunder_pem_detach),
+	DEVMETHOD(device_probe, thunder_pem_probe),
+	DEVMETHOD(device_attach, thunder_pem_attach),
+	DEVMETHOD(device_detach, thunder_pem_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,		thunder_pem_read_ivar),
-	DEVMETHOD(bus_write_ivar,		thunder_pem_write_ivar),
-	DEVMETHOD(bus_get_rman,			thunder_pem_get_rman),
-	DEVMETHOD(bus_alloc_resource,		thunder_pem_alloc_resource),
-	DEVMETHOD(bus_release_resource,		thunder_pem_release_resource),
-	DEVMETHOD(bus_adjust_resource,		thunder_pem_adjust_resource),
-	DEVMETHOD(bus_activate_resource,	thunder_pem_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	thunder_pem_deactivate_resource),
-	DEVMETHOD(bus_map_resource,		thunder_pem_map_resource),
-	DEVMETHOD(bus_unmap_resource,		thunder_pem_unmap_resource),
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
+	DEVMETHOD(bus_read_ivar, thunder_pem_read_ivar),
+	DEVMETHOD(bus_write_ivar, thunder_pem_write_ivar),
+	DEVMETHOD(bus_get_rman, thunder_pem_get_rman),
+	DEVMETHOD(bus_alloc_resource, thunder_pem_alloc_resource),
+	DEVMETHOD(bus_release_resource, thunder_pem_release_resource),
+	DEVMETHOD(bus_adjust_resource, thunder_pem_adjust_resource),
+	DEVMETHOD(bus_activate_resource, thunder_pem_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, thunder_pem_deactivate_resource),
+	DEVMETHOD(bus_map_resource, thunder_pem_map_resource),
+	DEVMETHOD(bus_unmap_resource, thunder_pem_unmap_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
-	DEVMETHOD(bus_get_dma_tag,		thunder_pem_get_dma_tag),
+	DEVMETHOD(bus_get_dma_tag, thunder_pem_get_dma_tag),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,		thunder_pem_maxslots),
-	DEVMETHOD(pcib_read_config,		thunder_pem_read_config),
-	DEVMETHOD(pcib_write_config,		thunder_pem_write_config),
-	DEVMETHOD(pcib_alloc_msix,		thunder_pem_alloc_msix),
-	DEVMETHOD(pcib_release_msix,		thunder_pem_release_msix),
-	DEVMETHOD(pcib_alloc_msi,		thunder_pem_alloc_msi),
-	DEVMETHOD(pcib_release_msi,		thunder_pem_release_msi),
-	DEVMETHOD(pcib_map_msi,			thunder_pem_map_msi),
-	DEVMETHOD(pcib_get_id,			thunder_pem_get_id),
+	DEVMETHOD(pcib_maxslots, thunder_pem_maxslots),
+	DEVMETHOD(pcib_read_config, thunder_pem_read_config),
+	DEVMETHOD(pcib_write_config, thunder_pem_write_config),
+	DEVMETHOD(pcib_alloc_msix, thunder_pem_alloc_msix),
+	DEVMETHOD(pcib_release_msix, thunder_pem_release_msix),
+	DEVMETHOD(pcib_alloc_msi, thunder_pem_alloc_msi),
+	DEVMETHOD(pcib_release_msi, thunder_pem_release_msi),
+	DEVMETHOD(pcib_map_msi, thunder_pem_map_msi),
+	DEVMETHOD(pcib_get_id, thunder_pem_get_id),
 
 	DEVMETHOD_END
 };
@@ -246,8 +247,7 @@ thunder_pem_read_ivar(device_t dev, device_t child, int index,
 }
 
 static int
-thunder_pem_write_ivar(device_t dev, device_t child, int index,
-    uintptr_t value)
+thunder_pem_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 {
 
 	return (ENOENT);
@@ -272,8 +272,8 @@ thunder_pem_activate_resource(device_t dev, device_t child, int type, int rid,
 		return (bus_generic_rman_activate_resource(dev, child, type,
 		    rid, r));
 	default:
-		return (bus_generic_activate_resource(dev, child, type, rid,
-		    r));
+		return (
+		    bus_generic_activate_resource(dev, child, type, rid, r));
 	}
 }
 
@@ -296,8 +296,8 @@ thunder_pem_deactivate_resource(device_t dev, device_t child, int type, int rid,
 		return (bus_generic_rman_deactivate_resource(dev, child, type,
 		    rid, r));
 	default:
-		return (bus_generic_deactivate_resource(dev, child, type, rid,
-		    r));
+		return (
+		    bus_generic_deactivate_resource(dev, child, type, rid, r));
 	}
 }
 
@@ -578,20 +578,20 @@ thunder_pem_config_reg_read(struct thunder_pem_softc *sc, int reg)
 	bus_space_barrier(sc->reg_bst, sc->reg_bsh, PEM_CFG_RD, 8,
 	    BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE);
 	/* Read from DATA register */
-	data = PEM_CFG_RD_REG_DATA(bus_space_read_8(sc->reg_bst, sc->reg_bsh,
-	    PEM_CFG_RD));
+	data = PEM_CFG_RD_REG_DATA(
+	    bus_space_read_8(sc->reg_bst, sc->reg_bsh, PEM_CFG_RD));
 
 	return (data);
 }
 
 static uint32_t
-thunder_pem_read_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, int bytes)
+thunder_pem_read_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, int bytes)
 {
 	uint64_t offset;
 	uint32_t data;
 	struct thunder_pem_softc *sc;
-	bus_space_tag_t	t;
+	bus_space_tag_t t;
 	bus_space_handle_t h;
 
 	if ((bus > PCI_BUSMAX) || (slot > PCI_SLOTMAX) ||
@@ -606,8 +606,8 @@ thunder_pem_read_config(device_t dev, u_int bus, u_int slot,
 	t = sc->reg_bst;
 	h = sc->pem_sli_base;
 
-	bus_space_map(sc->reg_bst, sc->sli_window_base + offset,
-	    PCIE_REGMAX, 0, &h);
+	bus_space_map(sc->reg_bst, sc->sli_window_base + offset, PCIE_REGMAX, 0,
+	    &h);
 
 	switch (bytes) {
 	case 1:
@@ -630,12 +630,12 @@ thunder_pem_read_config(device_t dev, u_int bus, u_int slot,
 }
 
 static void
-thunder_pem_write_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, uint32_t val, int bytes)
+thunder_pem_write_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, uint32_t val, int bytes)
 {
 	uint64_t offset;
 	struct thunder_pem_softc *sc;
-	bus_space_tag_t	t;
+	bus_space_tag_t t;
 	bus_space_handle_t h;
 
 	if ((bus > PCI_BUSMAX) || (slot > PCI_SLOTMAX) ||
@@ -650,8 +650,8 @@ thunder_pem_write_config(device_t dev, u_int bus, u_int slot,
 	t = sc->reg_bst;
 	h = sc->pem_sli_base;
 
-	bus_space_map(sc->reg_bst, sc->sli_window_base + offset,
-	    PCIE_REGMAX, 0, &h);
+	bus_space_map(sc->reg_bst, sc->sli_window_base + offset, PCIE_REGMAX, 0,
+	    &h);
 
 	switch (bytes) {
 	case 1:
@@ -681,7 +681,7 @@ thunder_pem_alloc_resource(device_t dev, device_t child, int type, int *rid,
 	switch (type) {
 #if defined(NEW_PCIB) && defined(PCI_RES_BUS)
 	case PCI_RES_BUS:
-		return (pci_domain_alloc_bus(sc->id, child, rid, start,  end,
+		return (pci_domain_alloc_bus(sc->id, child, rid, start, end,
 		    count, flags));
 #endif
 	case SYS_RES_IOPORT:
@@ -711,10 +711,11 @@ thunder_pem_alloc_resource(device_t dev, device_t child, int type, int *rid,
 		    start, end, count);
 	}
 
-	res = bus_generic_rman_alloc_resource(dev, child, type, rid, start,
-	    end, count, flags);
+	res = bus_generic_rman_alloc_resource(dev, child, type, rid, start, end,
+	    count, flags);
 	if (res == NULL && bootverbose) {
-		device_printf(dev, "%s FAIL: type=%d, rid=%d, "
+		device_printf(dev,
+		    "%s FAIL: type=%d, rid=%d, "
 		    "start=%016lx, end=%016lx, count=%016lx, flags=%x\n",
 		    __func__, type, *rid, start, end, count, flags);
 	}
@@ -738,13 +739,13 @@ thunder_pem_release_resource(device_t dev, device_t child, int type, int rid,
 #endif
 	case SYS_RES_MEMORY:
 	case SYS_RES_IOPORT:
-		return (bus_generic_rman_release_resource(dev, child, type,
-		    rid, res));
+		return (bus_generic_rman_release_resource(dev, child, type, rid,
+		    res));
 	default:
 		/* Find parent device. On ThunderX we know an exact path. */
 		parent_dev = device_get_parent(device_get_parent(dev));
-		return (BUS_RELEASE_RESOURCE(parent_dev, child,
-		    type, rid, res));
+		return (
+		    BUS_RELEASE_RESOURCE(parent_dev, child, type, rid, res));
 	}
 }
 
@@ -809,8 +810,8 @@ thunder_pem_attach(device_t dev)
 	else
 		rid = RID_PEM_SPACE;
 
-	sc->reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &rid, RF_ACTIVE | RF_UNMAPPED);
+	sc->reg = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE | RF_UNMAPPED);
 	if (sc->reg == NULL) {
 		device_printf(dev, "Failed to allocate resource\n");
 		return (ENXIO);
@@ -829,15 +830,15 @@ thunder_pem_attach(device_t dev)
 
 	/* Create the parent DMA tag to pass down the coherent flag */
 	error = bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
-	    1, 0,			/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE,		/* maxsize */
-	    BUS_SPACE_UNRESTRICTED,	/* nsegments */
-	    BUS_SPACE_MAXSIZE,		/* maxsegsize */
-	    BUS_DMA_COHERENT,		/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    1, 0,					 /* alignment, bounds */
+	    BUS_SPACE_MAXADDR,				 /* lowaddr */
+	    BUS_SPACE_MAXADDR,				 /* highaddr */
+	    NULL, NULL,					 /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE,				 /* maxsize */
+	    BUS_SPACE_UNRESTRICTED,			 /* nsegments */
+	    BUS_SPACE_MAXSIZE,				 /* maxsegsize */
+	    BUS_DMA_COHERENT,				 /* flags */
+	    NULL, NULL,					 /* lockfunc, lockarg */
 	    &sc->dmat);
 	if (error != 0)
 		return (error);
@@ -848,9 +849,9 @@ thunder_pem_attach(device_t dev)
 		    SLIX_S2M_REGX_ACC_SIZE, 0, &sli0_s2m_regx_base);
 	}
 	if (!sli1_s2m_regx_base) {
-		bus_space_map(sc->reg_bst, SLIX_S2M_REGX_ACC +
-		    SLIX_S2M_REGX_ACC_SPACING, SLIX_S2M_REGX_ACC_SIZE, 0,
-		    &sli1_s2m_regx_base);
+		bus_space_map(sc->reg_bst,
+		    SLIX_S2M_REGX_ACC + SLIX_S2M_REGX_ACC_SPACING,
+		    SLIX_S2M_REGX_ACC_SIZE, 0, &sli1_s2m_regx_base);
 	}
 
 	if ((sli0_s2m_regx_base == 0) || (sli1_s2m_regx_base == 0)) {
@@ -910,8 +911,7 @@ thunder_pem_attach(device_t dev)
 
 		rman = thunder_pem_get_rman(dev, sc->ranges[tuple].flags, 0);
 		if (rman != NULL)
-			error = rman_manage_region(rman, base,
-			    base + size - 1);
+			error = rman_manage_region(rman, base, base + size - 1);
 		else
 			error = EINVAL;
 		if (error) {
@@ -924,8 +924,7 @@ thunder_pem_attach(device_t dev)
 			device_printf(dev,
 			    "\tPCI addr: 0x%jx, CPU addr: 0x%jx, Size: 0x%jx, Flags:0x%jx\n",
 			    sc->ranges[tuple].pci_base,
-			    sc->ranges[tuple].phys_base,
-			    sc->ranges[tuple].size,
+			    sc->ranges[tuple].phys_base, sc->ranges[tuple].size,
 			    sc->ranges[tuple].flags);
 		}
 	}

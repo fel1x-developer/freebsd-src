@@ -69,29 +69,21 @@ extern "C" {
  * Macro to read the port task scheduler register associated with this port
  * object
  */
-#define scu_port_task_scheduler_read(port, reg) \
-   scu_register_read( \
-      scic_sds_port_get_controller(port), \
-      (port)->port_task_scheduler_registers->reg \
-   )
+#define scu_port_task_scheduler_read(port, reg)               \
+	scu_register_read(scic_sds_port_get_controller(port), \
+	    (port)->port_task_scheduler_registers->reg)
 
 /**
  * Macro to write the port task scheduler register associated with this
  * port object
  */
-#define scu_port_task_scheduler_write(port, reg, value) \
-   scu_register_write( \
-      scic_sds_port_get_controller(port), \
-      (port)->port_task_scheduler_registers->reg, \
-      (value) \
-   )
+#define scu_port_task_scheduler_write(port, reg, value)        \
+	scu_register_write(scic_sds_port_get_controller(port), \
+	    (port)->port_task_scheduler_registers->reg, (value))
 
-#define scu_port_viit_register_write(port, reg, value) \
-   scu_register_write( \
-      scic_sds_port_get_controller(port), \
-      (port)->viit_registers->reg, \
-      (value) \
-   )
+#define scu_port_viit_register_write(port, reg, value)         \
+	scu_register_write(scic_sds_port_get_controller(port), \
+	    (port)->viit_registers->reg, (value))
 
 //****************************************************************************
 //* Port Task Scheduler registers controlled by the port object
@@ -100,14 +92,13 @@ extern "C" {
 /**
  * Macro to read the port task scheduler control register
  */
-#define SCU_PTSxCR_READ(port) \
-   scu_port_task_scheduler_read(port, control)
+#define SCU_PTSxCR_READ(port) scu_port_task_scheduler_read(port, control)
 
 /**
  * Macro to write the port task scheduler control regsister
  */
 #define SCU_PTSxCR_WRITE(port, value) \
-   scu_port_task_scheduler_write(port, control, value)
+	scu_port_task_scheduler_write(port, control, value)
 
 //****************************************************************************
 //* Port PE Configuration registers
@@ -116,21 +107,16 @@ extern "C" {
 /**
  * Macro to write the PE Port Configuration Register
  */
-#define SCU_PCSPExCR_WRITE(port, phy_id, value) \
-   scu_register_write( \
-      scic_sds_port_get_controller(port), \
-      (port)->port_pe_configuration_register[phy_id], \
-      (value) \
-   )
+#define SCU_PCSPExCR_WRITE(port, phy_id, value)                \
+	scu_register_write(scic_sds_port_get_controller(port), \
+	    (port)->port_pe_configuration_register[phy_id], (value))
 
 /**
  * Macro to read the PE Port Configuration Regsiter
  */
-#define SCU_PCSPExCR_READ(port, phy_id) \
-   scu_register_read( \
-      scic_sds_port_get_controller(port), \
-      (port)->port_pe_configuration_register[phy_id] \
-   )
+#define SCU_PCSPExCR_READ(port, phy_id)                       \
+	scu_register_read(scic_sds_port_get_controller(port), \
+	    (port)->port_pe_configuration_register[phy_id])
 
 #ifdef __cplusplus
 }

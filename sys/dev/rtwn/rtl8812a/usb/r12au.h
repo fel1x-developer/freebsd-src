@@ -33,18 +33,18 @@
  * Function declarations.
  */
 /* r12au_init.c */
-void	r12au_init_rx_agg(struct rtwn_softc *);
-void	r12au_init_burstlen_usb2(struct rtwn_softc *);
-void	r12au_init_burstlen(struct rtwn_softc *);
-void	r12au_init_ampdu_fwhw(struct rtwn_softc *);
-void	r12au_init_ampdu(struct rtwn_softc *);
-void	r12au_post_init(struct rtwn_softc *);
+void r12au_init_rx_agg(struct rtwn_softc *);
+void r12au_init_burstlen_usb2(struct rtwn_softc *);
+void r12au_init_burstlen(struct rtwn_softc *);
+void r12au_init_ampdu_fwhw(struct rtwn_softc *);
+void r12au_init_ampdu(struct rtwn_softc *);
+void r12au_post_init(struct rtwn_softc *);
 
 /* r12au_rx.c */
-int	r12au_classify_intr(struct rtwn_softc *, void *, int);
-int	r12au_align_rx(int, int);
+int r12au_classify_intr(struct rtwn_softc *, void *, int);
+int r12au_align_rx(int, int);
 
 /* r12au_tx.c */
-void	r12au_dump_tx_desc(struct rtwn_softc *, const void *);
+void r12au_dump_tx_desc(struct rtwn_softc *, const void *);
 
-#endif	/* RTL8812AU_H */
+#endif /* RTL8812AU_H */

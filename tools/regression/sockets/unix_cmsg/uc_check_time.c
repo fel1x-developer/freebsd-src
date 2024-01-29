@@ -26,12 +26,13 @@
 
 #include <sys/cdefs.h>
 #include <sys/time.h>
+
 #include <time.h>
 
 #include "uc_check_time.h"
 
-static const struct timeval max_diff_tv = {.tv_sec = 1, .tv_usec = 0};
-static const struct timespec max_diff_ts = {.tv_sec = 1, .tv_nsec = 0};
+static const struct timeval max_diff_tv = { .tv_sec = 1, .tv_usec = 0 };
+static const struct timespec max_diff_ts = { .tv_sec = 1, .tv_nsec = 0 };
 
 int
 uc_check_bintime(const struct bintime *mt)

@@ -29,6 +29,7 @@
 #define RTLD_PRINTF_H 1
 
 #include <sys/cdefs.h>
+
 #include <stdarg.h>
 #include <unistd.h>
 
@@ -41,8 +42,8 @@ int rtld_fdprintfx(int fd, const char *fmt, ...);
 void rtld_fdputstr(int fd, const char *str);
 void rtld_fdputchar(int fd, int c);
 
-#define	rtld_printf(...) rtld_fdprintf(STDOUT_FILENO, __VA_ARGS__)
-#define	rtld_putstr(str) rtld_fdputstr(STDOUT_FILENO, (str))
-#define	rtld_putchar(c) rtld_fdputchar(STDOUT_FILENO, (c))
+#define rtld_printf(...) rtld_fdprintf(STDOUT_FILENO, __VA_ARGS__)
+#define rtld_putstr(str) rtld_fdputstr(STDOUT_FILENO, (str))
+#define rtld_putchar(c) rtld_fdputchar(STDOUT_FILENO, (c))
 
 #endif

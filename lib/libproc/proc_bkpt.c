@@ -42,24 +42,24 @@
 #include "_libproc.h"
 
 #if defined(__aarch64__)
-#define	AARCH64_BRK		0xd4200000
-#define	AARCH64_BRK_IMM16_SHIFT	5
-#define	AARCH64_BRK_IMM16_VAL	(0xd << AARCH64_BRK_IMM16_SHIFT)
-#define	BREAKPOINT_INSTR	(AARCH64_BRK | AARCH64_BRK_IMM16_VAL)
-#define	BREAKPOINT_INSTR_SZ	4
+#define AARCH64_BRK 0xd4200000
+#define AARCH64_BRK_IMM16_SHIFT 5
+#define AARCH64_BRK_IMM16_VAL (0xd << AARCH64_BRK_IMM16_SHIFT)
+#define BREAKPOINT_INSTR (AARCH64_BRK | AARCH64_BRK_IMM16_VAL)
+#define BREAKPOINT_INSTR_SZ 4
 #elif defined(__amd64__) || defined(__i386__)
-#define	BREAKPOINT_INSTR	0xcc	/* int 0x3 */
-#define	BREAKPOINT_INSTR_SZ	1
-#define	BREAKPOINT_ADJUST_SZ	BREAKPOINT_INSTR_SZ
+#define BREAKPOINT_INSTR 0xcc /* int 0x3 */
+#define BREAKPOINT_INSTR_SZ 1
+#define BREAKPOINT_ADJUST_SZ BREAKPOINT_INSTR_SZ
 #elif defined(__arm__)
-#define	BREAKPOINT_INSTR	0xe7ffffff	/* bkpt */
-#define	BREAKPOINT_INSTR_SZ	4
+#define BREAKPOINT_INSTR 0xe7ffffff /* bkpt */
+#define BREAKPOINT_INSTR_SZ 4
 #elif defined(__powerpc__)
-#define	BREAKPOINT_INSTR	0x7fe00008	/* trap */
-#define	BREAKPOINT_INSTR_SZ	4
+#define BREAKPOINT_INSTR 0x7fe00008 /* trap */
+#define BREAKPOINT_INSTR_SZ 4
 #elif defined(__riscv)
-#define	BREAKPOINT_INSTR	0x00100073	/* sbreak */
-#define	BREAKPOINT_INSTR_SZ	4
+#define BREAKPOINT_INSTR 0x00100073 /* sbreak */
+#define BREAKPOINT_INSTR_SZ 4
 #else
 #error "Add support for your architecture"
 #endif
@@ -92,8 +92,7 @@ proc_stop(struct proc_handle *phdl)
 }
 
 int
-proc_bkptset(struct proc_handle *phdl, uintptr_t address,
-    unsigned long *saved)
+proc_bkptset(struct proc_handle *phdl, uintptr_t address, unsigned long *saved)
 {
 	struct ptrace_io_desc piod;
 	int ret = 0, stopped;
@@ -122,7 +121,7 @@ proc_bkptset(struct proc_handle *phdl, uintptr_t address,
 	piod.piod_op = PIOD_READ_I;
 	piod.piod_offs = (void *)address;
 	piod.piod_addr = &instr;
-	piod.piod_len  = BREAKPOINT_INSTR_SZ;
+	piod.piod_len = BREAKPOINT_INSTR_SZ;
 	if (ptrace(PT_IO, proc_getpid(phdl), (caddr_t)&piod, 0) < 0) {
 		DPRINTF("ERROR: couldn't read instruction at address 0x%jx",
 		    (uintmax_t)address);
@@ -137,7 +136,7 @@ proc_bkptset(struct proc_handle *phdl, uintptr_t address,
 	piod.piod_op = PIOD_WRITE_I;
 	piod.piod_offs = (void *)address;
 	piod.piod_addr = &instr;
-	piod.piod_len  = BREAKPOINT_INSTR_SZ;
+	piod.piod_len = BREAKPOINT_INSTR_SZ;
 	if (ptrace(PT_IO, proc_getpid(phdl), (caddr_t)&piod, 0) < 0) {
 		DPRINTF("ERROR: couldn't write instruction at address 0x%jx",
 		    (uintmax_t)address);
@@ -154,8 +153,7 @@ done:
 }
 
 int
-proc_bkptdel(struct proc_handle *phdl, uintptr_t address,
-    unsigned long saved)
+proc_bkptdel(struct proc_handle *phdl, uintptr_t address, unsigned long saved)
 {
 	struct ptrace_io_desc piod;
 	int ret = 0, stopped;
@@ -183,7 +181,7 @@ proc_bkptdel(struct proc_handle *phdl, uintptr_t address,
 	piod.piod_op = PIOD_WRITE_I;
 	piod.piod_offs = (void *)address;
 	piod.piod_addr = &instr;
-	piod.piod_len  = BREAKPOINT_INSTR_SZ;
+	piod.piod_len = BREAKPOINT_INSTR_SZ;
 	if (ptrace(PT_IO, proc_getpid(phdl), (caddr_t)&piod, 0) < 0) {
 		DPRINTF("ERROR: couldn't write instruction at address 0x%jx",
 		    (uintmax_t)address);

@@ -26,14 +26,16 @@
  */
 
 #include <sys/param.h>
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "rtld.h"
-#include "rtld_printf.h"
-#include "rtld_malloc.h"
 #include "rtld_libc.h"
+#include "rtld_malloc.h"
+#include "rtld_printf.h"
 
 void *
 xcalloc(size_t number, size_t size)

@@ -28,24 +28,22 @@
  */
 
 #include <sys/param.h>
-#include <sys/mount.h>
 #include <sys/disklabel.h>
+#include <sys/mount.h>
 #include <sys/stat.h>
-
-#include <ufs/ufs/extattr.h>
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <errno.h>
 #include <fcntl.h>
+#include <libufs.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+#include <ufs/ufs/extattr.h>
+#include <ufs/ufs/quota.h>
+#include <ufs/ufs/ufsmount.h>
 #include <unistd.h>
-
-#include <libufs.h>
 
 ufs2_daddr_t
 cgballoc(struct uufsd *disk)
@@ -161,9 +159,10 @@ gotit:
 			dp2->di_gen = arc4random();
 			dp2++;
 		}
-		if (bwrite(disk, ino_to_fsba(fs,
-		    cgp->cg_cgx * fs->fs_ipg + cgp->cg_initediblk),
-		    block, fs->fs_bsize))
+		if (bwrite(disk,
+			ino_to_fsba(fs,
+			    cgp->cg_cgx * fs->fs_ipg + cgp->cg_initediblk),
+			block, fs->fs_bsize))
 			return (0);
 		cgp->cg_initediblk += INOPB(fs);
 	}
@@ -225,7 +224,8 @@ cgget(int devfd, struct fs *fs, int cg, struct cg *cgp)
 
 	failmsg = NULL;
 	if ((cnt = pread(devfd, cgp, fs->fs_cgsize,
-	    fsbtodb(fs, cgtod(fs, cg)) * (fs->fs_fsize / fsbtodb(fs,1)))) < 0)
+		 fsbtodb(fs, cgtod(fs, cg)) *
+		     (fs->fs_fsize / fsbtodb(fs, 1)))) < 0)
 		return (-1);
 	if (cnt == 0) {
 		failmsg = "end of file from block device";
@@ -286,7 +286,8 @@ cgwrite1(struct uufsd *disk, int cg)
 		}
 		return (-1);
 	}
-	snprintf(errmsg, BUFSIZ, "Cylinder group %d in buffer does not match "
+	snprintf(errmsg, BUFSIZ,
+	    "Cylinder group %d in buffer does not match "
 	    "the cylinder group %d that cgwrite1 requested",
 	    disk->d_cg.cg_cgx, cg);
 	ERROR(disk, errmsg);
@@ -301,13 +302,13 @@ cgput(int devfd, struct fs *fs, struct cg *cgp)
 
 	if ((fs->fs_metackhash & CK_CYLGRP) != 0) {
 		cgp->cg_ckhash = 0;
-		cgp->cg_ckhash =
-		    calculate_crc32c(~0L, (void *)cgp, fs->fs_cgsize);
+		cgp->cg_ckhash = calculate_crc32c(~0L, (void *)cgp,
+		    fs->fs_cgsize);
 	}
 	failmsg = NULL;
 	if ((cnt = pwrite(devfd, cgp, fs->fs_cgsize,
-	    fsbtodb(fs, cgtod(fs, cgp->cg_cgx)) *
-	    (fs->fs_fsize / fsbtodb(fs,1)))) < 0)
+		 fsbtodb(fs, cgtod(fs, cgp->cg_cgx)) *
+		     (fs->fs_fsize / fsbtodb(fs, 1)))) < 0)
 		return (-1);
 	if (cnt != fs->fs_cgsize) {
 		failmsg = "short write to block device";

@@ -35,8 +35,8 @@
 #ifndef _KBD_H_
 #define _KBD_H_
 
-int32_t	kbd_maxkey	  (void);
-int32_t	kbd_process_keys  (bthid_session_p s);
-int32_t	kbd_status_changed(bthid_session_p s, uint8_t *data, int32_t len);
+int32_t kbd_maxkey(void);
+int32_t kbd_process_keys(bthid_session_p s);
+int32_t kbd_status_changed(bthid_session_p s, uint8_t *data, int32_t len);
 
 #endif /* ndef _KBD_H_ */

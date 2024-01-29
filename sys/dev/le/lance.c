@@ -67,27 +67,27 @@
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/mutex.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
 #include <machine/bus.h>
 
 #include <dev/le/lancereg.h>
 #include <dev/le/lancevar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 static void lance_start(if_t);
 static void lance_stop(struct lance_softc *);
@@ -98,7 +98,7 @@ static void lance_mediastatus(if_t, struct ifmediareq *);
 static int lance_ioctl(if_t, u_long, caddr_t);
 
 int
-lance_config(struct lance_softc *sc, const char* name, int unit)
+lance_config(struct lance_softc *sc, const char *name, int unit)
 {
 	if_t ifp;
 	int i, nbuf;
@@ -401,8 +401,8 @@ lance_get(struct lance_softc *sc, int boff, int totlen)
 		}
 
 		if (m == m0) {
-			newdata = (caddr_t)
-			    ALIGN(m->m_data + ETHER_HDR_LEN) - ETHER_HDR_LEN;
+			newdata = (caddr_t)ALIGN(m->m_data + ETHER_HDR_LEN) -
+			    ETHER_HDR_LEN;
 			len -= newdata - m->m_data;
 			m->m_data = newdata;
 		}
@@ -423,7 +423,7 @@ lance_get(struct lance_softc *sc, int boff, int totlen)
 
 	return (m0);
 
- bad:
+bad:
 	m_freem(m0);
 	return (NULL);
 }

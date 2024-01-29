@@ -27,8 +27,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/fdcio.h>
+#include <sys/stat.h>
+
+#include <dev/ic/nec765.h>
 
 #include <err.h>
 #include <errno.h>
@@ -40,26 +42,23 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <dev/ic/nec765.h>
-
 #include "fdutil.h"
 
-static int	quiet, recover;
-static unsigned char fillbyte = 0xf0;	/* "foo" */
+static int quiet, recover;
+static unsigned char fillbyte = 0xf0; /* "foo" */
 
-static int	doread(int fd, FILE *of, const char *_devname);
-static int	doreadid(int fd, unsigned int numids, unsigned int trackno);
-static void	usage(void);
+static int doread(int fd, FILE *of, const char *_devname);
+static int doreadid(int fd, unsigned int numids, unsigned int trackno);
+static void usage(void);
 
 static void
 usage(void)
 {
 
 	errx(EX_USAGE,
-	     "usage: fdread [-qr] [-d device] [-f fillbyte]\n"
-	     "       fdread [-d device] -I numids [-t trackno]");
+	    "usage: fdread [-qr] [-d device] [-f fillbyte]\n"
+	    "       fdread [-d device] -I numids [-t trackno]");
 }
-
 
 int
 main(int argc, char **argv)
@@ -82,14 +81,14 @@ main(int argc, char **argv)
 			ul = strtoul(optarg, &cp, 0);
 			if (*cp != '\0') {
 				fprintf(stderr,
-			"Bad argument %s to -f option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -f option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			if (ul > 0xff)
 				warnx(
-			"Warning: fillbyte %#lx too large, truncating\n",
-				      ul);
+				    "Warning: fillbyte %#lx too large, truncating\n",
+				    ul);
 			fillbyte = ul & 0xff;
 			break;
 
@@ -97,8 +96,8 @@ main(int argc, char **argv)
 			ul = strtoul(optarg, &cp, 0);
 			if (*cp != '\0') {
 				fprintf(stderr,
-			"Bad argument %s to -I option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -I option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			numids = ul;
@@ -120,8 +119,8 @@ main(int argc, char **argv)
 			ul = strtoul(optarg, &cp, 0);
 			if (*cp != '\0') {
 				fprintf(stderr,
-			"Bad argument %s to -t option; must be numeric\n",
-					optarg);
+				    "Bad argument %s to -t option; must be numeric\n",
+				    optarg);
 				usage();
 			}
 			trackno = ul;
@@ -152,7 +151,8 @@ main(int argc, char **argv)
 	if ((fd = open(_devname, O_RDONLY)) == -1)
 		err(EX_OSERR, "cannot open device %s", _devname);
 
-	return (numids? doreadid(fd, numids, trackno): doread(fd, of, _devname));
+	return (
+	    numids ? doreadid(fd, numids, trackno) : doread(fd, of, _devname));
 }
 
 static int
@@ -175,7 +175,7 @@ doread(int fd, FILE *of, const char *_devname)
 
 	if (!quiet)
 		fprintf(stderr, "Reading %d * %d * %d * %d medium at %s\n",
-			fdt.tracks, fdt.heads, fdt.sectrac, secsize, _devname);
+		    fdt.tracks, fdt.heads, fdt.sectrac, secsize, _devname);
 
 	for (nbytes = 0; nbytes < mediasize;) {
 		if (lseek(fd, nbytes, SEEK_SET) != nbytes)
@@ -201,13 +201,13 @@ doread(int fd, FILE *of, const char *_devname)
 				if (lseek(fd, nbytes, SEEK_SET) != nbytes)
 					err(EX_OSERR, "cannot lseek()");
 				rv = read(fd, trackbuf, secsize);
-				if ((unsigned) rv == secsize) {
+				if ((unsigned)rv == secsize) {
 					nbytes += rv;
 					if (!quiet)
 						fprintf(stderr, "%5d KB\r",
-							nbytes / 1024);
+						    nbytes / 1024);
 					fwrite(trackbuf, sizeof(unsigned char),
-					       rv, of);
+					    rv, of);
 					fflush(of);
 					continue;
 				}
@@ -221,10 +221,10 @@ doread(int fd, FILE *of, const char *_devname)
 					}
 					if (ioctl(fd, FD_GSTAT, &fdcs) == -1)
 						errx(EX_IOERR,
-				     "floppy IO error, but no FDC status");
+						    "floppy IO error, but no FDC status");
 					nerrs++;
 					recoverable = fdcs.status[2] &
-						NE7_ST2_DD;
+					    NE7_ST2_DD;
 					if (!quiet) {
 						printstatus(&fdcs, 0);
 						fputs(" (", stderr);
@@ -242,38 +242,38 @@ doread(int fd, FILE *of, const char *_devname)
 					if (recoverable) {
 						fdopts |= FDOPT_NOERROR;
 						if (ioctl(fd, FD_SOPTS,
-							  &fdopts) == -1)
+							&fdopts) == -1)
 							err(EX_OSERR,
-				    "ioctl(fd, FD_SOPTS, FDOPT_NOERROR)");
+							    "ioctl(fd, FD_SOPTS, FDOPT_NOERROR)");
 						rv = read(fd, trackbuf,
-							  secsize);
+						    secsize);
 						if ((unsigned)rv != secsize)
 							err(EX_IOERR,
-				    "read() with FDOPT_NOERROR still fails");
+							    "read() with FDOPT_NOERROR still fails");
 						fdopts &= ~FDOPT_NOERROR;
 						(void)ioctl(fd, FD_SOPTS,
-							    &fdopts);
+						    &fdopts);
 					}
 					if (!quiet) {
 						if (recoverable)
 							fprintf(stderr,
-								": recovered");
+							    ": recovered");
 						else
 							fprintf(stderr,
-								": dummy");
+							    ": dummy");
 						fprintf(stderr,
-							" data @ %#x ... %#x\n",
-							nbytes,
-							nbytes + secsize - 1);
+						    " data @ %#x ... %#x\n",
+						    nbytes,
+						    nbytes + secsize - 1);
 					}
 					nbytes += secsize;
 					fwrite(trackbuf, sizeof(unsigned char),
-					       secsize, of);
+					    secsize, of);
 					fflush(of);
 					continue;
 				}
 				errx(EX_OSERR, "unexpected read() result: %d",
-				     rv);
+				    rv);
 			}
 		}
 		if ((unsigned)rv < tracksize) {
@@ -281,7 +281,7 @@ doread(int fd, FILE *of, const char *_devname)
 			nbytes += rv;
 			if (!quiet)
 				fprintf(stderr, "\nshort after %5d KB\r",
-					nbytes / 1024);
+				    nbytes / 1024);
 			fwrite(trackbuf, sizeof(unsigned char), rv, of);
 			fflush(of);
 			continue;
@@ -291,11 +291,11 @@ doread(int fd, FILE *of, const char *_devname)
 	if (!quiet) {
 		putc('\n', stderr);
 		if (nerrs)
-			fprintf(stderr, "%d error%s\n",
-				nerrs, nerrs > 1? "s": "");
+			fprintf(stderr, "%d error%s\n", nerrs,
+			    nerrs > 1 ? "s" : "");
 	}
 
-	return (nerrs? EX_IOERR: EX_OK);
+	return (nerrs ? EX_IOERR : EX_OK);
 }
 
 static int
@@ -312,10 +312,10 @@ doreadid(int fd, unsigned int numids, unsigned int trackno)
 
 	for (i = 0; i < numids; i++) {
 		info.cyl = trackno / fdt.heads;
-		info.head = fdt.heads > 1? trackno % fdt.heads: 0;
+		info.head = fdt.heads > 1 ? trackno % fdt.heads : 0;
 		if (ioctl(fd, FD_READID, &info) == 0) {
-			printf("C = %d, H = %d, R = %d, N = %d\n",
-			       info.cyl, info.head, info.sec, info.secshift);
+			printf("C = %d, H = %d, R = %d, N = %d\n", info.cyl,
+			    info.head, info.sec, info.secshift);
 		} else {
 			if (errno != EIO) {
 				perror("non-IO error");
@@ -323,7 +323,7 @@ doreadid(int fd, unsigned int numids, unsigned int trackno)
 			}
 			if (ioctl(fd, FD_GSTAT, &fdcs) == -1)
 				errx(EX_IOERR,
-				     "floppy IO error, but no FDC status");
+				    "floppy IO error, but no FDC status");
 			printstatus(&fdcs, 0);
 			putc('\n', stderr);
 			rv = EX_IOERR;

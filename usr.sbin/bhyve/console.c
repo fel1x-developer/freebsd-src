@@ -32,18 +32,18 @@
 #include "console.h"
 
 static struct {
-	struct bhyvegc		*gc;
+	struct bhyvegc *gc;
 
-	fb_render_func_t	fb_render_cb;
-	void			*fb_arg;
+	fb_render_func_t fb_render_cb;
+	void *fb_arg;
 
-	kbd_event_func_t	kbd_event_cb;
-	void			*kbd_arg;
-	int			kbd_priority;
+	kbd_event_func_t kbd_event_cb;
+	void *kbd_arg;
+	int kbd_priority;
 
-	ptr_event_func_t	ptr_event_cb;
-	void			*ptr_arg;
-	int			ptr_priority;
+	ptr_event_func_t ptr_event_cb;
+	void *ptr_arg;
+	int ptr_priority;
 } console;
 
 void

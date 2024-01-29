@@ -36,11 +36,12 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbsnrtowcs_l(wchar_t * __restrict dst, const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps, locale_t locale)
+mbsnrtowcs_l(wchar_t *__restrict dst, const char **__restrict src, size_t nms,
+    size_t len, mbstate_t *__restrict ps, locale_t locale)
 {
 	FIX_LOCALE(locale);
 	if (ps == NULL)
@@ -48,16 +49,15 @@ mbsnrtowcs_l(wchar_t * __restrict dst, const char ** __restrict src,
 	return (XLOCALE_CTYPE(locale)->__mbsnrtowcs(dst, src, nms, len, ps));
 }
 size_t
-mbsnrtowcs(wchar_t * __restrict dst, const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps)
+mbsnrtowcs(wchar_t *__restrict dst, const char **__restrict src, size_t nms,
+    size_t len, mbstate_t *__restrict ps)
 {
 	return mbsnrtowcs_l(dst, src, nms, len, ps, __get_locale());
 }
 
 size_t
-__mbsnrtowcs_std(wchar_t * __restrict dst, const char ** __restrict src,
-    size_t nms, size_t len, mbstate_t * __restrict ps,
-    mbrtowc_pfn_t pmbrtowc)
+__mbsnrtowcs_std(wchar_t *__restrict dst, const char **__restrict src,
+    size_t nms, size_t len, mbstate_t *__restrict ps, mbrtowc_pfn_t pmbrtowc)
 {
 	const char *s;
 	size_t nchr;

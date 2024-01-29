@@ -6,11 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/LLVMDriver.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/LLVMDriver.h"
 
 int llvm_ar_main(int argc, char **, const llvm::ToolContext &);
 
-int main(int argc, char **argv) {
-  return llvm_ar_main(argc, argv, {argv[0], nullptr, false});
+int
+main(int argc, char **argv)
+{
+	return llvm_ar_main(argc, argv, { argv[0], nullptr, false });
 }

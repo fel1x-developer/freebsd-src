@@ -29,8 +29,9 @@
 void *scsi_wrap_get_physical_element_status(struct cam_device *device,
     int task_attr, int retry_count, int timeout, uint8_t report_type,
     uint32_t start_element);
-void *scsi_wrap_inquiry(struct cam_device *device, uint32_t page, uint32_t length);
-struct scsi_vpd_block_device_characteristics *scsi_wrap_vpd_block_device_characteristics(
-    struct cam_device *device);
+void *scsi_wrap_inquiry(struct cam_device *device, uint32_t page,
+    uint32_t length);
+struct scsi_vpd_block_device_characteristics *
+scsi_wrap_vpd_block_device_characteristics(struct cam_device *device);
 
 #endif /*  _CAM_SCSI_WRAP_H */

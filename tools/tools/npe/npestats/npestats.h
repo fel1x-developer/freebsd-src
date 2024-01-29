@@ -28,7 +28,7 @@
  */
 
 #ifndef _NPESTATS_H_
-#define	_NPESTATS_H_
+#define _NPESTATS_H_
 
 #include "bsdstat.h"
 

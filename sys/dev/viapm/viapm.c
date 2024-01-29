@@ -24,36 +24,36 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_isa.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #ifdef DEV_ISA
-#include <isa/isavar.h>
 #include <isa/isa_common.h>
+#include <isa/isavar.h>
 #endif
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
 #include <dev/iicbus/iiconf.h>
-
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
 
 #include "iicbb_if.h"
 #include "smbus_if.h"
 
-#define VIAPM_DEBUG(x)	if (viapm_debug) (x)
+#define VIAPM_DEBUG(x)   \
+	if (viapm_debug) \
+	(x)
 
 #ifdef DEBUG
 static int viapm_debug = 1;
@@ -61,31 +61,29 @@ static int viapm_debug = 1;
 static int viapm_debug = 0;
 #endif
 
-#define VIA_586B_PMU_ID		0x30401106
-#define VIA_596A_PMU_ID		0x30501106
-#define VIA_596B_PMU_ID		0x30511106
-#define VIA_686A_PMU_ID		0x30571106
-#define VIA_8233_PMU_ID		0x30741106
-#define	VIA_8233A_PMU_ID	0x31471106
-#define	VIA_8235_PMU_ID		0x31771106
-#define	VIA_8237_PMU_ID		0x32271106
-#define	VIA_CX700_PMU_ID	0x83241106
+#define VIA_586B_PMU_ID 0x30401106
+#define VIA_596A_PMU_ID 0x30501106
+#define VIA_596B_PMU_ID 0x30511106
+#define VIA_686A_PMU_ID 0x30571106
+#define VIA_8233_PMU_ID 0x30741106
+#define VIA_8233A_PMU_ID 0x31471106
+#define VIA_8235_PMU_ID 0x31771106
+#define VIA_8237_PMU_ID 0x32271106
+#define VIA_CX700_PMU_ID 0x83241106
 
-#define VIAPM_INB(port) \
-	((u_char)bus_read_1(viapm->iores, port))
-#define VIAPM_OUTB(port,val) \
-	(bus_write_1(viapm->iores, port, (u_char)(val)))
+#define VIAPM_INB(port) ((u_char)bus_read_1(viapm->iores, port))
+#define VIAPM_OUTB(port, val) (bus_write_1(viapm->iores, port, (u_char)(val)))
 
-#define VIAPM_TYP_UNKNOWN	0
-#define VIAPM_TYP_586B_3040E	1
-#define VIAPM_TYP_586B_3040F	2
-#define VIAPM_TYP_596B		3
-#define VIAPM_TYP_686A		4
-#define VIAPM_TYP_8233		5
+#define VIAPM_TYP_UNKNOWN 0
+#define VIAPM_TYP_586B_3040E 1
+#define VIAPM_TYP_586B_3040F 2
+#define VIAPM_TYP_596B 3
+#define VIAPM_TYP_686A 4
+#define VIAPM_TYP_8233 5
 
-#define	VIAPM_LOCK(sc)		mtx_lock(&(sc)->lock)
-#define	VIAPM_UNLOCK(sc)	mtx_unlock(&(sc)->lock)
-#define	VIAPM_LOCK_ASSERT(sc)	mtx_assert(&(sc)->lock, MA_OWNED)
+#define VIAPM_LOCK(sc) mtx_lock(&(sc)->lock)
+#define VIAPM_UNLOCK(sc) mtx_unlock(&(sc)->lock)
+#define VIAPM_LOCK_ASSERT(sc) mtx_assert(&(sc)->lock, MA_OWNED)
 
 struct viapm_softc {
 	int type;
@@ -104,80 +102,80 @@ struct viapm_softc {
  * VT82C586B definitions
  */
 
-#define VIAPM_586B_REVID	0x08
+#define VIAPM_586B_REVID 0x08
 
-#define VIAPM_586B_3040E_BASE	0x20
-#define VIAPM_586B_3040E_ACTIV	0x4		/* 16 bits */
+#define VIAPM_586B_3040E_BASE 0x20
+#define VIAPM_586B_3040E_ACTIV 0x4 /* 16 bits */
 
-#define VIAPM_586B_3040F_BASE	0x48
-#define VIAPM_586B_3040F_ACTIV	0x41		/* 8 bits */
+#define VIAPM_586B_3040F_BASE 0x48
+#define VIAPM_586B_3040F_ACTIV 0x41 /* 8 bits */
 
-#define VIAPM_586B_OEM_REV_E	0x00
-#define VIAPM_586B_OEM_REV_F	0x01
-#define VIAPM_586B_PROD_REV_A	0x10
+#define VIAPM_586B_OEM_REV_E 0x00
+#define VIAPM_586B_OEM_REV_F 0x01
+#define VIAPM_586B_PROD_REV_A 0x10
 
-#define VIAPM_586B_BA_MASK	0x0000ff00
+#define VIAPM_586B_BA_MASK 0x0000ff00
 
-#define GPIO_DIR	0x40
-#define GPIO_VAL	0x42
-#define EXTSMI_VAL	0x44
+#define GPIO_DIR 0x40
+#define GPIO_VAL 0x42
+#define EXTSMI_VAL 0x44
 
-#define VIAPM_SCL	0x02			/* GPIO1_VAL */
-#define VIAPM_SDA	0x04			/* GPIO2_VAL */
+#define VIAPM_SCL 0x02 /* GPIO1_VAL */
+#define VIAPM_SDA 0x04 /* GPIO2_VAL */
 
 /*
  * VIAPRO common definitions
  */
 
-#define VIAPM_PRO_BA_MASK	0x0000fff0
-#define VIAPM_PRO_SMBCTRL	0xd2
-#define VIAPM_PRO_REVID		0xd6
+#define VIAPM_PRO_BA_MASK 0x0000fff0
+#define VIAPM_PRO_SMBCTRL 0xd2
+#define VIAPM_PRO_REVID 0xd6
 
 /*
  * VT82C686A definitions
  */
 
-#define VIAPM_PRO_BASE		0x90
+#define VIAPM_PRO_BASE 0x90
 
-#define SMBHST			0x0
-#define SMBHSL			0x1
-#define SMBHCTRL		0x2
-#define SMBHCMD			0x3
-#define SMBHADDR		0x4
-#define SMBHDATA0		0x5
-#define SMBHDATA1		0x6
-#define SMBHBLOCK		0x7
+#define SMBHST 0x0
+#define SMBHSL 0x1
+#define SMBHCTRL 0x2
+#define SMBHCMD 0x3
+#define SMBHADDR 0x4
+#define SMBHDATA0 0x5
+#define SMBHDATA1 0x6
+#define SMBHBLOCK 0x7
 
-#define SMBSST			0x1
-#define SMBSCTRL		0x8
-#define SMBSSDWCMD		0x9
-#define SMBSEVENT		0xa
-#define SMBSDATA		0xc
+#define SMBSST 0x1
+#define SMBSCTRL 0x8
+#define SMBSSDWCMD 0x9
+#define SMBSEVENT 0xa
+#define SMBSDATA 0xc
 
-#define SMBHST_RESERVED		0xef	/* reserved bits */
-#define SMBHST_FAILED		0x10	/* failed bus transaction */
-#define SMBHST_COLLID		0x08	/* bus collision */
-#define SMBHST_ERROR		0x04	/* device error */
-#define SMBHST_INTR		0x02	/* command completed */
-#define SMBHST_BUSY		0x01	/* host busy */
+#define SMBHST_RESERVED 0xef /* reserved bits */
+#define SMBHST_FAILED 0x10   /* failed bus transaction */
+#define SMBHST_COLLID 0x08   /* bus collision */
+#define SMBHST_ERROR 0x04    /* device error */
+#define SMBHST_INTR 0x02     /* command completed */
+#define SMBHST_BUSY 0x01     /* host busy */
 
-#define SMBHCTRL_START		0x40	/* start command */
-#define SMBHCTRL_PROTO		0x1c	/* command protocol mask */
-#define SMBHCTRL_QUICK		0x00
-#define SMBHCTRL_SENDRECV	0x04
-#define SMBHCTRL_BYTE		0x08
-#define SMBHCTRL_WORD		0x0c
-#define SMBHCTRL_BLOCK		0x14
-#define SMBHCTRL_KILL		0x02	/* stop the current transaction */
-#define SMBHCTRL_ENABLE		0x01	/* enable interrupts */
+#define SMBHCTRL_START 0x40 /* start command */
+#define SMBHCTRL_PROTO 0x1c /* command protocol mask */
+#define SMBHCTRL_QUICK 0x00
+#define SMBHCTRL_SENDRECV 0x04
+#define SMBHCTRL_BYTE 0x08
+#define SMBHCTRL_WORD 0x0c
+#define SMBHCTRL_BLOCK 0x14
+#define SMBHCTRL_KILL 0x02   /* stop the current transaction */
+#define SMBHCTRL_ENABLE 0x01 /* enable interrupts */
 
-#define SMBSCTRL_ENABLE		0x01	/* enable slave */
+#define SMBSCTRL_ENABLE 0x01 /* enable slave */
 
 /*
  * VIA8233 definitions
  */
 
-#define VIAPM_8233_BASE		0xD0
+#define VIAPM_8233_BASE 0xD0
 
 static int
 viapm_586b_probe(device_t dev)
@@ -200,7 +198,8 @@ viapm_586b_probe(device_t dev)
 
 			/* Activate IO block access */
 			s = pci_read_config(dev, VIAPM_586B_3040E_ACTIV, 2);
-			pci_write_config(dev, VIAPM_586B_3040E_ACTIV, s | 0x1, 2);
+			pci_write_config(dev, VIAPM_586B_3040E_ACTIV, s | 0x1,
+			    2);
 			break;
 
 		case VIAPM_586B_OEM_REV_F:
@@ -211,19 +210,20 @@ viapm_586b_probe(device_t dev)
 
 			/* Activate IO block access */
 			c = pci_read_config(dev, VIAPM_586B_3040F_ACTIV, 1);
-			pci_write_config(dev, VIAPM_586B_3040F_ACTIV, c | 0x80, 1);
+			pci_write_config(dev, VIAPM_586B_3040F_ACTIV, c | 0x80,
+			    1);
 			break;
 		}
 
 		viapm->base = pci_read_config(dev, viapm->iorid, 4) &
-				VIAPM_586B_BA_MASK;
+		    VIAPM_586B_BA_MASK;
 
 		/*
 		 * We have to set the I/O resources by hand because it is
 		 * described outside the viapmope of the traditional maps
 		 */
 		if (bus_set_resource(dev, SYS_RES_IOPORT, viapm->iorid,
-							viapm->base, 256)) {
+			viapm->base, 256)) {
 			device_printf(dev, "could not set bus resource\n");
 			return ENXIO;
 		}
@@ -302,10 +302,11 @@ viapm_pro_probe(device_t dev)
 
 		/* write the base address */
 		pci_write_config(dev, base_cfgreg,
-				 VIAPM_BASE_ADDR & VIAPM_PRO_BA_MASK, 4);
+		    VIAPM_BASE_ADDR & VIAPM_PRO_BA_MASK, 4);
 #endif
 
-		viapm->base = pci_read_config(dev, base_cfgreg, 4) & VIAPM_PRO_BA_MASK;
+		viapm->base = pci_read_config(dev, base_cfgreg, 4) &
+		    VIAPM_PRO_BA_MASK;
 
 		/*
 		 * We have to set the I/O resources by hand because it is
@@ -313,14 +314,15 @@ viapm_pro_probe(device_t dev)
 		 */
 		viapm->iorid = base_cfgreg;
 		if (bus_set_resource(dev, SYS_RES_IOPORT, viapm->iorid,
-				     viapm->base, 16)) {
+			viapm->base, 16)) {
 			device_printf(dev, "could not set bus resource 0x%x\n",
-					viapm->base);
+			    viapm->base);
 			return ENXIO;
 		}
 
 		if (bootverbose) {
-			device_printf(dev, "SMBus I/O base at 0x%x\n", viapm->base);
+			device_printf(dev, "SMBus I/O base at 0x%x\n",
+			    viapm->base);
 		}
 
 		device_set_desc(dev, desc);
@@ -341,7 +343,7 @@ viapm_pro_attach(device_t dev)
 
 	mtx_init(&viapm->lock, device_get_nameunit(dev), "viapm", MTX_DEF);
 	if (!(viapm->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&viapm->iorid, RF_ACTIVE))) {
+		  &viapm->iorid, RF_ACTIVE))) {
 		device_printf(dev, "could not allocate bus space\n");
 		goto error;
 	}
@@ -353,14 +355,13 @@ viapm_pro_attach(device_t dev)
 
 	viapm->irqrid = 0;
 	if (!(viapm->irqres = bus_alloc_resource(dev, SYS_RES_IRQ,
-				&viapm->irqrid, 9, 9, 1,
-				RF_SHAREABLE | RF_ACTIVE))) {
+		  &viapm->irqrid, 9, 9, 1, RF_SHAREABLE | RF_ACTIVE))) {
 		device_printf(dev, "could not allocate irq\n");
 		goto error;
 	}
 
 	if (bus_setup_intr(dev, viapm->irqres, INTR_TYPE_MISC | INTR_MPSAFE,
-			(driver_intr_t *) viasmb_intr, viapm, &viapm->irqih)) {
+		(driver_intr_t *)viasmb_intr, viapm, &viapm->irqih)) {
 		device_printf(dev, "could not setup irq\n");
 		goto error;
 	}
@@ -398,10 +399,12 @@ viapm_pro_attach(device_t dev)
 
 error:
 	if (viapm->iores)
-		bus_release_resource(dev, SYS_RES_IOPORT, viapm->iorid, viapm->iores);
+		bus_release_resource(dev, SYS_RES_IOPORT, viapm->iorid,
+		    viapm->iores);
 #ifdef notyet
 	if (viapm->irqres)
-		bus_release_resource(dev, SYS_RES_IRQ, viapm->irqrid, viapm->irqres);
+		bus_release_resource(dev, SYS_RES_IRQ, viapm->irqrid,
+		    viapm->irqres);
 #endif
 	mtx_destroy(&viapm->lock);
 
@@ -415,7 +418,7 @@ viapm_586b_attach(device_t dev)
 
 	mtx_init(&viapm->lock, device_get_nameunit(dev), "viapm", MTX_DEF);
 	if (!(viapm->iores = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&viapm->iorid, RF_ACTIVE | RF_SHAREABLE))) {
+		  &viapm->iorid, RF_ACTIVE | RF_SHAREABLE))) {
 		device_printf(dev, "could not allocate bus resource\n");
 		goto error;
 	}
@@ -432,8 +435,8 @@ viapm_586b_attach(device_t dev)
 
 error:
 	if (viapm->iores)
-		bus_release_resource(dev, SYS_RES_IOPORT,
-					viapm->iorid, viapm->iores);
+		bus_release_resource(dev, SYS_RES_IOPORT, viapm->iorid,
+		    viapm->iores);
 	mtx_destroy(&viapm->lock);
 	return ENXIO;
 }
@@ -568,8 +571,8 @@ viapm_abort(struct viapm_softc *viapm)
 static int
 viapm_clear(struct viapm_softc *viapm)
 {
-	VIAPM_OUTB(SMBHST, SMBHST_FAILED | SMBHST_COLLID |
-		SMBHST_ERROR | SMBHST_INTR);
+	VIAPM_OUTB(SMBHST,
+	    SMBHST_FAILED | SMBHST_COLLID | SMBHST_ERROR | SMBHST_INTR);
 	DELAY(10);
 
 	return (0);
@@ -600,7 +603,7 @@ viapm_wait(struct viapm_softc *viapm)
 	VIAPM_LOCK_ASSERT(viapm);
 
 	/* wait for command to complete and SMBus controller is idle */
-	while(count--) {
+	while (count--) {
 		DELAY(10);
 		sts = VIAPM_INB(SMBHST);
 
@@ -697,14 +700,15 @@ viasmb_sendb(device_t dev, u_char slave, char byte)
 		return (SMB_EBUSY);
 	}
 
-	VIAPM_OUTB(SMBHADDR, slave & ~ LSB);
+	VIAPM_OUTB(SMBHADDR, slave & ~LSB);
 	VIAPM_OUTB(SMBHCMD, byte);
 
 	VIAPM_OUTB(SMBHCTRL, SMBHCTRL_START | SMBHCTRL_SENDRECV);
 
 	error = viapm_wait(viapm);
 
-	VIAPM_DEBUG(printf("viapm: SENDB to 0x%x, byte=0x%x, error=0x%x\n", slave, byte, error));
+	VIAPM_DEBUG(printf("viapm: SENDB to 0x%x, byte=0x%x, error=0x%x\n",
+	    slave, byte, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -730,7 +734,8 @@ viasmb_recvb(device_t dev, u_char slave, char *byte)
 	if ((error = viapm_wait(viapm)) == SMB_ENOERR)
 		*byte = VIAPM_INB(SMBHDATA0);
 
-	VIAPM_DEBUG(printf("viapm: RECVB from 0x%x, byte=0x%x, error=0x%x\n", slave, *byte, error));
+	VIAPM_DEBUG(printf("viapm: RECVB from 0x%x, byte=0x%x, error=0x%x\n",
+	    slave, *byte, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -749,7 +754,7 @@ viasmb_writeb(device_t dev, u_char slave, char cmd, char byte)
 		return (SMB_EBUSY);
 	}
 
-	VIAPM_OUTB(SMBHADDR, slave & ~ LSB);
+	VIAPM_OUTB(SMBHADDR, slave & ~LSB);
 	VIAPM_OUTB(SMBHCMD, cmd);
 	VIAPM_OUTB(SMBHDATA0, byte);
 
@@ -757,7 +762,9 @@ viasmb_writeb(device_t dev, u_char slave, char cmd, char byte)
 
 	error = viapm_wait(viapm);
 
-	VIAPM_DEBUG(printf("viapm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, byte, error));
+	VIAPM_DEBUG(
+	    printf("viapm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, byte, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -784,7 +791,9 @@ viasmb_readb(device_t dev, u_char slave, char cmd, char *byte)
 	if ((error = viapm_wait(viapm)) == SMB_ENOERR)
 		*byte = VIAPM_INB(SMBHDATA0);
 
-	VIAPM_DEBUG(printf("viapm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, *byte, error));
+	VIAPM_DEBUG(
+	    printf("viapm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, *byte, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -803,7 +812,7 @@ viasmb_writew(device_t dev, u_char slave, char cmd, short word)
 		return (SMB_EBUSY);
 	}
 
-	VIAPM_OUTB(SMBHADDR, slave & ~ LSB);
+	VIAPM_OUTB(SMBHADDR, slave & ~LSB);
 	VIAPM_OUTB(SMBHCMD, cmd);
 	VIAPM_OUTB(SMBHDATA0, word & 0x00ff);
 	VIAPM_OUTB(SMBHDATA1, (word & 0xff00) >> 8);
@@ -812,7 +821,9 @@ viasmb_writew(device_t dev, u_char slave, char cmd, short word)
 
 	error = viapm_wait(viapm);
 
-	VIAPM_DEBUG(printf("viapm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, word, error));
+	VIAPM_DEBUG(
+	    printf("viapm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, word, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -844,7 +855,9 @@ viasmb_readw(device_t dev, u_char slave, char cmd, short *word)
 		*word = ((high & 0xff) << 8) | (low & 0xff);
 	}
 
-	VIAPM_DEBUG(printf("viapm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, *word, error));
+	VIAPM_DEBUG(
+	    printf("viapm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, *word, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -882,11 +895,12 @@ viasmb_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 
 	error = viapm_wait(viapm);
 
-	VIAPM_DEBUG(printf("viapm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, count, cmd, error));
+	VIAPM_DEBUG(
+	    printf("viapm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, count, cmd, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
-
 }
 
 static int
@@ -914,7 +928,7 @@ viasmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 		goto error;
 
 	len = VIAPM_INB(SMBHDATA0);
-	i = VIAPM_INB(SMBHCTRL); 		/* reset counter */
+	i = VIAPM_INB(SMBHCTRL); /* reset counter */
 
 	/* read the 32-byte internal buffer */
 	for (i = 0; i < len; i++) {
@@ -926,7 +940,9 @@ viasmb_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	*count = len;
 
 error:
-	VIAPM_DEBUG(printf("viapm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, *count, cmd, error));
+	VIAPM_DEBUG(
+	    printf("viapm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, *count, cmd, error));
 	VIAPM_UNLOCK(viapm);
 
 	return (error);
@@ -934,25 +950,25 @@ error:
 
 static device_method_t viapm_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		viapm_586b_probe),
-	DEVMETHOD(device_attach,	viapm_586b_attach),
-	DEVMETHOD(device_detach,	viapm_586b_detach),
+	DEVMETHOD(device_probe, viapm_586b_probe),
+	DEVMETHOD(device_attach, viapm_586b_attach),
+	DEVMETHOD(device_detach, viapm_586b_detach),
 
 	/* iicbb interface */
-	DEVMETHOD(iicbb_callback,	viabb_callback),
-	DEVMETHOD(iicbb_setscl,		viabb_setscl),
-	DEVMETHOD(iicbb_setsda,		viabb_setsda),
-	DEVMETHOD(iicbb_getscl,		viabb_getscl),
-	DEVMETHOD(iicbb_getsda,		viabb_getsda),
-	DEVMETHOD(iicbb_reset,		viabb_reset),
+	DEVMETHOD(iicbb_callback, viabb_callback),
+	DEVMETHOD(iicbb_setscl, viabb_setscl),
+	DEVMETHOD(iicbb_setsda, viabb_setsda),
+	DEVMETHOD(iicbb_getscl, viabb_getscl),
+	DEVMETHOD(iicbb_getsda, viabb_getsda),
+	DEVMETHOD(iicbb_reset, viabb_reset),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	DEVMETHOD_END
 };
@@ -965,29 +981,29 @@ static driver_t viapm_driver = {
 
 static device_method_t viapropm_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		viapm_pro_probe),
-	DEVMETHOD(device_attach,	viapm_pro_attach),
-	DEVMETHOD(device_detach,	viapm_pro_detach),
+	DEVMETHOD(device_probe, viapm_pro_probe),
+	DEVMETHOD(device_attach, viapm_pro_attach),
+	DEVMETHOD(device_detach, viapm_pro_detach),
 
 	/* smbus interface */
-	DEVMETHOD(smbus_callback,	viasmb_callback),
-	DEVMETHOD(smbus_quick,		viasmb_quick),
-	DEVMETHOD(smbus_sendb,		viasmb_sendb),
-	DEVMETHOD(smbus_recvb,		viasmb_recvb),
-	DEVMETHOD(smbus_writeb,		viasmb_writeb),
-	DEVMETHOD(smbus_readb,		viasmb_readb),
-	DEVMETHOD(smbus_writew,		viasmb_writew),
-	DEVMETHOD(smbus_readw,		viasmb_readw),
-	DEVMETHOD(smbus_bwrite,		viasmb_bwrite),
-	DEVMETHOD(smbus_bread,		viasmb_bread),
+	DEVMETHOD(smbus_callback, viasmb_callback),
+	DEVMETHOD(smbus_quick, viasmb_quick),
+	DEVMETHOD(smbus_sendb, viasmb_sendb),
+	DEVMETHOD(smbus_recvb, viasmb_recvb),
+	DEVMETHOD(smbus_writeb, viasmb_writeb),
+	DEVMETHOD(smbus_readb, viasmb_readb),
+	DEVMETHOD(smbus_writew, viasmb_writew),
+	DEVMETHOD(smbus_readw, viasmb_readw),
+	DEVMETHOD(smbus_bwrite, viasmb_bwrite),
+	DEVMETHOD(smbus_bread, viasmb_bread),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	bus_generic_alloc_resource),
-	DEVMETHOD(bus_release_resource,	bus_generic_release_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	bus_generic_teardown_intr),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	DEVMETHOD_END
 };

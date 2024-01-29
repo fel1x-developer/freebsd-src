@@ -44,6 +44,6 @@ int
 rwall(char *host, char *msg)
 {
 	return (callrpc(host, WALLPROG, WALLVERS, WALLPROC_WALL,
-			(xdrproc_t)xdr_wrapstring, (char *) &msg,
-			(xdrproc_t)xdr_void, (char *) NULL));
+	    (xdrproc_t)xdr_wrapstring, (char *)&msg, (xdrproc_t)xdr_void,
+	    (char *)NULL));
 }

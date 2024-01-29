@@ -27,10 +27,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+
+#include "namespace.h"
 #ifdef DEBUG
 #include <stdint.h>
 #endif
@@ -38,10 +39,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #include "un-namespace.h"
 
 /* XXX: There is no FPOS_MAX.  This assumes fpos_t is an off_t. */
-#define	FPOS_MAX	OFF_MAX
+#define FPOS_MAX OFF_MAX
 
 struct wmemstream {
 	wchar_t **bufp;
@@ -65,8 +67,8 @@ wmemstream_grow(struct wmemstream *ms, fpos_t newoff)
 		buf = reallocarray(*ms->bufp, newsize + 1, sizeof(wchar_t));
 		if (buf != NULL) {
 #ifdef DEBUG
-			fprintf(stderr, "WMS: %p growing from %zd to %zd\n",
-			    ms, ms->len, newsize);
+			fprintf(stderr, "WMS: %p growing from %zd to %zd\n", ms,
+			    ms->len, newsize);
 #endif
 			wmemset(buf + ms->len + 1, 0, newsize - ms->len);
 			*ms->bufp = buf;

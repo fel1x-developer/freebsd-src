@@ -31,8 +31,9 @@
 #include "cudbg.h"
 #include "cudbg_lib_common.h"
 
-int get_scratch_buff(struct cudbg_buffer *pdbg_buff, u32 size,
-		     struct cudbg_buffer *pscratch_buff)
+int
+get_scratch_buff(struct cudbg_buffer *pdbg_buff, u32 size,
+    struct cudbg_buffer *pscratch_buff)
 {
 	u32 scratch_offset;
 	int rc = 0;
@@ -53,8 +54,9 @@ err:
 	return rc;
 }
 
-void release_scratch_buff(struct cudbg_buffer *pscratch_buff,
-			  struct cudbg_buffer *pdbg_buff)
+void
+release_scratch_buff(struct cudbg_buffer *pscratch_buff,
+    struct cudbg_buffer *pdbg_buff)
 {
 	pdbg_buff->size += pscratch_buff->size;
 	/* Reset the used buffer to zero.
@@ -66,7 +68,8 @@ void release_scratch_buff(struct cudbg_buffer *pscratch_buff,
 	pscratch_buff->size = 0;
 }
 
-static inline void init_cudbg_hdr(struct cudbg_init_hdr *hdr)
+static inline void
+init_cudbg_hdr(struct cudbg_init_hdr *hdr)
 {
 	hdr->major_ver = CUDBG_MAJOR_VERSION;
 	hdr->minor_ver = CUDBG_MINOR_VERSION;

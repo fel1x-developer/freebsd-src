@@ -34,11 +34,11 @@
 
 #include <sys/types.h>
 
+#include <db.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <db.h>
 #include "btree.h"
 
 static int __bt_bdelete(BTREE *, const DBT *);
@@ -105,8 +105,8 @@ __bt_delete(const DB *dbp, const DBT *key, u_int flags)
 				if (__bt_pdelete(t, h))
 					return (RET_ERROR);
 			} else
-				mpool_put(t->bt_mp,
-				    h, status == RET_SUCCESS ? MPOOL_DIRTY : 0);
+				mpool_put(t->bt_mp, h,
+				    status == RET_SUCCESS ? MPOOL_DIRTY : 0);
 			break;
 		}
 		/* FALLTHROUGH */
@@ -259,8 +259,8 @@ __bt_stkacq(BTREE *t, PAGE **hp, CURSOR *c)
 			return (1);
 	}
 
-
-ret:	mpool_put(t->bt_mp, h, 0);
+ret:
+	mpool_put(t->bt_mp, h, 0);
 	return ((*hp = mpool_get(t->bt_mp, c->pg.pgno, 0)) == NULL);
 }
 
@@ -285,7 +285,8 @@ __bt_bdelete(BTREE *t, const DBT *key)
 	deleted = 0;
 
 	/* Find any matching record; __bt_search pins the page. */
-loop:	if ((e = __bt_search(t, key, &exact)) == NULL)
+loop:
+	if ((e = __bt_search(t, key, &exact)) == NULL)
 		return (deleted ? RET_SUCCESS : RET_ERROR);
 	if (!exact) {
 		mpool_put(t->bt_mp, e->page, 0);
@@ -540,8 +541,8 @@ __bt_curdel(BTREE *t, const DBT *key, PAGE *h, u_int idx)
 		if (key == NULL) {
 			e.page = h;
 			e.index = idx;
-			if ((status = __bt_ret(t, &e,
-			    &c->key, &c->key, NULL, NULL, 1)) != RET_SUCCESS)
+			if ((status = __bt_ret(t, &e, &c->key, &c->key, NULL,
+				 NULL, 1)) != RET_SUCCESS)
 				return (status);
 			curcopy = 1;
 			key = &c->key;
@@ -584,8 +585,10 @@ __bt_curdel(BTREE *t, const DBT *key, PAGE *h, u_int idx)
 			e.index = 0;
 			if (__bt_cmp(t, key, &e) == 0) {
 				F_SET(c, CURS_AFTER);
-dup1:				mpool_put(t->bt_mp, pg, 0);
-dup2:				c->pg.pgno = e.page->pgno;
+			dup1:
+				mpool_put(t->bt_mp, pg, 0);
+			dup2:
+				c->pg.pgno = e.page->pgno;
 				c->pg.index = e.index;
 				return (RET_SUCCESS);
 			}
@@ -594,8 +597,9 @@ dup2:				c->pg.pgno = e.page->pgno;
 	}
 	e.page = h;
 	e.index = idx;
-	if (curcopy || (status =
-	    __bt_ret(t, &e, &c->key, &c->key, NULL, NULL, 1)) == RET_SUCCESS) {
+	if (curcopy ||
+	    (status = __bt_ret(t, &e, &c->key, &c->key, NULL, NULL, 1)) ==
+		RET_SUCCESS) {
 		F_SET(c, CURS_ACQUIRE);
 		return (RET_SUCCESS);
 	}

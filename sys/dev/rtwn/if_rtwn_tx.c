@@ -18,41 +18,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
 #include <net/ethernet.h>
+#include <net/if.h>
 #include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_radiotap.h>
 #include <net80211/ieee80211_ratectl.h>
-#ifdef	IEEE80211_SUPPORT_SUPERG
+#include <net80211/ieee80211_var.h>
+#ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
 
 #include <dev/rtwn/if_rtwn_beacon.h>
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_ridx.h>
 #include <dev/rtwn/if_rtwn_tx.h>
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 
 void
 rtwn_drain_mbufq(struct rtwn_softc *sc)
@@ -97,8 +95,7 @@ rtwn_get_cipher(u_int ic_cipher)
 		cipher = RTWN_TXDW1_CIPHER_AES;
 		break;
 	default:
-		KASSERT(0, ("%s: unknown cipher %d\n", __func__,
-		    ic_cipher));
+		KASSERT(0, ("%s: unknown cipher %d\n", __func__, ic_cipher));
 		return (RTWN_TXDW1_CIPHER_SM4);
 	}
 
@@ -106,8 +103,7 @@ rtwn_get_cipher(u_int ic_cipher)
 }
 
 static int
-rtwn_tx_data(struct rtwn_softc *sc, struct ieee80211_node *ni,
-    struct mbuf *m)
+rtwn_tx_data(struct rtwn_softc *sc, struct ieee80211_node *ni, struct mbuf *m)
 {
 	const struct ieee80211_txparam *tp = ni->ni_txparms;
 	struct ieee80211com *ic = &sc->sc_ic;
@@ -127,8 +123,7 @@ rtwn_tx_data(struct rtwn_softc *sc, struct ieee80211_node *ni,
 	ismcast = IEEE80211_IS_MULTICAST(wh->i_addr1);
 
 	/* Choose a TX rate index. */
-	if (type == IEEE80211_FC0_TYPE_MGT ||
-	    type == IEEE80211_FC0_TYPE_CTL ||
+	if (type == IEEE80211_FC0_TYPE_MGT || type == IEEE80211_FC0_TYPE_CTL ||
 	    (m->m_flags & M_EAPOL) != 0)
 		rate = tp->mgmtrate;
 	else if (ismcast)
@@ -138,7 +133,7 @@ rtwn_tx_data(struct rtwn_softc *sc, struct ieee80211_node *ni,
 	else {
 		if (sc->sc_ratectl == RTWN_RATECTL_NET80211) {
 			/* XXX pass pktlen */
-			(void) ieee80211_ratectl_rate(ni, NULL, 0);
+			(void)ieee80211_ratectl_rate(ni, NULL, 0);
 			rate = ni->ni_txrate;
 		} else {
 			if (ni->ni_flags & IEEE80211_NODE_HT)
@@ -187,8 +182,8 @@ rtwn_tx_data(struct rtwn_softc *sc, struct ieee80211_node *ni,
 }
 
 static int
-rtwn_tx_raw(struct rtwn_softc *sc, struct ieee80211_node *ni,
-    struct mbuf *m, const struct ieee80211_bpf_params *params)
+rtwn_tx_raw(struct rtwn_softc *sc, struct ieee80211_node *ni, struct mbuf *m,
+    const struct ieee80211_bpf_params *params)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct ieee80211_key *k = NULL;
@@ -271,12 +266,12 @@ rtwn_start(struct rtwn_softc *sc)
 		ni = (struct ieee80211_node *)m->m_pkthdr.rcvif;
 		m->m_pkthdr.rcvif = NULL;
 
-		RTWN_DPRINTF(sc, RTWN_DEBUG_XMIT,
-		    "%s: called; m %p, ni %p\n", __func__, m, ni);
+		RTWN_DPRINTF(sc, RTWN_DEBUG_XMIT, "%s: called; m %p, ni %p\n",
+		    __func__, m, ni);
 
 		if (rtwn_tx_data(sc, ni, m) != 0) {
-			if_inc_counter(ni->ni_vap->iv_ifp,
-			    IFCOUNTER_OERRORS, 1);
+			if_inc_counter(ni->ni_vap->iv_ifp, IFCOUNTER_OERRORS,
+			    1);
 			m_freem(m);
 #ifdef D4054
 			ieee80211_tx_watchdog_refresh(ni->ni_ic, -1, 0);
@@ -295,8 +290,8 @@ rtwn_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 	struct rtwn_softc *sc = ic->ic_softc;
 	int error;
 
-	RTWN_DPRINTF(sc, RTWN_DEBUG_XMIT, "%s: called; m %p, ni %p\n",
-	    __func__, m, ni);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_XMIT, "%s: called; m %p, ni %p\n", __func__,
+	    m, ni);
 
 	/* prevent management frames from being sent if we're not ready */
 	RTWN_LOCK(sc);

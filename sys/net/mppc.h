@@ -36,17 +36,17 @@
  */
 
 #ifndef _NET_MPPC_H_
-#define	_NET_MPPC_H_
+#define _NET_MPPC_H_
 
-#define	MPPC_MANDATORY_COMPRESS_FLAGS 0
-#define	MPPC_MANDATORY_DECOMPRESS_FLAGS 0
+#define MPPC_MANDATORY_COMPRESS_FLAGS 0
+#define MPPC_MANDATORY_DECOMPRESS_FLAGS 0
 
-#define	MPPC_SAVE_HISTORY 1
+#define MPPC_SAVE_HISTORY 1
 
-#define	MPPC_OK 5
-#define	MPPC_EXPANDED 8
-#define	MPPC_RESTART_HISTORY 16
-#define	MPPC_DEST_EXHAUSTED 32
+#define MPPC_OK 5
+#define MPPC_EXPANDED 8
+#define MPPC_RESTART_HISTORY 16
+#define MPPC_DEST_EXHAUSTED 32
 
 extern size_t MPPC_SizeOfCompressionHistory(void);
 extern size_t MPPC_SizeOfDecompressionHistory(void);
@@ -54,7 +54,9 @@ extern size_t MPPC_SizeOfDecompressionHistory(void);
 extern void MPPC_InitCompressionHistory(char *history);
 extern void MPPC_InitDecompressionHistory(char *history);
 
-extern int MPPC_Compress(u_char **src, u_char **dst, u_long *srcCnt, u_long *dstCnt, char *history, int flags, int undef);
-extern int MPPC_Decompress(u_char **src, u_char **dst, u_long *srcCnt, u_long *dstCnt, char *history, int flags);
+extern int MPPC_Compress(u_char **src, u_char **dst, u_long *srcCnt,
+    u_long *dstCnt, char *history, int flags, int undef);
+extern int MPPC_Decompress(u_char **src, u_char **dst, u_long *srcCnt,
+    u_long *dstCnt, char *history, int flags);
 
 #endif

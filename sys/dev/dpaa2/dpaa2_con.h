@@ -25,18 +25,18 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_CON_H
-#define	_DPAA2_CON_H
+#ifndef _DPAA2_CON_H
+#define _DPAA2_CON_H
 
-#include <sys/rman.h>
 #include <sys/bus.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 
-#include "dpaa2_types.h"
 #include "dpaa2_mcp.h"
+#include "dpaa2_types.h"
 
 /* Maximum resources per DPCON: 1 DPMCP. */
-#define DPAA2_CON_MAX_RESOURCES	1
+#define DPAA2_CON_MAX_RESOURCES 1
 
 /**
  * @brief Attributes of the DPCON object.
@@ -46,18 +46,18 @@
  * prior_num:	Number of priorities for the DPCON channel (1-8).
  */
 struct dpaa2_con_attr {
-	uint32_t		 id;
-	uint16_t		 chan_id;
-	uint8_t			 prior_num;
+	uint32_t id;
+	uint16_t chan_id;
+	uint8_t prior_num;
 };
 
 /**
  * @brief Software context for the DPAA2 Concentrator driver.
  */
 struct dpaa2_con_softc {
-	device_t		 dev;
-	struct resource 	*res[DPAA2_CON_MAX_RESOURCES];
-	struct dpaa2_con_attr	 attr;
+	device_t dev;
+	struct resource *res[DPAA2_CON_MAX_RESOURCES];
+	struct dpaa2_con_attr attr;
 };
 
 extern struct resource_spec dpaa2_con_spec[];

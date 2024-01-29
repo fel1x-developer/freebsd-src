@@ -30,49 +30,49 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DEV_XILINX_IF_XAEVAR_H_
-#define	_DEV_XILINX_IF_XAEVAR_H_
+#ifndef _DEV_XILINX_IF_XAEVAR_H_
+#define _DEV_XILINX_IF_XAEVAR_H_
 
 #include <dev/xdma/xdma.h>
 
 /*
  * Driver data and defines.
  */
-#define	RX_DESC_COUNT	1024
-#define	TX_DESC_COUNT	1024
+#define RX_DESC_COUNT 1024
+#define TX_DESC_COUNT 1024
 
 struct xae_softc {
-	struct resource		*res[2];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	device_t		dev;
-	uint8_t			macaddr[ETHER_ADDR_LEN];
-	device_t		miibus;
-	struct mii_data *	mii_softc;
-	if_t			ifp;
-	int			if_flags;
-	struct mtx		mtx;
-	void *			intr_cookie;
-	struct callout		xae_callout;
-	boolean_t		link_is_up;
-	boolean_t		is_attached;
-	boolean_t		is_detaching;
-	int			phy_addr;
+	struct resource *res[2];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	device_t dev;
+	uint8_t macaddr[ETHER_ADDR_LEN];
+	device_t miibus;
+	struct mii_data *mii_softc;
+	if_t ifp;
+	int if_flags;
+	struct mtx mtx;
+	void *intr_cookie;
+	struct callout xae_callout;
+	boolean_t link_is_up;
+	boolean_t is_attached;
+	boolean_t is_detaching;
+	int phy_addr;
 
 	/* xDMA TX */
-	xdma_controller_t	*xdma_tx;
-	xdma_channel_t		*xchan_tx;
-	void			*ih_tx;
+	xdma_controller_t *xdma_tx;
+	xdma_channel_t *xchan_tx;
+	void *ih_tx;
 
 	/* xDMA RX */
-	xdma_controller_t	*xdma_rx;
-	xdma_channel_t		*xchan_rx;
-	void			*ih_rx;
+	xdma_controller_t *xdma_rx;
+	xdma_channel_t *xchan_rx;
+	void *ih_rx;
 
-	struct buf_ring		*br;
+	struct buf_ring *br;
 
 	/* Counters */
-	uint64_t		counters[XAE_MAX_COUNTERS];
+	uint64_t counters[XAE_MAX_COUNTERS];
 };
 
-#endif	/* _DEV_XILINX_IF_XAEVAR_H_ */
+#endif /* _DEV_XILINX_IF_XAEVAR_H_ */

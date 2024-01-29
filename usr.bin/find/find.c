@@ -45,16 +45,16 @@
 
 #include "find.h"
 
-static int find_compare(const FTSENT * const *s1, const FTSENT * const *s2);
+static int find_compare(const FTSENT *const *s1, const FTSENT *const *s2);
 
 /*
  * find_compare --
- *	tell fts_open() how to order the traversal of the hierarchy. 
+ *	tell fts_open() how to order the traversal of the hierarchy.
  *	This variant gives lexicographical order, i.e., alphabetical
  *	order within each directory.
  */
 static int
-find_compare(const FTSENT * const *s1, const FTSENT * const *s2)
+find_compare(const FTSENT *const *s1, const FTSENT *const *s2)
 {
 
 	return (strcoll((*s1)->fts_name, (*s2)->fts_name));
@@ -149,13 +149,13 @@ find_formplan(char *argv[])
 	 * operators are handled in order of precedence.
 	 */
 
-	plan = paren_squish(plan);		/* ()'s */
-	plan = not_squish(plan);		/* !'s */
-	plan = or_squish(plan);			/* -o's */
+	plan = paren_squish(plan); /* ()'s */
+	plan = not_squish(plan);   /* !'s */
+	plan = or_squish(plan);	   /* -o's */
 	return (plan);
 }
 
-FTS *tree;			/* pointer to top of FTS hierarchy */
+FTS *tree; /* pointer to top of FTS hierarchy */
 
 /*
  * find_execute --
@@ -192,14 +192,14 @@ find_execute(PLAN *plan, char *paths[])
 			break;
 		case FTS_DNR:
 		case FTS_NS:
-			if (ignore_readdir_race &&
-			    entry->fts_errno == ENOENT && entry->fts_level > 0)
+			if (ignore_readdir_race && entry->fts_errno == ENOENT &&
+			    entry->fts_level > 0)
 				continue;
 			/* FALLTHROUGH */
 		case FTS_ERR:
 			(void)fflush(stdout);
-			warnx("%s: %s",
-			    entry->fts_path, strerror(entry->fts_errno));
+			warnx("%s: %s", entry->fts_path,
+			    strerror(entry->fts_errno));
 			exitstatus = 1;
 			continue;
 #if defined(FTS_W) && defined(FTS_WHITEOUT)
@@ -211,13 +211,14 @@ find_execute(PLAN *plan, char *paths[])
 		}
 
 		if (showinfo) {
-			fprintf(stderr, "Scanning: %s/%s\n", entry->fts_path, entry->fts_name);
+			fprintf(stderr, "Scanning: %s/%s\n", entry->fts_path,
+			    entry->fts_name);
 			fprintf(stderr, "Scanned: %zu\n\n", counter);
 			showinfo = 0;
 		}
 		++counter;
 
-#define	BADCH	" \t\n\\'\""
+#define BADCH " \t\n\\'\""
 		if (isxargs && strpbrk(entry->fts_path, BADCH)) {
 			(void)fflush(stdout);
 			warnx("%s: illegal path", entry->fts_path);
@@ -233,7 +234,8 @@ find_execute(PLAN *plan, char *paths[])
 		 * false or all have been executed.  This is where we do all
 		 * the work specified by the user on the command line.
 		 */
-		for (p = plan; p && (p->execute)(p, entry); p = p->next);
+		for (p = plan; p && (p->execute)(p, entry); p = p->next)
+			;
 	}
 	e = errno;
 	finish_execplus();

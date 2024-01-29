@@ -24,22 +24,20 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/endian.h>
 #include <sys/types.h>
+#include <sys/endian.h>
 #include <sys/socket.h>
-#include <net/if.h>		/* if_nametoindex() */
 #include <sys/time.h>
 
+#include <net/if.h> /* if_nametoindex() */
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
-#include <stdio.h>
+#include <netdb.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <netdb.h>
 
 /* program arguments */
 struct _a {
@@ -63,7 +61,7 @@ usage(void)
 	exit(-1);
 }
 
-#define	MAX_RATE	100000000
+#define MAX_RATE 100000000
 
 static __inline void
 timespec_add(struct timespec *tsa, struct timespec *tsb)
@@ -158,16 +156,15 @@ timing_loop(struct _a *a)
 		    "warning: interval (%jd.%09ld) less than resolution (%jd.%09ld)\n",
 		    (intmax_t)a->interval.tv_sec, a->interval.tv_nsec,
 		    (intmax_t)tmptime.tv_sec, tmptime.tv_nsec);
-		/* interval too short, limit the number of gettimeofday()
-		 * calls, but also make sure there is at least one every
-		 * some 100 packets.
-		 */
-	if ((long)ns < minres_ns/100)
+	/* interval too short, limit the number of gettimeofday()
+	 * calls, but also make sure there is at least one every
+	 * some 100 packets.
+	 */
+	if ((long)ns < minres_ns / 100)
 		gettimeofday_cycles = 100;
 	else
-		gettimeofday_cycles = minres_ns/ns;
-	fprintf(stderr,
-	    "calling time every %d cycles\n", gettimeofday_cycles);
+		gettimeofday_cycles = minres_ns / ns;
+	fprintf(stderr, "calling time every %d cycles\n", gettimeofday_cycles);
 
 	if (clock_gettime(CLOCK_REALTIME, &starttime) == -1) {
 		perror("clock_gettime");
@@ -189,12 +186,14 @@ timing_loop(struct _a *a)
 	cur_port = a->port;
 	if (a->port == a->port_max) {
 		if (a->ipv6) {
-			if (connect(a->s, (struct sockaddr *)&a->sin6, sizeof(a->sin6))) {
+			if (connect(a->s, (struct sockaddr *)&a->sin6,
+				sizeof(a->sin6))) {
 				perror("connect (ipv6)");
 				return (-1);
 			}
 		} else {
-			if (connect(a->s, (struct sockaddr *)&a->sin, sizeof(a->sin))) {
+			if (connect(a->s, (struct sockaddr *)&a->sin,
+				sizeof(a->sin))) {
 				perror("connect (ipv4)");
 				return (-1);
 			}
@@ -232,11 +231,12 @@ timing_loop(struct _a *a)
 			if (cur_port > a->port_max)
 				cur_port = a->port;
 			if (a->ipv6) {
-			ret = sendto(a->s, a->packet, a->packet_len, 0,
-			    (struct sockaddr *)&a->sin6, sizeof(a->sin6));
+				ret = sendto(a->s, a->packet, a->packet_len, 0,
+				    (struct sockaddr *)&a->sin6,
+				    sizeof(a->sin6));
 			} else {
-			ret = sendto(a->s, a->packet, a->packet_len, 0,
-				(struct sockaddr *)&a->sin, sizeof(a->sin));
+				ret = sendto(a->s, a->packet, a->packet_len, 0,
+				    (struct sockaddr *)&a->sin, sizeof(a->sin));
 			}
 		}
 		if (ret < 0)
@@ -259,12 +259,12 @@ done:
 	    tmptime.tv_nsec);
 	printf("send calls:        %ld\n", send_calls);
 	printf("send errors:       %ld\n", send_errors);
-	printf("approx send rate:  %ld pps\n", (send_calls - send_errors) /
-	    a->duration);
+	printf("approx send rate:  %ld pps\n",
+	    (send_calls - send_errors) / a->duration);
 	n = send_calls - send_errors;
 	if (n > 0) {
 		ns = (tmptime.tv_sec - starttime.tv_sec) * 1000000000UL +
-			(tmptime.tv_nsec - starttime.tv_nsec);
+		    (tmptime.tv_nsec - starttime.tv_nsec);
 		n = ns / n;
 	}
 	printf("time/packet:       %u ns\n", (u_int)n);
@@ -281,7 +281,7 @@ main(int argc, char *argv[])
 {
 	long rate, payloadsize, port;
 	char *dummy;
-	struct _a a;	/* arguments */
+	struct _a a; /* arguments */
 	struct addrinfo hints, *res, *ressave;
 
 	bzero(&a, sizeof(a));
@@ -306,7 +306,7 @@ main(int argc, char *argv[])
 			memcpy(&a.sin6, res->ai_addr, res->ai_addrlen);
 			a.ipv6 = 1;
 			break;
-		} 
+		}
 		res = res->ai_next;
 	}
 	if (!res) {
@@ -325,7 +325,7 @@ main(int argc, char *argv[])
 	else
 		a.sin.sin_port = htons(port);
 	a.port = a.port_max = port;
-	if (*dummy == '-') {	/* set high port */
+	if (*dummy == '-') { /* set high port */
 		port = strtoul(dummy + 1, &dummy, 10);
 		if (port < a.port || port > 65535)
 			usage();
@@ -376,8 +376,9 @@ main(int argc, char *argv[])
 	}
 
 	printf("Sending packet of payload size %ld every %jd.%09lds for %ld "
-	    "seconds\n", payloadsize, (intmax_t)a.interval.tv_sec,
-	    a.interval.tv_nsec, a.duration);
+	       "seconds\n",
+	    payloadsize, (intmax_t)a.interval.tv_sec, a.interval.tv_nsec,
+	    a.duration);
 
 	if (a.ipv6)
 		a.s = socket(PF_INET6, SOCK_DGRAM, 0);

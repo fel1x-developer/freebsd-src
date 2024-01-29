@@ -27,7 +27,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_CORES_PMU_BHND_PMUVAR_H_
@@ -43,38 +43,37 @@ struct bhnd_pmu_io;
 
 DECLARE_CLASS(bhnd_pmu_driver);
 
-int		bhnd_pmu_probe(device_t dev);
-int		bhnd_pmu_attach(device_t dev, struct bhnd_resource *res);
-int		bhnd_pmu_detach(device_t dev);
-int		bhnd_pmu_suspend(device_t dev);
-int		bhnd_pmu_resume(device_t dev);
+int bhnd_pmu_probe(device_t dev);
+int bhnd_pmu_attach(device_t dev, struct bhnd_resource *res);
+int bhnd_pmu_detach(device_t dev);
+int bhnd_pmu_suspend(device_t dev);
+int bhnd_pmu_resume(device_t dev);
 
-int		bhnd_pmu_query_init(struct bhnd_pmu_query *query, device_t dev,
-		    struct bhnd_chipid id, const struct bhnd_pmu_io *io,
-		    void *ctx);
-void		bhnd_pmu_query_fini(struct bhnd_pmu_query *query);
+int bhnd_pmu_query_init(struct bhnd_pmu_query *query, device_t dev,
+    struct bhnd_chipid id, const struct bhnd_pmu_io *io, void *ctx);
+void bhnd_pmu_query_fini(struct bhnd_pmu_query *query);
 
-uint32_t	bhnd_pmu_si_clock(struct bhnd_pmu_query *sc);
-uint32_t	bhnd_pmu_cpu_clock(struct bhnd_pmu_query *sc);
-uint32_t	bhnd_pmu_mem_clock(struct bhnd_pmu_query *sc);
-uint32_t	bhnd_pmu_alp_clock(struct bhnd_pmu_query *sc);
-uint32_t	bhnd_pmu_ilp_clock(struct bhnd_pmu_query *sc);
+uint32_t bhnd_pmu_si_clock(struct bhnd_pmu_query *sc);
+uint32_t bhnd_pmu_cpu_clock(struct bhnd_pmu_query *sc);
+uint32_t bhnd_pmu_mem_clock(struct bhnd_pmu_query *sc);
+uint32_t bhnd_pmu_alp_clock(struct bhnd_pmu_query *sc);
+uint32_t bhnd_pmu_ilp_clock(struct bhnd_pmu_query *sc);
 
 /**
  * PMU read-only query support.
- * 
+ *
  * Provides support for querying PMU information prior to availability of
  * the bhnd(4) bus.
  */
 struct bhnd_pmu_query {
-	device_t			 dev;		/**< owning device, or NULL */
-	struct bhnd_chipid		 cid;		/**< chip identification */
-	uint32_t			 caps;		/**< pmu capability flags. */
+	device_t dev;		/**< owning device, or NULL */
+	struct bhnd_chipid cid; /**< chip identification */
+	uint32_t caps;		/**< pmu capability flags. */
 
-	const struct bhnd_pmu_io	*io;		/**< I/O operations */
-	void				*io_ctx;	/**< I/O callback context */
+	const struct bhnd_pmu_io *io; /**< I/O operations */
+	void *io_ctx;		      /**< I/O callback context */
 
-	uint32_t			 ilp_cps;	/**< measured ILP cycles per second, or 0 */
+	uint32_t ilp_cps; /**< measured ILP cycles per second, or 0 */
 };
 
 /**
@@ -82,46 +81,45 @@ struct bhnd_pmu_query {
  */
 struct bhnd_pmu_io {
 	/* Read 4 bytes from PMU @p reg */
-	uint32_t	(*rd4)(bus_size_t reg, void *ctx);
+	uint32_t (*rd4)(bus_size_t reg, void *ctx);
 
 	/* Read 4 bytes to PMU @p reg */
-	void		(*wr4)(bus_size_t reg, uint32_t val, void *ctx);
+	void (*wr4)(bus_size_t reg, uint32_t val, void *ctx);
 
 	/* Read ChipCommon's CHIP_ST register */
-	uint32_t	(*rd_chipst)(void *ctx);
+	uint32_t (*rd_chipst)(void *ctx);
 };
 
 /**
  * bhnd_pmu driver instance state.
  */
 struct bhnd_pmu_softc {
-	device_t			 dev;
-	uint32_t			 caps;		/**< pmu capability flags. */
-	struct bhnd_chipid		 cid;		/**< chip identification */
+	device_t dev;
+	uint32_t caps;		/**< pmu capability flags. */
+	struct bhnd_chipid cid; /**< chip identification */
 
-	struct bhnd_pmu_query		 query;		/**< query instance */
+	struct bhnd_pmu_query query; /**< query instance */
 
-	struct bhnd_board_info		 board;		/**< board identification */
-	device_t			 chipc_dev;	/**< chipcommon device */
+	struct bhnd_board_info board; /**< board identification */
+	device_t chipc_dev;	      /**< chipcommon device */
 
-	struct bhnd_resource		*res;		/**< pmu register block. */
-	int				 rid;		/**< pmu register RID */
-	struct bhnd_core_clkctl		*clkctl;	/**< pmu clkctl register */
+	struct bhnd_resource *res;	 /**< pmu register block. */
+	int rid;			 /**< pmu register RID */
+	struct bhnd_core_clkctl *clkctl; /**< pmu clkctl register */
 
-	struct mtx			 mtx;		/**< state mutex */
+	struct mtx mtx; /**< state mutex */
 
 	/* For compatibility with bhnd_pmu_query APIs and the shared
 	 * BHND_PMU_(READ|WRITE) macros. */
-	const struct bhnd_pmu_io	*io;
-	void				*io_ctx;
-
+	const struct bhnd_pmu_io *io;
+	void *io_ctx;
 };
 
-#define	BPMU_LOCK_INIT(sc) \
-    mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), NULL, MTX_DEF)
-#define	BPMU_LOCK(sc)			mtx_lock(&(sc)->mtx)
-#define	BPMU_UNLOCK(sc)			mtx_unlock(&(sc)->mtx)
-#define	BPMU_LOCK_ASSERT(sc, what)	mtx_assert(&(sc)->mtx, what)
-#define	BPMU_LOCK_DESTROY(sc)		mtx_destroy(&(sc)->mtx)
+#define BPMU_LOCK_INIT(sc) \
+	mtx_init(&(sc)->mtx, device_get_nameunit((sc)->dev), NULL, MTX_DEF)
+#define BPMU_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define BPMU_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define BPMU_LOCK_ASSERT(sc, what) mtx_assert(&(sc)->mtx, what)
+#define BPMU_LOCK_DESTROY(sc) mtx_destroy(&(sc)->mtx)
 
 #endif /* _BHND_CORES_PMU_BHND_PMUVAR_H_ */

@@ -31,14 +31,14 @@
 
 #include <opencrypto/cryptodev.h>
 
-#define SB_AES_BLOCK_SIZE       0x0010
+#define SB_AES_BLOCK_SIZE 0x0010
 
 struct glxsb_session {
-	uint32_t	ses_key[4];		/* key */
+	uint32_t ses_key[4]; /* key */
 	const struct auth_hash *ses_axf;
-	uint8_t		*ses_ictx;
-	uint8_t		*ses_octx;
-	int		ses_mlen;
+	uint8_t *ses_ictx;
+	uint8_t *ses_octx;
+	int ses_mlen;
 };
 
 int glxsb_hash_setup(struct glxsb_session *ses,
@@ -49,4 +49,4 @@ int glxsb_hash_process(struct glxsb_session *ses,
 
 void glxsb_hash_free(struct glxsb_session *ses);
 
-#endif	/* !_GLXSB_H_ */
+#endif /* !_GLXSB_H_ */

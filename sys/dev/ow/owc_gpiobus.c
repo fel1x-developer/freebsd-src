@@ -23,9 +23,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -43,28 +43,25 @@
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-static struct ofw_compat_data compat_data[] = {
-	{"w1-gpio",  true},
-	{NULL,       false}
-};
+static struct ofw_compat_data compat_data[] = { { "w1-gpio", true },
+	{ NULL, false } };
 OFWBUS_PNP_INFO(compat_data);
 SIMPLEBUS_PNP_INFO(compat_data);
 #endif /* FDT */
 
-#define	OW_PIN		0
+#define OW_PIN 0
 
-#define OWC_GPIOBUS_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	OWC_GPIOBUS_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define OWC_GPIOBUS_LOCK_INIT(_sc) \
+#define OWC_GPIOBUS_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define OWC_GPIOBUS_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define OWC_GPIOBUS_LOCK_INIT(_sc)                               \
 	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->sc_dev), \
 	    "owc_gpiobus", MTX_DEF)
-#define OWC_GPIOBUS_LOCK_DESTROY(_sc)	mtx_destroy(&_sc->sc_mtx);
+#define OWC_GPIOBUS_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx);
 
-struct owc_gpiobus_softc 
-{
-	device_t	sc_dev;
-	gpio_pin_t	sc_pin;
-	struct mtx	sc_mtx;
+struct owc_gpiobus_softc {
+	device_t sc_dev;
+	gpio_pin_t sc_pin;
+	struct mtx sc_mtx;
 };
 
 static int owc_gpiobus_probe(device_t);
@@ -163,10 +160,10 @@ owc_gpiobus_detach(device_t dev)
  * These macros let what why we're doing stuff shine in the code
  * below, and let the how be confined to here.
  */
-#define OUTPIN(sc)	gpio_pin_setflags((sc)->sc_pin, GPIO_PIN_OUTPUT)
-#define INPIN(sc)	gpio_pin_setflags((sc)->sc_pin, GPIO_PIN_INPUT)
-#define GETPIN(sc, bp)	gpio_pin_is_active((sc)->sc_pin, (bp))
-#define LOW(sc)		gpio_pin_set_active((sc)->sc_pin, false)
+#define OUTPIN(sc) gpio_pin_setflags((sc)->sc_pin, GPIO_PIN_OUTPUT)
+#define INPIN(sc) gpio_pin_setflags((sc)->sc_pin, GPIO_PIN_INPUT)
+#define GETPIN(sc, bp) gpio_pin_is_active((sc)->sc_pin, (bp))
+#define LOW(sc) gpio_pin_set_active((sc)->sc_pin, false)
 
 /*
  * WRITE-ONE (see owll_if.m for timings) From Figure 4-1 AN-937
@@ -353,7 +350,8 @@ owc_gpiobus_reset_and_presence(device_t dev, struct ow_timing *t, int *bit)
 
 	critical_exit();
 
-	DELAY(t->t_rsth - (t->t_pdh + t->t_pdl / 2));	/* Timing not critical for this one */
+	DELAY(t->t_rsth -
+	    (t->t_pdh + t->t_pdl / 2)); /* Timing not critical for this one */
 
 	/*
 	 * Read the state of the bus after we've waited past the end of the rest
@@ -371,14 +369,14 @@ owc_gpiobus_reset_and_presence(device_t dev, struct ow_timing *t, int *bit)
 
 static device_method_t owc_gpiobus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		owc_gpiobus_probe),
-	DEVMETHOD(device_attach,	owc_gpiobus_attach),
-	DEVMETHOD(device_detach,	owc_gpiobus_detach),
+	DEVMETHOD(device_probe, owc_gpiobus_probe),
+	DEVMETHOD(device_attach, owc_gpiobus_attach),
+	DEVMETHOD(device_detach, owc_gpiobus_detach),
 
-	DEVMETHOD(owll_write_one,	owc_gpiobus_write_one),
-	DEVMETHOD(owll_write_zero,	owc_gpiobus_write_zero),
-	DEVMETHOD(owll_read_data,	owc_gpiobus_read_data),
-	DEVMETHOD(owll_reset_and_presence,	owc_gpiobus_reset_and_presence),
+	DEVMETHOD(owll_write_one, owc_gpiobus_write_one),
+	DEVMETHOD(owll_write_zero, owc_gpiobus_write_zero),
+	DEVMETHOD(owll_read_data, owc_gpiobus_read_data),
+	DEVMETHOD(owll_reset_and_presence, owc_gpiobus_reset_and_presence),
 	{ 0, 0 }
 };
 

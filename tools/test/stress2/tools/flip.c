@@ -46,7 +46,7 @@ extern int optind;
 static long
 random_long(long mi, long ma)
 {
-        return (arc4random()  % (ma - mi + 1) + mi);
+	return (arc4random() % (ma - mi + 1) + mi);
 }
 
 static void
@@ -58,15 +58,15 @@ flip(void *ap, size_t len)
 
 	cp = (unsigned char *)ap;
 	byte = random_long(0, len - 1);
-	bit = random_long(0,7);
+	bit = random_long(0, 7);
 	mask = ~(1 << bit);
 	buf = cp[byte];
 	old = cp[byte];
 	buf = (buf & mask) | (~buf & ~mask);
 	cp[byte] = buf;
 #if defined(DEBUG)
-	printf("Change %2x to %2x at %d by flipping bit %d\n",
-	    old, buf, byte, bit);
+	printf("Change %2x to %2x at %d by flipping bit %d\n", old, buf, byte,
+	    bit);
 #endif
 }
 
@@ -92,18 +92,17 @@ main(int argc, char *argv[])
 	size = 0;
 	while ((c = getopt(argc, argv, "n:s:")) != -1) {
 		switch (c) {
-			case 'n':
-				times = atoi(optarg);
-				break;
-			case 's':
-				size = atol(optarg);
-				break;
-			case '?':
-			default:
-				fprintf(stderr,
-				    "Usage: %s [ -n <num> <file>]\n",
-				    argv[0]);
-				exit(1);
+		case 'n':
+			times = atoi(optarg);
+			break;
+		case 's':
+			size = atol(optarg);
+			break;
+		case '?':
+		default:
+			fprintf(stderr, "Usage: %s [ -n <num> <file>]\n",
+			    argv[0]);
+			exit(1);
 		}
 	}
 	argc -= optind;

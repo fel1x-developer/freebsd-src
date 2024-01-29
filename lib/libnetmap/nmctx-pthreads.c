@@ -28,18 +28,21 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
+#include <net/netmap_user.h>
+
+#include <errno.h>
 #include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <pthread.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <net/netmap_user.h>
-#include <pthread.h>
+
 #include "libnetmap.h"
 
 struct nmctx_pthread {
@@ -52,8 +55,7 @@ static struct nmctx_pthread nmctx_pthreadsafe;
 static void
 nmctx_pthread_lock(struct nmctx *ctx, int lock)
 {
-	struct nmctx_pthread *ctxp =
-		(struct nmctx_pthread *)ctx;
+	struct nmctx_pthread *ctxp = (struct nmctx_pthread *)ctx;
 	if (lock) {
 		pthread_mutex_lock(&ctxp->mutex);
 	} else {
@@ -61,8 +63,7 @@ nmctx_pthread_lock(struct nmctx *ctx, int lock)
 	}
 }
 
-void __attribute__ ((constructor))
-nmctx_set_threadsafe(void)
+void __attribute__((constructor)) nmctx_set_threadsafe(void)
 {
 	struct nmctx *old;
 

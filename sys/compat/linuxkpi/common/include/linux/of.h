@@ -26,7 +26,7 @@
  */
 
 #ifndef _LINUXKPI_LINUX_OF_H
-#define	_LINUXKPI_LINUX_OF_H
+#define _LINUXKPI_LINUX_OF_H
 
 #include <linux/kobject.h>
 

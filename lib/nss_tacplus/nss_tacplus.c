@@ -9,24 +9,23 @@
 
 #include <errno.h>
 #include <inttypes.h>
+#include <nsswitch.h>
 #include <pthread.h>
 #include <pthread_np.h>
+#include <pwd.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-
-#include <nsswitch.h>
-#include <pwd.h>
 #include <taclib.h>
 
 extern int __isthreaded;
 
-#define	DEF_UID		65534
-#define	DEF_GID		65534
-#define	DEF_CLASS	""
-#define	DEF_DIR		"/"
-#define	DEF_SHELL	"/bin/sh"
+#define DEF_UID 65534
+#define DEF_GID 65534
+#define DEF_CLASS ""
+#define DEF_DIR "/"
+#define DEF_SHELL "/bin/sh"
 
 ns_mtab *nss_module_register(const char *, unsigned int *,
     nss_module_unregister_fn *);
@@ -177,8 +176,8 @@ tacplus_getpwnam_r(const char *name, struct passwd *pwd, char *buffer,
 		*value++ = '\0';
 		if (strcasecmp(key, "uid") == 0) {
 			num = strtoimax(value, &end, 10);
-			if (end == value || *end != '\0' ||
-			    num < 0 || num > (intmax_t)UID_MAX) {
+			if (end == value || *end != '\0' || num < 0 ||
+			    num > (intmax_t)UID_MAX) {
 				errno = EINVAL;
 				free(av);
 				return (NS_RETURN);
@@ -186,8 +185,8 @@ tacplus_getpwnam_r(const char *name, struct passwd *pwd, char *buffer,
 			pwd->pw_uid = num;
 		} else if (strcasecmp(key, "gid") == 0) {
 			num = strtoimax(value, &end, 10);
-			if (end == value || *end != '\0' ||
-			    num < 0 || num > (intmax_t)GID_MAX) {
+			if (end == value || *end != '\0' || num < 0 ||
+			    num > (intmax_t)GID_MAX) {
 				errno = EINVAL;
 				free(av);
 				return (NS_RETURN);
@@ -208,8 +207,7 @@ tacplus_getpwnam_r(const char *name, struct passwd *pwd, char *buffer,
 				return (NS_RETURN);
 			}
 		} else if (strcasecmp(av, "home") == 0) {
-			pwd->pw_dir = tacplus_copystr(value, &buffer,
-			    &bufsize);
+			pwd->pw_dir = tacplus_copystr(value, &buffer, &bufsize);
 			if (pwd->pw_dir == NULL) {
 				free(av);
 				return (NS_RETURN);
@@ -289,7 +287,6 @@ nss_tacplus_getpwent_r(void *retval, void *mdata __unused, va_list ap)
 	*(void **)retval = NULL;
 	*result = 0;
 	return (NS_SUCCESS);
-
 }
 
 static int

@@ -25,19 +25,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_CLK_FEPLL_H__
-#define	__QCOM_CLK_FEPLL_H__
+#ifndef __QCOM_CLK_FEPLL_H__
+#define __QCOM_CLK_FEPLL_H__
 
 struct qcom_clk_fepll_def {
 	struct clknode_init_def clkdef;
-	uint32_t offset; /* Register offset */
-	uint32_t fdbkdiv_shift; /* FDBKDIV base */
-	uint32_t fdbkdiv_width; /* FDBKDIV width */
+	uint32_t offset;	  /* Register offset */
+	uint32_t fdbkdiv_shift;	  /* FDBKDIV base */
+	uint32_t fdbkdiv_width;	  /* FDBKDIV width */
 	uint32_t refclkdiv_shift; /* REFCLKDIV base */
 	uint32_t refclkdiv_width; /* REFCLKDIV width */
 };
 
-extern	int qcom_clk_fepll_register(struct clkdom *clkdom,
-	    struct qcom_clk_fepll_def *clkdef);
+extern int qcom_clk_fepll_register(struct clkdom *clkdom,
+    struct qcom_clk_fepll_def *clkdef);
 
-#endif	/* __QCOM_CLK_FEPLL_H__ */
+#endif /* __QCOM_CLK_FEPLL_H__ */

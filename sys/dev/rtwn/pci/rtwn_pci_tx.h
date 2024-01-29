@@ -17,7 +17,7 @@
 #ifndef RTWN_PCI_TX_H
 #define RTWN_PCI_TX_H
 
-int	rtwn_pci_tx_start(struct rtwn_softc *, struct ieee80211_node *,
-	    struct mbuf *, uint8_t *, uint8_t, int);
+int rtwn_pci_tx_start(struct rtwn_softc *, struct ieee80211_node *,
+    struct mbuf *, uint8_t *, uint8_t, int);
 
-#endif	/* RTWN_PCI_TX_H */
+#endif /* RTWN_PCI_TX_H */

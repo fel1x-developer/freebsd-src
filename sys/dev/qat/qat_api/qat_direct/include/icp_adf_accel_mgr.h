@@ -35,7 +35,7 @@ typedef enum icp_adf_dev_reset_mode_e {
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_reset_dev(icp_accel_dev_t *accel_dev,
-			    icp_adf_dev_reset_mode_t mode);
+    icp_adf_dev_reset_mode_t mode);
 
 /*
  * icp_adf_is_dev_in_reset
@@ -80,7 +80,7 @@ CpaStatus icp_amgr_getNumInstances(Cpa16U *pNumInstances);
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getInstances(Cpa16U numInstances,
-				icp_accel_dev_t **pAccel_devs);
+    icp_accel_dev_t **pAccel_devs);
 /*
  * icp_amgr_getAccelDevByName
  *
@@ -92,7 +92,7 @@ CpaStatus icp_amgr_getInstances(Cpa16U numInstances,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getAccelDevByName(unsigned char *instanceName,
-				     icp_accel_dev_t **pAccel_dev);
+    icp_accel_dev_t **pAccel_dev);
 /*
  * icp_amgr_getAccelDevByCapabilities
  *
@@ -105,8 +105,7 @@ CpaStatus icp_amgr_getAccelDevByName(unsigned char *instanceName,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getAccelDevByCapabilities(Cpa32U capabilitiesMask,
-					     icp_accel_dev_t **pAccel_devs,
-					     Cpa16U *pNumInstances);
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances);
 /*
  * icp_amgr_getAllAccelDevByCapabilities
  *
@@ -119,8 +118,7 @@ CpaStatus icp_amgr_getAccelDevByCapabilities(Cpa32U capabilitiesMask,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getAllAccelDevByCapabilities(Cpa32U capabilitiesMask,
-						icp_accel_dev_t **pAccel_devs,
-						Cpa16U *pNumInstances);
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances);
 
 /*
  * icp_amgr_getAccelDevCapabilities
@@ -131,7 +129,7 @@ CpaStatus icp_amgr_getAllAccelDevByCapabilities(Cpa32U capabilitiesMask,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getAccelDevCapabilities(icp_accel_dev_t *accel_dev,
-					   Cpa32U *pCapabilitiesMask);
+    Cpa32U *pCapabilitiesMask);
 
 /*
  * icp_amgr_getAllAccelDevByEachCapability
@@ -145,8 +143,7 @@ CpaStatus icp_amgr_getAccelDevCapabilities(icp_accel_dev_t *accel_dev,
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_amgr_getAllAccelDevByEachCapability(Cpa32U capabilitiesMask,
-						  icp_accel_dev_t **pAccel_devs,
-						  Cpa16U *pNumInstances);
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances);
 
 /*
  * icp_qa_dev_get

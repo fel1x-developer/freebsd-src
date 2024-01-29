@@ -25,16 +25,15 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_DEBUG_H_
-#define	_OPENSOLARIS_SYS_DEBUG_H_
+#define _OPENSOLARIS_SYS_DEBUG_H_
 
 #ifdef _KERNEL
 #include <sys/systm.h>
-
 #include_next <sys/debug.h>
-#else	/* !_KERNEL */
+#else /* !_KERNEL */
 
-#include_next <sys/debug.h>
 #include <sys/assfail.h>
-#endif	/* _KERNEL */
+#include_next <sys/debug.h>
+#endif /* _KERNEL */
 
-#endif	/* _OPENSOLARIS_SYS_DEBUG_H_ */
+#endif /* _OPENSOLARIS_SYS_DEBUG_H_ */

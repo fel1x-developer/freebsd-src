@@ -41,20 +41,21 @@
  * happen very often!  This should be bumped every time we have to
  * increment SHLIB_MAJOR in the libdevstat Makefile (for non-backwards
  * compatible API changes) and should also be bumped every time we make
- * backwards-compatible API changes, so application writers have a way to 
+ * backwards-compatible API changes, so application writers have a way to
  * determine when a particular feature is available.
  */
-#define	DEVSTAT_USER_API_VER	6
+#define DEVSTAT_USER_API_VER 6
 
-#define DEVSTAT_ERRBUF_SIZE  2048 /* size of the devstat library error string */
+#define DEVSTAT_ERRBUF_SIZE 2048 /* size of the devstat library error string \
+				  */
 
 extern char devstat_errbuf[];
 
 typedef enum {
-	DEVSTAT_MATCH_NONE	= 0x00,
-	DEVSTAT_MATCH_TYPE	= 0x01,
-	DEVSTAT_MATCH_IF	= 0x02,
-	DEVSTAT_MATCH_PASS	= 0x04
+	DEVSTAT_MATCH_NONE = 0x00,
+	DEVSTAT_MATCH_TYPE = 0x01,
+	DEVSTAT_MATCH_IF = 0x02,
+	DEVSTAT_MATCH_PASS = 0x04
 } devstat_match_flags;
 
 typedef enum {
@@ -107,39 +108,39 @@ typedef enum {
 } devstat_metric;
 
 struct devstat_match {
-	devstat_match_flags	match_fields;
-	devstat_type_flags	device_type;
-	int			num_match_categories;
+	devstat_match_flags match_fields;
+	devstat_type_flags device_type;
+	int num_match_categories;
 };
 
 struct devstat_match_table {
-	const char *		match_str;
-	devstat_type_flags	type;
-	devstat_match_flags	match_field;
+	const char *match_str;
+	devstat_type_flags type;
+	devstat_match_flags match_field;
 };
 
 struct device_selection {
-	u_int32_t	device_number;
-	char		device_name[DEVSTAT_NAME_LEN];
-	int		unit_number;
-	int		selected;
-	u_int64_t	bytes;
-	int		position;
+	u_int32_t device_number;
+	char device_name[DEVSTAT_NAME_LEN];
+	int unit_number;
+	int selected;
+	u_int64_t bytes;
+	int position;
 };
 
 struct devinfo {
-	struct devstat	*devices;
-	u_int8_t	*mem_ptr;
-	long		generation;
-	int		numdevs;
+	struct devstat *devices;
+	u_int8_t *mem_ptr;
+	long generation;
+	int numdevs;
 };
 
 struct statinfo {
-	long		cp_time[CPUSTATES];
-	long		tk_nin;
-	long		tk_nout;
-	struct devinfo	*dinfo;
-	long double 	snap_time;
+	long cp_time[CPUSTATES];
+	long tk_nin;
+	long tk_nout;
+	struct devinfo *dinfo;
+	long double snap_time;
 };
 
 typedef enum {
@@ -157,19 +158,16 @@ int devstat_getversion(kvm_t *kd);
 int devstat_checkversion(kvm_t *kd);
 int devstat_getdevs(kvm_t *kd, struct statinfo *stats);
 int devstat_selectdevs(struct device_selection **dev_select, int *num_selected,
-		       int *num_selections, long *select_generation, 
-		       long current_generation, struct devstat *devices,
-		       int numdevs, struct devstat_match *matches,
-		       int num_matches, char **dev_selections,
-		       int num_dev_selections, devstat_select_mode select_mode,
-		       int maxshowdevs, int perf_select);
+    int *num_selections, long *select_generation, long current_generation,
+    struct devstat *devices, int numdevs, struct devstat_match *matches,
+    int num_matches, char **dev_selections, int num_dev_selections,
+    devstat_select_mode select_mode, int maxshowdevs, int perf_select);
 int devstat_buildmatch(char *match_str, struct devstat_match **matches,
-		       int *num_matches);
+    int *num_matches);
 int devstat_compute_statistics(struct devstat *current,
-			       struct devstat *previous,
-			       long double etime, ...);
+    struct devstat *previous, long double etime, ...);
 long double devstat_compute_etime(struct bintime *cur_time,
-				  struct bintime *prev_time);
+    struct bintime *prev_time);
 __END_DECLS
 
 #endif /* _DEVSTAT_H  */

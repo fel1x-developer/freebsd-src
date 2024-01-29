@@ -42,14 +42,14 @@
 #include "pjdlog.h"
 #include "proto_impl.h"
 
-#define	SP_CTX_MAGIC	0x50c3741
+#define SP_CTX_MAGIC 0x50c3741
 struct sp_ctx {
-	int			sp_magic;
-	int			sp_fd[2];
-	int			sp_side;
-#define	SP_SIDE_UNDEF		0
-#define	SP_SIDE_CLIENT		1
-#define	SP_SIDE_SERVER		2
+	int sp_magic;
+	int sp_fd[2];
+	int sp_side;
+#define SP_SIDE_UNDEF 0
+#define SP_SIDE_CLIENT 1
+#define SP_SIDE_SERVER 2
 };
 
 static void sp_close(void *ctx);
@@ -219,14 +219,12 @@ sp_close(void *ctx)
 	free(spctx);
 }
 
-static struct proto sp_proto = {
-	.prt_name = "socketpair",
+static struct proto sp_proto = { .prt_name = "socketpair",
 	.prt_client = sp_client,
 	.prt_send = sp_send,
 	.prt_recv = sp_recv,
 	.prt_descriptor = sp_descriptor,
-	.prt_close = sp_close
-};
+	.prt_close = sp_close };
 
 static __constructor void
 sp_ctor(void)

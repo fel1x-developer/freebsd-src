@@ -31,8 +31,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
 
+#include <dev/isci/isci.h>
 #include <dev/isci/scil/scif_user_callback.h>
 
 static void
@@ -138,7 +138,8 @@ scif_cb_timer_create(SCI_CONTROLLER_HANDLE_T scif_controller,
 	timer->cookie = cookie;
 	timer->is_started = FALSE;
 
-	isci_log_message(3, "TIMER", "create %p %p %p\n", timer, timer_callback, cookie);
+	isci_log_message(3, "TIMER", "create %p %p %p\n", timer, timer_callback,
+	    cookie);
 
 	return (timer);
 }
@@ -160,7 +161,8 @@ scif_cb_timer_destroy(SCI_CONTROLLER_HANDLE_T scif_controller,
 	    sci_object_get_association(scif_controller);
 
 	scif_cb_timer_stop(scif_controller, timer_handle);
-	sci_pool_put(isci_controller->timer_pool, (struct ISCI_TIMER *)timer_handle);
+	sci_pool_put(isci_controller->timer_pool,
+	    (struct ISCI_TIMER *)timer_handle);
 
 	isci_log_message(3, "TIMER", "destroy %p\n", timer_handle);
 }

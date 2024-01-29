@@ -34,51 +34,51 @@
 #define _QL_TMPLT_H_
 
 typedef struct _q8_tmplt_hdr {
-	uint16_t	version;
-	uint16_t	signature;
-	uint16_t	size;
-	uint16_t	nentries;
-	uint16_t	stop_seq_off;
-	uint16_t	csum;
-	uint16_t	init_seq_off;
-	uint16_t	start_seq_off;
+	uint16_t version;
+	uint16_t signature;
+	uint16_t size;
+	uint16_t nentries;
+	uint16_t stop_seq_off;
+	uint16_t csum;
+	uint16_t init_seq_off;
+	uint16_t start_seq_off;
 } __packed q8_tmplt_hdr_t;
 
 typedef struct _q8_ce_hdr {
-	uint16_t	opcode;
-	uint16_t	size;
-	uint16_t	opcount;
-	uint16_t	delay_to;
+	uint16_t opcode;
+	uint16_t size;
+	uint16_t opcount;
+	uint16_t delay_to;
 } __packed q8_ce_hdr_t;
 
 /*
  * Values for opcode field in q8_ce_hdr_t
  */
-#define Q8_CE_OPCODE_NOP		0x000
-#define Q8_CE_OPCODE_WRITE_LIST		0x001
-#define Q8_CE_OPCODE_READ_WRITE_LIST	0x002
-#define Q8_CE_OPCODE_POLL_LIST		0x004
-#define Q8_CE_OPCODE_POLL_WRITE_LIST	0x008
-#define Q8_CE_OPCODE_READ_MODIFY_WRITE	0x010
-#define Q8_CE_OPCODE_SEQ_PAUSE		0x020
-#define Q8_CE_OPCODE_SEQ_END		0x040
-#define Q8_CE_OPCODE_TMPLT_END		0x080
-#define Q8_CE_OPCODE_POLL_RD_LIST	0x100
+#define Q8_CE_OPCODE_NOP 0x000
+#define Q8_CE_OPCODE_WRITE_LIST 0x001
+#define Q8_CE_OPCODE_READ_WRITE_LIST 0x002
+#define Q8_CE_OPCODE_POLL_LIST 0x004
+#define Q8_CE_OPCODE_POLL_WRITE_LIST 0x008
+#define Q8_CE_OPCODE_READ_MODIFY_WRITE 0x010
+#define Q8_CE_OPCODE_SEQ_PAUSE 0x020
+#define Q8_CE_OPCODE_SEQ_END 0x040
+#define Q8_CE_OPCODE_TMPLT_END 0x080
+#define Q8_CE_OPCODE_POLL_RD_LIST 0x100
 
 /*
  * structure for Q8_CE_OPCODE_WRITE_LIST
  */
 typedef struct _q8_wrl_e {
-	uint32_t	addr;
-	uint32_t	value;
+	uint32_t addr;
+	uint32_t value;
 } __packed q8_wrl_e_t;
 
 /*
  * structure for Q8_CE_OPCODE_READ_WRITE_LIST
  */
 typedef struct _q8_rdwrl_e {
-	uint32_t	rd_addr;
-	uint32_t	wr_addr;
+	uint32_t rd_addr;
+	uint32_t wr_addr;
 } __packed q8_rdwrl_e_t;
 
 /*
@@ -88,54 +88,54 @@ typedef struct _q8_rdwrl_e {
  *	Q8_CE_OPCODE_POLL_RD_LIST
  */
 typedef struct _q8_poll_hdr {
-	uint32_t	tmask;
-	uint32_t	tvalue;
+	uint32_t tmask;
+	uint32_t tvalue;
 } q8_poll_hdr_t;
 
 /*
  * structure for Q8_CE_OPCODE_POLL_LIST
  */
 typedef struct _q8_poll_e {
-	uint32_t	addr;
-	uint32_t	to_addr;
+	uint32_t addr;
+	uint32_t to_addr;
 } q8_poll_e_t;
 
 /*
  * structure for Q8_CE_OPCODE_POLL_WRITE_LIST
  */
 typedef struct _q8_poll_wr_e {
-	uint32_t	dr_addr;
-	uint32_t	dr_value;
-	uint32_t	ar_addr;
-	uint32_t	ar_value;
+	uint32_t dr_addr;
+	uint32_t dr_value;
+	uint32_t ar_addr;
+	uint32_t ar_value;
 } q8_poll_wr_e_t;
 
 /*
  * structure for Q8_CE_OPCODE_POLL_RD_LIST
  */
 typedef struct _q8_poll_rd_e {
-	uint32_t	ar_addr;
-	uint32_t	ar_value;
-	uint32_t	dr_addr;
-	uint32_t	rsrvd;
+	uint32_t ar_addr;
+	uint32_t ar_value;
+	uint32_t dr_addr;
+	uint32_t rsrvd;
 } q8_poll_rd_e_t;
 
 /*
  * structure for Q8_CE_OPCODE_READ_MODIFY_WRITE
  */
 typedef struct _q8_rdmwr_hdr {
-	uint32_t	and_value;
-	uint32_t	xor_value;
-	uint32_t	or_value;
-	uint8_t		shl;
-	uint8_t		shr;
-	uint8_t		index_a;
-	uint8_t		rsrvd;
+	uint32_t and_value;
+	uint32_t xor_value;
+	uint32_t or_value;
+	uint8_t shl;
+	uint8_t shr;
+	uint8_t index_a;
+	uint8_t rsrvd;
 } q8_rdmwr_hdr_t;
 
 typedef struct _q8_rdmwr_e {
-	uint32_t	rd_addr;
-	uint32_t	wr_addr;
+	uint32_t rd_addr;
+	uint32_t wr_addr;
 } q8_rdmwr_e_t;
 
 #endif /* #ifndef _QL_TMPLT_H_ */

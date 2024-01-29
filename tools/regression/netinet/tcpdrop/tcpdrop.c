@@ -61,8 +61,8 @@ tcp_drop(struct sockaddr_in *sin_local, struct sockaddr_in *sin_remote)
 	bcopy(sin_remote, &addrs[0], sizeof(*sin_remote));
 	bcopy(sin_local, &addrs[1], sizeof(*sin_local));
 
-	return (sysctlbyname("net.inet.tcp.drop", NULL, 0, addrs,
-	    sizeof(addrs)));
+	return (
+	    sysctlbyname("net.inet.tcp.drop", NULL, 0, addrs, sizeof(addrs)));
 }
 
 static void
@@ -98,7 +98,7 @@ tcp_server(pid_t partner, int listen_fd)
 		errx(-1, "tcp_server: send (1) len");
 	}
 
-	sleep (10);
+	sleep(10);
 
 	ch = 'A';
 	len = send(accept_fd, &ch, sizeof(ch), MSG_NOSIGNAL);

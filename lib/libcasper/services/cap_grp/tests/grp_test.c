@@ -33,55 +33,57 @@
 #include <sys/nv.h>
 
 #include <assert.h>
+#include <casper/cap_grp.h>
 #include <err.h>
 #include <errno.h>
 #include <grp.h>
+#include <libcasper.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libcasper.h>
-
-#include <casper/cap_grp.h>
-
 static int ntest = 1;
 
-#define CHECK(expr)     do {						\
-	if ((expr))							\
-		printf("ok %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	fflush(stdout);							\
-	ntest++;							\
-} while (0)
-#define CHECKX(expr)     do {						\
-	if ((expr)) {							\
-		printf("ok %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	} else {							\
-		printf("not ok %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-		exit(1);						\
-	}								\
-	fflush(stdout);							\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                         \
+	do {                                                                \
+		if ((expr))                                                 \
+			printf("ok %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                        \
+			printf("not ok %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                      \
+		fflush(stdout);                                             \
+		ntest++;                                                    \
+	} while (0)
+#define CHECKX(expr)                                                        \
+	do {                                                                \
+		if ((expr)) {                                               \
+			printf("ok %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		} else {                                                    \
+			printf("not ok %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                      \
+			exit(1);                                            \
+		}                                                           \
+		fflush(stdout);                                             \
+		ntest++;                                                    \
+	} while (0)
 
-#define	GID_WHEEL	0
-#define	GID_OPERATOR	5
+#define GID_WHEEL 0
+#define GID_OPERATOR 5
 
-#define	GETGRENT0	0x0001
-#define	GETGRENT1	0x0002
-#define	GETGRENT2	0x0004
-#define	GETGRENT	(GETGRENT0 | GETGRENT1 | GETGRENT2)
-#define	GETGRENT_R0	0x0008
-#define	GETGRENT_R1	0x0010
-#define	GETGRENT_R2	0x0020
-#define	GETGRENT_R	(GETGRENT_R0 | GETGRENT_R1 | GETGRENT_R2)
-#define	GETGRNAM	0x0040
-#define	GETGRNAM_R	0x0080
-#define	GETGRGID	0x0100
-#define	GETGRGID_R	0x0200
-#define	SETGRENT	0x0400
+#define GETGRENT0 0x0001
+#define GETGRENT1 0x0002
+#define GETGRENT2 0x0004
+#define GETGRENT (GETGRENT0 | GETGRENT1 | GETGRENT2)
+#define GETGRENT_R0 0x0008
+#define GETGRENT_R1 0x0010
+#define GETGRENT_R2 0x0020
+#define GETGRENT_R (GETGRENT_R0 | GETGRENT_R1 | GETGRENT_R2)
+#define GETGRNAM 0x0040
+#define GETGRNAM_R 0x0080
+#define GETGRGID 0x0100
+#define GETGRGID_R 0x0200
+#define SETGRENT 0x0400
 
 static bool
 group_mem_compare(char **mem0, char **mem1)
@@ -269,8 +271,9 @@ test_cmds(cap_channel_t *origcapgrp)
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -297,8 +300,9 @@ test_cmds(cap_channel_t *origcapgrp)
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -334,13 +338,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "setgrent";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (GETGRENT0 | GETGRENT1 | GETGRENT_R0 |
-	    GETGRENT_R1 | GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (GETGRENT0 | GETGRENT1 | GETGRENT_R0 | GETGRENT_R1 | GETGRNAM |
+		GETGRNAM_R | GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -376,13 +383,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "setgrent";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (GETGRENT0 | GETGRENT1 | GETGRENT_R0 |
-	    GETGRENT_R1 | GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (GETGRENT0 | GETGRENT1 | GETGRENT_R0 | GETGRENT_R1 | GETGRNAM |
+		GETGRNAM_R | GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -416,14 +426,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrent";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT_R2 |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT_R2 | GETGRNAM | GETGRNAM_R | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -457,14 +470,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrent";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT_R2 |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT_R2 | GETGRNAM | GETGRNAM_R | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -498,13 +514,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrent_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT0 | GETGRENT1 |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT0 | GETGRENT1 | GETGRNAM | GETGRNAM_R |
+		GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -538,13 +557,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrent_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT0 | GETGRENT1 |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT0 | GETGRENT1 | GETGRNAM | GETGRNAM_R |
+		GETGRGID | GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -578,14 +600,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrnam";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM_R | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -619,14 +644,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrnam";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM_R | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -660,13 +688,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrnam_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -700,13 +731,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrnam_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRGID |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -740,14 +774,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrgid";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -781,14 +818,17 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrgid";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_fields(capgrp, fields, 4) == 0);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID_R));
 
 	cap_close(capgrp);
 
@@ -822,13 +862,16 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, names, 5, NULL, 0) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID));
 
 	cap_close(capgrp);
 
@@ -862,21 +905,24 @@ test_cmds(cap_channel_t *origcapgrp)
 	cmds[4] = "getgrnam_r";
 	cmds[5] = "getgrgid";
 	cmds[6] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 7) == -1 && errno == ENOTCAPABLE);
 	cmds[0] = "getgrgid_r";
-	CHECK(cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
+	CHECK(
+	    cap_grp_limit_cmds(capgrp, cmds, 1) == -1 && errno == ENOTCAPABLE);
 	CHECK(cap_grp_limit_groups(capgrp, NULL, 0, gids, 5) == 0);
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID));
 
 	cap_close(capgrp);
 }
 
-#define	GR_NAME		0x01
-#define	GR_PASSWD	0x02
-#define	GR_GID		0x04
-#define	GR_MEM		0x08
+#define GR_NAME 0x01
+#define GR_PASSWD 0x02
+#define GR_GID 0x04
+#define GR_MEM 0x08
 
 static unsigned int
 group_fields(const struct group *grp)
@@ -944,7 +990,8 @@ test_fields(cap_channel_t *origcapgrp)
 
 	/* No limits. */
 
-	CHECK(runtest_fields(origcapgrp, GR_NAME | GR_PASSWD | GR_GID | GR_MEM));
+	CHECK(
+	    runtest_fields(origcapgrp, GR_NAME | GR_PASSWD | GR_GID | GR_MEM));
 
 	/*
 	 * Allow:
@@ -1542,8 +1589,9 @@ main(void)
 
 	/* No limits. */
 
-	CHECK(runtest_cmds(capgrp) == (SETGRENT | GETGRENT | GETGRENT_R |
-	    GETGRNAM | GETGRNAM_R | GETGRGID | GETGRGID_R));
+	CHECK(runtest_cmds(capgrp) ==
+	    (SETGRENT | GETGRENT | GETGRENT_R | GETGRNAM | GETGRNAM_R |
+		GETGRGID | GETGRGID_R));
 
 	test_cmds(capgrp);
 

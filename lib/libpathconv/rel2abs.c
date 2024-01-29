@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pathconv.h" /* prototypes */
 /*
  * rel2abs: convert an relative path name into absolute.
@@ -95,7 +96,7 @@ rel2abs(const char *path, const char *base, char *result, const size_t size)
 	/*
 	 * up to root.
 	 */
-	for (pp = path; *pp && *pp == '.'; ) {
+	for (pp = path; *pp && *pp == '.';) {
 		if (!strncmp(pp, "../", 3)) {
 			pp += 3;
 			while (bp > base && *--bp != '/')

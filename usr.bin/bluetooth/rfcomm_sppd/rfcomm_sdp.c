@@ -35,42 +35,42 @@
 #include <sdp.h>
 #include <stdio.h>
 
-#undef	PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE
-#define	PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE	256
+#undef PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE
+#define PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE 256
 
-#undef	PROTOCOL_DESCRIPTOR_LIST_MINIMAL_SIZE
-#define	PROTOCOL_DESCRIPTOR_LIST_MINIMAL_SIZE	12
+#undef PROTOCOL_DESCRIPTOR_LIST_MINIMAL_SIZE
+#define PROTOCOL_DESCRIPTOR_LIST_MINIMAL_SIZE 12
 
-static int rfcomm_proto_list_parse (uint8_t const *start, uint8_t const *end,
-					int *channel, int *error);
+static int rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end,
+    int *channel, int *error);
 
 /*
  * Lookup RFCOMM channel number in the Protocol Descriptor List
  */
 
-#undef	rfcomm_channel_lookup_exit
-#define	rfcomm_channel_lookup_exit(e) { \
-	if (error != NULL) \
-		*error = (e); \
-	if (ss != NULL) { \
-		sdp_close(ss); \
-		ss = NULL; \
-	} \
-	return (((e) == 0)? 0 : -1); \
-}
+#undef rfcomm_channel_lookup_exit
+#define rfcomm_channel_lookup_exit(e)         \
+	{                                     \
+		if (error != NULL)            \
+			*error = (e);         \
+		if (ss != NULL) {             \
+			sdp_close(ss);        \
+			ss = NULL;            \
+		}                             \
+		return (((e) == 0) ? 0 : -1); \
+	}
 
 int
 rfcomm_channel_lookup(bdaddr_t const *local, bdaddr_t const *remote,
-			int service, int *channel, int *error)
+    int service, int *channel, int *error)
 {
-	uint8_t		 buffer[PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE];
-	void		*ss    = NULL;
-	uint16_t	 serv  = (uint16_t) service;
-	uint32_t	 attr  = SDP_ATTR_RANGE(
-					SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
-					SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST);
-	sdp_attr_t	 proto = { SDP_ATTR_INVALID,0,sizeof(buffer),buffer };
-	uint32_t	 type, len;
+	uint8_t buffer[PROTOCOL_DESCRIPTOR_LIST_BUFFER_SIZE];
+	void *ss = NULL;
+	uint16_t serv = (uint16_t)service;
+	uint32_t attr = SDP_ATTR_RANGE(SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST,
+	    SDP_ATTR_PROTOCOL_DESCRIPTOR_LIST);
+	sdp_attr_t proto = { SDP_ATTR_INVALID, 0, sizeof(buffer), buffer };
+	uint32_t type, len;
 
 	if (local == NULL)
 		local = NG_HCI_BDADDR_ANY;
@@ -91,7 +91,7 @@ rfcomm_channel_lookup(bdaddr_t const *local, bdaddr_t const *remote,
 	ss = NULL;
 
 	/*
-	 * If it is possible for more than one kind of protocol stack to be 
+	 * If it is possible for more than one kind of protocol stack to be
 	 * used to gain access to the service, the ProtocolDescriptorList
 	 * takes the form of a data element alternative. We always use the
 	 * first protocol stack.
@@ -104,11 +104,11 @@ rfcomm_channel_lookup(bdaddr_t const *local, bdaddr_t const *remote,
 	 *		uuid16 value16	- 3 bytes	L2CAP
 	 *	seq8 len8		- 2 bytes
 	 *		uuid16 value16	- 3 bytes	RFCOMM
-	 *		uint8  value8	- 2 bytes	RFCOMM param #1 
+	 *		uint8  value8	- 2 bytes	RFCOMM param #1
 	 *				=========
 	 *				 14 bytes
 	 *
-	 * Lets not count first [seq8 len8] wrapper, so the minimal size of 
+	 * Lets not count first [seq8 len8] wrapper, so the minimal size of
 	 * the Protocol Descriptor List (the data we are actually interested
 	 * in) for RFCOMM based service would be 12 bytes.
 	 */
@@ -151,44 +151,45 @@ rfcomm_channel_lookup(bdaddr_t const *local, bdaddr_t const *remote,
 	if (len < PROTOCOL_DESCRIPTOR_LIST_MINIMAL_SIZE)
 		rfcomm_channel_lookup_exit(EINVAL);
 
-	return (rfcomm_proto_list_parse(proto.value,
-					buffer + proto.vlen, channel, error));
+	return (rfcomm_proto_list_parse(proto.value, buffer + proto.vlen,
+	    channel, error));
 }
-	
+
 /*
  * Parse protocol descriptor list
  *
  * The ProtocolDescriptorList attribute describes one or more protocol
- * stacks that may be used to gain access to the service described by 
+ * stacks that may be used to gain access to the service described by
  * the service record. If the ProtocolDescriptorList describes a single
- * stack, it takes the form of a data element sequence in which each 
+ * stack, it takes the form of a data element sequence in which each
  * element of the sequence is a protocol descriptor.
  */
 
-#undef	rfcomm_proto_list_parse_exit
-#define	rfcomm_proto_list_parse_exit(e) { \
-	if (error != NULL) \
-		*error = (e); \
-	return (((e) == 0)? 0 : -1); \
-}
+#undef rfcomm_proto_list_parse_exit
+#define rfcomm_proto_list_parse_exit(e)       \
+	{                                     \
+		if (error != NULL)            \
+			*error = (e);         \
+		return (((e) == 0) ? 0 : -1); \
+	}
 
 static int
-rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end,
-			int *channel, int *error)
+rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end, int *channel,
+    int *error)
 {
-	int	type, len, value;
+	int type, len, value;
 
 	while (start < end) {
 
-		/* 
+		/*
 		 * Parse protocol descriptor
 		 *
-		 * A protocol descriptor identifies a communications protocol 
-		 * and provides protocol specific parameters. A protocol 
-		 * descriptor is represented as a data element sequence. The 
-		 * first data element in the sequence must be the UUID that 
+		 * A protocol descriptor identifies a communications protocol
+		 * and provides protocol specific parameters. A protocol
+		 * descriptor is represented as a data element sequence. The
+		 * first data element in the sequence must be the UUID that
 		 * identifies the protocol. Additional data elements optionally
-		 * provide protocol specific information, such as the L2CAP 
+		 * provide protocol specific information, such as the L2CAP
 		 * protocol/service multiplexer (PSM) and the RFCOMM server
 		 * channel number (CN).
 		 */
@@ -197,7 +198,7 @@ rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end,
 		if (end - start < 1)
 			rfcomm_proto_list_parse_exit(EINVAL)
 
-		SDP_GET8(type, start);
+			    SDP_GET8(type, start);
 		switch (type) {
 		case SDP_DATA_SEQ8:
 			SDP_GET8(len, start);
@@ -221,10 +222,12 @@ rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end,
 			rfcomm_proto_list_parse_exit(EINVAL);
 
 		/* Get protocol UUID */
-		SDP_GET8(type, start); len -= sizeof(uint8_t);
+		SDP_GET8(type, start);
+		len -= sizeof(uint8_t);
 		switch (type) {
 		case SDP_DATA_UUID16:
-			SDP_GET16(value, start); len -= sizeof(uint16_t);
+			SDP_GET16(value, start);
+			len -= sizeof(uint16_t);
 			if (value != SDP_UUID_PROTOCOL_RFCOMM)
 				goto next_protocol;
 			break;
@@ -253,15 +256,14 @@ rfcomm_proto_list_parse(uint8_t const *start, uint8_t const *end,
 
 		rfcomm_proto_list_parse_exit(0);
 		/* NOT REACHED */
-next_protocol:
+	next_protocol:
 		start += len;
 	}
 
 	/*
-	 * If we got here then it means we could not find RFCOMM protocol 
+	 * If we got here then it means we could not find RFCOMM protocol
 	 * descriptor, but the reply format was actually valid.
 	 */
 
 	rfcomm_proto_list_parse_exit(ENOATTR);
 }
-

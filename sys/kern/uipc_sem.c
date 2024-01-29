@@ -38,10 +38,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_posix.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/_semaphore.h>
 #include <sys/capsicum.h>
 #include <sys/condvar.h>
 #include <sys/fcntl.h>
@@ -55,18 +57,16 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/posix4.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/posix4.h>
-#include <sys/_semaphore.h>
 #include <sys/stat.h>
+#include <sys/sx.h>
 #include <sys/syscall.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/sysent.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
-#include <sys/sx.h>
 #include <sys/user.h>
 #include <sys/vnode.h>
 
@@ -83,19 +83,19 @@ FEATURE(p1003_1b_semaphores, "POSIX P1003.1B semaphores support");
  */
 
 #ifndef SEM_MAX
-#define	SEM_MAX	30
+#define SEM_MAX 30
 #endif
 
 #ifdef SEM_DEBUG
-#define	DP(x)	printf x
+#define DP(x) printf x
 #else
-#define	DP(x)
+#define DP(x)
 #endif
 
 struct ksem_mapping {
-	char		*km_path;
-	Fnv32_t		km_fnv;
-	struct ksem	*km_ksem;
+	char *km_path;
+	Fnv32_t km_fnv;
+	struct ksem *km_ksem;
 	LIST_ENTRY(ksem_mapping) km_link;
 };
 
@@ -107,41 +107,39 @@ static struct mtx sem_lock;
 static u_long ksem_hash;
 static int ksem_dead;
 
-#define	KSEM_HASH(fnv)	(&ksem_dictionary[(fnv) & ksem_hash])
+#define KSEM_HASH(fnv) (&ksem_dictionary[(fnv) & ksem_hash])
 
 static int nsems = 0;
 SYSCTL_DECL(_p1003_1b);
 SYSCTL_INT(_p1003_1b, OID_AUTO, nsems, CTLFLAG_RD, &nsems, 0,
     "Number of active kernel POSIX semaphores");
 
-static int	kern_sem_wait(struct thread *td, semid_t id, int tryflag,
-		    struct timespec *abstime);
-static int	ksem_access(struct ksem *ks, struct ucred *ucred);
+static int kern_sem_wait(struct thread *td, semid_t id, int tryflag,
+    struct timespec *abstime);
+static int ksem_access(struct ksem *ks, struct ucred *ucred);
 static struct ksem *ksem_alloc(struct ucred *ucred, mode_t mode,
-		    unsigned int value);
-static int	ksem_create(struct thread *td, const char *path,
-		    semid_t *semidp, mode_t mode, unsigned int value,
-		    int flags, int compat32);
-static void	ksem_drop(struct ksem *ks);
-static int	ksem_get(struct thread *td, semid_t id, cap_rights_t *rightsp,
+    unsigned int value);
+static int ksem_create(struct thread *td, const char *path, semid_t *semidp,
+    mode_t mode, unsigned int value, int flags, int compat32);
+static void ksem_drop(struct ksem *ks);
+static int ksem_get(struct thread *td, semid_t id, cap_rights_t *rightsp,
     struct file **fpp);
 static struct ksem *ksem_hold(struct ksem *ks);
-static void	ksem_insert(char *path, Fnv32_t fnv, struct ksem *ks);
+static void ksem_insert(char *path, Fnv32_t fnv, struct ksem *ks);
 static struct ksem *ksem_lookup(char *path, Fnv32_t fnv);
-static void	ksem_module_destroy(void);
-static int	ksem_module_init(void);
-static int	ksem_remove(char *path, Fnv32_t fnv, struct ucred *ucred);
-static int	sem_modload(struct module *module, int cmd, void *arg);
+static void ksem_module_destroy(void);
+static int ksem_module_init(void);
+static int ksem_remove(char *path, Fnv32_t fnv, struct ucred *ucred);
+static int sem_modload(struct module *module, int cmd, void *arg);
 
-static fo_stat_t	ksem_stat;
-static fo_close_t	ksem_closef;
-static fo_chmod_t	ksem_chmod;
-static fo_chown_t	ksem_chown;
-static fo_fill_kinfo_t	ksem_fill_kinfo;
+static fo_stat_t ksem_stat;
+static fo_close_t ksem_closef;
+static fo_chmod_t ksem_chmod;
+static fo_chown_t ksem_chown;
+static fo_fill_kinfo_t ksem_fill_kinfo;
 
 /* File descriptor operations. */
-static struct fileops ksem_ops = {
-	.fo_read = invfo_rdwr,
+static struct fileops ksem_ops = { .fo_read = invfo_rdwr,
 	.fo_write = invfo_rdwr,
 	.fo_truncate = invfo_truncate,
 	.fo_ioctl = invfo_ioctl,
@@ -154,8 +152,7 @@ static struct fileops ksem_ops = {
 	.fo_sendfile = invfo_sendfile,
 	.fo_fill_kinfo = ksem_fill_kinfo,
 	.fo_cmp = file_kcmp_generic,
-	.fo_flags = DFLAG_PASSABLE
-};
+	.fo_flags = DFLAG_PASSABLE };
 
 FEATURE(posix_sem, "POSIX semaphores");
 
@@ -188,7 +185,7 @@ ksem_stat(struct file *fp, struct stat *sb, struct ucred *active_cred)
 	sb->st_birthtim = ks->ks_birthtime;
 	sb->st_uid = ks->ks_uid;
 	sb->st_gid = ks->ks_gid;
-	sb->st_mode = S_IFREG | ks->ks_mode;		/* XXX */
+	sb->st_mode = S_IFREG | ks->ks_mode; /* XXX */
 	mtx_unlock(&sem_lock);
 
 	return (0);
@@ -237,9 +234,9 @@ ksem_chown(struct file *fp, uid_t uid, gid_t gid, struct ucred *active_cred,
 	if (uid == (uid_t)-1)
 		uid = ks->ks_uid;
 	if (gid == (gid_t)-1)
-                 gid = ks->ks_gid;
+		gid = ks->ks_gid;
 	if (((uid != ks->ks_uid && uid != active_cred->cr_uid) ||
-	    (gid != ks->ks_gid && !groupmember(gid, active_cred))) &&
+		(gid != ks->ks_gid && !groupmember(gid, active_cred))) &&
 	    (error = priv_check_cred(active_cred, PRIV_VFS_CHOWN)))
 		goto out;
 	ks->ks_uid = uid;
@@ -272,7 +269,7 @@ ksem_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 	ks = fp->f_data;
 	mtx_lock(&sem_lock);
 	kif->kf_un.kf_sem.kf_sem_value = ks->ks_value;
-	kif->kf_un.kf_sem.kf_sem_mode = S_IFREG | ks->ks_mode;	/* XXX */
+	kif->kf_un.kf_sem.kf_sem_mode = S_IFREG | ks->ks_mode; /* XXX */
 	mtx_unlock(&sem_lock);
 	if (ks->ks_path != NULL) {
 		sx_slock(&ksem_dict_lock);
@@ -376,7 +373,7 @@ ksem_lookup(char *path, Fnv32_t fnv)
 {
 	struct ksem_mapping *map;
 
-	LIST_FOREACH(map, KSEM_HASH(fnv), km_link) {
+	LIST_FOREACH (map, KSEM_HASH(fnv), km_link) {
 		if (map->km_fnv != fnv)
 			continue;
 		if (strcmp(map->km_path, path) == 0)
@@ -405,7 +402,7 @@ ksem_remove(char *path, Fnv32_t fnv, struct ucred *ucred)
 	struct ksem_mapping *map;
 	int error;
 
-	LIST_FOREACH(map, KSEM_HASH(fnv), km_link) {
+	LIST_FOREACH (map, KSEM_HASH(fnv), km_link) {
 		if (map->km_fnv != fnv)
 			continue;
 		if (strcmp(map->km_path, path) == 0) {
@@ -512,8 +509,9 @@ ksem_create(struct thread *td, const char *name, semid_t *semidp, mode_t mode,
 		pr_path = td->td_ucred->cr_prison->pr_path;
 
 		/* Construct a full pathname for jailed callers. */
-		pr_pathlen = strcmp(pr_path, "/") == 0 ? 0
-		    : strlcpy(path, pr_path, MAXPATHLEN);
+		pr_pathlen = strcmp(pr_path, "/") == 0 ?
+		    0 :
+		    strlcpy(path, pr_path, MAXPATHLEN);
 		error = copyinstr(name, path + pr_pathlen,
 		    MAXPATHLEN - pr_pathlen, NULL);
 
@@ -548,8 +546,7 @@ ksem_create(struct thread *td, const char *name, semid_t *semidp, mode_t mode,
 			 * Object already exists, obtain a new
 			 * reference if requested and permitted.
 			 */
-			if ((flags & (O_CREAT | O_EXCL)) ==
-			    (O_CREAT | O_EXCL))
+			if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL))
 				error = EEXIST;
 			else {
 #ifdef MAC
@@ -557,7 +554,7 @@ ksem_create(struct thread *td, const char *name, semid_t *semidp, mode_t mode,
 				    ks);
 				if (error == 0)
 #endif
-				error = ksem_access(ks, td->td_ucred);
+					error = ksem_access(ks, td->td_ucred);
 			}
 			if (error == 0)
 				ksem_hold(ks);
@@ -613,8 +610,8 @@ ksem_get(struct thread *td, semid_t id, cap_rights_t *rightsp,
 /* System calls. */
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_init_args {
-	unsigned int	value;
-	semid_t		*idp;
+	unsigned int value;
+	semid_t *idp;
 };
 #endif
 int
@@ -627,11 +624,11 @@ sys_ksem_init(struct thread *td, struct ksem_init_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_open_args {
-	char		*name;
-	int		oflag;
-	mode_t		mode;
-	unsigned int	value;
-	semid_t		*idp;	
+	char *name;
+	int oflag;
+	mode_t mode;
+	unsigned int value;
+	semid_t *idp;
 };
 #endif
 int
@@ -648,7 +645,7 @@ sys_ksem_open(struct thread *td, struct ksem_open_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_unlink_args {
-	char		*name;
+	char *name;
 };
 #endif
 int
@@ -662,8 +659,9 @@ sys_ksem_unlink(struct thread *td, struct ksem_unlink_args *uap)
 
 	path = malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
 	pr_path = td->td_ucred->cr_prison->pr_path;
-	pr_pathlen = strcmp(pr_path, "/") == 0 ? 0
-	    : strlcpy(path, pr_path, MAXPATHLEN);
+	pr_pathlen = strcmp(pr_path, "/") == 0 ?
+	    0 :
+	    strlcpy(path, pr_path, MAXPATHLEN);
 	error = copyinstr(uap->name, path + pr_pathlen, MAXPATHLEN - pr_pathlen,
 	    NULL);
 	if (error) {
@@ -683,7 +681,7 @@ sys_ksem_unlink(struct thread *td, struct ksem_unlink_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_close_args {
-	semid_t		id;
+	semid_t id;
 };
 #endif
 int
@@ -710,7 +708,7 @@ sys_ksem_close(struct thread *td, struct ksem_close_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_post_args {
-	semid_t	id;
+	semid_t id;
 };
 #endif
 int
@@ -751,7 +749,7 @@ err:
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_wait_args {
-	semid_t		id;
+	semid_t id;
 };
 #endif
 int
@@ -763,7 +761,7 @@ sys_ksem_wait(struct thread *td, struct ksem_wait_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_timedwait_args {
-	semid_t		id;
+	semid_t id;
 	const struct timespec *abstime;
 };
 #endif
@@ -792,7 +790,7 @@ sys_ksem_timedwait(struct thread *td, struct ksem_timedwait_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_trywait_args {
-	semid_t		id;
+	semid_t id;
 };
 #endif
 int
@@ -848,8 +846,8 @@ kern_sem_wait(struct thread *td, semid_t id, int tryflag,
 					error = ETIMEDOUT;
 					break;
 				}
-				error = cv_timedwait_sig(&ks->ks_cv,
-				    &sem_lock, tvtohz(&tv));
+				error = cv_timedwait_sig(&ks->ks_cv, &sem_lock,
+				    tvtohz(&tv));
 				if (error != EWOULDBLOCK)
 					break;
 			}
@@ -871,8 +869,8 @@ err:
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_getvalue_args {
-	semid_t		id;
-	int		*val;
+	semid_t id;
+	int *val;
 };
 #endif
 int
@@ -909,7 +907,7 @@ sys_ksem_getvalue(struct thread *td, struct ksem_getvalue_args *uap)
 
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_destroy_args {
-	semid_t		id;
+	semid_t id;
 };
 #endif
 int
@@ -944,19 +942,13 @@ err:
 	return (error);
 }
 
-static struct syscall_helper_data ksem_syscalls[] = {
-	SYSCALL_INIT_HELPER(ksem_init),
-	SYSCALL_INIT_HELPER(ksem_open),
-	SYSCALL_INIT_HELPER(ksem_unlink),
-	SYSCALL_INIT_HELPER(ksem_close),
-	SYSCALL_INIT_HELPER(ksem_post),
-	SYSCALL_INIT_HELPER(ksem_wait),
-	SYSCALL_INIT_HELPER(ksem_timedwait),
-	SYSCALL_INIT_HELPER(ksem_trywait),
-	SYSCALL_INIT_HELPER(ksem_getvalue),
-	SYSCALL_INIT_HELPER(ksem_destroy),
-	SYSCALL_INIT_LAST
-};
+static struct syscall_helper_data ksem_syscalls[] = { SYSCALL_INIT_HELPER(
+							  ksem_init),
+	SYSCALL_INIT_HELPER(ksem_open), SYSCALL_INIT_HELPER(ksem_unlink),
+	SYSCALL_INIT_HELPER(ksem_close), SYSCALL_INIT_HELPER(ksem_post),
+	SYSCALL_INIT_HELPER(ksem_wait), SYSCALL_INIT_HELPER(ksem_timedwait),
+	SYSCALL_INIT_HELPER(ksem_trywait), SYSCALL_INIT_HELPER(ksem_getvalue),
+	SYSCALL_INIT_HELPER(ksem_destroy), SYSCALL_INIT_LAST };
 
 #ifdef COMPAT_FREEBSD32
 #include <compat/freebsd32/freebsd32.h>
@@ -969,8 +961,8 @@ int
 freebsd32_ksem_init(struct thread *td, struct freebsd32_ksem_init_args *uap)
 {
 
-	return (ksem_create(td, NULL, (semid_t *)uap->idp, S_IRWXU | S_IRWXG, uap->value,
-	    0, 1));
+	return (ksem_create(td, NULL, (semid_t *)uap->idp, S_IRWXU | S_IRWXG,
+	    uap->value, 0, 1));
 }
 
 int
@@ -979,8 +971,8 @@ freebsd32_ksem_open(struct thread *td, struct freebsd32_ksem_open_args *uap)
 
 	if ((uap->oflag & ~(O_CREAT | O_EXCL)) != 0)
 		return (EINVAL);
-	return (ksem_create(td, uap->name, (semid_t *)uap->idp, uap->mode, uap->value,
-	    uap->oflag, 1));
+	return (ksem_create(td, uap->name, (semid_t *)uap->idp, uap->mode,
+	    uap->value, uap->oflag, 1));
 }
 
 int
@@ -1019,8 +1011,7 @@ static struct syscall_helper_data ksem32_syscalls[] = {
 	SYSCALL32_INIT_HELPER(freebsd32_ksem_timedwait),
 	SYSCALL32_INIT_HELPER_COMPAT(ksem_trywait),
 	SYSCALL32_INIT_HELPER_COMPAT(ksem_getvalue),
-	SYSCALL32_INIT_HELPER_COMPAT(ksem_destroy),
-	SYSCALL_INIT_LAST
+	SYSCALL32_INIT_HELPER_COMPAT(ksem_destroy), SYSCALL_INIT_LAST
 };
 #endif
 
@@ -1069,16 +1060,16 @@ ksem_module_destroy(void)
 static int
 sem_modload(struct module *module, int cmd, void *arg)
 {
-        int error = 0;
+	int error = 0;
 
-        switch (cmd) {
-        case MOD_LOAD:
+	switch (cmd) {
+	case MOD_LOAD:
 		error = ksem_module_init();
 		if (error)
 			ksem_module_destroy();
-                break;
+		break;
 
-        case MOD_UNLOAD:
+	case MOD_UNLOAD:
 		mtx_lock(&ksem_count_lock);
 		if (nsems != 0) {
 			error = EOPNOTSUPP;
@@ -1088,22 +1079,18 @@ sem_modload(struct module *module, int cmd, void *arg)
 		ksem_dead = 1;
 		mtx_unlock(&ksem_count_lock);
 		ksem_module_destroy();
-                break;
+		break;
 
-        case MOD_SHUTDOWN:
-                break;
-        default:
-                error = EINVAL;
-                break;
-        }
-        return (error);
+	case MOD_SHUTDOWN:
+		break;
+	default:
+		error = EINVAL;
+		break;
+	}
+	return (error);
 }
 
-static moduledata_t sem_mod = {
-        "sem",
-        &sem_modload,
-        NULL
-};
+static moduledata_t sem_mod = { "sem", &sem_modload, NULL };
 
 DECLARE_MODULE(sem, sem_mod, SI_SUB_SYSV_SEM, SI_ORDER_FIRST);
 MODULE_VERSION(sem, 1);

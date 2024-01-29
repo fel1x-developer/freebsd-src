@@ -63,37 +63,34 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/callout.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/mbuf.h>
 #include <sys/queue.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/mbuf.h>
-#include <sys/rwlock.h>
 #include <sys/syslog.h>
-#include <sys/callout.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhop.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
-#include <net/route/nhop.h>
-
-#include <netinet/in.h>
-#include <netinet/ip_var.h>
-#include <netinet/in_var.h>
-
-#include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
-
 #include <netinet/icmp6.h>
+#include <netinet/in.h>
+#include <netinet/in_var.h>
+#include <netinet/ip6.h>
+#include <netinet/ip_var.h>
+#include <netinet6/ip6_var.h>
 #include <netinet6/nd6.h>
 
 static int
-rib6_set_nh_pfxflags(u_int fibnum, const struct sockaddr *addr, const struct sockaddr *mask,
-    struct nhop_object *nh)
+rib6_set_nh_pfxflags(u_int fibnum, const struct sockaddr *addr,
+    const struct sockaddr *mask, struct nhop_object *nh)
 {
 	const struct sockaddr_in6 *mask6 = (const struct sockaddr_in6 *)mask;
 

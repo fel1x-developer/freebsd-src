@@ -29,19 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <sys/mman.h>
+#include <sys/uio.h>
 
+#include <db.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include <db.h>
+#include "namespace.h"
 #include "recno.h"
+#include "un-namespace.h"
 
 /*
  * __REC_CLOSE -- Close a recno tree.
@@ -158,7 +158,8 @@ __rec_sync(const DB *dbp, u_int flags)
 		while (status == RET_SUCCESS) {
 			iov[0].iov_base = data.data;
 			iov[0].iov_len = data.size;
-			if (_writev(t->bt_rfd, iov, 2) != (ssize_t)(data.size + 1))
+			if (_writev(t->bt_rfd, iov, 2) !=
+			    (ssize_t)(data.size + 1))
 				return (RET_ERROR);
 			status = (dbp->seq)(dbp, &key, &data, R_NEXT);
 		}

@@ -29,10 +29,10 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/ioccom.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -54,10 +54,10 @@ static cmd_fn_t firmware;
 
 #define NONE 0xffffffffu
 static struct options {
-	bool		activate;
-	uint32_t	slot;
-	const char	*fw_img;
-	const char	*dev;
+	bool activate;
+	uint32_t slot;
+	const char *fw_img;
+	const char *dev;
 } opt = {
 	.activate = false,
 	.slot = NONE,
@@ -66,7 +66,10 @@ static struct options {
 };
 
 static const struct opts firmware_opts[] = {
-#define OPT(l, s, t, opt, addr, desc) { l, s, t, &opt.addr, desc }
+#define OPT(l, s, t, opt, addr, desc)    \
+	{                                \
+		l, s, t, &opt.addr, desc \
+	}
 	OPT("activate", 'a', arg_none, opt, activate,
 	    "Attempt to activate firmware"),
 	OPT("slot", 's', arg_uint32, opt, slot,
@@ -98,13 +101,13 @@ CMD_COMMAND(firmware_cmd);
 static int
 slot_has_valid_firmware(int fd, int slot)
 {
-	struct nvme_firmware_page	fw;
-	int				has_fw = false;
+	struct nvme_firmware_page fw;
+	int has_fw = false;
 
-	read_logpage(fd, NVME_LOG_FIRMWARE_SLOT,
-	    NVME_GLOBAL_NAMESPACE_TAG, 0, 0, 0, &fw, sizeof(fw));
+	read_logpage(fd, NVME_LOG_FIRMWARE_SLOT, NVME_GLOBAL_NAMESPACE_TAG, 0,
+	    0, 0, &fw, sizeof(fw));
 
-	if (fw.revision[slot-1] != 0LLU)
+	if (fw.revision[slot - 1] != 0LLU)
 		has_fw = true;
 
 	return (has_fw);
@@ -113,9 +116,9 @@ slot_has_valid_firmware(int fd, int slot)
 static void
 read_image_file(const char *path, void **buf, int32_t *size)
 {
-	struct stat	sb;
-	int32_t		filesize;
-	int		fd;
+	struct stat sb;
+	int32_t filesize;
+	int fd;
 
 	*size = 0;
 	*buf = NULL;
@@ -155,11 +158,11 @@ read_image_file(const char *path, void **buf, int32_t *size)
 static void
 update_firmware(int fd, uint8_t *payload, int32_t payload_size, uint8_t fwug)
 {
-	struct nvme_pt_command	pt;
-	uint64_t		max_xfer_size;
-	int32_t			off;
-	uint32_t		resid, size;
-	void			*chunk;
+	struct nvme_pt_command pt;
+	uint64_t max_xfer_size;
+	int32_t off;
+	uint32_t resid, size;
+	void *chunk;
 
 	off = 0;
 	resid = payload_size;
@@ -170,10 +173,11 @@ update_firmware(int fd, uint8_t *payload, int32_t payload_size, uint8_t fwug)
 		max_xfer_size = MIN(max_xfer_size, (uint64_t)fwug << 12);
 
 	if ((chunk = aligned_alloc(PAGE_SIZE, max_xfer_size)) == NULL)
-		errx(EX_OSERR, "unable to malloc %zd bytes", (size_t)max_xfer_size);
+		errx(EX_OSERR, "unable to malloc %zd bytes",
+		    (size_t)max_xfer_size);
 
 	while (resid > 0) {
-		size = (resid >= max_xfer_size) ?  max_xfer_size : resid;
+		size = (resid >= max_xfer_size) ? max_xfer_size : resid;
 		memcpy(chunk, payload + off, size);
 
 		memset(&pt, 0, sizeof(pt));
@@ -188,7 +192,8 @@ update_firmware(int fd, uint8_t *payload, int32_t payload_size, uint8_t fwug)
 			err(EX_IOERR, "firmware download request failed");
 
 		if (nvme_completion_is_error(&pt.cpl))
-			errx(EX_IOERR, "firmware download request returned error");
+			errx(EX_IOERR,
+			    "firmware download request returned error");
 
 		resid -= size;
 		off += size;
@@ -199,7 +204,7 @@ update_firmware(int fd, uint8_t *payload, int32_t payload_size, uint8_t fwug)
 static int
 activate_firmware(int fd, int slot, int activate_action)
 {
-	struct nvme_pt_command	pt;
+	struct nvme_pt_command pt;
 	uint16_t sct, sc;
 
 	memset(&pt, 0, sizeof(pt));
@@ -226,15 +231,15 @@ activate_firmware(int fd, int slot, int activate_action)
 static void
 firmware(const struct cmd *f, int argc, char *argv[])
 {
-	int				fd = -1;
-	int				activate_action, reboot_required;
-	char				prompt[64];
-	void				*buf = NULL;
-	char				*path;
-	int32_t				size = 0, nsid;
-	uint16_t			oacs_fw;
-	uint8_t				fw_slot1_ro, fw_num_slots;
-	struct nvme_controller_data	cdata;
+	int fd = -1;
+	int activate_action, reboot_required;
+	char prompt[64];
+	void *buf = NULL;
+	char *path;
+	int32_t size = 0, nsid;
+	uint16_t oacs_fw;
+	uint8_t fw_slot1_ro, fw_num_slots;
+	struct nvme_controller_data cdata;
 
 	if (arg_parse(argc, argv, f))
 		return;
@@ -248,7 +253,8 @@ firmware(const struct cmd *f, int argc, char *argv[])
 		fprintf(stderr,
 		    "Slot number %s specified which is "
 		    "greater than max allowed slot number of "
-		    "7.\n", optarg);
+		    "7.\n",
+		    optarg);
 		arg_help(argc, argv, f);
 	}
 
@@ -261,8 +267,7 @@ firmware(const struct cmd *f, int argc, char *argv[])
 	}
 
 	if (opt.activate && opt.fw_img == NULL && opt.slot == 0) {
-		fprintf(stderr,
-		    "Slot number to activate not specified.\n");
+		fprintf(stderr, "Slot number to activate not specified.\n");
 		arg_help(argc, argv, f);
 	}
 
@@ -278,20 +283,21 @@ firmware(const struct cmd *f, int argc, char *argv[])
 		errx(EX_IOERR, "Identify request failed");
 
 	oacs_fw = (cdata.oacs >> NVME_CTRLR_DATA_OACS_FIRMWARE_SHIFT) &
-		NVME_CTRLR_DATA_OACS_FIRMWARE_MASK;
+	    NVME_CTRLR_DATA_OACS_FIRMWARE_MASK;
 
 	if (oacs_fw == 0)
 		errx(EX_UNAVAILABLE,
 		    "controller does not support firmware activate/download");
 
 	fw_slot1_ro = (cdata.frmw >> NVME_CTRLR_DATA_FRMW_SLOT1_RO_SHIFT) &
-		NVME_CTRLR_DATA_FRMW_SLOT1_RO_MASK;
+	    NVME_CTRLR_DATA_FRMW_SLOT1_RO_MASK;
 
 	if (opt.fw_img && opt.slot == 1 && fw_slot1_ro)
-		errx(EX_UNAVAILABLE, "slot %d is marked as read only", opt.slot);
+		errx(EX_UNAVAILABLE, "slot %d is marked as read only",
+		    opt.slot);
 
 	fw_num_slots = (cdata.frmw >> NVME_CTRLR_DATA_FRMW_NUM_SLOTS_SHIFT) &
-		NVME_CTRLR_DATA_FRMW_NUM_SLOTS_MASK;
+	    NVME_CTRLR_DATA_FRMW_NUM_SLOTS_MASK;
 
 	if (opt.slot > fw_num_slots)
 		errx(EX_UNAVAILABLE,
@@ -309,23 +315,23 @@ firmware(const struct cmd *f, int argc, char *argv[])
 	if (opt.fw_img)
 		read_image_file(opt.fw_img, &buf, &size);
 
-	if (opt.fw_img != NULL&& opt.activate)
+	if (opt.fw_img != NULL && opt.activate)
 		printf("You are about to download and activate "
 		       "firmware image (%s) to controller %s.\n"
 		       "This may damage your controller and/or "
 		       "overwrite an existing firmware image.\n",
-		       opt.fw_img, opt.dev);
+		    opt.fw_img, opt.dev);
 	else if (opt.activate)
 		printf("You are about to activate a new firmware "
 		       "image on controller %s.\n"
 		       "This may damage your controller.\n",
-		       opt.dev);
+		    opt.dev);
 	else if (opt.fw_img != NULL)
 		printf("You are about to download firmware image "
 		       "(%s) to controller %s.\n"
 		       "This may damage your controller and/or "
 		       "overwrite an existing firmware image.\n",
-		       opt.fw_img, opt.dev);
+		    opt.fw_img, opt.dev);
 
 	printf("Are you sure you want to continue? (yes/no) ");
 	while (1) {
@@ -359,7 +365,7 @@ firmware(const struct cmd *f, int argc, char *argv[])
 			       "effect after next controller reset.\n"
 			       "Controller reset can be initiated via "
 			       "'nvmecontrol reset %s'\n",
-			       opt.dev);
+			    opt.dev);
 		}
 	}
 

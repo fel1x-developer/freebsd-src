@@ -25,61 +25,69 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/endian.h>
-#include <sys/sbuf.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/stdint.h>
 
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/mmc/mmc_all.h>
+#include <camlib.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <libutil.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <err.h>
-#include <libutil.h>
-#include <unistd.h>
 
-#include <cam/cam.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_ccb.h>
-#include <cam/mmc/mmc_all.h>
-#include <camlib.h>
-
+#include "cam_sdio.h"
 #include "linux_compat.h"
 #include "linux_sdio_compat.h"
-#include "cam_sdio.h"
 
-u8 sdio_readb(struct sdio_func *func, unsigned int addr, int *err_ret) {
+u8
+sdio_readb(struct sdio_func *func, unsigned int addr, int *err_ret)
+{
 	return sdio_read_1(func->dev, func->num, addr, err_ret);
 }
 
-unsigned char sdio_f0_readb(struct sdio_func *func, unsigned int addr, int *err_ret) {
+unsigned char
+sdio_f0_readb(struct sdio_func *func, unsigned int addr, int *err_ret)
+{
 	return sdio_readb(func, addr, err_ret);
 }
 
-u16 sdio_readw(struct sdio_func *func, unsigned int addr, int *err_ret) {
+u16
+sdio_readw(struct sdio_func *func, unsigned int addr, int *err_ret)
+{
 	return sdio_read_2(func->dev, func->num, addr, err_ret);
 }
 
-u32 sdio_readl(struct sdio_func *func, unsigned int addr, int *err_ret) {
+u32
+sdio_readl(struct sdio_func *func, unsigned int addr, int *err_ret)
+{
 	return sdio_read_4(func->dev, func->num, addr, err_ret);
 }
 
-void sdio_writeb(struct sdio_func *func, u8 b,
-		 unsigned int addr, int *err_ret) {
+void
+sdio_writeb(struct sdio_func *func, u8 b, unsigned int addr, int *err_ret)
+{
 	*err_ret = sdio_write_1(func->dev, func->num, addr, b);
 }
 
 /* Only writes to the vendor specific CCCR registers
  * (0xF0 - 0xFF) are permiited. */
-void sdio_f0_writeb(struct sdio_func *func, unsigned char b,
-		    unsigned int addr, int *err_ret)
+void
+sdio_f0_writeb(struct sdio_func *func, unsigned char b, unsigned int addr,
+    int *err_ret)
 {
 	if (addr < 0xF0 || addr > 0xFF) {
 		if (err_ret)
@@ -89,12 +97,14 @@ void sdio_f0_writeb(struct sdio_func *func, unsigned char b,
 	sdio_writeb(func, b, addr, err_ret);
 }
 
-void sdio_writew(struct sdio_func *func, u16 b,
-		 unsigned int addr, int *err_ret) {
+void
+sdio_writew(struct sdio_func *func, u16 b, unsigned int addr, int *err_ret)
+{
 	*err_ret = sdio_write_2(func->dev, func->num, addr, b);
 }
 
-void sdio_writel(struct sdio_func *func, u32 b,
-		 unsigned int addr, int *err_ret) {
+void
+sdio_writel(struct sdio_func *func, u32 b, unsigned int addr, int *err_ret)
+{
 	*err_ret = sdio_write_4(func->dev, func->num, addr, b);
 }

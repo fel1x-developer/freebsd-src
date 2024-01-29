@@ -26,7 +26,6 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/types.h>
 #ifdef _KERNEL
 #include <sys/systm.h>
@@ -37,20 +36,20 @@ void
 camellia_set_key(camellia_ctx *ctx, const u_char *key, int bits)
 {
 
-    Camellia_Ekeygen(bits, key, ctx->subkey);
-    ctx->bits = bits;
+	Camellia_Ekeygen(bits, key, ctx->subkey);
+	ctx->bits = bits;
 }
 
 void
 camellia_decrypt(const camellia_ctx *ctx, const u_char *src, u_char *dst)
 {
 
-    Camellia_DecryptBlock(ctx->bits, src, ctx->subkey, dst);
+	Camellia_DecryptBlock(ctx->bits, src, ctx->subkey, dst);
 }
 
 void
 camellia_encrypt(const camellia_ctx *ctx, const u_char *src, u_char *dst)
 {
 
-    Camellia_EncryptBlock(ctx->bits, src, ctx->subkey, dst);
+	Camellia_EncryptBlock(ctx->bits, src, ctx->subkey, dst);
 }

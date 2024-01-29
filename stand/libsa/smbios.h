@@ -24,9 +24,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef _SMBIOS_H_
-#define	_SMBIOS_H_
+#define _SMBIOS_H_
 
-void	smbios_detect(const caddr_t);
-int	smbios_match(const char *, const char *, const char *);
+void smbios_detect(const caddr_t);
+int smbios_match(const char *, const char *, const char *);
 
 #endif /* _SMBIOS_H_ */

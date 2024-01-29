@@ -43,52 +43,51 @@
 
 #include "ef.h"
 
-#define	MAXSEGS 16
+#define MAXSEGS 16
 struct ef_file {
-	char		*ef_name;
+	char *ef_name;
 	struct elf_file *ef_efile;
-	GElf_Phdr	*ef_ph;
-	void		*ef_fpage;		/* First block of the file */
-	int		ef_fplen;		/* length of first block */
-	GElf_Hashelt	ef_nbuckets;
-	GElf_Hashelt	ef_nchains;
-	GElf_Hashelt	*ef_buckets;
-	GElf_Hashelt	*ef_chains;
-	GElf_Hashelt	*ef_hashtab;
-	caddr_t		ef_strtab;
-	long		ef_strsz;
-	GElf_Sym	*ef_symtab;
-	int		ef_nsegs;
-	GElf_Phdr	*ef_segs[MAXSEGS];
-	int		ef_verbose;
-	GElf_Rel	*ef_rel;		/* relocation table */
-	long		ef_relsz;		/* number of entries */
-	GElf_Rela	*ef_rela;		/* relocation table */
-	long		ef_relasz;		/* number of entries */
+	GElf_Phdr *ef_ph;
+	void *ef_fpage; /* First block of the file */
+	int ef_fplen;	/* length of first block */
+	GElf_Hashelt ef_nbuckets;
+	GElf_Hashelt ef_nchains;
+	GElf_Hashelt *ef_buckets;
+	GElf_Hashelt *ef_chains;
+	GElf_Hashelt *ef_hashtab;
+	caddr_t ef_strtab;
+	long ef_strsz;
+	GElf_Sym *ef_symtab;
+	int ef_nsegs;
+	GElf_Phdr *ef_segs[MAXSEGS];
+	int ef_verbose;
+	GElf_Rel *ef_rel;   /* relocation table */
+	long ef_relsz;	    /* number of entries */
+	GElf_Rela *ef_rela; /* relocation table */
+	long ef_relasz;	    /* number of entries */
 };
 
-static void	ef_print_phdr(GElf_Phdr *);
-static GElf_Off	ef_get_offset(elf_file_t, GElf_Addr);
+static void ef_print_phdr(GElf_Phdr *);
+static GElf_Off ef_get_offset(elf_file_t, GElf_Addr);
 
-static void	ef_close(elf_file_t ef);
+static void ef_close(elf_file_t ef);
 
-static int	ef_seg_read_rel(elf_file_t ef, GElf_Addr address, size_t len,
-		    void *dest);
-static int	ef_seg_read_string(elf_file_t ef, GElf_Addr address, size_t len,
-		    char *dest);
+static int ef_seg_read_rel(elf_file_t ef, GElf_Addr address, size_t len,
+    void *dest);
+static int ef_seg_read_string(elf_file_t ef, GElf_Addr address, size_t len,
+    char *dest);
 
 static GElf_Addr ef_symaddr(elf_file_t ef, GElf_Size symidx);
-static int	ef_lookup_set(elf_file_t ef, const char *name,
-		    GElf_Addr *startp, GElf_Addr *stopp, long *countp);
-static int	ef_lookup_symbol(elf_file_t ef, const char *name,
-		    GElf_Sym **sym);
+static int ef_lookup_set(elf_file_t ef, const char *name, GElf_Addr *startp,
+    GElf_Addr *stopp, long *countp);
+static int ef_lookup_symbol(elf_file_t ef, const char *name, GElf_Sym **sym);
 
 static struct elf_file_ops ef_file_ops = {
-	.close			= ef_close,
-	.seg_read_rel		= ef_seg_read_rel,
-	.seg_read_string	= ef_seg_read_string,
-	.symaddr		= ef_symaddr,
-	.lookup_set		= ef_lookup_set,
+	.close = ef_close,
+	.seg_read_rel = ef_seg_read_rel,
+	.seg_read_string = ef_seg_read_string,
+	.symaddr = ef_symaddr,
+	.lookup_set = ef_lookup_set,
 };
 
 static void
@@ -137,14 +136,16 @@ ef_lookup_symbol(elf_file_t ef, const char *name, GElf_Sym **sym)
 
 	while (symnum != STN_UNDEF) {
 		if (symnum >= ef->ef_nchains) {
-			warnx("ef_lookup_symbol: file %s have corrupted symbol table\n",
+			warnx(
+			    "ef_lookup_symbol: file %s have corrupted symbol table\n",
 			    ef->ef_name);
 			return (ENOENT);
 		}
 
 		symp = ef->ef_symtab + symnum;
 		if (symp->st_name == 0) {
-			warnx("ef_lookup_symbol: file %s have corrupted symbol table\n",
+			warnx(
+			    "ef_lookup_symbol: file %s have corrupted symbol table\n",
 			    ef->ef_name);
 			return (ENOENT);
 		}
@@ -256,9 +257,9 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 			 */
 			if (shdr[i].sh_offset != phdyn->p_offset ||
 			    ((elf_machine(ef->ef_efile) == EM_PPC ||
-			    elf_machine(ef->ef_efile) == EM_PPC64) ?
-			    shdr[i].sh_size > phdyn->p_filesz :
-			    shdr[i].sh_size != phdyn->p_filesz)) {
+				 elf_machine(ef->ef_efile) == EM_PPC64) ?
+				    shdr[i].sh_size > phdyn->p_filesz :
+				    shdr[i].sh_size != phdyn->p_filesz)) {
 				warnx(".dynamic section doesn't match phdr");
 				error = EFTYPE;
 				goto out;
@@ -303,8 +304,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 				sym_off = ef_get_offset(ef, dp->d_un.d_ptr);
 			break;
 		case DT_SYMENT:
-			if (dp->d_un.d_val != elf_object_size(ef->ef_efile,
-			    ELF_T_SYM)) {
+			if (dp->d_un.d_val !=
+			    elf_object_size(ef->ef_efile, ELF_T_SYM)) {
 				error = EFTYPE;
 				goto out;
 			}
@@ -322,8 +323,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 				rel_sz = dp->d_un.d_val;
 			break;
 		case DT_RELENT:
-			if (dp->d_un.d_val != elf_object_size(ef->ef_efile,
-			    ELF_T_REL)) {
+			if (dp->d_un.d_val !=
+			    elf_object_size(ef->ef_efile, ELF_T_REL)) {
 				error = EFTYPE;
 				goto out;
 			}
@@ -341,8 +342,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 				rela_sz = dp->d_un.d_val;
 			break;
 		case DT_RELAENT:
-			if (dp->d_un.d_val != elf_object_size(ef->ef_efile,
-			    ELF_T_RELA)) {
+			if (dp->d_un.d_val !=
+			    elf_object_size(ef->ef_efile, ELF_T_RELA)) {
 				error = EFTYPE;
 				goto out;
 			}
@@ -375,7 +376,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 		switch (shdr[i].sh_type) {
 		case SHT_HASH:
 			if (shdr[i].sh_offset != hash_off) {
-				warnx("%s: ignoring SHT_HASH at different offset from DT_HASH",
+				warnx(
+				    "%s: ignoring SHT_HASH at different offset from DT_HASH",
 				    ef->ef_name);
 				break;
 			}
@@ -399,7 +401,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 			ef->ef_nbuckets = ef->ef_hashtab[0];
 			ef->ef_nchains = ef->ef_hashtab[1];
 			if ((2 + ef->ef_nbuckets + ef->ef_nchains) *
-			    sizeof(*ef->ef_hashtab) != shdr[i].sh_size) {
+				sizeof(*ef->ef_hashtab) !=
+			    shdr[i].sh_size) {
 				warnx("inconsistent hash section size");
 				error = EFTYPE;
 				goto out;
@@ -410,7 +413,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 			break;
 		case SHT_DYNSYM:
 			if (shdr[i].sh_offset != sym_off) {
-				warnx("%s: ignoring SHT_DYNSYM at different offset from DT_SYMTAB",
+				warnx(
+				    "%s: ignoring SHT_DYNSYM at different offset from DT_SYMTAB",
 				    ef->ef_name);
 				break;
 			}
@@ -418,7 +422,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 			    &ef->ef_symtab);
 			if (error != 0) {
 				if (ef->ef_verbose)
-					warnx("%s: can't load .dynsym section (0x%jx)",
+					warnx(
+					    "%s: can't load .dynsym section (0x%jx)",
 					    ef->ef_name, (uintmax_t)sym_off);
 				goto out;
 			}
@@ -426,8 +431,8 @@ ef_parse_dynamic(elf_file_t ef, const GElf_Phdr *phdyn)
 		case SHT_STRTAB:
 			if (shdr[i].sh_offset != str_off)
 				break;
-			error = elf_read_string_table(ef->ef_efile,
-			    &shdr[i], &ef->ef_strsz, &ef->ef_strtab);
+			error = elf_read_string_table(ef->ef_efile, &shdr[i],
+			    &ef->ef_strsz, &ef->ef_strtab);
 			if (error != 0) {
 				warnx("can't load .dynstr section");
 				error = EIO;
@@ -531,14 +536,14 @@ ef_seg_read_rel(elf_file_t ef, GElf_Addr address, size_t len, void *dest)
 		return (error);
 
 	for (r = ef->ef_rel; r < &ef->ef_rel[ef->ef_relsz]; r++) {
-		error = elf_reloc(ef->ef_efile, r, ELF_T_REL, 0, address,
-		    len, dest);
+		error = elf_reloc(ef->ef_efile, r, ELF_T_REL, 0, address, len,
+		    dest);
 		if (error != 0)
 			return (error);
 	}
 	for (a = ef->ef_rela; a < &ef->ef_rela[ef->ef_relasz]; a++) {
-		error = elf_reloc(ef->ef_efile, a, ELF_T_RELA, 0, address,
-		    len, dest);
+		error = elf_reloc(ef->ef_efile, a, ELF_T_RELA, 0, address, len,
+		    dest);
 		if (error != 0)
 			return (error);
 	}
@@ -625,8 +630,7 @@ ef_open(struct elf_file *efile, int verbose)
 	if (verbose > 1)
 		printf("\n");
 	if (phdyn == NULL) {
-		warnx("Skipping %s: not dynamically-linked",
-		    ef->ef_name);
+		warnx("Skipping %s: not dynamically-linked", ef->ef_name);
 		goto out;
 	}
 

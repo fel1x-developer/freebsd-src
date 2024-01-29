@@ -29,42 +29,44 @@
 /* Number of useconds in a hpts tick */
 #define HPTS_TICKS_PER_SLOT 10
 #define HPTS_MS_TO_SLOTS(x) ((x * 100) + 1)
-#define HPTS_USEC_TO_SLOTS(x) ((x+9) /10)
+#define HPTS_USEC_TO_SLOTS(x) ((x + 9) / 10)
 #define HPTS_USEC_IN_SEC 1000000
 #define HPTS_MSEC_IN_SEC 1000
 #define HPTS_USEC_IN_MSEC 1000
 
 struct hpts_diag {
-	uint32_t p_hpts_active; 	/* bbr->flex7 x */
-	uint32_t p_nxt_slot;		/* bbr->flex1 x */
-	uint32_t p_cur_slot;		/* bbr->flex2 x */
-	uint32_t p_prev_slot;		/* bbr->delivered */
-	uint32_t p_runningslot;		/* bbr->inflight */
-	uint32_t slot_req;		/* bbr->flex3 x */
-	uint32_t inp_hptsslot;		/* bbr->flex4 x */
-	uint32_t slot_remaining;	/* bbr->flex5 x */
-	uint32_t have_slept;		/* bbr->epoch x */
-	uint32_t hpts_sleep_time;	/* bbr->applimited x */
-	uint32_t yet_to_sleep;		/* bbr->lt_epoch x */
-	uint32_t need_new_to;		/* bbr->flex6 x  */
-	uint32_t wheel_slot;		/* bbr->bw_inuse x */
-	uint32_t maxslots;		/* bbr->delRate x */
-	uint32_t wheel_cts;		/* bbr->rttProp x */
-	int32_t co_ret; 		/* bbr->pkts_out x */
-	uint32_t p_curtick;		/* upper bbr->cur_del_rate */
-	uint32_t p_lasttick;		/* lower bbr->cur_del_rate */
-	uint8_t p_on_min_sleep; 	/* bbr->flex8 x */
+	uint32_t p_hpts_active;	  /* bbr->flex7 x */
+	uint32_t p_nxt_slot;	  /* bbr->flex1 x */
+	uint32_t p_cur_slot;	  /* bbr->flex2 x */
+	uint32_t p_prev_slot;	  /* bbr->delivered */
+	uint32_t p_runningslot;	  /* bbr->inflight */
+	uint32_t slot_req;	  /* bbr->flex3 x */
+	uint32_t inp_hptsslot;	  /* bbr->flex4 x */
+	uint32_t slot_remaining;  /* bbr->flex5 x */
+	uint32_t have_slept;	  /* bbr->epoch x */
+	uint32_t hpts_sleep_time; /* bbr->applimited x */
+	uint32_t yet_to_sleep;	  /* bbr->lt_epoch x */
+	uint32_t need_new_to;	  /* bbr->flex6 x  */
+	uint32_t wheel_slot;	  /* bbr->bw_inuse x */
+	uint32_t maxslots;	  /* bbr->delRate x */
+	uint32_t wheel_cts;	  /* bbr->rttProp x */
+	int32_t co_ret;		  /* bbr->pkts_out x */
+	uint32_t p_curtick;	  /* upper bbr->cur_del_rate */
+	uint32_t p_lasttick;	  /* lower bbr->cur_del_rate */
+	uint8_t p_on_min_sleep;	  /* bbr->flex8 x */
 };
 
 /* Magic flags to tell whats cooking on the pacing wheel */
-#define PACE_TMR_DELACK 0x01	/* Delayed ack timer running */
-#define PACE_TMR_RACK   0x02	/* RACK timer running */
-#define PACE_TMR_TLP    0x04	/* TLP timer running */
-#define PACE_TMR_RXT    0x08	/* Retransmit timer running */
-#define PACE_TMR_PERSIT 0x10	/* Persists timer running */
-#define PACE_TMR_KEEP   0x20	/* Keep alive timer running */
-#define PACE_PKT_OUTPUT 0x40	/* Output Packets being paced */
-#define PACE_TMR_MASK   (PACE_TMR_KEEP|PACE_TMR_PERSIT|PACE_TMR_RXT|PACE_TMR_TLP|PACE_TMR_RACK|PACE_TMR_DELACK)
+#define PACE_TMR_DELACK 0x01 /* Delayed ack timer running */
+#define PACE_TMR_RACK 0x02   /* RACK timer running */
+#define PACE_TMR_TLP 0x04    /* TLP timer running */
+#define PACE_TMR_RXT 0x08    /* Retransmit timer running */
+#define PACE_TMR_PERSIT 0x10 /* Persists timer running */
+#define PACE_TMR_KEEP 0x20   /* Keep alive timer running */
+#define PACE_PKT_OUTPUT 0x40 /* Output Packets being paced */
+#define PACE_TMR_MASK                                                    \
+	(PACE_TMR_KEEP | PACE_TMR_PERSIT | PACE_TMR_RXT | PACE_TMR_TLP | \
+	    PACE_TMR_RACK | PACE_TMR_DELACK)
 
 #define DEFAULT_CONNECTION_THESHOLD 100
 
@@ -81,18 +83,19 @@ struct hpts_diag {
  * sent from a routine like tcp_respond().
  */
 #define LOWEST_SLEEP_ALLOWED 50
-#define DEFAULT_MIN_SLEEP 250	/* How many usec's is default for hpts sleep
-				 * this determines min granularity of the
-				 * hpts. If 1, granularity is 10useconds at
-				 * the cost of more CPU (context switching).
-				 * Note do not set this to 0.
-				 */
+#define DEFAULT_MIN_SLEEP                                \
+	250 /* How many usec's is default for hpts sleep \
+	     * this determines min granularity of the    \
+	     * hpts. If 1, granularity is 10useconds at  \
+	     * the cost of more CPU (context switching). \
+	     * Note do not set this to 0.                \
+	     */
 #define DYNAMIC_MIN_SLEEP DEFAULT_MIN_SLEEP
-#define DYNAMIC_MAX_SLEEP 5000	/* 5ms */
+#define DYNAMIC_MAX_SLEEP 5000 /* 5ms */
 
 /* Thresholds for raising/lowering sleep */
-#define TICKS_INDICATE_MORE_SLEEP 100		/* This would be 1ms */
-#define TICKS_INDICATE_LESS_SLEEP 1000		/* This would indicate 10ms */
+#define TICKS_INDICATE_MORE_SLEEP 100  /* This would be 1ms */
+#define TICKS_INDICATE_LESS_SLEEP 1000 /* This would indicate 10ms */
 /**
  *
  * Dynamic adjustment of sleeping times is done in "new" mode
@@ -144,7 +147,7 @@ tcp_in_hpts(struct tcpcb *tp)
  */
 uint32_t tcp_hpts_insert_diag(struct tcpcb *tp, uint32_t slot, int32_t line,
     struct hpts_diag *diag);
-#define	tcp_hpts_insert(inp, slot)	\
+#define tcp_hpts_insert(inp, slot) \
 	tcp_hpts_insert_diag((inp), (slot), __LINE__, NULL)
 
 void __tcp_set_hpts(struct tcpcb *tp, int32_t line);
@@ -172,13 +175,14 @@ tcp_tv_to_hptstick(const struct timeval *sv)
 static __inline uint32_t
 tcp_tv_to_usectick(const struct timeval *sv)
 {
-	return ((uint32_t) ((sv->tv_sec * HPTS_USEC_IN_SEC) + sv->tv_usec));
+	return ((uint32_t)((sv->tv_sec * HPTS_USEC_IN_SEC) + sv->tv_usec));
 }
 
 static __inline uint32_t
 tcp_tv_to_mssectick(const struct timeval *sv)
 {
-	return ((uint32_t) ((sv->tv_sec * HPTS_MSEC_IN_SEC) + (sv->tv_usec/HPTS_USEC_IN_MSEC)));
+	return ((uint32_t)((sv->tv_sec * HPTS_MSEC_IN_SEC) +
+	    (sv->tv_usec / HPTS_USEC_IN_MSEC)));
 }
 
 static __inline uint64_t

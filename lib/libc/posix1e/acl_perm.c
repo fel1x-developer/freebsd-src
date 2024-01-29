@@ -27,12 +27,13 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <string.h>
+
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int
 _perm_is_invalid(acl_perm_t perm)

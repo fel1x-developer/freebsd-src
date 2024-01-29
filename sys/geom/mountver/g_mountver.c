@@ -50,8 +50,8 @@ static SYSCTL_NODE(_kern_geom, OID_AUTO, mountver, CTLFLAG_RW | CTLFLAG_MPSAFE,
     0, "GEOM_MOUNTVER stuff");
 static u_int g_mountver_debug = 0;
 static u_int g_mountver_check_ident = 1;
-SYSCTL_UINT(_kern_geom_mountver, OID_AUTO, debug, CTLFLAG_RW,
-    &g_mountver_debug, 0, "Debug level");
+SYSCTL_UINT(_kern_geom_mountver, OID_AUTO, debug, CTLFLAG_RW, &g_mountver_debug,
+    0, "Debug level");
 SYSCTL_UINT(_kern_geom_mountver, OID_AUTO, check_ident, CTLFLAG_RW,
     &g_mountver_check_ident, 0, "Check disk ident when reattaching");
 
@@ -71,15 +71,13 @@ static void g_mountver_dumpconf(struct sbuf *sb, const char *indent,
 static void g_mountver_init(struct g_class *mp);
 static void g_mountver_fini(struct g_class *mp);
 
-struct g_class g_mountver_class = {
-	.name = G_MOUNTVER_CLASS_NAME,
+struct g_class g_mountver_class = { .name = G_MOUNTVER_CLASS_NAME,
 	.version = G_VERSION,
 	.ctlreq = g_mountver_config,
 	.taste = g_mountver_taste,
 	.destroy_geom = g_mountver_destroy_geom,
 	.init = g_mountver_init,
-	.fini = g_mountver_fini
-};
+	.fini = g_mountver_fini };
 
 static void
 g_mountver_detach(void *arg, int flags __unused)
@@ -225,7 +223,8 @@ g_mountver_start(struct bio *bp)
 	if (sc->sc_orphaned || !TAILQ_EMPTY(&sc->sc_queue)) {
 		mtx_unlock(&sc->sc_mtx);
 		if (sc->sc_shutting_down) {
-			G_MOUNTVER_LOGREQ(bp, "Discarding request due to shutdown.");
+			G_MOUNTVER_LOGREQ(bp,
+			    "Discarding request due to shutdown.");
 			g_io_deliver(bp, ENXIO);
 			return;
 		}
@@ -254,7 +253,8 @@ g_mountver_access(struct g_provider *pp, int dr, int dw, int de)
 	sc = gp->softc;
 	if (sc == NULL && dr <= 0 && dw <= 0 && de <= 0)
 		return (0);
-	KASSERT(sc != NULL, ("Trying to access withered provider \"%s\".", pp->name));
+	KASSERT(sc != NULL,
+	    ("Trying to access withered provider \"%s\".", pp->name));
 
 	sc->sc_access_r += dr;
 	sc->sc_access_w += dw;
@@ -267,7 +267,8 @@ g_mountver_access(struct g_provider *pp, int dr, int dw, int de)
 }
 
 static int
-g_mountver_create(struct gctl_req *req, struct g_class *mp, struct g_provider *pp)
+g_mountver_create(struct gctl_req *req, struct g_class *mp,
+    struct g_provider *pp)
 {
 	struct g_mountver_softc *sc;
 	struct g_geom *gp;
@@ -285,7 +286,7 @@ g_mountver_create(struct gctl_req *req, struct g_class *mp, struct g_provider *p
 	cp = NULL;
 
 	snprintf(name, sizeof(name), "%s%s", pp->name, G_MOUNTVER_SUFFIX);
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (strcmp(gp->name, name) == 0) {
 			gctl_error(req, "Provider %s already exists.", name);
 			return (EEXIST);
@@ -307,8 +308,9 @@ g_mountver_create(struct gctl_req *req, struct g_class *mp, struct g_provider *p
 	newpp->mediasize = pp->mediasize;
 	newpp->sectorsize = pp->sectorsize;
 	newpp->flags |= G_PF_DIRECT_SEND | G_PF_DIRECT_RECEIVE;
-	LIST_FOREACH(gap, &pp->aliases, ga_next)
-		g_provider_add_alias(newpp, "%s%s", gap->ga_alias, G_MOUNTVER_SUFFIX);
+	LIST_FOREACH (gap, &pp->aliases, ga_next)
+		g_provider_add_alias(newpp, "%s%s", gap->ga_alias,
+		    G_MOUNTVER_SUFFIX);
 
 	if ((pp->flags & G_PF_ACCEPT_UNMAPPED) != 0) {
 		G_MOUNTVER_DEBUG(0, "Unmapped supported for %s.", gp->name);
@@ -334,11 +336,15 @@ g_mountver_create(struct gctl_req *req, struct g_class *mp, struct g_provider *p
 	g_access(cp, -1, 0, 0);
 	if (error != 0) {
 		if (g_mountver_check_ident) {
-			gctl_error(req, "Cannot get disk ident from %s; error = %d.", pp->name, error);
+			gctl_error(req,
+			    "Cannot get disk ident from %s; error = %d.",
+			    pp->name, error);
 			goto fail;
 		}
 
-		G_MOUNTVER_DEBUG(0, "Cannot get disk ident from %s; error = %d.", pp->name, error);
+		G_MOUNTVER_DEBUG(0,
+		    "Cannot get disk ident from %s; error = %d.", pp->name,
+		    error);
 		sc->sc_ident[0] = '\0';
 	}
 
@@ -369,11 +375,14 @@ g_mountver_destroy(struct g_geom *gp, boolean_t force)
 	pp = LIST_FIRST(&gp->provider);
 	if (pp != NULL && (pp->acr != 0 || pp->acw != 0 || pp->ace != 0)) {
 		if (force) {
-			G_MOUNTVER_DEBUG(0, "Device %s is still open, so it "
-			    "can't be definitely removed.", pp->name);
+			G_MOUNTVER_DEBUG(0,
+			    "Device %s is still open, so it "
+			    "can't be definitely removed.",
+			    pp->name);
 		} else {
-			G_MOUNTVER_DEBUG(1, "Device %s is still open (r%dw%de%d).",
-			    pp->name, pp->acr, pp->acw, pp->ace);
+			G_MOUNTVER_DEBUG(1,
+			    "Device %s is still open (r%dw%de%d).", pp->name,
+			    pp->acr, pp->acw, pp->ace);
 			return (EBUSY);
 		}
 	} else {
@@ -391,7 +400,8 @@ g_mountver_destroy(struct g_geom *gp, boolean_t force)
 }
 
 static int
-g_mountver_destroy_geom(struct gctl_req *req, struct g_class *mp, struct g_geom *gp)
+g_mountver_destroy_geom(struct gctl_req *req, struct g_class *mp,
+    struct g_geom *gp)
 {
 
 	return (g_mountver_destroy(gp, 0));
@@ -430,7 +440,7 @@ g_mountver_find_geom(struct g_class *mp, const char *name)
 {
 	struct g_geom *gp;
 
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (strcmp(gp->name, name) == 0)
 			return (gp);
 	}
@@ -501,7 +511,8 @@ g_mountver_orphan(struct g_consumer *cp)
 	mtx_unlock(&sc->sc_mtx);
 	if (done)
 		g_mountver_detach(cp, 0);
-	G_MOUNTVER_DEBUG(0, "%s is offline.  Mount verification in progress.", sc->sc_provider_name);
+	G_MOUNTVER_DEBUG(0, "%s is offline.  Mount verification in progress.",
+	    sc->sc_provider_name);
 }
 
 static void
@@ -512,7 +523,7 @@ g_mountver_resize(struct g_consumer *cp)
 
 	gp = cp->geom;
 
-	LIST_FOREACH(pp, &gp->provider, provider)
+	LIST_FOREACH (pp, &gp->provider, provider)
 		g_resize_provider(pp, cp->provider->mediasize);
 }
 
@@ -532,21 +543,26 @@ g_mountver_ident_matches(struct g_geom *gp)
 
 	error = g_access(cp, 1, 0, 0);
 	if (error != 0) {
-		G_MOUNTVER_DEBUG(0, "Cannot access %s; "
-		    "not attaching; error = %d.", gp->name, error);
+		G_MOUNTVER_DEBUG(0,
+		    "Cannot access %s; "
+		    "not attaching; error = %d.",
+		    gp->name, error);
 		return (1);
 	}
 	error = g_io_getattr("GEOM::ident", cp, &identsize, ident);
 	g_access(cp, -1, 0, 0);
 	if (error != 0) {
-		G_MOUNTVER_DEBUG(0, "Cannot get disk ident for %s; "
-		    "not attaching; error = %d.", gp->name, error);
+		G_MOUNTVER_DEBUG(0,
+		    "Cannot get disk ident for %s; "
+		    "not attaching; error = %d.",
+		    gp->name, error);
 		return (1);
 	}
 	if (strcmp(ident, sc->sc_ident) != 0) {
-		G_MOUNTVER_DEBUG(1, "Disk ident for %s (\"%s\") is different "
-		    "from expected \"%s\", not attaching.", gp->name, ident,
-		    sc->sc_ident);
+		G_MOUNTVER_DEBUG(1,
+		    "Disk ident for %s (\"%s\") is different "
+		    "from expected \"%s\", not attaching.",
+		    gp->name, ident, sc->sc_ident);
 		return (1);
 	}
 
@@ -568,7 +584,7 @@ g_mountver_taste(struct g_class *mp, struct g_provider *pp, int flags __unused)
 	/*
 	 * Let's check if device already exists.
 	 */
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		sc = gp->softc;
 		if (sc == NULL)
 			continue;
@@ -577,7 +593,8 @@ g_mountver_taste(struct g_class *mp, struct g_provider *pp, int flags __unused)
 		if (pp == LIST_FIRST(&gp->provider))
 			return (NULL);
 
-		if (sc->sc_orphaned && strcmp(pp->name, sc->sc_provider_name) == 0)
+		if (sc->sc_orphaned &&
+		    strcmp(pp->name, sc->sc_provider_name) == 0)
 			break;
 	}
 	if (gp == NULL)
@@ -586,7 +603,8 @@ g_mountver_taste(struct g_class *mp, struct g_provider *pp, int flags __unused)
 	cp = LIST_FIRST(&gp->consumer);
 	error = g_attach(cp, pp);
 	if (error != 0) {
-		G_MOUNTVER_DEBUG(0, "Cannot attach to %s; error = %d.", pp->name, error);
+		G_MOUNTVER_DEBUG(0, "Cannot attach to %s; error = %d.",
+		    pp->name, error);
 		return (NULL);
 	}
 
@@ -596,16 +614,19 @@ g_mountver_taste(struct g_class *mp, struct g_provider *pp, int flags __unused)
 		return (NULL);
 	}
 	if (sc->sc_access_r > 0 || sc->sc_access_w > 0 || sc->sc_access_e > 0) {
-		error = g_access(cp, sc->sc_access_r, sc->sc_access_w, sc->sc_access_e);
+		error = g_access(cp, sc->sc_access_r, sc->sc_access_w,
+		    sc->sc_access_e);
 		if (error != 0) {
-			G_MOUNTVER_DEBUG(0, "Cannot access %s; error = %d.", pp->name, error);
+			G_MOUNTVER_DEBUG(0, "Cannot access %s; error = %d.",
+			    pp->name, error);
 			g_detach(cp);
 			return (NULL);
 		}
 	}
 	sc->sc_orphaned = 0;
 	g_mountver_send_queued(gp);
-	G_MOUNTVER_DEBUG(0, "%s has completed mount verification.", sc->sc_provider_name);
+	G_MOUNTVER_DEBUG(0, "%s has completed mount verification.",
+	    sc->sc_provider_name);
 
 	return (gp);
 }
@@ -650,8 +671,10 @@ g_mountver_dumpconf(struct sbuf *sb, const char *indent, struct g_geom *gp,
 	sc = gp->softc;
 	sbuf_printf(sb, "%s<State>%s</State>\n", indent,
 	    sc->sc_orphaned ? "OFFLINE" : "ONLINE");
-	sbuf_printf(sb, "%s<Provider-Name>%s</Provider-Name>\n", indent, sc->sc_provider_name);
-	sbuf_printf(sb, "%s<Disk-Ident>%s</Disk-Ident>\n", indent, sc->sc_ident);
+	sbuf_printf(sb, "%s<Provider-Name>%s</Provider-Name>\n", indent,
+	    sc->sc_provider_name);
+	sbuf_printf(sb, "%s<Disk-Ident>%s</Disk-Ident>\n", indent,
+	    sc->sc_ident);
 }
 
 static void
@@ -663,7 +686,7 @@ g_mountver_shutdown_pre_sync(void *arg, int howto)
 
 	mp = arg;
 	g_topology_lock();
-	LIST_FOREACH_SAFE(gp, &mp->geom, geom, gp2) {
+	LIST_FOREACH_SAFE (gp, &mp->geom, geom, gp2) {
 		if (gp->softc == NULL)
 			continue;
 		sc = gp->softc;

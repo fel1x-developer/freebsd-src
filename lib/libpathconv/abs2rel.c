@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "pathconv.h" /* prototypes */
 /*
  * abs2rel: convert an absolute path name into relative.

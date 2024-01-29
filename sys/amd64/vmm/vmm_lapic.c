@@ -30,21 +30,22 @@
 #include <sys/systm.h>
 #include <sys/smp.h>
 
-#include <x86/specialreg.h>
-#include <x86/apicreg.h>
-
 #include <machine/vmm.h>
+
+#include <x86/apicreg.h>
+#include <x86/specialreg.h>
+
+#include "vlapic.h"
 #include "vmm_ktr.h"
 #include "vmm_lapic.h"
-#include "vlapic.h"
 
 /*
  * Some MSI message definitions
  */
-#define	MSI_X86_ADDR_MASK	0xfff00000
-#define	MSI_X86_ADDR_BASE	0xfee00000
-#define	MSI_X86_ADDR_RH		0x00000008	/* Redirection Hint */
-#define	MSI_X86_ADDR_LOG	0x00000004	/* Destination Mode */
+#define MSI_X86_ADDR_MASK 0xfff00000
+#define MSI_X86_ADDR_BASE 0xfee00000
+#define MSI_X86_ADDR_RH 0x00000008  /* Redirection Hint */
+#define MSI_X86_ADDR_LOG 0x00000004 /* Destination Mode */
 
 int
 lapic_set_intr(struct vcpu *vcpu, int vector, bool level)
@@ -74,7 +75,7 @@ lapic_set_local_intr(struct vm *vm, struct vcpu *vcpu, int vector)
 	if (vcpu == NULL) {
 		error = 0;
 		dmask = vm_active_cpus(vm);
-		CPU_FOREACH_ISSET(cpu, &dmask) {
+		CPU_FOREACH_ISSET (cpu, &dmask) {
 			vlapic = vm_lapic(vm_vcpu(vm, cpu));
 			error = vlapic_trigger_lvt(vlapic, vector);
 			if (error)
@@ -187,7 +188,7 @@ lapic_wrmsr(struct vcpu *vcpu, u_int msr, uint64_t val, bool *retu)
 
 int
 lapic_mmio_write(struct vcpu *vcpu, uint64_t gpa, uint64_t wval, int size,
-		 void *arg)
+    void *arg)
 {
 	int error;
 	uint64_t off;
@@ -209,7 +210,7 @@ lapic_mmio_write(struct vcpu *vcpu, uint64_t gpa, uint64_t wval, int size,
 
 int
 lapic_mmio_read(struct vcpu *vcpu, uint64_t gpa, uint64_t *rval, int size,
-		void *arg)
+    void *arg)
 {
 	int error;
 	uint64_t off;

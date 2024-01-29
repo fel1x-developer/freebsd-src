@@ -31,48 +31,48 @@
 
 #include <sys/cdefs.h>
 
-#define	satosin(sa)	((struct sockaddr_in *)(sa))
-#define	satosin6(sa)	((struct sockaddr_in6 *)(sa))
-#define	sin6tosa(sin6)	((struct sockaddr *)(sin6))
+#define satosin(sa) ((struct sockaddr_in *)(sa))
+#define satosin6(sa) ((struct sockaddr_in6 *)(sa))
+#define sin6tosa(sin6) ((struct sockaddr *)(sin6))
 
-extern int	Aflag;	/* show addresses of protocol control block */
-extern int	aflag;	/* show all sockets (including servers) */
-extern int	bflag;	/* show i/f total bytes in/out */
-extern int	cflag;	/* show congestion control stats */
-extern int	Cflag;	/* show congestion control algo and stack */
-extern int	dflag;	/* show i/f dropped packets */
-extern int	gflag;	/* show group (multicast) routing or stats */
-extern int	hflag;	/* show counters in human readable format */
-extern int	iflag;	/* show interfaces */
-extern int	Lflag;	/* show size of listen queues */
-extern int	mflag;	/* show memory stats */
-extern int	noutputs;	/* how much outputs before we exit */
-extern int	numeric_addr;	/* show addresses numerically */
-extern int	numeric_port;	/* show ports numerically */
-extern int	Pflag;	/* show TCP log ID */
-extern int	rflag;	/* show routing tables (or routing stats) */
-extern int	Rflag;	/* show flowid / RSS information */
-extern int	sflag;	/* show protocol statistics */
-extern int	Tflag;  /* show TCP control block info */
-extern int	Wflag;	/* wide display */
-extern int	xflag;	/* extended display, includes all socket buffer info */
-extern int	zflag;	/* zero stats */
+extern int Aflag;	 /* show addresses of protocol control block */
+extern int aflag;	 /* show all sockets (including servers) */
+extern int bflag;	 /* show i/f total bytes in/out */
+extern int cflag;	 /* show congestion control stats */
+extern int Cflag;	 /* show congestion control algo and stack */
+extern int dflag;	 /* show i/f dropped packets */
+extern int gflag;	 /* show group (multicast) routing or stats */
+extern int hflag;	 /* show counters in human readable format */
+extern int iflag;	 /* show interfaces */
+extern int Lflag;	 /* show size of listen queues */
+extern int mflag;	 /* show memory stats */
+extern int noutputs;	 /* how much outputs before we exit */
+extern int numeric_addr; /* show addresses numerically */
+extern int numeric_port; /* show ports numerically */
+extern int Pflag;	 /* show TCP log ID */
+extern int rflag;	 /* show routing tables (or routing stats) */
+extern int Rflag;	 /* show flowid / RSS information */
+extern int sflag;	 /* show protocol statistics */
+extern int Tflag;	 /* show TCP control block info */
+extern int Wflag;	 /* wide display */
+extern int xflag;	 /* extended display, includes all socket buffer info */
+extern int zflag;	 /* zero stats */
 
-extern int	interval; /* repeat interval for i/f stats */
+extern int interval; /* repeat interval for i/f stats */
 
-extern char	*interface; /* desired i/f for stats, or NULL for all i/fs */
-extern int	unit;	/* unit number for above */
+extern char *interface; /* desired i/f for stats, or NULL for all i/fs */
+extern int unit;	/* unit number for above */
 
-extern int	live;	/* true if we are examining a live system */
+extern int live; /* true if we are examining a live system */
 
-typedef	int kreadfn_t(u_long, void *, size_t);
-int	fetch_stats(const char *, u_long, void *, size_t, kreadfn_t);
-int	fetch_stats_ro(const char *, u_long, void *, size_t, kreadfn_t);
+typedef int kreadfn_t(u_long, void *, size_t);
+int fetch_stats(const char *, u_long, void *, size_t, kreadfn_t);
+int fetch_stats_ro(const char *, u_long, void *, size_t, kreadfn_t);
 
-int	kread(u_long addr, void *buf, size_t size);
+int kread(u_long addr, void *buf, size_t size);
 uint64_t kread_counter(u_long addr);
-int	kread_counters(u_long addr, void *buf, size_t size);
-void	kset_dpcpu(u_int);
+int kread_counters(u_long addr, void *buf, size_t size);
+void kset_dpcpu(u_int);
 const char *plural(uintmax_t);
 const char *plurales(uintmax_t);
 const char *pluralies(uintmax_t);
@@ -80,87 +80,86 @@ const char *pluralies(uintmax_t);
 struct sockaddr;
 struct socket;
 struct xsocket;
-int	sotoxsocket(struct socket *, struct xsocket *);
-void	protopr(u_long, const char *, int, int);
-void	tcp_stats(u_long, const char *, int, int);
-void	udp_stats(u_long, const char *, int, int);
+int sotoxsocket(struct socket *, struct xsocket *);
+void protopr(u_long, const char *, int, int);
+void tcp_stats(u_long, const char *, int, int);
+void udp_stats(u_long, const char *, int, int);
 #ifdef SCTP
-void	sctp_protopr(u_long, const char *, int, int);
-void	sctp_stats(u_long, const char *, int, int);
+void sctp_protopr(u_long, const char *, int, int);
+void sctp_stats(u_long, const char *, int, int);
 #endif
-void	arp_stats(u_long, const char *, int, int);
-void	divert_stats(u_long, const char *, int, int);
-void	ip_stats(u_long, const char *, int, int);
-void	icmp_stats(u_long, const char *, int, int);
-void	igmp_stats(u_long, const char *, int, int);
-void	pim_stats(u_long, const char *, int, int);
-void	carp_stats(u_long, const char *, int, int);
-void	pfsync_stats(u_long, const char *, int, int);
-void	pflow_stats(u_long, const char *, int, int);
+void arp_stats(u_long, const char *, int, int);
+void divert_stats(u_long, const char *, int, int);
+void ip_stats(u_long, const char *, int, int);
+void icmp_stats(u_long, const char *, int, int);
+void igmp_stats(u_long, const char *, int, int);
+void pim_stats(u_long, const char *, int, int);
+void carp_stats(u_long, const char *, int, int);
+void pfsync_stats(u_long, const char *, int, int);
+void pflow_stats(u_long, const char *, int, int);
 #ifdef IPSEC
-void	ipsec_stats(u_long, const char *, int, int);
-void	esp_stats(u_long, const char *, int, int);
-void	ah_stats(u_long, const char *, int, int);
-void	ipcomp_stats(u_long, const char *, int, int);
+void ipsec_stats(u_long, const char *, int, int);
+void esp_stats(u_long, const char *, int, int);
+void ah_stats(u_long, const char *, int, int);
+void ipcomp_stats(u_long, const char *, int, int);
 #endif
 
 #ifdef INET
 struct in_addr;
 
-char	*inetname(struct in_addr *);
+char *inetname(struct in_addr *);
 #endif
 
 #ifdef INET6
 struct in6_addr;
 
-char	*inet6name(struct in6_addr *);
-void	ip6_stats(u_long, const char *, int, int);
-void	ip6_ifstats(char *);
-void	icmp6_stats(u_long, const char *, int, int);
-void	icmp6_ifstats(char *);
-void	pim6_stats(u_long, const char *, int, int);
-void	rip6_stats(u_long, const char *, int, int);
-void	mroute6pr(void);
-void	mrt6_stats(void);
+char *inet6name(struct in6_addr *);
+void ip6_stats(u_long, const char *, int, int);
+void ip6_ifstats(char *);
+void icmp6_stats(u_long, const char *, int, int);
+void icmp6_ifstats(char *);
+void pim6_stats(u_long, const char *, int, int);
+void rip6_stats(u_long, const char *, int, int);
+void mroute6pr(void);
+void mrt6_stats(void);
 
 struct sockaddr_in6;
 struct in6_addr;
 void in6_fillscopeid(struct sockaddr_in6 *);
-void	inet6print(const char *, struct in6_addr *, int, const char *, int);
+void inet6print(const char *, struct in6_addr *, int, const char *, int);
 #endif /*INET6*/
 
 #ifdef IPSEC
-void	pfkey_stats(u_long, const char *, int, int);
+void pfkey_stats(u_long, const char *, int, int);
 #endif
 
-void	mbpr(void *, u_long);
+void mbpr(void *, u_long);
 
-void	netisr_stats(void);
+void netisr_stats(void);
 
-void	hostpr(u_long, u_long);
-void	impstats(u_long, u_long);
+void hostpr(u_long, u_long);
+void impstats(u_long, u_long);
 
-void	intpr(void (*)(char *), int);
+void intpr(void (*)(char *), int);
 
-void	pr_family(int);
-void	rt_stats(void);
+void pr_family(int);
+void rt_stats(void);
 
-char	*routename(struct sockaddr *, int);
+char *routename(struct sockaddr *, int);
 const char *netname(struct sockaddr *, struct sockaddr *);
-void	routepr(int, int);
-int	p_sockaddr(const char *name, struct sockaddr *sa,
-	    struct sockaddr *mask, int flags, int width);
-const char *fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask,
-	    int flags);
+void routepr(int, int);
+int p_sockaddr(const char *name, struct sockaddr *sa, struct sockaddr *mask,
+    int flags, int width);
+const char *fmt_sockaddr(struct sockaddr *sa, struct sockaddr *mask, int flags);
 
 #ifdef NETGRAPH
-void	netgraphprotopr(u_long, const char *, int, int);
+void netgraphprotopr(u_long, const char *, int, int);
 #endif
 
-void	unixpr(u_long, u_long, u_long, u_long, u_long, bool *);
+void unixpr(u_long, u_long, u_long, u_long, u_long, bool *);
 
-void	mroutepr(void);
-void	mrt_stats(void);
-void	bpf_stats(char *);
-void	nhops_print(int fibnum, int af);
-void	nhgrp_print(int fibnum, int af);
+void mroutepr(void);
+void mrt_stats(void);
+void bpf_stats(char *);
+void nhops_print(int fibnum, int af);
+void nhgrp_print(int fibnum, int af);

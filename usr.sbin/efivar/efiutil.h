@@ -32,4 +32,3 @@ void bindump(uint8_t *data, size_t datalen);
 void efi_print_load_option(uint8_t *, size_t, int, int, int);
 void hexdump(uint8_t *data, size_t datalen);
 void utf8dump(uint8_t *data, size_t datalen);
-

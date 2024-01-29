@@ -28,23 +28,24 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <ctype.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 
-//#define NMREQ_DEBUG
+// #define NMREQ_DEBUG
 #ifdef NMREQ_DEBUG
 #define NETMAP_WITH_LIBS
-#define ED(...)	D(__VA_ARGS__)
+#define ED(...) D(__VA_ARGS__)
 #else
 #define ED(...)
 /* an identifier is a possibly empty sequence of alphanum characters and
@@ -75,19 +76,22 @@ nmreq_push_option(struct nmreq_header *h, struct nmreq_option *o)
 }
 
 struct nmreq_prefix {
-	const char *prefix;		/* the constant part of the prefix */
-	size_t	    len;		/* its strlen() */
-	uint32_t    flags;
-#define	NR_P_ID		(1U << 0)	/* whether an identifier is needed */
-#define NR_P_SKIP	(1U << 1)	/* whether the scope must be passed to netmap */
-#define NR_P_EMPTYID	(1U << 2)	/* whether an empty identifier is allowed */
+	const char *prefix; /* the constant part of the prefix */
+	size_t len;	    /* its strlen() */
+	uint32_t flags;
+#define NR_P_ID (1U << 0)      /* whether an identifier is needed */
+#define NR_P_SKIP (1U << 1)    /* whether the scope must be passed to netmap */
+#define NR_P_EMPTYID (1U << 2) /* whether an empty identifier is allowed */
 };
 
-#define declprefix(prefix, flags)	{ (prefix), (sizeof(prefix) - 1), (flags) }
+#define declprefix(prefix, flags)                       \
+	{                                               \
+		(prefix), (sizeof(prefix) - 1), (flags) \
+	}
 
 static struct nmreq_prefix nmreq_prefixes[] = {
 	declprefix("netmap", NR_P_SKIP),
-	declprefix(NM_BDG_NAME,	NR_P_ID|NR_P_EMPTYID),
+	declprefix(NM_BDG_NAME, NR_P_ID | NR_P_EMPTYID),
 	{ NULL } /* terminate the list */
 };
 
@@ -101,7 +105,8 @@ nmreq_header_init(struct nmreq_header *h, uint16_t reqtype, void *body)
 }
 
 int
-nmreq_header_decode(const char **pifname, struct nmreq_header *h, struct nmctx *ctx)
+nmreq_header_decode(const char **pifname, struct nmreq_header *h,
+    struct nmctx *ctx)
 {
 	const char *scan = NULL;
 	const char *vpname = NULL;
@@ -116,7 +121,8 @@ nmreq_header_decode(const char **pifname, struct nmreq_header *h, struct nmctx *
 			break;
 	}
 	if (p->prefix == NULL) {
-		nmctx_ferror(ctx, "%s: invalid request, prefix unknown or missing", *pifname);
+		nmctx_ferror(ctx,
+		    "%s: invalid request, prefix unknown or missing", *pifname);
 		goto fail;
 	}
 	scan += p->len;
@@ -129,17 +135,22 @@ nmreq_header_decode(const char **pifname, struct nmreq_header *h, struct nmctx *
 	if (vpname != scan) {
 		/* there is an identifier, can we accept it? */
 		if (!(p->flags & NR_P_ID)) {
-			nmctx_ferror(ctx, "%s: no identifier allowed between '%s' and ':'", *pifname, p->prefix);
+			nmctx_ferror(ctx,
+			    "%s: no identifier allowed between '%s' and ':'",
+			    *pifname, p->prefix);
 			goto fail;
 		}
 
 		if (!nm_is_identifier(scan, vpname)) {
-			nmctx_ferror(ctx, "%s: invalid identifier '%.*s'", *pifname, vpname - scan, scan);
+			nmctx_ferror(ctx, "%s: invalid identifier '%.*s'",
+			    *pifname, vpname - scan, scan);
 			goto fail;
 		}
 	} else {
 		if ((p->flags & NR_P_ID) && !(p->flags & NR_P_EMPTYID)) {
-			nmctx_ferror(ctx, "%s: identifier is missing between '%s' and ':'", *pifname, p->prefix);
+			nmctx_ferror(ctx,
+			    "%s: identifier is missing between '%s' and ':'",
+			    *pifname, p->prefix);
 			goto fail;
 		}
 	}
@@ -153,17 +164,20 @@ nmreq_header_decode(const char **pifname, struct nmreq_header *h, struct nmctx *
 		;
 
 	/* search for possible pipe indicators */
-	for (pipesep = vpname; pipesep != scan && !index("{}", *pipesep); pipesep++)
+	for (pipesep = vpname; pipesep != scan && !index("{}", *pipesep);
+	     pipesep++)
 		;
 
 	if (pipesep != scan) {
 		pipesep++;
 		if (*pipesep == '\0') {
-			nmctx_ferror(ctx, "%s: invalid empty pipe name", *pifname);
+			nmctx_ferror(ctx, "%s: invalid empty pipe name",
+			    *pifname);
 			goto fail;
 		}
 		if (!nm_is_identifier(pipesep, scan)) {
-			nmctx_ferror(ctx, "%s: invalid pipe name '%.*s'", *pifname, scan - pipesep, pipesep);
+			nmctx_ferror(ctx, "%s: invalid pipe name '%.*s'",
+			    *pifname, scan - pipesep, pipesep);
 			goto fail;
 		}
 	}
@@ -191,7 +205,6 @@ fail:
 	return -1;
 }
 
-
 /*
  * 0 not recognized
  * -1 error
@@ -214,7 +227,8 @@ nmreq_get_mem_id(const char **pifname, struct nmctx *ctx)
 	/* try to look for a netmap port with this name */
 	fd = open("/dev/netmap", O_RDWR);
 	if (fd < 0) {
-		nmctx_ferror(ctx, "cannot open /dev/netmap: %s", strerror(errno));
+		nmctx_ferror(ctx, "cannot open /dev/netmap: %s",
+		    strerror(errno));
 		goto fail;
 	}
 	nmreq_header_init(&gh, NETMAP_REQ_PORT_INFO_GET, &gb);
@@ -223,7 +237,8 @@ nmreq_get_mem_id(const char **pifname, struct nmctx *ctx)
 	}
 	memset(&gb, 0, sizeof(gb));
 	if (ioctl(fd, NIOCCTRL, &gh) < 0) {
-		nmctx_ferror(ctx, "cannot get info for '%s': %s", *pifname, strerror(errno));
+		nmctx_ferror(ctx, "cannot get info for '%s': %s", *pifname,
+		    strerror(errno));
 		goto fail;
 	}
 	*pifname = ifname;
@@ -238,11 +253,19 @@ fail:
 	return -1;
 }
 
-
 int
-nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmctx *ctx)
+nmreq_register_decode(const char **pifname, struct nmreq_register *r,
+    struct nmctx *ctx)
 {
-	enum { P_START, P_RNGSFXOK, P_GETNUM, P_FLAGS, P_FLAGSOK, P_MEMID, P_ONESW } p_state;
+	enum {
+		P_START,
+		P_RNGSFXOK,
+		P_GETNUM,
+		P_FLAGS,
+		P_FLAGSOK,
+		P_MEMID,
+		P_ONESW
+	} p_state;
 	long num;
 	const char *scan = *pifname;
 	uint32_t nr_mode;
@@ -257,7 +280,8 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 	p_state = P_START;
 	/* defaults */
 	nr_mode = NR_REG_ALL_NIC; /* default for no suffix */
-	nr_mem_id = r->nr_mem_id; /* if non-zero, further updates are disabled */
+	nr_mem_id =
+	    r->nr_mem_id; /* if non-zero, further updates are disabled */
 	nr_ringid = 0;
 	nr_flags = 0;
 	while (*scan) {
@@ -283,7 +307,8 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 				p_state = P_MEMID;
 				break;
 			default:
-				nmctx_ferror(ctx, "unknown modifier: '%c'", *scan);
+				nmctx_ferror(ctx, "unknown modifier: '%c'",
+				    *scan);
 				goto fail;
 			}
 			scan++;
@@ -297,20 +322,22 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 				p_state = P_MEMID;
 				break;
 			default:
-				nmctx_ferror(ctx, "unexpected character: '%c'", *scan);
+				nmctx_ferror(ctx, "unexpected character: '%c'",
+				    *scan);
 				goto fail;
 			}
 			scan++;
 			break;
 		case P_GETNUM:
 			if (!isdigit(*scan)) {
-				nmctx_ferror(ctx, "got '%s' while expecting a number", scan);
+				nmctx_ferror(ctx,
+				    "got '%s' while expecting a number", scan);
 				goto fail;
 			}
 			num = strtol(scan, (char **)&scan, 10);
 			if (num < 0 || num >= NETMAP_RING_MASK) {
 				nmctx_ferror(ctx, "'%ld' out of range [0, %d)",
-						num, NETMAP_RING_MASK);
+				    num, NETMAP_RING_MASK);
 				goto fail;
 			}
 			nr_ringid = num & NETMAP_RING_MASK;
@@ -342,7 +369,8 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 				nr_flags |= NR_TX_RINGS_ONLY;
 				break;
 			default:
-				nmctx_ferror(ctx, "unrecognized flag: '%c'", *scan);
+				nmctx_ferror(ctx, "unrecognized flag: '%c'",
+				    *scan);
 				goto fail;
 			}
 			scan++;
@@ -350,7 +378,7 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 			break;
 		case P_MEMID:
 			if (!isdigit(*scan)) {
-				scan--;	/* escape to options */
+				scan--; /* escape to options */
 				goto out;
 			}
 			num = strtol(scan, (char **)&scan, 10);
@@ -359,7 +387,10 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 				goto fail;
 			}
 			if (nr_mem_id && nr_mem_id != num) {
-				nmctx_ferror(ctx, "invalid setting of mem_id to %ld (already set to %"PRIu16")", num, nr_mem_id);
+				nmctx_ferror(ctx,
+				    "invalid setting of mem_id to %ld (already set to %" PRIu16
+				    ")",
+				    num, nr_mem_id);
 				goto fail;
 			}
 			nr_mem_id = num;
@@ -386,12 +417,12 @@ nmreq_register_decode(const char **pifname, struct nmreq_register *r, struct nmc
 	}
 out:
 	ED("flags: %s %s %s %s %s %s",
-			(nr_flags & NR_EXCLUSIVE) ? "EXCLUSIVE" : "",
-			(nr_flags & NR_ZCOPY_MON) ? "ZCOPY_MON" : "",
-			(nr_flags & NR_MONITOR_TX) ? "MONITOR_TX" : "",
-			(nr_flags & NR_MONITOR_RX) ? "MONITOR_RX" : "",
-			(nr_flags & NR_RX_RINGS_ONLY) ? "RX_RINGS_ONLY" : "",
-			(nr_flags & NR_TX_RINGS_ONLY) ? "TX_RINGS_ONLY" : "");
+	    (nr_flags & NR_EXCLUSIVE) ? "EXCLUSIVE" : "",
+	    (nr_flags & NR_ZCOPY_MON) ? "ZCOPY_MON" : "",
+	    (nr_flags & NR_MONITOR_TX) ? "MONITOR_TX" : "",
+	    (nr_flags & NR_MONITOR_RX) ? "MONITOR_RX" : "",
+	    (nr_flags & NR_RX_RINGS_ONLY) ? "RX_RINGS_ONLY" : "",
+	    (nr_flags & NR_TX_RINGS_ONLY) ? "TX_RINGS_ONLY" : "");
 	r->nr_mode = nr_mode;
 	r->nr_ringid = nr_ringid;
 	r->nr_flags = nr_flags;
@@ -405,10 +436,9 @@ fail:
 	return -1;
 }
 
-
 static int
-nmreq_option_parsekeys(const char *prefix, char *body, struct nmreq_opt_parser *p,
-		struct nmreq_parse_ctx *pctx)
+nmreq_option_parsekeys(const char *prefix, char *body,
+    struct nmreq_opt_parser *p, struct nmreq_parse_ctx *pctx)
 {
 	char *scan;
 	char delim1;
@@ -422,31 +452,32 @@ nmreq_option_parsekeys(const char *prefix, char *body, struct nmreq_opt_parser *
 		size_t vlen;
 
 		key = scan;
-		for ( scan++; *scan != '\0' && *scan != '=' && *scan != ','; scan++) {
+		for (scan++; *scan != '\0' && *scan != '=' && *scan != ',';
+		     scan++) {
 			if (*scan == '-')
 				*scan = '_';
 		}
 		delim = *scan;
 		*scan = '\0';
 		scan++;
-		for (k = p->keys; (k - p->keys) < NMREQ_OPT_MAXKEYS && k->key != NULL;
-				k++) {
+		for (k = p->keys;
+		     (k - p->keys) < NMREQ_OPT_MAXKEYS && k->key != NULL; k++) {
 			if (!strcmp(k->key, key))
 				goto found;
-
 		}
 		nmctx_ferror(pctx->ctx, "unknown key: '%s'", key);
 		errno = EINVAL;
 		return -1;
 	found:
 		if (pctx->keys[k->id] != NULL) {
-			nmctx_ferror(pctx->ctx, "option '%s': duplicate key '%s', already set to '%s'",
-					prefix, key, pctx->keys[k->id]);
+			nmctx_ferror(pctx->ctx,
+			    "option '%s': duplicate key '%s', already set to '%s'",
+			    prefix, key, pctx->keys[k->id]);
 			errno = EINVAL;
 			return -1;
 		}
 		value = scan;
-		for ( ; *scan != '\0' && *scan != ','; scan++)
+		for (; *scan != '\0' && *scan != ','; scan++)
 			;
 		delim1 = *scan;
 		*scan = '\0';
@@ -456,8 +487,9 @@ nmreq_option_parsekeys(const char *prefix, char *body, struct nmreq_opt_parser *
 			pctx->keys[k->id] = (vlen ? value : NULL);
 		} else {
 			if (!(k->flags & NMREQ_OPTK_ALLOWEMPTY)) {
-				nmctx_ferror(pctx->ctx, "option '%s': missing '=value' for key '%s'",
-						prefix, key);
+				nmctx_ferror(pctx->ctx,
+				    "option '%s': missing '=value' for key '%s'",
+				    prefix, key);
 				errno = EINVAL;
 				return -1;
 			}
@@ -465,10 +497,13 @@ nmreq_option_parsekeys(const char *prefix, char *body, struct nmreq_opt_parser *
 		}
 	}
 	/* now check that all no-default keys have been assigned */
-	for (k = p->keys; (k - p->keys) < NMREQ_OPT_MAXKEYS && k->key != NULL; k++) {
-		if ((k->flags & NMREQ_OPTK_MUSTSET) && pctx->keys[k->id] == NULL) {
-			nmctx_ferror(pctx->ctx, "option '%s': mandatory key '%s' not assigned",
-					prefix, k->key);
+	for (k = p->keys; (k - p->keys) < NMREQ_OPT_MAXKEYS && k->key != NULL;
+	     k++) {
+		if ((k->flags & NMREQ_OPTK_MUSTSET) &&
+		    pctx->keys[k->id] == NULL) {
+			nmctx_ferror(pctx->ctx,
+			    "option '%s': mandatory key '%s' not assigned",
+			    prefix, k->key);
 			errno = EINVAL;
 			return -1;
 		}
@@ -476,10 +511,9 @@ nmreq_option_parsekeys(const char *prefix, char *body, struct nmreq_opt_parser *
 	return 0;
 }
 
-
 static int
-nmreq_option_decode1(char *opt, struct nmreq_opt_parser *parsers,
-		void *token, struct nmctx *ctx)
+nmreq_option_decode1(char *opt, struct nmreq_opt_parser *parsers, void *token,
+    struct nmctx *ctx)
 {
 	struct nmreq_opt_parser *p;
 	const char *prefix;
@@ -519,21 +553,22 @@ nmreq_option_decode1(char *opt, struct nmreq_opt_parser *parsers,
 	case '\0':
 		/* no body */
 		if (!(p->flags & NMREQ_OPTF_ALLOWEMPTY)) {
-			nmctx_ferror(ctx, "syntax error: missing body after '%s'",
-					prefix);
+			nmctx_ferror(ctx,
+			    "syntax error: missing body after '%s'", prefix);
 			errno = EINVAL;
 			return -1;
 		}
 		break;
 	case '=': /* the body goes to the default option key, if any */
 		if (p->default_key < 0 || p->default_key >= NMREQ_OPT_MAXKEYS) {
-			nmctx_ferror(ctx, "syntax error: '=' not valid after '%s'",
-					prefix);
+			nmctx_ferror(ctx,
+			    "syntax error: '=' not valid after '%s'", prefix);
 			errno = EINVAL;
 			return -1;
 		}
 		if (*scan == '\0') {
-			nmctx_ferror(ctx, "missing value for option '%s'", prefix);
+			nmctx_ferror(ctx, "missing value for option '%s'",
+			    prefix);
 			errno = EINVAL;
 			return -1;
 		}
@@ -549,7 +584,7 @@ nmreq_option_decode1(char *opt, struct nmreq_opt_parser *parsers,
 
 int
 nmreq_options_decode(const char *opt, struct nmreq_opt_parser parsers[],
-		void *token, struct nmctx *ctx)
+    void *token, struct nmctx *ctx)
 {
 	const char *scan, *opt1;
 	char *w;
@@ -567,10 +602,10 @@ nmreq_options_decode(const char *opt, struct nmreq_opt_parser parsers[],
 
 	scan = opt;
 	do {
-		scan++; /* skip the plus */
+		scan++;	     /* skip the plus */
 		opt1 = scan; /* start of option */
 		/* find the end of the option */
-		for ( ; *scan != '\0' && *scan != '@'; scan++)
+		for (; *scan != '\0' && *scan != '@'; scan++)
 			;
 		len = scan - opt1;
 		if (len == 0) {
@@ -600,7 +635,8 @@ nmreq_find_option(struct nmreq_header *h, uint32_t t)
 {
 	struct nmreq_option *o = NULL;
 
-	nmreq_foreach_option(h, o) {
+	nmreq_foreach_option(h, o)
+	{
 		if (o->nro_reqtype == t)
 			break;
 	}
@@ -613,7 +649,7 @@ nmreq_remove_option(struct nmreq_header *h, struct nmreq_option *o)
 	struct nmreq_option **nmo;
 
 	for (nmo = (struct nmreq_option **)&h->nr_options; *nmo != NULL;
-	    nmo = (struct nmreq_option **)&(*nmo)->nro_next) {
+	     nmo = (struct nmreq_option **)&(*nmo)->nro_next) {
 		if (*nmo == o) {
 			*((uint64_t *)(*nmo)) = o->nro_next;
 			o->nro_next = (uint64_t)(uintptr_t)NULL;
@@ -633,13 +669,13 @@ nmreq_free_options(struct nmreq_header *h)
 	 * modification-safe.
 	 */
 	for (o = (struct nmreq_option *)(uintptr_t)h->nr_options; o != NULL;
-	    o = next) {
+	     o = next) {
 		next = (struct nmreq_option *)(uintptr_t)o->nro_next;
 		free(o);
 	}
 }
 
-const char*
+const char *
 nmreq_option_name(uint32_t nro_reqtype)
 {
 	switch (nro_reqtype) {

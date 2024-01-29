@@ -14,23 +14,48 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FMT	"%-32.32s 0x%08x %5d  %s\n"
-#define HDRFMT	"%-32.32s %10s %5.5s  %s\n"
-#define DASHES	"-------------------------------- "	\
-		"---------- -----  ---------------\n"
+#define FMT "%-32.32s 0x%08x %5d  %s\n"
+#define HDRFMT "%-32.32s %10s %5.5s  %s\n"
+#define DASHES                              \
+	"-------------------------------- " \
+	"---------- -----  ---------------\n"
 
 static struct flaglist {
-	int		flag;
-	const char	str[32]; /* must be longer than the longest one. */
+	int flag;
+	const char str[32]; /* must be longer than the longest one. */
 } fl[] = {
-	{ .flag = VFCF_STATIC, .str = "static", },
-	{ .flag = VFCF_NETWORK, .str = "network", },
-	{ .flag = VFCF_READONLY, .str = "read-only", },
-	{ .flag = VFCF_SYNTHETIC, .str = "synthetic", },
-	{ .flag = VFCF_LOOPBACK, .str = "loopback", },
-	{ .flag = VFCF_UNICODE, .str = "unicode", },
-	{ .flag = VFCF_JAIL, .str = "jail", },
-	{ .flag = VFCF_DELEGADMIN, .str = "delegated-administration", },
+	{
+	    .flag = VFCF_STATIC,
+	    .str = "static",
+	},
+	{
+	    .flag = VFCF_NETWORK,
+	    .str = "network",
+	},
+	{
+	    .flag = VFCF_READONLY,
+	    .str = "read-only",
+	},
+	{
+	    .flag = VFCF_SYNTHETIC,
+	    .str = "synthetic",
+	},
+	{
+	    .flag = VFCF_LOOPBACK,
+	    .str = "loopback",
+	},
+	{
+	    .flag = VFCF_UNICODE,
+	    .str = "unicode",
+	},
+	{
+	    .flag = VFCF_JAIL,
+	    .str = "jail",
+	},
+	{
+	    .flag = VFCF_DELEGADMIN,
+	    .str = "delegated-administration",
+	},
 };
 
 static const char *fmt_flags(int);

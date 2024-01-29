@@ -31,18 +31,18 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/filio.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
 #include <sys/pciio.h>
 #include <sys/pctrie.h>
 #include <sys/rman.h>
 #include <sys/rwlock.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -51,26 +51,25 @@
 #include <machine/resource.h>
 #include <machine/stdarg.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h>
-#include <dev/pci/pci_iov.h>
 #include <dev/backlight/backlight.h>
-
-#include <linux/kernel.h>
-#include <linux/kobject.h>
-#include <linux/device.h>
-#include <linux/slab.h>
-#include <linux/module.h>
-#include <linux/cdev.h>
-#include <linux/file.h>
-#include <linux/sysfs.h>
-#include <linux/mm.h>
-#include <linux/io.h>
-#include <linux/vmalloc.h>
-#include <linux/pci.h>
-#include <linux/compat.h>
+#include <dev/pci/pci_iov.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcivar.h>
 
 #include <linux/backlight.h>
+#include <linux/cdev.h>
+#include <linux/compat.h>
+#include <linux/device.h>
+#include <linux/file.h>
+#include <linux/io.h>
+#include <linux/kernel.h>
+#include <linux/kobject.h>
+#include <linux/mm.h>
+#include <linux/module.h>
+#include <linux/pci.h>
+#include <linux/slab.h>
+#include <linux/sysfs.h>
+#include <linux/vmalloc.h>
 
 #include "backlight_if.h"
 #include "pcib_if.h"
@@ -95,8 +94,10 @@ static device_shutdown_t linux_pci_shutdown;
 static pci_iov_init_t linux_pci_iov_init;
 static pci_iov_uninit_t linux_pci_iov_uninit;
 static pci_iov_add_vf_t linux_pci_iov_add_vf;
-static int linux_backlight_get_status(device_t dev, struct backlight_props *props);
-static int linux_backlight_update_status(device_t dev, struct backlight_props *props);
+static int linux_backlight_get_status(device_t dev,
+    struct backlight_props *props);
+static int linux_backlight_update_status(device_t dev,
+    struct backlight_props *props);
 static int linux_backlight_get_info(device_t dev, struct backlight_info *info);
 static void lkpi_pcim_iomap_table_release(struct device *, void *);
 
@@ -114,36 +115,34 @@ static device_method_t pci_methods[] = {
 	/* backlight interface */
 	DEVMETHOD(backlight_update_status, linux_backlight_update_status),
 	DEVMETHOD(backlight_get_status, linux_backlight_get_status),
-	DEVMETHOD(backlight_get_info, linux_backlight_get_info),
-	DEVMETHOD_END
+	DEVMETHOD(backlight_get_info, linux_backlight_get_info), DEVMETHOD_END
 };
 
-const char *pci_power_names[] = {
-	"UNKNOWN", "D0", "D1", "D2", "D3hot", "D3cold"
-};
+const char *pci_power_names[] = { "UNKNOWN", "D0", "D1", "D2", "D3hot",
+	"D3cold" };
 
 /* We need some meta-struct to keep track of these for devres. */
 struct pci_devres {
-	bool		enable_io;
+	bool enable_io;
 	/* PCIR_MAX_BAR_0 + 1 = 6 => BIT(0..5). */
-	uint8_t		region_mask;
-	struct resource	*region_table[PCIR_MAX_BAR_0 + 1]; /* Not needed. */
+	uint8_t region_mask;
+	struct resource *region_table[PCIR_MAX_BAR_0 + 1]; /* Not needed. */
 };
 struct pcim_iomap_devres {
-	void		*mmio_table[PCIR_MAX_BAR_0 + 1];
-	struct resource	*res_table[PCIR_MAX_BAR_0 + 1];
+	void *mmio_table[PCIR_MAX_BAR_0 + 1];
+	struct resource *res_table[PCIR_MAX_BAR_0 + 1];
 };
 
 struct linux_dma_priv {
-	uint64_t	dma_mask;
-	bus_dma_tag_t	dmat;
-	uint64_t	dma_coherent_mask;
-	bus_dma_tag_t	dmat_coherent;
-	struct mtx	lock;
-	struct pctrie	ptree;
+	uint64_t dma_mask;
+	bus_dma_tag_t dmat;
+	uint64_t dma_coherent_mask;
+	bus_dma_tag_t dmat_coherent;
+	struct mtx lock;
+	struct pctrie ptree;
 };
-#define	DMA_PRIV_LOCK(priv) mtx_lock(&(priv)->lock)
-#define	DMA_PRIV_UNLOCK(priv) mtx_unlock(&(priv)->lock)
+#define DMA_PRIV_LOCK(priv) mtx_lock(&(priv)->lock)
+#define DMA_PRIV_UNLOCK(priv) mtx_unlock(&(priv)->lock)
 
 static int
 linux_pdev_dma_uninit(struct pci_dev *pdev)
@@ -207,16 +206,16 @@ linux_dma_tag_init(struct device *dev, u64 dma_mask)
 
 	priv->dma_mask = dma_mask;
 
-	error = bus_dma_tag_create(bus_get_dma_tag(dev->bsddev),
-	    1, 0,			/* alignment, boundary */
-	    dma_mask,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filtfunc, filtfuncarg */
-	    BUS_SPACE_MAXSIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    BUS_SPACE_MAXSIZE,		/* maxsegsz */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockfuncarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev->bsddev), 1,
+	    0,		       /* alignment, boundary */
+	    dma_mask,	       /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filtfunc, filtfuncarg */
+	    BUS_SPACE_MAXSIZE, /* maxsize */
+	    1,		       /* nsegments */
+	    BUS_SPACE_MAXSIZE, /* maxsegsz */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockfuncarg */
 	    &priv->dmat);
 	return (-error);
 }
@@ -238,16 +237,16 @@ linux_dma_tag_init_coherent(struct device *dev, u64 dma_mask)
 
 	priv->dma_coherent_mask = dma_mask;
 
-	error = bus_dma_tag_create(bus_get_dma_tag(dev->bsddev),
-	    1, 0,			/* alignment, boundary */
-	    dma_mask,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filtfunc, filtfuncarg */
-	    BUS_SPACE_MAXSIZE,		/* maxsize */
-	    1,				/* nsegments */
-	    BUS_SPACE_MAXSIZE,		/* maxsegsz */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockfuncarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(dev->bsddev), 1,
+	    0,		       /* alignment, boundary */
+	    dma_mask,	       /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filtfunc, filtfuncarg */
+	    BUS_SPACE_MAXSIZE, /* maxsize */
+	    1,		       /* nsegments */
+	    BUS_SPACE_MAXSIZE, /* maxsegsz */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockfuncarg */
 	    &priv->dmat_coherent);
 	return (-error);
 }
@@ -268,12 +267,16 @@ linux_pci_find(device_t dev, const struct pci_device_id **idp)
 	subdevice = pci_get_subdevice(dev);
 
 	spin_lock(&pci_lock);
-	list_for_each_entry(pdrv, &pci_drivers, node) {
+	list_for_each_entry(pdrv, &pci_drivers, node)
+	{
 		for (id = pdrv->id_table; id->vendor != 0; id++) {
 			if (vendor == id->vendor &&
-			    (PCI_ANY_ID == id->device || device == id->device) &&
-			    (PCI_ANY_ID == id->subvendor || subvendor == id->subvendor) &&
-			    (PCI_ANY_ID == id->subdevice || subdevice == id->subdevice)) {
+			    (PCI_ANY_ID == id->device ||
+				device == id->device) &&
+			    (PCI_ANY_ID == id->subvendor ||
+				subvendor == id->subvendor) &&
+			    (PCI_ANY_ID == id->subdevice ||
+				subdevice == id->subdevice)) {
 				*idp = id;
 				spin_unlock(&pci_lock);
 				return (pdrv);
@@ -289,10 +292,12 @@ lkpi_pci_get_device(uint16_t vendor, uint16_t device, struct pci_dev *odev)
 {
 	struct pci_dev *pdev;
 
-	KASSERT(odev == NULL, ("%s: odev argument not yet supported\n", __func__));
+	KASSERT(odev == NULL,
+	    ("%s: odev argument not yet supported\n", __func__));
 
 	spin_lock(&pci_lock);
-	list_for_each_entry(pdev, &pci_devices, links) {
+	list_for_each_entry(pdev, &pci_devices, links)
+	{
 		if (pdev->vendor == vendor && pdev->device == device)
 			break;
 	}
@@ -339,7 +344,8 @@ lkpifill_pci_dev(device_t dev, struct pci_dev *pdev)
 
 	if (pci_msi_count(dev) > 0)
 		pdev->msi_desc = malloc(pci_msi_count(dev) *
-		    sizeof(*pdev->msi_desc), M_DEVBUF, M_WAITOK | M_ZERO);
+			sizeof(*pdev->msi_desc),
+		    M_DEVBUF, M_WAITOK | M_ZERO);
 
 	kobject_init(&pdev->dev.kobj, &linux_dev_ktype);
 	kobject_set_name(&pdev->dev.kobj, device_get_nameunit(dev));
@@ -375,7 +381,7 @@ lkpinew_pci_dev(device_t dev)
 {
 	struct pci_dev *pdev;
 
-	pdev = malloc(sizeof(*pdev), M_DEVBUF, M_WAITOK|M_ZERO);
+	pdev = malloc(sizeof(*pdev), M_DEVBUF, M_WAITOK | M_ZERO);
 	lkpifill_pci_dev(dev, pdev);
 	pdev->dev.release = lkpinew_pci_dev_release;
 
@@ -451,8 +457,8 @@ linux_pci_attach(device_t dev)
 }
 
 static struct resource_list_entry *
-linux_pci_reserve_bar(struct pci_dev *pdev, struct resource_list *rl,
-    int type, int rid)
+linux_pci_reserve_bar(struct pci_dev *pdev, struct resource_list *rl, int type,
+    int rid)
 {
 	device_t dev;
 	struct resource *res;
@@ -461,9 +467,10 @@ linux_pci_reserve_bar(struct pci_dev *pdev, struct resource_list *rl,
 	    ("trying to reserve non-BAR type %d", type));
 
 	dev = pdev->pdrv != NULL && pdev->pdrv->isdrm ?
-	    device_get_parent(pdev->dev.bsddev) : pdev->dev.bsddev;
-	res = pci_reserve_map(device_get_parent(dev), dev, type, &rid, 0, ~0,
-	    1, 1, 0);
+	    device_get_parent(pdev->dev.bsddev) :
+	    pdev->dev.bsddev;
+	res = pci_reserve_map(device_get_parent(dev), dev, type, &rid, 0, ~0, 1,
+	    1, 0);
 	if (res == NULL)
 		return (NULL);
 	return (resource_list_find(rl, type, rid));
@@ -591,8 +598,8 @@ static int
 lkpi_pci_disable_dev(struct device *dev)
 {
 
-	(void) pci_disable_io(dev->bsddev, SYS_RES_MEMORY);
-	(void) pci_disable_io(dev->bsddev, SYS_RES_IOPORT);
+	(void)pci_disable_io(dev->bsddev, SYS_RES_MEMORY);
+	(void)pci_disable_io(dev->bsddev, SYS_RES_IOPORT);
 	return (0);
 }
 
@@ -633,7 +640,7 @@ lkpi_pci_devres_release(struct device *dev, void *p)
 
 	if (pdev->msix_enabled)
 		lkpi_pci_disable_msix(pdev);
-        if (pdev->msi_enabled)
+	if (pdev->msi_enabled)
 		lkpi_pci_disable_msi(pdev);
 
 	if (dr->enable_io && lkpi_pci_disable_dev(dev) == 0)
@@ -679,8 +686,8 @@ lkpi_pcim_iomap_devres_find(struct pci_dev *pdev)
 {
 	struct pcim_iomap_devres *dr;
 
-	dr = lkpi_devres_find(&pdev->dev, lkpi_pcim_iomap_table_release,
-	    NULL, NULL);
+	dr = lkpi_devres_find(&pdev->dev, lkpi_pcim_iomap_table_release, NULL,
+	    NULL);
 	if (dr == NULL) {
 		dr = lkpi_devres_alloc(lkpi_pcim_iomap_table_release,
 		    sizeof(*dr), GFP_KERNEL | __GFP_ZERO);
@@ -723,7 +730,7 @@ _lkpi_pci_iomap(struct pci_dev *pdev, int bar, int mmio_size __unused)
 	type = pci_resource_type(pdev, bar);
 	if (type < 0) {
 		device_printf(pdev->dev.bsddev, "%s: bar %d type %d\n",
-		     __func__, bar, type);
+		    __func__, bar, type);
 		return (NULL);
 	}
 
@@ -731,7 +738,7 @@ _lkpi_pci_iomap(struct pci_dev *pdev, int bar, int mmio_size __unused)
 	 * Check for duplicate mappings.
 	 * This can happen if a driver calls pci_request_region() first.
 	 */
-	TAILQ_FOREACH_SAFE(mmio, &pdev->mmio, next, p) {
+	TAILQ_FOREACH_SAFE (mmio, &pdev->mmio, next, p) {
 		if (mmio->type == type && mmio->rid == PCIR_BAR(bar)) {
 			return (mmio->res);
 		}
@@ -741,9 +748,10 @@ _lkpi_pci_iomap(struct pci_dev *pdev, int bar, int mmio_size __unused)
 	mmio->rid = PCIR_BAR(bar);
 	mmio->type = type;
 	mmio->res = bus_alloc_resource_any(pdev->dev.bsddev, mmio->type,
-	    &mmio->rid, RF_ACTIVE|RF_SHAREABLE);
+	    &mmio->rid, RF_ACTIVE | RF_SHAREABLE);
 	if (mmio->res == NULL) {
-		device_printf(pdev->dev.bsddev, "%s: failed to alloc "
+		device_printf(pdev->dev.bsddev,
+		    "%s: failed to alloc "
 		    "bar %d type %d rid %d\n",
 		    __func__, bar, type, PCIR_BAR(bar));
 		free(mmio, M_DEVBUF);
@@ -773,11 +781,11 @@ linuxkpi_pci_iounmap(struct pci_dev *pdev, void *res)
 {
 	struct pci_mmio_region *mmio, *p;
 
-	TAILQ_FOREACH_SAFE(mmio, &pdev->mmio, next, p) {
+	TAILQ_FOREACH_SAFE (mmio, &pdev->mmio, next, p) {
 		if (res != (void *)rman_get_bushandle(mmio->res))
 			continue;
-		bus_release_resource(pdev->dev.bsddev,
-		    mmio->type, mmio->rid, mmio->res);
+		bus_release_resource(pdev->dev.bsddev, mmio->type, mmio->rid,
+		    mmio->res);
 		TAILQ_REMOVE(&pdev->mmio, mmio, next);
 		free(mmio, M_DEVBUF);
 		return;
@@ -785,7 +793,8 @@ linuxkpi_pci_iounmap(struct pci_dev *pdev, void *res)
 }
 
 int
-linuxkpi_pcim_iomap_regions(struct pci_dev *pdev, uint32_t mask, const char *name)
+linuxkpi_pcim_iomap_regions(struct pci_dev *pdev, uint32_t mask,
+    const char *name)
 {
 	struct pcim_iomap_devres *dr;
 	void *res;
@@ -853,7 +862,7 @@ static int
 linux_pci_suspend(device_t dev)
 {
 	const struct dev_pm_ops *pmops;
-	struct pm_message pm = { };
+	struct pm_message pm = {};
 	struct pci_dev *pdev;
 	int error;
 
@@ -965,8 +974,8 @@ _linux_pci_register_driver(struct pci_driver *pdrv, devclass_t dc)
 	pdrv->bsddriver.size = sizeof(struct pci_dev);
 
 	bus_topo_lock();
-	error = devclass_add_driver(dc, &pdrv->bsddriver,
-	    BUS_PASS_DEFAULT, &pdrv->bsdclass);
+	error = devclass_add_driver(dc, &pdrv->bsddriver, BUS_PASS_DEFAULT,
+	    &pdrv->bsdclass);
 	bus_topo_unlock();
 	return (-error);
 }
@@ -1003,7 +1012,8 @@ lkpi_pci_find_irq_dev(unsigned int irq)
 
 	found = NULL;
 	spin_lock(&pci_lock);
-	list_for_each_entry(pdev, &pci_devices, links) {
+	list_for_each_entry(pdev, &pci_devices, links)
+	{
 		if (irq == pdev->dev.irq ||
 		    (irq >= pdev->dev.irq_start && irq < pdev->dev.irq_end)) {
 			found = &pdev->dev;
@@ -1025,12 +1035,13 @@ pci_resource_start(struct pci_dev *pdev, int bar)
 	if ((rle = lkpi_pci_get_bar(pdev, bar, true)) == NULL)
 		return (0);
 	dev = pdev->pdrv != NULL && pdev->pdrv->isdrm ?
-	    device_get_parent(pdev->dev.bsddev) : pdev->dev.bsddev;
+	    device_get_parent(pdev->dev.bsddev) :
+	    pdev->dev.bsddev;
 	error = bus_translate_resource(dev, rle->type, rle->start, &newstart);
 	if (error != 0) {
 		device_printf(pdev->dev.bsddev,
-		    "translate of %#jx failed: %d\n",
-		    (uintmax_t)rle->start, error);
+		    "translate of %#jx failed: %d\n", (uintmax_t)rle->start,
+		    error);
 		return (0);
 	}
 	return (newstart);
@@ -1060,9 +1071,10 @@ pci_request_region(struct pci_dev *pdev, int bar, const char *res_name)
 		return (-ENODEV);
 	rid = PCIR_BAR(bar);
 	res = bus_alloc_resource_any(pdev->dev.bsddev, type, &rid,
-	    RF_ACTIVE|RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (res == NULL) {
-		device_printf(pdev->dev.bsddev, "%s: failed to alloc "
+		device_printf(pdev->dev.bsddev,
+		    "%s: failed to alloc "
 		    "bar %d type %d rid %d\n",
 		    __func__, bar, type, PCIR_BAR(bar));
 		return (-ENODEV);
@@ -1122,14 +1134,15 @@ linuxkpi_pci_release_region(struct pci_dev *pdev, int bar)
 	 */
 	dr = lkpi_pci_devres_find(pdev);
 	if (dr != NULL) {
-		KASSERT(dr->region_table[bar] == rle->res, ("%s: pdev %p bar %d"
-		    " region_table res %p != rel->res %p\n", __func__, pdev,
-		    bar, dr->region_table[bar], rle->res));
+		KASSERT(dr->region_table[bar] == rle->res,
+		    ("%s: pdev %p bar %d"
+		     " region_table res %p != rel->res %p\n",
+			__func__, pdev, bar, dr->region_table[bar], rle->res));
 		dr->region_table[bar] = NULL;
 		dr->region_mask &= ~(1 << bar);
 	}
 
-	TAILQ_FOREACH_SAFE(mmio, &pdev->mmio, next, p) {
+	TAILQ_FOREACH_SAFE (mmio, &pdev->mmio, next, p) {
 		if (rle->res != (void *)rman_get_bushandle(mmio->res))
 			continue;
 		TAILQ_REMOVE(&pdev->mmio, mmio, next);
@@ -1212,9 +1225,9 @@ linuxkpi_pci_enable_msix(struct pci_dev *pdev, struct msix_entry *entries,
 	if ((error = -pci_alloc_msix(pdev->dev.bsddev, &avail)) != 0)
 		return error;
 	/*
-	* Handle case where "pci_alloc_msix()" may allocate less
-	* interrupts than available and return with no error:
-	*/
+	 * Handle case where "pci_alloc_msix()" may allocate less
+	 * interrupts than available and return with no error:
+	 */
 	if (avail < nreq) {
 		pci_release_msi(pdev->dev.bsddev);
 		return avail;
@@ -1278,7 +1291,7 @@ pci_alloc_irq_vectors(struct pci_dev *pdev, int minv, int maxv,
 		for (i = 0; i < maxv; ++i)
 			entries[i].entry = i;
 		error = pci_enable_msix(pdev, entries, maxv);
-out:
+	out:
 		kfree(entries);
 		if (error == 0 && pdev->msix_enabled)
 			return (pdev->dev.irq_end - pdev->dev.irq_start);
@@ -1330,8 +1343,9 @@ lkpi_pci_msi_desc_alloc(int irq)
 
 	desc = malloc(sizeof(*desc), M_DEVBUF, M_WAITOK | M_ZERO);
 
-	desc->pci.msi_attrib.is_64 =
-	   (msi->msi_ctrl & PCIM_MSICTRL_64BIT) ? true : false;
+	desc->pci.msi_attrib.is_64 = (msi->msi_ctrl & PCIM_MSICTRL_64BIT) ?
+	    true :
+	    false;
 	desc->msg.data = msi->msi_data;
 
 	pdev->msi_desc[vec] = desc;
@@ -1352,10 +1366,10 @@ pci_device_is_present(struct pci_dev *pdev)
 CTASSERT(sizeof(dma_addr_t) <= sizeof(uint64_t));
 
 struct linux_dma_obj {
-	void		*vaddr;
-	uint64_t	dma_addr;
-	bus_dmamap_t	dmamap;
-	bus_dma_tag_t	dmat;
+	void *vaddr;
+	uint64_t dma_addr;
+	bus_dmamap_t dmamap;
+	bus_dma_tag_t dmat;
 };
 
 static uma_zone_t linux_dma_trie_zone;
@@ -1369,8 +1383,8 @@ linux_dma_init(void *arg)
 	    pctrie_node_size(), NULL, NULL, pctrie_zone_init, NULL,
 	    UMA_ALIGN_PTR, 0);
 	linux_dma_obj_zone = uma_zcreate("linux_dma_object",
-	    sizeof(struct linux_dma_obj), NULL, NULL, NULL, NULL,
-	    UMA_ALIGN_PTR, 0);
+	    sizeof(struct linux_dma_obj), NULL, NULL, NULL, NULL, UMA_ALIGN_PTR,
+	    0);
 	lkpi_pci_nseg1_fail = counter_u64_alloc(M_WAITOK);
 }
 SYSINIT(linux_dma, SI_SUB_DRIVERS, SI_ORDER_THIRD, linux_dma_init, NULL);
@@ -1438,7 +1452,7 @@ linux_dma_map_phys_common(struct device *dev, vm_paddr_t phys, size_t len,
 
 	nseg = -1;
 	if (_bus_dmamap_load_phys(obj->dmat, obj->dmamap, phys, len,
-	    BUS_DMA_NOWAIT, &seg, &nseg) != 0) {
+		BUS_DMA_NOWAIT, &seg, &nseg) != 0) {
 		bus_dmamap_destroy(obj->dmat, obj->dmamap);
 		DMA_PRIV_UNLOCK(priv);
 		uma_zfree(linux_dma_obj_zone, obj);
@@ -1534,8 +1548,8 @@ linux_dma_alloc_coherent(struct device *dev, size_t size,
 	align = PAGE_SIZE << get_order(size);
 	/* Always zero the allocation. */
 	flag |= M_ZERO;
-	mem = kmem_alloc_contig(size, flag & GFP_NATIVE_MASK, 0, high,
-	    align, 0, VM_MEMATTR_DEFAULT);
+	mem = kmem_alloc_contig(size, flag & GFP_NATIVE_MASK, 0, high, align, 0,
+	    VM_MEMATTR_DEFAULT);
 	if (mem != NULL) {
 		*dma_handle = linux_dma_map_phys_common(dev, vtophys(mem), size,
 		    priv->dmat_coherent);
@@ -1565,13 +1579,13 @@ lkpi_dmam_free_coherent(struct device *dev, void *p)
 }
 
 void *
-linuxkpi_dmam_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle,
-    gfp_t flag)
+linuxkpi_dmam_alloc_coherent(struct device *dev, size_t size,
+    dma_addr_t *dma_handle, gfp_t flag)
 {
 	struct lkpi_devres_dmam_coherent *dr;
 
-	dr = lkpi_devres_alloc(lkpi_dmam_free_coherent,
-	    sizeof(*dr), GFP_KERNEL | __GFP_ZERO);
+	dr = lkpi_devres_alloc(lkpi_dmam_free_coherent, sizeof(*dr),
+	    GFP_KERNEL | __GFP_ZERO);
 
 	if (dr == NULL)
 		return (NULL);
@@ -1631,11 +1645,11 @@ linux_dma_map_sg_attrs(struct device *dev, struct scatterlist *sgl, int nents,
 	}
 
 	/* load all S/G list entries */
-	for_each_sg(sgl, sg, nents, i) {
+	for_each_sg(sgl, sg, nents, i)
+	{
 		nseg = -1;
-		if (_bus_dmamap_load_phys(priv->dmat, sgl->dma_map,
-		    sg_phys(sg), sg->length, BUS_DMA_NOWAIT,
-		    &seg, &nseg) != 0) {
+		if (_bus_dmamap_load_phys(priv->dmat, sgl->dma_map, sg_phys(sg),
+			sg->length, BUS_DMA_NOWAIT, &seg, &nseg) != 0) {
 			bus_dmamap_unload(priv->dmat, sgl->dma_map);
 			bus_dmamap_destroy(priv->dmat, sgl->dma_map);
 			DMA_PRIV_UNLOCK(priv);
@@ -1683,7 +1697,8 @@ linux_dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sgl,
 		bus_dmamap_sync(priv->dmat, sgl->dma_map, BUS_DMASYNC_PREREAD);
 		break;
 	case DMA_TO_DEVICE:
-		bus_dmamap_sync(priv->dmat, sgl->dma_map, BUS_DMASYNC_POSTWRITE);
+		bus_dmamap_sync(priv->dmat, sgl->dma_map,
+		    BUS_DMASYNC_POSTWRITE);
 		break;
 	case DMA_FROM_DEVICE:
 		bus_dmamap_sync(priv->dmat, sgl->dma_map, BUS_DMASYNC_POSTREAD);
@@ -1698,16 +1713,16 @@ linux_dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sgl,
 }
 
 struct dma_pool {
-	struct device  *pool_device;
-	uma_zone_t	pool_zone;
-	struct mtx	pool_lock;
-	bus_dma_tag_t	pool_dmat;
-	size_t		pool_entry_size;
-	struct pctrie	pool_ptree;
+	struct device *pool_device;
+	uma_zone_t pool_zone;
+	struct mtx pool_lock;
+	bus_dma_tag_t pool_dmat;
+	size_t pool_entry_size;
+	struct pctrie pool_ptree;
 };
 
-#define	DMA_POOL_LOCK(pool) mtx_lock(&(pool)->pool_lock)
-#define	DMA_POOL_UNLOCK(pool) mtx_unlock(&(pool)->pool_lock)
+#define DMA_POOL_LOCK(pool) mtx_lock(&(pool)->pool_lock)
+#define DMA_POOL_UNLOCK(pool) mtx_unlock(&(pool)->pool_lock)
 
 static inline int
 dma_pool_obj_ctor(void *mem, int size, void *arg, int flags)
@@ -1720,8 +1735,8 @@ dma_pool_obj_ctor(void *mem, int size, void *arg, int flags)
 	nseg = -1;
 	DMA_POOL_LOCK(pool);
 	error = _bus_dmamap_load_phys(pool->pool_dmat, obj->dmamap,
-	    vtophys(obj->vaddr), pool->pool_entry_size, BUS_DMA_NOWAIT,
-	    &seg, &nseg);
+	    vtophys(obj->vaddr), pool->pool_entry_size, BUS_DMA_NOWAIT, &seg,
+	    &nseg);
 	DMA_POOL_UNLOCK(pool);
 	if (error != 0) {
 		return (error);
@@ -1758,7 +1773,7 @@ dma_pool_obj_import(void *arg, void **store, int count, int domain __unused,
 
 		error = bus_dmamem_alloc(pool->pool_dmat, &obj->vaddr,
 		    BUS_DMA_NOWAIT, &obj->dmamap);
-		if (error!= 0) {
+		if (error != 0) {
 			uma_zfree(linux_dma_obj_zone, obj);
 			break;
 		}
@@ -1784,8 +1799,8 @@ dma_pool_obj_release(void *arg, void **store, int count)
 }
 
 struct dma_pool *
-linux_dma_pool_create(char *name, struct device *dev, size_t size,
-    size_t align, size_t boundary)
+linux_dma_pool_create(char *name, struct device *dev, size_t size, size_t align,
+    size_t boundary)
 {
 	struct linux_dma_priv *priv;
 	struct dma_pool *pool;
@@ -1796,17 +1811,17 @@ linux_dma_pool_create(char *name, struct device *dev, size_t size,
 	pool->pool_device = dev;
 	pool->pool_entry_size = size;
 
-	if (bus_dma_tag_create(bus_get_dma_tag(dev->bsddev),
-	    align, boundary,		/* alignment, boundary */
-	    priv->dma_mask,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filtfunc, filtfuncarg */
-	    size,			/* maxsize */
-	    1,				/* nsegments */
-	    size,			/* maxsegsz */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockfuncarg */
-	    &pool->pool_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev->bsddev), align,
+		boundary,	   /* alignment, boundary */
+		priv->dma_mask,	   /* lowaddr */
+		BUS_SPACE_MAXADDR, /* highaddr */
+		NULL, NULL,	   /* filtfunc, filtfuncarg */
+		size,		   /* maxsize */
+		1,		   /* nsegments */
+		size,		   /* maxsegsz */
+		0,		   /* flags */
+		NULL, NULL,	   /* lockfunc, lockfuncarg */
+		&pool->pool_dmat)) {
 		kfree(pool);
 		return (NULL);
 	}
@@ -1842,12 +1857,12 @@ lkpi_dmam_pool_destroy(struct device *dev, void *p)
 }
 
 void *
-linux_dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags,
-    dma_addr_t *handle)
+linux_dma_pool_alloc(struct dma_pool *pool, gfp_t mem_flags, dma_addr_t *handle)
 {
 	struct linux_dma_obj *obj;
 
-	obj = uma_zalloc_arg(pool->pool_zone, pool, mem_flags & GFP_NATIVE_MASK);
+	obj = uma_zalloc_arg(pool->pool_zone, pool,
+	    mem_flags & GFP_NATIVE_MASK);
 	if (obj == NULL)
 		return (NULL);
 
@@ -1889,7 +1904,8 @@ linux_backlight_get_status(device_t dev, struct backlight_props *props)
 	pdev = device_get_softc(dev);
 
 	props->brightness = pdev->dev.bd->props.brightness;
-	props->brightness = props->brightness * 100 / pdev->dev.bd->props.max_brightness;
+	props->brightness = props->brightness * 100 /
+	    pdev->dev.bd->props.max_brightness;
 	props->nlevels = 0;
 
 	return (0);
@@ -1917,15 +1933,17 @@ linux_backlight_update_status(device_t dev, struct backlight_props *props)
 	pdev = device_get_softc(dev);
 
 	pdev->dev.bd->props.brightness = pdev->dev.bd->props.max_brightness *
-		props->brightness / 100;
+	    props->brightness / 100;
 	pdev->dev.bd->props.power = props->brightness == 0 ?
-		4/* FB_BLANK_POWERDOWN */ : 0/* FB_BLANK_UNBLANK */;
+	    4 /* FB_BLANK_POWERDOWN */ :
+	    0 /* FB_BLANK_UNBLANK */;
 	return (pdev->dev.bd->ops->update_status(pdev->dev.bd));
 }
 
 struct backlight_device *
 linux_backlight_device_register(const char *name, struct device *dev,
-    void *data, const struct backlight_ops *ops, struct backlight_properties *props)
+    void *data, const struct backlight_ops *ops,
+    struct backlight_properties *props)
 {
 
 	dev->bd = malloc(sizeof(*dev->bd), M_DEVBUF, M_WAITOK | M_ZERO);

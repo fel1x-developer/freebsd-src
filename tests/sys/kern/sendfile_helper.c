@@ -43,7 +43,7 @@
 #include <unistd.h>
 
 static int ls;
-static char buf[1024*1024];
+static char buf[1024 * 1024];
 static volatile bool accept_done = false;
 static volatile bool read_done = false;
 
@@ -96,7 +96,7 @@ main(int argc, char **argv)
 
 	fd = open(argv[1], O_RDONLY);
 	if (fd < 0)
-		err(1, "open");		
+		err(1, "open");
 
 	ls = socket(PF_INET, SOCK_STREAM, 0);
 	if (ls < 0)
@@ -104,7 +104,7 @@ main(int argc, char **argv)
 
 	on = 1;
 	if (setsockopt(ls, SOL_SOCKET, SO_REUSEADDR, (void *)&on,
-	    (socklen_t)sizeof(on)) < 0)
+		(socklen_t)sizeof(on)) < 0)
 		err(1, "SO_REUSEADDR");
 
 	sin.sin_len = sizeof(sin);

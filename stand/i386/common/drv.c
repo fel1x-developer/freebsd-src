@@ -18,10 +18,10 @@
 
 #include <btxv86.h>
 
-#include "stand.h"
-#include "rbx.h"
 #include "drv.h"
 #include "edd.h"
+#include "rbx.h"
+#include "stand.h"
 
 static struct edd_params params;
 
@@ -66,8 +66,8 @@ drvread(struct dsk *dskp, void *buf, daddr_t lba, unsigned nblk)
 	v86.esi = VTOPOFF(&packet);
 	v86int();
 	if (V86_CY(v86.efl)) {
-		printf("%s: error %u lba %llu\n",
-		    BOOTPROG, v86.eax >> 8 & 0xff, lba);
+		printf("%s: error %u lba %llu\n", BOOTPROG, v86.eax >> 8 & 0xff,
+		    lba);
 		return (-1);
 	}
 	return (0);
@@ -96,4 +96,4 @@ drvwrite(struct dsk *dskp, void *buf, daddr_t lba, unsigned nblk)
 	}
 	return (0);
 }
-#endif	/* GPT || ZFS */
+#endif /* GPT || ZFS */

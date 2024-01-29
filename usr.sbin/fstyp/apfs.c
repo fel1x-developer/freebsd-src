@@ -24,6 +24,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -42,39 +43,39 @@
  * https://developer.apple.com/support/downloads/Apple-File-System-Reference.pdf
  */
 
-#define	NX_CKSUM_SZ		8
+#define NX_CKSUM_SZ 8
 
 typedef uint64_t nx_oid_t;
 
 typedef uint64_t nx_xid_t;
 
 struct nx_obj {
-	uint8_t		o_cksum[NX_CKSUM_SZ];	/* Fletcher 64 */
-	nx_oid_t	o_oid;
-	nx_xid_t	o_xid;
-	uint32_t	o_type;
-	uint32_t	o_subtype;
+	uint8_t o_cksum[NX_CKSUM_SZ]; /* Fletcher 64 */
+	nx_oid_t o_oid;
+	nx_xid_t o_xid;
+	uint32_t o_type;
+	uint32_t o_subtype;
 };
 
 /* nx_obj::o_oid */
-#define	OID_NX_SUPERBLOCK	1
+#define OID_NX_SUPERBLOCK 1
 
 /* nx_obj::o_type: */
-#define	OBJECT_TYPE_MASK		0x0000ffff
-#define	OBJECT_TYPE_NX_SUPERBLOCK	0x00000001
-#define	OBJECT_TYPE_FLAGS_MASK		0xffff0000
-#define	OBJ_STORAGETYPE_MASK		0xc0000000
-#define	OBJECT_TYPE_FLAGS_DEFINED_MASK	0xf8000000
-#define	OBJ_STORAGE_VIRTUAL		0x00000000
-#define	OBJ_STORAGE_EPHEMERAL		0x80000000
-#define	OBJ_STORAGE_PHYSICAL		0x40000000
-#define	OBJ_NOHEADER			0x20000000
-#define	OBJ_ENCRYPTED			0x10000000
-#define	OBJ_NONPERSISTENT		0x08000000
+#define OBJECT_TYPE_MASK 0x0000ffff
+#define OBJECT_TYPE_NX_SUPERBLOCK 0x00000001
+#define OBJECT_TYPE_FLAGS_MASK 0xffff0000
+#define OBJ_STORAGETYPE_MASK 0xc0000000
+#define OBJECT_TYPE_FLAGS_DEFINED_MASK 0xf8000000
+#define OBJ_STORAGE_VIRTUAL 0x00000000
+#define OBJ_STORAGE_EPHEMERAL 0x80000000
+#define OBJ_STORAGE_PHYSICAL 0x40000000
+#define OBJ_NOHEADER 0x20000000
+#define OBJ_ENCRYPTED 0x10000000
+#define OBJ_NONPERSISTENT 0x08000000
 
 struct nx_superblock {
-	struct nx_obj	nx_o;
-	char		nx_magic[4];
+	struct nx_obj nx_o;
+	char nx_magic[4];
 	/* ... other stuff that doesn't matter */
 };
 

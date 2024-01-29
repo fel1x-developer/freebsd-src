@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_capsicum.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/capsicum.h>
 #include <sys/filedesc.h>
@@ -40,9 +40,8 @@
 #include <sys/syscallsubr.h>
 #include <sys/sysproto.h>
 
-#include <security/audit/audit.h>
-
 #include <compat/freebsd32/freebsd32_proto.h>
+#include <security/audit/audit.h>
 
 #ifdef CAPABILITIES
 
@@ -60,13 +59,14 @@ freebsd32_cap_ioctls_limit(struct thread *td,
 
 	ncmds = uap->ncmds;
 
-	if (ncmds > 256)	/* XXX: Is 256 sane? */
+	if (ncmds > 256) /* XXX: Is 256 sane? */
 		return (EINVAL);
 
 	if (ncmds == 0) {
 		cmds = NULL;
 	} else {
-		cmds32 = malloc(sizeof(cmds32[0]) * ncmds, M_FILECAPS, M_WAITOK);
+		cmds32 = malloc(sizeof(cmds32[0]) * ncmds, M_FILECAPS,
+		    M_WAITOK);
 		error = copyin(uap->cmds, cmds32, sizeof(cmds32[0]) * ncmds);
 		if (error != 0) {
 			free(cmds32, M_FILECAPS);

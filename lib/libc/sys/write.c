@@ -31,7 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/syscall.h>
+
 #include <unistd.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_write, __write);
@@ -41,6 +43,6 @@ ssize_t
 write(int fd, const void *buf, size_t nbytes)
 {
 
-	return (((ssize_t (*)(int, const void *, size_t))
-	    __libc_interposing[INTERPOS_write])(fd, buf, nbytes));
+	return (((ssize_t(*)(int, const void *,
+	    size_t))__libc_interposing[INTERPOS_write])(fd, buf, nbytes));
 }

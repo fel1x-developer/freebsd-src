@@ -26,8 +26,8 @@
 
 #include <sys/cdefs.h>
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <wchar.h>
 
 #include "local-link.h"
@@ -38,8 +38,8 @@ struct filewbuf {
 	size_t len;
 };
 
-#define FILEWBUF_INIT_LEN	128
-#define FILEWBUF_POOL_ITEMS	32
+#define FILEWBUF_INIT_LEN 128
+#define FILEWBUF_POOL_ITEMS 32
 
 static struct filewbuf fb_pool[FILEWBUF_POOL_ITEMS];
 static int fb_pool_cur;
@@ -89,5 +89,5 @@ fgetwln(FILE *stream, size_t *lenp)
 }
 
 libbsd_link_warning(fgetwln,
-                    "This function cannot be safely ported, use fgetwc(3) "
-                    "instead, as it is supported by C99 and POSIX.1-2001.")
+    "This function cannot be safely ported, use fgetwc(3) "
+    "instead, as it is supported by C99 and POSIX.1-2001.")

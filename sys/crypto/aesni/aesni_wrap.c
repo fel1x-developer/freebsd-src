@@ -9,7 +9,7 @@
  * Portions of this software were developed by John-Mark Gurney
  * under sponsorship of the FreeBSD Foundation and
  * Rubicon Communications, LLC (Netgate).
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -33,21 +33,21 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/libkern.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
-#include <crypto/aesni/aesni.h>
 
+#include <crypto/aesni/aesni.h>
 #include <opencrypto/gmac.h>
+#include <smmintrin.h>
 
 #include "aesencdec.h"
-#include <smmintrin.h>
 
 MALLOC_DECLARE(M_AESNI);
 
 struct blocks8 {
-	__m128i	blk[8];
+	__m128i blk[8];
 } __packed;
 
 void
@@ -215,7 +215,8 @@ aesni_encrypt_icm(int rounds, const void *key_schedule, size_t len,
 	const struct blocks8 *blks;
 	size_t i, cnt, resid;
 
-	BSWAP_EPI64 = _mm_set_epi8(8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7);
+	BSWAP_EPI64 = _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4,
+	    5, 6, 7);
 
 	ctr1 = _mm_loadu_si128((const __m128i *)iv);
 	ctr1 = _mm_shuffle_epi8(ctr1, BSWAP_EPI64);
@@ -287,9 +288,9 @@ aesni_encrypt_icm(int rounds, const void *key_schedule, size_t len,
 	}
 }
 
-#define	AES_XTS_BLOCKSIZE	16
-#define	AES_XTS_IVSIZE		8
-#define	AES_XTS_ALPHA		0x87	/* GF(2^128) generator polynomial */
+#define AES_XTS_BLOCKSIZE 16
+#define AES_XTS_IVSIZE 8
+#define AES_XTS_ALPHA 0x87 /* GF(2^128) generator polynomial */
 
 static inline __m128i
 xts_crank_lfsr(__m128i inp)
@@ -345,13 +346,12 @@ aesni_crypt_xts_block8(int rounds, const __m128i *key_schedule, __m128i *tweak,
 	 * register and saves memory accesses.
 	 */
 	fromp = (const __m128i *)from;
-#define PREPINP(v, pos) 					\
-		do {						\
-			tweaks[(pos)] = tmptweak;		\
-			(v) = _mm_loadu_si128(&fromp[pos]) ^	\
-			    tmptweak;				\
-			tmptweak = xts_crank_lfsr(tmptweak);	\
-		} while (0)
+#define PREPINP(v, pos)                                        \
+	do {                                                   \
+		tweaks[(pos)] = tmptweak;                      \
+		(v) = _mm_loadu_si128(&fromp[pos]) ^ tmptweak; \
+		tmptweak = xts_crank_lfsr(tmptweak);           \
+	} while (0)
 	PREPINP(a, 0);
 	PREPINP(b, 1);
 	PREPINP(c, 2);
@@ -382,8 +382,8 @@ aesni_crypt_xts_block8(int rounds, const __m128i *key_schedule, __m128i *tweak,
 
 static void
 aesni_crypt_xts(int rounds, const __m128i *data_schedule,
-    const __m128i *tweak_schedule, size_t len, const uint8_t *from,
-    uint8_t *to, const uint8_t iv[static AES_BLOCK_LEN], int do_encrypt)
+    const __m128i *tweak_schedule, size_t len, const uint8_t *from, uint8_t *to,
+    const uint8_t iv[static AES_BLOCK_LEN], int do_encrypt)
 {
 	__m128i tweakreg;
 	uint8_t tweak[AES_XTS_BLOCKSIZE] __aligned(16);
@@ -405,16 +405,16 @@ aesni_crypt_xts(int rounds, const __m128i *data_schedule,
 
 	cnt = len / AES_XTS_BLOCKSIZE / 8;
 	for (i = 0; i < cnt; i++) {
-		aesni_crypt_xts_block8(rounds, data_schedule, &tweakreg,
-		    from, to, do_encrypt);
+		aesni_crypt_xts_block8(rounds, data_schedule, &tweakreg, from,
+		    to, do_encrypt);
 		from += AES_XTS_BLOCKSIZE * 8;
 		to += AES_XTS_BLOCKSIZE * 8;
 	}
 	i *= 8;
 	cnt = len / AES_XTS_BLOCKSIZE;
 	for (; i < cnt; i++) {
-		aesni_crypt_xts_block(rounds, data_schedule, &tweakreg,
-		    from, to, do_encrypt);
+		aesni_crypt_xts_block(rounds, data_schedule, &tweakreg, from,
+		    to, do_encrypt);
 		from += AES_XTS_BLOCKSIZE;
 		to += AES_XTS_BLOCKSIZE;
 	}
@@ -479,6 +479,5 @@ aesni_cipher_setup_common(struct aesni_session *ses,
 		    ses->rounds);
 
 	if (csp->csp_cipher_alg == CRYPTO_AES_XTS)
-		aesni_set_enckey(key + keylen, ses->xts_schedule,
-		    ses->rounds);
+		aesni_set_enckey(key + keylen, ses->xts_schedule, ses->rounds);
 }

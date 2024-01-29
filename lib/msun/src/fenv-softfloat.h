@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FENV_H_
+#ifndef _FENV_H_
 #error "This file is meant to be included only by <fenv.h>."
 #endif
 

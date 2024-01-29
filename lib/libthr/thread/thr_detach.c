@@ -28,13 +28,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <errno.h>
 #include <pthread.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_thr_detach, pthread_detach);
 __weak_reference(_thr_detach, _pthread_detach);
@@ -49,7 +50,7 @@ _thr_detach(pthread_t pthread)
 		return (EINVAL);
 
 	if ((rval = _thr_find_thread(curthread, pthread,
-			/*include dead*/1)) != 0) {
+		 /*include dead*/ 1)) != 0) {
 		return (rval);
 	}
 

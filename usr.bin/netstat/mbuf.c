@@ -45,13 +45,14 @@
 
 #include <err.h>
 #include <kvm.h>
+#include <libxo/xo.h>
 #include <memstat.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <libxo/xo.h>
+
 #include "netstat.h"
 
 /*
@@ -197,34 +198,36 @@ mbpr(void *kvmd, u_long mbaddr)
 	xo_open_container("mbuf-statistics");
 
 	xo_emit("{:mbuf-current/%ju}/{:mbuf-cache/%ju}/{:mbuf-total/%ju} "
-	    "{N:mbufs in use (current\\/cache\\/total)}\n",
+		"{N:mbufs in use (current\\/cache\\/total)}\n",
 	    mbuf_count + packet_count, mbuf_free + packet_free,
 	    mbuf_count + packet_count + mbuf_free + packet_free);
 
 	xo_emit("{:cluster-current/%ju}/{:cluster-cache/%ju}/"
-	    "{:cluster-total/%ju}/{:cluster-max/%ju} "
-	    "{N:mbuf clusters in use (current\\/cache\\/total\\/max)}\n",
+		"{:cluster-total/%ju}/{:cluster-max/%ju} "
+		"{N:mbuf clusters in use (current\\/cache\\/total\\/max)}\n",
 	    cluster_count - packet_free, cluster_free + packet_free,
 	    cluster_count + cluster_free, cluster_limit);
 
 	xo_emit("{:packet-count/%ju}/{:packet-free/%ju} "
-	    "{N:mbuf+clusters out of packet secondary zone in use "
-	    "(current\\/cache)}\n",
+		"{N:mbuf+clusters out of packet secondary zone in use "
+		"(current\\/cache)}\n",
 	    packet_count, packet_free);
 
 	xo_emit("{:jumbo-count/%ju}/{:jumbo-cache/%ju}/{:jumbo-total/%ju}/"
-	    "{:jumbo-max/%ju} {:jumbo-page-size/%ju}{U:k} {N:(page size)} "
-	    "{N:jumbo clusters in use (current\\/cache\\/total\\/max)}\n",
-	    jumbop_count, jumbop_free, jumbop_count + jumbop_free,
-	    jumbop_limit, jumbop_size / 1024);
+		"{:jumbo-max/%ju} {:jumbo-page-size/%ju}{U:k} {N:(page size)} "
+		"{N:jumbo clusters in use (current\\/cache\\/total\\/max)}\n",
+	    jumbop_count, jumbop_free, jumbop_count + jumbop_free, jumbop_limit,
+	    jumbop_size / 1024);
 
-	xo_emit("{:jumbo9-count/%ju}/{:jumbo9-cache/%ju}/"
+	xo_emit(
+	    "{:jumbo9-count/%ju}/{:jumbo9-cache/%ju}/"
 	    "{:jumbo9-total/%ju}/{:jumbo9-max/%ju} "
 	    "{N:9k jumbo clusters in use (current\\/cache\\/total\\/max)}\n",
 	    jumbo9_count, jumbo9_free, jumbo9_count + jumbo9_free,
 	    jumbo9_limit);
 
-	xo_emit("{:jumbo16-count/%ju}/{:jumbo16-cache/%ju}/"
+	xo_emit(
+	    "{:jumbo16-count/%ju}/{:jumbo16-cache/%ju}/"
 	    "{:jumbo16-total/%ju}/{:jumbo16-limit/%ju} "
 	    "{N:16k jumbo clusters in use (current\\/cache\\/total\\/max)}\n",
 	    jumbo16_count, jumbo16_free, jumbo16_count + jumbo16_free,
@@ -244,16 +247,13 @@ mbpr(void *kvmd, u_long mbaddr)
 	 * This avoids counting the clusters attached to packets in the cache.
 	 * This currently excludes sf_buf space.
 	 */
-	bytes_inuse =
-	    mbuf_bytes +			/* straight mbuf memory */
-	    packet_bytes +			/* mbufs in packets */
-	    (packet_count * cluster_size) +	/* clusters in packets */
+	bytes_inuse = mbuf_bytes +	    /* straight mbuf memory */
+	    packet_bytes +		    /* mbufs in packets */
+	    (packet_count * cluster_size) + /* clusters in packets */
 	    /* other clusters */
 	    ((cluster_count - packet_count - packet_free) * cluster_size) +
-	    tag_bytes +
-	    (jumbop_count * jumbop_size) +	/* jumbo clusters */
-	    (jumbo9_count * jumbo9_size) +
-	    (jumbo16_count * jumbo16_size);
+	    tag_bytes + (jumbop_count * jumbop_size) + /* jumbo clusters */
+	    (jumbo9_count * jumbo9_size) + (jumbo16_count * jumbo16_size);
 
 	/*
 	 * Calculate in-cache bytes as:
@@ -263,14 +263,12 @@ mbpr(void *kvmd, u_long mbaddr)
 	 * - cached straight clusters
 	 * This currently excludes sf_buf space.
 	 */
-	bytes_incache =
-	    (mbuf_free * mbuf_size) +		/* straight free mbufs */
-	    (packet_free * mbuf_size) +		/* mbufs in free packets */
-	    (packet_free * cluster_size) +	/* clusters in free packets */
-	    (cluster_free * cluster_size) +	/* free clusters */
-	    (jumbop_free * jumbop_size) +	/* jumbo clusters */
-	    (jumbo9_free * jumbo9_size) +
-	    (jumbo16_free * jumbo16_size);
+	bytes_incache = (mbuf_free * mbuf_size) + /* straight free mbufs */
+	    (packet_free * mbuf_size) +		  /* mbufs in free packets */
+	    (packet_free * cluster_size) +	  /* clusters in free packets */
+	    (cluster_free * cluster_size) +	  /* free clusters */
+	    (jumbop_free * jumbop_size) +	  /* jumbo clusters */
+	    (jumbo9_free * jumbo9_size) + (jumbo16_free * jumbo16_size);
 
 	/*
 	 * Total is bytes in use + bytes in cache.  This doesn't take into
@@ -280,24 +278,25 @@ mbpr(void *kvmd, u_long mbaddr)
 	bytes_total = bytes_inuse + bytes_incache;
 
 	xo_emit("{:bytes-in-use/%ju}{U:K}/{:bytes-in-cache/%ju}{U:K}/"
-	    "{:bytes-total/%ju}{U:K} "
-	    "{N:bytes allocated to network (current\\/cache\\/total)}\n",
+		"{:bytes-total/%ju}{U:K} "
+		"{N:bytes allocated to network (current\\/cache\\/total)}\n",
 	    bytes_inuse / 1024, bytes_incache / 1024, bytes_total / 1024);
 
 	xo_emit("{:mbuf-failures/%ju}/{:cluster-failures/%ju}/"
-	    "{:packet-failures/%ju} {N:requests for mbufs denied "
-	    "(mbufs\\/clusters\\/mbuf+clusters)}\n",
+		"{:packet-failures/%ju} {N:requests for mbufs denied "
+		"(mbufs\\/clusters\\/mbuf+clusters)}\n",
 	    mbuf_failures, cluster_failures, packet_failures);
 	xo_emit("{:mbuf-sleeps/%ju}/{:cluster-sleeps/%ju}/{:packet-sleeps/%ju} "
-	    "{N:requests for mbufs delayed "
-	    "(mbufs\\/clusters\\/mbuf+clusters)}\n",
+		"{N:requests for mbufs delayed "
+		"(mbufs\\/clusters\\/mbuf+clusters)}\n",
 	    mbuf_sleeps, cluster_sleeps, packet_sleeps);
 
 	xo_emit("{:jumbop-sleeps/%ju}/{:jumbo9-sleeps/%ju}/"
-	    "{:jumbo16-sleeps/%ju} {N:/requests for jumbo clusters delayed "
-	    "(%juk\\/9k\\/16k)}\n",
+		"{:jumbo16-sleeps/%ju} {N:/requests for jumbo clusters delayed "
+		"(%juk\\/9k\\/16k)}\n",
 	    jumbop_sleeps, jumbo9_sleeps, jumbo16_sleeps, jumbop_size / 1024);
-	xo_emit("{:jumbop-failures/%ju}/{:jumbo9-failures/%ju}/"
+	xo_emit(
+	    "{:jumbop-failures/%ju}/{:jumbo9-failures/%ju}/"
 	    "{:jumbo16-failures/%ju} {N:/requests for jumbo clusters denied "
 	    "(%juk\\/9k\\/16k)}\n",
 	    jumbop_failures, jumbo9_failures, jumbo16_failures,
@@ -306,44 +305,44 @@ mbpr(void *kvmd, u_long mbaddr)
 	mlen = sizeof(nsfbufs);
 	if (live &&
 	    sysctlbyname("kern.ipc.nsfbufs", &nsfbufs, &mlen, NULL, 0) == 0 &&
-	    sysctlbyname("kern.ipc.nsfbufsused", &nsfbufsused, &mlen,
-	    NULL, 0) == 0 &&
-	    sysctlbyname("kern.ipc.nsfbufspeak", &nsfbufspeak, &mlen,
-	    NULL, 0) == 0)
+	    sysctlbyname("kern.ipc.nsfbufsused", &nsfbufsused, &mlen, NULL,
+		0) == 0 &&
+	    sysctlbyname("kern.ipc.nsfbufspeak", &nsfbufspeak, &mlen, NULL,
+		0) == 0)
 		xo_emit("{:nsfbufs-current/%d}/{:nsfbufs-peak/%d}/"
-		    "{:nsfbufs/%d} "
-		    "{N:sfbufs in use (current\\/peak\\/max)}\n",
+			"{:nsfbufs/%d} "
+			"{N:sfbufs in use (current\\/peak\\/max)}\n",
 		    nsfbufsused, nsfbufspeak, nsfbufs);
 
 	if (fetch_stats("kern.ipc.sfstat", mbaddr, &sfstat, sizeof(sfstat),
-	    kread_counters) != 0)
+		kread_counters) != 0)
 		goto out;
 
-        xo_emit("{:sendfile-syscalls/%ju} {N:sendfile syscalls}\n",
-	    (uintmax_t)sfstat.sf_syscalls); 
-        xo_emit("{:sendfile-no-io/%ju} "
-	    "{N:sendfile syscalls completed without I\\/O request}\n", 
-            (uintmax_t)sfstat.sf_noiocnt);
+	xo_emit("{:sendfile-syscalls/%ju} {N:sendfile syscalls}\n",
+	    (uintmax_t)sfstat.sf_syscalls);
+	xo_emit("{:sendfile-no-io/%ju} "
+		"{N:sendfile syscalls completed without I\\/O request}\n",
+	    (uintmax_t)sfstat.sf_noiocnt);
 	xo_emit("{:sendfile-io-count/%ju} "
-	    "{N:requests for I\\/O initiated by sendfile}\n",
+		"{N:requests for I\\/O initiated by sendfile}\n",
 	    (uintmax_t)sfstat.sf_iocnt);
-        xo_emit("{:sendfile-pages-sent/%ju} "
-	    "{N:pages read by sendfile as part of a request}\n",
-            (uintmax_t)sfstat.sf_pages_read);
-        xo_emit("{:sendfile-pages-valid/%ju} "
-	    "{N:pages were valid at time of a sendfile request}\n",
-            (uintmax_t)sfstat.sf_pages_valid);
-        xo_emit("{:sendfile-pages-bogus/%ju} "
-	    "{N:pages were valid and substituted to bogus page}\n",
-            (uintmax_t)sfstat.sf_pages_bogus);
-        xo_emit("{:sendfile-requested-readahead/%ju} "
-	    "{N:pages were requested for read ahead by applications}\n",
-            (uintmax_t)sfstat.sf_rhpages_requested);
-        xo_emit("{:sendfile-readahead/%ju} "
-	    "{N:pages were read ahead by sendfile}\n",
-            (uintmax_t)sfstat.sf_rhpages_read);
+	xo_emit("{:sendfile-pages-sent/%ju} "
+		"{N:pages read by sendfile as part of a request}\n",
+	    (uintmax_t)sfstat.sf_pages_read);
+	xo_emit("{:sendfile-pages-valid/%ju} "
+		"{N:pages were valid at time of a sendfile request}\n",
+	    (uintmax_t)sfstat.sf_pages_valid);
+	xo_emit("{:sendfile-pages-bogus/%ju} "
+		"{N:pages were valid and substituted to bogus page}\n",
+	    (uintmax_t)sfstat.sf_pages_bogus);
+	xo_emit("{:sendfile-requested-readahead/%ju} "
+		"{N:pages were requested for read ahead by applications}\n",
+	    (uintmax_t)sfstat.sf_rhpages_requested);
+	xo_emit("{:sendfile-readahead/%ju} "
+		"{N:pages were read ahead by sendfile}\n",
+	    (uintmax_t)sfstat.sf_rhpages_read);
 	xo_emit("{:sendfile-busy-encounters/%ju} "
-	    "{N:times sendfile encountered an already busy page}\n",
+		"{N:times sendfile encountered an already busy page}\n",
 	    (uintmax_t)sfstat.sf_busy);
 	xo_emit("{:sfbufs-alloc-failed/%ju} {N:requests for sfbufs denied}\n",
 	    (uintmax_t)sfstat.sf_allocfail);

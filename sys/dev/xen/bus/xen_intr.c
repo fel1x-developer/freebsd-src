@@ -30,34 +30,33 @@
  * IN THE SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/interrupt.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
-#include <sys/smp.h>
 #include <sys/refcount.h>
+#include <sys/smp.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
 #include <machine/smp.h>
 #include <machine/stdarg.h>
-
-#include <xen/xen-os.h>
-#include <xen/hypervisor.h>
-#include <xen/xen_intr.h>
-#include <xen/evtchn/evtchnvar.h>
-
 #include <machine/xen/arch-intr.h>
+
+#include <xen/evtchn/evtchnvar.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -72,34 +71,33 @@ struct xen_intr_pcpu_data {
 	 * This is used to ensure we scan all ports before
 	 * servicing an already servied port again.
 	 */
-	u_int	last_processed_l1i;
+	u_int last_processed_l1i;
 
 	/**
 	 * The last event channel processed within the event channel
 	 * bitmap being scanned.
 	 */
-	u_int	last_processed_l2i;
+	u_int last_processed_l2i;
 
 	/**
 	 * A bitmap of ports that can be serviced from this CPU.
 	 * A set bit means interrupt handling is enabled.
 	 */
-	xen_ulong_t	evtchn_enabled[sizeof(xen_ulong_t) * 8];
+	xen_ulong_t evtchn_enabled[sizeof(xen_ulong_t) * 8];
 };
 
 /*
  * Start the scan at port 0 by initializing the last scanned
  * location as the highest numbered event channel port.
  */
-DPCPU_DEFINE_STATIC(struct xen_intr_pcpu_data, xen_intr_pcpu) = {
-	.last_processed_l1i = LONG_BIT - 1,
-	.last_processed_l2i = LONG_BIT - 1
-};
+DPCPU_DEFINE_STATIC(struct xen_intr_pcpu_data,
+    xen_intr_pcpu) = { .last_processed_l1i = LONG_BIT - 1,
+	.last_processed_l2i = LONG_BIT - 1 };
 
 DPCPU_DECLARE(struct vcpu_info *, vcpu_info);
 
-#define	INVALID_EVTCHN		(~(evtchn_port_t)0) /* Invalid event channel */
-#define	is_valid_evtchn(x)	((uintmax_t)(x) < NR_EVENT_CHANNELS)
+#define INVALID_EVTCHN (~(evtchn_port_t)0) /* Invalid event channel */
+#define is_valid_evtchn(x) ((uintmax_t)(x) < NR_EVENT_CHANNELS)
 
 /*
  * Lock for interrupt core data.
@@ -111,8 +109,8 @@ DPCPU_DECLARE(struct vcpu_info *, vcpu_info);
  *
  * Acquire/release operations for isrc->xi_refcount require this lock be held.
  */
-static struct mtx	 xen_intr_isrc_lock;
-static struct xenisrc	*xen_intr_port_to_isrc[NR_EVENT_CHANNELS];
+static struct mtx xen_intr_isrc_lock;
+static struct xenisrc *xen_intr_port_to_isrc[NR_EVENT_CHANNELS];
 
 /*------------------------- Private Functions --------------------------------*/
 
@@ -312,7 +310,7 @@ xen_intr_bind_isrc(struct xenisrc **isrcp, evtchn_port_t local_port,
 /**
  * Determine the event channel ports at the given section of the
  * event port bitmap which have pending events for the given cpu.
- * 
+ *
  * \param pcpu  The Xen interrupt pcpu data for the cpu being queried.
  * \param sh    The Xen shared info area.
  * \param idx   The index of the section of the event channel bitmap to
@@ -331,14 +329,13 @@ xen_intr_active_ports(const struct xen_intr_pcpu_data *const pcpu,
 	CTASSERT(sizeof(sh->evtchn_mask[0]) == sizeof(pcpu->evtchn_enabled[0]));
 	CTASSERT(sizeof(sh->evtchn_mask) == sizeof(sh->evtchn_pending));
 	CTASSERT(sizeof(sh->evtchn_mask) == sizeof(pcpu->evtchn_enabled));
-	return (sh->evtchn_pending[idx]
-	      & ~sh->evtchn_mask[idx]
-	      & pcpu->evtchn_enabled[idx]);
+	return (sh->evtchn_pending[idx] & ~sh->evtchn_mask[idx] &
+	    pcpu->evtchn_enabled[idx]);
 }
 
 /**
  * Interrupt handler for processing all Xen event channel events.
- * 
+ *
  * \param trap_frame  The trap frame context for the current interrupt.
  */
 int
@@ -356,8 +353,8 @@ xen_intr_handle_upcall(void *unused __unused)
 	CRITICAL_ASSERT(curthread);
 
 	cpu = PCPU_GET(cpuid);
-	pc  = DPCPU_PTR(xen_intr_pcpu);
-	v   = DPCPU_GET(vcpu_info);
+	pc = DPCPU_PTR(xen_intr_pcpu);
+	v = DPCPU_GET(vcpu_info);
 
 	if (!xen_has_percpu_evtchn()) {
 		KASSERT((cpu == 0), ("Fired PCI event callback on wrong CPU"));
@@ -412,7 +409,7 @@ xen_intr_handle_upcall(void *unused __unused)
 
 			/* Make sure we are firing on the right vCPU */
 			KASSERT((isrc->xi_cpu == PCPU_GET(cpuid)),
-				("Received unexpected event on vCPU#%u, event bound to vCPU#%u",
+			    ("Received unexpected event on vCPU#%u, event bound to vCPU#%u",
 				PCPU_GET(cpuid), isrc->xi_cpu));
 
 			xen_arch_intr_execute_handlers(isrc, trap_frame);
@@ -468,7 +465,7 @@ xen_intr_init(void *dummy __unused)
 	 * Set the per-cpu mask of CPU#0 to enable all, since by default all
 	 * event channels are bound to CPU#0.
 	 */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		pcpu = DPCPU_ID_PTR(i, xen_intr_pcpu);
 		memset(pcpu->evtchn_enabled, i == 0 ? ~0 : 0,
 		    sizeof(pcpu->evtchn_enabled));
@@ -497,8 +494,7 @@ xen_rebind_ipi(struct xenisrc *isrc)
 	int error;
 	struct evtchn_bind_ipi bind_ipi = { .vcpu = vcpu_id };
 
-	error = HYPERVISOR_event_channel_op(EVTCHNOP_bind_ipi,
-	                                    &bind_ipi);
+	error = HYPERVISOR_event_channel_op(EVTCHNOP_bind_ipi, &bind_ipi);
 	if (error != 0)
 		panic("unable to rebind xen IPI: %d", error);
 
@@ -515,10 +511,9 @@ xen_rebind_virq(struct xenisrc *isrc)
 	u_int vcpu_id = XEN_CPUID_TO_VCPUID(cpu);
 	int error;
 	struct evtchn_bind_virq bind_virq = { .virq = isrc->xi_virq,
-	                                      .vcpu = vcpu_id };
+		.vcpu = vcpu_id };
 
-	error = HYPERVISOR_event_channel_op(EVTCHNOP_bind_virq,
-	                                    &bind_virq);
+	error = HYPERVISOR_event_channel_op(EVTCHNOP_bind_virq, &bind_virq);
 	if (error != 0)
 		panic("unable to rebind xen VIRQ#%u: %d", isrc->xi_virq, error);
 
@@ -572,7 +567,7 @@ xen_intr_resume(void)
 	int i;
 
 	/* Reset the per-CPU masks */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		struct xen_intr_pcpu_data *pcpu;
 
 		pcpu = DPCPU_ID_PTR(i, xen_intr_pcpu);
@@ -603,7 +598,7 @@ xen_intr_resume(void)
 		do {
 			KASSERT(!is_valid_evtchn(cur->xi_port),
 			    ("%s(): Multiple channels on single intr?",
-			    __func__));
+				__func__));
 
 			cur = xen_intr_rebind_isrc(cur);
 		} while (cur != NULL);
@@ -653,7 +648,7 @@ xen_intr_assign_cpu(struct xenisrc *isrc, u_int to_cpu)
 	 */
 	masked = evtchn_test_and_set_mask(isrc->xi_port);
 	if ((isrc->xi_type == EVTCHN_TYPE_VIRQ) ||
-		(isrc->xi_type == EVTCHN_TYPE_IPI)) {
+	    (isrc->xi_type == EVTCHN_TYPE_IPI)) {
 		/*
 		 * Virtual IRQs are associated with a cpu by
 		 * the Hypervisor at evtchn_bind_virq time, so
@@ -767,10 +762,10 @@ xen_intr_alloc_and_bind_local_port(device_t dev, u_int remote_domain,
 	struct evtchn_alloc_unbound alloc_unbound;
 	int error;
 
-	alloc_unbound.dom        = DOMID_SELF;
+	alloc_unbound.dom = DOMID_SELF;
 	alloc_unbound.remote_dom = remote_domain;
 	error = HYPERVISOR_event_channel_op(EVTCHNOP_alloc_unbound,
-		    &alloc_unbound);
+	    &alloc_unbound);
 	if (error != 0) {
 		/*
 		 * XXX Trap Hypercall error code Linuxisms in
@@ -793,19 +788,19 @@ xen_intr_alloc_and_bind_local_port(device_t dev, u_int remote_domain,
 	return (0);
 }
 
-int 
-xen_intr_bind_remote_port(device_t dev, u_int remote_domain,
-    u_int remote_port, driver_filter_t filter, driver_intr_t handler,
-    void *arg, enum intr_type flags, xen_intr_handle_t *port_handlep)
+int
+xen_intr_bind_remote_port(device_t dev, u_int remote_domain, u_int remote_port,
+    driver_filter_t filter, driver_intr_t handler, void *arg,
+    enum intr_type flags, xen_intr_handle_t *port_handlep)
 {
 	struct xenisrc *isrc;
 	struct evtchn_bind_interdomain bind_interdomain;
 	int error;
 
-	bind_interdomain.remote_dom  = remote_domain;
+	bind_interdomain.remote_dom = remote_domain;
 	bind_interdomain.remote_port = remote_port;
 	error = HYPERVISOR_event_channel_op(EVTCHNOP_bind_interdomain,
-					    &bind_interdomain);
+	    &bind_interdomain);
 	if (error != 0) {
 		/*
 		 * XXX Trap Hypercall error code Linuxisms in
@@ -832,10 +827,10 @@ xen_intr_bind_remote_port(device_t dev, u_int remote_domain,
 	return (0);
 }
 
-int 
-xen_intr_bind_virq(device_t dev, u_int virq, u_int cpu,
-    driver_filter_t filter, driver_intr_t handler, void *arg,
-    enum intr_type flags, xen_intr_handle_t *port_handlep)
+int
+xen_intr_bind_virq(device_t dev, u_int virq, u_int cpu, driver_filter_t filter,
+    driver_intr_t handler, void *arg, enum intr_type flags,
+    xen_intr_handle_t *port_handlep)
 {
 	u_int vcpu_id = XEN_CPUID_TO_VCPUID(cpu);
 	struct xenisrc *isrc;
@@ -916,8 +911,8 @@ xen_intr_alloc_and_bind_ipi(u_int cpu, driver_filter_t filter,
 
 	snprintf(name, sizeof(name), "cpu%u", cpu);
 
-	error = xen_intr_bind_isrc(&isrc, bind_ipi.port, EVTCHN_TYPE_IPI,
-	    name, filter, NULL, NULL, flags, port_handlep);
+	error = xen_intr_bind_isrc(&isrc, bind_ipi.port, EVTCHN_TYPE_IPI, name,
+	    filter, NULL, NULL, flags, port_handlep);
 	if (error != 0) {
 		evtchn_close_t close = { .port = bind_ipi.port };
 
@@ -999,7 +994,7 @@ xen_intr_signal(xen_intr_handle_t handle)
 	if (isrc != NULL) {
 		KASSERT(isrc->xi_type == EVTCHN_TYPE_PORT ||
 			isrc->xi_type == EVTCHN_TYPE_IPI,
-			("evtchn_signal on something other than a local port"));
+		    ("evtchn_signal on something other than a local port"));
 		struct evtchn_send send = { .port = isrc->xi_port };
 		(void)HYPERVISOR_event_channel_op(EVTCHNOP_send, &send);
 	}
@@ -1068,10 +1063,10 @@ static const char *
 xen_intr_print_type(enum evtchn_type type)
 {
 	static const char *evtchn_type_to_string[EVTCHN_TYPE_COUNT] = {
-		[EVTCHN_TYPE_UNBOUND]	= "UNBOUND",
-		[EVTCHN_TYPE_VIRQ]	= "VIRQ",
-		[EVTCHN_TYPE_IPI]	= "IPI",
-		[EVTCHN_TYPE_PORT]	= "PORT",
+		[EVTCHN_TYPE_UNBOUND] = "UNBOUND",
+		[EVTCHN_TYPE_VIRQ] = "VIRQ",
+		[EVTCHN_TYPE_IPI] = "IPI",
+		[EVTCHN_TYPE_PORT] = "PORT",
 	};
 
 	if (type >= EVTCHN_TYPE_COUNT)
@@ -1087,8 +1082,8 @@ xen_intr_dump_port(struct xenisrc *isrc)
 	shared_info_t *s = HYPERVISOR_shared_info;
 	u_int i;
 
-	db_printf("Port %d Type: %s\n",
-	    isrc->xi_port, xen_intr_print_type(isrc->xi_type));
+	db_printf("Port %d Type: %s\n", isrc->xi_port,
+	    xen_intr_print_type(isrc->xi_type));
 	if (isrc->xi_type == EVTCHN_TYPE_VIRQ)
 		db_printf("\tVirq: %u\n", isrc->xi_virq);
 
@@ -1097,7 +1092,7 @@ xen_intr_dump_port(struct xenisrc *isrc)
 	    !!xen_test_bit(isrc->xi_port, &s->evtchn_pending[0]));
 
 	db_printf("\tPer-CPU Masks: ");
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		pcpu = DPCPU_ID_PTR(i, xen_intr_pcpu);
 		db_printf("cpu#%u: %d ", i,
 		    !!xen_test_bit(isrc->xi_port, pcpu->evtchn_enabled));

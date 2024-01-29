@@ -14,15 +14,14 @@
 #ifndef LAC_SAL_TYPES_CRYPTO_H_
 #define LAC_SAL_TYPES_CRYPTO_H_
 
-#include "lac_sym_qat_hash_defs_lookup.h"
-#include "lac_sym_qat_constants_table.h"
-#include "lac_sym_key.h"
 #include "cpa_cy_sym_dp.h"
-
 #include "icp_adf_debug.h"
-#include "lac_sal_types.h"
 #include "icp_adf_transport.h"
 #include "lac_mem_pools.h"
+#include "lac_sal_types.h"
+#include "lac_sym_key.h"
+#include "lac_sym_qat_constants_table.h"
+#include "lac_sym_qat_hash_defs_lookup.h"
 
 #define LAC_PKE_FLOW_ID_TAG 0xFFFFFFFC
 #define LAC_PKE_ACCEL_ID_BIT_POS 1
@@ -143,7 +142,7 @@ typedef struct sal_crypto_service_s {
 	/**< pointer to memory holding the 4 HKDFLabels sublabels */
 
 	debug_file_info_t *debug_file;
-/**< Statistics handler */
+	/**< Statistics handler */
 
 	CpaBoolean forceAEADMacVerify;
 	/**< internal flag to enable/disable forcing HW digest verification for

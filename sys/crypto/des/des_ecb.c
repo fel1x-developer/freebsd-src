@@ -50,87 +50,93 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+
 #include <crypto/des/des_locl.h>
 #include <crypto/des/spr.h>
 
 /* char *libdes_version="libdes v 3.24 - 20-Apr-1996 - eay"; */ /* wrong */
 /* char *DES_version="DES part of SSLeay 0.6.4 30-Aug-1996"; */
 
-char *des_options(void)
-        {
-        static int init=1;
-        static char buf[32];
+char *
+des_options(void)
+{
+	static int init = 1;
+	static char buf[32];
 
-        if (init)
-                {
-                const char *ptr,*unroll,*risc,*size;
+	if (init) {
+		const char *ptr, *unroll, *risc, *size;
 
 #ifdef DES_PTR
-                ptr="ptr";
+		ptr = "ptr";
 #else
-                ptr="idx";
+		ptr = "idx";
 #endif
 #if defined(DES_RISC1) || defined(DES_RISC2)
 #ifdef DES_RISC1
-                risc="risc1";
+		risc = "risc1";
 #endif
 #ifdef DES_RISC2
-                risc="risc2";
+		risc = "risc2";
 #endif
 #else
-                risc="cisc";
+		risc = "cisc";
 #endif
 #ifdef DES_UNROLL
-                unroll="16";
+		unroll = "16";
 #else
-                unroll="4";
+		unroll = "4";
 #endif
-                if (sizeof(DES_LONG) != sizeof(long))
-                        size="int";
-                else
-                        size="long";
-                sprintf(buf,"des(%s,%s,%s,%s)",ptr,risc,unroll,size);
-                init=0;
-                }
-        return(buf);
+		if (sizeof(DES_LONG) != sizeof(long))
+			size = "int";
+		else
+			size = "long";
+		sprintf(buf, "des(%s,%s,%s,%s)", ptr, risc, unroll, size);
+		init = 0;
+	}
+	return (buf);
 }
-void des_ecb_encrypt(unsigned char *input, unsigned char *output, 
-		     des_key_schedule ks, int enc)
+void
+des_ecb_encrypt(unsigned char *input, unsigned char *output,
+    des_key_schedule ks, int enc)
 {
 	register DES_LONG l;
 	DES_LONG ll[2];
 	const unsigned char *in = input;
 	unsigned char *out = output;
 
-	c2l(in,l); ll[0]=l;
-	c2l(in,l); ll[1]=l;
-	des_encrypt1(ll,ks,enc);
-	l=ll[0]; l2c(l,out);
-	l=ll[1]; l2c(l,out);
-	l=ll[0]=ll[1]=0;
+	c2l(in, l);
+	ll[0] = l;
+	c2l(in, l);
+	ll[1] = l;
+	des_encrypt1(ll, ks, enc);
+	l = ll[0];
+	l2c(l, out);
+	l = ll[1];
+	l2c(l, out);
+	l = ll[0] = ll[1] = 0;
 }
 
-void des_ecb3_encrypt(unsigned char *input, unsigned char *output,
-             des_key_schedule ks1, des_key_schedule ks2, des_key_schedule ks3,
-             int enc)
+void
+des_ecb3_encrypt(unsigned char *input, unsigned char *output,
+    des_key_schedule ks1, des_key_schedule ks2, des_key_schedule ks3, int enc)
 {
-	register DES_LONG l0,l1;
+	register DES_LONG l0, l1;
 	DES_LONG ll[2];
 	const unsigned char *in = input;
 	unsigned char *out = output;
- 
-	c2l(in,l0); 
-	c2l(in,l1);
-	ll[0]=l0; 
-	ll[1]=l1;
+
+	c2l(in, l0);
+	c2l(in, l1);
+	ll[0] = l0;
+	ll[1] = l1;
 
 	if (enc)
-		des_encrypt3(ll,ks1,ks2,ks3);
+		des_encrypt3(ll, ks1, ks2, ks3);
 	else
-		des_decrypt3(ll,ks1,ks2,ks3);
+		des_decrypt3(ll, ks1, ks2, ks3);
 
-	l0=ll[0];
-	l1=ll[1];
-	l2c(l0,out);
-	l2c(l1,out);
+	l0 = ll[0];
+	l1 = ll[1];
+	l2c(l0, out);
+	l2c(l1, out);
 }

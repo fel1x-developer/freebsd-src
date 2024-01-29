@@ -25,33 +25,34 @@
  */
 
 #ifndef SYS_DEV_RANDOM_HASH_H_INCLUDED
-#define	SYS_DEV_RANDOM_HASH_H_INCLUDED
+#define SYS_DEV_RANDOM_HASH_H_INCLUDED
 
-#include <crypto/chacha20/_chacha.h>
 #include <dev/random/uint128.h>
 
+#include <crypto/chacha20/_chacha.h>
+
 #ifndef _KERNEL
-#define	__read_frequently
+#define __read_frequently
 #endif
 
 /* Keys are formed from cipher blocks */
-#define	RANDOM_KEYSIZE		32	/* (in bytes) == 256 bits */
-#define	RANDOM_KEYSIZE_WORDS	(RANDOM_KEYSIZE/sizeof(uint32_t))
-#define	RANDOM_BLOCKSIZE	16	/* (in bytes) == 128 bits */
-#define	RANDOM_BLOCKSIZE_WORDS	(RANDOM_BLOCKSIZE/sizeof(uint32_t))
-#define	RANDOM_KEYS_PER_BLOCK	(RANDOM_KEYSIZE/RANDOM_BLOCKSIZE)
+#define RANDOM_KEYSIZE 32 /* (in bytes) == 256 bits */
+#define RANDOM_KEYSIZE_WORDS (RANDOM_KEYSIZE / sizeof(uint32_t))
+#define RANDOM_BLOCKSIZE 16 /* (in bytes) == 128 bits */
+#define RANDOM_BLOCKSIZE_WORDS (RANDOM_BLOCKSIZE / sizeof(uint32_t))
+#define RANDOM_KEYS_PER_BLOCK (RANDOM_KEYSIZE / RANDOM_BLOCKSIZE)
 
 /* The size of the zero block portion used to form H_d(m) */
-#define	RANDOM_ZERO_BLOCKSIZE	64	/* (in bytes) == 512 zero bits */
+#define RANDOM_ZERO_BLOCKSIZE 64 /* (in bytes) == 512 zero bits */
 
 struct randomdev_hash {
-	SHA256_CTX	sha;
+	SHA256_CTX sha;
 };
 
 union randomdev_key {
 	struct {
-		keyInstance key;	/* Key schedule */
-		cipherInstance cipher;	/* Rijndael internal */
+		keyInstance key;       /* Key schedule */
+		cipherInstance cipher; /* Rijndael internal */
 	};
 	struct chacha_ctx chacha;
 };
@@ -63,7 +64,8 @@ void randomdev_hash_iterate(struct randomdev_hash *, const void *, size_t);
 void randomdev_hash_finish(struct randomdev_hash *, void *);
 
 void randomdev_encrypt_init(union randomdev_key *, const void *);
-void randomdev_keystream(union randomdev_key *context, uint128_t *, void *, size_t);
+void randomdev_keystream(union randomdev_key *context, uint128_t *, void *,
+    size_t);
 void randomdev_getkey(union randomdev_key *, const void **, size_t *);
 
 #endif /* SYS_DEV_RANDOM_HASH_H_INCLUDED */

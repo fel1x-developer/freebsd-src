@@ -34,9 +34,9 @@
 #include <sys/capsicum.h>
 #include <sys/ioctl.h>
 #include <sys/procdesc.h>
+#include <sys/signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/signal.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
 
@@ -44,11 +44,11 @@
 #include <net/if_dl.h>
 #include <net/route.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <protocols/rwhod.h>
 
-#include <ctype.h>
+#include <arpa/inet.h>
 #include <capsicum_helpers.h>
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -61,28 +61,28 @@
 #include <string.h>
 #include <syslog.h>
 #include <timeconv.h>
-#include <utmpx.h>
 #include <unistd.h>
+#include <utmpx.h>
 
-#define	UNPRIV_USER		"daemon"
-#define	UNPRIV_GROUP		"daemon"
+#define UNPRIV_USER "daemon"
+#define UNPRIV_GROUP "daemon"
 
-#define NO_MULTICAST		0	  /* multicast modes */
-#define PER_INTERFACE_MULTICAST	1
-#define SCOPED_MULTICAST	2
+#define NO_MULTICAST 0 /* multicast modes */
+#define PER_INTERFACE_MULTICAST 1
+#define SCOPED_MULTICAST 2
 
-#define MAX_MULTICAST_SCOPE	32	  /* "site-wide", by convention */
+#define MAX_MULTICAST_SCOPE 32 /* "site-wide", by convention */
 
-#define INADDR_WHOD_GROUP (u_long)0xe0000103      /* 224.0.1.3 */
-						  /* (belongs in protocols/rwhod.h) */
+#define INADDR_WHOD_GROUP (u_long)0xe0000103 /* 224.0.1.3 */
+/* (belongs in protocols/rwhod.h) */
 
-int	insecure_mode;
-int	quiet_mode;
-int	iff_flag = IFF_POINTOPOINT;
-int	multicast_mode = NO_MULTICAST;
-int	multicast_scope;
-struct	sockaddr_in multicast_addr =
-	{ sizeof(multicast_addr), AF_INET, 0, { 0 }, { 0 } };
+int insecure_mode;
+int quiet_mode;
+int iff_flag = IFF_POINTOPOINT;
+int multicast_mode = NO_MULTICAST;
+int multicast_scope;
+struct sockaddr_in multicast_addr = { sizeof(multicast_addr), AF_INET, 0, { 0 },
+	{ 0 } };
 
 /*
  * Sleep interval. Don't forget to change the down time check in ruptime
@@ -90,45 +90,45 @@ struct	sockaddr_in multicast_addr =
  */
 #define SL_INTERVAL (3 * 60)
 
-char	myname[MAXHOSTNAMELEN];
+char myname[MAXHOSTNAMELEN];
 
 /*
  * We communicate with each neighbor in a list constructed at the time we're
  * started up.  Neighbors are currently directly connected via a hardware
  * interface.
  */
-struct	neighbor {
-	struct	neighbor *n_next;
-	char		 *n_name;		/* interface name */
-	struct	sockaddr *n_addr;		/* who to send to */
-	int		  n_addrlen;		/* size of address */
-	int		  n_flags;		/* should forward?, interface flags */
+struct neighbor {
+	struct neighbor *n_next;
+	char *n_name;		 /* interface name */
+	struct sockaddr *n_addr; /* who to send to */
+	int n_addrlen;		 /* size of address */
+	int n_flags;		 /* should forward?, interface flags */
 };
 
-struct	neighbor *neighbors;
-struct	whod mywd;
-struct	servent	*sp;
-int	s;
-int	fdp;
-pid_t	pid_child_receiver;
+struct neighbor *neighbors;
+struct whod mywd;
+struct servent *sp;
+int s;
+int fdp;
+pid_t pid_child_receiver;
 
-#define	WHDRSIZE	(int)(sizeof(mywd) - sizeof(mywd.wd_we))
+#define WHDRSIZE (int)(sizeof(mywd) - sizeof(mywd.wd_we))
 
-int	configure(int so);
-void	getboottime(int signo __unused);
-void	receiver_process(void);
-void	rt_xaddrs(caddr_t cp, caddr_t cplim, struct rt_addrinfo *rtinfo);
-void	run_as(uid_t *uid, gid_t *gid);
-void	quit(const char *msg);
-void	sender_process(void);
-int	verify(char *name, int maxlen);
+int configure(int so);
+void getboottime(int signo __unused);
+void receiver_process(void);
+void rt_xaddrs(caddr_t cp, caddr_t cplim, struct rt_addrinfo *rtinfo);
+void run_as(uid_t *uid, gid_t *gid);
+void quit(const char *msg);
+void sender_process(void);
+int verify(char *name, int maxlen);
 static void usage(void) __dead2;
 
 #ifdef DEBUG
-char	*interval(int time, char *updown);
-void	Sendto(int s, const void *buf, size_t cc, int flags,
-	    const struct sockaddr *to, int tolen);
-#define	 sendto Sendto
+char *interval(int time, char *updown);
+void Sendto(int s, const void *buf, size_t cc, int flags,
+    const struct sockaddr *to, int tolen);
+#define sendto Sendto
 #endif
 
 /*
@@ -182,7 +182,7 @@ main(int argc, char *argv[])
 			if (argc > 1 && isdigit(*(argv + 1)[0])) {
 				argv++;
 				argc--;
-				multicast_mode  = SCOPED_MULTICAST;
+				multicast_mode = SCOPED_MULTICAST;
 				multicast_scope = atoi(*argv);
 				if (multicast_scope > MAX_MULTICAST_SCOPE) {
 					errx(1, "ttl must not exceed %u",
@@ -208,7 +208,7 @@ main(int argc, char *argv[])
 #ifndef DEBUG
 	daemon(1, 0);
 #endif
-	(void) signal(SIGHUP, getboottime);
+	(void)signal(SIGHUP, getboottime);
 	openlog("rwhod", LOG_PID | LOG_NDELAY, LOG_DAEMON);
 	sp = getservbyname("who", "udp");
 	if (sp == NULL) {
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
 		syslog(LOG_ERR, "setgid: %m");
 		exit(1);
 	}
-	if (setgroups(1, &unpriv_gid) != 0) {	/* XXX BOGUS groups[0] = egid */
+	if (setgroups(1, &unpriv_gid) != 0) { /* XXX BOGUS groups[0] = egid */
 		syslog(LOG_ERR, "setgroups: %m");
 		exit(1);
 	}
@@ -323,7 +323,7 @@ verify(char *name, int maxlen)
 	while (*name != '\0' && size < maxlen - 1) {
 		if (!isascii((unsigned char)*name) ||
 		    !(isalnum((unsigned char)*name) ||
-		    ispunct((unsigned char)*name))) {
+			ispunct((unsigned char)*name))) {
 			return (0);
 		}
 		name++;
@@ -389,7 +389,7 @@ receiver_process(void)
 			    inet_ntoa(from.sin_addr));
 			continue;
 		}
-		(void) snprintf(path, sizeof(path), "whod.%s", wd.wd_hostname);
+		(void)snprintf(path, sizeof(path), "whod.%s", wd.wd_hostname);
 		/*
 		 * Rather than truncating and growing the file each time,
 		 * use ftruncate if size is less than previous size.
@@ -418,20 +418,20 @@ receiver_process(void)
 			we = wd.wd_we;
 			for (i = 0; i < n; i++) {
 				we->we_idle = ntohl(we->we_idle);
-				we->we_utmp.out_time =
-				    ntohl(we->we_utmp.out_time);
+				we->we_utmp.out_time = ntohl(
+				    we->we_utmp.out_time);
 				we++;
 			}
 		}
 #endif
-		(void) time(&t);
+		(void)time(&t);
 		wd.wd_recvtime = _time_to_int(t);
-		(void) write(whod, (char *)&wd, cc);
+		(void)write(whod, (char *)&wd, cc);
 		if (fstat(whod, &st) < 0 || st.st_size > cc)
 			ftruncate(whod, cc);
-		(void) close(whod);
+		(void)close(whod);
 	}
-	(void) close(dirfd);
+	(void)close(dirfd);
 }
 
 void
@@ -462,8 +462,8 @@ sender_process(void)
 			    sizeof(we->we_utmp.out_line));
 			strncpy(we->we_utmp.out_name, ut->ut_user,
 			    sizeof(we->we_utmp.out_name));
-			we->we_utmp.out_time =
-			    htonl(_time_to_time32(ut->ut_tv.tv_sec));
+			we->we_utmp.out_time = htonl(
+			    _time_to_time32(ut->ut_tv.tv_sec));
 			we++;
 		}
 		endutxent();
@@ -477,8 +477,7 @@ sender_process(void)
 			if (stat(we->we_utmp.out_line, &stb) >= 0)
 				we->we_idle = htonl(now - stb.st_atime);
 		}
-		(void) getloadavg(avenrun,
-		    sizeof(avenrun) / sizeof(avenrun[0]));
+		(void)getloadavg(avenrun, sizeof(avenrun) / sizeof(avenrun[0]));
 		for (i = 0; i < 3; i++)
 			mywd.wd_loadav[i] = htonl((u_long)(avenrun[i] * 100));
 		cc = (char *)wend - (char *)&mywd;
@@ -486,7 +485,7 @@ sender_process(void)
 		mywd.wd_vers = WHODVERSION;
 		mywd.wd_type = WHODTYPE_STATUS;
 		if (multicast_mode == SCOPED_MULTICAST) {
-			(void) sendto(s, (char *)&mywd, cc, 0,
+			(void)sendto(s, (char *)&mywd, cc, 0,
 			    (struct sockaddr *)&multicast_addr,
 			    sizeof(multicast_addr));
 		} else {
@@ -498,18 +497,20 @@ sender_process(void)
 					 * multicast.
 					 */
 					if (setsockopt(s, IPPROTO_IP,
-					    IP_MULTICAST_IF,
-					    &(((struct sockaddr_in *)np->n_addr)->sin_addr),
-					    sizeof(struct in_addr)) < 0) {
+						IP_MULTICAST_IF,
+						&(((struct sockaddr_in *)
+							np->n_addr)
+							->sin_addr),
+						sizeof(struct in_addr)) < 0) {
 						syslog(LOG_ERR,
 						    "setsockopt IP_MULTICAST_IF: %m");
 						exit(1);
 					}
-					(void) sendto(s, (char *)&mywd, cc, 0,
+					(void)sendto(s, (char *)&mywd, cc, 0,
 					    (struct sockaddr *)&multicast_addr,
 					    sizeof(multicast_addr));
 				} else {
-					(void) sendto(s, (char *)&mywd, cc, 0,
+					(void)sendto(s, (char *)&mywd, cc, 0,
 					    np->n_addr, np->n_addrlen);
 				}
 			}
@@ -595,17 +596,15 @@ configure(int so)
 
 		mreq.imr_multiaddr.s_addr = htonl(INADDR_WHOD_GROUP);
 		mreq.imr_interface.s_addr = htonl(INADDR_ANY);
-		if (setsockopt(so, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-		    &mreq, sizeof(mreq)) < 0) {
-			syslog(LOG_ERR,
-			    "setsockopt IP_ADD_MEMBERSHIP: %m");
+		if (setsockopt(so, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+			sizeof(mreq)) < 0) {
+			syslog(LOG_ERR, "setsockopt IP_ADD_MEMBERSHIP: %m");
 			return (0);
 		}
 		ttl = multicast_scope;
 		if (setsockopt(so, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
-		    sizeof(ttl)) < 0) {
-			syslog(LOG_ERR,
-			    "setsockopt IP_MULTICAST_TTL: %m");
+			sizeof(ttl)) < 0) {
+			syslog(LOG_ERR, "setsockopt IP_MULTICAST_TTL: %m");
 			return (0);
 		}
 		return (1);
@@ -625,7 +624,7 @@ configure(int so)
 		quit("actual retrieval of interface table");
 	lim = buf + needed;
 
-	sdl = NULL;		/* XXX just to keep gcc -Wall happy */
+	sdl = NULL; /* XXX just to keep gcc -Wall happy */
 	for (next = buf; next < lim; next += ifm->ifm_msglen) {
 		ifm = (struct if_msghdr *)next;
 		if (ifm->ifm_type == RTM_IFINFO) {
@@ -647,16 +646,16 @@ configure(int so)
 		rt_xaddrs((char *)(ifam + 1), ifam->ifam_msglen + (char *)ifam,
 		    &info);
 		/* gag, wish we could get rid of Internet dependencies */
-#define	dstaddr		info.rti_info[RTAX_BRD]
-#define	ifaddr		info.rti_info[RTAX_IFA]
-#define	IPADDR_SA(x)	((struct sockaddr_in *)(x))->sin_addr.s_addr
-#define	PORT_SA(x)	((struct sockaddr_in *)(x))->sin_port
+#define dstaddr info.rti_info[RTAX_BRD]
+#define ifaddr info.rti_info[RTAX_IFA]
+#define IPADDR_SA(x) ((struct sockaddr_in *)(x))->sin_addr.s_addr
+#define PORT_SA(x) ((struct sockaddr_in *)(x))->sin_port
 		if (dstaddr == 0 || dstaddr->sa_family != AF_INET)
 			continue;
 		PORT_SA(dstaddr) = sp->s_port;
 		for (np = neighbors; np != NULL; np = np->n_next) {
-			if (memcmp(sdl->sdl_data, np->n_name,
-			    sdl->sdl_nlen) == 0 &&
+			if (memcmp(sdl->sdl_data, np->n_name, sdl->sdl_nlen) ==
+				0 &&
 			    IPADDR_SA(np->n_addr) == IPADDR_SA(dstaddr)) {
 				break;
 			}
@@ -684,8 +683,8 @@ configure(int so)
 			mreq.imr_multiaddr.s_addr = htonl(INADDR_WHOD_GROUP);
 			mreq.imr_interface.s_addr =
 			    ((struct sockaddr_in *)np->n_addr)->sin_addr.s_addr;
-			if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-			    &mreq, sizeof(mreq)) < 0) {
+			if (setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq,
+				sizeof(mreq)) < 0) {
 				syslog(LOG_ERR,
 				    "setsockopt IP_ADD_MEMBERSHIP: %m");
 #if 0
@@ -719,9 +718,8 @@ Sendto(int s, const void *buf, size_t cc, int flags, const struct sockaddr *to,
 	    ntohs(sin->sin_port));
 	printf("hostname %s %s\n", w->wd_hostname,
 	    interval(ntohl(w->wd_sendtime) - ntohl(w->wd_boottime), "  up"));
-	printf("load %4.2f, %4.2f, %4.2f\n",
-	    ntohl(w->wd_loadav[0]) / 100.0, ntohl(w->wd_loadav[1]) / 100.0,
-	    ntohl(w->wd_loadav[2]) / 100.0);
+	printf("load %4.2f, %4.2f, %4.2f\n", ntohl(w->wd_loadav[0]) / 100.0,
+	    ntohl(w->wd_loadav[1]) / 100.0, ntohl(w->wd_loadav[2]) / 100.0);
 	cc -= WHDRSIZE;
 	for (we = w->wd_we, cc /= sizeof(struct whoent); cc > 0; cc--, we++) {
 		time_t t = _time32_to_time(ntohl(we->we_utmp.out_time));
@@ -749,20 +747,19 @@ interval(int time, char *updown)
 	int days, hours, minutes;
 
 	if (time < 0 || time > 3 * 30 * 24 * 60 * 60) {
-		(void) sprintf(resbuf, "   %s ??:??", updown);
+		(void)sprintf(resbuf, "   %s ??:??", updown);
 		return (resbuf);
 	}
-	minutes = (time + 59) / 60;		/* round to minutes */
+	minutes = (time + 59) / 60; /* round to minutes */
 	hours = minutes / 60;
 	minutes %= 60;
 	days = hours / 24;
 	hours %= 24;
 	if (days > 0) {
-		(void) sprintf(resbuf, "%s %2d+%02d:%02d",
-		    updown, days, hours, minutes);
+		(void)sprintf(resbuf, "%s %2d+%02d:%02d", updown, days, hours,
+		    minutes);
 	} else {
-		(void) sprintf(resbuf, "%s    %2d:%02d",
-		    updown, hours, minutes);
+		(void)sprintf(resbuf, "%s    %2d:%02d", updown, hours, minutes);
 	}
 	return (resbuf);
 }

@@ -24,33 +24,32 @@
  * Use is subject to license terms.
  */
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
-#include <sys/stack.h>
 #include <sys/pcpu.h>
+#include <sys/stack.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/frame.h>
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/stack.h>
 
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
-
 #include "regset.h"
 
 extern uintptr_t kernbase;
-uintptr_t kernelbase = (uintptr_t) &kernbase;
+uintptr_t kernelbase = (uintptr_t)&kernbase;
 
 uint8_t dtrace_fuword8_nocheck(void *);
 uint16_t dtrace_fuword16_nocheck(void *);
 uint32_t dtrace_fuword32_nocheck(void *);
 uint64_t dtrace_fuword64_nocheck(void *);
 
-int	dtrace_ustackdepth_max = 2048;
+int dtrace_ustackdepth_max = 2048;
 
 void
 dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
@@ -60,19 +59,19 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 	register_t ebp;
 	struct i386_frame *frame;
 	vm_offset_t callpc;
-	pc_t caller = (pc_t) solaris_cpu[curcpu].cpu_dtrace_caller;
+	pc_t caller = (pc_t)solaris_cpu[curcpu].cpu_dtrace_caller;
 
 	if (intrpc != 0)
-		pcstack[depth++] = (pc_t) intrpc;
+		pcstack[depth++] = (pc_t)intrpc;
 
 	aframes++;
 
-	__asm __volatile("movl %%ebp,%0" : "=r" (ebp));
+	__asm __volatile("movl %%ebp,%0" : "=r"(ebp));
 
 	frame = (struct i386_frame *)ebp;
 	while (depth < pcstack_limit) {
 		if (!kstack_contains(curthread, (vm_offset_t)frame,
-		    sizeof(*frame)))
+			sizeof(*frame)))
 			break;
 
 		callpc = frame->f_retaddr;
@@ -85,8 +84,7 @@ dtrace_getpcstack(pc_t *pcstack, int pcstack_limit, int aframes,
 			if ((aframes == 0) && (caller != 0)) {
 				pcstack[depth++] = caller;
 			}
-		}
-		else {
+		} else {
 			pcstack[depth++] = callpc;
 		}
 
@@ -119,11 +117,11 @@ dtrace_getustack_common(uint64_t *pcstack, int pcstack_limit, uintptr_t pc,
 
 #ifdef notyet /* XXX signal stack. */
 	if (p->p_model == DATAMODEL_NATIVE) {
-		s1 = sizeof (struct frame) + 2 * sizeof (long);
-		s2 = s1 + sizeof (siginfo_t);
+		s1 = sizeof(struct frame) + 2 * sizeof(long);
+		s2 = s1 + sizeof(siginfo_t);
 	} else {
-		s1 = sizeof (struct frame32) + 3 * sizeof (int);
-		s2 = s1 + sizeof (siginfo32_t);
+		s1 = sizeof(struct frame32) + 3 * sizeof(int);
+		s2 = s1 + sizeof(siginfo32_t);
 	}
 #endif
 
@@ -150,7 +148,7 @@ dtrace_getustack_common(uint64_t *pcstack, int pcstack_limit, uintptr_t pc,
 
 		oldsp = sp;
 
-#ifdef notyet /* XXX signal stack. */ 
+#ifdef notyet /* XXX signal stack. */
 		if (oldcontext == sp + s1 || oldcontext == sp + s2) {
 			if (p->p_model == DATAMODEL_NATIVE) {
 				ucontext_t *ucp = (ucontext_t *)oldcontext;
@@ -183,8 +181,8 @@ dtrace_getustack_common(uint64_t *pcstack, int pcstack_limit, uintptr_t pc,
 			}
 		}
 #else
-		pc = dtrace_fuword32((void *)(sp +
-			offsetof(struct i386_frame, f_retaddr)));
+		pc = dtrace_fuword32(
+		    (void *)(sp + offsetof(struct i386_frame, f_retaddr)));
 		sp = dtrace_fuword32((void *)sp);
 #endif /* ! notyet */
 
@@ -246,7 +244,7 @@ dtrace_getupcstack(uint64_t *pcstack, int pcstack_limit)
 		 * pushed (that happens in the function prologue).  The
 		 * best approach is to add the current pc as a missing top
 		 * of stack and back the pc up to the caller, which is stored
-		 * at the current stack pointer address since the call 
+		 * at the current stack pointer address since the call
 		 * instruction puts it there right before the branch.
 		 */
 
@@ -255,7 +253,7 @@ dtrace_getupcstack(uint64_t *pcstack, int pcstack_limit)
 		if (pcstack_limit <= 0)
 			return;
 
-		pc = dtrace_fuword32((void *) sp);
+		pc = dtrace_fuword32((void *)sp);
 	}
 
 	n = dtrace_getustack_common(pcstack, pcstack_limit, pc, sp);
@@ -294,11 +292,11 @@ dtrace_getustackdepth(void)
 		 * pushed (that happens in the function prologue).  The
 		 * best approach is to add the current pc as a missing top
 		 * of stack and back the pc up to the caller, which is stored
-		 * at the current stack pointer address since the call 
+		 * at the current stack pointer address since the call
 		 * instruction puts it there right before the branch.
 		 */
 
-		pc = dtrace_fuword32((void *) sp);
+		pc = dtrace_fuword32((void *)sp);
 		n++;
 	}
 
@@ -346,11 +344,11 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 	oldcontext = lwp->lwp_oldcontext;
 
 	if (p->p_model == DATAMODEL_NATIVE) {
-		s1 = sizeof (struct frame) + 2 * sizeof (long);
-		s2 = s1 + sizeof (siginfo_t);
+		s1 = sizeof(struct frame) + 2 * sizeof(long);
+		s2 = s1 + sizeof(siginfo_t);
 	} else {
-		s1 = sizeof (struct frame32) + 3 * sizeof (int);
-		s2 = s1 + sizeof (siginfo32_t);
+		s1 = sizeof(struct frame32) + 3 * sizeof(int);
+		s2 = s1 + sizeof(siginfo32_t);
 	}
 #endif
 
@@ -397,7 +395,7 @@ dtrace_getufpstack(uint64_t *pcstack, uint64_t *fpstack, int pcstack_limit)
 #endif /* XXX */
 		{
 			pc = dtrace_fuword32((void *)(fp +
-				offsetof(struct i386_frame, f_retaddr)));
+			    offsetof(struct i386_frame, f_retaddr)));
 			fp = dtrace_fuword32((void *)fp);
 		}
 
@@ -446,7 +444,6 @@ dtrace_getarg(int arg, int aframes)
 			stack = (uintptr_t *)frame->tf_isp + 4;
 			goto load;
 		}
-
 	}
 
 	/*
@@ -480,9 +477,9 @@ dtrace_getstackdepth(int aframes)
 	ebp = dtrace_getfp();
 	frame = (struct i386_frame *)ebp;
 	depth++;
-	for(;;) {
+	for (;;) {
 		if (!kstack_contains(curthread, (vm_offset_t)frame,
-		    sizeof(*frame)))
+			sizeof(*frame)))
 			break;
 		depth++;
 		if (frame->f_frame <= frame)
@@ -499,26 +496,27 @@ ulong_t
 dtrace_getreg(struct trapframe *frame, uint_t reg)
 {
 	struct pcb *pcb;
-	int regmap[] = {  /* Order is dependent on reg.d */
-		REG_GS,		/* 0  GS */
-		REG_FS,		/* 1  FS */
-		REG_ES,		/* 2  ES */
-		REG_DS,		/* 3  DS */
-		REG_RDI,	/* 4  EDI */
-		REG_RSI,	/* 5  ESI */
-		REG_RBP,	/* 6  EBP, REG_FP */
-		REG_RSP,	/* 7  ESP */
-		REG_RBX,	/* 8  EBX */
-		REG_RDX,	/* 9  EDX, REG_R1 */
-		REG_RCX,	/* 10 ECX */
-		REG_RAX,	/* 11 EAX, REG_R0 */
-		REG_TRAPNO,	/* 12 TRAPNO */
-		REG_ERR,	/* 13 ERR */
-		REG_RIP,	/* 14 EIP, REG_PC */
-		REG_CS,		/* 15 CS */
-		REG_RFL,	/* 16 EFL, REG_PS */
-		REG_RSP,	/* 17 UESP, REG_SP */
-		REG_SS		/* 18 SS */
+	int regmap[] = {
+		/* Order is dependent on reg.d */
+		REG_GS,	    /* 0  GS */
+		REG_FS,	    /* 1  FS */
+		REG_ES,	    /* 2  ES */
+		REG_DS,	    /* 3  DS */
+		REG_RDI,    /* 4  EDI */
+		REG_RSI,    /* 5  ESI */
+		REG_RBP,    /* 6  EBP, REG_FP */
+		REG_RSP,    /* 7  ESP */
+		REG_RBX,    /* 8  EBX */
+		REG_RDX,    /* 9  EDX, REG_R1 */
+		REG_RCX,    /* 10 ECX */
+		REG_RAX,    /* 11 EAX, REG_R0 */
+		REG_TRAPNO, /* 12 TRAPNO */
+		REG_ERR,    /* 13 ERR */
+		REG_RIP,    /* 14 EIP, REG_PC */
+		REG_CS,	    /* 15 CS */
+		REG_RFL,    /* 16 EFL, REG_PS */
+		REG_RSP,    /* 17 UESP, REG_SP */
+		REG_SS	    /* 18 SS */
 	};
 
 	if (reg > SS) {
@@ -526,14 +524,14 @@ dtrace_getreg(struct trapframe *frame, uint_t reg)
 		return (0);
 	}
 
-	if (reg >= sizeof (regmap) / sizeof (int)) {
+	if (reg >= sizeof(regmap) / sizeof(int)) {
 		DTRACE_CPUFLAG_SET(CPU_DTRACE_ILLOP);
 		return (0);
 	}
 
 	reg = regmap[reg];
 
-	switch(reg) {
+	switch (reg) {
 	case REG_GS:
 		if ((pcb = curthread->td_pcb) == NULL) {
 			DTRACE_CPUFLAG_SET(CPU_DTRACE_ILLOP);

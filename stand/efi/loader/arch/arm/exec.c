@@ -28,14 +28,13 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 
+#include <machine/elf.h>
 #include <machine/md_var.h>
 #include <machine/metadata.h>
-#include <machine/elf.h>
-
-#include <stand.h>
 
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
 
 #include "bootstrap.h"
 #include "loader_efi.h"
@@ -43,8 +42,7 @@
 extern int bi_load(char *, vm_offset_t *, vm_offset_t *, bool);
 
 static int
-__elfN(arm_load)(char *filename, uint64_t dest,
-    struct preloaded_file **result)
+__elfN(arm_load)(char *filename, uint64_t dest, struct preloaded_file **result)
 {
 	int r;
 
@@ -90,13 +88,6 @@ __elfN(arm_exec)(struct preloaded_file *fp)
 	panic("exec returned");
 }
 
-static struct file_format arm_elf = {
-	__elfN(arm_load),
-	__elfN(arm_exec)
-};
+static struct file_format arm_elf = { __elfN(arm_load), __elfN(arm_exec) };
 
-struct file_format *file_formats[] = {
-	&arm_elf,
-	NULL
-};
-
+struct file_format *file_formats[] = { &arm_elf, NULL };

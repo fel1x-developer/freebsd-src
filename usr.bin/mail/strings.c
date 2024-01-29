@@ -37,8 +37,8 @@
  * loop each time, so they need not be freed.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 struct strings stringdope[NSPACE];
 

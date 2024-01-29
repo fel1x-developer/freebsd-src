@@ -42,9 +42,8 @@ static struct {
 	const char *tag;
 	const char *fmt;
 } tags[] = {
-  { "default",
-    "align,fcs,macrx,overrun,learn,large,stp,badsrc,underflow,collision1,collisionM,deferred,late,excessive,mactx,carrier,toobig"
-  },
+	{ "default",
+	    "align,fcs,macrx,overrun,learn,large,stp,badsrc,underflow,collision1,collisionM,deferred,late,excessive,mactx,carrier,toobig" },
 };
 
 static const char *
@@ -91,7 +90,9 @@ main(int argc, char *argv[])
 			wf->setfmt(wf, getfmt(optarg));
 			break;
 		default:
-			errx(-1, "usage: %s [-a] [-i ifname] [-l] [-o fmt] [interval]\n", argv[0]);
+			errx(-1,
+			    "usage: %s [-a] [-i ifname] [-l] [-o fmt] [interval]\n",
+			    argv[0]);
 			/*NOTREACHED*/
 		}
 	}
@@ -128,7 +129,7 @@ main(int argc, char *argv[])
 		signalled = 0;
 		alarm(interval);
 		line++;
-		if (line == 21)		/* XXX tty line count */
+		if (line == 21) /* XXX tty line count */
 			goto banner;
 		else
 			goto loop;

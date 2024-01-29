@@ -33,7 +33,7 @@
 #include "sha256c_impl.h"
 
 void __hidden
-SHA256_Transform_arm64_impl(uint32_t * state, const unsigned char block[64],
+SHA256_Transform_arm64_impl(uint32_t *state, const unsigned char block[64],
     const uint32_t K[64])
 {
 	uint32x4_t W[4];
@@ -42,9 +42,9 @@ SHA256_Transform_arm64_impl(uint32_t * state, const unsigned char block[64],
 	uint32x4_t K_tmp, S_tmp;
 	int i;
 
-#define	A64_LOAD_W(x)							\
-    W[x] = vld1q_u32((const uint32_t *)(&block[(x) * 16]));		\
-    W[x] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(W[x])))
+#define A64_LOAD_W(x)                                           \
+	W[x] = vld1q_u32((const uint32_t *)(&block[(x) * 16])); \
+	W[x] = vreinterpretq_u32_u8(vrev32q_u8(vreinterpretq_u8_u32(W[x])))
 
 	/* 1. Prepare the first part of the message schedule W. */
 	A64_LOAD_W(0);
@@ -61,11 +61,11 @@ SHA256_Transform_arm64_impl(uint32_t * state, const unsigned char block[64],
 
 	/* 3. Mix. */
 	for (i = 0; i < 64; i += 16) {
-#define	A64_RNDr(i, ii)							\
-    K_tmp = vaddq_u32(W[i], vld1q_u32(&K[ii + i * 4]));			\
-    S_tmp = vsha256hq_u32(S[0], S[1], K_tmp);				\
-    S[1] = vsha256h2q_u32(S[1], S[0], K_tmp);				\
-    S[0] = S_tmp
+#define A64_RNDr(i, ii)                                     \
+	K_tmp = vaddq_u32(W[i], vld1q_u32(&K[ii + i * 4])); \
+	S_tmp = vsha256hq_u32(S[0], S[1], K_tmp);           \
+	S[1] = vsha256h2q_u32(S[1], S[0], K_tmp);           \
+	S[0] = S_tmp
 
 		A64_RNDr(0, i);
 		A64_RNDr(1, i);
@@ -75,9 +75,9 @@ SHA256_Transform_arm64_impl(uint32_t * state, const unsigned char block[64],
 		if (i == 48)
 			break;
 
-#define	A64_MSCH(x)							\
-    W[x] = vsha256su0q_u32(W[x], W[(x + 1) % 4]);			\
-    W[x] = vsha256su1q_u32(W[x], W[(x + 2) % 4], W[(x + 3) % 4])
+#define A64_MSCH(x)                                   \
+	W[x] = vsha256su0q_u32(W[x], W[(x + 1) % 4]); \
+	W[x] = vsha256su1q_u32(W[x], W[(x + 2) % 4], W[(x + 3) % 4])
 
 		A64_MSCH(0);
 		A64_MSCH(1);

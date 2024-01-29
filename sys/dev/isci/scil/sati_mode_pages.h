@@ -63,25 +63,23 @@
 // descriptor).  The page length fields in the mode sense data are equivalent
 // to the constant values below less 2.  The minus 2 is due to not including
 // the page code byte (byte 0) and the page length byte (byte 1).
-#define SCSI_MODE_PAGE_01_LENGTH   0x0C
-#define SCSI_MODE_PAGE_02_LENGTH   0x10
-#define SCSI_MODE_PAGE_08_LENGTH   0x14
-#define SCSI_MODE_PAGE_0A_LENGTH   0x0C
-#define SCSI_MODE_PAGE_19_LENGTH   0x8
-#define SCSI_MODE_PAGE_1A_LENGTH   0x0C
-#define SCSI_MODE_PAGE_1C_LENGTH   0x0C
-#define SCSI_MODE_PAGE_3F_LENGTH   SCSI_MODE_PAGE_08_LENGTH    \
-                                   + SCSI_MODE_PAGE_1C_LENGTH  \
+#define SCSI_MODE_PAGE_01_LENGTH 0x0C
+#define SCSI_MODE_PAGE_02_LENGTH 0x10
+#define SCSI_MODE_PAGE_08_LENGTH 0x14
+#define SCSI_MODE_PAGE_0A_LENGTH 0x0C
+#define SCSI_MODE_PAGE_19_LENGTH 0x8
+#define SCSI_MODE_PAGE_1A_LENGTH 0x0C
+#define SCSI_MODE_PAGE_1C_LENGTH 0x0C
+#define SCSI_MODE_PAGE_3F_LENGTH \
+	SCSI_MODE_PAGE_08_LENGTH \
+	+SCSI_MODE_PAGE_1C_LENGTH
 
 #define SATI_MODE_PAGE_UNSUPPORTED_INDEX 0xFFFF
 
-#define SAT_SUPPORTED_MODE_PAGES_LENGTH sizeof(sat_supported_mode_pages)/sizeof(U8)
+#define SAT_SUPPORTED_MODE_PAGES_LENGTH \
+	sizeof(sat_supported_mode_pages) / sizeof(U8)
 
-typedef enum _RETURN_PAGE{
-   CHANGEABLE_PAGE,
-   DEFAULT_PAGE
-}RETURN_PAGE;
-
+typedef enum _RETURN_PAGE { CHANGEABLE_PAGE, DEFAULT_PAGE } RETURN_PAGE;
 
 /**
  * @struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6
@@ -89,14 +87,13 @@ typedef enum _RETURN_PAGE{
  * @brief This structure contains mode parameter header fields for 6 byte
  *        mode select command.
  */
-typedef  struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6
-{
-   U8 mode_data_length;
-   U8 medium_type; //Should be 0
-   U8 device_specific_parameter;
-   U8 block_descriptor_length;
+typedef struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6 {
+	U8 mode_data_length;
+	U8 medium_type; // Should be 0
+	U8 device_specific_parameter;
+	U8 block_descriptor_length;
 
-}SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6_T;
+} SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6_T;
 
 /**
  * @struct MODE_PARAMETER_HEADER_10
@@ -104,41 +101,33 @@ typedef  struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_6
  * @brief This structure contains mode parameter header fields for 10 byte
  *        mode select command.
  */
-typedef struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_10
-{
-   U8 mode_data_length[2];
-   U8 medium_type; //Should be 0
-   U8 device_specific_parameter;
-   U8 long_lba;
-   U8 reserve;
-   U8 block_descriptor_length[2];
+typedef struct SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_10 {
+	U8 mode_data_length[2];
+	U8 medium_type; // Should be 0
+	U8 device_specific_parameter;
+	U8 long_lba;
+	U8 reserve;
+	U8 block_descriptor_length[2];
 
-}SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_10_T;
+} SCSI_MODE_SELECT_MODE_PARAMETER_HEADER_10_T;
 
 /**
  * @struct MODE_PARAMETER_BLOCK_DESCRIPTOR
  *
  * @brief This structure contains mode parameter block descriptor fields.
  */
-typedef struct SCSI_MODE_SELECT_MODE_PARAMETER_BLOCK_DESCRIPTOR
-{
-   U8 density_code;
-   U8 number_of_blocks[3];
-   U8 reserved;
-   U8 block_length[3];
+typedef struct SCSI_MODE_SELECT_MODE_PARAMETER_BLOCK_DESCRIPTOR {
+	U8 density_code;
+	U8 number_of_blocks[3];
+	U8 reserved;
+	U8 block_length[3];
 
-}SCSI_MODE_SELECT_MODE_PARAMETER_BLOCK_DESCRIPTOR_T;
+} SCSI_MODE_SELECT_MODE_PARAMETER_BLOCK_DESCRIPTOR_T;
 
-U16 sati_mode_page_get_page_index(
-   U8  page_code
-);
+U16 sati_mode_page_get_page_index(U8 page_code);
 
-U8 * sati_mode_page_get_mode_page(
-   U8 page_code,
-   RETURN_PAGE page
-);
+U8 *sati_mode_page_get_mode_page(U8 page_code, RETURN_PAGE page);
 
-extern U8 * sat_changeable_mode_pages[];
-extern U8 * sat_default_mode_pages[];
-extern U16  sat_mode_page_sizes[];
-
+extern U8 *sat_changeable_mode_pages[];
+extern U8 *sat_default_mode_pages[];
+extern U16 sat_mode_page_sizes[];

@@ -27,11 +27,11 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/devmap.h>
 #include <sys/lock.h>
 #include <sys/reboot.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
 
@@ -47,16 +47,16 @@
 
 #include "platform_if.h"
 
-#define	PMC_PHYSBASE		0x7000e400
-#define	PMC_SIZE		0x400
-#define	PMC_CONTROL_REG		0x0
-#define	PMC_SCRATCH0		0x50
-#define	 PMC_SCRATCH0_MODE_RECOVERY	(1 << 31)
-#define	 PMC_SCRATCH0_MODE_BOOTLOADER	(1 << 30)
-#define	 PMC_SCRATCH0_MODE_RCM		(1 << 1)
-#define	 PMC_SCRATCH0_MODE_MASK		(PMC_SCRATCH0_MODE_RECOVERY | \
-					PMC_SCRATCH0_MODE_BOOTLOADER | \
-					PMC_SCRATCH0_MODE_RCM)
+#define PMC_PHYSBASE 0x7000e400
+#define PMC_SIZE 0x400
+#define PMC_CONTROL_REG 0x0
+#define PMC_SCRATCH0 0x50
+#define PMC_SCRATCH0_MODE_RECOVERY (1 << 31)
+#define PMC_SCRATCH0_MODE_BOOTLOADER (1 << 30)
+#define PMC_SCRATCH0_MODE_RCM (1 << 1)
+#define PMC_SCRATCH0_MODE_MASK                                       \
+	(PMC_SCRATCH0_MODE_RECOVERY | PMC_SCRATCH0_MODE_BOOTLOADER | \
+	    PMC_SCRATCH0_MODE_RCM)
 
 static platform_attach_t tegra124_attach;
 static platform_devmap_init_t tegra124_devmap_init;
@@ -73,7 +73,6 @@ tegra124_attach(platform_t plat)
 static void
 tegra124_late_init(platform_t plat)
 {
-
 }
 
 /*
@@ -100,7 +99,7 @@ tegra124_cpu_reset(platform_t plat)
 	reg = bus_space_read_4(fdtbus_bs_tag, pmc, PMC_SCRATCH0);
 	reg &= PMC_SCRATCH0_MODE_MASK;
 	bus_space_write_4(fdtbus_bs_tag, pmc, PMC_SCRATCH0,
-	   reg | PMC_SCRATCH0_MODE_BOOTLOADER); 	/* boot to bootloader */
+	    reg | PMC_SCRATCH0_MODE_BOOTLOADER); /* boot to bootloader */
 	bus_space_read_4(fdtbus_bs_tag, pmc, PMC_SCRATCH0);
 
 	reg = bus_space_read_4(fdtbus_bs_tag, pmc, PMC_CONTROL_REG);
@@ -108,9 +107,8 @@ tegra124_cpu_reset(platform_t plat)
 	dsb();
 	bus_space_write_4(fdtbus_bs_tag, pmc, PMC_CONTROL_REG, reg | 0x10);
 	bus_space_read_4(fdtbus_bs_tag, pmc, PMC_CONTROL_REG);
-	while(1)
+	while (1)
 		;
-
 }
 
 /*
@@ -137,14 +135,14 @@ early_putc_t *early_putc = tegra124_early_putc;
 #endif
 
 static platform_method_t tegra124_methods[] = {
-	PLATFORMMETHOD(platform_attach,		tegra124_attach),
-	PLATFORMMETHOD(platform_devmap_init,	tegra124_devmap_init),
-	PLATFORMMETHOD(platform_late_init,	tegra124_late_init),
-	PLATFORMMETHOD(platform_cpu_reset,	tegra124_cpu_reset),
+	PLATFORMMETHOD(platform_attach, tegra124_attach),
+	PLATFORMMETHOD(platform_devmap_init, tegra124_devmap_init),
+	PLATFORMMETHOD(platform_late_init, tegra124_late_init),
+	PLATFORMMETHOD(platform_cpu_reset, tegra124_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_start_ap,	tegra124_mp_start_ap),
-	PLATFORMMETHOD(platform_mp_setmaxid,	tegra124_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, tegra124_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, tegra124_mp_setmaxid),
 #endif
 	PLATFORMMETHOD_END,
 };

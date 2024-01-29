@@ -11,6 +11,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
@@ -21,23 +22,22 @@
 #include <sys/queue.h>
 #include <sys/sbuf.h>
 #include <sys/sx.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
 #include <dev/led/led.h>
 
 struct ledsc {
-	LIST_ENTRY(ledsc)	list;
-	char			*name;
-	void			*private;
-	int			unit;
-	led_t			*func;
+	LIST_ENTRY(ledsc) list;
+	char *name;
+	void *private;
+	int unit;
+	led_t *func;
 	struct cdev *dev;
-	struct sbuf		*spec;
-	char			*str;
-	char			*ptr;
-	int			count;
-	time_t			last_second;
+	struct sbuf *spec;
+	char *str;
+	char *ptr;
+	int count;
+	time_t last_second;
 };
 
 static struct unrhdr *led_unit;
@@ -52,9 +52,9 @@ static MALLOC_DEFINE(M_LED, "LED", "LED driver");
 static void
 led_timeout(void *p)
 {
-	struct ledsc	*sc;
+	struct ledsc *sc;
 
-	LIST_FOREACH(sc, &led_list, list) {
+	LIST_FOREACH (sc, &led_list, list) {
 		if (sc->ptr == NULL)
 			continue;
 		if (sc->count > 0) {
@@ -108,7 +108,7 @@ led_state(struct ledsc *sc, struct sbuf **sb, int state)
 	}
 	sc->count = 0;
 	*sb = sb2;
-	return(0);
+	return (0);
 }
 
 static int
@@ -129,76 +129,75 @@ led_parse(const char *s, struct sbuf **sb, int *state)
 	*sb = sbuf_new_auto();
 	if (*sb == NULL)
 		return (ENOMEM);
-	switch(s[0]) {
-		/*
-		 * Flash, default is 100msec/100msec.
-		 * 'f2' sets 200msec/200msec etc.
-		 */
-		case 'f':
-			if (s[1] >= '1' && s[1] <= '9')
-				i = s[1] - '1';
-			else
-				i = 0;
-			sbuf_printf(*sb, "%c%c", 'A' + i, 'a' + i);
-			break;
-		/*
-		 * Digits, flashes out numbers.
-		 * 'd12' becomes -__________-_-______________________________
-		 */
-		case 'd':
-			for(s++; *s; s++) {
-				if (!isdigit(*s))
-					continue;
-				i = *s - '0';
-				if (i == 0)
-					i = 10;
-				for (; i > 1; i--) 
-					sbuf_cat(*sb, "Aa");
-				sbuf_cat(*sb, "Aj");
-			}
-			sbuf_cat(*sb, "jj");
-			break;
-		/*
-		 * String, roll your own.
-		 * 'a-j' gives "off" for n/10 sec.
-		 * 'A-J' gives "on" for n/10 sec.
-		 * no delay before repeat
-		 * 'sAaAbBa' becomes _-_--__-
-		 */
-		case 's':
-			for(s++; *s; s++) {
-				if ((*s >= 'a' && *s <= 'j') ||
-				    (*s >= 'A' && *s <= 'J') ||
-				    *s == 'U' || *s <= 'u' ||
-					*s == '.')
-					sbuf_bcat(*sb, s, 1);
-			}
-			break;
-		/*
-		 * Morse.
-		 * '.' becomes _-
-		 * '-' becomes _---
-		 * ' ' becomes __
-		 * '\n' becomes ____
-		 * 1sec pause between repeats
-		 * '... --- ...' -> _-_-_-___---_---_---___-_-_-__________
-		 */
-		case 'm':
-			for(s++; *s; s++) {
-				if (*s == '.')
-					sbuf_cat(*sb, "aA");
-				else if (*s == '-')
-					sbuf_cat(*sb, "aC");
-				else if (*s == ' ')
-					sbuf_cat(*sb, "b");
-				else if (*s == '\n')
-					sbuf_cat(*sb, "d");
-			}
-			sbuf_cat(*sb, "j");
-			break;
-		default:
-			sbuf_delete(*sb);
-			return (EINVAL);
+	switch (s[0]) {
+	/*
+	 * Flash, default is 100msec/100msec.
+	 * 'f2' sets 200msec/200msec etc.
+	 */
+	case 'f':
+		if (s[1] >= '1' && s[1] <= '9')
+			i = s[1] - '1';
+		else
+			i = 0;
+		sbuf_printf(*sb, "%c%c", 'A' + i, 'a' + i);
+		break;
+	/*
+	 * Digits, flashes out numbers.
+	 * 'd12' becomes -__________-_-______________________________
+	 */
+	case 'd':
+		for (s++; *s; s++) {
+			if (!isdigit(*s))
+				continue;
+			i = *s - '0';
+			if (i == 0)
+				i = 10;
+			for (; i > 1; i--)
+				sbuf_cat(*sb, "Aa");
+			sbuf_cat(*sb, "Aj");
+		}
+		sbuf_cat(*sb, "jj");
+		break;
+	/*
+	 * String, roll your own.
+	 * 'a-j' gives "off" for n/10 sec.
+	 * 'A-J' gives "on" for n/10 sec.
+	 * no delay before repeat
+	 * 'sAaAbBa' becomes _-_--__-
+	 */
+	case 's':
+		for (s++; *s; s++) {
+			if ((*s >= 'a' && *s <= 'j') ||
+			    (*s >= 'A' && *s <= 'J') || *s == 'U' ||
+			    *s <= 'u' || *s == '.')
+				sbuf_bcat(*sb, s, 1);
+		}
+		break;
+	/*
+	 * Morse.
+	 * '.' becomes _-
+	 * '-' becomes _---
+	 * ' ' becomes __
+	 * '\n' becomes ____
+	 * 1sec pause between repeats
+	 * '... --- ...' -> _-_-_-___---_---_---___-_-_-__________
+	 */
+	case 'm':
+		for (s++; *s; s++) {
+			if (*s == '.')
+				sbuf_cat(*sb, "aA");
+			else if (*s == '-')
+				sbuf_cat(*sb, "aC");
+			else if (*s == ' ')
+				sbuf_cat(*sb, "b");
+			else if (*s == '\n')
+				sbuf_cat(*sb, "d");
+		}
+		sbuf_cat(*sb, "j");
+		break;
+	default:
+		sbuf_delete(*sb);
+		return (EINVAL);
 	}
 	error = sbuf_finish(*sb);
 	if (error != 0 || sbuf_len(*sb) == 0) {
@@ -211,7 +210,7 @@ led_parse(const char *s, struct sbuf **sb, int *state)
 static int
 led_write(struct cdev *dev, struct uio *uio, int ioflag)
 {
-	struct ledsc	*sc;
+	struct ledsc *sc;
 	char *s;
 	struct sbuf *sb = NULL;
 	int error, state = 0;
@@ -242,7 +241,7 @@ led_write(struct cdev *dev, struct uio *uio, int ioflag)
 int
 led_set(char const *name, char const *cmd)
 {
-	struct ledsc	*sc;
+	struct ledsc *sc;
 	struct sbuf *sb = NULL;
 	int error, state = 0;
 
@@ -250,7 +249,7 @@ led_set(char const *name, char const *cmd)
 	if (error)
 		return (error);
 	mtx_lock(&led_mtx);
-	LIST_FOREACH(sc, &led_list, list) {
+	LIST_FOREACH (sc, &led_list, list) {
 		if (strcmp(sc->name, name) == 0)
 			break;
 	}
@@ -265,9 +264,9 @@ led_set(char const *name, char const *cmd)
 }
 
 static struct cdevsw led_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_write =	led_write,
-	.d_name =	"LED",
+	.d_version = D_VERSION,
+	.d_write = led_write,
+	.d_name = "LED",
 };
 
 struct cdev *
@@ -279,7 +278,7 @@ led_create(led_t *func, void *priv, char const *name)
 struct cdev *
 led_create_state(led_t *func, void *priv, char const *name, int state)
 {
-	struct ledsc	*sc;
+	struct ledsc *sc;
 
 	sc = malloc(sizeof *sc, M_LED, M_WAITOK | M_ZERO);
 
@@ -288,8 +287,8 @@ led_create_state(led_t *func, void *priv, char const *name, int state)
 	sc->unit = alloc_unr(led_unit);
 	sc->private = priv;
 	sc->func = func;
-	sc->dev = make_dev(&led_cdevsw, sc->unit,
-	    UID_ROOT, GID_WHEEL, 0600, "led/%s", name);
+	sc->dev = make_dev(&led_cdevsw, sc->unit, UID_ROOT, GID_WHEEL, 0600,
+	    "led/%s", name);
 	sx_xunlock(&led_sx);
 
 	mtx_lock(&led_mtx);

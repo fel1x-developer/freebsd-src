@@ -36,7 +36,6 @@
 #include <machine/elf.h>
 
 #include <arpa/inet.h>
-
 #include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
@@ -56,29 +55,30 @@
  * so check for the existence of one of the 32-macros defined in elf(5).
  */
 #ifdef ELF32_R_TYPE
-#define	ELF32_SUPPORTED
+#define ELF32_SUPPORTED
 #endif
 
-#define	LDD_SETENV(name, value, overwrite) do {		\
-	setenv("LD_" name, value, overwrite);		\
-	setenv("LD_32_" name, value, overwrite);	\
-} while (0)
+#define LDD_SETENV(name, value, overwrite)               \
+	do {                                             \
+		setenv("LD_" name, value, overwrite);    \
+		setenv("LD_32_" name, value, overwrite); \
+	} while (0)
 
-#define	LDD_UNSETENV(name) do {		\
-	unsetenv("LD_" name);		\
-	unsetenv("LD_32_" name);	\
-} while (0)
+#define LDD_UNSETENV(name)               \
+	do {                             \
+		unsetenv("LD_" name);    \
+		unsetenv("LD_32_" name); \
+	} while (0)
 
-static int	is_executable(const char *fname, int fd, int *is_shlib,
-		    int *type);
-static void	usage(void);
+static int is_executable(const char *fname, int fd, int *is_shlib, int *type);
+static void usage(void);
 
-#define	TYPE_UNKNOWN	0
-#define	TYPE_ELF	1	/* Architecture default */
+#define TYPE_UNKNOWN 0
+#define TYPE_ELF 1 /* Architecture default */
 #if __ELF_WORD_SIZE > 32 && defined(ELF32_SUPPORTED)
-#define	TYPE_ELF32	2	/* Explicit 32 bits on architectures >32 bits */
+#define TYPE_ELF32 2 /* Explicit 32 bits on architectures >32 bits */
 
-#define	_PATH_LDD32	"/usr/bin/ldd32"
+#define _PATH_LDD32 "/usr/bin/ldd32"
 
 static int
 execldd32(char *file, char *fmt1, char *fmt2, int aflag)
@@ -236,15 +236,14 @@ main(int argc, char *argv[])
 				rtld = __PATH_RTLD("32");
 #endif
 			if (is_shlib == 0) {
-				execl(rtld, rtld, "--",
-				    *argv, (char *)NULL);
+				execl(rtld, rtld, "--", *argv, (char *)NULL);
 				warn("%s", *argv);
 			} else if (fmt1 == NULL && fmt2 == NULL && !aflag) {
 				dlopen(*argv, RTLD_TRACE);
 				warnx("%s: %s", *argv, dlerror());
 			} else {
-				execl(rtld, rtld, "-d", "--",
-				    *argv, (char *)NULL);
+				execl(rtld, rtld, "-d", "--", *argv,
+				    (char *)NULL);
 			}
 			_exit(1);
 		}

@@ -51,15 +51,15 @@
 
 #include "jailp.h"
 
-#define DEFAULT_STOP_TIMEOUT	10
-#define PHASH_SIZE		256
+#define DEFAULT_STOP_TIMEOUT 10
+#define PHASH_SIZE 256
 
 LIST_HEAD(phhead, phash);
 
 struct phash {
-	LIST_ENTRY(phash)	le;
-	struct cfjail		*j;
-	pid_t			pid;
+	LIST_ENTRY(phash) le;
+	struct cfjail *j;
+	pid_t pid;
 };
 
 int paralimit = -1;
@@ -144,24 +144,31 @@ next_command(struct cfjail *j)
 			default:
 				if (j->intparams[comparam] == NULL)
 					continue;
-				j->comstring = create_failed || (stopping &&
-				    (j->intparams[comparam]->flags & PF_REV))
-				    ? TAILQ_LAST(&j->intparams[comparam]->val,
-					cfstrings)
-				    : TAILQ_FIRST(&j->intparams[comparam]->val);
+				j->comstring = create_failed ||
+					(stopping &&
+					    (j->intparams[comparam]->flags &
+						PF_REV)) ?
+				    TAILQ_LAST(&j->intparams[comparam]->val,
+					cfstrings) :
+				    TAILQ_FIRST(&j->intparams[comparam]->val);
 			}
 		} else {
-			j->comstring = j->comstring == &dummystring ? NULL :
-			    create_failed || (stopping &&
-			    (j->intparams[comparam]->flags & PF_REV))
-			    ? TAILQ_PREV(j->comstring, cfstrings, tq)
-			    : TAILQ_NEXT(j->comstring, tq);
+			j->comstring = j->comstring == &dummystring ?
+			    NULL :
+			    create_failed ||
+				(stopping &&
+				    (j->intparams[comparam]->flags & PF_REV)) ?
+			    TAILQ_PREV(j->comstring, cfstrings, tq) :
+			    TAILQ_NEXT(j->comstring, tq);
 		}
 		if (j->comstring == NULL || j->comstring->len == 0 ||
-		    (create_failed && (comparam == IP_EXEC_PRESTART ||
-		    comparam == IP_EXEC_CREATED || comparam == IP_EXEC_START ||
-		    comparam == IP_COMMAND || comparam == IP_EXEC_POSTSTART ||
-		    comparam == IP_EXEC_PREPARE)))
+		    (create_failed &&
+			(comparam == IP_EXEC_PRESTART ||
+			    comparam == IP_EXEC_CREATED ||
+			    comparam == IP_EXEC_START ||
+			    comparam == IP_COMMAND ||
+			    comparam == IP_EXEC_POSTSTART ||
+			    comparam == IP_EXEC_PREPARE)))
 			continue;
 		switch (run_command(j)) {
 		case -1:
@@ -207,8 +214,8 @@ finish_command(struct cfjail *j)
 			jail_note(j, "timed out\n");
 	} else if (j->pstatus != 0) {
 		if (WIFSIGNALED(j->pstatus))
-			jail_warnx(j, "%s: exited on signal %d",
-			    j->comline, WTERMSIG(j->pstatus));
+			jail_warnx(j, "%s: exited on signal %d", j->comline,
+			    WTERMSIG(j->pstatus));
 		else
 			jail_warnx(j, "%s: failed", j->comline);
 		j->pstatus = 0;
@@ -314,12 +321,14 @@ run_command(struct cfjail *j)
 		if (down) {
 			if (jail_remove(j->jid) < 0 && errno == EPERM) {
 				jail_warnx(j, "jail_remove: %s",
-					   strerror(errno));
+				    strerror(errno));
 				return -1;
 			}
-			if (verbose > 0 || (verbose == 0 && (j->flags & JF_STOP
-			    ? note_remove : j->name != NULL)))
-			    jail_note(j, "removed\n");
+			if (verbose > 0 ||
+			    (verbose == 0 &&
+				(j->flags & JF_STOP ? note_remove :
+						      j->name != NULL)))
+				jail_note(j, "removed\n");
 			j->jid = -1;
 			if (j->flags & JF_STOP)
 				dep_done(j, DF_LIGHT);
@@ -336,7 +345,7 @@ run_command(struct cfjail *j)
 		}
 		return 0;
 
-	default: ;
+	default:;
 	}
 	/*
 	 * Collect exec arguments.  Internal commands for network and
@@ -484,7 +493,7 @@ run_command(struct cfjail *j)
 			return -1;
 		}
 		if (check_path(j, j->intparams[comparam]->name, argv[1], 0,
-		    down ? argv[2] : NULL) < 0)
+			down ? argv[2] : NULL) < 0)
 			return -1;
 		if (down) {
 			argv[4] = NULL;
@@ -517,7 +526,7 @@ run_command(struct cfjail *j)
 		devpath = alloca(strlen(path) + 5);
 		sprintf(devpath, "%s/dev", path);
 		if (check_path(j, "mount.devfs", devpath, 0,
-		    down ? "devfs" : NULL) < 0)
+			down ? "devfs" : NULL) < 0)
 			return -1;
 		if (down) {
 			argv[0] = "/sbin/umount";
@@ -529,7 +538,7 @@ run_command(struct cfjail *j)
 			argv[2] = "devfs";
 			ruleset = string_param(j->intparams[KP_DEVFS_RULESET]);
 			if (!ruleset)
-			    ruleset = "4";	/* devfsrules_jail */
+				ruleset = "4"; /* devfsrules_jail */
 			argv[3] = acs = alloca(11 + strlen(ruleset));
 			sprintf(acs, "-oruleset=%s", ruleset);
 			argv[4] = ".";
@@ -542,13 +551,14 @@ run_command(struct cfjail *j)
 		argv = alloca(7 * sizeof(char *));
 		path = string_param(j->intparams[KP_PATH]);
 		if (path == NULL) {
-			jail_warnx(j, "mount.fdescfs: no jail root path defined");
+			jail_warnx(j,
+			    "mount.fdescfs: no jail root path defined");
 			return -1;
 		}
 		devpath = alloca(strlen(path) + 8);
 		sprintf(devpath, "%s/dev/fd", path);
 		if (check_path(j, "mount.fdescfs", devpath, 0,
-		    down ? "fdescfs" : NULL) < 0)
+			down ? "fdescfs" : NULL) < 0)
 			return -1;
 		if (down) {
 			argv[0] = "/sbin/umount";
@@ -568,13 +578,14 @@ run_command(struct cfjail *j)
 		argv = alloca(7 * sizeof(char *));
 		path = string_param(j->intparams[KP_PATH]);
 		if (path == NULL) {
-			jail_warnx(j, "mount.procfs: no jail root path defined");
+			jail_warnx(j,
+			    "mount.procfs: no jail root path defined");
 			return -1;
 		}
 		devpath = alloca(strlen(path) + 6);
 		sprintf(devpath, "%s/proc", path);
 		if (check_path(j, "mount.procfs", devpath, 0,
-		    down ? "procfs" : NULL) < 0)
+			down ? "procfs" : NULL) < 0)
 			return -1;
 		if (down) {
 			argv[0] = "/sbin/umount";
@@ -595,16 +606,14 @@ run_command(struct cfjail *j)
 		jidstr = string_param(j->intparams[KP_JID]) ?
 		    string_param(j->intparams[KP_JID]) :
 		    string_param(j->intparams[KP_NAME]);
-		fmt = "if [ $(/sbin/zfs get -H -o value jailed %s) = on ]; then /sbin/zfs jail %s %s || echo error, attaching %s to jail %s failed; else echo error, you need to set jailed=on for dataset %s; fi";
-		comlen = strlen(fmt)
-		    + 2 * strlen(jidstr)
-		    + 4 * comstring->len
-		    - 6 * 2	/* 6 * "%s" */
+		fmt =
+		    "if [ $(/sbin/zfs get -H -o value jailed %s) = on ]; then /sbin/zfs jail %s %s || echo error, attaching %s to jail %s failed; else echo error, you need to set jailed=on for dataset %s; fi";
+		comlen = strlen(fmt) + 2 * strlen(jidstr) + 4 * comstring->len -
+		    6 * 2 /* 6 * "%s" */
 		    + 1;
 		comcs = alloca(comlen);
-		ret = snprintf(comcs, comlen, fmt, comstring->s,
-		    jidstr, comstring->s, comstring->s, jidstr,
-		    comstring->s);
+		ret = snprintf(comcs, comlen, fmt, comstring->s, jidstr,
+		    comstring->s, comstring->s, jidstr, comstring->s);
 		if (ret >= comlen) {
 			jail_warnx(j, "internal error in ZFS dataset handling");
 			exit(1);
@@ -619,11 +628,11 @@ run_command(struct cfjail *j)
 		if (j->name != NULL)
 			goto default_command;
 		argc = 0;
-		TAILQ_FOREACH(s, &j->intparams[IP_COMMAND]->val, tq)
+		TAILQ_FOREACH (s, &j->intparams[IP_COMMAND]->val, tq)
 			argc++;
 		argv = alloca((argc + 1) * sizeof(char *));
 		argc = 0;
-		TAILQ_FOREACH(s, &j->intparams[IP_COMMAND]->val, tq)
+		TAILQ_FOREACH (s, &j->intparams[IP_COMMAND]->val, tq)
 			argv[argc++] = s->s;
 		argv[argc] = NULL;
 		j->comstring = &dummystring;
@@ -675,8 +684,8 @@ run_command(struct cfjail *j)
 	else
 		setid = CPUSET_INVALID;
 	clean = bool_param(j->intparams[IP_EXEC_CLEAN]);
-	username = string_param(j->intparams[injail
-	    ? IP_EXEC_JAIL_USER : IP_EXEC_SYSTEM_USER]);
+	username = string_param(
+	    j->intparams[injail ? IP_EXEC_JAIL_USER : IP_EXEC_SYSTEM_USER]);
 	sjuser = bool_param(j->intparams[IP_EXEC_SYSTEM_JAIL_USER]);
 
 	consfd = 0;
@@ -684,8 +693,8 @@ run_command(struct cfjail *j)
 	    (conslog = string_param(j->intparams[IP_EXEC_CONSOLELOG]))) {
 		if (check_path(j, "exec.consolelog", conslog, 1, NULL) < 0)
 			return -1;
-		consfd =
-		    open(conslog, O_WRONLY | O_CREAT | O_APPEND, DEFFILEMODE);
+		consfd = open(conslog, O_WRONLY | O_CREAT | O_APPEND,
+		    DEFFILEMODE);
 		if (consfd < 0) {
 			jail_warnx(j, "open %s: %s", conslog, strerror(errno));
 			return -1;
@@ -776,9 +785,10 @@ run_command(struct cfjail *j)
 			    strerror(errno));
 			exit(1);
 		}
-		if (setusercontext(lcap, pwd, pwd->pw_uid, username
-		    ? LOGIN_SETALL & ~LOGIN_SETGROUP & ~LOGIN_SETLOGIN
-		    : LOGIN_SETPATH | LOGIN_SETENV) < 0) {
+		if (setusercontext(lcap, pwd, pwd->pw_uid,
+			username ?
+			    LOGIN_SETALL & ~LOGIN_SETGROUP & ~LOGIN_SETLOGIN :
+			    LOGIN_SETPATH | LOGIN_SETENV) < 0) {
 			jail_warnx(j, "setusercontext %s: %s", pwd->pw_name,
 			    strerror(errno));
 			exit(1);
@@ -786,11 +796,11 @@ run_command(struct cfjail *j)
 		login_close(lcap);
 		setenv("USER", pwd->pw_name, 1);
 		setenv("HOME", pwd->pw_dir, 1);
-		setenv("SHELL",
-		    *pwd->pw_shell ? pwd->pw_shell : _PATH_BSHELL, 1);
+		setenv("SHELL", *pwd->pw_shell ? pwd->pw_shell : _PATH_BSHELL,
+		    1);
 		if (clean && chdir(pwd->pw_dir) < 0) {
-			jail_warnx(j, "chdir %s: %s",
-			    pwd->pw_dir, strerror(errno));
+			jail_warnx(j, "chdir %s: %s", pwd->pw_dir,
+			    strerror(errno));
 			exit(1);
 		}
 		endpwent();
@@ -801,7 +811,7 @@ run_command(struct cfjail *j)
 		exit(1);
 	}
 	closefrom(3);
-	execvp(argv[0], __DECONST(char *const*, argv));
+	execvp(argv[0], __DECONST(char *const *, argv));
 	jail_warnx(j, "exec %s: %s", argv[0], strerror(errno));
 	exit(1);
 }
@@ -835,11 +845,11 @@ add_proc(struct cfjail *j, pid_t pid)
 	else {
 		/* File the jail in the sleep queue according to its timeout. */
 		TAILQ_REMOVE(j->queue, j, tq);
-		TAILQ_FOREACH(tj, &sleeping, tq) {
+		TAILQ_FOREACH (tj, &sleeping, tq) {
 			if (!tj->timeout.tv_sec ||
 			    j->timeout.tv_sec < tj->timeout.tv_sec ||
 			    (j->timeout.tv_sec == tj->timeout.tv_sec &&
-			    j->timeout.tv_nsec <= tj->timeout.tv_nsec)) {
+				j->timeout.tv_nsec <= tj->timeout.tv_nsec)) {
 				TAILQ_INSERT_BEFORE(tj, j, tq);
 				break;
 			}
@@ -863,7 +873,7 @@ clear_procs(struct cfjail *j)
 
 	j->nprocs = 0;
 	for (i = 0; i < PHASH_SIZE; i++)
-		LIST_FOREACH_SAFE(ph, &phash[i], le, tph)
+		LIST_FOREACH_SAFE (ph, &phash[i], le, tph)
 			if (ph->j == j) {
 				EV_SET(&ke, ph->pid, EVFILT_PROC, EV_DELETE,
 				    NOTE_EXIT, 0, NULL);
@@ -882,7 +892,7 @@ find_proc(pid_t pid)
 	struct cfjail *j;
 	struct phash *ph;
 
-	LIST_FOREACH(ph, &phash[pid % PHASH_SIZE], le)
+	LIST_FOREACH (ph, &phash[pid % PHASH_SIZE], le)
 		if (ph->pid == pid) {
 			j = ph->j;
 			LIST_REMOVE(ph, le);
@@ -991,8 +1001,7 @@ check_path(struct cfjail *j, const char *pname, const char *path, int isfile,
 	size_t jplen;
 
 	if (path[0] != '/') {
-		jail_warnx(j, "%s: %s: not an absolute pathname",
-		    pname, path);
+		jail_warnx(j, "%s: %s: not an absolute pathname", pname, path);
 		return -1;
 	}
 	/*
@@ -1006,7 +1015,7 @@ check_path(struct cfjail *j, const char *pname, const char *path, int isfile,
 	if (!strncmp(path, jailpath, jplen) && path[jplen] == '/') {
 		tpath = alloca(strlen(path) + 1);
 		strcpy(tpath, path);
-		for (p = tpath + jplen; p != NULL; ) {
+		for (p = tpath + jplen; p != NULL;) {
 			p = strchr(p + 1, '/');
 			if (p)
 				*p = '\0';
@@ -1038,13 +1047,12 @@ check_path(struct cfjail *j, const char *pname, const char *path, int isfile,
 			return -1;
 		}
 		if (st.st_ino != mpst.st_ino) {
-			jail_warnx(j, "%s: %s: not a mount point",
-			    pname, path);
+			jail_warnx(j, "%s: %s: not a mount point", pname, path);
 			return -1;
 		}
 		if (strcmp(stfs.f_fstypename, umount_type)) {
-			jail_warnx(j, "%s: %s: not a %s mount",
-			    pname, path, umount_type);
+			jail_warnx(j, "%s: %s: not a %s mount", pname, path,
+			    umount_type);
 			return -1;
 		}
 	}

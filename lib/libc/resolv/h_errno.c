@@ -26,11 +26,13 @@
  */
 
 #include <sys/types.h>
+
 #include <netinet/in.h>
+
 #include <arpa/nameser.h>
 #include <resolv.h>
 
-#undef	h_errno
+#undef h_errno
 extern int h_errno;
 
 int *__h_errno(void);

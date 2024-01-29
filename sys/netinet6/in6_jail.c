@@ -26,40 +26,39 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
-#include <sys/param.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
-#include <sys/kernel.h>
+#include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/errno.h>
-#include <sys/sysproto.h>
+#include <sys/fcntl.h>
+#include <sys/jail.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
 #include <sys/osd.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/taskqueue.h>
-#include <sys/fcntl.h>
-#include <sys/jail.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/racct.h>
 #include <sys/refcount.h>
-#include <sys/sx.h>
-#include <sys/namei.h>
-#include <sys/mount.h>
-#include <sys/queue.h>
 #include <sys/socket.h>
+#include <sys/sx.h>
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
+#include <sys/sysproto.h>
+#include <sys/taskqueue.h>
 #include <sys/vnode.h>
 
 #include <net/if.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
 
 static void
@@ -131,11 +130,11 @@ prison_get_ip6(struct ucred *cred, struct in6_addr *ia6)
 }
 
 /*
- * Return true if we should do proper source address selection or are not jailed.
- * We will return false if we should bypass source address selection in favour
- * of the primary jail IPv6 address. Only in this case *ia will be updated and
- * returned in NBO.
- * Return true, even in case this jail does not allow IPv6.
+ * Return true if we should do proper source address selection or are not
+ * jailed. We will return false if we should bypass source address selection in
+ * favour of the primary jail IPv6 address. Only in this case *ia will be
+ * updated and returned in NBO. Return true, even in case this jail does not
+ * allow IPv6.
  */
 bool
 prison_saddrsel_ip6(struct ucred *cred, struct in6_addr *ia6)
@@ -175,15 +174,15 @@ prison_equal_ip6(struct prison *pr1, struct prison *pr2)
 
 	while (pr1 != &prison0 &&
 #ifdef VIMAGE
-	       !(pr1->pr_flags & PR_VNET) &&
+	    !(pr1->pr_flags & PR_VNET) &&
 #endif
-	       !(pr1->pr_flags & PR_IP6_USER))
+	    !(pr1->pr_flags & PR_IP6_USER))
 		pr1 = pr1->pr_parent;
 	while (pr2 != &prison0 &&
 #ifdef VIMAGE
-	       !(pr2->pr_flags & PR_VNET) &&
+	    !(pr2->pr_flags & PR_VNET) &&
 #endif
-	       !(pr2->pr_flags & PR_IP6_USER))
+	    !(pr2->pr_flags & PR_IP6_USER))
 		pr2 = pr2->pr_parent;
 	return (pr1 == pr2);
 }
@@ -268,7 +267,7 @@ prison_remote_ip6(struct ucred *cred, struct in6_addr *ia6)
 	}
 
 	if (IN6_IS_ADDR_LOOPBACK(ia6) &&
-            prison_check_ip6_locked(pr, ia6) == EADDRNOTAVAIL) {
+	    prison_check_ip6_locked(pr, ia6) == EADDRNOTAVAIL) {
 		prison_bcopy_primary_ip6(pr, ia6);
 		mtx_unlock(&pr->pr_mtx);
 		return (0);

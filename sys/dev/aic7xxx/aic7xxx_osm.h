@@ -35,11 +35,11 @@
 #ifndef _AIC7XXX_FREEBSD_H_
 #define _AIC7XXX_FREEBSD_H_
 
-#include "opt_aic7xxx.h"	/* for config options */
+#include "opt_aic7xxx.h" /* for config options */
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/bus.h>		/* For device_t */
+#include <sys/bus.h> /* For device_t */
 #include <sys/endian.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
@@ -48,11 +48,11 @@
 #include <sys/queue.h>
 
 #define AIC_PCI_CONFIG 1
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
-
-#include <sys/rman.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
@@ -62,30 +62,27 @@
 #include <cam/cam_debug.h>
 #include <cam/cam_sim.h>
 #include <cam/cam_xpt_sim.h>
-
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
 
 /****************************** Platform Macros *******************************/
-#define	SIM_IS_SCSIBUS_B(ahc, sim)	\
-	((sim) == ahc->platform_data->sim_b)
-#define	SIM_CHANNEL(ahc, sim)	\
-	(((sim) == ahc->platform_data->sim_b) ? 'B' : 'A')
-#define	SIM_SCSI_ID(ahc, sim)	\
+#define SIM_IS_SCSIBUS_B(ahc, sim) ((sim) == ahc->platform_data->sim_b)
+#define SIM_CHANNEL(ahc, sim) (((sim) == ahc->platform_data->sim_b) ? 'B' : 'A')
+#define SIM_SCSI_ID(ahc, sim) \
 	(((sim) == ahc->platform_data->sim_b) ? ahc->our_id_b : ahc->our_id)
-#define	SIM_PATH(ahc, sim)	\
-	(((sim) == ahc->platform_data->sim_b) ? ahc->platform_data->path_b \
-					      : ahc->platform_data->path)
-#define BUILD_SCSIID(ahc, sim, target_id, our_id) \
-        ((((target_id) << TID_SHIFT) & TID) | (our_id) \
-        | (SIM_IS_SCSIBUS_B(ahc, sim) ? TWIN_CHNLB : 0))
+#define SIM_PATH(ahc, sim)                                                   \
+	(((sim) == ahc->platform_data->sim_b) ? ahc->platform_data->path_b : \
+						ahc->platform_data->path)
+#define BUILD_SCSIID(ahc, sim, target_id, our_id)        \
+	((((target_id) << TID_SHIFT) & TID) | (our_id) | \
+	    (SIM_IS_SCSIBUS_B(ahc, sim) ? TWIN_CHNLB : 0))
 
-#define SCB_GET_SIM(ahc, scb) \
-	(SCB_GET_CHANNEL(ahc, scb) == 'A' ? (ahc)->platform_data->sim \
-					  : (ahc)->platform_data->sim_b)
+#define SCB_GET_SIM(ahc, scb)                                           \
+	(SCB_GET_CHANNEL(ahc, scb) == 'A' ? (ahc)->platform_data->sim : \
+					    (ahc)->platform_data->sim_b)
 
 #ifndef offsetof
-#define offsetof(type, member)  ((size_t)(&((type *)0)->member))
+#define offsetof(type, member) ((size_t)(&((type *)0)->member))
 #endif
 
 /************************ Tunable Driver Parameters  **************************/
@@ -99,7 +96,7 @@
  * to handle any unaligned residual.  The sequencer fetches SG elements
  * in cacheline sized chucks, so make the number per-transaction an even
  * multiple of 16 which should align us on even the largest of cacheline
- * boundaries. 
+ * boundaries.
  */
 #define AHC_MAXPHYS (128 * 1024)
 #define AHC_NSEG (roundup(btoc(AHC_MAXPHYS) + 1, 16))
@@ -112,24 +109,23 @@ struct ahc_platform_data {
 	/*
 	 * Hooks into the XPT.
 	 */
-	struct	cam_sim		*sim;
-	struct	cam_sim		*sim_b;
-	struct	cam_path	*path;
-	struct	cam_path	*path_b;
+	struct cam_sim *sim;
+	struct cam_sim *sim_b;
+	struct cam_path *path;
+	struct cam_path *path_b;
 
-	int			 regs_res_type;
-	int			 regs_res_id;
-	int			 irq_res_type;
-	struct resource		*regs;
-	struct resource		*irq;
-	void			*ih;
-	eventhandler_tag	 eh;
-	struct proc		*recovery_thread;
-	struct mtx		mtx;
+	int regs_res_type;
+	int regs_res_id;
+	int irq_res_type;
+	struct resource *regs;
+	struct resource *irq;
+	void *ih;
+	eventhandler_tag eh;
+	struct proc *recovery_thread;
+	struct mtx mtx;
 };
 
-struct scb_platform_data {
-};
+struct scb_platform_data { };
 
 /***************************** Core Includes **********************************/
 #ifdef AHC_REG_PRETTY_PRINT
@@ -138,21 +134,20 @@ struct scb_platform_data {
 #define AIC_DEBUG_REGISTERS 0
 #endif
 #define AIC_CORE_INCLUDE <dev/aic7xxx/aic7xxx.h>
-#define	AIC_LIB_PREFIX ahc
-#define	AIC_CONST_PREFIX AHC
+#define AIC_LIB_PREFIX ahc
+#define AIC_CONST_PREFIX AHC
 #include <dev/aic7xxx/aic_osm_lib.h>
 
 /*************************** Device Access ************************************/
-#define ahc_inb(ahc, port)				\
-	bus_space_read_1((ahc)->tag, (ahc)->bsh, port)
+#define ahc_inb(ahc, port) bus_space_read_1((ahc)->tag, (ahc)->bsh, port)
 
-#define ahc_outb(ahc, port, value)			\
+#define ahc_outb(ahc, port, value) \
 	bus_space_write_1((ahc)->tag, (ahc)->bsh, port, value)
 
-#define ahc_outsb(ahc, port, valp, count)		\
+#define ahc_outsb(ahc, port, valp, count) \
 	bus_space_write_multi_1((ahc)->tag, (ahc)->bsh, port, valp, count)
 
-#define ahc_insb(ahc, port, valp, count)		\
+#define ahc_insb(ahc, port, valp, count) \
 	bus_space_read_multi_1((ahc)->tag, (ahc)->bsh, port, valp, count)
 
 static __inline void ahc_flush_device_writes(struct ahc_softc *);
@@ -189,12 +184,12 @@ ahc_unlock(struct ahc_softc *ahc)
 }
 
 /************************* Initialization/Teardown ****************************/
-int	  ahc_platform_alloc(struct ahc_softc *ahc, void *platform_arg);
-void	  ahc_platform_free(struct ahc_softc *ahc);
-int	  ahc_map_int(struct ahc_softc *ahc);
-int	  ahc_attach(struct ahc_softc *);
-int	  ahc_softc_comp(struct ahc_softc *lahc, struct ahc_softc *rahc);
-int	  ahc_detach(device_t);
+int ahc_platform_alloc(struct ahc_softc *ahc, void *platform_arg);
+void ahc_platform_free(struct ahc_softc *ahc);
+int ahc_map_int(struct ahc_softc *ahc);
+int ahc_attach(struct ahc_softc *);
+int ahc_softc_comp(struct ahc_softc *lahc, struct ahc_softc *rahc);
+int ahc_detach(device_t);
 
 /********************************** PCI ***************************************/
 #ifdef AIC_PCI_CONFIG
@@ -219,8 +214,8 @@ aic7770_map_int(struct ahc_softc *ahc, int irq)
 }
 
 /********************************* Debug **************************************/
-static __inline void	ahc_print_path(struct ahc_softc *, struct scb *);
-static __inline void	ahc_platform_dump_card_state(struct ahc_softc *ahc);
+static __inline void ahc_print_path(struct ahc_softc *, struct scb *);
+static __inline void ahc_platform_dump_card_state(struct ahc_softc *ahc);
 
 static __inline void
 ahc_print_path(struct ahc_softc *ahc, struct scb *scb)
@@ -234,21 +229,20 @@ ahc_platform_dump_card_state(struct ahc_softc *ahc)
 	/* Nothing to do here for FreeBSD */
 }
 /**************************** Transfer Settings *******************************/
-void	  ahc_notify_xfer_settings_change(struct ahc_softc *,
-					  struct ahc_devinfo *);
-void	  ahc_platform_set_tags(struct ahc_softc *, struct ahc_devinfo *,
-				int /*enable*/);
+void ahc_notify_xfer_settings_change(struct ahc_softc *, struct ahc_devinfo *);
+void ahc_platform_set_tags(struct ahc_softc *, struct ahc_devinfo *,
+    int /*enable*/);
 
 /****************************** Interrupts ************************************/
-void			ahc_platform_intr(void *);
-static __inline void	ahc_platform_flushwork(struct ahc_softc *ahc);
+void ahc_platform_intr(void *);
+static __inline void ahc_platform_flushwork(struct ahc_softc *ahc);
 static __inline void
 ahc_platform_flushwork(struct ahc_softc *ahc)
 {
 }
 
 /************************ Misc Function Declarations **************************/
-void	  ahc_done(struct ahc_softc *ahc, struct scb *scb);
-void	  ahc_send_async(struct ahc_softc *, char /*channel*/,
-			 u_int /*target*/, u_int /*lun*/, ac_code, void *arg);
-#endif  /* _AIC7XXX_FREEBSD_H_ */
+void ahc_done(struct ahc_softc *ahc, struct scb *scb);
+void ahc_send_async(struct ahc_softc *, char /*channel*/, u_int /*target*/,
+    u_int /*lun*/, ac_code, void *arg);
+#endif /* _AIC7XXX_FREEBSD_H_ */

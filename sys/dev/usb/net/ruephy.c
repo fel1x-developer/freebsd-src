@@ -34,41 +34,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/usb/net/ruephyreg.h>
 
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include "miidevs.h"
-
-#include <dev/usb/net/ruephyreg.h>
-
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int ruephy_probe(device_t);
 static int ruephy_attach(device_t);
 
 static device_method_t ruephy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ruephy_probe),
-	DEVMETHOD(device_attach,	ruephy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ruephy_probe),
+	DEVMETHOD(device_attach, ruephy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t ruephy_driver = {
-	.name = "ruephy",
+static driver_t ruephy_driver = { .name = "ruephy",
 	.methods = ruephy_methods,
-	.size = sizeof(struct mii_softc)
-};
+	.size = sizeof(struct mii_softc) };
 
 DRIVER_MODULE(ruephy, miibus, ruephy_driver, 0, 0);
 
@@ -81,22 +77,18 @@ static void ruephy_status(struct mii_softc *);
  * registers; rue(4) fakes up a return value of all zeros.
  */
 static const struct mii_phydesc ruephys[] = {
-	{ 0, 0, "RealTek RTL8150 internal media interface" },
-	MII_PHY_END
+	{ 0, 0, "RealTek RTL8150 internal media interface" }, MII_PHY_END
 };
 
-static const struct mii_phy_funcs ruephy_funcs = {
-	ruephy_service,
-	ruephy_status,
-	ruephy_reset
-};
+static const struct mii_phy_funcs ruephy_funcs = { ruephy_service,
+	ruephy_status, ruephy_reset };
 
 static int
 ruephy_probe(device_t dev)
 {
 
 	if (strcmp(device_get_name(device_get_parent(device_get_parent(dev))),
-	    "rue") == 0)
+		"rue") == 0)
 		return (mii_phy_dev_probe(dev, ruephys, BUS_PROBE_DEFAULT));
 	return (ENXIO);
 }
@@ -105,8 +97,8 @@ static int
 ruephy_attach(device_t dev)
 {
 
-	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE,
-	    &ruephy_funcs, 1);
+	mii_phy_dev_attach(dev, MIIF_NOISOLATE | MIIF_NOMANPAUSE, &ruephy_funcs,
+	    1);
 	return (0);
 }
 
@@ -209,8 +201,8 @@ ruephy_status(struct mii_softc *phy)
 			mii->mii_media_active |= IFM_10_T;
 
 		if (msr & RUEPHY_MSR_DUPLEX)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(phy);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(phy);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

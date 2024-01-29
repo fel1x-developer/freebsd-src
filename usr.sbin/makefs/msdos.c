@@ -39,30 +39,30 @@
 #endif
 
 #include <assert.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fs/msdosfs/bpb.h>
+#include <fs/msdosfs/msdosfsmount.h>
+#include <mkfs_msdos.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <util.h>
 
-#include <mkfs_msdos.h>
-#include <fs/msdosfs/bpb.h>
-#include "msdos/direntry.h"
 #include "msdos/denode.h"
-#include <fs/msdosfs/msdosfsmount.h>
+#include "msdos/direntry.h"
 
 #undef clrbuf
 #include "ffs/buf.h"
 #include "makefs.h"
 #include "msdos.h"
 
-static int msdos_populate_dir(const char *, struct denode *, fsnode *,
-    fsnode *, fsinfo_t *);
+static int msdos_populate_dir(const char *, struct denode *, fsnode *, fsnode *,
+    fsinfo_t *);
 
 struct msdos_options_ex {
 	struct msdos_options options;
@@ -73,22 +73,30 @@ msdos_prep_opts(fsinfo_t *fsopts)
 {
 	struct msdos_options_ex *msdos_opt = ecalloc(1, sizeof(*msdos_opt));
 	const option_t msdos_options[] = {
-#define AOPT(_opt, _type, _name, _min, _desc) {				\
-	.letter = _opt,							\
-	.name = # _name,						\
-	.type = _min == -1 ? OPT_STRPTR :				\
-	    (_min == -2 ? OPT_BOOL :					\
-	    (sizeof(_type) == 1 ? OPT_INT8 :				\
-	    (sizeof(_type) == 2 ? OPT_INT16 :				\
-	    (sizeof(_type) == 4 ? OPT_INT32 : OPT_INT64)))),		\
-	.value = &msdos_opt->options._name,				\
-	.minimum = _min,						\
-	.maximum = sizeof(_type) == 1 ? UINT8_MAX :			\
-	    (sizeof(_type) == 2 ? UINT16_MAX :				\
-	    (sizeof(_type) == 4 ? UINT32_MAX : INT64_MAX)),		\
-	.desc = _desc,							\
-},
-ALLOPTS
+#define AOPT(_opt, _type, _name, _min, _desc)                               \
+	{                                                                   \
+		.letter = _opt,                                             \
+		.name = #_name,                                             \
+		.type = _min == -1 ?                                        \
+		    OPT_STRPTR :                                            \
+		    (_min == -2 ? OPT_BOOL :                                \
+				  (sizeof(_type) == 1 ?                     \
+					  OPT_INT8 :                        \
+					  (sizeof(_type) == 2 ?             \
+						  OPT_INT16 :               \
+						  (sizeof(_type) == 4 ?     \
+							  OPT_INT32 :       \
+							  OPT_INT64)))),    \
+		.value = &msdos_opt->options._name,                         \
+		.minimum = _min,                                            \
+		.maximum = sizeof(_type) == 1 ?                             \
+		    UINT8_MAX :                                             \
+		    (sizeof(_type) == 2 ?                                   \
+			    UINT16_MAX :                                    \
+			    (sizeof(_type) == 4 ? UINT32_MAX : INT64_MAX)), \
+		.desc = _desc,                                              \
+	},
+		ALLOPTS
 #undef AOPT
 		{ .name = NULL }
 	};
@@ -137,7 +145,6 @@ msdos_parse_opts(const char *option, fsinfo_t *fsopts)
 	return 1;
 }
 
-
 void
 msdos_makefs(const char *image, const char *dir, fsnode *root, fsinfo_t *fsopts)
 {
@@ -163,7 +170,8 @@ msdos_makefs(const char *image, const char *dir, fsnode *root, fsinfo_t *fsopts)
 	} else if (fsopts->sectorsize == -1) {
 		fsopts->sectorsize = msdos_opt->options.bytes_per_sector;
 	} else if (fsopts->sectorsize != msdos_opt->options.bytes_per_sector) {
-		err(1, "inconsistent sectorsize -S %u"
+		err(1,
+		    "inconsistent sectorsize -S %u"
 		    "!= -o bytes_per_sector %u",
 		    fsopts->sectorsize, msdos_opt->options.bytes_per_sector);
 	}
@@ -185,8 +193,8 @@ msdos_makefs(const char *image, const char *dir, fsnode *root, fsinfo_t *fsopts)
 		err(1, "msdosfs_root");
 
 	if (debug & DEBUG_FS_MAKEFS)
-		printf("msdos_makefs: image %s directory %s root %p\n",
-		    image, dir, root);
+		printf("msdos_makefs: image %s directory %s root %p\n", image,
+		    dir, root);
 
 	/* populate image */
 	printf("Populating `%s'\n", image);
@@ -220,7 +228,7 @@ msdos_populate_dir(const char *path, struct denode *dir, fsnode *root,
 
 	for (cur = root->next; cur != NULL; cur = cur->next) {
 		if ((size_t)snprintf(pbuf, sizeof(pbuf), "%s/%s", path,
-		    cur->name) >= sizeof(pbuf)) {
+			cur->name) >= sizeof(pbuf)) {
 			warnx("path %s too long", pbuf);
 			return -1;
 		}
@@ -235,7 +243,7 @@ msdos_populate_dir(const char *path, struct denode *dir, fsnode *root,
 		}
 
 		if (cur->inode->flags & FI_WRITTEN) {
-			continue;	// hard link
+			continue; // hard link
 		}
 		cur->inode->flags |= FI_WRITTEN;
 
@@ -246,7 +254,7 @@ msdos_populate_dir(const char *path, struct denode *dir, fsnode *root,
 				return -1;
 			}
 			if (msdos_populate_dir(pbuf, de, cur->child, cur,
-			    fsopts) == -1) {
+				fsopts) == -1) {
 				warn("msdos_populate_dir %s", pbuf);
 				return -1;
 			}
@@ -257,7 +265,7 @@ msdos_populate_dir(const char *path, struct denode *dir, fsnode *root,
 			continue;
 		}
 		if (msdosfs_mkfile(cur->contents ? cur->contents : pbuf, dir,
-		    cur) == NULL) {
+			cur) == NULL) {
 			warn("msdosfs_mkfile %s", pbuf);
 			return -1;
 		}

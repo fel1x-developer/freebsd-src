@@ -32,11 +32,11 @@
 
 ******************************************************************************/
 
+#include "ixgbe_api.h"
 #include "ixgbe_common.h"
-#include "ixgbe_phy.h"
 #include "ixgbe_dcb.h"
 #include "ixgbe_dcb_82599.h"
-#include "ixgbe_api.h"
+#include "ixgbe_phy.h"
 
 static s32 ixgbe_acquire_eeprom(struct ixgbe_hw *hw);
 static s32 ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw);
@@ -44,7 +44,7 @@ static void ixgbe_release_eeprom_semaphore(struct ixgbe_hw *hw);
 static s32 ixgbe_ready_eeprom(struct ixgbe_hw *hw);
 static void ixgbe_standby_eeprom(struct ixgbe_hw *hw);
 static void ixgbe_shift_out_eeprom_bits(struct ixgbe_hw *hw, u16 data,
-					u16 count);
+    u16 count);
 static u16 ixgbe_shift_in_eeprom_bits(struct ixgbe_hw *hw, u16 count);
 static void ixgbe_raise_eeprom_clk(struct ixgbe_hw *hw, u32 *eec);
 static void ixgbe_lower_eeprom_clk(struct ixgbe_hw *hw, u32 *eec);
@@ -52,13 +52,13 @@ static void ixgbe_release_eeprom(struct ixgbe_hw *hw);
 
 static s32 ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr);
 static s32 ixgbe_get_san_mac_addr_offset(struct ixgbe_hw *hw,
-					 u16 *san_mac_offset);
+    u16 *san_mac_offset);
 static s32 ixgbe_read_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
-					     u16 words, u16 *data);
+    u16 words, u16 *data);
 static s32 ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
-					      u16 words, u16 *data);
+    u16 words, u16 *data);
 static s32 ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw,
-						 u16 offset);
+    u16 offset);
 
 /**
  * ixgbe_init_ops_generic - Inits function ptrs
@@ -66,7 +66,8 @@ static s32 ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw,
  *
  * Initialize the function pointers.
  **/
-s32 ixgbe_init_ops_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_ops_generic(struct ixgbe_hw *hw)
 {
 	struct ixgbe_eeprom_info *eeprom = &hw->eeprom;
 	struct ixgbe_mac_info *mac = &hw->mac;
@@ -83,12 +84,11 @@ s32 ixgbe_init_ops_generic(struct ixgbe_hw *hw)
 	} else {
 		eeprom->ops.read = ixgbe_read_eeprom_bit_bang_generic;
 		eeprom->ops.read_buffer =
-				 ixgbe_read_eeprom_buffer_bit_bang_generic;
+		    ixgbe_read_eeprom_buffer_bit_bang_generic;
 	}
 	eeprom->ops.write = ixgbe_write_eeprom_generic;
 	eeprom->ops.write_buffer = ixgbe_write_eeprom_buffer_bit_bang_generic;
-	eeprom->ops.validate_checksum =
-				      ixgbe_validate_eeprom_checksum_generic;
+	eeprom->ops.validate_checksum = ixgbe_validate_eeprom_checksum_generic;
 	eeprom->ops.update_checksum = ixgbe_update_eeprom_checksum_generic;
 	eeprom->ops.calc_checksum = ixgbe_calc_eeprom_checksum_generic;
 
@@ -159,7 +159,8 @@ s32 ixgbe_init_ops_generic(struct ixgbe_hw *hw)
  * autonegotiation, and false if it does not.
  *
  **/
-bool ixgbe_device_supports_autoneg_fc(struct ixgbe_hw *hw)
+bool
+ixgbe_device_supports_autoneg_fc(struct ixgbe_hw *hw)
 {
 	bool supported = false;
 	ixgbe_link_speed speed;
@@ -184,7 +185,8 @@ bool ixgbe_device_supports_autoneg_fc(struct ixgbe_hw *hw)
 			/* if link is down, assume supported */
 			if (link_up)
 				supported = speed == IXGBE_LINK_SPEED_1GB_FULL ?
-				true : false;
+				    true :
+				    false;
 			else
 				supported = true;
 		}
@@ -220,8 +222,8 @@ bool ixgbe_device_supports_autoneg_fc(struct ixgbe_hw *hw)
 
 	if (!supported)
 		ERROR_REPORT2(IXGBE_ERROR_UNSUPPORTED,
-			      "Device %x does not support flow control autoneg",
-			      hw->device_id);
+		    "Device %x does not support flow control autoneg",
+		    hw->device_id);
 
 	return supported;
 }
@@ -232,7 +234,8 @@ bool ixgbe_device_supports_autoneg_fc(struct ixgbe_hw *hw)
  *
  * Called at init time to set up flow control.
  **/
-s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 {
 	s32 ret_val = IXGBE_SUCCESS;
 	u32 reg = 0, reg_bp = 0;
@@ -244,7 +247,7 @@ s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 	/* Validate the requested mode */
 	if (hw->fc.strict_ieee && hw->fc.requested_mode == ixgbe_fc_rx_pause) {
 		ERROR_REPORT1(IXGBE_ERROR_UNSUPPORTED,
-			   "ixgbe_fc_rx_pause not valid in strict IEEE mode\n");
+		    "ixgbe_fc_rx_pause not valid in strict IEEE mode\n");
 		ret_val = IXGBE_ERR_INVALID_LINK_SETTINGS;
 		goto out;
 	}
@@ -278,7 +281,7 @@ s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 		break;
 	case ixgbe_media_type_copper:
 		hw->phy.ops.read_reg(hw, IXGBE_MDIO_AUTO_NEG_ADVT,
-				     IXGBE_MDIO_AUTO_NEG_DEV_TYPE, &reg_cu);
+		    IXGBE_MDIO_AUTO_NEG_DEV_TYPE, &reg_cu);
 		break;
 	default:
 		break;
@@ -299,8 +302,8 @@ s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 		/* Flow control completely disabled by software override. */
 		reg &= ~(IXGBE_PCS1GANA_SYM_PAUSE | IXGBE_PCS1GANA_ASM_PAUSE);
 		if (hw->phy.media_type == ixgbe_media_type_backplane)
-			reg_bp &= ~(IXGBE_AUTOC_SYM_PAUSE |
-				    IXGBE_AUTOC_ASM_PAUSE);
+			reg_bp &= ~(
+			    IXGBE_AUTOC_SYM_PAUSE | IXGBE_AUTOC_ASM_PAUSE);
 		else if (hw->phy.media_type == ixgbe_media_type_copper)
 			reg_cu &= ~(IXGBE_TAF_SYM_PAUSE | IXGBE_TAF_ASM_PAUSE);
 		break;
@@ -333,14 +336,13 @@ s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 		/* Flow control (both Rx and Tx) is enabled by SW override. */
 		reg |= IXGBE_PCS1GANA_SYM_PAUSE | IXGBE_PCS1GANA_ASM_PAUSE;
 		if (hw->phy.media_type == ixgbe_media_type_backplane)
-			reg_bp |= IXGBE_AUTOC_SYM_PAUSE |
-				  IXGBE_AUTOC_ASM_PAUSE;
+			reg_bp |= IXGBE_AUTOC_SYM_PAUSE | IXGBE_AUTOC_ASM_PAUSE;
 		else if (hw->phy.media_type == ixgbe_media_type_copper)
 			reg_cu |= IXGBE_TAF_SYM_PAUSE | IXGBE_TAF_ASM_PAUSE;
 		break;
 	default:
 		ERROR_REPORT1(IXGBE_ERROR_ARGUMENT,
-			     "Flow control param set incorrectly\n");
+		    "Flow control param set incorrectly\n");
 		ret_val = IXGBE_ERR_CONFIG;
 		goto out;
 		break;
@@ -373,9 +375,9 @@ s32 ixgbe_setup_fc_generic(struct ixgbe_hw *hw)
 		if (ret_val)
 			goto out;
 	} else if ((hw->phy.media_type == ixgbe_media_type_copper) &&
-		    (ixgbe_device_supports_autoneg_fc(hw))) {
+	    (ixgbe_device_supports_autoneg_fc(hw))) {
 		hw->phy.ops.write_reg(hw, IXGBE_MDIO_AUTO_NEG_ADVT,
-				      IXGBE_MDIO_AUTO_NEG_DEV_TYPE, reg_cu);
+		    IXGBE_MDIO_AUTO_NEG_DEV_TYPE, reg_cu);
 	}
 
 	DEBUGOUT1("Set up FC; PCS1GLCTL = 0x%08X\n", reg);
@@ -392,7 +394,8 @@ out:
  * table, VLAN filter table, calls routine to set up link and flow control
  * settings, and leaves transmit and receive units disabled and uninitialized
  **/
-s32 ixgbe_start_hw_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_start_hw_generic(struct ixgbe_hw *hw)
 {
 	s32 ret_val;
 	u32 ctrl_ext;
@@ -456,7 +459,8 @@ s32 ixgbe_start_hw_generic(struct ixgbe_hw *hw)
  *    82599
  *    X540
  **/
-void ixgbe_start_hw_gen2(struct ixgbe_hw *hw)
+void
+ixgbe_start_hw_gen2(struct ixgbe_hw *hw)
 {
 	u32 i;
 	u32 regval;
@@ -478,7 +482,7 @@ void ixgbe_start_hw_gen2(struct ixgbe_hw *hw)
 	for (i = 0; i < hw->mac.max_rx_queues; i++) {
 		regval = IXGBE_READ_REG(hw, IXGBE_DCA_RXCTRL(i));
 		regval &= ~(IXGBE_DCA_RXCTRL_DATA_WRO_EN |
-			    IXGBE_DCA_RXCTRL_HEAD_WRO_EN);
+		    IXGBE_DCA_RXCTRL_HEAD_WRO_EN);
 		IXGBE_WRITE_REG(hw, IXGBE_DCA_RXCTRL(i), regval);
 	}
 }
@@ -493,7 +497,8 @@ void ixgbe_start_hw_gen2(struct ixgbe_hw *hw)
  * up link and flow control settings, and leaves transmit and receive units
  * disabled and uninitialized
  **/
-s32 ixgbe_init_hw_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_hw_generic(struct ixgbe_hw *hw)
 {
 	s32 status;
 
@@ -524,7 +529,8 @@ s32 ixgbe_init_hw_generic(struct ixgbe_hw *hw)
  * Clears all hardware statistics counters by reading them from the hardware
  * Statistics counters are clear on read.
  **/
-s32 ixgbe_clear_hw_cntrs_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_clear_hw_cntrs_generic(struct ixgbe_hw *hw)
 {
 	u16 i = 0;
 
@@ -619,13 +625,13 @@ s32 ixgbe_clear_hw_cntrs_generic(struct ixgbe_hw *hw)
 		if (hw->phy.id == 0)
 			ixgbe_identify_phy(hw);
 		hw->phy.ops.read_reg(hw, IXGBE_PCRC8ECL,
-				     IXGBE_MDIO_PCS_DEV_TYPE, &i);
+		    IXGBE_MDIO_PCS_DEV_TYPE, &i);
 		hw->phy.ops.read_reg(hw, IXGBE_PCRC8ECH,
-				     IXGBE_MDIO_PCS_DEV_TYPE, &i);
-		hw->phy.ops.read_reg(hw, IXGBE_LDPCECL,
-				     IXGBE_MDIO_PCS_DEV_TYPE, &i);
-		hw->phy.ops.read_reg(hw, IXGBE_LDPCECH,
-				     IXGBE_MDIO_PCS_DEV_TYPE, &i);
+		    IXGBE_MDIO_PCS_DEV_TYPE, &i);
+		hw->phy.ops.read_reg(hw, IXGBE_LDPCECL, IXGBE_MDIO_PCS_DEV_TYPE,
+		    &i);
+		hw->phy.ops.read_reg(hw, IXGBE_LDPCECH, IXGBE_MDIO_PCS_DEV_TYPE,
+		    &i);
 	}
 
 	return IXGBE_SUCCESS;
@@ -639,8 +645,9 @@ s32 ixgbe_clear_hw_cntrs_generic(struct ixgbe_hw *hw)
  *
  * Reads the part number string from the EEPROM.
  **/
-s32 ixgbe_read_pba_string_generic(struct ixgbe_hw *hw, u8 *pba_num,
-				  u32 pba_num_size)
+s32
+ixgbe_read_pba_string_generic(struct ixgbe_hw *hw, u8 *pba_num,
+    u32 pba_num_size)
 {
 	s32 ret_val;
 	u16 data;
@@ -719,7 +726,7 @@ s32 ixgbe_read_pba_string_generic(struct ixgbe_hw *hw, u8 *pba_num,
 	}
 
 	/* check if pba_num buffer is big enough */
-	if (pba_num_size  < (((u32)length * 2) - 1)) {
+	if (pba_num_size < (((u32)length * 2) - 1)) {
 		DEBUGOUT("PBA string buffer too small\n");
 		return IXGBE_ERR_NO_SPACE;
 	}
@@ -749,7 +756,8 @@ s32 ixgbe_read_pba_string_generic(struct ixgbe_hw *hw, u8 *pba_num,
  *
  * Reads the part number from the EEPROM.
  **/
-s32 ixgbe_read_pba_num_generic(struct ixgbe_hw *hw, u32 *pba_num)
+s32
+ixgbe_read_pba_num_generic(struct ixgbe_hw *hw, u32 *pba_num)
 {
 	s32 ret_val;
 	u16 data;
@@ -788,9 +796,9 @@ s32 ixgbe_read_pba_num_generic(struct ixgbe_hw *hw, u32 *pba_num)
  * Reads PBA from physical EEPROM device when eeprom_buf is NULL.
  *
  **/
-s32 ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
-		       u32 eeprom_buf_size, u16 max_pba_block_size,
-		       struct ixgbe_pba *pba)
+s32
+ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf, u32 eeprom_buf_size,
+    u16 max_pba_block_size, struct ixgbe_pba *pba)
 {
 	s32 ret_val;
 	u16 pba_block_size;
@@ -800,7 +808,7 @@ s32 ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
 
 	if (eeprom_buf == NULL) {
 		ret_val = hw->eeprom.ops.read_buffer(hw, IXGBE_PBANUM0_PTR, 2,
-						     &pba->word[0]);
+		    &pba->word[0]);
 		if (ret_val)
 			return ret_val;
 	} else {
@@ -817,8 +825,7 @@ s32 ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
 			return IXGBE_ERR_PARAM;
 
 		ret_val = ixgbe_get_pba_block_size(hw, eeprom_buf,
-						   eeprom_buf_size,
-						   &pba_block_size);
+		    eeprom_buf_size, &pba_block_size);
 		if (ret_val)
 			return ret_val;
 
@@ -827,16 +834,15 @@ s32 ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
 
 		if (eeprom_buf == NULL) {
 			ret_val = hw->eeprom.ops.read_buffer(hw, pba->word[1],
-							     pba_block_size,
-							     pba->pba_block);
+			    pba_block_size, pba->pba_block);
 			if (ret_val)
 				return ret_val;
 		} else {
-			if (eeprom_buf_size > (u32)(pba->word[1] +
-					      pba_block_size)) {
+			if (eeprom_buf_size >
+			    (u32)(pba->word[1] + pba_block_size)) {
 				memcpy(pba->pba_block,
-				       &eeprom_buf[pba->word[1]],
-				       pba_block_size * sizeof(u16));
+				    &eeprom_buf[pba->word[1]],
+				    pba_block_size * sizeof(u16));
 			} else {
 				return IXGBE_ERR_PARAM;
 			}
@@ -857,8 +863,9 @@ s32 ixgbe_read_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
  * Writes PBA to physical EEPROM device when eeprom_buf is NULL.
  *
  **/
-s32 ixgbe_write_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
-			u32 eeprom_buf_size, struct ixgbe_pba *pba)
+s32
+ixgbe_write_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf, u32 eeprom_buf_size,
+    struct ixgbe_pba *pba)
 {
 	s32 ret_val;
 
@@ -867,7 +874,7 @@ s32 ixgbe_write_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
 
 	if (eeprom_buf == NULL) {
 		ret_val = hw->eeprom.ops.write_buffer(hw, IXGBE_PBANUM0_PTR, 2,
-						      &pba->word[0]);
+		    &pba->word[0]);
 		if (ret_val)
 			return ret_val;
 	} else {
@@ -885,16 +892,15 @@ s32 ixgbe_write_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
 
 		if (eeprom_buf == NULL) {
 			ret_val = hw->eeprom.ops.write_buffer(hw, pba->word[1],
-							      pba->pba_block[0],
-							      pba->pba_block);
+			    pba->pba_block[0], pba->pba_block);
 			if (ret_val)
 				return ret_val;
 		} else {
-			if (eeprom_buf_size > (u32)(pba->word[1] +
-					      pba->pba_block[0])) {
+			if (eeprom_buf_size >
+			    (u32)(pba->word[1] + pba->pba_block[0])) {
 				memcpy(&eeprom_buf[pba->word[1]],
-				       pba->pba_block,
-				       pba->pba_block[0] * sizeof(u16));
+				    pba->pba_block,
+				    pba->pba_block[0] * sizeof(u16));
 			} else {
 				return IXGBE_ERR_PARAM;
 			}
@@ -916,8 +922,9 @@ s32 ixgbe_write_pba_raw(struct ixgbe_hw *hw, u16 *eeprom_buf,
  * EEPROM device.
  *
  **/
-s32 ixgbe_get_pba_block_size(struct ixgbe_hw *hw, u16 *eeprom_buf,
-			     u32 eeprom_buf_size, u16 *pba_block_size)
+s32
+ixgbe_get_pba_block_size(struct ixgbe_hw *hw, u16 *eeprom_buf,
+    u32 eeprom_buf_size, u16 *pba_block_size)
 {
 	s32 ret_val;
 	u16 pba_word[2];
@@ -927,7 +934,7 @@ s32 ixgbe_get_pba_block_size(struct ixgbe_hw *hw, u16 *eeprom_buf,
 
 	if (eeprom_buf == NULL) {
 		ret_val = hw->eeprom.ops.read_buffer(hw, IXGBE_PBANUM0_PTR, 2,
-						     &pba_word[0]);
+		    &pba_word[0]);
 		if (ret_val)
 			return ret_val;
 	} else {
@@ -942,7 +949,7 @@ s32 ixgbe_get_pba_block_size(struct ixgbe_hw *hw, u16 *eeprom_buf,
 	if (pba_word[0] == IXGBE_PBANUM_PTR_GUARD) {
 		if (eeprom_buf == NULL) {
 			ret_val = hw->eeprom.ops.read(hw, pba_word[1] + 0,
-						      &length);
+			    &length);
 			if (ret_val)
 				return ret_val;
 		} else {
@@ -974,7 +981,8 @@ s32 ixgbe_get_pba_block_size(struct ixgbe_hw *hw, u16 *eeprom_buf,
  * A reset of the adapter must be performed prior to calling this function
  * in order for the MAC address to have been loaded from the EEPROM into RAR0
  **/
-s32 ixgbe_get_mac_addr_generic(struct ixgbe_hw *hw, u8 *mac_addr)
+s32
+ixgbe_get_mac_addr_generic(struct ixgbe_hw *hw, u8 *mac_addr)
 {
 	u32 rar_high;
 	u32 rar_low;
@@ -986,10 +994,10 @@ s32 ixgbe_get_mac_addr_generic(struct ixgbe_hw *hw, u8 *mac_addr)
 	rar_low = IXGBE_READ_REG(hw, IXGBE_RAL(0));
 
 	for (i = 0; i < 4; i++)
-		mac_addr[i] = (u8)(rar_low >> (i*8));
+		mac_addr[i] = (u8)(rar_low >> (i * 8));
 
 	for (i = 0; i < 2; i++)
-		mac_addr[i+4] = (u8)(rar_high >> (i*8));
+		mac_addr[i + 4] = (u8)(rar_high >> (i * 8));
 
 	return IXGBE_SUCCESS;
 }
@@ -1001,7 +1009,8 @@ s32 ixgbe_get_mac_addr_generic(struct ixgbe_hw *hw, u8 *mac_addr)
  *
  * Stores the PCI bus info (speed, width, type) within the ixgbe_hw structure
  **/
-void ixgbe_set_pci_config_data_generic(struct ixgbe_hw *hw, u16 link_status)
+void
+ixgbe_set_pci_config_data_generic(struct ixgbe_hw *hw, u16 link_status)
 {
 	struct ixgbe_mac_info *mac = &hw->mac;
 
@@ -1051,7 +1060,8 @@ void ixgbe_set_pci_config_data_generic(struct ixgbe_hw *hw, u16 link_status)
  * Gets the PCI bus info (speed, width, type) then calls helper function to
  * store this data within the ixgbe_hw structure.
  **/
-s32 ixgbe_get_bus_info_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_get_bus_info_generic(struct ixgbe_hw *hw)
 {
 	u16 link_status;
 
@@ -1073,7 +1083,8 @@ s32 ixgbe_get_bus_info_generic(struct ixgbe_hw *hw)
  * the port value if requested, and set MAC instance for devices that share
  * CS4227.
  **/
-void ixgbe_set_lan_id_multi_port_pcie(struct ixgbe_hw *hw)
+void
+ixgbe_set_lan_id_multi_port_pcie(struct ixgbe_hw *hw)
 {
 	struct ixgbe_bus_info *bus = &hw->bus;
 	u32 reg;
@@ -1094,7 +1105,7 @@ void ixgbe_set_lan_id_multi_port_pcie(struct ixgbe_hw *hw)
 	if (hw->device_id == IXGBE_DEV_ID_X550EM_A_SFP) {
 		hw->eeprom.ops.read(hw, IXGBE_EEPROM_CTRL_4, &ee_ctrl_4);
 		bus->instance_id = (ee_ctrl_4 & IXGBE_EE_CTRL_4_INST_ID) >>
-				   IXGBE_EE_CTRL_4_INST_ID_SHIFT;
+		    IXGBE_EE_CTRL_4_INST_ID_SHIFT;
 	}
 }
 
@@ -1107,7 +1118,8 @@ void ixgbe_set_lan_id_multi_port_pcie(struct ixgbe_hw *hw)
  * the shared code and drivers to determine if the adapter is in a stopped
  * state and should not touch the hardware.
  **/
-s32 ixgbe_stop_adapter_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_stop_adapter_generic(struct ixgbe_hw *hw)
 {
 	u32 reg_val;
 	u16 i;
@@ -1159,7 +1171,8 @@ s32 ixgbe_stop_adapter_generic(struct ixgbe_hw *hw)
  * Store the index for the link active LED. This will be used to support
  * blinking the LED.
  **/
-s32 ixgbe_init_led_link_act_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_led_link_act_generic(struct ixgbe_hw *hw)
 {
 	struct ixgbe_mac_info *mac = &hw->mac;
 	u32 led_reg, led_mode;
@@ -1172,7 +1185,7 @@ s32 ixgbe_init_led_link_act_generic(struct ixgbe_hw *hw)
 		led_mode = led_reg >> IXGBE_LED_MODE_SHIFT(i);
 
 		if ((led_mode & IXGBE_LED_MODE_MASK_BASE) ==
-		     IXGBE_LED_LINK_ACTIVE) {
+		    IXGBE_LED_LINK_ACTIVE) {
 			mac->led_link_act = i;
 			return IXGBE_SUCCESS;
 		}
@@ -1198,7 +1211,8 @@ s32 ixgbe_init_led_link_act_generic(struct ixgbe_hw *hw)
  * @hw: pointer to hardware structure
  * @index: led number to turn on
  **/
-s32 ixgbe_led_on_generic(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_led_on_generic(struct ixgbe_hw *hw, u32 index)
 {
 	u32 led_reg = IXGBE_READ_REG(hw, IXGBE_LEDCTL);
 
@@ -1221,7 +1235,8 @@ s32 ixgbe_led_on_generic(struct ixgbe_hw *hw, u32 index)
  * @hw: pointer to hardware structure
  * @index: led number to turn off
  **/
-s32 ixgbe_led_off_generic(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_led_off_generic(struct ixgbe_hw *hw, u32 index)
 {
 	u32 led_reg = IXGBE_READ_REG(hw, IXGBE_LEDCTL);
 
@@ -1246,7 +1261,8 @@ s32 ixgbe_led_off_generic(struct ixgbe_hw *hw, u32 index)
  * Initializes the EEPROM parameters ixgbe_eeprom_info within the
  * ixgbe_hw struct in order to set up EEPROM access.
  **/
-s32 ixgbe_init_eeprom_params_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_eeprom_params_generic(struct ixgbe_hw *hw)
 {
 	struct ixgbe_eeprom_info *eeprom = &hw->eeprom;
 	u32 eec;
@@ -1275,9 +1291,9 @@ s32 ixgbe_init_eeprom_params_generic(struct ixgbe_hw *hw)
 			 * change if a future EEPROM is not SPI.
 			 */
 			eeprom_size = (u16)((eec & IXGBE_EEC_SIZE) >>
-					    IXGBE_EEC_SIZE_SHIFT);
-			eeprom->word_size = 1 << (eeprom_size +
-					     IXGBE_EEPROM_WORD_SIZE_SHIFT);
+			    IXGBE_EEC_SIZE_SHIFT);
+			eeprom->word_size = 1
+			    << (eeprom_size + IXGBE_EEPROM_WORD_SIZE_SHIFT);
 		}
 
 		if (eec & IXGBE_EEC_ADDR_SIZE)
@@ -1285,8 +1301,8 @@ s32 ixgbe_init_eeprom_params_generic(struct ixgbe_hw *hw)
 		else
 			eeprom->address_bits = 8;
 		DEBUGOUT3("Eeprom params: type = %d, size = %d, address bits: "
-			  "%d\n", eeprom->type, eeprom->word_size,
-			  eeprom->address_bits);
+			  "%d\n",
+		    eeprom->type, eeprom->word_size, eeprom->address_bits);
 	}
 
 	return IXGBE_SUCCESS;
@@ -1301,8 +1317,9 @@ s32 ixgbe_init_eeprom_params_generic(struct ixgbe_hw *hw)
  *
  * Reads 16 bit word(s) from EEPROM through bit-bang method
  **/
-s32 ixgbe_write_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
-					       u16 words, u16 *data)
+s32
+ixgbe_write_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
+    u16 words, u16 *data)
 {
 	s32 status = IXGBE_SUCCESS;
 	u16 i, count;
@@ -1336,9 +1353,10 @@ s32 ixgbe_write_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
 	 */
 	for (i = 0; i < words; i += IXGBE_EEPROM_RD_BUFFER_MAX_COUNT) {
 		count = (words - i) / IXGBE_EEPROM_RD_BUFFER_MAX_COUNT > 0 ?
-			IXGBE_EEPROM_RD_BUFFER_MAX_COUNT : (words - i);
+		    IXGBE_EEPROM_RD_BUFFER_MAX_COUNT :
+		    (words - i);
 		status = ixgbe_write_eeprom_buffer_bit_bang(hw, offset + i,
-							    count, &data[i]);
+		    count, &data[i]);
 
 		if (status != IXGBE_SUCCESS)
 			break;
@@ -1358,8 +1376,9 @@ out:
  * If ixgbe_eeprom_update_checksum is not called after this function, the
  * EEPROM will most likely contain an invalid checksum.
  **/
-static s32 ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
-					      u16 words, u16 *data)
+static s32
+ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	s32 status;
 	u16 word;
@@ -1385,8 +1404,8 @@ static s32 ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
 
 			/*  Send the WRITE ENABLE command (8 bit opcode )  */
 			ixgbe_shift_out_eeprom_bits(hw,
-						   IXGBE_EEPROM_WREN_OPCODE_SPI,
-						   IXGBE_EEPROM_OPCODE_BITS);
+			    IXGBE_EEPROM_WREN_OPCODE_SPI,
+			    IXGBE_EEPROM_OPCODE_BITS);
 
 			ixgbe_standby_eeprom(hw);
 
@@ -1400,9 +1419,9 @@ static s32 ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
 
 			/* Send the Write command (8-bit opcode + addr) */
 			ixgbe_shift_out_eeprom_bits(hw, write_opcode,
-						    IXGBE_EEPROM_OPCODE_BITS);
+			    IXGBE_EEPROM_OPCODE_BITS);
 			ixgbe_shift_out_eeprom_bits(hw, (u16)((offset + i) * 2),
-						    hw->eeprom.address_bits);
+			    hw->eeprom.address_bits);
 
 			page_size = hw->eeprom.word_page_size;
 
@@ -1440,7 +1459,8 @@ static s32 ixgbe_write_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
  * If ixgbe_eeprom_update_checksum is not called after this function, the
  * EEPROM will most likely contain an invalid checksum.
  **/
-s32 ixgbe_write_eeprom_generic(struct ixgbe_hw *hw, u16 offset, u16 data)
+s32
+ixgbe_write_eeprom_generic(struct ixgbe_hw *hw, u16 offset, u16 data)
 {
 	s32 status;
 
@@ -1468,8 +1488,9 @@ out:
  *
  * Reads 16 bit word(s) from EEPROM through bit-bang method
  **/
-s32 ixgbe_read_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
-					      u16 words, u16 *data)
+s32
+ixgbe_read_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
+    u16 words, u16 *data)
 {
 	s32 status = IXGBE_SUCCESS;
 	u16 i, count;
@@ -1495,10 +1516,11 @@ s32 ixgbe_read_eeprom_buffer_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
 	 */
 	for (i = 0; i < words; i += IXGBE_EEPROM_RD_BUFFER_MAX_COUNT) {
 		count = (words - i) / IXGBE_EEPROM_RD_BUFFER_MAX_COUNT > 0 ?
-			IXGBE_EEPROM_RD_BUFFER_MAX_COUNT : (words - i);
+		    IXGBE_EEPROM_RD_BUFFER_MAX_COUNT :
+		    (words - i);
 
 		status = ixgbe_read_eeprom_buffer_bit_bang(hw, offset + i,
-							   count, &data[i]);
+		    count, &data[i]);
 
 		if (status != IXGBE_SUCCESS)
 			break;
@@ -1517,8 +1539,9 @@ out:
  *
  * Reads 16 bit word(s) from EEPROM through bit-bang method
  **/
-static s32 ixgbe_read_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
-					     u16 words, u16 *data)
+static s32
+ixgbe_read_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	s32 status;
 	u16 word_in;
@@ -1550,9 +1573,9 @@ static s32 ixgbe_read_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
 
 			/* Send the READ command (opcode + addr) */
 			ixgbe_shift_out_eeprom_bits(hw, read_opcode,
-						    IXGBE_EEPROM_OPCODE_BITS);
+			    IXGBE_EEPROM_OPCODE_BITS);
 			ixgbe_shift_out_eeprom_bits(hw, (u16)((offset + i) * 2),
-						    hw->eeprom.address_bits);
+			    hw->eeprom.address_bits);
 
 			/* Read the data. */
 			word_in = ixgbe_shift_in_eeprom_bits(hw, 16);
@@ -1574,8 +1597,8 @@ static s32 ixgbe_read_eeprom_buffer_bit_bang(struct ixgbe_hw *hw, u16 offset,
  *
  * Reads 16 bit value from EEPROM through bit-bang method
  **/
-s32 ixgbe_read_eeprom_bit_bang_generic(struct ixgbe_hw *hw, u16 offset,
-				       u16 *data)
+s32
+ixgbe_read_eeprom_bit_bang_generic(struct ixgbe_hw *hw, u16 offset, u16 *data)
 {
 	s32 status;
 
@@ -1603,8 +1626,9 @@ out:
  *
  * Reads a 16 bit word(s) from the EEPROM using the EERD register.
  **/
-s32 ixgbe_read_eerd_buffer_generic(struct ixgbe_hw *hw, u16 offset,
-				   u16 words, u16 *data)
+s32
+ixgbe_read_eerd_buffer_generic(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	u32 eerd;
 	s32 status = IXGBE_SUCCESS;
@@ -1628,14 +1652,14 @@ s32 ixgbe_read_eerd_buffer_generic(struct ixgbe_hw *hw, u16 offset,
 
 	for (i = 0; i < words; i++) {
 		eerd = ((offset + i) << IXGBE_EEPROM_RW_ADDR_SHIFT) |
-		       IXGBE_EEPROM_RW_REG_START;
+		    IXGBE_EEPROM_RW_REG_START;
 
 		IXGBE_WRITE_REG(hw, IXGBE_EERD, eerd);
 		status = ixgbe_poll_eerd_eewr_done(hw, IXGBE_NVM_POLL_READ);
 
 		if (status == IXGBE_SUCCESS) {
 			data[i] = (IXGBE_READ_REG(hw, IXGBE_EERD) >>
-				   IXGBE_EEPROM_RW_REG_DATA);
+			    IXGBE_EEPROM_RW_REG_DATA);
 		} else {
 			DEBUGOUT("Eeprom read timed out\n");
 			goto out;
@@ -1654,8 +1678,8 @@ out:
  * This function is called only when we are writing a new large buffer
  * at given offset so the data would be overwritten anyway.
  **/
-static s32 ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw,
-						 u16 offset)
+static s32
+ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw, u16 offset)
 {
 	u16 data[IXGBE_EEPROM_PAGE_SIZE_MAX];
 	s32 status = IXGBE_SUCCESS;
@@ -1668,7 +1692,7 @@ static s32 ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw,
 
 	hw->eeprom.word_page_size = IXGBE_EEPROM_PAGE_SIZE_MAX;
 	status = ixgbe_write_eeprom_buffer_bit_bang(hw, offset,
-					     IXGBE_EEPROM_PAGE_SIZE_MAX, data);
+	    IXGBE_EEPROM_PAGE_SIZE_MAX, data);
 	hw->eeprom.word_page_size = 0;
 	if (status != IXGBE_SUCCESS)
 		goto out;
@@ -1684,7 +1708,7 @@ static s32 ixgbe_detect_eeprom_page_size_generic(struct ixgbe_hw *hw,
 	hw->eeprom.word_page_size = IXGBE_EEPROM_PAGE_SIZE_MAX - data[0];
 
 	DEBUGOUT1("Detected EEPROM page size = %d words.",
-		  hw->eeprom.word_page_size);
+	    hw->eeprom.word_page_size);
 out:
 	return status;
 }
@@ -1697,7 +1721,8 @@ out:
  *
  * Reads a 16 bit word from the EEPROM using the EERD register.
  **/
-s32 ixgbe_read_eerd_generic(struct ixgbe_hw *hw, u16 offset, u16 *data)
+s32
+ixgbe_read_eerd_generic(struct ixgbe_hw *hw, u16 offset, u16 *data)
 {
 	return ixgbe_read_eerd_buffer_generic(hw, offset, 1, data);
 }
@@ -1711,8 +1736,9 @@ s32 ixgbe_read_eerd_generic(struct ixgbe_hw *hw, u16 offset, u16 *data)
  *
  * Write a 16 bit word(s) to the EEPROM using the EEWR register.
  **/
-s32 ixgbe_write_eewr_buffer_generic(struct ixgbe_hw *hw, u16 offset,
-				    u16 words, u16 *data)
+s32
+ixgbe_write_eewr_buffer_generic(struct ixgbe_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	u32 eewr;
 	s32 status = IXGBE_SUCCESS;
@@ -1736,8 +1762,8 @@ s32 ixgbe_write_eewr_buffer_generic(struct ixgbe_hw *hw, u16 offset,
 
 	for (i = 0; i < words; i++) {
 		eewr = ((offset + i) << IXGBE_EEPROM_RW_ADDR_SHIFT) |
-			(data[i] << IXGBE_EEPROM_RW_REG_DATA) |
-			IXGBE_EEPROM_RW_REG_START;
+		    (data[i] << IXGBE_EEPROM_RW_REG_DATA) |
+		    IXGBE_EEPROM_RW_REG_START;
 
 		status = ixgbe_poll_eerd_eewr_done(hw, IXGBE_NVM_POLL_WRITE);
 		if (status != IXGBE_SUCCESS) {
@@ -1766,7 +1792,8 @@ out:
  *
  * Write a 16 bit word to the EEPROM using the EEWR register.
  **/
-s32 ixgbe_write_eewr_generic(struct ixgbe_hw *hw, u16 offset, u16 data)
+s32
+ixgbe_write_eewr_generic(struct ixgbe_hw *hw, u16 offset, u16 data)
 {
 	return ixgbe_write_eewr_buffer_generic(hw, offset, 1, &data);
 }
@@ -1779,7 +1806,8 @@ s32 ixgbe_write_eewr_generic(struct ixgbe_hw *hw, u16 offset, u16 data)
  * Polls the status bit (bit 1) of the EERD or EEWR to determine when the
  * read or write is done respectively.
  **/
-s32 ixgbe_poll_eerd_eewr_done(struct ixgbe_hw *hw, u32 ee_reg)
+s32
+ixgbe_poll_eerd_eewr_done(struct ixgbe_hw *hw, u32 ee_reg)
 {
 	u32 i;
 	u32 reg;
@@ -1802,7 +1830,7 @@ s32 ixgbe_poll_eerd_eewr_done(struct ixgbe_hw *hw, u32 ee_reg)
 
 	if (i == IXGBE_EERD_EEWR_ATTEMPTS)
 		ERROR_REPORT1(IXGBE_ERROR_POLLING,
-			     "EEPROM read/write done polling timed out");
+		    "EEPROM read/write done polling timed out");
 
 	return status;
 }
@@ -1814,7 +1842,8 @@ s32 ixgbe_poll_eerd_eewr_done(struct ixgbe_hw *hw, u32 ee_reg)
  * Prepares EEPROM for access using bit-bang method. This function should
  * be called before issuing a command to the EEPROM.
  **/
-static s32 ixgbe_acquire_eeprom(struct ixgbe_hw *hw)
+static s32
+ixgbe_acquire_eeprom(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_SUCCESS;
 	u32 eec;
@@ -1822,8 +1851,8 @@ static s32 ixgbe_acquire_eeprom(struct ixgbe_hw *hw)
 
 	DEBUGFUNC("ixgbe_acquire_eeprom");
 
-	if (hw->mac.ops.acquire_swfw_sync(hw, IXGBE_GSSR_EEP_SM)
-	    != IXGBE_SUCCESS)
+	if (hw->mac.ops.acquire_swfw_sync(hw, IXGBE_GSSR_EEP_SM) !=
+	    IXGBE_SUCCESS)
 		status = IXGBE_ERR_SWFW_SYNC;
 
 	if (status == IXGBE_SUCCESS) {
@@ -1868,7 +1897,8 @@ static s32 ixgbe_acquire_eeprom(struct ixgbe_hw *hw)
  *
  * Sets the hardware semaphores so EEPROM access can occur for bit-bang method
  **/
-static s32 ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw)
+static s32
+ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_ERR_EEPROM;
 	u32 timeout = 2000;
@@ -1876,7 +1906,6 @@ static s32 ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw)
 	u32 swsm;
 
 	DEBUGFUNC("ixgbe_get_eeprom_semaphore");
-
 
 	/* Get SMBI software semaphore between device drivers first */
 	for (i = 0; i < timeout; i++) {
@@ -1946,8 +1975,8 @@ static s32 ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw)
 		}
 	} else {
 		ERROR_REPORT1(IXGBE_ERROR_POLLING,
-			     "Software semaphore SMBI between device drivers "
-			     "not granted.\n");
+		    "Software semaphore SMBI between device drivers "
+		    "not granted.\n");
 	}
 
 	return status;
@@ -1959,7 +1988,8 @@ static s32 ixgbe_get_eeprom_semaphore(struct ixgbe_hw *hw)
  *
  * This function clears hardware semaphore bits.
  **/
-static void ixgbe_release_eeprom_semaphore(struct ixgbe_hw *hw)
+static void
+ixgbe_release_eeprom_semaphore(struct ixgbe_hw *hw)
 {
 	u32 swsm;
 
@@ -1977,7 +2007,8 @@ static void ixgbe_release_eeprom_semaphore(struct ixgbe_hw *hw)
  * ixgbe_ready_eeprom - Polls for EEPROM ready
  * @hw: pointer to hardware structure
  **/
-static s32 ixgbe_ready_eeprom(struct ixgbe_hw *hw)
+static s32
+ixgbe_ready_eeprom(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_SUCCESS;
 	u16 i;
@@ -1993,7 +2024,7 @@ static s32 ixgbe_ready_eeprom(struct ixgbe_hw *hw)
 	 */
 	for (i = 0; i < IXGBE_EEPROM_MAX_RETRY_SPI; i += 5) {
 		ixgbe_shift_out_eeprom_bits(hw, IXGBE_EEPROM_RDSR_OPCODE_SPI,
-					    IXGBE_EEPROM_OPCODE_BITS);
+		    IXGBE_EEPROM_OPCODE_BITS);
 		spi_stat_reg = (u8)ixgbe_shift_in_eeprom_bits(hw, 8);
 		if (!(spi_stat_reg & IXGBE_EEPROM_STATUS_RDY_SPI))
 			break;
@@ -2018,7 +2049,8 @@ static s32 ixgbe_ready_eeprom(struct ixgbe_hw *hw)
  * ixgbe_standby_eeprom - Returns EEPROM to a "standby" state
  * @hw: pointer to hardware structure
  **/
-static void ixgbe_standby_eeprom(struct ixgbe_hw *hw)
+static void
+ixgbe_standby_eeprom(struct ixgbe_hw *hw)
 {
 	u32 eec;
 
@@ -2043,8 +2075,8 @@ static void ixgbe_standby_eeprom(struct ixgbe_hw *hw)
  * @data: data to send to the EEPROM
  * @count: number of bits to shift out
  **/
-static void ixgbe_shift_out_eeprom_bits(struct ixgbe_hw *hw, u16 data,
-					u16 count)
+static void
+ixgbe_shift_out_eeprom_bits(struct ixgbe_hw *hw, u16 data, u16 count)
 {
 	u32 eec;
 	u32 mask;
@@ -2099,7 +2131,8 @@ static void ixgbe_shift_out_eeprom_bits(struct ixgbe_hw *hw, u16 data,
  * @hw: pointer to hardware structure
  * @count: number of bits to shift
  **/
-static u16 ixgbe_shift_in_eeprom_bits(struct ixgbe_hw *hw, u16 count)
+static u16
+ixgbe_shift_in_eeprom_bits(struct ixgbe_hw *hw, u16 count)
 {
 	u32 eec;
 	u32 i;
@@ -2139,7 +2172,8 @@ static u16 ixgbe_shift_in_eeprom_bits(struct ixgbe_hw *hw, u16 count)
  * @hw: pointer to hardware structure
  * @eec: EEC register's current value
  **/
-static void ixgbe_raise_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
+static void
+ixgbe_raise_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
 {
 	DEBUGFUNC("ixgbe_raise_eeprom_clk");
 
@@ -2158,7 +2192,8 @@ static void ixgbe_raise_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
  * @hw: pointer to hardware structure
  * @eec: EEC's current value
  **/
-static void ixgbe_lower_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
+static void
+ixgbe_lower_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
 {
 	DEBUGFUNC("ixgbe_lower_eeprom_clk");
 
@@ -2176,7 +2211,8 @@ static void ixgbe_lower_eeprom_clk(struct ixgbe_hw *hw, u32 *eec)
  * ixgbe_release_eeprom - Release EEPROM, release semaphores
  * @hw: pointer to hardware structure
  **/
-static void ixgbe_release_eeprom(struct ixgbe_hw *hw)
+static void
+ixgbe_release_eeprom(struct ixgbe_hw *hw)
 {
 	u32 eec;
 
@@ -2208,7 +2244,8 @@ static void ixgbe_release_eeprom(struct ixgbe_hw *hw)
  *
  * Returns a negative error code on error, or the 16-bit checksum
  **/
-s32 ixgbe_calc_eeprom_checksum_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_calc_eeprom_checksum_generic(struct ixgbe_hw *hw)
 {
 	u16 i;
 	u16 j;
@@ -2269,8 +2306,8 @@ s32 ixgbe_calc_eeprom_checksum_generic(struct ixgbe_hw *hw)
  * Performs checksum calculation and validates the EEPROM checksum.  If the
  * caller does not need checksum_val, the value can be NULL.
  **/
-s32 ixgbe_validate_eeprom_checksum_generic(struct ixgbe_hw *hw,
-					   u16 *checksum_val)
+s32
+ixgbe_validate_eeprom_checksum_generic(struct ixgbe_hw *hw, u16 *checksum_val)
 {
 	s32 status;
 	u16 checksum;
@@ -2317,7 +2354,8 @@ s32 ixgbe_validate_eeprom_checksum_generic(struct ixgbe_hw *hw,
  * ixgbe_update_eeprom_checksum_generic - Updates the EEPROM checksum
  * @hw: pointer to hardware structure
  **/
-s32 ixgbe_update_eeprom_checksum_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_update_eeprom_checksum_generic(struct ixgbe_hw *hw)
 {
 	s32 status;
 	u16 checksum;
@@ -2351,7 +2389,8 @@ s32 ixgbe_update_eeprom_checksum_generic(struct ixgbe_hw *hw)
  *
  * Tests a MAC address to ensure it is a valid Individual Address.
  **/
-s32 ixgbe_validate_mac_addr(u8 *mac_addr)
+s32
+ixgbe_validate_mac_addr(u8 *mac_addr)
 {
 	s32 status = IXGBE_SUCCESS;
 
@@ -2360,12 +2399,12 @@ s32 ixgbe_validate_mac_addr(u8 *mac_addr)
 	/* Make sure it is not a multicast address */
 	if (IXGBE_IS_MULTICAST(mac_addr)) {
 		status = IXGBE_ERR_INVALID_MAC_ADDR;
-	/* Not a broadcast address */
+		/* Not a broadcast address */
 	} else if (IXGBE_IS_BROADCAST(mac_addr)) {
 		status = IXGBE_ERR_INVALID_MAC_ADDR;
-	/* Reject the zero address */
+		/* Reject the zero address */
 	} else if (mac_addr[0] == 0 && mac_addr[1] == 0 && mac_addr[2] == 0 &&
-		   mac_addr[3] == 0 && mac_addr[4] == 0 && mac_addr[5] == 0) {
+	    mac_addr[3] == 0 && mac_addr[4] == 0 && mac_addr[5] == 0) {
 		status = IXGBE_ERR_INVALID_MAC_ADDR;
 	}
 	return status;
@@ -2381,8 +2420,9 @@ s32 ixgbe_validate_mac_addr(u8 *mac_addr)
  *
  * Puts an ethernet address into a receive address register.
  **/
-s32 ixgbe_set_rar_generic(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
-			  u32 enable_addr)
+s32
+ixgbe_set_rar_generic(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
+    u32 enable_addr)
 {
 	u32 rar_low, rar_high;
 	u32 rar_entries = hw->mac.num_rar_entries;
@@ -2392,7 +2432,7 @@ s32 ixgbe_set_rar_generic(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
 	/* Make sure we are using a valid rar index range */
 	if (index >= rar_entries) {
 		ERROR_REPORT2(IXGBE_ERROR_ARGUMENT,
-			     "RAR index %d is out of range.\n", index);
+		    "RAR index %d is out of range.\n", index);
 		return IXGBE_ERR_INVALID_ARGUMENT;
 	}
 
@@ -2403,10 +2443,8 @@ s32 ixgbe_set_rar_generic(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
 	 * HW expects these in little endian so we reverse the byte
 	 * order from network order (big endian) to little endian
 	 */
-	rar_low = ((u32)addr[0] |
-		   ((u32)addr[1] << 8) |
-		   ((u32)addr[2] << 16) |
-		   ((u32)addr[3] << 24));
+	rar_low = ((u32)addr[0] | ((u32)addr[1] << 8) | ((u32)addr[2] << 16) |
+	    ((u32)addr[3] << 24));
 	/*
 	 * Some parts put the VMDq setting in the extra RAH bits,
 	 * so save everything except the lower 16 bits that hold part
@@ -2432,7 +2470,8 @@ s32 ixgbe_set_rar_generic(struct ixgbe_hw *hw, u32 index, u8 *addr, u32 vmdq,
  *
  * Clears an ethernet address from a receive address register.
  **/
-s32 ixgbe_clear_rar_generic(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_clear_rar_generic(struct ixgbe_hw *hw, u32 index)
 {
 	u32 rar_high;
 	u32 rar_entries = hw->mac.num_rar_entries;
@@ -2442,7 +2481,7 @@ s32 ixgbe_clear_rar_generic(struct ixgbe_hw *hw, u32 index)
 	/* Make sure we are using a valid rar index range */
 	if (index >= rar_entries) {
 		ERROR_REPORT2(IXGBE_ERROR_ARGUMENT,
-			     "RAR index %d is out of range.\n", index);
+		    "RAR index %d is out of range.\n", index);
 		return IXGBE_ERR_INVALID_ARGUMENT;
 	}
 
@@ -2471,7 +2510,8 @@ s32 ixgbe_clear_rar_generic(struct ixgbe_hw *hw, u32 index)
  * of the receive address registers. Clears the multicast table. Assumes
  * the receiver is in reset when the routine is called.
  **/
-s32 ixgbe_init_rx_addrs_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_rx_addrs_generic(struct ixgbe_hw *hw)
 {
 	u32 i;
 	u32 rar_entries = hw->mac.num_rar_entries;
@@ -2489,18 +2529,16 @@ s32 ixgbe_init_rx_addrs_generic(struct ixgbe_hw *hw)
 		hw->mac.ops.get_mac_addr(hw, hw->mac.addr);
 
 		DEBUGOUT3(" Keeping Current RAR0 Addr =%.2X %.2X %.2X ",
-			  hw->mac.addr[0], hw->mac.addr[1],
-			  hw->mac.addr[2]);
-		DEBUGOUT3("%.2X %.2X %.2X\n", hw->mac.addr[3],
-			  hw->mac.addr[4], hw->mac.addr[5]);
+		    hw->mac.addr[0], hw->mac.addr[1], hw->mac.addr[2]);
+		DEBUGOUT3("%.2X %.2X %.2X\n", hw->mac.addr[3], hw->mac.addr[4],
+		    hw->mac.addr[5]);
 	} else {
 		/* Setup the receive address. */
 		DEBUGOUT("Overriding MAC Address in RAR[0]\n");
-		DEBUGOUT3(" New MAC Addr =%.2X %.2X %.2X ",
-			  hw->mac.addr[0], hw->mac.addr[1],
-			  hw->mac.addr[2]);
-		DEBUGOUT3("%.2X %.2X %.2X\n", hw->mac.addr[3],
-			  hw->mac.addr[4], hw->mac.addr[5]);
+		DEBUGOUT3(" New MAC Addr =%.2X %.2X %.2X ", hw->mac.addr[0],
+		    hw->mac.addr[1], hw->mac.addr[2]);
+		DEBUGOUT3("%.2X %.2X %.2X\n", hw->mac.addr[3], hw->mac.addr[4],
+		    hw->mac.addr[5]);
 
 		hw->mac.ops.set_rar(hw, 0, hw->mac.addr, 0, IXGBE_RAH_AV);
 	}
@@ -2540,15 +2578,16 @@ s32 ixgbe_init_rx_addrs_generic(struct ixgbe_hw *hw)
  *
  * Adds it to unused receive address register or goes into promiscuous mode.
  **/
-void ixgbe_add_uc_addr(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
+void
+ixgbe_add_uc_addr(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
 {
 	u32 rar_entries = hw->mac.num_rar_entries;
 	u32 rar;
 
 	DEBUGFUNC("ixgbe_add_uc_addr");
 
-	DEBUGOUT6(" UC Addr = %.2X %.2X %.2X %.2X %.2X %.2X\n",
-		  addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+	DEBUGOUT6(" UC Addr = %.2X %.2X %.2X %.2X %.2X %.2X\n", addr[0],
+	    addr[1], addr[2], addr[3], addr[4], addr[5]);
 
 	/*
 	 * Place this address in the RAR if there is room,
@@ -2580,8 +2619,9 @@ void ixgbe_add_uc_addr(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
  * Drivers using secondary unicast addresses must set user_set_promisc when
  * manually putting the device into promiscuous mode.
  **/
-s32 ixgbe_update_uc_addr_list_generic(struct ixgbe_hw *hw, u8 *addr_list,
-				      u32 addr_count, ixgbe_mc_addr_itr next)
+s32
+ixgbe_update_uc_addr_list_generic(struct ixgbe_hw *hw, u8 *addr_list,
+    u32 addr_count, ixgbe_mc_addr_itr next)
 {
 	u8 *addr;
 	u32 i;
@@ -2601,10 +2641,10 @@ s32 ixgbe_update_uc_addr_list_generic(struct ixgbe_hw *hw, u8 *addr_list,
 	hw->addr_ctrl.overflow_promisc = 0;
 
 	/* Zero out the other receive addresses */
-	DEBUGOUT1("Clearing RAR[1-%d]\n", uc_addr_in_use+1);
+	DEBUGOUT1("Clearing RAR[1-%d]\n", uc_addr_in_use + 1);
 	for (i = 0; i < uc_addr_in_use; i++) {
-		IXGBE_WRITE_REG(hw, IXGBE_RAL(1+i), 0);
-		IXGBE_WRITE_REG(hw, IXGBE_RAH(1+i), 0);
+		IXGBE_WRITE_REG(hw, IXGBE_RAL(1 + i), 0);
+		IXGBE_WRITE_REG(hw, IXGBE_RAH(1 + i), 0);
 	}
 
 	/* Add the new addresses */
@@ -2648,26 +2688,27 @@ s32 ixgbe_update_uc_addr_list_generic(struct ixgbe_hw *hw, u8 *addr_list,
  * by the MO field of the MCSTCTRL. The MO field is set during initialization
  * to mc_filter_type.
  **/
-static s32 ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
+static s32
+ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
 {
 	u32 vector = 0;
 
 	DEBUGFUNC("ixgbe_mta_vector");
 
 	switch (hw->mac.mc_filter_type) {
-	case 0:   /* use bits [47:36] of the address */
+	case 0: /* use bits [47:36] of the address */
 		vector = ((mc_addr[4] >> 4) | (((u16)mc_addr[5]) << 4));
 		break;
-	case 1:   /* use bits [46:35] of the address */
+	case 1: /* use bits [46:35] of the address */
 		vector = ((mc_addr[4] >> 3) | (((u16)mc_addr[5]) << 5));
 		break;
-	case 2:   /* use bits [45:34] of the address */
+	case 2: /* use bits [45:34] of the address */
 		vector = ((mc_addr[4] >> 2) | (((u16)mc_addr[5]) << 6));
 		break;
-	case 3:   /* use bits [43:32] of the address */
+	case 3: /* use bits [43:32] of the address */
 		vector = ((mc_addr[4]) | (((u16)mc_addr[5]) << 8));
 		break;
-	default:  /* Invalid mc_filter_type */
+	default: /* Invalid mc_filter_type */
 		DEBUGOUT("MC filter type param set incorrectly\n");
 		ASSERT(0);
 		break;
@@ -2685,7 +2726,8 @@ static s32 ixgbe_mta_vector(struct ixgbe_hw *hw, u8 *mc_addr)
  *
  * Sets the bit-vector in the multicast table.
  **/
-void ixgbe_set_mta(struct ixgbe_hw *hw, u8 *mc_addr)
+void
+ixgbe_set_mta(struct ixgbe_hw *hw, u8 *mc_addr)
 {
 	u32 vector;
 	u32 vector_bit;
@@ -2723,9 +2765,9 @@ void ixgbe_set_mta(struct ixgbe_hw *hw, u8 *mc_addr)
  * When the clear flag is set, the given list replaces any existing list.
  * Hashes the given addresses into the multicast table.
  **/
-s32 ixgbe_update_mc_addr_list_generic(struct ixgbe_hw *hw, u8 *mc_addr_list,
-				      u32 mc_addr_count, ixgbe_mc_addr_itr next,
-				      bool clear)
+s32
+ixgbe_update_mc_addr_list_generic(struct ixgbe_hw *hw, u8 *mc_addr_list,
+    u32 mc_addr_count, ixgbe_mc_addr_itr next, bool clear)
 {
 	u32 i;
 	u32 vmdq;
@@ -2754,11 +2796,11 @@ s32 ixgbe_update_mc_addr_list_generic(struct ixgbe_hw *hw, u8 *mc_addr_list,
 	/* Enable mta */
 	for (i = 0; i < hw->mac.mcft_size; i++)
 		IXGBE_WRITE_REG_ARRAY(hw, IXGBE_MTA(0), i,
-				      hw->mac.mta_shadow[i]);
+		    hw->mac.mta_shadow[i]);
 
 	if (hw->addr_ctrl.mta_in_use > 0)
 		IXGBE_WRITE_REG(hw, IXGBE_MCSTCTRL,
-				IXGBE_MCSTCTRL_MFE | hw->mac.mc_filter_type);
+		    IXGBE_MCSTCTRL_MFE | hw->mac.mc_filter_type);
 
 	DEBUGOUT("ixgbe_update_mc_addr_list_generic Complete\n");
 	return IXGBE_SUCCESS;
@@ -2770,15 +2812,16 @@ s32 ixgbe_update_mc_addr_list_generic(struct ixgbe_hw *hw, u8 *mc_addr_list,
  *
  * Enables multicast address in RAR and the use of the multicast hash table.
  **/
-s32 ixgbe_enable_mc_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_enable_mc_generic(struct ixgbe_hw *hw)
 {
 	struct ixgbe_addr_filter_info *a = &hw->addr_ctrl;
 
 	DEBUGFUNC("ixgbe_enable_mc_generic");
 
 	if (a->mta_in_use > 0)
-		IXGBE_WRITE_REG(hw, IXGBE_MCSTCTRL, IXGBE_MCSTCTRL_MFE |
-				hw->mac.mc_filter_type);
+		IXGBE_WRITE_REG(hw, IXGBE_MCSTCTRL,
+		    IXGBE_MCSTCTRL_MFE | hw->mac.mc_filter_type);
 
 	return IXGBE_SUCCESS;
 }
@@ -2789,7 +2832,8 @@ s32 ixgbe_enable_mc_generic(struct ixgbe_hw *hw)
  *
  * Disables multicast address in RAR and the use of the multicast hash table.
  **/
-s32 ixgbe_disable_mc_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_disable_mc_generic(struct ixgbe_hw *hw)
 {
 	struct ixgbe_addr_filter_info *a = &hw->addr_ctrl;
 
@@ -2807,7 +2851,8 @@ s32 ixgbe_disable_mc_generic(struct ixgbe_hw *hw)
  *
  * Enable flow control according to the current settings.
  **/
-s32 ixgbe_fc_enable_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_fc_enable_generic(struct ixgbe_hw *hw)
 {
 	s32 ret_val = IXGBE_SUCCESS;
 	u32 mflcn_reg, fccfg_reg;
@@ -2888,7 +2933,7 @@ s32 ixgbe_fc_enable_generic(struct ixgbe_hw *hw)
 		break;
 	default:
 		ERROR_REPORT1(IXGBE_ERROR_ARGUMENT,
-			     "Flow control param set incorrectly\n");
+		    "Flow control param set incorrectly\n");
 		ret_val = IXGBE_ERR_CONFIG;
 		goto out;
 		break;
@@ -2898,7 +2943,6 @@ s32 ixgbe_fc_enable_generic(struct ixgbe_hw *hw)
 	mflcn_reg |= IXGBE_MFLCN_DPF;
 	IXGBE_WRITE_REG(hw, IXGBE_MFLCN, mflcn_reg);
 	IXGBE_WRITE_REG(hw, IXGBE_FCCFG, fccfg_reg);
-
 
 	/* Set up and enable Rx high/low water mark thresholds, enable XON. */
 	for (i = 0; i < IXGBE_DCB_MAX_TRAFFIC_CLASS; i++) {
@@ -2947,14 +2991,15 @@ out:
  * Find the intersection between advertised settings and link partner's
  * advertised settings
  **/
-s32 ixgbe_negotiate_fc(struct ixgbe_hw *hw, u32 adv_reg, u32 lp_reg,
-		       u32 adv_sym, u32 adv_asm, u32 lp_sym, u32 lp_asm)
+s32
+ixgbe_negotiate_fc(struct ixgbe_hw *hw, u32 adv_reg, u32 lp_reg, u32 adv_sym,
+    u32 adv_asm, u32 lp_sym, u32 lp_asm)
 {
-	if ((!(adv_reg)) ||  (!(lp_reg))) {
+	if ((!(adv_reg)) || (!(lp_reg))) {
 		ERROR_REPORT3(IXGBE_ERROR_UNSUPPORTED,
-			     "Local or link partner's advertised flow control "
-			     "settings are NULL. Local: %x, link partner: %x\n",
-			     adv_reg, lp_reg);
+		    "Local or link partner's advertised flow control "
+		    "settings are NULL. Local: %x, link partner: %x\n",
+		    adv_reg, lp_reg);
 		return IXGBE_ERR_FC_NOT_NEGOTIATED;
 	}
 
@@ -2974,11 +3019,11 @@ s32 ixgbe_negotiate_fc(struct ixgbe_hw *hw, u32 adv_reg, u32 lp_reg,
 			DEBUGOUT("Flow Control=RX PAUSE frames only\n");
 		}
 	} else if (!(adv_reg & adv_sym) && (adv_reg & adv_asm) &&
-		   (lp_reg & lp_sym) && (lp_reg & lp_asm)) {
+	    (lp_reg & lp_sym) && (lp_reg & lp_asm)) {
 		hw->fc.current_mode = ixgbe_fc_tx_pause;
 		DEBUGOUT("Flow Control = TX PAUSE frames only.\n");
 	} else if ((adv_reg & adv_sym) && (adv_reg & adv_asm) &&
-		   !(lp_reg & lp_sym) && (lp_reg & lp_asm)) {
+	    !(lp_reg & lp_sym) && (lp_reg & lp_asm)) {
 		hw->fc.current_mode = ixgbe_fc_rx_pause;
 		DEBUGOUT("Flow Control = RX PAUSE frames only.\n");
 	} else {
@@ -2994,7 +3039,8 @@ s32 ixgbe_negotiate_fc(struct ixgbe_hw *hw, u32 adv_reg, u32 lp_reg,
  *
  * Enable flow control according on 1 gig fiber.
  **/
-static s32 ixgbe_fc_autoneg_fiber(struct ixgbe_hw *hw)
+static s32
+ixgbe_fc_autoneg_fiber(struct ixgbe_hw *hw)
 {
 	u32 pcs_anadv_reg, pcs_lpab_reg, linkstat;
 	s32 ret_val = IXGBE_ERR_FC_NOT_NEGOTIATED;
@@ -3015,11 +3061,9 @@ static s32 ixgbe_fc_autoneg_fiber(struct ixgbe_hw *hw)
 	pcs_anadv_reg = IXGBE_READ_REG(hw, IXGBE_PCS1GANA);
 	pcs_lpab_reg = IXGBE_READ_REG(hw, IXGBE_PCS1GANLP);
 
-	ret_val =  ixgbe_negotiate_fc(hw, pcs_anadv_reg,
-				      pcs_lpab_reg, IXGBE_PCS1GANA_SYM_PAUSE,
-				      IXGBE_PCS1GANA_ASM_PAUSE,
-				      IXGBE_PCS1GANA_SYM_PAUSE,
-				      IXGBE_PCS1GANA_ASM_PAUSE);
+	ret_val = ixgbe_negotiate_fc(hw, pcs_anadv_reg, pcs_lpab_reg,
+	    IXGBE_PCS1GANA_SYM_PAUSE, IXGBE_PCS1GANA_ASM_PAUSE,
+	    IXGBE_PCS1GANA_SYM_PAUSE, IXGBE_PCS1GANA_ASM_PAUSE);
 
 out:
 	return ret_val;
@@ -3031,7 +3075,8 @@ out:
  *
  * Enable flow control according to IEEE clause 37.
  **/
-static s32 ixgbe_fc_autoneg_backplane(struct ixgbe_hw *hw)
+static s32
+ixgbe_fc_autoneg_backplane(struct ixgbe_hw *hw)
 {
 	u32 links2, anlp1_reg, autoc_reg, links;
 	s32 ret_val = IXGBE_ERR_FC_NOT_NEGOTIATED;
@@ -3061,9 +3106,9 @@ static s32 ixgbe_fc_autoneg_backplane(struct ixgbe_hw *hw)
 	autoc_reg = IXGBE_READ_REG(hw, IXGBE_AUTOC);
 	anlp1_reg = IXGBE_READ_REG(hw, IXGBE_ANLP1);
 
-	ret_val = ixgbe_negotiate_fc(hw, autoc_reg,
-		anlp1_reg, IXGBE_AUTOC_SYM_PAUSE, IXGBE_AUTOC_ASM_PAUSE,
-		IXGBE_ANLP1_SYM_PAUSE, IXGBE_ANLP1_ASM_PAUSE);
+	ret_val = ixgbe_negotiate_fc(hw, autoc_reg, anlp1_reg,
+	    IXGBE_AUTOC_SYM_PAUSE, IXGBE_AUTOC_ASM_PAUSE, IXGBE_ANLP1_SYM_PAUSE,
+	    IXGBE_ANLP1_ASM_PAUSE);
 
 out:
 	return ret_val;
@@ -3075,22 +3120,20 @@ out:
  *
  * Enable flow control according to IEEE clause 37.
  **/
-static s32 ixgbe_fc_autoneg_copper(struct ixgbe_hw *hw)
+static s32
+ixgbe_fc_autoneg_copper(struct ixgbe_hw *hw)
 {
 	u16 technology_ability_reg = 0;
 	u16 lp_technology_ability_reg = 0;
 
 	hw->phy.ops.read_reg(hw, IXGBE_MDIO_AUTO_NEG_ADVT,
-			     IXGBE_MDIO_AUTO_NEG_DEV_TYPE,
-			     &technology_ability_reg);
+	    IXGBE_MDIO_AUTO_NEG_DEV_TYPE, &technology_ability_reg);
 	hw->phy.ops.read_reg(hw, IXGBE_MDIO_AUTO_NEG_LP,
-			     IXGBE_MDIO_AUTO_NEG_DEV_TYPE,
-			     &lp_technology_ability_reg);
+	    IXGBE_MDIO_AUTO_NEG_DEV_TYPE, &lp_technology_ability_reg);
 
 	return ixgbe_negotiate_fc(hw, (u32)technology_ability_reg,
-				  (u32)lp_technology_ability_reg,
-				  IXGBE_TAF_SYM_PAUSE, IXGBE_TAF_ASM_PAUSE,
-				  IXGBE_TAF_SYM_PAUSE, IXGBE_TAF_ASM_PAUSE);
+	    (u32)lp_technology_ability_reg, IXGBE_TAF_SYM_PAUSE,
+	    IXGBE_TAF_ASM_PAUSE, IXGBE_TAF_SYM_PAUSE, IXGBE_TAF_ASM_PAUSE);
 }
 
 /**
@@ -3100,7 +3143,8 @@ static s32 ixgbe_fc_autoneg_copper(struct ixgbe_hw *hw)
  * Compares our advertised flow control capabilities to those advertised by
  * our link partner, and determines the proper flow control mode to use.
  **/
-void ixgbe_fc_autoneg(struct ixgbe_hw *hw)
+void
+ixgbe_fc_autoneg(struct ixgbe_hw *hw)
 {
 	s32 ret_val = IXGBE_ERR_FC_NOT_NEGOTIATED;
 	ixgbe_link_speed speed;
@@ -3117,7 +3161,7 @@ void ixgbe_fc_autoneg(struct ixgbe_hw *hw)
 	if (hw->fc.disable_fc_autoneg) {
 		/* TODO: This should be just an informative log */
 		ERROR_REPORT1(IXGBE_ERROR_CAUTION,
-			      "Flow control autoneg is disabled");
+		    "Flow control autoneg is disabled");
 		goto out;
 	}
 
@@ -3170,7 +3214,8 @@ out:
  * completion timeout, in units of 100 microsec.  Never return less than
  * 800 = 80 millisec.
  */
-static u32 ixgbe_pcie_timeout_poll(struct ixgbe_hw *hw)
+static u32
+ixgbe_pcie_timeout_poll(struct ixgbe_hw *hw)
 {
 	s16 devctl2;
 	u32 pollcnt;
@@ -3180,26 +3225,26 @@ static u32 ixgbe_pcie_timeout_poll(struct ixgbe_hw *hw)
 
 	switch (devctl2) {
 	case IXGBE_PCIDEVCTRL2_65_130ms:
-		pollcnt = 1300;		/* 130 millisec */
+		pollcnt = 1300; /* 130 millisec */
 		break;
 	case IXGBE_PCIDEVCTRL2_260_520ms:
-		pollcnt = 5200;		/* 520 millisec */
+		pollcnt = 5200; /* 520 millisec */
 		break;
 	case IXGBE_PCIDEVCTRL2_1_2s:
-		pollcnt = 20000;	/* 2 sec */
+		pollcnt = 20000; /* 2 sec */
 		break;
 	case IXGBE_PCIDEVCTRL2_4_8s:
-		pollcnt = 80000;	/* 8 sec */
+		pollcnt = 80000; /* 8 sec */
 		break;
 	case IXGBE_PCIDEVCTRL2_17_34s:
-		pollcnt = 34000;	/* 34 sec */
+		pollcnt = 34000; /* 34 sec */
 		break;
-	case IXGBE_PCIDEVCTRL2_50_100us:	/* 100 microsecs */
-	case IXGBE_PCIDEVCTRL2_1_2ms:		/* 2 millisecs */
-	case IXGBE_PCIDEVCTRL2_16_32ms:		/* 32 millisec */
-	case IXGBE_PCIDEVCTRL2_16_32ms_def:	/* 32 millisec default */
+	case IXGBE_PCIDEVCTRL2_50_100us:    /* 100 microsecs */
+	case IXGBE_PCIDEVCTRL2_1_2ms:	    /* 2 millisecs */
+	case IXGBE_PCIDEVCTRL2_16_32ms:	    /* 32 millisec */
+	case IXGBE_PCIDEVCTRL2_16_32ms_def: /* 32 millisec default */
 	default:
-		pollcnt = 800;		/* 80 millisec minimum */
+		pollcnt = 800; /* 80 millisec minimum */
 		break;
 	}
 
@@ -3216,7 +3261,8 @@ static u32 ixgbe_pcie_timeout_poll(struct ixgbe_hw *hw)
  * bit hasn't caused the master requests to be disabled, else IXGBE_SUCCESS
  * is returned signifying master requests disabled.
  **/
-s32 ixgbe_disable_pcie_master(struct ixgbe_hw *hw)
+s32
+ixgbe_disable_pcie_master(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_SUCCESS;
 	u32 i, poll;
@@ -3268,7 +3314,7 @@ s32 ixgbe_disable_pcie_master(struct ixgbe_hw *hw)
 	}
 
 	ERROR_REPORT1(IXGBE_ERROR_POLLING,
-		     "PCIe transaction pending bit also did not clear.\n");
+	    "PCIe transaction pending bit also did not clear.\n");
 	status = IXGBE_ERR_MASTER_REQUESTS_PENDING;
 
 out:
@@ -3283,7 +3329,8 @@ out:
  * Acquires the SWFW semaphore through the GSSR register for the specified
  * function (CSR, PHY0, PHY1, EEPROM, Flash)
  **/
-s32 ixgbe_acquire_swfw_sync(struct ixgbe_hw *hw, u32 mask)
+s32
+ixgbe_acquire_swfw_sync(struct ixgbe_hw *hw, u32 mask)
 {
 	u32 gssr = 0;
 	u32 swmask = mask;
@@ -3330,7 +3377,8 @@ s32 ixgbe_acquire_swfw_sync(struct ixgbe_hw *hw, u32 mask)
  * Releases the SWFW semaphore through the GSSR register for the specified
  * function (CSR, PHY0, PHY1, EEPROM, Flash)
  **/
-void ixgbe_release_swfw_sync(struct ixgbe_hw *hw, u32 mask)
+void
+ixgbe_release_swfw_sync(struct ixgbe_hw *hw, u32 mask)
 {
 	u32 gssr;
 	u32 swmask = mask;
@@ -3353,7 +3401,8 @@ void ixgbe_release_swfw_sync(struct ixgbe_hw *hw, u32 mask)
  * Stops the receive data path and waits for the HW to internally empty
  * the Rx security block
  **/
-s32 ixgbe_disable_sec_rx_path_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_disable_sec_rx_path_generic(struct ixgbe_hw *hw)
 {
 #define IXGBE_MAX_SECRX_POLL 4000
 
@@ -3361,7 +3410,6 @@ s32 ixgbe_disable_sec_rx_path_generic(struct ixgbe_hw *hw)
 	int secrxreg;
 
 	DEBUGFUNC("ixgbe_disable_sec_rx_path_generic");
-
 
 	secrxreg = IXGBE_READ_REG(hw, IXGBE_SECRXCTRL);
 	secrxreg |= IXGBE_SECRXCTRL_RX_DIS;
@@ -3391,7 +3439,8 @@ s32 ixgbe_disable_sec_rx_path_generic(struct ixgbe_hw *hw)
  *
  * The default case requires no protection so just to the register read.
  */
-s32 prot_autoc_read_generic(struct ixgbe_hw *hw, bool *locked, u32 *reg_val)
+s32
+prot_autoc_read_generic(struct ixgbe_hw *hw, bool *locked, u32 *reg_val)
 {
 	*locked = false;
 	*reg_val = IXGBE_READ_REG(hw, IXGBE_AUTOC);
@@ -3407,7 +3456,8 @@ s32 prot_autoc_read_generic(struct ixgbe_hw *hw, bool *locked, u32 *reg_val)
  *
  * The default case requires no protection so just to the register write.
  */
-s32 prot_autoc_write_generic(struct ixgbe_hw *hw, u32 reg_val, bool locked)
+s32
+prot_autoc_write_generic(struct ixgbe_hw *hw, u32 reg_val, bool locked)
 {
 	UNREFERENCED_1PARAMETER(locked);
 
@@ -3421,7 +3471,8 @@ s32 prot_autoc_write_generic(struct ixgbe_hw *hw, u32 reg_val, bool locked)
  *
  * Enables the receive data path.
  **/
-s32 ixgbe_enable_sec_rx_path_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_enable_sec_rx_path_generic(struct ixgbe_hw *hw)
 {
 	u32 secrxreg;
 
@@ -3442,7 +3493,8 @@ s32 ixgbe_enable_sec_rx_path_generic(struct ixgbe_hw *hw)
  *
  * Enables the Rx DMA unit
  **/
-s32 ixgbe_enable_rx_dma_generic(struct ixgbe_hw *hw, u32 regval)
+s32
+ixgbe_enable_rx_dma_generic(struct ixgbe_hw *hw, u32 regval)
 {
 	DEBUGFUNC("ixgbe_enable_rx_dma_generic");
 
@@ -3459,7 +3511,8 @@ s32 ixgbe_enable_rx_dma_generic(struct ixgbe_hw *hw, u32 regval)
  * @hw: pointer to hardware structure
  * @index: led number to blink
  **/
-s32 ixgbe_blink_led_start_generic(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_blink_led_start_generic(struct ixgbe_hw *hw, u32 index)
 {
 	ixgbe_link_speed speed = 0;
 	bool link_up = 0;
@@ -3509,7 +3562,8 @@ out:
  * @hw: pointer to hardware structure
  * @index: led number to stop blinking
  **/
-s32 ixgbe_blink_led_stop_generic(struct ixgbe_hw *hw, u32 index)
+s32
+ixgbe_blink_led_stop_generic(struct ixgbe_hw *hw, u32 index)
 {
 	u32 autoc_reg = 0;
 	u32 led_reg = IXGBE_READ_REG(hw, IXGBE_LEDCTL);
@@ -3551,8 +3605,8 @@ out:
  * pointer, and returns the value at that location.  This is used in both
  * get and set mac_addr routines.
  **/
-static s32 ixgbe_get_san_mac_addr_offset(struct ixgbe_hw *hw,
-					 u16 *san_mac_offset)
+static s32
+ixgbe_get_san_mac_addr_offset(struct ixgbe_hw *hw, u16 *san_mac_offset)
 {
 	s32 ret_val;
 
@@ -3563,11 +3617,10 @@ static s32 ixgbe_get_san_mac_addr_offset(struct ixgbe_hw *hw,
 	 * available.
 	 */
 	ret_val = hw->eeprom.ops.read(hw, IXGBE_SAN_MAC_ADDR_PTR,
-				      san_mac_offset);
+	    san_mac_offset);
 	if (ret_val) {
 		ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-			      "eeprom at offset %d failed",
-			      IXGBE_SAN_MAC_ADDR_PTR);
+		    "eeprom at offset %d failed", IXGBE_SAN_MAC_ADDR_PTR);
 	}
 
 	return ret_val;
@@ -3583,7 +3636,8 @@ static s32 ixgbe_get_san_mac_addr_offset(struct ixgbe_hw *hw,
  * set_lan_id() is called by identify_sfp(), but this cannot be relied
  * upon for non-SFP connections, so we must call it here.
  **/
-s32 ixgbe_get_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
+s32
+ixgbe_get_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
 {
 	u16 san_mac_data, san_mac_offset;
 	u8 i;
@@ -3606,11 +3660,10 @@ s32 ixgbe_get_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
 			 (san_mac_offset += IXGBE_SAN_MAC_ADDR_PORT0_OFFSET);
 	for (i = 0; i < 3; i++) {
 		ret_val = hw->eeprom.ops.read(hw, san_mac_offset,
-					      &san_mac_data);
+		    &san_mac_data);
 		if (ret_val) {
 			ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-				      "eeprom read at offset %d failed",
-				      san_mac_offset);
+			    "eeprom read at offset %d failed", san_mac_offset);
 			goto san_mac_addr_out;
 		}
 		san_mac_addr[i * 2] = (u8)(san_mac_data);
@@ -3636,7 +3689,8 @@ san_mac_addr_out:
  *
  * Write a SAN MAC address to the EEPROM.
  **/
-s32 ixgbe_set_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
+s32
+ixgbe_set_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
 {
 	s32 ret_val;
 	u16 san_mac_data, san_mac_offset;
@@ -3672,7 +3726,8 @@ s32 ixgbe_set_san_mac_addr_generic(struct ixgbe_hw *hw, u8 *san_mac_addr)
  * Read PCIe configuration space, and get the MSI-X vector count from
  * the capabilities table.
  **/
-u16 ixgbe_get_pcie_msix_count_generic(struct ixgbe_hw *hw)
+u16
+ixgbe_get_pcie_msix_count_generic(struct ixgbe_hw *hw)
 {
 	u16 msix_count = 1;
 	u16 max_msix_count;
@@ -3719,7 +3774,8 @@ u16 ixgbe_get_pcie_msix_count_generic(struct ixgbe_hw *hw)
  * Puts an ethernet address into a receive address register, or
  * finds the rar that it is already in; adds to the pool list
  **/
-s32 ixgbe_insert_mac_addr_generic(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
+s32
+ixgbe_insert_mac_addr_generic(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
 {
 	static const u32 NO_EMPTY_RAR_FOUND = 0xFFFFFFFF;
 	u32 first_empty_rar = NO_EMPTY_RAR_FOUND;
@@ -3730,9 +3786,7 @@ s32 ixgbe_insert_mac_addr_generic(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
 	DEBUGFUNC("ixgbe_insert_mac_addr_generic");
 
 	/* swap bytes for HW little endian */
-	addr_low  = addr[0] | (addr[1] << 8)
-			    | (addr[2] << 16)
-			    | (addr[3] << 24);
+	addr_low = addr[0] | (addr[1] << 8) | (addr[2] << 16) | (addr[3] << 24);
 	addr_high = addr[4] | (addr[5] << 8);
 
 	/*
@@ -3744,13 +3798,13 @@ s32 ixgbe_insert_mac_addr_generic(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
 	for (rar = 0; rar < hw->mac.rar_highwater; rar++) {
 		rar_high = IXGBE_READ_REG(hw, IXGBE_RAH(rar));
 
-		if (((IXGBE_RAH_AV & rar_high) == 0)
-		    && first_empty_rar == NO_EMPTY_RAR_FOUND) {
+		if (((IXGBE_RAH_AV & rar_high) == 0) &&
+		    first_empty_rar == NO_EMPTY_RAR_FOUND) {
 			first_empty_rar = rar;
 		} else if ((rar_high & 0xFFFF) == addr_high) {
 			rar_low = IXGBE_READ_REG(hw, IXGBE_RAL(rar));
 			if (rar_low == addr_low)
-				break;    /* found it already in the rars */
+				break; /* found it already in the rars */
 		}
 	}
 
@@ -3785,7 +3839,8 @@ s32 ixgbe_insert_mac_addr_generic(struct ixgbe_hw *hw, u8 *addr, u32 vmdq)
  * @rar: receive address register index to disassociate
  * @vmdq: VMDq pool index to remove from the rar
  **/
-s32 ixgbe_clear_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
+s32
+ixgbe_clear_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
 {
 	u32 mpsar_lo, mpsar_hi;
 	u32 rar_entries = hw->mac.num_rar_entries;
@@ -3795,7 +3850,7 @@ s32 ixgbe_clear_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
 	/* Make sure we are using a valid rar index range */
 	if (rar >= rar_entries) {
 		ERROR_REPORT2(IXGBE_ERROR_ARGUMENT,
-			     "RAR index %d is out of range.\n", rar);
+		    "RAR index %d is out of range.\n", rar);
 		return IXGBE_ERR_INVALID_ARGUMENT;
 	}
 
@@ -3826,8 +3881,8 @@ s32 ixgbe_clear_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
 	}
 
 	/* was that the last pool using this rar? */
-	if (mpsar_lo == 0 && mpsar_hi == 0 &&
-	    rar != 0 && rar != hw->mac.san_mac_rar_index)
+	if (mpsar_lo == 0 && mpsar_hi == 0 && rar != 0 &&
+	    rar != hw->mac.san_mac_rar_index)
 		hw->mac.ops.clear_rar(hw, rar);
 done:
 	return IXGBE_SUCCESS;
@@ -3839,7 +3894,8 @@ done:
  * @rar: receive address register index to associate with a VMDq index
  * @vmdq: VMDq pool index
  **/
-s32 ixgbe_set_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
+s32
+ixgbe_set_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
 {
 	u32 mpsar;
 	u32 rar_entries = hw->mac.num_rar_entries;
@@ -3849,7 +3905,7 @@ s32 ixgbe_set_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
 	/* Make sure we are using a valid rar index range */
 	if (rar >= rar_entries) {
 		ERROR_REPORT2(IXGBE_ERROR_ARGUMENT,
-			     "RAR index %d is out of range.\n", rar);
+		    "RAR index %d is out of range.\n", rar);
 		return IXGBE_ERR_INVALID_ARGUMENT;
 	}
 
@@ -3875,7 +3931,8 @@ s32 ixgbe_set_vmdq_generic(struct ixgbe_hw *hw, u32 rar, u32 vmdq)
  * @hw: pointer to hardware struct
  * @vmdq: VMDq pool index
  **/
-s32 ixgbe_set_vmdq_san_mac_generic(struct ixgbe_hw *hw, u32 vmdq)
+s32
+ixgbe_set_vmdq_san_mac_generic(struct ixgbe_hw *hw, u32 vmdq)
 {
 	u32 rar = hw->mac.san_mac_rar_index;
 
@@ -3896,7 +3953,8 @@ s32 ixgbe_set_vmdq_san_mac_generic(struct ixgbe_hw *hw, u32 vmdq)
  * ixgbe_init_uta_tables_generic - Initialize the Unicast Table Array
  * @hw: pointer to hardware structure
  **/
-s32 ixgbe_init_uta_tables_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_uta_tables_generic(struct ixgbe_hw *hw)
 {
 	int i;
 
@@ -3920,7 +3978,8 @@ s32 ixgbe_init_uta_tables_generic(struct ixgbe_hw *hw)
  * return the VLVF index where this VLAN id should be placed
  *
  **/
-s32 ixgbe_find_vlvf_slot(struct ixgbe_hw *hw, u32 vlan, bool vlvf_bypass)
+s32
+ixgbe_find_vlvf_slot(struct ixgbe_hw *hw, u32 vlan, bool vlvf_bypass)
 {
 	s32 regindex, first_empty_slot;
 	u32 bits;
@@ -3970,8 +4029,9 @@ s32 ixgbe_find_vlvf_slot(struct ixgbe_hw *hw, u32 vlan, bool vlvf_bypass)
  *
  * Turn on/off specified VLAN in the VLAN filter table.
  **/
-s32 ixgbe_set_vfta_generic(struct ixgbe_hw *hw, u32 vlan, u32 vind,
-			   bool vlan_on, bool vlvf_bypass)
+s32
+ixgbe_set_vfta_generic(struct ixgbe_hw *hw, u32 vlan, u32 vind, bool vlan_on,
+    bool vlvf_bypass)
 {
 	u32 regidx, vfta_delta, vfta;
 	s32 ret_val;
@@ -4009,7 +4069,7 @@ s32 ixgbe_set_vfta_generic(struct ixgbe_hw *hw, u32 vlan, u32 vind,
 	 * Call ixgbe_set_vlvf_generic to set VLVFB and VLVF
 	 */
 	ret_val = ixgbe_set_vlvf_generic(hw, vlan, vind, vlan_on, &vfta_delta,
-					 vfta, vlvf_bypass);
+	    vfta, vlvf_bypass);
 	if (ret_val != IXGBE_SUCCESS) {
 		if (vlvf_bypass)
 			goto vfta_update;
@@ -4037,9 +4097,9 @@ vfta_update:
  *
  * Turn on/off specified bit in VLVF table.
  **/
-s32 ixgbe_set_vlvf_generic(struct ixgbe_hw *hw, u32 vlan, u32 vind,
-			   bool vlan_on, u32 *vfta_delta, u32 vfta,
-			   bool vlvf_bypass)
+s32
+ixgbe_set_vlvf_generic(struct ixgbe_hw *hw, u32 vlan, u32 vind, bool vlan_on,
+    u32 *vfta_delta, u32 vfta, bool vlvf_bypass)
 {
 	u32 bits;
 	s32 vlvf_index;
@@ -4119,7 +4179,8 @@ vlvf_update:
  *
  * Clears the VLAN filter table, and the VMDq index associated with the filter
  **/
-s32 ixgbe_clear_vfta_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_clear_vfta_generic(struct ixgbe_hw *hw)
 {
 	u32 offset;
 
@@ -4144,7 +4205,8 @@ s32 ixgbe_clear_vfta_generic(struct ixgbe_hw *hw)
  * Contains the logic to identify if we need to verify link for the
  * crosstalk fix
  **/
-static bool ixgbe_need_crosstalk_fix(struct ixgbe_hw *hw)
+static bool
+ixgbe_need_crosstalk_fix(struct ixgbe_hw *hw)
 {
 
 	/* Does FW say we need the fix */
@@ -4172,8 +4234,9 @@ static bool ixgbe_need_crosstalk_fix(struct ixgbe_hw *hw)
  *
  * Reads the links register to determine if link is up and the current speed
  **/
-s32 ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
-				 bool *link_up, bool link_up_wait_to_complete)
+s32
+ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
+    bool *link_up, bool link_up_wait_to_complete)
 {
 	u32 links_reg, links_orig;
 	u32 i;
@@ -4189,12 +4252,12 @@ s32 ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
 		switch (hw->mac.type) {
 		case ixgbe_mac_82599EB:
 			sfp_cage_full = IXGBE_READ_REG(hw, IXGBE_ESDP) &
-					IXGBE_ESDP_SDP2;
+			    IXGBE_ESDP_SDP2;
 			break;
 		case ixgbe_mac_X550EM_x:
 		case ixgbe_mac_X550EM_a:
 			sfp_cage_full = IXGBE_READ_REG(hw, IXGBE_ESDP) &
-					IXGBE_ESDP_SDP0;
+			    IXGBE_ESDP_SDP0;
 			break;
 		default:
 			/* sanity check - No SFP+ devices here */
@@ -4215,8 +4278,8 @@ s32 ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
 	links_reg = IXGBE_READ_REG(hw, IXGBE_LINKS);
 
 	if (links_orig != links_reg) {
-		DEBUGOUT2("LINKS changed from %08X to %08X\n",
-			  links_orig, links_reg);
+		DEBUGOUT2("LINKS changed from %08X to %08X\n", links_orig,
+		    links_reg);
 	}
 
 	if (link_up_wait_to_complete) {
@@ -4244,7 +4307,6 @@ s32 ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
 					*speed = IXGBE_LINK_SPEED_UNKNOWN;
 					return IXGBE_SUCCESS;
 				}
-
 			}
 			*link_up = true;
 		} else {
@@ -4293,8 +4355,9 @@ s32 ixgbe_check_mac_link_generic(struct ixgbe_hw *hw, ixgbe_link_speed *speed,
  * This function will read the EEPROM from the alternative SAN MAC address
  * block to check the support for the alternative WWNN/WWPN prefix support.
  **/
-s32 ixgbe_get_wwn_prefix_generic(struct ixgbe_hw *hw, u16 *wwnn_prefix,
-				 u16 *wwpn_prefix)
+s32
+ixgbe_get_wwn_prefix_generic(struct ixgbe_hw *hw, u16 *wwnn_prefix,
+    u16 *wwpn_prefix)
 {
 	u16 offset, caps;
 	u16 alt_san_mac_blk_offset;
@@ -4310,8 +4373,7 @@ s32 ixgbe_get_wwn_prefix_generic(struct ixgbe_hw *hw, u16 *wwnn_prefix,
 	if (hw->eeprom.ops.read(hw, offset, &alt_san_mac_blk_offset))
 		goto wwn_prefix_err;
 
-	if ((alt_san_mac_blk_offset == 0) ||
-	    (alt_san_mac_blk_offset == 0xFFFF))
+	if ((alt_san_mac_blk_offset == 0) || (alt_san_mac_blk_offset == 0xFFFF))
 		goto wwn_prefix_out;
 
 	/* check capability in alternative san mac address block */
@@ -4325,7 +4387,7 @@ s32 ixgbe_get_wwn_prefix_generic(struct ixgbe_hw *hw, u16 *wwnn_prefix,
 	offset = alt_san_mac_blk_offset + IXGBE_ALT_SAN_MAC_ADDR_WWNN_OFFSET;
 	if (hw->eeprom.ops.read(hw, offset, wwnn_prefix)) {
 		ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-			      "eeprom read at offset %d failed", offset);
+		    "eeprom read at offset %d failed", offset);
 	}
 
 	offset = alt_san_mac_blk_offset + IXGBE_ALT_SAN_MAC_ADDR_WWPN_OFFSET;
@@ -4337,7 +4399,7 @@ wwn_prefix_out:
 
 wwn_prefix_err:
 	ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-		      "eeprom read at offset %d failed", offset);
+	    "eeprom read at offset %d failed", offset);
 	return IXGBE_SUCCESS;
 }
 
@@ -4348,7 +4410,8 @@ wwn_prefix_err:
  *
  * This function will read the FCOE boot status from the iSCSI FCOE block
  **/
-s32 ixgbe_get_fcoe_boot_status_generic(struct ixgbe_hw *hw, u16 *bs)
+s32
+ixgbe_get_fcoe_boot_status_generic(struct ixgbe_hw *hw, u16 *bs)
 {
 	u16 offset, caps, flags;
 	s32 status;
@@ -4397,7 +4460,8 @@ out:
  * @vf: Virtual Function pool - VF Pool to set for MAC anti-spoofing
  *
  **/
-void ixgbe_set_mac_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
+void
+ixgbe_set_mac_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
 {
 	int vf_target_reg = vf >> 3;
 	int vf_target_shift = vf % 8;
@@ -4421,7 +4485,8 @@ void ixgbe_set_mac_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
  * @vf: Virtual Function pool - VF Pool to set for VLAN anti-spoofing
  *
  **/
-void ixgbe_set_vlan_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
+void
+ixgbe_set_vlan_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
 {
 	int vf_target_reg = vf >> 3;
 	int vf_target_shift = vf % 8 + IXGBE_SPOOF_VLANAS_SHIFT;
@@ -4446,7 +4511,8 @@ void ixgbe_set_vlan_anti_spoofing(struct ixgbe_hw *hw, bool enable, int vf)
  * This function will read the EEPROM location for the device capabilities,
  * and return the word through device_caps.
  **/
-s32 ixgbe_get_device_caps_generic(struct ixgbe_hw *hw, u16 *device_caps)
+s32
+ixgbe_get_device_caps_generic(struct ixgbe_hw *hw, u16 *device_caps)
 {
 	DEBUGFUNC("ixgbe_get_device_caps_generic");
 
@@ -4460,7 +4526,8 @@ s32 ixgbe_get_device_caps_generic(struct ixgbe_hw *hw, u16 *device_caps)
  * @hw: pointer to hardware structure
  *
  **/
-void ixgbe_enable_relaxed_ordering_gen2(struct ixgbe_hw *hw)
+void
+ixgbe_enable_relaxed_ordering_gen2(struct ixgbe_hw *hw)
 {
 	u32 regval;
 	u32 i;
@@ -4477,10 +4544,9 @@ void ixgbe_enable_relaxed_ordering_gen2(struct ixgbe_hw *hw)
 	for (i = 0; i < hw->mac.max_rx_queues; i++) {
 		regval = IXGBE_READ_REG(hw, IXGBE_DCA_RXCTRL(i));
 		regval |= IXGBE_DCA_RXCTRL_DATA_WRO_EN |
-			  IXGBE_DCA_RXCTRL_HEAD_WRO_EN;
+		    IXGBE_DCA_RXCTRL_HEAD_WRO_EN;
 		IXGBE_WRITE_REG(hw, IXGBE_DCA_RXCTRL(i), regval);
 	}
-
 }
 
 /**
@@ -4490,7 +4556,8 @@ void ixgbe_enable_relaxed_ordering_gen2(struct ixgbe_hw *hw)
  * Calculates the checksum for some buffer on a specified length.  The
  * checksum calculated is returned.
  **/
-u8 ixgbe_calculate_checksum(u8 *buffer, u32 length)
+u8
+ixgbe_calculate_checksum(u8 *buffer, u32 length)
 {
 	u32 i;
 	u8 sum = 0;
@@ -4503,7 +4570,7 @@ u8 ixgbe_calculate_checksum(u8 *buffer, u32 length)
 	for (i = 0; i < length; i++)
 		sum += buffer[i];
 
-	return (u8) (0 - sum);
+	return (u8)(0 - sum);
 }
 
 /**
@@ -4520,8 +4587,8 @@ u8 ixgbe_calculate_checksum(u8 *buffer, u32 length)
  * This function assumes that the IXGBE_GSSR_SW_MNG_SM semaphore is held
  * by the caller.
  **/
-s32 ixgbe_hic_unlocked(struct ixgbe_hw *hw, u32 *buffer, u32 length,
-		       u32 timeout)
+s32
+ixgbe_hic_unlocked(struct ixgbe_hw *hw, u32 *buffer, u32 length, u32 timeout)
 {
 	u32 hicr, i, fwsts;
 	u16 dword_len;
@@ -4556,8 +4623,8 @@ s32 ixgbe_hic_unlocked(struct ixgbe_hw *hw, u32 *buffer, u32 length,
 	 * into the ram area.
 	 */
 	for (i = 0; i < dword_len; i++)
-		IXGBE_WRITE_REG_ARRAY(hw, IXGBE_FLEX_MNG,
-				      i, IXGBE_CPU_TO_LE32(buffer[i]));
+		IXGBE_WRITE_REG_ARRAY(hw, IXGBE_FLEX_MNG, i,
+		    IXGBE_CPU_TO_LE32(buffer[i]));
 
 	/* Setting this bit tells the ARC that a new command is pending. */
 	IXGBE_WRITE_REG(hw, IXGBE_HICR, hicr | IXGBE_HICR_C);
@@ -4580,7 +4647,7 @@ s32 ixgbe_hic_unlocked(struct ixgbe_hw *hw, u32 *buffer, u32 length,
 	if ((timeout && i == timeout) ||
 	    !(IXGBE_READ_REG(hw, IXGBE_HICR) & IXGBE_HICR_SV)) {
 		ERROR_REPORT1(IXGBE_ERROR_CAUTION,
-			      "Command has failed with no status valid.\n");
+		    "Command has failed with no status valid.\n");
 		return IXGBE_ERR_HOST_INTERFACE_COMMAND;
 	}
 
@@ -4605,8 +4672,9 @@ s32 ixgbe_hic_unlocked(struct ixgbe_hw *hw, u32 *buffer, u32 length,
  * else returns semaphore error when encountering an error acquiring
  * semaphore or IXGBE_ERR_HOST_INTERFACE_COMMAND when command fails.
  **/
-s32 ixgbe_host_interface_command(struct ixgbe_hw *hw, u32 *buffer,
-				 u32 length, u32 timeout, bool return_data)
+s32
+ixgbe_host_interface_command(struct ixgbe_hw *hw, u32 *buffer, u32 length,
+    u32 timeout, bool return_data)
 {
 	u32 hdr_size = sizeof(struct ixgbe_hic_hdr);
 	struct ixgbe_hic_hdr *resp = (struct ixgbe_hic_hdr *)buffer;
@@ -4652,11 +4720,11 @@ s32 ixgbe_host_interface_command(struct ixgbe_hw *hw, u32 *buffer,
 	    resp->cmd == IXGBE_HOST_INTERFACE_SHADOW_RAM_READ_CMD) {
 		for (; bi < dword_len + 2; bi++) {
 			buffer[bi] = IXGBE_READ_REG_ARRAY(hw, IXGBE_FLEX_MNG,
-							  bi);
+			    bi);
 			IXGBE_LE32_TO_CPUS(&buffer[bi]);
 		}
-		buf_len = (((u16)(resp->cmd_or_resp.ret_status) << 3)
-				  & 0xF00) | resp->buf_len;
+		buf_len = (((u16)(resp->cmd_or_resp.ret_status) << 3) & 0xF00) |
+		    resp->buf_len;
 		hdr_size += (2 << 2);
 	} else {
 		buf_len = resp->buf_len;
@@ -4700,9 +4768,9 @@ rel_out:
  * else returns IXGBE_ERR_SWFW_SYNC when encountering an error acquiring
  * semaphore or IXGBE_ERR_HOST_INTERFACE_COMMAND when command fails.
  **/
-s32 ixgbe_set_fw_drv_ver_generic(struct ixgbe_hw *hw, u8 maj, u8 min,
-				 u8 build, u8 sub, u16 len,
-				 const char *driver_ver)
+s32
+ixgbe_set_fw_drv_ver_generic(struct ixgbe_hw *hw, u8 maj, u8 min, u8 build,
+    u8 sub, u16 len, const char *driver_ver)
 {
 	struct ixgbe_hic_drv_info fw_cmd;
 	int i;
@@ -4723,13 +4791,11 @@ s32 ixgbe_set_fw_drv_ver_generic(struct ixgbe_hw *hw, u8 maj, u8 min,
 	fw_cmd.pad = 0;
 	fw_cmd.pad2 = 0;
 	fw_cmd.hdr.checksum = ixgbe_calculate_checksum((u8 *)&fw_cmd,
-				(FW_CEM_HDR_LEN + fw_cmd.hdr.buf_len));
+	    (FW_CEM_HDR_LEN + fw_cmd.hdr.buf_len));
 
 	for (i = 0; i <= FW_CEM_MAX_RETRIES; i++) {
 		ret_val = ixgbe_host_interface_command(hw, (u32 *)&fw_cmd,
-						       sizeof(fw_cmd),
-						       IXGBE_HI_COMMAND_TIMEOUT,
-						       true);
+		    sizeof(fw_cmd), IXGBE_HI_COMMAND_TIMEOUT, true);
 		if (ret_val != IXGBE_SUCCESS)
 			continue;
 
@@ -4752,8 +4818,9 @@ s32 ixgbe_set_fw_drv_ver_generic(struct ixgbe_hw *hw, u8 maj, u8 min,
  * @headroom: reserve n KB of headroom
  * @strategy: packet buffer allocation strategy
  **/
-void ixgbe_set_rxpba_generic(struct ixgbe_hw *hw, int num_pb, u32 headroom,
-			     int strategy)
+void
+ixgbe_set_rxpba_generic(struct ixgbe_hw *hw, int num_pb, u32 headroom,
+    int strategy)
 {
 	u32 pbsize = hw->mac.rx_pb_size;
 	int i = 0;
@@ -4813,7 +4880,8 @@ void ixgbe_set_rxpba_generic(struct ixgbe_hw *hw, int num_pb, u32 headroom,
  * when a reset occurs.  This function prevents this by flushing the PCIe
  * buffers on the system.
  **/
-void ixgbe_clear_tx_pending(struct ixgbe_hw *hw)
+void
+ixgbe_clear_tx_pending(struct ixgbe_hw *hw)
 {
 	u32 gcr_ext, hlreg0, i, poll;
 	u16 value;
@@ -4855,7 +4923,7 @@ out:
 	/* initiate cleaning flow for buffers in the PCIe transaction layer */
 	gcr_ext = IXGBE_READ_REG(hw, IXGBE_GCR_EXT);
 	IXGBE_WRITE_REG(hw, IXGBE_GCR_EXT,
-			gcr_ext | IXGBE_GCR_EXT_BUFFERS_CLEAR);
+	    gcr_ext | IXGBE_GCR_EXT_BUFFERS_CLEAR);
 
 	/* Flush all writes and allow 20usec for all transactions to clear */
 	IXGBE_WRITE_FLUSH(hw);
@@ -4866,18 +4934,11 @@ out:
 	IXGBE_WRITE_REG(hw, IXGBE_HLREG0, hlreg0);
 }
 
-static const u8 ixgbe_emc_temp_data[4] = {
-	IXGBE_EMC_INTERNAL_DATA,
-	IXGBE_EMC_DIODE1_DATA,
-	IXGBE_EMC_DIODE2_DATA,
-	IXGBE_EMC_DIODE3_DATA
-};
-static const u8 ixgbe_emc_therm_limit[4] = {
-	IXGBE_EMC_INTERNAL_THERM_LIMIT,
-	IXGBE_EMC_DIODE1_THERM_LIMIT,
-	IXGBE_EMC_DIODE2_THERM_LIMIT,
-	IXGBE_EMC_DIODE3_THERM_LIMIT
-};
+static const u8 ixgbe_emc_temp_data[4] = { IXGBE_EMC_INTERNAL_DATA,
+	IXGBE_EMC_DIODE1_DATA, IXGBE_EMC_DIODE2_DATA, IXGBE_EMC_DIODE3_DATA };
+static const u8 ixgbe_emc_therm_limit[4] = { IXGBE_EMC_INTERNAL_THERM_LIMIT,
+	IXGBE_EMC_DIODE1_THERM_LIMIT, IXGBE_EMC_DIODE2_THERM_LIMIT,
+	IXGBE_EMC_DIODE3_THERM_LIMIT };
 
 /**
  * ixgbe_get_thermal_sensor_data - Gathers thermal sensor data
@@ -4885,16 +4946,17 @@ static const u8 ixgbe_emc_therm_limit[4] = {
  *
  * Returns the thermal sensor data structure
  **/
-s32 ixgbe_get_thermal_sensor_data_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_get_thermal_sensor_data_generic(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_SUCCESS;
 	u16 ets_offset;
 	u16 ets_cfg;
 	u16 ets_sensor;
-	u8  num_sensors;
-	u8  sensor_index;
-	u8  sensor_location;
-	u8  i;
+	u8 num_sensors;
+	u8 sensor_index;
+	u8 sensor_location;
+	u8 i;
 	struct ixgbe_thermal_sensor_data *data = &hw->mac.thermal_sensor_data;
 
 	DEBUGFUNC("ixgbe_get_thermal_sensor_data_generic");
@@ -4919,8 +4981,8 @@ s32 ixgbe_get_thermal_sensor_data_generic(struct ixgbe_hw *hw)
 	if (status)
 		goto out;
 
-	if (((ets_cfg & IXGBE_ETS_TYPE_MASK) >> IXGBE_ETS_TYPE_SHIFT)
-		!= IXGBE_ETS_TYPE_EMC) {
+	if (((ets_cfg & IXGBE_ETS_TYPE_MASK) >> IXGBE_ETS_TYPE_SHIFT) !=
+	    IXGBE_ETS_TYPE_EMC) {
 		status = IXGBE_NOT_IMPLEMENTED;
 		goto out;
 	}
@@ -4931,20 +4993,20 @@ s32 ixgbe_get_thermal_sensor_data_generic(struct ixgbe_hw *hw)
 
 	for (i = 0; i < num_sensors; i++) {
 		status = hw->eeprom.ops.read(hw, (ets_offset + 1 + i),
-					     &ets_sensor);
+		    &ets_sensor);
 		if (status)
 			goto out;
 
 		sensor_index = ((ets_sensor & IXGBE_ETS_DATA_INDEX_MASK) >>
-				IXGBE_ETS_DATA_INDEX_SHIFT);
+		    IXGBE_ETS_DATA_INDEX_SHIFT);
 		sensor_location = ((ets_sensor & IXGBE_ETS_DATA_LOC_MASK) >>
-				   IXGBE_ETS_DATA_LOC_SHIFT);
+		    IXGBE_ETS_DATA_LOC_SHIFT);
 
 		if (sensor_location != 0) {
 			status = hw->phy.ops.read_i2c_byte(hw,
-					ixgbe_emc_temp_data[sensor_index],
-					IXGBE_I2C_THERMAL_SENSOR_ADDR,
-					&data->sensor[i].temp);
+			    ixgbe_emc_temp_data[sensor_index],
+			    IXGBE_I2C_THERMAL_SENSOR_ADDR,
+			    &data->sensor[i].temp);
 			if (status)
 				goto out;
 		}
@@ -4960,19 +5022,20 @@ out:
  * Inits the thermal sensor thresholds according to the NVM map
  * and save off the threshold and location values into mac.thermal_sensor_data
  **/
-s32 ixgbe_init_thermal_sensor_thresh_generic(struct ixgbe_hw *hw)
+s32
+ixgbe_init_thermal_sensor_thresh_generic(struct ixgbe_hw *hw)
 {
 	s32 status = IXGBE_SUCCESS;
 	u16 offset;
 	u16 ets_offset;
 	u16 ets_cfg;
 	u16 ets_sensor;
-	u8  low_thresh_delta;
-	u8  num_sensors;
-	u8  sensor_index;
-	u8  sensor_location;
-	u8  therm_limit;
-	u8  i;
+	u8 low_thresh_delta;
+	u8 num_sensors;
+	u8 sensor_index;
+	u8 sensor_location;
+	u8 therm_limit;
+	u8 i;
 	struct ixgbe_thermal_sensor_data *data = &hw->mac.thermal_sensor_data;
 
 	DEBUGFUNC("ixgbe_init_thermal_sensor_thresh_generic");
@@ -4993,44 +5056,43 @@ s32 ixgbe_init_thermal_sensor_thresh_generic(struct ixgbe_hw *hw)
 	offset = ets_offset;
 	if (hw->eeprom.ops.read(hw, offset, &ets_cfg))
 		goto eeprom_err;
-	if (((ets_cfg & IXGBE_ETS_TYPE_MASK) >> IXGBE_ETS_TYPE_SHIFT)
-		!= IXGBE_ETS_TYPE_EMC)
+	if (((ets_cfg & IXGBE_ETS_TYPE_MASK) >> IXGBE_ETS_TYPE_SHIFT) !=
+	    IXGBE_ETS_TYPE_EMC)
 		return IXGBE_NOT_IMPLEMENTED;
 
 	low_thresh_delta = ((ets_cfg & IXGBE_ETS_LTHRES_DELTA_MASK) >>
-			     IXGBE_ETS_LTHRES_DELTA_SHIFT);
+	    IXGBE_ETS_LTHRES_DELTA_SHIFT);
 	num_sensors = (ets_cfg & IXGBE_ETS_NUM_SENSORS_MASK);
 
 	for (i = 0; i < num_sensors; i++) {
 		offset = ets_offset + 1 + i;
 		if (hw->eeprom.ops.read(hw, offset, &ets_sensor)) {
 			ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-				      "eeprom read at offset %d failed",
-				      offset);
+			    "eeprom read at offset %d failed", offset);
 			continue;
 		}
 		sensor_index = ((ets_sensor & IXGBE_ETS_DATA_INDEX_MASK) >>
-				IXGBE_ETS_DATA_INDEX_SHIFT);
+		    IXGBE_ETS_DATA_INDEX_SHIFT);
 		sensor_location = ((ets_sensor & IXGBE_ETS_DATA_LOC_MASK) >>
-				   IXGBE_ETS_DATA_LOC_SHIFT);
+		    IXGBE_ETS_DATA_LOC_SHIFT);
 		therm_limit = ets_sensor & IXGBE_ETS_DATA_HTHRESH_MASK;
 
 		hw->phy.ops.write_i2c_byte(hw,
-			ixgbe_emc_therm_limit[sensor_index],
-			IXGBE_I2C_THERMAL_SENSOR_ADDR, therm_limit);
+		    ixgbe_emc_therm_limit[sensor_index],
+		    IXGBE_I2C_THERMAL_SENSOR_ADDR, therm_limit);
 
 		if ((i < IXGBE_MAX_SENSORS) && (sensor_location != 0)) {
 			data->sensor[i].location = sensor_location;
 			data->sensor[i].caution_thresh = therm_limit;
 			data->sensor[i].max_op_thresh = therm_limit -
-							low_thresh_delta;
+			    low_thresh_delta;
 		}
 	}
 	return status;
 
 eeprom_err:
 	ERROR_REPORT2(IXGBE_ERROR_INVALID_STATE,
-		      "eeprom read at offset %d failed", offset);
+	    "eeprom read at offset %d failed", offset);
 	return IXGBE_NOT_IMPLEMENTED;
 }
 
@@ -5044,7 +5106,8 @@ eeprom_err:
  * Bit-bangs the cmd to the by_pass FW status points to what is returned.
  **/
 #define IXGBE_BYPASS_BB_WAIT 1
-s32 ixgbe_bypass_rw_generic(struct ixgbe_hw *hw, u32 cmd, u32 *status)
+s32
+ixgbe_bypass_rw_generic(struct ixgbe_hw *hw, u32 cmd, u32 *status)
 {
 	int i;
 	u32 sck, sdi, sdo, dir_sck, dir_sdi, dir_sdo;
@@ -5079,9 +5142,9 @@ s32 ixgbe_bypass_rw_generic(struct ixgbe_hw *hw, u32 cmd, u32 *status)
 
 	/* Set SDP pins direction */
 	esdp = IXGBE_READ_REG(hw, IXGBE_ESDP);
-	esdp |= dir_sck;	/* SCK as output */
-	esdp |= dir_sdi;	/* SDI as output */
-	esdp &= ~dir_sdo;	/* SDO as input */
+	esdp |= dir_sck;  /* SCK as output */
+	esdp |= dir_sdi;  /* SDI as output */
+	esdp &= ~dir_sdo; /* SDO as input */
 	esdp |= sck;
 	esdp |= sdi;
 	IXGBE_WRITE_REG(hw, IXGBE_ESDP, esdp);
@@ -5158,7 +5221,8 @@ s32 ixgbe_bypass_rw_generic(struct ixgbe_hw *hw, u32 cmd, u32 *status)
  * @u32 in_reg - The register cmd for the bit-bang read.
  * @u32 out_reg - The register returned from a bit-bang read.
  **/
-bool ixgbe_bypass_valid_rd_generic(u32 in_reg, u32 out_reg)
+bool
+ixgbe_bypass_valid_rd_generic(u32 in_reg, u32 out_reg)
 {
 	u32 mask;
 
@@ -5172,10 +5236,8 @@ bool ixgbe_bypass_valid_rd_generic(u32 in_reg, u32 out_reg)
 		 *  - All the event actions
 		 *  - The timeout value
 		 */
-		mask = BYPASS_AUX_ON_M | BYPASS_MAIN_ON_M |
-		       BYPASS_MAIN_OFF_M | BYPASS_AUX_OFF_M |
-		       BYPASS_WDTIMEOUT_M |
-		       BYPASS_WDT_VALUE_M;
+		mask = BYPASS_AUX_ON_M | BYPASS_MAIN_ON_M | BYPASS_MAIN_OFF_M |
+		    BYPASS_AUX_OFF_M | BYPASS_WDTIMEOUT_M | BYPASS_WDT_VALUE_M;
 		if ((out_reg & mask) != (in_reg & mask))
 			return false;
 
@@ -5214,15 +5276,15 @@ bool ixgbe_bypass_valid_rd_generic(u32 in_reg, u32 out_reg)
  *	     bit field that happens to be what we want to put in
  *	     the event spot (also handy)
  **/
-s32 ixgbe_bypass_set_generic(struct ixgbe_hw *hw, u32 ctrl, u32 event,
-			     u32 action)
+s32
+ixgbe_bypass_set_generic(struct ixgbe_hw *hw, u32 ctrl, u32 event, u32 action)
 {
 	u32 by_ctl = 0;
 	u32 cmd, verify;
 	u32 count = 0;
 
 	/* Get current values */
-	cmd = ctrl;	/* just reading only need control number */
+	cmd = ctrl; /* just reading only need control number */
 	if (ixgbe_bypass_rw_generic(hw, cmd, &by_ctl))
 		return IXGBE_ERR_INVALID_ARGUMENT;
 
@@ -5256,11 +5318,11 @@ s32 ixgbe_bypass_set_generic(struct ixgbe_hw *hw, u32 ctrl, u32 event,
  * @addr: The bypass eeprom address to read.
  * @value: The 8b of data at the address above.
  **/
-s32 ixgbe_bypass_rd_eep_generic(struct ixgbe_hw *hw, u32 addr, u8 *value)
+s32
+ixgbe_bypass_rd_eep_generic(struct ixgbe_hw *hw, u32 addr, u8 *value)
 {
 	u32 cmd;
 	u32 status;
-
 
 	/* send the request */
 	cmd = BYPASS_PAGE_CTL2 | BYPASS_WE;
@@ -5290,8 +5352,8 @@ s32 ixgbe_bypass_rd_eep_generic(struct ixgbe_hw *hw, u32 addr, u8 *value)
  * if valid option ROM version, nvm_ver->or_valid set to true
  * else nvm_ver->or_valid is false.
  **/
-void ixgbe_get_orom_version(struct ixgbe_hw *hw,
-			    struct ixgbe_nvm_version *nvm_ver)
+void
+ixgbe_get_orom_version(struct ixgbe_hw *hw, struct ixgbe_nvm_version *nvm_ver)
 {
 	u16 offset, eeprom_cfg_blkh, eeprom_cfg_blkl;
 
@@ -5315,7 +5377,7 @@ void ixgbe_get_orom_version(struct ixgbe_hw *hw,
 	nvm_ver->or_valid = true;
 	nvm_ver->or_major = eeprom_cfg_blkl >> NVM_OROM_SHIFT;
 	nvm_ver->or_build = (eeprom_cfg_blkl << NVM_OROM_SHIFT) |
-			    (eeprom_cfg_blkh >> NVM_OROM_SHIFT);
+	    (eeprom_cfg_blkh >> NVM_OROM_SHIFT);
 	nvm_ver->or_patch = eeprom_cfg_blkh & NVM_OROM_PATCH_MASK;
 }
 
@@ -5328,8 +5390,9 @@ void ixgbe_get_orom_version(struct ixgbe_hw *hw,
  * if valid OEM product version, nvm_ver->oem_valid set to true
  * else nvm_ver->oem_valid is false.
  **/
-void ixgbe_get_oem_prod_version(struct ixgbe_hw *hw,
-				struct ixgbe_nvm_version *nvm_ver)
+void
+ixgbe_get_oem_prod_version(struct ixgbe_hw *hw,
+    struct ixgbe_nvm_version *nvm_ver)
 {
 	u16 rel_num, prod_ver, mod_len, cap, offset;
 
@@ -5353,8 +5416,8 @@ void ixgbe_get_oem_prod_version(struct ixgbe_hw *hw,
 	hw->eeprom.ops.read(hw, offset + NVM_OEM_PROD_VER_OFF_H, &rel_num);
 
 	/* Return if version is invalid */
-	if ((rel_num | prod_ver) == 0x0 ||
-	    rel_num == NVM_VER_INVALID || prod_ver == NVM_VER_INVALID)
+	if ((rel_num | prod_ver) == 0x0 || rel_num == NVM_VER_INVALID ||
+	    prod_ver == NVM_VER_INVALID)
 		return;
 
 	nvm_ver->oem_major = prod_ver >> NVM_VER_SHIFT;
@@ -5371,7 +5434,8 @@ void ixgbe_get_oem_prod_version(struct ixgbe_hw *hw,
  *
  * word read errors will return 0xFFFF
  **/
-void ixgbe_get_etk_id(struct ixgbe_hw *hw, struct ixgbe_nvm_version *nvm_ver)
+void
+ixgbe_get_etk_id(struct ixgbe_hw *hw, struct ixgbe_nvm_version *nvm_ver)
 {
 	u16 etk_id_l, etk_id_h;
 
@@ -5392,7 +5456,6 @@ void ixgbe_get_etk_id(struct ixgbe_hw *hw, struct ixgbe_nvm_version *nvm_ver)
 	}
 }
 
-
 /**
  * ixgbe_dcb_get_rtrup2tc_generic - read rtrup2tc reg
  * @hw: pointer to hardware structure
@@ -5400,18 +5463,20 @@ void ixgbe_get_etk_id(struct ixgbe_hw *hw, struct ixgbe_nvm_version *nvm_ver)
  *
  * Read the rtrup2tc HW register and resolve its content into map
  **/
-void ixgbe_dcb_get_rtrup2tc_generic(struct ixgbe_hw *hw, u8 *map)
+void
+ixgbe_dcb_get_rtrup2tc_generic(struct ixgbe_hw *hw, u8 *map)
 {
 	u32 reg, i;
 
 	reg = IXGBE_READ_REG(hw, IXGBE_RTRUP2TC);
 	for (i = 0; i < IXGBE_DCB_MAX_USER_PRIORITY; i++)
 		map[i] = IXGBE_RTRUP2TC_UP_MASK &
-			(reg >> (i * IXGBE_RTRUP2TC_UP_SHIFT));
+		    (reg >> (i * IXGBE_RTRUP2TC_UP_SHIFT));
 	return;
 }
 
-void ixgbe_disable_rx_generic(struct ixgbe_hw *hw)
+void
+ixgbe_disable_rx_generic(struct ixgbe_hw *hw)
 {
 	u32 pfdtxgswc;
 	u32 rxctrl;
@@ -5433,7 +5498,8 @@ void ixgbe_disable_rx_generic(struct ixgbe_hw *hw)
 	}
 }
 
-void ixgbe_enable_rx_generic(struct ixgbe_hw *hw)
+void
+ixgbe_enable_rx_generic(struct ixgbe_hw *hw)
 {
 	u32 pfdtxgswc;
 	u32 rxctrl;
@@ -5455,7 +5521,8 @@ void ixgbe_enable_rx_generic(struct ixgbe_hw *hw)
  * ixgbe_mng_present - returns true when management capability is present
  * @hw: pointer to hardware structure
  */
-bool ixgbe_mng_present(struct ixgbe_hw *hw)
+bool
+ixgbe_mng_present(struct ixgbe_hw *hw)
 {
 	u32 fwsm;
 
@@ -5473,7 +5540,8 @@ bool ixgbe_mng_present(struct ixgbe_hw *hw)
  *
  * Returns true if the manageability engine is enabled.
  **/
-bool ixgbe_mng_enabled(struct ixgbe_hw *hw)
+bool
+ixgbe_mng_enabled(struct ixgbe_hw *hw)
 {
 	u32 fwsm, manc, factps;
 
@@ -5502,9 +5570,9 @@ bool ixgbe_mng_enabled(struct ixgbe_hw *hw)
  *
  * Set the link speed in the MAC and/or PHY register and restarts link.
  **/
-s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
-					  ixgbe_link_speed speed,
-					  bool autoneg_wait_to_complete)
+s32
+ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
+    ixgbe_link_speed speed, bool autoneg_wait_to_complete)
 {
 	ixgbe_link_speed link_speed = IXGBE_LINK_SPEED_UNKNOWN;
 	ixgbe_link_speed highest_link_speed = IXGBE_LINK_SPEED_UNKNOWN;
@@ -5534,7 +5602,7 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 		case ixgbe_media_type_fiber_fixed:
 		case ixgbe_media_type_fiber:
 			ixgbe_set_rate_select_speed(hw,
-						    IXGBE_LINK_SPEED_10GB_FULL);
+			    IXGBE_LINK_SPEED_10GB_FULL);
 			break;
 		case ixgbe_media_type_fiber_qsfp:
 			/* QSFP module automatically detects MAC link speed */
@@ -5547,9 +5615,8 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 		/* Allow module to change analog characteristics (1G->10G) */
 		msec_delay(40);
 
-		status = ixgbe_setup_mac_link(hw,
-					      IXGBE_LINK_SPEED_10GB_FULL,
-					      autoneg_wait_to_complete);
+		status = ixgbe_setup_mac_link(hw, IXGBE_LINK_SPEED_10GB_FULL,
+		    autoneg_wait_to_complete);
 		if (status != IXGBE_SUCCESS)
 			return status;
 
@@ -5565,8 +5632,8 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 			msec_delay(100);
 
 			/* If we have link, just jump out */
-			status = ixgbe_check_link(hw, &link_speed,
-						  &link_up, false);
+			status = ixgbe_check_link(hw, &link_speed, &link_up,
+			    false);
 			if (status != IXGBE_SUCCESS)
 				return status;
 
@@ -5585,7 +5652,7 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 		case ixgbe_media_type_fiber_fixed:
 		case ixgbe_media_type_fiber:
 			ixgbe_set_rate_select_speed(hw,
-						    IXGBE_LINK_SPEED_1GB_FULL);
+			    IXGBE_LINK_SPEED_1GB_FULL);
 			break;
 		case ixgbe_media_type_fiber_qsfp:
 			/* QSFP module automatically detects link speed */
@@ -5598,9 +5665,8 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 		/* Allow module to change analog characteristics (10G->1G) */
 		msec_delay(40);
 
-		status = ixgbe_setup_mac_link(hw,
-					      IXGBE_LINK_SPEED_1GB_FULL,
-					      autoneg_wait_to_complete);
+		status = ixgbe_setup_mac_link(hw, IXGBE_LINK_SPEED_1GB_FULL,
+		    autoneg_wait_to_complete);
 		if (status != IXGBE_SUCCESS)
 			return status;
 
@@ -5625,8 +5691,7 @@ s32 ixgbe_setup_mac_link_multispeed_fiber(struct ixgbe_hw *hw,
 	 */
 	if (speedcnt > 1)
 		status = ixgbe_setup_mac_link_multispeed_fiber(hw,
-						      highest_link_speed,
-						      autoneg_wait_to_complete);
+		    highest_link_speed, autoneg_wait_to_complete);
 
 out:
 	/* Set autoneg_advertised value based on input link speed */
@@ -5648,8 +5713,8 @@ out:
  *
  * Set module link speed via the soft rate select.
  */
-void ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw,
-					ixgbe_link_speed speed)
+void
+ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw, ixgbe_link_speed speed)
 {
 	s32 status;
 	u8 rs, eeprom_data;
@@ -5669,8 +5734,7 @@ void ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw,
 
 	/* Set RS0 */
 	status = hw->phy.ops.read_i2c_byte(hw, IXGBE_SFF_SFF_8472_OSCB,
-					   IXGBE_I2C_EEPROM_DEV_ADDR2,
-					   &eeprom_data);
+	    IXGBE_I2C_EEPROM_DEV_ADDR2, &eeprom_data);
 	if (status) {
 		DEBUGOUT("Failed to read Rx Rate Select RS0\n");
 		goto out;
@@ -5679,8 +5743,7 @@ void ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw,
 	eeprom_data = (eeprom_data & ~IXGBE_SFF_SOFT_RS_SELECT_MASK) | rs;
 
 	status = hw->phy.ops.write_i2c_byte(hw, IXGBE_SFF_SFF_8472_OSCB,
-					    IXGBE_I2C_EEPROM_DEV_ADDR2,
-					    eeprom_data);
+	    IXGBE_I2C_EEPROM_DEV_ADDR2, eeprom_data);
 	if (status) {
 		DEBUGOUT("Failed to write Rx Rate Select RS0\n");
 		goto out;
@@ -5688,8 +5751,7 @@ void ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw,
 
 	/* Set RS1 */
 	status = hw->phy.ops.read_i2c_byte(hw, IXGBE_SFF_SFF_8472_ESCB,
-					   IXGBE_I2C_EEPROM_DEV_ADDR2,
-					   &eeprom_data);
+	    IXGBE_I2C_EEPROM_DEV_ADDR2, &eeprom_data);
 	if (status) {
 		DEBUGOUT("Failed to read Rx Rate Select RS1\n");
 		goto out;
@@ -5698,8 +5760,7 @@ void ixgbe_set_soft_rate_select_speed(struct ixgbe_hw *hw,
 	eeprom_data = (eeprom_data & ~IXGBE_SFF_SOFT_RS_SELECT_MASK) | rs;
 
 	status = hw->phy.ops.write_i2c_byte(hw, IXGBE_SFF_SFF_8472_ESCB,
-					    IXGBE_I2C_EEPROM_DEV_ADDR2,
-					    eeprom_data);
+	    IXGBE_I2C_EEPROM_DEV_ADDR2, eeprom_data);
 	if (status) {
 		DEBUGOUT("Failed to write Rx Rate Select RS1\n");
 		goto out;

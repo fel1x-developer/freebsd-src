@@ -66,14 +66,13 @@ extern "C" {
 #endif // __cplusplus
 
 #include <dev/isci/scil/intel_sas.h>
-#include <dev/isci/scil/sci_controller_constants.h>
-
-#include <dev/isci/scil/sci_base_object.h>
-#include <dev/isci/scil/sci_base_state.h>
 #include <dev/isci/scil/sci_base_logger.h>
 #include <dev/isci/scil/sci_base_memory_descriptor_list.h>
+#include <dev/isci/scil/sci_base_object.h>
+#include <dev/isci/scil/sci_base_state.h>
 #include <dev/isci/scil/sci_base_state_machine.h>
 #include <dev/isci/scil/sci_base_state_machine_logger.h>
+#include <dev/isci/scil/sci_controller_constants.h>
 
 /**
  * @enum SCI_BASE_CONTROLLER_STATES
@@ -81,88 +80,85 @@ extern "C" {
  * @brief This enumeration depicts all the states for the common controller
  *        state machine.
  */
-typedef enum _SCI_BASE_CONTROLLER_STATES
-{
-   /**
-    * Simply the initial state for the base controller state machine.
-    */
-   SCI_BASE_CONTROLLER_STATE_INITIAL = 0,
+typedef enum _SCI_BASE_CONTROLLER_STATES {
+	/**
+	 * Simply the initial state for the base controller state machine.
+	 */
+	SCI_BASE_CONTROLLER_STATE_INITIAL = 0,
 
-   /**
-    * This state indicates that the controller is reset.  The memory for
-    * the controller is in its initial state, but the controller requires
-    * initialization.
-    * This state is entered from the INITIAL state.
-    * This state is entered from the RESETTING state.
-    */
-   SCI_BASE_CONTROLLER_STATE_RESET,
+	/**
+	 * This state indicates that the controller is reset.  The memory for
+	 * the controller is in its initial state, but the controller requires
+	 * initialization.
+	 * This state is entered from the INITIAL state.
+	 * This state is entered from the RESETTING state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_RESET,
 
-   /**
-    * This state is typically an action state that indicates the controller
-    * is in the process of initialization.  In this state no new IO operations
-    * are permitted.
-    * This state is entered from the RESET state.
-    */
-   SCI_BASE_CONTROLLER_STATE_INITIALIZING,
+	/**
+	 * This state is typically an action state that indicates the controller
+	 * is in the process of initialization.  In this state no new IO
+	 * operations are permitted. This state is entered from the RESET state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_INITIALIZING,
 
-   /**
-    * This state indicates that the controller has been successfully
-    * initialized.  In this state no new IO operations are permitted.
-    * This state is entered from the INITIALIZING state.
-    */
-   SCI_BASE_CONTROLLER_STATE_INITIALIZED,
+	/**
+	 * This state indicates that the controller has been successfully
+	 * initialized.  In this state no new IO operations are permitted.
+	 * This state is entered from the INITIALIZING state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_INITIALIZED,
 
-   /**
-    * This state indicates the controller is in the process of becoming
-    * ready (i.e. starting).  In this state no new IO operations are permitted.
-    * This state is entered from the INITIALIZED state.
-    */
-   SCI_BASE_CONTROLLER_STATE_STARTING,
+	/**
+	 * This state indicates the controller is in the process of becoming
+	 * ready (i.e. starting).  In this state no new IO operations are
+	 * permitted. This state is entered from the INITIALIZED state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_STARTING,
 
-   /**
-    * This state indicates the controller is now ready.  Thus, the user
-    * is able to perform IO operations on the controller.
-    * This state is entered from the STARTING state.
-    */
-   SCI_BASE_CONTROLLER_STATE_READY,
+	/**
+	 * This state indicates the controller is now ready.  Thus, the user
+	 * is able to perform IO operations on the controller.
+	 * This state is entered from the STARTING state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_READY,
 
-   /**
-    * This state is typically an action state that indicates the controller
-    * is in the process of resetting.  Thus, the user is unable to perform
-    * IO operations on the controller.  A reset is considered destructive in
-    * most cases.
-    * This state is entered from the READY state.
-    * This state is entered from the FAILED state.
-    * This state is entered from the STOPPED state.
-    */
-   SCI_BASE_CONTROLLER_STATE_RESETTING,
+	/**
+	 * This state is typically an action state that indicates the controller
+	 * is in the process of resetting.  Thus, the user is unable to perform
+	 * IO operations on the controller.  A reset is considered destructive
+	 * in most cases. This state is entered from the READY state. This state
+	 * is entered from the FAILED state. This state is entered from the
+	 * STOPPED state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_RESETTING,
 
-   /**
-    * This state indicates that the controller is in the process of stopping.
-    * In this state no new IO operations are permitted, but existing IO
-    * operations are allowed to complete.
-    * This state is entered from the READY state.
-    */
-   SCI_BASE_CONTROLLER_STATE_STOPPING,
+	/**
+	 * This state indicates that the controller is in the process of
+	 * stopping. In this state no new IO operations are permitted, but
+	 * existing IO operations are allowed to complete. This state is entered
+	 * from the READY state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_STOPPING,
 
-   /**
-    * This state indicates that the controller has successfully been stopped.
-    * In this state no new IO operations are permitted.
-    * This state is entered from the STOPPING state.
-    */
-   SCI_BASE_CONTROLLER_STATE_STOPPED,
+	/**
+	 * This state indicates that the controller has successfully been
+	 * stopped. In this state no new IO operations are permitted. This state
+	 * is entered from the STOPPING state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_STOPPED,
 
-   /**
-    * This state indicates that the controller could not successfully be
-    * initialized.  In this state no new IO operations are permitted.
-    * This state is entered from the INITIALIZING state.
-    * This state is entered from the STARTING state.
-    * This state is entered from the STOPPING state.
-    * This state is entered from the RESETTING state.
-    */
-   SCI_BASE_CONTROLLER_STATE_FAILED,
+	/**
+	 * This state indicates that the controller could not successfully be
+	 * initialized.  In this state no new IO operations are permitted.
+	 * This state is entered from the INITIALIZING state.
+	 * This state is entered from the STARTING state.
+	 * This state is entered from the STOPPING state.
+	 * This state is entered from the RESETTING state.
+	 */
+	SCI_BASE_CONTROLLER_STATE_FAILED,
 
-   SCI_BASE_CONTROLLER_MAX_STATES
+	SCI_BASE_CONTROLLER_MAX_STATES
 
 } SCI_BASE_CONTROLLER_STATES;
 
@@ -172,36 +168,35 @@ typedef enum _SCI_BASE_CONTROLLER_STATES
  * @brief The base controller object abstracts the fields common to all
  *        SCI controller objects.
  */
-typedef struct SCI_BASE_CONTROLLER
-{
-   /**
-    * The field specifies that the parent object for the base controller
-    * is the base object itself.
-    */
-   SCI_BASE_OBJECT_T parent;
+typedef struct SCI_BASE_CONTROLLER {
+	/**
+	 * The field specifies that the parent object for the base controller
+	 * is the base object itself.
+	 */
+	SCI_BASE_OBJECT_T parent;
 
-   /**
-    * This field points to the memory descriptor list associated with this
-    * controller.  The MDL indicates the memory requirements necessary for
-    * this controller object.
-    */
-   SCI_BASE_MEMORY_DESCRIPTOR_LIST_T  mdl;
+	/**
+	 * This field points to the memory descriptor list associated with this
+	 * controller.  The MDL indicates the memory requirements necessary for
+	 * this controller object.
+	 */
+	SCI_BASE_MEMORY_DESCRIPTOR_LIST_T mdl;
 
-   /**
-    * This field records the fact that the controller has encountered a fatal memory
-    * error and controller must stay in failed state.
-    */
-   U8 error;
+	/**
+	 * This field records the fact that the controller has encountered a
+	 * fatal memory error and controller must stay in failed state.
+	 */
+	U8 error;
 
-   /**
-    * This field contains the information for the base controller state
-    * machine.
-    */
-   SCI_BASE_STATE_MACHINE_T state_machine;
+	/**
+	 * This field contains the information for the base controller state
+	 * machine.
+	 */
+	SCI_BASE_STATE_MACHINE_T state_machine;
 
-   #ifdef SCI_LOGGING
-   SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
-   #endif // SCI_LOGGING
+#ifdef SCI_LOGGING
+	SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
+#endif // SCI_LOGGING
 
 } SCI_BASE_CONTROLLER_T;
 
@@ -209,28 +204,18 @@ typedef struct SCI_BASE_CONTROLLER
 struct SCI_BASE_REMOTE_DEVICE;
 struct SCI_BASE_REQUEST;
 
-typedef SCI_STATUS (*SCI_BASE_CONTROLLER_HANDLER_T)(
-   SCI_BASE_CONTROLLER_T *
-);
+typedef SCI_STATUS (*SCI_BASE_CONTROLLER_HANDLER_T)(SCI_BASE_CONTROLLER_T *);
 
-typedef SCI_STATUS (*SCI_BASE_CONTROLLER_TIMED_HANDLER_T)(
-   SCI_BASE_CONTROLLER_T *,
-   U32
-);
+typedef SCI_STATUS (
+    *SCI_BASE_CONTROLLER_TIMED_HANDLER_T)(SCI_BASE_CONTROLLER_T *, U32);
 
-typedef SCI_STATUS (*SCI_BASE_CONTROLLER_REQUEST_HANDLER_T)(
-   SCI_BASE_CONTROLLER_T *,
-   struct SCI_BASE_REMOTE_DEVICE *,
-   struct SCI_BASE_REQUEST *
-);
+typedef SCI_STATUS (
+    *SCI_BASE_CONTROLLER_REQUEST_HANDLER_T)(SCI_BASE_CONTROLLER_T *,
+    struct SCI_BASE_REMOTE_DEVICE *, struct SCI_BASE_REQUEST *);
 
-typedef SCI_STATUS (*SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T)(
-   SCI_BASE_CONTROLLER_T *,
-   struct SCI_BASE_REMOTE_DEVICE *,
-   struct SCI_BASE_REQUEST *,
-   U16
-);
-
+typedef SCI_STATUS (
+    *SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T)(SCI_BASE_CONTROLLER_T *,
+    struct SCI_BASE_REMOTE_DEVICE *, struct SCI_BASE_REQUEST *, U16);
 
 /**
  * @struct SCI_BASE_CONTROLLER_STATE_HANDLER
@@ -240,73 +225,74 @@ typedef SCI_STATUS (*SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T)(
  *        to change the behavior for user requests or transitions depending
  *        on the state the machine is in.
  */
-typedef struct SCI_BASE_CONTROLLER_STATE_HANDLER
-{
-   /**
-    * The start_handler specifies the method invoked when a user attempts to
-    * start a controller.
-    */
-   SCI_BASE_CONTROLLER_TIMED_HANDLER_T start_handler;
+typedef struct SCI_BASE_CONTROLLER_STATE_HANDLER {
+	/**
+	 * The start_handler specifies the method invoked when a user attempts
+	 * to start a controller.
+	 */
+	SCI_BASE_CONTROLLER_TIMED_HANDLER_T start_handler;
 
-   /**
-    * The stop_handler specifies the method invoked when a user attempts to
-    * stop a controller.
-    */
-   SCI_BASE_CONTROLLER_TIMED_HANDLER_T stop_handler;
+	/**
+	 * The stop_handler specifies the method invoked when a user attempts to
+	 * stop a controller.
+	 */
+	SCI_BASE_CONTROLLER_TIMED_HANDLER_T stop_handler;
 
-   /**
-    * The reset_handler specifies the method invoked when a user attempts to
-    * reset a controller.
-    */
-   SCI_BASE_CONTROLLER_HANDLER_T reset_handler;
+	/**
+	 * The reset_handler specifies the method invoked when a user attempts
+	 * to reset a controller.
+	 */
+	SCI_BASE_CONTROLLER_HANDLER_T reset_handler;
 
-   /**
-    * The initialize_handler specifies the method invoked when a user
-    * attempts to initialize a controller.
-    */
-   SCI_BASE_CONTROLLER_HANDLER_T initialize_handler;
+	/**
+	 * The initialize_handler specifies the method invoked when a user
+	 * attempts to initialize a controller.
+	 */
+	SCI_BASE_CONTROLLER_HANDLER_T initialize_handler;
 
-   /**
-    * The start_io_handler specifies the method invoked when a user
-    * attempts to start an IO request for a controller.
-    */
-   SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_io_handler;
+	/**
+	 * The start_io_handler specifies the method invoked when a user
+	 * attempts to start an IO request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_io_handler;
 
-   /**
-    * The start_internal_request_handler specifies the method invoked when a user
-    * attempts to start an internal request for a controller.
-    */
-   SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_high_priority_io_handler;
+	/**
+	 * The start_internal_request_handler specifies the method invoked when
+	 * a user attempts to start an internal request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T
+	    start_high_priority_io_handler;
 
-   /**
-    * The complete_io_handler specifies the method invoked when a user
-    * attempts to complete an IO request for a controller.
-    */
-   SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_io_handler;
+	/**
+	 * The complete_io_handler specifies the method invoked when a user
+	 * attempts to complete an IO request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_io_handler;
 
-    /**
-    * The complete_high_priority_io_handler specifies the method invoked when a user
-    * attempts to complete a high priority IO request for a controller.
-    */
-   SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_high_priority_io_handler;
+	/**
+	 * The complete_high_priority_io_handler specifies the method invoked
+	 * when a user attempts to complete a high priority IO request for a
+	 * controller.
+	 */
+	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_high_priority_io_handler;
 
-   /**
-    * The continue_io_handler specifies the method invoked when a user
-    * attempts to continue an IO request for a controller.
-    */
-   SCI_BASE_CONTROLLER_REQUEST_HANDLER_T continue_io_handler;
+	/**
+	 * The continue_io_handler specifies the method invoked when a user
+	 * attempts to continue an IO request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T continue_io_handler;
 
-   /**
-    * The start_task_handler specifies the method invoked when a user
-    * attempts to start a task management request for a controller.
-    */
-   SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_task_handler;
+	/**
+	 * The start_task_handler specifies the method invoked when a user
+	 * attempts to start a task management request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_START_REQUEST_HANDLER_T start_task_handler;
 
-   /**
-    * The complete_task_handler specifies the method invoked when a user
-    * attempts to complete a task management request for a controller.
-    */
-   SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_task_handler;
+	/**
+	 * The complete_task_handler specifies the method invoked when a user
+	 * attempts to complete a task management request for a controller.
+	 */
+	SCI_BASE_CONTROLLER_REQUEST_HANDLER_T complete_task_handler;
 
 } SCI_BASE_CONTROLLER_STATE_HANDLER_T;
 
@@ -331,14 +317,10 @@ typedef struct SCI_BASE_CONTROLLER_STATE_HANDLER
  *
  * @return none
  */
-void sci_base_controller_construct(
-   SCI_BASE_CONTROLLER_T             * this_controller,
-   SCI_BASE_LOGGER_T                 * logger,
-   SCI_BASE_STATE_T                  * state_table,
-   SCI_PHYSICAL_MEMORY_DESCRIPTOR_T  * mdes,
-   U32                                 mde_count,
-   SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl
-);
+void sci_base_controller_construct(SCI_BASE_CONTROLLER_T *this_controller,
+    SCI_BASE_LOGGER_T *logger, SCI_BASE_STATE_T *state_table,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mdes, U32 mde_count,
+    SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T next_mdl);
 
 #ifdef __cplusplus
 }

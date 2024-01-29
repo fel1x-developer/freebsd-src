@@ -25,11 +25,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/atomic.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/atomic.h>
 
-#if !defined(__LP64__) && !defined(__mips_n32) && \
+#if !defined(__LP64__) && !defined(__mips_n32) &&                  \
     !defined(ARM_HAVE_ATOMIC64) && !defined(I386_HAVE_ATOMIC64) && \
     !defined(HAS_EMULATED_ATOMIC64)
 
@@ -41,8 +41,8 @@ MTX_SYSINIT(atomic, &atomic_mtx, "atomic", MTX_DEF);
 #else
 #include <pthread.h>
 
-#define	mtx_lock(lock)		pthread_mutex_lock(lock)
-#define	mtx_unlock(lock)	pthread_mutex_unlock(lock)
+#define mtx_lock(lock) pthread_mutex_lock(lock)
+#define mtx_unlock(lock) pthread_mutex_unlock(lock)
 
 static pthread_mutex_t atomic_mtx;
 

@@ -37,56 +37,56 @@
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/queue.h>
-#include <sys/fbio.h>
-
-#include <machine/bus.h>
-
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
+#include <machine/bus.h>
+
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
+
 #include "fb_if.h"
 
-LIST_HEAD(fb_list_head_t, fb_list_entry) fb_list_head =
-    LIST_HEAD_INITIALIZER(fb_list_head);
+LIST_HEAD(fb_list_head_t, fb_list_entry) fb_list_head = LIST_HEAD_INITIALIZER(
+    fb_list_head);
 struct fb_list_entry {
-	struct fb_info	*fb_info;
-	struct cdev	*fb_si;
+	struct fb_info *fb_info;
+	struct cdev *fb_si;
 	LIST_ENTRY(fb_list_entry) fb_list;
 };
 
 struct fbd_softc {
-	device_t	sc_dev;
-	struct fb_info	*sc_info;
+	device_t sc_dev;
+	struct fb_info *sc_info;
 };
 
 static void fbd_evh_init(void *);
 /* SI_ORDER_SECOND, just after EVENTHANDLERs initialized. */
 SYSINIT(fbd_evh_init, SI_SUB_CONFIGURE, SI_ORDER_SECOND, fbd_evh_init, NULL);
 
-static d_open_t		fb_open;
-static d_close_t	fb_close;
-static d_read_t		fb_read;
-static d_write_t	fb_write;
-static d_ioctl_t	fb_ioctl;
-static d_mmap_t		fb_mmap;
+static d_open_t fb_open;
+static d_close_t fb_close;
+static d_read_t fb_read;
+static d_write_t fb_write;
+static d_ioctl_t fb_ioctl;
+static d_mmap_t fb_mmap;
 
 static struct cdevsw fb_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_NEEDGIANT,
-	.d_open =	fb_open,
-	.d_close =	fb_close,
-	.d_read =	fb_read,
-	.d_write =	fb_write,
-	.d_ioctl =	fb_ioctl,
-	.d_mmap =	fb_mmap,
-	.d_name =	"fb",
+	.d_version = D_VERSION,
+	.d_flags = D_NEEDGIANT,
+	.d_open = fb_open,
+	.d_close = fb_close,
+	.d_read = fb_read,
+	.d_write = fb_write,
+	.d_ioctl = fb_ioctl,
+	.d_mmap = fb_mmap,
+	.d_name = "fb",
 };
 
 static int framebuffer_dev_unit = 0;
@@ -120,20 +120,20 @@ fb_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		bcopy(info, (struct fbtype *)data, sizeof(struct fbtype));
 		break;
 
-	case FBIO_GETWINORG:	/* get frame buffer window origin */
+	case FBIO_GETWINORG: /* get frame buffer window origin */
 		*(u_int *)data = 0;
 		break;
 
-	case FBIO_GETDISPSTART:	/* get display start address */
+	case FBIO_GETDISPSTART: /* get display start address */
 		((video_display_start_t *)data)->x = 0;
 		((video_display_start_t *)data)->y = 0;
 		break;
 
-	case FBIO_GETLINEWIDTH:	/* get scan line width in bytes */
+	case FBIO_GETLINEWIDTH: /* get scan line width in bytes */
 		*(u_int *)data = info->fb_stride;
 		break;
 
-	case FBIO_BLANK:	/* blank display */
+	case FBIO_BLANK: /* blank display */
 		if (info->setblankmode != NULL)
 			error = info->setblankmode(info->fb_priv, *(int *)data);
 		break;
@@ -188,8 +188,8 @@ fb_init(struct fb_list_entry *entry, int unit)
 	struct fb_info *info;
 
 	info = entry->fb_info;
-	entry->fb_si = make_dev(&fb_cdevsw, unit, UID_ROOT, GID_WHEEL,
-	    0600, "fb%d", unit);
+	entry->fb_si = make_dev(&fb_cdevsw, unit, UID_ROOT, GID_WHEEL, 0600,
+	    "fb%d", unit);
 	entry->fb_si->si_drv1 = info;
 	info->fb_cdev = entry->fb_si;
 
@@ -204,7 +204,7 @@ fbd_list(void)
 	if (LIST_EMPTY(&fb_list_head))
 		return (ENOENT);
 
-	LIST_FOREACH(entry, &fb_list_head, fb_list) {
+	LIST_FOREACH (entry, &fb_list_head, fb_list) {
 		printf("FB %s @%#jx\n", entry->fb_info->fb_name,
 		    (uintmax_t)entry->fb_info->fb_pbase);
 	}
@@ -213,11 +213,11 @@ fbd_list(void)
 }
 
 static struct fb_list_entry *
-fbd_find(struct fb_info* info)
+fbd_find(struct fb_info *info)
 {
 	struct fb_list_entry *entry, *tmp;
 
-	LIST_FOREACH_SAFE(entry, &fb_list_head, fb_list, tmp) {
+	LIST_FOREACH_SAFE (entry, &fb_list_head, fb_list, tmp) {
 		if (entry->fb_info == info) {
 			return (entry);
 		}
@@ -227,7 +227,7 @@ fbd_find(struct fb_info* info)
 }
 
 int
-fbd_register(struct fb_info* info)
+fbd_register(struct fb_info *info)
 {
 	struct fb_list_entry *entry;
 	int err, first;
@@ -242,7 +242,8 @@ fbd_register(struct fb_info* info)
 		return (0);
 	}
 
-	entry = malloc(sizeof(struct fb_list_entry), M_DEVBUF, M_WAITOK|M_ZERO);
+	entry = malloc(sizeof(struct fb_list_entry), M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 	entry->fb_info = info;
 
 	LIST_INSERT_HEAD(&fb_list_head, entry, fb_list);
@@ -261,11 +262,11 @@ fbd_register(struct fb_info* info)
 }
 
 int
-fbd_unregister(struct fb_info* info)
+fbd_unregister(struct fb_info *info)
 {
 	struct fb_list_entry *entry, *tmp;
 
-	LIST_FOREACH_SAFE(entry, &fb_list_head, fb_list, tmp) {
+	LIST_FOREACH_SAFE (entry, &fb_list_head, fb_list, tmp) {
 		if (entry->fb_info == info) {
 			LIST_REMOVE(entry, fb_list);
 			if (LIST_EMPTY(&fb_list_head))
@@ -342,23 +343,18 @@ fbd_detach(device_t dev)
 
 static device_method_t fbd_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fbd_probe),
-	DEVMETHOD(device_attach,	fbd_attach),
-	DEVMETHOD(device_detach,	fbd_detach),
+	DEVMETHOD(device_probe, fbd_probe),
+	DEVMETHOD(device_attach, fbd_attach),
+	DEVMETHOD(device_detach, fbd_detach),
 
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	{ 0, 0 }
 };
 
-driver_t fbd_driver = {
-	"fbd",
-	fbd_methods,
-	sizeof(struct fbd_softc)
-};
+driver_t fbd_driver = { "fbd", fbd_methods, sizeof(struct fbd_softc) };
 
 DRIVER_MODULE(fbd, fb, fbd_driver, 0, 0);
 DRIVER_MODULE(fbd, drmn, fbd_driver, 0, 0);
 DRIVER_MODULE(fbd, udl, fbd_driver, 0, 0);
 MODULE_VERSION(fbd, 1);
-

@@ -6,70 +6,68 @@
  *
  */
 
-#include <stdio.h>
-#include <netdb.h>
-#include <ctype.h>
-#include <signal.h>
-#include <errno.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/timeb.h>
-#include <sys/socket.h>
+#include <sys/dir.h>
+#include <sys/fcntlcom.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
-#include <net/nit.h>
-#include <sys/fcntlcom.h>
-#include <sys/dir.h>
-#include <net/nit_if.h>
-#include <net/nit_pf.h>
-#include <net/nit_buf.h>
-#include <net/packetfilt.h>
+#include <sys/socket.h>
 #include <sys/stropts.h>
+#include <sys/time.h>
+#include <sys/timeb.h>
 
 #include <net/if.h>
+#include <net/nit.h>
+#include <net/nit_buf.h>
+#include <net/nit_if.h>
+#include <net/nit_pf.h>
+#include <net/packetfilt.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip_var.h>
+#include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
-#include <netinet/tcp.h>
+
+#include <ctype.h>
+#include <errno.h>
+#include <netdb.h>
+#include <signal.h>
+#include <stdio.h>
 
 #include "ipsend.h"
 
-
-#define	CHUNKSIZE	8192
-#define BUFSPACE	(4*CHUNKSIZE)
+#define CHUNKSIZE 8192
+#define BUFSPACE (4 * CHUNKSIZE)
 
 /*
  * Be careful to only include those defined in the flags option for the
  * interface are included in the header size.
  */
-#define BUFHDR_SIZE  (sizeof(struct nit_bufhdr))
-#define NIT_HDRSIZE  (BUFHDR_SIZE)
+#define BUFHDR_SIZE (sizeof(struct nit_bufhdr))
+#define NIT_HDRSIZE (BUFHDR_SIZE)
 
-static	int	timeout;
-
+static int timeout;
 
 int
 initdevice(char *device, int tout)
 {
-	struct	strioctl si;
-	struct	timeval to;
-	struct	ifreq ifr;
-	int	fd;
+	struct strioctl si;
+	struct timeval to;
+	struct ifreq ifr;
+	int fd;
 
-	if ((fd = open("/dev/nit", O_RDWR)) < 0)
-	    {
+	if ((fd = open("/dev/nit", O_RDWR)) < 0) {
 		perror("/dev/nit");
 		exit(-1);
-	    }
+	}
 
 	/*
 	 * arrange to get messages from the NIT STREAM and use NIT_BUF option
 	 */
-	ioctl(fd, I_SRDOPT, (char*)RMSGD);
+	ioctl(fd, I_SRDOPT, (char *)RMSGD);
 	ioctl(fd, I_PUSH, "nbuf");
 
 	/*
@@ -81,12 +79,11 @@ initdevice(char *device, int tout)
 	to.tv_usec = 0;
 	si.ic_cmd = NIOCSTIME;
 	si.ic_len = sizeof(to);
-	si.ic_dp = (char*)&to;
-	if (ioctl(fd, I_STR, (char*)&si) == -1)
-	    {
+	si.ic_dp = (char *)&to;
+	if (ioctl(fd, I_STR, (char *)&si) == -1) {
 		perror("ioctl: NIT timeout");
 		exit(-1);
-	    }
+	}
 
 	/*
 	 * request the interface
@@ -95,26 +92,22 @@ initdevice(char *device, int tout)
 	ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = ' ';
 	si.ic_cmd = NIOCBIND;
 	si.ic_len = sizeof(ifr);
-	si.ic_dp = (char*)&ifr;
-	if (ioctl(fd, I_STR, (char*)&si) == -1)
-	    {
+	si.ic_dp = (char *)&ifr;
+	if (ioctl(fd, I_STR, (char *)&si) == -1) {
 		perror(ifr.ifr_name);
 		exit(1);
-	    }
+	}
 	return (fd);
 }
-
 
 /*
  * output an IP packet onto a fd opened for /dev/nit
  */
-int
-sendip(int fd, char *pkt, int len)
-	int	fd, len;
-	char	*pkt;
+int sendip(int fd, char *pkt, int len) int fd, len;
+char *pkt;
 {
-	struct	sockaddr sk, *sa = &sk;
-	struct	strbuf	cbuf, *cp = &cbuf, dbuf, *dp = &dbuf;
+	struct sockaddr sk, *sa = &sk;
+	struct strbuf cbuf, *cp = &cbuf, dbuf, *dp = &dbuf;
 
 	/*
 	 * For ethernet, need at least 802.3 header and IP header.
@@ -140,16 +133,14 @@ sendip(int fd, char *pkt, int len)
 	dp->len = len;
 	dp->maxlen = dp->len;
 
-	if (putmsg(fd, cp, dp, 0) == -1)
-	    {
+	if (putmsg(fd, cp, dp, 0) == -1) {
 		perror("putmsg");
 		return (-1);
-	    }
+	}
 
-	if (ioctl(fd, I_FLUSH, FLUSHW) == -1)
-	    {
+	if (ioctl(fd, I_FLUSH, FLUSHW) == -1) {
 		perror("I_FLUSH");
 		return (-1);
-	    }
+	}
 	return (len);
 }

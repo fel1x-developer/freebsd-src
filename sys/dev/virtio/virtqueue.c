@@ -33,66 +33,67 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/rman.h>
 #include <sys/sdt.h>
 #include <sys/sglist.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/cpu.h>
-#include <machine/bus.h>
 #include <machine/atomic.h>
+#include <machine/bus.h>
+#include <machine/cpu.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/virtio/virtio.h>
-#include <dev/virtio/virtqueue.h>
 #include <dev/virtio/virtio_ring.h>
+#include <dev/virtio/virtqueue.h>
 
 #include "virtio_bus_if.h"
 
 struct virtqueue {
-	device_t		 vq_dev;
-	uint16_t		 vq_queue_index;
-	uint16_t		 vq_nentries;
-	uint32_t		 vq_flags;
-#define	VIRTQUEUE_FLAG_MODERN	 0x0001
-#define	VIRTQUEUE_FLAG_INDIRECT	 0x0002
-#define	VIRTQUEUE_FLAG_EVENT_IDX 0x0004
+	device_t vq_dev;
+	uint16_t vq_queue_index;
+	uint16_t vq_nentries;
+	uint32_t vq_flags;
+#define VIRTQUEUE_FLAG_MODERN 0x0001
+#define VIRTQUEUE_FLAG_INDIRECT 0x0002
+#define VIRTQUEUE_FLAG_EVENT_IDX 0x0004
 
-	int			 vq_max_indirect_size;
-	bus_size_t		 vq_notify_offset;
-	virtqueue_intr_t	*vq_intrhand;
-	void			*vq_intrhand_arg;
+	int vq_max_indirect_size;
+	bus_size_t vq_notify_offset;
+	virtqueue_intr_t *vq_intrhand;
+	void *vq_intrhand_arg;
 
-	struct vring		 vq_ring;
-	uint16_t		 vq_free_cnt;
-	uint16_t		 vq_queued_cnt;
+	struct vring vq_ring;
+	uint16_t vq_free_cnt;
+	uint16_t vq_queued_cnt;
 	/*
 	 * Head of the free chain in the descriptor table. If
 	 * there are no free descriptors, this will be set to
 	 * VQ_RING_DESC_CHAIN_END.
 	 */
-	uint16_t		 vq_desc_head_idx;
+	uint16_t vq_desc_head_idx;
 	/*
 	 * Last consumed descriptor in the used table,
 	 * trails vq_ring.used->idx.
 	 */
-	uint16_t		 vq_used_cons_idx;
+	uint16_t vq_used_cons_idx;
 
-	void			*vq_ring_mem;
-	int			 vq_indirect_mem_size;
-	int			 vq_alignment;
-	int			 vq_ring_size;
-	char			 vq_name[VIRTQUEUE_MAX_NAME_SZ];
+	void *vq_ring_mem;
+	int vq_indirect_mem_size;
+	int vq_alignment;
+	int vq_ring_size;
+	char vq_name[VIRTQUEUE_MAX_NAME_SZ];
 
 	struct vq_desc_extra {
-		void		  *cookie;
+		void *cookie;
 		struct vring_desc *indirect;
-		vm_paddr_t	   indirect_paddr;
-		uint16_t	   ndescs;
+		vm_paddr_t indirect_paddr;
+		uint16_t ndescs;
 	} vq_descx[0];
 };
 
@@ -104,49 +105,49 @@ struct virtqueue {
  */
 #define VQ_RING_DESC_CHAIN_END 32768
 
-#define VQASSERT(_vq, _exp, _msg, ...)				\
-    KASSERT((_exp),("%s: %s - "_msg, __func__, (_vq)->vq_name,	\
-	##__VA_ARGS__))
+#define VQASSERT(_vq, _exp, _msg, ...) \
+	KASSERT((_exp),                \
+	    ("%s: %s - "_msg, __func__, (_vq)->vq_name, ##__VA_ARGS__))
 
-#define VQ_RING_ASSERT_VALID_IDX(_vq, _idx)			\
-    VQASSERT((_vq), (_idx) < (_vq)->vq_nentries,		\
-	"invalid ring index: %d, max: %d", (_idx),		\
-	(_vq)->vq_nentries)
+#define VQ_RING_ASSERT_VALID_IDX(_vq, _idx)          \
+	VQASSERT((_vq), (_idx) < (_vq)->vq_nentries, \
+	    "invalid ring index: %d, max: %d", (_idx), (_vq)->vq_nentries)
 
-#define VQ_RING_ASSERT_CHAIN_TERM(_vq)				\
-    VQASSERT((_vq), (_vq)->vq_desc_head_idx ==			\
-	VQ_RING_DESC_CHAIN_END,	"full ring terminated "		\
-	"incorrectly: head idx: %d", (_vq)->vq_desc_head_idx)
+#define VQ_RING_ASSERT_CHAIN_TERM(_vq)                                     \
+	VQASSERT((_vq), (_vq)->vq_desc_head_idx == VQ_RING_DESC_CHAIN_END, \
+	    "full ring terminated "                                        \
+	    "incorrectly: head idx: %d",                                   \
+	    (_vq)->vq_desc_head_idx)
 
-static int	virtqueue_init_indirect(struct virtqueue *vq, int);
-static void	virtqueue_free_indirect(struct virtqueue *vq);
-static void	virtqueue_init_indirect_list(struct virtqueue *,
-		    struct vring_desc *);
+static int virtqueue_init_indirect(struct virtqueue *vq, int);
+static void virtqueue_free_indirect(struct virtqueue *vq);
+static void virtqueue_init_indirect_list(struct virtqueue *,
+    struct vring_desc *);
 
-static void	vq_ring_init(struct virtqueue *);
-static void	vq_ring_update_avail(struct virtqueue *, uint16_t);
-static uint16_t	vq_ring_enqueue_segments(struct virtqueue *,
-		    struct vring_desc *, uint16_t, struct sglist *, int, int);
-static bool	vq_ring_use_indirect(struct virtqueue *, int);
-static void	vq_ring_enqueue_indirect(struct virtqueue *, void *,
-		    struct sglist *, int, int);
-static int	vq_ring_enable_interrupt(struct virtqueue *, uint16_t);
-static int	vq_ring_must_notify_host(struct virtqueue *);
-static void	vq_ring_notify_host(struct virtqueue *);
-static void	vq_ring_free_chain(struct virtqueue *, uint16_t);
+static void vq_ring_init(struct virtqueue *);
+static void vq_ring_update_avail(struct virtqueue *, uint16_t);
+static uint16_t vq_ring_enqueue_segments(struct virtqueue *,
+    struct vring_desc *, uint16_t, struct sglist *, int, int);
+static bool vq_ring_use_indirect(struct virtqueue *, int);
+static void vq_ring_enqueue_indirect(struct virtqueue *, void *,
+    struct sglist *, int, int);
+static int vq_ring_enable_interrupt(struct virtqueue *, uint16_t);
+static int vq_ring_must_notify_host(struct virtqueue *);
+static void vq_ring_notify_host(struct virtqueue *);
+static void vq_ring_free_chain(struct virtqueue *, uint16_t);
 
 SDT_PROVIDER_DEFINE(virtqueue);
 SDT_PROBE_DEFINE6(virtqueue, , enqueue_segments, entry, "struct virtqueue *",
     "struct vring_desc *", "uint16_t", "struct sglist *", "int", "int");
 SDT_PROBE_DEFINE1(virtqueue, , enqueue_segments, return, "uint16_t");
 
-#define vq_modern(_vq) 		(((_vq)->vq_flags & VIRTQUEUE_FLAG_MODERN) != 0)
-#define vq_htog16(_vq, _val) 	virtio_htog16(vq_modern(_vq), _val)
-#define vq_htog32(_vq, _val) 	virtio_htog32(vq_modern(_vq), _val)
-#define vq_htog64(_vq, _val) 	virtio_htog64(vq_modern(_vq), _val)
-#define vq_gtoh16(_vq, _val) 	virtio_gtoh16(vq_modern(_vq), _val)
-#define vq_gtoh32(_vq, _val) 	virtio_gtoh32(vq_modern(_vq), _val)
-#define vq_gtoh64(_vq, _val) 	virtio_gtoh64(vq_modern(_vq), _val)
+#define vq_modern(_vq) (((_vq)->vq_flags & VIRTQUEUE_FLAG_MODERN) != 0)
+#define vq_htog16(_vq, _val) virtio_htog16(vq_modern(_vq), _val)
+#define vq_htog32(_vq, _val) virtio_htog32(vq_modern(_vq), _val)
+#define vq_htog64(_vq, _val) virtio_htog64(vq_modern(_vq), _val)
+#define vq_gtoh16(_vq, _val) virtio_gtoh16(vq_modern(_vq), _val)
+#define vq_gtoh32(_vq, _val) virtio_gtoh32(vq_modern(_vq), _val)
+#define vq_gtoh64(_vq, _val) virtio_gtoh64(vq_modern(_vq), _val)
 
 int
 virtqueue_alloc(device_t dev, uint16_t queue, uint16_t size,
@@ -161,16 +162,17 @@ virtqueue_alloc(device_t dev, uint16_t queue, uint16_t size,
 
 	if (size == 0) {
 		device_printf(dev,
-		    "virtqueue %d (%s) does not exist (size is zero)\n",
-		    queue, info->vqai_name);
+		    "virtqueue %d (%s) does not exist (size is zero)\n", queue,
+		    info->vqai_name);
 		return (ENODEV);
 	} else if (!powerof2(size)) {
 		device_printf(dev,
-		    "virtqueue %d (%s) size is not a power of 2: %d\n",
-		    queue, info->vqai_name, size);
+		    "virtqueue %d (%s) size is not a power of 2: %d\n", queue,
+		    info->vqai_name, size);
 		return (ENXIO);
 	} else if (info->vqai_maxindirsz > VIRTIO_MAX_INDIRECT) {
-		device_printf(dev, "virtqueue %d (%s) requested too many "
+		device_printf(dev,
+		    "virtqueue %d (%s) requested too many "
 		    "indirect descriptors: %d, max %d\n",
 		    queue, info->vqai_name, info->vqai_maxindirsz,
 		    VIRTIO_MAX_INDIRECT);
@@ -178,7 +180,8 @@ virtqueue_alloc(device_t dev, uint16_t queue, uint16_t size,
 	}
 
 	vq = malloc(sizeof(struct virtqueue) +
-	    size * sizeof(struct vq_desc_extra), M_DEVBUF, M_NOWAIT | M_ZERO);
+		size * sizeof(struct vq_desc_extra),
+	    M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (vq == NULL) {
 		device_printf(dev, "cannot allocate virtqueue\n");
 		return (ENOMEM);
@@ -243,7 +246,8 @@ virtqueue_init_indirect(struct virtqueue *vq, int indirect_size)
 		 * going: we'll run fine without.
 		 */
 		if (bootverbose)
-			device_printf(dev, "virtqueue %d (%s) requested "
+			device_printf(dev,
+			    "virtqueue %d (%s) requested "
 			    "indirect descriptors but not negotiated\n",
 			    vq->vq_queue_index, vq->vq_name);
 		return (0);
@@ -292,8 +296,7 @@ virtqueue_free_indirect(struct virtqueue *vq)
 }
 
 static void
-virtqueue_init_indirect_list(struct virtqueue *vq,
-    struct vring_desc *indirect)
+virtqueue_init_indirect_list(struct virtqueue *vq, struct vring_desc *indirect)
 {
 	int i;
 
@@ -312,8 +315,8 @@ virtqueue_reinit(struct virtqueue *vq, uint16_t size)
 
 	if (vq->vq_nentries != size) {
 		device_printf(vq->vq_dev,
-		    "%s: '%s' changed size; old=%hu, new=%hu\n",
-		    __func__, vq->vq_name, vq->vq_nentries, size);
+		    "%s: '%s' changed size; old=%hu, new=%hu\n", __func__,
+		    vq->vq_name, vq->vq_nentries, size);
 		return (EINVAL);
 	}
 
@@ -321,8 +324,8 @@ virtqueue_reinit(struct virtqueue *vq, uint16_t size)
 	if (vq->vq_free_cnt != vq->vq_nentries) {
 		device_printf(vq->vq_dev,
 		    "%s: warning '%s' virtqueue not empty, "
-		    "leaking %d entries\n", __func__, vq->vq_name,
-		    vq->vq_nentries - vq->vq_free_cnt);
+		    "leaking %d entries\n",
+		    __func__, vq->vq_name, vq->vq_nentries - vq->vq_free_cnt);
 	}
 
 	vq->vq_desc_head_idx = 0;
@@ -351,9 +354,10 @@ virtqueue_free(struct virtqueue *vq)
 {
 
 	if (vq->vq_free_cnt != vq->vq_nentries) {
-		device_printf(vq->vq_dev, "%s: freeing non-empty virtqueue, "
-		    "leaking %d entries\n", vq->vq_name,
-		    vq->vq_nentries - vq->vq_free_cnt);
+		device_printf(vq->vq_dev,
+		    "%s: freeing non-empty virtqueue, "
+		    "leaking %d entries\n",
+		    vq->vq_name, vq->vq_nentries - vq->vq_free_cnt);
 	}
 
 	if (vq->vq_flags & VIRTQUEUE_FLAG_INDIRECT)
@@ -531,12 +535,12 @@ virtqueue_enqueue(struct virtqueue *vq, void *cookie, struct sglist *sg,
 	needed = readable + writable;
 
 	VQASSERT(vq, cookie != NULL, "enqueuing with no cookie");
-	VQASSERT(vq, needed == sg->sg_nseg,
-	    "segment count mismatch, %d, %d", needed, sg->sg_nseg);
+	VQASSERT(vq, needed == sg->sg_nseg, "segment count mismatch, %d, %d",
+	    needed, sg->sg_nseg);
 	VQASSERT(vq,
 	    needed <= vq->vq_nentries || needed <= vq->vq_max_indirect_size,
-	    "too many segments to enqueue: %d, %d/%d", needed,
-	    vq->vq_nentries, vq->vq_max_indirect_size);
+	    "too many segments to enqueue: %d, %d/%d", needed, vq->vq_nentries,
+	    vq->vq_max_indirect_size);
 
 	if (needed < 1)
 		return (EINVAL);
@@ -553,13 +557,13 @@ virtqueue_enqueue(struct virtqueue *vq, void *cookie, struct sglist *sg,
 	VQ_RING_ASSERT_VALID_IDX(vq, head_idx);
 	dxp = &vq->vq_descx[head_idx];
 
-	VQASSERT(vq, dxp->cookie == NULL,
-	    "cookie already exists for index %d", head_idx);
+	VQASSERT(vq, dxp->cookie == NULL, "cookie already exists for index %d",
+	    head_idx);
 	dxp->cookie = cookie;
 	dxp->ndescs = needed;
 
-	idx = vq_ring_enqueue_segments(vq, vq->vq_ring.desc, head_idx,
-	    sg, readable, writable);
+	idx = vq_ring_enqueue_segments(vq, vq->vq_ring.desc, head_idx, sg,
+	    readable, writable);
 
 	vq->vq_desc_head_idx = idx;
 	vq->vq_free_cnt -= needed;
@@ -587,7 +591,7 @@ virtqueue_dequeue(struct virtqueue *vq, uint32_t *len)
 	uep = &vq->vq_ring.used->ring[used_idx];
 
 	rmb();
-	desc_idx = (uint16_t) vq_htog32(vq, uep->id);
+	desc_idx = (uint16_t)vq_htog32(vq, uep->id);
 	if (len != NULL)
 		*len = vq_htog32(vq, uep->len);
 
@@ -644,7 +648,8 @@ virtqueue_dump(struct virtqueue *vq)
 	if (vq == NULL)
 		return;
 
-	printf("VQ: %s - size=%d; free=%d; used=%d; queued=%d; "
+	printf(
+	    "VQ: %s - size=%d; free=%d; used=%d; queued=%d; "
 	    "desc_head_idx=%d; avail.idx=%d; used_cons_idx=%d; "
 	    "used.idx=%d; used_event_idx=%d; avail.flags=0x%x; used.flags=0x%x\n",
 	    vq->vq_name, vq->vq_nentries, vq->vq_free_cnt, virtqueue_nused(vq),
@@ -706,13 +711,12 @@ vq_ring_enqueue_segments(struct virtqueue *vq, struct vring_desc *desc,
 	int i, needed;
 	uint16_t idx;
 
-	SDT_PROBE6(virtqueue, , enqueue_segments, entry, vq, desc, head_idx,
-	    sg, readable, writable);
+	SDT_PROBE6(virtqueue, , enqueue_segments, entry, vq, desc, head_idx, sg,
+	    readable, writable);
 
 	needed = readable + writable;
 
-	for (i = 0, idx = head_idx, seg = sg->sg_segs;
-	     i < needed;
+	for (i = 0, idx = head_idx, seg = sg->sg_segs; i < needed;
 	     i++, idx = vq_htog16(vq, dp->next), seg++) {
 		VQASSERT(vq, idx != VQ_RING_DESC_CHAIN_END,
 		    "premature end of free desc chain");
@@ -749,8 +753,8 @@ vq_ring_use_indirect(struct virtqueue *vq, int needed)
 }
 
 static void
-vq_ring_enqueue_indirect(struct virtqueue *vq, void *cookie,
-    struct sglist *sg, int readable, int writable)
+vq_ring_enqueue_indirect(struct virtqueue *vq, void *cookie, struct sglist *sg,
+    int readable, int writable)
 {
 	struct vring_desc *dp;
 	struct vq_desc_extra *dxp;
@@ -766,8 +770,8 @@ vq_ring_enqueue_indirect(struct virtqueue *vq, void *cookie,
 	dp = &vq->vq_ring.desc[head_idx];
 	dxp = &vq->vq_descx[head_idx];
 
-	VQASSERT(vq, dxp->cookie == NULL,
-	    "cookie already exists for index %d", head_idx);
+	VQASSERT(vq, dxp->cookie == NULL, "cookie already exists for index %d",
+	    head_idx);
 	dxp->cookie = cookie;
 	dxp->ndescs = 1;
 
@@ -775,8 +779,7 @@ vq_ring_enqueue_indirect(struct virtqueue *vq, void *cookie,
 	dp->len = vq_gtoh32(vq, needed * sizeof(struct vring_desc));
 	dp->flags = vq_gtoh16(vq, VRING_DESC_F_INDIRECT);
 
-	vq_ring_enqueue_segments(vq, dxp->indirect, 0,
-	    sg, readable, writable);
+	vq_ring_enqueue_segments(vq, dxp->indirect, 0, sg, readable, writable);
 
 	vq->vq_desc_head_idx = vq_htog16(vq, dp->next);
 	vq->vq_free_cnt--;
@@ -797,11 +800,11 @@ vq_ring_enable_interrupt(struct virtqueue *vq, uint16_t ndesc)
 	 * what's already been consumed.
 	 */
 	if (vq->vq_flags & VIRTQUEUE_FLAG_EVENT_IDX) {
-		vring_used_event(&vq->vq_ring) =
-		    vq_gtoh16(vq, vq->vq_used_cons_idx + ndesc);
+		vring_used_event(
+		    &vq->vq_ring) = vq_gtoh16(vq, vq->vq_used_cons_idx + ndesc);
 	} else {
-		vq->vq_ring.avail->flags &=
-		    vq_gtoh16(vq, ~VRING_AVAIL_F_NO_INTERRUPT);
+		vq->vq_ring.avail->flags &= vq_gtoh16(vq,
+		    ~VRING_AVAIL_F_NO_INTERRUPT);
 	}
 
 	mb();

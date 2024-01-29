@@ -28,11 +28,11 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/ktr.h>
 #include <sys/bus.h>
 #include <sys/cpuset.h>
 #include <sys/domainset.h>
+#include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
@@ -42,18 +42,18 @@
 #include <sys/smp.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
-#include <vm/vm_map.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/intr_machdep.h>
+#include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/platform.h>
-#include <machine/md_var.h>
 #include <machine/setjmp.h>
 #include <machine/smp.h>
 
@@ -101,7 +101,7 @@ machdep_ap_bootstrap(void)
 		    PCPU_GET(cpuid), ap_awake == mp_ncpus ? "\n" : " ");
 	mtx_unlock_spin(&ap_boot_mtx);
 
-	while(smp_started == 0)
+	while (smp_started == 0)
 		;
 
 	/* Start per-CPU event timers. */
@@ -185,10 +185,10 @@ cpu_mp_start(void)
 		pc->pc_hwref = cpu.cr_hwref;
 
 		CPU_SET(pc->pc_cpuid, &cpuset_domain[pc->pc_domain]);
-		KASSERT(pc->pc_domain < MAXMEMDOM, ("bad domain value %d\n",
-		    pc->pc_domain));
+		KASSERT(pc->pc_domain < MAXMEMDOM,
+		    ("bad domain value %d\n", pc->pc_domain));
 		CPU_SET(pc->pc_cpuid, &all_cpus);
-next:
+	next:
 		error = platform_smp_next_cpu(&cpu);
 	}
 
@@ -206,11 +206,12 @@ cpu_mp_announce(void)
 	if (!bootverbose)
 		return;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		pc = pcpu_find(i);
 		if (pc == NULL)
 			continue;
-		printf("cpu%d: dev=%x domain=%d ", i, (int)pc->pc_hwref, pc->pc_domain);
+		printf("cpu%d: dev=%x domain=%d ", i, (int)pc->pc_hwref,
+		    pc->pc_domain);
 		if (pc->pc_bsp)
 			printf(" (BSP)");
 		printf("\n");
@@ -234,17 +235,18 @@ cpu_mp_unleash(void *dummy)
 #ifdef BOOKE
 	tlb1_ap_prep();
 #endif
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu) {
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu) {
 		cpus++;
 		if (!pc->pc_bsp) {
 			if (bootverbose)
 				printf("Waking up CPU %d (dev=%x)\n",
 				    pc->pc_cpuid, (int)pc->pc_hwref);
 
-			pc->pc_flags = PCPU_GET(flags); /* Copy cached CPU flags */
+			pc->pc_flags = PCPU_GET(
+			    flags); /* Copy cached CPU flags */
 			ret = platform_smp_start_cpu(pc);
 			if (ret == 0) {
-				timeout = 2000;	/* wait 2sec for the AP */
+				timeout = 2000; /* wait 2sec for the AP */
 				while (!pc->pc_awake && --timeout > 0)
 					DELAY(1000);
 			}
@@ -285,7 +287,6 @@ cpu_mp_unleash(void *dummy)
 
 	/* Let the APs get into the scheduler */
 	DELAY(10000);
-
 }
 
 SYSINIT(start_aps, SI_SUB_SMP, SI_ORDER_FIRST, cpu_mp_unleash, NULL);
@@ -318,8 +319,7 @@ powerpc_ipi_handler(void *arg)
 		 * IPI_STOP_HARD is mapped to IPI_STOP so it is not
 		 * necessary to add such case.
 		 */
-		CTR1(KTR_SMP, "%s: IPI_STOP or IPI_STOP_HARD (stop)",
-				__func__);
+		CTR1(KTR_SMP, "%s: IPI_STOP or IPI_STOP_HARD (stop)", __func__);
 		cpuid = PCPU_GET(cpuid);
 		savectx(&stoppcbs[cpuid]);
 		CPU_SET_ATOMIC(cpuid, &stopped_cpus);
@@ -341,8 +341,8 @@ static void
 ipi_send(struct pcpu *pc, int ipi)
 {
 
-	CTR4(KTR_SMP, "%s: pc=%p, targetcpu=%d, IPI=%d", __func__,
-	    pc, pc->pc_cpuid, ipi);
+	CTR4(KTR_SMP, "%s: pc=%p, targetcpu=%d, IPI=%d", __func__, pc,
+	    pc->pc_cpuid, ipi);
 
 	atomic_set_32(&pc->pc_ipimask, (1 << ipi));
 	powerpc_sync();
@@ -357,7 +357,7 @@ ipi_selected(cpuset_t cpus, int ipi)
 {
 	struct pcpu *pc;
 
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu) {
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu) {
 		if (CPU_ISSET(pc->pc_cpuid, &cpus))
 			ipi_send(pc, ipi);
 	}
@@ -377,7 +377,7 @@ ipi_all_but_self(int ipi)
 {
 	struct pcpu *pc;
 
-	STAILQ_FOREACH(pc, &cpuhead, pc_allcpu) {
+	STAILQ_FOREACH (pc, &cpuhead, pc_allcpu) {
 		if (pc != pcpup)
 			ipi_send(pc, ipi);
 	}

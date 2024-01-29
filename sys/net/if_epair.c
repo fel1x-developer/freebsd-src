@@ -37,11 +37,11 @@
  * different virtual network stack instances.
  */
 
-#include <sys/cdefs.h>
-#include "opt_rss.h"
 #include "opt_inet.h"
 #include "opt_inet6.h"
+#include "opt_rss.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/hash.h>
@@ -63,12 +63,11 @@
 #include <net/bpf.h>
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_clone.h>
 #include <net/if_media.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/netisr.h>
 #ifdef RSS
 #include <net/rss_config.h>
@@ -82,48 +81,48 @@
 #include <net/vnet.h>
 
 static const char epairname[] = "epair";
-#define	RXRSIZE	4096	/* Probably overkill by 4-8x. */
+#define RXRSIZE 4096 /* Probably overkill by 4-8x. */
 
 static MALLOC_DEFINE(M_EPAIR, epairname,
     "Pair of virtual cross-over connected Ethernet-like interfaces");
 
 VNET_DEFINE_STATIC(struct if_clone *, epair_cloner);
-#define	V_epair_cloner	VNET(epair_cloner)
+#define V_epair_cloner VNET(epair_cloner)
 
 static unsigned int next_index = 0;
-#define	EPAIR_LOCK_INIT()		mtx_init(&epair_n_index_mtx, "epairidx", \
-					    NULL, MTX_DEF)
-#define	EPAIR_LOCK_DESTROY()		mtx_destroy(&epair_n_index_mtx)
-#define	EPAIR_LOCK()			mtx_lock(&epair_n_index_mtx)
-#define	EPAIR_UNLOCK()			mtx_unlock(&epair_n_index_mtx)
+#define EPAIR_LOCK_INIT() \
+	mtx_init(&epair_n_index_mtx, "epairidx", NULL, MTX_DEF)
+#define EPAIR_LOCK_DESTROY() mtx_destroy(&epair_n_index_mtx)
+#define EPAIR_LOCK() mtx_lock(&epair_n_index_mtx)
+#define EPAIR_UNLOCK() mtx_unlock(&epair_n_index_mtx)
 
 struct epair_softc;
 struct epair_queue {
-	struct mtx		 mtx;
-	struct mbufq		 q;
-	int			 id;
+	struct mtx mtx;
+	struct mbufq q;
+	int id;
 	enum {
 		EPAIR_QUEUE_IDLE,
 		EPAIR_QUEUE_WAKING,
 		EPAIR_QUEUE_RUNNING,
-	}			 state;
-	struct task		 tx_task;
-	struct epair_softc	*sc;
+	} state;
+	struct task tx_task;
+	struct epair_softc *sc;
 };
 
 static struct mtx epair_n_index_mtx;
 struct epair_softc {
-	struct ifnet		*ifp;		/* This ifp. */
-	struct ifnet		*oifp;		/* other ifp of pair. */
-	int			 num_queues;
-	struct epair_queue	*queues;
-	struct ifmedia		 media;		/* Media config (fake). */
+	struct ifnet *ifp;  /* This ifp. */
+	struct ifnet *oifp; /* other ifp of pair. */
+	int num_queues;
+	struct epair_queue *queues;
+	struct ifmedia media; /* Media config (fake). */
 	STAILQ_ENTRY(epair_softc) entry;
 };
 
 struct epair_tasks_t {
-	int			 tasks;
-	struct taskqueue	 *tq[MAXCPU];
+	int tasks;
+	struct taskqueue *tq[MAXCPU];
 };
 
 static struct epair_tasks_t epair_tasks;
@@ -339,7 +338,8 @@ epair_transmit(struct ifnet *ifp, struct mbuf *m)
 	 * little bit more like real hardware.
 	 * Allow just that little bit extra for ethernet (and vlan) headers.
 	 */
-	if (m->m_pkthdr.len > (ifp->if_mtu + sizeof(struct ether_vlan_header))) {
+	if (m->m_pkthdr.len >
+	    (ifp->if_mtu + sizeof(struct ether_vlan_header))) {
 		m_freem(m);
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		return (E2BIG);
@@ -484,7 +484,7 @@ epair_clone_match(struct if_clone *ifc, const char *name)
 	 * - epair<n>
 	 * but not the epair<n>[ab] versions.
 	 */
-	if (strncmp(epairname, name, sizeof(epairname)-1) != 0)
+	if (strncmp(epairname, name, sizeof(epairname) - 1) != 0)
 		return (0);
 
 	for (cp = name + sizeof(epairname) - 1; *cp != '\0'; cp++) {
@@ -499,7 +499,7 @@ static void
 epair_clone_add(struct if_clone *ifc, struct epair_softc *scb)
 {
 	struct ifnet *ifp;
-	uint8_t eaddr[ETHER_ADDR_LEN];	/* 00:00:00:00:00:00 */
+	uint8_t eaddr[ETHER_ADDR_LEN]; /* 00:00:00:00:00:00 */
 
 	ifp = scb->ifp;
 	/* Copy epairNa etheraddr and change the last byte. */
@@ -558,11 +558,11 @@ epair_setup_ifp(struct epair_softc *sc, char *name, int unit)
 	ifp->if_qflush = epair_qflush;
 	ifp->if_start = epair_start;
 	ifp->if_ioctl = epair_ioctl;
-	ifp->if_init  = epair_init;
+	ifp->if_init = epair_init;
 	if_setsendqlen(ifp, ifqmaxlen);
 	if_setsendqready(ifp);
 
-	ifp->if_baudrate = IF_Gbps(10);	/* arbitrary maximum */
+	ifp->if_baudrate = IF_Gbps(10); /* arbitrary maximum */
 }
 
 static void
@@ -659,7 +659,8 @@ epair_handle_unit(struct if_clone *ifc, char *name, size_t len, int *punit)
 	 * If no unit had been given, we need to adjust the ifName.
 	 * Also make sure there is space for our extra [ab] suffix.
 	 */
-	for (dp = name; *dp != '\0'; dp++);
+	for (dp = name; *dp != '\0'; dp++)
+		;
 	if (wildcard) {
 		int slen = snprintf(dp, len - (dp - name), "%d", unit);
 		if (slen > len - (dp - name) - 1) {
@@ -676,9 +677,9 @@ epair_handle_unit(struct if_clone *ifc, char *name, size_t len, int *punit)
 	}
 	*dp = 'b';
 	/* Must not change dp so we can replace 'a' by 'b' later. */
-	*(dp+1) = '\0';
+	*(dp + 1) = '\0';
 
-	/* Check if 'a' and 'b' interfaces already exist. */ 
+	/* Check if 'a' and 'b' interfaces already exist. */
 	if (ifunit(name) != NULL) {
 		error = EEXIST;
 		goto done;
@@ -705,7 +706,7 @@ epair_clone_create(struct if_clone *ifc, char *name, size_t len,
 	struct ifnet *ifp;
 	char *dp;
 	int error, unit;
-	uint8_t eaddr[ETHER_ADDR_LEN];	/* 00:00:00:00:00:00 */
+	uint8_t eaddr[ETHER_ADDR_LEN]; /* 00:00:00:00:00:00 */
 
 	error = epair_handle_unit(ifc, name, len, &unit);
 	if (error != 0)
@@ -839,8 +840,8 @@ vnet_epair_init(const void *unused __unused)
 	};
 	V_epair_cloner = ifc_attach_cloner(epairname, &req);
 }
-VNET_SYSINIT(vnet_epair_init, SI_SUB_PSEUDO, SI_ORDER_ANY,
-    vnet_epair_init, NULL);
+VNET_SYSINIT(vnet_epair_init, SI_SUB_PSEUDO, SI_ORDER_ANY, vnet_epair_init,
+    NULL);
 
 static void
 vnet_epair_uninit(const void *unused __unused)
@@ -860,7 +861,7 @@ epair_mod_init(void)
 #ifdef RSS
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		cpuset_t cpu_mask;
 
 		/* Pin to this CPU so we get appropriate NUMA allocations. */
@@ -871,8 +872,7 @@ epair_mod_init(void)
 		snprintf(name, sizeof(name), "epair_task_%d", cpu);
 
 		epair_tasks.tq[cpu] = taskqueue_create(name, M_WAITOK,
-		    taskqueue_thread_enqueue,
-		    &epair_tasks.tq[cpu]);
+		    taskqueue_thread_enqueue, &epair_tasks.tq[cpu]);
 		CPU_SETOF(cpu, &cpu_mask);
 		taskqueue_start_threads_cpuset(&epair_tasks.tq[cpu], 1, PI_NET,
 		    &cpu_mask, "%s", name);
@@ -886,8 +886,7 @@ epair_mod_init(void)
 	snprintf(name, sizeof(name), "epair_task");
 
 	epair_tasks.tq[0] = taskqueue_create(name, M_WAITOK,
-	    taskqueue_thread_enqueue,
-	    &epair_tasks.tq[0]);
+	    taskqueue_thread_enqueue, &epair_tasks.tq[0]);
 	taskqueue_start_threads(&epair_tasks.tq[0], 1, PI_NET, "%s", name);
 
 	epair_tasks.tasks = 1;
@@ -932,11 +931,7 @@ epair_modevent(module_t mod, int type, void *data)
 	return (0);
 }
 
-static moduledata_t epair_mod = {
-	"if_epair",
-	epair_modevent,
-	0
-};
+static moduledata_t epair_mod = { "if_epair", epair_modevent, 0 };
 
 DECLARE_MODULE(if_epair, epair_mod, SI_SUB_PSEUDO, SI_ORDER_MIDDLE);
 MODULE_VERSION(if_epair, 3);

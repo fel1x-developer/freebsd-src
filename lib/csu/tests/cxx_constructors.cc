@@ -49,10 +49,9 @@ bool run_destructor_test = false;
 #endif
 
 struct Foo {
-	Foo() {
-		constructor_run = 1;
-	}
-	~Foo() {
+	Foo() { constructor_run = 1; }
+	~Foo()
+	{
 		if (run_destructor_test)
 			_exit(1);
 	}
@@ -78,15 +77,15 @@ ATF_TEST_CASE_BODY(cxx_destructor)
 	int status;
 
 	pid = fork();
-	switch(pid) {
+	switch (pid) {
 	case -1:
 		break;
 	case 0:
 		run_destructor_test = true;
 		exit(0);
 	default:
-		while ((wpid = waitpid(pid, &status, 0)) == -1 &&
-		    errno == EINTR)
+		while (
+		    (wpid = waitpid(pid, &status, 0)) == -1 && errno == EINTR)
 			;
 		ATF_REQUIRE(WEXITSTATUS(status) == 1);
 		break;

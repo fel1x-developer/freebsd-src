@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_iconv.c,v 1.10 2011/11/19 18:34:21 tnozaki Exp $	*/
+/*	$NetBSD: citrus_iconv.c,v 1.10 2011/11/19 18:34:21 tnozaki Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -44,31 +45,31 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
 #include "citrus_esdb.h"
-#include "citrus_region.h"
+#include "citrus_hash.h"
+#include "citrus_iconv.h"
+#include "citrus_lock.h"
+#include "citrus_lookup.h"
 #include "citrus_memstream.h"
 #include "citrus_mmap.h"
 #include "citrus_module.h"
-#include "citrus_lock.h"
-#include "citrus_lookup.h"
-#include "citrus_hash.h"
-#include "citrus_iconv.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
 
-#define _CITRUS_ICONV_DIR	"iconv.dir"
-#define _CITRUS_ICONV_ALIAS	"iconv.alias"
+#define _CITRUS_ICONV_DIR "iconv.dir"
+#define _CITRUS_ICONV_ALIAS "iconv.alias"
 
 #define CI_HASH_SIZE 101
-#define CI_INITIAL_MAX_REUSE	5
-#define CI_ENV_MAX_REUSE	"ICONV_MAX_REUSE"
+#define CI_INITIAL_MAX_REUSE 5
+#define CI_ENV_MAX_REUSE "ICONV_MAX_REUSE"
 
-static bool			 isinit = false;
-static int			 shared_max_reuse, shared_num_unused;
+static bool isinit = false;
+static int shared_max_reuse, shared_num_unused;
 static _CITRUS_HASH_HEAD(, _citrus_iconv_shared, CI_HASH_SIZE) shared_pool;
 static TAILQ_HEAD(, _citrus_iconv_shared) shared_unused;
 
-static pthread_rwlock_t		 ci_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t ci_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 static __inline void
 init_cache(void)
@@ -80,8 +81,8 @@ init_cache(void)
 		TAILQ_INIT(&shared_unused);
 		shared_max_reuse = -1;
 		if (secure_getenv(CI_ENV_MAX_REUSE) != NULL)
-			shared_max_reuse =
-			    atoi(secure_getenv(CI_ENV_MAX_REUSE));
+			shared_max_reuse = atoi(
+			    secure_getenv(CI_ENV_MAX_REUSE));
 		if (shared_max_reuse < 0)
 			shared_max_reuse = CI_INITIAL_MAX_REUSE;
 		isinit = true;
@@ -107,9 +108,9 @@ close_shared(struct _citrus_iconv_shared *ci)
 }
 
 static __inline int
-open_shared(struct _citrus_iconv_shared * __restrict * __restrict rci,
-    const char * __restrict convname, const char * __restrict src,
-    const char * __restrict dst)
+open_shared(struct _citrus_iconv_shared *__restrict *__restrict rci,
+    const char *__restrict convname, const char *__restrict src,
+    const char *__restrict dst)
 {
 	struct _citrus_iconv_shared *ci;
 	_citrus_iconv_getops_t getops;
@@ -198,18 +199,18 @@ hash_func(const char *key)
 }
 
 static __inline int
-match_func(struct _citrus_iconv_shared * __restrict ci,
-    const char * __restrict key)
+match_func(struct _citrus_iconv_shared *__restrict ci,
+    const char *__restrict key)
 {
 
 	return (strcmp(ci->ci_convname, key));
 }
 
 static int
-get_shared(struct _citrus_iconv_shared * __restrict * __restrict rci,
+get_shared(struct _citrus_iconv_shared *__restrict *__restrict rci,
     const char *src, const char *dst)
 {
-	struct _citrus_iconv_shared * ci;
+	struct _citrus_iconv_shared *ci;
 	char convname[PATH_MAX];
 	int hashval, ret = 0;
 
@@ -248,7 +249,7 @@ quit:
 }
 
 static void
-release_shared(struct _citrus_iconv_shared * __restrict ci)
+release_shared(struct _citrus_iconv_shared *__restrict ci)
 {
 
 	WLOCK(&ci_lock);
@@ -275,8 +276,8 @@ release_shared(struct _citrus_iconv_shared * __restrict ci)
  *	open a converter for the specified in/out codes.
  */
 int
-_citrus_iconv_open(struct _citrus_iconv * __restrict * __restrict rcv,
-    const char * __restrict src, const char * __restrict dst)
+_citrus_iconv_open(struct _citrus_iconv *__restrict *__restrict rcv,
+    const char *__restrict src, const char *__restrict dst)
 {
 	struct _citrus_iconv *cv = NULL;
 	struct _citrus_iconv_shared *ci = NULL;
@@ -301,7 +302,7 @@ _citrus_iconv_open(struct _citrus_iconv * __restrict * __restrict rcv,
 	if ((slashes = strstr(realdst, "//")) != NULL)
 		*slashes = '\0';
 
-	/* resolve codeset name aliases */
+		/* resolve codeset name aliases */
 #ifdef _PATH_ICONV
 	/*
 	 * Note that the below reads from realsrc and realdst while it's
@@ -309,10 +310,14 @@ _citrus_iconv_open(struct _citrus_iconv * __restrict * __restrict rcv,
 	 * a trip through `buf`.
 	 */
 	snprintf(path, sizeof(path), "%s/%s", _PATH_ICONV, _CITRUS_ICONV_ALIAS);
-	strlcpy(realsrc, _lookup_alias(path, realsrc, buf, (size_t)PATH_MAX,
-	    _LOOKUP_CASE_IGNORE), (size_t)PATH_MAX);
-	strlcpy(realdst, _lookup_alias(path, realdst, buf, (size_t)PATH_MAX,
-	    _LOOKUP_CASE_IGNORE), (size_t)PATH_MAX);
+	strlcpy(realsrc,
+	    _lookup_alias(path, realsrc, buf, (size_t)PATH_MAX,
+		_LOOKUP_CASE_IGNORE),
+	    (size_t)PATH_MAX);
+	strlcpy(realdst,
+	    _lookup_alias(path, realdst, buf, (size_t)PATH_MAX,
+		_LOOKUP_CASE_IGNORE),
+	    (size_t)PATH_MAX);
 #endif
 
 	/* sanity check */
@@ -359,8 +364,8 @@ _citrus_iconv_close(struct _citrus_iconv *cv)
 	}
 }
 
-const char
-*_citrus_iconv_canonicalize(const char *name)
+const char *
+_citrus_iconv_canonicalize(const char *name)
 {
 	char *buf;
 

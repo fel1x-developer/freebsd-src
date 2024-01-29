@@ -28,11 +28,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -75,7 +76,7 @@ xchan_bank_get(xdma_channel_t *xchan)
 	struct xdma_request *xr_tmp;
 
 	QUEUE_BANK_LOCK(xchan);
-	TAILQ_FOREACH_SAFE(xr, &xchan->bank, xr_next, xr_tmp) {
+	TAILQ_FOREACH_SAFE (xr, &xchan->bank, xr_next, xr_tmp) {
 		TAILQ_REMOVE(&xchan->bank, xr, xr_next);
 		break;
 	}

@@ -32,18 +32,17 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
-
 #include <err.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "fsck.h"
 
 static void check_maps(u_char *, u_char *, int, ufs2_daddr_t, const char *,
-			int *, int, int, int);
+    int *, int, int, int);
 static void clear_blocks(ufs2_daddr_t start, ufs2_daddr_t end);
 
 void
@@ -84,13 +83,13 @@ pass5(void)
 			if (fs->fs_contigsumsize < 1) {
 				doit = "CREAT";
 			} else if (fs->fs_contigsumsize < fs->fs_maxcontig &&
-				   fs->fs_contigsumsize < FS_MAXCONTIG) {
+			    fs->fs_contigsumsize < FS_MAXCONTIG) {
 				doit = "EXPAND";
 			}
 			if (doit) {
 				i = fs->fs_contigsumsize;
-				fs->fs_contigsumsize =
-				    MIN(fs->fs_maxcontig, FS_MAXCONTIG);
+				fs->fs_contigsumsize = MIN(fs->fs_maxcontig,
+				    FS_MAXCONTIG);
 				if (CGSIZE(fs) > (u_int)fs->fs_bsize) {
 					pwarn("CANNOT %s CLUSTER MAPS\n", doit);
 					fs->fs_contigsumsize = i;
@@ -99,8 +98,8 @@ pass5(void)
 					if (preen)
 						pwarn("%sING CLUSTER MAPS\n",
 						    doit);
-					fs->fs_cgsize =
-					    fragroundup(fs, CGSIZE(fs));
+					fs->fs_cgsize = fragroundup(fs,
+					    CGSIZE(fs));
 					rewritecg = 1;
 					sbdirty();
 				}
@@ -131,8 +130,8 @@ pass5(void)
 	if (fs->fs_contigsumsize > 0) {
 		newcg->cg_clustersumoff = newcg->cg_nextfreeoff -
 		    sizeof(u_int32_t);
-		newcg->cg_clustersumoff =
-		    roundup(newcg->cg_clustersumoff, sizeof(u_int32_t));
+		newcg->cg_clustersumoff = roundup(newcg->cg_clustersumoff,
+		    sizeof(u_int32_t));
 		newcg->cg_clusteroff = newcg->cg_clustersumoff +
 		    (fs->fs_contigsumsize + 1) * sizeof(u_int32_t);
 		newcg->cg_nextfreeoff = newcg->cg_clusteroff +
@@ -177,8 +176,8 @@ pass5(void)
 			if (ckhash == thishash) {
 				cg->cg_ckhash = ckhash;
 			} else {
-				pwarn("CG %d: BAD CHECK-HASH %#x vs %#x\n",
-				    c, ckhash, thishash);
+				pwarn("CG %d: BAD CHECK-HASH %#x vs %#x\n", c,
+				    ckhash, thishash);
 				cg->cg_ckhash = thishash;
 				cgdirty(cgbp);
 			}
@@ -264,8 +263,7 @@ pass5(void)
 				newcg->cg_cs.cs_nifree--;
 			}
 		start = -1;
-		for (i = 0, d = dbase;
-		     d < dmax;
+		for (i = 0, d = dbase; d < dmax;
 		     d += fs->fs_frag, i += fs->fs_frag) {
 			frags = 0;
 			for (j = 0; j < fs->fs_frag; j++) {
@@ -347,8 +345,7 @@ pass5(void)
 			cgdirty(cgbp);
 			continue;
 		}
-		if (cursnapshot == 0 &&
-		    memcmp(newcg, cg, basesize) != 0 &&
+		if (cursnapshot == 0 && memcmp(newcg, cg, basesize) != 0 &&
 		    dofix(&idesc[2], "SUMMARY INFORMATION BAD")) {
 			memmove(cg, newcg, (size_t)basesize);
 			cgdirty(cgbp);
@@ -359,23 +356,23 @@ pass5(void)
 		    memcmp(cg_inosused(newcg), cg_inosused(cg), mapsize) != 0 &&
 		    dofix(&idesc[1], "BLK(S) MISSING IN BIT MAPS")) {
 			memmove(cg_inosused(cg), cg_inosused(newcg),
-			      (size_t)mapsize);
+			    (size_t)mapsize);
 			cgdirty(cgbp);
 		}
 	}
 	if (cursnapshot == 0 &&
-	    memcmp(&cstotal, &fs->fs_cstotal, sizeof cstotal) != 0
-	    && dofix(&idesc[0], "SUMMARY BLK COUNT(S) WRONG IN SUPERBLK")) {
+	    memcmp(&cstotal, &fs->fs_cstotal, sizeof cstotal) != 0 &&
+	    dofix(&idesc[0], "SUMMARY BLK COUNT(S) WRONG IN SUPERBLK")) {
 		if (debug) {
 			printf("cstotal is currently: %jd dirs, %jd blks free, "
-			    "%jd frags free, %jd inos free, %jd clusters\n",
+			       "%jd frags free, %jd inos free, %jd clusters\n",
 			    (intmax_t)fs->fs_cstotal.cs_ndir,
 			    (intmax_t)fs->fs_cstotal.cs_nbfree,
 			    (intmax_t)fs->fs_cstotal.cs_nffree,
 			    (intmax_t)fs->fs_cstotal.cs_nifree,
 			    (intmax_t)fs->fs_cstotal.cs_numclusters);
 			printf("cstotal ought to be:  %jd dirs, %jd blks free, "
-			    "%jd frags free, %jd inos free, %jd clusters\n",
+			       "%jd frags free, %jd inos free, %jd clusters\n",
 			    (intmax_t)cstotal.cs_ndir,
 			    (intmax_t)cstotal.cs_nbfree,
 			    (intmax_t)cstotal.cs_nffree,
@@ -400,8 +397,9 @@ pass5(void)
 		if (cmd.value != 0) {
 			if (debug)
 				printf("adjndir by %+" PRIi64 "\n", cmd.value);
-			if (bkgrdsumadj == 0 || sysctl(adjndir, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (bkgrdsumadj == 0 ||
+			    sysctl(adjndir, MIBSIZE, 0, 0, &cmd, sizeof cmd) ==
+				-1)
 				rwerror("ADJUST NUMBER OF DIRECTORIES",
 				    cmd.value);
 		}
@@ -411,8 +409,9 @@ pass5(void)
 			if (debug)
 				printf("adjnbfree by %+" PRIi64 "\n",
 				    cmd.value);
-			if (bkgrdsumadj == 0 || sysctl(adjnbfree, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (bkgrdsumadj == 0 ||
+			    sysctl(adjnbfree, MIBSIZE, 0, 0, &cmd,
+				sizeof cmd) == -1)
 				rwerror("ADJUST NUMBER OF FREE BLOCKS",
 				    cmd.value);
 		}
@@ -422,8 +421,9 @@ pass5(void)
 			if (debug)
 				printf("adjnifree by %+" PRIi64 "\n",
 				    cmd.value);
-			if (bkgrdsumadj == 0 || sysctl(adjnifree, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (bkgrdsumadj == 0 ||
+			    sysctl(adjnifree, MIBSIZE, 0, 0, &cmd,
+				sizeof cmd) == -1)
 				rwerror("ADJUST NUMBER OF FREE INODES",
 				    cmd.value);
 		}
@@ -433,8 +433,9 @@ pass5(void)
 			if (debug)
 				printf("adjnffree by %+" PRIi64 "\n",
 				    cmd.value);
-			if (bkgrdsumadj == 0 || sysctl(adjnffree, MIBSIZE, 0, 0,
-			    &cmd, sizeof cmd) == -1)
+			if (bkgrdsumadj == 0 ||
+			    sysctl(adjnffree, MIBSIZE, 0, 0, &cmd,
+				sizeof cmd) == -1)
 				rwerror("ADJUST NUMBER OF FREE FRAGS",
 				    cmd.value);
 		}
@@ -445,8 +446,9 @@ pass5(void)
 			if (debug)
 				printf("adjnumclusters by %+" PRIi64 "\n",
 				    cmd.value);
-			if (bkgrdsumadj == 0 || sysctl(adjnumclusters, MIBSIZE,
-			    0, 0, &cmd, sizeof cmd) == -1)
+			if (bkgrdsumadj == 0 ||
+			    sysctl(adjnumclusters, MIBSIZE, 0, 0, &cmd,
+				sizeof cmd) == -1)
 				rwerror("ADJUST NUMBER OF FREE CLUSTERS",
 				    cmd.value);
 		}
@@ -460,10 +462,9 @@ pass5(void)
  * are now allocated.
  */
 void
-update_maps(
-	struct cg *oldcg,	/* cylinder group of claimed allocations */
-	struct cg *newcg,	/* cylinder group of determined allocations */
-	int usesysctl)		/* 1 => use sysctl interface to update maps */
+update_maps(struct cg *oldcg, /* cylinder group of claimed allocations */
+    struct cg *newcg,	      /* cylinder group of determined allocations */
+    int usesysctl)	      /* 1 => use sysctl interface to update maps */
 {
 	int inomapsize, excessdirs;
 	struct fs *fs = &sblock;
@@ -483,23 +484,22 @@ update_maps(
 	    excessdirs, fs->fs_ipg, usesysctl);
 	check_maps(cg_blksfree(oldcg), cg_blksfree(newcg),
 	    howmany(fs->fs_fpg, CHAR_BIT),
-	    oldcg->cg_cgx * (ufs2_daddr_t)fs->fs_fpg, "FRAG",
-	    freeblks, 0, fs->fs_fpg, usesysctl);
+	    oldcg->cg_cgx * (ufs2_daddr_t)fs->fs_fpg, "FRAG", freeblks, 0,
+	    fs->fs_fpg, usesysctl);
 }
 
 static void
-check_maps(
-	u_char *map1,	/* map of claimed allocations */
-	u_char *map2,	/* map of determined allocations */
-	int mapsize,	/* size of above two maps */
-	ufs2_daddr_t startvalue, /* resource value for first element in map */
-	const char *name,	/* name of resource found in maps */
-	int *opcode,	/* sysctl opcode to free resource */
-	int skip,	/* number of entries to skip before starting to free */
-	int limit,	/* limit on number of entries to free */
-	int usesysctl)	/* 1 => use sysctl interface to update maps */
+check_maps(u_char *map1,     /* map of claimed allocations */
+    u_char *map2,	     /* map of determined allocations */
+    int mapsize,	     /* size of above two maps */
+    ufs2_daddr_t startvalue, /* resource value for first element in map */
+    const char *name,	     /* name of resource found in maps */
+    int *opcode,	     /* sysctl opcode to free resource */
+    int skip,	   /* number of entries to skip before starting to free */
+    int limit,	   /* limit on number of entries to free */
+    int usesysctl) /* 1 => use sysctl interface to update maps */
 {
-#	define BUFSIZE 16
+#define BUFSIZE 16
 	char buf[BUFSIZE];
 	long i, j, k, l, m, size;
 	ufs2_daddr_t n, astart, aend, ustart, uend;
@@ -530,11 +530,11 @@ check_maps(
 				}
 				if (astart == aend)
 					(*msg)("ALLOCATED %s %" PRId64
-					    " MARKED FREE\n",
+					       " MARKED FREE\n",
 					    name, astart);
 				else
 					(*msg)("%s %sS %" PRId64 "-%" PRId64
-					    " MARKED FREE\n",
+					       " MARKED FREE\n",
 					    "ALLOCATED", name, astart, aend);
 				astart = aend = n;
 			} else {
@@ -560,19 +560,18 @@ check_maps(
 				if (size > limit)
 					size = limit;
 				if (debug && size == 1)
-					pwarn("%s %s %" PRId64
-					    " MARKED USED\n",
+					pwarn("%s %s %" PRId64 " MARKED USED\n",
 					    "UNALLOCATED", name, ustart);
 				else if (debug)
 					pwarn("%s %sS %" PRId64 "-%" PRId64
-					    " MARKED USED\n",
+					      " MARKED USED\n",
 					    "UNALLOCATED", name, ustart,
 					    ustart + size - 1);
 				if (usesysctl != 0) {
 					cmd.value = ustart;
 					cmd.size = size;
-					if (sysctl(opcode, MIBSIZE, 0, 0,
-					    &cmd, sizeof cmd) == -1) {
+					if (sysctl(opcode, MIBSIZE, 0, 0, &cmd,
+						sizeof cmd) == -1) {
 						snprintf(buf, BUFSIZE,
 						    "FREE %s", name);
 						rwerror(buf, cmd.value);
@@ -587,11 +586,11 @@ check_maps(
 	}
 	if (astart != -1) {
 		if (astart == aend)
-			(*msg)("ALLOCATED %s %" PRId64
-			    " MARKED FREE\n", name, astart);
+			(*msg)("ALLOCATED %s %" PRId64 " MARKED FREE\n", name,
+			    astart);
 		else
 			(*msg)("ALLOCATED %sS %" PRId64 "-%" PRId64
-			    " MARKED FREE\n",
+			       " MARKED FREE\n",
 			    name, astart, aend);
 	}
 	if (ustart != -1) {
@@ -607,18 +606,18 @@ check_maps(
 		if (debug) {
 			if (size == 1)
 				pwarn("UNALLOCATED %s %" PRId64
-				    " MARKED USED\n",
+				      " MARKED USED\n",
 				    name, ustart);
 			else
 				pwarn("UNALLOCATED %sS %" PRId64 "-%" PRId64
-				    " MARKED USED\n",
+				      " MARKED USED\n",
 				    name, ustart, ustart + size - 1);
 		}
 		if (usesysctl != 0) {
 			cmd.value = ustart;
 			cmd.size = size;
-			if (sysctl(opcode, MIBSIZE, 0, 0, &cmd,
-			    sizeof cmd) == -1) {
+			if (sysctl(opcode, MIBSIZE, 0, 0, &cmd, sizeof cmd) ==
+			    -1) {
 				snprintf(buf, BUFSIZE, "FREE %s", name);
 				rwerror(buf, cmd.value);
 			}

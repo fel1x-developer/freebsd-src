@@ -53,30 +53,29 @@
  * case those users could interfere with the test.
  */
 
-#define	ROOT_UID	(uid_t)0
-#define	WHEEL_GID	(gid_t)0
-#define	TEST_UID_ONE	(uid_t)500
-#define	TEST_GID_ONE	(gid_t)500
-#define	TEST_UID_TWO	(uid_t)501
-#define	TEST_GID_TWO	(gid_t)501
+#define ROOT_UID (uid_t)0
+#define WHEEL_GID (gid_t)0
+#define TEST_UID_ONE (uid_t)500
+#define TEST_GID_ONE (gid_t)500
+#define TEST_UID_TWO (uid_t)501
+#define TEST_GID_TWO (gid_t)501
 
 struct file_description {
-	char	*fd_name;
-	uid_t	 fd_owner;
-	gid_t	 fd_group;
-	mode_t	 fd_mode;
+	char *fd_name;
+	uid_t fd_owner;
+	gid_t fd_group;
+	mode_t fd_mode;
 };
 
-static struct file_description fd_list[] = {
-{"test1", ROOT_UID, WHEEL_GID, 0400},
-{"test2", TEST_UID_ONE, WHEEL_GID,0400},
-{"test3", TEST_UID_TWO, WHEEL_GID, 0400},
-{"test4", ROOT_UID, WHEEL_GID, 0040},
-{"test5", ROOT_UID, TEST_GID_ONE, 0040},
-{"test6", ROOT_UID, TEST_GID_TWO, 0040}};
+static struct file_description fd_list[] = { { "test1", ROOT_UID, WHEEL_GID,
+						 0400 },
+	{ "test2", TEST_UID_ONE, WHEEL_GID, 0400 },
+	{ "test3", TEST_UID_TWO, WHEEL_GID, 0400 },
+	{ "test4", ROOT_UID, WHEEL_GID, 0040 },
+	{ "test5", ROOT_UID, TEST_GID_ONE, 0040 },
+	{ "test6", ROOT_UID, TEST_GID_TWO, 0040 } };
 
-static int fd_list_count = sizeof(fd_list) /
-    sizeof(struct file_description);
+static int fd_list_count = sizeof(fd_list) / sizeof(struct file_description);
 
 int
 setup(void)
@@ -84,7 +83,8 @@ setup(void)
 	int i, error;
 
 	for (i = 0; i < fd_list_count; i++) {
-		error = open(fd_list[i].fd_name, O_CREAT | O_EXCL, fd_list[i].fd_mode);
+		error = open(fd_list[i].fd_name, O_CREAT | O_EXCL,
+		    fd_list[i].fd_mode);
 		if (error == -1) {
 			perror("open");
 			return (error);
@@ -170,13 +170,13 @@ main(int argc, char *argv[])
 
 	if (geteuid() != 0) {
 		fprintf(stderr, "testaccess must run as root.\n");
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	error = setup();
 	if (error) {
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Make sure saved uid is set appropriately. */
@@ -209,7 +209,7 @@ main(int argc, char *argv[])
 	if (error) {
 		perror("setresuid.1");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	errorseen = 0;
@@ -232,20 +232,21 @@ main(int argc, char *argv[])
 	if (error) {
 		perror("restoreprivilege");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	error = setresuid(TEST_UID_ONE, TEST_UID_TWO, ROOT_UID);
 	if (error) {
 		perror("setresid.2");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Check that the real uid is used, not the effective uid */
 	error = access("test2", R_OK);
 	if (error) {
-		fprintf(stderr, "Effective uid was used instead of real uid in access().\n");
+		fprintf(stderr,
+		    "Effective uid was used instead of real uid in access().\n");
 		errorseen++;
 	}
 
@@ -253,7 +254,8 @@ main(int argc, char *argv[])
 	/* Check that the effective uid is used, not the real uid */
 	error = eaccess("test3", R_OK);
 	if (error) {
-		fprintf(stderr, "Real uid was used instead of effective uid in eaccess().\n");
+		fprintf(stderr,
+		    "Real uid was used instead of effective uid in eaccess().\n");
 		errorseen++;
 	}
 #endif
@@ -261,7 +263,8 @@ main(int argc, char *argv[])
 	/* Check that the real uid is used, not the effective uid */
 	error = access("test3", R_OK);
 	if (!error) {
-		fprintf(stderr, "Effective uid was used instead of real uid in access().\n");
+		fprintf(stderr,
+		    "Effective uid was used instead of real uid in access().\n");
 		errorseen++;
 	}
 
@@ -269,7 +272,8 @@ main(int argc, char *argv[])
 	/* Check that the effective uid is used, not the real uid */
 	error = eaccess("test2", R_OK);
 	if (!error) {
-		fprintf(stderr, "Real uid was used instead of effective uid in eaccess().\n");
+		fprintf(stderr,
+		    "Real uid was used instead of effective uid in eaccess().\n");
 		errorseen++;
 	}
 #endif
@@ -278,14 +282,14 @@ main(int argc, char *argv[])
 	if (error) {
 		perror("restoreprivilege");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	error = setresgid(TEST_GID_ONE, TEST_GID_TWO, WHEEL_GID);
 	if (error) {
 		perror("setresgid.1");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Set non-root effective uid to avoid excess privilege. */
@@ -293,7 +297,7 @@ main(int argc, char *argv[])
 	if (error) {
 		perror("setresuid.3");
 		cleanup();
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
 	/* Check that the saved gid is not used */
@@ -313,7 +317,8 @@ main(int argc, char *argv[])
 	/* Check that the real gid is used, not the effective gid */
 	error = access("test5", R_OK);
 	if (error) {
-		fprintf(stderr, "Effective gid was used instead of real gid in access().\n");
+		fprintf(stderr,
+		    "Effective gid was used instead of real gid in access().\n");
 		errorseen++;
 	}
 
@@ -321,7 +326,8 @@ main(int argc, char *argv[])
 	/* Check that the effective gid is used, not the real gid */
 	error = eaccess("test6", R_OK);
 	if (error) {
-		fprintf(stderr, "Real gid was used instead of effective gid in eaccess().\n");
+		fprintf(stderr,
+		    "Real gid was used instead of effective gid in eaccess().\n");
 		errorseen++;
 	}
 #endif
@@ -329,7 +335,8 @@ main(int argc, char *argv[])
 	/* Check that the real gid is used, not the effective gid */
 	error = access("test6", R_OK);
 	if (!error) {
-		fprintf(stderr, "Effective gid was used instead of real gid in access().\n");
+		fprintf(stderr,
+		    "Effective gid was used instead of real gid in access().\n");
 		errorseen++;
 	}
 
@@ -337,7 +344,8 @@ main(int argc, char *argv[])
 	/* Check that the effective gid is used, not the real gid */
 	error = eaccess("test5", R_OK);
 	if (!error) {
-		fprintf(stderr, "Real gid was used instead of effective gid in eaccess().\n");
+		fprintf(stderr,
+		    "Real gid was used instead of effective gid in eaccess().\n");
 		errorseen++;
 	}
 #endif
@@ -351,8 +359,8 @@ main(int argc, char *argv[])
 	error = cleanup();
 	if (error) {
 		perror("cleanup");
-		exit (EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 
-	exit (EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);
 }

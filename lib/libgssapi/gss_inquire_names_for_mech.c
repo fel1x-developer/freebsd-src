@@ -31,8 +31,7 @@
 #include "mech_switch.h"
 
 OM_uint32
-gss_inquire_names_for_mech(OM_uint32 *minor_status,
-    const gss_OID mechanism,
+gss_inquire_names_for_mech(OM_uint32 *minor_status, const gss_OID mechanism,
     gss_OID_set *name_types)
 {
 	OM_uint32 major_status;
@@ -48,8 +47,8 @@ gss_inquire_names_for_mech(OM_uint32 *minor_status,
 	 * names, otherwise fake it.
 	 */
 	if (m->gm_inquire_names_for_mech) {
-		return (m->gm_inquire_names_for_mech(minor_status,
-			    mechanism, name_types));
+		return (m->gm_inquire_names_for_mech(minor_status, mechanism,
+		    name_types));
 	} else {
 		major_status = gss_create_empty_oid_set(minor_status,
 		    name_types);

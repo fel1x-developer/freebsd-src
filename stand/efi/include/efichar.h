@@ -25,7 +25,7 @@
  */
 
 #ifndef _BOOT_EFI_EFICHAR_H_
-#define	_BOOT_EFI_EFICHAR_H_
+#define _BOOT_EFI_EFICHAR_H_
 
 #ifdef _STANDALONE
 #include <efi.h>

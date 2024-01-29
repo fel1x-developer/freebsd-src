@@ -27,10 +27,11 @@
  */
 
 #include <sys/param.h>
-#include <stand.h>
+
 #include <efi.h>
 #include <efilib.h>
 #include <fdt_platform.h>
+#include <stand.h>
 
 #include "bootstrap.h"
 

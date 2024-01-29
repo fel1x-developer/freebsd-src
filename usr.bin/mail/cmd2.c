@@ -29,9 +29,10 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <sys/wait.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -102,8 +103,8 @@ next(void *v)
 	 * wraparound.
 	 */
 
-	for (mp = dot+1; mp < &message[msgCount]; mp++)
-		if ((mp->m_flag & (MDELETED|MSAVED)) == 0)
+	for (mp = dot + 1; mp < &message[msgCount]; mp++)
+		if ((mp->m_flag & (MDELETED | MSAVED)) == 0)
 			break;
 	if (mp >= &message[msgCount]) {
 		printf("At EOF\n");
@@ -181,7 +182,7 @@ save1(char str[], int mark, const char *cmd, struct ignoretab *ignore)
 		warn((char *)NULL);
 		return (1);
 	}
-	for (ip = msgvec; *ip && ip-msgvec < msgCount; ip++) {
+	for (ip = msgvec; *ip && ip - msgvec < msgCount; ip++) {
 		mp = &message[*ip - 1];
 		touch(mp);
 		if (sendmessage(mp, obuf, ignore, NULL) < 0) {
@@ -305,18 +306,17 @@ delm(int *msgvec)
 	for (ip = msgvec; *ip != 0; ip++) {
 		mp = &message[*ip - 1];
 		touch(mp);
-		mp->m_flag |= MDELETED|MTOUCH;
-		mp->m_flag &= ~(MPRESERVE|MSAVED|MBOX);
+		mp->m_flag |= MDELETED | MTOUCH;
+		mp->m_flag &= ~(MPRESERVE | MSAVED | MBOX);
 		last = *ip;
 	}
 	if (last != 0) {
-		dot = &message[last-1];
+		dot = &message[last - 1];
 		last = first(0, MDELETED);
 		if (last != 0) {
-			dot = &message[last-1];
+			dot = &message[last - 1];
 			return (0);
-		}
-		else {
+		} else {
 			dot = &message[0];
 			return (-1);
 		}
@@ -339,7 +339,7 @@ undeletecmd(void *v)
 	int *ip;
 	struct message *mp;
 
-	for (ip = msgvec; *ip && ip-msgvec < msgCount; ip++) {
+	for (ip = msgvec; *ip && ip - msgvec < msgCount; ip++) {
 		mp = &message[*ip - 1];
 		touch(mp);
 		dot = mp;

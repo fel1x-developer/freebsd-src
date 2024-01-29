@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include <err.h>
@@ -44,7 +45,7 @@ usage(void)
 {
 
 	fprintf(stderr, "rawconnect: no arguments\n");
-		exit(1);
+	exit(1);
 }
 
 int

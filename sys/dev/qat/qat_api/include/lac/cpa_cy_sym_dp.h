@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -133,13 +133,13 @@ extern "C" {
  *      this handle is allocated by the client. The size of the memory that
  *      the client needs to allocate is determined by a call to the @ref
  *      cpaCySymDpSessionCtxGetSize or @ref cpaCySymDpSessionCtxGetDynamicSize
- *      functions. The session context memory is initialized with a call to 
+ *      functions. The session context memory is initialized with a call to
  *      the @ref cpaCySymInitSession function.
  *      This memory MUST not be freed until a call to @ref
  *      cpaCySymDpRemoveSession has completed successfully.
  *
  *****************************************************************************/
-typedef void * CpaCySymDpSessionCtx;
+typedef void *CpaCySymDpSessionCtx;
 
 /**
  *****************************************************************************
@@ -160,212 +160,213 @@ typedef void * CpaCySymDpSessionCtx;
  *        cpaCySymDpEnqueueOp, cpaCySymDpEnqueueOpBatch
  ****************************************************************************/
 typedef struct _CpaCySymDpOpData {
-    Cpa64U reserved0;
-    /**< Reserved for internal usage. */
-    Cpa32U cryptoStartSrcOffsetInBytes;
-    /**< Starting point for cipher processing, specified as number of bytes
-     * from start of data in the source buffer. The result of the cipher
-     * operation will be written back into the buffer starting at this
-     * location in the destination buffer.
-     */
-    Cpa32U messageLenToCipherInBytes;
-    /**< The message length, in bytes, of the source buffer on which the
-     * cryptographic operation will be computed. This must be a multiple of
-     * the block size if a block cipher is being used. This is also the
-     * same as the result length.
-     *
-     * @note In the case of CCM (@ref CPA_CY_SYM_HASH_AES_CCM), this value
-     * should not include the length of the padding or the length of the
-     * MAC; the driver will compute the actual number of bytes over which
-     * the encryption will occur, which will include these values.
-     *
-     * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC), this field
-     * should be set to 0.
-     *
-     * @note On some implementations, this length may be limited to a 16-bit
-     * value (65535 bytes).
-     */
-    CpaPhysicalAddr iv;
-    /**< Initialization Vector or Counter.  Specifically, this is the
-     * physical address of one of the following:
-     *
-     * - For block ciphers in CBC mode, or for Kasumi in F8 mode, or for
-     *   SNOW3G in UEA2 mode, this is the Initialization Vector (IV)
-     *   value.
-     * - For ARC4, this is reserved for internal usage.
-     * - For block ciphers in CTR mode, this is the counter.
-     * - For GCM mode, this is either the IV (if the length is 96 bits) or J0
-     *   (for other sizes), where J0 is as defined by NIST SP800-38D.
-     *   Regardless of the IV length, a full 16 bytes needs to be allocated.
-     * - For CCM mode, the first byte is reserved, and the nonce should be
-     *   written starting at &pIv[1] (to allow space for the implementation
-     *   to write in the flags in the first byte).  Note that a full 16 bytes
-     *   should be allocated, even though the ivLenInBytes field will have
-     *   a value less than this.
-     *   The macro @ref CPA_CY_SYM_CCM_SET_NONCE may be used here.
-     */
-    Cpa64U reserved1;
-    /**< Reserved for internal usage. */
-    Cpa32U hashStartSrcOffsetInBytes;
-    /**< Starting point for hash processing, specified as number of bytes
-     * from start of packet in source buffer.
-     *
-     * @note For CCM and GCM modes of operation, this value in this field
-     * is ignored, and the field is reserved for internal usage.
-     * The fields @ref additionalAuthData and @ref pAdditionalAuthData
-     * should be set instead.
-     *
-     * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
-     * operation, this field specifies the start of the AAD data in
-     * the source buffer.
-     */
-    Cpa32U messageLenToHashInBytes;
-    /**< The message length, in bytes, of the source buffer that the hash
-     * will be computed on.
-     *
-     * @note For CCM and GCM modes of operation, this value in this field
-     * is ignored, and the field is reserved for internal usage.
-     * The fields @ref additionalAuthData and @ref pAdditionalAuthData
-     * should be set instead.
-     *
-     * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
-     * operation, this field specifies the length of the AAD data in the
-     * source buffer.
-     *
-     * @note On some implementations, this length may be limited to a 16-bit
-     * value (65535 bytes).
-     */
-    CpaPhysicalAddr additionalAuthData;
-    /**< Physical address of the Additional Authenticated Data (AAD),
-     * which is needed for authenticated cipher mechanisms (CCM and
-     * GCM), and to the IV for  SNOW3G authentication (@ref
-     * CPA_CY_SYM_HASH_SNOW3G_UIA2). For other authentication
-     * mechanisms, this value is ignored, and the field is reserved for
-     * internal usage.
-     *
-     * The length of the data pointed to by this field is set up for
-     * the session in the @ref CpaCySymHashAuthModeSetupData structure
-     * as part of the @ref cpaCySymDpInitSession function call.  This length
-     * must not exceed 240 bytes.
+	Cpa64U reserved0;
+	/**< Reserved for internal usage. */
+	Cpa32U cryptoStartSrcOffsetInBytes;
+	/**< Starting point for cipher processing, specified as number of bytes
+	 * from start of data in the source buffer. The result of the cipher
+	 * operation will be written back into the buffer starting at this
+	 * location in the destination buffer.
+	 */
+	Cpa32U messageLenToCipherInBytes;
+	/**< The message length, in bytes, of the source buffer on which the
+	 * cryptographic operation will be computed. This must be a multiple of
+	 * the block size if a block cipher is being used. This is also the
+	 * same as the result length.
+	 *
+	 * @note In the case of CCM (@ref CPA_CY_SYM_HASH_AES_CCM), this value
+	 * should not include the length of the padding or the length of the
+	 * MAC; the driver will compute the actual number of bytes over which
+	 * the encryption will occur, which will include these values.
+	 *
+	 * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC), this field
+	 * should be set to 0.
+	 *
+	 * @note On some implementations, this length may be limited to a 16-bit
+	 * value (65535 bytes).
+	 */
+	CpaPhysicalAddr iv;
+	/**< Initialization Vector or Counter.  Specifically, this is the
+	 * physical address of one of the following:
+	 *
+	 * - For block ciphers in CBC mode, or for Kasumi in F8 mode, or for
+	 *   SNOW3G in UEA2 mode, this is the Initialization Vector (IV)
+	 *   value.
+	 * - For ARC4, this is reserved for internal usage.
+	 * - For block ciphers in CTR mode, this is the counter.
+	 * - For GCM mode, this is either the IV (if the length is 96 bits) or
+	 * J0 (for other sizes), where J0 is as defined by NIST SP800-38D.
+	 *   Regardless of the IV length, a full 16 bytes needs to be allocated.
+	 * - For CCM mode, the first byte is reserved, and the nonce should be
+	 *   written starting at &pIv[1] (to allow space for the implementation
+	 *   to write in the flags in the first byte).  Note that a full 16
+	 * bytes should be allocated, even though the ivLenInBytes field will
+	 * have a value less than this. The macro @ref CPA_CY_SYM_CCM_SET_NONCE
+	 * may be used here.
+	 */
+	Cpa64U reserved1;
+	/**< Reserved for internal usage. */
+	Cpa32U hashStartSrcOffsetInBytes;
+	/**< Starting point for hash processing, specified as number of bytes
+	 * from start of packet in source buffer.
+	 *
+	 * @note For CCM and GCM modes of operation, this value in this field
+	 * is ignored, and the field is reserved for internal usage.
+	 * The fields @ref additionalAuthData and @ref pAdditionalAuthData
+	 * should be set instead.
+	 *
+	 * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
+	 * operation, this field specifies the start of the AAD data in
+	 * the source buffer.
+	 */
+	Cpa32U messageLenToHashInBytes;
+	/**< The message length, in bytes, of the source buffer that the hash
+	 * will be computed on.
+	 *
+	 * @note For CCM and GCM modes of operation, this value in this field
+	 * is ignored, and the field is reserved for internal usage.
+	 * The fields @ref additionalAuthData and @ref pAdditionalAuthData
+	 * should be set instead.
+	 *
+	 * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
+	 * operation, this field specifies the length of the AAD data in the
+	 * source buffer.
+	 *
+	 * @note On some implementations, this length may be limited to a 16-bit
+	 * value (65535 bytes).
+	 */
+	CpaPhysicalAddr additionalAuthData;
+	/**< Physical address of the Additional Authenticated Data (AAD),
+	 * which is needed for authenticated cipher mechanisms (CCM and
+	 * GCM), and to the IV for  SNOW3G authentication (@ref
+	 * CPA_CY_SYM_HASH_SNOW3G_UIA2). For other authentication
+	 * mechanisms, this value is ignored, and the field is reserved for
+	 * internal usage.
+	 *
+	 * The length of the data pointed to by this field is set up for
+	 * the session in the @ref CpaCySymHashAuthModeSetupData structure
+	 * as part of the @ref cpaCySymDpInitSession function call.  This length
+	 * must not exceed 240 bytes.
 
-     * If AAD is not used, this address must be set to zero.
-     *
-     * Specifically for CCM (@ref CPA_CY_SYM_HASH_AES_CCM) and GCM (@ref
-     * CPA_CY_SYM_HASH_AES_GCM), the caller should be setup as described in
-     * the same way as the corresponding field, pAdditionalAuthData, on the
-     * "traditional" API (see the @ref CpaCySymOpData).
-     *
-     * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
-     * operation, this field is not used and should be set to 0. Instead
-     * the AAD data should be placed in the source buffer.
-     *
-     */
-    CpaPhysicalAddr digestResult;
-    /**<  If the digestIsAppended member of the @ref CpaCySymSessionSetupData
-     * structure is NOT set then this is the physical address of the location
-     * where the digest result should be inserted (in the case of digest
-     * generation) or where the purported digest exists (in the case of digest
-     * verification).
-     *
-     * At session registration time, the client specified the digest result
-     * length with the digestResultLenInBytes member of the @ref
-     * CpaCySymHashSetupData structure. The client must allocate at least
-     * digestResultLenInBytes of physically contiguous memory at this location.
-     *
-     * For digest generation, the digest result will overwrite any data
-     * at this location.
-     *
-     * @note For GCM (@ref CPA_CY_SYM_HASH_AES_GCM), for "digest result"
-     * read "authentication tag T".
-     *
-     * If the digestIsAppended member of the @ref CpaCySymSessionSetupData
-     * structure is set then this value is ignored and the digest result
-     * is understood to be in the destination buffer for digest generation,
-     * and in the source buffer for digest verification. The location of the
-     * digest result in this case is immediately following the region over
-     * which the digest is computed.
-     */
+	 * If AAD is not used, this address must be set to zero.
+	 *
+	 * Specifically for CCM (@ref CPA_CY_SYM_HASH_AES_CCM) and GCM (@ref
+	 * CPA_CY_SYM_HASH_AES_GCM), the caller should be setup as described in
+	 * the same way as the corresponding field, pAdditionalAuthData, on the
+	 * "traditional" API (see the @ref CpaCySymOpData).
+	 *
+	 * @note For AES-GMAC (@ref CPA_CY_SYM_HASH_AES_GMAC) mode of
+	 * operation, this field is not used and should be set to 0. Instead
+	 * the AAD data should be placed in the source buffer.
+	 *
+	 */
+	CpaPhysicalAddr digestResult;
+	/**<  If the digestIsAppended member of the @ref
+	 * CpaCySymSessionSetupData structure is NOT set then this is the
+	 * physical address of the location where the digest result should be
+	 * inserted (in the case of digest generation) or where the purported
+	 * digest exists (in the case of digest verification).
+	 *
+	 * At session registration time, the client specified the digest result
+	 * length with the digestResultLenInBytes member of the @ref
+	 * CpaCySymHashSetupData structure. The client must allocate at least
+	 * digestResultLenInBytes of physically contiguous memory at this
+	 * location.
+	 *
+	 * For digest generation, the digest result will overwrite any data
+	 * at this location.
+	 *
+	 * @note For GCM (@ref CPA_CY_SYM_HASH_AES_GCM), for "digest result"
+	 * read "authentication tag T".
+	 *
+	 * If the digestIsAppended member of the @ref CpaCySymSessionSetupData
+	 * structure is set then this value is ignored and the digest result
+	 * is understood to be in the destination buffer for digest generation,
+	 * and in the source buffer for digest verification. The location of the
+	 * digest result in this case is immediately following the region over
+	 * which the digest is computed.
+	 */
 
-    CpaInstanceHandle instanceHandle;
-    /**< Instance to which the request is to be enqueued.
-     * @note A callback function must have been registered on the instance
-     * using @ref cpaCySymDpRegCbFunc.
-     */
-    CpaCySymDpSessionCtx sessionCtx;
-    /**< Session context specifying the cryptographic parameters for this
-     * request.
-     * @note The session must have been created using @ref
-     * cpaCySymDpInitSession.
-     */
-    Cpa32U ivLenInBytes;
-    /**< Length of valid IV data pointed to by the pIv parameter.
-     *
-     * - For block ciphers in CBC mode, or for Kasumi in F8 mode, or for
-     *   SNOW3G in UEA2 mode, this is the length of the IV (which
-     *   must be the same as the block length of the cipher).
-     * - For block ciphers in CTR mode, this is the length of the counter
-     *   (which must be the same as the block length of the cipher).
-     * - For GCM mode, this is either 12 (for 96-bit IVs) or 16, in which
-     *   case pIv points to J0.
-     * - For CCM mode, this is the length of the nonce, which can be in the
-     *   range 7 to 13 inclusive.
-     */
-    CpaPhysicalAddr srcBuffer;
-    /**< Physical address of the source buffer on which to operate.
-     * This is either:
-     *
-     * - The location of the data, of length srcBufferLen; or,
-     * - If srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
-     *   srcBuffer contains the location where a @ref CpaPhysBufferList is
-     *   stored.  In this case, the CpaPhysBufferList MUST be aligned
-     *   on an 8-byte boundary.
-     * - For optimum performance, the buffer should only contain the data 
-     *   region that the cryptographic operation(s) must be performed on. 
-     *   Any additional data in the source buffer may be copied to the 
-     *   destination buffer and this copy may degrade performance.
-     */
-    Cpa32U  srcBufferLen;
-    /**< Length of source buffer, or @ref CPA_DP_BUFLIST. */
-    CpaPhysicalAddr dstBuffer;
-    /**< Physical address of the destination buffer on which to operate.
-     * This is either:
-     *
-     * - The location of the data, of length srcBufferLen; or,
-     * - If srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
-     *   srcBuffer contains the location where a @ref CpaPhysBufferList is
-     *   stored.  In this case, the CpaPhysBufferList MUST be aligned
-     *   on an 8-byte boundary.
-     *
-     * For "in-place" operation, the dstBuffer may be identical to the
-     * srcBuffer.
-     */
-    Cpa32U  dstBufferLen;
-    /**< Length of destination buffer, or @ref CPA_DP_BUFLIST. */
+	CpaInstanceHandle instanceHandle;
+	/**< Instance to which the request is to be enqueued.
+	 * @note A callback function must have been registered on the instance
+	 * using @ref cpaCySymDpRegCbFunc.
+	 */
+	CpaCySymDpSessionCtx sessionCtx;
+	/**< Session context specifying the cryptographic parameters for this
+	 * request.
+	 * @note The session must have been created using @ref
+	 * cpaCySymDpInitSession.
+	 */
+	Cpa32U ivLenInBytes;
+	/**< Length of valid IV data pointed to by the pIv parameter.
+	 *
+	 * - For block ciphers in CBC mode, or for Kasumi in F8 mode, or for
+	 *   SNOW3G in UEA2 mode, this is the length of the IV (which
+	 *   must be the same as the block length of the cipher).
+	 * - For block ciphers in CTR mode, this is the length of the counter
+	 *   (which must be the same as the block length of the cipher).
+	 * - For GCM mode, this is either 12 (for 96-bit IVs) or 16, in which
+	 *   case pIv points to J0.
+	 * - For CCM mode, this is the length of the nonce, which can be in the
+	 *   range 7 to 13 inclusive.
+	 */
+	CpaPhysicalAddr srcBuffer;
+	/**< Physical address of the source buffer on which to operate.
+	 * This is either:
+	 *
+	 * - The location of the data, of length srcBufferLen; or,
+	 * - If srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
+	 *   srcBuffer contains the location where a @ref CpaPhysBufferList is
+	 *   stored.  In this case, the CpaPhysBufferList MUST be aligned
+	 *   on an 8-byte boundary.
+	 * - For optimum performance, the buffer should only contain the data
+	 *   region that the cryptographic operation(s) must be performed on.
+	 *   Any additional data in the source buffer may be copied to the
+	 *   destination buffer and this copy may degrade performance.
+	 */
+	Cpa32U srcBufferLen;
+	/**< Length of source buffer, or @ref CPA_DP_BUFLIST. */
+	CpaPhysicalAddr dstBuffer;
+	/**< Physical address of the destination buffer on which to operate.
+	 * This is either:
+	 *
+	 * - The location of the data, of length srcBufferLen; or,
+	 * - If srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
+	 *   srcBuffer contains the location where a @ref CpaPhysBufferList is
+	 *   stored.  In this case, the CpaPhysBufferList MUST be aligned
+	 *   on an 8-byte boundary.
+	 *
+	 * For "in-place" operation, the dstBuffer may be identical to the
+	 * srcBuffer.
+	 */
+	Cpa32U dstBufferLen;
+	/**< Length of destination buffer, or @ref CPA_DP_BUFLIST. */
 
-    CpaPhysicalAddr thisPhys;
-    /**< Physical address of this data structure */
+	CpaPhysicalAddr thisPhys;
+	/**< Physical address of this data structure */
 
-    Cpa8U* pIv;
-    /**< Pointer to (and therefore, the virtual address of) the IV field
-     * above.
-     * Needed here because the driver in some cases writes to this field,
-     * in addition to sending it to the accelerator.
-     */
-    Cpa8U *pAdditionalAuthData;
-    /**< Pointer to (and therefore, the virtual address of) the
-     * additionalAuthData field above.
-     * Needed here because the driver in some cases writes to this field,
-     * in addition to sending it to the accelerator.
-     */
-    void* pCallbackTag;
-    /**< Opaque data that will be returned to the client in the function
-     * completion callback.
-     *
-     * This opaque data is not used by the implementation of the API,
-     * but is simply returned as part of the asynchronous response.
-     * It may be used to store information that might be useful when
-     * processing the response later.
-     */
+	Cpa8U *pIv;
+	/**< Pointer to (and therefore, the virtual address of) the IV field
+	 * above.
+	 * Needed here because the driver in some cases writes to this field,
+	 * in addition to sending it to the accelerator.
+	 */
+	Cpa8U *pAdditionalAuthData;
+	/**< Pointer to (and therefore, the virtual address of) the
+	 * additionalAuthData field above.
+	 * Needed here because the driver in some cases writes to this field,
+	 * in addition to sending it to the accelerator.
+	 */
+	void *pCallbackTag;
+	/**< Opaque data that will be returned to the client in the function
+	 * completion callback.
+	 *
+	 * This opaque data is not used by the implementation of the API,
+	 * but is simply returned as part of the asynchronous response.
+	 * It may be used to store information that might be useful when
+	 * processing the response later.
+	 */
 } CpaCySymDpOpData;
 
 /**
@@ -415,10 +416,8 @@ typedef struct _CpaCySymDpOpData {
  * @see
  *      cpaCySymDpRegCbFunc
  *****************************************************************************/
-typedef void (*CpaCySymDpCbFunc)(CpaCySymDpOpData *pOpData,
-        CpaStatus status,
-        CpaBoolean verifyResult);
-
+typedef void (*CpaCySymDpCbFunc)(CpaCySymDpOpData *pOpData, CpaStatus status,
+    CpaBoolean verifyResult);
 
 /**
  *****************************************************************************
@@ -465,7 +464,7 @@ typedef void (*CpaCySymDpCbFunc)(CpaCySymDpOpData *pOpData,
  *      CpaCySymDpCbFunc
  *****************************************************************************/
 CpaStatus cpaCySymDpRegCbFunc(const CpaInstanceHandle instanceHandle,
-        const CpaCySymDpCbFunc pSymNewCb);
+    const CpaCySymDpCbFunc pSymNewCb);
 
 /**
  *****************************************************************************
@@ -483,15 +482,15 @@ CpaStatus cpaCySymDpRegCbFunc(const CpaInstanceHandle instanceHandle,
  *      cpaCySymDpSessionCtxGetSize() will always return the same size and that
  *      the size will not be different for different setup data parameters.
  *      However, it should be noted that the size may change:
- *        (1) between different implementations of the API (e.g. between software
- *            and hardware implementations or between different hardware
+ *        (1) between different implementations of the API (e.g. between
+ *software and hardware implementations or between different hardware
  *            implementations)
  *        (2) between different releases of the same API implementation.
  *
- *      The size returned by this function is the smallest size needed to 
+ *      The size returned by this function is the smallest size needed to
  *      support all possible combinations of setup data parameters. Some
- *      setup data parameter combinations may fit within a smaller session 
- *      context size. The alternate cpaCySymDpSessionCtxGetDynamicSize() 
+ *      setup data parameter combinations may fit within a smaller session
+ *      context size. The alternate cpaCySymDpSessionCtxGetDynamicSize()
  *      function will return the smallest size needed to fit the
  *      provided setup data parameters.
  *
@@ -536,29 +535,28 @@ CpaStatus cpaCySymDpRegCbFunc(const CpaInstanceHandle instanceHandle,
  *      cpaCySymDpSessionCtxGetDynamicSize()
  *      cpaCySymDpInitSession()
  *****************************************************************************/
-CpaStatus
-cpaCySymDpSessionCtxGetSize(const CpaInstanceHandle instanceHandle,
-        const CpaCySymSessionSetupData *pSessionSetupData,
-        Cpa32U *pSessionCtxSizeInBytes);
+CpaStatus cpaCySymDpSessionCtxGetSize(const CpaInstanceHandle instanceHandle,
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    Cpa32U *pSessionCtxSizeInBytes);
 
 /**
  *****************************************************************************
  * @ingroup cpaCySymDp
- *      Gets the minimum size required to store a session context for the data 
+ *      Gets the minimum size required to store a session context for the data
  *      plane API.
  *
  * @description
  *      This function is used by the client to determine the smallest size of
- *      the memory it must allocate in order to store the session context. 
- *      This MUST be called before the client allocates the memory for the 
- *      session context and before the client calls the 
+ *      the memory it must allocate in order to store the session context.
+ *      This MUST be called before the client allocates the memory for the
+ *      session context and before the client calls the
  *      @ref cpaCySymDpInitSession function.
  *
  *      This function is an alternate to cpaCySymDpSessionGetSize().
- *      cpaCySymDpSessionCtxGetSize() will return a fixed size which is the 
- *      minimum memory size needed to support all possible setup data parameter 
- *      combinations. cpaCySymDpSessionCtxGetDynamicSize() will return the 
- *      minimum memory size needed to support the specific session setup 
+ *      cpaCySymDpSessionCtxGetSize() will return a fixed size which is the
+ *      minimum memory size needed to support all possible setup data parameter
+ *      combinations. cpaCySymDpSessionCtxGetDynamicSize() will return the
+ *      minimum memory size needed to support the specific session setup
  *      data parameters provided. This size may be different for different setup
  *      data parameters.
  *
@@ -605,8 +603,8 @@ cpaCySymDpSessionCtxGetSize(const CpaInstanceHandle instanceHandle,
  *****************************************************************************/
 CpaStatus
 cpaCySymDpSessionCtxGetDynamicSize(const CpaInstanceHandle instanceHandle,
-        const CpaCySymSessionSetupData *pSessionSetupData,
-        Cpa32U *pSessionCtxSizeInBytes);
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    Cpa32U *pSessionCtxSizeInBytes);
 
 /**
  *****************************************************************************
@@ -674,10 +672,9 @@ cpaCySymDpSessionCtxGetDynamicSize(const CpaInstanceHandle instanceHandle,
  * @see
  *      cpaCySymDpSessionCtxGetSize, cpaCySymDpRemoveSession
  *****************************************************************************/
-CpaStatus
-cpaCySymDpInitSession(CpaInstanceHandle instanceHandle,
-        const CpaCySymSessionSetupData *pSessionSetupData,
-        CpaCySymDpSessionCtx sessionCtx);
+CpaStatus cpaCySymDpInitSession(CpaInstanceHandle instanceHandle,
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    CpaCySymDpSessionCtx sessionCtx);
 
 /**
  *****************************************************************************
@@ -732,10 +729,8 @@ cpaCySymDpInitSession(CpaInstanceHandle instanceHandle,
  *      cpaCySymDpInitSession()
  *
  *****************************************************************************/
-CpaStatus
-cpaCySymDpRemoveSession(const CpaInstanceHandle instanceHandle,
-        CpaCySymDpSessionCtx sessionCtx);
-
+CpaStatus cpaCySymDpRemoveSession(const CpaInstanceHandle instanceHandle,
+    CpaCySymDpSessionCtx sessionCtx);
 
 /**
  *****************************************************************************
@@ -789,10 +784,9 @@ cpaCySymDpRemoveSession(const CpaInstanceHandle instanceHandle,
  *                                 performed immediately (CPA_TRUE), or simply
  *                                 enqueued to be performed later (CPA_FALSE).
  *                                 In the latter case, the request is submitted
- *                                 to be performed either by calling this function
- *                                 again with this flag set to CPA_TRUE, or by
- *                                 invoking the function @ref
- *                                 cpaCySymDpPerformOpNow.
+ *                                 to be performed either by calling this
+ *function again with this flag set to CPA_TRUE, or by invoking the function
+ *@ref cpaCySymDpPerformOpNow.
  *
  * @retval CPA_STATUS_SUCCESS        Function executed successfully.
  * @retval CPA_STATUS_FAIL           Function failed.
@@ -820,10 +814,8 @@ cpaCySymDpRemoveSession(const CpaInstanceHandle instanceHandle,
  *      cpaCySymDpInitSession,
  *      cpaCySymDpPerformOpNow
  *****************************************************************************/
-CpaStatus
-cpaCySymDpEnqueueOp(CpaCySymDpOpData *pOpData,
-        const CpaBoolean performOpNow);
-
+CpaStatus cpaCySymDpEnqueueOp(CpaCySymDpOpData *pOpData,
+    const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -888,7 +880,8 @@ cpaCySymDpEnqueueOp(CpaCySymDpOpData *pOpData,
  *                                 performed immediately (CPA_TRUE), or simply
  *                                 enqueued to be performed later (CPA_FALSE).
  *                                 In the latter case, the request is submitted
- *                                 to be performed either by calling this function
+ *                                 to be performed either by calling this
+ function
  *                                 again with this flag set to CPA_TRUE, or by
  *                                 invoking the function @ref
  *                                 cpaCySymDpPerformOpNow.
@@ -920,11 +913,8 @@ cpaCySymDpEnqueueOp(CpaCySymDpOpData *pOpData,
  *      cpaCySymDpInitSession,
  *      cpaCySymDpEnqueueOp
  *****************************************************************************/
-CpaStatus
-cpaCySymDpEnqueueOpBatch(const Cpa32U numberRequests,
-        CpaCySymDpOpData *pOpData[],
-        const CpaBoolean performOpNow);
-
+CpaStatus cpaCySymDpEnqueueOpBatch(const Cpa32U numberRequests,
+    CpaCySymDpOpData *pOpData[], const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -975,9 +965,7 @@ cpaCySymDpEnqueueOpBatch(const Cpa32U numberRequests,
  * @see
  *      cpaCySymDpEnqueueOp, cpaCySymDpEnqueueOpBatch
  *****************************************************************************/
-CpaStatus
-cpaCySymDpPerformOpNow(CpaInstanceHandle instanceHandle);
-
+CpaStatus cpaCySymDpPerformOpNow(CpaInstanceHandle instanceHandle);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

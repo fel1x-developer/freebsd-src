@@ -29,15 +29,13 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
 #include <sys/time.h>
 
+#include <libxo/xo.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include <libxo/xo.h>
 
 #include "extern.h"
 
@@ -63,11 +61,10 @@ pr_attime(time_t *started, time_t *now)
 		fmt = L"%d%b%y";
 
 	/* If not today, use day-hour-am/pm. */
-	else if (tm.tm_mday != tp.tm_mday ||
-		 tm.tm_mon != tp.tm_mon ||
-		 tm.tm_year != tp.tm_year) {
-	/* The line below does not take DST into consideration */
-	/* else if (*now / 86400 != *started / 86400) { */
+	else if (tm.tm_mday != tp.tm_mday || tm.tm_mon != tp.tm_mon ||
+	    tm.tm_year != tp.tm_year) {
+		/* The line below does not take DST into consideration */
+		/* else if (*now / 86400 != *started / 86400) { */
 		fmt = use_ampm ? L"%a%I%p" : L"%a%H";
 	}
 
@@ -79,8 +76,8 @@ pr_attime(time_t *started, time_t *now)
 	(void)wcsftime(buf, sizeof(buf), fmt, &tp);
 	len = wcslen(buf);
 	width = wcswidth(buf, len);
-	xo_attr("since", "%lu", (unsigned long) *started);
-	xo_attr("delta", "%lu", (unsigned long) diff);
+	xo_attr("since", "%lu", (unsigned long)*started);
+	xo_attr("delta", "%lu", (unsigned long)diff);
 	if (len == width)
 		xo_emit("{:login-time/%-7.7ls/%ls}", buf);
 	else if (width < 7)
@@ -103,7 +100,7 @@ pr_idle(time_t idle)
 	/* If idle more than 36 hours, print as a number of days. */
 	if (idle >= 36 * 3600) {
 		int days = idle / 86400;
-		xo_emit(" {:idle/%dday%s} ", days, days > 1 ? "s" : " " );
+		xo_emit(" {:idle/%dday%s} ", days, days > 1 ? "s" : " ");
 		if (days >= 100)
 			return (2);
 		if (days >= 10)
@@ -112,8 +109,8 @@ pr_idle(time_t idle)
 
 	/* If idle more than an hour, print as HH:MM. */
 	else if (idle >= 3600)
-		xo_emit(" {:idle/%2d:%02d/} ",
-		    (int)(idle / 3600), (int)((idle % 3600) / 60));
+		xo_emit(" {:idle/%2d:%02d/} ", (int)(idle / 3600),
+		    (int)((idle % 3600) / 60));
 
 	else if (idle / 60 == 0)
 		xo_emit("     - ");

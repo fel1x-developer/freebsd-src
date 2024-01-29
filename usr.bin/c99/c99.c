@@ -126,7 +126,7 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr, "%s\n%s\n",
-"usage: c99 [-cEgs] [-D name[=value]] ... [-I directory] ... [-L directory] ...",
-"       [-o outfile] [-O optlevel] [-U name] ... operand ...");
+	    "usage: c99 [-cEgs] [-D name[=value]] ... [-I directory] ... [-L directory] ...",
+	    "       [-o outfile] [-O optlevel] [-U name] ... operand ...");
 	exit(1);
 }

@@ -45,14 +45,15 @@
 
 #include <sys/param.h>
 #include <sys/signalvar.h>
+
 #include <signal.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include "debug.h"
 #include "rtld.h"
-#include "rtld_machdep.h"
 #include "rtld_libc.h"
+#include "rtld_machdep.h"
 
 void _rtld_thread_init(struct RtldLockInfo *) __exported;
 void _rtld_atfork_pre(int *) __exported;
@@ -73,8 +74,8 @@ def_dlerror_seen(void)
 	return (&def_dlerror_seen_val);
 }
 
-#define WAFLAG		0x1	/* A writer holds the lock */
-#define RC_INCR		0x2	/* Adjusts count of readers desiring lock */
+#define WAFLAG 0x1  /* A writer holds the lock */
+#define RC_INCR 0x2 /* Adjusts count of readers desiring lock */
 
 typedef struct Struct_Lock {
 	volatile u_int lock;
@@ -190,8 +191,8 @@ def_lock_release(void *lock)
 {
 	Lock *l = lock;
 
-	atomic_add_rel_int(&l->lock, -((l->lock & WAFLAG) == 0 ?
-	    RC_INCR : WAFLAG));
+	atomic_add_rel_int(&l->lock,
+	    -((l->lock & WAFLAG) == 0 ? RC_INCR : WAFLAG));
 	if (ld_fast_sigblock)
 		sig_fastunblock();
 	else if (atomic_fetchadd_int(&wnested, -1) == 1)
@@ -234,15 +235,15 @@ thread_mask_clear(int mask)
 	lockinfo.thread_clr_flag(mask);
 }
 
-#define	RTLD_LOCK_CNT	3
+#define RTLD_LOCK_CNT 3
 static struct rtld_lock {
-	void	*handle;
-	int	 mask;
+	void *handle;
+	int mask;
 } rtld_locks[RTLD_LOCK_CNT];
 
-rtld_lock_t	rtld_bind_lock = &rtld_locks[0];
-rtld_lock_t	rtld_libc_lock = &rtld_locks[1];
-rtld_lock_t	rtld_phdr_lock = &rtld_locks[2];
+rtld_lock_t rtld_bind_lock = &rtld_locks[0];
+rtld_lock_t rtld_libc_lock = &rtld_locks[1];
+rtld_lock_t rtld_phdr_lock = &rtld_locks[2];
 
 void
 rlock_acquire(rtld_lock_t lock, RtldLockState *lockstate)
@@ -353,7 +354,7 @@ lockdflt_init(void)
 	deflockinfo.dlerror_seen = def_dlerror_seen;
 
 	for (i = 0; i < RTLD_LOCK_CNT; i++) {
-		rtld_locks[i].mask   = (1 << i);
+		rtld_locks[i].mask = (1 << i);
 		rtld_locks[i].handle = NULL;
 	}
 
@@ -401,7 +402,7 @@ _rtld_thread_init(struct RtldLockInfo *pli)
 	}
 
 	/* disable all locking while this function is running */
-	flags =	thread_mask_set(~0);
+	flags = thread_mask_set(~0);
 
 	if (pli == NULL)
 		pli = &deflockinfo;
@@ -438,7 +439,7 @@ _rtld_thread_init(struct RtldLockInfo *pli)
 	lockinfo.lock_destroy = pli->lock_destroy;
 	lockinfo.rlock_acquire = pli->rlock_acquire;
 	lockinfo.wlock_acquire = pli->wlock_acquire;
-	lockinfo.lock_release  = pli->lock_release;
+	lockinfo.lock_release = pli->lock_release;
 	lockinfo.thread_set_flag = pli->thread_set_flag;
 	lockinfo.thread_clr_flag = pli->thread_clr_flag;
 	lockinfo.at_fork = pli->at_fork;

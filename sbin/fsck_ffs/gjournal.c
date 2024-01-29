@@ -54,9 +54,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <string.h>
 #include <sys/stat.h>
+
+#include <string.h>
 #include <ufs/ffs/fs.h>
+
 #include "fsck.h"
 
 void
@@ -89,7 +91,7 @@ gjournal_check(const char *filesys)
 		}
 		if (got_sigalarm) {
 			setproctitle("%s pj %d%%", cdevname,
-			     cg * 100 / fs->fs_ncg);
+			    cg * 100 / fs->fs_ncg);
 			got_sigalarm = 0;
 		}
 		cgbp = cglookup(cg);

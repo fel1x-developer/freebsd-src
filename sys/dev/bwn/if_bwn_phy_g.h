@@ -27,8 +27,8 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#ifndef	__IF_BWN_PHY_G_H__
-#define	__IF_BWN_PHY_G_H__
+#ifndef __IF_BWN_PHY_G_H__
+#define __IF_BWN_PHY_G_H__
 
 extern int bwn_phy_g_attach(struct bwn_mac *mac);
 extern void bwn_phy_g_detach(struct bwn_mac *mac);
@@ -39,7 +39,8 @@ extern void bwn_phy_g_exit(struct bwn_mac *mac);
 extern uint16_t bwn_phy_g_read(struct bwn_mac *mac, uint16_t reg);
 extern void bwn_phy_g_write(struct bwn_mac *mac, uint16_t reg, uint16_t value);
 extern uint16_t bwn_phy_g_rf_read(struct bwn_mac *mac, uint16_t reg);
-extern void bwn_phy_g_rf_write(struct bwn_mac *mac, uint16_t reg, uint16_t value);
+extern void bwn_phy_g_rf_write(struct bwn_mac *mac, uint16_t reg,
+    uint16_t value);
 extern int bwn_phy_g_hwpctl(struct bwn_mac *mac);
 extern void bwn_phy_g_rf_onoff(struct bwn_mac *mac, int on);
 extern void bwn_phy_switch_analog(struct bwn_mac *mac, int on);
@@ -47,9 +48,10 @@ extern int bwn_phy_g_switch_channel(struct bwn_mac *mac, uint32_t newchan);
 extern uint32_t bwn_phy_g_get_default_chan(struct bwn_mac *mac);
 extern void bwn_phy_g_set_antenna(struct bwn_mac *mac, int antenna);
 extern int bwn_phy_g_im(struct bwn_mac *mac, int mode);
-extern bwn_txpwr_result_t bwn_phy_g_recalc_txpwr(struct bwn_mac *mac, int ignore_tssi);
+extern bwn_txpwr_result_t bwn_phy_g_recalc_txpwr(struct bwn_mac *mac,
+    int ignore_tssi);
 extern void bwn_phy_g_set_txpwr(struct bwn_mac *mac);
 extern void bwn_phy_g_task_15s(struct bwn_mac *mac);
 extern void bwn_phy_g_task_60s(struct bwn_mac *mac);
 
-#endif	/* __IF_BWN_PHY_G_H__ */
+#endif /* __IF_BWN_PHY_G_H__ */

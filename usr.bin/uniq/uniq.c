@@ -56,28 +56,25 @@ static enum { DF_NONE, DF_NOSEP, DF_PRESEP, DF_POSTSEP } Dflag;
 static bool cflag, dflag, uflag, iflag;
 static long long numchars, numfields, repeats;
 
-static const struct option long_opts[] =
-{
-	{"all-repeated",optional_argument,	NULL, 'D'},
-	{"count",	no_argument,		NULL, 'c'},
-	{"repeated",	no_argument,		NULL, 'd'},
-	{"skip-fields",	required_argument,	NULL, 'f'},
-	{"ignore-case",	no_argument,		NULL, 'i'},
-	{"skip-chars",	required_argument,	NULL, 's'},
-	{"unique",	no_argument,		NULL, 'u'},
-	{NULL,		no_argument,		NULL, 0}
-};
+static const struct option long_opts[] = { { "all-repeated", optional_argument,
+					       NULL, 'D' },
+	{ "count", no_argument, NULL, 'c' },
+	{ "repeated", no_argument, NULL, 'd' },
+	{ "skip-fields", required_argument, NULL, 'f' },
+	{ "ignore-case", no_argument, NULL, 'i' },
+	{ "skip-chars", required_argument, NULL, 's' },
+	{ "unique", no_argument, NULL, 'u' }, { NULL, no_argument, NULL, 0 } };
 
-static FILE	*file(const char *, const char *);
-static wchar_t	*convert(const char *);
-static int	 inlcmp(const char *, const char *);
-static void	 show(FILE *, const char *);
-static wchar_t	*skip(wchar_t *);
-static void	 obsolete(char *[]);
-static void	 usage(void);
+static FILE *file(const char *, const char *);
+static wchar_t *convert(const char *);
+static int inlcmp(const char *, const char *);
+static void show(FILE *, const char *);
+static wchar_t *skip(wchar_t *);
+static void obsolete(char *[]);
+static void usage(void);
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
 	wchar_t *tprev, *tthis;
 	FILE *ifp, *ofp;
@@ -87,11 +84,11 @@ main (int argc, char *argv[])
 	const char *errstr, *ifn, *ofn;
 	cap_rights_t rights;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 
 	obsolete(argv);
 	while ((ch = getopt_long(argc, argv, "+D::cdif:s:u", long_opts,
-	    NULL)) != -1)
+		    NULL)) != -1)
 		switch (ch) {
 		case 'D':
 			if (optarg == NULL || strcasecmp(optarg, "none") == 0)
@@ -115,12 +112,14 @@ main (int argc, char *argv[])
 		case 'f':
 			numfields = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr)
-				errx(1, "field skip value is %s: %s", errstr, optarg);
+				errx(1, "field skip value is %s: %s", errstr,
+				    optarg);
 			break;
 		case 's':
 			numchars = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL)
-				errx(1, "character skip value is %s: %s", errstr, optarg);
+				errx(1, "character skip value is %s: %s",
+				    errstr, optarg);
 			break;
 		case 'u':
 			uflag = true;
@@ -203,8 +202,7 @@ main (int argc, char *argv[])
 				fputc('\n', ofp);
 			if (!cflag && !Dflag && !dflag && !uflag)
 				show(ofp, thisline);
-			else if (!Dflag &&
-			    (!dflag || (cflag && repeats > 0)) &&
+			else if (!Dflag && (!dflag || (cflag && repeats > 0)) &&
 			    (!uflag || repeats == 0))
 				show(ofp, prevline);
 			p = prevline;
@@ -236,9 +234,8 @@ main (int argc, char *argv[])
 	if (ferror(ifp))
 		err(1, "%s", ifn);
 	if (!cflag && !Dflag && !dflag && !uflag)
-		/* already printed */ ;
-	else if (!Dflag &&
-	    (!dflag || (cflag && repeats > 0)) &&
+		/* already printed */;
+	else if (!Dflag && (!dflag || (cflag && repeats > 0)) &&
 	    (!uflag || repeats == 0))
 		show(ofp, prevline);
 	if (fflush(ofp) != 0)
@@ -317,7 +314,7 @@ skip(wchar_t *str)
 {
 	long long nchars, nfields;
 
-	for (nfields = 0; *str != L'\0' && nfields++ != numfields; ) {
+	for (nfields = 0; *str != L'\0' && nfields++ != numfields;) {
 		while (iswblank(*str))
 			str++;
 		while (*str != L'\0' && !iswblank(*str))
@@ -325,7 +322,7 @@ skip(wchar_t *str)
 	}
 	for (nchars = numchars; nchars-- && *str != L'\0'; ++str)
 		;
-	return(str);
+	return (str);
 }
 
 static FILE *
@@ -335,7 +332,7 @@ file(const char *name, const char *mode)
 
 	if ((fp = fopen(name, mode)) == NULL)
 		err(1, "%s", name);
-	return(fp);
+	return (fp);
 }
 
 static void
@@ -367,6 +364,6 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: uniq [-c | -d | -D | -u] [-i] [-f fields] [-s chars] [input [output]]\n");
+	    "usage: uniq [-c | -d | -D | -u] [-i] [-f fields] [-s chars] [input [output]]\n");
 	exit(1);
 }

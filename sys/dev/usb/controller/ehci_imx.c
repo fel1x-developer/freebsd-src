@@ -36,33 +36,33 @@
  * EHCI driver for Freescale i.MX SoCs which incorporate the USBOH3 controller.
  */
 
+#include "opt_platform.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/rman.h>
-
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ehci.h>
-#include <dev/usb/controller/ehcireg.h>
-#include "usbdevs.h"
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/usb/controller/ehci.h>
+#include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
+
 #include <arm/freescale/imx/imx_ccmvar.h>
 
-#include "opt_platform.h"
+#include "usbdevs.h"
 
 /*
  * Notes on the hardware and related FDT data seen in the wild.
@@ -126,7 +126,7 @@
  * known to exist:
  *   - "nop-usbphy"
  *   - "usb-nop-xceiv";
- *   - "fsl,imx23-usbphy" 
+ *   - "fsl,imx23-usbphy"
  *   - "fsl,imx28-usbphy", "fsl,imx23-usbphy";
  *   - "fsl,imx6q-usbphy", "fsl,imx23-usbphy";
  *
@@ -136,19 +136,19 @@
  * imx_usbmisc driver
  *---------------------------------------------------------------------------*/
 
-#define	USBNC_OVER_CUR_POL	  (1u << 8)
-#define	USBNC_OVER_CUR_DIS	  (1u << 7)
+#define USBNC_OVER_CUR_POL (1u << 8)
+#define USBNC_OVER_CUR_DIS (1u << 7)
 
 struct imx_usbmisc_softc {
-	device_t	dev;
-	struct resource	*mmio;
+	device_t dev;
+	struct resource *mmio;
 };
 
 static struct ofw_compat_data usbmisc_compat_data[] = {
-	{"fsl,imx6q-usbmisc",	true},
-	{"fsl,imx51-usbmisc",	true},
-	{"fsl,imx25-usbmisc",	true},
-	{NULL, 			false},
+	{ "fsl,imx6q-usbmisc", true },
+	{ "fsl,imx51-usbmisc", true },
+	{ "fsl,imx25-usbmisc", true },
+	{ NULL, false },
 };
 
 static void
@@ -212,8 +212,7 @@ imx_usbmisc_attach(device_t dev)
 
 	/* Allocate bus_space resources. */
 	rid = 0;
-	sc->mmio = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-	    RF_ACTIVE);
+	sc->mmio = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
 	if (sc->mmio == NULL) {
 		device_printf(dev, "Cannot allocate memory resources\n");
 		return (ENXIO);
@@ -226,26 +225,23 @@ imx_usbmisc_attach(device_t dev)
 
 static device_method_t imx_usbmisc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe, 	imx_usbmisc_probe),
-	DEVMETHOD(device_attach,	imx_usbmisc_attach),
-	DEVMETHOD(device_detach,	imx_usbmisc_detach),
+	DEVMETHOD(device_probe, imx_usbmisc_probe),
+	DEVMETHOD(device_attach, imx_usbmisc_attach),
+	DEVMETHOD(device_detach, imx_usbmisc_detach),
 
 	DEVMETHOD_END
 };
 
-static driver_t imx_usbmisc_driver = {
-	"imx_usbmisc",
-	imx_usbmisc_methods,
-	sizeof(struct imx_usbmisc_softc)
-};
+static driver_t imx_usbmisc_driver = { "imx_usbmisc", imx_usbmisc_methods,
+	sizeof(struct imx_usbmisc_softc) };
 
 /*
  * This driver needs to start before the ehci driver, but later than the usual
  * "special" drivers like clocks and cpu.  Ehci starts at DEFAULT so
  * DEFAULT-1000 seems good.
  */
-EARLY_DRIVER_MODULE(imx_usbmisc, simplebus, imx_usbmisc_driver,
-    0, 0, BUS_PASS_DEFAULT - 1000);
+EARLY_DRIVER_MODULE(imx_usbmisc, simplebus, imx_usbmisc_driver, 0, 0,
+    BUS_PASS_DEFAULT - 1000);
 
 /*-----------------------------------------------------------------------------
  * imx_ehci driver...
@@ -255,37 +251,37 @@ EARLY_DRIVER_MODULE(imx_usbmisc, simplebus, imx_usbmisc_driver,
  * Each EHCI device in the SoC has some SoC-specific per-device registers at an
  * offset of 0, then the standard EHCI registers begin at an offset of 0x100.
  */
-#define	IMX_EHCI_REG_OFF	0x100
-#define	IMX_EHCI_REG_SIZE	0x100
+#define IMX_EHCI_REG_OFF 0x100
+#define IMX_EHCI_REG_SIZE 0x100
 
 struct imx_ehci_softc {
-	ehci_softc_t	ehci_softc;
-	device_t	dev;
-	struct resource	*ehci_mem_res;	/* EHCI core regs. */
-	struct resource	*ehci_irq_res;	/* EHCI core IRQ. */ 
+	ehci_softc_t ehci_softc;
+	device_t dev;
+	struct resource *ehci_mem_res; /* EHCI core regs. */
+	struct resource *ehci_irq_res; /* EHCI core IRQ. */
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"fsl,imx6q-usb",	1},
-	{"fsl,imx53-usb",	1},
-	{"fsl,imx51-usb",	1},
-	{"fsl,imx28-usb",	1},
-	{"fsl,imx27-usb",	1},
-	{"fsl,imx25-usb",	1},
-	{"fsl,imx23-usb",	1},
-	{NULL,		 	0},
+	{ "fsl,imx6q-usb", 1 },
+	{ "fsl,imx53-usb", 1 },
+	{ "fsl,imx51-usb", 1 },
+	{ "fsl,imx28-usb", 1 },
+	{ "fsl,imx27-usb", 1 },
+	{ "fsl,imx25-usb", 1 },
+	{ "fsl,imx23-usb", 1 },
+	{ NULL, 0 },
 };
 
 static void
 imx_ehci_post_reset(struct ehci_softc *ehci_softc)
 {
-        uint32_t usbmode;
+	uint32_t usbmode;
 
-        /* Force HOST mode */
-        usbmode = EOREAD4(ehci_softc, EHCI_USBMODE_NOLPM);
-        usbmode &= ~EHCI_UM_CM;
-        usbmode |= EHCI_UM_CM_HOST;
-        EOWRITE4(ehci_softc, EHCI_USBMODE_NOLPM, usbmode);
+	/* Force HOST mode */
+	usbmode = EOREAD4(ehci_softc, EHCI_USBMODE_NOLPM);
+	usbmode &= ~EHCI_UM_CM;
+	usbmode |= EHCI_UM_CM_HOST;
+	EOWRITE4(ehci_softc, EHCI_USBMODE_NOLPM, usbmode);
 }
 
 static int
@@ -296,7 +292,8 @@ imx_ehci_probe(device_t dev)
 		return (ENXIO);
 
 	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data != 0) {
-		device_set_desc(dev, "Freescale i.MX integrated USB controller");
+		device_set_desc(dev,
+		    "Freescale i.MX integrated USB controller");
 		return (BUS_PROBE_DEFAULT);
 	}
 	return (ENXIO);
@@ -320,14 +317,11 @@ imx_ehci_detach(device_t dev)
 	if (esc->sc_flags & EHCI_SCFLG_DONEINIT)
 		ehci_detach(esc);
 	if (esc->sc_intr_hdl != NULL)
-		bus_teardown_intr(dev, esc->sc_irq_res, 
-		    esc->sc_intr_hdl);
+		bus_teardown_intr(dev, esc->sc_irq_res, esc->sc_intr_hdl);
 	if (sc->ehci_irq_res != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ, 0, 
-		    sc->ehci_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, 0, sc->ehci_irq_res);
 	if (sc->ehci_mem_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY, 0,
-		    sc->ehci_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, 0, sc->ehci_mem_res);
 
 	usb_bus_mem_free_all(&esc->sc_bus, &ehci_iterate_hw_softc);
 
@@ -345,17 +339,18 @@ imx_ehci_disable_oc(struct imx_ehci_softc *sc)
 
 	/* Get the reference to the usbmisc driver from the fdt data */
 	node = ofw_bus_get_node(sc->dev);
-	size = OF_getencprop(node, "fsl,usbmisc", usbmprops,
-	    sizeof(usbmprops));
+	size = OF_getencprop(node, "fsl,usbmisc", usbmprops, sizeof(usbmprops));
 	if (size < sizeof(usbmprops)) {
-		device_printf(sc->dev, "failed to retrieve fsl,usbmisc "
-		   "property, cannot disable overcurrent protection");
+		device_printf(sc->dev,
+		    "failed to retrieve fsl,usbmisc "
+		    "property, cannot disable overcurrent protection");
 		return;
 	}
 	/* Retrieve the device_t via the xref handle. */
 	usbmdev = OF_device_from_xref(usbmprops[0]);
 	if (usbmdev == NULL) {
-		device_printf(sc->dev, "usbmisc device not found, "
+		device_printf(sc->dev,
+		    "usbmisc device not found, "
 		    "cannot disable overcurrent protection");
 		return;
 	}
@@ -403,7 +398,7 @@ imx_ehci_attach(device_t dev)
 
 	/* allocate all DMA memory */
 	if (usb_bus_mem_alloc_all(&esc->sc_bus, USB_GET_DMA_TAG(dev),
-	    &ehci_iterate_hw_softc) != 0) {
+		&ehci_iterate_hw_softc) != 0) {
 		device_printf(dev, "usb_bus_mem_alloc_all() failed\n");
 		err = ENOMEM;
 		goto out;
@@ -413,9 +408,9 @@ imx_ehci_attach(device_t dev)
 	 * Set handle to USB related registers subregion used by
 	 * generic EHCI driver.
 	 */
-	err = bus_space_subregion(esc->sc_io_tag, 
-	    rman_get_bushandle(sc->ehci_mem_res),
-	    IMX_EHCI_REG_OFF, IMX_EHCI_REG_SIZE, &esc->sc_io_hdl);
+	err = bus_space_subregion(esc->sc_io_tag,
+	    rman_get_bushandle(sc->ehci_mem_res), IMX_EHCI_REG_OFF,
+	    IMX_EHCI_REG_SIZE, &esc->sc_io_hdl);
 	if (err != 0) {
 		device_printf(dev, "bus_space_subregion() failed\n");
 		err = ENXIO;
@@ -458,8 +453,7 @@ imx_ehci_attach(device_t dev)
 
 	err = ehci_init(esc);
 	if (err != 0) {
-		device_printf(dev, "USB init failed, usb_err_t=%d\n", 
-		    err);
+		device_printf(dev, "USB init failed, usb_err_t=%d\n", err);
 		goto out;
 	}
 	esc->sc_flags |= EHCI_SCFLG_DONEINIT;
@@ -467,8 +461,7 @@ imx_ehci_attach(device_t dev)
 	/* Probe the bus. */
 	err = device_probe_and_attach(esc->sc_bus.bdev);
 	if (err != 0) {
-		device_printf(dev,
-		    "device_probe_and_attach() failed\n");
+		device_printf(dev, "device_probe_and_attach() failed\n");
 		goto out;
 	}
 
@@ -497,11 +490,8 @@ static device_method_t ehci_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t ehci_driver = {
-	"ehci",
-	ehci_methods,
-	sizeof(struct imx_ehci_softc)
-};
+static driver_t ehci_driver = { "ehci", ehci_methods,
+	sizeof(struct imx_ehci_softc) };
 
 DRIVER_MODULE(imx_ehci, simplebus, ehci_driver, 0, 0);
 MODULE_DEPEND(imx_ehci, usb, 1, 1, 1);

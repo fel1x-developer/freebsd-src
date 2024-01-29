@@ -21,13 +21,15 @@
  */
 
 #include <sys/types.h>
-#include <sys/kobj.h>
 #include <sys/bus.h>
-#include <dev/iicbus/iic.h>
-#include "iicbus_if.h"
-#include <dev/iicbus/iiconf.h>
+#include <sys/kobj.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_dp_helper.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iiconf.h>
+
+#include "iicbus_if.h"
 
 static int
 iic_dp_aux_transaction(device_t idev, int mode, uint8_t write_byte,
@@ -239,8 +241,8 @@ iic_dp_aux_add_bus(device_t dev, const char *name,
 	if (error != 0) {
 		device_delete_child(dev, ibus);
 		bus_topo_unlock();
-		DRM_ERROR("drm_iic_dp_aux bus %d attach failed, %d\n",
-		    idx, error);
+		DRM_ERROR("drm_iic_dp_aux bus %d attach failed, %d\n", idx,
+		    error);
 		return (-error);
 	}
 	data = device_get_softc(ibus);
@@ -257,20 +259,15 @@ iic_dp_aux_add_bus(device_t dev, const char *name,
 	return (-error);
 }
 
-static device_method_t drm_iic_dp_aux_methods[] = {
-	DEVMETHOD(device_probe,		iic_dp_aux_probe),
-	DEVMETHOD(device_attach,	iic_dp_aux_attach),
-	DEVMETHOD(device_detach,	bus_generic_detach),
-	DEVMETHOD(iicbus_reset,		iic_dp_aux_reset),
-	DEVMETHOD(iicbus_transfer,	iic_dp_aux_xfer),
-	DEVMETHOD_END
-};
+static device_method_t drm_iic_dp_aux_methods[] = { DEVMETHOD(device_probe,
+							iic_dp_aux_probe),
+	DEVMETHOD(device_attach, iic_dp_aux_attach),
+	DEVMETHOD(device_detach, bus_generic_detach),
+	DEVMETHOD(iicbus_reset, iic_dp_aux_reset),
+	DEVMETHOD(iicbus_transfer, iic_dp_aux_xfer), DEVMETHOD_END };
 
-static driver_t drm_iic_dp_aux_driver = {
-	"drm_iic_dp_aux",
-	drm_iic_dp_aux_methods,
-	sizeof(struct iic_dp_aux_data)
-};
+static driver_t drm_iic_dp_aux_driver = { "drm_iic_dp_aux",
+	drm_iic_dp_aux_methods, sizeof(struct iic_dp_aux_data) };
 
 DRIVER_MODULE_ORDERED(drm_iic_dp_aux, drmn, drm_iic_dp_aux_driver, 0, 0,
     SI_ORDER_SECOND);

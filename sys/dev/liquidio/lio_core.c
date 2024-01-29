@@ -33,22 +33,22 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_ctrl.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
-#include "lio_ctrl.h"
 #include "lio_main.h"
-#include "lio_rxtx.h"
 #include "lio_network.h"
+#include "lio_response_manager.h"
+#include "lio_rxtx.h"
 
 int
 lio_set_feature(if_t ifp, int cmd, uint16_t param1)
 {
-	struct lio_ctrl_pkt	nctrl;
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	int	ret = 0;
+	struct lio_ctrl_pkt nctrl;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	int ret = 0;
 
 	bzero(&nctrl, sizeof(struct lio_ctrl_pkt));
 
@@ -63,7 +63,7 @@ lio_set_feature(if_t ifp, int cmd, uint16_t param1)
 	ret = lio_send_ctrl_pkt(lio->oct_dev, &nctrl);
 	if (ret < 0) {
 		lio_dev_err(oct, "Feature change failed in core (ret: 0x%x)\n",
-			    ret);
+		    ret);
 	}
 
 	return (ret);
@@ -72,10 +72,10 @@ lio_set_feature(if_t ifp, int cmd, uint16_t param1)
 void
 lio_ctrl_cmd_completion(void *nctrl_ptr)
 {
-	struct lio_ctrl_pkt	*nctrl = (struct lio_ctrl_pkt *)nctrl_ptr;
-	struct lio		*lio;
-	struct octeon_device	*oct;
-	uint8_t	*mac;
+	struct lio_ctrl_pkt *nctrl = (struct lio_ctrl_pkt *)nctrl_ptr;
+	struct lio *lio;
+	struct octeon_device *oct;
+	uint8_t *mac;
 
 	lio = nctrl->lio;
 
@@ -93,16 +93,17 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
 		mac = ((uint8_t *)&nctrl->udd[0]) + 2;
 		if (nctrl->ncmd.s.param1) {
 			/* vfidx is 0 based, but vf_num (param1) is 1 based */
-			int	vfidx = nctrl->ncmd.s.param1 - 1;
-			bool	mac_is_admin_assigned = nctrl->ncmd.s.param2;
+			int vfidx = nctrl->ncmd.s.param1 - 1;
+			bool mac_is_admin_assigned = nctrl->ncmd.s.param2;
 
 			if (mac_is_admin_assigned)
-				lio_dev_info(oct, "MAC Address %pM is configured for VF %d\n",
-					     mac, vfidx);
+				lio_dev_info(oct,
+				    "MAC Address %pM is configured for VF %d\n",
+				    mac, vfidx);
 		} else {
-			lio_dev_info(oct, "MAC Address changed to %02x:%02x:%02x:%02x:%02x:%02x\n",
-				     mac[0], mac[1], mac[2], mac[3], mac[4],
-				     mac[5]);
+			lio_dev_info(oct,
+			    "MAC Address changed to %02x:%02x:%02x:%02x:%02x:%02x\n",
+			    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 		}
 		break;
 
@@ -139,12 +140,12 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
 
 	case LIO_CMD_ADD_VLAN_FILTER:
 		lio_dev_info(oct, "VLAN filter %d added\n",
-			     nctrl->ncmd.s.param1);
+		    nctrl->ncmd.s.param1);
 		break;
 
 	case LIO_CMD_DEL_VLAN_FILTER:
 		lio_dev_info(oct, "VLAN filter %d removed\n",
-			     nctrl->ncmd.s.param1);
+		    nctrl->ncmd.s.param1);
 		break;
 
 	case LIO_CMD_SET_SETTINGS:
@@ -181,11 +182,13 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
 		 */
 	case LIO_CMD_VXLAN_PORT_CONFIG:
 		if (nctrl->ncmd.s.more == LIO_CMD_VXLAN_PORT_ADD) {
-			lio_dev_info(oct, "VxLAN Destination UDP PORT:%d ADDED\n",
-				     nctrl->ncmd.s.param1);
+			lio_dev_info(oct,
+			    "VxLAN Destination UDP PORT:%d ADDED\n",
+			    nctrl->ncmd.s.param1);
 		} else if (nctrl->ncmd.s.more == LIO_CMD_VXLAN_PORT_DEL) {
-			lio_dev_info(oct, "VxLAN Destination UDP PORT:%d DELETED\n",
-				     nctrl->ncmd.s.param1);
+			lio_dev_info(oct,
+			    "VxLAN Destination UDP PORT:%d DELETED\n",
+			    nctrl->ncmd.s.param1);
 		}
 		break;
 
@@ -204,7 +207,7 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
 		if (nctrl->ncmd.s.param1 == LIO_CMD_PKT_STEERING_ENABLE) {
 			lio_dev_info(oct, "Packet Steering Enabled\n");
 		} else if (nctrl->ncmd.s.param1 ==
-			   LIO_CMD_PKT_STEERING_DISABLE) {
+		    LIO_CMD_PKT_STEERING_DISABLE) {
 			lio_dev_info(oct, "Packet Steering Disabled\n");
 		}
 
@@ -212,15 +215,14 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
 
 	case LIO_CMD_QUEUE_COUNT_CTL:
 		lio_dev_info(oct, "Queue count updated to %d\n",
-			     nctrl->ncmd.s.param1);
+		    nctrl->ncmd.s.param1);
 		break;
 
 	default:
 		lio_dev_err(oct, "%s Unknown cmd %d\n", __func__,
-			    nctrl->ncmd.s.cmd);
+		    nctrl->ncmd.s.cmd);
 	}
 }
-
 
 /*
  * \brief Setup output queue
@@ -232,9 +234,9 @@ lio_ctrl_cmd_completion(void *nctrl_ptr)
  */
 static int
 lio_setup_droq(struct octeon_device *oct, int q_no, int num_descs,
-	       int desc_size, void *app_ctx)
+    int desc_size, void *app_ctx)
 {
-	int	ret_val = 0;
+	int ret_val = 0;
 
 	lio_dev_dbg(oct, "Creating Droq: %d\n", q_no);
 	/* droq creation and local register settings. */
@@ -249,24 +251,24 @@ lio_setup_droq(struct octeon_device *oct, int q_no, int num_descs,
 
 	/*
 	 * Send Credit for Octeon Output queues. Credits are always
-         * sent after the output queue is enabled.
-         */
+	 * sent after the output queue is enabled.
+	 */
 	lio_write_csr32(oct, oct->droq[q_no]->pkts_credit_reg,
-			oct->droq[q_no]->max_count);
+	    oct->droq[q_no]->max_count);
 
 	return (ret_val);
 }
 
 static void
 lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
-		void *arg)
+    void *arg)
 {
-	struct mbuf	*mbuf = m_buff;
-	if_t		ifp = arg;
-	struct lio_droq	*droq = rxq;
+	struct mbuf *mbuf = m_buff;
+	if_t ifp = arg;
+	struct lio_droq *droq = rxq;
 
 	if (ifp != NULL) {
-		struct lio	*lio = if_getsoftc(ifp);
+		struct lio *lio = if_getsoftc(ifp);
 
 		/* Do not proceed if the interface is not in RUNNING state. */
 		if (!lio_ifstate_check(lio, LIO_IFSTATE_RUNNING)) {
@@ -276,28 +278,28 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
 		}
 
 		if (rh->r_dh.has_hash) {
-			uint32_t	hashtype, hashval;
+			uint32_t hashtype, hashval;
 
 			if (rh->r_dh.has_hwtstamp) {
-				hashval = htobe32(*(uint32_t *)
-						  (((uint8_t *)mbuf->m_data) +
-						   ((rh->r_dh.len - 2) *
-						    BYTES_PER_DHLEN_UNIT)));
-				hashtype =
-				    htobe32(*(((uint32_t *)
-					       (((uint8_t *)mbuf->m_data) +
-						((rh->r_dh.len - 2) *
-						 BYTES_PER_DHLEN_UNIT))) + 1));
+				hashval = htobe32(
+				    *(uint32_t *)(((uint8_t *)mbuf->m_data) +
+					((rh->r_dh.len - 2) *
+					    BYTES_PER_DHLEN_UNIT)));
+				hashtype = htobe32(
+				    *(((uint32_t *)(((uint8_t *)mbuf->m_data) +
+					  ((rh->r_dh.len - 2) *
+					      BYTES_PER_DHLEN_UNIT))) +
+					1));
 			} else {
-				hashval = htobe32(*(uint32_t *)
-						  (((uint8_t *)mbuf->m_data) +
-						   ((rh->r_dh.len - 1) *
-						    BYTES_PER_DHLEN_UNIT)));
-				hashtype =
-				    htobe32(*(((uint32_t *)
-					       (((uint8_t *)mbuf->m_data) +
-						((rh->r_dh.len - 1) *
-						 BYTES_PER_DHLEN_UNIT))) + 1));
+				hashval = htobe32(
+				    *(uint32_t *)(((uint8_t *)mbuf->m_data) +
+					((rh->r_dh.len - 1) *
+					    BYTES_PER_DHLEN_UNIT)));
+				hashtype = htobe32(
+				    *(((uint32_t *)(((uint8_t *)mbuf->m_data) +
+					  ((rh->r_dh.len - 1) *
+					      BYTES_PER_DHLEN_UNIT))) +
+					1));
 			}
 
 			mbuf->m_pkthdr.flowid = hashval;
@@ -320,7 +322,7 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
 				break;
 			case LIO_RSS_HASH_TCP_IPV6_EX:
 				M_HASHTYPE_SET(mbuf,
-					       M_HASHTYPE_RSS_TCP_IPV6_EX);
+				    M_HASHTYPE_RSS_TCP_IPV6_EX);
 				break;
 			default:
 				M_HASHTYPE_SET(mbuf, M_HASHTYPE_OPAQUE_HASH);
@@ -328,9 +330,9 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
 
 		} else {
 			/*
-                         * This case won't hit as FW will always set has_hash
-                         * in rh.
-                         */
+			 * This case won't hit as FW will always set has_hash
+			 * in rh.
+			 */
 			M_HASHTYPE_SET(mbuf, M_HASHTYPE_OPAQUE);
 			mbuf->m_pkthdr.flowid = droq->q_no;
 		}
@@ -341,9 +343,9 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
 
 		if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) &&
 		    (rh->r_dh.priority || rh->r_dh.vlan)) {
-			uint16_t	priority = rh->r_dh.priority;
-			uint16_t	vid = rh->r_dh.vlan;
-			uint16_t	vtag;
+			uint16_t priority = rh->r_dh.priority;
+			uint16_t vid = rh->r_dh.vlan;
+			uint16_t vtag;
 
 			vtag = priority << 13 | vid;
 			mbuf->m_pkthdr.ether_vtag = vtag;
@@ -352,26 +354,25 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
 
 		if (rh->r_dh.csum_verified & LIO_IPSUM_VERIFIED)
 			mbuf->m_pkthdr.csum_flags |= (CSUM_L3_CALC |
-						      CSUM_L3_VALID);
+			    CSUM_L3_VALID);
 
 		if (rh->r_dh.csum_verified & LIO_L4SUM_VERIFIED) {
 			mbuf->m_pkthdr.csum_flags |= (CSUM_L4_CALC |
-						      CSUM_L4_VALID);
+			    CSUM_L4_VALID);
 			mbuf->m_pkthdr.csum_flags |= (CSUM_DATA_VALID |
-						      CSUM_PSEUDO_HDR);
+			    CSUM_PSEUDO_HDR);
 			mbuf->m_pkthdr.csum_data = htons(0xffff);
 		}
 
 		mbuf->m_pkthdr.rcvif = ifp;
 		mbuf->m_pkthdr.len = len;
 
-		if ((lio_hwlro == 0) &&
-		    (if_getcapenable(ifp) & IFCAP_LRO) &&
+		if ((lio_hwlro == 0) && (if_getcapenable(ifp) & IFCAP_LRO) &&
 		    (mbuf->m_pkthdr.csum_flags &
-		     (CSUM_L3_VALID | CSUM_L4_VALID | CSUM_DATA_VALID |
-		      CSUM_PSEUDO_HDR)) == (CSUM_L3_VALID | CSUM_L4_VALID |
-					    CSUM_DATA_VALID |
-					    CSUM_PSEUDO_HDR)) {
+			(CSUM_L3_VALID | CSUM_L4_VALID | CSUM_DATA_VALID |
+			    CSUM_PSEUDO_HDR)) ==
+			(CSUM_L3_VALID | CSUM_L4_VALID | CSUM_DATA_VALID |
+			    CSUM_PSEUDO_HDR)) {
 			if (droq->lro.lro_cnt) {
 				if (tcp_lro_rx(&droq->lro, mbuf, 0) == 0) {
 					droq->stats.rx_bytes_received += len;
@@ -403,14 +404,14 @@ lio_push_packet(void *m_buff, uint32_t len, union octeon_rh *rh, void *rxq,
  */
 int
 lio_setup_io_queues(struct octeon_device *octeon_dev, int ifidx,
-		    uint32_t num_iqs, uint32_t num_oqs)
+    uint32_t num_iqs, uint32_t num_oqs)
 {
-	struct lio_droq_ops	droq_ops;
-	if_t			ifp;
-	struct lio_droq		*droq;
-	struct lio		*lio;
-	static int		cpu_id, cpu_id_modulus;
-	int	num_tx_descs, q, q_no, retval = 0;
+	struct lio_droq_ops droq_ops;
+	if_t ifp;
+	struct lio_droq *droq;
+	struct lio *lio;
+	static int cpu_id, cpu_id_modulus;
+	int num_tx_descs, q, q_no, retval = 0;
 
 	ifp = octeon_dev->props.ifp;
 
@@ -426,18 +427,19 @@ lio_setup_io_queues(struct octeon_device *octeon_dev, int ifidx,
 	/* set up DROQs. */
 	for (q = 0; q < num_oqs; q++) {
 		q_no = lio->linfo.rxpciq[q].s.q_no;
-		lio_dev_dbg(octeon_dev, "lio_setup_io_queues index:%d linfo.rxpciq.s.q_no:%d\n",
-			    q, q_no);
+		lio_dev_dbg(octeon_dev,
+		    "lio_setup_io_queues index:%d linfo.rxpciq.s.q_no:%d\n", q,
+		    q_no);
 		retval = lio_setup_droq(octeon_dev, q_no,
-					LIO_GET_NUM_RX_DESCS_NIC_IF_CFG(
-						     lio_get_conf(octeon_dev),
-								  lio->ifidx),
-					LIO_GET_NUM_RX_BUF_SIZE_NIC_IF_CFG(
-						     lio_get_conf(octeon_dev),
-							   lio->ifidx), NULL);
+		    LIO_GET_NUM_RX_DESCS_NIC_IF_CFG(lio_get_conf(octeon_dev),
+			lio->ifidx),
+		    LIO_GET_NUM_RX_BUF_SIZE_NIC_IF_CFG(lio_get_conf(octeon_dev),
+			lio->ifidx),
+		    NULL);
 		if (retval) {
-			lio_dev_err(octeon_dev, "%s : Runtime DROQ(RxQ) creation failed.\n",
-				    __func__);
+			lio_dev_err(octeon_dev,
+			    "%s : Runtime DROQ(RxQ) creation failed.\n",
+			    __func__);
 			return (1);
 		}
 
@@ -454,14 +456,15 @@ lio_setup_io_queues(struct octeon_device *octeon_dev, int ifidx,
 
 	/* set up IQs. */
 	for (q = 0; q < num_iqs; q++) {
-		num_tx_descs = LIO_GET_NUM_TX_DESCS_NIC_IF_CFG(
-						     lio_get_conf(octeon_dev),
-							       lio->ifidx);
+		num_tx_descs = LIO_GET_NUM_TX_DESCS_NIC_IF_CFG(lio_get_conf(
+								   octeon_dev),
+		    lio->ifidx);
 		retval = lio_setup_iq(octeon_dev, ifidx, q,
-				      lio->linfo.txpciq[q], num_tx_descs);
+		    lio->linfo.txpciq[q], num_tx_descs);
 		if (retval) {
-			lio_dev_err(octeon_dev, " %s : Runtime IQ(TxQ) creation failed.\n",
-				    __func__);
+			lio_dev_err(octeon_dev,
+			    " %s : Runtime IQ(TxQ) creation failed.\n",
+			    __func__);
 			return (1);
 		}
 	}
@@ -476,8 +479,8 @@ lio_setup_io_queues(struct octeon_device *octeon_dev, int ifidx,
 static void
 lio_schedule_droq_pkt_handlers(struct octeon_device *oct)
 {
-	struct lio_droq	*droq;
-	uint64_t	oq_no;
+	struct lio_droq *droq;
+	uint64_t oq_no;
 
 	if (oct->int_status & LIO_DEV_INTR_PKT_DATA) {
 		for (oq_no = 0; oq_no < LIO_MAX_OUTPUT_QUEUES(oct); oq_no++) {
@@ -487,7 +490,7 @@ lio_schedule_droq_pkt_handlers(struct octeon_device *oct)
 			droq = oct->droq[oq_no];
 
 			taskqueue_enqueue(droq->droq_taskqueue,
-					  &droq->droq_task);
+			    &droq->droq_task);
 		}
 	}
 }
@@ -495,18 +498,19 @@ lio_schedule_droq_pkt_handlers(struct octeon_device *oct)
 static void
 lio_msix_intr_handler(void *vector)
 {
-	struct lio_ioq_vector	*ioq_vector = (struct lio_ioq_vector *)vector;
-	struct octeon_device	*oct = ioq_vector->oct_dev;
-	struct lio_droq		*droq = oct->droq[ioq_vector->droq_index];
-	uint64_t		ret;
+	struct lio_ioq_vector *ioq_vector = (struct lio_ioq_vector *)vector;
+	struct octeon_device *oct = ioq_vector->oct_dev;
+	struct lio_droq *droq = oct->droq[ioq_vector->droq_index];
+	uint64_t ret;
 
 	ret = oct->fn_list.msix_interrupt_handler(ioq_vector);
 
 	if ((ret & LIO_MSIX_PO_INT) || (ret & LIO_MSIX_PI_INT)) {
 		struct lio_instr_queue *iq = oct->instr_queue[droq->q_no];
-		int	reschedule, tx_done = 1;
+		int reschedule, tx_done = 1;
 
-		reschedule = lio_droq_process_packets(oct, droq, oct->rx_budget);
+		reschedule = lio_droq_process_packets(oct, droq,
+		    oct->rx_budget);
 
 		if (atomic_load_acq_int(&iq->instr_pending))
 			tx_done = lio_flush_iq(oct, iq, oct->tx_budget);
@@ -514,14 +518,14 @@ lio_msix_intr_handler(void *vector)
 		if ((oct->props.ifp != NULL) && (iq->br != NULL)) {
 			if (mtx_trylock(&iq->enq_lock)) {
 				if (!drbr_empty(oct->props.ifp, iq->br))
-					lio_mq_start_locked(oct->props.ifp,
-							    iq);
+					lio_mq_start_locked(oct->props.ifp, iq);
 				mtx_unlock(&iq->enq_lock);
 			}
 		}
 
 		if (reschedule || !tx_done)
-			taskqueue_enqueue(droq->droq_taskqueue, &droq->droq_task);
+			taskqueue_enqueue(droq->droq_taskqueue,
+			    &droq->droq_task);
 		else
 			lio_enable_irq(droq, iq);
 	}
@@ -530,7 +534,7 @@ lio_msix_intr_handler(void *vector)
 static void
 lio_intr_handler(void *dev)
 {
-	struct octeon_device	*oct = (struct octeon_device *)dev;
+	struct octeon_device *oct = (struct octeon_device *)dev;
 
 	/* Disable our interrupts for the duration of ISR */
 	oct->fn_list.disable_interrupt(oct, OCTEON_ALL_INTR);
@@ -547,12 +551,12 @@ lio_intr_handler(void *dev)
 int
 lio_setup_interrupt(struct octeon_device *oct, uint32_t num_ioqs)
 {
-	device_t		device;
-	struct lio_ioq_vector	*ioq_vector;
-	int	cpu_id, err, i;
-	int	num_alloc_ioq_vectors;
-	int	num_ioq_vectors;
-	int	res_id;
+	device_t device;
+	struct lio_ioq_vector *ioq_vector;
+	int cpu_id, err, i;
+	int num_alloc_ioq_vectors;
+	int num_ioq_vectors;
+	int res_id;
 
 	if (!oct->msix_on)
 		return (1);
@@ -561,8 +565,9 @@ lio_setup_interrupt(struct octeon_device *oct, uint32_t num_ioqs)
 
 #ifdef RSS
 	if (oct->sriov_info.num_pf_rings != rss_getnumbuckets()) {
-		lio_dev_info(oct, "IOQ vectors (%d) are not equal number of RSS buckets (%d)\n",
-			     oct->sriov_info.num_pf_rings, rss_getnumbuckets());
+		lio_dev_info(oct,
+		    "IOQ vectors (%d) are not equal number of RSS buckets (%d)\n",
+		    oct->sriov_info.num_pf_rings, rss_getnumbuckets());
 	}
 #endif
 
@@ -583,29 +588,27 @@ lio_setup_interrupt(struct octeon_device *oct, uint32_t num_ioqs)
 	for (i = 0; i < num_ioq_vectors - 1; i++, ioq_vector++) {
 		res_id = i + 1;
 
-		ioq_vector->msix_res =
-		    bus_alloc_resource_any(device, SYS_RES_IRQ, &res_id,
-					   RF_SHAREABLE | RF_ACTIVE);
+		ioq_vector->msix_res = bus_alloc_resource_any(device,
+		    SYS_RES_IRQ, &res_id, RF_SHAREABLE | RF_ACTIVE);
 		if (ioq_vector->msix_res == NULL) {
 			lio_dev_err(oct,
-				    "Unable to allocate bus res msix[%d]\n", i);
+			    "Unable to allocate bus res msix[%d]\n", i);
 			goto err_1;
 		}
 
 		err = bus_setup_intr(device, ioq_vector->msix_res,
-				     INTR_TYPE_NET | INTR_MPSAFE, NULL,
-				     lio_msix_intr_handler, ioq_vector,
-				     &ioq_vector->tag);
+		    INTR_TYPE_NET | INTR_MPSAFE, NULL, lio_msix_intr_handler,
+		    ioq_vector, &ioq_vector->tag);
 		if (err) {
 			bus_release_resource(device, SYS_RES_IRQ, res_id,
-					     ioq_vector->msix_res);
+			    ioq_vector->msix_res);
 			ioq_vector->msix_res = NULL;
 			lio_dev_err(oct, "Failed to register intr handler");
 			goto err_1;
 		}
 
 		bus_describe_intr(device, ioq_vector->msix_res, ioq_vector->tag,
-				  "rxtx%u", i);
+		    "rxtx%u", i);
 		ioq_vector->vector = res_id;
 
 #ifdef RSS
@@ -630,17 +633,18 @@ lio_setup_interrupt(struct octeon_device *oct, uint32_t num_ioqs)
 
 	res_id = num_ioq_vectors;
 	oct->msix_res = bus_alloc_resource_any(device, SYS_RES_IRQ, &res_id,
-					       RF_SHAREABLE | RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (oct->msix_res == NULL) {
-		lio_dev_err(oct, "Unable to allocate bus res msix for non-ioq interrupt\n");
+		lio_dev_err(oct,
+		    "Unable to allocate bus res msix for non-ioq interrupt\n");
 		goto err_1;
 	}
 
 	err = bus_setup_intr(device, oct->msix_res, INTR_TYPE_NET | INTR_MPSAFE,
-			     NULL, lio_intr_handler, oct, &oct->tag);
+	    NULL, lio_intr_handler, oct, &oct->tag);
 	if (err) {
 		bus_release_resource(device, SYS_RES_IRQ, res_id,
-				     oct->msix_res);
+		    oct->msix_res);
 		oct->msix_res = NULL;
 		lio_dev_err(oct, "Failed to register intr handler");
 		goto err_1;
@@ -662,21 +666,20 @@ err_1:
 
 		if (ioq_vector->tag != NULL) {
 			bus_teardown_intr(device, ioq_vector->msix_res,
-					  ioq_vector->tag);
+			    ioq_vector->tag);
 			ioq_vector->tag = NULL;
 		}
 
 		if (ioq_vector->msix_res != NULL) {
 			bus_release_resource(device, SYS_RES_IRQ,
-					     ioq_vector->vector,
-					     ioq_vector->msix_res);
+			    ioq_vector->vector, ioq_vector->msix_res);
 			ioq_vector->msix_res = NULL;
 		}
 	}
 
 	if (oct->msix_res != NULL) {
 		bus_release_resource(device, SYS_RES_IRQ, oct->aux_vector,
-				     oct->msix_res);
+		    oct->msix_res);
 		oct->msix_res = NULL;
 	}
 err:

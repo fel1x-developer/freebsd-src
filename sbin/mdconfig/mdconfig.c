@@ -55,7 +55,7 @@
 #include <unistd.h>
 
 static struct md_ioctl mdio;
-static enum {UNSET, ATTACH, DETACH, RESIZE, LIST} action = UNSET;
+static enum { UNSET, ATTACH, DETACH, RESIZE, LIST } action = UNSET;
 static int nflag;
 
 static void usage(void) __dead2;
@@ -66,25 +66,25 @@ static int md_list(const char *, int, const char *);
 static char *geom_config_get(struct gconf *g, const char *name);
 static void md_prthumanval(char *length);
 
-#define OPT_VERBOSE	0x01
-#define OPT_UNIT	0x02
-#define OPT_DONE	0x04
-#define OPT_LIST	0x10
+#define OPT_VERBOSE 0x01
+#define OPT_UNIT 0x02
+#define OPT_DONE 0x04
+#define OPT_LIST 0x10
 
-#define CLASS_NAME_MD	"MD"
+#define CLASS_NAME_MD "MD"
 
 static void
 usage(void)
 {
 
 	fprintf(stderr,
-"usage: mdconfig -a -t type [-n] [-o [no]option] ... [-f file]\n"
-"                [-s size] [-S sectorsize] [-u unit] [-L label]\n"
-"                [-x sectors/track] [-y heads/cylinder]\n"
-"       mdconfig -d -u unit [-o [no]force]\n"
-"       mdconfig -r -u unit -s size [-o [no]force]\n"
-"       mdconfig -l [-v] [-n] [-f file] [-u unit]\n"
-"       mdconfig file\n");
+	    "usage: mdconfig -a -t type [-n] [-o [no]option] ... [-f file]\n"
+	    "                [-s size] [-S sectorsize] [-u unit] [-L label]\n"
+	    "                [-x sectors/track] [-y heads/cylinder]\n"
+	    "       mdconfig -d -u unit [-o [no]force]\n"
+	    "       mdconfig -r -u unit -s size [-o [no]force]\n"
+	    "       mdconfig -l [-v] [-n] [-f file] [-u unit]\n"
+	    "       mdconfig file\n");
 	fprintf(stderr, "\t\ttype = {malloc, vnode, swap}\n");
 	fprintf(stderr, "\t\toption = {cache, cluster, compress, force,\n");
 	fprintf(stderr, "\t\t          mustdealloc, readonly, reserve, ro,\n");
@@ -118,27 +118,31 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'a':
 			if (action != UNSET && action != ATTACH)
-				errx(1, "-a is mutually exclusive "
+				errx(1,
+				    "-a is mutually exclusive "
 				    "with -d, -r, and -l");
 			action = ATTACH;
 			break;
 		case 'd':
 			if (action != UNSET && action != DETACH)
-				errx(1, "-d is mutually exclusive "
+				errx(1,
+				    "-d is mutually exclusive "
 				    "with -a, -r, and -l");
 			action = DETACH;
 			mdio.md_options |= MD_AUTOUNIT;
 			break;
 		case 'r':
 			if (action != UNSET && action != RESIZE)
-				errx(1, "-r is mutually exclusive "
+				errx(1,
+				    "-r is mutually exclusive "
 				    "with -a, -d, and -l");
 			action = RESIZE;
 			mdio.md_options |= MD_AUTOUNIT;
 			break;
 		case 'l':
 			if (action != UNSET && action != LIST)
-				errx(1, "-l is mutually exclusive "
+				errx(1,
+				    "-l is mutually exclusive "
 				    "with -a, -r, and -d");
 			action = LIST;
 			mdio.md_options |= MD_AUTOUNIT;
@@ -155,13 +159,16 @@ main(int argc, char **argv)
 				mdio.md_options |= MD_AUTOUNIT | MD_COMPRESS;
 			} else if (!strcmp(optarg, "vnode")) {
 				mdio.md_type = MD_VNODE;
-				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT | MD_COMPRESS;
+				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT |
+				    MD_COMPRESS;
 			} else if (!strcmp(optarg, "swap")) {
 				mdio.md_type = MD_SWAP;
-				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT | MD_COMPRESS;
+				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT |
+				    MD_COMPRESS;
 			} else if (!strcmp(optarg, "null")) {
 				mdio.md_type = MD_NULL;
-				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT | MD_COMPRESS;
+				mdio.md_options |= MD_CLUSTER | MD_AUTOUNIT |
+				    MD_COMPRESS;
 			} else
 				errx(1, "unknown type: %s", optarg);
 			break;
@@ -309,16 +316,19 @@ main(int argc, char **argv)
 			if ((mdio.md_options & MD_READONLY) == 0 &&
 			    access(mdio.md_file, W_OK) < 0 &&
 			    (errno == EACCES || errno == EPERM ||
-			     errno == EROFS)) {
+				errno == EROFS)) {
 				warnx("WARNING: opening backing store: %s "
-				    "readonly", mdio.md_file);
+				      "readonly",
+				    mdio.md_file);
 				mdio.md_options |= MD_READONLY;
 			}
 		}
 
 		if ((mdio.md_type == MD_MALLOC || mdio.md_type == MD_SWAP ||
-		    mdio.md_type == MD_NULL) && sflag == NULL)
-			errx(1, "must specify -s for -t malloc, -t swap, "
+			mdio.md_type == MD_NULL) &&
+		    sflag == NULL)
+			errx(1,
+			    "must specify -s for -t malloc, -t swap, "
 			    "or -t null");
 		if (mdio.md_type == MD_VNODE && mdio.md_file[0] == '\0')
 			errx(1, "must specify -f for -t vnode");
@@ -344,8 +354,10 @@ main(int argc, char **argv)
 		    (mdio.md_options & ~(MD_FORCE | MD_AUTOUNIT)) != 0)
 			errx(1, "only -o [no]force can be used with -d");
 		if (action == RESIZE &&
-		    (mdio.md_options & ~(MD_FORCE | MD_RESERVE | MD_AUTOUNIT)) != 0)
-			errx(1, "only -o [no]force and -o [no]reserve can be used with -r");
+		    (mdio.md_options &
+			~(MD_FORCE | MD_RESERVE | MD_AUTOUNIT)) != 0)
+			errx(1,
+			    "only -o [no]force and -o [no]reserve can be used with -r");
 	}
 
 	if (action == RESIZE && sflag == NULL)
@@ -476,16 +488,16 @@ md_list(const char *units, int opt, const char *fflag)
 			}
 			gc = &pp->lg_config;
 			type = geom_config_get(gc, "type");
-			if (type != NULL && (strcmp(type, "vnode") == 0 ||
-			    strcmp(type, "preload") == 0)) {
+			if (type != NULL &&
+			    (strcmp(type, "vnode") == 0 ||
+				strcmp(type, "preload") == 0)) {
 				file = geom_config_get(gc, "file");
-				if (fflag != NULL &&
-				    strcmp(fflag, file) != 0)
+				if (fflag != NULL && strcmp(fflag, file) != 0)
 					continue;
 				else
 					ffound = 1;
 			} else if (fflag != NULL)
-					continue;
+				continue;
 			if (nflag && strncmp(pp->lg_name, MD_NAME, 2) == 0)
 				printf("%s", pp->lg_name + 2);
 			else
@@ -524,8 +536,7 @@ md_list(const char *units, int opt, const char *fflag)
 		    ((fflag != NULL) && (units != NULL) && ufound && ffound))
 			return (0);
 	} else if (opt & OPT_LIST) {
-		if ((fflag == NULL) ||
-		    ((fflag != NULL) && ffound))
+		if ((fflag == NULL) || ((fflag != NULL) && ffound))
 			return (0);
 	}
 	return (-1);
@@ -539,7 +550,7 @@ geom_config_get(struct gconf *g, const char *name)
 {
 	struct gconfig *gce;
 
-	LIST_FOREACH(gce, g, lg_config) {
+	LIST_FOREACH (gce, g, lg_config) {
 		if (strcmp(gce->lg_name, name) == 0)
 			return (gce->lg_val);
 	}
@@ -587,8 +598,8 @@ md_prthumanval(char *length)
 	bytes = strtoumax(length, &endptr, 10);
 	if (errno != 0 || *endptr != '\0' || bytes > INT64_MAX)
 		return;
-	humanize_number(buf, sizeof(buf), (int64_t)bytes, "",
-	    HN_AUTOSCALE, HN_B | HN_NOSPACE | HN_DECIMAL);
+	humanize_number(buf, sizeof(buf), (int64_t)bytes, "", HN_AUTOSCALE,
+	    HN_B | HN_NOSPACE | HN_DECIMAL);
 	(void)printf("%6s", buf);
 }
 

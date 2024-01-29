@@ -28,8 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include "opt_rss.h"
+
+#include <sys/param.h>
 
 #include "ena_rss.h"
 #include "ena_sysctl.h"
@@ -62,65 +63,64 @@ static int ena_sysctl_rss_indir_table(SYSCTL_HANDLER_ARGS);
 
 #define SYSCTL_GSTRING_LEN 128
 
-#define ENA_METRIC_ENI_ENTRY(stat, desc) { \
-        .name = #stat, \
-        .description = #desc, \
-}
+#define ENA_METRIC_ENI_ENTRY(stat, desc)             \
+	{                                            \
+		.name = #stat, .description = #desc, \
+	}
 
-#define ENA_STAT_ENTRY(stat, desc, stat_type) { \
-        .name = #stat, \
-        .description = #desc, \
-        .stat_offset = offsetof(struct ena_admin_##stat_type, stat) / sizeof(u64), \
-}
+#define ENA_STAT_ENTRY(stat, desc, stat_type)                                 \
+	{                                                                     \
+		.name = #stat, .description = #desc,                          \
+		.stat_offset = offsetof(struct ena_admin_##stat_type, stat) / \
+		    sizeof(u64),                                              \
+	}
 
 #define ENA_STAT_ENA_SRD_ENTRY(stat, desc) \
 	ENA_STAT_ENTRY(stat, desc, ena_srd_stats)
 
 struct ena_hw_metrics {
-        char name[SYSCTL_GSTRING_LEN];
-        char description[SYSCTL_GSTRING_LEN];
+	char name[SYSCTL_GSTRING_LEN];
+	char description[SYSCTL_GSTRING_LEN];
 };
 
 struct ena_srd_metrics {
-        char name[SYSCTL_GSTRING_LEN];
-        char description[SYSCTL_GSTRING_LEN];
-        int stat_offset;
+	char name[SYSCTL_GSTRING_LEN];
+	char description[SYSCTL_GSTRING_LEN];
+	int stat_offset;
 };
 
 static const struct ena_srd_metrics ena_srd_stats_strings[] = {
-        ENA_STAT_ENA_SRD_ENTRY(
-	    ena_srd_tx_pkts, Number of packets transmitted over ENA SRD),
-        ENA_STAT_ENA_SRD_ENTRY(
-	    ena_srd_eligible_tx_pkts, Number of packets transmitted or could
-	    have been transmitted over ENA SRD),
-        ENA_STAT_ENA_SRD_ENTRY(
-	    ena_srd_rx_pkts, Number of packets received over ENA SRD),
-        ENA_STAT_ENA_SRD_ENTRY(
-	    ena_srd_resource_utilization, Percentage of the ENA SRD resources
-	    that are in use),
+	ENA_STAT_ENA_SRD_ENTRY(ena_srd_tx_pkts,
+	    Number of packets transmitted over ENA SRD),
+	ENA_STAT_ENA_SRD_ENTRY(ena_srd_eligible_tx_pkts,
+	    Number of packets transmitted or
+		could have been transmitted over ENA SRD),
+	ENA_STAT_ENA_SRD_ENTRY(ena_srd_rx_pkts,
+	    Number of packets received over ENA SRD),
+	ENA_STAT_ENA_SRD_ENTRY(ena_srd_resource_utilization,
+	    Percentage of the ENA SRD resources that are in use),
 };
 
 static const struct ena_hw_metrics ena_hw_stats_strings[] = {
-        ENA_METRIC_ENI_ENTRY(
-	    bw_in_allowance_exceeded, Inbound BW allowance exceeded),
-        ENA_METRIC_ENI_ENTRY(
-	    bw_out_allowance_exceeded, Outbound BW allowance exceeded),
-        ENA_METRIC_ENI_ENTRY(
-	    pps_allowance_exceeded, PPS allowance exceeded),
-        ENA_METRIC_ENI_ENTRY(
-	    conntrack_allowance_exceeded, Connection tracking allowance exceeded),
-        ENA_METRIC_ENI_ENTRY(
-	    linklocal_allowance_exceeded, Linklocal packet rate allowance),
-        ENA_METRIC_ENI_ENTRY(
-	    conntrack_allowance_available, Number of available conntracks),
+	ENA_METRIC_ENI_ENTRY(bw_in_allowance_exceeded,
+	    Inbound BW allowance exceeded),
+	ENA_METRIC_ENI_ENTRY(bw_out_allowance_exceeded,
+	    Outbound BW allowance exceeded),
+	ENA_METRIC_ENI_ENTRY(pps_allowance_exceeded, PPS allowance exceeded),
+	ENA_METRIC_ENI_ENTRY(conntrack_allowance_exceeded,
+	    Connection tracking allowance exceeded),
+	ENA_METRIC_ENI_ENTRY(linklocal_allowance_exceeded,
+	    Linklocal packet rate allowance),
+	ENA_METRIC_ENI_ENTRY(conntrack_allowance_available,
+	    Number of available conntracks),
 };
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #endif
 
-#define ENA_CUSTOMER_METRICS_ARRAY_SIZE      ARRAY_SIZE(ena_hw_stats_strings)
-#define ENA_SRD_METRICS_ARRAY_SIZE           ARRAY_SIZE(ena_srd_stats_strings)
+#define ENA_CUSTOMER_METRICS_ARRAY_SIZE ARRAY_SIZE(ena_hw_stats_strings)
+#define ENA_SRD_METRICS_ARRAY_SIZE ARRAY_SIZE(ena_srd_stats_strings)
 
 static SYSCTL_NODE(_hw, OID_AUTO, ena, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "ENA driver parameters");
@@ -162,12 +162,14 @@ SYSCTL_BOOL(_hw_ena, OID_AUTO, force_large_llq_header, CTLFLAG_RDTUN,
 
 int ena_rss_table_size = ENA_RX_RSS_TABLE_SIZE;
 
-int ena_sysctl_allocate_customer_metrics_buffer(struct ena_adapter *adapter)
+int
+ena_sysctl_allocate_customer_metrics_buffer(struct ena_adapter *adapter)
 {
 	int rc = 0;
 
-	adapter->customer_metrics_array = malloc((sizeof(u64) * ENA_CUSTOMER_METRICS_ARRAY_SIZE),
-	    M_DEVBUF, M_NOWAIT | M_ZERO);
+	adapter->customer_metrics_array =
+	    malloc((sizeof(u64) * ENA_CUSTOMER_METRICS_ARRAY_SIZE), M_DEVBUF,
+		M_NOWAIT | M_ZERO);
 	if (unlikely(adapter->customer_metrics_array == NULL))
 		rc = ENOMEM;
 
@@ -439,17 +441,18 @@ ena_sysctl_add_srd_info(struct ena_adapter *adapter)
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "ENA's SRD information");
 	srd_list = SYSCTL_CHILDREN(ena_srd_info);
 
-	SYSCTL_ADD_U64(ctx, srd_list, OID_AUTO, "ena_srd_mode",
-            CTLFLAG_RD, &adapter->ena_srd_info.flags, 0,
-            "Describes which ENA-express features are enabled");
+	SYSCTL_ADD_U64(ctx, srd_list, OID_AUTO, "ena_srd_mode", CTLFLAG_RD,
+	    &adapter->ena_srd_info.flags, 0,
+	    "Describes which ENA-express features are enabled");
 
 	srd_stats_ptr = &adapter->ena_srd_info.ena_srd_stats;
 
-	for (i = 0 ; i < ENA_SRD_METRICS_ARRAY_SIZE; i++) {
+	for (i = 0; i < ENA_SRD_METRICS_ARRAY_SIZE; i++) {
 		cur_stat_strings = ena_srd_stats_strings[i];
 		SYSCTL_ADD_U64(ctx, srd_list, OID_AUTO, cur_stat_strings.name,
-		    CTLFLAG_RD, (u64 *)srd_stats_ptr + cur_stat_strings.stat_offset,
-		    0, cur_stat_strings.description);
+		    CTLFLAG_RD,
+		    (u64 *)srd_stats_ptr + cur_stat_strings.stat_offset, 0,
+		    cur_stat_strings.description);
 	}
 }
 
@@ -474,17 +477,19 @@ ena_sysctl_add_customer_metrics(struct ena_adapter *adapter)
 	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
 	child = SYSCTL_CHILDREN(tree);
-	customer_metric = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, "customer_metrics",
-	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "ENA's customer metrics");
+	customer_metric = SYSCTL_ADD_NODE(ctx, child, OID_AUTO,
+	    "customer_metrics", CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
+	    "ENA's customer metrics");
 	customer_list = SYSCTL_CHILDREN(customer_metric);
 
 	for (i = 0; i < ENA_CUSTOMER_METRICS_ARRAY_SIZE; i++) {
-	        if (ena_com_get_customer_metric_support(ena_dev, i)) {
-	                SYSCTL_ADD_U64(ctx, customer_list, OID_AUTO, ena_hw_stats_strings[i].name,
-	                    CTLFLAG_RD, &adapter->customer_metrics_array[i], 0,
-	                    ena_hw_stats_strings[i].description);
-	         }
-	 }
+		if (ena_com_get_customer_metric_support(ena_dev, i)) {
+			SYSCTL_ADD_U64(ctx, customer_list, OID_AUTO,
+			    ena_hw_stats_strings[i].name, CTLFLAG_RD,
+			    &adapter->customer_metrics_array[i], 0,
+			    ena_hw_stats_strings[i].description);
+		}
+	}
 }
 
 static void
@@ -627,20 +632,22 @@ ena_sysctl_add_irq_affinity(struct ena_adapter *adapter)
 	child = SYSCTL_CHILDREN(tree);
 
 	tree = SYSCTL_ADD_NODE(ctx, child, OID_AUTO, "irq_affinity",
-	    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, "Decide base CPU and stride for irqs affinity.");
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
+	    "Decide base CPU and stride for irqs affinity.");
 	child = SYSCTL_CHILDREN(tree);
 
 	/* Add base cpu leaf */
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "base_cpu",
 	    CTLTYPE_S32 | CTLFLAG_RW | CTLFLAG_MPSAFE, adapter, 0,
-	    ena_sysctl_irq_base_cpu, "I", "Base cpu index for setting irq affinity.");
+	    ena_sysctl_irq_base_cpu, "I",
+	    "Base cpu index for setting irq affinity.");
 
 	/* Add cpu stride leaf */
 	SYSCTL_ADD_PROC(ctx, child, OID_AUTO, "cpu_stride",
 	    CTLTYPE_S32 | CTLFLAG_RW | CTLFLAG_MPSAFE, adapter, 0,
-	    ena_sysctl_irq_cpu_stride, "I", "Distance between irqs when setting affinity.");
+	    ena_sysctl_irq_cpu_stride, "I",
+	    "Distance between irqs when setting affinity.");
 }
-
 
 /*
  * ena_sysctl_update_queue_node_nb - Register/unregister sysctl queue nodes.
@@ -933,7 +940,6 @@ ena_sysctl_irq_base_cpu(SYSCTL_HANDLER_ARGS)
 		    "Requested base CPU is larger than the number of available CPUs. \n");
 		error = EINVAL;
 		goto unlock;
-
 	}
 
 	if (irq_base_cpu == adapter->irq_cpu_base) {
@@ -945,8 +951,8 @@ ena_sysctl_irq_base_cpu(SYSCTL_HANDLER_ARGS)
 	}
 
 	ena_log(adapter->pdev, INFO,
-	    "Requested new IRQ base CPU: %d, current value: %d\n",
-	    irq_base_cpu, adapter->irq_cpu_base);
+	    "Requested new IRQ base CPU: %d, current value: %d\n", irq_base_cpu,
+	    adapter->irq_cpu_base);
 
 	error = ena_update_base_cpu(adapter, irq_base_cpu);
 

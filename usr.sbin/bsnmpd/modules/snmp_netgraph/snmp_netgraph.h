@@ -34,28 +34,28 @@
 
 #include <netgraph/ng_message.h>
 
-extern ng_ID_t	snmp_node;
+extern ng_ID_t snmp_node;
 extern u_char *snmp_nodename;
 
 typedef void ng_cookie_f(const struct ng_mesg *, const char *, ng_ID_t, void *);
 typedef void ng_hook_f(const char *, const u_char *, size_t, void *);
 
-void *ng_register_cookie(const struct lmodule *, u_int32_t cookie,
-    ng_ID_t, ng_cookie_f *, void *);
+void *ng_register_cookie(const struct lmodule *, u_int32_t cookie, ng_ID_t,
+    ng_cookie_f *, void *);
 void ng_unregister_cookie(void *reg);
 
-void *ng_register_hook(const struct lmodule *, const char *,
-    ng_hook_f *, void *);
+void *ng_register_hook(const struct lmodule *, const char *, ng_hook_f *,
+    void *);
 void ng_unregister_hook(void *reg);
 
 void ng_unregister_module(const struct lmodule *);
 
-int ng_output(const char *path, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen);
+int ng_output(const char *path, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen);
 int ng_output_node(const char *node, u_int cookie, u_int opcode,
     const void *arg, size_t arglen);
-int ng_output_id(ng_ID_t node, u_int cookie, u_int opcode,
-    const void *arg, size_t arglen);
+int ng_output_id(ng_ID_t node, u_int cookie, u_int opcode, const void *arg,
+    size_t arglen);
 
 struct ng_mesg *ng_dialog(const char *path, u_int cookie, u_int opcode,
     const void *arg, size_t arglen);
@@ -68,7 +68,8 @@ int ng_send_data(const char *hook, const void *sndbuf, size_t sndlen);
 
 ng_ID_t ng_mkpeer_id(ng_ID_t, const char *name, const char *type,
     const char *hook, const char *peerhook);
-int ng_connect_node(const char *node, const char *ourhook, const char *peerhook);
+int ng_connect_node(const char *node, const char *ourhook,
+    const char *peerhook);
 int ng_connect_id(ng_ID_t id, const char *ourhook, const char *peerhook);
 int ng_connect2_id(ng_ID_t id, ng_ID_t peer, const char *ourhook,
     const char *peerhook);

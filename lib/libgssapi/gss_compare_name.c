@@ -34,13 +34,11 @@
 #include "utils.h"
 
 OM_uint32
-gss_compare_name(OM_uint32 *minor_status,
-    const gss_name_t name1_arg,
-    const gss_name_t name2_arg,
-    int *name_equal)
+gss_compare_name(OM_uint32 *minor_status, const gss_name_t name1_arg,
+    const gss_name_t name2_arg, int *name_equal)
 {
-	struct _gss_name *name1 = (struct _gss_name *) name1_arg;
-	struct _gss_name *name2 = (struct _gss_name *) name2_arg;
+	struct _gss_name *name1 = (struct _gss_name *)name1_arg;
+	struct _gss_name *name2 = (struct _gss_name *)name2_arg;
 
 	/*
 	 * First check the implementation-independent name if both
@@ -60,17 +58,16 @@ gss_compare_name(OM_uint32 *minor_status,
 		struct _gss_mechanism_name *mn1;
 		struct _gss_mechanism_name *mn2;
 
-		SLIST_FOREACH(mn1, &name1->gn_mn, gmn_link) {
+		SLIST_FOREACH (mn1, &name1->gn_mn, gmn_link) {
 			OM_uint32 major_status;
 
 			major_status = _gss_find_mn(minor_status, name2,
-						    mn1->gmn_mech_oid, &mn2);
+			    mn1->gmn_mech_oid, &mn2);
 			if (major_status == GSS_S_COMPLETE) {
-				return (mn1->gmn_mech->gm_compare_name(
-						minor_status,
-						mn1->gmn_name,
-						mn2->gmn_name,
-						name_equal));
+				return (
+				    mn1->gmn_mech->gm_compare_name(minor_status,
+					mn1->gmn_name, mn2->gmn_name,
+					name_equal));
 			}
 		}
 		*name_equal = 0;

@@ -31,39 +31,41 @@
 #include <sys/param.h>
 #include <sys/qmath.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
+#define QTEST_IV 3
+#define QTEST_IVSTR "3.00"
+#define QTEST_RPSHFT 2
+#define QTEST_INTBITS(q) (Q_NTBITS(q) - Q_SIGNED(q) - Q_NFBITS(q) - Q_NCBITS)
+#define QTEST_QITRUNC(q, iv) ((iv) >> Q_RPSHFT(q))
+#define QTEST_FFACTOR 32.0
 
-#define	QTEST_IV 3
-#define	QTEST_IVSTR "3.00"
-#define	QTEST_RPSHFT 2
-#define	QTEST_INTBITS(q) (Q_NTBITS(q) - Q_SIGNED(q) - Q_NFBITS(q) - Q_NCBITS)
-#define	QTEST_QITRUNC(q, iv) ((iv) >> Q_RPSHFT(q))
-#define	QTEST_FFACTOR 32.0
-
-#define	bitsperrand 31
-#define	GENRAND(a, lb, ub)						\
-({									\
-	int _rembits;							\
-	do {								\
-		_rembits = Q_BITSPERBASEUP(ub) + Q_LTZ(lb);		\
-		*(a) = (__typeof(*(a)))0;				\
-		while (_rembits > 0) {					\
-			*(a) |= (((uint64_t)random()) &			\
-			    ((1ULL << (_rembits > bitsperrand ?		\
-			    bitsperrand : _rembits)) - 1));		\
-			*(a) <<= (_rembits - (_rembits > bitsperrand ?	\
-			    bitsperrand : _rembits));			\
-			_rembits -= bitsperrand;			\
-		}							\
-		*(a) += lb;						\
-	} while (*(a) < (lb) || (uint64_t)*(a) > (ub));			\
-	*(a);								\
-})
+#define bitsperrand 31
+#define GENRAND(a, lb, ub)                                                  \
+	({                                                                  \
+		int _rembits;                                               \
+		do {                                                        \
+			_rembits = Q_BITSPERBASEUP(ub) + Q_LTZ(lb);         \
+			*(a) = (__typeof(*(a)))0;                           \
+			while (_rembits > 0) {                              \
+				*(a) |= (((uint64_t)random()) &             \
+				    ((1ULL << (_rembits > bitsperrand ?     \
+					      bitsperrand :                 \
+					      _rembits)) -                  \
+					1));                                \
+				*(a) <<= (_rembits -                        \
+				    (_rembits > bitsperrand ? bitsperrand : \
+							      _rembits));   \
+				_rembits -= bitsperrand;                    \
+			}                                                   \
+			*(a) += lb;                                         \
+		} while (*(a) < (lb) || (uint64_t) * (a) > (ub));           \
+		*(a);                                                       \
+	})
 
 /*
  * Smoke tests for basic qmath operations, such as initialization
@@ -276,7 +278,6 @@ ATF_TC_BODY(qdivq_s64q, tc)
 	if (atf_tc_get_config_var_as_bool_wd(tc, "ci", false))
 		atf_tc_skip("https://bugs.freebsd.org/240219");
 
-
 	srandomdev();
 
 	for (int i = 0; i < 10; i++) {
@@ -446,8 +447,8 @@ ATF_TC_BODY(qfraci_s64q, tc)
 		ATF_CHECK_MSG(delta_dbl <= maxe_dbl,
 		    "\tQFRACI(%jd / %jd): |%10f - %10f| = %10f "
 		    "(max err %f)\n",
-		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q),
-		    r_dbl, delta_dbl, maxe_dbl);
+		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q), r_dbl,
+		    delta_dbl, maxe_dbl);
 	}
 }
 
@@ -493,8 +494,8 @@ ATF_TC_BODY(qmuli_s64q, tc)
 		ATF_CHECK_MSG(delta_dbl <= maxe_dbl,
 		    "\tQMULI(%jd * %jd): |%10f - %10f| = %10f "
 		    "(max err %f)\n",
-		    (intmax_t)(intmax_t)a_int, b_int, Q_Q2D(r_s64q),
-		    r_dbl, delta_dbl, maxe_dbl);
+		    (intmax_t)(intmax_t)a_int, b_int, Q_Q2D(r_s64q), r_dbl,
+		    delta_dbl, maxe_dbl);
 	}
 }
 
@@ -544,8 +545,8 @@ ATF_TC_BODY(qaddi_s64q, tc)
 		ATF_CHECK_MSG(delta_dbl <= maxe_dbl,
 		    "\tQADDI(%jd + %jd): |%10f - %10f| = %10f "
 		    "(max err %f)\n",
-		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q),
-		    r_dbl, delta_dbl, maxe_dbl);
+		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q), r_dbl,
+		    delta_dbl, maxe_dbl);
 	}
 }
 
@@ -592,8 +593,8 @@ ATF_TC_BODY(qsubi_s64q, tc)
 		ATF_CHECK_MSG(delta_dbl <= maxe_dbl,
 		    "\tQSUBI(%jd - %jd): |%10f - %10f| = %10f "
 		    "(max err %f)\n",
-		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q),
-		    r_dbl, delta_dbl, maxe_dbl);
+		    (intmax_t)a_int, (intmax_t)b_int, Q_Q2D(r_s64q), r_dbl,
+		    delta_dbl, maxe_dbl);
 	}
 }
 

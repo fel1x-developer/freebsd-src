@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/errno.h>
 #include <sys/tree.h>
+
 #include <machine/vmm.h>
 #include <machine/vmm_instruction_emul.h>
 
@@ -48,10 +49,10 @@
 #include "mem.h"
 
 struct mmio_rb_range {
-	RB_ENTRY(mmio_rb_range)	mr_link;	/* RB tree links */
-	struct mem_range	mr_param;
-	uint64_t                mr_base;
-	uint64_t                mr_end;
+	RB_ENTRY(mmio_rb_range) mr_link; /* RB tree links */
+	struct mem_range mr_param;
+	uint64_t mr_base;
+	uint64_t mr_end;
 };
 
 struct mmio_rb_tree;
@@ -64,7 +65,7 @@ static RB_HEAD(mmio_rb_tree, mmio_rb_range) mmio_rb_root, mmio_rb_fallback;
  * consecutive addresses in a range, it makes sense to cache the
  * result of a lookup.
  */
-static struct mmio_rb_range	**mmio_hint;
+static struct mmio_rb_range **mmio_hint;
 static int mmio_ncpu;
 
 static pthread_rwlock_t mmio_rwlock;
@@ -108,9 +109,9 @@ mmio_rb_add(struct mmio_rb_tree *rbt, struct mmio_rb_range *new)
 #ifdef RB_DEBUG
 		printf("overlap detected: new %lx:%lx, tree %lx:%lx, '%s' "
 		       "claims region already claimed for '%s'\n",
-		       new->mr_base, new->mr_end,
-		       overlap->mr_base, overlap->mr_end,
-		       new->mr_param.name, overlap->mr_param.name);
+		    new->mr_base, new->mr_end, overlap->mr_base,
+		    overlap->mr_end, new->mr_param.name,
+		    overlap->mr_param.name);
 #endif
 
 		return (EEXIST);
@@ -138,8 +139,8 @@ mmio_rb_dump(struct mmio_rb_tree *rbt)
 
 RB_GENERATE(mmio_rb_tree, mmio_rb_range, mr_link, mmio_rb_range_compare);
 
-typedef int (mem_cb_t)(struct vcpu *vcpu, uint64_t gpa, struct mem_range *mr,
-    void *arg);
+typedef int(
+    mem_cb_t)(struct vcpu *vcpu, uint64_t gpa, struct mem_range *mr, void *arg);
 
 static int
 mem_read(struct vcpu *vcpu, uint64_t gpa, uint64_t *rval, int size, void *arg)
@@ -174,8 +175,7 @@ access_memory(struct vcpu *vcpu, uint64_t paddr, mem_cb_t *cb, void *arg)
 	/*
 	 * First check the per-vCPU cache
 	 */
-	if (mmio_hint[vcpuid] &&
-	    paddr >= mmio_hint[vcpuid]->mr_base &&
+	if (mmio_hint[vcpuid] && paddr >= mmio_hint[vcpuid]->mr_base &&
 	    paddr <= mmio_hint[vcpuid]->mr_end) {
 		entry = mmio_hint[vcpuid];
 	} else
@@ -260,8 +260,8 @@ rw_mem_cb(struct vcpu *vcpu, uint64_t paddr, struct mem_range *mr, void *arg)
 	struct rw_mem_args *rma;
 
 	rma = arg;
-	return (mr->handler(vcpu, rma->operation, paddr, rma->size,
-	    rma->val, mr->arg1, mr->arg2));
+	return (mr->handler(vcpu, rma->operation, paddr, rma->size, rma->val,
+	    mr->arg1, mr->arg2));
 }
 
 int
@@ -296,8 +296,7 @@ register_mem_int(struct mmio_rb_tree *rbt, struct mem_range *memp)
 
 	mrp = malloc(sizeof(struct mmio_rb_range));
 	if (mrp == NULL) {
-		warn("%s: couldn't allocate memory for mrp\n",
-		     __func__);
+		warn("%s: couldn't allocate memory for mrp\n", __func__);
 		err = ENOMEM;
 	} else {
 		mrp->mr_param = *memp;

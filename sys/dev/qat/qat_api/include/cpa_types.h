@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -59,7 +59,7 @@
 extern "C" {
 #endif
 
-#if   defined (__FreeBSD__) && defined (_KERNEL)
+#if defined(__FreeBSD__) && defined(_KERNEL)
 
 /* FreeBSD kernel mode */
 #include <sys/types.h>
@@ -69,15 +69,15 @@ extern "C" {
 #else
 
 /* Linux, FreeBSD, or Windows user mode */
-#include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #endif
 
-#if defined (WIN32) || defined (_WIN64)
+#if defined(WIN32) || defined(_WIN64)
 /* nonstandard extension used : zero-sized array in struct/union */
-#pragma warning (disable: 4200)
+#pragma warning(disable : 4200)
 #endif
 
 typedef uint8_t Cpa8U;
@@ -142,12 +142,10 @@ typedef int64_t Cpa64S;
  *      true or false values.
  *
  *****************************************************************************/
-typedef enum _CpaBoolean
-{
-    CPA_FALSE = (0==1), /**< False value */
-    CPA_TRUE = (1==1) /**< True value */
+typedef enum _CpaBoolean {
+	CPA_FALSE = (0 == 1), /**< False value */
+	CPA_TRUE = (1 == 1)   /**< True value */
 } CpaBoolean;
-
 
 /**
  *****************************************************************************
@@ -164,11 +162,10 @@ typedef enum _CpaBoolean
  *      provided to set (see @ref CPA_BITMAP_BIT_SET) and clear (see @ref
  *      CPA_BITMAP_BIT_CLEAR) bits in the bitmap.
  *****************************************************************************/
-#define CPA_BITMAP(name, sizeInBits) \
-        Cpa32U name[((sizeInBits)+31)/32]
+#define CPA_BITMAP(name, sizeInBits) Cpa32U name[((sizeInBits) + 31) / 32]
 
 #define CPA_BITMAP_BIT_TEST(bitmask, bit) \
-        ((bitmask[(bit)/32]) & (0x1 << ((bit)%32)))
+	((bitmask[(bit) / 32]) & (0x1 << ((bit) % 32)))
 /**<
  * @ingroup cpa_Types
  * Test a specified bit in the specified bitmap.  The bitmap may have been
@@ -176,7 +173,7 @@ typedef enum _CpaBoolean
  * set, false otherwise). */
 
 #define CPA_BITMAP_BIT_SET(bitmask, bit) \
-        (bitmask[(bit)/32] |= (0x1 << ((bit)%32)))
+	(bitmask[(bit) / 32] |= (0x1 << ((bit) % 32)))
 /**<
  * @file cpa_types.h
  * @ingroup cpa_Types
@@ -184,12 +181,11 @@ typedef enum _CpaBoolean
  * declared using @ref CPA_BITMAP. */
 
 #define CPA_BITMAP_BIT_CLEAR(bitmask, bit) \
-        (bitmask[(bit)/32] &= ~(0x1 << ((bit)%32)))
+	(bitmask[(bit) / 32] &= ~(0x1 << ((bit) % 32)))
 /**<
  * @ingroup cpa_Types
  * Clear a specified bit in the specified bitmap.  The bitmap may have been
  * declared using @ref CPA_BITMAP. */
-
 
 /**
  **********************************************************************
@@ -208,9 +204,10 @@ typedef enum _CpaBoolean
  * functions and other constructs as deprecated.
  */
 /*
- * Uncomment the deprecated macro if you need to see which structs are deprecated
+ * Uncomment the deprecated macro if you need to see which structs are
+ * deprecated
  */
-#define CPA_DEPRECATED 
+#define CPA_DEPRECATED
 /*#define CPA_DEPRECATED __attribute__ ((deprecated)) */
 #else
 /*
@@ -218,7 +215,8 @@ typedef enum _CpaBoolean
  *
  */
 /* #define CPA_DEPRECATED_FUNC(func) func; #pragma deprecated(func) */
-#pragma message("WARNING: You need to implement the CPA_DEPRECATED macro for this compiler")
+#pragma message( \
+    "WARNING: You need to implement the CPA_DEPRECATED macro for this compiler")
 #define CPA_DEPRECATED
 #endif
 

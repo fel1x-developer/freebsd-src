@@ -25,32 +25,31 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <string.h>
-
 #include <sys/param.h>
 #include <sys/linker.h>
+
 #include <machine/elf.h>
+
+#include <stand.h>
+#include <string.h>
 
 #ifdef EFI
 #include <efi.h>
 #include <efilib.h>
+
 #include "loader_efi.h"
 #else
 #include "host_syscall.h"
 #endif
 #include <machine/metadata.h>
 
+#include "acconfig.h"
 #include "bootstrap.h"
 #include "kboot.h"
-#include "bootstrap.h"
-
 #include "platform/acfreebsd.h"
-#include "acconfig.h"
 #define ACPI_SYSTEM_XFACE
-#include "actypes.h"
 #include "actbl.h"
-
+#include "actypes.h"
 #include "cache.h"
 
 #ifndef EFI
@@ -68,21 +67,15 @@ static int elf64_obj_exec(struct preloaded_file *amp);
 bool do_mem_map = false;
 
 extern uint32_t efi_map_size;
-extern vm_paddr_t efi_map_phys_src;	/* From DTB */
-extern vm_paddr_t efi_map_phys_dst;	/* From our memory map metadata module */
+extern vm_paddr_t efi_map_phys_src; /* From DTB */
+extern vm_paddr_t efi_map_phys_dst; /* From our memory map metadata module */
 
 int bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp,
     bool exit_bs);
 
-static struct file_format arm64_elf = {
-	elf64_loadfile,
-	elf64_exec
-};
+static struct file_format arm64_elf = { elf64_loadfile, elf64_exec };
 
-struct file_format *file_formats[] = {
-	&arm64_elf,
-	NULL
-};
+struct file_format *file_formats[] = { &arm64_elf, NULL };
 
 #ifndef EFI
 extern uintptr_t tramp;
@@ -90,11 +83,11 @@ extern uint32_t tramp_size;
 extern uint32_t tramp_data_offset;
 
 struct trampoline_data {
-	uint64_t	entry;			//  0 (PA where kernel loaded)
-	uint64_t	modulep;		//  8 module metadata
-	uint64_t	memmap_src;		// 16 Linux-provided memory map PA
-	uint64_t	memmap_dst;		// 24 Module data copy PA
-	uint64_t	memmap_len;		// 32 Length to copy
+	uint64_t entry;	     //  0 (PA where kernel loaded)
+	uint64_t modulep;    //  8 module metadata
+	uint64_t memmap_src; // 16 Linux-provided memory map PA
+	uint64_t memmap_dst; // 24 Module data copy PA
+	uint64_t memmap_len; // 32 Length to copy
 };
 #endif
 
@@ -103,21 +96,21 @@ elf64_exec(struct preloaded_file *fp)
 {
 	vm_offset_t modulep, kernendp;
 #ifdef EFI
-	vm_offset_t		clean_addr;
-	size_t			clean_size;
+	vm_offset_t clean_addr;
+	size_t clean_size;
 	void (*entry)(vm_offset_t);
 #else
-	vm_offset_t		trampolinebase;
-	vm_offset_t		staging;
-	void			*trampcode;
-	uint64_t		*trampoline;
-	struct trampoline_data	*trampoline_data;
-	int			nseg;
-	void			*kseg;
+	vm_offset_t trampolinebase;
+	vm_offset_t staging;
+	void *trampcode;
+	uint64_t *trampoline;
+	struct trampoline_data *trampoline_data;
+	int nseg;
+	void *kseg;
 #endif
-	struct file_metadata	*md;
-	Elf_Ehdr		*ehdr;
-	int			error;
+	struct file_metadata *md;
+	Elf_Ehdr *ehdr;
+	int error;
 #ifdef EFI
 	ACPI_TABLE_RSDP *rsdp;
 	char buf[24];
@@ -176,7 +169,6 @@ elf64_exec(struct preloaded_file *fp)
 		/* Nobody uses the rest of that stuff */
 	}
 
-
 	// XXX Question: why not just use malloc?
 	trampcode = host_getmem(LOADER_PAGE_SIZE);
 	if (trampcode == NULL) {
@@ -203,11 +195,12 @@ elf64_exec(struct preloaded_file *fp)
 	 */
 	staging = kboot_get_phys_load_segment();
 	printf("Load address at %#jx\n", (uintmax_t)staging);
-	printf("Relocation offset is %#jx\n", (uintmax_t)elf64_relocation_offset);
+	printf("Relocation offset is %#jx\n",
+	    (uintmax_t)elf64_relocation_offset);
 #endif
 
 	if ((md = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL)
-        	return(EFTYPE);
+		return (EFTYPE);
 
 	ehdr = (Elf_Ehdr *)&(md->md_data);
 #ifdef EFI
@@ -236,7 +229,8 @@ elf64_exec(struct preloaded_file *fp)
 	(*entry)(modulep);
 
 #else
-	/* Linux will flush the caches, just pass this data into our trampoline and go */
+	/* Linux will flush the caches, just pass this data into our trampoline
+	 * and go */
 	trampoline_data = (void *)trampoline + tramp_data_offset;
 	memset(trampoline_data, 0, sizeof(*trampoline_data));
 	trampoline_data->entry = ehdr->e_entry - fp->f_addr + staging;
@@ -245,17 +239,22 @@ elf64_exec(struct preloaded_file *fp)
 	if (efi_map_phys_src != 0) {
 		md = file_findmetadata(fp, MODINFOMD_EFI_MAP);
 		if (md == NULL || md->md_addr == 0) {
-			printf("Need to copy EFI MAP, but EFI MAP not found. %p\n", md);
+			printf(
+			    "Need to copy EFI MAP, but EFI MAP not found. %p\n",
+			    md);
 		} else {
-			printf("Metadata EFI map loaded at VA %lx\n", md->md_addr);
+			printf("Metadata EFI map loaded at VA %lx\n",
+			    md->md_addr);
 			efi_map_phys_dst = md->md_addr + staging +
-			    roundup2(sizeof(struct efi_map_header), 16) - fp->f_addr;
+			    roundup2(sizeof(struct efi_map_header), 16) -
+			    fp->f_addr;
 			trampoline_data->memmap_src = efi_map_phys_src;
 			trampoline_data->memmap_dst = efi_map_phys_dst;
-			trampoline_data->memmap_len = efi_map_size - roundup2(sizeof(struct efi_map_header), 16);
-			printf("Copying UEFI Memory Map data from %#lx to %#lx %ld bytes\n",
-			    efi_map_phys_src,
-			    trampoline_data->memmap_dst,
+			trampoline_data->memmap_len = efi_map_size -
+			    roundup2(sizeof(struct efi_map_header), 16);
+			printf(
+			    "Copying UEFI Memory Map data from %#lx to %#lx %ld bytes\n",
+			    efi_map_phys_src, trampoline_data->memmap_dst,
 			    trampoline_data->memmap_len);
 		}
 	}
@@ -269,13 +268,16 @@ elf64_exec(struct preloaded_file *fp)
 	trampolinebase = staging + (kernendp - fp->f_addr);
 	printf("trampolinebase = %#llx\n", (long long)trampolinebase);
 	archsw.arch_copyin((void *)trampcode, kernendp, tramp_size);
-	printf("Trampoline bouncing to %#llx\n", (long long)trampoline_data->entry);
+	printf("Trampoline bouncing to %#llx\n",
+	    (long long)trampoline_data->entry);
 
 	kboot_kseg_get(&nseg, &kseg);
-	error = host_kexec_load(trampolinebase, nseg, kseg, HOST_KEXEC_ARCH_AARCH64);
+	error = host_kexec_load(trampolinebase, nseg, kseg,
+	    HOST_KEXEC_ARCH_AARCH64);
 	if (error != 0)
 		panic("kexec_load returned error: %d", error);
-	host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2, HOST_REBOOT_CMD_KEXEC, 0);
+	host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2,
+	    HOST_REBOOT_CMD_KEXEC, 0);
 #endif
 
 	panic("exec returned");
@@ -289,4 +291,3 @@ elf64_obj_exec(struct preloaded_file *fp)
 	    fp->f_name);
 	return (ENOSYS);
 }
-

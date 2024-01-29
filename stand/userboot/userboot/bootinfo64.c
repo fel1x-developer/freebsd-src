@@ -25,18 +25,21 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/reboot.h>
 #include <sys/linker.h>
-#include <i386/include/bootinfo.h>
+#include <sys/reboot.h>
+
 #include <machine/cpufunc.h>
 #include <machine/psl.h>
 #include <machine/specialreg.h>
 
+#include <i386/include/bootinfo.h>
+
+#include <stand.h>
+
 #include "bootstrap.h"
-#include "modinfo.h"
 #include "libuserboot.h"
+#include "modinfo.h"
 
 /*
  * Check to see if this CPU supports long mode.
@@ -93,77 +96,77 @@ bi_checkcpu(void)
 int
 bi_load64(char *args, vm_offset_t *modulep, vm_offset_t *kernendp)
 {
-    struct preloaded_file	*xp, *kfp;
-    struct devdesc		*rootdev;
-    struct file_metadata	*md;
-    vm_offset_t			addr;
-    uint64_t			kernend;
-    uint64_t			envp;
-    vm_offset_t			size;
-    char			*rootdevname;
-    int				howto;
+	struct preloaded_file *xp, *kfp;
+	struct devdesc *rootdev;
+	struct file_metadata *md;
+	vm_offset_t addr;
+	uint64_t kernend;
+	uint64_t envp;
+	vm_offset_t size;
+	char *rootdevname;
+	int howto;
 
-    if (!bi_checkcpu()) {
-	printf("CPU doesn't support long mode\n");
-	return (EINVAL);
-    }
+	if (!bi_checkcpu()) {
+		printf("CPU doesn't support long mode\n");
+		return (EINVAL);
+	}
 
-    howto = bi_getboothowto(args);
+	howto = bi_getboothowto(args);
 
-    /* 
-     * Allow the environment variable 'rootdev' to override the supplied device 
-     * This should perhaps go to MI code and/or have $rootdev tested/set by
-     * MI code before launching the kernel.
-     */
-    rootdevname = getenv("rootdev");
-    userboot_getdev((void **)(&rootdev), rootdevname, NULL);
-    if (rootdev == NULL) {		/* bad $rootdev/$currdev */
-	printf("can't determine root device\n");
-	return(EINVAL);
-    }
+	/*
+	 * Allow the environment variable 'rootdev' to override the supplied
+	 * device This should perhaps go to MI code and/or have $rootdev
+	 * tested/set by MI code before launching the kernel.
+	 */
+	rootdevname = getenv("rootdev");
+	userboot_getdev((void **)(&rootdev), rootdevname, NULL);
+	if (rootdev == NULL) { /* bad $rootdev/$currdev */
+		printf("can't determine root device\n");
+		return (EINVAL);
+	}
 
-    /* Try reading the /etc/fstab file to select the root device */
-    getrootmount(devformat(rootdev));
+	/* Try reading the /etc/fstab file to select the root device */
+	getrootmount(devformat(rootdev));
 
-    /* find the last module in the chain */
-    addr = 0;
-    for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
-	if (addr < (xp->f_addr + xp->f_size))
-	    addr = xp->f_addr + xp->f_size;
-    }
-    /* pad to a page boundary */
-    addr = roundup(addr, PAGE_SIZE);
+	/* find the last module in the chain */
+	addr = 0;
+	for (xp = file_findfile(NULL, NULL); xp != NULL; xp = xp->f_next) {
+		if (addr < (xp->f_addr + xp->f_size))
+			addr = xp->f_addr + xp->f_size;
+	}
+	/* pad to a page boundary */
+	addr = roundup(addr, PAGE_SIZE);
 
-    /* copy our environment */
-    envp = addr;
-    addr = md_copyenv(addr);
+	/* copy our environment */
+	envp = addr;
+	addr = md_copyenv(addr);
 
-    /* pad to a page boundary */
-    addr = roundup(addr, PAGE_SIZE);
+	/* pad to a page boundary */
+	addr = roundup(addr, PAGE_SIZE);
 
-    kfp = file_findfile(NULL, "elf kernel");
-    if (kfp == NULL)
-      kfp = file_findfile(NULL, "elf64 kernel");
-    if (kfp == NULL)
-	panic("can't find kernel file");
-    kernend = 0;	/* fill it in later */
-    file_addmetadata(kfp, MODINFOMD_HOWTO, sizeof howto, &howto);
-    file_addmetadata(kfp, MODINFOMD_ENVP, sizeof envp, &envp);
-    file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof kernend, &kernend);
-    bios_addsmapdata(kfp);
+	kfp = file_findfile(NULL, "elf kernel");
+	if (kfp == NULL)
+		kfp = file_findfile(NULL, "elf64 kernel");
+	if (kfp == NULL)
+		panic("can't find kernel file");
+	kernend = 0; /* fill it in later */
+	file_addmetadata(kfp, MODINFOMD_HOWTO, sizeof howto, &howto);
+	file_addmetadata(kfp, MODINFOMD_ENVP, sizeof envp, &envp);
+	file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof kernend, &kernend);
+	bios_addsmapdata(kfp);
 
-    /* Figure out the size and location of the metadata */
-    *modulep = addr;
-    size = md_copymodules(0, true);
-    kernend = roundup(addr + size, PAGE_SIZE);
-    *kernendp = kernend;
+	/* Figure out the size and location of the metadata */
+	*modulep = addr;
+	size = md_copymodules(0, true);
+	kernend = roundup(addr + size, PAGE_SIZE);
+	*kernendp = kernend;
 
-    /* patch MODINFOMD_KERNEND */
-    md = file_findmetadata(kfp, MODINFOMD_KERNEND);
-    bcopy(&kernend, md->md_data, sizeof kernend);
+	/* patch MODINFOMD_KERNEND */
+	md = file_findmetadata(kfp, MODINFOMD_KERNEND);
+	bcopy(&kernend, md->md_data, sizeof kernend);
 
-    /* copy module list and metadata */
-    (void)md_copymodules(addr, true);
+	/* copy module list and metadata */
+	(void)md_copymodules(addr, true);
 
-    return(0);
+	return (0);
 }

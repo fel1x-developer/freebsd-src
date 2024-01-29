@@ -30,14 +30,13 @@
  * Test program for mbrtoc16() as specified by ISO/IEC 9899:2011.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <uchar.h>
-
-#include <atf-c.h>
 
 static void
 require_lc_ctype(const char *locale_name)
@@ -98,7 +97,6 @@ ATF_TC_BODY(mbrtoc16_c_locale_test, tc)
 	ATF_REQUIRE(c16 == L'A');
 	ATF_REQUIRE(mbrtoc16(&c16, "C", 1, &s) == 1);
 	ATF_REQUIRE(c16 == L'C');
-
 }
 
 ATF_TC_WITHOUT_HEAD(mbrtoc16_iso_8859_1_test);

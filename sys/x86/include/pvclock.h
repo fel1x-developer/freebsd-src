@@ -33,21 +33,21 @@
 #include <sys/timetc.h>
 #endif /* _KERNEL */
 
-#define	PVCLOCK_CDEVNAME		"pvclock"
+#define PVCLOCK_CDEVNAME "pvclock"
 
 struct pvclock_vcpu_time_info {
-	uint32_t	version;
-	uint32_t	pad0;
-	uint64_t	tsc_timestamp;
-	uint64_t	system_time;
-	uint32_t	tsc_to_system_mul;
-	int8_t		tsc_shift;
-	uint8_t		flags;
-	uint8_t		pad[2];
+	uint32_t version;
+	uint32_t pad0;
+	uint64_t tsc_timestamp;
+	uint64_t system_time;
+	uint32_t tsc_to_system_mul;
+	int8_t tsc_shift;
+	uint8_t flags;
+	uint8_t pad[2];
 };
 
-#define PVCLOCK_FLAG_TSC_STABLE		0x01
-#define PVCLOCK_FLAG_GUEST_PASUED	0x02
+#define PVCLOCK_FLAG_TSC_STABLE 0x01
+#define PVCLOCK_FLAG_GUEST_PASUED 0x02
 
 /*
  * Scale a 64-bit delta by scaling and multiplying by a 32-bit fraction,
@@ -73,26 +73,24 @@ pvclock_scale_delta(uint64_t delta, uint32_t mul_frac, int shift)
 		 *   upper = mul_frac * (delta >> 32)
 		 *   product = lower + upper
 		 */
-		__asm__ (
-			"mul  %5       ; "
+		__asm__("mul  %5       ; "
 			"mov  %4,%%eax ; "
 			"mov  %%edx,%4 ; "
 			"mul  %5       ; "
 			"xor  %5,%5    ; "
 			"add  %4,%%eax ; "
 			"adc  %5,%%edx ; "
-			: "=A" (product), "=r" (tmp1), "=r" (tmp2)
-			: "a" ((uint32_t)delta), "1" ((uint32_t)(delta >> 32)),
-			  "2" (mul_frac) );
+			: "=A"(product), "=r"(tmp1), "=r"(tmp2)
+			: "a"((uint32_t)delta), "1"((uint32_t)(delta >> 32)),
+			"2"(mul_frac));
 	}
 #elif defined(__amd64__)
 	{
 		unsigned long tmp;
 
-		__asm__ (
-			"mulq %[mul_frac] ; shrd $32, %[hi], %[lo]"
-			: [lo]"=a" (product), [hi]"=d" (tmp)
-			: "0" (delta), [mul_frac]"rm"((uint64_t)mul_frac));
+		__asm__("mulq %[mul_frac] ; shrd $32, %[hi], %[lo]"
+			: [lo] "=a"(product), [hi] "=d"(tmp)
+			: "0"(delta), [mul_frac] "rm"((uint64_t)mul_frac));
 	}
 #else
 #error "pvclock: unsupported x86 architecture?"
@@ -105,23 +103,23 @@ pvclock_scale_delta(uint64_t delta, uint32_t mul_frac, int shift)
 typedef struct pvclock_wall_clock *pvclock_get_wallclock_t(void *arg);
 
 struct pvclock_wall_clock {
-	uint32_t	version;
-	uint32_t	sec;
-	uint32_t	nsec;
+	uint32_t version;
+	uint32_t sec;
+	uint32_t nsec;
 };
 
 struct pvclock {
 	/* Public; initialized by the caller of 'pvclock_init()': */
-	pvclock_get_wallclock_t		*get_wallclock;
-	void				*get_wallclock_arg;
-	struct pvclock_vcpu_time_info	*timeinfos;
-	bool				 stable_flag_supported;
+	pvclock_get_wallclock_t *get_wallclock;
+	void *get_wallclock_arg;
+	struct pvclock_vcpu_time_info *timeinfos;
+	bool stable_flag_supported;
 
 	/* Private; initialized by the 'pvclock' API: */
-	bool				 vdso_force_unstable;
-	bool				 vdso_enable_without_rdtscp;
-	struct timecounter		 tc;
-	struct cdev			*cdev;
+	bool vdso_force_unstable;
+	bool vdso_enable_without_rdtscp;
+	struct timecounter tc;
+	struct cdev *cdev;
 };
 
 /*
@@ -129,16 +127,15 @@ struct pvclock {
  * transitional; they should be removed after 'dev/xen/timer/timer.c' has been
  * migrated to the 'struct pvclock' API.
  */
-void		pvclock_resume(void);
-uint64_t	pvclock_tsc_freq(struct pvclock_vcpu_time_info *ti);
-uint64_t	pvclock_get_timecount(struct pvclock_vcpu_time_info *ti);
-void		pvclock_get_wallclock(struct pvclock_wall_clock *wc,
-		    struct timespec *ts);
+void pvclock_resume(void);
+uint64_t pvclock_tsc_freq(struct pvclock_vcpu_time_info *ti);
+uint64_t pvclock_get_timecount(struct pvclock_vcpu_time_info *ti);
+void pvclock_get_wallclock(struct pvclock_wall_clock *wc, struct timespec *ts);
 
-void		pvclock_init(struct pvclock *pvc, device_t dev,
-		    const char *tc_name, int tc_quality, u_int tc_flags);
-void		pvclock_gettime(struct pvclock *pvc, struct timespec *ts);
-int		pvclock_destroy(struct pvclock *pvc);
+void pvclock_init(struct pvclock *pvc, device_t dev, const char *tc_name,
+    int tc_quality, u_int tc_flags);
+void pvclock_gettime(struct pvclock *pvc, struct timespec *ts);
+int pvclock_destroy(struct pvclock *pvc);
 
 #endif /* _KERNEL */
 

@@ -30,41 +30,39 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/hwreset/hwreset.h>
-
 #include "hwreset_if.h"
 
-#define	RESET_OFFSET(index)	((index / 32) * 4)
-#define	RESET_SHIFT(index)	(index % 32)
+#define RESET_OFFSET(index) ((index / 32) * 4)
+#define RESET_SHIFT(index) (index % 32)
 
 static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun6i-a31-ahb1-reset",	1 },
-	{ "allwinner,sun6i-a31-clock-reset",	1 },
-	{ NULL,					0 }
+	{ "allwinner,sun6i-a31-ahb1-reset", 1 },
+	{ "allwinner,sun6i-a31-clock-reset", 1 }, { NULL, 0 }
 };
 
 struct aw_reset_softc {
-	struct resource		*res;
-	struct mtx		mtx;
+	struct resource *res;
+	struct mtx mtx;
 };
 
 static struct resource_spec aw_reset_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
-#define	RESET_READ(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	RESET_WRITE(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define RESET_READ(sc, reg) bus_read_4((sc)->res, (reg))
+#define RESET_WRITE(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
 static int
 aw_reset_assert(device_t dev, intptr_t id, bool reset)
@@ -137,12 +135,12 @@ aw_reset_attach(device_t dev)
 
 static device_method_t aw_reset_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		aw_reset_probe),
-	DEVMETHOD(device_attach,	aw_reset_attach),
+	DEVMETHOD(device_probe, aw_reset_probe),
+	DEVMETHOD(device_attach, aw_reset_attach),
 
 	/* Reset interface */
-	DEVMETHOD(hwreset_assert,	aw_reset_assert),
-	DEVMETHOD(hwreset_is_asserted,	aw_reset_is_asserted),
+	DEVMETHOD(hwreset_assert, aw_reset_assert),
+	DEVMETHOD(hwreset_is_asserted, aw_reset_is_asserted),
 
 	DEVMETHOD_END
 };

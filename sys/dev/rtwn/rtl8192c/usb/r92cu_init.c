@@ -18,40 +18,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
+#include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-#include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/usb/rtwn_usb_var.h>
-
 #include <dev/rtwn/rtl8192c/r92c_var.h>
-
 #include <dev/rtwn/rtl8192c/usb/r92cu.h>
 #include <dev/rtwn/rtl8192c/usb/r92cu_reg.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92cu_init_bb(struct rtwn_softc *sc)
@@ -60,7 +56,7 @@ r92cu_init_bb(struct rtwn_softc *sc)
 	/* Enable BB and RF. */
 	rtwn_setbits_2(sc, R92C_SYS_FUNC_EN, 0,
 	    R92C_SYS_FUNC_EN_BBRSTB | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_DIO_RF);
+		R92C_SYS_FUNC_EN_DIO_RF);
 
 	rtwn_write_2(sc, R92C_AFE_PLL_CTRL, 0xdb83);
 
@@ -68,7 +64,7 @@ r92cu_init_bb(struct rtwn_softc *sc)
 	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB | R92C_RF_CTRL_SDMRSTB);
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
 	    R92C_SYS_FUNC_EN_USBA | R92C_SYS_FUNC_EN_USBD |
-	    R92C_SYS_FUNC_EN_BB_GLB_RST | R92C_SYS_FUNC_EN_BBRSTB);
+		R92C_SYS_FUNC_EN_BB_GLB_RST | R92C_SYS_FUNC_EN_BBRSTB);
 
 	rtwn_write_1(sc, R92C_LDOHCI12_CTRL, 0x0f);
 	rtwn_write_1(sc, 0x15, 0xe9);
@@ -80,10 +76,11 @@ r92cu_init_bb(struct rtwn_softc *sc)
 int
 r92cu_power_on(struct rtwn_softc *sc)
 {
-#define RTWN_CHK(res) do {	\
-	if (res != 0)		\
-		return (EIO);	\
-} while(0)
+#define RTWN_CHK(res)                 \
+	do {                          \
+		if (res != 0)         \
+			return (EIO); \
+	} while (0)
 	uint32_t reg;
 	int ntries;
 
@@ -125,32 +122,29 @@ r92cu_power_on(struct rtwn_softc *sc)
 
 	for (ntries = 0; ntries < 5000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		rtwn_delay(sc, 10);
 	}
 	if (ntries == 5000) {
-		device_printf(sc->sc_dev,
-		    "timeout waiting for MAC auto ON\n");
+		device_printf(sc->sc_dev, "timeout waiting for MAC auto ON\n");
 		return (ETIMEDOUT);
 	}
 
 	/* Enable radio, GPIO and LED functions. */
 	RTWN_CHK(rtwn_write_2(sc, R92C_APS_FSMCO,
-	    R92C_APS_FSMCO_AFSM_HSUS |
-	    R92C_APS_FSMCO_PDN_EN |
-	    R92C_APS_FSMCO_PFM_ALDN));
+	    R92C_APS_FSMCO_AFSM_HSUS | R92C_APS_FSMCO_PDN_EN |
+		R92C_APS_FSMCO_PFM_ALDN));
 
 	/* Release RF digital isolation. */
 	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_SYS_ISO_CTRL,
 	    R92C_SYS_ISO_CTRL_DIOR, 0, 1));
 
 	/* Initialize MAC. */
-	RTWN_CHK(rtwn_setbits_1(sc, R92C_APSD_CTRL,
-	    R92C_APSD_CTRL_OFF, 0));
+	RTWN_CHK(rtwn_setbits_1(sc, R92C_APSD_CTRL, R92C_APSD_CTRL_OFF, 0));
 	for (ntries = 0; ntries < 1000; ntries++) {
 		if (!(rtwn_read_1(sc, R92C_APSD_CTRL) &
-		    R92C_APSD_CTRL_OFF_STATUS))
+			R92C_APSD_CTRL_OFF_STATUS))
 			break;
 		rtwn_delay(sc, 50);
 	}
@@ -162,11 +156,10 @@ r92cu_power_on(struct rtwn_softc *sc)
 
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	RTWN_CHK(rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN |
-	    R92C_CR_HCI_RXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
-	    R92C_CR_CALTMR_EN));
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
+		R92C_CR_CALTMR_EN));
 
 	RTWN_CHK(rtwn_write_1(sc, 0xfe10, 0x19));
 
@@ -193,7 +186,7 @@ r92cu_power_off(struct rtwn_softc *sc)
 
 	/* Block all Tx queues. */
 	error = rtwn_write_1(sc, R92C_TXPAUSE, R92C_TX_QUEUE_ALL);
-	if (error == ENXIO)	/* hardware gone */
+	if (error == ENXIO) /* hardware gone */
 		return;
 
 	/* Disable RF */
@@ -204,7 +197,7 @@ r92cu_power_off(struct rtwn_softc *sc)
 	/* Reset BB state machine */
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
 	    R92C_SYS_FUNC_EN_USBD | R92C_SYS_FUNC_EN_USBA |
-	    R92C_SYS_FUNC_EN_BB_GLB_RST);
+		R92C_SYS_FUNC_EN_BB_GLB_RST);
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
 	    R92C_SYS_FUNC_EN_USBD | R92C_SYS_FUNC_EN_USBA);
 
@@ -223,22 +216,18 @@ r92cu_power_off(struct rtwn_softc *sc)
 
 	/* Reset MAC and Enable 8051 */
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN + 1,
-	    (R92C_SYS_FUNC_EN_CPUEN |
-	     R92C_SYS_FUNC_EN_ELDR |
-	     R92C_SYS_FUNC_EN_HWPDN) >> 8);
+	    (R92C_SYS_FUNC_EN_CPUEN | R92C_SYS_FUNC_EN_ELDR |
+		R92C_SYS_FUNC_EN_HWPDN) >>
+		8);
 
 	/* Reset MCU ready status */
 	rtwn_write_1(sc, R92C_MCUFWDL, 0);
 
 	/* Disable MAC clock */
 	rtwn_write_2(sc, R92C_SYS_CLKR,
-	    R92C_SYS_CLKR_ANAD16V_EN |
-	    R92C_SYS_CLKR_ANA8M |
-	    R92C_SYS_CLKR_LOADER_EN |
-	    R92C_SYS_CLKR_80M_SSC_DIS |
-	    R92C_SYS_CLKR_SYS_EN |
-	    R92C_SYS_CLKR_RING_EN |
-	    0x4000);
+	    R92C_SYS_CLKR_ANAD16V_EN | R92C_SYS_CLKR_ANA8M |
+		R92C_SYS_CLKR_LOADER_EN | R92C_SYS_CLKR_80M_SSC_DIS |
+		R92C_SYS_CLKR_SYS_EN | R92C_SYS_CLKR_RING_EN | 0x4000);
 
 	/* Disable AFE PLL */
 	rtwn_write_1(sc, R92C_AFE_PLL_CTRL, 0x80);
@@ -248,12 +237,9 @@ r92cu_power_off(struct rtwn_softc *sc)
 
 	/* Isolated digital to PON */
 	rtwn_write_1(sc, R92C_SYS_ISO_CTRL,
-	    R92C_SYS_ISO_CTRL_MD2PP |
-	    R92C_SYS_ISO_CTRL_PA2PCIE |
-	    R92C_SYS_ISO_CTRL_PD2CORE |
-	    R92C_SYS_ISO_CTRL_IP2MAC |
-	    R92C_SYS_ISO_CTRL_DIOP |
-	    R92C_SYS_ISO_CTRL_DIOE);
+	    R92C_SYS_ISO_CTRL_MD2PP | R92C_SYS_ISO_CTRL_PA2PCIE |
+		R92C_SYS_ISO_CTRL_PD2CORE | R92C_SYS_ISO_CTRL_IP2MAC |
+		R92C_SYS_ISO_CTRL_DIOP | R92C_SYS_ISO_CTRL_DIOE);
 
 	/*
 	 * Pull GPIO PIN to balance level and LED control
@@ -280,18 +266,13 @@ r92cu_power_off(struct rtwn_softc *sc)
 	 */
 	/* Disable ELDR clock */
 	rtwn_write_2(sc, R92C_SYS_CLKR,
-	    R92C_SYS_CLKR_ANAD16V_EN |
-	    R92C_SYS_CLKR_ANA8M |
-	    R92C_SYS_CLKR_LOADER_EN |
-	    R92C_SYS_CLKR_80M_SSC_DIS |
-	    R92C_SYS_CLKR_SYS_EN |
-	    R92C_SYS_CLKR_RING_EN |
-	    0x4000);
+	    R92C_SYS_CLKR_ANAD16V_EN | R92C_SYS_CLKR_ANA8M |
+		R92C_SYS_CLKR_LOADER_EN | R92C_SYS_CLKR_80M_SSC_DIS |
+		R92C_SYS_CLKR_SYS_EN | R92C_SYS_CLKR_RING_EN | 0x4000);
 
 	/* Isolated ELDR to PON */
 	rtwn_write_1(sc, R92C_SYS_ISO_CTRL + 1,
-	    (R92C_SYS_ISO_CTRL_DIOR |
-	     R92C_SYS_ISO_CTRL_PWC_EV12V) >> 8);
+	    (R92C_SYS_ISO_CTRL_DIOR | R92C_SYS_ISO_CTRL_PWC_EV12V) >> 8);
 
 	/*
 	 * Disable analog sequence
@@ -299,17 +280,15 @@ r92cu_power_off(struct rtwn_softc *sc)
 	/* Disable A15 power */
 	rtwn_write_1(sc, R92C_LDOA15_CTRL, R92C_LDOA15_CTRL_OBUF);
 	/* Disable digital core power */
-	rtwn_setbits_1(sc, R92C_LDOV12D_CTRL,
-	    R92C_LDOV12D_CTRL_LDV12_EN, 0);
+	rtwn_setbits_1(sc, R92C_LDOV12D_CTRL, R92C_LDOV12D_CTRL_LDV12_EN, 0);
 
 	/* Enter PFM mode */
 	rtwn_write_1(sc, R92C_SPS0_CTRL, 0x23);
 
 	/* Set USB suspend */
 	rtwn_write_2(sc, R92C_APS_FSMCO,
-	    R92C_APS_FSMCO_APDM_HOST |
-	    R92C_APS_FSMCO_AFSM_HSUS |
-	    R92C_APS_FSMCO_PFM_ALDN);
+	    R92C_APS_FSMCO_APDM_HOST | R92C_APS_FSMCO_AFSM_HSUS |
+		R92C_APS_FSMCO_PFM_ALDN);
 
 	/* Lock ISO/CLK/Power control register. */
 	rtwn_write_1(sc, R92C_RSV_CTRL, 0x0E);
@@ -338,8 +317,7 @@ r92cu_init_rx_agg(struct rtwn_softc *sc)
 {
 
 	/* Rx aggregation (DMA & USB). */
-	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0,
-	    R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
+	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0, R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
 	rtwn_setbits_1(sc, R92C_USB_SPECIAL_OPTION, 0,
 	    R92C_USB_SPECIAL_OPTION_AGG_EN);
 

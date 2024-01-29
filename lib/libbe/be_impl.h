@@ -60,7 +60,7 @@ struct libbe_dccb {
 typedef struct prop_data {
 	nvlist_t *list;
 	libbe_handle_t *lbh;
-	bool single_object;	/* list will contain props directly */
+	bool single_object; /* list will contain props directly */
 	char *bootonce;
 } prop_data_t;
 
@@ -72,4 +72,4 @@ char *be_mountpoint_augmented(libbe_handle_t *lbh, char *mountpoint);
 /* Clobbers any previous errors */
 int set_error(libbe_handle_t *, be_error_t);
 
-#endif  /* _LIBBE_IMPL_H */
+#endif /* _LIBBE_IMPL_H */

@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "be.h"
 #include "be_impl.h"
 
@@ -38,7 +39,6 @@ libbe_errno(libbe_handle_t *lbh)
 
 	return (lbh->error);
 }
-
 
 const char *
 libbe_error_description(libbe_handle_t *lbh)
@@ -114,7 +114,6 @@ libbe_error_description(libbe_handle_t *lbh)
 	}
 }
 
-
 void
 libbe_print_on_error(libbe_handle_t *lbh, bool val)
 {
@@ -122,7 +121,6 @@ libbe_print_on_error(libbe_handle_t *lbh, bool val)
 	lbh->print_on_err = val;
 	libzfs_print_on_error(lbh->lzh, val);
 }
-
 
 int
 set_error(libbe_handle_t *lbh, be_error_t err)

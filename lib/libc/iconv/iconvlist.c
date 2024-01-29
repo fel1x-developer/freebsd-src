@@ -27,11 +27,13 @@
  */
 
 #include <sys/types.h>
+
 #include <iconv.h>
+
 #include "iconv-internal.h"
 
 void
-iconvlist(int (*a) (unsigned int, const char * const *, void *), void *b)
+iconvlist(int (*a)(unsigned int, const char *const *, void *), void *b)
 {
 	return __bsd_iconvlist(a, b);
 }

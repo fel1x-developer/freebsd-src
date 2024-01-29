@@ -62,7 +62,7 @@ nfsm_uiombuf(struct nfsrv_descript *nd, struct uio *uiop, int siz)
 
 	KASSERT(uiop->uio_iovcnt == 1, ("nfsm_uiotombuf: iovcnt != 1"));
 
-	if (siz > ncl_mbuf_mlen)	/* or should it >= MCLBYTES ?? */
+	if (siz > ncl_mbuf_mlen) /* or should it >= MCLBYTES ?? */
 		clflg = 1;
 	else
 		clflg = 0;
@@ -70,8 +70,9 @@ nfsm_uiombuf(struct nfsrv_descript *nd, struct uio *uiop, int siz)
 	mp = mp2 = nd->nd_mb;
 	mcp = nd->nd_bpos;
 	while (siz > 0) {
-		KASSERT((nd->nd_flag & ND_EXTPG) != 0 || mcp ==
-		    mtod(mp, char *) + mp->m_len, ("nfsm_uiombuf: mcp wrong"));
+		KASSERT((nd->nd_flag & ND_EXTPG) != 0 ||
+			mcp == mtod(mp, char *) + mp->m_len,
+		    ("nfsm_uiombuf: mcp wrong"));
 		left = uiop->uio_iov->iov_len;
 		uiocp = uiop->uio_iov->iov_base;
 		if (left > siz)
@@ -87,7 +88,7 @@ nfsm_uiombuf(struct nfsrv_descript *nd, struct uio *uiop, int siz)
 					mp = nfsm_add_ext_pgs(mp,
 					    nd->nd_maxextsiz, &nd->nd_bextpg);
 					mcp = (char *)(void *)PHYS_TO_DMAP(
-					  mp->m_epg_pa[nd->nd_bextpg]);
+					    mp->m_epg_pa[nd->nd_bextpg]);
 					nd->nd_bextpgsiz = mlen = PAGE_SIZE;
 				} else {
 					if (clflg)
@@ -127,18 +128,18 @@ nfsm_uiombuf(struct nfsrv_descript *nd, struct uio *uiop, int siz)
 		siz -= uiosiz;
 	}
 	if (rem > 0) {
-		if ((nd->nd_flag & ND_EXTPG) == 0 && rem >
-		    M_TRAILINGSPACE(mp)) {
+		if ((nd->nd_flag & ND_EXTPG) == 0 &&
+		    rem > M_TRAILINGSPACE(mp)) {
 			NFSMGET(mp);
 			mp->m_len = 0;
 			mp2->m_next = mp;
 			mcp = mtod(mp, char *);
-		} else if ((nd->nd_flag & ND_EXTPG) != 0 && rem >
-		    nd->nd_bextpgsiz) {
+		} else if ((nd->nd_flag & ND_EXTPG) != 0 &&
+		    rem > nd->nd_bextpgsiz) {
 			mp = nfsm_add_ext_pgs(mp, nd->nd_maxextsiz,
 			    &nd->nd_bextpg);
-			mcp = (char *)(void *)
-			    PHYS_TO_DMAP(mp->m_epg_pa[nd->nd_bextpg]);
+			mcp = (char *)(void *)PHYS_TO_DMAP(
+			    mp->m_epg_pa[nd->nd_bextpg]);
 			nd->nd_bextpgsiz = PAGE_SIZE;
 		}
 		for (left = 0; left < rem; left++)
@@ -248,7 +249,7 @@ nfsm_uiombuflist(struct uio *uiop, int siz, u_int maxext)
 	}
 	if (rem > 0) {
 		KASSERT((mp->m_flags & M_EXTPG) != 0 ||
-		    rem <= M_TRAILINGSPACE(mp),
+			rem <= M_TRAILINGSPACE(mp),
 		    ("nfsm_uiombuflist: no space for padding"));
 		for (i = 0; i < rem; i++)
 			*mcp++ = '\0';
@@ -270,14 +271,14 @@ nfsm_loadattr(struct nfsrv_descript *nd, struct nfsvattr *nap)
 	int error = 0;
 
 	if (nd->nd_flag & ND_NFSV4) {
-		error = nfsv4_loadattr(nd, NULL, nap, NULL, NULL, 0, NULL,
-		    NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL);
+		error = nfsv4_loadattr(nd, NULL, nap, NULL, NULL, 0, NULL, NULL,
+		    NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL);
 	} else if (nd->nd_flag & ND_NFSV3) {
 		NFSM_DISSECT(fp, struct nfs_fattr *, NFSX_V3FATTR);
 		nap->na_type = nfsv34tov_type(fp->fa_type);
 		nap->na_mode = fxdr_unsigned(u_short, fp->fa_mode);
-		nap->na_rdev = NFSMAKEDEV(
-		    fxdr_unsigned(int, fp->fa3_rdev.specdata1),
+		nap->na_rdev = NFSMAKEDEV(fxdr_unsigned(int,
+					      fp->fa3_rdev.specdata1),
 		    fxdr_unsigned(int, fp->fa3_rdev.specdata2));
 		nap->na_nlink = fxdr_unsigned(uint32_t, fp->fa_nlink);
 		nap->na_uid = fxdr_unsigned(uid_t, fp->fa_uid);
@@ -312,8 +313,8 @@ nfsm_loadattr(struct nfsrv_descript *nd, struct nfsvattr *nap)
 		nap->na_gid = fxdr_unsigned(gid_t, fp->fa_gid);
 		nap->na_size = fxdr_unsigned(u_int32_t, fp->fa2_size);
 		nap->na_blocksize = fxdr_unsigned(int32_t, fp->fa2_blocksize);
-		nap->na_bytes =
-		    (u_quad_t)fxdr_unsigned(int32_t, fp->fa2_blocks) *
+		nap->na_bytes = (u_quad_t)fxdr_unsigned(int32_t,
+				    fp->fa2_blocks) *
 		    NFS_FABLKSIZE;
 		nap->na_fileid = fxdr_unsigned(uint64_t, fp->fa2_fileid);
 		fxdr_nfsv2time(&fp->fa2_atime, &nap->na_atime);
@@ -324,7 +325,8 @@ nfsm_loadattr(struct nfsrv_descript *nd, struct nfsvattr *nap)
 		nap->na_ctime.tv_nsec = 0;
 		nap->na_btime.tv_sec = -1;
 		nap->na_btime.tv_nsec = 0;
-		nap->na_gen = fxdr_unsigned(u_int32_t,fp->fa2_ctime.nfsv2_usec);
+		nap->na_gen = fxdr_unsigned(u_int32_t,
+		    fp->fa2_ctime.nfsv2_usec);
 		nap->na_filerev = 0;
 	}
 nfsmout:
@@ -357,7 +359,7 @@ nfscl_mtofh(struct nfsrv_descript *nd, struct nfsfh **nfhpp,
 		if (*++tl != 0) {
 			nd->nd_flag |= ND_NOMOREDATA;
 			flag = 0;
-			error = ENXIO;	/* Return ENXIO so *nfhpp isn't used. */
+			error = ENXIO; /* Return ENXIO so *nfhpp isn't used. */
 		}
 	}
 	if (flag) {
@@ -438,7 +440,8 @@ nfscl_lockderef(struct nfsv4lock *lckp)
 
 	NFSLOCKCLSTATE();
 	lckp->nfslock_usecnt--;
-	if (lckp->nfslock_usecnt == 0 && (lckp->nfslock_lock & NFSV4LOCK_WANTED)) {
+	if (lckp->nfslock_usecnt == 0 &&
+	    (lckp->nfslock_lock & NFSV4LOCK_WANTED)) {
 		lckp->nfslock_lock &= ~NFSV4LOCK_WANTED;
 		wakeup((caddr_t)lckp);
 	}

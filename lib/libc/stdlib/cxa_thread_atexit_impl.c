@@ -29,15 +29,17 @@
  */
 
 #include <sys/queue.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <link.h>
 #include <pthread.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include "un-namespace.h"
+#include <stdlib.h>
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * C++11 introduces the thread_local scope (like __thread with some
@@ -67,12 +69,11 @@ struct cxa_thread_dtor {
 	void *dso;
 	LIST_ENTRY(cxa_thread_dtor) entry;
 };
-static _Thread_local LIST_HEAD(dtor_list, cxa_thread_dtor) dtors =
-    LIST_HEAD_INITIALIZER(dtors);
+static _Thread_local LIST_HEAD(dtor_list,
+    cxa_thread_dtor) dtors = LIST_HEAD_INITIALIZER(dtors);
 
 int
-__cxa_thread_atexit_impl(void (*dtor_func)(void *), void *obj,
-    void *dso_symbol)
+__cxa_thread_atexit_impl(void (*dtor_func)(void *), void *obj, void *dso_symbol)
 {
 
 	return (__cxa_thread_atexit_hidden(dtor_func, obj, dso_symbol));
@@ -121,7 +122,7 @@ cxa_thread_walk(void (*cb)(struct cxa_thread_dtor *))
 {
 	struct cxa_thread_dtor *dtor, *tdtor;
 
-	LIST_FOREACH_SAFE(dtor, &dtors, entry, tdtor) {
+	LIST_FOREACH_SAFE (dtor, &dtors, entry, tdtor) {
 		LIST_REMOVE(dtor, entry);
 		cb(dtor);
 		free(dtor);
@@ -142,7 +143,8 @@ __cxa_thread_call_dtors(void)
 		cxa_thread_walk(walk_cb_call);
 
 	if (!LIST_EMPTY(&dtors)) {
-		fprintf(stderr, "Thread %p is exiting with more "
+		fprintf(stderr,
+		    "Thread %p is exiting with more "
 		    "thread-specific dtors created after %d iterations "
 		    "of destructor calls\n",
 		    _pthread_self(), i);

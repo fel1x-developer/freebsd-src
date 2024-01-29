@@ -40,25 +40,25 @@
 #include <sys/ptrace.h>
 #include <sys/syscallsubr.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_param.h>
+
 #include <machine/md_var.h>
 #include <machine/pcb.h>
 #include <machine/specialreg.h>
 
-#include <vm/pmap.h>
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-
+#include <amd64/linux/linux.h>
+#include <amd64/linux/linux_proto.h>
 #include <x86/ifunc.h>
 #include <x86/reg.h>
 #include <x86/sysarch.h>
 
-#include <amd64/linux/linux.h>
-#include <amd64/linux/linux_proto.h>
 #include <compat/linux/linux_fork.h>
 #include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_util.h>
 
-#define	LINUX_ARCH_AMD64		0xc000003e
+#define LINUX_ARCH_AMD64 0xc000003e
 
 int
 linux_set_upcall(struct thread *td, register_t stack)
@@ -178,7 +178,8 @@ DEFINE_IFUNC(, int, futex_xchgl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_xchgl_smap : futex_xchgl_nosmap);
+		futex_xchgl_smap :
+		futex_xchgl_nosmap);
 }
 
 int futex_addl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -187,7 +188,8 @@ DEFINE_IFUNC(, int, futex_addl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_addl_smap : futex_addl_nosmap);
+		futex_addl_smap :
+		futex_addl_nosmap);
 }
 
 int futex_orl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -196,7 +198,8 @@ DEFINE_IFUNC(, int, futex_orl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_orl_smap : futex_orl_nosmap);
+		futex_orl_smap :
+		futex_orl_nosmap);
 }
 
 int futex_andl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -205,7 +208,8 @@ DEFINE_IFUNC(, int, futex_andl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_andl_smap : futex_andl_nosmap);
+		futex_andl_smap :
+		futex_andl_nosmap);
 }
 
 int futex_xorl_nosmap(int oparg, uint32_t *uaddr, int *oldval);
@@ -214,7 +218,8 @@ DEFINE_IFUNC(, int, futex_xorl, (int, uint32_t *, int *))
 {
 
 	return ((cpu_stdext_feature & CPUID_STDEXT_SMAP) != 0 ?
-	    futex_xorl_smap : futex_xorl_nosmap);
+		futex_xorl_smap :
+		futex_xorl_nosmap);
 }
 
 void
@@ -323,7 +328,7 @@ linux_ptrace_getregs_machdep(struct thread *td, pid_t pid,
 	return (0);
 }
 
-#define	LINUX_URO(a,m) ((uintptr_t)a == offsetof(struct linux_pt_regset, m))
+#define LINUX_URO(a, m) ((uintptr_t)a == offsetof(struct linux_pt_regset, m))
 
 int
 linux_ptrace_peekuser(struct thread *td, pid_t pid, void *addr, void *data)
@@ -333,11 +338,12 @@ linux_ptrace_peekuser(struct thread *td, pid_t pid, void *addr, void *data)
 	uint64_t val;
 	int error;
 
-	if ((uintptr_t)addr & (sizeof(data) -1) || (uintptr_t)addr < 0)
+	if ((uintptr_t)addr & (sizeof(data) - 1) || (uintptr_t)addr < 0)
 		return (EIO);
 	if ((uintptr_t)addr >= sizeof(struct linux_pt_regset)) {
 		LINUX_RATELIMIT_MSG_OPT1("PTRACE_PEEKUSER offset %ld "
-		    "not implemented; returning EINVAL", (uintptr_t)addr);
+					 "not implemented; returning EINVAL",
+		    (uintptr_t)addr);
 		return (EINVAL);
 	}
 
@@ -360,34 +366,34 @@ linux_invalid_selector(u_short val)
 }
 
 struct linux_segreg_off {
-	uintptr_t	reg;
-	bool		is0;
+	uintptr_t reg;
+	bool is0;
 };
 
 const struct linux_segreg_off linux_segregs_off[] = {
 	{
-		.reg = offsetof(struct linux_pt_regset, gs),
-		.is0 = true,
+	    .reg = offsetof(struct linux_pt_regset, gs),
+	    .is0 = true,
 	},
 	{
-		.reg = offsetof(struct linux_pt_regset, fs),
-		.is0 = true,
+	    .reg = offsetof(struct linux_pt_regset, fs),
+	    .is0 = true,
 	},
 	{
-		.reg = offsetof(struct linux_pt_regset, ds),
-		.is0 = true,
+	    .reg = offsetof(struct linux_pt_regset, ds),
+	    .is0 = true,
 	},
 	{
-		.reg = offsetof(struct linux_pt_regset, es),
-		.is0 = true,
+	    .reg = offsetof(struct linux_pt_regset, es),
+	    .is0 = true,
 	},
 	{
-		.reg = offsetof(struct linux_pt_regset, cs),
-		.is0 = false,
+	    .reg = offsetof(struct linux_pt_regset, cs),
+	    .is0 = false,
 	},
 	{
-		.reg = offsetof(struct linux_pt_regset, ss),
-		.is0 = false,
+	    .reg = offsetof(struct linux_pt_regset, ss),
+	    .is0 = false,
 	},
 };
 
@@ -398,11 +404,12 @@ linux_ptrace_pokeuser(struct thread *td, pid_t pid, void *addr, void *data)
 	struct reg b_reg, b_reg1;
 	int error, i;
 
-	if ((uintptr_t)addr & (sizeof(data) -1) || (uintptr_t)addr < 0)
+	if ((uintptr_t)addr & (sizeof(data) - 1) || (uintptr_t)addr < 0)
 		return (EIO);
 	if ((uintptr_t)addr >= sizeof(struct linux_pt_regset)) {
 		LINUX_RATELIMIT_MSG_OPT1("PTRACE_POKEUSER offset %ld "
-		    "not implemented; returning EINVAL", (uintptr_t)addr);
+					 "not implemented; returning EINVAL",
+		    (uintptr_t)addr);
 		return (EINVAL);
 	}
 

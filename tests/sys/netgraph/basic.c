@@ -45,8 +45,8 @@ ATF_TC_HEAD(send_recv, conf)
 
 ATF_TC_BODY(send_recv, dummy)
 {
-	char		msg[] = "test";
-	ng_counter_t	r;
+	char msg[] = "test";
+	ng_counter_t r;
 
 	ng_init();
 	ng_connect(".", "a", ".", "b");
@@ -66,8 +66,8 @@ ATF_TC_HEAD(node, conf)
 
 ATF_TC_BODY(node, dummy)
 {
-	char		msg[] = "test";
-	ng_counter_t	r;
+	char msg[] = "test";
+	ng_counter_t r;
 
 	ng_init();
 	ng_mkpeer(".", "a", "hub", "a");
@@ -151,18 +151,17 @@ ATF_TC_HEAD(queuelimit, conf)
 
 ATF_TC_BODY(queuelimit, dummy)
 {
-	ng_counter_t	r;
-	int		i;
-	char		msg[] = "test";
-	const int	MAX = 1000;
+	ng_counter_t r;
+	int i;
+	char msg[] = "test";
+	const int MAX = 1000;
 
 	ng_init();
 	ng_connect(".", "a", ".", "b");
 	ng_register_data("b", get_data0);
 
 	ng_errors(PASS);
-	for (i = 0; i < MAX; i++)
-	{
+	for (i = 0; i < MAX; i++) {
 		ng_send_data("a", msg, sizeof(msg));
 		if (errno != 0)
 			break;

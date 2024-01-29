@@ -26,18 +26,17 @@
 #include <sys/types.h>
 
 #include <assert.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <syslog.h>
 #include <time.h>
-
-#include <atf-c.h>
 
 #define KASSERT(val, msg) assert(val)
 
@@ -112,8 +111,8 @@ ATF_TC_BODY(encode_tv_only_sec, tc)
 	tv.tv_sec = 1;
 	tv.tv_usec = 0;
 	v.c = encode_timeval(tv);
-	check_result(atf_tc_get_ident(tc),
-	    (float)tv.tv_sec * AHZ + tv.tv_usec, v);
+	check_result(atf_tc_get_ident(tc), (float)tv.tv_sec * AHZ + tv.tv_usec,
+	    v);
 }
 
 /*
@@ -129,8 +128,8 @@ ATF_TC_BODY(encode_tv_only_usec, tc)
 	tv.tv_sec = 0;
 	tv.tv_usec = 1;
 	v.c = encode_timeval(tv);
-	check_result(atf_tc_get_ident(tc),
-	    (float)tv.tv_sec * AHZ + tv.tv_usec, v);
+	check_result(atf_tc_get_ident(tc), (float)tv.tv_sec * AHZ + tv.tv_usec,
+	    v);
 }
 
 /*
@@ -146,8 +145,8 @@ ATF_TC_BODY(encode_tv_many_usec, tc)
 	tv.tv_sec = 1;
 	tv.tv_usec = 999999L;
 	v.c = encode_timeval(tv);
-	check_result(atf_tc_get_ident(tc),
-	    (float)tv.tv_sec * AHZ + tv.tv_usec, v);
+	check_result(atf_tc_get_ident(tc), (float)tv.tv_sec * AHZ + tv.tv_usec,
+	    v);
 }
 
 /*
@@ -165,8 +164,8 @@ ATF_TC_BODY(encode_tv_usec_overflow, tc)
 	tv.tv_sec = 1;
 	tv.tv_usec = 1000000L;
 	v.c = encode_timeval(tv);
-	check_result(atf_tc_get_ident(tc),
-	    (float)tv.tv_sec * AHZ + tv.tv_usec, v);
+	check_result(atf_tc_get_ident(tc), (float)tv.tv_sec * AHZ + tv.tv_usec,
+	    v);
 }
 
 /*
@@ -185,8 +184,8 @@ ATF_TC_BODY(encode_tv_upper_limit, tc)
 	tv.tv_sec = 2147483647L;
 	tv.tv_usec = 999999L;
 	v.c = encode_timeval(tv);
-	check_result(atf_tc_get_ident(tc),
-	    (float)tv.tv_sec * AHZ + tv.tv_usec, v);
+	check_result(atf_tc_get_ident(tc), (float)tv.tv_sec * AHZ + tv.tv_usec,
+	    v);
 }
 
 /*
@@ -203,10 +202,11 @@ ATF_TC_BODY(encode_tv_random_million, tc)
 
 #ifdef __LP64__
 	atf_tc_expect_fail("the testcase violates FLT_EPSILON on 64-bit "
-	    "platforms, e.g. amd64");
+			   "platforms, e.g. amd64");
 #endif
 
-	ATF_REQUIRE_MSG(unsetenv("TZ") == 0, "unsetting TZ failed; errno=%d", errno);
+	ATF_REQUIRE_MSG(unsetenv("TZ") == 0, "unsetting TZ failed; errno=%d",
+	    errno);
 
 	for (k = 1; k < 1000000L; k++) {
 		tv.tv_sec = random();

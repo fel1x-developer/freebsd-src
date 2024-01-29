@@ -33,9 +33,10 @@
 
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <syslog.h>
-#include <stdio.h>
+
 #include <inttypes.h>
+#include <stdio.h>
+#include <syslog.h>
 #include <time.h>
 
 #include "timer.h"
@@ -48,12 +49,10 @@ rtadvd_timer_rest(struct rtadvd_timer *rat)
 
 	clock_gettime(CLOCK_MONOTONIC_FAST, &now);
 	if (TS_CMP(&rat->rat_tm, &now, <=)) {
-		syslog(LOG_DEBUG,
-		    "<%s> a timer must be expired, but not yet",
+		syslog(LOG_DEBUG, "<%s> a timer must be expired, but not yet",
 		    __func__);
 		returnval.tv_sec = returnval.tv_nsec = 0;
-	}
-	else
+	} else
 		TS_SUB(&rat->rat_tm, &now, &returnval);
 
 	return (&returnval);

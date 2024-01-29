@@ -29,8 +29,8 @@
 #ifndef _LINUXKPI_LINUX_ANON_INODES_H_
 #define _LINUXKPI_LINUX_ANON_INODES_H_
 
-#include <linux/fs.h>
 #include <linux/file.h>
+#include <linux/fs.h>
 #include <linux/types.h>
 
 static inline struct file *
@@ -45,4 +45,4 @@ anon_inode_getfile(const char *name __unused,
 	return (file);
 }
 
-#endif	/* _LINUXKPI_LINUX_ANON_INODES_H_ */
+#endif /* _LINUXKPI_LINUX_ANON_INODES_H_ */

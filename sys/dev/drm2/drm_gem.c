@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_vm.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/limits.h>
@@ -40,8 +40,8 @@
 #include <vm/vm.h>
 #include <vm/vm_page.h>
 
-#include <dev/drm2/drmP.h>
 #include <dev/drm2/drm.h>
+#include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_sarea.h>
 
 /*
@@ -102,8 +102,9 @@ drm_gem_destroy(struct drm_device *dev)
 	drm_gem_names_fini(&dev->object_names);
 }
 
-int drm_gem_object_init(struct drm_device *dev,
-			struct drm_gem_object *obj, size_t size)
+int
+drm_gem_object_init(struct drm_device *dev, struct drm_gem_object *obj,
+    size_t size)
 {
 	KASSERT((size & (PAGE_SIZE - 1)) == 0,
 	    ("Bad size %ju", (uintmax_t)size));
@@ -125,8 +126,9 @@ EXPORT_SYMBOL(drm_gem_object_init);
  * no GEM provided backing store. Instead the caller is responsible for
  * backing the object and handling it.
  */
-int drm_gem_private_object_init(struct drm_device *dev,
-			struct drm_gem_object *obj, size_t size)
+int
+drm_gem_private_object_init(struct drm_device *dev, struct drm_gem_object *obj,
+    size_t size)
 {
 	MPASS((size & (PAGE_SIZE - 1)) == 0);
 
@@ -172,11 +174,10 @@ drm_gem_remove_prime_handles(struct drm_gem_object *obj, struct drm_file *filp)
 {
 	if (obj->import_attach) {
 		drm_prime_remove_buf_handle(&filp->prime,
-				obj->import_attach->dmabuf);
+		    obj->import_attach->dmabuf);
 	}
 	if (obj->export_dma_buf) {
-		drm_prime_remove_buf_handle(&filp->prime,
-				obj->export_dma_buf);
+		drm_prime_remove_buf_handle(&filp->prime, obj->export_dma_buf);
 	}
 }
 #endif
@@ -214,9 +215,8 @@ EXPORT_SYMBOL(drm_gem_handle_delete);
  * will likely want to dereference the object afterwards.
  */
 int
-drm_gem_handle_create(struct drm_file *file_priv,
-		       struct drm_gem_object *obj,
-		       u32 *handlep)
+drm_gem_handle_create(struct drm_file *file_priv, struct drm_gem_object *obj,
+    u32 *handlep)
 {
 	struct drm_device *dev = obj->dev;
 	int ret;
@@ -281,8 +281,7 @@ EXPORT_SYMBOL(drm_gem_create_mmap_offset);
 
 /** Returns a reference to the object named by the handle. */
 struct drm_gem_object *
-drm_gem_object_lookup(struct drm_device *dev, struct drm_file *filp,
-		      u32 handle)
+drm_gem_object_lookup(struct drm_device *dev, struct drm_file *filp, u32 handle)
 {
 	struct drm_gem_object *obj;
 
@@ -295,7 +294,7 @@ EXPORT_SYMBOL(drm_gem_object_lookup);
 
 int
 drm_gem_close_ioctl(struct drm_device *dev, void *data,
-		    struct drm_file *file_priv)
+    struct drm_file *file_priv)
 {
 	struct drm_gem_close *args = data;
 	int ret;
@@ -310,7 +309,7 @@ drm_gem_close_ioctl(struct drm_device *dev, void *data,
 
 int
 drm_gem_flink_ioctl(struct drm_device *dev, void *data,
-		    struct drm_file *file_priv)
+    struct drm_file *file_priv)
 {
 	struct drm_gem_flink *args = data;
 	struct drm_gem_object *obj;
@@ -336,7 +335,7 @@ drm_gem_flink_ioctl(struct drm_device *dev, void *data,
 
 int
 drm_gem_open_ioctl(struct drm_device *dev, void *data,
-		   struct drm_file *file_priv)
+    struct drm_file *file_priv)
 {
 	struct drm_gem_open *args = data;
 	struct drm_gem_object *obj;
@@ -419,7 +418,8 @@ drm_gem_object_free(struct drm_gem_object *obj)
 }
 EXPORT_SYMBOL(drm_gem_object_free);
 
-void drm_gem_object_handle_free(struct drm_gem_object *obj)
+void
+drm_gem_object_handle_free(struct drm_gem_object *obj)
 {
 	struct drm_device *dev = obj->dev;
 	struct drm_gem_object *obj1;
@@ -443,8 +443,9 @@ drm_gem_object_from_offset(struct drm_device *dev, vm_ooffset_t offset)
 	offset &= ~DRM_GEM_MAPPING_KEY;
 	mm = dev->mm_private;
 	if (drm_ht_find_item(&mm->offset_hash, DRM_GEM_MAPPING_IDX(offset),
-	    &map_list) != 0) {
-	DRM_DEBUG("drm_gem_object_from_offset: offset 0x%jx obj not found\n",
+		&map_list) != 0) {
+		DRM_DEBUG(
+		    "drm_gem_object_from_offset: offset 0x%jx obj not found\n",
 		    (uintmax_t)offset);
 		return (NULL);
 	}
@@ -453,8 +454,8 @@ drm_gem_object_from_offset(struct drm_device *dev, vm_ooffset_t offset)
 }
 
 int
-drm_gem_mmap_single(struct drm_device *dev, vm_ooffset_t *offset, vm_size_t size,
-    struct vm_object **obj_res, int nprot)
+drm_gem_mmap_single(struct drm_device *dev, vm_ooffset_t *offset,
+    vm_size_t size, struct vm_object **obj_res, int nprot)
 {
 	struct drm_gem_object *gem_obj;
 	struct vm_object *vm_obj;

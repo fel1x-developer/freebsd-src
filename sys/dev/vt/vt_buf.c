@@ -43,14 +43,15 @@
 
 static MALLOC_DEFINE(M_VTBUF, "vtbuf", "vt buffer");
 
-#define	VTBUF_LOCK(vb)		mtx_lock_spin(&(vb)->vb_lock)
-#define	VTBUF_UNLOCK(vb)	mtx_unlock_spin(&(vb)->vb_lock)
+#define VTBUF_LOCK(vb) mtx_lock_spin(&(vb)->vb_lock)
+#define VTBUF_UNLOCK(vb) mtx_unlock_spin(&(vb)->vb_lock)
 
 #define POS_INDEX(c, r) (((r) << 12) + (c))
-#define	POS_COPY(d, s)	do {	\
-	(d).tp_col = (s).tp_col;	\
-	(d).tp_row = (s).tp_row;	\
-} while (0)
+#define POS_COPY(d, s)                   \
+	do {                             \
+		(d).tp_col = (s).tp_col; \
+		(d).tp_row = (s).tp_row; \
+	} while (0)
 
 #ifndef SC_NO_CUTPASTE
 static int vtbuf_htw(const struct vt_buf *vb, int row);
@@ -141,8 +142,10 @@ vthistory_addlines(struct vt_buf *vb, int offset)
 #ifndef SC_NO_CUTPASTE
 	sz = vb->vb_history_size;
 	cur = vb->vb_roffset + vb->vb_scr_size.tp_row + sz - 1;
-	if (vtbuf_in_this_range(cur, vb->vb_mark_start.tp_row, cur + offset, sz) ||
-	    vtbuf_in_this_range(cur, vb->vb_mark_end.tp_row, cur + offset, sz)) {
+	if (vtbuf_in_this_range(cur, vb->vb_mark_start.tp_row, cur + offset,
+		sz) ||
+	    vtbuf_in_this_range(cur, vb->vb_mark_end.tp_row, cur + offset,
+		sz)) {
 		/* clear screen selection */
 		vb->vb_mark_start.tp_row = vb->vb_mark_end.tp_row;
 		vb->vb_mark_start.tp_col = vb->vb_mark_end.tp_col;
@@ -157,7 +160,7 @@ vthistory_getpos(const struct vt_buf *vb, unsigned int *offset)
 	*offset = vb->vb_roffset;
 }
 
-#ifndef SC_NO_CUTPASTE	/* Only mouse support use it now. */
+#ifndef SC_NO_CUTPASTE /* Only mouse support use it now. */
 /* Translate history row to current view row number. */
 static int
 vtbuf_htw(const struct vt_buf *vb, int row)
@@ -169,8 +172,8 @@ vtbuf_htw(const struct vt_buf *vb, int row)
 	 *	205		200	((205 - 200 + 1000) % 1000) = 5
 	 *	90		990	((90 - 990 + 1000) % 1000) = 100
 	 */
-	return ((row - vb->vb_roffset + vb->vb_history_size) %
-	    vb->vb_history_size);
+	return (
+	    (row - vb->vb_roffset + vb->vb_history_size) % vb->vb_history_size);
 }
 
 /* Translate current view row number to history row. */
@@ -211,7 +214,7 @@ vtbuf_iscursor(const struct vt_buf *vb, int row, int col)
 	int sc, sr, sz, ec, er, tmp;
 #endif
 
-	if ((vb->vb_flags & (VBF_CURSOR|VBF_SCROLL)) == VBF_CURSOR &&
+	if ((vb->vb_flags & (VBF_CURSOR | VBF_SCROLL)) == VBF_CURSOR &&
 	    (vb->vb_cursor.tp_row == row) && (vb->vb_cursor.tp_col == col))
 		return (1);
 
@@ -237,12 +240,16 @@ vtbuf_iscursor(const struct vt_buf *vb, int row, int col)
 
 	/* Swap start and end if start > end */
 	if ((2 * tmp) > sz || (tmp == 0 && sc > ec)) {
-		tmp = sc; sc = ec; ec = tmp;
-		tmp = sr; sr = er; er = tmp;
+		tmp = sc;
+		sc = ec;
+		ec = tmp;
+		tmp = sr;
+		sr = er;
+		er = tmp;
 	}
 
 	if (vtbuf_in_this_range(POS_INDEX(sc, sr), POS_INDEX(col, row),
-	    POS_INDEX(ec, er), POS_INDEX(0, sz)))
+		POS_INDEX(ec, er), POS_INDEX(0, sz)))
 		return (1);
 #endif
 
@@ -338,22 +345,20 @@ vtbuf_copy(struct vt_buf *vb, const term_rect_t *r, const term_pos_t *p2)
 	cols = r->tr_end.tp_col - r->tr_begin.tp_col;
 	if (r->tr_begin.tp_row > p2->tp_row && r->tr_begin.tp_col == 0 &&
 	    r->tr_end.tp_col == vb->vb_scr_size.tp_col && /* Full row. */
-	    (rows + rdiff) == vb->vb_scr_size.tp_row && /* Whole screen. */
+	    (rows + rdiff) == vb->vb_scr_size.tp_row &&	  /* Whole screen. */
 	    rdiff > 0) { /* Only forward direction. Do not eat history. */
 		vthistory_addlines(vb, rdiff);
 	} else if (p2->tp_row < p1->tp_row) {
 		/* Handle overlapping copies of line segments. */
 		/* Move data up. */
 		for (pr = 0; pr < rows; pr++)
-			memmove(
-			    &VTBUF_FIELD(vb, p2->tp_row + pr, p2->tp_col),
+			memmove(&VTBUF_FIELD(vb, p2->tp_row + pr, p2->tp_col),
 			    &VTBUF_FIELD(vb, p1->tp_row + pr, p1->tp_col),
 			    cols * sizeof(term_char_t));
 	} else {
 		/* Move data down. */
 		for (pr = rows - 1; pr >= 0; pr--)
-			memmove(
-			    &VTBUF_FIELD(vb, p2->tp_row + pr, p2->tp_col),
+			memmove(&VTBUF_FIELD(vb, p2->tp_row + pr, p2->tp_col),
 			    &VTBUF_FIELD(vb, p1->tp_row + pr, p1->tp_col),
 			    cols * sizeof(term_char_t));
 	}
@@ -551,8 +556,7 @@ vtbuf_grow(struct vt_buf *vb, const term_pos_t *p, unsigned int history_size)
 				 * cycling buffer. The corresponding row
 				 * is computed from this top row.
 				 */
-				oldrow = copyrows[
-				    (vb->vb_curroffset + h + r) %
+				oldrow = copyrows[(vb->vb_curroffset + h + r) %
 				    old_history_size];
 			else
 				/*
@@ -613,9 +617,9 @@ vtbuf_grow(struct vt_buf *vb, const term_pos_t *p, unsigned int history_size)
 			 * explanation.
 			 */
 			if (history_full)
-				oldrow = copyrows[
-				    (vb->vb_curroffset + h + r +
-				     (old_history_size - history_size)) %
+				oldrow = copyrows[(vb->vb_curroffset + h + r +
+						      (old_history_size -
+							  history_size)) %
 				    old_history_size];
 			else
 				oldrow = copyrows[r];
@@ -672,8 +676,8 @@ vtbuf_putchar(struct vt_buf *vb, const term_pos_t *p, term_char_t c)
 	    ("vtbuf_putchar tp_col %d must be less than screen height %d",
 		p->tp_col, vb->vb_scr_size.tp_col));
 
-	row = vb->vb_rows[(vb->vb_curroffset + p->tp_row) %
-	    VTBUF_MAX_HEIGHT(vb)];
+	row =
+	    vb->vb_rows[(vb->vb_curroffset + p->tp_row) % VTBUF_MAX_HEIGHT(vb)];
 	if (row[p->tp_col] != c) {
 		row[p->tp_col] = c;
 		vtbuf_dirty_cell(vb, p);
@@ -725,9 +729,9 @@ vtbuf_get_marked_len(struct vt_buf *vb)
 
 	/* Swap according to window coordinates. */
 	if (POS_INDEX(vtbuf_htw(vb, vb->vb_mark_start.tp_row),
-	    vb->vb_mark_start.tp_col) >
+		vb->vb_mark_start.tp_col) >
 	    POS_INDEX(vtbuf_htw(vb, vb->vb_mark_end.tp_row),
-	    vb->vb_mark_end.tp_col)) {
+		vb->vb_mark_end.tp_col)) {
 		POS_COPY(e, vb->vb_mark_start);
 		POS_COPY(s, vb->vb_mark_end);
 	} else {
@@ -775,9 +779,9 @@ vtbuf_extract_marked(struct vt_buf *vb, term_char_t *buf, int sz, int mark)
 
 	/* Swap according to window coordinates. */
 	if (POS_INDEX(vtbuf_htw(vb, vb->vb_mark_start.tp_row),
-	    vb->vb_mark_start.tp_col) >
+		vb->vb_mark_start.tp_col) >
 	    POS_INDEX(vtbuf_htw(vb, vb->vb_mark_end.tp_row),
-	    vb->vb_mark_end.tp_col)) {
+		vb->vb_mark_end.tp_col)) {
 		POS_COPY(e, vb->vb_mark_start);
 		POS_COPY(s, vb->vb_mark_end);
 	} else {
@@ -787,8 +791,8 @@ vtbuf_extract_marked(struct vt_buf *vb, term_char_t *buf, int sz, int mark)
 
 	i = 0;
 	for (r = s.tp_row; r <= e.tp_row; r++) {
-		cs = (r == s.tp_row)?s.tp_col:0;
-		ce = (r == e.tp_row)?e.tp_col:vb->vb_scr_size.tp_col;
+		cs = (r == s.tp_row) ? s.tp_col : 0;
+		ce = (r == e.tp_row) ? e.tp_col : vb->vb_scr_size.tp_col;
 
 		/* Copy characters from terminal window. */
 		j = i;
@@ -820,7 +824,7 @@ vtbuf_set_mark(struct vt_buf *vb, int type, int col, int row)
 	int i;
 
 	switch (type) {
-	case VTB_MARK_END:	/* B1 UP */
+	case VTB_MARK_END: /* B1 UP */
 		if (vb->vb_mark_last != VTB_MARK_MOVE)
 			return (0);
 		/* FALLTHROUGH */
@@ -843,7 +847,7 @@ vtbuf_set_mark(struct vt_buf *vb, int type, int col, int row)
 		vb->vb_mark_start.tp_row = vb->vb_mark_end.tp_row =
 		    vtbuf_wth(vb, row);
 		r = vb->vb_rows[vb->vb_mark_start.tp_row];
-		for (i = col; i >= 0; i --) {
+		for (i = col; i >= 0; i--) {
 			if (tchar_is_word_separator(r[i])) {
 				vb->vb_mark_start.tp_col = i + 1;
 				break;

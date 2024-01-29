@@ -27,22 +27,21 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 
-#ifndef	__IF_BWN_PHY_LP_H__
-#define	__IF_BWN_PHY_LP_H__
+#ifndef __IF_BWN_PHY_LP_H__
+#define __IF_BWN_PHY_LP_H__
 
-extern void	bwn_phy_lp_init_pre(struct bwn_mac *);
-extern int	bwn_phy_lp_init(struct bwn_mac *);
-extern uint16_t	bwn_phy_lp_read(struct bwn_mac *, uint16_t);
-extern void	bwn_phy_lp_write(struct bwn_mac *, uint16_t, uint16_t);
-extern void	bwn_phy_lp_maskset(struct bwn_mac *, uint16_t, uint16_t,
-		    uint16_t);
-extern uint16_t	bwn_phy_lp_rf_read(struct bwn_mac *, uint16_t);
-extern void	bwn_phy_lp_rf_write(struct bwn_mac *, uint16_t, uint16_t);
-extern void	bwn_phy_lp_rf_onoff(struct bwn_mac *, int);
-extern int	bwn_phy_lp_switch_channel(struct bwn_mac *, uint32_t);
-extern void	bwn_phy_lp_switch_analog(struct bwn_mac *, int);
-extern uint32_t	bwn_phy_lp_get_default_chan(struct bwn_mac *);
-extern void	bwn_phy_lp_set_antenna(struct bwn_mac *, int);
-extern void	bwn_phy_lp_task_60s(struct bwn_mac *);
+extern void bwn_phy_lp_init_pre(struct bwn_mac *);
+extern int bwn_phy_lp_init(struct bwn_mac *);
+extern uint16_t bwn_phy_lp_read(struct bwn_mac *, uint16_t);
+extern void bwn_phy_lp_write(struct bwn_mac *, uint16_t, uint16_t);
+extern void bwn_phy_lp_maskset(struct bwn_mac *, uint16_t, uint16_t, uint16_t);
+extern uint16_t bwn_phy_lp_rf_read(struct bwn_mac *, uint16_t);
+extern void bwn_phy_lp_rf_write(struct bwn_mac *, uint16_t, uint16_t);
+extern void bwn_phy_lp_rf_onoff(struct bwn_mac *, int);
+extern int bwn_phy_lp_switch_channel(struct bwn_mac *, uint32_t);
+extern void bwn_phy_lp_switch_analog(struct bwn_mac *, int);
+extern uint32_t bwn_phy_lp_get_default_chan(struct bwn_mac *);
+extern void bwn_phy_lp_set_antenna(struct bwn_mac *, int);
+extern void bwn_phy_lp_task_60s(struct bwn_mac *);
 
-#endif	/* __IF_BWN_PHY_LP_H__ */
+#endif /* __IF_BWN_PHY_LP_H__ */

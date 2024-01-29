@@ -28,11 +28,11 @@
 
 #include "own_if.h"
 
-#define	READ_ROM	0x33
-#define	MATCH_ROM	0x55
-#define	SKIP_ROM	0xcc
-#define	ALARM_SEARCH	0xec
-#define	SEARCH_ROM	0xf0
+#define READ_ROM 0x33
+#define MATCH_ROM 0x55
+#define SKIP_ROM 0xcc
+#define ALARM_SEARCH 0xec
+#define SEARCH_ROM 0xf0
 
 static inline int
 own_send_command(device_t pdev, struct ow_cmd *cmd)
@@ -45,8 +45,8 @@ own_send_command(device_t pdev, struct ow_cmd *cmd)
 /*
  * How args for own_acquire_bus
  */
-#define	OWN_WAIT	1
-#define	OWN_DONTWAIT	2
+#define OWN_WAIT 1
+#define OWN_DONTWAIT 2
 
 static inline int
 own_acquire_bus(device_t pdev, int how)

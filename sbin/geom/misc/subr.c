@@ -30,34 +30,34 @@
 #include <sys/disk.h>
 #include <sys/endian.h>
 #include <sys/uio.h>
+
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
+#include <libgeom.h>
+#include <limits.h>
 #include <paths.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <inttypes.h>
-#include <stdarg.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <assert.h>
-#include <libgeom.h>
 
 #include "misc/subr.h"
 
-
 struct std_metadata {
-	char		md_magic[16];
-	uint32_t	md_version;
+	char md_magic[16];
+	uint32_t md_version;
 };
 
 static void
 std_metadata_decode(const unsigned char *data, struct std_metadata *md)
 {
 
-        bcopy(data, md->md_magic, sizeof(md->md_magic));
-        md->md_version = le32dec(data + 16);
+	bcopy(data, md->md_magic, sizeof(md->md_magic));
+	md->md_version = le32dec(data + 16);
 }
 
 /*
@@ -136,38 +136,46 @@ g_parse_lba(const char *lbastr, unsigned int sectorsize, off_t *sectors)
 	if (*s == '\0')
 		goto done;
 	switch (*s) {
-	case 'e': case 'E':
+	case 'e':
+	case 'E':
 		mult *= 1024;
 		/* FALLTHROUGH */
-	case 'p': case 'P':
+	case 'p':
+	case 'P':
 		mult *= 1024;
 		/* FALLTHROUGH */
-	case 't': case 'T':
+	case 't':
+	case 'T':
 		mult *= 1024;
 		/* FALLTHROUGH */
-	case 'g': case 'G':
+	case 'g':
+	case 'G':
 		mult *= 1024;
 		/* FALLTHROUGH */
-	case 'm': case 'M':
+	case 'm':
+	case 'M':
 		mult *= 1024;
 		/* FALLTHROUGH */
-	case 'k': case 'K':
+	case 'k':
+	case 'K':
 		mult *= 1024;
 		break;
 	default:
 		goto sfx;
 	}
-	unit = 1;	/* bytes */
+	unit = 1; /* bytes */
 	s++;
 	if (*s == '\0')
 		goto done;
 sfx:
 	switch (*s) {
-	case 's': case 'S':
-		unit = sectorsize;	/* sector */
+	case 's':
+	case 'S':
+		unit = sectorsize; /* sector */
 		break;
-	case 'b': case 'B':
-		unit = 1;		/* bytes */
+	case 'b':
+	case 'B':
+		unit = 1; /* bytes */
 		break;
 	default:
 		return (EINVAL);
@@ -270,7 +278,7 @@ out:
 	return (error);
 }
 
-/* 
+/*
  * Actually write the GEOM label to the provider
  *
  * @param name	GEOM provider's name (ie "ada0")

@@ -33,10 +33,9 @@
 #include "log.h"
 #include "sig.h"
 
-static int caused[NSIG];	/* An array of pending signals */
-static int necessary;		/* Anything set ? */
-static sig_type handler[NSIG];	/* all start at SIG_DFL */
-
+static int caused[NSIG];       /* An array of pending signals */
+static int necessary;	       /* Anything set ? */
+static sig_type handler[NSIG]; /* all start at SIG_DFL */
 
 /*
  * Record a signal in the "caused" array
@@ -49,10 +48,9 @@ static sig_type handler[NSIG];	/* all start at SIG_DFL */
 static void
 signal_recorder(int sig)
 {
-  caused[sig - 1]++;
-  necessary = 1;
+	caused[sig - 1]++;
+	necessary = 1;
 }
-
 
 /*
  * Set up signal_recorder to handle the given sig and record ``fn'' as
@@ -63,26 +61,25 @@ signal_recorder(int sig)
 sig_type
 sig_signal(int sig, sig_type fn)
 {
-  sig_type Result;
+	sig_type Result;
 
-  if (sig <= 0 || sig > NSIG) {
-    /* Oops - we must be a bit out of date (too many sigs ?) */
-    log_Printf(LogALERT, "Eeek! %s:%d: I must be out of date!\n",
-	      __FILE__, __LINE__);
-    return signal(sig, fn);
-  }
-  Result = handler[sig - 1];
-  if (fn == SIG_DFL || fn == SIG_IGN) {
-    signal(sig, fn);
-    handler[sig - 1] = (sig_type) 0;
-  } else {
-    handler[sig - 1] = fn;
-    signal(sig, signal_recorder);
-  }
-  caused[sig - 1] = 0;
-  return Result;
+	if (sig <= 0 || sig > NSIG) {
+		/* Oops - we must be a bit out of date (too many sigs ?) */
+		log_Printf(LogALERT, "Eeek! %s:%d: I must be out of date!\n",
+		    __FILE__, __LINE__);
+		return signal(sig, fn);
+	}
+	Result = handler[sig - 1];
+	if (fn == SIG_DFL || fn == SIG_IGN) {
+		signal(sig, fn);
+		handler[sig - 1] = (sig_type)0;
+	} else {
+		handler[sig - 1] = fn;
+		signal(sig, signal_recorder);
+	}
+	caused[sig - 1] = 0;
+	return Result;
 }
-
 
 /*
  * Call the handlers for any pending signals
@@ -94,26 +91,26 @@ sig_signal(int sig, sig_type fn)
 int
 sig_Handle(void)
 {
-  int sig;
-  int got;
-  int result;
+	int sig;
+	int got;
+	int result;
 
-  result = 0;
-  if (necessary) {
-    /* We've *probably* got something in `caused' set */
-    necessary = 0;
-    /* `necessary' might go back to 1 while we're in here.... */
-    do {
-      got = 0;
-      for (sig = 0; sig < NSIG; sig++)
-        if (caused[sig]) {
-	  caused[sig]--;
-	  got++;
-	  result++;
-	  (*handler[sig])(sig + 1);
-        }
-    } while (got);
-  }
+	result = 0;
+	if (necessary) {
+		/* We've *probably* got something in `caused' set */
+		necessary = 0;
+		/* `necessary' might go back to 1 while we're in here.... */
+		do {
+			got = 0;
+			for (sig = 0; sig < NSIG; sig++)
+				if (caused[sig]) {
+					caused[sig]--;
+					got++;
+					result++;
+					(*handler[sig])(sig + 1);
+				}
+		} while (got);
+	}
 
-  return result;
+	return result;
 }

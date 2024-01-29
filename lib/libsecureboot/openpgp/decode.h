@@ -26,31 +26,31 @@
  */
 
 #ifdef USE_BEARSSL
-unsigned char * mpi2bn(unsigned char **pptr, size_t *sz);
+unsigned char *mpi2bn(unsigned char **pptr, size_t *sz);
 #else
-# include <openssl/bn.h>
-# include <openssl/rsa.h>
-# include <openssl/evp.h>
+#include <openssl/bn.h>
+#include <openssl/evp.h>
+#include <openssl/rsa.h>
 
-BIGNUM * mpi2bn(unsigned char **pptr);
+BIGNUM *mpi2bn(unsigned char **pptr);
 #endif
 
-#define NEW(x) calloc(1,sizeof(x))
+#define NEW(x) calloc(1, sizeof(x))
 
-#define OPENPGP_TAG_ISTAG	0200
-#define OPENPGP_TAG_ISNEW	0100
-#define OPENPGP_TAG_NEW_MASK	0077
-#define OPENPGP_TAG_OLD_MASK	0074
-#define OPENPGP_TAG_OLD_TYPE	0003
+#define OPENPGP_TAG_ISTAG 0200
+#define OPENPGP_TAG_ISNEW 0100
+#define OPENPGP_TAG_NEW_MASK 0077
+#define OPENPGP_TAG_OLD_MASK 0074
+#define OPENPGP_TAG_OLD_TYPE 0003
 
 typedef int (*decoder_t)(int, unsigned char **, int, void *);
 
-unsigned char * i2octets(int n, size_t i);
+unsigned char *i2octets(int n, size_t i);
 int octets2i(unsigned char *ptr, size_t n);
-char * octets2hex(unsigned char *ptr, size_t n);
+char *octets2hex(unsigned char *ptr, size_t n);
 int decode_tag(unsigned char *ptr, int *isnew, int *ltype);
-unsigned char * decode_mpi(unsigned char **pptr, size_t *sz);
-unsigned char * dearmor(char *pem, size_t nbytes, size_t *len);
+unsigned char *decode_mpi(unsigned char **pptr, size_t *sz);
+unsigned char *dearmor(char *pem, size_t nbytes, size_t *len);
 int decode_packet(int want, unsigned char **pptr, size_t nbytes,
-		  decoder_t decoder, void *decoder_arg);
-unsigned char * decode_subpacket(unsigned char **pptr, int *stag, int *sz);
+    decoder_t decoder, void *decoder_arg);
+unsigned char *decode_subpacket(unsigned char **pptr, int *stag, int *sz);

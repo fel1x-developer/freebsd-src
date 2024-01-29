@@ -27,19 +27,20 @@
  */
 
 struct fifolog_file {
-	unsigned			magic;
-#define FIFOLOG_FILE_MAGIC		0x307ea50d
+	unsigned magic;
+#define FIFOLOG_FILE_MAGIC 0x307ea50d
 
-	ssize_t				recsize;
-	off_t				logsize;
-	int				fd;
+	ssize_t recsize;
+	off_t logsize;
+	int fd;
 
-	z_stream			*zs;
+	z_stream *zs;
 
-	unsigned char			*recbuf;
+	unsigned char *recbuf;
 };
 
-const char *fifolog_int_open(struct fifolog_file **ff, const char *fname, int mode);
+const char *fifolog_int_open(struct fifolog_file **ff, const char *fname,
+    int mode);
 void fifolog_int_close(struct fifolog_file **ff);
 int fifolog_int_read(const struct fifolog_file *ff, off_t recno);
 const char *fifolog_int_findend(const struct fifolog_file *ff, off_t *last);

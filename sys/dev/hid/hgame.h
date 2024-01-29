@@ -31,16 +31,16 @@
 
 #include <dev/hid/hidmap.h>
 
-hidmap_cb_t	hgame_hat_switch_cb;
-hidmap_cb_t	hgame_dpad_cb;
-hidmap_cb_t	hgame_final_cb;
+hidmap_cb_t hgame_hat_switch_cb;
+hidmap_cb_t hgame_dpad_cb;
+hidmap_cb_t hgame_final_cb;
 
 struct hgame_softc {
-	struct hidmap	hm;
-	bool		dpad_up;
-	bool		dpad_down;
-	bool		dpad_right;
-	bool		dpad_left;
+	struct hidmap hm;
+	bool dpad_up;
+	bool dpad_down;
+	bool dpad_right;
+	bool dpad_left;
 };
 
 #endif /* !_HGAME_H_ */

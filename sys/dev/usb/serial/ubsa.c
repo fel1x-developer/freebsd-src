@@ -56,96 +56,96 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR ubsa_debug
+#define USB_DEBUG_VAR ubsa_debug
+#include <dev/usb/serial/usb_serial.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/serial/usb_serial.h>
 
 #ifdef USB_DEBUG
 static int ubsa_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, ubsa, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB ubsa");
-SYSCTL_INT(_hw_usb_ubsa, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &ubsa_debug, 0, "ubsa debug level");
+SYSCTL_INT(_hw_usb_ubsa, OID_AUTO, debug, CTLFLAG_RWTUN, &ubsa_debug, 0,
+    "ubsa debug level");
 #endif
 
-#define	UBSA_BSIZE             1024	/* bytes */
+#define UBSA_BSIZE 1024 /* bytes */
 
-#define	UBSA_CONFIG_INDEX	0
-#define	UBSA_IFACE_INDEX	0
+#define UBSA_CONFIG_INDEX 0
+#define UBSA_IFACE_INDEX 0
 
-#define	UBSA_REG_BAUDRATE	0x00
-#define	UBSA_REG_STOP_BITS	0x01
-#define	UBSA_REG_DATA_BITS	0x02
-#define	UBSA_REG_PARITY		0x03
-#define	UBSA_REG_DTR		0x0A
-#define	UBSA_REG_RTS		0x0B
-#define	UBSA_REG_BREAK		0x0C
-#define	UBSA_REG_FLOW_CTRL	0x10
+#define UBSA_REG_BAUDRATE 0x00
+#define UBSA_REG_STOP_BITS 0x01
+#define UBSA_REG_DATA_BITS 0x02
+#define UBSA_REG_PARITY 0x03
+#define UBSA_REG_DTR 0x0A
+#define UBSA_REG_RTS 0x0B
+#define UBSA_REG_BREAK 0x0C
+#define UBSA_REG_FLOW_CTRL 0x10
 
-#define	UBSA_PARITY_NONE	0x00
-#define	UBSA_PARITY_EVEN	0x01
-#define	UBSA_PARITY_ODD		0x02
-#define	UBSA_PARITY_MARK	0x03
-#define	UBSA_PARITY_SPACE	0x04
+#define UBSA_PARITY_NONE 0x00
+#define UBSA_PARITY_EVEN 0x01
+#define UBSA_PARITY_ODD 0x02
+#define UBSA_PARITY_MARK 0x03
+#define UBSA_PARITY_SPACE 0x04
 
-#define	UBSA_FLOW_NONE		0x0000
-#define	UBSA_FLOW_OCTS		0x0001
-#define	UBSA_FLOW_ODSR		0x0002
-#define	UBSA_FLOW_IDSR		0x0004
-#define	UBSA_FLOW_IDTR		0x0008
-#define	UBSA_FLOW_IRTS		0x0010
-#define	UBSA_FLOW_ORTS		0x0020
-#define	UBSA_FLOW_UNKNOWN	0x0040
-#define	UBSA_FLOW_OXON		0x0080
-#define	UBSA_FLOW_IXON		0x0100
+#define UBSA_FLOW_NONE 0x0000
+#define UBSA_FLOW_OCTS 0x0001
+#define UBSA_FLOW_ODSR 0x0002
+#define UBSA_FLOW_IDSR 0x0004
+#define UBSA_FLOW_IDTR 0x0008
+#define UBSA_FLOW_IRTS 0x0010
+#define UBSA_FLOW_ORTS 0x0020
+#define UBSA_FLOW_UNKNOWN 0x0040
+#define UBSA_FLOW_OXON 0x0080
+#define UBSA_FLOW_IXON 0x0100
 
 /* line status register */
-#define	UBSA_LSR_TSRE		0x40	/* Transmitter empty: byte sent */
-#define	UBSA_LSR_TXRDY		0x20	/* Transmitter buffer empty */
-#define	UBSA_LSR_BI		0x10	/* Break detected */
-#define	UBSA_LSR_FE		0x08	/* Framing error: bad stop bit */
-#define	UBSA_LSR_PE		0x04	/* Parity error */
-#define	UBSA_LSR_OE		0x02	/* Overrun, lost incoming byte */
-#define	UBSA_LSR_RXRDY		0x01	/* Byte ready in Receive Buffer */
-#define	UBSA_LSR_RCV_MASK	0x1f	/* Mask for incoming data or error */
+#define UBSA_LSR_TSRE 0x40     /* Transmitter empty: byte sent */
+#define UBSA_LSR_TXRDY 0x20    /* Transmitter buffer empty */
+#define UBSA_LSR_BI 0x10       /* Break detected */
+#define UBSA_LSR_FE 0x08       /* Framing error: bad stop bit */
+#define UBSA_LSR_PE 0x04       /* Parity error */
+#define UBSA_LSR_OE 0x02       /* Overrun, lost incoming byte */
+#define UBSA_LSR_RXRDY 0x01    /* Byte ready in Receive Buffer */
+#define UBSA_LSR_RCV_MASK 0x1f /* Mask for incoming data or error */
 
 /* modem status register */
 /* All deltas are from the last read of the MSR. */
-#define	UBSA_MSR_DCD		0x80	/* Current Data Carrier Detect */
-#define	UBSA_MSR_RI		0x40	/* Current Ring Indicator */
-#define	UBSA_MSR_DSR		0x20	/* Current Data Set Ready */
-#define	UBSA_MSR_CTS		0x10	/* Current Clear to Send */
-#define	UBSA_MSR_DDCD		0x08	/* DCD has changed state */
-#define	UBSA_MSR_TERI		0x04	/* RI has toggled low to high */
-#define	UBSA_MSR_DDSR		0x02	/* DSR has changed state */
-#define	UBSA_MSR_DCTS		0x01	/* CTS has changed state */
+#define UBSA_MSR_DCD 0x80  /* Current Data Carrier Detect */
+#define UBSA_MSR_RI 0x40   /* Current Ring Indicator */
+#define UBSA_MSR_DSR 0x20  /* Current Data Set Ready */
+#define UBSA_MSR_CTS 0x10  /* Current Clear to Send */
+#define UBSA_MSR_DDCD 0x08 /* DCD has changed state */
+#define UBSA_MSR_TERI 0x04 /* RI has toggled low to high */
+#define UBSA_MSR_DDSR 0x02 /* DSR has changed state */
+#define UBSA_MSR_DCTS 0x01 /* CTS has changed state */
 
 enum {
 	UBSA_BULK_DT_WR,
@@ -162,10 +162,10 @@ struct ubsa_softc {
 	struct usb_device *sc_udev;
 	struct mtx sc_mtx;
 
-	uint8_t	sc_iface_no;		/* interface number */
-	uint8_t	sc_iface_index;		/* interface index */
-	uint8_t	sc_lsr;			/* local status register */
-	uint8_t	sc_msr;			/* UBSA status register */
+	uint8_t sc_iface_no;	/* interface number */
+	uint8_t sc_iface_index; /* interface index */
+	uint8_t sc_lsr;		/* local status register */
+	uint8_t sc_msr;		/* UBSA status register */
 };
 
 static device_probe_t ubsa_probe;
@@ -177,20 +177,19 @@ static usb_callback_t ubsa_write_callback;
 static usb_callback_t ubsa_read_callback;
 static usb_callback_t ubsa_intr_callback;
 
-static void	ubsa_cfg_request(struct ubsa_softc *, uint8_t, uint16_t);
-static void	ubsa_free(struct ucom_softc *);
-static void	ubsa_cfg_set_dtr(struct ucom_softc *, uint8_t);
-static void	ubsa_cfg_set_rts(struct ucom_softc *, uint8_t);
-static void	ubsa_cfg_set_break(struct ucom_softc *, uint8_t);
-static int	ubsa_pre_param(struct ucom_softc *, struct termios *);
-static void	ubsa_cfg_param(struct ucom_softc *, struct termios *);
-static void	ubsa_start_read(struct ucom_softc *);
-static void	ubsa_stop_read(struct ucom_softc *);
-static void	ubsa_start_write(struct ucom_softc *);
-static void	ubsa_stop_write(struct ucom_softc *);
-static void	ubsa_cfg_get_status(struct ucom_softc *, uint8_t *,
-		    uint8_t *);
-static void	ubsa_poll(struct ucom_softc *ucom);
+static void ubsa_cfg_request(struct ubsa_softc *, uint8_t, uint16_t);
+static void ubsa_free(struct ucom_softc *);
+static void ubsa_cfg_set_dtr(struct ucom_softc *, uint8_t);
+static void ubsa_cfg_set_rts(struct ucom_softc *, uint8_t);
+static void ubsa_cfg_set_break(struct ucom_softc *, uint8_t);
+static int ubsa_pre_param(struct ucom_softc *, struct termios *);
+static void ubsa_cfg_param(struct ucom_softc *, struct termios *);
+static void ubsa_start_read(struct ucom_softc *);
+static void ubsa_stop_read(struct ucom_softc *);
+static void ubsa_start_write(struct ucom_softc *);
+static void ubsa_stop_write(struct ucom_softc *);
+static void ubsa_cfg_get_status(struct ucom_softc *, uint8_t *, uint8_t *);
+static void ubsa_poll(struct ucom_softc *ucom);
 
 static const struct usb_config ubsa_config[UBSA_N_TRANSFER] = {
 	[UBSA_BULK_DT_WR] = {
@@ -238,29 +237,26 @@ static const struct ucom_callback ubsa_callback = {
 
 static const STRUCT_USB_HOST_ID ubsa_devs[] = {
 	/* AnyData ADU-500A */
-	{USB_VPI(USB_VENDOR_ANYDATA, USB_PRODUCT_ANYDATA_ADU_500A, 0)},
+	{ USB_VPI(USB_VENDOR_ANYDATA, USB_PRODUCT_ANYDATA_ADU_500A, 0) },
 	/* AnyData ADU-E100A/H */
-	{USB_VPI(USB_VENDOR_ANYDATA, USB_PRODUCT_ANYDATA_ADU_E100X, 0)},
+	{ USB_VPI(USB_VENDOR_ANYDATA, USB_PRODUCT_ANYDATA_ADU_E100X, 0) },
 	/* Axesstel MV100H */
-	{USB_VPI(USB_VENDOR_AXESSTEL, USB_PRODUCT_AXESSTEL_DATAMODEM, 0)},
+	{ USB_VPI(USB_VENDOR_AXESSTEL, USB_PRODUCT_AXESSTEL_DATAMODEM, 0) },
 	/* BELKIN F5U103 */
-	{USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U103, 0)},
+	{ USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U103, 0) },
 	/* BELKIN F5U120 */
-	{USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U120, 0)},
+	{ USB_VPI(USB_VENDOR_BELKIN, USB_PRODUCT_BELKIN_F5U120, 0) },
 	/* GoHubs GO-COM232 */
-	{USB_VPI(USB_VENDOR_ETEK, USB_PRODUCT_ETEK_1COM, 0)},
+	{ USB_VPI(USB_VENDOR_ETEK, USB_PRODUCT_ETEK_1COM, 0) },
 	/* GoHubs GO-COM232 */
-	{USB_VPI(USB_VENDOR_GOHUBS, USB_PRODUCT_GOHUBS_GOCOM232, 0)},
+	{ USB_VPI(USB_VENDOR_GOHUBS, USB_PRODUCT_GOHUBS_GOCOM232, 0) },
 	/* Peracom */
-	{USB_VPI(USB_VENDOR_PERACOM, USB_PRODUCT_PERACOM_SERIAL1, 0)},
+	{ USB_VPI(USB_VENDOR_PERACOM, USB_PRODUCT_PERACOM_SERIAL1, 0) },
 };
 
-static device_method_t ubsa_methods[] = {
-	DEVMETHOD(device_probe, ubsa_probe),
+static device_method_t ubsa_methods[] = { DEVMETHOD(device_probe, ubsa_probe),
 	DEVMETHOD(device_attach, ubsa_attach),
-	DEVMETHOD(device_detach, ubsa_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, ubsa_detach), DEVMETHOD_END };
 
 static driver_t ubsa_driver = {
 	.name = "ubsa",
@@ -383,11 +379,13 @@ ubsa_cfg_request(struct ubsa_softc *sc, uint8_t index, uint16_t value)
 	req.wIndex[1] = 0;
 	USETW(req.wLength, 0);
 
-	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, 
-	    &req, NULL, 0, 1000);
+	err = ucom_cfg_do_request(sc->sc_udev, &sc->sc_ucom, &req, NULL, 0,
+	    1000);
 	if (err) {
-		DPRINTFN(0, "device request failed, err=%s "
-		    "(ignored)\n", usbd_errstr(err));
+		DPRINTFN(0,
+		    "device request failed, err=%s "
+		    "(ignored)\n",
+		    usbd_errstr(err));
 	}
 }
 
@@ -480,7 +478,8 @@ ubsa_cfg_param(struct ucom_softc *ucom, struct termios *t)
 	}
 
 	if (t->c_cflag & PARENB)
-		value = (t->c_cflag & PARODD) ? UBSA_PARITY_ODD : UBSA_PARITY_EVEN;
+		value = (t->c_cflag & PARODD) ? UBSA_PARITY_ODD :
+						UBSA_PARITY_EVEN;
 	else
 		value = UBSA_PARITY_NONE;
 
@@ -579,16 +578,15 @@ ubsa_write_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_SETUP:
 	case USB_ST_TRANSFERRED:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
-		if (ucom_get_data(&sc->sc_ucom, pc, 0,
-		    UBSA_BSIZE, &actlen)) {
+		if (ucom_get_data(&sc->sc_ucom, pc, 0, UBSA_BSIZE, &actlen)) {
 			usbd_xfer_set_frame_len(xfer, 0, actlen);
 			usbd_transfer_submit(xfer);
 		}
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -613,12 +611,12 @@ ubsa_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		ucom_put_data(&sc->sc_ucom, pc, 0, actlen);
 
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -646,8 +644,8 @@ ubsa_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			usbd_copy_out(pc, 0, buf, sizeof(buf));
 
 			/*
-			 * MSR bits need translation from ns16550 to SER_* values.
-			 * LSR bits are ns16550 in hardware and ucom.
+			 * MSR bits need translation from ns16550 to SER_*
+			 * values. LSR bits are ns16550 in hardware and ucom.
 			 */
 			sc->sc_msr = 0;
 			if (buf[3] & UBSA_MSR_CTS)
@@ -660,8 +658,8 @@ ubsa_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 				sc->sc_msr |= SER_DSR;
 			sc->sc_lsr = buf[2];
 
-			DPRINTF("lsr = 0x%02x, msr = 0x%02x\n",
-			    sc->sc_lsr, sc->sc_msr);
+			DPRINTF("lsr = 0x%02x, msr = 0x%02x\n", sc->sc_lsr,
+			    sc->sc_msr);
 
 			ucom_status_change(&sc->sc_ucom);
 		} else {
@@ -669,12 +667,12 @@ ubsa_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		return;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
@@ -689,5 +687,4 @@ ubsa_poll(struct ucom_softc *ucom)
 {
 	struct ubsa_softc *sc = ucom->sc_parent;
 	usbd_transfer_poll(sc->sc_xfer, UBSA_N_TRANSFER);
-
 }

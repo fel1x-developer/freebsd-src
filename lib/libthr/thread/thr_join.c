@@ -27,16 +27,17 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
+
 #include <errno.h>
 #include <pthread.h>
+
+#include "namespace.h"
+#include "thr_private.h"
 #include "un-namespace.h"
 
-#include "thr_private.h"
-
-int	_pthread_peekjoin_np(pthread_t pthread, void **thread_return);
-int	_pthread_timedjoin_np(pthread_t pthread, void **thread_return,
-	    const struct timespec *abstime);
+int _pthread_peekjoin_np(pthread_t pthread, void **thread_return);
+int _pthread_timedjoin_np(pthread_t pthread, void **thread_return,
+    const struct timespec *abstime);
 static int join_common(pthread_t, void **, const struct timespec *, bool peek);
 
 __weak_reference(_thr_join, pthread_join);
@@ -44,7 +45,8 @@ __weak_reference(_thr_join, _pthread_join);
 __weak_reference(_pthread_timedjoin_np, pthread_timedjoin_np);
 __weak_reference(_pthread_peekjoin_np, pthread_peekjoin_np);
 
-static void backout_join(void *arg)
+static void
+backout_join(void *arg)
 {
 	struct pthread *pthread = (struct pthread *)arg;
 	struct pthread *curthread = _get_curthread();
@@ -62,7 +64,7 @@ _thr_join(pthread_t pthread, void **thread_return)
 
 int
 _pthread_timedjoin_np(pthread_t pthread, void **thread_return,
-	const struct timespec *abstime)
+    const struct timespec *abstime)
 {
 	if (abstime == NULL || abstime->tv_sec < 0 || abstime->tv_nsec < 0 ||
 	    abstime->tv_nsec >= 1000000000)

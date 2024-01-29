@@ -35,31 +35,31 @@
 
 #include "nvlist.h"
 
-#define	ZFS_MAXNAMELEN	256
+#define ZFS_MAXNAMELEN 256
 
 /*
  * ZFS fully-qualified device descriptor.
  */
 struct zfs_devdesc {
-	struct devdesc	dd;		/* Must be first. */
-	uint64_t	pool_guid;
-	uint64_t	root_guid;
+	struct devdesc dd; /* Must be first. */
+	uint64_t pool_guid;
+	uint64_t root_guid;
 };
 
-char	*zfs_fmtdev(struct devdesc *);
-int	zfs_probe_dev(const char *devname, uint64_t *pool_guid, bool part_too);
-int	zfs_list(const char *name);
-int	zfs_get_bootonce(void *, const char *, char *, size_t);
-int	zfs_get_bootenv(void *, nvlist_t **);
-int	zfs_set_bootenv(void *, nvlist_t *);
-int	zfs_attach_nvstore(void *);
+char *zfs_fmtdev(struct devdesc *);
+int zfs_probe_dev(const char *devname, uint64_t *pool_guid, bool part_too);
+int zfs_list(const char *name);
+int zfs_get_bootonce(void *, const char *, char *, size_t);
+int zfs_get_bootenv(void *, nvlist_t **);
+int zfs_set_bootenv(void *, nvlist_t *);
+int zfs_attach_nvstore(void *);
 uint64_t ldi_get_size(void *);
-void	init_zfs_boot_options(const char *currdev);
+void init_zfs_boot_options(const char *currdev);
 
-int	zfs_bootenv(const char *name);
-int	zfs_attach_nvstore(void *);
-int	zfs_belist_add(const char *name, uint64_t __unused);
-int	zfs_set_env(void);
+int zfs_bootenv(const char *name);
+int zfs_attach_nvstore(void *);
+int zfs_belist_add(const char *name, uint64_t __unused);
+int zfs_set_env(void);
 
 nvlist_t *vdev_read_bootenv(vdev_t *);
 

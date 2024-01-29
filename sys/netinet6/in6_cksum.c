@@ -61,8 +61,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/mbuf.h>
 #include <sys/systm.h>
+#include <sys/mbuf.h>
+
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet6/scope6_var.h>
@@ -74,17 +75,22 @@
  * code and should be modified for each CPU to be as fast as possible.
  */
 
-#define ADDCARRY(x)  (x > 65535 ? x -= 65535 : x)
-#define REDUCE {l_util.l = sum; sum = l_util.s[0] + l_util.s[1]; (void)ADDCARRY(sum);}
+#define ADDCARRY(x) (x > 65535 ? x -= 65535 : x)
+#define REDUCE                                   \
+	{                                        \
+		l_util.l = sum;                  \
+		sum = l_util.s[0] + l_util.s[1]; \
+		(void)ADDCARRY(sum);             \
+	}
 
 union l_util {
-	uint16_t	s[2];
-	uint32_t	l;
+	uint16_t s[2];
+	uint32_t l;
 };
 
 union s_util {
-	uint8_t		c[2];
-	uint16_t	s;
+	uint8_t c[2];
+	uint16_t s;
 };
 
 static int
@@ -95,9 +101,9 @@ _in6_cksum_pseudo(struct ip6_hdr *ip6, uint32_t len, uint8_t nxt, uint16_t csum)
 	union {
 		u_int16_t phs[4];
 		struct {
-			u_int32_t	ph_len;
-			u_int8_t	ph_zero[3];
-			u_int8_t	ph_nxt;
+			u_int32_t ph_len;
+			u_int8_t ph_zero[3];
+			u_int8_t ph_nxt;
 		} __packed ph;
 	} uph;
 
@@ -111,22 +117,36 @@ _in6_cksum_pseudo(struct ip6_hdr *ip6, uint32_t len, uint8_t nxt, uint16_t csum)
 	uph.ph.ph_nxt = nxt;
 
 	/* Payload length and upper layer identifier. */
-	sum += uph.phs[0];  sum += uph.phs[1];
-	sum += uph.phs[2];  sum += uph.phs[3];
+	sum += uph.phs[0];
+	sum += uph.phs[1];
+	sum += uph.phs[2];
+	sum += uph.phs[3];
 
 	/* IPv6 source address. */
 	scope = in6_getscope(&ip6->ip6_src);
 	w = (u_int16_t *)&ip6->ip6_src;
-	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
-	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
+	sum += w[0];
+	sum += w[1];
+	sum += w[2];
+	sum += w[3];
+	sum += w[4];
+	sum += w[5];
+	sum += w[6];
+	sum += w[7];
 	if (scope != 0)
 		sum -= scope;
 
 	/* IPv6 destination address. */
 	scope = in6_getscope(&ip6->ip6_dst);
 	w = (u_int16_t *)&ip6->ip6_dst;
-	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
-	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
+	sum += w[0];
+	sum += w[1];
+	sum += w[2];
+	sum += w[3];
+	sum += w[4];
+	sum += w[5];
+	sum += w[6];
+	sum += w[7];
 	if (scope != 0)
 		sum -= scope;
 
@@ -195,15 +215,30 @@ in6_cksumdata(void *data, int *lenp, uint8_t *residp, int rlen)
 	 * Unroll the loop to make overhead from branches &c small.
 	 */
 	while ((len -= 32) >= 0) {
-		sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
-		sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
-		sum += w[8]; sum += w[9]; sum += w[10]; sum += w[11];
-		sum += w[12]; sum += w[13]; sum += w[14]; sum += w[15];
+		sum += w[0];
+		sum += w[1];
+		sum += w[2];
+		sum += w[3];
+		sum += w[4];
+		sum += w[5];
+		sum += w[6];
+		sum += w[7];
+		sum += w[8];
+		sum += w[9];
+		sum += w[10];
+		sum += w[11];
+		sum += w[12];
+		sum += w[13];
+		sum += w[14];
+		sum += w[15];
 		w += 16;
 	}
 	len += 32;
 	while ((len -= 8) >= 0) {
-		sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
+		sum += w[0];
+		sum += w[1];
+		sum += w[2];
+		sum += w[3];
 		w += 4;
 	}
 	len += 8;
@@ -230,9 +265,9 @@ out:
 }
 
 struct in6_cksum_partial_arg {
-	int	sum;
-	int	rlen;
-	uint8_t	resid;
+	int sum;
+	int rlen;
+	uint8_t resid;
 };
 
 static int
@@ -265,15 +300,17 @@ in6_cksum_partial(struct mbuf *m, uint8_t nxt, uint32_t off, uint32_t len,
 	union {
 		uint16_t phs[4];
 		struct {
-			uint32_t	ph_len;
-			uint8_t		ph_zero[3];
-			uint8_t		ph_nxt;
+			uint32_t ph_len;
+			uint8_t ph_zero[3];
+			uint8_t ph_nxt;
 		} __packed ph;
 	} uph;
 
 	/* Sanity check. */
-	KASSERT(m->m_pkthdr.len >= off + len, ("%s: mbuf len (%d) < off(%d)+"
-	    "len(%d)", __func__, m->m_pkthdr.len, off, len));
+	KASSERT(m->m_pkthdr.len >= off + len,
+	    ("%s: mbuf len (%d) < off(%d)+"
+	     "len(%d)",
+		__func__, m->m_pkthdr.len, off, len));
 	KASSERT(m->m_len >= sizeof(*ip6),
 	    ("%s: mbuf len %d < sizeof(ip6)", __func__, m->m_len));
 
@@ -285,24 +322,38 @@ in6_cksum_partial(struct mbuf *m, uint8_t nxt, uint32_t off, uint32_t len,
 	uph.ph.ph_nxt = nxt;
 
 	/* Payload length and upper layer identifier. */
-	sum = uph.phs[0];  sum += uph.phs[1];
-	sum += uph.phs[2];  sum += uph.phs[3];
+	sum = uph.phs[0];
+	sum += uph.phs[1];
+	sum += uph.phs[2];
+	sum += uph.phs[3];
 
 	ip6 = mtod(m, struct ip6_hdr *);
 
 	/* IPv6 source address. */
 	scope = in6_getscope(&ip6->ip6_src);
 	w = (uint16_t *)&ip6->ip6_src;
-	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
-	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
+	sum += w[0];
+	sum += w[1];
+	sum += w[2];
+	sum += w[3];
+	sum += w[4];
+	sum += w[5];
+	sum += w[6];
+	sum += w[7];
 	if (scope != 0)
 		sum -= scope;
 
 	/* IPv6 destination address. */
 	scope = in6_getscope(&ip6->ip6_dst);
 	w = (uint16_t *)&ip6->ip6_dst;
-	sum += w[0]; sum += w[1]; sum += w[2]; sum += w[3];
-	sum += w[4]; sum += w[5]; sum += w[6]; sum += w[7];
+	sum += w[0];
+	sum += w[1];
+	sum += w[2];
+	sum += w[3];
+	sum += w[4];
+	sum += w[5];
+	sum += w[6];
+	sum += w[7];
 	if (scope != 0)
 		sum -= scope;
 

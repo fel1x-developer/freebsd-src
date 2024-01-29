@@ -34,50 +34,43 @@
  * Set of ppbus i/o routines callable from ppbus device drivers
  */
 
-#define ppb_outsb_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_OUTSB_EPP, buf, cnt, 0))
-#define ppb_outsw_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_OUTSW_EPP, buf, cnt, 0))
-#define ppb_outsl_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_OUTSL_EPP, buf, cnt, 0))
+#define ppb_outsb_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_OUTSB_EPP, buf, cnt, 0))
+#define ppb_outsw_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_OUTSW_EPP, buf, cnt, 0))
+#define ppb_outsl_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_OUTSL_EPP, buf, cnt, 0))
 
-#define ppb_insb_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_INSB_EPP, buf, cnt, 0))
-#define ppb_insw_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_INSW_EPP, buf, cnt, 0))
-#define ppb_insl_epp(dev,buf,cnt)					    \
-		(PPBUS_IO(device_get_parent(dev), PPB_INSL_EPP, buf, cnt, 0))
+#define ppb_insb_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_INSB_EPP, buf, cnt, 0))
+#define ppb_insw_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_INSW_EPP, buf, cnt, 0))
+#define ppb_insl_epp(dev, buf, cnt) \
+	(PPBUS_IO(device_get_parent(dev), PPB_INSL_EPP, buf, cnt, 0))
 
-#define ppb_repp_A(dev) 						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_REPP_A, 0, 0, 0))
-#define ppb_repp_D(dev) 						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_REPP_D, 0, 0, 0))
-#define ppb_recr(dev)						    	    \
-		(PPBUS_IO(device_get_parent(dev), PPB_RECR, 0, 0, 0))
-#define ppb_rfifo(dev)							    \
-		(PPBUS_IO(device_get_parent(dev), PPB_RFIFO, 0, 0, 0))
+#define ppb_repp_A(dev) (PPBUS_IO(device_get_parent(dev), PPB_REPP_A, 0, 0, 0))
+#define ppb_repp_D(dev) (PPBUS_IO(device_get_parent(dev), PPB_REPP_D, 0, 0, 0))
+#define ppb_recr(dev) (PPBUS_IO(device_get_parent(dev), PPB_RECR, 0, 0, 0))
+#define ppb_rfifo(dev) (PPBUS_IO(device_get_parent(dev), PPB_RFIFO, 0, 0, 0))
 
-#define ppb_wepp_A(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WEPP_A, 0, 0, byte))
-#define ppb_wepp_D(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WEPP_D, 0, 0, byte))
-#define ppb_wecr(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WECR, 0, 0, byte))
-#define ppb_wfifo(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WFIFO, 0, 0, byte))
+#define ppb_wepp_A(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WEPP_A, 0, 0, byte))
+#define ppb_wepp_D(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WEPP_D, 0, 0, byte))
+#define ppb_wecr(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WECR, 0, 0, byte))
+#define ppb_wfifo(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WFIFO, 0, 0, byte))
 
-#define ppb_rdtr(dev)							    \
-		(PPBUS_IO(device_get_parent(dev), PPB_RDTR, 0, 0, 0))
-#define ppb_rstr(dev)							    \
-		(PPBUS_IO(device_get_parent(dev), PPB_RSTR, 0, 0, 0))
-#define ppb_rctr(dev)							    \
-		(PPBUS_IO(device_get_parent(dev), PPB_RCTR, 0, 0, 0))
+#define ppb_rdtr(dev) (PPBUS_IO(device_get_parent(dev), PPB_RDTR, 0, 0, 0))
+#define ppb_rstr(dev) (PPBUS_IO(device_get_parent(dev), PPB_RSTR, 0, 0, 0))
+#define ppb_rctr(dev) (PPBUS_IO(device_get_parent(dev), PPB_RCTR, 0, 0, 0))
 
-#define ppb_wdtr(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WDTR, 0, 0, byte))
-#define ppb_wstr(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WSTR, 0, 0, byte))
-#define ppb_wctr(dev,byte)						    \
-		(PPBUS_IO(device_get_parent(dev), PPB_WCTR, 0, 0, byte))
+#define ppb_wdtr(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WDTR, 0, 0, byte))
+#define ppb_wstr(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WSTR, 0, 0, byte))
+#define ppb_wctr(dev, byte) \
+	(PPBUS_IO(device_get_parent(dev), PPB_WCTR, 0, 0, byte))
 
 #endif

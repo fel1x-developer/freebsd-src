@@ -28,8 +28,10 @@
 
 #include <sys/param.h>
 #include <sys/ucontext.h>
+
 #include <machine/psl.h>
 #include <machine/sigframe.h>
+
 #include <signal.h>
 #include <strings.h>
 
@@ -53,7 +55,7 @@ __signalcontext(ucontext_t *ucp, int sig, __sighandler_t *func)
 	 */
 	p = (register_t *)(void *)(intptr_t)ucp->uc_mcontext.mc_esp;
 	*--p = (register_t)(intptr_t)ucp;
-	p = (register_t *)((u_register_t)p & ~0xF);  /* Align to 16 bytes. */
+	p = (register_t *)((u_register_t)p & ~0xF); /* Align to 16 bytes. */
 	p = (register_t *)((u_register_t)p - sizeof(struct sigframe));
 	sfp = (struct sigframe *)p;
 	bzero(sfp, sizeof(struct sigframe));

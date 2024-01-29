@@ -26,20 +26,19 @@
  * SUCH DAMAGE.
  */
 
+#include <errno.h>
 #include <gssapi/gssapi.h>
 #include <stdlib.h>
-#include <errno.h>
 
-#include "mech_switch.h"
 #include "context.h"
+#include "mech_switch.h"
 #include "utils.h"
 
 OM_uint32
-gss_delete_sec_context(OM_uint32 *minor_status,
-    gss_ctx_id_t *context_handle,
+gss_delete_sec_context(OM_uint32 *minor_status, gss_ctx_id_t *context_handle,
     gss_buffer_t output_token)
 {
-	struct _gss_context *ctx = (struct _gss_context *) *context_handle;
+	struct _gss_context *ctx = (struct _gss_context *)*context_handle;
 
 	if (output_token)
 		_gss_buffer_zero(output_token);
@@ -51,8 +50,8 @@ gss_delete_sec_context(OM_uint32 *minor_status,
 		 * otherwise fake an empty token.
 		 */
 		if (ctx->gc_ctx) {
-			(void) ctx->gc_mech->gm_delete_sec_context(
-				minor_status, &ctx->gc_ctx, output_token);
+			(void)ctx->gc_mech->gm_delete_sec_context(minor_status,
+			    &ctx->gc_ctx, output_token);
 		}
 		free(ctx);
 		*context_handle = GSS_C_NO_CONTEXT;

@@ -36,33 +36,33 @@
  */
 
 #include <sys/types.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
+
 #include <err.h>
-#include "mdef.h"
-#include "stdd.h"
+#include <errno.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "extern.h"
+#include "mdef.h"
 #include "pathnames.h"
+#include "stdd.h"
 
-
-char *ep;		/* first free char in strspace */
-static char *strspace;	/* string space for evaluation */
-char *endest;		/* end of string space	       */
+char *ep;	       /* first free char in strspace */
+static char *strspace; /* string space for evaluation */
+char *endest;	       /* end of string space	       */
 static size_t strsize = STRSPMAX;
 static size_t bufsize = BUFSIZE;
 
-unsigned char *buf;			/* push-back buffer	       */
-unsigned char *bufbase;			/* the base for current ilevel */
-unsigned char *bbase[MAXINP];		/* the base for each ilevel    */
-unsigned char *bp;			/* first available character   */
-unsigned char *endpbb;			/* end of push-back buffer     */
-
+unsigned char *buf;	      /* push-back buffer	       */
+unsigned char *bufbase;	      /* the base for current ilevel */
+unsigned char *bbase[MAXINP]; /* the base for each ilevel    */
+unsigned char *bp;	      /* first available character   */
+unsigned char *endpbb;	      /* end of push-back buffer     */
 
 /*
  * find the index of second str in the first str.
@@ -134,8 +134,7 @@ pbnumbase(int n, int base, int d)
 	do {
 		pushback(digits[num % base]);
 		printed++;
-	}
-	while ((num /= base) > 0);
+	} while ((num /= base) > 0);
 
 	if (n < 0)
 		printed++;
@@ -154,8 +153,7 @@ pbunsigned(unsigned long n)
 {
 	do {
 		pushback(n % 10 + '0');
-	}
-	while ((n /= 10) > 0);
+	} while ((n /= 10) > 0);
 }
 
 void
@@ -163,9 +161,9 @@ initspaces(void)
 {
 	int i;
 
-	strspace = xalloc(strsize+1, NULL);
+	strspace = xalloc(strsize + 1, NULL);
 	ep = strspace;
-	endest = strspace+strsize;
+	endest = strspace + strsize;
 	buf = xalloc(bufsize, NULL);
 	bufbase = buf;
 	bp = buf;
@@ -184,12 +182,12 @@ enlarge_strspace(void)
 	newstrspace = malloc(strsize + 1);
 	if (!newstrspace)
 		errx(1, "string space overflow");
-	memcpy(newstrspace, strspace, strsize/2);
+	memcpy(newstrspace, strspace, strsize / 2);
 	for (i = 0; i <= sp; i++)
 		if (sstack[i] == STORAGE_STRSPACE)
-			mstack[i].sstr = (mstack[i].sstr - strspace)
-			    + newstrspace;
-	ep = (ep-strspace) + newstrspace;
+			mstack[i].sstr = (mstack[i].sstr - strspace) +
+			    newstrspace;
+	ep = (ep - strspace) + newstrspace;
 	free(strspace);
 	strspace = newstrspace;
 	endest = strspace + strsize;
@@ -201,14 +199,14 @@ enlarge_bufspace(void)
 	unsigned char *newbuf;
 	int i;
 
-	bufsize += bufsize/2;
+	bufsize += bufsize / 2;
 	newbuf = xrealloc(buf, bufsize, "too many characters pushed back");
 	for (i = 0; i < MAXINP; i++)
-		bbase[i] = (bbase[i]-buf)+newbuf;
-	bp = (bp-buf)+newbuf;
-	bufbase = (bufbase-buf)+newbuf;
+		bbase[i] = (bbase[i] - buf) + newbuf;
+	bp = (bp - buf) + newbuf;
+	bufbase = (bufbase - buf) + newbuf;
 	buf = newbuf;
-	endpbb = buf+bufsize;
+	endpbb = buf + bufsize;
 }
 
 /*
@@ -235,15 +233,15 @@ getdiv(int n)
 	rewind(outfile[n]);
 	while ((c = getc(outfile[n])) != EOF)
 		putc(c, active);
-	(void) fclose(outfile[n]);
+	(void)fclose(outfile[n]);
 	outfile[n] = NULL;
 }
 
 void
 onintr(int signo __unused)
 {
-#define intrmessage	"m4: interrupted.\n"
-	write(STDERR_FILENO, intrmessage, sizeof(intrmessage)-1);
+#define intrmessage "m4: interrupted.\n"
+	write(STDERR_FILENO, intrmessage, sizeof(intrmessage) - 1);
 	_exit(1);
 }
 
@@ -257,7 +255,7 @@ killdiv(void)
 
 	for (n = 0; n < maxout; n++)
 		if (outfile[n] != NULL) {
-			(void) fclose(outfile[n]);
+			(void)fclose(outfile[n]);
 		}
 }
 
@@ -383,9 +381,10 @@ xstrdup(const char *s)
 void
 usage(void)
 {
-	fprintf(stderr, "usage: m4 [-EgPs] [-Dname[=value]] [-d flags] "
-			"[-I dirname] [-o filename]\n"
-			"\t[-t macro] [-Uname] [file ...]\n");
+	fprintf(stderr,
+	    "usage: m4 [-EgPs] [-Dname[=value]] [-d flags] "
+	    "[-I dirname] [-o filename]\n"
+	    "\t[-t macro] [-Uname] [file ...]\n");
 	exit(1);
 }
 
@@ -415,8 +414,8 @@ set_input(struct input_file *f, FILE *real, const char *name)
 void
 do_emit_synchline(void)
 {
-	fprintf(active, "#line %lu \"%s\"\n",
-	    infile[ilevel].lineno, infile[ilevel].name);
+	fprintf(active, "#line %lu \"%s\"\n", infile[ilevel].lineno,
+	    infile[ilevel].name);
 	infile[ilevel].synch_lineno = infile[ilevel].lineno;
 }
 
@@ -426,7 +425,7 @@ release_input(struct input_file *f)
 	if (ferror(f->file))
 		errx(1, "Fatal error reading from %s\n", f->name);
 	if (f->file != stdin)
-	    fclose(f->file);
+		fclose(f->file);
 	f->c = EOF;
 	/*
 	 * XXX can't free filename, as there might still be
@@ -458,12 +457,11 @@ buffer_mark(void)
 	return bp - buf;
 }
 
-
 void
 dump_buffer(FILE *f, size_t m)
 {
 	unsigned char *s;
 
-	for (s = bp; s-buf > (long)m;)
+	for (s = bp; s - buf > (long)m;)
 		fputc(*--s, f);
 }

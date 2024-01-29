@@ -53,28 +53,18 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/isci/scil/sci_base_remote_device.h>
 
-void sci_base_remote_device_construct(
-   SCI_BASE_REMOTE_DEVICE_T *this_device,
-   SCI_BASE_LOGGER_T        *logger,
-   SCI_BASE_STATE_T         *state_table
-)
+void
+sci_base_remote_device_construct(SCI_BASE_REMOTE_DEVICE_T *this_device,
+    SCI_BASE_LOGGER_T *logger, SCI_BASE_STATE_T *state_table)
 {
-   sci_base_object_construct(
-      &this_device->parent,
-      logger
-   );
+	sci_base_object_construct(&this_device->parent, logger);
 
-   sci_base_state_machine_construct(
-      &this_device->state_machine,
-      &this_device->parent,
-      state_table,
-      SCI_BASE_REMOTE_DEVICE_STATE_INITIAL
-   );
+	sci_base_state_machine_construct(&this_device->state_machine,
+	    &this_device->parent, state_table,
+	    SCI_BASE_REMOTE_DEVICE_STATE_INITIAL);
 
-   sci_base_state_machine_start(
-      &this_device->state_machine
-   );
+	sci_base_state_machine_start(&this_device->state_machine);
 }
-

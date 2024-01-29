@@ -35,8 +35,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "pr.h"
 #include "diff.h"
+#include "pr.h"
 #include "xmalloc.h"
 
 #define _PATH_PR "/usr/bin/pr"
@@ -118,6 +118,5 @@ stop_pr(struct pr *pr)
 	if (WIFEXITED(wstatus) && WEXITSTATUS(wstatus) != 0)
 		errx(2, "pr exited abnormally");
 	else if (WIFSIGNALED(wstatus))
-		errx(2, "pr killed by signal %d",
-		    WTERMSIG(wstatus));
+		errx(2, "pr killed by signal %d", WTERMSIG(wstatus));
 }

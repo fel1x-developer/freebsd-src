@@ -48,8 +48,7 @@ dotest(int domain, int type, int protocol)
 		err(-1, "socket(%d, %d, %d)", domain, type, protocol);
 
 	if (fstat(sock, &sb) < 0)
-		err(-1, "fstat on socket(%d, %d, %d)", domain, type,
-		    protocol);
+		err(-1, "fstat on socket(%d, %d, %d)", domain, type, protocol);
 
 	close(sock);
 }

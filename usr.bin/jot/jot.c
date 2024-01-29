@@ -36,66 +36,67 @@
  */
 
 #include <sys/capsicum.h>
+
 #include <capsicum_helpers.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 /* Defaults */
-#define	REPS_DEF	100
-#define	BEGIN_DEF	1
-#define	ENDER_DEF	100
-#define	STEP_DEF	1
+#define REPS_DEF 100
+#define BEGIN_DEF 1
+#define ENDER_DEF 100
+#define STEP_DEF 1
 
 /* Flags of options that have been set */
-#define HAVE_STEP	1
-#define HAVE_ENDER	2
-#define HAVE_BEGIN	4
-#define HAVE_REPS	8
+#define HAVE_STEP 1
+#define HAVE_ENDER 2
+#define HAVE_BEGIN 4
+#define HAVE_REPS 8
 
-#define	is_default(s)	(*(s) == 0 || strcmp((s), "-") == 0)
+#define is_default(s) (*(s) == 0 || strcmp((s), "-") == 0)
 
-static bool	boring;
-static int	prec = -1;
-static bool	longdata;
-static bool	intdata;
-static bool	chardata;
-static bool	nosign;
-static const	char *sepstring = "\n";
-static char	format[BUFSIZ];
+static bool boring;
+static int prec = -1;
+static bool longdata;
+static bool intdata;
+static bool chardata;
+static bool nosign;
+static const char *sepstring = "\n";
+static char format[BUFSIZ];
 
-static void	getformat(void);
-static int	getprec(const char *);
-static int	putdata(double, bool);
-static void	usage(void);
+static void getformat(void);
+static int getprec(const char *);
+static int putdata(double, bool);
+static void usage(void);
 
 int
 main(int argc, char **argv)
 {
 	cap_rights_t rights;
-	bool	have_format = false;
-	bool	infinity = false;
-	bool	nofinalnl = false;
-	bool	randomize = false;
-	bool	use_random = false;
-	int	ch;
-	int	mask = 0;
-	int	n = 0;
-	double	begin = BEGIN_DEF;
-	double	divisor;
-	double	ender = ENDER_DEF;
-	double	s = STEP_DEF;
-	double	x, y;
-	long	i;
-	long	reps = REPS_DEF;
+	bool have_format = false;
+	bool infinity = false;
+	bool nofinalnl = false;
+	bool randomize = false;
+	bool use_random = false;
+	int ch;
+	int mask = 0;
+	int n = 0;
+	double begin = BEGIN_DEF;
+	double divisor;
+	double ender = ENDER_DEF;
+	double s = STEP_DEF;
+	double x, y;
+	long i;
+	long reps = REPS_DEF;
 
 	if (caph_limit_stdio() < 0)
 		err(1, "unable to limit rights for stdio");
@@ -147,7 +148,7 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	switch (argc) {	/* examine args right to left, falling thru cases */
+	switch (argc) { /* examine args right to left, falling thru cases */
 	case 4:
 		if (!is_default(argv[3])) {
 			if (!sscanf(argv[3], "%lf", &s))
@@ -160,7 +161,7 @@ main(int argc, char **argv)
 	case 3:
 		if (!is_default(argv[2])) {
 			if (!sscanf(argv[2], "%lf", &ender))
-				ender = argv[2][strlen(argv[2])-1];
+				ender = argv[2][strlen(argv[2]) - 1];
 			mask |= HAVE_ENDER;
 			if (prec < 0)
 				n = getprec(argv[2]);
@@ -169,11 +170,11 @@ main(int argc, char **argv)
 	case 2:
 		if (!is_default(argv[1])) {
 			if (!sscanf(argv[1], "%lf", &begin))
-				begin = argv[1][strlen(argv[1])-1];
+				begin = argv[1][strlen(argv[1]) - 1];
 			mask |= HAVE_BEGIN;
 			if (prec < 0)
 				prec = getprec(argv[1]);
-			if (n > prec)		/* maximum precision */
+			if (n > prec) /* maximum precision */
 				prec = n;
 		}
 		/* FALLTHROUGH */
@@ -195,8 +196,8 @@ main(int argc, char **argv)
 	if (prec == -1)
 		prec = 0;
 
-	while (mask)	/* 4 bit mask has 1's where last 4 args were given */
-		switch (mask) {	/* fill in the 0's by default or computation */
+	while (mask) /* 4 bit mask has 1's where last 4 args were given */
+		switch (mask) { /* fill in the 0's by default or computation */
 		case HAVE_STEP:
 		case HAVE_ENDER:
 		case HAVE_ENDER | HAVE_STEP:
@@ -251,7 +252,8 @@ main(int argc, char **argv)
 		case HAVE_REPS | HAVE_BEGIN | HAVE_ENDER:
 			if (!randomize) {
 				if (reps == 0)
-					errx(1, "infinite sequences cannot "
+					errx(1,
+					    "infinite sequences cannot "
 					    "be bounded");
 				else if (reps == 1)
 					s = 0.0;
@@ -266,7 +268,7 @@ main(int argc, char **argv)
 				long t = (ender - begin + s) / s;
 				if (t <= 0)
 					errx(1, "impossible stepsize");
-				if (t < reps)		/* take lesser */
+				if (t < reps) /* take lesser */
 					reps = t;
 			}
 			mask = 0;
@@ -291,17 +293,16 @@ main(int argc, char **argv)
 		 * format would make the appearance of the first and
 		 * last specified value half as likely as the rest.
 		 */
-		if (!have_format && prec == 0 &&
-		    begin >= 0 && begin < divisor &&
-		    ender >= 0 && ender < divisor) {
+		if (!have_format && prec == 0 && begin >= 0 &&
+		    begin < divisor && ender >= 0 && ender < divisor) {
 			if (begin <= ender)
 				ender += 1;
 			else
 				begin += 1;
 			nosign = true;
 			intdata = true;
-			(void)strlcpy(format,
-			    chardata ? "%c" : "%u", sizeof(format));
+			(void)strlcpy(format, chardata ? "%c" : "%u",
+			    sizeof(format));
 		}
 		x = ender - begin;
 		for (i = 1; i <= reps || infinity; i++) {
@@ -366,20 +367,20 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-	"usage: jot [-cnr] [-b word] [-w word] [-s string] [-p precision]",
-	"           [reps [begin [end [s]]]]");
+	    "usage: jot [-cnr] [-b word] [-w word] [-s string] [-p precision]",
+	    "           [reps [begin [end [s]]]]");
 	exit(1);
 }
 
-/* 
+/*
  * Return the number of digits following the number's decimal point.
  * Return 0 if no decimal point is found.
  */
 static int
 getprec(const char *str)
 {
-	const char	*p;
-	const char	*q;
+	const char *p;
+	const char *q;
 
 	for (p = str; *p; p++)
 		if (*p == '.')
@@ -399,16 +400,16 @@ getprec(const char *str)
 static void
 getformat(void)
 {
-	char	*p, *p2;
+	char *p, *p2;
 	int dot, hash, space, sign, numbers = 0;
 	size_t sz;
 
-	if (boring)				/* no need to bother */
+	if (boring) /* no need to bother */
 		return;
-	for (p = format; *p; p++)		/* look for '%' */
+	for (p = format; *p; p++) /* look for '%' */
 		if (*p == '%') {
 			if (p[1] == '%')
-				p++;		/* leave %% alone */
+				p++; /* leave %% alone */
 			else
 				break;
 		}
@@ -420,10 +421,10 @@ getformat(void)
 		if (strlcpy(p, "%c", sz) >= sz)
 			errx(1, "-w word too long");
 		intdata = true;
-	} else if (!*(p+1)) {
+	} else if (!*(p + 1)) {
 		if (sz <= 0)
 			errx(1, "-w word too long");
-		strcat(format, "%");		/* cannot end in single '%' */
+		strcat(format, "%"); /* cannot end in single '%' */
 	} else {
 		/*
 		 * Allow conversion format specifiers of the form
@@ -436,11 +437,13 @@ getformat(void)
 			if (isdigit((unsigned char)*p)) {
 				numbers++;
 				p++;
-			} else if ((*p == '#' && !(numbers|dot|sign|space|
-			    hash++)) ||
-			    (*p == ' ' && !(numbers|dot|space++)) ||
-			    ((*p == '+' || *p == '-') && !(numbers|dot|sign++))
-			    || (*p == '.' && !(dot++)))
+			} else if ((*p == '#' &&
+				       !(numbers | dot | sign | space |
+					   hash++)) ||
+			    (*p == ' ' && !(numbers | dot | space++)) ||
+			    ((*p == '+' || *p == '-') &&
+				!(numbers | dot | sign++)) ||
+			    (*p == '.' && !(dot++)))
 				p++;
 			else
 				goto fmt_broken;
@@ -454,10 +457,14 @@ getformat(void)
 			}
 		}
 		switch (*p) {
-		case 'o': case 'u': case 'x': case 'X':
+		case 'o':
+		case 'u':
+		case 'x':
+		case 'X':
 			intdata = nosign = true;
 			break;
-		case 'd': case 'i':
+		case 'd':
+		case 'i':
 			intdata = true;
 			break;
 		case 'D':
@@ -465,7 +472,8 @@ getformat(void)
 				intdata = true;
 				break;
 			}
-		case 'O': case 'U':
+		case 'O':
+		case 'U':
 			if (!longdata) {
 				intdata = nosign = true;
 				break;
@@ -475,25 +483,35 @@ getformat(void)
 				chardata = true;
 				break;
 			}
-		case 'h': case 'n': case 'p': case 'q': case 's': case 'L':
-		case '$': case '*':
+		case 'h':
+		case 'n':
+		case 'p':
+		case 'q':
+		case 's':
+		case 'L':
+		case '$':
+		case '*':
 			goto fmt_broken;
-		case 'f': case 'e': case 'g': case 'E': case 'G':
+		case 'f':
+		case 'e':
+		case 'g':
+		case 'E':
+		case 'G':
 			if (!longdata)
 				break;
 			/* FALLTHROUGH */
 		default:
-fmt_broken:
+		fmt_broken:
 			*++p = '\0';
 			errx(1, "illegal or unsupported format '%s'", p2);
 			/* NOTREACHED */
 		}
 		while (*++p)
-			if (*p == '%' && *(p+1) && *(p+1) != '%')
+			if (*p == '%' && *(p + 1) && *(p + 1) != '%')
 				errx(1, "too many conversions");
-			else if (*p == '%' && *(p+1) == '%')
+			else if (*p == '%' && *(p + 1) == '%')
 				p++;
-			else if (*p == '%' && !*(p+1)) {
+			else if (*p == '%' && !*(p + 1)) {
 				if (strlcat(format, "%", sizeof(format)) >=
 				    sizeof(format))
 					errx(1, "-w word too long");

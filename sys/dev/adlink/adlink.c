@@ -47,82 +47,86 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/kthread.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
+#include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <pci_if.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <pci_if.h>
 
 #endif /* _KERNEL */
 
 #include <sys/ioccom.h>
 
-#define ADLINK_SETDIVISOR	_IOWR('A', 255, u_int)	/* divisor */
-#define ADLINK_SETCHUNKSIZE	_IOWR('A', 254, u_int)	/* bytes */
-#define ADLINK_SETRINGSIZE	_IOWR('A', 253, u_int)	/* bytes */
-#define ADLINK_START		_IOWR('A', 252, u_int)	/* dummy */
-#define ADLINK_STOP		_IOWR('A', 251, u_int)	/* dummy */
-#define ADLINK_RESET		_IOWR('A', 250, u_int)	/* dummy */
+#define ADLINK_SETDIVISOR _IOWR('A', 255, u_int)   /* divisor */
+#define ADLINK_SETCHUNKSIZE _IOWR('A', 254, u_int) /* bytes */
+#define ADLINK_SETRINGSIZE _IOWR('A', 253, u_int)  /* bytes */
+#define ADLINK_START _IOWR('A', 252, u_int)	   /* dummy */
+#define ADLINK_STOP _IOWR('A', 251, u_int)	   /* dummy */
+#define ADLINK_RESET _IOWR('A', 250, u_int)	   /* dummy */
 
 struct page0 {
-	u_int			version;
-	int			state;
-#	  define STATE_RESET	-1
-#	  define STATE_RUN	0
-	u_int			divisor;	/* int */
-	u_int			chunksize;	/* bytes */
-	u_int			ringsize;	/* chunks */
-	u_int			o_sample;	/*
-						 * offset of ring generation
-						 * array
-						 */
-	u_int			o_ring;		/* offset of ring */
+	u_int version;
+	int state;
+#define STATE_RESET -1
+#define STATE_RUN 0
+	u_int divisor;	 /* int */
+	u_int chunksize; /* bytes */
+	u_int ringsize;	 /* chunks */
+	u_int o_sample;	 /*
+			  * offset of ring generation
+			  * array
+			  */
+	u_int o_ring;	 /* offset of ring */
 };
 
-#define PAGE0VERSION	20050219
+#define PAGE0VERSION 20050219
 
 #ifdef _KERNEL
 
 struct pgstat {
-	uint64_t		*sample;
-	vm_paddr_t		phys;
-	void			*virt;
-	struct pgstat		*next;
+	uint64_t *sample;
+	vm_paddr_t phys;
+	void *virt;
+	struct pgstat *next;
 };
 
 struct softc {
-	device_t		device;
-	void			*intrhand;
-	struct resource		*res[3];
-	struct cdev		*dev;
-	off_t			mapvir;
-	int			error;
-	struct page0		*p0;
-	u_int			nchunks;
-	struct pgstat		*chunks;
-	struct pgstat		*next;
-	uint64_t		sample;
+	device_t device;
+	void *intrhand;
+	struct resource *res[3];
+	struct cdev *dev;
+	off_t mapvir;
+	int error;
+	struct page0 *p0;
+	u_int nchunks;
+	struct pgstat *chunks;
+	struct pgstat *next;
+	uint64_t sample;
 };
 
 static d_ioctl_t adlink_ioctl;
-static d_mmap_t	adlink_mmap;
+static d_mmap_t adlink_mmap;
 static int adlink_intr(void *arg);
 
 static struct cdevsw adlink_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_NEEDGIANT,
-	.d_ioctl =	adlink_ioctl,
-	.d_mmap =	adlink_mmap,
-	.d_name =	"adlink",
+	.d_version = D_VERSION,
+	.d_flags = D_NEEDGIANT,
+	.d_ioctl = adlink_ioctl,
+	.d_mmap = adlink_mmap,
+	.d_name = "adlink",
 };
 
 static int
@@ -161,8 +165,8 @@ adlink_intr(void *arg)
 }
 
 static int
-adlink_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int nprot, vm_memattr_t *memattr)
+adlink_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr, int nprot,
+    vm_memattr_t *memattr)
 {
 	struct softc *sc;
 	vm_offset_t o;
@@ -190,7 +194,8 @@ adlink_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
 }
 
 static int
-adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct softc *sc;
 	int i, error;
@@ -199,7 +204,7 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 	uint64_t *sample;
 
 	sc = dev->si_drv1;
-	u = *(u_int*)data;
+	u = *(u_int *)data;
 	error = 0;
 	switch (cmd) {
 	case ADLINK_SETDIVISOR:
@@ -231,7 +236,7 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 		if (sc->p0->state == STATE_RUN)
 			return (EBUSY);
 		if (sc->p0->state == STATE_RESET) {
-			
+
 			if (sc->p0->chunksize == 0)
 				sc->p0->chunksize = 4 * PAGE_SIZE;
 			if (sc->p0->ringsize == 0)
@@ -240,23 +245,22 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 				sc->p0->divisor = 4;
 
 			sc->nchunks = sc->p0->ringsize / sc->p0->chunksize;
-			if (sc->nchunks * sizeof (*pg->sample) +
-			    sizeof *sc->p0 > PAGE_SIZE)
+			if (sc->nchunks * sizeof(*pg->sample) + sizeof *sc->p0 >
+			    PAGE_SIZE)
 				return (EINVAL);
 			sc->p0->o_ring = PAGE_SIZE;
 			sample = (uint64_t *)(sc->p0 + 1);
-			sc->p0->o_sample =
-			    (uintptr_t)sample - (uintptr_t)(sc->p0);
-			pg = malloc(sizeof *pg * sc->nchunks,
-			    M_DEVBUF, M_WAITOK | M_ZERO);
+			sc->p0->o_sample = (uintptr_t)sample -
+			    (uintptr_t)(sc->p0);
+			pg = malloc(sizeof *pg * sc->nchunks, M_DEVBUF,
+			    M_WAITOK | M_ZERO);
 			sc->chunks = pg;
 			for (i = 0; i < sc->nchunks; i++) {
 				pg->sample = sample;
 				*pg->sample = 0;
 				sample++;
 				pg->virt = contigmalloc(sc->p0->chunksize,
-				    M_DEVBUF, M_WAITOK,
-				    0ul, 0xfffffffful,
+				    M_DEVBUF, M_WAITOK, 0ul, 0xfffffffful,
 				    PAGE_SIZE, 0);
 				pg->phys = vtophys(pg->virt);
 				if (i == sc->nchunks - 1)
@@ -317,7 +321,7 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 	case ADLINK_STOP:
 		if (sc->p0->state == STATE_RESET)
 			break;
-		sc->p0->state = EINTR;	
+		sc->p0->state = EINTR;
 		while (*(sc->next->sample) == 0)
 			tsleep(sc, PUSER | PCATCH, "adstop", 1);
 		break;
@@ -329,7 +333,7 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 	case ADLINK_RESET:
 		if (sc->p0->state == STATE_RESET)
 			break;
-		sc->p0->state = EINTR;	
+		sc->p0->state = EINTR;
 		while (*(sc->next->samp) == 0)
 			tsleep(sc, PUSER | PCATCH, "adreset", 1);
 		/* deallocate ring buffer */
@@ -342,15 +346,13 @@ adlink_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct threa
 	return (error);
 }
 
-struct pci_id
-{
-	uint16_t	vendor;
-	uint16_t	device;
-	const char	*desc;
-} adlink_id[] = {
-	{ .vendor = 0x10e8, .device = 0x80da,
-	  .desc ="Adlink PCI-9812 4 ch 12 bit 20 msps" }
-};
+struct pci_id {
+	uint16_t vendor;
+	uint16_t device;
+	const char *desc;
+} adlink_id[] = { { .vendor = 0x10e8,
+    .device = 0x80da,
+    .desc = "Adlink PCI-9812 4 ch 12 bit 20 msps" } };
 
 static int
 adlink_probe(device_t self)
@@ -370,12 +372,10 @@ adlink_probe(device_t self)
 	return (ENXIO);
 }
 
-static struct resource_spec adlink_res_spec[] = {
-	{ SYS_RES_IOPORT,	PCIR_BAR(0),	RF_ACTIVE},
-	{ SYS_RES_IOPORT,	PCIR_BAR(1),	RF_ACTIVE},
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE},
-	{ -1, 0, 0 }
-};
+static struct resource_spec adlink_res_spec[] = { { SYS_RES_IOPORT, PCIR_BAR(0),
+						      RF_ACTIVE },
+	{ SYS_RES_IOPORT, PCIR_BAR(1), RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 } };
 
 static int
 adlink_attach(device_t self)
@@ -391,13 +391,13 @@ adlink_attach(device_t self)
 	if (error)
 		return (error);
 
-	i = bus_setup_intr(self, sc->res[2], INTR_TYPE_MISC,
-	    adlink_intr, NULL, sc, &sc->intrhand);
+	i = bus_setup_intr(self, sc->res[2], INTR_TYPE_MISC, adlink_intr, NULL,
+	    sc, &sc->intrhand);
 	if (i) {
 		printf("adlink: Couldn't get FAST intr\n");
 		i = bus_setup_intr(self, sc->res[2],
-		    INTR_MPSAFE | INTR_TYPE_MISC,
-		    NULL, (driver_intr_t *)adlink_intr, sc, &sc->intrhand);
+		    INTR_MPSAFE | INTR_TYPE_MISC, NULL,
+		    (driver_intr_t *)adlink_intr, sc, &sc->intrhand);
 	}
 
 	if (i) {
@@ -409,8 +409,8 @@ adlink_attach(device_t self)
 	sc->p0->version = PAGE0VERSION;
 	sc->p0->state = STATE_RESET;
 
-	sc->dev = make_dev(&adlink_cdevsw, device_get_unit(self),
-	    UID_ROOT, GID_WHEEL, 0444, "adlink%d", device_get_unit(self));
+	sc->dev = make_dev(&adlink_cdevsw, device_get_unit(self), UID_ROOT,
+	    GID_WHEEL, 0444, "adlink%d", device_get_unit(self));
 	sc->dev->si_drv1 = sc;
 
 	return (0);
@@ -418,20 +418,17 @@ adlink_attach(device_t self)
 
 static device_method_t adlink_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		adlink_probe),
-	DEVMETHOD(device_attach,	adlink_attach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, adlink_probe),
+	DEVMETHOD(device_attach, adlink_attach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	DEVMETHOD_END
 };
 
-static driver_t adlink_driver = {
-	"adlink",
-	adlink_methods,
-	sizeof(struct softc)
-};
+static driver_t adlink_driver = { "adlink", adlink_methods,
+	sizeof(struct softc) };
 
 DRIVER_MODULE(adlink, pci, adlink_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, adlink, adlink_id,

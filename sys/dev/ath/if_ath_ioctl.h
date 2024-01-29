@@ -26,9 +26,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_IOCTL_H__
-#define	__IF_ATH_IOCTL_H__
+#ifndef __IF_ATH_IOCTL_H__
+#define __IF_ATH_IOCTL_H__
 
-extern	int ath_ioctl(struct ieee80211com *ic, u_long cmd, void *data);
+extern int ath_ioctl(struct ieee80211com *ic, u_long cmd, void *data);
 
 #endif

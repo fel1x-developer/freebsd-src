@@ -26,15 +26,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_CDEV_H_
-#define	_LINUXKPI_LINUX_CDEV_H_
-
-#include <linux/kobject.h>
-#include <linux/sysfs.h>
-#include <linux/kdev_t.h>
-#include <linux/list.h>
+#ifndef _LINUXKPI_LINUX_CDEV_H_
+#define _LINUXKPI_LINUX_CDEV_H_
 
 #include <asm/atomic-long.h>
+#include <linux/kdev_t.h>
+#include <linux/kobject.h>
+#include <linux/list.h>
+#include <linux/sysfs.h>
 
 struct device;
 struct file_operations;
@@ -46,13 +45,13 @@ extern const struct kobj_type linux_cdev_ktype;
 extern const struct kobj_type linux_cdev_static_ktype;
 
 struct linux_cdev {
-	struct kobject	kobj;
-	struct module	*owner;
-	struct cdev	*cdev;
-	dev_t		dev;
+	struct kobject kobj;
+	struct module *owner;
+	struct cdev *cdev;
+	dev_t dev;
 	const struct file_operations *ops;
-	u_int		refs;
-	u_int		siref;
+	u_int refs;
+	u_int siref;
 };
 
 struct linux_cdev *cdev_alloc(void);
@@ -91,8 +90,7 @@ cdev_add(struct linux_cdev *cdev, dev_t dev, unsigned count)
 	args.mda_mode = 0700;
 	args.mda_si_drv1 = cdev;
 
-	error = make_dev_s(&args, &cdev->cdev, "%s",
-	    kobject_name(&cdev->kobj));
+	error = make_dev_s(&args, &cdev->cdev, "%s", kobject_name(&cdev->kobj));
 	if (error)
 		return (-error);
 
@@ -131,16 +129,15 @@ cdev_del(struct linux_cdev *cdev)
 	kobject_put(&cdev->kobj);
 }
 
-struct linux_cdev *linux_find_cdev(const char *name, unsigned major, unsigned minor);
+struct linux_cdev *linux_find_cdev(const char *name, unsigned major,
+    unsigned minor);
 
 int linux_cdev_device_add(struct linux_cdev *, struct device *);
 void linux_cdev_device_del(struct linux_cdev *, struct device *);
 
-#define	cdev_device_add(...)		\
-  linux_cdev_device_add(__VA_ARGS__)
-#define	cdev_device_del(...)		\
-  linux_cdev_device_del(__VA_ARGS__)
+#define cdev_device_add(...) linux_cdev_device_add(__VA_ARGS__)
+#define cdev_device_del(...) linux_cdev_device_del(__VA_ARGS__)
 
-#define	cdev	linux_cdev
+#define cdev linux_cdev
 
-#endif	/* _LINUXKPI_LINUX_CDEV_H_ */
+#endif /* _LINUXKPI_LINUX_CDEV_H_ */

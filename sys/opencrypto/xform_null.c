@@ -48,17 +48,18 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <opencrypto/xform_auth.h>
 #include <opencrypto/xform_enc.h>
 
-static	int null_setkey(void *, const uint8_t *, int);
-static	void null_crypt(void *, const uint8_t *, uint8_t *);
-static	void null_crypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static int null_setkey(void *, const uint8_t *, int);
+static void null_crypt(void *, const uint8_t *, uint8_t *);
+static void null_crypt_multi(void *, const uint8_t *, uint8_t *, size_t);
 
-static	void null_init(void *);
-static	void null_reinit(void *ctx, const uint8_t *buf, u_int len);
-static	int null_update(void *, const void *, u_int);
-static	void null_final(uint8_t *, void *);
+static void null_init(void *);
+static void null_reinit(void *ctx, const uint8_t *buf, u_int len);
+static int null_update(void *, const void *, u_int);
+static void null_final(uint8_t *, void *);
 
 /* Encryption instances */
 const struct enc_xform enc_xform_null = {
@@ -82,7 +83,7 @@ const struct auth_hash auth_hash_null = {
 	.name = "NULL-HMAC",
 	.keysize = 0,
 	.hashsize = NULL_HASH_LEN,
-	.ctxsize = sizeof(int),	/* NB: context isn't used */
+	.ctxsize = sizeof(int), /* NB: context isn't used */
 	.blocksize = NULL_HMAC_BLOCK_LEN,
 	.Init = null_init,
 	.Setkey = null_reinit,

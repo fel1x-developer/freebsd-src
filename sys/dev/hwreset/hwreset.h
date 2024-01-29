@@ -24,9 +24,10 @@
  */
 
 #ifndef _DEV_HWRESET_HWRESET_H_
-#define	_DEV_HWRESET_HWRESET_H_
+#define _DEV_HWRESET_HWRESET_H_
 
 #include "opt_platform.h"
+
 #include <sys/types.h>
 #ifdef FDT
 #include <dev/ofw/ofw_bus.h>
@@ -68,6 +69,5 @@ int hwreset_array_deassert(hwreset_array_t rsts);
 int hwreset_array_get_ofw(device_t consumer_dev, phandle_t cnode,
     hwreset_array_t *rsts);
 #endif
-
 
 #endif /* _DEV_HWRESET_HWRESET_H_ */

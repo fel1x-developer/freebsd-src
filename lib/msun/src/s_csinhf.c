@@ -55,7 +55,7 @@ csinhf(float complex z)
 	if (ix < 0x7f800000 && iy < 0x7f800000) {
 		if (iy == 0)
 			return (CMPLXF(sinhf(x), y));
-		if (ix < 0x41100000)	/* |x| < 9: normal case */
+		if (ix < 0x41100000) /* |x| < 9: normal case */
 			return (CMPLXF(sinhf(x) * cosf(y), coshf(x) * sinf(y)));
 
 		/* |x| >= 9, so cosh(x) ~= exp(|x|) */
@@ -74,13 +74,13 @@ csinhf(float complex z)
 		}
 	}
 
-	if (ix == 0)			/* && iy >= 0x7f800000 */
+	if (ix == 0) /* && iy >= 0x7f800000 */
 		return (CMPLXF(x, y - y));
 
-	if (iy == 0)			/* && ix >= 0x7f800000 */
+	if (iy == 0) /* && ix >= 0x7f800000 */
 		return (CMPLXF(x + x, y));
 
-	if (ix < 0x7f800000)		/* && iy >= 0x7f800000 */
+	if (ix < 0x7f800000) /* && iy >= 0x7f800000 */
 		return (CMPLXF(y - y, y - y));
 
 	if (ix == 0x7f800000) {

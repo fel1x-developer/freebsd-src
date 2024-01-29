@@ -1,17 +1,16 @@
-#include "ipf.h"
 #include <ctype.h>
 
+#include "ipf.h"
 
 typedef struct ipfopentry {
-	int	ipoe_cmd;
-	int	ipoe_nbasearg;
-	int	ipoe_maxarg;
-	int	ipoe_argsize;
-	char	*ipoe_word;
+	int ipoe_cmd;
+	int ipoe_nbasearg;
+	int ipoe_maxarg;
+	int ipoe_argsize;
+	char *ipoe_word;
 } ipfopentry_t;
 
-static ipfopentry_t opwords[17] = {
-	{ IPF_EXP_IP_ADDR, 2, 0, 1, "ip.addr" },
+static ipfopentry_t opwords[17] = { { IPF_EXP_IP_ADDR, 2, 0, 1, "ip.addr" },
 	{ IPF_EXP_IP6_ADDR, 2, 0, 4, "ip6.addr" },
 	{ IPF_EXP_IP_PR, 1, 0, 1, "ip.p" },
 	{ IPF_EXP_IP_SRCADDR, 2, 0, 1, "ip.src" },
@@ -26,10 +25,7 @@ static ipfopentry_t opwords[17] = {
 	{ IPF_EXP_UDP_DPORT, 1, 0, 1, "udp.dport" },
 	{ IPF_EXP_UDP_SPORT, 1, 0, 1, "udp.sport" },
 	{ IPF_EXP_TCP_STATE, 1, 0, 1, "tcp.state" },
-	{ IPF_EXP_IDLE_GT, 1, 1, 1, "idle-gt" },
-	{ -1, 0, 0, 0, NULL  }
-};
-
+	{ IPF_EXP_IDLE_GT, 1, 1, 1, "idle-gt" }, { -1, 0, 0, 0, NULL } };
 
 int *
 parseipfexpr(char *line, char **errorptr)
@@ -52,7 +48,7 @@ parseipfexpr(char *line, char **errorptr)
 	/*
 	 * Eliminate any white spaces to make parsing easier.
 	 */
-	for (s = temp; *s != '\0'; ) {
+	for (s = temp; *s != '\0';) {
 		if (ISSPACE(*s))
 			strcpy(s, s + 1);
 		else
@@ -86,7 +82,6 @@ parseipfexpr(char *line, char **errorptr)
 			not = 0;
 		}
 		*arg++ = '\0';
-
 
 		for (e = opwords; e->ipoe_word; e++) {
 			if (strcmp(ops, e->ipoe_word) == 0)
@@ -127,7 +122,7 @@ parseipfexpr(char *line, char **errorptr)
 		ipfe = (ipfexp_t *)(oplist + osize);
 		osize += 4;
 		ipfe->ipfe_cmd = e->ipoe_cmd;
-		ipfe->ipfe_not = not;
+		ipfe->ipfe_not = not ;
 		ipfe->ipfe_narg = items * e->ipoe_nbasearg;
 		ipfe->ipfe_size = items * e->ipoe_nbasearg * e->ipoe_argsize;
 		ipfe->ipfe_size += 4;
@@ -151,8 +146,8 @@ parseipfexpr(char *line, char **errorptr)
 				delim = strchr(s, '/');
 				if (delim != NULL) {
 					*delim++ = '\0';
-					if (genmask(AF_INET, delim,
-						    &mask) == -1) {
+					if (genmask(AF_INET, delim, &mask) ==
+					    -1) {
 						error = "genmask failed";
 						goto parseerror;
 					}
@@ -177,8 +172,8 @@ parseipfexpr(char *line, char **errorptr)
 				delim = strchr(s, '/');
 				if (delim != NULL) {
 					*delim++ = '\0';
-					if (genmask(AF_INET6, delim,
-						    &mask) == -1) {
+					if (genmask(AF_INET6, delim, &mask) ==
+					    -1) {
 						error = "genmask failed";
 						goto parseerror;
 					}
@@ -226,7 +221,6 @@ parseipfexpr(char *line, char **errorptr)
 
 				oplist[osize++] = flags;
 				oplist[osize++] = mask;
-
 
 			} else if (!strcasecmp(ops, "tcp.port") ||
 			    !strcasecmp(ops, "tcp.sport") ||

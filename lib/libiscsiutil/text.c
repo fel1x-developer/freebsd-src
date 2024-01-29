@@ -29,12 +29,13 @@
  */
 
 #include <sys/types.h>
+
 #include <netinet/in.h>
 
+#include <iscsi_proto.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <iscsi_proto.h>
 #include "libiscsiutil.h"
 
 /* Construct a new TextRequest PDU. */
@@ -78,11 +79,15 @@ text_receive_request(struct connection *conn)
 	 */
 	if ((bhstr->bhstr_flags & (BHSTR_FLAGS_FINAL | BHSTR_FLAGS_CONTINUE)) !=
 	    BHSTR_FLAGS_FINAL)
-		log_errx(1, "received TextRequest PDU with invalid "
-		    "flags: %u", bhstr->bhstr_flags);
+		log_errx(1,
+		    "received TextRequest PDU with invalid "
+		    "flags: %u",
+		    bhstr->bhstr_flags);
 	if (ISCSI_SNLT(ntohl(bhstr->bhstr_cmdsn), conn->conn_cmdsn)) {
-		log_errx(1, "received TextRequest PDU with decreasing CmdSN: "
-		    "was %u, is %u", conn->conn_cmdsn, ntohl(bhstr->bhstr_cmdsn));
+		log_errx(1,
+		    "received TextRequest PDU with decreasing CmdSN: "
+		    "was %u, is %u",
+		    conn->conn_cmdsn, ntohl(bhstr->bhstr_cmdsn));
 	}
 	conn->conn_cmdsn = ntohl(bhstr->bhstr_cmdsn);
 	if ((bhstr->bhstr_opcode & ISCSI_BHS_OPCODE_IMMEDIATE) == 0)
@@ -138,24 +143,29 @@ text_receive_response(struct connection *conn)
 	switch (flags) {
 	case BHSTR_FLAGS_CONTINUE:
 		if (bhstr->bhstr_target_transfer_tag == 0xffffffff)
-			log_errx(1, "received continue TextResponse PDU with "
+			log_errx(1,
+			    "received continue TextResponse PDU with "
 			    "invalid TTT 0x%x",
 			    bhstr->bhstr_target_transfer_tag);
 		break;
 	case BHSTR_FLAGS_FINAL:
 		if (bhstr->bhstr_target_transfer_tag != 0xffffffff)
-			log_errx(1, "received final TextResponse PDU with "
+			log_errx(1,
+			    "received final TextResponse PDU with "
 			    "invalid TTT 0x%x",
 			    bhstr->bhstr_target_transfer_tag);
 		break;
 	default:
-		log_errx(1, "received TextResponse PDU with invalid "
-		    "flags: %u", bhstr->bhstr_flags);
+		log_errx(1,
+		    "received TextResponse PDU with invalid "
+		    "flags: %u",
+		    bhstr->bhstr_flags);
 	}
 	if (ntohl(bhstr->bhstr_statsn) != conn->conn_statsn + 1) {
-		log_errx(1, "received TextResponse PDU with wrong StatSN: "
-		    "is %u, should be %u", ntohl(bhstr->bhstr_statsn),
-		    conn->conn_statsn + 1);
+		log_errx(1,
+		    "received TextResponse PDU with wrong StatSN: "
+		    "is %u, should be %u",
+		    ntohl(bhstr->bhstr_statsn), conn->conn_statsn + 1);
 	}
 	conn->conn_statsn = ntohl(bhstr->bhstr_statsn);
 
@@ -223,7 +233,8 @@ text_read_response(struct connection *conn)
 			break;
 		}
 		if (bhstr->bhstr_target_transfer_tag != ttt)
-			log_errx(1, "received non-final TextRequest PDU with "
+			log_errx(1,
+			    "received non-final TextRequest PDU with "
 			    "invalid TTT 0x%x",
 			    bhstr->bhstr_target_transfer_tag);
 		pdu_delete(response);
@@ -256,9 +267,10 @@ text_read_request(struct connection *conn, struct pdu **requestp)
 		log_errx(1, "received TextRequest PDU with invalid TTT 0x%x",
 		    bhstr->bhstr_target_transfer_tag);
 	if (ntohl(bhstr->bhstr_expstatsn) != conn->conn_statsn) {
-		log_errx(1, "received TextRequest PDU with wrong ExpStatSN: "
-		    "is %u, should be %u", ntohl(bhstr->bhstr_expstatsn),
-		    conn->conn_statsn);
+		log_errx(1,
+		    "received TextRequest PDU with wrong ExpStatSN: "
+		    "is %u, should be %u",
+		    ntohl(bhstr->bhstr_expstatsn), conn->conn_statsn);
 	}
 
 	request_keys = keys_new();
@@ -319,14 +331,18 @@ text_send_response(struct pdu *request, struct keys *response_keys)
 		request2 = text_receive_request(conn);
 		bhstr = (struct iscsi_bhs_text_request *)request2->pdu_bhs;
 		if ((bhstr->bhstr_flags & BHSTR_FLAGS_FINAL) == 0)
-			log_errx(1, "received continuation TextRequest PDU "
+			log_errx(1,
+			    "received continuation TextRequest PDU "
 			    "without F set");
 		if (pdu_data_segment_length(request2) != 0)
-			log_errx(1, "received non-empty continuation "
+			log_errx(1,
+			    "received non-empty continuation "
 			    "TextRequest PDU");
 		if (bhstr->bhstr_target_transfer_tag != ttt)
-			log_errx(1, "received TextRequest PDU with invalid "
-			    "TTT 0x%x", bhstr->bhstr_target_transfer_tag);
+			log_errx(1,
+			    "received TextRequest PDU with invalid "
+			    "TTT 0x%x",
+			    bhstr->bhstr_target_transfer_tag);
 		pdu_delete(request2);
 	}
 	free(keys_data);

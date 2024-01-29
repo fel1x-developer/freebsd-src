@@ -5,13 +5,12 @@
  */
 
 #include <sys/ioctl.h>
+
 #include "ipf.h"
 #include "netinet/ipl.h"
 
-
 void
-printpool_live(ip_pool_t *pool, int fd, char *name, int opts,
-	wordtab_t *fields)
+printpool_live(ip_pool_t *pool, int fd, char *name, int opts, wordtab_t *fields)
 {
 	ip_pool_node_t entry;
 	ipflookupiter_t iter;
@@ -52,7 +51,7 @@ printpool_live(ip_pool_t *pool, int fd, char *name, int opts,
 				last = 1;
 			if (opts & OPT_SAVEOUT)
 				PRINTF("\t");
-			(void) printpoolnode(&entry, opts, fields);
+			(void)printpoolnode(&entry, opts, fields);
 			if ((opts & OPT_DEBUG) == 0)
 				putchar(';');
 			if (opts & OPT_SAVEOUT)
@@ -69,7 +68,7 @@ printpool_live(ip_pool_t *pool, int fd, char *name, int opts,
 	else if ((opts & OPT_DEBUG) == 0)
 		PRINTF(" };\n");
 
-	(void) ioctl(fd,SIOCIPFDELTOK, &iter.ili_key);
+	(void)ioctl(fd, SIOCIPFDELTOK, &iter.ili_key);
 
 	return;
 }

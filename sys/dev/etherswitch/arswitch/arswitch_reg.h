@@ -25,23 +25,23 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__ARSWITCH_REG_H__
-#define	__ARSWITCH_REG_H__
+#ifndef __ARSWITCH_REG_H__
+#define __ARSWITCH_REG_H__
 
-extern	void arswitch_writedbg(device_t dev, int phy, uint16_t dbg_addr,
-	    uint16_t dbg_data);
-extern	void arswitch_writemmd(device_t dev, int phy, uint16_t dbg_addr,
-	    uint16_t dbg_data);
+extern void arswitch_writedbg(device_t dev, int phy, uint16_t dbg_addr,
+    uint16_t dbg_data);
+extern void arswitch_writemmd(device_t dev, int phy, uint16_t dbg_addr,
+    uint16_t dbg_data);
 
-extern	int arswitch_readreg(device_t dev, int addr);
-extern	int arswitch_writereg(device_t dev, int addr, int value);
-extern	int arswitch_modifyreg(device_t dev, int addr, int mask, int set);
-extern	int arswitch_waitreg(device_t, int, int, int, int);
+extern int arswitch_readreg(device_t dev, int addr);
+extern int arswitch_writereg(device_t dev, int addr, int value);
+extern int arswitch_modifyreg(device_t dev, int addr, int mask, int set);
+extern int arswitch_waitreg(device_t, int, int, int, int);
 
-extern	int arswitch_readreg_lsb(device_t dev, int addr);
-extern	int arswitch_readreg_msb(device_t dev, int addr);
+extern int arswitch_readreg_lsb(device_t dev, int addr);
+extern int arswitch_readreg_msb(device_t dev, int addr);
 
-extern	int arswitch_writereg_lsb(device_t dev, int addr, int data);
-extern	int arswitch_writereg_msb(device_t dev, int addr, int data);
+extern int arswitch_writereg_lsb(device_t dev, int addr, int data);
+extern int arswitch_writereg_msb(device_t dev, int addr, int data);
 
-#endif	/* __ARSWITCH_REG_H__ */
+#endif /* __ARSWITCH_REG_H__ */

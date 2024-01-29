@@ -24,9 +24,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <efivar.h>
-#include <sys/efiio.h>
 #include <sys/param.h>
+#include <sys/efiio.h>
+
+#include <efivar.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -37,12 +38,17 @@
 
 static int efi_fd = -2;
 
-#define Z { 0, 0, 0, 0, 0, { 0 } }
+#define Z                      \
+	{                      \
+		0, 0, 0, 0, 0, \
+		{              \
+			0      \
+		}              \
+	}
 
 const efi_guid_t efi_guid_empty = Z;
 
-static struct uuid_table guid_tbl [] =
-{
+static struct uuid_table guid_tbl[] = {
 	{ "00000000-0000-0000-0000-000000000000", "zero", Z },
 	{ "093e0fae-a6c4-4f50-9f1b-d41e2b89c19a", "sha512", Z },
 	{ "0abba7dc-e516-4167-bbf5-4d9d1c739416", "redhat", Z },
@@ -74,7 +80,8 @@ static struct uuid_table guid_tbl [] =
 	{ "d719b2cb-3d3a-4596-a3bc-dad00e67656f", "security", Z },
 	{ "e2b36190-879b-4a3d-ad8d-f2e7bba32784", "rsa2048_sha256", Z },
 	{ "ff3e5307-9fd0-48c9-85f1-8ad56c701e01", "sha384", Z },
-	{ "f46ee6f4-4785-43a3-923d-7f786c3c8479", "lenovo_startup_interrupt", Z },
+	{ "f46ee6f4-4785-43a3-923d-7f786c3c8479", "lenovo_startup_interrupt",
+	    Z },
 	{ "ffffffff-ffff-ffff-ffff-ffffffffffff", "zzignore-this-guid", Z },
 };
 #undef Z
@@ -93,8 +100,10 @@ efi_guid_tbl_compile(void)
 		    &status);
 		/* all f's is a bad version, so ignore that error */
 		if (status != uuid_s_ok && status != uuid_s_bad_version)
-			fprintf(stderr, "Can't convert %s to a uuid for %s: %d\n",
-			    guid_tbl[i].uuid_str, guid_tbl[i].name, (int)status);
+			fprintf(stderr,
+			    "Can't convert %s to a uuid for %s: %d\n",
+			    guid_tbl[i].uuid_str, guid_tbl[i].name,
+			    (int)status);
 	}
 	done = 1;
 }
@@ -142,8 +151,8 @@ rv_to_linux_rv(int rv)
 }
 
 int
-efi_append_variable(efi_guid_t guid, const char *name,
-    uint8_t *data, size_t data_size, uint32_t attributes)
+efi_append_variable(efi_guid_t guid, const char *name, uint8_t *data,
+    size_t data_size, uint32_t attributes)
 {
 
 	return efi_set_variable(guid, name, data, data_size,
@@ -159,12 +168,12 @@ efi_del_variable(efi_guid_t guid, const char *name)
 }
 
 int
-efi_get_variable(efi_guid_t guid, const char *name,
-    uint8_t **data, size_t *data_size, uint32_t *attributes)
+efi_get_variable(efi_guid_t guid, const char *name, uint8_t **data,
+    size_t *data_size, uint32_t *attributes)
 {
 	struct efi_var_ioc var;
 	int rv;
-	static uint8_t buf[1024*32];
+	static uint8_t buf[1024 * 32];
 
 	if (efi_open_dev() == -1)
 		return -1;
@@ -199,8 +208,7 @@ efi_get_variable_attributes(efi_guid_t guid, const char *name,
 }
 
 int
-efi_get_variable_size(efi_guid_t guid, const char *name,
-    size_t *size)
+efi_get_variable_size(efi_guid_t guid, const char *name, size_t *size)
 {
 
 	/* XXX check to make sure this matches the linux value */
@@ -261,9 +269,10 @@ again:
 	}
 
 	if (rv == 0) {
-		free(*name);			/* Free last name, to avoid leaking */
-		*name = NULL;			/* Force ucs2_to_utf8 to malloc new space */
-		var.name[var.namesize / sizeof(efi_char)] = 0;	/* EFI doesn't NUL terminate */
+		free(*name);  /* Free last name, to avoid leaking */
+		*name = NULL; /* Force ucs2_to_utf8 to malloc new space */
+		var.name[var.namesize / sizeof(efi_char)] =
+		    0; /* EFI doesn't NUL terminate */
 		rv = ucs2_to_utf8(var.name, name);
 		if (rv != 0)
 			goto errout;
@@ -272,12 +281,14 @@ again:
 	}
 errout:
 
-	/* XXX The linux interface expects name to be a static buffer -- fix or leak memory? */
-	/* XXX for the moment, we free just before we'd leak, but still leak last one */
+	/* XXX The linux interface expects name to be a static buffer -- fix or
+	 * leak memory? */
+	/* XXX for the moment, we free just before we'd leak, but still leak
+	 * last one */
 done:
 	if (rv != 0 && errno == ENOENT) {
 		errno = 0;
-		free(*name);			/* Free last name, to avoid leaking */
+		free(*name); /* Free last name, to avoid leaking */
 		return 0;
 	}
 
@@ -354,8 +365,8 @@ efi_name_to_guid(const char *name, efi_guid_t *guid)
 }
 
 int
-efi_set_variable(efi_guid_t guid, const char *name,
-    uint8_t *data, size_t data_size, uint32_t attributes)
+efi_set_variable(efi_guid_t guid, const char *name, uint8_t *data,
+    size_t data_size, uint32_t attributes)
 {
 	struct efi_var_ioc var;
 	int rv;

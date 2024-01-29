@@ -24,10 +24,11 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int
 main(void)
@@ -35,15 +36,15 @@ main(void)
 	bool known_arch_type;
 
 	known_arch_type = false;
-#ifdef	__LP64__
+#ifdef __LP64__
 	printf("LP64\n");
 	known_arch_type = true;
 #endif
-#ifdef	__LP32__
+#ifdef __LP32__
 	printf("LP32\n");
 	known_arch_type = true;
 #endif
-#ifdef	__ILP32__
+#ifdef __ILP32__
 	printf("ILP32\n");
 	known_arch_type = true;
 #endif

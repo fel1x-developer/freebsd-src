@@ -33,6 +33,7 @@
 
 #include <netinet/in.h>
 
+#include <atf-c.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -40,9 +41,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-#define	SYSCTLBAKFILE	"tmp.net.inet.ip.portrange.randomized"
+#define SYSCTLBAKFILE "tmp.net.inet.ip.portrange.randomized"
 
 /*
  * Check if port allocation is randomized. If so, update it. Save the old
@@ -70,19 +69,20 @@ disable_random_ports(void)
 	    &sysctlsz, &random_new, sizeof(random_new));
 	if (error) {
 		warn("sysctlbyname(\"net.inet.ip.portrange.randomized\") "
-		    "failed");
+		     "failed");
 		atf_tc_skip("Unable to set sysctl");
 	}
 	if (sysctlsz != sizeof(random_save)) {
-		fprintf(stderr, "Error: unexpected sysctl value size "
-		    "(expected %zu, actual %zu)\n", sizeof(random_save),
-		    sysctlsz);
+		fprintf(stderr,
+		    "Error: unexpected sysctl value size "
+		    "(expected %zu, actual %zu)\n",
+		    sizeof(random_save), sysctlsz);
 		goto restore_sysctl;
 	}
 
 	/* Open the backup file, write the contents, and close it. */
-	fd = open(SYSCTLBAKFILE, O_WRONLY|O_CREAT|O_TRUNC|O_EXCL,
-	    S_IRUSR|S_IWUSR);
+	fd = open(SYSCTLBAKFILE, O_WRONLY | O_CREAT | O_TRUNC | O_EXCL,
+	    S_IRUSR | S_IWUSR);
 	if (fd < 0) {
 		warn("error opening sysctl backup file");
 		goto restore_sysctl;
@@ -95,16 +95,17 @@ disable_random_ports(void)
 	if (error != (int)sizeof(random_save)) {
 		fprintf(stderr,
 		    "Error writing saved value to sysctl backup file: "
-		    "(expected %zu, actual %d)\n", sizeof(random_save), error);
+		    "(expected %zu, actual %d)\n",
+		    sizeof(random_save), error);
 		goto cleanup_and_restore;
 	}
 	error = close(fd);
 	if (error) {
 		warn("error closing sysctl backup file");
-cleanup_and_restore:
+	cleanup_and_restore:
 		(void)close(fd);
 		(void)unlink(SYSCTLBAKFILE);
-restore_sysctl:
+	restore_sysctl:
 		(void)sysctlbyname("net.inet.ip.portrange.randomized", NULL,
 		    NULL, &random_save, sysctlsz);
 		atf_tc_skip("Error setting sysctl");
@@ -133,7 +134,8 @@ restore_random_ports(void)
 	if (error != (int)sizeof(random_save)) {
 		fprintf(stderr,
 		    "Error reading saved value from sysctl backup file: "
-		    "(expected %zu, actual %d)\n", sizeof(random_save), error);
+		    "(expected %zu, actual %d)\n",
+		    sizeof(random_save), error);
 		return;
 	}
 	error = close(fd);
@@ -148,7 +150,7 @@ restore_random_ports(void)
 	    &random_save, sizeof(random_save));
 	if (error)
 		warn("sysctlbyname(\"net.inet.ip.portrange.randomized\") "
-		    "failed while restoring value");
+		     "failed while restoring value");
 }
 
 /*
@@ -192,54 +194,56 @@ connect_loop(int domain, const struct sockaddr *addr)
 	salen = sizeof(su_srvr);
 	error = getsockname(lsock, &su_srvr.saddr, &salen);
 	ATF_REQUIRE_MSG(error == 0,
-	    "getsockname() for listen socket failed: %s",
-	    strerror(errno));
-	ATF_REQUIRE_MSG(salen == (domain == PF_INET ?
-	    sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6)),
+	    "getsockname() for listen socket failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(salen ==
+		(domain == PF_INET ? sizeof(struct sockaddr_in) :
+				     sizeof(struct sockaddr_in6)),
 	    "unexpected sockaddr size");
-	ATF_REQUIRE_MSG(su_srvr.saddr.sa_len == (domain == PF_INET ?
-	    sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6)),
+	ATF_REQUIRE_MSG(su_srvr.saddr.sa_len ==
+		(domain == PF_INET ? sizeof(struct sockaddr_in) :
+				     sizeof(struct sockaddr_in6)),
 	    "unexpected sa_len size");
 
 	/* Open 64K connections in a loop. */
 	for (i = 0; i < 65536; i++) {
 		csock = socket(domain, SOCK_STREAM, 0);
 		ATF_REQUIRE_MSG(csock >= 0,
-		    "socket() for client socket %d failed: %s",
-		    i, strerror(errno));
+		    "socket() for client socket %d failed: %s", i,
+		    strerror(errno));
 
 		error = connect(csock, &su_srvr.saddr, su_srvr.saddr.sa_len);
 		ATF_REQUIRE_MSG(error == 0,
-		    "connect() for client socket %d failed: %s",
-		    i, strerror(errno));
+		    "connect() for client socket %d failed: %s", i,
+		    strerror(errno));
 
 		error = setsockopt(csock, SOL_SOCKET, SO_LINGER, &lopt,
 		    sizeof(lopt));
 		ATF_REQUIRE_MSG(error == 0,
-		    "Setting linger for client socket %d failed: %s",
-		    i, strerror(errno));
+		    "Setting linger for client socket %d failed: %s", i,
+		    strerror(errno));
 
 		/* Ascertain the client socket address. */
 		salen = sizeof(su_clnt);
 		error = getsockname(csock, &su_clnt.saddr, &salen);
 		ATF_REQUIRE_MSG(error == 0,
-		    "getsockname() for client socket %d failed: %s",
-		    i, strerror(errno));
-		ATF_REQUIRE_MSG(salen == (domain == PF_INET ?
-		    sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6)),
+		    "getsockname() for client socket %d failed: %s", i,
+		    strerror(errno));
+		ATF_REQUIRE_MSG(salen ==
+			(domain == PF_INET ? sizeof(struct sockaddr_in) :
+					     sizeof(struct sockaddr_in6)),
 		    "unexpected sockaddr size for client socket %d", i);
 
 		/* Ensure the ports do not match. */
 		switch (domain) {
 		case PF_INET:
 			ATF_REQUIRE_MSG(su_clnt.saddr4.sin_port !=
-			    su_srvr.saddr4.sin_port,
+				su_srvr.saddr4.sin_port,
 			    "client socket %d using the same port as server",
 			    i);
 			break;
 		case PF_INET6:
 			ATF_REQUIRE_MSG(su_clnt.saddr6.sin6_port !=
-			    su_srvr.saddr6.sin6_port,
+				su_srvr.saddr6.sin6_port,
 			    "client socket %d using the same port as server",
 			    i);
 			break;
@@ -248,18 +252,18 @@ connect_loop(int domain, const struct sockaddr *addr)
 		/* Accept the socket and close both ends. */
 		asock = accept(lsock, NULL, NULL);
 		ATF_REQUIRE_MSG(asock >= 0,
-		    "accept() failed for client socket %d: %s",
-		    i, strerror(errno));
+		    "accept() failed for client socket %d: %s", i,
+		    strerror(errno));
 
 		error = close(asock);
 		ATF_REQUIRE_MSG(error == 0,
-		    "close() failed for accepted socket %d: %s",
-		    i, strerror(errno));
+		    "close() failed for accepted socket %d: %s", i,
+		    strerror(errno));
 
 		error = close(csock);
 		ATF_REQUIRE_MSG(error == 0,
-		    "close() failed for client socket %d: %s",
-		    i, strerror(errno));
+		    "close() failed for client socket %d: %s", i,
+		    strerror(errno));
 	}
 }
 
@@ -328,4 +332,3 @@ ATF_TP_ADD_TCS(tp)
 
 	return (atf_no_error());
 }
-

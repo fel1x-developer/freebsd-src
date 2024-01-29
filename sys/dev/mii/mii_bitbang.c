@@ -48,19 +48,19 @@ MODULE_VERSION(mii_bitbang, 1);
 static void mii_bitbang_sendbits(device_t dev, mii_bitbang_ops_t ops,
     uint32_t data, int nbits);
 
-#define	MWRITE(x)							\
-do {									\
-	ops->mbo_write(dev, (x));					\
-	DELAY(1);							\
-} while (/* CONSTCOND */ 0)
+#define MWRITE(x)                         \
+	do {                              \
+		ops->mbo_write(dev, (x)); \
+		DELAY(1);                 \
+	} while (/* CONSTCOND */ 0)
 
-#define	MREAD		ops->mbo_read(dev)
+#define MREAD ops->mbo_read(dev)
 
-#define	MDO		ops->mbo_bits[MII_BIT_MDO]
-#define	MDI		ops->mbo_bits[MII_BIT_MDI]
-#define	MDC		ops->mbo_bits[MII_BIT_MDC]
-#define	MDIRPHY		ops->mbo_bits[MII_BIT_DIR_HOST_PHY]
-#define	MDIRHOST	ops->mbo_bits[MII_BIT_DIR_PHY_HOST]
+#define MDO ops->mbo_bits[MII_BIT_MDO]
+#define MDI ops->mbo_bits[MII_BIT_MDI]
+#define MDC ops->mbo_bits[MII_BIT_MDC]
+#define MDIRPHY ops->mbo_bits[MII_BIT_DIR_HOST_PHY]
+#define MDIRHOST ops->mbo_bits[MII_BIT_DIR_PHY_HOST]
 
 /*
  * mii_bitbang_sync:

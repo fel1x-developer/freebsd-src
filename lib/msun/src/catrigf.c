@@ -47,29 +47,28 @@
 #include "math_private.h"
 
 #undef isinf
-#define isinf(x)	(fabsf(x) == INFINITY)
+#define isinf(x) (fabsf(x) == INFINITY)
 #undef isnan
-#define isnan(x)	((x) != (x))
-#define	raise_inexact()	do { volatile float junk __unused = 1 + tiny; } while(0)
+#define isnan(x) ((x) != (x))
+#define raise_inexact()                                  \
+	do {                                             \
+		volatile float junk __unused = 1 + tiny; \
+	} while (0)
 #undef signbit
-#define signbit(x)	(__builtin_signbitf(x))
+#define signbit(x) (__builtin_signbitf(x))
 
-static const float
-A_crossover =		10,
-B_crossover =		0.6417,
-FOUR_SQRT_MIN =		0x1p-61,
-QUARTER_SQRT_MAX =	0x1p61,
-m_e =			2.7182818285e0,		/*  0xadf854.0p-22 */
-m_ln2 =			6.9314718056e-1,	/*  0xb17218.0p-24 */
-pio2_hi =		1.5707962513e0,		/*  0xc90fda.0p-23 */
-RECIP_EPSILON =		1 / FLT_EPSILON,
-SQRT_3_EPSILON =	5.9801995673e-4,	/*  0x9cc471.0p-34 */
-SQRT_6_EPSILON =	8.4572793338e-4,	/*  0xddb3d7.0p-34 */
-SQRT_MIN =		0x1p-63;
+static const float A_crossover = 10, B_crossover = 0.6417,
+		   FOUR_SQRT_MIN = 0x1p-61, QUARTER_SQRT_MAX = 0x1p61,
+		   m_e = 2.7182818285e0, /*  0xadf854.0p-22 */
+    m_ln2 = 6.9314718056e-1,		 /*  0xb17218.0p-24 */
+    pio2_hi = 1.5707962513e0,		 /*  0xc90fda.0p-23 */
+    RECIP_EPSILON = 1 / FLT_EPSILON,
+		   SQRT_3_EPSILON = 5.9801995673e-4, /*  0x9cc471.0p-34 */
+    SQRT_6_EPSILON = 8.4572793338e-4,		     /*  0xddb3d7.0p-34 */
+    SQRT_MIN = 0x1p-63;
 
-static const volatile float
-pio2_lo =		7.5497899549e-8,	/*  0xa22169.0p-47 */
-tiny =			0x1p-100;
+static const volatile float pio2_lo = 7.5497899549e-8, /*  0xa22169.0p-47 */
+    tiny = 0x1p-100;
 
 static float complex clog_for_large_values(float complex z);
 
@@ -168,8 +167,8 @@ casinhf(float complex z)
 			w = clog_for_large_values(z) + m_ln2;
 		else
 			w = clog_for_large_values(-z) + m_ln2;
-		return (CMPLXF(copysignf(crealf(w), x),
-		    copysignf(cimagf(w), y)));
+		return (
+		    CMPLXF(copysignf(crealf(w), x), copysignf(cimagf(w), y)));
 	}
 
 	if (x == 0 && y == 0)
@@ -290,8 +289,8 @@ clog_for_large_values(float complex z)
 	}
 
 	if (ax > FLT_MAX / 2)
-		return (CMPLXF(logf(hypotf(x / m_e, y / m_e)) + 1,
-		    atan2f(y, x)));
+		return (
+		    CMPLXF(logf(hypotf(x / m_e, y / m_e)) + 1, atan2f(y, x)));
 
 	if (ax > QUARTER_SQRT_MAX || ay < SQRT_MIN)
 		return (CMPLXF(logf(hypotf(x, y)), atan2f(y, x)));
@@ -320,8 +319,8 @@ real_part_reciprocal(float x, float y)
 	ix = hx & 0x7f800000;
 	GET_FLOAT_WORD(hy, y);
 	iy = hy & 0x7f800000;
-#define	BIAS	(FLT_MAX_EXP - 1)
-#define	CUTOFF	(FLT_MANT_DIG / 2 + 1)
+#define BIAS (FLT_MAX_EXP - 1)
+#define CUTOFF (FLT_MANT_DIG / 2 + 1)
 	if (ix - iy >= CUTOFF << 23 || isinf(x))
 		return (1 / x);
 	if (iy - ix >= CUTOFF << 23)

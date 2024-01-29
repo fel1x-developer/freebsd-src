@@ -26,15 +26,16 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
+#include <sys/endian.h>
+
 #include <assert.h>
 #include <err.h>
-#include <time.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 #include <zlib.h>
-#include <sys/endian.h>
 
 #include "fifolog.h"
 #include "libfifolog.h"
@@ -44,12 +45,12 @@
 /*--------------------------------------------------------------------*/
 
 struct fifolog_reader {
-	unsigned		magic;
-#define FIFOLOG_READER_MAGIC	0x1036d139
-	struct fifolog_file	*ff;
-	unsigned		olen;
-	unsigned char		*obuf;
-	time_t			now;
+	unsigned magic;
+#define FIFOLOG_READER_MAGIC 0x1036d139
+	struct fifolog_file *ff;
+	unsigned olen;
+	unsigned char *obuf;
+	time_t now;
 };
 
 struct fifolog_reader *
@@ -104,21 +105,21 @@ fifolog_reader_findsync(const struct fifolog_file *ff, off_t *o)
 		return (0);
 
 	if (ff->recbuf[4] & FIFOLOG_FLG_SYNC)
-		return (1);		/* That was easy... */
-	while(1) {
+		return (1); /* That was easy... */
+	while (1) {
 		assert(*o < ff->logsize);
 		(*o)++;
 		seq++;
 		if (*o == ff->logsize)
-			return (2);	/* wraparound */
+			return (2); /* wraparound */
 		e = fifolog_int_read(ff, *o);
 		if (e)
 			err(1, "Read error (%d) while looking for SYNC", e);
 		seqs = be32dec(ff->recbuf);
 		if (seqs != seq)
-			return (3);		/* End of log */
+			return (3); /* End of log */
 		if (ff->recbuf[4] & FIFOLOG_FLG_SYNC)
-			return (1);		/* Bingo! */
+			return (1); /* Bingo! */
 	}
 }
 
@@ -143,7 +144,7 @@ fifolog_reader_seek(const struct fifolog_reader *fr, time_t t0)
 	o = 0;
 	e = fifolog_reader_findsync(fr->ff, &o);
 	if (e == 0)
-		return (0);			/* empty fifolog */
+		return (0); /* empty fifolog */
 	assert(e == 1);
 
 	assert(fr->ff->recbuf[4] & FIFOLOG_FLG_SYNC);
@@ -158,7 +159,7 @@ fifolog_reader_seek(const struct fifolog_reader *fr, time_t t0)
 		s++;
 		e = fifolog_reader_findsync(fr->ff, &s);
 		if (e == 0)
-			return (0);		/* empty fifolog */
+			return (0); /* empty fifolog */
 		if (e == 1) {
 			o = s;
 			seq = be32dec(fr->ff->recbuf);
@@ -204,7 +205,8 @@ fifolog_reader_seek(const struct fifolog_reader *fr, time_t t0)
 }
 
 static unsigned char *
-fifolog_reader_chop(struct fifolog_reader *fr, fifolog_reader_render_t *func, void *priv)
+fifolog_reader_chop(struct fifolog_reader *fr, fifolog_reader_render_t *func,
+    void *priv)
 {
 	u_char *p, *q;
 	uint32_t v, w, u;
@@ -244,7 +246,8 @@ fifolog_reader_chop(struct fifolog_reader *fr, fifolog_reader_render_t *func, vo
  */
 
 void
-fifolog_reader_process(struct fifolog_reader *fr, off_t from, fifolog_reader_render_t *func, void *priv, time_t end)
+fifolog_reader_process(struct fifolog_reader *fr, off_t from,
+    fifolog_reader_render_t *func, void *priv, time_t end)
 {
 	uint32_t seq, lseq;
 	off_t o = from;
@@ -271,8 +274,8 @@ fifolog_reader_process(struct fifolog_reader *fr, off_t from, fifolog_reader_ren
 		if (fr->ff->recbuf[4] & FIFOLOG_FLG_1BYTE)
 			zs->avail_in -= fr->ff->recbuf[fr->ff->recsize - 1];
 		if (fr->ff->recbuf[4] & FIFOLOG_FLG_4BYTE)
-			zs->avail_in -=
-			    be32dec(fr->ff->recbuf + fr->ff->recsize - 4);
+			zs->avail_in -= be32dec(
+			    fr->ff->recbuf + fr->ff->recsize - 4);
 		if (fr->ff->recbuf[4] & FIFOLOG_FLG_SYNC) {
 			i = inflateReset(zs);
 			assert(i == Z_OK);
@@ -285,7 +288,7 @@ fifolog_reader_process(struct fifolog_reader *fr, off_t from, fifolog_reader_ren
 			zs->avail_in -= 4;
 		}
 
-		while(zs->avail_in > 0) {
+		while (zs->avail_in > 0) {
 			i = inflate(zs, 0);
 			if (i == Z_BUF_ERROR) {
 #if 1
@@ -295,7 +298,7 @@ fifolog_reader_process(struct fifolog_reader *fr, off_t from, fifolog_reader_ren
 				    zs->avail_in,
 				    (int)(zs->next_out - fr->obuf),
 				    zs->avail_out, fr->olen);
-				exit (250);
+				exit(250);
 #else
 
 				i = Z_OK;
@@ -306,7 +309,7 @@ fifolog_reader_process(struct fifolog_reader *fr, off_t from, fifolog_reader_ren
 			}
 			if (i != Z_OK) {
 				fprintf(stderr, "inflate = %d\n", i);
-				exit (250);
+				exit(250);
 			}
 			assert(i == Z_OK);
 			if (zs->avail_out != fr->olen) {

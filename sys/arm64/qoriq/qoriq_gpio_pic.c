@@ -27,14 +27,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
-#include <sys/gpio.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -117,8 +117,7 @@ qoriq_gpio_pic_intr(void *arg)
 			qoriq_gpio_pic_ack_intr(sc, pin);
 			GPIO_UNLOCK(&sc->base);
 			device_printf(sc->base.dev,
-			    "Masking spurious pin interrupt %d\n",
-			    pin);
+			    "Masking spurious pin interrupt %d\n", pin);
 		}
 	}
 
@@ -153,8 +152,9 @@ qoriq_gpio_pic_enable_intr(device_t dev, struct intr_irqsrc *isrc)
 	GPIO_UNLOCK(&sc->base);
 }
 
-static struct intr_map_data_gpio*
-qoriq_gpio_pic_convert_map_data(struct qoriq_gpio_pic_softc *sc, struct intr_map_data *data)
+static struct intr_map_data_gpio *
+qoriq_gpio_pic_convert_map_data(struct qoriq_gpio_pic_softc *sc,
+    struct intr_map_data *data)
 {
 	struct intr_map_data_gpio *gdata;
 	struct intr_map_data_fdt *daf;
@@ -196,7 +196,6 @@ qoriq_gpio_pic_convert_map_data(struct qoriq_gpio_pic_softc *sc, struct intr_map
 
 	return (gdata);
 }
-
 
 static int
 qoriq_gpio_pic_map_intr(device_t dev, struct intr_map_data *data,
@@ -289,7 +288,6 @@ qoriq_gpio_pic_post_filter(device_t dev, struct intr_irqsrc *isrc)
 	GPIO_UNLOCK(&sc->base);
 }
 
-
 static void
 qoriq_gpio_pic_post_ithread(device_t dev, struct intr_irqsrc *isrc)
 {
@@ -317,7 +315,6 @@ qoriq_gpio_pic_pre_ithread(device_t dev, struct intr_irqsrc *isrc)
 	GPIO_LOCK(&sc->base);
 	qoriq_gpio_pic_set_intr(sc, qisrc->pin, false);
 	GPIO_UNLOCK(&sc->base);
-
 }
 static int
 qoriq_gpio_pic_probe(device_t dev)
@@ -366,8 +363,8 @@ qoriq_gpio_pic_attach(device_t dev)
 	name = device_get_nameunit(dev);
 	for (i = 0; i <= MAXPIN; i++) {
 		sc->isrcs[i].pin = i;
-		error = intr_isrc_register(&sc->isrcs[i].isrc,
-		    dev, 0, "%s,%u", name, i);
+		error = intr_isrc_register(&sc->isrcs[i].isrc, dev, 0, "%s,%u",
+		    name, i);
 		if (error != 0)
 			goto fail;
 	}
@@ -405,29 +402,27 @@ qoriq_gpio_pic_detach(device_t dev)
 	return (qoriq_gpio_detach(dev));
 }
 
+static device_method_t qoriq_gpio_pic_methods[] = { DEVMETHOD(device_probe,
+							qoriq_gpio_pic_probe),
+	DEVMETHOD(device_attach, qoriq_gpio_pic_attach),
+	DEVMETHOD(device_detach, qoriq_gpio_pic_detach),
 
-static device_method_t qoriq_gpio_pic_methods[] = {
-	DEVMETHOD(device_probe,		qoriq_gpio_pic_probe),
-	DEVMETHOD(device_attach,	qoriq_gpio_pic_attach),
-	DEVMETHOD(device_detach,	qoriq_gpio_pic_detach),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
 
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
+	DEVMETHOD(pic_disable_intr, qoriq_gpio_pic_disable_intr),
+	DEVMETHOD(pic_enable_intr, qoriq_gpio_pic_enable_intr),
+	DEVMETHOD(pic_map_intr, qoriq_gpio_pic_map_intr),
+	DEVMETHOD(pic_setup_intr, qoriq_gpio_pic_setup_intr),
+	DEVMETHOD(pic_teardown_intr, qoriq_gpio_pic_teardown_intr),
+	DEVMETHOD(pic_post_filter, qoriq_gpio_pic_post_filter),
+	DEVMETHOD(pic_post_ithread, qoriq_gpio_pic_post_ithread),
+	DEVMETHOD(pic_pre_ithread, qoriq_gpio_pic_pre_ithread),
 
-	DEVMETHOD(pic_disable_intr,	qoriq_gpio_pic_disable_intr),
-	DEVMETHOD(pic_enable_intr,	qoriq_gpio_pic_enable_intr),
-	DEVMETHOD(pic_map_intr,		qoriq_gpio_pic_map_intr),
-	DEVMETHOD(pic_setup_intr,	qoriq_gpio_pic_setup_intr),
-	DEVMETHOD(pic_teardown_intr,	qoriq_gpio_pic_teardown_intr),
-	DEVMETHOD(pic_post_filter,	qoriq_gpio_pic_post_filter),
-	DEVMETHOD(pic_post_ithread,	qoriq_gpio_pic_post_ithread),
-	DEVMETHOD(pic_pre_ithread,	qoriq_gpio_pic_pre_ithread),
-
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(gpio, qoriq_gpio_pic_driver, qoriq_gpio_pic_methods,
     sizeof(struct qoriq_gpio_pic_softc), qoriq_gpio_driver);
-EARLY_DRIVER_MODULE(qoriq_gpio_pic, simplebus, qoriq_gpio_pic_driver, NULL, NULL,
-    BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);
+EARLY_DRIVER_MODULE(qoriq_gpio_pic, simplebus, qoriq_gpio_pic_driver, NULL,
+    NULL, BUS_PASS_INTERRUPT + BUS_PASS_ORDER_LATE);

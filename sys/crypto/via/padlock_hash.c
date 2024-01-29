@@ -26,11 +26,11 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/libkern.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/libkern.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/pcpu.h>
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/cpufunc.h>
@@ -41,10 +41,9 @@
 #endif
 #include <machine/pcb.h>
 
+#include <crypto/via/padlock.h>
 #include <opencrypto/cryptodev.h>
 #include <opencrypto/xform.h>
-
-#include <crypto/via/padlock.h>
 
 /*
  * Implementation notes.
@@ -65,9 +64,9 @@
  */
 
 struct padlock_sha_ctx {
-	uint8_t	*psc_buf;
-	int	 psc_offset;
-	int	 psc_size;
+	uint8_t *psc_buf;
+	int psc_offset;
+	int psc_size;
 };
 CTASSERT(sizeof(struct padlock_sha_ctx) <= sizeof(union authctx));
 
@@ -83,7 +82,7 @@ static const struct auth_hash padlock_hmac_sha1 = {
 	.hashsize = SHA1_HASH_LEN,
 	.ctxsize = sizeof(struct padlock_sha_ctx),
 	.blocksize = SHA1_BLOCK_LEN,
-        .Init = padlock_sha_init,
+	.Init = padlock_sha_init,
 	.Update = padlock_sha_update,
 	.Final = padlock_sha1_final,
 };
@@ -95,7 +94,7 @@ static const struct auth_hash padlock_hmac_sha256 = {
 	.hashsize = SHA2_256_HASH_LEN,
 	.ctxsize = sizeof(struct padlock_sha_ctx),
 	.blocksize = SHA2_256_BLOCK_LEN,
-        .Init = padlock_sha_init,
+	.Init = padlock_sha_init,
 	.Update = padlock_sha_update,
 	.Final = padlock_sha256_final,
 };
@@ -113,7 +112,7 @@ padlock_output_block(uint32_t *src, uint32_t *dst, size_t count)
 static void
 padlock_do_sha1(const u_char *in, u_char *out, int count)
 {
-	u_char buf[128+16];	/* PadLock needs at least 128 bytes buffer. */
+	u_char buf[128 + 16]; /* PadLock needs at least 128 bytes buffer. */
 	u_char *result = PADLOCK_ALIGN(buf);
 
 	((uint32_t *)result)[0] = 0x67452301;
@@ -122,11 +121,9 @@ padlock_do_sha1(const u_char *in, u_char *out, int count)
 	((uint32_t *)result)[3] = 0x10325476;
 	((uint32_t *)result)[4] = 0xC3D2E1F0;
 
-	__asm __volatile(
-		".byte  0xf3, 0x0f, 0xa6, 0xc8" /* rep xsha1 */
-			: "+S"(in), "+D"(result)
-			: "c"(count), "a"(0)
-		);
+	__asm __volatile(".byte  0xf3, 0x0f, 0xa6, 0xc8" /* rep xsha1 */
+			 : "+S"(in), "+D"(result)
+			 : "c"(count), "a"(0));
 
 	padlock_output_block((uint32_t *)result, (uint32_t *)out,
 	    SHA1_HASH_LEN / sizeof(uint32_t));
@@ -135,7 +132,7 @@ padlock_do_sha1(const u_char *in, u_char *out, int count)
 static void
 padlock_do_sha256(const char *in, char *out, int count)
 {
-	char buf[128+16];	/* PadLock needs at least 128 bytes buffer. */
+	char buf[128 + 16]; /* PadLock needs at least 128 bytes buffer. */
 	char *result = PADLOCK_ALIGN(buf);
 
 	((uint32_t *)result)[0] = 0x6A09E667;
@@ -147,11 +144,9 @@ padlock_do_sha256(const char *in, char *out, int count)
 	((uint32_t *)result)[6] = 0x1F83D9AB;
 	((uint32_t *)result)[7] = 0x5BE0CD19;
 
-	__asm __volatile(
-		".byte  0xf3, 0x0f, 0xa6, 0xd0" /* rep xsha256 */
-			: "+S"(in), "+D"(result)
-			: "c"(count), "a"(0)
-		);
+	__asm __volatile(".byte  0xf3, 0x0f, 0xa6, 0xd0" /* rep xsha256 */
+			 : "+S"(in), "+D"(result)
+			 : "c"(count), "a"(0));
 
 	padlock_output_block((uint32_t *)result, (uint32_t *)out,
 	    SHA2_256_HASH_LEN / sizeof(uint32_t));
@@ -178,7 +173,7 @@ padlock_sha_update(void *vctx, const void *buf, u_int bufsize)
 		ctx->psc_size = MAX(ctx->psc_size * 2, ctx->psc_size + bufsize);
 		ctx->psc_buf = realloc(ctx->psc_buf, ctx->psc_size, M_PADLOCK,
 		    M_NOWAIT);
-		if(ctx->psc_buf == NULL)
+		if (ctx->psc_buf == NULL)
 			return (ENOMEM);
 	}
 	bcopy(buf, ctx->psc_buf + ctx->psc_offset, bufsize);
@@ -226,7 +221,7 @@ padlock_copy_ctx(const struct auth_hash *axf, void *sctx, void *dctx)
 
 	if ((via_feature_xcrypt & VIA_HAS_SHA) != 0 &&
 	    (axf->type == CRYPTO_SHA1_HMAC ||
-	     axf->type == CRYPTO_SHA2_256_HMAC)) {
+		axf->type == CRYPTO_SHA2_256_HMAC)) {
 		struct padlock_sha_ctx *spctx = sctx, *dpctx = dctx;
 
 		dpctx->psc_offset = spctx->psc_offset;
@@ -244,7 +239,7 @@ padlock_free_ctx(const struct auth_hash *axf, void *ctx)
 
 	if ((via_feature_xcrypt & VIA_HAS_SHA) != 0 &&
 	    (axf->type == CRYPTO_SHA1_HMAC ||
-	     axf->type == CRYPTO_SHA2_256_HMAC)) {
+		axf->type == CRYPTO_SHA2_256_HMAC)) {
 		padlock_sha_free(ctx);
 	}
 }

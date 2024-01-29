@@ -35,25 +35,24 @@
  * and related and neighboring rights to this software to the public domain
  * worldwide. This software is distributed without any warranty.
  *
- * You should have received a copy of the CC0 Public Domain Dedication along with
- * this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
+ * You should have received a copy of the CC0 Public Domain Dedication along
+ * with this software. If not, see
+ * <http://creativecommons.org/publicdomain/zero/1.0/>.
  */
 
 #include <sys/param.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 
-#include <atf-c.h>
-
 /* Be sure to include tree copy rather than system copy. */
-#include "cryptodev.h"
-
-#include "freebsd_test_suite/macros.h"
-
 #include <blake2.h>
+
 #include "blake2-kat.h"
+#include "cryptodev.h"
+#include "freebsd_test_suite/macros.h"
 
 static uint8_t key2b[BLAKE2B_KEYBYTES];
 static uint8_t key2s[BLAKE2S_KEYBYTES];
@@ -142,10 +141,9 @@ test_blake2b_vectors(const char *devname, const char *modname)
 
 	for (i = 0; i < sizeof(katbuf); i++) {
 		do_cryptop(fd, ses, i, hash);
-		ATF_CHECK_EQ_MSG(
-		    memcmp(hash, blake2b_keyed_kat[i], sizeof(hash)),
-		    0,
-		    "different at %zu", i);
+		ATF_CHECK_EQ_MSG(memcmp(hash, blake2b_keyed_kat[i],
+				     sizeof(hash)),
+		    0, "different at %zu", i);
 	}
 }
 
@@ -166,10 +164,9 @@ test_blake2s_vectors(const char *devname, const char *modname)
 
 	for (i = 0; i < sizeof(katbuf); i++) {
 		do_cryptop(fd, ses, i, hash);
-		ATF_CHECK_EQ_MSG(
-		    memcmp(hash, blake2s_keyed_kat[i], sizeof(hash)),
-		    0,
-		    "different at %zu", i);
+		ATF_CHECK_EQ_MSG(memcmp(hash, blake2s_keyed_kat[i],
+				     sizeof(hash)),
+		    0, "different at %zu", i);
 	}
 }
 

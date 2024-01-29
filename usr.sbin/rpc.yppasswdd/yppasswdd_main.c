@@ -34,16 +34,22 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
 
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <memory.h>
+#include <rpc/pmap_clnt.h> /* for pmap_unset */
+#include <rpc/rpc.h>
+#include <rpc/rpc_com.h>
+#include <rpcsvc/yp.h>
+#include <rpcsvc/ypclnt.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h> /* getenv, exit */
@@ -51,40 +57,34 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <rpc/rpc.h>
-#include <rpc/rpc_com.h>
-#include <rpc/pmap_clnt.h> /* for pmap_unset */
-#include <rpcsvc/yp.h>
-#include <rpcsvc/ypclnt.h>
-
-#include "yppasswd.h"
-#include "yppasswdd_extern.h"
-#include "yppasswd_private.h"
-#include "ypxfr_extern.h"
 #include "yp_extern.h"
+#include "yppasswd.h"
+#include "yppasswd_private.h"
+#include "yppasswdd_extern.h"
+#include "ypxfr_extern.h"
 
 #ifndef SIG_PF
-#define	SIG_PF void(*)(int)
+#define SIG_PF void (*)(int)
 #endif
 
 #ifdef DEBUG
-#define	RPC_SVC_FG
+#define RPC_SVC_FG
 #endif
 
-#define	_RPCSVC_CLOSEDOWN 120
-int _rpcpmstart = 0;		/* Started by a port monitor ? */
+#define _RPCSVC_CLOSEDOWN 120
+int _rpcpmstart = 0; /* Started by a port monitor ? */
 static int _rpcfdtype;
-		 /* Whether Stream or Datagram ? */
-	/* States a server can be in wrt request */
+/* Whether Stream or Datagram ? */
+/* States a server can be in wrt request */
 
-#define	_IDLE 0
-#define	_SERVED 1
-#define	_SERVING 2
+#define _IDLE 0
+#define _SERVED 1
+#define _SERVING 2
 int debug;
 
 static char _localhost[] = "localhost";
 static char _passwd_byname[] = "passwd.byname";
-extern int _rpcsvcstate;	 /* Set when a request is serviced */
+extern int _rpcsvcstate; /* Set when a request is serviced */
 static char _progname[] = "rpc.yppasswdd";
 char *progname = _progname;
 static char _yp_dir[] = _PATH_YP;
@@ -143,16 +143,16 @@ closedown(int sig __unused)
 	if (_rpcsvcstate == _SERVED)
 		_rpcsvcstate = _IDLE;
 
-	(void) signal(SIGALRM, (SIG_PF) closedown);
-	(void) alarm(_RPCSVC_CLOSEDOWN/2);
+	(void)signal(SIGALRM, (SIG_PF)closedown);
+	(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 }
 
 static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-"usage: rpc.yppasswdd [-t master.passwd file] [-d domain] [-p path] [-s]",
-"                     [-f] [-m] [-i] [-a] [-v] [-u] [-h]");
+	    "usage: rpc.yppasswdd [-t master.passwd file] [-d domain] [-p path] [-s]",
+	    "                     [-f] [-m] [-i] [-a] [-v] [-u] [-h]");
 	exit(1);
 }
 
@@ -162,7 +162,7 @@ main(int argc, char *argv[])
 	struct rlimit rlim;
 	SVCXPRT *transp = NULL;
 	struct sockaddr_in saddr;
-	socklen_t asize = sizeof (saddr);
+	socklen_t asize = sizeof(saddr);
 	struct netconfig *nconf;
 	struct sigaction sa;
 	void *localhandle;
@@ -216,7 +216,7 @@ main(int argc, char *argv[])
 		if (yp_get_default_domain(&yppasswd_domain)) {
 			yp_error("no domain specified and system domain \
 name isn't set -- aborting");
-		usage();
+			usage();
 		}
 	}
 
@@ -228,10 +228,10 @@ name isn't set -- aborting");
 		exit(1);
 	}
 
-	if ((mastername = ypxfr_get_master(yppasswd_domain,
-		 _passwd_byname, _localhost, 0)) == NULL) {
+	if ((mastername = ypxfr_get_master(yppasswd_domain, _passwd_byname,
+		 _localhost, 0)) == NULL) {
 		yp_error("can't get name of NIS master server for domain %s",
-			 				yppasswd_domain);
+		    yppasswd_domain);
 		exit(1);
 	}
 
@@ -241,28 +241,29 @@ name isn't set -- aborting");
 	}
 
 	if (strncasecmp(mastername, (char *)&myname, sizeof(myname))) {
-		yp_error("master of %s is %s, but we are %s",
-			"passwd.byname", mastername, myname);
+		yp_error("master of %s is %s, but we are %s", "passwd.byname",
+		    mastername, myname);
 		yp_error("this host is not the NIS master server for \
-the %s domain -- aborting", yppasswd_domain);
+the %s domain -- aborting",
+		    yppasswd_domain);
 		exit(1);
 	}
 
 	debug = 0;
 
 	if (getsockname(0, (struct sockaddr *)&saddr, &asize) == 0) {
-		socklen_t ssize = sizeof (int);
+		socklen_t ssize = sizeof(int);
 		if (saddr.sin_family != AF_INET)
 			exit(1);
-		if (getsockopt(0, SOL_SOCKET, SO_TYPE,
-		    (char *)&_rpcfdtype, &ssize) == -1)
+		if (getsockopt(0, SOL_SOCKET, SO_TYPE, (char *)&_rpcfdtype,
+			&ssize) == -1)
 			exit(1);
 		_rpcpmstart = 1;
 	}
 
 	if (!debug && _rpcpmstart == 0) {
-		if (daemon(0,0)) {
-			err(1,"cannot fork");
+		if (daemon(0, 0)) {
+			err(1, "cannot fork");
 		}
 	}
 	openlog("rpc.yppasswdd", LOG_PID, LOG_DAEMON);
@@ -275,12 +276,13 @@ the %s domain -- aborting", yppasswd_domain);
 
 	rpc_control(RPC_SVC_CONNMAXREC_SET, &maxrec);
 
-	if (svc_create(yppasswdprog_1, YPPASSWDPROG, YPPASSWDVERS, "netpath") == 0) {
+	if (svc_create(yppasswdprog_1, YPPASSWDPROG, YPPASSWDVERS, "netpath") ==
+	    0) {
 		yp_error("cannot create yppasswd service.");
 		exit(1);
 	}
 	if (svc_create(master_yppasswdprog_1, MASTER_YPPASSWDPROG,
-	    MASTER_YPPASSWDVERS, "netpath") == 0) {
+		MASTER_YPPASSWDVERS, "netpath") == 0) {
 		yp_error("cannot create master_yppasswd service.");
 		exit(1);
 	}
@@ -303,7 +305,7 @@ the %s domain -- aborting", yppasswd_domain);
 		exit(1);
 	}
 	if (!svc_reg(transp, MASTER_YPPASSWDPROG, MASTER_YPPASSWDVERS,
-	    master_yppasswdprog_1, nconf)) {
+		master_yppasswdprog_1, nconf)) {
 		yp_error("unable to register (MASTER_YPPASSWDPROG, \
 		    MASTER_YPPASSWDVERS, unix).");
 		exit(1);
@@ -319,8 +321,8 @@ the %s domain -- aborting", yppasswd_domain);
 		exit(1);
 	}
 	if (_rpcpmstart) {
-		(void) signal(SIGALRM, (SIG_PF) closedown);
-		(void) alarm(_RPCSVC_CLOSEDOWN/2);
+		(void)signal(SIGALRM, (SIG_PF)closedown);
+		(void)alarm(_RPCSVC_CLOSEDOWN / 2);
 	}
 
 	/* Unlimited resource limits. */
@@ -337,11 +339,11 @@ the %s domain -- aborting", yppasswd_domain);
 
 	/* Turn off signals. */
 	(void)signal(SIGALRM, SIG_IGN);
-	(void)signal(SIGHUP, (SIG_PF) reload);
+	(void)signal(SIGHUP, (SIG_PF)reload);
 	(void)signal(SIGINT, SIG_IGN);
 	(void)signal(SIGPIPE, SIG_IGN);
 	(void)signal(SIGQUIT, SIG_IGN);
-	(void)signal(SIGTERM, (SIG_PF) terminate);
+	(void)signal(SIGTERM, (SIG_PF)terminate);
 
 	svc_run();
 	yp_error("svc_run returned");

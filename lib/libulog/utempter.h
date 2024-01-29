@@ -27,18 +27,18 @@
  */
 
 #ifndef _UTEMPTER_H_
-#define	_UTEMPTER_H_
+#define _UTEMPTER_H_
 
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
-int	utempter_add_record(int, const char *);
-int	utempter_remove_added_record(void);
-int	utempter_remove_record(int);
+int utempter_add_record(int, const char *);
+int utempter_remove_added_record(void);
+int utempter_remove_record(int);
 
-void	addToUtmp(const char *, const char *, int);
-void	removeFromUtmp(void);
-void	removeLineFromUtmp(const char *, int);
+void addToUtmp(const char *, const char *, int);
+void removeFromUtmp(void);
+void removeLineFromUtmp(const char *, int);
 __END_DECLS
 
 #endif /* !_UTEMPTER_H_ */

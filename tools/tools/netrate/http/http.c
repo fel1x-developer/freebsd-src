@@ -32,7 +32,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <pthread.h>
@@ -44,35 +43,35 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-static int	threaded;		/* 1 for threaded, 0 for forked. */
-static int	numthreads;		/* Number of threads/procs. */
-static int	numseconds;		/* Length of test. */
+static int threaded;   /* 1 for threaded, 0 for forked. */
+static int numthreads; /* Number of threads/procs. */
+static int numseconds; /* Length of test. */
 
 /*
  * Simple, multi-threaded HTTP benchmark.  Fetches a single URL using the
  * specified parameters, and after a period of execution, reports on how it
  * worked out.
  */
-#define	MAXTHREADS	128
-#define	DEFAULTTHREADS	32
-#define	DEFAULTSECONDS	20
-#define	BUFFER	(48*1024)
-#define	QUIET	1
+#define MAXTHREADS 128
+#define DEFAULTTHREADS 32
+#define DEFAULTSECONDS 20
+#define BUFFER (48 * 1024)
+#define QUIET 1
 
 struct http_worker_description {
-	pthread_t	hwd_thread;
-	pid_t		hwd_pid;
-	uintmax_t	hwd_count;
-	uintmax_t	hwd_errorcount;
-	int		hwd_start_signal_barrier;
+	pthread_t hwd_thread;
+	pid_t hwd_pid;
+	uintmax_t hwd_count;
+	uintmax_t hwd_errorcount;
+	int hwd_start_signal_barrier;
 };
 
 static struct state {
-	struct sockaddr_in		 sin;
-	char				*path;
-	struct http_worker_description	 hwd[MAXTHREADS];
-	int				 run_done;
-	pthread_barrier_t		 start_barrier;
+	struct sockaddr_in sin;
+	char *path;
+	struct http_worker_description hwd[MAXTHREADS];
+	int run_done;
+	pthread_barrier_t start_barrier;
 } *statep;
 
 int curthread;
@@ -80,7 +79,7 @@ int curthread;
 /*
  * Borrowed from sys/param.h>
  */
-#define	roundup(x, y)	((((x)+((y)-1))/(y))*(y))	/* to any y */
+#define roundup(x, y) ((((x) + ((y)-1)) / (y)) * (y)) /* to any y */
 
 /*
  * Given a partially processed URL, fetch it from the specified host.
@@ -272,8 +271,7 @@ main(int argc, char *argv[])
 		usage();
 
 	if (numthreads > MAXTHREADS)
-		errx(-1, "%d exceeds max threads %d", numthreads,
-		    MAXTHREADS);
+		errx(-1, "%d exceeds max threads %d", numthreads, MAXTHREADS);
 
 	len = roundup(sizeof(struct state), getpagesize());
 	pagebuffer = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANON, -1, 0);
@@ -298,7 +296,7 @@ main(int argc, char *argv[])
 
 	if (threaded) {
 		if (pthread_barrier_init(&statep->start_barrier, NULL,
-		    numthreads) != 0)
+			numthreads) != 0)
 			err(-1, "pthread_barrier_init");
 	}
 
@@ -306,7 +304,7 @@ main(int argc, char *argv[])
 		statep->hwd[i].hwd_count = 0;
 		if (threaded) {
 			if (pthread_create(&statep->hwd[i].hwd_thread, NULL,
-			    http_worker, &statep->hwd[i]) != 0)
+				http_worker, &statep->hwd[i]) != 0)
 				err(-1, "pthread_create");
 		} else {
 			curthread = i;
@@ -336,8 +334,7 @@ main(int argc, char *argv[])
 		sleep(2);
 	for (i = 0; i < numthreads; i++) {
 		if (threaded) {
-			if (pthread_join(statep->hwd[i].hwd_thread, NULL)
-			    != 0)
+			if (pthread_join(statep->hwd[i].hwd_thread, NULL) != 0)
 				err(-1, "pthread_join");
 		} else {
 			pid = waitpid(statep->hwd[i].hwd_pid, NULL, 0);

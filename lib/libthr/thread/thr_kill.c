@@ -30,13 +30,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <errno.h>
-#include <signal.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_Tthr_kill, _pthread_kill);
 __weak_reference(_Tthr_kill, pthread_kill);
@@ -64,7 +65,7 @@ _Tthr_kill(pthread_t pthread, int sig)
 			_thr_send_sig(pthread, sig);
 		ret = 0;
 	} else if ((ret = _thr_find_thread(curthread, pthread,
-	    /*include dead*/0)) == 0) {
+			/*include dead*/ 0)) == 0) {
 		if (sig > 0)
 			_thr_send_sig(pthread, sig);
 		THR_THREAD_UNLOCK(curthread, pthread);

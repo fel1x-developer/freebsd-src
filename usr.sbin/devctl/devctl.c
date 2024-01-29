@@ -25,6 +25,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/linker_set.h>
+
 #include <devctl.h>
 #include <err.h>
 #include <errno.h>
@@ -39,25 +40,24 @@ struct devctl_command {
 	int (*handler)(int ac, char **av);
 };
 
-#define	DEVCTL_DATASET(name)	devctl_ ## name ## _table
+#define DEVCTL_DATASET(name) devctl_##name##_table
 
-#define	DEVCTL_COMMAND(set, name, function)				\
-	static struct devctl_command function ## _devctl_command =	\
-	{ #name, function };						\
-	DATA_SET(DEVCTL_DATASET(set), function ## _devctl_command)
+#define DEVCTL_COMMAND(set, name, function)                               \
+	static struct devctl_command function##_devctl_command = { #name, \
+		function };                                               \
+	DATA_SET(DEVCTL_DATASET(set), function##_devctl_command)
 
-#define	DEVCTL_TABLE(set, name)						\
-	SET_DECLARE(DEVCTL_DATASET(name), struct devctl_command);	\
-									\
-	static int							\
-	devctl_ ## name ## _table_handler(int ac, char **av)		\
-	{								\
+#define DEVCTL_TABLE(set, name)                                               \
+	SET_DECLARE(DEVCTL_DATASET(name), struct devctl_command);             \
+                                                                              \
+	static int devctl_##name##_table_handler(int ac, char **av)           \
+	{                                                                     \
 		return (devctl_table_handler(SET_BEGIN(DEVCTL_DATASET(name)), \
-		    SET_LIMIT(DEVCTL_DATASET(name)), ac, av));		\
-	}								\
-	DEVCTL_COMMAND(set, name, devctl_ ## name ## _table_handler)
+		    SET_LIMIT(DEVCTL_DATASET(name)), ac, av));                \
+	}                                                                     \
+	DEVCTL_COMMAND(set, name, devctl_##name##_table_handler)
 
-static int	devctl_table_handler(struct devctl_command **start,
+static int devctl_table_handler(struct devctl_command **start,
     struct devctl_command **end, int ac, char **av);
 
 SET_DECLARE(DEVCTL_DATASET(top), struct devctl_command);
@@ -82,14 +82,13 @@ usage(void)
 	    "       devctl freeze\n"
 	    "       devctl thaw\n"
 	    "       devctl reset [-d] device\n"
-	    "       devctl getpath locator device\n"
-	    );
+	    "       devctl getpath locator device\n");
 	exit(1);
 }
 
 static int
-devctl_table_handler(struct devctl_command **start,
-    struct devctl_command **end, int ac, char **av)
+devctl_table_handler(struct devctl_command **start, struct devctl_command **end,
+    int ac, char **av)
 {
 	struct devctl_command **cmd;
 
@@ -319,8 +318,7 @@ delete_usage(void)
 	exit(1);
 }
 
-static int
-delete(int ac, char **av)
+static int delete(int ac, char **av)
 {
 	bool force;
 	int ch;
@@ -444,7 +442,8 @@ main(int ac, char *av[])
 	ac--;
 	av++;
 
-	SET_FOREACH(cmd, DEVCTL_DATASET(top)) {
+	SET_FOREACH(cmd, DEVCTL_DATASET(top))
+	{
 		if (strcmp((*cmd)->name, av[0]) == 0) {
 			if ((*cmd)->handler(ac, av) != 0)
 				return (1);

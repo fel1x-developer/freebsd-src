@@ -4,10 +4,7 @@
 #ifndef PMU_EVENTS_H
 #define PMU_EVENTS_H
 
-enum aggr_mode_class {
-	PerChip = 1,
-	PerCore
-};
+enum aggr_mode_class { PerChip = 1, PerCore };
 
 /*
  * Describe each PMU event. Each CPU has a table of PMU events.
@@ -42,7 +39,7 @@ struct pmu_event {
 struct pmu_events_map {
 	const char *cpuid;
 	const char *version;
-	const char *type;		/* core, uncore etc */
+	const char *type; /* core, uncore etc */
 	const struct pmu_event *table;
 };
 

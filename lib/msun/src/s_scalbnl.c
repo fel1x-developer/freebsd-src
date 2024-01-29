@@ -6,10 +6,11 @@
  * Please see https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT
  * for all contributors to musl.
  */
-#include <math.h>
 #include <float.h>
-#include "math_private.h"
+#include <math.h>
+
 #include "fpmath.h"
+#include "math_private.h"
 /*
  * scalbnl (long double x, int n)
  * scalbnl(x,n) returns x* 2**n  computed by  exponent
@@ -17,7 +18,8 @@
  * exponentiation or a multiplication.
  */
 #if (LDBL_MANT_DIG == 64 || LDBL_MANT_DIG == 113) && LDBL_MAX_EXP == 16384
-long double scalbnl(long double x, int n)
+long double
+scalbnl(long double x, int n)
 {
 	union IEEEl2bits u;
 
@@ -46,4 +48,3 @@ long double scalbnl(long double x, int n)
 }
 __strong_reference(scalbnl, ldexpl);
 #endif
-

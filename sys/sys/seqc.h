@@ -43,16 +43,17 @@
 
 #include <machine/cpu.h>
 
-#define	SEQC_MOD	1
+#define SEQC_MOD 1
 
 /*
  * Predicts from inline functions are not honored by clang.
  */
-#define seqc_in_modify(seqc)	({			\
-	seqc_t __seqc = (seqc);				\
-							\
-	__predict_false(__seqc & SEQC_MOD);		\
-})
+#define seqc_in_modify(seqc)                       \
+	({                                         \
+		seqc_t __seqc = (seqc);            \
+                                                   \
+		__predict_false(__seqc &SEQC_MOD); \
+	})
 
 static __inline void
 seqc_write_begin(seqc_t *seqcp)
@@ -105,18 +106,20 @@ seqc_read(const seqc_t *seqcp)
 	return (ret);
 }
 
-#define seqc_consistent_no_fence(seqcp, oldseqc)({	\
-	const seqc_t *__seqcp = (seqcp);		\
-	seqc_t __oldseqc = (oldseqc);			\
-							\
-	MPASS(!(seqc_in_modify(__oldseqc)));		\
-	__predict_true(*__seqcp == __oldseqc);		\
-})
+#define seqc_consistent_no_fence(seqcp, oldseqc)       \
+	({                                             \
+		const seqc_t *__seqcp = (seqcp);       \
+		seqc_t __oldseqc = (oldseqc);          \
+                                                       \
+		MPASS(!(seqc_in_modify(__oldseqc)));   \
+		__predict_true(*__seqcp == __oldseqc); \
+	})
 
-#define seqc_consistent(seqcp, oldseqc)		({	\
-	atomic_thread_fence_acq();			\
-	seqc_consistent_no_fence(seqcp, oldseqc);	\
-})
+#define seqc_consistent(seqcp, oldseqc)                   \
+	({                                                \
+		atomic_thread_fence_acq();                \
+		seqc_consistent_no_fence(seqcp, oldseqc); \
+	})
 
 /*
  * Variant which does not critical enter/exit.
@@ -139,5 +142,5 @@ seqc_sleepable_write_end(seqc_t *seqcp)
 	MPASS(!seqc_in_modify(*seqcp));
 }
 
-#endif	/* _KERNEL */
-#endif	/* _SYS_SEQC_H_ */
+#endif /* _KERNEL */
+#endif /* _SYS_SEQC_H_ */

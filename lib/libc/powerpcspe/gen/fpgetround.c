@@ -31,7 +31,9 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/spr.h>
+
 #include <ieeefp.h>
 
 #ifndef _SOFT_FLOAT

@@ -30,11 +30,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -42,12 +43,12 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 
-#include <machine/bus.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_page.h>
+
+#include <machine/bus.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -56,6 +57,7 @@
 #endif
 
 #include <dev/xdma/xdma.h>
+
 #include "xdma_if.h"
 
 void
@@ -74,8 +76,8 @@ xdma_iommu_remove_entry(xdma_channel_t *xchan, vm_offset_t va)
 }
 
 static void
-xdma_iommu_enter(struct xdma_iommu *xio, vm_offset_t va,
-    vm_paddr_t pa, vm_size_t size, vm_prot_t prot)
+xdma_iommu_enter(struct xdma_iommu *xio, vm_offset_t va, vm_paddr_t pa,
+    vm_size_t size, vm_prot_t prot)
 {
 	vm_page_t m;
 	pmap_t p;
@@ -97,8 +99,8 @@ xdma_iommu_enter(struct xdma_iommu *xio, vm_offset_t va,
 }
 
 void
-xdma_iommu_add_entry(xdma_channel_t *xchan, vm_offset_t *va,
-    vm_paddr_t pa, vm_size_t size, vm_prot_t prot)
+xdma_iommu_add_entry(xdma_channel_t *xchan, vm_offset_t *va, vm_paddr_t pa,
+    vm_size_t size, vm_prot_t prot)
 {
 	struct xdma_iommu *xio;
 	vm_offset_t addr;
@@ -106,8 +108,7 @@ xdma_iommu_add_entry(xdma_channel_t *xchan, vm_offset_t *va,
 	size = roundup2(size, PAGE_SIZE);
 	xio = &xchan->xio;
 
-	if (vmem_alloc(xio->vmem, size,
-	    M_FIRSTFIT | M_NOWAIT, &addr)) {
+	if (vmem_alloc(xio->vmem, size, M_FIRSTFIT | M_NOWAIT, &addr)) {
 		panic("Could not allocate virtual address.\n");
 	}
 
@@ -135,12 +136,12 @@ xdma_iommu_init(struct xdma_iommu *xio)
 		return (ENXIO);
 
 	if (OF_getencprop(node, "va-region", (void *)&mem_handle,
-	    sizeof(mem_handle)) <= 0)
+		sizeof(mem_handle)) <= 0)
 		return (ENXIO);
 #endif
 
-	xio->vmem = vmem_create("xDMA vmem", 0, 0, PAGE_SIZE,
-	    PAGE_SIZE, M_FIRSTFIT | M_WAITOK);
+	xio->vmem = vmem_create("xDMA vmem", 0, 0, PAGE_SIZE, PAGE_SIZE,
+	    M_FIRSTFIT | M_WAITOK);
 	if (xio->vmem == NULL)
 		return (ENXIO);
 

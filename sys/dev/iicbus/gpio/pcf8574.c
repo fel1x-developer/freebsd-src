@@ -36,51 +36,48 @@
  * See the datasheet for details.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
 
-#include <dev/gpio/gpiobusvar.h>
-
 #include "gpio_if.h"
 
-#define	NUM_PINS	8
-#define	PIN_CAPS	(GPIO_PIN_OUTPUT | GPIO_PIN_INPUT)
+#define NUM_PINS 8
+#define PIN_CAPS (GPIO_PIN_OUTPUT | GPIO_PIN_INPUT)
 
-#define	dbg_dev_printf(dev, fmt, args...)	\
-	if (bootverbose) device_printf(dev, fmt, ##args)
+#define dbg_dev_printf(dev, fmt, args...) \
+	if (bootverbose)                  \
+	device_printf(dev, fmt, ##args)
 
 struct pcf8574_softc {
-	device_t	dev;
-	device_t	busdev;
-	struct sx	lock;
-	uint8_t		addr;
-	uint8_t		output_mask;
-	uint8_t		output_state;
+	device_t dev;
+	device_t busdev;
+	struct sx lock;
+	uint8_t addr;
+	uint8_t output_mask;
+	uint8_t output_state;
 };
 
 #ifdef FDT
-static struct ofw_compat_data compat_data[] = {
-	{ "nxp,pcf8574",	1 },
-	{ "nxp,pcf8574a",	1 },
-	{ NULL,			0 }
-};
+static struct ofw_compat_data compat_data[] = { { "nxp,pcf8574", 1 },
+	{ "nxp,pcf8574a", 1 }, { NULL, 0 } };
 #endif
 
 static int
@@ -206,8 +203,7 @@ pcf8574_pin_getflags(device_t dev, uint32_t pin, uint32_t *pflags)
 	sx_xlock(&sc->lock);
 	error = pcf8574_read(sc, &val);
 	if (error != 0) {
-		dbg_dev_printf(dev, "failed to read from device: %d\n",
-		    error);
+		dbg_dev_printf(dev, "failed to read from device: %d\n", error);
 		sx_xunlock(&sc->lock);
 		return (error);
 	}
@@ -387,30 +383,26 @@ pcf8574_pin_toggle(device_t dev, uint32_t pin)
 	return (0);
 }
 
-static device_method_t pcf8574_methods[] = {
-	DEVMETHOD(device_probe,		pcf8574_probe),
-	DEVMETHOD(device_attach,	pcf8574_attach),
-	DEVMETHOD(device_detach,	pcf8574_detach),
+static device_method_t pcf8574_methods[] = { DEVMETHOD(device_probe,
+						 pcf8574_probe),
+	DEVMETHOD(device_attach, pcf8574_attach),
+	DEVMETHOD(device_detach, pcf8574_detach),
 
 	/* GPIO methods */
-	DEVMETHOD(gpio_get_bus,		pcf8574_get_bus),
-	DEVMETHOD(gpio_pin_max,		pcf8574_pin_max),
-	DEVMETHOD(gpio_pin_getcaps,	pcf8574_pin_getcaps),
-	DEVMETHOD(gpio_pin_getflags,	pcf8574_pin_getflags),
-	DEVMETHOD(gpio_pin_setflags,	pcf8574_pin_setflags),
-	DEVMETHOD(gpio_pin_getname,	pcf8574_pin_getname),
-	DEVMETHOD(gpio_pin_get,		pcf8574_pin_get),
-	DEVMETHOD(gpio_pin_set,		pcf8574_pin_set),
-	DEVMETHOD(gpio_pin_toggle,	pcf8574_pin_toggle),
+	DEVMETHOD(gpio_get_bus, pcf8574_get_bus),
+	DEVMETHOD(gpio_pin_max, pcf8574_pin_max),
+	DEVMETHOD(gpio_pin_getcaps, pcf8574_pin_getcaps),
+	DEVMETHOD(gpio_pin_getflags, pcf8574_pin_getflags),
+	DEVMETHOD(gpio_pin_setflags, pcf8574_pin_setflags),
+	DEVMETHOD(gpio_pin_getname, pcf8574_pin_getname),
+	DEVMETHOD(gpio_pin_get, pcf8574_pin_get),
+	DEVMETHOD(gpio_pin_set, pcf8574_pin_set),
+	DEVMETHOD(gpio_pin_toggle, pcf8574_pin_toggle),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t pcf8574_driver = {
-	"gpio",
-	pcf8574_methods,
-	sizeof(struct pcf8574_softc)
-};
+static driver_t pcf8574_driver = { "gpio", pcf8574_methods,
+	sizeof(struct pcf8574_softc) };
 
 DRIVER_MODULE(pcf8574, iicbus, pcf8574_driver, 0, 0);
 MODULE_DEPEND(pcf8574, iicbus, IICBUS_MINVER, IICBUS_PREFVER, IICBUS_MAXVER);

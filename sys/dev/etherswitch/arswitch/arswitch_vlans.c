@@ -29,26 +29,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
 
-#include <net/if.h>
-#include <dev/mii/mii.h>
-
-#include <dev/etherswitch/etherswitch.h>
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
 #include <dev/etherswitch/arswitch/arswitch_reg.h>
 #include <dev/etherswitch/arswitch/arswitch_vlans.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/mii/mii.h>
 
+#include <net/if.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 /*
  * XXX TODO: teach about the AR934x SoC switch
@@ -56,12 +56,12 @@
 
 static int
 ar8xxx_vlan_op(struct arswitch_softc *sc, uint32_t op, uint32_t vid,
-	uint32_t data)
+    uint32_t data)
 {
 	int err;
 
 	if (arswitch_waitreg(sc->sc_dev, AR8X16_REG_VLAN_CTRL,
-	    AR8X16_VLAN_ACTIVE, 0, 5))
+		AR8X16_VLAN_ACTIVE, 0, 5))
 		return (EBUSY);
 
 	/* Load the vlan data if needed. */
@@ -79,7 +79,7 @@ ar8xxx_vlan_op(struct arswitch_softc *sc, uint32_t op, uint32_t vid,
 
 	/* Wait for command processing. */
 	if (arswitch_waitreg(sc->sc_dev, AR8X16_REG_VLAN_CTRL,
-	    AR8X16_VLAN_ACTIVE, 0, 5))
+		AR8X16_VLAN_ACTIVE, 0, 5))
 		return (EBUSY);
 
 	return (0);
@@ -187,8 +187,9 @@ ar8xxx_reset_vlans(struct arswitch_softc *sc)
 	/* Disable the QinQ and egress filters for all ports. */
 	for (i = 0; i <= sc->numphys; i++) {
 		if (arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_CTRL(i),
-		    0x3 << AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT |
-		    AR8X16_PORT_CTRL_DOUBLE_TAG, 0)) {
+			0x3 << AR8X16_PORT_CTRL_EGRESS_VLAN_MODE_SHIFT |
+			    AR8X16_PORT_CTRL_DOUBLE_TAG,
+			0)) {
 			ARSWITCH_UNLOCK(sc);
 			return;
 		}
@@ -206,13 +207,12 @@ ar8xxx_reset_vlans(struct arswitch_softc *sc)
 		 */
 		ports = 0;
 		for (i = 0; i <= sc->numphys; i++)
-			arswitch_modifyreg(sc->sc_dev,
-			    AR8X16_REG_PORT_VLAN(i),
+			arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_VLAN(i),
 			    AR8X16_PORT_VLAN_MODE_MASK |
-			    AR8X16_VLAN_MEMBER <<
-			    AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
-			    AR8X16_PORT_VLAN_MODE_SECURE <<
-			    AR8X16_PORT_VLAN_MODE_SHIFT);
+				AR8X16_VLAN_MEMBER
+				    << AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
+			    AR8X16_PORT_VLAN_MODE_SECURE
+				<< AR8X16_PORT_VLAN_MODE_SHIFT);
 
 		/*
 		 * Setup vlan 1 as PVID for all switch ports.  Add all ports
@@ -225,7 +225,8 @@ ar8xxx_reset_vlans(struct arswitch_softc *sc)
 		ports = 0;
 		for (i = 0; i <= sc->numphys; i++)
 			ports |= (1 << i);
-		sc->hal.arswitch_set_dot1q_vlan(sc, ports, sc->vid[0], sc->vid[0]);
+		sc->hal.arswitch_set_dot1q_vlan(sc, ports, sc->vid[0],
+		    sc->vid[0]);
 		sc->vid[0] |= ETHERSWITCH_VID_VALID;
 	} else if (sc->vlan_mode == ETHERSWITCH_VLAN_PORT) {
 		/* Initialize the port based vlans. */
@@ -234,28 +235,26 @@ ar8xxx_reset_vlans(struct arswitch_softc *sc)
 			ports = 0;
 			for (j = 0; j <= sc->numphys; j++)
 				ports |= (1 << j);
-			arswitch_modifyreg(sc->sc_dev,
-			    AR8X16_REG_PORT_VLAN(i),
+			arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_VLAN(i),
 			    AR8X16_PORT_VLAN_MODE_MASK |
-			    AR8X16_VLAN_MEMBER <<
-			    AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
+				AR8X16_VLAN_MEMBER
+				    << AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
 			    ports << AR8X16_PORT_VLAN_DEST_PORTS_SHIFT |
-			    AR8X16_PORT_VLAN_MODE_SECURE <<
-			    AR8X16_PORT_VLAN_MODE_PORT_ONLY);
-			    /* XXX TODO: SECURE / PORT_ONLY is wrong? */
+				AR8X16_PORT_VLAN_MODE_SECURE
+				    << AR8X16_PORT_VLAN_MODE_PORT_ONLY);
+			/* XXX TODO: SECURE / PORT_ONLY is wrong? */
 		}
 	} else {
 		/* Disable the ingress filter and get everyone on all vlans. */
 		for (i = 0; i <= sc->numphys; i++)
-			arswitch_modifyreg(sc->sc_dev,
-			    AR8X16_REG_PORT_VLAN(i),
+			arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_VLAN(i),
 			    AR8X16_PORT_VLAN_MODE_MASK |
-			    AR8X16_VLAN_MEMBER <<
-			    AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
-			    AR8X16_VLAN_MEMBER <<
-			    AR8X16_PORT_VLAN_DEST_PORTS_SHIFT |
-			    AR8X16_PORT_VLAN_MODE_SECURE <<
-			    AR8X16_PORT_VLAN_MODE_PORT_ONLY);
+				AR8X16_VLAN_MEMBER
+				    << AR8X16_PORT_VLAN_DEST_PORTS_SHIFT,
+			    AR8X16_VLAN_MEMBER
+				    << AR8X16_PORT_VLAN_DEST_PORTS_SHIFT |
+				AR8X16_PORT_VLAN_MODE_SECURE
+				    << AR8X16_PORT_VLAN_MODE_PORT_ONLY);
 	}
 	ARSWITCH_UNLOCK(sc);
 }
@@ -289,8 +288,7 @@ ar8xxx_getvgroup(struct arswitch_softc *sc, etherswitch_vlangroup_t *vg)
 	switch (sc->vlan_mode) {
 	case ETHERSWITCH_VLAN_DOT1Q:
 		err = sc->hal.arswitch_get_dot1q_vlan(sc, &vg->es_member_ports,
-		    &vg->es_untagged_ports,
-		    vg->es_vid);
+		    &vg->es_untagged_ports, vg->es_vid);
 		break;
 	case ETHERSWITCH_VLAN_PORT:
 		err = sc->hal.arswitch_get_port_vlan(sc, &vg->es_member_ports,
@@ -327,7 +325,7 @@ ar8xxx_setvgroup(struct arswitch_softc *sc, etherswitch_vlangroup_t *vg)
 	if (sc->vlan_mode == ETHERSWITCH_VLAN_DOT1Q &&
 	    (vid & ETHERSWITCH_VID_VALID) != 0 &&
 	    (vid & ETHERSWITCH_VID_MASK) !=
-	    (vg->es_vid & ETHERSWITCH_VID_MASK)) {
+		(vg->es_vid & ETHERSWITCH_VID_MASK)) {
 		err = sc->hal.arswitch_purge_dot1q_vlan(sc, vid);
 		if (err) {
 			ARSWITCH_UNLOCK(sc);
@@ -354,7 +352,8 @@ ar8xxx_setvgroup(struct arswitch_softc *sc, etherswitch_vlangroup_t *vg)
 		    vg->es_untagged_ports, vid);
 		break;
 	case ETHERSWITCH_VLAN_PORT:
-		err = sc->hal.arswitch_set_port_vlan(sc, vg->es_member_ports, vid);
+		err = sc->hal.arswitch_set_port_vlan(sc, vg->es_member_ports,
+		    vid);
 		break;
 	default:
 		err = -1;
@@ -379,6 +378,6 @@ ar8xxx_set_pvid(struct arswitch_softc *sc, int port, int pvid)
 {
 
 	ARSWITCH_LOCK_ASSERT(sc, MA_OWNED);
-	return (arswitch_modifyreg(sc->sc_dev,
-	    AR8X16_REG_PORT_VLAN(port), 0xfff, pvid));
+	return (arswitch_modifyreg(sc->sc_dev, AR8X16_REG_PORT_VLAN(port),
+	    0xfff, pvid));
 }

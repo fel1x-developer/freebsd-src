@@ -71,21 +71,20 @@
 
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <net/if_types.h>
 #include <net/if_media.h>
+#include <net/if_types.h>
 #include <net/route.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libifconfig.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libifconfig.h>
 
 #include "ifconfig.h"
 
@@ -127,14 +126,14 @@ media_status(if_ctx *ctx)
 		status = ifconfig_media_get_status(ifmr);
 		printf("\tstatus: %s", status);
 		if (strcmp(status, "no carrier") == 0 &&
-		    ifconfig_media_get_downreason(lifh, ctx->ifname, &ifdr) == 0) {
+		    ifconfig_media_get_downreason(lifh, ctx->ifname, &ifdr) ==
+			0) {
 			switch (ifdr.ifdr_reason) {
 			case IFDR_REASON_MSG:
 				printf(" (%s)", ifdr.ifdr_msg);
 				break;
 			case IFDR_REASON_VENDOR:
-				printf(" (vendor code %d)",
-				    ifdr.ifdr_vendor);
+				printf(" (vendor code %d)", ifdr.ifdr_vendor);
 				break;
 			default:
 				break;
@@ -262,7 +261,8 @@ setmediainst(if_ctx *ctx, const char *val, int d __unused)
 	if (inst < 0 || inst > (int)IFM_INST_MAX)
 		errx(1, "invalid media instance: %s", val);
 
-	ifmr->ifm_current = (ifmr->ifm_current & ~IFM_IMASK) | inst << IFM_ISHIFT;
+	ifmr->ifm_current = (ifmr->ifm_current & ~IFM_IMASK) |
+	    inst << IFM_ISHIFT;
 
 	callback_register(setifmediacallback, (void *)ifmr);
 }
@@ -461,23 +461,23 @@ print_media_ifconfig(ifmedia_t media)
  **********************************************************************/
 
 static struct cmd media_cmds[] = {
-	DEF_CMD_ARG("media",	setmedia),
-	DEF_CMD_ARG("mode",	setmediamode),
-	DEF_CMD_ARG("mediaopt",	setmediaopt),
-	DEF_CMD_ARG("-mediaopt",unsetmediaopt),
-	DEF_CMD_ARG("inst",	setmediainst),
-	DEF_CMD_ARG("instance",	setmediainst),
+	DEF_CMD_ARG("media", setmedia),
+	DEF_CMD_ARG("mode", setmediamode),
+	DEF_CMD_ARG("mediaopt", setmediaopt),
+	DEF_CMD_ARG("-mediaopt", unsetmediaopt),
+	DEF_CMD_ARG("inst", setmediainst),
+	DEF_CMD_ARG("instance", setmediainst),
 };
 static struct afswtch af_media = {
-	.af_name	= "af_media",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_media",
+	.af_af = AF_UNSPEC,
 	.af_other_status = media_status,
 };
 
 static __constructor void
 ifmedia_ctor(void)
 {
-	for (size_t i = 0; i < nitems(media_cmds);  i++)
+	for (size_t i = 0; i < nitems(media_cmds); i++)
 		cmd_register(&media_cmds[i]);
 	af_register(&af_media);
 }

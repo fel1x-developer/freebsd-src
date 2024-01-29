@@ -126,7 +126,8 @@ the Framework.
 - The SCI Core calls back into the Framework as a result of an operation either
 started by the OS Specific Driver or by the Framework itself.
 
-@image latex Use_Case_Diagram__SCIF_SAS__Use_Cases.eps "SCIF SAS OS Use Cases" width=11cm
+@image latex Use_Case_Diagram__SCIF_SAS__Use_Cases.eps "SCIF SAS OS Use Cases"
+width=11cm
 @image html Use_Case_Diagram__SCIF_SAS__Use_Cases.jpg "SCIF SAS OS Use Cases"
 
 @section scif_sas_class_hierarchy Class Hierarchy
@@ -137,7 +138,8 @@ low-level design sections.  Furthermore, additional classes not germane to
 the overall architecture of the component will also be defined in these
 low-level design sections.
 
-@image latex Class_Diagram__scif_sas__Class_Diagram.eps "SCIF SAS Class Diagram" width=16cm
+@image latex Class_Diagram__scif_sas__Class_Diagram.eps "SCIF SAS Class Diagram"
+width=16cm
 @image html Class_Diagram__scif_sas__Class_Diagram.jpg "SCIF SAS Class Diagram"
 
 For more information on each object appearing in the diagram, please
@@ -236,8 +238,10 @@ For more information on the starting sub-state machine states please refer
 to the scif_sas_remote_device.h::_SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATES
 enumeration.
 
-@image latex State_Machine_Diagram__STARTING_SUB-STATE__STARTING_SUB-STATE.eps "SCIF SAS Remote Device Starting Sub-state Machine Diagram" width=16cm
-@image html State_Machine_Diagram__STARTING_SUB-STATE__STARTING_SUB-STATE.jpg "SCIF SAS Remote Device Starting Sub-state Machine Diagram"
+@image latex State_Machine_Diagram__STARTING_SUB-STATE__STARTING_SUB-STATE.eps
+"SCIF SAS Remote Device Starting Sub-state Machine Diagram" width=16cm
+@image html State_Machine_Diagram__STARTING_SUB-STATE__STARTING_SUB-STATE.jpg
+"SCIF SAS Remote Device Starting Sub-state Machine Diagram"
 
 In the SCIF_SAS_REMOTE_DEVICE_READY_SUBSTATES sub-state machine,
 the remote device currently only allows new host IO requests during the
@@ -248,8 +252,10 @@ For more information on the ready sub-state machine states please refer
 to the scif_sas_remote_device.h::_SCIF_SAS_REMOTE_DEVICE_READY_SUBSTATES
 enumeration.
 
-@image latex State_Machine_Diagram__READY_SUB-STATE__READY_SUB-STATE.eps "SCIF SAS Remote Device Ready Sub-state Machine Diagram" width=16cm
-@image html State_Machine_Diagram__READY_SUB-STATE__READY_SUB-STATE.jpg "SCIF SAS Remote Device Ready Sub-state Machine Diagram"
+@image latex State_Machine_Diagram__READY_SUB-STATE__READY_SUB-STATE.eps "SCIF
+SAS Remote Device Ready Sub-state Machine Diagram" width=16cm
+@image html State_Machine_Diagram__READY_SUB-STATE__READY_SUB-STATE.jpg "SCIF
+SAS Remote Device Ready Sub-state Machine Diagram"
 
 @section scif_sas_request SCIF SAS Request
 
@@ -329,11 +335,12 @@ Please refer to these files directly for further design information:
 
 @section scif_sas_smp_remote_device SCIF SAS SMP REMOTE DEVICE
 
-The SCIF SAS SMP REMOTE DEVICE object represents the expander device and fulfills
-its SMP discover activities. The discover procedure includes a initial discover
-phase and a following SATA spinup_hold release phase, if there are expander attached
-SATA device is discovered and in spinup_hold condition. The SCIF SAS SMP REMOTE DEVICE
-object also fulfills expander attached device Target Reset (Phy Control) activity.
+The SCIF SAS SMP REMOTE DEVICE object represents the expander device and
+fulfills its SMP discover activities. The discover procedure includes a initial
+discover phase and a following SATA spinup_hold release phase, if there are
+expander attached SATA device is discovered and in spinup_hold condition. The
+SCIF SAS SMP REMOTE DEVICE object also fulfills expander attached device Target
+Reset (Phy Control) activity.
 
 @image latex Discover Process.eps "SMP Discover Activity Diagram" width=10cm
 @image html Discover Process.jpg "SMP Discover Activity Diagram"

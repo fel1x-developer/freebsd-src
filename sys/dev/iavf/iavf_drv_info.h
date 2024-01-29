@@ -49,8 +49,7 @@
  */
 const char iavf_driver_version[] = "3.0.26-k";
 
-#define PVIDV(vendor, devid, name) \
-	PVID(vendor, devid, name " - 3.0.26-k")
+#define PVIDV(vendor, devid, name) PVID(vendor, devid, name " - 3.0.26-k")
 #define PVIDV_OEM(vendor, devid, svid, sdevid, revid, name) \
 	PVID_OEM(vendor, devid, svid, sdevid, revid, name " - 3.0.26-k")
 

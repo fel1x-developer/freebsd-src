@@ -62,60 +62,59 @@
  * messages from MMCCAM to newbus and back.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 
+#include <dev/mmc/mmcreg.h>
+#include <dev/sdio/sdio_subr.h>
+#include <dev/sdio/sdiob.h>
+
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
-#include <cam/cam_queue.h>
-#include <cam/cam_periph.h>
-#include <cam/cam_xpt.h>
-#include <cam/cam_xpt_periph.h>
-#include <cam/cam_xpt_internal.h> /* for cam_path */
 #include <cam/cam_debug.h>
-
-#include <dev/mmc/mmcreg.h>
-
-#include <dev/sdio/sdiob.h>
-#include <dev/sdio/sdio_subr.h>
+#include <cam/cam_periph.h>
+#include <cam/cam_queue.h>
+#include <cam/cam_xpt.h>
+#include <cam/cam_xpt_internal.h> /* for cam_path */
+#include <cam/cam_xpt_periph.h>
 
 #include "sdio_if.h"
 
 #ifdef DEBUG
-#define	DPRINTF(...)		printf(__VA_ARGS__)
-#define	DPRINTFDEV(_dev, ...)	device_printf((_dev), __VA_ARGS__)
+#define DPRINTF(...) printf(__VA_ARGS__)
+#define DPRINTFDEV(_dev, ...) device_printf((_dev), __VA_ARGS__)
 #else
-#define	DPRINTF(...)
-#define	DPRINTFDEV(_dev, ...)
+#define DPRINTF(...)
+#define DPRINTFDEV(_dev, ...)
 #endif
 
 struct sdiob_softc {
-	uint32_t			sdio_state;
-#define	SDIO_STATE_DEAD			0x0001
-#define	SDIO_STATE_INITIALIZING		0x0002
-#define	SDIO_STATE_READY		0x0004
-	uint32_t			nb_state;
-#define	NB_STATE_DEAD			0x0001
-#define	NB_STATE_SIM_ADDED		0x0002
-#define	NB_STATE_READY			0x0004
+	uint32_t sdio_state;
+#define SDIO_STATE_DEAD 0x0001
+#define SDIO_STATE_INITIALIZING 0x0002
+#define SDIO_STATE_READY 0x0004
+	uint32_t nb_state;
+#define NB_STATE_DEAD 0x0001
+#define NB_STATE_SIM_ADDED 0x0002
+#define NB_STATE_READY 0x0004
 
 	/* CAM side. */
-	struct card_info		cardinfo;
-	struct cam_periph		*periph;
-	union ccb			*ccb;
-	struct task			discover_task;
+	struct card_info cardinfo;
+	struct cam_periph *periph;
+	union ccb *ccb;
+	struct task discover_task;
 
 	/* Newbus side. */
-	device_t			dev;	/* Ourselves. */
-	device_t			child[8];
+	device_t dev; /* Ourselves. */
+	device_t child[8];
 };
 
 /* -------------------------------------------------------------------------- */
@@ -152,8 +151,8 @@ sdiob_rw_direct_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr, bool wr,
 		memset(sc->ccb, 0, sizeof(*sc->ccb));
 	xpt_setup_ccb(&sc->ccb->ccb_h, sc->periph->path, CAM_PRIORITY_NONE);
 	CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_TRACE,
-	    ("%s(fn=%d, addr=%#02x, wr=%d, *val=%#02x)\n", __func__,
-	    fn, addr, wr, *val));
+	    ("%s(fn=%d, addr=%#02x, wr=%d, *val=%#02x)\n", __func__, fn, addr,
+		wr, *val));
 
 	flags = MMC_RSP_R5 | MMC_CMD_AC;
 	arg = SD_IO_RW_FUNC(fn) | SD_IO_RW_ADR(addr);
@@ -161,14 +160,14 @@ sdiob_rw_direct_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr, bool wr,
 		arg |= SD_IO_RW_WR | SD_IO_RW_RAW | SD_IO_RW_DAT(*val);
 
 	cam_fill_mmcio(&sc->ccb->mmcio,
-		/*retries*/ 0,
-		/*cbfcnp*/ NULL,
-		/*flags*/ CAM_DIR_NONE,
-		/*mmc_opcode*/ SD_IO_RW_DIRECT,
-		/*mmc_arg*/ arg,
-		/*mmc_flags*/ flags,
-		/*mmc_data*/ 0,
-		/*timeout*/ sc->cardinfo.f[fn].timeout);
+	    /*retries*/ 0,
+	    /*cbfcnp*/ NULL,
+	    /*flags*/ CAM_DIR_NONE,
+	    /*mmc_opcode*/ SD_IO_RW_DIRECT,
+	    /*mmc_arg*/ arg,
+	    /*mmc_flags*/ flags,
+	    /*mmc_data*/ 0,
+	    /*timeout*/ sc->cardinfo.f[fn].timeout);
 	error = cam_periph_runccb(sc->ccb, sdioerror, CAM_FLAG_NONE, 0, NULL);
 	if (error != 0) {
 		if (sc->dev != NULL)
@@ -178,7 +177,8 @@ sdiob_rw_direct_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr, bool wr,
 		else
 			CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_INFO,
 			    ("%s: Failed to %s address: %#10x error=%d\n",
-			    __func__, (wr) ? "write" : "read", addr, error));
+				__func__, (wr) ? "write" : "read", addr,
+				error));
 		return (error);
 	}
 
@@ -191,8 +191,7 @@ sdiob_rw_direct_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr, bool wr,
 }
 
 static int
-sdio_rw_direct(device_t dev, uint8_t fn, uint32_t addr, bool wr,
-    uint8_t *val)
+sdio_rw_direct(device_t dev, uint8_t fn, uint32_t addr, bool wr, uint8_t *val)
 {
 	struct sdiob_softc *sc;
 	int error;
@@ -236,7 +235,7 @@ sdiob_write_direct(device_t dev, uint8_t fn, uint32_t addr, uint8_t val)
  * full sized blocks (you must not round the blocks up and leave the last one
  * partial!)
  * For byte mode, the maximum of blksz is the functions cur_blksize.
- * This function should ever only be called by sdio_rw_extended_sc()! 
+ * This function should ever only be called by sdio_rw_extended_sc()!
  */
 static int
 sdiob_rw_extended_cam(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
@@ -253,19 +252,22 @@ sdiob_rw_extended_cam(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
 	xpt_setup_ccb(&sc->ccb->ccb_h, sc->periph->path, CAM_PRIORITY_NONE);
 	CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_TRACE,
 	    ("%s(fn=%d addr=%#0x wr=%d b_count=%u blksz=%u buf=%p incr=%d)\n",
-	    __func__, fn, addr, wr, b_count, blksz, buffer, incaddr));
+		__func__, fn, addr, wr, b_count, blksz, buffer, incaddr));
 
-	KASSERT((b_count <= 511), ("%s: infinitive block transfer not yet "
-	    "supported: b_count %u blksz %u, sc %p, fn %u, addr %#10x, %s, "
-	    "buffer %p, %s\n", __func__, b_count, blksz, sc, fn, addr,
-	    wr ? "wr" : "rd", buffer, incaddr ? "incaddr" : "fifo"));
+	KASSERT((b_count <= 511),
+	    ("%s: infinitive block transfer not yet "
+	     "supported: b_count %u blksz %u, sc %p, fn %u, addr %#10x, %s, "
+	     "buffer %p, %s\n",
+		__func__, b_count, blksz, sc, fn, addr, wr ? "wr" : "rd",
+		buffer, incaddr ? "incaddr" : "fifo"));
 	/* Blksz needs to be within bounds for both byte and block mode! */
-	KASSERT((blksz <= sc->cardinfo.f[fn].cur_blksize), ("%s: blksz "
-	    "%u > bur_blksize %u, sc %p, fn %u, addr %#10x, %s, "
-	    "buffer %p, %s, b_count %u\n", __func__, blksz,
-	    sc->cardinfo.f[fn].cur_blksize, sc, fn, addr,
-	    wr ? "wr" : "rd", buffer, incaddr ? "incaddr" : "fifo",
-	    b_count));
+	KASSERT((blksz <= sc->cardinfo.f[fn].cur_blksize),
+	    ("%s: blksz "
+	     "%u > bur_blksize %u, sc %p, fn %u, addr %#10x, %s, "
+	     "buffer %p, %s, b_count %u\n",
+		__func__, blksz, sc->cardinfo.f[fn].cur_blksize, sc, fn, addr,
+		wr ? "wr" : "rd", buffer, incaddr ? "incaddr" : "fifo",
+		b_count));
 	if (b_count == 0) {
 		/* Byte mode */
 		len = blksz;
@@ -313,14 +315,14 @@ sdiob_rw_extended_cam(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
 	}
 #endif
 	cam_fill_mmcio(&sc->ccb->mmcio,
-		/*retries*/ 0,
-		/*cbfcnp*/ NULL,
-		/*flags*/ cam_flags,
-		/*mmc_opcode*/ SD_IO_RW_EXTENDED,
-		/*mmc_arg*/ arg,
-		/*mmc_flags*/ flags,
-		/*mmc_data*/ &mmcd,
-		/*timeout*/ sc->cardinfo.f[fn].timeout);
+	    /*retries*/ 0,
+	    /*cbfcnp*/ NULL,
+	    /*flags*/ cam_flags,
+	    /*mmc_opcode*/ SD_IO_RW_EXTENDED,
+	    /*mmc_arg*/ arg,
+	    /*mmc_flags*/ flags,
+	    /*mmc_data*/ &mmcd,
+	    /*timeout*/ sc->cardinfo.f[fn].timeout);
 	if (arg & SD_IOE_RW_BLK) {
 		mmcd.flags |= MMC_DATA_BLOCK_SIZE;
 		if (b_count != 1)
@@ -335,15 +337,15 @@ sdiob_rw_extended_cam(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
 			    "%s: Failed to %s address %#10x buffer %p size %u "
 			    "%s b_count %u blksz %u error=%d\n",
 			    __func__, (wr) ? "write to" : "read from", addr,
-			    buffer, len, (incaddr) ? "incr" : "fifo",
-			    b_count, blksz, error);
+			    buffer, len, (incaddr) ? "incr" : "fifo", b_count,
+			    blksz, error);
 		else
 			CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_INFO,
 			    ("%s: Failed to %s address %#10x buffer %p size %u "
-			    "%s b_count %u blksz %u error=%d\n",
-			    __func__, (wr) ? "write to" : "read from", addr,
-			    buffer, len, (incaddr) ? "incr" : "fifo",
-			    b_count, blksz, error));
+			     "%s b_count %u blksz %u error=%d\n",
+				__func__, (wr) ? "write to" : "read from", addr,
+				buffer, len, (incaddr) ? "incr" : "fifo",
+				b_count, blksz, error));
 		return (error);
 	}
 
@@ -356,22 +358,22 @@ sdiob_rw_extended_cam(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
 			    "%s: Failed to %s address %#10x buffer %p size %u "
 			    "%s b_count %u blksz %u mmcio resp error=%d\n",
 			    __func__, (wr) ? "write to" : "read from", addr,
-			    buffer, len, (incaddr) ? "incr" : "fifo",
-			    b_count, blksz, error);
+			    buffer, len, (incaddr) ? "incr" : "fifo", b_count,
+			    blksz, error);
 		else
 			CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_INFO,
 			    ("%s: Failed to %s address %#10x buffer %p size %u "
-			    "%s b_count %u blksz %u mmcio resp error=%d\n",
-			    __func__, (wr) ? "write to" : "read from", addr,
-			    buffer, len, (incaddr) ? "incr" : "fifo",
-			    b_count, blksz, error));
+			     "%s b_count %u blksz %u mmcio resp error=%d\n",
+				__func__, (wr) ? "write to" : "read from", addr,
+				buffer, len, (incaddr) ? "incr" : "fifo",
+				b_count, blksz, error));
 	}
 	return (error);
 }
 
 static int
-sdiob_rw_extended_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
-    bool wr, uint32_t size, uint8_t *buffer, bool incaddr)
+sdiob_rw_extended_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr, bool wr,
+    uint32_t size, uint8_t *buffer, bool incaddr)
 {
 	int error;
 	uint32_t len;
@@ -381,12 +383,14 @@ sdiob_rw_extended_sc(struct sdiob_softc *sc, uint8_t fn, uint32_t addr,
 	 * If block mode is supported and we have at least 4 bytes to write and
 	 * the size is at least one block, then start doing blk transfers.
 	 */
-	while (sc->cardinfo.support_multiblk &&
-	    size > 4 && size >= sc->cardinfo.f[fn].cur_blksize) {
+	while (sc->cardinfo.support_multiblk && size > 4 &&
+	    size >= sc->cardinfo.f[fn].cur_blksize) {
 		b_count = size / sc->cardinfo.f[fn].cur_blksize;
-		KASSERT(b_count >= 1, ("%s: block count too small %u size %u "
-		    "cur_blksize %u\n", __func__, b_count, size,
-		    sc->cardinfo.f[fn].cur_blksize));
+		KASSERT(b_count >= 1,
+		    ("%s: block count too small %u size %u "
+		     "cur_blksize %u\n",
+			__func__, b_count, size,
+			sc->cardinfo.f[fn].cur_blksize));
 
 #ifdef __notyet__
 		/* XXX support inifinite transfer with b_count = 0. */
@@ -464,14 +468,16 @@ sdiob_read_ivar(device_t dev, device_t child, int which, uintptr_t *result)
 	struct sdio_func *f;
 
 	f = device_get_ivars(child);
-	KASSERT(f != NULL, ("%s: dev %p child %p which %d, child ivars NULL\n",
-	    __func__, dev, child, which));
+	KASSERT(f != NULL,
+	    ("%s: dev %p child %p which %d, child ivars NULL\n", __func__, dev,
+		child, which));
 
 	switch (which) {
 	case SDIOB_IVAR_SUPPORT_MULTIBLK:
 		sc = device_get_softc(dev);
-		KASSERT(sc != NULL, ("%s: dev %p child %p which %d, sc NULL\n",
-		    __func__, dev, child, which));
+		KASSERT(sc != NULL,
+		    ("%s: dev %p child %p which %d, sc NULL\n", __func__, dev,
+			child, which));
 		*result = sc->cardinfo.support_multiblk;
 		break;
 	case SDIOB_IVAR_FUNCTION:
@@ -504,8 +510,9 @@ sdiob_write_ivar(device_t dev, device_t child, int which, uintptr_t value)
 	struct sdio_func *f;
 
 	f = device_get_ivars(child);
-	KASSERT(f != NULL, ("%s: dev %p child %p which %d, child ivars NULL\n",
-	    __func__, dev, child, which));
+	KASSERT(f != NULL,
+	    ("%s: dev %p child %p which %d, child ivars NULL\n", __func__, dev,
+		child, which));
 
 	switch (which) {
 	case SDIOB_IVAR_SUPPORT_MULTIBLK:
@@ -514,7 +521,7 @@ sdiob_write_ivar(device_t dev, device_t child, int which, uintptr_t value)
 	case SDIOB_IVAR_CLASS:
 	case SDIOB_IVAR_VENDOR:
 	case SDIOB_IVAR_DEVICE:
-		return (EINVAL);	/* Disallowed. */
+		return (EINVAL); /* Disallowed. */
 	case SDIOB_IVAR_DRVDATA:
 		f->drvdata = value;
 		break;
@@ -560,7 +567,8 @@ sdiob_attach(device_t dev)
 	for (i = 0; i < sc->cardinfo.num_funcs; i++) {
 		sc->child[i] = device_add_child(dev, NULL, -1);
 		if (sc->child[i] == NULL) {
-			device_printf(dev, "%s: failed to add child\n", __func__);
+			device_printf(dev, "%s: failed to add child\n",
+			    __func__);
 			return (ENXIO);
 		}
 		sc->cardinfo.f[i].dev = sc->child[i];
@@ -580,11 +588,11 @@ sdiob_attach(device_t dev)
 	for (i = 1; i < sc->cardinfo.num_funcs; i++) {
 		error = device_probe_and_attach(sc->child[i]);
 		if (error != 0 && bootverbose)
-			device_printf(dev, "%s: device_probe_and_attach(%p %s) "
+			device_printf(dev,
+			    "%s: device_probe_and_attach(%p %s) "
 			    "failed %d for function %d, no child yet\n",
-			     __func__,
-			     sc->child, device_get_nameunit(sc->child[i]),
-			     error, i);
+			    __func__, sc->child,
+			    device_get_nameunit(sc->child[i]), error, i);
 	}
 
 	sc->nb_state = NB_STATE_READY;
@@ -614,30 +622,26 @@ sdiob_detach(device_t dev)
 
 static device_method_t sdiob_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		sdiob_probe),
-	DEVMETHOD(device_attach,	sdiob_attach),
-	DEVMETHOD(device_detach,	sdiob_detach),
+	DEVMETHOD(device_probe, sdiob_probe),
+	DEVMETHOD(device_attach, sdiob_attach),
+	DEVMETHOD(device_detach, sdiob_detach),
 
 	/* Bus interface. */
-	DEVMETHOD(bus_add_child,	bus_generic_add_child),
-	DEVMETHOD(bus_driver_added,	bus_generic_driver_added),
-	DEVMETHOD(bus_read_ivar,	sdiob_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdiob_write_ivar),
+	DEVMETHOD(bus_add_child, bus_generic_add_child),
+	DEVMETHOD(bus_driver_added, bus_generic_driver_added),
+	DEVMETHOD(bus_read_ivar, sdiob_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdiob_write_ivar),
 
 	/* SDIO interface. */
-	DEVMETHOD(sdio_read_direct,	sdiob_read_direct),
-	DEVMETHOD(sdio_write_direct,	sdiob_write_direct),
-	DEVMETHOD(sdio_read_extended,	sdiob_read_extended),
-	DEVMETHOD(sdio_write_extended,	sdiob_write_extended),
+	DEVMETHOD(sdio_read_direct, sdiob_read_direct),
+	DEVMETHOD(sdio_write_direct, sdiob_write_direct),
+	DEVMETHOD(sdio_read_extended, sdiob_read_extended),
+	DEVMETHOD(sdio_write_extended, sdiob_write_extended),
 
 	DEVMETHOD_END
 };
 
-static driver_t sdiob_driver = {
-	SDIOB_NAME_S,
-	sdiob_methods,
-	0
-};
+static driver_t sdiob_driver = { SDIOB_NAME_S, sdiob_methods, 0 };
 
 /* -------------------------------------------------------------------------- */
 /*
@@ -668,8 +672,8 @@ sdio_func_read_cis(struct sdiob_softc *sc, uint8_t fn, uint32_t cis_addr)
 	uint8_t ch, tuple_id, tuple_len, tuple_count, v;
 
 	/* If we encounter any read errors, abort and return. */
-#define	ERR_OUT(ret)							\
-	if (ret != 0)							\
+#define ERR_OUT(ret)  \
+	if (ret != 0) \
 		goto err;
 	ret = 0;
 	/* Use to prevent infinite loop in case of parse errors. */
@@ -690,7 +694,7 @@ sdio_func_read_cis(struct sdiob_softc *sc, uint8_t fn, uint32_t cis_addr)
 		if (tuple_len == 0) {
 			CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_PERIPH,
 			    ("%s: parse error: 0-length tuple %#02x\n",
-			    __func__, tuple_id));
+				__func__, tuple_id));
 			return (EIO);
 		}
 
@@ -702,19 +706,20 @@ sdio_func_read_cis(struct sdiob_softc *sc, uint8_t fn, uint32_t cis_addr)
 				ret = sdio_read_direct_sc(sc, 0, addr + i, &ch);
 				ERR_OUT(ret);
 				DPRINTF("%s: count=%d, start=%d, i=%d, got "
-				    "(%#02x)\n", __func__, count, start, i, ch);
+					"(%#02x)\n",
+				    __func__, count, start, i, ch);
 				if (ch == 0xff)
 					break;
 				cis1_info_buf[i] = ch;
 				if (ch == 0) {
-					cis1_info[count] =
-					    cis1_info_buf + start;
+					cis1_info[count] = cis1_info_buf +
+					    start;
 					start = i + 1;
 					count++;
 				}
 			}
 			DPRINTF("Card info: ");
-			for (i=0; i < 4; i++)
+			for (i = 0; i < 4; i++)
 				if (cis1_info[i])
 					DPRINTF(" %s", cis1_info[i]);
 			DPRINTF("\n");
@@ -740,8 +745,8 @@ sdio_func_read_cis(struct sdiob_softc *sc, uint8_t fn, uint32_t cis_addr)
 			break;
 		case SD_IO_CISTPL_FUNCE:
 			if (tuple_len < 4) {
-				printf("%s: FUNCE is too short: %d\n",
-				    __func__, tuple_len);
+				printf("%s: FUNCE is too short: %d\n", __func__,
+				    tuple_len);
 				break;
 			}
 			/* TPLFE_TYPE (Extended Data) */
@@ -758,15 +763,16 @@ sdio_func_read_cis(struct sdiob_softc *sc, uint8_t fn, uint32_t cis_addr)
 			ret = sdio_read_direct_sc(sc, 0, addr, &v);
 			ERR_OUT(ret);
 			sc->cardinfo.f[fn].max_blksize = v;
-			ret = sdio_read_direct_sc(sc, 0, addr+1, &v);
+			ret = sdio_read_direct_sc(sc, 0, addr + 1, &v);
 			ERR_OUT(ret);
 			sc->cardinfo.f[fn].max_blksize |= (v << 8);
 			break;
 		default:
 			CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_PERIPH,
 			    ("%s: Skipping fn %d tuple %d ID %#02x "
-			    "len %#02x\n", __func__, fn, tuple_count,
-			    tuple_id, tuple_len));
+			     "len %#02x\n",
+				__func__, fn, tuple_count, tuple_id,
+				tuple_len));
 		}
 		if (tuple_len == 0xff) {
 			/* Also marks the end of a tuple chain (E1 16.2) */
@@ -802,10 +808,10 @@ sdio_get_common_cis_addr(struct sdiob_softc *sc, uint32_t *addr)
 	a |= (val << 16);
 
 	if (a < SD_IO_CIS_START || a > SD_IO_CIS_START + SD_IO_CIS_SIZE) {
-err:
+	err:
 		CAM_DEBUG(sc->ccb->ccb_h.path, CAM_DEBUG_PERIPH,
 		    ("%s: bad CIS address: %#04x, error %d\n", __func__, a,
-		    error));
+			error));
 	} else if (error == 0 && addr != NULL)
 		*addr = a;
 
@@ -838,7 +844,7 @@ sdiob_get_card_info(struct sdiob_softc *sc)
 		return (error);
 	sc->cardinfo.support_multiblk = (val & CCCR_CC_SMB) ? true : false;
 	DPRINTF("%s: F%d: Vendor %#04x product %#04x max block size %d bytes "
-	    "support_multiblk %s\n",
+		"support_multiblk %s\n",
 	    __func__, fn, sc->cardinfo.f[fn].vendor, sc->cardinfo.f[fn].device,
 	    sc->cardinfo.f[fn].max_blksize,
 	    sc->cardinfo.support_multiblk ? "yes" : "no");
@@ -885,8 +891,8 @@ sdiob_get_card_info(struct sdiob_softc *sc)
 		sc->cardinfo.f[fn].timeout = 5000;
 
 		DPRINTF("%s: F%d: Class %d Vendor %#04x product %#04x "
-		    "max_blksize %d bytes\n", __func__, fn,
-		    sc->cardinfo.f[fn].class,
+			"max_blksize %d bytes\n",
+		    __func__, fn, sc->cardinfo.f[fn].class,
 		    sc->cardinfo.f[fn].vendor, sc->cardinfo.f[fn].device,
 		    sc->cardinfo.f[fn].max_blksize);
 		if (sc->cardinfo.f[fn].vendor == 0) {
@@ -919,8 +925,8 @@ sdio_newbus_sim_add(struct sdiob_softc *sc)
 	/* Add ourselves to our parent. That way we can become a parent. */
 	pdev = xpt_path_sim_device(sc->periph->path);
 	KASSERT(pdev != NULL,
-	    ("%s: pdev is NULL, sc %p periph %p sim %p\n",
-	    __func__, sc, sc->periph, sc->periph->sim));
+	    ("%s: pdev is NULL, sc %p periph %p sim %p\n", __func__, sc,
+		sc->periph, sc->periph->sim));
 
 	if (sc->dev == NULL)
 		sc->dev = BUS_ADD_CHILD(pdev, 0, SDIOB_NAME_S, -1);
@@ -944,8 +950,8 @@ sdio_newbus_sim_add(struct sdiob_softc *sc)
 	    BUS_PASS_DEFAULT, NULL);
 	bus_topo_unlock();
 	if (error != 0) {
-		printf("%s: Failed to add driver to devclass: %d.\n",
-		    __func__, error);
+		printf("%s: Failed to add driver to devclass: %d.\n", __func__,
+		    error);
 		return (error);
 	}
 
@@ -987,7 +993,7 @@ sdiobdiscover(void *context, int pending)
 	 */
 	cam_periph_lock(periph);
 	error = sdiob_get_card_info(sc);
-	if  (error == 0)
+	if (error == 0)
 		sc->sdio_state = SDIO_STATE_READY;
 	else
 		sc->sdio_state = SDIO_STATE_DEAD;
@@ -996,8 +1002,8 @@ sdiobdiscover(void *context, int pending)
 	if (error)
 		return;
 
-	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE, ("%s: num_func %d\n",
-	    __func__, sc->cardinfo.num_funcs));
+	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE,
+	    ("%s: num_func %d\n", __func__, sc->cardinfo.num_funcs));
 
 	/*
 	 * Now CAM portion of the driver has been initialized and
@@ -1018,19 +1024,20 @@ sdiobregister(struct cam_periph *periph, void *arg)
 	struct sdiob_softc *sc;
 	int error;
 
-	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE, ("%s: arg %p\n", __func__, arg));
+	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE,
+	    ("%s: arg %p\n", __func__, arg));
 	if (arg == NULL) {
 		printf("%s: no getdev CCB, can't register device pariph %p\n",
 		    __func__, periph);
-		return(CAM_REQ_CMP_ERR);
+		return (CAM_REQ_CMP_ERR);
 	}
 	if (xpt_path_sim_device(periph->path) == NULL) {
 		printf("%s: no device_t for sim %p\n", __func__, periph->sim);
-		return(CAM_REQ_CMP_ERR);
+		return (CAM_REQ_CMP_ERR);
 	}
 
-	sc = (struct sdiob_softc *) malloc(sizeof(*sc), M_DEVBUF,
-	    M_NOWAIT|M_ZERO);
+	sc = (struct sdiob_softc *)malloc(sizeof(*sc), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (sc == NULL) {
 		printf("%s: unable to allocate sc\n", __func__);
 		return (CAM_REQ_CMP_ERR);
@@ -1044,7 +1051,7 @@ sdiobregister(struct cam_periph *periph, void *arg)
 	if (error != 0) {
 		printf("%s: lost periph during registration!\n", __func__);
 		free(sc, M_DEVBUF);
-		return(CAM_REQ_CMP_ERR);
+		return (CAM_REQ_CMP_ERR);
 	}
 	periph->softc = sc;
 	sc->periph = periph;
@@ -1083,7 +1090,8 @@ static void
 sdiobstart(struct cam_periph *periph, union ccb *ccb)
 {
 
-	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE, ("%s: ccb %p\n", __func__, ccb));
+	CAM_DEBUG(periph->path, CAM_DEBUG_TRACE,
+	    ("%s: ccb %p\n", __func__, ccb));
 
 	return;
 }
@@ -1108,9 +1116,9 @@ sdiobasync(void *softc, uint32_t code, struct cam_path *path, void *arg)
 
 		/* We do not support SD memory (Combo) Cards. */
 		if ((path->device->mmc_ident_data.card_features &
-		    CARD_FEATURE_MEMORY)) {
+			CARD_FEATURE_MEMORY)) {
 			CAM_DEBUG(path, CAM_DEBUG_TRACE,
-			     ("Memory card, not interested\n"));
+			    ("Memory card, not interested\n"));
 			break;
 		}
 
@@ -1119,16 +1127,17 @@ sdiobasync(void *softc, uint32_t code, struct cam_path *path, void *arg)
 		 * the probe process.
 		 */
 		status = cam_periph_alloc(sdiobregister, sdioboninvalidate,
-		    sdiobcleanup, sdiobstart, SDIOB_NAME_S, CAM_PERIPH_BIO, path,
-		    sdiobasync, AC_FOUND_DEVICE, cgd);
+		    sdiobcleanup, sdiobstart, SDIOB_NAME_S, CAM_PERIPH_BIO,
+		    path, sdiobasync, AC_FOUND_DEVICE, cgd);
 		if (status != CAM_REQ_CMP && status != CAM_REQ_INPROG)
 			CAM_DEBUG(path, CAM_DEBUG_PERIPH,
-			     ("%s: Unable to attach to new device due to "
-			     "status %#02x\n", __func__, status));
+			    ("%s: Unable to attach to new device due to "
+			     "status %#02x\n",
+				__func__, status));
 		break;
 	default:
 		CAM_DEBUG(path, CAM_DEBUG_PERIPH,
-		     ("%s: cannot handle async code %#02x\n", __func__, code));
+		    ("%s: cannot handle async code %#02x\n", __func__, code));
 		cam_periph_async(periph, code, path, arg);
 		break;
 	}
@@ -1157,14 +1166,13 @@ sdiobdeinit(void)
 	return (EOPNOTSUPP);
 }
 
-static struct periph_driver sdiobdriver =
-{
-	.init =		sdiobinit,
-	.driver_name =	SDIOB_NAME_S,
-	.units =	TAILQ_HEAD_INITIALIZER(sdiobdriver.units),
-	.generation =	0,
-	.flags =	0,
-	.deinit =	sdiobdeinit,
+static struct periph_driver sdiobdriver = {
+	.init = sdiobinit,
+	.driver_name = SDIOB_NAME_S,
+	.units = TAILQ_HEAD_INITIALIZER(sdiobdriver.units),
+	.generation = 0,
+	.flags = 0,
+	.deinit = sdiobdeinit,
 };
 
 PERIPHDRIVER_DECLARE(SDIOB_NAME, sdiobdriver);

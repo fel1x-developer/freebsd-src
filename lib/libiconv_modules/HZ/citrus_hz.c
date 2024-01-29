@@ -30,8 +30,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -42,14 +42,13 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
-
 #include "citrus_hz.h"
+#include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_prop.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /*
  * wchar_t mapping:
@@ -59,57 +58,58 @@
  * 94/96*n (~M)	0mmmmmmm 0xxxxxxx 0xxxxxxx gxxxxxxx
  */
 
-#define ESCAPE_CHAR	'~'
+#define ESCAPE_CHAR '~'
 
-typedef enum {
-	CTRL = 0, ASCII = 1, GB2312 = 2, CS94 = 3, CS96 = 4
-} charset_t;
+typedef enum { CTRL = 0, ASCII = 1, GB2312 = 2, CS94 = 3, CS96 = 4 } charset_t;
 
 typedef struct {
-	int	 start;
-	int	 end;
-	int	 width;
+	int start;
+	int end;
+	int width;
 } range_t;
 
 static const range_t ranges[] = {
-#define RANGE(start, end) { start, end, (end - start) + 1 }
-/* CTRL   */ RANGE(0x00, 0x1F),
-/* ASCII  */ RANGE(0x20, 0x7F),
-/* GB2312 */ RANGE(0x21, 0x7E),
-/* CS94   */ RANGE(0x21, 0x7E),
-/* CS96   */ RANGE(0x20, 0x7F),
+#define RANGE(start, end)                     \
+	{                                     \
+		start, end, (end - start) + 1 \
+	}
+	/* CTRL   */ RANGE(0x00, 0x1F),
+	/* ASCII  */ RANGE(0x20, 0x7F),
+	/* GB2312 */ RANGE(0x21, 0x7E),
+	/* CS94   */ RANGE(0x21, 0x7E),
+	/* CS96   */ RANGE(0x20, 0x7F),
 #undef RANGE
 };
 
 typedef struct escape_t escape_t;
 typedef struct {
-	charset_t	 charset;
-	escape_t	*escape;
-	ssize_t		 length;
-#define ROWCOL_MAX	3
+	charset_t charset;
+	escape_t *escape;
+	ssize_t length;
+#define ROWCOL_MAX 3
 } graphic_t;
 
 typedef TAILQ_HEAD(escape_list, escape_t) escape_list;
 struct escape_t {
-	TAILQ_ENTRY(escape_t)	 entry;
-	escape_list		*set;
-	graphic_t		*left;
-	graphic_t		*right;
-	int			 ch;
+	TAILQ_ENTRY(escape_t) entry;
+	escape_list *set;
+	graphic_t *left;
+	graphic_t *right;
+	int ch;
 };
 
-#define GL(escape)	((escape)->left)
-#define GR(escape)	((escape)->right)
-#define SET(escape)	((escape)->set)
-#define ESC(escape)	((escape)->ch)
-#define INIT(escape)	(TAILQ_FIRST(SET(escape)))
+#define GL(escape) ((escape)->left)
+#define GR(escape) ((escape)->right)
+#define SET(escape) ((escape)->set)
+#define ESC(escape) ((escape)->ch)
+#define INIT(escape) (TAILQ_FIRST(SET(escape)))
 
 static __inline escape_t *
 find_escape(escape_list *set, int ch)
 {
 	escape_t *escape;
 
-	TAILQ_FOREACH(escape, set, entry) {
+	TAILQ_FOREACH (escape, set, entry) {
 		if (ESC(escape) == ch)
 			break;
 	}
@@ -118,36 +118,36 @@ find_escape(escape_list *set, int ch)
 }
 
 typedef struct {
-	escape_list	 e0;
-	escape_list	 e1;
-	graphic_t	*ascii;
-	graphic_t	*gb2312;
+	escape_list e0;
+	escape_list e1;
+	graphic_t *ascii;
+	graphic_t *gb2312;
 } _HZEncodingInfo;
 
-#define E0SET(ei)	(&(ei)->e0)
-#define E1SET(ei)	(&(ei)->e1)
-#define INIT0(ei)	(TAILQ_FIRST(E0SET(ei)))
-#define INIT1(ei)	(TAILQ_FIRST(E1SET(ei)))
+#define E0SET(ei) (&(ei)->e0)
+#define E1SET(ei) (&(ei)->e1)
+#define INIT0(ei) (TAILQ_FIRST(E0SET(ei)))
+#define INIT1(ei) (TAILQ_FIRST(E1SET(ei)))
 
 typedef struct {
-	escape_t	*inuse;
-	int		 chlen;
-	char		 ch[ROWCOL_MAX];
+	escape_t *inuse;
+	int chlen;
+	char ch[ROWCOL_MAX];
 } _HZState;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_HZ_##m
-#define _ENCODING_INFO			_HZEncodingInfo
-#define _ENCODING_STATE			_HZState
-#define _ENCODING_MB_CUR_MAX(_ei_)	MB_LEN_MAX
-#define _ENCODING_IS_STATE_DEPENDENT		1
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	((_ps_)->inuse == NULL)
+#define _FUNCNAME(m) _citrus_HZ_##m
+#define _ENCODING_INFO _HZEncodingInfo
+#define _ENCODING_STATE _HZState
+#define _ENCODING_MB_CUR_MAX(_ei_) MB_LEN_MAX
+#define _ENCODING_IS_STATE_DEPENDENT 1
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) ((_ps_)->inuse == NULL)
 
 static __inline void
-_citrus_HZ_init_state(_HZEncodingInfo * __restrict ei,
-    _HZState * __restrict psenc)
+_citrus_HZ_init_state(_HZEncodingInfo *__restrict ei,
+    _HZState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -175,9 +175,9 @@ _citrus_HZ_unpack_state(_HZEncodingInfo * __restrict ei __unused,
 #endif
 
 static int
-_citrus_HZ_mbrtowc_priv(_HZEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _HZState * __restrict psenc, size_t * __restrict nresult)
+_citrus_HZ_mbrtowc_priv(_HZEncodingInfo *__restrict ei, wchar_t *__restrict pwc,
+    char **__restrict s, size_t n, _HZState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	escape_t *candidate, *init;
 	graphic_t *graphic;
@@ -249,8 +249,8 @@ _citrus_HZ_mbrtowc_priv(_HZEncodingInfo * __restrict ei,
 					candidate = init;
 				}
 				if (candidate == NULL) {
-					candidate = find_escape(
-					    SET(psenc->inuse), ch);
+					candidate =
+					    find_escape(SET(psenc->inuse), ch);
 					if (candidate == NULL) {
 						if (init == NULL ||
 						    ESC(init) != ch)
@@ -297,9 +297,9 @@ done:
 }
 
 static int
-_citrus_HZ_wcrtomb_priv(_HZEncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wc,
-    _HZState * __restrict psenc, size_t * __restrict nresult)
+_citrus_HZ_wcrtomb_priv(_HZEncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, wchar_t wc, _HZState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	escape_t *candidate, *init;
 	graphic_t *graphic;
@@ -394,9 +394,8 @@ ilseq:
 }
 
 static __inline int
-_citrus_HZ_put_state_reset(_HZEncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, _HZState * __restrict psenc,
-    size_t * __restrict nresult)
+_citrus_HZ_put_state_reset(_HZEncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, _HZState *__restrict psenc, size_t *__restrict nresult)
 {
 	escape_t *candidate;
 
@@ -421,27 +420,25 @@ _citrus_HZ_put_state_reset(_HZEncodingInfo * __restrict ei,
 }
 
 static __inline int
-_citrus_HZ_stdenc_get_state_desc_generic(_HZEncodingInfo * __restrict ei,
-    _HZState * __restrict psenc, int * __restrict rstate)
+_citrus_HZ_stdenc_get_state_desc_generic(_HZEncodingInfo *__restrict ei,
+    _HZState *__restrict psenc, int *__restrict rstate)
 {
 
 	if (psenc->chlen < 0 || psenc->inuse == NULL)
 		return (EINVAL);
-	*rstate = (psenc->chlen == 0)
-	    ? ((psenc->inuse == INIT0(ei))
-	        ? _STDENC_SDGEN_INITIAL
-	        : _STDENC_SDGEN_STABLE)
-	    : ((psenc->ch[0] == ESCAPE_CHAR)
-	        ? _STDENC_SDGEN_INCOMPLETE_SHIFT
-	        : _STDENC_SDGEN_INCOMPLETE_CHAR);
+	*rstate = (psenc->chlen == 0) ?
+	    ((psenc->inuse == INIT0(ei)) ? _STDENC_SDGEN_INITIAL :
+					   _STDENC_SDGEN_STABLE) :
+	    ((psenc->ch[0] == ESCAPE_CHAR) ? _STDENC_SDGEN_INCOMPLETE_SHIFT :
+					     _STDENC_SDGEN_INCOMPLETE_CHAR);
 
 	return (0);
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_HZ_stdenc_wctocs(_HZEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_HZ_stdenc_wctocs(_HZEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	int bit;
 
@@ -466,8 +463,8 @@ _citrus_HZ_stdenc_wctocs(_HZEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_HZ_stdenc_cstowc(_HZEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_HZ_stdenc_cstowc(_HZEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	*wc = (wchar_t)idx;
@@ -545,7 +542,7 @@ _citrus_HZ_parse_graphic(void *context, const char *name, const char *s)
 			goto release;
 		GR(escape) = graphic;
 	} else {
-release:
+	release:
 		free(graphic);
 		return (EINVAL);
 	}
@@ -571,8 +568,10 @@ release:
 	else
 		return (EINVAL);
 	s += 3;
-	switch(*s) {
-	case '1': case '2': case '3':
+	switch (*s) {
+	case '1':
+	case '2':
+	case '3':
 		graphic->length = (size_t)(*s - '0');
 		if (*++s == '\0')
 			break;
@@ -583,12 +582,11 @@ release:
 	return (0);
 }
 
-static const _citrus_prop_hint_t escape_hints[] = {
-_CITRUS_PROP_HINT_STR("CH", &_citrus_HZ_parse_char),
-_CITRUS_PROP_HINT_STR("GL", &_citrus_HZ_parse_graphic),
-_CITRUS_PROP_HINT_STR("GR", &_citrus_HZ_parse_graphic),
-_CITRUS_PROP_HINT_END
-};
+static const _citrus_prop_hint_t escape_hints[] = { _CITRUS_PROP_HINT_STR("CH",
+							&_citrus_HZ_parse_char),
+	_CITRUS_PROP_HINT_STR("GL", &_citrus_HZ_parse_graphic),
+	_CITRUS_PROP_HINT_STR("GR", &_citrus_HZ_parse_graphic),
+	_CITRUS_PROP_HINT_END };
 
 static int
 _citrus_HZ_parse_escape(void *context, const char *name, const char *s)
@@ -613,27 +611,26 @@ _citrus_HZ_parse_escape(void *context, const char *name, const char *s)
 	}
 	p[0] = (void *)escape;
 	p[1] = (void *)ei;
-	return (_citrus_prop_parse_variable(
-	    escape_hints, (void *)&p[0], s, strlen(s)));
+	return (_citrus_prop_parse_variable(escape_hints, (void *)&p[0], s,
+	    strlen(s)));
 }
 
-static const _citrus_prop_hint_t root_hints[] = {
-_CITRUS_PROP_HINT_STR("0", &_citrus_HZ_parse_escape),
-_CITRUS_PROP_HINT_STR("1", &_citrus_HZ_parse_escape),
-_CITRUS_PROP_HINT_END
-};
+static const _citrus_prop_hint_t root_hints[] = { _CITRUS_PROP_HINT_STR("0",
+						      &_citrus_HZ_parse_escape),
+	_CITRUS_PROP_HINT_STR("1", &_citrus_HZ_parse_escape),
+	_CITRUS_PROP_HINT_END };
 
 static int
-_citrus_HZ_encoding_module_init(_HZEncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_HZ_encoding_module_init(_HZEncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 	int errnum;
 
 	memset(ei, 0, sizeof(*ei));
 	TAILQ_INIT(E0SET(ei));
 	TAILQ_INIT(E1SET(ei));
-	errnum = _citrus_prop_parse_variable(
-	    root_hints, (void *)ei, var, lenvar);
+	errnum = _citrus_prop_parse_variable(root_hints, (void *)ei, var,
+	    lenvar);
 	if (errnum != 0)
 		_citrus_HZ_encoding_module_uninit(ei);
 	return (errnum);

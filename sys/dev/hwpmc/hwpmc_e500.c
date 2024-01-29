@@ -27,38 +27,39 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
-#include <machine/pmc_mdep.h>
 #include <machine/cpu.h>
+#include <machine/pmc_mdep.h>
 
 #include <ddb/ddb.h>
 
 #include "hwpmc_powerpc.h"
 
 struct e500_event_code_map {
-	enum pmc_event	pe_ev;       /* enum value */
-	uint8_t         pe_counter_mask;  /* Which counter this can be counted in. */
-	uint8_t		pe_code;     /* numeric code */
-	uint8_t		pe_cpu;	     /* e500 core (v1,v2,mc), mask */
+	enum pmc_event pe_ev;	 /* enum value */
+	uint8_t pe_counter_mask; /* Which counter this can be counted in. */
+	uint8_t pe_code;	 /* numeric code */
+	uint8_t pe_cpu;		 /* e500 core (v1,v2,mc), mask */
 };
 
-#define E500_MAX_PMCS	4
-#define PMC_PPC_MASK0	0
-#define PMC_PPC_MASK1	1
-#define PMC_PPC_MASK2	2
-#define PMC_PPC_MASK3	3
-#define PMC_PPC_MASK_ALL	0x0f
-#define PMC_PPC_E500V1		1
-#define PMC_PPC_E500V2		2
-#define PMC_PPC_E500MC		4
-#define PMC_PPC_E500_ANY	7
-#define PMC_E500_EVENT(id, mask, number, core) \
-	[PMC_EV_E500_##id - PMC_EV_E500_FIRST] = \
-	    { .pe_ev = PMC_EV_E500_##id, .pe_counter_mask = mask, \
-	      .pe_code = number, .pe_cpu = core }
+#define E500_MAX_PMCS 4
+#define PMC_PPC_MASK0 0
+#define PMC_PPC_MASK1 1
+#define PMC_PPC_MASK2 2
+#define PMC_PPC_MASK3 3
+#define PMC_PPC_MASK_ALL 0x0f
+#define PMC_PPC_E500V1 1
+#define PMC_PPC_E500V2 2
+#define PMC_PPC_E500MC 4
+#define PMC_PPC_E500_ANY 7
+#define PMC_E500_EVENT(id, mask, number, core)                                \
+	[PMC_EV_E500_##id - PMC_EV_E500_FIRST] = { .pe_ev = PMC_EV_E500_##id, \
+		.pe_counter_mask = mask,                                      \
+		.pe_code = number,                                            \
+		.pe_cpu = core }
 #define PMC_E500MC_ONLY(id, number) \
 	PMC_E500_EVENT(id, PMC_PPC_MASK_ALL, number, PMC_PPC_E500MC)
 #define PMC_E500_COMMON(id, number) \
@@ -140,18 +141,18 @@ static struct e500_event_code_map e500_event_codes[] = {
 	PMC_E500_COMMON(SNOOP_HITS, 73),
 	PMC_E500_COMMON(SNOOP_PUSHES, 74),
 	PMC_E500_COMMON(SNOOP_RETRIES, 75),
-	PMC_E500_EVENT(DLFB_LOAD_MISS_CYCLES, PMC_PPC_MASK0|PMC_PPC_MASK1,
-	    76, PMC_PPC_E500_ANY),
-	PMC_E500_EVENT(ILFB_FETCH_MISS_CYCLES, PMC_PPC_MASK0|PMC_PPC_MASK1,
+	PMC_E500_EVENT(DLFB_LOAD_MISS_CYCLES, PMC_PPC_MASK0 | PMC_PPC_MASK1, 76,
+	    PMC_PPC_E500_ANY),
+	PMC_E500_EVENT(ILFB_FETCH_MISS_CYCLES, PMC_PPC_MASK0 | PMC_PPC_MASK1,
 	    77, PMC_PPC_E500_ANY),
-	PMC_E500_EVENT(EXT_INPU_INTR_LATENCY_CYCLES, PMC_PPC_MASK0|PMC_PPC_MASK1,
-	    78, PMC_PPC_E500_ANY),
-	PMC_E500_EVENT(CRIT_INPUT_INTR_LATENCY_CYCLES, PMC_PPC_MASK0|PMC_PPC_MASK1,
-	    79, PMC_PPC_E500_ANY),
+	PMC_E500_EVENT(EXT_INPU_INTR_LATENCY_CYCLES,
+	    PMC_PPC_MASK0 | PMC_PPC_MASK1, 78, PMC_PPC_E500_ANY),
+	PMC_E500_EVENT(CRIT_INPUT_INTR_LATENCY_CYCLES,
+	    PMC_PPC_MASK0 | PMC_PPC_MASK1, 79, PMC_PPC_E500_ANY),
 	PMC_E500_EVENT(EXT_INPUT_INTR_PENDING_LATENCY_CYCLES,
-	    PMC_PPC_MASK0|PMC_PPC_MASK1, 80, PMC_PPC_E500_ANY),
+	    PMC_PPC_MASK0 | PMC_PPC_MASK1, 80, PMC_PPC_E500_ANY),
 	PMC_E500_EVENT(CRIT_INPUT_INTR_PENDING_LATENCY_CYCLES,
-	    PMC_PPC_MASK0|PMC_PPC_MASK1, 81, PMC_PPC_E500_ANY),
+	    PMC_PPC_MASK0 | PMC_PPC_MASK1, 81, PMC_PPC_E500_ANY),
 	PMC_E500_COMMON(PMC0_OVERFLOW, 82),
 	PMC_E500_COMMON(PMC1_OVERFLOW, 83),
 	PMC_E500_COMMON(PMC2_OVERFLOW, 84),
@@ -202,7 +203,8 @@ static struct e500_event_code_map e500_event_codes[] = {
 	PMC_E500MC_ONLY(L2_CLEAN_LINE_INVALIDATIONS, 130),
 	PMC_E500MC_ONLY(L2_INCOHERENT_LINE_INVALIDATIONS, 131),
 	PMC_E500MC_ONLY(L2_COHERENT_LINE_INVALIDATIONS, 132),
-	PMC_E500MC_ONLY(COHERENT_LOOKUP_MISS_DUE_TO_VALID_BUT_INCOHERENT_MATCHES, 133),
+	PMC_E500MC_ONLY(
+	    COHERENT_LOOKUP_MISS_DUE_TO_VALID_BUT_INCOHERENT_MATCHES, 133),
 	PMC_E500MC_ONLY(IAC1S_DETECTED, 140),
 	PMC_E500MC_ONLY(IAC2S_DETECTED, 141),
 	PMC_E500MC_ONLY(DAC1S_DTECTED, 144),
@@ -276,8 +278,8 @@ e500_set_pmc(int cpu, int ri, int config)
 	struct pmc_hw *phw;
 	register_t pmc_pmlc;
 
-	phw    = &powerpc_pcpu[cpu]->pc_ppcpmcs[ri];
-	pm     = phw->phw_pmc;
+	phw = &powerpc_pcpu[cpu]->pc_ppcpmcs[ri];
+	pm = phw->phw_pmc;
 	config &= ~POWERPC_PMC_ENABLE;
 
 	if (config != PMCN_NONE) {
@@ -360,7 +362,7 @@ e500_pcpu_fini(struct pmc_mdep *md, int cpu)
 
 static int
 e500_allocate_pmc(int cpu, int ri, struct pmc *pm,
-  const struct pmc_op_pmcallocate *a)
+    const struct pmc_op_pmcallocate *a)
 {
 	enum pmc_event pe;
 	uint32_t caps, config, counter;
@@ -379,13 +381,12 @@ e500_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	caps = a->pm_caps;
 
 	pe = a->pm_ev;
-	config = PMLCax_FCS | PMLCax_FCU |
-	    PMLCax_FCM1 | PMLCax_FCM1;
+	config = PMLCax_FCS | PMLCax_FCU | PMLCax_FCM1 | PMLCax_FCM1;
 
 	if (pe < PMC_EV_E500_FIRST || pe > PMC_EV_E500_LAST)
 		return (EINVAL);
 
-	ev = &e500_event_codes[pe-PMC_EV_E500_FIRST];
+	ev = &e500_event_codes[pe - PMC_EV_E500_FIRST];
 	if (ev->pe_code == 0)
 		return (EINVAL);
 
@@ -406,7 +407,7 @@ e500_allocate_pmc(int cpu, int ri, struct pmc *pm,
 		return (EINVAL);
 
 	config |= PMLCax_EVENT(ev->pe_code);
-	counter =  ev->pe_counter_mask;
+	counter = ev->pe_counter_mask;
 	if ((counter & (1 << ri)) == 0)
 		return (EINVAL);
 
@@ -415,11 +416,12 @@ e500_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	if (caps & PMC_CAP_USER)
 		config &= ~PMLCax_FCU;
 	if ((caps & (PMC_CAP_USER | PMC_CAP_SYSTEM)) == 0)
-		config &= ~(PMLCax_FCS|PMLCax_FCU);
+		config &= ~(PMLCax_FCS | PMLCax_FCU);
 
 	pm->pm_md.pm_powerpc.pm_powerpc_evsel = config;
 
-	PMCDBG2(MDP,ALL,2,"powerpc-allocate ri=%d -> config=0x%x", ri, config);
+	PMCDBG2(MDP, ALL, 2, "powerpc-allocate ri=%d -> config=0x%x", ri,
+	    config);
 
 	return 0;
 }
@@ -440,26 +442,26 @@ pmc_e500_initialize(struct pmc_mdep *pmc_mdep)
 	pmc_mdep->pmd_cputype = PMC_CPU_PPC_E500;
 
 	pcd = &pmc_mdep->pmd_classdep[PMC_MDEP_CLASS_INDEX_POWERPC];
-	pcd->pcd_caps  = POWERPC_PMC_CAPS;
+	pcd->pcd_caps = POWERPC_PMC_CAPS;
 	pcd->pcd_class = PMC_CLASS_E500;
-	pcd->pcd_num   = E500_MAX_PMCS;
-	pcd->pcd_ri    = pmc_mdep->pmd_npmc;
+	pcd->pcd_num = E500_MAX_PMCS;
+	pcd->pcd_ri = pmc_mdep->pmd_npmc;
 	pcd->pcd_width = 32;
 
-	pcd->pcd_allocate_pmc   = e500_allocate_pmc;
-	pcd->pcd_config_pmc     = powerpc_config_pmc;
-	pcd->pcd_pcpu_fini      = e500_pcpu_fini;
-	pcd->pcd_pcpu_init      = e500_pcpu_init;
-	pcd->pcd_describe       = powerpc_describe;
-	pcd->pcd_get_config     = powerpc_get_config;
-	pcd->pcd_read_pmc       = powerpc_read_pmc;
-	pcd->pcd_release_pmc    = powerpc_release_pmc;
-	pcd->pcd_start_pmc      = powerpc_start_pmc;
-	pcd->pcd_stop_pmc       = powerpc_stop_pmc;
-	pcd->pcd_write_pmc      = powerpc_write_pmc;
+	pcd->pcd_allocate_pmc = e500_allocate_pmc;
+	pcd->pcd_config_pmc = powerpc_config_pmc;
+	pcd->pcd_pcpu_fini = e500_pcpu_fini;
+	pcd->pcd_pcpu_init = e500_pcpu_init;
+	pcd->pcd_describe = powerpc_describe;
+	pcd->pcd_get_config = powerpc_get_config;
+	pcd->pcd_read_pmc = powerpc_read_pmc;
+	pcd->pcd_release_pmc = powerpc_release_pmc;
+	pcd->pcd_start_pmc = powerpc_start_pmc;
+	pcd->pcd_stop_pmc = powerpc_stop_pmc;
+	pcd->pcd_write_pmc = powerpc_write_pmc;
 
-	pmc_mdep->pmd_npmc   += E500_MAX_PMCS;
-	pmc_mdep->pmd_intr   =  powerpc_pmc_intr;
+	pmc_mdep->pmd_npmc += E500_MAX_PMCS;
+	pmc_mdep->pmd_intr = powerpc_pmc_intr;
 
 	ppc_max_pmcs = E500_MAX_PMCS;
 

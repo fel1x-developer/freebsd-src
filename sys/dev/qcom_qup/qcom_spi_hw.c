@@ -28,14 +28,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/bus.h>
 #include <sys/interrupt.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
 
 #include <vm/vm.h>
@@ -45,21 +44,19 @@
 #include <machine/bus.h>
 #include <machine/cpu.h>
 
+#include <dev/clk/clk.h>
 #include <dev/gpio/gpiobusvar.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/spibus/spi.h>
-#include <dev/spibus/spibusvar.h>
-#include "spibus_if.h"
-
-#include <dev/qcom_qup/qcom_spi_var.h>
-#include <dev/qcom_qup/qcom_spi_reg.h>
 #include <dev/qcom_qup/qcom_qup_reg.h>
 #include <dev/qcom_qup/qcom_spi_debug.h>
+#include <dev/qcom_qup/qcom_spi_reg.h>
+#include <dev/qcom_qup/qcom_spi_var.h>
+#include <dev/spibus/spi.h>
+#include <dev/spibus/spibusvar.h>
+
+#include "spibus_if.h"
 
 int
 qcom_spi_hw_read_controller_transfer_sizes(struct qcom_spi_softc *sc)
@@ -72,32 +69,30 @@ qcom_spi_hw_read_controller_transfer_sizes(struct qcom_spi_softc *sc)
 	    "%s: QUP_IO_M_MODES=0x%08x\n", __func__, reg);
 
 	/* Input block size */
-	val = (reg >> QUP_IO_M_INPUT_BLOCK_SIZE_SHIFT)
-	    & QUP_IO_M_INPUT_BLOCK_SIZE_MASK;
+	val = (reg >> QUP_IO_M_INPUT_BLOCK_SIZE_SHIFT) &
+	    QUP_IO_M_INPUT_BLOCK_SIZE_MASK;
 	if (val == 0)
 		sc->config.input_block_size = 4;
 	else
 		sc->config.input_block_size = val * 16;
 
 	/* Output block size */
-	val = (reg >> QUP_IO_M_OUTPUT_BLOCK_SIZE_SHIFT)
-	    & QUP_IO_M_OUTPUT_BLOCK_SIZE_MASK;
+	val = (reg >> QUP_IO_M_OUTPUT_BLOCK_SIZE_SHIFT) &
+	    QUP_IO_M_OUTPUT_BLOCK_SIZE_MASK;
 	if (val == 0)
 		sc->config.output_block_size = 4;
 	else
 		sc->config.output_block_size = val * 16;
 
 	/* Input FIFO size */
-	val = (reg >> QUP_IO_M_INPUT_FIFO_SIZE_SHIFT)
-	    & QUP_IO_M_INPUT_FIFO_SIZE_MASK;
-	sc->config.input_fifo_size =
-	    sc->config.input_block_size * (2 << val);
+	val = (reg >> QUP_IO_M_INPUT_FIFO_SIZE_SHIFT) &
+	    QUP_IO_M_INPUT_FIFO_SIZE_MASK;
+	sc->config.input_fifo_size = sc->config.input_block_size * (2 << val);
 
 	/* Output FIFO size */
-	val = (reg >> QUP_IO_M_OUTPUT_FIFO_SIZE_SHIFT)
-	    & QUP_IO_M_OUTPUT_FIFO_SIZE_MASK;
-	sc->config.output_fifo_size =
-	    sc->config.output_block_size * (2 << val);
+	val = (reg >> QUP_IO_M_OUTPUT_FIFO_SIZE_SHIFT) &
+	    QUP_IO_M_OUTPUT_FIFO_SIZE_MASK;
+	sc->config.output_fifo_size = sc->config.output_block_size * (2 << val);
 
 	return (0);
 }
@@ -112,7 +107,7 @@ qcom_spi_hw_qup_is_state_valid_locked(struct qcom_spi_softc *sc)
 	reg = QCOM_SPI_READ_4(sc, QUP_STATE);
 	QCOM_SPI_BARRIER_READ(sc);
 
-	return !! (reg & QUP_STATE_VALID);
+	return !!(reg & QUP_STATE_VALID);
 }
 
 static int
@@ -162,15 +157,15 @@ qcom_spi_hw_qup_set_state_locked(struct qcom_spi_softc *sc, uint32_t state)
 	cur_state = QCOM_SPI_READ_4(sc, QUP_STATE);
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_STATE_CHANGE,
-	    "%s: target state=%d, cur_state=0x%08x\n",
-	    __func__, state, cur_state);
+	    "%s: target state=%d, cur_state=0x%08x\n", __func__, state,
+	    cur_state);
 
 	/*
 	 * According to the QUP specification, when going
 	 * from PAUSE to RESET, two writes are required.
 	 */
-	if ((state == QUP_STATE_RESET)
-	    && ((cur_state & QUP_STATE_MASK) == QUP_STATE_PAUSE)) {
+	if ((state == QUP_STATE_RESET) &&
+	    ((cur_state & QUP_STATE_MASK) == QUP_STATE_PAUSE)) {
 		QCOM_SPI_WRITE_4(sc, QUP_STATE, QUP_STATE_CLEAR);
 		QCOM_SPI_BARRIER_WRITE(sc);
 		QCOM_SPI_WRITE_4(sc, QUP_STATE, QUP_STATE_CLEAR);
@@ -191,8 +186,8 @@ qcom_spi_hw_qup_set_state_locked(struct qcom_spi_softc *sc, uint32_t state)
 	cur_state = QCOM_SPI_READ_4(sc, QUP_STATE);
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_STATE_CHANGE,
-	    "%s: FINISH: target state=%d, cur_state=0x%08x\n",
-	    __func__, state, cur_state);
+	    "%s: FINISH: target state=%d, cur_state=0x%08x\n", __func__, state,
+	    cur_state);
 
 	return (0);
 }
@@ -211,7 +206,7 @@ qcom_spi_hw_qup_init_locked(struct qcom_spi_softc *sc)
 	QCOM_SPI_ASSERT_LOCKED(sc);
 
 	/* Full hardware reset */
-	(void) qcom_spi_hw_do_full_reset(sc);
+	(void)qcom_spi_hw_do_full_reset(sc);
 
 	ret = qcom_spi_hw_qup_set_state_locked(sc, QUP_STATE_RESET);
 	if (ret != 0) {
@@ -223,15 +218,14 @@ qcom_spi_hw_qup_init_locked(struct qcom_spi_softc *sc)
 	QCOM_SPI_WRITE_4(sc, QUP_OPERATIONAL, 0);
 	QCOM_SPI_WRITE_4(sc, QUP_IO_M_MODES, 0);
 	/* Note: no QUP_OPERATIONAL_MASK in QUP v1 */
-	if (! QCOM_SPI_QUP_VERSION_V1(sc))
+	if (!QCOM_SPI_QUP_VERSION_V1(sc))
 		QCOM_SPI_WRITE_4(sc, QUP_OPERATIONAL_MASK, 0);
 
 	/* Explicitly disable input overrun in QUP v1 */
 	if (QCOM_SPI_QUP_VERSION_V1(sc))
 		QCOM_SPI_WRITE_4(sc, QUP_ERROR_FLAGS_EN,
-		    QUP_ERROR_OUTPUT_OVER_RUN
-		    | QUP_ERROR_INPUT_UNDER_RUN
-		    | QUP_ERROR_OUTPUT_UNDER_RUN);
+		    QUP_ERROR_OUTPUT_OVER_RUN | QUP_ERROR_INPUT_UNDER_RUN |
+			QUP_ERROR_OUTPUT_UNDER_RUN);
 	QCOM_SPI_BARRIER_WRITE(sc);
 
 	return (0);
@@ -250,8 +244,7 @@ qcom_spi_hw_spi_init_locked(struct qcom_spi_softc *sc)
 
 	/* Initial SPI error flags */
 	QCOM_SPI_WRITE_4(sc, SPI_ERROR_FLAGS_EN,
-	    QUP_ERROR_INPUT_UNDER_RUN
-	    | QUP_ERROR_OUTPUT_UNDER_RUN);
+	    QUP_ERROR_INPUT_UNDER_RUN | QUP_ERROR_OUTPUT_UNDER_RUN);
 	QCOM_SPI_BARRIER_WRITE(sc);
 
 	/* Initial SPI config */
@@ -260,8 +253,7 @@ qcom_spi_hw_spi_init_locked(struct qcom_spi_softc *sc)
 
 	/* Initial CS/tri-state io control config */
 	QCOM_SPI_WRITE_4(sc, SPI_IO_CONTROL,
-	    SPI_IO_C_NO_TRI_STATE
-	    | SPI_IO_C_CS_SELECT(sc->config.cs_select));
+	    SPI_IO_C_NO_TRI_STATE | SPI_IO_C_CS_SELECT(sc->config.cs_select));
 	QCOM_SPI_BARRIER_WRITE(sc);
 
 	return (0);
@@ -286,8 +278,7 @@ qcom_spi_hw_spi_cs_force(struct qcom_spi_softc *sc, int cs, bool enable)
 	QCOM_SPI_ASSERT_LOCKED(sc);
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_CHIPSELECT,
-	    "%s: called, enable=%u\n",
-	    __func__, enable);
+	    "%s: called, enable=%u\n", __func__, enable);
 
 	reg = QCOM_SPI_READ_4(sc, SPI_IO_CONTROL);
 	if (enable)
@@ -322,11 +313,8 @@ qcom_spi_hw_interrupt_handle(struct qcom_spi_softc *sc)
 	QCOM_SPI_WRITE_4(sc, SPI_ERROR_FLAGS, spi_error);
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_INTR,
-	    "%s: called; qup=0x%08x, spi=0x%08x, op=0x%08x\n",
-	    __func__,
-	    qup_error,
-	    spi_error,
-	    op_flags);
+	    "%s: called; qup=0x%08x, spi=0x%08x, op=0x%08x\n", __func__,
+	    qup_error, spi_error, op_flags);
 
 	/* handle error flags */
 	if (qup_error != 0) {
@@ -344,11 +332,11 @@ qcom_spi_hw_interrupt_handle(struct qcom_spi_softc *sc)
 	if (qcom_spi_hw_is_opmode_dma_locked(sc)) {
 		/* ACK interrupts now */
 		QCOM_SPI_WRITE_4(sc, QUP_OPERATIONAL, op_flags);
-		if ((op_flags & QUP_OP_IN_SERVICE_FLAG)
-		    && (op_flags & QUP_OP_MAX_INPUT_DONE_FLAG))
+		if ((op_flags & QUP_OP_IN_SERVICE_FLAG) &&
+		    (op_flags & QUP_OP_MAX_INPUT_DONE_FLAG))
 			sc->intr.rx_dma_done = true;
-		if ((op_flags & QUP_OP_OUT_SERVICE_FLAG)
-		    && (op_flags & QUP_OP_MAX_OUTPUT_DONE_FLAG))
+		if ((op_flags & QUP_OP_OUT_SERVICE_FLAG) &&
+		    (op_flags & QUP_OP_MAX_OUTPUT_DONE_FLAG))
 			sc->intr.tx_dma_done = true;
 	} else {
 		/* FIFO/Block */
@@ -455,7 +443,8 @@ qcom_spi_hw_setup_current_transfer(struct qcom_spi_softc *sc)
 		 * It definitely will be under SPI_MAX_XFER so don't
 		 * worry about that here.
 		 */
-		sc->transfer.num_words = bytes_left / sc->state.transfer_word_size;
+		sc->transfer.num_words = bytes_left /
+		    sc->state.transfer_word_size;
 		sc->transfer.num_words = MIN(sc->transfer.num_words,
 		    sc->config.input_fifo_size / sizeof(uint32_t));
 	} else if (sc->state.transfer_mode == QUP_IO_M_MODE_BLOCK) {
@@ -468,23 +457,19 @@ qcom_spi_hw_setup_current_transfer(struct qcom_spi_softc *sc)
 		 * will end up being in multiples of a block until the
 		 * last transfer.
 		 */
-		sc->transfer.num_words = bytes_left / sc->state.transfer_word_size;
+		sc->transfer.num_words = bytes_left /
+		    sc->state.transfer_word_size;
 		sc->transfer.num_words = MIN(sc->transfer.num_words,
 		    SPI_MAX_XFER);
 	}
 
-
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_TRANSFER_SETUP,
-	"%s: transfer.tx_len=%u,"
+	    "%s: transfer.tx_len=%u,"
 	    "transfer.tx_offset=%u,"
 	    " transfer_word_size=%u,"
 	    " bytes_left=%u, num_words=%u, fifo_word_max=%u\n",
-	    __func__,
-	    sc->transfer.tx_len,
-	    sc->transfer.tx_offset,
-	    sc->state.transfer_word_size,
-	    bytes_left,
-	    sc->transfer.num_words,
+	    __func__, sc->transfer.tx_len, sc->transfer.tx_offset,
+	    sc->state.transfer_word_size, bytes_left, sc->transfer.num_words,
 	    sc->config.input_fifo_size / sizeof(uint32_t));
 
 	return (0);
@@ -508,8 +493,7 @@ qcom_spi_hw_setup_pio_transfer_cnt(struct qcom_spi_softc *sc)
 	QCOM_SPI_WRITE_4(sc, QUP_MX_OUTPUT_CNT, 0);
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_TRANSFER_SETUP,
-	    "%s: num_words=%u\n", __func__,
-	    sc->transfer.num_words);
+	    "%s: num_words=%u\n", __func__, sc->transfer.num_words);
 
 	QCOM_SPI_BARRIER_WRITE(sc);
 
@@ -547,8 +531,8 @@ qcom_spi_hw_setup_io_modes(struct qcom_spi_softc *sc)
 
 	reg = QCOM_SPI_READ_4(sc, QUP_IO_M_MODES);
 
-	reg &= ~((QUP_IO_M_INPUT_MODE_MASK << QUP_IO_M_INPUT_MODE_SHIFT)
-	    | (QUP_IO_M_OUTPUT_MODE_MASK << QUP_IO_M_OUTPUT_MODE_SHIFT));
+	reg &= ~((QUP_IO_M_INPUT_MODE_MASK << QUP_IO_M_INPUT_MODE_SHIFT) |
+	    (QUP_IO_M_OUTPUT_MODE_MASK << QUP_IO_M_OUTPUT_MODE_SHIFT));
 
 	/*
 	 * If it's being done using DMA then the hardware will
@@ -579,8 +563,7 @@ qcom_spi_hw_setup_io_modes(struct qcom_spi_softc *sc)
 }
 
 int
-qcom_spi_hw_setup_spi_io_clock_polarity(struct qcom_spi_softc *sc,
-    bool cpol)
+qcom_spi_hw_setup_spi_io_clock_polarity(struct qcom_spi_softc *sc, bool cpol)
 {
 	uint32_t reg;
 
@@ -729,7 +712,6 @@ qcom_spi_hw_ack_opmode(struct qcom_spi_softc *sc)
 	QCOM_SPI_BARRIER_WRITE(sc);
 
 	return (0);
-
 }
 
 /*
@@ -776,8 +758,8 @@ qcom_spi_hw_write_pio_fifo(struct qcom_spi_softc *sc)
 		uint32_t reg;
 
 		/* Break if FIFO is full */
-		if ((QCOM_SPI_READ_4(sc, QUP_OPERATIONAL)
-		    & QUP_OP_OUT_FIFO_FULL) != 0) {
+		if ((QCOM_SPI_READ_4(sc, QUP_OPERATIONAL) &
+			QUP_OP_OUT_FIFO_FULL) != 0) {
 			device_printf(sc->sc_dev, "%s: FIFO full\n", __func__);
 			break;
 		}
@@ -824,8 +806,8 @@ qcom_spi_hw_write_pio_fifo(struct qcom_spi_softc *sc)
 	}
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_TX_FIFO,
-	    "%s: wrote %d bytes (%d fifo slots)\n",
-	    __func__, num_bytes, sc->transfer.num_words);
+	    "%s: wrote %d bytes (%d fifo slots)\n", __func__, num_bytes,
+	    sc->transfer.num_words);
 
 	return (0);
 }
@@ -906,9 +888,11 @@ qcom_spi_hw_read_pio_fifo(struct qcom_spi_softc *sc)
 			if (qcom_spi_hw_read_into_rx_buf(sc, reg & 0xff))
 				num_bytes++;
 		} else if (sc->state.transfer_word_size == 4) {
-			if (qcom_spi_hw_read_into_rx_buf(sc, (reg >> 24) & 0xff))
+			if (qcom_spi_hw_read_into_rx_buf(sc,
+				(reg >> 24) & 0xff))
 				num_bytes++;
-			if (qcom_spi_hw_read_into_rx_buf(sc, (reg >> 16) & 0xff))
+			if (qcom_spi_hw_read_into_rx_buf(sc,
+				(reg >> 16) & 0xff))
 				num_bytes++;
 			if (qcom_spi_hw_read_into_rx_buf(sc, (reg >> 8) & 0xff))
 				num_bytes++;
@@ -918,8 +902,8 @@ qcom_spi_hw_read_pio_fifo(struct qcom_spi_softc *sc)
 	}
 
 	QCOM_SPI_DPRINTF(sc, QCOM_SPI_DEBUG_HW_TX_FIFO,
-	    "%s: read %d bytes (%d transfer words)\n",
-	    __func__, num_bytes, sc->transfer.num_words);
+	    "%s: read %d bytes (%d transfer words)\n", __func__, num_bytes,
+	    sc->transfer.num_words);
 
 #if 0
 	/*

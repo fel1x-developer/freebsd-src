@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -55,7 +55,7 @@ headers(void *v)
 	size = screensize();
 	n = msgvec[0];
 	if (n != 0)
-		screen = (n-1)/size;
+		screen = (n - 1) / size;
 	if (screen < 0)
 		screen = 0;
 	mp = &message[screen * size];
@@ -65,7 +65,7 @@ headers(void *v)
 		mp = &message[0];
 	flag = 0;
 	mesg = mp - &message[0];
-	if (dot != &message[n-1])
+	if (dot != &message[n - 1])
 		dot = mp;
 	for (; mp < &message[msgCount]; mp++) {
 		mesg++;
@@ -166,7 +166,7 @@ printhead(int mesg)
 	int subjlen;
 	char *name;
 
-	mp = &message[mesg-1];
+	mp = &message[mesg - 1];
 	(void)readline(setinput(mp), headline, LINESIZE);
 	if ((subjline = hfield("subject", mp)) == NULL)
 		subjline = hfield("subj", mp);
@@ -179,24 +179,23 @@ printhead(int mesg)
 		dispc = '*';
 	if (mp->m_flag & MPRESERVE)
 		dispc = 'P';
-	if ((mp->m_flag & (MREAD|MNEW)) == MNEW)
+	if ((mp->m_flag & (MREAD | MNEW)) == MNEW)
 		dispc = 'N';
-	if ((mp->m_flag & (MREAD|MNEW)) == 0)
+	if ((mp->m_flag & (MREAD | MNEW)) == 0)
 		dispc = 'U';
 	if (mp->m_flag & MBOX)
 		dispc = 'M';
 	parse(headline, &hl, pbuf);
 	sprintf(wcount, "%3ld/%-5ld", mp->m_lines, mp->m_size);
 	subjlen = screenwidth - 50 - strlen(wcount);
-	name = value("show-rcpt") != NULL ?
-		skin(hfield("to", mp)) : nameof(mp, 0);
-	if (subjline == NULL || subjlen < 0)		/* pretty pathetic */
-		printf("%c%c%3d %-20.20s  %16.16s %s\n",
-			curind, dispc, mesg, name, hl.l_date, wcount);
+	name = value("show-rcpt") != NULL ? skin(hfield("to", mp)) :
+					    nameof(mp, 0);
+	if (subjline == NULL || subjlen < 0) /* pretty pathetic */
+		printf("%c%c%3d %-20.20s  %16.16s %s\n", curind, dispc, mesg,
+		    name, hl.l_date, wcount);
 	else
-		printf("%c%c%3d %-20.20s  %16.16s %s \"%.*s\"\n",
-			curind, dispc, mesg, name, hl.l_date, wcount,
-			subjlen, subjline);
+		printf("%c%c%3d %-20.20s  %16.16s %s \"%.*s\"\n", curind, dispc,
+		    mesg, name, hl.l_date, wcount, subjlen, subjline);
 }
 
 /*
@@ -226,7 +225,7 @@ pcmdlist(void *arg __unused)
 			printf("\n");
 			cc = strlen(cp->c_name) + 2;
 		}
-		if ((cp+1)->c_name != NULL)
+		if ((cp + 1)->c_name != NULL)
 			printf("%s, ", cp->c_name);
 		else
 			printf("%s\n", cp->c_name);
@@ -281,7 +280,7 @@ Type(void *v)
 /*
  * Type out the messages requested.
  */
-static jmp_buf	pipestop;
+static jmp_buf pipestop;
 int
 type1(int *msgvec, int doign, int page)
 {
@@ -297,7 +296,7 @@ type1(int *msgvec, int doign, int page)
 	    (page || (cp = value("crt")) != NULL)) {
 		nlines = 0;
 		if (!page) {
-			for (ip = msgvec; *ip && ip-msgvec < msgCount; ip++)
+			for (ip = msgvec; *ip && ip - msgvec < msgCount; ip++)
 				nlines += message[*ip - 1].m_lines;
 		}
 		if (page || nlines > (*cp ? atoi(cp) : realscreenheight)) {
@@ -372,7 +371,7 @@ top(void *v)
 			topl = 5;
 	}
 	lineb = 1;
-	for (ip = msgvec; *ip && ip-msgvec < msgCount; ip++) {
+	for (ip = msgvec; *ip && ip - msgvec < msgCount; ip++) {
 		mp = &message[*ip - 1];
 		touch(mp);
 		dot = mp;
@@ -403,7 +402,7 @@ stouch(void *v)
 	int *ip;
 
 	for (ip = msgvec; *ip != 0; ip++) {
-		dot = &message[*ip-1];
+		dot = &message[*ip - 1];
 		dot->m_flag |= MTOUCH;
 		dot->m_flag &= ~MPRESERVE;
 	}
@@ -420,8 +419,8 @@ mboxit(void *v)
 	int *ip;
 
 	for (ip = msgvec; *ip != 0; ip++) {
-		dot = &message[*ip-1];
-		dot->m_flag |= MTOUCH|MBOX;
+		dot = &message[*ip - 1];
+		dot->m_flag |= MTOUCH | MBOX;
 		dot->m_flag &= ~MPRESERVE;
 	}
 	return (0);

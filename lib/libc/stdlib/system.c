@@ -29,26 +29,28 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#include <errno.h>
+#include <paths.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <paths.h>
-#include <errno.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 #pragma weak system
 int
 system(const char *command)
 {
 
-	return (((int (*)(const char *))
-	    __libc_interposing[INTERPOS_system])(command));
+	return (((int (*)(const char *))__libc_interposing[INTERPOS_system])(
+	    command));
 }
 
 int
@@ -59,23 +61,23 @@ __libc_system(const char *command)
 	struct sigaction ign, intact, quitact;
 	sigset_t newsigblock, oldsigblock;
 
-	if (!command)		/* just checking... */
-		return(1);
+	if (!command) /* just checking... */
+		return (1);
 
 	(void)sigemptyset(&newsigblock);
 	(void)sigaddset(&newsigblock, SIGCHLD);
 	(void)sigaddset(&newsigblock, SIGINT);
 	(void)sigaddset(&newsigblock, SIGQUIT);
 	(void)__libc_sigprocmask(SIG_BLOCK, &newsigblock, &oldsigblock);
-	switch(pid = vfork()) {
+	switch (pid = vfork()) {
 	/*
 	 * In the child, use unwrapped syscalls.  libthr is in
 	 * undefined state after vfork().
 	 */
-	case -1:			/* error */
+	case -1: /* error */
 		(void)__libc_sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 		return (-1);
-	case 0:				/* child */
+	case 0: /* child */
 		/*
 		 * Restore original signal dispositions and exec the command.
 		 */
@@ -83,7 +85,7 @@ __libc_system(const char *command)
 		execl(_PATH_BSHELL, "sh", "-c", command, (char *)NULL);
 		_exit(127);
 	}
-	/* 
+	/*
 	 * If we are running means that the child has either completed
 	 * its execve, or has failed.
 	 * Block SIGINT/QUIT because sh -c handles it and wait for
@@ -99,7 +101,7 @@ __libc_system(const char *command)
 		pid = _wait4(savedpid, &pstat, 0, (struct rusage *)0);
 	} while (pid == -1 && errno == EINTR);
 	(void)__libc_sigaction(SIGINT, &intact, NULL);
-	(void)__libc_sigaction(SIGQUIT,  &quitact, NULL);
+	(void)__libc_sigaction(SIGQUIT, &quitact, NULL);
 	(void)__libc_sigprocmask(SIG_SETMASK, &oldsigblock, NULL);
 	return (pid == -1 ? -1 : pstat);
 }

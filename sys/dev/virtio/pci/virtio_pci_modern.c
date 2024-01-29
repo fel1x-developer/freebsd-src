@@ -31,161 +31,156 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/cpu.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
-#include <dev/virtio/virtio.h>
-#include <dev/virtio/virtqueue.h>
+#include <dev/pci/pcivar.h>
 #include <dev/virtio/pci/virtio_pci.h>
 #include <dev/virtio/pci/virtio_pci_modern_var.h>
+#include <dev/virtio/virtio.h>
+#include <dev/virtio/virtqueue.h>
 
 #include "virtio_bus_if.h"
-#include "virtio_pci_if.h"
 #include "virtio_if.h"
+#include "virtio_pci_if.h"
 
 struct vtpci_modern_resource_map {
-	struct resource_map	vtrm_map;
-	int			vtrm_cap_offset;
-	int			vtrm_bar;
-	int			vtrm_offset;
-	int			vtrm_length;
-	int			vtrm_type;	/* SYS_RES_{MEMORY, IOPORT} */
+	struct resource_map vtrm_map;
+	int vtrm_cap_offset;
+	int vtrm_bar;
+	int vtrm_offset;
+	int vtrm_length;
+	int vtrm_type; /* SYS_RES_{MEMORY, IOPORT} */
 };
 
 struct vtpci_modern_bar_resource {
-	struct resource		*vtbr_res;
-	int			 vtbr_type;
+	struct resource *vtbr_res;
+	int vtbr_type;
 };
 
 struct vtpci_modern_softc {
-	device_t			 vtpci_dev;
-	struct vtpci_common		 vtpci_common;
-	uint32_t			 vtpci_notify_offset_multiplier;
-	uint16_t			 vtpci_devid;
-	int				 vtpci_msix_bar;
-	struct resource			*vtpci_msix_res;
+	device_t vtpci_dev;
+	struct vtpci_common vtpci_common;
+	uint32_t vtpci_notify_offset_multiplier;
+	uint16_t vtpci_devid;
+	int vtpci_msix_bar;
+	struct resource *vtpci_msix_res;
 
 	struct vtpci_modern_resource_map vtpci_common_res_map;
 	struct vtpci_modern_resource_map vtpci_notify_res_map;
 	struct vtpci_modern_resource_map vtpci_isr_res_map;
 	struct vtpci_modern_resource_map vtpci_device_res_map;
 
-#define VTPCI_MODERN_MAX_BARS		6
+#define VTPCI_MODERN_MAX_BARS 6
 	struct vtpci_modern_bar_resource vtpci_bar_res[VTPCI_MODERN_MAX_BARS];
 };
 
-static int	vtpci_modern_probe(device_t);
-static int	vtpci_modern_attach(device_t);
-static int	vtpci_modern_detach(device_t);
-static int	vtpci_modern_suspend(device_t);
-static int	vtpci_modern_resume(device_t);
-static int	vtpci_modern_shutdown(device_t);
+static int vtpci_modern_probe(device_t);
+static int vtpci_modern_attach(device_t);
+static int vtpci_modern_detach(device_t);
+static int vtpci_modern_suspend(device_t);
+static int vtpci_modern_resume(device_t);
+static int vtpci_modern_shutdown(device_t);
 
-static void	vtpci_modern_driver_added(device_t, driver_t *);
-static void	vtpci_modern_child_detached(device_t, device_t);
-static int	vtpci_modern_read_ivar(device_t, device_t, int, uintptr_t *);
-static int	vtpci_modern_write_ivar(device_t, device_t, int, uintptr_t);
+static void vtpci_modern_driver_added(device_t, driver_t *);
+static void vtpci_modern_child_detached(device_t, device_t);
+static int vtpci_modern_read_ivar(device_t, device_t, int, uintptr_t *);
+static int vtpci_modern_write_ivar(device_t, device_t, int, uintptr_t);
 
-static uint8_t	vtpci_modern_read_isr(device_t);
-static uint16_t	vtpci_modern_get_vq_size(device_t, int);
+static uint8_t vtpci_modern_read_isr(device_t);
+static uint16_t vtpci_modern_get_vq_size(device_t, int);
 static bus_size_t vtpci_modern_get_vq_notify_off(device_t, int);
-static void	vtpci_modern_set_vq(device_t, struct virtqueue *);
-static void	vtpci_modern_disable_vq(device_t, int);
-static int	vtpci_modern_register_msix(struct vtpci_modern_softc *, int,
-		    struct vtpci_interrupt *);
-static int	vtpci_modern_register_cfg_msix(device_t,
-		    struct vtpci_interrupt *);
-static int	vtpci_modern_register_vq_msix(device_t, int idx,
-		    struct vtpci_interrupt *);
+static void vtpci_modern_set_vq(device_t, struct virtqueue *);
+static void vtpci_modern_disable_vq(device_t, int);
+static int vtpci_modern_register_msix(struct vtpci_modern_softc *, int,
+    struct vtpci_interrupt *);
+static int vtpci_modern_register_cfg_msix(device_t, struct vtpci_interrupt *);
+static int vtpci_modern_register_vq_msix(device_t, int idx,
+    struct vtpci_interrupt *);
 
-static uint64_t	vtpci_modern_negotiate_features(device_t, uint64_t);
-static int	vtpci_modern_finalize_features(device_t);
-static bool	vtpci_modern_with_feature(device_t, uint64_t);
-static int	vtpci_modern_alloc_virtqueues(device_t, int,
-		    struct vq_alloc_info *);
-static int	vtpci_modern_setup_interrupts(device_t, enum intr_type);
-static void	vtpci_modern_stop(device_t);
-static int	vtpci_modern_reinit(device_t, uint64_t);
-static void	vtpci_modern_reinit_complete(device_t);
-static void	vtpci_modern_notify_vq(device_t, uint16_t, bus_size_t);
-static int	vtpci_modern_config_generation(device_t);
-static void	vtpci_modern_read_dev_config(device_t, bus_size_t, void *, int);
-static void	vtpci_modern_write_dev_config(device_t, bus_size_t, const void *, int);
+static uint64_t vtpci_modern_negotiate_features(device_t, uint64_t);
+static int vtpci_modern_finalize_features(device_t);
+static bool vtpci_modern_with_feature(device_t, uint64_t);
+static int vtpci_modern_alloc_virtqueues(device_t, int, struct vq_alloc_info *);
+static int vtpci_modern_setup_interrupts(device_t, enum intr_type);
+static void vtpci_modern_stop(device_t);
+static int vtpci_modern_reinit(device_t, uint64_t);
+static void vtpci_modern_reinit_complete(device_t);
+static void vtpci_modern_notify_vq(device_t, uint16_t, bus_size_t);
+static int vtpci_modern_config_generation(device_t);
+static void vtpci_modern_read_dev_config(device_t, bus_size_t, void *, int);
+static void vtpci_modern_write_dev_config(device_t, bus_size_t, const void *,
+    int);
 
-static int	vtpci_modern_probe_configs(device_t);
-static int	vtpci_modern_find_cap(device_t, uint8_t, int *);
-static int	vtpci_modern_map_configs(struct vtpci_modern_softc *);
-static void	vtpci_modern_unmap_configs(struct vtpci_modern_softc *);
-static int	vtpci_modern_find_cap_resource(struct vtpci_modern_softc *,
-		     uint8_t, int, int, struct vtpci_modern_resource_map *);
-static int	vtpci_modern_bar_type(struct vtpci_modern_softc *, int);
-static struct resource *vtpci_modern_get_bar_resource(
-		    struct vtpci_modern_softc *, int, int);
-static struct resource *vtpci_modern_alloc_bar_resource(
-		    struct vtpci_modern_softc *, int, int);
-static void	vtpci_modern_free_bar_resources(struct vtpci_modern_softc *);
-static int	vtpci_modern_alloc_resource_map(struct vtpci_modern_softc *,
-		    struct vtpci_modern_resource_map *);
-static void	vtpci_modern_free_resource_map(struct vtpci_modern_softc *,
-		    struct vtpci_modern_resource_map *);
-static void	vtpci_modern_alloc_msix_resource(struct vtpci_modern_softc *);
-static void	vtpci_modern_free_msix_resource(struct vtpci_modern_softc *);
+static int vtpci_modern_probe_configs(device_t);
+static int vtpci_modern_find_cap(device_t, uint8_t, int *);
+static int vtpci_modern_map_configs(struct vtpci_modern_softc *);
+static void vtpci_modern_unmap_configs(struct vtpci_modern_softc *);
+static int vtpci_modern_find_cap_resource(struct vtpci_modern_softc *, uint8_t,
+    int, int, struct vtpci_modern_resource_map *);
+static int vtpci_modern_bar_type(struct vtpci_modern_softc *, int);
+static struct resource *
+vtpci_modern_get_bar_resource(struct vtpci_modern_softc *, int, int);
+static struct resource *
+vtpci_modern_alloc_bar_resource(struct vtpci_modern_softc *, int, int);
+static void vtpci_modern_free_bar_resources(struct vtpci_modern_softc *);
+static int vtpci_modern_alloc_resource_map(struct vtpci_modern_softc *,
+    struct vtpci_modern_resource_map *);
+static void vtpci_modern_free_resource_map(struct vtpci_modern_softc *,
+    struct vtpci_modern_resource_map *);
+static void vtpci_modern_alloc_msix_resource(struct vtpci_modern_softc *);
+static void vtpci_modern_free_msix_resource(struct vtpci_modern_softc *);
 
-static void	vtpci_modern_probe_and_attach_child(struct vtpci_modern_softc *);
+static void vtpci_modern_probe_and_attach_child(struct vtpci_modern_softc *);
 
 static uint64_t vtpci_modern_read_features(struct vtpci_modern_softc *);
-static void	vtpci_modern_write_features(struct vtpci_modern_softc *,
-		    uint64_t);
-static void	vtpci_modern_select_virtqueue(struct vtpci_modern_softc *, int);
-static uint8_t	vtpci_modern_get_status(struct vtpci_modern_softc *);
-static void	vtpci_modern_set_status(struct vtpci_modern_softc *, uint8_t);
-static void	vtpci_modern_reset(struct vtpci_modern_softc *);
-static void	vtpci_modern_enable_virtqueues(struct vtpci_modern_softc *);
+static void vtpci_modern_write_features(struct vtpci_modern_softc *, uint64_t);
+static void vtpci_modern_select_virtqueue(struct vtpci_modern_softc *, int);
+static uint8_t vtpci_modern_get_status(struct vtpci_modern_softc *);
+static void vtpci_modern_set_status(struct vtpci_modern_softc *, uint8_t);
+static void vtpci_modern_reset(struct vtpci_modern_softc *);
+static void vtpci_modern_enable_virtqueues(struct vtpci_modern_softc *);
 
-static uint8_t	vtpci_modern_read_common_1(struct vtpci_modern_softc *,
-		    bus_size_t);
+static uint8_t vtpci_modern_read_common_1(struct vtpci_modern_softc *,
+    bus_size_t);
 static uint16_t vtpci_modern_read_common_2(struct vtpci_modern_softc *,
-		    bus_size_t);
+    bus_size_t);
 static uint32_t vtpci_modern_read_common_4(struct vtpci_modern_softc *,
-		    bus_size_t);
-static void	vtpci_modern_write_common_1(struct vtpci_modern_softc *,
-		     bus_size_t, uint8_t);
-static void	vtpci_modern_write_common_2(struct vtpci_modern_softc *,
-		     bus_size_t, uint16_t);
-static void	vtpci_modern_write_common_4(struct vtpci_modern_softc *,
-		    bus_size_t, uint32_t);
-static void	vtpci_modern_write_common_8(struct vtpci_modern_softc *,
-		    bus_size_t, uint64_t);
-static void	vtpci_modern_write_notify_2(struct vtpci_modern_softc *,
-		    bus_size_t, uint16_t);
-static uint8_t  vtpci_modern_read_isr_1(struct vtpci_modern_softc *,
-		    bus_size_t);
-static uint8_t	vtpci_modern_read_device_1(struct vtpci_modern_softc *,
-		    bus_size_t);
+    bus_size_t);
+static void vtpci_modern_write_common_1(struct vtpci_modern_softc *, bus_size_t,
+    uint8_t);
+static void vtpci_modern_write_common_2(struct vtpci_modern_softc *, bus_size_t,
+    uint16_t);
+static void vtpci_modern_write_common_4(struct vtpci_modern_softc *, bus_size_t,
+    uint32_t);
+static void vtpci_modern_write_common_8(struct vtpci_modern_softc *, bus_size_t,
+    uint64_t);
+static void vtpci_modern_write_notify_2(struct vtpci_modern_softc *, bus_size_t,
+    uint16_t);
+static uint8_t vtpci_modern_read_isr_1(struct vtpci_modern_softc *, bus_size_t);
+static uint8_t vtpci_modern_read_device_1(struct vtpci_modern_softc *,
+    bus_size_t);
 static uint16_t vtpci_modern_read_device_2(struct vtpci_modern_softc *,
-		    bus_size_t);
+    bus_size_t);
 static uint32_t vtpci_modern_read_device_4(struct vtpci_modern_softc *,
-		    bus_size_t);
+    bus_size_t);
 static uint64_t vtpci_modern_read_device_8(struct vtpci_modern_softc *,
-		    bus_size_t);
-static void	vtpci_modern_write_device_1(struct vtpci_modern_softc *,
-		    bus_size_t, uint8_t);
-static void	vtpci_modern_write_device_2(struct vtpci_modern_softc *,
-		    bus_size_t, uint16_t);
-static void	vtpci_modern_write_device_4(struct vtpci_modern_softc *,
-		    bus_size_t, uint32_t);
-static void	vtpci_modern_write_device_8(struct vtpci_modern_softc *,
-		    bus_size_t, uint64_t);
+    bus_size_t);
+static void vtpci_modern_write_device_1(struct vtpci_modern_softc *, bus_size_t,
+    uint8_t);
+static void vtpci_modern_write_device_2(struct vtpci_modern_softc *, bus_size_t,
+    uint16_t);
+static void vtpci_modern_write_device_4(struct vtpci_modern_softc *, bus_size_t,
+    uint32_t);
+static void vtpci_modern_write_device_8(struct vtpci_modern_softc *, bus_size_t,
+    uint64_t);
 
 /* Tunables. */
 static int vtpci_modern_transitional = 0;
@@ -193,51 +188,51 @@ TUNABLE_INT("hw.virtio.pci.transitional", &vtpci_modern_transitional);
 
 static device_method_t vtpci_modern_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,			vtpci_modern_probe),
-	DEVMETHOD(device_attach,		vtpci_modern_attach),
-	DEVMETHOD(device_detach,		vtpci_modern_detach),
-	DEVMETHOD(device_suspend,		vtpci_modern_suspend),
-	DEVMETHOD(device_resume,		vtpci_modern_resume),
-	DEVMETHOD(device_shutdown,		vtpci_modern_shutdown),
+	DEVMETHOD(device_probe, vtpci_modern_probe),
+	DEVMETHOD(device_attach, vtpci_modern_attach),
+	DEVMETHOD(device_detach, vtpci_modern_detach),
+	DEVMETHOD(device_suspend, vtpci_modern_suspend),
+	DEVMETHOD(device_resume, vtpci_modern_resume),
+	DEVMETHOD(device_shutdown, vtpci_modern_shutdown),
 
 	/* Bus interface. */
-	DEVMETHOD(bus_driver_added,		vtpci_modern_driver_added),
-	DEVMETHOD(bus_child_detached,		vtpci_modern_child_detached),
-	DEVMETHOD(bus_child_pnpinfo,		virtio_child_pnpinfo),
-	DEVMETHOD(bus_read_ivar,		vtpci_modern_read_ivar),
-	DEVMETHOD(bus_write_ivar,		vtpci_modern_write_ivar),
+	DEVMETHOD(bus_driver_added, vtpci_modern_driver_added),
+	DEVMETHOD(bus_child_detached, vtpci_modern_child_detached),
+	DEVMETHOD(bus_child_pnpinfo, virtio_child_pnpinfo),
+	DEVMETHOD(bus_read_ivar, vtpci_modern_read_ivar),
+	DEVMETHOD(bus_write_ivar, vtpci_modern_write_ivar),
 
 	/* VirtIO PCI interface. */
-	DEVMETHOD(virtio_pci_read_isr,		 vtpci_modern_read_isr),
-	DEVMETHOD(virtio_pci_get_vq_size,	 vtpci_modern_get_vq_size),
-	DEVMETHOD(virtio_pci_get_vq_notify_off,	 vtpci_modern_get_vq_notify_off),
-	DEVMETHOD(virtio_pci_set_vq,		 vtpci_modern_set_vq),
-	DEVMETHOD(virtio_pci_disable_vq,	 vtpci_modern_disable_vq),
-	DEVMETHOD(virtio_pci_register_cfg_msix,	 vtpci_modern_register_cfg_msix),
-	DEVMETHOD(virtio_pci_register_vq_msix,	 vtpci_modern_register_vq_msix),
+	DEVMETHOD(virtio_pci_read_isr, vtpci_modern_read_isr),
+	DEVMETHOD(virtio_pci_get_vq_size, vtpci_modern_get_vq_size),
+	DEVMETHOD(virtio_pci_get_vq_notify_off, vtpci_modern_get_vq_notify_off),
+	DEVMETHOD(virtio_pci_set_vq, vtpci_modern_set_vq),
+	DEVMETHOD(virtio_pci_disable_vq, vtpci_modern_disable_vq),
+	DEVMETHOD(virtio_pci_register_cfg_msix, vtpci_modern_register_cfg_msix),
+	DEVMETHOD(virtio_pci_register_vq_msix, vtpci_modern_register_vq_msix),
 
 	/* VirtIO bus interface. */
-	DEVMETHOD(virtio_bus_negotiate_features,  vtpci_modern_negotiate_features),
-	DEVMETHOD(virtio_bus_finalize_features,	  vtpci_modern_finalize_features),
-	DEVMETHOD(virtio_bus_with_feature,	  vtpci_modern_with_feature),
-	DEVMETHOD(virtio_bus_alloc_virtqueues,	  vtpci_modern_alloc_virtqueues),
-	DEVMETHOD(virtio_bus_setup_intr,	  vtpci_modern_setup_interrupts),
-	DEVMETHOD(virtio_bus_stop,		  vtpci_modern_stop),
-	DEVMETHOD(virtio_bus_reinit,		  vtpci_modern_reinit),
-	DEVMETHOD(virtio_bus_reinit_complete,	  vtpci_modern_reinit_complete),
-	DEVMETHOD(virtio_bus_notify_vq,		  vtpci_modern_notify_vq),
-	DEVMETHOD(virtio_bus_config_generation,	  vtpci_modern_config_generation),
-	DEVMETHOD(virtio_bus_read_device_config,  vtpci_modern_read_dev_config),
-	DEVMETHOD(virtio_bus_write_device_config, vtpci_modern_write_dev_config),
+	DEVMETHOD(virtio_bus_negotiate_features,
+	    vtpci_modern_negotiate_features),
+	DEVMETHOD(virtio_bus_finalize_features, vtpci_modern_finalize_features),
+	DEVMETHOD(virtio_bus_with_feature, vtpci_modern_with_feature),
+	DEVMETHOD(virtio_bus_alloc_virtqueues, vtpci_modern_alloc_virtqueues),
+	DEVMETHOD(virtio_bus_setup_intr, vtpci_modern_setup_interrupts),
+	DEVMETHOD(virtio_bus_stop, vtpci_modern_stop),
+	DEVMETHOD(virtio_bus_reinit, vtpci_modern_reinit),
+	DEVMETHOD(virtio_bus_reinit_complete, vtpci_modern_reinit_complete),
+	DEVMETHOD(virtio_bus_notify_vq, vtpci_modern_notify_vq),
+	DEVMETHOD(virtio_bus_config_generation, vtpci_modern_config_generation),
+	DEVMETHOD(virtio_bus_read_device_config, vtpci_modern_read_dev_config),
+	DEVMETHOD(virtio_bus_write_device_config,
+	    vtpci_modern_write_dev_config),
 
 	DEVMETHOD_END
 };
 
-static driver_t vtpci_modern_driver = {
-	.name = "virtio_pci",
+static driver_t vtpci_modern_driver = { .name = "virtio_pci",
 	.methods = vtpci_modern_methods,
-	.size = sizeof(struct vtpci_modern_softc)
-};
+	.size = sizeof(struct vtpci_modern_softc) };
 
 DRIVER_MODULE(virtio_pci_modern, pci, vtpci_modern_driver, 0, 0);
 
@@ -351,7 +346,7 @@ vtpci_modern_resume(device_t dev)
 static int
 vtpci_modern_shutdown(device_t dev)
 {
-	(void) bus_generic_shutdown(dev);
+	(void)bus_generic_shutdown(dev);
 	/* Forcibly stop the host device. */
 	vtpci_modern_stop(dev);
 
@@ -438,8 +433,8 @@ vtpci_modern_negotiate_features(device_t dev, uint64_t child_features)
 	 */
 	child_features |= VIRTIO_F_VERSION_1;
 
-	features = vtpci_negotiate_features(&sc->vtpci_common,
-	    child_features, host_features);
+	features = vtpci_negotiate_features(&sc->vtpci_common, child_features,
+	    host_features);
 	vtpci_modern_write_features(sc, features);
 
 	return (features);
@@ -488,7 +483,7 @@ vtpci_modern_read_features(struct vtpci_modern_softc *sc)
 	vtpci_modern_write_common_4(sc, VIRTIO_PCI_COMMON_DFSELECT, 1);
 	features1 = vtpci_modern_read_common_4(sc, VIRTIO_PCI_COMMON_DF);
 
-	return (((uint64_t) features1 << 32) | features0);
+	return (((uint64_t)features1 << 32) | features0);
 }
 
 static void
@@ -518,8 +513,10 @@ vtpci_modern_alloc_virtqueues(device_t dev, int nvqs,
 
 	max_nvqs = vtpci_modern_read_common_2(sc, VIRTIO_PCI_COMMON_NUMQ);
 	if (nvqs > max_nvqs) {
-		device_printf(sc->vtpci_dev, "requested virtqueue count %d "
-		    "exceeds max %d\n", nvqs, max_nvqs);
+		device_printf(sc->vtpci_dev,
+		    "requested virtqueue count %d "
+		    "exceeds max %d\n",
+		    nvqs, max_nvqs);
 		return (E2BIG);
 	}
 
@@ -659,23 +656,23 @@ vtpci_modern_read_dev_config(device_t dev, bus_size_t offset, void *dst,
 
 	switch (length) {
 	case 1:
-		*(uint8_t *) dst = vtpci_modern_read_device_1(sc, offset);
+		*(uint8_t *)dst = vtpci_modern_read_device_1(sc, offset);
 		break;
 	case 2:
-		*(uint16_t *) dst = virtio_htog16(true,
+		*(uint16_t *)dst = virtio_htog16(true,
 		    vtpci_modern_read_device_2(sc, offset));
 		break;
 	case 4:
-		*(uint32_t *) dst = virtio_htog32(true,
+		*(uint32_t *)dst = virtio_htog32(true,
 		    vtpci_modern_read_device_4(sc, offset));
 		break;
 	case 8:
-		*(uint64_t *) dst = virtio_htog64(true,
+		*(uint64_t *)dst = virtio_htog64(true,
 		    vtpci_modern_read_device_8(sc, offset));
 		break;
 	default:
 		panic("%s: device %s invalid device read length %d offset %d",
-		    __func__, device_get_nameunit(dev), length, (int) offset);
+		    __func__, device_get_nameunit(dev), length, (int)offset);
 	}
 }
 
@@ -694,26 +691,26 @@ vtpci_modern_write_dev_config(device_t dev, bus_size_t offset, const void *src,
 
 	switch (length) {
 	case 1:
-		vtpci_modern_write_device_1(sc, offset, *(const uint8_t *) src);
+		vtpci_modern_write_device_1(sc, offset, *(const uint8_t *)src);
 		break;
 	case 2: {
-		uint16_t val = virtio_gtoh16(true, *(const uint16_t *) src);
+		uint16_t val = virtio_gtoh16(true, *(const uint16_t *)src);
 		vtpci_modern_write_device_2(sc, offset, val);
 		break;
 	}
 	case 4: {
-		uint32_t val = virtio_gtoh32(true, *(const uint32_t *) src);
+		uint32_t val = virtio_gtoh32(true, *(const uint32_t *)src);
 		vtpci_modern_write_device_4(sc, offset, val);
 		break;
 	}
 	case 8: {
-		uint64_t val = virtio_gtoh64(true, *(const uint64_t *) src);
+		uint64_t val = virtio_gtoh64(true, *(const uint64_t *)src);
 		vtpci_modern_write_device_8(sc, offset, val);
 		break;
 	}
 	default:
 		panic("%s: device %s invalid device write length %d offset %d",
-		    __func__, device_get_nameunit(dev), length, (int) offset);
+		    __func__, device_get_nameunit(dev), length, (int)offset);
 	}
 }
 
@@ -754,14 +751,13 @@ vtpci_modern_find_cap(device_t dev, uint8_t cfg_type, int *cap_offset)
 	uint32_t type, bar;
 	int capreg, error;
 
-	for (error = pci_find_cap(dev, PCIY_VENDOR, &capreg);
-	     error == 0;
+	for (error = pci_find_cap(dev, PCIY_VENDOR, &capreg); error == 0;
 	     error = pci_find_next_cap(dev, PCIY_VENDOR, capreg, &capreg)) {
 
-		type = pci_read_config(dev, capreg +
-		    offsetof(struct virtio_pci_cap, cfg_type), 1);
-		bar = pci_read_config(dev, capreg +
-		    offsetof(struct virtio_pci_cap, bar), 1);
+		type = pci_read_config(dev,
+		    capreg + offsetof(struct virtio_pci_cap, cfg_type), 1);
+		bar = pci_read_config(dev,
+		    capreg + offsetof(struct virtio_pci_cap, bar), 1);
 
 		/* Must ignore reserved BARs. */
 		if (bar >= VTPCI_MODERN_MAX_BARS)
@@ -818,8 +814,10 @@ vtpci_modern_map_notify_config(struct vtpci_modern_softc *sc)
 
 	cap_offset = sc->vtpci_notify_res_map.vtrm_cap_offset;
 
-	sc->vtpci_notify_offset_multiplier = pci_read_config(dev, cap_offset +
-	    offsetof(struct virtio_pci_notify_cap, notify_off_multiplier), 4);
+	sc->vtpci_notify_offset_multiplier = pci_read_config(dev,
+	    cap_offset +
+		offsetof(struct virtio_pci_notify_cap, notify_off_multiplier),
+	    4);
 
 	error = vtpci_modern_alloc_resource_map(sc, &sc->vtpci_notify_res_map);
 	if (error) {
@@ -959,8 +957,9 @@ vtpci_modern_find_cap_resource(struct vtpci_modern_softc *sc, uint8_t cfg_type,
 	}
 
 	if (offset % alignment) {
-		device_printf(dev, "cap %u struct offset %d not aligned to %d\n",
-		    cfg_type, offset, alignment);
+		device_printf(dev,
+		    "cap %u struct offset %d not aligned to %d\n", cfg_type,
+		    offset, alignment);
 		return (ENXIO);
 	}
 
@@ -1070,8 +1069,8 @@ vtpci_modern_alloc_resource_map(struct vtpci_modern_softc *sc,
 	req.offset = map->vtrm_offset;
 	req.length = map->vtrm_length;
 
-	return (bus_map_resource(sc->vtpci_dev, type, res, &req,
-	    &map->vtrm_map));
+	return (
+	    bus_map_resource(sc->vtpci_dev, type, res, &req, &map->vtrm_map));
 }
 
 static void
@@ -1105,7 +1104,7 @@ vtpci_modern_alloc_msix_resource(struct vtpci_modern_softc *sc)
 	/* TODO: Can this BAR be in the 0-5 range? */
 	sc->vtpci_msix_bar = bar;
 	if ((sc->vtpci_msix_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-	    &bar, RF_ACTIVE)) == NULL)
+		 &bar, RF_ACTIVE)) == NULL)
 		device_printf(dev, "Unable to map MSIX table\n");
 }
 
@@ -1265,15 +1264,15 @@ vtpci_modern_set_vq(device_t dev, struct virtqueue *vq)
 	vtpci_modern_select_virtqueue(sc, virtqueue_index(vq));
 
 	/* BMV: Currently we never adjust the device's proposed VQ size. */
-	vtpci_modern_write_common_2(sc,
-	    VIRTIO_PCI_COMMON_Q_SIZE, virtqueue_size(vq));
+	vtpci_modern_write_common_2(sc, VIRTIO_PCI_COMMON_Q_SIZE,
+	    virtqueue_size(vq));
 
-	vtpci_modern_write_common_8(sc,
-	    VIRTIO_PCI_COMMON_Q_DESCLO, virtqueue_desc_paddr(vq));
-	vtpci_modern_write_common_8(sc,
-	    VIRTIO_PCI_COMMON_Q_AVAILLO, virtqueue_avail_paddr(vq));
-        vtpci_modern_write_common_8(sc,
-	    VIRTIO_PCI_COMMON_Q_USEDLO, virtqueue_used_paddr(vq));
+	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_DESCLO,
+	    virtqueue_desc_paddr(vq));
+	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_AVAILLO,
+	    virtqueue_avail_paddr(vq));
+	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_USEDLO,
+	    virtqueue_used_paddr(vq));
 }
 
 static void
@@ -1286,7 +1285,7 @@ vtpci_modern_disable_vq(device_t dev, int idx)
 	vtpci_modern_select_virtqueue(sc, idx);
 	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_DESCLO, 0ULL);
 	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_AVAILLO, 0ULL);
-        vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_USEDLO, 0ULL);
+	vtpci_modern_write_common_8(sc, VIRTIO_PCI_COMMON_Q_USEDLO, 0ULL);
 }
 
 static void
@@ -1310,14 +1309,14 @@ static uint16_t
 vtpci_modern_read_common_2(struct vtpci_modern_softc *sc, bus_size_t off)
 {
 	return virtio_htog16(true,
-			bus_read_2(&sc->vtpci_common_res_map.vtrm_map, off));
+	    bus_read_2(&sc->vtpci_common_res_map.vtrm_map, off));
 }
 
 static uint32_t
 vtpci_modern_read_common_4(struct vtpci_modern_softc *sc, bus_size_t off)
 {
 	return virtio_htog32(true,
-			bus_read_4(&sc->vtpci_common_res_map.vtrm_map, off));
+	    bus_read_4(&sc->vtpci_common_res_map.vtrm_map, off));
 }
 
 static void
@@ -1331,16 +1330,16 @@ static void
 vtpci_modern_write_common_2(struct vtpci_modern_softc *sc, bus_size_t off,
     uint16_t val)
 {
-	bus_write_2(&sc->vtpci_common_res_map.vtrm_map,
-			off, virtio_gtoh16(true, val));
+	bus_write_2(&sc->vtpci_common_res_map.vtrm_map, off,
+	    virtio_gtoh16(true, val));
 }
 
 static void
 vtpci_modern_write_common_4(struct vtpci_modern_softc *sc, bus_size_t off,
     uint32_t val)
 {
-	bus_write_4(&sc->vtpci_common_res_map.vtrm_map,
-			off, virtio_gtoh32(true, val));
+	bus_write_4(&sc->vtpci_common_res_map.vtrm_map, off,
+	    virtio_gtoh32(true, val));
 }
 
 static void
@@ -1349,7 +1348,7 @@ vtpci_modern_write_common_8(struct vtpci_modern_softc *sc, bus_size_t off,
 {
 	uint32_t val0, val1;
 
-	val0 = (uint32_t) val;
+	val0 = (uint32_t)val;
 	val1 = val >> 32;
 
 	vtpci_modern_write_common_4(sc, off, val0);
@@ -1406,7 +1405,7 @@ vtpci_modern_read_device_8(struct vtpci_modern_softc *sc, bus_size_t off)
 		val1 = vtpci_modern_read_device_4(sc, off + 4);
 	} while (gen != vtpci_modern_config_generation(dev));
 
-	return (((uint64_t) val1 << 32) | val0);
+	return (((uint64_t)val1 << 32) | val0);
 }
 
 static void
@@ -1436,7 +1435,7 @@ vtpci_modern_write_device_8(struct vtpci_modern_softc *sc, bus_size_t off,
 {
 	uint32_t val0, val1;
 
-	val0 = (uint32_t) val;
+	val0 = (uint32_t)val;
 	val1 = val >> 32;
 
 	vtpci_modern_write_device_4(sc, off, val0);

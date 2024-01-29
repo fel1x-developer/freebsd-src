@@ -53,8 +53,8 @@
  *
  *    #include "vdev_iterator.h"
  */
-#ifndef	_ZFSD_H_
-#define	_ZFSD_H_
+#ifndef _ZFSD_H_
+#define _ZFSD_H_
 
 /*=========================== Forward Declarations ===========================*/
 struct pidfh;
@@ -71,7 +71,7 @@ typedef struct nvlist nvlist_t;
 typedef int LeafIterFunc(zpool_handle_t *, nvlist_t *, void *);
 
 /*================================ Global Data ===============================*/
-extern int              g_debug;
+extern int g_debug;
 extern libzfs_handle_t *g_zfsHandle;
 
 /*============================= Class Definitions ============================*/
@@ -79,9 +79,8 @@ extern libzfs_handle_t *g_zfsHandle;
 /**
  * Static singleton orchestrating the operations of the ZFS daemon program.
  */
-class ZfsDaemon : public DevdCtl::Consumer
-{
-public:
+class ZfsDaemon : public DevdCtl::Consumer {
+    public:
 	/** Return the ZfsDaemon singleton. */
 	static ZfsDaemon &Get();
 
@@ -102,7 +101,7 @@ public:
 	/** Daemonize and perform all functions of the ZFS daemon. */
 	static void Run();
 
-private:
+    private:
 	ZfsDaemon();
 	~ZfsDaemon();
 
@@ -176,51 +175,51 @@ private:
 	 */
 	static void InitializeSyslog();
 
-	static ZfsDaemon		       *s_theZfsDaemon;
+	static ZfsDaemon *s_theZfsDaemon;
 
 	/**
 	 * Set to true when our program is signaled to
 	 * gracefully exit.
 	 */
-	static bool				s_logCaseFiles;
+	static bool s_logCaseFiles;
 
 	/**
 	 * Set to true when our program is signaled to
 	 * gracefully exit.
 	 */
-	static bool				s_terminateEventLoop;
+	static bool s_terminateEventLoop;
 
 	/**
 	 * The canonical path and file name of zfsd's PID file.
 	 */
-	static char				s_pidFilePath[];
+	static char s_pidFilePath[];
 
 	/**
 	 * Control structure for PIDFILE(3) API.
 	 */
-	static pidfh			       *s_pidFH;
+	static pidfh *s_pidFH;
 
 	/**
 	 * Pipe file descriptors used to close races with our
 	 * signal handlers.
 	 */
-	static int				s_signalPipeFD[2];
+	static int s_signalPipeFD[2];
 
 	/**
 	 * Flag controlling a rescan from ZFSD's event loop of all
 	 * GEOM providers in the system to find candidates for solving
 	 * cases.
 	 */
-	static bool				s_systemRescanRequested;
+	static bool s_systemRescanRequested;
 
 	/**
 	 * Flag controlling whether events can be queued.  This boolean
 	 * is set during event replay to ensure that events for pools or
 	 * devices no longer in the system are not retained forever.
 	 */
-	static bool				s_consumingEvents;
+	static bool s_consumingEvents;
 
-	static DevdCtl::EventFactory::Record	s_registryEntries[];
+	static DevdCtl::EventFactory::Record s_registryEntries[];
 };
 
-#endif	/* _ZFSD_H_ */
+#endif /* _ZFSD_H_ */

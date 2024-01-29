@@ -28,15 +28,16 @@
 
 #include <errno.h>
 #include <uchar.h>
+
 #include "mblocal.h"
 
 typedef struct {
-	char16_t	lead_surrogate;
-	mbstate_t	c32_mbstate;
+	char16_t lead_surrogate;
+	mbstate_t c32_mbstate;
 } _Char16State;
 
 size_t
-c16rtomb_l(char * __restrict s, char16_t c16, mbstate_t * __restrict ps,
+c16rtomb_l(char *__restrict s, char16_t c16, mbstate_t *__restrict ps,
     locale_t locale)
 {
 	_Char16State *cs;
@@ -57,8 +58,8 @@ c16rtomb_l(char * __restrict s, char16_t c16, mbstate_t * __restrict ps,
 			errno = EILSEQ;
 			return ((size_t)-1);
 		}
-		c32 = 0x10000 + ((cs->lead_surrogate & 0x3ff) << 10 |
-		    (c16 & 0x3ff));
+		c32 = 0x10000 +
+		    ((cs->lead_surrogate & 0x3ff) << 10 | (c16 & 0x3ff));
 	} else if (c16 >= 0xd800 && c16 <= 0xdbff) {
 		/* Store lead surrogate for next invocation. */
 		cs->lead_surrogate = c16;
@@ -73,7 +74,7 @@ c16rtomb_l(char * __restrict s, char16_t c16, mbstate_t * __restrict ps,
 }
 
 size_t
-c16rtomb(char * __restrict s, char16_t c16, mbstate_t * __restrict ps)
+c16rtomb(char *__restrict s, char16_t c16, mbstate_t *__restrict ps)
 {
 
 	return (c16rtomb_l(s, c16, ps, __get_locale()));

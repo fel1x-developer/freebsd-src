@@ -26,62 +26,62 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "endian.h"
-#include "image.h"
 #include "format.h"
+#include "image.h"
 #include "mkimg.h"
 
-#define	VMDK_IMAGE_ROUND	1048576
-#define	VMDK_MIN_GRAIN_SIZE	8192
-#define	VMDK_SECTOR_SIZE	512
+#define VMDK_IMAGE_ROUND 1048576
+#define VMDK_MIN_GRAIN_SIZE 8192
+#define VMDK_SECTOR_SIZE 512
 
 struct vmdk_header {
-	uint32_t	magic;
-#define	VMDK_MAGIC		0x564d444b
-	uint32_t	version;
-#define	VMDK_VERSION		1
-	uint32_t	flags;
-#define	VMDK_FLAGS_NL_TEST	(1 << 0)
-#define	VMDK_FLAGS_RGT_USED	(1 << 1)
-#define	VMDK_FLAGS_COMPRESSED	(1 << 16)
-#define	VMDK_FLAGS_MARKERS	(1 << 17)
-	uint64_t	capacity;
-	uint64_t	grain_size;
-	uint64_t	desc_offset;
-	uint64_t	desc_size;
-	uint32_t	ngtes;
-#define	VMDK_NGTES		512
-	uint64_t	rgd_offset;
-	uint64_t	gd_offset;
-	uint64_t	overhead;
-	uint8_t		unclean;
-	uint32_t	nl_test;
-#define	VMDK_NL_TEST		0x0a200d0a
-	uint16_t	compress;
-#define	VMDK_COMPRESS_NONE	0
-#define	VMDK_COMPRESS_DEFLATE	1
-	char		padding[433];
+	uint32_t magic;
+#define VMDK_MAGIC 0x564d444b
+	uint32_t version;
+#define VMDK_VERSION 1
+	uint32_t flags;
+#define VMDK_FLAGS_NL_TEST (1 << 0)
+#define VMDK_FLAGS_RGT_USED (1 << 1)
+#define VMDK_FLAGS_COMPRESSED (1 << 16)
+#define VMDK_FLAGS_MARKERS (1 << 17)
+	uint64_t capacity;
+	uint64_t grain_size;
+	uint64_t desc_offset;
+	uint64_t desc_size;
+	uint32_t ngtes;
+#define VMDK_NGTES 512
+	uint64_t rgd_offset;
+	uint64_t gd_offset;
+	uint64_t overhead;
+	uint8_t unclean;
+	uint32_t nl_test;
+#define VMDK_NL_TEST 0x0a200d0a
+	uint16_t compress;
+#define VMDK_COMPRESS_NONE 0
+#define VMDK_COMPRESS_DEFLATE 1
+	char padding[433];
 } __attribute__((__packed__));
 
-static const char desc_fmt[] =
-    "# Disk DescriptorFile\n"
-    "version=%d\n"
-    "CID=%08x\n"
-    "parentCID=ffffffff\n"
-    "createType=\"monolithicSparse\"\n"
-    "# Extent description\n"
-    "RW %ju SPARSE \"%s\"\n"
-    "# The Disk Data Base\n"
-    "#DDB\n"
-    "ddb.adapterType = \"ide\"\n"
-    "ddb.geometry.cylinders = \"%u\"\n"
-    "ddb.geometry.heads = \"%u\"\n"
-    "ddb.geometry.sectors = \"%u\"\n";
+static const char desc_fmt[] = "# Disk DescriptorFile\n"
+			       "version=%d\n"
+			       "CID=%08x\n"
+			       "parentCID=ffffffff\n"
+			       "createType=\"monolithicSparse\"\n"
+			       "# Extent description\n"
+			       "RW %ju SPARSE \"%s\"\n"
+			       "# The Disk Data Base\n"
+			       "#DDB\n"
+			       "ddb.adapterType = \"ide\"\n"
+			       "ddb.geometry.cylinders = \"%u\"\n"
+			       "ddb.geometry.heads = \"%u\"\n"
+			       "ddb.geometry.sectors = \"%u\"\n";
 
 static uint64_t grainsz;
 
@@ -125,8 +125,8 @@ vmdk_write(int fd)
 	le64enc(&hdr.grain_size, grainsz);
 
 	n = asprintf(&desc, desc_fmt, 1 /*version*/, 0 /*CID*/,
-	    (uintmax_t)imagesz /*size*/, "" /*name*/,
-	    ncyls /*cylinders*/, nheads /*heads*/, nsecs /*sectors*/);
+	    (uintmax_t)imagesz /*size*/, "" /*name*/, ncyls /*cylinders*/,
+	    nheads /*heads*/, nsecs /*sectors*/);
 	if (n == -1)
 		return (ENOMEM);
 

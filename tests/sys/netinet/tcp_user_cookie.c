@@ -30,18 +30,19 @@
  *  Authors: George Neville-Neil
  */
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <err.h>
-#include <sysexits.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysexits.h>
 #include <unistd.h>
 
 #define buflen 80
@@ -82,7 +83,8 @@ main(int argc, char **argv)
 	if (listen(sock, 5) < 0)
 		err(EX_OSERR, "failed to listen on socket");
 
-	ret = setsockopt(sock, SOL_SOCKET, SO_USER_COOKIE, &cookie, sizeof(cookie));
+	ret = setsockopt(sock, SOL_SOCKET, SO_USER_COOKIE, &cookie,
+	    sizeof(cookie));
 	if (ret < 0)
 		err(EX_OSERR, "setsockopt(SO_USER_COOKIE)");
 
@@ -93,8 +95,8 @@ main(int argc, char **argv)
 		if (accepted < 0)
 			err(EX_OSERR, "accept failed");
 
-		ret = setsockopt(accepted, SOL_SOCKET, SO_USER_COOKIE,
-				 &cookie, sizeof(cookie));
+		ret = setsockopt(accepted, SOL_SOCKET, SO_USER_COOKIE, &cookie,
+		    sizeof(cookie));
 		if (ret < 0)
 			err(EX_OSERR, "setsockopt(SO_USER_COOKIE)");
 

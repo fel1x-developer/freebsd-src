@@ -6,7 +6,7 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  *
@@ -30,9 +30,9 @@
 
 /* EXP_LARGE is the threshold above which we use acosh(x) ~= log(2x). */
 #if LDBL_MANT_DIG == 64
-#define	EXP_LARGE	34
+#define EXP_LARGE 34
 #elif LDBL_MANT_DIG == 113
-#define	EXP_LARGE	58
+#define EXP_LARGE 58
 #else
 #error "Unsupported long double format"
 #endif
@@ -42,18 +42,17 @@
 #error "Unsupported long double format"
 #endif
 
-#define	BIAS	(LDBL_MAX_EXP - 1)
+#define BIAS (LDBL_MAX_EXP - 1)
 
-static const double
-one	= 1.0;
+static const double one = 1.0;
 
 #if LDBL_MANT_DIG == 64
-static const union IEEEl2bits
-u_ln2 =  LD80C(0xb17217f7d1cf79ac, -1, 6.93147180559945309417e-1L);
-#define	ln2	u_ln2.e
+static const union IEEEl2bits u_ln2 = LD80C(0xb17217f7d1cf79ac, -1,
+    6.93147180559945309417e-1L);
+#define ln2 u_ln2.e
 #elif LDBL_MANT_DIG == 113
-static const long double
-ln2 =  6.93147180559945309417232121458176568e-1L;	/* 0x162e42fefa39ef35793c7673007e6.0p-113 */
+static const long double ln2 = 6.93147180559945309417232121458176568e-1L; /* 0x162e42fefa39ef35793c7673007e6.0p-113
+									   */
 #else
 #error "Unsupported long double format"
 #endif
@@ -66,20 +65,21 @@ acoshl(long double x)
 
 	ENTERI();
 	GET_LDBL_EXPSIGN(hx, x);
-	if (hx < 0x3fff) {		/* x < 1, or misnormal */
-	    RETURNI((x-x)/(x-x));
+	if (hx < 0x3fff) { /* x < 1, or misnormal */
+		RETURNI((x - x) / (x - x));
 	} else if (hx >= BIAS + EXP_LARGE) { /* x >= LARGE */
-	    if (hx >= 0x7fff) {		/* x is inf, NaN or misnormal */
-	        RETURNI(x+x);
-	    } else 
-		RETURNI(logl(x)+ln2);	/* acosh(huge)=log(2x), or misnormal */
+		if (hx >= 0x7fff) {	     /* x is inf, NaN or misnormal */
+			RETURNI(x + x);
+		} else
+			RETURNI(logl(x) +
+			    ln2); /* acosh(huge)=log(2x), or misnormal */
 	} else if (hx == 0x3fff && x == 1) {
-	    RETURNI(0.0);		/* acosh(1) = 0 */
-	} else if (hx >= 0x4000) {	/* LARGE > x >= 2, or misnormal */
-	    t=x*x;
-	    RETURNI(logl(2.0*x-one/(x+sqrtl(t-one))));
-	} else {			/* 1<x<2 */
-	    t = x-one;
-	    RETURNI(log1pl(t+sqrtl(2.0*t+t*t)));
+		RETURNI(0.0);	   /* acosh(1) = 0 */
+	} else if (hx >= 0x4000) { /* LARGE > x >= 2, or misnormal */
+		t = x * x;
+		RETURNI(logl(2.0 * x - one / (x + sqrtl(t - one))));
+	} else { /* 1<x<2 */
+		t = x - one;
+		RETURNI(log1pl(t + sqrtl(2.0 * t + t * t)));
 	}
 }

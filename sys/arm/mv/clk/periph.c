@@ -31,16 +31,15 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <machine/bus.h>
 
-#include <dev/fdt/simplebus.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/clk/clk_div.h>
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_gate.h>
 #include <dev/clk/clk_mux.h>
-
+#include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
@@ -48,8 +47,7 @@
 #include "periph.h"
 
 int
-a37x0_periph_create_mux(struct clkdom *clkdom,
-    struct clk_mux_def *mux, int id)
+a37x0_periph_create_mux(struct clkdom *clkdom, struct clk_mux_def *mux, int id)
 {
 	int error;
 
@@ -65,8 +63,7 @@ a37x0_periph_create_mux(struct clkdom *clkdom,
 }
 
 int
-a37x0_periph_create_div(struct clkdom *clkdom,
-    struct clk_div_def *div, int id)
+a37x0_periph_create_div(struct clkdom *clkdom, struct clk_div_def *div, int id)
 {
 	int error;
 
@@ -82,8 +79,8 @@ a37x0_periph_create_div(struct clkdom *clkdom,
 }
 
 int
-a37x0_periph_create_gate(struct clkdom *clkdom,
-    struct clk_gate_def *gate, int id)
+a37x0_periph_create_gate(struct clkdom *clkdom, struct clk_gate_def *gate,
+    int id)
 {
 	int error;
 
@@ -106,4 +103,3 @@ a37x0_periph_set_props(struct clknode_init_def *clkdef,
 	clkdef->parent_names = parent_names;
 	clkdef->parent_cnt = parent_cnt;
 }
-

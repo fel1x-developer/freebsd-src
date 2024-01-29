@@ -43,12 +43,12 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
+#include <sys/smp.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
-#include <sys/smp.h>
 #include <sys/vdso.h>
 #include <sys/watchdog.h>
 
@@ -63,54 +63,55 @@
 #endif
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
-#define	GT_PHYS_SECURE		0
-#define	GT_PHYS_NONSECURE	1
-#define	GT_VIRT			2
-#define	GT_HYP_PHYS		3
-#define	GT_HYP_VIRT		4
-#define	GT_IRQ_COUNT		5
+#define GT_PHYS_SECURE 0
+#define GT_PHYS_NONSECURE 1
+#define GT_VIRT 2
+#define GT_HYP_PHYS 3
+#define GT_HYP_VIRT 4
+#define GT_IRQ_COUNT 5
 
-#define	GT_CTRL_ENABLE		(1 << 0)
-#define	GT_CTRL_INT_MASK	(1 << 1)
-#define	GT_CTRL_INT_STAT	(1 << 2)
-#define	GT_REG_CTRL		0
-#define	GT_REG_TVAL		1
+#define GT_CTRL_ENABLE (1 << 0)
+#define GT_CTRL_INT_MASK (1 << 1)
+#define GT_CTRL_INT_STAT (1 << 2)
+#define GT_REG_CTRL 0
+#define GT_REG_TVAL 1
 
-#define	GT_CNTKCTL_PL0PTEN	(1 << 9) /* PL0 Physical timer reg access */
-#define	GT_CNTKCTL_PL0VTEN	(1 << 8) /* PL0 Virtual timer reg access */
-#define	GT_CNTKCTL_EVNTI	(0xf << 4) /* Virtual counter event bits */
-#define	GT_CNTKCTL_EVNTDIR	(1 << 3) /* Virtual counter event transition */
-#define	GT_CNTKCTL_EVNTEN	(1 << 2) /* Enables virtual counter events */
-#define	GT_CNTKCTL_PL0VCTEN	(1 << 1) /* PL0 CNTVCT and CNTFRQ access */
-#define	GT_CNTKCTL_PL0PCTEN	(1 << 0) /* PL0 CNTPCT and CNTFRQ access */
+#define GT_CNTKCTL_PL0PTEN (1 << 9)  /* PL0 Physical timer reg access */
+#define GT_CNTKCTL_PL0VTEN (1 << 8)  /* PL0 Virtual timer reg access */
+#define GT_CNTKCTL_EVNTI (0xf << 4)  /* Virtual counter event bits */
+#define GT_CNTKCTL_EVNTDIR (1 << 3)  /* Virtual counter event transition */
+#define GT_CNTKCTL_EVNTEN (1 << 2)   /* Enables virtual counter events */
+#define GT_CNTKCTL_PL0VCTEN (1 << 1) /* PL0 CNTVCT and CNTFRQ access */
+#define GT_CNTKCTL_PL0PCTEN (1 << 0) /* PL0 CNTPCT and CNTFRQ access */
 
 struct arm_tmr_softc;
 
 struct arm_tmr_irq {
-	struct resource	*res;
-	void		*ihl;
-	int		 rid;
-	int		 idx;
+	struct resource *res;
+	void *ihl;
+	int rid;
+	int idx;
 };
 
 struct arm_tmr_softc {
-	struct arm_tmr_irq	irqs[GT_IRQ_COUNT];
-	uint64_t		(*get_cntxct)(bool);
-	uint32_t		clkfreq;
-	int			irq_count;
-	struct eventtimer	et;
-	bool			physical_sys;
-	bool			physical_user;
+	struct arm_tmr_irq irqs[GT_IRQ_COUNT];
+	uint64_t (*get_cntxct)(bool);
+	uint32_t clkfreq;
+	int irq_count;
+	struct eventtimer et;
+	bool physical_sys;
+	bool physical_user;
 };
 
 static struct arm_tmr_softc *arm_tmr_sc = NULL;
@@ -121,29 +122,29 @@ static const struct arm_tmr_irq_defs {
 	int flags;
 } arm_tmr_irq_defs[] = {
 	{
-		.idx = GT_PHYS_SECURE,
-		.name = "sec-phys",
-		.flags = RF_ACTIVE | RF_OPTIONAL,
+	    .idx = GT_PHYS_SECURE,
+	    .name = "sec-phys",
+	    .flags = RF_ACTIVE | RF_OPTIONAL,
 	},
 	{
-		.idx = GT_PHYS_NONSECURE,
-		.name = "phys",
-		.flags = RF_ACTIVE,
+	    .idx = GT_PHYS_NONSECURE,
+	    .name = "phys",
+	    .flags = RF_ACTIVE,
 	},
 	{
-		.idx = GT_VIRT,
-		.name = "virt",
-		.flags = RF_ACTIVE,
+	    .idx = GT_VIRT,
+	    .name = "virt",
+	    .flags = RF_ACTIVE,
 	},
 	{
-		.idx = GT_HYP_PHYS,
-		.name = "hyp-phys",
-		.flags = RF_ACTIVE | RF_OPTIONAL,
+	    .idx = GT_HYP_PHYS,
+	    .name = "hyp-phys",
+	    .flags = RF_ACTIVE | RF_OPTIONAL,
 	},
 	{
-		.idx = GT_HYP_VIRT,
-		.name = "hyp-virt",
-		.flags = RF_ACTIVE | RF_OPTIONAL,
+	    .idx = GT_HYP_VIRT,
+	    .name = "hyp-virt",
+	    .flags = RF_ACTIVE | RF_OPTIONAL,
 	},
 };
 
@@ -156,27 +157,27 @@ static void arm_tmr_do_delay(int usec, void *);
 static timecounter_get_t arm_tmr_get_timecount;
 
 static struct timecounter arm_tmr_timecount = {
-	.tc_name           = "ARM MPCore Timecounter",
-	.tc_get_timecount  = arm_tmr_get_timecount,
-	.tc_poll_pps       = NULL,
-	.tc_counter_mask   = ~0u,
-	.tc_frequency      = 0,
-	.tc_quality        = 1000,
+	.tc_name = "ARM MPCore Timecounter",
+	.tc_get_timecount = arm_tmr_get_timecount,
+	.tc_poll_pps = NULL,
+	.tc_counter_mask = ~0u,
+	.tc_frequency = 0,
+	.tc_quality = 1000,
 	.tc_fill_vdso_timehands = arm_tmr_fill_vdso_timehands,
 };
 
 #ifdef __arm__
-#define	get_el0(x)	cp15_## x ##_get()
-#define	get_el1(x)	cp15_## x ##_get()
-#define	set_el0(x, val)	cp15_## x ##_set(val)
-#define	set_el1(x, val)	cp15_## x ##_set(val)
-#define	HAS_PHYS	true
+#define get_el0(x) cp15_##x##_get()
+#define get_el1(x) cp15_##x##_get()
+#define set_el0(x, val) cp15_##x##_set(val)
+#define set_el1(x, val) cp15_##x##_set(val)
+#define HAS_PHYS true
 #else /* __aarch64__ */
-#define	get_el0(x)	READ_SPECIALREG(x ##_el0)
-#define	get_el1(x)	READ_SPECIALREG(x ##_el1)
-#define	set_el0(x, val)	WRITE_SPECIALREG(x ##_el0, val)
-#define	set_el1(x, val)	WRITE_SPECIALREG(x ##_el1, val)
-#define	HAS_PHYS	has_hyp()
+#define get_el0(x) READ_SPECIALREG(x##_el0)
+#define get_el1(x) READ_SPECIALREG(x##_el1)
+#define set_el0(x, val) WRITE_SPECIALREG(x##_el0, val)
+#define set_el1(x, val) WRITE_SPECIALREG(x##_el1, val)
+#define HAS_PHYS has_hyp()
 #endif
 
 static int
@@ -188,20 +189,16 @@ get_freq(void)
 static uint64_t
 get_cntxct_a64_unstable(bool physical)
 {
-	uint64_t val
-;
+	uint64_t val;
 	isb();
 	if (physical) {
 		do {
 			val = get_el0(cntpct);
-		}
-		while (((val + 1) & 0x7FF) <= 1);
-	}
-	else {
+		} while (((val + 1) & 0x7FF) <= 1);
+	} else {
 		do {
 			val = get_el0(cntvct);
-		}
-		while (((val + 1) & 0x7FF) <= 1);
+		} while (((val + 1) & 0x7FF) <= 1);
 	}
 
 	return (val);
@@ -356,7 +353,6 @@ arm_tmr_start(struct eventtimer *et, sbintime_t first,
 	}
 
 	return (EINVAL);
-
 }
 
 static void
@@ -406,14 +402,14 @@ arm_tmr_attach_irq(device_t dev, struct arm_tmr_softc *sc,
 	struct arm_tmr_irq *irq;
 
 	irq = &sc->irqs[sc->irq_count];
-	irq->res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &rid, flags);
+	irq->res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, flags);
 	if (irq->res == NULL) {
 		if (bootverbose || (flags & RF_OPTIONAL) == 0) {
 			device_printf(dev,
 			    "could not allocate irq for %s interrupt '%s'\n",
 			    (flags & RF_OPTIONAL) != 0 ? "optional" :
-			    "required", irq_def->name);
+							 "required",
+			    irq_def->name);
 		}
 
 		if ((flags & RF_OPTIONAL) == 0)
@@ -490,7 +486,8 @@ arm_tmr_fdt_attach(device_t dev)
 					device_printf(dev,
 					    "could not find irq for %s interrupt '%s'\n",
 					    (flags & RF_OPTIONAL) != 0 ?
-					    "optional" : "required",
+						"optional" :
+						"required",
 					    irq_def->name);
 				}
 
@@ -522,7 +519,6 @@ out:
 	}
 
 	return (error);
-
 }
 #endif
 
@@ -562,8 +558,7 @@ arm_tmr_acpi_identify(driver_t *driver, device_t parent)
 	    gtdt->SecureEl1Interrupt);
 	arm_tmr_acpi_add_irq(parent, dev, GT_PHYS_NONSECURE,
 	    gtdt->NonSecureEl1Interrupt);
-	arm_tmr_acpi_add_irq(parent, dev, GT_VIRT,
-	    gtdt->VirtualTimerInterrupt);
+	arm_tmr_acpi_add_irq(parent, dev, GT_VIRT, gtdt->VirtualTimerInterrupt);
 
 out:
 	acpi_unmap_table(gtdt);
@@ -597,8 +592,8 @@ arm_tmr_acpi_attach(device_t dev)
 out:
 	if (error != 0) {
 		for (int i = 0; i < sc->irq_count; i++) {
-			bus_release_resource(dev, SYS_RES_IRQ,
-			    sc->irqs[i].rid, sc->irqs[i].res);
+			bus_release_resource(dev, SYS_RES_IRQ, sc->irqs[i].rid,
+			    sc->irqs[i].res);
 		}
 	}
 	return (error);
@@ -670,8 +665,9 @@ arm_tmr_attach(device_t dev)
 			if (sc->irqs[j].idx == irq_def->idx)
 				break;
 		}
-		KASSERT(j < sc->irq_count, ("%s: Missing required interrupt %s",
-		    __func__, irq_def->name));
+		KASSERT(j < sc->irq_count,
+		    ("%s: Missing required interrupt %s", __func__,
+			irq_def->name));
 	}
 #endif
 
@@ -760,11 +756,9 @@ arm_tmr_attach(device_t dev)
 }
 
 #ifdef FDT
-static device_method_t arm_tmr_fdt_methods[] = {
-	DEVMETHOD(device_probe,		arm_tmr_fdt_probe),
-	DEVMETHOD(device_attach,	arm_tmr_fdt_attach),
-	{ 0, 0 }
-};
+static device_method_t arm_tmr_fdt_methods[] = { DEVMETHOD(device_probe,
+						     arm_tmr_fdt_probe),
+	DEVMETHOD(device_attach, arm_tmr_fdt_attach), { 0, 0 } };
 
 static DEFINE_CLASS_0(generic_timer, arm_tmr_fdt_driver, arm_tmr_fdt_methods,
     sizeof(struct arm_tmr_softc));
@@ -776,12 +770,10 @@ EARLY_DRIVER_MODULE(timer, ofwbus, arm_tmr_fdt_driver, 0, 0,
 #endif
 
 #ifdef DEV_ACPI
-static device_method_t arm_tmr_acpi_methods[] = {
-	DEVMETHOD(device_identify,	arm_tmr_acpi_identify),
-	DEVMETHOD(device_probe,		arm_tmr_acpi_probe),
-	DEVMETHOD(device_attach,	arm_tmr_acpi_attach),
-	{ 0, 0 }
-};
+static device_method_t arm_tmr_acpi_methods[] = { DEVMETHOD(device_identify,
+						      arm_tmr_acpi_identify),
+	DEVMETHOD(device_probe, arm_tmr_acpi_probe),
+	DEVMETHOD(device_attach, arm_tmr_acpi_attach), { 0, 0 } };
 
 static DEFINE_CLASS_0(generic_timer, arm_tmr_acpi_driver, arm_tmr_acpi_methods,
     sizeof(struct arm_tmr_softc));

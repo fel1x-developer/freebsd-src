@@ -5,17 +5,16 @@
  */
 
 #include <sys/ioctl.h>
+
 #include "ipf.h"
 #include "netinet/ipl.h"
-
 
 /*
  * Because the ipf_dstnode_t can vary in size because of the interface name,
  * the size may be larger than just sizeof().
  */
 ippool_dst_t *
-printdstl_live( ippool_dst_t *d, int fd, char *name, int opts,
-	wordtab_t *fields)
+printdstl_live(ippool_dst_t *d, int fd, char *name, int opts, wordtab_t *fields)
 {
 	ipf_dstnode_t *entry, *zero;
 	ipflookupiter_t iter;
@@ -63,11 +62,11 @@ printdstl_live( ippool_dst_t *d, int fd, char *name, int opts,
 			last = 1;
 		if (bcmp((char *)zero, (char *)entry, sizeof(*zero)) == 0)
 			break;
-		(void) printdstlistnode(entry, bcopywrap, opts, fields);
+		(void)printdstlistnode(entry, bcopywrap, opts, fields);
 		printed++;
 	}
 
-	(void) ioctl(fd, SIOCIPFDELTOK, &iter.ili_key);
+	(void)ioctl(fd, SIOCIPFDELTOK, &iter.ili_key);
 	free(entry);
 	free(zero);
 

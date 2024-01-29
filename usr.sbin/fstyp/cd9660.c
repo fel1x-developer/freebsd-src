@@ -29,15 +29,19 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "fstyp.h"
 
-#define	ISO9660_MAGIC	"\x01" "CD001" "\x01\x00"
-#define	ISO9660_OFFSET	0x8000
-#define	VOLUME_LEN	32
+#define ISO9660_MAGIC \
+	"\x01"        \
+	"CD001"       \
+	"\x01\x00"
+#define ISO9660_OFFSET 0x8000
+#define VOLUME_LEN 32
 
 int
 fstyp_cd9660(FILE *fp, char *label, size_t size)

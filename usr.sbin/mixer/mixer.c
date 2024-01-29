@@ -128,7 +128,8 @@ parse:
 		if ((p = strdup(*argv)) == NULL)
 			err(1, "strdup(%s)", *argv);
 
-		/* Check if we're using the shorthand syntax for volume setting. */
+		/* Check if we're using the shorthand syntax for volume setting.
+		 */
 		shorthand = 0;
 		for (q = p; *q != '\0'; q++) {
 			if (*q == '=') {
@@ -177,7 +178,7 @@ parse:
 		valstr = p;
 		/* Input: `dev.control=val`. */
 		cp->mod(cp->parent_dev, valstr);
-next:
+	next:
 		free(p);
 		argc--;
 		argv++;
@@ -193,9 +194,11 @@ next:
 static void __dead2
 usage(void)
 {
-	fprintf(stderr, "usage: %1$s [-f device] [-d unit] [-os] [dev[.control[=value]]] ...\n"
+	fprintf(stderr,
+	    "usage: %1$s [-f device] [-d unit] [-os] [dev[.control[=value]]] ...\n"
 	    "       %1$s [-d unit] [-os] -a\n"
-	    "       %1$s -h\n", getprogname());
+	    "       %1$s -h\n",
+	    getprogname());
 	exit(1);
 }
 
@@ -205,10 +208,12 @@ initctls(struct mixer *m)
 	struct mix_dev *dp;
 	int rc = 0;
 
-	TAILQ_FOREACH(dp, &m->devs, devs) {
-		rc += mixer_add_ctl(dp, C_VOL, "volume", mod_volume, print_volume);
+	TAILQ_FOREACH (dp, &m->devs, devs) {
+		rc += mixer_add_ctl(dp, C_VOL, "volume", mod_volume,
+		    print_volume);
 		rc += mixer_add_ctl(dp, C_MUT, "mute", mod_mute, print_mute);
-		rc += mixer_add_ctl(dp, C_SRC, "recsrc", mod_recsrc, print_recsrc);
+		rc += mixer_add_ctl(dp, C_SRC, "recsrc", mod_recsrc,
+		    print_recsrc);
 	}
 	if (rc) {
 		(void)mixer_close(m);
@@ -222,7 +227,7 @@ printall(struct mixer *m, int oflag)
 	struct mix_dev *dp;
 
 	printminfo(m, oflag);
-	TAILQ_FOREACH(dp, &m->devs, devs) {
+	TAILQ_FOREACH (dp, &m->devs, devs) {
 		m->dev = dp;
 		printdev(m, oflag);
 	}
@@ -264,8 +269,8 @@ printdev(struct mixer *m, int oflag)
 	mix_ctl_t *cp;
 
 	if (!oflag) {
-		printf("    %-10s= %.2f:%.2f    ",
-		    d->name, d->vol.left, d->vol.right);
+		printf("    %-10s= %.2f:%.2f    ", d->name, d->vol.left,
+		    d->vol.right);
 		if (!MIX_ISREC(m, d->devno))
 			printf(" pbk");
 		if (MIX_ISREC(m, d->devno))
@@ -276,7 +281,7 @@ printdev(struct mixer *m, int oflag)
 			printf(" mute");
 		printf("\n");
 	} else {
-		TAILQ_FOREACH(cp, &d->ctls, ctls) {
+		TAILQ_FOREACH (cp, &d->ctls, ctls) {
 			(void)cp->print(cp->parent_dev, cp->name);
 		}
 	}
@@ -292,14 +297,15 @@ printrecsrc(struct mixer *m, int oflag)
 		return;
 	if (!oflag)
 		printf("%s: ", m->mi.name);
-	TAILQ_FOREACH(dp, &m->devs, devs) {
+	TAILQ_FOREACH (dp, &m->devs, devs) {
 		if (MIX_ISRECSRC(m, dp->devno)) {
 			if (n++ && !oflag)
 				printf(", ");
 			printf("%s", dp->name);
 			if (oflag)
 				printf(".%s=+%s",
-				    mixer_get_ctl(dp, C_SRC)->name, n ? " " : "");
+				    mixer_get_ctl(dp, C_SRC)->name,
+				    n ? " " : "");
 		}
 	}
 	printf("\n");
@@ -389,11 +395,11 @@ mod_volume(struct mix_dev *d, void *p)
 		lprev = m->dev->vol.left;
 		rprev = m->dev->vol.right;
 		if (mixer_set_vol(m, v) < 0)
-			warn("%s.%s=%.2f:%.2f",
-			    m->dev->name, cp->name, v.left, v.right);
+			warn("%s.%s=%.2f:%.2f", m->dev->name, cp->name, v.left,
+			    v.right);
 		else
-			printf("%s.%s: %.2f:%.2f -> %.2f:%.2f\n",
-			   m->dev->name, cp->name, lprev, rprev, v.left, v.right);
+			printf("%s.%s: %.2f:%.2f -> %.2f:%.2f\n", m->dev->name,
+			    cp->name, lprev, rprev, v.left, v.right);
 	}
 
 	return (0);
@@ -428,8 +434,8 @@ mod_mute(struct mix_dev *d, void *p)
 	if (mixer_set_mute(m, opt) < 0)
 		warn("%s.%s=%c", m->dev->name, cp->name, *val);
 	else
-		printf("%s.%s: %d -> %d\n",
-		    m->dev->name, cp->name, n, MIX_ISMUTE(m, m->dev->devno));
+		printf("%s.%s: %d -> %d\n", m->dev->name, cp->name, n,
+		    MIX_ISMUTE(m, m->dev->devno));
 
 	return (0);
 }
@@ -466,8 +472,8 @@ mod_recsrc(struct mix_dev *d, void *p)
 	if (mixer_mod_recsrc(m, opt) < 0)
 		warn("%s.%s=%c", m->dev->name, cp->name, *val);
 	else
-		printf("%s.%s: %d -> %d\n",
-		    m->dev->name, cp->name, n, MIX_ISRECSRC(m, m->dev->devno));
+		printf("%s.%s: %d -> %d\n", m->dev->name, cp->name, n,
+		    MIX_ISRECSRC(m, m->dev->devno));
 
 	return (0);
 }
@@ -478,8 +484,8 @@ print_volume(struct mix_dev *d, void *p)
 	struct mixer *m = d->parent_mixer;
 	const char *ctl_name = p;
 
-	printf("%s.%s=%.2f:%.2f\n",
-	    m->dev->name, ctl_name, m->dev->vol.left, m->dev->vol.right);
+	printf("%s.%s=%.2f:%.2f\n", m->dev->name, ctl_name, m->dev->vol.left,
+	    m->dev->vol.right);
 
 	return (0);
 }
@@ -490,7 +496,8 @@ print_mute(struct mix_dev *d, void *p)
 	struct mixer *m = d->parent_mixer;
 	const char *ctl_name = p;
 
-	printf("%s.%s=%d\n", m->dev->name, ctl_name, MIX_ISMUTE(m, m->dev->devno));
+	printf("%s.%s=%d\n", m->dev->name, ctl_name,
+	    MIX_ISMUTE(m, m->dev->devno));
 
 	return (0);
 }

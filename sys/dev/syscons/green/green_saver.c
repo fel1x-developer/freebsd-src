@@ -30,10 +30,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
@@ -42,8 +42,7 @@
 static int
 green_saver(video_adapter_t *adp, int blank)
 {
-	vidd_blank_display(adp,
-	    (blank) ? V_DISPLAY_STAND_BY : V_DISPLAY_ON);
+	vidd_blank_display(adp, (blank) ? V_DISPLAY_STAND_BY : V_DISPLAY_ON);
 	return 0;
 }
 
@@ -62,7 +61,11 @@ green_term(video_adapter_t *adp)
 }
 
 static scrn_saver_t green_module = {
-	"green_saver", green_init, green_term, green_saver, NULL,
+	"green_saver",
+	green_init,
+	green_term,
+	green_saver,
+	NULL,
 };
 
 SAVER_MODULE(green_saver, green_module);

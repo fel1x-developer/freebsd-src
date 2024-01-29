@@ -29,56 +29,56 @@
 
 #include <sys/ioccom.h>
 
-#define	PROTO_IOC_CLASS	'h'
+#define PROTO_IOC_CLASS 'h'
 
 struct proto_ioc_region {
-	unsigned long	address;
-	unsigned long	size;
+	unsigned long address;
+	unsigned long size;
 };
 
 #define PROTO_IOC_REGION _IOWR(PROTO_IOC_CLASS, 1, struct proto_ioc_region)
 
 struct proto_ioc_busdma {
-	unsigned int	request;
-#define	PROTO_IOC_BUSDMA_TAG_CREATE	1
-#define	PROTO_IOC_BUSDMA_TAG_DERIVE	2
-#define	PROTO_IOC_BUSDMA_TAG_DESTROY	3
-#define	PROTO_IOC_BUSDMA_MEM_ALLOC	10
-#define	PROTO_IOC_BUSDMA_MEM_FREE	11
-#define	PROTO_IOC_BUSDMA_MD_CREATE	20
-#define	PROTO_IOC_BUSDMA_MD_DESTROY	21
-#define	PROTO_IOC_BUSDMA_MD_LOAD	22
-#define	PROTO_IOC_BUSDMA_MD_UNLOAD	29
-#define	PROTO_IOC_BUSDMA_SYNC		30
-	unsigned long	key;
+	unsigned int request;
+#define PROTO_IOC_BUSDMA_TAG_CREATE 1
+#define PROTO_IOC_BUSDMA_TAG_DERIVE 2
+#define PROTO_IOC_BUSDMA_TAG_DESTROY 3
+#define PROTO_IOC_BUSDMA_MEM_ALLOC 10
+#define PROTO_IOC_BUSDMA_MEM_FREE 11
+#define PROTO_IOC_BUSDMA_MD_CREATE 20
+#define PROTO_IOC_BUSDMA_MD_DESTROY 21
+#define PROTO_IOC_BUSDMA_MD_LOAD 22
+#define PROTO_IOC_BUSDMA_MD_UNLOAD 29
+#define PROTO_IOC_BUSDMA_SYNC 30
+	unsigned long key;
 	union {
 		struct {
-			unsigned long	align;
-			unsigned long	bndry;
-			unsigned long	maxaddr;
-			unsigned long	maxsz;
-			unsigned long	maxsegsz;
-			unsigned int	nsegs;
-			unsigned int	datarate;
-			unsigned int	flags;
+			unsigned long align;
+			unsigned long bndry;
+			unsigned long maxaddr;
+			unsigned long maxsz;
+			unsigned long maxsegsz;
+			unsigned int nsegs;
+			unsigned int datarate;
+			unsigned int flags;
 		} tag;
 		struct {
-			unsigned long	tag;
-			unsigned int	flags;
-			unsigned long	virt_addr;
-			unsigned long	virt_size;
-			unsigned int	phys_nsegs;
-			unsigned long	phys_addr;
-			unsigned long	bus_addr;
-			unsigned int	bus_nsegs;
+			unsigned long tag;
+			unsigned int flags;
+			unsigned long virt_addr;
+			unsigned long virt_size;
+			unsigned int phys_nsegs;
+			unsigned long phys_addr;
+			unsigned long bus_addr;
+			unsigned int bus_nsegs;
 		} md;
 		struct {
-			unsigned int	op;
-			unsigned long	base;
-			unsigned long	size;
+			unsigned int op;
+			unsigned long base;
+			unsigned long size;
 		} sync;
 	} u;
-	unsigned long	result;
+	unsigned long result;
 };
 
 #define PROTO_IOC_BUSDMA _IOWR(PROTO_IOC_CLASS, 2, struct proto_ioc_busdma)

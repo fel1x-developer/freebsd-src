@@ -63,27 +63,26 @@
 
 #include <dev/isci/types.h>
 
-typedef struct sci_pci_common_header
-{
-   // Offset 0x00
-   U16 vendor_id;
-   U16 device_id;
+typedef struct sci_pci_common_header {
+	// Offset 0x00
+	U16 vendor_id;
+	U16 device_id;
 
-   // Offset 0x04
-   U16 command;
-   U16 status;
+	// Offset 0x04
+	U16 command;
+	U16 status;
 
-   // Offset 0x08
-   U8  revision;
-   U8  program_interface;
-   U8  sub_class;
-   U8  base_class;
+	// Offset 0x08
+	U8 revision;
+	U8 program_interface;
+	U8 sub_class;
+	U8 base_class;
 
-   // Offset 0x0C
-   U8  cache_line_size;
-   U8  master_latency_timer;
-   U8  header_type;
-   U8  built_in_self_test;
+	// Offset 0x0C
+	U8 cache_line_size;
+	U8 master_latency_timer;
+	U8 header_type;
+	U8 built_in_self_test;
 
 } SCI_PCI_COMMON_HEADER_T;
 

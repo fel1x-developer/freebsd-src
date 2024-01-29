@@ -1,40 +1,21 @@
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <sys/linker.h>
+#include <sys/module.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/queue.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
-
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
-
 #include <netinet/icmp6.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
-
-#include <arpa/inet.h>
-
-#include <ctype.h>
-#include <netdb.h>
-#include <errno.h>
-#include <nlist.h>
-#include <stdio.h>
-#include <string.h>
-#include <paths.h>
-#include <err.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <libxo/xo.h>
-
-
 #include <netlink/netlink.h>
 #include <netlink/netlink_route.h>
 #include <netlink/netlink_snl.h>
@@ -42,10 +23,23 @@
 #include <netlink/netlink_snl_route_compat.h>
 #include <netlink/netlink_snl_route_parsers.h>
 
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <libxo/xo.h>
+#include <netdb.h>
+#include <nlist.h>
+#include <paths.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "ndp.h"
 
-#define RTF_ANNOUNCE	RTF_PROTO2
+#define RTF_ANNOUNCE RTF_PROTO2
 
 static void
 nl_init_socket(struct snl_state *ss)
@@ -76,7 +70,7 @@ get_link_info(struct snl_state *ss, uint32_t ifindex,
 	struct ifinfomsg *ifmsg = snl_reserve_msg_object(&nw, struct ifinfomsg);
 	if (ifmsg != NULL)
 		ifmsg->ifi_index = ifindex;
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (false);
 
 	hdr = snl_read_reply(ss, hdr->nlmsg_seq);
@@ -89,8 +83,6 @@ get_link_info(struct snl_state *ss, uint32_t ifindex,
 
 	return (true);
 }
-
-
 
 static bool
 has_l2(struct snl_state *ss, uint32_t ifindex)
@@ -125,15 +117,17 @@ ip6_writemask(struct in6_addr *addr6, uint8_t mask)
 		*cp = htonl(mask ? ~((1 << (32 - mask)) - 1) : 0);
 }
 #define s6_addr32 __u6_addr.__u6_addr32
-#define IN6_MASK_ADDR(a, m)	do { \
-	(a)->s6_addr32[0] &= (m)->s6_addr32[0]; \
-	(a)->s6_addr32[1] &= (m)->s6_addr32[1]; \
-	(a)->s6_addr32[2] &= (m)->s6_addr32[2]; \
-	(a)->s6_addr32[3] &= (m)->s6_addr32[3]; \
-} while (0)
+#define IN6_MASK_ADDR(a, m)                             \
+	do {                                            \
+		(a)->s6_addr32[0] &= (m)->s6_addr32[0]; \
+		(a)->s6_addr32[1] &= (m)->s6_addr32[1]; \
+		(a)->s6_addr32[2] &= (m)->s6_addr32[2]; \
+		(a)->s6_addr32[3] &= (m)->s6_addr32[3]; \
+	} while (0)
 
 static int
-guess_ifindex(struct snl_state *ss, uint32_t fibnum, const struct sockaddr_in6 *dst)
+guess_ifindex(struct snl_state *ss, uint32_t fibnum,
+    const struct sockaddr_in6 *dst)
 {
 	struct snl_writer nw;
 
@@ -141,7 +135,6 @@ guess_ifindex(struct snl_state *ss, uint32_t fibnum, const struct sockaddr_in6 *
 		return (dst->sin6_scope_id);
 	else if (IN6_IS_ADDR_MULTICAST(&dst->sin6_addr))
 		return (0);
-
 
 	snl_init_writer(ss, &nw);
 
@@ -152,7 +145,7 @@ guess_ifindex(struct snl_state *ss, uint32_t fibnum, const struct sockaddr_in6 *
 	snl_add_msg_attr_ip(&nw, RTA_DST, (struct sockaddr *)dst);
 	snl_add_msg_attr_u32(&nw, RTA_TABLE, fibnum);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (0);
 
 	hdr = snl_read_reply(ss, hdr->nlmsg_seq);
@@ -184,7 +177,7 @@ guess_ifindex(struct snl_state *ss, uint32_t fibnum, const struct sockaddr_in6 *
 	snl_add_msg_attr_u32(&nw, NHAF_TABLE, fibnum);
 	snl_end_attr_nested(&nw, off);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(ss, hdr))
 		return (0);
 
 	hdr = snl_read_reply(ss, hdr->nlmsg_seq);
@@ -202,7 +195,8 @@ guess_ifindex(struct snl_state *ss, uint32_t fibnum, const struct sockaddr_in6 *
 }
 
 static uint32_t
-fix_ifindex(struct snl_state *ss, uint32_t ifindex, const struct sockaddr_in6 *sa)
+fix_ifindex(struct snl_state *ss, uint32_t ifindex,
+    const struct sockaddr_in6 *sa)
 {
 	if (ifindex == 0)
 		ifindex = guess_ifindex(ss, get_myfib(), sa);
@@ -260,7 +254,8 @@ print_entry(struct snl_parsed_neigh *neigh, struct snl_parsed_link_simple *link)
 	time_t expire = (time_t)neigh->ndaf_next_ts;
 	int expire_in = expire - now.tv_sec;
 	if (expire > now.tv_sec)
-		xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}", sec2str(expire_in), expire_in);
+		xo_emit("{d:/ %-9.9s}{e:expires_sec/%d}", sec2str(expire_in),
+		    expire_in);
 	else if (expire == 0)
 		xo_emit("{d:/ %-9.9s}{en:permanent/true}", "permanent");
 	else
@@ -298,8 +293,7 @@ print_entry(struct snl_parsed_neigh *neigh, struct snl_parsed_link_simple *link)
 	 * other flags. R: router, P: proxy, W: ??
 	 */
 	char flgbuf[8];
-	snprintf(flgbuf, sizeof(flgbuf), "%s%s",
-	    isrouter ? "R" : "",
+	snprintf(flgbuf, sizeof(flgbuf), "%s%s", isrouter ? "R" : "",
 	    (neigh->ndm_flags & NTF_PROXY) ? "p" : "");
 	xo_emit(" {:nd-flags/%s}", flgbuf);
 
@@ -327,7 +321,7 @@ print_entries_nl(uint32_t ifindex, struct sockaddr_in6 *addr, bool cflag)
 		ndmsg->ndm_ifindex = ifindex;
 	}
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss_req, hdr)) {
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss_req, hdr)) {
 		snl_free(&ss_req);
 		return (0);
 	}
@@ -343,14 +337,16 @@ print_entries_nl(uint32_t ifindex, struct sockaddr_in6 *addr, bool cflag)
 		snprintf(xobuf, sizeof(xobuf),
 		    "{T:/%%-%d.%ds} {T:/%%-%d.%ds} {T:/%%%d.%ds} {T:/%%-9.9s} {T:%%1s} {T:%%5s}\n",
 		    W_ADDR, W_ADDR, W_LL, W_LL, W_IF, W_IF);
-		xo_emit(xobuf, "Neighbor", "Linklayer Address", "Netif", "Expire", "S", "Flags");
+		xo_emit(xobuf, "Neighbor", "Linklayer Address", "Netif",
+		    "Expire", "S", "Flags");
 	}
 	xo_open_list("neighbor-cache");
 
 	while ((hdr = snl_read_reply_multi(&ss_req, nlmsg_seq, &e)) != NULL) {
 		struct snl_parsed_neigh neigh = {};
 
-		if (!snl_parse_nlmsg(&ss_req, hdr, &snl_rtm_neigh_parser, &neigh))
+		if (!snl_parse_nlmsg(&ss_req, hdr, &snl_rtm_neigh_parser,
+			&neigh))
 			continue;
 
 		if (neigh.nda_ifindex != link.ifi_index) {
@@ -367,7 +363,7 @@ print_entries_nl(uint32_t ifindex, struct sockaddr_in6 *addr, bool cflag)
 
 		if (addr != NULL) {
 			if (IN6_ARE_ADDR_EQUAL(&addr->sin6_addr,
-			    &dst->sin6_addr) == 0 ||
+				&dst->sin6_addr) == 0 ||
 			    addr->sin6_scope_id != dst->sin6_scope_id)
 				continue;
 		}
@@ -375,8 +371,10 @@ print_entries_nl(uint32_t ifindex, struct sockaddr_in6 *addr, bool cflag)
 		if (cflag) {
 			char dst_str[INET6_ADDRSTRLEN];
 
-			inet_ntop(AF_INET6, &dst->sin6_addr, dst_str, sizeof(dst_str));
-			delete_nl(neigh.nda_ifindex, dst_str, false); /* no warn */
+			inet_ntop(AF_INET6, &dst->sin6_addr, dst_str,
+			    sizeof(dst_str));
+			delete_nl(neigh.nda_ifindex, dst_str,
+			    false); /* no warn */
 		} else
 			print_entry(&neigh, &link);
 
@@ -394,7 +392,12 @@ print_entries_nl(uint32_t ifindex, struct sockaddr_in6 *addr, bool cflag)
 int
 delete_nl(uint32_t ifindex, char *host, bool warn)
 {
-#define xo_warnx(...) do { if (warn) { xo_warnx(__VA_ARGS__); } } while(0)
+#define xo_warnx(...)                          \
+	do {                                   \
+		if (warn) {                    \
+			xo_warnx(__VA_ARGS__); \
+		}                              \
+	} while (0)
 	struct snl_state ss = {};
 	struct snl_writer nw;
 	struct sockaddr_in6 dst;
@@ -423,7 +426,7 @@ delete_nl(uint32_t ifindex, char *host, bool warn)
 	}
 	snl_add_msg_attr_ip(&nw, NDA_DST, (struct sockaddr *)&dst);
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
 		snl_free(&ss);
 		return (1);
 	}
@@ -432,15 +435,15 @@ delete_nl(uint32_t ifindex, char *host, bool warn)
 	snl_read_reply_code(&ss, hdr->nlmsg_seq, &e);
 	if (e.error != 0) {
 		if (e.error_str != NULL)
-			xo_warnx("delete %s: %s (%s)", host, strerror(e.error), e.error_str);
+			xo_warnx("delete %s: %s (%s)", host, strerror(e.error),
+			    e.error_str);
 		else
 			xo_warnx("delete %s: %s", host, strerror(e.error));
 	} else {
 		char host_buf[NI_MAXHOST];
 		char ifix_buf[IFNAMSIZ];
 
-		getnameinfo((struct sockaddr *)&dst,
-		    dst.sin6_len, host_buf,
+		getnameinfo((struct sockaddr *)&dst, dst.sin6_len, host_buf,
 		    sizeof(host_buf), NULL, 0,
 		    (opts.nflag ? NI_NUMERICHOST : 0));
 
@@ -464,7 +467,8 @@ delete_nl(uint32_t ifindex, char *host, bool warn)
 }
 
 int
-set_nl(uint32_t ifindex, struct sockaddr_in6 *dst, struct sockaddr_dl *sdl, char *host)
+set_nl(uint32_t ifindex, struct sockaddr_in6 *dst, struct sockaddr_dl *sdl,
+    char *host)
 {
 	struct snl_state ss = {};
 	struct snl_writer nw;
@@ -496,7 +500,7 @@ set_nl(uint32_t ifindex, struct sockaddr_in6 *dst, struct sockaddr_dl *sdl, char
 	snl_add_msg_attr_ip(&nw, NDA_DST, (struct sockaddr *)dst);
 	snl_add_msg_attr(&nw, NDA_LLADDR, sdl->sdl_alen, LLADDR(sdl));
 
-	if (! (hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
+	if (!(hdr = snl_finalize_msg(&nw)) || !snl_send_message(&ss, hdr)) {
 		snl_free(&ss);
 		return (1);
 	}
@@ -505,7 +509,8 @@ set_nl(uint32_t ifindex, struct sockaddr_in6 *dst, struct sockaddr_dl *sdl, char
 	snl_read_reply_code(&ss, hdr->nlmsg_seq, &e);
 	if (e.error != 0) {
 		if (e.error_str != NULL)
-			xo_warnx("set: %s: %s (%s)", host, strerror(e.error), e.error_str);
+			xo_warnx("set: %s: %s (%s)", host, strerror(e.error),
+			    e.error_str);
 		else
 			xo_warnx("set %s: %s", host, strerror(e.error));
 	}
@@ -513,4 +518,3 @@ set_nl(uint32_t ifindex, struct sockaddr_in6 *dst, struct sockaddr_dl *sdl, char
 
 	return (e.error != 0);
 }
-

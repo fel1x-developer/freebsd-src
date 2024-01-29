@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
@@ -33,21 +34,22 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
 #include <dev/fdc/fdcvar.h>
 
-#include <isa/isavar.h>
 #include <isa/isareg.h>
+#include <isa/isavar.h>
 
 static int fdc_isa_probe(device_t);
 
 static struct isa_pnp_id fdc_ids[] = {
-	{0x0007d041, "PC standard floppy controller"}, /* PNP0700 */
-	{0x0107d041, "Standard floppy controller supporting MS Device Bay Spec"}, /* PNP0701 */
-	{0}
+	{ 0x0007d041, "PC standard floppy controller" }, /* PNP0700 */
+	{ 0x0107d041,
+	    "Standard floppy controller supporting MS Device Bay Spec" }, /* PNP0701
+									   */
+	{ 0 }
 };
 
 /*
@@ -85,7 +87,7 @@ fdc_isa_alloc_resources(device_t dev, struct fdc_data *fdc)
 		fdc->resio[i] = NULL;
 
 	nport = isa_get_logicalid(dev) ? 1 : 6;
-	for (rid = 0; ; rid++) {
+	for (rid = 0;; rid++) {
 		newrid = rid;
 		res = bus_alloc_resource_anywhere(dev, SYS_RES_IOPORT, &newrid,
 		    rid == 0 ? nport : 1, RF_ACTIVE);
@@ -155,8 +157,8 @@ fdc_isa_alloc_resources(device_t dev, struct fdc_data *fdc)
 static int
 fdc_isa_probe(device_t dev)
 {
-	int	error;
-	struct	fdc_data *fdc;
+	int error;
+	struct fdc_data *fdc;
 
 	fdc = device_get_softc(dev);
 	fdc->fdc_dev = dev;
@@ -178,7 +180,7 @@ fdc_isa_probe(device_t dev)
 static int
 fdc_isa_attach(device_t dev)
 {
-	struct	fdc_data *fdc;
+	struct fdc_data *fdc;
 	int error;
 
 	fdc = device_get_softc(dev);
@@ -197,27 +199,23 @@ fdc_isa_attach(device_t dev)
 
 static device_method_t fdc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fdc_isa_probe),
-	DEVMETHOD(device_attach,	fdc_isa_attach),
-	DEVMETHOD(device_detach,	fdc_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, fdc_isa_probe),
+	DEVMETHOD(device_attach, fdc_isa_attach),
+	DEVMETHOD(device_detach, fdc_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	fdc_print_child),
-	DEVMETHOD(bus_read_ivar,	fdc_read_ivar),
-	DEVMETHOD(bus_write_ivar,       fdc_write_ivar),
+	DEVMETHOD(bus_print_child, fdc_print_child),
+	DEVMETHOD(bus_read_ivar, fdc_read_ivar),
+	DEVMETHOD(bus_write_ivar, fdc_write_ivar),
 	/* Our children never use any other bus interface methods. */
 
 	{ 0, 0 }
 };
 
-static driver_t fdc_driver = {
-	"fdc",
-	fdc_methods,
-	sizeof(struct fdc_data)
-};
+static driver_t fdc_driver = { "fdc", fdc_methods, sizeof(struct fdc_data) };
 
 DRIVER_MODULE(fdc, isa, fdc_driver, 0, 0);
 ISA_PNP_INFO(fdc_ids);

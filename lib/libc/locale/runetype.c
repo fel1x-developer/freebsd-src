@@ -38,9 +38,10 @@
  */
 
 #include <ctype.h>
-#include <stdio.h>
 #include <runetype.h>
+#include <stdio.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 unsigned long
@@ -52,7 +53,7 @@ ___runetype_l(__ct_rune_t c, locale_t locale)
 	_RuneEntry *base, *re;
 
 	if (c < 0 || c == EOF)
-		return(0L);
+		return (0L);
 
 	/* Binary search -- see bsearch.c for explanation. */
 	base = rr->__ranges;
@@ -60,16 +61,16 @@ ___runetype_l(__ct_rune_t c, locale_t locale)
 		re = base + (lim >> 1);
 		if (re->__min <= c && c <= re->__max) {
 			if (re->__types)
-			    return(re->__types[c - re->__min]);
+				return (re->__types[c - re->__min]);
 			else
-			    return(re->__map);
+				return (re->__map);
 		} else if (c > re->__max) {
 			base = re + 1;
 			lim--;
 		}
 	}
 
-	return(0L);
+	return (0L);
 }
 unsigned long
 ___runetype(__ct_rune_t c)
@@ -77,11 +78,13 @@ ___runetype(__ct_rune_t c)
 	return ___runetype_l(c, __get_locale());
 }
 
-int ___mb_cur_max(void)
+int
+___mb_cur_max(void)
 {
 	return XLOCALE_CTYPE(__get_locale())->__mb_cur_max;
 }
-int ___mb_cur_max_l(locale_t locale)
+int
+___mb_cur_max_l(locale_t locale)
 {
 	FIX_LOCALE(locale);
 	return XLOCALE_CTYPE(locale)->__mb_cur_max;

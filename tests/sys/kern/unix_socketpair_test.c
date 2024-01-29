@@ -26,16 +26,15 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <stdio.h>
-
-#include <atf-c.h>
 
 /* getpeereid(3) should work with stream sockets created via socketpair(2) */
 ATF_TC_WITHOUT_HEAD(getpeereid);
@@ -66,7 +65,6 @@ ATF_TC_BODY(getpeereid, tc)
 	close(sv[0]);
 	close(sv[1]);
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

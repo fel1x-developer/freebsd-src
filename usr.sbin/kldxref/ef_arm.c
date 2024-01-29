@@ -77,11 +77,11 @@ ef_arm_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 		addend = le32dec(where);
 
 	switch (rtype) {
-	case R_ARM_ABS32:	/* S + A */
+	case R_ARM_ABS32: /* S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		le32enc(where, addr);
 		break;
-	case R_ARM_RELATIVE:	/* B + A */
+	case R_ARM_RELATIVE: /* B + A */
 		addr = relbase + addend;
 		le32enc(where, addr);
 		break;

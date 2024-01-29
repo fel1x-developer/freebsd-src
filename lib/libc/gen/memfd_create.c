@@ -40,7 +40,7 @@
 
 #include "libc_private.h"
 
-#define	MEMFD_NAME_PREFIX	"memfd:"
+#define MEMFD_NAME_PREFIX "memfd:"
 
 /*
  * The path argument is passed to the kernel, but the kernel doesn't currently
@@ -65,8 +65,9 @@ memfd_create(const char *name, unsigned int flags)
 		errno = EINVAL;
 		return (-1);
 	}
-	if ((flags & ~(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_HUGETLB |
-	    MFD_HUGE_MASK)) != 0) {
+	if ((flags &
+		~(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_HUGETLB |
+		    MFD_HUGE_MASK)) != 0) {
 		errno = EINVAL;
 		return (-1);
 	}

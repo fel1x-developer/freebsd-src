@@ -34,8 +34,8 @@
 #include <sys/sbuf.h>
 #include <sys/uio.h>
 
-#include <fs/pseudofs/pseudofs.h>
 #include <fs/procfs/procfs.h>
+#include <fs/pseudofs/pseudofs.h>
 
 int
 procfs_doosrel(PFS_FILL_ARGS)

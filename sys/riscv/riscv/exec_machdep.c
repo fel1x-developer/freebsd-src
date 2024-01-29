@@ -54,6 +54,11 @@
 #include <sys/sysproto.h>
 #include <sys/ucontext.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <vm/vm_map.h>
+#include <vm/vm_param.h>
+
 #include <machine/cpu.h>
 #include <machine/fpe.h>
 #include <machine/kdb.h>
@@ -62,11 +67,6 @@
 #include <machine/riscvreg.h>
 #include <machine/sbi.h>
 #include <machine/trap.h>
-
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
 
 static void get_fpcontext(struct thread *td, mcontext_t *mcp);
 static void set_fpcontext(struct thread *td, mcontext_t *mcp);
@@ -189,18 +189,15 @@ exec_setregs(struct thread *td, struct image_params *imgp, uintptr_t stack)
 }
 
 /* Sanity check these are the same size, they will be memcpy'd to and from */
-CTASSERT(sizeof(((struct trapframe *)0)->tf_a) ==
-    sizeof((struct gpregs *)0)->gp_a);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_s) ==
-    sizeof((struct gpregs *)0)->gp_s);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_t) ==
-    sizeof((struct gpregs *)0)->gp_t);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_a) ==
-    sizeof((struct reg *)0)->a);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_s) ==
-    sizeof((struct reg *)0)->s);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_t) ==
-    sizeof((struct reg *)0)->t);
+CTASSERT(
+    sizeof(((struct trapframe *)0)->tf_a) == sizeof((struct gpregs *)0)->gp_a);
+CTASSERT(
+    sizeof(((struct trapframe *)0)->tf_s) == sizeof((struct gpregs *)0)->gp_s);
+CTASSERT(
+    sizeof(((struct trapframe *)0)->tf_t) == sizeof((struct gpregs *)0)->gp_t);
+CTASSERT(sizeof(((struct trapframe *)0)->tf_a) == sizeof((struct reg *)0)->a);
+CTASSERT(sizeof(((struct trapframe *)0)->tf_s) == sizeof((struct reg *)0)->s);
+CTASSERT(sizeof(((struct trapframe *)0)->tf_t) == sizeof((struct reg *)0)->t);
 
 int
 get_mcontext(struct thread *td, mcontext_t *mcp, int clear_ret)
@@ -243,8 +240,8 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 	 * it explicitly.
 	 */
 	if (((mcp->mc_gpregs.gp_sstatus ^ tf->tf_sstatus) &
-	    ~(SSTATUS_SD | SSTATUS_XS_MASK | SSTATUS_FS_MASK | SSTATUS_UPIE |
-	    SSTATUS_UIE)) != 0)
+		~(SSTATUS_SD | SSTATUS_XS_MASK | SSTATUS_FS_MASK |
+		    SSTATUS_UPIE | SSTATUS_UIE)) != 0)
 		return (EINVAL);
 
 	memcpy(tf->tf_t, mcp->mc_gpregs.gp_t, sizeof(tf->tf_t));
@@ -379,7 +376,8 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	frame.sf_uc.uc_sigmask = *mask;
 	frame.sf_uc.uc_stack = td->td_sigstk;
 	frame.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) != 0 ?
-	    (onstack ? SS_ONSTACK : 0) : SS_DISABLE;
+	    (onstack ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	mtx_unlock(&psp->ps_mtx);
 	PROC_UNLOCK(td->td_proc);
 

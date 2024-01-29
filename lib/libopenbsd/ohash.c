@@ -16,27 +16,28 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+
 #include "ohash.h"
 
 struct _ohash_record {
-	uint32_t	hv;
-	const char	*p;
+	uint32_t hv;
+	const char *p;
 };
 
-#define DELETED		((const char *)h)
-#define NONE		(h->size)
+#define DELETED ((const char *)h)
+#define NONE (h->size)
 
 /* Don't bother changing the hash table if the change is small enough.  */
-#define MINSIZE		(1UL << 4)
-#define MINDELETED	4
+#define MINSIZE (1UL << 4)
+#define MINDELETED 4
 
 static void ohash_resize(struct ohash *);
-
 
 /* This handles the common case of variable length keys, where the
  * key is stored at the end of the record.
@@ -50,7 +51,7 @@ ohash_create_entry(struct ohash_info *i, const char *start, const char **end)
 		*end = start + strlen(start);
 	p = (i->alloc)(i->key_offset + (*end - start) + 1, i->data);
 	if (p) {
-		memcpy(p+i->key_offset, start, *end-start);
+		memcpy(p + i->key_offset, start, *end - start);
 		p[i->key_offset + (*end - start)] = '\0';
 	}
 	return (void *)p;
@@ -72,8 +73,8 @@ ohash_resize(struct ohash *h)
 {
 	struct _ohash_record *n;
 	size_t ns;
-	unsigned int	j;
-	unsigned int	i, incr;
+	unsigned int j;
+	unsigned int i, incr;
 
 	if (4 * h->deleted < h->total) {
 		if (h->size >= (UINT_MAX >> 1U))
@@ -118,7 +119,7 @@ ohash_resize(struct ohash *h)
 void *
 ohash_remove(struct ohash *h, unsigned int i)
 {
-	void		*result = (void *)h->t[i].p;
+	void *result = (void *)h->t[i].p;
 
 	if (result == NULL || result == DELETED)
 		return NULL;
@@ -153,7 +154,7 @@ ohash_insert(struct ohash *h, unsigned int i, void *p)
 		h->t[i].p = p;
 	} else {
 		h->t[i].p = p;
-		/* Arbitrary resize boundary.  Tweak if not efficient enough.  */
+		/* Arbitrary resize boundary.  Tweak if not efficient enough. */
 		if (++h->total * 4 > h->size * 3)
 			ohash_resize(h);
 	}
@@ -199,7 +200,7 @@ ohash_init(struct ohash *h, unsigned int size, struct ohash_info *info)
 	h->info.alloc = info->alloc;
 	h->info.data = info->data;
 	h->t = (h->info.calloc)(h->size, sizeof(struct _ohash_record),
-		    h->info.data);
+	    h->info.data);
 	h->total = h->deleted = 0;
 }
 
@@ -215,7 +216,7 @@ ohash_interval(const char *s, const char **e)
 	else
 		k = *s++;
 	while (s != *e)
-		k =  ((k << 2) | (k >> 30)) ^ *s++;
+		k = ((k << 2) | (k >> 30)) ^ *s++;
 	return k;
 }
 
@@ -223,15 +224,15 @@ unsigned int
 ohash_lookup_interval(struct ohash *h, const char *start, const char *end,
     uint32_t hv)
 {
-	unsigned int	i, incr;
-	unsigned int	empty;
+	unsigned int i, incr;
+	unsigned int empty;
 
 #ifdef STATS_HASH
 	STAT_HASH_LOOKUP++;
 #endif
 	empty = NONE;
 	i = hv % h->size;
-	incr = ((hv % (h->size-2)) & ~1) + 1;
+	incr = ((hv % (h->size - 2)) & ~1) + 1;
 	while (h->t[i].p != NULL) {
 #ifdef STATS_HASH
 		STAT_HASH_LENGTH++;
@@ -240,9 +241,9 @@ ohash_lookup_interval(struct ohash *h, const char *start, const char *end,
 			if (empty == NONE)
 				empty = i;
 		} else if (h->t[i].hv == hv &&
-		    strncmp(h->t[i].p+h->info.key_offset, start,
+		    strncmp(h->t[i].p + h->info.key_offset, start,
 			end - start) == 0 &&
-		    (h->t[i].p+h->info.key_offset)[end-start] == '\0') {
+		    (h->t[i].p + h->info.key_offset)[end - start] == '\0') {
 			if (empty != NONE) {
 				h->t[empty].hv = hv;
 				h->t[empty].p = h->t[i].p;
@@ -270,15 +271,15 @@ ohash_lookup_interval(struct ohash *h, const char *start, const char *end,
 unsigned int
 ohash_lookup_memory(struct ohash *h, const char *k, size_t size, uint32_t hv)
 {
-	unsigned int	i, incr;
-	unsigned int	empty;
+	unsigned int i, incr;
+	unsigned int empty;
 
 #ifdef STATS_HASH
 	STAT_HASH_LOOKUP++;
 #endif
 	empty = NONE;
 	i = hv % h->size;
-	incr = ((hv % (h->size-2)) & ~1) + 1;
+	incr = ((hv % (h->size - 2)) & ~1) + 1;
 	while (h->t[i].p != NULL) {
 #ifdef STATS_HASH
 		STAT_HASH_LENGTH++;
@@ -287,7 +288,7 @@ ohash_lookup_memory(struct ohash *h, const char *k, size_t size, uint32_t hv)
 			if (empty == NONE)
 				empty = i;
 		} else if (h->t[i].hv == hv &&
-		    memcmp(h->t[i].p+h->info.key_offset, k, size) == 0) {
+		    memcmp(h->t[i].p + h->info.key_offset, k, size) == 0) {
 			if (empty != NONE) {
 				h->t[empty].hv = hv;
 				h->t[empty].p = h->t[i].p;
@@ -297,7 +298,8 @@ ohash_lookup_memory(struct ohash *h, const char *k, size_t size, uint32_t hv)
 #ifdef STATS_HASH
 				STAT_HASH_POSITIVE++;
 #endif
-			}	return i;
+			}
+			return i;
 		}
 		i += incr;
 		if (i >= h->size)

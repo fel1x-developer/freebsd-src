@@ -42,23 +42,23 @@
  * Probably safe to expect 500000 inodes per tape. Assuming good key
  * distribution (inodes) chains of under 50 long (worse case) is ok.
  */
-#define L_TAB_SZ	2503		/* hard link hash table size */
-#define F_TAB_SZ	50503		/* file time hash table size */
-#define N_TAB_SZ	541		/* interactive rename hash table */
-#define D_TAB_SZ	317		/* unique device mapping table */
-#define A_TAB_SZ	317		/* ftree dir access time reset table */
-#define MAXKEYLEN	64		/* max number of chars for hash */
+#define L_TAB_SZ 2503  /* hard link hash table size */
+#define F_TAB_SZ 50503 /* file time hash table size */
+#define N_TAB_SZ 541   /* interactive rename hash table */
+#define D_TAB_SZ 317   /* unique device mapping table */
+#define A_TAB_SZ 317   /* ftree dir access time reset table */
+#define MAXKEYLEN 64   /* max number of chars for hash */
 
 /*
  * file hard link structure (hashed by dev/ino and chained) used to find the
  * hard links in a file system or with some archive formats (cpio)
  */
 typedef struct hrdlnk {
-	char		*name;	/* name of first file seen with this ino/dev */
-	dev_t		dev;	/* files device number */
-	ino_t		ino;	/* files inode number */
-	u_long		nlink;	/* expected link count */
-	struct hrdlnk	*fow;
+	char *name;   /* name of first file seen with this ino/dev */
+	dev_t dev;    /* files device number */
+	ino_t ino;    /* files inode number */
+	u_long nlink; /* expected link count */
+	struct hrdlnk *fow;
 } HRDLNK;
 
 /*
@@ -73,10 +73,10 @@ typedef struct hrdlnk {
  * handle is greatly increased).
  */
 typedef struct ftm {
-	int		namelen;	/* file name length */
-	time_t		mtime;		/* files last modification time */
-	off_t		seek;		/* location in scratch file */
-	struct ftm	*fow;
+	int namelen;  /* file name length */
+	time_t mtime; /* files last modification time */
+	off_t seek;   /* location in scratch file */
+	struct ftm *fow;
 } FTM;
 
 /*
@@ -87,9 +87,9 @@ typedef struct ftm {
  */
 
 typedef struct namt {
-	char		*oname;		/* old name */
-	char		*nname;		/* new name typed in by the user */
-	struct namt	*fow;
+	char *oname; /* old name */
+	char *nname; /* new name typed in by the user */
+	struct namt *fow;
 } NAMT;
 
 /*
@@ -119,14 +119,14 @@ typedef struct namt {
  */
 
 typedef struct devt {
-	dev_t		dev;	/* the orig device number we now have to map */
-	struct devt	*fow;	/* new device map list */
-	struct dlist	*list;	/* map list based on inode truncation bits */
+	dev_t dev;	    /* the orig device number we now have to map */
+	struct devt *fow;   /* new device map list */
+	struct dlist *list; /* map list based on inode truncation bits */
 } DEVT;
 
 typedef struct dlist {
-	ino_t trunc_bits;	/* truncation pattern for a specific map */
-	dev_t dev;		/* the new device id we use */
+	ino_t trunc_bits; /* truncation pattern for a specific map */
+	dev_t dev;	  /* the new device id we use */
 	struct dlist *fow;
 } DLIST;
 
@@ -139,10 +139,10 @@ typedef struct dlist {
  */
 
 typedef struct atdir {
-	char *name;	/* name of directory to reset */
-	dev_t dev;	/* dev and inode for fast lookup */
+	char *name; /* name of directory to reset */
+	dev_t dev;  /* dev and inode for fast lookup */
 	ino_t ino;
-	time_t mtime;	/* access and mod time to reset to */
+	time_t mtime; /* access and mod time to reset to */
 	time_t atime;
 	struct atdir *fow;
 } ATDIR;
@@ -159,10 +159,10 @@ typedef struct atdir {
  */
 
 typedef struct dirdata {
-	int nlen;	/* length of the directory name (includes \0) */
-	off_t npos;	/* position in file where this dir name starts */
-	mode_t mode;	/* file mode to restore */
-	time_t mtime;	/* mtime to set */
-	time_t atime;	/* atime to set */
-	int frc_mode;	/* do we force mode settings? */
+	int nlen;     /* length of the directory name (includes \0) */
+	off_t npos;   /* position in file where this dir name starts */
+	mode_t mode;  /* file mode to restore */
+	time_t mtime; /* mtime to set */
+	time_t atime; /* atime to set */
+	int frc_mode; /* do we force mode settings? */
 } DIRDATA;

@@ -46,17 +46,17 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <netinet/in.h>
-#include <netinet/udp.h>
-#include <netinet/in_systm.h>
-#include <arpa/tftp.h>
 
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/udp.h>
+
+#include <arpa/tftp.h>
 #include <string.h>
 
-#include "stand.h"
 #include "net.h"
 #include "netif.h"
-
+#include "stand.h"
 #include "tftp.h"
 
 struct tftp_handle;
@@ -72,8 +72,7 @@ static int tftp_set_blksize(struct tftp_handle *, const char *);
 static int tftp_stat(struct open_file *, struct stat *);
 static int tftp_preload(struct open_file *);
 
-struct fs_ops tftp_fsops = {
-	.fs_name = "tftp",
+struct fs_ops tftp_fsops = { .fs_name = "tftp",
 	.fo_open = tftp_open,
 	.fo_close = tftp_close,
 	.fo_read = tftp_read,
@@ -81,61 +80,56 @@ struct fs_ops tftp_fsops = {
 	.fo_seek = tftp_seek,
 	.fo_stat = tftp_stat,
 	.fo_preload = tftp_preload,
-	.fo_readdir = null_readdir
-};
+	.fo_readdir = null_readdir };
 
-static int	tftpport = 2000;
-static int	is_open = 0;
+static int tftpport = 2000;
+static int is_open = 0;
 
 /*
  * The legacy TFTP_BLKSIZE value was SEGSIZE(512).
  * TFTP_REQUESTED_BLKSIZE of 1428 is (Ethernet MTU, less the TFTP, UDP and
  * IP header lengths).
  */
-#define	TFTP_REQUESTED_BLKSIZE 1428
+#define TFTP_REQUESTED_BLKSIZE 1428
 
 /*
  * Choose a blksize big enough so we can test with Ethernet
  * Jumbo frames in the future.
  */
-#define	TFTP_MAX_BLKSIZE 9008
+#define TFTP_MAX_BLKSIZE 9008
 #define TFTP_TRIES 2
 
 struct tftp_handle {
-	struct iodesc  *iodesc;
-	int		currblock;	/* contents of lastdata */
-	unsigned int	islastblock:1;	/* flag */
-	unsigned int	tries:4;	/* number of read attempts */
-	int		validsize;
-	int		off;
-	char		*path;	/* saved for re-requests */
-	unsigned int	tftp_blksize;
-	unsigned long	tftp_tsize;
-	void		*pkt;
-	struct tftphdr	*tftp_hdr;
-	char		*tftp_cache;
-	bool		lastacksent;
+	struct iodesc *iodesc;
+	int currblock;		      /* contents of lastdata */
+	unsigned int islastblock : 1; /* flag */
+	unsigned int tries : 4;	      /* number of read attempts */
+	int validsize;
+	int off;
+	char *path; /* saved for re-requests */
+	unsigned int tftp_blksize;
+	unsigned long tftp_tsize;
+	void *pkt;
+	struct tftphdr *tftp_hdr;
+	char *tftp_cache;
+	bool lastacksent;
 };
 
 struct tftprecv_extra {
-	struct tftp_handle	*tftp_handle;
-	unsigned short		rtype;		/* Received type */
+	struct tftp_handle *tftp_handle;
+	unsigned short rtype; /* Received type */
 };
 
-#define	TFTP_MAX_ERRCODE EOPTNEG
+#define TFTP_MAX_ERRCODE EOPTNEG
 static const int tftperrors[TFTP_MAX_ERRCODE + 1] = {
-	0,			/* NAK */
-	ENOENT,
-	EPERM,
-	ENOSPC,
-	EINVAL,			/* ??? */
-	EINVAL,			/* ??? */
-	EEXIST,
-	EINVAL,			/* ??? */
-	EINVAL,			/* Option negotiation failed. */
+	0,			       /* NAK */
+	ENOENT, EPERM, ENOSPC, EINVAL, /* ??? */
+	EINVAL,			       /* ??? */
+	EEXIST, EINVAL,		       /* ??? */
+	EINVAL,			       /* Option negotiation failed. */
 };
 
-static int  tftp_getnextblock(struct tftp_handle *h);
+static int tftp_getnextblock(struct tftp_handle *h);
 
 /* send error message back. */
 static void
@@ -169,7 +163,7 @@ tftp_sendack(struct tftp_handle *h, u_short block)
 {
 	struct {
 		u_char header[HEADER_SIZE];
-		struct tftphdr  t;
+		struct tftphdr t;
 	} __packed __aligned(4) wbuf;
 	char *wtail;
 
@@ -299,7 +293,7 @@ tftp_makereq(struct tftp_handle *h)
 {
 	struct {
 		u_char header[HEADER_SIZE];
-		struct tftphdr  t;
+		struct tftphdr t;
 		u_char space[FNAME_SIZE + 6];
 	} __packed __aligned(4) wbuf;
 	struct tftprecv_extra recv_extra;
@@ -346,7 +340,7 @@ tftp_makereq(struct tftp_handle *h)
 
 	h->iodesc->myport = htons(tftpport + (getsecs() & 0x3ff));
 	h->iodesc->destport = htons(IPPORT_TFTP);
-	h->iodesc->xid = 1;	/* expected block */
+	h->iodesc->xid = 1; /* expected block */
 
 	h->currblock = 0;
 	h->islastblock = 0;
@@ -372,22 +366,21 @@ tftp_makereq(struct tftp_handle *h)
 	h->tftp_blksize = SEGSIZE;
 
 	switch (recv_extra.rtype) {
-		case DATA: {
-			h->currblock = 1;
-			h->validsize = res;
-			h->islastblock = 0;
-			if (res < h->tftp_blksize) {
-				h->islastblock = 1;	/* very short file */
-				tftp_sendack(h, h->currblock);
-				h->lastacksent = true;
-			}
-			return (0);
+	case DATA: {
+		h->currblock = 1;
+		h->validsize = res;
+		h->islastblock = 0;
+		if (res < h->tftp_blksize) {
+			h->islastblock = 1; /* very short file */
+			tftp_sendack(h, h->currblock);
+			h->lastacksent = true;
 		}
-		case ERROR:
-		default:
-			return (errno);
+		return (0);
 	}
-
+	case ERROR:
+	default:
+		return (errno);
+	}
 }
 
 /* ack block, expect next */
@@ -409,14 +402,14 @@ tftp_getnextblock(struct tftp_handle *h)
 	wbuf.t.th_block = htons((u_short)h->currblock);
 	wtail += 2;
 
-	h->iodesc->xid = h->currblock + 1;	/* expected block */
+	h->iodesc->xid = h->currblock + 1; /* expected block */
 
 	pkt = NULL;
 	recv_extra.tftp_handle = h;
 	res = sendrecv(h->iodesc, &sendudp, &wbuf.t, wtail - (char *)&wbuf.t,
 	    &recvtftp, &pkt, (void **)&t, &recv_extra);
 
-	if (res == -1) {		/* 0 is OK! */
+	if (res == -1) { /* 0 is OK! */
 		free(pkt);
 		return (errno);
 	}
@@ -427,7 +420,7 @@ tftp_getnextblock(struct tftp_handle *h)
 	h->currblock++;
 	h->validsize = res;
 	if (res < h->tftp_blksize)
-		h->islastblock = 1;	/* EOF */
+		h->islastblock = 1; /* EOF */
 
 	if (h->islastblock == 1) {
 		/* Send an ACK for the last block */
@@ -443,10 +436,10 @@ tftp_open(const char *path, struct open_file *f)
 {
 	struct devdesc *dev;
 	struct tftp_handle *tftpfile;
-	struct iodesc	*io;
-	int		res;
-	size_t		pathsize;
-	const char	*extraslash;
+	struct iodesc *io;
+	int res;
+	size_t pathsize;
+	const char *extraslash;
 
 	if (netproto != NET_TFTP)
 		return (EINVAL);
@@ -481,8 +474,8 @@ tftp_open(const char *path, struct open_file *f)
 		extraslash = "";
 	else
 		extraslash = "/";
-	res = snprintf(tftpfile->path, pathsize, "%s%s%s",
-	    rootpath, extraslash, path);
+	res = snprintf(tftpfile->path, pathsize, "%s%s%s", rootpath, extraslash,
+	    path);
 	if (res < 0 || res > pathsize) {
 		free(tftpfile->path);
 		free(tftpfile);
@@ -503,8 +496,7 @@ tftp_open(const char *path, struct open_file *f)
 }
 
 static int
-tftp_read(struct open_file *f, void *addr, size_t size,
-    size_t *resid /* out */)
+tftp_read(struct open_file *f, void *addr, size_t size, size_t *resid /* out */)
 {
 	struct tftp_handle *tftpfile;
 	size_t res;
@@ -521,8 +513,7 @@ tftp_read(struct open_file *f, void *addr, size_t size,
 	}
 
 	if (tftpfile->tftp_cache != NULL) {
-		bcopy(tftpfile->tftp_cache + tftpfile->off,
-		    addr, size);
+		bcopy(tftpfile->tftp_cache + tftpfile->off, addr, size);
 
 		addr = (char *)addr + size;
 		tftpfile->off += size;
@@ -537,7 +528,7 @@ tftp_read(struct open_file *f, void *addr, size_t size,
 
 		needblock = tftpfile->off / tftpfile->tftp_blksize + 1;
 
-		if (tftpfile->currblock > needblock) {	/* seek backwards */
+		if (tftpfile->currblock > needblock) { /* seek backwards */
 			tftp_senderr(tftpfile, 0, "No error: read aborted");
 			rc = tftp_makereq(tftpfile);
 			if (rc != 0)
@@ -547,7 +538,7 @@ tftp_read(struct open_file *f, void *addr, size_t size,
 		while (tftpfile->currblock < needblock) {
 
 			rc = tftp_getnextblock(tftpfile);
-			if (rc) {	/* no answer */
+			if (rc) { /* no answer */
 #ifdef TFTP_DEBUG
 				printf("tftp: read error\n");
 #endif
@@ -576,8 +567,8 @@ tftp_read(struct open_file *f, void *addr, size_t size,
 				return (EINVAL);
 			}
 			count = (size < inbuffer ? size : inbuffer);
-			bcopy(tftpfile->tftp_hdr->th_data + offinblock,
-			    addr, count);
+			bcopy(tftpfile->tftp_hdr->th_data + offinblock, addr,
+			    count);
 
 			addr = (char *)addr + count;
 			tftpfile->off += count;
@@ -585,14 +576,13 @@ tftp_read(struct open_file *f, void *addr, size_t size,
 			res -= count;
 
 			if ((tftpfile->islastblock) && (count == inbuffer))
-				break;	/* EOF */
+				break; /* EOF */
 		} else {
 #ifdef TFTP_DEBUG
 			printf("tftp: block %d not found\n", needblock);
 #endif
 			return (EINVAL);
 		}
-
 	}
 
 out:
@@ -668,7 +658,7 @@ tftp_preload(struct open_file *f)
 	cache = malloc(sizeof(char) * tftpfile->tftp_tsize);
 	if (cache == NULL) {
 		printf("Couldn't allocate %ju bytes for preload caching"
-		    ", disabling caching\n",
+		       ", disabling caching\n",
 		    (uintmax_t)sizeof(char) * tftpfile->tftp_tsize);
 		return (-1);
 	}
@@ -678,9 +668,7 @@ tftp_preload(struct open_file *f)
 	printf("Preloading %s ", tftpfile->path);
 #endif
 	if (tftpfile->currblock == 1)
-		bcopy(tftpfile->tftp_hdr->th_data,
-		    cache,
-		    tftpfile->validsize);
+		bcopy(tftpfile->tftp_hdr->th_data, cache, tftpfile->validsize);
 	else
 		tftpfile->currblock = 0;
 
@@ -693,7 +681,8 @@ tftp_preload(struct open_file *f)
 			return (rc);
 		}
 		bcopy(tftpfile->tftp_hdr->th_data,
-		    cache + (tftpfile->tftp_blksize * (tftpfile->currblock - 1)),
+		    cache +
+			(tftpfile->tftp_blksize * (tftpfile->currblock - 1)),
 		    tftpfile->validsize);
 	}
 #ifdef TFTP_DEBUG
@@ -717,8 +706,7 @@ tftp_set_blksize(struct tftp_handle *h, const char *str)
 	if (h == NULL || str == NULL)
 		return (ret);
 
-	new_blksize =
-	    (unsigned int)strtol(str, &endptr, 0);
+	new_blksize = (unsigned int)strtol(str, &endptr, 0);
 
 	/*
 	 * Only accept blksize value if it is numeric.
@@ -795,8 +783,8 @@ tftp_parse_oack(struct tftp_handle *h, char *buf, size_t len)
 	for (i = 0; i < option_idx; i += 2) {
 		if (strcasecmp(tftp_options[i], "blksize") == 0) {
 			if (i + 1 < option_idx)
-				blksize_is_set =
-				    tftp_set_blksize(h, tftp_options[i + 1]);
+				blksize_is_set = tftp_set_blksize(h,
+				    tftp_options[i + 1]);
 		} else if (strcasecmp(tftp_options[i], "tsize") == 0) {
 			if (i + 1 < option_idx)
 				tsize = strtol(tftp_options[i + 1], NULL, 10);

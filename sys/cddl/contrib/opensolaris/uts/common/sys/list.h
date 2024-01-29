@@ -23,12 +23,12 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_LIST_H
-#define	_SYS_LIST_H
+#ifndef _SYS_LIST_H
+#define _SYS_LIST_H
 
 #include <sys/list_impl.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -58,8 +58,8 @@ void list_link_replace(list_node_t *, list_node_t *);
 
 int list_link_active(list_node_t *);
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_LIST_H */
+#endif /* _SYS_LIST_H */

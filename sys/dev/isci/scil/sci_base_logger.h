@@ -65,9 +65,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_logger.h>
 #include <dev/isci/scil/sci_base_object.h>
-
+#include <dev/isci/scil/sci_logger.h>
 
 #define SCI_BASE_LOGGER_MAX_VERBOSITY_LEVELS 5
 
@@ -77,29 +76,28 @@ extern "C" {
  * @brief This structure contains the set of log objects and verbosities that
  *        are enabled for logging.  It's parent is the SCI_BASE_OBJECT_T.
  */
-typedef struct SCI_BASE_LOGGER
-{
+typedef struct SCI_BASE_LOGGER {
 #if defined(SCI_LOGGING)
-   /**
-    * The field specifies that the parent object for the base logger
-    * is the base object itself.
-    */
-   SCI_BASE_OBJECT_T parent;
+	/**
+	 * The field specifies that the parent object for the base logger
+	 * is the base object itself.
+	 */
+	SCI_BASE_OBJECT_T parent;
 
-   /**
-    * This filed specifies an array of objects mask.  There is one object
-    * mask for each verbosity level (e.g. ERROR, WARNING, etc.).  This
-    * allows for more flexible logging.
-    */
-   U32  object_mask[SCI_BASE_LOGGER_MAX_VERBOSITY_LEVELS];
+	/**
+	 * This filed specifies an array of objects mask.  There is one object
+	 * mask for each verbosity level (e.g. ERROR, WARNING, etc.).  This
+	 * allows for more flexible logging.
+	 */
+	U32 object_mask[SCI_BASE_LOGGER_MAX_VERBOSITY_LEVELS];
 
-   /**
-    * This filed specifies which verbosity levels are currently enabled
-    * for logging
-    */
-   U32  verbosity_mask;
-#else // defined(SCI_LOGGING)
-   U8  dummy;
+	/**
+	 * This filed specifies which verbosity levels are currently enabled
+	 * for logging
+	 */
+	U32 verbosity_mask;
+#else  // defined(SCI_LOGGING)
+	U8 dummy;
 #endif // defined(SCI_LOGGING)
 
 } SCI_BASE_LOGGER_T;
@@ -114,9 +112,7 @@ typedef struct SCI_BASE_LOGGER
  *
  * @return none
  */
-void sci_base_logger_construct(
-   SCI_BASE_LOGGER_T *this_logger
-);
+void sci_base_logger_construct(SCI_BASE_LOGGER_T *this_logger);
 
 #else // SCI_LOGGING
 

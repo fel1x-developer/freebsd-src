@@ -32,16 +32,15 @@
 #include <sys/ioccom.h>
 
 /* Designed to be compatible with linux's struct i2c_msg */
-struct iic_msg
-{
-	uint16_t	slave;
-	uint16_t	flags;
-#define	IIC_M_WR	0	/* Fake flag for write */
-#define	IIC_M_RD	0x0001	/* read vs write */
-#define	IIC_M_NOSTOP	0x0002	/* do not send a I2C stop after message */
-#define	IIC_M_NOSTART	0x0004	/* do not send a I2C start before message */
-	uint16_t	len;	/* msg length */
-	uint8_t *	buf;
+struct iic_msg {
+	uint16_t slave;
+	uint16_t flags;
+#define IIC_M_WR 0	     /* Fake flag for write */
+#define IIC_M_RD 0x0001	     /* read vs write */
+#define IIC_M_NOSTOP 0x0002  /* do not send a I2C stop after message */
+#define IIC_M_NOSTART 0x0004 /* do not send a I2C start before message */
+	uint16_t len;	     /* msg length */
+	uint8_t *buf;
 };
 
 struct iiccmd {
@@ -56,15 +55,16 @@ struct iic_rdwr_data {
 	uint32_t nmsgs;
 };
 
-#define IIC_RDRW_MAX_MSGS	42
+#define IIC_RDRW_MAX_MSGS 42
 
-#define I2CSTART	_IOW('i', 1, struct iiccmd)	/* start condition */
-#define I2CSTOP		_IO('i', 2)			/* stop condition */
-#define I2CRSTCARD	_IOW('i', 3, struct iiccmd)	/* reset the card */
-#define I2CWRITE	_IOW('i', 4, struct iiccmd)	/* send data */
-#define I2CREAD		_IOW('i', 5, struct iiccmd)	/* receive data */
-#define I2CRDWR		_IOW('i', 6, struct iic_rdwr_data)	/* General read/write interface */
-#define I2CRPTSTART	_IOW('i', 7, struct iiccmd)	/* repeated start */
-#define I2CSADDR	_IOW('i', 8, uint8_t)		/* set slave address for future I/O */
+#define I2CSTART _IOW('i', 1, struct iiccmd)   /* start condition */
+#define I2CSTOP _IO('i', 2)		       /* stop condition */
+#define I2CRSTCARD _IOW('i', 3, struct iiccmd) /* reset the card */
+#define I2CWRITE _IOW('i', 4, struct iiccmd)   /* send data */
+#define I2CREAD _IOW('i', 5, struct iiccmd)    /* receive data */
+#define I2CRDWR \
+	_IOW('i', 6, struct iic_rdwr_data) /* General read/write interface */
+#define I2CRPTSTART _IOW('i', 7, struct iiccmd) /* repeated start */
+#define I2CSADDR _IOW('i', 8, uint8_t) /* set slave address for future I/O */
 
 #endif

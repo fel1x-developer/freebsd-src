@@ -225,9 +225,9 @@
 *******************************************************************************
 */
 
+#include "lac_sal_types_crypto.h"
 #include "lac_session.h"
 #include "lac_sym.h"
-#include "lac_sal_types_crypto.h"
 
 /*
  * WARNING: There are no checks done on the parameters of the functions in
@@ -255,7 +255,7 @@
  *****************************************************************************/
 CpaStatus
 LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
-				Cpa32U capabilitiesMask);
+    Cpa32U capabilitiesMask);
 
 /**
 *******************************************************************************
@@ -276,8 +276,7 @@ LacCipher_SessionSetupDataCheck(const CpaCySymCipherSetupData *pCipherSetupData,
 *
 *****************************************************************************/
 CpaStatus LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm cipherAlgorithm,
-				      const CpaCySymOpData *pOpData,
-				      const Cpa64U packetLen);
+    const CpaCySymOpData *pOpData, const Cpa64U packetLen);
 
 /**
  *****************************************************************************
@@ -306,9 +305,7 @@ CpaStatus LacCipher_PerformParamCheck(CpaCySymCipherAlgorithm cipherAlgorithm,
  *
  *****************************************************************************/
 CpaStatus LacCipher_PerformIvCheck(sal_service_t *pService,
-				   lac_sym_bulk_cookie_t *pCbCookie,
-				   Cpa32U qatPacketType,
-				   Cpa8U **ppIvBuffer);
+    lac_sym_bulk_cookie_t *pCbCookie, Cpa32U qatPacketType, Cpa8U **ppIvBuffer);
 
 /**
  *****************************************************************************
@@ -326,6 +323,5 @@ CpaStatus LacCipher_PerformIvCheck(sal_service_t *pService,
  *
  *****************************************************************************/
 Cpa32U LacCipher_GetCipherSliceType(sal_crypto_service_t *pService,
-				    CpaCySymCipherAlgorithm algorithm,
-				    CpaCySymHashAlgorithm hash);
+    CpaCySymCipherAlgorithm algorithm, CpaCySymHashAlgorithm hash);
 #endif /* LAC_SYM_CIPHER_H */

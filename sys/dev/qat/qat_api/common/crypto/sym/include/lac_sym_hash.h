@@ -299,8 +299,8 @@
 *******************************************************************************
 */
 
-#include "lac_session.h"
 #include "lac_buffer_desc.h"
+#include "lac_session.h"
 
 /**
  *****************************************************************************
@@ -342,7 +342,7 @@ typedef void (*lac_hash_precompute_done_cb_t)(void *pCallbackTag);
 *
 *****************************************************************************/
 CpaStatus LacHash_HashContextCheck(CpaInstanceHandle instanceHandle,
-				   const CpaCySymHashSetupData *pHashSetupData);
+    const CpaCySymHashSetupData *pHashSetupData);
 
 /**
  ******************************************************************************
@@ -375,12 +375,9 @@ CpaStatus LacHash_HashContextCheck(CpaInstanceHandle instanceHandle,
  *
  *****************************************************************************/
 CpaStatus LacHash_PrecomputeDataCreate(const CpaInstanceHandle instanceHandle,
-				       CpaCySymSessionSetupData *pSessionSetup,
-				       lac_hash_precompute_done_cb_t callbackFn,
-				       void *pCallbackTag,
-				       Cpa8U *pWorkingBuffer,
-				       Cpa8U *pState1,
-				       Cpa8U *pState2);
+    CpaCySymSessionSetupData *pSessionSetup,
+    lac_hash_precompute_done_cb_t callbackFn, void *pCallbackTag,
+    Cpa8U *pWorkingBuffer, Cpa8U *pState1, Cpa8U *pState2);
 
 /**
  ******************************************************************************
@@ -402,12 +399,10 @@ CpaStatus LacHash_PrecomputeDataCreate(const CpaInstanceHandle instanceHandle,
  * @retval CPA_STATUS_FAIL          Operation Failed
  *
  *****************************************************************************/
-CpaStatus LacHash_StatePrefixAadBufferInit(
-    sal_service_t *pService,
+CpaStatus LacHash_StatePrefixAadBufferInit(sal_service_t *pService,
     const CpaCySymHashSetupData *pHashSetupData,
     icp_qat_la_bulk_req_ftr_t *pHashControlBlock,
-    icp_qat_hw_auth_mode_t qatHashMode,
-    Cpa8U *pHashStateBuffer,
+    icp_qat_hw_auth_mode_t qatHashMode, Cpa8U *pHashStateBuffer,
     lac_sym_qat_hash_state_buffer_info_t *pHashStateBufferInfo);
 
 /**
@@ -428,10 +423,8 @@ CpaStatus LacHash_StatePrefixAadBufferInit(
 *
 *****************************************************************************/
 CpaStatus LacHash_PerformParamCheck(CpaInstanceHandle instanceHandle,
-				    lac_session_desc_t *pSessionDesc,
-				    const CpaCySymOpData *pOpData,
-				    Cpa64U srcPktSize,
-				    const CpaBoolean *pVerifyResult);
+    lac_session_desc_t *pSessionDesc, const CpaCySymOpData *pOpData,
+    Cpa64U srcPktSize, const CpaBoolean *pVerifyResult);
 
 /**
 *******************************************************************************
@@ -469,14 +462,9 @@ CpaStatus LacHash_PerformParamCheck(CpaInstanceHandle instanceHandle,
 *
 *****************************************************************************/
 CpaStatus LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
-				     CpaCySymHashAlgorithm hashAlgorithm,
-				     Cpa32U authKeyLenInBytes,
-				     Cpa8U *pAuthKey,
-				     Cpa8U *pWorkingMemory,
-				     Cpa8U *pState1,
-				     Cpa8U *pState2,
-				     lac_hash_precompute_done_cb_t callbackFn,
-				     void *pCallbackTag);
+    CpaCySymHashAlgorithm hashAlgorithm, Cpa32U authKeyLenInBytes,
+    Cpa8U *pAuthKey, Cpa8U *pWorkingMemory, Cpa8U *pState1, Cpa8U *pState2,
+    lac_hash_precompute_done_cb_t callbackFn, void *pCallbackTag);
 
 /**
 *******************************************************************************
@@ -510,13 +498,9 @@ CpaStatus LacSymHash_HmacPreComputes(CpaInstanceHandle instanceHandle,
  *
  *****************************************************************************/
 CpaStatus LacSymHash_AesECBPreCompute(CpaInstanceHandle instanceHandle,
-				      CpaCySymHashAlgorithm hashAlgorithm,
-				      Cpa32U authKeyLenInBytes,
-				      Cpa8U *pAuthKey,
-				      Cpa8U *pWorkingMemory,
-				      Cpa8U *pState,
-				      lac_hash_precompute_done_cb_t callbackFn,
-				      void *pCallbackTag);
+    CpaCySymHashAlgorithm hashAlgorithm, Cpa32U authKeyLenInBytes,
+    Cpa8U *pAuthKey, Cpa8U *pWorkingMemory, Cpa8U *pState,
+    lac_hash_precompute_done_cb_t callbackFn, void *pCallbackTag);
 
 /**
 *******************************************************************************
@@ -549,11 +533,8 @@ CpaStatus LacSymHash_HmacPrecompInit(CpaInstanceHandle instanceHandle);
 *****************************************************************************/
 void LacSymHash_HmacPrecompShutdown(CpaInstanceHandle instanceHandle);
 
-void LacSync_GenBufListVerifyCb(void *pCallbackTag,
-				CpaStatus status,
-				CpaCySymOp operationType,
-				void *pOpData,
-				CpaBufferList *pDstBuffer,
-				CpaBoolean opResult);
+void LacSync_GenBufListVerifyCb(void *pCallbackTag, CpaStatus status,
+    CpaCySymOp operationType, void *pOpData, CpaBufferList *pDstBuffer,
+    CpaBoolean opResult);
 
 #endif /* LAC_SYM_HASH_H */

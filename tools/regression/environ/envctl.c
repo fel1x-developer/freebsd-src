@@ -23,6 +23,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <sys/cdefs.h>
+
 #include <errno.h>
 #include <libgen.h>
 #include <stdbool.h>
@@ -30,11 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-
-#include <sys/cdefs.h>
 extern char **environ;
-
 
 /*
  * Print entire environ array.
@@ -50,14 +48,14 @@ dump_environ(void)
 	return;
 }
 
-
 /*
  * Print usage.
  */
 static void
 usage(const char *program)
 {
-	fprintf(stderr, "Usage:  %s [-DGUchrt] [-c 1|2|3|4] [-bgu name] "
+	fprintf(stderr,
+	    "Usage:  %s [-DGUchrt] [-c 1|2|3|4] [-bgu name] "
 	    "[-p name=value]\n"
 	    "\t[(-S|-s name) value overwrite]\n\n"
 	    "Options:\n"
@@ -82,7 +80,6 @@ usage(const char *program)
 
 	return;
 }
-
 
 /*
  * Print the return value of a call along with errno upon error else zero.
@@ -180,13 +177,15 @@ main(int argc, char **argv)
 
 		case 'S':
 			print_rtrn_errno(setenv(NULL, optarg,
-			    atoi(argv[optind])), eol);
+					     atoi(argv[optind])),
+			    eol);
 			optind += 1;
 			break;
 
 		case 's':
 			print_rtrn_errno(setenv(optarg, argv[optind],
-			    atoi(argv[optind + 1])), eol);
+					     atoi(argv[optind + 1])),
+			    eol);
 			optind += 2;
 			break;
 

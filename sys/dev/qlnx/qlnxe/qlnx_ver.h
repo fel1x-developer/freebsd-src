@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,6 @@
  * version numbers
  */
 
-#define QLNX_VERSION_MAJOR      2
-#define QLNX_VERSION_MINOR      0
-#define QLNX_VERSION_BUILD      112
+#define QLNX_VERSION_MAJOR 2
+#define QLNX_VERSION_MINOR 0
+#define QLNX_VERSION_BUILD 112

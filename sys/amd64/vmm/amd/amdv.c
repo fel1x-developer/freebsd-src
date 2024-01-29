@@ -31,6 +31,7 @@
 #include <sys/errno.h>
 
 #include <machine/vmm.h>
+
 #include "io/iommu.h"
 
 static int
@@ -79,7 +80,7 @@ amd_iommu_destroy_domain(void *domain)
 
 static uint64_t
 amd_iommu_create_mapping(void *domain, vm_paddr_t gpa, vm_paddr_t hpa,
-			 uint64_t len)
+    uint64_t len)
 {
 
 	printf("amd_iommu_create_mapping: not implemented\n");

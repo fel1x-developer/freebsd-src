@@ -36,6 +36,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
 
 #include <err.h>
@@ -43,12 +44,11 @@
 #include <netconfig.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <rpcsvc/ypclnt.h>
+#include <rpcsvc/yppasswd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <rpcsvc/ypclnt.h>
-#include <rpcsvc/yppasswd.h>
 
 #include "ypclnt.h"
 #include "yppasswd_private.h"
@@ -70,8 +70,8 @@ ypclnt_havepasswdd(ypclnt_t *ypclnt)
 	int ret;
 
 	/* check if rpc.yppasswdd is running */
-	if (getrpcport(ypclnt->server, YPPASSWDPROG,
-		YPPASSWDPROC_UPDATE, IPPROTO_UDP) == 0) {
+	if (getrpcport(ypclnt->server, YPPASSWDPROG, YPPASSWDPROC_UPDATE,
+		IPPROTO_UDP) == 0) {
 		ypclnt_error(ypclnt, __func__, "no rpc.yppasswdd on server");
 		return (-1);
 	}
@@ -84,23 +84,23 @@ ypclnt_havepasswdd(ypclnt_t *ypclnt)
 	localhandle = setnetconfig();
 	while ((nc = getnetconfig(localhandle)) != NULL) {
 		if (nc->nc_protofmly != NULL &&
-			strcmp(nc->nc_protofmly, NC_LOOPBACK) == 0)
-				break;
+		    strcmp(nc->nc_protofmly, NC_LOOPBACK) == 0)
+			break;
 	}
 	if (nc == NULL) {
-		ypclnt_error(ypclnt, __func__,
-		    "getnetconfig: %s", nc_sperror());
+		ypclnt_error(ypclnt, __func__, "getnetconfig: %s",
+		    nc_sperror());
 		ret = 0;
 		goto done;
 	}
 	if ((clnt = clnt_tp_create(NULL, MASTER_YPPASSWDPROG,
-	    MASTER_YPPASSWDVERS, nc)) == NULL) {
+		 MASTER_YPPASSWDVERS, nc)) == NULL) {
 		ypclnt_error(ypclnt, __func__,
 		    "failed to connect to rpc.yppasswdd: %s",
 		    clnt_spcreateerror(ypclnt->server));
 		ret = 0;
 		goto done;
-	} else 
+	} else
 		ret = 1;
 
 done:
@@ -171,13 +171,13 @@ yppasswd_local(ypclnt_t *ypclnt, const struct passwd *pwd)
 			break;
 	}
 	if (nc == NULL) {
-		ypclnt_error(ypclnt, __func__,
-		    "getnetconfig: %s", nc_sperror());
+		ypclnt_error(ypclnt, __func__, "getnetconfig: %s",
+		    nc_sperror());
 		ret = -1;
 		goto done;
 	}
 	if ((clnt = clnt_tp_create(NULL, MASTER_YPPASSWDPROG,
-	    MASTER_YPPASSWDVERS, nc)) == NULL) {
+		 MASTER_YPPASSWDVERS, nc)) == NULL) {
 		ypclnt_error(ypclnt, __func__,
 		    "failed to connect to rpc.yppasswdd: %s",
 		    clnt_spcreateerror(ypclnt->server));
@@ -192,8 +192,7 @@ yppasswd_local(ypclnt_t *ypclnt, const struct passwd *pwd)
 	/* check for RPC errors */
 	clnt_geterr(clnt, &rpcerr);
 	if (rpcerr.re_status != RPC_SUCCESS) {
-		ypclnt_error(ypclnt, __func__,
-		    "NIS password update failed: %s",
+		ypclnt_error(ypclnt, __func__, "NIS password update failed: %s",
 		    clnt_sperror(clnt, ypclnt->server));
 		ret = -1;
 		goto done;
@@ -201,8 +200,7 @@ yppasswd_local(ypclnt_t *ypclnt, const struct passwd *pwd)
 
 	/* check the result of the update */
 	if (result == NULL || *result != 0) {
-		ypclnt_error(ypclnt, __func__,
-		    "NIS password update failed");
+		ypclnt_error(ypclnt, __func__, "NIS password update failed");
 		/* XXX how do we get more details? */
 		ret = -1;
 		goto done;
@@ -211,7 +209,7 @@ yppasswd_local(ypclnt_t *ypclnt, const struct passwd *pwd)
 	ypclnt_error(ypclnt, NULL, NULL);
 	ret = 0;
 
- done:
+done:
 	if (clnt != NULL) {
 		auth_destroy(clnt->cl_auth);
 		clnt_destroy(clnt);
@@ -273,8 +271,7 @@ yppasswd_remote(ypclnt_t *ypclnt, const struct passwd *pwd, const char *passwd)
 	/* check for RPC errors */
 	clnt_geterr(clnt, &rpcerr);
 	if (rpcerr.re_status != RPC_SUCCESS) {
-		ypclnt_error(ypclnt, __func__,
-		    "NIS password update failed: %s",
+		ypclnt_error(ypclnt, __func__, "NIS password update failed: %s",
 		    clnt_sperror(clnt, ypclnt->server));
 		ret = -1;
 		goto done;
@@ -282,8 +279,7 @@ yppasswd_remote(ypclnt_t *ypclnt, const struct passwd *pwd, const char *passwd)
 
 	/* check the result of the update */
 	if (result == NULL || *result != 0) {
-		ypclnt_error(ypclnt, __func__,
-		    "NIS password update failed");
+		ypclnt_error(ypclnt, __func__, "NIS password update failed");
 		/* XXX how do we get more details? */
 		ret = -1;
 		goto done;
@@ -292,7 +288,7 @@ yppasswd_remote(ypclnt_t *ypclnt, const struct passwd *pwd, const char *passwd)
 	ypclnt_error(ypclnt, NULL, NULL);
 	ret = 0;
 
- done:
+done:
 	if (clnt != NULL) {
 		auth_destroy(clnt->cl_auth);
 		clnt_destroy(clnt);

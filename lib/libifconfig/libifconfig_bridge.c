@@ -41,8 +41,8 @@
 
 /* Internal structure used for allocations and frees */
 struct _ifconfig_bridge_status {
-	struct ifconfig_bridge_status inner;	/* wrapped bridge status */
-	struct ifbropreq params;		/* operational parameters */
+	struct ifconfig_bridge_status inner; /* wrapped bridge status */
+	struct ifbropreq params;	     /* operational parameters */
 };
 
 static int
@@ -61,8 +61,8 @@ ifconfig_bridge_ioctlwrap(ifconfig_handle_t *h, const char *name,
 }
 
 int
-ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_bridge_status **bridgep)
+ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_bridge_status **bridgep)
 {
 	struct ifbifconf members;
 	struct ifbrparam cache_param;
@@ -79,34 +79,33 @@ ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h,
 	}
 	bridge->inner.params = &bridge->params;
 
-	if (ifconfig_bridge_ioctlwrap(h, name, BRDGGCACHE,
-	    &cache_param, sizeof(cache_param), false) != 0) {
+	if (ifconfig_bridge_ioctlwrap(h, name, BRDGGCACHE, &cache_param,
+		sizeof(cache_param), false) != 0) {
 		free(bridge);
 		return (-1);
 	}
 	bridge->inner.cache_size = cache_param.ifbrp_csize;
 
-	if (ifconfig_bridge_ioctlwrap(h, name, BRDGGTO,
-	    &cache_param, sizeof(cache_param), false) != 0) {
+	if (ifconfig_bridge_ioctlwrap(h, name, BRDGGTO, &cache_param,
+		sizeof(cache_param), false) != 0) {
 		free(bridge);
 		return (-1);
 	}
 	bridge->inner.cache_lifetime = cache_param.ifbrp_ctime;
 
-	if (ifconfig_bridge_ioctlwrap(h, name, BRDGPARAM,
-	    &bridge->params, sizeof(bridge->params), false) != 0) {
+	if (ifconfig_bridge_ioctlwrap(h, name, BRDGPARAM, &bridge->params,
+		sizeof(bridge->params), false) != 0) {
 		free(bridge);
 		return (-1);
 	}
 
 	members.ifbic_buf = NULL;
-	for (size_t len = 8192;
-	    (buf = realloc(members.ifbic_buf, len)) != NULL;
-	    len *= 2) {
+	for (size_t len = 8192; (buf = realloc(members.ifbic_buf, len)) != NULL;
+	     len *= 2) {
 		members.ifbic_buf = buf;
 		members.ifbic_len = len;
-		if (ifconfig_bridge_ioctlwrap(h, name, BRDGGIFS,
-		    &members, sizeof(members), false) != 0) {
+		if (ifconfig_bridge_ioctlwrap(h, name, BRDGGIFS, &members,
+			sizeof(members), false) != 0) {
 			free(buf);
 			free(bridge);
 			return (-1);
@@ -122,8 +121,8 @@ ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h,
 		return (-1);
 	}
 	bridge->inner.members = members.ifbic_req;
-	bridge->inner.members_count =
-	    members.ifbic_len / sizeof(*members.ifbic_req);
+	bridge->inner.members_count = members.ifbic_len /
+	    sizeof(*members.ifbic_req);
 
 	*bridgep = &bridge->inner;
 

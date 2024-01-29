@@ -20,44 +20,44 @@
 /* Driver for Microdia's HID based TEMPer Temperature sensor */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/hid/hid.h>
-
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbhid.h>
 #include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+#include <dev/usb/usbhid.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usb_debug
+#define USB_DEBUG_VAR usb_debug
 #include <dev/usb/usb_debug.h>
 
-#define	UGOLD_INNER		0
-#define	UGOLD_OUTER		1
-#define	UGOLD_MAX_SENSORS	2
+#define UGOLD_INNER 0
+#define UGOLD_OUTER 1
+#define UGOLD_MAX_SENSORS 2
 
-#define	UGOLD_CMD_DATA		0x80
-#define	UGOLD_CMD_INIT		0x82
+#define UGOLD_CMD_DATA 0x80
+#define UGOLD_CMD_INIT 0x82
 
 enum {
 	UGOLD_INTR_DT,
@@ -80,8 +80,8 @@ enum {
  * string corresponding to the device, for example:
  *	'TEMPer1F' and '1.1Per1F' (here Per1F is repeated).
  */
-static uint8_t cmd_data[8] = {0x01, 0x80, 0x33, 0x01, 0x00, 0x00, 0x00, 0x00};
-static uint8_t cmd_init[8] = {0x01, 0x82, 0x77, 0x01, 0x00, 0x00, 0x00, 0x00};
+static uint8_t cmd_data[8] = { 0x01, 0x80, 0x33, 0x01, 0x00, 0x00, 0x00, 0x00 };
+static uint8_t cmd_init[8] = { 0x01, 0x82, 0x77, 0x01, 0x00, 0x00, 0x00, 0x00 };
 
 #if 0
 static uint8_t cmd_type[8] = {0x01, 0x86, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00};
@@ -102,12 +102,12 @@ struct ugold_softc {
 	struct mtx sc_mtx;
 	struct ugold_readout_msg sc_readout_msg[2];
 
-	int	sc_num_sensors;
-	int	sc_sensor[UGOLD_MAX_SENSORS];
-  	int	sc_calib[UGOLD_MAX_SENSORS];
-	int	sc_valid[UGOLD_MAX_SENSORS];
-	uint8_t	sc_report_id;
-	uint8_t	sc_iface_index[2];
+	int sc_num_sensors;
+	int sc_sensor[UGOLD_MAX_SENSORS];
+	int sc_calib[UGOLD_MAX_SENSORS];
+	int sc_valid[UGOLD_MAX_SENSORS];
+	uint8_t sc_report_id;
+	uint8_t sc_iface_index[2];
 };
 
 /* prototypes */
@@ -120,13 +120,11 @@ static usb_proc_callback_t ugold_readout_msg;
 
 static usb_callback_t ugold_intr_callback;
 
-static device_method_t ugold_methods[] = {
-	DEVMETHOD(device_probe, ugold_probe),
+static device_method_t ugold_methods[] = { DEVMETHOD(device_probe, ugold_probe),
 	DEVMETHOD(device_attach, ugold_attach),
 	DEVMETHOD(device_detach, ugold_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t ugold_driver = {
 	.name = "ugold",
@@ -135,7 +133,7 @@ static driver_t ugold_driver = {
 };
 
 static const STRUCT_USB_HOST_ID ugold_devs[] = {
-	{USB_VPI(USB_VENDOR_CHICONY2, USB_PRODUCT_CHICONY2_TEMPER, 0)},
+	{ USB_VPI(USB_VENDOR_CHICONY2, USB_PRODUCT_CHICONY2_TEMPER, 0) },
 };
 
 DRIVER_MODULE(ugold, uhub, ugold_driver, NULL, NULL);
@@ -162,8 +160,8 @@ ugold_timeout(void *arg)
 	struct ugold_softc *sc = arg;
 
 	usb_proc_explore_lock(sc->sc_udev);
-	(void)usb_proc_explore_msignal(sc->sc_udev,
-	    &sc->sc_readout_msg[0], &sc->sc_readout_msg[1]);
+	(void)usb_proc_explore_msignal(sc->sc_udev, &sc->sc_readout_msg[0],
+	    &sc->sc_readout_msg[1]);
 	usb_proc_explore_unlock(sc->sc_udev);
 
 	callout_reset(&sc->sc_callout, 6 * hz, &ugold_timeout, sc);
@@ -219,8 +217,8 @@ ugold_attach(device_t dev)
 	}
 
 	/* figure out report ID */
-	error = usbd_req_get_hid_desc(uaa->device, NULL,
-	    &d_ptr, &d_len, M_TEMP, uaa->info.bIfaceIndex);
+	error = usbd_req_get_hid_desc(uaa->device, NULL, &d_ptr, &d_len, M_TEMP,
+	    uaa->info.bIfaceIndex);
 
 	if (error)
 		goto detach;
@@ -229,9 +227,8 @@ ugold_attach(device_t dev)
 
 	free(d_ptr, M_TEMP);
 
-	error = usbd_transfer_setup(uaa->device,
-	    sc->sc_iface_index, sc->sc_xfer, ugold_config,
-	    UGOLD_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, sc->sc_iface_index,
+	    sc->sc_xfer, ugold_config, UGOLD_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error)
 		goto detach;
 
@@ -243,33 +240,27 @@ ugold_attach(device_t dev)
 		error = ENOMEM;
 		goto detach;
 	}
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
 	    OID_AUTO, "inner", CTLFLAG_RD, &sc->sc_sensor[UGOLD_INNER], 0,
 	    "Inner temperature in microCelsius");
 
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
 	    OID_AUTO, "inner_valid", CTLFLAG_RD, &sc->sc_valid[UGOLD_INNER], 0,
 	    "Inner temperature is valid");
 
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
-	    OID_AUTO, "inner_calib", CTLFLAG_RWTUN, &sc->sc_calib[UGOLD_INNER], 0,
-	    "Inner calibration temperature in microCelsius");
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
+	    OID_AUTO, "inner_calib", CTLFLAG_RWTUN, &sc->sc_calib[UGOLD_INNER],
+	    0, "Inner calibration temperature in microCelsius");
 
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
 	    OID_AUTO, "outer", CTLFLAG_RD, &sc->sc_sensor[UGOLD_OUTER], 0,
 	    "Outer temperature in microCelsius");
 
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
-	    OID_AUTO, "outer_calib", CTLFLAG_RWTUN, &sc->sc_calib[UGOLD_OUTER], 0,
-	    "Outer calibration temperature in microCelsius");
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
+	    OID_AUTO, "outer_calib", CTLFLAG_RWTUN, &sc->sc_calib[UGOLD_OUTER],
+	    0, "Outer calibration temperature in microCelsius");
 
-	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev),
-	    SYSCTL_CHILDREN(sensor_tree),
+	SYSCTL_ADD_INT(device_get_sysctl_ctx(dev), SYSCTL_CHILDREN(sensor_tree),
 	    OID_AUTO, "outer_valid", CTLFLAG_RD, &sc->sc_valid[UGOLD_OUTER], 0,
 	    "Outer temperature is valid");
 
@@ -294,8 +285,8 @@ ugold_detach(device_t dev)
 	callout_drain(&sc->sc_callout);
 
 	usb_proc_explore_lock(sc->sc_udev);
-	usb_proc_explore_mwait(sc->sc_udev,
-	    &sc->sc_readout_msg[0], &sc->sc_readout_msg[1]);
+	usb_proc_explore_mwait(sc->sc_udev, &sc->sc_readout_msg[0],
+	    &sc->sc_readout_msg[1]);
 	usb_proc_explore_unlock(sc->sc_udev);
 
 	usbd_transfer_unsetup(sc->sc_xfer, UGOLD_N_TRANSFER);
@@ -337,25 +328,30 @@ ugold_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			if (sc->sc_num_sensors)
 				break;
 
-			sc->sc_num_sensors = MIN(buf[1], UGOLD_MAX_SENSORS) /* XXX */ ;
+			sc->sc_num_sensors = MIN(buf[1],
+			    UGOLD_MAX_SENSORS) /* XXX */;
 
 			DPRINTF("%d sensor%s type ds75/12bit (temperature)\n",
-			    sc->sc_num_sensors, (sc->sc_num_sensors == 1) ? "" : "s");
+			    sc->sc_num_sensors,
+			    (sc->sc_num_sensors == 1) ? "" : "s");
 			break;
 		case UGOLD_CMD_DATA:
 			switch (buf[1]) {
 			case 4:
 				temp = ugold_ds75_temp(buf[4], buf[5]);
-				sc->sc_sensor[UGOLD_OUTER] = temp + sc->sc_calib[UGOLD_OUTER];
+				sc->sc_sensor[UGOLD_OUTER] = temp +
+				    sc->sc_calib[UGOLD_OUTER];
 				sc->sc_valid[UGOLD_OUTER] = 1;
 				/* FALLTHROUGH */
 			case 2:
 				temp = ugold_ds75_temp(buf[2], buf[3]);
-				sc->sc_sensor[UGOLD_INNER] = temp + sc->sc_calib[UGOLD_INNER];
+				sc->sc_sensor[UGOLD_INNER] = temp +
+				    sc->sc_calib[UGOLD_INNER];
 				sc->sc_valid[UGOLD_INNER] = 1;
 				break;
 			default:
-				DPRINTF("invalid data length (%d bytes)\n", buf[1]);
+				DPRINTF("invalid data length (%d bytes)\n",
+				    buf[1]);
 			}
 			break;
 		default:
@@ -364,11 +360,11 @@ ugold_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			/* try clear stall first */
 			usbd_xfer_set_stall(xfer);

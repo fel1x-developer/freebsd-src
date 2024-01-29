@@ -35,7 +35,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
-#include <wctype.h>
+
 #include <db.h>
 #include <err.h>
 #include <netdb.h>
@@ -46,6 +46,8 @@
 #include <unistd.h>
 #include <utmpx.h>
 #include <wchar.h>
+#include <wctype.h>
+
 #include "finger.h"
 
 static void cleanup(int sig);
@@ -111,7 +113,7 @@ do_protocol(const char *name, const struct addrinfo *ai)
 	s = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 	if (s < 0) {
 		warn("socket(%d, %d, %d)", ai->ai_family, ai->ai_socktype,
-		     ai->ai_protocol);
+		    ai->ai_protocol);
 		return -1;
 	}
 
@@ -165,11 +167,11 @@ do_protocol(const char *name, const struct addrinfo *ai)
 		while ((c = getwc(fp)) != EOF) {
 			if (++cnt > OUTPUT_MAX) {
 				printf("\n\n Output truncated at %d bytes...\n",
-					cnt - 1);
+				    cnt - 1);
 				break;
 			}
 			if (c == 0x0d) {
-				if (lastc == '\r')	/* ^M^M - skip dupes */
+				if (lastc == '\r') /* ^M^M - skip dupes */
 					continue;
 				c = '\n';
 				lastc = '\r';
@@ -213,9 +215,9 @@ trying(const struct addrinfo *ai)
 {
 	char buf[NI_MAXHOST];
 
-	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, buf, sizeof buf,
-			(char *)0, 0, NI_NUMERICHOST) != 0)
-		return;		/* XXX can't happen */
+	if (getnameinfo(ai->ai_addr, ai->ai_addrlen, buf, sizeof buf, (char *)0,
+		0, NI_NUMERICHOST) != 0)
+		return; /* XXX can't happen */
 
 	printf("Trying %s...\n", buf);
 }
@@ -223,8 +225,7 @@ trying(const struct addrinfo *ai)
 static void
 cleanup(int sig __unused)
 {
-#define	ERRSTR	"Timed out.\n"
+#define ERRSTR "Timed out.\n"
 	write(STDERR_FILENO, ERRSTR, sizeof ERRSTR);
 	exit(1);
 }
-

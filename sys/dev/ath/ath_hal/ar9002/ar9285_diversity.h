@@ -25,9 +25,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR9285_DIVERSITY_H__
-#define	__AR9285_DIVERSITY_H__
+#ifndef __AR9285_DIVERSITY_H__
+#define __AR9285_DIVERSITY_H__
 
-extern	HAL_BOOL ar9285SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
+extern HAL_BOOL ar9285SetAntennaSwitch(struct ath_hal *, HAL_ANT_SETTING);
 
 #endif

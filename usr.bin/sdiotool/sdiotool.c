@@ -39,71 +39,80 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/ioctl.h>
-#include <sys/stdint.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/endian.h>
-#include <sys/sbuf.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/stdint.h>
 
+#include <cam/cam.h>
+#include <cam/cam_ccb.h>
+#include <cam/cam_debug.h>
+#include <cam/mmc/mmc_all.h>
+#include <camlib.h>
+#include <ctype.h>
+#include <err.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <libutil.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <inttypes.h>
-#include <limits.h>
-#include <fcntl.h>
-#include <ctype.h>
-#include <err.h>
-#include <libutil.h>
-#include <unistd.h>
 
-#include <cam/cam.h>
-#include <cam/cam_debug.h>
-#include <cam/cam_ccb.h>
-#include <cam/mmc/mmc_all.h>
-#include <camlib.h>
-
+#include "brcmfmac_bus.h"
+#include "brcmfmac_sdio.h"
+#include "cam_sdio.h"
 #include "linux_compat.h"
 #include "linux_sdio_compat.h"
-#include "cam_sdio.h"
-#include "brcmfmac_sdio.h"
-#include "brcmfmac_bus.h"
 
 static void probe_bcrm(struct cam_device *dev);
 
 /*
  * How Linux driver works
  *
- * The probing begins by calling brcmf_ops_sdio_probe() which is defined as probe function in struct sdio_driver. http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/bcmsdh.c#L1126
+ * The probing begins by calling brcmf_ops_sdio_probe() which is defined as
+ probe function in struct sdio_driver.
+ http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/bcmsdh.c#L1126
  *
- * The driver does black magic by copying func struct for F2 and setting func number to zero there, to create an F0 func structure :)
+ * The driver does black magic by copying func struct for F2 and setting func
+ number to zero there, to create an F0 func structure :)
  * Driver state changes to BRCMF_SDIOD_DOWN.
- * ops_sdio_probe() then calls brcmf_sdio_probe() -- at this point it has filled in sdiodev struct with the pointers to all three functions (F0, F1, F2).
+ * ops_sdio_probe() then calls brcmf_sdio_probe() -- at this point it has filled
+ in sdiodev struct with the pointers to all three functions (F0, F1, F2).
  *
- * brcmf_sdiod_probe() sets block sizes for F1 and F2. It sets F1 block size to 64 and F2 to 512, not consulting the values stored in SDIO CCCR  / FBR registers!
+ * brcmf_sdiod_probe() sets block sizes for F1 and F2. It sets F1 block size to
+ 64 and F2 to 512, not consulting the values stored in SDIO CCCR  / FBR
+ registers!
  * Then it increases timeout for F2 (what is this?!)
  * Then it enables F1
  * Then it attaches "freezer" (without PM this is NOP)
- * Finally it calls brcmf_sdio_probe() http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c#L4082
+ * Finally it calls brcmf_sdio_probe()
+ http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c#L4082
  *
  * Here high-level workqueues and sg tables are allocated.
  * It then calls brcmf_sdio_probe_attach()
  *
- * Here at the beginning there is a pr_debug() call with brcmf_sdiod_regrl() inside to addr #define SI_ENUM_BASE            0x18000000.
+ * Here at the beginning there is a pr_debug() call with brcmf_sdiod_regrl()
+ inside to addr #define SI_ENUM_BASE            0x18000000.
  * Return value is 0x16044330.
- * Then turns off PLL:  byte-write BRCMF_INIT_CLKCTL1 (0x28) ->  SBSDIO_FUNC1_CHIPCLKCSR (0x1000E)
+ * Then turns off PLL:  byte-write BRCMF_INIT_CLKCTL1 (0x28) ->
+ SBSDIO_FUNC1_CHIPCLKCSR (0x1000E)
  * Then it reads value back, should be 0xe8.
  * Then calls brcmf_chip_attach()
  *
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/chip.c#L1054
  * This func enumerates and resets all the cores on the dongle.
  *  - brcmf_sdio_buscoreprep(): force clock to ALPAvail req only:
- *    SBSDIO_FORCE_HW_CLKREQ_OFF | SBSDIO_ALP_AVAIL_REQ -> SBSDIO_FUNC1_CHIPCLKCSR
+ *    SBSDIO_FORCE_HW_CLKREQ_OFF | SBSDIO_ALP_AVAIL_REQ ->
+ SBSDIO_FUNC1_CHIPCLKCSR
  * Wait up to 15ms to !SBSDIO_ALPAV(clkval) of the value from CLKCSR.
  * Force ALP:
- *    SBSDIO_FORCE_HW_CLKREQ_OFF | SBSDIO_FORCE_ALP (0x21)-> SBSDIO_FUNC1_CHIPCLKCSR
+ *    SBSDIO_FORCE_HW_CLKREQ_OFF | SBSDIO_FORCE_ALP (0x21)->
+ SBSDIO_FUNC1_CHIPCLKCSR
  * Disaable SDIO pullups:
  * byte 0 -> SBSDIO_FUNC1_SDIOPULLUP (0x0001000f)
  *
@@ -119,13 +128,15 @@ static void probe_bcrm(struct cam_device *dev);
  * brcmf_chip_get_raminfo: RAM: base=0x0 size=294912 (0x48000) sr=0 (0x0)
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/chip.c#L700
  *
- * Then brcmf_chip_setup() is called, this prints and fills in chipcommon rev and PMU caps:
+ * Then brcmf_chip_setup() is called, this prints and fills in chipcommon rev
+ and PMU caps:
  *   brcmf_chip_setup: ccrev=39, pmurev=12, pmucaps=0x19583c0c
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/chip.c#L1015
  *  Bus-specific setup code is NOP for SDIO.
  *
  * brcmf_sdio_kso_init() is called.
- * Here it first reads 0x1 from SBSDIO_FUNC1_SLEEPCSR 0x18000650 and then writes it back... WTF?
+ * Here it first reads 0x1 from SBSDIO_FUNC1_SLEEPCSR 0x18000650 and then writes
+ it back... WTF?
  *
  * brcmf_sdio_drivestrengthinit() is called
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c#L3630
@@ -134,7 +145,9 @@ static void probe_bcrm(struct cam_device *dev);
  * set PMUControl so a backplane reset does PMU state reload
  * === end of brcmf_sdio_probe_attach ===
 
- **** Finished reading at http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c#L4152, line 2025 in the dump
+ **** Finished reading at
+ http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/sdio.c#L4152,
+ line 2025 in the dump
 
  * === How register reading works ===
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/bcmsdh.c#L357
@@ -142,12 +155,15 @@ static void probe_bcrm(struct cam_device *dev);
  *  - SBSDIO_FUNC1_SBADDRLOW  0x1000A
  *  - SBSDIO_FUNC1_SBADDRMID  0x1000B
  *  - SBSDIO_FUNC1_SBADDRHIGH 0x1000C
- * If this is 32-bit read , a flag is set. The address is ANDed with SBSDIO_SB_OFT_ADDR_MASK which is 0x07FFF.
+ * If this is 32-bit read , a flag is set. The address is ANDed with
+ SBSDIO_SB_OFT_ADDR_MASK which is 0x07FFF.
  * Then brcmf_sdiod_regrw_helper() is called to read the reply.
  * http://lxr.free-electrons.com/source/drivers/net/wireless/broadcom/brcm80211/brcmfmac/bcmsdh.c#L306
- * Based on the address it figures out where to read it from (CCCR / FBR in F0, or somewhere in F1).
+ * Based on the address it figures out where to read it from (CCCR / FBR in F0,
+ or somewhere in F1).
  * Reads are retried three times.
- * 1-byte IO is done with CMD52, more is read with CMD53 with address increment (not FIFO mode).
+ * 1-byte IO is done with CMD52, more is read with CMD53 with address increment
+ (not FIFO mode).
  * http://lxr.free-electrons.com/source/drivers/mmc/core/sdio_io.c#L458
  * ==================================
  *
@@ -155,15 +171,15 @@ static void probe_bcrm(struct cam_device *dev);
  */
 
 /* BRCM-specific functions */
-#define SDIOH_API_ACCESS_RETRY_LIMIT	2
-#define SI_ENUM_BASE            0x18000000
-#define REPLY_MAGIC             0x16044330
+#define SDIOH_API_ACCESS_RETRY_LIMIT 2
+#define SI_ENUM_BASE 0x18000000
+#define REPLY_MAGIC 0x16044330
 #define brcmf_err(fmt, ...) brcmf_dbg(0, fmt, ##__VA_ARGS__)
 #define brcmf_dbg(level, fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 struct brcmf_sdio_dev {
 	struct cam_device *cam_dev;
-	u32 sbwad;			/* Save backplane window address */
+	u32 sbwad; /* Save backplane window address */
 	struct brcmf_bus *bus_if;
 	enum brcmf_sdiod_state state;
 	struct sdio_func *func[8];
@@ -171,17 +187,20 @@ struct brcmf_sdio_dev {
 
 void brcmf_bus_change_state(struct brcmf_bus *bus, enum brcmf_bus_state state);
 void brcmf_sdiod_change_state(struct brcmf_sdio_dev *sdiodev,
-			      enum brcmf_sdiod_state state);
-static int brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn, u32 addr,
-				    u8 regsz, void *data, bool write);
-static int brcmf_sdiod_set_sbaddr_window(struct brcmf_sdio_dev *sdiodev, u32 address);
-static int brcmf_sdiod_addrprep(struct brcmf_sdio_dev *sdiodev, uint width, u32 *addr);
+    enum brcmf_sdiod_state state);
+static int brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn,
+    u32 addr, u8 regsz, void *data, bool write);
+static int brcmf_sdiod_set_sbaddr_window(struct brcmf_sdio_dev *sdiodev,
+    u32 address);
+static int brcmf_sdiod_addrprep(struct brcmf_sdio_dev *sdiodev, uint width,
+    u32 *addr);
 u32 brcmf_sdiod_regrl(struct brcmf_sdio_dev *sdiodev, u32 addr, int *ret);
 
 static void bailout(int ret);
 
 static void
-bailout(int ret) {
+bailout(int ret)
+{
 	if (ret == 0)
 		return;
 	errx(1, "Operation returned error %d", ret);
@@ -193,14 +212,14 @@ brcmf_bus_change_state(struct brcmf_bus *bus, enum brcmf_bus_state state)
 	bus->state = state;
 }
 
-void brcmf_sdiod_change_state(struct brcmf_sdio_dev *sdiodev,
-			      enum brcmf_sdiod_state state)
+void
+brcmf_sdiod_change_state(struct brcmf_sdio_dev *sdiodev,
+    enum brcmf_sdiod_state state)
 {
-	if (sdiodev->state == BRCMF_SDIOD_NOMEDIUM ||
-	    state == sdiodev->state)
+	if (sdiodev->state == BRCMF_SDIOD_NOMEDIUM || state == sdiodev->state)
 		return;
 
-	//brcmf_dbg(TRACE, "%d -> %d\n", sdiodev->state, state);
+	// brcmf_dbg(TRACE, "%d -> %d\n", sdiodev->state, state);
 	switch (sdiodev->state) {
 	case BRCMF_SDIOD_DATA:
 		/* any other state means bus interface is down */
@@ -217,8 +236,9 @@ void brcmf_sdiod_change_state(struct brcmf_sdio_dev *sdiodev,
 	sdiodev->state = state;
 }
 
-static inline int brcmf_sdiod_f0_writeb(struct sdio_func *func,
-					uint regaddr, u8 byte) {
+static inline int
+brcmf_sdiod_f0_writeb(struct sdio_func *func, uint regaddr, u8 byte)
+{
 	int err_ret;
 
 	/*
@@ -226,8 +246,7 @@ static inline int brcmf_sdiod_f0_writeb(struct sdio_func *func,
 	 * Handle CCCR_IENx and CCCR_ABORT command
 	 * as a special case.
 	 */
-	if ((regaddr == SDIO_CCCR_ABORT) ||
-	    (regaddr == SDIO_CCCR_IENx))
+	if ((regaddr == SDIO_CCCR_ABORT) || (regaddr == SDIO_CCCR_IENx))
 		sdio_writeb(func, byte, regaddr, &err_ret);
 	else
 		sdio_f0_writeb(func, byte, regaddr, &err_ret);
@@ -235,13 +254,15 @@ static inline int brcmf_sdiod_f0_writeb(struct sdio_func *func,
 	return err_ret;
 }
 
-static int brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn, u32 addr, u8 regsz, void *data, bool write)
+static int
+brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn, u32 addr,
+    u8 regsz, void *data, bool write)
 {
 	struct sdio_func *func;
 	int ret = -EINVAL;
 
-	brcmf_dbg(SDIO, "rw=%d, func=%d, addr=0x%05x, nbytes=%d\n",
-		  write, fn, addr, regsz);
+	brcmf_dbg(SDIO, "rw=%d, func=%d, addr=0x%05x, nbytes=%d\n", write, fn,
+	    addr, regsz);
 
 	/* only allow byte access on F0 */
 	if (WARN_ON(regsz > 1 && !fn))
@@ -255,7 +276,7 @@ static int brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn, u32 a
 				sdio_writeb(func, *(u8 *)data, addr, &ret);
 			else
 				ret = brcmf_sdiod_f0_writeb(func, addr,
-							    *(u8 *)data);
+				    *(u8 *)data);
 		} else {
 			if (fn)
 				*(u8 *)data = sdio_readb(func, addr, &ret);
@@ -282,7 +303,7 @@ static int brcmf_sdiod_request_data(struct brcmf_sdio_dev *sdiodev, u8 fn, u32 a
 
 	if (ret)
 		brcmf_dbg(SDIO, "failed to %s data F%d@0x%05x, err: %d\n",
-			  write ? "write" : "read", fn, addr, ret);
+		    write ? "write" : "read", fn, addr, ret);
 
 	return ret;
 }
@@ -309,7 +330,10 @@ brcmf_sdiod_addrprep(struct brcmf_sdio_dev *sdiodev, uint width, u32 *addr)
 	return 0;
 }
 
-static int brcmf_sdiod_regrw_helper(struct brcmf_sdio_dev *sdiodev, u32 addr, u8 regsz, void *data, bool write) {
+static int
+brcmf_sdiod_regrw_helper(struct brcmf_sdio_dev *sdiodev, u32 addr, u8 regsz,
+    void *data, bool write)
+{
 	u8 func;
 	s32 retry = 0;
 	int ret;
@@ -334,10 +358,10 @@ static int brcmf_sdiod_regrw_helper(struct brcmf_sdio_dev *sdiodev, u32 addr, u8
 		/* for retry wait for 1 ms till bus get settled down */
 		if (retry)
 			usleep_range(1000, 2000);
-		ret = brcmf_sdiod_request_data(sdiodev, func, addr, regsz,
-					       data, write);
+		ret = brcmf_sdiod_request_data(sdiodev, func, addr, regsz, data,
+		    write);
 	} while (ret != 0 && ret != -ENOMEDIUM &&
-		 retry++ < SDIOH_API_ACCESS_RETRY_LIMIT);
+	    retry++ < SDIOH_API_ACCESS_RETRY_LIMIT);
 
 	if (ret == -ENOMEDIUM)
 		brcmf_sdiod_change_state(sdiodev, BRCMF_SDIOD_NOMEDIUM);
@@ -349,10 +373,11 @@ static int brcmf_sdiod_regrw_helper(struct brcmf_sdio_dev *sdiodev, u32 addr, u8
 		 */
 		if (addr != SBSDIO_FUNC1_SLEEPCSR)
 			brcmf_err("failed to %s data F%d@0x%05x, err: %d\n",
-				  write ? "write" : "read", func, addr, ret);
+			    write ? "write" : "read", func, addr, ret);
 		else
-			brcmf_dbg(SDIO, "failed to %s data F%d@0x%05x, err: %d\n",
-				  write ? "write" : "read", func, addr, ret);
+			brcmf_dbg(SDIO,
+			    "failed to %s data F%d@0x%05x, err: %d\n",
+			    write ? "write" : "read", func, addr, ret);
 	}
 	return ret;
 }
@@ -372,11 +397,10 @@ brcmf_sdiod_set_sbaddr_window(struct brcmf_sdio_dev *sdiodev, u32 address)
 
 	for (i = 0; i < 3; i++) {
 		err = brcmf_sdiod_regrw_helper(sdiodev,
-					       SBSDIO_FUNC1_SBADDRLOW + i,
-					       sizeof(u8), &addr[i], true);
+		    SBSDIO_FUNC1_SBADDRLOW + i, sizeof(u8), &addr[i], true);
 		if (err) {
 			brcmf_err("failed at addr: 0x%0x\n",
-				  SBSDIO_FUNC1_SBADDRLOW + i);
+			    SBSDIO_FUNC1_SBADDRLOW + i);
 			break;
 		}
 	}
@@ -384,7 +408,8 @@ brcmf_sdiod_set_sbaddr_window(struct brcmf_sdio_dev *sdiodev, u32 address)
 	return err;
 }
 
-u32 brcmf_sdiod_regrl(struct brcmf_sdio_dev *sdiodev, u32 addr, int *ret)
+u32
+brcmf_sdiod_regrl(struct brcmf_sdio_dev *sdiodev, u32 addr, int *ret)
 {
 	u32 data = 0;
 	int retval;
@@ -394,7 +419,7 @@ u32 brcmf_sdiod_regrl(struct brcmf_sdio_dev *sdiodev, u32 addr, int *ret)
 	if (retval)
 		goto done;
 	retval = brcmf_sdiod_regrw_helper(sdiodev, addr, sizeof(data), &data,
-					  false);
+	    false);
 	brcmf_dbg(SDIO, "data:0x%08x\n", data);
 
 done:
@@ -405,9 +430,9 @@ done:
 }
 
 /********************************************************/
-__unused
-static void
-probe_bcrm(struct cam_device *dev) {
+__unused static void
+probe_bcrm(struct cam_device *dev)
+{
 	uint32_t cis_addr;
 	struct cis_info info;
 
@@ -420,9 +445,11 @@ probe_bcrm(struct cam_device *dev) {
 	printf("Vendor 0x%04X product 0x%04X\n", info.man_id, info.prod_id);
 }
 
-__unused static uint8_t*
-mmap_fw() {
-	const char fw_path[] = "/home/kibab/repos/fbsd-bbb/brcm-firmware/brcmfmac4330-sdio.bin";
+__unused static uint8_t *
+mmap_fw()
+{
+	const char fw_path[] =
+	    "/home/kibab/repos/fbsd-bbb/brcm-firmware/brcmfmac4330-sdio.bin";
 	struct stat sb;
 	uint8_t *fw_ptr;
 
@@ -439,7 +466,8 @@ mmap_fw() {
 }
 
 static void
-usage() {
+usage()
+{
 	printf("sdiotool -u <pass_dev_unit>\n");
 	exit(0);
 }
@@ -455,7 +483,8 @@ struct card_info {
  * of checking for man_id = 0x00 for detecting number of functions
  */
 static void
-get_sdio_card_info(struct cam_device *dev, struct card_info *ci) {
+get_sdio_card_info(struct cam_device *dev, struct card_info *ci)
+{
 	uint32_t cis_addr;
 	uint32_t fbr_addr;
 	int ret;
@@ -465,15 +494,18 @@ get_sdio_card_info(struct cam_device *dev, struct card_info *ci) {
 	memset(ci, 0, sizeof(struct card_info));
 	sdio_func_read_cis(dev, 0, cis_addr, &ci->f[0]);
 	printf("F0: Vendor 0x%04X product 0x%04X max block size %d bytes\n",
-	       ci->f[0].man_id, ci->f[0].prod_id, ci->f[0].max_block_size);
+	    ci->f[0].man_id, ci->f[0].prod_id, ci->f[0].max_block_size);
 	for (int i = 1; i <= 7; i++) {
 		fbr_addr = SD_IO_FBR_START * i + 0x9;
-		cis_addr =  sdio_read_1(dev, 0, fbr_addr++, &ret);bailout(ret);
+		cis_addr = sdio_read_1(dev, 0, fbr_addr++, &ret);
+		bailout(ret);
 		cis_addr |= sdio_read_1(dev, 0, fbr_addr++, &ret) << 8;
 		cis_addr |= sdio_read_1(dev, 0, fbr_addr++, &ret) << 16;
 		sdio_func_read_cis(dev, i, cis_addr, &ci->f[i]);
-		printf("F%d: Vendor 0x%04X product 0x%04X max block size %d bytes\n",
-		       i, ci->f[i].man_id, ci->f[i].prod_id, ci->f[i].max_block_size);
+		printf(
+		    "F%d: Vendor 0x%04X product 0x%04X max block size %d bytes\n",
+		    i, ci->f[i].man_id, ci->f[i].prod_id,
+		    ci->f[i].max_block_size);
 		if (ci->f[i].man_id == 0) {
 			printf("F%d doesn't exist\n", i);
 			break;
@@ -483,7 +515,8 @@ get_sdio_card_info(struct cam_device *dev, struct card_info *ci) {
 }
 
 int
-main(int argc, char **argv) {
+main(int argc, char **argv)
+{
 	char device[] = "pass";
 	int unit = 0;
 	int func = 0;
@@ -493,15 +526,15 @@ main(int argc, char **argv) {
 	int ret;
 	struct card_info ci;
 
-	//fw_ptr = mmap_fw();
+	// fw_ptr = mmap_fw();
 
 	while ((ch = getopt(argc, argv, "fu:")) != -1) {
 		switch (ch) {
 		case 'u':
-			unit = (int) strtol(optarg, NULL, 10);
+			unit = (int)strtol(optarg, NULL, 10);
 			break;
 		case 'f':
-			func = (int) strtol(optarg, NULL, 10);
+			func = (int)strtol(optarg, NULL, 10);
 			break;
 		case '?':
 		default:
@@ -511,7 +544,8 @@ main(int argc, char **argv) {
 	argc -= optind;
 	argv += optind;
 
-	if ((cam_dev = cam_open_spec_device(device, unit, O_RDWR, NULL)) == NULL)
+	if ((cam_dev = cam_open_spec_device(device, unit, O_RDWR, NULL)) ==
+	    NULL)
 		errx(1, "Cannot open device");
 
 	get_sdio_card_info(cam_dev, &ci);
@@ -535,18 +569,19 @@ main(int argc, char **argv) {
 	brcmf_dev.func[1] = &f1;
 	brcmf_dev.func[2] = &f2;
 
-	brcmf_dev.func[0]->dev = brcmf_dev.func[1]->dev
-		= brcmf_dev.func[2]->dev = cam_dev;
+	brcmf_dev.func[0]->dev = brcmf_dev.func[1]->dev =
+	    brcmf_dev.func[2]->dev = cam_dev;
 	brcmf_dev.func[0]->num = 0;
 	brcmf_dev.func[1]->num = 1;
 	brcmf_dev.func[2]->num = 2;
 
-	ret = sdio_func_enable(cam_dev, 1, 1);bailout(ret);
+	ret = sdio_func_enable(cam_dev, 1, 1);
+	bailout(ret);
 	uint32_t magic = brcmf_sdiod_regrl(&brcmf_dev, 0x18000000, &ret);
 	printf("Magic = %08x\n", magic);
 	if (magic != REPLY_MAGIC) {
 		errx(1, "Reply magic is incorrect: expected %08x, got %08x",
-		     REPLY_MAGIC, magic);
+		    REPLY_MAGIC, magic);
 	}
 	cam_close_spec_device(cam_dev);
 }

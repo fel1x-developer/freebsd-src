@@ -35,6 +35,7 @@
  */
 
 #include <sys/types.h>
+
 #include <libutil.h>
 #include <stdio.h>
 
@@ -57,7 +58,7 @@ hexdump(const void *ptr, int length, const char *hdr, int flags)
 		cols = 16;
 
 	cp = ptr;
-	for (i = 0; i < length; i+= cols) {
+	for (i = 0; i < length; i += cols) {
 		if (hdr != NULL)
 			printf("%s", hdr);
 
@@ -90,4 +91,3 @@ hexdump(const void *ptr, int length, const char *hdr, int flags)
 		printf("\n");
 	}
 }
-

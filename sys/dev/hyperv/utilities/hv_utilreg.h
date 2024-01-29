@@ -30,28 +30,28 @@
 /*
  * Some Hyper-V status codes.
  */
-#define HV_S_OK				0x00000000
-#define HV_E_FAIL			0x80004005
-#define HV_S_CONT			0x80070103
-#define HV_ERROR_NOT_SUPPORTED		0x80070032
-#define HV_ERROR_MACHINE_LOCKED		0x800704F7
-#define HV_ERROR_DEVICE_NOT_CONNECTED	0x8007048F
-#define HV_INVALIDARG			0x80070057
-#define HV_GUID_NOTFOUND		0x80041002
+#define HV_S_OK 0x00000000
+#define HV_E_FAIL 0x80004005
+#define HV_S_CONT 0x80070103
+#define HV_ERROR_NOT_SUPPORTED 0x80070032
+#define HV_ERROR_MACHINE_LOCKED 0x800704F7
+#define HV_ERROR_DEVICE_NOT_CONNECTED 0x8007048F
+#define HV_INVALIDARG 0x80070057
+#define HV_GUID_NOTFOUND 0x80041002
 
 /*
  * Common defines for Hyper-V ICs
  */
-#define HV_ICMSGTYPE_NEGOTIATE		0
-#define HV_ICMSGTYPE_HEARTBEAT		1
-#define HV_ICMSGTYPE_KVPEXCHANGE	2
-#define HV_ICMSGTYPE_SHUTDOWN		3
-#define HV_ICMSGTYPE_TIMESYNC		4
-#define HV_ICMSGTYPE_VSS		5
+#define HV_ICMSGTYPE_NEGOTIATE 0
+#define HV_ICMSGTYPE_HEARTBEAT 1
+#define HV_ICMSGTYPE_KVPEXCHANGE 2
+#define HV_ICMSGTYPE_SHUTDOWN 3
+#define HV_ICMSGTYPE_TIMESYNC 4
+#define HV_ICMSGTYPE_VSS 5
 
-#define HV_ICMSGHDRFLAG_TRANSACTION	1
-#define HV_ICMSGHDRFLAG_REQUEST		2
-#define HV_ICMSGHDRFLAG_RESPONSE	4
+#define HV_ICMSGHDRFLAG_TRANSACTION 1
+#define HV_ICMSGHDRFLAG_REQUEST 2
+#define HV_ICMSGHDRFLAG_RESPONSE 4
 
 typedef struct hv_vmbus_pipe_hdr {
 	uint32_t flags;
@@ -64,21 +64,21 @@ typedef struct hv_vmbus_ic_version {
 } __packed hv_vmbus_ic_version;
 
 typedef struct hv_vmbus_icmsg_hdr {
-	hv_vmbus_ic_version	icverframe;
-	uint16_t		icmsgtype;
-	hv_vmbus_ic_version	icvermsg;
-	uint16_t		icmsgsize;
-	uint32_t		status;
-	uint8_t			ictransaction_id;
-	uint8_t			icflags;
-	uint8_t			reserved[2];
+	hv_vmbus_ic_version icverframe;
+	uint16_t icmsgtype;
+	hv_vmbus_ic_version icvermsg;
+	uint16_t icmsgsize;
+	uint32_t status;
+	uint8_t ictransaction_id;
+	uint8_t icflags;
+	uint8_t reserved[2];
 } __packed hv_vmbus_icmsg_hdr;
 
 typedef struct hv_vmbus_icmsg_negotiate {
-	uint16_t		icframe_vercnt;
-	uint16_t		icmsg_vercnt;
-	uint32_t		reserved;
-	hv_vmbus_ic_version	icversion_data[1]; /* any size array */
+	uint16_t icframe_vercnt;
+	uint16_t icmsg_vercnt;
+	uint32_t reserved;
+	hv_vmbus_ic_version icversion_data[1]; /* any size array */
 } __packed hv_vmbus_icmsg_negotiate;
 
-#endif	/* !_HV_UTILREG_H_ */
+#endif /* !_HV_UTILREG_H_ */

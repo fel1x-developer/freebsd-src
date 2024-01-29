@@ -34,7 +34,7 @@
 
 #include "zalloc_defs.h"
 
-static MemPool	MallocPool;
+static MemPool MallocPool;
 
 #ifdef DMALLOCDEBUG
 static int MallocMax;
@@ -51,7 +51,7 @@ void mallocstats(void);
 static void *Malloc_align(size_t, size_t);
 
 #ifndef MIN
-# define MIN(a,b) ((a) <= (b)) ? (a) : (b)
+#define MIN(a, b) ((a) <= (b)) ? (a) : (b)
 #endif
 
 void *
@@ -117,8 +117,8 @@ Free(void *ptr, const char *file, int line)
 			file = "unknown";
 #ifdef USEGUARD
 		if (res->ga_Magic == GAFREE) {
-			printf("free: duplicate free @ %p from %s:%d\n",
-			    ptr, file, line);
+			printf("free: duplicate free @ %p from %s:%d\n", ptr,
+			    file, line);
 			return;
 		}
 		if (res->ga_Magic != GAMAGIC) {
@@ -126,20 +126,20 @@ Free(void *ptr, const char *file, int line)
 
 			dump_bytes = MIN((ptr - MallocPool.mp_Base), 512);
 			hexdump(ptr - dump_bytes, dump_bytes);
-			panic("free: guard1 fail @ %p from %s:%d",
-			    ptr, file, line);
+			panic("free: guard1 fail @ %p from %s:%d", ptr, file,
+			    line);
 		}
 		res->ga_Magic = GAFREE;
 #endif
 #ifdef USEENDGUARD
 		if (*((signed char *)res + res->ga_Bytes - 1) == -1) {
-			printf("free: duplicate2 free @ %p from %s:%d\n",
-			    ptr, file, line);
+			printf("free: duplicate2 free @ %p from %s:%d\n", ptr,
+			    file, line);
 			return;
 		}
 		if (*((signed char *)res + res->ga_Bytes - 1) != -2)
-			panic("free: guard2 fail @ %p + %zu from %s:%d",
-			    ptr, res->ga_Bytes - MALLOCALIGN, file, line);
+			panic("free: guard2 fail @ %p + %zu from %s:%d", ptr,
+			    res->ga_Bytes - MALLOCALIGN, file, line);
 		*((signed char *)res + res->ga_Bytes - 1) = -1;
 #endif
 
@@ -150,7 +150,6 @@ Free(void *ptr, const char *file, int line)
 #endif
 	}
 }
-
 
 void *
 Calloc(size_t n1, size_t n2, const char *file, int line)

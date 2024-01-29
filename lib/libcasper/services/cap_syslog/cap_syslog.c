@@ -32,18 +32,17 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <libcasper.h>
+#include <libcasper_service.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <libcasper.h>
-#include <libcasper_service.h>
-
 #include "cap_syslog.h"
 
-#define	CAP_SYSLOG_LIMIT	2048
+#define CAP_SYSLOG_LIMIT 2048
 
 void
 cap_syslog(cap_channel_t *chan, int pri, const char *fmt, ...)

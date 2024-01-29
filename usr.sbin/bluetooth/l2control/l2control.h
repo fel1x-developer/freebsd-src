@@ -33,18 +33,17 @@
 #ifndef _L2CONTROL_H_
 #define _L2CONTROL_H_
 
-#define	OK			0	/* everything was OK */
-#define	ERROR			1	/* could not execute command */
-#define	FAILED			2	/* error was reported */
-#define	USAGE			3	/* invalid parameters */
+#define OK 0	 /* everything was OK */
+#define ERROR 1	 /* could not execute command */
+#define FAILED 2 /* error was reported */
+#define USAGE 3	 /* invalid parameters */
 
 struct l2cap_command {
-	char const		*command;
-	char const		*description;
-	int			(*handler)(int, int, char **);
+	char const *command;
+	char const *description;
+	int (*handler)(int, int, char **);
 };
 
-extern struct l2cap_command	 l2cap_commands[];
+extern struct l2cap_command l2cap_commands[];
 
 #endif /* _L2CONTROL_H_ */
-

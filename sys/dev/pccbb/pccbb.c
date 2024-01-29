@@ -73,51 +73,57 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcib_private.h>
-
-#include <dev/pccard/pccardreg.h>
-#include <dev/pccard/pccardvar.h>
-
 #include <dev/exca/excareg.h>
 #include <dev/exca/excavar.h>
-
+#include <dev/pccard/pccardreg.h>
+#include <dev/pccard/pccardvar.h>
 #include <dev/pccbb/pccbbreg.h>
 #include <dev/pccbb/pccbbvar.h>
+#include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "power_if.h"
 #include "card_if.h"
 #include "pcib_if.h"
+#include "power_if.h"
 
-#define	DPRINTF(x) do { if (cbb_debug) printf x; } while (0)
-#define	DEVPRINTF(x) do { if (cbb_debug) device_printf x; } while (0)
+#define DPRINTF(x)                \
+	do {                      \
+		if (cbb_debug)    \
+			printf x; \
+	} while (0)
+#define DEVPRINTF(x)                     \
+	do {                             \
+		if (cbb_debug)           \
+			device_printf x; \
+	} while (0)
 
-#define	PCI_MASK_CONFIG(DEV,REG,MASK,SIZE)				\
+#define PCI_MASK_CONFIG(DEV, REG, MASK, SIZE) \
 	pci_write_config(DEV, REG, pci_read_config(DEV, REG, SIZE) MASK, SIZE)
-#define	PCI_MASK2_CONFIG(DEV,REG,MASK1,MASK2,SIZE)			\
-	pci_write_config(DEV, REG, (					\
-		pci_read_config(DEV, REG, SIZE) MASK1) MASK2, SIZE)
+#define PCI_MASK2_CONFIG(DEV, REG, MASK1, MASK2, SIZE) \
+	pci_write_config(DEV, REG,                     \
+	    (pci_read_config(DEV, REG, SIZE) MASK1)MASK2, SIZE)
 
 #define CBB_CARD_PRESENT(s) ((s & CBB_STATE_CD) == 0)
 
-#define CBB_START_MEM	0x88000000
+#define CBB_START_MEM 0x88000000
 #define CBB_START_32_IO 0x1000
 #define CBB_START_16_IO 0x100
 
@@ -127,55 +133,50 @@ static SYSCTL_NODE(_hw, OID_AUTO, cbb, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 
 /* There's no way to say TUNEABLE_LONG to get the right types */
 u_long cbb_start_mem = CBB_START_MEM;
-SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_memory, CTLFLAG_RWTUN,
-    &cbb_start_mem, CBB_START_MEM,
-    "Starting address for memory allocations");
+SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_memory, CTLFLAG_RWTUN, &cbb_start_mem,
+    CBB_START_MEM, "Starting address for memory allocations");
 
 u_long cbb_start_16_io = CBB_START_16_IO;
-SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_16_io, CTLFLAG_RWTUN,
-    &cbb_start_16_io, CBB_START_16_IO,
-    "Starting ioport for 16-bit cards");
+SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_16_io, CTLFLAG_RWTUN, &cbb_start_16_io,
+    CBB_START_16_IO, "Starting ioport for 16-bit cards");
 
 u_long cbb_start_32_io = CBB_START_32_IO;
-SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_32_io, CTLFLAG_RWTUN,
-    &cbb_start_32_io, CBB_START_32_IO,
-    "Starting ioport for 32-bit cards");
+SYSCTL_ULONG(_hw_cbb, OID_AUTO, start_32_io, CTLFLAG_RWTUN, &cbb_start_32_io,
+    CBB_START_32_IO, "Starting ioport for 32-bit cards");
 
 int cbb_debug = 0;
 SYSCTL_INT(_hw_cbb, OID_AUTO, debug, CTLFLAG_RWTUN, &cbb_debug, 0,
     "Verbose cardbus bridge debugging");
 
-static void	cbb_insert(struct cbb_softc *sc);
-static void	cbb_removal(struct cbb_softc *sc);
-static uint32_t	cbb_detect_voltage(device_t brdev);
-static int	cbb_cardbus_reset_power(device_t brdev, device_t child, int on);
-static int	cbb_cardbus_io_open(device_t brdev, int win, uint32_t start,
-		    uint32_t end);
-static int	cbb_cardbus_mem_open(device_t brdev, int win,
-		    uint32_t start, uint32_t end);
-static void	cbb_cardbus_auto_open(struct cbb_softc *sc, int type);
-static int	cbb_cardbus_activate_resource(device_t brdev, device_t child,
-		    int type, int rid, struct resource *res);
-static int	cbb_cardbus_deactivate_resource(device_t brdev,
-		    device_t child, int type, int rid, struct resource *res);
-static struct resource	*cbb_cardbus_alloc_resource(device_t brdev,
-		    device_t child, int type, int *rid, rman_res_t start,
-		    rman_res_t end, rman_res_t count, u_int flags);
-static int	cbb_cardbus_release_resource(device_t brdev, device_t child,
-		    int type, int rid, struct resource *res);
-static int	cbb_cardbus_power_enable_socket(device_t brdev,
-		    device_t child);
-static int	cbb_cardbus_power_disable_socket(device_t brdev,
-		    device_t child);
-static int	cbb_func_filt(void *arg);
-static void	cbb_func_intr(void *arg);
+static void cbb_insert(struct cbb_softc *sc);
+static void cbb_removal(struct cbb_softc *sc);
+static uint32_t cbb_detect_voltage(device_t brdev);
+static int cbb_cardbus_reset_power(device_t brdev, device_t child, int on);
+static int cbb_cardbus_io_open(device_t brdev, int win, uint32_t start,
+    uint32_t end);
+static int cbb_cardbus_mem_open(device_t brdev, int win, uint32_t start,
+    uint32_t end);
+static void cbb_cardbus_auto_open(struct cbb_softc *sc, int type);
+static int cbb_cardbus_activate_resource(device_t brdev, device_t child,
+    int type, int rid, struct resource *res);
+static int cbb_cardbus_deactivate_resource(device_t brdev, device_t child,
+    int type, int rid, struct resource *res);
+static struct resource *cbb_cardbus_alloc_resource(device_t brdev,
+    device_t child, int type, int *rid, rman_res_t start, rman_res_t end,
+    rman_res_t count, u_int flags);
+static int cbb_cardbus_release_resource(device_t brdev, device_t child,
+    int type, int rid, struct resource *res);
+static int cbb_cardbus_power_enable_socket(device_t brdev, device_t child);
+static int cbb_cardbus_power_disable_socket(device_t brdev, device_t child);
+static int cbb_func_filt(void *arg);
+static void cbb_func_intr(void *arg);
 
 static void
 cbb_remove_res(struct cbb_softc *sc, struct resource *res)
 {
 	struct cbb_reslist *rle;
 
-	SLIST_FOREACH(rle, &sc->rl, link) {
+	SLIST_FOREACH (rle, &sc->rl, link) {
 		if (rle->res == res) {
 			SLIST_REMOVE(&sc->rl, rle, cbb_reslist, link);
 			free(rle, M_DEVBUF);
@@ -189,15 +190,14 @@ cbb_find_res(struct cbb_softc *sc, int type, int rid)
 {
 	struct cbb_reslist *rle;
 
-	SLIST_FOREACH(rle, &sc->rl, link)
+	SLIST_FOREACH (rle, &sc->rl, link)
 		if (SYS_RES_MEMORY == rle->type && rid == rle->rid)
 			return (rle->res);
 	return (NULL);
 }
 
 static void
-cbb_insert_res(struct cbb_softc *sc, struct resource *res, int type,
-    int rid)
+cbb_insert_res(struct cbb_softc *sc, struct resource *res, int type, int rid)
 {
 	struct cbb_reslist *rle;
 
@@ -220,10 +220,11 @@ cbb_destroy_res(struct cbb_softc *sc)
 	struct cbb_reslist *rle;
 
 	while ((rle = SLIST_FIRST(&sc->rl)) != NULL) {
-		device_printf(sc->dev, "Danger Will Robinson: Resource "
+		device_printf(sc->dev,
+		    "Danger Will Robinson: Resource "
 		    "left allocated!  This is a bug... "
-		    "(rid=%x, type=%d, addr=%jx)\n", rle->rid, rle->type,
-		    rman_get_start(rle->res));
+		    "(rid=%x, type=%d, addr=%jx)\n",
+		    rle->rid, rle->type, rman_get_start(rle->res));
 		SLIST_REMOVE_HEAD(&sc->rl, link);
 		free(rle, M_DEVBUF);
 	}
@@ -264,10 +265,10 @@ cbb_enable_func_intr(struct cbb_softc *sc)
 {
 	uint8_t reg;
 
-	reg = (exca_getb(&sc->exca, EXCA_INTR) & ~EXCA_INTR_IRQ_MASK) | 
+	reg = (exca_getb(&sc->exca, EXCA_INTR) & ~EXCA_INTR_IRQ_MASK) |
 	    EXCA_INTR_IRQ_NONE;
 	PCI_MASK_CONFIG(sc->dev, CBBR_BRIDGECTRL,
-	    & ~CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN, 2);
+	    &~CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN, 2);
 	exca_putb(&sc->exca, EXCA_INTR, reg);
 }
 
@@ -349,9 +350,8 @@ cbb_detach(device_t brdev)
 }
 
 int
-cbb_setup_intr(device_t dev, device_t child, struct resource *irq,
-  int flags, driver_filter_t *filt, driver_intr_t *intr, void *arg,
-   void **cookiep)
+cbb_setup_intr(device_t dev, device_t child, struct resource *irq, int flags,
+    driver_filter_t *filt, driver_intr_t *intr, void *arg, void **cookiep)
 {
 	struct cbb_intrhand *ih;
 	struct cbb_softc *sc = device_get_softc(dev);
@@ -391,9 +391,8 @@ cbb_teardown_intr(device_t dev, device_t child, struct resource *irq,
 	int err;
 
 	/* XXX Need to do different things for ISA interrupts. */
-	ih = (struct cbb_intrhand *) cookie;
-	err = BUS_TEARDOWN_INTR(device_get_parent(dev), child, irq,
-	    ih->cookie);
+	ih = (struct cbb_intrhand *)cookie;
+	err = BUS_TEARDOWN_INTR(device_get_parent(dev), child, irq, ih->cookie);
 	if (err != 0)
 		return (err);
 	free(ih, M_DEVBUF);
@@ -465,7 +464,7 @@ cbb_event_thread(void *arg)
 		status = cbb_get(sc, CBB_SOCKET_STATE);
 		DPRINTF(("Status is 0x%x\n", status));
 		if (!CBB_CARD_PRESENT(status)) {
-			not_a_card = 0;		/* We know card type */
+			not_a_card = 0; /* We know card type */
 			cbb_removal(sc);
 		} else if (status & CBB_STATE_NOT_A_CARD) {
 			/*
@@ -478,13 +477,14 @@ cbb_event_thread(void *arg)
 			if (not_a_card++ < 10) {
 				DEVPRINTF((sc->dev,
 				    "Not a card bit set, rescanning\n"));
-				cbb_setb(sc, CBB_SOCKET_FORCE, CBB_FORCE_CV_TEST);
+				cbb_setb(sc, CBB_SOCKET_FORCE,
+				    CBB_FORCE_CV_TEST);
 			} else {
 				device_printf(sc->dev,
 				    "Can't determine card type\n");
 			}
 		} else {
-			not_a_card = 0;		/* We know card type */
+			not_a_card = 0; /* We know card type */
 			cbb_insert(sc);
 		}
 
@@ -512,11 +512,12 @@ cbb_event_thread(void *arg)
 		 * a chance to run.
 		 */
 		mtx_lock(&sc->mtx);
-		cbb_setb(sc, CBB_SOCKET_MASK, CBB_SOCKET_MASK_CD | CBB_SOCKET_MASK_CSTS);
+		cbb_setb(sc, CBB_SOCKET_MASK,
+		    CBB_SOCKET_MASK_CD | CBB_SOCKET_MASK_CSTS);
 		msleep(&sc->intrhand, &sc->mtx, 0, "-", 0);
 		err = 0;
-		while (err != EWOULDBLOCK &&
-		    (sc->flags & CBB_KTHREAD_DONE) == 0)
+		while (
+		    err != EWOULDBLOCK && (sc->flags & CBB_KTHREAD_DONE) == 0)
 			err = msleep(&sc->intrhand, &sc->mtx, 0, "-", hz / 5);
 	}
 	DEVPRINTF((sc->dev, "Thread terminating\n"));
@@ -740,7 +741,7 @@ cbb_power(device_t brdev, int volts)
 	case 0:
 		break;
 	default:
-		return (0);			/* power NEVER changed */
+		return (0); /* power NEVER changed */
 	}
 
 	/* VPP == VCC */
@@ -771,7 +772,7 @@ cbb_power(device_t brdev, int volts)
 	mask &= ~CBB_SOCKET_MASK_CD;
 	cbb_set(sc, CBB_SOCKET_MASK, mask);
 	PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL,
-	    |CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN, 2);
+	    | CBBM_BRIDGECTRL_INTR_IREQ_ISA_EN, 2);
 	cbb_set(sc, CBB_SOCKET_CONTROL, sock_ctrl);
 	if (on) {
 		mtx_lock(&sc->mtx);
@@ -785,7 +786,8 @@ cbb_power(device_t brdev, int volts)
 		 * We deal with those below.
 		 */
 		sane = 10;
-		while (!(cbb_get(sc, CBB_SOCKET_STATE) & CBB_STATE_POWER_CYCLE) &&
+		while (
+		    !(cbb_get(sc, CBB_SOCKET_STATE) & CBB_STATE_POWER_CYCLE) &&
 		    cnt == sc->powerintr && sane-- > 0)
 			msleep(&sc->powerintr, &sc->mtx, 0, "-", hz / 20);
 		mtx_unlock(&sc->mtx);
@@ -833,7 +835,7 @@ cbb_power(device_t brdev, int volts)
 			device_printf(sc->dev, "Power not on?\n");
 	}
 	if (status & CBB_STATE_BAD_VCC_REQ) {
-		device_printf(sc->dev, "Bad Vcc requested\n");	
+		device_printf(sc->dev, "Bad Vcc requested\n");
 		/*
 		 * Turn off the power, and try again.  Retrigger other
 		 * active interrupts via force register.  From NetBSD
@@ -945,7 +947,7 @@ cbb_cardbus_reset_power(device_t brdev, device_t child, int on)
 	 * root cause of this is unknown, and NetBSD does the same thing.
 	 */
 	delay = sc->chipset == CB_RF5C47X ? 400 : 20;
-	PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL, |CBBM_BRIDGECTRL_RESET, 2);
+	PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL, | CBBM_BRIDGECTRL_RESET, 2);
 	pause("cbbP3", hz * delay / 1000);
 
 	/*
@@ -966,14 +968,15 @@ cbb_cardbus_reset_power(device_t brdev, device_t child, int on)
 	 * a cardbus bus, so that's the only register we check here.
 	 */
 	if (on && CBB_CARD_PRESENT(cbb_get(sc, CBB_SOCKET_STATE))) {
-		PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL,
-		    &~CBBM_BRIDGECTRL_RESET, 2);
+		PCI_MASK_CONFIG(brdev, CBBR_BRIDGECTRL, &~CBBM_BRIDGECTRL_RESET,
+		    2);
 		b = pcib_get_bus(child);
 		count = 1100 / 20;
 		do {
 			pause("cbbP4", hz * 2 / 100);
 		} while (PCIB_READ_CONFIG(brdev, b, 0, 0, PCIR_DEVVENDOR, 4) ==
-		    0xfffffffful && --count >= 0);
+			0xfffffffful &&
+		    --count >= 0);
 		if (count < 0)
 			device_printf(brdev, "Warning: Bus reset timeout\n");
 
@@ -990,8 +993,8 @@ cbb_cardbus_reset_power(device_t brdev, device_t child, int on)
 			return 0;
 		zero_seen = 0;
 		for (func = 1; func < 8; func++) {
-			h = PCIB_READ_CONFIG(brdev, b, 0, func,
-			    PCIR_DEVVENDOR, 4);
+			h = PCIB_READ_CONFIG(brdev, b, 0, func, PCIR_DEVVENDOR,
+			    4);
 			if (h == 0)
 				zero_seen++;
 		}
@@ -1109,7 +1112,7 @@ cbb_cardbus_auto_open(struct cbb_softc *sc, int type)
 	else
 		align = 1;
 
-	SLIST_FOREACH(rle, &sc->rl, link) {
+	SLIST_FOREACH (rle, &sc->rl, link) {
 		if (rle->type != type)
 			continue;
 		if (rle->res == NULL)
@@ -1134,13 +1137,15 @@ cbb_cardbus_auto_open(struct cbb_softc *sc, int type)
 	if (starts[0] != START_NONE && starts[1] != START_NONE) {
 		if (starts[0] < starts[1]) {
 			if (ends[0] > starts[1]) {
-				device_printf(sc->dev, "Overlapping ranges"
+				device_printf(sc->dev,
+				    "Overlapping ranges"
 				    " for prefetch and non-prefetch memory\n");
 				return;
 			}
 		} else {
 			if (ends[1] > starts[0]) {
-				device_printf(sc->dev, "Overlapping ranges"
+				device_printf(sc->dev,
+				    "Overlapping ranges"
 				    " for prefetch and non-prefetch memory\n");
 				return;
 			}
@@ -1151,8 +1156,8 @@ cbb_cardbus_auto_open(struct cbb_softc *sc, int type)
 		cbb_cardbus_mem_open(sc->dev, 0, starts[0], ends[0]);
 		cbb_cardbus_mem_open(sc->dev, 1, starts[1], ends[1]);
 		reg = pci_read_config(sc->dev, CBBR_BRIDGECTRL, 2);
-		reg &= ~(CBBM_BRIDGECTRL_PREFETCH_0 |
-		    CBBM_BRIDGECTRL_PREFETCH_1);
+		reg &= ~(
+		    CBBM_BRIDGECTRL_PREFETCH_0 | CBBM_BRIDGECTRL_PREFETCH_1);
 		if (starts[1] != START_NONE)
 			reg |= CBBM_BRIDGECTRL_PREFETCH_1;
 		pci_write_config(sc->dev, CBBR_BRIDGECTRL, reg, 2);
@@ -1175,13 +1180,13 @@ cbb_cardbus_auto_open(struct cbb_softc *sc, int type)
 }
 
 static int
-cbb_cardbus_activate_resource(device_t brdev, device_t child, int type,
-    int rid, struct resource *res)
+cbb_cardbus_activate_resource(device_t brdev, device_t child, int type, int rid,
+    struct resource *res)
 {
 	int ret;
 
-	ret = BUS_ACTIVATE_RESOURCE(device_get_parent(brdev), child,
-	    type, rid, res);
+	ret = BUS_ACTIVATE_RESOURCE(device_get_parent(brdev), child, type, rid,
+	    res);
 	if (ret != 0)
 		return (ret);
 	cbb_cardbus_auto_open(device_get_softc(brdev), type);
@@ -1194,8 +1199,8 @@ cbb_cardbus_deactivate_resource(device_t brdev, device_t child, int type,
 {
 	int ret;
 
-	ret = BUS_DEACTIVATE_RESOURCE(device_get_parent(brdev), child,
-	    type, rid, res);
+	ret = BUS_DEACTIVATE_RESOURCE(device_get_parent(brdev), child, type,
+	    rid, res);
 	if (ret != 0)
 		return (ret);
 	cbb_cardbus_auto_open(device_get_softc(brdev), type);
@@ -1203,8 +1208,8 @@ cbb_cardbus_deactivate_resource(device_t brdev, device_t child, int type,
 }
 
 static struct resource *
-cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type,
-    int *rid, rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
+cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type, int *rid,
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
 	struct cbb_softc *sc = device_get_softc(brdev);
 	int tmp;
@@ -1215,7 +1220,8 @@ cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type,
 	case SYS_RES_IRQ:
 		tmp = rman_get_start(sc->irq_res);
 		if (start > tmp || end < tmp || count != 1) {
-			device_printf(child, "requested interrupt %jd-%jd,"
+			device_printf(child,
+			    "requested interrupt %jd-%jd,"
 			    "count = %jd not supported by cbb\n",
 			    start, end, count);
 			return (NULL);
@@ -1229,7 +1235,7 @@ cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type,
 		if (end < start)
 			end = start;
 		if (count > (1 << RF_ALIGNMENT(flags)))
-			flags = (flags & ~RF_ALIGNMENT_MASK) | 
+			flags = (flags & ~RF_ALIGNMENT_MASK) |
 			    rman_make_alignment_flags(count);
 		break;
 	case SYS_RES_MEMORY:
@@ -1242,7 +1248,7 @@ cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type,
 		else
 			align = count;
 		if (align > (1 << RF_ALIGNMENT(flags)))
-			flags = (flags & ~RF_ALIGNMENT_MASK) | 
+			flags = (flags & ~RF_ALIGNMENT_MASK) |
 			    rman_make_alignment_flags(align);
 		break;
 	}
@@ -1263,8 +1269,8 @@ cbb_cardbus_alloc_resource(device_t brdev, device_t child, int type,
 }
 
 static int
-cbb_cardbus_release_resource(device_t brdev, device_t child, int type,
-    int rid, struct resource *res)
+cbb_cardbus_release_resource(device_t brdev, device_t child, int type, int rid,
+    struct resource *res)
 {
 	struct cbb_softc *sc = device_get_softc(brdev);
 	int error;
@@ -1275,8 +1281,8 @@ cbb_cardbus_release_resource(device_t brdev, device_t child, int type,
 			return (error);
 	}
 	cbb_remove_res(sc, res);
-	return (BUS_RELEASE_RESOURCE(device_get_parent(brdev), child,
-	    type, rid, res));
+	return (BUS_RELEASE_RESOURCE(device_get_parent(brdev), child, type, rid,
+	    res));
 }
 
 /************************************************************************/
@@ -1360,8 +1366,8 @@ cbb_pcic_activate_resource(device_t brdev, device_t child, int type, int rid,
 }
 
 static int
-cbb_pcic_deactivate_resource(device_t brdev, device_t child, int type,
-    int rid, struct resource *res)
+cbb_pcic_deactivate_resource(device_t brdev, device_t child, int type, int rid,
+    struct resource *res)
 {
 	struct cbb_softc *sc = device_get_softc(brdev);
 	return (exca_deactivate_resource(&sc->exca, child, type, rid, res));
@@ -1387,7 +1393,7 @@ cbb_pcic_alloc_resource(device_t brdev, device_t child, int type, int *rid,
 		else
 			align = count;
 		if (align > (1 << RF_ALIGNMENT(flags)))
-			flags = (flags & ~RF_ALIGNMENT_MASK) | 
+			flags = (flags & ~RF_ALIGNMENT_MASK) |
 			    rman_make_alignment_flags(align);
 		break;
 	case SYS_RES_IOPORT:
@@ -1399,7 +1405,8 @@ cbb_pcic_alloc_resource(device_t brdev, device_t child, int type, int *rid,
 	case SYS_RES_IRQ:
 		tmp = rman_get_start(sc->irq_res);
 		if (start > tmp || end < tmp || count != 1) {
-			device_printf(child, "requested interrupt %jd-%jd,"
+			device_printf(child,
+			    "requested interrupt %jd-%jd,"
 			    "count = %jd not supported by cbb\n",
 			    start, end, count);
 			return (NULL);
@@ -1424,8 +1431,8 @@ cbb_pcic_alloc_resource(device_t brdev, device_t child, int type, int *rid,
 }
 
 static int
-cbb_pcic_release_resource(device_t brdev, device_t child, int type,
-    int rid, struct resource *res)
+cbb_pcic_release_resource(device_t brdev, device_t child, int type, int rid,
+    struct resource *res)
 {
 	struct cbb_softc *sc = device_get_softc(brdev);
 	int error;
@@ -1436,8 +1443,8 @@ cbb_pcic_release_resource(device_t brdev, device_t child, int type,
 			return (error);
 	}
 	cbb_remove_res(sc, res);
-	return (BUS_RELEASE_RESOURCE(device_get_parent(brdev), child,
-	    type, rid, res));
+	return (BUS_RELEASE_RESOURCE(device_get_parent(brdev), child, type, rid,
+	    res));
 }
 
 /************************************************************************/
@@ -1491,22 +1498,22 @@ cbb_activate_resource(device_t brdev, device_t child, int type, int rid,
 	if (sc->flags & CBB_16BIT_CARD)
 		return (cbb_pcic_activate_resource(brdev, child, type, rid, r));
 	else
-		return (cbb_cardbus_activate_resource(brdev, child, type, rid,
-		    r));
+		return (
+		    cbb_cardbus_activate_resource(brdev, child, type, rid, r));
 }
 
 int
-cbb_deactivate_resource(device_t brdev, device_t child, int type,
-    int rid, struct resource *r)
+cbb_deactivate_resource(device_t brdev, device_t child, int type, int rid,
+    struct resource *r)
 {
 	struct cbb_softc *sc = device_get_softc(brdev);
 
 	if (sc->flags & CBB_16BIT_CARD)
-		return (cbb_pcic_deactivate_resource(brdev, child, type,
-		    rid, r));
+		return (
+		    cbb_pcic_deactivate_resource(brdev, child, type, rid, r));
 	else
-		return (cbb_cardbus_deactivate_resource(brdev, child, type,
-		    rid, r));
+		return (cbb_cardbus_deactivate_resource(brdev, child, type, rid,
+		    r));
 }
 
 struct resource *
@@ -1516,8 +1523,8 @@ cbb_alloc_resource(device_t brdev, device_t child, int type, int *rid,
 	struct cbb_softc *sc = device_get_softc(brdev);
 
 	if (sc->flags & CBB_16BIT_CARD)
-		return (cbb_pcic_alloc_resource(brdev, child, type, rid,
-		    start, end, count, flags));
+		return (cbb_pcic_alloc_resource(brdev, child, type, rid, start,
+		    end, count, flags));
 	else
 		return (cbb_cardbus_alloc_resource(brdev, child, type, rid,
 		    start, end, count, flags));
@@ -1530,11 +1537,10 @@ cbb_release_resource(device_t brdev, device_t child, int type, int rid,
 	struct cbb_softc *sc = device_get_softc(brdev);
 
 	if (sc->flags & CBB_16BIT_CARD)
-		return (cbb_pcic_release_resource(brdev, child, type,
-		    rid, r));
+		return (cbb_pcic_release_resource(brdev, child, type, rid, r));
 	else
-		return (cbb_cardbus_release_resource(brdev, child, type,
-		    rid, r));
+		return (
+		    cbb_cardbus_release_resource(brdev, child, type, rid, r));
 }
 
 int

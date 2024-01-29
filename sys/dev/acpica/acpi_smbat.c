@@ -24,45 +24,45 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
+
+#include <dev/acpica/acpi_smbus.h>
+#include <dev/acpica/acpiio.h>
+#include <dev/acpica/acpivar.h>
 
 #include <contrib/dev/acpica/include/acpi.h>
 
-#include <dev/acpica/acpivar.h>
-#include <dev/acpica/acpiio.h>
-#include <dev/acpica/acpi_smbus.h>
-
 /* Transactions have failed after 500 ms. */
-#define SMBUS_TIMEOUT	50
+#define SMBUS_TIMEOUT 50
 
 struct acpi_smbat_softc {
-	uint8_t		sb_base_addr;
-	device_t	ec_dev;
+	uint8_t sb_base_addr;
+	device_t ec_dev;
 
-	struct acpi_bix	bix;
-	struct acpi_bst	bst;
-	struct timespec	bix_lastupdated;
-	struct timespec	bst_lastupdated;
+	struct acpi_bix bix;
+	struct acpi_bst bst;
+	struct timespec bix_lastupdated;
+	struct timespec bst_lastupdated;
 };
 
-static int	acpi_smbat_probe(device_t dev);
-static int	acpi_smbat_attach(device_t dev);
-static int	acpi_smbat_shutdown(device_t dev);
-static int	acpi_smbat_info_expired(struct timespec *lastupdated);
-static void	acpi_smbat_info_updated(struct timespec *lastupdated);
-static int	acpi_smbat_get_bix(device_t dev, void *, size_t);
-static int	acpi_smbat_get_bst(device_t dev, struct acpi_bst *bst);
+static int acpi_smbat_probe(device_t dev);
+static int acpi_smbat_attach(device_t dev);
+static int acpi_smbat_shutdown(device_t dev);
+static int acpi_smbat_info_expired(struct timespec *lastupdated);
+static void acpi_smbat_info_updated(struct timespec *lastupdated);
+static int acpi_smbat_get_bix(device_t dev, void *, size_t);
+static int acpi_smbat_get_bst(device_t dev, struct acpi_bst *bst);
 
 ACPI_SERIAL_DECL(smbat, "ACPI Smart Battery");
 
-static SYSCTL_NODE(_debug_acpi, OID_AUTO, batt,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
-    "Battery debugging");
+static SYSCTL_NODE(_debug_acpi, OID_AUTO, batt, CTLFLAG_RD | CTLFLAG_MPSAFE,
+    NULL, "Battery debugging");
 
 /* On some laptops with smart batteries, enabling battery monitoring
  * software causes keystrokes from atkbd to be lost.  This has also been
@@ -74,8 +74,9 @@ static SYSCTL_NODE(_debug_acpi, OID_AUTO, batt,
  * If you experience that problem, try a value of 10ms and move up
  * from there.
  */
-static int      batt_sleep_ms;
-SYSCTL_INT(_debug_acpi_batt, OID_AUTO, batt_sleep_ms, CTLFLAG_RW, &batt_sleep_ms, 0,
+static int batt_sleep_ms;
+SYSCTL_INT(_debug_acpi_batt, OID_AUTO, batt_sleep_ms, CTLFLAG_RW,
+    &batt_sleep_ms, 0,
     "Sleep during battery status updates to prevent keystroke loss.");
 
 static device_method_t acpi_smbat_methods[] = {
@@ -91,7 +92,7 @@ static device_method_t acpi_smbat_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t	acpi_smbat_driver = {
+static driver_t acpi_smbat_driver = {
 	"battery",
 	acpi_smbat_methods,
 	sizeof(struct acpi_smbat_softc),
@@ -103,7 +104,7 @@ MODULE_DEPEND(acpi_smbat, acpi, 1, 1, 1);
 static int
 acpi_smbat_probe(device_t dev)
 {
-	static char *smbat_ids[] = {"ACPI0001", "ACPI0005", NULL};
+	static char *smbat_ids[] = { "ACPI0001", "ACPI0005", NULL };
 	ACPI_STATUS status;
 	int rv;
 
@@ -111,7 +112,7 @@ acpi_smbat_probe(device_t dev)
 		return (ENXIO);
 	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, smbat_ids, NULL);
 	if (rv > 0)
-	  return (rv);
+		return (rv);
 	status = AcpiEvaluateObject(acpi_get_handle(dev), "_EC", NULL, NULL);
 	if (ACPI_FAILURE(status))
 		return (ENXIO);
@@ -160,7 +161,7 @@ acpi_smbat_shutdown(device_t dev)
 static int
 acpi_smbat_info_expired(struct timespec *lastupdated)
 {
-	struct timespec	curtime;
+	struct timespec curtime;
 
 	ACPI_SERIAL_ASSERT(smbat);
 
@@ -195,28 +196,27 @@ acpi_smbus_read_2(struct acpi_smbat_softc *sc, uint8_t addr, uint8_t cmd,
 	ACPI_SERIAL_ASSERT(smbat);
 
 	if (batt_sleep_ms)
-	    AcpiOsSleep(batt_sleep_ms);
+		AcpiOsSleep(batt_sleep_ms);
 
 	val = addr;
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_ADDR,
-	    val, 1);
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_ADDR, val,
+	    1);
 	if (error)
 		goto out;
 
 	val = cmd;
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_CMD,
-	    val, 1);
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_CMD, val, 1);
 	if (error)
 		goto out;
 
 	val = 0x09; /* | 0x80 if PEC */
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL,
-	    val, 1);
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL, val,
+	    1);
 	if (error)
 		goto out;
 
 	if (batt_sleep_ms)
-	    AcpiOsSleep(batt_sleep_ms);
+		AcpiOsSleep(batt_sleep_ms);
 
 	for (to = SMBUS_TIMEOUT; to != 0; to--) {
 		error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL,
@@ -236,14 +236,14 @@ acpi_smbus_read_2(struct acpi_smbat_softc *sc, uint8_t addr, uint8_t cmd,
 	if (error)
 		goto out;
 	if (val & SMBUS_STS_MASK) {
-		printf("%s: AE_ERROR 0x%x\n",
-		       __FUNCTION__, (int)(val & SMBUS_STS_MASK));
+		printf("%s: AE_ERROR 0x%x\n", __FUNCTION__,
+		    (int)(val & SMBUS_STS_MASK));
 		error = EIO;
 		goto out;
 	}
 
-	error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_DATA,
-	    &val, 2);
+	error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_DATA, &val,
+	    2);
 	if (error)
 		goto out;
 
@@ -258,34 +258,33 @@ acpi_smbus_read_multi_1(struct acpi_smbat_softc *sc, uint8_t addr, uint8_t cmd,
     uint8_t *ptr, uint16_t len)
 {
 	UINT64 val;
-	uint8_t	to;
+	uint8_t to;
 	int error;
 
 	ACPI_SERIAL_ASSERT(smbat);
 
 	if (batt_sleep_ms)
-	    AcpiOsSleep(batt_sleep_ms);
+		AcpiOsSleep(batt_sleep_ms);
 
 	val = addr;
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_ADDR,
-	    val, 1);
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_ADDR, val,
+	    1);
 	if (error)
 		goto out;
 
 	val = cmd;
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_CMD,
-	    val, 1);
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_CMD, val, 1);
 	if (error)
 		goto out;
 
-	val = 0x0B /* | 0x80 if PEC */ ;
-	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL,
-	    val, 1);
+	val = 0x0B /* | 0x80 if PEC */;
+	error = ACPI_EC_WRITE(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL, val,
+	    1);
 	if (error)
 		goto out;
 
 	if (batt_sleep_ms)
-	    AcpiOsSleep(batt_sleep_ms);
+		AcpiOsSleep(batt_sleep_ms);
 
 	for (to = SMBUS_TIMEOUT; to != 0; to--) {
 		error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_PRTCL,
@@ -305,15 +304,15 @@ acpi_smbus_read_multi_1(struct acpi_smbat_softc *sc, uint8_t addr, uint8_t cmd,
 	if (error)
 		goto out;
 	if (val & SMBUS_STS_MASK) {
-		printf("%s: AE_ERROR 0x%x\n",
-		       __FUNCTION__, (int)(val & SMBUS_STS_MASK));
+		printf("%s: AE_ERROR 0x%x\n", __FUNCTION__,
+		    (int)(val & SMBUS_STS_MASK));
 		error = EIO;
 		goto out;
 	}
 
 	/* get length */
-	error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_BCNT,
-	    &val, 1);
+	error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_BCNT, &val,
+	    1);
 	if (error)
 		goto out;
 	val = (val & 0x1f) + 1;
@@ -323,17 +322,17 @@ acpi_smbus_read_multi_1(struct acpi_smbat_softc *sc, uint8_t addr, uint8_t cmd,
 		len = val;
 
 	if (batt_sleep_ms)
-	    AcpiOsSleep(batt_sleep_ms);
+		AcpiOsSleep(batt_sleep_ms);
 
 	while (len--) {
-		error = ACPI_EC_READ(sc->ec_dev, sc->sb_base_addr + SMBUS_DATA
-		    + len, &val, 1);
+		error = ACPI_EC_READ(sc->ec_dev,
+		    sc->sb_base_addr + SMBUS_DATA + len, &val, 1);
 		if (error)
 			goto out;
 
 		ptr[len] = val;
 		if (batt_sleep_ms)
-		    AcpiOsSleep(batt_sleep_ms);
+			AcpiOsSleep(batt_sleep_ms);
 	}
 
 out:
@@ -347,7 +346,7 @@ acpi_smbat_get_bst(device_t dev, struct acpi_bst *bst)
 	int error;
 	uint32_t factor;
 	int16_t val;
-	uint8_t	addr;
+	uint8_t addr;
 
 	ACPI_SERIAL_BEGIN(smbat);
 
@@ -421,8 +420,7 @@ acpi_smbat_get_bix(device_t dev, void *bix, size_t len)
 	uint16_t val;
 	uint8_t addr;
 
-	if (len != sizeof(struct acpi_bix) &&
-	    len != sizeof(struct acpi_bif))
+	if (len != sizeof(struct acpi_bix) && len != sizeof(struct acpi_bif))
 		return (-1);
 
 	ACPI_SERIAL_BEGIN(smbat);
@@ -455,7 +453,7 @@ acpi_smbat_get_bix(device_t dev, void *bix, size_t len)
 	if (acpi_smbus_read_2(sc, addr, SMBATT_CMD_FULL_CHARGE_CAPACITY, &val))
 		goto out;
 	sc->bix.lfcap = val * factor;
-	sc->bix.btech = 1;		/* secondary (rechargeable) */
+	sc->bix.btech = 1; /* secondary (rechargeable) */
 
 	if (acpi_smbus_read_2(sc, addr, SMBATT_CMD_DESIGN_VOLTAGE, &val))
 		goto out;
@@ -464,11 +462,11 @@ acpi_smbat_get_bix(device_t dev, void *bix, size_t len)
 	sc->bix.wcap = sc->bix.dcap / 10;
 	sc->bix.lcap = sc->bix.dcap / 10;
 
-	sc->bix.gra1 = factor;	/* not supported */
-	sc->bix.gra2 = factor;	/* not supported */
+	sc->bix.gra1 = factor; /* not supported */
+	sc->bix.gra2 = factor; /* not supported */
 
 	if (acpi_smbus_read_multi_1(sc, addr, SMBATT_CMD_DEVICE_NAME,
-	    sc->bix.model, sizeof(sc->bix.model)))
+		sc->bix.model, sizeof(sc->bix.model)))
 		goto out;
 
 	if (acpi_smbus_read_2(sc, addr, SMBATT_CMD_SERIAL_NUMBER, &val))
@@ -476,11 +474,11 @@ acpi_smbat_get_bix(device_t dev, void *bix, size_t len)
 	snprintf(sc->bix.serial, sizeof(sc->bix.serial), "0x%04x", val);
 
 	if (acpi_smbus_read_multi_1(sc, addr, SMBATT_CMD_DEVICE_CHEMISTRY,
-	    sc->bix.type, sizeof(sc->bix.type)))
+		sc->bix.type, sizeof(sc->bix.type)))
 		goto out;
 
 	if (acpi_smbus_read_multi_1(sc, addr, SMBATT_CMD_MANUFACTURER_DATA,
-	    sc->bix.oeminfo, sizeof(sc->bix.oeminfo)))
+		sc->bix.oeminfo, sizeof(sc->bix.oeminfo)))
 		goto out;
 
 	/* XXX check if device was replugged during read? */
@@ -490,7 +488,7 @@ acpi_smbat_get_bix(device_t dev, void *bix, size_t len)
 
 out:
 	if (error == 0)
-	    memcpy(bix, &sc->bix, len);
+		memcpy(bix, &sc->bix, len);
 	ACPI_SERIAL_END(smbat);
 	return (error);
 }

@@ -30,16 +30,15 @@
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 
-#include <stand.h>
-#include <bootstrap.h>
-#include <net.h>
-
-#include <efi.h>
-#include <efilib.h>
-#include <efiprot.h>
 #include <Protocol/Http.h>
 #include <Protocol/Ip4Config2.h>
 #include <Protocol/ServiceBinding.h>
+#include <bootstrap.h>
+#include <efi.h>
+#include <efilib.h>
+#include <efiprot.h>
+#include <net.h>
+#include <stand.h>
 
 /* Poll timeout in milliseconds */
 static const int EFIHTTP_POLL_TIMEOUT = 300000;
@@ -68,39 +67,39 @@ static int efihttp_fs_readdir(struct open_file *f, struct dirent *d);
 
 struct open_efihttp {
 	EFI_HTTP_PROTOCOL *http;
-	EFI_HANDLE	http_handle;
-	EFI_HANDLE	dev_handle;
-	char		*uri_base;
+	EFI_HANDLE http_handle;
+	EFI_HANDLE dev_handle;
+	char *uri_base;
 };
 
 struct file_efihttp {
-	ssize_t		size;
-	off_t		offset;
-	char		*path;
-	bool		is_dir;
+	ssize_t size;
+	off_t offset;
+	char *path;
+	bool is_dir;
 };
 
 struct devsw efihttp_dev = {
-	.dv_name =	"http",
-	.dv_type =	DEVT_NET,
-	.dv_init =	efihttp_dev_init,
-	.dv_strategy =	efihttp_dev_strategy,
-	.dv_open =	efihttp_dev_open,
-	.dv_close =	efihttp_dev_close,
-	.dv_ioctl =	noioctl,
-	.dv_print =	NULL,
-	.dv_cleanup =	nullsys,
+	.dv_name = "http",
+	.dv_type = DEVT_NET,
+	.dv_init = efihttp_dev_init,
+	.dv_strategy = efihttp_dev_strategy,
+	.dv_open = efihttp_dev_open,
+	.dv_close = efihttp_dev_close,
+	.dv_ioctl = noioctl,
+	.dv_print = NULL,
+	.dv_cleanup = nullsys,
 };
 
 struct fs_ops efihttp_fsops = {
-	.fs_name =	"efihttp",
-	.fo_open =	efihttp_fs_open,
-	.fo_close =	efihttp_fs_close,
-	.fo_read =	efihttp_fs_read,
-	.fo_write =	efihttp_fs_write,
-	.fo_seek =	efihttp_fs_seek,
-	.fo_stat =	efihttp_fs_stat,
-	.fo_readdir =	efihttp_fs_readdir,
+	.fs_name = "efihttp",
+	.fo_open = efihttp_fs_open,
+	.fo_close = efihttp_fs_close,
+	.fo_read = efihttp_fs_read,
+	.fo_write = efihttp_fs_write,
+	.fo_seek = efihttp_fs_seek,
+	.fo_stat = efihttp_fs_stat,
+	.fo_readdir = efihttp_fs_readdir,
 };
 
 static void EFIAPI
@@ -192,7 +191,7 @@ efihttp_dev_init(void)
 	devpath = imgpath;
 	found_http = false;
 	for (; !IsDevicePathEnd(devpath);
-	    devpath = NextDevicePathNode(devpath)) {
+	     devpath = NextDevicePathNode(devpath)) {
 		if (DevicePathType(devpath) != MESSAGING_DEVICE_PATH ||
 		    DevicePathSubType(devpath) != MSG_URI_DP)
 			continue;
@@ -255,7 +254,7 @@ efihttp_dev_open(struct open_file *f, ...)
 	dns = NULL;
 	uri = NULL;
 	for (; !IsDevicePathEnd(imgpath);
-	    imgpath = NextDevicePathNode(imgpath)) {
+	     imgpath = NextDevicePathNode(imgpath)) {
 		if (DevicePathType(imgpath) != MESSAGING_DEVICE_PATH)
 			continue;
 		switch (DevicePathSubType(imgpath)) {
@@ -439,8 +438,8 @@ _efihttp_fs_open(const char *path, struct open_file *f)
 
 	/* Send the read request */
 	done = false;
-	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify,
-	    &done, &token.Event);
+	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify, &done,
+	    &token.Event);
 	if (EFI_ERROR(status))
 		return (efi_status_to_errno(status));
 
@@ -501,8 +500,8 @@ _efihttp_fs_open(const char *path, struct open_file *f)
 
 	/* Wait for the read response */
 	done = false;
-	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify,
-	    &done, &token.Event);
+	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify, &done,
+	    &token.Event);
 	if (EFI_ERROR(status))
 		return (efi_status_to_errno(status));
 	token.Status = EFI_NOT_READY;
@@ -543,13 +542,14 @@ _efihttp_fs_open(const char *path, struct open_file *f)
 	fh->is_dir = false;
 	for (i = 0; i < message.HeaderCount; i++) {
 		if (strcasecmp((const char *)message.Headers[i].FieldName,
-		    "Content-Length") == 0)
-			fh->size = strtoul((const char *)
-			    message.Headers[i].FieldValue, NULL, 10);
+			"Content-Length") == 0)
+			fh->size =
+			    strtoul((const char *)message.Headers[i].FieldValue,
+				NULL, 10);
 		else if (strcasecmp((const char *)message.Headers[i].FieldName,
-		    "Content-type") == 0) {
+			     "Content-type") == 0) {
 			if (strncmp((const char *)message.Headers[i].FieldValue,
-			    "text/html", 9) == 0)
+				"text/html", 9) == 0)
 				fh->is_dir = true;
 		}
 	}
@@ -620,8 +620,8 @@ _efihttp_fs_read(struct open_file *f, void *buf, size_t size, size_t *resid)
 	dev = (struct devdesc *)f->f_devdata;
 	oh = (struct open_efihttp *)dev->d_opendata;
 	done = false;
-	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify,
-	    &done, &token.Event);
+	status = BS->CreateEvent(EVT_NOTIFY_SIGNAL, TPL_CALLBACK, notify, &done,
+	    &token.Event);
 	if (EFI_ERROR(status)) {
 		return (efi_status_to_errno(status));
 	}
@@ -645,7 +645,7 @@ _efihttp_fs_read(struct open_file *f, void *buf, size_t size, size_t *resid)
 	while (!done && polltime < EFIHTTP_POLL_TIMEOUT) {
 		status = oh->http->Poll(oh->http);
 		if (EFI_ERROR(status))
-				break;
+			break;
 
 		if (!done) {
 			delay(100 * 1000);

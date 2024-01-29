@@ -28,38 +28,37 @@
  * SUCH DAMAGE.
  */
 
-
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
+#include <sys/bio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <sys/types.h>
+#include <sys/disk.h>
+#include <sys/kernel.h>
 #include <sys/queue.h>
-#include <sys/disk.h>
-#include <sys/bio.h>
-#include <sys/disk.h>
-#include <geom/geom_disk.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
 #include <machine/resource.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#define IPS_MAX_IO_SIZE		0x10000
+#include <geom/geom_disk.h>
 
-#define IPS_COMP_HEADS       	128
-#define IPS_COMP_SECTORS     	32
-#define IPS_NORM_HEADS       	254
-#define IPS_NORM_SECTORS     	63
+#define IPS_MAX_IO_SIZE 0x10000
+
+#define IPS_COMP_HEADS 128
+#define IPS_COMP_SECTORS 32
+#define IPS_NORM_HEADS 254
+#define IPS_NORM_SECTORS 63
 
 typedef struct ipsdisk_softc {
-	device_t 	dev;
-	int		unit;
-	int		disk_number;
-	u_int32_t 	state;
-	struct disk 	*ipsd_disk;
-	ips_softc_t	*sc;
-}ipsdisk_softc_t;
+	device_t dev;
+	int unit;
+	int disk_number;
+	u_int32_t state;
+	struct disk *ipsd_disk;
+	ips_softc_t *sc;
+} ipsdisk_softc_t;

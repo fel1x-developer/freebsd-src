@@ -55,8 +55,8 @@
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
 char machine[] = "riscv";
@@ -65,9 +65,9 @@ SYSCTL_STRING(_hw, HW_MACHINE, machine, CTLFLAG_RD | CTLFLAG_CAPRD, machine, 0,
     "Machine class");
 
 /* Hardware implementation info. These values may be empty. */
-register_t mvendorid;	/* The CPU's JEDEC vendor ID */
-register_t marchid;	/* The architecture ID */
-register_t mimpid;	/* The implementation ID */
+register_t mvendorid; /* The CPU's JEDEC vendor ID */
+register_t marchid;   /* The architecture ID */
+register_t mimpid;    /* The implementation ID */
 
 u_int mmu_caps;
 
@@ -76,16 +76,16 @@ bool __read_frequently has_sstc;
 bool __read_frequently has_sscofpmf;
 
 struct cpu_desc {
-	const char	*cpu_mvendor_name;
-	const char	*cpu_march_name;
-	u_int		isa_extensions;		/* Single-letter extensions. */
-	u_int		mmu_caps;
-	u_int		smode_extensions;
-#define	 SV_SSTC	(1 << 0)
-#define	 SV_SVNAPOT	(1 << 1)
-#define	 SV_SVPBMT	(1 << 2)
-#define	 SV_SVINVAL	(1 << 3)
-#define	 SV_SSCOFPMF	(1 << 4)
+	const char *cpu_mvendor_name;
+	const char *cpu_march_name;
+	u_int isa_extensions; /* Single-letter extensions. */
+	u_int mmu_caps;
+	u_int smode_extensions;
+#define SV_SSTC (1 << 0)
+#define SV_SVNAPOT (1 << 1)
+#define SV_SVPBMT (1 << 2)
+#define SV_SVINVAL (1 << 3)
+#define SV_SSCOFPMF (1 << 4)
 };
 
 struct cpu_desc cpu_desc[MAXCPU];
@@ -94,37 +94,38 @@ struct cpu_desc cpu_desc[MAXCPU];
  * Micro-architecture tables.
  */
 struct marchid_entry {
-	register_t	march_id;
-	const char	*march_name;
+	register_t march_id;
+	const char *march_name;
 };
 
-#define	MARCHID_END	{ -1ul, NULL }
+#define MARCHID_END        \
+	{                  \
+		-1ul, NULL \
+	}
 
 /* Open-source RISC-V architecture IDs; globally allocated. */
 static const struct marchid_entry global_marchids[] = {
-	{ MARCHID_UCB_ROCKET,	"UC Berkeley Rocket"		},
-	{ MARCHID_UCB_BOOM,	"UC Berkeley Boom"		},
-	{ MARCHID_UCB_SPIKE,	"UC Berkeley Spike"		},
-	{ MARCHID_UCAM_RVBS,	"University of Cambridge RVBS"	},
-	MARCHID_END
+	{ MARCHID_UCB_ROCKET, "UC Berkeley Rocket" },
+	{ MARCHID_UCB_BOOM, "UC Berkeley Boom" },
+	{ MARCHID_UCB_SPIKE, "UC Berkeley Spike" },
+	{ MARCHID_UCAM_RVBS, "University of Cambridge RVBS" }, MARCHID_END
 };
 
 static const struct marchid_entry sifive_marchids[] = {
-	{ MARCHID_SIFIVE_U7,	"6/7/P200/X200-Series Processor" },
-	MARCHID_END
+	{ MARCHID_SIFIVE_U7, "6/7/P200/X200-Series Processor" }, MARCHID_END
 };
 
 /*
  * Known CPU vendor/manufacturer table.
  */
 static const struct {
-	register_t			mvendor_id;
-	const char			*mvendor_name;
-	const struct marchid_entry	*marchid_table;
+	register_t mvendor_id;
+	const char *mvendor_name;
+	const struct marchid_entry *marchid_table;
 } mvendor_ids[] = {
-	{ MVENDORID_UNIMPL,	"Unspecified",		NULL		},
-	{ MVENDORID_SIFIVE,	"SiFive",		sifive_marchids	},
-	{ MVENDORID_THEAD,	"T-Head",		NULL		},
+	{ MVENDORID_UNIMPL, "Unspecified", NULL },
+	{ MVENDORID_SIFIVE, "SiFive", sifive_marchids },
+	{ MVENDORID_THEAD, "T-Head", NULL },
 };
 
 /*
@@ -141,27 +142,27 @@ static const struct {
  * The format is described in detail by the "ISA Extension Naming Conventions"
  * chapter of the unprivileged spec.
  */
-#define	ISA_PREFIX		("rv" __XSTRING(__riscv_xlen))
-#define	ISA_PREFIX_LEN		(sizeof(ISA_PREFIX) - 1)
+#define ISA_PREFIX ("rv" __XSTRING(__riscv_xlen))
+#define ISA_PREFIX_LEN (sizeof(ISA_PREFIX) - 1)
 
 static __inline int
 parse_ext_s(struct cpu_desc *desc, char *isa, int idx, int len)
 {
-#define	CHECK_S_EXT(str, flag)						\
-	do {								\
-		if (strncmp(&isa[idx], (str),				\
-		    MIN(strlen(str), len - idx)) == 0) {		\
-			desc->smode_extensions |= flag;			\
-			return (idx + strlen(str));			\
-		}							\
+#define CHECK_S_EXT(str, flag)                                                \
+	do {                                                                  \
+		if (strncmp(&isa[idx], (str), MIN(strlen(str), len - idx)) == \
+		    0) {                                                      \
+			desc->smode_extensions |= flag;                       \
+			return (idx + strlen(str));                           \
+		}                                                             \
 	} while (0)
 
 	/* Check for known/supported extensions. */
-	CHECK_S_EXT("sstc",	SV_SSTC);
-	CHECK_S_EXT("svnapot",	SV_SVNAPOT);
-	CHECK_S_EXT("svpbmt",	SV_SVPBMT);
-	CHECK_S_EXT("svinval",	SV_SVINVAL);
-	CHECK_S_EXT("sscofpmf",	SV_SSCOFPMF);
+	CHECK_S_EXT("sstc", SV_SSTC);
+	CHECK_S_EXT("svnapot", SV_SVNAPOT);
+	CHECK_S_EXT("svpbmt", SV_SVPBMT);
+	CHECK_S_EXT("svinval", SV_SVINVAL);
+	CHECK_S_EXT("sscofpmf", SV_SSCOFPMF);
 
 #undef CHECK_S_EXT
 
@@ -242,7 +243,7 @@ parse_riscv_isa(struct cpu_desc *desc, char *isa, int len)
 
 	i = ISA_PREFIX_LEN;
 	while (i < len) {
-		switch(isa[i]) {
+		switch (isa[i]) {
 		case 'a':
 		case 'c':
 		case 'd':
@@ -351,7 +352,8 @@ identify_cpu_features_fdt(u_int cpu, struct cpu_desc *desc)
 		KASSERT(len <= sizeof(isa), ("ISA string truncated"));
 		if (len == -1) {
 			printf("%s: could not find 'riscv,isa' property "
-			    "for CPU %d, hart %u\n", __func__, cpu, hart);
+			       "for CPU %d, hart %u\n",
+			    __func__, cpu, hart);
 			return;
 		}
 
@@ -394,13 +396,13 @@ identify_cpu_features(u_int cpu, struct cpu_desc *desc)
 static void
 update_global_capabilities(u_int cpu, struct cpu_desc *desc)
 {
-#define UPDATE_CAP(t, v)				\
-	do {						\
-		if (cpu == 0) {				\
-			(t) = (v);			\
-		} else {				\
-			(t) &= (v);			\
-		}					\
+#define UPDATE_CAP(t, v)            \
+	do {                        \
+		if (cpu == 0) {     \
+			(t) = (v);  \
+		} else {            \
+			(t) &= (v); \
+		}                   \
 	} while (0)
 
 	/* Update the capabilities exposed to userspace via AT_HWCAP. */
@@ -485,8 +487,7 @@ printcpuinfo(u_int cpu)
 	 * Suppress the output of some fields in the common case of identical
 	 * CPU features.
 	 */
-#define	SHOULD_PRINT(_field)	\
-    (cpu == 0 || desc[0]._field != desc[-1]._field)
+#define SHOULD_PRINT(_field) (cpu == 0 || desc[0]._field != desc[-1]._field)
 
 	/* Always print summary line. */
 	printf("CPU %-3u: Vendor=%s Core=%s (Hart %u)\n", cpu,

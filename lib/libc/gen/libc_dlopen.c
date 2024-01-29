@@ -53,4 +53,3 @@ __FreeBSD_libc_enter_restricted_mode(void)
 
 	__libc_restricted_mode = 1;
 }
-

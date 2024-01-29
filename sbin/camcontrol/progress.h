@@ -32,7 +32,7 @@
  */
 
 #ifndef PROGRESS_H_
-#define PROGRESS_H_	20100228
+#define PROGRESS_H_ 20100228
 
 #include <sys/types.h>
 
@@ -40,21 +40,22 @@
 
 /* structure used to display a progress meter */
 typedef struct progress_t {
-	char		*prefix;	/* any prefix explanation */
-	uint64_t	 size;		/* total of bytes/units to be counted */
-	uint64_t	 done;		/* number of units counted to date */
-	uint64_t	 percent;	/* cache the percentage complete */
-	time_t		 start;		/* time we started this */
-	time_t		 now;		/* time now */
-	time_t		 eta;		/* estimated # of secs until completion */
-	int64_t		 elapsed;	/* cached # of elapsed seconds */
-	int32_t		 ttywidth;	/* width of tty in columns */
+	char *prefix;	  /* any prefix explanation */
+	uint64_t size;	  /* total of bytes/units to be counted */
+	uint64_t done;	  /* number of units counted to date */
+	uint64_t percent; /* cache the percentage complete */
+	time_t start;	  /* time we started this */
+	time_t now;	  /* time now */
+	time_t eta;	  /* estimated # of secs until completion */
+	int64_t elapsed;  /* cached # of elapsed seconds */
+	int32_t ttywidth; /* width of tty in columns */
 } progress_t;
 
-int progress_init(progress_t */*meter*/, const char */*prefix*/, uint64_t /*size*/);
-int progress_update(progress_t */*meter*/, uint64_t /*done*/);
-int progress_draw(progress_t */*meter*/);
-int progress_reset_size(progress_t */*meter*/, uint64_t /*size*/);
-int progress_complete(progress_t */*meter*/, uint64_t /*done*/);
+int progress_init(progress_t * /*meter*/, const char * /*prefix*/,
+    uint64_t /*size*/);
+int progress_update(progress_t * /*meter*/, uint64_t /*done*/);
+int progress_draw(progress_t * /*meter*/);
+int progress_reset_size(progress_t * /*meter*/, uint64_t /*size*/);
+int progress_complete(progress_t * /*meter*/, uint64_t /*done*/);
 
 #endif

@@ -43,7 +43,7 @@
 int
 crypt_md5(const char *pw, const char *salt, char *buffer)
 {
-	MD5_CTX	ctx,ctx1;
+	MD5_CTX ctx, ctx1;
 	unsigned long l;
 	int sl, pl;
 	u_int i;
@@ -79,8 +79,8 @@ crypt_md5(const char *pw, const char *salt, char *buffer)
 	MD5Update(&ctx1, (const u_char *)salt, (u_int)sl);
 	MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
 	MD5Final(final, &ctx1);
-	for(pl = (int)strlen(pw); pl > 0; pl -= MD5_SIZE)
-		MD5Update(&ctx, (const u_char *)final,
+	for (pl = (int)strlen(pw); pl > 0; pl -= MD5_SIZE)
+		MD5Update(&ctx, (const u_char *) final,
 		    (u_int)(pl > MD5_SIZE ? MD5_SIZE : pl));
 
 	/* Don't leave anything around in vm they could use. */
@@ -88,10 +88,10 @@ crypt_md5(const char *pw, const char *salt, char *buffer)
 
 	/* Then something really weird... */
 	for (i = strlen(pw); i; i >>= 1)
-		if(i & 1)
-		    MD5Update(&ctx, (const u_char *)final, 1);
+		if (i & 1)
+			MD5Update(&ctx, (const u_char *) final, 1);
 		else
-		    MD5Update(&ctx, (const u_char *)pw, 1);
+			MD5Update(&ctx, (const u_char *)pw, 1);
 
 	/* Now make the output string */
 	buffer = stpcpy(buffer, magic);
@@ -105,38 +105,44 @@ crypt_md5(const char *pw, const char *salt, char *buffer)
 	 * On a 60 Mhz Pentium this takes 34 msec, so you would
 	 * need 30 seconds to build a 1000 entry dictionary...
 	 */
-	for(i = 0; i < 1000; i++) {
+	for (i = 0; i < 1000; i++) {
 		MD5Init(&ctx1);
-		if(i & 1)
+		if (i & 1)
 			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
 		else
-			MD5Update(&ctx1, (const u_char *)final, MD5_SIZE);
+			MD5Update(&ctx1, (const u_char *) final, MD5_SIZE);
 
-		if(i % 3)
+		if (i % 3)
 			MD5Update(&ctx1, (const u_char *)salt, (u_int)sl);
 
-		if(i % 7)
+		if (i % 7)
 			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
 
-		if(i & 1)
-			MD5Update(&ctx1, (const u_char *)final, MD5_SIZE);
+		if (i & 1)
+			MD5Update(&ctx1, (const u_char *) final, MD5_SIZE);
 		else
 			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
 		MD5Final(final, &ctx1);
 	}
 
-	l = (final[ 0]<<16) | (final[ 6]<<8) | final[12];
-	_crypt_to64(buffer, l, 4); buffer += 4;
-	l = (final[ 1]<<16) | (final[ 7]<<8) | final[13];
-	_crypt_to64(buffer, l, 4); buffer += 4;
-	l = (final[ 2]<<16) | (final[ 8]<<8) | final[14];
-	_crypt_to64(buffer, l, 4); buffer += 4;
-	l = (final[ 3]<<16) | (final[ 9]<<8) | final[15];
-	_crypt_to64(buffer, l, 4); buffer += 4;
-	l = (final[ 4]<<16) | (final[10]<<8) | final[ 5];
-	_crypt_to64(buffer, l, 4); buffer += 4;
+	l = (final[0] << 16) | (final[6] << 8) | final[12];
+	_crypt_to64(buffer, l, 4);
+	buffer += 4;
+	l = (final[1] << 16) | (final[7] << 8) | final[13];
+	_crypt_to64(buffer, l, 4);
+	buffer += 4;
+	l = (final[2] << 16) | (final[8] << 8) | final[14];
+	_crypt_to64(buffer, l, 4);
+	buffer += 4;
+	l = (final[3] << 16) | (final[9] << 8) | final[15];
+	_crypt_to64(buffer, l, 4);
+	buffer += 4;
+	l = (final[4] << 16) | (final[10] << 8) | final[5];
+	_crypt_to64(buffer, l, 4);
+	buffer += 4;
 	l = final[11];
-	_crypt_to64(buffer, l, 2); buffer += 2;
+	_crypt_to64(buffer, l, 2);
+	buffer += 2;
 	*buffer = '\0';
 
 	/* Don't leave anything around in vm they could use. */

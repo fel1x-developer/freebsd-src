@@ -36,10 +36,10 @@
 #include <net/if.h>
 #include <net/route.h>
 
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 
 #include "ifconfig.h"
 
@@ -103,8 +103,8 @@ static struct cmd fib_cmds[] = {
 };
 
 static struct afswtch af_fib = {
-	.af_name	= "af_fib",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_fib",
+	.af_af = AF_UNSPEC,
 	.af_other_status = fib_status,
 };
 
@@ -113,7 +113,7 @@ fib_ctor(void)
 {
 	size_t i;
 
-	for (i = 0; i < nitems(fib_cmds);  i++)
+	for (i = 0; i < nitems(fib_cmds); i++)
 		cmd_register(&fib_cmds[i]);
 	af_register(&af_fib);
 }

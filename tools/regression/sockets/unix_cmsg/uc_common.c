@@ -27,34 +27,35 @@
 #include <sys/cdefs.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/wait.h>
+
 #include <err.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
 
 #include "uc_common.h"
 
 #ifndef LISTENQ
-# define LISTENQ	1
+#define LISTENQ 1
 #endif
 
-#ifndef	TIMEOUT
-# define TIMEOUT	2
+#ifndef TIMEOUT
+#define TIMEOUT 2
 #endif
 
-#define	SYNC_SERVER	0
-#define	SYNC_CLIENT	1
-#define	SYNC_RECV	0
-#define	SYNC_SEND	1
+#define SYNC_SERVER 0
+#define SYNC_CLIENT 1
+#define SYNC_RECV 0
+#define SYNC_SEND 1
 
-#define	LOGMSG_SIZE	128
+#define LOGMSG_SIZE 128
 
 void
 uc_output(const char *format, ...)
@@ -129,7 +130,8 @@ uc_socket_create(void)
 
 	fd = socket(PF_LOCAL, uc_cfg.sock_type, 0);
 	if (fd < 0) {
-		uc_logmsg("socket_create: socket(PF_LOCAL, %s, 0)", uc_cfg.sock_type_str);
+		uc_logmsg("socket_create: socket(PF_LOCAL, %s, 0)",
+		    uc_cfg.sock_type_str);
 		return (-1);
 	}
 	if (uc_cfg.server_flag)
@@ -145,7 +147,7 @@ uc_socket_create(void)
 
 	if (uc_cfg.server_flag) {
 		if (bind(fd, (struct sockaddr *)&uc_cfg.serv_addr_sun,
-		    uc_cfg.serv_addr_sun.sun_len) < 0) {
+			uc_cfg.serv_addr_sun.sun_len) < 0) {
 			uc_logmsg("socket_create: bind(%s)",
 			    uc_cfg.serv_addr_sun.sun_path);
 			goto failed;
@@ -206,8 +208,9 @@ uc_socket_connect(int fd)
 	uc_dbgmsg("connect");
 
 	if (connect(fd, (struct sockaddr *)&uc_cfg.serv_addr_sun,
-	    uc_cfg.serv_addr_sun.sun_len) < 0) {
-		uc_logmsg("socket_connect: connect(%s)", uc_cfg.serv_addr_sun.sun_path);
+		uc_cfg.serv_addr_sun.sun_len) < 0) {
+		uc_logmsg("socket_connect: connect(%s)",
+		    uc_cfg.serv_addr_sun.sun_path);
 		return (-1);
 	}
 	return (0);
@@ -222,7 +225,8 @@ uc_sync_recv(void)
 
 	uc_dbgmsg("sync: wait");
 
-	fd = uc_cfg.sync_fd[uc_cfg.server_flag ? SYNC_SERVER : SYNC_CLIENT][SYNC_RECV];
+	fd = uc_cfg.sync_fd[uc_cfg.server_flag ? SYNC_SERVER : SYNC_CLIENT]
+			   [SYNC_RECV];
 
 	ssize = read(fd, &buf, 1);
 	if (ssize < 0) {
@@ -247,7 +251,8 @@ uc_sync_send(void)
 
 	uc_dbgmsg("sync: send");
 
-	fd = uc_cfg.sync_fd[uc_cfg.server_flag ? SYNC_CLIENT : SYNC_SERVER][SYNC_SEND];
+	fd = uc_cfg.sync_fd[uc_cfg.server_flag ? SYNC_CLIENT : SYNC_SERVER]
+			   [SYNC_SEND];
 
 	ssize = write(fd, "", 1);
 	if (ssize < 0) {
@@ -340,7 +345,8 @@ uc_message_recv(int fd, struct msghdr *msghdr)
 		uc_dbgmsg("recv: cmsghdr.cmsg_len %u",
 		    (u_int)cmsghdr->cmsg_len);
 
-	if (memcmp(uc_cfg.ipc_msg.buf_recv, uc_cfg.ipc_msg.buf_send, size) != 0) {
+	if (memcmp(uc_cfg.ipc_msg.buf_recv, uc_cfg.ipc_msg.buf_send, size) !=
+	    0) {
 		uc_logmsgx("message_recv: received message has wrong content");
 		return (-1);
 	}
@@ -432,8 +438,8 @@ uc_check_cmsghdr(const struct cmsghdr *cmsghdr, int type, size_t size)
 		return (-1);
 	}
 	if (cmsghdr->cmsg_type != type) {
-		uc_logmsgx("cmsghdr.cmsg_type %d != %d",
-		    cmsghdr->cmsg_type, type);
+		uc_logmsgx("cmsghdr.cmsg_type %d != %d", cmsghdr->cmsg_type,
+		    type);
 		return (-1);
 	}
 	if (cmsghdr->cmsg_len != CMSG_LEN(size)) {
@@ -445,13 +451,14 @@ uc_check_cmsghdr(const struct cmsghdr *cmsghdr, int type, size_t size)
 }
 
 static void
-uc_msghdr_init_generic(struct msghdr *msghdr, struct iovec *iov, void *cmsg_data)
+uc_msghdr_init_generic(struct msghdr *msghdr, struct iovec *iov,
+    void *cmsg_data)
 {
 	msghdr->msg_name = NULL;
 	msghdr->msg_namelen = 0;
 	if (uc_cfg.send_data_flag) {
-		iov->iov_base = uc_cfg.server_flag ?
-		    uc_cfg.ipc_msg.buf_recv : uc_cfg.ipc_msg.buf_send;
+		iov->iov_base = uc_cfg.server_flag ? uc_cfg.ipc_msg.buf_recv :
+						     uc_cfg.ipc_msg.buf_send;
 		iov->iov_len = uc_cfg.ipc_msg.buf_size;
 		msghdr->msg_iov = iov;
 		msghdr->msg_iovlen = 1;
@@ -464,20 +471,20 @@ uc_msghdr_init_generic(struct msghdr *msghdr, struct iovec *iov, void *cmsg_data
 }
 
 void
-uc_msghdr_init_server(struct msghdr *msghdr, struct iovec *iov,
-    void *cmsg_data, size_t cmsg_size)
+uc_msghdr_init_server(struct msghdr *msghdr, struct iovec *iov, void *cmsg_data,
+    size_t cmsg_size)
 {
 	uc_msghdr_init_generic(msghdr, iov, cmsg_data);
 	msghdr->msg_controllen = cmsg_size;
-	uc_dbgmsg("init: data size %zu", msghdr->msg_iov != NULL ?
-	    msghdr->msg_iov->iov_len : (size_t)0);
+	uc_dbgmsg("init: data size %zu",
+	    msghdr->msg_iov != NULL ? msghdr->msg_iov->iov_len : (size_t)0);
 	uc_dbgmsg("init: msghdr.msg_controllen %u",
 	    (u_int)msghdr->msg_controllen);
 }
 
 void
-uc_msghdr_init_client(struct msghdr *msghdr, struct iovec *iov,
-    void *cmsg_data, size_t cmsg_size, int type, size_t arr_size)
+uc_msghdr_init_client(struct msghdr *msghdr, struct iovec *iov, void *cmsg_data,
+    size_t cmsg_size, int type, size_t arr_size)
 {
 	struct cmsghdr *cmsghdr;
 
@@ -487,12 +494,13 @@ uc_msghdr_init_client(struct msghdr *msghdr, struct iovec *iov,
 			uc_dbgmsg("sending an array");
 		else
 			uc_dbgmsg("sending a scalar");
-		msghdr->msg_controllen = uc_cfg.send_array_flag ?
-		    cmsg_size : CMSG_SPACE(0);
+		msghdr->msg_controllen = uc_cfg.send_array_flag ? cmsg_size :
+								  CMSG_SPACE(0);
 		cmsghdr = CMSG_FIRSTHDR(msghdr);
 		cmsghdr->cmsg_level = SOL_SOCKET;
 		cmsghdr->cmsg_type = type;
-		cmsghdr->cmsg_len = CMSG_LEN(uc_cfg.send_array_flag ? arr_size : 0);
+		cmsghdr->cmsg_len = CMSG_LEN(
+		    uc_cfg.send_array_flag ? arr_size : 0);
 	} else
 		msghdr->msg_controllen = 0;
 }
@@ -569,9 +577,10 @@ uc_client_wait(void)
 		}
 	} else {
 		if (WIFSIGNALED(status))
-			uc_logmsgx("abnormal termination of client, signal %d%s",
-			    WTERMSIG(status), WCOREDUMP(status) ?
-			    " (core file generated)" : "");
+			uc_logmsgx(
+			    "abnormal termination of client, signal %d%s",
+			    WTERMSIG(status),
+			    WCOREDUMP(status) ? " (core file generated)" : "");
 		else
 			uc_logmsgx("termination of client, unknown status");
 		return (-1);
@@ -603,12 +612,12 @@ uc_check_groups(const char *gid_arr_str, const gid_t *gid_arr,
 		}
 	}
 	if (memcmp(gid_arr, uc_cfg.proc_cred.gid_arr,
-	    gid_num * sizeof(*gid_arr)) != 0) {
+		gid_num * sizeof(*gid_arr)) != 0) {
 		uc_logmsgx("%s content is wrong", gid_arr_str);
 		for (i = 0; i < gid_num; ++i)
 			if (gid_arr[i] != uc_cfg.proc_cred.gid_arr[i]) {
-				uc_logmsgx("%s[%d] %lu != %lu",
-				    gid_arr_str, i, (u_long)gid_arr[i],
+				uc_logmsgx("%s[%d] %lu != %lu", gid_arr_str, i,
+				    (u_long)gid_arr[i],
 				    (u_long)uc_cfg.proc_cred.gid_arr[i]);
 				break;
 			}
@@ -672,11 +681,12 @@ uc_check_scm_creds_cmsgcred(struct cmsghdr *cmsghdr)
 	}
 	if (cmcred->cmcred_groups[0] != uc_cfg.proc_cred.egid) {
 		uc_logmsgx("cmsgcred.cmcred_groups[0] %lu != %lu (EGID)",
-		    (u_long)cmcred->cmcred_groups[0], (u_long)uc_cfg.proc_cred.egid);
+		    (u_long)cmcred->cmcred_groups[0],
+		    (u_long)uc_cfg.proc_cred.egid);
 		rc = -1;
 	}
 	if (uc_check_groups("cmsgcred.cmcred_groups", cmcred->cmcred_groups,
-	    "cmsgcred.cmcred_ngroups", cmcred->cmcred_ngroups, false) < 0)
+		"cmsgcred.cmcred_ngroups", cmcred->cmcred_ngroups, false) < 0)
 		rc = -1;
 	return (rc);
 }
@@ -688,7 +698,7 @@ uc_check_scm_creds_sockcred(struct cmsghdr *cmsghdr)
 	int rc;
 
 	if (uc_check_cmsghdr(cmsghdr, SCM_CREDS,
-	    SOCKCREDSIZE(uc_cfg.proc_cred.gid_num)) < 0)
+		SOCKCREDSIZE(uc_cfg.proc_cred.gid_num)) < 0)
 		return (-1);
 
 	sc = (struct sockcred *)CMSG_DATA(cmsghdr);
@@ -702,23 +712,23 @@ uc_check_scm_creds_sockcred(struct cmsghdr *cmsghdr)
 	uc_dbgmsg("sockcred.sc_ngroups %d", sc->sc_ngroups);
 
 	if (sc->sc_uid != uc_cfg.proc_cred.uid) {
-		uc_logmsgx("sockcred.sc_uid %lu != %lu",
-		    (u_long)sc->sc_uid, (u_long)uc_cfg.proc_cred.uid);
+		uc_logmsgx("sockcred.sc_uid %lu != %lu", (u_long)sc->sc_uid,
+		    (u_long)uc_cfg.proc_cred.uid);
 		rc = -1;
 	}
 	if (sc->sc_euid != uc_cfg.proc_cred.euid) {
-		uc_logmsgx("sockcred.sc_euid %lu != %lu",
-		    (u_long)sc->sc_euid, (u_long)uc_cfg.proc_cred.euid);
+		uc_logmsgx("sockcred.sc_euid %lu != %lu", (u_long)sc->sc_euid,
+		    (u_long)uc_cfg.proc_cred.euid);
 		rc = -1;
 	}
 	if (sc->sc_gid != uc_cfg.proc_cred.gid) {
-		uc_logmsgx("sockcred.sc_gid %lu != %lu",
-		    (u_long)sc->sc_gid, (u_long)uc_cfg.proc_cred.gid);
+		uc_logmsgx("sockcred.sc_gid %lu != %lu", (u_long)sc->sc_gid,
+		    (u_long)uc_cfg.proc_cred.gid);
 		rc = -1;
 	}
 	if (sc->sc_egid != uc_cfg.proc_cred.egid) {
-		uc_logmsgx("sockcred.sc_egid %lu != %lu",
-		    (u_long)sc->sc_egid, (u_long)uc_cfg.proc_cred.egid);
+		uc_logmsgx("sockcred.sc_egid %lu != %lu", (u_long)sc->sc_egid,
+		    (u_long)uc_cfg.proc_cred.egid);
 		rc = -1;
 	}
 	if (sc->sc_ngroups == 0) {
@@ -726,17 +736,16 @@ uc_check_scm_creds_sockcred(struct cmsghdr *cmsghdr)
 		rc = -1;
 	}
 	if (sc->sc_ngroups < 0) {
-		uc_logmsgx("sockcred.sc_ngroups %d < 0",
-		    sc->sc_ngroups);
+		uc_logmsgx("sockcred.sc_ngroups %d < 0", sc->sc_ngroups);
 		rc = -1;
 	}
 	if (sc->sc_ngroups != uc_cfg.proc_cred.gid_num) {
-		uc_logmsgx("sockcred.sc_ngroups %d != %u",
-		    sc->sc_ngroups, uc_cfg.proc_cred.gid_num);
+		uc_logmsgx("sockcred.sc_ngroups %d != %u", sc->sc_ngroups,
+		    uc_cfg.proc_cred.gid_num);
 		rc = -1;
 	}
 	if (uc_check_groups("sockcred.sc_groups", sc->sc_groups,
-	    "sockcred.sc_ngroups", sc->sc_ngroups, true) < 0)
+		"sockcred.sc_ngroups", sc->sc_ngroups, true) < 0)
 		rc = -1;
 	return (rc);
 }

@@ -26,17 +26,21 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */ 
+ */
+
+#include "opt_videomode.h"
 
 #include <sys/param.h>
 #include <sys/libkern.h>
+
 #include <dev/videomode/videomode.h>
-#include "opt_videomode.h"
 
 #ifdef PICKMODE_DEBUG
 #define DPRINTF printf
 #else
-#define DPRINTF while (0) printf
+#define DPRINTF   \
+	while (0) \
+	printf
 #endif
 
 const struct videomode *
@@ -112,7 +116,7 @@ swap_modes(struct videomode *left, struct videomode *right)
  * (*) Note that the aspect ratio calculation treats "close" aspect ratios
  * (within 12.5%) as the same for this purpose.
  */
-#define	DIVIDE(x, y)	(((x) + ((y) / 2)) / (y))
+#define DIVIDE(x, y) (((x) + ((y) / 2)) / (y))
 void
 sort_modes(struct videomode *modes, struct videomode **preferred, int nmodes)
 {
@@ -127,7 +131,8 @@ sort_modes(struct videomode *modes, struct videomode **preferred, int nmodes)
 		/* Put the preferred mode first in the list */
 		aspect = (*preferred)->hdisplay * 100 / (*preferred)->vdisplay;
 		refresh = DIVIDE(DIVIDE((*preferred)->dot_clock * 1000,
-		    (*preferred)->htotal), (*preferred)->vtotal);
+				     (*preferred)->htotal),
+		    (*preferred)->vtotal);
 		if (*preferred != modes) {
 			swap_modes(*preferred, modes);
 			*preferred = modes;
@@ -152,8 +157,8 @@ sort_modes(struct videomode *modes, struct videomode **preferred, int nmodes)
 			}
 		}
 		aspect = mtemp->hdisplay * 100 / mtemp->vdisplay;
-		refresh = DIVIDE(DIVIDE(mtemp->dot_clock * 1000,
-		    mtemp->htotal), mtemp->vtotal);
+		refresh = DIVIDE(DIVIDE(mtemp->dot_clock * 1000, mtemp->htotal),
+		    mtemp->vtotal);
 		if (mtemp != modes)
 			swap_modes(mtemp, modes);
 	}
@@ -167,7 +172,8 @@ sort_modes(struct videomode *modes, struct videomode **preferred, int nmodes)
 		for (i = j; i < nmodes; i++) {
 			rtemp = abs(refresh -
 			    DIVIDE(DIVIDE(modes[i].dot_clock * 1000,
-			    modes[i].htotal), modes[i].vtotal));
+				       modes[i].htotal),
+				modes[i].vtotal));
 			atemp = (modes[i].hdisplay * 100 / modes[i].vdisplay);
 			if (rtemp < rbest) {
 				rbest = rtemp;

@@ -30,17 +30,18 @@
 
 /* This is driver for SoftDMA device built using Altera FIFO component. */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
@@ -54,83 +55,81 @@
 #endif
 
 #include <dev/altera/softdma/a_api.h>
-
 #include <dev/xdma/xdma.h>
+
 #include "xdma_if.h"
 
 #define SOFTDMA_DEBUG
 #undef SOFTDMA_DEBUG
 
 #ifdef SOFTDMA_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
 
-#define	AVALON_FIFO_TX_BASIC_OPTS_DEPTH		16
-#define	SOFTDMA_NCHANNELS			1
-#define	CONTROL_GEN_SOP				(1 << 0)
-#define	CONTROL_GEN_EOP				(1 << 1)
-#define	CONTROL_OWN				(1 << 31)
+#define AVALON_FIFO_TX_BASIC_OPTS_DEPTH 16
+#define SOFTDMA_NCHANNELS 1
+#define CONTROL_GEN_SOP (1 << 0)
+#define CONTROL_GEN_EOP (1 << 1)
+#define CONTROL_OWN (1 << 31)
 
-#define	SOFTDMA_RX_EVENTS	\
-	(A_ONCHIP_FIFO_MEM_CORE_INTR_FULL	| \
-	 A_ONCHIP_FIFO_MEM_CORE_INTR_OVERFLOW	| \
-	 A_ONCHIP_FIFO_MEM_CORE_INTR_UNDERFLOW)
-#define	SOFTDMA_TX_EVENTS	\
-	(A_ONCHIP_FIFO_MEM_CORE_INTR_EMPTY	| \
- 	A_ONCHIP_FIFO_MEM_CORE_INTR_OVERFLOW	| \
- 	A_ONCHIP_FIFO_MEM_CORE_INTR_UNDERFLOW)
+#define SOFTDMA_RX_EVENTS                          \
+	(A_ONCHIP_FIFO_MEM_CORE_INTR_FULL |        \
+	    A_ONCHIP_FIFO_MEM_CORE_INTR_OVERFLOW | \
+	    A_ONCHIP_FIFO_MEM_CORE_INTR_UNDERFLOW)
+#define SOFTDMA_TX_EVENTS                          \
+	(A_ONCHIP_FIFO_MEM_CORE_INTR_EMPTY |       \
+	    A_ONCHIP_FIFO_MEM_CORE_INTR_OVERFLOW | \
+	    A_ONCHIP_FIFO_MEM_CORE_INTR_UNDERFLOW)
 
 struct softdma_channel {
-	struct softdma_softc	*sc;
-	struct mtx		mtx;
-	xdma_channel_t		*xchan;
-	struct proc		*p;
-	int			used;
-	int			index;
-	int			run;
-	uint32_t		idx_tail;
-	uint32_t		idx_head;
-	struct softdma_desc	*descs;
+	struct softdma_softc *sc;
+	struct mtx mtx;
+	xdma_channel_t *xchan;
+	struct proc *p;
+	int used;
+	int index;
+	int run;
+	uint32_t idx_tail;
+	uint32_t idx_head;
+	struct softdma_desc *descs;
 
-	uint32_t		descs_num;
-	uint32_t		descs_used_count;
+	uint32_t descs_num;
+	uint32_t descs_used_count;
 };
 
 struct softdma_desc {
-	uint64_t		src_addr;
-	uint64_t		dst_addr;
-	uint32_t		len;
-	uint32_t		access_width;
-	uint32_t		count;
-	uint16_t		src_incr;
-	uint16_t		dst_incr;
-	uint32_t		direction;
-	struct softdma_desc	*next;
-	uint32_t		transfered;
-	uint32_t		status;
-	uint32_t		reserved;
-	uint32_t		control;
+	uint64_t src_addr;
+	uint64_t dst_addr;
+	uint32_t len;
+	uint32_t access_width;
+	uint32_t count;
+	uint16_t src_incr;
+	uint16_t dst_incr;
+	uint32_t direction;
+	struct softdma_desc *next;
+	uint32_t transfered;
+	uint32_t status;
+	uint32_t reserved;
+	uint32_t control;
 };
 
 struct softdma_softc {
-	device_t		dev;
-	struct resource		*res[3];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	bus_space_tag_t		bst_c;
-	bus_space_handle_t	bsh_c;
-	void			*ih;
-	struct softdma_channel	channels[SOFTDMA_NCHANNELS];
+	device_t dev;
+	struct resource *res[3];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	bus_space_tag_t bst_c;
+	bus_space_handle_t bsh_c;
+	void *ih;
+	struct softdma_channel channels[SOFTDMA_NCHANNELS];
 };
 
-static struct resource_spec softdma_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },	/* fifo */
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE },	/* core */
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec softdma_spec[] = { { SYS_RES_MEMORY, 0,
+						   RF_ACTIVE }, /* fifo */
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE },			/* core */
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
 static int softdma_probe(device_t dev);
 static int softdma_attach(device_t dev);
@@ -214,16 +213,18 @@ softdma_intr(void *arg)
 
 	reg = softdma_memc_read(sc, A_ONCHIP_FIFO_MEM_CORE_STATUS_REG_EVENT);
 
-	if (reg & (A_ONCHIP_FIFO_MEM_CORE_EVENT_OVERFLOW | 
-	    A_ONCHIP_FIFO_MEM_CORE_EVENT_UNDERFLOW)) {
+	if (reg &
+	    (A_ONCHIP_FIFO_MEM_CORE_EVENT_OVERFLOW |
+		A_ONCHIP_FIFO_MEM_CORE_EVENT_UNDERFLOW)) {
 		/* Errors */
-		err = (((reg & A_ONCHIP_FIFO_MEM_CORE_ERROR_MASK) >> \
-		    A_ONCHIP_FIFO_MEM_CORE_ERROR_SHIFT) & 0xff);
+		err = (((reg & A_ONCHIP_FIFO_MEM_CORE_ERROR_MASK) >>
+			   A_ONCHIP_FIFO_MEM_CORE_ERROR_SHIFT) &
+		    0xff);
 	}
 
 	if (reg != 0) {
-		softdma_memc_write(sc,
-		    A_ONCHIP_FIFO_MEM_CORE_STATUS_REG_EVENT, reg);
+		softdma_memc_write(sc, A_ONCHIP_FIFO_MEM_CORE_STATUS_REG_EVENT,
+		    reg);
 		chan->run = 1;
 		wakeup(chan);
 	}
@@ -255,8 +256,7 @@ softdma_attach(device_t dev)
 	sc->dev = dev;
 
 	if (bus_alloc_resources(dev, softdma_spec, sc->res)) {
-		device_printf(dev,
-		    "could not allocate resources for device\n");
+		device_printf(dev, "could not allocate resources for device\n");
 		return (ENXIO);
 	}
 
@@ -335,7 +335,7 @@ softdma_process_tx(struct softdma_channel *chan, struct softdma_desc *desc)
 	}
 
 	while (len >= 4) {
-		buf = (buf << 32) | (uint64_t)*(uint32_t *)addr;
+		buf = (buf << 32) | (uint64_t) * (uint32_t *)addr;
 		addr += 4;
 		len -= 4;
 		word = (uint32_t)((buf >> got_bits) & 0xffffffff);
@@ -450,12 +450,12 @@ softdma_process_rx(struct softdma_channel *chan, struct softdma_desc *desc)
 			*(uint32_t *)(desc->dst_addr + dst_offs) = data;
 			dst_offs += 4;
 		} else if (empty == 1) {
-			*(uint16_t *)(desc->dst_addr + dst_offs) =
-			    ((data >> 16) & 0xffff);
+			*(uint16_t *)(desc->dst_addr +
+			    dst_offs) = ((data >> 16) & 0xffff);
 			dst_offs += 2;
 
-			*(uint8_t *)(desc->dst_addr + dst_offs) =
-			    ((data >> 8) & 0xff);
+			*(uint8_t *)(desc->dst_addr + dst_offs) = ((data >> 8) &
+			    0xff);
 			dst_offs += 1;
 		} else {
 			panic("empty %d\n", empty);
@@ -572,7 +572,6 @@ softdma_worker(void *arg)
 
 		mtx_unlock(&chan->mtx);
 	}
-
 }
 
 static int
@@ -590,9 +589,9 @@ softdma_proc_create(struct softdma_channel *chan)
 	mtx_init(&chan->mtx, "SoftDMA", NULL, MTX_DEF);
 
 	if (kproc_create(softdma_worker, (void *)chan, &chan->p, 0, 0,
-	    "softdma_worker") != 0) {
-		device_printf(sc->dev,
-		    "%s: Failed to create worker thread.\n", __func__);
+		"softdma_worker") != 0) {
+		device_printf(sc->dev, "%s: Failed to create worker thread.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -663,8 +662,8 @@ softdma_desc_alloc(struct xdma_channel *xchan)
 
 	nsegments = chan->descs_num;
 
-	chan->descs = malloc(nsegments * sizeof(struct softdma_desc),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	chan->descs = malloc(nsegments * sizeof(struct softdma_desc), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 
 	return (0);
 }
@@ -684,8 +683,8 @@ softdma_channel_prep_sg(device_t dev, struct xdma_channel *xchan)
 
 	ret = softdma_desc_alloc(xchan);
 	if (ret != 0) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate descriptors.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate descriptors.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -695,7 +694,7 @@ softdma_channel_prep_sg(device_t dev, struct xdma_channel *xchan)
 		if (i == (chan->descs_num - 1)) {
 			desc->next = &chan->descs[0];
 		} else {
-			desc->next = &chan->descs[i+1];
+			desc->next = &chan->descs[i + 1];
 		}
 	}
 
@@ -800,8 +799,8 @@ softdma_channel_request(device_t dev, struct xdma_channel *xchan,
 
 	ret = softdma_desc_alloc(xchan);
 	if (ret != 0) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate descriptors.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate descriptors.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -840,8 +839,7 @@ softdma_channel_control(device_t dev, xdma_channel_t *xchan, int cmd)
 
 #ifdef FDT
 static int
-softdma_ofw_md_data(device_t dev, pcell_t *cells,
-    int ncells, void **ptr)
+softdma_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 {
 
 	return (0);
@@ -850,23 +848,23 @@ softdma_ofw_md_data(device_t dev, pcell_t *cells,
 
 static device_method_t softdma_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			softdma_probe),
-	DEVMETHOD(device_attach,		softdma_attach),
-	DEVMETHOD(device_detach,		softdma_detach),
+	DEVMETHOD(device_probe, softdma_probe),
+	DEVMETHOD(device_attach, softdma_attach),
+	DEVMETHOD(device_detach, softdma_detach),
 
 	/* xDMA Interface */
-	DEVMETHOD(xdma_channel_alloc,		softdma_channel_alloc),
-	DEVMETHOD(xdma_channel_free,		softdma_channel_free),
-	DEVMETHOD(xdma_channel_request,		softdma_channel_request),
-	DEVMETHOD(xdma_channel_control,		softdma_channel_control),
+	DEVMETHOD(xdma_channel_alloc, softdma_channel_alloc),
+	DEVMETHOD(xdma_channel_free, softdma_channel_free),
+	DEVMETHOD(xdma_channel_request, softdma_channel_request),
+	DEVMETHOD(xdma_channel_control, softdma_channel_control),
 
 	/* xDMA SG Interface */
-	DEVMETHOD(xdma_channel_prep_sg,		softdma_channel_prep_sg),
-	DEVMETHOD(xdma_channel_submit_sg,	softdma_channel_submit_sg),
-	DEVMETHOD(xdma_channel_capacity,	softdma_channel_capacity),
+	DEVMETHOD(xdma_channel_prep_sg, softdma_channel_prep_sg),
+	DEVMETHOD(xdma_channel_submit_sg, softdma_channel_submit_sg),
+	DEVMETHOD(xdma_channel_capacity, softdma_channel_capacity),
 
 #ifdef FDT
-	DEVMETHOD(xdma_ofw_md_data,		softdma_ofw_md_data),
+	DEVMETHOD(xdma_ofw_md_data, softdma_ofw_md_data),
 #endif
 
 	DEVMETHOD_END

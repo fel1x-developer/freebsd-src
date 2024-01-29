@@ -23,15 +23,16 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
 #include <dev/mlx5/driver.h>
-#include <linux/module.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
 
-static int mlx5_cmd_query_adapter(struct mlx5_core_dev *dev, u32 *out,
-				  int outlen)
+#include <linux/module.h>
+
+static int
+mlx5_cmd_query_adapter(struct mlx5_core_dev *dev, u32 *out, int outlen)
 {
 	u32 in[MLX5_ST_SZ_DW(query_adapter_in)];
 	int err;
@@ -44,7 +45,8 @@ static int mlx5_cmd_query_adapter(struct mlx5_core_dev *dev, u32 *out,
 	return err;
 }
 
-int mlx5_query_board_id(struct mlx5_core_dev *dev)
+int
+mlx5_query_board_id(struct mlx5_core_dev *dev)
 {
 	u32 *out;
 	int outlen = MLX5_ST_SZ_BYTES(query_adapter_out);
@@ -57,10 +59,10 @@ int mlx5_query_board_id(struct mlx5_core_dev *dev)
 		goto out_out;
 
 	memcpy(dev->board_id,
-	       MLX5_ADDR_OF(query_adapter_out, out,
-			    query_adapter_struct.vsd_contd_psid),
-	       MLX5_FLD_SZ_BYTES(query_adapter_out,
-				 query_adapter_struct.vsd_contd_psid));
+	    MLX5_ADDR_OF(query_adapter_out, out,
+		query_adapter_struct.vsd_contd_psid),
+	    MLX5_FLD_SZ_BYTES(query_adapter_out,
+		query_adapter_struct.vsd_contd_psid));
 
 out_out:
 	kfree(out);
@@ -68,7 +70,8 @@ out_out:
 	return err;
 }
 
-int mlx5_core_query_vendor_id(struct mlx5_core_dev *mdev, u32 *vendor_id)
+int
+mlx5_core_query_vendor_id(struct mlx5_core_dev *mdev, u32 *vendor_id)
 {
 	u32 *out;
 	int outlen = MLX5_ST_SZ_BYTES(query_adapter_out);
@@ -81,7 +84,7 @@ int mlx5_core_query_vendor_id(struct mlx5_core_dev *mdev, u32 *vendor_id)
 		goto out_out;
 
 	*vendor_id = MLX5_GET(query_adapter_out, out,
-			      query_adapter_struct.ieee_vendor_id);
+	    query_adapter_struct.ieee_vendor_id);
 
 out_out:
 	kfree(out);
@@ -90,7 +93,8 @@ out_out:
 }
 EXPORT_SYMBOL(mlx5_core_query_vendor_id);
 
-static int mlx5_core_query_special_contexts(struct mlx5_core_dev *dev)
+static int
+mlx5_core_query_special_contexts(struct mlx5_core_dev *dev)
 {
 	u32 in[MLX5_ST_SZ_DW(query_special_contexts_in)];
 	u32 out[MLX5_ST_SZ_DW(query_special_contexts_out)];
@@ -100,39 +104,40 @@ static int mlx5_core_query_special_contexts(struct mlx5_core_dev *dev)
 	memset(out, 0, sizeof(out));
 
 	MLX5_SET(query_special_contexts_in, in, opcode,
-		 MLX5_CMD_OP_QUERY_SPECIAL_CONTEXTS);
+	    MLX5_CMD_OP_QUERY_SPECIAL_CONTEXTS);
 	err = mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 	if (err)
 		return err;
 
 	dev->special_contexts.resd_lkey = MLX5_GET(query_special_contexts_out,
-						   out, resd_lkey);
+	    out, resd_lkey);
 
 	return err;
 }
 
-static int mlx5_get_qcam_reg(struct mlx5_core_dev *dev)
+static int
+mlx5_get_qcam_reg(struct mlx5_core_dev *dev)
 {
 	return mlx5_query_qcam_reg(dev, dev->caps.qcam,
-				   MLX5_QCAM_FEATURE_ENHANCED_FEATURES,
-				   MLX5_QCAM_REGS_FIRST_128);
+	    MLX5_QCAM_FEATURE_ENHANCED_FEATURES, MLX5_QCAM_REGS_FIRST_128);
 }
 
-static int mlx5_get_pcam_reg(struct mlx5_core_dev *dev)
+static int
+mlx5_get_pcam_reg(struct mlx5_core_dev *dev)
 {
 	return mlx5_query_pcam_reg(dev, dev->caps.pcam,
-				   MLX5_PCAM_FEATURE_ENHANCED_FEATURES,
-				   MLX5_PCAM_REGS_5000_TO_507F);
+	    MLX5_PCAM_FEATURE_ENHANCED_FEATURES, MLX5_PCAM_REGS_5000_TO_507F);
 }
 
-static int mlx5_get_mcam_reg(struct mlx5_core_dev *dev)
+static int
+mlx5_get_mcam_reg(struct mlx5_core_dev *dev)
 {
 	return mlx5_query_mcam_reg(dev, dev->caps.mcam,
-				   MLX5_MCAM_FEATURE_ENHANCED_FEATURES,
-				   MLX5_MCAM_REGS_FIRST_128);
+	    MLX5_MCAM_FEATURE_ENHANCED_FEATURES, MLX5_MCAM_REGS_FIRST_128);
 }
 
-int mlx5_query_hca_caps(struct mlx5_core_dev *dev)
+int
+mlx5_query_hca_caps(struct mlx5_core_dev *dev)
 {
 	int err;
 
@@ -165,10 +170,10 @@ int mlx5_query_hca_caps(struct mlx5_core_dev *dev)
 	}
 
 	if ((MLX5_CAP_GEN(dev, port_type) ==
-	    MLX5_CMD_HCA_CAP_PORT_TYPE_ETHERNET &&
-	    MLX5_CAP_GEN(dev, nic_flow_table)) ||
+		    MLX5_CMD_HCA_CAP_PORT_TYPE_ETHERNET &&
+		MLX5_CAP_GEN(dev, nic_flow_table)) ||
 	    (MLX5_CAP_GEN(dev, port_type) == MLX5_CMD_HCA_CAP_PORT_TYPE_IB &&
-	    MLX5_CAP_GEN(dev, ipoib_enhanced_offloads))) {
+		MLX5_CAP_GEN(dev, ipoib_enhanced_offloads))) {
 		err = mlx5_core_get_caps(dev, MLX5_CAP_FLOW_TABLE);
 		if (err)
 			return err;
@@ -247,7 +252,8 @@ int mlx5_query_hca_caps(struct mlx5_core_dev *dev)
 	return 0;
 }
 
-int mlx5_cmd_init_hca(struct mlx5_core_dev *dev)
+int
+mlx5_cmd_init_hca(struct mlx5_core_dev *dev)
 {
 	u32 in[MLX5_ST_SZ_DW(init_hca_in)];
 	u32 out[MLX5_ST_SZ_DW(init_hca_out)];
@@ -257,39 +263,43 @@ int mlx5_cmd_init_hca(struct mlx5_core_dev *dev)
 	MLX5_SET(init_hca_in, in, opcode, MLX5_CMD_OP_INIT_HCA);
 
 	memset(out, 0, sizeof(out));
-	return mlx5_cmd_exec(dev, in,  sizeof(in), out, sizeof(out));
+	return mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 }
 
-int mlx5_cmd_teardown_hca(struct mlx5_core_dev *dev)
+int
+mlx5_cmd_teardown_hca(struct mlx5_core_dev *dev)
 {
-	u32 in[MLX5_ST_SZ_DW(teardown_hca_in)] = {0};
-	u32 out[MLX5_ST_SZ_DW(teardown_hca_out)] = {0};
+	u32 in[MLX5_ST_SZ_DW(teardown_hca_in)] = { 0 };
+	u32 out[MLX5_ST_SZ_DW(teardown_hca_out)] = { 0 };
 
 	MLX5_SET(teardown_hca_in, in, opcode, MLX5_CMD_OP_TEARDOWN_HCA);
-	return mlx5_cmd_exec(dev, in,  sizeof(in), out, sizeof(out));
+	return mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 }
 
-int mlx5_cmd_force_teardown_hca(struct mlx5_core_dev *dev)
+int
+mlx5_cmd_force_teardown_hca(struct mlx5_core_dev *dev)
 {
-	u32 out[MLX5_ST_SZ_DW(teardown_hca_out)] = {0};
-	u32 in[MLX5_ST_SZ_DW(teardown_hca_in)] = {0};
+	u32 out[MLX5_ST_SZ_DW(teardown_hca_out)] = { 0 };
+	u32 in[MLX5_ST_SZ_DW(teardown_hca_in)] = { 0 };
 	int force_state;
 	int ret;
 
 	if (!MLX5_CAP_GEN(dev, force_teardown)) {
-		mlx5_core_dbg(dev, "force teardown is not supported in the firmware\n");
+		mlx5_core_dbg(dev,
+		    "force teardown is not supported in the firmware\n");
 		return -EOPNOTSUPP;
 	}
 
 	MLX5_SET(teardown_hca_in, in, opcode, MLX5_CMD_OP_TEARDOWN_HCA);
-	MLX5_SET(teardown_hca_in, in, profile, MLX5_TEARDOWN_HCA_IN_PROFILE_FORCE_CLOSE);
+	MLX5_SET(teardown_hca_in, in, profile,
+	    MLX5_TEARDOWN_HCA_IN_PROFILE_FORCE_CLOSE);
 
 	ret = mlx5_cmd_exec_polling(dev, in, sizeof(in), out, sizeof(out));
 	if (ret)
 		return ret;
 
 	force_state = MLX5_GET(teardown_hca_out, out, state);
-	if (force_state == MLX5_TEARDOWN_HCA_OUT_FORCE_STATE_FAIL)  {
+	if (force_state == MLX5_TEARDOWN_HCA_OUT_FORCE_STATE_FAIL) {
 		mlx5_core_err(dev, "teardown with force mode failed\n");
 		return -EIO;
 	}
@@ -297,8 +307,9 @@ int mlx5_cmd_force_teardown_hca(struct mlx5_core_dev *dev)
 	return 0;
 }
 
-#define	MLX5_FAST_TEARDOWN_WAIT_MS 3000
-int mlx5_cmd_fast_teardown_hca(struct mlx5_core_dev *dev)
+#define MLX5_FAST_TEARDOWN_WAIT_MS 3000
+int
+mlx5_cmd_fast_teardown_hca(struct mlx5_core_dev *dev)
 {
 	int end, delay_ms = MLX5_FAST_TEARDOWN_WAIT_MS;
 	u32 out[MLX5_ST_SZ_DW(teardown_hca_out)] = {};
@@ -307,13 +318,14 @@ int mlx5_cmd_fast_teardown_hca(struct mlx5_core_dev *dev)
 	int ret;
 
 	if (!MLX5_CAP_GEN(dev, fast_teardown)) {
-		mlx5_core_dbg(dev, "fast teardown is not supported in the firmware\n");
+		mlx5_core_dbg(dev,
+		    "fast teardown is not supported in the firmware\n");
 		return -EOPNOTSUPP;
 	}
 
 	MLX5_SET(teardown_hca_in, in, opcode, MLX5_CMD_OP_TEARDOWN_HCA);
 	MLX5_SET(teardown_hca_in, in, profile,
-		 MLX5_TEARDOWN_HCA_IN_PROFILE_PREPARE_FAST_TEARDOWN);
+	    MLX5_TEARDOWN_HCA_IN_PROFILE_PREPARE_FAST_TEARDOWN);
 
 	ret = mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 	if (ret)
@@ -338,21 +350,22 @@ int mlx5_cmd_fast_teardown_hca(struct mlx5_core_dev *dev)
 
 	if (mlx5_get_nic_state(dev) != MLX5_NIC_IFC_DISABLED) {
 		mlx5_core_err(dev, "NIC IFC still %d after %ums.\n",
-			mlx5_get_nic_state(dev), delay_ms);
+		    mlx5_get_nic_state(dev), delay_ms);
 		return -EIO;
 	}
 	return 0;
 }
 
-int mlx5_core_set_dc_cnak_trace(struct mlx5_core_dev *dev, int enable,
-				u64 addr)
+int
+mlx5_core_set_dc_cnak_trace(struct mlx5_core_dev *dev, int enable, u64 addr)
 {
-	u32 in[MLX5_ST_SZ_DW(set_dc_cnak_trace_in)] = {0};
-	u32 out[MLX5_ST_SZ_DW(set_dc_cnak_trace_out)] = {0};
+	u32 in[MLX5_ST_SZ_DW(set_dc_cnak_trace_in)] = { 0 };
+	u32 out[MLX5_ST_SZ_DW(set_dc_cnak_trace_out)] = { 0 };
 	__be64 be_addr;
 	void *pas;
 
-	MLX5_SET(set_dc_cnak_trace_in, in, opcode, MLX5_CMD_OP_SET_DC_CNAK_TRACE);
+	MLX5_SET(set_dc_cnak_trace_in, in, opcode,
+	    MLX5_CMD_OP_SET_DC_CNAK_TRACE);
 	MLX5_SET(set_dc_cnak_trace_in, in, enable, enable);
 	pas = MLX5_ADDR_OF(set_dc_cnak_trace_in, in, pas);
 	be_addr = cpu_to_be64(addr);
@@ -370,10 +383,10 @@ enum mlxsw_reg_mcc_instruction {
 	MLX5_REG_MCC_INSTRUCTION_CANCEL = 0x08,
 };
 
-static int mlx5_reg_mcc_set(struct mlx5_core_dev *dev,
-			    enum mlxsw_reg_mcc_instruction instr,
-			    u16 component_index, u32 update_handle,
-			    u32 component_size)
+static int
+mlx5_reg_mcc_set(struct mlx5_core_dev *dev,
+    enum mlxsw_reg_mcc_instruction instr, u16 component_index,
+    u32 update_handle, u32 component_size)
 {
 	u32 out[MLX5_ST_SZ_DW(mcc_reg)];
 	u32 in[MLX5_ST_SZ_DW(mcc_reg)];
@@ -385,13 +398,13 @@ static int mlx5_reg_mcc_set(struct mlx5_core_dev *dev,
 	MLX5_SET(mcc_reg, in, update_handle, update_handle);
 	MLX5_SET(mcc_reg, in, component_size, component_size);
 
-	return mlx5_core_access_reg(dev, in, sizeof(in), out,
-				    sizeof(out), MLX5_REG_MCC, 0, 1);
+	return mlx5_core_access_reg(dev, in, sizeof(in), out, sizeof(out),
+	    MLX5_REG_MCC, 0, 1);
 }
 
-static int mlx5_reg_mcc_query(struct mlx5_core_dev *dev,
-			      u32 *update_handle, u8 *error_code,
-			      u8 *control_state)
+static int
+mlx5_reg_mcc_query(struct mlx5_core_dev *dev, u32 *update_handle,
+    u8 *error_code, u8 *control_state)
 {
 	u32 out[MLX5_ST_SZ_DW(mcc_reg)];
 	u32 in[MLX5_ST_SZ_DW(mcc_reg)];
@@ -401,8 +414,8 @@ static int mlx5_reg_mcc_query(struct mlx5_core_dev *dev,
 	memset(out, 0, sizeof(out));
 	MLX5_SET(mcc_reg, in, update_handle, *update_handle);
 
-	err = mlx5_core_access_reg(dev, in, sizeof(in), out,
-				   sizeof(out), MLX5_REG_MCC, 0, 0);
+	err = mlx5_core_access_reg(dev, in, sizeof(in), out, sizeof(out),
+	    MLX5_REG_MCC, 0, 0);
 	if (err)
 		goto out;
 
@@ -414,10 +427,9 @@ out:
 	return err;
 }
 
-static int mlx5_reg_mcda_set(struct mlx5_core_dev *dev,
-			     u32 update_handle,
-			     u32 offset, u16 size,
-			     u8 *data)
+static int
+mlx5_reg_mcda_set(struct mlx5_core_dev *dev, u32 update_handle, u32 offset,
+    u16 size, u8 *data)
 {
 	int err, in_size = MLX5_ST_SZ_BYTES(mcda_reg) + size;
 	u32 out[MLX5_ST_SZ_DW(mcda_reg)];
@@ -439,17 +451,15 @@ static int mlx5_reg_mcda_set(struct mlx5_core_dev *dev,
 		memcpy(MLX5_ADDR_OF(mcda_reg, in, data) + j, &data_element, 4);
 	}
 
-	err = mlx5_core_access_reg(dev, in, in_size, out,
-				   sizeof(out), MLX5_REG_MCDA, 0, 1);
+	err = mlx5_core_access_reg(dev, in, in_size, out, sizeof(out),
+	    MLX5_REG_MCDA, 0, 1);
 	kfree(in);
 	return err;
 }
 
-static int mlx5_reg_mcqi_query(struct mlx5_core_dev *dev,
-			       u16 component_index,
-			       u32 *max_component_size,
-			       u8 *log_mcda_word_size,
-			       u16 *mcda_max_write_size)
+static int
+mlx5_reg_mcqi_query(struct mlx5_core_dev *dev, u16 component_index,
+    u32 *max_component_size, u8 *log_mcda_word_size, u16 *mcda_max_write_size)
 {
 	u32 out[MLX5_ST_SZ_DW(mcqi_reg) + MLX5_ST_SZ_DW(mcqi_cap)];
 	int offset = MLX5_ST_SZ_DW(mcqi_reg);
@@ -462,14 +472,17 @@ static int mlx5_reg_mcqi_query(struct mlx5_core_dev *dev,
 	MLX5_SET(mcqi_reg, in, component_index, component_index);
 	MLX5_SET(mcqi_reg, in, data_size, MLX5_ST_SZ_BYTES(mcqi_cap));
 
-	err = mlx5_core_access_reg(dev, in, sizeof(in), out,
-				   sizeof(out), MLX5_REG_MCQI, 0, 0);
+	err = mlx5_core_access_reg(dev, in, sizeof(in), out, sizeof(out),
+	    MLX5_REG_MCQI, 0, 0);
 	if (err)
 		goto out;
 
-	*max_component_size = MLX5_GET(mcqi_cap, out + offset, max_component_size);
-	*log_mcda_word_size = MLX5_GET(mcqi_cap, out + offset, log_mcda_word_size);
-	*mcda_max_write_size = MLX5_GET(mcqi_cap, out + offset, mcda_max_write_size);
+	*max_component_size = MLX5_GET(mcqi_cap, out + offset,
+	    max_component_size);
+	*log_mcda_word_size = MLX5_GET(mcqi_cap, out + offset,
+	    log_mcda_word_size);
+	*mcda_max_write_size = MLX5_GET(mcqi_cap, out + offset,
+	    mcda_max_write_size);
 
 out:
 	return err;
@@ -480,22 +493,23 @@ struct mlx5_mlxfw_dev {
 	struct mlx5_core_dev *mlx5_core_dev;
 };
 
-static int mlx5_component_query(struct mlxfw_dev *mlxfw_dev,
-				u16 component_index, u32 *p_max_size,
-				u8 *p_align_bits, u16 *p_max_write_size)
+static int
+mlx5_component_query(struct mlxfw_dev *mlxfw_dev, u16 component_index,
+    u32 *p_max_size, u8 *p_align_bits, u16 *p_max_write_size)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	return mlx5_reg_mcqi_query(dev, component_index, p_max_size,
-				   p_align_bits, p_max_write_size);
+	    p_align_bits, p_max_write_size);
 }
 
-static int mlx5_fsm_lock(struct mlxfw_dev *mlxfw_dev, u32 *fwhandle)
+static int
+mlx5_fsm_lock(struct mlxfw_dev *mlxfw_dev, u32 *fwhandle)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 	u8 control_state, error_code;
 	int err;
@@ -508,58 +522,62 @@ static int mlx5_fsm_lock(struct mlxfw_dev *mlxfw_dev, u32 *fwhandle)
 	if (control_state != MLXFW_FSM_STATE_IDLE)
 		return -EBUSY;
 
-	return mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_LOCK_UPDATE_HANDLE,
-				0, *fwhandle, 0);
+	return mlx5_reg_mcc_set(dev,
+	    MLX5_REG_MCC_INSTRUCTION_LOCK_UPDATE_HANDLE, 0, *fwhandle, 0);
 }
 
-static int mlx5_fsm_component_update(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				     u16 component_index, u32 component_size)
+static int
+mlx5_fsm_component_update(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
+    u16 component_index, u32 component_size)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	return mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_UPDATE_COMPONENT,
-				component_index, fwhandle, component_size);
+	    component_index, fwhandle, component_size);
 }
 
-static int mlx5_fsm_block_download(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				   u8 *data, u16 size, u32 offset)
+static int
+mlx5_fsm_block_download(struct mlxfw_dev *mlxfw_dev, u32 fwhandle, u8 *data,
+    u16 size, u32 offset)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	return mlx5_reg_mcda_set(dev, fwhandle, offset, size, data);
 }
 
-static int mlx5_fsm_component_verify(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				     u16 component_index)
+static int
+mlx5_fsm_component_verify(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
+    u16 component_index)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	return mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_VERIFY_COMPONENT,
-				component_index, fwhandle, 0);
+	    component_index, fwhandle, 0);
 }
 
-static int mlx5_fsm_activate(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
+static int
+mlx5_fsm_activate(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
-	return mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_ACTIVATE,	0,
-				fwhandle, 0);
+	return mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_ACTIVATE, 0,
+	    fwhandle, 0);
 }
 
-static int mlx5_fsm_query_state(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
-				enum mlxfw_fsm_state *fsm_state,
-				enum mlxfw_fsm_state_err *fsm_state_err)
+static int
+mlx5_fsm_query_state(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
+    enum mlxfw_fsm_state *fsm_state, enum mlxfw_fsm_state_err *fsm_state_err)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 	u8 control_state, error_code;
 	int err;
@@ -570,43 +588,45 @@ static int mlx5_fsm_query_state(struct mlxfw_dev *mlxfw_dev, u32 fwhandle,
 
 	*fsm_state = control_state;
 	*fsm_state_err = min_t(enum mlxfw_fsm_state_err, error_code,
-			       MLXFW_FSM_STATE_ERR_MAX);
+	    MLXFW_FSM_STATE_ERR_MAX);
 	return 0;
 }
 
-static void mlx5_fsm_cancel(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
+static void
+mlx5_fsm_cancel(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_CANCEL, 0, fwhandle, 0);
 }
 
-static void mlx5_fsm_release(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
+static void
+mlx5_fsm_release(struct mlxfw_dev *mlxfw_dev, u32 fwhandle)
 {
-	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev =
-		container_of(mlxfw_dev, struct mlx5_mlxfw_dev, mlxfw_dev);
+	struct mlx5_mlxfw_dev *mlx5_mlxfw_dev = container_of(mlxfw_dev,
+	    struct mlx5_mlxfw_dev, mlxfw_dev);
 	struct mlx5_core_dev *dev = mlx5_mlxfw_dev->mlx5_core_dev;
 
 	mlx5_reg_mcc_set(dev, MLX5_REG_MCC_INSTRUCTION_RELEASE_UPDATE_HANDLE, 0,
-			 fwhandle, 0);
+	    fwhandle, 0);
 }
 
 static const struct mlxfw_dev_ops mlx5_mlxfw_dev_ops = {
-	.component_query	= mlx5_component_query,
-	.fsm_lock		= mlx5_fsm_lock,
-	.fsm_component_update	= mlx5_fsm_component_update,
-	.fsm_block_download	= mlx5_fsm_block_download,
-	.fsm_component_verify	= mlx5_fsm_component_verify,
-	.fsm_activate		= mlx5_fsm_activate,
-	.fsm_query_state	= mlx5_fsm_query_state,
-	.fsm_cancel		= mlx5_fsm_cancel,
-	.fsm_release		= mlx5_fsm_release
+	.component_query = mlx5_component_query,
+	.fsm_lock = mlx5_fsm_lock,
+	.fsm_component_update = mlx5_fsm_component_update,
+	.fsm_block_download = mlx5_fsm_block_download,
+	.fsm_component_verify = mlx5_fsm_component_verify,
+	.fsm_activate = mlx5_fsm_activate,
+	.fsm_query_state = mlx5_fsm_query_state,
+	.fsm_cancel = mlx5_fsm_cancel,
+	.fsm_release = mlx5_fsm_release
 };
 
-int mlx5_firmware_flash(struct mlx5_core_dev *dev,
-			const struct firmware *firmware)
+int
+mlx5_firmware_flash(struct mlx5_core_dev *dev, const struct firmware *firmware)
 {
 	struct mlx5_mlxfw_dev mlx5_mlxfw_dev = {
 		.mlxfw_dev = {
@@ -617,11 +637,10 @@ int mlx5_firmware_flash(struct mlx5_core_dev *dev,
 		.mlx5_core_dev = dev
 	};
 
-	if (!MLX5_CAP_GEN(dev, mcam_reg)  ||
-	    !MLX5_CAP_MCAM_REG(dev, mcqi) ||
-	    !MLX5_CAP_MCAM_REG(dev, mcc)  ||
-	    !MLX5_CAP_MCAM_REG(dev, mcda)) {
-		pr_info("%s flashing isn't supported by the running FW\n", __func__);
+	if (!MLX5_CAP_GEN(dev, mcam_reg) || !MLX5_CAP_MCAM_REG(dev, mcqi) ||
+	    !MLX5_CAP_MCAM_REG(dev, mcc) || !MLX5_CAP_MCAM_REG(dev, mcda)) {
+		pr_info("%s flashing isn't supported by the running FW\n",
+		    __func__);
 		return -EOPNOTSUPP;
 	}
 

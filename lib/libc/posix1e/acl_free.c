@@ -30,11 +30,13 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 #include <sys/errno.h>
+
 #include <stdlib.h>
+
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * acl_free() (23.4.12): free any releasable memory allocated to the

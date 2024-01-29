@@ -4,7 +4,9 @@
 #define ADF_DEV_ERR_H_
 
 #include <sys/types.h>
+
 #include <dev/pci/pcivar.h>
+
 #include "adf_accel_devices.h"
 
 #define ADF_ERRSOU0 (0x3A000 + 0x00)
@@ -36,14 +38,14 @@
 #define ADF_SECRAMUERRAD (0x3AC00 + 0x0C)
 #define ADF_CPPMEMTGTERR (0x3AC00 + 0x10)
 #define ADF_ERRPPID (0x3AC00 + 0x14)
-#define ADF_INTSTATSSM(i) ((i)*0x4000 + 0x04)
+#define ADF_INTSTATSSM(i) ((i) * 0x4000 + 0x04)
 #define ADF_INTSTATSSM_SHANGERR BIT(13)
-#define ADF_PPERR(i) ((i)*0x4000 + 0x08)
-#define ADF_PPERRID(i) ((i)*0x4000 + 0x0C)
-#define ADF_CERRSSMSH(i) ((i)*0x4000 + 0x10)
-#define ADF_UERRSSMSH(i) ((i)*0x4000 + 0x18)
-#define ADF_UERRSSMSHAD(i) ((i)*0x4000 + 0x1C)
-#define ADF_SLICEHANGSTATUS(i) ((i)*0x4000 + 0x4C)
+#define ADF_PPERR(i) ((i) * 0x4000 + 0x08)
+#define ADF_PPERRID(i) ((i) * 0x4000 + 0x0C)
+#define ADF_CERRSSMSH(i) ((i) * 0x4000 + 0x10)
+#define ADF_UERRSSMSH(i) ((i) * 0x4000 + 0x18)
+#define ADF_UERRSSMSHAD(i) ((i) * 0x4000 + 0x1C)
+#define ADF_SLICEHANGSTATUS(i) ((i) * 0x4000 + 0x4C)
 #define ADF_SLICE_HANG_AUTH0_MASK BIT(0)
 #define ADF_SLICE_HANG_AUTH1_MASK BIT(1)
 #define ADF_SLICE_HANG_AUTH2_MASK BIT(2)
@@ -59,20 +61,18 @@
 #define ADF_SLICE_HANG_MMP2_MASK BIT(18)
 #define ADF_SLICE_HANG_MMP3_MASK BIT(19)
 #define ADF_SLICE_HANG_MMP4_MASK BIT(20)
-#define ADF_SSMWDT(i) ((i)*0x4000 + 0x54)
-#define ADF_SSMWDTPKE(i) ((i)*0x4000 + 0x58)
-#define ADF_SHINTMASKSSM(i) ((i)*0x4000 + 0x1018)
+#define ADF_SSMWDT(i) ((i) * 0x4000 + 0x54)
+#define ADF_SSMWDTPKE(i) ((i) * 0x4000 + 0x58)
+#define ADF_SHINTMASKSSM(i) ((i) * 0x4000 + 0x1018)
 #define ADF_ENABLE_SLICE_HANG 0x000000
 #define ADF_MAX_MMP (5)
-#define ADF_MMP_BASE(i) ((i)*0x1000 % 0x3800)
-#define ADF_CERRSSMMMP(i, n) ((i)*0x4000 + ADF_MMP_BASE(n) + 0x380)
-#define ADF_UERRSSMMMP(i, n) ((i)*0x4000 + ADF_MMP_BASE(n) + 0x388)
-#define ADF_UERRSSMMMPAD(i, n) ((i)*0x4000 + ADF_MMP_BASE(n) + 0x38C)
+#define ADF_MMP_BASE(i) ((i) * 0x1000 % 0x3800)
+#define ADF_CERRSSMMMP(i, n) ((i) * 0x4000 + ADF_MMP_BASE(n) + 0x380)
+#define ADF_UERRSSMMMP(i, n) ((i) * 0x4000 + ADF_MMP_BASE(n) + 0x388)
+#define ADF_UERRSSMMMPAD(i, n) ((i) * 0x4000 + ADF_MMP_BASE(n) + 0x38C)
 
-bool adf_handle_slice_hang(struct adf_accel_dev *accel_dev,
-			   u8 accel_num,
-			   struct resource *csr,
-			   u32 slice_hang_offset);
+bool adf_handle_slice_hang(struct adf_accel_dev *accel_dev, u8 accel_num,
+    struct resource *csr, u32 slice_hang_offset);
 bool adf_check_slice_hang(struct adf_accel_dev *accel_dev);
 void adf_print_err_registers(struct adf_accel_dev *accel_dev);
 

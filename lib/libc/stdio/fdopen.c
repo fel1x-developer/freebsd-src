@@ -32,15 +32,17 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
-#include "un-namespace.h"
+#include <stdio.h>
+#include <unistd.h>
+
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 FILE *
 fdopen(int fd, const char *mode)

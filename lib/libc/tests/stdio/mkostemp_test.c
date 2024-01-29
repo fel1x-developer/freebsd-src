@@ -30,6 +30,7 @@
 
 #include <sys/stat.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <paths.h>
@@ -37,8 +38,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 static const char template[] = "mkostemp.XXXXXXXX";
 static int testnum;
@@ -56,13 +55,13 @@ test_one(int oflags)
 	fd = mkostemp(tmpf, oflags);
 	if (fd < 0) {
 		printf("not ok %d - oflags=%#x "
-		    "mkostemp() reported failure: %s\n",
+		       "mkostemp() reported failure: %s\n",
 		    testnum++, oflags, strerror(errno));
 		return;
 	}
 	if (memcmp(tmpf, template, sizeof(tmpf) - 8 - 1) != 0) {
 		printf("not ok %d - oflags=%#x "
-		    "returned pathname does not match template: %s\n",
+		       "returned pathname does not match template: %s\n",
 		    testnum++, oflags, tmpf);
 		return;
 	}
@@ -70,56 +69,56 @@ test_one(int oflags)
 		if (fcntl(fd, F_GETFD) !=
 		    (oflags & O_CLOEXEC ? FD_CLOEXEC : 0)) {
 			printf("not ok %d - oflags=%#x "
-			    "close-on-exec flag incorrect\n",
+			       "close-on-exec flag incorrect\n",
 			    testnum++, oflags);
 			break;
 		}
 		if ((fcntl(fd, F_GETFL) & MISCFLAGS) != (oflags & MISCFLAGS)) {
 			printf("not ok %d - oflags=%#x "
-			    "open flags incorrect\n",
+			       "open flags incorrect\n",
 			    testnum++, oflags);
 			break;
 		}
 		if (stat(tmpf, &st1) == -1) {
 			printf("not ok %d - oflags=%#x "
-			    "cannot stat returned pathname %s: %s\n",
+			       "cannot stat returned pathname %s: %s\n",
 			    testnum++, oflags, tmpf, strerror(errno));
 			break;
 		}
 		if (fstat(fd, &st2) == -1) {
 			printf("not ok %d - oflags=%#x "
-			    "cannot fstat returned fd %d: %s\n",
+			       "cannot fstat returned fd %d: %s\n",
 			    testnum++, oflags, fd, strerror(errno));
 			break;
 		}
 		if (!S_ISREG(st1.st_mode) || (st1.st_mode & 0777) != 0600 ||
 		    st1.st_nlink != 1 || st1.st_size != 0) {
 			printf("not ok %d - oflags=%#x "
-			    "named file attributes incorrect\n",
+			       "named file attributes incorrect\n",
 			    testnum++, oflags);
 			break;
 		}
 		if (!S_ISREG(st2.st_mode) || (st2.st_mode & 0777) != 0600 ||
 		    st2.st_nlink != 1 || st2.st_size != 0) {
 			printf("not ok %d - oflags=%#x "
-			    "opened file attributes incorrect\n",
+			       "opened file attributes incorrect\n",
 			    testnum++, oflags);
 			break;
 		}
 		if (st1.st_dev != st2.st_dev || st1.st_ino != st2.st_ino) {
 			printf("not ok %d - oflags=%#x "
-			    "named and opened file do not match\n",
+			       "named and opened file do not match\n",
 			    testnum++, oflags);
 			break;
 		}
 		(void)unlink(tmpf);
 		if (fstat(fd, &st2) == -1)
 			printf("not ok %d - oflags=%#x "
-			    "cannot fstat returned fd %d again: %s\n",
+			       "cannot fstat returned fd %d again: %s\n",
 			    testnum++, oflags, fd, strerror(errno));
 		else if (st2.st_nlink != 0)
 			printf("not ok %d - oflags=%#x "
-			    "st_nlink is not 0 after unlink\n",
+			       "st_nlink is not 0 after unlink\n",
 			    testnum++, oflags);
 		else
 			printf("ok %d - oflags=%#x\n", testnum++, oflags);
@@ -155,7 +154,7 @@ ATF_TC_WITHOUT_HEAD(O_APPEND__O_CLOEXEC);
 ATF_TC_BODY(O_APPEND__O_CLOEXEC, tc)
 {
 
-	test_one(O_APPEND|O_CLOEXEC);
+	test_one(O_APPEND | O_CLOEXEC);
 }
 
 ATF_TC_WITHOUT_HEAD(bad_flags);
@@ -166,7 +165,7 @@ ATF_TC_BODY(bad_flags, tc)
 
 	memcpy(tmpf, template, sizeof(tmpf));
 	ATF_REQUIRE_MSG(mkostemp(tmpf, O_CREAT) == -1,
-		"mkostemp(O_CREAT) succeeded unexpectedly");
+	    "mkostemp(O_CREAT) succeeded unexpectedly");
 }
 
 ATF_TP_ADD_TCS(tp)

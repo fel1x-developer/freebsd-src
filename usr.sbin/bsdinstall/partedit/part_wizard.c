@@ -28,20 +28,19 @@
 
 #include <sys/param.h>
 
+#include <bsddialog.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <libgeom.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <libgeom.h>
-#include <bsddialog.h>
-
 #include "partedit.h"
 
-#define MIN_FREE_SPACE		(1024*1024*1024) /* 1 GB */
-#define SWAP_SIZE(available)	MIN(available/20, 4*1024*1024*1024LL)
+#define MIN_FREE_SPACE (1024 * 1024 * 1024) /* 1 GB */
+#define SWAP_SIZE(available) MIN(available / 20, 4 * 1024 * 1024 * 1024LL)
 
 static char *wizard_partition(struct gmesh *mesh, const char *disk);
 
@@ -114,19 +113,19 @@ boot_disk_select(struct gmesh *mesh)
 
 	bsddialog_initconf(&conf);
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
 		if (strcmp(classp->lg_name, "DISK") != 0 &&
 		    strcmp(classp->lg_name, "RAID") != 0 &&
 		    strcmp(classp->lg_name, "MD") != 0)
 			continue;
 
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider))
 				continue;
 
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider) {
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider) {
 				desc = type = NULL;
-				LIST_FOREACH(gc, &pp->lg_config, lg_config) {
+				LIST_FOREACH (gc, &pp->lg_config, lg_config) {
 					if (strcmp(gc->lg_name, "type") == 0)
 						type = gc->lg_val;
 					if (strcmp(gc->lg_name, "descr") == 0)
@@ -140,9 +139,10 @@ boot_disk_select(struct gmesh *mesh)
 				if (strncmp(pp->lg_name, "cd", 2) == 0)
 					continue;
 				/*
-				 * Check if the disk is available to be opened for
-				 * write operations, it helps prevent the USB
-				 * stick used to boot from being listed as an option
+				 * Check if the disk is available to be opened
+				 * for write operations, it helps prevent the
+				 * USB stick used to boot from being listed as
+				 * an option
 				 */
 				fd = g_open(pp->lg_name, 1);
 				if (fd == -1) {
@@ -150,8 +150,9 @@ boot_disk_select(struct gmesh *mesh)
 				}
 				g_close(fd);
 
-				disks = realloc(disks, (++n)*sizeof(disks[0]));
-				disks[n-1].name = pp->lg_name;
+				disks = realloc(disks,
+				    (++n) * sizeof(disks[0]));
+				disks[n - 1].name = pp->lg_name;
 				humanize_number(diskdesc, 7, pp->lg_mediasize,
 				    "B", HN_AUTOSCALE, HN_DECIMAL);
 				if (strncmp(pp->lg_name, "ad", 2) == 0)
@@ -165,11 +166,11 @@ boot_disk_select(struct gmesh *mesh)
 					snprintf(diskdesc, sizeof(diskdesc),
 					    "%s <%s>", diskdesc, desc);
 
-				disks[n-1].prefix = "";
-				disks[n-1].on = false;
-				disks[n-1].depth = 0;
-				disks[n-1].desc = strdup(diskdesc);
-				disks[n-1].bottomdesc = "";
+				disks[n - 1].prefix = "";
+				disks[n - 1].on = false;
+				disks[n - 1].depth = 0;
+				disks[n - 1].desc = strdup(diskdesc);
+				disks[n - 1].bottomdesc = "";
 			}
 		}
 	}
@@ -181,7 +182,8 @@ boot_disk_select(struct gmesh *mesh)
 		    n, disks, &selected);
 
 		chosen = (button == BSDDIALOG_OK) ?
-		    strdup(disks[selected].name) : NULL;
+		    strdup(disks[selected].name) :
+		    NULL;
 	} else if (n == 1) {
 		chosen = strdup(disks[0].name);
 	} else {
@@ -189,7 +191,7 @@ boot_disk_select(struct gmesh *mesh)
 	}
 
 	for (i = 0; i < n; i++)
-		free((char*)disks[i].desc);
+		free((char *)disks[i].desc);
 
 	return (chosen);
 }
@@ -201,19 +203,21 @@ provider_for_name(struct gmesh *mesh, const char *name)
 	struct gprovider *pp = NULL;
 	struct ggeom *gp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider))
 				continue;
 
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider)
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider)
 				if (strcmp(pp->lg_name, name) == 0)
 					break;
 
-			if (pp != NULL) break;
+			if (pp != NULL)
+				break;
 		}
 
-		if (pp != NULL) break;
+		if (pp != NULL)
+			break;
 	}
 
 	return (pp);
@@ -233,18 +237,18 @@ wizard_partition(struct gmesh *mesh, const char *disk)
 
 	bsddialog_initconf(&conf);
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class)
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class)
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 
 	if (classp != NULL) {
-		LIST_FOREACH(gpart, &classp->lg_geom, lg_geom)
+		LIST_FOREACH (gpart, &classp->lg_geom, lg_geom)
 			if (strcmp(gpart->lg_name, disk) == 0)
 				break;
 	}
 
 	if (gpart != NULL) {
-		LIST_FOREACH(gc, &gpart->lg_config, lg_config) {
+		LIST_FOREACH (gc, &gpart->lg_config, lg_config) {
 			if (strcmp(gc->lg_name, "scheme") == 0) {
 				scheme = gc->lg_val;
 				break;
@@ -262,10 +266,12 @@ query:
 	if (gpart != NULL)
 		conf.button.default_cancel = true;
 
-	snprintf(message, sizeof(message), "Would you like to use this entire "
+	snprintf(message, sizeof(message),
+	    "Would you like to use this entire "
 	    "disk (%s) for " OSNAME " or partition it to share it with other "
 	    "operating systems? Using the entire disk will erase any data "
-	    "currently stored there.", disk);
+	    "currently stored there.",
+	    disk);
 	conf.title = "Partition";
 	choice = bsddialog_yesno(&conf, message, 9, 45);
 
@@ -273,14 +279,15 @@ query:
 	conf.button.cancel_label = NULL;
 	conf.button.default_cancel = false;
 
-	if (choice == BSDDIALOG_NO && scheme != NULL && !is_scheme_bootable(scheme)) {
+	if (choice == BSDDIALOG_NO && scheme != NULL &&
+	    !is_scheme_bootable(scheme)) {
 		char warning[512];
 		int subchoice;
 
 		snprintf(warning, sizeof(warning),
 		    "The existing partition scheme on this "
-		    "disk (%s) is not bootable on this platform. To install "
-		    OSNAME ", it must be repartitioned. This will destroy all "
+		    "disk (%s) is not bootable on this platform. To install " OSNAME
+		    ", it must be repartitioned. This will destroy all "
 		    "data on the disk. Are you sure you want to proceed?",
 		    scheme);
 		conf.title = "Non-bootable Disk";
@@ -299,8 +306,10 @@ query:
 		if (gpart != NULL && scheme != NULL) {
 			/* Erase partitioned disk */
 			conf.title = "Confirmation";
-			choice = bsddialog_yesno(&conf, "This will erase "
-			   "the disk. Are you sure you want to proceed?", 0, 0);
+			choice = bsddialog_yesno(&conf,
+			    "This will erase "
+			    "the disk. Are you sure you want to proceed?",
+			    0, 0);
 			if (choice != BSDDIALOG_YES)
 				goto query;
 
@@ -336,7 +345,7 @@ wizard_makeparts(struct gmesh *mesh, const char *disk, const char *fstype,
 	struct gclass *classp;
 	struct ggeom *gp;
 	struct gprovider *pp;
-	char *fsnames[] = {"freebsd-ufs", "freebsd-zfs"};
+	char *fsnames[] = { "freebsd-ufs", "freebsd-zfs" };
 	char *fsname;
 	struct gmesh submesh;
 	char swapsizestr[10], rootsizestr[10];
@@ -351,17 +360,17 @@ wizard_makeparts(struct gmesh *mesh, const char *disk, const char *fstype,
 		fsname = fsnames[0];
 	}
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class)
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class)
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 
-	LIST_FOREACH(gp, &classp->lg_geom, lg_geom)
+	LIST_FOREACH (gp, &classp->lg_geom, lg_geom)
 		if (strcmp(gp->lg_name, disk) == 0)
 			break;
 
 	pp = provider_for_name(mesh, disk);
 
-	available = gpart_max_free(gp, NULL)*pp->lg_sectorsize;
+	available = gpart_max_free(gp, NULL) * pp->lg_sectorsize;
 	if (interactive && available < MIN_FREE_SPACE) {
 		char availablestr[10], neededstr[10], message[512];
 		humanize_number(availablestr, 7, available, "B", HN_AUTOSCALE,
@@ -386,8 +395,8 @@ wizard_makeparts(struct gmesh *mesh, const char *disk, const char *fstype,
 	swapsize = SWAP_SIZE(available);
 	humanize_number(swapsizestr, 7, swapsize, "B", HN_AUTOSCALE,
 	    HN_NOSPACE | HN_DECIMAL);
-	humanize_number(rootsizestr, 7, available - swapsize - 1024*1024,
-	    "B", HN_AUTOSCALE, HN_NOSPACE | HN_DECIMAL);
+	humanize_number(rootsizestr, 7, available - swapsize - 1024 * 1024, "B",
+	    HN_AUTOSCALE, HN_NOSPACE | HN_DECIMAL);
 
 	error = geom_gettree(&submesh);
 	if (error != 0)

@@ -6,6 +6,6 @@
 #include <linux/mm_types.h>
 #include <linux/page-flags.h>
 
-#define MAX_ORDER	11
+#define MAX_ORDER 11
 
 #endif

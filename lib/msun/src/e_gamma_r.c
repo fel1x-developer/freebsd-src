@@ -5,15 +5,15 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  *
  */
 
 /* gamma_r(x, signgamp)
- * Reentrant version of the logarithm of the Gamma function 
- * with user provide pointer for the sign of Gamma(x). 
+ * Reentrant version of the logarithm of the Gamma function
+ * with user provide pointer for the sign of Gamma(x).
  *
  * Method: See lgamma_r
  */
@@ -24,5 +24,5 @@
 double
 gamma_r(double x, int *signgamp)
 {
-	return lgamma_r(x,signgamp);
+	return lgamma_r(x, signgamp);
 }

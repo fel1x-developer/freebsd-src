@@ -33,11 +33,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <string.h>
 
-int	mkpath(char *);
+int mkpath(char *);
 
 /* Code taken directly from mkdir(1).
 
@@ -61,8 +62,8 @@ mkpath(char *path)
 		*slash = '\0';
 
 		if (stat(path, &sb)) {
-			if (errno != ENOENT || (mkdir(path, 0777) &&
-			    errno != EEXIST)) {
+			if (errno != ENOENT ||
+			    (mkdir(path, 0777) && errno != EEXIST)) {
 				warn("%s", path);
 				return (-1);
 			}
@@ -76,4 +77,3 @@ mkpath(char *path)
 
 	return (0);
 }
-

@@ -64,9 +64,9 @@
 extern "C" {
 #endif
 #include "cpa_cy_common.h"
-#include "cpa_cy_rsa.h"
-#include "cpa_cy_ecdsa.h"
 #include "cpa_cy_ec.h"
+#include "cpa_cy_ecdsa.h"
+#include "cpa_cy_rsa.h"
 
 /**
  *****************************************************************************
@@ -93,20 +93,20 @@ typedef Cpa64U CpaCyKptHandle;
  *      KPT APIs.
  *
  *****************************************************************************/
-typedef enum CpaCyKptKeyManagementStatus_t
-{
-    CPA_CY_KPT_SUCCESS = 0,
-    /**< Generic success status for all KPT wrapping key handling functions*/
-    CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_VFID,
-    /**< SWK count exceeds the configured maxmium value per VFID*/
-    CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_PASID,
-    /**< SWK count exceeds the configured maxmium value per PASID*/
-    CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED,
-    /**< SWK count exceeds the configured maxmium value when not scoped to
-    * VFID or PASID*/
-    CPA_CY_KPT_SWK_FAIL_NOT_FOUND,
-    /**< Unable to find SWK entry by handle */
-    CPA_CY_KPT_FAILED,
+typedef enum CpaCyKptKeyManagementStatus_t {
+	CPA_CY_KPT_SUCCESS = 0,
+	/**< Generic success status for all KPT wrapping key handling
+	   functions*/
+	CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_VFID,
+	/**< SWK count exceeds the configured maxmium value per VFID*/
+	CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_PASID,
+	/**< SWK count exceeds the configured maxmium value per PASID*/
+	CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED,
+	/**< SWK count exceeds the configured maxmium value when not scoped to
+	 * VFID or PASID*/
+	CPA_CY_KPT_SWK_FAIL_NOT_FOUND,
+	/**< Unable to find SWK entry by handle */
+	CPA_CY_KPT_FAILED,
 } CpaCyKptKeyManagementStatus;
 
 /**
@@ -128,12 +128,11 @@ typedef enum CpaCyKptKeyManagementStatus_t
  *      cpaCyKptQueryDeviceCredentials
  *
  *****************************************************************************/
-typedef struct CpaCyKptValidationKey_t
-{
-    CpaCyRsaPublicKey publicKey;
-        /**< Key */
-    Cpa8U signature[CPA_CY_RSA3K_SIG_SIZE_INBYTES];
-        /**< Signature of key */
+typedef struct CpaCyKptValidationKey_t {
+	CpaCyRsaPublicKey publicKey;
+	/**< Key */
+	Cpa8U signature[CPA_CY_RSA3K_SIG_SIZE_INBYTES];
+	/**< Signature of key */
 } CpaCyKptValidationKey;
 
 /**
@@ -146,9 +145,8 @@ typedef struct CpaCyKptValidationKey_t
  *      This enumeration lists supported cipher algorithms and modes.
  *
  *****************************************************************************/
-typedef enum CpaCyKptWrappingKeyType_t
-{
-    CPA_CY_KPT_WRAPPING_KEY_TYPE_AES256_GCM = 0
+typedef enum CpaCyKptWrappingKeyType_t {
+	CPA_CY_KPT_WRAPPING_KEY_TYPE_AES256_GCM = 0
 } CpaCyKptWrappingKeyType;
 
 /**
@@ -161,12 +159,11 @@ typedef enum CpaCyKptWrappingKeyType_t
  *      cpaCyKptLoadKey calls.
  *
  *****************************************************************************/
-typedef struct CpaCyKptLoadKey_t
-{
-    CpaFlatBuffer eSWK;
-    /**< Encrypted SWK */
-    CpaCyKptWrappingKeyType wrappingAlgorithm;
-    /**< Symmetric wrapping algorithm */
+typedef struct CpaCyKptLoadKey_t {
+	CpaFlatBuffer eSWK;
+	/**< Encrypted SWK */
+	CpaCyKptWrappingKeyType wrappingAlgorithm;
+	/**< Symmetric wrapping algorithm */
 } CpaCyKptLoadKey;
 
 /**
@@ -180,7 +177,7 @@ typedef struct CpaCyKptLoadKey_t
  *@see  cpaCyKptUnwrapContext
  *
  *****************************************************************************/
-#define CPA_CY_KPT_MAX_IV_LENGTH  (12)
+#define CPA_CY_KPT_MAX_IV_LENGTH (12)
 
 /**
  *****************************************************************************
@@ -193,7 +190,7 @@ typedef struct CpaCyKptLoadKey_t
  *@see  cpaCyKptUnwrapContext
  *
  *****************************************************************************/
-#define CPA_CY_KPT_MAX_AAD_LENGTH  (16)
+#define CPA_CY_KPT_MAX_AAD_LENGTH (16)
 
 /**
  *****************************************************************************
@@ -206,18 +203,17 @@ typedef struct CpaCyKptLoadKey_t
  *      information.
  *
  *****************************************************************************/
-typedef struct CpaCyKptUnwrapContext_t
-{
-    CpaCyKptHandle kptHandle;
-    /**< This is application's unique handle that identifies its
-     * (symmetric) wrapping key*/
-    Cpa8U iv[CPA_CY_KPT_MAX_IV_LENGTH];
-    /**< Initialization Vector */
-    Cpa8U additionalAuthData[CPA_CY_KPT_MAX_AAD_LENGTH];
-    /**< A buffer holding the Additional Authenticated Data.*/
-    Cpa32U aadLenInBytes;
-    /**< Number of bytes representing the size of AAD within additionalAuthData
-     *   buffer. */
+typedef struct CpaCyKptUnwrapContext_t {
+	CpaCyKptHandle kptHandle;
+	/**< This is application's unique handle that identifies its
+	 * (symmetric) wrapping key*/
+	Cpa8U iv[CPA_CY_KPT_MAX_IV_LENGTH];
+	/**< Initialization Vector */
+	Cpa8U additionalAuthData[CPA_CY_KPT_MAX_AAD_LENGTH];
+	/**< A buffer holding the Additional Authenticated Data.*/
+	Cpa32U aadLenInBytes;
+	/**< Number of bytes representing the size of AAD within
+	 * additionalAuthData buffer. */
 } CpaCyKptUnwrapContext;
 
 /**
@@ -261,10 +257,9 @@ typedef struct CpaCyKptUnwrapContext_t
  *      N to protect against the Wiener attack.
  *
  *****************************************************************************/
-typedef struct CpaCyKptRsaPrivateKeyRep1_t
-{
-    CpaFlatBuffer privateKey;
-    /**< The EncryptedRSAKey concatenated with AuthTag */
+typedef struct CpaCyKptRsaPrivateKeyRep1_t {
+	CpaFlatBuffer privateKey;
+	/**< The EncryptedRSAKey concatenated with AuthTag */
 } CpaCyKptRsaPrivateKeyRep1;
 
 /**
@@ -314,12 +309,11 @@ typedef struct CpaCyKptRsaPrivateKeyRep1_t
  *      - 8192 bits (1024 bytes).
  *
  *****************************************************************************/
-typedef struct CpaCyKptRsaPrivateKeyRep2_t
-{
-    CpaFlatBuffer privateKey;
-    /**< RSA private key representation 2 is built up from the
-     *   tuple of p, q, dP, dQ, qInv, publicExponentE and AuthTag.
-     */
+typedef struct CpaCyKptRsaPrivateKeyRep2_t {
+	CpaFlatBuffer privateKey;
+	/**< RSA private key representation 2 is built up from the
+	 *   tuple of p, q, dP, dQ, qInv, publicExponentE and AuthTag.
+	 */
 } CpaCyKptRsaPrivateKeyRep2;
 
 /**
@@ -334,24 +328,23 @@ typedef struct CpaCyKptRsaPrivateKeyRep2_t
  *      second representation results in faster decryption operations.
  *
  *****************************************************************************/
-typedef struct CpaCyKptRsaPrivateKey_t
-{
-    CpaCyRsaVersion version;
-    /**< Indicates the version of the PKCS #1 specification that is
-     * supported.
-     * Note that this applies to both representations. */
-    CpaCyRsaPrivateKeyRepType privateKeyRepType;
-    /**< This value is used to identify which of the private key
-     * representation types in this structure is relevant.
-     * When performing key generation operations for Type 2 representations,
-     * memory must also be allocated for the type 1 representations, and values
-     * for both will be returned. */
-    CpaCyKptRsaPrivateKeyRep1 privateKeyRep1;
-    /**< This is the first representation of the RSA private key as
-     * defined in the PKCS #1 V2.2 specification. */
-    CpaCyKptRsaPrivateKeyRep2 privateKeyRep2;
-    /**< This is the second representation of the RSA private key as
-     * defined in the PKCS #1 V2.2 specification. */
+typedef struct CpaCyKptRsaPrivateKey_t {
+	CpaCyRsaVersion version;
+	/**< Indicates the version of the PKCS #1 specification that is
+	 * supported.
+	 * Note that this applies to both representations. */
+	CpaCyRsaPrivateKeyRepType privateKeyRepType;
+	/**< This value is used to identify which of the private key
+	 * representation types in this structure is relevant.
+	 * When performing key generation operations for Type 2 representations,
+	 * memory must also be allocated for the type 1 representations, and
+	 * values for both will be returned. */
+	CpaCyKptRsaPrivateKeyRep1 privateKeyRep1;
+	/**< This is the first representation of the RSA private key as
+	 * defined in the PKCS #1 V2.2 specification. */
+	CpaCyKptRsaPrivateKeyRep2 privateKeyRep2;
+	/**< This is the second representation of the RSA private key as
+	 * defined in the PKCS #1 V2.2 specification. */
 } CpaCyKptRsaPrivateKey;
 
 /**
@@ -384,16 +377,14 @@ typedef struct CpaCyKptRsaPrivateKey_t
  *      first order, e.g. inputData.pData[0] = MSB.
  *
  *****************************************************************************/
-typedef struct CpaCyKptRsaDecryptOpData_t
-{
-    CpaCyKptRsaPrivateKey *pRecipientPrivateKey;
-    /**< Pointer to the recipient's RSA private key. */
-    CpaFlatBuffer inputData;
-    /**< The input data that the RSA decryption primitive operation is
-     * performed on. The data pointed to is an integer that MUST be in big-
-     * endian order. The value MUST be between 0 and the modulus n - 1. */
+typedef struct CpaCyKptRsaDecryptOpData_t {
+	CpaCyKptRsaPrivateKey *pRecipientPrivateKey;
+	/**< Pointer to the recipient's RSA private key. */
+	CpaFlatBuffer inputData;
+	/**< The input data that the RSA decryption primitive operation is
+	 * performed on. The data pointed to is an integer that MUST be in big-
+	 * endian order. The value MUST be between 0 and the modulus n - 1. */
 } CpaCyKptRsaDecryptOpData;
-
 
 /**
  *****************************************************************************
@@ -445,13 +436,12 @@ typedef struct CpaCyKptRsaDecryptOpData_t
  *      cpaCyEcdsaSignRS()
  *
  *****************************************************************************/
-typedef struct CpaCyKptEcdsaSignRSOpData_t
-{
-    CpaFlatBuffer privateKey;
-    /**< Encrypted private key data of the form
-     * EncryptECKey || AuthTag */
-    CpaFlatBuffer m;
-    /**< digest of the message to be signed */
+typedef struct CpaCyKptEcdsaSignRSOpData_t {
+	CpaFlatBuffer privateKey;
+	/**< Encrypted private key data of the form
+	 * EncryptECKey || AuthTag */
+	CpaFlatBuffer m;
+	/**< digest of the message to be signed */
 } CpaCyKptEcdsaSignRSOpData;
 
 /**
@@ -460,159 +450,155 @@ typedef struct CpaCyKptEcdsaSignRSOpData_t
  *
  *****************************************************************************/
 
- /**
-  *****************************************************************************
-  * @file cpa_cy_kpt.h
-  * @ingroup cpaCyKpt
-  *      Query KPT's issuing public key(R_Pu) and signature from QAT driver.
-  * @description
-  *      This function is to query the RSA3K issuing key and its
-  *      PKCS#1 v2.2 SHA-384 signature from the QAT driver.
-  * @context
-  *      This function may sleep, and  MUST NOT be called in interrupt context.
-  * @assumptions
-  *      None
-  * @sideEffects
-  *      None
-  * @blocking
-  *      This function is synchronous and blocking.
-  * @param[in]  instanceHandle       Instance handle.
-  * @param[out] pIssueCert           KPT-2.0 Issuing certificate in PEM format
-                                     as defined in RFC#7468
-  * @param[out] pKptStatus           One of the status codes denoted in the
-  *                                  enumerate type CpaCyKptKeyManagementStatus
-  *              CPA_CY_KPT_SUCCESS  Issuing key retrieved successfully
-  *              CPA_CY_KPT_FAILED   Operation failed
-  *
-  * @retval CPA_STATUS_SUCCESS       Function executed successfully.
-  * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
-  * @retval CPA_STATUS_FAIL          Function failed. Suggested course of action
-  *                                  is to shutdown and restart.
-  * @retval CPA_STATUS_UNSUPPORTED   Function is not supported.
-  * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
-  *                                  Resubmit the request.
-  *
-  * @pre
-  *      The component has been initialized via cpaCyStartInstance function.
-  * @post
-  *      None
-  * @note
-  *      Note that this is a synchronous function and has no completion callback
-  *      associated with it.
-  * @see
-  *
-  *****************************************************************************/
- CpaStatus
- cpaCyKptQueryIssuingKeys(const CpaInstanceHandle instanceHandle,
-        CpaFlatBuffer *pPublicX509IssueCert,
-        CpaCyKptKeyManagementStatus *pKptStatus);
+/**
+ *****************************************************************************
+ * @file cpa_cy_kpt.h
+ * @ingroup cpaCyKpt
+ *      Query KPT's issuing public key(R_Pu) and signature from QAT driver.
+ * @description
+ *      This function is to query the RSA3K issuing key and its
+ *      PKCS#1 v2.2 SHA-384 signature from the QAT driver.
+ * @context
+ *      This function may sleep, and  MUST NOT be called in interrupt context.
+ * @assumptions
+ *      None
+ * @sideEffects
+ *      None
+ * @blocking
+ *      This function is synchronous and blocking.
+ * @param[in]  instanceHandle       Instance handle.
+ * @param[out] pIssueCert           KPT-2.0 Issuing certificate in PEM format
+				    as defined in RFC#7468
+ * @param[out] pKptStatus           One of the status codes denoted in the
+ *                                  enumerate type CpaCyKptKeyManagementStatus
+ *              CPA_CY_KPT_SUCCESS  Issuing key retrieved successfully
+ *              CPA_CY_KPT_FAILED   Operation failed
+ *
+ * @retval CPA_STATUS_SUCCESS       Function executed successfully.
+ * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
+ * @retval CPA_STATUS_FAIL          Function failed. Suggested course of action
+ *                                  is to shutdown and restart.
+ * @retval CPA_STATUS_UNSUPPORTED   Function is not supported.
+ * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
+ *                                  Resubmit the request.
+ *
+ * @pre
+ *      The component has been initialized via cpaCyStartInstance function.
+ * @post
+ *      None
+ * @note
+ *      Note that this is a synchronous function and has no completion callback
+ *      associated with it.
+ * @see
+ *
+ *****************************************************************************/
+CpaStatus cpaCyKptQueryIssuingKeys(const CpaInstanceHandle instanceHandle,
+    CpaFlatBuffer *pPublicX509IssueCert,
+    CpaCyKptKeyManagementStatus *pKptStatus);
 
- /**
-  *****************************************************************************
-  * @file cpa_cy_kpt.h
-  * @ingroup cpaCyKpt
-  *      Query KPT's Per-Part public key(I_pu) and signature from QAT
-  *      device
-  * @description
-  *      This function is to query RSA3K Per-Part public key and its
-  *      PKCS#1 v2.2 SHA-384 signature from the QAT device.
-  * @context
-  *      This function may sleep, and  MUST NOT be called in interrupt context.
-  * @assumptions
-  *      None
-  * @sideEffects
-  *      None
-  * @blocking
-  *      This function is synchronous and blocking.
-  * @param[in]  instanceHandle       Instance handle.
-  * @param[out] pDevCredential       Device Per-Part public key
-  * @param[out] pKptStatus           One of the status codes denoted in the
-  *                                  enumerate type CpaCyKptKeyManagementStatus
-  *              CPA_CY_KPT_SUCCESS  Device credentials retrieved successfully
-  *              CPA_CY_KPT_FAILED   Operation failed
-  *
-  * @retval CPA_STATUS_SUCCESS       Function executed successfully.
-  * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
-  * @retval CPA_STATUS_FAIL          Function failed. Suggested course of action
-  *                                  is to shutdown and restart.
-  * @retval CPA_STATUS_UNSUPPORTED   Function is not supported.
-  * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
-  *                                  Resubmit the request.
-  *
-  * @pre
-  *      The component has been initialized via cpaCyStartInstance function.
-  * @post
-  *      None
-  * @note
-  *      Note that this is a synchronous function and has no completion callback
-  *      associated with it.
-  * @see
-  *
-  *****************************************************************************/
- CpaStatus
- cpaCyKptQueryDeviceCredentials(const CpaInstanceHandle instanceHandle,
-        CpaCyKptValidationKey *pDevCredential,
-        CpaCyKptKeyManagementStatus *pKptStatus);
+/**
+ *****************************************************************************
+ * @file cpa_cy_kpt.h
+ * @ingroup cpaCyKpt
+ *      Query KPT's Per-Part public key(I_pu) and signature from QAT
+ *      device
+ * @description
+ *      This function is to query RSA3K Per-Part public key and its
+ *      PKCS#1 v2.2 SHA-384 signature from the QAT device.
+ * @context
+ *      This function may sleep, and  MUST NOT be called in interrupt context.
+ * @assumptions
+ *      None
+ * @sideEffects
+ *      None
+ * @blocking
+ *      This function is synchronous and blocking.
+ * @param[in]  instanceHandle       Instance handle.
+ * @param[out] pDevCredential       Device Per-Part public key
+ * @param[out] pKptStatus           One of the status codes denoted in the
+ *                                  enumerate type CpaCyKptKeyManagementStatus
+ *              CPA_CY_KPT_SUCCESS  Device credentials retrieved successfully
+ *              CPA_CY_KPT_FAILED   Operation failed
+ *
+ * @retval CPA_STATUS_SUCCESS       Function executed successfully.
+ * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
+ * @retval CPA_STATUS_FAIL          Function failed. Suggested course of action
+ *                                  is to shutdown and restart.
+ * @retval CPA_STATUS_UNSUPPORTED   Function is not supported.
+ * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
+ *                                  Resubmit the request.
+ *
+ * @pre
+ *      The component has been initialized via cpaCyStartInstance function.
+ * @post
+ *      None
+ * @note
+ *      Note that this is a synchronous function and has no completion callback
+ *      associated with it.
+ * @see
+ *
+ *****************************************************************************/
+CpaStatus cpaCyKptQueryDeviceCredentials(const CpaInstanceHandle instanceHandle,
+    CpaCyKptValidationKey *pDevCredential,
+    CpaCyKptKeyManagementStatus *pKptStatus);
 
- /**
-  *****************************************************************************
-  * @file cpa_cy_kpt.h
-  * @ingroup cpaCyKpt
-  *      Perform KPT key loading function.
-  *
-  * @description
-  *      This function is invoked by a QAT application to load an encrypted
-  *      symmetric wrapping key.
-  * @context
-  *      This is a synchronous function and it can sleep. It MUST NOT be
-  *      executed in a context that DOES NOT permit sleeping.
-  * @assumptions
-  *      None
-  * @sideEffects
-  *      None
-  * @blocking
-  *      This function is synchronous and blocking.
-  * @reentrant
-  *      No
-  * @threadSafe
-  *      Yes
-  *
-  * @param[in]  instanceHandle      QAT service instance handle.
-  * @param[in]  pSWK                Encrypted SWK
-  * @param[out] keyHandle           A 64-bit handle value created by KPT
-  * @param[out] pKptStatus          One of the status codes denoted in the
-  *                                 enumerate type CpaCyKptKeyManagementStatus
-  *   CPA_CY_KPT_SUCCESS  Key Loaded successfully
-  *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_VFID
-  *       SWK count exceeds the configured maxmium value per VFID
-  *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_PASID
-  *       SWK count exceeds the configured maxmium value per PASID
-  *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED
-  *       SWK count exceeds the configured maxmium value when not scoped to
-  *       VFID or PASID
-  *   CPA_CY_KPT_FAILED   Operation failed due to unspecified reason
-  *
-  * @retval CPA_STATUS_SUCCESS       Function executed successfully.
-  * @retval CPA_STATUS_FAIL          Function failed.
-  * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
-  * @retval CPA_STATUS_RESOURCE      Error related to system resources.
-  * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
-  *                                  Resubmit the request.
-  * @retval CPA_STATUS_UNSUPPORTED   KPT-2.0 is not supported.
-  *
-  * @pre
-  *      Component has been initialized.
-  * @post
-  *      None
-  * @note
-  *      None
-  * @see
-  *      None
-  *****************************************************************************/
- CpaStatus
- cpaCyKptLoadKey(CpaInstanceHandle instanceHandle,
-    CpaCyKptLoadKey *pSWK,
-    CpaCyKptHandle *keyHandle,
+/**
+ *****************************************************************************
+ * @file cpa_cy_kpt.h
+ * @ingroup cpaCyKpt
+ *      Perform KPT key loading function.
+ *
+ * @description
+ *      This function is invoked by a QAT application to load an encrypted
+ *      symmetric wrapping key.
+ * @context
+ *      This is a synchronous function and it can sleep. It MUST NOT be
+ *      executed in a context that DOES NOT permit sleeping.
+ * @assumptions
+ *      None
+ * @sideEffects
+ *      None
+ * @blocking
+ *      This function is synchronous and blocking.
+ * @reentrant
+ *      No
+ * @threadSafe
+ *      Yes
+ *
+ * @param[in]  instanceHandle      QAT service instance handle.
+ * @param[in]  pSWK                Encrypted SWK
+ * @param[out] keyHandle           A 64-bit handle value created by KPT
+ * @param[out] pKptStatus          One of the status codes denoted in the
+ *                                 enumerate type CpaCyKptKeyManagementStatus
+ *   CPA_CY_KPT_SUCCESS  Key Loaded successfully
+ *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_VFID
+ *       SWK count exceeds the configured maxmium value per VFID
+ *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED_PER_PASID
+ *       SWK count exceeds the configured maxmium value per PASID
+ *   CPA_CY_KPT_LOADKEY_FAIL_QUOTA_EXCEEDED
+ *       SWK count exceeds the configured maxmium value when not scoped to
+ *       VFID or PASID
+ *   CPA_CY_KPT_FAILED   Operation failed due to unspecified reason
+ *
+ * @retval CPA_STATUS_SUCCESS       Function executed successfully.
+ * @retval CPA_STATUS_FAIL          Function failed.
+ * @retval CPA_STATUS_INVALID_PARAM Invalid parameter passed in.
+ * @retval CPA_STATUS_RESOURCE      Error related to system resources.
+ * @retval CPA_STATUS_RESTARTING    API implementation is restarting.
+ *                                  Resubmit the request.
+ * @retval CPA_STATUS_UNSUPPORTED   KPT-2.0 is not supported.
+ *
+ * @pre
+ *      Component has been initialized.
+ * @post
+ *      None
+ * @note
+ *      None
+ * @see
+ *      None
+ *****************************************************************************/
+CpaStatus cpaCyKptLoadKey(CpaInstanceHandle instanceHandle,
+    CpaCyKptLoadKey *pSWK, CpaCyKptHandle *keyHandle,
     CpaCyKptKeyManagementStatus *pKptStatus);
 
 /**
@@ -664,10 +650,8 @@ typedef struct CpaCyKptEcdsaSignRSOpData_t
  * @see
  *      None
  *****************************************************************************/
-CpaStatus
-cpaCyKptDeleteKey(CpaInstanceHandle instanceHandle,
-        CpaCyKptHandle keyHandle,
-        CpaCyKptKeyManagementStatus *pKptStatus);
+CpaStatus cpaCyKptDeleteKey(CpaInstanceHandle instanceHandle,
+    CpaCyKptHandle keyHandle, CpaCyKptKeyManagementStatus *pKptStatus);
 
 /**
 *****************************************************************************
@@ -760,13 +744,10 @@ cpaCyKptDeleteKey(CpaInstanceHandle instanceHandle,
  *      CpaCyGenFlatBufCbFunc,
  *
  *****************************************************************************/
-CpaStatus
-cpaCyKptRsaDecrypt(const CpaInstanceHandle instanceHandle,
-        const CpaCyGenFlatBufCbFunc pRsaDecryptCb,
-        void *pCallbackTag,
-        const CpaCyKptRsaDecryptOpData *pDecryptOpData,
-        CpaFlatBuffer *pOutputData,
-        CpaCyKptUnwrapContext *pKptUnwrapContext);
+CpaStatus cpaCyKptRsaDecrypt(const CpaInstanceHandle instanceHandle,
+    const CpaCyGenFlatBufCbFunc pRsaDecryptCb, void *pCallbackTag,
+    const CpaCyKptRsaDecryptOpData *pDecryptOpData, CpaFlatBuffer *pOutputData,
+    CpaCyKptUnwrapContext *pKptUnwrapContext);
 
 /**
  *****************************************************************************
@@ -826,26 +807,21 @@ cpaCyKptRsaDecrypt(const CpaInstanceHandle instanceHandle,
  *      None
  * @note
  *      By virtue of invoking the cpaCyKptEcdsaSignRS, the implementation
- *      understands CpaCyEcdsaSignRSOpData contains an encrypted private key that
- *      requires unwrapping. KptUnwrapContext contains a 'KptHandle' field
- *      that points to the unwrapping key in the WKT.
- *      When pCb is non-NULL an asynchronous callback of type
- *      CpaCyEcdsaSignRSCbFunc generated in response to this function
+ *      understands CpaCyEcdsaSignRSOpData contains an encrypted private key
+ *that requires unwrapping. KptUnwrapContext contains a 'KptHandle' field that
+ *points to the unwrapping key in the WKT. When pCb is non-NULL an asynchronous
+ *callback of type CpaCyEcdsaSignRSCbFunc generated in response to this function
  *      call.
  *      In KPT release, private key field in CpaCyEcdsaSignRSOpData is a
  *      concatenation of cipher text and hash tag.
  * @see
  *      None
  *****************************************************************************/
-CpaStatus
-cpaCyKptEcdsaSignRS(const CpaInstanceHandle instanceHandle,
-        const CpaCyEcdsaSignRSCbFunc pCb,
-        void *pCallbackTag,
-        const CpaCyKptEcdsaSignRSOpData *pOpData,
-        CpaBoolean *pSignStatus,
-        CpaFlatBuffer *pR,
-        CpaFlatBuffer *pS,
-        CpaCyKptUnwrapContext *pKptUnwrapContext);
+CpaStatus cpaCyKptEcdsaSignRS(const CpaInstanceHandle instanceHandle,
+    const CpaCyEcdsaSignRSCbFunc pCb, void *pCallbackTag,
+    const CpaCyKptEcdsaSignRSOpData *pOpData, CpaBoolean *pSignStatus,
+    CpaFlatBuffer *pR, CpaFlatBuffer *pS,
+    CpaCyKptUnwrapContext *pKptUnwrapContext);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */

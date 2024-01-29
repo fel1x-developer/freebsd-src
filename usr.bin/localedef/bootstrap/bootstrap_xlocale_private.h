@@ -44,7 +44,7 @@
  */
 #define _XLOCALE_PRIVATE__H_
 
-typedef struct _localedef_bootstrap_xlocale* localedef_bootstrap_locale_t;
+typedef struct _localedef_bootstrap_xlocale *localedef_bootstrap_locale_t;
 struct localedef_bootstrap_xlocale_component {
 	char unused;
 };

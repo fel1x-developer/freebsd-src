@@ -28,9 +28,9 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 
+#include <machine/elf.h>
 #include <machine/md_var.h>
 #include <machine/metadata.h>
-#include <machine/elf.h>
 
 #include <stand.h>
 
@@ -39,8 +39,8 @@
 #include "modinfo.h"
 
 int
-__elfN(uboot_load)(char *filename, uint64_t dest,
-    struct preloaded_file **result)
+__elfN(
+    uboot_load)(char *filename, uint64_t dest, struct preloaded_file **result)
 {
 	int r;
 
@@ -54,7 +54,7 @@ __elfN(uboot_load)(char *filename, uint64_t dest,
 	 * be done by the kernel after relocation.
 	 */
 	if (!strcmp((*result)->f_type, "elf kernel"))
-		__syncicache((void *) (*result)->f_addr, (*result)->f_size);
+		__syncicache((void *)(*result)->f_addr, (*result)->f_size);
 #endif
 	return (0);
 }
@@ -86,7 +86,4 @@ __elfN(uboot_exec)(struct preloaded_file *fp)
 	panic("exec returned");
 }
 
-struct file_format uboot_elf = {
-	__elfN(uboot_load),
-	__elfN(uboot_exec)
-};
+struct file_format uboot_elf = { __elfN(uboot_load), __elfN(uboot_exec) };

@@ -31,10 +31,10 @@
 #error gpt.c works only for little endian architectures
 #endif
 
-#include "stand.h"
-#include "zlib.h"
 #include "drv.h"
 #include "gpt.h"
+#include "stand.h"
+#include "zlib.h"
 
 static struct gpt_hdr hdr_primary, hdr_backup, *gpthdr;
 static uint64_t hdr_primary_lba, hdr_backup_lba;
@@ -245,9 +245,9 @@ gptbootconv(const char *which, struct dsk *dskp, struct gpt_hdr *hdr,
 		sector_updated = 0;
 		for (part = 0; part < entries_per_sec; part++) {
 			ent = &table[nent + part];
-			if ((ent->ent_attr & (GPT_ENT_ATTR_BOOTME |
-			    GPT_ENT_ATTR_BOOTONCE |
-			    GPT_ENT_ATTR_BOOTFAILED)) !=
+			if ((ent->ent_attr &
+				(GPT_ENT_ATTR_BOOTME | GPT_ENT_ATTR_BOOTONCE |
+				    GPT_ENT_ATTR_BOOTFAILED)) !=
 			    GPT_ENT_ATTR_BOOTONCE) {
 				continue;
 			}

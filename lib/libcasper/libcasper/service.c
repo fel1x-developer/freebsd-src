@@ -31,9 +31,9 @@
  */
 
 #include <sys/types.h>
+#include <sys/nv.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/nv.h>
 
 #include <assert.h>
 #include <dirent.h>
@@ -66,21 +66,21 @@
 /*
  * Client connections to the given service.
  */
-#define	SERVICE_CONNECTION_MAGIC	0x5e91c0ec
+#define SERVICE_CONNECTION_MAGIC 0x5e91c0ec
 struct service_connection {
-	int		 sc_magic;
-	cap_channel_t	*sc_chan;
-	nvlist_t	*sc_limits;
+	int sc_magic;
+	cap_channel_t *sc_chan;
+	nvlist_t *sc_limits;
 	TAILQ_ENTRY(service_connection) sc_next;
 };
 
-#define	SERVICE_MAGIC	0x5e91ce
+#define SERVICE_MAGIC 0x5e91ce
 struct service {
-	int			 s_magic;
-	char			*s_name;
-	uint64_t		 s_flags;
-	service_limit_func_t	*s_limit;
-	service_command_func_t	*s_command;
+	int s_magic;
+	char *s_name;
+	uint64_t s_flags;
+	service_limit_func_t *s_limit;
+	service_command_func_t *s_command;
 	TAILQ_HEAD(, service_connection) s_connections;
 };
 
@@ -133,8 +133,7 @@ service_connection_add(struct service *service, int sock,
 	sconn = malloc(sizeof(*sconn));
 	if (sconn == NULL)
 		return (NULL);
-	sconn->sc_chan = cap_wrap(sock,
-	    service_get_channel_flags(service));
+	sconn->sc_chan = cap_wrap(sock, service_get_channel_flags(service));
 	if (sconn->sc_chan == NULL) {
 		serrno = errno;
 		free(sconn);
@@ -204,8 +203,7 @@ service_connection_first(struct service *service)
 	assert(service->s_magic == SERVICE_MAGIC);
 
 	sconn = TAILQ_FIRST(&service->s_connections);
-	assert(sconn == NULL ||
-	    sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
+	assert(sconn == NULL || sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
 	return (sconn);
 }
 
@@ -216,8 +214,7 @@ service_connection_next(struct service_connection *sconn)
 	assert(sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
 
 	sconn = TAILQ_NEXT(sconn, sc_next);
-	assert(sconn == NULL ||
-	    sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
+	assert(sconn == NULL || sconn->sc_magic == SERVICE_CONNECTION_MAGIC);
 	return (sconn);
 }
 
@@ -287,8 +284,9 @@ service_message(struct service *service, struct service_connection *sconn)
 		if (service->s_limit == NULL) {
 			error = EOPNOTSUPP;
 		} else {
-			error = service->s_limit(
-			    service_connection_get_limits(sconn), nvllim);
+			error = service->s_limit(service_connection_get_limits(
+						     sconn),
+			    nvllim);
 		}
 		if (error == 0) {
 			service_connection_set_limits(sconn, nvllim);
@@ -433,7 +431,7 @@ service_start(struct service *service, int sock, int procfd)
 		FD_ZERO(&fds);
 		maxfd = -1;
 		for (sconn = service_connection_first(service); sconn != NULL;
-		    sconn = service_connection_next(sconn)) {
+		     sconn = service_connection_next(sconn)) {
 			maxfd = fd_add(&fds, maxfd,
 			    service_connection_get_sock(sconn));
 		}
@@ -451,7 +449,7 @@ service_start(struct service *service, int sock, int procfd)
 		}
 
 		for (sconn = service_connection_first(service); sconn != NULL;
-		    sconn = sconntmp) {
+		     sconn = sconntmp) {
 			/*
 			 * Prepare for connection to be removed from the list
 			 * on failure.

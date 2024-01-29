@@ -34,7 +34,7 @@
 
 #include "test-sort.h"
 
-#define	THUNK 42
+#define THUNK 42
 
 static int
 sorthelp_r(const void *a, const void *b, void *thunk)
@@ -75,8 +75,8 @@ ATF_TC_BODY(qsort_r_test, tc)
 		/* Compare results */
 		for (i = 0; i < j; i++)
 			ATF_CHECK_MSG(testvector[i] == sresvector[i],
-			    "item at index %d didn't match: %d != %d",
-			    i, testvector[i], sresvector[i]);
+			    "item at index %d didn't match: %d != %d", i,
+			    testvector[i], sresvector[i]);
 	}
 }
 

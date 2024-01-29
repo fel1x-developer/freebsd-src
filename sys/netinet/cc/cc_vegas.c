@@ -56,6 +56,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/khelp.h>
 #include <sys/malloc.h>
@@ -64,35 +65,31 @@
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/vnet.h>
 
 #include <net/route.h>
 #include <net/route/nhop.h>
-
+#include <net/vnet.h>
+#include <netinet/cc/cc.h>
+#include <netinet/cc/cc_module.h>
 #include <netinet/in_pcb.h>
+#include <netinet/khelp/h_ertt.h>
 #include <netinet/tcp.h>
 #include <netinet/tcp_timer.h>
 #include <netinet/tcp_var.h>
-#include <netinet/cc/cc.h>
-#include <netinet/cc/cc_module.h>
-
-#include <netinet/khelp/h_ertt.h>
 
 /*
  * Private signal type for rate based congestion signal.
  * See <netinet/cc.h> for appropriate bit-range to use for private signals.
  */
-#define	CC_VEGAS_RATE	0x01000000
+#define CC_VEGAS_RATE 0x01000000
 
-static void	vegas_ack_received(struct cc_var *ccv, uint16_t ack_type);
-static void	vegas_cb_destroy(struct cc_var *ccv);
-static int	vegas_cb_init(struct cc_var *ccv, void *ptr);
-static void	vegas_cong_signal(struct cc_var *ccv, uint32_t signal_type);
-static void	vegas_conn_init(struct cc_var *ccv);
-static int	vegas_mod_init(void);
-static size_t	vegas_data_sz(void);
+static void vegas_ack_received(struct cc_var *ccv, uint16_t ack_type);
+static void vegas_cb_destroy(struct cc_var *ccv);
+static int vegas_cb_init(struct cc_var *ccv, void *ptr);
+static void vegas_cong_signal(struct cc_var *ccv, uint32_t signal_type);
+static void vegas_conn_init(struct cc_var *ccv);
+static int vegas_mod_init(void);
+static size_t vegas_data_sz(void);
 
 struct vegas {
 	int slow_start_toggle;
@@ -102,8 +99,8 @@ static int32_t ertt_id;
 
 VNET_DEFINE_STATIC(uint32_t, vegas_alpha) = 1;
 VNET_DEFINE_STATIC(uint32_t, vegas_beta) = 3;
-#define	V_vegas_alpha	VNET(vegas_alpha)
-#define	V_vegas_beta	VNET(vegas_beta)
+#define V_vegas_alpha VNET(vegas_alpha)
+#define V_vegas_beta VNET(vegas_beta)
 
 struct cc_algo vegas_cc_algo = {
 	.name = "vegas",
@@ -145,13 +142,13 @@ vegas_ack_received(struct cc_var *ccv, uint16_t ack_type)
 				if (CCV(ccv, snd_cwnd) <=
 				    CCV(ccv, snd_ssthresh)) {
 					vegas_data->slow_start_toggle =
-					    vegas_data->slow_start_toggle ?
-					    0 : 1;
+					    vegas_data->slow_start_toggle ? 0 :
+									    1;
 				} else {
 					vegas_data->slow_start_toggle = 0;
-					CCV(ccv, snd_cwnd) =
-					    min(CCV(ccv, snd_cwnd) +
-					    CCV(ccv, t_maxseg),
+					CCV(ccv,
+					    snd_cwnd) = min(CCV(ccv, snd_cwnd) +
+						CCV(ccv, t_maxseg),
 					    TCP_MAXWIN << CCV(ccv, snd_scale));
 				}
 			} else if (ndiff > V_vegas_beta) {
@@ -215,7 +212,7 @@ vegas_cong_signal(struct cc_var *ccv, uint32_t signal_type)
 	else
 		presignalrecov = 0;
 
-	switch(signal_type) {
+	switch (signal_type) {
 	case CC_VEGAS_RATE:
 		if (!IN_RECOVERY(CCV(ccv, t_flags))) {
 			CCV(ccv, snd_cwnd) = max(2 * CCV(ccv, t_maxseg),
@@ -231,8 +228,10 @@ vegas_cong_signal(struct cc_var *ccv, uint32_t signal_type)
 	}
 
 	if (IN_RECOVERY(CCV(ccv, t_flags)) && !presignalrecov)
-		vegas_data->slow_start_toggle =
-		    (CCV(ccv, snd_cwnd) < CCV(ccv, snd_ssthresh)) ? 1 : 0;
+		vegas_data->slow_start_toggle = (CCV(ccv, snd_cwnd) <
+						    CCV(ccv, snd_ssthresh)) ?
+		    1 :
+		    0;
 }
 
 static void
@@ -283,7 +282,7 @@ vegas_beta_handler(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &new, 0, req);
 	if (error == 0 && req->newptr != NULL) {
 		if (new == 0 || new < V_vegas_alpha)
-			 error = EINVAL;
+			error = EINVAL;
 		else
 			V_vegas_beta = new;
 	}
@@ -292,9 +291,8 @@ vegas_beta_handler(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_DECL(_net_inet_tcp_cc_vegas);
-SYSCTL_NODE(_net_inet_tcp_cc, OID_AUTO, vegas,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL,
-    "Vegas related settings");
+SYSCTL_NODE(_net_inet_tcp_cc, OID_AUTO, vegas, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    NULL, "Vegas related settings");
 
 SYSCTL_PROC(_net_inet_tcp_cc_vegas, OID_AUTO, alpha,
     CTLFLAG_VNET | CTLTYPE_UINT | CTLFLAG_RW | CTLFLAG_NEEDGIANT,

@@ -26,28 +26,29 @@
  * SUCH DAMAGE.
  */
 
+#include <err.h>
+#include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysexits.h>
 #include <unistd.h>
-#include <err.h>
-#include <libutil.h>
 
 #include "libfifolog.h"
 
-#define DEF_RECSIZE	512
-#define DEF_RECCNT	(24 * 60 * 60)
+#define DEF_RECSIZE 512
+#define DEF_RECCNT (24 * 60 * 60)
 
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: fifolog_create [-l record-size] "
+	fprintf(stderr,
+	    "Usage: fifolog_create [-l record-size] "
 	    "[-r record-count] [-s size] file\n");
 	exit(EX_USAGE);
 }
 
 int
-main(int argc, char * const *argv)
+main(int argc, char *const *argv)
 {
 	int ch;
 	int64_t size;
@@ -58,7 +59,7 @@ main(int argc, char * const *argv)
 	recsize = 0;
 	size = 0;
 	reccnt = 0;
-	while((ch = getopt(argc, argv, "l:r:s:")) != -1) {
+	while ((ch = getopt(argc, argv, "l:r:s:")) != -1) {
 		switch (ch) {
 		case 'l':
 			if (expand_number(optarg, &recsize))
@@ -81,29 +82,29 @@ main(int argc, char * const *argv)
 	if (argc != 1)
 		usage();
 
-	if (size != 0 && reccnt != 0 && recsize != 0) {		/* N N N */
-		if (size !=  reccnt * recsize)
+	if (size != 0 && reccnt != 0 && recsize != 0) { /* N N N */
+		if (size != reccnt * recsize)
 			errx(1, "Inconsistent -l, -r and -s values");
-	} else if (size != 0 && reccnt != 0 && recsize == 0) {	/* N N Z */
+	} else if (size != 0 && reccnt != 0 && recsize == 0) { /* N N Z */
 		if (size % reccnt)
 			errx(1,
 			    "Inconsistent -r and -s values (gives remainder)");
 		recsize = size / reccnt;
-	} else if (size != 0 && reccnt == 0 && recsize != 0) {	/* N Z N */
+	} else if (size != 0 && reccnt == 0 && recsize != 0) { /* N Z N */
 		if (size % recsize)
-		    errx(1, "-s arg not divisible by -l arg");
-	} else if (size != 0 && reccnt == 0 && recsize == 0) {	/* N Z Z */
+			errx(1, "-s arg not divisible by -l arg");
+	} else if (size != 0 && reccnt == 0 && recsize == 0) { /* N Z Z */
 		recsize = DEF_RECSIZE;
 		if (size % recsize)
-		    errx(1, "-s arg not divisible by %jd", recsize);
-	} else if (size == 0 && reccnt != 0 && recsize != 0) {	/* Z N N */
+			errx(1, "-s arg not divisible by %jd", recsize);
+	} else if (size == 0 && reccnt != 0 && recsize != 0) { /* Z N N */
 		size = reccnt * recsize;
-	} else if (size == 0 && reccnt != 0 && recsize == 0) {	/* Z N Z */
+	} else if (size == 0 && reccnt != 0 && recsize == 0) { /* Z N Z */
 		recsize = DEF_RECSIZE;
 		size = reccnt * recsize;
-	} else if (size == 0 && reccnt == 0 && recsize != 0) {	/* Z Z N */
+	} else if (size == 0 && reccnt == 0 && recsize != 0) { /* Z Z N */
 		size = DEF_RECCNT * recsize;
-	} else if (size == 0 && reccnt == 0 && recsize == 0) {	/* Z Z Z */
+	} else if (size == 0 && reccnt == 0 && recsize == 0) { /* Z Z Z */
 		recsize = DEF_RECSIZE;
 		size = DEF_RECCNT * recsize;
 	}

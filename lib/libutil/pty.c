@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -50,7 +49,7 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 	const char *slavename;
 	int master, slave;
 
-	master = posix_openpt(O_RDWR|O_NOCTTY);
+	master = posix_openpt(O_RDWR | O_NOCTTY);
 	if (master == -1)
 		return (-1);
 
@@ -80,7 +79,8 @@ openpty(int *amaster, int *aslave, char *name, struct termios *termp,
 
 	return (0);
 
-bad:	close(master);
+bad:
+	close(master);
 	return (-1);
 }
 
@@ -108,6 +108,6 @@ forkpty(int *amaster, char *name, struct termios *termp, struct winsize *winp)
 	 * parent
 	 */
 	*amaster = master;
-	(void) close(slave);
+	(void)close(slave);
 	return (pid);
 }

@@ -35,7 +35,7 @@
 
 #include <sys/types.h>
 
-void dtrace_xoroshiro128_plus_jump(uint64_t * const, uint64_t * const);
-uint64_t dtrace_xoroshiro128_plus_next(uint64_t * const);
+void dtrace_xoroshiro128_plus_jump(uint64_t *const, uint64_t *const);
+uint64_t dtrace_xoroshiro128_plus_next(uint64_t *const);
 
 #endif

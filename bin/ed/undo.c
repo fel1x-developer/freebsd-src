@@ -26,13 +26,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "ed.h"
 
-
-#define USIZE 100				/* undo stack size */
-static undo_t *ustack = NULL;			/* undo stack */
-static long usize = 0;				/* stack size variable */
-static long u_p = 0;				/* undo stack pointer */
+#define USIZE 100	      /* undo stack size */
+static undo_t *ustack = NULL; /* undo stack */
+static long usize = 0;	      /* stack size variable */
+static long u_p = 0;	      /* undo stack pointer */
 
 /* push_undo_stack: return pointer to initialized undo node */
 undo_t *
@@ -42,7 +42,8 @@ push_undo_stack(int type, long from, long to)
 
 #if defined(sun) || defined(NO_REALLOC_NULL)
 	if (ustack == NULL &&
-	    (ustack = (undo_t *) malloc((usize = USIZE) * sizeof(undo_t))) == NULL) {
+	    (ustack = (undo_t *)malloc((usize = USIZE) * sizeof(undo_t))) ==
+		NULL) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		errmsg = "out of memory";
 		return NULL;
@@ -50,7 +51,8 @@ push_undo_stack(int type, long from, long to)
 #endif
 	t = ustack;
 	if (u_p < usize ||
-	    (t = (undo_t *) realloc(ustack, (usize += USIZE) * sizeof(undo_t))) != NULL) {
+	    (t = (undo_t *)realloc(ustack,
+		 (usize += USIZE) * sizeof(undo_t))) != NULL) {
 		ustack = t;
 		ustack[u_p].type = type;
 		ustack[u_p].t = get_addressed_line_node(to);
@@ -67,16 +69,15 @@ push_undo_stack(int type, long from, long to)
 	return NULL;
 }
 
-
 /* USWAP: swap undo nodes */
-#define USWAP(x,y) { \
-	undo_t utmp; \
-	utmp = x, x = y, y = utmp; \
-}
+#define USWAP(x, y)                        \
+	{                                  \
+		undo_t utmp;               \
+		utmp = x, x = y, y = utmp; \
+	}
 
-
-long u_current_addr = -1;	/* if >= 0, undo enabled */
-long u_addr_last = -1;		/* if >= 0, undo enabled */
+long u_current_addr = -1; /* if >= 0, undo enabled */
+long u_addr_last = -1;	  /* if >= 0, undo enabled */
 
 /* pop_undo_stack: undo last change to the editor buffer */
 int
@@ -91,10 +92,10 @@ pop_undo_stack(void)
 		return ERR;
 	} else if (u_p)
 		modified = 1;
-	get_addressed_line_node(0);	/* this get_addressed_line_node last! */
+	get_addressed_line_node(0); /* this get_addressed_line_node last! */
 	SPL1();
 	for (n = u_p; n-- > 0;) {
-		switch(ustack[n].type) {
+		switch (ustack[n].type) {
 		case UADD:
 			REQUE(ustack[n].h->q_back, ustack[n].t->q_forw);
 			break;
@@ -110,13 +111,13 @@ pop_undo_stack(void)
 			n--;
 			break;
 		default:
-			/*NOTREACHED*/
-			;
+		    /*NOTREACHED*/
+		    ;
 		}
 		ustack[n].type ^= 1;
 	}
 	/* reverse undo stack order */
-	for (n = u_p; n-- > (u_p + 1)/ 2;)
+	for (n = u_p; n-- > (u_p + 1) / 2;)
 		USWAP(ustack[n], ustack[u_p - 1 - n]);
 	if (isglobal)
 		clear_active_list();
@@ -125,7 +126,6 @@ pop_undo_stack(void)
 	SPL0();
 	return 0;
 }
-
 
 /* clear_undo_stack: clear the undo stack */
 void

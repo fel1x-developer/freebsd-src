@@ -5,6 +5,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "igc_api.h"
 
 static void igc_reload_nvm_generic(struct igc_hw *hw);
@@ -15,7 +16,8 @@ static void igc_reload_nvm_generic(struct igc_hw *hw);
  *
  *  Setups up the function pointers to no-op functions
  **/
-void igc_init_nvm_ops_generic(struct igc_hw *hw)
+void
+igc_init_nvm_ops_generic(struct igc_hw *hw)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	DEBUGFUNC("igc_init_nvm_ops_generic");
@@ -38,9 +40,9 @@ void igc_init_nvm_ops_generic(struct igc_hw *hw)
  *  @b: dummy variable
  *  @c: dummy variable
  **/
-s32 igc_null_read_nvm(struct igc_hw IGC_UNUSEDARG *hw,
-			u16 IGC_UNUSEDARG a, u16 IGC_UNUSEDARG b,
-			u16 IGC_UNUSEDARG *c)
+s32
+igc_null_read_nvm(struct igc_hw IGC_UNUSEDARG *hw, u16 IGC_UNUSEDARG a,
+    u16 IGC_UNUSEDARG b, u16 IGC_UNUSEDARG *c)
 {
 	DEBUGFUNC("igc_null_read_nvm");
 	return IGC_SUCCESS;
@@ -50,7 +52,8 @@ s32 igc_null_read_nvm(struct igc_hw IGC_UNUSEDARG *hw,
  *  igc_null_nvm_generic - No-op function, return void
  *  @hw: pointer to the HW structure
  **/
-void igc_null_nvm_generic(struct igc_hw IGC_UNUSEDARG *hw)
+void
+igc_null_nvm_generic(struct igc_hw IGC_UNUSEDARG *hw)
 {
 	DEBUGFUNC("igc_null_nvm_generic");
 	return;
@@ -63,9 +66,9 @@ void igc_null_nvm_generic(struct igc_hw IGC_UNUSEDARG *hw)
  *  @b: dummy variable
  *  @c: dummy variable
  **/
-s32 igc_null_write_nvm(struct igc_hw IGC_UNUSEDARG *hw,
-			 u16 IGC_UNUSEDARG a, u16 IGC_UNUSEDARG b,
-			 u16 IGC_UNUSEDARG *c)
+s32
+igc_null_write_nvm(struct igc_hw IGC_UNUSEDARG *hw, u16 IGC_UNUSEDARG a,
+    u16 IGC_UNUSEDARG b, u16 IGC_UNUSEDARG *c)
 {
 	DEBUGFUNC("igc_null_write_nvm");
 	return IGC_SUCCESS;
@@ -78,7 +81,8 @@ s32 igc_null_write_nvm(struct igc_hw IGC_UNUSEDARG *hw,
  *
  *  Enable/Raise the EEPROM clock bit.
  **/
-static void igc_raise_eec_clk(struct igc_hw *hw, u32 *eecd)
+static void
+igc_raise_eec_clk(struct igc_hw *hw, u32 *eecd)
 {
 	*eecd = *eecd | IGC_EECD_SK;
 	IGC_WRITE_REG(hw, IGC_EECD, *eecd);
@@ -93,7 +97,8 @@ static void igc_raise_eec_clk(struct igc_hw *hw, u32 *eecd)
  *
  *  Clear/Lower the EEPROM clock bit.
  **/
-static void igc_lower_eec_clk(struct igc_hw *hw, u32 *eecd)
+static void
+igc_lower_eec_clk(struct igc_hw *hw, u32 *eecd)
 {
 	*eecd = *eecd & ~IGC_EECD_SK;
 	IGC_WRITE_REG(hw, IGC_EECD, *eecd);
@@ -111,7 +116,8 @@ static void igc_lower_eec_clk(struct igc_hw *hw, u32 *eecd)
  *  "data" parameter will be shifted out to the EEPROM one bit at a time.
  *  In order to do this, "data" must be broken down into bits.
  **/
-static void igc_shift_out_eec_bits(struct igc_hw *hw, u16 data, u16 count)
+static void
+igc_shift_out_eec_bits(struct igc_hw *hw, u16 data, u16 count)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 eecd = IGC_READ_REG(hw, IGC_EECD);
@@ -155,7 +161,8 @@ static void igc_shift_out_eec_bits(struct igc_hw *hw, u16 data, u16 count)
  *  "DO" bit.  During this "shifting in" process the data in "DI" bit should
  *  always be clear.
  **/
-static u16 igc_shift_in_eec_bits(struct igc_hw *hw, u16 count)
+static u16
+igc_shift_in_eec_bits(struct igc_hw *hw, u16 count)
 {
 	u32 eecd;
 	u32 i;
@@ -192,7 +199,8 @@ static u16 igc_shift_in_eec_bits(struct igc_hw *hw, u16 count)
  *  Polls the EEPROM status bit for either read or write completion based
  *  upon the value of 'ee_reg'.
  **/
-s32 igc_poll_eerd_eewr_done(struct igc_hw *hw, int ee_reg)
+s32
+igc_poll_eerd_eewr_done(struct igc_hw *hw, int ee_reg)
 {
 	u32 attempts = 100000;
 	u32 i, reg = 0;
@@ -222,7 +230,8 @@ s32 igc_poll_eerd_eewr_done(struct igc_hw *hw, int ee_reg)
  *  Return successful if access grant bit set, else clear the request for
  *  EEPROM access and return -IGC_ERR_NVM (-1).
  **/
-s32 igc_acquire_nvm_generic(struct igc_hw *hw)
+s32
+igc_acquire_nvm_generic(struct igc_hw *hw)
 {
 	u32 eecd = IGC_READ_REG(hw, IGC_EECD);
 	s32 timeout = IGC_NVM_GRANT_ATTEMPTS;
@@ -256,7 +265,8 @@ s32 igc_acquire_nvm_generic(struct igc_hw *hw)
  *
  *  Return the EEPROM to a standby state.
  **/
-static void igc_standby_nvm(struct igc_hw *hw)
+static void
+igc_standby_nvm(struct igc_hw *hw)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 eecd = IGC_READ_REG(hw, IGC_EECD);
@@ -282,7 +292,8 @@ static void igc_standby_nvm(struct igc_hw *hw)
  *
  *  Terminates the current command by inverting the EEPROM's chip select pin.
  **/
-static void igc_stop_nvm(struct igc_hw *hw)
+static void
+igc_stop_nvm(struct igc_hw *hw)
 {
 	u32 eecd;
 
@@ -302,7 +313,8 @@ static void igc_stop_nvm(struct igc_hw *hw)
  *
  *  Stop any current commands to the EEPROM and clear the EEPROM request bit.
  **/
-void igc_release_nvm_generic(struct igc_hw *hw)
+void
+igc_release_nvm_generic(struct igc_hw *hw)
 {
 	u32 eecd;
 
@@ -321,7 +333,8 @@ void igc_release_nvm_generic(struct igc_hw *hw)
  *
  *  Setups the EEPROM for reading and writing.
  **/
-static s32 igc_ready_nvm_eeprom(struct igc_hw *hw)
+static s32
+igc_ready_nvm_eeprom(struct igc_hw *hw)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 eecd = IGC_READ_REG(hw, IGC_EECD);
@@ -345,7 +358,7 @@ static s32 igc_ready_nvm_eeprom(struct igc_hw *hw)
 		 */
 		while (timeout) {
 			igc_shift_out_eec_bits(hw, NVM_RDSR_OPCODE_SPI,
-						 hw->nvm.opcode_bits);
+			    hw->nvm.opcode_bits);
 			spi_stat_reg = (u8)igc_shift_in_eec_bits(hw, 8);
 			if (!(spi_stat_reg & NVM_STATUS_RDY_SPI))
 				break;
@@ -373,7 +386,8 @@ static s32 igc_ready_nvm_eeprom(struct igc_hw *hw)
  *
  *  Reads a 16 bit word from the EEPROM using the EERD register.
  **/
-s32 igc_read_nvm_eerd(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
+s32
+igc_read_nvm_eerd(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 i, eerd = 0;
@@ -392,15 +406,14 @@ s32 igc_read_nvm_eerd(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 
 	for (i = 0; i < words; i++) {
 		eerd = ((offset + i) << IGC_NVM_RW_ADDR_SHIFT) +
-		       IGC_NVM_RW_REG_START;
+		    IGC_NVM_RW_REG_START;
 
 		IGC_WRITE_REG(hw, IGC_EERD, eerd);
 		ret_val = igc_poll_eerd_eewr_done(hw, IGC_NVM_POLL_READ);
 		if (ret_val)
 			break;
 
-		data[i] = (IGC_READ_REG(hw, IGC_EERD) >>
-			   IGC_NVM_RW_REG_DATA);
+		data[i] = (IGC_READ_REG(hw, IGC_EERD) >> IGC_NVM_RW_REG_DATA);
 	}
 
 	if (ret_val)
@@ -421,7 +434,8 @@ s32 igc_read_nvm_eerd(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
  *  If igc_update_nvm_checksum is not called after this function , the
  *  EEPROM will most likely contain an invalid checksum.
  **/
-s32 igc_write_nvm_spi(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
+s32
+igc_write_nvm_spi(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	s32 ret_val = -IGC_ERR_NVM;
@@ -455,7 +469,7 @@ s32 igc_write_nvm_spi(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 
 		/* Send the WRITE ENABLE command (8 bit opcode) */
 		igc_shift_out_eec_bits(hw, NVM_WREN_OPCODE_SPI,
-					 nvm->opcode_bits);
+		    nvm->opcode_bits);
 
 		igc_standby_nvm(hw);
 
@@ -468,7 +482,7 @@ s32 igc_write_nvm_spi(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 		/* Send the Write command (8-bit opcode + addr) */
 		igc_shift_out_eec_bits(hw, write_opcode, nvm->opcode_bits);
 		igc_shift_out_eec_bits(hw, (u16)((offset + widx) * 2),
-					 nvm->address_bits);
+		    nvm->address_bits);
 
 		/* Loop to allow for up to whole page write of eeprom */
 		while (widx < words) {
@@ -498,8 +512,8 @@ s32 igc_write_nvm_spi(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
  *  Reads the product board assembly (PBA) number from the EEPROM and stores
  *  the value in pba_num.
  **/
-s32 igc_read_pba_string_generic(struct igc_hw *hw, u8 *pba_num,
-				  u32 pba_num_size)
+s32
+igc_read_pba_string_generic(struct igc_hw *hw, u8 *pba_num, u32 pba_num_size)
 {
 	s32 ret_val;
 	u16 nvm_data;
@@ -599,10 +613,6 @@ s32 igc_read_pba_string_generic(struct igc_hw *hw, u8 *pba_num,
 	return IGC_SUCCESS;
 }
 
-
-
-
-
 /**
  *  igc_read_mac_addr_generic - Read device MAC address
  *  @hw: pointer to the HW structure
@@ -611,7 +621,8 @@ s32 igc_read_pba_string_generic(struct igc_hw *hw, u8 *pba_num,
  *  Since devices with two ports use the same EEPROM, we increment the
  *  last bit in the MAC address for the second port.
  **/
-s32 igc_read_mac_addr_generic(struct igc_hw *hw)
+s32
+igc_read_mac_addr_generic(struct igc_hw *hw)
 {
 	u32 rar_high;
 	u32 rar_low;
@@ -621,10 +632,10 @@ s32 igc_read_mac_addr_generic(struct igc_hw *hw)
 	rar_low = IGC_READ_REG(hw, IGC_RAL(0));
 
 	for (i = 0; i < IGC_RAL_MAC_ADDR_LEN; i++)
-		hw->mac.perm_addr[i] = (u8)(rar_low >> (i*8));
+		hw->mac.perm_addr[i] = (u8)(rar_low >> (i * 8));
 
 	for (i = 0; i < IGC_RAH_MAC_ADDR_LEN; i++)
-		hw->mac.perm_addr[i+4] = (u8)(rar_high >> (i*8));
+		hw->mac.perm_addr[i + 4] = (u8)(rar_high >> (i * 8));
 
 	for (i = 0; i < ETH_ADDR_LEN; i++)
 		hw->mac.addr[i] = hw->mac.perm_addr[i];
@@ -639,7 +650,8 @@ s32 igc_read_mac_addr_generic(struct igc_hw *hw)
  *  Calculates the EEPROM checksum by reading/adding each word of the EEPROM
  *  and then verifies that the sum of the EEPROM is equal to 0xBABA.
  **/
-s32 igc_validate_nvm_checksum_generic(struct igc_hw *hw)
+s32
+igc_validate_nvm_checksum_generic(struct igc_hw *hw)
 {
 	s32 ret_val;
 	u16 checksum = 0;
@@ -656,7 +668,7 @@ s32 igc_validate_nvm_checksum_generic(struct igc_hw *hw)
 		checksum += nvm_data;
 	}
 
-	if (checksum != (u16) NVM_SUM) {
+	if (checksum != (u16)NVM_SUM) {
 		DEBUGOUT("NVM Checksum Invalid\n");
 		return -IGC_ERR_NVM;
 	}
@@ -672,7 +684,8 @@ s32 igc_validate_nvm_checksum_generic(struct igc_hw *hw)
  *  up to the checksum.  Then calculates the EEPROM checksum and writes the
  *  value to the EEPROM.
  **/
-s32 igc_update_nvm_checksum_generic(struct igc_hw *hw)
+s32
+igc_update_nvm_checksum_generic(struct igc_hw *hw)
 {
 	s32 ret_val;
 	u16 checksum = 0;
@@ -688,7 +701,7 @@ s32 igc_update_nvm_checksum_generic(struct igc_hw *hw)
 		}
 		checksum += nvm_data;
 	}
-	checksum = (u16) NVM_SUM - checksum;
+	checksum = (u16)NVM_SUM - checksum;
 	ret_val = hw->nvm.ops.write(hw, NVM_CHECKSUM_REG, 1, &checksum);
 	if (ret_val)
 		DEBUGOUT("NVM Write Error while updating checksum.\n");
@@ -703,7 +716,8 @@ s32 igc_update_nvm_checksum_generic(struct igc_hw *hw)
  *  Reloads the EEPROM by setting the "Reinitialize from EEPROM" bit in the
  *  extended control register.
  **/
-static void igc_reload_nvm_generic(struct igc_hw *hw)
+static void
+igc_reload_nvm_generic(struct igc_hw *hw)
 {
 	u32 ctrl_ext;
 
@@ -715,5 +729,3 @@ static void igc_reload_nvm_generic(struct igc_hw *hw)
 	IGC_WRITE_REG(hw, IGC_CTRL_EXT, ctrl_ext);
 	IGC_WRITE_FLUSH(hw);
 }
-
-

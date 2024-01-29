@@ -38,10 +38,12 @@
  * Consider this a mis-guided attempt at modularity
  */
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+
 #include <netinet/in.h>
 #include <protocols/talkd.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +52,7 @@
 
 #include "extern.h"
 
-#define MAX_ID 16000	/* << 2^15 so I don't have sign troubles */
+#define MAX_ID 16000 /* << 2^15 so I don't have sign troubles */
 
 #define NIL ((TABLE_ENTRY *)0)
 
@@ -60,7 +62,7 @@ typedef struct table_entry TABLE_ENTRY;
 
 struct table_entry {
 	CTL_MSG request;
-	long	time;
+	long time;
 	TABLE_ENTRY *next;
 	TABLE_ENTRY *last;
 };
@@ -90,14 +92,14 @@ find_match(CTL_MSG *request)
 			if (debug)
 				print_request("deleting expired entry",
 				    &ptr->request);
-			delete(ptr);
+			delete (ptr);
 			continue;
 		}
 		if (debug)
 			print_request("", &ptr->request);
 		if (strcmp(request->l_name, ptr->request.r_name) == 0 &&
 		    strcmp(request->r_name, ptr->request.l_name) == 0 &&
-		     ptr->request.type == LEAVE_INVITE)
+		    ptr->request.type == LEAVE_INVITE)
 			return (&ptr->request);
 	}
 	return ((CTL_MSG *)0);
@@ -128,7 +130,7 @@ find_request(CTL_MSG *request)
 			if (debug)
 				print_request("deleting expired entry",
 				    &ptr->request);
-			delete(ptr);
+			delete (ptr);
 			continue;
 		}
 		if (debug)
@@ -202,7 +204,7 @@ delete_invite(u_int32_t id_num)
 			print_request("", &ptr->request);
 	}
 	if (ptr != NIL) {
-		delete(ptr);
+		delete (ptr);
 		return (SUCCESS);
 	}
 	return (NOT_HERE);
@@ -211,8 +213,7 @@ delete_invite(u_int32_t id_num)
 /*
  * Classic delete from a double-linked list
  */
-static void
-delete(TABLE_ENTRY *ptr)
+static void delete(TABLE_ENTRY *ptr)
 {
 
 	if (debug)

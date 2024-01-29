@@ -33,48 +33,48 @@
 /*
  * System Management BIOS
  */
-#define	SMBIOS_START	0xf0000
-#define	SMBIOS_STEP	0x10
-#define	SMBIOS_OFF	0
-#define	SMBIOS_LEN	4
-#define	SMBIOS_SIG	"_SM_"
-#define	SMBIOS3_LEN	5
-#define	SMBIOS3_SIG	"_SM3_"
+#define SMBIOS_START 0xf0000
+#define SMBIOS_STEP 0x10
+#define SMBIOS_OFF 0
+#define SMBIOS_LEN 4
+#define SMBIOS_SIG "_SM_"
+#define SMBIOS3_LEN 5
+#define SMBIOS3_SIG "_SM3_"
 
 struct smbios_eps {
-	uint8_t		anchor_string[4];		/* '_SM_' */
-	uint8_t		checksum;
-	uint8_t		length;
-	uint8_t		major_version;
-	uint8_t		minor_version;
-	uint16_t	maximum_structure_size;
-	uint8_t		entry_point_revision;
-	uint8_t		formatted_area[5];
-	uint8_t		intermediate_anchor_string[5];	/* '_DMI_' */
-	uint8_t		intermediate_checksum;
-	uint16_t	structure_table_length;
-	uint32_t	structure_table_address;
-	uint16_t	number_structures;
-	uint8_t		BCD_revision;
+	uint8_t anchor_string[4]; /* '_SM_' */
+	uint8_t checksum;
+	uint8_t length;
+	uint8_t major_version;
+	uint8_t minor_version;
+	uint16_t maximum_structure_size;
+	uint8_t entry_point_revision;
+	uint8_t formatted_area[5];
+	uint8_t intermediate_anchor_string[5]; /* '_DMI_' */
+	uint8_t intermediate_checksum;
+	uint16_t structure_table_length;
+	uint32_t structure_table_address;
+	uint16_t number_structures;
+	uint8_t BCD_revision;
 } __packed;
 
 struct smbios3_eps {
-        uint8_t		anchor_string[5];                /* '_SM3_' */
-        uint8_t		checksum;
-        uint8_t		length;
-        uint8_t		major_version;
-        uint8_t		minor_version;
-        uint8_t		docrev;
-        uint8_t		entry_point_revision;
-        uint8_t		reserved;
-        uint32_t	structure_table_max_size;
-        uint64_t	structure_table_address;
+	uint8_t anchor_string[5]; /* '_SM3_' */
+	uint8_t checksum;
+	uint8_t length;
+	uint8_t major_version;
+	uint8_t minor_version;
+	uint8_t docrev;
+	uint8_t entry_point_revision;
+	uint8_t reserved;
+	uint32_t structure_table_max_size;
+	uint64_t structure_table_address;
 };
 
 struct smbios_structure_header {
-	uint8_t		type;
-	uint8_t		length;
-	uint16_t	handle;
+	uint8_t type;
+	uint8_t length;
+	uint16_t handle;
 } __packed;
 
 typedef void (*smbios_callback_t)(struct smbios_structure_header *, void *);

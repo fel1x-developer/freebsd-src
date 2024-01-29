@@ -174,20 +174,20 @@
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/namei.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/vnode.h>
-#include <sys/stat.h>
-
-#include <fs/nullfs/null.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 #include <vm/vnode_pager.h>
 
-static int null_bug_bypass = 0;   /* for debugging: enables bypass printf'ing */
-SYSCTL_INT(_debug, OID_AUTO, nullfs_bug_bypass, CTLFLAG_RW, 
-	&null_bug_bypass, 0, "");
+#include <fs/nullfs/null.h>
+
+static int null_bug_bypass = 0; /* for debugging: enables bypass printf'ing */
+SYSCTL_INT(_debug, OID_AUTO, nullfs_bug_bypass, CTLFLAG_RW, &null_bug_bypass, 0,
+    "");
 
 /*
  * This is the 10-Apr-92 bypass routine.
@@ -225,7 +225,7 @@ null_bypass(struct vop_generic_args *ap)
 	int error, i, reles;
 
 	if (null_bug_bypass)
-		printf ("null_bypass: %s\n", descp->vdesc_name);
+		printf("null_bypass: %s\n", descp->vdesc_name);
 
 #ifdef DIAGNOSTIC
 	/*
@@ -233,7 +233,7 @@ null_bypass(struct vop_generic_args *ap)
 	 */
 	if (descp->vdesc_vp_offsets == NULL ||
 	    descp->vdesc_vp_offsets[0] == VDESC_NO_OFFSET)
-		panic ("null_bypass: no vp's in map");
+		panic("null_bypass: no vp's in map");
 #endif
 
 	/*
@@ -244,7 +244,7 @@ null_bypass(struct vop_generic_args *ap)
 	reles = descp->vdesc_flags;
 	for (i = 0; i < VDESC_MAX_VPS; reles >>= 1, i++) {
 		if (descp->vdesc_vp_offsets[i] == VDESC_NO_OFFSET)
-			break;   /* bail out at end of list */
+			break; /* bail out at end of list */
 		vps_p[i] = this_vp_p = VOPARG_OFFSETTO(struct vnode **,
 		    descp->vdesc_vp_offsets[i], ap);
 
@@ -253,8 +253,9 @@ null_bypass(struct vop_generic_args *ap)
 		 * are of our type.  Check for and don't map any
 		 * that aren't.  (We must always map first vp or vclean fails.)
 		 */
-		if (i != 0 && (*this_vp_p == NULLVP ||
-		    (*this_vp_p)->v_op != &null_vnodeops)) {
+		if (i != 0 &&
+		    (*this_vp_p == NULLVP ||
+			(*this_vp_p)->v_op != &null_vnodeops)) {
 			old_vps[i] = NULLVP;
 		} else {
 			old_vps[i] = *this_vp_p;
@@ -300,7 +301,7 @@ null_bypass(struct vop_generic_args *ap)
 	reles = descp->vdesc_flags;
 	for (i = 0; i < VDESC_MAX_VPS; reles >>= 1, i++) {
 		if (descp->vdesc_vp_offsets[i] == VDESC_NO_OFFSET)
-			break;   /* bail out at end of list */
+			break; /* bail out at end of list */
 		if (old_vps[i] != NULL) {
 			lvp = *(vps_p[i]);
 
@@ -317,8 +318,8 @@ null_bypass(struct vop_generic_args *ap)
 				if (VOP_ISLOCKED(lvp) == LK_EXCLUSIVE &&
 				    old_vps[i]->v_vnlock != lvp->v_vnlock) {
 					VOP_UNLOCK(lvp);
-					VOP_LOCK(old_vps[i], LK_EXCLUSIVE |
-					    LK_RETRY);
+					VOP_LOCK(old_vps[i],
+					    LK_EXCLUSIVE | LK_RETRY);
 				}
 				vdrop(lvp);
 			}
@@ -411,8 +412,8 @@ null_lookup(struct vop_lookup_args *ap)
 	 */
 	if ((ldvp->v_vflag & VV_ROOT) != 0 && (flags & ISDOTDOT) != 0) {
 		KASSERT((dvp->v_vflag & VV_ROOT) == 0,
-		    ("ldvp %p fl %#x dvp %p fl %#x flags %#x",
-		    ldvp, ldvp->v_vflag, dvp, dvp->v_vflag, flags));
+		    ("ldvp %p fl %#x dvp %p fl %#x flags %#x", ldvp,
+			ldvp->v_vflag, dvp, dvp->v_vflag, flags));
 		return (ENOENT);
 	}
 
@@ -500,25 +501,27 @@ null_setattr(struct vop_setattr_args *ap)
 	struct vnode *vp = ap->a_vp;
 	struct vattr *vap = ap->a_vap;
 
-  	if ((vap->va_flags != VNOVAL || vap->va_uid != (uid_t)VNOVAL ||
-	    vap->va_gid != (gid_t)VNOVAL || vap->va_atime.tv_sec != VNOVAL ||
-	    vap->va_mtime.tv_sec != VNOVAL || vap->va_mode != (mode_t)VNOVAL) &&
+	if ((vap->va_flags != VNOVAL || vap->va_uid != (uid_t)VNOVAL ||
+		vap->va_gid != (gid_t)VNOVAL ||
+		vap->va_atime.tv_sec != VNOVAL ||
+		vap->va_mtime.tv_sec != VNOVAL ||
+		vap->va_mode != (mode_t)VNOVAL) &&
 	    (vp->v_mount->mnt_flag & MNT_RDONLY))
 		return (EROFS);
 	if (vap->va_size != VNOVAL) {
- 		switch (vp->v_type) {
- 		case VDIR:
- 			return (EISDIR);
- 		case VCHR:
- 		case VBLK:
- 		case VSOCK:
- 		case VFIFO:
+		switch (vp->v_type) {
+		case VDIR:
+			return (EISDIR);
+		case VCHR:
+		case VBLK:
+		case VSOCK:
+		case VFIFO:
 			if (vap->va_flags != VNOVAL)
 				return (EOPNOTSUPP);
 			return (0);
 		case VREG:
 		case VLNK:
- 		default:
+		default:
 			/*
 			 * Disallow write attempts if the filesystem is
 			 * mounted read-only.
@@ -669,7 +672,7 @@ null_rename(struct vop_rename_args *ap)
 
 	VI_LOCK(fdvp);
 	fdnn = VTONULL(fdvp);
-	if (fdnn == NULL) {	/* fdvp is not locked, can be doomed */
+	if (fdnn == NULL) { /* fdvp is not locked, can be doomed */
 		VI_UNLOCK(fdvp);
 		error = ENOENT;
 		goto upper_err;
@@ -1148,35 +1151,35 @@ null_getlowvnode(struct vop_getlowvnode_args *ap)
  * Global vfs data structures
  */
 struct vop_vector null_vnodeops = {
-	.vop_bypass =		null_bypass,
-	.vop_access =		null_access,
-	.vop_accessx =		null_accessx,
-	.vop_advlock =		null_advlock,
-	.vop_advlockpurge =	vop_stdadvlockpurge,
-	.vop_bmap =		VOP_EOPNOTSUPP,
-	.vop_stat =		null_stat,
-	.vop_getattr =		null_getattr,
-	.vop_getlowvnode =	null_getlowvnode,
-	.vop_getwritemount =	null_getwritemount,
-	.vop_inactive =		null_inactive,
-	.vop_need_inactive =	null_need_inactive,
-	.vop_islocked =		vop_stdislocked,
-	.vop_lock1 =		null_lock,
-	.vop_lookup =		null_lookup,
-	.vop_open =		null_open,
-	.vop_print =		null_print,
-	.vop_read_pgcache =	null_read_pgcache,
-	.vop_reclaim =		null_reclaim,
-	.vop_remove =		null_remove,
-	.vop_rename =		null_rename,
-	.vop_rmdir =		null_rmdir,
-	.vop_setattr =		null_setattr,
-	.vop_strategy =		VOP_EOPNOTSUPP,
-	.vop_unlock =		null_unlock,
-	.vop_vptocnp =		null_vptocnp,
-	.vop_vptofh =		null_vptofh,
-	.vop_add_writecount =	null_add_writecount,
-	.vop_vput_pair =	null_vput_pair,
-	.vop_copy_file_range =	VOP_PANIC,
+	.vop_bypass = null_bypass,
+	.vop_access = null_access,
+	.vop_accessx = null_accessx,
+	.vop_advlock = null_advlock,
+	.vop_advlockpurge = vop_stdadvlockpurge,
+	.vop_bmap = VOP_EOPNOTSUPP,
+	.vop_stat = null_stat,
+	.vop_getattr = null_getattr,
+	.vop_getlowvnode = null_getlowvnode,
+	.vop_getwritemount = null_getwritemount,
+	.vop_inactive = null_inactive,
+	.vop_need_inactive = null_need_inactive,
+	.vop_islocked = vop_stdislocked,
+	.vop_lock1 = null_lock,
+	.vop_lookup = null_lookup,
+	.vop_open = null_open,
+	.vop_print = null_print,
+	.vop_read_pgcache = null_read_pgcache,
+	.vop_reclaim = null_reclaim,
+	.vop_remove = null_remove,
+	.vop_rename = null_rename,
+	.vop_rmdir = null_rmdir,
+	.vop_setattr = null_setattr,
+	.vop_strategy = VOP_EOPNOTSUPP,
+	.vop_unlock = null_unlock,
+	.vop_vptocnp = null_vptocnp,
+	.vop_vptofh = null_vptofh,
+	.vop_add_writecount = null_add_writecount,
+	.vop_vput_pair = null_vput_pair,
+	.vop_copy_file_range = VOP_PANIC,
 };
 VFS_VOP_VECTOR_REGISTER(null_vnodeops);

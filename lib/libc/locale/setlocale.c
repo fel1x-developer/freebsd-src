@@ -35,20 +35,22 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
-#include <paths.h>			/* for _PATH_LOCALE */
+#include <paths.h> /* for _PATH_LOCALE */
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "../stdtime/timelocal.h" /* for __time_load_locale() */
 #include "collate.h"
-#include "lmonetary.h"			/* for __monetary_load_locale() */
-#include "lnumeric.h"			/* for __numeric_load_locale() */
-#include "lmessages.h"			/* for __messages_load_locale() */
-#include "setlocale.h"
 #include "ldpart.h"
-#include "../stdtime/timelocal.h"	/* for __time_load_locale() */
+#include "lmessages.h" /* for __messages_load_locale() */
+#include "lmonetary.h" /* for __monetary_load_locale() */
+#include "lnumeric.h"  /* for __numeric_load_locale() */
+#include "setlocale.h"
 
 /*
  * Category names for getenv()
@@ -79,7 +81,7 @@ static char current_categories[_LC_LAST][ENCODING_LEN + 1] = {
 /*
  * Path to locale storage directory
  */
-char   *_PathLocale;
+char *_PathLocale;
 
 /*
  * The locales we are going to try and load
@@ -87,7 +89,7 @@ char   *_PathLocale;
 static char new_categories[_LC_LAST][ENCODING_LEN + 1];
 static char saved_categories[_LC_LAST][ENCODING_LEN + 1];
 
-static char current_locale_string[_LC_LAST * (ENCODING_LEN + 1/*"/"*/ + 1)];
+static char current_locale_string[_LC_LAST * (ENCODING_LEN + 1 /*"/"*/ + 1)];
 
 static char *currentlocale(void);
 static char *loadlocale(int);
@@ -104,8 +106,8 @@ setlocale(int category, const char *locale)
 		return (NULL);
 	}
 	if (locale == NULL)
-		return (category != LC_ALL ?
-		    current_categories[category] : currentlocale());
+		return (category != LC_ALL ? current_categories[category] :
+					     currentlocale());
 
 	/*
 	 * Default to the current locale for everything.
@@ -153,11 +155,11 @@ setlocale(int category, const char *locale)
 				;
 			if (!r[1]) {
 				errno = EINVAL;
-				return (NULL);	/* Hmm, just slashes... */
+				return (NULL); /* Hmm, just slashes... */
 			}
 			do {
 				if (i == _LC_LAST)
-					break;	/* Too many slashes... */
+					break; /* Too many slashes... */
 				if ((len = r - locale) > ENCODING_LEN) {
 					errno = EINVAL;
 					return (NULL);
@@ -225,11 +227,11 @@ loadlocale(int category)
 {
 	char *new = new_categories[category];
 	char *old = current_categories[category];
-	int (*func) (const char *);
+	int (*func)(const char *);
 	int saved_errno;
 
 	if ((new[0] == '.' &&
-	    (new[1] == '\0' || (new[1] == '.' && new[2] == '\0'))) ||
+		(new[1] == '\0' || (new[1] == '.' && new[2] == '\0'))) ||
 	    strchr(new, '/') != NULL) {
 		errno = EINVAL;
 		return (NULL);
@@ -269,7 +271,9 @@ loadlocale(int category)
 
 	if (func(new) != _LDP_ERROR) {
 		(void)strcpy(old, new);
-		(void)strcpy(__xlocale_global_locale.components[category-1]->locale, new);
+		(void)strcpy(
+		    __xlocale_global_locale.components[category - 1]->locale,
+		    new);
 		return (old);
 	}
 
@@ -309,8 +313,9 @@ __detect_path_locale(void)
 		char *p = secure_getenv("PATH_LOCALE");
 
 		if (p != NULL) {
-			if (strlen(p) + 1/*"/"*/ + ENCODING_LEN +
-			    1/*"/"*/ + CATEGORY_LEN >= PATH_MAX)
+			if (strlen(p) + 1 /*"/"*/ + ENCODING_LEN + 1 /*"/"*/ +
+				CATEGORY_LEN >=
+			    PATH_MAX)
 				return (ENAMETOOLONG);
 			_PathLocale = strdup(p);
 			if (_PathLocale == NULL)

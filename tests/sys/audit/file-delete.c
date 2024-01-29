@@ -39,12 +39,12 @@ static const char *errpath = "dirdoesnotexist/fileforaudit";
 static const char *successreg = "fileforaudit.*return,success";
 static const char *failurereg = "fileforaudit.*return,failure";
 
-
 ATF_TC_WITH_CLEANUP(rmdir_success);
 ATF_TC_HEAD(rmdir_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"rmdir(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "rmdir(2) call");
 }
 
 ATF_TC_BODY(rmdir_success, tc)
@@ -60,12 +60,12 @@ ATF_TC_CLEANUP(rmdir_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(rmdir_failure);
 ATF_TC_HEAD(rmdir_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"rmdir(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "rmdir(2) call");
 }
 
 ATF_TC_BODY(rmdir_failure, tc)
@@ -81,12 +81,12 @@ ATF_TC_CLEANUP(rmdir_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(rename_success);
 ATF_TC_HEAD(rename_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"rename(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "rename(2) call");
 }
 
 ATF_TC_BODY(rename_success, tc)
@@ -103,12 +103,12 @@ ATF_TC_CLEANUP(rename_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(rename_failure);
 ATF_TC_HEAD(rename_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"rename(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "rename(2) call");
 }
 
 ATF_TC_BODY(rename_failure, tc)
@@ -124,12 +124,12 @@ ATF_TC_CLEANUP(rename_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(renameat_success);
 ATF_TC_HEAD(renameat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"renameat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "renameat(2) call");
 }
 
 ATF_TC_BODY(renameat_success, tc)
@@ -146,12 +146,12 @@ ATF_TC_CLEANUP(renameat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(renameat_failure);
 ATF_TC_HEAD(renameat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"renameat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "renameat(2) call");
 }
 
 ATF_TC_BODY(renameat_failure, tc)
@@ -167,12 +167,12 @@ ATF_TC_CLEANUP(renameat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(unlink_success);
 ATF_TC_HEAD(unlink_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"unlink(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "unlink(2) call");
 }
 
 ATF_TC_BODY(unlink_success, tc)
@@ -189,12 +189,12 @@ ATF_TC_CLEANUP(unlink_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(unlink_failure);
 ATF_TC_HEAD(unlink_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"unlink(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "unlink(2) call");
 }
 
 ATF_TC_BODY(unlink_failure, tc)
@@ -210,12 +210,12 @@ ATF_TC_CLEANUP(unlink_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(unlinkat_success);
 ATF_TC_HEAD(unlinkat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"unlinkat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "unlinkat(2) call");
 }
 
 ATF_TC_BODY(unlinkat_success, tc)
@@ -231,12 +231,12 @@ ATF_TC_CLEANUP(unlinkat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(unlinkat_failure);
 ATF_TC_HEAD(unlinkat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"unlinkat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "unlinkat(2) call");
 }
 
 ATF_TC_BODY(unlinkat_failure, tc)
@@ -251,7 +251,6 @@ ATF_TC_CLEANUP(unlinkat_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

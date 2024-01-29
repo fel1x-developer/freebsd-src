@@ -36,7 +36,7 @@
  *    decomposed into high and low parts with the high part containing a
  *    number of trailing zero bits.  x is also split into high and low parts.
  *
- * 2. For |x| < 1, argument reduction is not required and tanpi(x) is 
+ * 2. For |x| < 1, argument reduction is not required and tanpi(x) is
  *    computed by a direct call to a kernel, which uses the kernel for
  *    tan(x).  See below.
  *
@@ -48,7 +48,7 @@
  *                                   tan(pi*j0) + tan(pi*r)
  *    tanpi(x) = tan(pi*(j0+r)) = ---------------------------- = tanpi(r)
  *                                 1 - tan(pi*j0) * tan(pi*r)
- * 
+ *
  *    So, after argument reduction, the kernel is again invoked.
  *
  * 4. For |x| >= 0x1p(P-1), |x| is integral and tanpi(x) = copysign(0,x).
@@ -59,21 +59,21 @@
  *    tanpi(n) = +0 for positive even and negative odd integer n.
  *    tanpi(n) = -0 for positive odd and negative even integer n.
  *    tanpi(+-n+1/4) = +-1, for positive integers n.
- *    tanpi(n+1/2) = +inf and raises the FE_DIVBYZERO exception for 
- *    even integers n.   
- *    tanpi(n+1/2) = -inf and raises the FE_DIVBYZERO exception for 
- *    odd integers n.   
+ *    tanpi(n+1/2) = +inf and raises the FE_DIVBYZERO exception for
+ *    even integers n.
+ *    tanpi(n+1/2) = -inf and raises the FE_DIVBYZERO exception for
+ *    odd integers n.
  *    tanpi(+-inf) = NaN and raises the FE_INVALID exception.
  *    tanpi(nan) = NaN and raises the FE_INVALID exception.
  */
 
 #include <float.h>
+
 #include "math.h"
 #include "math_private.h"
 
-static const double 
-pi_hi =  3.1415926814079285e+00,	/* 0x400921fb 0x58000000 */
-pi_lo = -2.7818135228334233e-08;	/* 0xbe5dde97 0x3dcb3b3a */
+static const double pi_hi = 3.1415926814079285e+00, /* 0x400921fb 0x58000000 */
+    pi_lo = -2.7818135228334233e-08;		    /* 0xbe5dde97 0x3dcb3b3a */
 
 /*
  * The kernel for tanpi(x) multiplies x by an 80-bit approximation of
@@ -98,7 +98,7 @@ __kernel_tanpi(double x)
 		lo = lo * (pi_lo + pi_hi) + hi * pi_lo;
 		hi *= pi_hi;
 		_2sumF(hi, lo);
-		t = - __kernel_tan(hi, lo, -1);
+		t = -__kernel_tan(hi, lo, -1);
 	} else
 		t = 1;
 
@@ -117,14 +117,14 @@ tanpi(double x)
 	ix = hx & 0x7fffffff;
 	INSERT_WORDS(ax, ix, lx);
 
-	if (ix < 0x3ff00000) {			/* |x| < 1 */
-		if (ix < 0x3fe00000) {		/* |x| < 0.5 */
-			if (ix < 0x3e200000) {	/* |x| < 0x1p-29 */
+	if (ix < 0x3ff00000) {		       /* |x| < 1 */
+		if (ix < 0x3fe00000) {	       /* |x| < 0.5 */
+			if (ix < 0x3e200000) { /* |x| < 0x1p-29 */
 				if (x == 0)
 					return (x);
 				/*
 				 * To avoid issues with subnormal values,
-				 * scale the computation and rescale on 
+				 * scale the computation and rescale on
 				 * return.
 				 */
 				INSERT_WORDS(hi, hx, 0);
@@ -138,22 +138,22 @@ tanpi(double x)
 		} else if (ax == 0.5)
 			t = 1 / vzero;
 		else
-			t = - __kernel_tanpi(1 - ax);
+			t = -__kernel_tanpi(1 - ax);
 		return ((hx & 0x80000000) ? -t : t);
 	}
 
-	if (ix < 0x43300000) {		/* 1 <= |x| < 0x1p52 */
-		FFLOOR(x, j0, ix, lx);	/* Integer part of ax. */
+	if (ix < 0x43300000) {	       /* 1 <= |x| < 0x1p52 */
+		FFLOOR(x, j0, ix, lx); /* Integer part of ax. */
 		odd = (uint64_t)x & 1 ? -1 : 1;
 		ax -= x;
 		EXTRACT_WORDS(ix, lx, ax);
 
-		if (ix < 0x3fe00000)		/* |x| < 0.5 */
+		if (ix < 0x3fe00000) /* |x| < 0.5 */
 			t = ix == 0 ? copysign(0, odd) : __kernel_tanpi(ax);
 		else if (ax == 0.5)
 			t = odd / vzero;
 		else
-			t = - __kernel_tanpi(1 - ax);
+			t = -__kernel_tanpi(1 - ax);
 
 		return ((hx & 0x80000000) ? -t : t);
 	}

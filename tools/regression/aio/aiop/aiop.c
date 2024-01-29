@@ -43,6 +43,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
 #include <aio.h>
 #include <assert.h>
 #include <ctype.h>
@@ -73,16 +74,12 @@
  * Adrian Chadd <adrian@creative.net.au>
  */
 
-typedef enum {
-	IOT_NONE = 0x00,
-	IOT_READ = 0x01,
-	IOT_WRITE = 0x02
-} iot_t;
+typedef enum { IOT_NONE = 0x00, IOT_READ = 0x01, IOT_WRITE = 0x02 } iot_t;
 
 static size_t
 disk_getsize(int fd)
 {
-	off_t mediasize;	
+	off_t mediasize;
 
 	if (ioctl(fd, DIOCGMEDIASIZE, &mediasize) < 0)
 		err(1, "ioctl(DIOCGMEDIASIZE)");
@@ -134,9 +131,9 @@ main(int argc, char *argv[])
 	float f_rt;
 	iot_t iowhat;
 
-
 	if (argc < 6) {
-		printf("Usage: %s <file> <io size> <number of runs> <concurrency> <ro|wo|rw>\n",
+		printf(
+		    "Usage: %s <file> <io size> <number of runs> <concurrency> <ro|wo|rw>\n",
 		    argv[0]);
 		exit(1);
 	}
@@ -158,7 +155,8 @@ main(int argc, char *argv[])
 	else if (strcmp(argv[5], "wo") == 0)
 		iowhat = IOT_WRITE;
 	else
-		errx(1, "the I/O type needs to be \"ro\", \"rw\", or \"wo\"!\n");
+		errx(1,
+		    "the I/O type needs to be \"ro\", \"rw\", or \"wo\"!\n");
 
 	/*
 	 * Random returns values between 0 and (2^32)-1; only good for 4 gig.
@@ -197,7 +195,8 @@ main(int argc, char *argv[])
 	for (i = 0; i < aio_len; i++) {
 		offset = random() % (file_size / io_size);
 		offset *= io_size;
-		set_aio(aio + i, choose_aio(iowhat), fd, offset, io_size, abuf[i]);
+		set_aio(aio + i, choose_aio(iowhat), fd, offset, io_size,
+		    abuf[i]);
 	}
 
 	for (i = 0; i < nrun; i++) {
@@ -207,18 +206,18 @@ main(int argc, char *argv[])
 		assert(n >= 0);
 		offset = random() % (file_size / io_size);
 		offset *= io_size;
-		set_aio(aio + n, choose_aio(iowhat), fd, offset, io_size, abuf[n]);
+		set_aio(aio + n, choose_aio(iowhat), fd, offset, io_size,
+		    abuf[n]);
 	}
 
 	gettimeofday(&et, NULL);
 	timersub(&et, &st, &rt);
-	f_rt = ((float) (rt.tv_usec)) / 1000000.0;
-	f_rt += (float) (rt.tv_sec);
+	f_rt = ((float)(rt.tv_usec)) / 1000000.0;
+	f_rt += (float)(rt.tv_sec);
 	printf("Runtime: %.2f seconds, ", f_rt);
-	printf("Op rate: %.2f ops/sec, ", ((float) (nrun))  / f_rt);
-	printf("Avg transfer rate: %.2f bytes/sec\n", ((float) (nrun)) * ((float)io_size) / f_rt);
-
-
+	printf("Op rate: %.2f ops/sec, ", ((float)(nrun)) / f_rt);
+	printf("Avg transfer rate: %.2f bytes/sec\n",
+	    ((float)(nrun)) * ((float)io_size) / f_rt);
 
 	exit(0);
 }

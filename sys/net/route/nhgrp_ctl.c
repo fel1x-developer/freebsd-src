@@ -29,35 +29,33 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/epoch.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/rmlock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/refcount.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/kernel.h>
-#include <sys/epoch.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 #include <net/route.h>
+#include <net/route/nhgrp_var.h>
+#include <net/route/nhop.h>
+#include <net/route/nhop_utils.h>
+#include <net/route/nhop_var.h>
 #include <net/route/route_ctl.h>
 #include <net/route/route_var.h>
 #include <net/vnet.h>
-
 #include <netinet/in.h>
-#include <netinet/in_var.h>
 #include <netinet/in_fib.h>
+#include <netinet/in_var.h>
 
-#include <net/route/nhop_utils.h>
-#include <net/route/nhop.h>
-#include <net/route/nhop_var.h>
-#include <net/route/nhgrp_var.h>
-
-#define	DEBUG_MOD_NAME	nhgrp_ctl
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG
+#define DEBUG_MOD_NAME nhgrp_ctl
+#define DEBUG_MAX_LEVEL LOG_DEBUG
 #include <net/route/route_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -70,7 +68,8 @@ _DECLARE_DEBUG(LOG_INFO);
 _Static_assert(MPF_MULTIPATH == NHF_MULTIPATH,
     "MPF_MULTIPATH must be the same as NHF_MULTIPATH");
 /* Offset and size of flags field has to be the same for nhop/nhop groups */
-CHK_STRUCT_FIELD_GENERIC(struct nhop_object, nh_flags, struct nhgrp_object, nhg_flags);
+CHK_STRUCT_FIELD_GENERIC(struct nhop_object, nh_flags, struct nhgrp_object,
+    nhg_flags);
 /* Cap multipath to 64, as the larger values would break rib_cmd_info bmasks */
 CTASSERT(RIB_MAX_MPATH_WIDTH <= 64);
 
@@ -122,7 +121,8 @@ sort_weightened_nhops_weights(struct weightened_nhop *wn, int num_items)
 {
 	wn[0].storage = wn[0].weight;
 	for (int i = 1, j = 0; i < num_items; i++) {
-		uint32_t weight = wn[i].weight; // read from 'weight' as it's not reordered
+		uint32_t weight =
+		    wn[i].weight; // read from 'weight' as it's not reordered
 		/* Move all weights > weight 1 position right */
 		for (j = i - 1; j >= 0 && wn[j].storage > weight; j--)
 			wn[j + 1].storage = wn[j].storage;
@@ -238,20 +238,21 @@ compile_nhgrp(struct nhgrp_priv *dst_priv, const struct weightened_nhop *x,
 	int i, slot_idx, remaining_slots;
 	uint64_t remaining_sum, nh_weight, nh_slots;
 
-	slot_idx  = 0;
+	slot_idx = 0;
 	dst = dst_priv->nhg;
 	/* Calculate sum of all weights */
 	remaining_sum = 0;
 	for (i = 0; i < dst_priv->nhg_nh_count; i++)
 		remaining_sum += x[i].weight;
 	remaining_slots = num_slots;
-	FIB_NH_LOG(LOG_DEBUG3, x[0].nh, "sum: %lu, slots: %d",
-	    remaining_sum, remaining_slots);
+	FIB_NH_LOG(LOG_DEBUG3, x[0].nh, "sum: %lu, slots: %d", remaining_sum,
+	    remaining_slots);
 	for (i = 0; i < dst_priv->nhg_nh_count; i++) {
 		/* Calculate number of slots for the current nexthop */
 		if (remaining_sum > 0) {
 			nh_weight = (uint64_t)x[i].weight;
-			nh_slots = (nh_weight * remaining_slots / remaining_sum);
+			nh_slots = (nh_weight * remaining_slots /
+			    remaining_sum);
 		} else
 			nh_slots = 0;
 
@@ -310,7 +311,7 @@ alloc_nhgrp(struct weightened_nhop *wn, int num_nhops)
 
 	nhg_priv->nhg = nhg;
 	memcpy(&nhg_priv->nhg_nh_weights[0], wn,
-	  num_nhops * sizeof(struct weightened_nhop));
+	    num_nhops * sizeof(struct weightened_nhop));
 
 	FIB_NH_LOG(LOG_DEBUG, wn[0].nh, "num_nhops: %d, compiled_nhop: %u",
 	    num_nhops, nhgrp_size);
@@ -400,11 +401,12 @@ destroy_nhgrp_int(struct nhgrp_priv *nhg_priv)
 __noinline static void
 destroy_nhgrp(struct nhgrp_priv *nhg_priv)
 {
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char nhgbuf[NHOP_PRINT_BUFSIZE] __unused;
 		FIB_NH_LOG(LOG_DEBUG2, nhg_priv->nhg_nh_weights[0].nh,
-		    "destroying %s", nhgrp_print_buf(nhg_priv->nhg,
-		    nhgbuf, sizeof(nhgbuf)));
+		    "destroying %s",
+		    nhgrp_print_buf(nhg_priv->nhg, nhgbuf, sizeof(nhgbuf)));
 	}
 
 	free_nhgrp_nhops(nhg_priv);
@@ -458,8 +460,8 @@ free_nhgrp_nhops(struct nhgrp_priv *nhg_priv)
  * Returns unlinked nhgrp object on success or NULL and non-zero perror.
  */
 struct nhgrp_object *
-nhgrp_alloc(uint32_t fibnum, int family, struct weightened_nhop *wn, int num_nhops,
-    int *perror)
+nhgrp_alloc(uint32_t fibnum, int family, struct weightened_nhop *wn,
+    int num_nhops, int *perror)
 {
 	struct rib_head *rh = rt_tables_get_rnh(fibnum, family);
 	struct nhgrp_priv *nhg_priv;
@@ -534,9 +536,10 @@ nhgrp_get_nhgrp(struct nhgrp_object *nhg, int *perror)
 		/* No existing group, try to link the new one */
 		if (!ref_nhgrp_nhops(key)) {
 			/*
-			 * Some of the nexthops have been scheduled for deletion.
-			 * As the group hasn't been linked / no nexhops have been
-			 *  referenced, call the final destructor immediately.
+			 * Some of the nexthops have been scheduled for
+			 * deletion. As the group hasn't been linked / no
+			 * nexhops have been referenced, call the final
+			 * destructor immediately.
 			 */
 			destroy_nhgrp_int(key);
 			*perror = EAGAIN;
@@ -567,8 +570,8 @@ get_nhgrp(struct nh_control *ctl, struct weightened_nhop *wn, int num_nhops,
 {
 	struct nhgrp_object *nhg;
 
-	nhg = nhgrp_alloc(ctl->ctl_rh->rib_fibnum, ctl->ctl_rh->rib_family,
-	    wn, num_nhops, perror);
+	nhg = nhgrp_alloc(ctl->ctl_rh->rib_fibnum, ctl->ctl_rh->rib_family, wn,
+	    num_nhops, perror);
 	if (nhg == NULL)
 		return (NULL);
 	nhgrp_set_uidx(nhg, uidx);
@@ -577,7 +580,6 @@ get_nhgrp(struct nh_control *ctl, struct weightened_nhop *wn, int num_nhops,
 		return (NHGRP_PRIV(nhg));
 	return (NULL);
 }
-
 
 /*
  * Appends one or more nexthops denoted by @wm to the nexthop group @gr_orig.
@@ -604,7 +606,8 @@ append_nhops(struct nh_control *ctl, const struct nhgrp_object *gr_orig,
 
 	*perror = 0;
 
-	sz = (src_priv->nhg_nh_count + num_nhops) * (sizeof(struct weightened_nhop));
+	sz = (src_priv->nhg_nh_count + num_nhops) *
+	    (sizeof(struct weightened_nhop));
 	/* optimize for <= 4 paths, each path=16 bytes */
 	if (sz <= sizeof(storage))
 		pnhops = (struct weightened_nhop *)&storage[0];
@@ -618,8 +621,9 @@ append_nhops(struct nh_control *ctl, const struct nhgrp_object *gr_orig,
 
 	/* Copy nhops from original group first */
 	memcpy(pnhops, src_priv->nhg_nh_weights,
-	  curr_nhops * sizeof(struct weightened_nhop));
-	memcpy(&pnhops[curr_nhops], wn, num_nhops * sizeof(struct weightened_nhop));
+	    curr_nhops * sizeof(struct weightened_nhop));
+	memcpy(&pnhops[curr_nhops], wn,
+	    num_nhops * sizeof(struct weightened_nhop));
 	curr_nhops += num_nhops;
 
 	nhg_priv = get_nhgrp(ctl, pnhops, curr_nhops, 0, perror);
@@ -632,7 +636,6 @@ append_nhops(struct nh_control *ctl, const struct nhgrp_object *gr_orig,
 
 	return (nhg_priv);
 }
-
 
 /*
  * Creates/finds nexthop group based on @wn and @num_nhops.
@@ -691,7 +694,7 @@ nhgrp_get_filtered_group(struct rib_head *rh, const struct rtentry *rt,
 		if (flt_func(rt, src_priv->nhg_nh_weights[i].nh, flt_data))
 			continue;
 		memcpy(&pnhops[num_nhops++], &src_priv->nhg_nh_weights[i],
-		  sizeof(struct weightened_nhop));
+		    sizeof(struct weightened_nhop));
 	}
 
 	if (num_nhops == 0) {
@@ -871,7 +874,8 @@ dump_nhgrp_entry(struct rib_head *rh, const struct nhgrp_priv *nhg_priv,
 	nhgc->nhgc_type = NHG_C_TYPE_CNHOPS;
 	nhgc->nhgc_subtype = 0;
 	nhgc->nhgc_len = sizeof(struct nhgrp_container);
-	nhgc->nhgc_len += sizeof(struct nhgrp_nhop_external) * nhg_priv->nhg_nh_count;
+	nhgc->nhgc_len += sizeof(struct nhgrp_nhop_external) *
+	    nhg_priv->nhg_nh_count;
 	nhgc->nhgc_count = nhg_priv->nhg_nh_count;
 
 	ext = (struct nhgrp_nhop_external *)(nhgc + 1);
@@ -958,11 +962,13 @@ nhgrp_dump_sysctl(struct rib_head *rh, struct sysctl_req *w)
 
 	NET_EPOCH_ENTER(et);
 	NHOPS_RLOCK(ctl);
-	CHT_SLIST_FOREACH(&ctl->gr_head, mpath, nhg_priv) {
+	CHT_SLIST_FOREACH(&ctl->gr_head, mpath, nhg_priv)
+	{
 		error = dump_nhgrp_entry(rh, nhg_priv, buffer, sz, w);
 		if (error != 0)
 			break;
-	} CHT_SLIST_FOREACH_END;
+	}
+	CHT_SLIST_FOREACH_END;
 	NHOPS_RUNLOCK(ctl);
 	NET_EPOCH_EXIT(et);
 

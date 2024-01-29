@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_utils.h"
-
 #include <sys/types.h>
 #include <sys/lock.h>
-#include <sys/sema.h>
 #include <sys/mutex.h>
+#include <sys/sema.h>
+
+#include "qat_utils.h"
 
 /* Define a 64 bit number */
 #define QAT_UTILS_MAX_LONG (0x7FFFFFFF)

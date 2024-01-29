@@ -35,61 +35,67 @@ invln2 =  1.4426950216e+00, 		/* 0x3fb8aa3b */
 P1 =  1.6666625440e-1,		/*  0xaaaa8f.0p-26 */
 P2 = -2.7667332906e-3;		/* -0xb55215.0p-32 */
 
-static volatile float
-huge	= 1.0e+30,
-twom100 = 7.8886090522e-31;      /* 2**-100=0x0d800000 */
+static volatile float huge = 1.0e+30,
+		      twom100 = 7.8886090522e-31; /* 2**-100=0x0d800000 */
 
 float
 expf(float x)
 {
-	float y,hi=0.0,lo=0.0,c,t,twopk;
-	int32_t k=0,xsb;
+	float y, hi = 0.0, lo = 0.0, c, t, twopk;
+	int32_t k = 0, xsb;
 	u_int32_t hx;
 
-	GET_FLOAT_WORD(hx,x);
-	xsb = (hx>>31)&1;		/* sign bit of x */
-	hx &= 0x7fffffff;		/* high word of |x| */
+	GET_FLOAT_WORD(hx, x);
+	xsb = (hx >> 31) & 1; /* sign bit of x */
+	hx &= 0x7fffffff;     /* high word of |x| */
 
-    /* filter out non-finite argument */
-	if(hx >= 0x42b17218) {			/* if |x|>=88.721... */
-	    if(hx>0x7f800000)
-		 return x+x;	 		/* NaN */
-            if(hx==0x7f800000)
-		return (xsb==0)? x:0.0;		/* exp(+-inf)={inf,0} */
-	    if(x > o_threshold) return huge*huge; /* overflow */
-	    if(x < u_threshold) return twom100*twom100; /* underflow */
+	/* filter out non-finite argument */
+	if (hx >= 0x42b17218) { /* if |x|>=88.721... */
+		if (hx > 0x7f800000)
+			return x + x; /* NaN */
+		if (hx == 0x7f800000)
+			return (xsb == 0) ? x : 0.0; /* exp(+-inf)={inf,0} */
+		if (x > o_threshold)
+			return huge * huge; /* overflow */
+		if (x < u_threshold)
+			return twom100 * twom100; /* underflow */
 	}
 
-    /* argument reduction */
-	if(hx > 0x3eb17218) {		/* if  |x| > 0.5 ln2 */
-	    if(hx < 0x3F851592) {	/* and |x| < 1.5 ln2 */
-		hi = x-ln2HI[xsb]; lo=ln2LO[xsb]; k = 1-xsb-xsb;
-	    } else {
-		k  = invln2*x+halF[xsb];
-		t  = k;
-		hi = x - t*ln2HI[0];	/* t*ln2HI is exact here */
-		lo = t*ln2LO[0];
-	    }
-	    STRICT_ASSIGN(float, x, hi - lo);
-	}
-	else if(hx < 0x39000000)  {	/* when |x|<2**-14 */
-	    if(huge+x>one) return one+x;/* trigger inexact */
-	}
-	else k = 0;
+	/* argument reduction */
+	if (hx > 0x3eb17218) {	       /* if  |x| > 0.5 ln2 */
+		if (hx < 0x3F851592) { /* and |x| < 1.5 ln2 */
+			hi = x - ln2HI[xsb];
+			lo = ln2LO[xsb];
+			k = 1 - xsb - xsb;
+		} else {
+			k = invln2 * x + halF[xsb];
+			t = k;
+			hi = x - t * ln2HI[0]; /* t*ln2HI is exact here */
+			lo = t * ln2LO[0];
+		}
+		STRICT_ASSIGN(float, x, hi - lo);
+	} else if (hx < 0x39000000) { /* when |x|<2**-14 */
+		if (huge + x > one)
+			return one + x; /* trigger inexact */
+	} else
+		k = 0;
 
-    /* x is now in primary range */
-	t  = x*x;
-	if(k >= -125)
-	    SET_FLOAT_WORD(twopk,((u_int32_t)(0x7f+k))<<23);
+	/* x is now in primary range */
+	t = x * x;
+	if (k >= -125)
+		SET_FLOAT_WORD(twopk, ((u_int32_t)(0x7f + k)) << 23);
 	else
-	    SET_FLOAT_WORD(twopk,((u_int32_t)(0x7f+(k+100)))<<23);
-	c  = x - t*(P1+t*P2);
-	if(k==0) 	return one-((x*c)/(c-(float)2.0)-x);
-	else 		y = one-((lo-(x*c)/((float)2.0-c))-hi);
-	if(k >= -125) {
-	    if(k==128) return y*2.0F*0x1p127F;
-	    return y*twopk;
+		SET_FLOAT_WORD(twopk, ((u_int32_t)(0x7f + (k + 100))) << 23);
+	c = x - t * (P1 + t * P2);
+	if (k == 0)
+		return one - ((x * c) / (c - (float)2.0) - x);
+	else
+		y = one - ((lo - (x * c) / ((float)2.0 - c)) - hi);
+	if (k >= -125) {
+		if (k == 128)
+			return y * 2.0F * 0x1p127F;
+		return y * twopk;
 	} else {
-	    return y*twopk*twom100;
+		return y * twopk * twom100;
 	}
 }

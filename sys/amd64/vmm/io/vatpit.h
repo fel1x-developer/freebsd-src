@@ -28,11 +28,11 @@
  */
 
 #ifndef _VATPIT_H_
-#define	_VATPIT_H_
+#define _VATPIT_H_
 
 #include <x86/timerreg.h>
 
-#define	NMISC_PORT	0x61
+#define NMISC_PORT 0x61
 
 struct vm_snapshot_meta;
 
@@ -46,4 +46,4 @@ int vatpit_nmisc_handler(struct vm *vm, bool in, int port, int bytes,
 int vatpit_snapshot(struct vatpit *vatpit, struct vm_snapshot_meta *meta);
 #endif
 
-#endif	/* _VATPIT_H_ */
+#endif /* _VATPIT_H_ */

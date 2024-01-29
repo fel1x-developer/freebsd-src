@@ -28,31 +28,32 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/rtprio.h>
 #include <sys/signalvar.h>
+
 #include <errno.h>
 #include <link.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stddef.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include "un-namespace.h"
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "libc_private.h"
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
-static int  create_stack(struct pthread_attr *pattr);
+static int create_stack(struct pthread_attr *pattr);
 static void thread_start(struct pthread *curthread);
 
 __weak_reference(_pthread_create, pthread_create);
 
 int
-_pthread_create(pthread_t * __restrict thread,
-    const pthread_attr_t * __restrict attr, void *(*start_routine) (void *),
-    void * __restrict arg)
+_pthread_create(pthread_t *__restrict thread,
+    const pthread_attr_t *__restrict attr, void *(*start_routine)(void *),
+    void *__restrict arg)
 {
 	struct pthread *curthread, *new_thread;
 	struct thr_param param;
@@ -153,7 +154,7 @@ _pthread_create(pthread_t * __restrict thread,
 		locked = 1;
 	} else
 		locked = 0;
-	param.start_func = (void (*)(void *)) thread_start;
+	param.start_func = (void (*)(void *))thread_start;
 	param.arg = new_thread;
 	param.stack_base = new_thread->attr.stackaddr_attr;
 	param.stack_size = new_thread->attr.stacksize_attr;
@@ -168,8 +169,8 @@ _pthread_create(pthread_t * __restrict thread,
 		param.rtp = NULL;
 	else {
 		sched_param.sched_priority = new_thread->attr.prio;
-		_schedparam_to_rtp(new_thread->attr.sched_policy,
-			&sched_param, &rtp);
+		_schedparam_to_rtp(new_thread->attr.sched_policy, &sched_param,
+		    &rtp);
 		param.rtp = &rtp;
 	}
 
@@ -218,7 +219,7 @@ _pthread_create(pthread_t * __restrict thread,
 				new_thread->force_exit = 1;
 				new_thread->flags |= THR_FLAGS_DETACHED;
 				_thr_try_gc(curthread, new_thread);
-				 /* thread lock released */
+				/* thread lock released */
 				goto out;
 			}
 		}
@@ -242,8 +243,7 @@ create_stack(struct pthread_attr *pattr)
 		pattr->guardsize_attr = 0;
 		pattr->flags |= THR_STACK_USER;
 		ret = 0;
-	}
-	else
+	} else
 		ret = _thr_stack_alloc(pattr);
 	return (ret);
 }
@@ -283,7 +283,7 @@ thread_start(struct pthread *curthread)
 
 #ifdef _PTHREAD_FORCED_UNWIND
 	curthread->unwind_stackend = (char *)curthread->attr.stackaddr_attr +
-		curthread->attr.stacksize_attr;
+	    curthread->attr.stacksize_attr;
 #endif
 
 	/* Run the current thread's start routine with argument: */

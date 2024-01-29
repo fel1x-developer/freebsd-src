@@ -65,18 +65,17 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/intel_sas.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
-enum SCIC_PORT_NOT_READY_REASON_CODE
-{
-   SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS,
-   SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED,
-   SCIC_PORT_NOT_READY_INVALID_PORT_CONFIGURATION,
-   SCIC_PORT_NOT_READY_RECONFIGURING,
+enum SCIC_PORT_NOT_READY_REASON_CODE {
+	SCIC_PORT_NOT_READY_NO_ACTIVE_PHYS,
+	SCIC_PORT_NOT_READY_HARD_RESET_REQUESTED,
+	SCIC_PORT_NOT_READY_INVALID_PORT_CONFIGURATION,
+	SCIC_PORT_NOT_READY_RECONFIGURING,
 
-   SCIC_PORT_NOT_READY_REASON_CODE_MAX
+	SCIC_PORT_NOT_READY_REASON_CODE_MAX
 };
 
 /**
@@ -85,19 +84,18 @@ enum SCIC_PORT_NOT_READY_REASON_CODE
  *         for each end-point local or remote (attached) port in the
  *         controller.
  */
-typedef struct SCIC_PORT_END_POINT_PROPERTIES
-{
-   /**
-    * This field indicates the SAS address for the associated end
-    * point in the port.
-    */
-   SCI_SAS_ADDRESS_T  sas_address;
+typedef struct SCIC_PORT_END_POINT_PROPERTIES {
+	/**
+	 * This field indicates the SAS address for the associated end
+	 * point in the port.
+	 */
+	SCI_SAS_ADDRESS_T sas_address;
 
-   /**
-    * This field indicates the protocols supported by the associated
-    * end-point in the port.
-    */
-   SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T  protocols;
+	/**
+	 * This field indicates the protocols supported by the associated
+	 * end-point in the port.
+	 */
+	SCI_SAS_IDENTIFY_ADDRESS_FRAME_PROTOCOLS_T protocols;
 
 } SCIC_PORT_END_POINT_PROPERTIES_T;
 
@@ -106,28 +104,27 @@ typedef struct SCIC_PORT_END_POINT_PROPERTIES
  * @brief  This structure defines the properties that can be retrieved
  *         for each port in the controller.
  */
-typedef struct SCIC_PORT_PROPERTIES
-{
-   /**
-    * This field specifies the logical index of the port (0 relative).
-    */
-   U32  index;
+typedef struct SCIC_PORT_PROPERTIES {
+	/**
+	 * This field specifies the logical index of the port (0 relative).
+	 */
+	U32 index;
 
-   /**
-    * This field indicates the local end-point properties for port.
-    */
-   SCIC_PORT_END_POINT_PROPERTIES_T  local;
+	/**
+	 * This field indicates the local end-point properties for port.
+	 */
+	SCIC_PORT_END_POINT_PROPERTIES_T local;
 
-   /**
-    * This field indicates the remote (attached) end-point properties
-    * for the port.
-    */
-   SCIC_PORT_END_POINT_PROPERTIES_T  remote;
+	/**
+	 * This field indicates the remote (attached) end-point properties
+	 * for the port.
+	 */
+	SCIC_PORT_END_POINT_PROPERTIES_T remote;
 
-   /**
-    * This field specifies the phys contained inside the port.
-    */
-   U32  phy_mask;
+	/**
+	 * This field specifies the phys contained inside the port.
+	 */
+	U32 phy_mask;
 
 } SCIC_PORT_PROPERTIES_T;
 
@@ -146,10 +143,8 @@ typedef struct SCIC_PORT_PROPERTIES
  *         is not valid.  When this value is returned, no data is copied to the
  *         properties output parameter.
  */
-SCI_STATUS scic_port_get_properties(
-   SCI_PORT_HANDLE_T        port,
-   SCIC_PORT_PROPERTIES_T * properties
-);
+SCI_STATUS scic_port_get_properties(SCI_PORT_HANDLE_T port,
+    SCIC_PORT_PROPERTIES_T *properties);
 
 /**
  * @brief This method will add a phy to an existing port.
@@ -166,10 +161,7 @@ SCI_STATUS scic_port_get_properties(
  * @retval SCI_FAILURE_INVALID_PHY This value is returned if the supplied
  *         phy is either invalid or already contained in another port.
  */
-SCI_STATUS scic_port_add_phy(
-   SCI_PORT_HANDLE_T port,
-   SCI_PHY_HANDLE_T  phy
-);
+SCI_STATUS scic_port_add_phy(SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy);
 
 /**
  * @brief This method will remove a phy from an existing port.
@@ -188,10 +180,7 @@ SCI_STATUS scic_port_add_phy(
  *         phy is either invalid or
  *         not contained in the port.
  */
-SCI_STATUS scic_port_remove_phy(
-   SCI_PORT_HANDLE_T  port,
-   SCI_PHY_HANDLE_T   phy
-);
+SCI_STATUS scic_port_remove_phy(SCI_PORT_HANDLE_T port, SCI_PHY_HANDLE_T phy);
 
 /**
  * @brief This method will request the SCI implementation to perform a
@@ -213,10 +202,7 @@ SCI_STATUS scic_port_remove_phy(
  * @retval SCI_SUCCESS This value is returned if the hard reset operation
  *         started successfully.
  */
-SCI_STATUS scic_port_hard_reset(
-   SCI_PORT_HANDLE_T port,
-   U32               reset_timeout
-);
+SCI_STATUS scic_port_hard_reset(SCI_PORT_HANDLE_T port, U32 reset_timeout);
 
 /**
  * @brief This API method enables the broadcast change notification from
@@ -227,13 +213,10 @@ SCI_STATUS scic_port_hard_reset(
  *
  * @return none
  */
-void scic_port_enable_broadcast_change_notification(
-   SCI_PORT_HANDLE_T  port
-);
+void scic_port_enable_broadcast_change_notification(SCI_PORT_HANDLE_T port);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIC_PORT_H_
-

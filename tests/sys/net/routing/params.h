@@ -29,8 +29,7 @@
 #define _NET_ROUTING_PARAMS_H_
 
 /* files to store state */
-#define	JAILS_FNAME	"created_jails.lst"
-#define	IFACES_FNAME	"created_interfaces.lst"
+#define JAILS_FNAME "created_jails.lst"
+#define IFACES_FNAME "created_interfaces.lst"
 
 #endif
-

@@ -39,9 +39,9 @@
 #include <sys/malloc.h>
 
 #include <vm/vm.h>
+#include <vm/uma.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/uma.h>
 
 /*
  * We manage buffer zones up to a page in size.  Buffers larger than a page can
@@ -50,8 +50,8 @@
  * which we can g'tee contiguity when using uma, and contiguity is one of the
  * requirements we have to fulfill.
  */
-#define	MIN_ZONE_BUFSIZE	32
-#define	MAX_ZONE_BUFSIZE	PAGE_SIZE
+#define MIN_ZONE_BUFSIZE 32
+#define MAX_ZONE_BUFSIZE PAGE_SIZE
 
 /*
  * The static array of 12 bufzones is big enough to handle all the zones for the
@@ -65,12 +65,12 @@
 #endif
 
 struct busdma_bufalloc {
-	bus_size_t		min_size;
-	size_t			num_zones;
-	struct busdma_bufzone	buf_zones[12];
+	bus_size_t min_size;
+	size_t num_zones;
+	struct busdma_bufzone buf_zones[12];
 };
 
-busdma_bufalloc_t 
+busdma_bufalloc_t
 busdma_bufalloc_create(const char *name, bus_size_t minimum_alignment,
     uma_alloc alloc_func, uma_free free_func, uint32_t zcreate_flags)
 {
@@ -79,7 +79,7 @@ busdma_bufalloc_create(const char *name, bus_size_t minimum_alignment,
 	int i;
 	bus_size_t cursize;
 
-	ba = malloc(sizeof(struct busdma_bufalloc), M_DEVBUF, 
+	ba = malloc(sizeof(struct busdma_bufalloc), M_DEVBUF,
 	    M_ZERO | M_WAITOK);
 
 	ba->min_size = MAX(MIN_ZONE_BUFSIZE, minimum_alignment);
@@ -93,13 +93,13 @@ busdma_bufalloc_create(const char *name, bus_size_t minimum_alignment,
 	 * bufzone->size.
 	 */
 	for (i = 0, bz = ba->buf_zones, cursize = ba->min_size;
-	    i < nitems(ba->buf_zones) && cursize <= MAX_ZONE_BUFSIZE;
-	    ++i, ++bz, cursize <<= 1) {
-		snprintf(bz->name, sizeof(bz->name), "dma %.10s %ju",
-		    name, (uintmax_t)cursize);
+	     i < nitems(ba->buf_zones) && cursize <= MAX_ZONE_BUFSIZE;
+	     ++i, ++bz, cursize <<= 1) {
+		snprintf(bz->name, sizeof(bz->name), "dma %.10s %ju", name,
+		    (uintmax_t)cursize);
 		bz->size = cursize;
-		bz->umazone = uma_zcreate(bz->name, bz->size,
-		    NULL, NULL, NULL, NULL, bz->size - 1, zcreate_flags);
+		bz->umazone = uma_zcreate(bz->name, bz->size, NULL, NULL, NULL,
+		    NULL, bz->size - 1, zcreate_flags);
 		if (bz->umazone == NULL) {
 			busdma_bufalloc_destroy(ba);
 			return (NULL);
@@ -114,7 +114,7 @@ busdma_bufalloc_create(const char *name, bus_size_t minimum_alignment,
 	return (ba);
 }
 
-void 
+void
 busdma_bufalloc_destroy(busdma_bufalloc_t ba)
 {
 	struct busdma_bufzone *bz;
@@ -130,7 +130,7 @@ busdma_bufalloc_destroy(busdma_bufalloc_t ba)
 	free(ba, M_DEVBUF);
 }
 
-struct busdma_bufzone * 
+struct busdma_bufzone *
 busdma_bufalloc_findzone(busdma_bufalloc_t ba, bus_size_t size)
 {
 	struct busdma_bufzone *bz;
@@ -156,14 +156,14 @@ busdma_bufalloc_alloc_uncacheable(uma_zone_t zone, vm_size_t size, int domain,
 	/* Inform UMA that this allocator uses kernel_arena/object. */
 	*pflag = UMA_SLAB_KERNEL;
 
-	return (kmem_alloc_attr_domainset(DOMAINSET_FIXED(domain), size,
-	    wait, 0, BUS_SPACE_MAXADDR, VM_MEMATTR_UNCACHEABLE));
+	return (kmem_alloc_attr_domainset(DOMAINSET_FIXED(domain), size, wait,
+	    0, BUS_SPACE_MAXADDR, VM_MEMATTR_UNCACHEABLE));
 #else
 	panic("VM_MEMATTR_UNCACHEABLE unavailable");
-#endif	/* VM_MEMATTR_UNCACHEABLE */
+#endif /* VM_MEMATTR_UNCACHEABLE */
 }
 
-void 
+void
 busdma_bufalloc_free_uncacheable(void *item, vm_size_t size, uint8_t pflag)
 {
 

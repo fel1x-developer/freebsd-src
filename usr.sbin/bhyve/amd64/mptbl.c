@@ -28,57 +28,56 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
 #include <x86/mptable.h>
 
 #include <stdio.h>
 #include <string.h>
 
 #include "acpi.h"
-#include "debug.h"
 #include "bhyverun.h"
+#include "debug.h"
 #include "mptbl.h"
 #include "pci_emul.h"
 
-#define MPTABLE_BASE		0xF0000
+#define MPTABLE_BASE 0xF0000
 
 /* floating pointer length + maximum length of configuration table */
-#define	MPTABLE_MAX_LENGTH	(65536 + 16)
+#define MPTABLE_MAX_LENGTH (65536 + 16)
 
-#define LAPIC_PADDR		0xFEE00000
-#define LAPIC_VERSION 		16
+#define LAPIC_PADDR 0xFEE00000
+#define LAPIC_VERSION 16
 
-#define IOAPIC_PADDR		0xFEC00000
-#define IOAPIC_VERSION		0x11
+#define IOAPIC_PADDR 0xFEC00000
+#define IOAPIC_VERSION 0x11
 
-#define MP_SPECREV		4
-#define MPFP_SIG		"_MP_"
+#define MP_SPECREV 4
+#define MPFP_SIG "_MP_"
 
 /* Configuration header defines */
-#define MPCH_SIG		"PCMP"
-#define MPCH_OEMID		"BHyVe   "
-#define MPCH_OEMID_LEN          8
-#define MPCH_PRODID             "Hypervisor  "
-#define MPCH_PRODID_LEN         12
+#define MPCH_SIG "PCMP"
+#define MPCH_OEMID "BHyVe   "
+#define MPCH_OEMID_LEN 8
+#define MPCH_PRODID "Hypervisor  "
+#define MPCH_PRODID_LEN 12
 
 /* Processor entry defines */
-#define MPEP_SIG_FAMILY		6	/* XXX bhyve should supply this */
-#define MPEP_SIG_MODEL		26
-#define MPEP_SIG_STEPPING	5
-#define MPEP_SIG		\
-	((MPEP_SIG_FAMILY << 8) | \
-	 (MPEP_SIG_MODEL << 4)	| \
-	 (MPEP_SIG_STEPPING))
+#define MPEP_SIG_FAMILY 6 /* XXX bhyve should supply this */
+#define MPEP_SIG_MODEL 26
+#define MPEP_SIG_STEPPING 5
+#define MPEP_SIG \
+	((MPEP_SIG_FAMILY << 8) | (MPEP_SIG_MODEL << 4) | (MPEP_SIG_STEPPING))
 
-#define MPEP_FEATURES           (0xBFEBFBFF) /* XXX Intel i7 */
+#define MPEP_FEATURES (0xBFEBFBFF) /* XXX Intel i7 */
 
 /* Number of local intr entries */
-#define	MPEII_NUM_LOCAL_IRQ	2
+#define MPEII_NUM_LOCAL_IRQ 2
 
 /* Bus entry defines */
-#define MPE_NUM_BUSES		2
-#define MPE_BUSNAME_LEN		6
-#define MPE_BUSNAME_ISA		"ISA   "
-#define MPE_BUSNAME_PCI		"PCI   "
+#define MPE_NUM_BUSES 2
+#define MPE_BUSNAME_LEN 6
+#define MPE_BUSNAME_ISA "ISA   "
+#define MPE_BUSNAME_PCI "PCI   "
 
 static void *oem_tbl_start;
 static int oem_tbl_size;
@@ -86,10 +85,10 @@ static int oem_tbl_size;
 static uint8_t
 mpt_compute_checksum(void *base, size_t len)
 {
-	uint8_t	*bytes;
-	uint8_t	sum;
+	uint8_t *bytes;
+	uint8_t sum;
 
-	for(bytes = base, sum = 0; len > 0; len--) {
+	for (bytes = base, sum = 0; len > 0; len--) {
 		sum += *bytes++;
 	}
 
@@ -296,15 +295,15 @@ mptable_add_oemtbl(void *tbl, int tblsz)
 int
 mptable_build(struct vmctx *ctx, int ncpu)
 {
-	mpcth_t			mpch;
-	bus_entry_ptr		mpeb;
-	io_apic_entry_ptr	mpei;
-	proc_entry_ptr		mpep;
-	mpfps_t			mpfp;
-	int_entry_ptr		mpie;
-	int			ioints, bus;
-	char 			*curraddr;
-	char 			*startaddr;
+	mpcth_t mpch;
+	bus_entry_ptr mpeb;
+	io_apic_entry_ptr mpei;
+	proc_entry_ptr mpep;
+	mpfps_t mpfp;
+	int_entry_ptr mpie;
+	int ioints, bus;
+	char *curraddr;
+	char *startaddr;
 
 	startaddr = paddr_guest2host(ctx, MPTABLE_BASE, MPTABLE_MAX_LENGTH);
 	if (startaddr == NULL) {
@@ -320,9 +319,9 @@ mptable_build(struct vmctx *ctx, int ncpu)
 	for (bus = 1; bus <= PCI_BUSMAX; bus++) {
 		if (pci_bus_configured(bus)) {
 			EPRINTLN("MPtable is incompatible with "
-			    "multiple PCI hierarchies.");
+				 "multiple PCI hierarchies.");
 			EPRINTLN("MPtable generation can be disabled "
-			    "by passing the -Y option to bhyve(8).");
+				 "by passing the -Y option to bhyve(8).");
 			return (EINVAL);
 		}
 	}
@@ -341,7 +340,7 @@ mptable_build(struct vmctx *ctx, int ncpu)
 	curraddr += sizeof(*mpep) * ncpu;
 	mpch->entry_count += ncpu;
 
-	mpeb = (bus_entry_ptr) curraddr;
+	mpeb = (bus_entry_ptr)curraddr;
 	mpt_build_bus_entries(mpeb);
 	curraddr += sizeof(*mpeb) * MPE_NUM_BUSES;
 	mpch->entry_count += MPE_NUM_BUSES;
@@ -351,7 +350,7 @@ mptable_build(struct vmctx *ctx, int ncpu)
 	curraddr += sizeof(*mpei);
 	mpch->entry_count++;
 
-	mpie = (int_entry_ptr) curraddr;
+	mpie = (int_entry_ptr)curraddr;
 	ioints = mpt_count_ioint_entries();
 	mpt_build_ioint_entries(mpie, 0);
 	curraddr += sizeof(*mpie) * ioints;

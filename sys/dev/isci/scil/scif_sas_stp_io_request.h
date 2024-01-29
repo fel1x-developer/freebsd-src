@@ -66,29 +66,25 @@ extern "C" {
 #endif // __cplusplus
 
 #include <dev/isci/scil/sati_translator_sequence.h>
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_status.h>
 #include <dev/isci/scil/sci_base_request.h>
+#include <dev/isci/scil/sci_status.h>
+#include <dev/isci/scil/sci_types.h>
 
 extern SCI_BASE_REQUEST_STATE_HANDLER_T stp_io_request_constructed_handlers;
 
 struct SCIF_SAS_IO_REQUEST;
-SCI_STATUS scif_sas_stp_io_request_construct(
-   struct SCIF_SAS_IO_REQUEST * fw_io
-);
+SCI_STATUS scif_sas_stp_io_request_construct(struct SCIF_SAS_IO_REQUEST *fw_io);
 
 #if !defined(DISABLE_ATAPI)
 SCI_STATUS scif_sas_stp_packet_io_request_construct(
-   struct SCIF_SAS_IO_REQUEST * fw_io
-);
+    struct SCIF_SAS_IO_REQUEST *fw_io);
 #else // !defined(DISABLE_ATAPI)
 #define scif_sas_stp_packet_io_request_construct(fw_io) SCI_FAILURE
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
 U32 scif_sas_stp_packet_io_request_get_number_of_bytes_transferred(
-   struct SCIF_SAS_IO_REQUEST * fw_io
-);
+    struct SCIF_SAS_IO_REQUEST *fw_io);
 #else // !defined(DISABLE_ATAPI)
 #define scif_sas_stp_packet_io_request_get_number_of_bytes_transferred(fw_io) 0
 #endif // !defined(DISABLE_ATAPI)
@@ -98,4 +94,3 @@ U32 scif_sas_stp_packet_io_request_get_number_of_bytes_transferred(
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_STP_IO_REQUEST_H_
-

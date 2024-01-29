@@ -18,40 +18,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/rtl8192c/r92c_var.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
 #include <dev/rtwn/rtl8188e/r88e_priv.h>
 #include <dev/rtwn/rtl8188e/r88e_rom_image.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r88e_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
@@ -71,11 +67,11 @@ r88e_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 	rs->crystalcap = RTWN_GET_ROM_VAR(rom->crystalcap,
 	    R88E_ROM_CRYSTALCAP_DEF);
 	rs->regulatory = MS(rom->rf_board_opt, R92C_ROM_RF1_REGULATORY);
-	rs->board_type =
-	    MS(RTWN_GET_ROM_VAR(rom->rf_board_opt, R92C_BOARD_TYPE_DONGLE),
-		R92C_ROM_RF1_BOARD_TYPE);
-	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type %d\n",
-	    __func__,rs->regulatory);
+	rs->board_type = MS(RTWN_GET_ROM_VAR(rom->rf_board_opt,
+				R92C_BOARD_TYPE_DONGLE),
+	    R92C_ROM_RF1_BOARD_TYPE);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type %d\n", __func__,
+	    rs->regulatory);
 
 	sc->thermal_meter = rom->thermal_meter;
 

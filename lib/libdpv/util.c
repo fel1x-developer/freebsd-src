@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <limits.h>
 #include <spawn.h>
@@ -35,9 +36,9 @@
 #include "util.h"
 
 extern char **environ;
-static char cmdbuf[CMDBUFMAX]	= "";
-static char shellcmd[PATH_MAX]	= PATH_SHELL;
-static char *shellcmd_argv[6]	= {
+static char cmdbuf[CMDBUFMAX] = "";
+static char shellcmd[PATH_MAX] = PATH_SHELL;
+static char *shellcmd_argv[6] = {
 	shellcmd,
 	__DECONST(char *, "-c"),
 	cmdbuf,
@@ -80,7 +81,7 @@ shell_spawn_pipecmd(const char *cmd, const char *label, pid_t *pid)
 	if (pipe(stdin_pipe) < 0)
 		err(EXIT_FAILURE, "%s: pipe(2)", __func__);
 
-	/* Fork sh(1) process */
+		/* Fork sh(1) process */
 #if SHELL_SPAWN_DEBUG
 	fprintf(stderr, "%s: spawning `", __func__);
 	for (i = 0; shellcmd_argv[i] != NULL; i++) {
@@ -98,7 +99,8 @@ shell_spawn_pipecmd(const char *cmd, const char *label, pid_t *pid)
 	posix_spawn_file_actions_addclose(&action, stdin_pipe[1]);
 	error = posix_spawnp(pid, shellcmd, &action,
 	    (const posix_spawnattr_t *)NULL, shellcmd_argv, environ);
-	if (error != 0) err(EXIT_FAILURE, "%s", shellcmd);
+	if (error != 0)
+		err(EXIT_FAILURE, "%s", shellcmd);
 
 	return stdin_pipe[1];
 }

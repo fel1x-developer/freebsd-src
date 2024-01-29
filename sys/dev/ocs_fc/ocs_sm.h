@@ -48,10 +48,10 @@ enum {
 	OCS_SM_LAST
 };
 
-#define OCS_SM_EVENT_SHIFT		24
-#define OCS_SM_EVENT_START(id)		((id) << OCS_SM_EVENT_SHIFT)
+#define OCS_SM_EVENT_SHIFT 24
+#define OCS_SM_EVENT_START(id) ((id) << OCS_SM_EVENT_SHIFT)
 
-extern const char *ocs_sm_id[];		/**< String format of the above enums. */
+extern const char *ocs_sm_id[]; /**< String format of the above enums. */
 
 /**
  * State Machine events.
@@ -110,15 +110,18 @@ typedef enum {
 	OCS_EVT_ELS_FRAME,
 	OCS_EVT_ELS_REQ_TIMEOUT,
 	OCS_EVT_ELS_REQ_ABORTED,
-	OCS_EVT_ABORT_ELS,		/**< request an ELS IO be aborted */
-	OCS_EVT_ELS_ABORT_CMPL,	        /**< ELS abort process complete */
+	OCS_EVT_ABORT_ELS,	/**< request an ELS IO be aborted */
+	OCS_EVT_ELS_ABORT_CMPL, /**< ELS abort process complete */
 
 	OCS_EVT_ABTS_RCVD,
 
-	OCS_EVT_NODE_MISSING,		/**< node is not in the GID_PT payload */
-	OCS_EVT_NODE_REFOUND,		/**< node is allocated and in the GID_PT payload */
-	OCS_EVT_SHUTDOWN_IMPLICIT_LOGO,	/**< node shutting down due to PLOGI recvd (implicit logo) */
-	OCS_EVT_SHUTDOWN_EXPLICIT_LOGO,	/**< node shutting down due to LOGO recvd/sent (explicit logo) */
+	OCS_EVT_NODE_MISSING, /**< node is not in the GID_PT payload */
+	OCS_EVT_NODE_REFOUND, /**< node is allocated and in the GID_PT payload
+			       */
+	OCS_EVT_SHUTDOWN_IMPLICIT_LOGO, /**< node shutting down due to PLOGI
+					   recvd (implicit logo) */
+	OCS_EVT_SHUTDOWN_EXPLICIT_LOGO, /**< node shutting down due to LOGO
+					   recvd/sent (explicit logo) */
 
 	OCS_EVT_PLOGI_RCVD,
 	OCS_EVT_FLOGI_RCVD,
@@ -184,7 +187,7 @@ typedef void *(*ocs_sm_function_t)(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
 struct ocs_sm_ctx_s {
 	ocs_sm_function_t current_state;
 	const char *description;
-	void	*app;			/** Application-specific handle. */
+	void *app; /** Application-specific handle. */
 };
 
 extern int ocs_sm_post_event(ocs_sm_ctx_t *, ocs_sm_event_t, void *);
@@ -193,7 +196,9 @@ extern void ocs_sm_disable(ocs_sm_ctx_t *ctx);
 extern const char *ocs_sm_event_name(ocs_sm_event_t evt);
 
 #if 0
-#define smtrace(sm)	ocs_log_debug(NULL, "%s: %-20s -->   %s\n", sm, ocs_sm_event_name(evt), __func__)
+#define smtrace(sm)                                     \
+	ocs_log_debug(NULL, "%s: %-20s -->   %s\n", sm, \
+	    ocs_sm_event_name(evt), __func__)
 #else
 #define smtrace(...)
 #endif

@@ -38,14 +38,14 @@
  */
 
 #ifndef _TIMECONV_H_
-#define	_TIMECONV_H_
+#define _TIMECONV_H_
 
 #include <sys/cdefs.h>
 #include <sys/_types.h>
 
 #ifndef _TIME_T_DECLARED
-typedef	__time_t	time_t;
-#define	_TIME_T_DECLARED
+typedef __time_t time_t;
+#define _TIME_T_DECLARED
 #endif
 
 time_t _time32_to_time(__int32_t t32);

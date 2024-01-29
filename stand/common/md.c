@@ -25,15 +25,17 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
 #include <sys/endian.h>
 #include <sys/queue.h>
+
 #include <machine/stdarg.h>
+
+#include <stand.h>
 
 #include "bootstrap.h"
 
-#define	MD_BLOCK_SIZE	512
+#define MD_BLOCK_SIZE 512
 
 #ifndef MD_IMAGE_SIZE
 #error Must be compiled with MD_IMAGE_SIZE defined
@@ -83,8 +85,8 @@ md_init(void)
 }
 
 static int
-md_strategy(void *devdata, int rw, daddr_t blk, size_t size,
-    char *buf, size_t *rsize)
+md_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize)
 {
 	struct devdesc *dev = (struct devdesc *)devdata;
 	size_t ofs;

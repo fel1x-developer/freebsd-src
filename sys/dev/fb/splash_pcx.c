@@ -32,10 +32,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
 #include <sys/module.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
@@ -60,14 +60,14 @@ static splash_decoder_t pcx_decoder = {
 SPLASH_DECODER(splash_pcx, pcx_decoder);
 
 static struct {
-	int		 width;
-	int		 height;
-	int		 bpsl;
-	int		 bpp;
-	int		 planes;
-	int		 zlen;
-	const uint8_t	*zdata;
-	uint8_t		*palette;
+	int width;
+	int height;
+	int bpsl;
+	int bpp;
+	int planes;
+	int zlen;
+	const uint8_t *zdata;
+	uint8_t *palette;
 } pcx_info;
 
 static int
@@ -83,36 +83,34 @@ pcx_start(video_adapter_t *adp)
 	video_info_t info;
 	int i;
 
-	if (pcx_decoder.data == NULL ||
-	    pcx_decoder.data_size <= 0 ||
+	if (pcx_decoder.data == NULL || pcx_decoder.data_size <= 0 ||
 	    pcx_init(pcx_decoder.data, pcx_decoder.data_size))
 		return (ENODEV);
 
 	if (bootverbose)
 		printf("splash_pcx: image good:\n"
-		    "  width = %d\n"
-		    "  height = %d\n"
-		    "  depth = %d\n"
-		    "  planes = %d\n",
-		    pcx_info.width, pcx_info.height,
-		    pcx_info.bpp, pcx_info.planes);
+		       "  width = %d\n"
+		       "  height = %d\n"
+		       "  depth = %d\n"
+		       "  planes = %d\n",
+		    pcx_info.width, pcx_info.height, pcx_info.bpp,
+		    pcx_info.planes);
 
 	for (i = 0; modes[i] >= 0; ++i) {
 		if (vidd_get_info(adp, modes[i], &info) != 0)
 			continue;
 		if (bootverbose)
 			printf("splash_pcx: considering mode %d:\n"
-			    "  vi_width = %d\n"
-			    "  vi_height = %d\n"
-			    "  vi_depth = %d\n"
-			    "  vi_planes = %d\n",
-			    modes[i],
-			    info.vi_width, info.vi_height,
+			       "  vi_width = %d\n"
+			       "  vi_height = %d\n"
+			       "  vi_depth = %d\n"
+			       "  vi_planes = %d\n",
+			    modes[i], info.vi_width, info.vi_height,
 			    info.vi_depth, info.vi_planes);
-		if (info.vi_width >= pcx_info.width
-		    && info.vi_height >= pcx_info.height
-		    && info.vi_depth == pcx_info.bpp
-		    && info.vi_planes == pcx_info.planes)
+		if (info.vi_width >= pcx_info.width &&
+		    info.vi_height >= pcx_info.height &&
+		    info.vi_depth == pcx_info.bpp &&
+		    info.vi_planes == pcx_info.planes)
 			break;
 	}
 
@@ -148,23 +146,23 @@ pcx_splash(video_adapter_t *adp, int on)
 }
 
 struct pcx_header {
-	uint8_t		 manufactor;
-	uint8_t		 version;
-	uint8_t		 encoding;
-	uint8_t		 bpp;
-	uint16_t	 xmin;
-	uint16_t	 ymin;
-	uint16_t	 xmax;
-	uint16_t	 ymax;
-	uint16_t	 hres;
-	uint16_t	 vres;
-	uint8_t		 colormap[48];
-	uint8_t		 rsvd;
-	uint8_t		 nplanes;
-	uint16_t	 bpsl;
-	uint16_t	 palinfo;
-	uint16_t	 hsize;
-	uint16_t	 vsize;
+	uint8_t manufactor;
+	uint8_t version;
+	uint8_t encoding;
+	uint8_t bpp;
+	uint16_t xmin;
+	uint16_t ymin;
+	uint16_t xmax;
+	uint16_t ymax;
+	uint16_t hres;
+	uint16_t vres;
+	uint8_t colormap[48];
+	uint8_t rsvd;
+	uint8_t nplanes;
+	uint16_t bpsl;
+	uint16_t palinfo;
+	uint16_t hsize;
+	uint16_t vsize;
 };
 
 #define MAXSCANLINE 1024
@@ -174,13 +172,9 @@ pcx_init(void *data, int size)
 {
 	const struct pcx_header *hdr = data;
 
-	if (size < 128 + 1 + 1 + 768 ||
-	    hdr->manufactor != 10 ||
-	    hdr->version != 5 ||
-	    hdr->encoding != 1 ||
-	    hdr->nplanes != 1 ||
-	    hdr->bpp != 8 ||
-	    hdr->bpsl > MAXSCANLINE ||
+	if (size < 128 + 1 + 1 + 768 || hdr->manufactor != 10 ||
+	    hdr->version != 5 || hdr->encoding != 1 || hdr->nplanes != 1 ||
+	    hdr->bpp != 8 || hdr->bpsl > MAXSCANLINE ||
 	    ((uint8_t *)data)[size - 769] != 12) {
 		printf("splash_pcx: invalid PCX image\n");
 		return (1);
@@ -216,7 +210,7 @@ pcx_draw(video_adapter_t *adp)
 	sbpsl = adp->va_line_width;
 	banksize = adp->va_window_size;
 
-	for (origin = 0; origin < sheight*sbpsl; origin += banksize) {
+	for (origin = 0; origin < sheight * sbpsl; origin += banksize) {
 		vidd_set_win_org(adp, origin);
 		bzero(vidmem, banksize);
 	}

@@ -25,30 +25,29 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/cpufunc.h>
 #include <machine/cpu.h>
+#include <machine/cpufunc.h>
 #include <machine/intr_machdep.h>
 #include <machine/md_var.h>
 #include <machine/smp.h>
 
 #include <x86/apicreg.h>
 #include <x86/apicvar.h>
-
-#include <xen/xen-os.h>
 #include <xen/features.h>
 #include <xen/gnttab.h>
-#include <xen/hypervisor.h>
 #include <xen/hvm.h>
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
 #include <xen/xen_intr.h>
 
 #include <contrib/xen/arch-x86/cpuid.h>
@@ -70,30 +69,28 @@ static driver_filter_t xen_cpususpend_handler;
 static driver_filter_t xen_ipi_swi_handler;
 
 /*---------------------------------- Macros ----------------------------------*/
-#define	IPI_TO_IDX(ipi) ((ipi) - APIC_IPI_INTS)
+#define IPI_TO_IDX(ipi) ((ipi)-APIC_IPI_INTS)
 
 /*--------------------------------- Xen IPIs ---------------------------------*/
-struct xen_ipi_handler
-{
-	driver_filter_t	*filter;
-	const char	*description;
+struct xen_ipi_handler {
+	driver_filter_t *filter;
+	const char *description;
 };
 
-static struct xen_ipi_handler xen_ipis[] = 
-{
-	[IPI_TO_IDX(IPI_RENDEZVOUS)]	= { xen_smp_rendezvous_action,	"r"   },
+static struct xen_ipi_handler xen_ipis[] = {
+	[IPI_TO_IDX(IPI_RENDEZVOUS)] = { xen_smp_rendezvous_action, "r" },
 #ifdef __amd64__
-	[IPI_TO_IDX(IPI_INVLOP)]	= { xen_invlop,			"itlb"},
+	[IPI_TO_IDX(IPI_INVLOP)] = { xen_invlop, "itlb" },
 #else
-	[IPI_TO_IDX(IPI_INVLTLB)]	= { xen_invltlb,		"itlb"},
-	[IPI_TO_IDX(IPI_INVLPG)]	= { xen_invlpg,			"ipg" },
-	[IPI_TO_IDX(IPI_INVLRNG)]	= { xen_invlrng,		"irg" },
-	[IPI_TO_IDX(IPI_INVLCACHE)]	= { xen_invlcache,		"ic"  },
+	[IPI_TO_IDX(IPI_INVLTLB)] = { xen_invltlb, "itlb" },
+	[IPI_TO_IDX(IPI_INVLPG)] = { xen_invlpg, "ipg" },
+	[IPI_TO_IDX(IPI_INVLRNG)] = { xen_invlrng, "irg" },
+	[IPI_TO_IDX(IPI_INVLCACHE)] = { xen_invlcache, "ic" },
 #endif
-	[IPI_TO_IDX(IPI_BITMAP_VECTOR)] = { xen_ipi_bitmap_handler,	"b"   },
-	[IPI_TO_IDX(IPI_STOP)]		= { xen_cpustop_handler,	"st"  },
-	[IPI_TO_IDX(IPI_SUSPEND)]	= { xen_cpususpend_handler,	"sp"  },
-	[IPI_TO_IDX(IPI_SWI)]		= { xen_ipi_swi_handler,	"sw"  },
+	[IPI_TO_IDX(IPI_BITMAP_VECTOR)] = { xen_ipi_bitmap_handler, "b" },
+	[IPI_TO_IDX(IPI_STOP)] = { xen_cpustop_handler, "st" },
+	[IPI_TO_IDX(IPI_SUSPEND)] = { xen_cpususpend_handler, "sp" },
+	[IPI_TO_IDX(IPI_SWI)] = { xen_ipi_swi_handler, "sw" },
 };
 
 /*
@@ -122,12 +119,13 @@ send_nmi(int dest)
 	 * using the local APIC, or an hypercall as a shortcut like it's done
 	 * below.
 	 */
-	switch(dest) {
+	switch (dest) {
 	case APIC_IPI_DEST_SELF:
-		rc = HYPERVISOR_vcpu_op(VCPUOP_send_nmi, PCPU_GET(vcpu_id), NULL);
+		rc = HYPERVISOR_vcpu_op(VCPUOP_send_nmi, PCPU_GET(vcpu_id),
+		    NULL);
 		break;
 	case APIC_IPI_DEST_ALL:
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			rc = HYPERVISOR_vcpu_op(VCPUOP_send_nmi,
 			    PCPU_ID_GET(cpu, vcpu_id), NULL);
 			if (rc != 0)
@@ -135,7 +133,7 @@ send_nmi(int dest)
 		}
 		break;
 	case APIC_IPI_DEST_OTHERS:
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			if (cpu != PCPU_GET(cpuid)) {
 				rc = HYPERVISOR_vcpu_op(VCPUOP_send_nmi,
 				    PCPU_ID_GET(cpu, vcpu_id), NULL);
@@ -167,7 +165,8 @@ xen_pv_lapic_ipi_vectored(u_int vector, int dest)
 
 			if (rc != 0) {
 				printf(
-    "Sending NMI using hypercall failed (%d) switching to APIC\n", rc);
+				    "Sending NMI using hypercall failed (%d) switching to APIC\n",
+				    rc);
 				pvnmi = false;
 				native_ipi_vectored(vector, dest);
 			}
@@ -181,20 +180,20 @@ xen_pv_lapic_ipi_vectored(u_int vector, int dest)
 	if (ipi_idx >= nitems(xen_ipis))
 		panic("IPI out of range");
 
-	switch(dest) {
+	switch (dest) {
 	case APIC_IPI_DEST_SELF:
 		ipi_handle = DPCPU_GET(ipi_handle);
 		xen_intr_signal(ipi_handle[ipi_idx]);
 		break;
 	case APIC_IPI_DEST_ALL:
-		CPU_FOREACH(to_cpu) {
+		CPU_FOREACH (to_cpu) {
 			ipi_handle = DPCPU_ID_GET(to_cpu, ipi_handle);
 			xen_intr_signal(ipi_handle[ipi_idx]);
 		}
 		break;
 	case APIC_IPI_DEST_OTHERS:
 		self = PCPU_GET(cpuid);
-		CPU_FOREACH(to_cpu) {
+		CPU_FOREACH (to_cpu) {
 			if (to_cpu != self) {
 				ipi_handle = DPCPU_ID_GET(to_cpu, ipi_handle);
 				xen_intr_signal(ipi_handle[ipi_idx]);
@@ -241,7 +240,7 @@ xen_invlop(void *arg)
 	return (FILTER_HANDLED);
 }
 
-#else /* __i386__ */
+#else  /* __i386__ */
 
 static int
 xen_invltlb(void *arg)
@@ -349,7 +348,7 @@ xen_setup_cpus(void)
 	    (!x2apic_mode && (regs[0] & XEN_HVM_CPUID_APIC_ACCESS_VIRT)))
 		return;
 
-	CPU_FOREACH(i)
+	CPU_FOREACH (i)
 		xen_cpu_ipi_init(i);
 
 	/* Set the xen pv ipi ops to replace the native ones */

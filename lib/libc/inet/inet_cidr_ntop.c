@@ -17,31 +17,31 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <arpa/nameser.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
-static char *
-inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size);
-static char *
-inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size);
+static char *inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst,
+    size_t size);
+static char *inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst,
+    size_t size);
 
 /*%
  * char *
@@ -58,7 +58,8 @@ inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size);
  *	Paul Vixie (ISC), October 1998
  */
 char *
-inet_cidr_ntop(int af, const void *src, int bits, char *dst, size_t size) {
+inet_cidr_ntop(int af, const void *src, int bits, char *dst, size_t size)
+{
 	switch (af) {
 	case AF_INET:
 		return (inet_cidr_ntop_ipv4(src, bits, dst, size));
@@ -71,7 +72,8 @@ inet_cidr_ntop(int af, const void *src, int bits, char *dst, size_t size) {
 }
 
 static int
-decoct(const u_char *src, int bytes, char *dst, size_t size) {
+decoct(const u_char *src, int bytes, char *dst, size_t size)
+{
 	char *odst = dst;
 	char *t;
 	int b;
@@ -104,7 +106,8 @@ decoct(const u_char *src, int bytes, char *dst, size_t size) {
  *	Paul Vixie (ISC), October 1998
  */
 static char *
-inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size) {
+inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size)
+{
 	char *odst = dst;
 	size_t len = 4;
 	size_t b;
@@ -119,7 +122,7 @@ inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size) {
 	if (bits == -1)
 		len = 4;
 	else
-		for (len = 1, b = 1 ; b < 4U; b++)
+		for (len = 1, b = 1; b < 4U; b++)
 			if (*(src + b))
 				len = b + 1;
 
@@ -142,13 +145,14 @@ inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size) {
 
 	return (odst);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (NULL);
 }
- 
+
 static char *
-inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
+inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size)
+{
 	/*
 	 * Note that int32_t and int16_t need only be "at least" large enough
 	 * to contain a value of the specified size.  On some systems, like
@@ -158,7 +162,9 @@ inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 	 */
 	char tmp[sizeof "ffff:ffff:ffff:ffff:ffff:ffff:255.255.255.255/128"];
 	char *tp;
-	struct { int base, len; } best, cur;
+	struct {
+		int base, len;
+	} best, cur;
 	u_int words[NS_IN6ADDRSZ / NS_INT16SZ];
 	int i;
 
@@ -216,9 +222,9 @@ inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 		if (i != 0)
 			*tp++ = ':';
 		/* Is this address an encapsulated IPv4? */
-		if (i == 6 && best.base == 0 && (best.len == 6 ||
-		    (best.len == 7 && words[7] != 0x0001) ||
-		    (best.len == 5 && words[5] == 0xffff))) {
+		if (i == 6 && best.base == 0 &&
+		    (best.len == 6 || (best.len == 7 && words[7] != 0x0001) ||
+			(best.len == 5 && words[5] == 0xffff))) {
 			int n;
 
 			if (src[15] || bits == -1 || bits > 120)
@@ -227,7 +233,7 @@ inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 				n = 3;
 			else
 				n = 2;
-			n = decoct(src+12, n, tp, sizeof tmp - (tp - tmp));
+			n = decoct(src + 12, n, tp, sizeof tmp - (tp - tmp));
 			if (n == 0) {
 				errno = EMSGSIZE;
 				return (NULL);
@@ -239,8 +245,8 @@ inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size) {
 	}
 
 	/* Was it a trailing run of 0x00's? */
-	if (best.base != -1 && (best.base + best.len) == 
-	    (NS_IN6ADDRSZ / NS_INT16SZ))
+	if (best.base != -1 &&
+	    (best.base + best.len) == (NS_IN6ADDRSZ / NS_INT16SZ))
 		*tp++ = ':';
 	*tp = '\0';
 

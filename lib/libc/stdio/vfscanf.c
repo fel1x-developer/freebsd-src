@@ -39,54 +39,54 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <ctype.h>
 #include <inttypes.h>
+#include <stdarg.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <stdarg.h>
 #include <string.h>
 #include <wchar.h>
 #include <wctype.h>
-#include "un-namespace.h"
 
 #include "collate.h"
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 #ifndef NO_FLOATING_POINT
 #include <locale.h>
 #endif
 
-#define	BUF		513	/* Maximum length of numeric string. */
+#define BUF 513 /* Maximum length of numeric string. */
 
 /*
  * Flags used during conversion.
  */
-#define	LONG		0x01	/* l: long or double */
-#define	LONGDBL		0x02	/* L: long double */
-#define	SHORT		0x04	/* h: short */
-#define	SUPPRESS	0x08	/* *: suppress assignment */
-#define	POINTER		0x10	/* p: void * (as hex) */
-#define	NOSKIP		0x20	/* [ or c: do not skip blanks */
-#define FASTINT		0x200	/* wfN: int_fastN_t */
-#define	LONGLONG	0x400	/* ll: long long (+ deprecated q: quad) */
-#define	INTMAXT		0x800	/* j: intmax_t */
-#define	PTRDIFFT	0x1000	/* t: ptrdiff_t */
-#define	SIZET		0x2000	/* z: size_t */
-#define	SHORTSHORT	0x4000	/* hh: char */
-#define	UNSIGNED	0x8000	/* %[oupxX] conversions */
+#define LONG 0x01	  /* l: long or double */
+#define LONGDBL 0x02	  /* L: long double */
+#define SHORT 0x04	  /* h: short */
+#define SUPPRESS 0x08	  /* *: suppress assignment */
+#define POINTER 0x10	  /* p: void * (as hex) */
+#define NOSKIP 0x20	  /* [ or c: do not skip blanks */
+#define FASTINT 0x200	  /* wfN: int_fastN_t */
+#define LONGLONG 0x400	  /* ll: long long (+ deprecated q: quad) */
+#define INTMAXT 0x800	  /* j: intmax_t */
+#define PTRDIFFT 0x1000	  /* t: ptrdiff_t */
+#define SIZET 0x2000	  /* z: size_t */
+#define SHORTSHORT 0x4000 /* hh: char */
+#define UNSIGNED 0x8000	  /* %[oupxX] conversions */
 
 /*
  * Conversion types.
  */
-#define	CT_CHAR		0	/* %c conversion */
-#define	CT_CCL		1	/* %[...] conversion */
-#define	CT_STRING	2	/* %s conversion */
-#define	CT_INT		3	/* %[dioupxX] conversion */
-#define	CT_FLOAT	4	/* %[efgEFG] conversion */
+#define CT_CHAR 0   /* %c conversion */
+#define CT_CCL 1    /* %[...] conversion */
+#define CT_STRING 2 /* %s conversion */
+#define CT_INT 3    /* %[dioupxX] conversion */
+#define CT_FLOAT 4  /* %[efgEFG] conversion */
 
 static const u_char *__sccl(char *, const u_char *);
 #ifndef NO_FLOATING_POINT
@@ -103,7 +103,7 @@ __weak_reference(__vfscanf, vfscanf);
  * NULL pointer.
  */
 static const int suppress;
-#define	SUPPRESS_PTR	((void *)&suppress)
+#define SUPPRESS_PTR ((void *)&suppress)
 
 static const mbstate_t initial_mbs;
 
@@ -114,7 +114,7 @@ static const mbstate_t initial_mbs;
  */
 
 static __inline int
-convert_char(FILE *fp, char * p, int width)
+convert_char(FILE *fp, char *p, int width)
 {
 	int n;
 
@@ -168,7 +168,7 @@ convert_wchar(FILE *fp, wchar_t *wcp, int width, locale_t locale)
 }
 
 static __inline int
-convert_ccl(FILE *fp, char * p, int width, const char *ccltab)
+convert_ccl(FILE *fp, char *p, int width, const char *ccltab)
 {
 	char *p0;
 	int n;
@@ -238,7 +238,7 @@ convert_wccl(FILE *fp, wchar_t *wcp, int width, const char *ccltab,
 }
 
 static __inline int
-convert_string(FILE *fp, char * p, int width)
+convert_string(FILE *fp, char *p, int width)
 {
 	char *p0;
 	int n;
@@ -335,16 +335,13 @@ parseint_fsm(int c, enum parseint_state *state, int *base)
 		/* FALL THROUGH */
 	case '8':
 	case '9':
-		if (*state == begin ||
-		    *state == havesign) {
+		if (*state == begin || *state == havesign) {
 			if (*base == 0) {
 				*base = 10;
 			}
 		}
-		if (*state == begin ||
-		    *state == havesign ||
-		    *state == havezero ||
-		    *state == haveprefix ||
+		if (*state == begin || *state == havesign ||
+		    *state == havezero || *state == haveprefix ||
 		    *state == any) {
 			if (*base > c - '0') {
 				*state = any;
@@ -366,10 +363,8 @@ parseint_fsm(int c, enum parseint_state *state, int *base)
 	case 'd':
 	case 'e':
 	case 'f':
-		if (*state == begin ||
-		    *state == havesign ||
-		    *state == havezero ||
-		    *state == haveprefix ||
+		if (*state == begin || *state == havesign ||
+		    *state == havezero || *state == haveprefix ||
 		    *state == any) {
 			if (*base > c - 'a' + 10) {
 				*state = any;
@@ -391,10 +386,8 @@ parseint_fsm(int c, enum parseint_state *state, int *base)
 	case 'D':
 	case 'E':
 	case 'F':
-		if (*state == begin ||
-		    *state == havesign ||
-		    *state == havezero ||
-		    *state == haveprefix ||
+		if (*state == begin || *state == havesign ||
+		    *state == havezero || *state == haveprefix ||
 		    *state == any) {
 			if (*base > c - 'A' + 10) {
 				*state = any;
@@ -423,7 +416,7 @@ parseint_fsm(int c, enum parseint_state *state, int *base)
  * otherwise.
  */
 static __inline int
-parseint(FILE *fp, char * __restrict buf, int width, int base)
+parseint(FILE *fp, char *__restrict buf, int width, int base)
 {
 	enum parseint_state state = begin;
 	char *p;
@@ -445,12 +438,12 @@ parseint(FILE *fp, char * __restrict buf, int width, int base)
 	 */
 	if (state == havesign) {
 		p--;
-		(void) __ungetc(*(u_char *)p, fp);
+		(void)__ungetc(*(u_char *)p, fp);
 	} else if (state == haveprefix) {
 		p--;
-		(void) __ungetc(c, fp);
+		(void)__ungetc(c, fp);
 	} else if (width && c != EOF) {
-		(void) __ungetc(c, fp);
+		(void)__ungetc(c, fp);
 	}
 	return (p - buf);
 }
@@ -486,18 +479,18 @@ vfscanf_l(FILE *fp, locale_t locale, char const *fmt0, va_list ap)
 int
 __svfscanf(FILE *fp, locale_t locale, const char *fmt0, va_list ap)
 {
-#define	GETARG(type)	((flags & SUPPRESS) ? SUPPRESS_PTR : va_arg(ap, type))
+#define GETARG(type) ((flags & SUPPRESS) ? SUPPRESS_PTR : va_arg(ap, type))
 	const u_char *fmt = (const u_char *)fmt0;
-	int c;			/* character from format, or conversion */
-	size_t width;		/* field width, or 0 */
-	int flags;		/* flags as defined above */
-	int nassigned;		/* number of fields assigned */
-	int nconversions;	/* number of conversions */
-	int nr;			/* characters read by the current conversion */
-	int nread;		/* number of characters consumed from fp */
-	int base;		/* base argument to conversion function */
-	char ccltab[256];	/* character class table for %[...] */
-	char buf[BUF];		/* buffer for numeric conversions */
+	int c;		  /* character from format, or conversion */
+	size_t width;	  /* field width, or 0 */
+	int flags;	  /* flags as defined above */
+	int nassigned;	  /* number of fields assigned */
+	int nconversions; /* number of conversions */
+	int nr;		  /* characters read by the current conversion */
+	int nread;	  /* number of characters consumed from fp */
+	int base;	  /* base argument to conversion function */
+	char ccltab[256]; /* character class table for %[...] */
+	char buf[BUF];	  /* buffer for numeric conversions */
 
 	ORIENT(fp, -1);
 
@@ -509,7 +502,8 @@ __svfscanf(FILE *fp, locale_t locale, const char *fmt0, va_list ap)
 		if (c == 0)
 			return (nassigned);
 		if (isspace(c)) {
-			while ((fp->_r > 0 || __srefill(fp) == 0) && isspace(*fp->_p))
+			while ((fp->_r > 0 || __srefill(fp) == 0) &&
+			    isspace(*fp->_p))
 				nread++, fp->_r--, fp->_p++;
 			continue;
 		}
@@ -521,10 +515,11 @@ __svfscanf(FILE *fp, locale_t locale, const char *fmt0, va_list ap)
 		 * switch on the format.  continue if done;
 		 * break once format type is derived.
 		 */
-again:		c = *fmt++;
+	again:
+		c = *fmt++;
 		switch (c) {
 		case '%':
-literal:
+		literal:
 			if (fp->_r <= 0 && __srefill(fp))
 				goto input_failure;
 			if (*fp->_p != c)
@@ -547,7 +542,7 @@ literal:
 				flags |= LONG;
 			goto again;
 		case 'q':
-			flags |= LONGLONG;	/* not quite */
+			flags |= LONGLONG; /* not quite */
 			goto again;
 		case 't':
 			flags |= PTRDIFFT;
@@ -562,7 +557,8 @@ literal:
 			 * int_fast32_t are equivalent to int, and
 			 * int_fast64_t is equivalent to long long int.
 			 */
-			flags &= ~(SHORTSHORT|SHORT|LONG|LONGLONG|SIZET|INTMAXT|PTRDIFFT);
+			flags &= ~(SHORTSHORT | SHORT | LONG | LONGLONG |
+			    SIZET | INTMAXT | PTRDIFFT);
 			if (fmt[0] == 'f') {
 				flags |= FASTINT;
 				fmt++;
@@ -573,16 +569,16 @@ literal:
 				if (!(flags & FASTINT))
 					flags |= SHORTSHORT;
 				else
-					/* no flag set = 32 */ ;
+					/* no flag set = 32 */;
 				fmt += 1;
 			} else if (fmt[0] == '1' && fmt[1] == '6') {
 				if (!(flags & FASTINT))
 					flags |= SHORT;
 				else
-					/* no flag set = 32 */ ;
+					/* no flag set = 32 */;
 				fmt += 2;
 			} else if (fmt[0] == '3' && fmt[1] == '2') {
-				/* no flag set = 32 */ ;
+				/* no flag set = 32 */;
 				fmt += 2;
 			} else if (fmt[0] == '6' && fmt[1] == '4') {
 				flags |= LONGLONG;
@@ -605,8 +601,16 @@ literal:
 				flags |= SHORT;
 			goto again;
 
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			width = width * 10 + c - '0';
 			goto again;
 
@@ -650,8 +654,14 @@ literal:
 			break;
 
 #ifndef NO_FLOATING_POINT
-		case 'A': case 'E': case 'F': case 'G':
-		case 'a': case 'e': case 'f': case 'g':
+		case 'A':
+		case 'E':
+		case 'F':
+		case 'G':
+		case 'a':
+		case 'e':
+		case 'f':
+		case 'g':
 			c = CT_FLOAT;
 			break;
 #endif
@@ -677,15 +687,15 @@ literal:
 			c = CT_CHAR;
 			break;
 
-		case 'p':	/* pointer format is like hex */
+		case 'p': /* pointer format is like hex */
 			flags |= POINTER;
-			c = CT_INT;		/* assumes sizeof(uintmax_t) */
-			flags |= UNSIGNED;	/*      >= sizeof(uintptr_t) */
+			c = CT_INT;	   /* assumes sizeof(uintmax_t) */
+			flags |= UNSIGNED; /*      >= sizeof(uintptr_t) */
 			base = 16;
 			break;
 
 		case 'n':
-			if (flags & SUPPRESS)	/* ??? */
+			if (flags & SUPPRESS) /* ??? */
 				continue;
 			if (flags & SHORTSHORT)
 				*va_arg(ap, char *) = nread;
@@ -711,7 +721,7 @@ literal:
 		/*
 		 * Disgusting backwards compatibility hack.	XXX
 		 */
-		case '\0':	/* compat */
+		case '\0': /* compat */
 			return (EOF);
 		}
 
@@ -750,8 +760,8 @@ literal:
 			if (width == 0)
 				width = 1;
 			if (flags & LONG) {
-				nr = convert_wchar(fp, GETARG(wchar_t *),
-				    width, locale);
+				nr = convert_wchar(fp, GETARG(wchar_t *), width,
+				    locale);
 			} else {
 				nr = convert_char(fp, GETARG(char *), width);
 			}
@@ -762,7 +772,7 @@ literal:
 		case CT_CCL:
 			/* scan a (nonempty) character class (sets NOSKIP) */
 			if (width == 0)
-				width = (size_t)~0;	/* `infinity' */
+				width = (size_t)~0; /* `infinity' */
 			if (flags & LONG) {
 				nr = convert_wccl(fp, GETARG(wchar_t *), width,
 				    ccltab, locale);
@@ -811,12 +821,14 @@ literal:
 
 				buf[nr] = '\0';
 				if ((flags & UNSIGNED) == 0)
-				    res = strtoimax_l(buf, (char **)NULL, base, locale);
+					res = strtoimax_l(buf, (char **)NULL,
+					    base, locale);
 				else
-				    res = strtoumax_l(buf, (char **)NULL, base, locale);
+					res = strtoumax_l(buf, (char **)NULL,
+					    base, locale);
 				if (flags & POINTER)
-					*va_arg(ap, void **) =
-							(void *)(uintptr_t)res;
+					*va_arg(ap,
+					    void **) = (void *)(uintptr_t)res;
 				else if (flags & SHORTSHORT)
 					*va_arg(ap, char *) = res;
 				else if (flags & SHORT)
@@ -883,21 +895,21 @@ __sccl(char *tab, const u_char *fmt)
 {
 	int c, n, v, i;
 	struct xlocale_collate *table =
-		(struct xlocale_collate*)__get_locale()->components[XLC_COLLATE];
+	    (struct xlocale_collate *)__get_locale()->components[XLC_COLLATE];
 
 	/* first `clear' the whole table */
-	c = *fmt++;		/* first char hat => negated scanset */
+	c = *fmt++; /* first char hat => negated scanset */
 	if (c == '^') {
-		v = 1;		/* default => accept */
-		c = *fmt++;	/* get new first char */
+		v = 1;	    /* default => accept */
+		c = *fmt++; /* get new first char */
 	} else
-		v = 0;		/* default => reject */
+		v = 0; /* default => reject */
 
 	/* XXX: Will not work if sizeof(tab*) > sizeof(char) */
-	(void) memset(tab, v, 256);
+	(void)memset(tab, v, 256);
 
 	if (c == 0)
-		return (fmt - 1);/* format ended before closing ] */
+		return (fmt - 1); /* format ended before closing ] */
 
 	/*
 	 * Now set the entries corresponding to the actual scanset
@@ -908,12 +920,12 @@ __sccl(char *tab, const u_char *fmt)
 	 */
 	v = 1 - v;
 	for (;;) {
-		tab[c] = v;		/* take character c */
-doswitch:
-		n = *fmt++;		/* and examine the next */
+		tab[c] = v; /* take character c */
+	doswitch:
+		n = *fmt++; /* and examine the next */
 		switch (n) {
 
-		case 0:			/* format ended too soon */
+		case 0: /* format ended too soon */
 			return (fmt - 1);
 
 		case '-':
@@ -936,13 +948,12 @@ doswitch:
 			 * we just stored in the table (c).
 			 */
 			n = *fmt;
-			if (n == ']'
-			    || (table->__collate_load_error ? n < c :
-				__collate_range_cmp(n, c) < 0
-			       )
-			   ) {
+			if (n == ']' ||
+			    (table->__collate_load_error ?
+				    n < c :
+				    __collate_range_cmp(n, c) < 0)) {
 				c = '-';
-				break;	/* resume the for(;;) */
+				break; /* resume the for(;;) */
 			}
 			fmt++;
 			/* fill in the range */
@@ -951,13 +962,12 @@ doswitch:
 					tab[++c] = v;
 				} while (c < n);
 			} else {
-				for (i = 0; i < 256; i ++)
+				for (i = 0; i < 256; i++)
 					if (__collate_range_cmp(c, i) <= 0 &&
-					    __collate_range_cmp(i, n) <= 0
-					   )
+					    __collate_range_cmp(i, n) <= 0)
 						tab[i] = v;
 			}
-#if 1	/* XXX another disgusting compatibility hack */
+#if 1 /* XXX another disgusting compatibility hack */
 			c = n;
 			/*
 			 * Alas, the V7 Unix scanf also treats formats
@@ -974,10 +984,10 @@ doswitch:
 #endif
 			break;
 
-		case ']':		/* end of scanset */
+		case ']': /* end of scanset */
 			return (fmt);
 
-		default:		/* just another character */
+		default: /* just another character */
 			c = n;
 			break;
 		}
@@ -992,8 +1002,17 @@ parsefloat(FILE *fp, char *buf, char *end, locale_t locale)
 	char *commit, *p;
 	int infnanpos = 0, decptpos = 0;
 	enum {
-		S_START, S_GOTSIGN, S_INF, S_NAN, S_DONE, S_MAYBEHEX,
-		S_DIGITS, S_DECPT, S_FRAC, S_EXP, S_EXPDIGITS
+		S_START,
+		S_GOTSIGN,
+		S_INF,
+		S_NAN,
+		S_DONE,
+		S_MAYBEHEX,
+		S_DIGITS,
+		S_DECPT,
+		S_FRAC,
+		S_EXP,
+		S_EXPDIGITS
 	} state = S_START;
 	unsigned char c;
 	const char *decpt = localeconv_l(locale)->decimal_point;
@@ -1009,9 +1028,9 @@ parsefloat(FILE *fp, char *buf, char *end, locale_t locale)
 	 * match; thus, we can't short-circuit "infinity" or "nan(...)".
 	 */
 	commit = buf - 1;
-	for (p = buf; p < end; ) {
+	for (p = buf; p < end;) {
 		c = *fp->_p;
-reswitch:
+	reswitch:
 		switch (state) {
 		case S_START:
 			state = S_GOTSIGN;
@@ -1041,10 +1060,10 @@ reswitch:
 		case S_INF:
 			if (infnanpos > 6 ||
 			    (c != "nfinity"[infnanpos] &&
-			     c != "NFINITY"[infnanpos]))
+				c != "NFINITY"[infnanpos]))
 				goto parsedone;
 			if (infnanpos == 1 || infnanpos == 6)
-				commit = p;	/* inf or infinity */
+				commit = p; /* inf or infinity */
 			infnanpos++;
 			break;
 		case S_NAN:
@@ -1080,7 +1099,7 @@ reswitch:
 			if (c == 'X' || c == 'x') {
 				ishex = 1;
 				break;
-			} else {	/* we saw a '0', but no 'x' */
+			} else { /* we saw a '0', but no 'x' */
 				gotmantdig = 1;
 				goto reswitch;
 			}
@@ -1145,7 +1164,7 @@ reswitch:
 		if (--fp->_r > 0)
 			fp->_p++;
 		else if (__srefill(fp))
-			break;	/* EOF */
+			break; /* EOF */
 	}
 
 parsedone:

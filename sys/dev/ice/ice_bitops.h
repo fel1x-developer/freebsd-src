@@ -46,23 +46,23 @@ typedef u32 ice_bitmap_t;
  */
 
 /* Number of bits per bitmap chunk */
-#define BITS_PER_CHUNK		(BITS_PER_BYTE * sizeof(ice_bitmap_t))
+#define BITS_PER_CHUNK (BITS_PER_BYTE * sizeof(ice_bitmap_t))
 /* Determine which chunk a bit belongs in */
-#define BIT_CHUNK(nr)		((nr) / BITS_PER_CHUNK)
+#define BIT_CHUNK(nr) ((nr) / BITS_PER_CHUNK)
 /* How many chunks are required to store this many bits */
-#define BITS_TO_CHUNKS(sz)	(((sz) + BITS_PER_CHUNK - 1) / BITS_PER_CHUNK)
+#define BITS_TO_CHUNKS(sz) (((sz) + BITS_PER_CHUNK - 1) / BITS_PER_CHUNK)
 /* Which bit inside a chunk this bit corresponds to */
-#define BIT_IN_CHUNK(nr)	((nr) % BITS_PER_CHUNK)
+#define BIT_IN_CHUNK(nr) ((nr) % BITS_PER_CHUNK)
 /* How many bits are valid in the last chunk, assumes nr > 0 */
-#define LAST_CHUNK_BITS(nr)	((((nr) - 1) % BITS_PER_CHUNK) + 1)
+#define LAST_CHUNK_BITS(nr) ((((nr)-1) % BITS_PER_CHUNK) + 1)
 /* Generate a bitmask of valid bits in the last chunk, assumes nr > 0 */
-#define LAST_CHUNK_MASK(nr)	(((ice_bitmap_t)~0) >> \
-				 (BITS_PER_CHUNK - LAST_CHUNK_BITS(nr)))
+#define LAST_CHUNK_MASK(nr) \
+	(((ice_bitmap_t)~0) >> (BITS_PER_CHUNK - LAST_CHUNK_BITS(nr)))
 
-#define ice_declare_bitmap(A, sz) \
-	ice_bitmap_t A[BITS_TO_CHUNKS(sz)]
+#define ice_declare_bitmap(A, sz) ice_bitmap_t A[BITS_TO_CHUNKS(sz)]
 
-static inline bool ice_is_bit_set_internal(u16 nr, const ice_bitmap_t *bitmap)
+static inline bool
+ice_is_bit_set_internal(u16 nr, const ice_bitmap_t *bitmap)
 {
 	return !!(*bitmap & BIT(nr));
 }
@@ -80,18 +80,20 @@ static inline bool ice_is_bit_set_internal(u16 nr, const ice_bitmap_t *bitmap)
  * and define macro ICE_ATOMIC_BITOPS to overwrite the default non-atomic
  * implementation.
  */
-static inline void ice_clear_bit_internal(u16 nr, ice_bitmap_t *bitmap)
+static inline void
+ice_clear_bit_internal(u16 nr, ice_bitmap_t *bitmap)
 {
 	*bitmap &= ~BIT(nr);
 }
 
-static inline void ice_set_bit_internal(u16 nr, ice_bitmap_t *bitmap)
+static inline void
+ice_set_bit_internal(u16 nr, ice_bitmap_t *bitmap)
 {
 	*bitmap |= BIT(nr);
 }
 
-static inline bool ice_test_and_clear_bit_internal(u16 nr,
-						   ice_bitmap_t *bitmap)
+static inline bool
+ice_test_and_clear_bit_internal(u16 nr, ice_bitmap_t *bitmap)
 {
 	if (ice_is_bit_set_internal(nr, bitmap)) {
 		ice_clear_bit_internal(nr, bitmap);
@@ -100,7 +102,8 @@ static inline bool ice_test_and_clear_bit_internal(u16 nr,
 	return false;
 }
 
-static inline bool ice_test_and_set_bit_internal(u16 nr, ice_bitmap_t *bitmap)
+static inline bool
+ice_test_and_set_bit_internal(u16 nr, ice_bitmap_t *bitmap)
 {
 	if (ice_is_bit_set_internal(nr, bitmap))
 		return true;
@@ -117,10 +120,11 @@ static inline bool ice_test_and_set_bit_internal(u16 nr, ice_bitmap_t *bitmap)
  * Returns true if bit nr of bitmap is set. False otherwise. Assumes that nr
  * is less than the size of the bitmap.
  */
-static inline bool ice_is_bit_set(const ice_bitmap_t *bitmap, u16 nr)
+static inline bool
+ice_is_bit_set(const ice_bitmap_t *bitmap, u16 nr)
 {
 	return ice_is_bit_set_internal(BIT_IN_CHUNK(nr),
-				       &bitmap[BIT_CHUNK(nr)]);
+	    &bitmap[BIT_CHUNK(nr)]);
 }
 
 /**
@@ -131,7 +135,8 @@ static inline bool ice_is_bit_set(const ice_bitmap_t *bitmap, u16 nr)
  * Clears the bit nr in bitmap. Assumes that nr is less than the size of the
  * bitmap.
  */
-static inline void ice_clear_bit(u16 nr, ice_bitmap_t *bitmap)
+static inline void
+ice_clear_bit(u16 nr, ice_bitmap_t *bitmap)
 {
 	ice_clear_bit_internal(BIT_IN_CHUNK(nr), &bitmap[BIT_CHUNK(nr)]);
 }
@@ -144,7 +149,8 @@ static inline void ice_clear_bit(u16 nr, ice_bitmap_t *bitmap)
  * Sets the bit nr in bitmap. Assumes that nr is less than the size of the
  * bitmap.
  */
-static inline void ice_set_bit(u16 nr, ice_bitmap_t *bitmap)
+static inline void
+ice_set_bit(u16 nr, ice_bitmap_t *bitmap)
 {
 	ice_set_bit_internal(BIT_IN_CHUNK(nr), &bitmap[BIT_CHUNK(nr)]);
 }
@@ -161,7 +167,7 @@ static inline bool
 ice_test_and_clear_bit(u16 nr, ice_bitmap_t *bitmap)
 {
 	return ice_test_and_clear_bit_internal(BIT_IN_CHUNK(nr),
-					       &bitmap[BIT_CHUNK(nr)]);
+	    &bitmap[BIT_CHUNK(nr)]);
 }
 
 /**
@@ -176,7 +182,7 @@ static inline bool
 ice_test_and_set_bit(u16 nr, ice_bitmap_t *bitmap)
 {
 	return ice_test_and_set_bit_internal(BIT_IN_CHUNK(nr),
-					     &bitmap[BIT_CHUNK(nr)]);
+	    &bitmap[BIT_CHUNK(nr)]);
 }
 
 /* ice_zero_bitmap - set bits of bitmap to zero.
@@ -188,10 +194,11 @@ ice_test_and_set_bit(u16 nr, ice_bitmap_t *bitmap)
  * will zero every bit in the last chunk, even if those bits are beyond the
  * size.
  */
-static inline void ice_zero_bitmap(ice_bitmap_t *bmp, u16 size)
+static inline void
+ice_zero_bitmap(ice_bitmap_t *bmp, u16 size)
 {
 	ice_memset(bmp, 0, BITS_TO_CHUNKS(size) * sizeof(ice_bitmap_t),
-		   ICE_NONDMA_MEM);
+	    ICE_NONDMA_MEM);
 }
 
 /**
@@ -209,7 +216,7 @@ static inline void ice_zero_bitmap(ice_bitmap_t *bmp, u16 size)
  */
 static inline int
 ice_and_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
-	       const ice_bitmap_t *bmp2, u16 size)
+    const ice_bitmap_t *bmp2, u16 size)
 {
 	ice_bitmap_t res = 0, mask;
 	u16 i;
@@ -246,7 +253,7 @@ ice_and_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
  */
 static inline void
 ice_or_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
-	      const ice_bitmap_t *bmp2, u16 size)
+    const ice_bitmap_t *bmp2, u16 size)
 {
 	ice_bitmap_t mask;
 	u16 i;
@@ -277,7 +284,7 @@ ice_or_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
  */
 static inline void
 ice_xor_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
-	       const ice_bitmap_t *bmp2, u16 size)
+    const ice_bitmap_t *bmp2, u16 size)
 {
 	ice_bitmap_t mask;
 	u16 i;
@@ -308,7 +315,7 @@ ice_xor_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
  */
 static inline void
 ice_andnot_bitmap(ice_bitmap_t *dst, const ice_bitmap_t *bmp1,
-		  const ice_bitmap_t *bmp2, u16 size)
+    const ice_bitmap_t *bmp2, u16 size)
 {
 	ice_bitmap_t mask;
 	u16 i;
@@ -378,14 +385,15 @@ ice_find_next_bit(const ice_bitmap_t *bitmap, u16 size, u16 offset)
  * Scans the bitmap and returns the index of the first set bit. Will return
  * size if no bits are set.
  */
-static inline u16 ice_find_first_bit(const ice_bitmap_t *bitmap, u16 size)
+static inline u16
+ice_find_first_bit(const ice_bitmap_t *bitmap, u16 size)
 {
 	return ice_find_next_bit(bitmap, size, 0);
 }
 
-#define ice_for_each_set_bit(_bitpos, _addr, _maxlen)	\
+#define ice_for_each_set_bit(_bitpos, _addr, _maxlen)            \
 	for ((_bitpos) = ice_find_first_bit((_addr), (_maxlen)); \
-	     (_bitpos) < (_maxlen); \
+	     (_bitpos) < (_maxlen);                              \
 	     (_bitpos) = ice_find_next_bit((_addr), (_maxlen), (_bitpos) + 1))
 
 /**
@@ -396,7 +404,8 @@ static inline u16 ice_find_first_bit(const ice_bitmap_t *bitmap, u16 size)
  * Equivalent to checking if ice_find_first_bit returns a value less than the
  * bitmap size.
  */
-static inline bool ice_is_any_bit_set(ice_bitmap_t *bitmap, u16 size)
+static inline bool
+ice_is_any_bit_set(ice_bitmap_t *bitmap, u16 size)
 {
 	return ice_find_first_bit(bitmap, size) < size;
 }
@@ -411,10 +420,11 @@ static inline bool ice_is_any_bit_set(ice_bitmap_t *bitmap, u16 size)
  * it is operating on a bitmap declared using ice_declare_bitmap. It will copy
  * the entire last chunk even if this contains bits beyond the size.
  */
-static inline void ice_cp_bitmap(ice_bitmap_t *dst, ice_bitmap_t *src, u16 size)
+static inline void
+ice_cp_bitmap(ice_bitmap_t *dst, ice_bitmap_t *src, u16 size)
 {
 	ice_memcpy(dst, src, BITS_TO_CHUNKS(size) * sizeof(ice_bitmap_t),
-		   ICE_NONDMA_TO_NONDMA);
+	    ICE_NONDMA_TO_NONDMA);
 }
 
 /**
@@ -500,7 +510,7 @@ ice_bitmap_from_array32(ice_bitmap_t *dst, u32 *src, u16 size)
 {
 	u32 remaining_bits, i;
 
-#define BITS_PER_U32	(sizeof(u32) * BITS_PER_BYTE)
+#define BITS_PER_U32 (sizeof(u32) * BITS_PER_BYTE)
 	/* clear bitmap so we only have to set when iterating */
 	ice_zero_bitmap(dst, size);
 

@@ -33,14 +33,16 @@
  */
 
 #include <sys/param.h>
-#include "shell.h"
-#include "output.h"
-#include "memalloc.h"
-#include "error.h"
-#include "mystring.h"
-#include "expand.h"
+
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "error.h"
+#include "expand.h"
+#include "memalloc.h"
+#include "mystring.h"
+#include "output.h"
+#include "shell.h"
 
 static void
 badalloc(const char *message)
@@ -66,7 +68,6 @@ ckmalloc(size_t nbytes)
 	return p;
 }
 
-
 /*
  * Same for realloc.
  */
@@ -90,7 +91,6 @@ ckfree(pointer p)
 	free(p);
 }
 
-
 /*
  * Make a copy of a string in safe storage.
  */
@@ -107,7 +107,6 @@ savestr(const char *s)
 	return p;
 }
 
-
 /*
  * Parse trees for commands are allocated in lifo order, so we use a stack
  * to make this more efficient, and also to avoid all sorts of exception
@@ -117,20 +116,18 @@ savestr(const char *s)
  * for the allocated block is 512.
  */
 
-#define MINSIZE 496		/* minimum size of a block. */
-
+#define MINSIZE 496 /* minimum size of a block. */
 
 struct stack_block {
 	struct stack_block *prev;
 	/* Data follows */
 };
-#define SPACE(sp)	((char*)(sp) + ALIGN(sizeof(struct stack_block)))
+#define SPACE(sp) ((char *)(sp) + ALIGN(sizeof(struct stack_block)))
 
 static struct stack_block *stackp;
 char *stacknxt;
 int stacknleft;
 char *sstrend;
-
 
 static void
 stnewblock(int nbytes)
@@ -147,12 +144,11 @@ stnewblock(int nbytes)
 	sp = ckmalloc(allocsize);
 	sp->prev = stackp;
 	stacknxt = SPACE(sp);
-	stacknleft = allocsize - (stacknxt - (char*)sp);
+	stacknleft = allocsize - (stacknxt - (char *)sp);
 	sstrend = stacknxt + stacknleft;
 	stackp = sp;
 	INTON;
 }
-
 
 pointer
 stalloc(int nbytes)
@@ -168,18 +164,16 @@ stalloc(int nbytes)
 	return p;
 }
 
-
 void
 stunalloc(pointer p)
 {
-	if (p == NULL) {		/*DEBUG */
+	if (p == NULL) { /*DEBUG */
 		write(STDERR_FILENO, "stunalloc\n", 10);
 		abort();
 	}
 	stacknleft += stacknxt - (char *)p;
 	stacknxt = p;
 }
-
 
 char *
 stsavestr(const char *s)
@@ -193,7 +187,6 @@ stsavestr(const char *s)
 	return p;
 }
 
-
 void
 setstackmark(struct stackmark *mark)
 {
@@ -204,7 +197,6 @@ setstackmark(struct stackmark *mark)
 	if (stackp != NULL && stacknxt == SPACE(stackp))
 		stalloc(1);
 }
-
 
 void
 popstackmark(struct stackmark *mark)
@@ -225,7 +217,6 @@ popstackmark(struct stackmark *mark)
 		sstrend = stacknxt;
 	INTON;
 }
-
 
 /*
  * When the parser reads in a string, it wants to stick the string on the
@@ -268,7 +259,7 @@ growstackblock(int min)
 		sp->prev = stackp;
 		stackp = sp;
 		stacknxt = SPACE(sp);
-		stacknleft = newlen - (stacknxt - (char*)sp);
+		stacknleft = newlen - (stacknxt - (char *)sp);
 		sstrend = stacknxt + stacknleft;
 		INTON;
 	} else {
@@ -279,8 +270,6 @@ growstackblock(int min)
 		stunalloc(p);
 	}
 }
-
-
 
 /*
  * The following routines are somewhat easier to use than the above.
@@ -316,7 +305,6 @@ growstackstr(void)
 	return (growstrstackblock(len, 0));
 }
 
-
 /*
  * Called from CHECKSTRSPACE.
  */
@@ -329,7 +317,6 @@ makestrspace(int min, char *p)
 	len = p - stackblock();
 	return (growstrstackblock(len, min));
 }
-
 
 char *
 stputbin(const char *data, size_t len, char *p)

@@ -98,7 +98,7 @@
 *
 *****************************************************************************/
 CpaStatus LacSym_PartialPacketStateCheck(CpaCySymPacketType packetType,
-					 CpaCySymPacketType partialState);
+    CpaCySymPacketType partialState);
 
 /**
 *******************************************************************************
@@ -115,6 +115,6 @@ CpaStatus LacSym_PartialPacketStateCheck(CpaCySymPacketType packetType,
 *
 *****************************************************************************/
 void LacSym_PartialPacketStateUpdate(CpaCySymPacketType packetType,
-				     CpaCySymPacketType *pPartialState);
+    CpaCySymPacketType *pPartialState);
 
 #endif /* LAC_SYM_PARTIAL_H */

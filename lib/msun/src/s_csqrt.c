@@ -33,7 +33,7 @@
 #include "math_private.h"
 
 /* For avoiding overflow for components >= DBL_MAX / (1 + sqrt(2)). */
-#define	THRESH	0x1.a827999fcef32p+1022
+#define THRESH 0x1.a827999fcef32p+1022
 
 double complex
 csqrt(double complex z)
@@ -50,7 +50,7 @@ csqrt(double complex z)
 	if (isinf(b))
 		return (CMPLX(INFINITY, b));
 	if (isnan(a)) {
-		t = (b - b) / (b - b);	/* raise invalid if b is not a NaN */
+		t = (b - b) / (b - b); /* raise invalid if b is not a NaN */
 		return (CMPLX(a + 0.0L + t, a + 0.0L + t)); /* NaN + NaN i */
 	}
 	if (isinf(a)) {
@@ -66,7 +66,7 @@ csqrt(double complex z)
 			return (CMPLX(a, copysign(b - b, b)));
 	}
 	if (isnan(b)) {
-		t = (a - a) / (a - a);	/* raise invalid */
+		t = (a - a) / (a - a);			    /* raise invalid */
 		return (CMPLX(b + 0.0L + t, b + 0.0L + t)); /* NaN + NaN i */
 	}
 

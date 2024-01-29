@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/time.h>
+
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/time.h>
 
 int
 clock_getcpuclockid(pid_t pid, clockid_t *clock_id)

@@ -30,18 +30,20 @@
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sigtimedwait, __sigtimedwait);
 
 #pragma weak sigtimedwait
 int
-sigtimedwait(const sigset_t * __restrict set, siginfo_t * __restrict info,
-    const struct timespec * __restrict t)
+sigtimedwait(const sigset_t *__restrict set, siginfo_t *__restrict info,
+    const struct timespec *__restrict t)
 {
 
-	return (((int (*)(const sigset_t *, siginfo_t *,
-	    const struct timespec *))
-	    __libc_interposing[INTERPOS_sigtimedwait])(set, info, t));
+	return (
+	    ((int (*)(const sigset_t *, siginfo_t *, const struct timespec *))
+		    __libc_interposing[INTERPOS_sigtimedwait])(set, info, t));
 }

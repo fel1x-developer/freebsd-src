@@ -38,7 +38,6 @@
  * Costa Mesa, CA 92626
  */
 
-
 #include "oce_if.h"
 
 int
@@ -47,7 +46,7 @@ oce_wait_ready(POCE_SOFTC sc)
 #define SLIPORT_READY_TIMEOUT 30000
 	uint32_t sliport_status, i;
 
-	if (!IS_XE201(sc)) 
+	if (!IS_XE201(sc))
 		return (-1);
 
 	for (i = 0; i < SLIPORT_READY_TIMEOUT; i++) {
@@ -56,7 +55,7 @@ oce_wait_ready(POCE_SOFTC sc)
 			return 0;
 
 		if (sliport_status & SLIPORT_STATUS_ERR_MASK &&
-			!(sliport_status & SLIPORT_STATUS_RN_MASK)) {
+		    !(sliport_status & SLIPORT_STATUS_RN_MASK)) {
 			device_printf(sc->dev, "Error detected in the card\n");
 			return EIO;
 		}
@@ -84,7 +83,7 @@ oce_reset_fun(POCE_SOFTC sc)
 
 	if (IS_XE201(sc)) {
 		OCE_WRITE_REG32(sc, db, SLIPORT_CONTROL_OFFSET,
-					SLI_PORT_CONTROL_IP_MASK);
+		    SLI_PORT_CONTROL_IP_MASK);
 
 		rc = oce_wait_ready(sc);
 		if (rc) {
@@ -99,17 +98,12 @@ oce_reset_fun(POCE_SOFTC sc)
 	bzero(mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct ioctl_common_function_reset *)&mbx->payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-			MBX_SUBSYSTEM_COMMON,
-			OPCODE_COMMON_FUNCTION_RESET,
-			10,	/* MBX_TIMEOUT_SEC */
-			sizeof(struct
-				ioctl_common_function_reset),
-			OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_FUNCTION_RESET, 10, /* MBX_TIMEOUT_SEC */
+	    sizeof(struct ioctl_common_function_reset), OCE_MBX_VER_V0);
 
 	mbx->u0.s.embedded = 1;
-	mbx->payload_length =
-		sizeof(struct ioctl_common_function_reset);
+	mbx->payload_length = sizeof(struct ioctl_common_function_reset);
 
 	rc = oce_mbox_dispatch(sc, 2);
 
@@ -130,7 +124,7 @@ oce_fw_clean(POCE_SOFTC sc)
 	int ret = 0;
 
 	mbx = OCE_DMAPTR(&sc->bsmbx, struct oce_bmbx);
-	ptr = (uint8_t *) &mbx->mbx;
+	ptr = (uint8_t *)&mbx->mbx;
 
 	/* Endian Signature */
 	*ptr++ = 0xff;
@@ -190,7 +184,7 @@ oce_mbox_dispatch(POCE_SOFTC sc, uint32_t tmo_sec)
 	int rc;
 
 	oce_dma_sync(&sc->bsmbx, BUS_DMASYNC_PREWRITE);
-	pa = (uint32_t) ((uint64_t) sc->bsmbx.paddr >> 34);
+	pa = (uint32_t)((uint64_t)sc->bsmbx.paddr >> 34);
 	bzero(&mbox_db, sizeof(pd_mpu_mbox_db_t));
 	mbox_db.bits.ready = 0;
 	mbox_db.bits.hi = 1;
@@ -200,7 +194,7 @@ oce_mbox_dispatch(POCE_SOFTC sc, uint32_t tmo_sec)
 	if (rc == 0) {
 		OCE_WRITE_REG32(sc, db, PD_MPU_MBOX_DB, mbox_db.dw0);
 
-		pa = (uint32_t) ((uint64_t) sc->bsmbx.paddr >> 4) & 0x3fffffff;
+		pa = (uint32_t)((uint64_t)sc->bsmbx.paddr >> 4) & 0x3fffffff;
 		mbox_db.bits.ready = 0;
 		mbox_db.bits.hi = 0;
 		mbox_db.bits.address = pa;
@@ -230,11 +224,9 @@ oce_mbox_dispatch(POCE_SOFTC sc, uint32_t tmo_sec)
  * @param pyld_len	payload length
  */
 void
-mbx_common_req_hdr_init(struct mbx_hdr *hdr,
-			uint8_t dom, uint8_t port,
-			uint8_t subsys, uint8_t opcode,
-			uint32_t timeout, uint32_t pyld_len,
-			uint8_t version)
+mbx_common_req_hdr_init(struct mbx_hdr *hdr, uint8_t dom, uint8_t port,
+    uint8_t subsys, uint8_t opcode, uint32_t timeout, uint32_t pyld_len,
+    uint8_t version)
 {
 	hdr->u0.req.opcode = opcode;
 	hdr->u0.req.subsystem = subsys;
@@ -260,7 +252,7 @@ oce_mbox_init(POCE_SOFTC sc)
 
 	if (sc->flags & OCE_FLAGS_MBOX_ENDIAN_RQD) {
 		mbx = OCE_DMAPTR(&sc->bsmbx, struct oce_bmbx);
-		ptr = (uint8_t *) &mbx->mbx;
+		ptr = (uint8_t *)&mbx->mbx;
 
 		/* Endian Signature */
 		*ptr++ = 0xff;
@@ -293,12 +285,9 @@ oce_get_fw_version(POCE_SOFTC sc)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_get_common_fw_version *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_GET_FW_VERSION,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_get_common_fw_version),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_GET_FW_VERSION, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_get_common_fw_version), OCE_MBX_VER_V0);
 
 	mbx.u0.s.embedded = 1;
 	mbx.payload_length = sizeof(struct mbx_get_common_fw_version);
@@ -306,12 +295,11 @@ oce_get_fw_version(POCE_SOFTC sc)
 
 	ret = oce_mbox_post(sc, &mbx, NULL);
 	if (!ret)
-                ret = fwcmd->hdr.u0.rsp.status;
+		ret = fwcmd->hdr.u0.rsp.status;
 	if (ret) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, ret,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, ret, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
@@ -322,12 +310,12 @@ error:
 
 /**
  * @brief	Firmware will send gracious notifications during
- *		attach only after sending first mcc commnad. We  
+ *		attach only after sending first mcc commnad. We
  *		use MCC queue only for getting async and mailbox
  *		for sending cmds. So to get gracious notifications
  *		atleast send one dummy command on mcc.
  */
-int 
+int
 oce_first_mcc_cmd(POCE_SOFTC sc)
 {
 	struct oce_mbx *mbx;
@@ -339,16 +327,13 @@ oce_first_mcc_cmd(POCE_SOFTC sc)
 	bzero(mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_get_common_fw_version *)&mbx->payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_GET_FW_VERSION,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_get_common_fw_version),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_GET_FW_VERSION, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_get_common_fw_version), OCE_MBX_VER_V0);
 	mbx->u0.s.embedded = 1;
 	mbx->payload_length = sizeof(struct mbx_get_common_fw_version);
 	bus_dmamap_sync(mq->ring->dma.tag, mq->ring->dma.map,
-				BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
+	    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	RING_PUT(mq->ring, 1);
 	reg_value = (1 << 16) | mq->mq_id;
 	OCE_WRITE_REG32(sc, db, PD_MQ_DB, reg_value);
@@ -410,7 +395,7 @@ oce_mbox_post(POCE_SOFTC sc, struct oce_mbx *mbx, struct oce_mbx_ctx *mbxctx)
 			/* save context */
 			mbxctx->mbx = mb_mbx;
 			bcopy(&mbxctx, mb_cqe->u0.s.mq_tag,
-				sizeof(struct oce_mbx_ctx *));
+			    sizeof(struct oce_mbx_ctx *));
 		}
 	}
 
@@ -431,8 +416,8 @@ oce_mbox_post(POCE_SOFTC sc, struct oce_mbx *mbx, struct oce_mbx_ctx *mbxctx)
  * @returns		0 on success, EIO on failure
  */
 int
-oce_read_mac_addr(POCE_SOFTC sc, uint32_t if_id,
-		uint8_t perm, uint8_t type, struct mac_address_format *mac)
+oce_read_mac_addr(POCE_SOFTC sc, uint32_t if_id, uint8_t perm, uint8_t type,
+    struct mac_address_format *mac)
 {
 	struct oce_mbx mbx;
 	struct mbx_query_common_iface_mac *fwcmd;
@@ -441,16 +426,13 @@ oce_read_mac_addr(POCE_SOFTC sc, uint32_t if_id,
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_query_common_iface_mac *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_QUERY_IFACE_MAC,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_query_common_iface_mac),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_QUERY_IFACE_MAC, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_query_common_iface_mac), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.permanent = perm;
 	if (!perm)
-		fwcmd->params.req.if_id = (uint16_t) if_id;
+		fwcmd->params.req.if_id = (uint16_t)if_id;
 	else
 		fwcmd->params.req.if_id = 0;
 
@@ -462,19 +444,18 @@ oce_read_mac_addr(POCE_SOFTC sc, uint32_t if_id,
 
 	ret = oce_mbox_post(sc, &mbx, NULL);
 	if (!ret)
-                ret = fwcmd->hdr.u0.rsp.status;
+		ret = fwcmd->hdr.u0.rsp.status;
 	if (ret) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, ret,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, ret, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
 	/* copy the mac addres in the output parameter */
 	mac->size_of_struct = fwcmd->params.rsp.mac.size_of_struct;
 	bcopy(&fwcmd->params.rsp.mac.mac_addr[0], &mac->mac_addr[0],
-		mac->size_of_struct);
+	    mac->size_of_struct);
 error:
 	return ret;
 }
@@ -484,7 +465,7 @@ error:
  * @param sc		software handle to the device
  * @returns		0 on success, EIO on failure
  */
-int 
+int
 oce_get_fw_config(POCE_SOFTC sc)
 {
 	struct oce_mbx mbx;
@@ -494,12 +475,9 @@ oce_get_fw_config(POCE_SOFTC sc)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_common_query_fw_config *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_QUERY_FIRMWARE_CONFIG,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_query_fw_config),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_QUERY_FIRMWARE_CONFIG, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_query_fw_config), OCE_MBX_VER_V0);
 
 	mbx.u0.s.embedded = 1;
 	mbx.payload_length = sizeof(struct mbx_common_query_fw_config);
@@ -507,12 +485,11 @@ oce_get_fw_config(POCE_SOFTC sc)
 
 	ret = oce_mbox_post(sc, &mbx, NULL);
 	if (!ret)
-                ret = fwcmd->hdr.u0.rsp.status;
+		ret = fwcmd->hdr.u0.rsp.status;
 	if (ret) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, ret,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, ret, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
@@ -520,30 +497,31 @@ oce_get_fw_config(POCE_SOFTC sc)
 
 	sc->config_number = HOST_32(fwcmd->params.rsp.config_number);
 	sc->asic_revision = HOST_32(fwcmd->params.rsp.asic_revision);
-	sc->port_id	  = HOST_32(fwcmd->params.rsp.port_id);
+	sc->port_id = HOST_32(fwcmd->params.rsp.port_id);
 	sc->function_mode = HOST_32(fwcmd->params.rsp.function_mode);
 	if ((sc->function_mode & (ULP_NIC_MODE | ULP_RDMA_MODE)) ==
 	    (ULP_NIC_MODE | ULP_RDMA_MODE)) {
-	  sc->rdma_flags = OCE_RDMA_FLAG_SUPPORTED;
+		sc->rdma_flags = OCE_RDMA_FLAG_SUPPORTED;
 	}
 	sc->function_caps = HOST_32(fwcmd->params.rsp.function_caps);
 
 	if (fwcmd->params.rsp.ulp[0].ulp_mode & ULP_NIC_MODE) {
 		sc->max_tx_rings = HOST_32(fwcmd->params.rsp.ulp[0].nic_wq_tot);
-		sc->max_rx_rings = HOST_32(fwcmd->params.rsp.ulp[0].lro_rqid_tot);
+		sc->max_rx_rings = HOST_32(
+		    fwcmd->params.rsp.ulp[0].lro_rqid_tot);
 	} else {
 		sc->max_tx_rings = HOST_32(fwcmd->params.rsp.ulp[1].nic_wq_tot);
-		sc->max_rx_rings = HOST_32(fwcmd->params.rsp.ulp[1].lro_rqid_tot);
+		sc->max_rx_rings = HOST_32(
+		    fwcmd->params.rsp.ulp[1].lro_rqid_tot);
 	}
 
 error:
 	return ret;
-
 }
 
 /**
  *
- * @brief function to create a device interface 
+ * @brief function to create a device interface
  * @param sc		software handle to the device
  * @param cap_flags	capability flags
  * @param en_flags	enable capability flags
@@ -554,12 +532,8 @@ error:
  * @returns		0 on success, EIO on failure
  */
 int
-oce_if_create(POCE_SOFTC sc,
-		uint32_t cap_flags,
-		uint32_t en_flags,
-		uint16_t vlan_tag,
-		uint8_t *mac_addr,
-		uint32_t *if_id)
+oce_if_create(POCE_SOFTC sc, uint32_t cap_flags, uint32_t en_flags,
+    uint16_t vlan_tag, uint8_t *mac_addr, uint32_t *if_id)
 {
 	struct oce_mbx mbx;
 	struct mbx_create_common_iface *fwcmd;
@@ -568,12 +542,9 @@ oce_if_create(POCE_SOFTC sc,
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_create_common_iface *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_CREATE_IFACE,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_create_common_iface),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_CREATE_IFACE, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_create_common_iface), OCE_MBX_VER_V0);
 	DW_SWAP(u32ptr(&fwcmd->hdr), sizeof(struct mbx_hdr));
 
 	fwcmd->params.req.version = 0;
@@ -593,12 +564,11 @@ oce_if_create(POCE_SOFTC sc,
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
@@ -626,12 +596,9 @@ oce_if_del(POCE_SOFTC sc, uint32_t if_id)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_destroy_common_iface *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_DESTROY_IFACE,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_destroy_common_iface),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_DESTROY_IFACE, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_destroy_common_iface), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.if_id = if_id;
 
@@ -641,12 +608,11 @@ oce_if_del(POCE_SOFTC sc, uint32_t if_id)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -661,10 +627,8 @@ oce_if_del(POCE_SOFTC sc, uint32_t if_id)
  * @returns		0 on success, EIO on failure
  */
 int
-oce_config_vlan(POCE_SOFTC sc,
-		uint32_t if_id,
-		struct normal_vlan *vtag_arr,
-		uint8_t vtag_cnt, uint32_t untagged, uint32_t enable_promisc)
+oce_config_vlan(POCE_SOFTC sc, uint32_t if_id, struct normal_vlan *vtag_arr,
+    uint8_t vtag_cnt, uint32_t untagged, uint32_t enable_promisc)
 {
 	struct oce_mbx mbx;
 	struct mbx_common_config_vlan *fwcmd;
@@ -676,21 +640,18 @@ oce_config_vlan(POCE_SOFTC sc,
 	bzero(&mbx, sizeof(struct oce_mbx));
 	fwcmd = (struct mbx_common_config_vlan *)&mbx.payload;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_CONFIG_IFACE_VLAN,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_config_vlan),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_CONFIG_IFACE_VLAN, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_config_vlan), OCE_MBX_VER_V0);
 
-	fwcmd->params.req.if_id = (uint8_t) if_id;
-	fwcmd->params.req.promisc = (uint8_t) enable_promisc;
-	fwcmd->params.req.untagged = (uint8_t) untagged;
+	fwcmd->params.req.if_id = (uint8_t)if_id;
+	fwcmd->params.req.promisc = (uint8_t)enable_promisc;
+	fwcmd->params.req.untagged = (uint8_t)untagged;
 	fwcmd->params.req.num_vlans = vtag_cnt;
 
 	if (!enable_promisc) {
 		bcopy(vtag_arr, fwcmd->params.req.tags.normal_vlans,
-			vtag_cnt * sizeof(struct normal_vlan));
+		    vtag_cnt * sizeof(struct normal_vlan));
 	}
 	mbx.u0.s.embedded = 1;
 	mbx.payload_length = sizeof(struct mbx_common_config_vlan);
@@ -698,22 +659,20 @@ oce_config_vlan(POCE_SOFTC sc,
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
 	goto done;
 
 vlan_promisc:
 	/* Enable Vlan Promis */
 	oce_rxf_set_promiscuous(sc, (1 << 1));
-	device_printf(sc->dev,"Enabling Vlan Promisc Mode\n");
+	device_printf(sc->dev, "Enabling Vlan Promisc Mode\n");
 done:
 	return rc;
-
 }
 
 /**
@@ -727,17 +686,14 @@ oce_set_flow_control(POCE_SOFTC sc, uint32_t flow_control)
 {
 	struct oce_mbx mbx;
 	struct mbx_common_get_set_flow_control *fwcmd =
-		(struct mbx_common_get_set_flow_control *)&mbx.payload;
+	    (struct mbx_common_get_set_flow_control *)&mbx.payload;
 	int rc;
 
 	bzero(&mbx, sizeof(struct oce_mbx));
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_SET_FLOW_CONTROL,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_get_set_flow_control),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_SET_FLOW_CONTROL, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_get_set_flow_control), OCE_MBX_VER_V0);
 
 	if (flow_control & OCE_FC_TX)
 		fwcmd->tx_flow_control = 1;
@@ -751,12 +707,11 @@ oce_set_flow_control(POCE_SOFTC sc, uint32_t flow_control)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -782,8 +737,9 @@ oce_rss_itbl_init(POCE_SOFTC sc, struct mbx_config_nic_rss *fwcmd)
 	uint8_t *tbl = fwcmd->params.req.cputable;
 	struct oce_rq *rq = NULL;
 
-	for (j = 0; j < INDIRECTION_TABLE_ENTRIES ; j += (sc->nrqs - 1)) {
-		for_all_rss_queues(sc, rq, i) {
+	for (j = 0; j < INDIRECTION_TABLE_ENTRIES; j += (sc->nrqs - 1)) {
+		for_all_rss_queues(sc, rq, i)
+		{
 			if ((j + i) >= INDIRECTION_TABLE_ENTRIES)
 				break;
 			tbl[j + i] = rq->rss_cpuid;
@@ -792,12 +748,12 @@ oce_rss_itbl_init(POCE_SOFTC sc, struct mbx_config_nic_rss *fwcmd)
 	if (i == 0) {
 		device_printf(sc->dev, "error: Invalid number of RSS RQ's\n");
 		rc = ENXIO;
-
-	} 
+	}
 
 	/* fill log2 value indicating the size of the CPU table */
 	if (rc == 0)
-		fwcmd->params.req.cpu_tbl_sz_log2 = LE_16(OCE_LOG2(INDIRECTION_TABLE_ENTRIES));
+		fwcmd->params.req.cpu_tbl_sz_log2 = LE_16(
+		    OCE_LOG2(INDIRECTION_TABLE_ENTRIES));
 
 	return rc;
 }
@@ -815,7 +771,7 @@ oce_config_nic_rss(POCE_SOFTC sc, uint32_t if_id, uint16_t enable_rss)
 	int rc;
 	struct oce_mbx mbx;
 	struct mbx_config_nic_rss *fwcmd =
-				(struct mbx_config_nic_rss *)&mbx.payload;
+	    (struct mbx_config_nic_rss *)&mbx.payload;
 	int version;
 
 	bzero(&mbx, sizeof(struct oce_mbx));
@@ -823,23 +779,19 @@ oce_config_nic_rss(POCE_SOFTC sc, uint32_t if_id, uint16_t enable_rss)
 	if (IS_XE201(sc) || IS_SH(sc)) {
 		version = OCE_MBX_VER_V1;
 		fwcmd->params.req.enable_rss = RSS_ENABLE_UDP_IPV4 |
-					       RSS_ENABLE_UDP_IPV6;
+		    RSS_ENABLE_UDP_IPV6;
 	} else
-		version = OCE_MBX_VER_V0; 
+		version = OCE_MBX_VER_V0;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_NIC,
-				NIC_CONFIG_RSS,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_config_nic_rss),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC,
+	    NIC_CONFIG_RSS, MBX_TIMEOUT_SEC, sizeof(struct mbx_config_nic_rss),
+	    version);
 	if (enable_rss)
 		fwcmd->params.req.enable_rss |= (RSS_ENABLE_IPV4 |
-					         RSS_ENABLE_TCP_IPV4 |
-						 RSS_ENABLE_IPV6 |
-						 RSS_ENABLE_TCP_IPV6);
+		    RSS_ENABLE_TCP_IPV4 | RSS_ENABLE_IPV6 |
+		    RSS_ENABLE_TCP_IPV6);
 
-	if(!sc->enable_hwlro) 
+	if (!sc->enable_hwlro)
 		fwcmd->params.req.flush = OCE_FLUSH;
 	else
 		fwcmd->params.req.flush = 0;
@@ -856,12 +808,12 @@ oce_config_nic_rss(POCE_SOFTC sc, uint32_t if_id, uint16_t enable_rss)
 
 		rc = oce_mbox_post(sc, &mbx, NULL);
 		if (!rc)
-                	rc = fwcmd->hdr.u0.rsp.status;
+			rc = fwcmd->hdr.u0.rsp.status;
 		if (rc)
-		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+			device_printf(sc->dev,
+			    "%s failed - cmd status: %d addi status: %d\n",
+			    __FUNCTION__, rc,
+			    fwcmd->hdr.u0.rsp.additional_status);
 	}
 	return rc;
 }
@@ -891,9 +843,9 @@ oce_rxf_set_promiscuous(POCE_SOFTC sc, uint8_t enable)
 
 	fwcmd = OCE_DMAPTR(&sgl, struct mbx_set_common_iface_rx_filter);
 
-	req =  &fwcmd->params.req;
+	req = &fwcmd->params.req;
 	req->iface_flags_mask = MBX_RX_IFACE_FLAGS_PROMISCUOUS |
-				MBX_RX_IFACE_FLAGS_VLAN_PROMISCUOUS;
+	    MBX_RX_IFACE_FLAGS_VLAN_PROMISCUOUS;
 	/* Bit 0 Mac promisc, Bit 1 Vlan promisc */
 	if (enable & 0x01)
 		req->iface_flags = MBX_RX_IFACE_FLAGS_PROMISCUOUS;
@@ -926,12 +878,9 @@ oce_set_common_iface_rx_filter(POCE_SOFTC sc, POCE_DMA_MEM sgl)
 	bzero(&mbx, sizeof(struct oce_mbx));
 	fwcmd = OCE_DMAPTR(sgl, struct mbx_set_common_iface_rx_filter);
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_SET_IFACE_RX_FILTER,
-				MBX_TIMEOUT_SEC,
-				mbx_sz,
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_SET_IFACE_RX_FILTER, MBX_TIMEOUT_SEC, mbx_sz,
+	    OCE_MBX_VER_V0);
 
 	oce_dma_sync(sgl, BUS_DMASYNC_PREWRITE);
 	mbx.u0.s.embedded = 0;
@@ -944,12 +893,11 @@ oce_set_common_iface_rx_filter(POCE_SOFTC sc, POCE_DMA_MEM sgl)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -971,12 +919,9 @@ oce_get_link_status(POCE_SOFTC sc, struct link_status *link)
 	IS_BE2(sc) ? (version = OCE_MBX_VER_V0) : (version = OCE_MBX_VER_V1);
 
 	fwcmd = (struct mbx_query_common_link_config *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_QUERY_LINK_CONFIG,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_query_common_link_config),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_QUERY_LINK_CONFIG, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_query_common_link_config), version);
 
 	mbx.u0.s.embedded = 1;
 	mbx.payload_length = sizeof(struct mbx_query_common_link_config);
@@ -985,12 +930,11 @@ oce_get_link_status(POCE_SOFTC sc, struct link_status *link)
 	rc = oce_mbox_post(sc, &mbx, NULL);
 
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	/* interpret response */
@@ -1009,46 +953,47 @@ error:
  * @returns             0 on success, EIO on failure
  * @note                command depricated in Lancer
  */
-#define OCE_MBOX_GET_NIC_STATS(sc, pstats_dma_mem, version) 				\
-int 											\
-oce_mbox_get_nic_stats_v##version(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem) 		\
-{ 											\
-        struct oce_mbx mbx; 								\
-        struct mbx_get_nic_stats_v##version *fwcmd; 					\
-        int rc = 0; 									\
-											\
-        bzero(&mbx, sizeof(struct oce_mbx)); 						\
-        fwcmd = OCE_DMAPTR(pstats_dma_mem, struct mbx_get_nic_stats_v##version); 	\
-        bzero(fwcmd, sizeof(*fwcmd)); 							\
-											\
-        mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, 					\
-                                MBX_SUBSYSTEM_NIC, 					\
-                                NIC_GET_STATS, 						\
-                                MBX_TIMEOUT_SEC, 					\
-                                sizeof(*fwcmd), 					\
-                                OCE_MBX_VER_V##version); 				\
-											\
-        mbx.u0.s.embedded = 0;  /* stats too large for embedded mbx rsp */ 		\
-        mbx.u0.s.sge_count = 1; /* using scatter gather instead */ 			\
-											\
-        oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_PREWRITE); 				\
-        mbx.payload.u0.u1.sgl[0].pa_lo = ADDR_LO(pstats_dma_mem->paddr);		\
-        mbx.payload.u0.u1.sgl[0].pa_hi = ADDR_HI(pstats_dma_mem->paddr); 		\
-        mbx.payload.u0.u1.sgl[0].length = sizeof(*fwcmd); 				\
-        mbx.payload_length = sizeof(*fwcmd); 						\
-        DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ); 			\
-											\
-        rc = oce_mbox_post(sc, &mbx, NULL); 						\
-        oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_POSTWRITE); 				\
-        if (!rc) 									\
-                rc = fwcmd->hdr.u0.rsp.status; 						\
-        if (rc) 									\
-                device_printf(sc->dev, 							\
-                              "%s failed - cmd status: %d addi status: %d\n", 		\
-                              __FUNCTION__, rc, 					\
-                              fwcmd->hdr.u0.rsp.additional_status); 			\
-        return rc; 									\
-}
+#define OCE_MBOX_GET_NIC_STATS(sc, pstats_dma_mem, version)                   \
+	int oce_mbox_get_nic_stats_v##version(POCE_SOFTC sc,                  \
+	    POCE_DMA_MEM pstats_dma_mem)                                      \
+	{                                                                     \
+		struct oce_mbx mbx;                                           \
+		struct mbx_get_nic_stats_v##version *fwcmd;                   \
+		int rc = 0;                                                   \
+                                                                              \
+		bzero(&mbx, sizeof(struct oce_mbx));                          \
+		fwcmd = OCE_DMAPTR(pstats_dma_mem,                            \
+		    struct mbx_get_nic_stats_v##version);                     \
+		bzero(fwcmd, sizeof(*fwcmd));                                 \
+                                                                              \
+		mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC, \
+		    NIC_GET_STATS, MBX_TIMEOUT_SEC, sizeof(*fwcmd),           \
+		    OCE_MBX_VER_V##version);                                  \
+                                                                              \
+		mbx.u0.s.embedded =                                           \
+		    0; /* stats too large for embedded mbx rsp */             \
+		mbx.u0.s.sge_count = 1; /* using scatter gather instead */    \
+                                                                              \
+		oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_PREWRITE);           \
+		mbx.payload.u0.u1.sgl[0].pa_lo = ADDR_LO(                     \
+		    pstats_dma_mem->paddr);                                   \
+		mbx.payload.u0.u1.sgl[0].pa_hi = ADDR_HI(                     \
+		    pstats_dma_mem->paddr);                                   \
+		mbx.payload.u0.u1.sgl[0].length = sizeof(*fwcmd);             \
+		mbx.payload_length = sizeof(*fwcmd);                          \
+		DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ); \
+                                                                              \
+		rc = oce_mbox_post(sc, &mbx, NULL);                           \
+		oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_POSTWRITE);          \
+		if (!rc)                                                      \
+			rc = fwcmd->hdr.u0.rsp.status;                        \
+		if (rc)                                                       \
+			device_printf(sc->dev,                                \
+			    "%s failed - cmd status: %d addi status: %d\n",   \
+			    __FUNCTION__, rc,                                 \
+			    fwcmd->hdr.u0.rsp.additional_status);             \
+		return rc;                                                    \
+	}
 
 OCE_MBOX_GET_NIC_STATS(sc, pstats_dma_mem, 0);
 OCE_MBOX_GET_NIC_STATS(sc, pstats_dma_mem, 1);
@@ -1063,7 +1008,7 @@ OCE_MBOX_GET_NIC_STATS(sc, pstats_dma_mem, 2);
  */
 int
 oce_mbox_get_pport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
-				uint32_t reset_stats)
+    uint32_t reset_stats)
 {
 	struct oce_mbx mbx;
 	struct mbx_get_pport_stats *fwcmd;
@@ -1073,12 +1018,9 @@ oce_mbox_get_pport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
 	fwcmd = OCE_DMAPTR(pstats_dma_mem, struct mbx_get_pport_stats);
 	bzero(fwcmd, sizeof(struct mbx_get_pport_stats));
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_NIC,
-				NIC_GET_PPORT_STATS,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_get_pport_stats),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC,
+	    NIC_GET_PPORT_STATS, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_get_pport_stats), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.reset_stats = reset_stats;
 	fwcmd->params.req.port_number = sc->port_id;
@@ -1098,12 +1040,11 @@ oce_mbox_get_pport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
 	oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_POSTWRITE);
 
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -1116,7 +1057,7 @@ oce_mbox_get_pport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
  */
 int
 oce_mbox_get_vport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
-				uint32_t req_size, uint32_t reset_stats)
+    uint32_t req_size, uint32_t reset_stats)
 {
 	struct oce_mbx mbx;
 	struct mbx_get_vport_stats *fwcmd;
@@ -1127,12 +1068,9 @@ oce_mbox_get_vport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
 	fwcmd = OCE_DMAPTR(pstats_dma_mem, struct mbx_get_vport_stats);
 	bzero(fwcmd, sizeof(struct mbx_get_vport_stats));
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_NIC,
-				NIC_GET_VPORT_STATS,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_get_vport_stats),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC,
+	    NIC_GET_VPORT_STATS, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_get_vport_stats), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.reset_stats = reset_stats;
 	fwcmd->params.req.vport_number = sc->if_id;
@@ -1152,18 +1090,17 @@ oce_mbox_get_vport_stats(POCE_SOFTC sc, POCE_DMA_MEM pstats_dma_mem,
 	oce_dma_sync(pstats_dma_mem, BUS_DMASYNC_POSTWRITE);
 
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
 /**
- * @brief               Function to update the muticast filter with 
- *                      values in dma_mem 
+ * @brief               Function to update the muticast filter with
+ *                      values in dma_mem
  * @param sc            software handle to the device
  * @param dma_mem       pointer to dma memory region
  * @returns             0 on success, EIO on failure
@@ -1177,12 +1114,9 @@ oce_update_multicast(POCE_SOFTC sc, POCE_DMA_MEM pdma_mem)
 	int rc = 0;
 
 	req = OCE_DMAPTR(pdma_mem, struct mbx_set_common_iface_multicast);
-	mbx_common_req_hdr_init(&req->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_SET_IFACE_MULTICAST,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_set_common_iface_multicast),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&req->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_SET_IFACE_MULTICAST, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_set_common_iface_multicast), OCE_MBX_VER_V0);
 
 	bzero(&mbx, sizeof(struct oce_mbx));
 
@@ -1198,12 +1132,11 @@ oce_update_multicast(POCE_SOFTC sc, POCE_DMA_MEM pdma_mem)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = req->hdr.u0.rsp.status;
+		rc = req->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      req->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, req->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -1223,7 +1156,7 @@ oce_pass_through_mbox(POCE_SOFTC sc, POCE_DMA_MEM dma_mem, uint32_t req_size)
 
 	bzero(&mbx, sizeof(struct oce_mbx));
 
-	mbx.u0.s.embedded  = 0; /*Non embeded*/
+	mbx.u0.s.embedded = 0; /*Non embeded*/
 	mbx.payload_length = req_size;
 	mbx.u0.s.sge_count = 1;
 	sgl = &mbx.payload.u0.u1.sgl[0];
@@ -1238,8 +1171,8 @@ oce_pass_through_mbox(POCE_SOFTC sc, POCE_DMA_MEM dma_mem, uint32_t req_size)
 }
 
 int
-oce_mbox_macaddr_add(POCE_SOFTC sc, uint8_t *mac_addr,
-		 uint32_t if_id, uint32_t *pmac_id)
+oce_mbox_macaddr_add(POCE_SOFTC sc, uint8_t *mac_addr, uint32_t if_id,
+    uint32_t *pmac_id)
 {
 	struct oce_mbx mbx;
 	struct mbx_add_common_iface_mac *fwcmd;
@@ -1248,27 +1181,23 @@ oce_mbox_macaddr_add(POCE_SOFTC sc, uint8_t *mac_addr,
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_add_common_iface_mac *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_ADD_IFACE_MAC,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_add_common_iface_mac),
-				OCE_MBX_VER_V0);
-				
-	fwcmd->params.req.if_id = (uint16_t) if_id;
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_ADD_IFACE_MAC, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_add_common_iface_mac), OCE_MBX_VER_V0);
+
+	fwcmd->params.req.if_id = (uint16_t)if_id;
 	bcopy(mac_addr, fwcmd->params.req.mac_address, 6);
 
 	mbx.u0.s.embedded = 1;
-	mbx.payload_length = sizeof(struct  mbx_add_common_iface_mac);
+	mbx.payload_length = sizeof(struct mbx_add_common_iface_mac);
 	DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ);
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	*pmac_id = fwcmd->params.rsp.pmac_id;
@@ -1286,28 +1215,24 @@ oce_mbox_macaddr_del(POCE_SOFTC sc, uint32_t if_id, uint32_t pmac_id)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_del_common_iface_mac *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_DEL_IFACE_MAC,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_del_common_iface_mac),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_DEL_IFACE_MAC, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_del_common_iface_mac), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.if_id = (uint16_t)if_id;
 	fwcmd->params.req.pmac_id = pmac_id;
 
 	mbx.u0.s.embedded = 1;
-	mbx.payload_length = sizeof(struct  mbx_del_common_iface_mac);
+	mbx.payload_length = sizeof(struct mbx_del_common_iface_mac);
 	DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ);
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 	return rc;
 }
 
@@ -1321,15 +1246,12 @@ oce_mbox_check_native_mode(POCE_SOFTC sc)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_common_set_function_cap *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_SET_FUNCTIONAL_CAPS,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_set_function_cap),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_SET_FUNCTIONAL_CAPS, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_set_function_cap), OCE_MBX_VER_V0);
 
-	fwcmd->params.req.valid_capability_flags = CAP_SW_TIMESTAMPS | 
-							CAP_BE3_NATIVE_ERX_API;
+	fwcmd->params.req.valid_capability_flags = CAP_SW_TIMESTAMPS |
+	    CAP_BE3_NATIVE_ERX_API;
 
 	fwcmd->params.req.capability_flags = CAP_BE3_NATIVE_ERX_API;
 
@@ -1339,16 +1261,15 @@ oce_mbox_check_native_mode(POCE_SOFTC sc)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
-	sc->be3_native = HOST_32(fwcmd->params.rsp.capability_flags)
-			& CAP_BE3_NATIVE_ERX_API;
+	sc->be3_native = HOST_32(fwcmd->params.rsp.capability_flags) &
+	    CAP_BE3_NATIVE_ERX_API;
 
 error:
 	return 0;
@@ -1356,7 +1277,7 @@ error:
 
 int
 oce_mbox_cmd_set_loopback(POCE_SOFTC sc, uint8_t port_num,
-		uint8_t loopback_type, uint8_t enable)
+    uint8_t loopback_type, uint8_t enable)
 {
 	struct oce_mbx mbx;
 	struct mbx_lowlevel_set_loopback_mode *fwcmd;
@@ -1365,12 +1286,9 @@ oce_mbox_cmd_set_loopback(POCE_SOFTC sc, uint8_t port_num,
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_lowlevel_set_loopback_mode *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_LOWLEVEL,
-				OPCODE_LOWLEVEL_SET_LOOPBACK_MODE,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_lowlevel_set_loopback_mode),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_LOWLEVEL,
+	    OPCODE_LOWLEVEL_SET_LOOPBACK_MODE, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_lowlevel_set_loopback_mode), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.src_port = port_num;
 	fwcmd->params.req.dest_port = port_num;
@@ -1378,26 +1296,24 @@ oce_mbox_cmd_set_loopback(POCE_SOFTC sc, uint8_t port_num,
 	fwcmd->params.req.loopback_state = enable;
 
 	mbx.u0.s.embedded = 1;
-	mbx.payload_length = sizeof(struct  mbx_lowlevel_set_loopback_mode);
+	mbx.payload_length = sizeof(struct mbx_lowlevel_set_loopback_mode);
 	DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ);
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
 	return rc;
-
 }
 
 int
 oce_mbox_cmd_test_loopback(POCE_SOFTC sc, uint32_t port_num,
-	uint32_t loopback_type, uint32_t pkt_size, uint32_t num_pkts,
-	uint64_t pattern)
+    uint32_t loopback_type, uint32_t pkt_size, uint32_t num_pkts,
+    uint64_t pattern)
 {
 
 	struct oce_mbx mbx;
@@ -1407,12 +1323,9 @@ oce_mbox_cmd_test_loopback(POCE_SOFTC sc, uint32_t port_num,
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_lowlevel_test_loopback_mode *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_LOWLEVEL,
-				OPCODE_LOWLEVEL_TEST_LOOPBACK,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_lowlevel_test_loopback_mode),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_LOWLEVEL,
+	    OPCODE_LOWLEVEL_TEST_LOOPBACK, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_lowlevel_test_loopback_mode), OCE_MBX_VER_V0);
 
 	fwcmd->params.req.pattern = pattern;
 	fwcmd->params.req.src_port = port_num;
@@ -1422,24 +1335,23 @@ oce_mbox_cmd_test_loopback(POCE_SOFTC sc, uint32_t port_num,
 	fwcmd->params.req.loopback_type = loopback_type;
 
 	mbx.u0.s.embedded = 1;
-	mbx.payload_length = sizeof(struct  mbx_lowlevel_test_loopback_mode);
+	mbx.payload_length = sizeof(struct mbx_lowlevel_test_loopback_mode);
 	DW_SWAP(u32ptr(&mbx), mbx.payload_length + OCE_BMBX_RHDR_SZ);
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
 	return rc;
 }
 
 int
-oce_mbox_write_flashrom(POCE_SOFTC sc, uint32_t optype,uint32_t opcode,
-				POCE_DMA_MEM pdma_mem, uint32_t num_bytes)
+oce_mbox_write_flashrom(POCE_SOFTC sc, uint32_t optype, uint32_t opcode,
+    POCE_DMA_MEM pdma_mem, uint32_t num_bytes)
 {
 
 	struct oce_mbx mbx;
@@ -1449,20 +1361,17 @@ oce_mbox_write_flashrom(POCE_SOFTC sc, uint32_t optype,uint32_t opcode,
 
 	bzero(&mbx, sizeof(struct oce_mbx));
 	fwcmd = OCE_DMAPTR(pdma_mem, struct mbx_common_read_write_flashrom);
-	payload_len = sizeof(struct mbx_common_read_write_flashrom) + 32*1024;
+	payload_len = sizeof(struct mbx_common_read_write_flashrom) + 32 * 1024;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_WRITE_FLASHROM,
-				LONG_TIMEOUT,
-				payload_len,
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_WRITE_FLASHROM, LONG_TIMEOUT, payload_len,
+	    OCE_MBX_VER_V0);
 
 	fwcmd->flash_op_type = LE_32(optype);
 	fwcmd->flash_op_code = LE_32(opcode);
 	fwcmd->data_buffer_size = LE_32(num_bytes);
 
-	mbx.u0.s.embedded  = 0; /*Non embeded*/
+	mbx.u0.s.embedded = 0; /*Non embeded*/
 	mbx.payload_length = payload_len;
 	mbx.u0.s.sge_count = 1;
 
@@ -1474,20 +1383,18 @@ oce_mbox_write_flashrom(POCE_SOFTC sc, uint32_t optype,uint32_t opcode,
 	/* post the command */
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
 	return rc;
-
 }
 
 int
-oce_mbox_get_flashrom_crc(POCE_SOFTC sc, uint8_t *flash_crc,
-				uint32_t offset, uint32_t optype)
+oce_mbox_get_flashrom_crc(POCE_SOFTC sc, uint8_t *flash_crc, uint32_t offset,
+    uint32_t optype)
 {
 
 	int rc = 0, payload_len = 0;
@@ -1504,30 +1411,26 @@ oce_mbox_get_flashrom_crc(POCE_SOFTC sc, uint8_t *flash_crc,
 	*/
 	payload_len = sizeof(struct mbx_common_read_write_flashrom) + 4;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_READ_FLASHROM,
-				MBX_TIMEOUT_SEC,
-				payload_len,
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_READ_FLASHROM, MBX_TIMEOUT_SEC, payload_len,
+	    OCE_MBX_VER_V0);
 
 	fwcmd->flash_op_type = optype;
 	fwcmd->flash_op_code = FLASHROM_OPER_REPORT;
 	fwcmd->data_offset = offset;
 	fwcmd->data_buffer_size = 0x4;
 
-	mbx.u0.s.embedded  = 1;
+	mbx.u0.s.embedded = 1;
 	mbx.payload_length = payload_len;
 
 	/* post the command */
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	bcopy(fwcmd->data_buffer, flash_crc, 4);
@@ -1546,44 +1449,39 @@ oce_mbox_get_phy_info(POCE_SOFTC sc, struct oce_phy_info *phy_info)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_common_phy_info *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_GET_PHY_CONFIG,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_phy_info),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_GET_PHY_CONFIG, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_phy_info), OCE_MBX_VER_V0);
 
 	mbx.u0.s.embedded = 1;
-	mbx.payload_length = sizeof(struct  mbx_common_phy_info);
+	mbx.payload_length = sizeof(struct mbx_common_phy_info);
 
 	/* now post the command */
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	phy_info->phy_type = HOST_16(fwcmd->params.rsp.phy_info.phy_type);
-	phy_info->interface_type =
-			HOST_16(fwcmd->params.rsp.phy_info.interface_type);
-	phy_info->auto_speeds_supported =
-		HOST_16(fwcmd->params.rsp.phy_info.auto_speeds_supported);
-	phy_info->fixed_speeds_supported =
-		HOST_16(fwcmd->params.rsp.phy_info.fixed_speeds_supported);
+	phy_info->interface_type = HOST_16(
+	    fwcmd->params.rsp.phy_info.interface_type);
+	phy_info->auto_speeds_supported = HOST_16(
+	    fwcmd->params.rsp.phy_info.auto_speeds_supported);
+	phy_info->fixed_speeds_supported = HOST_16(
+	    fwcmd->params.rsp.phy_info.fixed_speeds_supported);
 	phy_info->misc_params = HOST_32(fwcmd->params.rsp.phy_info.misc_params);
 error:
 	return rc;
-
 }
 
 int
 oce_mbox_lancer_write_flashrom(POCE_SOFTC sc, uint32_t data_size,
-			uint32_t data_offset, POCE_DMA_MEM pdma_mem,
-			uint32_t *written_data, uint32_t *additional_status)
+    uint32_t data_offset, POCE_DMA_MEM pdma_mem, uint32_t *written_data,
+    uint32_t *additional_status)
 {
 
 	struct oce_mbx mbx;
@@ -1593,17 +1491,14 @@ oce_mbox_lancer_write_flashrom(POCE_SOFTC sc, uint32_t data_size,
 	bzero(&mbx, sizeof(struct oce_mbx));
 	payload_len = sizeof(struct mbx_lancer_common_write_object);
 
-	mbx.u0.s.embedded  = 1;/* Embedded */
+	mbx.u0.s.embedded = 1; /* Embedded */
 	mbx.payload_length = payload_len;
 	fwcmd = (struct mbx_lancer_common_write_object *)&mbx.payload;
 
 	/* initialize the ioctl header */
 	mbx_common_req_hdr_init(&fwcmd->params.req.hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_WRITE_OBJECT,
-				LONG_TIMEOUT,
-				payload_len,
-				OCE_MBX_VER_V0);
+	    MBX_SUBSYSTEM_COMMON, OPCODE_COMMON_WRITE_OBJECT, LONG_TIMEOUT,
+	    payload_len, OCE_MBX_VER_V0);
 
 	fwcmd->params.req.write_length = data_size;
 	if (data_size == 0)
@@ -1621,19 +1516,17 @@ oce_mbox_lancer_write_flashrom(POCE_SOFTC sc, uint32_t data_size,
 	/* post the command */
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->params.rsp.status;
+		rc = fwcmd->params.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->params.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->params.rsp.additional_status);
 		goto error;
 	}
 	*written_data = HOST_32(fwcmd->params.rsp.actual_write_length);
 	*additional_status = fwcmd->params.rsp.additional_status;
 error:
 	return rc;
-
 }
 
 int
@@ -1651,17 +1544,15 @@ oce_mbox_create_rq(struct oce_rq *rq)
 	bzero(&mbx, sizeof(struct oce_mbx));
 
 	fwcmd = (struct mbx_create_nic_rq *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_NIC,
-				NIC_CREATE_RQ, MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_create_nic_rq),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC,
+	    NIC_CREATE_RQ, MBX_TIMEOUT_SEC, sizeof(struct mbx_create_nic_rq),
+	    OCE_MBX_VER_V0);
 
 	/* oce_page_list will also prepare pages */
 	num_pages = oce_page_list(rq->ring, &fwcmd->params.req.pages[0]);
 
 	if (IS_XE201(sc)) {
-		fwcmd->params.req.frag_size = rq->cfg.frag_size/2048;
+		fwcmd->params.req.frag_size = rq->cfg.frag_size / 2048;
 		fwcmd->params.req.page_size = 1;
 		fwcmd->hdr.u0.req.version = OCE_MBX_VER_V1;
 	} else
@@ -1677,19 +1568,17 @@ oce_mbox_create_rq(struct oce_rq *rq)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	rq->rq_id = HOST_16(fwcmd->params.rsp.rq_id);
 	rq->rss_cpuid = fwcmd->params.rsp.rss_cpuid;
 error:
 	return rc;
-
 }
 
 int
@@ -1705,20 +1594,18 @@ oce_mbox_create_wq(struct oce_wq *wq)
 	fwcmd = (struct mbx_create_nic_wq *)&mbx.payload;
 	if (IS_XE201(sc))
 		version = OCE_MBX_VER_V1;
-	else if(IS_BE(sc))
-		IS_PROFILE_SUPER_NIC(sc) ? (version = OCE_MBX_VER_V2) 
-					 : (version = OCE_MBX_VER_V0);
+	else if (IS_BE(sc))
+		IS_PROFILE_SUPER_NIC(sc) ? (version = OCE_MBX_VER_V2) :
+					   (version = OCE_MBX_VER_V0);
 	else
 		version = OCE_MBX_VER_V2;
 
 	if (version > OCE_MBX_VER_V0)
 		fwcmd->params.req.if_id = sc->if_id;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_NIC,
-				NIC_CREATE_WQ, MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_create_nic_wq),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC,
+	    NIC_CREATE_WQ, MBX_TIMEOUT_SEC, sizeof(struct mbx_create_nic_wq),
+	    version);
 
 	num_pages = oce_page_list(wq->ring, &fwcmd->params.req.pages[0]);
 
@@ -1733,12 +1620,11 @@ oce_mbox_create_wq(struct oce_wq *wq)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	wq->wq_id = HOST_16(fwcmd->params.rsp.wq_id);
@@ -1748,7 +1634,6 @@ oce_mbox_create_wq(struct oce_wq *wq)
 		wq->db_offset = PD_TXULP_DB;
 error:
 	return rc;
-
 }
 
 int
@@ -1764,11 +1649,9 @@ oce_mbox_create_eq(struct oce_eq *eq)
 
 	fwcmd = (struct mbx_create_common_eq *)&mbx.payload;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_CREATE_EQ, MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_create_common_eq),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_CREATE_EQ, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_create_common_eq), OCE_MBX_VER_V0);
 
 	num_pages = oce_page_list(eq->ring, &fwcmd->params.req.pages[0]);
 	fwcmd->params.req.ctx.num_pages = num_pages;
@@ -1783,12 +1666,11 @@ oce_mbox_create_eq(struct oce_eq *eq)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	eq->eq_id = HOST_16(fwcmd->params.rsp.eq_id);
@@ -1816,17 +1698,14 @@ oce_mbox_cq_create(struct oce_cq *cq, uint32_t ncoalesce, uint32_t is_eventable)
 	else
 		version = OCE_MBX_VER_V0;
 
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_CREATE_CQ,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_create_common_cq),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_CREATE_CQ, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_create_common_cq), version);
 
 	ctx = &fwcmd->params.req.cq_ctx;
 
 	num_pages = oce_page_list(cq->ring, &fwcmd->params.req.pages[0]);
-	page_size =  1;  /* 1 for 4K */
+	page_size = 1; /* 1 for 4K */
 
 	if (version == OCE_MBX_VER_V2) {
 		ctx->v2.num_pages = LE_16(num_pages);
@@ -1839,8 +1718,8 @@ oce_mbox_cq_create(struct oce_cq *cq, uint32_t ncoalesce, uint32_t is_eventable)
 		ctx->v2.armed = 0;
 		ctx->v2.eq_id = cq->eq->eq_id;
 		if (ctx->v2.count == 3) {
-			if ((u_int)cq->cq_cfg.q_len > (4*1024)-1)
-				ctx->v2.cqe_count = (4*1024)-1;
+			if ((u_int)cq->cq_cfg.q_len > (4 * 1024) - 1)
+				ctx->v2.cqe_count = (4 * 1024) - 1;
 			else
 				ctx->v2.cqe_count = cq->cq_cfg.q_len;
 		}
@@ -1860,21 +1739,19 @@ oce_mbox_cq_create(struct oce_cq *cq, uint32_t ncoalesce, uint32_t is_eventable)
 
 	rc = oce_mbox_post(sc, &mbx, NULL);
 	if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
+		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 	cq->cq_id = HOST_16(fwcmd->params.rsp.cq_id);
 error:
 	return rc;
-
 }
 
-int 
+int
 oce_mbox_read_transrecv_data(POCE_SOFTC sc, uint32_t page_num)
 {
 	int rc = 0;
@@ -1885,19 +1762,16 @@ oce_mbox_read_transrecv_data(POCE_SOFTC sc, uint32_t page_num)
 
 	/* Allocate DMA mem*/
 	if (oce_dma_alloc(sc, sizeof(struct mbx_read_common_transrecv_data),
-				&dma, 0))
+		&dma, 0))
 		return ENOMEM;
 
 	fwcmd = OCE_DMAPTR(&dma, struct mbx_read_common_transrecv_data);
 	bzero(fwcmd, sizeof(struct mbx_read_common_transrecv_data));
 
 	bzero(&mbx, sizeof(struct oce_mbx));
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-			MBX_SUBSYSTEM_COMMON,
-			OPCODE_COMMON_READ_TRANSRECEIVER_DATA,
-			MBX_TIMEOUT_SEC,
-			sizeof(struct mbx_read_common_transrecv_data),
-			OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_READ_TRANSRECEIVER_DATA, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_read_common_transrecv_data), OCE_MBX_VER_V0);
 
 	/* fill rest of mbx */
 	mbx.u0.s.embedded = 0;
@@ -1918,23 +1792,19 @@ oce_mbox_read_transrecv_data(POCE_SOFTC sc, uint32_t page_num)
 		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
-	if(fwcmd->params.rsp.page_num == PAGE_NUM_A0)
-	{
-		bcopy((char *)fwcmd->params.rsp.page_data, 
-		      &sfp_vpd_dump_buffer[0], 
-		      TRANSCEIVER_A0_SIZE);
+	if (fwcmd->params.rsp.page_num == PAGE_NUM_A0) {
+		bcopy((char *)fwcmd->params.rsp.page_data,
+		    &sfp_vpd_dump_buffer[0], TRANSCEIVER_A0_SIZE);
 	}
 
-	if(fwcmd->params.rsp.page_num == PAGE_NUM_A2)
-	{
-		bcopy((char *)fwcmd->params.rsp.page_data, 
-		      &sfp_vpd_dump_buffer[TRANSCEIVER_A0_SIZE],
-		      TRANSCEIVER_A2_SIZE);
+	if (fwcmd->params.rsp.page_num == PAGE_NUM_A2) {
+		bcopy((char *)fwcmd->params.rsp.page_data,
+		    &sfp_vpd_dump_buffer[TRANSCEIVER_A0_SIZE],
+		    TRANSCEIVER_A2_SIZE);
 	}
 error:
 	oce_dma_free(sc, &dma);
@@ -1943,7 +1813,7 @@ error:
 
 void
 oce_mbox_eqd_modify_periodic(POCE_SOFTC sc, struct oce_set_eqd *set_eqd,
-				int num)
+    int num)
 {
 	struct oce_mbx mbx;
 	struct mbx_modify_common_eq_delay *fwcmd;
@@ -1954,12 +1824,9 @@ oce_mbox_eqd_modify_periodic(POCE_SOFTC sc, struct oce_set_eqd *set_eqd,
 
 	/* Initialize MODIFY_EQ_DELAY ioctl header */
 	fwcmd = (struct mbx_modify_common_eq_delay *)&mbx.payload;
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_MODIFY_EQ_DELAY,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_modify_common_eq_delay),
-				OCE_MBX_VER_V0);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_MODIFY_EQ_DELAY, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_modify_common_eq_delay), OCE_MBX_VER_V0);
 	/* fill rest of mbx */
 	mbx.u0.s.embedded = 1;
 	mbx.payload_length = sizeof(struct mbx_modify_common_eq_delay);
@@ -1967,11 +1834,10 @@ oce_mbox_eqd_modify_periodic(POCE_SOFTC sc, struct oce_set_eqd *set_eqd,
 
 	fwcmd->params.req.num_eq = num;
 	for (i = 0; i < num; i++) {
-		fwcmd->params.req.delay[i].eq_id = 
-					htole32(set_eqd[i].eq_id);
+		fwcmd->params.req.delay[i].eq_id = htole32(set_eqd[i].eq_id);
 		fwcmd->params.req.delay[i].phase = 0;
-		fwcmd->params.req.delay[i].dm =
-		htole32(set_eqd[i].delay_multiplier);
+		fwcmd->params.req.delay[i].dm = htole32(
+		    set_eqd[i].delay_multiplier);
 	}
 
 	/* command post */
@@ -1981,9 +1847,8 @@ oce_mbox_eqd_modify_periodic(POCE_SOFTC sc, struct oce_set_eqd *set_eqd,
 		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc)
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 }
 
 int
@@ -2005,7 +1870,7 @@ oce_get_profile_config(POCE_SOFTC sc, uint32_t max_rss)
 
 	/* Allocate DMA mem*/
 	if (oce_dma_alloc(sc, sizeof(struct mbx_common_get_profile_config),
-			  &dma, 0))
+		&dma, 0))
 		return ENOMEM;
 
 	/* Initialize MODIFY_EQ_DELAY ioctl header */
@@ -2018,12 +1883,9 @@ oce_get_profile_config(POCE_SOFTC sc, uint32_t max_rss)
 		version = OCE_MBX_VER_V0;
 
 	bzero(&mbx, sizeof(struct oce_mbx));
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_GET_PROFILE_CONFIG,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_get_profile_config),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_GET_PROFILE_CONFIG, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_get_profile_config), version);
 	/* fill rest of mbx */
 	mbx.u0.s.embedded = 0;
 	mbx.payload_length = sizeof(struct mbx_common_get_profile_config);
@@ -2042,28 +1904,26 @@ oce_get_profile_config(POCE_SOFTC sc, uint32_t max_rss)
 		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
-	nic_desc = (struct oce_nic_resc_desc *) fwcmd->params.rsp.resources;
+	nic_desc = (struct oce_nic_resc_desc *)fwcmd->params.rsp.resources;
 	desc_count = HOST_32(fwcmd->params.rsp.desc_count);
 	for (i = 0; i < desc_count; i++) {
-		if ((nic_desc->desc_type == NIC_RESC_DESC_TYPE_V0) || 
+		if ((nic_desc->desc_type == NIC_RESC_DESC_TYPE_V0) ||
 		    (nic_desc->desc_type == NIC_RESC_DESC_TYPE_V1)) {
 			nic_desc_valid = TRUE;
 			break;
 		}
-		nic_desc = (struct oce_nic_resc_desc *) \
-				((char *)nic_desc + nic_desc->desc_len);
+		nic_desc = (struct oce_nic_resc_desc *)((char *)nic_desc +
+		    nic_desc->desc_len);
 	}
 	if (!nic_desc_valid) {
 		rc = -1;
 		goto error;
-	}
-	else { 
+	} else {
 		sc->max_vlans = HOST_16(nic_desc->vlan_count);
 		sc->nwqs = HOST_16(nic_desc->txq_count);
 		if (sc->nwqs)
@@ -2076,12 +1936,11 @@ oce_get_profile_config(POCE_SOFTC sc, uint32_t max_rss)
 			sc->nrssqs = MIN(sc->nrssqs, max_rss);
 		else
 			sc->nrssqs = max_rss;
-		sc->nrqs =  sc->nrssqs + 1; /* 1 for def RX */
+		sc->nrqs = sc->nrssqs + 1; /* 1 for def RX */
 	}
 error:
 	oce_dma_free(sc, &dma);
 	return rc;
-
 }
 
 int
@@ -2105,8 +1964,8 @@ oce_get_func_config(POCE_SOFTC sc)
 		max_rss = OCE_MAX_RSS;
 
 	/* Allocate DMA mem*/
-	if (oce_dma_alloc(sc, sizeof(struct mbx_common_get_func_config),
-			  &dma, 0))
+	if (oce_dma_alloc(sc, sizeof(struct mbx_common_get_func_config), &dma,
+		0))
 		return ENOMEM;
 
 	/* Initialize MODIFY_EQ_DELAY ioctl header */
@@ -2119,12 +1978,9 @@ oce_get_func_config(POCE_SOFTC sc)
 		version = OCE_MBX_VER_V0;
 
 	bzero(&mbx, sizeof(struct oce_mbx));
-	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-				MBX_SUBSYSTEM_COMMON,
-				OPCODE_COMMON_GET_FUNCTION_CONFIG,
-				MBX_TIMEOUT_SEC,
-				sizeof(struct mbx_common_get_func_config),
-				version);
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_COMMON,
+	    OPCODE_COMMON_GET_FUNCTION_CONFIG, MBX_TIMEOUT_SEC,
+	    sizeof(struct mbx_common_get_func_config), version);
 	/* fill rest of mbx */
 	mbx.u0.s.embedded = 0;
 	mbx.payload_length = sizeof(struct mbx_common_get_func_config);
@@ -2141,189 +1997,184 @@ oce_get_func_config(POCE_SOFTC sc)
 		rc = fwcmd->hdr.u0.rsp.status;
 	if (rc) {
 		device_printf(sc->dev,
-			      "%s failed - cmd status: %d addi status: %d\n",
-			      __FUNCTION__, rc,
-			      fwcmd->hdr.u0.rsp.additional_status);
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 		goto error;
 	}
 
-	nic_desc = (struct oce_nic_resc_desc *) fwcmd->params.rsp.resources;
+	nic_desc = (struct oce_nic_resc_desc *)fwcmd->params.rsp.resources;
 	desc_count = HOST_32(fwcmd->params.rsp.desc_count);
 	for (i = 0; i < desc_count; i++) {
-		if ((nic_desc->desc_type == NIC_RESC_DESC_TYPE_V0) || 
+		if ((nic_desc->desc_type == NIC_RESC_DESC_TYPE_V0) ||
 		    (nic_desc->desc_type == NIC_RESC_DESC_TYPE_V1)) {
 			nic_desc_valid = TRUE;
 			break;
 		}
-		nic_desc = (struct oce_nic_resc_desc *) \
-				((char *)nic_desc + nic_desc->desc_len);
+		nic_desc = (struct oce_nic_resc_desc *)((char *)nic_desc +
+		    nic_desc->desc_len);
 	}
 	if (!nic_desc_valid) {
 		rc = -1;
 		goto error;
-	}
-	else {
+	} else {
 		sc->max_vlans = nic_desc->vlan_count;
 		sc->nwqs = HOST_32(nic_desc->txq_count);
-                if (sc->nwqs)
-                        sc->nwqs = MIN(sc->nwqs, OCE_MAX_WQ);
-                else
-                        sc->nwqs = OCE_MAX_WQ;
+		if (sc->nwqs)
+			sc->nwqs = MIN(sc->nwqs, OCE_MAX_WQ);
+		else
+			sc->nwqs = OCE_MAX_WQ;
 
 		sc->nrssqs = HOST_32(nic_desc->rssq_count);
 		if (sc->nrssqs)
 			sc->nrssqs = MIN(sc->nrssqs, max_rss);
 		else
 			sc->nrssqs = max_rss;
-		sc->nrqs =  sc->nrssqs + 1; /* 1 for def RX */
+		sc->nrqs = sc->nrssqs + 1; /* 1 for def RX */
 	}
 error:
 	oce_dma_free(sc, &dma);
 	return rc;
-
 }
 
 /* hw lro functions */
 
 int
-oce_mbox_nic_query_lro_capabilities(POCE_SOFTC sc, uint32_t *lro_rq_cnt, uint32_t *lro_flags)
+oce_mbox_nic_query_lro_capabilities(POCE_SOFTC sc, uint32_t *lro_rq_cnt,
+    uint32_t *lro_flags)
 {
-        struct oce_mbx mbx;
-        struct mbx_nic_query_lro_capabilities *fwcmd;
-        int rc = 0;
+	struct oce_mbx mbx;
+	struct mbx_nic_query_lro_capabilities *fwcmd;
+	int rc = 0;
 
-        bzero(&mbx, sizeof(struct oce_mbx));
+	bzero(&mbx, sizeof(struct oce_mbx));
 
-        fwcmd = (struct mbx_nic_query_lro_capabilities *)&mbx.payload;
-        mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-                                MBX_SUBSYSTEM_NIC,
-                                0x20,MBX_TIMEOUT_SEC,
-                                sizeof(struct mbx_nic_query_lro_capabilities),
-                                OCE_MBX_VER_V0);
+	fwcmd = (struct mbx_nic_query_lro_capabilities *)&mbx.payload;
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC, 0x20,
+	    MBX_TIMEOUT_SEC, sizeof(struct mbx_nic_query_lro_capabilities),
+	    OCE_MBX_VER_V0);
 
-        mbx.u0.s.embedded = 1;
-        mbx.payload_length = sizeof(struct mbx_nic_query_lro_capabilities);
+	mbx.u0.s.embedded = 1;
+	mbx.payload_length = sizeof(struct mbx_nic_query_lro_capabilities);
 
-        rc = oce_mbox_post(sc, &mbx, NULL);
-        if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
-        if (rc) {
-                device_printf(sc->dev,
-                              "%s failed - cmd status: %d addi status: %d\n",
-                              __FUNCTION__, rc,
-                              fwcmd->hdr.u0.rsp.additional_status);
+	rc = oce_mbox_post(sc, &mbx, NULL);
+	if (!rc)
+		rc = fwcmd->hdr.u0.rsp.status;
+	if (rc) {
+		device_printf(sc->dev,
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
-                return rc;
-        }
-        if(lro_flags)
-                *lro_flags = HOST_32(fwcmd->params.rsp.lro_flags);
+		return rc;
+	}
+	if (lro_flags)
+		*lro_flags = HOST_32(fwcmd->params.rsp.lro_flags);
 
-        if(lro_rq_cnt)
-                *lro_rq_cnt = HOST_16(fwcmd->params.rsp.lro_rq_cnt);
+	if (lro_rq_cnt)
+		*lro_rq_cnt = HOST_16(fwcmd->params.rsp.lro_rq_cnt);
 
-        return rc;
+	return rc;
 }
 
 int
 oce_mbox_nic_set_iface_lro_config(POCE_SOFTC sc, int enable)
 {
-        struct oce_mbx mbx;
-        struct mbx_nic_set_iface_lro_config *fwcmd;
-        int rc = 0;
+	struct oce_mbx mbx;
+	struct mbx_nic_set_iface_lro_config *fwcmd;
+	int rc = 0;
 
-        bzero(&mbx, sizeof(struct oce_mbx));
+	bzero(&mbx, sizeof(struct oce_mbx));
 
-        fwcmd = (struct mbx_nic_set_iface_lro_config *)&mbx.payload;
-        mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-                                MBX_SUBSYSTEM_NIC,
-                                0x26,MBX_TIMEOUT_SEC,
-                                sizeof(struct mbx_nic_set_iface_lro_config),
-                                OCE_MBX_VER_V0);
+	fwcmd = (struct mbx_nic_set_iface_lro_config *)&mbx.payload;
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC, 0x26,
+	    MBX_TIMEOUT_SEC, sizeof(struct mbx_nic_set_iface_lro_config),
+	    OCE_MBX_VER_V0);
 
-        mbx.u0.s.embedded = 1;
-        mbx.payload_length = sizeof(struct mbx_nic_set_iface_lro_config);
+	mbx.u0.s.embedded = 1;
+	mbx.payload_length = sizeof(struct mbx_nic_set_iface_lro_config);
 
-        fwcmd->params.req.iface_id = sc->if_id;
-        fwcmd->params.req.lro_flags = 0;
+	fwcmd->params.req.iface_id = sc->if_id;
+	fwcmd->params.req.lro_flags = 0;
 
-        if(enable) {
-                fwcmd->params.req.lro_flags = LRO_FLAGS_HASH_MODE | LRO_FLAGS_RSS_MODE;
-                fwcmd->params.req.lro_flags |= LRO_FLAGS_CLSC_IPV4 | LRO_FLAGS_CLSC_IPV6;
+	if (enable) {
+		fwcmd->params.req.lro_flags = LRO_FLAGS_HASH_MODE |
+		    LRO_FLAGS_RSS_MODE;
+		fwcmd->params.req.lro_flags |= LRO_FLAGS_CLSC_IPV4 |
+		    LRO_FLAGS_CLSC_IPV6;
 
-                fwcmd->params.req.max_clsc_byte_cnt = 64*1024; /* min = 2974, max = 0xfa59 */
-                fwcmd->params.req.max_clsc_seg_cnt = 43; /* min = 2, max = 64 */
-                fwcmd->params.req.max_clsc_usec_delay = 18; /* min = 1, max = 256 */
-                fwcmd->params.req.min_clsc_frame_byte_cnt = 0; /* min = 1, max = 9014 */
-        }
+		fwcmd->params.req.max_clsc_byte_cnt = 64 *
+		    1024; /* min = 2974, max = 0xfa59 */
+		fwcmd->params.req.max_clsc_seg_cnt = 43; /* min = 2, max = 64 */
+		fwcmd->params.req.max_clsc_usec_delay =
+		    18; /* min = 1, max = 256 */
+		fwcmd->params.req.min_clsc_frame_byte_cnt =
+		    0; /* min = 1, max = 9014 */
+	}
 
-        rc = oce_mbox_post(sc, &mbx, NULL);
-        if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
-        if (rc) {
-                device_printf(sc->dev,
-                              "%s failed - cmd status: %d addi status: %d\n",
-                              __FUNCTION__, rc,
-                              fwcmd->hdr.u0.rsp.additional_status);
+	rc = oce_mbox_post(sc, &mbx, NULL);
+	if (!rc)
+		rc = fwcmd->hdr.u0.rsp.status;
+	if (rc) {
+		device_printf(sc->dev,
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
 
-                return rc;
-        }
-        return rc;
+		return rc;
+	}
+	return rc;
 }
 
 int
 oce_mbox_create_rq_v2(struct oce_rq *rq)
 {
-        struct oce_mbx mbx;
-        struct mbx_create_nic_rq_v2 *fwcmd;
-        POCE_SOFTC sc = rq->parent;
-        int rc = 0, num_pages = 0;
+	struct oce_mbx mbx;
+	struct mbx_create_nic_rq_v2 *fwcmd;
+	POCE_SOFTC sc = rq->parent;
+	int rc = 0, num_pages = 0;
 
-        if (rq->qstate == QCREATED)
-                return 0;
+	if (rq->qstate == QCREATED)
+		return 0;
 
-        bzero(&mbx, sizeof(struct oce_mbx));
+	bzero(&mbx, sizeof(struct oce_mbx));
 
-        fwcmd = (struct mbx_create_nic_rq_v2 *)&mbx.payload;
-        mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0,
-                                MBX_SUBSYSTEM_NIC,
-                                0x08, MBX_TIMEOUT_SEC,
-                                sizeof(struct mbx_create_nic_rq_v2),
-                                OCE_MBX_VER_V2);
+	fwcmd = (struct mbx_create_nic_rq_v2 *)&mbx.payload;
+	mbx_common_req_hdr_init(&fwcmd->hdr, 0, 0, MBX_SUBSYSTEM_NIC, 0x08,
+	    MBX_TIMEOUT_SEC, sizeof(struct mbx_create_nic_rq_v2),
+	    OCE_MBX_VER_V2);
 
-        /* oce_page_list will also prepare pages */
-        num_pages = oce_page_list(rq->ring, &fwcmd->params.req.pages[0]);
+	/* oce_page_list will also prepare pages */
+	num_pages = oce_page_list(rq->ring, &fwcmd->params.req.pages[0]);
 
-        fwcmd->params.req.cq_id = rq->cq->cq_id;
-        fwcmd->params.req.frag_size = rq->cfg.frag_size/2048;
-        fwcmd->params.req.num_pages = num_pages;
+	fwcmd->params.req.cq_id = rq->cq->cq_id;
+	fwcmd->params.req.frag_size = rq->cfg.frag_size / 2048;
+	fwcmd->params.req.num_pages = num_pages;
 
-        fwcmd->params.req.if_id = sc->if_id;
+	fwcmd->params.req.if_id = sc->if_id;
 
-        fwcmd->params.req.max_frame_size = rq->cfg.mtu;
-        fwcmd->params.req.page_size = 1;
-        if(rq->cfg.is_rss_queue) {
-                fwcmd->params.req.rq_flags = (NIC_RQ_FLAGS_RSS | NIC_RQ_FLAGS_LRO);
-        }else {
-                device_printf(sc->dev,
-                        "non rss lro queue should not be created \n");
-                goto error;
-        }
-        mbx.u0.s.embedded = 1;
-        mbx.payload_length = sizeof(struct mbx_create_nic_rq_v2);
+	fwcmd->params.req.max_frame_size = rq->cfg.mtu;
+	fwcmd->params.req.page_size = 1;
+	if (rq->cfg.is_rss_queue) {
+		fwcmd->params.req.rq_flags = (NIC_RQ_FLAGS_RSS |
+		    NIC_RQ_FLAGS_LRO);
+	} else {
+		device_printf(sc->dev,
+		    "non rss lro queue should not be created \n");
+		goto error;
+	}
+	mbx.u0.s.embedded = 1;
+	mbx.payload_length = sizeof(struct mbx_create_nic_rq_v2);
 
-        rc = oce_mbox_post(sc, &mbx, NULL);
-        if (!rc)
-                rc = fwcmd->hdr.u0.rsp.status;
-        if (rc) {
-                device_printf(sc->dev,
-                              "%s failed - cmd status: %d addi status: %d\n",
-                              __FUNCTION__, rc,
-                              fwcmd->hdr.u0.rsp.additional_status);
-                goto error;
-        }
-        rq->rq_id = HOST_16(fwcmd->params.rsp.rq_id);
-        rq->rss_cpuid = fwcmd->params.rsp.rss_cpuid;
+	rc = oce_mbox_post(sc, &mbx, NULL);
+	if (!rc)
+		rc = fwcmd->hdr.u0.rsp.status;
+	if (rc) {
+		device_printf(sc->dev,
+		    "%s failed - cmd status: %d addi status: %d\n",
+		    __FUNCTION__, rc, fwcmd->hdr.u0.rsp.additional_status);
+		goto error;
+	}
+	rq->rq_id = HOST_16(fwcmd->params.rsp.rq_id);
+	rq->rss_cpuid = fwcmd->params.rsp.rss_cpuid;
 
 error:
-        return rc;
+	return rc;
 }

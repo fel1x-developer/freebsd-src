@@ -26,11 +26,11 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
+#include <apm.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <apm.h>
 
 #include "endian.h"
 #include "image.h"
@@ -38,14 +38,14 @@
 #include "scheme.h"
 
 static struct mkimg_alias apm_aliases[] = {
-    {	ALIAS_FREEBSD, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD) },
-    {	ALIAS_FREEBSD_BOOT, ALIAS_PTR2TYPE(APM_ENT_TYPE_APPLE_BOOT) },
-    {	ALIAS_FREEBSD_NANDFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_NANDFS) },
-    {	ALIAS_FREEBSD_SWAP, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_SWAP) },
-    {	ALIAS_FREEBSD_UFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_UFS) },
-    {	ALIAS_FREEBSD_VINUM, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_VINUM) },
-    {	ALIAS_FREEBSD_ZFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_ZFS) },
-    {	ALIAS_NONE, 0 }
+	{ ALIAS_FREEBSD, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD) },
+	{ ALIAS_FREEBSD_BOOT, ALIAS_PTR2TYPE(APM_ENT_TYPE_APPLE_BOOT) },
+	{ ALIAS_FREEBSD_NANDFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_NANDFS) },
+	{ ALIAS_FREEBSD_SWAP, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_SWAP) },
+	{ ALIAS_FREEBSD_UFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_UFS) },
+	{ ALIAS_FREEBSD_VINUM, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_VINUM) },
+	{ ALIAS_FREEBSD_ZFS, ALIAS_PTR2TYPE(APM_ENT_TYPE_FREEBSD_ZFS) },
+	{ ALIAS_NONE, 0 }
 };
 
 static lba_t
@@ -82,7 +82,7 @@ apm_write(lba_t imgsz, void *bootcode __unused)
 	strncpy(ent->ent_type, APM_ENT_TYPE_SELF, sizeof(ent->ent_type));
 	strncpy(ent->ent_name, "Apple", sizeof(ent->ent_name));
 
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		ent = (void *)(buf + (part->index + 2) * secsz);
 		be16enc(&ent->ent_sig, APM_ENT_SIG);
 		be32enc(&ent->ent_pmblkcnt, nparts + 1);
@@ -100,15 +100,13 @@ apm_write(lba_t imgsz, void *bootcode __unused)
 	return (error);
 }
 
-static struct mkimg_scheme apm_scheme = {
-	.name = "apm",
+static struct mkimg_scheme apm_scheme = { .name = "apm",
 	.description = "Apple Partition Map",
 	.aliases = apm_aliases,
 	.metadata = apm_metadata,
 	.write = apm_write,
 	.nparts = 4096,
 	.labellen = APM_ENT_NAMELEN - 1,
-	.maxsecsz = 4096
-};
+	.maxsecsz = 4096 };
 
 SCHEME_DEFINE(apm_scheme);

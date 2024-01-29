@@ -32,25 +32,24 @@
 
 #include "ed.h"
 
-
-static FILE *sfp;			/* scratch file pointer */
-static off_t sfseek;			/* scratch file position */
-static int seek_write;			/* seek before writing */
-static line_t buffer_head;		/* incore buffer */
+static FILE *sfp;	   /* scratch file pointer */
+static off_t sfseek;	   /* scratch file position */
+static int seek_write;	   /* seek before writing */
+static line_t buffer_head; /* incore buffer */
 
 /* get_sbuf_line: get a line of text from the scratch file; return pointer
    to the text */
 char *
 get_sbuf_line(line_t *lp)
 {
-	static char *sfbuf = NULL;	/* buffer */
-	static size_t sfbufsz;		/* buffer size */
+	static char *sfbuf = NULL; /* buffer */
+	static size_t sfbufsz;	   /* buffer size */
 
 	size_t len;
 
 	if (lp == &buffer_head)
 		return NULL;
-	seek_write = 1;				/* force seek on write */
+	seek_write = 1; /* force seek on write */
 	/* out of position */
 	if (sfseek != lp->seek) {
 		sfseek = lp->seek;
@@ -67,11 +66,10 @@ get_sbuf_line(line_t *lp)
 		errmsg = "cannot read temp file";
 		return NULL;
 	}
-	sfseek += len;				/* update file position */
+	sfseek += len; /* update file position */
 	sfbuf[len] = '\0';
 	return sfbuf;
 }
-
 
 /* put_sbuf_line: write a line of text to the scratch file and add a line node
    to the editor buffer;  return a pointer to the end of the text */
@@ -82,7 +80,7 @@ put_sbuf_line(const char *cs)
 	size_t len;
 	const char *s;
 
-	if ((lp = (line_t *) malloc(sizeof(line_t))) == NULL) {
+	if ((lp = (line_t *)malloc(sizeof(line_t))) == NULL) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		errmsg = "out of memory";
 		return NULL;
@@ -116,12 +114,11 @@ put_sbuf_line(const char *cs)
 		return NULL;
 	}
 	lp->len = len;
-	lp->seek  = sfseek;
+	lp->seek = sfseek;
 	add_line_node(lp);
-	sfseek += len;			/* update file position */
+	sfseek += len; /* update file position */
 	return ++s;
 }
-
 
 /* add_line_node: add a line node in the editor buffer after the current line */
 void
@@ -129,12 +126,12 @@ add_line_node(line_t *lp)
 {
 	line_t *cp;
 
-	cp = get_addressed_line_node(current_addr);				/* this get_addressed_line_node last! */
+	cp = get_addressed_line_node(
+	    current_addr); /* this get_addressed_line_node last! */
 	INSQUE(lp, cp);
 	addr_last++;
 	current_addr++;
 }
-
 
 /* get_line_node_addr: return line number of pointer */
 long
@@ -148,12 +145,12 @@ get_line_node_addr(line_t *lp)
 	if (n && cp == &buffer_head) {
 		errmsg = "invalid address";
 		return ERR;
-	 }
-	 return n;
+	}
+	return n;
 }
 
-
-/* get_addressed_line_node: return pointer to a line node in the editor buffer */
+/* get_addressed_line_node: return pointer to a line node in the editor buffer
+ */
 line_t *
 get_addressed_line_node(long n)
 {
@@ -170,20 +167,19 @@ get_addressed_line_node(long n)
 			for (on = addr_last; on > n; on--)
 				lp = lp->q_back;
 		}
-	else
-		if (n >= on >> 1)
-			for (; on > n; on--)
-				lp = lp->q_back;
-		else {
-			lp = &buffer_head;
-			for (on = 0; on < n; on++)
-				lp = lp->q_forw;
-		}
+	else if (n >= on >> 1)
+		for (; on > n; on--)
+			lp = lp->q_back;
+	else {
+		lp = &buffer_head;
+		for (on = 0; on < n; on++)
+			lp = lp->q_forw;
+	}
 	SPL0();
 	return lp;
 }
 
-static char sfn[15] = "";			/* scratch file name */
+static char sfn[15] = ""; /* scratch file name */
 
 /* open_sbuf: open scratch file */
 int
@@ -195,8 +191,7 @@ open_sbuf(void)
 	isbinary = newline_added = 0;
 	u = umask(077);
 	strcpy(sfn, "/tmp/ed.XXXXXX");
-	if ((fd = mkstemp(sfn)) == -1 ||
-	    (sfp = fdopen(fd, "w+")) == NULL) {
+	if ((fd = mkstemp(sfn)) == -1 || (sfp = fdopen(fd, "w+")) == NULL) {
 		if (fd != -1)
 			close(fd);
 		perror(sfn);
@@ -207,7 +202,6 @@ open_sbuf(void)
 	umask(u);
 	return 0;
 }
-
 
 /* close_sbuf: close scratch file */
 int
@@ -226,7 +220,6 @@ close_sbuf(void)
 	return 0;
 }
 
-
 /* quit: remove_lines scratch file and exit */
 void
 quit(int n)
@@ -238,8 +231,7 @@ quit(int n)
 	exit(n);
 }
 
-
-static unsigned char ctab[256];		/* character translation table */
+static unsigned char ctab[256]; /* character translation table */
 
 /* init_buffers: open scratch buffer; initialize line queue */
 void
@@ -265,7 +257,6 @@ init_buffers(void)
 		ctab[i] = i;
 }
 
-
 /* translit_text: translate characters in a string */
 char *
 translit_text(char *s, int len, int from, int to)
@@ -274,9 +265,9 @@ translit_text(char *s, int len, int from, int to)
 
 	unsigned char *us;
 
-	ctab[i] = i;			/* restore table to initial state */
+	ctab[i] = i; /* restore table to initial state */
 	ctab[i = from] = to;
-	for (us = (unsigned char *) s; len-- > 0; us++)
+	for (us = (unsigned char *)s; len-- > 0; us++)
 		*us = ctab[*us];
 	return s;
 }

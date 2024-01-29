@@ -40,10 +40,10 @@
  * is wholly independent of the Postgres code.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
+#include <db.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -52,15 +52,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
-#include "libc_private.h"
 
-#include <db.h>
 #include "btree.h"
+#include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 #ifdef DEBUG
-#undef	MINPSIZE
-#define	MINPSIZE	128
+#undef MINPSIZE
+#define MINPSIZE 128
 #endif
 
 static int byteorder(void);
@@ -84,7 +84,8 @@ static int tmp(void);
  *
  */
 DB *
-__bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int dflags)
+__bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo,
+    int dflags)
 {
 	struct stat sb;
 	BTMETA m;
@@ -119,7 +120,7 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 		 */
 		if (b.psize &&
 		    (b.psize < MINPSIZE || b.psize > MAX_PAGE_OFFSET + 1 ||
-		    b.psize & (sizeof(indx_t) - 1) ))
+			b.psize & (sizeof(indx_t) - 1)))
 			goto einval;
 
 		/* Minimum number of keys per page; absolute minimum is 2. */
@@ -155,7 +156,7 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 	/* Allocate and initialize DB and BTREE structures. */
 	if ((t = (BTREE *)calloc(1, sizeof(BTREE))) == NULL)
 		goto err;
-	t->bt_fd = -1;			/* Don't close unopened fd on error. */
+	t->bt_fd = -1; /* Don't close unopened fd on error. */
 	t->bt_lorder = b.lorder;
 	t->bt_order = NOT;
 	t->bt_cmp = b.compare;
@@ -234,7 +235,7 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 		if (m.magic != BTREEMAGIC || m.version != BTREEVERSION)
 			goto eftype;
 		if (m.psize < MINPSIZE || m.psize > MAX_PAGE_OFFSET + 1 ||
-		    m.psize & (sizeof(indx_t) - 1) )
+		    m.psize & (sizeof(indx_t) - 1))
 			goto eftype;
 		if (m.flags & ~SAVEMETA)
 			goto eftype;
@@ -267,8 +268,8 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 	t->bt_psize = b.psize;
 
 	/* Set the cache size; must be a multiple of the page size. */
-	if (b.cachesize && b.cachesize & (b.psize - 1) )
-		b.cachesize += (~b.cachesize & (b.psize - 1) ) + 1;
+	if (b.cachesize && b.cachesize & (b.psize - 1))
+		b.cachesize += (~b.cachesize & (b.psize - 1)) + 1;
 	if (b.cachesize < b.psize * MINCACHE)
 		b.cachesize = b.psize * MINCACHE;
 
@@ -289,12 +290,12 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 	t->bt_ovflsize = (t->bt_psize - BTDATAOFF) / b.minkeypage -
 	    (sizeof(indx_t) + NBLEAFDBT(0, 0));
 	if (t->bt_ovflsize < NBLEAFDBT(NOVFLSIZE, NOVFLSIZE) + sizeof(indx_t))
-		t->bt_ovflsize =
-		    NBLEAFDBT(NOVFLSIZE, NOVFLSIZE) + sizeof(indx_t);
+		t->bt_ovflsize = NBLEAFDBT(NOVFLSIZE, NOVFLSIZE) +
+		    sizeof(indx_t);
 
 	/* Initialize the buffer pool. */
-	if ((t->bt_mp =
-	    mpool_open(NULL, t->bt_fd, t->bt_psize, ncache)) == NULL)
+	if ((t->bt_mp = mpool_open(NULL, t->bt_fd, t->bt_psize, ncache)) ==
+	    NULL)
 		goto err;
 	if (!F_ISSET(t, B_INMEM))
 		mpool_filter(t->bt_mp, __bt_pgin, __bt_pgout, t);
@@ -313,13 +314,16 @@ __bt_open(const char *fname, int flags, int mode, const BTREEINFO *openinfo, int
 
 	return (dbp);
 
-einval:	errno = EINVAL;
+einval:
+	errno = EINVAL;
 	goto err;
 
-eftype:	errno = EFTYPE;
+eftype:
+	errno = EFTYPE;
 	goto err;
 
-err:	saved_errno = errno;
+err:
+	saved_errno = errno;
 	if (t) {
 		if (t->bt_dbp)
 			free(t->bt_dbp);
@@ -347,9 +351,7 @@ nroot(BTREE *t)
 	pgno_t npg;
 
 	if ((root = mpool_get(t->bt_mp, 1, 0)) != NULL) {
-		if (root->lower == 0 &&
-		    root->pgno == 0 &&
-		    root->linp[0] == 0) {
+		if (root->lower == 0 && root->pgno == 0 && root->linp[0] == 0) {
 			mpool_delete(t->bt_mp, root);
 			errno = EINVAL;
 		} else {
@@ -357,7 +359,7 @@ nroot(BTREE *t)
 			return (RET_SUCCESS);
 		}
 	}
-	if (errno != EINVAL)		/* It's OK to not exist. */
+	if (errno != EINVAL) /* It's OK to not exist. */
 		return (RET_ERROR);
 	errno = 0;
 
@@ -389,11 +391,11 @@ tmp(void)
 	char path[MAXPATHLEN];
 
 	envtmp = secure_getenv("TMPDIR");
-	len = snprintf(path,
-	    sizeof(path), "%s/bt.XXXXXXXXXX", envtmp ? envtmp : "/tmp");
+	len = snprintf(path, sizeof(path), "%s/bt.XXXXXXXXXX",
+	    envtmp ? envtmp : "/tmp");
 	if (len < 0 || len >= (int)sizeof(path)) {
 		errno = ENAMETOOLONG;
-		return(-1);
+		return (-1);
 	}
 
 	(void)sigfillset(&set);
@@ -401,7 +403,7 @@ tmp(void)
 	if ((fd = mkostemp(path, O_CLOEXEC)) != -1)
 		(void)unlink(path);
 	(void)__libc_sigprocmask(SIG_SETMASK, &oset, NULL);
-	return(fd);
+	return (fd);
 }
 
 static int

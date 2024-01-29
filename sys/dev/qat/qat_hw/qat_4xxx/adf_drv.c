@@ -1,34 +1,37 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007 - 2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
-#include "adf_accel_devices.h"
-#include "adf_4xxx_hw_data.h"
-#include "adf_gen4_hw_data.h"
-#include "adf_fw_counters.h"
-#include "adf_cfg_device.h"
 #include <sys/types.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
+
 #include <machine/bus_dma.h>
+
 #include <dev/pci/pcireg.h>
-#include "adf_heartbeat_dbg.h"
+
+#include "adf_4xxx_hw_data.h"
+#include "adf_accel_devices.h"
+#include "adf_cfg.h"
+#include "adf_cfg_device.h"
 #include "adf_cnvnr_freq_counters.h"
+#include "adf_common_drv.h"
+#include "adf_fw_counters.h"
+#include "adf_gen4_hw_data.h"
+#include "adf_heartbeat_dbg.h"
+#include "qat_freebsd.h"
 
 static MALLOC_DEFINE(M_QAT_4XXX, "qat_4xxx", "qat_4xxx");
 
-#define ADF_SYSTEM_DEVICE(device_id)                                           \
-	{                                                                      \
-		PCI_VENDOR_ID_INTEL, device_id                                 \
+#define ADF_SYSTEM_DEVICE(device_id)           \
+	{                                      \
+		PCI_VENDOR_ID_INTEL, device_id \
 	}
 
-static const struct pci_device_id adf_pci_tbl[] =
-    { ADF_SYSTEM_DEVICE(ADF_4XXX_PCI_DEVICE_ID),
-      ADF_SYSTEM_DEVICE(ADF_401XX_PCI_DEVICE_ID),
-      {
-	  0,
-      } };
+static const struct pci_device_id adf_pci_tbl[] = { ADF_SYSTEM_DEVICE(
+							ADF_4XXX_PCI_DEVICE_ID),
+	ADF_SYSTEM_DEVICE(ADF_401XX_PCI_DEVICE_ID),
+	{
+	    0,
+	} };
 
 static int
 adf_probe(device_t dev)
@@ -39,8 +42,7 @@ adf_probe(device_t dev)
 		if (pci_get_vendor(dev) == id->vendor &&
 		    pci_get_device(dev) == id->device) {
 			device_set_desc(dev,
-					"Intel " ADF_4XXX_DEVICE_NAME
-					" QuickAssist");
+			    "Intel " ADF_4XXX_DEVICE_NAME " QuickAssist");
 			return BUS_PROBE_GENERIC;
 		}
 	}
@@ -60,8 +62,7 @@ adf_cleanup_accel(struct adf_accel_dev *accel_dev)
 
 		if (bar->virt_addr)
 			bus_free_resource(accel_pci_dev->pci_dev,
-					  SYS_RES_MEMORY,
-					  bar->virt_addr);
+			    SYS_RES_MEMORY, bar->virt_addr);
 	}
 
 	if (accel_dev->hw_device) {
@@ -155,26 +156,16 @@ adf_attach(device_t dev)
 
 	pci_set_max_read_req(dev, 4096);
 
-	ret = bus_dma_tag_create(bus_get_dma_tag(dev),
-				 1,
-				 0,
-				 BUS_SPACE_MAXADDR,
-				 BUS_SPACE_MAXADDR,
-				 NULL,
-				 NULL,
-				 BUS_SPACE_MAXSIZE,
-				 /* BUS_SPACE_UNRESTRICTED */ 1,
-				 BUS_SPACE_MAXSIZE,
-				 0,
-				 NULL,
-				 NULL,
-				 &accel_dev->dma_tag);
+	ret = bus_dma_tag_create(bus_get_dma_tag(dev), 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, BUS_SPACE_MAXSIZE,
+	    /* BUS_SPACE_UNRESTRICTED */ 1, BUS_SPACE_MAXSIZE, 0, NULL, NULL,
+	    &accel_dev->dma_tag);
 	if (ret)
 		goto out_err;
 
 	if (hw_data->get_accel_cap) {
-		hw_data->accel_capabilities_mask =
-		    hw_data->get_accel_cap(accel_dev);
+		hw_data->accel_capabilities_mask = hw_data->get_accel_cap(
+		    accel_dev);
 	}
 
 	/* Find and map all the device's BARS */
@@ -191,10 +182,8 @@ adf_attach(device_t dev)
 		rid = PCIR_BAR(bar_nr);
 		bar = &accel_pci_dev->pci_bars[bar_nr / 2];
 
-		bar->virt_addr = bus_alloc_resource_any(dev,
-							SYS_RES_MEMORY,
-							&rid,
-							RF_ACTIVE);
+		bar->virt_addr = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
+		    &rid, RF_ACTIVE);
 		if (!bar->virt_addr) {
 			device_printf(dev, "Failed to map BAR %d\n", bar_nr);
 			ret = ENXIO;
@@ -254,14 +243,13 @@ adf_detach(device_t dev)
 }
 
 static device_method_t adf_methods[] = { DEVMETHOD(device_probe, adf_probe),
-					 DEVMETHOD(device_attach, adf_attach),
-					 DEVMETHOD(device_detach, adf_detach),
+	DEVMETHOD(device_attach, adf_attach),
+	DEVMETHOD(device_detach, adf_detach),
 
-					 DEVMETHOD_END };
+	DEVMETHOD_END };
 
-static driver_t adf_driver = { "qat",
-			       adf_methods,
-			       sizeof(struct adf_accel_dev) };
+static driver_t adf_driver = { "qat", adf_methods,
+	sizeof(struct adf_accel_dev) };
 
 DRIVER_MODULE_ORDERED(qat_4xxx, pci, adf_driver, NULL, NULL, SI_ORDER_THIRD);
 MODULE_VERSION(qat_4xxx, 1);

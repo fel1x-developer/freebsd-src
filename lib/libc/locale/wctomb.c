@@ -33,6 +33,7 @@
 
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 int
@@ -48,7 +49,7 @@ wctomb_l(char *s, wchar_t wchar, locale_t locale)
 		return (0);
 	}
 	if ((rval = XLOCALE_CTYPE(locale)->__wcrtomb(s, wchar,
-	    &(XLOCALE_CTYPE(locale)->wctomb))) == (size_t)-1)
+		 &(XLOCALE_CTYPE(locale)->wctomb))) == (size_t)-1)
 		return (-1);
 	return ((int)rval);
 }

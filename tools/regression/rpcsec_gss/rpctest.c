@@ -34,13 +34,12 @@
 #include <ctype.h>
 #include <err.h>
 #include <netdb.h>
+#include <rpc/rpc.h>
+#include <rpc/rpcsec_gss.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <rpc/rpc.h>
-#include <rpc/rpcsec_gss.h>
 
 static rpc_gss_principal_t server_acl = NULL;
 
@@ -58,7 +57,7 @@ print_principal(rpc_gss_principal_t principal)
 	uint8_t *p;
 
 	len = principal->len;
-	p = (uint8_t *) principal->name;
+	p = (uint8_t *)principal->name;
 	while (len > 0) {
 		n = len;
 		if (n > 16)
@@ -82,7 +81,7 @@ test_client(int argc, const char **argv)
 	rpcproc_t prog = 123456;
 	rpcvers_t vers = 1;
 	const char *netid = "tcp";
-	char hostname[128], service[128+5];
+	char hostname[128], service[128 + 5];
 	CLIENT *client;
 	AUTH *auth;
 	const char **mechs;
@@ -99,13 +98,12 @@ test_client(int argc, const char **argv)
 
 	client = clnt_create(hostname, prog, vers, netid);
 	if (!client) {
-		printf("rpc_createerr.cf_stat = %d\n",
-		    rpc_createerr.cf_stat);
+		printf("rpc_createerr.cf_stat = %d\n", rpc_createerr.cf_stat);
 		printf("rpc_createerr.cf_error.re_errno = %d\n",
 		    rpc_createerr.cf_error.re_errno);
 		return;
 	}
-	
+
 	strcpy(service, "host");
 	strcat(service, "@");
 	strcat(service, hostname);
@@ -117,40 +115,31 @@ test_client(int argc, const char **argv)
 		options_req.time_req = 600;
 		options_req.my_cred = GSS_C_NO_CREDENTIAL;
 		options_req.input_channel_bindings = NULL;
-		auth = rpc_gss_seccreate(client, service,
-		    *mechs,
-		    rpc_gss_svc_none,
-		    NULL,
-		    &options_req,
-		    &options_ret);
+		auth = rpc_gss_seccreate(client, service, *mechs,
+		    rpc_gss_svc_none, NULL, &options_req, &options_ret);
 		if (auth)
 			break;
 		mechs++;
 	}
 	if (!auth) {
 		clnt_pcreateerror("rpc_gss_seccreate");
-		printf("Can't authenticate with server %s.\n",
-		    hostname);
+		printf("Can't authenticate with server %s.\n", hostname);
 		exit(1);
 	}
 	client->cl_auth = auth;
 
 	for (svc = rpc_gss_svc_none; svc <= rpc_gss_svc_privacy; svc++) {
-		const char *svc_names[] = {
-			"rpc_gss_svc_default",
-			"rpc_gss_svc_none",
-			"rpc_gss_svc_integrity",
-			"rpc_gss_svc_privacy"
-		};
+		const char *svc_names[] = { "rpc_gss_svc_default",
+			"rpc_gss_svc_none", "rpc_gss_svc_integrity",
+			"rpc_gss_svc_privacy" };
 		int num;
 
 		rpc_gss_set_defaults(auth, svc, NULL);
 		tv.tv_sec = 5;
 		tv.tv_usec = 0;
 		num = 42;
-		stat = CLNT_CALL(client, 1,
-		    (xdrproc_t) xdr_int, (char *) &num,
-		    (xdrproc_t) xdr_int, (char *) &num, tv);
+		stat = CLNT_CALL(client, 1, (xdrproc_t)xdr_int, (char *)&num,
+		    (xdrproc_t)xdr_int, (char *)&num, tv);
 		if (stat == RPC_SUCCESS) {
 			printf("succeeded with %s\n", svc_names[svc]);
 			if (num != 142)
@@ -168,46 +157,45 @@ server_program_1(struct svc_req *rqstp, register SVCXPRT *transp)
 {
 	rpc_gss_rawcred_t *rcred;
 	rpc_gss_ucred_t *ucred;
-	int		i, num;
+	int i, num;
 
 	if (rqstp->rq_cred.oa_flavor != RPCSEC_GSS) {
 		svcerr_weakauth(transp);
 		return;
-	}		
-		
+	}
+
 	if (!rpc_gss_getcred(rqstp, &rcred, &ucred, NULL)) {
 		svcerr_systemerr(transp);
 		return;
 	}
 
-	printf("svc=%d, mech=%s, uid=%d, gid=%d, gids={",
-	    rcred->service, rcred->mechanism, ucred->uid, ucred->gid);
+	printf("svc=%d, mech=%s, uid=%d, gid=%d, gids={", rcred->service,
+	    rcred->mechanism, ucred->uid, ucred->gid);
 	for (i = 0; i < ucred->gidlen; i++) {
-		if (i > 0) printf(",");
+		if (i > 0)
+			printf(",");
 		printf("%d", ucred->gidlist[i]);
 	}
 	printf("}\n");
 
 	switch (rqstp->rq_proc) {
 	case 0:
-		if (!svc_getargs(transp, (xdrproc_t) xdr_void, 0)) {
+		if (!svc_getargs(transp, (xdrproc_t)xdr_void, 0)) {
 			svcerr_decode(transp);
 			goto out;
 		}
-		if (!svc_sendreply(transp, (xdrproc_t) xdr_void, 0)) {
+		if (!svc_sendreply(transp, (xdrproc_t)xdr_void, 0)) {
 			svcerr_systemerr(transp);
 		}
 		goto out;
 
 	case 1:
-		if (!svc_getargs(transp, (xdrproc_t) xdr_int,
-			(char *) &num)) {
+		if (!svc_getargs(transp, (xdrproc_t)xdr_int, (char *)&num)) {
 			svcerr_decode(transp);
 			goto out;
 		}
 		num += 100;
-		if (!svc_sendreply(transp, (xdrproc_t) xdr_int,
-			(char *) &num)) {
+		if (!svc_sendreply(transp, (xdrproc_t)xdr_int, (char *)&num)) {
 			svcerr_systemerr(transp);
 		}
 		goto out;
@@ -252,10 +240,8 @@ report_error(gss_OID mech, OM_uint32 maj, OM_uint32 min)
 #endif
 
 static bool_t
-server_new_context(__unused struct svc_req *req,
-    __unused gss_cred_id_t deleg,
-    __unused gss_ctx_id_t gss_context,
-    rpc_gss_lock_t *lock,
+server_new_context(__unused struct svc_req *req, __unused gss_cred_id_t deleg,
+    __unused gss_ctx_id_t gss_context, rpc_gss_lock_t *lock,
     __unused void **cookie)
 {
 	rpc_gss_rawcred_t *rcred = lock->raw_cred;
@@ -267,8 +253,8 @@ server_new_context(__unused struct svc_req *req,
 	if (!server_acl)
 		return (TRUE);
 
-	if (rcred->client_principal->len != server_acl->len
-	    || memcmp(rcred->client_principal->name, server_acl->name,
+	if (rcred->client_principal->len != server_acl->len ||
+	    memcmp(rcred->client_principal->name, server_acl->name,
 		server_acl->len)) {
 		return (FALSE);
 	}
@@ -285,15 +271,16 @@ test_server(__unused int argc, __unused const char **argv)
 	static rpc_gss_callback_t cb;
 
 	if (argc == 3) {
-		if (!rpc_gss_get_principal_name(&server_acl, argv[1],
-			argv[2], NULL, NULL)) {
-			printf("Can't create %s ACL entry for %s\n",
-			    argv[1], argv[2]);
+		if (!rpc_gss_get_principal_name(&server_acl, argv[1], argv[2],
+			NULL, NULL)) {
+			printf("Can't create %s ACL entry for %s\n", argv[1],
+			    argv[2]);
 			return;
 		}
 	}
 
-	gethostname(hostname, sizeof(hostname));;
+	gethostname(hostname, sizeof(hostname));
+	;
 	snprintf(principal, sizeof(principal), "host@%s", hostname);
 
 	mechs = rpc_gss_get_mechanisms();
@@ -304,8 +291,7 @@ test_server(__unused int argc, __unused const char **argv)
 
 			rpc_gss_get_error(&e);
 			printf("setting name for %s for %s failed: %d, %d\n",
-			    principal, *mechs,
-			     e.rpc_gss_error, e.system_error);
+			    principal, *mechs, e.rpc_gss_error, e.system_error);
 
 #if 0
 			gss_OID mech_oid;
@@ -355,7 +341,7 @@ test_get_principal_name(int argc, const char **argv)
 
 	if (argc < 3 || argc > 5) {
 		printf("usage: rpctest principal <mechname> <name> "
-		    "[<node> [<domain>] ]\n");
+		       "[<node> [<domain>] ]\n");
 		exit(1);
 	}
 
@@ -369,8 +355,8 @@ test_get_principal_name(int argc, const char **argv)
 			domain = argv[4];
 	}
 
-	if (rpc_gss_get_principal_name(&principal, mechname, name,
-		node, domain)) {
+	if (rpc_gss_get_principal_name(&principal, mechname, name, node,
+		domain)) {
 		printf("succeeded:\n");
 		print_principal(principal);
 		free(principal);

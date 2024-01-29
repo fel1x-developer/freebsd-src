@@ -25,12 +25,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/types.h>
+
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <strings.h>
-#include <ctype.h>
+#include <unistd.h>
+
 #include "eval_expr.h"
 static struct expression *
 alloc_and_hook_expr(struct expression **exp_p, struct expression **last_p)
@@ -59,10 +61,9 @@ alloc_and_hook_expr(struct expression **exp_p, struct expression **last_p)
 	return (ex);
 }
 
-
 static int
-validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_is_set, 
-	      int *op_cnt)
+validate_expr(struct expression *exp, int val1_is_set, int op_is_set,
+    int val2_is_set, int *op_cnt)
 {
 	int val1, op, val2;
 	int open_cnt;
@@ -80,18 +81,18 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 	if (exp == NULL) {
 		/* End of the road */
 		if (val1 && op && val2 && (open_cnt == 0)) {
-			return(0);
+			return (0);
 		} else {
-			return(1);
+			return (1);
 		}
 	}
-	switch(exp->type) {
+	switch (exp->type) {
 	case TYPE_OP_PLUS:
 	case TYPE_OP_MINUS:
 	case TYPE_OP_MULT:
 	case TYPE_OP_DIVIDE:
 		if (val1 && op && val2) {
-			/* We are at x + y + 
+			/* We are at x + y +
 			 * collapse back to val/op
 			 */
 			val1 = 1;
@@ -101,7 +102,7 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 			op = 1;
 		} else {
 			printf("Op but no val1 set\n");
-			return(-1);
+			return (-1);
 		}
 		break;
 	case TYPE_PARN_OPEN:
@@ -114,15 +115,15 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 		    (exp->next->type == TYPE_OP_DIVIDE) ||
 		    (exp->next->type == TYPE_OP_MULT)) {
 			printf("'( OP' -- not allowed\n");
-			return(-1);
+			return (-1);
 		}
 		if (val1 && (op == 0)) {
 			printf("'Val (' -- not allowed\n");
-			return(-1);
+			return (-1);
 		}
 		if (val1 && op && val2) {
 			printf("'Val OP Val (' -- not allowed\n");
-			return(-1);
+			return (-1);
 		}
 		open_cnt++;
 		*op_cnt = open_cnt;
@@ -130,20 +131,20 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 			if (validate_expr(exp->next, 0, 0, 0, op_cnt) == 0) {
 				val2 = 1;
 			} else {
-				return(-1);
+				return (-1);
 			}
 		} else {
-			return(validate_expr(exp->next, 0, 0, 0, op_cnt));
+			return (validate_expr(exp->next, 0, 0, 0, op_cnt));
 		}
 		break;
 	case TYPE_PARN_CLOSE:
 		open_cnt--;
 		*op_cnt = open_cnt;
 		if (val1 && op && val2) {
-			return(0);
+			return (0);
 		} else {
 			printf("Found close paren and not complete\n");
-			return(-1);
+			return (-1);
 		}
 		break;
 	case TYPE_VALUE_CON:
@@ -154,7 +155,7 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 			val2 = 1;
 		} else {
 			printf("val1 set, val2 about to be set op empty\n");
-			return(-1);
+			return (-1);
 		}
 		break;
 	default:
@@ -162,7 +163,7 @@ validate_expr(struct expression *exp, int val1_is_set, int op_is_set, int val2_i
 		exit(-5);
 		break;
 	}
-	return(validate_expr(exp->next, val1, op, val2, op_cnt));
+	return (validate_expr(exp->next, val1, op, val2, op_cnt));
 }
 
 void
@@ -172,7 +173,7 @@ print_exp(struct expression *exp)
 		printf("\n");
 		return;
 	}
-	switch(exp->type) {
+	switch (exp->type) {
 	case TYPE_OP_PLUS:
 		printf(" + ");
 		break;
@@ -237,10 +238,10 @@ walk_back_and_insert_paren(struct expression **beg, struct expression *frm)
 		return;
 	} else if (at->type == TYPE_PARN_CLOSE) {
 		/* Skip through until we reach beg or all ( closes */
-		int par_cnt=1;
+		int par_cnt = 1;
 
 		at = at->prev;
-		while(par_cnt) {
+		while (par_cnt) {
 			if (at->type == TYPE_PARN_CLOSE) {
 				par_cnt++;
 			} else if (at->type == TYPE_PARN_OPEN) {
@@ -258,8 +259,7 @@ walk_back_and_insert_paren(struct expression **beg, struct expression *frm)
 			goto in_mid;
 		}
 	} else {
-		printf("%s:Unexpected type:%d?\n", 
-		       __FUNCTION__, at->type);
+		printf("%s:Unexpected type:%d?\n", __FUNCTION__, at->type);
 		exit(-1);
 	}
 }
@@ -279,8 +279,7 @@ walk_fwd_and_insert_paren(struct expression *frm, struct expression **added)
 	*added = ex;
 	/* Now lets place it */
 	at = frm->next;
-	if ((at->type == TYPE_VALUE_CON) ||
-	    (at->type == TYPE_VALUE_PMC)) {
+	if ((at->type == TYPE_VALUE_CON) || (at->type == TYPE_VALUE_PMC)) {
 		/* Simple case we have a value in the previous position */
 	insertit:
 		ex->next = at->next;
@@ -288,9 +287,9 @@ walk_fwd_and_insert_paren(struct expression *frm, struct expression **added)
 		at->next = ex;
 		return;
 	} else if (at->type == TYPE_PARN_OPEN) {
-		int par_cnt=1;
+		int par_cnt = 1;
 		at = at->next;
-		while(par_cnt) {
+		while (par_cnt) {
 			if (at->type == TYPE_PARN_OPEN) {
 				par_cnt++;
 			} else if (at->type == TYPE_PARN_CLOSE) {
@@ -303,18 +302,16 @@ walk_fwd_and_insert_paren(struct expression *frm, struct expression **added)
 		}
 		goto insertit;
 	} else {
-		printf("%s:Unexpected type:%d?\n", 
-		       __FUNCTION__,
-		       at->type);
+		printf("%s:Unexpected type:%d?\n", __FUNCTION__, at->type);
 		exit(-1);
 	}
 }
 
-
 static void
-add_precendence(struct expression **beg, struct expression *start, struct expression *end)
+add_precendence(struct expression **beg, struct expression *start,
+    struct expression *end)
 {
-	/* 
+	/*
 	 * Between start and end add () around any * or /. This
 	 * is quite tricky since if there is a () set inside the
 	 * list we need to skip over everything in the ()'s considering
@@ -325,7 +322,7 @@ add_precendence(struct expression **beg, struct expression *start, struct expres
 
 	at = start;
 	open_cnt = 0;
-	while(at != end) {
+	while (at != end) {
 		if (at->type == TYPE_PARN_OPEN) {
 			open_cnt++;
 		}
@@ -343,29 +340,30 @@ add_precendence(struct expression **beg, struct expression *start, struct expres
 		}
 		at = at->next;
 	}
-	
 }
 
 static void
-set_math_precidence(struct expression **beg, struct expression *exp, struct expression **stopped)
+set_math_precidence(struct expression **beg, struct expression *exp,
+    struct expression **stopped)
 {
 	struct expression *at, *start, *end;
 	int cnt_lower, cnt_upper;
-	/* 
-	 * Walk through and set any math precedence to 
+	/*
+	 * Walk through and set any math precedence to
 	 * get proper precedence we insert () around * / over + -
 	 */
 	end = NULL;
 	start = at = exp;
 	cnt_lower = cnt_upper = 0;
-	while(at) { 
+	while (at) {
 		if (at->type == TYPE_PARN_CLOSE) {
 			/* Done with that paren */
 			if (stopped) {
 				*stopped = at;
 			}
 			if (cnt_lower && cnt_upper) {
-				/* We have a mixed set ... add precedence between start/end */
+				/* We have a mixed set ... add precedence
+				 * between start/end */
 				add_precendence(beg, start, end);
 			}
 			return;
@@ -375,10 +373,10 @@ set_math_precidence(struct expression **beg, struct expression *exp, struct expr
 			at = end;
 			continue;
 		} else if ((at->type == TYPE_OP_PLUS) ||
-			   (at->type == TYPE_OP_MINUS)) {
+		    (at->type == TYPE_OP_MINUS)) {
 			cnt_lower++;
 		} else if ((at->type == TYPE_OP_DIVIDE) ||
-			   (at->type == TYPE_OP_MULT)) {
+		    (at->type == TYPE_OP_MULT)) {
 			cnt_upper++;
 		}
 		at = at->next;
@@ -400,21 +398,23 @@ pmc_name_set(struct expression *at)
 		/* Special number after $ gives index */
 		idx = strtol(&at->name[1], NULL, 0);
 		if (idx >= valid_pmc_cnt) {
-			printf("Unknown PMC %s -- largest we have is $%d -- can't run your expression\n",
-			       at->name, valid_pmc_cnt);
+			printf(
+			    "Unknown PMC %s -- largest we have is $%d -- can't run your expression\n",
+			    at->name, valid_pmc_cnt);
 			exit(-1);
 		}
 		strcpy(at->name, valid_pmcs[idx]);
 	} else {
-		for(i=0, fnd=0; i<valid_pmc_cnt; i++) {
+		for (i = 0, fnd = 0; i < valid_pmc_cnt; i++) {
 			if (strcmp(valid_pmcs[i], at->name) == 0) {
 				fnd = 1;
 				break;
 			}
 		}
 		if (!fnd) {
-			printf("PMC %s does not exist on this machine -- can't run your expression\n",
-			       at->name);
+			printf(
+			    "PMC %s does not exist on this machine -- can't run your expression\n",
+			    at->name);
 			exit(-1);
 		}
 	}
@@ -423,11 +423,11 @@ pmc_name_set(struct expression *at)
 struct expression *
 parse_expression(char *str)
 {
-	struct expression *exp=NULL, *last=NULL, *at;
+	struct expression *exp = NULL, *last = NULL, *at;
 	int open_par, close_par;
-	int op_cnt=0;
+	int op_cnt = 0;
 	size_t siz, i, x;
-	/* 
+	/*
 	 * Walk through a string expression and convert
 	 * it to a linked list of actions. We do this by:
 	 * a) Counting the open/close paren's, there must
@@ -450,11 +450,11 @@ parse_expression(char *str)
 	open_par = close_par = 0;
 	siz = strlen(str);
 	/* No trailing newline please */
-	if (str[(siz-1)] == '\n') {
-		str[(siz-1)] = 0;
+	if (str[(siz - 1)] == '\n') {
+		str[(siz - 1)] = 0;
 		siz--;
 	}
-	for(i=0; i<siz; i++) {
+	for (i = 0; i < siz; i++) {
 		if (str[i] == '(') {
 			open_par++;
 		} else if (str[i] == ')') {
@@ -462,11 +462,12 @@ parse_expression(char *str)
 		}
 	}
 	if (open_par != close_par) {
-		printf("Invalid expression '%s' %d open paren's and %d close?\n",
-		       str, open_par, close_par);
+		printf(
+		    "Invalid expression '%s' %d open paren's and %d close?\n",
+		    str, open_par, close_par);
 		exit(-1);
 	}
-	for(i=0; i<siz; i++) {
+	for (i = 0; i < siz; i++) {
 		if (str[i] == '(') {
 			at = alloc_and_hook_expr(&exp, &last);
 			at->type = TYPE_PARN_OPEN;
@@ -500,18 +501,19 @@ parse_expression(char *str)
 				at->type = TYPE_VALUE_PMC;
 			}
 			x = 0;
-			while ((str[i] != ' ') && 
-			       (str[i] != '\t') && 
-			       (str[i] != 0) && 
-			       (str[i] != ')') &&
-			       (str[i] != '(')) {
-				/* We collect the constant until a space or tab */
+			while ((str[i] != ' ') && (str[i] != '\t') &&
+			    (str[i] != 0) && (str[i] != ')') &&
+			    (str[i] != '(')) {
+				/* We collect the constant until a space or tab
+				 */
 				at->name[x] = str[i];
 				i++;
 				x++;
-				if (x >=(sizeof(at->name)-1)) {
-					printf("Value/Constant too long %d max:%d\n",
-					       (int)x, (int)(sizeof(at->name)-1));
+				if (x >= (sizeof(at->name) - 1)) {
+					printf(
+					    "Value/Constant too long %d max:%d\n",
+					    (int)x,
+					    (int)(sizeof(at->name) - 1));
 					exit(-3);
 				}
 			}
@@ -539,8 +541,6 @@ parse_expression(char *str)
 	return (exp);
 }
 
-
-
 static struct expression *
 gather_exp_to_paren_close(struct expression *exp, double *val_fill)
 {
@@ -561,14 +561,13 @@ gather_exp_to_paren_close(struct expression *exp, double *val_fill)
 	} else {
 		*val_fill = run_expr(exp, 0, &lastproc);
 	}
-	return(lastproc);
+	return (lastproc);
 }
-
 
 double
 run_expr(struct expression *exp, int initial_call, struct expression **lastone)
 {
-	/* 
+	/*
 	 * We expect to find either
 	 * a) A Open Paren
 	 * or
@@ -578,13 +577,13 @@ run_expr(struct expression *exp, int initial_call, struct expression **lastone)
 	 */
 	double val1, val2, res;
 	struct expression *op, *other_half, *rest;
-	
+
 	if (exp->type == TYPE_PARN_OPEN) {
 		op = gather_exp_to_paren_close(exp->next, &val1);
-	} else if(exp->type == TYPE_VALUE_CON) {
+	} else if (exp->type == TYPE_VALUE_CON) {
 		val1 = exp->value;
 		op = exp->next;
-	} else if (exp->type ==  TYPE_VALUE_PMC) {
+	} else if (exp->type == TYPE_VALUE_PMC) {
 		val1 = exp->value;
 		op = exp->next;
 	} else {
@@ -598,21 +597,21 @@ more_to_do:
 	other_half = op->next;
 	if (other_half->type == TYPE_PARN_OPEN) {
 		rest = gather_exp_to_paren_close(other_half->next, &val2);
-	} else if(other_half->type == TYPE_VALUE_CON) {
+	} else if (other_half->type == TYPE_VALUE_CON) {
 		val2 = other_half->value;
 		rest = other_half->next;
-	} else if (other_half->type ==  TYPE_VALUE_PMC) {
+	} else if (other_half->type == TYPE_VALUE_PMC) {
 		val2 = other_half->value;
 		rest = other_half->next;
 	} else {
 		printf("Illegal2 value in %s huh?\n", __FUNCTION__);
 		exit(-1);
 	}
-	switch(op->type) {
+	switch (op->type) {
 	case TYPE_OP_PLUS:
 		res = val1 + val2;
 		break;
-	case TYPE_OP_MINUS:		
+	case TYPE_OP_MINUS:
 		res = val1 - val2;
 		break;
 	case TYPE_OP_MULT:
@@ -624,11 +623,10 @@ more_to_do:
 		else {
 			printf("Division by zero averted\n");
 			res = 1.0;
-		}	
+		}
 		break;
 	default:
-		printf("Op is not an operator -- its %d\n",
-		       op->type);
+		printf("Op is not an operator -- its %d\n", op->type);
 		exit(-1);
 		break;
 	}
@@ -642,7 +640,7 @@ more_to_do:
 		if (lastone) {
 			*lastone = rest->next;
 		}
-		return(res);
+		return (res);
 	}
 	/* There is more, as in
 	 * a + b + c
@@ -652,12 +650,11 @@ more_to_do:
 	 */
 	val1 = res;
 	op = rest;
-	if ((op->type != TYPE_OP_PLUS) &&
-	    (op->type != TYPE_OP_MULT) &&
-	    (op->type != TYPE_OP_MINUS) &&
-	    (op->type != TYPE_OP_DIVIDE)) {
-		printf("%s ending on type:%d not an op??\n", __FUNCTION__, op->type);
-		return(res);
+	if ((op->type != TYPE_OP_PLUS) && (op->type != TYPE_OP_MULT) &&
+	    (op->type != TYPE_OP_MINUS) && (op->type != TYPE_OP_DIVIDE)) {
+		printf("%s ending on type:%d not an op??\n", __FUNCTION__,
+		    op->type);
+		return (res);
 	}
 	if (op)
 		goto more_to_do;
@@ -673,13 +670,14 @@ calc_expr(struct expression *exp)
 	double xx;
 
 	/* First clear PMC's setting */
-	for(at = exp; at != NULL; at = at->next) {
+	for (at = exp; at != NULL; at = at->next) {
 		if (at->type == TYPE_VALUE_PMC) {
 			at->state = STATE_UNSET;
 		}
 	}
-	/* Now for all pmc's make up values .. here is where I would pull them */
-	for(at = exp; at != NULL; at = at->next) {
+	/* Now for all pmc's make up values .. here is where I would pull them
+	 */
+	for (at = exp; at != NULL; at = at->next) {
 		if (at->type == TYPE_VALUE_PMC) {
 			at->value = (random() * 1.0);
 			at->state = STATE_FILLED;
@@ -693,22 +691,21 @@ calc_expr(struct expression *exp)
 	print_exp(exp);
 	xx = run_expr(exp, 1, NULL);
 	printf("Answer is %f\n", xx);
-	return(xx);
+	return (xx);
 }
 
-
-int 
-main(int argc, char **argv) 
+int
+main(int argc, char **argv)
 {
 	struct expression *exp;
 	if (argc < 2) {
 		printf("Use %s expression\n", argv[0]);
-		return(-1);
+		return (-1);
 	}
 	exp = parse_expression(argv[1]);
 	printf("Now the calc\n");
 	calc_expr(exp);
-	return(0);
+	return (0);
 }
 
 #endif

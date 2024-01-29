@@ -1,9 +1,11 @@
-#include "ipf.h"
 #include <err.h>
+
+#include "ipf.h"
 
 extern int nohdrfields;
 
-wordtab_t *parsefields(wordtab_t *table, char *arg)
+wordtab_t *
+parsefields(wordtab_t *table, char *arg)
 {
 	wordtab_t *f, *fields;
 	char *s, *t;
@@ -32,7 +34,9 @@ wordtab_t *parsefields(wordtab_t *table, char *arg)
 		} else {
 			fields = reallocarray(fields, num + 1, sizeof(*fields));
 			if (fields == NULL) {
-				warnx("memory allocation error at %d in %s in %s", __LINE__, __FUNCTION__, __FILE__);
+				warnx(
+				    "memory allocation error at %d in %s in %s",
+				    __LINE__, __FUNCTION__, __FILE__);
 				abort();
 			}
 		}

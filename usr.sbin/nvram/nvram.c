@@ -26,6 +26,9 @@
 
 #include <sys/types.h>
 #include <sys/uio.h>
+
+#include <dev/powermac_nvram/powermac_nvramvar.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -35,9 +38,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <dev/powermac_nvram/powermac_nvramvar.h>
-
-#define	DEVICE_NAME	(_PATH_DEV "powermac_nvram")
+#define DEVICE_NAME (_PATH_DEV "powermac_nvram")
 
 static void usage(void) __dead2;
 static int remove_var(uint8_t *, int, const char *);
@@ -64,8 +65,8 @@ main(int argc, char **argv)
 	dump = 0;
 	dl = NULL;
 
-	while((opt = getopt(argc, argv, "d:p")) != -1) {
-		switch(opt) {
+	while ((opt = getopt(argc, argv, "d:p")) != -1) {
+		switch (opt) {
 		case 'p':
 			dump = 1;
 			break;
@@ -140,7 +141,7 @@ main(int argc, char **argv)
 		exit(0);
 	}
 
-	for (;dl != NULL; dl = dl->next) {
+	for (; dl != NULL; dl = dl->next) {
 		if (remove_var(common, size, dl->name) == 0)
 			warnx("%s: no such variable", dl->name);
 	}
@@ -192,7 +193,8 @@ remove_var(uint8_t *buf, int len, const char *var_name)
 		i = strlen(buf) + 1;
 		if (i == 1)
 			break;
-		if (strncmp(buf, var_name, name_len) == 0 && buf[name_len] == '=') {
+		if (strncmp(buf, var_name, name_len) == 0 &&
+		    buf[name_len] == '=') {
 			memmove(buf, buf + i, len - i);
 			memset(buf + len - i, '\0', i);
 			nremoved += 1;

@@ -32,23 +32,23 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int lflush(FILE *);
 
 static int
 lflush(FILE *fp)
 {
-	int	ret = 0;
+	int ret = 0;
 
-	if ((fp->_flags & (__SLBF|__SWR)) == (__SLBF|__SWR)) {
+	if ((fp->_flags & (__SLBF | __SWR)) == (__SLBF | __SWR)) {
 		FLOCKFILE_CANCELSAFE(fp);
 		ret = __sflush(fp);
 		FUNLOCKFILE_CANCELSAFE();
@@ -70,7 +70,7 @@ __srefill(FILE *fp)
 
 	ORIENT(fp, -1);
 
-	fp->_r = 0;		/* largely a convenience for callers */
+	fp->_r = 0; /* largely a convenience for callers */
 
 	/* SysV does not make this test; take it out for compatibility */
 	if (fp->_flags & __SEOF)
@@ -116,19 +116,19 @@ __srefill(FILE *fp)
 	 * flush all line buffered output files, per the ANSI C
 	 * standard.
 	 */
-	if (fp->_flags & (__SLBF|__SNBF)) {
+	if (fp->_flags & (__SLBF | __SNBF)) {
 		/* Ignore this file in _fwalk to avoid potential deadlock. */
 		fp->_flags |= __SIGN;
-		(void) _fwalk(lflush);
+		(void)_fwalk(lflush);
 		fp->_flags &= ~__SIGN;
 
 		/* Now flush this file without locking it. */
-		if ((fp->_flags & (__SLBF|__SWR)) == (__SLBF|__SWR))
+		if ((fp->_flags & (__SLBF | __SWR)) == (__SLBF | __SWR))
 			__sflush(fp);
 	}
 	fp->_p = fp->_bf._base;
 	fp->_r = _sread(fp, (char *)fp->_p, fp->_bf._size);
-	fp->_flags &= ~__SMOD;	/* buffer contents are again pristine */
+	fp->_flags &= ~__SMOD; /* buffer contents are again pristine */
 	if (fp->_r <= 0) {
 		if (fp->_r == 0)
 			fp->_flags |= __SEOF;

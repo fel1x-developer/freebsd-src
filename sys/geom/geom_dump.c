@@ -37,21 +37,22 @@
  */
 
 #include <sys/param.h>
-#include <sys/sbuf.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
+#include <sys/sbuf.h>
+
 #include <machine/stdarg.h>
 
 #include <geom/geom.h>
-#include <geom/geom_int.h>
 #include <geom/geom_disk.h>
+#include <geom/geom_int.h>
 
 static void
 g_confdot_consumer(struct sbuf *sb, struct g_consumer *cp)
 {
 
-	sbuf_printf(sb, "z%p [label=\"r%dw%de%d\"];\n",
-	    cp, cp->acr, cp->acw, cp->ace);
+	sbuf_printf(sb, "z%p [label=\"r%dw%de%d\"];\n", cp, cp->acr, cp->acw,
+	    cp->ace);
 	if (cp->provider)
 		sbuf_printf(sb, "z%p -> z%p;\n", cp, cp->provider);
 }
@@ -60,9 +61,11 @@ static void
 g_confdot_provider(struct sbuf *sb, struct g_provider *pp)
 {
 
-	sbuf_printf(sb, "z%p [shape=hexagon,label=\"%s\\nr%dw%de%d\\nerr#%d\\n"
-	    "sector=%u\\nstripe=%ju\"];\n", pp, pp->name, pp->acr, pp->acw,
-	    pp->ace, pp->error, pp->sectorsize, (uintmax_t)pp->stripesize);
+	sbuf_printf(sb,
+	    "z%p [shape=hexagon,label=\"%s\\nr%dw%de%d\\nerr#%d\\n"
+	    "sector=%u\\nstripe=%ju\"];\n",
+	    pp, pp->name, pp->acr, pp->acw, pp->ace, pp->error, pp->sectorsize,
+	    (uintmax_t)pp->stripesize);
 }
 
 static void
@@ -71,14 +74,14 @@ g_confdot_geom(struct sbuf *sb, struct g_geom *gp)
 	struct g_consumer *cp;
 	struct g_provider *pp;
 
-	sbuf_printf(sb, "z%p [shape=box,label=\"%s\\n%s\\nr#%d\"];\n",
-	    gp, gp->class->name, gp->name, gp->rank);
-	LIST_FOREACH(cp, &gp->consumer, consumer) {
+	sbuf_printf(sb, "z%p [shape=box,label=\"%s\\n%s\\nr#%d\"];\n", gp,
+	    gp->class->name, gp->name, gp->rank);
+	LIST_FOREACH (cp, &gp->consumer, consumer) {
 		g_confdot_consumer(sb, cp);
 		sbuf_printf(sb, "z%p -> z%p;\n", gp, cp);
 	}
 
-	LIST_FOREACH(pp, &gp->provider, provider) {
+	LIST_FOREACH (pp, &gp->provider, provider) {
 		g_confdot_provider(sb, pp);
 		sbuf_printf(sb, "z%p -> z%p;\n", pp, gp);
 	}
@@ -89,12 +92,12 @@ g_confdot_class(struct sbuf *sb, struct g_class *mp)
 {
 	struct g_geom *gp;
 
-	LIST_FOREACH(gp, &mp->geom, geom)
+	LIST_FOREACH (gp, &mp->geom, geom)
 		g_confdot_geom(sb, gp);
 }
 
 void
-g_confdot(void *p, int flag )
+g_confdot(void *p, int flag)
 {
 	struct g_class *mp;
 	struct sbuf *sb;
@@ -103,7 +106,7 @@ g_confdot(void *p, int flag )
 	sb = p;
 	g_topology_assert();
 	sbuf_cat(sb, "digraph geom {\n");
-	LIST_FOREACH(mp, &g_classes, class)
+	LIST_FOREACH (mp, &g_classes, class)
 		g_confdot_class(sb, mp);
 	sbuf_cat(sb, "}\n");
 	sbuf_finish(sb);
@@ -117,13 +120,13 @@ g_conftxt_geom(struct sbuf *sb, struct g_geom *gp, int level)
 
 	if (gp->flags & G_GEOM_WITHER)
 		return;
-	LIST_FOREACH(pp, &gp->provider, provider) {
+	LIST_FOREACH (pp, &gp->provider, provider) {
 		sbuf_printf(sb, "%d %s %s %ju %u", level, gp->class->name,
 		    pp->name, (uintmax_t)pp->mediasize, pp->sectorsize);
 		if (gp->dumpconf != NULL)
 			gp->dumpconf(sb, NULL, gp, NULL, pp);
 		sbuf_cat(sb, "\n");
-		LIST_FOREACH(cp, &pp->consumers, consumers)
+		LIST_FOREACH (cp, &pp->consumers, consumers)
 			g_conftxt_geom(sb, cp->geom, level + 1);
 	}
 }
@@ -133,7 +136,7 @@ g_conftxt_class(struct sbuf *sb, struct g_class *mp)
 {
 	struct g_geom *gp;
 
-	LIST_FOREACH(gp, &mp->geom, geom)
+	LIST_FOREACH (gp, &mp->geom, geom)
 		g_conftxt_geom(sb, gp, 0);
 }
 
@@ -146,8 +149,9 @@ g_conftxt(void *p, int flag)
 	KASSERT(flag != EV_CANCEL, ("g_conftxt was cancelled"));
 	sb = p;
 	g_topology_assert();
-	LIST_FOREACH(mp, &g_classes, class) {
-		if (!strcmp(mp->name, G_DISK_CLASS_NAME) || !strcmp(mp->name, "MD"))
+	LIST_FOREACH (mp, &g_classes, class) {
+		if (!strcmp(mp->name, G_DISK_CLASS_NAME) ||
+		    !strcmp(mp->name, "MD"))
 			g_conftxt_class(sb, mp);
 	}
 	sbuf_finish(sb);
@@ -159,8 +163,8 @@ g_conf_cat_escaped(struct sbuf *sb, const char *buf)
 	const u_char *c;
 
 	for (c = buf; *c != '\0'; c++) {
-		if (*c == '&' || *c == '<' || *c == '>' ||
-		    *c == '\'' || *c == '"' || *c > 0x7e)
+		if (*c == '&' || *c == '<' || *c == '>' || *c == '\'' ||
+		    *c == '"' || *c > 0x7e)
 			sbuf_printf(sb, "&#x%X;", *c);
 		else if (*c == '\t' || *c == '\n' || *c == '\r' || *c > 0x1f)
 			sbuf_putc(sb, *c);
@@ -193,8 +197,8 @@ g_conf_consumer(struct sbuf *sb, struct g_consumer *cp)
 	sbuf_printf(sb, "\t  <geom ref=\"%p\"/>\n", cp->geom);
 	if (cp->provider != NULL)
 		sbuf_printf(sb, "\t  <provider ref=\"%p\"/>\n", cp->provider);
-	sbuf_printf(sb, "\t  <mode>r%dw%de%d</mode>\n",
-	    cp->acr, cp->acw, cp->ace);
+	sbuf_printf(sb, "\t  <mode>r%dw%de%d</mode>\n", cp->acr, cp->acw,
+	    cp->ace);
 	if (cp->geom->flags & G_GEOM_WITHER)
 		;
 	else if (cp->geom->dumpconf != NULL) {
@@ -212,12 +216,12 @@ g_conf_provider(struct sbuf *sb, struct g_provider *pp)
 
 	sbuf_printf(sb, "\t<provider id=\"%p\">\n", pp);
 	sbuf_printf(sb, "\t  <geom ref=\"%p\"/>\n", pp->geom);
-	sbuf_printf(sb, "\t  <mode>r%dw%de%d</mode>\n",
-	    pp->acr, pp->acw, pp->ace);
+	sbuf_printf(sb, "\t  <mode>r%dw%de%d</mode>\n", pp->acr, pp->acw,
+	    pp->ace);
 	sbuf_cat(sb, "\t  <name>");
 	g_conf_cat_escaped(sb, pp->name);
 	sbuf_cat(sb, "</name>\n");
-	LIST_FOREACH(gap, &pp->aliases, ga_next) {
+	LIST_FOREACH (gap, &pp->aliases, ga_next) {
 		sbuf_cat(sb, "\t  <alias>");
 		g_conf_cat_escaped(sb, gap->ga_alias);
 		sbuf_cat(sb, "</alias>\n");
@@ -225,8 +229,10 @@ g_conf_provider(struct sbuf *sb, struct g_provider *pp)
 	sbuf_printf(sb, "\t  <mediasize>%jd</mediasize>\n",
 	    (intmax_t)pp->mediasize);
 	sbuf_printf(sb, "\t  <sectorsize>%u</sectorsize>\n", pp->sectorsize);
-	sbuf_printf(sb, "\t  <stripesize>%ju</stripesize>\n", (uintmax_t)pp->stripesize);
-	sbuf_printf(sb, "\t  <stripeoffset>%ju</stripeoffset>\n", (uintmax_t)pp->stripeoffset);
+	sbuf_printf(sb, "\t  <stripesize>%ju</stripesize>\n",
+	    (uintmax_t)pp->stripesize);
+	sbuf_printf(sb, "\t  <stripeoffset>%ju</stripeoffset>\n",
+	    (uintmax_t)pp->stripeoffset);
 	if (pp->flags & G_PF_WITHER)
 		sbuf_cat(sb, "\t  <wither/>\n");
 	else if (pp->geom->flags & G_GEOM_WITHER)
@@ -258,9 +264,9 @@ g_conf_geom(struct sbuf *sb, struct g_geom *gp)
 		gp->dumpconf(sb, "\t", gp, NULL, NULL);
 		sbuf_cat(sb, "      </config>\n");
 	}
-	LIST_FOREACH(cp, &gp->consumer, consumer)
+	LIST_FOREACH (cp, &gp->consumer, consumer)
 		g_conf_consumer(sb, cp);
-	LIST_FOREACH(pp, &gp->provider, provider)
+	LIST_FOREACH (pp, &gp->provider, provider)
 		g_conf_provider(sb, pp);
 	sbuf_cat(sb, "    </geom>\n");
 }
@@ -287,7 +293,7 @@ g_conf_class(struct sbuf *sb, struct g_class *mp, struct g_geom **gps)
 	sbuf_cat(sb, "    <name>");
 	g_conf_cat_escaped(sb, mp->name);
 	sbuf_cat(sb, "</name>\n");
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		if (!g_conf_matchgp(gp, gps))
 			continue;
 		g_conf_geom(sb, gp);
@@ -304,7 +310,7 @@ g_conf_specific(struct sbuf *sb, struct g_geom **gps)
 
 	g_topology_assert();
 	sbuf_cat(sb, "<mesh>\n");
-	LIST_FOREACH(mp2, &g_classes, class) {
+	LIST_FOREACH (mp2, &g_classes, class) {
 		g_conf_class(sb, mp2, gps);
 		if (sbuf_error(sb))
 			break;
@@ -322,8 +328,7 @@ g_confxml(void *p, int flag)
 	g_conf_specific(p, NULL);
 }
 
-void
-(g_trace)(int level, const char *fmt, ...)
+void(g_trace)(int level, const char *fmt, ...)
 {
 	va_list ap;
 

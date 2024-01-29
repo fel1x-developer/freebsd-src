@@ -30,35 +30,35 @@
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 
 #include <machine/bus.h>
 
+#include <dev/fdt/simple_mfd.h>
 #include <dev/hwreset/hwreset.h>
-#include <dev/phy/phy_usb.h>
-#include <dev/regulator/regulator.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/phy/phy_usb.h>
+#include <dev/regulator/regulator.h>
 
-#include <dev/fdt/simple_mfd.h>
 #include "phynode_if.h"
 #include "phynode_usb_if.h"
 
 static struct ofw_compat_data compat_data[] = {
-	{"qcom,usb-ss-ipq4019-phy",	1},
-	{NULL,				0},
+	{ "qcom,usb-ss-ipq4019-phy", 1 },
+	{ NULL, 0 },
 };
 
 struct ipq4018_usb_ss_phy_softc {
-	device_t		dev;
+	device_t dev;
 };
 
 struct ipq4018_usb_ss_phynode_sc {
-	struct phynode_usb_sc	usb_sc;
-	int			mode;
-	hwreset_t		por_rst;
+	struct phynode_usb_sc usb_sc;
+	int mode;
+	hwreset_t por_rst;
 };
 
 static int
@@ -77,7 +77,7 @@ ipq4018_usb_ss_phynode_phy_enable(struct phynode *phynode, bool enable)
 	rv = hwreset_assert(sc->por_rst);
 	if (rv != 0)
 		goto done;
-	DELAY(10*1000);
+	DELAY(10 * 1000);
 
 	/*
 	 * For power-on - power off first, then deassert por.
@@ -86,7 +86,7 @@ ipq4018_usb_ss_phynode_phy_enable(struct phynode *phynode, bool enable)
 		rv = hwreset_deassert(sc->por_rst);
 		if (rv != 0)
 			goto done;
-		DELAY(10*1000);
+		DELAY(10 * 1000);
 	}
 
 done:
@@ -96,14 +96,14 @@ done:
 	return (rv);
 }
 
- /* Phy controller class and methods. */
+/* Phy controller class and methods. */
 static phynode_method_t ipq4018_usb_ss_phynode_methods[] = {
-	PHYNODEUSBMETHOD(phynode_enable,	ipq4018_usb_ss_phynode_phy_enable),
+	PHYNODEUSBMETHOD(phynode_enable, ipq4018_usb_ss_phynode_phy_enable),
 	PHYNODEUSBMETHOD_END
 };
 DEFINE_CLASS_1(ipq4018_usb_ss_phynode, ipq4018_usb_ss_phynode_class,
-    ipq4018_usb_ss_phynode_methods,
-    sizeof(struct ipq4018_usb_ss_phynode_sc), phynode_usb_class);
+    ipq4018_usb_ss_phynode_methods, sizeof(struct ipq4018_usb_ss_phynode_sc),
+    phynode_usb_class);
 
 static int
 ipq4018_usb_ss_usbphy_init_phy(struct ipq4018_usb_ss_phy_softc *sc,
@@ -141,13 +141,13 @@ ipq4018_usb_ss_usbphy_init_phy(struct ipq4018_usb_ss_phy_softc *sc,
 		return (ENXIO);
 	}
 
-	(void) ipq4018_usb_ss_phynode_phy_enable(phynode, true);
+	(void)ipq4018_usb_ss_phynode_phy_enable(phynode, true);
 
 	return (0);
 
 fail:
 	if (por_rst != NULL)
-		 hwreset_release(por_rst);
+		hwreset_release(por_rst);
 
 	return (ENXIO);
 }
@@ -195,15 +195,13 @@ ipq4018_usb_ss_usbphy_detach(device_t dev)
 
 static device_method_t ipq4018_usb_ss_usbphy_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			ipq4018_usb_ss_usbphy_probe),
-	DEVMETHOD(device_attach,		ipq4018_usb_ss_usbphy_attach),
-	DEVMETHOD(device_detach,		ipq4018_usb_ss_usbphy_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ipq4018_usb_ss_usbphy_probe),
+	DEVMETHOD(device_attach, ipq4018_usb_ss_usbphy_attach),
+	DEVMETHOD(device_detach, ipq4018_usb_ss_usbphy_detach), DEVMETHOD_END
 };
 
 static DEFINE_CLASS_0(ipq4018_usb_ss_usbphy, ipq4018_usb_ss_usbphy_driver,
-    ipq4018_usb_ss_usbphy_methods,
-    sizeof(struct ipq4018_usb_ss_phy_softc));
+    ipq4018_usb_ss_usbphy_methods, sizeof(struct ipq4018_usb_ss_phy_softc));
 EARLY_DRIVER_MODULE(ipq4018_usb_ss_usbphy, simplebus,
     ipq4018_usb_ss_usbphy_driver, NULL, NULL,
     BUS_PASS_TIMER + BUS_PASS_ORDER_LAST);

@@ -25,52 +25,51 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/kbio.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/taskqueue.h>
-#include <sys/selinfo.h>
-#include <sys/sysctl.h>
+#include <sys/mutex.h>
 #include <sys/poll.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
+#include <sys/selinfo.h>
 #include <sys/syscallsubr.h>
+#include <sys/sysctl.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
-#include <sys/mutex.h>
-
-#include <sys/kbio.h>
-#include <dev/kbd/kbdreg.h>
+#include <sys/taskqueue.h>
+#include <sys/uio.h>
 
 #include <dev/hyperv/include/hyperv.h>
+#include <dev/hyperv/include/vmbus_xact.h>
 #include <dev/hyperv/utilities/hv_utilreg.h>
 #include <dev/hyperv/utilities/vmbus_icreg.h>
 #include <dev/hyperv/utilities/vmbus_icvar.h>
-#include <dev/hyperv/include/vmbus_xact.h>
+#include <dev/kbd/kbdreg.h>
 
 #include "dev/hyperv/input/hv_kbdc.h"
 #include "vmbus_if.h"
 
-#define HV_KBD_VER_MAJOR	(1)
-#define HV_KBD_VER_MINOR	(0)
+#define HV_KBD_VER_MAJOR (1)
+#define HV_KBD_VER_MINOR (0)
 
-#define HV_KBD_VER		(HV_KBD_VER_MINOR | (HV_KBD_VER_MAJOR) << 16)
+#define HV_KBD_VER (HV_KBD_VER_MINOR | (HV_KBD_VER_MAJOR) << 16)
 
-#define HV_KBD_PROTO_ACCEPTED	(1)
+#define HV_KBD_PROTO_ACCEPTED (1)
 
-#define HV_BUFF_SIZE		(4*PAGE_SIZE)
-#define HV_KBD_RINGBUFF_SEND_SZ	(10*PAGE_SIZE)
-#define HV_KBD_RINGBUFF_RECV_SZ (10*PAGE_SIZE)
+#define HV_BUFF_SIZE (4 * PAGE_SIZE)
+#define HV_KBD_RINGBUFF_SEND_SZ (10 * PAGE_SIZE)
+#define HV_KBD_RINGBUFF_RECV_SZ (10 * PAGE_SIZE)
 
 enum hv_kbd_msg_type_t {
-	HV_KBD_PROTO_REQUEST        = 1,
-	HV_KBD_PROTO_RESPONSE       = 2,
-	HV_KBD_PROTO_EVENT          = 3,
+	HV_KBD_PROTO_REQUEST = 1,
+	HV_KBD_PROTO_RESPONSE = 2,
+	HV_KBD_PROTO_EVENT = 3,
 	HV_KBD_PROTO_LED_INDICATORS = 4,
 };
 
@@ -84,17 +83,17 @@ typedef struct hv_kbd_msg_t {
 } hv_kbd_msg;
 
 typedef struct hv_kbd_proto_req_t {
-	hv_kbd_msg_hdr	hdr;
-	uint32_t	ver;
+	hv_kbd_msg_hdr hdr;
+	uint32_t ver;
 } hv_kbd_proto_req;
 
 typedef struct hv_kbd_proto_resp_t {
-	hv_kbd_msg_hdr  hdr;
-	uint32_t	status;
+	hv_kbd_msg_hdr hdr;
+	uint32_t status;
 } hv_kbd_proto_resp;
 
-#define HV_KBD_PROTO_REQ_SZ	(sizeof(hv_kbd_proto_req))
-#define HV_KBD_PROTO_RESP_SZ	(sizeof(hv_kbd_proto_resp))
+#define HV_KBD_PROTO_REQ_SZ (sizeof(hv_kbd_proto_req))
+#define HV_KBD_PROTO_RESP_SZ (sizeof(hv_kbd_proto_resp))
 
 /**
  * the struct in win host:
@@ -110,17 +109,15 @@ typedef struct hv_kbd_proto_resp_t {
  * } HK_MESSAGE_KEYSTROKE
  */
 typedef struct hv_kbd_keystroke_t {
-	hv_kbd_msg_hdr  hdr;
-	keystroke	ks;
+	hv_kbd_msg_hdr hdr;
+	keystroke ks;
 } hv_kbd_keystroke;
 
 static const struct vmbus_ic_desc vmbus_kbd_descs[] = {
-	{
-		.ic_guid = { .hv_guid = {
-		    0x6d, 0xad, 0x12, 0xf9, 0x17, 0x2b, 0xea, 0x48,
-		    0xbd, 0x65, 0xf9, 0x27, 0xa6, 0x1c, 0x76,  0x84} },
-		.ic_desc = "Hyper-V KBD"
-	},
+	{ .ic_guid = { .hv_guid = { 0x6d, 0xad, 0x12, 0xf9, 0x17, 0x2b, 0xea,
+			   0x48, 0xbd, 0x65, 0xf9, 0x27, 0xa6, 0x1c, 0x76,
+			   0x84 } },
+	    .ic_desc = "Hyper-V KBD" },
 	VMBUS_IC_DESC_END
 };
 
@@ -254,10 +251,8 @@ hv_kbd_on_received(hv_kbd_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 {
 
 	const hv_kbd_msg *msg = VMBUS_CHANPKT_CONST_DATA(pkt);
-	const hv_kbd_proto_resp *resp =
-	    VMBUS_CHANPKT_CONST_DATA(pkt);
-	const hv_kbd_keystroke *keystroke =
-	    VMBUS_CHANPKT_CONST_DATA(pkt);
+	const hv_kbd_proto_resp *resp = VMBUS_CHANPKT_CONST_DATA(pkt);
+	const hv_kbd_keystroke *keystroke = VMBUS_CHANPKT_CONST_DATA(pkt);
 	uint32_t msg_len = VMBUS_CHANPKT_DATALEN(pkt);
 	enum hv_kbd_msg_type_t msg_type;
 	uint32_t info;
@@ -269,31 +264,30 @@ hv_kbd_on_received(hv_kbd_sc *sc, struct vmbus_chanpkt_hdr *pkt)
 	}
 	msg_type = msg->hdr.type;
 	switch (msg_type) {
-		case HV_KBD_PROTO_RESPONSE:
-			hv_kbd_on_response(sc, pkt);
-			DEBUG_HVSC(sc, "keyboard resp: 0x%x\n",
-			    resp->status);
-			break;
-		case HV_KBD_PROTO_EVENT:
-			info = keystroke->ks.info;
-			scan_code = keystroke->ks.makecode;
-			DEBUG_HVSC(sc, "keystroke info: 0x%x, scan: 0x%x\n",
-			    info, scan_code);
-			hv_kbd_produce_ks(sc, &keystroke->ks);
-			hv_kbd_intr(sc);
-		default:
-			break;
+	case HV_KBD_PROTO_RESPONSE:
+		hv_kbd_on_response(sc, pkt);
+		DEBUG_HVSC(sc, "keyboard resp: 0x%x\n", resp->status);
+		break;
+	case HV_KBD_PROTO_EVENT:
+		info = keystroke->ks.info;
+		scan_code = keystroke->ks.makecode;
+		DEBUG_HVSC(sc, "keystroke info: 0x%x, scan: 0x%x\n", info,
+		    scan_code);
+		hv_kbd_produce_ks(sc, &keystroke->ks);
+		hv_kbd_intr(sc);
+	default:
+		break;
 	}
 }
 
-void 
+void
 hv_kbd_read_channel(struct vmbus_channel *channel, void *context)
 {
 	uint8_t *buf;
 	uint32_t buflen = 0;
 	int ret = 0;
 
-	hv_kbd_sc *sc = (hv_kbd_sc*)context;
+	hv_kbd_sc *sc = (hv_kbd_sc *)context;
 	buf = sc->buf;
 	buflen = sc->buflen;
 	for (;;) {
@@ -355,11 +349,9 @@ hv_kbd_connect_vsp(hv_kbd_sc *sc)
 	req->ver = HV_KBD_VER;
 
 	vmbus_xact_activate(xact);
-	ret = vmbus_chan_send(sc->hs_chan,
-		VMBUS_CHANPKT_TYPE_INBAND,
-		VMBUS_CHANPKT_FLAG_RC,
-		req, sizeof(hv_kbd_proto_req),
-		(uint64_t)(uintptr_t)xact);
+	ret = vmbus_chan_send(sc->hs_chan, VMBUS_CHANPKT_TYPE_INBAND,
+	    VMBUS_CHANPKT_FLAG_RC, req, sizeof(hv_kbd_proto_req),
+	    (uint64_t)(uintptr_t)xact);
 	if (ret) {
 		device_printf(sc->dev, "fail to send\n");
 		vmbus_xact_deactivate(xact);
@@ -388,17 +380,12 @@ hv_kbd_attach1(device_t dev, vmbus_chan_callback_t cb)
 	int ret;
 	hv_kbd_sc *sc;
 
-        sc = device_get_softc(dev);
+	sc = device_get_softc(dev);
 	sc->buflen = HV_BUFF_SIZE;
 	sc->buf = malloc(sc->buflen, M_DEVBUF, M_WAITOK | M_ZERO);
 	vmbus_chan_set_readbatch(sc->hs_chan, false);
-	ret = vmbus_chan_open(
-		sc->hs_chan,
-		HV_KBD_RINGBUFF_SEND_SZ,
-		HV_KBD_RINGBUFF_RECV_SZ,
-		NULL, 0,
-		cb,
-		sc);
+	ret = vmbus_chan_open(sc->hs_chan, HV_KBD_RINGBUFF_SEND_SZ,
+	    HV_KBD_RINGBUFF_RECV_SZ, NULL, 0, cb, sc);
 	if (ret != 0) {
 		free(sc->buf, M_DEVBUF);
 	}
@@ -425,8 +412,8 @@ hv_kbd_init(hv_kbd_sc *sc)
 	LIST_INIT(&sc->ks_free_list);
 	STAILQ_INIT(&sc->ks_queue);
 	for (i = 0; i < max_list; i++) {
-		ksi = malloc(sizeof(keystroke_info),
-		    M_DEVBUF, M_WAITOK|M_ZERO);
+		ksi = malloc(sizeof(keystroke_info), M_DEVBUF,
+		    M_WAITOK | M_ZERO);
 		LIST_INSERT_HEAD(&sc->ks_free_list, ksi, link);
 	}
 }
@@ -458,8 +445,8 @@ hv_kbd_sysctl(device_t dev)
 	sc = device_get_softc(dev);
 	ctx = device_get_sysctl_ctx(dev);
 	child = SYSCTL_CHILDREN(device_get_sysctl_tree(dev));
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "debug", CTLFLAG_RW,
-	    &sc->debug, 0, "debug hyperv keyboard");
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "debug", CTLFLAG_RW, &sc->debug, 0,
+	    "debug hyperv keyboard");
 }
 
 static int
@@ -514,11 +501,11 @@ static device_method_t kbd_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_probe, hv_kbd_probe),
 	DEVMETHOD(device_attach, hv_kbd_attach),
-	DEVMETHOD(device_detach, hv_kbd_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_detach, hv_kbd_detach), { 0, 0 }
 };
 
-static driver_t kbd_driver = {HVKBD_DRIVER_NAME , kbd_methods, sizeof(hv_kbd_sc)};
+static driver_t kbd_driver = { HVKBD_DRIVER_NAME, kbd_methods,
+	sizeof(hv_kbd_sc) };
 
 DRIVER_MODULE(hv_kbd, vmbus, kbd_driver, hvkbd_driver_load, NULL);
 MODULE_VERSION(hv_kbd, 1);

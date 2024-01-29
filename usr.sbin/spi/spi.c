@@ -38,120 +38,107 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <string.h>
 #include <unistd.h>
 
-#define	DEFAULT_DEVICE_NAME	"/dev/spigen0.0"
+#define DEFAULT_DEVICE_NAME "/dev/spigen0.0"
 
-#define	DEFAULT_BUFFER_SIZE	8192
+#define DEFAULT_BUFFER_SIZE 8192
 
-#define	DIR_READ		0
-#define	DIR_WRITE		1
-#define	DIR_READWRITE		2
-#define	DIR_NONE		-1
+#define DIR_READ 0
+#define DIR_WRITE 1
+#define DIR_READWRITE 2
+#define DIR_NONE -1
 
 struct spi_options {
-	int	mode;		/* mode (0,1,2,3, -1 == use default) */
-	int	speed;		/* speed (in Hz, -1 == use default) */
-	int	count;		/* count (0 through 'n' bytes, negative for
-				 * stdin length) */
-	int	binary;		/* non-zero for binary output or zero for
-				 * ASCII output when ASCII != 0 */
-	int	ASCII;		/* zero for binary input and output.
-				 * non-zero for ASCII input, 'binary'
-				 * determines output */
-	int	lsb;		/* non-zero for LSB order (default order is
-				 * MSB) */
-	int	verbose;	/* non-zero for verbosity */
-	int	ncmd;		/* bytes to skip for incoming data */
-	uint8_t	*pcmd;		/* command data (NULL if none) */
+	int mode;      /* mode (0,1,2,3, -1 == use default) */
+	int speed;     /* speed (in Hz, -1 == use default) */
+	int count;     /* count (0 through 'n' bytes, negative for
+			* stdin length) */
+	int binary;    /* non-zero for binary output or zero for
+			* ASCII output when ASCII != 0 */
+	int ASCII;     /* zero for binary input and output.
+			* non-zero for ASCII input, 'binary'
+			* determines output */
+	int lsb;       /* non-zero for LSB order (default order is
+			* MSB) */
+	int verbose;   /* non-zero for verbosity */
+	int ncmd;      /* bytes to skip for incoming data */
+	uint8_t *pcmd; /* command data (NULL if none) */
 };
 
-static void	usage(void);
-static int	interpret_command_bytes(const char *parg, struct spi_options *popt);
-static void *	prep_write_buffer(struct spi_options *popt);
-static int	_read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb);
-static int	_do_data_output(void *pr, struct spi_options *popt);
-static int	get_info(int hdev, const char *dev_name);
-static int	set_mode(int hdev, struct spi_options *popt);
-static int	set_speed(int hdev, struct spi_options *popt);
-static int	hexval(char c);
-static int	perform_read(int hdev, struct spi_options *popt);
-static int	perform_write(int hdev, struct spi_options *popt);
-static int	perform_readwrite(int hdev, struct spi_options *popt);
-static void	verbose_dump_buffer(void *pbuf, int icount, int lsb);
+static void usage(void);
+static int interpret_command_bytes(const char *parg, struct spi_options *popt);
+static void *prep_write_buffer(struct spi_options *popt);
+static int _read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb);
+static int _do_data_output(void *pr, struct spi_options *popt);
+static int get_info(int hdev, const char *dev_name);
+static int set_mode(int hdev, struct spi_options *popt);
+static int set_speed(int hdev, struct spi_options *popt);
+static int hexval(char c);
+static int perform_read(int hdev, struct spi_options *popt);
+static int perform_write(int hdev, struct spi_options *popt);
+static int perform_readwrite(int hdev, struct spi_options *popt);
+static void verbose_dump_buffer(void *pbuf, int icount, int lsb);
 
 /*
  * LSB array - reversebits[n] is the LSB value of n as an MSB.  Use this array
  * to obtain a reversed bit pattern of the index value when bits must
  * be sent/received in an LSB order vs the default MSB
  */
-static uint8_t reversebits[256] = {
-	0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,
-	0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0,
-	0x08, 0x88, 0x48, 0xc8, 0x28, 0xa8, 0x68, 0xe8,
-	0x18, 0x98, 0x58, 0xd8, 0x38, 0xb8, 0x78, 0xf8,
-	0x04, 0x84, 0x44, 0xc4, 0x24, 0xa4, 0x64, 0xe4,
-	0x14, 0x94, 0x54, 0xd4, 0x34, 0xb4, 0x74, 0xf4,
-	0x0c, 0x8c, 0x4c, 0xcc, 0x2c, 0xac, 0x6c, 0xec,
-	0x1c, 0x9c, 0x5c, 0xdc, 0x3c, 0xbc, 0x7c, 0xfc,
-	0x02, 0x82, 0x42, 0xc2, 0x22, 0xa2, 0x62, 0xe2,
-	0x12, 0x92, 0x52, 0xd2, 0x32, 0xb2, 0x72, 0xf2,
-	0x0a, 0x8a, 0x4a, 0xca, 0x2a, 0xaa, 0x6a, 0xea,
-	0x1a, 0x9a, 0x5a, 0xda, 0x3a, 0xba, 0x7a, 0xfa,
-	0x06, 0x86, 0x46, 0xc6, 0x26, 0xa6, 0x66, 0xe6,
-	0x16, 0x96, 0x56, 0xd6, 0x36, 0xb6, 0x76, 0xf6,
-	0x0e, 0x8e, 0x4e, 0xce, 0x2e, 0xae, 0x6e, 0xee,
-	0x1e, 0x9e, 0x5e, 0xde, 0x3e, 0xbe, 0x7e, 0xfe,
-	0x01, 0x81, 0x41, 0xc1, 0x21, 0xa1, 0x61, 0xe1,
-	0x11, 0x91, 0x51, 0xd1, 0x31, 0xb1, 0x71, 0xf1,
-	0x09, 0x89, 0x49, 0xc9, 0x29, 0xa9, 0x69, 0xe9,
-	0x19, 0x99, 0x59, 0xd9, 0x39, 0xb9, 0x79, 0xf9,
-	0x05, 0x85, 0x45, 0xc5, 0x25, 0xa5, 0x65, 0xe5,
-	0x15, 0x95, 0x55, 0xd5, 0x35, 0xb5, 0x75, 0xf5,
-	0x0d, 0x8d, 0x4d, 0xcd, 0x2d, 0xad, 0x6d, 0xed,
-	0x1d, 0x9d, 0x5d, 0xdd, 0x3d, 0xbd, 0x7d, 0xfd,
-	0x03, 0x83, 0x43, 0xc3, 0x23, 0xa3, 0x63, 0xe3,
-	0x13, 0x93, 0x53, 0xd3, 0x33, 0xb3, 0x73, 0xf3,
-	0x0b, 0x8b, 0x4b, 0xcb, 0x2b, 0xab, 0x6b, 0xeb,
-	0x1b, 0x9b, 0x5b, 0xdb, 0x3b, 0xbb, 0x7b, 0xfb,
-	0x07, 0x87, 0x47, 0xc7, 0x27, 0xa7, 0x67, 0xe7,
-	0x17, 0x97, 0x57, 0xd7, 0x37, 0xb7, 0x77, 0xf7,
-	0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f, 0xef,
-	0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff
-};
-
+static uint8_t reversebits[256] = { 0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60,
+	0xe0, 0x10, 0x90, 0x50, 0xd0, 0x30, 0xb0, 0x70, 0xf0, 0x08, 0x88, 0x48,
+	0xc8, 0x28, 0xa8, 0x68, 0xe8, 0x18, 0x98, 0x58, 0xd8, 0x38, 0xb8, 0x78,
+	0xf8, 0x04, 0x84, 0x44, 0xc4, 0x24, 0xa4, 0x64, 0xe4, 0x14, 0x94, 0x54,
+	0xd4, 0x34, 0xb4, 0x74, 0xf4, 0x0c, 0x8c, 0x4c, 0xcc, 0x2c, 0xac, 0x6c,
+	0xec, 0x1c, 0x9c, 0x5c, 0xdc, 0x3c, 0xbc, 0x7c, 0xfc, 0x02, 0x82, 0x42,
+	0xc2, 0x22, 0xa2, 0x62, 0xe2, 0x12, 0x92, 0x52, 0xd2, 0x32, 0xb2, 0x72,
+	0xf2, 0x0a, 0x8a, 0x4a, 0xca, 0x2a, 0xaa, 0x6a, 0xea, 0x1a, 0x9a, 0x5a,
+	0xda, 0x3a, 0xba, 0x7a, 0xfa, 0x06, 0x86, 0x46, 0xc6, 0x26, 0xa6, 0x66,
+	0xe6, 0x16, 0x96, 0x56, 0xd6, 0x36, 0xb6, 0x76, 0xf6, 0x0e, 0x8e, 0x4e,
+	0xce, 0x2e, 0xae, 0x6e, 0xee, 0x1e, 0x9e, 0x5e, 0xde, 0x3e, 0xbe, 0x7e,
+	0xfe, 0x01, 0x81, 0x41, 0xc1, 0x21, 0xa1, 0x61, 0xe1, 0x11, 0x91, 0x51,
+	0xd1, 0x31, 0xb1, 0x71, 0xf1, 0x09, 0x89, 0x49, 0xc9, 0x29, 0xa9, 0x69,
+	0xe9, 0x19, 0x99, 0x59, 0xd9, 0x39, 0xb9, 0x79, 0xf9, 0x05, 0x85, 0x45,
+	0xc5, 0x25, 0xa5, 0x65, 0xe5, 0x15, 0x95, 0x55, 0xd5, 0x35, 0xb5, 0x75,
+	0xf5, 0x0d, 0x8d, 0x4d, 0xcd, 0x2d, 0xad, 0x6d, 0xed, 0x1d, 0x9d, 0x5d,
+	0xdd, 0x3d, 0xbd, 0x7d, 0xfd, 0x03, 0x83, 0x43, 0xc3, 0x23, 0xa3, 0x63,
+	0xe3, 0x13, 0x93, 0x53, 0xd3, 0x33, 0xb3, 0x73, 0xf3, 0x0b, 0x8b, 0x4b,
+	0xcb, 0x2b, 0xab, 0x6b, 0xeb, 0x1b, 0x9b, 0x5b, 0xdb, 0x3b, 0xbb, 0x7b,
+	0xfb, 0x07, 0x87, 0x47, 0xc7, 0x27, 0xa7, 0x67, 0xe7, 0x17, 0x97, 0x57,
+	0xd7, 0x37, 0xb7, 0x77, 0xf7, 0x0f, 0x8f, 0x4f, 0xcf, 0x2f, 0xaf, 0x6f,
+	0xef, 0x1f, 0x9f, 0x5f, 0xdf, 0x3f, 0xbf, 0x7f, 0xff };
 
 static void
 usage(void)
 {
 	fputs(getprogname(), stderr);
-	fputs(" - communicate on SPI bus with slave devices\n"
-	      "Usage:\n"
-	      "        spi [-f device] [-d r|w|rw] [-m mode] [-s max-speed] [-c count]\n"
-	      "            [-C \"command bytes\"] [-A] [-b] [-L] [-v]\n"
-	      "        spi -i [-f device] [-v]\n"
-	      "        spi -h\n"
-	      " where\n"
-	      "        -f specifies the device (default is spigen0.0)\n"
-	      "        -d specifies the operation (r, w, or rw; default is rw)\n"
-	      "        -m specifies the mode (0, 1, 2, or 3)\n"
-	      "        -s specifies the maximum speed (default is 0, device default)\n"
-	      "        -c specifies the number of data bytes to transfer (default 0, i.e. none)\n"
-	      "           A negative value uses the length of the input data\n"
-	      "        -C specifies 'command bytes' to be sent, as 2 byte hexadecimal values\n"
-	      "           (these should be quoted, separated by optional white space)\n"
-	      "        -L specifies 'LSB' order on the SPI bus (default is MSB)\n"
-	      "        -i query information about the device\n"
-	      "        -A uses ASCII for input/output as 2-digit hex values\n"
-	      "        -b Override output format as binary (only valid with '-A')\n"
-	      "        -v verbose output\n"
-	      "        -h prints this message\n"
-	      "\n"
-	      "NOTE:  setting the mode and/or speed is 'sticky'.  Subsequent transactions\n"
-	      "       on that device will, by default, use the previously set values.\n"
-	      "\n",
-	      stderr);
+	fputs(
+	    " - communicate on SPI bus with slave devices\n"
+	    "Usage:\n"
+	    "        spi [-f device] [-d r|w|rw] [-m mode] [-s max-speed] [-c count]\n"
+	    "            [-C \"command bytes\"] [-A] [-b] [-L] [-v]\n"
+	    "        spi -i [-f device] [-v]\n"
+	    "        spi -h\n"
+	    " where\n"
+	    "        -f specifies the device (default is spigen0.0)\n"
+	    "        -d specifies the operation (r, w, or rw; default is rw)\n"
+	    "        -m specifies the mode (0, 1, 2, or 3)\n"
+	    "        -s specifies the maximum speed (default is 0, device default)\n"
+	    "        -c specifies the number of data bytes to transfer (default 0, i.e. none)\n"
+	    "           A negative value uses the length of the input data\n"
+	    "        -C specifies 'command bytes' to be sent, as 2 byte hexadecimal values\n"
+	    "           (these should be quoted, separated by optional white space)\n"
+	    "        -L specifies 'LSB' order on the SPI bus (default is MSB)\n"
+	    "        -i query information about the device\n"
+	    "        -A uses ASCII for input/output as 2-digit hex values\n"
+	    "        -b Override output format as binary (only valid with '-A')\n"
+	    "        -v verbose output\n"
+	    "        -h prints this message\n"
+	    "\n"
+	    "NOTE:  setting the mode and/or speed is 'sticky'.  Subsequent transactions\n"
+	    "       on that device will, by default, use the previously set values.\n"
+	    "\n",
+	    stderr);
 }
 
 int
@@ -186,25 +173,21 @@ main(int argc, char *argv[], char *envp[] __unused)
 			if (optarg[0] == 'r') {
 				if (optarg[1] == 'w' && optarg[2] == 0) {
 					fdir = DIR_READWRITE;
-				}
-				else if (optarg[1] == 0) {
+				} else if (optarg[1] == 0) {
 					fdir = DIR_READ;
 				}
-			}
-			else if (optarg[0] == 'w' && optarg[1] == 0) {
+			} else if (optarg[0] == 'w' && optarg[1] == 0) {
 				fdir = DIR_WRITE;
-			}
-			else {
+			} else {
 				err = 1;
 			}
 			break;
 
 		case 'f':
-			if (!optarg[0]) {	/* unlikely */
+			if (!optarg[0]) { /* unlikely */
 				fputs("error - missing device name\n", stderr);
 				err = 1;
-			}
-			else {
+			} else {
 				if (optarg[0] == '/')
 					strlcpy(dev_name, optarg,
 					    sizeof(dev_name));
@@ -245,7 +228,7 @@ main(int argc, char *argv[], char *envp[] __unused)
 			break;
 
 		case 'C':
-			if(opt.pcmd) /* specified more than once */
+			if (opt.pcmd) /* specified more than once */
 				err = 1;
 			else {
 				/* get malloc'd buffer or error */
@@ -288,7 +271,8 @@ main(int argc, char *argv[], char *envp[] __unused)
 	argv += optind;
 
 	if (err ||
-	    (fdir == DIR_NONE && !finfo && opt.mode == -1 && opt.speed == -1 && opt.count == 0)) {
+	    (fdir == DIR_NONE && !finfo && opt.mode == -1 && opt.speed == -1 &&
+		opt.count == 0)) {
 		/*
 		 * if any of the direction, mode, speed, or count not specified,
 		 * print usage
@@ -322,8 +306,7 @@ main(int argc, char *argv[], char *envp[] __unused)
 		goto the_end;
 	}
 
-
-	if (!dev_name[0])	/* no device name specified */
+	if (!dev_name[0]) /* no device name specified */
 		strlcpy(dev_name, DEFAULT_DEVICE_NAME, sizeof(dev_name));
 
 	hdev = open(dev_name, O_RDWR);
@@ -360,11 +343,9 @@ main(int argc, char *argv[], char *envp[] __unused)
 
 	if (fdir == DIR_READ) {
 		err = perform_read(hdev, &opt);
-	}
-	else if (fdir == DIR_WRITE) {
+	} else if (fdir == DIR_WRITE) {
 		err = perform_write(hdev, &opt);
-	}
-	else if (fdir == DIR_READWRITE) {
+	} else if (fdir == DIR_READWRITE) {
 		err = perform_readwrite(hdev, &opt);
 	}
 
@@ -407,11 +388,12 @@ interpret_command_bytes(const char *parg, struct spi_options *popt)
 			break; /* I am done */
 
 		ch = hexval(*(ppos++));
-		if (ch < 0 || !*ppos) { /* must be valid pair of hex characters */
+		if (ch < 0 ||
+		    !*ppos) { /* must be valid pair of hex characters */
 			err = 1;
 			goto the_end;
 		}
-		
+
 		ch2 = hexval(*(ppos++));
 		if (ch2 < 0) {
 			err = 1;
@@ -420,15 +402,15 @@ interpret_command_bytes(const char *parg, struct spi_options *popt)
 
 		ch = (ch * 16 + ch2) & 0xff; /* convert to byte */
 
-		if (ctr >= cbcmd) { /* need re-alloc buffer? (unlikely) */
+		if (ctr >= cbcmd) {    /* need re-alloc buffer? (unlikely) */
 			cbcmd += 8192; /* increase by additional 8k */
 			ptemp = realloc(popt->pcmd, cbcmd);
 
 			if (!ptemp) {
 				err = 1;
 				fprintf(stderr,
-					"Not enough memory to interpret command bytes, errno=%d\n",
-					errno);
+				    "Not enough memory to interpret command bytes, errno=%d\n",
+				    errno);
 				goto the_end;
 			}
 
@@ -461,8 +443,10 @@ get_info(int hdev, const char *dev_name)
 	int err;
 	char temp_buf[PATH_MAX], cpath[PATH_MAX];
 
-	if (!realpath(dev_name, cpath)) /* get canonical name for info purposes */
-		strlcpy(cpath, temp_buf, sizeof(cpath));  /* this shouldn't happen */
+	if (!realpath(dev_name,
+		cpath)) /* get canonical name for info purposes */
+		strlcpy(cpath, temp_buf,
+		    sizeof(cpath)); /* this shouldn't happen */
 
 	err = ioctl(hdev, SPIGENIOC_GET_SPI_MODE, &fmode);
 
@@ -471,12 +455,11 @@ get_info(int hdev, const char *dev_name)
 
 	if (err == 0) {
 		fprintf(stderr,
-		        "Device name:   %s\n"
-		        "Device mode:   %d\n"
-		        "Device speed:  %d\n",
-		        cpath, fmode, fspeed);//, max_cmd, max_data, temp_buf);
-	}
-	else
+		    "Device name:   %s\n"
+		    "Device mode:   %d\n"
+		    "Device speed:  %d\n",
+		    cpath, fmode, fspeed); //, max_cmd, max_data, temp_buf);
+	} else
 		fprintf(stderr, "Unable to query info (err=%d), errno=%d\n",
 		    err, errno);
 
@@ -488,7 +471,7 @@ set_mode(int hdev, struct spi_options *popt)
 {
 	uint32_t fmode = popt->mode;
 
-	if (popt->mode < 0)	/* use default? */
+	if (popt->mode < 0) /* use default? */
 		return 0;
 
 	return ioctl(hdev, SPIGENIOC_SET_SPI_MODE, &fmode);
@@ -529,13 +512,12 @@ prep_write_buffer(struct spi_options *popt)
 	ncmd = popt->ncmd; /* num command bytes (can be zero) */
 
 	if (ncmd == 0 && popt->count == 0)
-		return NULL;	/* always since it's an error if it happens
-				 * now */
+		return NULL; /* always since it's an error if it happens
+			      * now */
 
 	if (popt->count < 0) {
 		cbdata = DEFAULT_BUFFER_SIZE;
-	}
-	else {
+	} else {
 		cbdata = popt->count;
 	}
 
@@ -552,8 +534,7 @@ prep_write_buffer(struct spi_options *popt)
 	if (popt->pcmd && ncmd > 0) {
 		memcpy(pdata, popt->pcmd, ncmd); /* copy command bytes */
 		pdat2 = pdata + ncmd;
-	}
-	else
+	} else
 		pdat2 = pdata; /* no prepended command data */
 
 	/*
@@ -577,9 +558,10 @@ prep_write_buffer(struct spi_options *popt)
 				ch2 = hexval(ch);
 
 				if (ch2 < 0) {
-invalid_character:
+				invalid_character:
 					fprintf(stderr,
-					    "Invalid input character '%c'\n", ch);
+					    "Invalid input character '%c'\n",
+					    ch);
 					err = 1;
 					break;
 				}
@@ -604,7 +586,7 @@ invalid_character:
 		if (lsb)
 			pdat2[cbread] = reversebits[ch];
 		else
-			pdat2[cbread] = (uint8_t) ch;
+			pdat2[cbread] = (uint8_t)ch;
 
 		cbread++; /* increment num bytes read so far */
 	}
@@ -620,7 +602,8 @@ invalid_character:
 		const char *sz_bytes;
 
 		if (cbread != 1)
-			sz_bytes = "bytes";	/* correct plurality of 'byte|bytes' */
+			sz_bytes =
+			    "bytes"; /* correct plurality of 'byte|bytes' */
 		else
 			sz_bytes = "byte";
 
@@ -633,8 +616,9 @@ invalid_character:
 	}
 
 	/*
-	 * if opt.count is negative, copy actual byte count to opt.count which does
-	 * not include any of the 'command' bytes that are being sent.  Can be zero.
+	 * if opt.count is negative, copy actual byte count to opt.count which
+	 * does not include any of the 'command' bytes that are being sent.  Can
+	 * be zero.
 	 */
 	if (popt->count < 0) {
 		popt->count = cbread;
@@ -662,7 +646,7 @@ invalid_character:
 			szbytes = "bytes";
 
 		fprintf(stderr, "Writing %d %s to SPI device\n",
-		        popt->count + popt->ncmd, szbytes);
+		    popt->count + popt->ncmd, szbytes);
 
 		verbose_dump_buffer(pdata, popt->count + popt->ncmd, lsb);
 	}
@@ -673,7 +657,7 @@ invalid_character:
 static int
 _read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb)
 {
-	int	err, ctr;
+	int err, ctr;
 	struct spigen_transfer spi;
 
 	if (!cbrw)
@@ -682,10 +666,10 @@ _read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb)
 	if (!bufr)
 		bufr = bufw;
 	else
-		memcpy(bufr, bufw, cbrw);	/* transaction uses bufr for
-						 * both R and W */
+		memcpy(bufr, bufw, cbrw); /* transaction uses bufr for
+					   * both R and W */
 
-	bzero(&spi, sizeof(spi));	/* zero structure first */
+	bzero(&spi, sizeof(spi)); /* zero structure first */
 
 	/* spigen code seems to suggest there must be at least 1 command byte */
 
@@ -704,7 +688,7 @@ _read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb)
 	if (!err && lsb) {
 		/* flip the bits for 'lsb' mode */
 		for (ctr = 0; ctr < cbrw; ctr++) {
-			((uint8_t *) bufr)[ctr] =
+			((uint8_t *)bufr)[ctr] =
 			    reversebits[((uint8_t *)bufr)[ctr]];
 		}
 	}
@@ -719,7 +703,7 @@ _read_write(int hdev, void *bufw, void *bufr, int cbrw, int lsb)
 static int
 _do_data_output(void *pr, struct spi_options *popt)
 {
-	int	err, idx, icount;
+	int err, idx, icount;
 	const char *sz_bytes, *sz_byte2;
 	const uint8_t *pbuf;
 
@@ -732,7 +716,7 @@ _do_data_output(void *pr, struct spi_options *popt)
 	}
 
 	if (icount != 1)
-		sz_bytes = "bytes";	/* correct plurality of 'byte|bytes' */
+		sz_bytes = "bytes"; /* correct plurality of 'byte|bytes' */
 	else
 		sz_bytes = "byte";
 
@@ -748,8 +732,7 @@ _do_data_output(void *pr, struct spi_options *popt)
 			    sz_bytes);
 
 		err = (int)fwrite(pbuf, 1, icount, stdout) != icount;
-	}
-	else if (icount > 0) {
+	} else if (icount > 0) {
 		if (popt->verbose > 0)
 			fprintf(stderr, "ASCII output of %d %s\n", icount,
 			    sz_bytes);
@@ -776,7 +759,7 @@ _do_data_output(void *pr, struct spi_options *popt)
 	if (err)
 		fprintf(stderr, "Error writing to stdout, errno=%d\n", errno);
 	else if (popt->verbose > 0 && icount) {
-		fprintf(stderr, 
+		fprintf(stderr,
 		    "%d command %s and %d data %s read from SPI device\n",
 		    popt->ncmd, sz_byte2, icount, sz_bytes);
 
@@ -791,7 +774,7 @@ static int
 perform_read(int hdev, struct spi_options *popt)
 {
 	int icount, err;
-	void   *pr, *pw;
+	void *pr, *pw;
 
 	pr = NULL;
 	icount = popt->count + popt->ncmd;
@@ -836,7 +819,7 @@ static int
 perform_write(int hdev, struct spi_options *popt)
 {
 	int err;
-	void   *pw;
+	void *pw;
 
 	/* read data from cmd buf and stdin and write to 'write' buffer */
 
@@ -860,7 +843,7 @@ static int
 perform_readwrite(int hdev, struct spi_options *popt)
 {
 	int icount, err;
-	void   *pr, *pw;
+	void *pr, *pw;
 
 	pr = NULL;
 
@@ -894,15 +877,15 @@ the_end:
 	return err;
 }
 
-
 static void
 verbose_dump_buffer(void *pbuf, int icount, int lsb)
 {
-	uint8_t	ch;
-	int	ictr, ictr2, idx;
+	uint8_t ch;
+	int ictr, ictr2, idx;
 
 	fputs("        |  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F "
-	      "|                  |\n", stderr);
+	      "|                  |\n",
+	    stderr);
 
 	for (ictr = 0; ictr < icount; ictr += 16) {
 		fprintf(stderr, " %6x | ", ictr & 0xfffff0);
@@ -911,14 +894,13 @@ verbose_dump_buffer(void *pbuf, int icount, int lsb)
 			idx = ictr + ictr2;
 
 			if (idx < icount) {
-				ch = ((uint8_t *) pbuf)[idx];
+				ch = ((uint8_t *)pbuf)[idx];
 
 				if (lsb)
 					ch = reversebits[ch];
 
 				fprintf(stderr, "%02hhx ", ch);
-			}
-			else {
+			} else {
 				fputs("   ", stderr);
 			}
 		}
@@ -929,7 +911,7 @@ verbose_dump_buffer(void *pbuf, int icount, int lsb)
 			idx = ictr + ictr2;
 
 			if (idx < icount) {
-				ch = ((uint8_t *) pbuf)[idx];
+				ch = ((uint8_t *)pbuf)[idx];
 
 				if (lsb)
 					ch = reversebits[ch];
@@ -938,12 +920,10 @@ verbose_dump_buffer(void *pbuf, int icount, int lsb)
 					goto out_of_range;
 
 				fprintf(stderr, "%c", ch);
-			}
-			else if (idx < icount) {
-		out_of_range:
+			} else if (idx < icount) {
+			out_of_range:
 				fputc('.', stderr);
-			}
-			else {
+			} else {
 				fputc(' ', stderr);
 			}
 		}

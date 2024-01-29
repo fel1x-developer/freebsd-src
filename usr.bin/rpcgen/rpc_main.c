@@ -27,22 +27,23 @@
  * Mountain View, California  94043
  */
 
-
 /*
  * rpc_main.c, Top level of the RPC protocol compiler.
  * Copyright (C) 1987, Sun Microsystems, Inc.
  */
 
-#include <err.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+
+#include <ctype.h>
+#include <err.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
@@ -51,7 +52,7 @@ static void c_output(const char *, const char *, int, const char *);
 static void h_output(const char *, const char *, int, const char *, int);
 static void l_output(const char *, const char *, int, const char *);
 static void t_output(const char *, const char *, int, const char *);
-static void clnt_output(const char *, const char *, int, const char * );
+static void clnt_output(const char *, const char *, int, const char *);
 static char *generate_guard(const char *);
 static void c_initialize(void);
 
@@ -61,43 +62,50 @@ static int do_registers(int, const char **);
 static int parseargs(int, const char **, struct commandline *);
 static void svc_output(const char *, const char *, int, const char *);
 static void mkfile_output(struct commandline *);
-static void s_output(int, const char **, const char *, const char *, int, const char *, int, int);
+static void s_output(int, const char **, const char *, const char *, int,
+    const char *, int, int);
 
-#define	EXTEND	1		/* alias for TRUE */
-#define	DONT_EXTEND	0		/* alias for FALSE */
+#define EXTEND 1      /* alias for TRUE */
+#define DONT_EXTEND 0 /* alias for FALSE */
 
 static const char *svcclosetime = "120";
 static const char *CPP = NULL;
 static const char CPPFLAGS[] = "-C";
 static char pathbuf[MAXPATHLEN + 1];
 static const char *allv[] = {
-	"rpcgen", "-s", "udp", "-s", "tcp",
+	"rpcgen",
+	"-s",
+	"udp",
+	"-s",
+	"tcp",
 };
 static int allc = nitems(allv);
 static const char *allnv[] = {
-	"rpcgen", "-s", "netpath",
+	"rpcgen",
+	"-s",
+	"netpath",
 };
 static int allnc = nitems(allnv);
 
 /*
  * machinations for handling expanding argument list
  */
-static void addarg(const char *);	/* add another argument to the list */
-static void insarg(int, const char *);	/* insert arg at specified location */
+static void addarg(const char *);      /* add another argument to the list */
+static void insarg(int, const char *); /* insert arg at specified location */
 static void checkfiles(const char *, const char *);
-					/* check if out file already exists */
+/* check if out file already exists */
 
 static char **arglist;
 static int argcount = 0;
 static int argmax = 0;
 
-int nonfatalerrors;	/* errors */
-int inetdflag = 0;	/* Support for inetd is disabled by default, use -I */
-int pmflag = 0;		/* Support for port monitors is disabled by default */
-int tirpc_socket = 1;	/* TI-RPC on socket, no TLI library */
-int logflag;		/* Use syslog instead of fprintf for errors */
-int tblflag;		/* Support for dispatch table file */
-int mtflag = 0;		/* Support for MT */
+int nonfatalerrors;   /* errors */
+int inetdflag = 0;    /* Support for inetd is disabled by default, use -I */
+int pmflag = 0;	      /* Support for port monitors is disabled by default */
+int tirpc_socket = 1; /* TI-RPC on socket, no TLI library */
+int logflag;	      /* Use syslog instead of fprintf for errors */
+int tblflag;	      /* Support for dispatch table file */
+int mtflag = 0;	      /* Support for MT */
 
 #define INLINE 0
 /* length at which to start doing an inline */
@@ -108,24 +116,23 @@ int inline_size = INLINE;
  * if 0, no xdr_inline code
  */
 
-int indefinitewait;	/* If started by port monitors, hang till it wants */
-int exitnow;		/* If started by port monitors, exit after the call */
-int timerflag;		/* TRUE if !indefinite && !exitnow */
-int newstyle;		/* newstyle of passing arguments (by value) */
-int CCflag = 0;		/* C++ files */
-static int allfiles;   /* generate all files */
-int tirpcflag = 1;    /* generating code for tirpc, by default */
+int indefinitewait;  /* If started by port monitors, hang till it wants */
+int exitnow;	     /* If started by port monitors, exit after the call */
+int timerflag;	     /* TRUE if !indefinite && !exitnow */
+int newstyle;	     /* newstyle of passing arguments (by value) */
+int CCflag = 0;	     /* C++ files */
+static int allfiles; /* generate all files */
+int tirpcflag = 1;   /* generating code for tirpc, by default */
 xdrfunc *xdrfunc_head = NULL; /* xdr function list */
 xdrfunc *xdrfunc_tail = NULL; /* xdr function list */
 pid_t childpid;
-
 
 int
 main(int argc, const char *argv[])
 {
 	struct commandline cmd;
 
-	(void) memset((char *)&cmd, 0, sizeof (struct commandline));
+	(void)memset((char *)&cmd, 0, sizeof(struct commandline));
 	if (!parseargs(argc, argv, &cmd))
 		usage();
 	/*
@@ -135,8 +142,7 @@ main(int argc, const char *argv[])
 	 */
 	if (cmd.Ssflag || cmd.Scflag || cmd.makefileflag) {
 		checkfiles(cmd.infile, cmd.outfile);
-	}
-	else
+	} else
 		checkfiles(cmd.infile, NULL);
 
 	if (cmd.cflag) {
@@ -148,15 +154,15 @@ main(int argc, const char *argv[])
 		l_output(cmd.infile, "-DRPC_CLNT", DONT_EXTEND, cmd.outfile);
 	} else if (cmd.sflag || cmd.mflag || (cmd.nflag)) {
 		s_output(argc, argv, cmd.infile, "-DRPC_SVC", DONT_EXTEND,
-			cmd.outfile, cmd.mflag, cmd.nflag);
+		    cmd.outfile, cmd.mflag, cmd.nflag);
 	} else if (cmd.tflag) {
 		t_output(cmd.infile, "-DRPC_TBL", DONT_EXTEND, cmd.outfile);
-	} else if  (cmd.Ssflag) {
+	} else if (cmd.Ssflag) {
 		svc_output(cmd.infile, "-DRPC_SERVER", DONT_EXTEND,
-			cmd.outfile);
+		    cmd.outfile);
 	} else if (cmd.Scflag) {
 		clnt_output(cmd.infile, "-DRPC_CLIENT", DONT_EXTEND,
-			    cmd.outfile);
+		    cmd.outfile);
 	} else if (cmd.makefileflag) {
 		mkfile_output(&cmd);
 	} else {
@@ -169,10 +175,10 @@ main(int argc, const char *argv[])
 		reinitialize();
 		if (inetdflag || !tirpcflag)
 			s_output(allc, allv, cmd.infile, "-DRPC_SVC", EXTEND,
-			"_svc.c", cmd.mflag, cmd.nflag);
+			    "_svc.c", cmd.mflag, cmd.nflag);
 		else
-			s_output(allnc, allnv, cmd.infile, "-DRPC_SVC",
-				EXTEND, "_svc.c", cmd.mflag, cmd.nflag);
+			s_output(allnc, allnv, cmd.infile, "-DRPC_SVC", EXTEND,
+			    "_svc.c", cmd.mflag, cmd.nflag);
 		if (tblflag) {
 			reinitialize();
 			t_output(cmd.infile, "-DRPC_TBL", EXTEND, "_tbl.i");
@@ -181,22 +187,19 @@ main(int argc, const char *argv[])
 		if (allfiles) {
 			reinitialize();
 			svc_output(cmd.infile, "-DRPC_SERVER", EXTEND,
-				"_server.c");
+			    "_server.c");
 			reinitialize();
 			clnt_output(cmd.infile, "-DRPC_CLIENT", EXTEND,
-				"_client.c");
-
+			    "_client.c");
 		}
-		if (allfiles || (cmd.makefileflag == 1)){
+		if (allfiles || (cmd.makefileflag == 1)) {
 			reinitialize();
 			mkfile_output(&cmd);
 		}
-
 	}
 	exit(nonfatalerrors);
 	/* NOTREACHED */
 }
-
 
 /*
  * add extension to filename
@@ -217,8 +220,8 @@ extendfile(const char *path, const char *ext)
 	if (p == NULL) {
 		p = file + strlen(file);
 	}
-	(void) strcpy(res, file);
-	(void) strcpy(res + (p - file), ext);
+	(void)strcpy(res, file);
+	(void)strcpy(res + (p - file), ext);
 	return (res);
 }
 
@@ -385,7 +388,7 @@ open_input(const char *infile, const char *define)
 	int pd[2];
 
 	infilename = (infile == NULL) ? "<stdin>" : infile;
-	(void) pipe(pd);
+	(void)pipe(pd);
 	switch (childpid = fork()) {
 	case 0:
 		prepend_cpp();
@@ -393,15 +396,15 @@ open_input(const char *infile, const char *define)
 		if (infile)
 			addarg(infile);
 		addarg((char *)NULL);
-		(void) close(1);
-		(void) dup2(pd[1], 1);
-		(void) close(pd[0]);
+		(void)close(1);
+		(void)dup2(pd[1], 1);
+		(void)close(pd[0]);
 		execvp(arglist[0], arglist);
 		err(1, "execvp %s", arglist[0]);
 	case -1:
 		err(1, "fork");
 	}
-	(void) close(pd[1]);
+	(void)close(pd[1]);
 	fin = fdopen(pd[0], "r");
 	if (fin == NULL) {
 		warn("%s", infilename);
@@ -410,27 +413,11 @@ open_input(const char *infile, const char *define)
 }
 
 /* valid tirpc nettypes */
-static const char *valid_ti_nettypes[] =
-{
-	"netpath",
-	"visible",
-	"circuit_v",
-	"datagram_v",
-	"circuit_n",
-	"datagram_n",
-	"udp",
-	"tcp",
-	"raw",
-	NULL
-	};
+static const char *valid_ti_nettypes[] = { "netpath", "visible", "circuit_v",
+	"datagram_v", "circuit_n", "datagram_n", "udp", "tcp", "raw", NULL };
 
 /* valid inetd nettypes */
-static const char *valid_i_nettypes[] =
-{
-	"udp",
-	"tcp",
-	NULL
-	};
+static const char *valid_i_nettypes[] = { "udp", "tcp", NULL };
 
 static int
 check_nettype(const char *name, const char *list_to_check[])
@@ -455,12 +442,11 @@ file_name(const char *file, const char *ext)
 		return (temp);
 	else
 		return (" ");
-
 }
 
-
 static void
-c_output(const char *infile, const char *define, int extend, const char *outfile)
+c_output(const char *infile, const char *define, int extend,
+    const char *outfile)
 {
 	definition *def;
 	char *include;
@@ -479,14 +465,13 @@ c_output(const char *infile, const char *define, int extend, const char *outfile
 	} else
 		f_print(fout, "#include <rpc/rpc.h>\n");
 	tell = ftell(fout);
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		emit(def);
 	}
 	if (extend && tell == ftell(fout)) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 	}
 }
-
 
 void
 c_initialize(void)
@@ -500,7 +485,6 @@ c_initialize(void)
 	add_type(1, "u_int");
 	add_type(1, "u_long");
 	add_type(1, "u_short");
-
 }
 
 static const char rpcgen_table_dcl[] = "struct rpcgen_table {\n\
@@ -511,15 +495,14 @@ static const char rpcgen_table_dcl[] = "struct rpcgen_table {\n\
 	unsigned	len_res; \n\
 }; \n";
 
-
 char *
 generate_guard(const char *pathname)
 {
 	const char *filename;
 	char *guard, *tmp, *stopat;
 
-	filename = strrchr(pathname, '/');  /* find last component */
-	filename = ((filename == NULL) ? pathname : filename+1);
+	filename = strrchr(pathname, '/'); /* find last component */
+	filename = ((filename == NULL) ? pathname : filename + 1);
 	guard = xstrdup(filename);
 	stopat = strrchr(guard, '.');
 
@@ -562,9 +545,9 @@ generate_guard(const char *pathname)
  * Compile into an XDR header file
  */
 
-
 static void
-h_output(const char *infile, const char *define, int extend, const char *outfile, int headeronly)
+h_output(const char *infile, const char *define, int extend,
+    const char *outfile, int headeronly)
 {
 	definition *def;
 	const char *outfilename;
@@ -575,16 +558,16 @@ h_output(const char *infile, const char *define, int extend, const char *outfile
 	void *tmp = NULL;
 
 	open_input(infile, define);
-	outfilename =  extend ? extendfile(infile, outfile) : outfile;
+	outfilename = extend ? extendfile(infile, outfile) : outfile;
 	open_output(infile, outfilename);
 	add_warning();
-	if (outfilename || infile){
-		guard = tmp = generate_guard(outfilename ? outfilename: infile);
+	if (outfilename || infile) {
+		guard = tmp = generate_guard(
+		    outfilename ? outfilename : infile);
 	} else
 		guard = "STDIN_";
 
-	f_print(fout, "#ifndef _%s\n#define	_%s\n\n", guard,
-		guard);
+	f_print(fout, "#ifndef _%s\n#define	_%s\n\n", guard, guard);
 
 	f_print(fout, "#include <rpc/rpc.h>\n");
 
@@ -603,7 +586,7 @@ h_output(const char *infile, const char *define, int extend, const char *outfile
 	tell = ftell(fout);
 
 	/* print data definitions */
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		print_datadef(def, headeronly);
 	}
 
@@ -616,26 +599,25 @@ h_output(const char *infile, const char *define, int extend, const char *outfile
 		print_funcdef(l->val, headeronly);
 	}
 	/* Now  print all xdr func declarations */
-	if (xdrfunc_head != NULL){
+	if (xdrfunc_head != NULL) {
 
-		f_print(fout,
-			"\n/* the xdr functions */\n");
+		f_print(fout, "\n/* the xdr functions */\n");
 
-		if (CCflag){
+		if (CCflag) {
 			f_print(fout, "\n#ifdef __cplusplus\n");
 			f_print(fout, "extern \"C\" {\n");
 			f_print(fout, "#endif\n");
 		}
 
 		xdrfuncp = xdrfunc_head;
-		while (xdrfuncp != NULL){
+		while (xdrfuncp != NULL) {
 			print_xdr_func_def(xdrfuncp->name, xdrfuncp->pointerp);
 			xdrfuncp = xdrfuncp->next;
 		}
 	}
 
 	if (extend && tell == ftell(fout)) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 	} else if (tblflag) {
 		f_print(fout, rpcgen_table_dcl);
 	}
@@ -672,8 +654,8 @@ s_output(int argc, const char *argv[], const char *infile, const char *define,
 
 	f_print(fout, "#include <stdio.h>\n");
 	f_print(fout, "#include <stdlib.h> /* getenv, exit */\n");
-	f_print (fout, "#include <rpc/pmap_clnt.h> /* for pmap_unset */\n");
-	f_print (fout, "#include <string.h> /* strcmp */\n");
+	f_print(fout, "#include <rpc/pmap_clnt.h> /* for pmap_unset */\n");
+	f_print(fout, "#include <string.h> /* strcmp */\n");
 	if (tirpcflag)
 		f_print(fout, "#include <rpc/rpc_com.h>\n");
 	if (strcmp(svcclosetime, "-1") == 0)
@@ -690,7 +672,7 @@ s_output(int argc, const char *argv[], const char *infile, const char *define,
 	if (inetdflag || pmflag) {
 		f_print(fout, "#ifdef __cplusplus\n");
 		f_print(fout,
-			"#include <sys/sysent.h> /* getdtablesize, open */\n");
+		    "#include <sys/sysent.h> /* getdtablesize, open */\n");
 		f_print(fout, "#endif /* __cplusplus */\n");
 	}
 	if (tirpcflag) {
@@ -716,19 +698,19 @@ s_output(int argc, const char *argv[], const char *infile, const char *define,
 	f_print(fout, "\n#ifdef DEBUG\n#define	RPC_SVC_FG\n#endif\n");
 	if (timerflag)
 		f_print(fout, "\n#define	_RPCSVC_CLOSEDOWN %s\n",
-			svcclosetime);
-	while ( (def = get_definition()) ) {
+		    svcclosetime);
+	while ((def = get_definition())) {
 		foundprogram |= (def->def_kind == DEF_PROGRAM);
 	}
 	if (extend && !foundprogram) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 		return;
 	}
 	write_most(infile, netflag, nomain);
 	if (!nomain) {
 		if (!do_registers(argc, argv)) {
 			if (outfilename)
-				(void) unlink(outfilename);
+				(void)unlink(outfilename);
 			usage();
 		}
 		write_rest();
@@ -739,7 +721,8 @@ s_output(int argc, const char *argv[], const char *infile, const char *define,
  * generate client side stubs
  */
 static void
-l_output(const char *infile, const char *define, int extend, const char *outfile)
+l_output(const char *infile, const char *define, int extend,
+    const char *outfile)
 {
 	char *include;
 	definition *def;
@@ -750,17 +733,17 @@ l_output(const char *infile, const char *define, int extend, const char *outfile
 	outfilename = extend ? extendfile(infile, outfile) : outfile;
 	open_output(infile, outfilename);
 	add_warning();
-	f_print (fout, "#include <string.h> /* for memset */\n");
+	f_print(fout, "#include <string.h> /* for memset */\n");
 	if (infile && (include = extendfile(infile, ".h"))) {
 		f_print(fout, "#include \"%s\"\n", include);
 		free(include);
 	} else
 		f_print(fout, "#include <rpc/rpc.h>\n");
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		foundprogram |= (def->def_kind == DEF_PROGRAM);
 	}
 	if (extend && !foundprogram) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 		return;
 	}
 	write_stubs();
@@ -770,7 +753,8 @@ l_output(const char *infile, const char *define, int extend, const char *outfile
  * generate the dispatch table
  */
 static void
-t_output(const char *infile, const char *define, int extend, const char *outfile)
+t_output(const char *infile, const char *define, int extend,
+    const char *outfile)
 {
 	definition *def;
 	int foundprogram = 0;
@@ -780,11 +764,11 @@ t_output(const char *infile, const char *define, int extend, const char *outfile
 	outfilename = extend ? extendfile(infile, outfile) : outfile;
 	open_output(infile, outfilename);
 	add_warning();
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		foundprogram |= (def->def_kind == DEF_PROGRAM);
 	}
 	if (extend && !foundprogram) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 		return;
 	}
 	write_tables();
@@ -792,7 +776,8 @@ t_output(const char *infile, const char *define, int extend, const char *outfile
 
 /* sample routine for the server template */
 static void
-svc_output(const char *infile, const char *define, int extend, const char *outfile)
+svc_output(const char *infile, const char *define, int extend,
+    const char *outfile)
 {
 	definition *def;
 	char *include;
@@ -815,17 +800,18 @@ svc_output(const char *infile, const char *define, int extend, const char *outfi
 		f_print(fout, "#include <rpc/rpc.h>\n");
 
 	tell = ftell(fout);
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		write_sample_svc(def);
 	}
 	if (extend && tell == ftell(fout)) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 	}
 }
 
 /* sample main routine for client */
 static void
-clnt_output(const char *infile, const char *define, int extend, const char *outfile)
+clnt_output(const char *infile, const char *define, int extend,
+    const char *outfile)
 {
 	definition *def;
 	char *include;
@@ -851,7 +837,7 @@ clnt_output(const char *infile, const char *define, int extend, const char *outf
 	f_print(fout, "#include <stdio.h>\n");
 	f_print(fout, "#include <stdlib.h>\n");
 	tell = ftell(fout);
-	while ( (def = get_definition()) ) {
+	while ((def = get_definition())) {
 		has_program += write_sample_clnt(def);
 	}
 
@@ -859,12 +845,12 @@ clnt_output(const char *infile, const char *define, int extend, const char *outf
 		write_sample_clnt_main();
 
 	if (extend && tell == ftell(fout)) {
-		(void) unlink(outfilename);
+		(void)unlink(outfilename);
 	}
 }
 
-
-static void mkfile_output(struct commandline *cmd)
+static void
+mkfile_output(struct commandline *cmd)
 {
 	const char *mkfilename, *clientname, *clntname, *xdrname, *hdrname;
 	const char *servername, *svcname, *servprogname, *clntprogname;
@@ -875,28 +861,25 @@ static void mkfile_output(struct commandline *cmd)
 	xdrname = file_name(cmd->infile, "_xdr.c");
 	hdrname = file_name(cmd->infile, ".h");
 
-
-	if (allfiles){
+	if (allfiles) {
 		servername = extendfile(cmd->infile, "_server.c");
 		clientname = extendfile(cmd->infile, "_client.c");
-	}else{
+	} else {
 		servername = " ";
 		clientname = " ";
 	}
 	servprogname = extendfile(cmd->infile, "_server");
 	clntprogname = extendfile(cmd->infile, "_client");
 
-	if (allfiles){
-		mkftemp = xmalloc(strlen("makefile.") +
-		                     strlen(cmd->infile) + 1);
+	if (allfiles) {
+		mkftemp = xmalloc(
+		    strlen("makefile.") + strlen(cmd->infile) + 1);
 		temp = strrchr(cmd->infile, '.');
 		strcpy(mkftemp, "makefile.");
-		(void) strncat(mkftemp, cmd->infile,
-			(temp - cmd->infile));
+		(void)strncat(mkftemp, cmd->infile, (temp - cmd->infile));
 		mkfilename = mkftemp;
 	} else
 		mkfilename = cmd->outfile;
-
 
 	checkfiles(NULL, mkfilename);
 	open_output(NULL, mkfilename);
@@ -906,18 +889,17 @@ static void mkfile_output(struct commandline *cmd)
 
 	f_print(fout, "\n# Parameters \n\n");
 
-	f_print(fout, "CLIENT = %s\nSERVER = %s\n\n",
-		clntprogname, servprogname);
+	f_print(fout, "CLIENT = %s\nSERVER = %s\n\n", clntprogname,
+	    servprogname);
 	f_print(fout, "SOURCES_CLNT.c = \nSOURCES_CLNT.h = \n");
 	f_print(fout, "SOURCES_SVC.c = \nSOURCES_SVC.h = \n");
 	f_print(fout, "SOURCES.x = %s\n\n", cmd->infile);
-	f_print(fout, "TARGETS_SVC.c = %s %s %s \n",
-		svcname, servername, xdrname);
-	f_print(fout, "TARGETS_CLNT.c = %s %s %s \n",
-		clntname, clientname, xdrname);
-	f_print(fout, "TARGETS = %s %s %s %s %s %s\n\n",
-		hdrname, xdrname, clntname,
-		svcname, clientname, servername);
+	f_print(fout, "TARGETS_SVC.c = %s %s %s \n", svcname, servername,
+	    xdrname);
+	f_print(fout, "TARGETS_CLNT.c = %s %s %s \n", clntname, clientname,
+	    xdrname);
+	f_print(fout, "TARGETS = %s %s %s %s %s %s\n\n", hdrname, xdrname,
+	    clntname, svcname, clientname, servername);
 
 	f_print(fout, "OBJECTS_CLNT = $(SOURCES_CLNT.c:%%.c=%%.o) \
 $(TARGETS_CLNT.c:%%.c=%%.o) ");
@@ -925,10 +907,10 @@ $(TARGETS_CLNT.c:%%.c=%%.o) ");
 	f_print(fout, "\nOBJECTS_SVC = $(SOURCES_SVC.c:%%.c=%%.o) \
 $(TARGETS_SVC.c:%%.c=%%.o) ");
 
-
 	f_print(fout, "\n# Compiler flags \n");
 	if (mtflag)
-		f_print(fout, "\nCFLAGS += -D_REENTRANT -D_THEAD_SAFE \nLDLIBS += -pthread\n");
+		f_print(fout,
+		    "\nCFLAGS += -D_REENTRANT -D_THEAD_SAFE \nLDLIBS += -pthread\n");
 
 	f_print(fout, "RPCGENFLAGS = \n");
 
@@ -938,8 +920,12 @@ $(TARGETS_SVC.c:%%.c=%%.o) ");
 	f_print(fout, "$(TARGETS) : $(SOURCES.x) \n");
 	f_print(fout, "\trpcgen $(RPCGENFLAGS) $(SOURCES.x)\n\n");
 	if (allfiles) {
-		f_print(fout, "\trpcgen -Sc $(RPCGENFLAGS) $(SOURCES.x) -o %s\n\n", clientname);
-		f_print(fout, "\trpcgen -Ss $(RPCGENFLAGS) $(SOURCES.x) -o %s\n\n", servername);
+		f_print(fout,
+		    "\trpcgen -Sc $(RPCGENFLAGS) $(SOURCES.x) -o %s\n\n",
+		    clientname);
+		f_print(fout,
+		    "\trpcgen -Ss $(RPCGENFLAGS) $(SOURCES.x) -o %s\n\n",
+		    servername);
 	}
 	f_print(fout, "$(OBJECTS_CLNT) : $(SOURCES_CLNT.c) $(SOURCES_CLNT.h) \
 $(TARGETS_CLNT.c) \n\n");
@@ -955,8 +941,6 @@ $(LDLIBS) \n\n");
 $(OBJECTS_SVC) $(CLIENT) $(SERVER)\n\n");
 }
 
-
-
 /*
  * Perform registrations for service output
  * Return 0 if failed; 1 otherwise.
@@ -970,7 +954,7 @@ do_registers(int argc, const char *argv[])
 		for (i = 1; i < argc; i++) {
 			if (streq(argv[i], "-s")) {
 				if (!check_nettype(argv[i + 1],
-						    valid_i_nettypes))
+					valid_i_nettypes))
 					return (0);
 				write_inetd_register(argv[i + 1]);
 				i++;
@@ -980,7 +964,7 @@ do_registers(int argc, const char *argv[])
 		for (i = 1; i < argc; i++)
 			if (streq(argv[i], "-s")) {
 				if (!check_nettype(argv[i + 1],
-						    valid_ti_nettypes))
+					valid_ti_nettypes))
 					return (0);
 				write_nettype_register(argv[i + 1]);
 				i++;
@@ -1059,17 +1043,17 @@ checkfiles(const char *infile, const char *outfile)
 
 	struct stat buf;
 
-	if (infile)		/* infile ! = NULL */
-		if (stat(infile, &buf) < 0)
-		{
+	if (infile) /* infile ! = NULL */
+		if (stat(infile, &buf) < 0) {
 			warn("%s", infile);
 			crash();
 		}
 	if (outfile) {
 		if (stat(outfile, &buf) < 0)
-			return;	/* file does not exist */
+			return; /* file does not exist */
 		else {
-			warnx("file '%s' already exists and may be overwritten", outfile);
+			warnx("file '%s' already exists and may be overwritten",
+			    outfile);
 			crash();
 		}
 	}
@@ -1084,7 +1068,7 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 	int i;
 	int j;
 	char c, ch;
-	char flag[(1 << 8 * sizeof (char))];
+	char flag[(1 << 8 * sizeof(char))];
 	int nflags;
 
 	cmd->infile = cmd->outfile = NULL;
@@ -1107,7 +1091,8 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 	for (i = 1; i < argc; i++) {
 		if (argv[i][0] != '-') {
 			if (cmd->infile) {
-				warnx("cannot specify more than one input file");
+				warnx(
+				    "cannot specify more than one input file");
 				return (0);
 			}
 			cmd->infile = argv[i];
@@ -1150,8 +1135,8 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 					}
 					flag[(int)ch] = 1;
 					break;
-				case 'C': /* ANSI C syntax */
-					ch = argv[i][j+1]; /* get next char */
+				case 'C':		     /* ANSI C syntax */
+					ch = argv[i][j + 1]; /* get next char */
 
 					if (ch != 'C')
 						break;
@@ -1190,7 +1175,7 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 				case 'M':
 					mtflag = 1;
 					break;
-				case 'i' :
+				case 'i':
 					if (++i == argc) {
 						return (0);
 					}
@@ -1218,31 +1203,29 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 					if (argv[i][j - 1] != '-') {
 						return (0);
 					}
-					(void) addarg(argv[i]);
+					(void)addarg(argv[i]);
 					goto nextarg;
 				case 'Y':
 					if (++i == argc) {
 						return (0);
 					}
 					if (strlcpy(pathbuf, argv[i],
-					    sizeof(pathbuf)) >= sizeof(pathbuf)
-					    || strlcat(pathbuf, "/cpp",
-					    sizeof(pathbuf)) >=
-					    sizeof(pathbuf)) {
+						sizeof(pathbuf)) >=
+						sizeof(pathbuf) ||
+					    strlcat(pathbuf, "/cpp",
+						sizeof(pathbuf)) >=
+						sizeof(pathbuf)) {
 						warnx("argument too long");
 						return (0);
 					}
 					CPP = pathbuf;
 					goto nextarg;
 
-
-
 				default:
 					return (0);
 				}
 			}
-		nextarg:
-			;
+		nextarg:;
 		}
 	}
 
@@ -1265,8 +1248,8 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 			warnx("cannot use netid flag with inetd flag");
 			return (0);
 		}
-	} else {		/* 4.1 mode */
-		pmflag = 0;	/* set pmflag only in tirpcmode */
+	} else {		  /* 4.1 mode */
+		pmflag = 0;	  /* set pmflag only in tirpcmode */
 		if (cmd->nflag) { /* netid needs TIRPC */
 			warnx("cannot use netid flag without TIRPC");
 			return (0);
@@ -1280,8 +1263,8 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 
 	/* check no conflicts with file generation flags */
 	nflags = cmd->cflag + cmd->hflag + cmd->lflag + cmd->mflag +
-		cmd->sflag + cmd->nflag + cmd->tflag + cmd->Ssflag +
-			cmd->Scflag + cmd->makefileflag;
+	    cmd->sflag + cmd->nflag + cmd->tflag + cmd->Ssflag + cmd->Scflag +
+	    cmd->makefileflag;
 
 	if (nflags == 0) {
 		if (cmd->outfile != NULL || cmd->infile == NULL) {
@@ -1291,7 +1274,8 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 	    (cmd->Ssflag || cmd->Scflag || cmd->makefileflag)) {
 		warnx("\"infile\" is required for template generation flags");
 		return (0);
-	} if (nflags > 1) {
+	}
+	if (nflags > 1) {
 		warnx("cannot have more than one file generation flag");
 		return (0);
 	}
@@ -1301,14 +1285,13 @@ parseargs(int argc, const char *argv[], struct commandline *cmd)
 static void
 usage(void)
 {
-	f_print(stderr, "%s\n%s\n%s\n%s\n%s\n",
-		"usage: rpcgen infile",
-		"       rpcgen [-abCLNTM] [-Dname[=value]] [-i size]\
+	f_print(stderr, "%s\n%s\n%s\n%s\n%s\n", "usage: rpcgen infile",
+	    "       rpcgen [-abCLNTM] [-Dname[=value]] [-i size]\
 [-I -P [-K seconds]] [-Y path] infile",
-		"       rpcgen [-c | -h | -l | -m | -t | -Sc | -Ss | -Sm]\
+	    "       rpcgen [-c | -h | -l | -m | -t | -Sc | -Ss | -Sm]\
 [-o outfile] [infile]",
-		"       rpcgen [-s nettype]* [-o outfile] [infile]",
-		"       rpcgen [-n netid]* [-o outfile] [infile]");
+	    "       rpcgen [-s nettype]* [-o outfile] [infile]",
+	    "       rpcgen [-n netid]* [-o outfile] [infile]");
 	options_usage();
 	exit(1);
 }
@@ -1338,7 +1321,8 @@ named netid\n");
 	f_print(stderr, "-N\t\tsupports multiple arguments and\
 call-by-value\n");
 	f_print(stderr, "-o outfile\tname of the output file\n");
-	f_print(stderr, "-P\t\tgenerate code for port monitoring support in server\n");
+	f_print(stderr,
+	    "-P\t\tgenerate code for port monitoring support in server\n");
 	f_print(stderr, "-s nettype\tgenerate server code that supports named\
 nettype\n");
 	f_print(stderr, "-Sc\t\tgenerate sample client code that uses remote\

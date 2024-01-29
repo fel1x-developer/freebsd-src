@@ -34,10 +34,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 int
-mbtowc_l(wchar_t * __restrict pwc, const char * __restrict s, size_t n, locale_t locale)
+mbtowc_l(wchar_t *__restrict pwc, const char *__restrict s, size_t n,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	size_t rval;
@@ -61,7 +63,7 @@ mbtowc_l(wchar_t * __restrict pwc, const char * __restrict s, size_t n, locale_t
 	}
 }
 int
-mbtowc(wchar_t * __restrict pwc, const char * __restrict s, size_t n)
+mbtowc(wchar_t *__restrict pwc, const char *__restrict s, size_t n)
 {
 	return mbtowc_l(pwc, s, n, __get_locale());
 }

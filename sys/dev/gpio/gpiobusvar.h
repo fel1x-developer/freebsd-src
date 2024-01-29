@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef	__GPIOBUS_H__
-#define	__GPIOBUS_H__
+#ifndef __GPIOBUS_H__
+#define __GPIOBUS_H__
 
 #include "opt_platform.h"
 
@@ -40,91 +40,90 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#ifdef	INTRNG
+#ifdef INTRNG
 #include <sys/intr.h>
 #endif
 
 #include "gpio_if.h"
 
 #ifdef FDT
-#define	GPIOBUS_IVAR(d) (struct gpiobus_ivar *)				\
-	&((struct ofw_gpiobus_devinfo *)device_get_ivars(d))->opd_dinfo
+#define GPIOBUS_IVAR(d)                                        \
+	(struct gpiobus_ivar *)&(                              \
+	    (struct ofw_gpiobus_devinfo *)device_get_ivars(d)) \
+	    ->opd_dinfo
 #else
-#define	GPIOBUS_IVAR(d) (struct gpiobus_ivar *) device_get_ivars(d)
+#define GPIOBUS_IVAR(d) (struct gpiobus_ivar *)device_get_ivars(d)
 #endif
-#define	GPIOBUS_SOFTC(d) (struct gpiobus_softc *) device_get_softc(d)
-#define	GPIOBUS_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
-#define	GPIOBUS_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
-#define	GPIOBUS_LOCK_INIT(_sc) mtx_init(&_sc->sc_mtx,			\
-	    device_get_nameunit(_sc->sc_dev), "gpiobus", MTX_DEF)
-#define	GPIOBUS_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx)
-#define	GPIOBUS_ASSERT_LOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_OWNED)
-#define	GPIOBUS_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_NOTOWNED)
+#define GPIOBUS_SOFTC(d) (struct gpiobus_softc *)device_get_softc(d)
+#define GPIOBUS_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define GPIOBUS_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define GPIOBUS_LOCK_INIT(_sc)                                              \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->sc_dev), "gpiobus", \
+	    MTX_DEF)
+#define GPIOBUS_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx)
+#define GPIOBUS_ASSERT_LOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_OWNED)
+#define GPIOBUS_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_NOTOWNED)
 
-#define	GPIOBUS_WAIT		1
-#define	GPIOBUS_DONTWAIT	2
+#define GPIOBUS_WAIT 1
+#define GPIOBUS_DONTWAIT 2
 
 /* Use default interrupt mode -  for gpio_alloc_intr_resource */
-#define GPIO_INTR_CONFORM	GPIO_INTR_NONE
+#define GPIO_INTR_CONFORM GPIO_INTR_NONE
 
-struct gpiobus_pin_data
-{
-	int		mapped;		/* pin is mapped/reserved. */
-	char		*name;		/* pin name. */
+struct gpiobus_pin_data {
+	int mapped; /* pin is mapped/reserved. */
+	char *name; /* pin name. */
 };
 
 #ifdef INTRNG
 struct intr_map_data_gpio {
-	struct intr_map_data	hdr;
-	u_int			gpio_pin_num;
-	u_int			gpio_pin_flags;
-	u_int		 	gpio_intr_mode;
+	struct intr_map_data hdr;
+	u_int gpio_pin_num;
+	u_int gpio_pin_flags;
+	u_int gpio_intr_mode;
 };
 #endif
 
-struct gpiobus_softc
-{
-	struct mtx	sc_mtx;		/* bus mutex */
-	struct rman	sc_intr_rman;	/* isr resources */
-	device_t	sc_busdev;	/* bus device */
-	device_t	sc_owner;	/* bus owner */
-	device_t	sc_dev;		/* driver device */
-	int		sc_npins;	/* total pins on bus */
-	struct gpiobus_pin_data	*sc_pins; /* pin data */
+struct gpiobus_softc {
+	struct mtx sc_mtx;		  /* bus mutex */
+	struct rman sc_intr_rman;	  /* isr resources */
+	device_t sc_busdev;		  /* bus device */
+	device_t sc_owner;		  /* bus owner */
+	device_t sc_dev;		  /* driver device */
+	int sc_npins;			  /* total pins on bus */
+	struct gpiobus_pin_data *sc_pins; /* pin data */
 };
 
-struct gpiobus_pin
-{
-	device_t	dev;	/* gpio device */
-	uint32_t	flags;	/* pin flags */
-	uint32_t	pin;	/* pin number */
+struct gpiobus_pin {
+	device_t dev;	/* gpio device */
+	uint32_t flags; /* pin flags */
+	uint32_t pin;	/* pin number */
 };
 typedef struct gpiobus_pin *gpio_pin_t;
 
-struct gpiobus_ivar
-{
-	struct resource_list	rl;	/* isr resource list */
-	uint32_t	npins;	/* pins total */
-	uint32_t	*pins;	/* pins map */
+struct gpiobus_ivar {
+	struct resource_list rl; /* isr resource list */
+	uint32_t npins;		 /* pins total */
+	uint32_t *pins;		 /* pins map */
 };
 
 enum gpiobus_ivars {
-	GPIOBUS_IVAR_NPINS	= 10500,
+	GPIOBUS_IVAR_NPINS = 10500,
 	GPIOBUS_IVAR_PINS,
 };
 
-#define GPIOBUS_ACCESSOR(var, ivar, type)                                 \
-        __BUS_ACCESSOR(gpiobus, var, GPIOBUS, ivar, type)
+#define GPIOBUS_ACCESSOR(var, ivar, type) \
+	__BUS_ACCESSOR(gpiobus, var, GPIOBUS, ivar, type)
 
-GPIOBUS_ACCESSOR(npins,		NPINS,		uint32_t)
-GPIOBUS_ACCESSOR(pins,		PINS,		const uint32_t *)
+GPIOBUS_ACCESSOR(npins, NPINS, uint32_t)
+GPIOBUS_ACCESSOR(pins, PINS, const uint32_t *)
 
 #undef GPIOBUS_ACCESSOR
 
 #ifdef FDT
 struct ofw_gpiobus_devinfo {
-	struct gpiobus_ivar	opd_dinfo;
-	struct ofw_bus_devinfo	opd_obdinfo;
+	struct gpiobus_ivar opd_dinfo;
+	struct ofw_bus_devinfo opd_obdinfo;
 };
 
 static __inline int
@@ -140,21 +139,23 @@ void ofw_gpiobus_register_provider(device_t);
 void ofw_gpiobus_unregister_provider(device_t);
 
 /* Acquire a pin by parsing FDT data. */
-int gpio_pin_get_by_ofw_name(device_t consumer, phandle_t node,
-    char *name, gpio_pin_t *gpio);
-int gpio_pin_get_by_ofw_idx(device_t consumer, phandle_t node,
+int gpio_pin_get_by_ofw_name(device_t consumer, phandle_t node, char *name,
+    gpio_pin_t *gpio);
+int gpio_pin_get_by_ofw_idx(device_t consumer, phandle_t node, int idx,
+    gpio_pin_t *gpio);
+int gpio_pin_get_by_ofw_property(device_t consumer, phandle_t node, char *name,
+    gpio_pin_t *gpio);
+int gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t node, char *name,
     int idx, gpio_pin_t *gpio);
-int gpio_pin_get_by_ofw_property(device_t consumer, phandle_t node,
-    char *name, gpio_pin_t *gpio);
-int gpio_pin_get_by_ofw_propidx(device_t consumer, phandle_t node,
-    char *name, int idx, gpio_pin_t *gpio);
 #endif /* FDT */
 
 /* Acquire a pin by bus and pin number. */
-int gpio_pin_get_by_bus_pinnum(device_t _bus, uint32_t _pinnum, gpio_pin_t *_gp);
+int gpio_pin_get_by_bus_pinnum(device_t _bus, uint32_t _pinnum,
+    gpio_pin_t *_gp);
 
 /* Acquire a pin by child and index (used by direct children of gpiobus). */
-int gpio_pin_get_by_child_index(device_t _child, uint32_t _idx, gpio_pin_t *_gp);
+int gpio_pin_get_by_child_index(device_t _child, uint32_t _idx,
+    gpio_pin_t *_gp);
 
 /* Release a pin acquired via any gpio_pin_get_xxx() function. */
 void gpio_pin_release(gpio_pin_t gpio);
@@ -182,4 +183,4 @@ int gpiobus_release_pin(device_t, uint32_t);
 
 extern driver_t gpiobus_driver;
 
-#endif	/* __GPIOBUS_H__ */
+#endif /* __GPIOBUS_H__ */

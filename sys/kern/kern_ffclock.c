@@ -29,10 +29,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ffclock.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -41,9 +42,8 @@
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/sbuf.h>
-#include <sys/sysproto.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+#include <sys/sysproto.h>
 #include <sys/timeffc.h>
 
 #ifdef FFCLOCK
@@ -84,7 +84,8 @@ ffclock_abstime(ffcounter *ffcount, struct bintime *bt,
 	/* Current ffclock estimate, use update_ffcount as generation number. */
 	do {
 		update_ffcount = ffclock_estimate.update_ffcount;
-		bcopy(&ffclock_estimate, &cest, sizeof(struct ffclock_estimate));
+		bcopy(&ffclock_estimate, &cest,
+		    sizeof(struct ffclock_estimate));
 	} while (update_ffcount != ffclock_estimate.update_ffcount);
 
 	/*
@@ -108,11 +109,11 @@ ffclock_abstime(ffcounter *ffcount, struct bintime *bt,
 		ffdelta_error = ffc - cest.update_ffcount;
 		ffclock_convert_diff(ffdelta_error, error_bound);
 		/* 18446744073709 = int(2^64/1e12), err_bound_rate in [ps/s] */
-		bintime_mul(error_bound, cest.errb_rate *
-		    (uint64_t)18446744073709LL);
+		bintime_mul(error_bound,
+		    cest.errb_rate * (uint64_t)18446744073709LL);
 		/* 18446744073 = int(2^64 / 1e9), since err_abs in [ns] */
-		bintime_addx(error_bound, cest.errb_abs *
-		    (uint64_t)18446744073LL);
+		bintime_addx(error_bound,
+		    cest.errb_abs * (uint64_t)18446744073LL);
 	}
 
 	if (ffcount)
@@ -157,9 +158,9 @@ SYSCTL_NODE(_kern, OID_AUTO, sysclock, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
 SYSCTL_NODE(_kern_sysclock, OID_AUTO, ffclock, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "Feed-forward clock configuration");
 
-static char *sysclocks[] = {"feedback", "feed-forward"};
-#define	MAX_SYSCLOCK_NAME_LEN 16
-#define	NUM_SYSCLOCKS nitems(sysclocks)
+static char *sysclocks[] = { "feedback", "feed-forward" };
+#define MAX_SYSCLOCK_NAME_LEN 16
+#define NUM_SYSCLOCKS nitems(sysclocks)
 
 static int ffclock_version = 2;
 SYSCTL_INT(_kern_sysclock_ffclock, OID_AUTO, version, CTLFLAG_RD,
@@ -190,8 +191,7 @@ sysctl_kern_sysclock_available(SYSCTL_HANDLER_ARGS)
 
 SYSCTL_PROC(_kern_sysclock, OID_AUTO, available,
     CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT, 0, 0,
-    sysctl_kern_sysclock_available, "A",
-    "List of available system clocks");
+    sysctl_kern_sysclock_available, "A", "List of available system clocks");
 
 /*
  * Return the name of the active system clock if read, or attempt to change
@@ -218,7 +218,7 @@ sysctl_kern_sysclock_active(SYSCTL_HANDLER_ARGS)
 	error = EINVAL;
 	for (clk = 0; clk < NUM_SYSCLOCKS; clk++) {
 		if (strncmp(newclock, sysclocks[clk],
-		    MAX_SYSCLOCK_NAME_LEN - 1)) {
+			MAX_SYSCLOCK_NAME_LEN - 1)) {
 			continue;
 		}
 		sysclock_active = clk;
@@ -399,12 +399,12 @@ sys_ffclock_getcounter(struct thread *td, struct ffclock_getcounter_args *uap)
 }
 
 /*
- * System call allowing the synchronisation daemon to push new feed-forward clock
- * estimates to the kernel. Acquire ffclock_mtx to prevent concurrent updates
- * and ensure data consistency.
- * NOTE: ffclock_updated signals the fftimehands that new estimates are
- * available. The updated estimates are picked up by the fftimehands on next
- * tick, which could take as long as 1/hz seconds (if ticks are not missed).
+ * System call allowing the synchronisation daemon to push new feed-forward
+ * clock estimates to the kernel. Acquire ffclock_mtx to prevent concurrent
+ * updates and ensure data consistency. NOTE: ffclock_updated signals the
+ * fftimehands that new estimates are available. The updated estimates are
+ * picked up by the fftimehands on next tick, which could take as long as 1/hz
+ * seconds (if ticks are not missed).
  */
 #ifndef _SYS_SYSPROTO_H_
 struct ffclock_setestimate_args {
@@ -422,8 +422,8 @@ sys_ffclock_setestimate(struct thread *td, struct ffclock_setestimate_args *uap)
 	if ((error = priv_check(td, PRIV_CLOCK_SETTIME)) != 0)
 		return (error);
 
-	if ((error = copyin(uap->cest, &cest, sizeof(struct ffclock_estimate)))
-	    != 0)
+	if ((error = copyin(uap->cest, &cest,
+		 sizeof(struct ffclock_estimate))) != 0)
 		return (error);
 
 	mtx_lock(&ffclock_mtx);

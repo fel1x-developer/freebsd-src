@@ -29,6 +29,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 #include <dev/drm2/drm_global.h>
 
@@ -42,7 +43,8 @@ struct drm_global_item {
 
 static struct drm_global_item glob[DRM_GLOBAL_NUM];
 
-void drm_global_init(void)
+void
+drm_global_init(void)
 {
 	int i;
 
@@ -54,7 +56,8 @@ void drm_global_init(void)
 	}
 }
 
-void drm_global_release(void)
+void
+drm_global_release(void)
 {
 	int i;
 	for (i = 0; i < DRM_GLOBAL_NUM; ++i) {
@@ -65,7 +68,8 @@ void drm_global_release(void)
 	}
 }
 
-int drm_global_item_ref(struct drm_global_reference *ref)
+int
+drm_global_item_ref(struct drm_global_reference *ref)
 {
 	int ret;
 	struct drm_global_item *item = &glob[ref->global_type];
@@ -83,7 +87,6 @@ int drm_global_item_ref(struct drm_global_reference *ref)
 		ret = ref->init(ref);
 		if (unlikely(ret != 0))
 			goto out_err;
-
 	}
 	++item->refcount;
 	ref->object = item->object;
@@ -96,7 +99,8 @@ out_err:
 }
 EXPORT_SYMBOL(drm_global_item_ref);
 
-void drm_global_item_unref(struct drm_global_reference *ref)
+void
+drm_global_item_unref(struct drm_global_reference *ref)
 {
 	struct drm_global_item *item = &glob[ref->global_type];
 

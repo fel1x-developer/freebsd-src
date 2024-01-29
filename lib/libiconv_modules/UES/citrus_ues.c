@@ -33,44 +33,44 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_bcs.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_ues.h"
 
 typedef struct {
-	size_t	 mb_cur_max;
-	int	 mode;
-#define MODE_C99	1
+	size_t mb_cur_max;
+	int mode;
+#define MODE_C99 1
 } _UESEncodingInfo;
 
 typedef struct {
-	int	 chlen;
-	char	 ch[12];
+	int chlen;
+	char ch[12];
 } _UESState;
 
-#define _CEI_TO_EI(_cei_)               (&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)    (_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_UES_##m
-#define _ENCODING_INFO			_UESEncodingInfo
-#define _ENCODING_STATE			_UESState
-#define _ENCODING_MB_CUR_MAX(_ei_)	(_ei_)->mb_cur_max
-#define _ENCODING_IS_STATE_DEPENDENT		0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_UES_##m
+#define _ENCODING_INFO _UESEncodingInfo
+#define _ENCODING_STATE _UESState
+#define _ENCODING_MB_CUR_MAX(_ei_) (_ei_)->mb_cur_max
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline void
 /*ARGSUSED*/
-_citrus_UES_init_state(_UESEncodingInfo * __restrict ei __unused,
-    _UESState * __restrict psenc)
+_citrus_UES_init_state(_UESEncodingInfo *__restrict ei __unused,
+    _UESState *__restrict psenc)
 {
 
 	psenc->chlen = 0;
@@ -109,15 +109,15 @@ to_int(int ch)
 	return (-1);
 }
 
-#define ESCAPE		'\\'
-#define UCS2_ESC	'u'
-#define UCS4_ESC	'U'
+#define ESCAPE '\\'
+#define UCS2_ESC 'u'
+#define UCS4_ESC 'U'
 
-#define UCS2_BIT	16
-#define UCS4_BIT	32
-#define BMP_MAX		UINT32_C(0xFFFF)
-#define UCS2_MAX	UINT32_C(0x10FFFF)
-#define UCS4_MAX	UINT32_C(0x7FFFFFFF)
+#define UCS2_BIT 16
+#define UCS4_BIT 32
+#define BMP_MAX UINT32_C(0xFFFF)
+#define UCS2_MAX UINT32_C(0x10FFFF)
+#define UCS4_MAX UINT32_C(0x7FFFFFFF)
 
 static const char *xdig = "0123456789abcdef";
 
@@ -168,7 +168,7 @@ surrogate_to_ucs(wchar_t hi, wchar_t lo)
 }
 
 static __inline void
-ucs_to_surrogate(wchar_t wc, wchar_t * __restrict hi, wchar_t * __restrict lo)
+ucs_to_surrogate(wchar_t wc, wchar_t *__restrict hi, wchar_t *__restrict lo)
 {
 
 	wc -= 0x10000;
@@ -180,14 +180,13 @@ static __inline bool
 is_basic(wchar_t wc)
 {
 
-	return ((uint32_t)wc <= 0x9F && wc != 0x24 && wc != 0x40 &&
-	    wc != 0x60);
+	return ((uint32_t)wc <= 0x9F && wc != 0x24 && wc != 0x40 && wc != 0x60);
 }
 
 static int
-_citrus_UES_mbrtowc_priv(_UESEncodingInfo * __restrict ei,
-    wchar_t * __restrict pwc, char ** __restrict s, size_t n,
-    _UESState * __restrict psenc, size_t * __restrict nresult)
+_citrus_UES_mbrtowc_priv(_UESEncodingInfo *__restrict ei,
+    wchar_t *__restrict pwc, char **__restrict s, size_t n,
+    _UESState *__restrict psenc, size_t *__restrict nresult)
 {
 	char *s0;
 	int ch, head, num, tail;
@@ -236,7 +235,7 @@ surrogate:
 	for (; head < tail; ++head) {
 		if (psenc->chlen == head) {
 			if (n-- < 1) {
-restart:
+			restart:
 				*s = s0;
 				*nresult = (size_t)-2;
 				return (0);
@@ -296,9 +295,9 @@ done:
 }
 
 static int
-_citrus_UES_wcrtomb_priv(_UESEncodingInfo * __restrict ei,
-    char * __restrict s, size_t n, wchar_t wc,
-    _UESState * __restrict psenc, size_t * __restrict nresult)
+_citrus_UES_wcrtomb_priv(_UESEncodingInfo *__restrict ei, char *__restrict s,
+    size_t n, wchar_t wc, _UESState *__restrict psenc,
+    size_t *__restrict nresult)
 {
 	wchar_t hi, lo;
 
@@ -340,8 +339,8 @@ e2big:
 
 /*ARGSUSED*/
 static int
-_citrus_UES_stdenc_wctocs(_UESEncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_UES_stdenc_wctocs(_UESEncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = 0;
@@ -352,8 +351,8 @@ _citrus_UES_stdenc_wctocs(_UESEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UES_stdenc_cstowc(_UESEncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_UES_stdenc_cstowc(_UESEncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid != 0)
@@ -365,12 +364,13 @@ _citrus_UES_stdenc_cstowc(_UESEncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UES_stdenc_get_state_desc_generic(_UESEncodingInfo * __restrict ei __unused,
-    _UESState * __restrict psenc, int * __restrict rstate)
+_citrus_UES_stdenc_get_state_desc_generic(
+    _UESEncodingInfo *__restrict ei __unused, _UESState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
@@ -384,8 +384,8 @@ _citrus_UES_encoding_module_uninit(_UESEncodingInfo *ei __unused)
 
 static int
 /*ARGSUSED*/
-_citrus_UES_encoding_module_init(_UESEncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_UES_encoding_module_init(_UESEncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 	const char *p;
 

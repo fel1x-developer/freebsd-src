@@ -28,12 +28,13 @@
 #include <sys/socket.h>
 #include <sys/ucred.h>
 #include <sys/un.h>
+
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include "uc_common.h"
 #include "t_generic.h"
 #include "t_peercred.h"
+#include "uc_common.h"
 
 static int
 check_xucred(const struct xucred *xucred, socklen_t len)
@@ -41,8 +42,8 @@ check_xucred(const struct xucred *xucred, socklen_t len)
 	int rc;
 
 	if (len != sizeof(*xucred)) {
-		uc_logmsgx("option value size %zu != %zu",
-		    (size_t)len, sizeof(*xucred));
+		uc_logmsgx("option value size %zu != %zu", (size_t)len,
+		    sizeof(*xucred));
 		return (-1);
 	}
 
@@ -53,8 +54,8 @@ check_xucred(const struct xucred *xucred, socklen_t len)
 	rc = 0;
 
 	if (xucred->cr_version != XUCRED_VERSION) {
-		uc_logmsgx("xucred.cr_version %u != %d",
-		    xucred->cr_version, XUCRED_VERSION);
+		uc_logmsgx("xucred.cr_version %u != %d", xucred->cr_version,
+		    XUCRED_VERSION);
 		rc = -1;
 	}
 	if (xucred->cr_uid != uc_cfg.proc_cred.euid) {
@@ -77,11 +78,12 @@ check_xucred(const struct xucred *xucred, socklen_t len)
 	}
 	if (xucred->cr_groups[0] != uc_cfg.proc_cred.egid) {
 		uc_logmsgx("xucred.cr_groups[0] %lu != %lu (EGID)",
-		    (u_long)xucred->cr_groups[0], (u_long)uc_cfg.proc_cred.egid);
+		    (u_long)xucred->cr_groups[0],
+		    (u_long)uc_cfg.proc_cred.egid);
 		rc = -1;
 	}
 	if (uc_check_groups("xucred.cr_groups", xucred->cr_groups,
-	    "xucred.cr_ngroups", xucred->cr_ngroups, false) < 0)
+		"xucred.cr_ngroups", xucred->cr_ngroups, false) < 0)
 		rc = -1;
 	return (rc);
 }

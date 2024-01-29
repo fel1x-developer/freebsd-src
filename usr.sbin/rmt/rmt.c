@@ -33,8 +33,9 @@
  * rmt
  */
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <sys/mtio.h>
+#include <sys/socket.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -42,25 +43,31 @@
 #include <string.h>
 #include <unistd.h>
 
-static int	tape = -1;
+static int tape = -1;
 
-static char	*record;
-static int	maxrecsize = -1;
+static char *record;
+static int maxrecsize = -1;
 
-#define	SSIZE	64
-static char	device[SSIZE];
-static char	count[SSIZE], mode[SSIZE], pos[SSIZE], op[SSIZE];
+#define SSIZE 64
+static char device[SSIZE];
+static char count[SSIZE], mode[SSIZE], pos[SSIZE], op[SSIZE];
 
-static char	resp[BUFSIZ];
+static char resp[BUFSIZ];
 
-static FILE	*debug;
-#define	DEBUG(f)	if (debug) fprintf(debug, f)
-#define	DEBUG1(f,a)	if (debug) fprintf(debug, f, a)
-#define	DEBUG2(f,a1,a2)	if (debug) fprintf(debug, f, a1, a2)
+static FILE *debug;
+#define DEBUG(f)   \
+	if (debug) \
+	fprintf(debug, f)
+#define DEBUG1(f, a) \
+	if (debug)   \
+	fprintf(debug, f, a)
+#define DEBUG2(f, a1, a2) \
+	if (debug)        \
+	fprintf(debug, f, a1, a2)
 
-static char	*checkbuf(char *, int);
-static void	 error(int);
-static void	 getstring(char *);
+static char *checkbuf(char *, int);
+static void error(int);
+static void getstring(char *);
 
 int
 main(int argc, char **argv)
@@ -87,7 +94,7 @@ top:
 
 	case 'O':
 		if (tape >= 0)
-			(void) close(tape);
+			(void)close(tape);
 		getstring(device);
 		getstring(mode);
 		DEBUG2("rmtd: O %s %s\n", device, mode);
@@ -103,7 +110,7 @@ top:
 
 	case 'C':
 		DEBUG("rmtd: C\n");
-		getstring(device);		/* discard */
+		getstring(device); /* discard */
 		if (close(tape) < 0)
 			goto ioerror;
 		tape = -1;
@@ -152,34 +159,36 @@ top:
 		getstring(op);
 		getstring(count);
 		DEBUG2("rmtd: I %s %s\n", op, count);
-		{ struct mtop mtop;
-		  mtop.mt_op = atoi(op);
-		  mtop.mt_count = atoi(count);
-		  if (ioctl(tape, MTIOCTOP, (char *)&mtop) < 0)
-			goto ioerror;
-		  rval = mtop.mt_count;
+		{
+			struct mtop mtop;
+			mtop.mt_op = atoi(op);
+			mtop.mt_count = atoi(count);
+			if (ioctl(tape, MTIOCTOP, (char *)&mtop) < 0)
+				goto ioerror;
+			rval = mtop.mt_count;
 		}
 		goto respond;
 
-	case 'S':		/* status */
+	case 'S': /* status */
 		DEBUG("rmtd: S\n");
-		{ struct mtget mtget;
-		  if (ioctl(tape, MTIOCGET, (char *)&mtget) < 0)
-			goto ioerror;
-		  rval = sizeof (mtget);
-		  if (rval > 24)	/* original mtget structure size */
-			rval = 24;
-		  (void)sprintf(resp, "A%d\n", rval);
-		  (void)write(STDOUT_FILENO, resp, strlen(resp));
-		  (void)write(STDOUT_FILENO, (char *)&mtget, rval);
-		  goto top;
+		{
+			struct mtget mtget;
+			if (ioctl(tape, MTIOCGET, (char *)&mtget) < 0)
+				goto ioerror;
+			rval = sizeof(mtget);
+			if (rval > 24) /* original mtget structure size */
+				rval = 24;
+			(void)sprintf(resp, "A%d\n", rval);
+			(void)write(STDOUT_FILENO, resp, strlen(resp));
+			(void)write(STDOUT_FILENO, (char *)&mtget, rval);
+			goto top;
 		}
 
-        case 'V':               /* version */
-                getstring(op);
-                DEBUG1("rmtd: V %s\n", op);
-                rval = 2;
-                goto respond;
+	case 'V': /* version */
+		getstring(op);
+		DEBUG1("rmtd: V %s\n", op);
+		rval = 2;
+		goto respond;
 
 	default:
 		DEBUG1("rmtd: garbage command %c\n", c);
@@ -202,7 +211,7 @@ getstring(char *bp)
 	char *cp = bp;
 
 	for (i = 0; i < SSIZE; i++) {
-		if (read(STDIN_FILENO, cp+i, 1) != 1)
+		if (read(STDIN_FILENO, cp + i, 1) != 1)
 			exit(0);
 		if (cp[i] == '\n')
 			break;
@@ -225,7 +234,7 @@ checkbuf(char *rec, int size)
 	}
 	maxrecsize = size;
 	while (size > 1024 &&
-	       setsockopt(0, SOL_SOCKET, SO_RCVBUF, &size, sizeof (size)) < 0)
+	    setsockopt(0, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size)) < 0)
 		size -= 1024;
 	return (rec);
 }

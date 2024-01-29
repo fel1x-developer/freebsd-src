@@ -79,15 +79,13 @@ adf_pfvf_ctrs_prepare_report(char *rep, struct pfvf_stats *pfvf_counters)
 			value = 0;
 		}
 		if (value)
-			ptr += snprintf(ptr,
-					(MAX_REPORT_SIZE - (ptr - rep)),
-					"%s %u\n",
-					string,
-					value);
+			ptr += snprintf(ptr, (MAX_REPORT_SIZE - (ptr - rep)),
+			    "%s %u\n", string, value);
 	}
 }
 
-static int adf_pfvf_ctrs_show(SYSCTL_HANDLER_ARGS)
+static int
+adf_pfvf_ctrs_show(SYSCTL_HANDLER_ARGS)
 {
 	struct pfvf_stats *pfvf_counters = arg1;
 	char report[MAX_REPORT_SIZE];
@@ -118,15 +116,10 @@ adf_pfvf_ctrs_dbg_add(struct adf_accel_dev *accel_dev)
 	qat_pfvf_ctrs_sysctl_tree = device_get_sysctl_tree(dev);
 
 	oid_pfvf = SYSCTL_ADD_PROC(qat_sysctl_ctx,
-				   SYSCTL_CHILDREN(qat_pfvf_ctrs_sysctl_tree),
-				   OID_AUTO,
-				   "pfvf_counters",
-				   CTLTYPE_STRING | CTLFLAG_RD,
-				   &accel_dev->u1.vf.pfvf_counters,
-				   0,
-				   adf_pfvf_ctrs_show,
-				   "A",
-				   "QAT PFVF counters");
+	    SYSCTL_CHILDREN(qat_pfvf_ctrs_sysctl_tree), OID_AUTO,
+	    "pfvf_counters", CTLTYPE_STRING | CTLFLAG_RD,
+	    &accel_dev->u1.vf.pfvf_counters, 0, adf_pfvf_ctrs_show, "A",
+	    "QAT PFVF counters");
 
 	if (!oid_pfvf) {
 		device_printf(dev, "Failure creating PFVF counters sysctl\n");

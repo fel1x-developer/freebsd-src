@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <sys/devicestat.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
@@ -52,21 +51,22 @@
 #include <unistd.h>
 
 static int flag_a, flag_b, flag_B, flag_c, flag_C, flag_d, flag_o, flag_p,
-	   flag_s;
+    flag_s;
 static int flag_I = 1000000;
 
 #define HIGH_PCT_BUSY_THRESH 80
 #define MEDIUM_PCT_BUSY_THRESH 50
-#define PRINTMSG(...) do {						\
-		if ((flag_b && !loop) || (flag_B))			\
-			printf(__VA_ARGS__);				\
-		else if (!flag_b)					\
-			printw(__VA_ARGS__);				\
-	} while(0)
+#define PRINTMSG(...)                              \
+	do {                                       \
+		if ((flag_b && !loop) || (flag_B)) \
+			printf(__VA_ARGS__);       \
+		else if (!flag_b)                  \
+			printw(__VA_ARGS__);       \
+	} while (0)
 
 static void usage(void) __dead2;
 
-static const char*
+static const char *
 el_prompt(void)
 {
 
@@ -147,8 +147,7 @@ main(int argc, char **argv)
 		case 'I':
 			p = NULL;
 			i = strtoul(optarg, &p, 0);
-			if (p == optarg || errno == EINVAL ||
-			    errno == ERANGE) {
+			if (p == optarg || errno == EINVAL || errno == ERANGE) {
 				errx(1, "Invalid argument to -I");
 			} else if (!strcmp(p, "s"))
 				i *= 1000000;
@@ -224,19 +223,19 @@ main(int argc, char **argv)
 		dt += (tp.tv_nsec - tq.tv_nsec) * 1e-9;
 		tq = tp;
 		if (flag_C) { /* set timestamp string */
-			(void)strftime(ts,sizeof(ts),
-					"%F %T",localtime(&tq.tv_sec));
-			(void)snprintf(ts,sizeof(ts),
-					"%s.%.9ld",ts,tq.tv_nsec);
+			(void)strftime(ts, sizeof(ts), "%F %T",
+			    localtime(&tq.tv_sec));
+			(void)snprintf(ts, sizeof(ts), "%s.%.9ld", ts,
+			    tq.tv_nsec);
 		}
-	
+
 		geom_stats_snapshot_reset(sp);
 		geom_stats_snapshot_reset(sq);
 		if (!flag_b)
-			move(0,0);
+			move(0, 0);
 		if (!flag_C)
 			PRINTMSG("dT: %5.3fs  w: %.3fs", dt,
-					(float)flag_I / 1000000);
+			    (float)flag_I / 1000000);
 		if (!flag_C && f_s[0] != '\0') {
 			PRINTMSG("  filter: ");
 			if (!flag_b) {
@@ -262,8 +261,7 @@ main(int argc, char **argv)
 			if (flag_s) {
 				PRINTMSG(" r/s     kB   kBps   ms/r   ");
 				PRINTMSG(" w/s     kB   kBps   ms/w   ");
-			}
-			else {
+			} else {
 				PRINTMSG(" r/s   kBps   ms/r   ");
 				PRINTMSG(" w/s   kBps   ms/w   ");
 			}
@@ -322,8 +320,8 @@ main(int argc, char **argv)
 			if (gid->lg_what == ISCONSUMER && !flag_c)
 				continue;
 			if (flag_p && gid->lg_what == ISPROVIDER &&
-			   ((struct gprovider *)
-			    (gid->lg_ptr))->lg_geom->lg_rank != 1)
+			    ((struct gprovider *)(gid->lg_ptr))
+				    ->lg_geom->lg_rank != 1)
 				continue;
 			/* Do not print past end of window */
 			if (!flag_b) {
@@ -331,15 +329,16 @@ main(int argc, char **argv)
 				if (curx > 0)
 					continue;
 			}
-			if ((gid->lg_what == ISPROVIDER
-			    || gid->lg_what == ISCONSUMER) && f_s[0] != '\0') {
+			if ((gid->lg_what == ISPROVIDER ||
+				gid->lg_what == ISCONSUMER) &&
+			    f_s[0] != '\0') {
 				pp = gid->lg_ptr;
-				if ((regexec(&f_re, pp->lg_name, 0, NULL, 0)
-				     != 0))
-				  continue;
+				if ((regexec(&f_re, pp->lg_name, 0, NULL, 0) !=
+					0))
+					continue;
 			}
 			if (gsp->sequence0 != gsp->sequence1) {
-				/* 
+				/*
 				 * it is ok to skip entire line silently
 				 * for CSV output
 				 */
@@ -347,9 +346,9 @@ main(int argc, char **argv)
 					PRINTMSG("*\n");
 				continue;
 			}
-			devstat_compute_statistics(gsp, gsq, dt, 
-			    DSM_QUEUE_LENGTH, &u64,
-			    DSM_TRANSFERS_PER_SECOND, &ld[0],
+			devstat_compute_statistics(gsp, gsq, dt,
+			    DSM_QUEUE_LENGTH, &u64, DSM_TRANSFERS_PER_SECOND,
+			    &ld[0],
 
 			    DSM_TRANSFERS_PER_SECOND_READ, &ld[1],
 			    DSM_MB_PER_SECOND_READ, &ld[2],
@@ -385,18 +384,17 @@ main(int argc, char **argv)
 			} else if (gid->lg_what == ISPROVIDER) {
 				pp = gid->lg_ptr;
 				(void)snprintf(g_name, sizeof(g_name), "%s",
-						pp->lg_name);
+				    pp->lg_name);
 			} else if (gid->lg_what == ISCONSUMER) {
 				cp = gid->lg_ptr;
 				(void)snprintf(g_name, sizeof(g_name),
-					"%s/%s/%s",
-					cp->lg_geom->lg_class->lg_name,
-				   	cp->lg_geom->lg_name,
-				    	cp->lg_provider->lg_name);
+				    "%s/%s/%s", cp->lg_geom->lg_class->lg_name,
+				    cp->lg_geom->lg_name,
+				    cp->lg_provider->lg_name);
 			}
-	
+
 			if (flag_C) {
-				PRINTMSG("%s", ts); /* timestamp */
+				PRINTMSG("%s", ts);	 /* timestamp */
 				PRINTMSG(",%s", g_name); /* print name */
 				PRINTMSG(",%ju", (uintmax_t)u64);
 				PRINTMSG(",%.0f", (double)ld[0]);
@@ -404,7 +402,7 @@ main(int argc, char **argv)
 				if (flag_s)
 					PRINTMSG(",%.0f", (double)ld[13]);
 				PRINTMSG(",%.0f", (double)ld[2] * 1024);
-				if (ld[3] > 1e3) 
+				if (ld[3] > 1e3)
 					PRINTMSG(",%.0f", (double)ld[3]);
 				else
 					PRINTMSG(",%.1f", (double)ld[3]);
@@ -412,7 +410,7 @@ main(int argc, char **argv)
 				if (flag_s)
 					PRINTMSG(",%.0f", (double)ld[14]);
 				PRINTMSG(",%.0f", (double)ld[5] * 1024);
-				if (ld[6] > 1e3) 
+				if (ld[6] > 1e3)
 					PRINTMSG(",%.0f", (double)ld[6]);
 				else
 					PRINTMSG(",%.1f", (double)ld[6]);
@@ -421,24 +419,24 @@ main(int argc, char **argv)
 					PRINTMSG(",%.0f", (double)ld[8]);
 					if (flag_s)
 						PRINTMSG(",%.0f",
-								(double)ld[15]);
+						    (double)ld[15]);
 					PRINTMSG(",%.0f", (double)ld[9] * 1024);
-					if (ld[10] > 1e3) 
+					if (ld[10] > 1e3)
 						PRINTMSG(",%.0f",
-								(double)ld[10]);
+						    (double)ld[10]);
 					else
 						PRINTMSG(",%.1f",
-								(double)ld[10]);
+						    (double)ld[10]);
 				}
 
 				if (flag_o) {
 					PRINTMSG(",%.0f", (double)ld[11]);
-					if (ld[12] > 1e3) 
+					if (ld[12] > 1e3)
 						PRINTMSG(",%.0f",
-								(double)ld[12]);
+						    (double)ld[12]);
 					else
-						PRINTMSG(",%.1f", 
-								(double)ld[12]);
+						PRINTMSG(",%.1f",
+						    (double)ld[12]);
 				}
 				PRINTMSG(",%.1lf", (double)ld[7]);
 			} else {
@@ -448,7 +446,7 @@ main(int argc, char **argv)
 				if (flag_s)
 					PRINTMSG(" %6.0f", (double)ld[13]);
 				PRINTMSG(" %6.0f", (double)ld[2] * 1024);
-				if (ld[3] > 1e3) 
+				if (ld[3] > 1e3)
 					PRINTMSG(" %6.0f", (double)ld[3]);
 				else
 					PRINTMSG(" %6.1f", (double)ld[3]);
@@ -456,7 +454,7 @@ main(int argc, char **argv)
 				if (flag_s)
 					PRINTMSG(" %6.0f", (double)ld[14]);
 				PRINTMSG(" %6.0f", (double)ld[5] * 1024);
-				if (ld[6] > 1e3) 
+				if (ld[6] > 1e3)
 					PRINTMSG(" %6.0f", (double)ld[6]);
 				else
 					PRINTMSG(" %6.1f", (double)ld[6]);
@@ -464,33 +462,33 @@ main(int argc, char **argv)
 				if (flag_d) {
 					PRINTMSG(" %6.0f", (double)ld[8]);
 					if (flag_s)
-						PRINTMSG(" %6.0f", 
-								(double)ld[15]);
-					PRINTMSG(" %6.0f", 
-							(double)ld[9] * 1024);
-					if (ld[10] > 1e3) 
 						PRINTMSG(" %6.0f",
-								(double)ld[10]);
+						    (double)ld[15]);
+					PRINTMSG(" %6.0f",
+					    (double)ld[9] * 1024);
+					if (ld[10] > 1e3)
+						PRINTMSG(" %6.0f",
+						    (double)ld[10]);
 					else
 						PRINTMSG(" %6.1f",
-								(double)ld[10]);
+						    (double)ld[10]);
 				}
 
 				if (flag_o) {
 					PRINTMSG(" %6.0f", (double)ld[11]);
-					if (ld[12] > 1e3) 
+					if (ld[12] > 1e3)
 						PRINTMSG(" %6.0f",
-								(double)ld[12]);
+						    (double)ld[12]);
 					else
-						PRINTMSG(" %6.1f", 
-								(double)ld[12]);
+						PRINTMSG(" %6.1f",
+						    (double)ld[12]);
 				}
 
 				if (ld[7] > HIGH_PCT_BUSY_THRESH)
 					i = 3;
 				else if (ld[7] > MEDIUM_PCT_BUSY_THRESH)
 					i = 2;
-				else 
+				else
 					i = 1;
 				if (!flag_b)
 					attron(COLOR_PAIR(i));
@@ -514,9 +512,8 @@ main(int argc, char **argv)
 				break;
 			if (!flag_B)
 				loop = 0;
-			else
-				if (fflush(stdout) == EOF)
-					goto out;
+			else if (fflush(stdout) == EOF)
+				goto out;
 			usleep(flag_I);
 			continue;
 		}
@@ -527,7 +524,7 @@ main(int argc, char **argv)
 			move(maxy - 1, 0);
 		refresh();
 		usleep(flag_I);
-		while((i = getch()) != ERR) {
+		while ((i = getch()) != ERR) {
 			switch (i) {
 			case '>':
 				flag_I *= 2;
@@ -541,7 +538,7 @@ main(int argc, char **argv)
 				flag_c = !flag_c;
 				break;
 			case 'f':
-				move(0,0);
+				move(0, 0);
 				clrtoeol();
 				refresh();
 				line = el_gets(el, &line_len);
@@ -562,8 +559,8 @@ main(int argc, char **argv)
 				cbreak();
 				noecho();
 				nonl();
-				if (regcomp(&tmp_f_re, tmp_f_s, REG_EXTENDED)
-				    != 0) {
+				if (regcomp(&tmp_f_re, tmp_f_s, REG_EXTENDED) !=
+				    0) {
 					move(0, 0);
 					printw("Invalid filter");
 					refresh();
@@ -597,5 +594,5 @@ usage(void)
 {
 	fprintf(stderr, "usage: gstat [-abBcCdps] [-f filter] [-I interval]\n");
 	exit(EX_USAGE);
-        /* NOTREACHED */
+	/* NOTREACHED */
 }

@@ -38,8 +38,7 @@
 SYSCTL_DECL(_security_mac);
 
 static SYSCTL_NODE(_security_mac, OID_AUTO, priority,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "mac_priority policy controls");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "mac_priority policy controls");
 
 static int realtime_enabled = 1;
 SYSCTL_INT(_security_mac_priority, OID_AUTO, realtime, CTLFLAG_RWTUN,
@@ -48,8 +47,7 @@ SYSCTL_INT(_security_mac_priority, OID_AUTO, realtime, CTLFLAG_RWTUN,
 
 static int realtime_gid = GID_RT_PRIO;
 SYSCTL_INT(_security_mac_priority, OID_AUTO, realtime_gid, CTLFLAG_RWTUN,
-    &realtime_gid, 0,
-    "Group id of the realtime privilege group");
+    &realtime_gid, 0, "Group id of the realtime privilege group");
 
 static int idletime_enabled = 1;
 SYSCTL_INT(_security_mac_priority, OID_AUTO, idletime, CTLFLAG_RWTUN,
@@ -58,8 +56,7 @@ SYSCTL_INT(_security_mac_priority, OID_AUTO, idletime, CTLFLAG_RWTUN,
 
 static int idletime_gid = GID_ID_PRIO;
 SYSCTL_INT(_security_mac_priority, OID_AUTO, idletime_gid, CTLFLAG_RWTUN,
-    &idletime_gid, 0,
-    "Group id of the idletime privilege group");
+    &idletime_gid, 0, "Group id of the idletime privilege group");
 
 static int
 priority_priv_grant(struct ucred *cred, int priv)

@@ -30,10 +30,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
@@ -61,7 +61,11 @@ blank_term(video_adapter_t *adp)
 }
 
 static scrn_saver_t blank_module = {
-	"blank_saver", blank_init, blank_term, blank_saver, NULL,
+	"blank_saver",
+	blank_init,
+	blank_term,
+	blank_saver,
+	NULL,
 };
 
 SAVER_MODULE(blank_saver, blank_module);

@@ -11,21 +11,21 @@
  ***************************************************************************/
 
 #include "cpa.h"
-#include "qat_utils.h"
+#include "cpa_dc.h"
+#include "dc_datapath.h"
+#include "dc_session.h"
 #include "icp_accel_devices.h"
+#include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "icp_adf_transport.h"
-#include "icp_adf_debug.h"
-#include "lac_lock_free_stack.h"
-#include "lac_mem_pools.h"
-#include "lac_mem.h"
-#include "lac_common.h"
-#include "cpa_dc.h"
-#include "dc_session.h"
-#include "dc_datapath.h"
-#include "icp_qat_fw_comp.h"
 #include "icp_buffer_desc.h"
+#include "icp_qat_fw_comp.h"
+#include "lac_common.h"
+#include "lac_lock_free_stack.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
 #include "lac_sym.h"
+#include "qat_utils.h"
 
 #define LAC_MEM_POOLS_NUM_SUPPORTED 32000
 /**< @ingroup LacMemPool
@@ -81,19 +81,17 @@ static inline Cpa32U
 Lac_MemPoolGetElementRealSize(Cpa32U blkSizeInBytes, Cpa32U blkAlignmentInBytes)
 {
 	Cpa32U addSize = (blkAlignmentInBytes >= sizeof(lac_mem_blk_t) ?
-			      blkAlignmentInBytes :
-			      1 << (highest_bit_of_lac_mem_blk_t + 1));
+		blkAlignmentInBytes :
+		1 << (highest_bit_of_lac_mem_blk_t + 1));
 	return blkSizeInBytes + addSize;
 }
 
 CpaStatus
-Lac_MemPoolCreate(lac_memory_pool_id_t *pPoolID,
-		  char *poolName,
-		  unsigned int numElementsInPool,   /*Number of elements*/
-		  unsigned int blkSizeInBytes,      /*Block Size in bytes*/
-		  unsigned int blkAlignmentInBytes, /*Block alignment (bytes)*/
-		  CpaBoolean trackMemory,
-		  Cpa32U node)
+Lac_MemPoolCreate(lac_memory_pool_id_t *pPoolID, char *poolName,
+    unsigned int numElementsInPool,   /*Number of elements*/
+    unsigned int blkSizeInBytes,      /*Block Size in bytes*/
+    unsigned int blkAlignmentInBytes, /*Block alignment (bytes)*/
+    CpaBoolean trackMemory, Cpa32U node)
 {
 	unsigned int poolSearch = 0;
 	unsigned int counter = 0;
@@ -128,9 +126,7 @@ Lac_MemPoolCreate(lac_memory_pool_id_t *pPoolID,
 	/* Copy in Pool Name */
 	if (poolName != NULL) {
 		snprintf(lac_mem_pools[poolSearch]->poolName,
-			 LAC_MEM_POOLS_NAME_SIZE,
-			 "%s",
-			 poolName);
+		    LAC_MEM_POOLS_NAME_SIZE, "%s", poolName);
 	} else {
 		LAC_OS_FREE(lac_mem_pools[poolSearch]);
 		lac_mem_pools[poolSearch] = NULL;
@@ -170,15 +166,13 @@ Lac_MemPoolCreate(lac_memory_pool_id_t *pPoolID,
 		   memory
 		   cost
 		 */
-		Cpa32U realSize =
-		    Lac_MemPoolGetElementRealSize(blkSizeInBytes,
-						  blkAlignmentInBytes);
+		Cpa32U realSize = Lac_MemPoolGetElementRealSize(blkSizeInBytes,
+		    blkAlignmentInBytes);
 		Cpa32U addSize = realSize - blkSizeInBytes;
 
-		if (CPA_STATUS_SUCCESS != LAC_OS_CAMALLOC(&pMemBlk,
-							  realSize,
-							  blkAlignmentInBytes,
-							  node)) {
+		if (CPA_STATUS_SUCCESS !=
+		    LAC_OS_CAMALLOC(&pMemBlk, realSize, blkAlignmentInBytes,
+			node)) {
 			Lac_MemPoolCleanUpInternal(lac_mem_pools[poolSearch]);
 			lac_mem_pools[poolSearch] = NULL;
 			QAT_UTILS_LOG(
@@ -195,9 +189,8 @@ Lac_MemPoolCreate(lac_memory_pool_id_t *pPoolID,
 		    We safely put the structure right before the blkSize
 		    real data block
 		 */
-		pMemBlkCurrent =
-		    (lac_mem_blk_t *)(((LAC_ARCH_UINT)(pMemBlk)) + addSize -
-				      sizeof(lac_mem_blk_t));
+		pMemBlkCurrent = (lac_mem_blk_t *)(((LAC_ARCH_UINT)(pMemBlk)) +
+		    addSize - sizeof(lac_mem_blk_t));
 
 		pMemBlkCurrent->physDataPtr = physAddr;
 		pMemBlkCurrent->pMemAllocPtr = pMemBlk;
@@ -244,8 +237,8 @@ Lac_MemPoolEntryAlloc(lac_memory_pool_id_t poolID)
 	}
 	__sync_sub_and_fetch(&pPoolID->availBlks, 1);
 	pMemBlkCurrent->isInUse = CPA_TRUE;
-	return (void *)((LAC_ARCH_UINT)(pMemBlkCurrent) +
-			sizeof(lac_mem_blk_t));
+	return (
+	    void *)((LAC_ARCH_UINT)(pMemBlkCurrent) + sizeof(lac_mem_blk_t));
 }
 
 void
@@ -259,8 +252,8 @@ Lac_MemPoolEntryFree(void *pEntry)
 		return;
 	}
 
-	pMemBlk =
-	    (lac_mem_blk_t *)((LAC_ARCH_UINT)pEntry - sizeof(lac_mem_blk_t));
+	pMemBlk = (lac_mem_blk_t *)((LAC_ARCH_UINT)pEntry -
+	    sizeof(lac_mem_blk_t));
 	pMemBlk->isInUse = CPA_FALSE;
 
 	push(&pMemBlk->pPoolID->stack, pMemBlk);
@@ -331,17 +324,17 @@ void
 Lac_MemPoolStatsShow(void)
 {
 	unsigned int index = 0;
-	QAT_UTILS_LOG(SEPARATOR BORDER
-		      "           Memory Pools Stats\n" SEPARATOR);
+	QAT_UTILS_LOG(
+	    SEPARATOR BORDER "           Memory Pools Stats\n" SEPARATOR);
 
 	while (index < LAC_MEM_POOLS_NUM_SUPPORTED) {
 		if (lac_mem_pools[index] != NULL) {
-			QAT_UTILS_LOG(
-			    BORDER " Pool Name:             %s \n" BORDER
-				   " No. Elements in Pool:  %10u \n" BORDER
-				   " Element Size in Bytes: %10u \n" BORDER
-				   " Alignment in Bytes:    %10u \n" BORDER
-				   " No. Available Blocks:  %10zu \n" SEPARATOR,
+			QAT_UTILS_LOG(BORDER
+			    " Pool Name:             %s \n" BORDER
+			    " No. Elements in Pool:  %10u \n" BORDER
+			    " Element Size in Bytes: %10u \n" BORDER
+			    " Alignment in Bytes:    %10u \n" BORDER
+			    " No. Available Blocks:  %10zu \n" SEPARATOR,
 			    lac_mem_pools[index]->poolName,
 			    lac_mem_pools[index]->numElementsInPool,
 			    lac_mem_pools[index]->blkSizeInBytes,
@@ -355,8 +348,8 @@ Lac_MemPoolStatsShow(void)
 static void
 Lac_MemPoolInitSymCookies(lac_sym_cookie_t *pSymCookie)
 {
-	pSymCookie->keyContentDescPhyAddr =
-	    LAC_OS_VIRT_TO_PHYS_INTERNAL(pSymCookie->u.keyCookie.contentDesc);
+	pSymCookie->keyContentDescPhyAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
+	    pSymCookie->u.keyCookie.contentDesc);
 	pSymCookie->keyHashStateBufferPhyAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
 	    pSymCookie->u.keyCookie.hashStateBuffer);
 	pSymCookie->keySslKeyInputPhyAddr = LAC_OS_VIRT_TO_PHYS_INTERNAL(
@@ -383,7 +376,7 @@ Lac_MemPoolInitSymCookiesPhyAddr(lac_memory_pool_id_t poolID)
 		while (pCurrentBlk != NULL) {
 			pSymCookie =
 			    (lac_sym_cookie_t *)((LAC_ARCH_UINT)(pCurrentBlk) +
-						 sizeof(lac_mem_blk_t));
+				sizeof(lac_mem_blk_t));
 			pCurrentBlk = pCurrentBlk->pNext;
 			Lac_MemPoolInitSymCookies(pSymCookie);
 		}
@@ -394,7 +387,7 @@ Lac_MemPoolInitSymCookiesPhyAddr(lac_memory_pool_id_t poolID)
 			pCurrentBlk = pPoolID->trackBlks[count];
 			pSymCookie =
 			    (lac_sym_cookie_t *)((LAC_ARCH_UINT)(pCurrentBlk) +
-						 sizeof(lac_mem_blk_t));
+				sizeof(lac_mem_blk_t));
 			Lac_MemPoolInitSymCookies(pSymCookie);
 		}
 	}

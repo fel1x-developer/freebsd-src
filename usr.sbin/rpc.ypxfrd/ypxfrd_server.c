@@ -33,18 +33,20 @@
  */
 
 #include <sys/cdefs.h>
-#include "ypxfrd.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/uio.h>
 #include <sys/fcntl.h>
+#include <sys/uio.h>
+
 #include <machine/endian.h>
+
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "ypxfrd.h"
 #include "ypxfrd_extern.h"
 
 int forked = 0;
@@ -57,10 +59,11 @@ xdr_my_xfr(register XDR *xdrs, xfr *objp)
 	unsigned char buf[XFRBLOCKSIZE];
 
 	while (1) {
-		if ((objp->xfr_u.xfrblock_buf.xfrblock_buf_len =
-		    read(fp, &buf, XFRBLOCKSIZE)) != -1) {
+		if ((objp->xfr_u.xfrblock_buf.xfrblock_buf_len = read(fp, &buf,
+			 XFRBLOCKSIZE)) != -1) {
 			objp->ok = TRUE;
-			objp->xfr_u.xfrblock_buf.xfrblock_buf_val = (char *)&buf;
+			objp->xfr_u.xfrblock_buf.xfrblock_buf_val =
+			    (char *)&buf;
 		} else {
 			objp->ok = FALSE;
 			objp->xfr_u.xfrstat = XFR_READ_ERR;
@@ -69,15 +72,15 @@ xdr_my_xfr(register XDR *xdrs, xfr *objp)
 
 		/* Serialize */
 		if (!xdr_xfr(xdrs, objp))
-			return(FALSE);
+			return (FALSE);
 		if (objp->ok == FALSE)
-			return(TRUE);
+			return (TRUE);
 		if (objp->xfr_u.xfrblock_buf.xfrblock_buf_len < XFRBLOCKSIZE) {
 			objp->ok = FALSE;
 			objp->xfr_u.xfrstat = XFR_DONE;
 			if (!xdr_xfr(xdrs, objp))
-				return(FALSE);
-			return(TRUE);
+				return (FALSE);
+			return (TRUE);
 		}
 	}
 }
@@ -85,31 +88,31 @@ xdr_my_xfr(register XDR *xdrs, xfr *objp)
 struct xfr *
 ypxfrd_getmap_1_svc(ypxfr_mapname *argp, struct svc_req *rqstp)
 {
-	static struct xfr  result;
+	static struct xfr result;
 	char buf[MAXPATHLEN];
 
 	result.ok = FALSE;
 	result.xfr_u.xfrstat = XFR_DENIED;
 
 	if (yp_validdomain(argp->xfrdomain)) {
-		return(&result);
+		return (&result);
 	}
 
 	if (yp_access(argp->xfrmap, (struct svc_req *)rqstp)) {
-		return(&result);
+		return (&result);
 	}
 
-	snprintf (buf, sizeof(buf), "%s/%s/%s", yp_dir, argp->xfrdomain,
-							argp->xfrmap);
+	snprintf(buf, sizeof(buf), "%s/%s/%s", yp_dir, argp->xfrdomain,
+	    argp->xfrmap);
 	if (access(buf, R_OK) == -1) {
 		result.xfr_u.xfrstat = XFR_ACCESS;
-		return(&result);
+		return (&result);
 	}
 
 	if (argp->xfr_db_type != XFR_DB_BSD_HASH &&
 	    argp->xfr_db_type != XFR_DB_ANY) {
 		result.xfr_u.xfrstat = XFR_DB_TYPE_MISMATCH;
-		return(&result);
+		return (&result);
 	}
 
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -118,7 +121,7 @@ ypxfrd_getmap_1_svc(ypxfr_mapname *argp, struct svc_req *rqstp)
 	if (argp->xfr_byte_order == XFR_ENDIAN_LITTLE) {
 #endif
 		result.xfr_u.xfrstat = XFR_DB_ENDIAN_MISMATCH;
-		return(&result);
+		return (&result);
 	}
 
 #ifndef DEBUG
@@ -132,7 +135,7 @@ ypxfrd_getmap_1_svc(ypxfr_mapname *argp, struct svc_req *rqstp)
 #endif
 	if ((fp = open(buf, O_RDONLY)) == -1) {
 		result.xfr_u.xfrstat = XFR_READ_ERR;
-		return(&result);
+		return (&result);
 	}
 
 	/* Start sending the file. */

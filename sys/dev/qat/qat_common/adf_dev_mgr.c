@@ -1,18 +1,17 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <sys/mutex.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include <sys/mutex.h>
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define ADF_AE_PAIR 2
 #define PKE_SLICES_PER_AE_PAIR 5
@@ -100,8 +99,8 @@ adf_devmgr_update_class_index(struct adf_hw_device_data *hw_data)
 
 	list_for_each(itr, &accel_table)
 	{
-		struct adf_accel_dev *ptr =
-		    list_entry(itr, struct adf_accel_dev, list);
+		struct adf_accel_dev *ptr = list_entry(itr,
+		    struct adf_accel_dev, list);
 
 		if (ptr->hw_device->dev_class == class)
 			ptr->hw_device->instance_id = i++;
@@ -143,8 +142,7 @@ adf_devmgr_add_dev(struct adf_accel_dev *accel_dev, struct adf_accel_dev *pf)
 
 	if (num_devices == ADF_MAX_DEVICES) {
 		device_printf(GET_DEV(accel_dev),
-			      "Only support up to %d devices\n",
-			      ADF_MAX_DEVICES);
+		    "Only support up to %d devices\n", ADF_MAX_DEVICES);
 		return EFAULT;
 	}
 
@@ -156,8 +154,8 @@ adf_devmgr_add_dev(struct adf_accel_dev *accel_dev, struct adf_accel_dev *pf)
 
 		list_for_each(itr, &accel_table)
 		{
-			struct adf_accel_dev *ptr =
-			    list_entry(itr, struct adf_accel_dev, list);
+			struct adf_accel_dev *ptr = list_entry(itr,
+			    struct adf_accel_dev, list);
 
 			if (ptr == accel_dev) {
 				ret = EEXIST;
@@ -225,8 +223,8 @@ adf_devmgr_get_first(void)
 	struct adf_accel_dev *dev = NULL;
 
 	if (!list_empty(&accel_table))
-		dev =
-		    list_first_entry(&accel_table, struct adf_accel_dev, list);
+		dev = list_first_entry(&accel_table, struct adf_accel_dev,
+		    list);
 	return dev;
 }
 
@@ -247,8 +245,8 @@ adf_devmgr_pci_to_accel_dev(device_t pci_dev)
 	mutex_lock(&table_lock);
 	list_for_each(itr, &accel_table)
 	{
-		struct adf_accel_dev *ptr =
-		    list_entry(itr, struct adf_accel_dev, list);
+		struct adf_accel_dev *ptr = list_entry(itr,
+		    struct adf_accel_dev, list);
 
 		if (ptr->accel_pci_dev.pci_dev == pci_dev) {
 			mutex_unlock(&table_lock);
@@ -274,8 +272,8 @@ adf_devmgr_get_dev_by_id(uint32_t id)
 
 	list_for_each(itr, &accel_table)
 	{
-		struct adf_accel_dev *ptr =
-		    list_entry(itr, struct adf_accel_dev, list);
+		struct adf_accel_dev *ptr = list_entry(itr,
+		    struct adf_accel_dev, list);
 		if (ptr->accel_id == id) {
 			mutex_unlock(&table_lock);
 			return ptr;

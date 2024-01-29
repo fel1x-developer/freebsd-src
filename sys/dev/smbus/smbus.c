@@ -40,12 +40,11 @@
 #include <dev/smbus/smbconf.h>
 #include <dev/smbus/smbus.h>
 
-#include "smbus_if.h"
 #include "bus_if.h"
+#include "smbus_if.h"
 
-struct smbus_ivar
-{
-	uint8_t	addr;
+struct smbus_ivar {
+	uint8_t addr;
 };
 
 /*
@@ -122,8 +121,10 @@ smbus_hinted_child(device_t bus, const char *dname, int dunit)
 	addr = 0;
 	resource_int_value(dname, dunit, "addr", &addr);
 	if (addr > UINT8_MAX) {
-		device_printf(bus, "ignored incorrect slave address hint 0x%x"
-		    " for %s%d\n", addr, dname, dunit);
+		device_printf(bus,
+		    "ignored incorrect slave address hint 0x%x"
+		    " for %s%d\n",
+		    addr, dname, dunit);
 		return;
 	}
 	child = BUS_ADD_CHILD(bus, SMBUS_ORDER_HINTED, dname, dunit);
@@ -215,27 +216,27 @@ smbus_probe_nomatch(device_t bus, device_t child)
  * Device methods
  */
 static device_method_t smbus_methods[] = {
-        /* device interface */
-        DEVMETHOD(device_probe,         smbus_probe),
-        DEVMETHOD(device_attach,        smbus_attach),
-        DEVMETHOD(device_detach,        smbus_detach),
+	/* device interface */
+	DEVMETHOD(device_probe, smbus_probe),
+	DEVMETHOD(device_attach, smbus_attach),
+	DEVMETHOD(device_detach, smbus_detach),
 
 	/* bus interface */
-	DEVMETHOD(bus_add_child,	smbus_add_child),
-	DEVMETHOD(bus_hinted_child,	smbus_hinted_child),
-	DEVMETHOD(bus_probe_nomatch,	smbus_probe_nomatch),
-	DEVMETHOD(bus_child_location,	smbus_child_location),
-	DEVMETHOD(bus_print_child,	smbus_print_child),
-	DEVMETHOD(bus_read_ivar,	smbus_read_ivar),
-	DEVMETHOD(bus_write_ivar,	smbus_write_ivar),
+	DEVMETHOD(bus_add_child, smbus_add_child),
+	DEVMETHOD(bus_hinted_child, smbus_hinted_child),
+	DEVMETHOD(bus_probe_nomatch, smbus_probe_nomatch),
+	DEVMETHOD(bus_child_location, smbus_child_location),
+	DEVMETHOD(bus_print_child, smbus_print_child),
+	DEVMETHOD(bus_read_ivar, smbus_read_ivar),
+	DEVMETHOD(bus_write_ivar, smbus_write_ivar),
 
 	DEVMETHOD_END
 };
 
 driver_t smbus_driver = {
-        "smbus",
-        smbus_methods,
-        sizeof(struct smbus_softc),
+	"smbus",
+	smbus_methods,
+	sizeof(struct smbus_softc),
 };
 
 MODULE_VERSION(smbus, SMBUS_MODVER);

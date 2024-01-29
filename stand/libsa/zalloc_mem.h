@@ -33,22 +33,22 @@
  * Basic memory pool / memory node structures.
  */
 #ifndef _ZALLOC_MEM_H
-#define	_ZALLOC_MEM_H
+#define _ZALLOC_MEM_H
 
 typedef struct MemNode {
-	struct MemNode	*mr_Next;
-	uintptr_t	mr_Bytes;
+	struct MemNode *mr_Next;
+	uintptr_t mr_Bytes;
 } MemNode;
 
 typedef struct MemPool {
-	void		*mp_Base;
-	void		*mp_End;
-	MemNode		*mp_First;
-	uintptr_t	mp_Size;
-	uintptr_t	mp_Used;
+	void *mp_Base;
+	void *mp_End;
+	MemNode *mp_First;
+	uintptr_t mp_Size;
+	uintptr_t mp_Used;
 } MemPool;
 
-#define	ZNOTE_FREE	0
-#define	ZNOTE_REUSE	1
+#define ZNOTE_FREE 0
+#define ZNOTE_REUSE 1
 
-#endif	/* _ZALLOC_MEM_H */
+#endif /* _ZALLOC_MEM_H */

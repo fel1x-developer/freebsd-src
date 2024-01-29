@@ -35,39 +35,35 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 #include <dev/mii/mv88e151xreg.h>
-#include "miidevs.h"
+
+#include <net/if.h>
+#include <net/if_media.h>
 
 #include "miibus_if.h"
+#include "miidevs.h"
 
 static int mv88e151x_probe(device_t);
 static int mv88e151x_attach(device_t);
 
 static device_method_t mv88e151x_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		mv88e151x_probe),
-	DEVMETHOD(device_attach,	mv88e151x_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, mv88e151x_probe),
+	DEVMETHOD(device_attach, mv88e151x_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t mv88e151x_driver = {
-	"mv88e151x",
-	mv88e151x_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t mv88e151x_driver = { "mv88e151x", mv88e151x_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(mv88e151x, miibus, mv88e151x_driver, 0, 0);
 
@@ -75,15 +71,11 @@ static int mv88e151x_service(struct mii_softc *, struct mii_data *, int);
 static void mv88e151x_status(struct mii_softc *);
 
 static const struct mii_phydesc mv88e151xphys[] = {
-	MII_PHY_DESC(xxMARVELL, E1512),
-	MII_PHY_END
+	MII_PHY_DESC(xxMARVELL, E1512), MII_PHY_END
 };
 
-static const struct mii_phy_funcs mv88e151x_funcs = {
-	mv88e151x_service,
-	mv88e151x_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs mv88e151x_funcs = { mv88e151x_service,
+	mv88e151x_status, mii_phy_reset };
 
 static int
 mv88e151x_probe(device_t dev)
@@ -141,8 +133,9 @@ mv88e151x_attach(device_t dev)
 	/* Enable the fiber PHY auto negotiation. */
 	if (MII_MODEL(ma->mii_id2) == MII_MODEL_xxMARVELL_E1512) {
 		PHY_WRITE(sc, MV88E151X_PAGE, MV88E151X_PAGE_FIBER);
-		PHY_WRITE(sc, MII_BMCR, BMCR_RESET | BMCR_AUTOEN |
-		    BMCR_STARTNEG | BMCR_FDX | BMCR_S1000);
+		PHY_WRITE(sc, MII_BMCR,
+		    BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG | BMCR_FDX |
+			BMCR_S1000);
 		PHY_WRITE(sc, MV88E151X_PAGE, MV88E151X_PAGE_COPPER);
 	}
 

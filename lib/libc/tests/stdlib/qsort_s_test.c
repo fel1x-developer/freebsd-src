@@ -34,7 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define	THUNK 42
+#define THUNK 42
 
 #include "test-sort.h"
 
@@ -58,7 +58,7 @@ sorthelp_s(const void *a, const void *b, void *thunk)
 }
 
 void
-h(const char * restrict msg __unused, void * restrict ptr __unused, errno_t error)
+h(const char *restrict msg __unused, void *restrict ptr __unused, errno_t error)
 {
 	e = error;
 }
@@ -80,7 +80,8 @@ ATF_TC_BODY(qsort_s_nmemb_gt_rmax, tc)
 	int thunk = THUNK;
 	int b;
 
-	ATF_CHECK(qsort_s(&b, RSIZE_MAX + 1, sizeof(int), sorthelp_s, &thunk) != 0);
+	ATF_CHECK(
+	    qsort_s(&b, RSIZE_MAX + 1, sizeof(int), sorthelp_s, &thunk) != 0);
 }
 
 /* size < 0 */
@@ -118,7 +119,7 @@ ATF_TC_WITHOUT_HEAD(qsort_s_nmemb_lt_zero_h);
 ATF_TC_BODY(qsort_s_nmemb_lt_zero_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
@@ -134,11 +135,12 @@ ATF_TC_WITHOUT_HEAD(qsort_s_nmemb_gt_rmax_h);
 ATF_TC_BODY(qsort_s_nmemb_gt_rmax_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
-	ATF_CHECK(qsort_s(&b, RSIZE_MAX + 1, sizeof(int), sorthelp_s, &thunk) != 0);
+	ATF_CHECK(
+	    qsort_s(&b, RSIZE_MAX + 1, sizeof(int), sorthelp_s, &thunk) != 0);
 	ATF_CHECK(e > 0);
 	ATF_CHECK_EQ(b[0], 81);
 	ATF_CHECK_EQ(b[1], 4);
@@ -150,7 +152,7 @@ ATF_TC_WITHOUT_HEAD(qsort_s_size_lt_zero_h);
 ATF_TC_BODY(qsort_s_size_lt_zero_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
@@ -166,11 +168,12 @@ ATF_TC_WITHOUT_HEAD(qsort_s_size_gt_rmax_h);
 ATF_TC_BODY(qsort_s_size_gt_rmax_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
-	ATF_CHECK(qsort_s(&b, nitems(b), RSIZE_MAX + 1, sorthelp_s, &thunk) != 0);
+	ATF_CHECK(
+	    qsort_s(&b, nitems(b), RSIZE_MAX + 1, sorthelp_s, &thunk) != 0);
 	ATF_CHECK(e > 0);
 	ATF_CHECK_EQ(b[0], 81);
 	ATF_CHECK_EQ(b[1], 4);
@@ -182,7 +185,7 @@ ATF_TC_WITHOUT_HEAD(qsort_s_null_compar_h);
 ATF_TC_BODY(qsort_s_null_compar_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
@@ -197,7 +200,7 @@ ATF_TC_WITHOUT_HEAD(qsort_s_h);
 ATF_TC_BODY(qsort_s_h, tc)
 {
 	int thunk = THUNK;
-	int b[] = {81, 4, 7};
+	int b[] = { 81, 4, 7 };
 
 	e = 0;
 	set_constraint_handler_s(h);
@@ -222,16 +225,16 @@ ATF_TC_BODY(qsort_s_test, tc)
 			testvector[i] = sresvector[i] = initvector[i];
 
 		/* Sort using qsort_s(3) */
-		qsort_s(testvector, j, sizeof(testvector[0]),
-		    sorthelp_s, &thunk);
+		qsort_s(testvector, j, sizeof(testvector[0]), sorthelp_s,
+		    &thunk);
 		/* Sort using reference slow sorting routine */
 		ssort(sresvector, j);
 
 		/* Compare results */
 		for (i = 0; i < j; i++)
 			ATF_CHECK_MSG(testvector[i] == sresvector[i],
-			    "item at index %d didn't match: %d != %d",
-			    i, testvector[i], sresvector[i]);
+			    "item at index %d didn't match: %d != %d", i,
+			    testvector[i], sresvector[i]);
 	}
 }
 

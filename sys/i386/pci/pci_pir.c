@@ -36,17 +36,20 @@
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_param.h>
+
 #include <machine/md_var.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
+#include <machine/pc/bios.h>
 #include <machine/pci_cfgreg.h>
 #include <machine/segments.h>
-#include <machine/pc/bios.h>
 
-#define	NUM_ISA_INTERRUPTS	16
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#define NUM_ISA_INTERRUPTS 16
 
 /*
  * A link device.  Loosely based on the ACPI PCI link device.  This doesn't
@@ -54,46 +57,45 @@
  */
 struct pci_link {
 	TAILQ_ENTRY(pci_link) pl_links;
-	uint8_t		pl_id;
-	uint8_t		pl_irq;
-	uint16_t	pl_irqmask;
-	int		pl_references;
-	int		pl_routed;
+	uint8_t pl_id;
+	uint8_t pl_irq;
+	uint16_t pl_irqmask;
+	int pl_references;
+	int pl_routed;
 };
 
 struct pci_link_lookup {
-	struct pci_link	**pci_link_ptr;
-	int		bus;
-	int		device;
-	int		pin;
+	struct pci_link **pci_link_ptr;
+	int bus;
+	int device;
+	int pin;
 };
 
 struct pci_dev_lookup {
-	uint8_t		link;
-	int		bus;
-	int		device;
-	int		pin;
+	uint8_t link;
+	int bus;
+	int device;
+	int pin;
 };
 
 typedef void pir_entry_handler(struct PIR_entry *entry,
-    struct PIR_intpin* intpin, void *arg);
+    struct PIR_intpin *intpin, void *arg);
 
-static void	pci_print_irqmask(u_int16_t irqs);
-static int	pci_pir_biosroute(int bus, int device, int func, int pin,
-		    int irq);
-static int	pci_pir_choose_irq(struct pci_link *pci_link, int irqmask);
-static void	pci_pir_create_links(struct PIR_entry *entry,
-		    struct PIR_intpin *intpin, void *arg);
-static void	pci_pir_dump_links(void);
+static void pci_print_irqmask(u_int16_t irqs);
+static int pci_pir_biosroute(int bus, int device, int func, int pin, int irq);
+static int pci_pir_choose_irq(struct pci_link *pci_link, int irqmask);
+static void pci_pir_create_links(struct PIR_entry *entry,
+    struct PIR_intpin *intpin, void *arg);
+static void pci_pir_dump_links(void);
 static struct pci_link *pci_pir_find_link(uint8_t link_id);
-static void	pci_pir_find_link_handler(struct PIR_entry *entry,
-		    struct PIR_intpin *intpin, void *arg);
-static void	pci_pir_initial_irqs(struct PIR_entry *entry,
-		    struct PIR_intpin *intpin, void *arg);
-static void	pci_pir_parse(void);
-static uint8_t	pci_pir_search_irq(int bus, int device, int pin);
-static int	pci_pir_valid_irq(struct pci_link *pci_link, int irq);
-static void	pci_pir_walk_table(pir_entry_handler *handler, void *arg);
+static void pci_pir_find_link_handler(struct PIR_entry *entry,
+    struct PIR_intpin *intpin, void *arg);
+static void pci_pir_initial_irqs(struct PIR_entry *entry,
+    struct PIR_intpin *intpin, void *arg);
+static void pci_pir_parse(void);
+static uint8_t pci_pir_search_irq(int bus, int device, int pin);
+static int pci_pir_valid_irq(struct pci_link *pci_link, int irq);
+static void pci_pir_walk_table(pir_entry_handler *handler, void *arg);
 
 static MALLOC_DEFINE(M_PIR, "$PIR", "$PIR structures");
 
@@ -147,8 +149,8 @@ pci_pir_open(void)
 	pt = (struct PIR_table *)(uintptr_t)BIOS_PADDRTOVADDR(sigaddr);
 	if (pt->pt_header.ph_length <= sizeof(struct PIR_header))
 		return;
-	for (cv = (u_int8_t *)pt, ck = 0, i = 0;
-	     i < (pt->pt_header.ph_length); i++)
+	for (cv = (u_int8_t *)pt, ck = 0, i = 0; i < (pt->pt_header.ph_length);
+	     i++)
 		ck += cv[i];
 	if (ck != 0)
 		return;
@@ -156,7 +158,7 @@ pci_pir_open(void)
 	/* Ok, we've got a valid table. */
 	pci_route_table = pt;
 	pci_route_count = (pt->pt_header.ph_length -
-	    sizeof(struct PIR_header)) / 
+			      sizeof(struct PIR_header)) /
 	    sizeof(struct PIR_entry);
 }
 
@@ -168,7 +170,7 @@ pci_pir_find_link(uint8_t link_id)
 {
 	struct pci_link *pci_link;
 
-	TAILQ_FOREACH(pci_link, &pci_links, pl_links) {
+	TAILQ_FOREACH (pci_link, &pci_links, pl_links) {
 		if (pci_link->pl_id == link_id)
 			return (pci_link);
 	}
@@ -236,7 +238,7 @@ pci_pir_create_links(struct PIR_entry *entry, struct PIR_intpin *intpin,
 		if (intpin->irqs != pci_link->pl_irqmask) {
 			if (bootverbose)
 				printf(
-	"$PIR: Entry %d.%d.INT%c has different mask for link %#x, merging\n",
+				    "$PIR: Entry %d.%d.INT%c has different mask for link %#x, merging\n",
 				    entry->pe_bus, entry->pe_device,
 				    (intpin - entry->pe_intpin) + 'A',
 				    pci_link->pl_id);
@@ -292,7 +294,7 @@ pci_pir_search_irq(int bus, int device, int pin)
 		value = pci_cfgregread(0, bus, device, func, PCIR_INTLINE, 1);
 		if (bootverbose)
 			printf(
-		"$PIR: Found matching pin for %d.%d.INT%c at func %d: %d\n",
+			    "$PIR: Found matching pin for %d.%d.INT%c at func %d: %d\n",
 			    bus, device, pin + 'A', func, value);
 		if (value != PCI_INVALID_IRQ)
 			return (value);
@@ -319,7 +321,7 @@ pci_pir_initial_irqs(struct PIR_entry *entry, struct PIR_intpin *intpin,
 	/* Don't trust any BIOS IRQs greater than 15. */
 	if (irq >= NUM_ISA_INTERRUPTS) {
 		printf(
-	"$PIR: Ignoring invalid BIOS IRQ %d from %d.%d.INT%c for link %#x\n",
+		    "$PIR: Ignoring invalid BIOS IRQ %d from %d.%d.INT%c for link %#x\n",
 		    irq, entry->pe_bus, entry->pe_device, pin + 'A',
 		    pci_link->pl_id);
 		return;
@@ -332,7 +334,7 @@ pci_pir_initial_irqs(struct PIR_entry *entry, struct PIR_intpin *intpin,
 	if (pci_link->pl_irq == PCI_INVALID_IRQ) {
 		if (!pci_pir_valid_irq(pci_link, irq))
 			printf(
-	"$PIR: Using invalid BIOS IRQ %d from %d.%d.INT%c for link %#x\n",
+			    "$PIR: Using invalid BIOS IRQ %d from %d.%d.INT%c for link %#x\n",
 			    irq, entry->pe_bus, entry->pe_device, pin + 'A',
 			    pci_link->pl_id);
 		pci_link->pl_irq = irq;
@@ -351,19 +353,19 @@ pci_pir_initial_irqs(struct PIR_entry *entry, struct PIR_intpin *intpin,
 	 */
 	if (!pci_pir_valid_irq(pci_link, irq)) {
 		printf(
-		"$PIR: BIOS IRQ %d for %d.%d.INT%c is not valid for link %#x\n",
+		    "$PIR: BIOS IRQ %d for %d.%d.INT%c is not valid for link %#x\n",
 		    irq, entry->pe_bus, entry->pe_device, pin + 'A',
 		    pci_link->pl_id);
 	} else if (!pci_pir_valid_irq(pci_link, pci_link->pl_irq)) {
 		printf(
-"$PIR: Preferring valid BIOS IRQ %d from %d.%d.INT%c for link %#x to IRQ %d\n", 
+		    "$PIR: Preferring valid BIOS IRQ %d from %d.%d.INT%c for link %#x to IRQ %d\n",
 		    irq, entry->pe_bus, entry->pe_device, pin + 'A',
 		    pci_link->pl_id, pci_link->pl_irq);
 		pci_link->pl_irq = irq;
 		pci_link->pl_routed = 1;
 	} else
 		printf(
-	"$PIR: BIOS IRQ %d for %d.%d.INT%c does not match link %#x irq %d\n",
+		    "$PIR: BIOS IRQ %d for %d.%d.INT%c does not match link %#x irq %d\n",
 		    irq, entry->pe_bus, entry->pe_device, pin + 'A',
 		    pci_link->pl_id, pci_link->pl_irq);
 }
@@ -411,7 +413,7 @@ pci_pir_parse(void)
 	 * of 255 or 0 clears any preset IRQ.
 	 */
 	i = 0;
-	TAILQ_FOREACH(pci_link, &pci_links, pl_links) {
+	TAILQ_FOREACH (pci_link, &pci_links, pl_links) {
 		snprintf(tunable_buffer, sizeof(tunable_buffer),
 		    "hw.pci.link.%#x.irq", pci_link->pl_id);
 		if (getenv_int(tunable_buffer, &irq) == 0)
@@ -421,7 +423,7 @@ pci_pir_parse(void)
 		if (irq != PCI_INVALID_IRQ &&
 		    !pci_pir_valid_irq(pci_link, irq) && bootverbose)
 			printf(
-		"$PIR: Warning, IRQ %d for link %#x is not listed as valid\n",
+			    "$PIR: Warning, IRQ %d for link %#x is not listed as valid\n",
 			    irq, pci_link->pl_id);
 		pci_link->pl_routed = 0;
 		pci_link->pl_irq = irq;
@@ -436,7 +438,7 @@ pci_pir_parse(void)
 	 * Build initial interrupt weights as well as bitmap of "known-good"
 	 * IRQs that the BIOS has already used for PCI link devices.
 	 */
-	TAILQ_FOREACH(pci_link, &pci_links, pl_links) {
+	TAILQ_FOREACH (pci_link, &pci_links, pl_links) {
 		if (!PCI_INTERRUPT_VALID(pci_link->pl_irq))
 			continue;
 		pir_bios_irqs |= 1 << pci_link->pl_irq;
@@ -499,8 +501,8 @@ pci_pir_route_interrupt(int bus, int device, int func, int pin)
 	lookup.pci_link_ptr = &pci_link;
 	pci_pir_walk_table(pci_pir_find_link_handler, &lookup);
 	if (pci_link == NULL) {
-		printf("$PIR: No matching entry for %d.%d.INT%c\n", bus,
-		    device, pin - 1 + 'A');
+		printf("$PIR: No matching entry for %d.%d.INT%c\n", bus, device,
+		    pin - 1 + 'A');
 		return (PCI_INVALID_IRQ);
 	}
 
@@ -527,7 +529,7 @@ pci_pir_route_interrupt(int bus, int device, int func, int pin)
 		if (!PCI_INTERRUPT_VALID(irq)) {
 			if (bootverbose)
 				printf(
-			"$PIR: Failed to route interrupt for %d:%d INT%c\n",
+				    "$PIR: Failed to route interrupt for %d:%d INT%c\n",
 				    bus, device, pin - 1 + 'A');
 			return (PCI_INVALID_IRQ);
 		}
@@ -618,7 +620,7 @@ pci_pir_dump_links(void)
 	struct pci_link *pci_link;
 
 	printf("Link  IRQ  Rtd  Ref  IRQs\n");
-	TAILQ_FOREACH(pci_link, &pci_links, pl_links) {
+	TAILQ_FOREACH (pci_link, &pci_links, pl_links) {
 		printf("%#4x  %3d   %c   %3d  ", pci_link->pl_id,
 		    pci_link->pl_irq, pci_link->pl_routed ? 'Y' : 'N',
 		    pci_link->pl_references);
@@ -693,11 +695,11 @@ pir_resume(device_t dev)
 	int error;
 
 	/* Ask the BIOS to re-route each link that was already routed. */
-	TAILQ_FOREACH(pci_link, &pci_links, pl_links) {
+	TAILQ_FOREACH (pci_link, &pci_links, pl_links) {
 		if (!PCI_INTERRUPT_VALID(pci_link->pl_irq)) {
 			KASSERT(!pci_link->pl_routed,
 			    ("link %#x is routed but has invalid PCI IRQ",
-			    pci_link->pl_id));
+				pci_link->pl_id));
 			continue;
 		}
 		if (pci_link->pl_routed) {
@@ -705,18 +707,18 @@ pir_resume(device_t dev)
 			pd.link = pci_link->pl_id;
 			pci_pir_walk_table(pir_resume_find_device, &pd);
 			KASSERT(pd.bus != -1,
-		("did not find matching entry for link %#x in the $PIR table",
-			    pci_link->pl_id));
+			    ("did not find matching entry for link %#x in the $PIR table",
+				pci_link->pl_id));
 			if (bootverbose)
 				device_printf(dev,
-			    "Using %d.%d.INT%c to route link %#x to IRQ %d\n",
+				    "Using %d.%d.INT%c to route link %#x to IRQ %d\n",
 				    pd.bus, pd.device, pd.pin + 'A',
 				    pci_link->pl_id, pci_link->pl_irq);
 			error = pci_pir_biosroute(pd.bus, pd.device, 0, pd.pin,
 			    pci_link->pl_irq);
 			if (error)
 				device_printf(dev,
-			    "ROUTE_INTERRUPT on resume for link %#x failed.\n",
+				    "ROUTE_INTERRUPT on resume for link %#x failed.\n",
 				    pci_link->pl_id);
 		}
 	}
@@ -725,10 +727,9 @@ pir_resume(device_t dev)
 
 static device_method_t pir_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		pir_probe),
-	DEVMETHOD(device_attach,	pir_attach),
-	DEVMETHOD(device_resume,	pir_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, pir_probe),
+	DEVMETHOD(device_attach, pir_attach),
+	DEVMETHOD(device_resume, pir_resume), { 0, 0 }
 };
 
 static driver_t pir_driver = {

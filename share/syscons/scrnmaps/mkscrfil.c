@@ -26,13 +26,15 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/ioctl.h>
 #include <sys/consio.h>
+#include <sys/ioctl.h>
+
 #include <stdio.h>
 
 #include FIL
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	FILE *fd;
 
@@ -44,8 +46,7 @@ int main(int argc, char **argv)
 		fwrite(&scrmap, sizeof(scrmap_t), 1, fd);
 		fclose(fd);
 		return 0;
-	}
-	else {
+	} else {
 		fprintf(stderr, "usage: %s <mapfile>\n", argv[0]);
 		return 1;
 	}

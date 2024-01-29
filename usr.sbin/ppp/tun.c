@@ -27,18 +27,18 @@
  */
 
 #include <sys/param.h>
-
-#include <sys/socket.h>		/* For IFF_ defines */
+#include <sys/socket.h> /* For IFF_ defines */
 #ifndef __FreeBSD__
-#include <net/if.h>		/* For IFF_ defines */
+#include <net/if.h> /* For IFF_ defines */
 #endif
+#include <sys/un.h>
+
+#include <net/if_tun.h>
+#include <net/if_types.h>
 #include <net/route.h>
 #include <netinet/in.h>
-#include <net/if_types.h>
-#include <net/if_tun.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <sys/un.h>
 
 #include <errno.h>
 #include <string.h>
@@ -51,69 +51,70 @@
 #include <unistd.h>
 #endif
 
-#include "layer.h"
-#include "mbuf.h"
-#include "log.h"
-#include "id.h"
-#include "timer.h"
-#include "lqr.h"
-#include "hdlc.h"
-#include "defs.h"
-#include "fsm.h"
-#include "throughput.h"
-#include "iplist.h"
-#include "slcompress.h"
-#include "ncpaddr.h"
-#include "ipcp.h"
-#include "filter.h"
-#include "descriptor.h"
-#include "lcp.h"
 #include "ccp.h"
-#include "link.h"
-#include "mp.h"
+#include "defs.h"
+#include "descriptor.h"
+#include "filter.h"
+#include "fsm.h"
+#include "hdlc.h"
+#include "id.h"
 #include "iface.h"
+#include "ipcp.h"
+#include "iplist.h"
+#include "layer.h"
+#include "lcp.h"
+#include "link.h"
+#include "log.h"
+#include "lqr.h"
+#include "mbuf.h"
+#include "mp.h"
+#include "ncpaddr.h"
+#include "slcompress.h"
+#include "throughput.h"
+#include "timer.h"
 #ifndef NORADIUS
 #include "radius.h"
 #endif
+#include "bundle.h"
 #include "ipv6cp.h"
 #include "ncp.h"
-#include "bundle.h"
 #include "tun.h"
 
 void
 tun_configure(struct bundle *bundle)
 {
 #ifdef __NetBSD__
-  struct ifreq ifr;
-  int s;
+	struct ifreq ifr;
+	int s;
 
-  s = socket(PF_INET, SOCK_DGRAM, 0);
+	s = socket(PF_INET, SOCK_DGRAM, 0);
 
-  if (s < 0) {
-    log_Printf(LogERROR, "tun_configure: socket(): %s\n", strerror(errno));
-    return;
-  }
+	if (s < 0) {
+		log_Printf(LogERROR, "tun_configure: socket(): %s\n",
+		    strerror(errno));
+		return;
+	}
 
-  sprintf(ifr.ifr_name, "tun%d", bundle->unit);
-  ifr.ifr_mtu = bundle->iface->mtu;
-  if (ioctl(s, SIOCSIFMTU, &ifr) < 0)
-      log_Printf(LogERROR, "tun_configure: ioctl(SIOCSIFMTU): %s\n",
-             strerror(errno));
+	sprintf(ifr.ifr_name, "tun%d", bundle->unit);
+	ifr.ifr_mtu = bundle->iface->mtu;
+	if (ioctl(s, SIOCSIFMTU, &ifr) < 0)
+		log_Printf(LogERROR, "tun_configure: ioctl(SIOCSIFMTU): %s\n",
+		    strerror(errno));
 
-  close(s);
+	close(s);
 #else
-  struct tuninfo info;
+	struct tuninfo info;
 
-  memset(&info, '\0', sizeof info);
-  info.type = IFT_PPP;
-  info.mtu = bundle->iface->mtu;
+	memset(&info, '\0', sizeof info);
+	info.type = IFT_PPP;
+	info.mtu = bundle->iface->mtu;
 
-  info.baudrate = bundle->bandwidth;
+	info.baudrate = bundle->bandwidth;
 #ifdef __OpenBSD__
-  info.flags = IFF_UP|IFF_POINTOPOINT|IFF_MULTICAST;
+	info.flags = IFF_UP | IFF_POINTOPOINT | IFF_MULTICAST;
 #endif
-  if (ID0ioctl(bundle->dev.fd, TUNSIFINFO, &info) < 0)
-    log_Printf(LogERROR, "tun_configure: ioctl(TUNSIFINFO): %s\n",
-	      strerror(errno));
+	if (ID0ioctl(bundle->dev.fd, TUNSIFINFO, &info) < 0)
+		log_Printf(LogERROR, "tun_configure: ioctl(TUNSIFINFO): %s\n",
+		    strerror(errno));
 #endif
 }

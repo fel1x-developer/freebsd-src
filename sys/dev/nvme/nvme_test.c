@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
@@ -36,7 +37,6 @@
 #include <sys/syscallsubr.h>
 #include <sys/sysctl.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
 #include <sys/unistd.h>
 
 #include <geom/geom.h>
@@ -44,26 +44,26 @@
 #include "nvme_private.h"
 
 struct nvme_io_test_thread {
-	uint32_t		idx;
-	struct nvme_namespace	*ns;
-	enum nvme_nvm_opcode	opc;
-	struct timeval		start;
-	void			*buf;
-	uint32_t		size;
-	uint32_t		time;
-	uint64_t		io_completed;
+	uint32_t idx;
+	struct nvme_namespace *ns;
+	enum nvme_nvm_opcode opc;
+	struct timeval start;
+	void *buf;
+	uint32_t size;
+	uint32_t time;
+	uint64_t io_completed;
 };
 
 struct nvme_io_test_internal {
-	struct nvme_namespace	*ns;
-	enum nvme_nvm_opcode	opc;
-	struct timeval		start;
-	uint32_t		time;
-	uint32_t		size;
-	uint32_t		td_active;
-	uint32_t		td_idx;
-	uint32_t		flags;
-	uint64_t		io_completed[NVME_TEST_MAX_THREADS];
+	struct nvme_namespace *ns;
+	enum nvme_nvm_opcode opc;
+	struct timeval start;
+	uint32_t time;
+	uint32_t size;
+	uint32_t td_active;
+	uint32_t td_idx;
+	uint32_t flags;
+	uint64_t io_completed[NVME_TEST_MAX_THREADS];
 };
 
 static void
@@ -80,16 +80,16 @@ nvme_ns_bio_test_cb(struct bio *bio)
 static void
 nvme_ns_bio_test(void *arg)
 {
-	struct nvme_io_test_internal	*io_test = arg;
-	struct cdevsw			*csw;
-	struct mtx			*mtx;
-	struct bio			*bio;
-	struct cdev			*dev;
-	void				*buf;
-	struct timeval			t;
-	uint64_t			io_completed = 0, offset;
-	uint32_t			idx;
-	int				ref;
+	struct nvme_io_test_internal *io_test = arg;
+	struct cdevsw *csw;
+	struct mtx *mtx;
+	struct bio *bio;
+	struct cdev *dev;
+	void *buf;
+	struct timeval t;
+	uint64_t io_completed = 0, offset;
+	uint32_t idx;
+	int ref;
 
 	buf = malloc(io_test->size, M_NVME, M_WAITOK);
 	idx = atomic_fetchadd_int(&io_test->td_idx, 1);
@@ -101,8 +101,8 @@ nvme_ns_bio_test(void *arg)
 		bio = g_alloc_bio();
 
 		memset(bio, 0, sizeof(*bio));
-		bio->bio_cmd = (io_test->opc == NVME_OPC_READ) ?
-		    BIO_READ : BIO_WRITE;
+		bio->bio_cmd = (io_test->opc == NVME_OPC_READ) ? BIO_READ :
+								 BIO_WRITE;
 		bio->bio_done = nvme_ns_bio_test_cb;
 		bio->bio_dev = dev;
 		bio->bio_offset = offset;
@@ -158,8 +158,8 @@ nvme_ns_bio_test(void *arg)
 static void
 nvme_ns_io_test_cb(void *arg, const struct nvme_completion *cpl)
 {
-	struct nvme_io_test_thread	*tth = arg;
-	struct timeval			t;
+	struct nvme_io_test_thread *tth = arg;
+	struct timeval t;
 
 	tth->io_completed++;
 
@@ -180,12 +180,12 @@ nvme_ns_io_test_cb(void *arg, const struct nvme_completion *cpl)
 	switch (tth->opc) {
 	case NVME_OPC_WRITE:
 		nvme_ns_cmd_write(tth->ns, tth->buf, tth->idx * 2048,
-		    tth->size/nvme_ns_get_sector_size(tth->ns),
+		    tth->size / nvme_ns_get_sector_size(tth->ns),
 		    nvme_ns_io_test_cb, tth);
 		break;
 	case NVME_OPC_READ:
 		nvme_ns_cmd_read(tth->ns, tth->buf, tth->idx * 2048,
-		    tth->size/nvme_ns_get_sector_size(tth->ns),
+		    tth->size / nvme_ns_get_sector_size(tth->ns),
 		    nvme_ns_io_test_cb, tth);
 		break;
 	default:
@@ -196,10 +196,10 @@ nvme_ns_io_test_cb(void *arg, const struct nvme_completion *cpl)
 static void
 nvme_ns_io_test(void *arg)
 {
-	struct nvme_io_test_internal	*io_test = arg;
-	struct nvme_io_test_thread	*tth;
-	struct nvme_completion		cpl;
-	int				error;
+	struct nvme_io_test_internal *io_test = arg;
+	struct nvme_io_test_thread *tth;
+	struct nvme_completion cpl;
+	int error;
 
 	tth = malloc(sizeof(*tth), M_NVME, M_WAITOK | M_ZERO);
 	tth->ns = io_test->ns;
@@ -214,7 +214,7 @@ nvme_ns_io_test(void *arg)
 
 	nvme_ns_io_test_cb(tth, &cpl);
 
-	error = tsleep(tth, 0, "test_wait", tth->time*hz*2);
+	error = tsleep(tth, 0, "test_wait", tth->time * hz * 2);
 
 	if (error)
 		printf("%s: error = %d\n", __func__, error);
@@ -234,15 +234,14 @@ nvme_ns_io_test(void *arg)
 void
 nvme_ns_test(struct nvme_namespace *ns, u_long cmd, caddr_t arg)
 {
-	struct nvme_io_test		*io_test;
-	struct nvme_io_test_internal	*io_test_internal;
-	void				(*fn)(void *);
-	int				i;
+	struct nvme_io_test *io_test;
+	struct nvme_io_test_internal *io_test_internal;
+	void (*fn)(void *);
+	int i;
 
 	io_test = (struct nvme_io_test *)arg;
 
-	if ((io_test->opc != NVME_OPC_READ) &&
-	    (io_test->opc != NVME_OPC_WRITE))
+	if ((io_test->opc != NVME_OPC_READ) && (io_test->opc != NVME_OPC_WRITE))
 		return;
 
 	if (io_test->size % nvme_ns_get_sector_size(ns))
@@ -265,8 +264,8 @@ nvme_ns_test(struct nvme_namespace *ns, u_long cmd, caddr_t arg)
 	getmicrouptime(&io_test_internal->start);
 
 	for (i = 0; i < io_test->num_threads; i++)
-		kthread_add(fn, io_test_internal,
-		    NULL, NULL, 0, 0, "nvme_io_test[%d]", i);
+		kthread_add(fn, io_test_internal, NULL, NULL, 0, 0,
+		    "nvme_io_test[%d]", i);
 
 	tsleep(io_test_internal, 0, "nvme_test", io_test->time * 2 * hz);
 

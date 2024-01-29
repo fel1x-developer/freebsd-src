@@ -61,21 +61,20 @@
  */
 
 #include <dev/isci/scil/scic_controller.h>
-#include <dev/isci/scil/scic_sds_logger.h>
 #include <dev/isci/scil/scic_sds_controller.h>
+#include <dev/isci/scil/scic_sds_logger.h>
 #include <dev/isci/scil/scic_sds_port_configuration_agent.h>
 
-#define SCIC_SDS_MPC_RECONFIGURATION_TIMEOUT    (10)
-#define SCIC_SDS_APC_RECONFIGURATION_TIMEOUT    (10)
-#define SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION  (250)
+#define SCIC_SDS_MPC_RECONFIGURATION_TIMEOUT (10)
+#define SCIC_SDS_APC_RECONFIGURATION_TIMEOUT (10)
+#define SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION (250)
 
-enum SCIC_SDS_APC_ACTIVITY
-{
-   SCIC_SDS_APC_SKIP_PHY,
-   SCIC_SDS_APC_ADD_PHY,
-   SCIC_SDS_APC_START_TIMER,
+enum SCIC_SDS_APC_ACTIVITY {
+	SCIC_SDS_APC_SKIP_PHY,
+	SCIC_SDS_APC_ADD_PHY,
+	SCIC_SDS_APC_START_TIMER,
 
-   SCIC_SDS_APC_ACTIVITY_MAX
+	SCIC_SDS_APC_ACTIVITY_MAX
 };
 
 //******************************************************************************
@@ -96,31 +95,22 @@ enum SCIC_SDS_APC_ACTIVITY
  *         y is returned for Address One < Address Two
  *         0 is returned ofr Address One = Address Two
  */
-static
-S32 sci_sas_address_compare(
-   SCI_SAS_ADDRESS_T address_one,
-   SCI_SAS_ADDRESS_T address_two
-)
+static S32
+sci_sas_address_compare(SCI_SAS_ADDRESS_T address_one,
+    SCI_SAS_ADDRESS_T address_two)
 {
-   if (address_one.high > address_two.high)
-   {
-      return 1;
-   }
-   else if (address_one.high < address_two.high)
-   {
-      return -1;
-   }
-   else if (address_one.low > address_two.low)
-   {
-      return 1;
-   }
-   else if (address_one.low < address_two.low)
-   {
-      return -1;
-   }
+	if (address_one.high > address_two.high) {
+		return 1;
+	} else if (address_one.high < address_two.high) {
+		return -1;
+	} else if (address_one.low > address_two.low) {
+		return 1;
+	} else if (address_one.low < address_two.low) {
+		return -1;
+	}
 
-   // The two SAS Address must be identical
-   return 0;
+	// The two SAS Address must be identical
+	return 0;
 }
 
 /**
@@ -137,52 +127,50 @@ S32 sci_sas_address_compare(
  * @retvalue port address if the port can be found to match the phy.
  * @retvalue SCI_INVALID_HANDLE if there is no matching port for the phy.
  */
-static
-SCIC_SDS_PORT_T * scic_sds_port_configuration_agent_find_port(
-   SCIC_SDS_CONTROLLER_T * controller,
-   SCIC_SDS_PHY_T        * phy
-)
+static SCIC_SDS_PORT_T *
+scic_sds_port_configuration_agent_find_port(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PHY_T *phy)
 {
-   U8 port_index;
-   SCI_PORT_HANDLE_T port_handle;
-   SCI_SAS_ADDRESS_T port_sas_address;
-   SCI_SAS_ADDRESS_T port_attached_device_address;
-   SCI_SAS_ADDRESS_T phy_sas_address;
-   SCI_SAS_ADDRESS_T phy_attached_device_address;
+	U8 port_index;
+	SCI_PORT_HANDLE_T port_handle;
+	SCI_SAS_ADDRESS_T port_sas_address;
+	SCI_SAS_ADDRESS_T port_attached_device_address;
+	SCI_SAS_ADDRESS_T phy_sas_address;
+	SCI_SAS_ADDRESS_T phy_attached_device_address;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_port_confgiruation_agent_find_port(0x%08x, 0x%08x) enter\n",
-      controller, phy
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_port_confgiruation_agent_find_port(0x%08x, 0x%08x) enter\n",
+	    controller, phy));
 
-   // Since this phy can be a member of a wide port check to see if one or
-   // more phys match the sent and received SAS address as this phy in which
-   // case it should participate in the same port.
-   scic_sds_phy_get_sas_address(phy, &phy_sas_address);
-   scic_sds_phy_get_attached_sas_address(phy, &phy_attached_device_address);
+	// Since this phy can be a member of a wide port check to see if one or
+	// more phys match the sent and received SAS address as this phy in
+	// which case it should participate in the same port.
+	scic_sds_phy_get_sas_address(phy, &phy_sas_address);
+	scic_sds_phy_get_attached_sas_address(phy,
+	    &phy_attached_device_address);
 
-   for (port_index = 0; port_index < SCI_MAX_PORTS; port_index++)
-   {
-      if (scic_controller_get_port_handle(controller, port_index, &port_handle) == SCI_SUCCESS)
-      {
-         SCIC_SDS_PORT_T * port = (SCIC_SDS_PORT_T *)port_handle;
+	for (port_index = 0; port_index < SCI_MAX_PORTS; port_index++) {
+		if (scic_controller_get_port_handle(controller, port_index,
+			&port_handle) == SCI_SUCCESS) {
+			SCIC_SDS_PORT_T *port = (SCIC_SDS_PORT_T *)port_handle;
 
-         scic_sds_port_get_sas_address(port, &port_sas_address);
-         scic_sds_port_get_attached_sas_address(port, &port_attached_device_address);
+			scic_sds_port_get_sas_address(port, &port_sas_address);
+			scic_sds_port_get_attached_sas_address(port,
+			    &port_attached_device_address);
 
-         if (
-               (sci_sas_address_compare(port_sas_address, phy_sas_address) == 0)
-            && (sci_sas_address_compare(port_attached_device_address, phy_attached_device_address) == 0)
-            )
-         {
-            return port;
-         }
-      }
-   }
+			if ((sci_sas_address_compare(port_sas_address,
+				 phy_sas_address) == 0) &&
+			    (sci_sas_address_compare(
+				 port_attached_device_address,
+				 phy_attached_device_address) == 0)) {
+				return port;
+			}
+		}
+	}
 
-   return SCI_INVALID_HANDLE;
+	return SCI_INVALID_HANDLE;
 }
 
 /**
@@ -204,103 +192,91 @@ SCIC_SDS_PORT_T * scic_sds_port_configuration_agent_find_port(
  * @retval SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION the port configuration
  *         is not valid for this port configuration agent.
  */
-static
-SCI_STATUS scic_sds_port_configuration_agent_validate_ports(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+static SCI_STATUS
+scic_sds_port_configuration_agent_validate_ports(
+    SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
 #if !defined(ARLINGTON_BUILD)
-   SCI_SAS_ADDRESS_T first_address;
-   SCI_SAS_ADDRESS_T second_address;
+	SCI_SAS_ADDRESS_T first_address;
+	SCI_SAS_ADDRESS_T second_address;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_configuration_agent_validate_ports(0x%08x, 0x%08x) enter\n",
-      controller, port_agent
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_port_configuration_agent_validate_ports(0x%08x, 0x%08x) enter\n",
+	    controller, port_agent));
 
-   // Sanity check the max ranges for all the phys the max index
-   // is always equal to the port range index
-   if (
-         (port_agent->phy_valid_port_range[0].max_index != 0)
-      || (port_agent->phy_valid_port_range[1].max_index != 1)
-      || (port_agent->phy_valid_port_range[2].max_index != 2)
-      || (port_agent->phy_valid_port_range[3].max_index != 3)
-      )
-   {
-      return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-   }
+	// Sanity check the max ranges for all the phys the max index
+	// is always equal to the port range index
+	if ((port_agent->phy_valid_port_range[0].max_index != 0) ||
+	    (port_agent->phy_valid_port_range[1].max_index != 1) ||
+	    (port_agent->phy_valid_port_range[2].max_index != 2) ||
+	    (port_agent->phy_valid_port_range[3].max_index != 3)) {
+		return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+	}
 
-   // This is a request to configure a single x4 port or at least attempt
-   // to make all the phys into a single port
-   if (
-         (port_agent->phy_valid_port_range[0].min_index == 0)
-      && (port_agent->phy_valid_port_range[1].min_index == 0)
-      && (port_agent->phy_valid_port_range[2].min_index == 0)
-      && (port_agent->phy_valid_port_range[3].min_index == 0)
-      )
-   {
-      return SCI_SUCCESS;
-   }
+	// This is a request to configure a single x4 port or at least attempt
+	// to make all the phys into a single port
+	if ((port_agent->phy_valid_port_range[0].min_index == 0) &&
+	    (port_agent->phy_valid_port_range[1].min_index == 0) &&
+	    (port_agent->phy_valid_port_range[2].min_index == 0) &&
+	    (port_agent->phy_valid_port_range[3].min_index == 0)) {
+		return SCI_SUCCESS;
+	}
 
-   // This is a degenerate case where phy 1 and phy 2 are assigned
-   // to the same port this is explicitly disallowed by the hardware
-   // unless they are part of the same x4 port and this condition was
-   // already checked above.
-   if (port_agent->phy_valid_port_range[2].min_index == 1)
-   {
-      return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-   }
+	// This is a degenerate case where phy 1 and phy 2 are assigned
+	// to the same port this is explicitly disallowed by the hardware
+	// unless they are part of the same x4 port and this condition was
+	// already checked above.
+	if (port_agent->phy_valid_port_range[2].min_index == 1) {
+		return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+	}
 
-   // PE0 and PE3 can never have the same SAS Address unless they
-   // are part of the same x4 wide port and we have already checked
-   // for this condition.
-   scic_sds_phy_get_sas_address(&controller->phy_table[0], &first_address);
-   scic_sds_phy_get_sas_address(&controller->phy_table[3], &second_address);
+	// PE0 and PE3 can never have the same SAS Address unless they
+	// are part of the same x4 wide port and we have already checked
+	// for this condition.
+	scic_sds_phy_get_sas_address(&controller->phy_table[0], &first_address);
+	scic_sds_phy_get_sas_address(&controller->phy_table[3],
+	    &second_address);
 
-   if (sci_sas_address_compare(first_address, second_address) == 0)
-   {
-      return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-   }
+	if (sci_sas_address_compare(first_address, second_address) == 0) {
+		return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+	}
 
-   // PE0 and PE1 are configured into a 2x1 ports make sure that the
-   // SAS Address for PE0 and PE2 are different since they can not be
-   // part of the same port.
-   if (
-         (port_agent->phy_valid_port_range[0].min_index == 0)
-      && (port_agent->phy_valid_port_range[1].min_index == 1)
-      )
-   {
-      scic_sds_phy_get_sas_address(&controller->phy_table[0], &first_address);
-      scic_sds_phy_get_sas_address(&controller->phy_table[2], &second_address);
+	// PE0 and PE1 are configured into a 2x1 ports make sure that the
+	// SAS Address for PE0 and PE2 are different since they can not be
+	// part of the same port.
+	if ((port_agent->phy_valid_port_range[0].min_index == 0) &&
+	    (port_agent->phy_valid_port_range[1].min_index == 1)) {
+		scic_sds_phy_get_sas_address(&controller->phy_table[0],
+		    &first_address);
+		scic_sds_phy_get_sas_address(&controller->phy_table[2],
+		    &second_address);
 
-      if (sci_sas_address_compare(first_address, second_address) == 0)
-      {
-         return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-      }
-   }
+		if (sci_sas_address_compare(first_address, second_address) ==
+		    0) {
+			return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+		}
+	}
 
-   // PE2 and PE3 are configured into a 2x1 ports make sure that the
-   // SAS Address for PE1 and PE3 are different since they can not be
-   // part of the same port.
-   if (
-         (port_agent->phy_valid_port_range[2].min_index == 2)
-      && (port_agent->phy_valid_port_range[3].min_index == 3)
-      )
-   {
-      scic_sds_phy_get_sas_address(&controller->phy_table[1], &first_address);
-      scic_sds_phy_get_sas_address(&controller->phy_table[3], &second_address);
+	// PE2 and PE3 are configured into a 2x1 ports make sure that the
+	// SAS Address for PE1 and PE3 are different since they can not be
+	// part of the same port.
+	if ((port_agent->phy_valid_port_range[2].min_index == 2) &&
+	    (port_agent->phy_valid_port_range[3].min_index == 3)) {
+		scic_sds_phy_get_sas_address(&controller->phy_table[1],
+		    &first_address);
+		scic_sds_phy_get_sas_address(&controller->phy_table[3],
+		    &second_address);
 
-      if (sci_sas_address_compare(first_address, second_address) == 0)
-      {
-         return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-      }
-   }
+		if (sci_sas_address_compare(first_address, second_address) ==
+		    0) {
+			return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+		}
+	}
 #endif // !defined(ARLINGTON_BUILD)
 
-   return SCI_SUCCESS;
+	return SCI_SUCCESS;
 }
 
 //******************************************************************************
@@ -314,103 +290,108 @@ SCI_STATUS scic_sds_port_configuration_agent_validate_ports(
  * @param[in] controller This is the controller that contains the PHYs to
  *            be verified.
  */
-static
-SCI_STATUS scic_sds_mpc_agent_validate_phy_configuration(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+static SCI_STATUS
+scic_sds_mpc_agent_validate_phy_configuration(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   U32 phy_mask;
-   U32 assigned_phy_mask;
-   SCI_SAS_ADDRESS_T sas_address;
-   SCI_SAS_ADDRESS_T phy_assigned_address;
-   U8 port_index;
-   U8 phy_index;
+	U32 phy_mask;
+	U32 assigned_phy_mask;
+	SCI_SAS_ADDRESS_T sas_address;
+	SCI_SAS_ADDRESS_T phy_assigned_address;
+	U8 port_index;
+	U8 phy_index;
 
-   assigned_phy_mask = 0;
-   sas_address.high = 0;
-   sas_address.low = 0;
+	assigned_phy_mask = 0;
+	sas_address.high = 0;
+	sas_address.low = 0;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_mpc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
-      controller, port_agent
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_mpc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
+	    controller, port_agent));
 
-   for (port_index = 0; port_index < SCI_MAX_PORTS; port_index++)
-   {
-      phy_mask = controller->oem_parameters.sds1.ports[port_index].phy_mask;
+	for (port_index = 0; port_index < SCI_MAX_PORTS; port_index++) {
+		phy_mask =
+		    controller->oem_parameters.sds1.ports[port_index].phy_mask;
 
-      if (phy_mask != 0)
-      {
-         // Make sure that one or more of the phys were not already assigned to
-         // a different port.
-         if ((phy_mask & ~assigned_phy_mask) == 0)
-         {
-            return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-         }
+		if (phy_mask != 0) {
+			// Make sure that one or more of the phys were not
+			// already assigned to a different port.
+			if ((phy_mask & ~assigned_phy_mask) == 0) {
+				return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+			}
 
-         // Find the starting phy index for this round through the loop
-         for (phy_index = 0; phy_index < SCI_MAX_PHYS; phy_index++)
-         {
-            if ((1 << phy_index) & phy_mask)
-            {
-               scic_sds_phy_get_sas_address(
-                  &controller->phy_table[phy_index], &sas_address
-               );
+			// Find the starting phy index for this round through
+			// the loop
+			for (phy_index = 0; phy_index < SCI_MAX_PHYS;
+			     phy_index++) {
+				if ((1 << phy_index) & phy_mask) {
+					scic_sds_phy_get_sas_address(
+					    &controller->phy_table[phy_index],
+					    &sas_address);
 
-               // The phy_index can be used as the starting point for the
-               // port range since the hardware starts all logical ports
-               // the same as the PE index.
-               port_agent->phy_valid_port_range[phy_index].min_index = port_index;
-               port_agent->phy_valid_port_range[phy_index].max_index = phy_index;
+					// The phy_index can be used as the
+					// starting point for the port range
+					// since the hardware starts all logical
+					// ports the same as the PE index.
+					port_agent
+					    ->phy_valid_port_range[phy_index]
+					    .min_index = port_index;
+					port_agent
+					    ->phy_valid_port_range[phy_index]
+					    .max_index = phy_index;
 
-               if (phy_index != port_index)
-               {
-                  return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-               }
+					if (phy_index != port_index) {
+						return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+					}
 
-               break;
-            }
-         }
+					break;
+				}
+			}
 
-         // See how many additional phys are being added to this logical port.
-         // Note: We have not moved the current phy_index so we will actually
-         //       compare the startting phy with itself.
-         //       This is expected and required to add the phy to the port.
-         while (phy_index < SCI_MAX_PHYS)
-         {
-            if ((1 << phy_index) & phy_mask)
-            {
-               scic_sds_phy_get_sas_address(
-                  &controller->phy_table[phy_index], &phy_assigned_address
-               );
+			// See how many additional phys are being added to this
+			// logical port. Note: We have not moved the current
+			// phy_index so we will actually
+			//       compare the startting phy with itself.
+			//       This is expected and required to add the phy to
+			//       the port.
+			while (phy_index < SCI_MAX_PHYS) {
+				if ((1 << phy_index) & phy_mask) {
+					scic_sds_phy_get_sas_address(
+					    &controller->phy_table[phy_index],
+					    &phy_assigned_address);
 
-               if (sci_sas_address_compare(sas_address, phy_assigned_address) != 0)
-               {
-                  // The phy mask specified that this phy is part of the same port
-                  // as the starting phy and it is not so fail this configuration
-                  return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
-               }
+					if (sci_sas_address_compare(sas_address,
+						phy_assigned_address) != 0) {
+						// The phy mask specified that
+						// this phy is part of the same
+						// port as the starting phy and
+						// it is not so fail this
+						// configuration
+						return SCI_FAILURE_UNSUPPORTED_PORT_CONFIGURATION;
+					}
 
-               port_agent->phy_valid_port_range[phy_index].min_index = port_index;
-               port_agent->phy_valid_port_range[phy_index].max_index = phy_index;
+					port_agent
+					    ->phy_valid_port_range[phy_index]
+					    .min_index = port_index;
+					port_agent
+					    ->phy_valid_port_range[phy_index]
+					    .max_index = phy_index;
 
-               scic_sds_port_add_phy(
-                  &controller->port_table[port_index],
-                  &controller->phy_table[phy_index]
-               );
+					scic_sds_port_add_phy(
+					    &controller->port_table[port_index],
+					    &controller->phy_table[phy_index]);
 
-               assigned_phy_mask |= (1 << phy_index);
-            }
+					assigned_phy_mask |= (1 << phy_index);
+				}
 
-            phy_index++;
-         }
-      }
-   }
+				phy_index++;
+			}
+		}
+	}
 
-   return scic_sds_port_configuration_agent_validate_ports(controller, port_agent);
+	return scic_sds_port_configuration_agent_validate_ports(controller,
+	    port_agent);
 }
 
 /**
@@ -421,40 +402,34 @@ SCI_STATUS scic_sds_mpc_agent_validate_phy_configuration(
  * @param[in] controller This is the core controller object which is used
  *            to obtain the port configuration agent.
  */
-static
-void scic_sds_mpc_agent_timeout_handler(
-   void * object
-)
+static void
+scic_sds_mpc_agent_timeout_handler(void *object)
 {
-   U8 index;
-   SCIC_SDS_CONTROLLER_T * controller = (SCIC_SDS_CONTROLLER_T *)object;
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent = &controller->port_agent;
-   U16 configure_phy_mask;
+	U8 index;
+	SCIC_SDS_CONTROLLER_T *controller = (SCIC_SDS_CONTROLLER_T *)object;
+	SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent =
+	    &controller->port_agent;
+	U16 configure_phy_mask;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_mpc_agent_timeout_handler(0x%08x) enter\n",
-      controller
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_mpc_agent_timeout_handler(0x%08x) enter\n", controller));
 
-   port_agent->timer_pending = FALSE;
+	port_agent->timer_pending = FALSE;
 
-   // Find the mask of phys that are reported read but as yet unconfigured into a port
-   configure_phy_mask = ~port_agent->phy_configured_mask & port_agent->phy_ready_mask;
+	// Find the mask of phys that are reported read but as yet unconfigured
+	// into a port
+	configure_phy_mask = ~port_agent->phy_configured_mask &
+	    port_agent->phy_ready_mask;
 
-   for (index = 0; index < SCI_MAX_PHYS; index++)
-   {
-      if (configure_phy_mask & (1 << index))
-      {
-         port_agent->link_up_handler(
-                        controller,
-                        port_agent,
-                        scic_sds_phy_get_port(&controller->phy_table[index]),
-                        &controller->phy_table[index]
-                     );
-      }
-   }
+	for (index = 0; index < SCI_MAX_PHYS; index++) {
+		if (configure_phy_mask & (1 << index)) {
+			port_agent->link_up_handler(controller, port_agent,
+			    scic_sds_phy_get_port(
+				&controller->phy_table[index]),
+			    &controller->phy_table[index]);
+		}
+	}
 }
 
 /**
@@ -472,35 +447,32 @@ void scic_sds_mpc_agent_timeout_handler(
  * @note Is it possible to get a link up notification from a phy that has
  *       no assocoated port?
  */
-static
-void scic_sds_mpc_agent_link_up(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PORT_T                     * port,
-   SCIC_SDS_PHY_T                      * phy
-)
+static void
+scic_sds_mpc_agent_link_up(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PORT_T *port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_mpc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-      controller, port_agent, port, phy
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_mpc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
+	    controller, port_agent, port, phy));
 
-   // If the port has an invalid handle then the phy was not assigned to
-   // a port.  This is because the phy was not given the same SAS Address
-   // as the other PHYs in the port.
-   if (port != SCI_INVALID_HANDLE)
-   {
-      port_agent->phy_ready_mask |= (1 << scic_sds_phy_get_index(phy));
+	// If the port has an invalid handle then the phy was not assigned to
+	// a port.  This is because the phy was not given the same SAS Address
+	// as the other PHYs in the port.
+	if (port != SCI_INVALID_HANDLE) {
+		port_agent->phy_ready_mask |= (1
+		    << scic_sds_phy_get_index(phy));
 
-      scic_sds_port_link_up(port, phy);
+		scic_sds_port_link_up(port, phy);
 
-      if ((port->active_phy_mask & (1 << scic_sds_phy_get_index(phy))) != 0)
-      {
-         port_agent->phy_configured_mask |= (1 << scic_sds_phy_get_index(phy));
-      }
-   }
+		if ((port->active_phy_mask &
+			(1 << scic_sds_phy_get_index(phy))) != 0) {
+			port_agent->phy_configured_mask |= (1
+			    << scic_sds_phy_get_index(phy));
+		}
+	}
 }
 
 /**
@@ -521,50 +493,42 @@ void scic_sds_mpc_agent_link_up(
  * @note Is it possible to get a link down notification from a phy that has
  *       no assocoated port?
  */
-static
-void scic_sds_mpc_agent_link_down(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PORT_T                     * port,
-   SCIC_SDS_PHY_T                      * phy
-)
+static void
+scic_sds_mpc_agent_link_down(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PORT_T *port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_mpc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-      controller, port_agent, port, phy
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_mpc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
+	    controller, port_agent, port, phy));
 
-   if (port != SCI_INVALID_HANDLE)
-   {
-      // If we can form a new port from the remainder of the phys then we want
-      // to start the timer to allow the SCI User to cleanup old devices and
-      // rediscover the port before rebuilding the port with the phys that
-      // remain in the ready state.
-      port_agent->phy_ready_mask &= ~(1 << scic_sds_phy_get_index(phy));
-      port_agent->phy_configured_mask &= ~(1 << scic_sds_phy_get_index(phy));
+	if (port != SCI_INVALID_HANDLE) {
+		// If we can form a new port from the remainder of the phys then
+		// we want to start the timer to allow the SCI User to cleanup
+		// old devices and rediscover the port before rebuilding the
+		// port with the phys that remain in the ready state.
+		port_agent->phy_ready_mask &= ~(
+		    1 << scic_sds_phy_get_index(phy));
+		port_agent->phy_configured_mask &= ~(
+		    1 << scic_sds_phy_get_index(phy));
 
-      // Check to see if there are more phys waiting to be configured into a port.
-      // If there are allow the SCI User to tear down this port, if necessary, and
-      // then reconstruc the port after the timeout.
-      if (
-            (port_agent->phy_configured_mask == 0x0000)
-         && (port_agent->phy_ready_mask != 0x0000)
-         && !port_agent->timer_pending
-         )
-      {
-         port_agent->timer_pending = TRUE;
+		// Check to see if there are more phys waiting to be configured
+		// into a port. If there are allow the SCI User to tear down
+		// this port, if necessary, and then reconstruc the port after
+		// the timeout.
+		if ((port_agent->phy_configured_mask == 0x0000) &&
+		    (port_agent->phy_ready_mask != 0x0000) &&
+		    !port_agent->timer_pending) {
+			port_agent->timer_pending = TRUE;
 
-         scic_cb_timer_start(
-            controller,
-            port_agent->timer,
-            SCIC_SDS_MPC_RECONFIGURATION_TIMEOUT
-         );
-      }
+			scic_cb_timer_start(controller, port_agent->timer,
+			    SCIC_SDS_MPC_RECONFIGURATION_TIMEOUT);
+		}
 
-      scic_sds_port_link_down(port, phy);
-   }
+		scic_sds_port_link_down(port, phy);
+	}
 }
 
 //******************************************************************************
@@ -575,57 +539,55 @@ void scic_sds_mpc_agent_link_down(
  * This routine will verify that the phys are assigned a valid SAS address for
  * automatic port configuration mode.
  */
-static
-SCI_STATUS scic_sds_apc_agent_validate_phy_configuration(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+static SCI_STATUS
+scic_sds_apc_agent_validate_phy_configuration(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   U8 phy_index;
-   U8 port_index;
-   SCI_SAS_ADDRESS_T sas_address;
-   SCI_SAS_ADDRESS_T phy_assigned_address;
+	U8 phy_index;
+	U8 port_index;
+	SCI_SAS_ADDRESS_T sas_address;
+	SCI_SAS_ADDRESS_T phy_assigned_address;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_apc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
-      controller, port_agent
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_apc_agent_validate_phy_configuration(0x%08x, 0x%08x) enter\n",
+	    controller, port_agent));
 
-   phy_index = 0;
+	phy_index = 0;
 
-   while (phy_index < SCI_MAX_PHYS)
-   {
-      port_index = phy_index;
+	while (phy_index < SCI_MAX_PHYS) {
+		port_index = phy_index;
 
-      // Get the assigned SAS Address for the first PHY on the controller.
-      scic_sds_phy_get_sas_address(
-         &controller->phy_table[phy_index], &sas_address
-      );
+		// Get the assigned SAS Address for the first PHY on the
+		// controller.
+		scic_sds_phy_get_sas_address(&controller->phy_table[phy_index],
+		    &sas_address);
 
-      while (++phy_index < SCI_MAX_PHYS)
-      {
-         scic_sds_phy_get_sas_address(
-            &controller->phy_table[phy_index], &phy_assigned_address
-         );
+		while (++phy_index < SCI_MAX_PHYS) {
+			scic_sds_phy_get_sas_address(
+			    &controller->phy_table[phy_index],
+			    &phy_assigned_address);
 
-         // Verify each of the SAS address are all the same for every PHY
-         if (sci_sas_address_compare(sas_address, phy_assigned_address) == 0)
-         {
-            port_agent->phy_valid_port_range[phy_index].min_index = port_index;
-            port_agent->phy_valid_port_range[phy_index].max_index = phy_index;
-         }
-         else
-         {
-            port_agent->phy_valid_port_range[phy_index].min_index = phy_index;
-            port_agent->phy_valid_port_range[phy_index].max_index = phy_index;
-            break;
-         }
-      }
-   }
+			// Verify each of the SAS address are all the same for
+			// every PHY
+			if (sci_sas_address_compare(sas_address,
+				phy_assigned_address) == 0) {
+				port_agent->phy_valid_port_range[phy_index]
+				    .min_index = port_index;
+				port_agent->phy_valid_port_range[phy_index]
+				    .max_index = phy_index;
+			} else {
+				port_agent->phy_valid_port_range[phy_index]
+				    .min_index = phy_index;
+				port_agent->phy_valid_port_range[phy_index]
+				    .max_index = phy_index;
+				break;
+			}
+		}
+	}
 
-   return scic_sds_port_configuration_agent_validate_ports(controller, port_agent);
+	return scic_sds_port_configuration_agent_validate_ports(controller,
+	    port_agent);
 }
 
 /**
@@ -642,174 +604,167 @@ SCI_STATUS scic_sds_apc_agent_validate_phy_configuration(
  *            be scheduled.
  * @param[in] timeout This is the timeout in ms.
  */
-static
-void scic_sds_apc_agent_start_timer(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PHY_T                      * phy,
-   U32                                   timeout
-)
+static void
+scic_sds_apc_agent_start_timer(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PHY_T *phy,
+    U32 timeout)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_apc_agent_start_timer(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-      controller, port_agent, phy, timeout
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_apc_agent_start_timer(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
+	    controller, port_agent, phy, timeout));
 
-   if (port_agent->timer_pending)
-   {
-      scic_cb_timer_stop(controller, port_agent->timer);
-   }
+	if (port_agent->timer_pending) {
+		scic_cb_timer_stop(controller, port_agent->timer);
+	}
 
-   port_agent->timer_pending = TRUE;
+	port_agent->timer_pending = TRUE;
 
-   scic_cb_timer_start(controller, port_agent->timer, timeout);
+	scic_cb_timer_start(controller, port_agent->timer, timeout);
 }
 
 /**
- * This method handles the automatic port configuration for link up notifications.
+ * This method handles the automatic port configuration for link up
+ * notifications.
  *
  * @param[in] controller This is the controller object that receives the
  *            link up notification.
  * @param[in] phy This is the phy object which has gone link up.
- * @param[in] start_timer This tells the routine if it should start the timer for
- *            any phys that might be added to a port in the future.
+ * @param[in] start_timer This tells the routine if it should start the timer
+ * for any phys that might be added to a port in the future.
  */
-static
-void scic_sds_apc_agent_configure_ports(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PHY_T                      * phy,
-   BOOL                                  start_timer
-)
+static void
+scic_sds_apc_agent_configure_ports(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PHY_T *phy,
+    BOOL start_timer)
 {
-   U8 port_index;
-   SCI_STATUS status;
-   SCIC_SDS_PORT_T * port;
-   SCI_PORT_HANDLE_T port_handle;
-   enum SCIC_SDS_APC_ACTIVITY apc_activity = SCIC_SDS_APC_SKIP_PHY;
+	U8 port_index;
+	SCI_STATUS status;
+	SCIC_SDS_PORT_T *port;
+	SCI_PORT_HANDLE_T port_handle;
+	enum SCIC_SDS_APC_ACTIVITY apc_activity = SCIC_SDS_APC_SKIP_PHY;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_apc_agent_configure_ports(0x%08x, 0x%08x, 0x%08x, %d) enter\n",
-      controller, port_agent, phy, start_timer
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_apc_agent_configure_ports(0x%08x, 0x%08x, 0x%08x, %d) enter\n",
+	    controller, port_agent, phy, start_timer));
 
-   port = scic_sds_port_configuration_agent_find_port(controller, phy);
+	port = scic_sds_port_configuration_agent_find_port(controller, phy);
 
-   if (port != SCI_INVALID_HANDLE)
-   {
-      if (scic_sds_port_is_valid_phy_assignment(port, phy->phy_index))
-         apc_activity = SCIC_SDS_APC_ADD_PHY;
-      else
-         apc_activity = SCIC_SDS_APC_SKIP_PHY;
-   }
-   else
-   {
-      // There is no matching Port for this PHY so lets search through the
-      // Ports and see if we can add the PHY to its own port or maybe start
-      // the timer and wait to see if a wider port can be made.
-      //
-      // Note the break when we reach the condition of the port id == phy id
-      for (
-             port_index = port_agent->phy_valid_port_range[phy->phy_index].min_index;
-             port_index <= port_agent->phy_valid_port_range[phy->phy_index].max_index;
-             port_index++
-          )
-      {
-         scic_controller_get_port_handle(controller, port_index, &port_handle);
+	if (port != SCI_INVALID_HANDLE) {
+		if (scic_sds_port_is_valid_phy_assignment(port, phy->phy_index))
+			apc_activity = SCIC_SDS_APC_ADD_PHY;
+		else
+			apc_activity = SCIC_SDS_APC_SKIP_PHY;
+	} else {
+		// There is no matching Port for this PHY so lets search through
+		// the Ports and see if we can add the PHY to its own port or
+		// maybe start the timer and wait to see if a wider port can be
+		// made.
+		//
+		// Note the break when we reach the condition of the port id ==
+		// phy id
+		for (port_index =
+			 port_agent->phy_valid_port_range[phy->phy_index]
+			     .min_index;
+		     port_index <=
+		     port_agent->phy_valid_port_range[phy->phy_index].max_index;
+		     port_index++) {
+			scic_controller_get_port_handle(controller, port_index,
+			    &port_handle);
 
-         port = (SCIC_SDS_PORT_T *)port_handle;
+			port = (SCIC_SDS_PORT_T *)port_handle;
 
-         // First we must make sure that this PHY can be added to this Port.
-         if (scic_sds_port_is_valid_phy_assignment(port, phy->phy_index))
-         {
-            // Port contains a PHY with a greater PHY ID than the current
-            // PHY that has gone link up.  This phy can not be part of any
-            // port so skip it and move on.
-            if (port->active_phy_mask > (1 << phy->phy_index))
-            {
-               apc_activity = SCIC_SDS_APC_SKIP_PHY;
-               break;
-            }
+			// First we must make sure that this PHY can be added to
+			// this Port.
+			if (scic_sds_port_is_valid_phy_assignment(port,
+				phy->phy_index)) {
+				// Port contains a PHY with a greater PHY ID
+				// than the current PHY that has gone link up.
+				// This phy can not be part of any port so skip
+				// it and move on.
+				if (port->active_phy_mask >
+				    (1 << phy->phy_index)) {
+					apc_activity = SCIC_SDS_APC_SKIP_PHY;
+					break;
+				}
 
-            // We have reached the end of our Port list and have not found
-            // any reason why we should not either add the PHY to the port
-            // or wait for more phys to become active.
-            if (port->physical_port_index == phy->phy_index)
-            {
-               // The Port either has no active PHYs.
-               // Consider that if the port had any active PHYs we would have
-               // or active PHYs with
-               // a lower PHY Id than this PHY.
-               if (apc_activity != SCIC_SDS_APC_START_TIMER)
-               {
-                  apc_activity = SCIC_SDS_APC_ADD_PHY;
-               }
+				// We have reached the end of our Port list and
+				// have not found any reason why we should not
+				// either add the PHY to the port or wait for
+				// more phys to become active.
+				if (port->physical_port_index ==
+				    phy->phy_index) {
+					// The Port either has no active PHYs.
+					// Consider that if the port had any
+					// active PHYs we would have or active
+					// PHYs with a lower PHY Id than this
+					// PHY.
+					if (apc_activity !=
+					    SCIC_SDS_APC_START_TIMER) {
+						apc_activity =
+						    SCIC_SDS_APC_ADD_PHY;
+					}
 
-               break;
-            }
+					break;
+				}
 
-            // The current Port has no active PHYs and this PHY could be part
-            // of this Port.  Since we dont know as yet setup to start the
-            // timer and see if there is a better configuration.
-            if (port->active_phy_mask == 0)
-            {
-               apc_activity = SCIC_SDS_APC_START_TIMER;
-            }
-         }
-         else if (port->active_phy_mask != 0)
-         {
-            // The Port has an active phy and the current Phy can not
-            // participate in this port so skip the PHY and see if
-            // there is a better configuration.
-            apc_activity = SCIC_SDS_APC_SKIP_PHY;
-         }
-      }
-   }
+				// The current Port has no active PHYs and this
+				// PHY could be part of this Port.  Since we
+				// dont know as yet setup to start the timer and
+				// see if there is a better configuration.
+				if (port->active_phy_mask == 0) {
+					apc_activity = SCIC_SDS_APC_START_TIMER;
+				}
+			} else if (port->active_phy_mask != 0) {
+				// The Port has an active phy and the current
+				// Phy can not participate in this port so skip
+				// the PHY and see if there is a better
+				// configuration.
+				apc_activity = SCIC_SDS_APC_SKIP_PHY;
+			}
+		}
+	}
 
-   // Check to see if the start timer operations should instead map to an
-   // add phy operation.  This is caused because we have been waiting to
-   // add a phy to a port but could not because the automatic port
-   // configuration engine had a choice of possible ports for the phy.
-   // Since we have gone through a timeout we are going to restrict the
-   // choice to the smallest possible port.
-   if (
-         (start_timer == FALSE)
-      && (apc_activity == SCIC_SDS_APC_START_TIMER)
-      )
-   {
-      apc_activity = SCIC_SDS_APC_ADD_PHY;
-   }
+	// Check to see if the start timer operations should instead map to an
+	// add phy operation.  This is caused because we have been waiting to
+	// add a phy to a port but could not because the automatic port
+	// configuration engine had a choice of possible ports for the phy.
+	// Since we have gone through a timeout we are going to restrict the
+	// choice to the smallest possible port.
+	if ((start_timer == FALSE) &&
+	    (apc_activity == SCIC_SDS_APC_START_TIMER)) {
+		apc_activity = SCIC_SDS_APC_ADD_PHY;
+	}
 
-   switch (apc_activity)
-   {
-   case SCIC_SDS_APC_ADD_PHY:
-      status = scic_sds_port_add_phy(port, phy);
+	switch (apc_activity) {
+	case SCIC_SDS_APC_ADD_PHY:
+		status = scic_sds_port_add_phy(port, phy);
 
-      if (status == SCI_SUCCESS)
-      {
-         port_agent->phy_configured_mask |= (1 << phy->phy_index);
-      }
-      break;
+		if (status == SCI_SUCCESS) {
+			port_agent->phy_configured_mask |= (1
+			    << phy->phy_index);
+		}
+		break;
 
-   case SCIC_SDS_APC_START_TIMER:
-      scic_sds_apc_agent_start_timer(
-         controller, port_agent, phy, SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION
-      );
-      break;
+	case SCIC_SDS_APC_START_TIMER:
+		scic_sds_apc_agent_start_timer(controller, port_agent, phy,
+		    SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION);
+		break;
 
-   case SCIC_SDS_APC_SKIP_PHY:
-   default:
-      // do nothing the PHY can not be made part of a port at this time.
-      break;
-   }
+	case SCIC_SDS_APC_SKIP_PHY:
+	default:
+		// do nothing the PHY can not be made part of a port at this
+		// time.
+		break;
+	}
 }
 
 /**
- * This method handles the automatic port configuration for link up notifications.
+ * This method handles the automatic port configuration for link up
+ * notifications.
  *
  * @param[in] controller This is the controller object that receives the
  *            link up notification.
@@ -820,49 +775,41 @@ void scic_sds_apc_agent_configure_ports(
  * @note Is it possible to get a link down notification from a phy that has
  *       no assocoated port?
  */
-static
-void scic_sds_apc_agent_link_up(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PORT_T                     * port,
-   SCIC_SDS_PHY_T                      * phy
-)
+static void
+scic_sds_apc_agent_link_up(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PORT_T *port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_apc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-      controller, port_agent, port, phy
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_apc_agent_link_up(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
+	    controller, port_agent, port, phy));
 
-   //the phy is not the part of this port, configure the port with this phy
-   if (port == SCI_INVALID_HANDLE)
-   {
-      port_agent->phy_ready_mask |= (1 << scic_sds_phy_get_index(phy));
+	// the phy is not the part of this port, configure the port with this
+	// phy
+	if (port == SCI_INVALID_HANDLE) {
+		port_agent->phy_ready_mask |= (1
+		    << scic_sds_phy_get_index(phy));
 
-      scic_sds_apc_agent_start_timer(
-         controller, port_agent, phy, SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION
-      );
-   }
-   else
-   {
-      //the phy is already the part of the port
+		scic_sds_apc_agent_start_timer(controller, port_agent, phy,
+		    SCIC_SDS_APC_WAIT_LINK_UP_NOTIFICATION);
+	} else {
+		// the phy is already the part of the port
 
-      //if the PORT'S state is resetting then the link up is from port hard reset
-      //in this case, we need to tell the port that link up is received
-      if (  SCI_BASE_PORT_STATE_RESETTING
-            == port->parent.state_machine.current_state_id
-         )
-      {
-         //notify the port that port needs to be ready
-         port_agent->phy_ready_mask |= (1 << scic_sds_phy_get_index(phy));
-         scic_sds_port_link_up(port, phy);
-      }
-      else
-      {
-         ASSERT (0);
-      }
-   }
+		// if the PORT'S state is resetting then the link up is from
+		// port hard reset in this case, we need to tell the port that
+		// link up is received
+		if (SCI_BASE_PORT_STATE_RESETTING ==
+		    port->parent.state_machine.current_state_id) {
+			// notify the port that port needs to be ready
+			port_agent->phy_ready_mask |= (1
+			    << scic_sds_phy_get_index(phy));
+			scic_sds_port_link_up(port, phy);
+		} else {
+			ASSERT(0);
+		}
+	}
 }
 
 /**
@@ -878,37 +825,31 @@ void scic_sds_apc_agent_link_up(
  * @note Is it possible to get a link down notification from a phy that has
  *       no assocoated port?
  */
-static
-void scic_sds_apc_agent_link_down(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent,
-   SCIC_SDS_PORT_T                     * port,
-   SCIC_SDS_PHY_T                      * phy
-)
+static void
+scic_sds_apc_agent_link_down(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent, SCIC_SDS_PORT_T *port,
+    SCIC_SDS_PHY_T *phy)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT | SCIC_LOG_OBJECT_PHY,
-      "scic_sds_apc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
-      controller, port_agent, port, phy
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT |
+		SCIC_LOG_OBJECT_PHY,
+	    "scic_sds_apc_agent_link_down(0x%08x, 0x%08x, 0x%08x, 0x%08x) enter\n",
+	    controller, port_agent, port, phy));
 
-   port_agent->phy_ready_mask &= ~(1 << scic_sds_phy_get_index(phy));
+	port_agent->phy_ready_mask &= ~(1 << scic_sds_phy_get_index(phy));
 
-   if (port != SCI_INVALID_HANDLE)
-   {
-      if (port_agent->phy_configured_mask & (1 << phy->phy_index))
-      {
-         SCI_STATUS status;
+	if (port != SCI_INVALID_HANDLE) {
+		if (port_agent->phy_configured_mask & (1 << phy->phy_index)) {
+			SCI_STATUS status;
 
-         status = scic_sds_port_remove_phy(port, phy);
+			status = scic_sds_port_remove_phy(port, phy);
 
-         if (status == SCI_SUCCESS)
-         {
-            port_agent->phy_configured_mask &= ~(1 << phy->phy_index);
-         }
-      }
-   }
+			if (status == SCI_SUCCESS) {
+				port_agent->phy_configured_mask &= ~(
+				    1 << phy->phy_index);
+			}
+		}
+	}
 }
 
 /**
@@ -917,56 +858,50 @@ void scic_sds_apc_agent_link_down(
  * @param[in] object This is actually the controller that needs to have the
  *            pending phys configured.
  */
-static
-void scic_sds_apc_agent_timeout_handler(
-   void * object
-)
+static void
+scic_sds_apc_agent_timeout_handler(void *object)
 {
-   U32 index;
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent;
-   SCIC_SDS_CONTROLLER_T * controller = (SCIC_SDS_CONTROLLER_T *)object;
-   U16 configure_phy_mask;
+	U32 index;
+	SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent;
+	SCIC_SDS_CONTROLLER_T *controller = (SCIC_SDS_CONTROLLER_T *)object;
+	U16 configure_phy_mask;
 
-   port_agent = scic_sds_controller_get_port_configuration_agent(controller);
+	port_agent = scic_sds_controller_get_port_configuration_agent(
+	    controller);
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_apc_agent_timeout_handler(0x%08x) enter\n",
-      controller
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_apc_agent_timeout_handler(0x%08x) enter\n", controller));
 
-   port_agent->timer_pending = FALSE;
+	port_agent->timer_pending = FALSE;
 
-   configure_phy_mask = ~port_agent->phy_configured_mask & port_agent->phy_ready_mask;
+	configure_phy_mask = ~port_agent->phy_configured_mask &
+	    port_agent->phy_ready_mask;
 
-   if (configure_phy_mask != 0x00)
-   {
-      for (index = 0; index < SCI_MAX_PHYS; index++)
-      {
-         if (configure_phy_mask & (1 << index))
-         {
-            scic_sds_apc_agent_configure_ports(
-               controller, port_agent, &controller->phy_table[index], FALSE
-            );
-         }
-      }
+	if (configure_phy_mask != 0x00) {
+		for (index = 0; index < SCI_MAX_PHYS; index++) {
+			if (configure_phy_mask & (1 << index)) {
+				scic_sds_apc_agent_configure_ports(controller,
+				    port_agent, &controller->phy_table[index],
+				    FALSE);
+			}
+		}
 
-      //Notify the controller ports are configured.
-      if (
-            (port_agent->phy_ready_mask == port_agent->phy_configured_mask) &&
-            (controller->next_phy_to_start == SCI_MAX_PHYS) &&
-            (controller->phy_startup_timer_pending == FALSE)
-         )
-      {
-         // The controller has successfully finished the start process.
-         // Inform the SCI Core user and transition to the READY state.
-         if (scic_sds_controller_is_start_complete(controller) == TRUE)
-         {
-            scic_sds_controller_port_agent_configured_ports(controller);
-         }
-      }
-   }
+		// Notify the controller ports are configured.
+		if ((port_agent->phy_ready_mask ==
+			port_agent->phy_configured_mask) &&
+		    (controller->next_phy_to_start == SCI_MAX_PHYS) &&
+		    (controller->phy_startup_timer_pending == FALSE)) {
+			// The controller has successfully finished the start
+			// process. Inform the SCI Core user and transition to
+			// the READY state.
+			if (scic_sds_controller_is_start_complete(controller) ==
+			    TRUE) {
+				scic_sds_controller_port_agent_configured_ports(
+				    controller);
+			}
+		}
+	}
 }
 
 //******************************************************************************
@@ -981,26 +916,25 @@ void scic_sds_apc_agent_timeout_handler(
  * @param[in] port_agent This is the port configuration agent for this
  *            controller object.
  */
-void scic_sds_port_configuration_agent_construct(
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+void
+scic_sds_port_configuration_agent_construct(
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   U32 index;
+	U32 index;
 
-   port_agent->phy_configured_mask = 0x00;
-   port_agent->phy_ready_mask = 0x00;
+	port_agent->phy_configured_mask = 0x00;
+	port_agent->phy_ready_mask = 0x00;
 
-   port_agent->link_up_handler = NULL;
-   port_agent->link_down_handler = NULL;
+	port_agent->link_up_handler = NULL;
+	port_agent->link_down_handler = NULL;
 
-   port_agent->timer_pending = FALSE;
-   port_agent->timer = NULL;
+	port_agent->timer_pending = FALSE;
+	port_agent->timer = NULL;
 
-   for (index = 0; index < SCI_MAX_PORTS; index++)
-   {
-      port_agent->phy_valid_port_range[index].min_index = 0;
-      port_agent->phy_valid_port_range[index].max_index = 0;
-   }
+	for (index = 0; index < SCI_MAX_PORTS; index++) {
+		port_agent->phy_valid_port_range[index].min_index = 0;
+		port_agent->phy_valid_port_range[index].max_index = 0;
+	}
 }
 
 /**
@@ -1016,64 +950,51 @@ void scic_sds_port_configuration_agent_construct(
  *
  * @return
  */
-SCI_STATUS scic_sds_port_configuration_agent_initialize(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+SCI_STATUS
+scic_sds_port_configuration_agent_initialize(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   SCI_STATUS status = SCI_SUCCESS;
-   enum SCIC_PORT_CONFIGURATION_MODE mode;
+	SCI_STATUS status = SCI_SUCCESS;
+	enum SCIC_PORT_CONFIGURATION_MODE mode;
 
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_configuration_agent_initialize(0x%08x, 0x%08x) enter\n",
-      controller, port_agent
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_CONTROLLER | SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_port_configuration_agent_initialize(0x%08x, 0x%08x) enter\n",
+	    controller, port_agent));
 
-   mode = controller->oem_parameters.sds1.controller.mode_type;
+	mode = controller->oem_parameters.sds1.controller.mode_type;
 
-   if (mode == SCIC_PORT_MANUAL_CONFIGURATION_MODE)
-   {
-      status = scic_sds_mpc_agent_validate_phy_configuration(controller, port_agent);
+	if (mode == SCIC_PORT_MANUAL_CONFIGURATION_MODE) {
+		status = scic_sds_mpc_agent_validate_phy_configuration(
+		    controller, port_agent);
 
-      port_agent->link_up_handler = scic_sds_mpc_agent_link_up;
-      port_agent->link_down_handler = scic_sds_mpc_agent_link_down;
+		port_agent->link_up_handler = scic_sds_mpc_agent_link_up;
+		port_agent->link_down_handler = scic_sds_mpc_agent_link_down;
 
-      port_agent->timer = scic_cb_timer_create(
-                              controller,
-                              scic_sds_mpc_agent_timeout_handler,
-                              controller
-                          );
-   }
-   else
-   {
-      status = scic_sds_apc_agent_validate_phy_configuration(controller, port_agent);
+		port_agent->timer = scic_cb_timer_create(controller,
+		    scic_sds_mpc_agent_timeout_handler, controller);
+	} else {
+		status = scic_sds_apc_agent_validate_phy_configuration(
+		    controller, port_agent);
 
-      port_agent->link_up_handler = scic_sds_apc_agent_link_up;
-      port_agent->link_down_handler = scic_sds_apc_agent_link_down;
+		port_agent->link_up_handler = scic_sds_apc_agent_link_up;
+		port_agent->link_down_handler = scic_sds_apc_agent_link_down;
 
-      port_agent->timer = scic_cb_timer_create(
-                              controller,
-                              scic_sds_apc_agent_timeout_handler,
-                              controller
-                          );
-   }
+		port_agent->timer = scic_cb_timer_create(controller,
+		    scic_sds_apc_agent_timeout_handler, controller);
+	}
 
-   // Make sure we have actually gotten a timer
-   if (status == SCI_SUCCESS && port_agent->timer == NULL)
-   {
-      SCIC_LOG_ERROR((
-         sci_base_object_get_logger(controller),
-         SCIC_LOG_OBJECT_CONTROLLER,
-         "Controller 0x%x automatic port configuration agent could not get timer.\n",
-         controller
-     ));
+	// Make sure we have actually gotten a timer
+	if (status == SCI_SUCCESS && port_agent->timer == NULL) {
+		SCIC_LOG_ERROR((sci_base_object_get_logger(controller),
+		    SCIC_LOG_OBJECT_CONTROLLER,
+		    "Controller 0x%x automatic port configuration agent could not get timer.\n",
+		    controller));
 
-     status = SCI_FAILURE;
-   }
+		status = SCI_FAILURE;
+	}
 
-   return status;
+	return status;
 }
 
 /**
@@ -1087,22 +1008,19 @@ SCI_STATUS scic_sds_port_configuration_agent_initialize(
  *
  * @return
  */
-void scic_sds_port_configuration_agent_destroy(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+void
+scic_sds_port_configuration_agent_destroy(SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   if (port_agent->timer_pending == TRUE)
-   {
-      scic_cb_timer_stop(controller, port_agent->timer);
-   }
+	if (port_agent->timer_pending == TRUE) {
+		scic_cb_timer_stop(controller, port_agent->timer);
+	}
 
-   scic_cb_timer_destroy(controller, port_agent->timer);
+	scic_cb_timer_destroy(controller, port_agent->timer);
 
-   port_agent->timer_pending = FALSE;
-   port_agent->timer = NULL;
+	port_agent->timer_pending = FALSE;
+	port_agent->timer = NULL;
 }
-
 
 /**
  * @brief This method release resources in for a scic port configuration agent.
@@ -1112,22 +1030,19 @@ void scic_sds_port_configuration_agent_destroy(
  * @param[in] this_phy This parameter specifies the phy whose resource is to
  *            be released.
  */
-void scic_sds_port_configuration_agent_release_resource(
-   SCIC_SDS_CONTROLLER_T               * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-)
+void
+scic_sds_port_configuration_agent_release_resource(
+    SCIC_SDS_CONTROLLER_T *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent)
 {
-   SCIC_LOG_TRACE((
-      sci_base_object_get_logger(controller),
-      SCIC_LOG_OBJECT_PORT,
-      "scic_sds_port_configuration_agent_release_resource(0x%x, 0x%x)\n",
-      controller, port_agent
-   ));
+	SCIC_LOG_TRACE((sci_base_object_get_logger(controller),
+	    SCIC_LOG_OBJECT_PORT,
+	    "scic_sds_port_configuration_agent_release_resource(0x%x, 0x%x)\n",
+	    controller, port_agent));
 
-   //Currently, the only resource to be released is a timer.
-   if (port_agent->timer != NULL)
-   {
-      scic_cb_timer_destroy(controller, port_agent->timer);
-      port_agent->timer = NULL;
-   }
+	// Currently, the only resource to be released is a timer.
+	if (port_agent->timer != NULL) {
+		scic_cb_timer_destroy(controller, port_agent->timer);
+		port_agent->timer = NULL;
+	}
 }

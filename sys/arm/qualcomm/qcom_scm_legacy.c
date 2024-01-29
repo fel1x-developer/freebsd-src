@@ -30,24 +30,24 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/reboot.h>
 #include <sys/devmap.h>
+#include <sys/reboot.h>
 #include <sys/smp.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <machine/cpu.h>
 #include <machine/bus.h>
+#include <machine/cpu.h>
 #include <machine/intr.h>
 #include <machine/machdep.h>
 #include <machine/smp.h>
 
-#include <arm/qualcomm/qcom_scm_defs.h>
-#include <arm/qualcomm/qcom_scm_legacy_defs.h>
-#include <arm/qualcomm/qcom_scm_legacy.h>
-
 #include <dev/psci/smccc.h>
+
+#include <arm/qualcomm/qcom_scm_defs.h>
+#include <arm/qualcomm/qcom_scm_legacy.h>
+#include <arm/qualcomm/qcom_scm_legacy_defs.h>
 
 /*
  * Set the cold boot address for (later) a mask of CPUs.
@@ -68,18 +68,17 @@ qcom_scm_legacy_mp_set_cold_boot_address(vm_offset_t mp_entry_func)
 	uint32_t scm_arg0 = QCOM_SCM_LEGACY_ATOMIC_ID(QCOM_SCM_SVC_BOOT,
 	    QCOM_SCM_BOOT_SET_ADDR, 2);
 
-	uint32_t scm_arg1 = QCOM_SCM_FLAG_COLDBOOT_CPU1
-	    | QCOM_SCM_FLAG_COLDBOOT_CPU2
-	    | QCOM_SCM_FLAG_COLDBOOT_CPU3;
+	uint32_t scm_arg1 = QCOM_SCM_FLAG_COLDBOOT_CPU1 |
+	    QCOM_SCM_FLAG_COLDBOOT_CPU2 | QCOM_SCM_FLAG_COLDBOOT_CPU3;
 	uint32_t scm_arg2 = pmap_kextract((vm_offset_t)mp_entry_func);
 
-	ret = arm_smccc_smc(scm_arg0, (uint32_t) &context_id, scm_arg1,
-	    scm_arg2, 0, 0, 0, 0, &res);
+	ret = arm_smccc_smc(scm_arg0, (uint32_t)&context_id, scm_arg1, scm_arg2,
+	    0, 0, 0, 0, &res);
 
 	if (ret == 0 && res.a0 == 0)
 		return (0);
-	printf("%s: called; error; ret=0x%08x; retval[0]=0x%08x\n",
-	    __func__, ret, res.a0);
+	printf("%s: called; error; ret=0x%08x; retval[0]=0x%08x\n", __func__,
+	    ret, res.a0);
 
 	return (0);
 }

@@ -33,12 +33,12 @@
  */
 
 #include <sys/types.h>
-#include <sys/acl.h>
 #include <sys/param.h>
+#include <sys/acl.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/mount.h>
 
 #include <err.h>
 #include <errno.h>
@@ -56,14 +56,14 @@
 /* Exit code for a failed exec. */
 #define EXEC_FAILED 127
 
-static int	fflg, hflg, iflg, nflg, vflg;
+static int fflg, hflg, iflg, nflg, vflg;
 
-static int	copy(const char *, const char *);
-static int	do_move(const char *, const char *);
-static int	fastcopy(const char *, const char *, struct stat *);
-static void	usage(void);
-static void	preserve_fd_acls(int source_fd, int dest_fd, const char *source_path,
-		    const char *dest_path);
+static int copy(const char *, const char *);
+static int do_move(const char *, const char *);
+static int fastcopy(const char *, const char *, struct stat *);
+static void usage(void);
+static void preserve_fd_acls(int source_fd, int dest_fd,
+    const char *source_path, const char *dest_path);
 
 int
 main(int argc, char *argv[])
@@ -173,7 +173,7 @@ do_move(const char *from, const char *to)
 	if (!fflg && !access(to, F_OK)) {
 
 		/* prompt only if source exists */
-	        if (lstat(from, &sb) == -1) {
+		if (lstat(from, &sb) == -1) {
 			warn("%s", from);
 			return (1);
 		}
@@ -187,12 +187,14 @@ do_move(const char *from, const char *to)
 		} else if (iflg) {
 			(void)fprintf(stderr, "overwrite %s? %s", to, YESNO);
 			ask = 1;
-		} else if (access(to, W_OK) && !stat(to, &sb) && isatty(STDIN_FILENO)) {
+		} else if (access(to, W_OK) && !stat(to, &sb) &&
+		    isatty(STDIN_FILENO)) {
 			strmode(sb.st_mode, modep);
 			(void)fprintf(stderr, "override %s%s%s/%s for %s? %s",
 			    modep + 1, modep[9] == ' ' ? "" : " ",
 			    user_from_uid((unsigned long)sb.st_uid, 0),
-			    group_from_gid((unsigned long)sb.st_gid, 0), to, YESNO);
+			    group_from_gid((unsigned long)sb.st_gid, 0), to,
+			    YESNO);
 			ask = 1;
 		}
 		if (ask) {
@@ -254,8 +256,7 @@ do_move(const char *from, const char *to)
 		warn("%s", from);
 		return (1);
 	}
-	return (S_ISREG(sb.st_mode) ?
-	    fastcopy(from, to, &sb) : copy(from, to));
+	return (S_ISREG(sb.st_mode) ? fastcopy(from, to, &sb) : copy(from, to));
 }
 
 static int
@@ -277,8 +278,8 @@ fastcopy(const char *from, const char *to, struct stat *sbp)
 		(void)close(from_fd);
 		return (1);
 	}
-	while ((to_fd =
-	    open(to, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY, 0)) < 0) {
+	while (
+	    (to_fd = open(to, O_CREAT | O_EXCL | O_TRUNC | O_WRONLY, 0)) < 0) {
 		if (errno == EEXIST && unlink(to) == 0)
 			continue;
 		warn("fastcopy: open() failed (to): %s", to);
@@ -292,7 +293,8 @@ fastcopy(const char *from, const char *to, struct stat *sbp)
 		}
 	if (nread < 0) {
 		warn("fastcopy: read() failed: %s", from);
-err:		if (unlink(to))
+	err:
+		if (unlink(to))
 			warn("%s: remove", to);
 		(void)close(from_fd);
 		(void)close(to_fd);
@@ -305,7 +307,7 @@ err:		if (unlink(to))
 		    (u_long)sbp->st_uid, (u_long)sbp->st_gid);
 		if (oldmode & (S_ISUID | S_ISGID)) {
 			warnx(
-"%s: owner/group changed; clearing suid/sgid (mode was 0%03o)",
+			    "%s: owner/group changed; clearing suid/sgid (mode was 0%03o)",
 			    to, oldmode);
 			sbp->st_mode &= ~(S_ISUID | S_ISGID);
 		}
@@ -327,14 +329,14 @@ err:		if (unlink(to))
 	 * on a file that we copied, i.e., that we didn't create.)
 	 */
 	if (fstat(to_fd, &tsb) == 0) {
-		if ((sbp->st_flags  & ~UF_ARCHIVE) !=
+		if ((sbp->st_flags & ~UF_ARCHIVE) !=
 		    (tsb.st_flags & ~UF_ARCHIVE)) {
 			if (fchflags(to_fd,
-			    sbp->st_flags | (tsb.st_flags & UF_ARCHIVE)))
+				sbp->st_flags | (tsb.st_flags & UF_ARCHIVE)))
 				if (errno != EOPNOTSUPP ||
 				    ((sbp->st_flags & ~UF_ARCHIVE) != 0))
-					warn("%s: set flags (was: 0%07o)",
-					    to, sbp->st_flags);
+					warn("%s: set flags (was: 0%07o)", to,
+					    sbp->st_flags);
 		}
 	} else
 		warn("%s: cannot stat", to);
@@ -393,8 +395,8 @@ copy(const char *from, const char *to)
 		return (1);
 	}
 	if (!WIFEXITED(status)) {
-		warnx("%s %s %s: did not terminate normally",
-		    _PATH_CP, from, to);
+		warnx("%s %s %s: did not terminate normally", _PATH_CP, from,
+		    to);
 		return (1);
 	}
 	switch (WEXITSTATUS(status)) {
@@ -429,8 +431,8 @@ copy(const char *from, const char *to)
 		warnx("%s %s: exec failed", _PATH_RM, from);
 		return (1);
 	default:
-		warnx("%s %s: terminated with %d (non-zero) status",
-		    _PATH_RM, from, WEXITSTATUS(status));
+		warnx("%s %s: terminated with %d (non-zero) status", _PATH_RM,
+		    from, WEXITSTATUS(status));
 		return (1);
 	}
 	return (0);
@@ -445,17 +447,16 @@ preserve_fd_acls(int source_fd, int dest_fd, const char *source_path,
 	int acl_supported = 0, ret, trivial;
 
 	ret = fpathconf(source_fd, _PC_ACL_NFS4);
-	if (ret > 0 ) {
+	if (ret > 0) {
 		acl_supported = 1;
 		acl_type = ACL_TYPE_NFS4;
 	} else if (ret < 0 && errno != EINVAL) {
-		warn("fpathconf(..., _PC_ACL_NFS4) failed for %s",
-		    source_path);
+		warn("fpathconf(..., _PC_ACL_NFS4) failed for %s", source_path);
 		return;
 	}
 	if (acl_supported == 0) {
 		ret = fpathconf(source_fd, _PC_ACL_EXTENDED);
-		if (ret > 0 ) {
+		if (ret > 0) {
 			acl_supported = 1;
 			acl_type = ACL_TYPE_ACCESS;
 		} else if (ret < 0 && errno != EINVAL) {
@@ -494,7 +495,7 @@ usage(void)
 {
 
 	(void)fprintf(stderr, "%s\n%s\n",
-		      "usage: mv [-f | -i | -n] [-hv] source target",
-		      "       mv [-f | -i | -n] [-v] source ... directory");
+	    "usage: mv [-f | -i | -n] [-hv] source target",
+	    "       mv [-f | -i | -n] [-v] source ... directory");
 	exit(EX_USAGE);
 }

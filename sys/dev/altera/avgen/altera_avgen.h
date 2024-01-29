@@ -31,66 +31,66 @@
  */
 
 #ifndef _DEV_ALTERA_AVALON_H_
-#define	_DEV_ALTERA_AVALON_H_
+#define _DEV_ALTERA_AVALON_H_
 
 struct altera_avgen_softc {
 	/*
 	 * Bus-related fields.
 	 */
-	device_t	 avg_dev;
-	int		 avg_unit;
-	char		*avg_name;
+	device_t avg_dev;
+	int avg_unit;
+	char *avg_name;
 
 	/*
 	 * The device node and memory-mapped I/O region.
 	 */
-	struct cdev	*avg_cdev;
-	struct resource	*avg_res;
-	int		 avg_rid;
+	struct cdev *avg_cdev;
+	struct resource *avg_res;
+	int avg_rid;
 
 	/*
 	 * Access properties configured by device.hints.
 	 */
-	u_int		 avg_flags;
-	u_int		 avg_width;
-	u_int		 avg_sectorsize;
+	u_int avg_flags;
+	u_int avg_width;
+	u_int avg_sectorsize;
 
 	/*
 	 * disk(9) state, if required for this device.
 	 */
-	struct disk	*avg_disk;
-	struct mtx	 avg_disk_mtx;
+	struct disk *avg_disk;
+	struct mtx avg_disk_mtx;
 };
 
 /*
  * Various flags extracted from device.hints to configure operations on the
  * device.
  */
-#define	ALTERA_AVALON_FLAG_READ			0x01
-#define	ALTERA_AVALON_FLAG_WRITE		0x02
-#define	ALTERA_AVALON_FLAG_MMAP_READ		0x04
-#define	ALTERA_AVALON_FLAG_MMAP_WRITE		0x08
-#define	ALTERA_AVALON_FLAG_MMAP_EXEC		0x10
-#define	ALTERA_AVALON_FLAG_GEOM_READ		0x20
-#define	ALTERA_AVALON_FLAG_GEOM_WRITE		0x40
+#define ALTERA_AVALON_FLAG_READ 0x01
+#define ALTERA_AVALON_FLAG_WRITE 0x02
+#define ALTERA_AVALON_FLAG_MMAP_READ 0x04
+#define ALTERA_AVALON_FLAG_MMAP_WRITE 0x08
+#define ALTERA_AVALON_FLAG_MMAP_EXEC 0x10
+#define ALTERA_AVALON_FLAG_GEOM_READ 0x20
+#define ALTERA_AVALON_FLAG_GEOM_WRITE 0x40
 
-#define	ALTERA_AVALON_CHAR_READ			'r'
-#define	ALTERA_AVALON_CHAR_WRITE		'w'
-#define	ALTERA_AVALON_CHAR_EXEC			'x'
+#define ALTERA_AVALON_CHAR_READ 'r'
+#define ALTERA_AVALON_CHAR_WRITE 'w'
+#define ALTERA_AVALON_CHAR_EXEC 'x'
 
-#define	ALTERA_AVALON_STR_WIDTH			"width"
-#define	ALTERA_AVALON_STR_FILEIO		"fileio"
-#define	ALTERA_AVALON_STR_GEOMIO		"geomio"
-#define	ALTERA_AVALON_STR_MMAPIO		"mmapio"
-#define ALTERA_AVALON_STR_DEVNAME		"devname"
-#define	ALTERA_AVALON_STR_DEVUNIT		"devunit"
+#define ALTERA_AVALON_STR_WIDTH "width"
+#define ALTERA_AVALON_STR_FILEIO "fileio"
+#define ALTERA_AVALON_STR_GEOMIO "geomio"
+#define ALTERA_AVALON_STR_MMAPIO "mmapio"
+#define ALTERA_AVALON_STR_DEVNAME "devname"
+#define ALTERA_AVALON_STR_DEVUNIT "devunit"
 
 /*
  * Driver setup routines from the bus attachment/teardown.
  */
-int	altera_avgen_attach(struct altera_avgen_softc *sc,
-	    const char *str_fileio, const char *str_geomio,
-	    const char *str_mmapio, const char *str_devname, int devunit);
-void	altera_avgen_detach(struct altera_avgen_softc *sc);
+int altera_avgen_attach(struct altera_avgen_softc *sc, const char *str_fileio,
+    const char *str_geomio, const char *str_mmapio, const char *str_devname,
+    int devunit);
+void altera_avgen_detach(struct altera_avgen_softc *sc);
 
 #endif /* _DEV_ALTERA_AVALON_H_ */

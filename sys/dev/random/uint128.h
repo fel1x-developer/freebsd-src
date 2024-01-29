@@ -25,7 +25,7 @@
  */
 
 #ifndef SYS_DEV_RANDOM_UINT128_H_INCLUDED
-#define	SYS_DEV_RANDOM_UINT128_H_INCLUDED
+#define SYS_DEV_RANDOM_UINT128_H_INCLUDED
 
 #include <sys/endian.h>
 
@@ -35,20 +35,20 @@
  */
 
 #ifdef __SIZEOF_INT128__
-#define	USE_REAL_UINT128_T
+#define USE_REAL_UINT128_T
 #endif
 
 #ifdef USE_REAL_UINT128_T
 typedef __uint128_t uint128_t;
-#define	UINT128_ZERO 0ULL
+#define UINT128_ZERO 0ULL
 #else
 typedef struct {
 	/* Ignore endianness */
 	uint64_t u128t_word0;
 	uint64_t u128t_word1;
 } uint128_t;
-static const uint128_t very_long_zero = {0UL,0UL};
-#define	UINT128_ZERO very_long_zero
+static const uint128_t very_long_zero = { 0UL, 0UL };
+#define UINT128_ZERO very_long_zero
 #endif
 
 static __inline void
@@ -84,8 +84,8 @@ uint128_equals(uint128_t a, uint128_t b)
 #ifdef USE_REAL_UINT128_T
 	return (a == b);
 #else
-	return (a.u128t_word0 == b.u128t_word0 &&
-	    a.u128t_word1 == b.u128t_word1);
+	return (
+	    a.u128t_word0 == b.u128t_word0 && a.u128t_word1 == b.u128t_word1);
 #endif
 }
 
@@ -103,10 +103,10 @@ le128dec(const void *pp)
 #ifdef USE_REAL_UINT128_T
 	return (((uint128_t)le64dec(p + 8) << 64) | le64dec(p));
 #else
-	return ((uint128_t){
+	return ((uint128_t) {
 	    .u128t_word0 = le64dec(p),
 	    .u128t_word1 = le64dec(p + 8),
-	    });
+	});
 #endif
 }
 

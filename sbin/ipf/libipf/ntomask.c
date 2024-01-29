@@ -17,9 +17,8 @@ ntomask(int family, int nbits, u_32_t *ap)
 	if (nbits < 0)
 		return (-1);
 
-	switch (family)
-	{
-	case AF_INET :
+	switch (family) {
+	case AF_INET:
 		if (nbits > 32 || use_inet6 == 1)
 			return (-1);
 		if (nbits == 0) {
@@ -31,14 +30,14 @@ ntomask(int family, int nbits, u_32_t *ap)
 		*ap = htonl(mask);
 		break;
 
-	case 0 :
-	case AF_INET6 :
+	case 0:
+	case AF_INET6:
 		if ((nbits > 128) || (use_inet6 == -1))
 			return (-1);
 		fill6bits(nbits, ap);
 		break;
 
-	default :
+	default:
 		return (-1);
 	}
 	return (0);

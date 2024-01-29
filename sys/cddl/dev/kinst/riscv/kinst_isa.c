@@ -8,16 +8,16 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
+
 #include <cddl/dev/dtrace/dtrace_cddl.h>
 
 #include "kinst.h"
 
 DPCPU_DEFINE_STATIC(struct kinst_cpu_state, kinst_state);
 
-#define _MATCH_REG(reg)	\
-	(offsetof(struct trapframe, tf_ ## reg) / sizeof(register_t))
+#define _MATCH_REG(reg) \
+	(offsetof(struct trapframe, tf_##reg) / sizeof(register_t))
 
 static int
 kinst_regoff(struct trapframe *frame, int n)
@@ -74,14 +74,14 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 	uint8_t funct;
 
 	if (kp->kp_md.instlen == INSN_SIZE) {
-#define rs1_index	((instr & RS1_MASK) >> RS1_SHIFT)
-#define rs2_index	((instr & RS2_MASK) >> RS2_SHIFT)
-#define rd_index	((instr & RD_MASK) >> RD_SHIFT)
-#define rs1		((register_t *)frame)[kinst_regoff(frame, rs1_index)]
-#define rs2		((register_t *)frame)[kinst_regoff(frame, rs2_index)]
-#define rd		((register_t *)frame)[kinst_regoff(frame, rd_index)]
-#define rs1_lval	(rs1_index != 0 ? rs1 : 0)
-#define rs2_lval	(rs2_index != 0 ? rs2 : 0)
+#define rs1_index ((instr & RS1_MASK) >> RS1_SHIFT)
+#define rs2_index ((instr & RS2_MASK) >> RS2_SHIFT)
+#define rd_index ((instr & RD_MASK) >> RD_SHIFT)
+#define rs1 ((register_t *)frame)[kinst_regoff(frame, rs1_index)]
+#define rs2 ((register_t *)frame)[kinst_regoff(frame, rs2_index)]
+#define rd ((register_t *)frame)[kinst_regoff(frame, rd_index)]
+#define rs1_lval (rs1_index != 0 ? rs1 : 0)
+#define rs2_lval (rs2_index != 0 ? rs2 : 0)
 		switch (instr & 0x7f) {
 		case 0b1101111: /* jal */
 			imm = 0;
@@ -95,7 +95,7 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 				rd = frame->tf_sepc + INSN_SIZE;
 			frame->tf_sepc += imm;
 			break;
-		case 0b1100111:	/* jalr */
+		case 0b1100111: /* jalr */
 			prevpc = frame->tf_sepc;
 			imm = (instr & IMM_MASK) >> IMM_SHIFT;
 			if (imm & 0x0000000000000800)
@@ -104,7 +104,7 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 			if (rd_index != 0)
 				rd = prevpc + INSN_SIZE;
 			break;
-		case 0b1100011:	/* branch */
+		case 0b1100011: /* branch */
 			imm = 0;
 			imm |= ((instr >> 8) & 0x000f) << 1;
 			imm |= ((instr >> 25) & 0x003f) << 5;
@@ -114,37 +114,37 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 				imm |= 0xfffffffffffff000;
 			funct = (instr >> 12) & 0x07;
 			switch (funct) {
-			case 0b000:	/* beq */
+			case 0b000: /* beq */
 				if (rs1_lval == rs2_lval)
 					frame->tf_sepc += imm;
 				else
 					frame->tf_sepc += INSN_SIZE;
 				break;
-			case 0b001:	/* bne */
+			case 0b001: /* bne */
 				if (rs1_lval != rs2_lval)
 					frame->tf_sepc += imm;
 				else
 					frame->tf_sepc += INSN_SIZE;
 				break;
-			case 0b100:	/* blt */
+			case 0b100: /* blt */
 				if ((int64_t)rs1_lval < (int64_t)rs2_lval)
 					frame->tf_sepc += imm;
 				else
 					frame->tf_sepc += INSN_SIZE;
 				break;
-			case 0b110:	/* bltu */
+			case 0b110: /* bltu */
 				if ((uint64_t)rs1_lval < (uint64_t)rs2_lval)
 					frame->tf_sepc += imm;
 				else
 					frame->tf_sepc += INSN_SIZE;
 				break;
-			case 0b101:	/* bge */
+			case 0b101: /* bge */
 				if ((int64_t)rs1_lval >= (int64_t)rs2_lval)
 					frame->tf_sepc += imm;
 				else
 					frame->tf_sepc += INSN_SIZE;
 				break;
-			case 0b111:	/* bgeu */
+			case 0b111: /* bgeu */
 				if ((uint64_t)rs1_lval >= (uint64_t)rs2_lval)
 					frame->tf_sepc += imm;
 				else
@@ -152,11 +152,12 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 				break;
 			}
 			break;
-		case 0b0010111:	/* auipc */
+		case 0b0010111: /* auipc */
 			imm = instr & 0xfffff000;
 			rd = frame->tf_sepc +
 			    (imm & 0x0000000080000000 ?
-			    imm | 0xffffffff80000000 : imm);
+				    imm | 0xffffffff80000000 :
+				    imm);
 			frame->tf_sepc += INSN_SIZE;
 			break;
 		}
@@ -170,12 +171,11 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 #undef rd_index
 	} else {
 		switch (instr & 0x03) {
-#define rs1	\
-	((register_t *)frame)[kinst_c_regoff(frame, (instr >> 7) & 0x07)]
+#define rs1 ((register_t *)frame)[kinst_c_regoff(frame, (instr >> 7) & 0x07)]
 		case 0b01:
 			funct = (instr >> 13) & 0x07;
 			switch (funct) {
-			case 0b101:	/* c.j */
+			case 0b101: /* c.j */
 				off = (instr >> 2) & 0x07ff;
 				imm = 0;
 				imm |= ((off >> 1) & 0x07) << 1;
@@ -190,8 +190,8 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 					imm |= 0xfffffffffffff000;
 				frame->tf_sepc += imm;
 				break;
-			case 0b110:	/* c.beqz */
-			case 0b111:	/* c.bnez */
+			case 0b110: /* c.beqz */
+			case 0b111: /* c.bnez */
 				imm = 0;
 				imm |= ((instr >> 3) & 0x03) << 1;
 				imm |= ((instr >> 10) & 0x03) << 3;
@@ -210,8 +210,8 @@ kinst_emulate(struct trapframe *frame, const struct kinst_probe *kp)
 			}
 			break;
 #undef rs1
-#define rs1_index	((instr & RD_MASK) >> RD_SHIFT)
-#define rs1		((register_t *)frame)[kinst_regoff(frame, rs1_index)]
+#define rs1_index ((instr & RD_MASK) >> RD_SHIFT)
+#define rs1 ((register_t *)frame)[kinst_regoff(frame, rs1_index)]
 		case 0b10:
 			funct = (instr >> 13) & 0x07;
 			if (funct == 0b100 && rs1_index != 0) {
@@ -314,7 +314,7 @@ kinst_invop(uintptr_t addr, struct trapframe *frame, uintptr_t scratch)
 		return (kinst_jump_next_instr(frame, ks->kp));
 	}
 
-	LIST_FOREACH(kp, KINST_GETPROBE(addr), kp_hashnext) {
+	LIST_FOREACH (kp, KINST_GETPROBE(addr), kp_hashnext) {
 		if ((uintptr_t)kp->kp_patchpoint == addr)
 			break;
 	}
@@ -376,9 +376,9 @@ kinst_instr_dissect(struct kinst_probe *kp, int instrsize)
 	if (kpmd->instlen == INSN_SIZE) {
 		switch (instr & 0x7f) {
 		case 0b1101111: /* jal */
-		case 0b1100111:	/* jalr */
-		case 0b1100011:	/* branch */
-		case 0b0010111:	/* auipc */
+		case 0b1100111: /* jalr */
+		case 0b1100011: /* branch */
+		case 0b0010111: /* auipc */
 			kpmd->emulate = true;
 			break;
 		}
@@ -387,19 +387,18 @@ kinst_instr_dissect(struct kinst_probe *kp, int instrsize)
 		case 0b01:
 			funct = (instr >> 13) & 0x07;
 			switch (funct) {
-			case 0b101:	/* c.j */
-			case 0b110:	/* c.beqz */
-			case 0b111:	/* c.bnez */
+			case 0b101: /* c.j */
+			case 0b110: /* c.beqz */
+			case 0b111: /* c.bnez */
 				kpmd->emulate = true;
 				break;
 			}
 			break;
 		case 0b10:
 			funct = (instr >> 13) & 0x07;
-			if (funct == 0b100 &&
-			    ((instr >> 7) & 0x1f) != 0 &&
+			if (funct == 0b100 && ((instr >> 7) & 0x1f) != 0 &&
 			    ((instr >> 2) & 0x1f) == 0)
-				kpmd->emulate = true;	/* c.jr/c.jalr */
+				kpmd->emulate = true; /* c.jr/c.jalr */
 			break;
 		}
 	}
@@ -465,8 +464,8 @@ kinst_make_probe(linker_file_t lf, int symindx, linker_symval_t *symval,
 
 	/* Check for the usual function prologue. */
 	store_found = false;
-	for (insn = (kinst_patchval_t *)instr;
-	    insn < (kinst_patchval_t *)limit; insn++) {
+	for (insn = (kinst_patchval_t *)instr; insn < (kinst_patchval_t *)limit;
+	     insn++) {
 		if (dtrace_instr_sdsp(&insn) || dtrace_instr_c_sdsp(&insn)) {
 			store_found = true;
 			break;
@@ -515,7 +514,7 @@ kinst_make_probe(linker_file_t lf, int symindx, linker_symval_t *symval,
 		 * Prevent separate dtrace(1) instances from creating copies of
 		 * the same probe.
 		 */
-		LIST_FOREACH(kp, KINST_GETPROBE(instr), kp_hashnext) {
+		LIST_FOREACH (kp, KINST_GETPROBE(instr), kp_hashnext) {
 			if (strcmp(kp->kp_func, func) == 0 &&
 			    strtol(kp->kp_name, NULL, 10) == off)
 				return (0);
@@ -541,7 +540,7 @@ kinst_make_probe(linker_file_t lf, int symindx, linker_symval_t *symval,
 
 		kinst_instr_dissect(kp, instrsize);
 		kinst_probe_create(kp, lf);
-cont:
+	cont:
 		instr += instrsize;
 	}
 	if (lrsc_block)
@@ -556,7 +555,7 @@ kinst_md_init(void)
 	struct kinst_cpu_state *ks;
 	int cpu;
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		ks = DPCPU_PTR(kinst_state);
 		ks->state = KINST_PROBE_ARMED;
 	}
@@ -576,11 +575,11 @@ bool
 kinst_md_excluded(const char *name)
 {
 	if (strcmp(name, "cpu_exception_handler") == 0 ||
-            strcmp(name, "cpu_exception_handler_supervisor") == 0 ||
-            strcmp(name, "cpu_exception_handler_user") == 0 ||
-            strcmp(name, "do_trap_supervisor") == 0 ||
-            strcmp(name, "do_trap_user") == 0)
-                return (true);
+	    strcmp(name, "cpu_exception_handler_supervisor") == 0 ||
+	    strcmp(name, "cpu_exception_handler_user") == 0 ||
+	    strcmp(name, "do_trap_supervisor") == 0 ||
+	    strcmp(name, "do_trap_user") == 0)
+		return (true);
 
 	return (false);
 }

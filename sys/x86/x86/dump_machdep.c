@@ -26,14 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_watchdog.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/kerneldump.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 

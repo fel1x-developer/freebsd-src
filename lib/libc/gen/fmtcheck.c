@@ -30,12 +30,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 __weak_reference(__fmtcheck, fmtcheck);
-const char * __fmtcheck(const char *, const char *);
+const char *__fmtcheck(const char *, const char *);
 
 enum __e_fmtcheck_types {
 	FMTCHECK_START,
@@ -80,22 +80,24 @@ enum e_modifier {
 	MOD_SIZET,
 };
 
-#define RETURN(pf,f,r) do { \
-			*(pf) = (f); \
-			return r; \
-		       } /*NOTREACHED*/ /*CONSTCOND*/ while (0)
+#define RETURN(pf, f, r)     \
+	do {                 \
+		*(pf) = (f); \
+		return r;    \
+	} /*NOTREACHED*/ /*CONSTCOND*/ while (0)
 
 static EFT
 get_next_format_from_precision(const char **pf)
 {
-	enum e_modifier	modifier;
-	const char	*f;
+	enum e_modifier modifier;
+	const char *f;
 
 	f = *pf;
 	switch (*f) {
 	case 'h':
 		f++;
-		if (!*f) RETURN(pf,f,FMTCHECK_UNKNOWN);
+		if (!*f)
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		if (*f == 'h') {
 			f++;
 			modifier = MOD_CHAR;
@@ -109,7 +111,8 @@ get_next_format_from_precision(const char **pf)
 		break;
 	case 'l':
 		f++;
-		if (!*f) RETURN(pf,f,FMTCHECK_UNKNOWN);
+		if (!*f)
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		if (*f == 'l') {
 			f++;
 			modifier = MOD_QUAD;
@@ -137,130 +140,133 @@ get_next_format_from_precision(const char **pf)
 		modifier = MOD_NONE;
 		break;
 	}
-	if (!*f) RETURN(pf,f,FMTCHECK_UNKNOWN);
+	if (!*f)
+		RETURN(pf, f, FMTCHECK_UNKNOWN);
 	if (strchr("diouxX", *f)) {
 		switch (modifier) {
 		case MOD_LONG:
-			RETURN(pf,f,FMTCHECK_LONG);
+			RETURN(pf, f, FMTCHECK_LONG);
 		case MOD_QUAD:
-			RETURN(pf,f,FMTCHECK_QUAD);
+			RETURN(pf, f, FMTCHECK_QUAD);
 		case MOD_INTMAXT:
-			RETURN(pf,f,FMTCHECK_INTMAXT);
+			RETURN(pf, f, FMTCHECK_INTMAXT);
 		case MOD_PTRDIFFT:
-			RETURN(pf,f,FMTCHECK_PTRDIFFT);
+			RETURN(pf, f, FMTCHECK_PTRDIFFT);
 		case MOD_SIZET:
-			RETURN(pf,f,FMTCHECK_SIZET);
+			RETURN(pf, f, FMTCHECK_SIZET);
 		case MOD_CHAR:
 		case MOD_SHORT:
 		case MOD_NONE:
-			RETURN(pf,f,FMTCHECK_INT);
+			RETURN(pf, f, FMTCHECK_INT);
 		default:
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		}
 	}
 	if (*f == 'n') {
 		switch (modifier) {
 		case MOD_CHAR:
-			RETURN(pf,f,FMTCHECK_CHARPOINTER);
+			RETURN(pf, f, FMTCHECK_CHARPOINTER);
 		case MOD_SHORT:
-			RETURN(pf,f,FMTCHECK_SHORTPOINTER);
+			RETURN(pf, f, FMTCHECK_SHORTPOINTER);
 		case MOD_LONG:
-			RETURN(pf,f,FMTCHECK_LONGPOINTER);
+			RETURN(pf, f, FMTCHECK_LONGPOINTER);
 		case MOD_QUAD:
-			RETURN(pf,f,FMTCHECK_QUADPOINTER);
+			RETURN(pf, f, FMTCHECK_QUADPOINTER);
 		case MOD_INTMAXT:
-			RETURN(pf,f,FMTCHECK_INTMAXTPOINTER);
+			RETURN(pf, f, FMTCHECK_INTMAXTPOINTER);
 		case MOD_PTRDIFFT:
-			RETURN(pf,f,FMTCHECK_PTRDIFFTPOINTER);
+			RETURN(pf, f, FMTCHECK_PTRDIFFTPOINTER);
 		case MOD_SIZET:
-			RETURN(pf,f,FMTCHECK_SIZETPOINTER);
+			RETURN(pf, f, FMTCHECK_SIZETPOINTER);
 		case MOD_NONE:
-			RETURN(pf,f,FMTCHECK_INTPOINTER);
+			RETURN(pf, f, FMTCHECK_INTPOINTER);
 		default:
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		}
 	}
 	if (strchr("DOU", *f)) {
 		if (modifier != MOD_NONE)
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
-		RETURN(pf,f,FMTCHECK_LONG);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
+		RETURN(pf, f, FMTCHECK_LONG);
 	}
 #ifndef NO_FLOATING_POINT
 	if (strchr("aAeEfFgG", *f)) {
 		switch (modifier) {
 		case MOD_LONGDOUBLE:
-			RETURN(pf,f,FMTCHECK_LONGDOUBLE);
+			RETURN(pf, f, FMTCHECK_LONGDOUBLE);
 		case MOD_LONG:
 		case MOD_NONE:
-			RETURN(pf,f,FMTCHECK_DOUBLE);
+			RETURN(pf, f, FMTCHECK_DOUBLE);
 		default:
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		}
 	}
 #endif
 	if (*f == 'c') {
 		switch (modifier) {
 		case MOD_LONG:
-			RETURN(pf,f,FMTCHECK_WINTT);
+			RETURN(pf, f, FMTCHECK_WINTT);
 		case MOD_NONE:
-			RETURN(pf,f,FMTCHECK_INT);
+			RETURN(pf, f, FMTCHECK_INT);
 		default:
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		}
 	}
 	if (*f == 'C') {
 		if (modifier != MOD_NONE)
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
-		RETURN(pf,f,FMTCHECK_WINTT);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
+		RETURN(pf, f, FMTCHECK_WINTT);
 	}
 	if (*f == 's') {
 		switch (modifier) {
 		case MOD_LONG:
-			RETURN(pf,f,FMTCHECK_WSTRING);
+			RETURN(pf, f, FMTCHECK_WSTRING);
 		case MOD_NONE:
-			RETURN(pf,f,FMTCHECK_STRING);
+			RETURN(pf, f, FMTCHECK_STRING);
 		default:
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		}
 	}
 	if (*f == 'S') {
 		if (modifier != MOD_NONE)
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
-		RETURN(pf,f,FMTCHECK_WSTRING);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
+		RETURN(pf, f, FMTCHECK_WSTRING);
 	}
 	if (*f == 'p') {
 		if (modifier != MOD_NONE)
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
-		RETURN(pf,f,FMTCHECK_LONG);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
+		RETURN(pf, f, FMTCHECK_LONG);
 	}
-	RETURN(pf,f,FMTCHECK_UNKNOWN);
+	RETURN(pf, f, FMTCHECK_UNKNOWN);
 	/*NOTREACHED*/
 }
 
 static EFT
 get_next_format_from_width(const char **pf)
 {
-	const char	*f;
+	const char *f;
 
 	f = *pf;
 	if (*f == '.') {
 		f++;
 		if (*f == '*') {
-			RETURN(pf,f,FMTCHECK_PRECISION);
+			RETURN(pf, f, FMTCHECK_PRECISION);
 		}
 		/* eat any precision (empty is allowed) */
-		while (isdigit(*f)) f++;
-		if (!*f) RETURN(pf,f,FMTCHECK_UNKNOWN);
+		while (isdigit(*f))
+			f++;
+		if (!*f)
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 	}
-	RETURN(pf,f,get_next_format_from_precision(pf));
+	RETURN(pf, f, get_next_format_from_precision(pf));
 	/*NOTREACHED*/
 }
 
 static EFT
 get_next_format(const char **pf, EFT eft)
 {
-	int		infmt;
-	const char	*f;
+	int infmt;
+	const char *f;
 
 	if (eft == FMTCHECK_WIDTH) {
 		(*pf)++;
@@ -275,10 +281,10 @@ get_next_format(const char **pf, EFT eft)
 	while (!infmt) {
 		f = strchr(f, '%');
 		if (f == NULL)
-			RETURN(pf,f,FMTCHECK_DONE);
+			RETURN(pf, f, FMTCHECK_DONE);
 		f++;
 		if (!*f)
-			RETURN(pf,f,FMTCHECK_UNKNOWN);
+			RETURN(pf, f, FMTCHECK_UNKNOWN);
 		if (*f != '%')
 			infmt = 1;
 		else
@@ -290,26 +296,28 @@ get_next_format(const char **pf, EFT eft)
 		f++;
 
 	if (*f == '*') {
-		RETURN(pf,f,FMTCHECK_WIDTH);
+		RETURN(pf, f, FMTCHECK_WIDTH);
 	}
 	/* eat any width */
-	while (isdigit(*f)) f++;
+	while (isdigit(*f))
+		f++;
 	if (!*f) {
-		RETURN(pf,f,FMTCHECK_UNKNOWN);
+		RETURN(pf, f, FMTCHECK_UNKNOWN);
 	}
 
-	RETURN(pf,f,get_next_format_from_width(pf));
+	RETURN(pf, f, get_next_format_from_width(pf));
 	/*NOTREACHED*/
 }
 
 const char *
 __fmtcheck(const char *f1, const char *f2)
 {
-	const char	*f1p, *f2p;
-	EFT		f1t, f2t;
+	const char *f1p, *f2p;
+	EFT f1t, f2t;
 
-	if (!f1) return f2;
-	
+	if (!f1)
+		return f2;
+
 	f1p = f1;
 	f1t = FMTCHECK_START;
 	f2p = f2;

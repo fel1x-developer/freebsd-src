@@ -27,9 +27,8 @@
 #include <sys/param.h>
 #include <sys/gsb_crc32.h>
 
-#include <stdint.h>
-
 #include <atf-c.h>
+#include <stdint.h>
 
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/cpufunc.h>
@@ -136,10 +135,8 @@ ATF_TC_BODY(crc32c_alignment, tc)
 ATF_TC_WITHOUT_HEAD(crc32c_trailing_bytes);
 ATF_TC_BODY(crc32c_trailing_bytes, tc)
 {
-	const unsigned char input[] = {
-		0x87, 0x54, 0x74, 0xd2, 0xb, 0x9b, 0xdd, 0xf6, 0x68, 0x37,
-		0xd4, 0x4, 0x5e, 0xa9, 0xb3
-	};
+	const unsigned char input[] = { 0x87, 0x54, 0x74, 0xd2, 0xb, 0x9b, 0xdd,
+		0xf6, 0x68, 0x37, 0xd4, 0x4, 0x5e, 0xa9, 0xb3 };
 	const uint32_t result = 0xec638d62;
 
 	check_crc32c(result, ~0u, input, sizeof(input));

@@ -43,17 +43,15 @@
  * 1, 2, and 3.
  */
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
-
 #include <sys/socket.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_media.h>
-
+#include <net/if_var.h>
 #include <net80211/ieee80211_var.h>
 
 /*
@@ -65,7 +63,7 @@ MPDU data
 
 RC4 encryption is performed as follows:
 17
-18  Key  fb 02 9e 30 31 32 33 34 
+18  Key  fb 02 9e 30 31 32 33 34
 Plaintext
  aa aa 03 00 00 00 08 00 45 00 00 4e 66 1a 00 00 80 11 be 64 0a 00 01
  22 0a ff ff ff 00 89 00 89 00 3a 00 00 80 a6 01 10 00 01 00 00 00 00
@@ -86,64 +84,272 @@ MPDU  data
  03 a2 58 b7 ed 22 eb 0e a6 49 30 d3 a0 56 a5 57 42 fc ce 14 1d 48 5f 8a a8 36
  de a1 8d f4 2c 53 80 80 5a d0 c6 1a 5d 6f 58 f4 10 40 b2 4b 7d 1a 69 38 56 ed
  0d 43 98 e7 ae e3 bf 0e
-ICV  2a 2c a8 f7  
+ICV  2a 2c a8 f7
 */
-static const u_int8_t test1_key[] = {		/* TK (w/o IV) */
-	0x30, 0x31, 0x32, 0x33, 0x34, 
+static const u_int8_t test1_key[] = {
+	/* TK (w/o IV) */
+	0x30,
+	0x31,
+	0x32,
+	0x33,
+	0x34,
 };
-static const u_int8_t test1_plaintext[] = {	/* Plaintext MPDU */
-	0x08, 0x48, 0xc3, 0x2c, 0x0f, 0xd2, 0xe1, 0x28,	/* 802.11 Header */
-	0xa5, 0x7c, 0x50, 0x30, 0xf1, 0x84, 0x44, 0x08,
-	0xab, 0xae, 0xa5, 0xb8, 0xfc, 0xba, 0x80, 0x33, 
-	0xaa, 0xaa, 0x03, 0x00, 0x00, 0x00, 0x08, 0x00,	/* Plaintext data */
-	0x45, 0x00, 0x00, 0x4e, 0x66, 0x1a, 0x00, 0x00,
-	0x80, 0x11, 0xbe, 0x64, 0x0a, 0x00, 0x01, 0x22,
-	0x0a, 0xff, 0xff, 0xff, 0x00, 0x89, 0x00, 0x89,
-	0x00, 0x3a, 0x00, 0x00, 0x80, 0xa6, 0x01, 0x10,
-	0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x20, 0x45, 0x43, 0x45, 0x4a, 0x45, 0x48, 0x45,
-	0x43, 0x46, 0x43, 0x45, 0x50, 0x46, 0x45, 0x45,
-	0x49, 0x45, 0x46, 0x46, 0x43, 0x43, 0x41, 0x43,
-	0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x41,
-	0x41, 0x00, 0x00, 0x20, 0x00, 0x01,
+static const u_int8_t test1_plaintext[] = {
+	/* Plaintext MPDU */
+	0x08,
+	0x48,
+	0xc3,
+	0x2c,
+	0x0f,
+	0xd2,
+	0xe1,
+	0x28, /* 802.11 Header */
+	0xa5,
+	0x7c,
+	0x50,
+	0x30,
+	0xf1,
+	0x84,
+	0x44,
+	0x08,
+	0xab,
+	0xae,
+	0xa5,
+	0xb8,
+	0xfc,
+	0xba,
+	0x80,
+	0x33,
+	0xaa,
+	0xaa,
+	0x03,
+	0x00,
+	0x00,
+	0x00,
+	0x08,
+	0x00, /* Plaintext data */
+	0x45,
+	0x00,
+	0x00,
+	0x4e,
+	0x66,
+	0x1a,
+	0x00,
+	0x00,
+	0x80,
+	0x11,
+	0xbe,
+	0x64,
+	0x0a,
+	0x00,
+	0x01,
+	0x22,
+	0x0a,
+	0xff,
+	0xff,
+	0xff,
+	0x00,
+	0x89,
+	0x00,
+	0x89,
+	0x00,
+	0x3a,
+	0x00,
+	0x00,
+	0x80,
+	0xa6,
+	0x01,
+	0x10,
+	0x00,
+	0x01,
+	0x00,
+	0x00,
+	0x00,
+	0x00,
+	0x00,
+	0x00,
+	0x20,
+	0x45,
+	0x43,
+	0x45,
+	0x4a,
+	0x45,
+	0x48,
+	0x45,
+	0x43,
+	0x46,
+	0x43,
+	0x45,
+	0x50,
+	0x46,
+	0x45,
+	0x45,
+	0x49,
+	0x45,
+	0x46,
+	0x46,
+	0x43,
+	0x43,
+	0x41,
+	0x43,
+	0x41,
+	0x43,
+	0x41,
+	0x43,
+	0x41,
+	0x43,
+	0x41,
+	0x41,
+	0x41,
+	0x00,
+	0x00,
+	0x20,
+	0x00,
+	0x01,
 };
-static const u_int8_t test1_encrypted[] = {	/* Encrypted MPDU */
-	0x08, 0x48, 0xc3, 0x2c, 0x0f, 0xd2, 0xe1, 0x28,
-	0xa5, 0x7c, 0x50, 0x30, 0xf1, 0x84, 0x44, 0x08,
-	0xab, 0xae, 0xa5, 0xb8, 0xfc, 0xba, 0x80, 0x33,
-	0xfb, 0x02, 0x9e, 0x80, 0xf6, 0x9c, 0x58, 0x06,
-	0xbd, 0x6c, 0xe8, 0x46, 0x26, 0xbc, 0xbe, 0xfb,
-	0x94, 0x74, 0x65, 0x0a, 0xad, 0x1f, 0x79, 0x09,
-	0xb0, 0xf6, 0x4d, 0x5f, 0x58, 0xa5, 0x03, 0xa2,
-	0x58, 0xb7, 0xed, 0x22, 0xeb, 0x0e, 0xa6, 0x49,
-	0x30, 0xd3, 0xa0, 0x56, 0xa5, 0x57, 0x42, 0xfc,
-	0xce, 0x14, 0x1d, 0x48, 0x5f, 0x8a, 0xa8, 0x36,
-	0xde, 0xa1, 0x8d, 0xf4, 0x2c, 0x53, 0x80, 0x80,
-	0x5a, 0xd0, 0xc6, 0x1a, 0x5d, 0x6f, 0x58, 0xf4,
-	0x10, 0x40, 0xb2, 0x4b, 0x7d, 0x1a, 0x69, 0x38,
-	0x56, 0xed, 0x0d, 0x43, 0x98, 0xe7, 0xae, 0xe3,
-	0xbf, 0x0e, 0x2a, 0x2c, 0xa8, 0xf7,
+static const u_int8_t test1_encrypted[] = {
+	/* Encrypted MPDU */
+	0x08,
+	0x48,
+	0xc3,
+	0x2c,
+	0x0f,
+	0xd2,
+	0xe1,
+	0x28,
+	0xa5,
+	0x7c,
+	0x50,
+	0x30,
+	0xf1,
+	0x84,
+	0x44,
+	0x08,
+	0xab,
+	0xae,
+	0xa5,
+	0xb8,
+	0xfc,
+	0xba,
+	0x80,
+	0x33,
+	0xfb,
+	0x02,
+	0x9e,
+	0x80,
+	0xf6,
+	0x9c,
+	0x58,
+	0x06,
+	0xbd,
+	0x6c,
+	0xe8,
+	0x46,
+	0x26,
+	0xbc,
+	0xbe,
+	0xfb,
+	0x94,
+	0x74,
+	0x65,
+	0x0a,
+	0xad,
+	0x1f,
+	0x79,
+	0x09,
+	0xb0,
+	0xf6,
+	0x4d,
+	0x5f,
+	0x58,
+	0xa5,
+	0x03,
+	0xa2,
+	0x58,
+	0xb7,
+	0xed,
+	0x22,
+	0xeb,
+	0x0e,
+	0xa6,
+	0x49,
+	0x30,
+	0xd3,
+	0xa0,
+	0x56,
+	0xa5,
+	0x57,
+	0x42,
+	0xfc,
+	0xce,
+	0x14,
+	0x1d,
+	0x48,
+	0x5f,
+	0x8a,
+	0xa8,
+	0x36,
+	0xde,
+	0xa1,
+	0x8d,
+	0xf4,
+	0x2c,
+	0x53,
+	0x80,
+	0x80,
+	0x5a,
+	0xd0,
+	0xc6,
+	0x1a,
+	0x5d,
+	0x6f,
+	0x58,
+	0xf4,
+	0x10,
+	0x40,
+	0xb2,
+	0x4b,
+	0x7d,
+	0x1a,
+	0x69,
+	0x38,
+	0x56,
+	0xed,
+	0x0d,
+	0x43,
+	0x98,
+	0xe7,
+	0xae,
+	0xe3,
+	0xbf,
+	0x0e,
+	0x2a,
+	0x2c,
+	0xa8,
+	0xf7,
 };
 
 /* XXX fix byte order of iv */
-#define	TEST(n,name,cipher,keyix,iv0,iv1,iv2,iv3) { \
-	name, IEEE80211_CIPHER_##cipher,keyix, { iv2,iv1,iv0,iv3 }, \
-	test##n##_key,   sizeof(test##n##_key), \
-	test##n##_plaintext, sizeof(test##n##_plaintext), \
-	test##n##_encrypted, sizeof(test##n##_encrypted) \
-}
+#define TEST(n, name, cipher, keyix, iv0, iv1, iv2, iv3)              \
+	{                                                             \
+		name, IEEE80211_CIPHER_##cipher, keyix,               \
+		    { iv2, iv1, iv0, iv3 }, test##n##_key,            \
+		    sizeof(test##n##_key), test##n##_plaintext,       \
+		    sizeof(test##n##_plaintext), test##n##_encrypted, \
+		    sizeof(test##n##_encrypted)                       \
+	}
 
 struct ciphertest {
-	const char	*name;
-	int		cipher;
-	int		keyix;
-	u_int8_t	iv[4];
-	const u_int8_t	*key;
-	size_t		key_len;
-	const u_int8_t	*plaintext;
-	size_t		plaintext_len;
-	const u_int8_t	*encrypted;
-	size_t		encrypted_len;
+	const char *name;
+	int cipher;
+	int keyix;
+	u_int8_t iv[4];
+	const u_int8_t *key;
+	size_t key_len;
+	const u_int8_t *plaintext;
+	size_t plaintext_len;
+	const u_int8_t *encrypted;
+	size_t encrypted_len;
 } weptests[] = {
 	TEST(1, "WEP test mpdu 1", WEP, 2, 0xfb, 0x02, 0x9e, 0x80),
 };
@@ -176,10 +382,10 @@ cmpfail(const void *gen, size_t genlen, const void *ref, size_t reflen)
 	dumpdata("Reference", ref, reflen);
 }
 
-struct wep_ctx_hw {			/* for use with h/w support */
-	struct ieee80211vap *wc_vap;	/* for diagnostics+statistics */
+struct wep_ctx_hw {		     /* for use with h/w support */
+	struct ieee80211vap *wc_vap; /* for diagnostics+statistics */
 	struct ieee80211com *wc_ic;
-	uint32_t        wc_iv;		/* initial vector for crypto */
+	uint32_t wc_iv; /* initial vector for crypto */
 };
 
 static int
@@ -200,7 +406,7 @@ runtest(struct ieee80211vap *vap, struct ciphertest *t)
 	key->wk_flags = IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV;
 	key->wk_cipher = &ieee80211_cipher_none;
 	if (!ieee80211_crypto_newkey(vap, t->cipher,
-	    IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV, key)) {
+		IEEE80211_KEY_XMIT | IEEE80211_KEY_RECV, key)) {
 		printf("FAIL: ieee80211_crypto_newkey failed\n");
 		goto bad;
 	}
@@ -227,8 +433,8 @@ runtest(struct ieee80211vap *vap, struct ciphertest *t)
 	 */
 	if (!cip->ic_decap(key, m, hdrlen)) {
 		printf("FAIL: wep decap failed\n");
-		cmpfail(mtod(m, const void *), m->m_pkthdr.len,
-			t->plaintext, t->plaintext_len);
+		cmpfail(mtod(m, const void *), m->m_pkthdr.len, t->plaintext,
+		    t->plaintext_len);
 		goto bad;
 	}
 	/*
@@ -236,23 +442,24 @@ runtest(struct ieee80211vap *vap, struct ciphertest *t)
 	 */
 	if (m->m_pkthdr.len != t->plaintext_len) {
 		printf("FAIL: decap botch; length mismatch\n");
-		cmpfail(mtod(m, const void *), m->m_pkthdr.len,
-			t->plaintext, t->plaintext_len);
+		cmpfail(mtod(m, const void *), m->m_pkthdr.len, t->plaintext,
+		    t->plaintext_len);
 		goto bad;
-	} else if (memcmp(mtod(m, const void *), t->plaintext, t->plaintext_len)) {
+	} else if (memcmp(mtod(m, const void *), t->plaintext,
+		       t->plaintext_len)) {
 		printf("FAIL: decap botch; data does not compare\n");
-		cmpfail(mtod(m, const void *), m->m_pkthdr.len,
-			t->plaintext, t->plaintext_len);
+		cmpfail(mtod(m, const void *), m->m_pkthdr.len, t->plaintext,
+		    t->plaintext_len);
 		goto bad;
 	}
 
 	/*
 	 * Encrypt frame.
 	 */
-	ctx = (struct wep_ctx_hw *) key->wk_private;
+	ctx = (struct wep_ctx_hw *)key->wk_private;
 	ctx->wc_vap = vap;
 	ctx->wc_ic = vap->iv_ic;
-	memcpy(&ctx->wc_iv, t->iv, sizeof(t->iv));	/* for encap/encrypt */
+	memcpy(&ctx->wc_iv, t->iv, sizeof(t->iv)); /* for encap/encrypt */
 	if (!cip->ic_encap(key, m)) {
 		printf("FAIL: wep encap failed\n");
 		goto bad;
@@ -262,13 +469,14 @@ runtest(struct ieee80211vap *vap, struct ciphertest *t)
 	 */
 	if (m->m_pkthdr.len != t->encrypted_len) {
 		printf("FAIL: encap data length mismatch\n");
-		cmpfail(mtod(m, const void *), m->m_pkthdr.len,
-			t->encrypted, t->encrypted_len);
+		cmpfail(mtod(m, const void *), m->m_pkthdr.len, t->encrypted,
+		    t->encrypted_len);
 		goto bad;
-	} else if (memcmp(mtod(m, const void *), t->encrypted, m->m_pkthdr.len)) {
+	} else if (memcmp(mtod(m, const void *), t->encrypted,
+		       m->m_pkthdr.len)) {
 		printf("FAIL: encrypt data does not compare\n");
-		cmpfail(mtod(m, const void *), m->m_pkthdr.len,
-			t->encrypted, t->encrypted_len);
+		cmpfail(mtod(m, const void *), m->m_pkthdr.len, t->encrypted,
+		    t->encrypted_len);
 		dumpdata("Plaintext", t->plaintext, t->plaintext_len);
 		goto bad;
 	}
@@ -287,8 +495,8 @@ bad:
  * Module glue.
  */
 
-static	int tests = -1;
-static	int debug = 0;
+static int tests = -1;
+static int debug = 0;
 
 static int
 init_crypto_wep_test(void)
@@ -315,7 +523,7 @@ init_crypto_wep_test(void)
 	pass = 0;
 	total = 0;
 	for (i = 0; i < nitems(weptests); i++)
-		if (tests & (1<<i)) {
+		if (tests & (1 << i)) {
 			total++;
 			pass += runtest(&vap, &weptests[i]);
 		}
@@ -332,7 +540,7 @@ test_wep_modevent(module_t mod, int type, void *unused)
 {
 	switch (type) {
 	case MOD_LOAD:
-		(void) init_crypto_wep_test();
+		(void)init_crypto_wep_test();
 		return 0;
 	case MOD_UNLOAD:
 		return 0;
@@ -340,11 +548,7 @@ test_wep_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t test_wep_mod = {
-	"test_wep",
-	test_wep_modevent,
-	0
-};
+static moduledata_t test_wep_mod = { "test_wep", test_wep_modevent, 0 };
 DECLARE_MODULE(test_wep, test_wep_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(test_wep, 1);
 MODULE_DEPEND(test_wep, wlan, 1, 1, 1);

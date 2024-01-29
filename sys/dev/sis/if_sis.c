@@ -71,31 +71,29 @@
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <net/bpf.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/mii_bitbang.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
 
 #define SIS_USEIOSPACE
 
@@ -108,31 +106,30 @@ MODULE_DEPEND(sis, miibus, 1, 1, 1);
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 
-#define	SIS_LOCK(_sc)		mtx_lock(&(_sc)->sis_mtx)
-#define	SIS_UNLOCK(_sc)		mtx_unlock(&(_sc)->sis_mtx)
-#define	SIS_LOCK_ASSERT(_sc)	mtx_assert(&(_sc)->sis_mtx, MA_OWNED)
+#define SIS_LOCK(_sc) mtx_lock(&(_sc)->sis_mtx)
+#define SIS_UNLOCK(_sc) mtx_unlock(&(_sc)->sis_mtx)
+#define SIS_LOCK_ASSERT(_sc) mtx_assert(&(_sc)->sis_mtx, MA_OWNED)
 
 /*
  * register space access macros
  */
-#define CSR_WRITE_4(sc, reg, val)	bus_write_4(sc->sis_res[0], reg, val)
+#define CSR_WRITE_4(sc, reg, val) bus_write_4(sc->sis_res[0], reg, val)
 
-#define CSR_READ_4(sc, reg)		bus_read_4(sc->sis_res[0], reg)
+#define CSR_READ_4(sc, reg) bus_read_4(sc->sis_res[0], reg)
 
-#define CSR_READ_2(sc, reg)		bus_read_2(sc->sis_res[0], reg)
+#define CSR_READ_2(sc, reg) bus_read_2(sc->sis_res[0], reg)
 
-#define	CSR_BARRIER(sc, reg, length, flags)				\
+#define CSR_BARRIER(sc, reg, length, flags) \
 	bus_barrier(sc->sis_res[0], reg, length, flags)
 
 /*
  * Various supported device vendors/types and their names.
  */
-static const struct sis_type sis_devs[] = {
-	{ SIS_VENDORID, SIS_DEVICEID_900, "SiS 900 10/100BaseTX" },
+static const struct sis_type sis_devs[] = { { SIS_VENDORID, SIS_DEVICEID_900,
+						"SiS 900 10/100BaseTX" },
 	{ SIS_VENDORID, SIS_DEVICEID_7016, "SiS 7016 10/100BaseTX" },
 	{ NS_VENDORID, NS_DEVICEID_DP83815, "NatSemi DP8381[56] 10/100BaseTX" },
-	{ 0, 0, NULL }
-};
+	{ 0, 0, NULL } };
 
 static int sis_detach(device_t);
 static __inline void sis_discard_rxbuf(struct sis_rxdesc *);
@@ -170,40 +167,32 @@ static void sis_wol(struct sis_softc *);
  * MII bit-bang glue
  */
 static const struct mii_bitbang_ops sis_mii_bitbang_ops = {
-	sis_mii_bitbang_read,
-	sis_mii_bitbang_write,
+	sis_mii_bitbang_read, sis_mii_bitbang_write,
 	{
-		SIS_MII_DATA,		/* MII_BIT_MDO */
-		SIS_MII_DATA,		/* MII_BIT_MDI */
-		SIS_MII_CLK,		/* MII_BIT_MDC */
-		SIS_MII_DIR,		/* MII_BIT_DIR_HOST_PHY */
-		0,			/* MII_BIT_DIR_PHY_HOST */
+	    SIS_MII_DATA, /* MII_BIT_MDO */
+	    SIS_MII_DATA, /* MII_BIT_MDI */
+	    SIS_MII_CLK,  /* MII_BIT_MDC */
+	    SIS_MII_DIR,  /* MII_BIT_DIR_HOST_PHY */
+	    0,		  /* MII_BIT_DIR_PHY_HOST */
 	}
 };
 
 static struct resource_spec sis_res_spec[] = {
 #ifdef SIS_USEIOSPACE
-	{ SYS_RES_IOPORT,	SIS_PCI_LOIO,	RF_ACTIVE},
+	{ SYS_RES_IOPORT, SIS_PCI_LOIO, RF_ACTIVE },
 #else
-	{ SYS_RES_MEMORY,	SIS_PCI_LOMEM,	RF_ACTIVE},
+	{ SYS_RES_MEMORY, SIS_PCI_LOMEM, RF_ACTIVE },
 #endif
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE},
-	{ -1, 0 }
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0 }
 };
 
-#define SIS_SETBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg,				\
-		CSR_READ_4(sc, reg) | (x))
+#define SIS_SETBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) | (x))
 
-#define SIS_CLRBIT(sc, reg, x)				\
-	CSR_WRITE_4(sc, reg,				\
-		CSR_READ_4(sc, reg) & ~(x))
+#define SIS_CLRBIT(sc, reg, x) CSR_WRITE_4(sc, reg, CSR_READ_4(sc, reg) & ~(x))
 
-#define SIO_SET(x)					\
-	CSR_WRITE_4(sc, SIS_EECTL, CSR_READ_4(sc, SIS_EECTL) | x)
+#define SIO_SET(x) CSR_WRITE_4(sc, SIS_EECTL, CSR_READ_4(sc, SIS_EECTL) | x)
 
-#define SIO_CLR(x)					\
-	CSR_WRITE_4(sc, SIS_EECTL, CSR_READ_4(sc, SIS_EECTL) & ~x)
+#define SIO_CLR(x) CSR_WRITE_4(sc, SIS_EECTL, CSR_READ_4(sc, SIS_EECTL) & ~x)
 
 /*
  * Routine to reverse the bits in a word. Stolen almost
@@ -212,10 +201,10 @@ static struct resource_spec sis_res_spec[] = {
 static uint16_t
 sis_reverse(uint16_t n)
 {
-	n = ((n >>  1) & 0x5555) | ((n <<  1) & 0xaaaa);
-	n = ((n >>  2) & 0x3333) | ((n <<  2) & 0xcccc);
-	n = ((n >>  4) & 0x0f0f) | ((n <<  4) & 0xf0f0);
-	n = ((n >>  8) & 0x00ff) | ((n <<  8) & 0xff00);
+	n = ((n >> 1) & 0x5555) | ((n << 1) & 0xaaaa);
+	n = ((n >> 2) & 0x3333) | ((n << 2) & 0xcccc);
+	n = ((n >> 4) & 0x0f0f) | ((n << 4) & 0xf0f0);
+	n = ((n >> 8) & 0x00ff) | ((n << 8) & 0xff00);
 
 	return (n);
 }
@@ -223,7 +212,7 @@ sis_reverse(uint16_t n)
 static void
 sis_delay(struct sis_softc *sc)
 {
-	int			idx;
+	int idx;
 
 	for (idx = (300 / 33) + 1; idx > 0; idx--)
 		CSR_READ_4(sc, SIS_CSR);
@@ -232,7 +221,7 @@ sis_delay(struct sis_softc *sc)
 static void
 sis_eeprom_idle(struct sis_softc *sc)
 {
-	int		i;
+	int i;
 
 	SIO_SET(SIS_EECTL_CSEL);
 	sis_delay(sc);
@@ -259,7 +248,7 @@ sis_eeprom_idle(struct sis_softc *sc)
 static void
 sis_eeprom_putbyte(struct sis_softc *sc, int addr)
 {
-	int		d, i;
+	int d, i;
 
 	d = addr | SIS_EECMD_READ;
 
@@ -286,8 +275,8 @@ sis_eeprom_putbyte(struct sis_softc *sc, int addr)
 static void
 sis_eeprom_getword(struct sis_softc *sc, int addr, uint16_t *dest)
 {
-	int		i;
-	uint16_t	word = 0;
+	int i;
+	uint16_t word = 0;
 
 	/* Force EEPROM to idle state. */
 	sis_eeprom_idle(sc);
@@ -329,8 +318,8 @@ sis_eeprom_getword(struct sis_softc *sc, int addr, uint16_t *dest)
 static void
 sis_read_eeprom(struct sis_softc *sc, caddr_t dest, int off, int cnt, int swap)
 {
-	int			i;
-	uint16_t		word = 0, *ptr;
+	int i;
+	uint16_t word = 0, *ptr;
 
 	for (i = 0; i < cnt; i++) {
 		sis_eeprom_getword(sc, off + i, &word);
@@ -346,14 +335,14 @@ sis_read_eeprom(struct sis_softc *sc, caddr_t dest, int off, int cnt, int swap)
 static device_t
 sis_find_bridge(device_t dev)
 {
-	devclass_t		pci_devclass;
-	device_t		*pci_devices;
-	int			pci_count = 0;
-	device_t		*pci_children;
-	int			pci_childcount = 0;
-	device_t		*busp, *childp;
-	device_t		child = NULL;
-	int			i, j;
+	devclass_t pci_devclass;
+	device_t *pci_devices;
+	int pci_count = 0;
+	device_t *pci_children;
+	int pci_childcount = 0;
+	device_t *busp, *childp;
+	device_t child = NULL;
+	int i, j;
 
 	if ((pci_devclass = devclass_find("pci")) == NULL)
 		return (NULL);
@@ -363,8 +352,8 @@ sis_find_bridge(device_t dev)
 	for (i = 0, busp = pci_devices; i < pci_count; i++, busp++) {
 		if (device_get_children(*busp, &pci_children, &pci_childcount))
 			continue;
-		for (j = 0, childp = pci_children;
-		    j < pci_childcount; j++, childp++) {
+		for (j = 0, childp = pci_children; j < pci_childcount;
+		     j++, childp++) {
 			if (pci_get_vendor(*childp) == SIS_VENDORID &&
 			    pci_get_device(*childp) == 0x0008) {
 				child = *childp;
@@ -381,18 +370,19 @@ done:
 }
 
 static void
-sis_read_cmos(struct sis_softc *sc, device_t dev, caddr_t dest, int off, int cnt)
+sis_read_cmos(struct sis_softc *sc, device_t dev, caddr_t dest, int off,
+    int cnt)
 {
-	device_t		bridge;
-	uint8_t			reg;
-	int			i;
-	bus_space_tag_t		btag;
+	device_t bridge;
+	uint8_t reg;
+	int i;
+	bus_space_tag_t btag;
 
 	bridge = sis_find_bridge(dev);
 	if (bridge == NULL)
 		return;
 	reg = pci_read_config(bridge, 0x48, 1);
-	pci_write_config(bridge, 0x48, reg|0x40, 1);
+	pci_write_config(bridge, 0x48, reg | 0x40, 1);
 
 	/* XXX */
 #if defined(__amd64__) || defined(__i386__)
@@ -410,7 +400,7 @@ sis_read_cmos(struct sis_softc *sc, device_t dev, caddr_t dest, int off, int cnt
 static void
 sis_read_mac(struct sis_softc *sc, device_t dev, caddr_t dest)
 {
-	uint32_t		filtsave, csrsave;
+	uint32_t filtsave, csrsave;
 
 	filtsave = CSR_READ_4(sc, SIS_RXFILT_CTL);
 	csrsave = CSR_READ_4(sc, SIS_CSR);
@@ -422,7 +412,7 @@ sis_read_mac(struct sis_softc *sc, device_t dev, caddr_t dest)
 
 	CSR_WRITE_4(sc, SIS_RXFILT_CTL, SIS_FILTADDR_PAR0);
 	((uint16_t *)dest)[0] = CSR_READ_2(sc, SIS_RXFILT_DATA);
-	CSR_WRITE_4(sc, SIS_RXFILT_CTL,SIS_FILTADDR_PAR1);
+	CSR_WRITE_4(sc, SIS_RXFILT_CTL, SIS_FILTADDR_PAR1);
 	((uint16_t *)dest)[1] = CSR_READ_2(sc, SIS_RXFILT_DATA);
 	CSR_WRITE_4(sc, SIS_RXFILT_CTL, SIS_FILTADDR_PAR2);
 	((uint16_t *)dest)[2] = CSR_READ_2(sc, SIS_RXFILT_DATA);
@@ -438,8 +428,8 @@ sis_read_mac(struct sis_softc *sc, device_t dev, caddr_t dest)
 static uint32_t
 sis_mii_bitbang_read(device_t dev)
 {
-	struct sis_softc	*sc;
-	uint32_t		val;
+	struct sis_softc *sc;
+	uint32_t val;
 
 	sc = device_get_softc(dev);
 
@@ -455,7 +445,7 @@ sis_mii_bitbang_read(device_t dev)
 static void
 sis_mii_bitbang_write(device_t dev, uint32_t val)
 {
-	struct sis_softc	*sc;
+	struct sis_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -467,7 +457,7 @@ sis_mii_bitbang_write(device_t dev, uint32_t val)
 static int
 sis_miibus_readreg(device_t dev, int phy, int reg)
 {
-	struct sis_softc	*sc;
+	struct sis_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -494,8 +484,7 @@ sis_miibus_readreg(device_t dev, int phy, int reg)
 	 * through mdio. Use the enhanced PHY access register
 	 * again for them.
 	 */
-	if (sc->sis_type == SIS_TYPE_900 &&
-	    sc->sis_rev < SIS_REV_635) {
+	if (sc->sis_type == SIS_TYPE_900 && sc->sis_rev < SIS_REV_635) {
 		int i, val = 0;
 
 		if (phy != 0)
@@ -523,14 +512,14 @@ sis_miibus_readreg(device_t dev, int phy, int reg)
 
 		return (val);
 	} else
-		return (mii_bitbang_readreg(dev, &sis_mii_bitbang_ops, phy,
-		    reg));
+		return (
+		    mii_bitbang_readreg(dev, &sis_mii_bitbang_ops, phy, reg));
 }
 
 static int
 sis_miibus_writereg(device_t dev, int phy, int reg, int data)
 {
-	struct sis_softc	*sc;
+	struct sis_softc *sc;
 
 	sc = device_get_softc(dev);
 
@@ -546,15 +535,14 @@ sis_miibus_writereg(device_t dev, int phy, int reg, int data)
 	 * through mdio. Use the enhanced PHY access register
 	 * again for them.
 	 */
-	if (sc->sis_type == SIS_TYPE_900 &&
-	    sc->sis_rev < SIS_REV_635) {
+	if (sc->sis_type == SIS_TYPE_900 && sc->sis_rev < SIS_REV_635) {
 		int i;
 
 		if (phy != 0)
 			return (0);
 
-		CSR_WRITE_4(sc, SIS_PHYCTL, (data << 16) | (phy << 11) |
-		    (reg << 6) | SIS_PHYOP_WRITE);
+		CSR_WRITE_4(sc, SIS_PHYCTL,
+		    (data << 16) | (phy << 11) | (reg << 6) | SIS_PHYOP_WRITE);
 		SIS_SETBIT(sc, SIS_PHYCTL, SIS_PHYCTL_ACCESS);
 
 		for (i = 0; i < SIS_TIMEOUT; i++) {
@@ -566,18 +554,17 @@ sis_miibus_writereg(device_t dev, int phy, int reg, int data)
 			device_printf(sc->sis_dev,
 			    "PHY failed to come ready\n");
 	} else
-		mii_bitbang_writereg(dev, &sis_mii_bitbang_ops, phy, reg,
-		    data);
+		mii_bitbang_writereg(dev, &sis_mii_bitbang_ops, phy, reg, data);
 	return (0);
 }
 
 static void
 sis_miibus_statchg(device_t dev)
 {
-	struct sis_softc	*sc;
-	struct mii_data		*mii;
-	if_t			ifp;
-	uint32_t		reg;
+	struct sis_softc *sc;
+	struct mii_data *mii;
+	if_t ifp;
+	uint32_t reg;
 
 	sc = device_get_softc(dev);
 	SIS_LOCK_ASSERT(sc);
@@ -660,7 +647,7 @@ sis_miibus_statchg(device_t dev)
 static uint32_t
 sis_mchash(struct sis_softc *sc, const uint8_t *addr)
 {
-	uint32_t		crc;
+	uint32_t crc;
 
 	/* Compute CRC for the address value. */
 	crc = ether_crc32_be(addr, ETHER_ADDR_LEN);
@@ -673,8 +660,7 @@ sis_mchash(struct sis_softc *sc, const uint8_t *addr)
 	 */
 	if (sc->sis_type == SIS_TYPE_83815)
 		return (crc >> 23);
-	else if (sc->sis_rev >= SIS_REV_635 ||
-	    sc->sis_rev == SIS_REV_900B)
+	else if (sc->sis_rev >= SIS_REV_635 || sc->sis_rev == SIS_REV_900B)
 		return (crc >> 24);
 	else
 		return (crc >> 25);
@@ -713,8 +699,8 @@ sis_write_maddr(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 sis_rxfilter_ns(struct sis_softc *sc)
 {
-	if_t			ifp;
-	uint32_t		i, filter;
+	if_t ifp;
+	uint32_t i, filter;
 
 	ifp = sc->sis_ifp;
 	filter = CSR_READ_4(sc, SIS_RXFILT_CTL);
@@ -752,8 +738,8 @@ sis_rxfilter_ns(struct sis_softc *sc)
 
 		/* first, zot all the existing hash bits */
 		for (i = 0; i < 32; i++) {
-			CSR_WRITE_4(sc, SIS_RXFILT_CTL, NS_FILTADDR_FMEM_LO +
-			    (i * 2));
+			CSR_WRITE_4(sc, SIS_RXFILT_CTL,
+			    NS_FILTADDR_FMEM_LO + (i * 2));
 			CSR_WRITE_4(sc, SIS_RXFILT_DATA, 0);
 		}
 
@@ -785,9 +771,9 @@ sis_hash_maddr(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static void
 sis_rxfilter_sis(struct sis_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 	struct sis_hash_maddr_ctx ctx;
-	uint32_t		filter, i, n;
+	uint32_t filter, i, n;
 
 	ifp = sc->sis_ifp;
 
@@ -837,7 +823,7 @@ sis_rxfilter_sis(struct sis_softc *sc)
 static void
 sis_reset(struct sis_softc *sc)
 {
-	int		i;
+	int i;
 
 	SIS_SETBIT(sc, SIS_CSR, SIS_CSR_RESET);
 
@@ -872,7 +858,7 @@ sis_reset(struct sis_softc *sc)
 static int
 sis_probe(device_t dev)
 {
-	const struct sis_type	*t;
+	const struct sis_type *t;
 
 	t = sis_devs;
 
@@ -895,10 +881,10 @@ sis_probe(device_t dev)
 static int
 sis_attach(device_t dev)
 {
-	u_char			eaddr[ETHER_ADDR_LEN];
-	struct sis_softc	*sc;
-	if_t			ifp;
-	int			error = 0, pmc;
+	u_char eaddr[ETHER_ADDR_LEN];
+	struct sis_softc *sc;
+	if_t ifp;
+	int error = 0, pmc;
 
 	sc = device_get_softc(dev);
 
@@ -931,8 +917,7 @@ sis_attach(device_t dev)
 	sis_reset(sc);
 
 	if (sc->sis_type == SIS_TYPE_900 &&
-	    (sc->sis_rev == SIS_REV_635 ||
-	    sc->sis_rev == SIS_REV_900B)) {
+	    (sc->sis_rev == SIS_REV_635 || sc->sis_rev == SIS_REV_900B)) {
 		SIO_SET(SIS_CFG_RND_CNT);
 		SIO_SET(SIS_CFG_PERR_DETECT);
 	}
@@ -952,7 +937,8 @@ sis_attach(device_t dev)
 		else if (sc->sis_srr == NS_SRR_16A)
 			device_printf(dev, "Silicon Revision: DP83816A\n");
 		else
-			device_printf(dev, "Silicon Revision %x\n", sc->sis_srr);
+			device_printf(dev, "Silicon Revision %x\n",
+			    sc->sis_srr);
 
 		/*
 		 * Reading the MAC address out of the EEPROM on
@@ -967,10 +953,10 @@ sis_attach(device_t dev)
 		 * Why? Who the hell knows.
 		 */
 		{
-			uint16_t		tmp[4];
+			uint16_t tmp[4];
 
-			sis_read_eeprom(sc, (caddr_t)&tmp,
-			    NS_EE_NODEADDR, 4, 0);
+			sis_read_eeprom(sc, (caddr_t)&tmp, NS_EE_NODEADDR, 4,
+			    0);
 
 			/* Shift everything over one bit. */
 			tmp[3] = tmp[3] >> 1;
@@ -1017,7 +1003,7 @@ sis_attach(device_t dev)
 			sis_read_cmos(sc, dev, (caddr_t)&eaddr, 0x9, 6);
 
 		else if (sc->sis_rev == SIS_REV_635 ||
-			 sc->sis_rev == SIS_REV_630ET)
+		    sc->sis_rev == SIS_REV_630ET)
 			sis_read_mac(sc, dev, (caddr_t)&eaddr);
 		else if (sc->sis_rev == SIS_REV_96x) {
 			/* Allow to read EEPROM from LAN. It is shared
@@ -1026,7 +1012,7 @@ sis_attach(device_t dev)
 			 */
 			SIO_SET(SIS_EECMD_REQ);
 			for (int waittime = 0; waittime < SIS_TIMEOUT;
-			    waittime++) {
+			     waittime++) {
 				/* Force EEPROM to idle state. */
 				sis_eeprom_idle(sc);
 				if (CSR_READ_4(sc, SIS_EECTL) & SIS_EECMD_GNT) {
@@ -1045,8 +1031,8 @@ sis_attach(device_t dev)
 			SIO_SET(SIS_EECMD_DONE);
 		} else
 #endif
-			sis_read_eeprom(sc, (caddr_t)&eaddr,
-			    SIS_EE_NODEADDR, 3, 0);
+			sis_read_eeprom(sc, (caddr_t)&eaddr, SIS_EE_NODEADDR, 3,
+			    0);
 		break;
 	}
 
@@ -1131,8 +1117,8 @@ fail:
 static int
 sis_detach(device_t dev)
 {
-	struct sis_softc	*sc;
-	if_t			ifp;
+	struct sis_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	KASSERT(mtx_initialized(&sc->sis_mtx), ("sis mutex not initialized"));
@@ -1170,13 +1156,13 @@ sis_detach(device_t dev)
 }
 
 struct sis_dmamap_arg {
-	bus_addr_t	sis_busaddr;
+	bus_addr_t sis_busaddr;
 };
 
 static void
 sis_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
-	struct sis_dmamap_arg	*ctx;
+	struct sis_dmamap_arg *ctx;
 
 	if (error != 0)
 		return;
@@ -1192,15 +1178,15 @@ sis_dma_ring_alloc(struct sis_softc *sc, bus_size_t alignment,
     bus_size_t maxsize, bus_dma_tag_t *tag, uint8_t **ring, bus_dmamap_t *map,
     bus_addr_t *paddr, const char *msg)
 {
-	struct sis_dmamap_arg	ctx;
-	int			error;
+	struct sis_dmamap_arg ctx;
+	int error;
 
 	error = bus_dma_tag_create(sc->sis_parent_tag, alignment, 0,
 	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL, maxsize, 1,
 	    maxsize, 0, NULL, NULL, tag);
 	if (error != 0) {
-		device_printf(sc->sis_dev,
-		    "could not create %s dma tag\n", msg);
+		device_printf(sc->sis_dev, "could not create %s dma tag\n",
+		    msg);
 		return (ENOMEM);
 	}
 	/* Allocate DMA'able memory for ring. */
@@ -1213,8 +1199,8 @@ sis_dma_ring_alloc(struct sis_softc *sc, bus_size_t alignment,
 	}
 	/* Load the address of the ring. */
 	ctx.sis_busaddr = 0;
-	error = bus_dmamap_load(*tag, *map, *ring, maxsize, sis_dmamap_cb,
-	    &ctx, BUS_DMA_NOWAIT);
+	error = bus_dmamap_load(*tag, *map, *ring, maxsize, sis_dmamap_cb, &ctx,
+	    BUS_DMA_NOWAIT);
 	if (error != 0) {
 		device_printf(sc->sis_dev,
 		    "could not load DMA'able memory for %s\n", msg);
@@ -1227,15 +1213,15 @@ sis_dma_ring_alloc(struct sis_softc *sc, bus_size_t alignment,
 static int
 sis_dma_alloc(struct sis_softc *sc)
 {
-	struct sis_rxdesc	*rxd;
-	struct sis_txdesc	*txd;
-	int			error, i;
+	struct sis_rxdesc *rxd;
+	struct sis_txdesc *txd;
+	int error, i;
 
 	/* Allocate the parent bus DMA tag appropriate for PCI. */
-	error = bus_dma_tag_create(bus_get_dma_tag(sc->sis_dev),
-	    1, 0, BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL,
-	    NULL, BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT,
-	    0, NULL, NULL, &sc->sis_parent_tag);
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->sis_dev), 1, 0,
+	    BUS_SPACE_MAXADDR_32BIT, BUS_SPACE_MAXADDR, NULL, NULL,
+	    BUS_SPACE_MAXSIZE_32BIT, 0, BUS_SPACE_MAXSIZE_32BIT, 0, NULL, NULL,
+	    &sc->sis_parent_tag);
 	if (error != 0) {
 		device_printf(sc->sis_dev,
 		    "could not allocate parent dma tag\n");
@@ -1266,10 +1252,9 @@ sis_dma_alloc(struct sis_softc *sc)
 	}
 
 	/* Create tag for TX mbufs. */
-	error = bus_dma_tag_create(sc->sis_parent_tag, 1, 0,
-	    BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
-	    MCLBYTES * SIS_MAXTXSEGS, SIS_MAXTXSEGS, MCLBYTES, 0, NULL, NULL,
-	    &sc->sis_tx_tag);
+	error = bus_dma_tag_create(sc->sis_parent_tag, 1, 0, BUS_SPACE_MAXADDR,
+	    BUS_SPACE_MAXADDR, NULL, NULL, MCLBYTES * SIS_MAXTXSEGS,
+	    SIS_MAXTXSEGS, MCLBYTES, 0, NULL, NULL, &sc->sis_tx_tag);
 	if (error) {
 		device_printf(sc->sis_dev, "could not allocate TX dma tag\n");
 		return (error);
@@ -1311,9 +1296,9 @@ sis_dma_alloc(struct sis_softc *sc)
 static void
 sis_dma_free(struct sis_softc *sc)
 {
-	struct sis_rxdesc	*rxd;
-	struct sis_txdesc	*txd;
-	int			i;
+	struct sis_rxdesc *rxd;
+	struct sis_txdesc *txd;
+	int i;
 
 	/* Destroy DMA maps for RX buffers. */
 	for (i = 0; i < SIS_RX_LIST_CNT; i++) {
@@ -1370,10 +1355,10 @@ sis_dma_free(struct sis_softc *sc)
 static int
 sis_ring_init(struct sis_softc *sc)
 {
-	struct sis_rxdesc	*rxd;
-	struct sis_txdesc	*txd;
-	bus_addr_t		next;
-	int			error, i;
+	struct sis_rxdesc *rxd;
+	struct sis_txdesc *txd;
+	bus_addr_t next;
+	int error, i;
 
 	bzero(&sc->sis_tx_list[0], SIS_TX_LIST_SZ);
 	for (i = 0; i < SIS_TX_LIST_CNT; i++) {
@@ -1415,9 +1400,9 @@ sis_ring_init(struct sis_softc *sc)
 static int
 sis_newbuf(struct sis_softc *sc, struct sis_rxdesc *rxd)
 {
-	struct mbuf		*m;
-	bus_dma_segment_t	segs[1];
-	bus_dmamap_t		map;
+	struct mbuf *m;
+	bus_dma_segment_t segs[1];
+	bus_dmamap_t map;
 	int nsegs;
 
 	m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
@@ -1429,7 +1414,7 @@ sis_newbuf(struct sis_softc *sc, struct sis_rxdesc *rxd)
 #endif
 
 	if (bus_dmamap_load_mbuf_sg(sc->sis_rx_tag, sc->sis_rx_sparemap, m,
-	    segs, &nsegs, 0) != 0) {
+		segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -1461,8 +1446,8 @@ sis_discard_rxbuf(struct sis_rxdesc *rxd)
 static __inline void
 sis_fixup_rx(struct mbuf *m)
 {
-	uint16_t		*src, *dst;
-	int			i;
+	uint16_t *src, *dst;
+	int i;
 
 	src = mtod(m, uint16_t *);
 	dst = src - (SIS_RX_BUF_ALIGN - ETHER_ALIGN) / sizeof(*src);
@@ -1481,12 +1466,12 @@ sis_fixup_rx(struct mbuf *m)
 static int
 sis_rxeof(struct sis_softc *sc)
 {
-	struct mbuf		*m;
-	if_t			ifp;
-	struct sis_rxdesc	*rxd;
-	struct sis_desc		*cur_rx;
-	int			prog, rx_cons, rx_npkts = 0, total_len;
-	uint32_t		rxstat;
+	struct mbuf *m;
+	if_t ifp;
+	struct sis_rxdesc *rxd;
+	struct sis_desc *cur_rx;
+	int prog, rx_cons, rx_npkts = 0, total_len;
+	uint32_t rxstat;
 
 	SIS_LOCK_ASSERT(sc);
 
@@ -1497,7 +1482,7 @@ sis_rxeof(struct sis_softc *sc)
 	ifp = sc->sis_ifp;
 
 	for (prog = 0; (if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0;
-	    SIS_INC(rx_cons, SIS_RX_LIST_CNT), prog++) {
+	     SIS_INC(rx_cons, SIS_RX_LIST_CNT), prog++) {
 #ifdef DEVICE_POLLING
 		if (if_getcapenable(ifp) & IFCAP_POLLING) {
 			if (sc->rxcycles <= 0)
@@ -1513,8 +1498,8 @@ sis_rxeof(struct sis_softc *sc)
 
 		total_len = (rxstat & SIS_CMDSTS_BUFLEN) - ETHER_CRC_LEN;
 		if ((if_getcapenable(ifp) & IFCAP_VLAN_MTU) != 0 &&
-		    total_len <= (ETHER_MAX_LEN + ETHER_VLAN_ENCAP_LEN -
-		    ETHER_CRC_LEN))
+		    total_len <=
+			(ETHER_MAX_LEN + ETHER_VLAN_ENCAP_LEN - ETHER_CRC_LEN))
 			rxstat &= ~SIS_RXSTAT_GIANT;
 		if (SIS_RXSTAT_ERROR(rxstat) != 0) {
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -1569,10 +1554,10 @@ sis_rxeof(struct sis_softc *sc)
 static void
 sis_txeof(struct sis_softc *sc)
 {
-	if_t			ifp;
-	struct sis_desc		*cur_tx;
-	struct sis_txdesc	*txd;
-	uint32_t		cons, txstat;
+	if_t ifp;
+	struct sis_desc *cur_tx;
+	struct sis_txdesc *txd;
+	uint32_t cons, txstat;
 
 	SIS_LOCK_ASSERT(sc);
 
@@ -1607,9 +1592,11 @@ sis_txeof(struct sis_softc *sc)
 			} else {
 				if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 				if (txstat & SIS_TXSTAT_EXCESSCOLLS)
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
 				if (txstat & SIS_TXSTAT_OUTOFWINCOLL)
-					if_inc_counter(ifp, IFCOUNTER_COLLISIONS, 1);
+					if_inc_counter(ifp,
+					    IFCOUNTER_COLLISIONS, 1);
 			}
 		}
 		sc->sis_tx_cnt--;
@@ -1623,8 +1610,8 @@ sis_txeof(struct sis_softc *sc)
 static void
 sis_tick(void *xsc)
 {
-	struct sis_softc	*sc;
-	struct mii_data		*mii;
+	struct sis_softc *sc;
+	struct mii_data *mii;
 
 	sc = xsc;
 	SIS_LOCK_ASSERT(sc);
@@ -1634,7 +1621,7 @@ sis_tick(void *xsc)
 	sis_watchdog(sc);
 	if ((sc->sis_flags & SIS_FLAG_LINK) == 0)
 		sis_miibus_statchg(sc->sis_dev);
-	callout_reset(&sc->sis_stat_ch, hz,  sis_tick, sc);
+	callout_reset(&sc->sis_stat_ch, hz, sis_tick, sc);
 }
 
 #ifdef DEVICE_POLLING
@@ -1643,7 +1630,7 @@ static poll_handler_t sis_poll;
 static int
 sis_poll(if_t ifp, enum poll_cmd cmd, int count)
 {
-	struct	sis_softc *sc = if_getsoftc(ifp);
+	struct sis_softc *sc = if_getsoftc(ifp);
 	int rx_npkts = 0;
 
 	SIS_LOCK(sc);
@@ -1666,12 +1653,12 @@ sis_poll(if_t ifp, enum poll_cmd cmd, int count)
 		sis_startl(ifp);
 
 	if (sc->rxcycles > 0 || cmd == POLL_AND_CHECK_STATUS) {
-		uint32_t	status;
+		uint32_t status;
 
 		/* Reading the ISR register clears all interrupts. */
 		status = CSR_READ_4(sc, SIS_ISR);
 
-		if (status & (SIS_ISR_RX_ERR|SIS_ISR_RX_OFLOW))
+		if (status & (SIS_ISR_RX_ERR | SIS_ISR_RX_OFLOW))
 			if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 
 		if (status & (SIS_ISR_RX_IDLE))
@@ -1691,9 +1678,9 @@ sis_poll(if_t ifp, enum poll_cmd cmd, int count)
 static void
 sis_intr(void *arg)
 {
-	struct sis_softc	*sc;
-	if_t			ifp;
-	uint32_t		status;
+	struct sis_softc *sc;
+	if_t ifp;
+	uint32_t status;
 
 	sc = arg;
 	ifp = sc->sis_ifp;
@@ -1717,16 +1704,17 @@ sis_intr(void *arg)
 	/* Disable interrupts. */
 	CSR_WRITE_4(sc, SIS_IER, 0);
 
-	for (;(status & SIS_INTRS) != 0;) {
+	for (; (status & SIS_INTRS) != 0;) {
 		if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 			break;
 		if (status &
-		    (SIS_ISR_TX_DESC_OK | SIS_ISR_TX_ERR |
-		    SIS_ISR_TX_OK | SIS_ISR_TX_IDLE) )
+		    (SIS_ISR_TX_DESC_OK | SIS_ISR_TX_ERR | SIS_ISR_TX_OK |
+			SIS_ISR_TX_IDLE))
 			sis_txeof(sc);
 
-		if (status & (SIS_ISR_RX_DESC_OK | SIS_ISR_RX_OK |
-		    SIS_ISR_RX_ERR | SIS_ISR_RX_IDLE))
+		if (status &
+		    (SIS_ISR_RX_DESC_OK | SIS_ISR_RX_OK | SIS_ISR_RX_ERR |
+			SIS_ISR_RX_IDLE))
 			sis_rxeof(sc);
 
 		if (status & SIS_ISR_RX_OFLOW)
@@ -1762,13 +1750,13 @@ sis_intr(void *arg)
 static int
 sis_encap(struct sis_softc *sc, struct mbuf **m_head)
 {
-	struct mbuf		*m;
-	struct sis_txdesc	*txd;
-	struct sis_desc		*f;
-	bus_dma_segment_t	segs[SIS_MAXTXSEGS];
-	bus_dmamap_t		map;
-	int			error, i, frag, nsegs, prod;
-	int			padlen;
+	struct mbuf *m;
+	struct sis_txdesc *txd;
+	struct sis_desc *f;
+	bus_dma_segment_t segs[SIS_MAXTXSEGS];
+	bus_dmamap_t map;
+	int error, i, frag, nsegs, prod;
+	int padlen;
 
 	prod = sc->sis_tx_prod;
 	txd = &sc->sis_txdesc[prod];
@@ -1803,8 +1791,8 @@ sis_encap(struct sis_softc *sc, struct mbuf **m_head)
 		m->m_len = m->m_pkthdr.len;
 		*m_head = m;
 	}
-	error = bus_dmamap_load_mbuf_sg(sc->sis_tx_tag, txd->tx_dmamap,
-	    *m_head, segs, &nsegs, 0);
+	error = bus_dmamap_load_mbuf_sg(sc->sis_tx_tag, txd->tx_dmamap, *m_head,
+	    segs, &nsegs, 0);
 	if (error == EFBIG) {
 		m = m_collapse(*m_head, M_NOWAIT, SIS_MAXTXSEGS);
 		if (m == NULL) {
@@ -1835,11 +1823,11 @@ sis_encap(struct sis_softc *sc, struct mbuf **m_head)
 	for (i = 0; i < nsegs; i++) {
 		f = &sc->sis_tx_list[prod];
 		if (i == 0)
-			f->sis_cmdsts = htole32(segs[i].ds_len |
-			    SIS_CMDSTS_MORE);
+			f->sis_cmdsts = htole32(
+			    segs[i].ds_len | SIS_CMDSTS_MORE);
 		else
-			f->sis_cmdsts = htole32(segs[i].ds_len |
-			    SIS_CMDSTS_OWN | SIS_CMDSTS_MORE);
+			f->sis_cmdsts = htole32(
+			    segs[i].ds_len | SIS_CMDSTS_OWN | SIS_CMDSTS_MORE);
 		f->sis_ptr = htole32(SIS_ADDR_LO(segs[i].ds_addr));
 		SIS_INC(prod, SIS_TX_LIST_CNT);
 		sc->sis_tx_cnt++;
@@ -1869,7 +1857,7 @@ sis_encap(struct sis_softc *sc, struct mbuf **m_head)
 static void
 sis_start(if_t ifp)
 {
-	struct sis_softc	*sc;
+	struct sis_softc *sc;
 
 	sc = if_getsoftc(ifp);
 	SIS_LOCK(sc);
@@ -1880,20 +1868,21 @@ sis_start(if_t ifp)
 static void
 sis_startl(if_t ifp)
 {
-	struct sis_softc	*sc;
-	struct mbuf		*m_head;
-	int			queued;
+	struct sis_softc *sc;
+	struct mbuf *m_head;
+	int queued;
 
 	sc = if_getsoftc(ifp);
 
 	SIS_LOCK_ASSERT(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->sis_flags & SIS_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->sis_flags & SIS_FLAG_LINK) == 0)
 		return;
 
-	for (queued = 0; !if_sendq_empty(ifp) &&
-	    sc->sis_tx_cnt < SIS_TX_LIST_CNT - 4;) {
+	for (queued = 0;
+	     !if_sendq_empty(ifp) && sc->sis_tx_cnt < SIS_TX_LIST_CNT - 4;) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -1931,7 +1920,7 @@ sis_startl(if_t ifp)
 static void
 sis_init(void *xsc)
 {
-	struct sis_softc	*sc = xsc;
+	struct sis_softc *sc = xsc;
 
 	SIS_LOCK(sc);
 	sis_initl(sc);
@@ -1941,9 +1930,9 @@ sis_init(void *xsc)
 static void
 sis_initl(struct sis_softc *sc)
 {
-	if_t			ifp = sc->sis_ifp;
-	struct mii_data		*mii;
-	uint8_t			*eaddr;
+	if_t ifp = sc->sis_ifp;
+	struct mii_data *mii;
+	uint8_t *eaddr;
 
 	SIS_LOCK_ASSERT(sc);
 
@@ -1963,7 +1952,7 @@ sis_initl(struct sis_softc *sc)
 		/*
 		 * Configure 400usec of interrupt holdoff.  This is based
 		 * on empirical tests on a Soekris 4801.
- 		 */
+		 */
 		CSR_WRITE_4(sc, NS_IHR, 0x100 | 4);
 	}
 #endif
@@ -2062,7 +2051,7 @@ sis_initl(struct sis_softc *sc)
 		CSR_WRITE_4(sc, SIS_IER, 0);
 	else
 #endif
-	CSR_WRITE_4(sc, SIS_IER, 1);
+		CSR_WRITE_4(sc, SIS_IER, 1);
 
 	/* Clear MAC disable. */
 	SIS_CLRBIT(sc, SIS_CSR, SIS_CSR_TX_DISABLE | SIS_CSR_RX_DISABLE);
@@ -2073,7 +2062,7 @@ sis_initl(struct sis_softc *sc)
 	if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
 	if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 
-	callout_reset(&sc->sis_stat_ch, hz,  sis_tick, sc);
+	callout_reset(&sc->sis_stat_ch, hz, sis_tick, sc);
 }
 
 /*
@@ -2082,16 +2071,16 @@ sis_initl(struct sis_softc *sc)
 static int
 sis_ifmedia_upd(if_t ifp)
 {
-	struct sis_softc	*sc;
-	struct mii_data		*mii;
-	struct mii_softc	*miisc;
-	int			error;
+	struct sis_softc *sc;
+	struct mii_data *mii;
+	struct mii_softc *miisc;
+	int error;
 
 	sc = if_getsoftc(ifp);
 
 	SIS_LOCK(sc);
 	mii = device_get_softc(sc->sis_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 	SIS_UNLOCK(sc);
@@ -2105,8 +2094,8 @@ sis_ifmedia_upd(if_t ifp)
 static void
 sis_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 {
-	struct sis_softc	*sc;
-	struct mii_data		*mii;
+	struct sis_softc *sc;
+	struct mii_data *mii;
 
 	sc = if_getsoftc(ifp);
 
@@ -2121,10 +2110,10 @@ sis_ifmedia_sts(if_t ifp, struct ifmediareq *ifmr)
 static int
 sis_ioctl(if_t ifp, u_long command, caddr_t data)
 {
-	struct sis_softc	*sc = if_getsoftc(ifp);
-	struct ifreq		*ifr = (struct ifreq *) data;
-	struct mii_data		*mii;
-	int			error = 0, mask;
+	struct sis_softc *sc = if_getsoftc(ifp);
+	struct ifreq *ifr = (struct ifreq *)data;
+	struct mii_data *mii;
+	int error = 0, mask;
 
 	switch (command) {
 	case SIOCSIFFLAGS:
@@ -2132,7 +2121,7 @@ sis_ioctl(if_t ifp, u_long command, caddr_t data)
 		if (if_getflags(ifp) & IFF_UP) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
 			    ((if_getflags(ifp) ^ sc->sis_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 				sis_rxfilter(sc);
 			else
 				sis_initl(sc);
@@ -2168,11 +2157,11 @@ sis_ioctl(if_t ifp, u_long command, caddr_t data)
 				}
 				/* Disable interrupts. */
 				CSR_WRITE_4(sc, SIS_IER, 0);
-                        } else {
-                                error = ether_poll_deregister(ifp);
-                                /* Enable interrupts. */
+			} else {
+				error = ether_poll_deregister(ifp);
+				/* Enable interrupts. */
 				CSR_WRITE_4(sc, SIS_IER, 1);
-                        }
+			}
 		}
 #endif /* DEVICE_POLLING */
 		if ((mask & IFCAP_WOL) != 0 &&
@@ -2200,7 +2189,7 @@ sis_watchdog(struct sis_softc *sc)
 
 	SIS_LOCK_ASSERT(sc);
 
-	if (sc->sis_watchdog_timer == 0 || --sc->sis_watchdog_timer >0)
+	if (sc->sis_watchdog_timer == 0 || --sc->sis_watchdog_timer > 0)
 		return;
 
 	device_printf(sc->sis_dev, "watchdog timeout\n");
@@ -2220,7 +2209,7 @@ sis_watchdog(struct sis_softc *sc)
 static void
 sis_stop(struct sis_softc *sc)
 {
-	if_t			ifp;
+	if_t ifp;
 	struct sis_rxdesc *rxd;
 	struct sis_txdesc *txd;
 	int i;
@@ -2236,7 +2225,7 @@ sis_stop(struct sis_softc *sc)
 	CSR_WRITE_4(sc, SIS_IER, 0);
 	CSR_WRITE_4(sc, SIS_IMR, 0);
 	CSR_READ_4(sc, SIS_ISR); /* clear any interrupts already pending */
-	SIS_SETBIT(sc, SIS_CSR, SIS_CSR_TX_DISABLE|SIS_CSR_RX_DISABLE);
+	SIS_SETBIT(sc, SIS_CSR, SIS_CSR_TX_DISABLE | SIS_CSR_RX_DISABLE);
 	DELAY(1000);
 	CSR_WRITE_4(sc, SIS_TX_LISTPTR, 0);
 	CSR_WRITE_4(sc, SIS_RX_LISTPTR, 0);
@@ -2286,7 +2275,7 @@ sis_shutdown(device_t dev)
 static int
 sis_suspend(device_t dev)
 {
-	struct sis_softc	*sc;
+	struct sis_softc *sc;
 
 	sc = device_get_softc(dev);
 	SIS_LOCK(sc);
@@ -2299,8 +2288,8 @@ sis_suspend(device_t dev)
 static int
 sis_resume(device_t dev)
 {
-	struct sis_softc	*sc;
-	if_t			ifp;
+	struct sis_softc *sc;
+	if_t ifp;
 
 	sc = device_get_softc(dev);
 	SIS_LOCK(sc);
@@ -2316,10 +2305,10 @@ sis_resume(device_t dev)
 static void
 sis_wol(struct sis_softc *sc)
 {
-	if_t			ifp;
-	uint32_t		val;
-	uint16_t		pmstat;
-	int			pmc;
+	if_t ifp;
+	uint32_t val;
+	uint16_t pmstat;
+	int pmc;
 
 	ifp = sc->sis_ifp;
 	if ((if_getcapenable(ifp) & IFCAP_WOL) == 0)
@@ -2353,13 +2342,13 @@ sis_wol(struct sis_softc *sc)
 			val |= SIS_PWRMAN_WOL_MAGIC;
 		CSR_WRITE_4(sc, SIS_PWRMAN_CTL, val);
 		/* Request PME. */
-		pmstat = pci_read_config(sc->sis_dev,
-		    pmc + PCIR_POWER_STATUS, 2);
+		pmstat = pci_read_config(sc->sis_dev, pmc + PCIR_POWER_STATUS,
+		    2);
 		pmstat &= ~(PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE);
 		if ((if_getcapenable(ifp) & IFCAP_WOL_MAGIC) != 0)
 			pmstat |= PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE;
-		pci_write_config(sc->sis_dev,
-		    pmc + PCIR_POWER_STATUS, pmstat, 2);
+		pci_write_config(sc->sis_dev, pmc + PCIR_POWER_STATUS, pmstat,
+		    2);
 	}
 }
 
@@ -2380,32 +2369,28 @@ sis_add_sysctls(struct sis_softc *sc)
 	 * because it will consume extra CPU cycles for short frames.
 	 */
 	sc->sis_manual_pad = 0;
-	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "manual_pad",
-	    CTLFLAG_RWTUN, &sc->sis_manual_pad, 0, "Manually pad short frames");
+	SYSCTL_ADD_INT(ctx, children, OID_AUTO, "manual_pad", CTLFLAG_RWTUN,
+	    &sc->sis_manual_pad, 0, "Manually pad short frames");
 }
 
 static device_method_t sis_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		sis_probe),
-	DEVMETHOD(device_attach,	sis_attach),
-	DEVMETHOD(device_detach,	sis_detach),
-	DEVMETHOD(device_shutdown,	sis_shutdown),
-	DEVMETHOD(device_suspend,	sis_suspend),
-	DEVMETHOD(device_resume,	sis_resume),
+	DEVMETHOD(device_probe, sis_probe),
+	DEVMETHOD(device_attach, sis_attach),
+	DEVMETHOD(device_detach, sis_detach),
+	DEVMETHOD(device_shutdown, sis_shutdown),
+	DEVMETHOD(device_suspend, sis_suspend),
+	DEVMETHOD(device_resume, sis_resume),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	sis_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	sis_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	sis_miibus_statchg),
+	DEVMETHOD(miibus_readreg, sis_miibus_readreg),
+	DEVMETHOD(miibus_writereg, sis_miibus_writereg),
+	DEVMETHOD(miibus_statchg, sis_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t sis_driver = {
-	"sis",
-	sis_methods,
-	sizeof(struct sis_softc)
-};
+static driver_t sis_driver = { "sis", sis_methods, sizeof(struct sis_softc) };
 
 DRIVER_MODULE(sis, pci, sis_driver, 0, 0);
 DRIVER_MODULE(miibus, sis, miibus_driver, 0, 0);

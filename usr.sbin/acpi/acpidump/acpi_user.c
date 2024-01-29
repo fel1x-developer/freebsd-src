@@ -42,15 +42,15 @@
 
 #include "acpidump.h"
 
-static char	hint_acpi_0_rsdp[] = "hint.acpi.0.rsdp";
-static char	machdep_acpi_root[] = "machdep.acpi_root";
-static int      acpi_mem_fd = -1;
+static char hint_acpi_0_rsdp[] = "hint.acpi.0.rsdp";
+static char machdep_acpi_root[] = "machdep.acpi_root";
+static int acpi_mem_fd = -1;
 
 struct acpi_user_mapping {
 	LIST_ENTRY(acpi_user_mapping) link;
-	vm_offset_t     pa;
-	caddr_t         va;
-	size_t          size;
+	vm_offset_t pa;
+	caddr_t va;
+	size_t size;
 };
 
 static LIST_HEAD(acpi_user_mapping_list, acpi_user_mapping) maplist;
@@ -70,7 +70,7 @@ acpi_user_init(void)
 static struct acpi_user_mapping *
 acpi_user_find_mapping(vm_offset_t pa, size_t size)
 {
-	struct	acpi_user_mapping *map;
+	struct acpi_user_mapping *map;
 
 	/* First search for an existing mapping */
 	for (map = LIST_FIRST(&maplist); map; map = LIST_NEXT(map, link)) {
@@ -87,7 +87,7 @@ acpi_user_find_mapping(vm_offset_t pa, size_t size)
 	map->pa = pa;
 	map->va = mmap(0, size, PROT_READ, MAP_SHARED, acpi_mem_fd, pa);
 	map->size = size;
-	if ((intptr_t) map->va == -1)
+	if ((intptr_t)map->va == -1)
 		err(1, "can't map address");
 	LIST_INSERT_HEAD(&maplist, map, link);
 
@@ -131,7 +131,7 @@ acpi_scan_rsd_ptr(void)
 {
 #if defined(__amd64__) || defined(__i386__)
 	ACPI_TABLE_RSDP *rsdp;
-	u_long		addr, end;
+	u_long addr, end;
 
 	/*
 	 * On ia32, scan physical memory for the RSD PTR if above failed.
@@ -163,9 +163,9 @@ ACPI_TABLE_RSDP *
 acpi_find_rsd_ptr(void)
 {
 	ACPI_TABLE_RSDP *rsdp;
-	char		buf[20];
-	u_long		addr;
-	size_t		len;
+	char buf[20];
+	u_long addr;
+	size_t len;
 
 	acpi_user_init();
 
@@ -188,7 +188,7 @@ acpi_find_rsd_ptr(void)
 void *
 acpi_map_physical(vm_offset_t pa, size_t size)
 {
-	struct	acpi_user_mapping *map;
+	struct acpi_user_mapping *map;
 
 	map = acpi_user_find_mapping(pa, size);
 	return (map->va + (pa - map->pa));
@@ -198,8 +198,8 @@ ACPI_TABLE_HEADER *
 dsdt_load_file(char *infile)
 {
 	ACPI_TABLE_HEADER *sdt;
-	uint8_t		*dp;
-	struct stat	 sb;
+	uint8_t *dp;
+	struct stat sb;
 
 	if ((acpi_mem_fd = open(infile, O_RDONLY)) == -1)
 		errx(1, "opening %s", infile);

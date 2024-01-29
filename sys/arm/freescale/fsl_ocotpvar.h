@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	FSL_OCOTPVAR_H
-#define	FSL_OCOTPVAR_H
+#ifndef FSL_OCOTPVAR_H
+#define FSL_OCOTPVAR_H
 
 uint32_t fsl_ocotp_read_4(bus_size_t _offset);
 

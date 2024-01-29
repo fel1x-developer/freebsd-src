@@ -6,10 +6,9 @@
 
 #include "ipf.h"
 
-
 ippool_dst_t *
-printdstlist( ippool_dst_t *pp, copyfunc_t copyfunc, char *name, int opts,
-	ipf_dstnode_t *nodes, wordtab_t *fields)
+printdstlist(ippool_dst_t *pp, copyfunc_t copyfunc, char *name, int opts,
+    ipf_dstnode_t *nodes, wordtab_t *fields)
 {
 	ipf_dstnode_t *node;
 	ippool_dst_t dst;
@@ -31,7 +30,7 @@ printdstlist( ippool_dst_t *pp, copyfunc_t copyfunc, char *name, int opts,
 	if (nodes == NULL) {
 		putchar(';');
 	} else {
-		for (node = nodes; node != NULL; ) {
+		for (node = nodes; node != NULL;) {
 			ipf_dstnode_t *n;
 
 			n = calloc(1, node->ipfd_size);

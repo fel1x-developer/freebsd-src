@@ -21,7 +21,6 @@
 #include "cpa.h"
 #include "cpa_dc.h"
 #include "cpa_dc_dp.h"
-
 #include "icp_qat_fw_comp.h"
 
 /*
@@ -29,18 +28,18 @@
 * Include private header files
 *******************************************************************************
 */
-#include "dc_session.h"
 #include "dc_datapath.h"
+#include "dc_session.h"
+#include "icp_sal_poll.h"
 #include "lac_common.h"
 #include "lac_mem.h"
 #include "lac_mem_pools.h"
-#include "sal_types_compression.h"
 #include "lac_sal.h"
 #include "lac_sync.h"
-#include "sal_service_state.h"
-#include "sal_qat_cmn_msg.h"
-#include "icp_sal_poll.h"
 #include "sal_hw_gen.h"
+#include "sal_qat_cmn_msg.h"
+#include "sal_service_state.h"
+#include "sal_types_compression.h"
 
 /**
  *****************************************************************************
@@ -69,7 +68,7 @@ dcDataPlaneParamCheck(const CpaDcDpOpData *pOpData)
 
 	/* Ensure this is a compression instance */
 	SAL_CHECK_INSTANCE_TYPE(pOpData->dcInstance,
-				SAL_SERVICE_TYPE_COMPRESSION);
+	    SAL_SERVICE_TYPE_COMPRESSION);
 
 	pService = (sal_compression_service_t *)(pOpData->dcInstance);
 
@@ -121,7 +120,7 @@ dcDataPlaneParamCheck(const CpaDcDpOpData *pOpData)
 	}
 	if ((CPA_TRUE == pOpData->compressAndVerify) &&
 	    !(pService->generic_service_info.dcExtendedFeatures &
-	      DC_CNV_EXTENDED_CAPABILITY)) {
+		DC_CNV_EXTENDED_CAPABILITY)) {
 		QAT_UTILS_LOG("Invalid compressAndVerify, no CNV capability\n");
 		return CPA_STATUS_UNSUPPORTED;
 	}
@@ -137,7 +136,7 @@ dcDataPlaneParamCheck(const CpaDcDpOpData *pOpData)
 	}
 	if ((CPA_TRUE == pOpData->compressAndVerifyAndRecover) &&
 	    !(pService->generic_service_info.dcExtendedFeatures &
-	      DC_CNVNR_EXTENDED_CAPABILITY)) {
+		DC_CNVNR_EXTENDED_CAPABILITY)) {
 		QAT_UTILS_LOG(
 		    "Invalid CnVnR option set and no CnVnR capability.\n");
 		return CPA_STATUS_UNSUPPORTED;
@@ -184,7 +183,7 @@ dcDataPlaneParamCheck(const CpaDcDpOpData *pOpData)
 			/* Check if Intermediate Buffer Array pointer is NULL */
 			if (isDcGen2x(pService) &&
 			    ((0 == pService->pInterBuffPtrsArrayPhyAddr) ||
-			     (NULL == pService->pInterBuffPtrsArray))) {
+				(NULL == pService->pInterBuffPtrsArray))) {
 				QAT_UTILS_LOG(
 				    "No intermediate buffer defined for this instance - see cpaDcStartInstance.\n");
 				return CPA_STATUS_INVALID_PARAM;
@@ -237,7 +236,7 @@ dcDataPlaneParamCheck(const CpaDcDpOpData *pOpData)
  *****************************************************************************/
 static CpaStatus
 dcDataPlanePartReadCheck(CpaDcDpOpData *pOpData,
-			 CpaDcDpPartialReadData *pPartReadData)
+    CpaDcDpPartialReadData *pPartReadData)
 {
 	sal_compression_service_t *pService = NULL;
 
@@ -302,16 +301,14 @@ dcDataPlaneZeroPadCheck(CpaDcDpOpData *pOpData)
 }
 CpaStatus
 cpaDcDpGetSessionSize(CpaInstanceHandle dcInstance,
-		      CpaDcSessionSetupData *pSessionData,
-		      Cpa32U *pSessionSize)
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pSessionSize)
 {
 	return dcGetSessionSize(dcInstance, pSessionData, pSessionSize, NULL);
 }
 
 CpaStatus
 cpaDcDpInitSession(CpaInstanceHandle dcInstance,
-		   CpaDcSessionHandle pSessionHandle,
-		   CpaDcSessionSetupData *pSessionData)
+    CpaDcSessionHandle pSessionHandle, CpaDcSessionSetupData *pSessionData)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	dc_session_desc_t *pSessionDesc = NULL;
@@ -331,8 +328,8 @@ cpaDcDpInitSession(CpaInstanceHandle dcInstance,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-	status =
-	    dcInitSession(dcInstance, pSessionHandle, pSessionData, NULL, NULL);
+	status = dcInitSession(dcInstance, pSessionHandle, pSessionData, NULL,
+	    NULL);
 	if (CPA_STATUS_SUCCESS == status) {
 		pSessionDesc = DC_SESSION_DESC_FROM_CTX_GET(pSessionHandle);
 		pSessionDesc->isDcDp = CPA_TRUE;
@@ -350,22 +347,22 @@ cpaDcDpInitSession(CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcDpRemoveSession(const CpaInstanceHandle dcInstance,
-		     CpaDcSessionHandle pSessionHandle)
+    CpaDcSessionHandle pSessionHandle)
 {
 	return cpaDcRemoveSession(dcInstance, pSessionHandle);
 }
 
 CpaStatus
 cpaDcDpUpdateSession(const CpaInstanceHandle dcInstance,
-		     CpaDcSessionHandle pSessionHandle,
-		     CpaDcSessionUpdateData *pUpdateSessionData)
+    CpaDcSessionHandle pSessionHandle,
+    CpaDcSessionUpdateData *pUpdateSessionData)
 {
 	return CPA_STATUS_UNSUPPORTED;
 }
 
 CpaStatus
 cpaDcDpRegCbFunc(const CpaInstanceHandle dcInstance,
-		 const CpaDcDpCallbackFn pNewCb)
+    const CpaDcDpCallbackFn pNewCb)
 {
 	sal_compression_service_t *pService = NULL;
 
@@ -430,9 +427,8 @@ dcDpWriteRingMsg(CpaDcDpOpData *pOpData, icp_qat_fw_comp_req_t *pCurrentQatMsg)
 
 	/* Fills in the template DC ET ring message - cached from the
 	 * session descriptor */
-	memcpy((void *)pCurrentQatMsg,
-	       (void *)(pReqCache),
-	       (LAC_QAT_DC_REQ_SZ_LW * LAC_LONG_WORD_IN_BYTES));
+	memcpy((void *)pCurrentQatMsg, (void *)(pReqCache),
+	    (LAC_QAT_DC_REQ_SZ_LW * LAC_LONG_WORD_IN_BYTES));
 
 	if (CPA_DP_BUFLIST == pOpData->srcBufferLen) {
 		bufferFormat = QAT_COMN_PTR_TYPE_SGL;
@@ -441,22 +437,14 @@ dcDpWriteRingMsg(CpaDcDpOpData *pOpData, icp_qat_fw_comp_req_t *pCurrentQatMsg)
 	}
 
 	pCurrentQatMsg->comp_pars.req_par_flags |=
-	    ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(
-		ICP_QAT_FW_COMP_NOT_SOP,
-		ICP_QAT_FW_COMP_NOT_EOP,
-		ICP_QAT_FW_COMP_NOT_BFINAL,
-		cnvDecompReq,
-		cnvnrCompReq,
-		cnvErrorInjection,
+	    ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(ICP_QAT_FW_COMP_NOT_SOP,
+		ICP_QAT_FW_COMP_NOT_EOP, ICP_QAT_FW_COMP_NOT_BFINAL,
+		cnvDecompReq, cnvnrCompReq, cnvErrorInjection,
 		ICP_QAT_FW_COMP_CRC_MODE_LEGACY);
 
 	SalQatMsg_CmnMidWrite((icp_qat_fw_la_bulk_req_t *)pCurrentQatMsg,
-			      pOpData,
-			      bufferFormat,
-			      pOpData->srcBuffer,
-			      pOpData->destBuffer,
-			      pOpData->srcBufferLen,
-			      pOpData->destBufferLen);
+	    pOpData, bufferFormat, pOpData->srcBuffer, pOpData->destBuffer,
+	    pOpData->srcBufferLen, pOpData->destBufferLen);
 
 	pCurrentQatMsg->comp_pars.comp_len = pOpData->bufferLenToCompress;
 	pCurrentQatMsg->comp_pars.out_buffer_sz = pOpData->bufferLenForData;
@@ -481,10 +469,8 @@ dcDpWriteRingMsg(CpaDcDpOpData *pOpData, icp_qat_fw_comp_req_t *pCurrentQatMsg)
  *
  *****************************************************************************/
 static void
-dcDpUpdateRingMsg(CpaDcDpOpData *pOpData,
-		  CpaDcDpPartialReadData *pPartReadData,
-		  CpaBoolean zeroPadFlag,
-		  icp_qat_fw_comp_req_t *pCurrentQatMsg)
+dcDpUpdateRingMsg(CpaDcDpOpData *pOpData, CpaDcDpPartialReadData *pPartReadData,
+    CpaBoolean zeroPadFlag, icp_qat_fw_comp_req_t *pCurrentQatMsg)
 {
 	sal_compression_service_t *pService = NULL;
 
@@ -512,10 +498,8 @@ dcDpUpdateRingMsg(CpaDcDpOpData *pOpData,
 }
 
 static CpaStatus
-dcDpEnqueueOpBase(CpaDcDpOpData *pOpData,
-		  CpaDcDpPartialReadData *pPartReadData,
-		  CpaBoolean zeroPadFlag,
-		  const CpaBoolean performOpNow)
+dcDpEnqueueOpBase(CpaDcDpOpData *pOpData, CpaDcDpPartialReadData *pPartReadData,
+    CpaBoolean zeroPadFlag, const CpaBoolean performOpNow)
 {
 	icp_qat_fw_comp_req_t *pCurrentQatMsg = NULL;
 	icp_comms_trans_handle trans_handle = NULL;
@@ -559,7 +543,7 @@ dcDpEnqueueOpBase(CpaDcDpOpData *pOpData,
 		    "The session does not support this direction of operation.\n");
 		return CPA_STATUS_INVALID_PARAM;
 	} else if ((CPA_DC_DIR_DECOMPRESS == pOpData->sessDirection) &&
-		   (CPA_DC_DIR_COMPRESS == pSessionDesc->sessDirection)) {
+	    (CPA_DC_DIR_COMPRESS == pSessionDesc->sessDirection)) {
 		QAT_UTILS_LOG(
 		    "The session does not support this direction of operation.\n");
 		return CPA_STATUS_INVALID_PARAM;
@@ -572,10 +556,8 @@ dcDpEnqueueOpBase(CpaDcDpOpData *pOpData,
 
 	dcDpWriteRingMsg(pOpData, pCurrentQatMsg);
 	if (NULL != pPartReadData || CPA_TRUE == zeroPadFlag) {
-		dcDpUpdateRingMsg(pOpData,
-				  pPartReadData,
-				  zeroPadFlag,
-				  pCurrentQatMsg);
+		dcDpUpdateRingMsg(pOpData, pPartReadData, zeroPadFlag,
+		    pCurrentQatMsg);
 	}
 
 	pSessionDesc->pendingDpStatelessCbCount++;
@@ -596,28 +578,23 @@ cpaDcDpEnqueueOp(CpaDcDpOpData *pOpData, const CpaBoolean performOpNow)
 
 CpaStatus
 cpaDcDpEnqueueOpWithPartRead(CpaDcDpOpData *pOpData,
-			     CpaDcDpPartialReadData *pPartReadData,
-			     const CpaBoolean performOpNow)
+    CpaDcDpPartialReadData *pPartReadData, const CpaBoolean performOpNow)
 {
-	return dcDpEnqueueOpBase(pOpData,
-				 pPartReadData,
-				 CPA_FALSE,
-				 performOpNow);
+	return dcDpEnqueueOpBase(pOpData, pPartReadData, CPA_FALSE,
+	    performOpNow);
 }
 
 CpaStatus
 cpaDcDpEnqueueOpWithZeroPad(CpaDcDpOpData *pOpData,
-			    const CpaBoolean performOpNow)
+    const CpaBoolean performOpNow)
 {
 	return dcDpEnqueueOpBase(pOpData, NULL, CPA_TRUE, performOpNow);
 }
 
 static CpaStatus
-dcDpEnqueueOpBatchBase(const Cpa32U numberRequests,
-		       CpaDcDpOpData *pOpData[],
-		       CpaDcDpPartialReadData *pPartData[],
-		       CpaBoolean zeroPadFlag,
-		       const CpaBoolean performOpNow)
+dcDpEnqueueOpBatchBase(const Cpa32U numberRequests, CpaDcDpOpData *pOpData[],
+    CpaDcDpPartialReadData *pPartData[], CpaBoolean zeroPadFlag,
+    const CpaBoolean performOpNow)
 {
 	icp_qat_fw_comp_req_t *pCurrentQatMsg = NULL;
 	icp_comms_trans_handle trans_handle = NULL;
@@ -646,8 +623,8 @@ dcDpEnqueueOpBatchBase(const Cpa32U numberRequests,
 		}
 
 		if (NULL != pPartData) {
-			status =
-			    dcDataPlanePartReadCheck(pOpData[i], pPartData[i]);
+			status = dcDataPlanePartReadCheck(pOpData[i],
+			    pPartData[i]);
 			if (CPA_STATUS_SUCCESS != status) {
 				return status;
 			}
@@ -696,18 +673,16 @@ dcDpEnqueueOpBatchBase(const Cpa32U numberRequests,
 			    "The session does not support this direction of operation.\n");
 			return CPA_STATUS_INVALID_PARAM;
 		} else if ((CPA_DC_DIR_DECOMPRESS ==
-			    pOpData[i]->sessDirection) &&
-			   (CPA_DC_DIR_COMPRESS ==
-			    pSessionDesc->sessDirection)) {
+			       pOpData[i]->sessDirection) &&
+		    (CPA_DC_DIR_COMPRESS == pSessionDesc->sessDirection)) {
 			QAT_UTILS_LOG(
 			    "The session does not support this direction of operation.\n");
 			return CPA_STATUS_INVALID_PARAM;
 		}
 	}
 
-	icp_adf_getQueueMemory(trans_handle,
-			       numberRequests,
-			       (void **)&pCurrentQatMsg);
+	icp_adf_getQueueMemory(trans_handle, numberRequests,
+	    (void **)&pCurrentQatMsg);
 	if (NULL == pCurrentQatMsg) {
 		return CPA_STATUS_RETRY;
 	}
@@ -715,16 +690,12 @@ dcDpEnqueueOpBatchBase(const Cpa32U numberRequests,
 	for (i = 0; i < numberRequests; i++) {
 		dcDpWriteRingMsg(pOpData[i], pCurrentQatMsg);
 		if (pPartData) {
-			dcDpUpdateRingMsg(pOpData[i],
-					  pPartData[i],
-					  CPA_FALSE,
-					  pCurrentQatMsg);
+			dcDpUpdateRingMsg(pOpData[i], pPartData[i], CPA_FALSE,
+			    pCurrentQatMsg);
 		}
 		if (CPA_TRUE == zeroPadFlag) {
-			dcDpUpdateRingMsg(pOpData[i],
-					  NULL,
-					  CPA_TRUE,
-					  pCurrentQatMsg);
+			dcDpUpdateRingMsg(pOpData[i], NULL, CPA_TRUE,
+			    pCurrentQatMsg);
 		}
 		icp_adf_getQueueNext(trans_handle, (void **)&pCurrentQatMsg);
 	}
@@ -739,31 +710,28 @@ dcDpEnqueueOpBatchBase(const Cpa32U numberRequests,
 }
 
 CpaStatus
-cpaDcDpEnqueueOpBatch(const Cpa32U numberRequests,
-		      CpaDcDpOpData *pOpData[],
-		      const CpaBoolean performOpNow)
+cpaDcDpEnqueueOpBatch(const Cpa32U numberRequests, CpaDcDpOpData *pOpData[],
+    const CpaBoolean performOpNow)
 {
-	return dcDpEnqueueOpBatchBase(
-	    numberRequests, pOpData, NULL, CPA_FALSE, performOpNow);
+	return dcDpEnqueueOpBatchBase(numberRequests, pOpData, NULL, CPA_FALSE,
+	    performOpNow);
 }
 
 CpaStatus
 cpaDcDpEnqueueOpWithPartReadBatch(const Cpa32U numberRequests,
-				  CpaDcDpOpData *pOpData[],
-				  CpaDcDpPartialReadData *pPartReadData[],
-				  const CpaBoolean performOpNow)
+    CpaDcDpOpData *pOpData[], CpaDcDpPartialReadData *pPartReadData[],
+    const CpaBoolean performOpNow)
 {
-	return dcDpEnqueueOpBatchBase(
-	    numberRequests, pOpData, pPartReadData, CPA_FALSE, performOpNow);
+	return dcDpEnqueueOpBatchBase(numberRequests, pOpData, pPartReadData,
+	    CPA_FALSE, performOpNow);
 }
 
 CpaStatus
 cpaDcDpEnqueueOpWithZeroPadBatch(const Cpa32U numberRequests,
-				 CpaDcDpOpData *pOpData[],
-				 const CpaBoolean performOpNow)
+    CpaDcDpOpData *pOpData[], const CpaBoolean performOpNow)
 {
-	return dcDpEnqueueOpBatchBase(
-	    numberRequests, pOpData, NULL, CPA_TRUE, performOpNow);
+	return dcDpEnqueueOpBatchBase(numberRequests, pOpData, NULL, CPA_TRUE,
+	    performOpNow);
 }
 
 CpaStatus
@@ -806,7 +774,7 @@ cpaDcDpPerformOpNow(CpaInstanceHandle dcInstance)
 
 CpaStatus
 cpaDcDpIsPartReadSupported(const CpaInstanceHandle instanceHandle,
-			   CpaBoolean *flag)
+    CpaBoolean *flag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_extd_ftrs_t *pExtendedFtrs = NULL;
@@ -830,7 +798,7 @@ cpaDcDpIsPartReadSupported(const CpaInstanceHandle instanceHandle,
 
 CpaStatus
 cpaDcDpIsZeroPadSupported(const CpaInstanceHandle instanceHandle,
-			  CpaBoolean *flag)
+    CpaBoolean *flag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_extd_ftrs_t *pExtendedFtrs = NULL;

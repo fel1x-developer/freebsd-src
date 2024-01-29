@@ -29,13 +29,13 @@
  */
 
 #include <sys/cdefs.h>
-#include <efi.h>
-#include <efilib.h>
-
-#include <time.h>
 #include <sys/time.h>
 
 #include <machine/armreg.h>
+
+#include <efi.h>
+#include <efilib.h>
+#include <time.h>
 
 static uint64_t timer_freq;
 
@@ -66,5 +66,5 @@ time(time_t *tloc)
 time_t
 getsecs(void)
 {
-    return time(NULL);
+	return time(NULL);
 }

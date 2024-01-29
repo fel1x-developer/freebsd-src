@@ -26,9 +26,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/malloc.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+
 #include "xz.h"
 #include "xz_malloc.h"
 
@@ -78,11 +79,7 @@ xz_module_event_handler(module_t mod, int what, void *arg)
 	return (error);
 }
 
-static moduledata_t xz_moduledata = {
-	"xz",
-	xz_module_event_handler,
-	NULL
-};
+static moduledata_t xz_moduledata = { "xz", xz_module_event_handler, NULL };
 
 DECLARE_MODULE(xz, xz_moduledata, SI_SUB_INIT_IF, SI_ORDER_ANY);
 MODULE_VERSION(xz, 1);

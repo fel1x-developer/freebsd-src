@@ -27,12 +27,13 @@
  */
 
 #include <sys/cdefs.h>
- /*
-  * A lockless rwlock for rtld.
-  */
+/*
+ * A lockless rwlock for rtld.
+ */
 #include <sys/cdefs.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+
 #include <link.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,17 +45,17 @@
 #undef errno
 extern int errno;
 
-static int	_thr_rtld_clr_flag(int);
-static void	*_thr_rtld_lock_create(void);
-static void	_thr_rtld_lock_destroy(void *);
-static void	_thr_rtld_lock_release(void *);
-static void	_thr_rtld_rlock_acquire(void *);
-static int	_thr_rtld_set_flag(int);
-static void	_thr_rtld_wlock_acquire(void *);
+static int _thr_rtld_clr_flag(int);
+static void *_thr_rtld_lock_create(void);
+static void _thr_rtld_lock_destroy(void *);
+static void _thr_rtld_lock_release(void *);
+static void _thr_rtld_rlock_acquire(void *);
+static int _thr_rtld_set_flag(int);
+static void _thr_rtld_wlock_acquire(void *);
 
 struct rtld_lock {
-	struct	urwlock	lock;
-	char		_pad[CACHE_LINE_SIZE - sizeof(struct urwlock)];
+	struct urwlock lock;
+	char _pad[CACHE_LINE_SIZE - sizeof(struct urwlock)];
 };
 
 static struct rtld_lock lock_place[MAX_RTLD_LOCKS] __aligned(CACHE_LINE_SIZE);
@@ -94,26 +95,28 @@ _thr_rtld_lock_destroy(void *lock)
 	busy_places &= ~(1 << locki);
 }
 
-#define SAVE_ERRNO()	{			\
-	if (curthread != _thr_initial)		\
-		errsave = curthread->error;	\
-	else					\
-		errsave = errno;		\
-}
+#define SAVE_ERRNO()                                \
+	{                                           \
+		if (curthread != _thr_initial)      \
+			errsave = curthread->error; \
+		else                                \
+			errsave = errno;            \
+	}
 
-#define RESTORE_ERRNO()	{ 			\
-	if (curthread != _thr_initial)  	\
-		curthread->error = errsave;	\
-	else					\
-		errno = errsave;		\
-}
+#define RESTORE_ERRNO()                             \
+	{                                           \
+		if (curthread != _thr_initial)      \
+			curthread->error = errsave; \
+		else                                \
+			errno = errsave;            \
+	}
 
 static void
 _thr_rtld_rlock_acquire(void *lock)
 {
-	struct pthread		*curthread;
-	struct rtld_lock	*l;
-	int			errsave;
+	struct pthread *curthread;
+	struct rtld_lock *l;
+	int errsave;
 
 	curthread = _get_curthread();
 	SAVE_ERRNO();
@@ -129,9 +132,9 @@ _thr_rtld_rlock_acquire(void *lock)
 static void
 _thr_rtld_wlock_acquire(void *lock)
 {
-	struct pthread		*curthread;
-	struct rtld_lock	*l;
-	int			errsave;
+	struct pthread *curthread;
+	struct rtld_lock *l;
+	int errsave;
 
 	curthread = _get_curthread();
 	SAVE_ERRNO();
@@ -146,15 +149,15 @@ _thr_rtld_wlock_acquire(void *lock)
 static void
 _thr_rtld_lock_release(void *lock)
 {
-	struct pthread		*curthread;
-	struct rtld_lock	*l;
-	int32_t			state;
-	int			errsave;
+	struct pthread *curthread;
+	struct rtld_lock *l;
+	int32_t state;
+	int errsave;
 
 	curthread = _get_curthread();
 	SAVE_ERRNO();
 	l = (struct rtld_lock *)lock;
-	
+
 	state = l->lock.rw_state;
 	if (__predict_false(_thr_after_fork)) {
 		/*
@@ -219,8 +222,8 @@ _thr_dlerror_seen(void)
 void
 _thr_rtld_init(void)
 {
-	struct RtldLockInfo	li;
-	struct pthread		*curthread;
+	struct RtldLockInfo li;
+	struct pthread *curthread;
 	ucontext_t *uc;
 	long dummy = -1;
 	int uc_len;
@@ -229,7 +232,7 @@ _thr_rtld_init(void)
 
 	/* force to resolve _umtx_op PLT */
 	_umtx_op_err((struct umtx *)&dummy, UMTX_OP_WAKE, 1, 0, 0);
-	
+
 	/* force to resolve errno() PLT */
 	__error();
 
@@ -240,11 +243,11 @@ _thr_rtld_init(void)
 	_rtld_get_stack_prot();
 
 	li.rtli_version = RTLI_VERSION;
-	li.lock_create  = _thr_rtld_lock_create;
+	li.lock_create = _thr_rtld_lock_create;
 	li.lock_destroy = _thr_rtld_lock_destroy;
 	li.rlock_acquire = _thr_rtld_rlock_acquire;
 	li.wlock_acquire = _thr_rtld_wlock_acquire;
-	li.lock_release  = _thr_rtld_lock_release;
+	li.lock_release = _thr_rtld_lock_release;
 	li.thread_set_flag = _thr_rtld_set_flag;
 	li.thread_clr_flag = _thr_rtld_clr_flag;
 	li.at_fork = NULL;

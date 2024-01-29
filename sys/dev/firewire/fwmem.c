@@ -39,23 +39,21 @@
 #include <sys/cdefs.h>
 #endif
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
-
+#include <sys/bio.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/conf.h>
-#include <sys/sysctl.h>
-#include <sys/bio.h>
-
-#include <sys/bus.h>
-#include <machine/bus.h>
-
-#include <sys/signal.h>
 #include <sys/mman.h>
-#include <sys/ioccom.h>
-#include <sys/fcntl.h>
+#include <sys/signal.h>
+#include <sys/sysctl.h>
+
+#include <machine/bus.h>
 
 #include <dev/firewire/firewire.h>
 #include <dev/firewire/firewirereg.h>
@@ -64,17 +62,16 @@
 static int fwmem_speed = 2, fwmem_debug = 0;
 static struct fw_eui64 fwmem_eui64;
 SYSCTL_DECL(_hw_firewire);
-static SYSCTL_NODE(_hw_firewire, OID_AUTO, fwmem,
-    CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-    "FireWire Memory Access");
-SYSCTL_UINT(_hw_firewire_fwmem, OID_AUTO, eui64_hi, CTLFLAG_RW,
-	&fwmem_eui64.hi, 0, "Fwmem target EUI64 high");
-SYSCTL_UINT(_hw_firewire_fwmem, OID_AUTO, eui64_lo, CTLFLAG_RW,
-	&fwmem_eui64.lo, 0, "Fwmem target EUI64 low");
+static SYSCTL_NODE(_hw_firewire, OID_AUTO, fwmem, CTLFLAG_RD | CTLFLAG_MPSAFE,
+    0, "FireWire Memory Access");
+SYSCTL_UINT(_hw_firewire_fwmem, OID_AUTO, eui64_hi, CTLFLAG_RW, &fwmem_eui64.hi,
+    0, "Fwmem target EUI64 high");
+SYSCTL_UINT(_hw_firewire_fwmem, OID_AUTO, eui64_lo, CTLFLAG_RW, &fwmem_eui64.lo,
+    0, "Fwmem target EUI64 low");
 SYSCTL_INT(_hw_firewire_fwmem, OID_AUTO, speed, CTLFLAG_RW, &fwmem_speed, 0,
-	"Fwmem link speed");
+    "Fwmem link speed");
 SYSCTL_INT(_debug, OID_AUTO, fwmem_debug, CTLFLAG_RW, &fwmem_debug, 0,
-	"Fwmem driver debug flag");
+    "Fwmem driver debug flag");
 
 static MALLOC_DEFINE(M_FWMEM, "fwmem", "fwmem/FireWire");
 
@@ -87,13 +84,8 @@ struct fwmem_softc {
 };
 
 static struct fw_xfer *
-fwmem_xfer_req(
-	struct fw_device *fwdev,
-	caddr_t sc,
-	int spd,
-	int slen,
-	int rlen,
-	void *hand)
+fwmem_xfer_req(struct fw_device *fwdev, caddr_t sc, int spd, int slen, int rlen,
+    void *hand)
 {
 	struct fw_xfer *xfer;
 
@@ -116,14 +108,9 @@ fwmem_xfer_req(
 }
 
 struct fw_xfer *
-fwmem_read_quad(
-	struct fw_device *fwdev,
-	caddr_t	sc,
-	uint8_t spd,
-	uint16_t dst_hi,
-	uint32_t dst_lo,
-	void *data,
-	void (*hand)(struct fw_xfer *))
+fwmem_read_quad(struct fw_device *fwdev, caddr_t sc, uint8_t spd,
+    uint16_t dst_hi, uint32_t dst_lo, void *data,
+    void (*hand)(struct fw_xfer *))
 {
 	struct fw_xfer *xfer;
 	struct fw_pkt *fp;
@@ -142,8 +129,8 @@ fwmem_read_quad(
 	xfer->recv.payload = (uint32_t *)data;
 
 	if (fwmem_debug)
-		printf("fwmem_read_quad: %d %04x:%08x\n", fwdev->dst,
-		    dst_hi, dst_lo);
+		printf("fwmem_read_quad: %d %04x:%08x\n", fwdev->dst, dst_hi,
+		    dst_lo);
 
 	if (fw_asyreq(xfer->fc, -1, xfer) == 0)
 		return xfer;
@@ -153,14 +140,9 @@ fwmem_read_quad(
 }
 
 struct fw_xfer *
-fwmem_write_quad(
-	struct fw_device *fwdev,
-	caddr_t	sc,
-	uint8_t spd,
-	uint16_t dst_hi,
-	uint32_t dst_lo,
-	void *data,
-	void (*hand)(struct fw_xfer *))
+fwmem_write_quad(struct fw_device *fwdev, caddr_t sc, uint8_t spd,
+    uint16_t dst_hi, uint32_t dst_lo, void *data,
+    void (*hand)(struct fw_xfer *))
 {
 	struct fw_xfer *xfer;
 	struct fw_pkt *fp;
@@ -189,15 +171,9 @@ fwmem_write_quad(
 }
 
 struct fw_xfer *
-fwmem_read_block(
-	struct fw_device *fwdev,
-	caddr_t	sc,
-	uint8_t spd,
-	uint16_t dst_hi,
-	uint32_t dst_lo,
-	int len,
-	void *data,
-	void (*hand)(struct fw_xfer *))
+fwmem_read_block(struct fw_device *fwdev, caddr_t sc, uint8_t spd,
+    uint16_t dst_hi, uint32_t dst_lo, int len, void *data,
+    void (*hand)(struct fw_xfer *))
 {
 	struct fw_xfer *xfer;
 	struct fw_pkt *fp;
@@ -227,15 +203,9 @@ fwmem_read_block(
 }
 
 struct fw_xfer *
-fwmem_write_block(
-	struct fw_device *fwdev,
-	caddr_t	sc,
-	uint8_t spd,
-	uint16_t dst_hi,
-	uint32_t dst_lo,
-	int len,
-	void *data,
-	void (*hand)(struct fw_xfer *))
+fwmem_write_block(struct fw_device *fwdev, caddr_t sc, uint8_t spd,
+    uint16_t dst_hi, uint32_t dst_lo, int len, void *data,
+    void (*hand)(struct fw_xfer *))
 {
 	struct fw_xfer *xfer;
 	struct fw_pkt *fp;
@@ -256,7 +226,7 @@ fwmem_write_block(
 
 	if (fwmem_debug)
 		printf("fwmem_write_block: %d %04x:%08x %d\n", fwdev->dst,
-				dst_hi, dst_lo, len);
+		    dst_hi, dst_lo, len);
 	if (fw_asyreq(xfer->fc, -1, xfer) == 0)
 		return xfer;
 
@@ -287,8 +257,8 @@ fwmem_open(struct cdev *dev, int flags, int fmt, fw_proc *td)
 	} else {
 		dev->si_drv1 = (void *)-1;
 		FW_GUNLOCK(sc->fc);
-		dev->si_drv1 = malloc(sizeof(struct fwmem_softc),
-		    M_FWMEM, M_WAITOK);
+		dev->si_drv1 = malloc(sizeof(struct fwmem_softc), M_FWMEM,
+		    M_WAITOK);
 		dev->si_iosize_max = DFLTPHYS;
 		fms = dev->si_drv1;
 		bcopy(&fwmem_eui64, &fms->eui, sizeof(struct fw_eui64));
@@ -302,7 +272,7 @@ fwmem_open(struct cdev *dev, int flags, int fmt, fw_proc *td)
 }
 
 int
-fwmem_close (struct cdev *dev, int flags, int fmt, fw_proc *td)
+fwmem_close(struct cdev *dev, int flags, int fmt, fw_proc *td)
 {
 	struct fwmem_softc *fms;
 
@@ -320,7 +290,6 @@ fwmem_close (struct cdev *dev, int flags, int fmt, fw_proc *td)
 
 	return (0);
 }
-
 
 static void
 fwmem_biodone(struct fw_xfer *xfer)
@@ -366,24 +335,20 @@ fwmem_strategy(struct bio *bp)
 	iolen = MIN(bp->bio_bcount, MAXLEN);
 	if (bp->bio_cmd == BIO_READ) {
 		if (iolen == 4 && (bp->bio_offset & 3) == 0)
-			xfer = fwmem_read_quad(fwdev,
-			    (void *)bp, fwmem_speed,
+			xfer = fwmem_read_quad(fwdev, (void *)bp, fwmem_speed,
 			    bp->bio_offset >> 32, bp->bio_offset & 0xffffffff,
 			    bp->bio_data, fwmem_biodone);
 		else
-			xfer = fwmem_read_block(fwdev,
-			    (void *)bp, fwmem_speed,
+			xfer = fwmem_read_block(fwdev, (void *)bp, fwmem_speed,
 			    bp->bio_offset >> 32, bp->bio_offset & 0xffffffff,
 			    iolen, bp->bio_data, fwmem_biodone);
 	} else {
 		if (iolen == 4 && (bp->bio_offset & 3) == 0)
-			xfer = fwmem_write_quad(fwdev,
-			    (void *)bp, fwmem_speed,
+			xfer = fwmem_write_quad(fwdev, (void *)bp, fwmem_speed,
 			    bp->bio_offset >> 32, bp->bio_offset & 0xffffffff,
 			    bp->bio_data, fwmem_biodone);
 		else
-			xfer = fwmem_write_block(fwdev,
-			    (void *)bp, fwmem_speed,
+			xfer = fwmem_write_block(fwdev, (void *)bp, fwmem_speed,
 			    bp->bio_offset >> 32, bp->bio_offset & 0xffffffff,
 			    iolen, bp->bio_data, fwmem_biodone);
 	}
@@ -431,8 +396,8 @@ fwmem_poll(struct cdev *dev, int events, fw_proc *td)
 }
 
 int
-fwmem_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int nproto, vm_memattr_t *memattr)
+fwmem_mmap(struct cdev *dev, vm_ooffset_t offset, vm_paddr_t *paddr, int nproto,
+    vm_memattr_t *memattr)
 {
 	return EINVAL;
 }

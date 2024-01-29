@@ -4,9 +4,9 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 
-#include "ipf.h"
 #include <ctype.h>
 
+#include "ipf.h"
 
 void
 printpooldata(ip_pool_t *pool, int opts)
@@ -23,9 +23,8 @@ printpooldata(ip_pool_t *pool, int opts)
 	} else {
 		if ((pool->ipo_flags & IPOOL_DELETE) != 0)
 			PRINTF("# ");
-		PRINTF("%s: %s",
-			ISDIGIT(*pool->ipo_name) ? "Number" : "Name",
-			pool->ipo_name);
+		PRINTF("%s: %s", ISDIGIT(*pool->ipo_name) ? "Number" : "Name",
+		    pool->ipo_name);
 		if ((pool->ipo_flags & IPOOL_ANON) == IPOOL_ANON)
 			PRINTF("(anon)");
 		putchar(' ');
@@ -36,17 +35,19 @@ printpooldata(ip_pool_t *pool, int opts)
 
 	if ((opts & OPT_SAVEOUT)) {
 		PRINTF("/tree (%s \"\%s\";)\n",
-			(!*pool->ipo_name || ISDIGIT(*pool->ipo_name)) ? \
-			"number" : "name", pool->ipo_name);
+		    (!*pool->ipo_name || ISDIGIT(*pool->ipo_name)) ? "number" :
+								     "name",
+		    pool->ipo_name);
 	} else if ((opts & OPT_DEBUG) == 0) {
 		PRINTF(" type=tree %s=%s\n",
-			(!*pool->ipo_name || ISDIGIT(*pool->ipo_name)) ? \
-			"number" : "name", pool->ipo_name);
+		    (!*pool->ipo_name || ISDIGIT(*pool->ipo_name)) ? "number" :
+								     "name",
+		    pool->ipo_name);
 	} else {
 		putchar(' ');
 
 		PRINTF("\tReferences: %d\tHits: %lu\n", pool->ipo_ref,
-			pool->ipo_hits);
+		    pool->ipo_hits);
 		if ((pool->ipo_flags & IPOOL_DELETE) != 0)
 			PRINTF("# ");
 		PRINTF("\tNodes Starting at %p\n", pool->ipo_list);

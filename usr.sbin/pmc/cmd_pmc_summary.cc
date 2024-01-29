@@ -46,6 +46,7 @@
 #include <getopt.h>
 #include <kvm.h>
 #include <libgen.h>
+#include <libpmcstat.h>
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
@@ -54,37 +55,35 @@
 #include <regex.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <libpmcstat.h>
 #include "cmd_pmc.h"
 
 #include <iostream>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
-using	std::unordered_map;
-typedef unordered_map <int, std::string> idmap;
-typedef unordered_map <uint32_t, uint64_t> intmap;
-typedef unordered_map <std::string, intmap> strintmap;
+using std::unordered_map;
+typedef unordered_map<int, std::string> idmap;
+typedef unordered_map<uint32_t, uint64_t> intmap;
+typedef unordered_map<std::string, intmap> strintmap;
 typedef std::pair<uint64_t, uint32_t> sampleid;
 typedef std::pair<uint64_t, std::string> samplename;
-typedef unordered_map <uint32_t, std::vector<samplename>> eventcountmap;
+typedef unordered_map<uint32_t, std::vector<samplename>> eventcountmap;
 
 static void __dead2
 usage(void)
 {
 	errx(EX_USAGE,
 	    "\t summarize log file\n"
-		 "\t -k <k>, --topk <k> show topk processes for each counter\n"
-	    );
+	    "\t -k <k>, --topk <k> show topk processes for each counter\n");
 }
 
 static int
@@ -98,26 +97,32 @@ pmc_summary_handler(int logfd, int k, bool do_full)
 	intmap kerntidmap, kernpidmap;
 	eventcountmap countmap;
 
-	ps = static_cast<struct pmclog_parse_state*>(pmclog_open(logfd));
+	ps = static_cast<struct pmclog_parse_state *>(pmclog_open(logfd));
 	if (ps == NULL)
-		errx(EX_OSERR, "ERROR: Cannot allocate pmclog parse state: %s\n",
-			 strerror(errno));
+		errx(EX_OSERR,
+		    "ERROR: Cannot allocate pmclog parse state: %s\n",
+		    strerror(errno));
 	while (pmclog_read(ps, &ev) == 0) {
 		if (ev.pl_type == PMCLOG_TYPE_PMCALLOCATE) {
 			pmcidmap[ev.pl_u.pl_a.pl_pmcid] = ev.pl_u.pl_a.pl_event;
 			ratemap[ev.pl_u.pl_a.pl_event] = ev.pl_u.pl_a.pl_rate;
-			eventnamemap[ev.pl_u.pl_a.pl_event] = ev.pl_u.pl_a.pl_evname;
+			eventnamemap[ev.pl_u.pl_a.pl_event] =
+			    ev.pl_u.pl_a.pl_evname;
 		}
 		if (ev.pl_type == PMCLOG_TYPE_THR_CREATE) {
 			tidmap[ev.pl_u.pl_tc.pl_tid] = ev.pl_u.pl_tc.pl_tdname;
-			kerntidmap[ev.pl_u.pl_tc.pl_tid] = !!(ev.pl_u.pl_tc.pl_flags & P_KPROC);
-			if (tideventmap.find(ev.pl_u.pl_tc.pl_tdname) == tideventmap.end())
+			kerntidmap[ev.pl_u.pl_tc.pl_tid] = !!(
+			    ev.pl_u.pl_tc.pl_flags & P_KPROC);
+			if (tideventmap.find(ev.pl_u.pl_tc.pl_tdname) ==
+			    tideventmap.end())
 				tideventmap[ev.pl_u.pl_tc.pl_tdname] = intmap();
 		}
 		if (ev.pl_type == PMCLOG_TYPE_PROC_CREATE) {
 			pidmap[ev.pl_u.pl_pc.pl_pid] = ev.pl_u.pl_pc.pl_pcomm;
-			kernpidmap[ev.pl_u.pl_pc.pl_pid] = !!(ev.pl_u.pl_pc.pl_flags & P_KPROC);
-			if (pideventmap.find(ev.pl_u.pl_pc.pl_pcomm) == pideventmap.end())
+			kernpidmap[ev.pl_u.pl_pc.pl_pid] = !!(
+			    ev.pl_u.pl_pc.pl_flags & P_KPROC);
+			if (pideventmap.find(ev.pl_u.pl_pc.pl_pcomm) ==
+			    pideventmap.end())
 				pideventmap[ev.pl_u.pl_pc.pl_pcomm] = intmap();
 		}
 		if (ev.pl_type == PMCLOG_TYPE_CALLCHAIN) {
@@ -144,16 +149,19 @@ pmc_summary_handler(int logfd, int k, bool do_full)
 			samplevec.emplace_back(ekv.second, pkv.first);
 		}
 	for (auto &kv : countmap)
-		std::sort(kv.second.begin(), kv.second.end(), [](auto &a, auto &b) {return (a.first < b.first);});
+		std::sort(kv.second.begin(), kv.second.end(),
+		    [](auto &a, auto &b) { return (a.first < b.first); });
 	if (do_full) {
 		for (auto &kv : countmap) {
 			auto &name = eventnamemap[kv.first];
 			auto rate = ratemap[kv.first];
-			std::cout << "idx: " << kv.first << " name: " << name << " rate: " << rate << std::endl;
+			std::cout << "idx: " << kv.first << " name: " << name
+				  << " rate: " << rate << std::endl;
 			while (!kv.second.empty()) {
 				auto val = kv.second.back();
 				kv.second.pop_back();
-				std::cout << val.second << ": " << val.first << std::endl;
+				std::cout << val.second << ": " << val.first
+					  << std::endl;
 			}
 		}
 		return (0);
@@ -165,17 +173,15 @@ pmc_summary_handler(int logfd, int k, bool do_full)
 		for (auto i = 0; i < k; i++) {
 			auto largest = kv.second.back();
 			kv.second.pop_back();
-			std::cout << "\t" << largest.second << ": " << largest.first*rate << std::endl;
+			std::cout << "\t" << largest.second << ": "
+				  << largest.first * rate << std::endl;
 		}
 	}
 	return (0);
 }
 
-static struct option longopts[] = {
-	{"full", no_argument, NULL, 'f'},
-	{"topk", required_argument, NULL, 'k'},
-	{NULL, 0, NULL, 0}
-};
+static struct option longopts[] = { { "full", no_argument, NULL, 'f' },
+	{ "topk", required_argument, NULL, 'k' }, { NULL, 0, NULL, 0 } };
 
 int
 cmd_pmc_summary(int argc, char **argv)
@@ -185,7 +191,8 @@ cmd_pmc_summary(int argc, char **argv)
 
 	do_full = false;
 	k = 5;
-	while ((option = getopt_long(argc, argv, "k:f", longopts, NULL)) != -1) {
+	while (
+	    (option = getopt_long(argc, argv, "k:f", longopts, NULL)) != -1) {
 		switch (option) {
 		case 'f':
 			do_full = 1;
@@ -207,9 +214,9 @@ cmd_pmc_summary(int argc, char **argv)
 		usage();
 	}
 	if ((logfd = open(argv[0], O_RDONLY,
-	    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0)
-		errx(EX_OSERR, "ERROR: Cannot open \"%s\" for reading: %s.", argv[0],
-		    strerror(errno));
+		 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) < 0)
+		errx(EX_OSERR, "ERROR: Cannot open \"%s\" for reading: %s.",
+		    argv[0], strerror(errno));
 
 	return (pmc_summary_handler(logfd, k, do_full));
 }

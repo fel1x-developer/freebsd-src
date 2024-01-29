@@ -35,10 +35,10 @@
 #ifndef IRDMA_PUDA_H
 #define IRDMA_PUDA_H
 
-#define IRDMA_IEQ_MPA_FRAMING	6
-#define IRDMA_TCP_OFFSET	40
-#define IRDMA_IPV4_PAD		20
-#define IRDMA_MRK_BLK_SZ	512
+#define IRDMA_IEQ_MPA_FRAMING 6
+#define IRDMA_TCP_OFFSET 40
+#define IRDMA_IPV4_PAD 20
+#define IRDMA_MRK_BLK_SZ 512
 
 enum puda_rsrc_type {
 	IRDMA_PUDA_RSRC_TYPE_ILQ = 1,
@@ -68,9 +68,9 @@ struct irdma_puda_cmpl_info {
 	u32 compl_error; /* No_err=0, else major and minor err code */
 	u32 qp_id;
 	u32 wqe_idx;
-	bool ipv4:1;
-	bool smac_valid:1;
-	bool vlan_valid:1;
+	bool ipv4 : 1;
+	bool smac_valid : 1;
+	bool vlan_valid : 1;
 	u8 smac[ETHER_ADDR_LEN];
 };
 
@@ -80,15 +80,15 @@ struct irdma_puda_send_info {
 	u32 ah_id;
 	u8 tcplen;
 	u8 maclen;
-	bool ipv4:1;
-	bool do_lpb:1;
+	bool ipv4 : 1;
+	bool do_lpb : 1;
 	void *scratch;
 };
 
 struct irdma_puda_buf {
-	struct list_head list; /* MUST be first entry */
-	struct irdma_dma_mem mem; /* DMA memory for the buffer */
-	struct irdma_puda_buf *next; /* for alloclist in rsrc struct */
+	struct list_head list;	       /* MUST be first entry */
+	struct irdma_dma_mem mem;      /* DMA memory for the buffer */
+	struct irdma_puda_buf *next;   /* for alloclist in rsrc struct */
 	struct irdma_virt_mem buf_mem; /* Buffer memory for this buffer */
 	void *scratch;
 	u8 *iph;
@@ -96,16 +96,16 @@ struct irdma_puda_buf {
 	u8 *data;
 	u16 datalen;
 	u16 vlan_id;
-	u8 tcphlen; /* tcp length in bytes */
-	u8 maclen; /* mac length in bytes */
+	u8 tcphlen;   /* tcp length in bytes */
+	u8 maclen;    /* mac length in bytes */
 	u32 totallen; /* machlen+iphlen+tcphlen+datalen */
 	atomic_t refcount;
 	u8 hdrlen;
-	bool virtdma:1;
-	bool ipv4:1;
-	bool vlan_valid:1;
-	bool do_lpb:1; /* Loopback buffer */
-	bool smac_valid:1;
+	bool virtdma : 1;
+	bool ipv4 : 1;
+	bool vlan_valid : 1;
+	bool do_lpb : 1; /* Loopback buffer */
+	bool smac_valid : 1;
 	u32 seqnum;
 	u32 ah_id;
 	u8 smac[ETHER_ADDR_LEN];
@@ -126,7 +126,7 @@ struct irdma_puda_rsrc_info {
 	u16 buf_size;
 	u16 mss; /* FIXME: Windows driver still using this */
 	u16 stats_idx;
-	bool stats_idx_valid:1;
+	bool stats_idx_valid : 1;
 	int abi_ver;
 };
 
@@ -177,44 +177,44 @@ struct irdma_puda_rsrc {
 	u64 partials_handled;
 	u16 mss; /* FIXME: Windows driver still using this */
 	u16 stats_idx;
-	bool check_crc:1;
-	bool stats_idx_valid:1;
+	bool check_crc : 1;
+	bool stats_idx_valid : 1;
 };
 
 struct irdma_puda_buf *irdma_puda_get_bufpool(struct irdma_puda_rsrc *rsrc);
 void irdma_puda_ret_bufpool(struct irdma_puda_rsrc *rsrc,
-			    struct irdma_puda_buf *buf);
+    struct irdma_puda_buf *buf);
 void irdma_puda_send_buf(struct irdma_puda_rsrc *rsrc,
-			 struct irdma_puda_buf *buf);
+    struct irdma_puda_buf *buf);
 int irdma_puda_send(struct irdma_sc_qp *qp, struct irdma_puda_send_info *info);
 int irdma_puda_create_rsrc(struct irdma_sc_vsi *vsi,
-			   struct irdma_puda_rsrc_info *info);
+    struct irdma_puda_rsrc_info *info);
 void irdma_puda_dele_rsrc(struct irdma_sc_vsi *vsi, enum puda_rsrc_type type,
-			  bool reset);
+    bool reset);
 int irdma_puda_poll_cmpl(struct irdma_sc_dev *dev, struct irdma_sc_cq *cq,
-			 u32 *compl_err);
+    u32 *compl_err);
 
 struct irdma_sc_qp *irdma_ieq_get_qp(struct irdma_sc_dev *dev,
-				     struct irdma_puda_buf *buf);
+    struct irdma_puda_buf *buf);
 int irdma_puda_get_tcpip_info(struct irdma_puda_cmpl_info *info,
-			      struct irdma_puda_buf *buf);
+    struct irdma_puda_buf *buf);
 int irdma_ieq_check_mpacrc(void *desc, void *addr, u32 len, u32 val);
 int irdma_init_hash_desc(void **desc);
 void irdma_ieq_mpa_crc_ae(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp);
 void irdma_free_hash_desc(void *desc);
-void irdma_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len, u32 seqnum);
+void irdma_ieq_update_tcpip_info(struct irdma_puda_buf *buf, u16 len,
+    u32 seqnum);
 int irdma_cqp_qp_create_cmd(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp);
 int irdma_cqp_cq_create_cmd(struct irdma_sc_dev *dev, struct irdma_sc_cq *cq);
 int irdma_cqp_qp_destroy_cmd(struct irdma_sc_dev *dev, struct irdma_sc_qp *qp);
 void irdma_cqp_cq_destroy_cmd(struct irdma_sc_dev *dev, struct irdma_sc_cq *cq);
 void irdma_puda_ieq_get_ah_info(struct irdma_sc_qp *qp,
-				struct irdma_ah_info *ah_info);
+    struct irdma_ah_info *ah_info);
 int irdma_puda_create_ah(struct irdma_sc_dev *dev,
-			 struct irdma_ah_info *ah_info, bool wait,
-			 enum puda_rsrc_type type, void *cb_param,
-			 struct irdma_sc_ah **ah);
+    struct irdma_ah_info *ah_info, bool wait, enum puda_rsrc_type type,
+    void *cb_param, struct irdma_sc_ah **ah);
 void irdma_puda_free_ah(struct irdma_sc_dev *dev, struct irdma_sc_ah *ah);
 void irdma_ieq_process_fpdus(struct irdma_sc_qp *qp,
-			     struct irdma_puda_rsrc *ieq);
+    struct irdma_puda_rsrc *ieq);
 void irdma_ieq_cleanup_qp(struct irdma_puda_rsrc *ieq, struct irdma_sc_qp *qp);
 #endif /*IRDMA_PROTOS_H */

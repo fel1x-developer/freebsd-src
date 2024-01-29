@@ -26,7 +26,7 @@
  */
 
 #ifndef _USB_FDT_SUPPORT_H_
-#define	_USB_FDT_SUPPORT_H_
+#define _USB_FDT_SUPPORT_H_
 
 struct usb_device;
 struct usb_ether;
@@ -38,9 +38,9 @@ struct usb_ether;
  * property, and if that's not valid it tries the "local-mac-address" property;
  * this matches the linux interpretation of the precedence of those properties.
  */
-int usb_fdt_get_mac_addr(device_t dev, struct usb_ether* ue);
+int usb_fdt_get_mac_addr(device_t dev, struct usb_ether *ue);
 
 /* Get the FDT node for dev.  Returns -1 if dev is not in the FDT data. */
-phandle_t usb_fdt_get_node(device_t dev, struct usb_device* udev);
+phandle_t usb_fdt_get_node(device_t dev, struct usb_device *udev);
 
 #endif

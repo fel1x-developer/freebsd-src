@@ -32,8 +32,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_MACHINE_SMP_H_
-#define	_MACHINE_SMP_H_
+#ifndef _MACHINE_SMP_H_
+#define _MACHINE_SMP_H_
 
 #include <machine/pcb.h>
 

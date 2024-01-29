@@ -32,7 +32,9 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
+
 #include <unistd.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_readv, __readv);
@@ -42,6 +44,6 @@ ssize_t
 readv(int fd, const struct iovec *iov, int iovcnt)
 {
 
-	return (((ssize_t (*)(int, const struct iovec *, int))
-	    __libc_interposing[INTERPOS_readv])(fd, iov, iovcnt));
+	return (((ssize_t(*)(int, const struct iovec *,
+	    int))__libc_interposing[INTERPOS_readv])(fd, iov, iovcnt));
 }

@@ -18,58 +18,57 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/queue.h>
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/tree.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <event.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <pwd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <limits.h>
-
-#include <rpc/rpc.h>
-#include <rpc/xdr.h>
+#include <pwd.h>
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
 #include <rpc/pmap_rmt.h>
+#include <rpc/rpc.h>
+#include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ypldap.h"
 
-void	yp_dispatch(struct svc_req *, SVCXPRT *);
-void	yp_disable_events(void);
-void	yp_fd_event(int, short, void *);
-int	yp_check(struct svc_req *);
-int	yp_valid_domain(char *, struct ypresp_val *);
-void	yp_make_val(struct ypresp_val *, char *, int);
-void	yp_make_keyval(struct ypresp_key_val *, char *, char *);
+void yp_dispatch(struct svc_req *, SVCXPRT *);
+void yp_disable_events(void);
+void yp_fd_event(int, short, void *);
+int yp_check(struct svc_req *);
+int yp_valid_domain(char *, struct ypresp_val *);
+void yp_make_val(struct ypresp_val *, char *, int);
+void yp_make_keyval(struct ypresp_key_val *, char *, char *);
 
-static struct env	*env;
+static struct env *env;
 
 struct yp_event {
-	TAILQ_ENTRY(yp_event)	 ye_entry;
-	struct event		 ye_event;
+	TAILQ_ENTRY(yp_event) ye_entry;
+	struct event ye_event;
 };
 
 struct yp_data {
-	SVCXPRT			*yp_trans_udp;
-	SVCXPRT			*yp_trans_tcp;
-	TAILQ_HEAD(, yp_event)	 yd_events;
+	SVCXPRT *yp_trans_udp;
+	SVCXPRT *yp_trans_tcp;
+	TAILQ_HEAD(, yp_event) yd_events;
 };
 
 void
 yp_disable_events(void)
 {
-	struct yp_event	*ye;
+	struct yp_event *ye;
 
 	while ((ye = TAILQ_FIRST(&env->sc_yp->yd_events)) != NULL) {
 		TAILQ_REMOVE(&env->sc_yp->yd_events, ye, ye_entry);
@@ -82,7 +81,7 @@ void
 yp_enable_events(void)
 {
 	int i;
-	struct yp_event	*ye;
+	struct yp_event *ye;
 
 	for (i = 0; i < getdtablesize(); i++) {
 		if ((ye = calloc(1, sizeof(*ye))) == NULL)
@@ -104,7 +103,7 @@ yp_fd_event(int fd, short event, void *p)
 void
 yp_init(struct env *x_env)
 {
-	struct yp_data	*yp;
+	struct yp_data *yp;
 
 	if ((yp = calloc(1, sizeof(*yp))) == NULL)
 		fatal(NULL);
@@ -112,7 +111,7 @@ yp_init(struct env *x_env)
 
 	env = x_env;
 	env->sc_yp = yp;
-	
+
 	(void)pmap_unset(YPPROG, YPVERS);
 
 	if ((yp->yp_trans_udp = svcudp_create(RPC_ANYSOCK)) == NULL)
@@ -120,12 +119,12 @@ yp_init(struct env *x_env)
 	if ((yp->yp_trans_tcp = svctcp_create(RPC_ANYSOCK, 0, 0)) == NULL)
 		fatal("cannot create tcp service");
 
-	if (!svc_register(yp->yp_trans_udp, YPPROG, YPVERS,
-	    yp_dispatch, IPPROTO_UDP)) {
+	if (!svc_register(yp->yp_trans_udp, YPPROG, YPVERS, yp_dispatch,
+		IPPROTO_UDP)) {
 		fatal("unable to register (YPPROG, YPVERS, udp)");
 	}
-	if (!svc_register(yp->yp_trans_tcp, YPPROG, YPVERS,
-	    yp_dispatch, IPPROTO_TCP)) {
+	if (!svc_register(yp->yp_trans_tcp, YPPROG, YPVERS, yp_dispatch,
+		IPPROTO_TCP)) {
 		fatal("unable to register (YPPROG, YPVERS, tcp)");
 	}
 }
@@ -136,68 +135,67 @@ yp_init(struct env *x_env)
 void
 yp_dispatch(struct svc_req *req, SVCXPRT *trans)
 {
-	xdrproc_t		 xdr_argument;
-	xdrproc_t		 xdr_result;
-	char			*result;
-	char			*(*cb)(char *, struct svc_req *);
-        union {
-		domainname	 ypproc_domain_2_arg;
-		domainname	 ypproc_domain_nonack_2_arg;
-		ypreq_key	 ypproc_match_2_arg;
-		ypreq_nokey	 ypproc_first_2_arg;
-		ypreq_key	 ypproc_next_2_arg;
-		ypreq_xfr	 ypproc_xfr_2_arg;
-		ypreq_nokey	 ypproc_all_2_arg;
-		ypreq_nokey	 ypproc_master_2_arg;
-		ypreq_nokey	 ypproc_order_2_arg;
-		domainname	 ypproc_maplist_2_arg;
+	xdrproc_t xdr_argument;
+	xdrproc_t xdr_result;
+	char *result;
+	char *(*cb)(char *, struct svc_req *);
+	union {
+		domainname ypproc_domain_2_arg;
+		domainname ypproc_domain_nonack_2_arg;
+		ypreq_key ypproc_match_2_arg;
+		ypreq_nokey ypproc_first_2_arg;
+		ypreq_key ypproc_next_2_arg;
+		ypreq_xfr ypproc_xfr_2_arg;
+		ypreq_nokey ypproc_all_2_arg;
+		ypreq_nokey ypproc_master_2_arg;
+		ypreq_nokey ypproc_order_2_arg;
+		domainname ypproc_maplist_2_arg;
 	} argument;
 
-	xdr_argument = (xdrproc_t) xdr_void;
-	xdr_result = (xdrproc_t) xdr_void;
+	xdr_argument = (xdrproc_t)xdr_void;
+	xdr_result = (xdrproc_t)xdr_void;
 	cb = NULL;
 	switch (req->rq_proc) {
 	case YPPROC_NULL:
-		xdr_argument = (xdrproc_t) xdr_void;
-		xdr_result = (xdrproc_t) xdr_void;
+		xdr_argument = (xdrproc_t)xdr_void;
+		xdr_result = (xdrproc_t)xdr_void;
 		if (yp_check(req) == -1)
 			return;
 		result = NULL;
-		if (!svc_sendreply(trans, (xdrproc_t) xdr_void,
-		    (void *)&result))
+		if (!svc_sendreply(trans, (xdrproc_t)xdr_void, (void *)&result))
 			svcerr_systemerr(trans);
 		return;
 	case YPPROC_DOMAIN:
-		xdr_argument = (xdrproc_t) xdr_domainname;
-		xdr_result = (xdrproc_t) xdr_bool;
+		xdr_argument = (xdrproc_t)xdr_domainname;
+		xdr_result = (xdrproc_t)xdr_bool;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_domain_2_svc;
 		break;
 	case YPPROC_DOMAIN_NONACK:
-		xdr_argument = (xdrproc_t) xdr_domainname;
-		xdr_result = (xdrproc_t) xdr_bool;
+		xdr_argument = (xdrproc_t)xdr_domainname;
+		xdr_result = (xdrproc_t)xdr_bool;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_domain_nonack_2_svc;
 		break;
 	case YPPROC_MATCH:
-		xdr_argument = (xdrproc_t) xdr_ypreq_key;
-		xdr_result = (xdrproc_t) xdr_ypresp_val;
+		xdr_argument = (xdrproc_t)xdr_ypreq_key;
+		xdr_result = (xdrproc_t)xdr_ypresp_val;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_match_2_svc;
 		break;
 	case YPPROC_FIRST:
-		xdr_argument = (xdrproc_t) xdr_ypreq_nokey;
-		xdr_result = (xdrproc_t) xdr_ypresp_key_val;
+		xdr_argument = (xdrproc_t)xdr_ypreq_nokey;
+		xdr_result = (xdrproc_t)xdr_ypresp_key_val;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_first_2_svc;
 		break;
 	case YPPROC_NEXT:
-		xdr_argument = (xdrproc_t) xdr_ypreq_key;
-		xdr_result = (xdrproc_t) xdr_ypresp_key_val;
+		xdr_argument = (xdrproc_t)xdr_ypreq_key;
+		xdr_result = (xdrproc_t)xdr_ypresp_key_val;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_next_2_svc;
@@ -215,16 +213,16 @@ yp_dispatch(struct svc_req *req, SVCXPRT *trans)
 		return;
 	case YPPROC_ALL:
 		log_debug("ypproc_all");
-		xdr_argument = (xdrproc_t) xdr_ypreq_nokey;
-		xdr_result = (xdrproc_t) xdr_ypresp_all;
+		xdr_argument = (xdrproc_t)xdr_ypreq_nokey;
+		xdr_result = (xdrproc_t)xdr_ypresp_all;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_all_2_svc;
 		break;
 	case YPPROC_MASTER:
 		log_debug("ypproc_master");
-		xdr_argument = (xdrproc_t) xdr_ypreq_nokey;
-		xdr_result = (xdrproc_t) xdr_ypresp_master;
+		xdr_argument = (xdrproc_t)xdr_ypreq_nokey;
+		xdr_result = (xdrproc_t)xdr_ypresp_master;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_master_2_svc;
@@ -237,8 +235,8 @@ yp_dispatch(struct svc_req *req, SVCXPRT *trans)
 		return;
 	case YPPROC_MAPLIST:
 		log_debug("ypproc_maplist");
-		xdr_argument = (xdrproc_t) xdr_domainname;
-		xdr_result = (xdrproc_t) xdr_ypresp_maplist;
+		xdr_argument = (xdrproc_t)xdr_domainname;
+		xdr_result = (xdrproc_t)xdr_ypresp_maplist;
 		if (yp_check(req) == -1)
 			return;
 		cb = (void *)ypproc_maplist_2_svc;
@@ -290,8 +288,8 @@ yp_valid_domain(char *domain, struct ypresp_val *res)
 bool_t *
 ypproc_domain_2_svc(domainname *arg, struct svc_req *req)
 {
-	static bool_t	res;
-	
+	static bool_t res;
+
 	res = (bool_t)1;
 	if (strcmp(*arg, env->sc_domainname) != 0)
 		res = (bool_t)0;
@@ -301,8 +299,8 @@ ypproc_domain_2_svc(domainname *arg, struct svc_req *req)
 bool_t *
 ypproc_domain_nonack_2_svc(domainname *arg, struct svc_req *req)
 {
-	static bool_t	res;
-	
+	static bool_t res;
+
 	if (strcmp(*arg, env->sc_domainname) != 0)
 		return NULL;
 	res = (bool_t)1;
@@ -312,17 +310,17 @@ ypproc_domain_nonack_2_svc(domainname *arg, struct svc_req *req)
 ypresp_val *
 ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 {
-	struct userent		 ukey;
-	struct userent		*ue;
-	struct groupent		 gkey;
-	struct groupent		*ge;
+	struct userent ukey;
+	struct userent *ue;
+	struct groupent gkey;
+	struct groupent *ge;
 	static struct ypresp_val res;
-	const char		*estr;
-	char			*bp, *cp;
-	char			 *key;
+	const char *estr;
+	char *bp, *cp;
+	char *key;
 
 	log_debug("matching '%.*s' in map %s", arg->key.keydat_len,
-	   arg->key.keydat_val, arg->map);
+	    arg->key.keydat_val, arg->map);
 
 	if (yp_valid_domain(arg->domain, (struct ypresp_val *)&res) == -1)
 		return (&res);
@@ -346,8 +344,8 @@ ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 	if (strcmp(arg->map, "passwd.byname") == 0 ||
 	    strcmp(arg->map, "master.passwd.byname") == 0) {
 		ukey.ue_line = key;
-		if ((ue = RB_FIND(user_name_tree, env->sc_user_names,
-		    &ukey)) == NULL) {
+		if ((ue = RB_FIND(user_name_tree, env->sc_user_names, &ukey)) ==
+		    NULL) {
 			res.stat = YP_NOKEY;
 			goto out;
 		}
@@ -355,15 +353,15 @@ ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 		yp_make_val(&res, ue->ue_line, 1);
 		goto out;
 	} else if (strcmp(arg->map, "passwd.byuid") == 0 ||
-		   strcmp(arg->map, "master.passwd.byuid") == 0) {
-		ukey.ue_uid = strtonum(key, 0, UID_MAX, &estr); 
+	    strcmp(arg->map, "master.passwd.byuid") == 0) {
+		ukey.ue_uid = strtonum(key, 0, UID_MAX, &estr);
 		if (estr) {
 			res.stat = YP_BADARGS;
 			goto out;
 		}
 
-		if ((ue = RB_FIND(user_uid_tree, &env->sc_user_uids,
-		    &ukey)) == NULL) {
+		if ((ue = RB_FIND(user_uid_tree, &env->sc_user_uids, &ukey)) ==
+		    NULL) {
 			res.stat = YP_NOKEY;
 			goto out;
 		}
@@ -371,13 +369,13 @@ ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 		yp_make_val(&res, ue->ue_line, 1);
 		return (&res);
 	} else if (strcmp(arg->map, "group.bygid") == 0) {
-		gkey.ge_gid = strtonum(key, 0, GID_MAX, &estr); 
+		gkey.ge_gid = strtonum(key, 0, GID_MAX, &estr);
 		if (estr) {
 			res.stat = YP_BADARGS;
 			goto out;
 		}
 		if ((ge = RB_FIND(group_gid_tree, &env->sc_group_gids,
-		    &gkey)) == NULL) {
+			 &gkey)) == NULL) {
 			res.stat = YP_NOKEY;
 			goto out;
 		}
@@ -387,7 +385,7 @@ ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 	} else if (strcmp(arg->map, "group.byname") == 0) {
 		gkey.ge_line = key;
 		if ((ge = RB_FIND(group_name_tree, env->sc_group_names,
-		    &gkey)) == NULL) {
+			 &gkey)) == NULL) {
 			res.stat = YP_NOKEY;
 			goto out;
 		}
@@ -419,21 +417,21 @@ ypproc_match_2_svc(ypreq_key *arg, struct svc_req *req)
 			goto out;
 		}
 
-		ukey.ue_uid = strtonum(cp, 0, UID_MAX, &estr); 
+		ukey.ue_uid = strtonum(cp, 0, UID_MAX, &estr);
 		if (estr) {
 			res.stat = YP_BADARGS;
 			goto out;
 		}
 
-		if ((ue = RB_FIND(user_uid_tree, &env->sc_user_uids,
-		    &ukey)) == NULL) {
+		if ((ue = RB_FIND(user_uid_tree, &env->sc_user_uids, &ukey)) ==
+		    NULL) {
 			res.stat = YP_NOKEY;
 			goto out;
 		}
 
 		yp_make_val(&res, ue->ue_netid_line, 0);
 		goto out;
-	
+
 	} else {
 		log_debug("unknown map %s", arg->map);
 		res.stat = YP_NOMAP;
@@ -447,7 +445,7 @@ out:
 ypresp_key_val *
 ypproc_first_2_svc(ypreq_nokey *arg, struct svc_req *req)
 {
-	static struct ypresp_key_val	res;
+	static struct ypresp_key_val res;
 
 	if (yp_valid_domain(arg->domain, (struct ypresp_val *)&res) == -1)
 		return (&res);
@@ -474,13 +472,13 @@ ypproc_first_2_svc(ypreq_nokey *arg, struct svc_req *req)
 ypresp_key_val *
 ypproc_next_2_svc(ypreq_key *arg, struct svc_req *req)
 {
-	struct userent			 ukey;
-	struct userent			*ue;
-	struct groupent			 gkey;
-	struct groupent			*ge;
-	char				*line;
-	static struct ypresp_key_val	 res;
-	char				 *key;
+	struct userent ukey;
+	struct userent *ue;
+	struct groupent gkey;
+	struct groupent *ge;
+	char *line;
+	static struct ypresp_key_val res;
+	char *key;
 
 	if (yp_valid_domain(arg->domain, (struct ypresp_val *)&res) == -1)
 		return (&res);
@@ -493,11 +491,10 @@ ypproc_next_2_svc(ypreq_key *arg, struct svc_req *req)
 			res.stat = YP_YPERR;
 			return (&res);
 		}
-		(void)strncpy(key, arg->key.keydat_val,
-		    arg->key.keydat_len);
+		(void)strncpy(key, arg->key.keydat_val, arg->key.keydat_len);
 		ukey.ue_line = key;
-		if ((ue = RB_FIND(user_name_tree, env->sc_user_names,
-		    &ukey)) == NULL) {
+		if ((ue = RB_FIND(user_name_tree, env->sc_user_names, &ukey)) ==
+		    NULL) {
 			/*
 			 * canacar's trick:
 			 * the user might have been deleted in between calls
@@ -508,7 +505,7 @@ ypproc_next_2_svc(ypreq_key *arg, struct svc_req *req)
 			 */
 			RB_INSERT(user_name_tree, env->sc_user_names, &ukey);
 			if ((ue = RB_NEXT(user_name_tree, &env->sc_user_names,
-			    &ukey)) == NULL) {
+				 &ukey)) == NULL) {
 				RB_REMOVE(user_name_tree, env->sc_user_names,
 				    &ukey);
 				res.stat = YP_NOKEY;
@@ -523,25 +520,23 @@ ypproc_next_2_svc(ypreq_key *arg, struct svc_req *req)
 		free(key);
 		return (&res);
 
-
 	} else if (strcmp(arg->map, "group.byname") == 0) {
 		key = calloc(arg->key.keydat_len + 1, 1);
 		if (key == NULL) {
 			res.stat = YP_YPERR;
 			return (&res);
 		}
-		(void)strncpy(key, arg->key.keydat_val,
-		    arg->key.keydat_len);
-		
+		(void)strncpy(key, arg->key.keydat_val, arg->key.keydat_len);
+
 		gkey.ge_line = key;
 		if ((ge = RB_FIND(group_name_tree, env->sc_group_names,
-		    &gkey)) == NULL) {
+			 &gkey)) == NULL) {
 			/*
 			 * canacar's trick reloaded.
 			 */
 			RB_INSERT(group_name_tree, env->sc_group_names, &gkey);
 			if ((ge = RB_NEXT(group_name_tree, &env->sc_group_names,
-			    &gkey)) == NULL) {
+				 &gkey)) == NULL) {
 				RB_REMOVE(group_name_tree, env->sc_group_names,
 				    &gkey);
 				res.stat = YP_NOKEY;
@@ -566,7 +561,7 @@ ypproc_next_2_svc(ypreq_key *arg, struct svc_req *req)
 ypresp_all *
 ypproc_all_2_svc(ypreq_nokey *arg, struct svc_req *req)
 {
-	static struct ypresp_all	res;
+	static struct ypresp_all res;
 
 	if (yp_valid_domain(arg->domain, (struct ypresp_val *)&res) == -1)
 		return (&res);
@@ -578,13 +573,13 @@ ypproc_all_2_svc(ypreq_nokey *arg, struct svc_req *req)
 ypresp_master *
 ypproc_master_2_svc(ypreq_nokey *arg, struct svc_req *req)
 {
-	static struct ypresp_master	 res;
+	static struct ypresp_master res;
 	static char master[YPMAXPEER + 1];
 
 	memset(&res, 0, sizeof(res));
 	if (yp_valid_domain(arg->domain, (struct ypresp_val *)&res) == -1)
 		return (&res);
-	
+
 	if (gethostname(master, sizeof(master)) == 0) {
 		res.peer = (peername)master;
 		res.stat = YP_TRUE;
@@ -597,22 +592,22 @@ ypproc_master_2_svc(ypreq_nokey *arg, struct svc_req *req)
 ypresp_maplist *
 ypproc_maplist_2_svc(domainname *arg, struct svc_req *req)
 {
-	size_t			 i;
+	size_t i;
 	static struct {
-		char		*name;
-		int		 cond;
-	}			 mapnames[] = {
-		{ "passwd.byname",		YPMAP_PASSWD_BYNAME },
-		{ "passwd.byuid",		YPMAP_PASSWD_BYUID },
-		{ "master.passwd.byname",	YPMAP_MASTER_PASSWD_BYNAME },
-		{ "master.passwd.byuid",	YPMAP_MASTER_PASSWD_BYUID },
-		{ "group.byname",		YPMAP_GROUP_BYNAME },
-		{ "group.bygid",		YPMAP_GROUP_BYGID },
-		{ "netid.byname",		YPMAP_NETID_BYNAME },
+		char *name;
+		int cond;
+	} mapnames[] = {
+		{ "passwd.byname", YPMAP_PASSWD_BYNAME },
+		{ "passwd.byuid", YPMAP_PASSWD_BYUID },
+		{ "master.passwd.byname", YPMAP_MASTER_PASSWD_BYNAME },
+		{ "master.passwd.byuid", YPMAP_MASTER_PASSWD_BYUID },
+		{ "group.byname", YPMAP_GROUP_BYNAME },
+		{ "group.bygid", YPMAP_GROUP_BYGID },
+		{ "netid.byname", YPMAP_NETID_BYNAME },
 	};
-	static ypresp_maplist	 res;
-	static struct ypmaplist	 maps[nitems(mapnames)];
-	
+	static ypresp_maplist res;
+	static struct ypmaplist maps[nitems(mapnames)];
+
 	if (yp_valid_domain(*arg, (struct ypresp_val *)&res) == -1)
 		return (&res);
 
@@ -632,7 +627,7 @@ ypproc_maplist_2_svc(domainname *arg, struct svc_req *req)
 void
 yp_make_val(struct ypresp_val *res, char *line, int replacecolon)
 {
-	static char		 buf[LINE_WIDTH];
+	static char buf[LINE_WIDTH];
 
 	memset(buf, 0, sizeof(buf));
 
@@ -651,12 +646,12 @@ yp_make_val(struct ypresp_val *res, char *line, int replacecolon)
 void
 yp_make_keyval(struct ypresp_key_val *res, char *key, char *line)
 {
-	static char	keybuf[YPMAXRECORD+1];
-	static char	buf[LINE_WIDTH];
+	static char keybuf[YPMAXRECORD + 1];
+	static char buf[LINE_WIDTH];
 
 	memset(keybuf, 0, sizeof(keybuf));
 	memset(buf, 0, sizeof(buf));
-	
+
 	(void)strlcpy(keybuf, key, sizeof(keybuf));
 	res->key.keydat_len = strlen(keybuf);
 	res->key.keydat_val = keybuf;

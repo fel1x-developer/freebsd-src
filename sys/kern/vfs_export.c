@@ -34,10 +34,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/dirent.h>
@@ -49,48 +49,48 @@
 #include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/rmlock.h>
 #include <sys/refcount.h>
+#include <sys/rmlock.h>
 #include <sys/signalvar.h>
 #include <sys/socket.h>
 #include <sys/vnode.h>
 
-#include <netinet/in.h>
 #include <net/radix.h>
+#include <netinet/in.h>
 
-#include <rpc/types.h>
 #include <rpc/auth.h>
+#include <rpc/types.h>
 
 static MALLOC_DEFINE(M_NETADDR, "export_host", "Export host address structure");
 
 #if defined(INET) || defined(INET6)
-static struct radix_node_head *vfs_create_addrlist_af(
-		    struct radix_node_head **prnh, int off);
+static struct radix_node_head *
+vfs_create_addrlist_af(struct radix_node_head **prnh, int off);
 #endif
-static int	vfs_free_netcred(struct radix_node *rn, void *w);
-static void	vfs_free_addrlist_af(struct radix_node_head **prnh);
-static int	vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
-		    struct export_args *argp);
+static int vfs_free_netcred(struct radix_node *rn, void *w);
+static void vfs_free_addrlist_af(struct radix_node_head **prnh);
+static int vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
+    struct export_args *argp);
 static struct netcred *vfs_export_lookup(struct mount *, struct sockaddr *);
 
 /*
  * Network address lookup element
  */
 struct netcred {
-	struct	radix_node netc_rnodes[2];
+	struct radix_node netc_rnodes[2];
 	uint64_t netc_exflags;
-	struct	ucred *netc_anon;
-	int	netc_numsecflavors;
-	int	netc_secflavors[MAXSECFLAVORS];
+	struct ucred *netc_anon;
+	int netc_numsecflavors;
+	int netc_secflavors[MAXSECFLAVORS];
 };
 
 /*
  * Network export information
  */
 struct netexport {
-	struct	netcred ne_defexported;		      /* Default export */
-	struct 	radix_node_head	*ne4;
-	struct 	radix_node_head	*ne6;
+	struct netcred ne_defexported; /* Default export */
+	struct radix_node_head *ne4;
+	struct radix_node_head *ne6;
 };
 
 /*
@@ -133,8 +133,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 		np->netc_exflags = argp->ex_flags;
 		np->netc_anon = crget();
 		np->netc_anon->cr_uid = argp->ex_uid;
-		crsetgroups(np->netc_anon, argp->ex_ngroups,
-		    argp->ex_groups);
+		crsetgroups(np->netc_anon, argp->ex_ngroups, argp->ex_groups);
 		np->netc_anon->cr_prison = &prison0;
 		prison_hold(np->netc_anon->cr_prison);
 		np->netc_numsecflavors = argp->ex_numsecflavors;
@@ -155,8 +154,8 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 #endif
 
 	i = sizeof(struct netcred) + argp->ex_addrlen + argp->ex_masklen;
-	np = (struct netcred *) malloc(i, M_NETADDR, M_WAITOK | M_ZERO);
-	saddr = (struct sockaddr *) (np + 1);
+	np = (struct netcred *)malloc(i, M_NETADDR, M_WAITOK | M_ZERO);
+	saddr = (struct sockaddr *)(np + 1);
 	if ((error = copyin(argp->ex_addr, saddr, argp->ex_addrlen)))
 		goto out;
 	if (saddr->sa_family == AF_UNSPEC || saddr->sa_family > AF_MAX) {
@@ -203,7 +202,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 	RADIX_NODE_HEAD_LOCK(rnh);
 	rn = (*rnh->rnh_addaddr)(saddr, smask, &rnh->rh, np->netc_rnodes);
 	RADIX_NODE_HEAD_UNLOCK(rnh);
-	if (rn == NULL || np != (struct netcred *)rn) {	/* already exists */
+	if (rn == NULL || np != (struct netcred *)rn) { /* already exists */
 		error = EPERM;
 		vfs_mount_error(mp,
 		    "netcred already exists for given addr/mask");
@@ -212,8 +211,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 	np->netc_exflags = argp->ex_flags;
 	np->netc_anon = crget();
 	np->netc_anon->cr_uid = argp->ex_uid;
-	crsetgroups(np->netc_anon, argp->ex_ngroups,
-	    argp->ex_groups);
+	crsetgroups(np->netc_anon, argp->ex_ngroups, argp->ex_groups);
 	np->netc_anon->cr_prison = &prison0;
 	prison_hold(np->netc_anon->cr_prison);
 	np->netc_numsecflavors = argp->ex_numsecflavors;
@@ -230,10 +228,10 @@ out:
 static int
 vfs_free_netcred(struct radix_node *rn, void *w)
 {
-	struct radix_node_head *rnh = (struct radix_node_head *) w;
+	struct radix_node_head *rnh = (struct radix_node_head *)w;
 	struct ucred *cred;
 
-	(*rnh->rnh_deladdr) (rn->rn_key, rn->rn_mask, &rnh->rh);
+	(*rnh->rnh_deladdr)(rn->rn_key, rn->rn_mask, &rnh->rh);
 	cred = ((struct netcred *)rn)->netc_anon;
 	if (cred != NULL)
 		crfree(cred);
@@ -285,7 +283,6 @@ vfs_free_addrlist(struct netexport *nep)
 		crfree(cred);
 		nep->ne_defexported.netc_anon = NULL;
 	}
-
 }
 
 /*
@@ -310,8 +307,8 @@ vfs_export(struct mount *mp, struct export_args *argp, bool do_exjail)
 		return (EINVAL);
 
 	if ((argp->ex_flags & MNT_EXPORTED) != 0 &&
-	    (argp->ex_numsecflavors < 0
-	    || argp->ex_numsecflavors >= MAXSECFLAVORS))
+	    (argp->ex_numsecflavors < 0 ||
+		argp->ex_numsecflavors >= MAXSECFLAVORS))
 		return (EINVAL);
 
 	error = 0;
@@ -459,10 +456,9 @@ vfs_exjail_delete(struct prison *pr)
 		return;
 	mtx_lock(&mountlist_mtx);
 tryagain:
-	TAILQ_FOREACH(mp, &mountlist, mnt_list) {
+	TAILQ_FOREACH (mp, &mountlist, mnt_list) {
 		MNT_ILOCK(mp);
-		if (mp->mnt_exjail != NULL &&
-		    mp->mnt_exjail->cr_prison == pr) {
+		if (mp->mnt_exjail != NULL && mp->mnt_exjail->cr_prison == pr) {
 			MNT_IUNLOCK(mp);
 			error = vfs_busy(mp, MBF_MNTLSTLOCK | MBF_NOWAIT);
 			if (error != 0) {
@@ -500,7 +496,8 @@ tryagain:
 			    mp->mnt_exjail->cr_prison == pr) {
 				cr = mp->mnt_exjail;
 				mp->mnt_exjail = NULL;
-				mp->mnt_flag &= ~(MNT_EXPORTED | MNT_DEFEXPORTED);
+				mp->mnt_flag &= ~(
+				    MNT_EXPORTED | MNT_DEFEXPORTED);
 				MNT_IUNLOCK(mp);
 				vfs_free_addrlist(mp->mnt_export);
 				free(mp->mnt_export, M_MOUNT);
@@ -640,9 +637,11 @@ vfs_export_lookup(struct mount *mp, struct sockaddr *nam)
 		}
 		if (rnh != NULL) {
 			RADIX_NODE_HEAD_RLOCK(rnh);
-			np = (struct netcred *) (*rnh->rnh_matchaddr)(saddr, &rnh->rh);
+			np = (struct netcred *)(*rnh->rnh_matchaddr)(saddr,
+			    &rnh->rh);
 			RADIX_NODE_HEAD_RUNLOCK(rnh);
-			if (np != NULL && (np->netc_rnodes->rn_flags & RNF_ROOT) != 0)
+			if (np != NULL &&
+			    (np->netc_rnodes->rn_flags & RNF_ROOT) != 0)
 				return (NULL);
 		}
 	}
@@ -689,8 +688,8 @@ vfs_stdcheckexp(struct mount *mp, struct sockaddr *nam, uint64_t *extflagsp,
 		    ("%s: numsecflavors >= MAXSECFLAVORS", __func__));
 	}
 	if (secflavors && np->netc_numsecflavors > 0)
-		memcpy(secflavors, np->netc_secflavors, np->netc_numsecflavors *
-		    sizeof(int));
+		memcpy(secflavors, np->netc_secflavors,
+		    np->netc_numsecflavors * sizeof(int));
 	lockmgr(&mp->mnt_explock, LK_RELEASE, NULL);
 	return (0);
 }

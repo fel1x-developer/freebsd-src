@@ -26,16 +26,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/endian.h>
 #include <sys/stat.h>
+
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <utmpx.h>
-#include "utxdb.h"
+
+#include "namespace.h"
 #include "un-namespace.h"
+#include "utxdb.h"
 
 static _Thread_local FILE *uf = NULL;
 static _Thread_local int udb;
@@ -116,7 +118,7 @@ getfutxent(struct futx *fu)
 	if (udb == UTXDB_LOG) {
 		uint16_t len;
 
-retry:
+	retry:
 		if (fread(&len, sizeof(len), 1, uf) != 1)
 			return (-1);
 		len = be16toh(len);
@@ -178,8 +180,8 @@ getutxid(const struct utmpx *id)
 			case LOGIN_PROCESS:
 			case DEAD_PROCESS:
 				if (memcmp(fu.fu_id, id->ut_id,
-				    MIN(sizeof(fu.fu_id), sizeof(id->ut_id))) ==
-				    0)
+					MIN(sizeof(fu.fu_id),
+					    sizeof(id->ut_id))) == 0)
 					goto found;
 			}
 			break;
@@ -207,8 +209,8 @@ getutxline(const struct utmpx *line)
 		case USER_PROCESS:
 		case LOGIN_PROCESS:
 			if (strncmp(fu.fu_line, line->ut_line,
-			    MIN(sizeof(fu.fu_line), sizeof(line->ut_line))) ==
-			    0)
+				MIN(sizeof(fu.fu_line),
+				    sizeof(line->ut_line))) == 0)
 				goto found;
 			break;
 		}

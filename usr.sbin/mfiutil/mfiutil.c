@@ -33,11 +33,12 @@
 
 #include <err.h>
 #include <errno.h>
+#include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <paths.h>
+
 #include "mfiutil.h"
 
 SET_DECLARE(MFI_DATASET(top), struct mfiutil_command);
@@ -54,53 +55,86 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: %s [-de] [-D device] [-u unit] [-t type] <command> ...\n\n", getprogname());
+	fprintf(stderr,
+	    "usage: %s [-de] [-D device] [-u unit] [-t type] <command> ...\n\n",
+	    getprogname());
 	fprintf(stderr, "Commands include:\n");
 	fprintf(stderr, "    version\n");
-	fprintf(stderr, "    show adapter              - display controller information\n");
-	fprintf(stderr, "    show battery              - display battery information\n");
-	fprintf(stderr, "    show config               - display RAID configuration\n");
-	fprintf(stderr, "    show drives               - list physical drives\n");
+	fprintf(stderr,
+	    "    show adapter              - display controller information\n");
+	fprintf(stderr,
+	    "    show battery              - display battery information\n");
+	fprintf(stderr,
+	    "    show config               - display RAID configuration\n");
+	fprintf(stderr,
+	    "    show drives               - list physical drives\n");
 	fprintf(stderr, "    show events               - display event log\n");
-	fprintf(stderr, "    show firmware             - list firmware images\n");
-	fprintf(stderr, "    show foreign              - display detected foreign volumes\n");
-	fprintf(stderr, "    show logstate             - display event log sequence numbers\n");
-	fprintf(stderr, "    show volumes              - list logical volumes\n");
-	fprintf(stderr, "    show patrol               - display patrol read status\n");
-	fprintf(stderr, "    show progress             - display status of active operations\n");
-	fprintf(stderr, "    fail <drive>              - fail a physical drive\n");
-	fprintf(stderr, "    good <drive>              - set a failed/SYSPD drive as UNCONFIGURED\n");
-	fprintf(stderr, "    rebuild <drive>           - mark failed drive ready for rebuild\n");
-	fprintf(stderr, "    syspd <drive>             - set drive into use as SYSPD JBOD\n");
-	fprintf(stderr, "    drive progress <drive>    - display status of active operations\n");
-	fprintf(stderr, "    drive clear <drive> <start|stop> - clear a drive with all 0x00\n");
+	fprintf(stderr,
+	    "    show firmware             - list firmware images\n");
+	fprintf(stderr,
+	    "    show foreign              - display detected foreign volumes\n");
+	fprintf(stderr,
+	    "    show logstate             - display event log sequence numbers\n");
+	fprintf(stderr,
+	    "    show volumes              - list logical volumes\n");
+	fprintf(stderr,
+	    "    show patrol               - display patrol read status\n");
+	fprintf(stderr,
+	    "    show progress             - display status of active operations\n");
+	fprintf(stderr,
+	    "    fail <drive>              - fail a physical drive\n");
+	fprintf(stderr,
+	    "    good <drive>              - set a failed/SYSPD drive as UNCONFIGURED\n");
+	fprintf(stderr,
+	    "    rebuild <drive>           - mark failed drive ready for rebuild\n");
+	fprintf(stderr,
+	    "    syspd <drive>             - set drive into use as SYSPD JBOD\n");
+	fprintf(stderr,
+	    "    drive progress <drive>    - display status of active operations\n");
+	fprintf(stderr,
+	    "    drive clear <drive> <start|stop> - clear a drive with all 0x00\n");
 	fprintf(stderr, "    start rebuild <drive>\n");
 	fprintf(stderr, "    abort rebuild <drive>\n");
 	fprintf(stderr, "    locate <drive> <on|off>   - toggle drive LED\n");
 	fprintf(stderr, "    cache <volume> [command [setting]]\n");
 	fprintf(stderr, "    name <volume> <name>\n");
-	fprintf(stderr, "    volume progress <volume>  - display status of active operations\n");
-	fprintf(stderr, "    clear                     - clear volume configuration\n");
-	fprintf(stderr, "    create <type> [-v] [-s stripe_size] <drive>[,<drive>[,...]] [<drive>[,<drive>[,...]]\n");
+	fprintf(stderr,
+	    "    volume progress <volume>  - display status of active operations\n");
+	fprintf(stderr,
+	    "    clear                     - clear volume configuration\n");
+	fprintf(stderr,
+	    "    create <type> [-v] [-s stripe_size] <drive>[,<drive>[,...]] [<drive>[,<drive>[,...]]\n");
 	fprintf(stderr, "    delete <volume>\n");
 	fprintf(stderr, "    add <drive> [volume]      - add a hot spare\n");
 	fprintf(stderr, "    remove <drive>            - remove a hot spare\n");
-	fprintf(stderr, "    patrol <disable|auto|manual> [interval [start]]\n");
-	fprintf(stderr, "    start patrol              - start a patrol read\n");
+	fprintf(stderr,
+	    "    patrol <disable|auto|manual> [interval [start]]\n");
+	fprintf(stderr,
+	    "    start patrol              - start a patrol read\n");
 	fprintf(stderr, "    stop patrol               - stop a patrol read\n");
-	fprintf(stderr, "    foreign scan              - scan for foreign configurations\n");
-	fprintf(stderr, "    foreign clear [volume]    - clear foreign configurations (default all)\n");
-	fprintf(stderr, "    foreign diag [volume]     - diagnostic display foreign configurations (default all)\n");
-	fprintf(stderr, "    foreign preview [volume]  - preview foreign configurations (default all)\n");
-	fprintf(stderr, "    foreign import [volume]   - import foreign configurations (default all)\n");
+	fprintf(stderr,
+	    "    foreign scan              - scan for foreign configurations\n");
+	fprintf(stderr,
+	    "    foreign clear [volume]    - clear foreign configurations (default all)\n");
+	fprintf(stderr,
+	    "    foreign diag [volume]     - diagnostic display foreign configurations (default all)\n");
+	fprintf(stderr,
+	    "    foreign preview [volume]  - preview foreign configurations (default all)\n");
+	fprintf(stderr,
+	    "    foreign import [volume]   - import foreign configurations (default all)\n");
 	fprintf(stderr, "    flash <firmware>\n");
-	fprintf(stderr, "    start learn               - start a BBU relearn\n");
+	fprintf(stderr,
+	    "    start learn               - start a BBU relearn\n");
 	fprintf(stderr, "    bbu <setting> <value>     - set BBU properties\n");
-	fprintf(stderr, "    ctrlprop rebuild [rate]   - get/set the volume rebuild rate\n");
-	fprintf(stderr, "    ctrlprop alarm [0/1]      - enable/disable controller alarms\n");
+	fprintf(stderr,
+	    "    ctrlprop rebuild [rate]   - get/set the volume rebuild rate\n");
+	fprintf(stderr,
+	    "    ctrlprop alarm [0/1]      - enable/disable controller alarms\n");
 #ifdef DEBUG
-	fprintf(stderr, "    debug                     - debug 'show config'\n");
-	fprintf(stderr, "    dump                      - display 'saved' config\n");
+	fprintf(stderr,
+	    "    debug                     - debug 'show config'\n");
+	fprintf(stderr,
+	    "    dump                      - display 'saved' config\n");
 #endif
 	exit(1);
 }
@@ -159,13 +193,14 @@ main(int ac, char **av)
 
 	if (mfi_device == NULL) {
 		if (asprintf(&mfi_device, "%s%s%d", _PATH_DEV, mfi_type,
-		    mfi_unit) < 0)
+			mfi_unit) < 0)
 			errx(1, "Can't allocate memory for device name\n");
 	} else {
 		if (strncmp(mfi_device, _PATH_DEV, strlen(_PATH_DEV)) != 0) {
 			if (asprintf(&temp, "%s%s%d", _PATH_DEV, mfi_type,
-			    mfi_unit) < 0)
-				errx(1, "Can't allocate memory for device name\n");
+				mfi_unit) < 0)
+				errx(1,
+				    "Can't allocate memory for device name\n");
 			mfi_device = temp;
 		}
 	}
@@ -177,7 +212,8 @@ main(int ac, char **av)
 	if (ac == 0)
 		usage();
 
-	SET_FOREACH(cmd, MFI_DATASET(top)) {
+	SET_FOREACH(cmd, MFI_DATASET(top))
+	{
 		if (strcmp((*cmd)->name, av[0]) == 0) {
 			if ((*cmd)->handler(ac, av))
 				return (1);

@@ -29,32 +29,32 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_EXTERN_H_
-#define	_EXTERN_H_
+#ifndef _EXTERN_H_
+#define _EXTERN_H_
 
-extern char tbuf[1024];			/* Temp buffer for anybody. */
-extern int entries;			/* Number of people. */
-extern DB *db;				/* Database. */
+extern char tbuf[1024]; /* Temp buffer for anybody. */
+extern int entries;	/* Number of people. */
+extern DB *db;		/* Database. */
 extern int d_first;
 extern sa_family_t family;
 extern int gflag;
 extern int lflag;
 extern time_t now;
 extern int oflag;
-extern int pplan;			/* don't show .plan/.project */
-extern int invoker_root;		/* Invoked by root */
+extern int pplan;	 /* don't show .plan/.project */
+extern int invoker_root; /* Invoked by root */
 
-void	 enter_lastlog(PERSON *);
-PERSON	*enter_person(struct passwd *);
-void	 enter_where(struct utmpx *, PERSON *);
-PERSON	*find_person(char *);
-int	 hide(struct passwd *);
-void	 lflag_print(void);
-int	 match(struct passwd *, const char *);
-void	 netfinger(char *);
-PERSON	*palloc(void);
-char	*prphone(char *);
-void	 sflag_print(void);
-int	 show_text(const char *, const char *, const char *);
+void enter_lastlog(PERSON *);
+PERSON *enter_person(struct passwd *);
+void enter_where(struct utmpx *, PERSON *);
+PERSON *find_person(char *);
+int hide(struct passwd *);
+void lflag_print(void);
+int match(struct passwd *, const char *);
+void netfinger(char *);
+PERSON *palloc(void);
+char *prphone(char *);
+void sflag_print(void);
+int show_text(const char *, const char *, const char *);
 
 #endif /* !_EXTERN_H_ */

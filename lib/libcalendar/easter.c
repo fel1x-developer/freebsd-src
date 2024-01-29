@@ -27,11 +27,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "calendar.h"
 
 typedef struct date date;
 
-static int	 easterodn(int y);
+static int easterodn(int y);
 
 /* Compute Easter Sunday in Gregorian Calendar */
 date *
@@ -42,12 +43,12 @@ easterg(int y, date *dt)
 	n = y % 19;
 	c = y / 100;
 	k = (c - 17) / 25;
-	i = (c - c/4 -(c-k)/3 + 19 * n + 15) % 30;
-	i = i -(i/28) * (1 - (i/28) * (29/(i + 1)) * ((21 - n)/11));
-	j = (y + y/4 + i + 2 - c + c/4) % 7;
+	i = (c - c / 4 - (c - k) / 3 + 19 * n + 15) % 30;
+	i = i - (i / 28) * (1 - (i / 28) * (29 / (i + 1)) * ((21 - n) / 11));
+	j = (y + y / 4 + i + 2 - c + c / 4) % 7;
 	l = i - j;
 	dt->m = 3 + (l + 40) / 44;
-	dt->d = l + 28 - 31*(dt->m / 4);
+	dt->d = l + 28 - 31 * (dt->m / 4);
 	dt->y = y;
 	return (dt);
 }
@@ -61,8 +62,8 @@ easterog(int y, date *dt)
 }
 
 /* Compute the Julian date of Easter Sunday in Julian Calendar */
-date   *
-easteroj(int y, date * dt)
+date *
+easteroj(int y, date *dt)
 {
 
 	return (jdate(easterodn(y), dt));
@@ -77,13 +78,13 @@ easterodn(int y)
 	 * to 31 is in March, 1 through 18 in April. Easter is the first
 	 * sunday after the easter limit.
 	 */
-	int     mc[] = {5, 25, 13, 2, 22, 10, 30, 18, 7, 27, 15, 4,
-		    24, 12, 1, 21, 9, 29, 17};
+	int mc[] = { 5, 25, 13, 2, 22, 10, 30, 18, 7, 27, 15, 4, 24, 12, 1, 21,
+		9, 29, 17 };
 
 	/* Offset from a weekday to next sunday */
-	int     ns[] = {6, 5, 4, 3, 2, 1, 7};
-	date	dt;
-	int     dn;
+	int ns[] = { 6, 5, 4, 3, 2, 1, 7 };
+	date dt;
+	int dn;
 
 	/* Assign the easter limit of y to dt */
 	dt.d = mc[y % 19];

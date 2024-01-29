@@ -62,22 +62,16 @@
 
 #include <dev/isci/scil/sati_translator_sequence.h>
 
-SATI_STATUS sati_verify_10_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_verify_10_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_verify_12_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_verify_12_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_verify_16_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_verify_16_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 #endif // _SATI_VERIFY_H_

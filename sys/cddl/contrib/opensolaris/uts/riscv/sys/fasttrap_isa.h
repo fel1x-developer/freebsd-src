@@ -24,23 +24,23 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_FASTTRAP_ISA_H
-#define	_FASTTRAP_ISA_H
+#ifndef _FASTTRAP_ISA_H
+#define _FASTTRAP_ISA_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #include <sys/types.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef uint32_t	fasttrap_instr_t;
+typedef uint32_t fasttrap_instr_t;
 
 /* XXX: Place for RISC-V fasttrap headers */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _FASTTRAP_ISA_H */
+#endif /* _FASTTRAP_ISA_H */

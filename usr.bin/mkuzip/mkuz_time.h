@@ -27,11 +27,10 @@
 #ifndef _RTPP_TIME_H_
 #define _RTPP_TIME_H_
 
-#define SEC(x)   ((x)->tv_sec)
-#define NSEC(x)  ((x)->tv_nsec)
+#define SEC(x) ((x)->tv_sec)
+#define NSEC(x) ((x)->tv_nsec)
 
-#define timespec2dtime(s) ((double)SEC(s) + \
-  (double)NSEC(s) / 1000000000.0)
+#define timespec2dtime(s) ((double)SEC(s) + (double)NSEC(s) / 1000000000.0)
 
 /* Function prototypes */
 double getdtime(void);

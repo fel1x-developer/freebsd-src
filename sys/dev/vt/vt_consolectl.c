@@ -29,18 +29,18 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/consio.h>
 #include <sys/kernel.h>
-#include <sys/systm.h>
 
 #include <dev/vt/vt.h>
 
-static d_ioctl_t	consolectl_ioctl;
+static d_ioctl_t consolectl_ioctl;
 
 static struct cdevsw consolectl_cdevsw = {
-	.d_version	= D_VERSION,
-	.d_ioctl	= consolectl_ioctl,
-	.d_name		= "consolectl",
+	.d_version = D_VERSION,
+	.d_ioctl = consolectl_ioctl,
+	.d_name = "consolectl",
 };
 
 static int
@@ -50,10 +50,10 @@ consolectl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag,
 
 	switch (cmd) {
 	case CONS_GETVERS:
-		*(int*)data = 0x200;
+		*(int *)data = 0x200;
 		return 0;
 	case CONS_MOUSECTL: {
-		mouse_info_t *mi = (mouse_info_t*)data;
+		mouse_info_t *mi = (mouse_info_t *)data;
 
 		sysmouse_process_event(mi);
 		return (0);

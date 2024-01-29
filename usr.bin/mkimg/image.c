@@ -27,6 +27,7 @@
 #include <sys/cdefs.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -42,36 +43,36 @@
 #include "mkimg.h"
 
 #ifndef MAP_NOCORE
-#define	MAP_NOCORE	0
+#define MAP_NOCORE 0
 #endif
 #ifndef MAP_NOSYNC
-#define	MAP_NOSYNC	0
+#define MAP_NOSYNC 0
 #endif
 
 #ifndef SEEK_DATA
-#define	SEEK_DATA	-1
+#define SEEK_DATA -1
 #endif
 #ifndef SEEK_HOLE
-#define	SEEK_HOLE	-1
+#define SEEK_HOLE -1
 #endif
 
 struct chunk {
 	TAILQ_ENTRY(chunk) ch_list;
-	size_t	ch_size;		/* Size of chunk in bytes. */
-	lba_t	ch_block;		/* Block address in image. */
+	size_t ch_size; /* Size of chunk in bytes. */
+	lba_t ch_block; /* Block address in image. */
 	union {
 		struct {
-			off_t	ofs;	/* Offset in backing file. */
-			int	fd;	/* FD of backing file. */
+			off_t ofs; /* Offset in backing file. */
+			int fd;	   /* FD of backing file. */
 		} file;
 		struct {
-			void	*ptr;	/* Pointer to data in memory */
+			void *ptr; /* Pointer to data in memory */
 		} mem;
 	} ch_u;
-	u_int	ch_type;
-#define	CH_TYPE_ZEROES		0	/* Chunk is a gap (no data). */
-#define	CH_TYPE_FILE		1	/* File-backed chunk. */
-#define	CH_TYPE_MEMORY		2	/* Memory-backed chunk */
+	u_int ch_type;
+#define CH_TYPE_ZEROES 0 /* Chunk is a gap (no data). */
+#define CH_TYPE_FILE 1	 /* File-backed chunk. */
+#define CH_TYPE_MEMORY 2 /* Memory-backed chunk */
 };
 
 static TAILQ_HEAD(chunk_head, chunk) image_chunks;
@@ -134,8 +135,9 @@ image_chunk_find(lba_t blk)
 	static struct chunk *last = NULL;
 	struct chunk *ch;
 
-	ch = (last != NULL && last->ch_block <= blk)
-	    ? last : TAILQ_FIRST(&image_chunks);
+	ch = (last != NULL && last->ch_block <= blk) ?
+	    last :
+	    TAILQ_FIRST(&image_chunks);
 	while (ch != NULL) {
 		if (ch->ch_block <= blk &&
 		    (lba_t)(ch->ch_block + (ch->ch_size / secsz)) > blk) {
@@ -311,11 +313,11 @@ image_file_map(int fd, off_t ofs, size_t sz, off_t *iofp)
 
 	/* On Linux anyway ofs must also be page aligned */
 	if ((x = (ofs % image_swap_pgsz)) != 0) {
-	    ofs -= x;
-	    sz += x;
-	    *iofp = x;
+		ofs -= x;
+		sz += x;
+		*iofp = x;
 	} else
-	    *iofp = 0;
+		*iofp = 0;
 	unit = (secsz > image_swap_pgsz) ? secsz : image_swap_pgsz;
 	assert((unit & (unit - 1)) == 0);
 
@@ -373,8 +375,8 @@ image_copyin_stream(lba_t blk, int fd, uint64_t *sizep)
 			return (errno);
 		rdsz = read(fd, &buffer[iof], iosz);
 		if (rdsz > 0)
-			error = image_chunk_copyin(blk, &buffer[iof], rdsz, swofs,
-			    image_swap_fd);
+			error = image_chunk_copyin(blk, &buffer[iof], rdsz,
+			    swofs, image_swap_fd);
 		else if (rdsz < 0)
 			error = errno;
 		else
@@ -455,14 +457,15 @@ image_copyin_mapped(lba_t blk, int fd, uint64_t *sizep)
 			pos = (hole + secsz - 1) & ~((uint64_t)secsz - 1);
 
 			while (data < pos) {
-				sz = (pos - data > (off_t)iosz)
-				    ? iosz : (size_t)(pos - data);
+				sz = (pos - data > (off_t)iosz) ?
+				    iosz :
+				    (size_t)(pos - data);
 
 				buf = mp = image_file_map(fd, data, sz, &iof);
 				if (mp != NULL) {
 					buf += iof;
-					error = image_chunk_copyin(blk, buf,
-					    sz, data, fd);
+					error = image_chunk_copyin(blk, buf, sz,
+					    data, fd);
 					image_file_unmap(mp, sz);
 				} else
 					error = errno;

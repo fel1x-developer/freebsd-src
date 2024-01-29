@@ -27,11 +27,12 @@
 
 #include <sys/param.h>
 #include <sys/syscall.h>
+
 #include <unistd.h>
 
 #include "libc_private.h"
 
-#define	CLOSE_RANGE_OSREL		1300091
+#define CLOSE_RANGE_OSREL 1300091
 
 void
 closefrom(int lowfd)

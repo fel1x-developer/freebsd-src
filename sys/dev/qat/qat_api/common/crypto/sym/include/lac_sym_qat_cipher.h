@@ -26,8 +26,8 @@
 
 #include "cpa_cy_sym.h"
 #include "icp_qat_fw_la.h"
-#include "lac_session.h"
 #include "lac_sal_types_crypto.h"
+#include "lac_session.h"
 
 /*
  **************************************************************************
@@ -60,8 +60,8 @@
  * @retval The block size, in bytes, for the given cipher algorithm
  *
  *****************************************************************************/
-Cpa8U
-LacSymQat_CipherBlockSizeBytesGet(CpaCySymCipherAlgorithm cipherAlgorithm);
+Cpa8U LacSymQat_CipherBlockSizeBytesGet(
+    CpaCySymCipherAlgorithm cipherAlgorithm);
 
 /**
  ******************************************************************************
@@ -114,11 +114,8 @@ Cpa32U LacSymQat_CipherIvSizeBytesGet(CpaCySymCipherAlgorithm cipherAlgorithm);
  *****************************************************************************/
 CpaStatus
 LacSymQat_CipherRequestParamsPopulate(lac_session_desc_t *pSessionDesc,
-				      icp_qat_fw_la_bulk_req_t *pReq,
-				      Cpa32U cipherOffsetInBytes,
-				      Cpa32U cipherLenInBytes,
-				      Cpa64U ivBufferPhysAddr,
-				      Cpa8U *pIvBufferVirt);
+    icp_qat_fw_la_bulk_req_t *pReq, Cpa32U cipherOffsetInBytes,
+    Cpa32U cipherLenInBytes, Cpa64U ivBufferPhysAddr, Cpa8U *pIvBufferVirt);
 
 /**
  ******************************************************************************
@@ -142,9 +139,8 @@ LacSymQat_CipherRequestParamsPopulate(lac_session_desc_t *pSessionDesc,
  * @retval void
  *
  *****************************************************************************/
-void LacSymQat_CipherArc4StateInit(const Cpa8U *pKey,
-				   Cpa32U keyLenInBytes,
-				   Cpa8U *pArc4CipherState);
+void LacSymQat_CipherArc4StateInit(const Cpa8U *pKey, Cpa32U keyLenInBytes,
+    Cpa8U *pArc4CipherState);
 
 /**
  ******************************************************************************
@@ -164,7 +160,7 @@ void LacSymQat_CipherArc4StateInit(const Cpa8U *pKey,
  *
  *****************************************************************************/
 void LacSymQat_CipherXTSModeUpdateKeyLen(lac_session_desc_t *pSessionDesc,
-					 Cpa32U newKeySizeInBytes);
+    Cpa32U newKeySizeInBytes);
 
 /**
  ******************************************************************************
@@ -209,11 +205,8 @@ void LacSymQat_CipherCtrlBlockInitialize(icp_qat_fw_la_bulk_req_t *pMsg);
  *
  *****************************************************************************/
 void LacSymQat_CipherCtrlBlockWrite(icp_qat_la_bulk_req_ftr_t *pMsg,
-				    Cpa32U cipherAlgorithm,
-				    Cpa32U targetKeyLenInBytes,
-				    Cpa32U sliceType,
-				    icp_qat_fw_slice_t nextSlice,
-				    Cpa8U cipherCfgOffsetInQuadWord);
+    Cpa32U cipherAlgorithm, Cpa32U targetKeyLenInBytes, Cpa32U sliceType,
+    icp_qat_fw_slice_t nextSlice, Cpa8U cipherCfgOffsetInQuadWord);
 
 /**
  ******************************************************************************
@@ -234,8 +227,7 @@ void LacSymQat_CipherCtrlBlockWrite(icp_qat_la_bulk_req_ftr_t *pMsg,
  *
  *****************************************************************************/
 void LacSymQat_CipherHwBlockPopulateCfgData(lac_session_desc_t *pSession,
-					    const void *pCipherHwBlock,
-					    Cpa32U *pSizeInBytes);
+    const void *pCipherHwBlock, Cpa32U *pSizeInBytes);
 
 /**
  ******************************************************************************
@@ -256,10 +248,8 @@ void LacSymQat_CipherHwBlockPopulateCfgData(lac_session_desc_t *pSession,
  *
  *****************************************************************************/
 void LacSymQat_CipherGetCfgData(lac_session_desc_t *pSession,
-				icp_qat_hw_cipher_algo_t *pAlgorithm,
-				icp_qat_hw_cipher_mode_t *pMode,
-				icp_qat_hw_cipher_dir_t *pDir,
-				icp_qat_hw_cipher_convert_t *pKey_convert);
+    icp_qat_hw_cipher_algo_t *pAlgorithm, icp_qat_hw_cipher_mode_t *pMode,
+    icp_qat_hw_cipher_dir_t *pDir, icp_qat_hw_cipher_convert_t *pKey_convert);
 
 /**
  ******************************************************************************
@@ -290,12 +280,9 @@ void LacSymQat_CipherGetCfgData(lac_session_desc_t *pSession,
  * @retval void
  *
  *****************************************************************************/
-void LacSymQat_CipherHwBlockPopulateKeySetup(
-    lac_session_desc_t *pSessionDesc,
-    const CpaCySymCipherSetupData *pCipherSetupData,
-    Cpa32U targetKeyLenInBytes,
-    Cpa32U sliceType,
-    const void *pCipherHwBlock,
+void LacSymQat_CipherHwBlockPopulateKeySetup(lac_session_desc_t *pSessionDesc,
+    const CpaCySymCipherSetupData *pCipherSetupData, Cpa32U targetKeyLenInBytes,
+    Cpa32U sliceType, const void *pCipherHwBlock,
     Cpa32U *pCipherHwBlockSizeBytes);
 
 #endif /* LAC_SYM_QAT_CIPHER_H */

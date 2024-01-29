@@ -33,45 +33,50 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+
+#include <linux/etherdevice.h>
+#include <linux/slab.h>
+#include <linux/string.h>
 #include <rdma/ib_addr.h>
 #include <rdma/ib_cache.h>
 
-#include <linux/slab.h>
-#include <linux/string.h>
-#include <linux/etherdevice.h>
-
 #include "mlx4_ib.h"
 
-static int create_ib_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
+static int
+create_ib_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
 {
 	struct ib_pd *pd = ib_ah->pd;
 	struct mlx4_ib_ah *ah = to_mah(ib_ah);
 	struct mlx4_dev *dev = to_mdev(ib_ah->device)->dev;
 
-	ah->av.ib.port_pd = cpu_to_be32(to_mpd(pd)->pdn | (ah_attr->port_num << 24));
-	ah->av.ib.g_slid  = ah_attr->src_path_bits;
+	ah->av.ib.port_pd = cpu_to_be32(
+	    to_mpd(pd)->pdn | (ah_attr->port_num << 24));
+	ah->av.ib.g_slid = ah_attr->src_path_bits;
 	ah->av.ib.sl_tclass_flowlabel = cpu_to_be32(ah_attr->sl << 28);
 	if (ah_attr->ah_flags & IB_AH_GRH) {
-		ah->av.ib.g_slid   |= 0x80;
+		ah->av.ib.g_slid |= 0x80;
 		ah->av.ib.gid_index = ah_attr->grh.sgid_index;
 		ah->av.ib.hop_limit = ah_attr->grh.hop_limit;
-		ah->av.ib.sl_tclass_flowlabel |=
-			cpu_to_be32((ah_attr->grh.traffic_class << 20) |
-				    ah_attr->grh.flow_label);
+		ah->av.ib.sl_tclass_flowlabel |= cpu_to_be32(
+		    (ah_attr->grh.traffic_class << 20) |
+		    ah_attr->grh.flow_label);
 		memcpy(ah->av.ib.dgid, ah_attr->grh.dgid.raw, 16);
 	}
 
-	ah->av.ib.dlid    = cpu_to_be16(ah_attr->dlid);
+	ah->av.ib.dlid = cpu_to_be16(ah_attr->dlid);
 	if (ah_attr->static_rate) {
-		ah->av.ib.stat_rate = ah_attr->static_rate + MLX4_STAT_RATE_OFFSET;
-		while (ah->av.ib.stat_rate > IB_RATE_2_5_GBPS + MLX4_STAT_RATE_OFFSET &&
-		       !(1 << ah->av.ib.stat_rate & dev->caps.stat_rate_support))
+		ah->av.ib.stat_rate = ah_attr->static_rate +
+		    MLX4_STAT_RATE_OFFSET;
+		while (ah->av.ib.stat_rate >
+			IB_RATE_2_5_GBPS + MLX4_STAT_RATE_OFFSET &&
+		    !(1 << ah->av.ib.stat_rate & dev->caps.stat_rate_support))
 			--ah->av.ib.stat_rate;
 	}
 	return 0;
 }
 
-static int create_iboe_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
+static int
+create_iboe_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
 {
 	struct ib_pd *pd = ib_ah->pd;
 	struct mlx4_ib_dev *ibdev = to_mdev(ib_ah->device);
@@ -92,7 +97,7 @@ static int create_iboe_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
 		memcpy(ah->av.eth.mac, ah_attr->dmac, ETH_ALEN);
 	}
 	ret = ib_get_cached_gid(pd->device, ah_attr->port_num,
-				ah_attr->grh.sgid_index, &sgid, &gid_attr);
+	    ah_attr->grh.sgid_index, &sgid, &gid_attr);
 	if (ret)
 		return ret;
 	eth_zero_addr(ah->av.eth.s_mac);
@@ -103,17 +108,21 @@ static int create_iboe_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
 	}
 	if (vlan_tag < 0x1000)
 		vlan_tag |= (ah_attr->sl & 7) << 13;
-	ah->av.eth.port_pd = cpu_to_be32(to_mpd(pd)->pdn | (ah_attr->port_num << 24));
-	ret = mlx4_ib_gid_index_to_real_index(ibdev, ah_attr->port_num, ah_attr->grh.sgid_index);
+	ah->av.eth.port_pd = cpu_to_be32(
+	    to_mpd(pd)->pdn | (ah_attr->port_num << 24));
+	ret = mlx4_ib_gid_index_to_real_index(ibdev, ah_attr->port_num,
+	    ah_attr->grh.sgid_index);
 	if (ret < 0)
 		return ret;
 	ah->av.eth.gid_index = ret;
 	ah->av.eth.vlan = cpu_to_be16(vlan_tag);
 	ah->av.eth.hop_limit = ah_attr->grh.hop_limit;
 	if (ah_attr->static_rate) {
-		ah->av.eth.stat_rate = ah_attr->static_rate + MLX4_STAT_RATE_OFFSET;
-		while (ah->av.eth.stat_rate > IB_RATE_2_5_GBPS + MLX4_STAT_RATE_OFFSET &&
-		       !(1 << ah->av.eth.stat_rate & dev->caps.stat_rate_support))
+		ah->av.eth.stat_rate = ah_attr->static_rate +
+		    MLX4_STAT_RATE_OFFSET;
+		while (ah->av.eth.stat_rate >
+			IB_RATE_2_5_GBPS + MLX4_STAT_RATE_OFFSET &&
+		    !(1 << ah->av.eth.stat_rate & dev->caps.stat_rate_support))
 			--ah->av.eth.stat_rate;
 	}
 
@@ -129,10 +138,12 @@ static int create_iboe_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr)
 	return 0;
 }
 
-int mlx4_ib_create_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr,
-		      u32 flags, struct ib_udata *udata)
+int
+mlx4_ib_create_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr, u32 flags,
+    struct ib_udata *udata)
 {
-	if (rdma_port_get_link_layer(ib_ah->pd->device, ah_attr->port_num) == IB_LINK_LAYER_ETHERNET) {
+	if (rdma_port_get_link_layer(ib_ah->pd->device, ah_attr->port_num) ==
+	    IB_LINK_LAYER_ETHERNET) {
 		if (!(ah_attr->ah_flags & IB_AH_GRH)) {
 			return -EINVAL;
 		} else {
@@ -150,8 +161,9 @@ int mlx4_ib_create_ah(struct ib_ah *ib_ah, struct ib_ah_attr *ah_attr,
 	return create_ib_ah(ib_ah, ah_attr);
 }
 
-int mlx4_ib_create_ah_slave(struct ib_ah *ah, struct ib_ah_attr *ah_attr,
-			    int slave_sgid_index, u8 *s_mac, u16 vlan_tag)
+int
+mlx4_ib_create_ah_slave(struct ib_ah *ah, struct ib_ah_attr *ah_attr,
+    int slave_sgid_index, u8 *s_mac, u16 vlan_tag)
 {
 	struct ib_ah_attr slave_attr = *ah_attr;
 	struct mlx4_ib_ah *mah = to_mah(ah);
@@ -165,7 +177,8 @@ int mlx4_ib_create_ah_slave(struct ib_ah *ah, struct ib_ah_attr *ah_attr,
 	/* get rid of force-loopback bit */
 	mah->av.ib.port_pd &= cpu_to_be32(0x7FFFFFFF);
 
-	if (rdma_port_get_link_layer(ah->pd->device, ah_attr->port_num) == IB_LINK_LAYER_ETHERNET)
+	if (rdma_port_get_link_layer(ah->pd->device, ah_attr->port_num) ==
+	    IB_LINK_LAYER_ETHERNET)
 		memcpy(mah->av.eth.s_mac, s_mac, 6);
 
 	if (vlan_tag < 0x1000)
@@ -175,7 +188,8 @@ int mlx4_ib_create_ah_slave(struct ib_ah *ah, struct ib_ah_attr *ah_attr,
 	return 0;
 }
 
-int mlx4_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
+int
+mlx4_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
 {
 	struct mlx4_ib_ah *ah = to_mah(ibah);
 	enum rdma_link_layer ll;
@@ -188,19 +202,23 @@ int mlx4_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
 	else
 		ah_attr->sl = be32_to_cpu(ah->av.ib.sl_tclass_flowlabel) >> 28;
 
-	ah_attr->dlid = ll == IB_LINK_LAYER_INFINIBAND ? be16_to_cpu(ah->av.ib.dlid) : 0;
+	ah_attr->dlid = ll == IB_LINK_LAYER_INFINIBAND ?
+	    be16_to_cpu(ah->av.ib.dlid) :
+	    0;
 	if (ah->av.ib.stat_rate)
-		ah_attr->static_rate = ah->av.ib.stat_rate - MLX4_STAT_RATE_OFFSET;
+		ah_attr->static_rate = ah->av.ib.stat_rate -
+		    MLX4_STAT_RATE_OFFSET;
 	ah_attr->src_path_bits = ah->av.ib.g_slid & 0x7F;
 
 	if (mlx4_ib_ah_grh_present(ah)) {
 		ah_attr->ah_flags = IB_AH_GRH;
 
 		ah_attr->grh.traffic_class =
-			be32_to_cpu(ah->av.ib.sl_tclass_flowlabel) >> 20;
-		ah_attr->grh.flow_label =
-			be32_to_cpu(ah->av.ib.sl_tclass_flowlabel) & 0xfffff;
-		ah_attr->grh.hop_limit  = ah->av.ib.hop_limit;
+		    be32_to_cpu(ah->av.ib.sl_tclass_flowlabel) >> 20;
+		ah_attr->grh.flow_label = be32_to_cpu(
+					      ah->av.ib.sl_tclass_flowlabel) &
+		    0xfffff;
+		ah_attr->grh.hop_limit = ah->av.ib.hop_limit;
 		ah_attr->grh.sgid_index = ah->av.ib.gid_index;
 		memcpy(ah_attr->grh.dgid.raw, ah->av.ib.dgid, 16);
 	}
@@ -208,7 +226,8 @@ int mlx4_ib_query_ah(struct ib_ah *ibah, struct ib_ah_attr *ah_attr)
 	return 0;
 }
 
-void mlx4_ib_destroy_ah(struct ib_ah *ah, u32 flags)
+void
+mlx4_ib_destroy_ah(struct ib_ah *ah, u32 flags)
 {
 	return;
 }

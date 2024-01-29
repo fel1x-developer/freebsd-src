@@ -25,15 +25,17 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_KIDMAP_H_
-#define	_OPENSOLARIS_SYS_KIDMAP_H_
+#define _OPENSOLARIS_SYS_KIDMAP_H_
 
 #include <sys/idmap.h>
 
-typedef int32_t	idmap_stat;
-typedef void	idmap_get_handle_t;
+typedef int32_t idmap_stat;
+typedef void idmap_get_handle_t;
 
-#define	kidmap_get_create()		(NULL)
-#define	kidmap_get_destroy(hdl)		do { } while (0)
-#define	kidmap_get_mappings(hdl)	(NULL)
+#define kidmap_get_create() (NULL)
+#define kidmap_get_destroy(hdl) \
+	do {                    \
+	} while (0)
+#define kidmap_get_mappings(hdl) (NULL)
 
-#endif	/* _OPENSOLARIS_SYS_KIDMAP_H_ */
+#endif /* _OPENSOLARIS_SYS_KIDMAP_H_ */

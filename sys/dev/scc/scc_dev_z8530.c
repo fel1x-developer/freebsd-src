@@ -30,16 +30,16 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <machine/bus.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/serial.h>
 
-#include <dev/scc/scc_bfe.h>
-#include <dev/scc/scc_bus.h>
+#include <machine/bus.h>
 
 #include <dev/ic/z8530.h>
+#include <dev/scc/scc_bfe.h>
+#include <dev/scc/scc_bus.h>
 
 #include "scc_if.h"
 
@@ -49,16 +49,14 @@ static int z8530_bfe_ipend(struct scc_softc *);
 static int z8530_bfe_probe(struct scc_softc *);
 
 /* Channel B is always at 0 offset. */
-#define	CHAN_A	(-(sc->sc_class->cl_range))
-#define	CHAN_B	0
+#define CHAN_A (-(sc->sc_class->cl_range))
+#define CHAN_B 0
 
-static kobj_method_t z8530_methods[] = {
-	KOBJMETHOD(scc_attach,	z8530_bfe_attach),
-	KOBJMETHOD(scc_iclear,	z8530_bfe_iclear),
-	KOBJMETHOD(scc_ipend,	z8530_bfe_ipend),
-	KOBJMETHOD(scc_probe,	z8530_bfe_probe),
-	KOBJMETHOD_END
-};
+static kobj_method_t z8530_methods[] = { KOBJMETHOD(scc_attach,
+					     z8530_bfe_attach),
+	KOBJMETHOD(scc_iclear, z8530_bfe_iclear),
+	KOBJMETHOD(scc_ipend, z8530_bfe_ipend),
+	KOBJMETHOD(scc_probe, z8530_bfe_probe), KOBJMETHOD_END };
 
 /*
  * escc (macio) spacing.
@@ -122,17 +120,17 @@ z8530_bfe_iclear(struct scc_softc *sc, struct scc_chan *ch)
 		scc_getreg(bas, c + REG_DATA);
 		scc_barrier(bas);
 	}
-	if (ch->ch_ipend & (SER_INT_OVERRUN|SER_INT_BREAK))
+	if (ch->ch_ipend & (SER_INT_OVERRUN | SER_INT_BREAK))
 		scc_setreg(bas, c + REG_CTRL, CR_RSTERR);
 	mtx_unlock_spin(&sc->sc_hwmtx);
 	return (0);
 }
 
-#define	SIGCHG(c, i, s, d)				\
-	if (c) {					\
-		i |= (i & s) ? s : s | d;		\
-	} else {					\
-		i = (i & s) ? (i & ~s) | d : i;		\
+#define SIGCHG(c, i, s, d)                      \
+	if (c) {                                \
+		i |= (i & s) ? s : s | d;       \
+	} else {                                \
+		i = (i & s) ? (i & ~s) | d : i; \
 	}
 
 static int

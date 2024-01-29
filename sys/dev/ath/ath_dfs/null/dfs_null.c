@@ -37,39 +37,35 @@
 #include "opt_wlan.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/sysctl.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>		/* XXX for ether_sprintf */
-
-#include <net80211/ieee80211_var.h>
 
 #include <net/bpf.h>
+#include <net/ethernet.h> /* XXX for ether_sprintf */
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net80211/ieee80211_var.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/if_athdfs.h>
-
 #include <dev/ath/ath_hal/ah_desc.h>
+#include <dev/ath/if_athdfs.h>
+#include <dev/ath/if_athvar.h>
 
 /*
  * Methods which are required
@@ -105,17 +101,17 @@ ath_dfs_radar_enable(struct ath_softc *sc, struct ieee80211_channel *chan)
 
 	/* Check if the hardware supports radar reporting */
 	/* XXX TODO: migrate HAL_CAP_RADAR/HAL_CAP_AR to somewhere public! */
-	if (ath_hal_getcapability(sc->sc_ah,
-	    HAL_CAP_PHYDIAG, 0, NULL) != HAL_OK)
+	if (ath_hal_getcapability(sc->sc_ah, HAL_CAP_PHYDIAG, 0, NULL) !=
+	    HAL_OK)
 		return (0);
 
 	/* Check if the current channel is radar-enabled */
-	if (! IEEE80211_IS_CHAN_DFS(chan))
+	if (!IEEE80211_IS_CHAN_DFS(chan))
 		return (0);
 
 	/* Fetch the default parameters */
 	memset(&pe, '\0', sizeof(pe));
-	if (! ath_hal_getdfsdefaultthresh(sc->sc_ah, &pe))
+	if (!ath_hal_getdfsdefaultthresh(sc->sc_ah, &pe))
 		return (0);
 
 	/* Enable radar PHY error reporting */
@@ -137,7 +133,7 @@ ath_dfs_radar_enable(struct ath_softc *sc, struct ieee80211_channel *chan)
 	 * AR5212 and similar PHYs for reliable short pulse
 	 * duration.
 	 */
-	(void) ath_hal_setcapability(sc->sc_ah, HAL_CAP_DIVERSITY, 2, 0, NULL);
+	(void)ath_hal_setcapability(sc->sc_ah, HAL_CAP_DIVERSITY, 2, 0, NULL);
 
 	return (1);
 #else
@@ -156,9 +152,9 @@ ath_dfs_radar_disable(struct ath_softc *sc)
 #if 1
 	HAL_PHYERR_PARAM pe;
 
-	(void) ath_hal_getdfsthresh(sc->sc_ah, &pe);
+	(void)ath_hal_getdfsthresh(sc->sc_ah, &pe);
 	pe.pe_enabled = 0;
-	(void) ath_hal_enabledfs(sc->sc_ah, &pe);
+	(void)ath_hal_enabledfs(sc->sc_ah, &pe);
 	return (0);
 #else
 	return (0);
@@ -172,10 +168,9 @@ ath_dfs_radar_disable(struct ath_softc *sc)
  * to take a copy.  It'll be freed after this function returns.
  */
 void
-ath_dfs_process_phy_err(struct ath_softc *sc, struct mbuf *m,
-    uint64_t tsf, struct ath_rx_status *rxstat)
+ath_dfs_process_phy_err(struct ath_softc *sc, struct mbuf *m, uint64_t tsf,
+    struct ath_rx_status *rxstat)
 {
-
 }
 
 /*
@@ -252,23 +247,23 @@ ath_ioctl_phyerr(struct ath_softc *sc, struct ath_diag *ad)
 		}
 	}
 	switch (id) {
-		case DFS_SET_THRESH:
-			if (insize < sizeof(HAL_PHYERR_PARAM)) {
-				error = EINVAL;
-				break;
-			}
-			pe = (HAL_PHYERR_PARAM *) indata;
-			ath_hal_enabledfs(sc->sc_ah, pe);
-			break;
-		case DFS_GET_THRESH:
-			memset(&peout, 0, sizeof(peout));
-			outsize = sizeof(HAL_PHYERR_PARAM);
-			ath_hal_getdfsthresh(sc->sc_ah, &peout);
-			pe = (HAL_PHYERR_PARAM *) outdata;
-			memcpy(pe, &peout, sizeof(*pe));
-			break;
-		default:
+	case DFS_SET_THRESH:
+		if (insize < sizeof(HAL_PHYERR_PARAM)) {
 			error = EINVAL;
+			break;
+		}
+		pe = (HAL_PHYERR_PARAM *)indata;
+		ath_hal_enabledfs(sc->sc_ah, pe);
+		break;
+	case DFS_GET_THRESH:
+		memset(&peout, 0, sizeof(peout));
+		outsize = sizeof(HAL_PHYERR_PARAM);
+		ath_hal_getdfsthresh(sc->sc_ah, &peout);
+		pe = (HAL_PHYERR_PARAM *)outdata;
+		memcpy(pe, &peout, sizeof(*pe));
+		break;
+	default:
+		error = EINVAL;
 	}
 	if (outsize < ad->ad_out_size)
 		ad->ad_out_size = outsize;

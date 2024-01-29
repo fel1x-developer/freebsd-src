@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+
 #include <getopt.h>
 #include <libgen.h>
 #include <stdbool.h>
@@ -34,20 +35,18 @@
 #include <string.h>
 #include <sysexits.h>
 
-extern int	main_decode(int, char *[]);
-extern int	main_encode(int, char *[]);
-extern int	main_base64_decode(const char *);
-extern int	main_base64_encode(const char *, const char *);
-extern int	main_quotedprintable(int, char*[]);
+extern int main_decode(int, char *[]);
+extern int main_encode(int, char *[]);
+extern int main_base64_decode(const char *);
+extern int main_base64_encode(const char *, const char *);
+extern int main_quotedprintable(int, char *[]);
 
-static int	search(const char *const);
-static void	usage_base64(bool);
-static void	version_base64(void);
-static void	base64_encode_or_decode(int, char *[]);
+static int search(const char *const);
+static void usage_base64(bool);
+static void version_base64(void);
+static void base64_encode_or_decode(int, char *[]);
 
-enum coders {
-	uuencode, uudecode, b64encode, b64decode, base64, qp
-};
+enum coders { uuencode, uudecode, b64encode, b64decode, base64, qp };
 
 int
 main(int argc, char *argv[])
@@ -90,14 +89,9 @@ static int
 search(const char *const progname)
 {
 #define DESIGNATE(item) [item] = #item
-	const char *const known[] = {
-		DESIGNATE(uuencode),
-		DESIGNATE(uudecode),
-		DESIGNATE(b64encode),
-		DESIGNATE(b64decode),
-		DESIGNATE(base64),
-		DESIGNATE(qp)
-	};
+	const char *const known[] = { DESIGNATE(uuencode), DESIGNATE(uudecode),
+		DESIGNATE(b64encode), DESIGNATE(b64decode), DESIGNATE(base64),
+		DESIGNATE(qp) };
 
 	for (size_t i = 0; i < nitems(known); i++)
 		if (strcmp(progname, known[i]) == 0)
@@ -109,9 +103,10 @@ static void
 usage_base64(bool failure)
 {
 	(void)fputs("usage: base64 [-w col | --wrap=col] "
-	    "[-d | --decode] [FILE]\n"
-	    "       base64 --help\n"
-	    "       base64 --version\n", stderr);
+		    "[-d | --decode] [FILE]\n"
+		    "       base64 --help\n"
+		    "       base64 --version\n",
+	    stderr);
 	exit(failure ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
@@ -129,15 +124,13 @@ base64_encode_or_decode(int argc, char *argv[])
 	bool decode = false;
 	const char *w = NULL;
 	enum { HELP, VERSION };
-	static const struct option opts[] =
-	{
-		{"decode",	no_argument,		NULL, 'd'},
-		{"ignore-garbage",no_argument,		NULL, 'i'},
-		{"wrap",	required_argument,	NULL, 'w'},
-		{"help",	no_argument,		NULL, HELP},
-		{"version",	no_argument,		NULL, VERSION},
-		{NULL,		no_argument,		NULL, 0}
-	};
+	static const struct option opts[] = { { "decode", no_argument, NULL,
+						  'd' },
+		{ "ignore-garbage", no_argument, NULL, 'i' },
+		{ "wrap", required_argument, NULL, 'w' },
+		{ "help", no_argument, NULL, HELP },
+		{ "version", no_argument, NULL, VERSION },
+		{ NULL, no_argument, NULL, 0 } };
 
 	while ((ch = getopt_long(argc, argv, "diw:", opts, NULL)) != -1)
 		switch (ch) {

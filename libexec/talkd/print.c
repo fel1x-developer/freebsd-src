@@ -33,20 +33,22 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+
 #include <protocols/talkd.h>
+
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <syslog.h>
 
 #include "extern.h"
 
-static	const char *types[] =
-    { "leave_invite", "look_up", "delete", "announce" };
-#define	NTYPES	(sizeof (types) / sizeof (types[0]))
-static	const char *answers[] =
-    { "success", "not_here", "failed", "machine_unknown", "permission_denied",
-      "unknown_request", "badversion", "badaddr", "badctladdr" };
-#define	NANSWERS	(sizeof (answers) / sizeof (answers[0]))
+static const char *types[] = { "leave_invite", "look_up", "delete",
+	"announce" };
+#define NTYPES (sizeof(types) / sizeof(types[0]))
+static const char *answers[] = { "success", "not_here", "failed",
+	"machine_unknown", "permission_denied", "unknown_request", "badversion",
+	"badaddr", "badctladdr" };
+#define NANSWERS (sizeof(answers) / sizeof(answers[0]))
 
 void
 print_request(const char *cp, CTL_MSG *mp)
@@ -59,8 +61,8 @@ print_request(const char *cp, CTL_MSG *mp)
 		tp = tbuf;
 	} else
 		tp = types[mp->type];
-	syslog(LOG_DEBUG, "%s: %s: id %lu, l_user %s, r_user %s, r_tty %s",
-	    cp, tp, (long)mp->id_num, mp->l_name, mp->r_name, mp->r_tty);
+	syslog(LOG_DEBUG, "%s: %s: id %lu, l_user %s, r_user %s, r_tty %s", cp,
+	    tp, (long)mp->id_num, mp->l_name, mp->r_name, mp->r_tty);
 }
 
 void

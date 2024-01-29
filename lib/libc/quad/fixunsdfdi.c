@@ -35,9 +35,9 @@
 
 #include "quad.h"
 
-#define	ONE_FOURTH	(1L << (LONG_BITS - 2))
-#define	ONE_HALF	(ONE_FOURTH * 2.0)
-#define	ONE		(ONE_FOURTH * 4.0)
+#define ONE_FOURTH (1L << (LONG_BITS - 2))
+#define ONE_HALF (ONE_FOURTH * 2.0)
+#define ONE (ONE_FOURTH * 4.0)
 
 /*
  * Convert double to (unsigned) quad.
@@ -51,11 +51,11 @@ __fixunsdfdi(double x)
 	union uu t;
 
 	if (x < 0)
-		return (UQUAD_MAX);	/* ??? should be 0?  ERANGE??? */
-#ifdef notdef				/* this falls afoul of a GCC bug */
+		return (UQUAD_MAX); /* ??? should be 0?  ERANGE??? */
+#ifdef notdef			    /* this falls afoul of a GCC bug */
 	if (x >= UQUAD_MAX)
 		return (UQUAD_MAX);
-#else					/* so we wire in 2^64-1 instead */
+#else /* so we wire in 2^64-1 instead */
 	if (x >= 18446744073709551615.0)
 		return (UQUAD_MAX);
 #endif

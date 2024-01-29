@@ -14,16 +14,16 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-
 #include <sys/param.h>
-#include <sys/errno.h>
 #include <sys/diskmbr.h>
+#include <sys/errno.h>
+
+#include <stand.h>
 #ifdef GPT
 #include <sys/gpt.h>
 #endif
-#include <sys/reboot.h>
 #include <sys/queue.h>
+#include <sys/reboot.h>
 #ifdef LOADER_ZFS_SUPPORT
 #include <sys/zfs_bootenv.h>
 #endif
@@ -32,56 +32,41 @@
 #include <machine/elf.h>
 #include <machine/pc/bios.h>
 
+#include <a.out.h>
+#include <btxv86.h>
 #include <stdarg.h>
 #include <stddef.h>
 
-#include <a.out.h>
-#include "bootstrap.h"
-#include "libi386.h"
-#include <btxv86.h>
-
-#include "lib.h"
-#include "rbx.h"
-#include "cons.h"
 #include "bootargs.h"
+#include "bootstrap.h"
+#include "cons.h"
 #include "disk.h"
+#include "lib.h"
+#include "libi386.h"
+#include "libzfs.h"
 #include "part.h"
 #include "paths.h"
+#include "rbx.h"
 
-#include "libzfs.h"
+#define ARGS 0x900
+#define NOPT 14
+#define NDEV 3
 
-#define	ARGS			0x900
-#define	NOPT			14
-#define	NDEV			3
+#define BIOS_NUMDRIVES 0x475
+#define DRV_HARD 0x80
+#define DRV_MASK 0x7f
 
-#define	BIOS_NUMDRIVES		0x475
-#define	DRV_HARD		0x80
-#define	DRV_MASK		0x7f
-
-#define	TYPE_AD			0
-#define	TYPE_DA			1
-#define	TYPE_MAXHARD		TYPE_DA
-#define	TYPE_FD			2
+#define TYPE_AD 0
+#define TYPE_DA 1
+#define TYPE_MAXHARD TYPE_DA
+#define TYPE_FD 2
 
 extern uint32_t _end;
 
 static const char optstr[NOPT] = "DhaCcdgmnpqrsv"; /* Also 'P', 'S' */
-static const unsigned char flags[NOPT] = {
-    RBX_DUAL,
-    RBX_SERIAL,
-    RBX_ASKNAME,
-    RBX_CDROM,
-    RBX_CONFIG,
-    RBX_KDB,
-    RBX_GDB,
-    RBX_MUTE,
-    RBX_NOINTR,
-    RBX_PAUSE,
-    RBX_QUIET,
-    RBX_DFLTROOT,
-    RBX_SINGLE,
-    RBX_VERBOSE
-};
+static const unsigned char flags[NOPT] = { RBX_DUAL, RBX_SERIAL, RBX_ASKNAME,
+	RBX_CDROM, RBX_CONFIG, RBX_KDB, RBX_GDB, RBX_MUTE, RBX_NOINTR,
+	RBX_PAUSE, RBX_QUIET, RBX_DFLTROOT, RBX_SINGLE, RBX_VERBOSE };
 uint32_t opts;
 
 /*
@@ -102,7 +87,7 @@ static const struct string {
 	{ PATH_KERNEL, sizeof(PATH_KERNEL) },
 };
 
-static const unsigned char dev_maj[NDEV] = {30, 4, 2};
+static const unsigned char dev_maj[NDEV] = { 30, 4, 2 };
 
 static struct i386_devdesc *bdev;
 static char cmd[512];
@@ -117,7 +102,7 @@ static struct geli_boot_args geliargs;
 #endif
 
 extern vm_offset_t high_heap_base;
-extern uint32_t	bios_basemem, bios_extmem, high_heap_size;
+extern uint32_t bios_basemem, bios_extmem, high_heap_size;
 
 static char *heap_top;
 static char *heap_bottom;
@@ -132,16 +117,14 @@ static int parse_cmd(void);
 static char gelipw[GELI_PW_MAXLEN];
 #endif
 
-struct arch_switch archsw;	/* MI/MD interface boundary */
+struct arch_switch archsw;			  /* MI/MD interface boundary */
 static char boot_devname[2 * ZFS_MAXNAMELEN + 8]; /* disk or pool:dataset */
 
-struct devsw *devsw[] = {
-	&bioshd,
+struct devsw *devsw[] = { &bioshd,
 #if defined(LOADER_ZFS_SUPPORT)
 	&zfs_dev,
 #endif
-	NULL
-};
+	NULL };
 
 struct fs_ops *file_system[] = {
 #if defined(LOADER_ZFS_SUPPORT)
@@ -174,8 +157,9 @@ main(void)
 		heap_top = PTOV(high_heap_base + high_heap_size);
 		heap_bottom = PTOV(high_heap_base);
 	} else {
-		heap_bottom = (char *)
-		    (roundup2(__base + (int32_t)&_end, 0x10000) - __base);
+		heap_bottom = (char *)(roundup2(__base + (int32_t)&_end,
+					   0x10000) -
+		    __base);
 		heap_top = (char *)PTOV(bios_basemem);
 	}
 	setheap(heap_bottom, heap_top);
@@ -202,12 +186,11 @@ main(void)
 	bootinfo.bi_bios_dev = *(uint8_t *)PTOV(ARGS);
 
 	/* Set up fall back device name. */
-	snprintf(boot_devname, sizeof (boot_devname), "disk%d:",
-	    bd_bios2unit(bootinfo.bi_bios_dev));
+	snprintf(boot_devname, sizeof(boot_devname),
+	    "disk%d:", bd_bios2unit(bootinfo.bi_bios_dev));
 
 	/* Set up currdev variable to have hooks in place. */
-	env_setenv("currdev", EV_VOLATILE, "", gen_setcurrdev,
-	    env_nounset);
+	env_setenv("currdev", EV_VOLATILE, "", gen_setcurrdev, env_nounset);
 
 	devinit();
 
@@ -224,9 +207,10 @@ main(void)
 	 */
 	if (bdev != NULL && bdev->dd.d_dev->dv_type == DEVT_ZFS) {
 		/* set up proper device name string for ZFS */
-		strncpy(boot_devname, devformat(&bdev->dd), sizeof (boot_devname));
-		if (zfs_get_bootonce(bdev, OS_BOOTONCE, cmd,
-		    sizeof(cmd)) == 0) {
+		strncpy(boot_devname, devformat(&bdev->dd),
+		    sizeof(boot_devname));
+		if (zfs_get_bootonce(bdev, OS_BOOTONCE, cmd, sizeof(cmd)) ==
+		    0) {
 			nvlist_t *benv;
 
 			nextboot = 1;
@@ -234,7 +218,7 @@ main(void)
 			if (parse_cmd()) {
 				if (!OPT_CHECK(RBX_QUIET))
 					printf("failed to parse bootonce "
-					    "command\n");
+					       "command\n");
 				exit(0);
 			}
 			if (!OPT_CHECK(RBX_QUIET))
@@ -355,7 +339,7 @@ load(void)
 	}
 
 	size = sizeof(hdr);
-	if (read(fd, &hdr, sizeof (hdr)) != size) {
+	if (read(fd, &hdr, sizeof(hdr)) != size) {
 		close(fd);
 		return;
 	}
@@ -394,8 +378,8 @@ load(void)
 				return;
 			}
 			p += hdr.ex.a_syms;
-			size = sizeof (int);
-			if (read(fd, p, sizeof (int)) != size) {
+			size = sizeof(int);
+			if (read(fd, p, sizeof(int)) != size) {
 				close(fd);
 				return;
 			}
@@ -412,8 +396,8 @@ load(void)
 	} else {
 		lseek(fd, hdr.eh.e_phoff, SEEK_SET);
 		for (j = i = 0; i < hdr.eh.e_phnum && j < 2; i++) {
-			size = sizeof (ep[0]);
-			if (read(fd, ep + j, sizeof (ep[0])) != size) {
+			size = sizeof(ep[0]);
+			if (read(fd, ep + j, sizeof(ep[0])) != size) {
 				close(fd);
 				return;
 			}
@@ -432,11 +416,12 @@ load(void)
 		p += roundup2(ep[1].p_memsz, PAGE_SIZE);
 		bootinfo.bi_symtab = VTOP(p);
 		if (hdr.eh.e_shnum == hdr.eh.e_shstrndx + 3) {
-			lseek(fd, hdr.eh.e_shoff +
-			    sizeof (es[0]) * (hdr.eh.e_shstrndx + 1),
+			lseek(fd,
+			    hdr.eh.e_shoff +
+				sizeof(es[0]) * (hdr.eh.e_shstrndx + 1),
 			    SEEK_SET);
 			size = sizeof(es);
-			if (read(fd, &es, sizeof (es)) != size) {
+			if (read(fd, &es, sizeof(es)) != size) {
 				close(fd);
 				return;
 			}
@@ -476,12 +461,10 @@ load(void)
 		 * stack to a fixed location within loader(8) at startup due
 		 * to the presence of KARGS_FLAGS_EXTARG.
 		 */
-		__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK),
-		    bootdev,
+		__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK), bootdev,
 		    KARGS_FLAGS_ZFS | KARGS_FLAGS_EXTARG,
 		    (uint32_t)bdev->zfs.pool_guid,
-		    (uint32_t)(bdev->zfs.pool_guid >> 32),
-		    VTOP(&bootinfo),
+		    (uint32_t)(bdev->zfs.pool_guid >> 32), VTOP(&bootinfo),
 		    zfsargs);
 	} else {
 #ifdef LOADER_GELI_SUPPORT
@@ -495,15 +478,14 @@ load(void)
 		 * stack to a fixed location within loader(8) at startup due
 		 * to the presence of the KARGS_FLAGS_EXTARG flag.
 		 */
-		__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK),
-		    bootdev,
+		__exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK), bootdev,
 #ifdef LOADER_GELI_SUPPORT
 		    KARGS_FLAGS_GELI | KARGS_FLAGS_EXTARG, 0, 0,
 		    VTOP(&bootinfo), geliargs
 #else
 		    0, 0, 0, VTOP(&bootinfo)
 #endif
-		    );
+		);
 	}
 }
 
@@ -534,7 +516,7 @@ mount_root(char *arg)
 		    bdev->disk.d_slice + 1, bdev->dd.d_unit, part);
 		bootinfo.bi_bios_dev = bd_unit2bios(bdev);
 	}
-	strncpy(boot_devname, root, sizeof (boot_devname));
+	strncpy(boot_devname, root, sizeof(boot_devname));
 	setenv("currdev", root, 1);
 	free(root);
 	return (0);
@@ -591,8 +573,8 @@ parse_cmd(void)
 					continue;
 				} else if (c == 'S') {
 					j = 0;
-					while ((unsigned int)
-					    (i = *arg++ - '0') <= 9)
+					while ((unsigned int)(i = *arg++ -
+						       '0') <= 9)
 						j = j * 10 + i;
 					if (j > 0 && i == -'0') {
 						comspeed = j;
@@ -608,13 +590,16 @@ parse_cmd(void)
 						return (-1);
 				opts ^= OPT_SET(flags[i]);
 			}
-			ioctrl = OPT_CHECK(RBX_DUAL) ? (IO_SERIAL|IO_KEYBOARD) :
-			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL : IO_KEYBOARD;
+			ioctrl = OPT_CHECK(RBX_DUAL) ?
+			    (IO_SERIAL | IO_KEYBOARD) :
+			    OPT_CHECK(RBX_SERIAL) ? IO_SERIAL :
+						    IO_KEYBOARD;
 			if (ioctrl & IO_SERIAL) {
 				if (sio_init(115200 / comspeed) != 0)
 					ioctrl &= ~IO_SERIAL;
 			}
-		} if (c == '?') {
+		}
+		if (c == '?') {
 			printf("\n");
 			if (*arg == '\0')
 				arg = (char *)"/";
@@ -700,7 +685,7 @@ i386_zfs_probe(void)
 	 * ZFS pools from them.
 	 */
 	for (dev.dd.d_unit = 0; bd_unit2bios(&dev) >= 0; dev.dd.d_unit++) {
-		snprintf(devname, sizeof (devname), "%s%d:", bioshd.dv_name,
+		snprintf(devname, sizeof(devname), "%s%d:", bioshd.dv_name,
 		    dev.dd.d_unit);
 		/* If this is not boot disk, use generic probe. */
 		if (dev.dd.d_unit != boot_unit)
@@ -709,8 +694,8 @@ i386_zfs_probe(void)
 			zfs_probe_dev(devname, &pool_guid, true);
 
 		if (pool_guid != 0 && bdev == NULL) {
-			bdev = malloc(sizeof (struct i386_devdesc));
-			bzero(bdev, sizeof (struct i386_devdesc));
+			bdev = malloc(sizeof(struct i386_devdesc));
+			bzero(bdev, sizeof(struct i386_devdesc));
 			bdev->zfs.dd.d_dev = &zfs_dev;
 			bdev->zfs.pool_guid = pool_guid;
 		}

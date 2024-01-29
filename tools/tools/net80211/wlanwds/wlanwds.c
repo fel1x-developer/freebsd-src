@@ -35,30 +35,26 @@
  *   bridge, etc.
  * o destroy wds vap's when station leaves
  */
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/file.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 
 #include <net/if.h>
-#include "net/if_media.h"
-#include <net/route.h>
 #include <net/if_dl.h>
-#include <netinet/in.h>
-#include <netinet/if_ether.h>
-#include "net80211/ieee80211_ioctl.h"
-#include "net80211/ieee80211_freebsd.h"
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <net/if.h>
 #include <net/if_types.h>
+#include <net/route.h>
+#include <netinet/if_ether.h>
+#include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 #include <paths.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -67,38 +63,42 @@
 #include <sysexits.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <ifaddrs.h>
 
-#define	IEEE80211_ADDR_EQ(a1,a2)	(memcmp(a1,a2,IEEE80211_ADDR_LEN) == 0)
-#define	IEEE80211_ADDR_COPY(dst,src)	memcpy(dst,src,IEEE80211_ADDR_LEN)
+#include "net/if_media.h"
+#include "net80211/ieee80211_freebsd.h"
+#include "net80211/ieee80211_ioctl.h"
+
+#define IEEE80211_ADDR_EQ(a1, a2) (memcmp(a1, a2, IEEE80211_ADDR_LEN) == 0)
+#define IEEE80211_ADDR_COPY(dst, src) memcpy(dst, src, IEEE80211_ADDR_LEN)
 
 struct wds {
 	struct wds *next;
-	uint8_t	bssid[IEEE80211_ADDR_LEN];	/* bssid of associated sta */
-	char	ifname[IFNAMSIZ];		/* vap interface name */
+	uint8_t bssid[IEEE80211_ADDR_LEN]; /* bssid of associated sta */
+	char ifname[IFNAMSIZ];		   /* vap interface name */
 };
 static struct wds *wds;
 
-static	const char *script = NULL;
-static	char **ifnets;
-static	int nifnets = 0;
-static	int discover_on_join = 0;
+static const char *script = NULL;
+static char **ifnets;
+static int nifnets = 0;
+static int discover_on_join = 0;
 
-static	void scanforvaps(int s);
-static	void handle_rtmsg(struct rt_msghdr *rtm, ssize_t msglen);
-static	void wds_discovery(const char *ifname,
-		const uint8_t bssid[IEEE80211_ADDR_LEN]);
-static	void wds_destroy(const char *ifname);
-static	void wds_leave(const uint8_t bssid[IEEE80211_ADDR_LEN]);
-static	int wds_vap_create(const char *ifname, uint8_t macaddr[ETHER_ADDR_LEN],
-	    struct wds *);
-static	int wds_vap_destroy(const char *ifname);
+static void scanforvaps(int s);
+static void handle_rtmsg(struct rt_msghdr *rtm, ssize_t msglen);
+static void wds_discovery(const char *ifname,
+    const uint8_t bssid[IEEE80211_ADDR_LEN]);
+static void wds_destroy(const char *ifname);
+static void wds_leave(const uint8_t bssid[IEEE80211_ADDR_LEN]);
+static int wds_vap_create(const char *ifname, uint8_t macaddr[ETHER_ADDR_LEN],
+    struct wds *);
+static int wds_vap_destroy(const char *ifname);
 
 static void
 usage(const char *progname)
 {
-	fprintf(stderr, "usage: %s [-efjtv] [-P pidfile] [-s <set_scriptname>] [ifnet0 ... | any]\n",
-		progname);
+	fprintf(stderr,
+	    "usage: %s [-efjtv] [-P pidfile] [-s <set_scriptname>] [ifnet0 ... | any]\n",
+	    progname);
 	exit(-1);
 }
 
@@ -175,8 +175,8 @@ ether_sprintf(const uint8_t mac[IEEE80211_ADDR_LEN])
 {
 	static char buf[32];
 
-	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
-		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+	snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x", mac[0],
+	    mac[1], mac[2], mac[3], mac[4], mac[5]);
 	return buf;
 }
 
@@ -184,13 +184,13 @@ ether_sprintf(const uint8_t mac[IEEE80211_ADDR_LEN])
  * Fetch a vap's parent ifnet name.
  */
 static int
-getparent(const char *ifname, char parent[IFNAMSIZ+1])
+getparent(const char *ifname, char parent[IFNAMSIZ + 1])
 {
 	char oid[256];
 	size_t parentlen;
 
 	/* fetch parent interface name */
-	snprintf(oid, sizeof(oid), "net.wlan.%s.%%parent", ifname+4);
+	snprintf(oid, sizeof(oid), "net.wlan.%s.%%parent", ifname + 4);
 	parentlen = IFNAMSIZ;
 	if (sysctlbyname(oid, parent, &parentlen, NULL, 0) < 0)
 		return -1;
@@ -217,7 +217,7 @@ checkifnet(const char *ifname, int complain)
 	if (getparent(ifname, parent) < 0) {
 		if (complain)
 			syslog(LOG_ERR,
-			   "%s: no pointer to parent interface: %m", ifname);
+			    "%s: no pointer to parent interface: %m", ifname);
 		return 0;
 	}
 
@@ -295,24 +295,20 @@ getlladdr(const char *ifname, uint8_t macaddr[ETHER_ADDR_LEN])
 		}
 
 		/* Check address family */
-		sdl = (struct sockaddr_dl *) ifa->ifa_addr;
+		sdl = (struct sockaddr_dl *)ifa->ifa_addr;
 		if (sdl->sdl_type != IFT_ETHER) {
 			syslog(LOG_CRIT, "%s: %s: unknown aftype (%d)\n",
-			    __func__,
-			    ifname,
-			    sdl->sdl_type);
+			    __func__, ifname, sdl->sdl_type);
 			goto err;
 		}
 		if (sdl->sdl_alen != ETHER_ADDR_LEN) {
 			syslog(LOG_CRIT, "%s: %s: aflen too short (%d)\n",
-			    __func__,
-			    ifname,
-			    sdl->sdl_alen);
+			    __func__, ifname, sdl->sdl_alen);
 			goto err;
 		}
 
 		/* Ok, found it */
-		memcpy(macaddr, (void *) LLADDR(sdl), ETHER_ADDR_LEN);
+		memcpy(macaddr, (void *)LLADDR(sdl), ETHER_ADDR_LEN);
 		goto ok;
 	}
 	syslog(LOG_CRIT, "%s: couldn't find ifname %s\n", __func__, ifname);
@@ -334,7 +330,7 @@ ok:
 static void
 scanforvaps(int s)
 {
-	char ifname[IFNAMSIZ+1];
+	char ifname[IFNAMSIZ + 1];
 	uint8_t bssid[IEEE80211_ADDR_LEN];
 	int i;
 
@@ -373,7 +369,7 @@ handle_rtmsg(struct rt_msghdr *rtm, ssize_t msglen)
 {
 	struct if_announcemsghdr *ifan;
 
-	(void) msglen; /* UNUSED */
+	(void)msglen; /* UNUSED */
 
 	if (rtm->rtm_version != RTM_VERSION) {
 		syslog(LOG_ERR, "routing message version %d not understood",
@@ -399,7 +395,7 @@ handle_rtmsg(struct rt_msghdr *rtm, ssize_t msglen)
 		}
 		break;
 	case RTM_IEEE80211:
-#define	V(type)	((struct type *)(&ifan[1]))
+#define V(type) ((struct type *)(&ifan[1]))
 		ifan = (struct if_announcemsghdr *)rtm;
 		switch (ifan->ifan_what) {
 		case RTM_IEEE80211_DISASSOC:
@@ -462,8 +458,8 @@ wds_discovery(const char *ifname, const uint8_t bssid[IEEE80211_ADDR_LEN])
 	}
 
 	if (getlladdr(ifname, macaddr) < 0) {
-		syslog(LOG_ERR, "%s: couldn't get lladdr for parent interface: %m",
-		    ifname);
+		syslog(LOG_ERR,
+		    "%s: couldn't get lladdr for parent interface: %m", ifname);
 		return;
 	}
 
@@ -483,20 +479,19 @@ wds_discovery(const char *ifname, const uint8_t bssid[IEEE80211_ADDR_LEN])
 	p->next = wds;
 	wds = p;
 	syslog(LOG_INFO, "[%s] create wds vap %s, parent %s (%s)",
-	    ether_sprintf(bssid),
-	    p->ifname,
-	    ifname,
-	    parent);
+	    ether_sprintf(bssid), p->ifname, ifname, parent);
 	if (script != NULL) {
 		snprintf(cmd, sizeof(cmd), "%s %s", script, p->ifname);
 		status = system(cmd);
 		if (status)
-			syslog(LOG_ERR, "vap setup script %s exited with "
-			    "status %d", script, status);
+			syslog(LOG_ERR,
+			    "vap setup script %s exited with "
+			    "status %d",
+			    script, status);
 	}
 }
 
-/* 
+/*
  * Destroy a WDS vap (if known).
  */
 static void
@@ -567,7 +562,7 @@ wds_vap_create(const char *parent, uint8_t macaddr[ETHER_ADDR_LEN],
 
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, "wlan", IFNAMSIZ);
-	ifr.ifr_data = (void *) &cp;
+	ifr.ifr_data = (void *)&cp;
 
 	status = -1;
 	s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -576,11 +571,12 @@ wds_vap_create(const char *parent, uint8_t macaddr[ETHER_ADDR_LEN],
 			strlcpy(p->ifname, ifr.ifr_name, IFNAMSIZ);
 			status = 0;
 		} else {
-			syslog(LOG_ERR, "SIOCIFCREATE2("
+			syslog(LOG_ERR,
+			    "SIOCIFCREATE2("
 			    "mode %u flags 0x%x parent %s bssid %s macaddr %s): %m",
 			    cp.icp_opmode, cp.icp_flags, parent,
-			    ether_ntoa_r((void *) cp.icp_bssid, bssid_str),
-			    ether_ntoa_r((void *) cp.icp_macaddr, macaddr_str));
+			    ether_ntoa_r((void *)cp.icp_bssid, bssid_str),
+			    ether_ntoa_r((void *)cp.icp_macaddr, macaddr_str));
 		}
 		close(s);
 	} else

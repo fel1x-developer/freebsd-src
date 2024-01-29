@@ -39,24 +39,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "l2control.h"
 
 /* Prototypes */
-static int                    do_l2cap_command    (bdaddr_p, int, char **);
-static struct l2cap_command * find_l2cap_command  (char const *, 
-                                                   struct l2cap_command *);
-static void                   print_l2cap_command (struct l2cap_command *);
-static void                   usage               (void);
+static int do_l2cap_command(bdaddr_p, int, char **);
+static struct l2cap_command *find_l2cap_command(char const *,
+    struct l2cap_command *);
+static void print_l2cap_command(struct l2cap_command *);
+static void usage(void);
 
 /* Main */
 
-int	numeric_bdaddr = 0;
+int numeric_bdaddr = 0;
 
 int
 main(int argc, char *argv[])
 {
-	int		n;
-	bdaddr_t	bdaddr;
+	int n;
+	bdaddr_t bdaddr;
 
 	memset(&bdaddr, 0, sizeof(bdaddr));
 
@@ -65,10 +66,11 @@ main(int argc, char *argv[])
 		switch (n) {
 		case 'a':
 			if (!bt_aton(optarg, &bdaddr)) {
-				struct hostent	*he = NULL;
+				struct hostent *he = NULL;
 
 				if ((he = bt_gethostbyname(optarg)) == NULL)
-					errx(1, "%s: %s", optarg, hstrerror(h_errno));
+					errx(1, "%s: %s", optarg,
+					    hstrerror(h_errno));
 
 				memcpy(&bdaddr, he->h_addr, sizeof(bdaddr));
 			}
@@ -98,21 +100,22 @@ main(int argc, char *argv[])
 static int
 do_l2cap_command(bdaddr_p bdaddr, int argc, char **argv)
 {
-	char			*cmd = argv[0];
-	struct l2cap_command	*c = NULL;
-	struct sockaddr_l2cap	 sa;
-	int			 s, e, help;
+	char *cmd = argv[0];
+	struct l2cap_command *c = NULL;
+	struct sockaddr_l2cap sa;
+	int s, e, help;
 
 	help = 0;
 	if (strcasecmp(cmd, "help") == 0) {
-		argc --;
-		argv ++;
+		argc--;
+		argv++;
 
 		if (argc <= 0) {
 			fprintf(stdout, "Supported commands:\n");
 			print_l2cap_command(l2cap_commands);
-			fprintf(stdout, "\nFor more information use " \
-				"'help command'\n");
+			fprintf(stdout,
+			    "\nFor more information use "
+			    "'help command'\n");
 
 			return (OK);
 		}
@@ -139,16 +142,16 @@ do_l2cap_command(bdaddr_p bdaddr, int argc, char **argv)
 		s = socket(PF_BLUETOOTH, SOCK_RAW, BLUETOOTH_PROTO_L2CAP);
 		if (s < 0)
 			err(1, "Could not create socket");
-	
-		if (bind(s, (struct sockaddr *) &sa, sizeof(sa)) < 0)
-			err(2,
-"Could not bind socket, bdaddr=%s", bt_ntoa(&sa.l2cap_bdaddr, NULL));
+
+		if (bind(s, (struct sockaddr *)&sa, sizeof(sa)) < 0)
+			err(2, "Could not bind socket, bdaddr=%s",
+			    bt_ntoa(&sa.l2cap_bdaddr, NULL));
 
 		e = 0x0ffff;
 		if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &e, sizeof(e)) < 0)
 			err(3, "Could not setsockopt(RCVBUF, %d)", e);
 
-		e = (c->handler)(s, -- argc, ++ argv);
+		e = (c->handler)(s, --argc, ++argv);
 
 		close(s);
 	} else
@@ -160,15 +163,17 @@ do_l2cap_command(bdaddr_p bdaddr, int argc, char **argv)
 		break;
 
 	case ERROR:
-		fprintf(stdout, "Could not execute command \"%s\". %s\n",
-			cmd, strerror(errno));
+		fprintf(stdout, "Could not execute command \"%s\". %s\n", cmd,
+		    strerror(errno));
 		break;
 
 	case USAGE:
 		fprintf(stdout, "Usage: %s\n%s\n", c->command, c->description);
 		break;
 
-	default: assert(0); break;
+	default:
+		assert(0);
+		break;
 	}
 
 	return (e);
@@ -178,18 +183,18 @@ do_l2cap_command(bdaddr_p bdaddr, int argc, char **argv)
 static struct l2cap_command *
 find_l2cap_command(char const *command, struct l2cap_command *category)
 {
-	struct l2cap_command	*c = NULL;
+	struct l2cap_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++) {
-		char 	*c_end = strchr(c->command, ' ');
+		char *c_end = strchr(c->command, ' ');
 
 		if (c_end != NULL) {
-			int	len = c_end - c->command;
+			int len = c_end - c->command;
 
 			if (strncasecmp(command, c->command, len) == 0)
 				return (c);
 		} else if (strcasecmp(command, c->command) == 0)
-				return (c);
+			return (c);
 	}
 
 	return (NULL);
@@ -199,7 +204,7 @@ find_l2cap_command(char const *command, struct l2cap_command *category)
 static void
 print_l2cap_command(struct l2cap_command *category)
 {
-	struct l2cap_command	*c = NULL;
+	struct l2cap_command *c = NULL;
 
 	for (c = category; c->command != NULL; c++)
 		fprintf(stdout, "\t%s\n", c->command);
@@ -214,9 +219,9 @@ usage(void)
 	fprintf(stderr, "  -a local   Specify local device to connect to\n");
 	fprintf(stderr, "  -h         Display this message\n");
 	fprintf(stderr, "  -n         Show addresses as numbers\n");
-	fprintf(stderr, "  cmd        Supported command " \
-		"(see l2control help)\n");
+	fprintf(stderr,
+	    "  cmd        Supported command "
+	    "(see l2control help)\n");
 	fprintf(stderr, "  params     Optional command parameters\n");
 	exit(255);
 } /* usage */
-

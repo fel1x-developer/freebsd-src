@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM64_SCMI_ARM_DOORBELL_H_
-#define	_ARM64_SCMI_ARM_DOORBELL_H_
+#ifndef _ARM64_SCMI_ARM_DOORBELL_H_
+#define _ARM64_SCMI_ARM_DOORBELL_H_
 
 struct arm_doorbell {
 	device_t dev;
@@ -42,7 +42,7 @@ struct arm_doorbell {
 
 void arm_doorbell_set(struct arm_doorbell *db);
 int arm_doorbell_get(struct arm_doorbell *db);
-struct arm_doorbell * arm_doorbell_ofw_get(device_t dev, const char *name);
+struct arm_doorbell *arm_doorbell_ofw_get(device_t dev, const char *name);
 void arm_doorbell_set_handler(struct arm_doorbell *db, void (*func)(void *),
     void *arg);
 

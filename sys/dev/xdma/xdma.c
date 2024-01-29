@@ -29,21 +29,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/epoch.h>
 #include <sys/kernel.h>
-#include <sys/queue.h>
 #include <sys/kobj.h>
-#include <sys/malloc.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 
@@ -63,11 +64,11 @@
  */
 static struct mtx xdma_mtx;
 
-#define	XDMA_LOCK()			mtx_lock(&xdma_mtx)
-#define	XDMA_UNLOCK()			mtx_unlock(&xdma_mtx)
-#define	XDMA_ASSERT_LOCKED()		mtx_assert(&xdma_mtx, MA_OWNED)
+#define XDMA_LOCK() mtx_lock(&xdma_mtx)
+#define XDMA_UNLOCK() mtx_unlock(&xdma_mtx)
+#define XDMA_ASSERT_LOCKED() mtx_assert(&xdma_mtx, MA_OWNED)
 
-#define	FDT_REG_CELLS	4
+#define FDT_REG_CELLS 4
 
 #ifdef FDT
 static int
@@ -84,16 +85,16 @@ xdma_get_iommu_fdt(xdma_controller_t *xdma, xdma_channel_t *xchan)
 
 	len = OF_getencprop(node, "xdma,iommu", &prop, sizeof(prop));
 	if (len != sizeof(prop)) {
-		device_printf(xdma->dev,
-		    "%s: Can't get iommu device node\n", __func__);
+		device_printf(xdma->dev, "%s: Can't get iommu device node\n",
+		    __func__);
 		return (0);
 	}
 
 	xio = &xchan->xio;
 	xio->dev = OF_device_from_xref(prop);
 	if (xio->dev == NULL) {
-		device_printf(xdma->dev,
-		    "%s: Can't get iommu device\n", __func__);
+		device_printf(xdma->dev, "%s: Can't get iommu device\n",
+		    __func__);
 		return (0);
 	}
 
@@ -172,8 +173,8 @@ xdma_channel_free(xdma_channel_t *xchan)
 	/* Free the real DMA channel. */
 	err = XDMA_CHANNEL_FREE(xdma->dma_dev, xchan);
 	if (err != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't free real hw channel.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't free real hw channel.\n",
+		    __func__);
 		XDMA_UNLOCK();
 		return (-1);
 	}
@@ -203,8 +204,7 @@ xdma_channel_free(xdma_channel_t *xchan)
 
 int
 xdma_setup_intr(xdma_channel_t *xchan, int flags,
-    int (*cb)(void *, xdma_transfer_status_t *),
-    void *arg, void **ihandler)
+    int (*cb)(void *, xdma_transfer_status_t *), void *arg, void **ihandler)
 {
 	struct xdma_intr_handler *ih;
 	xdma_controller_t *xdma;
@@ -214,15 +214,14 @@ xdma_setup_intr(xdma_channel_t *xchan, int flags,
 
 	/* Sanity check. */
 	if (cb == NULL) {
-		device_printf(xdma->dev,
-		    "%s: Can't setup interrupt handler.\n",
+		device_printf(xdma->dev, "%s: Can't setup interrupt handler.\n",
 		    __func__);
 
 		return (-1);
 	}
 
-	ih = malloc(sizeof(struct xdma_intr_handler),
-	    M_XDMA, M_WAITOK | M_ZERO);
+	ih = malloc(sizeof(struct xdma_intr_handler), M_XDMA,
+	    M_WAITOK | M_ZERO);
 	ih->flags = flags;
 	ih->cb = cb;
 	ih->cb_user = arg;
@@ -247,8 +246,8 @@ xdma_teardown_intr(xdma_channel_t *xchan, struct xdma_intr_handler *ih)
 
 	/* Sanity check. */
 	if (ih == NULL) {
-		device_printf(xdma->dev,
-		    "%s: Can't teardown interrupt.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't teardown interrupt.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -266,7 +265,7 @@ xdma_teardown_all_intr(xdma_channel_t *xchan)
 
 	KASSERT(xchan->xdma != NULL, ("xdma is NULL"));
 
-	TAILQ_FOREACH_SAFE(ih, &xchan->ie_handlers, ih_next, ih_tmp) {
+	TAILQ_FOREACH_SAFE (ih, &xchan->ie_handlers, ih_next, ih_tmp) {
 		TAILQ_REMOVE(&xchan->ie_handlers, ih, ih_next);
 		free(ih, M_XDMA);
 	}
@@ -287,8 +286,8 @@ xdma_request(xdma_channel_t *xchan, struct xdma_request *req)
 	XCHAN_LOCK(xchan);
 	ret = XDMA_CHANNEL_REQUEST(xdma->dma_dev, xchan, req);
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't request a transfer.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't request a transfer.\n",
+		    __func__);
 		XCHAN_UNLOCK(xchan);
 
 		return (-1);
@@ -309,8 +308,8 @@ xdma_control(xdma_channel_t *xchan, enum xdma_command cmd)
 
 	ret = XDMA_CHANNEL_CONTROL(xdma->dma_dev, xchan, cmd);
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't process command.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't process command.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -326,7 +325,7 @@ xdma_callback(xdma_channel_t *xchan, xdma_transfer_status_t *status)
 
 	KASSERT(xchan->xdma != NULL, ("xdma is NULL"));
 
-	TAILQ_FOREACH_SAFE(ih, &xchan->ie_handlers, ih_next, ih_tmp) {
+	TAILQ_FOREACH_SAFE (ih, &xchan->ie_handlers, ih_next, ih_tmp) {
 		if (ih->cb != NULL) {
 			if (ih->flags & XDMA_INTR_NET)
 				NET_EPOCH_ENTER(et);
@@ -349,8 +348,8 @@ xdma_ofw_md_data(xdma_controller_t *xdma, pcell_t *cells, int ncells)
 {
 	uint32_t ret;
 
-	ret = XDMA_OFW_MD_DATA(xdma->dma_dev,
-	    cells, ncells, (void **)&xdma->data);
+	ret = XDMA_OFW_MD_DATA(xdma->dma_dev, cells, ncells,
+	    (void **)&xdma->data);
 
 	return (ret);
 }
@@ -365,7 +364,7 @@ xdma_handle_mem_node(vmem_t *vmem, phandle_t memory)
 	u_long mem_start, mem_size;
 
 	if ((ret = fdt_addrsize_cells(OF_parent(memory), &addr_cells,
-	    &size_cells)) != 0)
+		 &size_cells)) != 0)
 		return (ret);
 
 	if (addr_cells > 2)
@@ -382,8 +381,8 @@ xdma_handle_mem_node(vmem_t *vmem, phandle_t memory)
 	tuples = reg_len / tuple_size;
 	regp = (pcell_t *)&reg;
 	for (i = 0; i < tuples; i++) {
-		ret = fdt_data_to_res(regp, addr_cells, size_cells,
-		    &mem_start, &mem_size);
+		ret = fdt_data_to_res(regp, addr_cells, size_cells, &mem_start,
+		    &mem_size);
 		if (ret != 0)
 			return (ret);
 
@@ -403,8 +402,8 @@ xdma_get_memory(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 	if (node <= 0) {
-		device_printf(dev,
-		    "%s called on not ofw based device.\n", __func__);
+		device_printf(dev, "%s called on not ofw based device.\n",
+		    __func__);
 		return (NULL);
 	}
 
@@ -412,11 +411,11 @@ xdma_get_memory(device_t dev)
 		return (NULL);
 
 	if (OF_getencprop(node, "memory-region", (void *)&mem_handle,
-	    sizeof(mem_handle)) <= 0)
+		sizeof(mem_handle)) <= 0)
 		return (NULL);
 
-	vmem = vmem_create("xDMA vmem", 0, 0, PAGE_SIZE,
-	    PAGE_SIZE, M_BESTFIT | M_WAITOK);
+	vmem = vmem_create("xDMA vmem", 0, 0, PAGE_SIZE, PAGE_SIZE,
+	    M_BESTFIT | M_WAITOK);
 	if (vmem == NULL)
 		return (NULL);
 
@@ -460,47 +459,42 @@ xdma_ofw_get(device_t dev, const char *prop)
 
 	node = ofw_bus_get_node(dev);
 	if (node <= 0)
-		device_printf(dev,
-		    "%s called on not ofw based device.\n", __func__);
+		device_printf(dev, "%s called on not ofw based device.\n",
+		    __func__);
 
-	error = ofw_bus_parse_xref_list_get_length(node,
-	    "dmas", "#dma-cells", &ndmas);
+	error = ofw_bus_parse_xref_list_get_length(node, "dmas", "#dma-cells",
+	    &ndmas);
 	if (error) {
-		device_printf(dev,
-		    "%s can't get dmas list.\n", __func__);
+		device_printf(dev, "%s can't get dmas list.\n", __func__);
 		return (NULL);
 	}
 
 	if (ndmas == 0) {
-		device_printf(dev,
-		    "%s dmas list is empty.\n", __func__);
+		device_printf(dev, "%s dmas list is empty.\n", __func__);
 		return (NULL);
 	}
 
 	error = ofw_bus_find_string_index(node, "dma-names", prop, &idx);
 	if (error != 0) {
-		device_printf(dev,
-		    "%s can't find string index.\n", __func__);
+		device_printf(dev, "%s can't find string index.\n", __func__);
 		return (NULL);
 	}
 
-	error = ofw_bus_parse_xref_list_alloc(node, "dmas", "#dma-cells",
-	    idx, &parent, &ncells, &cells);
+	error = ofw_bus_parse_xref_list_alloc(node, "dmas", "#dma-cells", idx,
+	    &parent, &ncells, &cells);
 	if (error != 0) {
-		device_printf(dev,
-		    "%s can't get dma device xref.\n", __func__);
+		device_printf(dev, "%s can't get dma device xref.\n", __func__);
 		return (NULL);
 	}
 
 	dma_dev = OF_device_from_xref(parent);
 	if (dma_dev == NULL) {
-		device_printf(dev,
-		    "%s can't get dma device.\n", __func__);
+		device_printf(dev, "%s can't get dma device.\n", __func__);
 		return (NULL);
 	}
 
-	xdma = malloc(sizeof(struct xdma_controller),
-	    M_XDMA, M_WAITOK | M_ZERO);
+	xdma = malloc(sizeof(struct xdma_controller), M_XDMA,
+	    M_WAITOK | M_ZERO);
 	xdma->dev = dev;
 	xdma->dma_dev = dma_dev;
 
@@ -521,8 +515,8 @@ xdma_get(device_t dev, device_t dma_dev)
 {
 	xdma_controller_t *xdma;
 
-	xdma = malloc(sizeof(struct xdma_controller),
-	    M_XDMA, M_WAITOK | M_ZERO);
+	xdma = malloc(sizeof(struct xdma_controller), M_XDMA,
+	    M_WAITOK | M_ZERO);
 	xdma->dev = dev;
 	xdma->dma_dev = dma_dev;
 

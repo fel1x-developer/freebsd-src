@@ -66,7 +66,7 @@ main(int argc, char *argv[])
 
 	seq = 0;
 	while ((ch = getopt(argc, argv, "d:s")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'd':
 			arg = optarg;
 			len = mbsrtowcs(NULL, &arg, 0, NULL);
@@ -230,7 +230,7 @@ tr(wchar_t *arg)
 
 	for (p = arg, cnt = 0; (ch = *p++); ++arg, ++cnt)
 		if (ch == '\\')
-			switch(ch = *p++) {
+			switch (ch = *p++) {
 			case 'n':
 				*arg = '\n';
 				break;
@@ -243,12 +243,13 @@ tr(wchar_t *arg)
 			default:
 				*arg = ch;
 				break;
-		} else
+			}
+		else
 			*arg = ch;
 
 	if (!cnt)
 		errx(1, "no delimiters specified");
-	return(cnt);
+	return (cnt);
 }
 
 static void

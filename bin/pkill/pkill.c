@@ -34,44 +34,44 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/user.h>
 
 #include <assert.h>
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <jail.h>
+#include <kvm.h>
+#include <limits.h>
+#include <locale.h>
+#include <paths.h>
+#include <pwd.h>
+#include <regex.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <paths.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
-#include <regex.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <kvm.h>
-#include <err.h>
-#include <pwd.h>
-#include <grp.h>
-#include <errno.h>
-#include <locale.h>
-#include <jail.h>
 
-#define	STATUS_MATCH	0
-#define	STATUS_NOMATCH	1
-#define	STATUS_BADUSAGE	2
-#define	STATUS_ERROR	3
+#define STATUS_MATCH 0
+#define STATUS_NOMATCH 1
+#define STATUS_BADUSAGE 2
+#define STATUS_ERROR 3
 
-#define	MIN_PID	5
-#define	MAX_PID	99999
+#define MIN_PID 5
+#define MAX_PID 99999
 
 /* Ignore system-processes (if '-S' flag is not specified) and myself. */
-#define	PSKIP(kp)	((kp)->ki_pid == mypid ||			\
-			 (!kthreads && ((kp)->ki_flag & P_KPROC) != 0))
+#define PSKIP(kp) \
+	((kp)->ki_pid == mypid || (!kthreads && ((kp)->ki_flag & P_KPROC) != 0))
 
 enum listtype {
 	LT_GENERIC,
@@ -86,30 +86,30 @@ enum listtype {
 
 struct list {
 	SLIST_ENTRY(list) li_chain;
-	long	li_number;
-	char	*li_name;
+	long li_number;
+	char *li_name;
 };
 
 SLIST_HEAD(listhead, list);
 
 static struct kinfo_proc *plist;
-static char	*selected;
+static char *selected;
 static const char *delim = "\n";
-static int	nproc;
-static int	pgrep;
-static int	signum = SIGTERM;
-static int	newest;
-static int	oldest;
-static int	interactive;
-static int	inverse;
-static int	longfmt;
-static int	matchargs;
-static int	fullmatch;
-static int	kthreads;
-static int	cflags = REG_EXTENDED;
-static int	quiet;
-static kvm_t	*kd;
-static pid_t	mypid;
+static int nproc;
+static int pgrep;
+static int signum = SIGTERM;
+static int newest;
+static int oldest;
+static int interactive;
+static int inverse;
+static int longfmt;
+static int matchargs;
+static int fullmatch;
+static int kthreads;
+static int cflags = REG_EXTENDED;
+static int quiet;
+static kvm_t *kd;
+static pid_t mypid;
 
 static struct listhead euidlist = SLIST_HEAD_INITIALIZER(euidlist);
 static struct listhead ruidlist = SLIST_HEAD_INITIALIZER(ruidlist);
@@ -121,11 +121,11 @@ static struct listhead sidlist = SLIST_HEAD_INITIALIZER(sidlist);
 static struct listhead jidlist = SLIST_HEAD_INITIALIZER(jidlist);
 static struct listhead classlist = SLIST_HEAD_INITIALIZER(classlist);
 
-static void	usage(void) __attribute__((__noreturn__));
-static int	killact(const struct kinfo_proc *);
-static int	grepact(const struct kinfo_proc *);
-static void	makelist(struct listhead *, enum listtype, char *);
-static int	takepid(const char *, int);
+static void usage(void) __attribute__((__noreturn__));
+static int killact(const struct kinfo_proc *);
+static int grepact(const struct kinfo_proc *);
+static void makelist(struct listhead *, enum listtype, char *);
+static int takepid(const char *, int);
 
 int
 main(int argc, char **argv)
@@ -185,7 +185,8 @@ main(int argc, char **argv)
 	execf = NULL;
 	coref = _PATH_DEVNULL;
 
-	while ((ch = getopt(argc, argv, "DF:G:ILM:N:P:SU:ac:d:fg:ij:lnoqs:t:u:vx")) != -1)
+	while ((ch = getopt(argc, argv,
+		    "DF:G:ILM:N:P:SU:ac:d:fg:ij:lnoqs:t:u:vx")) != -1)
 		switch (ch) {
 		case 'D':
 			debug_opt++;
@@ -379,8 +380,10 @@ main(int argc, char **argv)
 		for (i = 0, kp = plist; i < nproc; i++, kp++) {
 			if (PSKIP(kp)) {
 				if (debug_opt > 0)
-				    fprintf(stderr, "* Skipped %5d %3d %s\n",
-					kp->ki_pid, kp->ki_uid, kp->ki_comm);
+					fprintf(stderr,
+					    "* Skipped %5d %3d %s\n",
+					    kp->ki_pid, kp->ki_uid,
+					    kp->ki_comm);
 				continue;
 			}
 
@@ -388,8 +391,7 @@ main(int argc, char **argv)
 			    (pargv = kvm_getargv(kd, kp, 0)) != NULL) {
 				jsz = 0;
 				while (jsz < bufsz && *pargv != NULL) {
-					jsz += snprintf(buf + jsz,
-					    bufsz - jsz,
+					jsz += snprintf(buf + jsz, bufsz - jsz,
 					    pargv[1] != NULL ? "%s " : "%s",
 					    pargv[0]);
 					pargv++;
@@ -403,7 +405,7 @@ main(int argc, char **argv)
 				if (fullmatch) {
 					if (regmatch.rm_so == 0 &&
 					    regmatch.rm_eo ==
-					    (off_t)strlen(mstr))
+						(off_t)strlen(mstr))
 						selected[i] = 1;
 				} else
 					selected[i] = 1;
@@ -434,7 +436,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &ruidlist, li_chain)
+		SLIST_FOREACH (li, &ruidlist, li_chain)
 			if (kp->ki_ruid == (uid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&ruidlist) != NULL && li == NULL) {
@@ -442,7 +444,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &rgidlist, li_chain)
+		SLIST_FOREACH (li, &rgidlist, li_chain)
 			if (kp->ki_rgid == (gid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&rgidlist) != NULL && li == NULL) {
@@ -450,7 +452,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &euidlist, li_chain)
+		SLIST_FOREACH (li, &euidlist, li_chain)
 			if (kp->ki_uid == (uid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&euidlist) != NULL && li == NULL) {
@@ -458,7 +460,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &ppidlist, li_chain)
+		SLIST_FOREACH (li, &ppidlist, li_chain)
 			if (kp->ki_ppid == (pid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&ppidlist) != NULL && li == NULL) {
@@ -466,7 +468,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &pgrplist, li_chain)
+		SLIST_FOREACH (li, &pgrplist, li_chain)
 			if (kp->ki_pgid == (pid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&pgrplist) != NULL && li == NULL) {
@@ -474,7 +476,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &tdevlist, li_chain) {
+		SLIST_FOREACH (li, &tdevlist, li_chain) {
 			if (li->li_number == -1 &&
 			    (kp->ki_flag & P_CONTROLT) == 0)
 				break;
@@ -486,7 +488,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &sidlist, li_chain)
+		SLIST_FOREACH (li, &sidlist, li_chain)
 			if (kp->ki_sid == (pid_t)li->li_number)
 				break;
 		if (SLIST_FIRST(&sidlist) != NULL && li == NULL) {
@@ -494,7 +496,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &jidlist, li_chain) {
+		SLIST_FOREACH (li, &jidlist, li_chain) {
 			/* A particular jail ID, including 0 (not in jail) */
 			if (kp->ki_jid == (int)li->li_number)
 				break;
@@ -507,7 +509,7 @@ main(int argc, char **argv)
 			continue;
 		}
 
-		SLIST_FOREACH(li, &classlist, li_chain) {
+		SLIST_FOREACH (li, &classlist, li_chain) {
 			/*
 			 * We skip P_SYSTEM processes to match ps(1) output.
 			 */
@@ -540,7 +542,7 @@ main(int argc, char **argv)
 				if (pid == mypid)
 					pid = getppid();
 				else
-					break;	/* Maybe we're in a jail ? */
+					break; /* Maybe we're in a jail ? */
 			}
 		}
 	}
@@ -558,11 +560,11 @@ main(int argc, char **argv)
 				;
 			} else if (timercmp(&kp->ki_start, &best_tval, >)) {
 				/* This entry is newer than previous "best". */
-				if (oldest)	/* but we want the oldest */
+				if (oldest) /* but we want the oldest */
 					continue;
 			} else {
 				/* This entry is older than previous "best". */
-				if (newest)	/* but we want the newest */
+				if (newest) /* but we want the newest */
 					continue;
 			}
 			/* This entry is better than previous "best" entry. */
@@ -615,10 +617,10 @@ usage(void)
 		ustr = "[-signal] [-ILfilnovx]";
 
 	fprintf(stderr,
-		"usage: %s %s [-F pidfile] [-G gid] [-M core] [-N system]\n"
-		"             [-P ppid] [-U uid] [-c class] [-g pgrp] [-j jail]\n"
-		"             [-s sid] [-t tty] [-u euid] pattern ...\n",
-		getprogname(), ustr);
+	    "usage: %s %s [-F pidfile] [-G gid] [-M core] [-N system]\n"
+	    "             [-P ppid] [-U uid] [-c class] [-g pgrp] [-j jail]\n"
+	    "             [-s sid] [-t tty] [-u euid] pattern ...\n",
+	    getprogname(), ustr);
 
 	exit(STATUS_BADUSAGE);
 }
@@ -666,7 +668,7 @@ killact(const struct kinfo_proc *kp)
 			return (1);
 	}
 	if (kill(kp->ki_pid, signum) == -1) {
-		/* 
+		/*
 		 * Check for ESRCH, which indicates that the process
 		 * disappeared between us matching it and us
 		 * signalling it; don't issue a warning about it.
@@ -736,24 +738,26 @@ makelist(struct listhead *head, enum listtype type, char *src)
 			case LT_JAIL:
 				if (li->li_number < 0)
 					errx(STATUS_BADUSAGE,
-					     "Negative jail ID `%s'", sp);
+					    "Negative jail ID `%s'", sp);
 				/* For compatibility with old -j */
 				if (li->li_number == 0)
-					li->li_number = -1;	/* any jail */
+					li->li_number = -1; /* any jail */
 				break;
 			case LT_TTY:
 				if (li->li_number < 0)
 					errx(STATUS_BADUSAGE,
-					     "Negative /dev/pts tty `%s'", sp);
+					    "Negative /dev/pts tty `%s'", sp);
 				snprintf(buf, sizeof(buf), _PATH_DEV "pts/%s",
 				    sp);
 				if (stat(buf, &st) != -1)
 					goto foundtty;
 				if (errno == ENOENT)
-					errx(STATUS_BADUSAGE, "No such tty: `"
-					    _PATH_DEV "pts/%s'", sp);
-				err(STATUS_ERROR, "Cannot access `"
-				    _PATH_DEV "pts/%s'", sp);
+					errx(STATUS_BADUSAGE,
+					    "No such tty: `" _PATH_DEV
+					    "pts/%s'",
+					    sp);
+				err(STATUS_ERROR,
+				    "Cannot access `" _PATH_DEV "pts/%s'", sp);
 				break;
 			default:
 				break;
@@ -794,7 +798,8 @@ makelist(struct listhead *head, enum listtype type, char *src)
 				errx(STATUS_BADUSAGE, "No such tty: `%s'", sp);
 			err(STATUS_ERROR, "Cannot access `%s'", sp);
 
-foundtty:		if ((st.st_mode & S_IFCHR) == 0)
+		foundtty:
+			if ((st.st_mode & S_IFCHR) == 0)
 				errx(STATUS_BADUSAGE, "Not a tty: `%s'", sp);
 
 			li->li_number = st.st_rdev;
@@ -810,7 +815,7 @@ foundtty:		if ((st.st_mode & S_IFCHR) == 0)
 				li->li_number = jid;
 			else if (*ep != '\0')
 				errx(STATUS_BADUSAGE,
-				     "Invalid jail ID or name `%s'", sp);
+				    "Invalid jail ID or name `%s'", sp);
 			break;
 		}
 		case LT_CLASS:

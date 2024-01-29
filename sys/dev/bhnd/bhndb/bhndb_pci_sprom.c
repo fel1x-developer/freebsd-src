@@ -30,36 +30,34 @@
 #include <sys/cdefs.h>
 /*
  * BHNDB PCI SPROM driver.
- * 
+ *
  * Provides support for early PCI bridge cores that vend SPROM CSRs
  * via PCI configuration space.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
 
 #include <dev/bhnd/bhnd.h>
 #include <dev/bhnd/cores/pci/bhnd_pci_hostbvar.h>
 #include <dev/bhnd/nvram/bhnd_spromvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "bhnd_nvram_if.h"
-
 #include "bhndb_pcireg.h"
 #include "bhndb_pcivar.h"
 
 static int
 bhndb_pci_sprom_probe(device_t dev)
 {
-	device_t	bridge;
-	int		error;
+	device_t bridge;
+	int error;
 
 	/* Our parent must be a PCI-BHND bridge */
 	bridge = device_get_parent(dev);
@@ -75,11 +73,11 @@ bhndb_pci_sprom_probe(device_t dev)
 
 static device_method_t bhndb_pci_sprom_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			bhndb_pci_sprom_probe),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, bhndb_pci_sprom_probe), DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(bhnd_nvram, bhndb_pci_sprom_driver, bhndb_pci_sprom_methods, sizeof(struct bhnd_sprom_softc), bhnd_sprom_driver);
+DEFINE_CLASS_1(bhnd_nvram, bhndb_pci_sprom_driver, bhndb_pci_sprom_methods,
+    sizeof(struct bhnd_sprom_softc), bhnd_sprom_driver);
 
 DRIVER_MODULE(bhndb_pci_sprom, bhndb, bhndb_pci_sprom_driver, NULL, NULL);
 MODULE_DEPEND(bhndb_pci_sprom, bhnd, 1, 1, 1);

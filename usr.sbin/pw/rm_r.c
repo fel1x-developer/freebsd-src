@@ -40,8 +40,8 @@ rm_r(int rootfd, const char *path, uid_t uid)
 {
 	int dirfd;
 	DIR *d;
-	struct dirent  *e;
-	struct stat     st;
+	struct dirent *e;
+	struct stat st;
 
 	if (*path == '/')
 		path++;

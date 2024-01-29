@@ -27,8 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -41,7 +42,7 @@
 
 #include "ofw_bus_if.h"
 
-#define	PORT_MAX_NAME	8
+#define PORT_MAX_NAME 8
 
 phandle_t
 ofw_graph_get_port_by_idx(phandle_t node, uint32_t idx)
@@ -132,7 +133,7 @@ ofw_graph_get_remote_endpoint(phandle_t endpoint)
 	phandle_t remote;
 
 	if (OF_getencprop(endpoint, "remote-endpoint", &remote,
-	      sizeof(phandle_t)) <= 0)
+		sizeof(phandle_t)) <= 0)
 		return (0);
 
 	return (remote);
@@ -156,7 +157,8 @@ ofw_graph_get_remote_parent(phandle_t remote)
 	/* if the node name is 'ports' we need to go up one last time */
 	ret = OF_getprop_alloc(node, "name", (void **)&name);
 	if (ret == -1) {
-		printf("%s: Node %x don't have a name, abort\n", __func__, node);
+		printf("%s: Node %x don't have a name, abort\n", __func__,
+		    node);
 		node = 0;
 		goto end;
 	}
@@ -169,7 +171,8 @@ end:
 }
 
 device_t
-ofw_graph_get_device_by_port_ep(phandle_t node, uint32_t port_id, uint32_t ep_id)
+ofw_graph_get_device_by_port_ep(phandle_t node, uint32_t port_id,
+    uint32_t ep_id)
 {
 	phandle_t outport, port, endpoint, remote;
 

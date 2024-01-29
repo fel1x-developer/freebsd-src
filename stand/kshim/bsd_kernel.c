@@ -29,8 +29,8 @@ struct usb_process usb_process[USB_PROC_MAX];
 
 static device_t usb_pci_root;
 
-int (*bus_alloc_resource_any_cb)(struct resource *res, device_t dev,
-    int type, int *rid, unsigned int flags);
+int (*bus_alloc_resource_any_cb)(struct resource *res, device_t dev, int type,
+    int *rid, unsigned int flags);
 int (*ofw_bus_status_ok_cb)(device_t dev);
 int (*ofw_bus_is_compatible_cb)(device_t dev, char *name);
 
@@ -39,11 +39,10 @@ int (*ofw_bus_is_compatible_cb)(device_t dev, char *name);
  *------------------------------------------------------------------------*/
 int
 bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
-		   bus_size_t boundary, bus_addr_t lowaddr,
-		   bus_addr_t highaddr, bus_dma_filter_t *filter,
-		   void *filterarg, bus_size_t maxsize, int nsegments,
-		   bus_size_t maxsegsz, int flags, bus_dma_lock_t *lockfunc,
-		   void *lockfuncarg, bus_dma_tag_t *dmat)
+    bus_size_t boundary, bus_addr_t lowaddr, bus_addr_t highaddr,
+    bus_dma_filter_t *filter, void *filterarg, bus_size_t maxsize,
+    int nsegments, bus_size_t maxsegsz, int flags, bus_dma_lock_t *lockfunc,
+    void *lockfuncarg, bus_dma_tag_t *dmat)
 {
 	struct bus_dma_tag *ret;
 
@@ -59,7 +58,7 @@ bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 }
 
 int
-bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
+bus_dmamem_alloc(bus_dma_tag_t dmat, void **vaddr, int flags,
     bus_dmamap_t *mapp)
 {
 	void *addr;
@@ -69,7 +68,8 @@ bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 		return (ENOMEM);
 
 	*mapp = addr;
-	addr = (void*)(((uintptr_t)addr + dmat->alignment - 1) & ~(dmat->alignment - 1));
+	addr = (void *)(((uintptr_t)addr + dmat->alignment - 1) &
+	    ~(dmat->alignment - 1));
 
 	*vaddr = addr;
 	return (0);
@@ -77,8 +77,8 @@ bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 
 int
 bus_dmamap_load(bus_dma_tag_t dmat, bus_dmamap_t map, void *buf,
-    bus_size_t buflen, bus_dmamap_callback_t *callback,
-    void *callback_arg, int flags)
+    bus_size_t buflen, bus_dmamap_callback_t *callback, void *callback_arg,
+    int flags)
 {
 	bus_dma_segment_t segs[1];
 
@@ -94,7 +94,7 @@ void
 bus_dmamap_sync(bus_dma_tag_t dmat, bus_dmamap_t map, int flags)
 {
 	/* Assuming coherent memory */
-	__asm__ __volatile__("": : :"memory");
+	__asm__ __volatile__("" : : : "memory");
 }
 
 void
@@ -151,8 +151,8 @@ bus_alloc_resources(device_t dev, struct resource_spec *rs,
 	for (i = 0; rs[i].type != -1; i++)
 		res[i] = NULL;
 	for (i = 0; rs[i].type != -1; i++) {
-		res[i] = bus_alloc_resource_any(dev,
-		    rs[i].type, &rs[i].rid, rs[i].flags);
+		res[i] = bus_alloc_resource_any(dev, rs[i].type, &rs[i].rid,
+		    rs[i].flags);
 		if (res[i] == NULL && !(rs[i].flags & RF_OPTIONAL)) {
 			bus_release_resources(dev, rs, res);
 			return (ENXIO);
@@ -169,8 +169,8 @@ bus_release_resources(device_t dev, const struct resource_spec *rs,
 
 	for (i = 0; rs[i].type != -1; i++)
 		if (res[i] != NULL) {
-			bus_release_resource(
-			    dev, rs[i].type, rs[i].rid, res[i]);
+			bus_release_resource(dev, rs[i].type, rs[i].rid,
+			    res[i]);
 			res[i] = NULL;
 		}
 }
@@ -210,7 +210,7 @@ bus_generic_attach(device_t dev)
 {
 	device_t child;
 
-	TAILQ_FOREACH(child, &dev->dev_children, dev_link) {
+	TAILQ_FOREACH (child, &dev->dev_children, dev_link) {
 		device_probe_and_attach(child);
 	}
 
@@ -367,7 +367,7 @@ cv_timedwait(struct cv *cv, struct mtx *mtx, int timo)
 	int time = 0;
 
 	if (cv->sleeping)
-		return (EWOULDBLOCK);	/* not allowed */
+		return (EWOULDBLOCK); /* not allowed */
 
 	cv->sleeping = 1;
 
@@ -394,7 +394,7 @@ cv_timedwait(struct cv *cv, struct mtx *mtx, int timo)
 
 	if (cv->sleeping) {
 		cv->sleeping = 0;
-		return (EWOULDBLOCK);	/* not allowed */
+		return (EWOULDBLOCK); /* not allowed */
 	}
 	return (0);
 }
@@ -432,7 +432,8 @@ callout_system_init(void *arg)
 	callout_msg[0].pm_callback = &callout_proc_msg;
 	callout_msg[1].pm_callback = &callout_proc_msg;
 }
-SYSINIT(callout_system_init, SI_SUB_LOCK, SI_ORDER_MIDDLE, callout_system_init, NULL);
+SYSINIT(callout_system_init, SI_SUB_LOCK, SI_ORDER_MIDDLE, callout_system_init,
+    NULL);
 
 static void
 callout_callback(struct callout *c)
@@ -447,7 +448,7 @@ callout_callback(struct callout *c)
 	mtx_unlock(&mtx_callout);
 
 	if (c->c_func != NULL)
-		(c->c_func) (c->c_arg);
+		(c->c_func)(c->c_arg);
 
 	if (!(c->flags & CALLOUT_RETURNUNLOCKED))
 		mtx_unlock(c->mtx);
@@ -469,7 +470,7 @@ callout_proc_msg(struct usb_proc_msg *pmsg)
 repeat:
 	mtx_lock(&mtx_callout);
 
-	LIST_FOREACH(c, &head_callout, entry) {
+	LIST_FOREACH (c, &head_callout, entry) {
 
 		delta = c->timeout - ticks;
 		if (delta < 0) {
@@ -496,8 +497,7 @@ callout_init_mtx(struct callout *c, struct mtx *mtx, int flags)
 }
 
 void
-callout_reset(struct callout *c, int to_ticks,
-    void (*func) (void *), void *arg)
+callout_reset(struct callout *c, int to_ticks, void (*func)(void *), void *arg)
 {
 	callout_stop(c);
 
@@ -529,7 +529,7 @@ void
 callout_drain(struct callout *c)
 {
 	if (c->mtx == NULL)
-		return;			/* not initialised */
+		return; /* not initialised */
 
 	mtx_lock(c->mtx);
 	callout_stop(c);
@@ -554,8 +554,8 @@ callout_pending(struct callout *c)
 
 static const char unknown_string[] = { "unknown" };
 
-static TAILQ_HEAD(, module_data) module_head =
-    TAILQ_HEAD_INITIALIZER(module_head);
+static TAILQ_HEAD(, module_data) module_head = TAILQ_HEAD_INITIALIZER(
+    module_head);
 
 static uint8_t
 devclass_equal(const char *a, const char *b)
@@ -615,8 +615,8 @@ device_get_parent(device_t dev)
 }
 
 void
-device_set_interrupt(device_t dev, driver_filter_t *filter,
-    driver_intr_t *fn, void *arg)
+device_set_interrupt(device_t dev, driver_filter_t *filter, driver_intr_t *fn,
+    void *arg)
 {
 	dev->dev_irq_filter = filter;
 	dev->dev_irq_fn = fn;
@@ -631,7 +631,7 @@ device_run_interrupts(device_t parent)
 	if (parent == NULL)
 		return;
 
-	TAILQ_FOREACH(child, &parent->dev_children, dev_link) {
+	TAILQ_FOREACH (child, &parent->dev_children, dev_link) {
 		int status;
 		if (child->dev_irq_filter != NULL)
 			status = child->dev_irq_filter(child->dev_irq_arg);
@@ -640,7 +640,7 @@ device_run_interrupts(device_t parent)
 
 		if (status == FILTER_SCHEDULE_THREAD) {
 			if (child->dev_irq_fn != NULL)
-				(child->dev_irq_fn) (child->dev_irq_arg);
+				(child->dev_irq_fn)(child->dev_irq_arg);
 		}
 	}
 }
@@ -651,7 +651,7 @@ device_set_ivars(device_t dev, void *ivars)
 	dev->dev_aux = ivars;
 }
 
-void   *
+void *
 device_get_ivars(device_t dev)
 {
 	return (dev ? dev->dev_aux : NULL);
@@ -672,7 +672,7 @@ bus_generic_detach(device_t dev)
 	if (!dev->dev_attached)
 		return (EBUSY);
 
-	TAILQ_FOREACH(child, &dev->dev_children, dev_link) {
+	TAILQ_FOREACH (child, &dev->dev_children, dev_link) {
 		if ((error = device_detach(child)) != 0)
 			return (error);
 	}
@@ -695,8 +695,8 @@ devclass_create(devclass_t *dc_pp)
 		return (1);
 	}
 	if (dc_pp[0] == NULL) {
-		dc_pp[0] = malloc(sizeof(**(dc_pp)),
-		    M_DEVBUF, M_WAITOK | M_ZERO);
+		dc_pp[0] = malloc(sizeof(**(dc_pp)), M_DEVBUF,
+		    M_WAITOK | M_ZERO);
 
 		if (dc_pp[0] == NULL) {
 			return (1);
@@ -710,7 +710,7 @@ devclass_find_create(const char *classname)
 {
 	const struct module_data *mod;
 
-	TAILQ_FOREACH(mod, &module_head, entry) {
+	TAILQ_FOREACH (mod, &module_head, entry) {
 		if (devclass_equal(mod->mod_name, classname)) {
 			if (devclass_create(mod->devclass_pp)) {
 				continue;
@@ -737,8 +737,7 @@ devclass_add_device(const struct module_data *mod, device_t dev)
 			*pp_dev = dev;
 			dev->dev_unit = unit;
 			dev->dev_module = mod;
-			snprintf(dev->dev_nameunit,
-			    sizeof(dev->dev_nameunit),
+			snprintf(dev->dev_nameunit, sizeof(dev->dev_nameunit),
 			    "%s%d", device_get_name(dev), unit);
 			return (0);
 		}
@@ -772,14 +771,13 @@ make_device(device_t parent, const char *name)
 		if (!mod) {
 
 			DPRINTF("%s:%d:%s: can't find device "
-			    "class %s\n", __FILE__, __LINE__,
-			    __FUNCTION__, name);
+				"class %s\n",
+			    __FILE__, __LINE__, __FUNCTION__, name);
 
 			goto done;
 		}
 	}
-	dev = malloc(sizeof(*dev),
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	dev = malloc(sizeof(*dev), M_DEVBUF, M_WAITOK | M_ZERO);
 
 	if (dev == NULL)
 		goto done;
@@ -895,7 +893,7 @@ default_method(void)
 	return (0);
 }
 
-void   *
+void *
 device_get_method(device_t dev, const char *what)
 {
 	const struct device_method *mtod;
@@ -926,10 +924,9 @@ device_allocate_softc(device_t dev)
 
 	mod = dev->dev_module;
 
-	if ((dev->dev_softc_alloc == 0) &&
-	    (mod->driver->size != 0)) {
-		dev->dev_sc = malloc(mod->driver->size,
-		    M_DEVBUF, M_WAITOK | M_ZERO);
+	if ((dev->dev_softc_alloc == 0) && (mod->driver->size != 0)) {
+		dev->dev_sc = malloc(mod->driver->size, M_DEVBUF,
+		    M_WAITOK | M_ZERO);
 
 		if (dev->dev_sc == NULL)
 			return (ENOMEM);
@@ -948,7 +945,7 @@ device_probe_and_attach(device_t dev)
 	bus_name_parent = device_get_name(device_get_parent(dev));
 
 	if (dev->dev_attached)
-		return (0);		/* fail-safe */
+		return (0); /* fail-safe */
 
 	if (dev->dev_fixed_class) {
 
@@ -970,10 +967,10 @@ device_probe_and_attach(device_t dev)
 		goto error;
 	}
 	/*
-         * Else find a module for our device, if any
-         */
+	 * Else find a module for our device, if any
+	 */
 
-	TAILQ_FOREACH(mod, &module_head, entry) {
+	TAILQ_FOREACH (mod, &module_head, entry) {
 		if (devclass_equal(mod->bus_name, bus_name_parent)) {
 			if (devclass_create(mod->devclass_pp)) {
 				continue;
@@ -1035,7 +1032,7 @@ device_set_softc(device_t dev, void *softc)
 	dev->dev_softc_alloc = 0;
 }
 
-void   *
+void *
 device_get_softc(device_t dev)
 {
 	if (dev == NULL)
@@ -1062,7 +1059,7 @@ device_set_desc_copy(device_t dev, const char *desc)
 	device_set_desc(dev, desc);
 }
 
-void   *
+void *
 devclass_get_softc(devclass_t dc, int unit)
 {
 	return (device_get_softc(devclass_get_device(dc, unit)));
@@ -1089,7 +1086,8 @@ device_t
 devclass_get_device(devclass_t dc, int unit)
 {
 	return (((unit < 0) || (unit >= DEVCLASS_MAXUNIT) || (dc == NULL)) ?
-	    NULL : dc->dev_list[unit]);
+		NULL :
+		dc->dev_list[unit]);
 }
 
 devclass_t
@@ -1097,7 +1095,7 @@ devclass_find(const char *classname)
 {
 	const struct module_data *mod;
 
-	TAILQ_FOREACH(mod, &module_head, entry) {
+	TAILQ_FOREACH (mod, &module_head, entry) {
 		if (devclass_equal(mod->driver->name, classname))
 			return (mod->devclass_pp[0]);
 	}
@@ -1122,7 +1120,7 @@ sysinit_run(const void **ppdata)
 	const struct sysinit *psys;
 
 	while ((psys = *ppdata) != NULL) {
-		(psys->func) (psys->data);
+		(psys->func)(psys->data);
 		ppdata++;
 	}
 }
@@ -1189,7 +1187,6 @@ usb_process_init(void *arg)
 
 	for (x = 0; x != USB_PROC_MAX; x++)
 		usb_process_init_sub(&usb_process[x]);
-
 }
 SYSINIT(usb_process_init, SI_SUB_LOCK, SI_ORDER_MIDDLE, usb_process_init, NULL);
 
@@ -1208,7 +1205,7 @@ repeat:
 
 		worked = 1;
 
-		(pm->pm_callback) (pm);
+		(pm->pm_callback)(pm);
 
 		if (pm == TAILQ_FIRST(&up->up_qhead)) {
 			/* nothing changed */
@@ -1222,7 +1219,7 @@ repeat:
 	return (worked);
 }
 
-void   *
+void *
 usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 {
 	struct usb_proc_msg *pm0 = _pm0;
@@ -1273,7 +1270,7 @@ usb_proc_msignal(struct usb_process *up, void *_pm0, void *_pm1)
 
 		TAILQ_REMOVE(&up->up_qhead, pm2, pm_qentry);
 	} else {
-		pm2 = NULL;		/* panic - should not happen */
+		pm2 = NULL; /* panic - should not happen */
 	}
 
 	/* Put message last on queue */
@@ -1326,9 +1323,7 @@ usb_proc_mwait(struct usb_process *up, void *_pm0, void *_pm1)
  *------------------------------------------------------------------------*/
 
 #ifdef USB_PCI_PROBE_LIST
-static device_method_t pci_methods[] = {
-	DEVMETHOD_END
-};
+static device_method_t pci_methods[] = { DEVMETHOD_END };
 
 static driver_t pci_driver = {
 	.name = "pci",
@@ -1339,11 +1334,9 @@ static devclass_t pci_devclass;
 
 DRIVER_MODULE(pci, pci, pci_driver, pci_devclass, 0, 0);
 
-static const char *usb_pci_devices[] = {
-	USB_PCI_PROBE_LIST
-};
+static const char *usb_pci_devices[] = { USB_PCI_PROBE_LIST };
 
-#define	USB_PCI_USB_MAX	(sizeof(usb_pci_devices) / sizeof(void *))
+#define USB_PCI_USB_MAX (sizeof(usb_pci_devices) / sizeof(void *))
 
 static device_t usb_pci_dev[USB_PCI_USB_MAX];
 
@@ -1357,7 +1350,8 @@ usb_pci_mod_load(void *arg)
 		return;
 
 	for (x = 0; x != USB_PCI_USB_MAX; x++) {
-		usb_pci_dev[x] = device_add_child(usb_pci_root, usb_pci_devices[x], -1);
+		usb_pci_dev[x] = device_add_child(usb_pci_root,
+		    usb_pci_devices[x], -1);
 		if (usb_pci_dev[x] == NULL)
 			continue;
 		if (device_probe_and_attach(usb_pci_dev[x])) {
@@ -1366,7 +1360,8 @@ usb_pci_mod_load(void *arg)
 		}
 	}
 }
-SYSINIT(usb_pci_mod_load, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE, usb_pci_mod_load, 0);
+SYSINIT(usb_pci_mod_load, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE,
+    usb_pci_mod_load, 0);
 
 static void
 usb_pci_mod_unload(void *arg)
@@ -1382,7 +1377,8 @@ usb_pci_mod_unload(void *arg)
 	if (usb_pci_root)
 		device_delete_child(NULL, usb_pci_root);
 }
-SYSUNINIT(usb_pci_mod_unload, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE, usb_pci_mod_unload, 0);
+SYSUNINIT(usb_pci_mod_unload, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE,
+    usb_pci_mod_unload, 0);
 #endif
 
 /*------------------------------------------------------------------------*
@@ -1390,7 +1386,7 @@ SYSUNINIT(usb_pci_mod_unload, SI_SUB_RUN_SCHEDULER, SI_ORDER_MIDDLE, usb_pci_mod
  *------------------------------------------------------------------------*/
 
 #ifndef HAVE_MALLOC
-#define	USB_POOL_ALIGN 8
+#define USB_POOL_ALIGN 8
 
 static uint8_t usb_pool[USB_POOL_SIZE] __aligned(USB_POOL_ALIGN);
 static uint32_t usb_pool_rem = USB_POOL_SIZE;
@@ -1401,10 +1397,10 @@ struct malloc_hdr {
 	uint32_t size;
 } __aligned(USB_POOL_ALIGN);
 
-static TAILQ_HEAD(, malloc_hdr) malloc_head =
-	TAILQ_HEAD_INITIALIZER(malloc_head);
+static TAILQ_HEAD(, malloc_hdr) malloc_head = TAILQ_HEAD_INITIALIZER(
+    malloc_head);
 
-void   *
+void *
 usb_malloc(unsigned long size)
 {
 	struct malloc_hdr *hdr;
@@ -1412,7 +1408,7 @@ usb_malloc(unsigned long size)
 	size = (size + USB_POOL_ALIGN - 1) & ~(USB_POOL_ALIGN - 1);
 	size += sizeof(struct malloc_hdr);
 
-	TAILQ_FOREACH(hdr, &malloc_head, entry) {
+	TAILQ_FOREACH (hdr, &malloc_head, entry) {
 		if (hdr->size == size)
 			break;
 	}
@@ -1456,7 +1452,7 @@ usb_free(void *arg)
 }
 #endif
 
-char   *
+char *
 usb_strdup(const char *str)
 {
 	char *tmp;
@@ -1464,7 +1460,7 @@ usb_strdup(const char *str)
 
 	len = 1 + strlen(str);
 
-	tmp = malloc(len,XXX,XXX);
+	tmp = malloc(len, XXX, XXX);
 	if (tmp == NULL)
 		return (NULL);
 

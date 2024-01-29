@@ -26,17 +26,18 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "endian.h"
-#include "image.h"
 #include "format.h"
+#include "image.h"
 #include "mkimg.h"
 
 #ifndef __has_extension
-#define	__has_extension(x)	0
+#define __has_extension(x) 0
 #endif
 
 /*
@@ -54,42 +55,42 @@
  * PART 1: Common definitions
  */
 
-#define	VHD_SECTOR_SIZE	512
-#define	VHD_BLOCK_SIZE	(4096 * VHD_SECTOR_SIZE)	/* 2MB blocks */
+#define VHD_SECTOR_SIZE 512
+#define VHD_BLOCK_SIZE (4096 * VHD_SECTOR_SIZE) /* 2MB blocks */
 
 struct vhd_geom {
-	uint16_t	cylinders;
-	uint8_t		heads;
-	uint8_t		sectors;
+	uint16_t cylinders;
+	uint8_t heads;
+	uint8_t sectors;
 };
 
 struct vhd_footer {
-	uint64_t	cookie;
-#define	VHD_FOOTER_COOKIE	0x636f6e6563746978ULL
-	uint32_t	features;
-#define	VHD_FEATURES_TEMPORARY	0x01
-#define	VHD_FEATURES_RESERVED	0x02
-	uint32_t	version;
-#define	VHD_VERSION		0x00010000
-	uint64_t	data_offset;
-	uint32_t	timestamp;
-	uint32_t	creator_tool;
-#define	VHD_CREATOR_TOOL	0x2a696d67	/* FreeBSD mkimg */
-	uint32_t	creator_version;
-#define	VHD_CREATOR_VERSION	0x00020000
-	uint32_t	creator_os;
-#define	VHD_CREATOR_OS		0x5769326b	/* Wi2k */
-	uint64_t	original_size;
-	uint64_t	current_size;
-	struct vhd_geom	geometry;
-	uint32_t	disk_type;
-#define	VHD_DISK_TYPE_FIXED	2
-#define	VHD_DISK_TYPE_DYNAMIC	3
-#define	VHD_DISK_TYPE_DIFF	4
-	uint32_t	checksum;
-	mkimg_uuid_t	id;
-	uint8_t		saved_state;
-	uint8_t		_reserved[427];
+	uint64_t cookie;
+#define VHD_FOOTER_COOKIE 0x636f6e6563746978ULL
+	uint32_t features;
+#define VHD_FEATURES_TEMPORARY 0x01
+#define VHD_FEATURES_RESERVED 0x02
+	uint32_t version;
+#define VHD_VERSION 0x00010000
+	uint64_t data_offset;
+	uint32_t timestamp;
+	uint32_t creator_tool;
+#define VHD_CREATOR_TOOL 0x2a696d67 /* FreeBSD mkimg */
+	uint32_t creator_version;
+#define VHD_CREATOR_VERSION 0x00020000
+	uint32_t creator_os;
+#define VHD_CREATOR_OS 0x5769326b /* Wi2k */
+	uint64_t original_size;
+	uint64_t current_size;
+	struct vhd_geom geometry;
+	uint32_t disk_type;
+#define VHD_DISK_TYPE_FIXED 2
+#define VHD_DISK_TYPE_DYNAMIC 3
+#define VHD_DISK_TYPE_DIFF 4
+	uint32_t checksum;
+	mkimg_uuid_t id;
+	uint8_t saved_state;
+	uint8_t _reserved[427];
 };
 #if __has_extension(c_static_assert)
 _Static_assert(sizeof(struct vhd_footer) == VHD_SECTOR_SIZE,
@@ -118,11 +119,10 @@ vhd_geometry(uint64_t image_size, struct vhd_geom *geom)
 	imgsz = image_size / VHD_SECTOR_SIZE;
 
 	/* Respect command line options if possible. */
-	if (nheads > 1 && nheads < 256 &&
-	    nsecs > 1 && nsecs < 256 &&
+	if (nheads > 1 && nheads < 256 && nsecs > 1 && nsecs < 256 &&
 	    ncyls < 65536) {
 		geom->cylinders = (ncyls != 0) ? ncyls :
-		    imgsz / (nheads * nsecs);
+						 imgsz / (nheads * nsecs);
 		geom->heads = nheads;
 		geom->sectors = nsecs;
 		return;
@@ -173,8 +173,8 @@ vhd_resize(uint64_t origsz)
 	newsz = origsz;
 	while (1) {
 		vhd_geometry(newsz, &geom);
-		newsz = (int64_t)geom.cylinders * geom.heads *
-		    geom.sectors * VHD_SECTOR_SIZE;
+		newsz = (int64_t)geom.cylinders * geom.heads * geom.sectors *
+		    VHD_SECTOR_SIZE;
 		if (newsz >= origsz)
 			break;
 		newsz += geom.heads * geom.sectors * VHD_SECTOR_SIZE;
@@ -233,26 +233,26 @@ vhd_make_footer(struct vhd_footer *footer, uint64_t image_size,
  */
 
 struct vhd_dyn_header {
-	uint64_t	cookie;
-#define	VHD_HEADER_COOKIE	0x6378737061727365ULL
-	uint64_t	data_offset;
-	uint64_t	table_offset;
-	uint32_t	version;
-	uint32_t	max_entries;
-	uint32_t	block_size;
-	uint32_t	checksum;
-	mkimg_uuid_t	parent_id;
-	uint32_t	parent_timestamp;
-	char		_reserved1[4];
-	uint16_t	parent_name[256];	/* UTF-16 */
+	uint64_t cookie;
+#define VHD_HEADER_COOKIE 0x6378737061727365ULL
+	uint64_t data_offset;
+	uint64_t table_offset;
+	uint32_t version;
+	uint32_t max_entries;
+	uint32_t block_size;
+	uint32_t checksum;
+	mkimg_uuid_t parent_id;
+	uint32_t parent_timestamp;
+	char _reserved1[4];
+	uint16_t parent_name[256]; /* UTF-16 */
 	struct {
-		uint32_t	code;
-		uint32_t	data_space;
-		uint32_t	data_length;
-		uint32_t	_reserved;
-		uint64_t	data_offset;
+		uint32_t code;
+		uint32_t data_space;
+		uint32_t data_length;
+		uint32_t _reserved;
+		uint64_t data_offset;
 	} parent_locator[8];
-	char		_reserved2[256];
+	char _reserved2[256];
 };
 #if __has_extension(c_static_assert)
 _Static_assert(sizeof(struct vhd_dyn_header) == VHD_SECTOR_SIZE * 2,

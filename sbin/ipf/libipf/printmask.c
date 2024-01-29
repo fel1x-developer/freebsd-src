@@ -9,7 +9,6 @@
 
 #include "ipf.h"
 
-
 void
 printmask(int family, u_32_t *mask)
 {

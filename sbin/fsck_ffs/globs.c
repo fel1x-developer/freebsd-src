@@ -30,76 +30,78 @@
  */
 
 #include <sys/param.h>
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
+
 #include <string.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
+
 #include "fsck.h"
- 
+
 long readcnt[BT_NUMBUFTYPES];
 long totalreadcnt[BT_NUMBUFTYPES];
 struct timespec readtime[BT_NUMBUFTYPES];
 struct timespec totalreadtime[BT_NUMBUFTYPES];
 struct timespec startprog;
-struct bufarea sblk;		/* file system superblock */
-struct bufarea *pdirbp;		/* current directory contents */
+struct bufarea sblk;	/* file system superblock */
+struct bufarea *pdirbp; /* current directory contents */
 ino_t cursnapshot;
-long  dirhash, inplast;
-unsigned long  numdirs, listmax;
-long countdirs;		/* number of directories we actually found */
-int	adjrefcnt[MIBSIZE];	/* MIB cmd to adjust inode reference cnt */
-int	adjblkcnt[MIBSIZE];	/* MIB cmd to adjust inode block count */
-int	setsize[MIBSIZE];	/* MIB cmd to set inode size */
-int	adjndir[MIBSIZE];	/* MIB cmd to adjust number of directories */
-int	adjnbfree[MIBSIZE];	/* MIB cmd to adjust number of free blocks */
-int	adjnifree[MIBSIZE];	/* MIB cmd to adjust number of free inodes */
-int	adjnffree[MIBSIZE];	/* MIB cmd to adjust number of free frags */
-int	adjnumclusters[MIBSIZE]; /* MIB cmd to adjust number of free clusters */
-int	adjdepth[MIBSIZE];	/* MIB cmd to adjust directory depth count */
-int	freefiles[MIBSIZE];	/* MIB cmd to free a set of files */
-int	freedirs[MIBSIZE];	/* MIB cmd to free a set of directories */
-int	freeblks[MIBSIZE];	/* MIB cmd to free a set of data blocks */
-struct	fsck_cmd cmd;		/* sysctl file system update commands */
-char	*cdevname;		/* name of device being checked */
-long	dev_bsize;		/* computed value of DEV_BSIZE */
-long	secsize;		/* actual disk sector size */
-u_int	real_dev_bsize;		/* actual disk sector size, not overridden */
-char	nflag;			/* assume a no response */
-char	yflag;			/* assume a yes response */
-int	bkgrdflag;		/* use a snapshot to run on an active system */
-off_t	bflag;			/* location of alternate super block */
-int	debug;			/* output debugging info */
-int	Eflag;			/* delete empty data blocks */
-int	Zflag;			/* zero empty data blocks */
-int	zflag;			/* zero unused directory space */
-int	inoopt;			/* trim out unused inodes */
-char	ckclean;		/* only do work if not cleanly unmounted */
-int	cvtlevel;		/* convert to newer file system format */
-int	ckhashadd;		/* check hashes to be added */
-int	bkgrdcheck;		/* determine if background check is possible */
-int	bkgrdsumadj;		/* kernel able to adjust superblock summary */
-char	usedsoftdep;		/* just fix soft dependency inconsistencies */
-char	preen;			/* just fix normal inconsistencies */
-char	rerun;			/* rerun fsck. Only used in non-preen mode */
-int	returntosingle;		/* 1 => return to single user mode on exit */
-char	resolved;		/* cleared if unresolved changes => not clean */
-char	havesb;			/* superblock has been read */
-char	skipclean;		/* skip clean file systems if preening */
-int	fsmodified;		/* 1 => write done to file system */
-int	fsreadfd;		/* file descriptor for reading file system */
-int	fswritefd;		/* file descriptor for writing file system */
-int	surrender;		/* Give up if reads fail */
-int	wantrestart;		/* Restart fsck on early termination */
-ufs2_daddr_t maxfsblock;	/* number of blocks in the file system */
-char	*blockmap;		/* ptr to primary blk allocation map */
-ino_t	maxino;			/* number of inodes in file system */
-ino_t	lfdir;			/* lost & found directory inode number */
-const char *lfname;		/* lost & found directory name */
-int	lfmode;			/* lost & found directory creation mode */
-ufs2_daddr_t n_blks;		/* number of blocks in use */
-int	cgheader_corrupt;	/* one or more CG headers are corrupt */
-ino_t n_files;			/* number of files in use */
-volatile sig_atomic_t	got_siginfo;	/* received a SIGINFO */
-volatile sig_atomic_t	got_sigalarm;	/* received a SIGALRM */
+long dirhash, inplast;
+unsigned long numdirs, listmax;
+long countdirs;		     /* number of directories we actually found */
+int adjrefcnt[MIBSIZE];	     /* MIB cmd to adjust inode reference cnt */
+int adjblkcnt[MIBSIZE];	     /* MIB cmd to adjust inode block count */
+int setsize[MIBSIZE];	     /* MIB cmd to set inode size */
+int adjndir[MIBSIZE];	     /* MIB cmd to adjust number of directories */
+int adjnbfree[MIBSIZE];	     /* MIB cmd to adjust number of free blocks */
+int adjnifree[MIBSIZE];	     /* MIB cmd to adjust number of free inodes */
+int adjnffree[MIBSIZE];	     /* MIB cmd to adjust number of free frags */
+int adjnumclusters[MIBSIZE]; /* MIB cmd to adjust number of free clusters */
+int adjdepth[MIBSIZE];	     /* MIB cmd to adjust directory depth count */
+int freefiles[MIBSIZE];	     /* MIB cmd to free a set of files */
+int freedirs[MIBSIZE];	     /* MIB cmd to free a set of directories */
+int freeblks[MIBSIZE];	     /* MIB cmd to free a set of data blocks */
+struct fsck_cmd cmd;	     /* sysctl file system update commands */
+char *cdevname;		     /* name of device being checked */
+long dev_bsize;		     /* computed value of DEV_BSIZE */
+long secsize;		     /* actual disk sector size */
+u_int real_dev_bsize;	     /* actual disk sector size, not overridden */
+char nflag;		     /* assume a no response */
+char yflag;		     /* assume a yes response */
+int bkgrdflag;		     /* use a snapshot to run on an active system */
+off_t bflag;		     /* location of alternate super block */
+int debug;		     /* output debugging info */
+int Eflag;		     /* delete empty data blocks */
+int Zflag;		     /* zero empty data blocks */
+int zflag;		     /* zero unused directory space */
+int inoopt;		     /* trim out unused inodes */
+char ckclean;		     /* only do work if not cleanly unmounted */
+int cvtlevel;		     /* convert to newer file system format */
+int ckhashadd;		     /* check hashes to be added */
+int bkgrdcheck;		     /* determine if background check is possible */
+int bkgrdsumadj;	     /* kernel able to adjust superblock summary */
+char usedsoftdep;	     /* just fix soft dependency inconsistencies */
+char preen;		     /* just fix normal inconsistencies */
+char rerun;		     /* rerun fsck. Only used in non-preen mode */
+int returntosingle;	     /* 1 => return to single user mode on exit */
+char resolved;		     /* cleared if unresolved changes => not clean */
+char havesb;		     /* superblock has been read */
+char skipclean;		     /* skip clean file systems if preening */
+int fsmodified;		     /* 1 => write done to file system */
+int fsreadfd;		     /* file descriptor for reading file system */
+int fswritefd;		     /* file descriptor for writing file system */
+int surrender;		     /* Give up if reads fail */
+int wantrestart;	     /* Restart fsck on early termination */
+ufs2_daddr_t maxfsblock;     /* number of blocks in the file system */
+char *blockmap;		     /* ptr to primary blk allocation map */
+ino_t maxino;		     /* number of inodes in file system */
+ino_t lfdir;		     /* lost & found directory inode number */
+const char *lfname;	     /* lost & found directory name */
+int lfmode;		     /* lost & found directory creation mode */
+ufs2_daddr_t n_blks;	     /* number of blocks in use */
+int cgheader_corrupt;	     /* one or more CG headers are corrupt */
+ino_t n_files;		     /* number of files in use */
+volatile sig_atomic_t got_siginfo;  /* received a SIGINFO */
+volatile sig_atomic_t got_sigalarm; /* received a SIGALRM */
 union dinode zino;
 
 struct dups *duplist;
@@ -134,7 +136,7 @@ fsckinit(void)
 	cdevname = NULL;
 	dev_bsize = 0;
 	secsize = 0;
-	real_dev_bsize = 0;	
+	real_dev_bsize = 0;
 	bkgrdsumadj = 0;
 	usedsoftdep = 0;
 	rerun = 0;

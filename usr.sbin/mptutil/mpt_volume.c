@@ -32,13 +32,15 @@
 
 #include <sys/param.h>
 #include <sys/errno.h>
+
+#include <ctype.h>
 #include <err.h>
 #include <libutil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ctype.h>
+
 #include "mptutil.h"
 
 MPT_TABLE(top, volume);
@@ -139,8 +141,8 @@ volume_status(int ac, char **av)
 	int error, fd;
 
 	if (ac != 2) {
-		warnx("volume status: %s", ac > 2 ? "extra arguments" :
-		    "volume required");
+		warnx("volume status: %s",
+		    ac > 2 ? "extra arguments" : "volume required");
 		return (EINVAL);
 	}
 
@@ -207,17 +209,17 @@ volume_cache(int ac, char **av)
 	int error, fd;
 
 	if (ac != 3) {
-		warnx("volume cache: %s", ac > 3 ? "extra arguments" :
-		    "missing arguments");
+		warnx("volume cache: %s",
+		    ac > 3 ? "extra arguments" : "missing arguments");
 		return (EINVAL);
 	}
 
-        for (s1 = av[2]; *s1 != '\0'; s1++)
-                *s1 = tolower(*s1);
+	for (s1 = av[2]; *s1 != '\0'; s1++)
+		*s1 = tolower(*s1);
 	if ((strcmp(av[2], "enable")) && (strcmp(av[2], "enabled")) &&
 	    (strcmp(av[2], "disable")) && (strcmp(av[2], "disabled"))) {
 		warnx("volume cache: invalid flag; "
-		    "must be 'enable', 'enabled', 'disable', or 'disabled'");
+		      "must be 'enable', 'enabled', 'disable', or 'disabled'");
 		return (EINVAL);
 	}
 

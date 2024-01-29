@@ -33,21 +33,22 @@
 #if defined(NLS)
 #include <nl_types.h>
 #endif
-#include <limits.h>
 #include <errno.h>
+#include <limits.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
+
 #include "reentrant.h"
 #include "un-namespace.h"
 
-#define	UPREFIX		"Unknown signal"
+#define UPREFIX "Unknown signal"
 
-static char		sig_ebuf[NL_TEXTMAX];
-static char		sig_ebuf_err[NL_TEXTMAX];
-static once_t		sig_init_once = ONCE_INITIALIZER;
-static thread_key_t	sig_key;
-static int		sig_keycreated = 0;
+static char sig_ebuf[NL_TEXTMAX];
+static char sig_ebuf_err[NL_TEXTMAX];
+static once_t sig_init_once = ONCE_INITIALIZER;
+static thread_key_t sig_key;
+static int sig_keycreated = 0;
 
 static void
 sig_keycreate(void)
@@ -103,19 +104,19 @@ strsignal(int num)
 	if (num > 0 && num < sys_nsig) {
 		n = strlcpy(ebuf,
 #if defined(NLS)
-			catgets(catd, 2, num, sys_siglist[num]),
+		    catgets(catd, 2, num, sys_siglist[num]),
 #else
-			sys_siglist[num],
+		    sys_siglist[num],
 #endif
-			sizeof(sig_ebuf));
+		    sizeof(sig_ebuf));
 	} else {
 		n = strlcpy(ebuf,
 #if defined(NLS)
-			catgets(catd, 2, 0xffff, UPREFIX),
+		    catgets(catd, 2, 0xffff, UPREFIX),
 #else
-			UPREFIX,
+		    UPREFIX,
 #endif
-			sizeof(sig_ebuf));
+		    sizeof(sig_ebuf));
 
 		signum = num;
 		if (num < 0)

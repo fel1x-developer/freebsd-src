@@ -34,14 +34,15 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
-#include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "un-namespace.h"
+#include <unistd.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static inline char *
 _gets_s(char *buf, rsize_t n)
@@ -50,7 +51,7 @@ _gets_s(char *buf, rsize_t n)
 	char *s;
 
 	ORIENT(stdin, -1);
-	for (s = buf, n--; (c = __sgetc(stdin)) != '\n' && n > 0 ; n--) {
+	for (s = buf, n--; (c = __sgetc(stdin)) != '\n' && n > 0; n--) {
 		if (c == EOF) {
 			if (s == buf) {
 				return (NULL);
@@ -61,12 +62,13 @@ _gets_s(char *buf, rsize_t n)
 	}
 
 	/*
- 	 * If end of buffer reached, discard until \n or eof.
+	 * If end of buffer reached, discard until \n or eof.
 	 * Then throw an error.
 	 */
 	if (n == 0) {
 		/* discard */
-		while ((c = __sgetc(stdin)) != '\n' && c != EOF);
+		while ((c = __sgetc(stdin)) != '\n' && c != EOF)
+			;
 		/* throw the error after lock released prior to exit */
 		__throw_constraint_handler_s("gets_s : end of buffer", E2BIG);
 		return (NULL);
@@ -82,14 +84,13 @@ gets_s(char *buf, rsize_t n)
 	char *ret;
 	if (buf == NULL) {
 		__throw_constraint_handler_s("gets_s : str is NULL", EINVAL);
-		return(NULL);
+		return (NULL);
 	} else if (n > RSIZE_MAX) {
-		__throw_constraint_handler_s("gets_s : n > RSIZE_MAX",
-			EINVAL);
-		return(NULL);
+		__throw_constraint_handler_s("gets_s : n > RSIZE_MAX", EINVAL);
+		return (NULL);
 	} else if (n == 0) {
 		__throw_constraint_handler_s("gets_s : n == 0", EINVAL);
-		return(NULL);
+		return (NULL);
 	}
 
 	FLOCKFILE_CANCELSAFE(stdin);

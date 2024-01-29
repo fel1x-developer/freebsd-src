@@ -27,49 +27,87 @@
  *
  */
 
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/un.h>
 #include <sys/uio.h>
+#include <sys/un.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
-#include <netinet/in.h>
 #include <netinet/icmp6.h>
-#include <fcntl.h>
+#include <netinet/in.h>
+
 #include <errno.h>
+#include <fcntl.h>
 #include <netdb.h>
-#include <unistd.h>
 #include <signal.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
-#include "pathnames.h"
-#include "rtadvd.h"
-#include "if.h"
 #include "config.h"
 #include "control.h"
 #include "control_server.h"
+#include "if.h"
+#include "pathnames.h"
+#include "rtadvd.h"
 #include "timer.h"
 
 static char *do_reload_ifname;
 static int do_reload;
 static int do_shutdown;
 
-void set_do_reload(int sig __unused)	{ do_reload = 1; }
-void set_do_reload_ifname(char *ifname){ do_reload_ifname = ifname; }
-void set_do_shutdown(int sig __unused)	{ do_shutdown = 1; }
-void reset_do_reload(void)	{ do_reload = 0; do_reload_ifname = NULL; }
-void reset_do_shutdown(void)	{ do_shutdown = 0; }
-int is_do_reload(void)		{ return (do_reload); }
-int is_do_shutdown(void)	{ return (do_shutdown); }
-char *reload_ifname(void)	{ return (do_reload_ifname); }
+void
+set_do_reload(int sig __unused)
+{
+	do_reload = 1;
+}
+void
+set_do_reload_ifname(char *ifname)
+{
+	do_reload_ifname = ifname;
+}
+void
+set_do_shutdown(int sig __unused)
+{
+	do_shutdown = 1;
+}
+void
+reset_do_reload(void)
+{
+	do_reload = 0;
+	do_reload_ifname = NULL;
+}
+void
+reset_do_shutdown(void)
+{
+	do_shutdown = 0;
+}
+int
+is_do_reload(void)
+{
+	return (do_reload);
+}
+int
+is_do_shutdown(void)
+{
+	return (do_shutdown);
+}
+char *
+reload_ifname(void)
+{
+	return (do_reload_ifname);
+}
 
-#define	DEF_PL_HANDLER(key)	{ #key, cm_getprop_##key }
+#define DEF_PL_HANDLER(key)            \
+	{                              \
+		#key, cm_getprop_##key \
+	}
 
 static int cm_getprop_echo(struct ctrl_msg_pl *);
 static int cm_getprop_version(struct ctrl_msg_pl *);
@@ -87,10 +125,10 @@ static int cm_setprop_enable(struct ctrl_msg_pl *);
 static int cm_setprop_disable(struct ctrl_msg_pl *);
 
 static struct dispatch_table {
-	const char	*dt_comm;
-	int		(*dt_act)(struct ctrl_msg_pl *cp);
+	const char *dt_comm;
+	int (*dt_act)(struct ctrl_msg_pl *cp);
 } getprop_dtable[] = {
-	{ "",	cm_getprop_echo },
+	{ "", cm_getprop_echo },
 	DEF_PL_HANDLER(echo),
 	DEF_PL_HANDLER(version),
 	DEF_PL_HANDLER(ifilist),
@@ -135,7 +173,7 @@ cm_getprop_ifilist(struct ctrl_msg_pl *cp)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	len = 0;
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		len += strlen(ifi->ifi_ifname) + 1;
 	}
 
@@ -148,9 +186,9 @@ cm_getprop_ifilist(struct ctrl_msg_pl *cp)
 	cp->cp_val = p;
 
 	if (len > 0)
-		TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
-			syslog(LOG_DEBUG, "<%s> add ifname=%s(%d)",
-			    __func__, ifi->ifi_ifname, ifi->ifi_ifindex);
+		TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
+			syslog(LOG_DEBUG, "<%s> add ifname=%s(%d)", __func__,
+			    ifi->ifi_ifname, ifi->ifi_ifindex);
 			strcpy(p, ifi->ifi_ifname);
 			p += strlen(ifi->ifi_ifname) + 1;
 		}
@@ -168,13 +206,12 @@ cm_getprop_ifi(struct ctrl_msg_pl *cp)
 
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 
@@ -204,13 +241,12 @@ cm_getprop_rai(struct ctrl_msg_pl *cp)
 
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if ((rai = ifi->ifi_rainfo) == NULL) {
@@ -240,19 +276,18 @@ cm_getprop_ifi_ra_timer(struct ctrl_msg_pl *cp)
 {
 	struct ifinfo *ifi;
 	struct rainfo *rai;
-	struct rtadvd_timer	*rtimer;
+	struct rtadvd_timer *rtimer;
 	char *p;
 	size_t len;
 
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if ((rai = ifi->ifi_rainfo) == NULL) {
@@ -293,13 +328,12 @@ cm_getprop_rti(struct ctrl_msg_pl *cp)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	len = 0;
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if (ifi->ifi_rainfo == NULL) {
@@ -308,7 +342,7 @@ cm_getprop_rti(struct ctrl_msg_pl *cp)
 		return (1);
 	}
 	rai = ifi->ifi_rainfo;
-	TAILQ_FOREACH(rti, &rai->rai_route, rti_next) {
+	TAILQ_FOREACH (rti, &rai->rai_route, rti_next) {
 		len += sizeof(*rti);
 	}
 
@@ -321,7 +355,7 @@ cm_getprop_rti(struct ctrl_msg_pl *cp)
 	cp->cp_val = p;
 
 	if (len > 0)
-		TAILQ_FOREACH(rti, &rai->rai_route, rti_next) {
+		TAILQ_FOREACH (rti, &rai->rai_route, rti_next) {
 			memcpy(p, rti, sizeof(*rti));
 			p += sizeof(*rti);
 		}
@@ -342,13 +376,12 @@ cm_getprop_pfx(struct ctrl_msg_pl *cp)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	len = 0;
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if (ifi->ifi_rainfo == NULL) {
@@ -357,7 +390,7 @@ cm_getprop_pfx(struct ctrl_msg_pl *cp)
 		return (1);
 	}
 	rai = ifi->ifi_rainfo;
-	TAILQ_FOREACH(pfx, &rai->rai_prefix, pfx_next) {
+	TAILQ_FOREACH (pfx, &rai->rai_prefix, pfx_next) {
 		len += sizeof(*pfx);
 	}
 
@@ -370,7 +403,7 @@ cm_getprop_pfx(struct ctrl_msg_pl *cp)
 	cp->cp_val = p;
 
 	if (len > 0)
-		TAILQ_FOREACH(pfx, &rai->rai_prefix, pfx_next) {
+		TAILQ_FOREACH (pfx, &rai->rai_prefix, pfx_next) {
 			memcpy(p, pfx, sizeof(*pfx));
 			p += sizeof(*pfx);
 		}
@@ -394,13 +427,12 @@ cm_getprop_rdnss(struct ctrl_msg_pl *cp)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	len = 0;
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if (ifi->ifi_rainfo == NULL) {
@@ -411,10 +443,10 @@ cm_getprop_rdnss(struct ctrl_msg_pl *cp)
 	rai = ifi->ifi_rainfo;
 
 	len = sizeof(*rdn_cnt);
-	TAILQ_FOREACH(rdn, &rai->rai_rdnss, rd_next) {
+	TAILQ_FOREACH (rdn, &rai->rai_rdnss, rd_next) {
 		len += sizeof(*rdn);
 		len += sizeof(*rda_cnt);
-		TAILQ_FOREACH(rda, &rdn->rd_list, ra_next) {
+		TAILQ_FOREACH (rda, &rdn->rd_list, ra_next) {
 			len += sizeof(*rda);
 		}
 	}
@@ -429,14 +461,14 @@ cm_getprop_rdnss(struct ctrl_msg_pl *cp)
 
 	rdn_cnt = (uint16_t *)p;
 	p += sizeof(*rdn_cnt);
-	TAILQ_FOREACH(rdn, &rai->rai_rdnss, rd_next) {
+	TAILQ_FOREACH (rdn, &rai->rai_rdnss, rd_next) {
 		*rdn_cnt += 1;
 		memcpy(p, rdn, sizeof(*rdn));
 		p += sizeof(*rdn);
 
 		rda_cnt = (uint16_t *)p;
 		p += sizeof(*rda_cnt);
-		TAILQ_FOREACH(rda, &rdn->rd_list, ra_next) {
+		TAILQ_FOREACH (rda, &rdn->rd_list, ra_next) {
 			*rda_cnt += 1;
 			memcpy(p, rda, sizeof(*rda));
 			p += sizeof(*rda);
@@ -463,13 +495,12 @@ cm_getprop_dnssl(struct ctrl_msg_pl *cp)
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
 	len = 0;
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 	if (ifi->ifi_rainfo == NULL) {
@@ -480,10 +511,10 @@ cm_getprop_dnssl(struct ctrl_msg_pl *cp)
 	rai = ifi->ifi_rainfo;
 
 	len = sizeof(*dns_cnt);
-	TAILQ_FOREACH(dns, &rai->rai_dnssl, dn_next) {
+	TAILQ_FOREACH (dns, &rai->rai_dnssl, dn_next) {
 		len += sizeof(*dns);
 		len += sizeof(*dna_cnt);
-		TAILQ_FOREACH(dna, &dns->dn_list, da_next) {
+		TAILQ_FOREACH (dna, &dns->dn_list, da_next) {
 			len += sizeof(*dna);
 		}
 	}
@@ -498,14 +529,14 @@ cm_getprop_dnssl(struct ctrl_msg_pl *cp)
 
 	dns_cnt = (uint16_t *)cp->cp_val;
 	p += sizeof(*dns_cnt);
-	TAILQ_FOREACH(dns, &rai->rai_dnssl, dn_next) {
+	TAILQ_FOREACH (dns, &rai->rai_dnssl, dn_next) {
 		(*dns_cnt)++;
 		memcpy(p, dns, sizeof(*dns));
 		p += sizeof(*dns);
 
 		dna_cnt = (uint16_t *)p;
 		p += sizeof(*dna_cnt);
-		TAILQ_FOREACH(dna, &dns->dn_list, da_next) {
+		TAILQ_FOREACH (dna, &dns->dn_list, da_next) {
 			(*dna_cnt)++;
 			memcpy(p, dna, sizeof(*dna));
 			p += sizeof(*dna);
@@ -526,8 +557,7 @@ cm_getprop(struct ctrl_msg_pl *cp)
 	if (cp == NULL)
 		return (1);
 
-	for (i = 0;
-	     i < sizeof(getprop_dtable) / sizeof(getprop_dtable[0]);
+	for (i = 0; i < sizeof(getprop_dtable) / sizeof(getprop_dtable[0]);
 	     i++) {
 		if (strcmp(cp->cp_key, getprop_dtable[i].dt_comm) == 0)
 			return (getprop_dtable[i].dt_act(cp));
@@ -552,7 +582,7 @@ cm_setprop(struct ctrl_msg_pl *cp)
 	else if (strncmp(cp->cp_key, "disable", sizeof("disable")) == 0)
 		cm_setprop_disable(cp);
 	else if (strncmp(cp->cp_key, "echo", 8) == 0)
-		; 		/* do nothing */
+		; /* do nothing */
 	else
 		return (1);
 
@@ -578,13 +608,12 @@ cm_setprop_enable(struct ctrl_msg_pl *cp)
 
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 
@@ -602,13 +631,12 @@ cm_setprop_disable(struct ctrl_msg_pl *cp)
 
 	syslog(LOG_DEBUG, "<%s> enter", __func__);
 
-	TAILQ_FOREACH(ifi, &ifilist, ifi_next) {
+	TAILQ_FOREACH (ifi, &ifilist, ifi_next) {
 		if (strcmp(cp->cp_ifname, ifi->ifi_ifname) == 0)
 			break;
 	}
 	if (ifi == NULL) {
-		syslog(LOG_ERR, "<%s> %s not found", __func__,
-		    cp->cp_ifname);
+		syslog(LOG_ERR, "<%s> %s not found", __func__, cp->cp_ifname);
 		return (1);
 	}
 
@@ -656,15 +684,13 @@ cm_handler_server(int fd)
 			cm->cm_version = CM_VERSION;
 			error = cm_send(fd, buf);
 			if (error)
-				syslog(LOG_WARNING,
-				    "<%s> cm_send()", __func__);
+				syslog(LOG_WARNING, "<%s> cm_send()", __func__);
 			state = CM_STATE_EOM;
 			break;
 		case CM_STATE_ACK_WAIT:
 			error = cm_recv(fd, buf);
 			if (error) {
-				syslog(LOG_ERR,
-				    "<%s> cm_recv()", __func__);
+				syslog(LOG_ERR, "<%s> cm_recv()", __func__);
 				close(fd);
 				return (-1);
 			}
@@ -673,13 +699,12 @@ cm_handler_server(int fd)
 			case CM_TYPE_ACK:
 				break;
 			case CM_TYPE_ERR:
-				syslog(LOG_DEBUG,
-				    "<%s> CM_TYPE_ERR", __func__);
+				syslog(LOG_DEBUG, "<%s> CM_TYPE_ERR", __func__);
 				close(fd);
 				return (-1);
 			default:
-				syslog(LOG_DEBUG,
-				    "<%s> unknown status", __func__);
+				syslog(LOG_DEBUG, "<%s> unknown status",
+				    __func__);
 				close(fd);
 				return (-1);
 			}
@@ -689,17 +714,16 @@ cm_handler_server(int fd)
 			error = cm_recv(fd, buf);
 
 			if (error) {
-				syslog(LOG_ERR,
-				    "<%s> cm_recv()", __func__);
+				syslog(LOG_ERR, "<%s> cm_recv()", __func__);
 				close(fd);
 				return (-1);
 			}
 			memset(&cp, 0, sizeof(cp));
 
-			syslog(LOG_DEBUG,
-			    "<%s> cm->cm_type = %d", __func__, cm->cm_type);
-			syslog(LOG_DEBUG,
-			    "<%s> cm->cm_len = %zu", __func__, cm->cm_len);
+			syslog(LOG_DEBUG, "<%s> cm->cm_type = %d", __func__,
+			    cm->cm_type);
+			syslog(LOG_DEBUG, "<%s> cm->cm_len = %zu", __func__,
+			    cm->cm_len);
 
 			switch (cm->cm_type) {
 			case CM_TYPE_EOM:

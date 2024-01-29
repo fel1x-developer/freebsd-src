@@ -52,7 +52,7 @@ extern int ID0kldload(const char *);
 #ifndef NONETGRAPH
 extern int ID0NgMkSockNode(const char *, int *, int *);
 #endif
-#else	/* NOSUID */
+#else /* NOSUID */
 #define ID0init()
 #define ID0realuid() (0)
 #define ID0ioctl ioctl

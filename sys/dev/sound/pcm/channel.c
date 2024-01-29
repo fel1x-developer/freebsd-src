@@ -40,11 +40,11 @@
 
 int report_soft_formats = 1;
 SYSCTL_INT(_hw_snd, OID_AUTO, report_soft_formats, CTLFLAG_RW,
-	&report_soft_formats, 0, "report software-emulated formats");
+    &report_soft_formats, 0, "report software-emulated formats");
 
 int report_soft_matrix = 1;
 SYSCTL_INT(_hw_snd, OID_AUTO, report_soft_matrix, CTLFLAG_RW,
-	&report_soft_matrix, 0, "report software-emulated channel matrixing");
+    &report_soft_matrix, 0, "report software-emulated channel matrixing");
 
 int chn_latency = CHN_LATENCY_DEFAULT;
 
@@ -66,8 +66,7 @@ sysctl_hw_snd_latency(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_hw_snd, OID_AUTO, latency,
     CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, sizeof(int),
-    sysctl_hw_snd_latency, "I",
-    "buffering latency (0=low ... 10=high)");
+    sysctl_hw_snd_latency, "I", "buffering latency (0=low ... 10=high)");
 
 int chn_latency_profile = CHN_LATENCY_PROFILE_DEFAULT;
 
@@ -112,12 +111,11 @@ sysctl_hw_snd_timeout(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_hw_snd, OID_AUTO, timeout,
     CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, sizeof(int),
-    sysctl_hw_snd_timeout, "I",
-    "interrupt timeout (1 - 10) seconds");
+    sysctl_hw_snd_timeout, "I", "interrupt timeout (1 - 10) seconds");
 
 static int chn_vpc_autoreset = 1;
-SYSCTL_INT(_hw_snd, OID_AUTO, vpc_autoreset, CTLFLAG_RWTUN,
-	&chn_vpc_autoreset, 0, "automatically reset channels volume to 0db");
+SYSCTL_INT(_hw_snd, OID_AUTO, vpc_autoreset, CTLFLAG_RWTUN, &chn_vpc_autoreset,
+    0, "automatically reset channels volume to 0db");
 
 static int chn_vol_0db_pcm = SND_VOL_0DB_PCM;
 
@@ -128,15 +126,17 @@ chn_vpc_proc(int reset, int db)
 	struct pcm_channel *c;
 	int i;
 
-	for (i = 0; pcm_devclass != NULL &&
-	    i < devclass_get_maxunit(pcm_devclass); i++) {
+	for (i = 0;
+	     pcm_devclass != NULL && i < devclass_get_maxunit(pcm_devclass);
+	     i++) {
 		d = devclass_get_softc(pcm_devclass, i);
 		if (!PCM_REGISTERED(d))
 			continue;
 		PCM_LOCK(d);
 		PCM_WAIT(d);
 		PCM_ACQUIRE(d);
-		CHN_FOREACH(c, d, channels.pcm) {
+		CHN_FOREACH(c, d, channels.pcm)
+		{
 			CHN_LOCK(c);
 			CHN_SETVOLUME(c, SND_VOL_C_PCM, SND_CHN_T_VOL_0DB, db);
 			if (reset != 0)
@@ -167,8 +167,7 @@ sysctl_hw_snd_vpc_0db(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_hw_snd, OID_AUTO, vpc_0db,
     CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_NEEDGIANT, 0, sizeof(int),
-    sysctl_hw_snd_vpc_0db, "I",
-    "0db relative level");
+    sysctl_hw_snd_vpc_0db, "I", "0db relative level");
 
 static int
 sysctl_hw_snd_vpc_reset(SYSCTL_HANDLER_ARGS)
@@ -187,17 +186,15 @@ sysctl_hw_snd_vpc_reset(SYSCTL_HANDLER_ARGS)
 }
 SYSCTL_PROC(_hw_snd, OID_AUTO, vpc_reset,
     CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_NEEDGIANT, 0, sizeof(int),
-    sysctl_hw_snd_vpc_reset, "I",
-    "reset volume on all channels");
+    sysctl_hw_snd_vpc_reset, "I", "reset volume on all channels");
 
 static int chn_usefrags = 0;
 static int chn_syncdelay = -1;
 
-SYSCTL_INT(_hw_snd, OID_AUTO, usefrags, CTLFLAG_RWTUN,
-	&chn_usefrags, 0, "prefer setfragments() over setblocksize()");
-SYSCTL_INT(_hw_snd, OID_AUTO, syncdelay, CTLFLAG_RWTUN,
-	&chn_syncdelay, 0,
-	"append (0-1000) millisecond trailing buffer delay on each sync");
+SYSCTL_INT(_hw_snd, OID_AUTO, usefrags, CTLFLAG_RWTUN, &chn_usefrags, 0,
+    "prefer setfragments() over setblocksize()");
+SYSCTL_INT(_hw_snd, OID_AUTO, syncdelay, CTLFLAG_RWTUN, &chn_syncdelay, 0,
+    "append (0-1000) millisecond trailing buffer delay on each sync");
 
 /**
  * @brief Channel sync group lock
@@ -206,7 +203,8 @@ SYSCTL_INT(_hw_snd, OID_AUTO, syncdelay, CTLFLAG_RWTUN,
  * before touching syncgroups or the main syncgroup list.
  */
 struct mtx snd_pcm_syncgroups_mtx;
-MTX_SYSINIT(pcm_syncgroup, &snd_pcm_syncgroups_mtx, "PCM channel sync group lock", MTX_DEF);
+MTX_SYSINIT(pcm_syncgroup, &snd_pcm_syncgroups_mtx,
+    "PCM channel sync group lock", MTX_DEF);
 /**
  * @brief syncgroups' master list
  *
@@ -215,7 +213,8 @@ MTX_SYSINIT(pcm_syncgroup, &snd_pcm_syncgroups_mtx, "PCM channel sync group lock
  *
  * See SNDCTL_DSP_SYNCGROUP for more information.
  */
-struct pcm_synclist snd_pcm_syncgroups = SLIST_HEAD_INITIALIZER(snd_pcm_syncgroups);
+struct pcm_synclist snd_pcm_syncgroups = SLIST_HEAD_INITIALIZER(
+    snd_pcm_syncgroups);
 
 static void
 chn_lockinit(struct pcm_channel *c, int dir)
@@ -318,7 +317,8 @@ chn_wakeup(struct pcm_channel *c)
 			CHN_BROADCAST(&c->intr_cv);
 		}
 	} else {
-		CHN_FOREACH(ch, c, children.busy) {
+		CHN_FOREACH(ch, c, children.busy)
+		{
 			CHN_LOCK(ch);
 			chn_wakeup(ch);
 			CHN_UNLOCK(ch);
@@ -371,14 +371,15 @@ chn_dmaupdate(struct pcm_channel *c)
 		amt = min(delta, sndbuf_getfree(b));
 		amt -= amt % sndbuf_getalign(b);
 		if (amt > 0)
-		       sndbuf_acquire(b, NULL, amt);
+			sndbuf_acquire(b, NULL, amt);
 	}
 	if (snd_verbose > 3 && CHN_STARTED(c) && delta == 0) {
-		device_printf(c->dev, "WARNING: %s DMA completion "
-			"too fast/slow ! hwptr=%u, old=%u "
-			"delta=%u amt=%u ready=%u free=%u\n",
-			CHN_DIRSTR(c), hwptr, old, delta, amt,
-			sndbuf_getready(b), sndbuf_getfree(b));
+		device_printf(c->dev,
+		    "WARNING: %s DMA completion "
+		    "too fast/slow ! hwptr=%u, old=%u "
+		    "delta=%u amt=%u ready=%u free=%u\n",
+		    CHN_DIRSTR(c), hwptr, old, delta, amt, sndbuf_getready(b),
+		    sndbuf_getfree(b));
 	}
 
 	return delta;
@@ -387,8 +388,8 @@ chn_dmaupdate(struct pcm_channel *c)
 static void
 chn_wrfeed(struct pcm_channel *c)
 {
-    	struct snd_dbuf *b = c->bufhard;
-    	struct snd_dbuf *bs = c->bufsoft;
+	struct snd_dbuf *b = c->bufhard;
+	struct snd_dbuf *bs = c->bufsoft;
 	unsigned int amt, want, wasfree;
 
 	CHN_LOCKASSERT(c);
@@ -398,8 +399,8 @@ chn_wrfeed(struct pcm_channel *c)
 
 	wasfree = sndbuf_getfree(b);
 	want = min(sndbuf_getsize(b),
-	    imax(0, sndbuf_xbytes(sndbuf_getsize(bs), bs, b) -
-	     sndbuf_getready(b)));
+	    imax(0,
+		sndbuf_xbytes(sndbuf_getsize(bs), bs, b) - sndbuf_getready(b)));
 	amt = min(wasfree, want);
 	if (amt > 0)
 		sndbuf_feed(bs, b, c, c->feeder, amt);
@@ -494,17 +495,19 @@ chn_write(struct pcm_channel *c, struct uio *buf)
 			 * 	 not sure if it at all violates the "write
 			 * 	 should be allowed to block" model.
 			 *
-			 * 	 The idea is that, while set with CHN_F_NOTRIGGER,
-			 * 	 a channel isn't playing, *but* without this we
-			 * 	 end up with "interrupt timeout / channel dead".
+			 * 	 The idea is that, while set with
+			 * CHN_F_NOTRIGGER, a channel isn't playing, *but*
+			 * without this we end up with "interrupt timeout /
+			 * channel dead".
 			 */
 			ret = EAGAIN;
 		} else {
-   			ret = chn_sleep(c, timeout);
+			ret = chn_sleep(c, timeout);
 			if (ret == EAGAIN) {
 				ret = EINVAL;
 				c->flags |= CHN_F_DEAD;
-				device_printf(c->dev, "%s(): %s: "
+				device_printf(c->dev,
+				    "%s(): %s: "
 				    "play interrupt timeout, channel dead\n",
 				    __func__, c->name);
 			} else if (ret == ERESTART || ret == EINTR)
@@ -521,8 +524,8 @@ chn_write(struct pcm_channel *c, struct uio *buf)
 static void
 chn_rdfeed(struct pcm_channel *c)
 {
-    	struct snd_dbuf *b = c->bufhard;
-    	struct snd_dbuf *bs = c->bufsoft;
+	struct snd_dbuf *b = c->bufhard;
+	struct snd_dbuf *bs = c->bufsoft;
 	unsigned int amt;
 
 	CHN_LOCKASSERT(c);
@@ -623,11 +626,12 @@ chn_read(struct pcm_channel *c, struct uio *buf)
 		} else if (c->flags & (CHN_F_NBIO | CHN_F_NOTRIGGER))
 			ret = EAGAIN;
 		else {
-   			ret = chn_sleep(c, timeout);
+			ret = chn_sleep(c, timeout);
 			if (ret == EAGAIN) {
 				ret = EINVAL;
 				c->flags |= CHN_F_DEAD;
-				device_printf(c->dev, "%s(): %s: "
+				device_printf(c->dev,
+				    "%s(): %s: "
 				    "record interrupt timeout, channel dead\n",
 				    __func__, c->name);
 			} else if (ret == ERESTART || ret == EINTR)
@@ -701,10 +705,12 @@ chn_start(struct pcm_channel *c, int force)
 			}
 		}
 		if (snd_verbose > 3 && CHN_EMPTY(c, children))
-			device_printf(c->dev, "%s(): %s (%s) threshold "
-			    "i=%d j=%d\n", __func__, CHN_DIRSTR(c),
-			    (c->flags & CHN_F_VIRTUAL) ? "virtual" :
-			    "hardware", i, j);
+			device_printf(c->dev,
+			    "%s(): %s (%s) threshold "
+			    "i=%d j=%d\n",
+			    __func__, CHN_DIRSTR(c),
+			    (c->flags & CHN_F_VIRTUAL) ? "virtual" : "hardware",
+			    i, j);
 	}
 
 	if (i >= j) {
@@ -728,13 +734,15 @@ chn_start(struct pcm_channel *c, int force)
 				    "intrtimeout=%u latency=%dms)\n",
 				    __func__,
 				    (c->flags & CHN_F_HAS_VCHAN) ?
-				    "VCHAN PARENT" : "HW", CHN_DIRSTR(c),
+					"VCHAN PARENT" :
+					"HW",
+				    CHN_DIRSTR(c),
 				    (c->flags & CHN_F_CLOSING) ? "closing" :
-				    "running",
-				    sndbuf_getready(b),
-				    force, i, j, c->timeout,
+								 "running",
+				    sndbuf_getready(b), force, i, j, c->timeout,
 				    (sndbuf_getsize(b) * 1000) /
-				    (sndbuf_getalign(b) * sndbuf_getspd(b)));
+					(sndbuf_getalign(b) *
+					    sndbuf_getspd(b)));
 		}
 		err = chn_trigger(c, PCMTRIG_START);
 	}
@@ -761,7 +769,7 @@ chn_resetbuf(struct pcm_channel *c)
 int
 chn_sync(struct pcm_channel *c, int threshold)
 {
-    	struct snd_dbuf *b, *bs;
+	struct snd_dbuf *b, *bs;
 	int ret, count, hcount, minflush, resid, residp, syncdelay, blksz;
 	u_int32_t cflag;
 
@@ -802,7 +810,8 @@ chn_sync(struct pcm_channel *c, int threshold)
 	 */
 	if (syncdelay > 0)
 		minflush += (sndbuf_getalign(bs) * sndbuf_getspd(bs) *
-		    ((syncdelay > 1000) ? 1000 : syncdelay)) / 1000;
+				((syncdelay > 1000) ? 1000 : syncdelay)) /
+		    1000;
 
 	minflush -= minflush % sndbuf_getalign(bs);
 
@@ -831,15 +840,16 @@ chn_sync(struct pcm_channel *c, int threshold)
 	ret = 0;
 
 	if (snd_verbose > 3)
-		device_printf(c->dev, "%s(): [begin] timeout=%d count=%d "
-		    "minflush=%d resid=%d\n", __func__, c->timeout, count,
-		    minflush, resid);
+		device_printf(c->dev,
+		    "%s(): [begin] timeout=%d count=%d "
+		    "minflush=%d resid=%d\n",
+		    __func__, c->timeout, count, minflush, resid);
 
 	cflag = c->flags & CHN_F_CLOSING;
 	c->flags |= CHN_F_CLOSING;
 	while (count > 0 && (resid > 0 || minflush > 0)) {
 		ret = chn_sleep(c, c->timeout);
-    		if (ret == ERESTART || ret == EINTR) {
+		if (ret == ERESTART || ret == EINTR) {
 			c->flags |= CHN_F_ABORTING;
 			break;
 		} else if (ret == 0 || ret == EAGAIN) {
@@ -851,8 +861,8 @@ chn_sync(struct pcm_channel *c, int threshold)
 					    "%s(): [stalled] timeout=%d "
 					    "count=%d hcount=%d "
 					    "resid=%d minflush=%d\n",
-					    __func__, c->timeout, count,
-					    hcount, resid, minflush);
+					    __func__, c->timeout, count, hcount,
+					    resid, minflush);
 			} else if (resid < residp && count < hcount) {
 				++count;
 				if (snd_verbose > 3)
@@ -860,12 +870,11 @@ chn_sync(struct pcm_channel *c, int threshold)
 					    "%s((): [resume] timeout=%d "
 					    "count=%d hcount=%d "
 					    "resid=%d minflush=%d\n",
-					    __func__, c->timeout, count,
-					    hcount, resid, minflush);
+					    __func__, c->timeout, count, hcount,
+					    resid, minflush);
 			}
 			if (minflush > 0 && sndbuf_getfree(bs) > 0) {
-				threshold = min(minflush,
-				    sndbuf_getfree(bs));
+				threshold = min(minflush, sndbuf_getfree(bs));
 				sndbuf_clear(bs, threshold);
 				sndbuf_acquire(bs, NULL, threshold);
 				resid = sndbuf_getready(bs);
@@ -885,7 +894,7 @@ chn_sync(struct pcm_channel *c, int threshold)
 		    __func__, c->timeout, count, hcount, resid, residp,
 		    minflush, ret);
 
-    	return (0);
+	return (0);
 }
 
 /* called externally, handle locking */
@@ -897,7 +906,7 @@ chn_poll(struct pcm_channel *c, int ev, struct thread *td)
 
 	CHN_LOCKASSERT(c);
 
-    	if (!(c->flags & (CHN_F_MMAP | CHN_F_TRIGGERED))) {
+	if (!(c->flags & (CHN_F_MMAP | CHN_F_TRIGGERED))) {
 		ret = chn_start(c, 1);
 		if (ret != 0)
 			return (0);
@@ -922,9 +931,9 @@ chn_poll(struct pcm_channel *c, int ev, struct thread *td)
 int
 chn_abort(struct pcm_channel *c)
 {
-    	int missing = 0;
-    	struct snd_dbuf *b = c->bufhard;
-    	struct snd_dbuf *bs = c->bufsoft;
+	int missing = 0;
+	struct snd_dbuf *b = c->bufhard;
+	struct snd_dbuf *bs = c->bufsoft;
 
 	CHN_LOCKASSERT(c);
 	if (CHN_STOPPED(c))
@@ -937,7 +946,7 @@ chn_abort(struct pcm_channel *c)
 	sndbuf_setrun(b, 0);
 	if (!(c->flags & CHN_F_VIRTUAL))
 		chn_dmaupdate(c);
-    	missing = sndbuf_getready(bs);
+	missing = sndbuf_getready(bs);
 
 	c->flags &= ~CHN_F_ABORTING;
 	return missing;
@@ -957,11 +966,11 @@ chn_abort(struct pcm_channel *c)
 int
 chn_flush(struct pcm_channel *c)
 {
-    	struct snd_dbuf *b = c->bufhard;
+	struct snd_dbuf *b = c->bufhard;
 
 	CHN_LOCKASSERT(c);
 	KASSERT(c->direction == PCMDIR_PLAY, ("chn_flush on bad channel"));
-    	DEB(printf("chn_flush: c->flags 0x%08x\n", c->flags));
+	DEB(printf("chn_flush: c->flags 0x%08x\n", c->flags));
 
 	c->flags |= CHN_F_CLOSING;
 	chn_sync(c, 0);
@@ -970,8 +979,8 @@ chn_flush(struct pcm_channel *c)
 	chn_trigger(c, PCMTRIG_ABORT);
 	sndbuf_setrun(b, 0);
 
-    	c->flags &= ~CHN_F_CLOSING;
-    	return 0;
+	c->flags &= ~CHN_F_CLOSING;
+	return 0;
 }
 
 int
@@ -982,7 +991,7 @@ snd_fmtvalid(uint32_t fmt, uint32_t *fmtlist)
 	for (i = 0; fmtlist[i] != 0; i++) {
 		if (fmt == fmtlist[i] ||
 		    ((fmt & AFMT_PASSTHROUGH) &&
-		    (AFMT_ENCODING(fmt) & fmtlist[i])))
+			(AFMT_ENCODING(fmt) & fmtlist[i])))
 			return (1);
 	}
 
@@ -992,36 +1001,32 @@ snd_fmtvalid(uint32_t fmt, uint32_t *fmtlist)
 static const struct {
 	char *name, *alias1, *alias2;
 	uint32_t afmt;
-} afmt_tab[] = {
-	{  "alaw",  NULL, NULL, AFMT_A_LAW  },
-	{ "mulaw",  NULL, NULL, AFMT_MU_LAW },
-	{    "u8",   "8", NULL, AFMT_U8     },
-	{    "s8",  NULL, NULL, AFMT_S8     },
+} afmt_tab[] = { { "alaw", NULL, NULL, AFMT_A_LAW },
+	{ "mulaw", NULL, NULL, AFMT_MU_LAW }, { "u8", "8", NULL, AFMT_U8 },
+	{ "s8", NULL, NULL, AFMT_S8 },
 #if BYTE_ORDER == LITTLE_ENDIAN
 	{ "s16le", "s16", "16", AFMT_S16_LE },
-	{ "s16be",  NULL, NULL, AFMT_S16_BE },
+	{ "s16be", NULL, NULL, AFMT_S16_BE },
 #else
-	{ "s16le",  NULL, NULL, AFMT_S16_LE },
+	{ "s16le", NULL, NULL, AFMT_S16_LE },
 	{ "s16be", "s16", "16", AFMT_S16_BE },
 #endif
-	{ "u16le",  NULL, NULL, AFMT_U16_LE },
-	{ "u16be",  NULL, NULL, AFMT_U16_BE },
-	{ "s24le",  NULL, NULL, AFMT_S24_LE },
-	{ "s24be",  NULL, NULL, AFMT_S24_BE },
-	{ "u24le",  NULL, NULL, AFMT_U24_LE },
-	{ "u24be",  NULL, NULL, AFMT_U24_BE },
+	{ "u16le", NULL, NULL, AFMT_U16_LE },
+	{ "u16be", NULL, NULL, AFMT_U16_BE },
+	{ "s24le", NULL, NULL, AFMT_S24_LE },
+	{ "s24be", NULL, NULL, AFMT_S24_BE },
+	{ "u24le", NULL, NULL, AFMT_U24_LE },
+	{ "u24be", NULL, NULL, AFMT_U24_BE },
 #if BYTE_ORDER == LITTLE_ENDIAN
 	{ "s32le", "s32", "32", AFMT_S32_LE },
-	{ "s32be",  NULL, NULL, AFMT_S32_BE },
+	{ "s32be", NULL, NULL, AFMT_S32_BE },
 #else
-	{ "s32le",  NULL, NULL, AFMT_S32_LE },
+	{ "s32le", NULL, NULL, AFMT_S32_LE },
 	{ "s32be", "s32", "32", AFMT_S32_BE },
 #endif
-	{ "u32le",  NULL, NULL, AFMT_U32_LE },
-	{ "u32be",  NULL, NULL, AFMT_U32_BE },
-	{   "ac3",  NULL, NULL, AFMT_AC3    },
-	{    NULL,  NULL, NULL, 0           }
-};
+	{ "u32le", NULL, NULL, AFMT_U32_LE },
+	{ "u32be", NULL, NULL, AFMT_U32_BE }, { "ac3", NULL, NULL, AFMT_AC3 },
+	{ NULL, NULL, NULL, 0 } };
 
 uint32_t
 snd_str2afmt(const char *req)
@@ -1085,7 +1090,7 @@ snd_str2afmt(const char *req)
 			}
 		}
 		/* found a match */
-		return (SND_FORMAT(afmt_tab[i].afmt, ch + ext, ext));	
+		return (SND_FORMAT(afmt_tab[i].afmt, ch + ext, ext));
 	}
 	/* not a valid format */
 	return (0);
@@ -1114,8 +1119,7 @@ snd_afmt2str(uint32_t afmt, char *buf, size_t len)
 		if (enc != afmt_tab[i].afmt)
 			continue;
 		/* found a match */
-		snprintf(buf, len, "%s:%d.%d",
-		    afmt_tab[i].name, ch - ext, ext);
+		snprintf(buf, len, "%s:%d.%d", afmt_tab[i].name, ch - ext, ext);
 		return (SND_FORMAT(enc, ch, ext));
 	}
 	return (0);
@@ -1134,7 +1138,8 @@ chn_reset(struct pcm_channel *c, uint32_t fmt, uint32_t spd)
 	c->xruns = 0;
 
 	c->flags |= (pcm_getflags(c->dev) & SD_F_BITPERFECT) ?
-	    CHN_F_BITPERFECT : 0;
+	    CHN_F_BITPERFECT :
+	    0;
 
 	r = CHANNEL_RESET(c->methods, c->devinfo);
 	if (r == 0 && fmt != 0 && spd != 0) {
@@ -1280,8 +1285,8 @@ out:
 int
 chn_kill(struct pcm_channel *c)
 {
-    	struct snd_dbuf *b = c->bufhard;
-    	struct snd_dbuf *bs = c->bufsoft;
+	struct snd_dbuf *b = c->bufhard;
+	struct snd_dbuf *bs = c->bufsoft;
 
 	if (CHN_STARTED(c)) {
 		CHN_LOCK(c);
@@ -1308,8 +1313,8 @@ chn_setvolume(struct pcm_channel *c, int left, int right)
 	int ret;
 
 	ret = chn_setvolume_matrix(c, SND_VOL_C_MASTER, SND_CHN_T_FL, left);
-	ret |= chn_setvolume_matrix(c, SND_VOL_C_MASTER, SND_CHN_T_FR,
-	    right) << 8;
+	ret |= chn_setvolume_matrix(c, SND_VOL_C_MASTER, SND_CHN_T_FR, right)
+	    << 8;
 
 	return (ret);
 }
@@ -1340,12 +1345,13 @@ chn_setvolume_matrix(struct pcm_channel *c, int vc, int vt, int val)
 	int i;
 
 	KASSERT(c != NULL && vc >= SND_VOL_C_MASTER && vc < SND_VOL_C_MAX &&
-	    (vc == SND_VOL_C_MASTER || (vc & 1)) &&
-	    (vt == SND_CHN_T_VOL_0DB || (vt >= SND_CHN_T_BEGIN &&
-	    vt <= SND_CHN_T_END)) && (vt != SND_CHN_T_VOL_0DB ||
-	    (val >= SND_VOL_0DB_MIN && val <= SND_VOL_0DB_MAX)),
-	    ("%s(): invalid volume matrix c=%p vc=%d vt=%d val=%d",
-	    __func__, c, vc, vt, val));
+		(vc == SND_VOL_C_MASTER || (vc & 1)) &&
+		(vt == SND_CHN_T_VOL_0DB ||
+		    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)) &&
+		(vt != SND_CHN_T_VOL_0DB ||
+		    (val >= SND_VOL_0DB_MIN && val <= SND_VOL_0DB_MAX)),
+	    ("%s(): invalid volume matrix c=%p vc=%d vt=%d val=%d", __func__, c,
+		vc, vt, val));
 	CHN_LOCKASSERT(c);
 
 	if (val < 0)
@@ -1361,13 +1367,13 @@ chn_setvolume_matrix(struct pcm_channel *c, int vc, int vt, int val)
 	 */
 	if (vc == SND_VOL_C_MASTER) {
 		for (vc = SND_VOL_C_BEGIN; vc <= SND_VOL_C_END;
-		    vc += SND_VOL_C_STEP)
+		     vc += SND_VOL_C_STEP)
 			c->volume[SND_VOL_C_VAL(vc)][vt] =
 			    SND_VOL_CALC_VAL(c->volume, vc, vt);
 	} else if (vc & 1) {
 		if (vt == SND_CHN_T_VOL_0DB)
 			for (i = SND_CHN_T_BEGIN; i <= SND_CHN_T_END;
-			    i += SND_CHN_T_STEP) {
+			     i += SND_CHN_T_STEP) {
 				c->volume[SND_VOL_C_VAL(vc)][i] =
 				    SND_VOL_CALC_VAL(c->volume, vc, i);
 			}
@@ -1383,10 +1389,10 @@ int
 chn_getvolume_matrix(struct pcm_channel *c, int vc, int vt)
 {
 	KASSERT(c != NULL && vc >= SND_VOL_C_MASTER && vc < SND_VOL_C_MAX &&
-	    (vt == SND_CHN_T_VOL_0DB ||
-	    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
-	    ("%s(): invalid volume matrix c=%p vc=%d vt=%d",
-	    __func__, c, vc, vt));
+		(vt == SND_CHN_T_VOL_0DB ||
+		    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
+	    ("%s(): invalid volume matrix c=%p vc=%d vt=%d", __func__, c, vc,
+		vt));
 	CHN_LOCKASSERT(c);
 
 	return (c->volume[vc][vt]);
@@ -1416,10 +1422,11 @@ chn_setmute_matrix(struct pcm_channel *c, int vc, int vt, int mute)
 	int i;
 
 	KASSERT(c != NULL && vc >= SND_VOL_C_MASTER && vc < SND_VOL_C_MAX &&
-	    (vc == SND_VOL_C_MASTER || (vc & 1)) &&
-	    (vt == SND_CHN_T_VOL_0DB || (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
-	    ("%s(): invalid mute matrix c=%p vc=%d vt=%d mute=%d",
-	    __func__, c, vc, vt, mute));
+		(vc == SND_VOL_C_MASTER || (vc & 1)) &&
+		(vt == SND_CHN_T_VOL_0DB ||
+		    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
+	    ("%s(): invalid mute matrix c=%p vc=%d vt=%d mute=%d", __func__, c,
+		vc, vt, mute));
 
 	CHN_LOCKASSERT(c);
 
@@ -1433,12 +1440,12 @@ chn_setmute_matrix(struct pcm_channel *c, int vc, int vt, int mute)
 	 */
 	if (vc == SND_VOL_C_MASTER) {
 		for (vc = SND_VOL_C_BEGIN; vc <= SND_VOL_C_END;
-		    vc += SND_VOL_C_STEP)
+		     vc += SND_VOL_C_STEP)
 			c->muted[SND_VOL_C_VAL(vc)][vt] = mute;
 	} else if (vc & 1) {
 		if (vt == SND_CHN_T_VOL_0DB) {
 			for (i = SND_CHN_T_BEGIN; i <= SND_CHN_T_END;
-			    i += SND_CHN_T_STEP) {
+			     i += SND_CHN_T_STEP) {
 				c->muted[SND_VOL_C_VAL(vc)][i] = mute;
 			}
 		} else {
@@ -1452,10 +1459,10 @@ int
 chn_getmute_matrix(struct pcm_channel *c, int vc, int vt)
 {
 	KASSERT(c != NULL && vc >= SND_VOL_C_MASTER && vc < SND_VOL_C_MAX &&
-	    (vt == SND_CHN_T_VOL_0DB ||
-	    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
-	    ("%s(): invalid mute matrix c=%p vc=%d vt=%d",
-	    __func__, c, vc, vt));
+		(vt == SND_CHN_T_VOL_0DB ||
+		    (vt >= SND_CHN_T_BEGIN && vt <= SND_CHN_T_END)),
+	    ("%s(): invalid mute matrix c=%p vc=%d vt=%d", __func__, c, vc,
+		vt));
 	CHN_LOCKASSERT(c);
 
 	return (c->muted[vc][vt]);
@@ -1529,10 +1536,10 @@ chn_oss_setorder(struct pcm_channel *c, unsigned long long *map)
 	return (chn_setmatrix(c, &m));
 }
 
-#define SND_CHN_OSS_FRONT	(SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR)
-#define SND_CHN_OSS_SURR	(SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR)
-#define SND_CHN_OSS_CENTER_LFE	(SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF)
-#define SND_CHN_OSS_REAR	(SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR)
+#define SND_CHN_OSS_FRONT (SND_CHN_T_MASK_FL | SND_CHN_T_MASK_FR)
+#define SND_CHN_OSS_SURR (SND_CHN_T_MASK_SL | SND_CHN_T_MASK_SR)
+#define SND_CHN_OSS_CENTER_LFE (SND_CHN_T_MASK_FC | SND_CHN_T_MASK_LF)
+#define SND_CHN_OSS_REAR (SND_CHN_T_MASK_BL | SND_CHN_T_MASK_BR)
 
 int
 chn_oss_getmask(struct pcm_channel *c, uint32_t *retmask)
@@ -1702,46 +1709,61 @@ round_blksz(u_int32_t v, int round)
  * aggressively through possibly real time programming technique.
  *
  */
-#define CHN_LATENCY_PBLKCNT_REF				\
-	{{1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1},		\
-	{1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1}}
-#define CHN_LATENCY_PBUFSZ_REF				\
-	{{7, 9, 12, 13, 14, 15, 15, 15, 15, 15, 16},	\
-	{11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 17}}
+#define CHN_LATENCY_PBLKCNT_REF                         \
+	{                                               \
+		{ 1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1 },    \
+		{                                       \
+			1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 1 \
+		}                                       \
+	}
+#define CHN_LATENCY_PBUFSZ_REF                                     \
+	{                                                          \
+		{ 7, 9, 12, 13, 14, 15, 15, 15, 15, 15, 16 },      \
+		{                                                  \
+			11, 12, 13, 14, 15, 16, 16, 16, 16, 16, 17 \
+		}                                                  \
+	}
 
-#define CHN_LATENCY_RBLKCNT_REF				\
-	{{9, 8, 7, 6, 5, 5, 4, 3, 2, 1, 1},		\
-	{9, 8, 7, 6, 5, 5, 4, 3, 2, 1, 1}}
-#define CHN_LATENCY_RBUFSZ_REF				\
-	{{14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 16},	\
-	{15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 17}}
+#define CHN_LATENCY_RBLKCNT_REF                         \
+	{                                               \
+		{ 9, 8, 7, 6, 5, 5, 4, 3, 2, 1, 1 },    \
+		{                                       \
+			9, 8, 7, 6, 5, 5, 4, 3, 2, 1, 1 \
+		}                                       \
+	}
+#define CHN_LATENCY_RBUFSZ_REF                                     \
+	{                                                          \
+		{ 14, 14, 14, 14, 14, 15, 15, 15, 15, 15, 16 },    \
+		{                                                  \
+			15, 15, 15, 15, 15, 16, 16, 16, 16, 16, 17 \
+		}                                                  \
+	}
 
-#define CHN_LATENCY_DATA_REF	192000 /* 48khz stereo 16bit ~ 48000 x 2 x 2 */
+#define CHN_LATENCY_DATA_REF 192000 /* 48khz stereo 16bit ~ 48000 x 2 x 2 */
 
 static int
 chn_calclatency(int dir, int latency, int bps, u_int32_t datarate,
-				u_int32_t max, int *rblksz, int *rblkcnt)
+    u_int32_t max, int *rblksz, int *rblkcnt)
 {
 	static int pblkcnts[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
 	    CHN_LATENCY_PBLKCNT_REF;
-	static int  pbufszs[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
+	static int pbufszs[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
 	    CHN_LATENCY_PBUFSZ_REF;
 	static int rblkcnts[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
 	    CHN_LATENCY_RBLKCNT_REF;
-	static int  rbufszs[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
+	static int rbufszs[CHN_LATENCY_PROFILE_MAX + 1][CHN_LATENCY_MAX + 1] =
 	    CHN_LATENCY_RBUFSZ_REF;
 	u_int32_t bufsz;
 	int lprofile, blksz, blkcnt;
 
-	if (latency < CHN_LATENCY_MIN || latency > CHN_LATENCY_MAX ||
-	    bps < 1 || datarate < 1 ||
-	    !(dir == PCMDIR_PLAY || dir == PCMDIR_REC)) {
+	if (latency < CHN_LATENCY_MIN || latency > CHN_LATENCY_MAX || bps < 1 ||
+	    datarate < 1 || !(dir == PCMDIR_PLAY || dir == PCMDIR_REC)) {
 		if (rblksz != NULL)
 			*rblksz = CHN_2NDBUFMAXSIZE >> 1;
 		if (rblkcnt != NULL)
 			*rblkcnt = 2;
 		printf("%s(): FAILED dir=%d latency=%d bps=%d "
-		    "datarate=%u max=%u\n",
+		       "datarate=%u max=%u\n",
 		    __func__, dir, latency, bps, datarate, max);
 		return CHN_2NDBUFMAXSIZE;
 	}
@@ -1756,8 +1778,8 @@ chn_calclatency(int dir, int latency, int bps, u_int32_t datarate,
 		bufsz = rbufszs[lprofile][latency];
 	}
 
-	bufsz = round_pow2(snd_xbytes(1 << bufsz, CHN_LATENCY_DATA_REF,
-	    datarate));
+	bufsz = round_pow2(
+	    snd_xbytes(1 << bufsz, CHN_LATENCY_DATA_REF, datarate));
 	if (bufsz > max)
 		bufsz = max;
 	blksz = round_blksz(bufsz >> blkcnt, bps);
@@ -1771,8 +1793,7 @@ chn_calclatency(int dir, int latency, int bps, u_int32_t datarate,
 }
 
 static int
-chn_resizebuf(struct pcm_channel *c, int latency,
-					int blkcnt, int blksz)
+chn_resizebuf(struct pcm_channel *c, int latency, int blkcnt, int blksz)
 {
 	struct snd_dbuf *b, *bs, *pb;
 	int sblksz, sblkcnt, hblksz, hblkcnt, limit = 0, nsblksz, nsblkcnt;
@@ -1802,12 +1823,12 @@ chn_resizebuf(struct pcm_channel *c, int latency,
 
 	if (!(blksz == 0 || blkcnt == -1) &&
 	    (blksz < 16 || blksz < sndbuf_getalign(bs) || blkcnt < 2 ||
-	    (blksz * blkcnt) > CHN_2NDBUFMAXSIZE))
+		(blksz * blkcnt) > CHN_2NDBUFMAXSIZE))
 		return EINVAL;
 
 	chn_calclatency(c->direction, latency, sndbuf_getalign(bs),
-	    sndbuf_getalign(bs) * sndbuf_getspd(bs), CHN_2NDBUFMAXSIZE,
-	    &sblksz, &sblkcnt);
+	    sndbuf_getalign(bs) * sndbuf_getspd(bs), CHN_2NDBUFMAXSIZE, &sblksz,
+	    &sblkcnt);
 
 	if (blksz == 0 || blkcnt == -1) {
 		if (blkcnt == -1)
@@ -1840,10 +1861,12 @@ chn_resizebuf(struct pcm_channel *c, int latency,
 		CHN_LOCK(c);
 		if (c->direction == PCMDIR_PLAY) {
 			limit = (pb != NULL) ?
-			    sndbuf_xbytes(sndbuf_getsize(pb), pb, bs) : 0;
+			    sndbuf_xbytes(sndbuf_getsize(pb), pb, bs) :
+			    0;
 		} else {
 			limit = (pb != NULL) ?
-			    sndbuf_xbytes(sndbuf_getblksz(pb), pb, bs) * 2 : 0;
+			    sndbuf_xbytes(sndbuf_getblksz(pb), pb, bs) * 2 :
+			    0;
 		}
 	} else {
 		hblkcnt = 2;
@@ -1878,15 +1901,16 @@ chn_resizebuf(struct pcm_channel *c, int latency,
 
 		CHN_UNLOCK(c);
 		if (chn_usefrags == 0 ||
-		    CHANNEL_SETFRAGMENTS(c->methods, c->devinfo,
-		    hblksz, hblkcnt) != 0)
-			sndbuf_setblksz(b, CHANNEL_SETBLOCKSIZE(c->methods,
-			    c->devinfo, hblksz));
+		    CHANNEL_SETFRAGMENTS(c->methods, c->devinfo, hblksz,
+			hblkcnt) != 0)
+			sndbuf_setblksz(b,
+			    CHANNEL_SETBLOCKSIZE(c->methods, c->devinfo,
+				hblksz));
 		CHN_LOCK(c);
 
 		if (!CHN_EMPTY(c, children)) {
-			nsblksz = round_blksz(
-			    sndbuf_xbytes(sndbuf_getblksz(b), b, bs),
+			nsblksz = round_blksz(sndbuf_xbytes(sndbuf_getblksz(b),
+						  b, bs),
 			    sndbuf_getalign(bs));
 			nsblkcnt = sndbuf_getblkcnt(b);
 			if (c->direction == PCMDIR_PLAY) {
@@ -1930,8 +1954,8 @@ chn_resizebuf(struct pcm_channel *c, int latency,
 	    sndbuf_getsize(bs) != (sblkcnt * sblksz)) {
 		ret = sndbuf_remalloc(bs, sblkcnt, sblksz);
 		if (ret != 0) {
-			device_printf(c->dev, "%s(): Failed: %d %d\n",
-			    __func__, sblkcnt, sblksz);
+			device_printf(c->dev, "%s(): Failed: %d %d\n", __func__,
+			    sblkcnt, sblksz);
 			return ret;
 		}
 	}
@@ -1954,15 +1978,14 @@ chn_resizebuf(struct pcm_channel *c, int latency,
 	chn_resetbuf(c);
 
 	if (snd_verbose > 3)
-		device_printf(c->dev, "%s(): %s (%s) timeout=%u "
+		device_printf(c->dev,
+		    "%s(): %s (%s) timeout=%u "
 		    "b[%d/%d/%d] bs[%d/%d/%d] limit=%d\n",
 		    __func__, CHN_DIRSTR(c),
 		    (c->flags & CHN_F_VIRTUAL) ? "virtual" : "hardware",
-		    c->timeout,
-		    sndbuf_getsize(b), sndbuf_getblksz(b),
-		    sndbuf_getblkcnt(b),
-		    sndbuf_getsize(bs), sndbuf_getblksz(bs),
-		    sndbuf_getblkcnt(bs), limit);
+		    c->timeout, sndbuf_getsize(b), sndbuf_getblksz(b),
+		    sndbuf_getblkcnt(b), sndbuf_getsize(bs),
+		    sndbuf_getblksz(bs), sndbuf_getblkcnt(bs), limit);
 
 	return 0;
 }
@@ -2003,8 +2026,8 @@ chn_setparam(struct pcm_channel *c, uint32_t format, uint32_t speed)
 	hwspeed = speed;
 	RANGE(hwspeed, caps->minspeed, caps->maxspeed);
 
-	sndbuf_setspd(c->bufhard, CHANNEL_SETSPEED(c->methods, c->devinfo,
-	    hwspeed));
+	sndbuf_setspd(c->bufhard,
+	    CHANNEL_SETSPEED(c->methods, c->devinfo, hwspeed));
 	hwspeed = sndbuf_getspd(c->bufhard);
 
 	delta = (hwspeed > speed) ? (hwspeed - speed) : (speed - hwspeed);
@@ -2089,8 +2112,7 @@ chn_syncstate(struct pcm_channel *c)
 	struct snd_mixer *m;
 
 	d = (c != NULL) ? c->parentsnddev : NULL;
-	m = (d != NULL && d->mixer_dev != NULL) ? d->mixer_dev->si_drv1 :
-	    NULL;
+	m = (d != NULL && d->mixer_dev != NULL) ? d->mixer_dev->si_drv1 : NULL;
 
 	if (d == NULL || m == NULL)
 		return;
@@ -2149,8 +2171,8 @@ chn_syncstate(struct pcm_channel *c)
 		if (treble == -1)
 			treble = 50;
 		else
-			treble = ((treble & 0x7f) +
-			    ((treble >> 8) & 0x7f)) >> 1;
+			treble = ((treble & 0x7f) + ((treble >> 8) & 0x7f)) >>
+			    1;
 
 		if (bass == -1)
 			bass = 50;
@@ -2161,12 +2183,10 @@ chn_syncstate(struct pcm_channel *c)
 		if (f != NULL) {
 			if (FEEDER_SET(f, FEEDEQ_TREBLE, treble) != 0)
 				device_printf(c->dev,
-				    "EQ: Failed to set treble -- %d\n",
-				    treble);
+				    "EQ: Failed to set treble -- %d\n", treble);
 			if (FEEDER_SET(f, FEEDEQ_BASS, bass) != 0)
 				device_printf(c->dev,
-				    "EQ: Failed to set bass -- %d\n",
-				    bass);
+				    "EQ: Failed to set bass -- %d\n", bass);
 			if (FEEDER_SET(f, FEEDEQ_PREAMP, d->eqpreamp) != 0)
 				device_printf(c->dev,
 				    "EQ: Failed to set preamp -- %d\n",
@@ -2206,8 +2226,8 @@ chn_trigger(struct pcm_channel *c, int go)
 		if (snd_verbose > 3)
 			device_printf(c->dev,
 			    "%s() %s: calling go=0x%08x , "
-			    "prev=0x%08x\n", __func__, c->name, go,
-			    c->trigger);
+			    "prev=0x%08x\n",
+			    __func__, c->name, go, c->trigger);
 		if (c->trigger != PCMTRIG_START) {
 			c->trigger = go;
 			CHN_UNLOCK(c);
@@ -2223,8 +2243,8 @@ chn_trigger(struct pcm_channel *c, int go)
 		if (snd_verbose > 3)
 			device_printf(c->dev,
 			    "%s() %s: calling go=0x%08x , "
-			    "prev=0x%08x\n", __func__, c->name, go,
-			    c->trigger);
+			    "prev=0x%08x\n",
+			    __func__, c->name, go, c->trigger);
 		if (c->trigger == PCMTRIG_START) {
 			c->trigger = go;
 			CHN_UNLOCK(c);
@@ -2249,7 +2269,7 @@ chn_trigger(struct pcm_channel *c, int go)
  * running in 16 bit stereo mode would require 4 bytes per sample, so a
  * hwptr value ranging from 32-35 would be returned as 32.)
  *
- * @param c	PCM channel context	
+ * @param c	PCM channel context
  * @returns 	sample-aligned hardware buffer pointer index
  */
 int
@@ -2375,7 +2395,8 @@ chn_notify(struct pcm_channel *c, u_int32_t flags)
 		dirty = 0;
 		vpflags = 0;
 
-		CHN_FOREACH(ch, c, children.busy) {
+		CHN_FOREACH(ch, c, children.busy)
+		{
 			CHN_LOCK(ch);
 			if ((ch->format & AFMT_PASSTHROUGH) &&
 			    snd_fmtvalid(ch->format, caps->fmtlist)) {
@@ -2422,7 +2443,7 @@ chn_notify(struct pcm_channel *c, u_int32_t flags)
 			    AFMT_CHANNEL(bestformat))
 				bestformat = besthwformat;
 			else if (AFMT_CHANNEL(besthwformat) ==
-			    AFMT_CHANNEL(bestformat) &&
+				AFMT_CHANNEL(bestformat) &&
 			    AFMT_BIT(besthwformat) > AFMT_BIT(bestformat))
 				bestformat = besthwformat;
 			CHN_UNLOCK(ch);
@@ -2447,7 +2468,8 @@ chn_notify(struct pcm_channel *c, u_int32_t flags)
 				err = chn_reset(c, bestformat, bestspeed);
 			}
 			if (err == 0 && dirty) {
-				CHN_FOREACH(ch, c, children.busy) {
+				CHN_FOREACH(ch, c, children.busy)
+				{
 					CHN_LOCK(ch);
 					if (VCHAN_SYNC_REQUIRED(ch))
 						vchan_sync(ch);
@@ -2467,7 +2489,8 @@ chn_notify(struct pcm_channel *c, u_int32_t flags)
 			    bestspeed);
 			err = chn_reset(c, bestformat, bestspeed);
 			if (err == 0) {
-				CHN_FOREACH(ch, c, children.busy) {
+				CHN_FOREACH(ch, c, children.busy)
+				{
 					CHN_LOCK(ch);
 					if (VCHAN_SYNC_REQUIRED(ch))
 						vchan_sync(ch);
@@ -2561,7 +2584,8 @@ chn_syncdestroy(struct pcm_channel *c)
 		free(sm, M_DEVBUF);
 
 		if (SLIST_EMPTY(&sg->members)) {
-			SLIST_REMOVE(&snd_pcm_syncgroups, sg, pcmchan_syncgroup, link);
+			SLIST_REMOVE(&snd_pcm_syncgroups, sg, pcmchan_syncgroup,
+			    link);
 			sg_id = sg->id;
 			free(sg, M_DEVBUF);
 		}

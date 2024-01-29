@@ -35,6 +35,7 @@
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fnmatch.h>
@@ -49,32 +50,31 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define SI_OPT	(CHAR_MAX + 1)
+#define SI_OPT (CHAR_MAX + 1)
 
-#define UNITS_2		1
-#define UNITS_SI	2
+#define UNITS_2 1
+#define UNITS_SI 2
 
 static SLIST_HEAD(ignhead, ignentry) ignores;
 struct ignentry {
-	char			*mask;
-	SLIST_ENTRY(ignentry)	next;
+	char *mask;
+	SLIST_ENTRY(ignentry) next;
 };
 
-static int	linkchk(FTSENT *);
-static void	usage(void);
-static void	prthumanval(int64_t);
-static void	ignoreadd(const char *);
-static void	ignoreclean(void);
-static int	ignorep(FTSENT *);
-static void	siginfo(int __unused);
+static int linkchk(FTSENT *);
+static void usage(void);
+static void prthumanval(int64_t);
+static void ignoreadd(const char *);
+static void ignoreclean(void);
+static int ignorep(FTSENT *);
+static void siginfo(int __unused);
 
-static int	nodumpflag = 0;
-static int	Aflag, hflag;
-static long	blocksize, cblocksize;
+static int nodumpflag = 0;
+static int Aflag, hflag;
+static long blocksize, cblocksize;
 static volatile sig_atomic_t info;
 
-static const struct option long_options[] =
-{
+static const struct option long_options[] = {
 	{ "si", no_argument, NULL, SI_OPT },
 	{ NULL, no_argument, NULL, 0 },
 };
@@ -82,16 +82,16 @@ static const struct option long_options[] =
 int
 main(int argc, char *argv[])
 {
-	FTS		*fts;
-	FTSENT		*p;
-	off_t		savednumber, curblocks;
-	off_t		threshold, threshold_sign;
-	int		ftsoptions;
-	int		depth;
-	int		Hflag, Lflag, aflag, sflag, dflag, cflag;
-	int		lflag, ch, notused, rval;
-	char 		**save;
-	static char	dot[] = ".";
+	FTS *fts;
+	FTSENT *p;
+	off_t savednumber, curblocks;
+	off_t threshold, threshold_sign;
+	int ftsoptions;
+	int depth;
+	int Hflag, Lflag, aflag, sflag, dflag, cflag;
+	int lflag, ch, notused, rval;
+	char **save;
+	static char dot[] = ".";
 
 	setlocale(LC_ALL, "");
 
@@ -108,7 +108,7 @@ main(int argc, char *argv[])
 	SLIST_INIT(&ignores);
 
 	while ((ch = getopt_long(argc, argv, "+AB:HI:LPasd:cghklmnrt:x",
-	    long_options, NULL)) != -1)
+		    long_options, NULL)) != -1)
 		switch (ch) {
 		case 'A':
 			Aflag = 1;
@@ -176,9 +176,9 @@ main(int argc, char *argv[])
 		case 'n':
 			nodumpflag = 1;
 			break;
-		case 'r':		 /* Compatibility. */
+		case 'r': /* Compatibility. */
 			break;
-		case 't' :
+		case 't':
 			if (expand_number(optarg, &threshold) != 0 ||
 			    threshold == 0) {
 				warnx("invalid threshold: %s", optarg);
@@ -256,7 +256,7 @@ main(int argc, char *argv[])
 
 	while (errno = 0, (p = fts_read(fts)) != NULL) {
 		switch (p->fts_info) {
-		case FTS_D:			/* Ignore. */
+		case FTS_D: /* Ignore. */
 			if (ignorep(p))
 				fts_set(fts, p, FTS_SKIP);
 			break;
@@ -267,19 +267,20 @@ main(int argc, char *argv[])
 			curblocks = Aflag ?
 			    howmany(p->fts_statp->st_size, cblocksize) :
 			    howmany(p->fts_statp->st_blocks, cblocksize);
-			p->fts_parent->fts_bignum += p->fts_bignum +=
-			    curblocks;
+			p->fts_parent->fts_bignum += p->fts_bignum += curblocks;
 
-			if (p->fts_level <= depth && threshold <=
-			    threshold_sign * howmany(p->fts_bignum *
-			    cblocksize, blocksize)) {
+			if (p->fts_level <= depth &&
+			    threshold <= threshold_sign *
+				    howmany(p->fts_bignum * cblocksize,
+					blocksize)) {
 				if (hflag > 0) {
 					prthumanval(p->fts_bignum);
 					(void)printf("\t%s\n", p->fts_path);
 				} else {
 					(void)printf("%jd\t%s\n",
 					    (intmax_t)howmany(p->fts_bignum *
-					    cblocksize, blocksize),
+						    cblocksize,
+						blocksize),
 					    p->fts_path);
 				}
 			}
@@ -288,9 +289,9 @@ main(int argc, char *argv[])
 				(void)printf("\t%s\n", p->fts_path);
 			}
 			break;
-		case FTS_DC:			/* Ignore. */
+		case FTS_DC: /* Ignore. */
 			break;
-		case FTS_DNR:			/* Warn, continue. */
+		case FTS_DNR: /* Warn, continue. */
 		case FTS_ERR:
 		case FTS_NS:
 			warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
@@ -315,7 +316,8 @@ main(int argc, char *argv[])
 				} else {
 					(void)printf("%jd\t%s\n",
 					    (intmax_t)howmany(curblocks *
-					    cblocksize, blocksize),
+						    cblocksize,
+						blocksize),
 					    p->fts_path);
 				}
 			}
@@ -333,8 +335,9 @@ main(int argc, char *argv[])
 			prthumanval(savednumber);
 			(void)printf("\ttotal\n");
 		} else {
-			(void)printf("%jd\ttotal\n", (intmax_t)howmany(
-			    savednumber * cblocksize, blocksize));
+			(void)printf("%jd\ttotal\n",
+			    (intmax_t)howmany(savednumber * cblocksize,
+				blocksize));
 		}
 	}
 
@@ -348,9 +351,9 @@ linkchk(FTSENT *p)
 	struct links_entry {
 		struct links_entry *next;
 		struct links_entry *previous;
-		int	 links;
-		dev_t	 dev;
-		ino_t	 ino;
+		int links;
+		dev_t dev;
+		ino_t ino;
 	};
 	static const size_t links_hash_initial_size = 8192;
 	static struct links_entry **buckets;
@@ -418,7 +421,7 @@ linkchk(FTSENT *p)
 	}
 
 	/* Try to locate this entry in the hash table. */
-	hash = ( st->st_dev ^ st->st_ino ) % number_buckets;
+	hash = (st->st_dev ^ st->st_ino) % number_buckets;
 	for (le = buckets[hash]; le != NULL; le = le->next) {
 		if (le->dev == st->st_dev && le->ino == st->st_ino) {
 			/*
@@ -495,9 +498,9 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: du [-Aclnx] [-H | -L | -P] [-g | -h | -k | -m] "
-		"[-a | -s | -d depth] [-B blocksize] [-I mask] "
-		"[-t threshold] [file ...]\n");
+	    "usage: du [-Aclnx] [-H | -L | -P] [-g | -h | -k | -m] "
+	    "[-a | -s | -d depth] [-B blocksize] [-I mask] "
+	    "[-t threshold] [file ...]\n");
 	exit(EX_USAGE);
 }
 
@@ -535,7 +538,7 @@ ignorep(FTSENT *ent)
 
 	if (nodumpflag && (ent->fts_statp->st_flags & UF_NODUMP))
 		return 1;
-	SLIST_FOREACH(ign, &ignores, next)
+	SLIST_FOREACH (ign, &ignores, next)
 		if (fnmatch(ign->mask, ent->fts_name, 0) != FNM_NOMATCH)
 			return 1;
 	return 0;

@@ -37,10 +37,10 @@
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>   
 #include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
@@ -54,17 +54,17 @@
 
 struct cfi_disk_softc {
 	struct cfi_softc *parent;
-	struct disk	*disk;
-	int		flags;
-#define	CFI_DISK_OPEN	0x0001
-	struct bio_queue_head bioq;	/* bio queue */
-	struct mtx	qlock;		/* bioq lock */
-	struct taskqueue *tq;		/* private task queue for i/o request */
-	struct task	iotask;		/* i/o processing */
+	struct disk *disk;
+	int flags;
+#define CFI_DISK_OPEN 0x0001
+	struct bio_queue_head bioq; /* bio queue */
+	struct mtx qlock;	    /* bioq lock */
+	struct taskqueue *tq;	    /* private task queue for i/o request */
+	struct task iotask;	    /* i/o processing */
 };
 
-#define	CFI_DISK_SECSIZE	512
-#define	CFI_DISK_MAXIOSIZE	65536
+#define CFI_DISK_SECSIZE 512
+#define CFI_DISK_MAXIOSIZE 65536
 
 static int cfi_disk_detach(device_t);
 static int cfi_disk_open(struct disk *);
@@ -87,8 +87,7 @@ cfi_disk_attach(device_t dev)
 
 	sc->parent = device_get_softc(device_get_parent(dev));
 	/* validate interface width; assumed by other code */
-	if (sc->parent->sc_width != 1 &&
-	    sc->parent->sc_width != 2 &&
+	if (sc->parent->sc_width != 1 && sc->parent->sc_width != 2 &&
 	    sc->parent->sc_width != 4)
 		return EINVAL;
 
@@ -101,7 +100,7 @@ cfi_disk_attach(device_t dev)
 	sc->disk->d_close = cfi_disk_close;
 	sc->disk->d_strategy = cfi_disk_strategy;
 	sc->disk->d_ioctl = cfi_disk_ioctl;
-	sc->disk->d_dump = NULL;		/* NB: no dumps */
+	sc->disk->d_dump = NULL; /* NB: no dumps */
 	sc->disk->d_getattr = cfi_disk_getattr;
 	sc->disk->d_sectorsize = CFI_DISK_SECSIZE;
 	sc->disk->d_mediasize = sc->parent->sc_size;
@@ -115,7 +114,7 @@ cfi_disk_attach(device_t dev)
 		 * lies at the start of the last erase region.
 		 */
 		sc->disk->d_stripesize =
-		    sc->parent->sc_region[sc->parent->sc_regions-1].r_blksz;
+		    sc->parent->sc_region[sc->parent->sc_regions - 1].r_blksz;
 	} else
 		sc->disk->d_stripesize = sc->disk->d_mediasize;
 	sc->disk->d_drv1 = sc;
@@ -125,7 +124,7 @@ cfi_disk_attach(device_t dev)
 	bioq_init(&sc->bioq);
 
 	sc->tq = taskqueue_create("cfid_taskq", M_NOWAIT,
-		taskqueue_thread_enqueue, &sc->tq);
+	    taskqueue_thread_enqueue, &sc->tq);
 	taskqueue_start_threads(&sc->tq, 1, PI_DISK, "cfid taskq");
 
 	TASK_INIT(&sc->iotask, 0, cfi_io_proc, sc);
@@ -337,17 +336,15 @@ cfi_disk_strategy(struct bio *bp)
 
 static int
 cfi_disk_ioctl(struct disk *dp, u_long cmd, void *data, int fflag,
-	struct thread *td)
+    struct thread *td)
 {
 	return EINVAL;
 }
 
-static device_method_t cfi_disk_methods[] = {
-	DEVMETHOD(device_probe,		cfi_disk_probe),
-	DEVMETHOD(device_attach,	cfi_disk_attach),
-	DEVMETHOD(device_detach,	cfi_disk_detach),
-	{ 0, 0 }
-};
+static device_method_t cfi_disk_methods[] = { DEVMETHOD(device_probe,
+						  cfi_disk_probe),
+	DEVMETHOD(device_attach, cfi_disk_attach),
+	DEVMETHOD(device_detach, cfi_disk_detach), { 0, 0 } };
 static driver_t cfi_disk_driver = {
 	"cfid",
 	cfi_disk_methods,

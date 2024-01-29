@@ -26,7 +26,9 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
+
 #include "bootstrap.h"
 #include "libuboot.h"
 
@@ -34,7 +36,8 @@
 #include "dev_net.h"
 #endif
 
-/* Make sure we have an explicit reference to exit so libsa's panic pulls in the MD exit */
+/* Make sure we have an explicit reference to exit so libsa's panic pulls in the
+ * MD exit */
 void (*exitfn)(int) = exit;
 
 struct devsw *devsw[] = {
@@ -79,14 +82,8 @@ struct netif_driver *netif_drivers[] = {
 	NULL,
 };
 
-struct file_format *file_formats[] = {
-	&uboot_elf,
-	NULL
-};
+struct file_format *file_formats[] = { &uboot_elf, NULL };
 
 extern struct console uboot_console;
 
-struct console *consoles[] = {
-	&uboot_console,
-	NULL
-};
+struct console *consoles[] = { &uboot_console, NULL };

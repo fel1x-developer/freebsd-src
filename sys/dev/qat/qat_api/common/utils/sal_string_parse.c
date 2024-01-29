@@ -16,33 +16,25 @@
 #include "sal_string_parse.h"
 
 CpaStatus
-Sal_StringParsing(char *string1,
-		  Cpa32U instanceNumber,
-		  char *string2,
-		  char *result)
+Sal_StringParsing(char *string1, Cpa32U instanceNumber, char *string2,
+    char *result)
 {
 	char instNumString[SAL_CFG_MAX_VAL_LEN_IN_BYTES] = { 0 };
 	Cpa32U instNumStringLen = 0;
 
-	snprintf(instNumString,
-		 SAL_CFG_MAX_VAL_LEN_IN_BYTES,
-		 "%d",
-		 instanceNumber);
+	snprintf(instNumString, SAL_CFG_MAX_VAL_LEN_IN_BYTES, "%d",
+	    instanceNumber);
 	instNumStringLen = strnlen(instNumString, SAL_CFG_MAX_VAL_LEN_IN_BYTES);
 	if ((strnlen(string1, SAL_CFG_MAX_VAL_LEN_IN_BYTES) + instNumStringLen +
-	     strnlen(string2, SAL_CFG_MAX_VAL_LEN_IN_BYTES)) >
+		strnlen(string2, SAL_CFG_MAX_VAL_LEN_IN_BYTES)) >
 	    SAL_CFG_MAX_VAL_LEN_IN_BYTES) {
 		QAT_UTILS_LOG("Size of result too small.\n");
 		return CPA_STATUS_FAIL;
 	}
 
 	LAC_OS_BZERO(result, SAL_CFG_MAX_VAL_LEN_IN_BYTES);
-	snprintf(result,
-		 SAL_CFG_MAX_VAL_LEN_IN_BYTES,
-		 "%s%d%s",
-		 string1,
-		 instanceNumber,
-		 string2);
+	snprintf(result, SAL_CFG_MAX_VAL_LEN_IN_BYTES, "%s%d%s", string1,
+	    instanceNumber, string2);
 
 	return CPA_STATUS_SUCCESS;
 }

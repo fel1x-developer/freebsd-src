@@ -36,6 +36,7 @@
 #include <sys/limits.h>
 
 #ifdef _KERNEL
+#include <sys/systm.h>
 #include <sys/fail.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -44,7 +45,6 @@
 #include <sys/random.h>
 #include <sys/sdt.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/cpu.h>
 #else /* !_KERNEL */
@@ -58,45 +58,51 @@
 #include "unit_test.h"
 #endif /* _KERNEL */
 
+#include <dev/random/hash.h>
+#include <dev/random/randomdev.h>
+
 #include <crypto/chacha20/chacha.h>
 #include <crypto/rijndael/rijndael-api-fst.h>
 #include <crypto/sha2/sha256.h>
-
-#include <dev/random/hash.h>
-#include <dev/random/randomdev.h>
 #ifdef _KERNEL
 #include <dev/random/random_harvestq.h>
 #endif
-#include <dev/random/uint128.h>
 #include <dev/random/fortuna.h>
+#include <dev/random/uint128.h>
 
 /* Defined in FS&K */
-#define	RANDOM_FORTUNA_NPOOLS 32		/* The number of accumulation pools */
-#define	RANDOM_FORTUNA_DEFPOOLSIZE 64		/* The default pool size/length for a (re)seed */
-#define	RANDOM_FORTUNA_MAX_READ (1 << 20)	/* Max bytes from AES before rekeying */
-#define	RANDOM_FORTUNA_BLOCKS_PER_KEY (1 << 16)	/* Max blocks from AES before rekeying */
-CTASSERT(RANDOM_FORTUNA_BLOCKS_PER_KEY * RANDOM_BLOCKSIZE ==
-    RANDOM_FORTUNA_MAX_READ);
+#define RANDOM_FORTUNA_NPOOLS 32 /* The number of accumulation pools */
+#define RANDOM_FORTUNA_DEFPOOLSIZE \
+	64 /* The default pool size/length for a (re)seed */
+#define RANDOM_FORTUNA_MAX_READ \
+	(1 << 20) /* Max bytes from AES before rekeying */
+#define RANDOM_FORTUNA_BLOCKS_PER_KEY \
+	(1 << 16) /* Max blocks from AES before rekeying */
+CTASSERT(
+    RANDOM_FORTUNA_BLOCKS_PER_KEY *RANDOM_BLOCKSIZE == RANDOM_FORTUNA_MAX_READ);
 
 /*
- * The allowable range of RANDOM_FORTUNA_DEFPOOLSIZE. The default value is above.
- * Making RANDOM_FORTUNA_DEFPOOLSIZE too large will mean a long time between reseeds,
- * and too small may compromise initial security but get faster reseeds.
+ * The allowable range of RANDOM_FORTUNA_DEFPOOLSIZE. The default value is
+ * above. Making RANDOM_FORTUNA_DEFPOOLSIZE too large will mean a long time
+ * between reseeds, and too small may compromise initial security but get faster
+ * reseeds.
  */
-#define	RANDOM_FORTUNA_MINPOOLSIZE 16
-#define	RANDOM_FORTUNA_MAXPOOLSIZE INT_MAX 
+#define RANDOM_FORTUNA_MINPOOLSIZE 16
+#define RANDOM_FORTUNA_MAXPOOLSIZE INT_MAX
 CTASSERT(RANDOM_FORTUNA_MINPOOLSIZE <= RANDOM_FORTUNA_DEFPOOLSIZE);
 CTASSERT(RANDOM_FORTUNA_DEFPOOLSIZE <= RANDOM_FORTUNA_MAXPOOLSIZE);
 
-/* This algorithm (and code) presumes that RANDOM_KEYSIZE is twice as large as RANDOM_BLOCKSIZE */
+/* This algorithm (and code) presumes that RANDOM_KEYSIZE is twice as large as
+ * RANDOM_BLOCKSIZE */
 CTASSERT(RANDOM_BLOCKSIZE == sizeof(uint128_t));
-CTASSERT(RANDOM_KEYSIZE == 2*RANDOM_BLOCKSIZE);
+CTASSERT(RANDOM_KEYSIZE == 2 * RANDOM_BLOCKSIZE);
 
 /* Probes for dtrace(1) */
 #ifdef _KERNEL
 SDT_PROVIDER_DECLARE(random);
 SDT_PROVIDER_DEFINE(random);
-SDT_PROBE_DEFINE2(random, fortuna, event_processor, debug, "u_int", "struct fs_pool *");
+SDT_PROBE_DEFINE2(random, fortuna, event_processor, debug, "u_int",
+    "struct fs_pool *");
 #endif /* _KERNEL */
 
 /*
@@ -104,15 +110,15 @@ SDT_PROBE_DEFINE2(random, fortuna, event_processor, debug, "u_int", "struct fs_p
  * state that we are excited about. Exactly one is instantiated.
  */
 static struct fortuna_state {
-	struct fs_pool {		/* P_i */
-		u_int fsp_length;	/* Only the first one is used by Fortuna */
+	struct fs_pool {	  /* P_i */
+		u_int fsp_length; /* Only the first one is used by Fortuna */
 		struct randomdev_hash fsp_hash;
 	} fs_pool[RANDOM_FORTUNA_NPOOLS];
-	u_int fs_reseedcount;		/* ReseedCnt */
-	uint128_t fs_counter;		/* C */
-	union randomdev_key fs_key;	/* K */
-	u_int fs_minpoolsize;		/* Extras */
-	/* Extras for the OS */
+	u_int fs_reseedcount;	    /* ReseedCnt */
+	uint128_t fs_counter;	    /* C */
+	union randomdev_key fs_key; /* K */
+	u_int fs_minpoolsize;	    /* Extras */
+				    /* Extras for the OS */
 #ifdef _KERNEL
 	/* For use when 'pacing' the reseeds */
 	sbintime_t fs_lasttime;
@@ -248,7 +254,8 @@ static bool fortuna_concurrent_read __read_frequently = true;
 
 #ifdef _KERNEL
 static struct sysctl_ctx_list random_clist;
-RANDOM_CHECK_UINT(fs_minpoolsize, RANDOM_FORTUNA_MINPOOLSIZE, RANDOM_FORTUNA_MAXPOOLSIZE);
+RANDOM_CHECK_UINT(fs_minpoolsize, RANDOM_FORTUNA_MINPOOLSIZE,
+    RANDOM_FORTUNA_MAXPOOLSIZE);
 #else
 static uint8_t zero_region[RANDOM_ZERO_BLOCKSIZE];
 #endif
@@ -259,19 +266,20 @@ static bool random_fortuna_seeded(void);
 static bool random_fortuna_seeded_internal(void);
 static void random_fortuna_process_event(struct harvest_event *);
 
-static void random_fortuna_reseed_internal(uint32_t *entropy_data, u_int blockcount);
+static void random_fortuna_reseed_internal(uint32_t *entropy_data,
+    u_int blockcount);
 
 #ifdef RANDOM_LOADABLE
 static
 #endif
-const struct random_algorithm random_alg_context = {
-	.ra_ident = "Fortuna",
-	.ra_pre_read = random_fortuna_pre_read,
-	.ra_read = random_fortuna_read,
-	.ra_seeded = random_fortuna_seeded,
-	.ra_event_processor = random_fortuna_process_event,
-	.ra_poolcount = RANDOM_FORTUNA_NPOOLS,
-};
+    const struct random_algorithm random_alg_context = {
+	    .ra_ident = "Fortuna",
+	    .ra_pre_read = random_fortuna_pre_read,
+	    .ra_read = random_fortuna_read,
+	    .ra_seeded = random_fortuna_seeded,
+	    .ra_event_processor = random_fortuna_process_event,
+	    .ra_poolcount = RANDOM_FORTUNA_NPOOLS,
+    };
 
 /* ARGSUSED */
 static void
@@ -295,20 +303,21 @@ random_fortuna_init_alg(void *unused __unused)
 #ifdef _KERNEL
 	fortuna_state.fs_lasttime = 0;
 	random_fortuna_o = SYSCTL_ADD_NODE(&random_clist,
-		SYSCTL_STATIC_CHILDREN(_kern_random),
-		OID_AUTO, "fortuna", CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-		"Fortuna Parameters");
-	SYSCTL_ADD_PROC(&random_clist,
-	    SYSCTL_CHILDREN(random_fortuna_o), OID_AUTO, "minpoolsize",
+	    SYSCTL_STATIC_CHILDREN(_kern_random), OID_AUTO, "fortuna",
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "Fortuna Parameters");
+	SYSCTL_ADD_PROC(&random_clist, SYSCTL_CHILDREN(random_fortuna_o),
+	    OID_AUTO, "minpoolsize",
 	    CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &fortuna_state.fs_minpoolsize, RANDOM_FORTUNA_DEFPOOLSIZE,
 	    random_check_uint_fs_minpoolsize, "IU",
 	    "Minimum pool size necessary to cause a reseed");
-	KASSERT(fortuna_state.fs_minpoolsize > 0, ("random: Fortuna threshold must be > 0 at startup"));
+	KASSERT(fortuna_state.fs_minpoolsize > 0,
+	    ("random: Fortuna threshold must be > 0 at startup"));
 
 	SYSCTL_ADD_BOOL(&random_clist, SYSCTL_CHILDREN(random_fortuna_o),
 	    OID_AUTO, "concurrent_read", CTLFLAG_RDTUN,
-	    &fortuna_concurrent_read, 0, "If non-zero, enable "
+	    &fortuna_concurrent_read, 0,
+	    "If non-zero, enable "
 	    "feature to improve concurrent Fortuna performance.");
 #endif
 
@@ -371,7 +380,7 @@ random_fortuna_process_event(struct harvest_event *event)
 	 */
 	KASSERT(event->he_size <= sizeof(event->he_entropy),
 	    ("%s: event->he_size: %hhu > sizeof(event->he_entropy): %zu\n",
-	    __func__, event->he_size, sizeof(event->he_entropy)));
+		__func__, event->he_size, sizeof(event->he_entropy)));
 	randomdev_hash_iterate(&fortuna_state.fs_pool[pl].fsp_hash,
 	    &event->he_somecounter, sizeof(event->he_somecounter));
 	randomdev_hash_iterate(&fortuna_state.fs_pool[pl].fsp_hash,
@@ -379,12 +388,12 @@ random_fortuna_process_event(struct harvest_event *event)
 
 	/*-
 	 * Don't wrap the length.  This is a "saturating" add.
-	 * XXX: FIX!!: We don't actually need lengths for anything but fs_pool[0],
-	 * but it's been useful debugging to see them all.
+	 * XXX: FIX!!: We don't actually need lengths for anything but
+	 * fs_pool[0], but it's been useful debugging to see them all.
 	 */
 	fortuna_state.fs_pool[pl].fsp_length = MIN(RANDOM_FORTUNA_MAXPOOLSIZE,
 	    fortuna_state.fs_pool[pl].fsp_length +
-	    sizeof(event->he_somecounter) + event->he_size);
+		sizeof(event->he_somecounter) + event->he_size);
 	RANDOM_RESEED_UNLOCK();
 }
 
@@ -411,8 +420,9 @@ random_fortuna_reseed_internal(uint32_t *entropy_data, u_int blockcount)
 	seeded = random_fortuna_seeded_internal();
 	if (seeded) {
 		randomdev_getkey(&fortuna_state.fs_key, &keymaterial, &keysz);
-		KASSERT(keysz == RANDOM_KEYSIZE, ("%s: key size %zu not %u",
-			__func__, keysz, (unsigned)RANDOM_KEYSIZE));
+		KASSERT(keysz == RANDOM_KEYSIZE,
+		    ("%s: key size %zu not %u", __func__, keysz,
+			(unsigned)RANDOM_KEYSIZE));
 	}
 
 	/*-
@@ -423,7 +433,8 @@ random_fortuna_reseed_internal(uint32_t *entropy_data, u_int blockcount)
 	randomdev_hash_iterate(&context, zero_region, RANDOM_ZERO_BLOCKSIZE);
 	if (seeded)
 		randomdev_hash_iterate(&context, keymaterial, keysz);
-	randomdev_hash_iterate(&context, entropy_data, RANDOM_KEYSIZE*blockcount);
+	randomdev_hash_iterate(&context, entropy_data,
+	    RANDOM_KEYSIZE * blockcount);
 	randomdev_hash_finish(&context, hash);
 	randomdev_hash_init(&context);
 	randomdev_hash_iterate(&context, hash, RANDOM_KEYSIZE);
@@ -449,11 +460,12 @@ random_fortuna_pre_read(void)
 	sbintime_t now;
 #endif
 	struct randomdev_hash context;
-	uint32_t s[RANDOM_FORTUNA_NPOOLS*RANDOM_KEYSIZE_WORDS];
+	uint32_t s[RANDOM_FORTUNA_NPOOLS * RANDOM_KEYSIZE_WORDS];
 	uint8_t temp[RANDOM_KEYSIZE];
 	u_int i;
 
-	KASSERT(fortuna_state.fs_minpoolsize > 0, ("random: Fortuna threshold must be > 0"));
+	KASSERT(fortuna_state.fs_minpoolsize > 0,
+	    ("random: Fortuna threshold must be > 0"));
 	RANDOM_RESEED_LOCK();
 #ifdef _KERNEL
 	/* FS&K - Use 'getsbinuptime()' to prevent reseed-spamming. */
@@ -467,7 +479,7 @@ random_fortuna_pre_read(void)
 	     * not block initial seeding (fs_lasttime == 0).
 	     */
 	    || (__predict_true(fortuna_state.fs_lasttime != 0) &&
-		now - fortuna_state.fs_lasttime <= SBT_1S/10)
+		   now - fortuna_state.fs_lasttime <= SBT_1S / 10)
 #endif
 	) {
 		RANDOM_RESEED_UNLOCK();
@@ -497,21 +509,24 @@ random_fortuna_pre_read(void)
 		/* FS&K - if Divides(ReseedCnt, 2^i) ... */
 		if ((fortuna_state.fs_reseedcount % (1 << i)) == 0) {
 			/*-
-			    * FS&K - temp = (P_i)
-			    *      - P_i = \epsilon
-			    *      - s = s|H(temp)
-			    */
-			randomdev_hash_finish(&fortuna_state.fs_pool[i].fsp_hash, temp);
+			 * FS&K - temp = (P_i)
+			 *      - P_i = \epsilon
+			 *      - s = s|H(temp)
+			 */
+			randomdev_hash_finish(
+			    &fortuna_state.fs_pool[i].fsp_hash, temp);
 			randomdev_hash_init(&fortuna_state.fs_pool[i].fsp_hash);
 			fortuna_state.fs_pool[i].fsp_length = 0;
 			randomdev_hash_init(&context);
 			randomdev_hash_iterate(&context, temp, RANDOM_KEYSIZE);
-			randomdev_hash_finish(&context, s + i*RANDOM_KEYSIZE_WORDS);
+			randomdev_hash_finish(&context,
+			    s + i * RANDOM_KEYSIZE_WORDS);
 		} else
 			break;
 	}
 #ifdef _KERNEL
-	SDT_PROBE2(random, fortuna, event_processor, debug, fortuna_state.fs_reseedcount, fortuna_state.fs_pool);
+	SDT_PROBE2(random, fortuna, event_processor, debug,
+	    fortuna_state.fs_reseedcount, fortuna_state.fs_pool);
 #endif
 	/* FS&K */
 	random_fortuna_reseed_internal(s, i);
@@ -545,10 +560,7 @@ random_fortuna_pre_read(void)
  * The upstream caller random_fortuna_read is responsible for zeroing out
  * sensitive buffers provided as parameters to this routine.
  */
-enum {
-	FORTUNA_UNLOCKED = false,
-	FORTUNA_LOCKED = true
-};
+enum { FORTUNA_UNLOCKED = false, FORTUNA_LOCKED = true };
 static void
 random_fortuna_genbytes(uint8_t *buf, size_t bytecount,
     uint8_t newkey[static RANDOM_KEYSIZE], uint128_t *p_counter,
@@ -579,10 +591,10 @@ random_fortuna_genbytes(uint8_t *buf, size_t bytecount,
 		chunk_size = PAGE_SIZE;
 	} else {
 		/*
-		* 128-bit block ciphers like AES must be re-keyed at 1MB
-		* intervals to avoid unacceptable statistical differentiation
-		* from true random data (FS&K 9.4, p. 143-144).
-		*/
+		 * 128-bit block ciphers like AES must be re-keyed at 1MB
+		 * intervals to avoid unacceptable statistical differentiation
+		 * from true random data (FS&K 9.4, p. 143-144).
+		 */
 		MPASS(!random_chachamode);
 		chunk_size = RANDOM_FORTUNA_MAX_READ;
 	}
@@ -624,9 +636,9 @@ random_fortuna_genbytes(uint8_t *buf, size_t bytecount,
 			}
 
 			/*
-			 * At the trailing end, scale down chunk_size from 1MB or
-			 * PAGE_SIZE to all remaining full blocks (AES) or all
-			 * remaining bytes (Chacha).
+			 * At the trailing end, scale down chunk_size from 1MB
+			 * or PAGE_SIZE to all remaining full blocks (AES) or
+			 * all remaining bytes (Chacha).
 			 */
 			if (bytecount < chunk_size) {
 				if (random_chachamode)
@@ -666,7 +678,6 @@ random_fortuna_genbytes(uint8_t *buf, size_t bytecount,
 		explicit_bzero(remainder_buf, sizeof(remainder_buf));
 	}
 }
-
 
 /*
  * Handle only "concurrency-enabled" Fortuna reads to simplify logic.

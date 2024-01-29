@@ -28,22 +28,21 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/efi.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/socket.h>
-#include <sys/efi.h>
-
 #include <sys/module.h>
-#include <sys/bus.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
 #include <sys/rman.h>
+#include <sys/socket.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
+
+#include <machine/bus.h>
 #include <machine/md_var.h>
+#include <machine/resource.h>
 #if defined(__amd64__) || defined(__i386__)
 #include <machine/pc/bios.h>
 #endif
@@ -55,25 +54,25 @@
  */
 
 struct smbios_softc {
-	device_t		dev;
+	device_t dev;
 	union {
-		struct smbios_eps *	eps;
-		struct smbios3_eps *	eps3;
+		struct smbios_eps *eps;
+		struct smbios3_eps *eps3;
 	};
 	bool is_eps3;
 };
 
-static void	smbios_identify	(driver_t *, device_t);
-static int	smbios_probe	(device_t);
-static int	smbios_attach	(device_t);
-static int	smbios_detach	(device_t);
-static int	smbios_modevent	(module_t, int, void *);
+static void smbios_identify(driver_t *, device_t);
+static int smbios_probe(device_t);
+static int smbios_attach(device_t);
+static int smbios_detach(device_t);
+static int smbios_modevent(module_t, int, void *);
 
-static int	smbios_cksum	(void *);
-static bool	smbios_eps3	(void *);
+static int smbios_cksum(void *);
+static bool smbios_eps3(void *);
 
 static void
-smbios_identify (driver_t *driver, device_t parent)
+smbios_identify(driver_t *driver, device_t parent)
 {
 #ifdef ARCH_MAY_USE_EFI
 	struct uuid efi_smbios = EFI_TABLE_SMBIOS;
@@ -85,7 +84,7 @@ smbios_identify (driver_t *driver, device_t parent)
 	void *ptr;
 	device_t child;
 	vm_paddr_t addr = 0;
-	size_t map_size = sizeof (*eps);
+	size_t map_size = sizeof(*eps);
 	int length;
 
 	if (!device_is_alive(parent))
@@ -94,7 +93,7 @@ smbios_identify (driver_t *driver, device_t parent)
 #ifdef ARCH_MAY_USE_EFI
 	if (!efi_get_table(&efi_smbios3, &addr_efi)) {
 		addr = (vm_paddr_t)addr_efi;
-		map_size = sizeof (*eps3);
+		map_size = sizeof(*eps3);
 	} else if (!efi_get_table(&efi_smbios, &addr_efi)) {
 		addr = (vm_paddr_t)addr_efi;
 	}
@@ -111,11 +110,11 @@ smbios_identify (driver_t *driver, device_t parent)
 		ptr = pmap_mapbios(addr, map_size);
 		if (ptr == NULL)
 			return;
-		if (map_size == sizeof (*eps3)) {
+		if (map_size == sizeof(*eps3)) {
 			eps3 = ptr;
 			length = eps3->length;
-			if (memcmp(eps3->anchor_string,
-			    SMBIOS3_SIG, SMBIOS3_LEN) != 0) {
+			if (memcmp(eps3->anchor_string, SMBIOS3_SIG,
+				SMBIOS3_LEN) != 0) {
 				printf("smbios3: corrupt sig %s found\n",
 				    eps3->anchor_string);
 				return;
@@ -123,8 +122,8 @@ smbios_identify (driver_t *driver, device_t parent)
 		} else {
 			eps = ptr;
 			length = eps->length;
-			if (memcmp(eps->anchor_string,
-			    SMBIOS_SIG, SMBIOS_LEN) != 0) {
+			if (memcmp(eps->anchor_string, SMBIOS_SIG,
+				SMBIOS_LEN) != 0) {
 				printf("smbios: corrupt sig %s found\n",
 				    eps->anchor_string);
 				return;
@@ -158,7 +157,7 @@ smbios_identify (driver_t *driver, device_t parent)
 }
 
 static int
-smbios_probe (device_t dev)
+smbios_probe(device_t dev)
 {
 	vm_paddr_t pa;
 	vm_size_t size;
@@ -185,7 +184,7 @@ smbios_probe (device_t dev)
 }
 
 static int
-smbios_attach (device_t dev)
+smbios_attach(device_t dev)
 {
 	struct smbios_softc *sc;
 	void *va;
@@ -205,12 +204,12 @@ smbios_attach (device_t dev)
 
 	if (sc->is_eps3) {
 		sc->eps3 = va;
-		device_printf(dev, "Version: %u.%u",
-		    sc->eps3->major_version, sc->eps3->minor_version);
+		device_printf(dev, "Version: %u.%u", sc->eps3->major_version,
+		    sc->eps3->minor_version);
 	} else {
 		sc->eps = va;
-		device_printf(dev, "Version: %u.%u",
-		    sc->eps->major_version, sc->eps->minor_version);
+		device_printf(dev, "Version: %u.%u", sc->eps->major_version,
+		    sc->eps->minor_version);
 		if (bcd2bin(sc->eps->BCD_revision))
 			printf(", BCD Revision: %u.%u",
 			    bcd2bin(sc->eps->BCD_revision >> 4),
@@ -221,7 +220,7 @@ smbios_attach (device_t dev)
 }
 
 static int
-smbios_detach (device_t dev)
+smbios_detach(device_t dev)
 {
 	struct smbios_softc *sc;
 	vm_size_t size;
@@ -242,11 +241,11 @@ smbios_detach (device_t dev)
 }
 
 static int
-smbios_modevent (module_t mod, int what, void *arg)
+smbios_modevent(module_t mod, int what, void *arg)
 {
-	device_t *	devs;
-	int		count;
-	int		i;
+	device_t *devs;
+	int count;
+	int i;
 
 	switch (what) {
 	case MOD_LOAD:
@@ -254,7 +253,8 @@ smbios_modevent (module_t mod, int what, void *arg)
 	case MOD_UNLOAD:
 		devclass_get_devices(devclass_find("smbios"), &devs, &count);
 		for (i = 0; i < count; i++) {
-			device_delete_child(device_get_parent(devs[i]), devs[i]);
+			device_delete_child(device_get_parent(devs[i]),
+			    devs[i]);
 		}
 		free(devs, M_TEMP);
 		break;
@@ -267,11 +267,10 @@ smbios_modevent (module_t mod, int what, void *arg)
 
 static device_method_t smbios_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,      smbios_identify),
-	DEVMETHOD(device_probe,         smbios_probe),
-	DEVMETHOD(device_attach,        smbios_attach),
-	DEVMETHOD(device_detach,        smbios_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, smbios_identify),
+	DEVMETHOD(device_probe, smbios_probe),
+	DEVMETHOD(device_attach, smbios_attach),
+	DEVMETHOD(device_detach, smbios_detach), { 0, 0 }
 };
 
 static driver_t smbios_driver = {
@@ -286,9 +285,8 @@ MODULE_DEPEND(smbios, efirt, 1, 1, 1);
 #endif
 MODULE_VERSION(smbios, 1);
 
-
 static bool
-smbios_eps3 (void *v)
+smbios_eps3(void *v)
 {
 	struct smbios3_eps *e;
 
@@ -297,7 +295,7 @@ smbios_eps3 (void *v)
 }
 
 static int
-smbios_cksum (void *v)
+smbios_cksum(void *v)
 {
 	struct smbios3_eps *eps3;
 	struct smbios_eps *eps;

@@ -26,19 +26,19 @@
  */
 
 #include <sys/socket.h>
-#include <netgraph.h>
+
 #include <netgraph/ng_socket.h>
 
-#include <errno.h>
-
 #include <atf-c.h>
+#include <errno.h>
+#include <netgraph.h>
 
 ATF_TC_WITHOUT_HEAD(getsockname);
 ATF_TC_BODY(getsockname, tc)
 {
 	struct sockaddr_ng sg;
 	socklen_t len = sizeof(struct sockaddr_ng);
-#define	NAME	"0123456789012345678901234567891"	/* 31 chars */
+#define NAME "0123456789012345678901234567891" /* 31 chars */
 	char name[NG_NODESIZ] = NAME;
 	int cs;
 

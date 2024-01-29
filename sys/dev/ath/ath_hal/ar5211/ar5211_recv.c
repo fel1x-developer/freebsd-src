@@ -19,12 +19,11 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_desc.h"
-
+#include "ah_internal.h"
 #include "ar5211/ar5211.h"
-#include "ar5211/ar5211reg.h"
 #include "ar5211/ar5211desc.h"
+#include "ar5211/ar5211reg.h"
 
 /*
  * Get the RXDP.
@@ -64,15 +63,14 @@ ar5211EnableReceive(struct ath_hal *ah)
 HAL_BOOL
 ar5211StopDmaReceive(struct ath_hal *ah)
 {
-	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD);	/* Set receive disable bit */
+	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD); /* Set receive disable bit */
 	if (!ath_hal_wait(ah, AR_CR, AR_CR_RXE, 0)) {
 #ifdef AH_DEBUG
-		ath_hal_printf(ah, "%s failed to stop in 10ms\n"
-				   "AR_CR=0x%08X\nAR_DIAG_SW=0x%08X\n"
-				   , __func__
-				   , OS_REG_READ(ah, AR_CR)
-				   , OS_REG_READ(ah, AR_DIAG_SW)
-		);
+		ath_hal_printf(ah,
+		    "%s failed to stop in 10ms\n"
+		    "AR_CR=0x%08X\nAR_DIAG_SW=0x%08X\n",
+		    __func__, OS_REG_READ(ah, AR_CR),
+		    OS_REG_READ(ah, AR_DIAG_SW));
 #endif
 		return AH_FALSE;
 	} else {
@@ -87,7 +85,7 @@ void
 ar5211StartPcuReceive(struct ath_hal *ah, HAL_BOOL is_scanning)
 {
 	OS_REG_WRITE(ah, AR_DIAG_SW,
-		OS_REG_READ(ah, AR_DIAG_SW) & ~(AR_DIAG_SW_DIS_RX));
+	    OS_REG_READ(ah, AR_DIAG_SW) & ~(AR_DIAG_SW_DIS_RX));
 }
 
 /*
@@ -97,7 +95,7 @@ void
 ar5211StopPcuReceive(struct ath_hal *ah)
 {
 	OS_REG_WRITE(ah, AR_DIAG_SW,
-		OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_SW_DIS_RX);
+	    OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_SW_DIS_RX);
 }
 
 /*
@@ -123,10 +121,10 @@ ar5211ClrMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val &~ (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val & ~(1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val &~ (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val & ~(1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -143,10 +141,10 @@ ar5211SetMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -175,8 +173,8 @@ ar5211SetRxFilter(struct ath_hal *ah, uint32_t bits)
  * control and status words to be opaque above the hal.
  */
 HAL_BOOL
-ar5211SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t size, u_int flags)
+ar5211SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t size,
+    u_int flags)
 {
 	struct ar5211_desc *ads = AR5211DESC(ds);
 
@@ -203,9 +201,8 @@ ar5211SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
  *     of the descriptor (e.g. flushing any cached copy).
  */
 HAL_STATUS
-ar5211ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t pa, struct ath_desc *nds, uint64_t tsf,
-	struct ath_rx_status *rs)
+ar5211ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t pa,
+    struct ath_desc *nds, uint64_t tsf, struct ath_rx_status *rs)
 {
 	struct ar5211_desc *ads = AR5211DESC(ds);
 	struct ar5211_desc *ands = AR5211DESC(nds);
@@ -241,7 +238,7 @@ ar5211ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		rs->rs_keyix = HAL_RXKEYIX_INVALID;
 	/* NB: caller expected to do rate table mapping */
 	rs->rs_rate = MS(ads->ds_status0, AR_RcvRate);
-	rs->rs_antenna  = MS(ads->ds_status0, AR_RcvAntenna);
+	rs->rs_antenna = MS(ads->ds_status0, AR_RcvAntenna);
 	rs->rs_more = (ads->ds_status0 & AR_More) ? 1 : 0;
 
 	return HAL_OK;

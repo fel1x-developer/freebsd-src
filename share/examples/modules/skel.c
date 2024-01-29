@@ -28,7 +28,7 @@
 
 /*
  * SKEL Loadable Kernel Module for the FreeBSD Operating System
- * 
+ *
  * The SKEL module is meant to act as a skeleton for creating new
  * kernel modules.
  *
@@ -38,8 +38,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 
 /*
@@ -83,4 +83,3 @@ static moduledata_t skel_mod = {
  */
 
 DECLARE_MODULE(skel, skel_mod, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
-

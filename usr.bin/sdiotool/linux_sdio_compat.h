@@ -31,11 +31,12 @@
 #define _LINUX_SDIO_COMPAT_H_
 
 #include <sys/types.h>
+
 #include "linux_compat.h"
 
 /* Linux SDIO stack functions and definitions */
 #define SDIO_CCCR_ABORT SD_IO_CCCR_CTL
-#define SDIO_CCCR_IENx  SD_IO_CCCR_INT_ENABLE
+#define SDIO_CCCR_IENx SD_IO_CCCR_INT_ENABLE
 
 struct sdio_func {
 	struct cam_device *dev;
@@ -43,19 +44,17 @@ struct sdio_func {
 };
 
 u8 sdio_readb(struct sdio_func *func, unsigned int addr, int *err_ret);
-unsigned char sdio_f0_readb(struct sdio_func *func,
-			    unsigned int addr, int *err_ret);
+unsigned char sdio_f0_readb(struct sdio_func *func, unsigned int addr,
+    int *err_ret);
 u16 sdio_readw(struct sdio_func *func, unsigned int addr, int *err_ret);
 u32 sdio_readl(struct sdio_func *func, unsigned int addr, int *err_ret);
 
-void sdio_writeb(struct sdio_func *func, u8 b,
-	unsigned int addr, int *err_ret);
-void sdio_f0_writeb(struct sdio_func *func, unsigned char b,
-		    unsigned int addr, int *err_ret);
-void sdio_writew(struct sdio_func *func, u16 b,
-	unsigned int addr, int *err_ret);
-void sdio_writel(struct sdio_func *func, u32 b,
-	unsigned int addr, int *err_ret);
-
+void sdio_writeb(struct sdio_func *func, u8 b, unsigned int addr, int *err_ret);
+void sdio_f0_writeb(struct sdio_func *func, unsigned char b, unsigned int addr,
+    int *err_ret);
+void sdio_writew(struct sdio_func *func, u16 b, unsigned int addr,
+    int *err_ret);
+void sdio_writel(struct sdio_func *func, u32 b, unsigned int addr,
+    int *err_ret);
 
 #endif

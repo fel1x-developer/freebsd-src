@@ -41,31 +41,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 #include <util.h>
 
 #include "makefs.h"
 #include "zfs.h"
 
-#define	VDEV_LABEL_SPACE	\
-	((off_t)(VDEV_LABEL_START_SIZE + VDEV_LABEL_END_SIZE))
+#define VDEV_LABEL_SPACE ((off_t)(VDEV_LABEL_START_SIZE + VDEV_LABEL_END_SIZE))
 _Static_assert(VDEV_LABEL_SPACE <= MINDEVSIZE, "");
 
-#define	MINMSSIZE		((off_t)1 << 24) /* 16MB */
-#define	DFLTMSSIZE		((off_t)1 << 29) /* 512MB */
-#define	MAXMSSIZE		((off_t)1 << 34) /* 16GB */
+#define MINMSSIZE ((off_t)1 << 24)  /* 16MB */
+#define DFLTMSSIZE ((off_t)1 << 29) /* 512MB */
+#define MAXMSSIZE ((off_t)1 << 34)  /* 16GB */
 
-#define	INDIR_LEVELS		6
+#define INDIR_LEVELS 6
 /* Indirect blocks are always 128KB. */
-#define	BLKPTR_PER_INDIR	(MAXBLOCKSIZE / sizeof(blkptr_t))
+#define BLKPTR_PER_INDIR (MAXBLOCKSIZE / sizeof(blkptr_t))
 
 struct dnode_cursor {
-	char		inddir[INDIR_LEVELS][MAXBLOCKSIZE];
-	off_t		indloc;
-	off_t		indspace;
-	dnode_phys_t	*dnode;
-	off_t		dataoff;
-	off_t		datablksz;
+	char inddir[INDIR_LEVELS][MAXBLOCKSIZE];
+	off_t indloc;
+	off_t indspace;
+	dnode_phys_t *dnode;
+	off_t dataoff;
+	off_t datablksz;
 };
 
 void
@@ -80,21 +78,20 @@ zfs_prep_opts(fsinfo_t *fsopts)
 		err(1, "aligned_alloc");
 	memset(zfs, 0, sizeof(*zfs));
 
-	const option_t zfs_options[] = {
-		{ '\0', "bootfs", &zfs->bootfs, OPT_STRPTR,
-		  0, 0, "Bootable dataset" },
-		{ '\0', "mssize", &zfs->mssize, OPT_INT64,
-		  MINMSSIZE, MAXMSSIZE, "Metaslab size" },
-		{ '\0', "poolname", &zfs->poolname, OPT_STRPTR,
-		  0, 0, "ZFS pool name" },
-		{ '\0', "rootpath", &zfs->rootpath, OPT_STRPTR,
-		  0, 0, "Prefix for all dataset mount points" },
-		{ '\0', "ashift", &zfs->ashift, OPT_INT32,
-		  MINBLOCKSHIFT, MAXBLOCKSHIFT, "ZFS pool ashift" },
-		{ '\0', "nowarn", &zfs->nowarn, OPT_BOOL,
-		  0, 0, "Suppress warning about experimental ZFS support" },
-		{ .name = NULL }
-	};
+	const option_t zfs_options[] = { { '\0', "bootfs", &zfs->bootfs,
+					     OPT_STRPTR, 0, 0,
+					     "Bootable dataset" },
+		{ '\0', "mssize", &zfs->mssize, OPT_INT64, MINMSSIZE, MAXMSSIZE,
+		    "Metaslab size" },
+		{ '\0', "poolname", &zfs->poolname, OPT_STRPTR, 0, 0,
+		    "ZFS pool name" },
+		{ '\0', "rootpath", &zfs->rootpath, OPT_STRPTR, 0, 0,
+		    "Prefix for all dataset mount points" },
+		{ '\0', "ashift", &zfs->ashift, OPT_INT32, MINBLOCKSHIFT,
+		    MAXBLOCKSHIFT, "ZFS pool ashift" },
+		{ '\0', "nowarn", &zfs->nowarn, OPT_BOOL, 0, 0,
+		    "Suppress warning about experimental ZFS support" },
+		{ .name = NULL } };
 
 	STAILQ_INIT(&zfs->datasetdescs);
 
@@ -251,7 +248,7 @@ zfs_cleanup_opts(fsinfo_t *fsopts)
 	free(zfs->rootpath);
 	free(zfs->bootfs);
 	free(__DECONST(void *, zfs->poolname));
-	STAILQ_FOREACH_SAFE(d, &zfs->datasetdescs, next, tmp) {
+	STAILQ_FOREACH_SAFE (d, &zfs->datasetdescs, next, tmp) {
 		free(d->params);
 		free(d);
 	}
@@ -590,7 +587,7 @@ pool_labels_write(zfs_opt_t *zfs)
 	 * checksum is calculated in vdev_label_write().
 	 */
 	for (size_t uoff = 0; uoff < sizeof(label->vl_uberblock);
-	    uoff += (1 << zfs->ashift)) {
+	     uoff += (1 << zfs->ashift)) {
 		ub = (uberblock_t *)(&label->vl_uberblock[0] + uoff);
 		ub->ub_magic = UBERBLOCK_MAGIC;
 		ub->ub_version = SPA_VERSION;
@@ -637,8 +634,9 @@ dnode_cursor_init(zfs_opt_t *zfs, zfs_objset_t *os, dnode_phys_t *dnode,
 
 	if (blksz == 0) {
 		/* Must be between 1<<ashift and 128KB. */
-		blksz = MIN(MAXBLOCKSIZE, MAX(1 << zfs->ashift,
-		    powerof2(size) ? size : (1l << flsll(size))));
+		blksz = MIN(MAXBLOCKSIZE,
+		    MAX(1 << zfs->ashift,
+			powerof2(size) ? size : (1l << flsll(size))));
 	}
 	assert(powerof2(blksz));
 
@@ -694,8 +692,8 @@ _dnode_cursor_flush(zfs_opt_t *zfs, struct dnode_cursor *c, unsigned int levels)
 			uint64_t iblkid;
 
 			iblkid = blkid & (BLKPTR_PER_INDIR - 1);
-			pbp = (blkptr_t *)
-			    &c->inddir[level][iblkid * sizeof(blkptr_t)];
+			pbp = (blkptr_t *)&c
+				  ->inddir[level][iblkid * sizeof(blkptr_t)];
 		}
 
 		/*

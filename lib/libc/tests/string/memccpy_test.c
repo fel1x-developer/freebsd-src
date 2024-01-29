@@ -31,14 +31,14 @@
 #include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/mman.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <atf-c.h>
 
 void *(*memccpy_fn)(void *restrict, const void *restrict, int, size_t);
 
@@ -78,8 +78,10 @@ test_memccpy(const char *s)
 				dst = makebuf(bufsize, j);
 				memset(dst, 'X', bufsize);
 				expected = bufsize >= size ? dst + size : NULL;
-				assert(memccpy_fn(dst, src, src[size-1], bufsize) == expected);
-				assert(bufsize == 0 || strncmp(src, dst, bufsize - 1) == 0);
+				assert(memccpy_fn(dst, src, src[size - 1],
+					   bufsize) == expected);
+				assert(bufsize == 0 ||
+				    strncmp(src, dst, bufsize - 1) == 0);
 				for (x = size; x < bufsize; x++)
 					assert(dst[x] == 'X');
 			}
@@ -111,7 +113,7 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 
 	effective_len = srclen < destlen ? srclen : destlen;
 	wantres = srclen <= destlen ? dest + srclen : NULL;
-	terminator = src[srclen-1];
+	terminator = src[srclen - 1];
 	res = memccpy_fn(dest, src, terminator, destlen);
 
 	if (dest[-1] != '{')
@@ -122,16 +124,19 @@ test_sentinel(char *dest, char *src, size_t destlen, size_t srclen)
 		fail = "incorrect return value";
 	else if (destlen > 0 && memcmp(src, dest, effective_len) != 0)
 		fail = "string not copied correctly";
-	else for (i = srclen; i < destlen; i++)
-		if (dest[i] != '\xee') {
-			fail = "buffer mutilated behind string";
-			break;
-		}
+	else
+		for (i = srclen; i < destlen; i++)
+			if (dest[i] != '\xee') {
+				fail = "buffer mutilated behind string";
+				break;
+			}
 
 	if (fail)
-		atf_tc_fail_nonfatal("%s\n"
+		atf_tc_fail_nonfatal(
+		    "%s\n"
 		    "memccpy(%p \"%s\", %p \"%s\", %u '%c', %zu) = %p (want %p)\n",
-		    fail, dest, dest, src, src, terminator, terminator, destlen, res, wantres);
+		    fail, dest, dest, src, src, terminator, terminator, destlen,
+		    res, wantres);
 }
 
 ATF_TC_WITHOUT_HEAD(null);
@@ -152,11 +157,13 @@ ATF_TC_BODY(zero_extension, tc)
 	char buf[16];
 
 	memset(buf, 0xcc, sizeof(buf));
-	ATF_CHECK_EQ(memccpy(buf, "foobar", 'r', sizeof(buf)), buf + sizeof("foobar") - 1);
+	ATF_CHECK_EQ(memccpy(buf, "foobar", 'r', sizeof(buf)),
+	    buf + sizeof("foobar") - 1);
 	ATF_CHECK_EQ(memcmp(buf, "foobar", sizeof("foobar") - 1), 0);
 
 	memset(buf, 0xcc, sizeof(buf));
-	ATF_CHECK_EQ(memccpy(buf, "foobar", mask | 'r', sizeof(buf)), buf + sizeof("foobar") - 1);
+	ATF_CHECK_EQ(memccpy(buf, "foobar", mask | 'r', sizeof(buf)),
+	    buf + sizeof("foobar") - 1);
 	ATF_CHECK_EQ(memcmp(buf, "foobar", sizeof("foobar") - 1), 0);
 }
 
@@ -176,15 +183,16 @@ ATF_TC_WITHOUT_HEAD(alignments);
 ATF_TC_BODY(alignments, tc)
 {
 	size_t srcalign, destalign, srclen, destlen;
-	char src[15+2+64]; /* 15 offsets + 64 max length + sentinels */
-	char dest[15+2+64]; /* 15 offsets + 64 max length + sentinels */
+	char src[15 + 2 + 64];	/* 15 offsets + 64 max length + sentinels */
+	char dest[15 + 2 + 64]; /* 15 offsets + 64 max length + sentinels */
 
 	for (srcalign = 0; srcalign < 16; srcalign++)
 		for (destalign = 0; destalign < 16; destalign++)
 			for (srclen = 1; srclen < 64; srclen++)
 				for (destlen = 0; destlen < 64; destlen++)
-					test_sentinel(dest+destalign+1,
-					    src+srcalign+1, destlen, srclen);
+					test_sentinel(dest + destalign + 1,
+					    src + srcalign + 1, destlen,
+					    srclen);
 }
 
 ATF_TP_ADD_TCS(tp)

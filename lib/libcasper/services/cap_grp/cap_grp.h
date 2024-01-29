@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_CAP_GRP_H_
-#define	_CAP_GRP_H_
+#ifndef _CAP_GRP_H_
+#define _CAP_GRP_H_
 
 #ifdef HAVE_CASPER
 #define WITH_CASPER
@@ -54,41 +54,41 @@ int cap_setgroupent(cap_channel_t *chan, int stayopen);
 int cap_setgrent(cap_channel_t *chan);
 void cap_endgrent(cap_channel_t *chan);
 
-int cap_grp_limit_cmds(cap_channel_t *chan, const char * const *cmds,
+int cap_grp_limit_cmds(cap_channel_t *chan, const char *const *cmds,
     size_t ncmds);
-int cap_grp_limit_fields(cap_channel_t *chan, const char * const *fields,
+int cap_grp_limit_fields(cap_channel_t *chan, const char *const *fields,
     size_t nfields);
-int cap_grp_limit_groups(cap_channel_t *chan, const char * const *names,
+int cap_grp_limit_groups(cap_channel_t *chan, const char *const *names,
     size_t nnames, const gid_t *gids, size_t ngids);
 
 __END_DECLS
 
 #else
-#define	cap_getgrent(chan)		getgrent()
-#define	cap_getgrnam(chan, name)	getgrnam(name)
-#define	cap_getgrgid(chan, gid)		getgrgid(gid)
+#define cap_getgrent(chan) getgrent()
+#define cap_getgrnam(chan, name) getgrnam(name)
+#define cap_getgrgid(chan, gid) getgrgid(gid)
 
-#define	cap_setgroupent(chan, stayopen) etgroupent(stayopen)
-#define endgrent(chan)			endgrent()
+#define cap_setgroupent(chan, stayopen) etgroupent(stayopen)
+#define endgrent(chan) endgrent()
 static inline int
 cap_setgrent(cap_channel_t *chan __unused)
 {
 
 	setgrent();
-	return(0);
+	return (0);
 }
 
-#define	cap_getgrent_r(chan, grp, buffer, bufsize, result)			\
+#define cap_getgrent_r(chan, grp, buffer, bufsize, result) \
 	getgrent_r(grp, buffer, bufsize, result)
-#define	cap_getgrnam_r(chan, name, grp, buffer, bufsize, result)		\
+#define cap_getgrnam_r(chan, name, grp, buffer, bufsize, result) \
 	getgrnam_r(name, grp, buffer, bufsize, result)
-#define	cap_getgrgid_r(chan, gid, grp, buffer, bufsize, result)			\
+#define cap_getgrgid_r(chan, gid, grp, buffer, bufsize, result) \
 	getgrgid_r(gid, grp, buffer, bufsize, result)
 
-#define	cap_grp_limit_cmds(chan, cmds, ncmds)			(0)
-#define	cap_grp_limit_fields(chan, fields, nfields)		(0)
-#define	cap_grp_limit_groups(chan, names, nnames, gids, ngids)	(0)
+#define cap_grp_limit_cmds(chan, cmds, ncmds) (0)
+#define cap_grp_limit_fields(chan, fields, nfields) (0)
+#define cap_grp_limit_groups(chan, names, nnames, gids, ngids) (0)
 
 #endif
 
-#endif	/* !_CAP_GRP_H_ */
+#endif /* !_CAP_GRP_H_ */

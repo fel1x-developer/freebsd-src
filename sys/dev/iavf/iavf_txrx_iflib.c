@@ -44,19 +44,21 @@
 #endif
 
 /* Local Prototypes */
-static void	iavf_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype);
+static void iavf_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype);
 
-static int	iavf_isc_txd_encap(void *arg, if_pkt_info_t pi);
-static void	iavf_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
-static int	iavf_isc_txd_credits_update_hwb(void *arg, uint16_t txqid, bool clear);
-static int	iavf_isc_txd_credits_update_dwb(void *arg, uint16_t txqid, bool clear);
+static int iavf_isc_txd_encap(void *arg, if_pkt_info_t pi);
+static void iavf_isc_txd_flush(void *arg, uint16_t txqid, qidx_t pidx);
+static int iavf_isc_txd_credits_update_hwb(void *arg, uint16_t txqid,
+    bool clear);
+static int iavf_isc_txd_credits_update_dwb(void *arg, uint16_t txqid,
+    bool clear);
 
-static void	iavf_isc_rxd_refill(void *arg, if_rxd_update_t iru);
-static void	iavf_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
-				  qidx_t pidx);
-static int	iavf_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx,
-				      qidx_t budget);
-static int	iavf_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
+static void iavf_isc_rxd_refill(void *arg, if_rxd_update_t iru);
+static void iavf_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
+    qidx_t pidx);
+static int iavf_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx,
+    qidx_t budget);
+static int iavf_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
 
 /**
  * @var iavf_txrx_hwb
@@ -64,16 +66,9 @@ static int	iavf_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri);
  *
  * iflib ops structure for when operating the device in head write back mode.
  */
-struct if_txrx iavf_txrx_hwb = {
-	iavf_isc_txd_encap,
-	iavf_isc_txd_flush,
-	iavf_isc_txd_credits_update_hwb,
-	iavf_isc_rxd_available,
-	iavf_isc_rxd_pkt_get,
-	iavf_isc_rxd_refill,
-	iavf_isc_rxd_flush,
-	NULL
-};
+struct if_txrx iavf_txrx_hwb = { iavf_isc_txd_encap, iavf_isc_txd_flush,
+	iavf_isc_txd_credits_update_hwb, iavf_isc_rxd_available,
+	iavf_isc_rxd_pkt_get, iavf_isc_rxd_refill, iavf_isc_rxd_flush, NULL };
 
 /**
  * @var iavf_txrx_dwb
@@ -82,16 +77,9 @@ struct if_txrx iavf_txrx_hwb = {
  * iflib ops structure for when operating the device in descriptor write back
  * mode.
  */
-struct if_txrx iavf_txrx_dwb = {
-	iavf_isc_txd_encap,
-	iavf_isc_txd_flush,
-	iavf_isc_txd_credits_update_dwb,
-	iavf_isc_rxd_available,
-	iavf_isc_rxd_pkt_get,
-	iavf_isc_rxd_refill,
-	iavf_isc_rxd_flush,
-	NULL
-};
+struct if_txrx iavf_txrx_dwb = { iavf_isc_txd_encap, iavf_isc_txd_flush,
+	iavf_isc_txd_credits_update_dwb, iavf_isc_rxd_available,
+	iavf_isc_rxd_pkt_get, iavf_isc_rxd_refill, iavf_isc_rxd_flush, NULL };
 
 /**
  * iavf_is_tx_desc_done - Check if a Tx descriptor is ready
@@ -104,10 +92,10 @@ struct if_txrx iavf_txrx_dwb = {
 static bool
 iavf_is_tx_desc_done(struct tx_ring *txr, int idx)
 {
-	return (((txr->tx_base[idx].cmd_type_offset_bsz >> IAVF_TXD_QW1_DTYPE_SHIFT)
-	    & IAVF_TXD_QW1_DTYPE_MASK) == IAVF_TX_DESC_DTYPE_DESC_DONE);
+	return (((txr->tx_base[idx].cmd_type_offset_bsz >>
+		     IAVF_TXD_QW1_DTYPE_SHIFT) &
+		    IAVF_TXD_QW1_DTYPE_MASK) == IAVF_TX_DESC_DTYPE_DESC_DONE);
 }
-
 
 /**
  * iavf_tso_detect_sparse - detect TSO packets with too many segments
@@ -129,9 +117,9 @@ iavf_is_tx_desc_done(struct tx_ring *txr, int idx)
 static int
 iavf_tso_detect_sparse(bus_dma_segment_t *segs, int nsegs, if_pkt_info_t pi)
 {
-	int	count, curseg, i, hlen, segsz, seglen, tsolen;
+	int count, curseg, i, hlen, segsz, seglen, tsolen;
 
-	if (nsegs <= IAVF_MAX_TX_SEGS-2)
+	if (nsegs <= IAVF_MAX_TX_SEGS - 2)
 		return (0);
 	segsz = pi->ipi_tso_segsz;
 	curseg = count = 0;
@@ -192,56 +180,56 @@ iavf_tso_detect_sparse(bus_dma_segment_t *segs, int nsegs, if_pkt_info_t pi)
  * offset values for a Tx descriptor to enable the requested offloads.
  */
 static void
-iavf_tx_setup_offload(struct iavf_tx_queue *que __unused,
-    if_pkt_info_t pi, u32 *cmd, u32 *off)
+iavf_tx_setup_offload(struct iavf_tx_queue *que __unused, if_pkt_info_t pi,
+    u32 *cmd, u32 *off)
 {
 	switch (pi->ipi_etype) {
 #ifdef INET
-		case ETHERTYPE_IP:
-			if (pi->ipi_csum_flags & IAVF_CSUM_IPV4)
-				*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV4_CSUM;
-			else
-				*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV4;
-			break;
+	case ETHERTYPE_IP:
+		if (pi->ipi_csum_flags & IAVF_CSUM_IPV4)
+			*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV4_CSUM;
+		else
+			*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV4;
+		break;
 #endif
 #ifdef INET6
-		case ETHERTYPE_IPV6:
-			*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV6;
-			break;
+	case ETHERTYPE_IPV6:
+		*cmd |= IAVF_TX_DESC_CMD_IIPT_IPV6;
+		break;
 #endif
-		default:
-			break;
+	default:
+		break;
 	}
 
 	*off |= (pi->ipi_ehdrlen >> 1) << IAVF_TX_DESC_LENGTH_MACLEN_SHIFT;
 	*off |= (pi->ipi_ip_hlen >> 2) << IAVF_TX_DESC_LENGTH_IPLEN_SHIFT;
 
 	switch (pi->ipi_ipproto) {
-		case IPPROTO_TCP:
-			if (pi->ipi_csum_flags & IAVF_CSUM_TCP) {
-				*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_TCP;
-				*off |= (pi->ipi_tcp_hlen >> 2) <<
-				    IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-				/* Check for NO_HEAD MDD event */
-				MPASS(pi->ipi_tcp_hlen != 0);
-			}
-			break;
-		case IPPROTO_UDP:
-			if (pi->ipi_csum_flags & IAVF_CSUM_UDP) {
-				*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_UDP;
-				*off |= (sizeof(struct udphdr) >> 2) <<
-				    IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-			}
-			break;
-		case IPPROTO_SCTP:
-			if (pi->ipi_csum_flags & IAVF_CSUM_SCTP) {
-				*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_SCTP;
-				*off |= (sizeof(struct sctphdr) >> 2) <<
-				    IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
-			}
-			/* Fall Thru */
-		default:
-			break;
+	case IPPROTO_TCP:
+		if (pi->ipi_csum_flags & IAVF_CSUM_TCP) {
+			*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_TCP;
+			*off |= (pi->ipi_tcp_hlen >> 2)
+			    << IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+			/* Check for NO_HEAD MDD event */
+			MPASS(pi->ipi_tcp_hlen != 0);
+		}
+		break;
+	case IPPROTO_UDP:
+		if (pi->ipi_csum_flags & IAVF_CSUM_UDP) {
+			*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_UDP;
+			*off |= (sizeof(struct udphdr) >> 2)
+			    << IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+		}
+		break;
+	case IPPROTO_SCTP:
+		if (pi->ipi_csum_flags & IAVF_CSUM_SCTP) {
+			*cmd |= IAVF_TX_DESC_CMD_L4T_EOFT_SCTP;
+			*off |= (sizeof(struct sctphdr) >> 2)
+			    << IAVF_TX_DESC_LENGTH_L4_FC_LEN_SHIFT;
+		}
+		/* Fall Thru */
+	default:
+		break;
 	}
 }
 
@@ -258,14 +246,14 @@ iavf_tx_setup_offload(struct iavf_tx_queue *que __unused,
 static int
 iavf_tso_setup(struct tx_ring *txr, if_pkt_info_t pi)
 {
-	if_softc_ctx_t			scctx;
-	struct iavf_tx_context_desc	*TXD;
-	u32				cmd, mss, type, tsolen;
-	int				idx, total_hdr_len;
-	u64				type_cmd_tso_mss;
+	if_softc_ctx_t scctx;
+	struct iavf_tx_context_desc *TXD;
+	u32 cmd, mss, type, tsolen;
+	int idx, total_hdr_len;
+	u64 type_cmd_tso_mss;
 
 	idx = pi->ipi_pidx;
-	TXD = (struct iavf_tx_context_desc *) &txr->tx_base[idx];
+	TXD = (struct iavf_tx_context_desc *)&txr->tx_base[idx];
 	total_hdr_len = pi->ipi_ehdrlen + pi->ipi_ip_hlen + pi->ipi_tcp_hlen;
 	tsolen = pi->ipi_len - total_hdr_len;
 	scctx = txr->que->vsi->shared;
@@ -301,7 +289,7 @@ iavf_tso_setup(struct tx_ring *txr, if_pkt_info_t pi)
 	TXD->tunneling_params = htole32(0);
 	txr->que->tso++;
 
-	return ((idx + 1) & (scctx->isc_ntxd[0]-1));
+	return ((idx + 1) & (scctx->isc_ntxd[0] - 1));
 }
 
 #define IAVF_TXD_CMD (IAVF_TX_DESC_CMD_EOP | IAVF_TX_DESC_CMD_RS)
@@ -319,15 +307,15 @@ iavf_tso_setup(struct tx_ring *txr, if_pkt_info_t pi)
 static int
 iavf_isc_txd_encap(void *arg, if_pkt_info_t pi)
 {
-	struct iavf_vsi		*vsi = arg;
-	if_softc_ctx_t		scctx = vsi->shared;
-	struct iavf_tx_queue	*que = &vsi->tx_queues[pi->ipi_qsidx];
-	struct tx_ring		*txr = &que->txr;
-	int			nsegs = pi->ipi_nsegs;
+	struct iavf_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct iavf_tx_queue *que = &vsi->tx_queues[pi->ipi_qsidx];
+	struct tx_ring *txr = &que->txr;
+	int nsegs = pi->ipi_nsegs;
 	bus_dma_segment_t *segs = pi->ipi_segs;
-	struct iavf_tx_desc	*txd = NULL;
-	int			i, j, mask, pidx_last;
-	u32			cmd, off, tx_intr;
+	struct iavf_tx_desc *txd = NULL;
+	int i, j, mask, pidx_last;
+	u32 cmd, off, tx_intr;
 
 	if (__predict_false(pi->ipi_len < IAVF_MIN_FRAME)) {
 		que->pkt_too_small++;
@@ -371,24 +359,23 @@ iavf_isc_txd_encap(void *arg, if_pkt_info_t pi)
 		MPASS(seglen != 0);
 
 		txd->buffer_addr = htole64(segs[j].ds_addr);
-		txd->cmd_type_offset_bsz =
-		    htole64(IAVF_TX_DESC_DTYPE_DATA
-		    | ((u64)cmd  << IAVF_TXD_QW1_CMD_SHIFT)
-		    | ((u64)off << IAVF_TXD_QW1_OFFSET_SHIFT)
-		    | ((u64)seglen  << IAVF_TXD_QW1_TX_BUF_SZ_SHIFT)
-	            | ((u64)htole16(pi->ipi_vtag) << IAVF_TXD_QW1_L2TAG1_SHIFT));
+		txd->cmd_type_offset_bsz = htole64(IAVF_TX_DESC_DTYPE_DATA |
+		    ((u64)cmd << IAVF_TXD_QW1_CMD_SHIFT) |
+		    ((u64)off << IAVF_TXD_QW1_OFFSET_SHIFT) |
+		    ((u64)seglen << IAVF_TXD_QW1_TX_BUF_SZ_SHIFT) |
+		    ((u64)htole16(pi->ipi_vtag) << IAVF_TXD_QW1_L2TAG1_SHIFT));
 
 		txr->tx_bytes += seglen;
 		pidx_last = i;
-		i = (i+1) & mask;
+		i = (i + 1) & mask;
 	}
 	/* Set the last descriptor for report */
-	txd->cmd_type_offset_bsz |=
-	    htole64(((u64)IAVF_TXD_CMD << IAVF_TXD_QW1_CMD_SHIFT));
+	txd->cmd_type_offset_bsz |= htole64(
+	    ((u64)IAVF_TXD_CMD << IAVF_TXD_QW1_CMD_SHIFT));
 	/* Add to report status array (if using TX interrupts) */
 	if (!vsi->enable_head_writeback && tx_intr) {
 		txr->tx_rsq[txr->tx_rs_pidx] = pidx_last;
-		txr->tx_rs_pidx = (txr->tx_rs_pidx+1) & mask;
+		txr->tx_rs_pidx = (txr->tx_rs_pidx + 1) & mask;
 		MPASS(txr->tx_rs_pidx != txr->tx_rs_cidx);
 	}
 	pi->ipi_new_pidx = i;
@@ -431,8 +418,9 @@ iavf_init_tx_ring(struct iavf_vsi *vsi, struct iavf_tx_queue *que)
 
 	/* Clear the old ring contents */
 	bzero((void *)txr->tx_base,
-	      (sizeof(struct iavf_tx_desc)) *
-	      (vsi->shared->isc_ntxd[0] + (vsi->enable_head_writeback ? 1 : 0)));
+	    (sizeof(struct iavf_tx_desc)) *
+		(vsi->shared->isc_ntxd[0] +
+		    (vsi->enable_head_writeback ? 1 : 0)));
 
 	wr32(vsi->hw, txr->tail, 0);
 }
@@ -448,8 +436,8 @@ iavf_init_tx_ring(struct iavf_vsi *vsi, struct iavf_tx_queue *que)
 static inline u32
 iavf_get_tx_head(struct iavf_tx_queue *que)
 {
-	if_softc_ctx_t          scctx = que->vsi->shared;
-	struct tx_ring  *txr = &que->txr;
+	if_softc_ctx_t scctx = que->vsi->shared;
+	struct tx_ring *txr = &que->txr;
 	void *head = &txr->tx_base[scctx->isc_ntxd[0]];
 
 	return LE32_TO_CPU(*(volatile __le32 *)head);
@@ -473,11 +461,11 @@ iavf_get_tx_head(struct iavf_tx_queue *que)
 static int
 iavf_isc_txd_credits_update_hwb(void *arg, uint16_t qid, bool clear)
 {
-	struct iavf_vsi          *vsi = arg;
-	if_softc_ctx_t          scctx = vsi->shared;
-	struct iavf_tx_queue     *que = &vsi->tx_queues[qid];
-	struct tx_ring		*txr = &que->txr;
-	int			 head, credits;
+	struct iavf_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct iavf_tx_queue *que = &vsi->tx_queues[qid];
+	struct tx_ring *txr = &que->txr;
+	int head, credits;
 
 	/* Get the Head WB value */
 	head = iavf_get_tx_head(que);
@@ -544,7 +532,7 @@ iavf_isc_txd_credits_update_dwb(void *arg, uint16_t txqid, bool clear)
 		MPASS(delta > 0);
 		processed += delta;
 		prev = cur;
-		rs_cidx = (rs_cidx + 1) & (ntxd-1);
+		rs_cidx = (rs_cidx + 1) & (ntxd - 1);
 		if (rs_cidx == txr->tx_rs_pidx)
 			break;
 		cur = txr->tx_rsq[rs_cidx];
@@ -599,10 +587,11 @@ iavf_isc_rxd_refill(void *arg, if_rxd_update_t iru)
  * descriptors available for receiving packets.
  */
 static void
-iavf_isc_rxd_flush(void * arg, uint16_t rxqid, uint8_t flid __unused, qidx_t pidx)
+iavf_isc_rxd_flush(void *arg, uint16_t rxqid, uint8_t flid __unused,
+    qidx_t pidx)
 {
-	struct iavf_vsi		*vsi = arg;
-	struct rx_ring		*rxr = &vsi->rx_queues[rxqid].rxr;
+	struct iavf_vsi *vsi = arg;
+	struct rx_ring *rxr = &vsi->rx_queues[rxqid].rxr;
 
 	wr32(vsi->hw, rxr->tail, pidx);
 }
@@ -634,8 +623,8 @@ iavf_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx, qidx_t budget)
 	for (cnt = 0, i = idx; cnt < nrxd - 1 && cnt <= budget;) {
 		rxd = &rxr->rx_base[i];
 		qword = le64toh(rxd->wb.qword1.status_error_len);
-		status = (qword & IAVF_RXD_QW1_STATUS_MASK)
-			>> IAVF_RXD_QW1_STATUS_SHIFT;
+		status = (qword & IAVF_RXD_QW1_STATUS_MASK) >>
+		    IAVF_RXD_QW1_STATUS_SHIFT;
 
 		if ((status & (1 << IAVF_RX_DESC_STATUS_DD_SHIFT)) == 0)
 			break;
@@ -663,16 +652,16 @@ iavf_isc_rxd_available(void *arg, uint16_t rxqid, qidx_t idx, qidx_t budget)
 static int
 iavf_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 {
-	struct iavf_vsi		*vsi = arg;
-	if_softc_ctx_t		scctx = vsi->shared;
-	struct iavf_rx_queue	*que = &vsi->rx_queues[ri->iri_qsidx];
-	struct rx_ring		*rxr = &que->rxr;
-	union iavf_rx_desc	*cur;
-	u32		status, error;
-	u16		plen;
-	u64		qword;
-	u8		ptype;
-	bool		eop;
+	struct iavf_vsi *vsi = arg;
+	if_softc_ctx_t scctx = vsi->shared;
+	struct iavf_rx_queue *que = &vsi->rx_queues[ri->iri_qsidx];
+	struct rx_ring *rxr = &que->rxr;
+	union iavf_rx_desc *cur;
+	u32 status, error;
+	u16 plen;
+	u64 qword;
+	u8 ptype;
+	bool eop;
 	int i, cidx;
 
 	cidx = ri->iri_cidx;
@@ -683,14 +672,14 @@ iavf_isc_rxd_pkt_get(void *arg, if_rxd_info_t ri)
 
 		cur = &rxr->rx_base[cidx];
 		qword = le64toh(cur->wb.qword1.status_error_len);
-		status = (qword & IAVF_RXD_QW1_STATUS_MASK)
-		    >> IAVF_RXD_QW1_STATUS_SHIFT;
-		error = (qword & IAVF_RXD_QW1_ERROR_MASK)
-		    >> IAVF_RXD_QW1_ERROR_SHIFT;
-		plen = (qword & IAVF_RXD_QW1_LENGTH_PBUF_MASK)
-		    >> IAVF_RXD_QW1_LENGTH_PBUF_SHIFT;
-		ptype = (qword & IAVF_RXD_QW1_PTYPE_MASK)
-		    >> IAVF_RXD_QW1_PTYPE_SHIFT;
+		status = (qword & IAVF_RXD_QW1_STATUS_MASK) >>
+		    IAVF_RXD_QW1_STATUS_SHIFT;
+		error = (qword & IAVF_RXD_QW1_ERROR_MASK) >>
+		    IAVF_RXD_QW1_ERROR_SHIFT;
+		plen = (qword & IAVF_RXD_QW1_LENGTH_PBUF_MASK) >>
+		    IAVF_RXD_QW1_LENGTH_PBUF_SHIFT;
+		ptype = (qword & IAVF_RXD_QW1_PTYPE_MASK) >>
+		    IAVF_RXD_QW1_PTYPE_SHIFT;
 
 		/* we should never be called without a valid descriptor */
 		MPASS((status & (1 << IAVF_RX_DESC_STATUS_DD_SHIFT)) != 0);
@@ -761,8 +750,7 @@ iavf_rx_checksum(if_rxd_info_t ri, u32 status, u32 error, u8 ptype)
 	/* IPv6 with extension headers likely have bad csum */
 	if (decoded.outer_ip == IAVF_RX_PTYPE_OUTER_IP &&
 	    decoded.outer_ip_ver == IAVF_RX_PTYPE_OUTER_IPV6) {
-		if (status &
-		    (1 << IAVF_RX_DESC_STATUS_IPV6EXADD_SHIFT)) {
+		if (status & (1 << IAVF_RX_DESC_STATUS_IPV6EXADD_SHIFT)) {
 			ri->iri_csum_flags = 0;
 			return;
 		}

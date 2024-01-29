@@ -35,23 +35,23 @@
  */
 
 struct fwdma_alloc {
-	bus_dma_tag_t	dma_tag;
-	bus_dmamap_t	dma_map;
-	void 		*v_addr;
-	bus_addr_t	bus_addr;
+	bus_dma_tag_t dma_tag;
+	bus_dmamap_t dma_map;
+	void *v_addr;
+	bus_addr_t bus_addr;
 };
 
 struct fwdma_seg {
-	bus_dmamap_t	dma_map;
-	void 		*v_addr;
-	bus_addr_t	bus_addr;
+	bus_dmamap_t dma_map;
+	void *v_addr;
+	bus_addr_t bus_addr;
 };
 
 struct fwdma_alloc_multi {
-	bus_size_t	ssize;
-	bus_size_t	esize;
-	int		nseg;
-	bus_dma_tag_t	dma_tag;
+	bus_size_t ssize;
+	bus_size_t esize;
+	int nseg;
+	bus_dma_tag_t dma_tag;
 	struct fwdma_seg seg[0];
 };
 
@@ -80,8 +80,8 @@ fwdma_sync(struct fwdma_alloc *dma, bus_dmasync_op_t op)
 }
 
 static __inline void
-fwdma_sync_multiseg(struct fwdma_alloc_multi *am,
-    int start, int end, bus_dmasync_op_t op)
+fwdma_sync_multiseg(struct fwdma_alloc_multi *am, int start, int end,
+    bus_dmasync_op_t op)
 {
 	struct fwdma_seg *seg, *eseg;
 
@@ -102,11 +102,12 @@ fwdma_sync_multiseg_all(struct fwdma_alloc_multi *am, bus_dmasync_op_t op)
 		bus_dmamap_sync(am->dma_tag, seg->dma_map, op);
 }
 
-void *fwdma_malloc(struct firewire_comm *, int, bus_size_t, struct fwdma_alloc *, int);
+void *fwdma_malloc(struct firewire_comm *, int, bus_size_t,
+    struct fwdma_alloc *, int);
 void fwdma_free(struct firewire_comm *, struct fwdma_alloc *);
-void *fwdma_malloc_size(bus_dma_tag_t, bus_dmamap_t *, bus_size_t, bus_addr_t *, int);
+void *fwdma_malloc_size(bus_dma_tag_t, bus_dmamap_t *, bus_size_t, bus_addr_t *,
+    int);
 void fwdma_free_size(bus_dma_tag_t, bus_dmamap_t, void *, bus_size_t);
-struct fwdma_alloc_multi *fwdma_malloc_multiseg(struct firewire_comm *,
-	int, int, int, int);
+struct fwdma_alloc_multi *fwdma_malloc_multiseg(struct firewire_comm *, int,
+    int, int, int);
 void fwdma_free_multiseg(struct fwdma_alloc_multi *);
-

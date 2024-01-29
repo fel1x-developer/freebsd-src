@@ -50,45 +50,43 @@
 
 #include "e1000_api.h"
 
-static s32  e1000_acquire_nvm_82571(struct e1000_hw *hw);
+static s32 e1000_acquire_nvm_82571(struct e1000_hw *hw);
 static void e1000_release_nvm_82571(struct e1000_hw *hw);
-static s32  e1000_write_nvm_82571(struct e1000_hw *hw, u16 offset,
-				  u16 words, u16 *data);
-static s32  e1000_update_nvm_checksum_82571(struct e1000_hw *hw);
-static s32  e1000_validate_nvm_checksum_82571(struct e1000_hw *hw);
-static s32  e1000_get_cfg_done_82571(struct e1000_hw *hw);
-static s32  e1000_set_d0_lplu_state_82571(struct e1000_hw *hw,
-					  bool active);
-static s32  e1000_reset_hw_82571(struct e1000_hw *hw);
-static s32  e1000_init_hw_82571(struct e1000_hw *hw);
+static s32 e1000_write_nvm_82571(struct e1000_hw *hw, u16 offset, u16 words,
+    u16 *data);
+static s32 e1000_update_nvm_checksum_82571(struct e1000_hw *hw);
+static s32 e1000_validate_nvm_checksum_82571(struct e1000_hw *hw);
+static s32 e1000_get_cfg_done_82571(struct e1000_hw *hw);
+static s32 e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active);
+static s32 e1000_reset_hw_82571(struct e1000_hw *hw);
+static s32 e1000_init_hw_82571(struct e1000_hw *hw);
 static void e1000_clear_vfta_82571(struct e1000_hw *hw);
 static bool e1000_check_mng_mode_82574(struct e1000_hw *hw);
 static s32 e1000_led_on_82574(struct e1000_hw *hw);
-static s32  e1000_setup_link_82571(struct e1000_hw *hw);
-static s32  e1000_setup_copper_link_82571(struct e1000_hw *hw);
-static s32  e1000_check_for_serdes_link_82571(struct e1000_hw *hw);
-static s32  e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw);
-static s32  e1000_valid_led_default_82571(struct e1000_hw *hw, u16 *data);
+static s32 e1000_setup_link_82571(struct e1000_hw *hw);
+static s32 e1000_setup_copper_link_82571(struct e1000_hw *hw);
+static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw);
+static s32 e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw);
+static s32 e1000_valid_led_default_82571(struct e1000_hw *hw, u16 *data);
 static void e1000_clear_hw_cntrs_82571(struct e1000_hw *hw);
-static s32  e1000_fix_nvm_checksum_82571(struct e1000_hw *hw);
-static s32  e1000_get_phy_id_82571(struct e1000_hw *hw);
-static s32  e1000_get_hw_semaphore_82574(struct e1000_hw *hw);
+static s32 e1000_fix_nvm_checksum_82571(struct e1000_hw *hw);
+static s32 e1000_get_phy_id_82571(struct e1000_hw *hw);
+static s32 e1000_get_hw_semaphore_82574(struct e1000_hw *hw);
 static void e1000_put_hw_semaphore_82574(struct e1000_hw *hw);
-static s32  e1000_set_d0_lplu_state_82574(struct e1000_hw *hw,
-					  bool active);
-static s32  e1000_set_d3_lplu_state_82574(struct e1000_hw *hw,
-					  bool active);
+static s32 e1000_set_d0_lplu_state_82574(struct e1000_hw *hw, bool active);
+static s32 e1000_set_d3_lplu_state_82574(struct e1000_hw *hw, bool active);
 static void e1000_initialize_hw_bits_82571(struct e1000_hw *hw);
-static s32  e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset,
-				       u16 words, u16 *data);
-static s32  e1000_read_mac_addr_82571(struct e1000_hw *hw);
+static s32 e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset,
+    u16 words, u16 *data);
+static s32 e1000_read_mac_addr_82571(struct e1000_hw *hw);
 static void e1000_power_down_phy_copper_82571(struct e1000_hw *hw);
 
 /**
  *  e1000_init_phy_params_82571 - Init PHY func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_phy_params_82571(struct e1000_hw *hw)
+static s32
+e1000_init_phy_params_82571(struct e1000_hw *hw)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -100,58 +98,58 @@ static s32 e1000_init_phy_params_82571(struct e1000_hw *hw)
 		return E1000_SUCCESS;
 	}
 
-	phy->addr			= 1;
-	phy->autoneg_mask		= AUTONEG_ADVERTISE_SPEED_DEFAULT;
-	phy->reset_delay_us		= 100;
+	phy->addr = 1;
+	phy->autoneg_mask = AUTONEG_ADVERTISE_SPEED_DEFAULT;
+	phy->reset_delay_us = 100;
 
-	phy->ops.check_reset_block	= e1000_check_reset_block_generic;
-	phy->ops.reset			= e1000_phy_hw_reset_generic;
-	phy->ops.set_d0_lplu_state	= e1000_set_d0_lplu_state_82571;
-	phy->ops.set_d3_lplu_state	= e1000_set_d3_lplu_state_generic;
-	phy->ops.power_up		= e1000_power_up_phy_copper;
-	phy->ops.power_down		= e1000_power_down_phy_copper_82571;
+	phy->ops.check_reset_block = e1000_check_reset_block_generic;
+	phy->ops.reset = e1000_phy_hw_reset_generic;
+	phy->ops.set_d0_lplu_state = e1000_set_d0_lplu_state_82571;
+	phy->ops.set_d3_lplu_state = e1000_set_d3_lplu_state_generic;
+	phy->ops.power_up = e1000_power_up_phy_copper;
+	phy->ops.power_down = e1000_power_down_phy_copper_82571;
 
 	switch (hw->mac.type) {
 	case e1000_82571:
 	case e1000_82572:
-		phy->type		= e1000_phy_igp_2;
-		phy->ops.get_cfg_done	= e1000_get_cfg_done_82571;
-		phy->ops.get_info	= e1000_get_phy_info_igp;
-		phy->ops.check_polarity	= e1000_check_polarity_igp;
+		phy->type = e1000_phy_igp_2;
+		phy->ops.get_cfg_done = e1000_get_cfg_done_82571;
+		phy->ops.get_info = e1000_get_phy_info_igp;
+		phy->ops.check_polarity = e1000_check_polarity_igp;
 		phy->ops.force_speed_duplex = e1000_phy_force_speed_duplex_igp;
 		phy->ops.get_cable_length = e1000_get_cable_length_igp_2;
-		phy->ops.read_reg	= e1000_read_phy_reg_igp;
-		phy->ops.write_reg	= e1000_write_phy_reg_igp;
-		phy->ops.acquire	= e1000_get_hw_semaphore;
-		phy->ops.release	= e1000_put_hw_semaphore;
+		phy->ops.read_reg = e1000_read_phy_reg_igp;
+		phy->ops.write_reg = e1000_write_phy_reg_igp;
+		phy->ops.acquire = e1000_get_hw_semaphore;
+		phy->ops.release = e1000_put_hw_semaphore;
 		break;
 	case e1000_82573:
-		phy->type		= e1000_phy_m88;
-		phy->ops.get_cfg_done	= e1000_get_cfg_done_generic;
-		phy->ops.get_info	= e1000_get_phy_info_m88;
-		phy->ops.check_polarity	= e1000_check_polarity_m88;
-		phy->ops.commit		= e1000_phy_sw_reset_generic;
+		phy->type = e1000_phy_m88;
+		phy->ops.get_cfg_done = e1000_get_cfg_done_generic;
+		phy->ops.get_info = e1000_get_phy_info_m88;
+		phy->ops.check_polarity = e1000_check_polarity_m88;
+		phy->ops.commit = e1000_phy_sw_reset_generic;
 		phy->ops.force_speed_duplex = e1000_phy_force_speed_duplex_m88;
 		phy->ops.get_cable_length = e1000_get_cable_length_m88;
-		phy->ops.read_reg	= e1000_read_phy_reg_m88;
-		phy->ops.write_reg	= e1000_write_phy_reg_m88;
-		phy->ops.acquire	= e1000_get_hw_semaphore;
-		phy->ops.release	= e1000_put_hw_semaphore;
+		phy->ops.read_reg = e1000_read_phy_reg_m88;
+		phy->ops.write_reg = e1000_write_phy_reg_m88;
+		phy->ops.acquire = e1000_get_hw_semaphore;
+		phy->ops.release = e1000_put_hw_semaphore;
 		break;
 	case e1000_82574:
 	case e1000_82583:
 
-		phy->type		= e1000_phy_bm;
-		phy->ops.get_cfg_done	= e1000_get_cfg_done_generic;
-		phy->ops.get_info	= e1000_get_phy_info_m88;
-		phy->ops.check_polarity	= e1000_check_polarity_m88;
-		phy->ops.commit		= e1000_phy_sw_reset_generic;
+		phy->type = e1000_phy_bm;
+		phy->ops.get_cfg_done = e1000_get_cfg_done_generic;
+		phy->ops.get_info = e1000_get_phy_info_m88;
+		phy->ops.check_polarity = e1000_check_polarity_m88;
+		phy->ops.commit = e1000_phy_sw_reset_generic;
 		phy->ops.force_speed_duplex = e1000_phy_force_speed_duplex_m88;
 		phy->ops.get_cable_length = e1000_get_cable_length_m88;
-		phy->ops.read_reg	= e1000_read_phy_reg_bm2;
-		phy->ops.write_reg	= e1000_write_phy_reg_bm2;
-		phy->ops.acquire	= e1000_get_hw_semaphore_82574;
-		phy->ops.release	= e1000_put_hw_semaphore_82574;
+		phy->ops.read_reg = e1000_read_phy_reg_bm2;
+		phy->ops.write_reg = e1000_write_phy_reg_bm2;
+		phy->ops.acquire = e1000_get_hw_semaphore_82574;
+		phy->ops.release = e1000_put_hw_semaphore_82574;
 		phy->ops.set_d0_lplu_state = e1000_set_d0_lplu_state_82574;
 		phy->ops.set_d3_lplu_state = e1000_set_d3_lplu_state_82574;
 		break;
@@ -198,7 +196,8 @@ static s32 e1000_init_phy_params_82571(struct e1000_hw *hw)
  *  e1000_init_nvm_params_82571 - Init NVM func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_nvm_params_82571(struct e1000_hw *hw)
+static s32
+e1000_init_nvm_params_82571(struct e1000_hw *hw)
 {
 	struct e1000_nvm_info *nvm = &hw->nvm;
 	u32 eecd = E1000_READ_REG(hw, E1000_EECD);
@@ -241,7 +240,7 @@ static s32 e1000_init_nvm_params_82571(struct e1000_hw *hw)
 	default:
 		nvm->type = e1000_nvm_eeprom_spi;
 		size = (u16)((eecd & E1000_EECD_SIZE_EX_MASK) >>
-			     E1000_EECD_SIZE_EX_SHIFT);
+		    E1000_EECD_SIZE_EX_SHIFT);
 		/* Added to a constant, "size" becomes the left-shift value
 		 * for setting word_size.
 		 */
@@ -279,7 +278,8 @@ static s32 e1000_init_nvm_params_82571(struct e1000_hw *hw)
  *  e1000_init_mac_params_82571 - Init MAC func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
+static s32
+e1000_init_mac_params_82571(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	u32 swsm = 0;
@@ -295,10 +295,10 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
 	case E1000_DEV_ID_82571EB_QUAD_FIBER:
 		hw->phy.media_type = e1000_media_type_fiber;
 		mac->ops.setup_physical_interface =
-			e1000_setup_fiber_serdes_link_82571;
+		    e1000_setup_fiber_serdes_link_82571;
 		mac->ops.check_for_link = e1000_check_for_fiber_link_generic;
 		mac->ops.get_link_up_info =
-			e1000_get_speed_and_duplex_fiber_serdes_generic;
+		    e1000_get_speed_and_duplex_fiber_serdes_generic;
 		break;
 	case E1000_DEV_ID_82571EB_SERDES:
 	case E1000_DEV_ID_82571EB_SERDES_DUAL:
@@ -306,18 +306,18 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
 	case E1000_DEV_ID_82572EI_SERDES:
 		hw->phy.media_type = e1000_media_type_internal_serdes;
 		mac->ops.setup_physical_interface =
-			e1000_setup_fiber_serdes_link_82571;
+		    e1000_setup_fiber_serdes_link_82571;
 		mac->ops.check_for_link = e1000_check_for_serdes_link_82571;
 		mac->ops.get_link_up_info =
-			e1000_get_speed_and_duplex_fiber_serdes_generic;
+		    e1000_get_speed_and_duplex_fiber_serdes_generic;
 		break;
 	default:
 		hw->phy.media_type = e1000_media_type_copper;
 		mac->ops.setup_physical_interface =
-			e1000_setup_copper_link_82571;
+		    e1000_setup_copper_link_82571;
 		mac->ops.check_for_link = e1000_check_for_copper_link_generic;
 		mac->ops.get_link_up_info =
-			e1000_get_speed_and_duplex_copper_generic;
+		    e1000_get_speed_and_duplex_copper_generic;
 		break;
 	}
 
@@ -372,8 +372,8 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
 		/* ARC supported; valid only if manageability features are
 		 * enabled.
 		 */
-		mac->arc_subsystem_valid = !!(E1000_READ_REG(hw, E1000_FWSM) &
-					      E1000_FWSM_MODE_MASK);
+		mac->arc_subsystem_valid = !!(
+		    E1000_READ_REG(hw, E1000_FWSM) & E1000_FWSM_MODE_MASK);
 		break;
 	case e1000_82574:
 	case e1000_82583:
@@ -404,8 +404,8 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
 
 		if (!(swsm2 & E1000_SWSM2_LOCK)) {
 			/* Only do this for the first interface on this card */
-			E1000_WRITE_REG(hw, E1000_SWSM2, swsm2 |
-					E1000_SWSM2_LOCK);
+			E1000_WRITE_REG(hw, E1000_SWSM2,
+			    swsm2 | E1000_SWSM2_LOCK);
 			force_clear_smbi = true;
 		} else {
 			force_clear_smbi = false;
@@ -430,7 +430,7 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
 	}
 
 	/* Initialze device specific counter of SMBI acquisition timeouts. */
-	 hw->dev_spec._82571.smb_counter = 0;
+	hw->dev_spec._82571.smb_counter = 0;
 
 	return E1000_SUCCESS;
 }
@@ -441,7 +441,8 @@ static s32 e1000_init_mac_params_82571(struct e1000_hw *hw)
  *
  *  Called to initialize all function pointers and parameters.
  **/
-void e1000_init_function_pointers_82571(struct e1000_hw *hw)
+void
+e1000_init_function_pointers_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_init_function_pointers_82571");
 
@@ -457,7 +458,8 @@ void e1000_init_function_pointers_82571(struct e1000_hw *hw)
  *  Reads the PHY registers and stores the PHY ID and possibly the PHY
  *  revision in the hardware structure.
  **/
-static s32 e1000_get_phy_id_82571(struct e1000_hw *hw)
+static s32
+e1000_get_phy_id_82571(struct e1000_hw *hw)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -571,7 +573,8 @@ e1000_put_hw_semaphore_82574(struct e1000_hw *hw)
  *  This is a function pointer entry point only called by
  *  PHY setup routines.
  **/
-static s32 e1000_set_d0_lplu_state_82574(struct e1000_hw *hw, bool active)
+static s32
+e1000_set_d0_lplu_state_82574(struct e1000_hw *hw, bool active)
 {
 	u32 data = E1000_READ_REG(hw, E1000_POEMB);
 
@@ -597,7 +600,8 @@ static s32 e1000_set_d0_lplu_state_82574(struct e1000_hw *hw, bool active)
  *  During driver activity, SmartSpeed should be enabled so performance is
  *  maintained.
  **/
-static s32 e1000_set_d3_lplu_state_82574(struct e1000_hw *hw, bool active)
+static s32
+e1000_set_d3_lplu_state_82574(struct e1000_hw *hw, bool active)
 {
 	u32 data = E1000_READ_REG(hw, E1000_POEMB);
 
@@ -606,8 +610,8 @@ static s32 e1000_set_d3_lplu_state_82574(struct e1000_hw *hw, bool active)
 	if (!active) {
 		data &= ~E1000_PHY_CTRL_NOND0A_LPLU;
 	} else if ((hw->phy.autoneg_advertised == E1000_ALL_SPEED_DUPLEX) ||
-		   (hw->phy.autoneg_advertised == E1000_ALL_NOT_GIG) ||
-		   (hw->phy.autoneg_advertised == E1000_ALL_10_SPEED)) {
+	    (hw->phy.autoneg_advertised == E1000_ALL_NOT_GIG) ||
+	    (hw->phy.autoneg_advertised == E1000_ALL_10_SPEED)) {
 		data |= E1000_PHY_CTRL_NOND0A_LPLU;
 	}
 
@@ -624,7 +628,8 @@ static s32 e1000_set_d3_lplu_state_82574(struct e1000_hw *hw, bool active)
  *  for EEPROM access grant bit.  If the access grant bit is not set, release
  *  hardware semaphore.
  **/
-static s32 e1000_acquire_nvm_82571(struct e1000_hw *hw)
+static s32
+e1000_acquire_nvm_82571(struct e1000_hw *hw)
 {
 	s32 ret_val;
 
@@ -654,7 +659,8 @@ static s32 e1000_acquire_nvm_82571(struct e1000_hw *hw)
  *
  *  Stop any current commands to the EEPROM and clear the EEPROM request bit.
  **/
-static void e1000_release_nvm_82571(struct e1000_hw *hw)
+static void
+e1000_release_nvm_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_release_nvm_82571");
 
@@ -674,8 +680,8 @@ static void e1000_release_nvm_82571(struct e1000_hw *hw)
  *  If e1000_update_nvm_checksum is not called after this function, the
  *  EEPROM will most likely contain an invalid checksum.
  **/
-static s32 e1000_write_nvm_82571(struct e1000_hw *hw, u16 offset, u16 words,
-				 u16 *data)
+static s32
+e1000_write_nvm_82571(struct e1000_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	s32 ret_val;
 
@@ -707,7 +713,8 @@ static s32 e1000_write_nvm_82571(struct e1000_hw *hw, u16 offset, u16 words,
  *  up to the checksum.  Then calculates the EEPROM checksum and writes the
  *  value to the EEPROM.
  **/
-static s32 e1000_update_nvm_checksum_82571(struct e1000_hw *hw)
+static s32
+e1000_update_nvm_checksum_82571(struct e1000_hw *hw)
 {
 	u32 eecd;
 	s32 ret_val;
@@ -768,7 +775,8 @@ static s32 e1000_update_nvm_checksum_82571(struct e1000_hw *hw)
  *  Calculates the EEPROM checksum by reading/adding each word of the EEPROM
  *  and then verifies that the sum of the EEPROM is equal to 0xBABA.
  **/
-static s32 e1000_validate_nvm_checksum_82571(struct e1000_hw *hw)
+static s32
+e1000_validate_nvm_checksum_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_validate_nvm_checksum_82571");
 
@@ -792,8 +800,9 @@ static s32 e1000_validate_nvm_checksum_82571(struct e1000_hw *hw)
  *  If e1000_update_nvm_checksum is not called after this function, the
  *  EEPROM will most likely contain an invalid checksum.
  **/
-static s32 e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset,
-				      u16 words, u16 *data)
+static s32
+e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset, u16 words,
+    u16 *data)
 {
 	struct e1000_nvm_info *nvm = &hw->nvm;
 	u32 i, eewr = 0;
@@ -812,8 +821,8 @@ static s32 e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset,
 
 	for (i = 0; i < words; i++) {
 		eewr = ((data[i] << E1000_NVM_RW_REG_DATA) |
-			((offset + i) << E1000_NVM_RW_ADDR_SHIFT) |
-			E1000_NVM_RW_REG_START);
+		    ((offset + i) << E1000_NVM_RW_ADDR_SHIFT) |
+		    E1000_NVM_RW_REG_START);
 
 		ret_val = e1000_poll_eerd_eewr_done(hw, E1000_NVM_POLL_WRITE);
 		if (ret_val)
@@ -835,7 +844,8 @@ static s32 e1000_write_nvm_eewr_82571(struct e1000_hw *hw, u16 offset,
  *
  *  Reads the management control register for the config done bit to be set.
  **/
-static s32 e1000_get_cfg_done_82571(struct e1000_hw *hw)
+static s32
+e1000_get_cfg_done_82571(struct e1000_hw *hw)
 {
 	s32 timeout = PHY_CFG_TIMEOUT;
 
@@ -867,7 +877,8 @@ static s32 e1000_get_cfg_done_82571(struct e1000_hw *hw)
  *  of either 10 or 10/100 or 10/100/1000 at all duplexes.  This is a function
  *  pointer entry point only called by PHY setup routines.
  **/
-static s32 e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active)
+static s32
+e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 	s32 ret_val;
@@ -885,24 +896,24 @@ static s32 e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active)
 	if (active) {
 		data |= IGP02E1000_PM_D0_LPLU;
 		ret_val = phy->ops.write_reg(hw, IGP02E1000_PHY_POWER_MGMT,
-					     data);
+		    data);
 		if (ret_val)
 			return ret_val;
 
 		/* When LPLU is enabled, we should disable SmartSpeed */
 		ret_val = phy->ops.read_reg(hw, IGP01E1000_PHY_PORT_CONFIG,
-					    &data);
+		    &data);
 		if (ret_val)
 			return ret_val;
 		data &= ~IGP01E1000_PSCFR_SMART_SPEED;
 		ret_val = phy->ops.write_reg(hw, IGP01E1000_PHY_PORT_CONFIG,
-					     data);
+		    data);
 		if (ret_val)
 			return ret_val;
 	} else {
 		data &= ~IGP02E1000_PM_D0_LPLU;
 		ret_val = phy->ops.write_reg(hw, IGP02E1000_PHY_POWER_MGMT,
-					     data);
+		    data);
 		/* LPLU and SmartSpeed are mutually exclusive.  LPLU is used
 		 * during Dx states where the power conservation is most
 		 * important.  During driver activity we should enable
@@ -910,28 +921,24 @@ static s32 e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active)
 		 */
 		if (phy->smart_speed == e1000_smart_speed_on) {
 			ret_val = phy->ops.read_reg(hw,
-						    IGP01E1000_PHY_PORT_CONFIG,
-						    &data);
+			    IGP01E1000_PHY_PORT_CONFIG, &data);
 			if (ret_val)
 				return ret_val;
 
 			data |= IGP01E1000_PSCFR_SMART_SPEED;
 			ret_val = phy->ops.write_reg(hw,
-						     IGP01E1000_PHY_PORT_CONFIG,
-						     data);
+			    IGP01E1000_PHY_PORT_CONFIG, data);
 			if (ret_val)
 				return ret_val;
 		} else if (phy->smart_speed == e1000_smart_speed_off) {
 			ret_val = phy->ops.read_reg(hw,
-						    IGP01E1000_PHY_PORT_CONFIG,
-						    &data);
+			    IGP01E1000_PHY_PORT_CONFIG, &data);
 			if (ret_val)
 				return ret_val;
 
 			data &= ~IGP01E1000_PSCFR_SMART_SPEED;
 			ret_val = phy->ops.write_reg(hw,
-						     IGP01E1000_PHY_PORT_CONFIG,
-						     data);
+			    IGP01E1000_PHY_PORT_CONFIG, data);
 			if (ret_val)
 				return ret_val;
 		}
@@ -946,7 +953,8 @@ static s32 e1000_set_d0_lplu_state_82571(struct e1000_hw *hw, bool active)
  *
  *  This resets the hardware into a known state.
  **/
-static s32 e1000_reset_hw_82571(struct e1000_hw *hw)
+static s32
+e1000_reset_hw_82571(struct e1000_hw *hw)
 {
 	u32 ctrl, ctrl_ext, eecd, tctl;
 	s32 ret_val;
@@ -1066,7 +1074,8 @@ static s32 e1000_reset_hw_82571(struct e1000_hw *hw)
  *
  *  This inits the hardware readying it for operation.
  **/
-static s32 e1000_init_hw_82571(struct e1000_hw *hw)
+static s32
+e1000_init_hw_82571(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	u32 reg_data;
@@ -1107,7 +1116,7 @@ static s32 e1000_init_hw_82571(struct e1000_hw *hw)
 	/* Set the transmit descriptor write-back policy */
 	reg_data = E1000_READ_REG(hw, E1000_TXDCTL(0));
 	reg_data = ((reg_data & ~E1000_TXDCTL_WTHRESH) |
-		    E1000_TXDCTL_FULL_TX_DESC_WB | E1000_TXDCTL_COUNT_DESC);
+	    E1000_TXDCTL_FULL_TX_DESC_WB | E1000_TXDCTL_COUNT_DESC);
 	E1000_WRITE_REG(hw, E1000_TXDCTL(0), reg_data);
 
 	/* ...for both queues. */
@@ -1124,8 +1133,7 @@ static s32 e1000_init_hw_82571(struct e1000_hw *hw)
 	default:
 		reg_data = E1000_READ_REG(hw, E1000_TXDCTL(1));
 		reg_data = ((reg_data & ~E1000_TXDCTL_WTHRESH) |
-			    E1000_TXDCTL_FULL_TX_DESC_WB |
-			    E1000_TXDCTL_COUNT_DESC);
+		    E1000_TXDCTL_FULL_TX_DESC_WB | E1000_TXDCTL_COUNT_DESC);
 		E1000_WRITE_REG(hw, E1000_TXDCTL(1), reg_data);
 		break;
 	}
@@ -1146,7 +1154,8 @@ static s32 e1000_init_hw_82571(struct e1000_hw *hw)
  *
  *  Initializes required hardware-dependent bits needed for normal operation.
  **/
-static void e1000_initialize_hw_bits_82571(struct e1000_hw *hw)
+static void
+e1000_initialize_hw_bits_82571(struct e1000_hw *hw)
 {
 	u32 reg;
 
@@ -1232,8 +1241,7 @@ static void e1000_initialize_hw_bits_82571(struct e1000_hw *hw)
 	/* Workaround for hardware errata.
 	 * Ensure that DMA Dynamic Clock gating is disabled on 82571 and 82572
 	 */
-	if ((hw->mac.type == e1000_82571) ||
-	   (hw->mac.type == e1000_82572)) {
+	if ((hw->mac.type == e1000_82571) || (hw->mac.type == e1000_82572)) {
 		reg = E1000_READ_REG(hw, E1000_CTRL_EXT);
 		reg &= ~E1000_CTRL_EXT_DMA_DYN_CLK_EN;
 		E1000_WRITE_REG(hw, E1000_CTRL_EXT, reg);
@@ -1280,7 +1288,8 @@ static void e1000_initialize_hw_bits_82571(struct e1000_hw *hw)
  *  Clears the register array which contains the VLAN filter table by
  *  setting all the values to 0.
  **/
-static void e1000_clear_vfta_82571(struct e1000_hw *hw)
+static void
+e1000_clear_vfta_82571(struct e1000_hw *hw)
 {
 	u32 offset;
 	u32 vfta_value = 0;
@@ -1301,11 +1310,10 @@ static void e1000_clear_vfta_82571(struct e1000_hw *hw)
 			 * the manageability unit.
 			 */
 			vfta_offset = (hw->mng_cookie.vlan_id >>
-				       E1000_VFTA_ENTRY_SHIFT) &
+					  E1000_VFTA_ENTRY_SHIFT) &
 			    E1000_VFTA_ENTRY_MASK;
-			vfta_bit_in_reg =
-			    1 << (hw->mng_cookie.vlan_id &
-				  E1000_VFTA_ENTRY_BIT_SHIFT_MASK);
+			vfta_bit_in_reg = 1 << (hw->mng_cookie.vlan_id &
+					      E1000_VFTA_ENTRY_BIT_SHIFT_MASK);
 		}
 		break;
 	default:
@@ -1329,7 +1337,8 @@ static void e1000_clear_vfta_82571(struct e1000_hw *hw)
  *  Reads the NVM Initialization Control Word 2 and returns true
  *  (>0) if any manageability is enabled, else false (0).
  **/
-static bool e1000_check_mng_mode_82574(struct e1000_hw *hw)
+static bool
+e1000_check_mng_mode_82574(struct e1000_hw *hw)
 {
 	u16 data;
 	s32 ret_val;
@@ -1349,7 +1358,8 @@ static bool e1000_check_mng_mode_82574(struct e1000_hw *hw)
  *
  *  Turn LED on.
  **/
-static s32 e1000_led_on_82574(struct e1000_hw *hw)
+static s32
+e1000_led_on_82574(struct e1000_hw *hw)
 {
 	u32 ctrl;
 	u32 i;
@@ -1377,7 +1387,8 @@ static s32 e1000_led_on_82574(struct e1000_hw *hw)
  *
  *  Returns whether phy is hung or not
  **/
-bool e1000_check_phy_82574(struct e1000_hw *hw)
+bool
+e1000_check_phy_82574(struct e1000_hw *hw)
 {
 	u16 status_1kbt = 0;
 	u16 receive_errors = 0;
@@ -1389,12 +1400,12 @@ bool e1000_check_phy_82574(struct e1000_hw *hw)
 	 * read the Base1000T status register If both are max then PHY is hung.
 	 */
 	ret_val = hw->phy.ops.read_reg(hw, E1000_RECEIVE_ERROR_COUNTER,
-				       &receive_errors);
+	    &receive_errors);
 	if (ret_val)
 		return false;
 	if (receive_errors == E1000_RECEIVE_ERROR_MAX) {
 		ret_val = hw->phy.ops.read_reg(hw, E1000_BASE1000T_STATUS,
-					       &status_1kbt);
+		    &status_1kbt);
 		if (ret_val)
 			return false;
 		if ((status_1kbt & E1000_IDLE_ERROR_COUNT_MASK) ==
@@ -1404,7 +1415,6 @@ bool e1000_check_phy_82574(struct e1000_hw *hw)
 
 	return false;
 }
-
 
 /**
  *  e1000_setup_link_82571 - Setup flow control and link settings
@@ -1416,7 +1426,8 @@ bool e1000_check_phy_82574(struct e1000_hw *hw)
  *  should be established.  Assumes the hardware has previously been reset
  *  and the transmitter and receiver are not enabled.
  **/
-static s32 e1000_setup_link_82571(struct e1000_hw *hw)
+static s32
+e1000_setup_link_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_setup_link_82571");
 
@@ -1446,7 +1457,8 @@ static s32 e1000_setup_link_82571(struct e1000_hw *hw)
  *  for link, once link is established calls to configure collision distance
  *  and flow control are called.
  **/
-static s32 e1000_setup_copper_link_82571(struct e1000_hw *hw)
+static s32
+e1000_setup_copper_link_82571(struct e1000_hw *hw)
 {
 	u32 ctrl;
 	s32 ret_val;
@@ -1484,7 +1496,8 @@ static s32 e1000_setup_copper_link_82571(struct e1000_hw *hw)
  *  Configures collision distance and flow control for fiber and serdes links.
  *  Upon successful setup, poll for link.
  **/
-static s32 e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw)
+static s32
+e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_setup_fiber_serdes_link_82571");
 
@@ -1498,7 +1511,7 @@ static s32 e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw)
 		 * if another tool failed to take it out of loopback mode.
 		 */
 		E1000_WRITE_REG(hw, E1000_SCTL,
-				E1000_SCTL_DISABLE_SERDES_LOOPBACK);
+		    E1000_SCTL_DISABLE_SERDES_LOOPBACK);
 		break;
 	default:
 		break;
@@ -1526,7 +1539,8 @@ static s32 e1000_setup_fiber_serdes_link_82571(struct e1000_hw *hw)
  *  4) forced_up (the link has been forced up, it did not autonegotiate)
  *
  **/
-static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
+static s32
+e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
 {
 	struct e1000_mac_info *mac = &hw->mac;
 	u32 rxcw;
@@ -1605,19 +1619,19 @@ static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
 				 * state to forced.
 				 */
 				E1000_WRITE_REG(hw, E1000_TXCW,
-				(mac->txcw & ~E1000_TXCW_ANE));
+				    (mac->txcw & ~E1000_TXCW_ANE));
 				ctrl |= (E1000_CTRL_SLU | E1000_CTRL_FD);
 				E1000_WRITE_REG(hw, E1000_CTRL, ctrl);
 
 				/* Configure Flow Control after link up. */
-				ret_val =
-				    e1000_config_fc_after_link_up_generic(hw);
+				ret_val = e1000_config_fc_after_link_up_generic(
+				    hw);
 				if (ret_val) {
 					DEBUGOUT("Error config flow control\n");
 					break;
 				}
 				mac->serdes_link_state =
-						e1000_serdes_link_forced_up;
+				    e1000_serdes_link_forced_up;
 				mac->serdes_has_link = true;
 				DEBUGOUT("AN_PROG   -> FORCED_UP\n");
 			}
@@ -1630,10 +1644,10 @@ static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
 			 * up.
 			 */
 			E1000_WRITE_REG(hw, E1000_TXCW, mac->txcw);
-			E1000_WRITE_REG(hw, E1000_CTRL, (ctrl &
-					~E1000_CTRL_SLU));
+			E1000_WRITE_REG(hw, E1000_CTRL,
+			    (ctrl & ~E1000_CTRL_SLU));
 			mac->serdes_link_state =
-					e1000_serdes_link_autoneg_progress;
+			    e1000_serdes_link_autoneg_progress;
 			mac->serdes_has_link = false;
 			DEBUGOUT("DOWN      -> AN_PROG\n");
 			break;
@@ -1658,7 +1672,7 @@ static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
 				if (rxcw & E1000_RXCW_IV) {
 					mac->serdes_has_link = false;
 					mac->serdes_link_state =
-							e1000_serdes_link_down;
+					    e1000_serdes_link_down;
 					DEBUGOUT("ANYSTATE  -> DOWN\n");
 					break;
 				}
@@ -1669,7 +1683,7 @@ static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
 				txcw |= E1000_TXCW_ANE;
 				E1000_WRITE_REG(hw, E1000_TXCW, txcw);
 				mac->serdes_link_state =
-					e1000_serdes_link_autoneg_progress;
+				    e1000_serdes_link_autoneg_progress;
 				mac->serdes_has_link = false;
 				DEBUGOUT("ANYSTATE  -> AN_PROG\n");
 			}
@@ -1687,7 +1701,8 @@ static s32 e1000_check_for_serdes_link_82571(struct e1000_hw *hw)
  *  Read the EEPROM for the current default LED configuration.  If the
  *  LED configuration is not valid, set to a valid LED configuration.
  **/
-static s32 e1000_valid_led_default_82571(struct e1000_hw *hw, u16 *data)
+static s32
+e1000_valid_led_default_82571(struct e1000_hw *hw, u16 *data)
 {
 	s32 ret_val;
 
@@ -1722,7 +1737,8 @@ static s32 e1000_valid_led_default_82571(struct e1000_hw *hw, u16 *data)
  *
  *  Retrieve and return the current locally administered address state.
  **/
-bool e1000_get_laa_state_82571(struct e1000_hw *hw)
+bool
+e1000_get_laa_state_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_get_laa_state_82571");
 
@@ -1739,7 +1755,8 @@ bool e1000_get_laa_state_82571(struct e1000_hw *hw)
  *
  *  Enable/Disable the current locally administered address state.
  **/
-void e1000_set_laa_state_82571(struct e1000_hw *hw, bool state)
+void
+e1000_set_laa_state_82571(struct e1000_hw *hw, bool state)
 {
 	DEBUGFUNC("e1000_set_laa_state_82571");
 
@@ -1757,7 +1774,7 @@ void e1000_set_laa_state_82571(struct e1000_hw *hw, bool state)
 		 * Eventually the LAA will be in RAR[0] and RAR[14].
 		 */
 		hw->mac.ops.rar_set(hw, hw->mac.addr,
-				    hw->mac.rar_entry_count - 1);
+		    hw->mac.rar_entry_count - 1);
 	return;
 }
 
@@ -1771,7 +1788,8 @@ void e1000_set_laa_state_82571(struct e1000_hw *hw, bool state)
  *  the checksum.  Otherwise, if bit 15 is set and the checksum is incorrect,
  *  we need to return bad checksum.
  **/
-static s32 e1000_fix_nvm_checksum_82571(struct e1000_hw *hw)
+static s32
+e1000_fix_nvm_checksum_82571(struct e1000_hw *hw)
 {
 	struct e1000_nvm_info *nvm = &hw->nvm;
 	s32 ret_val;
@@ -1815,12 +1833,12 @@ static s32 e1000_fix_nvm_checksum_82571(struct e1000_hw *hw)
 	return E1000_SUCCESS;
 }
 
-
 /**
  *  e1000_read_mac_addr_82571 - Read device MAC address
  *  @hw: pointer to the HW structure
  **/
-static s32 e1000_read_mac_addr_82571(struct e1000_hw *hw)
+static s32
+e1000_read_mac_addr_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_read_mac_addr_82571");
 
@@ -1846,7 +1864,8 @@ static s32 e1000_read_mac_addr_82571(struct e1000_hw *hw)
  * In the case of a PHY power down to save power, or to turn off link during a
  * driver unload, or wake on lan is not enabled, remove the link.
  **/
-static void e1000_power_down_phy_copper_82571(struct e1000_hw *hw)
+static void
+e1000_power_down_phy_copper_82571(struct e1000_hw *hw)
 {
 	struct e1000_phy_info *phy = &hw->phy;
 	struct e1000_mac_info *mac = &hw->mac;
@@ -1867,7 +1886,8 @@ static void e1000_power_down_phy_copper_82571(struct e1000_hw *hw)
  *
  *  Clears the hardware counters by reading the counter registers.
  **/
-static void e1000_clear_hw_cntrs_82571(struct e1000_hw *hw)
+static void
+e1000_clear_hw_cntrs_82571(struct e1000_hw *hw)
 {
 	DEBUGFUNC("e1000_clear_hw_cntrs_82571");
 

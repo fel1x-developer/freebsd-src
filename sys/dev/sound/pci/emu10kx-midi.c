@@ -28,44 +28,44 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sbuf.h>
-#include <sys/queue.h>
+#include <sys/bus.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/sbuf.h>
+
+#include <machine/bus.h>
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
 
 #include <dev/sound/chip.h>
-#include <dev/sound/pcm/sound.h>
-
 #include <dev/sound/midi/midi.h>
 #include <dev/sound/midi/mpu401.h>
+#include <dev/sound/pci/emu10kx.h>
+#include <dev/sound/pci/emuxkireg.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "mpufoi_if.h"
 
-#include <dev/sound/pci/emuxkireg.h>
-#include <dev/sound/pci/emu10kx.h>
-
 struct emu_midi_softc {
-	struct mtx	mtx;
-	device_t	dev;
-	struct mpu401	*mpu;
-	mpu401_intr_t	*mpu_intr;
+	struct mtx mtx;
+	device_t dev;
+	struct mpu401 *mpu;
+	mpu401_intr_t *mpu_intr;
 	struct emu_sc_info *card;
-	int		port;			/* I/O port or I/O ptr reg */
-	int		is_emu10k1;
-	int		fflags;			/* File flags */
-	int		ihandle;		/* interrupt manager handle */
+	int port; /* I/O port or I/O ptr reg */
+	int is_emu10k1;
+	int fflags;  /* File flags */
+	int ihandle; /* interrupt manager handle */
 };
 
-static uint32_t	emu_midi_card_intr(void *p, uint32_t arg);
+static uint32_t emu_midi_card_intr(void *p, uint32_t arg);
 
 static unsigned char
 emu_mread(struct mpu401 *arg __unused, void *cookie, int reg)
@@ -105,12 +105,9 @@ emu_muninit(struct mpu401 *arg __unused, void *cookie)
 	return (0);
 }
 
-static kobj_method_t emu_mpu_methods[] = {
-	KOBJMETHOD(mpufoi_read, emu_mread),
+static kobj_method_t emu_mpu_methods[] = { KOBJMETHOD(mpufoi_read, emu_mread),
 	KOBJMETHOD(mpufoi_write, emu_mwrite),
-	KOBJMETHOD(mpufoi_uninit, emu_muninit),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(mpufoi_uninit, emu_muninit), KOBJMETHOD_END };
 static DEFINE_CLASS(emu_mpu, emu_mpu_methods, 0);
 
 static uint32_t
@@ -118,12 +115,14 @@ emu_midi_card_intr(void *p, uint32_t intr_status)
 {
 	struct emu_midi_softc *sc = (struct emu_midi_softc *)p;
 	if (sc->mpu_intr)
-		(sc->mpu_intr) (sc->mpu);
+		(sc->mpu_intr)(sc->mpu);
 	if (sc->mpu_intr == NULL) {
 		/* We should read MIDI event to unlock card after
 		 * interrupt. XXX - check, why this happens.  */
 		if (bootverbose)
-			device_printf(sc->dev, "midi interrupt %08x without interrupt handler, force mread!\n", intr_status);
+			device_printf(sc->dev,
+			    "midi interrupt %08x without interrupt handler, force mread!\n",
+			    intr_status);
 		(void)emu_mread((void *)(NULL), sc, 0);
 	}
 	return (intr_status); /* Acknowledge everything */
@@ -147,7 +146,8 @@ emu_midi_probe(device_t dev)
 
 	scp = device_get_softc(dev);
 	bzero(scp, sizeof(*scp));
-	BUS_READ_IVAR(device_get_parent(dev), dev, EMU_VAR_ISEMU10K1, &is_emu10k1);
+	BUS_READ_IVAR(device_get_parent(dev), dev, EMU_VAR_ISEMU10K1,
+	    &is_emu10k1);
 	scp->is_emu10k1 = is_emu10k1 ? 1 : 0;
 
 	device_set_desc(dev, "EMU10Kx MIDI Interface");
@@ -157,7 +157,7 @@ emu_midi_probe(device_t dev)
 static int
 emu_midi_attach(device_t dev)
 {
-	struct emu_midi_softc * scp;
+	struct emu_midi_softc *scp;
 	struct sndcard_func *func;
 	struct emu_midiinfo *midiinfo;
 	uint32_t inte_val, ipr_val;
@@ -197,9 +197,11 @@ emu_midi_attach(device_t dev)
 		}
 	}
 
-	scp->ihandle = emu_intr_register(scp->card, inte_val, ipr_val, &emu_midi_card_intr, scp);
+	scp->ihandle = emu_intr_register(scp->card, inte_val, ipr_val,
+	    &emu_midi_card_intr, scp);
 	/* Init the interface. */
-	scp->mpu = mpu401_init(&emu_mpu_class, scp, emu_midi_intr, &scp->mpu_intr);
+	scp->mpu = mpu401_init(&emu_mpu_class, scp, emu_midi_intr,
+	    &scp->mpu_intr);
 	if (scp->mpu == NULL) {
 		emu_intr_unregister(scp->card, scp->ihandle);
 		mtx_destroy(&scp->mtx);
@@ -232,13 +234,12 @@ emu_midi_detach(device_t dev)
 	return (0);
 }
 
-static device_method_t emu_midi_methods[] = {
-	DEVMETHOD(device_probe, emu_midi_probe),
+static device_method_t emu_midi_methods[] = { DEVMETHOD(device_probe,
+						  emu_midi_probe),
 	DEVMETHOD(device_attach, emu_midi_attach),
 	DEVMETHOD(device_detach, emu_midi_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t emu_midi_driver = {
 	"midi",
@@ -246,6 +247,8 @@ static driver_t emu_midi_driver = {
 	sizeof(struct emu_midi_softc),
 };
 DRIVER_MODULE(snd_emu10kx_midi, emu10kx, emu_midi_driver, 0, 0);
-MODULE_DEPEND(snd_emu10kx_midi, snd_emu10kx, SND_EMU10KX_MINVER, SND_EMU10KX_PREFVER, SND_EMU10KX_MAXVER);
-MODULE_DEPEND(snd_emu10kx_midi, sound, SOUND_MINVER, SOUND_PREFVER, SOUND_MAXVER);
+MODULE_DEPEND(snd_emu10kx_midi, snd_emu10kx, SND_EMU10KX_MINVER,
+    SND_EMU10KX_PREFVER, SND_EMU10KX_MAXVER);
+MODULE_DEPEND(snd_emu10kx_midi, sound, SOUND_MINVER, SOUND_PREFVER,
+    SOUND_MAXVER);
 MODULE_VERSION(snd_emu10kx_midi, SND_EMU10KX_PREFVER);

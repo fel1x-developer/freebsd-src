@@ -29,87 +29,64 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_param.h"
-#include "opt_mbuf_stress_test.h"
 #include "opt_mbuf_profiling.h"
+#include "opt_mbuf_stress_test.h"
+#include "opt_param.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/domain.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/sysctl.h>
-#include <sys/domain.h>
 #include <sys/protosw.h>
-#include <sys/uio.h>
-#include <sys/vmmeter.h>
 #include <sys/sbuf.h>
 #include <sys/sdt.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
+#include <sys/vmmeter.h>
+
 #include <vm/vm.h>
-#include <vm/vm_pageout.h>
 #include <vm/vm_page.h>
+#include <vm/vm_pageout.h>
 
-SDT_PROBE_DEFINE5_XLATE(sdt, , , m__init,
-    "struct mbuf *", "mbufinfo_t *",
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "uint32_t", "uint32_t",
+SDT_PROBE_DEFINE5_XLATE(sdt, , , m__init, "struct mbuf *", "mbufinfo_t *",
+    "uint32_t", "uint32_t", "uint16_t", "uint16_t", "uint32_t", "uint32_t",
     "uint32_t", "uint32_t");
 
-SDT_PROBE_DEFINE3_XLATE(sdt, , , m__gethdr_raw,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE3_XLATE(sdt, , , m__gethdr_raw, "uint32_t", "uint32_t",
+    "uint16_t", "uint16_t", "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE3_XLATE(sdt, , , m__gethdr,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE3_XLATE(sdt, , , m__gethdr, "uint32_t", "uint32_t", "uint16_t",
+    "uint16_t", "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE3_XLATE(sdt, , , m__get_raw,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE3_XLATE(sdt, , , m__get_raw, "uint32_t", "uint32_t", "uint16_t",
+    "uint16_t", "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE3_XLATE(sdt, , , m__get,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE3_XLATE(sdt, , , m__get, "uint32_t", "uint32_t", "uint16_t",
+    "uint16_t", "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE4_XLATE(sdt, , , m__getcl,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "uint32_t", "uint32_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE4_XLATE(sdt, , , m__getcl, "uint32_t", "uint32_t", "uint16_t",
+    "uint16_t", "uint32_t", "uint32_t", "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE5_XLATE(sdt, , , m__getjcl,
-    "uint32_t", "uint32_t",
-    "uint16_t", "uint16_t",
-    "uint32_t", "uint32_t",
-    "uint32_t", "uint32_t",
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE5_XLATE(sdt, , , m__getjcl, "uint32_t", "uint32_t", "uint16_t",
+    "uint16_t", "uint32_t", "uint32_t", "uint32_t", "uint32_t", "struct mbuf *",
+    "mbufinfo_t *");
 
-SDT_PROBE_DEFINE3_XLATE(sdt, , , m__clget,
-    "struct mbuf *", "mbufinfo_t *",
-    "uint32_t", "uint32_t",
-    "uint32_t", "uint32_t");
+SDT_PROBE_DEFINE3_XLATE(sdt, , , m__clget, "struct mbuf *", "mbufinfo_t *",
+    "uint32_t", "uint32_t", "uint32_t", "uint32_t");
 
-SDT_PROBE_DEFINE4_XLATE(sdt, , , m__cljget,
-    "struct mbuf *", "mbufinfo_t *",
-    "uint32_t", "uint32_t",
-    "uint32_t", "uint32_t",
-    "void*", "void*");
+SDT_PROBE_DEFINE4_XLATE(sdt, , , m__cljget, "struct mbuf *", "mbufinfo_t *",
+    "uint32_t", "uint32_t", "uint32_t", "uint32_t", "void*", "void*");
 
 SDT_PROBE_DEFINE(sdt, , , m__cljset);
 
-SDT_PROBE_DEFINE1_XLATE(sdt, , , m__free,
-        "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE1_XLATE(sdt, , , m__free, "struct mbuf *", "mbufinfo_t *");
 
-SDT_PROBE_DEFINE1_XLATE(sdt, , , m__freem,
-    "struct mbuf *", "mbufinfo_t *");
+SDT_PROBE_DEFINE1_XLATE(sdt, , , m__freem, "struct mbuf *", "mbufinfo_t *");
 
 #include <security/mac/mac_framework.h>
 
@@ -118,15 +95,15 @@ SDT_PROBE_DEFINE1_XLATE(sdt, , , m__freem,
  * assuming IPv4 over Ethernet.  Enabling IPv6, IEEE802.11 or some other
  * protocol may grow these values.
  */
-u_int	max_linkhdr = 16;
-u_int	max_protohdr = 40;
-u_int	max_hdr = 16 + 40;
-SYSCTL_INT(_kern_ipc, KIPC_MAX_LINKHDR, max_linkhdr, CTLFLAG_RD,
-	   &max_linkhdr, 16, "Size of largest link layer header");
+u_int max_linkhdr = 16;
+u_int max_protohdr = 40;
+u_int max_hdr = 16 + 40;
+SYSCTL_INT(_kern_ipc, KIPC_MAX_LINKHDR, max_linkhdr, CTLFLAG_RD, &max_linkhdr,
+    16, "Size of largest link layer header");
 SYSCTL_INT(_kern_ipc, KIPC_MAX_PROTOHDR, max_protohdr, CTLFLAG_RD,
-	   &max_protohdr, 40, "Size of largest protocol layer header");
-SYSCTL_INT(_kern_ipc, KIPC_MAX_HDR, max_hdr, CTLFLAG_RD,
-	   &max_hdr, 16 + 40, "Size of largest link plus protocol header");
+    &max_protohdr, 40, "Size of largest protocol layer header");
+SYSCTL_INT(_kern_ipc, KIPC_MAX_HDR, max_hdr, CTLFLAG_RD, &max_hdr, 16 + 40,
+    "Size of largest link plus protocol header");
 
 static void
 max_hdr_grow(void)
@@ -157,22 +134,22 @@ max_protohdr_grow(u_int new)
 }
 
 #ifdef MBUF_STRESS_TEST
-int	m_defragpackets;
-int	m_defragbytes;
-int	m_defraguseless;
-int	m_defragfailure;
-int	m_defragrandomfailures;
+int m_defragpackets;
+int m_defragbytes;
+int m_defraguseless;
+int m_defragfailure;
+int m_defragrandomfailures;
 
-SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragpackets, CTLFLAG_RD,
-	   &m_defragpackets, 0, "");
-SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragbytes, CTLFLAG_RD,
-	   &m_defragbytes, 0, "");
-SYSCTL_INT(_kern_ipc, OID_AUTO, m_defraguseless, CTLFLAG_RD,
-	   &m_defraguseless, 0, "");
-SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragfailure, CTLFLAG_RD,
-	   &m_defragfailure, 0, "");
+SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragpackets, CTLFLAG_RD, &m_defragpackets,
+    0, "");
+SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragbytes, CTLFLAG_RD, &m_defragbytes, 0,
+    "");
+SYSCTL_INT(_kern_ipc, OID_AUTO, m_defraguseless, CTLFLAG_RD, &m_defraguseless,
+    0, "");
+SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragfailure, CTLFLAG_RD, &m_defragfailure,
+    0, "");
 SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragrandomfailures, CTLFLAG_RW,
-	   &m_defragrandomfailures, 0, "");
+    &m_defragrandomfailures, 0, "");
 #endif
 
 /*
@@ -305,8 +282,8 @@ m_demote(struct mbuf *m0, int all, int flags)
 	flags |= M_DEMOTEFLAGS;
 
 	for (m = all ? m0 : m0->m_next; m != NULL; m = m->m_next) {
-		KASSERT(m->m_nextpkt == NULL, ("%s: m_nextpkt in m %p, m0 %p",
-		    __func__, m, m0));
+		KASSERT(m->m_nextpkt == NULL,
+		    ("%s: m_nextpkt in m %p, m0 %p", __func__, m, m0));
 		if (m->m_flags & M_PKTHDR)
 			m_demote_pkthdr(m);
 		m->m_flags &= flags;
@@ -328,9 +305,9 @@ m_sanity(struct mbuf *m0, int sanitize)
 	int pktlen = 0;
 
 #ifdef INVARIANTS
-#define	M_SANITY_ACTION(s)	panic("mbuf %p: " s, m)
+#define M_SANITY_ACTION(s) panic("mbuf %p: " s, m)
 #else
-#define	M_SANITY_ACTION(s)	printf("mbuf %p: " s, m)
+#define M_SANITY_ACTION(s) printf("mbuf %p: " s, m)
 #endif
 
 	for (m = m0; m != NULL; m = m->m_next) {
@@ -354,7 +331,8 @@ m_sanity(struct mbuf *m0, int sanitize)
 				m_freem(m->m_nextpkt);
 				m->m_nextpkt = (struct mbuf *)0xDEADC0DE;
 			} else
-				M_SANITY_ACTION("m->m_nextpkt on in-chain mbuf");
+				M_SANITY_ACTION(
+				    "m->m_nextpkt on in-chain mbuf");
 		}
 
 		/* packet length (not mbuf length!) calculation */
@@ -390,7 +368,7 @@ m_sanity(struct mbuf *m0, int sanitize)
 	}
 	return 1;
 
-#undef	M_SANITY_ACTION
+#undef M_SANITY_ACTION
 }
 
 /*
@@ -443,8 +421,8 @@ m_move_pkthdr(struct mbuf *to, struct mbuf *from)
 	    (to->m_flags & (M_EXT | M_EXTPG));
 	if ((to->m_flags & M_EXT) == 0)
 		to->m_data = to->m_pktdat;
-	to->m_pkthdr = from->m_pkthdr;		/* especially tags */
-	SLIST_INIT(&from->m_pkthdr.tags);	/* purge tags from src */
+	to->m_pkthdr = from->m_pkthdr;	  /* especially tags */
+	SLIST_INIT(&from->m_pkthdr.tags); /* purge tags from src */
 	from->m_flags &= ~M_PKTHDR;
 	if (from->m_pkthdr.csum_flags & CSUM_SND_TAG) {
 		from->m_pkthdr.csum_flags &= ~CSUM_SND_TAG;
@@ -573,7 +551,7 @@ m_copym(struct mbuf *m, int off0, int len, int wait)
 			n->m_data = m->m_data + off;
 			mb_dupcl(n, m);
 		} else
-			bcopy(mtod(m, caddr_t)+off, mtod(n, caddr_t),
+			bcopy(mtod(m, caddr_t) + off, mtod(n, caddr_t),
 			    (u_int)n->m_len);
 		if (len != M_COPYALL)
 			len -= n->m_len;
@@ -615,7 +593,7 @@ m_copypacket(struct mbuf *m, int how)
 		n->m_data = m->m_data;
 		mb_dupcl(n, m);
 	} else {
-		n->m_data = n->m_pktdat + (m->m_data - m->m_pktdat );
+		n->m_data = n->m_pktdat + (m->m_data - m->m_pktdat);
 		bcopy(mtod(m, char *), mtod(n, char *), n->m_len);
 	}
 
@@ -664,8 +642,8 @@ m_copyfromunmapped(const struct mbuf *m, int off, int len, caddr_t cp)
 	uio.uio_offset = 0;
 	uio.uio_rw = UIO_READ;
 	error = m_unmapped_uiomove(m, off, &uio, len);
-	KASSERT(error == 0, ("m_unmapped_uiomove failed: off %d, len %d", off,
-	   len));
+	KASSERT(error == 0,
+	    ("m_unmapped_uiomove failed: off %d, len %d", off, len));
 }
 
 /*
@@ -721,7 +699,7 @@ m_dup(const struct mbuf *m, int how)
 	remain = m->m_pkthdr.len;
 	moff = 0;
 	p = &top;
-	while (remain > 0 || top == NULL) {	/* allow m->m_pkthdr.len == 0 */
+	while (remain > 0 || top == NULL) { /* allow m->m_pkthdr.len == 0 */
 		struct mbuf *n;
 
 		/* Get the next new mbuf */
@@ -735,7 +713,7 @@ m_dup(const struct mbuf *m, int how)
 		if (n == NULL)
 			goto nospace;
 
-		if (top == NULL) {		/* First one, must be PKTHDR */
+		if (top == NULL) { /* First one, must be PKTHDR */
 			if (!m_dup_pkthdr(n, m, how)) {
 				m_free(n);
 				goto nospace;
@@ -766,7 +744,7 @@ m_dup(const struct mbuf *m, int how)
 
 		/* Check correct total mbuf length */
 		KASSERT((remain > 0 && m != NULL) || (remain == 0 && m == NULL),
-		    	("%s: bogus m_pkthdr.len", __func__));
+		    ("%s: bogus m_pkthdr.len", __func__));
 	}
 	return (top);
 
@@ -786,8 +764,7 @@ m_cat(struct mbuf *m, struct mbuf *n)
 	while (m->m_next)
 		m = m->m_next;
 	while (n) {
-		if (!M_WRITABLE(m) ||
-		    (n->m_flags & M_EXTPG) != 0 ||
+		if (!M_WRITABLE(m) || (n->m_flags & M_EXTPG) != 0 ||
 		    M_TRAILINGSPACE(m) < n->m_len) {
 			/* just join the two chains */
 			m->m_next = n;
@@ -936,8 +913,8 @@ m_pullup(struct mbuf *n, int len)
 	 * without shifting current data, pullup into it,
 	 * otherwise allocate a new mbuf to prepend to the chain.
 	 */
-	if ((n->m_flags & M_EXT) == 0 &&
-	    n->m_data + len < &n->m_dat[MLEN] && n->m_next) {
+	if ((n->m_flags & M_EXT) == 0 && n->m_data + len < &n->m_dat[MLEN] &&
+	    n->m_next) {
 		if (n->m_len >= len)
 			return (n);
 		m = n;
@@ -956,7 +933,7 @@ m_pullup(struct mbuf *n, int len)
 	do {
 		count = min(min(max(len, max_protohdr), space), n->m_len);
 		bcopy(mtod(n, caddr_t), mtod(m, caddr_t) + m->m_len,
-		  (u_int)count);
+		    (u_int)count);
 		len -= count;
 		m->m_len += count;
 		n->m_len -= count;
@@ -967,7 +944,7 @@ m_pullup(struct mbuf *n, int len)
 			n = m_free(n);
 	} while (len > 0 && n);
 	if (len > 0) {
-		(void) m_free(m);
+		(void)m_free(m);
 		goto bad;
 	}
 	m->m_next = n;
@@ -1011,12 +988,12 @@ m_copyup(struct mbuf *n, int len, int dstoff)
 			n = m_free(n);
 	} while (len > 0 && n);
 	if (len > 0) {
-		(void) m_free(m);
+		(void)m_free(m);
 		goto bad;
 	}
 	m->m_next = n;
 	return (m);
- bad:
+bad:
 	m_freem(n);
 	return (NULL);
 }
@@ -1050,8 +1027,8 @@ m_split(struct mbuf *m0, int len0, int wait)
 		n->m_next = m->m_next;
 		m->m_next = NULL;
 		if (m0->m_pkthdr.csum_flags & CSUM_SND_TAG) {
-			n->m_pkthdr.snd_tag =
-			    m_snd_tag_ref(m0->m_pkthdr.snd_tag);
+			n->m_pkthdr.snd_tag = m_snd_tag_ref(
+			    m0->m_pkthdr.snd_tag);
 			n->m_pkthdr.csum_flags |= CSUM_SND_TAG;
 		} else
 			n->m_pkthdr.rcvif = m0->m_pkthdr.rcvif;
@@ -1063,8 +1040,8 @@ m_split(struct mbuf *m0, int len0, int wait)
 		if (n == NULL)
 			return (NULL);
 		if (m0->m_pkthdr.csum_flags & CSUM_SND_TAG) {
-			n->m_pkthdr.snd_tag =
-			    m_snd_tag_ref(m0->m_pkthdr.snd_tag);
+			n->m_pkthdr.snd_tag = m_snd_tag_ref(
+			    m0->m_pkthdr.snd_tag);
 			n->m_pkthdr.csum_flags |= CSUM_SND_TAG;
 		} else
 			n->m_pkthdr.rcvif = m0->m_pkthdr.rcvif;
@@ -1077,7 +1054,7 @@ m_split(struct mbuf *m0, int len0, int wait)
 			M_ALIGN(n, 0);
 			n->m_next = m_split(m, len, wait);
 			if (n->m_next == NULL) {
-				(void) m_free(n);
+				(void)m_free(n);
 				return (NULL);
 			} else {
 				n->m_len = 0;
@@ -1125,7 +1102,7 @@ m_devget(char *buf, int totlen, int off, struct ifnet *ifp,
 		return (NULL);
 
 	while (totlen > 0) {
-		if (top == NULL) {	/* First one, must be PKTHDR */
+		if (top == NULL) { /* First one, must be PKTHDR */
 			if (totlen + off >= MINCLSIZE) {
 				m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 				len = MCLBYTES;
@@ -1133,7 +1110,8 @@ m_devget(char *buf, int totlen, int off, struct ifnet *ifp,
 				m = m_gethdr(M_NOWAIT, MT_DATA);
 				len = MHLEN;
 
-				/* Place initial small packet/header at end of mbuf */
+				/* Place initial small packet/header at end of
+				 * mbuf */
 				if (m && totlen + off + max_linkhdr <= MHLEN) {
 					m->m_data += max_linkhdr;
 					len -= max_linkhdr;
@@ -1193,8 +1171,8 @@ m_copytounmapped(const struct mbuf *m, int off, int len, c_caddr_t cp)
 	uio.uio_offset = 0;
 	uio.uio_rw = UIO_WRITE;
 	error = m_unmapped_uiomove(m, off, &uio, len);
-	KASSERT(error == 0, ("m_unmapped_uiomove failed: off %d, len %d", off,
-	   len));
+	KASSERT(error == 0,
+	    ("m_unmapped_uiomove failed: off %d, len %d", off, len));
 }
 
 /*
@@ -1229,7 +1207,7 @@ m_copyback(struct mbuf *m0, int off, int len, c_caddr_t cp)
 			m->m_len += min(len - (m->m_len - off),
 			    M_TRAILINGSPACE(m));
 		}
-		mlen = min (m->m_len - off, len);
+		mlen = min(m->m_len - off, len);
 		if ((m->m_flags & M_EXTPG) != 0)
 			m_copytounmapped(m, off, mlen, cp);
 		else
@@ -1250,7 +1228,8 @@ m_copyback(struct mbuf *m0, int off, int len, c_caddr_t cp)
 		}
 		m = m->m_next;
 	}
-out:	if (((m = m0)->m_flags & M_PKTHDR) && (m->m_pkthdr.len < totlen))
+out:
+	if (((m = m0)->m_flags & M_PKTHDR) && (m->m_pkthdr.len < totlen))
 		m->m_pkthdr.len = totlen;
 }
 
@@ -1347,8 +1326,8 @@ m_apply_extpg_one(struct mbuf *m, int off, int len,
 
 /* Apply function f to the data in a single mbuf. */
 static int
-m_apply_one(struct mbuf *m, int off, int len,
-    int (*f)(void *, void *, u_int), void *arg)
+m_apply_one(struct mbuf *m, int off, int len, int (*f)(void *, void *, u_int),
+    void *arg)
 {
 	if ((m->m_flags & M_EXTPG) != 0)
 		return (m_apply_extpg_one(m, off, len, f, arg));
@@ -1361,8 +1340,8 @@ m_apply_one(struct mbuf *m, int off, int len,
  * the beginning, continuing for "len" bytes.
  */
 int
-m_apply(struct mbuf *m, int off, int len,
-    int (*f)(void *, void *, u_int), void *arg)
+m_apply(struct mbuf *m, int off, int len, int (*f)(void *, void *, u_int),
+    void *arg)
 {
 	u_int count;
 	int rval;
@@ -1439,9 +1418,11 @@ m_print(const struct mbuf *m, int maxlen)
 		if (maxlen != -1 && pdata > maxlen)
 			pdata = maxlen;
 		printf("mbuf: %p len: %d, next: %p, %b%s", m2, m2->m_len,
-		    m2->m_next, m2->m_flags, "\20\20freelist\17skipfw"
+		    m2->m_next, m2->m_flags,
+		    "\20\20freelist\17skipfw"
 		    "\11proto5\10proto4\7proto3\6proto2\5proto1\4rdonly"
-		    "\3eor\2pkthdr\1ext", pdata ? "" : "\n");
+		    "\3eor\2pkthdr\1ext",
+		    pdata ? "" : "\n");
 		if (pdata)
 			printf(", %*D\n", pdata, (u_char *)m2->m_data, "-");
 		if (len != -1)
@@ -1631,10 +1612,8 @@ again:
 		n = m->m_next;
 		if (n == NULL)
 			break;
-		if (M_WRITABLE(m) &&
-		    n->m_len < M_TRAILINGSPACE(m)) {
-			m_copydata(n, 0, n->m_len,
-			    mtod(m, char *) + m->m_len);
+		if (M_WRITABLE(m) && n->m_len < M_TRAILINGSPACE(m)) {
+			m_copydata(n, 0, n->m_len, mtod(m, char *) + m->m_len);
 			m->m_len += n->m_len;
 			m->m_next = n->m_next;
 			curfrags -= frags_per_mbuf(n);
@@ -1645,24 +1624,24 @@ again:
 			m = n;
 	}
 	KASSERT(maxfrags > 1,
-		("maxfrags %u, but normal collapse failed", maxfrags));
+	    ("maxfrags %u, but normal collapse failed", maxfrags));
 	/*
 	 * Collapse consecutive mbufs to a cluster.
 	 */
-	prev = &m0->m_next;		/* NB: not the first mbuf */
+	prev = &m0->m_next; /* NB: not the first mbuf */
 	while ((n = *prev) != NULL) {
 		if ((n2 = n->m_next) != NULL &&
 		    n->m_len + n2->m_len < MCLBYTES) {
 			m = m_getcl(how, MT_DATA, 0);
 			if (m == NULL)
 				goto bad;
-			m_copydata(n, 0,  n->m_len, mtod(m, char *));
-			m_copydata(n2, 0,  n2->m_len,
+			m_copydata(n, 0, n->m_len, mtod(m, char *));
+			m_copydata(n2, 0, n2->m_len,
 			    mtod(m, char *) + n->m_len);
 			m->m_len = n->m_len + n2->m_len;
 			m->m_next = n2->m_next;
 			*prev = m;
-			curfrags += 1;  /* For the new cluster */
+			curfrags += 1; /* For the new cluster */
 			curfrags -= frags_per_mbuf(n);
 			curfrags -= frags_per_mbuf(n2);
 			m_free(n);
@@ -1839,7 +1818,7 @@ m_uiotombuf_nomap(struct uio *uio, int how, int len, int maxseg, int flags)
 		mb->m_epg_flags = EPG_FLAG_ANON;
 		needed = length = MIN(maxseg, total);
 		for (i = 0; needed > 0; i++, needed -= PAGE_SIZE) {
-retry_page:
+		retry_page:
 			pg_array[i] = vm_page_alloc_noobj(pflags);
 			if (pg_array[i] == NULL) {
 				if (how & M_NOWAIT) {
@@ -1959,7 +1938,8 @@ m_unmapped_uiomove(const struct mbuf *m, int m_off, struct uio *uio, int len)
 			off = 0;
 			len -= seglen;
 			error = uiomove(__DECONST(void *,
-			    &m->m_epg_hdr[segoff]), seglen, uio);
+					    &m->m_epg_hdr[segoff]),
+			    seglen, uio);
 		}
 	}
 	pgoff = m->m_epg_1st_off;
@@ -1982,9 +1962,9 @@ m_unmapped_uiomove(const struct mbuf *m, int m_off, struct uio *uio, int len)
 	if (len != 0 && error == 0) {
 		KASSERT((off + len) <= m->m_epg_trllen,
 		    ("off + len > trail (%d + %d > %d, m_off = %d)", off, len,
-		    m->m_epg_trllen, m_off));
-		error = uiomove(__DECONST(void *, &m->m_epg_trail[off]),
-		    len, uio);
+			m->m_epg_trllen, m_off));
+		error = uiomove(__DECONST(void *, &m->m_epg_trail[off]), len,
+		    uio);
 	}
 	return (error);
 }
@@ -2057,8 +2037,9 @@ m_unshare(struct mbuf *m0, int how)
 				memcpy(mtod(mprev, caddr_t) + mprev->m_len,
 				    mtod(m, caddr_t), m->m_len);
 				mprev->m_len += m->m_len;
-				mprev->m_next = m->m_next;	/* unlink from chain */
-				m_free(m);			/* reclaim mbuf */
+				mprev->m_next =
+				    m->m_next; /* unlink from chain */
+				m_free(m);     /* reclaim mbuf */
 			} else {
 				mprev = m;
 			}
@@ -2086,8 +2067,8 @@ m_unshare(struct mbuf *m0, int how)
 			memcpy(mtod(mprev, caddr_t) + mprev->m_len,
 			    mtod(m, caddr_t), m->m_len);
 			mprev->m_len += m->m_len;
-			mprev->m_next = m->m_next;	/* unlink from chain */
-			m_free(m);			/* reclaim mbuf */
+			mprev->m_next = m->m_next; /* unlink from chain */
+			m_free(m);		   /* reclaim mbuf */
 			continue;
 		}
 
@@ -2105,8 +2086,8 @@ m_unshare(struct mbuf *m0, int how)
 			return (NULL);
 		}
 		if (m->m_flags & M_PKTHDR) {
-			KASSERT(mprev == NULL, ("%s: m0 %p, m %p has M_PKTHDR",
-			    __func__, m0, m));
+			KASSERT(mprev == NULL,
+			    ("%s: m0 %p, m %p has M_PKTHDR", __func__, m0, m));
 			m_move_pkthdr(n, m);
 		}
 		len = m->m_len;
@@ -2138,9 +2119,9 @@ m_unshare(struct mbuf *m0, int how)
 		}
 		n->m_next = m->m_next;
 		if (mprev == NULL)
-			m0 = mfirst;		/* new head of chain */
+			m0 = mfirst; /* new head of chain */
 		else
-			mprev->m_next = mfirst;	/* replace old mbuf */
+			mprev->m_next = mfirst; /* replace old mbuf */
 		m_free(m);			/* release old mbuf */
 		mprev = mfirst;
 	}
@@ -2167,8 +2148,8 @@ m_profile(struct mbuf *m)
 		segments++;
 		used += m->m_len;
 		if (m->m_flags & M_EXT) {
-			wasted += MHLEN - sizeof(m->m_ext) +
-			    m->m_ext.ext_size - m->m_len;
+			wasted += MHLEN - sizeof(m->m_ext) + m->m_ext.ext_size -
+			    m->m_len;
 		} else {
 			if (m->m_flags & M_PKTHDR)
 				wasted += MHLEN - m->m_len;
@@ -2206,45 +2187,45 @@ mbprof_handler(SYSCTL_HANDLER_ARGS)
 	    "wasted:\n"
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %ju\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #ifdef BIG_ARRAY
 	p = &mbprof.wasted[16];
 	sbuf_printf(&sb,
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %ju\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #endif
 	p = &mbprof.used[0];
 	sbuf_printf(&sb,
 	    "used:\n"
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %ju\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #ifdef BIG_ARRAY
 	p = &mbprof.used[16];
 	sbuf_printf(&sb,
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %ju\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #endif
 	p = &mbprof.segments[0];
 	sbuf_printf(&sb,
 	    "segments:\n"
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %ju\n",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #ifdef BIG_ARRAY
 	p = &mbprof.segments[16];
 	sbuf_printf(&sb,
 	    "%ju %ju %ju %ju %ju %ju %ju %ju "
 	    "%ju %ju %ju %ju %ju %ju %ju %jju",
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+	    p[11], p[12], p[13], p[14], p[15]);
 #endif
 
 	error = sbuf_finish(&sb);
@@ -2270,12 +2251,10 @@ mbprof_clr_handler(SYSCTL_HANDLER_ARGS)
 }
 
 SYSCTL_PROC(_kern_ipc, OID_AUTO, mbufprofile,
-    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,
-    mbprof_handler, "A",
+    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0, mbprof_handler, "A",
     "mbuf profiling statistics");
 
 SYSCTL_PROC(_kern_ipc, OID_AUTO, mbufprofileclr,
-    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0,
-    mbprof_clr_handler, "I",
+    CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, 0, mbprof_clr_handler, "I",
     "clear mbuf profiling statistics");
 #endif

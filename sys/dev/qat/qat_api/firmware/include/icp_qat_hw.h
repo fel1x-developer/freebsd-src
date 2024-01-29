@@ -144,16 +144,22 @@ typedef struct icp_qat_hw_auth_config_s {
 
 /* Note: Bit positions have been defined for little endian ordering */
 /*
-*  AUTH CONFIG WORD BITMAP
-*  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- + ------ + ------ + ---- + ----- + ----- + ----- +
-*  |  Bit  | 63:56  | 55:52  |  51:48  | 47:32  | 31:24  | 23:22 | 21:18 |   17   |   16   |  15  | 14:8  |  7:4  |  3:0  |
-*  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- + ------ + ------ + ---- + ----- + ------+ ----- +
-*  | Usage |  Prog  | Resvd  |  Prog   | Resvd  | Resvd  | Algo  | Rsvrd |  SHA3  |  SHA3  |Rsvrd |  Cmp  | Mode  | Algo  |
-*  |       |padding | Bits=0 | padding | Bits=0 | Bits=0 | SHA3  |       |Padding |Padding |      |       |       |       |
-*  |       |  SHA3  |        |  SHA3   |        |        |       |       |Override|Disable |      |       |       |       |
-*  |       |(prefix)|        |(postfix)|        |        |       |       |        |        |      |       |       |       |
-*  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- + ------ + ------ + ---- + ----- + ----- + ------+
-*/
+ *  AUTH CONFIG WORD BITMAP
+ *  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- +
+ * ------ + ------ + ---- + ----- + ----- + ----- + |  Bit  | 63:56  | 55:52  |
+ * 51:48  | 47:32  | 31:24  | 23:22 | 21:18 |   17   |   16   |  15  | 14:8  |
+ * 7:4  |  3:0  |
+ *  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- +
+ * ------ + ------ + ---- + ----- + ------+ ----- + | Usage |  Prog  | Resvd  |
+ * Prog   | Resvd  | Resvd  | Algo  | Rsvrd |  SHA3  |  SHA3  |Rsvrd |  Cmp  |
+ * Mode  | Algo  | |       |padding | Bits=0 | padding | Bits=0 | Bits=0 | SHA3
+ * |       |Padding |Padding |      |       |       |       | |       |  SHA3  |
+ * |  SHA3   |        |        |       |       |Override|Disable |      | | | |
+ *  |       |(prefix)|        |(postfix)|        |        |       |       | | |
+ * |       |       |       |
+ *  + ===== + ------ + ------ + ------- + ------ + ------ + ----- + ----- +
+ * ------ + ------ + ---- + ----- + ----- + ------+
+ */
 
 /**< Flag mask & bit position */
 
@@ -363,16 +369,18 @@ typedef struct icp_qat_hw_auth_config_s {
  * @param cmp_len   The length of the digest if the QAT is to the check
  *
  ****************************************************************************************/
-#define ICP_QAT_HW_AUTH_CONFIG_BUILD(mode, algo, cmp_len)                                    \
-	((((mode)&QAT_AUTH_MODE_MASK) << QAT_AUTH_MODE_BITPOS) |                             \
-	 (((algo)&QAT_AUTH_ALGO_MASK) << QAT_AUTH_ALGO_BITPOS) |                             \
-	 (((algo >> 4) & QAT_AUTH_ALGO_SHA3_MASK)                                            \
-	  << QAT_AUTH_ALGO_SHA3_BITPOS) |                                                    \
-	 (((QAT_AUTH_SHA3_PADDING_DISABLE_USE_DEFAULT)&QAT_AUTH_SHA3_PADDING_DISABLE_MASK)   \
-	  << QAT_AUTH_SHA3_PADDING_DISABLE_BITPOS) |                                         \
-	 (((QAT_AUTH_SHA3_PADDING_OVERRIDE_USE_DEFAULT)&QAT_AUTH_SHA3_PADDING_OVERRIDE_MASK) \
-	  << QAT_AUTH_SHA3_PADDING_OVERRIDE_BITPOS) |                                        \
-	 (((cmp_len)&QAT_AUTH_CMP_MASK) << QAT_AUTH_CMP_BITPOS))
+#define ICP_QAT_HW_AUTH_CONFIG_BUILD(mode, algo, cmp_len)             \
+	((((mode) & QAT_AUTH_MODE_MASK) << QAT_AUTH_MODE_BITPOS) |    \
+	    (((algo) & QAT_AUTH_ALGO_MASK) << QAT_AUTH_ALGO_BITPOS) | \
+	    (((algo >> 4) & QAT_AUTH_ALGO_SHA3_MASK)                  \
+		<< QAT_AUTH_ALGO_SHA3_BITPOS) |                       \
+	    (((QAT_AUTH_SHA3_PADDING_DISABLE_USE_DEFAULT) &           \
+		 QAT_AUTH_SHA3_PADDING_DISABLE_MASK)                  \
+		<< QAT_AUTH_SHA3_PADDING_DISABLE_BITPOS) |            \
+	    (((QAT_AUTH_SHA3_PADDING_OVERRIDE_USE_DEFAULT) &          \
+		 QAT_AUTH_SHA3_PADDING_OVERRIDE_MASK)                 \
+		<< QAT_AUTH_SHA3_PADDING_OVERRIDE_BITPOS) |           \
+	    (((cmp_len) & QAT_AUTH_CMP_MASK) << QAT_AUTH_CMP_BITPOS))
 
 /**
  ***************************************************************************************
@@ -392,11 +400,13 @@ typedef struct icp_qat_hw_auth_config_s {
  *      this macro returns.
  *
  ****************************************************************************************/
-#define ICP_QAT_HW_AUTH_CONFIG_BUILD_UPPER                                                        \
-	((((QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_RESERVED)&QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_MASK) \
-	  << QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_BITPOS) |                                         \
-	 (((QAT_AUTH_SHA3_PROG_PADDING_PREFIX_RESERVED)&QAT_AUTH_SHA3_PROG_PADDING_PREFIX_MASK)   \
-	  << QAT_AUTH_SHA3_PROG_PADDING_PREFIX_BITPOS))
+#define ICP_QAT_HW_AUTH_CONFIG_BUILD_UPPER                   \
+	((((QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_RESERVED) &   \
+	      QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_MASK)       \
+	     << QAT_AUTH_SHA3_PROG_PADDING_POSTFIX_BITPOS) | \
+	    (((QAT_AUTH_SHA3_PROG_PADDING_PREFIX_RESERVED) & \
+		 QAT_AUTH_SHA3_PROG_PADDING_PREFIX_MASK)     \
+		<< QAT_AUTH_SHA3_PROG_PADDING_PREFIX_BITPOS))
 
 /**
  *****************************************************************************
@@ -435,8 +445,8 @@ typedef struct icp_qat_hw_auth_counter_s {
  * @param val      Counter value to set
  *
  *****************************************************************************/
-#define ICP_QAT_HW_AUTH_COUNT_BUILD(val)                                       \
-	(((val)&QAT_AUTH_COUNT_MASK) << QAT_AUTH_COUNT_BITPOS)
+#define ICP_QAT_HW_AUTH_COUNT_BUILD(val) \
+	(((val) & QAT_AUTH_COUNT_MASK) << QAT_AUTH_COUNT_BITPOS)
 
 /**
  *****************************************************************************
@@ -572,7 +582,7 @@ typedef struct icp_qat_hw_auth_setup_s {
 #define ICP_QAT_HW_F9_FK_SZ 16
 /**< @ingroup icp_qat_hw_defs
  * State2 block size for F9 FK */
-#define ICP_QAT_HW_KASUMI_F9_STATE2_SZ                                         \
+#define ICP_QAT_HW_KASUMI_F9_STATE2_SZ \
 	(ICP_QAT_HW_F9_IK_SZ + ICP_QAT_HW_F9_FK_SZ)
 /**< @ingroup icp_qat_hw_defs
  * State2 complete size for Kasumi F9 */
@@ -745,13 +755,13 @@ typedef enum {
  *****************************************************************************/
 
 typedef enum {
-	ICP_QAT_HW_CIPHER_ECB_MODE = 0,      /*!< ECB mode */
-	ICP_QAT_HW_CIPHER_CBC_MODE = 1,      /*!< CBC more */
-	ICP_QAT_HW_CIPHER_CTR_MODE = 2,      /*!< CTR mode */
-	ICP_QAT_HW_CIPHER_F8_MODE = 3,       /*!< F8 mode */
+	ICP_QAT_HW_CIPHER_ECB_MODE = 0,	     /*!< ECB mode */
+	ICP_QAT_HW_CIPHER_CBC_MODE = 1,	     /*!< CBC more */
+	ICP_QAT_HW_CIPHER_CTR_MODE = 2,	     /*!< CTR mode */
+	ICP_QAT_HW_CIPHER_F8_MODE = 3,	     /*!< F8 mode */
 	ICP_QAT_HW_CIPHER_AEAD_MODE = 4,     /*!< AES-GCM SPC AEAD mode */
-	ICP_QAT_HW_CIPHER_CCM_MODE = 5,      /*!< AES-CCM SPC AEAD mode */
-	ICP_QAT_HW_CIPHER_XTS_MODE = 6,      /*!< XTS mode */
+	ICP_QAT_HW_CIPHER_CCM_MODE = 5,	     /*!< AES-CCM SPC AEAD mode */
+	ICP_QAT_HW_CIPHER_XTS_MODE = 6,	     /*!< XTS mode */
 	ICP_QAT_HW_CIPHER_MODE_DELIMITER = 7 /**< Delimiter type */
 } icp_qat_hw_cipher_mode_t;
 
@@ -912,14 +922,15 @@ typedef enum {
  * @param dir       Specify the cipher direction either encrypt or decrypt
  *
  *****************************************************************************/
-#define ICP_QAT_HW_CIPHER_CONFIG_BUILD(                                        \
-    mode, algo, convert, dir, aead_hash_cmp_len)                               \
-	((((mode)&QAT_CIPHER_MODE_MASK) << QAT_CIPHER_MODE_BITPOS) |           \
-	 (((algo)&QAT_CIPHER_ALGO_MASK) << QAT_CIPHER_ALGO_BITPOS) |           \
-	 (((convert)&QAT_CIPHER_CONVERT_MASK) << QAT_CIPHER_CONVERT_BITPOS) |  \
-	 (((dir)&QAT_CIPHER_DIR_MASK) << QAT_CIPHER_DIR_BITPOS) |              \
-	 (((aead_hash_cmp_len)&QAT_CIPHER_AEAD_HASH_CMP_LEN_MASK)              \
-	  << QAT_CIPHER_AEAD_HASH_CMP_LEN_BITPOS))
+#define ICP_QAT_HW_CIPHER_CONFIG_BUILD(mode, algo, convert, dir,          \
+    aead_hash_cmp_len)                                                    \
+	((((mode) & QAT_CIPHER_MODE_MASK) << QAT_CIPHER_MODE_BITPOS) |    \
+	    (((algo) & QAT_CIPHER_ALGO_MASK) << QAT_CIPHER_ALGO_BITPOS) | \
+	    (((convert) & QAT_CIPHER_CONVERT_MASK)                        \
+		<< QAT_CIPHER_CONVERT_BITPOS) |                           \
+	    (((dir) & QAT_CIPHER_DIR_MASK) << QAT_CIPHER_DIR_BITPOS) |    \
+	    (((aead_hash_cmp_len) & QAT_CIPHER_AEAD_HASH_CMP_LEN_MASK)    \
+		<< QAT_CIPHER_AEAD_HASH_CMP_LEN_BITPOS))
 
 /**
  ******************************************************************************
@@ -932,12 +943,12 @@ typedef enum {
  *                  for AEAD processing
  *
  ******************************************************************************/
-#define ICP_QAT_HW_CIPHER_CONFIG_BUILD_UPPER(aad_size)                         \
-	(((((aad_size) >> QAT_CIPHER_AEAD_AAD_UPPER_SHIFT) &                   \
-	   QAT_CIPHER_AEAD_AAD_SIZE_UPPER_MASK)                                \
-	  << QAT_CIPHER_AEAD_AAD_SIZE_BITPOS) |                                \
-	 (((aad_size)&QAT_CIPHER_AEAD_AAD_SIZE_LOWER_MASK)                     \
-	  << QAT_CIPHER_AEAD_AAD_LOWER_SHIFT))
+#define ICP_QAT_HW_CIPHER_CONFIG_BUILD_UPPER(aad_size)          \
+	(((((aad_size) >> QAT_CIPHER_AEAD_AAD_UPPER_SHIFT) &    \
+	      QAT_CIPHER_AEAD_AAD_SIZE_UPPER_MASK)              \
+	     << QAT_CIPHER_AEAD_AAD_SIZE_BITPOS) |              \
+	    (((aad_size) & QAT_CIPHER_AEAD_AAD_SIZE_LOWER_MASK) \
+		<< QAT_CIPHER_AEAD_AAD_LOWER_SHIFT))
 
 #define ICP_QAT_HW_DES_BLK_SZ 8
 /**< @ingroup icp_qat_hw_defs
@@ -989,46 +1000,46 @@ typedef enum {
 #define ICP_QAT_HW_UCS_AES_256_KEY_SZ ICP_QAT_HW_AES_256_KEY_SZ
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES256 for UCS slice*/
-#define ICP_QAT_HW_AES_128_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_128_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES128 F8 */
-#define ICP_QAT_HW_AES_192_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_192_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_192_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES192 F8 */
-#define ICP_QAT_HW_AES_256_F8_KEY_SZ                                           \
+#define ICP_QAT_HW_AES_256_F8_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES256 F8 */
-#define ICP_QAT_HW_AES_128_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_128_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES128 XTS */
-#define ICP_QAT_HW_AES_256_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_256_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES256 XTS */
-#define ICP_QAT_HW_UCS_AES_128_XTS_KEY_SZ                                      \
+#define ICP_QAT_HW_UCS_AES_128_XTS_KEY_SZ \
 	(ICP_QAT_HW_UCS_AES_128_KEY_SZ * QAT_CIPHER_MODE_UCS_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES128 XTS for the UCS Slice*/
-#define ICP_QAT_HW_UCS_AES_256_XTS_KEY_SZ                                      \
+#define ICP_QAT_HW_UCS_AES_256_XTS_KEY_SZ \
 	(ICP_QAT_HW_UCS_AES_256_KEY_SZ * QAT_CIPHER_MODE_UCS_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES256 XTS for the UCS Slice*/
 #define ICP_QAT_HW_KASUMI_KEY_SZ 16
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for Kasumi */
-#define ICP_QAT_HW_KASUMI_F8_KEY_SZ                                            \
+#define ICP_QAT_HW_KASUMI_F8_KEY_SZ \
 	(ICP_QAT_HW_KASUMI_KEY_SZ * QAT_CIPHER_MODE_F8_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for Kasumi F8 */
-#define ICP_QAT_HW_AES_128_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_128_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_128_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES128 XTS */
-#define ICP_QAT_HW_AES_256_XTS_KEY_SZ                                          \
+#define ICP_QAT_HW_AES_256_XTS_KEY_SZ \
 	(ICP_QAT_HW_AES_256_KEY_SZ * QAT_CIPHER_MODE_XTS_KEY_SZ_MULT)
 /**< @ingroup icp_qat_hw_defs
  * Define the key size for AES256 XTS */
@@ -1214,8 +1225,8 @@ typedef struct icp_qat_hw_trng_config_s {
  * @param mode   Configuration mode parameter
  *
  *****************************************************************************/
-#define ICP_QAT_HW_TRNG_CONFIG_MODE_BUILD(mode)                                \
-	(((mode)&QAT_TRNG_CONFIG_MODE_MASK) << QAT_TRNG_CONFIG_MODE_BITPOS)
+#define ICP_QAT_HW_TRNG_CONFIG_MODE_BUILD(mode) \
+	(((mode) & QAT_TRNG_CONFIG_MODE_MASK) << QAT_TRNG_CONFIG_MODE_BITPOS)
 
 /**
  ******************************************************************************
@@ -1227,8 +1238,8 @@ typedef struct icp_qat_hw_trng_config_s {
  * @param mode   Configuration mode parameter
  *
  *****************************************************************************/
-#define ICP_QAT_HW_TRNG_KAT_MODE_BUILD(mode)                                   \
-	((((mode)&QAT_TRNG_KAT_MODE_MASK) << QAT_TRNG_KAT_MODE_BITPOS))
+#define ICP_QAT_HW_TRNG_KAT_MODE_BUILD(mode) \
+	((((mode) & QAT_TRNG_KAT_MODE_MASK) << QAT_TRNG_KAT_MODE_BITPOS))
 
 /**
  *****************************************************************************
@@ -1294,9 +1305,9 @@ typedef struct icp_qat_hw_trng_test_status_s {
  *
  *****************************************************************************/
 
-#define ICP_QAT_HW_TRNG_FAIL_FLAG_GET(status)                                  \
-	(((status) >> QAT_TRNG_TEST_FAILURE_FLAG_BITPOS) &                     \
-	 QAT_TRNG_TEST_FAILURE_FLAG_MASK)
+#define ICP_QAT_HW_TRNG_FAIL_FLAG_GET(status)              \
+	(((status) >> QAT_TRNG_TEST_FAILURE_FLAG_BITPOS) & \
+	    QAT_TRNG_TEST_FAILURE_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -1308,7 +1319,7 @@ typedef struct icp_qat_hw_trng_test_status_s {
  * @param status   TRNG status value
  *
  *****************************************************************************/
-#define ICP_QAT_HW_TRNG_STATUS_VALID_GET(status)                               \
+#define ICP_QAT_HW_TRNG_STATUS_VALID_GET(status) \
 	(((status) >> QAT_TRNG_TEST_STATUS_BITPOS) & QAT_TRNG_TEST_STATUS_MASK)
 
 /**
@@ -1386,9 +1397,9 @@ typedef struct icp_qat_hw_trng_entropy_status_s {
  * @param status   TRNG status value
  *
  *****************************************************************************/
-#define ICP_QAT_HW_TRNG_ENTROPY_STATUS_GET(status)                             \
-	(((status) >> QAT_TRNG_ENTROPY_STATUS_BITPOS) &                        \
-	 QAT_TRNG_ENTROPY_STATUS_MASK)
+#define ICP_QAT_HW_TRNG_ENTROPY_STATUS_GET(status)      \
+	(((status) >> QAT_TRNG_ENTROPY_STATUS_BITPOS) & \
+	    QAT_TRNG_ENTROPY_STATUS_MASK)
 
 /**
  *****************************************************************************
@@ -1598,16 +1609,17 @@ typedef struct icp_qat_hw_compression_config_s {
  * @param filetype Compression file type to use, static or semi dynamic trees
  *
  *****************************************************************************/
-#define ICP_QAT_HW_COMPRESSION_CONFIG_BUILD(                                   \
-    dir, delayed, algo, depth, filetype)                                       \
-	((((dir)&QAT_COMPRESSION_DIR_MASK) << QAT_COMPRESSION_DIR_BITPOS) |    \
-	 (((delayed)&QAT_COMPRESSION_DELAYED_MATCH_MASK)                       \
-	  << QAT_COMPRESSION_DELAYED_MATCH_BITPOS) |                           \
-	 (((algo)&QAT_COMPRESSION_ALGO_MASK) << QAT_COMPRESSION_ALGO_BITPOS) | \
-	 (((depth)&QAT_COMPRESSION_DEPTH_MASK)                                 \
-	  << QAT_COMPRESSION_DEPTH_BITPOS) |                                   \
-	 (((filetype)&QAT_COMPRESSION_FILE_TYPE_MASK)                          \
-	  << QAT_COMPRESSION_FILE_TYPE_BITPOS))
+#define ICP_QAT_HW_COMPRESSION_CONFIG_BUILD(dir, delayed, algo, depth,        \
+    filetype)                                                                 \
+	((((dir) & QAT_COMPRESSION_DIR_MASK) << QAT_COMPRESSION_DIR_BITPOS) | \
+	    (((delayed) & QAT_COMPRESSION_DELAYED_MATCH_MASK)                 \
+		<< QAT_COMPRESSION_DELAYED_MATCH_BITPOS) |                    \
+	    (((algo) & QAT_COMPRESSION_ALGO_MASK)                             \
+		<< QAT_COMPRESSION_ALGO_BITPOS) |                             \
+	    (((depth) & QAT_COMPRESSION_DEPTH_MASK)                           \
+		<< QAT_COMPRESSION_DEPTH_BITPOS) |                            \
+	    (((filetype) & QAT_COMPRESSION_FILE_TYPE_MASK)                    \
+		<< QAT_COMPRESSION_FILE_TYPE_BITPOS))
 
 /* ========================================================================= */
 /*                                            TRANSLATOR SLICE */

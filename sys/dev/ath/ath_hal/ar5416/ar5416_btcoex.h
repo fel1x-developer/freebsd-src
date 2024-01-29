@@ -16,16 +16,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef	__ATH_AR5416_BTCOEX_H__
-#define	__ATH_AR5416_BTCOEX_H__
+#ifndef __ATH_AR5416_BTCOEX_H__
+#define __ATH_AR5416_BTCOEX_H__
 /*
  * Weight table configurations.
  */
-#define AR5416_BT_WGHT                     0xff55
-#define AR5416_STOMP_ALL_WLAN_WGHT         0xfcfc
-#define AR5416_STOMP_LOW_WLAN_WGHT         0xa8a8
-#define AR5416_STOMP_NONE_WLAN_WGHT        0x0000
-#define AR5416_STOMP_ALL_FORCE_WLAN_WGHT   0xffff       // Stomp BT even when WLAN is idle
-#define AR5416_STOMP_LOW_FORCE_WLAN_WGHT   0xaaaa       // Stomp BT even when WLAN is idle
+#define AR5416_BT_WGHT 0xff55
+#define AR5416_STOMP_ALL_WLAN_WGHT 0xfcfc
+#define AR5416_STOMP_LOW_WLAN_WGHT 0xa8a8
+#define AR5416_STOMP_NONE_WLAN_WGHT 0x0000
+#define AR5416_STOMP_ALL_FORCE_WLAN_WGHT \
+	0xffff // Stomp BT even when WLAN is idle
+#define AR5416_STOMP_LOW_FORCE_WLAN_WGHT \
+	0xaaaa // Stomp BT even when WLAN is idle
 
-#endif	/* __ATH_AR5416_BTCOEX_H__ */
+#endif /* __ATH_AR5416_BTCOEX_H__ */

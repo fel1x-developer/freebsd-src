@@ -27,19 +27,19 @@
  */
 
 #include <sys/param.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <geom/concat/g_concat.h>
+#include <libgeom.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/concat/g_concat.h>
 
 #include "core/geom.h"
 #include "misc/subr.h"
-
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_CONCAT_VERSION;
@@ -51,42 +51,21 @@ static void concat_label(struct gctl_req *req);
 
 struct g_command class_commands[] = {
 	{ "append", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-hv] name prov"
-	},
-	{ "clear", G_FLAG_VERBOSE, concat_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-hv] name prov" },
+	{ "clear", G_FLAG_VERBOSE, concat_main, G_NULL_OPTS, "[-v] prov ..." },
 	{ "create", G_FLAG_VERBOSE | G_FLAG_LOADKLD, NULL, G_NULL_OPTS,
-	    "[-v] name prov ..."
-	},
+	    "[-v] name prov ..." },
 	{ "destroy", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "dump", 0, concat_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "dump", 0, concat_main, G_NULL_OPTS, "prov ..." },
 	{ "label", G_FLAG_VERBOSE | G_FLAG_LOADKLD, concat_main,
-	    {
-		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-hv] name prov ..."
-	},
+	    { { 'h', "hardcode", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-hv] name prov ..." },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
 	G_CMD_SENTINEL
 };
 
@@ -160,7 +139,8 @@ concat_label(struct gctl_req *req)
 		if (!hardcode)
 			bzero(md.md_provider, sizeof(md.md_provider));
 		else {
-			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) == 0)
+			if (strncmp(name, _PATH_DEV, sizeof(_PATH_DEV) - 1) ==
+			    0)
 				name += sizeof(_PATH_DEV) - 1;
 			strlcpy(md.md_provider, name, sizeof(md.md_provider));
 		}

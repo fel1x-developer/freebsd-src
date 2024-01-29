@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include "qcom_clk_freqtbl.h"
@@ -44,7 +45,7 @@ qcom_clk_freq_tbl_lookup(const struct qcom_clk_freq_tbl *tbl, uint64_t freq)
 	if (tbl == NULL)
 		return (NULL);
 
-	for (t = tbl; t->freq !=0; t++) {
+	for (t = tbl; t->freq != 0; t++) {
 		if (freq <= t->freq)
 			return (t);
 	}

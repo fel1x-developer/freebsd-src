@@ -20,9 +20,8 @@ const union __infinity_un __infinity = {
 /* bytes for NaN */
 const union __nan_un __nan = {
 #if BYTE_ORDER == BIG_ENDIAN
-	{0xff, 0xc0, 0, 0}
+	{ 0xff, 0xc0, 0, 0 }
 #else
 	{ 0, 0, 0xc0, 0xff }
 #endif
 };
-

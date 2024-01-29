@@ -9,12 +9,11 @@
 #include "ipf.h"
 #include "ipt.h"
 
-
-struct	llc	{
-	int	lc_type;
-	int	lc_sz;	/* LLC header length */
-	int	lc_to;	/* LLC Type offset */
-	int	lc_tl;	/* LLC Type length */
+struct llc {
+	int lc_type;
+	int lc_sz; /* LLC header length */
+	int lc_to; /* LLC Type offset */
+	int lc_tl; /* LLC Type length */
 };
 
 /*
@@ -22,46 +21,44 @@ struct	llc	{
  * which make this useful.
  */
 
-static	struct	llc	llcs[] = {
-	{ 0, 0, 0, 0 },				/* DLT_NULL */
-	{ 1, 14, 12, 2 },			/* DLT_Ethernet */
-	{ 10, 0, 0, 0 },			/* DLT_FDDI */
-	{ 12, 0, 0, 0 },			/* DLT_RAW */
-	{ -1, -1, -1, -1 }
-};
+static struct llc llcs[] = { { 0, 0, 0, 0 }, /* DLT_NULL */
+	{ 1, 14, 12, 2 },		     /* DLT_Ethernet */
+	{ 10, 0, 0, 0 },		     /* DLT_FDDI */
+	{ 12, 0, 0, 0 },		     /* DLT_RAW */
+	{ -1, -1, -1, -1 } };
 
 typedef struct {
-	u_int	id;
-	u_short	major;
-	u_short	minor;
-	u_int	timezone;
-	u_int	sigfigs;
-	u_int	snaplen;
-	u_int	type;
+	u_int id;
+	u_short major;
+	u_short minor;
+	u_int timezone;
+	u_int sigfigs;
+	u_int snaplen;
+	u_int type;
 } fileheader_t;
 
 typedef struct {
-	u_32_t	seconds;
-	u_32_t	microseconds;
-	u_32_t	caplen;
-	u_32_t	wirelen;
+	u_32_t seconds;
+	u_32_t microseconds;
+	u_32_t caplen;
+	u_32_t wirelen;
 } packetheader_t;
 
-static	int	ipcap_open(char *);
-static	int	ipcap_close(void);
-static	int	ipcap_readip(mb_t *, char **, int *);
-static	int	ipcap_read_rec(packetheader_t *);
-static	void	iswap_hdr(fileheader_t *);
+static int ipcap_open(char *);
+static int ipcap_close(void);
+static int ipcap_readip(mb_t *, char **, int *);
+static int ipcap_read_rec(packetheader_t *);
+static void iswap_hdr(fileheader_t *);
 
-static	int	pfd = -1, swapped = 0;
-static	struct llc	*llcp = NULL;
+static int pfd = -1, swapped = 0;
+static struct llc *llcp = NULL;
 
-struct	ipread	pcap = { ipcap_open, ipcap_close, ipcap_readip, 0 };
+struct ipread pcap = { ipcap_open, ipcap_close, ipcap_readip, 0 };
 
-#define	SWAPLONG(y)	\
-	((((y)&0xff)<<24) | (((y)&0xff00)<<8) | (((y)&0xff0000)>>8) | (((y)>>24)&0xff))
-#define	SWAPSHORT(y)	\
-	( (((y)&0xff)<<8) | (((y)&0xff00)>>8) )
+#define SWAPLONG(y)                                     \
+	((((y) & 0xff) << 24) | (((y) & 0xff00) << 8) | \
+	    (((y) & 0xff0000) >> 8) | (((y) >> 24) & 0xff))
+#define SWAPSHORT(y) ((((y) & 0xff) << 8) | (((y) & 0xff00) >> 8))
 
 static void
 iswap_hdr(fileheader_t *p)
@@ -93,7 +90,7 @@ ipcap_open(char *fname)
 
 	if (ph.id != 0xa1b2c3d4) {
 		if (SWAPLONG(ph.id) != 0xa1b2c3d4) {
-			(void) close(fd);
+			(void)close(fd);
 			return (-2);
 		}
 		swapped = 1;
@@ -107,25 +104,23 @@ ipcap_open(char *fname)
 		}
 
 	if (llcp == NULL) {
-		(void) close(fd);
+		(void)close(fd);
 		return (-2);
 	}
 
 	pfd = fd;
 	printf("opened pcap file %s:\n", fname);
-	printf("\tid: %08x version: %d.%d type: %d snap %d\n",
-		ph.id, ph.major, ph.minor, ph.type, ph.snaplen);
+	printf("\tid: %08x version: %d.%d type: %d snap %d\n", ph.id, ph.major,
+	    ph.minor, ph.type, ph.snaplen);
 
 	return (fd);
 }
-
 
 static int
 ipcap_close(void)
 {
 	return (close(pfd));
 }
-
 
 /*
  * read in the header (and validate) which should be the first record
@@ -134,7 +129,7 @@ ipcap_close(void)
 static int
 ipcap_read_rec(packetheader_t *rec)
 {
-	int	n, p, i;
+	int n, p, i;
 
 	n = sizeof(*rec);
 
@@ -161,8 +156,7 @@ ipcap_read_rec(packetheader_t *rec)
 	return (p);
 }
 
-
-#ifdef	notyet
+#ifdef notyet
 /*
  * read an entire pcap packet record.  only the data part is copied into
  * the available buffer, with the number of bytes copied returned.
@@ -171,8 +165,8 @@ static int
 ipcap_read(char *buf, int cnt)
 {
 	packetheader_t rec;
-	static	char	*bufp = NULL;
-	int	i, n;
+	static char *bufp = NULL;
+	int i, n;
 
 	if ((i = ipcap_read_rec(&rec)) <= 0)
 		return (i);
@@ -191,20 +185,19 @@ ipcap_read(char *buf, int cnt)
 }
 #endif
 
-
 /*
-* return only an IP packet read into buf
+ * return only an IP packet read into buf
  */
 static int
 ipcap_readip(mb_t *mb, char **ifn, int *dir)
 {
-	static	char	*bufp = NULL;
-	packetheader_t	rec;
-	struct	llc	*l;
-	char	*s, ty[4];
-	int	i, j, n;
-	char	*buf;
-	int	cnt;
+	static char *bufp = NULL;
+	packetheader_t rec;
+	struct llc *l;
+	char *s, ty[4];
+	int i, j, n;
+	char *buf;
+	int cnt;
 
 #if 0
 	ifn = ifn;	/* gcc -Wextra */
@@ -215,28 +208,28 @@ ipcap_readip(mb_t *mb, char **ifn, int *dir)
 	l = llcp;
 
 	/* do { */
-		if ((i = ipcap_read_rec(&rec)) <= 0)
-			return (i);
+	if ((i = ipcap_read_rec(&rec)) <= 0)
+		return (i);
 
-		if (!bufp)
-			bufp = malloc(i);
-		else
-			bufp = realloc(bufp, i);
-		s = bufp;
+	if (!bufp)
+		bufp = malloc(i);
+	else
+		bufp = realloc(bufp, i);
+	s = bufp;
 
-		for (j = i, n = 0; j > 0; ) {
-			n = read(pfd, s, j);
-			if (n <= 0)
-				return (-2);
-			j -= n;
-			s += n;
-		}
-		s = bufp;
+	for (j = i, n = 0; j > 0;) {
+		n = read(pfd, s, j);
+		if (n <= 0)
+			return (-2);
+		j -= n;
+		s += n;
+	}
+	s = bufp;
 
-		i -= l->lc_sz;
-		s += l->lc_to;
-		bcopy(s, ty, l->lc_tl);
-		s += l->lc_tl;
+	i -= l->lc_sz;
+	s += l->lc_to;
+	bcopy(s, ty, l->lc_tl);
+	s += l->lc_tl;
 	/* } while (ty[0] != 0x8 && ty[1] != 0); */
 	n = MIN(i, cnt);
 	bcopy(s, buf, n);

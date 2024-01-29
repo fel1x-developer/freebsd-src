@@ -1,4 +1,5 @@
-/*	$NetBSD: cd9660_strings.c,v 1.4 2007/01/16 17:32:05 hubertf Exp $	*/
+/*	$NetBSD: cd9660_strings.c,v 1.4 2007/01/16 17:32:05 hubertf Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -34,14 +35,13 @@
  * OF SUCH DAMAGE.
  */
 
+#include <sys/param.h>
 #include <sys/mount.h>
 
-#include <sys/param.h>
 #include <ctype.h>
 
-#include "makefs.h"
 #include "cd9660.h"
-
+#include "makefs.h"
 
 void
 cd9660_uppercase_characters(char *str, size_t len)
@@ -49,7 +49,7 @@ cd9660_uppercase_characters(char *str, size_t len)
 	size_t p;
 
 	for (p = 0; p < len; p++) {
-		if (islower((unsigned char)str[p]) )
+		if (islower((unsigned char)str[p]))
 			str[p] -= 32;
 	}
 }
@@ -57,18 +57,15 @@ cd9660_uppercase_characters(char *str, size_t len)
 static inline int
 cd9660_is_d_char(char c)
 {
-	return (isupper((unsigned char)c)
-		|| c == '_'
-		|| (c >= '0' && c <= '9'));
+	return (
+	    isupper((unsigned char)c) || c == '_' || (c >= '0' && c <= '9'));
 }
 
 static inline int
 cd9660_is_a_char(char c)
 {
-	return (isupper((unsigned char)c)
-			|| c == '_'
-			|| (c >= '%' && c <= '?')
-			|| (c >= ' ' && c <= '\"'));
+	return (isupper((unsigned char)c) || c == '_' ||
+	    (c >= '%' && c <= '?') || (c >= ' ' && c <= '\"'));
 }
 
 /*
@@ -85,7 +82,7 @@ cd9660_valid_a_chars(const char *str)
 
 	while ((*c) != '\0') {
 		if (!(cd9660_is_a_char(*c))) {
-			if (islower((unsigned char)*c) )
+			if (islower((unsigned char)*c))
 				upperFound = 1;
 			else
 				return 0;
@@ -104,12 +101,12 @@ cd9660_valid_a_chars(const char *str)
 int
 cd9660_valid_d_chars(const char *str)
 {
-	const char *c=str;
+	const char *c = str;
 	int upperFound = 0;
 
 	while ((*c) != '\0') {
 		if (!(cd9660_is_d_char(*c))) {
-			if (islower((unsigned char)*c) )
+			if (islower((unsigned char)*c))
 				upperFound = 1;
 			else
 				return 0;

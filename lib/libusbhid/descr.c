@@ -29,15 +29,16 @@
  */
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
+
+#include <dev/usb/usb_ioctl.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <dev/usb/usb_ioctl.h>
 
 #include "usbhid.h"
 #include "usbvar.h"
@@ -67,7 +68,7 @@ hid_get_report_id(int fd)
 	if ((rep = hid_get_report_desc(fd)) == NULL)
 		goto use_ioctl;
 	kindset = 1 << hid_input | 1 << hid_output | 1 << hid_feature;
-	for (d = hid_start_parse(rep, kindset, -1); hid_get_item(d, &h); ) {
+	for (d = hid_start_parse(rep, kindset, -1); hid_get_item(d, &h);) {
 		/* Return the first report ID we met. */
 		if (h.report_ID != 0) {
 			temp = h.report_ID;
@@ -115,7 +116,7 @@ hid_get_report_desc(int fd)
 	}
 
 	/*
-	 * NOTE: The kernel will return a failure if 
+	 * NOTE: The kernel will return a failure if
 	 * "ugd_actlen" is zero.
 	 */
 	data = malloc(ugd.ugd_actlen);
@@ -139,7 +140,7 @@ hid_get_report_desc(int fd)
 	}
 
 	/* check END_COLLECTION */
-	if (((unsigned char *)data)[ugd.ugd_actlen -1] != 0xC0) {
+	if (((unsigned char *)data)[ugd.ugd_actlen - 1] != 0xC0) {
 		/* invalid end byte */
 		free(data);
 		return (NULL);

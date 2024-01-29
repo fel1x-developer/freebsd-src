@@ -20,14 +20,13 @@
  */
 
 #ifndef _COMPAT_OPENSOLARIS_SYS_OBJFS_H
-#define	_COMPAT_OPENSOLARIS_SYS_OBJFS_H
+#define _COMPAT_OPENSOLARIS_SYS_OBJFS_H
 
 /*
  * Private data structure found in '.info' section
  */
 typedef struct objfs_info {
-        int             objfs_info_primary;
+	int objfs_info_primary;
 } objfs_info_t;
 
-
-#endif	/* _COMPAT_OPENSOLARIS_SYS_OBJFS_H */
+#endif /* _COMPAT_OPENSOLARIS_SYS_OBJFS_H */

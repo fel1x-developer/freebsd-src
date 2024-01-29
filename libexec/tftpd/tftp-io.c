@@ -30,9 +30,9 @@
 #include <sys/stat.h>
 
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/tftp.h>
-
 #include <assert.h>
 #include <errno.h>
 #include <poll.h>
@@ -45,8 +45,8 @@
 
 #include "tftp-file.h"
 #include "tftp-io.h"
-#include "tftp-utils.h"
 #include "tftp-options.h"
+#include "tftp-utils.h"
 
 struct sockaddr_storage peer_sock;
 struct sockaddr_storage me_sock;
@@ -54,32 +54,26 @@ struct sockaddr_storage me_sock;
 static int send_packet(int peer, uint16_t block, char *pkt, int size);
 
 static struct errmsg {
-	int	e_code;
-	const char	*e_msg;
-} errmsgs[] = {
-	{ EUNDEF,	"Undefined error code" },
-	{ ENOTFOUND,	"File not found" },
-	{ EACCESS,	"Access violation" },
-	{ ENOSPACE,	"Disk full or allocation exceeded" },
-	{ EBADOP,	"Illegal TFTP operation" },
-	{ EBADID,	"Unknown transfer ID" },
-	{ EEXISTS,	"File already exists" },
-	{ ENOUSER,	"No such user" },
-	{ EOPTNEG,	"Option negotiation" },
-	{ -1,		NULL }
-};
+	int e_code;
+	const char *e_msg;
+} errmsgs[] = { { EUNDEF, "Undefined error code" },
+	{ ENOTFOUND, "File not found" }, { EACCESS, "Access violation" },
+	{ ENOSPACE, "Disk full or allocation exceeded" },
+	{ EBADOP, "Illegal TFTP operation" }, { EBADID, "Unknown transfer ID" },
+	{ EEXISTS, "File already exists" }, { ENOUSER, "No such user" },
+	{ EOPTNEG, "Option negotiation" }, { -1, NULL } };
 
-#define DROPPACKET(s)							\
-	if (packetdroppercentage != 0 &&				\
-	    random()%100 < packetdroppercentage) {			\
-		tftp_log(LOG_DEBUG, "Artificial packet drop in %s", s);	\
-		return;							\
+#define DROPPACKET(s)                                                   \
+	if (packetdroppercentage != 0 &&                                \
+	    random() % 100 < packetdroppercentage) {                    \
+		tftp_log(LOG_DEBUG, "Artificial packet drop in %s", s); \
+		return;                                                 \
 	}
-#define DROPPACKETn(s,n)						\
-	if (packetdroppercentage != 0 &&				\
-	    random()%100 < packetdroppercentage) {			\
-		tftp_log(LOG_DEBUG, "Artificial packet drop in %s", s);	\
-		return (n);						\
+#define DROPPACKETn(s, n)                                               \
+	if (packetdroppercentage != 0 &&                                \
+	    random() % 100 < packetdroppercentage) {                    \
+		tftp_log(LOG_DEBUG, "Artificial packet drop in %s", s); \
+		return (n);                                             \
 	}
 
 const char *
@@ -103,16 +97,17 @@ send_packet(int peer, uint16_t block, char *pkt, int size)
 	int i;
 	int t = 1;
 
-	for (i = 0; i < 12 ; i++) {
+	for (i = 0; i < 12; i++) {
 		DROPPACKETn("send_packet", 0);
 
 		if (sendto(peer, pkt, size, 0, (struct sockaddr *)&peer_sock,
-		    peer_sock.ss_len) == size) {
+			peer_sock.ss_len) == size) {
 			if (i)
 				tftp_log(LOG_ERR,
 				    "%s block %d, attempt %d successful",
-		    		    packettype(ntohs(((struct tftphdr *)
-				    (pkt))->th_opcode)), block, i);
+				    packettype(ntohs(
+					((struct tftphdr *)(pkt))->th_opcode)),
+				    block, i);
 			return (0);
 		}
 		tftp_log(LOG_ERR,
@@ -154,7 +149,7 @@ send_error(int peer, int error)
 			break;
 	if (pe->e_code < 0) {
 		pe->e_msg = strerror(error - 100);
-		tp->th_code = EUNDEF;   /* set 'undef' errorcode */
+		tp->th_code = EUNDEF; /* set 'undef' errorcode */
 	}
 	strcpy(tp->th_msg, pe->e_msg);
 	length = strlen(pe->e_msg);
@@ -164,8 +159,8 @@ send_error(int peer, int error)
 	if (debug & DEBUG_PACKETS)
 		tftp_log(LOG_DEBUG, "Sending ERROR %d: %s", error, tp->th_msg);
 
-	if (sendto(peer, buf, length, 0,
-		(struct sockaddr *)&peer_sock, peer_sock.ss_len) != length)
+	if (sendto(peer, buf, length, 0, (struct sockaddr *)&peer_sock,
+		peer_sock.ss_len) != length)
 		tftp_log(LOG_ERR, "send_error: %s", strerror(errno));
 }
 
@@ -183,8 +178,7 @@ send_wrq(int peer, char *filename, char *mode)
 
 	if (debug & DEBUG_PACKETS)
 		tftp_log(LOG_DEBUG, "Sending WRQ: filename: '%s', mode '%s'",
-			filename, mode
-		);
+		    filename, mode);
 
 	DROPPACKETn("send_wrq", 0);
 
@@ -208,8 +202,8 @@ send_wrq(int peer, char *filename, char *mode)
 	if (options_rfc_enabled)
 		size += make_options(peer, bp, sizeof(buf) - size);
 
-	n = sendto(peer, buf, size, 0,
-	    (struct sockaddr *)&peer_sock, peer_sock.ss_len);
+	n = sendto(peer, buf, size, 0, (struct sockaddr *)&peer_sock,
+	    peer_sock.ss_len);
 	if (n != size) {
 		tftp_log(LOG_ERR, "send_wrq: %s", strerror(errno));
 		return (1);
@@ -231,8 +225,7 @@ send_rrq(int peer, char *filename, char *mode)
 
 	if (debug & DEBUG_PACKETS)
 		tftp_log(LOG_DEBUG, "Sending RRQ: filename: '%s', mode '%s'",
-			filename, mode
-		);
+		    filename, mode);
 
 	DROPPACKETn("send_rrq", 0);
 
@@ -258,8 +251,8 @@ send_rrq(int peer, char *filename, char *mode)
 		size += make_options(peer, bp, sizeof(buf) - size);
 	}
 
-	n = sendto(peer, buf, size, 0,
-	    (struct sockaddr *)&peer_sock, peer_sock.ss_len);
+	n = sendto(peer, buf, size, 0, (struct sockaddr *)&peer_sock,
+	    peer_sock.ss_len);
 	if (n != size) {
 		tftp_log(LOG_ERR, "send_rrq: %d %s", n, strerror(errno));
 		return (1);
@@ -293,10 +286,10 @@ send_oack(int peer)
 	tp->th_opcode = htons((u_short)OACK);
 	for (i = 0; options[i].o_type != NULL; i++) {
 		if (options[i].o_reply != NULL) {
-			n = snprintf(bp, size, "%s%c%s", options[i].o_type,
-				     0, options[i].o_reply);
-			bp += n+1;
-			size -= n+1;
+			n = snprintf(bp, size, "%s%c%s", options[i].o_type, 0,
+			    options[i].o_reply);
+			bp += n + 1;
+			size -= n + 1;
 			if (size < 0) {
 				tftp_log(LOG_ERR, "oack: buffer overflow");
 				exit(1);
@@ -305,8 +298,8 @@ send_oack(int peer)
 	}
 	size = bp - buf;
 
-	if (sendto(peer, buf, size, 0,
-		(struct sockaddr *)&peer_sock, peer_sock.ss_len) != size) {
+	if (sendto(peer, buf, size, 0, (struct sockaddr *)&peer_sock,
+		peer_sock.ss_len) != size) {
 		tftp_log(LOG_INFO, "send_oack: %s", strerror(errno));
 		return (1);
 	}
@@ -335,8 +328,8 @@ send_ack(int fp, uint16_t block)
 	tp->th_block = htons((u_short)block);
 	size = 4;
 
-	if (sendto(fp, buf, size, 0,
-	    (struct sockaddr *)&peer_sock, peer_sock.ss_len) != size) {
+	if (sendto(fp, buf, size, 0, (struct sockaddr *)&peer_sock,
+		peer_sock.ss_len) != size) {
 		tftp_log(LOG_INFO, "send_ack: %s", strerror(errno));
 		return (1);
 	}
@@ -355,8 +348,8 @@ send_data(int peer, uint16_t block, char *data, int size)
 	int n;
 
 	if (debug & DEBUG_PACKETS)
-		tftp_log(LOG_DEBUG, "Sending DATA packet %d of %d bytes",
-			block, size);
+		tftp_log(LOG_DEBUG, "Sending DATA packet %d of %d bytes", block,
+		    size);
 
 	DROPPACKETn("send_data", 0);
 
@@ -369,7 +362,6 @@ send_data(int peer, uint16_t block, char *data, int size)
 	n = send_packet(peer, block, (char *)pkt, size + 4);
 	return (n);
 }
-
 
 /*
  * Receive a packet
@@ -388,8 +380,8 @@ receive_packet(int peer, char *data, int size, struct sockaddr_storage *from,
 	int n;
 
 	if (debug & DEBUG_PACKETS)
-		tftp_log(LOG_DEBUG,
-		    "Waiting %d seconds for packet", timeoutpacket);
+		tftp_log(LOG_DEBUG, "Waiting %d seconds for packet",
+		    timeoutpacket);
 
 	pkt = (struct tftphdr *)data;
 
@@ -413,14 +405,13 @@ receive_packet(int peer, char *data, int size, struct sockaddr_storage *from,
 		return (RP_RECVFROM);
 	}
 	if (n < 4) {
-		tftp_log(LOG_ERR,
-		    "receive_packet: packet too small (%d bytes)", n);
+		tftp_log(LOG_ERR, "receive_packet: packet too small (%d bytes)",
+		    n);
 		return (RP_TOOSMALL);
 	}
 
 	pkt->th_opcode = ntohs((u_short)pkt->th_opcode);
-	if (pkt->th_opcode == DATA ||
-	    pkt->th_opcode == ACK)
+	if (pkt->th_opcode == DATA || pkt->th_opcode == ACK)
 		pkt->th_block = ntohs((u_short)pkt->th_block);
 
 	if (pkt->th_opcode == DATA && n > pktsize) {
@@ -431,7 +422,7 @@ receive_packet(int peer, char *data, int size, struct sockaddr_storage *from,
 	if (((struct sockaddr_in *)(pfrom))->sin_addr.s_addr !=
 	    ((struct sockaddr_in *)(&peer_sock))->sin_addr.s_addr) {
 		tftp_log(LOG_ERR,
-			"receive_packet: received packet from wrong source");
+		    "receive_packet: received packet from wrong source");
 		return (RP_WRONGSOURCE);
 	}
 
@@ -442,8 +433,8 @@ receive_packet(int peer, char *data, int size, struct sockaddr_storage *from,
 	}
 
 	if (debug & DEBUG_PACKETS)
-		tftp_log(LOG_DEBUG, "Received %d bytes in a %s packet",
-			n, packettype(pkt->th_opcode));
+		tftp_log(LOG_DEBUG, "Received %d bytes in a %s packet", n,
+		    packettype(pkt->th_opcode));
 
 	return n - 4;
 }

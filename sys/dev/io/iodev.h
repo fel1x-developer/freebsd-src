@@ -27,10 +27,10 @@
  */
 
 #ifndef _DEV_IODEV_H_
-#define	_DEV_IODEV_H_
+#define _DEV_IODEV_H_
 
-#define	IODEV_PIO_READ		0
-#define	IODEV_PIO_WRITE		1
+#define IODEV_PIO_READ 0
+#define IODEV_PIO_WRITE 1
 
 struct iodev_pio_req {
 	u_int access;
@@ -39,6 +39,6 @@ struct iodev_pio_req {
 	u_int val;
 };
 
-#define	IODEV_PIO	_IOWR('I', 0, struct iodev_pio_req)
+#define IODEV_PIO _IOWR('I', 0, struct iodev_pio_req)
 
 #endif /* _DEV_IODEV_H_ */

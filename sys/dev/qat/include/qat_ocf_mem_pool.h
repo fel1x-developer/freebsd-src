@@ -109,33 +109,27 @@ struct qat_ocf_instance {
 
 /* Init/deinit */
 CpaStatus qat_ocf_cookie_pool_init(struct qat_ocf_instance *instance,
-				   device_t dev);
+    device_t dev);
 void qat_ocf_cookie_pool_deinit(struct qat_ocf_instance *instance);
 /* Alloc/free */
 CpaStatus qat_ocf_cookie_alloc(struct qat_ocf_instance *instance,
-			       struct qat_ocf_cookie **buffers_out);
+    struct qat_ocf_cookie **buffers_out);
 void qat_ocf_cookie_free(struct qat_ocf_instance *instance,
-			 struct qat_ocf_cookie *cookie);
+    struct qat_ocf_cookie *cookie);
 /* Pre/post sync */
 CpaStatus qat_ocf_cookie_dma_pre_sync(struct cryptop *crp,
-				      CpaCySymDpOpData *pOpData);
+    CpaCySymDpOpData *pOpData);
 CpaStatus qat_ocf_cookie_dma_post_sync(struct cryptop *crp,
-				       CpaCySymDpOpData *pOpData);
+    CpaCySymDpOpData *pOpData);
 /* Bus DMA unload */
 CpaStatus qat_ocf_cookie_dma_unload(struct cryptop *crp,
-				    CpaCySymDpOpData *pOpData);
+    CpaCySymDpOpData *pOpData);
 /* Bus DMA load callbacks */
-void qat_ocf_crypto_load_buf_cb(void *_arg,
-				bus_dma_segment_t *segs,
-				int nseg,
-				int error);
-void qat_ocf_crypto_load_obuf_cb(void *_arg,
-				 bus_dma_segment_t *segs,
-				 int nseg,
-				 int error);
-void qat_ocf_crypto_load_aadbuf_cb(void *_arg,
-				   bus_dma_segment_t *segs,
-				   int nseg,
-				   int error);
+void qat_ocf_crypto_load_buf_cb(void *_arg, bus_dma_segment_t *segs, int nseg,
+    int error);
+void qat_ocf_crypto_load_obuf_cb(void *_arg, bus_dma_segment_t *segs, int nseg,
+    int error);
+void qat_ocf_crypto_load_aadbuf_cb(void *_arg, bus_dma_segment_t *segs,
+    int nseg, int error);
 
 #endif /* _QAT_OCF_MEM_POOL_H_ */

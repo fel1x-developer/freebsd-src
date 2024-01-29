@@ -34,23 +34,23 @@
 struct quicc_device;
 
 struct quicc_softc {
-	device_t	sc_dev;
+	device_t sc_dev;
 
-	struct resource	*sc_rres;	/* Register resource. */
-	int		sc_rrid;
-	int		sc_rtype;	/* SYS_RES_{IOPORT|MEMORY}. */
+	struct resource *sc_rres; /* Register resource. */
+	int sc_rrid;
+	int sc_rtype; /* SYS_RES_{IOPORT|MEMORY}. */
 
-	struct resource *sc_ires;	/* Interrupt resource. */
-	void		*sc_icookie;
-	int		sc_irid;
+	struct resource *sc_ires; /* Interrupt resource. */
+	void *sc_icookie;
+	int sc_irid;
 
-	struct rman	sc_rman;
+	struct rman sc_rman;
 	struct quicc_device *sc_device;
 
-	u_int		sc_clock;
+	u_int sc_clock;
 
-	bool		sc_fastintr:1;
-	bool		sc_polled:1;
+	bool sc_fastintr : 1;
+	bool sc_polled : 1;
 };
 
 extern char quicc_driver_name[];
@@ -61,8 +61,8 @@ int quicc_bfe_probe(device_t, u_int);
 
 struct resource *quicc_bus_alloc_resource(device_t, device_t, int, int *,
     rman_res_t, rman_res_t, rman_res_t, u_int);
-int quicc_bus_get_resource(device_t, device_t, int, int,
-    rman_res_t *, rman_res_t *);
+int quicc_bus_get_resource(device_t, device_t, int, int, rman_res_t *,
+    rman_res_t *);
 int quicc_bus_read_ivar(device_t, device_t, int, uintptr_t *);
 int quicc_bus_release_resource(device_t, device_t, int, int, struct resource *);
 int quicc_bus_setup_intr(device_t, device_t, struct resource *, int,

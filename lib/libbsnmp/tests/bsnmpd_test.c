@@ -24,9 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#include <bsnmp/asn1.h>
-
 #include <atf-c.h>
+#include <bsnmp/asn1.h>
 
 ATF_TC_WITHOUT_HEAD(sa_19_20_bsnmp_test);
 ATF_TC_BODY(sa_19_20_bsnmp_test, tc)

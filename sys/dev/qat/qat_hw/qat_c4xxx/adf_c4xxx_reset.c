@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include <dev/pci/pcireg.h>
+
 #include "adf_c4xxx_reset.h"
 
 static void
@@ -12,10 +13,9 @@ adf_check_uncorr_status(struct adf_accel_dev *accel_dev)
 	uncorr_err = pci_read_config(pdev, PCI_EXP_AERUCS, 4);
 	if (uncorr_err & PCIE_C4XXX_VALID_ERR_MASK) {
 		device_printf(GET_DEV(accel_dev),
-			      "Uncorrectable error occurred during reset\n");
-		device_printf(GET_DEV(accel_dev),
-			      "Error code value: 0x%04x\n",
-			      uncorr_err);
+		    "Uncorrectable error occurred during reset\n");
+		device_printf(GET_DEV(accel_dev), "Error code value: 0x%04x\n",
+		    uncorr_err);
 	}
 }
 
@@ -47,7 +47,7 @@ adf_c4xxx_dev_reset(struct adf_accel_dev *accel_dev)
 		pause_ms("adfstop", 100);
 	} while (count < ADF_PCIE_FLR_ATTEMPT);
 	device_printf(GET_DEV(accel_dev),
-		      "Too many attempts to read back config space.\n");
+	    "Too many attempts to read back config space.\n");
 }
 
 void
@@ -62,8 +62,7 @@ adf_c4xxx_dev_restore(struct adf_accel_dev *accel_dev)
 
 	if (hw_device->reset_device) {
 		device_printf(GET_DEV(accel_dev),
-			      "Resetting device qat_dev%d\n",
-			      accel_dev->accel_id);
+		    "Resetting device qat_dev%d\n", accel_dev->accel_id);
 
 		/* Read pmiscubar and pmisclbar */
 		pmisclbar1 = pci_read_config(pdev, ADF_PMISC_L_OFFSET, 4);
@@ -78,8 +77,7 @@ adf_c4xxx_dev_restore(struct adf_accel_dev *accel_dev)
 
 		/* Check if restore operation has completed successfully */
 		if (pmisclbar1 != pmisclbar2 || pmiscubar1 != pmiscubar2) {
-			device_printf(
-			    GET_DEV(accel_dev),
+			device_printf(GET_DEV(accel_dev),
 			    "Failed to restore device configuration\n");
 			return;
 		}

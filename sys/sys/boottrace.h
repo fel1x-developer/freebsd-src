@@ -25,29 +25,30 @@
  */
 
 #ifndef _SYS_BOOTTRACE_H_
-#define	_SYS_BOOTTRACE_H_
+#define _SYS_BOOTTRACE_H_
 
-#define	_BOOTTRACE_BOOTTRACE	"kern.boottrace.boottrace"
-#define	_BOOTTRACE_RUNTRACE	"kern.boottrace.runtrace"
-#define	_BOOTTRACE_SHUTTRACE	"kern.boottrace.shuttrace"
+#define _BOOTTRACE_BOOTTRACE "kern.boottrace.boottrace"
+#define _BOOTTRACE_RUNTRACE "kern.boottrace.runtrace"
+#define _BOOTTRACE_SHUTTRACE "kern.boottrace.shuttrace"
 
 /* Messages are formatted as 'tdname:name' */
-#define	BT_EVENT_TDNAMELEN	24
-#define	BT_EVENT_NAMELEN	40
-#define	BT_MSGLEN		(BT_EVENT_NAMELEN + 1 + BT_EVENT_TDNAMELEN)
+#define BT_EVENT_TDNAMELEN 24
+#define BT_EVENT_NAMELEN 40
+#define BT_MSGLEN (BT_EVENT_NAMELEN + 1 + BT_EVENT_TDNAMELEN)
 
 #ifndef _KERNEL
+#include <sys/sysctl.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/sysctl.h>
 
 /*
  * Convenience macros. Userland API.
  */
-#define	BOOTTRACE(...)		_boottrace(_BOOTTRACE_BOOTTRACE, __VA_ARGS__)
-#define	RUNTRACE(...)		_boottrace(_BOOTTRACE_RUNTRACE, __VA_ARGS__)
-#define	SHUTTRACE(...)		_boottrace(_BOOTTRACE_SHUTTRACE, __VA_ARGS__)
+#define BOOTTRACE(...) _boottrace(_BOOTTRACE_BOOTTRACE, __VA_ARGS__)
+#define RUNTRACE(...) _boottrace(_BOOTTRACE_RUNTRACE, __VA_ARGS__)
+#define SHUTTRACE(...) _boottrace(_BOOTTRACE_SHUTTRACE, __VA_ARGS__)
 
 /*
  * Call the requested boottrace sysctl with provided va-formatted message.
@@ -73,20 +74,21 @@ _boottrace(const char *sysctlname, const char *fmt, ...)
 /*
  * Convenience macros. Kernel API.
  */
-#define	_BOOTTRACE(tdname, ...) do {					\
-		if (boottrace_enabled)					\
-			(void)boottrace(tdname, __VA_ARGS__);		\
+#define _BOOTTRACE(tdname, ...)                               \
+	do {                                                  \
+		if (boottrace_enabled)                        \
+			(void)boottrace(tdname, __VA_ARGS__); \
 	} while (0)
-#define	BOOTTRACE(...)		_BOOTTRACE(NULL, __VA_ARGS__)
-#define	BOOTTRACE_INIT(...)	_BOOTTRACE("kernel", __VA_ARGS__)
+#define BOOTTRACE(...) _BOOTTRACE(NULL, __VA_ARGS__)
+#define BOOTTRACE_INIT(...) _BOOTTRACE("kernel", __VA_ARGS__)
 
 extern bool boottrace_enabled;
 extern bool shutdown_trace;
 
-int  boottrace(const char *_tdname, const char *_eventfmt, ...)
-    __printflike(2,3);
+int boottrace(const char *_tdname, const char *_eventfmt, ...)
+    __printflike(2, 3);
 void boottrace_reset(const char *_actor);
-int  boottrace_resize(u_int _newsize);
+int boottrace_resize(u_int _newsize);
 void boottrace_dump_console(void);
 
 #endif /* _KERNEL */

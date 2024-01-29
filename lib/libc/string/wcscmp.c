@@ -32,7 +32,6 @@
  * SUCH DAMAGE.
  */
 
-
 /* $NetBSD: wcscmp.c,v 1.3 2001/01/05 12:13:12 itojun Exp $ */
 
 #include <wchar.h>

@@ -33,35 +33,34 @@
 
 #include "lio_bsd.h"
 #include "lio_common.h"
+#include "lio_ctrl.h"
+#include "lio_device.h"
 #include "lio_droq.h"
 #include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
-#include "lio_ctrl.h"
 #include "lio_main.h"
 #include "lio_network.h"
+#include "lio_response_manager.h"
 #include "lio_rxtx.h"
 
 int
-lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
-	 struct mbuf **m_headp)
+lio_xmit(struct lio *lio, struct lio_instr_queue *iq, struct mbuf **m_headp)
 {
-	struct lio_data_pkt		ndata;
-	union lio_cmd_setup		cmdsetup;
-	struct lio_mbuf_free_info	*finfo = NULL;
-	struct octeon_device		*oct = iq->oct_dev;
-	struct lio_iq_stats		*stats;
-	struct octeon_instr_irh		*irh;
-	struct lio_request_list		*tx_buf;
-	union lio_tx_info		*tx_info;
-	struct mbuf			*m_head;
-	bus_dma_segment_t		segs[LIO_MAX_SG];
-	bus_dmamap_t			map;
-	uint64_t	dptr = 0;
-	uint32_t	tag = 0;
-	int		iq_no = 0;
-	int		nsegs;
-	int		status = 0;
+	struct lio_data_pkt ndata;
+	union lio_cmd_setup cmdsetup;
+	struct lio_mbuf_free_info *finfo = NULL;
+	struct octeon_device *oct = iq->oct_dev;
+	struct lio_iq_stats *stats;
+	struct octeon_instr_irh *irh;
+	struct lio_request_list *tx_buf;
+	union lio_tx_info *tx_info;
+	struct mbuf *m_head;
+	bus_dma_segment_t segs[LIO_MAX_SG];
+	bus_dmamap_t map;
+	uint64_t dptr = 0;
+	uint32_t tag = 0;
+	int iq_no = 0;
+	int nsegs;
+	int status = 0;
 
 	iq_no = iq->txpciq.s.q_no;
 	tag = iq_no;
@@ -75,7 +74,7 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 	if (!(atomic_load_acq_int(&lio->ifstate) & LIO_IFSTATE_RUNNING) ||
 	    (!lio->linfo.link.s.link_up)) {
 		lio_dev_info(oct, "Transmit failed link_status : %d\n",
-			     lio->linfo.link.s.link_up);
+		    lio->linfo.link.s.link_up);
 		status = ENETDOWN;
 		goto drop_packet;
 	}
@@ -89,9 +88,9 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 
 	map = tx_buf->map;
 	status = bus_dmamap_load_mbuf_sg(iq->txtag, map, *m_headp, segs, &nsegs,
-					 BUS_DMA_NOWAIT);
+	    BUS_DMA_NOWAIT);
 	if (status == EFBIG) {
-		struct mbuf	*m;
+		struct mbuf *m;
 
 		m = m_defrag(*m_headp, M_NOWAIT);
 		if (m == NULL) {
@@ -100,17 +99,17 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 		}
 
 		*m_headp = m;
-		status = bus_dmamap_load_mbuf_sg(iq->txtag, map,
-						 *m_headp, segs, &nsegs,
-						 BUS_DMA_NOWAIT);
+		status = bus_dmamap_load_mbuf_sg(iq->txtag, map, *m_headp, segs,
+		    &nsegs, BUS_DMA_NOWAIT);
 	}
 
 	if (status == ENOMEM) {
 		goto retry;
 	} else if (status) {
 		stats->tx_dmamap_fail++;
-		lio_dev_dbg(oct, "bus_dmamap_load_mbuf_sg failed with error %d. iq:%d",
-			    status, iq_no);
+		lio_dev_dbg(oct,
+		    "bus_dmamap_load_mbuf_sg failed with error %d. iq:%d",
+		    status, iq_no);
 		goto drop_packet;
 	}
 
@@ -147,17 +146,17 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 		ndata.reqtype = LIO_REQTYPE_NORESP_NET;
 
 	} else {
-		struct lio_gather	*g;
-		int	i;
+		struct lio_gather *g;
+		int i;
 
 		mtx_lock(&lio->glist_lock[iq_no]);
-		g = (struct lio_gather *)
-			lio_delete_first_node(&lio->ghead[iq_no]);
+		g = (struct lio_gather *)lio_delete_first_node(
+		    &lio->ghead[iq_no]);
 		mtx_unlock(&lio->glist_lock[iq_no]);
 
 		if (g == NULL) {
 			lio_dev_err(oct,
-				    "Transmit scatter gather: glist null!\n");
+			    "Transmit scatter gather: glist null!\n");
 			goto retry;
 		}
 
@@ -171,7 +170,7 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 		while (nsegs--) {
 			g->sg[(i >> 2)].ptr[(i & 3)] = segs[i].ds_addr;
 			lio_add_sg_size(&g->sg[(i >> 2)], segs[i].ds_len,
-					(i & 3));
+			    (i & 3));
 			i++;
 		}
 
@@ -189,7 +188,7 @@ lio_xmit(struct lio *lio, struct lio_instr_queue *iq,
 	if (m_head->m_pkthdr.csum_flags & (CSUM_IP_TSO | CSUM_IP6_TSO)) {
 		tx_info->s.gso_size = m_head->m_pkthdr.tso_segsz;
 		tx_info->s.gso_segs = howmany(m_head->m_pkthdr.len,
-					      m_head->m_pkthdr.tso_segsz);
+		    m_head->m_pkthdr.tso_segsz);
 		stats->tx_gso++;
 	}
 
@@ -218,7 +217,7 @@ retry:
 drop_packet:
 	stats->tx_dropped++;
 	lio_dev_err(oct, "IQ%d Transmit dropped: %llu\n", iq_no,
-		    LIO_CAST64(stats->tx_dropped));
+	    LIO_CAST64(stats->tx_dropped));
 
 	m_freem(*m_headp);
 	*m_headp = NULL;
@@ -229,9 +228,9 @@ drop_packet:
 int
 lio_mq_start_locked(if_t ifp, struct lio_instr_queue *iq)
 {
-	struct lio	*lio = if_getsoftc(ifp);
-	struct mbuf	*next;
-	int		err = 0;
+	struct lio *lio = if_getsoftc(ifp);
+	struct mbuf *next;
+	int err = 0;
 
 	if (((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0) ||
 	    (!lio->linfo.link.s.link_up))
@@ -261,23 +260,23 @@ lio_mq_start_locked(if_t ifp, struct lio_instr_queue *iq)
 int
 lio_mq_start(if_t ifp, struct mbuf *m)
 {
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	struct lio_instr_queue	*iq;
-	int	err = 0, i;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_instr_queue *iq;
+	int err = 0, i;
 #ifdef RSS
-	uint32_t	bucket_id;
+	uint32_t bucket_id;
 #endif
 
 	if (M_HASHTYPE_GET(m) != M_HASHTYPE_NONE) {
 #ifdef RSS
 		if (rss_hash2bucket(m->m_pkthdr.flowid, M_HASHTYPE_GET(m),
-				    &bucket_id) == 0) {
+			&bucket_id) == 0) {
 			i = bucket_id % oct->num_iqs;
 			if (bucket_id > oct->num_iqs)
 				lio_dev_dbg(oct,
-					    "bucket_id (%d) > num_iqs (%d)\n",
-					    bucket_id, oct->num_iqs);
+				    "bucket_id (%d) > num_iqs (%d)\n",
+				    bucket_id, oct->num_iqs);
 		} else
 #endif
 			i = m->m_pkthdr.flowid % oct->num_iqs;
@@ -301,11 +300,11 @@ lio_mq_start(if_t ifp, struct mbuf *m)
 void
 lio_qflush(if_t ifp)
 {
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	struct lio_instr_queue	*iq;
-	struct mbuf		*m;
-	int	i;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_instr_queue *iq;
+	struct mbuf *m;
+	int i;
 
 	for (i = 0; i < LIO_MAX_INSTR_QUEUES(oct); i++) {
 		if (!(oct->io_qmask.iq & BIT_ULL(i)))

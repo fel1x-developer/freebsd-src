@@ -31,63 +31,59 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/endian.h>
+#include <sys/gpio.h>
+#include <sys/hash.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
-#include <sys/endian.h>
-#include <sys/hash.h>
-#include <sys/gpio.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
+
 #include <machine/bus.h>
 
-#include <net/if.h>
-#include <net/if_media.h>
+#include <dev/clk/clk.h>
+#include <dev/eqos/if_eqos_var.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
 #include <dev/regulator/regulator.h>
 #include <dev/syscon/syscon.h>
 
-#include <dev/eqos/if_eqos_var.h>
+#include <net/if.h>
+#include <net/if_media.h>
 
-#include "if_eqos_if.h"
-#include "syscon_if.h"
 #include "gpio_if.h"
+#include "if_eqos_if.h"
 #include "rk_otp_if.h"
+#include "syscon_if.h"
 
-#define	RK356XGMAC0	0xfe2a0000
-#define	RK356XGMAC1	0xfe010000
-#define	RK3588GMAC0	0xfe1b0000
-#define	RK3588GMAC1	0xfe1c0000
+#define RK356XGMAC0 0xfe2a0000
+#define RK356XGMAC1 0xfe010000
+#define RK3588GMAC0 0xfe1b0000
+#define RK3588GMAC1 0xfe1c0000
 
-#define	EQOS_GRF_GMAC0				0x0380
-#define	EQOS_GRF_GMAC1				0x0388
-#define	EQOS_CON0_OFFSET			0
-#define	EQOS_CON1_OFFSET			4
+#define EQOS_GRF_GMAC0 0x0380
+#define EQOS_GRF_GMAC1 0x0388
+#define EQOS_CON0_OFFSET 0
+#define EQOS_CON1_OFFSET 4
 
-#define	EQOS_GMAC_PHY_INTF_SEL_RGMII		0x00fc0010
-#define	EQOS_GMAC_PHY_INTF_SEL_RMII		0x00fc0040
-#define	EQOS_GMAC_RXCLK_DLY_ENABLE		0x00020002
-#define	EQOS_GMAC_RXCLK_DLY_DISABLE		0x00020000
-#define	EQOS_GMAC_TXCLK_DLY_ENABLE		0x00010001
-#define	EQOS_GMAC_TXCLK_DLY_DISABLE		0x00010000
-#define	EQOS_GMAC_CLK_RX_DL_CFG(val)		(0x7f000000 | val << 8)
-#define	EQOS_GMAC_CLK_TX_DL_CFG(val)		(0x007f0000 | val)
+#define EQOS_GMAC_PHY_INTF_SEL_RGMII 0x00fc0010
+#define EQOS_GMAC_PHY_INTF_SEL_RMII 0x00fc0040
+#define EQOS_GMAC_RXCLK_DLY_ENABLE 0x00020002
+#define EQOS_GMAC_RXCLK_DLY_DISABLE 0x00020000
+#define EQOS_GMAC_TXCLK_DLY_ENABLE 0x00010001
+#define EQOS_GMAC_TXCLK_DLY_DISABLE 0x00010000
+#define EQOS_GMAC_CLK_RX_DL_CFG(val) (0x7f000000 | val << 8)
+#define EQOS_GMAC_CLK_TX_DL_CFG(val) (0x007f0000 | val)
 
-#define	WR4(sc, o, v)		bus_write_4(sc->res[EQOS_RES_MEM], (o), (v))
+#define WR4(sc, o, v) bus_write_4(sc->res[EQOS_RES_MEM], (o), (v))
 
-static const struct ofw_compat_data compat_data[] = {
-	{"snps,dwmac-4.20a",	1},
-	{ NULL, 0 }
-};
-
+static const struct ofw_compat_data compat_data[] = { { "snps,dwmac-4.20a", 1 },
+	{ NULL, 0 } };
 
 static int
 eqos_phy_reset(device_t dev)
@@ -100,14 +96,13 @@ eqos_phy_reset(device_t dev)
 	uint32_t pin_value;
 
 	node = ofw_bus_get_node(dev);
-	if (OF_getencprop(node, "snps,reset-gpio",
-	    gpio_prop, sizeof(gpio_prop)) <= 0)
+	if (OF_getencprop(node, "snps,reset-gpio", gpio_prop,
+		sizeof(gpio_prop)) <= 0)
 		return (0);
 
-	if (OF_getencprop(node, "snps,reset-delays-us",
-	    delay_prop, sizeof(delay_prop)) <= 0) {
-		device_printf(dev,
-		    "Wrong property for snps,reset-delays-us");
+	if (OF_getencprop(node, "snps,reset-delays-us", delay_prop,
+		sizeof(delay_prop)) <= 0) {
+		device_printf(dev, "Wrong property for snps,reset-delays-us");
 		return (ENXIO);
 	}
 
@@ -118,9 +113,8 @@ eqos_phy_reset(device_t dev)
 		return (ENXIO);
 	}
 
-	if (GPIO_MAP_GPIOS(gpio, node, gpio_node,
-	    nitems(gpio_prop) - 1,
-	    gpio_prop + 1, &pin, &flags) != 0) {
+	if (GPIO_MAP_GPIOS(gpio, node, gpio_node, nitems(gpio_prop) - 1,
+		gpio_prop + 1, &pin, &flags) != 0) {
 		device_printf(dev, "Can't map gpio for phy reset\n");
 		return (ENXIO);
 	}
@@ -161,14 +155,14 @@ eqos_fdt_init(device_t dev)
 
 	/* figure out if gmac0 or gmac1 offset */
 	switch (rman_get_start(sc->res[EQOS_RES_MEM])) {
-	case RK356XGMAC0:	/* RK356X gmac0 */
+	case RK356XGMAC0: /* RK356X gmac0 */
 		sc->grf_offset = EQOS_GRF_GMAC0;
 		break;
-	case RK356XGMAC1:	/* RK356X gmac1 */
+	case RK356XGMAC1: /* RK356X gmac1 */
 		sc->grf_offset = EQOS_GRF_GMAC1;
 		break;
-	case RK3588GMAC0:	/* RK3588 gmac0 */
-	case RK3588GMAC1:	/* RK3588 gmac1 */
+	case RK3588GMAC0: /* RK3588 gmac0 */
+	case RK3588GMAC1: /* RK3588 gmac1 */
 	default:
 		device_printf(dev, "Unknown eqos address\n");
 		return (ENXIO);
@@ -195,10 +189,9 @@ eqos_fdt_init(device_t dev)
 		if (bootverbose) {
 			clk_get_freq(stmmaceth, &freq);
 			device_printf(dev, "MAC clock(%s) freq: %jd\n",
-					clk_get_name(stmmaceth), (intmax_t)freq);
+			    clk_get_name(stmmaceth), (intmax_t)freq);
 		}
-	}
-	else {
+	} else {
 		device_printf(dev, "could not find clock stmmaceth\n");
 	}
 
@@ -239,18 +232,16 @@ eqos_fdt_init(device_t dev)
 
 	SYSCON_WRITE_4(sc->grf, sc->grf_offset + EQOS_CON0_OFFSET,
 	    EQOS_GMAC_CLK_RX_DL_CFG(rx_delay) |
-	    EQOS_GMAC_CLK_TX_DL_CFG(tx_delay));
+		EQOS_GMAC_CLK_TX_DL_CFG(tx_delay));
 	SYSCON_WRITE_4(sc->grf, sc->grf_offset + EQOS_CON1_OFFSET,
-	    EQOS_GMAC_PHY_INTF_SEL_RGMII |
-	    EQOS_GMAC_RXCLK_DLY_ENABLE |
-	    EQOS_GMAC_TXCLK_DLY_ENABLE);
+	    EQOS_GMAC_PHY_INTF_SEL_RGMII | EQOS_GMAC_RXCLK_DLY_ENABLE |
+		EQOS_GMAC_TXCLK_DLY_ENABLE);
 
 	if (!regulator_get_by_ofw_property(dev, 0, "phy-supply",
-	    &eqos_supply)) {
+		&eqos_supply)) {
 		if (regulator_enable(eqos_supply))
 			device_printf(dev, "cannot enable 'phy' regulator\n");
-	}
-	else
+	} else
 		device_printf(dev, "no phy-supply property\n");
 
 	if (eqos_phy_reset(dev))
@@ -281,7 +272,7 @@ eqos_fdt_probe(device_t dev)
 
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
-        if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
+	if (ofw_bus_search_compatible(dev, compat_data)->ocd_data == 0)
 		return (ENXIO);
 
 	device_set_desc(dev, "DesignWare EQOS Gigabit ethernet");
@@ -289,13 +280,12 @@ eqos_fdt_probe(device_t dev)
 	return (BUS_PROBE_DEFAULT);
 }
 
-
 static device_method_t eqos_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		eqos_fdt_probe),
+	DEVMETHOD(device_probe, eqos_fdt_probe),
 
 	/* EQOS interface */
-	DEVMETHOD(if_eqos_init,		eqos_fdt_init),
+	DEVMETHOD(if_eqos_init, eqos_fdt_init),
 
 	DEVMETHOD_END
 };

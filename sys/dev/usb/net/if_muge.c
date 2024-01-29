@@ -59,7 +59,10 @@
  *
  */
 
+#include "opt_platform.h"
+
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/condvar.h>
@@ -76,20 +79,16 @@
 #include <sys/stdint.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/unistd.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
-
-#include "opt_platform.h"
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -101,15 +100,14 @@
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
 #include "usbdevs.h"
 
 #define USB_DEBUG_VAR lan78xx_debug
+#include <dev/usb/net/if_mugereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-
-#include <dev/usb/net/if_mugereg.h>
 
 #include "miibus_if.h"
 
@@ -127,7 +125,10 @@ SYSCTL_INT(_hw_usb_muge, OID_AUTO, debug, CTLFLAG_RWTUN, &muge_debug, 0,
 
 /* Supported Vendor and Product IDs. */
 static const struct usb_device_id lan78xx_devs[] = {
-#define MUGE_DEV(p,i) { USB_VPI(USB_VENDOR_SMC2, USB_PRODUCT_SMC2_##p, i) }
+#define MUGE_DEV(p, i)                                            \
+	{                                                         \
+		USB_VPI(USB_VENDOR_SMC2, USB_PRODUCT_SMC2_##p, i) \
+	}
 	MUGE_DEV(LAN7800_ETH, 0),
 	MUGE_DEV(LAN7801_ETH, 0),
 	MUGE_DEV(LAN7850_ETH, 0),
@@ -135,13 +136,16 @@ static const struct usb_device_id lan78xx_devs[] = {
 };
 
 #ifdef USB_DEBUG
-#define muge_dbg_printf(sc, fmt, args...) \
-do { \
-	if (muge_debug > 0) \
-		device_printf((sc)->sc_ue.ue_dev, "debug: " fmt, ##args); \
-} while(0)
+#define muge_dbg_printf(sc, fmt, args...)                                \
+	do {                                                             \
+		if (muge_debug > 0)                                      \
+			device_printf((sc)->sc_ue.ue_dev, "debug: " fmt, \
+			    ##args);                                     \
+	} while (0)
 #else
-#define muge_dbg_printf(sc, fmt, args...) do { } while (0)
+#define muge_dbg_printf(sc, fmt, args...) \
+	do {                              \
+	} while (0)
 #endif
 
 #define muge_warn_printf(sc, fmt, args...) \
@@ -150,8 +154,7 @@ do { \
 #define muge_err_printf(sc, fmt, args...) \
 	device_printf((sc)->sc_ue.ue_dev, "error: " fmt, ##args)
 
-#define ETHER_IS_VALID(addr) \
-	(!ETHER_IS_MULTICAST(addr) && !ETHER_IS_ZERO(addr))
+#define ETHER_IS_VALID(addr) (!ETHER_IS_MULTICAST(addr) && !ETHER_IS_ZERO(addr))
 
 /* USB endpoints. */
 
@@ -166,32 +169,32 @@ enum {
 };
 
 struct muge_softc {
-	struct usb_ether	sc_ue;
-	struct mtx		sc_mtx;
-	struct usb_xfer		*sc_xfer[MUGE_N_TRANSFER];
-	int			sc_phyno;
-	uint32_t		sc_leds;
-	uint16_t		sc_led_modes;
-	uint16_t		sc_led_modes_mask;
+	struct usb_ether sc_ue;
+	struct mtx sc_mtx;
+	struct usb_xfer *sc_xfer[MUGE_N_TRANSFER];
+	int sc_phyno;
+	uint32_t sc_leds;
+	uint16_t sc_led_modes;
+	uint16_t sc_led_modes_mask;
 
 	/* Settings for the mac control (MAC_CSR) register. */
-	uint32_t		sc_rfe_ctl;
-	uint32_t		sc_mdix_ctl;
-	uint16_t		chipid;
-	uint16_t		chiprev;
-	uint32_t		sc_mchash_table[ETH_DP_SEL_VHF_HASH_LEN];
-	uint32_t		sc_pfilter_table[MUGE_NUM_PFILTER_ADDRS_][2];
+	uint32_t sc_rfe_ctl;
+	uint32_t sc_mdix_ctl;
+	uint16_t chipid;
+	uint16_t chiprev;
+	uint32_t sc_mchash_table[ETH_DP_SEL_VHF_HASH_LEN];
+	uint32_t sc_pfilter_table[MUGE_NUM_PFILTER_ADDRS_][2];
 
-	uint32_t		sc_flags;
-#define	MUGE_FLAG_LINK		0x0001
-#define	MUGE_FLAG_INIT_DONE	0x0002
+	uint32_t sc_flags;
+#define MUGE_FLAG_LINK 0x0001
+#define MUGE_FLAG_INIT_DONE 0x0002
 };
 
-#define MUGE_IFACE_IDX		0
+#define MUGE_IFACE_IDX 0
 
-#define MUGE_LOCK(_sc)			mtx_lock(&(_sc)->sc_mtx)
-#define MUGE_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define MUGE_LOCK_ASSERT(_sc, t)	mtx_assert(&(_sc)->sc_mtx, t)
+#define MUGE_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define MUGE_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define MUGE_LOCK_ASSERT(_sc, t) mtx_assert(&(_sc)->sc_mtx, t)
 
 static device_probe_t muge_probe;
 static device_attach_t muge_attach;
@@ -580,8 +583,8 @@ lan78xx_setmacaddress(struct muge_softc *sc, const uint8_t *addr)
 	uint32_t val;
 
 	muge_dbg_printf(sc,
-	    "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n",
-	    addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+	    "setting mac address to %02x:%02x:%02x:%02x:%02x:%02x\n", addr[0],
+	    addr[1], addr[2], addr[3], addr[4], addr[5]);
 
 	MUGE_LOCK_ASSERT(sc, MA_OWNED);
 
@@ -669,8 +672,8 @@ lan78xx_miibus_readreg(device_t dev, int phy, int reg)
 		goto done;
 	}
 
-	addr = (phy << 11) | (reg << 6) |
-	    ETH_MII_ACC_MII_READ_ | ETH_MII_ACC_MII_BUSY_;
+	addr = (phy << 11) | (reg << 6) | ETH_MII_ACC_MII_READ_ |
+	    ETH_MII_ACC_MII_BUSY_;
 	lan78xx_write_reg(sc, ETH_MII_ACC, addr);
 
 	if (lan78xx_wait_for_bits(sc, ETH_MII_ACC, ETH_MII_ACC_MII_BUSY_) !=
@@ -727,8 +730,8 @@ lan78xx_miibus_writereg(device_t dev, int phy, int reg, int val)
 	val = htole32(val);
 	lan78xx_write_reg(sc, ETH_MII_DATA, val);
 
-	addr = (phy << 11) | (reg << 6) |
-	    ETH_MII_ACC_MII_WRITE_ | ETH_MII_ACC_MII_BUSY_;
+	addr = (phy << 11) | (reg << 6) | ETH_MII_ACC_MII_WRITE_ |
+	    ETH_MII_ACC_MII_BUSY_;
 	lan78xx_write_reg(sc, ETH_MII_ACC, addr);
 
 	if (lan78xx_wait_for_bits(sc, ETH_MII_ACC, ETH_MII_ACC_MII_BUSY_) != 0)
@@ -798,7 +801,7 @@ lan78xx_miibus_statchg(device_t dev)
 	err = lan78xx_read_reg(sc, ETH_FCT_FLOW, &fct_flow);
 	if (err) {
 		muge_warn_printf(sc,
-		   "failed to read initial flow control thresholds, error %d\n",
+		    "failed to read initial flow control thresholds, error %d\n",
 		    err);
 		goto done;
 	}
@@ -816,7 +819,7 @@ lan78xx_miibus_statchg(device_t dev)
 	}
 
 	/* XXX Flow control settings obtained from Microchip's driver. */
-	switch(usbd_get_speed(sc->sc_ue.ue_udev)) {
+	switch (usbd_get_speed(sc->sc_ue.ue_udev)) {
 	case USB_SPEED_SUPER:
 		fct_flow = 0x817;
 		break;
@@ -924,8 +927,8 @@ lan78xx_phy_init(struct muge_softc *sc)
 
 	/* Enable all modes. */
 	lan78xx_miibus_writereg(sc->sc_ue.ue_dev, sc->sc_phyno, MII_ANAR,
-	    ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD |
-	    ANAR_CSMA | ANAR_FC | ANAR_PAUSE_ASYM);
+	    ANAR_10 | ANAR_10_FD | ANAR_TX | ANAR_TX_FD | ANAR_CSMA | ANAR_FC |
+		ANAR_PAUSE_ASYM);
 
 	/* Restart auto-negotiation. */
 	bmcr |= BMCR_STARTNEG;
@@ -947,7 +950,7 @@ lan78xx_phy_init(struct muge_softc *sc)
 	if (sc->sc_leds != 0 &&
 	    lan78xx_read_reg(sc, ETH_HW_CFG, &hw_reg) == 0) {
 		hw_reg &= ~(ETH_HW_CFG_LEDO_EN_ | ETH_HW_CFG_LED1_EN_ |
-			    ETH_HW_CFG_LED2_EN_ | ETH_HW_CFG_LED3_EN_ );
+		    ETH_HW_CFG_LED2_EN_ | ETH_HW_CFG_LED3_EN_);
 		hw_reg |= sc->sc_leds;
 		lan78xx_write_reg(sc, ETH_HW_CFG, hw_reg);
 	}
@@ -1011,7 +1014,8 @@ lan78xx_chip_init(struct muge_softc *sc)
 
 	/* Respond to BULK-IN tokens with a NAK when RX FIFO is empty. */
 	if ((err = lan78xx_read_reg(sc, ETH_USB_CFG0, &buf)) != 0) {
-		muge_warn_printf(sc, "failed to read ETH_USB_CFG0 (err=%d)\n", err);
+		muge_warn_printf(sc, "failed to read ETH_USB_CFG0 (err=%d)\n",
+		    err);
 		goto init_failed;
 	}
 	buf |= ETH_USB_CFG_BIR_;
@@ -1024,13 +1028,13 @@ lan78xx_chip_init(struct muge_softc *sc)
 	/* Configuring the burst cap. */
 	switch (usbd_get_speed(sc->sc_ue.ue_udev)) {
 	case USB_SPEED_SUPER:
-		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE/MUGE_SS_USB_PKT_SIZE;
+		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE / MUGE_SS_USB_PKT_SIZE;
 		break;
 	case USB_SPEED_HIGH:
-		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE/MUGE_HS_USB_PKT_SIZE;
+		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE / MUGE_HS_USB_PKT_SIZE;
 		break;
 	default:
-		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE/MUGE_FS_USB_PKT_SIZE;
+		burst_cap = MUGE_DEFAULT_BURST_CAP_SIZE / MUGE_FS_USB_PKT_SIZE;
 	}
 
 	lan78xx_write_reg(sc, ETH_BURST_CAP, burst_cap);
@@ -1091,7 +1095,7 @@ lan78xx_chip_init(struct muge_softc *sc)
 	/* Reset the PHY. */
 	lan78xx_write_reg(sc, ETH_PMT_CTL, ETH_PMT_CTL_PHY_RST_);
 	if ((err = lan78xx_wait_for_bits(sc, ETH_PMT_CTL,
-	    ETH_PMT_CTL_PHY_RST_)) != 0) {
+		 ETH_PMT_CTL_PHY_RST_)) != 0) {
 		muge_warn_printf(sc,
 		    "timed-out waiting for phy reset to complete\n");
 		goto init_failed;
@@ -1225,8 +1229,8 @@ muge_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 			    rx_cmd_a, rx_cmd_b, rx_cmd_c, pktlen, actlen, off);
 
 			if (rx_cmd_a & RX_CMD_A_RED_) {
-				muge_dbg_printf(sc,
-				     "rx error (hdr 0x%08x)\n", rx_cmd_a);
+				muge_dbg_printf(sc, "rx error (hdr 0x%08x)\n",
+				    rx_cmd_a);
 				if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
 			} else {
 				/* Ethernet frame too big or too small? */
@@ -1247,7 +1251,8 @@ muge_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 					muge_dbg_printf(sc,
 					    "buffer too small %d vs %d bytes",
 					    pktlen, m->m_len);
-					if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
+					if_inc_counter(ifp, IFCOUNTER_IQDROPS,
+					    1);
 					m_freem(m);
 					goto tr_setup;
 				}
@@ -1298,8 +1303,8 @@ muge_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 						 * in the kernel expects it to
 						 * be in host network order.
 						 */
-						m->m_pkthdr.csum_data =
-						    ntohs(0xffff);
+						m->m_pkthdr.csum_data = ntohs(
+						    0xffff);
 
 						muge_dbg_printf(sc,
 						    "RX checksum offloaded (0x%04x)\n",
@@ -1324,7 +1329,7 @@ muge_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
@@ -1367,7 +1372,7 @@ muge_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
 		muge_dbg_printf(sc, "USB TRANSFER status: USB_ST_SETUP\n");
-tr_setup:
+	tr_setup:
 		if ((sc->sc_flags & MUGE_FLAG_LINK) == 0 ||
 		    (if_getdrvflags(ifp) & IFF_DRV_OACTIVE) != 0) {
 			muge_dbg_printf(sc,
@@ -1384,14 +1389,13 @@ tr_setup:
 			 */
 			return;
 		}
-		for (nframes = 0;
-		     nframes < 16 && !if_sendq_empty(ifp);
+		for (nframes = 0; nframes < 16 && !if_sendq_empty(ifp);
 		     nframes++) {
 			m = if_dequeue(ifp);
 			if (m == NULL)
 				break;
 			usbd_xfer_set_frame_offset(xfer, nframes * MCLBYTES,
-				nframes);
+			    nframes);
 			frm_len = 0;
 			pc = usbd_xfer_get_frame(xfer, nframes);
 
@@ -1400,7 +1404,7 @@ tr_setup:
 			 * describing the length of the packet and buffer.
 			 */
 			tx_cmd_a = (m->m_pkthdr.len & TX_CMD_A_LEN_MASK_) |
-			     TX_CMD_A_FCS_;
+			    TX_CMD_A_FCS_;
 			tx_cmd_a = htole32(tx_cmd_a);
 			usbd_copy_in(pc, 0, &tx_cmd_a, sizeof(tx_cmd_a));
 
@@ -1443,8 +1447,8 @@ tr_setup:
 		if_setdrvflagbits(ifp, 0, IFF_DRV_OACTIVE);
 
 		if (error != USB_ERR_CANCELLED) {
-			muge_err_printf(sc,
-			    "usb error on tx: %s\n", usbd_errstr(error));
+			muge_err_printf(sc, "usb error on tx: %s\n",
+			    usbd_errstr(error));
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
 		}
@@ -1488,12 +1492,14 @@ muge_set_mac_addr(struct usb_ether *ue)
 	 */
 	if (ETHER_IS_VALID(ue->ue_eaddr)) {
 		muge_dbg_printf(sc, "MAC assigned from registers\n");
-	} else if (lan78xx_eeprom_present(sc) && lan78xx_eeprom_read_raw(sc,
-	    ETH_E2P_MAC_OFFSET, ue->ue_eaddr, ETHER_ADDR_LEN) == 0 &&
+	} else if (lan78xx_eeprom_present(sc) &&
+	    lan78xx_eeprom_read_raw(sc, ETH_E2P_MAC_OFFSET, ue->ue_eaddr,
+		ETHER_ADDR_LEN) == 0 &&
 	    ETHER_IS_VALID(ue->ue_eaddr)) {
 		muge_dbg_printf(sc, "MAC assigned from EEPROM\n");
 	} else if (lan78xx_otp_read(sc, OTP_MAC_OFFSET, ue->ue_eaddr,
-	    ETHER_ADDR_LEN) == 0 && ETHER_IS_VALID(ue->ue_eaddr)) {
+		       ETHER_ADDR_LEN) == 0 &&
+	    ETHER_IS_VALID(ue->ue_eaddr)) {
 		muge_dbg_printf(sc, "MAC assigned from OTP\n");
 	}
 
@@ -1508,8 +1514,8 @@ muge_set_mac_addr(struct usb_ether *ue)
 	if (!ETHER_IS_VALID(ue->ue_eaddr)) {
 		muge_dbg_printf(sc, "MAC assigned randomly\n");
 		arc4rand(ue->ue_eaddr, ETHER_ADDR_LEN, 0);
-		ue->ue_eaddr[0] &= ~0x01;	/* unicast */
-		ue->ue_eaddr[0] |= 0x02;	/* locally administered */
+		ue->ue_eaddr[0] &= ~0x01; /* unicast */
+		ue->ue_eaddr[0] |= 0x02;  /* locally administered */
 	}
 }
 
@@ -1526,18 +1532,18 @@ muge_set_leds(struct usb_ether *ue)
 #ifdef FDT
 	struct muge_softc *sc = uether_getsc(ue);
 	phandle_t node;
-	pcell_t modes[4];	/* 4 LEDs are possible */
+	pcell_t modes[4]; /* 4 LEDs are possible */
 	ssize_t proplen;
 	uint32_t count;
 
 	if ((node = usb_fdt_get_node(ue->ue_dev, ue->ue_udev)) != -1 &&
 	    (proplen = OF_getencprop(node, "microchip,led-modes", modes,
-	    sizeof(modes))) > 0) {
-		count = proplen / sizeof( uint32_t );
+		 sizeof(modes))) > 0) {
+		count = proplen / sizeof(uint32_t);
 		sc->sc_leds = (count > 0) * ETH_HW_CFG_LEDO_EN_ |
-			      (count > 1) * ETH_HW_CFG_LED1_EN_ |
-			      (count > 2) * ETH_HW_CFG_LED2_EN_ |
-			      (count > 3) * ETH_HW_CFG_LED3_EN_;
+		    (count > 1) * ETH_HW_CFG_LED1_EN_ |
+		    (count > 2) * ETH_HW_CFG_LED2_EN_ |
+		    (count > 3) * ETH_HW_CFG_LED3_EN_;
 		while (count-- > 0) {
 			sc->sc_led_modes |= (modes[count] & 0xf) << (4 * count);
 			sc->sc_led_modes_mask |= 0xf << (4 * count);
@@ -1964,10 +1970,10 @@ muge_sethwcsum(struct muge_softc *sc)
 		sc->sc_rfe_ctl |= ETH_RFE_CTL_IGMP_COE_ | ETH_RFE_CTL_ICMP_COE_;
 		sc->sc_rfe_ctl |= ETH_RFE_CTL_TCPUDP_COE_ | ETH_RFE_CTL_IP_COE_;
 	} else {
-		sc->sc_rfe_ctl &=
-		    ~(ETH_RFE_CTL_IGMP_COE_ | ETH_RFE_CTL_ICMP_COE_);
-		sc->sc_rfe_ctl &=
-		     ~(ETH_RFE_CTL_TCPUDP_COE_ | ETH_RFE_CTL_IP_COE_);
+		sc->sc_rfe_ctl &= ~(
+		    ETH_RFE_CTL_IGMP_COE_ | ETH_RFE_CTL_ICMP_COE_);
+		sc->sc_rfe_ctl &= ~(
+		    ETH_RFE_CTL_TCPUDP_COE_ | ETH_RFE_CTL_IP_COE_);
 	}
 
 	sc->sc_rfe_ctl &= ~ETH_RFE_CTL_VLAN_FILTER_;
@@ -2007,7 +2013,7 @@ muge_ifmedia_upd(if_t ifp)
 
 	MUGE_LOCK_ASSERT(sc, MA_OWNED);
 
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	err = mii_mediachg(mii);
 	return (err);

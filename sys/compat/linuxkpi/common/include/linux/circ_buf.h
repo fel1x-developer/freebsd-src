@@ -25,10 +25,9 @@
  */
 
 #ifndef _LINUXKPI_LINUX_CIRC_BUF_H_
-#define	_LINUXKPI_LINUX_CIRC_BUF_H_
+#define _LINUXKPI_LINUX_CIRC_BUF_H_
 
-#define CIRC_CNT(head,tail,size)	(((head) - (tail)) & ((size) - 1))
-#define CIRC_SPACE(head,tail,size)	CIRC_CNT((tail),((head) + 1),(size))
+#define CIRC_CNT(head, tail, size) (((head) - (tail)) & ((size)-1))
+#define CIRC_SPACE(head, tail, size) CIRC_CNT((tail), ((head) + 1), (size))
 
-#endif	/* _LINUXKPI_LINUX_CIRC_BUF_H_ */
-
+#endif /* _LINUXKPI_LINUX_CIRC_BUF_H_ */

@@ -26,15 +26,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/systm.h>
+
 #include <dev/pci/pcivar.h>
 
 #ifdef PCI_IOV
-#include <sys/nv.h>
 #include <sys/iov_schema.h>
+#include <sys/nv.h>
+
 #include <dev/pci/pci_iov.h>
 #endif
 
@@ -124,7 +126,7 @@ t4iov_read_reg(struct t4iov_softc *sc, uint32_t reg)
 	return bus_space_read_4(sc->bt, sc->bh, reg);
 }
 
-static int	t4iov_attach_child(device_t dev);
+static int t4iov_attach_child(device_t dev);
 
 static int
 t4iov_probe(device_t dev)
@@ -345,15 +347,16 @@ t4iov_add_vf(device_t dev, uint16_t vfnum, const struct nvlist *config)
 		MPASS(sc->sc_main != NULL);
 		adap = device_get_softc(sc->sc_main);
 		if (begin_synchronized_op(adap, NULL, SLEEP_OK | INTR_OK,
-		    "t4vfma") != 0)
+			"t4vfma") != 0)
 			return (ENXIO);
 		rc = -t4_set_vf_mac(adap, sc->pf, vfnum + 1, 1, ma);
 		end_synchronized_op(adap, 0);
 		if (rc != 0) {
 			device_printf(dev,
 			    "Failed to set VF%d MAC address to "
-			    "%02x:%02x:%02x:%02x:%02x:%02x, rc = %d\n", vfnum,
-			    ma[0], ma[1], ma[2], ma[3], ma[4], ma[5], rc);
+			    "%02x:%02x:%02x:%02x:%02x:%02x, rc = %d\n",
+			    vfnum, ma[0], ma[1], ma[2], ma[3], ma[4], ma[5],
+			    rc);
 			return (rc);
 		}
 	}
@@ -362,74 +365,59 @@ t4iov_add_vf(device_t dev, uint16_t vfnum, const struct nvlist *config)
 }
 #endif
 
-static device_method_t t4iov_methods[] = {
-	DEVMETHOD(device_probe,		t4iov_probe),
-	DEVMETHOD(device_attach,	t4iov_attach),
-	DEVMETHOD(device_detach,	t4iov_detach),
+static device_method_t t4iov_methods[] = { DEVMETHOD(device_probe, t4iov_probe),
+	DEVMETHOD(device_attach, t4iov_attach),
+	DEVMETHOD(device_detach, t4iov_detach),
 
 #ifdef PCI_IOV
-	DEVMETHOD(pci_iov_init,		t4iov_iov_init),
-	DEVMETHOD(pci_iov_uninit,	t4iov_iov_uninit),
-	DEVMETHOD(pci_iov_add_vf,	t4iov_add_vf),
+	DEVMETHOD(pci_iov_init, t4iov_iov_init),
+	DEVMETHOD(pci_iov_uninit, t4iov_iov_uninit),
+	DEVMETHOD(pci_iov_add_vf, t4iov_add_vf),
 #endif
 
-	DEVMETHOD(t4_attach_child,	t4iov_attach_child),
-	DEVMETHOD(t4_detach_child,	t4iov_detach_child),
+	DEVMETHOD(t4_attach_child, t4iov_attach_child),
+	DEVMETHOD(t4_detach_child, t4iov_detach_child),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t4iov_driver = {
-	"t4iov",
-	t4iov_methods,
-	sizeof(struct t4iov_softc)
-};
+static driver_t t4iov_driver = { "t4iov", t4iov_methods,
+	sizeof(struct t4iov_softc) };
 
-static device_method_t t5iov_methods[] = {
-	DEVMETHOD(device_probe,		t5iov_probe),
-	DEVMETHOD(device_attach,	t4iov_attach),
-	DEVMETHOD(device_detach,	t4iov_detach),
+static device_method_t t5iov_methods[] = { DEVMETHOD(device_probe, t5iov_probe),
+	DEVMETHOD(device_attach, t4iov_attach),
+	DEVMETHOD(device_detach, t4iov_detach),
 
 #ifdef PCI_IOV
-	DEVMETHOD(pci_iov_init,		t4iov_iov_init),
-	DEVMETHOD(pci_iov_uninit,	t4iov_iov_uninit),
-	DEVMETHOD(pci_iov_add_vf,	t4iov_add_vf),
+	DEVMETHOD(pci_iov_init, t4iov_iov_init),
+	DEVMETHOD(pci_iov_uninit, t4iov_iov_uninit),
+	DEVMETHOD(pci_iov_add_vf, t4iov_add_vf),
 #endif
 
-	DEVMETHOD(t4_attach_child,	t4iov_attach_child),
-	DEVMETHOD(t4_detach_child,	t4iov_detach_child),
+	DEVMETHOD(t4_attach_child, t4iov_attach_child),
+	DEVMETHOD(t4_detach_child, t4iov_detach_child),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t5iov_driver = {
-	"t5iov",
-	t5iov_methods,
-	sizeof(struct t4iov_softc)
-};
+static driver_t t5iov_driver = { "t5iov", t5iov_methods,
+	sizeof(struct t4iov_softc) };
 
-static device_method_t t6iov_methods[] = {
-	DEVMETHOD(device_probe,		t6iov_probe),
-	DEVMETHOD(device_attach,	t4iov_attach),
-	DEVMETHOD(device_detach,	t4iov_detach),
+static device_method_t t6iov_methods[] = { DEVMETHOD(device_probe, t6iov_probe),
+	DEVMETHOD(device_attach, t4iov_attach),
+	DEVMETHOD(device_detach, t4iov_detach),
 
 #ifdef PCI_IOV
-	DEVMETHOD(pci_iov_init,		t4iov_iov_init),
-	DEVMETHOD(pci_iov_uninit,	t4iov_iov_uninit),
-	DEVMETHOD(pci_iov_add_vf,	t4iov_add_vf),
+	DEVMETHOD(pci_iov_init, t4iov_iov_init),
+	DEVMETHOD(pci_iov_uninit, t4iov_iov_uninit),
+	DEVMETHOD(pci_iov_add_vf, t4iov_add_vf),
 #endif
 
-	DEVMETHOD(t4_attach_child,	t4iov_attach_child),
-	DEVMETHOD(t4_detach_child,	t4iov_detach_child),
+	DEVMETHOD(t4_attach_child, t4iov_attach_child),
+	DEVMETHOD(t4_detach_child, t4iov_detach_child),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t t6iov_driver = {
-	"t6iov",
-	t6iov_methods,
-	sizeof(struct t4iov_softc)
-};
+static driver_t t6iov_driver = { "t6iov", t6iov_methods,
+	sizeof(struct t4iov_softc) };
 
 DRIVER_MODULE(t4iov, pci, t4iov_driver, 0, 0);
 MODULE_VERSION(t4iov, 1);

@@ -35,23 +35,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_cfi.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/cfictl.h>
 #include <sys/conf.h>
 #include <sys/ioccom.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/malloc.h>   
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 #include <sys/uio.h>
-
-#include <sys/cfictl.h>
 
 #include <machine/atomic.h>
 #include <machine/bus.h>
@@ -65,14 +64,14 @@ static d_write_t cfi_devwrite;
 static d_ioctl_t cfi_devioctl;
 
 struct cdevsw cfi_cdevsw = {
-	.d_version	=	D_VERSION,
-	.d_flags	=	0,
-	.d_name		=	cfi_driver_name,
-	.d_open		=	cfi_devopen,
-	.d_close	=	cfi_devclose,
-	.d_read		=	cfi_devread,
-	.d_write	=	cfi_devwrite,
-	.d_ioctl	=	cfi_devioctl,
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_name = cfi_driver_name,
+	.d_open = cfi_devopen,
+	.d_close = cfi_devclose,
+	.d_read = cfi_devread,
+	.d_write = cfi_devwrite,
+	.d_ioctl = cfi_devioctl,
 };
 
 /*
@@ -86,9 +85,9 @@ int
 cfi_block_start(struct cfi_softc *sc, u_int ofs)
 {
 	union {
-		uint8_t		*x8;
-		uint16_t	*x16;
-		uint32_t	*x32;
+		uint8_t *x8;
+		uint16_t *x16;
+		uint32_t *x32;
 	} ptr;
 	u_int rofs, rsz;
 	uint32_t val;
@@ -156,8 +155,8 @@ cfi_devopen(struct cdev *dev, int oflags, int devtype, struct thread *td)
 
 	sc = dev->si_drv1;
 	/* We allow only 1 open. */
-	if (!atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_opened,
-	    (uintptr_t)NULL, (uintptr_t)td->td_proc))
+	if (!atomic_cmpset_acq_ptr((uintptr_t *)&sc->sc_opened, (uintptr_t)NULL,
+		(uintptr_t)td->td_proc))
 		return (EBUSY);
 	return (0);
 }
@@ -182,9 +181,9 @@ static int
 cfi_devread(struct cdev *dev, struct uio *uio, int ioflag)
 {
 	union {
-		uint8_t		x8[4];
-		uint16_t	x16[2];
-		uint32_t	x32[1];
+		uint8_t x8[4];
+		uint16_t x16[2];
+		uint32_t x32[1];
 	} buf;
 	struct cfi_softc *sc;
 	u_int ofs;
@@ -197,8 +196,8 @@ cfi_devread(struct cdev *dev, struct uio *uio, int ioflag)
 	if (!error)
 		error = (uio->uio_offset > sc->sc_size) ? EIO : 0;
 
-	while (error == 0 && uio->uio_resid > 0 &&
-	    uio->uio_offset < sc->sc_size) {
+	while (
+	    error == 0 && uio->uio_resid > 0 && uio->uio_offset < sc->sc_size) {
 		ofs = uio->uio_offset;
 		val = cfi_read_raw(sc, ofs);
 		switch (sc->sc_width) {
@@ -229,8 +228,8 @@ cfi_devwrite(struct cdev *dev, struct uio *uio, int ioflag)
 	sc = dev->si_drv1;
 
 	error = (uio->uio_offset > sc->sc_size) ? EIO : 0;
-	while (error == 0 && uio->uio_resid > 0 &&
-	    uio->uio_offset < sc->sc_size) {
+	while (
+	    error == 0 && uio->uio_resid > 0 && uio->uio_offset < sc->sc_size) {
 		ofs = uio->uio_offset;
 
 		/*

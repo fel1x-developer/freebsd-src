@@ -26,30 +26,30 @@
  */
 
 struct uc_cfg {
-	int	sock_type;
+	int sock_type;
 	const char *sock_type_str;
-	bool	debug;
+	bool debug;
 	const char *proc_name;
-	int	sync_fd[2][2];
-	int	serv_sock_fd;
-	bool	server_flag;
-	bool	send_data_flag;
+	int sync_fd[2][2];
+	int serv_sock_fd;
+	bool server_flag;
+	bool send_data_flag;
 	struct sockaddr_un serv_addr_sun;
-	bool	send_array_flag;
-	pid_t	client_pid;
+	bool send_array_flag;
+	pid_t client_pid;
 	struct {
-		char	*buf_send;
-		char	*buf_recv;
-		size_t	buf_size;
-		u_int	msg_num;
+		char *buf_send;
+		char *buf_recv;
+		size_t buf_size;
+		u_int msg_num;
 	} ipc_msg;
 	struct {
-		uid_t	uid;
-		uid_t	euid;
-		gid_t	gid;
-		gid_t	egid;
-		gid_t	*gid_arr;
-		int	gid_num;
+		uid_t uid;
+		uid_t euid;
+		gid_t gid;
+		gid_t egid;
+		gid_t *gid_arr;
+		int gid_num;
 	} proc_cred;
 };
 

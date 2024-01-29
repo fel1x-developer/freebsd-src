@@ -38,11 +38,10 @@
 /* Prototypes */
 extern void _ctx_start(ucontext_t *, int argc, ...);
 
-
 __weak_reference(__makecontext, makecontext);
 
 void
-_ctx_done (ucontext_t *ucp)
+_ctx_done(ucontext_t *ucp)
 {
 	if (ucp->uc_link == NULL)
 		exit(0);
@@ -57,17 +56,17 @@ _ctx_done (ucontext_t *ucp)
 		/* Set context to next one in link */
 		/* XXX - what to do for error, abort? */
 		setcontext((const ucontext_t *)ucp->uc_link);
-		abort();	/* should never get here */
+		abort(); /* should never get here */
 	}
 }
 
 void
 __makecontext(ucontext_t *ucp, void (*start)(void), int argc, ...)
 {
-	va_list		ap;
-	char		*stack_top;
-	intptr_t	*argp;
-	int		i;
+	va_list ap;
+	char *stack_top;
+	intptr_t *argp;
+	int i;
 
 	if (ucp == NULL)
 		return;
@@ -129,7 +128,7 @@ __makecontext(ucontext_t *ucp, void (*start)(void), int argc, ...)
 		 * the stack because setcontext will move eip to the top
 		 * of the stack before returning.
 		 */
-		*argp = (intptr_t)_ctx_start;  /* overwritten with same value */
+		*argp = (intptr_t)_ctx_start; /* overwritten with same value */
 		argp++;
 		*argp = (intptr_t)start;
 		argp++;

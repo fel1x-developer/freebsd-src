@@ -44,10 +44,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static	int failed;
-static	int test_num = 1;
+static int failed;
+static int test_num = 1;
 
-#define	TEST_COUNT	7
+#define TEST_COUNT 7
 
 static void
 fail(const char *fmt, ...)
@@ -91,8 +91,8 @@ snprintf__two_formatters(void)
 {
 	char buffer[128];
 
-	if (snprintf(buffer, sizeof(buffer), "%s, %s!", "Hello",
-	    "tests") <= 0) {
+	if (snprintf(buffer, sizeof(buffer), "%s, %s!", "Hello", "tests") <=
+	    0) {
 		fail("snprintf with two formatters failed");
 		skip(1);
 	} else {
@@ -111,7 +111,7 @@ snprintf__overflow(void)
 
 	if (snprintf(buffer, sizeof(buffer), "0123456789abcdef") != 16) {
 		fail("snprintf did not return the expected "
-		    "number of characters");
+		     "number of characters");
 		skip(1);
 		return;
 	}

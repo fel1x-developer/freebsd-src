@@ -33,26 +33,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 ***************************************************************************/
 #include <sys/cdefs.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-#include <errno.h>
-#include <inttypes.h>
 #include <sys/param.h>
-#include <sys/time.h>
+#include <sys/endian.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/time.h>
 
 #include <net/if.h>
 #include <net/if_types.h>
-#include <sys/endian.h>
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define NMTUS 16
 #define TCB_SIZE 128
@@ -63,22 +63,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #define PROTO_SRAM_SIZE (PROTO_SRAM_LINE_NIBBLES * PROTO_SRAM_LINES / 2)
 #define PROTO_SRAM_EEPROM_ADDR 4096
 
-#include <cxgb_ioctl.h>
 #include <common/cxgb_regs.h>
+#include <cxgb_ioctl.h>
+
 #include "version.h"
 
-struct reg_info { 
-        const char *name; 
-        uint16_t addr; 
-        uint16_t len; 
-}; 
- 
+struct reg_info {
+	const char *name;
+	uint16_t addr;
+	uint16_t len;
+};
 
 #include "reg_defs.c"
 #if defined(CONFIG_T3_REGS)
-# include "reg_defs_t3.c"
-# include "reg_defs_t3b.c"
-# include "reg_defs_t3c.c"
+#include "reg_defs_t3.c"
+#include "reg_defs_t3b.c"
+#include "reg_defs_t3c.c"
 #endif
 
 static const char *progname;
@@ -88,37 +88,36 @@ usage(FILE *fp)
 {
 	fprintf(fp, "Usage: %s <interface> [operation]\n", progname);
 	fprintf(fp,
-	    	"\tclearstats                          clear MAC statistics\n"
-		"\tcontext <type> <id>                 show an SGE context\n"
-		"\tdesc <qset> <queue> <idx> [<cnt>]   dump SGE descriptors\n"
-		"\tfilter <idx> [<param> <val>] ...    set a filter\n"
-		"\tfilter <idx> delete|clear           delete a filter\n"
-		"\tfilter list                         list all filters\n"
-		"\tioqs                                dump uP IOQs\n"
-		"\tla                                  dump uP logic analyzer info\n"
-		"\tloadboot <boot image>               download boot image\n"
-		"\tloadfw <FW image>                   download firmware\n"
-		"\tmdio <phy_addr> <mmd_addr>\n"
-	        "\t     <reg_addr> [<val>]             read/write MDIO register\n"
-		"\tmemdump cm|tx|rx <addr> <len>       dump a mem range\n"
-		"\tmeminfo                             show memory info\n"
-		"\tmtus [<mtu0>...<mtuN>]              read/write MTU table\n"
-		"\tpktsched port <idx> <min> <max>     set TX port scheduler params\n"
-		"\tpktsched tunnelq <idx> <max>\n"
-		"\t         <binding>                  set TX tunnelq scheduler params\n"
-		"\tpktsched tx <idx>\n"
-	        "\t         [<param> <val>] ...        set Tx HW scheduler\n"
-		"\tpm [<TX page spec> <RX page spec>]  read/write PM config\n"
-		"\tproto                               read proto SRAM\n"
-		"\tqset                                read qset parameters\n"
-		"\tqsets                               read # of qsets\n"
-		"\treg <address>[=<val>]               read/write register\n"
-		"\tregdump [<module>]                  dump registers\n"
-		"\ttcamdump <address> <count>          show TCAM contents\n"
-		"\ttcb <index>                         read TCB\n"
-		"\ttrace tx|rx|all on|off [not]\n"
-	        "\t      [<param> <val>[:<mask>]] ...  write trace parameters\n"
-		);
+	    "\tclearstats                          clear MAC statistics\n"
+	    "\tcontext <type> <id>                 show an SGE context\n"
+	    "\tdesc <qset> <queue> <idx> [<cnt>]   dump SGE descriptors\n"
+	    "\tfilter <idx> [<param> <val>] ...    set a filter\n"
+	    "\tfilter <idx> delete|clear           delete a filter\n"
+	    "\tfilter list                         list all filters\n"
+	    "\tioqs                                dump uP IOQs\n"
+	    "\tla                                  dump uP logic analyzer info\n"
+	    "\tloadboot <boot image>               download boot image\n"
+	    "\tloadfw <FW image>                   download firmware\n"
+	    "\tmdio <phy_addr> <mmd_addr>\n"
+	    "\t     <reg_addr> [<val>]             read/write MDIO register\n"
+	    "\tmemdump cm|tx|rx <addr> <len>       dump a mem range\n"
+	    "\tmeminfo                             show memory info\n"
+	    "\tmtus [<mtu0>...<mtuN>]              read/write MTU table\n"
+	    "\tpktsched port <idx> <min> <max>     set TX port scheduler params\n"
+	    "\tpktsched tunnelq <idx> <max>\n"
+	    "\t         <binding>                  set TX tunnelq scheduler params\n"
+	    "\tpktsched tx <idx>\n"
+	    "\t         [<param> <val>] ...        set Tx HW scheduler\n"
+	    "\tpm [<TX page spec> <RX page spec>]  read/write PM config\n"
+	    "\tproto                               read proto SRAM\n"
+	    "\tqset                                read qset parameters\n"
+	    "\tqsets                               read # of qsets\n"
+	    "\treg <address>[=<val>]               read/write register\n"
+	    "\tregdump [<module>]                  dump registers\n"
+	    "\ttcamdump <address> <count>          show TCAM contents\n"
+	    "\ttcb <index>                         read TCB\n"
+	    "\ttrace tx|rx|all on|off [not]\n"
+	    "\t      [<param> <val>[:<mask>]] ...  write trace parameters\n");
 	exit(fp == stderr ? 1 : 0);
 }
 
@@ -126,7 +125,7 @@ static int
 doit(const char *iff_name, unsigned long cmd, void *data)
 {
 	static int fd = 0;
-	
+
 	if (fd == 0) {
 		char buf[64];
 		snprintf(buf, 64, "/dev/%s", iff_name);
@@ -134,7 +133,7 @@ doit(const char *iff_name, unsigned long cmd, void *data)
 		if ((fd = open(buf, O_RDWR)) < 0)
 			return -1;
 	}
-	
+
 	return ioctl(fd, cmd, data) < 0 ? -1 : 0;
 }
 
@@ -157,7 +156,7 @@ read_reg(const char *iff_name, uint32_t addr)
 	struct ch_reg reg;
 
 	reg.addr = addr;
-	
+
 	if (doit(iff_name, CHELSIO_GETREG, &reg) < 0)
 		err(1, "register read");
 	return reg.val;
@@ -170,22 +169,23 @@ write_reg(const char *iff_name, uint32_t addr, uint32_t val)
 
 	ch_reg.addr = addr;
 	ch_reg.val = val;
-	
+
 	if (doit(iff_name, CHELSIO_SETREG, &ch_reg) < 0)
 		err(1, "register write");
 }
 
 static int
-register_io(int argc, char *argv[], int start_arg,
-		       const char *iff_name)
+register_io(int argc, char *argv[], int start_arg, const char *iff_name)
 {
 	char *p;
 	uint32_t addr, val = 0, w = 0;
 
-	if (argc != start_arg + 1) return -1;
+	if (argc != start_arg + 1)
+		return -1;
 
 	addr = strtoul(argv[start_arg], &p, 0);
-	if (p == argv[start_arg]) return -1;
+	if (p == argv[start_arg])
+		return -1;
 	if (*p == '=' && p[1]) {
 		val = strtoul(p + 1, &p, 0);
 		w = 1;
@@ -205,37 +205,38 @@ register_io(int argc, char *argv[], int start_arg,
 }
 
 static int
-mdio_io(int argc, char *argv[], int start_arg, const char *iff_name) 
-{ 
-        struct ch_mii_data p;
-        unsigned int cmd, phy_addr, reg, mmd, val; 
- 
-        if (argc == start_arg + 3) 
-                cmd = CHELSIO_GET_MIIREG; 
-        else if (argc == start_arg + 4) 
-                cmd = CHELSIO_SET_MIIREG; 
-        else 
-                return -1; 
- 
-        if (get_int_arg(argv[start_arg], &phy_addr) || 
-            get_int_arg(argv[start_arg + 1], &mmd) || 
-            get_int_arg(argv[start_arg + 2], &reg) || 
-            (cmd == CHELSIO_SET_MIIREG && get_int_arg(argv[start_arg + 3], &val))) 
-                return -1; 
+mdio_io(int argc, char *argv[], int start_arg, const char *iff_name)
+{
+	struct ch_mii_data p;
+	unsigned int cmd, phy_addr, reg, mmd, val;
 
-        p.phy_id  = phy_addr | (mmd << 8); 
-        p.reg_num = reg; 
-        p.val_in  = val; 
- 
-        if (doit(iff_name, cmd, &p) < 0) 
-                err(1, "MDIO %s", cmd == CHELSIO_GET_MIIREG ? "read" : "write");
-        if (cmd == CHELSIO_GET_MIIREG) 
-                printf("%#x [%u]\n", p.val_out, p.val_out); 
-        return 0; 
-} 
+	if (argc == start_arg + 3)
+		cmd = CHELSIO_GET_MIIREG;
+	else if (argc == start_arg + 4)
+		cmd = CHELSIO_SET_MIIREG;
+	else
+		return -1;
 
-static inline
-uint32_t xtract(uint32_t val, int shift, int len)
+	if (get_int_arg(argv[start_arg], &phy_addr) ||
+	    get_int_arg(argv[start_arg + 1], &mmd) ||
+	    get_int_arg(argv[start_arg + 2], &reg) ||
+	    (cmd == CHELSIO_SET_MIIREG &&
+		get_int_arg(argv[start_arg + 3], &val)))
+		return -1;
+
+	p.phy_id = phy_addr | (mmd << 8);
+	p.reg_num = reg;
+	p.val_in = val;
+
+	if (doit(iff_name, cmd, &p) < 0)
+		err(1, "MDIO %s", cmd == CHELSIO_GET_MIIREG ? "read" : "write");
+	if (cmd == CHELSIO_GET_MIIREG)
+		printf("%#x [%u]\n", p.val_out, p.val_out);
+	return 0;
+}
+
+static inline uint32_t
+xtract(uint32_t val, int shift, int len)
 {
 	return (val >> shift) & ((1 << len) - 1);
 }
@@ -245,17 +246,17 @@ dump_block_regs(const struct reg_info *reg_array, uint32_t *regs)
 {
 	uint32_t reg_val = 0; // silence compiler warning
 
-	for ( ; reg_array->name; ++reg_array)
+	for (; reg_array->name; ++reg_array)
 		if (!reg_array->len) {
 			reg_val = regs[reg_array->addr / 4];
 			printf("[%#5x] %-40s %#-10x [%u]\n", reg_array->addr,
-			       reg_array->name, reg_val, reg_val);
+			    reg_array->name, reg_val, reg_val);
 		} else {
 			uint32_t v = xtract(reg_val, reg_array->addr,
-					    reg_array->len);
+			    reg_array->len);
 
 			printf("        %-40s %#-10x [%u]\n", reg_array->name,
-			       v, v);
+			    v, v);
 		}
 	return 1;
 }
@@ -314,7 +315,7 @@ dump_regs_t3(int argc, char *argv[], int start_arg, uint32_t *regs, int is_pcie)
 		match += dump_block_regs(sge3_regs, regs);
 	if (!block_name || !strcmp(block_name, "pci"))
 		match += dump_block_regs(is_pcie ? pcie0_regs : pcix1_regs,
-					 regs);
+		    regs);
 	if (!block_name || !strcmp(block_name, "t3dbg"))
 		match += dump_block_regs(t3dbg_regs, regs);
 	if (!block_name || !strcmp(block_name, "pmrx"))
@@ -376,7 +377,8 @@ dump_regs_t3b(int argc, char *argv[], int start_arg, uint32_t *regs,
 		match += dump_block_regs(t3b_sge3_regs, regs);
 	if (!block_name || !strcmp(block_name, "pci"))
 		match += dump_block_regs(is_pcie ? t3b_pcie0_regs :
-						   t3b_pcix1_regs, regs);
+						   t3b_pcix1_regs,
+		    regs);
 	if (!block_name || !strcmp(block_name, "t3dbg"))
 		match += dump_block_regs(t3b_t3dbg_regs, regs);
 	if (!block_name || !strcmp(block_name, "pmrx"))
@@ -438,7 +440,8 @@ dump_regs_t3c(int argc, char *argv[], int start_arg, uint32_t *regs,
 		match += dump_block_regs(t3c_sge3_regs, regs);
 	if (!block_name || !strcmp(block_name, "pci"))
 		match += dump_block_regs(is_pcie ? t3c_pcie0_regs :
-						   t3c_pcix1_regs, regs);
+						   t3c_pcix1_regs,
+		    regs);
 	if (!block_name || !strcmp(block_name, "t3dbg"))
 		match += dump_block_regs(t3c_t3dbg_regs, regs);
 	if (!block_name || !strcmp(block_name, "pmrx"))
@@ -505,18 +508,19 @@ dump_regs(int argc, char *argv[], int start_arg, const char *iff_name)
 	is_pcie = (regs.version & 0x80000000) != 0;
 
 	if (vers <= 2)
-		return dump_regs_t2(argc, argv, start_arg, (uint32_t *)regs.data);
+		return dump_regs_t2(argc, argv, start_arg,
+		    (uint32_t *)regs.data);
 #if defined(CONFIG_T3_REGS)
 	if (vers == 3) {
 		if (revision == 0)
 			return dump_regs_t3(argc, argv, start_arg,
-					    (uint32_t *)regs.data, is_pcie);
+			    (uint32_t *)regs.data, is_pcie);
 		if (revision == 2 || revision == 3)
 			return dump_regs_t3b(argc, argv, start_arg,
-					     (uint32_t *)regs.data, is_pcie);
+			    (uint32_t *)regs.data, is_pcie);
 		if (revision == 4)
 			return dump_regs_t3c(argc, argv, start_arg,
-			    		     (uint32_t *)regs.data, is_pcie);
+			    (uint32_t *)regs.data, is_pcie);
 	}
 #endif
 	errx(1, "unknown card type %d.%d", vers, revision);
@@ -527,25 +531,25 @@ static int
 t3_meminfo(const uint32_t *regs)
 {
 	enum {
-		SG_EGR_CNTX_BADDR       = 0x58,
-		SG_CQ_CONTEXT_BADDR     = 0x6c,
-		CIM_SDRAM_BASE_ADDR     = 0x28c,
-		CIM_SDRAM_ADDR_SIZE     = 0x290,
-		TP_CMM_MM_BASE          = 0x314,
-		TP_CMM_TIMER_BASE       = 0x318,
-		TP_CMM_MM_RX_FLST_BASE  = 0x460,
-		TP_CMM_MM_TX_FLST_BASE  = 0x464,
-		TP_CMM_MM_PS_FLST_BASE  = 0x468,
-		ULPRX_ISCSI_LLIMIT      = 0x50c,
-		ULPRX_ISCSI_ULIMIT      = 0x510,
-		ULPRX_TDDP_LLIMIT       = 0x51c,
-		ULPRX_TDDP_ULIMIT       = 0x520,
-		ULPRX_STAG_LLIMIT       = 0x52c,
-		ULPRX_STAG_ULIMIT       = 0x530,
-		ULPRX_RQ_LLIMIT         = 0x534,
-		ULPRX_RQ_ULIMIT         = 0x538,
-		ULPRX_PBL_LLIMIT        = 0x53c,
-		ULPRX_PBL_ULIMIT        = 0x540,
+		SG_EGR_CNTX_BADDR = 0x58,
+		SG_CQ_CONTEXT_BADDR = 0x6c,
+		CIM_SDRAM_BASE_ADDR = 0x28c,
+		CIM_SDRAM_ADDR_SIZE = 0x290,
+		TP_CMM_MM_BASE = 0x314,
+		TP_CMM_TIMER_BASE = 0x318,
+		TP_CMM_MM_RX_FLST_BASE = 0x460,
+		TP_CMM_MM_TX_FLST_BASE = 0x464,
+		TP_CMM_MM_PS_FLST_BASE = 0x468,
+		ULPRX_ISCSI_LLIMIT = 0x50c,
+		ULPRX_ISCSI_ULIMIT = 0x510,
+		ULPRX_TDDP_LLIMIT = 0x51c,
+		ULPRX_TDDP_ULIMIT = 0x520,
+		ULPRX_STAG_LLIMIT = 0x52c,
+		ULPRX_STAG_ULIMIT = 0x530,
+		ULPRX_RQ_LLIMIT = 0x534,
+		ULPRX_RQ_ULIMIT = 0x538,
+		ULPRX_PBL_LLIMIT = 0x53c,
+		ULPRX_PBL_ULIMIT = 0x540,
 	};
 
 	unsigned int egr_cntxt = regs[SG_EGR_CNTX_BADDR / 4],
@@ -570,35 +574,35 @@ t3_meminfo(const uint32_t *regs)
 
 	printf("CM memory map:\n");
 	printf("  TCB region:      0x%08x - 0x%08x [%u]\n", 0, egr_cntxt - 1,
-	       egr_cntxt);
+	    egr_cntxt);
 	printf("  Egress contexts: 0x%08x - 0x%08x [%u]\n", egr_cntxt,
-	       cq_cntxt - 1, cq_cntxt - egr_cntxt);
+	    cq_cntxt - 1, cq_cntxt - egr_cntxt);
 	printf("  CQ contexts:     0x%08x - 0x%08x [%u]\n", cq_cntxt,
-	       timers - 1, timers - cq_cntxt);
+	    timers - 1, timers - cq_cntxt);
 	printf("  Timers:          0x%08x - 0x%08x [%u]\n", timers,
-	       pstructs - 1, pstructs - timers);
+	    pstructs - 1, pstructs - timers);
 	printf("  Pstructs:        0x%08x - 0x%08x [%u]\n", pstructs,
-	       pstruct_fl - 1, pstruct_fl - pstructs);
+	    pstruct_fl - 1, pstruct_fl - pstructs);
 	printf("  Pstruct FL:      0x%08x - 0x%08x [%u]\n", pstruct_fl,
-	       rx_fl - 1, rx_fl - pstruct_fl);
+	    rx_fl - 1, rx_fl - pstruct_fl);
 	printf("  Rx FL:           0x%08x - 0x%08x [%u]\n", rx_fl, tx_fl - 1,
-	       tx_fl - rx_fl);
+	    tx_fl - rx_fl);
 	printf("  Tx FL:           0x%08x - 0x%08x [%u]\n", tx_fl, cim_base - 1,
-	       cim_base - tx_fl);
+	    cim_base - tx_fl);
 	printf("  uP RAM:          0x%08x - 0x%08x [%u]\n", cim_base,
-	       cim_base + cim_size - 1, cim_size);
+	    cim_base + cim_size - 1, cim_size);
 
 	printf("\nPMRX memory map:\n");
 	printf("  iSCSI region:    0x%08x - 0x%08x [%u]\n", iscsi_ll, iscsi_ul,
-	       iscsi_ul - iscsi_ll + 1);
+	    iscsi_ul - iscsi_ll + 1);
 	printf("  TCP DDP region:  0x%08x - 0x%08x [%u]\n", tddp_ll, tddp_ul,
-	       tddp_ul - tddp_ll + 1);
+	    tddp_ul - tddp_ll + 1);
 	printf("  TPT region:      0x%08x - 0x%08x [%u]\n", stag_ll, stag_ul,
-	       stag_ul - stag_ll + 1);
+	    stag_ul - stag_ll + 1);
 	printf("  RQ region:       0x%08x - 0x%08x [%u]\n", rq_ll, rq_ul,
-	       rq_ul - rq_ll + 1);
+	    rq_ul - rq_ll + 1);
 	printf("  PBL region:      0x%08x - 0x%08x [%u]\n", pbl_ll, pbl_ul,
-	       pbl_ul - pbl_ll + 1);
+	    pbl_ul - pbl_ll + 1);
 	return 0;
 }
 
@@ -608,14 +612,14 @@ meminfo(int argc, char *argv[], int start_arg, const char *iff_name)
 	int vers;
 	struct ch_ifconf_regs regs;
 
-	(void) argc;
-	(void) argv;
-	(void) start_arg;
+	(void)argc;
+	(void)argv;
+	(void)start_arg;
 
 	regs.len = REGDUMP_SIZE;
 	if ((regs.data = malloc(regs.len)) == NULL)
 		err(1, "can't malloc");
-	
+
 	if (doit(iff_name, CHELSIO_IFCONF_GETREGS, &regs))
 		err(1, "can't read registers");
 
@@ -648,7 +652,7 @@ mtu_tab_op(int argc, char *argv[], int start_arg, const char *iff_name)
 
 			if (*p || mt > 9600) {
 				warnx("bad parameter \"%s\"",
-				      argv[start_arg + i]);
+				    argv[start_arg + i]);
 				return -1;
 			}
 			if (i && mt < m.mtus[i - 1])
@@ -672,8 +676,9 @@ show_egress_cntxt(uint32_t data[])
 	printf("index:        %u\n", data[0] >> 16);
 	printf("queue size:   %u\n", data[1] & 0xffff);
 	printf("base address: 0x%" PRIx64 "\n",
-	       ((data[1] >> 16) | ((uint64_t)data[2] << 16) |
-	       (((uint64_t)data[3] & 0xf) << 48)) << 12);
+	    ((data[1] >> 16) | ((uint64_t)data[2] << 16) |
+		(((uint64_t)data[3] & 0xf) << 48))
+		<< 12);
 	printf("rsp queue #:  %u\n", (data[3] >> 4) & 7);
 	printf("cmd queue #:  %u\n", (data[3] >> 7) & 1);
 	printf("TUN:          %u\n", (data[3] >> 8) & 1);
@@ -687,12 +692,12 @@ static void
 show_fl_cntxt(uint32_t data[])
 {
 	printf("base address: 0x%" PRIx64 "\n",
-	       ((uint64_t)data[0] | ((uint64_t)data[1] & 0xfffff) << 32) << 12);
+	    ((uint64_t)data[0] | ((uint64_t)data[1] & 0xfffff) << 32) << 12);
 	printf("index:        %u\n", (data[1] >> 20) | ((data[2] & 0xf) << 12));
 	printf("queue size:   %u\n", (data[2] >> 4) & 0xffff);
 	printf("generation:   %u\n", (data[2] >> 20) & 1);
 	printf("entry size:   %u\n",
-	       (data[2] >> 21) | (data[3] & 0x1fffff) << 11);
+	    (data[2] >> 21) | (data[3] & 0x1fffff) << 11);
 	printf("congest thr:  %u\n", (data[3] >> 21) & 0x3ff);
 	printf("GTS:          %u\n", (data[3] >> 31) & 1);
 }
@@ -703,7 +708,7 @@ show_response_cntxt(uint32_t data[])
 	printf("index:        %u\n", data[0] & 0xffff);
 	printf("size:         %u\n", data[0] >> 16);
 	printf("base address: 0x%" PRIx64 "\n",
-	       ((uint64_t)data[1] | ((uint64_t)data[2] & 0xfffff) << 32) << 12);
+	    ((uint64_t)data[1] | ((uint64_t)data[2] & 0xfffff) << 32) << 12);
 	printf("MSI-X/RspQ:   %u\n", (data[2] >> 20) & 0x3f);
 	printf("intr enable:  %u\n", (data[2] >> 26) & 1);
 	printf("intr armed:   %u\n", (data[2] >> 27) & 1);
@@ -718,7 +723,7 @@ show_cq_cntxt(uint32_t data[])
 	printf("index:            %u\n", data[0] & 0xffff);
 	printf("size:             %u\n", data[0] >> 16);
 	printf("base address:     0x%" PRIx64 "\n",
-	       ((uint64_t)data[1] | ((uint64_t)data[2] & 0xfffff) << 32) << 12);
+	    ((uint64_t)data[1] | ((uint64_t)data[2] & 0xfffff) << 32) << 12);
 	printf("rsp queue #:      %u\n", (data[2] >> 20) & 0x3f);
 	printf("AN:               %u\n", (data[2] >> 26) & 1);
 	printf("armed:            %u\n", (data[2] >> 27) & 1);
@@ -734,7 +739,8 @@ get_sge_context(int argc, char *argv[], int start_arg, const char *iff_name)
 {
 	struct ch_cntxt ctx;
 
-	if (argc != start_arg + 2) return -1;
+	if (argc != start_arg + 2)
+		return -1;
 
 	if (!strcmp(argv[start_arg], "egress"))
 		ctx.cntxt_type = CNTXT_TYPE_EGRESS;
@@ -746,7 +752,8 @@ get_sge_context(int argc, char *argv[], int start_arg, const char *iff_name)
 		ctx.cntxt_type = CNTXT_TYPE_CQ;
 	else {
 		warnx("unknown context type \"%s\"; known types are egress, "
-		      "fl, cq, and response", argv[start_arg]);
+		      "fl, cq, and response",
+		    argv[start_arg]);
 		return -1;
 	}
 
@@ -799,13 +806,13 @@ get_sge_desc(int argc, char *argv[], int start_arg, const char *iff_name)
 		p = (uint64_t *)desc.data;
 		wr_hdr = ntohll(*p);
 		printf("Descriptor %u: cmd %u, TID %u, %s%s%s%s%u flits\n",
-		       desc.idx, (unsigned int)(wr_hdr >> 56),
-		       ((unsigned int)wr_hdr >> 8) & 0xfffff,
-		       ((wr_hdr >> 55) & 1) ? "SOP, " : "",
-		       ((wr_hdr >> 54) & 1) ? "EOP, " : "",
-		       ((wr_hdr >> 53) & 1) ? "COMPL, " : "",
-		       ((wr_hdr >> 52) & 1) ? "SGL, " : "",
-		       (unsigned int)wr_hdr & 0xff);
+		    desc.idx, (unsigned int)(wr_hdr >> 56),
+		    ((unsigned int)wr_hdr >> 8) & 0xfffff,
+		    ((wr_hdr >> 55) & 1) ? "SOP, " : "",
+		    ((wr_hdr >> 54) & 1) ? "EOP, " : "",
+		    ((wr_hdr >> 53) & 1) ? "COMPL, " : "",
+		    ((wr_hdr >> 52) & 1) ? "SGL, " : "",
+		    (unsigned int)wr_hdr & 0xff);
 
 		for (; desc.size; p++, desc.size -= sizeof(uint64_t))
 			printf("%016" PRIx64 "%c", ntohll(*p),
@@ -834,8 +841,8 @@ get_tcb2(int argc, char *argv[], int start_arg, const char *iff_name)
 		err(1, "get TCB");
 
 	mr.mem_id = MEM_CM;
-	mr.addr   = tcb_idx * TCB_SIZE;
-	mr.len    = TCB_SIZE;
+	mr.addr = tcb_idx * TCB_SIZE;
+	mr.len = TCB_SIZE;
 
 	if (doit(iff_name, CHELSIO_GET_MEM, &mr) < 0)
 		err(1, "get TCB");
@@ -843,12 +850,12 @@ get_tcb2(int argc, char *argv[], int start_arg, const char *iff_name)
 	for (d = (uint64_t *)mr.buf, i = 0; i < TCB_SIZE / 32; i++) {
 		printf("%2u:", i);
 		printf(" %08x %08x %08x %08x", (uint32_t)d[1],
-		       (uint32_t)(d[1] >> 32), (uint32_t)d[0],
-		       (uint32_t)(d[0] >> 32));
+		    (uint32_t)(d[1] >> 32), (uint32_t)d[0],
+		    (uint32_t)(d[0] >> 32));
 		d += 2;
 		printf(" %08x %08x %08x %08x\n", (uint32_t)d[1],
-		       (uint32_t)(d[1] >> 32), (uint32_t)d[0],
-		       (uint32_t)(d[0] >> 32));
+		    (uint32_t)(d[1] >> 32), (uint32_t)d[0],
+		    (uint32_t)(d[0] >> 32));
 		d += 2;
 	}
 	free(mr.buf);
@@ -863,7 +870,8 @@ get_pm_page_spec(const char *s, unsigned int *page_size,
 	unsigned long val;
 
 	val = strtoul(s, &p, 0);
-	if (p == s) return -1;
+	if (p == s)
+		return -1;
 	if (*p == 'x' && p[1]) {
 		*num_pages = val;
 		*page_size = strtoul(p + 1, &p, 0);
@@ -871,7 +879,7 @@ get_pm_page_spec(const char *s, unsigned int *page_size,
 		*num_pages = -1;
 		*page_size = val;
 	}
-	*page_size <<= 10;     // KB -> bytes
+	*page_size <<= 10; // KB -> bytes
 	return *p;
 }
 
@@ -883,20 +891,22 @@ conf_pm(int argc, char *argv[], int start_arg, const char *iff_name)
 	if (argc == start_arg) {
 		if (doit(iff_name, CHELSIO_GET_PM, &pm) < 0)
 			err(1, "read pm config");
-		printf("%ux%uKB TX pages, %ux%uKB RX pages, %uKB total memory\n",
-		       pm.tx_num_pg, pm.tx_pg_sz >> 10, pm.rx_num_pg,
-		       pm.rx_pg_sz >> 10, pm.pm_total >> 10);
+		printf(
+		    "%ux%uKB TX pages, %ux%uKB RX pages, %uKB total memory\n",
+		    pm.tx_num_pg, pm.tx_pg_sz >> 10, pm.rx_num_pg,
+		    pm.rx_pg_sz >> 10, pm.pm_total >> 10);
 		return 0;
 	}
 
-	if (argc != start_arg + 2) return -1;
+	if (argc != start_arg + 2)
+		return -1;
 
 	if (get_pm_page_spec(argv[start_arg], &pm.tx_pg_sz, &pm.tx_num_pg)) {
 		warnx("bad parameter \"%s\"", argv[start_arg]);
 		return -1;
 	}
 	if (get_pm_page_spec(argv[start_arg + 1], &pm.rx_pg_sz,
-			     &pm.rx_num_pg)) {
+		&pm.rx_num_pg)) {
 		warnx("bad parameter \"%s\"", argv[start_arg + 1]);
 		return -1;
 	}
@@ -905,14 +915,15 @@ conf_pm(int argc, char *argv[], int start_arg, const char *iff_name)
 	return 0;
 }
 
-#ifdef	CHELSIO_INTERNAL
+#ifdef CHELSIO_INTERNAL
 static int
 dump_tcam(int argc, char *argv[], int start_arg, const char *iff_name)
 {
 	unsigned int nwords;
 	struct ch_tcam_word op;
 
-	if (argc != start_arg + 2) return -1;
+	if (argc != start_arg + 2)
+		return -1;
 
 	if (get_int_arg(argv[start_arg], &op.addr) ||
 	    get_int_arg(argv[start_arg + 1], &nwords))
@@ -923,7 +934,7 @@ dump_tcam(int argc, char *argv[], int start_arg, const char *iff_name)
 			err(1, "tcam dump");
 
 		printf("0x%08x: 0x%02x 0x%08x 0x%08x\n", op.addr,
-		       op.buf[0] & 0xff, op.buf[1], op.buf[2]);
+		    op.buf[0] & 0xff, op.buf[1], op.buf[2]);
 		op.addr++;
 	}
 	return 0;
@@ -949,7 +960,8 @@ dump_mc7(int argc, char *argv[], int start_arg, const char *iff_name)
 	struct ch_mem_range mem;
 	unsigned int mem_id, addr, len;
 
-	if (argc != start_arg + 3) return -1;
+	if (argc != start_arg + 3)
+		return -1;
 
 	if (!strcmp(argv[start_arg], "cm"))
 		mem_id = MEM_CM;
@@ -958,8 +970,10 @@ dump_mc7(int argc, char *argv[], int start_arg, const char *iff_name)
 	else if (!strcmp(argv[start_arg], "tx"))
 		mem_id = MEM_PMTX;
 	else
-		errx(1, "unknown memory \"%s\"; must be one of \"cm\", \"tx\","
-			" or \"rx\"", argv[start_arg]);
+		errx(1,
+		    "unknown memory \"%s\"; must be one of \"cm\", \"tx\","
+		    " or \"rx\"",
+		    argv[start_arg]);
 
 	if (get_int_arg(argv[start_arg + 1], &addr) ||
 	    get_int_arg(argv[start_arg + 2], &len))
@@ -970,8 +984,8 @@ dump_mc7(int argc, char *argv[], int start_arg, const char *iff_name)
 		err(1, "memory dump");
 
 	mem.mem_id = mem_id;
-	mem.addr   = addr;
-	mem.len    = len;
+	mem.addr = addr;
+	mem.len = len;
 
 	if (doit(iff_name, CHELSIO_GET_MEM, &mem) < 0)
 		err(1, "memory dump");
@@ -992,7 +1006,8 @@ load_fw(int argc, char *argv[], int start_arg, const char *iff_name)
 	struct ch_mem_range op;
 	const char *fname = argv[start_arg];
 
-	if (argc != start_arg + 1) return -1;
+	if (argc != start_arg + 1)
+		return -1;
 
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
@@ -1006,7 +1021,7 @@ load_fw(int argc, char *argv[], int start_arg, const char *iff_name)
 	len = read(fd, op.buf, MAX_FW_IMAGE_SIZE + 1);
 	if (len < 0)
 		err(1, "load firmware");
- 	if (len > MAX_FW_IMAGE_SIZE)
+	if (len > MAX_FW_IMAGE_SIZE)
 		errx(1, "FW image too large");
 
 	op.len = len;
@@ -1027,7 +1042,8 @@ load_boot(int argc, char *argv[], int start_arg, const char *iff_name)
 	struct ch_mem_range op;
 	const char *fname = argv[start_arg];
 
-	if (argc != start_arg + 1) return -1;
+	if (argc != start_arg + 1)
+		return -1;
 
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
@@ -1040,7 +1056,7 @@ load_boot(int argc, char *argv[], int start_arg, const char *iff_name)
 	len = read(fd, op.buf, MAX_BOOT_IMAGE_SIZE + 1);
 	if (len < 0)
 		err(1, "load boot image");
- 	if (len > MAX_BOOT_IMAGE_SIZE)
+	if (len > MAX_BOOT_IMAGE_SIZE)
 		errx(1, "boot image too large");
 
 	op.len = len;
@@ -1084,11 +1100,10 @@ dump_proto_sram(const char *iff_name)
 }
 
 static int
-proto_sram_op(int argc, char *argv[], int start_arg,
-			 const char *iff_name)
+proto_sram_op(int argc, char *argv[], int start_arg, const char *iff_name)
 {
-	(void) argv;
-	(void) start_arg;
+	(void)argv;
+	(void)start_arg;
 
 	if (argc == start_arg)
 		return dump_proto_sram(iff_name);
@@ -1106,11 +1121,10 @@ dump_qset_params(const char *iff_name)
 		if (!qp.qset_idx)
 			printf("Qset   TxQ0   TxQ1   TxQ2   RspQ   RxQ0   RxQ1"
 			       "  Cong  Lat   IRQ\n");
-		printf("%4u %6u %6u %6u %6u %6u %6u %5u %4u %5d\n",
-		       qp.qnum,
-		       qp.txq_size[0], qp.txq_size[1], qp.txq_size[2],
-		       qp.rspq_size, qp.fl_size[0], qp.fl_size[1],
-		       qp.cong_thres, qp.intr_lat, qp.vector);
+		printf("%4u %6u %6u %6u %6u %6u %6u %5u %4u %5d\n", qp.qnum,
+		    qp.txq_size[0], qp.txq_size[1], qp.txq_size[2],
+		    qp.rspq_size, qp.fl_size[0], qp.fl_size[1], qp.cong_thres,
+		    qp.intr_lat, qp.vector);
 		qp.qset_idx++;
 	}
 	if (!qp.qset_idx || (errno && errno != EINVAL))
@@ -1121,7 +1135,7 @@ dump_qset_params(const char *iff_name)
 static int
 qset_config(int argc, char *argv[], int start_arg, const char *iff_name)
 {
-	(void) argv;
+	(void)argv;
 
 	if (argc == start_arg)
 		return dump_qset_params(iff_name);
@@ -1134,7 +1148,7 @@ qset_num_config(int argc, char *argv[], int start_arg, const char *iff_name)
 {
 	struct ch_reg reg;
 
-	(void) argv;
+	(void)argv;
 
 	if (argc == start_arg) {
 		if (doit(iff_name, CHELSIO_GET_QSET_NUM, &reg) < 0)
@@ -1219,8 +1233,10 @@ trace_config(int argc, char *argv[], int start_arg, const char *iff_name)
 	else if (!strcmp(argv[start_arg], "all"))
 		trace.config_tx = trace.config_rx = 1;
 	else
-		errx(1, "bad trace filter \"%s\"; must be one of \"rx\", "
-		     "\"tx\" or \"all\"", argv[start_arg]);
+		errx(1,
+		    "bad trace filter \"%s\"; must be one of \"rx\", "
+		    "\"tx\" or \"all\"",
+		    argv[start_arg]);
 
 	if (argc == ++start_arg)
 		return -1;
@@ -1229,7 +1245,7 @@ trace_config(int argc, char *argv[], int start_arg, const char *iff_name)
 		trace.trace_rx = trace.config_rx;
 	} else if (strcmp(argv[start_arg], "off"))
 		errx(1, "bad argument \"%s\"; must be \"on\" or \"off\"",
-		     argv[start_arg]);
+		    argv[start_arg]);
 
 	start_arg++;
 	if (start_arg < argc && !strcmp(argv[start_arg], "not")) {
@@ -1262,10 +1278,12 @@ trace_config(int argc, char *argv[], int start_arg, const char *iff_name)
 			trace.proto = val;
 			trace.proto_mask = mask;
 		} else
-			errx(1, "unknown trace parameter \"%s\"\n"
-			     "known parameters are \"interface\", \"sip\", "
-			     "\"dip\", \"sport\", \"dport\", \"vlan\", "
-			     "\"proto\"", argv[start_arg]);
+			errx(1,
+			    "unknown trace parameter \"%s\"\n"
+			    "known parameters are \"interface\", \"sip\", "
+			    "\"dip\", \"sport\", \"dport\", \"vlan\", "
+			    "\"proto\"",
+			    argv[start_arg]);
 		if (ret < 0)
 			errx(1, "bad parameter \"%s\"", argv[start_arg + 1]);
 		start_arg += 2;
@@ -1302,7 +1320,7 @@ show_filters(const char *iff_name)
 
 		if (!header) {
 			printf("index         SIP                DIP     sport "
-			    "dport VLAN PRI P/MAC type Q\n");
+			       "dport VLAN PRI P/MAC type Q\n");
 			header = 1;
 		}
 
@@ -1318,8 +1336,8 @@ show_filters(const char *iff_name)
 		printf(op.val.sport ? "%5u " : "    * ", op.val.sport);
 		printf(op.val.dport ? "%5u " : "    * ", op.val.dport);
 		printf(op.val.vlan != 0xfff ? "%4u " : "   * ", op.val.vlan);
-		printf(op.val.vlan_prio == 7 ?  "  * " :
-		    "%1u/%1u ", op.val.vlan_prio, op.val.vlan_prio | 1);
+		printf(op.val.vlan_prio == 7 ? "  * " : "%1u/%1u ",
+		    op.val.vlan_prio, op.val.vlan_prio | 1);
 		if (op.mac_addr_idx == 0xffff)
 			printf("*/*   ");
 		else if (op.mac_hit)
@@ -1358,8 +1376,9 @@ filter_config(int argc, char *argv[], int start_arg, const char *iff_name)
 
 	if (get_int_arg(argv[start_arg++], &op.filter_id))
 		return -1;
-	if (argc == start_arg + 1 && (!strcmp(argv[start_arg], "delete") ||
-				      !strcmp(argv[start_arg], "clear"))) {
+	if (argc == start_arg + 1 &&
+	    (!strcmp(argv[start_arg], "delete") ||
+		!strcmp(argv[start_arg], "clear"))) {
 		if (doit(iff_name, CHELSIO_DEL_FILTER, &op) < 0) {
 			if (errno == EBUSY)
 				err(1, "no filter support when offload in use");
@@ -1371,28 +1390,28 @@ filter_config(int argc, char *argv[], int start_arg, const char *iff_name)
 	while (start_arg + 2 <= argc) {
 		if (!strcmp(argv[start_arg], "sip")) {
 			ret = parse_ipaddr(argv[start_arg + 1], &op.val.sip,
-					   &op.mask.sip);
+			    &op.mask.sip);
 		} else if (!strcmp(argv[start_arg], "dip")) {
 			ret = parse_ipaddr(argv[start_arg + 1], &op.val.dip,
-					   &op.mask.dip);
+			    &op.mask.dip);
 		} else if (!strcmp(argv[start_arg], "sport")) {
-			ret = parse_val_mask_param(argv[start_arg + 1],
-						   &val, &mask, 0xffff);
+			ret = parse_val_mask_param(argv[start_arg + 1], &val,
+			    &mask, 0xffff);
 			op.val.sport = val;
 			op.mask.sport = mask;
 		} else if (!strcmp(argv[start_arg], "dport")) {
-			ret = parse_val_mask_param(argv[start_arg + 1],
-						   &val, &mask, 0xffff);
+			ret = parse_val_mask_param(argv[start_arg + 1], &val,
+			    &mask, 0xffff);
 			op.val.dport = val;
 			op.mask.dport = mask;
 		} else if (!strcmp(argv[start_arg], "vlan")) {
-			ret = parse_val_mask_param(argv[start_arg + 1],
-						   &val, &mask, 0xfff);
+			ret = parse_val_mask_param(argv[start_arg + 1], &val,
+			    &mask, 0xfff);
 			op.val.vlan = val;
 			op.mask.vlan = mask;
 		} else if (!strcmp(argv[start_arg], "prio")) {
-			ret = parse_val_mask_param(argv[start_arg + 1],
-						   &val, &mask, 7);
+			ret = parse_val_mask_param(argv[start_arg + 1], &val,
+			    &mask, 7);
 			op.val.vlan_prio = val;
 			op.mask.vlan_prio = mask;
 		} else if (!strcmp(argv[start_arg], "mac")) {
@@ -1410,9 +1429,10 @@ filter_config(int argc, char *argv[], int start_arg, const char *iff_name)
 			else if (!strcmp(argv[start_arg + 1], "frag"))
 				op.proto = 3;
 			else
-				errx(1, "unknown type \"%s\"; must be one of "
-				     "\"tcp\", \"udp\", or \"frag\"",
-				     argv[start_arg + 1]);
+				errx(1,
+				    "unknown type \"%s\"; must be one of "
+				    "\"tcp\", \"udp\", or \"frag\"",
+				    argv[start_arg + 1]);
 		} else if (!strcmp(argv[start_arg], "queue")) {
 			ret = get_int_arg(argv[start_arg + 1], &val);
 			op.qset = val;
@@ -1421,18 +1441,20 @@ filter_config(int argc, char *argv[], int start_arg, const char *iff_name)
 			if (!strcmp(argv[start_arg + 1], "pass"))
 				op.pass = 1;
 			else if (strcmp(argv[start_arg + 1], "drop"))
-				errx(1, "unknown action \"%s\"; must be one of "
-				     "\"pass\" or \"drop\"",
-				     argv[start_arg + 1]);
+				errx(1,
+				    "unknown action \"%s\"; must be one of "
+				    "\"pass\" or \"drop\"",
+				    argv[start_arg + 1]);
 		} else
- 			errx(1, "unknown filter parameter \"%s\"\n"
-			     "known parameters are \"mac\", \"sip\", "
-			     "\"dip\", \"sport\", \"dport\", \"vlan\", "
-			     "\"prio\", \"type\", \"queue\", and \"action\"",
-			     argv[start_arg]);
+			errx(1,
+			    "unknown filter parameter \"%s\"\n"
+			    "known parameters are \"mac\", \"sip\", "
+			    "\"dip\", \"sport\", \"dport\", \"vlan\", "
+			    "\"prio\", \"type\", \"queue\", and \"action\"",
+			    argv[start_arg]);
 		if (ret < 0)
 			errx(1, "bad value \"%s\" for parameter \"%s\"",
-			     argv[start_arg + 1], argv[start_arg]);
+			    argv[start_arg + 1], argv[start_arg]);
 		start_arg += 2;
 	}
 	if (start_arg != argc)
@@ -1443,7 +1465,7 @@ filter_config(int argc, char *argv[], int start_arg, const char *iff_name)
 			err(1, "no filter support when offload in use");
 		err(1, "set filter");
 	}
-	
+
 	return 0;
 }
 static int
@@ -1480,25 +1502,25 @@ tx_sched(int argc, char *argv[], int start_arg, const char *iff_name)
 			else
 				errx(1, "bad mode \"%s\"", argv[start_arg + 1]);
 		} else if (!strcmp(argv[start_arg], "channel") &&
-			 !get_sched_param(argc, argv, start_arg, &val))
+		    !get_sched_param(argc, argv, start_arg, &val))
 			op.channel = val;
 		else if (!strcmp(argv[start_arg], "rate") &&
-			 !get_sched_param(argc, argv, start_arg, &val))
+		    !get_sched_param(argc, argv, start_arg, &val))
 			op.kbps = val;
 		else if (!strcmp(argv[start_arg], "ipg") &&
-			 !get_sched_param(argc, argv, start_arg, &val))
+		    !get_sched_param(argc, argv, start_arg, &val))
 			op.class_ipg = val;
 		else if (!strcmp(argv[start_arg], "flowipg") &&
-			 !get_sched_param(argc, argv, start_arg, &val))
+		    !get_sched_param(argc, argv, start_arg, &val))
 			op.flow_ipg = val;
 		else
 			errx(1, "unknown scheduler parameter \"%s\"",
-			     argv[start_arg]);
+			    argv[start_arg]);
 		start_arg += 2;
 	}
 
 	if (doit(iff_name, CHELSIO_SET_HW_SCHED, &op) < 0)
-		 err(1, "pktsched");
+		err(1, "pktsched");
 
 	return 0;
 }
@@ -1531,15 +1553,17 @@ pktsched(int argc, char *argv[], int start_arg, const char *iff_name)
 	} else if (!strcmp(argv[start_arg], "tx"))
 		return tx_sched(argc, argv, start_arg + 1, iff_name);
 	else
-		errx(1, "unknown scheduler \"%s\"; must be one of \"port\", " 
-			"\"tunnelq\" or \"tx\"", argv[start_arg]);
- 
+		errx(1,
+		    "unknown scheduler \"%s\"; must be one of \"port\", "
+		    "\"tunnelq\" or \"tx\"",
+		    argv[start_arg]);
+
 	op.idx = idx;
 	op.min = min;
 	op.max = max;
 	op.binding = binding;
 	if (doit(iff_name, CHELSIO_SET_PKTSCHED, &op) < 0)
-		 err(1, "pktsched");
+		err(1, "pktsched");
 
 	return 0;
 }
@@ -1547,12 +1571,12 @@ pktsched(int argc, char *argv[], int start_arg, const char *iff_name)
 static int
 clear_stats(int argc, char *argv[], int start_arg, const char *iff_name)
 {
-	(void) argc;
-	(void) argv;
-	(void) start_arg;
+	(void)argc;
+	(void)argv;
+	(void)start_arg;
 
 	if (doit(iff_name, CHELSIO_CLEAR_STATS, NULL) < 0)
-		 err(1, "clearstats");
+		err(1, "clearstats");
 
 	return 0;
 }
@@ -1563,9 +1587,9 @@ get_up_la(int argc, char *argv[], int start_arg, const char *iff_name)
 	struct ch_up_la la;
 	int i, idx, max_idx, entries;
 
-	(void) argc;
-	(void) argv;
-	(void) start_arg;
+	(void)argc;
+	(void)argv;
+	(void)start_arg;
 
 	la.stopped = 0;
 	la.idx = -1;
@@ -1575,7 +1599,7 @@ get_up_la(int argc, char *argv[], int start_arg, const char *iff_name)
 		err(1, "uP_LA malloc");
 
 	if (doit(iff_name, CHELSIO_GET_UP_LA, &la) < 0)
-		 err(1, "uP_LA");
+		err(1, "uP_LA");
 
 	if (la.stopped)
 		printf("LA is not running\n");
@@ -1584,8 +1608,8 @@ get_up_la(int argc, char *argv[], int start_arg, const char *iff_name)
 	idx = (int)la.idx;
 	max_idx = (entries / 4) - 1;
 	for (i = 0; i < max_idx; i++) {
-		printf("%04x %08x %08x\n",
-		       la.data[idx], la.data[idx+2], la.data[idx+1]);
+		printf("%04x %08x %08x\n", la.data[idx], la.data[idx + 2],
+		    la.data[idx + 1]);
 		idx = (idx + 4) & (entries - 1);
 	}
 
@@ -1598,9 +1622,9 @@ get_up_ioqs(int argc, char *argv[], int start_arg, const char *iff_name)
 	struct ch_up_ioqs ioqs;
 	int i, entries;
 
-	(void) argc;
-	(void) argv;
-	(void) start_arg;
+	(void)argc;
+	(void)argv;
+	(void)start_arg;
 
 	bzero(&ioqs, sizeof(ioqs));
 	ioqs.bufsize = IOQS_BUFSIZE;
@@ -1609,25 +1633,22 @@ get_up_ioqs(int argc, char *argv[], int start_arg, const char *iff_name)
 		err(1, "uP_IOQs malloc");
 
 	if (doit(iff_name, CHELSIO_GET_UP_IOQS, &ioqs) < 0)
-		 err(1, "uP_IOQs");
+		err(1, "uP_IOQs");
 
 	printf("ioq_rx_enable   : 0x%08x\n", ioqs.ioq_rx_enable);
 	printf("ioq_tx_enable   : 0x%08x\n", ioqs.ioq_tx_enable);
 	printf("ioq_rx_status   : 0x%08x\n", ioqs.ioq_rx_status);
 	printf("ioq_tx_status   : 0x%08x\n", ioqs.ioq_tx_status);
-	
+
 	entries = ioqs.bufsize / sizeof(struct t3_ioq_entry);
 	for (i = 0; i < entries; i++) {
-		printf("\nioq[%d].cp       : 0x%08x\n", i,
-		       ioqs.data[i].ioq_cp);
-		printf("ioq[%d].pp       : 0x%08x\n", i,
-		       ioqs.data[i].ioq_pp);
-		printf("ioq[%d].alen     : 0x%08x\n", i,
-		       ioqs.data[i].ioq_alen);
+		printf("\nioq[%d].cp       : 0x%08x\n", i, ioqs.data[i].ioq_cp);
+		printf("ioq[%d].pp       : 0x%08x\n", i, ioqs.data[i].ioq_pp);
+		printf("ioq[%d].alen     : 0x%08x\n", i, ioqs.data[i].ioq_alen);
 		printf("ioq[%d].stats    : 0x%08x\n", i,
-		       ioqs.data[i].ioq_stats);
+		    ioqs.data[i].ioq_stats);
 		printf("  sop %u\n", ioqs.data[i].ioq_stats >> 16);
-		printf("  eop %u\n", ioqs.data[i].ioq_stats  & 0xFFFF);
+		printf("  eop %u\n", ioqs.data[i].ioq_stats & 0xFFFF);
 	}
 
 	return 0;
@@ -1697,7 +1718,7 @@ run_cmd_loop(int argc, char *argv[], const char *iff_name)
 	char buf[64];
 	char *args[8], *s;
 
-	(void) argc;
+	(void)argc;
 	args[0] = argv[0];
 	args[1] = argv[1];
 
@@ -1720,18 +1741,18 @@ run_cmd_loop(int argc, char *argv[], const char *iff_name)
 			buf[n] = 0;
 
 		s = &buf[0];
-		for (i = 2; i < sizeof(args)/sizeof(args[0]) - 1; i++) {
+		for (i = 2; i < sizeof(args) / sizeof(args[0]) - 1; i++) {
 			while (s && (*s == ' ' || *s == '\t'))
 				s++;
 			if ((args[i] = strsep(&s, " \t")) == NULL)
 				break;
 		}
-		args[sizeof(args)/sizeof(args[0]) - 1] = 0;
+		args[sizeof(args) / sizeof(args[0]) - 1] = 0;
 
 		if (!strcmp(args[2], "quit") || !strcmp(args[2], "exit"))
 			return (0);
 
-		(void) run_cmd(i, args, iff_name);
+		(void)run_cmd(i, args, iff_name);
 	}
 
 	/* Can't really get here */
@@ -1756,7 +1777,8 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (argc < 3) usage(stderr);
+	if (argc < 3)
+		usage(stderr);
 
 	iff_name = argv[1];
 

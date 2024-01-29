@@ -36,24 +36,24 @@
 
 #include <limits.h>
 
-#define	wsize	sizeof(u_long)
-#define	wmask	(wsize - 1)
+#define wsize sizeof(u_long)
+#define wmask (wsize - 1)
 
 #ifdef BZERO
 #include <strings.h>
 
-#define	RETURN	return
-#define	VAL	0
-#define	WIDEVAL	0
+#define RETURN return
+#define VAL 0
+#define WIDEVAL 0
 
 void
 bzero(void *dst0, size_t length)
 #else
 #include <string.h>
 
-#define	RETURN	return (dst0)
-#define	VAL	c0
-#define	WIDEVAL	c
+#define RETURN return (dst0)
+#define VAL c0
+#define WIDEVAL c
 
 void *
 memset(void *dst0, int c0, size_t length)
@@ -91,13 +91,13 @@ memset(void *dst0, int c0, size_t length)
 	}
 
 #ifndef BZERO
-	if ((c = (u_char)c0) != 0) {	/* Fill the word. */
-		c = (c << 8) | c;	/* u_long is 16 bits. */
+	if ((c = (u_char)c0) != 0) { /* Fill the word. */
+		c = (c << 8) | c;    /* u_long is 16 bits. */
 #if ULONG_MAX > 0xffff
-		c = (c << 16) | c;	/* u_long is 32 bits. */
+		c = (c << 16) | c; /* u_long is 32 bits. */
 #endif
 #if ULONG_MAX > 0xffffffff
-		c = (c << 32) | c;	/* u_long is 64 bits. */
+		c = (c << 32) | c; /* u_long is 64 bits. */
 #endif
 	}
 #endif

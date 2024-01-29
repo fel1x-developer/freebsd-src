@@ -35,6 +35,7 @@
 #include "opt_kbd.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/eventhandler.h>
 #include <sys/fcntl.h>
@@ -49,15 +50,15 @@
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/selinfo.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 #include <sys/uio.h>
+
 #include <dev/kbd/kbdreg.h>
 #include <dev/kbd/kbdtables.h>
 #include <dev/vkbd/vkbd_var.h>
 
-#define DEVICE_NAME	"vkbdctl"
-#define KEYBOARD_NAME	"vkbd"
+#define DEVICE_NAME "vkbdctl"
+#define KEYBOARD_NAME "vkbd"
 
 MALLOC_DECLARE(M_VKBD);
 MALLOC_DEFINE(M_VKBD, KEYBOARD_NAME, "Virtual AT keyboard");
@@ -75,12 +76,13 @@ MALLOC_DEFINE(M_VKBD, KEYBOARD_NAME, "Virtual AT keyboard");
  */
 
 #if 0 /* not yet */
-#define VKBD_LOCK_DECL		struct mtx ks_lock
-#define VKBD_LOCK_INIT(s)	mtx_init(&(s)->ks_lock, "vkbd_lock", NULL, MTX_DEF|MTX_RECURSE)
-#define VKBD_LOCK_DESTROY(s)	mtx_destroy(&(s)->ks_lock)
-#define VKBD_LOCK(s)		mtx_lock(&(s)->ks_lock)
-#define VKBD_UNLOCK(s)		mtx_unlock(&(s)->ks_lock)
-#define VKBD_LOCK_ASSERT(s, w)	mtx_assert(&(s)->ks_lock, w)
+#define VKBD_LOCK_DECL struct mtx ks_lock
+#define VKBD_LOCK_INIT(s) \
+	mtx_init(&(s)->ks_lock, "vkbd_lock", NULL, MTX_DEF | MTX_RECURSE)
+#define VKBD_LOCK_DESTROY(s) mtx_destroy(&(s)->ks_lock)
+#define VKBD_LOCK(s) mtx_lock(&(s)->ks_lock)
+#define VKBD_UNLOCK(s) mtx_unlock(&(s)->ks_lock)
+#define VKBD_LOCK_ASSERT(s, w) mtx_assert(&(s)->ks_lock, w)
 #define VKBD_SLEEP(s, f, d, t) \
 	msleep(&(s)->f, &(s)->ks_lock, PCATCH | (PZERO + 1), d, t)
 #else
@@ -90,53 +92,51 @@ MALLOC_DEFINE(M_VKBD, KEYBOARD_NAME, "Virtual AT keyboard");
 #define VKBD_LOCK(s)
 #define VKBD_UNLOCK(s)
 #define VKBD_LOCK_ASSERT(s, w)
-#define VKBD_SLEEP(s, f, d, t)	tsleep(&(s)->f, PCATCH | (PZERO + 1), d, t)
+#define VKBD_SLEEP(s, f, d, t) tsleep(&(s)->f, PCATCH | (PZERO + 1), d, t)
 #endif
 
 #define VKBD_KEYBOARD(d) \
 	kbd_get_keyboard(kbd_find_keyboard(KEYBOARD_NAME, dev2unit(d)))
 
 /* vkbd queue */
-struct vkbd_queue
-{
-	int		q[VKBD_Q_SIZE]; /* queue */
-	int		head;		/* index of the first code */
-	int		tail;		/* index of the last code */
-	int		cc;		/* number of codes in queue */
+struct vkbd_queue {
+	int q[VKBD_Q_SIZE]; /* queue */
+	int head;	    /* index of the first code */
+	int tail;	    /* index of the last code */
+	int cc;		    /* number of codes in queue */
 };
 
-typedef struct vkbd_queue	vkbd_queue_t;
+typedef struct vkbd_queue vkbd_queue_t;
 
 /* vkbd state */
-struct vkbd_state
-{
-	struct cdev	*ks_dev;	/* control device */
+struct vkbd_state {
+	struct cdev *ks_dev; /* control device */
 
-	struct selinfo	 ks_rsel;	/* select(2) */
-	struct selinfo	 ks_wsel;
+	struct selinfo ks_rsel; /* select(2) */
+	struct selinfo ks_wsel;
 
-	vkbd_queue_t	 ks_inq;	/* input key codes queue */
-	struct task	 ks_task;	/* interrupt task */
+	vkbd_queue_t ks_inq; /* input key codes queue */
+	struct task ks_task; /* interrupt task */
 
-	int		 ks_flags;	/* flags */
-#define OPEN		(1 << 0)	/* control device is open */
-#define COMPOSE		(1 << 1)	/* compose flag */
-#define STATUS		(1 << 2)	/* status has changed */
-#define TASK		(1 << 3)	/* interrupt task queued */
-#define READ		(1 << 4)	/* read pending */
-#define WRITE		(1 << 5)	/* write pending */
+	int ks_flags;	 /* flags */
+#define OPEN (1 << 0)	 /* control device is open */
+#define COMPOSE (1 << 1) /* compose flag */
+#define STATUS (1 << 2)	 /* status has changed */
+#define TASK (1 << 3)	 /* interrupt task queued */
+#define READ (1 << 4)	 /* read pending */
+#define WRITE (1 << 5)	 /* write pending */
 
-	int		 ks_mode;	/* K_XLATE, K_RAW, K_CODE */
-	int		 ks_polling;	/* polling flag */
-	int		 ks_state;	/* shift/lock key state */
-	int		 ks_accents;	/* accent key index (> 0) */
-	u_int		 ks_composed_char; /* composed char code */
-	u_char		 ks_prefix;	/* AT scan code prefix */
+	int ks_mode;		/* K_XLATE, K_RAW, K_CODE */
+	int ks_polling;		/* polling flag */
+	int ks_state;		/* shift/lock key state */
+	int ks_accents;		/* accent key index (> 0) */
+	u_int ks_composed_char; /* composed char code */
+	u_char ks_prefix;	/* AT scan code prefix */
 
 	VKBD_LOCK_DECL;
 };
 
-typedef struct vkbd_state	vkbd_state_t;
+typedef struct vkbd_state vkbd_state_t;
 
 /*****************************************************************************
  *****************************************************************************
@@ -144,39 +144,38 @@ typedef struct vkbd_state	vkbd_state_t;
  *****************************************************************************
  *****************************************************************************/
 
-static void		vkbd_dev_clone(void *, struct ucred *, char *, int,
-			    struct cdev **);
-static d_open_t		vkbd_dev_open;
-static d_close_t	vkbd_dev_close;
-static d_read_t		vkbd_dev_read;
-static d_write_t	vkbd_dev_write;
-static d_ioctl_t	vkbd_dev_ioctl;
-static d_poll_t		vkbd_dev_poll;
-static void		vkbd_dev_intr(void *, int);
-static void		vkbd_status_changed(vkbd_state_t *);
-static int		vkbd_data_ready(vkbd_state_t *);
-static int		vkbd_data_read(vkbd_state_t *, int);
+static void vkbd_dev_clone(void *, struct ucred *, char *, int, struct cdev **);
+static d_open_t vkbd_dev_open;
+static d_close_t vkbd_dev_close;
+static d_read_t vkbd_dev_read;
+static d_write_t vkbd_dev_write;
+static d_ioctl_t vkbd_dev_ioctl;
+static d_poll_t vkbd_dev_poll;
+static void vkbd_dev_intr(void *, int);
+static void vkbd_status_changed(vkbd_state_t *);
+static int vkbd_data_ready(vkbd_state_t *);
+static int vkbd_data_read(vkbd_state_t *, int);
 
-static struct cdevsw	vkbd_dev_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_NEEDGIANT | D_NEEDMINOR,
-	.d_open =	vkbd_dev_open,
-	.d_close =	vkbd_dev_close,
-	.d_read =	vkbd_dev_read,
-	.d_write =	vkbd_dev_write,
-	.d_ioctl =	vkbd_dev_ioctl,
-	.d_poll =	vkbd_dev_poll,
-	.d_name =	DEVICE_NAME,
+static struct cdevsw vkbd_dev_cdevsw = {
+	.d_version = D_VERSION,
+	.d_flags = D_NEEDGIANT | D_NEEDMINOR,
+	.d_open = vkbd_dev_open,
+	.d_close = vkbd_dev_close,
+	.d_read = vkbd_dev_read,
+	.d_write = vkbd_dev_write,
+	.d_ioctl = vkbd_dev_ioctl,
+	.d_poll = vkbd_dev_poll,
+	.d_name = DEVICE_NAME,
 };
 
-static struct clonedevs	*vkbd_dev_clones = NULL;
+static struct clonedevs *vkbd_dev_clones = NULL;
 
 /* Clone device */
 static void
 vkbd_dev_clone(void *arg, struct ucred *cred, char *name, int namelen,
     struct cdev **dev)
 {
-	int	unit;
+	int unit;
 
 	if (*dev != NULL)
 		return;
@@ -188,9 +187,8 @@ vkbd_dev_clone(void *arg, struct ucred *cred, char *name, int namelen,
 
 	/* find any existing device, or allocate new unit number */
 	if (clone_create(&vkbd_dev_clones, &vkbd_dev_cdevsw, &unit, dev, 0))
-		*dev = make_dev_credf(MAKEDEV_REF, &vkbd_dev_cdevsw, unit,
-			cred, UID_ROOT, GID_WHEEL, 0600, DEVICE_NAME "%d",
-			unit);
+		*dev = make_dev_credf(MAKEDEV_REF, &vkbd_dev_cdevsw, unit, cred,
+		    UID_ROOT, GID_WHEEL, 0600, DEVICE_NAME "%d", unit);
 	else
 		dev_ref(*dev);
 }
@@ -199,10 +197,10 @@ vkbd_dev_clone(void *arg, struct ucred *cred, char *name, int namelen,
 static int
 vkbd_dev_open(struct cdev *dev, int flag, int mode, struct thread *td)
 {
-	int			 unit = dev2unit(dev), error;
-	keyboard_switch_t	*sw = NULL;
-	keyboard_t		*kbd = NULL;
-	vkbd_state_t		*state = (vkbd_state_t *) dev->si_drv1;
+	int unit = dev2unit(dev), error;
+	keyboard_switch_t *sw = NULL;
+	keyboard_t *kbd = NULL;
+	vkbd_state_t *state = (vkbd_state_t *)dev->si_drv1;
 
 	/* XXX FIXME: dev->si_drv1 locking */
 	if (state == NULL) {
@@ -213,7 +211,7 @@ vkbd_dev_open(struct cdev *dev, int flag, int mode, struct thread *td)
 		    (error = (*sw->init)(unit, &kbd, NULL, 0)) != 0)
 			return (error);
 
-		state = (vkbd_state_t *) kbd->kb_data;
+		state = (vkbd_state_t *)kbd->kb_data;
 
 		if ((error = (*sw->enable)(kbd)) != 0) {
 			(*sw->term)(kbd);
@@ -250,8 +248,8 @@ vkbd_dev_open(struct cdev *dev, int flag, int mode, struct thread *td)
 static int
 vkbd_dev_close(struct cdev *dev, int foo, int bar, struct thread *td)
 {
-	keyboard_t	*kbd = VKBD_KEYBOARD(dev);
-	vkbd_state_t	*state = NULL;
+	keyboard_t *kbd = VKBD_KEYBOARD(dev);
+	vkbd_state_t *state = NULL;
 
 	if (kbd == NULL)
 		return (ENXIO);
@@ -259,7 +257,7 @@ vkbd_dev_close(struct cdev *dev, int foo, int bar, struct thread *td)
 	if (kbd->kb_data == NULL || kbd->kb_data != dev->si_drv1)
 		panic("%s: kbd->kb_data != dev->si_drv1\n", __func__);
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 
@@ -293,10 +291,10 @@ vkbd_dev_close(struct cdev *dev, int foo, int bar, struct thread *td)
 static int
 vkbd_dev_read(struct cdev *dev, struct uio *uio, int flag)
 {
-	keyboard_t	*kbd = VKBD_KEYBOARD(dev);
-	vkbd_state_t	*state = NULL;
-	vkbd_status_t	 status;
-	int		 error;
+	keyboard_t *kbd = VKBD_KEYBOARD(dev);
+	vkbd_state_t *state = NULL;
+	vkbd_status_t status;
+	int error;
 
 	if (kbd == NULL)
 		return (ENXIO);
@@ -307,7 +305,7 @@ vkbd_dev_read(struct cdev *dev, struct uio *uio, int flag)
 	if (kbd->kb_data == NULL || kbd->kb_data != dev->si_drv1)
 		panic("%s: kbd->kb_data != dev->si_drv1\n", __func__);
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 
@@ -336,7 +334,7 @@ again:
 		}
 
 		error = VKBD_SLEEP(state, ks_flags, "vkbdr", 0);
-		if (error != 0) 
+		if (error != 0)
 			goto done;
 
 		goto again;
@@ -353,10 +351,10 @@ done:
 static int
 vkbd_dev_write(struct cdev *dev, struct uio *uio, int flag)
 {
-	keyboard_t	*kbd = VKBD_KEYBOARD(dev);
-	vkbd_state_t	*state = NULL;
-	vkbd_queue_t	*q = NULL;
-	int		 error, avail, bytes;
+	keyboard_t *kbd = VKBD_KEYBOARD(dev);
+	vkbd_state_t *state = NULL;
+	vkbd_queue_t *q = NULL;
+	int error, avail, bytes;
 
 	if (kbd == NULL)
 		return (ENXIO);
@@ -367,7 +365,7 @@ vkbd_dev_write(struct cdev *dev, struct uio *uio, int flag)
 	if (kbd->kb_data == NULL || kbd->kb_data != dev->si_drv1)
 		panic("%s: kbd->kb_data != dev->si_drv1\n", __func__);
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 
@@ -407,7 +405,7 @@ vkbd_dev_write(struct cdev *dev, struct uio *uio, int flag)
 				bytes = avail * sizeof(q->q[0]);
 			}
 
-			error = uiomove((void *) &q->q[q->tail], bytes, uio);
+			error = uiomove((void *)&q->q[q->tail], bytes, uio);
 			if (error != 0)
 				break;
 
@@ -418,7 +416,8 @@ vkbd_dev_write(struct cdev *dev, struct uio *uio, int flag)
 
 			/* queue interrupt task if needed */
 			if (!(state->ks_flags & TASK) &&
-			    taskqueue_enqueue(taskqueue_swi_giant, &state->ks_task) == 0)
+			    taskqueue_enqueue(taskqueue_swi_giant,
+				&state->ks_task) == 0)
 				state->ks_flags |= TASK;
 		}
 	}
@@ -432,20 +431,21 @@ vkbd_dev_write(struct cdev *dev, struct uio *uio, int flag)
 
 /* Process ioctl */
 static int
-vkbd_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag, struct thread *td)
+vkbd_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flag,
+    struct thread *td)
 {
-	keyboard_t	*kbd = VKBD_KEYBOARD(dev);
+	keyboard_t *kbd = VKBD_KEYBOARD(dev);
 
-	return ((kbd == NULL)? ENXIO : kbdd_ioctl(kbd, cmd, data));
+	return ((kbd == NULL) ? ENXIO : kbdd_ioctl(kbd, cmd, data));
 }
 
 /* Poll device */
 static int
 vkbd_dev_poll(struct cdev *dev, int events, struct thread *td)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) dev->si_drv1;
-	vkbd_queue_t	*q = NULL;
-	int		 revents = 0;
+	vkbd_state_t *state = (vkbd_state_t *)dev->si_drv1;
+	vkbd_queue_t *q = NULL;
+	int revents = 0;
 
 	if (state == NULL)
 		return (ENXIO);
@@ -477,8 +477,8 @@ vkbd_dev_poll(struct cdev *dev, int events, struct thread *td)
 void
 vkbd_dev_intr(void *xkbd, int pending)
 {
-	keyboard_t	*kbd = (keyboard_t *) xkbd;
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
+	keyboard_t *kbd = (keyboard_t *)xkbd;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
 
 	kbdd_intr(kbd, NULL);
 
@@ -516,8 +516,8 @@ vkbd_data_ready(vkbd_state_t *state)
 static int
 vkbd_data_read(vkbd_state_t *state, int wait)
 {
-	vkbd_queue_t	*q = &state->ks_inq;
-	int		 c;
+	vkbd_queue_t *q = &state->ks_inq;
+	int c;
 
 	VKBD_LOCK_ASSERT(state, MA_OWNED);
 
@@ -525,8 +525,8 @@ vkbd_data_read(vkbd_state_t *state, int wait)
 		return (-1);
 
 	/* get first code from the queue */
-	q->cc --;
-	c = q->q[q->head ++];
+	q->cc--;
+	c = q->q[q->head++];
 	if (q->head == nitems(q->q))
 		q->head = 0;
 
@@ -543,49 +543,49 @@ vkbd_data_read(vkbd_state_t *state, int wait)
  ****************************************************************************
  ****************************************************************************/
 
-static int		vkbd_configure(int flags);
-static kbd_probe_t	vkbd_probe;
-static kbd_init_t	vkbd_init;
-static kbd_term_t	vkbd_term;
-static kbd_intr_t	vkbd_intr;
-static kbd_test_if_t	vkbd_test_if;
-static kbd_enable_t	vkbd_enable;
-static kbd_disable_t	vkbd_disable;
-static kbd_read_t	vkbd_read;
-static kbd_check_t	vkbd_check;
-static kbd_read_char_t	vkbd_read_char;
-static kbd_check_char_t	vkbd_check_char;
-static kbd_ioctl_t	vkbd_ioctl;
-static kbd_lock_t	vkbd_lock;
-static void		vkbd_clear_state_locked(vkbd_state_t *state);
+static int vkbd_configure(int flags);
+static kbd_probe_t vkbd_probe;
+static kbd_init_t vkbd_init;
+static kbd_term_t vkbd_term;
+static kbd_intr_t vkbd_intr;
+static kbd_test_if_t vkbd_test_if;
+static kbd_enable_t vkbd_enable;
+static kbd_disable_t vkbd_disable;
+static kbd_read_t vkbd_read;
+static kbd_check_t vkbd_check;
+static kbd_read_char_t vkbd_read_char;
+static kbd_check_char_t vkbd_check_char;
+static kbd_ioctl_t vkbd_ioctl;
+static kbd_lock_t vkbd_lock;
+static void vkbd_clear_state_locked(vkbd_state_t *state);
 static kbd_clear_state_t vkbd_clear_state;
-static kbd_get_state_t	vkbd_get_state;
-static kbd_set_state_t	vkbd_set_state;
-static kbd_poll_mode_t	vkbd_poll;
+static kbd_get_state_t vkbd_get_state;
+static kbd_set_state_t vkbd_set_state;
+static kbd_poll_mode_t vkbd_poll;
 
 static keyboard_switch_t vkbdsw = {
-	.probe =	vkbd_probe,
-	.init =		vkbd_init,
-	.term =		vkbd_term,
-	.intr =		vkbd_intr,
-	.test_if =	vkbd_test_if,
-	.enable =	vkbd_enable,
-	.disable =	vkbd_disable,
-	.read =		vkbd_read,
-	.check =	vkbd_check,
-	.read_char =	vkbd_read_char,
-	.check_char =	vkbd_check_char,
-	.ioctl =	vkbd_ioctl,
-	.lock =		vkbd_lock,
-	.clear_state =	vkbd_clear_state,
-	.get_state =	vkbd_get_state,
-	.set_state =	vkbd_set_state,
-	.poll =		vkbd_poll,
+	.probe = vkbd_probe,
+	.init = vkbd_init,
+	.term = vkbd_term,
+	.intr = vkbd_intr,
+	.test_if = vkbd_test_if,
+	.enable = vkbd_enable,
+	.disable = vkbd_disable,
+	.read = vkbd_read,
+	.check = vkbd_check,
+	.read_char = vkbd_read_char,
+	.check_char = vkbd_check_char,
+	.ioctl = vkbd_ioctl,
+	.lock = vkbd_lock,
+	.clear_state = vkbd_clear_state,
+	.get_state = vkbd_get_state,
+	.set_state = vkbd_set_state,
+	.poll = vkbd_poll,
 };
 
-static int	typematic(int delay, int rate);
-static int	typematic_delay(int delay);
-static int	typematic_rate(int rate);
+static int typematic(int delay, int rate);
+static int typematic_delay(int delay);
+static int typematic_rate(int rate);
 
 /* Return the number of found keyboards */
 static int
@@ -605,13 +605,13 @@ vkbd_probe(int unit, void *arg, int flags)
 static int
 vkbd_init(int unit, keyboard_t **kbdp, void *arg, int flags)
 {
-	keyboard_t	*kbd = NULL;
-	vkbd_state_t	*state = NULL;
-	keymap_t	*keymap = NULL;
-	accentmap_t	*accmap = NULL;
-	fkeytab_t	*fkeymap = NULL;
-	int		 fkeymap_size, delay[2];
-	int		 error, needfree;
+	keyboard_t *kbd = NULL;
+	vkbd_state_t *state = NULL;
+	keymap_t *keymap = NULL;
+	accentmap_t *accmap = NULL;
+	fkeytab_t *fkeymap = NULL;
+	int fkeymap_size, delay[2];
+	int error, needfree;
 
 	if (*kbdp == NULL) {
 		*kbdp = kbd = malloc(sizeof(*kbd), M_VKBD, M_NOWAIT | M_ZERO);
@@ -619,7 +619,7 @@ vkbd_init(int unit, keyboard_t **kbdp, void *arg, int flags)
 		keymap = malloc(sizeof(key_map), M_VKBD, M_NOWAIT);
 		accmap = malloc(sizeof(accent_map), M_VKBD, M_NOWAIT);
 		fkeymap = malloc(sizeof(fkey_tab), M_VKBD, M_NOWAIT);
-		fkeymap_size = sizeof(fkey_tab)/sizeof(fkey_tab[0]);
+		fkeymap_size = sizeof(fkey_tab) / sizeof(fkey_tab[0]);
 		needfree = 1;
 		if ((kbd == NULL) || (state == NULL) || (keymap == NULL) ||
 		    (accmap == NULL) || (fkeymap == NULL)) {
@@ -629,12 +629,12 @@ vkbd_init(int unit, keyboard_t **kbdp, void *arg, int flags)
 
 		VKBD_LOCK_INIT(state);
 		state->ks_inq.head = state->ks_inq.tail = state->ks_inq.cc = 0;
-		TASK_INIT(&state->ks_task, 0, vkbd_dev_intr, (void *) kbd);
+		TASK_INIT(&state->ks_task, 0, vkbd_dev_intr, (void *)kbd);
 	} else if (KBD_IS_INITIALIZED(*kbdp) && KBD_IS_CONFIGURED(*kbdp)) {
 		return (0);
 	} else {
 		kbd = *kbdp;
-		state = (vkbd_state_t *) kbd->kb_data;
+		state = (vkbd_state_t *)kbd->kb_data;
 		keymap = kbd->kb_keymap;
 		accmap = kbd->kb_accentmap;
 		fkeymap = kbd->kb_fkeytab;
@@ -643,11 +643,12 @@ vkbd_init(int unit, keyboard_t **kbdp, void *arg, int flags)
 	}
 
 	if (!KBD_IS_PROBED(kbd)) {
-		kbd_init_struct(kbd, KEYBOARD_NAME, KB_OTHER, unit, flags, 0, 0);
+		kbd_init_struct(kbd, KEYBOARD_NAME, KB_OTHER, unit, flags, 0,
+		    0);
 		bcopy(&key_map, keymap, sizeof(key_map));
 		bcopy(&accent_map, accmap, sizeof(accent_map));
 		bcopy(fkey_tab, fkeymap,
-			imin(fkeymap_size*sizeof(fkeymap[0]), sizeof(fkey_tab)));
+		    imin(fkeymap_size * sizeof(fkeymap[0]), sizeof(fkey_tab)));
 		kbd_set_maps(kbd, keymap, accmap, fkeymap, fkeymap_size);
 		kbd->kb_data = (void *)state;
 
@@ -691,7 +692,7 @@ bad:
 			free(fkeymap, M_VKBD);
 		if (kbd != NULL) {
 			free(kbd, M_VKBD);
-			*kbdp = NULL;	/* insure ref doesn't leak to caller */
+			*kbdp = NULL; /* insure ref doesn't leak to caller */
 		}
 	}
 	return (error);
@@ -701,7 +702,7 @@ bad:
 static int
 vkbd_term(keyboard_t *kbd)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
 
 	kbd_unregister(kbd);
 
@@ -721,12 +722,12 @@ vkbd_term(keyboard_t *kbd)
 static int
 vkbd_intr(keyboard_t *kbd, void *arg)
 {
-	int	c;
+	int c;
 
 	if (KBD_IS_ACTIVE(kbd) && KBD_IS_BUSY(kbd)) {
 		/* let the callback function to process the input */
 		(*kbd->kb_callback.kc_func)(kbd, KBDIO_KEYINPUT,
-					    kbd->kb_callback.kc_arg);
+		    kbd->kb_callback.kc_arg);
 	} else {
 		/* read and discard the input; no one is waiting for input */
 		do {
@@ -744,7 +745,7 @@ vkbd_test_if(keyboard_t *kbd)
 	return (0);
 }
 
-/* 
+/*
  * Enable the access to the device; until this function is called,
  * the client cannot read from the keyboard.
  */
@@ -768,30 +769,30 @@ vkbd_disable(keyboard_t *kbd)
 static int
 vkbd_read(keyboard_t *kbd, int wait)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
-	int		 c;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
+	int c;
 
 	VKBD_LOCK(state);
 	c = vkbd_data_read(state, wait);
 	VKBD_UNLOCK(state);
 
 	if (c != -1)
-		kbd->kb_count ++;
+		kbd->kb_count++;
 
-	return (KBD_IS_ACTIVE(kbd)? c : -1);
+	return (KBD_IS_ACTIVE(kbd) ? c : -1);
 }
 
 /* Check if data is waiting */
 static int
 vkbd_check(keyboard_t *kbd)
 {
-	vkbd_state_t	*state = NULL;
-	int		 ready;
+	vkbd_state_t *state = NULL;
+	int ready;
 
 	if (!KBD_IS_ACTIVE(kbd))
 		return (FALSE);
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 	ready = vkbd_data_ready(state);
@@ -804,9 +805,9 @@ vkbd_check(keyboard_t *kbd)
 static u_int
 vkbd_read_char(keyboard_t *kbd, int wait)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
-	u_int		 action;
-	int		 scancode, keycode;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
+	u_int action;
+	int scancode, keycode;
 
 	VKBD_LOCK(state);
 
@@ -833,7 +834,7 @@ next_code:
 	}
 	/* XXX FIXME: check for -1 if wait == 1! */
 
-	kbd->kb_count ++;
+	kbd->kb_count++;
 
 	/* return the byte as is for the K_RAW mode */
 	if (state->ks_mode == K_RAW) {
@@ -844,16 +845,16 @@ next_code:
 	/* translate the scan code into a keycode */
 	keycode = scancode & 0x7F;
 	switch (state->ks_prefix) {
-	case 0x00:	/* normal scancode */
-		switch(scancode) {
-		case 0xB8:	/* left alt (compose key) released */
+	case 0x00: /* normal scancode */
+		switch (scancode) {
+		case 0xB8: /* left alt (compose key) released */
 			if (state->ks_flags & COMPOSE) {
 				state->ks_flags &= ~COMPOSE;
 				if (state->ks_composed_char > UCHAR_MAX)
 					state->ks_composed_char = 0;
 			}
 			break;
-		case 0x38:	/* left alt (compose key) pressed */
+		case 0x38: /* left alt (compose key) pressed */
 			if (!(state->ks_flags & COMPOSE)) {
 				state->ks_flags |= COMPOSE;
 				state->ks_composed_char = 0;
@@ -865,82 +866,82 @@ next_code:
 			goto next_code;
 		}
 		break;
-	case 0xE0:      /* 0xE0 prefix */
+	case 0xE0: /* 0xE0 prefix */
 		state->ks_prefix = 0;
 		switch (keycode) {
-		case 0x1C:	/* right enter key */
+		case 0x1C: /* right enter key */
 			keycode = 0x59;
 			break;
-		case 0x1D:	/* right ctrl key */
+		case 0x1D: /* right ctrl key */
 			keycode = 0x5A;
 			break;
-		case 0x35:	/* keypad divide key */
+		case 0x35: /* keypad divide key */
 			keycode = 0x5B;
 			break;
-		case 0x37:	/* print scrn key */
+		case 0x37: /* print scrn key */
 			keycode = 0x5C;
 			break;
-		case 0x38:	/* right alt key (alt gr) */
+		case 0x38: /* right alt key (alt gr) */
 			keycode = 0x5D;
 			break;
-		case 0x46:	/* ctrl-pause/break on AT 101 (see below) */
+		case 0x46: /* ctrl-pause/break on AT 101 (see below) */
 			keycode = 0x68;
 			break;
-		case 0x47:	/* grey home key */
+		case 0x47: /* grey home key */
 			keycode = 0x5E;
 			break;
-		case 0x48:	/* grey up arrow key */
+		case 0x48: /* grey up arrow key */
 			keycode = 0x5F;
 			break;
-		case 0x49:	/* grey page up key */
+		case 0x49: /* grey page up key */
 			keycode = 0x60;
 			break;
-		case 0x4B:	/* grey left arrow key */
+		case 0x4B: /* grey left arrow key */
 			keycode = 0x61;
 			break;
-		case 0x4D:	/* grey right arrow key */
+		case 0x4D: /* grey right arrow key */
 			keycode = 0x62;
 			break;
-		case 0x4F:	/* grey end key */
+		case 0x4F: /* grey end key */
 			keycode = 0x63;
 			break;
-		case 0x50:	/* grey down arrow key */
+		case 0x50: /* grey down arrow key */
 			keycode = 0x64;
 			break;
-		case 0x51:	/* grey page down key */
+		case 0x51: /* grey page down key */
 			keycode = 0x65;
 			break;
-		case 0x52:	/* grey insert key */
+		case 0x52: /* grey insert key */
 			keycode = 0x66;
 			break;
-		case 0x53:	/* grey delete key */
+		case 0x53: /* grey delete key */
 			keycode = 0x67;
 			break;
 		/* the following 3 are only used on the MS "Natural" keyboard */
-		case 0x5b:	/* left Window key */
+		case 0x5b: /* left Window key */
 			keycode = 0x69;
 			break;
-		case 0x5c:	/* right Window key */
+		case 0x5c: /* right Window key */
 			keycode = 0x6a;
 			break;
-		case 0x5d:	/* menu key */
+		case 0x5d: /* menu key */
 			keycode = 0x6b;
 			break;
-		case 0x5e:	/* power key */
+		case 0x5e: /* power key */
 			keycode = 0x6d;
 			break;
-		case 0x5f:	/* sleep key */
+		case 0x5f: /* sleep key */
 			keycode = 0x6e;
 			break;
-		case 0x63:	/* wake key */
+		case 0x63: /* wake key */
 			keycode = 0x6f;
 			break;
-		default:	/* ignore everything else */
+		default: /* ignore everything else */
 			goto next_code;
 		}
 		break;
-	case 0xE1:	/* 0xE1 prefix */
-		/* 
+	case 0xE1: /* 0xE1 prefix */
+		/*
 		 * The pause/break key on the 101 keyboard produces:
 		 * E1-1D-45 E1-9D-C5
 		 * Ctrl-pause/break produces:
@@ -951,7 +952,7 @@ next_code:
 			state->ks_prefix = 0x1D;
 		goto next_code;
 		/* NOT REACHED */
-	case 0x1D:	/* pause / break */
+	case 0x1D: /* pause / break */
 		state->ks_prefix = 0;
 		if (keycode != 0x45)
 			goto next_code;
@@ -961,28 +962,28 @@ next_code:
 
 	if (kbd->kb_type == KB_84) {
 		switch (keycode) {
-		case 0x37:	/* *(numpad)/print screen */
+		case 0x37: /* *(numpad)/print screen */
 			if (state->ks_flags & SHIFTS)
-				keycode = 0x5c;	/* print screen */
+				keycode = 0x5c; /* print screen */
 			break;
-		case 0x45:	/* num lock/pause */
+		case 0x45: /* num lock/pause */
 			if (state->ks_flags & CTLS)
-				keycode = 0x68;	/* pause */
+				keycode = 0x68; /* pause */
 			break;
-		case 0x46:	/* scroll lock/break */
+		case 0x46: /* scroll lock/break */
 			if (state->ks_flags & CTLS)
-				keycode = 0x6c;	/* break */
+				keycode = 0x6c; /* break */
 			break;
 		}
 	} else if (kbd->kb_type == KB_101) {
 		switch (keycode) {
-		case 0x5c:	/* print screen */
+		case 0x5c: /* print screen */
 			if (state->ks_flags & ALTS)
-				keycode = 0x54;	/* sysrq */
+				keycode = 0x54; /* sysrq */
 			break;
-		case 0x68:	/* pause/break */
+		case 0x68: /* pause/break */
 			if (state->ks_flags & CTLS)
-				keycode = 0x6c;	/* break */
+				keycode = 0x6c; /* break */
 			break;
 		}
 	}
@@ -997,7 +998,9 @@ next_code:
 	if (state->ks_flags & COMPOSE) {
 		switch (keycode | (scancode & 0x80)) {
 		/* key pressed, process it */
-		case 0x47: case 0x48: case 0x49:	/* keypad 7,8,9 */
+		case 0x47:
+		case 0x48:
+		case 0x49: /* keypad 7,8,9 */
 			state->ks_composed_char *= 10;
 			state->ks_composed_char += keycode - 0x40;
 			if (state->ks_composed_char > UCHAR_MAX) {
@@ -1005,7 +1008,9 @@ next_code:
 				return (ERRKEY);
 			}
 			goto next_code;
-		case 0x4B: case 0x4C: case 0x4D:	/* keypad 4,5,6 */
+		case 0x4B:
+		case 0x4C:
+		case 0x4D: /* keypad 4,5,6 */
 			state->ks_composed_char *= 10;
 			state->ks_composed_char += keycode - 0x47;
 			if (state->ks_composed_char > UCHAR_MAX) {
@@ -1013,7 +1018,9 @@ next_code:
 				return (ERRKEY);
 			}
 			goto next_code;
-		case 0x4F: case 0x50: case 0x51:	/* keypad 1,2,3 */
+		case 0x4F:
+		case 0x50:
+		case 0x51: /* keypad 1,2,3 */
 			state->ks_composed_char *= 10;
 			state->ks_composed_char += keycode - 0x4E;
 			if (state->ks_composed_char > UCHAR_MAX) {
@@ -1021,7 +1028,7 @@ next_code:
 				return (ERRKEY);
 			}
 			goto next_code;
-		case 0x52:	/* keypad 0 */
+		case 0x52: /* keypad 0 */
 			state->ks_composed_char *= 10;
 			if (state->ks_composed_char > UCHAR_MAX) {
 				VKBD_UNLOCK(state);
@@ -1030,13 +1037,19 @@ next_code:
 			goto next_code;
 
 		/* key released, no interest here */
-		case 0xC7: case 0xC8: case 0xC9:	/* keypad 7,8,9 */
-		case 0xCB: case 0xCC: case 0xCD:	/* keypad 4,5,6 */
-		case 0xCF: case 0xD0: case 0xD1:	/* keypad 1,2,3 */
-		case 0xD2:				/* keypad 0 */
+		case 0xC7:
+		case 0xC8:
+		case 0xC9: /* keypad 7,8,9 */
+		case 0xCB:
+		case 0xCC:
+		case 0xCD: /* keypad 4,5,6 */
+		case 0xCF:
+		case 0xD0:
+		case 0xD1: /* keypad 1,2,3 */
+		case 0xD2: /* keypad 0 */
 			goto next_code;
 
-		case 0x38:				/* left alt key */
+		case 0x38: /* left alt key */
 			break;
 
 		default:
@@ -1052,7 +1065,7 @@ next_code:
 
 	/* keycode to key action */
 	action = genkbd_keyaction(kbd, keycode, scancode & 0x80,
-			&state->ks_state, &state->ks_accents);
+	    &state->ks_state, &state->ks_accents);
 	if (action == NOKEY)
 		goto next_code;
 
@@ -1065,13 +1078,13 @@ next_code:
 static int
 vkbd_check_char(keyboard_t *kbd)
 {
-	vkbd_state_t	*state = NULL;
-	int		 ready;
+	vkbd_state_t *state = NULL;
+	int ready;
 
 	if (!KBD_IS_ACTIVE(kbd))
 		return (FALSE);
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 	if (!(state->ks_flags & COMPOSE) && (state->ks_composed_char > 0))
@@ -1087,16 +1100,16 @@ vkbd_check_char(keyboard_t *kbd)
 static int
 vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
-	int		 i;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
+	int i;
 #ifdef COMPAT_FREEBSD6
-	int		 ival;
+	int ival;
 #endif
 
 	VKBD_LOCK(state);
 
 	switch (cmd) {
-	case KDGKBMODE:		/* get keyboard mode */
+	case KDGKBMODE: /* get keyboard mode */
 		*(int *)arg = state->ks_mode;
 		break;
 
@@ -1106,7 +1119,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBMODE:		/* set keyboard mode */
+	case KDSKBMODE: /* set keyboard mode */
 		switch (*(int *)arg) {
 		case K_XLATE:
 			if (state->ks_mode != K_XLATE) {
@@ -1132,7 +1145,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		}
 		break;
 
-	case KDGETLED:		/* get keyboard LED */
+	case KDGETLED: /* get keyboard LED */
 		*(int *)arg = KBD_LED_VAL(kbd);
 		break;
 
@@ -1142,7 +1155,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETLED:		/* set keyboard LED */
+	case KDSETLED: /* set keyboard LED */
 		/* NOTE: lock key state in ks_state won't be changed */
 		if (*(int *)arg & ~LOCK_MASK) {
 			VKBD_UNLOCK(state);
@@ -1163,7 +1176,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		vkbd_status_changed(state);
 		break;
 
-	case KDGKBSTATE:	/* get lock key state */
+	case KDGKBSTATE: /* get lock key state */
 		*(int *)arg = state->ks_state & LOCK_MASK;
 		break;
 
@@ -1173,7 +1186,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBSTATE:	/* set lock key state */
+	case KDSKBSTATE: /* set lock key state */
 		if (*(int *)arg & ~LOCK_MASK) {
 			VKBD_UNLOCK(state);
 			return (EINVAL);
@@ -1185,7 +1198,7 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		/* set LEDs and quit */
 		return (vkbd_ioctl(kbd, KDSETLED, arg));
 
-	case KDSETREPEAT:	/* set keyboard repeat rate (new interface) */
+	case KDSETREPEAT: /* set keyboard repeat rate (new interface) */
 		i = typematic(((int *)arg)[0], ((int *)arg)[1]);
 		kbd->kb_delay1 = typematic_delay(i);
 		kbd->kb_delay2 = typematic_rate(i);
@@ -1198,19 +1211,19 @@ vkbd_ioctl(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETRAD:		/* set keyboard repeat rate (old interface) */
+	case KDSETRAD: /* set keyboard repeat rate (old interface) */
 		kbd->kb_delay1 = typematic_delay(*(int *)arg);
 		kbd->kb_delay2 = typematic_rate(*(int *)arg);
 		vkbd_status_changed(state);
 		break;
 
-	case PIO_KEYMAP:	/* set keyboard translation table */
-	case PIO_KEYMAPENT:	/* set keyboard translation table entry */
-	case PIO_DEADKEYMAP:	/* set accent key translation table */
+	case PIO_KEYMAP:     /* set keyboard translation table */
+	case PIO_KEYMAPENT:  /* set keyboard translation table entry */
+	case PIO_DEADKEYMAP: /* set accent key translation table */
 #ifdef COMPAT_FREEBSD13
-	case OPIO_KEYMAP:	/* set keyboard translation table (compat) */
-	case OPIO_DEADKEYMAP:	/* set accent key translation table (compat) */
-#endif /* COMPAT_FREEBSD13 */
+	case OPIO_KEYMAP:     /* set keyboard translation table (compat) */
+	case OPIO_DEADKEYMAP: /* set accent key translation table (compat) */
+#endif			      /* COMPAT_FREEBSD13 */
 		state->ks_accents = 0;
 		/* FALLTHROUGH */
 
@@ -1239,10 +1252,10 @@ vkbd_clear_state_locked(vkbd_state_t *state)
 
 	state->ks_flags &= ~COMPOSE;
 	state->ks_polling = 0;
-	state->ks_state &= LOCK_MASK;	/* preserve locking key state */
+	state->ks_state &= LOCK_MASK; /* preserve locking key state */
 	state->ks_accents = 0;
 	state->ks_composed_char = 0;
-/*	state->ks_prefix = 0;		XXX */
+	/*	state->ks_prefix = 0;		XXX */
 
 	/* flush ks_inq and wakeup writers/poll()ers */
 	state->ks_inq.head = state->ks_inq.tail = state->ks_inq.cc = 0;
@@ -1253,7 +1266,7 @@ vkbd_clear_state_locked(vkbd_state_t *state)
 static void
 vkbd_clear_state(keyboard_t *kbd)
 {
-	vkbd_state_t	*state = (vkbd_state_t *) kbd->kb_data;
+	vkbd_state_t *state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 	vkbd_clear_state_locked(state);
@@ -1286,16 +1299,16 @@ vkbd_set_state(keyboard_t *kbd, void *buf, size_t len)
 static int
 vkbd_poll(keyboard_t *kbd, int on)
 {
-	vkbd_state_t	*state = NULL;
+	vkbd_state_t *state = NULL;
 
-	state = (vkbd_state_t *) kbd->kb_data;
+	state = (vkbd_state_t *)kbd->kb_data;
 
 	VKBD_LOCK(state);
 
 	if (on)
-		state->ks_polling ++;
+		state->ks_polling++;
 	else
-		state->ks_polling --;
+		state->ks_polling--;
 
 	VKBD_UNLOCK(state);
 
@@ -1339,7 +1352,7 @@ typematic(int delay, int rate)
 
 /*****************************************************************************
  *****************************************************************************
- **                                    Module 
+ **                                    Module
  *****************************************************************************
  *****************************************************************************/
 
@@ -1348,7 +1361,7 @@ KEYBOARD_DRIVER(vkbd, vkbdsw, vkbd_configure);
 static int
 vkbd_modevent(module_t mod, int type, void *data)
 {
-	static eventhandler_tag	tag;
+	static eventhandler_tag tag;
 
 	switch (type) {
 	case MOD_LOAD:

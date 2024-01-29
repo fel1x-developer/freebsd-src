@@ -27,4 +27,5 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "csu_common.h"

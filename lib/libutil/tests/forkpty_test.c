@@ -7,11 +7,10 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <libutil.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 ATF_TC(forkfail);
 ATF_TC_HEAD(forkfail, tc)

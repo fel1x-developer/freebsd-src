@@ -31,6 +31,7 @@
 
 #include <sys/types.h>
 #include <sys/errno.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -39,6 +40,7 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "mfiutil.h"
 
 static int
@@ -58,8 +60,8 @@ mfi_get_events(int fd, struct mfi_evt_list *list, int num_events,
 
 	mbox[0] = start_seq;
 	mbox[1] = filter.word;
-	size = sizeof(struct mfi_evt_list) + sizeof(struct mfi_evt_detail) *
-	    (num_events - 1);
+	size = sizeof(struct mfi_evt_list) +
+	    sizeof(struct mfi_evt_detail) * (num_events - 1);
 	return (mfi_dcmd_command(fd, MFI_DCMD_CTRL_EVENT_GET, list, size,
 	    (uint8_t *)&mbox, sizeof(mbox), statusp));
 }
@@ -246,8 +248,8 @@ format_timestamp(uint32_t timestamp)
 	struct tm tm;
 
 	if ((timestamp & 0xff000000) == 0xff000000) {
-		snprintf(buffer, sizeof(buffer), "boot + %us", timestamp &
-		    0x00ffffff);
+		snprintf(buffer, sizeof(buffer), "boot + %us",
+		    timestamp & 0x00ffffff);
 		return (buffer);
 	}
 
@@ -373,8 +375,7 @@ mfi_decode_evt(int fd, struct mfi_evt_detail *detail, int verbose)
 	case MR_EVT_ARGS_CDB_SENSE:
 		if (verbose) {
 			printf("PD %s CDB ",
-			    pdrive_location(&detail->args.cdb_sense.pd)
-			    );
+			    pdrive_location(&detail->args.cdb_sense.pd));
 			simple_hex(detail->args.cdb_sense.cdb,
 			    detail->args.cdb_sense.cdb_len, ":");
 			printf(" Sense ");
@@ -397,8 +398,7 @@ mfi_decode_evt(int fd, struct mfi_evt_detail *detail, int verbose)
 	case MR_EVT_ARGS_LD_LBA:
 		printf("VOL %s", volume_name(fd, &detail->args.ld_count.ld));
 		if (verbose) {
-			printf(" lba %lld",
-			    (long long)detail->args.ld_lba.lba);
+			printf(" lba %lld", (long long)detail->args.ld_lba.lba);
 		}
 		printf(": ");
 		break;
@@ -425,7 +425,7 @@ mfi_decode_evt(int fd, struct mfi_evt_detail *detail, int verbose)
 		printf("VOL %s", volume_name(fd, &detail->args.ld_prog.ld));
 		if (verbose) {
 			printf(" progress %d%% in %ds",
-			    detail->args.ld_prog.prog.progress/655,
+			    detail->args.ld_prog.prog.progress / 655,
 			    detail->args.ld_prog.prog.elapsed_seconds);
 		}
 		printf(": ");
@@ -479,7 +479,7 @@ mfi_decode_evt(int fd, struct mfi_evt_detail *detail, int verbose)
 		if (verbose) {
 			printf("PD %s progress %d%% seconds %ds: ",
 			    pdrive_location(&detail->args.pd_prog.pd),
-			    detail->args.pd_prog.prog.progress/655,
+			    detail->args.pd_prog.prog.progress / 655,
 			    detail->args.pd_prog.prog.elapsed_seconds);
 		}
 		break;
@@ -514,10 +514,8 @@ mfi_decode_evt(int fd, struct mfi_evt_detail *detail, int verbose)
 		break;
 	case MR_EVT_ARGS_ECC:
 		if (verbose) {
-			printf("Adapter ECC %x,%x: %s: ",
-			    detail->args.ecc.ecar,
-			    detail->args.ecc.elog,
-			    detail->args.ecc.str);
+			printf("Adapter ECC %x,%x: %s: ", detail->args.ecc.ecar,
+			    detail->args.ecc.elog, detail->args.ecc.str);
 		}
 		break;
 	default:
@@ -573,7 +571,8 @@ show_events(int ac, char **av)
 	while ((ch = getopt(ac, av, "c:l:n:v")) != -1) {
 		switch (ch) {
 		case 'c':
-			if (parse_class(optarg, &filter.members.evt_class) < 0) {
+			if (parse_class(optarg, &filter.members.evt_class) <
+			    0) {
 				error = errno;
 				warn("Error parsing event class");
 				close(fd);
@@ -611,8 +610,8 @@ show_events(int ac, char **av)
 	av += optind;
 
 	/* Determine buffer size and validate it. */
-	size = sizeof(struct mfi_evt_list) + sizeof(struct mfi_evt_detail) *
-	    (num_events - 1);
+	size = sizeof(struct mfi_evt_list) +
+	    sizeof(struct mfi_evt_detail) * (num_events - 1);
 	if (size > getpagesize()) {
 		warnx("Event count is too high");
 		close(fd);
@@ -647,8 +646,8 @@ show_events(int ac, char **av)
 	first = true;
 	seq = start;
 	for (;;) {
-		if (mfi_get_events(fd, list, num_events, filter, seq,
-		    &status) < 0) {
+		if (mfi_get_events(fd, list, num_events, filter, seq, &status) <
+		    0) {
 			error = errno;
 			warn("Failed to fetch events");
 			free(list);
@@ -689,7 +688,6 @@ show_events(int ac, char **av)
 		 * need to know the size of the buffer somehow.
 		 */
 		seq = list->event[list->count - 1].seq + 1;
-
 	}
 finish:
 	if (first)

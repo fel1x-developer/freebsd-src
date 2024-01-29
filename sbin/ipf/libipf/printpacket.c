@@ -9,10 +9,9 @@
 
 #include "ipf.h"
 
-#ifndef	IP_OFFMASK
-# define	IP_OFFMASK	0x3fff
+#ifndef IP_OFFMASK
+#define IP_OFFMASK 0x3fff
 #endif
-
 
 void
 printpacket(int dir, mb_t *m)
@@ -70,7 +69,7 @@ printpacket(int dir, mb_t *m)
 	off = ntohs(ip->ip_off);
 	tcp = (struct tcphdr *)((char *)ip + (IP_HL(ip) << 2));
 	PRINTF("ip #%d %d(%d) %d", ntohs(ip->ip_id), ntohs(ip->ip_len),
-	       IP_HL(ip) << 2, ip->ip_p);
+	    IP_HL(ip) << 2, ip->ip_p);
 	if (off & IP_OFFMASK)
 		PRINTF(" @%d", off << 3);
 	PRINTF(" %s", inet_ntoa(ip->ip_src));

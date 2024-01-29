@@ -33,8 +33,8 @@
 #include "local.h"
 
 struct fopencookie_thunk {
-	void			*foc_cookie;
-	cookie_io_functions_t	foc_io;
+	void *foc_cookie;
+	cookie_io_functions_t foc_io;
 };
 
 static int _fopencookie_read(void *, char *, int);
@@ -106,8 +106,7 @@ _fopencookie_write(void *cookie, const char *buf, int size)
 	if (thunk->foc_io.write == NULL)
 		return (size);
 
-	return ((int)thunk->foc_io.write(thunk->foc_cookie, buf,
-		(size_t)size));
+	return ((int)thunk->foc_io.write(thunk->foc_cookie, buf, (size_t)size));
 }
 
 static fpos_t

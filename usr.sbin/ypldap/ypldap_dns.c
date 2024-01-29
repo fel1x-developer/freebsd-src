@@ -18,36 +18,36 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/tree.h>
-#include <sys/queue.h>
 
 #include <netinet/in.h>
-#include <arpa/nameser.h>
 
-#include <netdb.h>
-#include <pwd.h>
+#include <arpa/nameser.h>
 #include <errno.h>
 #include <event.h>
-#include <resolv.h>
+#include <limits.h>
+#include <netdb.h>
 #include <poll.h>
+#include <pwd.h>
+#include <resolv.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include "ypldap.h"
 
-volatile sig_atomic_t	 quit_dns = 0;
-struct imsgev		*iev_dns;
+volatile sig_atomic_t quit_dns = 0;
+struct imsgev *iev_dns;
 
-void	dns_dispatch_imsg(int, short, void *);
-void	dns_sig_handler(int, short, void *);
-void	dns_shutdown(void);
-int	host_dns(const char *, struct ypldap_addr_list *);
+void dns_dispatch_imsg(int, short, void *);
+void dns_sig_handler(int, short, void *);
+void dns_shutdown(void);
+int host_dns(const char *, struct ypldap_addr_list *);
 
 void
 dns_sig_handler(int sig, short event, void *p)
@@ -72,11 +72,11 @@ dns_shutdown(void)
 pid_t
 ypldap_dns(int pipe_ntp[2], struct passwd *pw)
 {
-	pid_t			 pid;
-	struct event	 ev_sigint;
-	struct event	 ev_sigterm;
-	struct event	 ev_sighup;
-	struct env	 env;
+	pid_t pid;
+	struct event ev_sigint;
+	struct event ev_sigterm;
+	struct event ev_sighup;
+	struct env env;
 
 	switch (pid = fork()) {
 	case -1:
@@ -125,16 +125,16 @@ ypldap_dns(int pipe_ntp[2], struct passwd *pw)
 void
 dns_dispatch_imsg(int fd, short events, void *p)
 {
-	struct imsg		 imsg;
-	int			 n, cnt;
-	char			*name;
-	struct ypldap_addr_list	hn = TAILQ_HEAD_INITIALIZER(hn);
-	struct ypldap_addr	*h;
-	struct ibuf		*buf;
-	struct env		*env = p;
-	struct imsgev		*iev = env->sc_iev;
-	struct imsgbuf		*ibuf = &iev->ibuf;
-	int			 shut = 0;
+	struct imsg imsg;
+	int n, cnt;
+	char *name;
+	struct ypldap_addr_list hn = TAILQ_HEAD_INITIALIZER(hn);
+	struct ypldap_addr *h;
+	struct ibuf *buf;
+	struct env *env = p;
+	struct imsgev *iev = env->sc_iev;
+	struct imsgbuf *ibuf = &iev->ibuf;
+	int shut = 0;
 
 	if ((events & (EV_READ | EV_WRITE)) == 0)
 		fatalx("unknown event");
@@ -170,13 +170,12 @@ dns_dispatch_imsg(int fd, short events, void *p)
 				fatalx("invalid IMSG_HOST_DNS received");
 			if ((cnt = host_dns(name, &hn)) == -1)
 				break;
-			buf = imsg_create(ibuf, IMSG_HOST_DNS,
-			    imsg.hdr.peerid, 0,
-			    cnt * sizeof(struct sockaddr_storage));
+			buf = imsg_create(ibuf, IMSG_HOST_DNS, imsg.hdr.peerid,
+			    0, cnt * sizeof(struct sockaddr_storage));
 			if (buf == NULL)
 				break;
 			if (cnt > 0) {
-				while(!TAILQ_EMPTY(&hn)) {
+				while (!TAILQ_EMPTY(&hn)) {
 					h = TAILQ_FIRST(&hn);
 					TAILQ_REMOVE(&hn, h, next);
 					imsg_add(buf, &h->ss, sizeof(h->ss));
@@ -205,27 +204,25 @@ done:
 int
 host_dns(const char *s, struct ypldap_addr_list *hn)
 {
-	struct addrinfo		 hints, *res0, *res;
-	int			 error, cnt = 0;
-	struct sockaddr_in	*sa_in;
-	struct sockaddr_in6	*sa_in6;
-	struct ypldap_addr	*h;
+	struct addrinfo hints, *res0, *res;
+	int error, cnt = 0;
+	struct sockaddr_in *sa_in;
+	struct sockaddr_in6 *sa_in6;
+	struct ypldap_addr *h;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM; /* DUMMY */
 	error = getaddrinfo(s, NULL, &hints, &res0);
 	if (error == EAI_AGAIN || error == EAI_NONAME)
-			return (0);
+		return (0);
 	if (error) {
-		log_warnx("could not parse \"%s\": %s", s,
-		    gai_strerror(error));
+		log_warnx("could not parse \"%s\": %s", s, gai_strerror(error));
 		return (-1);
 	}
 
 	for (res = res0; res && cnt < MAX_SERVERS_DNS; res = res->ai_next) {
-		if (res->ai_family != AF_INET &&
-		    res->ai_family != AF_INET6)
+		if (res->ai_family != AF_INET && res->ai_family != AF_INET6)
 			continue;
 		if ((h = calloc(1, sizeof(struct ypldap_addr))) == NULL)
 			fatal(NULL);
@@ -233,13 +230,15 @@ host_dns(const char *s, struct ypldap_addr_list *hn)
 		if (res->ai_family == AF_INET) {
 			sa_in = (struct sockaddr_in *)&h->ss;
 			sa_in->sin_len = sizeof(struct sockaddr_in);
-			sa_in->sin_addr.s_addr = ((struct sockaddr_in *)
-			    res->ai_addr)->sin_addr.s_addr;
+			sa_in->sin_addr.s_addr =
+			    ((struct sockaddr_in *)res->ai_addr)
+				->sin_addr.s_addr;
 		} else {
 			sa_in6 = (struct sockaddr_in6 *)&h->ss;
 			sa_in6->sin6_len = sizeof(struct sockaddr_in6);
-			memcpy(&sa_in6->sin6_addr, &((struct sockaddr_in6 *)
-			    res->ai_addr)->sin6_addr, sizeof(struct in6_addr));
+			memcpy(&sa_in6->sin6_addr,
+			    &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr,
+			    sizeof(struct in6_addr));
 		}
 
 		TAILQ_INSERT_HEAD(hn, h, next);

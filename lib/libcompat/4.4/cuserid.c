@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
 #include <pwd.h>
 #include <stdio.h>
 #include <string.h>

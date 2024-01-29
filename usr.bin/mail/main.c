@@ -29,60 +29,61 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <fcntl.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
  *
  * Startup -- interface with user.
  */
-int	msgCount;
-int	rcvmode;
-int	sawcom;
-char	*Tflag;
-int	senderr;
-int	edit;
-int	readonly;
-int	noreset;
-int	sourcing;
-int	loading;
-int	cond;
-FILE	*itf;
-FILE	*otf;
-int	image;
-FILE	*input;
-char	mailname[PATHSIZE];
-char	prevfile[PATHSIZE];
-char	*homedir;
-char	*myname;
-off_t	mailsize;
-int	lexnumber;
-char	lexstring[STRINGLEN];
-int	regretp;
-int	regretstack[REGDEP];
-char	*string_stack[REGDEP];
-int	numberstack[REGDEP];
-struct	message	*dot;
-struct	message	*message;
-struct	var	*variables[HSHSIZE];
-struct	grouphead	*groups[HSHSIZE];
-struct	ignoretab	ignore[2];
+int msgCount;
+int rcvmode;
+int sawcom;
+char *Tflag;
+int senderr;
+int edit;
+int readonly;
+int noreset;
+int sourcing;
+int loading;
+int cond;
+FILE *itf;
+FILE *otf;
+int image;
+FILE *input;
+char mailname[PATHSIZE];
+char prevfile[PATHSIZE];
+char *homedir;
+char *myname;
+off_t mailsize;
+int lexnumber;
+char lexstring[STRINGLEN];
+int regretp;
+int regretstack[REGDEP];
+char *string_stack[REGDEP];
+int numberstack[REGDEP];
+struct message *dot;
+struct message *message;
+struct var *variables[HSHSIZE];
+struct grouphead *groups[HSHSIZE];
+struct ignoretab ignore[2];
 
-struct	ignoretab	saveignore[2];
+struct ignoretab saveignore[2];
 
-struct	ignoretab	ignoreall[2];
-char	**altnames;
-int	debug;
-int	screenwidth;
-int	screenheight;
+struct ignoretab ignoreall[2];
+char **altnames;
+int debug;
+int screenwidth;
+int screenheight;
 
-int	realscreenheight;
+int realscreenheight;
 
-jmp_buf	srbuf;
+jmp_buf srbuf;
 
-static jmp_buf	hdrjmp;
+static jmp_buf hdrjmp;
 
 extern const char *version;
 
@@ -127,7 +128,7 @@ main(int argc, char *argv[])
 			 */
 			Tflag = optarg;
 			if ((i = open(Tflag, O_CREAT | O_TRUNC | O_WRONLY,
-			    0600)) < 0)
+				 0600)) < 0)
 				err(1, "%s", Tflag);
 			(void)close(i);
 			break;
@@ -237,8 +238,9 @@ Usage: %s [-dEiInv] [-s subject] [-c cc-addr] [-b bcc-addr] [-F] to-addr ...\n\
        %*s [-sendmail-option ...]\n\
        %s [-dEHiInNv] [-F] -f [name]\n\
        %s [-dEHiInNv] [-F] [-u user]\n\
-       %s [-d] -e [-f name]\n", __progname, (int)strlen(__progname), "",
-				__progname, __progname, __progname);
+       %s [-d] -e [-f name]\n",
+			    __progname, (int)strlen(__progname), "", __progname,
+			    __progname, __progname);
 			exit(1);
 		}
 	}
@@ -250,7 +252,8 @@ Usage: %s [-dEiInv] [-s subject] [-c cc-addr] [-b bcc-addr] [-F] to-addr ...\n\
 	 * Check for inconsistent arguments.
 	 */
 	if (to == NULL && (subject != NULL || cc != NULL || bcc != NULL))
-		errx(1, "You must specify direct recipients with -s, -c, or -b.");
+		errx(1,
+		    "You must specify direct recipients with -s, -c, or -b.");
 	if (ef != NULL && to != NULL)
 		errx(1, "Cannot give -f and people to send to.");
 	tinit();
@@ -286,7 +289,7 @@ Usage: %s [-dEiInv] [-s subject] [-c cc-addr] [-b bcc-addr] [-F] to-addr ...\n\
 		exit(senderr);
 	}
 
-	if(value("checkmode") != NULL) {
+	if (value("checkmode") != NULL) {
 		if (ef == NULL)
 			ef = "%";
 		if (setfile(ef) <= 0)
@@ -305,13 +308,12 @@ Usage: %s [-dEiInv] [-s subject] [-c cc-addr] [-b bcc-addr] [-F] to-addr ...\n\
 	if (ef == NULL)
 		ef = "%";
 	if (setfile(ef) < 0)
-		exit(1);		/* error already reported */
+		exit(1); /* error already reported */
 	if (setjmp(hdrjmp) == 0) {
 		if ((prevint = signal(SIGINT, SIG_IGN)) != SIG_IGN)
 			(void)signal(SIGINT, hdrstop);
 		if (value("quiet") == NULL)
-			printf("Mail version %s.  Type ? for help.\n",
-				version);
+			printf("Mail version %s.  Type ? for help.\n", version);
 		announce();
 		(void)fflush(stdout);
 		(void)signal(SIGINT, prevint);

@@ -27,37 +27,36 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/npx.h>
 
-#define	__fenv_static
+#define __fenv_static
 #include "fenv.h"
 
 #ifdef __GNUC_GNU_INLINE__
 #error "This file must be compiled with C99 'inline' semantics"
 #endif
 
-const fenv_t __fe_dfl_env = {
-	__INITIAL_NPXCW__,
-	0x0000,
-	0x0000,
-	0x1f80,
+const fenv_t __fe_dfl_env = { __INITIAL_NPXCW__, 0x0000, 0x0000, 0x1f80,
 	0xffffffff,
-	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff }
-};
+	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	    0x00, 0x00, 0x00, 0xff, 0xff } };
 
 enum __sse_support __has_sse =
 #ifdef __SSE__
-	__SSE_YES;
+    __SSE_YES;
 #else
-	__SSE_UNK;
+    __SSE_UNK;
 #endif
 
-#define	getfl(x)	__asm __volatile("pushfl\n\tpopl %0" : "=mr" (*(x)))
-#define	setfl(x)	__asm __volatile("pushl %0\n\tpopfl" : : "g" (x))
-#define	cpuid_dx(x)	__asm __volatile("pushl %%ebx\n\tmovl $1, %%eax\n\t"  \
-					 "cpuid\n\tpopl %%ebx"		      \
-					: "=d" (*(x)) : : "eax", "ecx")
+#define getfl(x) __asm __volatile("pushfl\n\tpopl %0" : "=mr"(*(x)))
+#define setfl(x) __asm __volatile("pushl %0\n\tpopfl" : : "g"(x))
+#define cpuid_dx(x)                                          \
+	__asm __volatile("pushl %%ebx\n\tmovl $1, %%eax\n\t" \
+			 "cpuid\n\tpopl %%ebx"               \
+			 : "=d"(*(x))                        \
+			 :                                   \
+			 : "eax", "ecx")
 
 /*
  * Test for SSE support on this processor.  We need to do this because

@@ -27,10 +27,11 @@
  */
 
 #include <sys/cdefs.h>
-#include "al_init_eth_lm.h"
-#include "al_serdes.h"
+
 #include "al_hal_eth.h"
 #include "al_init_eth_kr.h"
+#include "al_init_eth_lm.h"
+#include "al_serdes.h"
 
 /**
  *  @{
@@ -41,69 +42,72 @@
  */
 
 /* delay before checking link status with new serdes parameters (uSec) */
-#define	AL_ETH_LM_LINK_STATUS_DELAY	1000
+#define AL_ETH_LM_LINK_STATUS_DELAY 1000
 /* delay before checking link status after reconfiguring the retimer (uSec) */
-#define	AL_ETH_LM_RETIMER_LINK_STATUS_DELAY 50000
+#define AL_ETH_LM_RETIMER_LINK_STATUS_DELAY 50000
 
-#define	AL_ETH_LM_EQ_ITERATIONS		15
-#define	AL_ETH_LM_MAX_DCGAIN		8
+#define AL_ETH_LM_EQ_ITERATIONS 15
+#define AL_ETH_LM_MAX_DCGAIN 8
 
 /* num of link training failures till serdes reset */
-#define	AL_ETH_LT_FAILURES_TO_RESET	10
+#define AL_ETH_LT_FAILURES_TO_RESET 10
 
-#define	MODULE_IDENTIFIER_IDX		0
-#define	MODULE_IDENTIFIER_SFP		0x3
-#define	MODULE_IDENTIFIER_QSFP		0xd
+#define MODULE_IDENTIFIER_IDX 0
+#define MODULE_IDENTIFIER_SFP 0x3
+#define MODULE_IDENTIFIER_QSFP 0xd
 
-#define	SFP_PRESENT			0
-#define	SFP_NOT_PRESENT			1
+#define SFP_PRESENT 0
+#define SFP_NOT_PRESENT 1
 
 /* SFP+ module */
-#define	SFP_I2C_HEADER_10G_IDX		3
-#define	SFP_I2C_HEADER_10G_DA_IDX	8
-#define	SFP_I2C_HEADER_10G_DA_LEN_IDX	18
-#define	SFP_I2C_HEADER_1G_IDX		6
-#define	SFP_I2C_HEADER_SIGNAL_RATE	12 /* Nominal signaling rate, units of 100MBd. */
+#define SFP_I2C_HEADER_10G_IDX 3
+#define SFP_I2C_HEADER_10G_DA_IDX 8
+#define SFP_I2C_HEADER_10G_DA_LEN_IDX 18
+#define SFP_I2C_HEADER_1G_IDX 6
+#define SFP_I2C_HEADER_SIGNAL_RATE \
+	12 /* Nominal signaling rate, units of 100MBd. */
 
-#define	SFP_MIN_SIGNAL_RATE_25G		250
-#define	SFP_MIN_SIGNAL_RATE_10G		100
+#define SFP_MIN_SIGNAL_RATE_25G 250
+#define SFP_MIN_SIGNAL_RATE_10G 100
 
 /* QSFP+ module */
-#define	QSFP_COMPLIANCE_CODE_IDX	131
+#define QSFP_COMPLIANCE_CODE_IDX 131
 /* 40GBASE-LR4 and 40GBASE-SR4 are optic modules */
-#define	QSFP_COMPLIANCE_CODE_OPTIC	((1 << 1) | (1 << 2))
-#define	QSFP_COMPLIANCE_CODE_DAC	(1 << 3)
-#define	QSFP_CABLE_LEN_IDX		146
+#define QSFP_COMPLIANCE_CODE_OPTIC ((1 << 1) | (1 << 2))
+#define QSFP_COMPLIANCE_CODE_DAC (1 << 3)
+#define QSFP_CABLE_LEN_IDX 146
 
 /* TODO: need to check the necessary delay */
-#define	AL_ETH_LM_RETIMER_WAIT_FOR_LOCK	500 /* delay after retimer reset to lock (mSec) */
-#define	AL_ETH_LM_SERDES_WAIT_FOR_LOCK	50 /* delay after signal detect to lock (mSec) */
+#define AL_ETH_LM_RETIMER_WAIT_FOR_LOCK \
+	500 /* delay after retimer reset to lock (mSec) */
+#define AL_ETH_LM_SERDES_WAIT_FOR_LOCK \
+	50 /* delay after signal detect to lock (mSec) */
 
-#define AL_ETH_LM_GEARBOX_RESET_DELAY	1000 /* (uSec) */
+#define AL_ETH_LM_GEARBOX_RESET_DELAY 1000 /* (uSec) */
 
-static const uint32_t
-al_eth_retimer_boost_addr[AL_ETH_RETIMER_CHANNEL_MAX][AL_ETH_RETIMER_TYPE_MAX] = {
-					/* BR_210  |  BR_410 */
-	/* AL_ETH_RETIMER_CHANNEL_A */	{0xf,		0x1a},
-	/* AL_ETH_RETIMER_CHANNEL_B */	{0x16,		0x18},
-	/* AL_ETH_RETIMER_CHANNEL_C */	{0x0,		0x16},
-	/* AL_ETH_RETIMER_CHANNEL_D */	{0x0,		0x14},
-};
+static const uint32_t al_eth_retimer_boost_addr
+    [AL_ETH_RETIMER_CHANNEL_MAX][AL_ETH_RETIMER_TYPE_MAX] = {
+	    /* BR_210  |  BR_410 */
+	    /* AL_ETH_RETIMER_CHANNEL_A */ { 0xf, 0x1a },
+	    /* AL_ETH_RETIMER_CHANNEL_B */ { 0x16, 0x18 },
+	    /* AL_ETH_RETIMER_CHANNEL_C */ { 0x0, 0x16 },
+	    /* AL_ETH_RETIMER_CHANNEL_D */ { 0x0, 0x14 },
+    };
 
-#define	RETIMER_LENS_MAX		5
-static const uint32_t
-al_eth_retimer_boost_lens[RETIMER_LENS_MAX] = {0, 1, 2, 3, 5};
+#define RETIMER_LENS_MAX 5
+static const uint32_t al_eth_retimer_boost_lens[RETIMER_LENS_MAX] = { 0, 1, 2,
+	3, 5 };
 
-static const uint32_t
-al_eth_retimer_boost_value[RETIMER_LENS_MAX + 1][AL_ETH_RETIMER_TYPE_MAX] = {
-		/* BR_210  |  BR_410 */
-	/* 0 */	{0x0,		0x0},
-	/* 1 */	{0x1,		0x1},
-	/* 2 */	{0x2,		0x1},
-	/* 3 */	{0x3,		0x3},
-	/* 5 */	{0x7,		0x3},
-	/* 5+ */{0xb,		0x7},
-};
+static const uint32_t al_eth_retimer_boost_value[RETIMER_LENS_MAX + 1]
+						[AL_ETH_RETIMER_TYPE_MAX] = {
+							/* BR_210  |  BR_410 */
+							/* 0 */ { 0x0, 0x0 },
+							/* 1 */ { 0x1, 0x1 },
+							/* 2 */ { 0x2, 0x1 },
+							/* 3 */ { 0x3, 0x3 },
+							/* 5 */ { 0x7, 0x3 },
+							/* 5+ */ { 0xb, 0x7 },
+						};
 
 struct retimer_config_reg {
 	uint8_t addr;
@@ -112,134 +116,148 @@ struct retimer_config_reg {
 };
 
 static struct retimer_config_reg retimer_ds25_25g_mode_tx_ch[] = {
-	{.addr = 0x0A, .value = 0x0C, .mask = 0xff },
-	{.addr = 0x2F, .value = 0x54, .mask = 0xff },
-	{.addr = 0x31, .value = 0x20, .mask = 0xff },
-	{.addr = 0x1E, .value = 0xE9, .mask = 0xff },
-	{.addr = 0x1F, .value = 0x0B, .mask = 0xff },
-	{.addr = 0xA6, .value = 0x43, .mask = 0xff },
-	{.addr = 0x2A, .value = 0x5A, .mask = 0xff },
-	{.addr = 0x2B, .value = 0x0A, .mask = 0xff },
-	{.addr = 0x2C, .value = 0xF6, .mask = 0xff },
-	{.addr = 0x70, .value = 0x05, .mask = 0xff },
-	{.addr = 0x6A, .value = 0x21, .mask = 0xff },
-	{.addr = 0x35, .value = 0x0F, .mask = 0xff },
-	{.addr = 0x12, .value = 0x83, .mask = 0xff },
-	{.addr = 0x9C, .value = 0x24, .mask = 0xff },
-	{.addr = 0x98, .value = 0x00, .mask = 0xff },
-	{.addr = 0x42, .value = 0x50, .mask = 0xff },
-	{.addr = 0x44, .value = 0x90, .mask = 0xff },
-	{.addr = 0x45, .value = 0xC0, .mask = 0xff },
-	{.addr = 0x46, .value = 0xD0, .mask = 0xff },
-	{.addr = 0x47, .value = 0xD1, .mask = 0xff },
-	{.addr = 0x48, .value = 0xD5, .mask = 0xff },
-	{.addr = 0x49, .value = 0xD8, .mask = 0xff },
-	{.addr = 0x4A, .value = 0xEA, .mask = 0xff },
-	{.addr = 0x4B, .value = 0xF7, .mask = 0xff },
-	{.addr = 0x4C, .value = 0xFD, .mask = 0xff },
-	{.addr = 0x8E, .value = 0x00, .mask = 0xff },
-	{.addr = 0x3D, .value = 0x94, .mask = 0xff },
-	{.addr = 0x3F, .value = 0x40, .mask = 0xff },
-	{.addr = 0x3E, .value = 0x43, .mask = 0xff },
-	{.addr = 0x0A, .value = 0x00, .mask = 0xff },
+	{ .addr = 0x0A, .value = 0x0C, .mask = 0xff },
+	{ .addr = 0x2F, .value = 0x54, .mask = 0xff },
+	{ .addr = 0x31, .value = 0x20, .mask = 0xff },
+	{ .addr = 0x1E, .value = 0xE9, .mask = 0xff },
+	{ .addr = 0x1F, .value = 0x0B, .mask = 0xff },
+	{ .addr = 0xA6, .value = 0x43, .mask = 0xff },
+	{ .addr = 0x2A, .value = 0x5A, .mask = 0xff },
+	{ .addr = 0x2B, .value = 0x0A, .mask = 0xff },
+	{ .addr = 0x2C, .value = 0xF6, .mask = 0xff },
+	{ .addr = 0x70, .value = 0x05, .mask = 0xff },
+	{ .addr = 0x6A, .value = 0x21, .mask = 0xff },
+	{ .addr = 0x35, .value = 0x0F, .mask = 0xff },
+	{ .addr = 0x12, .value = 0x83, .mask = 0xff },
+	{ .addr = 0x9C, .value = 0x24, .mask = 0xff },
+	{ .addr = 0x98, .value = 0x00, .mask = 0xff },
+	{ .addr = 0x42, .value = 0x50, .mask = 0xff },
+	{ .addr = 0x44, .value = 0x90, .mask = 0xff },
+	{ .addr = 0x45, .value = 0xC0, .mask = 0xff },
+	{ .addr = 0x46, .value = 0xD0, .mask = 0xff },
+	{ .addr = 0x47, .value = 0xD1, .mask = 0xff },
+	{ .addr = 0x48, .value = 0xD5, .mask = 0xff },
+	{ .addr = 0x49, .value = 0xD8, .mask = 0xff },
+	{ .addr = 0x4A, .value = 0xEA, .mask = 0xff },
+	{ .addr = 0x4B, .value = 0xF7, .mask = 0xff },
+	{ .addr = 0x4C, .value = 0xFD, .mask = 0xff },
+	{ .addr = 0x8E, .value = 0x00, .mask = 0xff },
+	{ .addr = 0x3D, .value = 0x94, .mask = 0xff },
+	{ .addr = 0x3F, .value = 0x40, .mask = 0xff },
+	{ .addr = 0x3E, .value = 0x43, .mask = 0xff },
+	{ .addr = 0x0A, .value = 0x00, .mask = 0xff },
 };
 
 static struct retimer_config_reg retimer_ds25_25g_mode_rx_ch[] = {
-	{.addr = 0x0A, .value = 0x0C, .mask = 0xff},
-	{.addr = 0x2F, .value = 0x54, .mask = 0xff},
-	{.addr = 0x31, .value = 0x40, .mask = 0xff},
-	{.addr = 0x1E, .value = 0xE3, .mask = 0xff},
-	{.addr = 0x1F, .value = 0x0B, .mask = 0xff},
-	{.addr = 0xA6, .value = 0x43, .mask = 0xff},
-	{.addr = 0x2A, .value = 0x5A, .mask = 0xff},
-	{.addr = 0x2B, .value = 0x0A, .mask = 0xff},
-	{.addr = 0x2C, .value = 0xF6, .mask = 0xff},
-	{.addr = 0x70, .value = 0x05, .mask = 0xff},
-	{.addr = 0x6A, .value = 0x21, .mask = 0xff},
-	{.addr = 0x35, .value = 0x0F, .mask = 0xff},
-	{.addr = 0x12, .value = 0x83, .mask = 0xff},
-	{.addr = 0x9C, .value = 0x24, .mask = 0xff},
-	{.addr = 0x98, .value = 0x00, .mask = 0xff},
-	{.addr = 0x42, .value = 0x50, .mask = 0xff},
-	{.addr = 0x44, .value = 0x90, .mask = 0xff},
-	{.addr = 0x45, .value = 0xC0, .mask = 0xff},
-	{.addr = 0x46, .value = 0xD0, .mask = 0xff},
-	{.addr = 0x47, .value = 0xD1, .mask = 0xff},
-	{.addr = 0x48, .value = 0xD5, .mask = 0xff},
-	{.addr = 0x49, .value = 0xD8, .mask = 0xff},
-	{.addr = 0x4A, .value = 0xEA, .mask = 0xff},
-	{.addr = 0x4B, .value = 0xF7, .mask = 0xff},
-	{.addr = 0x4C, .value = 0xFD, .mask = 0xff},
-	{.addr = 0x8E, .value = 0x00, .mask = 0xff},
-	{.addr = 0x3D, .value = 0x94, .mask = 0xff},
-	{.addr = 0x3F, .value = 0x40, .mask = 0xff},
-	{.addr = 0x3E, .value = 0x43, .mask = 0xff},
-	{.addr = 0x0A, .value = 0x00, .mask = 0xff},
+	{ .addr = 0x0A, .value = 0x0C, .mask = 0xff },
+	{ .addr = 0x2F, .value = 0x54, .mask = 0xff },
+	{ .addr = 0x31, .value = 0x40, .mask = 0xff },
+	{ .addr = 0x1E, .value = 0xE3, .mask = 0xff },
+	{ .addr = 0x1F, .value = 0x0B, .mask = 0xff },
+	{ .addr = 0xA6, .value = 0x43, .mask = 0xff },
+	{ .addr = 0x2A, .value = 0x5A, .mask = 0xff },
+	{ .addr = 0x2B, .value = 0x0A, .mask = 0xff },
+	{ .addr = 0x2C, .value = 0xF6, .mask = 0xff },
+	{ .addr = 0x70, .value = 0x05, .mask = 0xff },
+	{ .addr = 0x6A, .value = 0x21, .mask = 0xff },
+	{ .addr = 0x35, .value = 0x0F, .mask = 0xff },
+	{ .addr = 0x12, .value = 0x83, .mask = 0xff },
+	{ .addr = 0x9C, .value = 0x24, .mask = 0xff },
+	{ .addr = 0x98, .value = 0x00, .mask = 0xff },
+	{ .addr = 0x42, .value = 0x50, .mask = 0xff },
+	{ .addr = 0x44, .value = 0x90, .mask = 0xff },
+	{ .addr = 0x45, .value = 0xC0, .mask = 0xff },
+	{ .addr = 0x46, .value = 0xD0, .mask = 0xff },
+	{ .addr = 0x47, .value = 0xD1, .mask = 0xff },
+	{ .addr = 0x48, .value = 0xD5, .mask = 0xff },
+	{ .addr = 0x49, .value = 0xD8, .mask = 0xff },
+	{ .addr = 0x4A, .value = 0xEA, .mask = 0xff },
+	{ .addr = 0x4B, .value = 0xF7, .mask = 0xff },
+	{ .addr = 0x4C, .value = 0xFD, .mask = 0xff },
+	{ .addr = 0x8E, .value = 0x00, .mask = 0xff },
+	{ .addr = 0x3D, .value = 0x94, .mask = 0xff },
+	{ .addr = 0x3F, .value = 0x40, .mask = 0xff },
+	{ .addr = 0x3E, .value = 0x43, .mask = 0xff },
+	{ .addr = 0x0A, .value = 0x00, .mask = 0xff },
 };
 
 static struct retimer_config_reg retimer_ds25_10g_mode[] = {
 	/* Assert CDR reset (6.3) */
-	{.addr = 0x0A, .value = 0x0C, .mask = 0x0C},
+	{ .addr = 0x0A, .value = 0x0C, .mask = 0x0C },
 	/* Select 10.3125Gbps standard rate mode (6.6) */
-	{.addr = 0x2F, .value = 0x00, .mask = 0xF0},
+	{ .addr = 0x2F, .value = 0x00, .mask = 0xF0 },
 	/* Enable loop filter auto-adjust */
-	{.addr = 0x1F, .value = 0x08, .mask = 0x08},
+	{ .addr = 0x1F, .value = 0x08, .mask = 0x08 },
 	/* Set Adapt Mode 1 (6.13) */
-	{.addr = 0x31, .value = 0x20, .mask = 0x60},
+	{ .addr = 0x31, .value = 0x20, .mask = 0x60 },
 	/* Disable the DFE since most applications do not need it (6.18) */
-	{.addr = 0x1E, .value = 0x08, .mask = 0x08},
+	{ .addr = 0x1E, .value = 0x08, .mask = 0x08 },
 	/* Release CDR reset (6.4) */
-	{.addr = 0x0A, .value = 0x00, .mask = 0x0C},
+	{ .addr = 0x0A, .value = 0x00, .mask = 0x0C },
 	/* Enable FIR (6.12) */
-	{.addr = 0x3D, .value = 0x80, .mask = 0x80},
+	{ .addr = 0x3D, .value = 0x80, .mask = 0x80 },
 	/* Set Main-cursor tap sign to positive (6.12) */
-	{.addr = 0x3D, .value = 0x00, .mask = 0x40},
+	{ .addr = 0x3D, .value = 0x00, .mask = 0x40 },
 	/* Set Post-cursor tap sign to negative (6.12) */
-	{.addr = 0x3F, .value = 0x40, .mask = 0x40},
+	{ .addr = 0x3F, .value = 0x40, .mask = 0x40 },
 	/* Set Pre-cursor tap sign to negative (6.12) */
-	{.addr = 0x3E, .value = 0x40, .mask = 0x40},
+	{ .addr = 0x3E, .value = 0x40, .mask = 0x40 },
 	/* Set Main-cursor tap magnitude to 13 (6.12) */
-	{.addr = 0x3D, .value = 0x0D, .mask = 0x1F},
+	{ .addr = 0x3D, .value = 0x0D, .mask = 0x1F },
 };
 
 static int al_eth_lm_retimer_boost_config(struct al_eth_lm_context *lm_context);
-static int al_eth_lm_retimer_ds25_full_config(struct al_eth_lm_context *lm_context);
-static bool al_eth_lm_retimer_ds25_signal_detect(
-		struct al_eth_lm_context *lm_context, uint32_t channel);
-static int al_eth_lm_retimer_ds25_cdr_reset(struct al_eth_lm_context *lm_context, uint32_t channel);
-static bool al_eth_lm_retimer_ds25_cdr_lock(
-		struct al_eth_lm_context *lm_context, uint32_t channel);
-static int al_eth_lm_retimer_25g_rx_adaptation(struct al_eth_lm_context *lm_context);
+static int al_eth_lm_retimer_ds25_full_config(
+    struct al_eth_lm_context *lm_context);
+static bool
+al_eth_lm_retimer_ds25_signal_detect(struct al_eth_lm_context *lm_context,
+    uint32_t channel);
+static int
+al_eth_lm_retimer_ds25_cdr_reset(struct al_eth_lm_context *lm_context,
+    uint32_t channel);
+static bool
+al_eth_lm_retimer_ds25_cdr_lock(struct al_eth_lm_context *lm_context,
+    uint32_t channel);
+static int al_eth_lm_retimer_25g_rx_adaptation(
+    struct al_eth_lm_context *lm_context);
 
 struct al_eth_lm_retimer {
 	int (*config)(struct al_eth_lm_context *lm_context);
 	int (*reset)(struct al_eth_lm_context *lm_context, uint32_t channel);
-	bool (*signal_detect)(struct al_eth_lm_context *lm_context, uint32_t channel);
-	bool (*cdr_lock)(struct al_eth_lm_context *lm_context, uint32_t channel);
+	bool (*signal_detect)(struct al_eth_lm_context *lm_context,
+	    uint32_t channel);
+	bool (
+	    *cdr_lock)(struct al_eth_lm_context *lm_context, uint32_t channel);
 	int (*rx_adaptation)(struct al_eth_lm_context *lm_context);
 };
 
 static struct al_eth_lm_retimer retimer[] = {
-	{.config = al_eth_lm_retimer_boost_config, .signal_detect = NULL,
-		.reset = NULL, .cdr_lock = NULL, .rx_adaptation = NULL},
-	{.config = al_eth_lm_retimer_boost_config, .signal_detect = NULL,
-		.reset = NULL, .cdr_lock = NULL, .rx_adaptation = NULL},
-	{.config = al_eth_lm_retimer_ds25_full_config,
-		.signal_detect = al_eth_lm_retimer_ds25_signal_detect,
-		.reset = al_eth_lm_retimer_ds25_cdr_reset,
-		.cdr_lock = al_eth_lm_retimer_ds25_cdr_lock,
-		.rx_adaptation = al_eth_lm_retimer_25g_rx_adaptation},
+	{ .config = al_eth_lm_retimer_boost_config,
+	    .signal_detect = NULL,
+	    .reset = NULL,
+	    .cdr_lock = NULL,
+	    .rx_adaptation = NULL },
+	{ .config = al_eth_lm_retimer_boost_config,
+	    .signal_detect = NULL,
+	    .reset = NULL,
+	    .cdr_lock = NULL,
+	    .rx_adaptation = NULL },
+	{ .config = al_eth_lm_retimer_ds25_full_config,
+	    .signal_detect = al_eth_lm_retimer_ds25_signal_detect,
+	    .reset = al_eth_lm_retimer_ds25_cdr_reset,
+	    .cdr_lock = al_eth_lm_retimer_ds25_cdr_lock,
+	    .rx_adaptation = al_eth_lm_retimer_25g_rx_adaptation },
 };
 
-#define SFP_10G_DA_ACTIVE		0x8
-#define SFP_10G_DA_PASSIVE		0x4
+#define SFP_10G_DA_ACTIVE 0x8
+#define SFP_10G_DA_PASSIVE 0x4
 
-#define lm_debug(...)				\
-	do {					\
-		if (lm_context->debug)		\
-			al_warn(__VA_ARGS__);	\
-		else				\
-			al_dbg(__VA_ARGS__);	\
+#define lm_debug(...)                         \
+	do {                                  \
+		if (lm_context->debug)        \
+			al_warn(__VA_ARGS__); \
+		else                          \
+			al_dbg(__VA_ARGS__);  \
 	} while (0)
 
 static int
@@ -279,10 +297,8 @@ al_eth_sfp_detect(struct al_eth_lm_context *lm_context,
 			break;
 
 		rc = lm_context->i2c_read(lm_context->i2c_context,
-					  lm_context->sfp_bus_id,
-					  lm_context->sfp_i2c_addr,
-					  SFP_I2C_HEADER_SIGNAL_RATE,
-					  &signal_rate);
+		    lm_context->sfp_bus_id, lm_context->sfp_i2c_addr,
+		    SFP_I2C_HEADER_SIGNAL_RATE, &signal_rate);
 	} while (0);
 
 	if (rc != 0) {
@@ -294,26 +310,30 @@ al_eth_sfp_detect(struct al_eth_lm_context *lm_context,
 		} else {
 			return (rc);
 		}
-	} else if ((sfp_cable_tech & (SFP_10G_DA_PASSIVE | SFP_10G_DA_ACTIVE)) != 0) {
+	} else if ((sfp_cable_tech &
+		       (SFP_10G_DA_PASSIVE | SFP_10G_DA_ACTIVE)) != 0) {
 		if ((signal_rate >= SFP_MIN_SIGNAL_RATE_25G) &&
-			((lm_context->max_speed == AL_ETH_LM_MAX_SPEED_25G) ||
+		    ((lm_context->max_speed == AL_ETH_LM_MAX_SPEED_25G) ||
 			(lm_context->max_speed == AL_ETH_LM_MAX_SPEED_MAX)))
 			*new_mode = AL_ETH_LM_MODE_25G;
 		else if ((signal_rate >= SFP_MIN_SIGNAL_RATE_10G) &&
-			((lm_context->max_speed == AL_ETH_LM_MAX_SPEED_10G) ||
+		    ((lm_context->max_speed == AL_ETH_LM_MAX_SPEED_10G) ||
 			(lm_context->max_speed == AL_ETH_LM_MAX_SPEED_MAX)))
 			*new_mode = AL_ETH_LM_MODE_10G_DA;
 		else
 			*new_mode = AL_ETH_LM_MODE_1G;
 
 		lm_debug("%s: %s DAC (%d M) detected (max signal rate %d)\n",
-			 __func__,
-			 (sfp_cable_tech & SFP_10G_DA_PASSIVE) ? "Passive" : "Active",
-			  sfp_da_len,
-			  signal_rate);
+		    __func__,
+		    (sfp_cable_tech & SFP_10G_DA_PASSIVE) ? "Passive" :
+							    "Active",
+		    sfp_da_len, signal_rate);
 
-		/* for active direct attached need to use len 0 in the retimer configuration */
-		lm_context->da_len = (sfp_cable_tech & SFP_10G_DA_PASSIVE) ? sfp_da_len : 0;
+		/* for active direct attached need to use len 0 in the retimer
+		 * configuration */
+		lm_context->da_len = (sfp_cable_tech & SFP_10G_DA_PASSIVE) ?
+		    sfp_da_len :
+		    0;
 	} else if (sfp_10g != 0) {
 		lm_debug("%s: 10 SFP detected\n", __func__);
 		*new_mode = AL_ETH_LM_MODE_10G_OPTIC;
@@ -321,7 +341,8 @@ al_eth_sfp_detect(struct al_eth_lm_context *lm_context,
 		lm_debug("%s: 1G SFP detected\n", __func__);
 		*new_mode = AL_ETH_LM_MODE_1G;
 	} else {
-		al_warn("%s: unknown SFP inserted. eeprom content: 10G compliance 0x%x,"
+		al_warn(
+		    "%s: unknown SFP inserted. eeprom content: 10G compliance 0x%x,"
 		    " 1G compliance 0x%x, sfp+cable 0x%x. default to %s\n",
 		    __func__, sfp_10g, sfp_1g, sfp_cable_tech,
 		    al_eth_lm_mode_convert_to_str(lm_context->default_mode));
@@ -329,11 +350,14 @@ al_eth_sfp_detect(struct al_eth_lm_context *lm_context,
 		lm_context->da_len = lm_context->default_dac_len;
 	}
 
-	if ((lm_context->sfp_detect_force_mode) && (*new_mode != AL_ETH_LM_MODE_DISCONNECTED) &&
+	if ((lm_context->sfp_detect_force_mode) &&
+	    (*new_mode != AL_ETH_LM_MODE_DISCONNECTED) &&
 	    (*new_mode != lm_context->default_mode)) {
-		al_warn("%s: Force mode to default (%s). mode based of the SFP EEPROM %s\n",
-			__func__, al_eth_lm_mode_convert_to_str(lm_context->default_mode),
-			al_eth_lm_mode_convert_to_str(*new_mode));
+		al_warn(
+		    "%s: Force mode to default (%s). mode based of the SFP EEPROM %s\n",
+		    __func__,
+		    al_eth_lm_mode_convert_to_str(lm_context->default_mode),
+		    al_eth_lm_mode_convert_to_str(*new_mode));
 
 		*new_mode = lm_context->default_mode;
 	}
@@ -374,8 +398,8 @@ al_eth_qsfp_detect(struct al_eth_lm_context *lm_context,
 			return (rc);
 		}
 	} else if ((qsfp_comp_code & QSFP_COMPLIANCE_CODE_DAC) != 0) {
-		lm_debug("%s: 10G passive DAC (%d M) detected\n",
-		    __func__, qsfp_da_len);
+		lm_debug("%s: 10G passive DAC (%d M) detected\n", __func__,
+		    qsfp_da_len);
 		*new_mode = AL_ETH_LM_MODE_10G_DA;
 		lm_context->da_len = qsfp_da_len;
 	} else if ((qsfp_comp_code & QSFP_COMPLIANCE_CODE_OPTIC) != 0) {
@@ -383,7 +407,8 @@ al_eth_qsfp_detect(struct al_eth_lm_context *lm_context,
 		*new_mode = AL_ETH_LM_MODE_10G_OPTIC;
 	} else {
 		al_warn("%s: unknown QSFP inserted. eeprom content: 10G "
-		    "compliance 0x%x default to %s\n", __func__, qsfp_comp_code,
+			"compliance 0x%x default to %s\n",
+		    __func__, qsfp_comp_code,
 		    al_eth_lm_mode_convert_to_str(lm_context->default_mode));
 		*new_mode = lm_context->default_mode;
 		lm_context->da_len = lm_context->default_dac_len;
@@ -436,51 +461,51 @@ al_eth_module_detect(struct al_eth_lm_context *lm_context,
 }
 
 static struct al_serdes_adv_tx_params da_tx_params = {
-	.override		= AL_TRUE,
-	.amp			= 0x1,
-	.total_driver_units	= 0x13,
-	.c_plus_1		= 0x2,
-	.c_plus_2		= 0,
-	.c_minus_1		= 0x2,
-	.slew_rate		= 0,
+	.override = AL_TRUE,
+	.amp = 0x1,
+	.total_driver_units = 0x13,
+	.c_plus_1 = 0x2,
+	.c_plus_2 = 0,
+	.c_minus_1 = 0x2,
+	.slew_rate = 0,
 };
 
 static struct al_serdes_adv_rx_params da_rx_params = {
-	.override		= AL_TRUE,
-	.dcgain			= 0x4,
-	.dfe_3db_freq		= 0x4,
-	.dfe_gain		= 0x3,
-	.dfe_first_tap_ctrl	= 0x5,
-	.dfe_secound_tap_ctrl	= 0x1,
-	.dfe_third_tap_ctrl	= 0x8,
-	.dfe_fourth_tap_ctrl	= 0x1,
-	.low_freq_agc_gain	= 0x7,
-	.precal_code_sel	= 0,
-	.high_freq_agc_boost	= 0x1d,
+	.override = AL_TRUE,
+	.dcgain = 0x4,
+	.dfe_3db_freq = 0x4,
+	.dfe_gain = 0x3,
+	.dfe_first_tap_ctrl = 0x5,
+	.dfe_secound_tap_ctrl = 0x1,
+	.dfe_third_tap_ctrl = 0x8,
+	.dfe_fourth_tap_ctrl = 0x1,
+	.low_freq_agc_gain = 0x7,
+	.precal_code_sel = 0,
+	.high_freq_agc_boost = 0x1d,
 };
 
 static struct al_serdes_adv_tx_params optic_tx_params = {
-	.override		= AL_TRUE,
-	.amp			= 0x1,
-	.total_driver_units	= 0x13,
-	.c_plus_1		= 0x2,
-	.c_plus_2		= 0,
-	.c_minus_1		= 0,
-	.slew_rate		= 0,
+	.override = AL_TRUE,
+	.amp = 0x1,
+	.total_driver_units = 0x13,
+	.c_plus_1 = 0x2,
+	.c_plus_2 = 0,
+	.c_minus_1 = 0,
+	.slew_rate = 0,
 };
 
 static struct al_serdes_adv_rx_params optic_rx_params = {
-	.override		= AL_TRUE,
-	.dcgain			= 0x0,
-	.dfe_3db_freq		= 0x7,
-	.dfe_gain		= 0x0,
-	.dfe_first_tap_ctrl	= 0x0,
-	.dfe_secound_tap_ctrl	= 0x8,
-	.dfe_third_tap_ctrl	= 0x0,
-	.dfe_fourth_tap_ctrl	= 0x8,
-	.low_freq_agc_gain	= 0x7,
-	.precal_code_sel	= 0,
-	.high_freq_agc_boost	= 0x4,
+	.override = AL_TRUE,
+	.dcgain = 0x0,
+	.dfe_3db_freq = 0x7,
+	.dfe_gain = 0x0,
+	.dfe_first_tap_ctrl = 0x0,
+	.dfe_secound_tap_ctrl = 0x8,
+	.dfe_third_tap_ctrl = 0x0,
+	.dfe_fourth_tap_ctrl = 0x8,
+	.low_freq_agc_gain = 0x7,
+	.precal_code_sel = 0,
+	.high_freq_agc_boost = 0x4,
 };
 
 static void
@@ -496,34 +521,33 @@ al_eth_serdes_static_tx_params_set(struct al_eth_lm_context *lm_context)
 		lm_context->tx_params_override.override = AL_TRUE;
 
 		if ((lm_context->serdes_obj->tx_advanced_params_set) == 0) {
-			al_err("tx_advanced_params_set is not supported for this serdes group\n");
+			al_err(
+			    "tx_advanced_params_set is not supported for this serdes group\n");
 			return;
 		}
 
 		lm_context->serdes_obj->tx_advanced_params_set(
-					lm_context->serdes_obj,
-					lm_context->lane,
-					&lm_context->tx_params_override);
+		    lm_context->serdes_obj, lm_context->lane,
+		    &lm_context->tx_params_override);
 
 	} else if (lm_context->static_values != 0) {
 		lm_context->tx_param_dirty = 0;
 
 		if ((lm_context->serdes_obj->tx_advanced_params_set) == 0) {
-			al_err("tx_advanced_params_set is not supported for this serdes group\n");
+			al_err(
+			    "tx_advanced_params_set is not supported for this serdes group\n");
 			return;
 		}
 
 		if ((lm_context->retimer_exist == 0) &&
 		    (lm_context->mode == AL_ETH_LM_MODE_10G_DA))
 			lm_context->serdes_obj->tx_advanced_params_set(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						&da_tx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    &da_tx_params);
 		else
 			lm_context->serdes_obj->tx_advanced_params_set(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						&optic_tx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    &optic_tx_params);
 	}
 }
 
@@ -540,34 +564,33 @@ al_eth_serdes_static_rx_params_set(struct al_eth_lm_context *lm_context)
 		lm_context->rx_params_override.override = AL_TRUE;
 
 		if ((lm_context->serdes_obj->rx_advanced_params_set) == 0) {
-			al_err("rx_advanced_params_set is not supported for this serdes group\n");
+			al_err(
+			    "rx_advanced_params_set is not supported for this serdes group\n");
 			return;
 		}
 
 		lm_context->serdes_obj->rx_advanced_params_set(
-					lm_context->serdes_obj,
-					lm_context->lane,
-					&lm_context->rx_params_override);
+		    lm_context->serdes_obj, lm_context->lane,
+		    &lm_context->rx_params_override);
 
 	} else if (lm_context->static_values != 0) {
 		lm_context->rx_param_dirty = 0;
 
 		if ((lm_context->serdes_obj->rx_advanced_params_set) == 0) {
-			al_err("rx_advanced_params_set is not supported for this serdes group\n");
+			al_err(
+			    "rx_advanced_params_set is not supported for this serdes group\n");
 			return;
 		}
 
 		if ((lm_context->retimer_exist == 0) &&
 		    (lm_context->mode == AL_ETH_LM_MODE_10G_DA))
 			lm_context->serdes_obj->rx_advanced_params_set(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						&da_rx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    &da_rx_params);
 		else
 			lm_context->serdes_obj->rx_advanced_params_set(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						&optic_rx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    &optic_rx_params);
 	}
 }
 
@@ -578,24 +601,22 @@ al_eth_rx_equal_run(struct al_eth_lm_context *lm_context)
 	int dcgain;
 	int best_dcgain = -1;
 	int i;
-	int best_score  = -1;
+	int best_score = -1;
 	int test_score = -1;
 
 	rx_params.override = AL_FALSE;
 	lm_context->serdes_obj->rx_advanced_params_set(lm_context->serdes_obj,
-							lm_context->lane, &rx_params);
+	    lm_context->lane, &rx_params);
 
 	lm_debug("score | dcgain | dfe3db | dfegain | tap1 | tap2 | tap3 | "
-	    "tap4 | low freq | high freq\n");
+		 "tap4 | low freq | high freq\n");
 
 	for (dcgain = 0; dcgain < AL_ETH_LM_MAX_DCGAIN; dcgain++) {
-		lm_context->serdes_obj->dcgain_set(
-					lm_context->serdes_obj,
-					dcgain);
+		lm_context->serdes_obj->dcgain_set(lm_context->serdes_obj,
+		    dcgain);
 
 		test_score = lm_context->serdes_obj->rx_equalization(
-					lm_context->serdes_obj,
-					lm_context->lane);
+		    lm_context->serdes_obj, lm_context->lane);
 
 		if (test_score < 0) {
 			al_warn("serdes rx equalization failed on error\n");
@@ -608,27 +629,22 @@ al_eth_rx_equal_run(struct al_eth_lm_context *lm_context)
 		}
 
 		lm_context->serdes_obj->rx_advanced_params_get(
-					lm_context->serdes_obj,
-					lm_context->lane,
-					&rx_params);
+		    lm_context->serdes_obj, lm_context->lane, &rx_params);
 
 		lm_debug("%6d|%8x|%8x|%9x|%6x|%6x|%6x|%6x|%10x|%10x|\n",
 		    test_score, rx_params.dcgain, rx_params.dfe_3db_freq,
 		    rx_params.dfe_gain, rx_params.dfe_first_tap_ctrl,
-		    rx_params.dfe_secound_tap_ctrl, rx_params.dfe_third_tap_ctrl,
-		    rx_params.dfe_fourth_tap_ctrl, rx_params.low_freq_agc_gain,
-		    rx_params.high_freq_agc_boost);
+		    rx_params.dfe_secound_tap_ctrl,
+		    rx_params.dfe_third_tap_ctrl, rx_params.dfe_fourth_tap_ctrl,
+		    rx_params.low_freq_agc_gain, rx_params.high_freq_agc_boost);
 	}
 
-	lm_context->serdes_obj->dcgain_set(
-					lm_context->serdes_obj,
-					best_dcgain);
+	lm_context->serdes_obj->dcgain_set(lm_context->serdes_obj, best_dcgain);
 
 	best_score = -1;
-	for(i = 0; i < AL_ETH_LM_EQ_ITERATIONS; i++) {
+	for (i = 0; i < AL_ETH_LM_EQ_ITERATIONS; i++) {
 		test_score = lm_context->serdes_obj->rx_equalization(
-						lm_context->serdes_obj,
-						lm_context->lane);
+		    lm_context->serdes_obj, lm_context->lane);
 
 		if (test_score < 0) {
 			al_warn("serdes rx equalization failed on error\n");
@@ -638,50 +654,53 @@ al_eth_rx_equal_run(struct al_eth_lm_context *lm_context)
 		if (test_score > best_score) {
 			best_score = test_score;
 			lm_context->serdes_obj->rx_advanced_params_get(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						&rx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    &rx_params);
 		}
 	}
 
 	rx_params.precal_code_sel = 0;
 	rx_params.override = AL_TRUE;
-	lm_context->serdes_obj->rx_advanced_params_set(
-					lm_context->serdes_obj,
-					lm_context->lane,
-					&rx_params);
+	lm_context->serdes_obj->rx_advanced_params_set(lm_context->serdes_obj,
+	    lm_context->lane, &rx_params);
 
-	lm_debug("-------------------- best dcgain %d ------------------------------------\n", best_dcgain);
-	lm_debug("%6d|%8x|%8x|%9x|%6x|%6x|%6x|%6x|%10x|%10x|\n",
-	    best_score, rx_params.dcgain, rx_params.dfe_3db_freq,
-	    rx_params.dfe_gain, rx_params.dfe_first_tap_ctrl,
-	    rx_params.dfe_secound_tap_ctrl, rx_params.dfe_third_tap_ctrl,
-	    rx_params.dfe_fourth_tap_ctrl, rx_params.low_freq_agc_gain,
-	    rx_params.high_freq_agc_boost);
+	lm_debug(
+	    "-------------------- best dcgain %d ------------------------------------\n",
+	    best_dcgain);
+	lm_debug("%6d|%8x|%8x|%9x|%6x|%6x|%6x|%6x|%10x|%10x|\n", best_score,
+	    rx_params.dcgain, rx_params.dfe_3db_freq, rx_params.dfe_gain,
+	    rx_params.dfe_first_tap_ctrl, rx_params.dfe_secound_tap_ctrl,
+	    rx_params.dfe_third_tap_ctrl, rx_params.dfe_fourth_tap_ctrl,
+	    rx_params.low_freq_agc_gain, rx_params.high_freq_agc_boost);
 
 	return (0);
 }
 
-static int al_eth_lm_retimer_boost_config(struct al_eth_lm_context *lm_context)
+static int
+al_eth_lm_retimer_boost_config(struct al_eth_lm_context *lm_context)
 {
 	int i;
 	int rc = 0;
 	uint8_t boost = 0;
 	uint32_t boost_addr =
-	    al_eth_retimer_boost_addr[lm_context->retimer_channel][lm_context->retimer_type];
+	    al_eth_retimer_boost_addr[lm_context->retimer_channel]
+				     [lm_context->retimer_type];
 
 	if (lm_context->mode != AL_ETH_LM_MODE_10G_DA) {
 		boost = al_eth_retimer_boost_value[0][lm_context->retimer_type];
 	} else {
 		for (i = 0; i < RETIMER_LENS_MAX; i++) {
-			if (lm_context->da_len <= al_eth_retimer_boost_lens[i]) {
-				boost = al_eth_retimer_boost_value[i][lm_context->retimer_type];
+			if (lm_context->da_len <=
+			    al_eth_retimer_boost_lens[i]) {
+				boost = al_eth_retimer_boost_value
+				    [i][lm_context->retimer_type];
 				break;
 			}
 		}
 
 		if (i == RETIMER_LENS_MAX)
-			boost = al_eth_retimer_boost_value[RETIMER_LENS_MAX][lm_context->retimer_type];
+			boost = al_eth_retimer_boost_value
+			    [RETIMER_LENS_MAX][lm_context->retimer_type];
 	}
 
 	lm_debug("config retimer boost in channel %d (addr %x) to 0x%x\n",
@@ -693,7 +712,7 @@ static int al_eth_lm_retimer_boost_config(struct al_eth_lm_context *lm_context)
 
 	if (rc != 0) {
 		al_err("%s: Error occurred (%d) while writing retimer "
-		    "configuration (bus-id %x i2c-addr %x)\n",
+		       "configuration (bus-id %x i2c-addr %x)\n",
 		    __func__, rc, lm_context->retimer_bus_id,
 		    lm_context->retimer_i2c_addr);
 		return (rc);
@@ -705,40 +724,37 @@ static int al_eth_lm_retimer_boost_config(struct al_eth_lm_context *lm_context)
 /*******************************************************************************
  ************************** retimer DS25 ***************************************
  ******************************************************************************/
-#define LM_DS25_CHANNEL_EN_REG		0xff
-#define LM_DS25_CHANNEL_EN_MASK		0x03
-#define LM_DS25_CHANNEL_EN_VAL		0x01
+#define LM_DS25_CHANNEL_EN_REG 0xff
+#define LM_DS25_CHANNEL_EN_MASK 0x03
+#define LM_DS25_CHANNEL_EN_VAL 0x01
 
-#define LM_DS25_CHANNEL_SEL_REG		0xfc
-#define LM_DS25_CHANNEL_SEL_MASK	0xff
+#define LM_DS25_CHANNEL_SEL_REG 0xfc
+#define LM_DS25_CHANNEL_SEL_MASK 0xff
 
-#define LM_DS25_CDR_RESET_REG		0x0a
-#define LM_DS25_CDR_RESET_MASK		0x0c
-#define LM_DS25_CDR_RESET_ASSERT	0x0c
-#define LM_DS25_CDR_RESET_RELEASE	0x00
+#define LM_DS25_CDR_RESET_REG 0x0a
+#define LM_DS25_CDR_RESET_MASK 0x0c
+#define LM_DS25_CDR_RESET_ASSERT 0x0c
+#define LM_DS25_CDR_RESET_RELEASE 0x00
 
-#define LM_DS25_SIGNAL_DETECT_REG	0x78
-#define LM_DS25_SIGNAL_DETECT_MASK	0x20
+#define LM_DS25_SIGNAL_DETECT_REG 0x78
+#define LM_DS25_SIGNAL_DETECT_MASK 0x20
 
-#define LM_DS25_CDR_LOCK_REG		0x78
-#define LM_DS25_CDR_LOCK_MASK		0x10
+#define LM_DS25_CDR_LOCK_REG 0x78
+#define LM_DS25_CDR_LOCK_MASK 0x10
 
-#define LM_DS25_DRV_PD_REG		0x15
-#define LM_DS25_DRV_PD_MASK		0x08
+#define LM_DS25_DRV_PD_REG 0x15
+#define LM_DS25_DRV_PD_MASK 0x08
 
-static int al_eth_lm_retimer_ds25_write_reg(struct al_eth_lm_context	*lm_context,
-					    uint8_t			reg_addr,
-					    uint8_t			reg_mask,
-					    uint8_t			reg_value)
+static int
+al_eth_lm_retimer_ds25_write_reg(struct al_eth_lm_context *lm_context,
+    uint8_t reg_addr, uint8_t reg_mask, uint8_t reg_value)
 {
 	uint8_t reg;
 	int rc;
 
 	rc = lm_context->i2c_read(lm_context->i2c_context,
-				  lm_context->retimer_bus_id,
-				  lm_context->retimer_i2c_addr,
-				  reg_addr,
-				  &reg);
+	    lm_context->retimer_bus_id, lm_context->retimer_i2c_addr, reg_addr,
+	    &reg);
 
 	if (rc != 0)
 		return (EIO);
@@ -747,10 +763,8 @@ static int al_eth_lm_retimer_ds25_write_reg(struct al_eth_lm_context	*lm_context
 	reg |= reg_value;
 
 	rc = lm_context->i2c_write(lm_context->i2c_context,
-				   lm_context->retimer_bus_id,
-				   lm_context->retimer_i2c_addr,
-				   reg_addr,
-				   reg);
+	    lm_context->retimer_bus_id, lm_context->retimer_i2c_addr, reg_addr,
+	    reg);
 
 	if (rc != 0)
 		return (EIO);
@@ -758,32 +772,29 @@ static int al_eth_lm_retimer_ds25_write_reg(struct al_eth_lm_context	*lm_context
 	return (0);
 }
 
-static int al_eth_lm_retimer_ds25_channel_select(struct al_eth_lm_context	*lm_context,
-						 uint8_t			channel)
+static int
+al_eth_lm_retimer_ds25_channel_select(struct al_eth_lm_context *lm_context,
+    uint8_t channel)
 {
 	int rc = 0;
 
 	/* Write to specific channel */
 	rc = al_eth_lm_retimer_ds25_write_reg(lm_context,
-					      LM_DS25_CHANNEL_EN_REG,
-					      LM_DS25_CHANNEL_EN_MASK,
-					      LM_DS25_CHANNEL_EN_VAL);
+	    LM_DS25_CHANNEL_EN_REG, LM_DS25_CHANNEL_EN_MASK,
+	    LM_DS25_CHANNEL_EN_VAL);
 
 	if (rc != 0)
 		return (rc);
 
 	rc = al_eth_lm_retimer_ds25_write_reg(lm_context,
-					      LM_DS25_CHANNEL_SEL_REG,
-					      LM_DS25_CHANNEL_SEL_MASK,
-					      (1 << channel));
+	    LM_DS25_CHANNEL_SEL_REG, LM_DS25_CHANNEL_SEL_MASK, (1 << channel));
 
 	return (rc);
 }
 
-static int al_eth_lm_retimer_ds25_channel_config(struct al_eth_lm_context	*lm_context,
-						 uint8_t			channel,
-						 struct retimer_config_reg	*config,
-						 uint8_t			config_size)
+static int
+al_eth_lm_retimer_ds25_channel_config(struct al_eth_lm_context *lm_context,
+    uint8_t channel, struct retimer_config_reg *config, uint8_t config_size)
 {
 	uint8_t i;
 	int rc;
@@ -794,15 +805,14 @@ static int al_eth_lm_retimer_ds25_channel_config(struct al_eth_lm_context	*lm_co
 
 	for (i = 0; i < config_size; i++) {
 		rc = al_eth_lm_retimer_ds25_write_reg(lm_context,
-						      config[i].addr,
-						      config[i].mask,
-						      config[i].value);
+		    config[i].addr, config[i].mask, config[i].value);
 
 		if (rc != 0)
 			goto config_error;
 	}
 
-	lm_debug("%s: retimer channel config done for channel %d\n", __func__, channel);
+	lm_debug("%s: retimer channel config done for channel %d\n", __func__,
+	    channel);
 
 	return (0);
 
@@ -812,7 +822,9 @@ config_error:
 	return (rc);
 }
 
-static int al_eth_lm_retimer_ds25_cdr_reset(struct al_eth_lm_context *lm_context, uint32_t channel)
+static int
+al_eth_lm_retimer_ds25_cdr_reset(struct al_eth_lm_context *lm_context,
+    uint32_t channel)
 {
 	int rc;
 
@@ -822,18 +834,14 @@ static int al_eth_lm_retimer_ds25_cdr_reset(struct al_eth_lm_context *lm_context
 	if (rc)
 		goto config_error;
 
-	rc = al_eth_lm_retimer_ds25_write_reg(lm_context,
-					      LM_DS25_CDR_RESET_REG,
-					      LM_DS25_CDR_RESET_MASK,
-					      LM_DS25_CDR_RESET_ASSERT);
+	rc = al_eth_lm_retimer_ds25_write_reg(lm_context, LM_DS25_CDR_RESET_REG,
+	    LM_DS25_CDR_RESET_MASK, LM_DS25_CDR_RESET_ASSERT);
 
 	if (rc)
 		goto config_error;
 
-	rc = al_eth_lm_retimer_ds25_write_reg(lm_context,
-					      LM_DS25_CDR_RESET_REG,
-					      LM_DS25_CDR_RESET_MASK,
-					      LM_DS25_CDR_RESET_RELEASE);
+	rc = al_eth_lm_retimer_ds25_write_reg(lm_context, LM_DS25_CDR_RESET_REG,
+	    LM_DS25_CDR_RESET_MASK, LM_DS25_CDR_RESET_RELEASE);
 
 	if (rc)
 		goto config_error;
@@ -846,8 +854,9 @@ config_error:
 	return rc;
 }
 
-static bool al_eth_lm_retimer_ds25_signal_detect(struct al_eth_lm_context *lm_context,
-						    uint32_t channel)
+static bool
+al_eth_lm_retimer_ds25_signal_detect(struct al_eth_lm_context *lm_context,
+    uint32_t channel)
 {
 	int rc = 0;
 	uint8_t reg;
@@ -857,10 +866,8 @@ static bool al_eth_lm_retimer_ds25_signal_detect(struct al_eth_lm_context *lm_co
 		goto config_error;
 
 	rc = lm_context->i2c_read(lm_context->i2c_context,
-				  lm_context->retimer_bus_id,
-				  lm_context->retimer_i2c_addr,
-				  LM_DS25_SIGNAL_DETECT_REG,
-				  &reg);
+	    lm_context->retimer_bus_id, lm_context->retimer_i2c_addr,
+	    LM_DS25_SIGNAL_DETECT_REG, &reg);
 
 	if (rc)
 		goto config_error;
@@ -876,8 +883,9 @@ config_error:
 	return false;
 }
 
-static bool al_eth_lm_retimer_ds25_cdr_lock(struct al_eth_lm_context *lm_context,
-					       uint32_t channel)
+static bool
+al_eth_lm_retimer_ds25_cdr_lock(struct al_eth_lm_context *lm_context,
+    uint32_t channel)
 {
 	int rc = 0;
 	uint8_t reg;
@@ -887,10 +895,8 @@ static bool al_eth_lm_retimer_ds25_cdr_lock(struct al_eth_lm_context *lm_context
 		goto config_error;
 
 	rc = lm_context->i2c_read(lm_context->i2c_context,
-				  lm_context->retimer_bus_id,
-				  lm_context->retimer_i2c_addr,
-				  LM_DS25_CDR_LOCK_REG,
-				  &reg);
+	    lm_context->retimer_bus_id, lm_context->retimer_i2c_addr,
+	    LM_DS25_CDR_LOCK_REG, &reg);
 
 	if (rc)
 		goto config_error;
@@ -906,8 +912,8 @@ config_error:
 	return false;
 }
 
-static bool al_eth_lm_wait_for_lock(struct al_eth_lm_context	*lm_context,
-				       uint32_t			channel)
+static bool
+al_eth_lm_wait_for_lock(struct al_eth_lm_context *lm_context, uint32_t channel)
 {
 	uint32_t timeout = AL_ETH_LM_RETIMER_WAIT_FOR_LOCK;
 	bool lock = false;
@@ -916,53 +922,59 @@ static bool al_eth_lm_wait_for_lock(struct al_eth_lm_context	*lm_context,
 		al_msleep(10);
 		timeout -= 10;
 
-		lock = retimer[lm_context->retimer_type].cdr_lock(lm_context, channel);
+		lock = retimer[lm_context->retimer_type].cdr_lock(lm_context,
+		    channel);
 	}
 
-	lm_debug("%s: %s to achieve CDR lock in %d msec\n",
-		 __func__, (lock) ? "succeed" : "FAILED",
-		 (AL_ETH_LM_RETIMER_WAIT_FOR_LOCK - timeout));
+	lm_debug("%s: %s to achieve CDR lock in %d msec\n", __func__,
+	    (lock) ? "succeed" : "FAILED",
+	    (AL_ETH_LM_RETIMER_WAIT_FOR_LOCK - timeout));
 
 	return lock;
 }
 
-static void al_eth_lm_retimer_signal_lock_check(struct al_eth_lm_context	*lm_context,
-						uint32_t			channel,
-						bool			*ready)
+static void
+al_eth_lm_retimer_signal_lock_check(struct al_eth_lm_context *lm_context,
+    uint32_t channel, bool *ready)
 {
 	bool signal_detect = true;
 	bool cdr_lock = true;
 
 	if (retimer[lm_context->retimer_type].signal_detect) {
-		if (!retimer[lm_context->retimer_type].signal_detect(lm_context, channel)) {
-			lm_debug("no signal detected on retimer channel %d\n", channel);
+		if (!retimer[lm_context->retimer_type].signal_detect(lm_context,
+			channel)) {
+			lm_debug("no signal detected on retimer channel %d\n",
+			    channel);
 
 			signal_detect = false;
 		} else {
 			if (retimer[lm_context->retimer_type].cdr_lock) {
-				cdr_lock = retimer[lm_context->retimer_type].cdr_lock(
-									lm_context,
-									channel);
+				cdr_lock = retimer[lm_context->retimer_type]
+					       .cdr_lock(lm_context, channel);
 				if (!cdr_lock) {
-					if (retimer[lm_context->retimer_type].reset) {
-						retimer[lm_context->retimer_type].reset(lm_context,
-											channel);
+					if (retimer[lm_context->retimer_type]
+						.reset) {
+						retimer[lm_context
+							    ->retimer_type]
+						    .reset(lm_context, channel);
 
-						cdr_lock = al_eth_lm_wait_for_lock(lm_context,
-										   channel);
+						cdr_lock =
+						    al_eth_lm_wait_for_lock(
+							lm_context, channel);
 					}
 				}
 			}
 		}
 	}
 
-	al_info("%s: (channel %d) signal %d cdr lock %d\n",
-		 __func__, channel, signal_detect, (signal_detect) ? cdr_lock : 0);
+	al_info("%s: (channel %d) signal %d cdr lock %d\n", __func__, channel,
+	    signal_detect, (signal_detect) ? cdr_lock : 0);
 
 	*ready = (cdr_lock && signal_detect);
 }
 
-static int al_eth_lm_retimer_ds25_full_config(struct al_eth_lm_context *lm_context)
+static int
+al_eth_lm_retimer_ds25_full_config(struct al_eth_lm_context *lm_context)
 {
 	int rc = 0;
 	bool ready;
@@ -987,28 +999,26 @@ static int al_eth_lm_retimer_ds25_full_config(struct al_eth_lm_context *lm_conte
 	}
 
 	rc = al_eth_lm_retimer_ds25_channel_config(lm_context,
-					lm_context->retimer_channel,
-					config_rx,
-					config_rx_size);
+	    lm_context->retimer_channel, config_rx, config_rx_size);
 
 	if (rc)
 		return rc;
 
 	rc = al_eth_lm_retimer_ds25_channel_config(lm_context,
-					lm_context->retimer_tx_channel,
-					config_tx,
-					config_tx_size);
+	    lm_context->retimer_tx_channel, config_tx, config_tx_size);
 
 	if (rc)
 		return rc;
 
 	if (lm_context->serdes_obj->type_get() == AL_SRDS_TYPE_25G) {
-		lm_debug("%s: serdes 25G - perform tx and rx gearbox reset\n", __func__);
+		lm_debug("%s: serdes 25G - perform tx and rx gearbox reset\n",
+		    __func__);
 		al_eth_gearbox_reset(lm_context->adapter, AL_TRUE, AL_TRUE);
 		DELAY(AL_ETH_LM_GEARBOX_RESET_DELAY);
 	}
 
-	al_eth_lm_retimer_signal_lock_check(lm_context, lm_context->retimer_tx_channel, &ready);
+	al_eth_lm_retimer_signal_lock_check(lm_context,
+	    lm_context->retimer_tx_channel, &ready);
 
 	if (!ready) {
 		lm_debug("%s: Failed to lock tx channel!\n", __func__);
@@ -1020,16 +1030,18 @@ static int al_eth_lm_retimer_ds25_full_config(struct al_eth_lm_context *lm_conte
 	return rc;
 }
 
-static int al_eth_lm_retimer_25g_rx_adaptation(struct al_eth_lm_context *lm_context)
+static int
+al_eth_lm_retimer_25g_rx_adaptation(struct al_eth_lm_context *lm_context)
 {
 	int rc = 0;
 	bool ready;
 
-	al_eth_lm_retimer_signal_lock_check(lm_context, lm_context->retimer_channel, &ready);
+	al_eth_lm_retimer_signal_lock_check(lm_context,
+	    lm_context->retimer_channel, &ready);
 
 	if (!ready) {
 		lm_debug("%s: no signal detected on retimer Rx channel (%d)\n",
-			 __func__,  lm_context->retimer_channel);
+		    __func__, lm_context->retimer_channel);
 
 		return rc;
 	}
@@ -1039,7 +1051,8 @@ static int al_eth_lm_retimer_25g_rx_adaptation(struct al_eth_lm_context *lm_cont
 	return 0;
 }
 
-static int al_eth_lm_check_for_link(struct al_eth_lm_context *lm_context, bool *link_up)
+static int
+al_eth_lm_check_for_link(struct al_eth_lm_context *lm_context, bool *link_up)
 {
 	struct al_eth_link_status status;
 	int ret = 0;
@@ -1076,7 +1089,7 @@ static int al_eth_lm_check_for_link(struct al_eth_lm_context *lm_context, bool *
 /***************************** API functions *********************************/
 /*****************************************************************************/
 int
-al_eth_lm_init(struct al_eth_lm_context	*lm_context,
+al_eth_lm_init(struct al_eth_lm_context *lm_context,
     struct al_eth_lm_init_params *params)
 {
 
@@ -1144,9 +1157,8 @@ al_eth_lm_init(struct al_eth_lm_context	*lm_context,
 }
 
 int
-al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
-    bool *link_fault, enum al_eth_lm_link_mode *old_mode,
-    enum al_eth_lm_link_mode *new_mode)
+al_eth_lm_link_detection(struct al_eth_lm_context *lm_context, bool *link_fault,
+    enum al_eth_lm_link_mode *old_mode, enum al_eth_lm_link_mode *new_mode)
 {
 	int err;
 	struct al_eth_link_status status;
@@ -1156,9 +1168,9 @@ al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
 	al_assert(new_mode != NULL);
 
 	/**
-	 * if Link management is disabled, report no link fault in case the link was up
-	 * before and set new mode to disconnected to avoid calling to link establish
-	 * if the link wasn't up.
+	 * if Link management is disabled, report no link fault in case the link
+	 * was up before and set new mode to disconnected to avoid calling to
+	 * link establish if the link wasn't up.
 	 */
 	if (lm_context->lm_pause != NULL) {
 		bool lm_pause = lm_context->lm_pause(lm_context->i2c_context);
@@ -1196,7 +1208,8 @@ al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
 			lm_debug("%s: >>>> Link state UP ==> DOWN\n", __func__);
 			lm_context->link_state = AL_ETH_LM_LINK_DOWN;
 		} else {
-			lm_debug("%s: >>>> Link state UP ==> DOWN_RF\n", __func__);
+			lm_debug("%s: >>>> Link state UP ==> DOWN_RF\n",
+			    __func__);
 			lm_context->link_state = AL_ETH_LM_LINK_DOWN_RF;
 		}
 
@@ -1205,12 +1218,14 @@ al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
 		al_eth_link_status_get(lm_context->adapter, &status);
 
 		if (status.local_fault) {
-			lm_debug("%s: >>>> Link state DOWN_RF ==> DOWN\n", __func__);
+			lm_debug("%s: >>>> Link state DOWN_RF ==> DOWN\n",
+			    __func__);
 			lm_context->link_state = AL_ETH_LM_LINK_DOWN;
 
 			break;
 		} else if (status.remote_fault == AL_FALSE) {
-			lm_debug("%s: >>>> Link state DOWN_RF ==> UP\n", __func__);
+			lm_debug("%s: >>>> Link state DOWN_RF ==> UP\n",
+			    __func__);
 			lm_context->link_state = AL_ETH_LM_LINK_UP;
 		}
 		/* in case of remote fault only no need to check SFP again */
@@ -1235,8 +1250,8 @@ al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
 	}
 
 	if (*old_mode != *new_mode) {
-		al_info("%s: New SFP mode detected %s -> %s\n",
-		    __func__, al_eth_lm_mode_convert_to_str(*old_mode),
+		al_info("%s: New SFP mode detected %s -> %s\n", __func__,
+		    al_eth_lm_mode_convert_to_str(*old_mode),
 		    al_eth_lm_mode_convert_to_str(*new_mode));
 
 		lm_context->rx_param_dirty = 1;
@@ -1244,8 +1259,9 @@ al_eth_lm_link_detection(struct al_eth_lm_context *lm_context,
 
 		lm_context->new_port = true;
 
-		if ((*new_mode != AL_ETH_LM_MODE_DISCONNECTED) && (lm_context->led_config)) {
-			struct al_eth_lm_led_config_data data = {0};
+		if ((*new_mode != AL_ETH_LM_MODE_DISCONNECTED) &&
+		    (lm_context->led_config)) {
+			struct al_eth_lm_led_config_data data = { 0 };
 
 			switch (*new_mode) {
 			case AL_ETH_LM_MODE_10G_OPTIC:
@@ -1291,8 +1307,9 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 	};
 
 	/**
-	 * At this point we will get LM disable only if changed to disable after link detection
-	 * finished. in this case link will not be established until LM will be enable again.
+	 * At this point we will get LM disable only if changed to disable after
+	 * link detection finished. in this case link will not be established
+	 * until LM will be enable again.
 	 */
 	if (lm_context->lm_pause) {
 		bool lm_pause = lm_context->lm_pause(lm_context->i2c_context);
@@ -1312,7 +1329,8 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 #endif
 
 		if (retimer[lm_context->retimer_type].config(lm_context)) {
-			al_info("%s: failed to configure the retimer\n", __func__);
+			al_info("%s: failed to configure the retimer\n",
+			    __func__);
 
 			*link_up = false;
 			return (1);
@@ -1325,7 +1343,8 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 
 	if (lm_context->retimer_exist) {
 		if (retimer[lm_context->retimer_type].rx_adaptation) {
-			ret = retimer[lm_context->retimer_type].rx_adaptation(lm_context);
+			ret = retimer[lm_context->retimer_type].rx_adaptation(
+			    lm_context);
 
 			if (ret != 0) {
 				lm_debug("retimer rx is not ready\n");
@@ -1337,8 +1356,7 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 	}
 
 	signal_detected = lm_context->serdes_obj->signal_is_detected(
-					lm_context->serdes_obj,
-					lm_context->lane);
+	    lm_context->serdes_obj, lm_context->lane);
 
 	if (signal_detected == false) {
 		/* if no signal detected there is nothing to do */
@@ -1348,7 +1366,8 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 	}
 
 	if (lm_context->serdes_obj->type_get() == AL_SRDS_TYPE_25G) {
-		lm_debug("%s: serdes 25G - perform rx gearbox reset\n", __func__);
+		lm_debug("%s: serdes 25G - perform rx gearbox reset\n",
+		    __func__);
 		al_eth_gearbox_reset(lm_context->adapter, AL_FALSE, AL_TRUE);
 		DELAY(AL_ETH_LM_GEARBOX_RESET_DELAY);
 	}
@@ -1366,21 +1385,22 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 		return ret;
 	}
 
-	if ((lm_context->mode == AL_ETH_LM_MODE_10G_DA) && (lm_context->link_training)) {
-		lm_context->local_adv.transmitted_nonce = lm_context->get_random_byte();
+	if ((lm_context->mode == AL_ETH_LM_MODE_10G_DA) &&
+	    (lm_context->link_training)) {
+		lm_context->local_adv.transmitted_nonce =
+		    lm_context->get_random_byte();
 		lm_context->local_adv.transmitted_nonce &= 0x1f;
 
 		ret = al_eth_an_lt_execute(lm_context->adapter,
-					   lm_context->serdes_obj,
-					   lm_context->lane,
-					   &lm_context->local_adv,
-					   &lm_context->partner_adv);
+		    lm_context->serdes_obj, lm_context->lane,
+		    &lm_context->local_adv, &lm_context->partner_adv);
 
 		lm_context->rx_param_dirty = 1;
 		lm_context->tx_param_dirty = 1;
 
 		if (ret == 0) {
-			al_info("%s: link training finished successfully\n", __func__);
+			al_info("%s: link training finished successfully\n",
+			    __func__);
 			lm_context->link_training_failures = 0;
 			ret = al_eth_lm_check_for_link(lm_context, link_up);
 
@@ -1391,18 +1411,16 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 		}
 
 		lm_context->link_training_failures++;
-		if (lm_context->link_training_failures > AL_ETH_LT_FAILURES_TO_RESET) {
-			lm_debug("%s: failed to establish LT %d times. reset serdes\n",
-				 __func__, AL_ETH_LT_FAILURES_TO_RESET);
+		if (lm_context->link_training_failures >
+		    AL_ETH_LT_FAILURES_TO_RESET) {
+			lm_debug(
+			    "%s: failed to establish LT %d times. reset serdes\n",
+			    __func__, AL_ETH_LT_FAILURES_TO_RESET);
 
 			lm_context->serdes_obj->pma_hard_reset_lane(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						AL_TRUE);
+			    lm_context->serdes_obj, lm_context->lane, AL_TRUE);
 			lm_context->serdes_obj->pma_hard_reset_lane(
-						lm_context->serdes_obj,
-						lm_context->lane,
-						AL_FALSE);
+			    lm_context->serdes_obj, lm_context->lane, AL_FALSE);
 			lm_context->link_training_failures = 0;
 		}
 	}
@@ -1418,7 +1436,9 @@ al_eth_lm_link_establish(struct al_eth_lm_context *lm_context, bool *link_up)
 			ret = al_eth_lm_check_for_link(lm_context, link_up);
 
 			if (ret == 0) {
-				lm_debug("%s: link is up with Rx Equalization\n", __func__);
+				lm_debug(
+				    "%s: link is up with Rx Equalization\n",
+				    __func__);
 				return (0);
 			}
 		}
@@ -1461,8 +1481,8 @@ al_eth_lm_static_parameters_override(struct al_eth_lm_context *lm_context,
 }
 
 int
-al_eth_lm_static_parameters_override_disable(struct al_eth_lm_context *lm_context,
-    bool tx_params, bool rx_params)
+al_eth_lm_static_parameters_override_disable(
+    struct al_eth_lm_context *lm_context, bool tx_params, bool rx_params)
 {
 
 	if (tx_params)
@@ -1484,9 +1504,8 @@ al_eth_lm_static_parameters_get(struct al_eth_lm_context *lm_context,
 			*tx_params = lm_context->tx_params_override;
 		else
 			lm_context->serdes_obj->tx_advanced_params_get(
-							lm_context->serdes_obj,
-							lm_context->lane,
-							tx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    tx_params);
 	}
 
 	if (rx_params != NULL) {
@@ -1494,9 +1513,8 @@ al_eth_lm_static_parameters_get(struct al_eth_lm_context *lm_context,
 			*rx_params = lm_context->rx_params_override;
 		else
 			lm_context->serdes_obj->rx_advanced_params_get(
-							lm_context->serdes_obj,
-							lm_context->lane,
-							rx_params);
+			    lm_context->serdes_obj, lm_context->lane,
+			    rx_params);
 	}
 
 	return (0);
@@ -1523,8 +1541,7 @@ al_eth_lm_mode_convert_to_str(enum al_eth_lm_link_mode val)
 }
 
 void
-al_eth_lm_debug_mode_set(struct al_eth_lm_context *lm_context,
-    bool enable)
+al_eth_lm_debug_mode_set(struct al_eth_lm_context *lm_context, bool enable)
 {
 
 	lm_context->debug = enable;

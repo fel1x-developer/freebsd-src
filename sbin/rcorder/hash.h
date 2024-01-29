@@ -46,30 +46,30 @@
  * 	which maintains hash tables.
  */
 
-#ifndef	_HASH
-#define	_HASH
+#ifndef _HASH
+#define _HASH
 
 /*
  * The following defines one entry in the hash table.
  */
 
 typedef struct Hash_Entry {
-	struct	Hash_Entry *next;	/* Used to link together all the
-					 * entries associated with the same
-					 * bucket. */
-	ClientData	clientData;	/* Arbitrary piece of data associated
-					 * with key. */
-	unsigned	namehash;	/* hash value of key */
-	char		name[1];	/* key string */
+	struct Hash_Entry *next; /* Used to link together all the
+				  * entries associated with the same
+				  * bucket. */
+	ClientData clientData;	 /* Arbitrary piece of data associated
+				  * with key. */
+	unsigned namehash;	 /* hash value of key */
+	char name[1];		 /* key string */
 } Hash_Entry;
 
 typedef struct Hash_Table {
-	struct	Hash_Entry **bucketPtr;
-				/* Pointers to Hash_Entry, one
-				 * for each bucket in the table. */
-	int 	size;		/* Actual size of array. */
-	int 	numEntries;	/* Number of entries in the table. */
-	int 	mask;		/* Used to select bits for hashing. */
+	struct Hash_Entry **bucketPtr;
+	/* Pointers to Hash_Entry, one
+	 * for each bucket in the table. */
+	int size;	/* Actual size of array. */
+	int numEntries; /* Number of entries in the table. */
+	int mask;	/* Used to select bits for hashing. */
 } Hash_Table;
 
 /*
@@ -78,11 +78,11 @@ typedef struct Hash_Table {
  */
 
 typedef struct Hash_Search {
-	Hash_Table	*tablePtr;	/* Table being searched. */
-	int	 	nextIndex;	/* Next bucket to check (after
-					 * current). */
-	Hash_Entry 	*hashEntryPtr;	/* Next entry to check in current
-					 * bucket. */
+	Hash_Table *tablePtr;	  /* Table being searched. */
+	int nextIndex;		  /* Next bucket to check (after
+				   * current). */
+	Hash_Entry *hashEntryPtr; /* Next entry to check in current
+				   * bucket. */
 } Hash_Search;
 
 /*
@@ -102,7 +102,7 @@ typedef struct Hash_Search {
  *     char *val;
  */
 
-#define Hash_SetValue(h, val) ((h)->clientData = (ClientData) (val))
+#define Hash_SetValue(h, val) ((h)->clientData = (ClientData)(val))
 
 #ifdef ORDER
 /*
@@ -117,7 +117,7 @@ typedef struct Hash_Search {
  * Hash_Size(n) returns the number of words in an object of n bytes
  */
 
-#define	Hash_Size(n)	(((n) + sizeof (int) - 1) / sizeof (int))
+#define Hash_Size(n) (((n) + sizeof(int) - 1) / sizeof(int))
 
 void Hash_InitTable(Hash_Table *, int);
 void Hash_DeleteTable(Hash_Table *);

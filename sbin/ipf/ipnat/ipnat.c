@@ -6,74 +6,75 @@
  *
  * Added redirect stuff and a variety of bug fixes. (mcn@EnGarde.com)
  */
+#include <sys/types.h>
+
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <sys/types.h>
 #if !defined(__SVR4)
 #include <strings.h>
 #else
 #include <sys/byteorder.h>
 #endif
-#include <sys/time.h>
 #include <sys/param.h>
+#include <sys/file.h>
+#include <sys/time.h>
+
+#include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stddef.h>
-#include <sys/file.h>
 #define _KERNEL
 #include <sys/uio.h>
 #undef _KERNEL
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #if defined(sun) && defined(__SVR4)
-# include <sys/ioccom.h>
-# include <sys/sysmacros.h>
+#include <sys/ioccom.h>
+#include <sys/sysmacros.h>
 #endif
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <arpa/nameser.h>
+
 #include <arpa/inet.h>
-#include <resolv.h>
+#include <arpa/nameser.h>
 #include <ctype.h>
-# include <nlist.h>
+#include <netdb.h>
+#include <nlist.h>
+#include <resolv.h>
+
 #include "ipf.h"
-#include "netinet/ipl.h"
 #include "kmem.h"
+#include "netinet/ipl.h"
 
+#define STRERROR(x) strerror(x)
 
-# define	STRERROR(x)	strerror(x)
-
-
-
-#if	SOLARIS
-#define	bzero(a,b)	memset(a,0,b)
+#if SOLARIS
+#define bzero(a, b) memset(a, 0, b)
 #endif
-int	use_inet6 = 0;
+int use_inet6 = 0;
 
-extern	char	*optarg;
+extern char *optarg;
 
-void	dostats(int, natstat_t *, int, int, int *);
-void	dotable(natstat_t *, int, int, int, char *);
-void	flushtable(int, int, int *);
-void	usage(char *);
-int	main(int, char*[]);
-void	showhostmap(natstat_t *nsp);
-void	natstat_dead(natstat_t *, char *);
-void	dostats_live(int, natstat_t *, int, int *);
-void	showhostmap_dead(natstat_t *);
-void	showhostmap_live(int, natstat_t *);
-void	dostats_dead(natstat_t *, int, int *);
-int	nat_matcharray(nat_t *, int *);
+void dostats(int, natstat_t *, int, int, int *);
+void dotable(natstat_t *, int, int, int, char *);
+void flushtable(int, int, int *);
+void usage(char *);
+int main(int, char *[]);
+void showhostmap(natstat_t *nsp);
+void natstat_dead(natstat_t *, char *);
+void dostats_live(int, natstat_t *, int, int *);
+void showhostmap_dead(natstat_t *);
+void showhostmap_live(int, natstat_t *);
+void dostats_dead(natstat_t *, int, int *);
+int nat_matcharray(nat_t *, int *);
 
-int		opts;
-int		nohdrfields = 0;
-wordtab_t	*nat_fields = NULL;
+int opts;
+int nohdrfields = 0;
+wordtab_t *nat_fields = NULL;
 
 void
 usage(char *name)
@@ -81,7 +82,6 @@ usage(char *name)
 	fprintf(stderr, "Usage: %s [-CFhlnrRsv] [-f filename]\n", name);
 	exit(1);
 }
-
 
 int
 main(int argc, char *argv[])
@@ -103,81 +103,79 @@ main(int argc, char *argv[])
 	assigndefined(getenv("IPNAT_PREDEFINED"));
 
 	while ((c = getopt(argc, argv, "CdFf:hlm:M:N:nO:prRsv")) != -1)
-		switch (c)
-		{
-		case 'C' :
+		switch (c) {
+		case 'C':
 			opts |= OPT_CLEAR;
 			break;
-		case 'd' :
+		case 'd':
 			opts |= OPT_DEBUG;
 			break;
-		case 'f' :
+		case 'f':
 			file = optarg;
 			break;
-		case 'F' :
+		case 'F':
 			opts |= OPT_FLUSH;
 			break;
-		case 'h' :
-			opts |=OPT_HITS;
+		case 'h':
+			opts |= OPT_HITS;
 			break;
-		case 'l' :
+		case 'l':
 			opts |= OPT_LIST;
 			mode = O_RDONLY;
 			break;
-		case 'm' :
+		case 'm':
 			natfilter = parseipfexpr(optarg, NULL);
 			break;
-		case 'M' :
+		case 'M':
 			core = optarg;
 			break;
-		case 'N' :
+		case 'N':
 			kernel = optarg;
 			break;
-		case 'n' :
-			opts |= OPT_DONOTHING|OPT_DONTOPEN;
+		case 'n':
+			opts |= OPT_DONOTHING | OPT_DONTOPEN;
 			mode = O_RDONLY;
 			break;
-		case 'O' :
+		case 'O':
 			nat_fields = parsefields(natfields, optarg);
 			break;
-		case 'p' :
+		case 'p':
 			opts |= OPT_PURGE;
 			break;
-		case 'R' :
+		case 'R':
 			opts |= OPT_NORESOLVE;
 			break;
-		case 'r' :
+		case 'r':
 			opts |= OPT_REMOVE;
 			break;
-		case 's' :
+		case 's':
 			opts |= OPT_STAT;
 			mode = O_RDONLY;
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
-		default :
+		default:
 			usage(argv[0]);
 		}
 
 	if (((opts & OPT_PURGE) != 0) && ((opts & OPT_REMOVE) == 0)) {
-		(void) fprintf(stderr, "%s: -p must be used with -r\n",
-			       argv[0]);
+		(void)fprintf(stderr, "%s: -p must be used with -r\n", argv[0]);
 		exit(1);
 	}
 
 	initparse();
 
 	if ((kernel != NULL) || (core != NULL)) {
-		(void) setgid(getgid());
-		(void) setuid(getuid());
+		(void)setgid(getgid());
+		(void)setuid(getuid());
 	}
 
 	if (!(opts & OPT_DONOTHING)) {
 		if (((fd = open(IPNAT_NAME, mode)) == -1) &&
 		    ((fd = open(IPNAT_NAME, O_RDONLY)) == -1)) {
-			(void) fprintf(stderr, "%s: open: %s\n", IPNAT_NAME,
-				STRERROR(errno));
+			(void)fprintf(stderr, "%s: open: %s\n", IPNAT_NAME,
+			    STRERROR(errno));
 			exit(1);
 		}
 	}
@@ -201,28 +199,27 @@ main(int argc, char *argv[])
 			ipferror(fd, "ioctl(SIOCGNATS)");
 			exit(1);
 		}
-		(void) setgid(getgid());
-		(void) setuid(getuid());
+		(void)setgid(getgid());
+		(void)setuid(getuid());
 	} else if ((kernel != NULL) || (core != NULL)) {
 		if (openkmem(kernel, core) == -1)
 			exit(1);
 
 		natstat_dead(nsp, kernel);
-		if (opts & (OPT_LIST|OPT_STAT))
+		if (opts & (OPT_LIST | OPT_STAT))
 			dostats(fd, nsp, opts, 0, natfilter);
 		exit(0);
 	}
 
-	if (opts & (OPT_FLUSH|OPT_CLEAR))
+	if (opts & (OPT_FLUSH | OPT_CLEAR))
 		flushtable(fd, opts, natfilter);
 	if (file) {
 		return (ipnat_parsefile(fd, ipnat_addrule, ioctl, file));
 	}
-	if (opts & (OPT_LIST|OPT_STAT))
+	if (opts & (OPT_LIST | OPT_STAT))
 		dostats(fd, nsp, opts, 1, natfilter);
 	return (0);
 }
-
 
 /*
  * Read NAT statistic information in using a symbol table and memory file
@@ -231,17 +228,10 @@ main(int argc, char *argv[])
 void
 natstat_dead(natstat_t *nsp, char *kernel)
 {
-	struct nlist nat_nlist[10] = {
-		{ "nat_table" },		/* 0 */
-		{ "nat_list" },
-		{ "maptable" },
-		{ "ipf_nattable_sz" },
-		{ "ipf_natrules_sz" },
-		{ "ipf_rdrrules_sz" },		/* 5 */
-		{ "ipf_hostmap_sz" },
-		{ "nat_instances" },
-		{ NULL }
-	};
+	struct nlist nat_nlist[10] = { { "nat_table" }, /* 0 */
+		{ "nat_list" }, { "maptable" }, { "ipf_nattable_sz" },
+		{ "ipf_natrules_sz" }, { "ipf_rdrrules_sz" }, /* 5 */
+		{ "ipf_hostmap_sz" }, { "nat_instances" }, { NULL } };
 	void *tables[2];
 
 	if (nlist(kernel, nat_nlist) == -1) {
@@ -259,21 +249,20 @@ natstat_dead(natstat_t *nsp, char *kernel)
 	nsp->ns_side[1].ns_table = tables[1];
 
 	kmemcpy((char *)&nsp->ns_list, nat_nlist[1].n_value,
-		sizeof(nsp->ns_list));
+	    sizeof(nsp->ns_list));
 	kmemcpy((char *)&nsp->ns_maptable, nat_nlist[2].n_value,
-		sizeof(nsp->ns_maptable));
+	    sizeof(nsp->ns_maptable));
 	kmemcpy((char *)&nsp->ns_nattab_sz, nat_nlist[3].n_value,
-		sizeof(nsp->ns_nattab_sz));
+	    sizeof(nsp->ns_nattab_sz));
 	kmemcpy((char *)&nsp->ns_rultab_sz, nat_nlist[4].n_value,
-		sizeof(nsp->ns_rultab_sz));
+	    sizeof(nsp->ns_rultab_sz));
 	kmemcpy((char *)&nsp->ns_rdrtab_sz, nat_nlist[5].n_value,
-		sizeof(nsp->ns_rdrtab_sz));
+	    sizeof(nsp->ns_rdrtab_sz));
 	kmemcpy((char *)&nsp->ns_hostmap_sz, nat_nlist[6].n_value,
-		sizeof(nsp->ns_hostmap_sz));
+	    sizeof(nsp->ns_hostmap_sz));
 	kmemcpy((char *)&nsp->ns_instances, nat_nlist[7].n_value,
-		sizeof(nsp->ns_instances));
+	    sizeof(nsp->ns_instances));
 }
-
 
 /*
  * Issue an ioctl to flush either the NAT rules table or the active mapping
@@ -318,7 +307,6 @@ flushtable(int fd, int opts, int *match)
 	}
 }
 
-
 /*
  * Display NAT statistics.
  */
@@ -326,20 +314,20 @@ void
 dostats_dead(natstat_t *nsp, int opts, int *filter)
 {
 	nat_t *np, nat;
-	ipnat_t	ipn;
+	ipnat_t ipn;
 	int i;
 
 	if (nat_fields == NULL) {
 		printf("List of active MAP/Redirect filters:\n");
 		while (nsp->ns_list) {
 			if (kmemcpy((char *)&ipn, (long)nsp->ns_list,
-				    sizeof(ipn))) {
+				sizeof(ipn))) {
 				perror("kmemcpy");
 				break;
 			}
 			if (opts & OPT_HITS)
 				printf("%lu ", ipn.in_hits);
-			printnat(&ipn, opts & (OPT_DEBUG|OPT_VERBOSE));
+			printnat(&ipn, opts & (OPT_DEBUG | OPT_VERBOSE));
 			nsp->ns_list = ipn.in_next;
 		}
 	}
@@ -386,7 +374,6 @@ dostats_dead(natstat_t *nsp, int opts, int *filter)
 		showhostmap_dead(nsp);
 }
 
-
 void
 dotable(natstat_t *nsp, int fd, int alive, int which, char *side)
 {
@@ -398,8 +385,8 @@ dotable(natstat_t *nsp, int fd, int alive, int which, char *side)
 	sz = sizeof(*buckets) * nsp->ns_nattab_sz;
 	buckets = (u_int *)malloc(sz);
 	if (buckets == NULL) {
-		fprintf(stderr,
-			"cannot allocate memory (%d) for buckets\n", sz);
+		fprintf(stderr, "cannot allocate memory (%d) for buckets\n",
+		    sz);
 		return;
 	}
 
@@ -444,17 +431,16 @@ dotable(natstat_t *nsp, int fd, int alive, int which, char *side)
 	}
 
 	printf("%d%%\thash efficiency %s\n",
-	       totallen ? used * 100 / totallen : 0, side);
+	    totallen ? used * 100 / totallen : 0, side);
 	printf("%2.2f%%\tbucket usage %s\n",
-	       ((float)used / nsp->ns_nattab_sz) * 100.0, side);
+	    ((float)used / nsp->ns_nattab_sz) * 100.0, side);
 	printf("%d\tminimal length %s\n", minlen, side);
 	printf("%d\tmaximal length %s\n", maxlen, side);
 	printf("%.3f\taverage length %s\n",
-	       used ? ((float)totallen / used) : 0.0, side);
+	    used ? ((float)totallen / used) : 0.0, side);
 
 	free(buckets);
 }
-
 
 void
 dostats(int fd, natstat_t *nsp, int opts, int alive, int *filter)
@@ -472,8 +458,7 @@ dostats(int fd, natstat_t *nsp, int opts, int alive, int *filter)
 		printf("%lu\tlog successes\n", nsp->ns_side[0].ns_log);
 		printf("%lu\tlog failures\n", nsp->ns_side[1].ns_log);
 		printf("%lu\tadded in\n%lu\tadded out\n",
-			nsp->ns_side[0].ns_added,
-			nsp->ns_side[1].ns_added);
+		    nsp->ns_side[0].ns_added, nsp->ns_side[1].ns_added);
 		printf("%u\tactive\n", nsp->ns_active);
 		printf("%lu\ttransparent adds\n", nsp->ns_addtrpnt);
 		printf("%lu\tdivert build\n", nsp->ns_divert_build);
@@ -506,7 +491,6 @@ dostats(int fd, natstat_t *nsp, int opts, int alive, int *filter)
 	}
 }
 
-
 /*
  * Display NAT statistics.
  */
@@ -516,7 +500,7 @@ dostats_live(int fd, natstat_t *nsp, int opts, int *filter)
 	ipfgeniter_t iter;
 	char buffer[2000];
 	ipfobj_t obj;
-	ipnat_t	*ipn;
+	ipnat_t *ipn;
 	nat_t nat;
 	int i;
 
@@ -541,7 +525,7 @@ dostats_live(int fd, natstat_t *nsp, int opts, int *filter)
 				break;
 			if (opts & OPT_HITS)
 				printf("%lu ", ipn->in_hits);
-			printnat(ipn, opts & (OPT_DEBUG|OPT_VERBOSE));
+			printnat(ipn, opts & (OPT_DEBUG | OPT_VERBOSE));
 			nsp->ns_list = ipn->in_next;
 		}
 	}
@@ -559,8 +543,7 @@ dostats_live(int fd, natstat_t *nsp, int opts, int *filter)
 	}
 
 	i = IPFGENITER_IPNAT;
-	(void) ioctl(fd,SIOCIPFDELTOK, &i);
-
+	(void)ioctl(fd, SIOCIPFDELTOK, &i);
 
 	iter.igi_type = IPFGENITER_NAT;
 	iter.igi_nitems = 1;
@@ -597,9 +580,8 @@ dostats_live(int fd, natstat_t *nsp, int opts, int *filter)
 		showhostmap_live(fd, nsp);
 
 	i = IPFGENITER_NAT;
-	(void) ioctl(fd,SIOCIPFDELTOK, &i);
+	(void)ioctl(fd, SIOCIPFDELTOK, &i);
 }
-
 
 /*
  * Display the active host mapping table.
@@ -612,10 +594,10 @@ showhostmap_dead(natstat_t *nsp)
 
 	printf("\nList of active host mappings:\n");
 
-	maptable = (hostmap_t **)malloc(sizeof(hostmap_t *) *
-					nsp->ns_hostmap_sz);
+	maptable = (hostmap_t **)malloc(
+	    sizeof(hostmap_t *) * nsp->ns_hostmap_sz);
 	if (kmemcpy((char *)maptable, (u_long)nsp->ns_maptable,
-		    sizeof(hostmap_t *) * nsp->ns_hostmap_sz)) {
+		sizeof(hostmap_t *) * nsp->ns_hostmap_sz)) {
 		perror("kmemcpy (maptable)");
 		return;
 	}
@@ -635,7 +617,6 @@ showhostmap_dead(natstat_t *nsp)
 	}
 	free(maptable);
 }
-
 
 /*
  * Display the active host mapping table.
@@ -668,9 +649,8 @@ showhostmap_live(int fd, natstat_t *nsp)
 	}
 
 	i = IPFGENITER_HOSTMAP;
-	(void) ioctl(fd,SIOCIPFDELTOK, &i);
+	(void)ioctl(fd, SIOCIPFDELTOK, &i);
 }
-
 
 int
 nat_matcharray(nat_t *nat, int *array)
@@ -692,129 +672,128 @@ nat_matcharray(nat_t *nat, int *array)
 		if ((p != 0) && (p != nat->nat_pr[1]))
 			break;
 
-		switch (e->ipfe_cmd)
-		{
-		case IPF_EXP_IP_PR :
+		switch (e->ipfe_cmd) {
+		case IPF_EXP_IP_PR:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (nat->nat_pr[1] == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_IP_SRCADDR :
+		case IPF_EXP_IP_SRCADDR:
 			if (nat->nat_v[0] != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((nat->nat_osrcaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				      ((nat->nat_nsrcaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+					  e->ipfe_arg0[i * 2]) ||
+				    ((nat->nat_nsrcaddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]);
 			}
 			break;
 
-		case IPF_EXP_IP_DSTADDR :
+		case IPF_EXP_IP_DSTADDR:
 			if (nat->nat_v[0] != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((nat->nat_odstaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				      ((nat->nat_ndstaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+					  e->ipfe_arg0[i * 2]) ||
+				    ((nat->nat_ndstaddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]);
 			}
 			break;
 
-		case IPF_EXP_IP_ADDR :
+		case IPF_EXP_IP_ADDR:
 			if (nat->nat_v[0] != 4)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= ((nat->nat_osrcaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				      ((nat->nat_nsrcaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				     ((nat->nat_odstaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]) ||
-				     ((nat->nat_ndstaddr &
-					e->ipfe_arg0[i * 2 + 1]) ==
-				       e->ipfe_arg0[i * 2]);
+					   e->ipfe_arg0[i * 2 + 1]) ==
+					  e->ipfe_arg0[i * 2]) ||
+				    ((nat->nat_nsrcaddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]) ||
+				    ((nat->nat_odstaddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]) ||
+				    ((nat->nat_ndstaddr &
+					 e->ipfe_arg0[i * 2 + 1]) ==
+					e->ipfe_arg0[i * 2]);
 			}
 			break;
 
 #ifdef USE_INET6
-		case IPF_EXP_IP6_SRCADDR :
+		case IPF_EXP_IP6_SRCADDR:
 			if (nat->nat_v[0] != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&nat->nat_osrc6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&nat->nat_nsrc6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+					  &e->ipfe_arg0[i * 8 + 4],
+					  &e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&nat->nat_nsrc6,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]);
 			}
 			break;
 
-		case IPF_EXP_IP6_DSTADDR :
+		case IPF_EXP_IP6_DSTADDR:
 			if (nat->nat_v[0] != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&nat->nat_odst6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&nat->nat_ndst6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+					  &e->ipfe_arg0[i * 8 + 4],
+					  &e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&nat->nat_ndst6,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]);
 			}
 			break;
 
-		case IPF_EXP_IP6_ADDR :
+		case IPF_EXP_IP6_ADDR:
 			if (nat->nat_v[0] != 6)
 				break;
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= IP6_MASKEQ(&nat->nat_osrc6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&nat->nat_nsrc6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&nat->nat_odst6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]) ||
-				      IP6_MASKEQ(&nat->nat_ndst6,
-						 &e->ipfe_arg0[i * 8 + 4],
-						 &e->ipfe_arg0[i * 8]);
+					  &e->ipfe_arg0[i * 8 + 4],
+					  &e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&nat->nat_nsrc6,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&nat->nat_odst6,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]) ||
+				    IP6_MASKEQ(&nat->nat_ndst6,
+					&e->ipfe_arg0[i * 8 + 4],
+					&e->ipfe_arg0[i * 8]);
 			}
 			break;
 #endif
 
-		case IPF_EXP_UDP_PORT :
-		case IPF_EXP_TCP_PORT :
+		case IPF_EXP_UDP_PORT:
+		case IPF_EXP_TCP_PORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (nat->nat_osport == e->ipfe_arg0[i]) ||
-				      (nat->nat_nsport == e->ipfe_arg0[i]) ||
-				      (nat->nat_odport == e->ipfe_arg0[i]) ||
-				      (nat->nat_ndport == e->ipfe_arg0[i]);
+				    (nat->nat_nsport == e->ipfe_arg0[i]) ||
+				    (nat->nat_odport == e->ipfe_arg0[i]) ||
+				    (nat->nat_ndport == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_UDP_SPORT :
-		case IPF_EXP_TCP_SPORT :
+		case IPF_EXP_UDP_SPORT:
+		case IPF_EXP_TCP_SPORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (nat->nat_osport == e->ipfe_arg0[i]) ||
-				      (nat->nat_nsport == e->ipfe_arg0[i]);
+				    (nat->nat_nsport == e->ipfe_arg0[i]);
 			}
 			break;
 
-		case IPF_EXP_UDP_DPORT :
-		case IPF_EXP_TCP_DPORT :
+		case IPF_EXP_UDP_DPORT:
+		case IPF_EXP_TCP_DPORT:
 			for (i = 0; !rv && i < e->ipfe_narg; i++) {
 				rv |= (nat->nat_odport == e->ipfe_arg0[i]) ||
-				      (nat->nat_ndport == e->ipfe_arg0[i]);
+				    (nat->nat_ndport == e->ipfe_arg0[i]);
 			}
 			break;
 		}

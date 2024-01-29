@@ -25,16 +25,17 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "cd9660.h"
 #include "cd9660_eltorito.h"
-
 #include "etdump.h"
 
 static void
-output_image(FILE *outfile, const char *filename, boot_volume_descriptor *bvd __unused)
+output_image(FILE *outfile, const char *filename,
+    boot_volume_descriptor *bvd __unused)
 {
 
 	fprintf(outfile, "Image in %s\n", filename);
@@ -56,8 +57,7 @@ output_section(FILE *outfile, const char *filename __unused,
 
 static void
 output_entry(FILE *outfile, const char *filename __unused,
-    boot_catalog_section_entry *bcse, u_char platform_id __unused,
-    bool initial)
+    boot_catalog_section_entry *bcse, u_char platform_id __unused, bool initial)
 {
 	const char *indent;
 

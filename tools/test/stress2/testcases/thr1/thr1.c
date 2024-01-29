@@ -52,7 +52,7 @@ cleanup(void)
 static void *
 thr_routine(void *arg __unused)
 {
-	(void) getpid();
+	(void)getpid();
 	return (0);
 }
 
@@ -64,7 +64,8 @@ test(void)
 	int r;
 
 	for (i = 0; i < NTHREADS; i++)
-		if ((r = pthread_create(&threads[i], NULL, thr_routine, 0)) != 0)
+		if ((r = pthread_create(&threads[i], NULL, thr_routine, 0)) !=
+		    0)
 			errc(1, r, "pthread_create()");
 
 	for (i = 0; i < NTHREADS; i++)

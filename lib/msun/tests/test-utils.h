@@ -24,27 +24,26 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_TEST_UTILS_H_
-#define	_TEST_UTILS_H_
+#ifndef _TEST_UTILS_H_
+#define _TEST_UTILS_H_
 
+#include <atf-c.h>
 #include <complex.h>
 #include <fenv.h>
 #include <float.h>
-
-#include <atf-c.h>
 
 /*
  * Implementations are permitted to define additional exception flags
  * not specified in the standard, so it is not necessarily true that
  * FE_ALL_EXCEPT == ALL_STD_EXCEPT.
  */
-#define	ALL_STD_EXCEPT	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | \
-			 FE_OVERFLOW | FE_UNDERFLOW)
-#define	OPT_INVALID	(ALL_STD_EXCEPT & ~FE_INVALID)
-#define	OPT_INEXACT	(ALL_STD_EXCEPT & ~FE_INEXACT)
-#define	FLT_ULP()	ldexpl(1.0, 1 - FLT_MANT_DIG)
-#define	DBL_ULP()	ldexpl(1.0, 1 - DBL_MANT_DIG)
-#define	LDBL_ULP()	ldexpl(1.0, 1 - LDBL_MANT_DIG)
+#define ALL_STD_EXCEPT \
+	(FE_DIVBYZERO | FE_INEXACT | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW)
+#define OPT_INVALID (ALL_STD_EXCEPT & ~FE_INVALID)
+#define OPT_INEXACT (ALL_STD_EXCEPT & ~FE_INEXACT)
+#define FLT_ULP() ldexpl(1.0, 1 - FLT_MANT_DIG)
+#define DBL_ULP() ldexpl(1.0, 1 - DBL_MANT_DIG)
+#define LDBL_ULP() ldexpl(1.0, 1 - LDBL_MANT_DIG)
 
 /*
  * Flags that control the behavior of various fpequal* functions.
@@ -62,15 +61,15 @@
  *   tolerance when the expected value is 0.  This is useful when there is
  *   round-off error in the input, e.g., cos(Pi/2) ~= 0.
  */
-#define	CS_REAL		0x01
-#define	CS_IMAG		0x02
-#define	CS_BOTH		(CS_REAL | CS_IMAG)
-#define	FPE_ABS_ZERO	0x04
+#define CS_REAL 0x01
+#define CS_IMAG 0x02
+#define CS_BOTH (CS_REAL | CS_IMAG)
+#define FPE_ABS_ZERO 0x04
 
-#ifdef	DEBUG
-#define	debug(...)	printf(__VA_ARGS__)
+#ifdef DEBUG
+#define debug(...) printf(__VA_ARGS__)
 #else
-#define	debug(...)	(void)0
+#define debug(...) (void)0
 #endif
 
 /*
@@ -94,7 +93,7 @@ CMPLXL(long double x, long double y)
  * See https://llvm.org/PR34126
  */
 
-static int	cfpequal(long double complex, long double complex) __used;
+static int cfpequal(long double complex, long double complex) __used;
 
 /*
  * Determine whether x and y are equal, with two special rules:
@@ -114,8 +113,7 @@ fpequal_cs(long double x, long double y, bool checksign)
 }
 
 static inline int
-fpequal_tol(long double x, long double y, long double tol,
-    unsigned int flags)
+fpequal_tol(long double x, long double y, long double tol, unsigned int flags)
 {
 	fenv_t env;
 	int ret;
@@ -146,21 +144,24 @@ fpequal_tol(long double x, long double y, long double tol,
 
 #define CHECK_FPEQUAL(x, y) CHECK_FPEQUAL_CS(x, y, true)
 
-#define CHECK_FPEQUAL_CS(x, y, checksign) do {					\
-	long double _x = x;							\
-	long double _y = y;							\
-	ATF_CHECK_MSG(fpequal_cs(_x, _y, checksign),				\
-	    "%s (%.25Lg) ~= %s (%.25Lg)", #x, _x, #y, _y);			\
-} while (0)
+#define CHECK_FPEQUAL_CS(x, y, checksign)                          \
+	do {                                                       \
+		long double _x = x;                                \
+		long double _y = y;                                \
+		ATF_CHECK_MSG(fpequal_cs(_x, _y, checksign),       \
+		    "%s (%.25Lg) ~= %s (%.25Lg)", #x, _x, #y, _y); \
+	} while (0)
 
-#define CHECK_FPEQUAL_TOL(x, y, tol, flags) do {				\
-	long double _x = x;							\
-	long double _y = y;							\
-	bool eq = fpequal_tol(_x, _y, tol, flags);				\
-	long double _diff = eq ? 0.0L : fabsl(_x - _y);				\
-	ATF_CHECK_MSG(eq, "%s (%.25Lg) ~= %s (%.25Lg), diff=%Lg, maxdiff=%Lg,",	\
-	    #x, _x, #y, _y, _diff, fabsl(_y * tol));				\
-} while (0)
+#define CHECK_FPEQUAL_TOL(x, y, tol, flags)                                   \
+	do {                                                                  \
+		long double _x = x;                                           \
+		long double _y = y;                                           \
+		bool eq = fpequal_tol(_x, _y, tol, flags);                    \
+		long double _diff = eq ? 0.0L : fabsl(_x - _y);               \
+		ATF_CHECK_MSG(eq,                                             \
+		    "%s (%.25Lg) ~= %s (%.25Lg), diff=%Lg, maxdiff=%Lg,", #x, \
+		    _x, #y, _y, _diff, fabsl(_y *tol));                       \
+	} while (0)
 
 static inline int
 cfpequal(long double complex d1, long double complex d2)
@@ -170,32 +171,38 @@ cfpequal(long double complex d1, long double complex d2)
 	    fpequal_cs(cimagl(d1), cimagl(d2), true));
 }
 
-#define CHECK_CFPEQUAL_CS(x, y, checksign) do {					\
-	long double _x = x;							\
-	long double _y = y;							\
-	bool equal_cs =								\
-	    fpequal_cs(creal(_x), creal(_y), (checksign & CS_REAL) != 0) &&	\
-	    fpequal_cs(cimag(_x), cimag(_y), (checksign & CS_IMAG) != 0);	\
-	ATF_CHECK_MSG(equal_cs, "%s (%Lg + %Lg I) ~=  %s (%Lg + %Lg I)",	\
-	    #x, creall(_x), cimagl(_x), #y, creall(_y), cimagl(_y));		\
-} while (0)
+#define CHECK_CFPEQUAL_CS(x, y, checksign)                                   \
+	do {                                                                 \
+		long double _x = x;                                          \
+		long double _y = y;                                          \
+		bool equal_cs = fpequal_cs(creal(_x), creal(_y),             \
+				    (checksign & CS_REAL) != 0) &&           \
+		    fpequal_cs(cimag(_x), cimag(_y),                         \
+			(checksign & CS_IMAG) != 0);                         \
+		ATF_CHECK_MSG(equal_cs,                                      \
+		    "%s (%Lg + %Lg I) ~=  %s (%Lg + %Lg I)", #x, creall(_x), \
+		    cimagl(_x), #y, creall(_y), cimagl(_y));                 \
+	} while (0)
 
-#define CHECK_CFPEQUAL_TOL(x, y, tol, flags) do {				\
-	long double _x = x;							\
-	long double _y = y;							\
-	bool equal_tol = (fpequal_tol(creal(_x), creal(_y), tol, flags) &&	\
-	    fpequal_tol(cimag(_x), cimag(_y), tol, flags));			\
-	ATF_CHECK_MSG(equal_tol, "%s (%Lg + %Lg I) ~=  %s (%Lg + %Lg I)",	\
-	    #x, creall(_x), cimagl(_x), #y, creall(_y), cimagl(_y));		\
-} while (0)
+#define CHECK_CFPEQUAL_TOL(x, y, tol, flags)                                 \
+	do {                                                                 \
+		long double _x = x;                                          \
+		long double _y = y;                                          \
+		bool equal_tol = (fpequal_tol(creal(_x), creal(_y), tol,     \
+				      flags) &&                              \
+		    fpequal_tol(cimag(_x), cimag(_y), tol, flags));          \
+		ATF_CHECK_MSG(equal_tol,                                     \
+		    "%s (%Lg + %Lg I) ~=  %s (%Lg + %Lg I)", #x, creall(_x), \
+		    cimagl(_x), #y, creall(_y), cimagl(_y));                 \
+	} while (0)
 
-#define CHECK_FP_EXCEPTIONS(excepts, exceptmask)		\
-	ATF_CHECK_EQ_MSG((excepts), fetestexcept(exceptmask),	\
-	    "unexpected exception flags: got %#x not %#x",	\
+#define CHECK_FP_EXCEPTIONS(excepts, exceptmask)              \
+	ATF_CHECK_EQ_MSG((excepts), fetestexcept(exceptmask), \
+	    "unexpected exception flags: got %#x not %#x",    \
 	    fetestexcept(exceptmask), (excepts))
-#define CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, fmt, ...)	\
-	ATF_CHECK_EQ_MSG((excepts), fetestexcept(exceptmask),	\
-	    "unexpected exception flags: got %#x not %#x " fmt,	\
+#define CHECK_FP_EXCEPTIONS_MSG(excepts, exceptmask, fmt, ...)  \
+	ATF_CHECK_EQ_MSG((excepts), fetestexcept(exceptmask),   \
+	    "unexpected exception flags: got %#x not %#x " fmt, \
 	    fetestexcept(exceptmask), (excepts), __VA_ARGS__)
 
 #endif /* _TEST_UTILS_H_ */

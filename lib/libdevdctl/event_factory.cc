@@ -36,25 +36,24 @@
 #include <sys/cdefs.h>
 #include <sys/time.h>
 
+#include "event.h"
+#include "event_factory.h"
+#include "guid.h"
+
 #include <list>
 #include <map>
 #include <string>
-
-#include "guid.h"
-#include "event.h"
-#include "event_factory.h"
 /*================================== Macros ==================================*/
 #define NUM_ELEMENTS(x) (sizeof(x) / sizeof(*x))
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*=========================== Class Implementations ==========================*/
 /*------------------------------- EventFactory -------------------------------*/
 //- Event Public Methods -------------------------------------------------------
 EventFactory::EventFactory(Event::BuildMethod *defaultBuildMethod)
- : m_defaultBuildMethod(defaultBuildMethod)
+    : m_defaultBuildMethod(defaultBuildMethod)
 {
 }
 
@@ -76,7 +75,7 @@ EventFactory::UpdateRegistry(Record regEntries[], size_t numEntries)
 
 Event *
 EventFactory::Build(Event::Type type, NVPairMap &nvpairs,
-		    const std::string eventString) const
+    const std::string eventString) const
 {
 	Key key(type, nvpairs["system"]);
 	Event::BuildMethod *buildMethod(m_defaultBuildMethod);
@@ -84,7 +83,7 @@ EventFactory::Build(Event::Type type, NVPairMap &nvpairs,
 	Registry::const_iterator foundMethod(m_registry.find(key));
 	if (foundMethod != m_registry.end())
 		buildMethod = foundMethod->second;
-	
+
 	if (buildMethod == NULL) {
 		delete &nvpairs;
 		return (NULL);

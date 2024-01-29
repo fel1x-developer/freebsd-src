@@ -24,8 +24,10 @@
  */
 
 #include <sys/types.h>
+
 #include <fdt_platform.h>
 #include <libfdt.h>
+
 #include "bootstrap.h"
 #include "host_syscall.h"
 #include "kboot.h"
@@ -33,7 +35,7 @@
 static void
 add_node_to_fdt(void *buffer, const char *path, int fdt_offset)
 {
-        int child_offset, fd, pfd, error, dentsize;
+	int child_offset, fd, pfd, error, dentsize;
 	char subpath[512];
 	void *propbuf;
 	ssize_t proplen;
@@ -49,17 +51,19 @@ add_node_to_fdt(void *buffer, const char *path, int fdt_offset)
 			break;
 		for (dent = (struct host_dirent64 *)dents;
 		     (char *)dent < dents + dentsize;
-		     dent = (struct host_dirent64 *)((void *)dent + dent->d_reclen)) {
+		     dent = (struct host_dirent64 *)((void *)dent +
+			 dent->d_reclen)) {
 			sprintf(subpath, "%s/%s", path, dent->d_name);
 			if (strcmp(dent->d_name, ".") == 0 ||
 			    strcmp(dent->d_name, "..") == 0)
 				continue;
 			d_type = dent->d_type;
 			if (d_type == HOST_DT_DIR) {
-				child_offset = fdt_add_subnode(buffer, fdt_offset,
-				    dent->d_name);
+				child_offset = fdt_add_subnode(buffer,
+				    fdt_offset, dent->d_name);
 				if (child_offset < 0) {
-					printf("Error %d adding node %s/%s, skipping\n",
+					printf(
+					    "Error %d adding node %s/%s, skipping\n",
 					    child_offset, path, dent->d_name);
 					continue;
 				}
@@ -72,13 +76,13 @@ add_node_to_fdt(void *buffer, const char *path, int fdt_offset)
 					proplen = host_read(pfd, propbuf, 1024);
 					host_close(pfd);
 				}
-				error = fdt_setprop(buffer, fdt_offset, dent->d_name,
-				    propbuf, proplen);
+				error = fdt_setprop(buffer, fdt_offset,
+				    dent->d_name, propbuf, proplen);
 				free(propbuf);
 				if (error)
 					printf("Error %d adding property %s to "
-					    "node %d\n", error, dent->d_name,
-					    fdt_offset);
+					       "node %d\n",
+					    error, dent->d_name, fdt_offset);
 			}
 		}
 	}
@@ -117,7 +121,7 @@ fdt_platform_load_dtb(void)
 
 	fdt_load_dtb_addr(buffer);
 	free(buffer);
-	
+
 	return (0);
 }
 

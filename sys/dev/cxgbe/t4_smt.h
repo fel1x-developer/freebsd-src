@@ -31,26 +31,26 @@
 #define __T4_SMT_H
 
 /* identifies sync vs async SMT_WRITE_REQs */
-#define S_SYNC_WR    12
+#define S_SYNC_WR 12
 #define V_SYNC_WR(x) ((x) << S_SYNC_WR)
-#define F_SYNC_WR    V_SYNC_WR(1)
+#define F_SYNC_WR V_SYNC_WR(1)
 
-enum { SMT_SIZE = 256 };     /* # of SMT entries */
+enum { SMT_SIZE = 256 }; /* # of SMT entries */
 
 enum {
-	SMT_STATE_SWITCHING,	/* entry is being used by a switching filter */
-	SMT_STATE_UNUSED,	/* entry not in use */
-	SMT_STATE_ERROR		/* entry is in error state */
+	SMT_STATE_SWITCHING, /* entry is being used by a switching filter */
+	SMT_STATE_UNUSED,    /* entry not in use */
+	SMT_STATE_ERROR	     /* entry is in error state */
 };
 
 struct smt_entry {
-	uint16_t state;			/* entry state */
-	uint16_t idx;			/* entry index */
-	uint32_t iqid;                  /* iqid for reply to write_sme */
-	struct sge_wrq *wrq;            /* queue to use for write_sme */
-	uint16_t pfvf;			/* pfvf number */
-	volatile int refcnt;		/* entry reference count */
-	uint8_t smac[ETHER_ADDR_LEN];	/* source MAC address */
+	uint16_t state;		      /* entry state */
+	uint16_t idx;		      /* entry index */
+	uint32_t iqid;		      /* iqid for reply to write_sme */
+	struct sge_wrq *wrq;	      /* queue to use for write_sme */
+	uint16_t pfvf;		      /* pfvf number */
+	volatile int refcnt;	      /* entry reference count */
+	uint8_t smac[ETHER_ADDR_LEN]; /* source MAC address */
 	struct mtx lock;
 };
 
@@ -60,13 +60,12 @@ struct smt_data {
 	struct smt_entry smtab[];
 };
 
-
 int t4_init_smt(struct adapter *, int);
 int t4_free_smt(struct smt_data *);
 struct smt_entry *t4_find_or_alloc_sme(struct smt_data *, uint8_t *);
 struct smt_entry *t4_smt_alloc_switching(struct smt_data *, uint8_t *);
-int t4_smt_set_switching(struct adapter *, struct smt_entry *,
-					uint16_t, uint8_t *);
+int t4_smt_set_switching(struct adapter *, struct smt_entry *, uint16_t,
+    uint8_t *);
 int t4_write_sme(struct smt_entry *);
 int do_smt_write_rpl(struct sge_iq *, const struct rss_header *, struct mbuf *);
 
@@ -79,9 +78,8 @@ t4_smt_release(struct smt_entry *e)
 		e->state = SMT_STATE_UNUSED;
 		mtx_unlock(&e->lock);
 	}
-
 }
 
 int sysctl_smt(SYSCTL_HANDLER_ARGS);
 
-#endif  /* __T4_SMT_H */
+#endif /* __T4_SMT_H */

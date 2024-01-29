@@ -68,22 +68,22 @@
  *
  *****************************************************************************/
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 
 #include "if_iwm_config.h"
 
-#define IWM8000_FW	"iwm8000Cfw"
-#define IWM8265_FW	"iwm8265fw"
+#define IWM8000_FW "iwm8000Cfw"
+#define IWM8265_FW "iwm8265fw"
 
-#define IWM_NVM_HW_SECTION_NUM_FAMILY_8000	10
+#define IWM_NVM_HW_SECTION_NUM_FAMILY_8000 10
 
-#define IWM_DEVICE_8000_COMMON						\
-	.device_family = IWM_DEVICE_FAMILY_8000,			\
-	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000,		\
+#define IWM_DEVICE_8000_COMMON                             \
+	.device_family = IWM_DEVICE_FAMILY_8000,           \
+	.eeprom_size = IWM_OTP_LOW_IMAGE_SIZE_FAMILY_8000, \
 	.nvm_hw_section_num = IWM_NVM_HW_SECTION_NUM_FAMILY_8000
 
 const struct iwm_cfg iwm8260_cfg = {

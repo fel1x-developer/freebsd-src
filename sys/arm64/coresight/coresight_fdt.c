@@ -31,11 +31,12 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -66,8 +67,7 @@ coresight_fdt_get_ports(phandle_t dev_node,
 		if (ret == -1)
 			continue;
 
-		if (strcasecmp(name, "port") ||
-		    strncasecmp(name, "port@", 6)) {
+		if (strcasecmp(name, "port") || strncasecmp(name, "port@", 6)) {
 			port_reg = -1;
 			OF_getencprop(child, "reg", (void *)&port_reg,
 			    sizeof(port_reg));
@@ -75,8 +75,8 @@ coresight_fdt_get_ports(phandle_t dev_node,
 			endpoint_child = ofw_bus_find_child(child, "endpoint");
 			if (endpoint_child) {
 				if (OF_getencprop(endpoint_child,
-				    "remote-endpoint", &xref,
-				    sizeof(xref)) == -1) {
+					"remote-endpoint", &xref,
+					sizeof(xref)) == -1) {
 					printf("failed\n");
 					continue;
 				}
@@ -87,15 +87,15 @@ coresight_fdt_get_ports(phandle_t dev_node,
 				endp->dev_node = dev_node;
 				endp->reg = port_reg;
 				if (OF_getproplen(endpoint_child,
-				    "slave-mode") >= 0) {
+					"slave-mode") >= 0) {
 					pdata->in_ports++;
 					endp->input = 1;
 				} else
 					pdata->out_ports++;
 
 				mtx_lock(&pdata->mtx_lock);
-				TAILQ_INSERT_TAIL(&pdata->endpoints,
-				    endp, link);
+				TAILQ_INSERT_TAIL(&pdata->endpoints, endp,
+				    link);
 				mtx_unlock(&pdata->mtx_lock);
 			}
 		}
@@ -105,8 +105,7 @@ coresight_fdt_get_ports(phandle_t dev_node,
 }
 
 static int
-coresight_fdt_get_cpu(phandle_t node,
-    struct coresight_platform_data *pdata)
+coresight_fdt_get_cpu(phandle_t node, struct coresight_platform_data *pdata)
 {
 	phandle_t cpu_node;
 	pcell_t xref;
@@ -132,8 +131,8 @@ coresight_fdt_get_platform_data(device_t dev)
 
 	node = ofw_bus_get_node(dev);
 
-	pdata = malloc(sizeof(struct coresight_platform_data),
-	    M_CORESIGHT, M_WAITOK | M_ZERO);
+	pdata = malloc(sizeof(struct coresight_platform_data), M_CORESIGHT,
+	    M_WAITOK | M_ZERO);
 	pdata->bus_type = CORESIGHT_BUS_FDT;
 
 	mtx_init(&pdata->mtx_lock, "Coresight Platform Data", NULL, MTX_DEF);
@@ -143,8 +142,8 @@ coresight_fdt_get_platform_data(device_t dev)
 	coresight_fdt_get_ports(node, pdata);
 
 	if (bootverbose)
-		printf("Total ports: in %d out %d\n",
-		    pdata->in_ports, pdata->out_ports);
+		printf("Total ports: in %d out %d\n", pdata->in_ports,
+		    pdata->out_ports);
 
 	return (pdata);
 }

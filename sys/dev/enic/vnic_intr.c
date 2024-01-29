@@ -7,13 +7,15 @@
 #include "vnic_dev.h"
 #include "vnic_intr.h"
 
-void vnic_intr_free(struct vnic_intr *intr)
+void
+vnic_intr_free(struct vnic_intr *intr)
 {
 	intr->ctrl = NULL;
 }
 
-int vnic_intr_alloc(struct vnic_dev *vdev, struct vnic_intr *intr,
-	unsigned int index)
+int
+vnic_intr_alloc(struct vnic_dev *vdev, struct vnic_intr *intr,
+    unsigned int index)
 {
 	intr->index = index;
 	intr->vdev = vdev;
@@ -27,8 +29,9 @@ int vnic_intr_alloc(struct vnic_dev *vdev, struct vnic_intr *intr,
 	return 0;
 }
 
-void vnic_intr_init(struct vnic_intr *intr, u32 coalescing_timer,
-	unsigned int coalescing_type, unsigned int mask_on_assertion)
+void
+vnic_intr_init(struct vnic_intr *intr, u32 coalescing_timer,
+    unsigned int coalescing_type, unsigned int mask_on_assertion)
 {
 	vnic_intr_coalescing_timer_set(intr, coalescing_timer);
 	ENIC_BUS_WRITE_4(intr->ctrl, INTR_COALESCING_TYPE, coalescing_type);
@@ -36,14 +39,15 @@ void vnic_intr_init(struct vnic_intr *intr, u32 coalescing_timer,
 	ENIC_BUS_WRITE_4(intr->ctrl, INTR_CREDITS, 0);
 }
 
-void vnic_intr_coalescing_timer_set(struct vnic_intr *intr,
-	u32 coalescing_timer)
+void
+vnic_intr_coalescing_timer_set(struct vnic_intr *intr, u32 coalescing_timer)
 {
 	ENIC_BUS_WRITE_4(intr->ctrl, INTR_COALESCING_TIMER,
 	    vnic_dev_intr_coal_timer_usec_to_hw(intr->vdev, coalescing_timer));
 }
 
-void vnic_intr_clean(struct vnic_intr *intr)
+void
+vnic_intr_clean(struct vnic_intr *intr)
 {
 	ENIC_BUS_WRITE_4(intr->ctrl, INTR_CREDITS, 0);
 }

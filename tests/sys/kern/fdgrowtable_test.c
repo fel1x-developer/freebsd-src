@@ -42,8 +42,8 @@
 
 /* linked libraries */
 #include <kvm.h>
-#include <libutil.h>
 #include <libprocstat.h>
+#include <libutil.h>
 #include <pthread.h>
 
 /* test-case macro */
@@ -53,12 +53,12 @@
  * The following macros, struct freetable, struct fdescenttbl0
  * and struct filedesc0 are copied from sys/kern/kern_descrip.c
  */
-#define NDFILE		20
-#define NDSLOTSIZE	sizeof(NDSLOTTYPE)
-#define	NDENTRIES	(NDSLOTSIZE * __CHAR_BIT)
-#define NDSLOT(x)	((x) / NDENTRIES)
-#define NDBIT(x)	((NDSLOTTYPE)1 << ((x) % NDENTRIES))
-#define	NDSLOTS(x)	(((x) + NDENTRIES - 1) / NDENTRIES)
+#define NDFILE 20
+#define NDSLOTSIZE sizeof(NDSLOTTYPE)
+#define NDENTRIES (NDSLOTSIZE * __CHAR_BIT)
+#define NDSLOT(x) ((x) / NDENTRIES)
+#define NDBIT(x) ((NDSLOTTYPE)1 << ((x) % NDENTRIES))
+#define NDSLOTS(x) (((x) + NDENTRIES - 1) / NDENTRIES)
 
 struct freetable {
 	struct fdescenttbl *ft_table;
@@ -66,14 +66,14 @@ struct freetable {
 };
 
 struct fdescenttbl0 {
-	int	fdt_nfiles;
-	struct	filedescent fdt_ofiles[NDFILE];
+	int fdt_nfiles;
+	struct filedescent fdt_ofiles[NDFILE];
 };
 
 struct filedesc0 {
 	struct filedesc fd_fd;
 	SLIST_HEAD(, freetable) fd_free;
-	struct	fdescenttbl0 fd_dfiles;
+	struct fdescenttbl0 fd_dfiles;
 	NDSLOTTYPE fd_dmap[NDSLOTS(NDFILE)];
 };
 
@@ -100,10 +100,12 @@ old_tables(kvm_t *kd, struct kinfo_proc *kp)
 
 	counter = 0;
 
-	ATF_REQUIRE(kvm_read(kd, (unsigned long) kp->ki_fd, &fdp0, sizeof(fdp0)) > 0);
+	ATF_REQUIRE(
+	    kvm_read(kd, (unsigned long)kp->ki_fd, &fdp0, sizeof(fdp0)) > 0);
 
-	SLIST_FOREACH(ft, &fdp0.fd_free, ft_next) {
-		ATF_REQUIRE(kvm_read(kd, (unsigned long) ft, &tft, sizeof(tft)) > 0 );
+	SLIST_FOREACH (ft, &fdp0.fd_free, ft_next) {
+		ATF_REQUIRE(
+		    kvm_read(kd, (unsigned long)ft, &tft, sizeof(tft)) > 0);
 		ft = &tft;
 		counter++;
 	}
@@ -121,7 +123,8 @@ read_kinfo(kvm_t *kd)
 	struct kinfo_proc *kp;
 	int procs_found;
 
-	ATF_REQUIRE((kp = kvm_getprocs(kd, KERN_PROC_PID, (int) getpid(), &procs_found)) != NULL);
+	ATF_REQUIRE((kp = kvm_getprocs(kd, KERN_PROC_PID, (int)getpid(),
+			 &procs_found)) != NULL);
 	ATF_REQUIRE(procs_found == 1);
 
 	return (kp);
@@ -145,7 +148,7 @@ ATF_TC_BODY(free_oldtables, tc)
 	ATF_REQUIRE((kd = kvm_open(NULL, NULL, NULL, O_RDONLY, NULL)) != NULL);
 	openfiles(128);
 	kp = read_kinfo(kd);
-	ATF_CHECK(old_tables(kd,kp) == 0);
+	ATF_CHECK(old_tables(kd, kp) == 0);
 }
 
 static _Noreturn void *
@@ -178,7 +181,7 @@ ATF_TC_BODY(oldtables_shared_via_threads, tc)
 
 	kp = read_kinfo(kd);
 	ATF_CHECK(kp->ki_numthreads > 1);
-	ATF_CHECK(old_tables(kd,kp) > 1);
+	ATF_CHECK(old_tables(kd, kp) > 1);
 
 	ATF_REQUIRE(pthread_cancel(thread) == 0);
 	ATF_REQUIRE(pthread_join(thread, NULL) == 0);
@@ -192,7 +195,8 @@ filedesc_refcnt(kvm_t *kd, struct kinfo_proc *kp)
 {
 	struct filedesc fdp;
 
-	ATF_REQUIRE(kvm_read(kd, (unsigned long) kp->ki_fd, &fdp, sizeof(fdp)) > 0);
+	ATF_REQUIRE(
+	    kvm_read(kd, (unsigned long)kp->ki_fd, &fdp, sizeof(fdp)) > 0);
 
 	return (fdp.fd_refcnt);
 }
@@ -244,8 +248,8 @@ ATF_TC_BODY(oldtables_shared_via_process, tc)
 	if (child != 0) {
 		kp = read_kinfo(kd);
 
-		ATF_CHECK(filedesc_refcnt(kd,kp) > 1);
-		ATF_CHECK(old_tables(kd,kp) > 1);
+		ATF_CHECK(filedesc_refcnt(kd, kp) > 1);
+		ATF_CHECK(old_tables(kd, kp) > 1);
 
 		kill(child, SIGCONT);
 	}

@@ -29,9 +29,10 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <pwd.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /* Getname / getuserid for those with hashed passwd data base). */
 

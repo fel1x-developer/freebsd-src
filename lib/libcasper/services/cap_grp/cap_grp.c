@@ -30,18 +30,17 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
 #include <sys/dnv.h>
 #include <sys/nv.h>
-#include <sys/param.h>
 
 #include <assert.h>
 #include <errno.h>
 #include <grp.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <libcasper.h>
 #include <libcasper_service.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cap_grp.h"
 
@@ -364,7 +363,7 @@ cap_endgrent(cap_channel_t *chan)
 }
 
 int
-cap_grp_limit_cmds(cap_channel_t *chan, const char * const *cmds, size_t ncmds)
+cap_grp_limit_cmds(cap_channel_t *chan, const char *const *cmds, size_t ncmds)
 {
 	nvlist_t *limits, *nvl;
 	unsigned int i;
@@ -385,7 +384,7 @@ cap_grp_limit_cmds(cap_channel_t *chan, const char * const *cmds, size_t ncmds)
 }
 
 int
-cap_grp_limit_fields(cap_channel_t *chan, const char * const *fields,
+cap_grp_limit_fields(cap_channel_t *chan, const char *const *fields,
     size_t nfields)
 {
 	nvlist_t *limits, *nvl;
@@ -407,7 +406,7 @@ cap_grp_limit_fields(cap_channel_t *chan, const char * const *fields,
 }
 
 int
-cap_grp_limit_groups(cap_channel_t *chan, const char * const *names,
+cap_grp_limit_groups(cap_channel_t *chan, const char *const *names,
     size_t nnames, const gid_t *gids, size_t ngids)
 {
 	nvlist_t *limits, *groups;
@@ -505,8 +504,8 @@ grp_allowed_group(const nvlist_t *limits, const char *gname, gid_t gid)
 			break;
 		case NV_TYPE_STRING:
 			if (gname != NULL &&
-			    strcmp(nvlist_get_string(limits, name),
-			    gname) == 0) {
+			    strcmp(nvlist_get_string(limits, name), gname) ==
+				0) {
 				return (true);
 			}
 			break;

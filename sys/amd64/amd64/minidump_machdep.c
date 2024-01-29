@@ -26,10 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_pmap.h"
 #include "opt_watchdog.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -38,14 +38,16 @@
 #include <sys/kerneldump.h>
 #include <sys/msgbuf.h>
 #include <sys/sysctl.h>
-#include <sys/watchdog.h>
 #include <sys/vmmeter.h>
+#include <sys/watchdog.h>
+
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 #include <vm/pmap.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
+
 #include <machine/atomic.h>
 #include <machine/elf.h>
 #include <machine/md_var.h>
@@ -63,7 +65,8 @@ static size_t progress, dumpsize, wdog_next;
 
 static int dump_retry_count = 5;
 SYSCTL_INT(_machdep, OID_AUTO, dump_retry_count, CTLFLAG_RWTUN,
-    &dump_retry_count, 0, "Number of times dump has to retry before bailing out");
+    &dump_retry_count, 0,
+    "Number of times dump has to retry before bailing out");
 
 static int
 blk_flush(struct dumperinfo *di)
@@ -79,7 +82,7 @@ blk_flush(struct dumperinfo *di)
 }
 
 /* Pat the watchdog approximately every 128MB of the dump. */
-#define	WDOG_DUMP_INTERVAL	(128 * 1024 * 1024)
+#define WDOG_DUMP_INTERVAL (128 * 1024 * 1024)
 
 static int
 blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
@@ -89,7 +92,7 @@ blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
 	u_int maxdumpsz;
 
 	maxdumpsz = min(di->maxiosize, MAXDUMPPGS * PAGE_SIZE);
-	if (maxdumpsz == 0)	/* seatbelt */
+	if (maxdumpsz == 0) /* seatbelt */
 		maxdumpsz = PAGE_SIZE;
 	error = 0;
 	if ((sz % PAGE_SIZE) != 0) {
@@ -105,7 +108,8 @@ blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
 		return (EINVAL);
 	}
 	if (ptr != NULL) {
-		/* If we're doing a virtual dump, flush any pre-existing pa pages */
+		/* If we're doing a virtual dump, flush any pre-existing pa
+		 * pages */
 		error = blk_flush(di);
 		if (error)
 			return (error);
@@ -133,7 +137,8 @@ blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
 			sz -= len;
 		} else {
 			for (i = 0; i < len; i += PAGE_SIZE)
-				dump_va = pmap_kenter_temporary(pa + i, (i + fragsz) >> PAGE_SHIFT);
+				dump_va = pmap_kenter_temporary(pa + i,
+				    (i + fragsz) >> PAGE_SHIFT);
 			fragsz += len;
 			pa += len;
 			sz -= len;
@@ -172,7 +177,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	struct msgbuf *mbp;
 
 	retry_count = 0;
- retry:
+retry:
 	retry_count++;
 
 	/* Snapshot the KVA upper bound in case it grows. */
@@ -186,7 +191,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	 * tables, so care must be taken to read each entry only once.
 	 */
 	pmapsize = 0;
-	for (va = VM_MIN_KERNEL_ADDRESS; va < kva_end; ) {
+	for (va = VM_MIN_KERNEL_ADDRESS; va < kva_end;) {
 		/*
 		 * We always write a page, even if it is zero. Each
 		 * page written corresponds to 1GB of space
@@ -259,7 +264,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	dumpsize += round_page(mbp->msg_size);
 	dumpsize += round_page(sizeof(dump_avail));
 	dumpsize += round_page(BITSET_SIZE(vm_page_dump_pages));
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		/* Clear out undumpable pages now if needed */
 		if (PHYS_IN_DMAP(pa) && vm_phys_is_dumpable(pa)) {
 			dumpsize += PAGE_SIZE;
@@ -374,7 +379,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	}
 
 	/* Dump memory chunks */
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		error = blk_write(di, 0, pa, PAGE_SIZE);
 		if (error)
 			goto fail;
@@ -391,7 +396,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	printf("\nDump complete\n");
 	return (0);
 
- fail:
+fail:
 	if (error < 0)
 		error = -error;
 
@@ -403,12 +408,12 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 			goto retry;
 		}
 		printf("Dump failed.\n");
-	}
-	else if (error == ECANCELED)
+	} else if (error == ECANCELED)
 		printf("Dump aborted\n");
 	else if (error == E2BIG) {
 		printf("Dump failed. Partition too small (about %lluMB were "
-		    "needed this time).\n", (long long)dumpsize >> 20);
+		       "needed this time).\n",
+		    (long long)dumpsize >> 20);
 	} else
 		printf("** DUMP FAILED (ERROR %d) **\n", error);
 	return (error);

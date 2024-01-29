@@ -24,25 +24,25 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_FASTTRAP_ISA_H
-#define	_FASTTRAP_ISA_H
+#ifndef _FASTTRAP_ISA_H
+#define _FASTTRAP_ISA_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #include <sys/types.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 /*
  *  XXXDTRACE: placehodler for MIPS fasttrap stuff
  */
 
-typedef	uint32_t	fasttrap_instr_t;
-#define	FASTTRAP_SUNWDTRACE_SIZE	64
+typedef uint32_t fasttrap_instr_t;
+#define FASTTRAP_SUNWDTRACE_SIZE 64
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _FASTTRAP_ISA_H */
+#endif /* _FASTTRAP_ISA_H */

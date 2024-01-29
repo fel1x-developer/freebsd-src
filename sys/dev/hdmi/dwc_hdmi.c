@@ -31,43 +31,41 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
-#include <sys/bus.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 
 #include <machine/bus.h>
 
-#include <dev/videomode/videomode.h>
-#include <dev/videomode/edidvar.h>
-
-#include <dev/iicbus/iicbus.h>
-#include <dev/iicbus/iiconf.h>
-
 #include <dev/hdmi/dwc_hdmi.h>
 #include <dev/hdmi/dwc_hdmireg.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/videomode/edidvar.h>
+#include <dev/videomode/videomode.h>
 
 #include "crtc_if.h"
 
-#define	I2C_DDC_ADDR	(0x50 << 1)
-#define	I2C_DDC_SEGADDR	(0x30 << 1)
-#define	EDID_LENGTH	0x80
+#define I2C_DDC_ADDR (0x50 << 1)
+#define I2C_DDC_SEGADDR (0x30 << 1)
+#define EDID_LENGTH 0x80
 
-#define	EXT_TAG			0x00
-#define	CEA_TAG_ID		0x02
-#define	CEA_DTD			0x03
-#define	DTD_BASIC_AUDIO		(1 << 6)
-#define	CEA_REV			0x02
-#define	CEA_DATA_OFF		0x03
-#define	CEA_DATA_START		4
-#define	BLOCK_TAG(x)		(((x) >> 5) & 0x7)
-#define	BLOCK_TAG_VSDB		3
-#define	BLOCK_LEN(x)		((x) & 0x1f)
-#define	HDMI_VSDB_MINLEN	5
-#define	HDMI_OUI		"\x03\x0c\x00"
-#define	HDMI_OUI_LEN		3
+#define EXT_TAG 0x00
+#define CEA_TAG_ID 0x02
+#define CEA_DTD 0x03
+#define DTD_BASIC_AUDIO (1 << 6)
+#define CEA_REV 0x02
+#define CEA_DATA_OFF 0x03
+#define CEA_DATA_START 4
+#define BLOCK_TAG(x) (((x) >> 5) & 0x7)
+#define BLOCK_TAG_VSDB 3
+#define BLOCK_LEN(x) ((x) & 0x1f)
+#define HDMI_VSDB_MINLEN 5
+#define HDMI_OUI "\x03\x0c\x00"
+#define HDMI_OUI_LEN 3
 
 static void
 dwc_hdmi_phy_wait_i2c_done(struct dwc_hdmi_softc *sc, int msec)
@@ -77,7 +75,7 @@ dwc_hdmi_phy_wait_i2c_done(struct dwc_hdmi_softc *sc, int msec)
 	val = RD1(sc, HDMI_IH_I2CMPHY_STAT0) &
 	    (HDMI_IH_I2CMPHY_STAT0_DONE | HDMI_IH_I2CMPHY_STAT0_ERROR);
 	while (val == 0) {
-		pause("HDMI_PHY", hz/100);
+		pause("HDMI_PHY", hz / 100);
 		msec -= 10;
 		if (msec <= 0)
 			return;
@@ -97,7 +95,8 @@ dwc_hdmi_phy_i2c_write(struct dwc_hdmi_softc *sc, unsigned short data,
 	WR1(sc, HDMI_PHY_I2CM_ADDRESS_ADDR, addr);
 	WR1(sc, HDMI_PHY_I2CM_DATAO_1_ADDR, ((data >> 8) & 0xff));
 	WR1(sc, HDMI_PHY_I2CM_DATAO_0_ADDR, ((data >> 0) & 0xff));
-	WR1(sc, HDMI_PHY_I2CM_OPERATION_ADDR, HDMI_PHY_I2CM_OPERATION_ADDR_WRITE);
+	WR1(sc, HDMI_PHY_I2CM_OPERATION_ADDR,
+	    HDMI_PHY_I2CM_OPERATION_ADDR_WRITE);
 	dwc_hdmi_phy_wait_i2c_done(sc, 1000);
 }
 
@@ -105,8 +104,7 @@ static void
 dwc_hdmi_disable_overflow_interrupts(struct dwc_hdmi_softc *sc)
 {
 	WR1(sc, HDMI_IH_MUTE_FC_STAT2, HDMI_IH_MUTE_FC_STAT2_OVERFLOW_MASK);
-	WR1(sc, HDMI_FC_MASK2,
-	    HDMI_FC_MASK2_LOW_PRI | HDMI_FC_MASK2_HIGH_PRI);
+	WR1(sc, HDMI_FC_MASK2, HDMI_FC_MASK2_LOW_PRI | HDMI_FC_MASK2_HIGH_PRI);
 }
 
 static void
@@ -128,8 +126,8 @@ dwc_hdmi_av_composer(struct dwc_hdmi_softc *sc)
 	inv_val |= HDMI_FC_INVIDCONF_DE_IN_POLARITY_ACTIVE_HIGH;
 
 	inv_val |= ((sc->sc_mode.flags & VID_INTERLACE) ?
-			HDMI_FC_INVIDCONF_R_V_BLANK_IN_OSC_ACTIVE_HIGH :
-			HDMI_FC_INVIDCONF_R_V_BLANK_IN_OSC_ACTIVE_LOW);
+		HDMI_FC_INVIDCONF_R_V_BLANK_IN_OSC_ACTIVE_HIGH :
+		HDMI_FC_INVIDCONF_R_V_BLANK_IN_OSC_ACTIVE_LOW);
 
 	inv_val |= ((sc->sc_mode.flags & VID_INTERLACE) ?
 		HDMI_FC_INVIDCONF_IN_I_P_INTERLACED :
@@ -137,9 +135,8 @@ dwc_hdmi_av_composer(struct dwc_hdmi_softc *sc)
 
 	/* TODO: implement HDMI part */
 	is_dvi = sc->sc_has_audio == 0;
-	inv_val |= (is_dvi ?
-		HDMI_FC_INVIDCONF_DVI_MODEZ_DVI_MODE :
-		HDMI_FC_INVIDCONF_DVI_MODEZ_HDMI_MODE);
+	inv_val |= (is_dvi ? HDMI_FC_INVIDCONF_DVI_MODEZ_DVI_MODE :
+			     HDMI_FC_INVIDCONF_DVI_MODEZ_HDMI_MODE);
 
 	WR1(sc, HDMI_FC_INVIDCONF, inv_val);
 
@@ -175,7 +172,8 @@ dwc_hdmi_av_composer(struct dwc_hdmi_softc *sc)
 	WR1(sc, HDMI_FC_HSYNCINWIDTH0, hsync_len);
 
 	/* Set up VSYNC active edge delay (in pixel clks) */
-	WR1(sc, HDMI_FC_VSYNCINWIDTH, (sc->sc_mode.vsync_end - sc->sc_mode.vsync_start));
+	WR1(sc, HDMI_FC_VSYNCINWIDTH,
+	    (sc->sc_mode.vsync_end - sc->sc_mode.vsync_start));
 }
 
 static void
@@ -251,8 +249,7 @@ dwc_hdmi_phy_test_clear(struct dwc_hdmi_softc *sc, unsigned char bit)
 
 	val = RD1(sc, HDMI_PHY_TST0);
 	val &= ~HDMI_PHY_TST0_TSTCLR_MASK;
-	val |= (bit << HDMI_PHY_TST0_TSTCLR_OFFSET) &
-		HDMI_PHY_TST0_TSTCLR_MASK;
+	val |= (bit << HDMI_PHY_TST0_TSTCLR_OFFSET) & HDMI_PHY_TST0_TSTCLR_MASK;
 	WR1(sc, HDMI_PHY_TST0, val);
 }
 
@@ -267,7 +264,7 @@ dwc_hdmi_clear_overflow(struct dwc_hdmi_softc *sc)
 
 	val = RD1(sc, HDMI_FC_INVIDCONF);
 
-	for (count = 0 ; count < 4 ; count++)
+	for (count = 0; count < 4; count++)
 		WR1(sc, HDMI_FC_INVIDCONF, val);
 }
 
@@ -303,17 +300,21 @@ dwc_hdmi_phy_configure(struct dwc_hdmi_softc *sc)
 	 * PLL/MPLL config, see section 24.7.22 in TRM
 	 *  config, see section 24.7.22
 	 */
-	if (sc->sc_mode.dot_clock*1000 <= 45250000) {
-		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_45_25, HDMI_PHY_I2C_CPCE_CTRL);
+	if (sc->sc_mode.dot_clock * 1000 <= 45250000) {
+		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_45_25,
+		    HDMI_PHY_I2C_CPCE_CTRL);
 		dwc_hdmi_phy_i2c_write(sc, GMPCTRL_45_25, HDMI_PHY_I2C_GMPCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 92500000) {
-		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_92_50, HDMI_PHY_I2C_CPCE_CTRL);
+	} else if (sc->sc_mode.dot_clock * 1000 <= 92500000) {
+		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_92_50,
+		    HDMI_PHY_I2C_CPCE_CTRL);
 		dwc_hdmi_phy_i2c_write(sc, GMPCTRL_92_50, HDMI_PHY_I2C_GMPCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 185000000) {
-		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_185, HDMI_PHY_I2C_CPCE_CTRL);
+	} else if (sc->sc_mode.dot_clock * 1000 <= 185000000) {
+		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_185,
+		    HDMI_PHY_I2C_CPCE_CTRL);
 		dwc_hdmi_phy_i2c_write(sc, GMPCTRL_185, HDMI_PHY_I2C_GMPCTRL);
 	} else {
-		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_370, HDMI_PHY_I2C_CPCE_CTRL);
+		dwc_hdmi_phy_i2c_write(sc, CPCE_CTRL_370,
+		    HDMI_PHY_I2C_CPCE_CTRL);
 		dwc_hdmi_phy_i2c_write(sc, GMPCTRL_370, HDMI_PHY_I2C_GMPCTRL);
 	}
 
@@ -321,17 +322,17 @@ dwc_hdmi_phy_configure(struct dwc_hdmi_softc *sc)
 	 * Values described in TRM section 34.9.2 PLL/MPLL Generic
 	 *    Configuration Settings. Table 34-23.
 	 */
-	if (sc->sc_mode.dot_clock*1000 <= 54000000) {
+	if (sc->sc_mode.dot_clock * 1000 <= 54000000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x091c, HDMI_PHY_I2C_CURRCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 58400000) {
+	} else if (sc->sc_mode.dot_clock * 1000 <= 58400000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x091c, HDMI_PHY_I2C_CURRCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 72000000) {
+	} else if (sc->sc_mode.dot_clock * 1000 <= 72000000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x06dc, HDMI_PHY_I2C_CURRCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 74250000) {
+	} else if (sc->sc_mode.dot_clock * 1000 <= 74250000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x06dc, HDMI_PHY_I2C_CURRCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 118800000) {
+	} else if (sc->sc_mode.dot_clock * 1000 <= 118800000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x091c, HDMI_PHY_I2C_CURRCTRL);
-	} else if (sc->sc_mode.dot_clock*1000 <= 216000000) {
+	} else if (sc->sc_mode.dot_clock * 1000 <= 216000000) {
 		dwc_hdmi_phy_i2c_write(sc, 0x06dc, HDMI_PHY_I2C_CURRCTRL);
 	} else {
 		panic("Unsupported mode\n");
@@ -345,15 +346,21 @@ dwc_hdmi_phy_configure(struct dwc_hdmi_softc *sc)
 	/* REMOVE CLK TERM */
 	dwc_hdmi_phy_i2c_write(sc, CKCALCTRL_OVERRIDE, HDMI_PHY_I2C_CKCALCTRL);
 
-	if (sc->sc_mode.dot_clock*1000 > 148500000) {
-		dwc_hdmi_phy_i2c_write(sc,CKSYMTXCTRL_OVERRIDE | CKSYMTXCTRL_TX_SYMON |
-		    CKSYMTXCTRL_TX_TRBON | CKSYMTXCTRL_TX_CK_SYMON, HDMI_PHY_I2C_CKSYMTXCTRL); 
-		dwc_hdmi_phy_i2c_write(sc, VLEVCTRL_TX_LVL(9) | VLEVCTRL_CK_LVL(9),
+	if (sc->sc_mode.dot_clock * 1000 > 148500000) {
+		dwc_hdmi_phy_i2c_write(sc,
+		    CKSYMTXCTRL_OVERRIDE | CKSYMTXCTRL_TX_SYMON |
+			CKSYMTXCTRL_TX_TRBON | CKSYMTXCTRL_TX_CK_SYMON,
+		    HDMI_PHY_I2C_CKSYMTXCTRL);
+		dwc_hdmi_phy_i2c_write(sc,
+		    VLEVCTRL_TX_LVL(9) | VLEVCTRL_CK_LVL(9),
 		    HDMI_PHY_I2C_VLEVCTRL);
 	} else {
-		dwc_hdmi_phy_i2c_write(sc,CKSYMTXCTRL_OVERRIDE | CKSYMTXCTRL_TX_SYMON |
-		    CKSYMTXCTRL_TX_TRAON | CKSYMTXCTRL_TX_CK_SYMON, HDMI_PHY_I2C_CKSYMTXCTRL); 
-		dwc_hdmi_phy_i2c_write(sc, VLEVCTRL_TX_LVL(13) | VLEVCTRL_CK_LVL(13),
+		dwc_hdmi_phy_i2c_write(sc,
+		    CKSYMTXCTRL_OVERRIDE | CKSYMTXCTRL_TX_SYMON |
+			CKSYMTXCTRL_TX_TRAON | CKSYMTXCTRL_TX_CK_SYMON,
+		    HDMI_PHY_I2C_CKSYMTXCTRL);
+		dwc_hdmi_phy_i2c_write(sc,
+		    VLEVCTRL_TX_LVL(13) | VLEVCTRL_CK_LVL(13),
 		    HDMI_PHY_I2C_VLEVCTRL);
 	}
 
@@ -388,7 +395,7 @@ dwc_hdmi_phy_init(struct dwc_hdmi_softc *sc)
 	int i;
 
 	/* HDMI Phy spec says to do the phy initialization sequence twice */
-	for (i = 0 ; i < 2 ; i++) {
+	for (i = 0; i < 2; i++) {
 		dwc_hdmi_phy_sel_data_en_pol(sc, 1);
 		dwc_hdmi_phy_sel_interface_control(sc, 0);
 		dwc_hdmi_phy_enable_tmds(sc, 0);
@@ -484,11 +491,11 @@ dwc_hdmi_configure_audio(struct dwc_hdmi_softc *sc)
 
 	WR1(sc, HDMI_AUD_INPUTCLKFS, HDMI_AUD_INPUTCLKFS_64);
 
-	WR1(sc, HDMI_FC_AUDICONF0, 1 << 4);	/* CC=1 */
+	WR1(sc, HDMI_FC_AUDICONF0, 1 << 4); /* CC=1 */
 	WR1(sc, HDMI_FC_AUDICONF1, 0);
-	WR1(sc, HDMI_FC_AUDICONF2, 0);		/* CA=0 */
+	WR1(sc, HDMI_FC_AUDICONF2, 0); /* CA=0 */
 	WR1(sc, HDMI_FC_AUDICONF3, 0);
-	WR1(sc, HDMI_FC_AUDSV, 0xee);		/* channels valid */
+	WR1(sc, HDMI_FC_AUDSV, 0xee); /* channels valid */
 
 	/* Enable audio clock */
 	val = RD1(sc, HDMI_MC_CLKDIS);
@@ -509,7 +516,7 @@ dwc_hdmi_video_packetize(struct dwc_hdmi_softc *sc)
 
 	/* set the packetizer registers */
 	val = ((color_depth << HDMI_VP_PR_CD_COLOR_DEPTH_OFFSET) &
-		HDMI_VP_PR_CD_COLOR_DEPTH_MASK);
+	    HDMI_VP_PR_CD_COLOR_DEPTH_MASK);
 	WR1(sc, HDMI_VP_PR_CD, val);
 
 	val = RD1(sc, HDMI_VP_STUFF);
@@ -518,10 +525,9 @@ dwc_hdmi_video_packetize(struct dwc_hdmi_softc *sc)
 	WR1(sc, HDMI_VP_STUFF, val);
 
 	val = RD1(sc, HDMI_VP_CONF);
-	val &= ~(HDMI_VP_CONF_PR_EN_MASK |
-		HDMI_VP_CONF_BYPASS_SELECT_MASK);
+	val &= ~(HDMI_VP_CONF_PR_EN_MASK | HDMI_VP_CONF_BYPASS_SELECT_MASK);
 	val |= HDMI_VP_CONF_PR_EN_DISABLE |
-		HDMI_VP_CONF_BYPASS_SELECT_VID_PACKETIZER;
+	    HDMI_VP_CONF_BYPASS_SELECT_VID_PACKETIZER;
 	WR1(sc, HDMI_VP_CONF, val);
 
 	val = RD1(sc, HDMI_VP_STUFF);
@@ -534,29 +540,23 @@ dwc_hdmi_video_packetize(struct dwc_hdmi_softc *sc)
 	if (output_select == HDMI_VP_CONF_OUTPUT_SELECTOR_PP) {
 		val = RD1(sc, HDMI_VP_CONF);
 		val &= ~(HDMI_VP_CONF_BYPASS_EN_MASK |
-			HDMI_VP_CONF_PP_EN_ENMASK |
-			HDMI_VP_CONF_YCC422_EN_MASK);
+		    HDMI_VP_CONF_PP_EN_ENMASK | HDMI_VP_CONF_YCC422_EN_MASK);
 		val |= HDMI_VP_CONF_BYPASS_EN_DISABLE |
-			HDMI_VP_CONF_PP_EN_ENABLE |
-			HDMI_VP_CONF_YCC422_EN_DISABLE;
+		    HDMI_VP_CONF_PP_EN_ENABLE | HDMI_VP_CONF_YCC422_EN_DISABLE;
 		WR1(sc, HDMI_VP_CONF, val);
 	} else if (output_select == HDMI_VP_CONF_OUTPUT_SELECTOR_YCC422) {
 		val = RD1(sc, HDMI_VP_CONF);
 		val &= ~(HDMI_VP_CONF_BYPASS_EN_MASK |
-			HDMI_VP_CONF_PP_EN_ENMASK |
-			HDMI_VP_CONF_YCC422_EN_MASK);
+		    HDMI_VP_CONF_PP_EN_ENMASK | HDMI_VP_CONF_YCC422_EN_MASK);
 		val |= HDMI_VP_CONF_BYPASS_EN_DISABLE |
-			HDMI_VP_CONF_PP_EN_DISABLE |
-			HDMI_VP_CONF_YCC422_EN_ENABLE;
+		    HDMI_VP_CONF_PP_EN_DISABLE | HDMI_VP_CONF_YCC422_EN_ENABLE;
 		WR1(sc, HDMI_VP_CONF, val);
 	} else if (output_select == HDMI_VP_CONF_OUTPUT_SELECTOR_BYPASS) {
 		val = RD1(sc, HDMI_VP_CONF);
 		val &= ~(HDMI_VP_CONF_BYPASS_EN_MASK |
-			HDMI_VP_CONF_PP_EN_ENMASK |
-			HDMI_VP_CONF_YCC422_EN_MASK);
+		    HDMI_VP_CONF_PP_EN_ENMASK | HDMI_VP_CONF_YCC422_EN_MASK);
 		val |= HDMI_VP_CONF_BYPASS_EN_ENABLE |
-			HDMI_VP_CONF_PP_EN_DISABLE |
-			HDMI_VP_CONF_YCC422_EN_DISABLE;
+		    HDMI_VP_CONF_PP_EN_DISABLE | HDMI_VP_CONF_YCC422_EN_DISABLE;
 		WR1(sc, HDMI_VP_CONF, val);
 	} else {
 		return;
@@ -564,9 +564,9 @@ dwc_hdmi_video_packetize(struct dwc_hdmi_softc *sc)
 
 	val = RD1(sc, HDMI_VP_STUFF);
 	val &= ~(HDMI_VP_STUFF_PP_STUFFING_MASK |
-		HDMI_VP_STUFF_YCC422_STUFFING_MASK);
+	    HDMI_VP_STUFF_YCC422_STUFFING_MASK);
 	val |= HDMI_VP_STUFF_PP_STUFFING_STUFFING_MODE |
-		HDMI_VP_STUFF_YCC422_STUFFING_STUFFING_MODE;
+	    HDMI_VP_STUFF_YCC422_STUFFING_STUFFING_MODE;
 	WR1(sc, HDMI_VP_STUFF, val);
 
 	val = RD1(sc, HDMI_VP_CONF);
@@ -583,14 +583,14 @@ dwc_hdmi_video_sample(struct dwc_hdmi_softc *sc)
 
 	color_format = 0x01;
 	val = HDMI_TX_INVID0_INTERNAL_DE_GENERATOR_DISABLE |
-		((color_format << HDMI_TX_INVID0_VIDEO_MAPPING_OFFSET) &
+	    ((color_format << HDMI_TX_INVID0_VIDEO_MAPPING_OFFSET) &
 		HDMI_TX_INVID0_VIDEO_MAPPING_MASK);
 	WR1(sc, HDMI_TX_INVID0, val);
 
 	/* Enable TX stuffing: When DE is inactive, fix the output data to 0 */
 	val = HDMI_TX_INSTUFFING_BDBDATA_STUFFING_ENABLE |
-		HDMI_TX_INSTUFFING_RCRDATA_STUFFING_ENABLE |
-		HDMI_TX_INSTUFFING_GYDATA_STUFFING_ENABLE;
+	    HDMI_TX_INSTUFFING_RCRDATA_STUFFING_ENABLE |
+	    HDMI_TX_INSTUFFING_GYDATA_STUFFING_ENABLE;
 	WR1(sc, HDMI_TX_INSTUFFING, val);
 	WR1(sc, HDMI_TX_GYDATA0, 0x0);
 	WR1(sc, HDMI_TX_GYDATA1, 0x0);
@@ -661,11 +661,9 @@ hdmi_edid_read(struct dwc_hdmi_softc *sc, int block, uint8_t **edid,
 	 * writing segment address only if it's neccessary
 	 */
 	unsigned char xfers = segment ? 3 : 2;
-	struct iic_msg msg[] = {
-		{ I2C_DDC_SEGADDR, IIC_M_WR, 1, &segment },
+	struct iic_msg msg[] = { { I2C_DDC_SEGADDR, IIC_M_WR, 1, &segment },
 		{ I2C_DDC_ADDR, IIC_M_WR, 1, &addr },
-		{ I2C_DDC_ADDR, IIC_M_RD, EDID_LENGTH, sc->sc_edid }
-	};
+		{ I2C_DDC_ADDR, IIC_M_RD, EDID_LENGTH, sc->sc_edid } };
 
 	*edid = NULL;
 	*edid_len = 0;
@@ -681,12 +679,13 @@ hdmi_edid_read(struct dwc_hdmi_softc *sc, int block, uint8_t **edid,
 	if (bootverbose)
 		device_printf(sc->sc_dev,
 		    "reading EDID from %s, block %d, addr %02x\n",
-		    device_get_nameunit(i2c_dev), block, I2C_DDC_ADDR/2);
+		    device_get_nameunit(i2c_dev), block, I2C_DDC_ADDR / 2);
 
 	result = iicbus_request_bus(i2c_dev, sc->sc_dev, IIC_INTRWAIT);
 
 	if (result) {
-		device_printf(sc->sc_dev, "failed to request i2c bus: %d\n", result);
+		device_printf(sc->sc_dev, "failed to request i2c bus: %d\n",
+		    result);
 		return (result);
 	}
 
@@ -805,15 +804,15 @@ dwc_hdmi_detect_hdmi(struct dwc_hdmi_softc *sc)
 
 	/* Scan through extension blocks, looking for a CEA-861 block */
 	for (block = 1; block <= sc->sc_edid_info.edid_ext_block_count;
-	    block++) {
+	     block++) {
 		if (hdmi_edid_read(sc, block, &edid, &edid_len) != 0)
 			return;
 		if (dwc_hdmi_detect_hdmi_vsdb(edid) != 0) {
 			if (bootverbose)
 				device_printf(sc->sc_dev,
 				    "enabling audio support\n");
-			sc->sc_has_audio =
-			    (edid[CEA_DTD] & DTD_BASIC_AUDIO) != 0;
+			sc->sc_has_audio = (edid[CEA_DTD] & DTD_BASIC_AUDIO) !=
+			    0;
 			return;
 		}
 	}

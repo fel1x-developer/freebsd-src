@@ -27,11 +27,11 @@
  * SUCH DAMAGE.
  */
 
-char *__stpcpy(char * __restrict, const char * __restrict);
+char *__stpcpy(char *__restrict, const char *__restrict);
 
 char *
-strcpy(char * __restrict to, const char * __restrict from)
+strcpy(char *__restrict to, const char *__restrict from)
 {
 	__stpcpy(to, from);
-	return(to);
+	return (to);
 }

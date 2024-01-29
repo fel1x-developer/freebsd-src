@@ -25,9 +25,9 @@ struct passthru_mmio_mapping {
 struct passthru_softc;
 
 struct passthru_dev {
-    int (*probe)(struct pci_devinst *pi);
-    int (*init)(struct pci_devinst *pi, nvlist_t *nvl);
-    void (*deinit)(struct pci_devinst *pi);
+	int (*probe)(struct pci_devinst *pi);
+	int (*init)(struct pci_devinst *pi, nvlist_t *nvl);
+	void (*deinit)(struct pci_devinst *pi);
 };
 #define PASSTHRU_DEV_SET(x) DATA_SET(passthru_dev_set, x)
 

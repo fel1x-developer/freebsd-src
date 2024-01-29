@@ -27,22 +27,22 @@
 * Include private header files
 *******************************************************************************
 */
-#include "dc_session.h"
 #include "dc_datapath.h"
-#include "sal_statistics.h"
-#include "lac_common.h"
-#include "lac_mem.h"
-#include "lac_mem_pools.h"
-#include "sal_types_compression.h"
+#include "dc_error_counter.h"
+#include "dc_session.h"
 #include "dc_stats.h"
 #include "lac_buffer_desc.h"
-#include "lac_sal.h"
+#include "lac_common.h"
 #include "lac_log.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
+#include "lac_sal.h"
 #include "lac_sync.h"
-#include "sal_service_state.h"
-#include "sal_qat_cmn_msg.h"
 #include "sal_hw_gen.h"
-#include "dc_error_counter.h"
+#include "sal_qat_cmn_msg.h"
+#include "sal_service_state.h"
+#include "sal_statistics.h"
+#include "sal_types_compression.h"
 #define DC_COMP_MAX_BUFF_SIZE (1024 * 64)
 
 static QatUtilsAtomic dcErrorCount[MAX_DC_ERROR_TYPE];
@@ -73,11 +73,10 @@ getDcErrorCounter(CpaDcReqStatus dcError)
 
 static inline void
 dcUpdateXltOverflowChecksumsGen4(const dc_compression_cookie_t *pCookie,
-				 const icp_qat_fw_resp_comp_pars_t *pRespPars,
-				 CpaDcRqResults *pDcResults)
+    const icp_qat_fw_resp_comp_pars_t *pRespPars, CpaDcRqResults *pDcResults)
 {
-	dc_session_desc_t *pSessionDesc =
-	    DC_SESSION_DESC_FROM_CTX_GET(pCookie->pSessionHandle);
+	dc_session_desc_t *pSessionDesc = DC_SESSION_DESC_FROM_CTX_GET(
+	    pCookie->pSessionHandle);
 
 	/* Recompute CRC checksum when either the checksum type
 	 * is CPA_DC_CRC32 or when the integrity CRCs are enabled.
@@ -186,14 +185,13 @@ dcCompression_ProcessCallback(void *pRespMsg)
 			COMPRESSION_STAT_INC(numCompCompletedErrors, pService);
 		} else {
 			COMPRESSION_STAT_INC(numDecompCompletedErrors,
-					     pService);
+			    pService);
 		}
 		return;
 	} else {
 		/* Check compression response status */
-		cmpPass =
-		    (CpaBoolean)(ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
-				 ICP_QAT_FW_COMN_RESP_CMP_STAT_GET(opStatus));
+		cmpPass = (CpaBoolean)(ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
+		    ICP_QAT_FW_COMN_RESP_CMP_STAT_GET(opStatus));
 	}
 
 	if (isDcGen2x(pService)) {
@@ -232,9 +230,8 @@ dcCompression_ProcessCallback(void *pRespMsg)
 	if ((DC_COMPRESSION_REQUEST == compDecomp) &&
 	    (CPA_DC_HT_FULL_DYNAMIC == pSessionDesc->huffType)) {
 		/* Check translator response status */
-		xlatPass =
-		    (CpaBoolean)(ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
-				 ICP_QAT_FW_COMN_RESP_XLAT_STAT_GET(opStatus));
+		xlatPass = (CpaBoolean)(ICP_QAT_FW_COMN_STATUS_FLAG_OK ==
+		    ICP_QAT_FW_COMN_RESP_XLAT_STAT_GET(opStatus));
 
 		/* Get the translator error code */
 		xlatErr = pCompRespMsg->comn_resp.comn_error.s1.xlat_err_code;
@@ -261,7 +258,7 @@ dcCompression_ProcessCallback(void *pRespMsg)
 		}
 		if ((CPA_DC_STATEFUL == pSessionDesc->sessState) ||
 		    ((CPA_DC_STATELESS == pSessionDesc->sessState) &&
-		     (DC_COMPRESSION_REQUEST == compDecomp))) {
+			(DC_COMPRESSION_REQUEST == compDecomp))) {
 			/* Overflow is a valid use case for Traditional API
 			 * only. Stateful Overflow is supported in both
 			 * compression and decompression direction. Stateless
@@ -273,8 +270,8 @@ dcCompression_ProcessCallback(void *pRespMsg)
 			if (CPA_DC_OVERFLOW == (Cpa8S)xlatErr) {
 				if (isDcGen4x(pService) &&
 				    (CPA_TRUE ==
-				     pService->comp_device_data
-					 .translatorOverflow)) {
+					pService->comp_device_data
+					    .translatorOverflow)) {
 					pResults->consumed =
 					    pCompRespMsg->comp_resp_pars
 						.input_byte_counter;
@@ -317,7 +314,7 @@ dcCompression_ProcessCallback(void *pRespMsg)
 				    pCompRespMsg->comp_resp_pars.crc.legacy
 					.curr_crc32;
 			} else if (CPA_DC_ADLER32 ==
-				   pSessionDesc->checksumType) {
+			    pSessionDesc->checksumType) {
 				pResults->checksum =
 				    pCompRespMsg->comp_resp_pars.crc.legacy
 					.curr_adler_32;
@@ -328,8 +325,8 @@ dcCompression_ProcessCallback(void *pRespMsg)
 		if (DC_DECOMPRESSION_REQUEST == compDecomp) {
 			pResults->endOfLastBlock =
 			    (ICP_QAT_FW_COMN_STATUS_CMP_END_OF_LAST_BLK_FLAG_SET ==
-			     ICP_QAT_FW_COMN_RESP_CMP_END_OF_LAST_BLK_FLAG_GET(
-				 opStatus));
+				ICP_QAT_FW_COMN_RESP_CMP_END_OF_LAST_BLK_FLAG_GET(
+				    opStatus));
 		} else {
 			/* Check if returned data is a stored block
 			 * in compression direction
@@ -352,7 +349,7 @@ dcCompression_ProcessCallback(void *pRespMsg)
 		    ICP_QAT_FW_COMN_HDR_CNV_FLAG_GET(hdrFlags) &&
 		    ICP_QAT_FW_COMN_HDR_CNVNR_FLAG_GET(hdrFlags)) {
 			COMPRESSION_STAT_INC(numCompCnvErrorsRecovered,
-					     pService);
+			    pService);
 		}
 
 		if (CPA_TRUE == isDcDp) {
@@ -361,10 +358,10 @@ dcCompression_ProcessCallback(void *pRespMsg)
 		} else {
 			if (DC_COMPRESSION_REQUEST == compDecomp) {
 				COMPRESSION_STAT_INC(numCompCompleted,
-						     pService);
+				    pService);
 			} else {
 				COMPRESSION_STAT_INC(numDecompCompleted,
-						     pService);
+				    pService);
 			}
 		}
 	} else {
@@ -411,10 +408,10 @@ dcCompression_ProcessCallback(void *pRespMsg)
 
 			if (DC_COMPRESSION_REQUEST == compDecomp) {
 				COMPRESSION_STAT_INC(numCompCompletedErrors,
-						     pService);
+				    pService);
 			} else {
 				COMPRESSION_STAT_INC(numDecompCompletedErrors,
-						     pService);
+				    pService);
 			}
 		}
 	}
@@ -430,8 +427,8 @@ dcCompression_ProcessCallback(void *pRespMsg)
 			qatUtilsAtomicDec(
 			    &(pCookie->pSessionDesc->pendingStatelessCbCount));
 		} else if (0 !=
-			   qatUtilsAtomicGet(&pCookie->pSessionDesc
-						  ->pendingStatefulCbCount)) {
+		    qatUtilsAtomicGet(
+			&pCookie->pSessionDesc->pendingStatefulCbCount)) {
 			qatUtilsAtomicDec(
 			    &(pCookie->pSessionDesc->pendingStatefulCbCount));
 		}
@@ -554,13 +551,9 @@ dcCheckOpData(sal_compression_service_t *pService, CpaDcOpData *pOpData)
  *
  *****************************************************************************/
 static CpaStatus
-dcCheckSourceData(CpaDcSessionHandle pSessionHandle,
-		  CpaBufferList *pSrcBuff,
-		  CpaBufferList *pDestBuff,
-		  CpaDcRqResults *pResults,
-		  CpaDcFlush flushFlag,
-		  Cpa64U srcBuffSize,
-		  CpaDcSkipData *skipData)
+dcCheckSourceData(CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    Cpa64U srcBuffSize, CpaDcSkipData *skipData)
 {
 	dc_session_desc_t *pSessionDesc = NULL;
 
@@ -628,9 +621,8 @@ dcCheckSourceData(CpaDcSessionHandle pSessionHandle,
  *****************************************************************************/
 static CpaStatus
 dcCheckDestinationData(sal_compression_service_t *pService,
-		       CpaDcSessionHandle pSessionHandle,
-		       CpaBufferList *pDestBuff,
-		       dc_request_dir_t compDecomp)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pDestBuff,
+    dc_request_dir_t compDecomp)
 {
 	dc_session_desc_t *pSessionDesc = NULL;
 	Cpa64U destBuffSize = 0;
@@ -644,10 +636,8 @@ dcCheckDestinationData(sal_compression_service_t *pService,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-	if (LacBuffDesc_BufferListVerify(pDestBuff,
-					 &destBuffSize,
-					 LAC_NO_ALIGNMENT_SHIFT) !=
-	    CPA_STATUS_SUCCESS) {
+	if (LacBuffDesc_BufferListVerify(pDestBuff, &destBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT) != CPA_STATUS_SUCCESS) {
 		LAC_INVALID_PARAM_LOG(
 		    "Invalid destination buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
@@ -672,7 +662,7 @@ dcCheckDestinationData(sal_compression_service_t *pService,
 			/* Check if intermediate buffers are supported */
 			if ((isDcGen2x(pService)) &&
 			    ((0 == pService->pInterBuffPtrsArrayPhyAddr) ||
-			     (NULL == pService->pInterBuffPtrsArray))) {
+				(NULL == pService->pInterBuffPtrsArray))) {
 				LAC_LOG_ERROR(
 				    "No intermediate buffer defined for this instance "
 				    "- see cpaDcStartInstance");
@@ -687,8 +677,7 @@ dcCheckDestinationData(sal_compression_service_t *pService,
 				    "greater or equal to 128B");
 				return CPA_STATUS_INVALID_PARAM;
 			}
-		} else
-		{
+		} else {
 			/* Ensure that the destination buffer size is greater or
 			 * equal to devices min output buff size */
 			if (destBuffSize <
@@ -728,7 +717,7 @@ dcCheckDestinationData(sal_compression_service_t *pService,
  *****************************************************************************/
 static void
 dcCompRequestParamsPopulate(icp_qat_fw_comp_req_params_t *pCompReqParams,
-			    dc_compression_cookie_t *pCookie)
+    dc_compression_cookie_t *pCookie)
 {
 	pCompReqParams->comp_len = pCookie->srcTotalDataLenInBytes;
 	pCompReqParams->out_buffer_sz = pCookie->dstTotalDataLenInBytes;
@@ -766,17 +755,11 @@ dcCompRequestParamsPopulate(icp_qat_fw_comp_req_params_t *pCompReqParams,
  *****************************************************************************/
 static CpaStatus
 dcCreateRequest(dc_compression_cookie_t *pCookie,
-		sal_compression_service_t *pService,
-		dc_session_desc_t *pSessionDesc,
-		CpaDcSessionHandle pSessionHandle,
-		CpaBufferList *pSrcBuff,
-		CpaBufferList *pDestBuff,
-		CpaDcRqResults *pResults,
-		CpaDcFlush flushFlag,
-		CpaDcOpData *pOpData,
-		void *callbackTag,
-		dc_request_dir_t compDecomp,
-		dc_cnv_mode_t cnvMode)
+    sal_compression_service_t *pService, dc_session_desc_t *pSessionDesc,
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    CpaDcOpData *pOpData, void *callbackTag, dc_request_dir_t compDecomp,
+    dc_cnv_mode_t cnvMode)
 {
 	icp_qat_fw_comp_req_t *pMsg = NULL;
 	icp_qat_fw_comp_req_params_t *pCompReqParams = NULL;
@@ -799,21 +782,15 @@ dcCreateRequest(dc_compression_cookie_t *pCookie,
 	icp_qat_fw_comp_req_t *pReqCache = NULL;
 
 	/* Write the buffer descriptors */
-	status = LacBuffDesc_BufferListDescWriteAndGetSize(
-	    pSrcBuff,
-	    &srcAddrPhys,
-	    CPA_FALSE,
-	    &srcTotalDataLenInBytes,
+	status = LacBuffDesc_BufferListDescWriteAndGetSize(pSrcBuff,
+	    &srcAddrPhys, CPA_FALSE, &srcTotalDataLenInBytes,
 	    &(pService->generic_service_info));
 	if (status != CPA_STATUS_SUCCESS) {
 		return status;
 	}
 
-	status = LacBuffDesc_BufferListDescWriteAndGetSize(
-	    pDestBuff,
-	    &dstAddrPhys,
-	    CPA_FALSE,
-	    &dstTotalDataLenInBytes,
+	status = LacBuffDesc_BufferListDescWriteAndGetSize(pDestBuff,
+	    &dstAddrPhys, CPA_FALSE, &dstTotalDataLenInBytes,
 	    &(pService->generic_service_info));
 	if (status != CPA_STATUS_SUCCESS) {
 		return status;
@@ -853,13 +830,12 @@ dcCreateRequest(dc_compression_cookie_t *pCookie,
 			pCookie->dstTotalDataLenInBytes =
 			    (Cpa32U)(pService->minInterBuffSizeInBytes);
 		} else {
-			pCookie->dstTotalDataLenInBytes =
-			    (Cpa32U)dstTotalDataLenInBytes;
+			pCookie->dstTotalDataLenInBytes = (Cpa32U)
+			    dstTotalDataLenInBytes;
 		}
-	} else
-	{
-		pCookie->dstTotalDataLenInBytes =
-		    (Cpa32U)dstTotalDataLenInBytes;
+	} else {
+		pCookie->dstTotalDataLenInBytes = (Cpa32U)
+		    dstTotalDataLenInBytes;
 	}
 
 	/* Device can not decompress an odd byte decompression request
@@ -893,9 +869,8 @@ dcCreateRequest(dc_compression_cookie_t *pCookie,
 	}
 
 	/* Fills the msg from the template cached in the session descriptor */
-	memcpy((void *)pMsg,
-	       (void *)(pReqCache),
-	       LAC_QAT_DC_REQ_SZ_LW * LAC_LONG_WORD_IN_BYTES);
+	memcpy((void *)pMsg, (void *)(pReqCache),
+	    LAC_QAT_DC_REQ_SZ_LW * LAC_LONG_WORD_IN_BYTES);
 
 	if (DC_REQUEST_FIRST == pSessionDesc->requestType) {
 		initial_adler = 1;
@@ -1027,25 +1002,15 @@ dcCreateRequest(dc_compression_cookie_t *pCookie,
 	}
 
 	/* LW 18 */
-	rpCmdFlags = ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(sop,
-							   eop,
-							   bFinal,
-							   cnvDecompReq,
-							   cnvRecovery,
-							   cnvErrorInjection,
-							   crcMode);
+	rpCmdFlags = ICP_QAT_FW_COMP_REQ_PARAM_FLAGS_BUILD(sop, eop, bFinal,
+	    cnvDecompReq, cnvRecovery, cnvErrorInjection, crcMode);
 
 	pMsg->comp_pars.req_par_flags = rpCmdFlags;
 
 	/* Populates the QAT common request middle part of the message
 	 * (LW 6 to 11) */
-	SalQatMsg_CmnMidWrite((icp_qat_fw_la_bulk_req_t *)pMsg,
-			      pCookie,
-			      DC_DEFAULT_QAT_PTR_TYPE,
-			      srcAddrPhys,
-			      dstAddrPhys,
-			      0,
-			      0);
+	SalQatMsg_CmnMidWrite((icp_qat_fw_la_bulk_req_t *)pMsg, pCookie,
+	    DC_DEFAULT_QAT_PTR_TYPE, srcAddrPhys, dstAddrPhys, 0, 0);
 
 	return CPA_STATUS_SUCCESS;
 }
@@ -1069,16 +1034,14 @@ dcCreateRequest(dc_compression_cookie_t *pCookie,
  *****************************************************************************/
 static CpaStatus
 dcSendRequest(dc_compression_cookie_t *pCookie,
-	      sal_compression_service_t *pService,
-	      dc_session_desc_t *pSessionDesc,
-	      dc_request_dir_t compDecomp)
+    sal_compression_service_t *pService, dc_session_desc_t *pSessionDesc,
+    dc_request_dir_t compDecomp)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
 	/* Send to QAT */
 	status = icp_adf_transPutMsg(pService->trans_handle_compression_tx,
-				     (void *)&(pCookie->request),
-				     LAC_QAT_DC_REQ_SZ_LW);
+	    (void *)&(pCookie->request), LAC_QAT_DC_REQ_SZ_LW);
 
 	if ((CPA_DC_STATEFUL == pSessionDesc->sessState) &&
 	    (CPA_STATUS_RETRY == status)) {
@@ -1131,18 +1094,11 @@ dcSendRequest(dc_compression_cookie_t *pCookie,
  *****************************************************************************/
 static CpaStatus
 dcCompDecompData(sal_compression_service_t *pService,
-		 dc_session_desc_t *pSessionDesc,
-		 CpaInstanceHandle dcInstance,
-		 CpaDcSessionHandle pSessionHandle,
-		 CpaBufferList *pSrcBuff,
-		 CpaBufferList *pDestBuff,
-		 CpaDcRqResults *pResults,
-		 CpaDcFlush flushFlag,
-		 CpaDcOpData *pOpData,
-		 void *callbackTag,
-		 dc_request_dir_t compDecomp,
-		 CpaBoolean isAsyncMode,
-		 dc_cnv_mode_t cnvMode)
+    dc_session_desc_t *pSessionDesc, CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    CpaDcOpData *pOpData, void *callbackTag, dc_request_dir_t compDecomp,
+    CpaBoolean isAsyncMode, dc_cnv_mode_t cnvMode)
 {
 	CpaStatus status = CPA_STATUS_SUCCESS;
 	dc_compression_cookie_t *pCookie = NULL;
@@ -1154,19 +1110,10 @@ dcCompDecompData(sal_compression_service_t *pService,
 		status = LacSync_CreateSyncCookie(&pSyncCallbackData);
 
 		if (CPA_STATUS_SUCCESS == status) {
-			status = dcCompDecompData(pService,
-						  pSessionDesc,
-						  dcInstance,
-						  pSessionHandle,
-						  pSrcBuff,
-						  pDestBuff,
-						  pResults,
-						  flushFlag,
-						  pOpData,
-						  pSyncCallbackData,
-						  compDecomp,
-						  CPA_FALSE,
-						  cnvMode);
+			status = dcCompDecompData(pService, pSessionDesc,
+			    dcInstance, pSessionHandle, pSrcBuff, pDestBuff,
+			    pResults, flushFlag, pOpData, pSyncCallbackData,
+			    compDecomp, CPA_FALSE, cnvMode);
 		} else {
 			return status;
 		}
@@ -1174,11 +1121,8 @@ dcCompDecompData(sal_compression_service_t *pService,
 		if (CPA_STATUS_SUCCESS == status) {
 			CpaStatus syncStatus = CPA_STATUS_SUCCESS;
 
-			syncStatus =
-			    LacSync_WaitForCallback(pSyncCallbackData,
-						    DC_SYNC_CALLBACK_TIMEOUT,
-						    &status,
-						    NULL);
+			syncStatus = LacSync_WaitForCallback(pSyncCallbackData,
+			    DC_SYNC_CALLBACK_TIMEOUT, &status, NULL);
 
 			/* If callback doesn't come back */
 			if (CPA_STATUS_SUCCESS != syncStatus) {
@@ -1217,18 +1161,9 @@ dcCompDecompData(sal_compression_service_t *pService,
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
-		status = dcCreateRequest(pCookie,
-					 pService,
-					 pSessionDesc,
-					 pSessionHandle,
-					 pSrcBuff,
-					 pDestBuff,
-					 pResults,
-					 flushFlag,
-					 pOpData,
-					 callbackTag,
-					 compDecomp,
-					 cnvMode);
+		status = dcCreateRequest(pCookie, pService, pSessionDesc,
+		    pSessionHandle, pSrcBuff, pDestBuff, pResults, flushFlag,
+		    pOpData, callbackTag, compDecomp, cnvMode);
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
@@ -1237,8 +1172,8 @@ dcCompDecompData(sal_compression_service_t *pService,
 			qatUtilsAtomicInc(
 			    &(pSessionDesc->pendingStatelessCbCount));
 		}
-		status =
-		    dcSendRequest(pCookie, pService, pSessionDesc, compDecomp);
+		status = dcSendRequest(pCookie, pService, pSessionDesc,
+		    compDecomp);
 	}
 
 	if (CPA_STATUS_SUCCESS == status) {
@@ -1299,11 +1234,8 @@ dcCompDecompData(sal_compression_service_t *pService,
  *****************************************************************************/
 static CpaStatus
 dcZeroLengthRequests(sal_compression_service_t *pService,
-		     dc_session_desc_t *pSessionDesc,
-		     CpaDcRqResults *pResults,
-		     CpaDcFlush flushFlag,
-		     void *callbackTag,
-		     dc_request_dir_t compDecomp)
+    dc_session_desc_t *pSessionDesc, CpaDcRqResults *pResults,
+    CpaDcFlush flushFlag, void *callbackTag, dc_request_dir_t compDecomp)
 {
 	CpaBoolean status = CPA_FALSE;
 	CpaDcCallbackFn pCbFunc = pSessionDesc->pCompressionCb;
@@ -1321,7 +1253,7 @@ dcZeroLengthRequests(sal_compression_service_t *pService,
 
 		status = CPA_TRUE;
 	} else if ((CPA_DC_FLUSH_NONE == flushFlag) ||
-		   (CPA_DC_FLUSH_SYNC == flushFlag)) {
+	    (CPA_DC_FLUSH_SYNC == flushFlag)) {
 		/* Zero length MOP */
 		pResults->checksum = pSessionDesc->previousChecksum;
 		status = CPA_TRUE;
@@ -1355,29 +1287,18 @@ dcZeroLengthRequests(sal_compression_service_t *pService,
 }
 
 static CpaStatus
-dcParamCheck(CpaInstanceHandle dcInstance,
-	     CpaDcSessionHandle pSessionHandle,
-	     sal_compression_service_t *pService,
-	     CpaBufferList *pSrcBuff,
-	     CpaBufferList *pDestBuff,
-	     CpaDcRqResults *pResults,
-	     dc_session_desc_t *pSessionDesc,
-	     CpaDcFlush flushFlag,
-	     Cpa64U srcBuffSize)
+dcParamCheck(CpaInstanceHandle dcInstance, CpaDcSessionHandle pSessionHandle,
+    sal_compression_service_t *pService, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults,
+    dc_session_desc_t *pSessionDesc, CpaDcFlush flushFlag, Cpa64U srcBuffSize)
 {
 
-	if (dcCheckSourceData(pSessionHandle,
-			      pSrcBuff,
-			      pDestBuff,
-			      pResults,
-			      flushFlag,
-			      srcBuffSize,
-			      NULL) != CPA_STATUS_SUCCESS) {
+	if (dcCheckSourceData(pSessionHandle, pSrcBuff, pDestBuff, pResults,
+		flushFlag, srcBuffSize, NULL) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
-	if (dcCheckDestinationData(
-		pService, pSessionHandle, pDestBuff, DC_COMPRESSION_REQUEST) !=
-	    CPA_STATUS_SUCCESS) {
+	if (dcCheckDestinationData(pService, pSessionHandle, pDestBuff,
+		DC_COMPRESSION_REQUEST) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	if (CPA_DC_DIR_DECOMPRESS == pSessionDesc->sessDirection) {
@@ -1389,18 +1310,14 @@ dcParamCheck(CpaInstanceHandle dcInstance,
 
 CpaStatus
 cpaDcCompressData(CpaInstanceHandle dcInstance,
-		  CpaDcSessionHandle pSessionHandle,
-		  CpaBufferList *pSrcBuff,
-		  CpaBufferList *pDestBuff,
-		  CpaDcRqResults *pResults,
-		  CpaDcFlush flushFlag,
-		  void *callbackTag)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    void *callbackTag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_session_desc_t *pSessionDesc = NULL;
 	CpaInstanceHandle insHandle = NULL;
 	Cpa64U srcBuffSize = 0;
-
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == dcInstance) {
 		insHandle = dcGetFirstHandle();
@@ -1418,10 +1335,8 @@ cpaDcCompressData(CpaInstanceHandle dcInstance,
 
 	/* This check is outside the parameter checking as it is needed to
 	 * manage zero length requests */
-	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff,
-					     &srcBuffSize,
-					     LAC_NO_ALIGNMENT_SHIFT) !=
-	    CPA_STATUS_SUCCESS) {
+	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff, &srcBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT) != CPA_STATUS_SUCCESS) {
 		LAC_INVALID_PARAM_LOG("Invalid source buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
 	}
@@ -1431,15 +1346,8 @@ cpaDcCompressData(CpaInstanceHandle dcInstance,
 
 	pSessionDesc = DC_SESSION_DESC_FROM_CTX_GET(pSessionHandle);
 	if (CPA_STATUS_SUCCESS !=
-	    dcParamCheck(insHandle,
-			 pSessionHandle,
-			 pService,
-			 pSrcBuff,
-			 pDestBuff,
-			 pResults,
-			 pSessionDesc,
-			 flushFlag,
-			 srcBuffSize)) {
+	    dcParamCheck(insHandle, pSessionHandle, pService, pSrcBuff,
+		pDestBuff, pResults, pSessionDesc, flushFlag, srcBuffSize)) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	if (CPA_DC_STATEFUL == pSessionDesc->sessState) {
@@ -1450,42 +1358,29 @@ cpaDcCompressData(CpaInstanceHandle dcInstance,
 	}
 
 	if (!(pService->generic_service_info.dcExtendedFeatures &
-	      DC_CNV_EXTENDED_CAPABILITY)) {
+		DC_CNV_EXTENDED_CAPABILITY)) {
 		LAC_INVALID_PARAM_LOG(
 		    "CompressAndVerify feature not supported");
 		return CPA_STATUS_UNSUPPORTED;
 	}
 
 	if (!(pService->generic_service_info.dcExtendedFeatures &
-	      DC_CNVNR_EXTENDED_CAPABILITY)) {
+		DC_CNVNR_EXTENDED_CAPABILITY)) {
 		LAC_INVALID_PARAM_LOG(
 		    "CompressAndVerifyAndRecovery feature not supported");
 		return CPA_STATUS_UNSUPPORTED;
 	}
 
-	return dcCompDecompData(pService,
-				pSessionDesc,
-				insHandle,
-				pSessionHandle,
-				pSrcBuff,
-				pDestBuff,
-				pResults,
-				flushFlag,
-				NULL,
-				callbackTag,
-				DC_COMPRESSION_REQUEST,
-				CPA_TRUE,
-				DC_CNVNR);
+	return dcCompDecompData(pService, pSessionDesc, insHandle,
+	    pSessionHandle, pSrcBuff, pDestBuff, pResults, flushFlag, NULL,
+	    callbackTag, DC_COMPRESSION_REQUEST, CPA_TRUE, DC_CNVNR);
 }
 
 CpaStatus
 cpaDcCompressData2(CpaInstanceHandle dcInstance,
-		   CpaDcSessionHandle pSessionHandle,
-		   CpaBufferList *pSrcBuff,
-		   CpaBufferList *pDestBuff,
-		   CpaDcOpData *pOpData,
-		   CpaDcRqResults *pResults,
-		   void *callbackTag)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcOpData *pOpData, CpaDcRqResults *pResults,
+    void *callbackTag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_session_desc_t *pSessionDesc = NULL;
@@ -1496,9 +1391,9 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 	LAC_CHECK_NULL_PARAM(pOpData);
 
 	if (((CPA_TRUE != pOpData->compressAndVerify) &&
-	     (CPA_FALSE != pOpData->compressAndVerify)) ||
+		(CPA_FALSE != pOpData->compressAndVerify)) ||
 	    ((CPA_FALSE != pOpData->compressAndVerifyAndRecover) &&
-	     (CPA_TRUE != pOpData->compressAndVerifyAndRecover))) {
+		(CPA_TRUE != pOpData->compressAndVerifyAndRecover))) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
@@ -1507,17 +1402,11 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-
 	if ((CPA_TRUE == pOpData->compressAndVerify) &&
 	    (CPA_TRUE == pOpData->compressAndVerifyAndRecover) &&
 	    (CPA_FALSE == pOpData->integrityCrcCheck)) {
-		return cpaDcCompressData(dcInstance,
-					 pSessionHandle,
-					 pSrcBuff,
-					 pDestBuff,
-					 pResults,
-					 pOpData->flushFlag,
-					 callbackTag);
+		return cpaDcCompressData(dcInstance, pSessionHandle, pSrcBuff,
+		    pDestBuff, pResults, pOpData->flushFlag, callbackTag);
 	}
 
 	if (CPA_FALSE == pOpData->compressAndVerify) {
@@ -1525,7 +1414,6 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 		    "Data compression without verification not allowed");
 		return CPA_STATUS_UNSUPPORTED;
 	}
-
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == dcInstance) {
 		insHandle = dcGetFirstHandle();
@@ -1544,10 +1432,8 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 
 	/* This check is outside the parameter checking as it is needed to
 	 * manage zero length requests */
-	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff,
-					     &srcBuffSize,
-					     LAC_NO_ALIGNMENT_SHIFT) !=
-	    CPA_STATUS_SUCCESS) {
+	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff, &srcBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT) != CPA_STATUS_SUCCESS) {
 		LAC_INVALID_PARAM_LOG("Invalid source buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
 	}
@@ -1566,7 +1452,7 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 	}
 
 	if (!(pService->generic_service_info.dcExtendedFeatures &
-	      DC_CNV_EXTENDED_CAPABILITY) &&
+		DC_CNV_EXTENDED_CAPABILITY) &&
 	    (CPA_TRUE == pOpData->compressAndVerify)) {
 		LAC_INVALID_PARAM_LOG(
 		    "CompressAndVerify feature not supported");
@@ -1574,15 +1460,9 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 	}
 
 	if (CPA_STATUS_SUCCESS !=
-	    dcParamCheck(insHandle,
-			 pSessionHandle,
-			 pService,
-			 pSrcBuff,
-			 pDestBuff,
-			 pResults,
-			 pSessionDesc,
-			 pOpData->flushFlag,
-			 srcBuffSize)) {
+	    dcParamCheck(insHandle, pSessionHandle, pService, pSrcBuff,
+		pDestBuff, pResults, pSessionDesc, pOpData->flushFlag,
+		srcBuffSize)) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	if (CPA_STATUS_SUCCESS != dcCheckOpData(pService, pOpData)) {
@@ -1614,12 +1494,9 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 
 		if (0 == srcBuffSize) {
 			if (CPA_TRUE ==
-			    dcZeroLengthRequests(pService,
-						 pSessionDesc,
-						 pResults,
-						 pOpData->flushFlag,
-						 callbackTag,
-						 DC_COMPRESSION_REQUEST)) {
+			    dcZeroLengthRequests(pService, pSessionDesc,
+				pResults, pOpData->flushFlag, callbackTag,
+				DC_COMPRESSION_REQUEST)) {
 				return CPA_STATUS_SUCCESS;
 			}
 		}
@@ -1632,29 +1509,16 @@ cpaDcCompressData2(CpaInstanceHandle dcInstance,
 		cnvMode = DC_CNV;
 	}
 
-	return dcCompDecompData(pService,
-				pSessionDesc,
-				insHandle,
-				pSessionHandle,
-				pSrcBuff,
-				pDestBuff,
-				pResults,
-				pOpData->flushFlag,
-				pOpData,
-				callbackTag,
-				DC_COMPRESSION_REQUEST,
-				CPA_TRUE,
-				cnvMode);
+	return dcCompDecompData(pService, pSessionDesc, insHandle,
+	    pSessionHandle, pSrcBuff, pDestBuff, pResults, pOpData->flushFlag,
+	    pOpData, callbackTag, DC_COMPRESSION_REQUEST, CPA_TRUE, cnvMode);
 }
 
 static CpaStatus
 dcDecompressDataCheck(CpaInstanceHandle insHandle,
-		      CpaDcSessionHandle pSessionHandle,
-		      CpaBufferList *pSrcBuff,
-		      CpaBufferList *pDestBuff,
-		      CpaDcRqResults *pResults,
-		      CpaDcFlush flushFlag,
-		      Cpa64U *srcBufferSize)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    Cpa64U *srcBufferSize)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_session_desc_t *pSessionDesc = NULL;
@@ -1669,10 +1533,8 @@ dcDecompressDataCheck(CpaInstanceHandle insHandle,
 
 	/* This check is outside the parameter checking as it is needed to
 	 * manage zero length requests */
-	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff,
-					     &srcBuffSize,
-					     LAC_NO_ALIGNMENT_SHIFT) !=
-	    CPA_STATUS_SUCCESS) {
+	if (LacBuffDesc_BufferListVerifyNull(pSrcBuff, &srcBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT) != CPA_STATUS_SUCCESS) {
 		LAC_INVALID_PARAM_LOG("Invalid source buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
 	}
@@ -1680,20 +1542,12 @@ dcDecompressDataCheck(CpaInstanceHandle insHandle,
 	/* Ensure this is a compression instance */
 	SAL_CHECK_INSTANCE_TYPE(insHandle, SAL_SERVICE_TYPE_COMPRESSION);
 
-	if (dcCheckSourceData(pSessionHandle,
-			      pSrcBuff,
-			      pDestBuff,
-			      pResults,
-			      flushFlag,
-			      srcBuffSize,
-			      NULL) != CPA_STATUS_SUCCESS) {
+	if (dcCheckSourceData(pSessionHandle, pSrcBuff, pDestBuff, pResults,
+		flushFlag, srcBuffSize, NULL) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
-	if (dcCheckDestinationData(pService,
-				   pSessionHandle,
-				   pDestBuff,
-				   DC_DECOMPRESSION_REQUEST) !=
-	    CPA_STATUS_SUCCESS) {
+	if (dcCheckDestinationData(pService, pSessionHandle, pDestBuff,
+		DC_DECOMPRESSION_REQUEST) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	pSessionDesc = DC_SESSION_DESC_FROM_CTX_GET(pSessionHandle);
@@ -1703,7 +1557,6 @@ dcDecompressDataCheck(CpaInstanceHandle insHandle,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-
 	*srcBufferSize = srcBuffSize;
 
 	return CPA_STATUS_SUCCESS;
@@ -1711,12 +1564,9 @@ dcDecompressDataCheck(CpaInstanceHandle insHandle,
 
 CpaStatus
 cpaDcDecompressData(CpaInstanceHandle dcInstance,
-		    CpaDcSessionHandle pSessionHandle,
-		    CpaBufferList *pSrcBuff,
-		    CpaBufferList *pDestBuff,
-		    CpaDcRqResults *pResults,
-		    CpaDcFlush flushFlag,
-		    void *callbackTag)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcRqResults *pResults, CpaDcFlush flushFlag,
+    void *callbackTag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_session_desc_t *pSessionDesc = NULL;
@@ -1724,20 +1574,14 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 	Cpa64U srcBuffSize = 0;
 	CpaStatus status = CPA_STATUS_SUCCESS;
 
-
 	if (CPA_INSTANCE_HANDLE_SINGLE == dcInstance) {
 		insHandle = dcGetFirstHandle();
 	} else {
 		insHandle = dcInstance;
 	}
 
-	status = dcDecompressDataCheck(insHandle,
-				       pSessionHandle,
-				       pSrcBuff,
-				       pDestBuff,
-				       pResults,
-				       flushFlag,
-				       &srcBuffSize);
+	status = dcDecompressDataCheck(insHandle, pSessionHandle, pSrcBuff,
+	    pDestBuff, pResults, flushFlag, &srcBuffSize);
 	if (CPA_STATUS_SUCCESS != status) {
 		return status;
 	}
@@ -1750,9 +1594,8 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 	/* This check is outside the parameter checking as it is needed to
 	 * manage zero length requests */
 	if (CPA_STATUS_SUCCESS !=
-	    LacBuffDesc_BufferListVerifyNull(pSrcBuff,
-					     &srcBuffSize,
-					     LAC_NO_ALIGNMENT_SHIFT)) {
+	    LacBuffDesc_BufferListVerifyNull(pSrcBuff, &srcBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT)) {
 		QAT_UTILS_LOG("Invalid source buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
 	}
@@ -1760,20 +1603,12 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 	/* Ensure this is a compression instance */
 	SAL_CHECK_INSTANCE_TYPE(insHandle, SAL_SERVICE_TYPE_COMPRESSION);
 
-	if (dcCheckSourceData(pSessionHandle,
-			      pSrcBuff,
-			      pDestBuff,
-			      pResults,
-			      flushFlag,
-			      srcBuffSize,
-			      NULL) != CPA_STATUS_SUCCESS) {
+	if (dcCheckSourceData(pSessionHandle, pSrcBuff, pDestBuff, pResults,
+		flushFlag, srcBuffSize, NULL) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
-	if (dcCheckDestinationData(pService,
-				   pSessionHandle,
-				   pDestBuff,
-				   DC_DECOMPRESSION_REQUEST) !=
-	    CPA_STATUS_SUCCESS) {
+	if (dcCheckDestinationData(pService, pSessionHandle, pDestBuff,
+		DC_DECOMPRESSION_REQUEST) != CPA_STATUS_SUCCESS) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	pSessionDesc = DC_SESSION_DESC_FROM_CTX_GET(pSessionHandle);
@@ -1782,7 +1617,6 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 		QAT_UTILS_LOG("Invalid sessDirection value");
 		return CPA_STATUS_INVALID_PARAM;
 	}
-
 
 	if (CPA_DC_STATEFUL == pSessionDesc->sessState) {
 		/* Lock the session to check if there are in-flight stateful
@@ -1803,15 +1637,11 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 		if (isDcGen2x(pService)) {
 			if ((0 == srcBuffSize) ||
 			    ((1 == srcBuffSize) &&
-			     (CPA_DC_FLUSH_FINAL != flushFlag) &&
-			     (CPA_DC_FLUSH_FULL != flushFlag))) {
+				(CPA_DC_FLUSH_FINAL != flushFlag) &&
+				(CPA_DC_FLUSH_FULL != flushFlag))) {
 				if (CPA_TRUE ==
-				    dcZeroLengthRequests(
-					pService,
-					pSessionDesc,
-					pResults,
-					flushFlag,
-					callbackTag,
+				    dcZeroLengthRequests(pService, pSessionDesc,
+					pResults, flushFlag, callbackTag,
 					DC_DECOMPRESSION_REQUEST)) {
 					return CPA_STATUS_SUCCESS;
 				}
@@ -1822,29 +1652,16 @@ cpaDcDecompressData(CpaInstanceHandle dcInstance,
 		LAC_SPINUNLOCK(&(pSessionDesc->sessionLock));
 	}
 
-	return dcCompDecompData(pService,
-				pSessionDesc,
-				insHandle,
-				pSessionHandle,
-				pSrcBuff,
-				pDestBuff,
-				pResults,
-				flushFlag,
-				NULL,
-				callbackTag,
-				DC_DECOMPRESSION_REQUEST,
-				CPA_TRUE,
-				DC_NO_CNV);
+	return dcCompDecompData(pService, pSessionDesc, insHandle,
+	    pSessionHandle, pSrcBuff, pDestBuff, pResults, flushFlag, NULL,
+	    callbackTag, DC_DECOMPRESSION_REQUEST, CPA_TRUE, DC_NO_CNV);
 }
 
 CpaStatus
 cpaDcDecompressData2(CpaInstanceHandle dcInstance,
-		     CpaDcSessionHandle pSessionHandle,
-		     CpaBufferList *pSrcBuff,
-		     CpaBufferList *pDestBuff,
-		     CpaDcOpData *pOpData,
-		     CpaDcRqResults *pResults,
-		     void *callbackTag)
+    CpaDcSessionHandle pSessionHandle, CpaBufferList *pSrcBuff,
+    CpaBufferList *pDestBuff, CpaDcOpData *pOpData, CpaDcRqResults *pResults,
+    void *callbackTag)
 {
 	sal_compression_service_t *pService = NULL;
 	dc_session_desc_t *pSessionDesc = NULL;
@@ -1855,15 +1672,9 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 
 	if (CPA_FALSE == pOpData->integrityCrcCheck) {
 
-		return cpaDcDecompressData(dcInstance,
-					   pSessionHandle,
-					   pSrcBuff,
-					   pDestBuff,
-					   pResults,
-					   pOpData->flushFlag,
-					   callbackTag);
+		return cpaDcDecompressData(dcInstance, pSessionHandle, pSrcBuff,
+		    pDestBuff, pResults, pOpData->flushFlag, callbackTag);
 	}
-
 
 	if (CPA_INSTANCE_HANDLE_SINGLE == dcInstance) {
 		insHandle = dcGetFirstHandle();
@@ -1871,13 +1682,8 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 		insHandle = dcInstance;
 	}
 
-	status = dcDecompressDataCheck(insHandle,
-				       pSessionHandle,
-				       pSrcBuff,
-				       pDestBuff,
-				       pResults,
-				       pOpData->flushFlag,
-				       &srcBuffSize);
+	status = dcDecompressDataCheck(insHandle, pSessionHandle, pSrcBuff,
+	    pDestBuff, pResults, pOpData->flushFlag, &srcBuffSize);
 	if (CPA_STATUS_SUCCESS != status) {
 		return status;
 	}
@@ -1894,9 +1700,8 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 	/* This check is outside the parameter checking as it is needed to
 	 * manage zero length requests */
 	if (CPA_STATUS_SUCCESS !=
-	    LacBuffDesc_BufferListVerifyNull(pSrcBuff,
-					     &srcBuffSize,
-					     LAC_NO_ALIGNMENT_SHIFT)) {
+	    LacBuffDesc_BufferListVerifyNull(pSrcBuff, &srcBuffSize,
+		LAC_NO_ALIGNMENT_SHIFT)) {
 		QAT_UTILS_LOG("Invalid source buffer list parameter");
 		return CPA_STATUS_INVALID_PARAM;
 	}
@@ -1905,20 +1710,13 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 	SAL_CHECK_INSTANCE_TYPE(insHandle, SAL_SERVICE_TYPE_COMPRESSION);
 
 	if (CPA_STATUS_SUCCESS !=
-	    dcCheckSourceData(pSessionHandle,
-			      pSrcBuff,
-			      pDestBuff,
-			      pResults,
-			      CPA_DC_FLUSH_NONE,
-			      srcBuffSize,
-			      NULL)) {
+	    dcCheckSourceData(pSessionHandle, pSrcBuff, pDestBuff, pResults,
+		CPA_DC_FLUSH_NONE, srcBuffSize, NULL)) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 	if (CPA_STATUS_SUCCESS !=
-	    dcCheckDestinationData(pService,
-				   pSessionHandle,
-				   pDestBuff,
-				   DC_DECOMPRESSION_REQUEST)) {
+	    dcCheckDestinationData(pService, pSessionHandle, pDestBuff,
+		DC_DECOMPRESSION_REQUEST)) {
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
@@ -1931,7 +1729,6 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-
 	if (CPA_DC_STATEFUL == pSessionDesc->sessState) {
 		/* Lock the session to check if there are in-flight stateful
 		 * requests */
@@ -1951,14 +1748,11 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 		if (isDcGen2x(pService)) {
 			if ((0 == srcBuffSize) ||
 			    ((1 == srcBuffSize) &&
-			     (CPA_DC_FLUSH_FINAL != pOpData->flushFlag) &&
-			     (CPA_DC_FLUSH_FULL != pOpData->flushFlag))) {
+				(CPA_DC_FLUSH_FINAL != pOpData->flushFlag) &&
+				(CPA_DC_FLUSH_FULL != pOpData->flushFlag))) {
 				if (CPA_TRUE ==
-				    dcZeroLengthRequests(
-					pService,
-					pSessionDesc,
-					pResults,
-					pOpData->flushFlag,
+				    dcZeroLengthRequests(pService, pSessionDesc,
+					pResults, pOpData->flushFlag,
 					callbackTag,
 					DC_DECOMPRESSION_REQUEST)) {
 					return CPA_STATUS_SUCCESS;
@@ -1969,17 +1763,8 @@ cpaDcDecompressData2(CpaInstanceHandle dcInstance,
 		LAC_SPINUNLOCK(&(pSessionDesc->sessionLock));
 	}
 
-	return dcCompDecompData(pService,
-				pSessionDesc,
-				insHandle,
-				pSessionHandle,
-				pSrcBuff,
-				pDestBuff,
-				pResults,
-				pOpData->flushFlag,
-				pOpData,
-				callbackTag,
-				DC_DECOMPRESSION_REQUEST,
-				CPA_TRUE,
-				DC_NO_CNV);
+	return dcCompDecompData(pService, pSessionDesc, insHandle,
+	    pSessionHandle, pSrcBuff, pDestBuff, pResults, pOpData->flushFlag,
+	    pOpData, callbackTag, DC_DECOMPRESSION_REQUEST, CPA_TRUE,
+	    DC_NO_CNV);
 }

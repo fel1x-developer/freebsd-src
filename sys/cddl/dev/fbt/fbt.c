@@ -31,6 +31,8 @@
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/cpuvar.h>
+#include <sys/dtrace.h>
+#include <sys/dtrace_bsd.h>
 #include <sys/endian.h>
 #include <sys/fcntl.h>
 #include <sys/filio.h>
@@ -54,52 +56,53 @@
 #include <sys/sysproto.h>
 #include <sys/uio.h>
 #include <sys/unistd.h>
-#include <machine/stdarg.h>
 
-#include <sys/dtrace.h>
-#include <sys/dtrace_bsd.h>
+#include <machine/stdarg.h>
 
 #include "fbt.h"
 
 MALLOC_DEFINE(M_FBT, "fbt", "Function Boundary Tracing");
 
-dtrace_provider_id_t	fbt_id;
-fbt_probe_t		**fbt_probetab;
-int			fbt_probetab_mask;
+dtrace_provider_id_t fbt_id;
+fbt_probe_t **fbt_probetab;
+int fbt_probetab_mask;
 
-static int	fbt_unload(void);
-static void	fbt_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
-static void	fbt_provide_module(void *, modctl_t *);
-static void	fbt_destroy(void *, dtrace_id_t, void *);
-static void	fbt_enable(void *, dtrace_id_t, void *);
-static void	fbt_disable(void *, dtrace_id_t, void *);
-static void	fbt_load(void *);
-static void	fbt_suspend(void *, dtrace_id_t, void *);
-static void	fbt_resume(void *, dtrace_id_t, void *);
+static int fbt_unload(void);
+static void fbt_getargdesc(void *, dtrace_id_t, void *, dtrace_argdesc_t *);
+static void fbt_provide_module(void *, modctl_t *);
+static void fbt_destroy(void *, dtrace_id_t, void *);
+static void fbt_enable(void *, dtrace_id_t, void *);
+static void fbt_disable(void *, dtrace_id_t, void *);
+static void fbt_load(void *);
+static void fbt_suspend(void *, dtrace_id_t, void *);
+static void fbt_resume(void *, dtrace_id_t, void *);
 
 static dtrace_pattr_t fbt_attr = {
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_UNKNOWN },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
-{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING, DTRACE_CLASS_COMMON },
-{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE, DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_UNKNOWN },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
+	{ DTRACE_STABILITY_EVOLVING, DTRACE_STABILITY_EVOLVING,
+	    DTRACE_CLASS_COMMON },
+	{ DTRACE_STABILITY_PRIVATE, DTRACE_STABILITY_PRIVATE,
+	    DTRACE_CLASS_ISA },
 };
 
-static dtrace_pops_t fbt_pops = {
-	.dtps_provide =		NULL,
-	.dtps_provide_module =	fbt_provide_module,
-	.dtps_enable =		fbt_enable,
-	.dtps_disable =		fbt_disable,
-	.dtps_suspend =		fbt_suspend,
-	.dtps_resume =		fbt_resume,
-	.dtps_getargdesc =	fbt_getargdesc,
-	.dtps_getargval =	NULL,
-	.dtps_usermode =	NULL,
-	.dtps_destroy =		fbt_destroy
-};
+static dtrace_pops_t fbt_pops = { .dtps_provide = NULL,
+	.dtps_provide_module = fbt_provide_module,
+	.dtps_enable = fbt_enable,
+	.dtps_disable = fbt_disable,
+	.dtps_suspend = fbt_suspend,
+	.dtps_resume = fbt_resume,
+	.dtps_getargdesc = fbt_getargdesc,
+	.dtps_getargval = NULL,
+	.dtps_usermode = NULL,
+	.dtps_destroy = fbt_destroy };
 
-static int			fbt_probetab_size;
-static int			fbt_verbose = 0;
+static int fbt_probetab_size;
+static int fbt_verbose = 0;
 
 int
 fbt_excluded(const char *name)
@@ -123,32 +126,29 @@ fbt_excluded(const char *name)
 	 * NB: kdb_enter() can be excluded, but its call to printf() can't be.
 	 * This is generally OK since we're not yet in debugging context.
 	 */
-	if (strncmp(name, "db_", 3) == 0 ||
-	    strncmp(name, "kdb_", 4) == 0)
+	if (strncmp(name, "db_", 3) == 0 || strncmp(name, "kdb_", 4) == 0)
 		return (1);
 
 	/*
 	 * Lock owner methods may be called from probe context.
 	 */
-	if (strcmp(name, "owner_mtx") == 0 ||
-	    strcmp(name, "owner_rm") == 0 ||
-	    strcmp(name, "owner_rw") == 0 ||
-	    strcmp(name, "owner_sx") == 0)
+	if (strcmp(name, "owner_mtx") == 0 || strcmp(name, "owner_rm") == 0 ||
+	    strcmp(name, "owner_rw") == 0 || strcmp(name, "owner_sx") == 0)
 		return (1);
 
-	/*
-	 * Stack unwinders may be called from probe context on some
-	 * platforms.
-	 */
+		/*
+		 * Stack unwinders may be called from probe context on some
+		 * platforms.
+		 */
 #if defined(__aarch64__) || defined(__riscv)
 	if (strcmp(name, "unwind_frame") == 0)
 		return (1);
 #endif
 
-	/*
-	 * When DTrace is built into the kernel we need to exclude
-	 * the FBT functions from instrumentation.
-	 */
+		/*
+		 * When DTrace is built into the kernel we need to exclude
+		 * the FBT functions from instrumentation.
+		 */
 #ifndef _KLD_MODULE
 	if (strncmp(name, "fbt_", 4) == 0)
 		return (1);
@@ -211,7 +211,8 @@ fbt_provide_module(void *arg, modctl_t *lf)
 	/*
 	 * List the functions in the module and the symbol values.
 	 */
-	(void) linker_file_function_listall(lf, fbt_provide_module_function, modname);
+	(void)linker_file_function_listall(lf, fbt_provide_module_function,
+	    modname);
 }
 
 static void
@@ -222,7 +223,7 @@ fbt_destroy_one(fbt_probe_t *fbt)
 
 	ndx = FBT_ADDR2NDX(fbt->fbtp_patchpoint);
 	for (hash = fbt_probetab[ndx], hashprev = NULL; hash != NULL;
-	    hashprev = hash, hash = hash->fbtp_hashnext) {
+	     hashprev = hash, hash = hash->fbtp_hashnext) {
 		if (hash == fbt) {
 			if ((next = fbt->fbtp_tracenext) != NULL)
 				next->fbtp_hashnext = hash->fbtp_hashnext;
@@ -235,7 +236,7 @@ fbt_destroy_one(fbt_probe_t *fbt)
 			goto free;
 		} else if (hash->fbtp_patchpoint == fbt->fbtp_patchpoint) {
 			for (next = hash; next->fbtp_tracenext != NULL;
-			    next = next->fbtp_tracenext) {
+			     next = next->fbtp_tracenext) {
 				if (fbt == next->fbtp_tracenext) {
 					next->fbtp_tracenext =
 					    fbt->fbtp_tracenext;
@@ -281,7 +282,7 @@ fbt_enable(void *arg, dtrace_id_t id, void *parg)
 	if (ctl->loadcnt != fbt->fbtp_loadcnt) {
 		if (fbt_verbose) {
 			printf("fbt is failing for probe %s "
-			    "(module %s reloaded)",
+			       "(module %s reloaded)",
 			    fbt->fbtp_name, ctl->filename);
 		}
 
@@ -310,9 +311,10 @@ fbt_disable(void *arg, dtrace_id_t id, void *parg)
 		fbt->fbtp_enabled--;
 
 		for (hash = fbt_probetab[FBT_ADDR2NDX(fbt->fbtp_patchpoint)];
-		    hash != NULL; hash = hash->fbtp_hashnext) {
+		     hash != NULL; hash = hash->fbtp_hashnext) {
 			if (hash->fbtp_patchpoint == fbt->fbtp_patchpoint) {
-				for (; hash != NULL; hash = hash->fbtp_tracenext)
+				for (; hash != NULL;
+				     hash = hash->fbtp_tracenext)
 					if (hash->fbtp_enabled > 0)
 						break;
 				break;
@@ -357,7 +359,7 @@ static int
 fbt_ctfoff_init(modctl_t *lf, linker_ctf_t *lc)
 {
 	const Elf_Sym *symp = lc->symtab;
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	const uint8_t *ctfdata = lc->ctftab + sizeof(ctf_header_t);
 	size_t idwidth;
 	int i;
@@ -368,12 +370,12 @@ fbt_ctfoff_init(modctl_t *lf, linker_ctf_t *lc)
 
 	/* Sanity check. */
 	if (hp->cth_magic != CTF_MAGIC) {
-		printf("Bad magic value in CTF data of '%s'\n",lf->pathname);
+		printf("Bad magic value in CTF data of '%s'\n", lf->pathname);
 		return (EINVAL);
 	}
 
 	if (lc->symtab == NULL) {
-		printf("No symbol table in '%s'\n",lf->pathname);
+		printf("No symbol table in '%s'\n", lf->pathname);
 		return (EINVAL);
 	}
 
@@ -391,7 +393,8 @@ fbt_ctfoff_init(modctl_t *lf, linker_ctf_t *lc)
 		switch (ELF_ST_TYPE(symp->st_info)) {
 		case STT_OBJECT:
 			if (objtoff >= hp->cth_funcoff ||
-			    (symp->st_shndx == SHN_ABS && symp->st_value == 0)) {
+			    (symp->st_shndx == SHN_ABS &&
+				symp->st_value == 0)) {
 				*ctfoff = 0xffffffff;
 				break;
 			}
@@ -439,8 +442,8 @@ fbt_ctfoff_init(modctl_t *lf, linker_ctf_t *lc)
 }
 
 static void
-fbt_get_ctt_index(uint8_t version, const void *v, uint_t *indexp,
-    uint_t *typep, int *ischildp)
+fbt_get_ctt_index(uint8_t version, const void *v, uint_t *indexp, uint_t *typep,
+    int *ischildp)
 {
 	uint_t index, type;
 	int ischild;
@@ -478,20 +481,20 @@ fbt_get_ctt_size(uint8_t version, const void *tp, ssize_t *sizep,
 
 		if (ctt->ctt_size == CTF_V2_LSIZE_SENT) {
 			size = CTF_TYPE_LSIZE(ctt);
-			increment = sizeof (struct ctf_type_v2);
+			increment = sizeof(struct ctf_type_v2);
 		} else {
 			size = ctt->ctt_size;
-			increment = sizeof (struct ctf_stype_v2);
+			increment = sizeof(struct ctf_stype_v2);
 		}
 	} else {
 		const struct ctf_type_v3 *ctt = tp;
 
 		if (ctt->ctt_size == CTF_V3_LSIZE_SENT) {
 			size = CTF_TYPE_LSIZE(ctt);
-			increment = sizeof (struct ctf_type_v3);
+			increment = sizeof(struct ctf_type_v3);
 		} else {
 			size = ctt->ctt_size;
-			increment = sizeof (struct ctf_stype_v3);
+			increment = sizeof(struct ctf_stype_v3);
 		}
 	}
 
@@ -535,7 +538,7 @@ fbt_get_ctt_info(uint8_t version, const void *tp, uint_t *kindp, uint_t *vlenp,
 static int
 fbt_typoff_init(linker_ctf_t *lc)
 {
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	const void *tbuf, *tend, *tp;
 	const uint8_t *ctfdata = lc->ctftab + sizeof(ctf_header_t);
 	size_t idwidth;
@@ -551,8 +554,8 @@ fbt_typoff_init(linker_ctf_t *lc)
 	version = hp->cth_version;
 	idwidth = version == CTF_VERSION_2 ? 2 : 4;
 
-	tbuf = (const void *) (ctfdata + hp->cth_typeoff);
-	tend = (const void *) (ctfdata + hp->cth_stroff);
+	tbuf = (const void *)(ctfdata + hp->cth_typeoff);
+	tend = (const void *)(ctfdata + hp->cth_stroff);
 
 	/*
 	 * We make two passes through the entire type section.  In this first
@@ -563,20 +566,20 @@ fbt_typoff_init(linker_ctf_t *lc)
 		ssize_t size, increment;
 		size_t vbytes;
 
-		(void) fbt_get_ctt_size(version, tp, &size, &increment);
+		(void)fbt_get_ctt_size(version, tp, &size, &increment);
 		fbt_get_ctt_info(version, tp, &kind, &vlen, NULL);
 		fbt_get_ctt_index(version, tp, NULL, &type, NULL);
 
 		switch (kind) {
 		case CTF_K_INTEGER:
 		case CTF_K_FLOAT:
-			vbytes = sizeof (uint_t);
+			vbytes = sizeof(uint_t);
 			break;
 		case CTF_K_ARRAY:
 			if (version == CTF_VERSION_2)
-				vbytes = sizeof (struct ctf_array_v2);
+				vbytes = sizeof(struct ctf_array_v2);
 			else
-				vbytes = sizeof (struct ctf_array_v3);
+				vbytes = sizeof(struct ctf_array_v3);
 			break;
 		case CTF_K_FUNCTION:
 			vbytes = roundup2(idwidth * vlen, sizeof(uint32_t));
@@ -585,22 +588,22 @@ fbt_typoff_init(linker_ctf_t *lc)
 		case CTF_K_UNION:
 			if (version == CTF_VERSION_2) {
 				if (size < CTF_V2_LSTRUCT_THRESH)
-					vbytes =
-					    sizeof (struct ctf_member_v2) * vlen;
+					vbytes = sizeof(struct ctf_member_v2) *
+					    vlen;
 				else
-					vbytes =
-					    sizeof (struct ctf_lmember_v2) * vlen;
+					vbytes = sizeof(struct ctf_lmember_v2) *
+					    vlen;
 			} else {
 				if (size < CTF_V3_LSTRUCT_THRESH)
-					vbytes =
-					    sizeof (struct ctf_member_v3) * vlen;
+					vbytes = sizeof(struct ctf_member_v3) *
+					    vlen;
 				else
-					vbytes =
-					    sizeof (struct ctf_lmember_v3) * vlen;
+					vbytes = sizeof(struct ctf_lmember_v3) *
+					    vlen;
 			}
 			break;
 		case CTF_K_ENUM:
-			vbytes = sizeof (ctf_enum_t) * vlen;
+			vbytes = sizeof(ctf_enum_t) * vlen;
 			break;
 		case CTF_K_FORWARD:
 			/*
@@ -624,7 +627,8 @@ fbt_typoff_init(linker_ctf_t *lc)
 			vbytes = 0;
 			break;
 		default:
-			printf("%s(%d): detected invalid CTF kind -- %u\n", __func__, __LINE__, kind);
+			printf("%s(%d): detected invalid CTF kind -- %u\n",
+			    __func__, __LINE__, kind);
 			return (EIO);
 		}
 		tp = (const void *)((uintptr_t)tp + increment + vbytes);
@@ -652,19 +656,19 @@ fbt_typoff_init(linker_ctf_t *lc)
 
 		size_t vbytes;
 
-		(void) fbt_get_ctt_size(version, tp, &size, &increment);
+		(void)fbt_get_ctt_size(version, tp, &size, &increment);
 		fbt_get_ctt_info(version, tp, &kind, &vlen, NULL);
 
 		switch (kind) {
 		case CTF_K_INTEGER:
 		case CTF_K_FLOAT:
-			vbytes = sizeof (uint_t);
+			vbytes = sizeof(uint_t);
 			break;
 		case CTF_K_ARRAY:
 			if (version == CTF_VERSION_2)
-				vbytes = sizeof (struct ctf_array_v2);
+				vbytes = sizeof(struct ctf_array_v2);
 			else
-				vbytes = sizeof (struct ctf_array_v3);
+				vbytes = sizeof(struct ctf_array_v3);
 			break;
 		case CTF_K_FUNCTION:
 			vbytes = roundup2(idwidth * vlen, sizeof(uint32_t));
@@ -673,22 +677,22 @@ fbt_typoff_init(linker_ctf_t *lc)
 		case CTF_K_UNION:
 			if (version == CTF_VERSION_2) {
 				if (size < CTF_V2_LSTRUCT_THRESH)
-					vbytes =
-					    sizeof (struct ctf_member_v2) * vlen;
+					vbytes = sizeof(struct ctf_member_v2) *
+					    vlen;
 				else
-					vbytes =
-					    sizeof (struct ctf_lmember_v2) * vlen;
+					vbytes = sizeof(struct ctf_lmember_v2) *
+					    vlen;
 			} else {
 				if (size < CTF_V3_LSTRUCT_THRESH)
-					vbytes =
-					    sizeof (struct ctf_member_v3) * vlen;
+					vbytes = sizeof(struct ctf_member_v3) *
+					    vlen;
 				else
-					vbytes =
-					    sizeof (struct ctf_lmember_v3) * vlen;
+					vbytes = sizeof(struct ctf_lmember_v3) *
+					    vlen;
 			}
 			break;
 		case CTF_K_ENUM:
-			vbytes = sizeof (ctf_enum_t) * vlen;
+			vbytes = sizeof(ctf_enum_t) * vlen;
 			break;
 		case CTF_K_FORWARD:
 		case CTF_K_UNKNOWN:
@@ -702,10 +706,11 @@ fbt_typoff_init(linker_ctf_t *lc)
 			vbytes = 0;
 			break;
 		default:
-			printf("%s(%d): detected invalid CTF kind -- %u\n", __func__, __LINE__, kind);
+			printf("%s(%d): detected invalid CTF kind -- %u\n",
+			    __func__, __LINE__, kind);
 			return (EIO);
 		}
-		*xp = (uint32_t)((uintptr_t) tp - (uintptr_t) ctfdata);
+		*xp = (uint32_t)((uintptr_t)tp - (uintptr_t)ctfdata);
 		tp = (const void *)((uintptr_t)tp + increment + vbytes);
 	}
 
@@ -738,8 +743,8 @@ typedef struct ctf_list {
 	struct ctf_list *l_next; /* next pointer or head pointer */
 } ctf_list_t;
 
-#define	ctf_list_prev(elem)	((void *)(((ctf_list_t *)(elem))->l_prev))
-#define	ctf_list_next(elem)	((void *)(((ctf_list_t *)(elem))->l_next))
+#define ctf_list_prev(elem) ((void *)(((ctf_list_t *)(elem))->l_prev))
+#define ctf_list_next(elem) ((void *)(((ctf_list_t *)(elem))->l_next))
 
 typedef enum {
 	CTF_PREC_BASE,
@@ -750,22 +755,22 @@ typedef enum {
 } ctf_decl_prec_t;
 
 typedef struct ctf_decl_node {
-	ctf_list_t cd_list;			/* linked list pointers */
-	ctf_id_t cd_type;			/* type identifier */
-	uint_t cd_kind;				/* type kind */
-	uint_t cd_n;				/* type dimension if array */
+	ctf_list_t cd_list; /* linked list pointers */
+	ctf_id_t cd_type;   /* type identifier */
+	uint_t cd_kind;	    /* type kind */
+	uint_t cd_n;	    /* type dimension if array */
 } ctf_decl_node_t;
 
 typedef struct ctf_decl {
-	ctf_list_t cd_nodes[CTF_PREC_MAX];	/* declaration node stacks */
-	int cd_order[CTF_PREC_MAX];		/* storage order of decls */
-	ctf_decl_prec_t cd_qualp;		/* qualifier precision */
-	ctf_decl_prec_t cd_ordp;		/* ordered precision */
-	char *cd_buf;				/* buffer for output */
-	char *cd_ptr;				/* buffer location */
-	char *cd_end;				/* buffer limit */
-	size_t cd_len;				/* buffer space required */
-	int cd_err;				/* saved error value */
+	ctf_list_t cd_nodes[CTF_PREC_MAX]; /* declaration node stacks */
+	int cd_order[CTF_PREC_MAX];	   /* storage order of decls */
+	ctf_decl_prec_t cd_qualp;	   /* qualifier precision */
+	ctf_decl_prec_t cd_ordp;	   /* ordered precision */
+	char *cd_buf;			   /* buffer for output */
+	char *cd_ptr;			   /* buffer location */
+	char *cd_end;			   /* buffer limit */
+	size_t cd_len;			   /* buffer space required */
+	int cd_err;			   /* saved error value */
 } ctf_decl_t;
 
 /*
@@ -778,8 +783,8 @@ typedef struct ctf_decl {
 static void
 ctf_list_append(ctf_list_t *lp, void *new)
 {
-	ctf_list_t *p = lp->l_prev;	/* p = tail list element */
-	ctf_list_t *q = new;		/* q = new list element */
+	ctf_list_t *p = lp->l_prev; /* p = tail list element */
+	ctf_list_t *q = new;	    /* q = new list element */
 
 	lp->l_prev = q;
 	q->l_prev = p;
@@ -798,8 +803,8 @@ ctf_list_append(ctf_list_t *lp, void *new)
 static void
 ctf_list_prepend(ctf_list_t *lp, void *new)
 {
-	ctf_list_t *p = new;		/* p = new list element */
-	ctf_list_t *q = lp->l_next;	/* q = head list element */
+	ctf_list_t *p = new;	    /* p = new list element */
+	ctf_list_t *q = lp->l_next; /* q = head list element */
 
 	lp->l_next = p;
 	p->l_prev = NULL;
@@ -816,7 +821,7 @@ ctf_decl_init(ctf_decl_t *cd, char *buf, size_t len)
 {
 	int i;
 
-	bzero(cd, sizeof (ctf_decl_t));
+	bzero(cd, sizeof(ctf_decl_t));
 
 	for (i = CTF_PREC_BASE; i < CTF_PREC_MAX; i++)
 		cd->cd_order[i] = CTF_PREC_BASE - 1;
@@ -836,8 +841,8 @@ ctf_decl_fini(ctf_decl_t *cd)
 	int i;
 
 	for (i = CTF_PREC_BASE; i < CTF_PREC_MAX; i++) {
-		for (cdp = ctf_list_next(&cd->cd_nodes[i]);
-		    cdp != NULL; cdp = ndp) {
+		for (cdp = ctf_list_next(&cd->cd_nodes[i]); cdp != NULL;
+		     cdp = ndp) {
 			ndp = ctf_list_next(cdp);
 			free(cdp, M_FBT);
 		}
@@ -852,17 +857,19 @@ ctf_lookup_by_id(linker_ctf_t *lc, ctf_id_t type)
 	uint32_t *typoff = *lc->typoffp;
 
 	if (type >= *lc->typlenp) {
-		printf("%s(%d): type %d exceeds max %ld\n",__func__,__LINE__,(int) type,*lc->typlenp);
-		return(NULL);
+		printf("%s(%d): type %d exceeds max %ld\n", __func__, __LINE__,
+		    (int)type, *lc->typlenp);
+		return (NULL);
 	}
 
 	/* Check if the type isn't cross-referenced. */
 	if ((offset = typoff[type]) == 0) {
-		printf("%s(%d): type %d isn't cross referenced\n",__func__,__LINE__, (int) type);
-		return(NULL);
+		printf("%s(%d): type %d isn't cross referenced\n", __func__,
+		    __LINE__, (int)type);
+		return (NULL);
 	}
 
-	tp = (const void *) (lc->ctftab + offset + sizeof(ctf_header_t));
+	tp = (const void *)(lc->ctftab + offset + sizeof(ctf_header_t));
 
 	return (tp);
 }
@@ -870,7 +877,7 @@ ctf_lookup_by_id(linker_ctf_t *lc, ctf_id_t type)
 static void
 fbt_array_info(linker_ctf_t *lc, ctf_id_t type, ctf_arinfo_t *arp)
 {
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	const void *tp;
 	ssize_t increment;
 	uint_t kind;
@@ -884,7 +891,7 @@ fbt_array_info(linker_ctf_t *lc, ctf_id_t type, ctf_arinfo_t *arp)
 	if (kind != CTF_K_ARRAY)
 		return;
 
-	(void) fbt_get_ctt_size(hp->cth_version, tp, NULL, &increment);
+	(void)fbt_get_ctt_size(hp->cth_version, tp, NULL, &increment);
 
 	if (hp->cth_version == CTF_VERSION_2) {
 		const struct ctf_array_v2 *ap;
@@ -906,13 +913,14 @@ fbt_array_info(linker_ctf_t *lc, ctf_id_t type, ctf_arinfo_t *arp)
 static const char *
 ctf_strptr(linker_ctf_t *lc, int name)
 {
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	const char *strp = "";
 
 	if (name < 0 || name >= hp->cth_strlen)
-		return(strp);
+		return (strp);
 
-	strp = (const char *)(lc->ctftab + hp->cth_stroff + name + sizeof(ctf_header_t));
+	strp = (const char *)(lc->ctftab + hp->cth_stroff + name +
+	    sizeof(ctf_header_t));
 
 	return (strp);
 }
@@ -920,7 +928,7 @@ ctf_strptr(linker_ctf_t *lc, int name)
 static const char *
 ctf_type_rname(linker_ctf_t *lc, const void *v)
 {
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	uint_t name;
 
 	if (hp->cth_version == CTF_VERSION_2) {
@@ -939,7 +947,7 @@ ctf_type_rname(linker_ctf_t *lc, const void *v)
 static void
 ctf_decl_push(ctf_decl_t *cd, linker_ctf_t *lc, ctf_id_t type)
 {
-	const ctf_header_t *hp = (const ctf_header_t *) lc->ctftab;
+	const ctf_header_t *hp = (const ctf_header_t *)lc->ctftab;
 	ctf_decl_node_t *cdp;
 	ctf_decl_prec_t prec;
 	uint_t kind, n = 1, t;
@@ -1071,8 +1079,8 @@ fbt_type_name(linker_ctf_t *lc, ctf_id_t type, char *buf, size_t len)
 	k = CTF_K_POINTER; /* avoid leading whitespace (see below) */
 
 	for (prec = CTF_PREC_BASE; prec < CTF_PREC_MAX; prec++) {
-		for (cdp = ctf_list_next(&cd.cd_nodes[prec]);
-		    cdp != NULL; cdp = ctf_list_next(cdp)) {
+		for (cdp = ctf_list_next(&cd.cd_nodes[prec]); cdp != NULL;
+		     cdp = ctf_list_next(cdp)) {
 
 			const void *tp = ctf_lookup_by_id(lc, cdp->cd_type);
 			const char *name = ctf_type_rname(lc, tp);
@@ -1133,7 +1141,8 @@ fbt_type_name(linker_ctf_t *lc, ctf_id_t type, char *buf, size_t len)
 }
 
 static void
-fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg, dtrace_argdesc_t *desc)
+fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg,
+    dtrace_argdesc_t *desc)
 {
 	const ctf_header_t *hp;
 	const char *dp;
@@ -1149,7 +1158,7 @@ fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg, dtrace_a
 	ushort_t kind;
 
 	if (fbt->fbtp_roffset != 0 && desc->dtargd_ndx == 0) {
-		(void) strcpy(desc->dtargd_native, "int");
+		(void)strcpy(desc->dtargd_native, "int");
 		return;
 	}
 
@@ -1187,7 +1196,7 @@ fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg, dtrace_a
 	if ((offset = ctfoff[symindx]) == 0xffffffff)
 		return;
 
-	hp = (const ctf_header_t *) lc.ctftab;
+	hp = (const ctf_header_t *)lc.ctftab;
 	idwidth = hp->cth_version == CTF_VERSION_2 ? 2 : 4;
 	dp = (const char *)(lc.ctftab + offset + sizeof(ctf_header_t));
 
@@ -1203,12 +1212,12 @@ fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg, dtrace_a
 	}
 
 	if (kind == CTF_K_UNKNOWN && n == 0) {
-		printf("%s(%d): Unknown function!\n",__func__,__LINE__);
+		printf("%s(%d): Unknown function!\n", __func__, __LINE__);
 		return;
 	}
 
 	if (kind != CTF_K_FUNCTION) {
-		printf("%s(%d): Expected a function!\n",__func__,__LINE__);
+		printf("%s(%d): Expected a function!\n", __func__, __LINE__);
 		return;
 	}
 
@@ -1222,13 +1231,15 @@ fbt_getargdesc(void *arg __unused, dtrace_id_t id __unused, void *parg, dtrace_a
 		if (ndx >= n)
 			return;
 
-		/* Skip the return type and arguments up to the one requested. */
+		/* Skip the return type and arguments up to the one requested.
+		 */
 		dp += idwidth * (ndx + 1);
 	}
 
 	type = 0;
 	memcpy(&type, dp, idwidth);
-	if (fbt_type_name(&lc, type, desc->dtargd_native, sizeof(desc->dtargd_native)) > 0)
+	if (fbt_type_name(&lc, type, desc->dtargd_native,
+		sizeof(desc->dtargd_native)) > 0)
 		desc->dtargd_ndx = ndx;
 }
 
@@ -1252,14 +1263,14 @@ fbt_load(void *dummy)
 	fbt_probetab_mask = fbt_probetab_size - 1;
 
 	/* Allocate memory for the probe table. */
-	fbt_probetab =
-	    malloc(fbt_probetab_size * sizeof (fbt_probe_t *), M_FBT, M_WAITOK | M_ZERO);
+	fbt_probetab = malloc(fbt_probetab_size * sizeof(fbt_probe_t *), M_FBT,
+	    M_WAITOK | M_ZERO);
 
 	dtrace_doubletrap_func = fbt_doubletrap;
 	dtrace_invop_add(fbt_invop);
 
-	if (dtrace_register("fbt", &fbt_attr, DTRACE_PRIV_USER,
-	    NULL, &fbt_pops, NULL, &fbt_id) != 0)
+	if (dtrace_register("fbt", &fbt_attr, DTRACE_PRIV_USER, NULL, &fbt_pops,
+		NULL, &fbt_id) != 0)
 		return;
 
 	/* Create probes for the kernel and already-loaded modules. */
@@ -1306,7 +1317,6 @@ fbt_modevent(module_t mod __unused, int type, void *data __unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);

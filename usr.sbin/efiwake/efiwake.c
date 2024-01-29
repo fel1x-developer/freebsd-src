@@ -26,6 +26,7 @@
  */
 
 #include <sys/efiio.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,12 +40,12 @@
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage:\n"
+	fprintf(stderr,
+	    "Usage:\n"
 	    "  efiwake                          -- print out current "
-	        "EFI time and wake time\n"
+	    "EFI time and wake time\n"
 	    "  efiwake -d                       -- disable wake time\n"
-	    "  efiwake -e yyyy-mm-ddThh:mm:ss   -- enable wake time\n"
-	);
+	    "  efiwake -e yyyy-mm-ddThh:mm:ss   -- enable wake time\n");
 	exit(EX_USAGE);
 }
 
@@ -52,7 +53,7 @@ int
 main(int argc, char **argv)
 {
 	struct efi_tm now;
-	struct efi_waketime_ioc	waketime;
+	struct efi_waketime_ioc waketime;
 	int ch, error, efi_fd;
 	bool disable = false, enable = false;
 
@@ -65,13 +66,13 @@ main(int argc, char **argv)
 			break;
 		case 'e':
 			if (sscanf(optarg,
-			    "%hu-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu",
-			    &waketime.waketime.tm_year,
-			    &waketime.waketime.tm_mon,
-			    &waketime.waketime.tm_mday,
-			    &waketime.waketime.tm_hour,
-			    &waketime.waketime.tm_min,
-			    &waketime.waketime.tm_sec) != 6) {
+				"%hu-%02hhu-%02hhuT%02hhu:%02hhu:%02hhu",
+				&waketime.waketime.tm_year,
+				&waketime.waketime.tm_mon,
+				&waketime.waketime.tm_mday,
+				&waketime.waketime.tm_hour,
+				&waketime.waketime.tm_min,
+				&waketime.waketime.tm_sec) != 6) {
 				usage();
 			}
 			enable = true;
@@ -98,9 +99,8 @@ main(int argc, char **argv)
 		err(EX_OSERR, "cannot get EFI time");
 
 	/* EFI's time can be different from kernel's time. */
-	printf("Current EFI time: %u-%02u-%02uT%02u:%02u:%02u\n",
-	    now.tm_year, now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min,
-	    now.tm_sec);
+	printf("Current EFI time: %u-%02u-%02uT%02u:%02u:%02u\n", now.tm_year,
+	    now.tm_mon, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
 	if (disable) {
 		/*
@@ -129,7 +129,7 @@ main(int argc, char **argv)
 		err(EX_OSERR, "cannot get EFI wake time");
 
 	printf("EFI wake time: %u-%02u-%02uT%02u:%02u:%02u; "
-	    "enabled=%i, pending=%i\n",
+	       "enabled=%i, pending=%i\n",
 	    waketime.waketime.tm_year, waketime.waketime.tm_mon,
 	    waketime.waketime.tm_mday, waketime.waketime.tm_hour,
 	    waketime.waketime.tm_min, waketime.waketime.tm_sec,

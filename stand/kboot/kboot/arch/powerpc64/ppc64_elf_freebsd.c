@@ -31,35 +31,35 @@
 #include <sys/endian.h>
 #include <sys/linker.h>
 
-#include <machine/metadata.h>
 #include <machine/elf.h>
+#include <machine/metadata.h>
 
 #include <stand.h>
 
 #include "bootstrap.h"
-#include "syscall_nr.h"
 #include "host_syscall.h"
-#include "modinfo.h"
 #include "kboot.h"
+#include "modinfo.h"
+#include "syscall_nr.h"
 
-extern char		end[];
-extern void		*kerneltramp;
-extern size_t		szkerneltramp;
+extern char end[];
+extern void *kerneltramp;
+extern size_t szkerneltramp;
 
 struct trampoline_data {
-	uint32_t	kernel_entry;
-	uint32_t	dtb;
-	uint32_t	phys_mem_offset;
-	uint32_t	of_entry;
-	uint32_t	mdp;
-	uint32_t	mdp_size;
+	uint32_t kernel_entry;
+	uint32_t dtb;
+	uint32_t phys_mem_offset;
+	uint32_t of_entry;
+	uint32_t mdp;
+	uint32_t mdp_size;
 };
 
 int
 ppc64_elf_loadfile(char *filename, uint64_t dest,
     struct preloaded_file **result)
 {
-	int	r;
+	int r;
 
 	r = __elfN(loadfile)(filename, dest, result);
 	if (r != 0)
@@ -71,19 +71,19 @@ ppc64_elf_loadfile(char *filename, uint64_t dest,
 int
 ppc64_elf_exec(struct preloaded_file *fp)
 {
-	struct file_metadata	*fmp;
-	vm_offset_t		mdp, dtb;
-	Elf_Ehdr		*e;
-	int			error;
-	uint32_t		*trampoline;
-	uint64_t		entry;
-	uint64_t		trampolinebase;
-	struct trampoline_data	*trampoline_data;
-	int			nseg;
-	void			*kseg;
+	struct file_metadata *fmp;
+	vm_offset_t mdp, dtb;
+	Elf_Ehdr *e;
+	int error;
+	uint32_t *trampoline;
+	uint64_t entry;
+	uint64_t trampolinebase;
+	struct trampoline_data *trampoline_data;
+	int nseg;
+	void *kseg;
 
 	if ((fmp = file_findmetadata(fp, MODINFOMD_ELFHDR)) == NULL) {
-		return(EFTYPE);
+		return (EFTYPE);
 	}
 	e = (Elf_Ehdr *)&fmp->md_data;
 
@@ -106,7 +106,8 @@ ppc64_elf_exec(struct preloaded_file *fp)
 	 */
 	trampolinebase = archsw.arch_loadaddr(LOAD_RAW, NULL, 0);
 	printf("Load address at %#jx\n", (uintmax_t)trampolinebase);
-	printf("Relocation offset is %#jx\n", (uintmax_t)elf64_relocation_offset);
+	printf("Relocation offset is %#jx\n",
+	    (uintmax_t)elf64_relocation_offset);
 
 	/* Set up loader trampoline */
 	trampoline = malloc(szkerneltramp);
@@ -125,8 +126,9 @@ ppc64_elf_exec(struct preloaded_file *fp)
 	 * Placeholder for trampoline data is at trampolinebase + 0x08
 	 * CAUTION: all data must be Big Endian
 	 */
-	trampoline_data = (void*)&trampoline[2];
-	trampoline_data->kernel_entry = htobe32(entry + elf64_relocation_offset);
+	trampoline_data = (void *)&trampoline[2];
+	trampoline_data->kernel_entry = htobe32(
+	    entry + elf64_relocation_offset);
 	trampoline_data->phys_mem_offset = htobe32(0);
 	trampoline_data->of_entry = htobe32(0);
 
@@ -137,10 +139,10 @@ ppc64_elf_exec(struct preloaded_file *fp)
 	trampoline_data->mdp = htobe32(mdp);
 	trampoline_data->mdp_size = htobe32(0xfb5d104d);
 
-	printf("Kernel entry at %#jx (%#x) ...\n",
-	    entry, be32toh(trampoline_data->kernel_entry));
-	printf("DTB at %#x, mdp at %#x\n",
-	    be32toh(trampoline_data->dtb), be32toh(trampoline_data->mdp));
+	printf("Kernel entry at %#jx (%#x) ...\n", entry,
+	    be32toh(trampoline_data->kernel_entry));
+	printf("DTB at %#x, mdp at %#x\n", be32toh(trampoline_data->dtb),
+	    be32toh(trampoline_data->mdp));
 
 	dev_cleanup();
 
@@ -149,30 +151,25 @@ ppc64_elf_exec(struct preloaded_file *fp)
 
 	kboot_kseg_get(&nseg, &kseg);
 
-	error = host_kexec_load(trampolinebase, nseg, kseg, HOST_KEXEC_ARCH_PPC64);
+	error = host_kexec_load(trampolinebase, nseg, kseg,
+	    HOST_KEXEC_ARCH_PPC64);
 	if (error != 0)
 		panic("kexec_load returned error: %d", error);
 
-	error = host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2, HOST_REBOOT_CMD_KEXEC,
-	    (uintptr_t)NULL);
+	error = host_reboot(HOST_REBOOT_MAGIC1, HOST_REBOOT_MAGIC2,
+	    HOST_REBOOT_CMD_KEXEC, (uintptr_t)NULL);
 	if (error != 0)
 		panic("reboot returned error: %d", error);
 
-	while (1) {}
+	while (1) {
+	}
 }
 
-struct file_format	ppc_elf64 =
-{
-	ppc64_elf_loadfile,
-	ppc64_elf_exec
-};
+struct file_format ppc_elf64 = { ppc64_elf_loadfile, ppc64_elf_exec };
 
 /*
  * Sort formats so that those that can detect based on arguments rather than
  * reading the file first.
  */
 
-struct file_format *file_formats[] = {
-    &ppc_elf64,
-    NULL
-};
+struct file_format *file_formats[] = { &ppc_elf64, NULL };

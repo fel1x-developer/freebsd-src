@@ -7,10 +7,9 @@
  * $Id$
  */
 
-#include "ipf.h"
-
 #include <syslog.h>
 
+#include "ipf.h"
 
 void
 printlog(frentry_t *fp)

@@ -42,9 +42,10 @@
 #include <time.h>
 
 /* <bits/stat.h> contains a member named __unused. */
-#include "../__unused_workaround_start.h"
 #include_next <sys/stat.h>
+
 #include "../__unused_workaround_end.h"
+#include "../__unused_workaround_start.h"
 
 #define st_atimensec st_atim.tv_nsec
 #define st_mtimensec st_mtim.tv_nsec

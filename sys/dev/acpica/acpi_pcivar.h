@@ -23,12 +23,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ACPI_PCIVAR_H_
-#define	_ACPI_PCIVAR_H_
+#ifndef _ACPI_PCIVAR_H_
+#define _ACPI_PCIVAR_H_
 
 #ifdef _KERNEL
 
-void	acpi_pci_child_added(device_t dev, device_t child);
+void acpi_pci_child_added(device_t dev, device_t child);
 
 #endif
 

@@ -26,58 +26,58 @@
  */
 
 #ifndef _ARM64_LINUX_SIGFRAME_H_
-#define	_ARM64_LINUX_SIGFRAME_H_
+#define _ARM64_LINUX_SIGFRAME_H_
 
 struct _l_aarch64_ctx {
-	uint32_t	magic;
-	uint32_t	size;
+	uint32_t magic;
+	uint32_t size;
 };
 
-#define	L_FPSIMD_MAGIC	0x46508001
-#define	L_ESR_MAGIC	0x45535201
+#define L_FPSIMD_MAGIC 0x46508001
+#define L_ESR_MAGIC 0x45535201
 
 struct l_fpsimd_context {
 	struct _l_aarch64_ctx head;
-	uint32_t	fpsr;
-	uint32_t	fpcr;
-	__uint128_t	vregs[32];
+	uint32_t fpsr;
+	uint32_t fpcr;
+	__uint128_t vregs[32];
 };
 
 struct l_esr_context {
 	struct _l_aarch64_ctx head;
-	uint64_t	esr;
+	uint64_t esr;
 };
 
 struct l_sigcontext {
-	uint64_t	fault_address;
-	uint64_t	regs[31];
-	uint64_t	sp;
-	uint64_t	pc;
-	uint64_t	pstate;
-	uint8_t		__reserved[4096] __attribute__((__aligned__(16)));
+	uint64_t fault_address;
+	uint64_t regs[31];
+	uint64_t sp;
+	uint64_t pc;
+	uint64_t pstate;
+	uint8_t __reserved[4096] __attribute__((__aligned__(16)));
 };
 
 struct l_ucontext {
-	unsigned long	uc_flags;
+	unsigned long uc_flags;
 	struct l_ucontext *uc_link;
-	l_stack_t	uc_stack;
-	l_sigset_t	uc_sigmask;
-	uint8_t		__glibc_hole[1024 / 8 - sizeof(l_sigset_t)];
+	l_stack_t uc_stack;
+	l_sigset_t uc_sigmask;
+	uint8_t __glibc_hole[1024 / 8 - sizeof(l_sigset_t)];
 	struct l_sigcontext uc_sc;
 };
 
 struct l_rt_sigframe {
-	l_siginfo_t	sf_si;
+	l_siginfo_t sf_si;
 	struct l_ucontext sf_uc;
 } __attribute__((__aligned__(16)));
 
 struct l_sigframe {
 	struct l_rt_sigframe sf;
 	/* frame_record */
-	uint64_t	fp;
-	uint64_t	lr;
+	uint64_t fp;
+	uint64_t lr;
 };
 
-#define	LINUX_MINSIGSTKSZ	roundup(sizeof(struct l_sigframe), 16)
+#define LINUX_MINSIGSTKSZ roundup(sizeof(struct l_sigframe), 16)
 
 #endif /* _ARM64_LINUX_SIGFRAME_H_ */

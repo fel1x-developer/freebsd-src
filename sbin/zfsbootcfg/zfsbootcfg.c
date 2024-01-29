@@ -24,20 +24,20 @@
  */
 
 #include <sys/types.h>
+
 #include <errno.h>
-#include <limits.h>
 #include <inttypes.h>
+#include <kenv.h>
+#include <libzfsbootenv.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <kenv.h>
 #include <unistd.h>
 
-#include <libzfsbootenv.h>
-
 #ifndef ZFS_MAXNAMELEN
-#define	ZFS_MAXNAMELEN	256
+#define ZFS_MAXNAMELEN 256
 #endif
 
 static int
@@ -65,7 +65,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoull(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_INT64") == 0) {
 		int64_t v;
@@ -73,7 +73,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoll(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_UINT32") == 0) {
 		uint32_t v;
@@ -81,7 +81,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoul(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_INT32") == 0) {
 		int32_t v;
@@ -89,7 +89,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtol(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_UINT16") == 0) {
 		uint16_t v;
@@ -97,7 +97,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoul(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_INT16") == 0) {
 		int16_t v;
@@ -105,7 +105,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtol(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_UINT8") == 0) {
 		uint8_t v;
@@ -113,7 +113,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoul(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_INT8") == 0) {
 		int8_t v;
@@ -121,7 +121,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtol(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_BYTE") == 0) {
 		uint8_t v;
@@ -129,7 +129,7 @@ add_pair(const char *name, const char *nvlist, const char *key,
 		v = strtoul(value, &end, 0);
 		if (errno != 0 || *end != '\0')
 			goto done;
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	} else if (strcmp(type, "DATA_TYPE_BOOLEAN_VALUE") == 0) {
 		int32_t v;
@@ -144,9 +144,10 @@ add_pair(const char *name, const char *nvlist, const char *key,
 				v = 1;
 			else if (strcasecmp(value, "false") == 0)
 				v = 0;
-			else goto done;
+			else
+				goto done;
 		}
-		size = sizeof (v);
+		size = sizeof(v);
 		rv = lzbe_add_pair(nv, key, type, &v, size);
 	}
 
@@ -183,7 +184,7 @@ delete_pair(const char *name, const char *nvlist, const char *key)
  * if nvlist is not set, we update pairs in bootenv.
  */
 int
-main(int argc, char * const *argv)
+main(int argc, char *const *argv)
 {
 	char buf[ZFS_MAXNAMELEN], *name;
 	const char *key, *value, *type, *nvlist;

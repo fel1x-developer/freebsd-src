@@ -28,15 +28,16 @@
 
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: stringlist.c,v 1.2 1997/01/17 07:26:20 lukem Exp $");
-#include "namespace.h"
-#include <stdio.h>
-#include <string.h>
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stringlist.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
-#define _SL_CHUNKSIZE	20
+#define _SL_CHUNKSIZE 20
 
 /*
  * sl_init(): Initialize a string list
@@ -58,7 +59,6 @@ sl_init(void)
 	return sl;
 }
 
-
 /*
  * sl_add(): Add an item to the string list
  */
@@ -74,7 +74,6 @@ sl_add(StringList *sl, char *name)
 	sl->sl_str[sl->sl_cur++] = name;
 	return (0);
 }
-
 
 /*
  * sl_free(): Free a stringlist
@@ -94,7 +93,6 @@ sl_free(StringList *sl, int all)
 	}
 	free(sl);
 }
-
 
 /*
  * sl_find(): Find a name in the string list

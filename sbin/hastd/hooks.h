@@ -30,8 +30,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HOOKS_H_
-#define	_HOOKS_H_
+#ifndef _HOOKS_H_
+#define _HOOKS_H_
 
 #include <sys/types.h>
 
@@ -45,4 +45,4 @@ void hook_check(void);
 void hook_exec(const char *path, ...);
 void hook_execv(const char *path, va_list ap);
 
-#endif	/* !_HOOKS_H_ */
+#endif /* !_HOOKS_H_ */

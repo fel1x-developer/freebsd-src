@@ -33,13 +33,14 @@
 #include <sys/gmon.h>
 #ifdef _KERNEL
 #include <sys/systm.h>
+
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
-void	bintr(void);
-void	btrap(void);
-void	eintr(void);
-void	user(void);
+#include <vm/vm_param.h>
+void bintr(void);
+void btrap(void);
+void eintr(void);
+void user(void);
 #endif
 #include <machine/atomic.h>
 
@@ -74,7 +75,7 @@ _MCOUNT_DECL(uintfptr_t frompc, uintfptr_t selfpc)
 #endif
 
 	p = &_gmonparam;
-#ifndef GUPROF			/* XXX */
+#ifndef GUPROF /* XXX */
 	/*
 	 * check that we are profiling
 	 * and that we aren't recursively invoked.
@@ -97,12 +98,12 @@ _MCOUNT_DECL(uintfptr_t frompc, uintfptr_t selfpc)
 	 * user() to merge all user counts.
 	 */
 	if (frompci >= p->textsize) {
-		if (frompci + p->lowpc
-		    >= (uintfptr_t)(VM_MAXUSER_ADDRESS + UPAGES * PAGE_SIZE))
+		if (frompci + p->lowpc >=
+		    (uintfptr_t)(VM_MAXUSER_ADDRESS + UPAGES * PAGE_SIZE))
 			goto done;
 		frompci = (uintfptr_t)user - p->lowpc;
 		if (frompci >= p->textsize)
-		    goto done;
+			goto done;
 	}
 #endif
 
@@ -131,8 +132,8 @@ _MCOUNT_DECL(uintfptr_t frompc, uintfptr_t selfpc)
 	p->cputime_overhead_resid += p->cputime_overhead_frac;
 	p->mcount_overhead_resid += p->mcount_overhead_frac;
 	if ((int)delta < 0)
-		*p->mcount_count += delta + p->mcount_overhead
-				    - p->cputime_overhead;
+		*p->mcount_count += delta + p->mcount_overhead -
+		    p->cputime_overhead;
 	else if (delta != 0) {
 		if (p->cputime_overhead_resid >= CALIB_SCALE) {
 			p->cputime_overhead_resid -= CALIB_SCALE;
@@ -162,8 +163,8 @@ skip_guprof_stuff:
 	 * exceptions appear in the call graph as calls from btrap() and
 	 * bintr() instead of calls from all over.
 	 */
-	if ((uintfptr_t)selfpc >= (uintfptr_t)btrap
-	    && (uintfptr_t)selfpc < (uintfptr_t)eintr) {
+	if ((uintfptr_t)selfpc >= (uintfptr_t)btrap &&
+	    (uintfptr_t)selfpc < (uintfptr_t)eintr) {
 		if ((uintfptr_t)selfpc >= (uintfptr_t)bintr)
 			frompci = (uintfptr_t)bintr - p->lowpc;
 		else
@@ -179,7 +180,8 @@ skip_guprof_stuff:
 	if (frompci >= p->textsize)
 		goto done;
 
-	frompcindex = &p->froms[frompci / (p->hashfraction * sizeof(*p->froms))];
+	frompcindex =
+	    &p->froms[frompci / (p->hashfraction * sizeof(*p->froms))];
 	toindex = *frompcindex;
 	if (toindex == 0) {
 		/*
@@ -211,7 +213,7 @@ skip_guprof_stuff:
 	 * prevtop points to previous top.
 	 * we know it is not at the head of the chain.
 	 */
-	for (; /* goto done */; ) {
+	for (; /* goto done */;) {
 		if (top->link == 0) {
 			/*
 			 * top is end of the chain and none of the chain
@@ -248,7 +250,6 @@ skip_guprof_stuff:
 			*frompcindex = toindex;
 			goto done;
 		}
-
 	}
 done:
 #ifdef _KERNEL
@@ -290,8 +291,8 @@ mexitcount(uintfptr_t selfpc)
 		p->cputime_overhead_resid += p->cputime_overhead_frac;
 		p->mexitcount_overhead_resid += p->mexitcount_overhead_frac;
 		if ((int)delta < 0)
-			*p->mexitcount_count += delta + p->mexitcount_overhead
-						- p->cputime_overhead;
+			*p->mexitcount_count += delta + p->mexitcount_overhead -
+			    p->cputime_overhead;
 		else if (delta != 0) {
 			if (p->cputime_overhead_resid >= CALIB_SCALE) {
 				p->cputime_overhead_resid -= CALIB_SCALE;
@@ -299,10 +300,10 @@ mexitcount(uintfptr_t selfpc)
 				--delta;
 			}
 			if (delta != 0) {
-				if (p->mexitcount_overhead_resid
-				    >= CALIB_SCALE) {
-					p->mexitcount_overhead_resid
-					    -= CALIB_SCALE;
+				if (p->mexitcount_overhead_resid >=
+				    CALIB_SCALE) {
+					p->mexitcount_overhead_resid -=
+					    CALIB_SCALE;
 					++*p->mexitcount_count;
 					--delta;
 				}

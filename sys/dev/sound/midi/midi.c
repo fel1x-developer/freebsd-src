@@ -30,58 +30,59 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
- /*
-  * Parts of this file started out as NetBSD: midi.c 1.31
-  * They are mostly gone.  Still the most obvious will be the state
-  * machine midi_in
-  */
+/*
+ * Parts of this file started out as NetBSD: midi.c 1.31
+ * They are mostly gone.  Still the most obvious will be the state
+ * machine midi_in
+ */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/queue.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/proc.h>
-#include <sys/signalvar.h>
 #include <sys/conf.h>
-#include <sys/selinfo.h>
-#include <sys/sysctl.h>
-#include <sys/malloc.h>
-#include <sys/sx.h>
-#include <sys/proc.h>
 #include <sys/fcntl.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <sys/poll.h>
-#include <sys/sbuf.h>
+#include <sys/kernel.h>
 #include <sys/kobj.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/poll.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/selinfo.h>
+#include <sys/signalvar.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/uio.h>
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
 
 #include <dev/sound/midi/midi.h>
-#include "mpu_if.h"
-
 #include <dev/sound/midi/midiq.h>
+
+#include "mpu_if.h"
 #include "synth_if.h"
 MALLOC_DEFINE(M_MIDI, "midi buffers", "Midi data allocation area");
 
 #ifndef KOBJMETHOD_END
-#define KOBJMETHOD_END	{ NULL, NULL }
+#define KOBJMETHOD_END     \
+	{                  \
+		NULL, NULL \
+	}
 #endif
 
-#define PCMMKMINOR(u, d, c) ((((c) & 0xff) << 16) | (((u) & 0x0f) << 4) | ((d) & 0x0f))
+#define PCMMKMINOR(u, d, c) \
+	((((c) & 0xff) << 16) | (((u) & 0x0f) << 4) | ((d) & 0x0f))
 #define MIDIMKMINOR(u, d, c) PCMMKMINOR(u, d, c)
 
-#define MIDI_DEV_RAW	2
+#define MIDI_DEV_RAW 2
 #define MIDI_DEV_MIDICTL 12
 
-enum midi_states {
-	MIDI_IN_START, MIDI_IN_SYSEX, MIDI_IN_DATA
-};
+enum midi_states { MIDI_IN_START, MIDI_IN_SYSEX, MIDI_IN_DATA };
 
 /*
  * The MPU interface current has init() uninit() inqsize() outqsize()
@@ -94,33 +95,33 @@ enum midi_states {
  * /dev/rmidi	Structure definitions
  */
 
-#define MIDI_NAMELEN   16
+#define MIDI_NAMELEN 16
 struct snd_midi {
 	KOBJ_FIELDS;
-	struct mtx lock;		/* Protects all but queues */
-	void   *cookie;
+	struct mtx lock; /* Protects all but queues */
+	void *cookie;
 
-	int	unit;			/* Should only be used in midistat */
-	int	channel;		/* Should only be used in midistat */
+	int unit;    /* Should only be used in midistat */
+	int channel; /* Should only be used in midistat */
 
-	int	busy;
-	int	flags;			/* File flags */
-	char	name[MIDI_NAMELEN];
-	struct mtx qlock;		/* Protects inq, outq and flags */
+	int busy;
+	int flags; /* File flags */
+	char name[MIDI_NAMELEN];
+	struct mtx qlock; /* Protects inq, outq and flags */
 	MIDIQ_HEAD(, char) inq, outq;
-	int	rchan, wchan;
+	int rchan, wchan;
 	struct selinfo rsel, wsel;
-	int	hiwat;			/* QLEN(outq)>High-water -> disable
-					 * writes from userland */
+	int hiwat; /* QLEN(outq)>High-water -> disable
+		    * writes from userland */
 	enum midi_states inq_state;
-	int	inq_status, inq_left;	/* Variables for the state machine in
-					 * Midi_in, this is to provide that
-					 * signals only get issued only
-					 * complete command packets. */
+	int inq_status, inq_left; /* Variables for the state machine in
+				   * Midi_in, this is to provide that
+				   * signals only get issued only
+				   * complete command packets. */
 	struct proc *async;
 	struct cdev *dev;
 	struct synth_midi *synth;
-	int	synth_flags;
+	int synth_flags;
 	TAILQ_ENTRY(snd_midi) link;
 };
 
@@ -139,8 +140,8 @@ static synth_alloc_t midisynth_alloc;
 static synth_controller_t midisynth_controller;
 static synth_bender_t midisynth_bender;
 
-static kobj_method_t midisynth_methods[] = {
-	KOBJMETHOD(synth_open, midisynth_open),
+static kobj_method_t midisynth_methods[] = { KOBJMETHOD(synth_open,
+						 midisynth_open),
 	KOBJMETHOD(synth_close, midisynth_close),
 	KOBJMETHOD(synth_writeraw, midisynth_writeraw),
 	KOBJMETHOD(synth_setinstr, midisynth_setinstr),
@@ -148,9 +149,7 @@ static kobj_method_t midisynth_methods[] = {
 	KOBJMETHOD(synth_killnote, midisynth_killnote),
 	KOBJMETHOD(synth_alloc, midisynth_alloc),
 	KOBJMETHOD(synth_controller, midisynth_controller),
-	KOBJMETHOD(synth_bender, midisynth_bender),
-	KOBJMETHOD_END
-};
+	KOBJMETHOD(synth_bender, midisynth_bender), KOBJMETHOD_END };
 
 DEFINE_CLASS(midisynth, midisynth_methods, 0);
 
@@ -182,7 +181,7 @@ TAILQ_HEAD(, snd_midi) midi_devs;
  */
 
 static struct sx midistat_lock;
-static int      midistat_isopen = 0;
+static int midistat_isopen = 0;
 static struct sbuf midistat_sbuf;
 static struct cdev *midistat_dev;
 
@@ -229,34 +228,35 @@ static struct cdevsw midi_cdevsw = {
  * Prototypes of library functions
  */
 
-static int      midi_destroy(struct snd_midi *, int);
-static int      midistat_prepare(struct sbuf * s);
-static int      midi_load(void);
-static int      midi_unload(void);
+static int midi_destroy(struct snd_midi *, int);
+static int midistat_prepare(struct sbuf *s);
+static int midi_load(void);
+static int midi_unload(void);
 
 /*
  * Misc declr.
  */
-SYSCTL_NODE(_hw, OID_AUTO, midi, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-    "Midi driver");
+SYSCTL_NODE(_hw, OID_AUTO, midi, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "Midi driver");
 static SYSCTL_NODE(_hw_midi, OID_AUTO, stat, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Status device");
 
-int             midi_debug;
+int midi_debug;
 /* XXX: should this be moved into debug.midi? */
 SYSCTL_INT(_hw_midi, OID_AUTO, debug, CTLFLAG_RW, &midi_debug, 0, "");
 
-int             midi_dumpraw;
+int midi_dumpraw;
 SYSCTL_INT(_hw_midi, OID_AUTO, dumpraw, CTLFLAG_RW, &midi_dumpraw, 0, "");
 
-int             midi_instroff;
+int midi_instroff;
 SYSCTL_INT(_hw_midi, OID_AUTO, instroff, CTLFLAG_RW, &midi_instroff, 0, "");
 
-int             midistat_verbose;
-SYSCTL_INT(_hw_midi_stat, OID_AUTO, verbose, CTLFLAG_RW, 
-	&midistat_verbose, 0, "");
+int midistat_verbose;
+SYSCTL_INT(_hw_midi_stat, OID_AUTO, verbose, CTLFLAG_RW, &midistat_verbose, 0,
+    "");
 
-#define MIDI_DEBUG(l,a)	if(midi_debug>=l) a
+#define MIDI_DEBUG(l, a)     \
+	if (midi_debug >= l) \
+	a
 /*
  * CODE START
  */
@@ -289,7 +289,7 @@ midi_init(kobj_class_t cls, int unit, int channel, void *cookie)
 	 * new unit number.
 	 */
 	i = -1;
-	TAILQ_FOREACH(m, &midi_devs, link) {
+	TAILQ_FOREACH (m, &midi_devs, link) {
 		mtx_lock(&m->lock);
 		if (unit != 0) {
 			if (m->unit == unit && m->channel == channel) {
@@ -364,8 +364,8 @@ midi_init(kobj_class_t cls, int unit, int channel, void *cookie)
 	sx_xunlock(&midistat_lock);
 
 	m->dev = make_dev(&midi_cdevsw,
-	    MIDIMKMINOR(unit, MIDI_DEV_RAW, channel),
-	    UID_ROOT, GID_WHEEL, 0666, "midi%d.%d", unit, channel);
+	    MIDIMKMINOR(unit, MIDI_DEV_RAW, channel), UID_ROOT, GID_WHEEL, 0666,
+	    "midi%d.%d", unit, channel);
 	m->dev->si_drv1 = m;
 
 	return m;
@@ -434,17 +434,17 @@ exit:
  */
 
 #ifdef notdef
-static int midi_lengths[] = {2, 2, 2, 2, 1, 1, 2, 0};
+static int midi_lengths[] = { 2, 2, 2, 2, 1, 1, 2, 0 };
 
-#endif					/* notdef */
+#endif /* notdef */
 /* Number of bytes in a MIDI command */
 #define MIDI_LENGTH(d) (midi_lengths[((d) >> 4) & 7])
-#define MIDI_ACK	0xfe
+#define MIDI_ACK 0xfe
 #define MIDI_IS_STATUS(d) ((d) >= 0x80)
 #define MIDI_IS_COMMON(d) ((d) >= 0xf0)
 
-#define MIDI_SYSEX_START	0xF0
-#define MIDI_SYSEX_END	    0xF7
+#define MIDI_SYSEX_START 0xF0
+#define MIDI_SYSEX_END 0xF7
 
 int
 midi_in(struct snd_midi *m, MIDI_TYPE *buf, int size)
@@ -455,9 +455,9 @@ midi_in(struct snd_midi *m, MIDI_TYPE *buf, int size)
 	/* MIDI_TYPE       data; */
 	MIDI_DEBUG(5, printf("midi_in: m=%p size=%d\n", m, size));
 
-/*
- * XXX: locking flub
- */
+	/*
+	 * XXX: locking flub
+	 */
 	if (!(m->flags & M_RX))
 		return size;
 
@@ -545,27 +545,27 @@ midi_in(struct snd_midi *m, MIDI_TYPE *buf, int size)
 	}
 	if (sig) {
 #endif
-		MIDI_DEBUG(6, printf("midi_in: len %jd avail %jd\n",
-		    (intmax_t)MIDIQ_LEN(m->inq),
-		    (intmax_t)MIDIQ_AVAIL(m->inq)));
-		if (MIDIQ_AVAIL(m->inq) > size) {
-			used = size;
-			MIDIQ_ENQ(m->inq, buf, size);
-		} else {
-			MIDI_DEBUG(4, printf("midi_in: Discarding data qu\n"));
-			mtx_unlock(&m->qlock);
-			return 0;
-		}
-		if (m->rchan) {
-			wakeup(&m->rchan);
-			m->rchan = 0;
-		}
-		selwakeup(&m->rsel);
-		if (m->async) {
-			PROC_LOCK(m->async);
-			kern_psignal(m->async, SIGIO);
-			PROC_UNLOCK(m->async);
-		}
+	MIDI_DEBUG(6,
+	    printf("midi_in: len %jd avail %jd\n", (intmax_t)MIDIQ_LEN(m->inq),
+		(intmax_t)MIDIQ_AVAIL(m->inq)));
+	if (MIDIQ_AVAIL(m->inq) > size) {
+		used = size;
+		MIDIQ_ENQ(m->inq, buf, size);
+	} else {
+		MIDI_DEBUG(4, printf("midi_in: Discarding data qu\n"));
+		mtx_unlock(&m->qlock);
+		return 0;
+	}
+	if (m->rchan) {
+		wakeup(&m->rchan);
+		m->rchan = 0;
+	}
+	selwakeup(&m->rsel);
+	if (m->async) {
+		PROC_LOCK(m->async);
+		kern_psignal(m->async, SIGIO);
+		PROC_UNLOCK(m->async);
+	}
 #if 0
 	}
 #endif
@@ -581,9 +581,9 @@ midi_out(struct snd_midi *m, MIDI_TYPE *buf, int size)
 {
 	int used;
 
-/*
- * XXX: locking flub
- */
+	/*
+	 * XXX: locking flub
+	 */
 	if (!(m->flags & M_TXEN))
 		return 0;
 
@@ -622,8 +622,9 @@ midi_open(struct cdev *i_dev, int flags, int mode, struct thread *td)
 	struct snd_midi *m = i_dev->si_drv1;
 	int retval;
 
-	MIDI_DEBUG(1, printf("midiopen %p %s %s\n", td,
-	    flags & FREAD ? "M_RX" : "", flags & FWRITE ? "M_TX" : ""));
+	MIDI_DEBUG(1,
+	    printf("midiopen %p %s %s\n", td, flags & FREAD ? "M_RX" : "",
+		flags & FWRITE ? "M_TX" : ""));
 	if (m == NULL)
 		return ENXIO;
 
@@ -657,9 +658,9 @@ midi_open(struct cdev *i_dev, int flags, int mode, struct thread *td)
 	if (flags & FREAD) {
 		m->flags |= M_RX | M_RXEN;
 		/*
-	         * Only clear the inq, the outq might still have data to drain
-	         * from a previous session
-	         */
+		 * Only clear the inq, the outq might still have data to drain
+		 * from a previous session
+		 */
 		MIDIQ_CLEAR(m->inq);
 	}
 
@@ -670,7 +671,8 @@ midi_open(struct cdev *i_dev, int flags, int mode, struct thread *td)
 
 	MIDI_DEBUG(2, printf("midi_open: opened.\n"));
 
-err:	mtx_unlock(&m->qlock);
+err:
+	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
 	return retval;
 }
@@ -682,8 +684,9 @@ midi_close(struct cdev *i_dev, int flags, int mode, struct thread *td)
 	int retval;
 	int oldflags;
 
-	MIDI_DEBUG(1, printf("midi_close %p %s %s\n", td,
-	    flags & FREAD ? "M_RX" : "", flags & FWRITE ? "M_TX" : ""));
+	MIDI_DEBUG(1,
+	    printf("midi_close %p %s %s\n", td, flags & FREAD ? "M_RX" : "",
+		flags & FWRITE ? "M_TX" : ""));
 
 	if (m == NULL)
 		return ENXIO;
@@ -713,7 +716,8 @@ midi_close(struct cdev *i_dev, int flags, int mode, struct thread *td)
 	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
 	retval = 0;
-err:	return retval;
+err:
+	return retval;
 }
 
 /*
@@ -729,8 +733,8 @@ midi_read(struct cdev *i_dev, struct uio *uio, int ioflag)
 	int used;
 	char buf[MIDI_RSIZE];
 
-	MIDI_DEBUG(5, printf("midiread: count=%lu\n",
-	    (unsigned long)uio->uio_resid));
+	MIDI_DEBUG(5,
+	    printf("midiread: count=%lu\n", (unsigned long)uio->uio_resid));
 
 	retval = EIO;
 
@@ -750,8 +754,8 @@ midi_read(struct cdev *i_dev, struct uio *uio, int ioflag)
 				goto err1;
 			mtx_unlock(&m->lock);
 			m->rchan = 1;
-			retval = msleep(&m->rchan, &m->qlock,
-			    PCATCH | PDROP, "midi RX", 0);
+			retval = msleep(&m->rchan, &m->qlock, PCATCH | PDROP,
+			    "midi RX", 0);
 			/*
 			 * We slept, maybe things have changed since last
 			 * dying check
@@ -771,8 +775,8 @@ midi_read(struct cdev *i_dev, struct uio *uio, int ioflag)
 		}
 		MIDI_DEBUG(6, printf("midi_read start\n"));
 		/*
-	         * At this point, it is certain that m->inq has data
-	         */
+		 * At this point, it is certain that m->inq has data
+		 */
 
 		used = MIN(MIDIQ_LEN(m->inq), uio->uio_resid);
 		used = MIN(used, MIDI_RSIZE);
@@ -788,9 +792,11 @@ midi_read(struct cdev *i_dev, struct uio *uio, int ioflag)
 	 * If we Made it here then transfer is good
 	 */
 	retval = 0;
-err1:	mtx_unlock(&m->qlock);
+err1:
+	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
-err0:	MIDI_DEBUG(4, printf("midi_read: ret %d\n", retval));
+err0:
+	MIDI_DEBUG(4, printf("midi_read: ret %d\n", retval));
 	return retval;
 }
 
@@ -826,8 +832,8 @@ midi_write(struct cdev *i_dev, struct uio *uio, int ioflag)
 			mtx_unlock(&m->lock);
 			m->wchan = 1;
 			MIDI_DEBUG(3, printf("midi_write msleep\n"));
-			retval = msleep(&m->wchan, &m->qlock,
-			    PCATCH | PDROP, "midi TX", 0);
+			retval = msleep(&m->wchan, &m->qlock, PCATCH | PDROP,
+			    "midi TX", 0);
 			/*
 			 * We slept, maybe things have changed since last
 			 * dying check
@@ -846,14 +852,15 @@ midi_write(struct cdev *i_dev, struct uio *uio, int ioflag)
 		}
 
 		/*
-	         * We are certain than data can be placed on the queue
-	         */
+		 * We are certain than data can be placed on the queue
+		 */
 
 		used = MIN(MIDIQ_AVAIL(m->outq), uio->uio_resid);
 		used = MIN(used, MIDI_WSIZE);
-		MIDI_DEBUG(5, printf("midiout: resid %zd len %jd avail %jd\n",
-		    uio->uio_resid, (intmax_t)MIDIQ_LEN(m->outq),
-		    (intmax_t)MIDIQ_AVAIL(m->outq)));
+		MIDI_DEBUG(5,
+		    printf("midiout: resid %zd len %jd avail %jd\n",
+			uio->uio_resid, (intmax_t)MIDIQ_LEN(m->outq),
+			(intmax_t)MIDIQ_AVAIL(m->outq)));
 
 		MIDI_DEBUG(5, printf("midi_write: uiomove cc=%d\n", used));
 		retval = uiomove(buf, used, uio);
@@ -861,8 +868,8 @@ midi_write(struct cdev *i_dev, struct uio *uio, int ioflag)
 			goto err1;
 		MIDIQ_ENQ(m->outq, buf, used);
 		/*
-	         * Inform the bottom half that data can be written
-	         */
+		 * Inform the bottom half that data can be written
+		 */
 		if (!(m->flags & M_TXEN)) {
 			m->flags |= M_TXEN;
 			MPU_CALLBACK(m, m->cookie, m->flags);
@@ -872,9 +879,11 @@ midi_write(struct cdev *i_dev, struct uio *uio, int ioflag)
 	 * If we Made it here then transfer is good
 	 */
 	retval = 0;
-err1:	mtx_unlock(&m->qlock);
+err1:
+	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
-err0:	return retval;
+err0:
+	return retval;
 }
 
 int
@@ -1008,7 +1017,7 @@ midistat_prepare(struct sbuf *s)
 	}
 	sbuf_printf(s, "Installed devices:\n");
 
-	TAILQ_FOREACH(m, &midi_devs, link) {
+	TAILQ_FOREACH (m, &midi_devs, link) {
 		mtx_lock(&m->lock);
 		sbuf_printf(s, "%s [%d/%d:%s]", m->name, m->unit, m->channel,
 		    MPU_PROVIDER(m, m->cookie));
@@ -1030,34 +1039,37 @@ static char *
 midi_cmdname(int cmd)
 {
 	static struct {
-		int	cmd;
-		char   *name;
-	}     *tab, cmdtab_midiioctl[] = {
-#define A(x)	{x, ## x}
-		/*
-	         * Once we have some real IOCTLs define, the following will
-	         * be relavant.
-	         *
-	         * A(SNDCTL_MIDI_PRETIME), A(SNDCTL_MIDI_MPUMODE),
-	         * A(SNDCTL_MIDI_MPUCMD), A(SNDCTL_SYNTH_INFO),
-	         * A(SNDCTL_MIDI_INFO), A(SNDCTL_SYNTH_MEMAVL),
-	         * A(SNDCTL_FM_LOAD_INSTR), A(SNDCTL_FM_4OP_ENABLE),
-	         * A(MIOSPASSTHRU), A(MIOGPASSTHRU), A(AIONWRITE),
-	         * A(AIOGSIZE), A(AIOSSIZE), A(AIOGFMT), A(AIOSFMT),
-	         * A(AIOGMIX), A(AIOSMIX), A(AIOSTOP), A(AIOSYNC),
-	         * A(AIOGCAP),
-	         */
+		int cmd;
+		char *name;
+	} *tab,
+	    cmdtab_midiioctl[] = {
+#define A(x)           \
+	{              \
+		x, ##x \
+	}
+	/*
+	 * Once we have some real IOCTLs define, the following will
+	 * be relavant.
+	 *
+	 * A(SNDCTL_MIDI_PRETIME), A(SNDCTL_MIDI_MPUMODE),
+	 * A(SNDCTL_MIDI_MPUCMD), A(SNDCTL_SYNTH_INFO),
+	 * A(SNDCTL_MIDI_INFO), A(SNDCTL_SYNTH_MEMAVL),
+	 * A(SNDCTL_FM_LOAD_INSTR), A(SNDCTL_FM_4OP_ENABLE),
+	 * A(MIOSPASSTHRU), A(MIOGPASSTHRU), A(AIONWRITE),
+	 * A(AIOGSIZE), A(AIOSSIZE), A(AIOGFMT), A(AIOSFMT),
+	 * A(AIOGMIX), A(AIOSMIX), A(AIOSTOP), A(AIOSYNC),
+	 * A(AIOGCAP),
+	 */
 #undef A
-		{
-			-1, "unknown"
-		},
-	};
+		    { -1, "unknown" },
+	    };
 
-	for (tab = cmdtab_midiioctl; tab->cmd != cmd && tab->cmd != -1; tab++);
+	for (tab = cmdtab_midiioctl; tab->cmd != cmd && tab->cmd != -1; tab++)
+		;
 	return tab->name;
 }
 
-#endif					/* notdef */
+#endif /* notdef */
 
 /*
  * midisynth
@@ -1069,8 +1081,9 @@ midisynth_open(void *n, void *arg, int flags)
 	struct snd_midi *m = ((struct synth_midi *)n)->m;
 	int retval;
 
-	MIDI_DEBUG(1, printf("midisynth_open %s %s\n",
-	    flags & FREAD ? "M_RX" : "", flags & FWRITE ? "M_TX" : ""));
+	MIDI_DEBUG(1,
+	    printf("midisynth_open %s %s\n", flags & FREAD ? "M_RX" : "",
+		flags & FWRITE ? "M_TX" : ""));
 
 	if (m == NULL)
 		return ENXIO;
@@ -1105,9 +1118,9 @@ midisynth_open(void *n, void *arg, int flags)
 	if (flags & FREAD) {
 		m->flags |= M_RX | M_RXEN;
 		/*
-	         * Only clear the inq, the outq might still have data to drain
-	         * from a previous session
-	         */
+		 * Only clear the inq, the outq might still have data to drain
+		 * from a previous session
+		 */
 		MIDIQ_CLEAR(m->inq);
 		m->rchan = 0;
 	}
@@ -1120,7 +1133,8 @@ midisynth_open(void *n, void *arg, int flags)
 
 	MPU_CALLBACK(m, m->cookie, m->flags);
 
-err:	mtx_unlock(&m->qlock);
+err:
+	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
 	MIDI_DEBUG(2, printf("midisynth_open: return %d.\n", retval));
 	return retval;
@@ -1133,9 +1147,10 @@ midisynth_close(void *n)
 	int retval;
 	int oldflags;
 
-	MIDI_DEBUG(1, printf("midisynth_close %s %s\n",
-	    m->synth_flags & FREAD ? "M_RX" : "",
-	    m->synth_flags & FWRITE ? "M_TX" : ""));
+	MIDI_DEBUG(1,
+	    printf("midisynth_close %s %s\n",
+		m->synth_flags & FREAD ? "M_RX" : "",
+		m->synth_flags & FWRITE ? "M_TX" : ""));
 
 	if (m == NULL)
 		return ENXIO;
@@ -1165,7 +1180,8 @@ midisynth_close(void *n)
 	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
 	retval = 0;
-err:	return retval;
+err:
+	return retval;
 }
 
 /*
@@ -1205,8 +1221,8 @@ midisynth_writeraw(void *n, uint8_t *buf, size_t len)
 			mtx_unlock(&m->lock);
 			m->wchan = 1;
 			MIDI_DEBUG(3, printf("midisynth_writeraw msleep\n"));
-			retval = msleep(&m->wchan, &m->qlock,
-			    PCATCH | PDROP, "midi TX", 0);
+			retval = msleep(&m->wchan, &m->qlock, PCATCH | PDROP,
+			    "midi TX", 0);
 			/*
 			 * We slept, maybe things have changed since last
 			 * dying check
@@ -1224,15 +1240,15 @@ midisynth_writeraw(void *n, uint8_t *buf, size_t len)
 		}
 
 		/*
-	         * We are certain than data can be placed on the queue
-	         */
+		 * We are certain than data can be placed on the queue
+		 */
 
 		used = MIN(MIDIQ_AVAIL(m->outq), len);
 		used = MIN(used, MIDI_WSIZE);
 		MIDI_DEBUG(5,
-		    printf("midi_synth: resid %zu len %jd avail %jd\n",
-		    len, (intmax_t)MIDIQ_LEN(m->outq),
-		    (intmax_t)MIDIQ_AVAIL(m->outq)));
+		    printf("midi_synth: resid %zu len %jd avail %jd\n", len,
+			(intmax_t)MIDIQ_LEN(m->outq),
+			(intmax_t)MIDIQ_AVAIL(m->outq)));
 
 		if (midi_dumpraw)
 			for (i = 0; i < used; i++)
@@ -1242,8 +1258,8 @@ midisynth_writeraw(void *n, uint8_t *buf, size_t len)
 		len -= used;
 
 		/*
-	         * Inform the bottom half that data can be written
-	         */
+		 * Inform the bottom half that data can be written
+		 */
 		if (!(m->flags & M_TXEN)) {
 			m->flags |= M_TXEN;
 			MPU_CALLBACK(m, m->cookie, m->flags);
@@ -1256,9 +1272,11 @@ midisynth_writeraw(void *n, uint8_t *buf, size_t len)
 		printf("\n");
 
 	retval = 0;
-err1:	mtx_unlock(&m->qlock);
+err1:
+	mtx_unlock(&m->qlock);
 	mtx_unlock(&m->lock);
-err0:	return retval;
+err0:
+	return retval;
 }
 
 static int
@@ -1273,11 +1291,11 @@ midisynth_killnote(void *n, uint8_t chn, uint8_t note, uint8_t vel)
 		vel = 127;
 
 	if (vel == 64) {
-		c[0] = 0x90 | (chn & 0x0f);	/* Note on. */
+		c[0] = 0x90 | (chn & 0x0f); /* Note on. */
 		c[1] = (u_char)note;
 		c[2] = 0;
 	} else {
-		c[0] = 0x80 | (chn & 0x0f);	/* Note off. */
+		c[0] = 0x80 | (chn & 0x0f); /* Note off. */
 		c[1] = (u_char)note;
 		c[2] = (u_char)vel;
 	}
@@ -1293,7 +1311,7 @@ midisynth_setinstr(void *n, uint8_t chn, uint16_t instr)
 	if (instr > 127 || chn > 15)
 		return EINVAL;
 
-	c[0] = 0xc0 | (chn & 0x0f);	/* Progamme change. */
+	c[0] = 0xc0 | (chn & 0x0f); /* Progamme change. */
 	c[1] = instr + midi_instroff;
 
 	return midisynth_writeraw(n, c, 2);
@@ -1310,7 +1328,7 @@ midisynth_startnote(void *n, uint8_t chn, uint8_t note, uint8_t vel)
 	if (vel > 127)
 		vel = 127;
 
-	c[0] = 0x90 | (chn & 0x0f);	/* Note on. */
+	c[0] = 0x90 | (chn & 0x0f); /* Note on. */
 	c[1] = (u_char)note;
 	c[2] = (u_char)vel;
 
@@ -1330,7 +1348,7 @@ midisynth_controller(void *n, uint8_t chn, uint8_t ctrlnum, uint16_t val)
 	if (ctrlnum > 127 || chn > 15)
 		return EINVAL;
 
-	c[0] = 0xb0 | (chn & 0x0f);	/* Control Message. */
+	c[0] = 0xb0 | (chn & 0x0f); /* Control Message. */
 	c[1] = ctrlnum;
 	c[2] = val;
 	return midisynth_writeraw(n, c, 3);
@@ -1344,7 +1362,7 @@ midisynth_bender(void *n, uint8_t chn, uint16_t val)
 	if (val > 16383 || chn > 15)
 		return EINVAL;
 
-	c[0] = 0xe0 | (chn & 0x0f);	/* Pitch bend. */
+	c[0] = 0xe0 | (chn & 0x0f); /* Pitch bend. */
 	c[1] = (u_char)val & 0x7f;
 	c[2] = (u_char)(val >> 7) & 0x7f;
 
@@ -1362,7 +1380,7 @@ midi_destroy(struct snd_midi *m, int midiuninit)
 
 	MIDI_DEBUG(3, printf("midi_destroy\n"));
 	m->dev->si_drv1 = NULL;
-	mtx_unlock(&m->lock);	/* XXX */
+	mtx_unlock(&m->lock); /* XXX */
 	destroy_dev(m->dev);
 	TAILQ_REMOVE(&midi_devs, m, link);
 	if (midiuninit)
@@ -1387,8 +1405,8 @@ midi_load(void)
 	TAILQ_INIT(&midi_devs);
 
 	midistat_dev = make_dev(&midistat_cdevsw,
-	    MIDIMKMINOR(0, MIDI_DEV_MIDICTL, 0),
-	    UID_ROOT, GID_WHEEL, 0666, "midistat");
+	    MIDIMKMINOR(0, MIDI_DEV_MIDICTL, 0), UID_ROOT, GID_WHEEL, 0666,
+	    "midistat");
 
 	return 0;
 }
@@ -1405,7 +1423,7 @@ midi_unload(void)
 	if (midistat_isopen)
 		goto exit0;
 
-	TAILQ_FOREACH_SAFE(m, &midi_devs, link, tmp) {
+	TAILQ_FOREACH_SAFE (m, &midi_devs, link, tmp) {
 		mtx_lock(&m->lock);
 		if (m->busy)
 			retval = EBUSY;
@@ -1476,7 +1494,7 @@ midimapper_open(void *arg1, void **cookie)
 	struct snd_midi *m;
 
 	sx_xlock(&midistat_lock);
-	TAILQ_FOREACH(m, &midi_devs, link) {
+	TAILQ_FOREACH (m, &midi_devs, link) {
 		retval++;
 	}
 	sx_xunlock(&midistat_lock);
@@ -1496,7 +1514,7 @@ midimapper_fetch_synth(void *arg, void *cookie, int unit)
 	int retval = 0;
 
 	sx_xlock(&midistat_lock);
-	TAILQ_FOREACH(m, &midi_devs, link) {
+	TAILQ_FOREACH (m, &midi_devs, link) {
 		if (unit == retval) {
 			sx_xunlock(&midistat_lock);
 			return (kobj_t)m->synth;

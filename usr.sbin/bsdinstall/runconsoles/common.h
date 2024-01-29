@@ -25,7 +25,7 @@
  * SUCH DAMAGE.
  */
 
-#define	KILL_TIMEOUT	10
+#define KILL_TIMEOUT 10
 
 /*
  * NB: Most of these do not need to be volatile, but a handful are used in
@@ -33,7 +33,7 @@
  * than duplicate the implementation.
  */
 struct pipe_barrier {
-	volatile int		fds[2];
+	volatile int fds[2];
 };
 
 static __inline int
@@ -107,4 +107,4 @@ pipe_barrier_destroy(struct pipe_barrier *p)
 	pipe_barrier_destroy_ready(p);
 }
 
-void	reproduce_signal_death(int sig);
+void reproduce_signal_death(int sig);

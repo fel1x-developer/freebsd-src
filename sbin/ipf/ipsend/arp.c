@@ -5,47 +5,47 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <sys/types.h>
-#include <sys/socket.h>
-# include <sys/sockio.h>
 #include <sys/ioctl.h>
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <netinet/if_ether.h>
-# include <net/if_arp.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/ip_var.h>
 #include <netinet/tcp.h>
-#include <stdio.h>
+
 #include <errno.h>
 #include <netdb.h>
-#include "ipsend.h"
-#include "iplang/iplang.h"
+#include <stdio.h>
 
+#include "iplang/iplang.h"
+#include "ipsend.h"
 
 /*
  * lookup host and return
  * its IP address in address
  * (4 bytes)
  */
-int	resolve(char *host, char *address)
+int
+resolve(char *host, char *address)
 {
-	struct	hostent	*hp;
-	u_long	add;
+	struct hostent *hp;
+	u_long add;
 
 	add = inet_addr(host);
-	if (add == -1)
-	    {
-		if (!(hp = gethostbyname(host)))
-		    {
+	if (add == -1) {
+		if (!(hp = gethostbyname(host))) {
 			fprintf(stderr, "unknown host: %s\n", host);
 			return (-1);
-		    }
+		}
 		bcopy((char *)hp->h_addr, (char *)address, 4);
 		return (0);
 	}
-	bcopy((char*)&add, address, 4);
+	bcopy((char *)&add, address, 4);
 	return (0);
 }
 
@@ -54,18 +54,19 @@ int	resolve(char *host, char *address)
  * to the IP address.  This taken from
  * some BSD program, I cant remember which.
  */
-int	arp(ip, ether)
-	char	*ip;
-	char	*ether;
+int
+arp(ip, ether)
+char *ip;
+char *ether;
 {
-	static	int	sfd = -1;
-	static	char	ethersave[6], ipsave[4];
-	struct	arpreq	ar;
-	struct	sockaddr_in	*sin, san;
-	struct	hostent	*hp;
-	int	fd;
+	static int sfd = -1;
+	static char ethersave[6], ipsave[4];
+	struct arpreq ar;
+	struct sockaddr_in *sin, san;
+	struct hostent *hp;
+	int fd;
 
-#ifdef	IPSEND
+#ifdef IPSEND
 	if (arp_getipv4(ip, ether) == 0)
 		return (0);
 #endif
@@ -79,40 +80,37 @@ int	arp(ip, ether)
 	sin->sin_family = AF_INET;
 	bcopy(ip, (char *)&sin->sin_addr.s_addr, 4);
 	if ((hp = gethostbyaddr(ip, 4, AF_INET)))
-# if SOLARIS && (SOLARIS2 >= 10)
+#if SOLARIS && (SOLARIS2 >= 10)
 		if (!(ether_hostton(hp->h_name, (struct ether_addr *)ether)))
-# else
+#else
 		if (!(ether_hostton(hp->h_name, ether)))
-# endif
+#endif
 			goto savearp;
 
 	if (sfd == -1)
-		if ((sfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
-		    {
+		if ((sfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
 			perror("arp: socket");
 			return (-1);
-		    }
+		}
 tryagain:
-	if (ioctl(sfd, SIOCGARP, (caddr_t)&ar) == -1)
-	    {
-		if (fd == -1)
-		    {
+	if (ioctl(sfd, SIOCGARP, (caddr_t)&ar) == -1) {
+		if (fd == -1) {
 			bzero((char *)&san, sizeof(san));
 			san.sin_family = AF_INET;
 			san.sin_port = htons(1);
 			bcopy(ip, &san.sin_addr.s_addr, 4);
 			fd = socket(AF_INET, SOCK_DGRAM, 0);
-			(void) sendto(fd, ip, 4, 0,
-				      (struct sockaddr *)&san, sizeof(san));
+			(void)sendto(fd, ip, 4, 0, (struct sockaddr *)&san,
+			    sizeof(san));
 			sleep(1);
-			(void) close(fd);
+			(void)close(fd);
 			goto tryagain;
-		    }
+		}
 		fprintf(stderr, "(%s):", inet_ntoa(sin->sin_addr));
 		if (errno != ENXIO)
 			perror("SIOCGARP");
 		return (-1);
-	    }
+	}
 
 	if ((ar.arp_ha.sa_data[0] == 0) && (ar.arp_ha.sa_data[1] == 0) &&
 	    (ar.arp_ha.sa_data[2] == 0) && (ar.arp_ha.sa_data[3] == 0) &&

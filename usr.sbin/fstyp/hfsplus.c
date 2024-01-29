@@ -24,6 +24,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -39,60 +40,60 @@
  * https://developer.apple.com/library/archive/technotes/tn/tn1150.html
  */
 
-#define	VOL_HDR_OFF	1024
+#define VOL_HDR_OFF 1024
 
 typedef uint32_t hfsp_cat_nodeid;
 
 typedef struct hfsp_ext_desc {
-	uint32_t	ex_startBlock;
-	uint32_t	ex_blockCount;
+	uint32_t ex_startBlock;
+	uint32_t ex_blockCount;
 } hfsp_ext_desc;
 
 typedef struct hfsp_fork_data {
-	uint64_t	fd_logicalSz;
-	uint32_t	fd_clumpSz;
-	uint32_t	fd_totalBlocks;
-	hfsp_ext_desc	fd_extents[8];
+	uint64_t fd_logicalSz;
+	uint32_t fd_clumpSz;
+	uint32_t fd_totalBlocks;
+	hfsp_ext_desc fd_extents[8];
 } hfsp_fork_data;
 
 struct hfsp_vol_hdr {
-	char		hp_signature[2];
-	uint16_t	hp_version;
-	uint32_t	hp_attributes;
-	uint32_t	hp_lastMounted;
-	uint32_t	hp_journalInfoBlock;
+	char hp_signature[2];
+	uint16_t hp_version;
+	uint32_t hp_attributes;
+	uint32_t hp_lastMounted;
+	uint32_t hp_journalInfoBlock;
 
 	/* Creation / etc dates. */
-	uint32_t	hp_create;
-	uint32_t	hp_modify;
-	uint32_t	hp_backup;
-	uint32_t	hp_checked;
+	uint32_t hp_create;
+	uint32_t hp_modify;
+	uint32_t hp_backup;
+	uint32_t hp_checked;
 
 	/* Stats */
-	uint32_t	hp_files;
-	uint32_t	hp_folders;
+	uint32_t hp_files;
+	uint32_t hp_folders;
 
 	/* Parameters */
-	uint32_t	hp_blockSize;
-	uint32_t	hp_totalBlocks;
-	uint32_t	hp_freeBlocks;
+	uint32_t hp_blockSize;
+	uint32_t hp_totalBlocks;
+	uint32_t hp_freeBlocks;
 
-	uint32_t	hp_nextAlloc;
-	uint32_t	hp_rsrcClumpSz;
-	uint32_t	hp_dataClumpSz;
+	uint32_t hp_nextAlloc;
+	uint32_t hp_rsrcClumpSz;
+	uint32_t hp_dataClumpSz;
 
-	hfsp_cat_nodeid	hp_nextCatID;
+	hfsp_cat_nodeid hp_nextCatID;
 
-	uint32_t	hp_writeCount;
-	uint64_t	hp_encodingsBM;
+	uint32_t hp_writeCount;
+	uint64_t hp_encodingsBM;
 
-	uint32_t	hp_finderInfo[8];
+	uint32_t hp_finderInfo[8];
 
-	hfsp_fork_data	hp_allocationFile;
-	hfsp_fork_data	hp_extentsFile;
-	hfsp_fork_data	hp_catalogFile;
-	hfsp_fork_data	hp_attributesFile;
-	hfsp_fork_data	hp_startupFile;
+	hfsp_fork_data hp_allocationFile;
+	hfsp_fork_data hp_extentsFile;
+	hfsp_fork_data hp_catalogFile;
+	hfsp_fork_data hp_attributesFile;
+	hfsp_fork_data hp_startupFile;
 };
 _Static_assert(sizeof(struct hfsp_vol_hdr) == 512, "");
 
@@ -107,8 +108,8 @@ fstyp_hfsp(FILE *fp, char *label, size_t size)
 	if (hdr == NULL)
 		goto fail;
 
-	if ((strncmp(hdr->hp_signature, "H+", 2) != 0 || hdr->hp_version != 4)
-	    &&
+	if ((strncmp(hdr->hp_signature, "H+", 2) != 0 ||
+		hdr->hp_version != 4) &&
 	    (strncmp(hdr->hp_signature, "HX", 2) != 0 || hdr->hp_version != 5))
 		goto fail;
 

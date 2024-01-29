@@ -30,16 +30,17 @@
  *  Authors: Alan Somers         (Spectra Logic Corporation)
  */
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -56,7 +57,7 @@ main(int argc, char **argv)
 	int opt;
 	int ret;
 	ssize_t len;
-	const char* sendbuf = "Hello, World!";
+	const char *sendbuf = "Hello, World!";
 	const size_t buflen = 80;
 	char recvbuf[buflen];
 	bool v6 = false;
@@ -95,14 +96,14 @@ main(int argc, char **argv)
 		err(EXIT_FAILURE, "setsockopt(SO_DONTROUTE)");
 
 	if (v6) {
-		struct sockaddr_in6 *dst6 = ((struct sockaddr_in6*)&dst);
+		struct sockaddr_in6 *dst6 = ((struct sockaddr_in6 *)&dst);
 
 		dst.ss_len = sizeof(struct sockaddr_in6);
 		dst.ss_family = AF_INET6;
 		dst6->sin6_port = htons(port);
 		ret = inet_pton(AF_INET6, addr, &dst6->sin6_addr);
 	} else {
-		struct sockaddr_in *dst4 = ((struct sockaddr_in*)&dst);
+		struct sockaddr_in *dst4 = ((struct sockaddr_in *)&dst);
 
 		dst.ss_len = sizeof(struct sockaddr_in);
 		dst.ss_family = AF_INET;
@@ -112,7 +113,7 @@ main(int argc, char **argv)
 	if (ret != 1)
 		err(EXIT_FAILURE, "inet_pton returned %d", ret);
 
-	ret = sendto(s, sendbuf, strlen(sendbuf), 0, (struct sockaddr*)&dst,
+	ret = sendto(s, sendbuf, strlen(sendbuf), 0, (struct sockaddr *)&dst,
 	    dst.ss_len);
 	if (ret == -1)
 		err(EXIT_FAILURE, "sendto");

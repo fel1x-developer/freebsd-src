@@ -35,12 +35,11 @@
  *
  * Definition of the Guid class.
  */
-#ifndef	_DEVDCTL_GUID_H_
-#define	_DEVDCTL_GUID_H_
+#ifndef _DEVDCTL_GUID_H_
+#define _DEVDCTL_GUID_H_
 
 /*============================ Namespace Control =============================*/
-namespace DevdCtl
-{
+namespace DevdCtl {
 
 /*============================= Class Definitions ============================*/
 /*----------------------------------- Guid -----------------------------------*/
@@ -56,9 +55,8 @@ namespace DevdCtl
  * for INVALID_GUID.  In the future, if 0 is allowed to be a valid
  * guid, the implementation of this class must change.
  */
-class Guid
-{
-public:
+class Guid {
+    public:
 	/* Constructors */
 	/* Default constructor: an Invalid guid */
 	Guid();
@@ -69,33 +67,31 @@ public:
 	static Guid InvalidGuid();
 
 	/* Test the validity of this guid. */
-	bool IsValid()			 const;
+	bool IsValid() const;
 
 	/* Comparison to other Guid operators */
-	bool operator==(const Guid& rhs) const;
-	bool operator!=(const Guid& rhs) const;
+	bool operator==(const Guid &rhs) const;
+	bool operator!=(const Guid &rhs) const;
 
 	/* Integer conversion operators */
-	operator uint64_t()		 const;
-	operator bool()			 const;
+	operator uint64_t() const;
+	operator bool() const;
 
-protected:
+    protected:
 	static const uint64_t INVALID_GUID = 0;
 
 	/* The integer value of the GUID. */
-	uint64_t  m_GUID;
+	uint64_t m_GUID;
 };
 
 //- Guid Inline Public Methods ------------------------------------------------
-inline
-Guid::Guid()
-  : m_GUID(INVALID_GUID)
+inline Guid::Guid()
+    : m_GUID(INVALID_GUID)
 {
 }
 
-inline
-Guid::Guid(uint64_t guid)
-  : m_GUID(guid)
+inline Guid::Guid(uint64_t guid)
+    : m_GUID(guid)
 {
 }
 
@@ -112,31 +108,29 @@ Guid::IsValid() const
 }
 
 inline bool
-Guid::operator==(const Guid& rhs) const
+Guid::operator==(const Guid &rhs) const
 {
 	return (m_GUID == rhs.m_GUID);
 }
 
 inline bool
-Guid::operator!=(const Guid& rhs) const
+Guid::operator!=(const Guid &rhs) const
 {
 	return (m_GUID != rhs.m_GUID);
 }
 
-inline
-Guid::operator uint64_t() const
+inline Guid::operator uint64_t() const
 {
 	return (m_GUID);
 }
 
-inline
-Guid::operator bool() const
+inline Guid::operator bool() const
 {
 	return (m_GUID != INVALID_GUID);
 }
 
 /** Convert the GUID into its string representation */
-std::ostream& operator<< (std::ostream& out, Guid g);
+std::ostream &operator<<(std::ostream &out, Guid g);
 
 } // namespace DevdCtl
 #endif /* _DEVDCTL_GUID_H_ */

@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <sdp.h>
 #include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 #include "server.h"
@@ -47,12 +48,12 @@
 int32_t
 server_prepare_service_unregister_response(server_p srv, int32_t fd)
 {
-	uint8_t const	*req = srv->req + sizeof(sdp_pdu_t);
-	uint8_t const	*req_end = req + ((sdp_pdu_p)(srv->req))->len;
-	uint8_t		*rsp = srv->fdidx[fd].rsp;
+	uint8_t const *req = srv->req + sizeof(sdp_pdu_t);
+	uint8_t const *req_end = req + ((sdp_pdu_p)(srv->req))->len;
+	uint8_t *rsp = srv->fdidx[fd].rsp;
 
-	provider_t	*provider = NULL;
-	uint32_t	 handle;
+	provider_t *provider = NULL;
+	uint32_t handle;
 
 	/*
 	 * Minimal Service Unregister Request
@@ -60,8 +61,8 @@ server_prepare_service_unregister_response(server_p srv, int32_t fd)
 	 * value32	- uuid 4 bytes
 	 */
 
-	if (!srv->fdidx[fd].control ||
-	    !srv->fdidx[fd].priv || req_end - req < 4)
+	if (!srv->fdidx[fd].control || !srv->fdidx[fd].priv ||
+	    req_end - req < 4)
 		return (SDP_ERROR_CODE_INVALID_REQUEST_SYNTAX);
 
 	/* Get handle */
@@ -82,4 +83,3 @@ server_prepare_service_unregister_response(server_p srv, int32_t fd)
 
 	return (0);
 }
-

@@ -31,8 +31,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bio.h>
+#include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/proc.h>
@@ -40,11 +41,9 @@
 #include <sys/uio.h>
 
 #include <vm/vm.h>
-#include <vm/vm_page.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
-
-#include <sys/ktr.h>
+#include <vm/vm_page.h>
 
 static MALLOC_DEFINE(M_SGLIST, "sglist", "scatter/gather lists");
 
@@ -60,19 +59,23 @@ struct sgsave {
 	size_t ss_len;
 };
 
-#define	SGLIST_SAVE(sg, sgsave) do {					\
-	(sgsave).sg_nseg = (sg)->sg_nseg;				\
-	if ((sgsave).sg_nseg > 0)					\
-		(sgsave).ss_len = (sg)->sg_segs[(sgsave).sg_nseg - 1].ss_len; \
-	else								\
-		(sgsave).ss_len = 0;					\
-} while (0)
+#define SGLIST_SAVE(sg, sgsave)                                         \
+	do {                                                            \
+		(sgsave).sg_nseg = (sg)->sg_nseg;                       \
+		if ((sgsave).sg_nseg > 0)                               \
+			(sgsave).ss_len =                               \
+			    (sg)->sg_segs[(sgsave).sg_nseg - 1].ss_len; \
+		else                                                    \
+			(sgsave).ss_len = 0;                            \
+	} while (0)
 
-#define	SGLIST_RESTORE(sg, sgsave) do {					\
-	(sg)->sg_nseg = (sgsave).sg_nseg;				\
-	if ((sgsave).sg_nseg > 0)					\
-		(sg)->sg_segs[(sgsave).sg_nseg - 1].ss_len = (sgsave).ss_len; \
-} while (0)
+#define SGLIST_RESTORE(sg, sgsave)                                   \
+	do {                                                         \
+		(sg)->sg_nseg = (sgsave).sg_nseg;                    \
+		if ((sgsave).sg_nseg > 0)                            \
+			(sg)->sg_segs[(sgsave).sg_nseg - 1].ss_len = \
+			    (sgsave).ss_len;                         \
+	} while (0)
 
 /*
  * Append a single (paddr, len) to a sglist.  sg is the list and ss is
@@ -239,8 +242,7 @@ sglist_count_mbuf_epg(struct mbuf *m, size_t off, size_t len)
 			seglen = MIN(seglen, len);
 			off = 0;
 			len -= seglen;
-			nsegs += sglist_count(&m->m_epg_hdr[segoff],
-			    seglen);
+			nsegs += sglist_count(&m->m_epg_hdr[segoff], seglen);
 		}
 	}
 	nextaddr = 0;
@@ -338,8 +340,8 @@ sglist_append_bio(struct sglist *sg, struct bio *bp)
 	if ((bp->bio_flags & BIO_UNMAPPED) == 0)
 		error = sglist_append(sg, bp->bio_data, bp->bio_bcount);
 	else
-		error = sglist_append_vmpages(sg, bp->bio_ma,
-		    bp->bio_ma_offset, bp->bio_bcount);
+		error = sglist_append_vmpages(sg, bp->bio_ma, bp->bio_ma_offset,
+		    bp->bio_bcount);
 	return (error);
 }
 
@@ -397,8 +399,8 @@ sglist_append_mbuf_epg(struct sglist *sg, struct mbuf *m, size_t off,
 			seglen = MIN(seglen, len);
 			off = 0;
 			len -= seglen;
-			error = sglist_append(sg,
-			    &m->m_epg_hdr[segoff], seglen);
+			error = sglist_append(sg, &m->m_epg_hdr[segoff],
+			    seglen);
 		}
 	}
 	pgoff = m->m_epg_1st_off;
@@ -421,8 +423,7 @@ sglist_append_mbuf_epg(struct sglist *sg, struct mbuf *m, size_t off,
 	if (error == 0 && len > 0) {
 		seglen = MIN(len, m->m_epg_trllen - off);
 		len -= seglen;
-		error = sglist_append(sg,
-		    &m->m_epg_trail[off], seglen);
+		error = sglist_append(sg, &m->m_epg_trail[off], seglen);
 	}
 	if (error == 0)
 		KASSERT(len == 0, ("len != 0"));
@@ -452,8 +453,7 @@ sglist_append_mbuf(struct sglist *sg, struct mbuf *m0)
 				error = sglist_append_mbuf_epg(sg, m,
 				    mtod(m, vm_offset_t), m->m_len);
 			else
-				error = sglist_append(sg, m->m_data,
-				    m->m_len);
+				error = sglist_append(sg, m->m_data, m->m_len);
 			if (error) {
 				SGLIST_RESTORE(sg, save);
 				return (error);
@@ -472,8 +472,8 @@ int
 sglist_append_single_mbuf(struct sglist *sg, struct mbuf *m)
 {
 	if ((m->m_flags & M_EXTPG) != 0)
-		return (sglist_append_mbuf_epg(sg, m,
-		    mtod(m, vm_offset_t), m->m_len));
+		return (sglist_append_mbuf_epg(sg, m, mtod(m, vm_offset_t),
+		    m->m_len));
 	else
 		return (sglist_append(sg, m->m_data, m->m_len));
 }
@@ -484,8 +484,7 @@ sglist_append_single_mbuf(struct sglist *sg, struct mbuf *m)
  * page.
  */
 int
-sglist_append_vmpages(struct sglist *sg, vm_page_t *m, size_t pgoff,
-    size_t len)
+sglist_append_vmpages(struct sglist *sg, vm_page_t *m, size_t pgoff, size_t len)
 {
 	struct sgsave save;
 	struct sglist_seg *ss;
@@ -724,8 +723,8 @@ sglist_clone(struct sglist *sg, int mflags)
 	if (new == NULL)
 		return (NULL);
 	new->sg_nseg = sg->sg_nseg;
-	bcopy(sg->sg_segs, new->sg_segs, sizeof(struct sglist_seg) *
-	    sg->sg_nseg);
+	bcopy(sg->sg_segs, new->sg_segs,
+	    sizeof(struct sglist_seg) * sg->sg_nseg);
 	return (new);
 }
 
@@ -810,8 +809,8 @@ sglist_split(struct sglist *original, struct sglist **head, size_t length,
 	}
 
 	/* Copy 'count' entries to 'sg' from 'original'. */
-	bcopy(original->sg_segs, sg->sg_segs, count *
-	    sizeof(struct sglist_seg));
+	bcopy(original->sg_segs, sg->sg_segs,
+	    count * sizeof(struct sglist_seg));
 	sg->sg_nseg = count;
 
 	/*
@@ -830,8 +829,8 @@ sglist_split(struct sglist *original, struct sglist **head, size_t length,
 
 	/* Trim 'count' entries from the front of 'original'. */
 	original->sg_nseg -= count;
-	bcopy(original->sg_segs + count, original->sg_segs, count *
-	    sizeof(struct sglist_seg));
+	bcopy(original->sg_segs + count, original->sg_segs,
+	    count * sizeof(struct sglist_seg));
 	return (0);
 }
 
@@ -921,8 +920,8 @@ sglist_slice(struct sglist *original, struct sglist **slice, size_t offset,
 			 */
 			if (count == 0) {
 				fseg = i;
-				foffs = offset - (space -
-				    original->sg_segs[i].ss_len);
+				foffs = offset -
+				    (space - original->sg_segs[i].ss_len);
 				CTR1(KTR_DEV, "sglist_slice: foffs = %08lx",
 				    foffs);
 			}

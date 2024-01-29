@@ -27,15 +27,15 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/errno.h>
 #include <sys/limits.h>
 #include <sys/proc.h>
 #include <sys/random.h>
 #include <sys/sysproto.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
-#define GRND_VALIDFLAGS	(GRND_NONBLOCK | GRND_RANDOM | GRND_INSECURE)
+#define GRND_VALIDFLAGS (GRND_NONBLOCK | GRND_RANDOM | GRND_INSECURE)
 
 /*
  * read_random_uio(9) returns EWOULDBLOCK if a nonblocking request would block,
@@ -114,9 +114,9 @@ kern_getrandom(struct thread *td, void *user_buf, size_t buflen,
 
 #ifndef _SYS_SYSPROTO_H_
 struct getrandom_args {
-	void		*buf;
-	size_t		buflen;
-	unsigned int	flags;
+	void *buf;
+	size_t buflen;
+	unsigned int flags;
 };
 #endif
 

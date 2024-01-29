@@ -25,7 +25,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_NVRAM_BHND_NVRAM_VALUEVAR_H_
@@ -33,17 +33,16 @@
 
 #include "bhnd_nvram_value.h"
 
-int		 bhnd_nvram_val_generic_encode(bhnd_nvram_val *value,
-		     void *outp, size_t *olen, bhnd_nvram_type otype);
-int		 bhnd_nvram_val_generic_encode_elem(bhnd_nvram_val *value,
-		     const void *inp, size_t ilen, void *outp, size_t *olen,
-		     bhnd_nvram_type otype);
-const void	*bhnd_nvram_val_generic_next(bhnd_nvram_val *value,
-		     const void *prev, size_t *olen);
+int bhnd_nvram_val_generic_encode(bhnd_nvram_val *value, void *outp,
+    size_t *olen, bhnd_nvram_type otype);
+int bhnd_nvram_val_generic_encode_elem(bhnd_nvram_val *value, const void *inp,
+    size_t ilen, void *outp, size_t *olen, bhnd_nvram_type otype);
+const void *bhnd_nvram_val_generic_next(bhnd_nvram_val *value, const void *prev,
+    size_t *olen);
 
 /**
  * Filter input data prior to initialization.
- * 
+ *
  * This may be used to permit direct initialization from data types other than
  * the default native_type defined by @p fmt.
  *
@@ -60,15 +59,15 @@ const void	*bhnd_nvram_val_generic_next(bhnd_nvram_val *value,
  * @retval EFAULT	if @p ilen is not correctly aligned for elements of
  *			@p itype.
  */
-typedef int (bhnd_nvram_val_op_filter)(const bhnd_nvram_val_fmt **fmt,
+typedef int(bhnd_nvram_val_op_filter)(const bhnd_nvram_val_fmt **fmt,
     const void *inp, size_t ilen, bhnd_nvram_type itype);
 
 /** @see bhnd_nvram_val_encode() */
-typedef int (bhnd_nvram_val_op_encode)(bhnd_nvram_val *value, void *outp,
+typedef int(bhnd_nvram_val_op_encode)(bhnd_nvram_val *value, void *outp,
     size_t *olen, bhnd_nvram_type otype);
 
 /** @see bhnd_nvram_val_encode_elem() */
-typedef int (bhnd_nvram_val_op_encode_elem)(bhnd_nvram_val *value,
+typedef int(bhnd_nvram_val_op_encode_elem)(bhnd_nvram_val *value,
     const void *inp, size_t ilen, void *outp, size_t *olen,
     bhnd_nvram_type otype);
 
@@ -77,23 +76,23 @@ typedef const void *(bhnd_nvram_val_op_next)(bhnd_nvram_val *value,
     const void *prev, size_t *olen);
 
 /** @see bhnd_nvram_val_nelem() */
-typedef size_t (bhnd_nvram_val_op_nelem)(bhnd_nvram_val *value);
+typedef size_t(bhnd_nvram_val_op_nelem)(bhnd_nvram_val *value);
 
 /**
  * NVRAM value format.
- * 
+ *
  * Provides a set of callbacks to support defining custom parsing
  * and encoding/conversion behavior when representing values as
  * instances of bhnd_nvram_val.
  */
 struct bhnd_nvram_val_fmt {
-	const char			*name;		/**< type name */
-	bhnd_nvram_type			 native_type;	/**< native value representation */
-	bhnd_nvram_val_op_filter	*op_filter;
-	bhnd_nvram_val_op_encode	*op_encode;
-	bhnd_nvram_val_op_encode_elem	*op_encode_elem;
-	bhnd_nvram_val_op_nelem		*op_nelem;
-	bhnd_nvram_val_op_next		*op_next;
+	const char *name;	     /**< type name */
+	bhnd_nvram_type native_type; /**< native value representation */
+	bhnd_nvram_val_op_filter *op_filter;
+	bhnd_nvram_val_op_encode *op_encode;
+	bhnd_nvram_val_op_encode_elem *op_encode_elem;
+	bhnd_nvram_val_op_nelem *op_nelem;
+	bhnd_nvram_val_op_next *op_next;
 };
 
 #endif /* _BHND_NVRAM_BHND_NVRAM_VALUEVAR_H_ */

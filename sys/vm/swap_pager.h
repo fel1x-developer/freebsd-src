@@ -34,8 +34,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_VM_SWAP_PAGER_H_
-#define	_VM_SWAP_PAGER_H_
+#ifndef _VM_SWAP_PAGER_H_
+#define _VM_SWAP_PAGER_H_
 
 #include <sys/_types.h>
 
@@ -49,22 +49,22 @@ typedef void sw_close_t(struct thread *, struct swdevt *);
  * Swap device table
  */
 struct swdevt {
-	int	sw_flags;
-	int	sw_nblks;
-	int     sw_used;
-	dev_t	sw_dev;
+	int sw_flags;
+	int sw_nblks;
+	int sw_used;
+	dev_t sw_dev;
 	struct vnode *sw_vp;
-	void	*sw_id;
+	void *sw_id;
 	__daddr_t sw_first;
 	__daddr_t sw_end;
 	struct blist *sw_blist;
-	TAILQ_ENTRY(swdevt)	sw_list;
-	sw_strategy_t		*sw_strategy;
-	sw_close_t		*sw_close;
+	TAILQ_ENTRY(swdevt) sw_list;
+	sw_strategy_t *sw_strategy;
+	sw_close_t *sw_close;
 };
 
-#define	SW_UNMAPPED	0x01
-#define	SW_CLOSING	0x04
+#define SW_UNMAPPED 0x01
+#define SW_CLOSING 0x04
 
 #ifdef _KERNEL
 
@@ -75,8 +75,8 @@ struct xswdev;
 int swap_dev_info(int name, struct xswdev *xs, char *devname, size_t len);
 void swap_pager_copy(vm_object_t, vm_object_t, vm_pindex_t, int);
 vm_pindex_t swap_pager_find_least(vm_object_t object, vm_pindex_t pindex);
-void swap_pager_freespace(vm_object_t object, vm_pindex_t start,
-    vm_size_t size, vm_size_t *freed);
+void swap_pager_freespace(vm_object_t object, vm_pindex_t start, vm_size_t size,
+    vm_size_t *freed);
 void swap_pager_swap_init(void);
 int swap_pager_nswapdev(void);
 int swap_pager_reserve(vm_object_t, vm_pindex_t, vm_pindex_t);
@@ -85,5 +85,5 @@ u_long swap_pager_swapped_pages(vm_object_t object);
 void swapoff_all(void);
 bool swap_pager_init_object(vm_object_t object, void *handle,
     struct ucred *cred, vm_ooffset_t size, vm_ooffset_t offset);
-#endif				/* _KERNEL */
-#endif				/* _VM_SWAP_PAGER_H_ */
+#endif /* _KERNEL */
+#endif /* _VM_SWAP_PAGER_H_ */

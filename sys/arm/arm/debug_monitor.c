@@ -26,27 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
-#include <sys/param.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kdb.h>
 #include <sys/pcpu.h>
 #include <sys/reg.h>
 #include <sys/smp.h>
-#include <sys/systm.h>
 
-#include <machine/atomic.h>
 #include <machine/armreg.h>
+#include <machine/atomic.h>
 #include <machine/cpu.h>
 #include <machine/debug_monitor.h>
 #include <machine/kdb.h>
 #include <machine/pcb.h>
 
-#include <ddb/ddb.h>
 #include <ddb/db_access.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 
 enum dbg_t {
 	DBG_TYPE_BREAKPOINT = 0,
@@ -54,11 +54,11 @@ enum dbg_t {
 };
 
 struct dbg_wb_conf {
-	enum dbg_t		type;
-	enum dbg_access_t	access;
-	db_addr_t		address;
-	db_expr_t		size;
-	u_int			slot;
+	enum dbg_t type;
+	enum dbg_access_t access;
+	db_addr_t address;
+	db_expr_t size;
+	u_int slot;
 };
 
 static int dbg_reset_state(void);
@@ -70,138 +70,142 @@ static boolean_t dbg_check_slot_free(enum dbg_t, u_int);
 static int dbg_remove_xpoint(struct dbg_wb_conf *);
 static int dbg_setup_xpoint(struct dbg_wb_conf *);
 
-static int dbg_capable_var;	/* Indicates that machine is capable of using
-				   HW watchpoints/breakpoints */
+static int dbg_capable_var; /* Indicates that machine is capable of using
+			       HW watchpoints/breakpoints */
 
-static uint32_t dbg_model;	/* Debug Arch. Model */
-static boolean_t dbg_ossr;	/* OS Save and Restore implemented */
+static uint32_t dbg_model; /* Debug Arch. Model */
+static boolean_t dbg_ossr; /* OS Save and Restore implemented */
 
 static uint32_t dbg_watchpoint_num;
 static uint32_t dbg_breakpoint_num;
 
 /* ID_DFR0 - Debug Feature Register 0 */
-#define	ID_DFR0_CP_DEBUG_M_SHIFT	0
-#define	ID_DFR0_CP_DEBUG_M_MASK		(0xF << ID_DFR0_CP_DEBUG_M_SHIFT)
-#define	ID_DFR0_CP_DEBUG_M_NS		(0x0) /* Not supported */
-#define	ID_DFR0_CP_DEBUG_M_V6		(0x2) /* v6 Debug arch. CP14 access */
-#define	ID_DFR0_CP_DEBUG_M_V6_1		(0x3) /* v6.1 Debug arch. CP14 access */
-#define	ID_DFR0_CP_DEBUG_M_V7		(0x4) /* v7 Debug arch. CP14 access */
-#define	ID_DFR0_CP_DEBUG_M_V7_1		(0x5) /* v7.1 Debug arch. CP14 access */
+#define ID_DFR0_CP_DEBUG_M_SHIFT 0
+#define ID_DFR0_CP_DEBUG_M_MASK (0xF << ID_DFR0_CP_DEBUG_M_SHIFT)
+#define ID_DFR0_CP_DEBUG_M_NS (0x0)   /* Not supported */
+#define ID_DFR0_CP_DEBUG_M_V6 (0x2)   /* v6 Debug arch. CP14 access */
+#define ID_DFR0_CP_DEBUG_M_V6_1 (0x3) /* v6.1 Debug arch. CP14 access */
+#define ID_DFR0_CP_DEBUG_M_V7 (0x4)   /* v7 Debug arch. CP14 access */
+#define ID_DFR0_CP_DEBUG_M_V7_1 (0x5) /* v7.1 Debug arch. CP14 access */
 
 /* DBGDIDR - Debug ID Register */
-#define	DBGDIDR_WRPS_SHIFT		28
-#define	DBGDIDR_WRPS_MASK		(0xF << DBGDIDR_WRPS_SHIFT)
-#define	DBGDIDR_WRPS_NUM(reg)		\
-    ((((reg) & DBGDIDR_WRPS_MASK) >> DBGDIDR_WRPS_SHIFT) + 1)
+#define DBGDIDR_WRPS_SHIFT 28
+#define DBGDIDR_WRPS_MASK (0xF << DBGDIDR_WRPS_SHIFT)
+#define DBGDIDR_WRPS_NUM(reg) \
+	((((reg) & DBGDIDR_WRPS_MASK) >> DBGDIDR_WRPS_SHIFT) + 1)
 
-#define	DBGDIDR_BRPS_SHIFT		24
-#define	DBGDIDR_BRPS_MASK		(0xF << DBGDIDR_BRPS_SHIFT)
-#define	DBGDIDR_BRPS_NUM(reg)		\
-    ((((reg) & DBGDIDR_BRPS_MASK) >> DBGDIDR_BRPS_SHIFT) + 1)
+#define DBGDIDR_BRPS_SHIFT 24
+#define DBGDIDR_BRPS_MASK (0xF << DBGDIDR_BRPS_SHIFT)
+#define DBGDIDR_BRPS_NUM(reg) \
+	((((reg) & DBGDIDR_BRPS_MASK) >> DBGDIDR_BRPS_SHIFT) + 1)
 
 /* DBGPRSR - Device Powerdown and Reset Status Register */
-#define	DBGPRSR_PU			(1 << 0) /* Powerup status */
+#define DBGPRSR_PU (1 << 0) /* Powerup status */
 
 /* DBGOSLSR - OS Lock Status Register */
-#define	DBGOSLSR_OSLM0			(1 << 0)
+#define DBGOSLSR_OSLM0 (1 << 0)
 
 /* DBGOSDLR - OS Double Lock Register */
-#define	DBGPRSR_DLK			(1 << 0) /* OS Double Lock set */
+#define DBGPRSR_DLK (1 << 0) /* OS Double Lock set */
 
 /* DBGDSCR - Debug Status and Control Register */
-#define	DBGSCR_MDBG_EN			(1 << 15) /* Monitor debug-mode enable */
+#define DBGSCR_MDBG_EN (1 << 15) /* Monitor debug-mode enable */
 
 /* DBGWVR - Watchpoint Value Register */
-#define	DBGWVR_ADDR_MASK		(~0x3U)
+#define DBGWVR_ADDR_MASK (~0x3U)
 
 /* Watchpoints/breakpoints control register bitfields */
-#define	DBG_WB_CTRL_LEN_1		(0x1 << 5)
-#define	DBG_WB_CTRL_LEN_2		(0x3 << 5)
-#define	DBG_WB_CTRL_LEN_4		(0xf << 5)
-#define	DBG_WB_CTRL_LEN_8		(0xff << 5)
-#define	DBG_WB_CTRL_LEN_MASK(x)	((x) & (0xff << 5))
-#define	DBG_WB_CTRL_EXEC		(0x0 << 3)
-#define	DBG_WB_CTRL_LOAD		(0x1 << 3)
-#define	DBG_WB_CTRL_STORE		(0x2 << 3)
-#define	DBG_WB_CTRL_ACCESS_MASK(x)	((x) & (0x3 << 3))
+#define DBG_WB_CTRL_LEN_1 (0x1 << 5)
+#define DBG_WB_CTRL_LEN_2 (0x3 << 5)
+#define DBG_WB_CTRL_LEN_4 (0xf << 5)
+#define DBG_WB_CTRL_LEN_8 (0xff << 5)
+#define DBG_WB_CTRL_LEN_MASK(x) ((x) & (0xff << 5))
+#define DBG_WB_CTRL_EXEC (0x0 << 3)
+#define DBG_WB_CTRL_LOAD (0x1 << 3)
+#define DBG_WB_CTRL_STORE (0x2 << 3)
+#define DBG_WB_CTRL_ACCESS_MASK(x) ((x) & (0x3 << 3))
 
 /* Common for breakpoint and watchpoint */
-#define	DBG_WB_CTRL_PL1		(0x1 << 1)
-#define	DBG_WB_CTRL_PL0		(0x2 << 1)
-#define	DBG_WB_CTRL_PLX_MASK(x)	((x) & (0x3 << 1))
-#define	DBG_WB_CTRL_E		(0x1 << 0)
+#define DBG_WB_CTRL_PL1 (0x1 << 1)
+#define DBG_WB_CTRL_PL0 (0x2 << 1)
+#define DBG_WB_CTRL_PLX_MASK(x) ((x) & (0x3 << 1))
+#define DBG_WB_CTRL_E (0x1 << 0)
 
 /*
  * Watchpoint/breakpoint helpers
  */
-#define	DBG_BKPT_BT_SLOT	0	/* Slot for branch taken */
-#define	DBG_BKPT_BNT_SLOT	1	/* Slot for branch not taken */
+#define DBG_BKPT_BT_SLOT 0  /* Slot for branch taken */
+#define DBG_BKPT_BNT_SLOT 1 /* Slot for branch not taken */
 
-#define	OP2_SHIFT		4
+#define OP2_SHIFT 4
 
 /* Opc2 numbers for coprocessor instructions */
-#define	DBG_WB_BVR	4
-#define	DBG_WB_BCR	5
-#define	DBG_WB_WVR	6
-#define	DBG_WB_WCR	7
+#define DBG_WB_BVR 4
+#define DBG_WB_BCR 5
+#define DBG_WB_WVR 6
+#define DBG_WB_WCR 7
 
-#define	DBG_REG_BASE_BVR	(DBG_WB_BVR << OP2_SHIFT)
-#define	DBG_REG_BASE_BCR	(DBG_WB_BCR << OP2_SHIFT)
-#define	DBG_REG_BASE_WVR	(DBG_WB_WVR << OP2_SHIFT)
-#define	DBG_REG_BASE_WCR	(DBG_WB_WCR << OP2_SHIFT)
+#define DBG_REG_BASE_BVR (DBG_WB_BVR << OP2_SHIFT)
+#define DBG_REG_BASE_BCR (DBG_WB_BCR << OP2_SHIFT)
+#define DBG_REG_BASE_WVR (DBG_WB_WVR << OP2_SHIFT)
+#define DBG_REG_BASE_WCR (DBG_WB_WCR << OP2_SHIFT)
 
-#define	DBG_WB_READ(cn, cm, op2, val) do {					\
-	__asm __volatile("mrc p14, 0, %0, " #cn "," #cm "," #op2 : "=r" (val));	\
-} while (0)
+#define DBG_WB_READ(cn, cm, op2, val)                                    \
+	do {                                                             \
+		__asm __volatile("mrc p14, 0, %0, " #cn "," #cm "," #op2 \
+				 : "=r"(val));                           \
+	} while (0)
 
-#define	DBG_WB_WRITE(cn, cm, op2, val) do {					\
-	__asm __volatile("mcr p14, 0, %0, " #cn "," #cm "," #op2 :: "r" (val));	\
-} while (0)
+#define DBG_WB_WRITE(cn, cm, op2, val)                                   \
+	do {                                                             \
+		__asm __volatile(                                        \
+		    "mcr p14, 0, %0, " #cn "," #cm "," #op2 ::"r"(val)); \
+	} while (0)
 
-#define	READ_WB_REG_CASE(op2, m, val)			\
-	case (((op2) << OP2_SHIFT) + m):		\
-		DBG_WB_READ(c0, c ## m, op2, val);	\
+#define READ_WB_REG_CASE(op2, m, val)            \
+	case (((op2) << OP2_SHIFT) + m):         \
+		DBG_WB_READ(c0, c##m, op2, val); \
 		break
 
-#define	WRITE_WB_REG_CASE(op2, m, val)			\
-	case (((op2) << OP2_SHIFT) + m):		\
-		DBG_WB_WRITE(c0, c ## m, op2, val);	\
+#define WRITE_WB_REG_CASE(op2, m, val)            \
+	case (((op2) << OP2_SHIFT) + m):          \
+		DBG_WB_WRITE(c0, c##m, op2, val); \
 		break
 
-#define	SWITCH_CASES_READ_WB_REG(op2, val)	\
-	READ_WB_REG_CASE(op2,  0, val);		\
-	READ_WB_REG_CASE(op2,  1, val);		\
-	READ_WB_REG_CASE(op2,  2, val);		\
-	READ_WB_REG_CASE(op2,  3, val);		\
-	READ_WB_REG_CASE(op2,  4, val);		\
-	READ_WB_REG_CASE(op2,  5, val);		\
-	READ_WB_REG_CASE(op2,  6, val);		\
-	READ_WB_REG_CASE(op2,  7, val);		\
-	READ_WB_REG_CASE(op2,  8, val);		\
-	READ_WB_REG_CASE(op2,  9, val);		\
-	READ_WB_REG_CASE(op2, 10, val);		\
-	READ_WB_REG_CASE(op2, 11, val);		\
-	READ_WB_REG_CASE(op2, 12, val);		\
-	READ_WB_REG_CASE(op2, 13, val);		\
-	READ_WB_REG_CASE(op2, 14, val);		\
+#define SWITCH_CASES_READ_WB_REG(op2, val) \
+	READ_WB_REG_CASE(op2, 0, val);     \
+	READ_WB_REG_CASE(op2, 1, val);     \
+	READ_WB_REG_CASE(op2, 2, val);     \
+	READ_WB_REG_CASE(op2, 3, val);     \
+	READ_WB_REG_CASE(op2, 4, val);     \
+	READ_WB_REG_CASE(op2, 5, val);     \
+	READ_WB_REG_CASE(op2, 6, val);     \
+	READ_WB_REG_CASE(op2, 7, val);     \
+	READ_WB_REG_CASE(op2, 8, val);     \
+	READ_WB_REG_CASE(op2, 9, val);     \
+	READ_WB_REG_CASE(op2, 10, val);    \
+	READ_WB_REG_CASE(op2, 11, val);    \
+	READ_WB_REG_CASE(op2, 12, val);    \
+	READ_WB_REG_CASE(op2, 13, val);    \
+	READ_WB_REG_CASE(op2, 14, val);    \
 	READ_WB_REG_CASE(op2, 15, val)
 
-#define	SWITCH_CASES_WRITE_WB_REG(op2, val)	\
-	WRITE_WB_REG_CASE(op2,  0, val);	\
-	WRITE_WB_REG_CASE(op2,  1, val);	\
-	WRITE_WB_REG_CASE(op2,  2, val);	\
-	WRITE_WB_REG_CASE(op2,  3, val);	\
-	WRITE_WB_REG_CASE(op2,  4, val);	\
-	WRITE_WB_REG_CASE(op2,  5, val);	\
-	WRITE_WB_REG_CASE(op2,  6, val);	\
-	WRITE_WB_REG_CASE(op2,  7, val);	\
-	WRITE_WB_REG_CASE(op2,  8, val);	\
-	WRITE_WB_REG_CASE(op2,  9, val);	\
-	WRITE_WB_REG_CASE(op2, 10, val);	\
-	WRITE_WB_REG_CASE(op2, 11, val);	\
-	WRITE_WB_REG_CASE(op2, 12, val);	\
-	WRITE_WB_REG_CASE(op2, 13, val);	\
-	WRITE_WB_REG_CASE(op2, 14, val);	\
+#define SWITCH_CASES_WRITE_WB_REG(op2, val) \
+	WRITE_WB_REG_CASE(op2, 0, val);     \
+	WRITE_WB_REG_CASE(op2, 1, val);     \
+	WRITE_WB_REG_CASE(op2, 2, val);     \
+	WRITE_WB_REG_CASE(op2, 3, val);     \
+	WRITE_WB_REG_CASE(op2, 4, val);     \
+	WRITE_WB_REG_CASE(op2, 5, val);     \
+	WRITE_WB_REG_CASE(op2, 6, val);     \
+	WRITE_WB_REG_CASE(op2, 7, val);     \
+	WRITE_WB_REG_CASE(op2, 8, val);     \
+	WRITE_WB_REG_CASE(op2, 9, val);     \
+	WRITE_WB_REG_CASE(op2, 10, val);    \
+	WRITE_WB_REG_CASE(op2, 11, val);    \
+	WRITE_WB_REG_CASE(op2, 12, val);    \
+	WRITE_WB_REG_CASE(op2, 13, val);    \
+	WRITE_WB_REG_CASE(op2, 14, val);    \
 	WRITE_WB_REG_CASE(op2, 15, val)
 
 static uint32_t
@@ -212,13 +216,12 @@ dbg_wb_read_reg(int reg, int n)
 	val = 0;
 
 	switch (reg + n) {
-	SWITCH_CASES_READ_WB_REG(DBG_WB_WVR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_WCR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_BVR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_BCR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_WVR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_WCR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_BVR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_BCR, val);
 	default:
-		db_printf(
-		    "trying to read from CP14 reg. using wrong opc2 %d\n",
+		db_printf("trying to read from CP14 reg. using wrong opc2 %d\n",
 		    reg >> OP2_SHIFT);
 	}
 
@@ -230,13 +233,12 @@ dbg_wb_write_reg(int reg, int n, uint32_t val)
 {
 
 	switch (reg + n) {
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_WVR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_WCR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_BVR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_BCR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_WVR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_WCR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_BVR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_BCR, val);
 	default:
-		db_printf(
-		    "trying to write to CP14 reg. using wrong opc2 %d\n",
+		db_printf("trying to write to CP14 reg. using wrong opc2 %d\n",
 		    reg >> OP2_SHIFT);
 	}
 	isb();
@@ -416,16 +418,16 @@ dbg_watchtype_str(uint32_t type)
 {
 
 	switch (type) {
-		case DBG_WB_CTRL_EXEC:
-			return ("execute");
-		case DBG_WB_CTRL_STORE:
-			return ("write");
-		case DBG_WB_CTRL_LOAD:
-			return ("read");
-		case DBG_WB_CTRL_LOAD | DBG_WB_CTRL_STORE:
-			return ("read/write");
-		default:
-			return ("invalid");
+	case DBG_WB_CTRL_EXEC:
+		return ("execute");
+	case DBG_WB_CTRL_STORE:
+		return ("write");
+	case DBG_WB_CTRL_LOAD:
+		return ("read");
+	case DBG_WB_CTRL_LOAD | DBG_WB_CTRL_STORE:
+		return ("read/write");
+	default:
+		return ("invalid");
 	}
 }
 
@@ -457,13 +459,15 @@ dbg_show_watchpoint(void)
 
 	if (!dbg_capable()) {
 		db_printf("Architecture does not support HW "
-		    "breakpoints/watchpoints\n");
+			  "breakpoints/watchpoints\n");
 		return;
 	}
 
 	db_printf("\nhardware watchpoints:\n");
-	db_printf("  watch    status        type  len     address              symbol\n");
-	db_printf("  -----  --------  ----------  ---  ----------  ------------------\n");
+	db_printf(
+	    "  watch    status        type  len     address              symbol\n");
+	db_printf(
+	    "  -----  --------  ----------  ---  ----------  ------------------\n");
 	for (i = 0; i < dbg_watchpoint_num; i++) {
 		wcr = dbg_wb_read_reg(DBG_REG_BASE_WCR, i);
 		if ((wcr & DBG_WB_CTRL_E) != 0)
@@ -477,8 +481,7 @@ dbg_show_watchpoint(void)
 		db_printf("  %-5d  %-8s  %10s  %3d  0x%08x  ", i,
 		    is_enabled ? "enabled" : "disabled",
 		    is_enabled ? dbg_watchtype_str(type) : "",
-		    is_enabled ? dbg_watchtype_len(len) : 0,
-		    addr);
+		    is_enabled ? dbg_watchtype_len(len) : 0, addr);
 		db_printsym((db_addr_t)addr, DB_STGY_ANY);
 		db_printf("\n");
 	}
@@ -490,7 +493,7 @@ dbg_check_slot_free(enum dbg_t type, u_int slot)
 	uint32_t cr, vr;
 	uint32_t max;
 
-	switch(type) {
+	switch (type) {
 	case DBG_TYPE_BREAKPOINT:
 		max = dbg_breakpoint_num;
 		cr = DBG_REG_BASE_BCR;
@@ -507,8 +510,8 @@ dbg_check_slot_free(enum dbg_t type, u_int slot)
 	}
 
 	if (slot >= max) {
-		db_printf("%s: Invalid slot number %d, max %d\n",
-		    __func__, slot, max - 1);
+		db_printf("%s: Invalid slot number %d, max %d\n", __func__,
+		    slot, max - 1);
 		return (FALSE);
 	}
 
@@ -524,7 +527,7 @@ dbg_find_free_slot(enum dbg_t type)
 {
 	u_int max, i;
 
-	switch(type) {
+	switch (type) {
 	case DBG_TYPE_BREAKPOINT:
 		max = dbg_breakpoint_num;
 		break;
@@ -550,7 +553,7 @@ dbg_find_slot(enum dbg_t type, db_expr_t addr)
 	uint32_t reg_addr, reg_ctrl;
 	u_int max, i;
 
-	switch(type) {
+	switch (type) {
 	case DBG_TYPE_BREAKPOINT:
 		max = dbg_breakpoint_num;
 		reg_addr = DBG_REG_BASE_BVR;
@@ -634,22 +637,25 @@ dbg_setup_xpoint(struct dbg_wb_conf *conf)
 
 	if (is_bkpt) {
 		if (dbg_breakpoint_num == 0) {
-			db_printf("Breakpoints not supported on this architecture\n");
+			db_printf(
+			    "Breakpoints not supported on this architecture\n");
 			return (ENXIO);
 		}
 		i = conf->slot;
 		if (!dbg_check_slot_free(DBG_TYPE_BREAKPOINT, i)) {
 			/*
 			 * This should never happen. If it does it means that
-			 * there is an erroneus scenario somewhere. Still, it can
-			 * be done but let's inform the user.
+			 * there is an erroneus scenario somewhere. Still, it
+			 * can be done but let's inform the user.
 			 */
-			db_printf("ERROR: Breakpoint already set. Replacing...\n");
+			db_printf(
+			    "ERROR: Breakpoint already set. Replacing...\n");
 		}
 	} else {
 		i = dbg_find_free_slot(DBG_TYPE_WATCHPOINT);
 		if (i == ~0U) {
-			db_printf("Can not find slot for %s, max %d slots supported\n",
+			db_printf(
+			    "Can not find slot for %s, max %d slots supported\n",
 			    typestr, dbg_watchpoint_num);
 			return (EBUSY);
 		}
@@ -658,7 +664,7 @@ dbg_setup_xpoint(struct dbg_wb_conf *conf)
 	/* Kernel access only */
 	cr_priv = DBG_WB_CTRL_PL1;
 
-	switch(conf->size) {
+	switch (conf->size) {
 	case 1:
 		cr_size = DBG_WB_CTRL_LEN_1;
 		break;
@@ -684,7 +690,7 @@ dbg_setup_xpoint(struct dbg_wb_conf *conf)
 		/* Always unlinked BKPT */
 		ctrl = (cr_size | cr_access | cr_priv | DBG_WB_CTRL_E);
 	} else {
-		switch(conf->access) {
+		switch (conf->access) {
 		case HW_WATCHPOINT_R:
 			cr_access = DBG_WB_CTRL_LOAD;
 			break;
@@ -716,7 +722,7 @@ dbg_setup_xpoint(struct dbg_wb_conf *conf)
 	 * are only used to perform single stepping.
 	 */
 	if (!is_bkpt) {
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			pcpu = pcpu_find(cpu);
 			/* Fill out the settings for watchpoint */
 			d = (struct dbreg *)pcpu->pc_dbreg;
@@ -756,7 +762,8 @@ dbg_remove_xpoint(struct dbg_wb_conf *conf)
 	} else {
 		i = dbg_find_slot(DBG_TYPE_WATCHPOINT, addr);
 		if (i == ~0U) {
-			db_printf("Can not find watchpoint for address 0%x\n", addr);
+			db_printf("Can not find watchpoint for address 0%x\n",
+			    addr);
 			return (EINVAL);
 		}
 		reg_ctrl = DBG_REG_BASE_WCR;
@@ -772,7 +779,7 @@ dbg_remove_xpoint(struct dbg_wb_conf *conf)
 	 * are only used to perform single stepping.
 	 */
 	if (!is_bkpt) {
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			pcpu = pcpu_find(cpu);
 			/* Fill out the settings for watchpoint */
 			d = (struct dbreg *)pcpu->pc_dbreg;
@@ -836,7 +843,7 @@ dbg_arch_supported(void)
 			return (FALSE);
 		return (TRUE);
 	case ID_DFR0_CP_DEBUG_M_V7:
-	case ID_DFR0_CP_DEBUG_M_V7_1:	/* fall through */
+	case ID_DFR0_CP_DEBUG_M_V7_1: /* fall through */
 		return (TRUE);
 	default:
 		/* We only support valid v6.x/v7.x modes through CP14 */
@@ -958,7 +965,7 @@ vectr_clr:
 void
 dbg_monitor_init(void)
 {
-#ifdef	ARM_FORCE_DBG_MONITOR_DISABLE
+#ifdef ARM_FORCE_DBG_MONITOR_DISABLE
 	db_printf("ARM Debug Architecture disabled in kernel compilation.\n");
 	return;
 #else
@@ -974,10 +981,11 @@ dbg_monitor_init(void)
 
 	if (bootverbose) {
 		db_printf("ARM Debug Architecture %s\n",
-		    (dbg_model == ID_DFR0_CP_DEBUG_M_V6) ? "v6" :
-		    (dbg_model == ID_DFR0_CP_DEBUG_M_V6_1) ? "v6.1" :
-		    (dbg_model == ID_DFR0_CP_DEBUG_M_V7) ? "v7" :
-		    (dbg_model == ID_DFR0_CP_DEBUG_M_V7_1) ? "v7.1" : "unknown");
+		    (dbg_model == ID_DFR0_CP_DEBUG_M_V6)       ? "v6" :
+			(dbg_model == ID_DFR0_CP_DEBUG_M_V6_1) ? "v6.1" :
+			(dbg_model == ID_DFR0_CP_DEBUG_M_V7)   ? "v7" :
+			(dbg_model == ID_DFR0_CP_DEBUG_M_V7_1) ? "v7.1" :
+								 "unknown");
 	}
 
 	/* Do we have OS Save and Restore mechanism? */
@@ -1003,7 +1011,7 @@ dbg_monitor_init(void)
 
 	db_printf("HW Breakpoints/Watchpoints not enabled on CPU%d\n",
 	    PCPU_GET(cpuid));
-#endif	/* ARM_FORCE_DBG_MONITOR_DISABLE */
+#endif /* ARM_FORCE_DBG_MONITOR_DISABLE */
 }
 
 CTASSERT(sizeof(struct dbreg) == sizeof(((struct pcpu *)NULL)->pc_dbreg));
@@ -1025,16 +1033,20 @@ dbg_monitor_init_secondary(void)
 		 * Something is very wrong.
 		 * WPs/BPs will not work correctly on this CPU.
 		 */
-		KASSERT(0, ("%s: Failed to reset Debug Architecture "
-		    "state on CPU%d", __func__, PCPU_GET(cpuid)));
+		KASSERT(0,
+		    ("%s: Failed to reset Debug Architecture "
+		     "state on CPU%d",
+			__func__, PCPU_GET(cpuid)));
 		/* Disable HW debug capabilities for all CPUs */
 		atomic_set_int(&dbg_capable_var, 0);
 		return;
 	}
 	err = dbg_enable_monitor();
 	if (err != 0) {
-		KASSERT(0, ("%s: Failed to enable Debug Monitor"
-		    " on CPU%d", __func__, PCPU_GET(cpuid)));
+		KASSERT(0,
+		    ("%s: Failed to enable Debug Monitor"
+		     " on CPU%d",
+			__func__, PCPU_GET(cpuid)));
 		atomic_set_int(&dbg_capable_var, 0);
 	}
 }

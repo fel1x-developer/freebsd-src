@@ -36,10 +36,9 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
-#include <libprocstat.h>
 #include <inttypes.h>
+#include <libprocstat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +54,7 @@ procstat_pwdx(struct procstat *procstat, struct kinfo_proc *kipp)
 	head = procstat_getfiles(procstat, kipp, 0);
 	if (head == NULL)
 		return;
-	STAILQ_FOREACH(fst, head, next) {
+	STAILQ_FOREACH (fst, head, next) {
 		if ((fst->fs_uflags & PS_FST_UFLAG_CDIR) &&
 		    (fst->fs_path != NULL)) {
 			xo_emit("{k:process_id/%d}{P::  }", kipp->ki_pid);

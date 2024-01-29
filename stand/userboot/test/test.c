@@ -28,6 +28,7 @@
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+
 #include <dirent.h>
 #include <dlfcn.h>
 #include <err.h>
@@ -41,7 +42,6 @@
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
-
 #include <userboot.h>
 
 char *host_base = NULL;
@@ -128,7 +128,7 @@ test_open(void *arg, const char *filename, void **h_return)
 		tf->tf_u.dir = opendir(path);
 		if (!tf->tf_u.dir)
 			goto out;
-                *h_return = tf;
+		*h_return = tf;
 		return (0);
 	}
 	if (S_ISREG(tf->tf_stat.st_mode)) {
@@ -136,7 +136,7 @@ test_open(void *arg, const char *filename, void **h_return)
 		tf->tf_u.fd = open(path, O_RDONLY);
 		if (tf->tf_u.fd < 0)
 			goto out;
-                *h_return = tf;
+		*h_return = tf;
 		return (0);
 	}
 
@@ -317,7 +317,7 @@ test_copyin(void *arg, const void *from, uint64_t to, size_t size)
 	if (to + size > image_size)
 		size = image_size - to;
 	memcpy(&image[to], from, size);
-	return(0);
+	return (0);
 }
 
 int
@@ -330,7 +330,7 @@ test_copyout(void *arg, uint64_t from, void *to, size_t size)
 	if (from + size > image_size)
 		size = image_size - from;
 	memcpy(to, &image[from], size);
-	return(0);
+	return (0);
 }
 
 void
@@ -360,7 +360,7 @@ test_setgdt(void *arg, uint64_t v, size_t sz)
 void
 test_exec(void *arg, uint64_t pc)
 {
-	printf("Execute at 0x%"PRIx64"\n", pc);
+	printf("Execute at 0x%" PRIx64 "\n", pc);
 	test_exit(arg, 0);
 }
 
@@ -387,18 +387,14 @@ void
 test_getmem(void *arg, uint64_t *lowmem, uint64_t *highmem)
 {
 
-        *lowmem = 128*1024*1024;
-        *highmem = 0;
+	*lowmem = 128 * 1024 * 1024;
+	*highmem = 0;
 }
 
 char *
 test_getenv(void *arg, int idx)
 {
-	static char *vars[] = {
-		"foo=bar",
-		"bar=barbar",
-		NULL
-	};
+	static char *vars[] = { "foo=bar", "bar=barbar", NULL };
 
 	return (vars[idx]);
 }
@@ -425,12 +421,12 @@ struct loader_callbacks cb = {
 	.setreg = test_setreg,
 	.setmsr = test_setmsr,
 	.setcr = test_setcr,
-        .setgdt = test_setgdt,
+	.setgdt = test_setgdt,
 	.exec = test_exec,
 
 	.delay = test_delay,
 	.exit = test_exit,
-        .getmem = test_getmem,
+	.getmem = test_getmem,
 
 	.getenv = test_getenv,
 };
@@ -439,12 +435,13 @@ void
 usage()
 {
 
-	printf("usage: [-b <userboot shared object>] [-d <disk image path>] [-h <host filesystem path>\n");
+	printf(
+	    "usage: [-b <userboot shared object>] [-d <disk image path>] [-h <host filesystem path>\n");
 	exit(1);
 }
 
 int
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
 	void *h;
 	void (*func)(struct loader_callbacks *, void *, int, int) __dead2;
@@ -461,7 +458,7 @@ main(int argc, char** argv)
 		case 'd':
 			disk_index++;
 			disk_fd = reallocarray(disk_fd, disk_index + 1,
-			    sizeof (int));
+			    sizeof(int));
 			disk_fd[disk_index] = open(optarg, oflag);
 			if (disk_fd[disk_index] < 0)
 				err(1, "Can't open disk image '%s'", optarg);
@@ -491,13 +488,13 @@ main(int argc, char** argv)
 		return (1);
 	}
 
-	image_size = 128*1024*1024;
+	image_size = 128 * 1024 * 1024;
 	image = malloc(image_size);
 
 	tcgetattr(0, &term);
 	oldterm = term;
 	term.c_iflag &= ~(ICRNL);
-	term.c_lflag &= ~(ICANON|ECHO);
+	term.c_lflag &= ~(ICANON | ECHO);
 	tcsetattr(0, TCSAFLUSH, &term);
 
 	func(&cb, NULL, USERBOOT_VERSION_3, disk_index + 1);

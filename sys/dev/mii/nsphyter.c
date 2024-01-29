@@ -74,54 +74,43 @@
 #include <sys/module.h>
 #include <sys/socket.h>
 
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/mii/nsphyterreg.h>
+
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include "miibus_if.h"
 #include "miidevs.h"
 
-#include <dev/mii/nsphyterreg.h>
-
-#include "miibus_if.h"
-
-static device_probe_t	nsphyter_probe;
-static device_attach_t	nsphyter_attach;
+static device_probe_t nsphyter_probe;
+static device_attach_t nsphyter_attach;
 
 static device_method_t nsphyter_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		nsphyter_probe),
-	DEVMETHOD(device_attach,	nsphyter_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, nsphyter_probe),
+	DEVMETHOD(device_attach, nsphyter_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t nsphyter_driver = {
-	"nsphyter",
-	nsphyter_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t nsphyter_driver = { "nsphyter", nsphyter_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(nsphyter, miibus, nsphyter_driver, 0, 0);
 
-static int	nsphyter_service(struct mii_softc *, struct mii_data *, int);
-static void	nsphyter_status(struct mii_softc *);
-static void	nsphyter_reset(struct mii_softc *);
+static int nsphyter_service(struct mii_softc *, struct mii_data *, int);
+static void nsphyter_status(struct mii_softc *);
+static void nsphyter_reset(struct mii_softc *);
 
-static const struct mii_phydesc nsphyters[] = {
-	MII_PHY_DESC(xxNATSEMI, DP83815),
-	MII_PHY_DESC(xxNATSEMI, DP83843),
-	MII_PHY_DESC(xxNATSEMI, DP83847),
-	MII_PHY_DESC(xxNATSEMI, DP83849),
-	MII_PHY_END
-};
+static const struct mii_phydesc nsphyters[] = { MII_PHY_DESC(xxNATSEMI,
+						    DP83815),
+	MII_PHY_DESC(xxNATSEMI, DP83843), MII_PHY_DESC(xxNATSEMI, DP83847),
+	MII_PHY_DESC(xxNATSEMI, DP83849), MII_PHY_END };
 
-static const struct mii_phy_funcs nsphyter_funcs = {
-	nsphyter_service,
-	nsphyter_status,
-	nsphyter_reset
-};
+static const struct mii_phy_funcs nsphyter_funcs = { nsphyter_service,
+	nsphyter_status, nsphyter_reset };
 
 static int
 nsphyter_probe(device_t dev)
@@ -206,8 +195,8 @@ nsphyter_status(struct mii_softc *sc)
 		else
 			mii->mii_media_active |= IFM_100_TX;
 		if ((physts & PHYSTS_DUPLEX) != 0)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

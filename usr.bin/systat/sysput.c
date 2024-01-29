@@ -28,20 +28,21 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+#include <machine/param.h>
+
 #include <err.h>
 #include <inttypes.h>
 #include <libutil.h>
-#include <machine/param.h>
 #include <string.h>
 
-#include "systat.h"
 #include "extern.h"
+#include "systat.h"
 
 void
 sysputspaces(WINDOW *wd, int row, int lcol, int width)
 {
 	static char str60[] = "                    "
-	    "                                        ";
+			      "                                        ";
 
 	mvwaddstr(wd, row, lcol, str60 + sizeof(str60) - width - 1);
 }
@@ -50,7 +51,7 @@ void
 sysputstrs(WINDOW *wd __unused, int row, int lcol, int width)
 {
 	static char str60[] = "********************"
-	    "****************************************";
+			      "****************************************";
 
 	/*
 	 * XXX wnd instead of wd?
@@ -62,7 +63,7 @@ void
 sysputXs(WINDOW *wd __unused, int row, int lcol, int width)
 {
 	static char str60[] = "XXXXXXXXXXXXXXXXXXXX"
-	    "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+			      "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
 	/*
 	 * XXX wnd instead of wd?
@@ -83,7 +84,7 @@ sysputuint64(WINDOW *wd, int row, int lcol, int width, uint64_t val, int flags)
 		goto error;
 	else
 		len = humanize_number(&wrtbuf[width], width + 1, val, "",
-			HN_AUTOSCALE, flags);
+		    HN_AUTOSCALE, flags);
 	if (len < 0)
 		goto error;
 	else if (len < width)
@@ -100,7 +101,7 @@ error:
 void
 sysputwuint64(WINDOW *wd, int row, int lcol, int width, uint64_t val, int flags)
 {
-	if(val == 0)
+	if (val == 0)
 		sysputspaces(wd, row, lcol, width);
 	else
 		sysputuint64(wd, row, lcol, width, val, flags);

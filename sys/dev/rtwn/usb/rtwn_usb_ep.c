@@ -18,42 +18,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
+#include <sys/condvar.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_device.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-
-#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/if_rtwn_debug.h>
-
-#include <dev/rtwn/usb/rtwn_usb_var.h>
+#include <dev/rtwn/if_rtwnvar.h>
+#include <dev/rtwn/rtl8192c/usb/r92cu_reg.h>
 #include <dev/rtwn/usb/rtwn_usb_ep.h>
 #include <dev/rtwn/usb/rtwn_usb_rx.h>
 #include <dev/rtwn/usb/rtwn_usb_tx.h>
+#include <dev/rtwn/usb/rtwn_usb_var.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_device.h>
+#include <dev/usb/usbdi.h>
 
-#include <dev/rtwn/rtl8192c/usb/r92cu_reg.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
 static const struct usb_config rtwn_config_common[RTWN_N_TRANSFER] = {
 	[RTWN_BULK_RX] = {
@@ -178,8 +174,8 @@ rtwn_usb_setup_endpoints(struct rtwn_usb_softc *uc)
 		eaddr = ep->edesc->bEndpointAddress;
 		RTWN_DPRINTF(sc, RTWN_DEBUG_USB,
 		    "%s: endpoint: addr %u, direction %s\n", __func__,
-		    UE_GET_ADDR(eaddr), UE_GET_DIR(eaddr) == UE_DIR_OUT ?
-		    "output" : "input");
+		    UE_GET_ADDR(eaddr),
+		    UE_GET_DIR(eaddr) == UE_DIR_OUT ? "output" : "input");
 
 		if (UE_GET_DIR(eaddr) == UE_DIR_OUT) {
 			if (uc->ntx == RTWN_MAX_EPOUT)
@@ -222,15 +218,17 @@ rtwn_usb_setup_endpoints(struct rtwn_usb_softc *uc)
 		break;
 	}
 
-	rtwn_config[RTWN_BULK_RX].bufsize =
-	    uc->uc_rx_buf_size * RTWN_USB_RXBUFSZ_UNIT;
-	error = usbd_transfer_setup(uc->uc_udev, &iface_index,
-	    uc->uc_xfer, rtwn_config, RTWN_N_TRANSFER, uc, &sc->sc_mtx);
+	rtwn_config[RTWN_BULK_RX].bufsize = uc->uc_rx_buf_size *
+	    RTWN_USB_RXBUFSZ_UNIT;
+	error = usbd_transfer_setup(uc->uc_udev, &iface_index, uc->uc_xfer,
+	    rtwn_config, RTWN_N_TRANSFER, uc, &sc->sc_mtx);
 	free(rtwn_config, M_TEMP);
 
 	if (error) {
-		device_printf(sc->sc_dev, "could not allocate USB transfers, "
-		    "err=%s\n", usbd_errstr(error));
+		device_printf(sc->sc_dev,
+		    "could not allocate USB transfers, "
+		    "err=%s\n",
+		    usbd_errstr(error));
 		return (error);
 	}
 

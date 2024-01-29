@@ -27,5 +27,5 @@ extern int signgam;
 float
 lgammaf(float x)
 {
-	return lgammaf_r(x,&signgam);
+	return lgammaf_r(x, &signgam);
 }

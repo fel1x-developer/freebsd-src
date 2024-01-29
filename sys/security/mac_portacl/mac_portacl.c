@@ -58,6 +58,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/domain.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
@@ -68,7 +69,6 @@
 #include <sys/proc.h>
 #include <sys/protosw.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
 #include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
@@ -82,47 +82,47 @@
 SYSCTL_DECL(_security_mac);
 
 static SYSCTL_NODE(_security_mac, OID_AUTO, portacl,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TrustedBSD mac_portacl policy controls");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "TrustedBSD mac_portacl policy controls");
 
-static int	portacl_enabled = 1;
+static int portacl_enabled = 1;
 SYSCTL_INT(_security_mac_portacl, OID_AUTO, enabled, CTLFLAG_RWTUN,
     &portacl_enabled, 0, "Enforce portacl policy");
 
-static int	portacl_suser_exempt = 1;
+static int portacl_suser_exempt = 1;
 SYSCTL_INT(_security_mac_portacl, OID_AUTO, suser_exempt, CTLFLAG_RWTUN,
     &portacl_suser_exempt, 0, "Privilege permits binding of any port");
 
-static int	portacl_autoport_exempt = 1;
+static int portacl_autoport_exempt = 1;
 SYSCTL_INT(_security_mac_portacl, OID_AUTO, autoport_exempt, CTLFLAG_RWTUN,
-    &portacl_autoport_exempt, 0, "Allow automatic allocation through "
+    &portacl_autoport_exempt, 0,
+    "Allow automatic allocation through "
     "binding port 0 if not IP_PORTRANGELOW");
 
-static int	portacl_port_high = 1023;
+static int portacl_port_high = 1023;
 SYSCTL_INT(_security_mac_portacl, OID_AUTO, port_high, CTLFLAG_RWTUN,
     &portacl_port_high, 0, "Highest port to enforce for");
 
 static MALLOC_DEFINE(M_PORTACL, "portacl_rule", "Rules for mac_portacl");
 
-#define	MAC_RULE_STRING_LEN	1024
+#define MAC_RULE_STRING_LEN 1024
 
-#define	RULE_GID	1
-#define	RULE_UID	2
-#define	RULE_PROTO_TCP	1
-#define	RULE_PROTO_UDP	2
+#define RULE_GID 1
+#define RULE_UID 2
+#define RULE_PROTO_TCP 1
+#define RULE_PROTO_UDP 2
 struct rule {
-	id_t			r_id;
-	int			r_idtype;
-	u_int16_t		r_port;
-	int			r_protocol;
+	id_t r_id;
+	int r_idtype;
+	u_int16_t r_port;
+	int r_protocol;
 
-	TAILQ_ENTRY(rule)	r_entries;
+	TAILQ_ENTRY(rule) r_entries;
 };
 
-#define	GID_STRING	"gid"
-#define	TCP_STRING	"tcp"
-#define	UID_STRING	"uid"
-#define	UDP_STRING	"udp"
+#define GID_STRING "gid"
+#define TCP_STRING "tcp"
+#define UID_STRING "uid"
+#define UDP_STRING "udp"
 
 /*
  * Text format for the rule string is that a rule consists of a
@@ -131,9 +131,9 @@ struct rule {
  * for the specified binding.
  */
 
-static struct mtx			rule_mtx;
-static TAILQ_HEAD(rulehead, rule)	rule_head;
-static char				rule_string[MAC_RULE_STRING_LEN];
+static struct mtx rule_mtx;
+static TAILQ_HEAD(rulehead, rule) rule_head;
+static char rule_string[MAC_RULE_STRING_LEN];
 
 static void
 toast_rules(struct rulehead *head)
@@ -371,8 +371,7 @@ out:
 }
 
 SYSCTL_PROC(_security_mac_portacl, OID_AUTO, rules,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE,
-    0, 0, sysctl_rules, "A",
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0, sysctl_rules, "A",
     "Rules");
 
 static int
@@ -391,9 +390,8 @@ rules_check(struct ucred *cred, int family, int type, u_int16_t port)
 
 	error = EPERM;
 	mtx_lock(&rule_mtx);
-	for (rule = TAILQ_FIRST(&rule_head);
-	    rule != NULL;
-	    rule = TAILQ_NEXT(rule, r_entries)) {
+	for (rule = TAILQ_FIRST(&rule_head); rule != NULL;
+	     rule = TAILQ_NEXT(rule, r_entries)) {
 		if (type == SOCK_DGRAM && rule->r_protocol != RULE_PROTO_UDP)
 			continue;
 		if (type == SOCK_STREAM && rule->r_protocol != RULE_PROTO_TCP)
@@ -431,8 +429,8 @@ rules_check(struct ucred *cred, int family, int type, u_int16_t port)
  * the source port is left up to the IP stack to determine automatically.
  */
 static int
-socket_check_bind(struct ucred *cred, struct socket *so,
-    struct label *solabel, struct sockaddr *sa)
+socket_check_bind(struct ucred *cred, struct socket *so, struct label *solabel,
+    struct sockaddr *sa)
 {
 	struct sockaddr_in *sin;
 	struct inpcb *inp;
@@ -449,8 +447,7 @@ socket_check_bind(struct ucred *cred, struct socket *so,
 		return (0);
 
 	/* Currently, we don't attempt to deal with SOCK_RAW, etc. */
-	if (so->so_type != SOCK_DGRAM &&
-	    so->so_type != SOCK_STREAM)
+	if (so->so_type != SOCK_DGRAM && so->so_type != SOCK_STREAM)
 		return (0);
 
 	/* Reject addresses we don't understand; fail closed. */
@@ -459,7 +456,7 @@ socket_check_bind(struct ucred *cred, struct socket *so,
 
 	family = so->so_proto->pr_domain->dom_family;
 	type = so->so_type;
-	sin = (struct sockaddr_in *) sa;
+	sin = (struct sockaddr_in *)sa;
 	port = ntohs(sin->sin_port);
 
 	/*
@@ -479,8 +476,7 @@ socket_check_bind(struct ucred *cred, struct socket *so,
 	return (rules_check(cred, family, type, port));
 }
 
-static struct mac_policy_ops portacl_ops =
-{
+static struct mac_policy_ops portacl_ops = {
 	.mpo_destroy = destroy,
 	.mpo_init = init,
 	.mpo_socket_check_bind = socket_check_bind,

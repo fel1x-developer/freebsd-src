@@ -32,21 +32,20 @@
 
 /* MD extension for 'struct pmc' */
 struct pmc_md_cmn600_pmc {
-	uint64_t        pm_cmn600_nodeid;
-	uint64_t        pm_cmn600_occupancy;
-	uint32_t        pm_cmn600_config;
-	uint32_t        pm_cmn600_event;
-	int32_t		pm_cmn600_node_type;
-	int		pm_cmn600_local_counter;
+	uint64_t pm_cmn600_nodeid;
+	uint64_t pm_cmn600_occupancy;
+	uint32_t pm_cmn600_config;
+	uint32_t pm_cmn600_event;
+	int32_t pm_cmn600_node_type;
+	int pm_cmn600_local_counter;
 };
 
 #endif /* _KERNEL */
 
 struct pmc_md_cmn600_pmu_op_pmcallocate {
-	uint64_t        pma_cmn600_nodeid;
-	uint64_t        pma_cmn600_occupancy;
-	uint32_t        pma_cmn600_config;
+	uint64_t pma_cmn600_nodeid;
+	uint64_t pma_cmn600_occupancy;
+	uint32_t pma_cmn600_config;
 };
 
 #endif /* _DEV_HWPMC_CMN600_H_ */
-

@@ -50,7 +50,7 @@
 #ifndef HEADER_DES_H
 #define HEADER_DES_H
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -58,27 +58,26 @@ extern "C" {
 #define DES_LONG uint32_t
 
 typedef unsigned char des_cblock[8];
-typedef struct des_ks_struct
-	{
-	union   {
-	des_cblock cblock;
-	/* make sure things are correct size on machines with
-	 * 8 byte longs */
-	DES_LONG deslong[2];
+typedef struct des_ks_struct {
+	union {
+		des_cblock cblock;
+		/* make sure things are correct size on machines with
+		 * 8 byte longs */
+		DES_LONG deslong[2];
 	} ks;
 	int weak_key;
 } des_key_schedule[16];
 
-#define DES_KEY_SZ 	(sizeof(des_cblock))
+#define DES_KEY_SZ (sizeof(des_cblock))
 #define DES_SCHEDULE_SZ (sizeof(des_key_schedule))
 
-#define DES_ENCRYPT	1
-#define DES_DECRYPT	0
+#define DES_ENCRYPT 1
+#define DES_DECRYPT 0
 
-#define DES_CBC_MODE	0
-#define DES_PCBC_MODE	1
+#define DES_CBC_MODE 0
+#define DES_PCBC_MODE 1
 
-extern int des_check_key;	/* defaults to false */
+extern int des_check_key; /* defaults to false */
 
 char *des_options(void);
 void des_ecb_encrypt(unsigned char *, unsigned char *, des_key_schedule, int);
@@ -86,15 +85,15 @@ void des_ecb_encrypt(unsigned char *, unsigned char *, des_key_schedule, int);
 void des_encrypt1(DES_LONG *, des_key_schedule, int);
 void des_encrypt2(DES_LONG *, des_key_schedule, int);
 void des_encrypt3(DES_LONG *, des_key_schedule, des_key_schedule,
-		      des_key_schedule);
+    des_key_schedule);
 void des_decrypt3(DES_LONG *, des_key_schedule, des_key_schedule,
-		      des_key_schedule);
+    des_key_schedule);
 
-void des_ecb3_encrypt(unsigned char *, unsigned char *, des_key_schedule, 
-			  des_key_schedule, des_key_schedule, int);
+void des_ecb3_encrypt(unsigned char *, unsigned char *, des_key_schedule,
+    des_key_schedule, des_key_schedule, int);
 
 void des_set_odd_parity(unsigned char *);
-void des_fixup_key_parity(unsigned char *); 
+void des_fixup_key_parity(unsigned char *);
 int des_is_weak_key(const unsigned char *);
 int des_set_key(const unsigned char *, des_key_schedule);
 int des_key_sched(const unsigned char *, des_key_schedule);
@@ -102,7 +101,7 @@ int des_set_key_checked(const unsigned char *, des_key_schedule);
 void des_set_key_unchecked(const unsigned char *, des_key_schedule);
 int des_check_key_parity(const unsigned char *);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

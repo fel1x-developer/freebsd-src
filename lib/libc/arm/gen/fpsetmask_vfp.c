@@ -26,16 +26,16 @@
  */
 
 #include <sys/types.h>
+
 #include <ieeefp.h>
 
 #ifdef __weak_alias
-__weak_alias(fpsetmask,_fpsetmask)
+__weak_alias(fpsetmask, _fpsetmask)
 #endif
 
-#define FP_X_MASK	(FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
+#define FP_X_MASK (FP_X_INV | FP_X_DZ | FP_X_OFL | FP_X_UFL | FP_X_IMP)
 
-fp_except_t
-fpsetmask(fp_except_t mask)
+    fp_except_t fpsetmask(fp_except_t mask)
 {
 	fp_except old, new;
 
@@ -46,4 +46,3 @@ fpsetmask(fp_except_t mask)
 
 	return ((old >> 8) & FP_X_MASK);
 }
-

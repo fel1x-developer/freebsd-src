@@ -28,14 +28,15 @@
  * From: $OpenBSD: fts.c,v 1.22 1999/10/03 19:22:22 millert Exp $
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#define	_WANT_FREEBSD11_STATFS
+
+#include "namespace.h"
+#define _WANT_FREEBSD11_STATFS
 #include <sys/mount.h>
-#define	_WANT_FREEBSD11_STAT
+#define _WANT_FREEBSD11_STAT
 #include <sys/stat.h>
 
-#define	_WANT_FREEBSD11_DIRENT
+#define _WANT_FREEBSD11_DIRENT
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -43,36 +44,36 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "gen-compat.h"
+
 #include "fts-compat11.h"
+#include "gen-compat.h"
+#include "gen-private.h"
 #include "un-namespace.h"
 
-#include "gen-private.h"
+static FTSENT11 *fts_alloc(FTS11 *, char *, size_t);
+static FTSENT11 *fts_build(FTS11 *, int);
+static void fts_lfree(FTSENT11 *);
+static void fts_load(FTS11 *, FTSENT11 *);
+static size_t fts_maxarglen(char *const *);
+static void fts_padjust(FTS11 *, FTSENT11 *);
+static int fts_palloc(FTS11 *, size_t);
+static FTSENT11 *fts_sort(FTS11 *, FTSENT11 *, size_t);
+static int fts_stat(FTS11 *, FTSENT11 *, int, int);
+static int fts_safe_changedir(FTS11 *, FTSENT11 *, int, char *);
+static int fts_ufslinks(FTS11 *, const FTSENT11 *);
 
-static FTSENT11	*fts_alloc(FTS11 *, char *, size_t);
-static FTSENT11	*fts_build(FTS11 *, int);
-static void	 fts_lfree(FTSENT11 *);
-static void	 fts_load(FTS11 *, FTSENT11 *);
-static size_t	 fts_maxarglen(char * const *);
-static void	 fts_padjust(FTS11 *, FTSENT11 *);
-static int	 fts_palloc(FTS11 *, size_t);
-static FTSENT11	*fts_sort(FTS11 *, FTSENT11 *, size_t);
-static int	 fts_stat(FTS11 *, FTSENT11 *, int, int);
-static int	 fts_safe_changedir(FTS11 *, FTSENT11 *, int, char *);
-static int	 fts_ufslinks(FTS11 *, const FTSENT11 *);
+#define ISDOT(a) (a[0] == '.' && (!a[1] || (a[1] == '.' && !a[2])))
 
-#define	ISDOT(a)	(a[0] == '.' && (!a[1] || (a[1] == '.' && !a[2])))
+#define CLR(opt) (sp->fts_options &= ~(opt))
+#define ISSET(opt) (sp->fts_options & (opt))
+#define SET(opt) (sp->fts_options |= (opt))
 
-#define	CLR(opt)	(sp->fts_options &= ~(opt))
-#define	ISSET(opt)	(sp->fts_options & (opt))
-#define	SET(opt)	(sp->fts_options |= (opt))
-
-#define	FCHDIR(sp, fd)	(!ISSET(FTS_NOCHDIR) && fchdir(fd))
+#define FCHDIR(sp, fd) (!ISSET(FTS_NOCHDIR) && fchdir(fd))
 
 /* fts_build flags */
-#define	BCHILD		1		/* fts_children */
-#define	BNAMES		2		/* fts_children, names only */
-#define	BREAD		3		/* fts_read */
+#define BCHILD 1 /* fts_children */
+#define BNAMES 2 /* fts_children, names only */
+#define BREAD 3	 /* fts_read */
 
 /*
  * Internal representation of an FTS, including extra implementation
@@ -80,10 +81,10 @@ static int	 fts_ufslinks(FTS11 *, const FTSENT11 *);
  * ftsp_fts member (and can be cast to an _fts_private as required)
  */
 struct _fts_private11 {
-	FTS11		ftsp_fts;
-	struct freebsd11_statfs	ftsp_statfs;
-	uint32_t	ftsp_dev;
-	int		ftsp_linksreliable;
+	FTS11 ftsp_fts;
+	struct freebsd11_statfs ftsp_statfs;
+	uint32_t ftsp_dev;
+	int ftsp_linksreliable;
 };
 
 /*
@@ -95,17 +96,11 @@ struct _fts_private11 {
  * links and directories this way, so we must punt for others.
  */
 
-static const char *ufslike_filesystems[] = {
-	"ufs",
-	"zfs",
-	"nfs",
-	"ext2fs",
-	0
-};
+static const char *ufslike_filesystems[] = { "ufs", "zfs", "nfs", "ext2fs", 0 };
 
 FTS11 *
-freebsd11_fts_open(char * const *argv, int options,
-    int (*compar)(const FTSENT11 * const *, const FTSENT11 * const *))
+freebsd11_fts_open(char *const *argv, int options,
+    int (*compar)(const FTSENT11 *const *, const FTSENT11 *const *))
 {
 	struct _fts_private11 *priv;
 	FTS11 *sp;
@@ -208,10 +203,13 @@ freebsd11_fts_open(char * const *argv, int options,
 
 	return (sp);
 
-mem3:	fts_lfree(root);
+mem3:
+	fts_lfree(root);
 	free(parent);
-mem2:	free(sp->fts_path);
-mem1:	free(sp);
+mem2:
+	free(sp->fts_path);
+mem1:
+	free(sp);
 	return (NULL);
 }
 
@@ -289,9 +287,9 @@ freebsd11_fts_close(FTS11 *sp)
  * Special case of "/" at the end of the path so that slashes aren't
  * appended which would cause paths to be written as "....//foo".
  */
-#define	NAPPEND(p)							\
-	(p->fts_path[p->fts_pathlen - 1] == '/'				\
-	    ? p->fts_pathlen - 1 : p->fts_pathlen)
+#define NAPPEND(p)                                                     \
+	(p->fts_path[p->fts_pathlen - 1] == '/' ? p->fts_pathlen - 1 : \
+						  p->fts_pathlen)
 
 FTSENT11 *
 freebsd11_fts_read(FTS11 *sp)
@@ -329,7 +327,7 @@ freebsd11_fts_read(FTS11 *sp)
 		p->fts_info = fts_stat(sp, p, 1, -1);
 		if (p->fts_info == FTS_D && !ISSET(FTS_NOCHDIR)) {
 			if ((p->fts_symfd = _open(".", O_RDONLY | O_CLOEXEC,
-			    0)) < 0) {
+				 0)) < 0) {
 				p->fts_errno = errno;
 				p->fts_info = FTS_ERR;
 			} else
@@ -377,7 +375,7 @@ freebsd11_fts_read(FTS11 *sp)
 				p->fts_errno = errno;
 				p->fts_flags |= FTS_DONTCHDIR;
 				for (p = sp->fts_child; p != NULL;
-				    p = p->fts_link)
+				     p = p->fts_link)
 					p->fts_accpath =
 					    p->fts_parent->fts_accpath;
 			}
@@ -392,7 +390,8 @@ freebsd11_fts_read(FTS11 *sp)
 	}
 
 	/* Move to the next node on this level. */
-next:	tmp = p;
+next:
+	tmp = p;
 	if ((p = p->fts_link) != NULL) {
 		/*
 		 * If reached the top, return to the original directory (or
@@ -420,8 +419,8 @@ next:	tmp = p;
 		if (p->fts_instr == FTS_FOLLOW) {
 			p->fts_info = fts_stat(sp, p, 1, -1);
 			if (p->fts_info == FTS_D && !ISSET(FTS_NOCHDIR)) {
-				if ((p->fts_symfd =
-				    _open(".", O_RDONLY | O_CLOEXEC, 0)) < 0) {
+				if ((p->fts_symfd = _open(".",
+					 O_RDONLY | O_CLOEXEC, 0)) < 0) {
 					p->fts_errno = errno;
 					p->fts_info = FTS_ERR;
 				} else
@@ -432,7 +431,8 @@ next:	tmp = p;
 
 		free(tmp);
 
-name:		t = sp->fts_path + NAPPEND(p->fts_parent);
+	name:
+		t = sp->fts_path + NAPPEND(p->fts_parent);
 		*t++ = '/';
 		memmove(t, p->fts_name, p->fts_namelen + 1);
 		return (sp->fts_cur = p);
@@ -578,8 +578,7 @@ freebsd11_fts_children(FTS11 *sp, int instr)
 #error "freebsd11_fts_get_clientptr not defined"
 #endif
 
-void *
-(freebsd11_fts_get_clientptr)(FTS11 *sp)
+void *(freebsd11_fts_get_clientptr)(FTS11 *sp)
 {
 
 	return (freebsd11_fts_get_clientptr(sp));
@@ -589,8 +588,7 @@ void *
 #error "freebsd11_fts_get_stream not defined"
 #endif
 
-FTS11 *
-(freebsd11_fts_get_stream)(FTSENT11 *p)
+FTS11 *(freebsd11_fts_get_stream)(FTSENT11 *p)
 {
 	return (freebsd11_fts_get_stream(p));
 }
@@ -641,7 +639,7 @@ fts_build(FTS11 *sp, int type)
 	int cderrno, descend, oflag, saved_errno, nostat, doadjust,
 	    readdir_errno;
 	long level;
-	long nlinks;	/* has to be signed because -1 is a magic value */
+	long nlinks; /* has to be signed because -1 is a magic value */
 	size_t dnamlen, len, maxlen, nitems;
 
 	/* Set current node pointer. */
@@ -689,8 +687,8 @@ fts_build(FTS11 *sp, int type)
 
 #ifdef notdef
 	(void)printf("nlinks == %d (cur: %d)\n", nlinks, cur->fts_nlink);
-	(void)printf("NOSTAT %d PHYSICAL %d SEEDOT %d\n",
-	    ISSET(FTS_NOSTAT), ISSET(FTS_PHYSICAL), ISSET(FTS_SEEDOT));
+	(void)printf("NOSTAT %d PHYSICAL %d SEEDOT %d\n", ISSET(FTS_NOSTAT),
+	    ISSET(FTS_PHYSICAL), ISSET(FTS_SEEDOT));
 #endif
 	/*
 	 * If we're going to need to stat anything or we want to descend
@@ -747,14 +745,14 @@ fts_build(FTS11 *sp, int type)
 	doadjust = 0;
 	readdir_errno = 0;
 	for (head = tail = NULL, nitems = 0;
-	    (dp = fts_safe_readdir(dirp, &readdir_errno));) {
+	     (dp = fts_safe_readdir(dirp, &readdir_errno));) {
 		dnamlen = dp->d_namlen;
 		if (!ISSET(FTS_SEEDOT) && ISDOT(dp->d_name))
 			continue;
 
 		if ((p = fts_alloc(sp, dp->d_name, dnamlen)) == NULL)
 			goto mem1;
-		if (dnamlen >= maxlen) {	/* include space for NUL */
+		if (dnamlen >= maxlen) { /* include space for NUL */
 			oldaddr = sp->fts_path;
 			if (fts_palloc(sp, dnamlen + len + 1)) {
 				/*
@@ -762,7 +760,8 @@ fts_build(FTS11 *sp, int type)
 				 * errno, free up the current structure and the
 				 * structures already allocated.
 				 */
-mem1:				saved_errno = errno;
+			mem1:
+				saved_errno = errno;
 				if (p)
 					free(p);
 				fts_lfree(head);
@@ -799,12 +798,12 @@ mem1:				saved_errno = errno;
 			p->fts_accpath = cur->fts_accpath;
 		} else if (nlinks == 0
 #ifdef DT_DIR
-		    || (nostat &&
-		    dp->d_type != DT_DIR && dp->d_type != DT_UNKNOWN)
+		    ||
+		    (nostat && dp->d_type != DT_DIR && dp->d_type != DT_UNKNOWN)
 #endif
-		    ) {
-			p->fts_accpath =
-			    ISSET(FTS_NOCHDIR) ? p->fts_path : p->fts_name;
+		) {
+			p->fts_accpath = ISSET(FTS_NOCHDIR) ? p->fts_path :
+							      p->fts_name;
 			p->fts_info = FTS_NSOK;
 		} else {
 			/* Build a file name for fts_stat to stat. */
@@ -818,8 +817,9 @@ mem1:				saved_errno = errno;
 			}
 
 			/* Decrement link count if applicable. */
-			if (nlinks > 0 && (p->fts_info == FTS_D ||
-			    p->fts_info == FTS_DC || p->fts_info == FTS_DOT))
+			if (nlinks > 0 &&
+			    (p->fts_info == FTS_D || p->fts_info == FTS_DC ||
+				p->fts_info == FTS_DOT))
 				--nlinks;
 		}
 
@@ -869,8 +869,8 @@ mem1:				saved_errno = errno;
 	 */
 	if (descend && (type == BCHILD || !nitems) &&
 	    (cur->fts_level == FTS_ROOTLEVEL ?
-	    FCHDIR(sp, sp->fts_rfd) :
-	    fts_safe_changedir(sp, cur->fts_parent, -1, ".."))) {
+		    FCHDIR(sp, sp->fts_rfd) :
+		    fts_safe_changedir(sp, cur->fts_parent, -1, ".."))) {
 		fts_lfree(head);
 		cur->fts_info = FTS_ERR;
 		SET(FTS_STOP);
@@ -879,8 +879,8 @@ mem1:				saved_errno = errno;
 
 	/* If didn't find anything, return NULL. */
 	if (!nitems) {
-		if (type == BREAD &&
-		    cur->fts_info != FTS_DNR && cur->fts_info != FTS_ERR)
+		if (type == BREAD && cur->fts_info != FTS_DNR &&
+		    cur->fts_info != FTS_ERR)
 			cur->fts_info = FTS_DP;
 		return (NULL);
 	}
@@ -929,7 +929,7 @@ fts_stat(FTS11 *sp, FTSENT11 *p, int follow, int dfd)
 		if (freebsd11_fstatat(dfd, path, sbp, 0)) {
 			saved_errno = errno;
 			if (freebsd11_fstatat(dfd, path, sbp,
-			    AT_SYMLINK_NOFOLLOW)) {
+				AT_SYMLINK_NOFOLLOW)) {
 				p->fts_errno = saved_errno;
 				goto err;
 			}
@@ -939,7 +939,8 @@ fts_stat(FTS11 *sp, FTSENT11 *p, int follow, int dfd)
 		}
 	} else if (freebsd11_fstatat(dfd, path, sbp, AT_SYMLINK_NOFOLLOW)) {
 		p->fts_errno = errno;
-err:		memset(sbp, 0, sizeof(*sbp));
+	err:
+		memset(sbp, 0, sizeof(*sbp));
 		return (FTS_NS);
 	}
 
@@ -964,8 +965,8 @@ err:		memset(sbp, 0, sizeof(*sbp));
 		 * number of symbolic links to directories is high enough,
 		 * something faster might be worthwhile.
 		 */
-		for (t = p->fts_parent;
-		    t->fts_level >= FTS_ROOTLEVEL; t = t->fts_parent)
+		for (t = p->fts_parent; t->fts_level >= FTS_ROOTLEVEL;
+		     t = t->fts_parent)
 			if (ino == t->fts_ino && dev == t->fts_dev) {
 				p->fts_cycle = t;
 				return (FTS_DC);
@@ -990,7 +991,7 @@ fts_compar(const void *a, const void *b)
 {
 	FTS11 *parent;
 
-	parent = (*(const FTSENT11 * const *)a)->fts_fts;
+	parent = (*(const FTSENT11 *const *)a)->fts_fts;
 	return (*parent->fts_compar)(a, b);
 }
 
@@ -1009,7 +1010,7 @@ fts_sort(FTS11 *sp, FTSENT11 *head, size_t nitems)
 	if (nitems > sp->fts_nitems) {
 		sp->fts_nitems = nitems + 40;
 		if ((sp->fts_array = reallocf(sp->fts_array,
-		    sp->fts_nitems * sizeof(FTSENT11 *))) == NULL) {
+			 sp->fts_nitems * sizeof(FTSENT11 *))) == NULL) {
 			sp->fts_nitems = 0;
 			return (head);
 		}
@@ -1030,8 +1031,8 @@ fts_alloc(FTS11 *sp, char *name, size_t namelen)
 	size_t len;
 
 	struct ftsent11_withstat {
-		FTSENT11	ent;
-		struct	freebsd11_stat statbuf;
+		FTSENT11 ent;
+		struct freebsd11_stat statbuf;
 	};
 
 	/*
@@ -1107,13 +1108,14 @@ fts_padjust(FTS11 *sp, FTSENT11 *head)
 	FTSENT11 *p;
 	char *addr = sp->fts_path;
 
-#define	ADJUST(p) do {							\
-	if ((p)->fts_accpath != (p)->fts_name) {			\
-		(p)->fts_accpath =					\
-		    (char *)addr + ((p)->fts_accpath - (p)->fts_path);	\
-	}								\
-	(p)->fts_path = addr;						\
-} while (0)
+#define ADJUST(p)                                               \
+	do {                                                    \
+		if ((p)->fts_accpath != (p)->fts_name) {        \
+			(p)->fts_accpath = (char *)addr +       \
+			    ((p)->fts_accpath - (p)->fts_path); \
+		}                                               \
+		(p)->fts_path = addr;                           \
+	} while (0)
 	/* Adjust the current set of children. */
 	for (p = sp->fts_child; p; p = p->fts_link)
 		ADJUST(p);
@@ -1126,7 +1128,7 @@ fts_padjust(FTS11 *sp, FTSENT11 *head)
 }
 
 static size_t
-fts_maxarglen(char * const *argv)
+fts_maxarglen(char *const *argv)
 {
 	size_t len, max;
 
@@ -1150,15 +1152,15 @@ fts_safe_changedir(FTS11 *sp, FTSENT11 *p, int fd, char *path)
 	newfd = fd;
 	if (ISSET(FTS_NOCHDIR))
 		return (0);
-	if (fd < 0 && (newfd = _open(path, O_RDONLY | O_DIRECTORY |
-	    O_CLOEXEC, 0)) < 0)
+	if (fd < 0 &&
+	    (newfd = _open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC, 0)) < 0)
 		return (-1);
 	if (freebsd11_fstat(newfd, &sb)) {
 		ret = -1;
 		goto bail;
 	}
 	if (p->fts_dev != sb.st_dev || p->fts_ino != sb.st_ino) {
-		errno = ENOENT;		/* disinformation */
+		errno = ENOENT; /* disinformation */
 		ret = -1;
 		goto bail;
 	}
@@ -1193,7 +1195,7 @@ fts_ufslinks(FTS11 *sp, const FTSENT11 *ent)
 			priv->ftsp_linksreliable = 0;
 			for (cpp = ufslike_filesystems; *cpp; cpp++) {
 				if (strcmp(priv->ftsp_statfs.f_fstypename,
-				    *cpp) == 0) {
+					*cpp) == 0) {
 					priv->ftsp_linksreliable = 1;
 					break;
 				}
@@ -1205,11 +1207,11 @@ fts_ufslinks(FTS11 *sp, const FTSENT11 *ent)
 	return (priv->ftsp_linksreliable);
 }
 
-__sym_compat(fts_open, freebsd11_fts_open, FBSD_1.1);
-__sym_compat(fts_close, freebsd11_fts_close, FBSD_1.1);
-__sym_compat(fts_read, freebsd11_fts_read, FBSD_1.1);
-__sym_compat(fts_set, freebsd11_fts_set, FBSD_1.1);
-__sym_compat(fts_children, freebsd11_fts_children, FBSD_1.1);
-__sym_compat(fts_get_clientptr, freebsd11_fts_get_clientptr, FBSD_1.1);
-__sym_compat(fts_get_stream, freebsd11_fts_get_stream, FBSD_1.1);
-__sym_compat(fts_set_clientptr, freebsd11_fts_set_clientptr, FBSD_1.1);
+__sym_compat(fts_open, freebsd11_fts_open, FBSD_1 .1);
+__sym_compat(fts_close, freebsd11_fts_close, FBSD_1 .1);
+__sym_compat(fts_read, freebsd11_fts_read, FBSD_1 .1);
+__sym_compat(fts_set, freebsd11_fts_set, FBSD_1 .1);
+__sym_compat(fts_children, freebsd11_fts_children, FBSD_1 .1);
+__sym_compat(fts_get_clientptr, freebsd11_fts_get_clientptr, FBSD_1 .1);
+__sym_compat(fts_get_stream, freebsd11_fts_get_stream, FBSD_1 .1);
+__sym_compat(fts_set_clientptr, freebsd11_fts_set_clientptr, FBSD_1 .1);

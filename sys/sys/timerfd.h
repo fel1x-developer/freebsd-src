@@ -37,15 +37,15 @@
  */
 #include <sys/time.h>
 
-typedef	uint64_t	timerfd_t;
+typedef uint64_t timerfd_t;
 
 /* Creation flags. */
-#define TFD_NONBLOCK	O_NONBLOCK
-#define TFD_CLOEXEC	O_CLOEXEC
+#define TFD_NONBLOCK O_NONBLOCK
+#define TFD_CLOEXEC O_CLOEXEC
 
 /* Timer flags. */
-#define	TFD_TIMER_ABSTIME	0x01
-#define	TFD_TIMER_CANCEL_ON_SET	0x02
+#define TFD_TIMER_ABSTIME 0x01
+#define TFD_TIMER_CANCEL_ON_SET 0x02
 
 #ifndef _KERNEL
 

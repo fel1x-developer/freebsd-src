@@ -22,16 +22,16 @@
  * The compiler defines __BYTE_ORDER__ these days, so we don't do anything
  * with that since sys/endian.h defines _BYTE_ORDER based on it.
  */
-#define __BIG_ENDIAN		_BIG_ENDIAN
-#define __BYTE_ORDER		_BYTE_ORDER
-#define __LITTLE_ENDIAN		_LITTLE_ENDIAN
-#define __PDP_ENDIAN		_PDP_ENDIAN
+#define __BIG_ENDIAN _BIG_ENDIAN
+#define __BYTE_ORDER _BYTE_ORDER
+#define __LITTLE_ENDIAN _LITTLE_ENDIAN
+#define __PDP_ENDIAN _PDP_ENDIAN
 
 /*
  * FreeBSD's sys/endian.h and machine/endian.h doesn't define a separate
  * byte order for floats. Use the host non-float byte order.
  */
-#define __FLOAT_WORD_ORDER	_BYTE_ORDER
+#define __FLOAT_WORD_ORDER _BYTE_ORDER
 
 /*
  * We don't define BIG_ENDI, LITTLE_ENDI, HIGH_HALF and LOW_HALF macros that

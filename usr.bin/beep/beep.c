@@ -37,23 +37,23 @@
 #include <string.h>
 #include <unistd.h>
 
-#define	SAMPLE_RATE_DEF 48000		/* hz */
-#define	SAMPLE_RATE_MAX 48000		/* hz */
-#define	SAMPLE_RATE_MIN 8000		/* hz */
+#define SAMPLE_RATE_DEF 48000 /* hz */
+#define SAMPLE_RATE_MAX 48000 /* hz */
+#define SAMPLE_RATE_MIN 8000  /* hz */
 
-#define	DURATION_DEF 150		/* ms */
-#define	DURATION_MAX 2000		/* ms */
-#define	DURATION_MIN 50			/* ms */
+#define DURATION_DEF 150  /* ms */
+#define DURATION_MAX 2000 /* ms */
+#define DURATION_MIN 50	  /* ms */
 
-#define	GAIN_DEF 75
-#define	GAIN_MAX 100
-#define	GAIN_MIN 0
+#define GAIN_DEF 75
+#define GAIN_MAX 100
+#define GAIN_MIN 0
 
-#define	WAVE_POWER 1.25f
+#define WAVE_POWER 1.25f
 
-#define	DEFAULT_HZ 440
+#define DEFAULT_HZ 440
 
-#define	DEFAULT_DEVICE _PATH_DEV "dsp"
+#define DEFAULT_DEVICE _PATH_DEV "dsp"
 
 static int frequency = DEFAULT_HZ;
 static int duration_ms = DURATION_DEF;
@@ -132,19 +132,24 @@ wave_function_16(float phase, float power)
 static void
 usage(void)
 {
-	fprintf(stderr, "Usage: %s [parameters]\n"
-	    "\t" "-F <frequency in HZ, default %d Hz>\n"
-	    "\t" "-D <duration in ms, from %d ms to %d ms, default %d ms>\n"
-	    "\t" "-r <sample rate in HZ, from %d Hz to %d Hz, default %d Hz>\n"
-	    "\t" "-d <OSS device (default %s)>\n"
-	    "\t" "-g <gain from %d to %d, default %d>\n"
-	    "\t" "-B Run in background\n"
-	    "\t" "-h Show usage\n",
-	    getprogname(),
-	    DEFAULT_HZ,
-	    DURATION_MIN, DURATION_MAX, DURATION_DEF,
-	    SAMPLE_RATE_MIN, SAMPLE_RATE_MAX, SAMPLE_RATE_DEF,
-	    DEFAULT_DEVICE,
+	fprintf(stderr,
+	    "Usage: %s [parameters]\n"
+	    "\t"
+	    "-F <frequency in HZ, default %d Hz>\n"
+	    "\t"
+	    "-D <duration in ms, from %d ms to %d ms, default %d ms>\n"
+	    "\t"
+	    "-r <sample rate in HZ, from %d Hz to %d Hz, default %d Hz>\n"
+	    "\t"
+	    "-d <OSS device (default %s)>\n"
+	    "\t"
+	    "-g <gain from %d to %d, default %d>\n"
+	    "\t"
+	    "-B Run in background\n"
+	    "\t"
+	    "-h Show usage\n",
+	    getprogname(), DEFAULT_HZ, DURATION_MIN, DURATION_MAX, DURATION_DEF,
+	    SAMPLE_RATE_MIN, SAMPLE_RATE_MAX, SAMPLE_RATE_DEF, DEFAULT_DEVICE,
 	    GAIN_MIN, GAIN_MAX, GAIN_DEF);
 	exit(1);
 }
@@ -181,8 +186,7 @@ main(int argc, char **argv)
 			break;
 		case 'g':
 			gain = strtol(optarg, NULL, 10);
-			if (gain < GAIN_MIN ||
-			    gain > GAIN_MAX)
+			if (gain < GAIN_MIN || gain > GAIN_MAX)
 				usage();
 			break;
 		case 'd':
@@ -204,7 +208,7 @@ main(int argc, char **argv)
 	if (f < 0)
 		errx(1, "Failed to open '%s'", oss_dev);
 
-	c = 1;				/* mono */
+	c = 1; /* mono */
 	if (ioctl(f, SOUND_PCM_WRITE_CHANNELS, &c) != 0)
 		errx(1, "ioctl SOUND_PCM_WRITE_CHANNELS(1) failed");
 

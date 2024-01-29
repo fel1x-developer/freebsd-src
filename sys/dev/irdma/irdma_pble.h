@@ -35,11 +35,11 @@
 #ifndef IRDMA_PBLE_H
 #define IRDMA_PBLE_H
 
-#define PBLE_SHIFT		6
-#define PBLE_PER_PAGE		512
-#define HMC_PAGED_BP_SHIFT	12
-#define PBLE_512_SHIFT		9
-#define PBLE_INVALID_IDX	0xffffffff
+#define PBLE_SHIFT 6
+#define PBLE_PER_PAGE 512
+#define HMC_PAGED_BP_SHIFT 12
+#define PBLE_512_SHIFT 9
+#define PBLE_INVALID_IDX 0xffffffff
 
 enum irdma_pble_level {
 	PBLE_LEVEL_0 = 0,
@@ -48,9 +48,9 @@ enum irdma_pble_level {
 };
 
 enum irdma_alloc_type {
-	PBLE_NO_ALLOC	  = 0,
+	PBLE_NO_ALLOC = 0,
 	PBLE_SD_CONTIGOUS = 1,
-	PBLE_SD_PAGED	  = 2,
+	PBLE_SD_PAGED = 2,
 };
 
 struct irdma_chunk;
@@ -141,23 +141,22 @@ struct irdma_hmc_pble_rsrc {
 
 void irdma_destroy_pble_prm(struct irdma_hmc_pble_rsrc *pble_rsrc);
 int irdma_hmc_init_pble(struct irdma_sc_dev *dev,
-			struct irdma_hmc_pble_rsrc *pble_rsrc);
+    struct irdma_hmc_pble_rsrc *pble_rsrc);
 void irdma_free_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-		     struct irdma_pble_alloc *palloc);
+    struct irdma_pble_alloc *palloc);
 int irdma_get_pble(struct irdma_hmc_pble_rsrc *pble_rsrc,
-		   struct irdma_pble_alloc *palloc, u32 pble_cnt,
-		   u8 lvl);
+    struct irdma_pble_alloc *palloc, u32 pble_cnt, u8 lvl);
 int irdma_prm_add_pble_mem(struct irdma_pble_prm *pprm,
-			   struct irdma_chunk *pchunk);
+    struct irdma_chunk *pchunk);
 int irdma_prm_get_pbles(struct irdma_pble_prm *pprm,
-			struct irdma_pble_chunkinfo *chunkinfo, u64 mem_size,
-			u64 **vaddr, u64 *fpm_addr);
+    struct irdma_pble_chunkinfo *chunkinfo, u64 mem_size, u64 **vaddr,
+    u64 *fpm_addr);
 void irdma_prm_return_pbles(struct irdma_pble_prm *pprm,
-			    struct irdma_pble_chunkinfo *chunkinfo);
+    struct irdma_pble_chunkinfo *chunkinfo);
 void irdma_pble_acquire_lock(struct irdma_hmc_pble_rsrc *pble_rsrc,
-			     unsigned long *flags);
+    unsigned long *flags);
 void irdma_pble_release_lock(struct irdma_hmc_pble_rsrc *pble_rsrc,
-			     unsigned long *flags);
+    unsigned long *flags);
 void irdma_pble_free_paged_mem(struct irdma_chunk *chunk);
 int irdma_pble_get_paged_mem(struct irdma_chunk *chunk, u32 pg_cnt);
 #endif /* IRDMA_PBLE_H */

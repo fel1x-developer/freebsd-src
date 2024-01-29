@@ -39,50 +39,47 @@
 #include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-
-#include <net/bpf.h>
-#include <net/debugnet.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_llc.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_vlan_var.h>
-
-#include <netinet/in.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/tcp.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
 
 #include <machine/bus.h>
 #include <machine/in_cksum.h>
 
 #include <dev/alc/if_alcreg.h>
 #include <dev/alc/if_alcvar.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
+#include <net/debugnet.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_llc.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
 #undef ALC_USE_CUSTOM_CSUM
 
 #ifdef ALC_USE_CUSTOM_CSUM
-#define	ALC_CSUM_FEATURES	(CSUM_TCP | CSUM_UDP)
+#define ALC_CSUM_FEATURES (CSUM_TCP | CSUM_UDP)
 #else
-#define	ALC_CSUM_FEATURES	(CSUM_IP | CSUM_TCP | CSUM_UDP)
+#define ALC_CSUM_FEATURES (CSUM_IP | CSUM_TCP | CSUM_UDP)
 #endif
 
 MODULE_DEPEND(alc, pci, 1, 1, 1);
@@ -100,142 +97,136 @@ TUNABLE_INT("hw.alc.msix_disable", &msix_disable);
  */
 static struct alc_ident alc_ident_table[] = {
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8131, 9 * 1024,
-		"Atheros AR8131 PCIe Gigabit Ethernet" },
+	    "Atheros AR8131 PCIe Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8132, 9 * 1024,
-		"Atheros AR8132 PCIe Fast Ethernet" },
+	    "Atheros AR8132 PCIe Fast Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8151, 6 * 1024,
-		"Atheros AR8151 v1.0 PCIe Gigabit Ethernet" },
+	    "Atheros AR8151 v1.0 PCIe Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8151_V2, 6 * 1024,
-		"Atheros AR8151 v2.0 PCIe Gigabit Ethernet" },
+	    "Atheros AR8151 v2.0 PCIe Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8152_B, 6 * 1024,
-		"Atheros AR8152 v1.1 PCIe Fast Ethernet" },
+	    "Atheros AR8152 v1.1 PCIe Fast Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8152_B2, 6 * 1024,
-		"Atheros AR8152 v2.0 PCIe Fast Ethernet" },
+	    "Atheros AR8152 v2.0 PCIe Fast Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8161, 9 * 1024,
-		"Atheros AR8161 PCIe Gigabit Ethernet" },
+	    "Atheros AR8161 PCIe Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8162, 9 * 1024,
-		"Atheros AR8162 PCIe Fast Ethernet" },
+	    "Atheros AR8162 PCIe Fast Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8171, 9 * 1024,
-		"Atheros AR8171 PCIe Gigabit Ethernet" },
+	    "Atheros AR8171 PCIe Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_AR8172, 9 * 1024,
-		"Atheros AR8172 PCIe Fast Ethernet" },
+	    "Atheros AR8172 PCIe Fast Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_E2200, 9 * 1024,
-		"Killer E2200 Gigabit Ethernet" },
+	    "Killer E2200 Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_E2400, 9 * 1024,
-		"Killer E2400 Gigabit Ethernet" },
+	    "Killer E2400 Gigabit Ethernet" },
 	{ VENDORID_ATHEROS, DEVICEID_ATHEROS_E2500, 9 * 1024,
-		"Killer E2500 Gigabit Ethernet" },
-	{ 0, 0, 0, NULL}
+	    "Killer E2500 Gigabit Ethernet" },
+	{ 0, 0, 0, NULL }
 };
 
-static void	alc_aspm(struct alc_softc *, int, int);
-static void	alc_aspm_813x(struct alc_softc *, int);
-static void	alc_aspm_816x(struct alc_softc *, int);
-static int	alc_attach(device_t);
-static int	alc_check_boundary(struct alc_softc *);
-static void	alc_config_msi(struct alc_softc *);
-static int	alc_detach(device_t);
-static void	alc_disable_l0s_l1(struct alc_softc *);
-static int	alc_dma_alloc(struct alc_softc *);
-static void	alc_dma_free(struct alc_softc *);
-static void	alc_dmamap_cb(void *, bus_dma_segment_t *, int, int);
-static void	alc_dsp_fixup(struct alc_softc *, int);
-static int	alc_encap(struct alc_softc *, struct mbuf **);
-static struct alc_ident *
-		alc_find_ident(device_t);
+static void alc_aspm(struct alc_softc *, int, int);
+static void alc_aspm_813x(struct alc_softc *, int);
+static void alc_aspm_816x(struct alc_softc *, int);
+static int alc_attach(device_t);
+static int alc_check_boundary(struct alc_softc *);
+static void alc_config_msi(struct alc_softc *);
+static int alc_detach(device_t);
+static void alc_disable_l0s_l1(struct alc_softc *);
+static int alc_dma_alloc(struct alc_softc *);
+static void alc_dma_free(struct alc_softc *);
+static void alc_dmamap_cb(void *, bus_dma_segment_t *, int, int);
+static void alc_dsp_fixup(struct alc_softc *, int);
+static int alc_encap(struct alc_softc *, struct mbuf **);
+static struct alc_ident *alc_find_ident(device_t);
 #ifndef __NO_STRICT_ALIGNMENT
-static struct mbuf *
-		alc_fixup_rx(if_t, struct mbuf *);
+static struct mbuf *alc_fixup_rx(if_t, struct mbuf *);
 #endif
-static void	alc_get_macaddr(struct alc_softc *);
-static void	alc_get_macaddr_813x(struct alc_softc *);
-static void	alc_get_macaddr_816x(struct alc_softc *);
-static void	alc_get_macaddr_par(struct alc_softc *);
-static void	alc_init(void *);
-static void	alc_init_cmb(struct alc_softc *);
-static void	alc_init_locked(struct alc_softc *);
-static void	alc_init_rr_ring(struct alc_softc *);
-static int	alc_init_rx_ring(struct alc_softc *);
-static void	alc_init_smb(struct alc_softc *);
-static void	alc_init_tx_ring(struct alc_softc *);
-static void	alc_int_task(void *, int);
-static int	alc_intr(void *);
-static int	alc_ioctl(if_t, u_long, caddr_t);
-static void	alc_mac_config(struct alc_softc *);
-static uint32_t	alc_mii_readreg_813x(struct alc_softc *, int, int);
-static uint32_t	alc_mii_readreg_816x(struct alc_softc *, int, int);
-static uint32_t	alc_mii_writereg_813x(struct alc_softc *, int, int, int);
-static uint32_t	alc_mii_writereg_816x(struct alc_softc *, int, int, int);
-static int	alc_miibus_readreg(device_t, int, int);
-static void	alc_miibus_statchg(device_t);
-static int	alc_miibus_writereg(device_t, int, int, int);
-static uint32_t	alc_miidbg_readreg(struct alc_softc *, int);
-static uint32_t	alc_miidbg_writereg(struct alc_softc *, int, int);
-static uint32_t	alc_miiext_readreg(struct alc_softc *, int, int);
-static uint32_t	alc_miiext_writereg(struct alc_softc *, int, int, int);
-static int	alc_mediachange(if_t);
-static int	alc_mediachange_locked(struct alc_softc *);
-static void	alc_mediastatus(if_t, struct ifmediareq *);
-static int	alc_newbuf(struct alc_softc *, struct alc_rxdesc *);
-static void	alc_osc_reset(struct alc_softc *);
-static void	alc_phy_down(struct alc_softc *);
-static void	alc_phy_reset(struct alc_softc *);
-static void	alc_phy_reset_813x(struct alc_softc *);
-static void	alc_phy_reset_816x(struct alc_softc *);
-static int	alc_probe(device_t);
-static void	alc_reset(struct alc_softc *);
-static int	alc_resume(device_t);
-static void	alc_rxeof(struct alc_softc *, struct rx_rdesc *);
-static int	alc_rxintr(struct alc_softc *, int);
-static void	alc_rxfilter(struct alc_softc *);
-static void	alc_rxvlan(struct alc_softc *);
-static void	alc_setlinkspeed(struct alc_softc *);
-static void	alc_setwol(struct alc_softc *);
-static void	alc_setwol_813x(struct alc_softc *);
-static void	alc_setwol_816x(struct alc_softc *);
-static int	alc_shutdown(device_t);
-static void	alc_start(if_t);
-static void	alc_start_locked(if_t);
-static void	alc_start_queue(struct alc_softc *);
-static void	alc_start_tx(struct alc_softc *);
-static void	alc_stats_clear(struct alc_softc *);
-static void	alc_stats_update(struct alc_softc *);
-static void	alc_stop(struct alc_softc *);
-static void	alc_stop_mac(struct alc_softc *);
-static void	alc_stop_queue(struct alc_softc *);
-static int	alc_suspend(device_t);
-static void	alc_sysctl_node(struct alc_softc *);
-static void	alc_tick(void *);
-static void	alc_txeof(struct alc_softc *);
-static void	alc_watchdog(struct alc_softc *);
-static int	sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
-static int	sysctl_hw_alc_proc_limit(SYSCTL_HANDLER_ARGS);
-static int	sysctl_hw_alc_int_mod(SYSCTL_HANDLER_ARGS);
+static void alc_get_macaddr(struct alc_softc *);
+static void alc_get_macaddr_813x(struct alc_softc *);
+static void alc_get_macaddr_816x(struct alc_softc *);
+static void alc_get_macaddr_par(struct alc_softc *);
+static void alc_init(void *);
+static void alc_init_cmb(struct alc_softc *);
+static void alc_init_locked(struct alc_softc *);
+static void alc_init_rr_ring(struct alc_softc *);
+static int alc_init_rx_ring(struct alc_softc *);
+static void alc_init_smb(struct alc_softc *);
+static void alc_init_tx_ring(struct alc_softc *);
+static void alc_int_task(void *, int);
+static int alc_intr(void *);
+static int alc_ioctl(if_t, u_long, caddr_t);
+static void alc_mac_config(struct alc_softc *);
+static uint32_t alc_mii_readreg_813x(struct alc_softc *, int, int);
+static uint32_t alc_mii_readreg_816x(struct alc_softc *, int, int);
+static uint32_t alc_mii_writereg_813x(struct alc_softc *, int, int, int);
+static uint32_t alc_mii_writereg_816x(struct alc_softc *, int, int, int);
+static int alc_miibus_readreg(device_t, int, int);
+static void alc_miibus_statchg(device_t);
+static int alc_miibus_writereg(device_t, int, int, int);
+static uint32_t alc_miidbg_readreg(struct alc_softc *, int);
+static uint32_t alc_miidbg_writereg(struct alc_softc *, int, int);
+static uint32_t alc_miiext_readreg(struct alc_softc *, int, int);
+static uint32_t alc_miiext_writereg(struct alc_softc *, int, int, int);
+static int alc_mediachange(if_t);
+static int alc_mediachange_locked(struct alc_softc *);
+static void alc_mediastatus(if_t, struct ifmediareq *);
+static int alc_newbuf(struct alc_softc *, struct alc_rxdesc *);
+static void alc_osc_reset(struct alc_softc *);
+static void alc_phy_down(struct alc_softc *);
+static void alc_phy_reset(struct alc_softc *);
+static void alc_phy_reset_813x(struct alc_softc *);
+static void alc_phy_reset_816x(struct alc_softc *);
+static int alc_probe(device_t);
+static void alc_reset(struct alc_softc *);
+static int alc_resume(device_t);
+static void alc_rxeof(struct alc_softc *, struct rx_rdesc *);
+static int alc_rxintr(struct alc_softc *, int);
+static void alc_rxfilter(struct alc_softc *);
+static void alc_rxvlan(struct alc_softc *);
+static void alc_setlinkspeed(struct alc_softc *);
+static void alc_setwol(struct alc_softc *);
+static void alc_setwol_813x(struct alc_softc *);
+static void alc_setwol_816x(struct alc_softc *);
+static int alc_shutdown(device_t);
+static void alc_start(if_t);
+static void alc_start_locked(if_t);
+static void alc_start_queue(struct alc_softc *);
+static void alc_start_tx(struct alc_softc *);
+static void alc_stats_clear(struct alc_softc *);
+static void alc_stats_update(struct alc_softc *);
+static void alc_stop(struct alc_softc *);
+static void alc_stop_mac(struct alc_softc *);
+static void alc_stop_queue(struct alc_softc *);
+static int alc_suspend(device_t);
+static void alc_sysctl_node(struct alc_softc *);
+static void alc_tick(void *);
+static void alc_txeof(struct alc_softc *);
+static void alc_watchdog(struct alc_softc *);
+static int sysctl_int_range(SYSCTL_HANDLER_ARGS, int, int);
+static int sysctl_hw_alc_proc_limit(SYSCTL_HANDLER_ARGS);
+static int sysctl_hw_alc_int_mod(SYSCTL_HANDLER_ARGS);
 
 DEBUGNET_DEFINE(alc);
 
 static device_method_t alc_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		alc_probe),
-	DEVMETHOD(device_attach,	alc_attach),
-	DEVMETHOD(device_detach,	alc_detach),
-	DEVMETHOD(device_shutdown,	alc_shutdown),
-	DEVMETHOD(device_suspend,	alc_suspend),
-	DEVMETHOD(device_resume,	alc_resume),
+	DEVMETHOD(device_probe, alc_probe),
+	DEVMETHOD(device_attach, alc_attach),
+	DEVMETHOD(device_detach, alc_detach),
+	DEVMETHOD(device_shutdown, alc_shutdown),
+	DEVMETHOD(device_suspend, alc_suspend),
+	DEVMETHOD(device_resume, alc_resume),
 
 	/* MII interface. */
-	DEVMETHOD(miibus_readreg,	alc_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	alc_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	alc_miibus_statchg),
+	DEVMETHOD(miibus_readreg, alc_miibus_readreg),
+	DEVMETHOD(miibus_writereg, alc_miibus_writereg),
+	DEVMETHOD(miibus_statchg, alc_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t alc_driver = {
-	"alc",
-	alc_methods,
-	sizeof(struct alc_softc)
-};
+static driver_t alc_driver = { "alc", alc_methods, sizeof(struct alc_softc) };
 
 DRIVER_MODULE(alc, pci, alc_driver, 0, 0);
 MODULE_PNP_INFO("U16:vendor;U16:device", pci, alc, alc_ident_table,
@@ -243,23 +234,19 @@ MODULE_PNP_INFO("U16:vendor;U16:device", pci, alc, alc_ident_table,
 DRIVER_MODULE(miibus, alc, miibus_driver, 0, 0);
 
 static struct resource_spec alc_res_spec_mem[] = {
-	{ SYS_RES_MEMORY,	PCIR_BAR(0),	RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_MEMORY, PCIR_BAR(0), RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec alc_irq_spec_legacy[] = {
-	{ SYS_RES_IRQ,		0,		RF_ACTIVE | RF_SHAREABLE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 0, RF_ACTIVE | RF_SHAREABLE }, { -1, 0, 0 }
 };
 
 static struct resource_spec alc_irq_spec_msi[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static struct resource_spec alc_irq_spec_msix[] = {
-	{ SYS_RES_IRQ,		1,		RF_ACTIVE },
-	{ -1,			0,		0 }
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { -1, 0, 0 }
 };
 
 static uint32_t alc_dma_burst[] = { 128, 256, 512, 1024, 2048, 4096, 0, 0 };
@@ -290,12 +277,12 @@ alc_mii_readreg_813x(struct alc_softc *sc, int phy, int reg)
 	 * model/revision number of F1 gigabit PHY, the PHY has no
 	 * ability to establish 1000baseT link.
 	 */
-	if ((sc->alc_flags & ALC_FLAG_FASTETHER) != 0 &&
-	    reg == MII_EXTSR)
+	if ((sc->alc_flags & ALC_FLAG_FASTETHER) != 0 && reg == MII_EXTSR)
 		return (0);
 
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_READ |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_READ | MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 |
+		MDIO_REG_ADDR(reg));
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -321,8 +308,9 @@ alc_mii_readreg_816x(struct alc_softc *sc, int phy, int reg)
 		clk = MDIO_CLK_25_128;
 	else
 		clk = MDIO_CLK_25_4;
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_READ |
-	    MDIO_SUP_PREAMBLE | clk | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_READ | MDIO_SUP_PREAMBLE | clk |
+		MDIO_REG_ADDR(reg));
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -358,9 +346,10 @@ alc_mii_writereg_813x(struct alc_softc *sc, int phy, int reg, int val)
 	uint32_t v;
 	int i;
 
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_WRITE |
-	    (val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT |
-	    MDIO_SUP_PREAMBLE | MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_WRITE |
+		(val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT | MDIO_SUP_PREAMBLE |
+		MDIO_CLK_25_4 | MDIO_REG_ADDR(reg));
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -384,9 +373,10 @@ alc_mii_writereg_816x(struct alc_softc *sc, int phy, int reg, int val)
 		clk = MDIO_CLK_25_128;
 	else
 		clk = MDIO_CLK_25_4;
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_WRITE |
-	    ((val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT) | MDIO_REG_ADDR(reg) |
-	    MDIO_SUP_PREAMBLE | clk);
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_WRITE |
+		((val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT) |
+		MDIO_REG_ADDR(reg) | MDIO_SUP_PREAMBLE | clk);
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -454,8 +444,8 @@ alc_miidbg_readreg(struct alc_softc *sc, int reg)
 
 	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
 	    reg);
-	return (alc_miibus_readreg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA));
+	return (
+	    alc_miibus_readreg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA));
 }
 
 static uint32_t
@@ -474,14 +464,15 @@ alc_miiext_readreg(struct alc_softc *sc, int devaddr, int reg)
 	uint32_t clk, v;
 	int i;
 
-	CSR_WRITE_4(sc, ALC_EXT_MDIO, EXT_MDIO_REG(reg) |
-	    EXT_MDIO_DEVADDR(devaddr));
+	CSR_WRITE_4(sc, ALC_EXT_MDIO,
+	    EXT_MDIO_REG(reg) | EXT_MDIO_DEVADDR(devaddr));
 	if ((sc->alc_flags & ALC_FLAG_LINK) != 0)
 		clk = MDIO_CLK_25_128;
 	else
 		clk = MDIO_CLK_25_4;
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_READ |
-	    MDIO_SUP_PREAMBLE | clk | MDIO_MODE_EXT);
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_READ | MDIO_SUP_PREAMBLE | clk |
+		MDIO_MODE_EXT);
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -504,15 +495,16 @@ alc_miiext_writereg(struct alc_softc *sc, int devaddr, int reg, int val)
 	uint32_t clk, v;
 	int i;
 
-	CSR_WRITE_4(sc, ALC_EXT_MDIO, EXT_MDIO_REG(reg) |
-	    EXT_MDIO_DEVADDR(devaddr));
+	CSR_WRITE_4(sc, ALC_EXT_MDIO,
+	    EXT_MDIO_REG(reg) | EXT_MDIO_DEVADDR(devaddr));
 	if ((sc->alc_flags & ALC_FLAG_LINK) != 0)
 		clk = MDIO_CLK_25_128;
 	else
 		clk = MDIO_CLK_25_4;
-	CSR_WRITE_4(sc, ALC_MDIO, MDIO_OP_EXECUTE | MDIO_OP_WRITE |
-	    ((val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT) |
-	    MDIO_SUP_PREAMBLE | clk | MDIO_MODE_EXT);
+	CSR_WRITE_4(sc, ALC_MDIO,
+	    MDIO_OP_EXECUTE | MDIO_OP_WRITE |
+		((val & MDIO_DATA_MASK) << MDIO_DATA_SHIFT) |
+		MDIO_SUP_PREAMBLE | clk | MDIO_MODE_EXT);
 	for (i = ALC_PHY_TIMEOUT; i > 0; i--) {
 		DELAY(5);
 		v = CSR_READ_4(sc, ALC_MDIO);
@@ -548,9 +540,9 @@ alc_dsp_fixup(struct alc_softc *sc, int media)
 		agc = alc_miidbg_readreg(sc, MII_DBG_AGC);
 		agc = (agc >> DBG_AGC_2_VGA_SHIFT) & DBG_AGC_2_VGA_MASK;
 		if ((media == IFM_1000_T && len > EXT_CLDCTL6_CAB_LEN_SHORT1G &&
-		    agc > DBG_AGC_LONG1G_LIMT) ||
+			agc > DBG_AGC_LONG1G_LIMT) ||
 		    (media == IFM_100_TX && len > DBG_AGC_LONG100M_LIMT &&
-		    agc > DBG_AGC_LONG1G_LIMT)) {
+			agc > DBG_AGC_LONG1G_LIMT)) {
 			alc_miidbg_writereg(sc, MII_DBG_AZ_ANADECT,
 			    DBG_AZ_ANADECT_LONG);
 			val = alc_miiext_readreg(sc, MII_EXT_ANEG,
@@ -576,8 +568,8 @@ alc_dsp_fixup(struct alc_softc *sc, int media)
 				 */
 				val = alc_miidbg_readreg(sc, MII_DBG_MSE20DB);
 				val &= ~DBG_MSE20DB_TH_MASK;
-				val |= (DBG_MSE20DB_TH_HI <<
-				    DBG_MSE20DB_TH_SHIFT);
+				val |= (DBG_MSE20DB_TH_HI
+				    << DBG_MSE20DB_TH_SHIFT);
 				alc_miidbg_writereg(sc, MII_DBG_MSE20DB, val);
 			} else if (media == IFM_100_TX)
 				alc_miidbg_writereg(sc, MII_DBG_MSE16DB,
@@ -643,7 +635,7 @@ alc_mediachange_locked(struct alc_softc *sc)
 	ALC_LOCK_ASSERT(sc);
 
 	mii = device_get_softc(sc->alc_miibus);
-	LIST_FOREACH(miisc, &mii->mii_phys, mii_list)
+	LIST_FOREACH (miisc, &mii->mii_phys, mii_list)
 		PHY_RESET(miisc);
 	error = mii_mediachg(mii);
 
@@ -741,12 +733,12 @@ alc_get_macaddr_813x(struct alc_softc *sc)
 		CSR_WRITE_4(sc, ALC_WOL_CFG, 0);
 		CSR_READ_4(sc, ALC_WOL_CFG);
 
-		CSR_WRITE_4(sc, ALC_TWSI_CFG, CSR_READ_4(sc, ALC_TWSI_CFG) |
-		    TWSI_CFG_SW_LD_START);
+		CSR_WRITE_4(sc, ALC_TWSI_CFG,
+		    CSR_READ_4(sc, ALC_TWSI_CFG) | TWSI_CFG_SW_LD_START);
 		for (i = 100; i > 0; i--) {
 			DELAY(1000);
 			if ((CSR_READ_4(sc, ALC_TWSI_CFG) &
-			    TWSI_CFG_SW_LD_START) == 0)
+				TWSI_CFG_SW_LD_START) == 0)
 				break;
 		}
 		if (i == 0)
@@ -823,18 +815,19 @@ alc_get_macaddr_816x(struct alc_softc *sc)
 	/* Try to reload station address from EEPROM or FLASH. */
 	if (reloaded == 0) {
 		reg = CSR_READ_4(sc, ALC_EEPROM_LD);
-		if ((reg & (EEPROM_LD_EEPROM_EXIST |
-		    EEPROM_LD_FLASH_EXIST)) != 0) {
+		if ((reg & (EEPROM_LD_EEPROM_EXIST | EEPROM_LD_FLASH_EXIST)) !=
+		    0) {
 			for (i = 100; i > 0; i--) {
 				reg = CSR_READ_4(sc, ALC_EEPROM_LD);
-				if ((reg & (EEPROM_LD_PROGRESS |
-				    EEPROM_LD_START)) == 0)
+				if ((reg &
+					(EEPROM_LD_PROGRESS |
+					    EEPROM_LD_START)) == 0)
 					break;
 				DELAY(1000);
 			}
 			if (i != 0) {
-				CSR_WRITE_4(sc, ALC_EEPROM_LD, reg |
-				    EEPROM_LD_START);
+				CSR_WRITE_4(sc, ALC_EEPROM_LD,
+				    reg | EEPROM_LD_START);
 				for (i = 100; i > 0; i--) {
 					DELAY(1000);
 					reg = CSR_READ_4(sc, ALC_EEPROM_LD);
@@ -902,8 +895,8 @@ alc_phy_reset_813x(struct alc_softc *sc)
 	CSR_READ_2(sc, ALC_GPHY_CFG);
 	DELAY(10 * 1000);
 
-	CSR_WRITE_2(sc, ALC_GPHY_CFG, GPHY_CFG_EXT_RESET |
-	    GPHY_CFG_SEL_ANA_RESET);
+	CSR_WRITE_2(sc, ALC_GPHY_CFG,
+	    GPHY_CFG_EXT_RESET | GPHY_CFG_SEL_ANA_RESET);
 	CSR_READ_2(sc, ALC_GPHY_CFG);
 	DELAY(10 * 1000);
 
@@ -947,45 +940,45 @@ alc_phy_reset_813x(struct alc_softc *sc)
 	/* Load DSP codes, vendor magic. */
 	data = ANA_LOOP_SEL_10BT | ANA_EN_MASK_TB | ANA_EN_10BT_IDLE |
 	    ((1 << ANA_INTERVAL_SEL_TIMER_SHIFT) & ANA_INTERVAL_SEL_TIMER_MASK);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_ADDR, MII_ANA_CFG18);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA, data);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
+	    MII_ANA_CFG18);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA,
+	    data);
 
 	data = ((2 << ANA_SERDES_CDR_BW_SHIFT) & ANA_SERDES_CDR_BW_MASK) |
 	    ANA_SERDES_EN_DEEM | ANA_SERDES_SEL_HSP | ANA_SERDES_EN_PLL |
 	    ANA_SERDES_EN_LCKDT;
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_ADDR, MII_ANA_CFG5);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA, data);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
+	    MII_ANA_CFG5);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA,
+	    data);
 
 	data = ((44 << ANA_LONG_CABLE_TH_100_SHIFT) &
-	    ANA_LONG_CABLE_TH_100_MASK) |
+		   ANA_LONG_CABLE_TH_100_MASK) |
 	    ((33 << ANA_SHORT_CABLE_TH_100_SHIFT) &
-	    ANA_SHORT_CABLE_TH_100_SHIFT) |
+		ANA_SHORT_CABLE_TH_100_SHIFT) |
 	    ANA_BP_BAD_LINK_ACCUM | ANA_BP_SMALL_BW;
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_ADDR, MII_ANA_CFG54);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA, data);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
+	    MII_ANA_CFG54);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA,
+	    data);
 
 	data = ((11 << ANA_IECHO_ADJ_3_SHIFT) & ANA_IECHO_ADJ_3_MASK) |
 	    ((11 << ANA_IECHO_ADJ_2_SHIFT) & ANA_IECHO_ADJ_2_MASK) |
 	    ((8 << ANA_IECHO_ADJ_1_SHIFT) & ANA_IECHO_ADJ_1_MASK) |
 	    ((8 << ANA_IECHO_ADJ_0_SHIFT) & ANA_IECHO_ADJ_0_MASK);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_ADDR, MII_ANA_CFG4);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA, data);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
+	    MII_ANA_CFG4);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA,
+	    data);
 
 	data = ((7 & ANA_MANUL_SWICH_ON_SHIFT) & ANA_MANUL_SWICH_ON_MASK) |
 	    ANA_RESTART_CAL | ANA_MAN_ENABLE | ANA_SEL_HSP | ANA_EN_HB |
 	    ANA_OEN_125M;
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_ADDR, MII_ANA_CFG0);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    ALC_MII_DBG_DATA, data);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_ADDR,
+	    MII_ANA_CFG0);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, ALC_MII_DBG_DATA,
+	    data);
 	DELAY(1000);
 
 	/* Disable hibernation. */
@@ -1115,14 +1108,14 @@ alc_phy_down(struct alc_softc *sc)
 		 * initiates power down the PHY which in turn saves
 		 * more power when driver is unloaded.
 		 */
-		alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-		    MII_BMCR, BMCR_ISO | BMCR_PDOWN);
+		alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, MII_BMCR,
+		    BMCR_ISO | BMCR_PDOWN);
 		break;
 	default:
 		/* Force PHY down. */
-		CSR_WRITE_2(sc, ALC_GPHY_CFG, GPHY_CFG_EXT_RESET |
-		    GPHY_CFG_SEL_ANA_RESET | GPHY_CFG_PHY_IDDQ |
-		    GPHY_CFG_PWDOWN_HW);
+		CSR_WRITE_2(sc, ALC_GPHY_CFG,
+		    GPHY_CFG_EXT_RESET | GPHY_CFG_SEL_ANA_RESET |
+			GPHY_CFG_PHY_IDDQ | GPHY_CFG_PWDOWN_HW);
 		DELAY(1000);
 		break;
 	}
@@ -1150,8 +1143,7 @@ alc_aspm_813x(struct alc_softc *sc, int media)
 	pmcfg = CSR_READ_4(sc, ALC_PM_CFG);
 	if ((sc->alc_flags & (ALC_FLAG_APS | ALC_FLAG_PCIE)) ==
 	    (ALC_FLAG_APS | ALC_FLAG_PCIE))
-		linkcfg = CSR_READ_2(sc, sc->alc_expcap +
-		    PCIER_LINK_CTL);
+		linkcfg = CSR_READ_2(sc, sc->alc_expcap + PCIER_LINK_CTL);
 	else
 		linkcfg = 0;
 	pmcfg &= ~PM_CFG_SERDES_PD_EX_L1;
@@ -1166,15 +1158,14 @@ alc_aspm_813x(struct alc_softc *sc, int media)
 		if (sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8152_B &&
 		    sc->alc_rev == ATHEROS_AR8152_B_V10)
 			linkcfg |= PCIEM_LINK_CTL_EXTENDED_SYNC;
-		CSR_WRITE_2(sc, sc->alc_expcap + PCIER_LINK_CTL,
-		    linkcfg);
-		pmcfg &= ~(PM_CFG_EN_BUFS_RX_L0S | PM_CFG_SA_DLY_ENB |
-		    PM_CFG_HOTRST);
-		pmcfg |= (PM_CFG_L1_ENTRY_TIMER_DEFAULT <<
-		    PM_CFG_L1_ENTRY_TIMER_SHIFT);
+		CSR_WRITE_2(sc, sc->alc_expcap + PCIER_LINK_CTL, linkcfg);
+		pmcfg &= ~(
+		    PM_CFG_EN_BUFS_RX_L0S | PM_CFG_SA_DLY_ENB | PM_CFG_HOTRST);
+		pmcfg |= (PM_CFG_L1_ENTRY_TIMER_DEFAULT
+		    << PM_CFG_L1_ENTRY_TIMER_SHIFT);
 		pmcfg &= ~PM_CFG_PM_REQ_TIMER_MASK;
-		pmcfg |= (PM_CFG_PM_REQ_TIMER_DEFAULT <<
-		    PM_CFG_PM_REQ_TIMER_SHIFT);
+		pmcfg |= (PM_CFG_PM_REQ_TIMER_DEFAULT
+		    << PM_CFG_PM_REQ_TIMER_SHIFT);
 		pmcfg |= PM_CFG_SERDES_PD_EX_L1 | PM_CFG_PCIE_RECV;
 	}
 
@@ -1195,17 +1186,17 @@ alc_aspm_813x(struct alc_softc *sc, int media)
 				pmcfg &= ~PM_CFG_L1_ENTRY_TIMER_MASK;
 				switch (sc->alc_ident->deviceid) {
 				case DEVICEID_ATHEROS_AR8152_B:
-					pmcfg |= (7 <<
-					    PM_CFG_L1_ENTRY_TIMER_SHIFT);
+					pmcfg |= (7
+					    << PM_CFG_L1_ENTRY_TIMER_SHIFT);
 					break;
 				case DEVICEID_ATHEROS_AR8152_B2:
 				case DEVICEID_ATHEROS_AR8151_V2:
-					pmcfg |= (4 <<
-					    PM_CFG_L1_ENTRY_TIMER_SHIFT);
+					pmcfg |= (4
+					    << PM_CFG_L1_ENTRY_TIMER_SHIFT);
 					break;
 				default:
-					pmcfg |= (15 <<
-					    PM_CFG_L1_ENTRY_TIMER_SHIFT);
+					pmcfg |= (15
+					    << PM_CFG_L1_ENTRY_TIMER_SHIFT);
 					break;
 				}
 			}
@@ -1213,8 +1204,8 @@ alc_aspm_813x(struct alc_softc *sc, int media)
 			pmcfg |= PM_CFG_SERDES_L1_ENB |
 			    PM_CFG_SERDES_PLL_L1_ENB |
 			    PM_CFG_SERDES_BUDS_RX_L1_ENB;
-			pmcfg &= ~(PM_CFG_CLK_SWH_L1 |
-			    PM_CFG_ASPM_L1_ENB | PM_CFG_ASPM_L0S_ENB);
+			pmcfg &= ~(PM_CFG_CLK_SWH_L1 | PM_CFG_ASPM_L1_ENB |
+			    PM_CFG_ASPM_L0S_ENB);
 		}
 	} else {
 		pmcfg &= ~(PM_CFG_SERDES_BUDS_RX_L1_ENB | PM_CFG_SERDES_L1_ENB |
@@ -1240,10 +1231,9 @@ alc_aspm_816x(struct alc_softc *sc, int init)
 	pmcfg |= PM_CFG_LCKDET_TIMER_DEFAULT;
 	pmcfg |= PM_CFG_SERDES_PD_EX_L1 | PM_CFG_CLK_SWH_L1 | PM_CFG_PCIE_RECV;
 	pmcfg &= ~(PM_CFG_RX_L1_AFTER_L0S | PM_CFG_TX_L1_AFTER_L0S |
-	    PM_CFG_ASPM_L1_ENB | PM_CFG_ASPM_L0S_ENB |
-	    PM_CFG_SERDES_L1_ENB | PM_CFG_SERDES_PLL_L1_ENB |
-	    PM_CFG_SERDES_BUDS_RX_L1_ENB | PM_CFG_SA_DLY_ENB |
-	    PM_CFG_MAC_ASPM_CHK | PM_CFG_HOTRST);
+	    PM_CFG_ASPM_L1_ENB | PM_CFG_ASPM_L0S_ENB | PM_CFG_SERDES_L1_ENB |
+	    PM_CFG_SERDES_PLL_L1_ENB | PM_CFG_SERDES_BUDS_RX_L1_ENB |
+	    PM_CFG_SA_DLY_ENB | PM_CFG_MAC_ASPM_CHK | PM_CFG_HOTRST);
 	if (AR816X_REV(sc->alc_rev) <= AR816X_REV_A1 &&
 	    (sc->alc_rev & 0x01) != 0)
 		pmcfg |= PM_CFG_SERDES_L1_ENB | PM_CFG_SERDES_PLL_L1_ENB;
@@ -1278,7 +1268,7 @@ alc_init_pcie(struct alc_softc *sc)
 		    CSR_READ_4(sc, ALC_LTSSM_ID_CFG) & ~LTSSM_ID_WRO_ENB);
 		CSR_WRITE_4(sc, ALC_PCIE_PHYMISC,
 		    CSR_READ_4(sc, ALC_PCIE_PHYMISC) |
-		    PCIE_PHYMISC_FORCE_RCV_DET);
+			PCIE_PHYMISC_FORCE_RCV_DET);
 		if (sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8152_B &&
 		    sc->alc_rev == ATHEROS_AR8152_B_V10) {
 			val = CSR_READ_4(sc, ALC_PCIE_PHYMISC2);
@@ -1309,8 +1299,7 @@ alc_init_pcie(struct alc_softc *sc)
 			alc_disable_l0s_l1(sc);
 		} else {
 			if (bootverbose)
-				device_printf(sc->alc_dev,
-				    "no ASPM support\n");
+				device_printf(sc->alc_dev, "no ASPM support\n");
 		}
 	} else {
 		val = CSR_READ_4(sc, ALC_PDLL_TRNS1);
@@ -1356,11 +1345,11 @@ alc_config_msi(struct alc_softc *sc)
 			mod = 1;
 		ctl |= mod;
 		if ((sc->alc_flags & ALC_FLAG_MSIX) != 0)
-			CSR_WRITE_4(sc, ALC_MSI_RETRANS_TIMER, ctl |
-			    MSI_RETRANS_MASK_SEL_STD);
+			CSR_WRITE_4(sc, ALC_MSI_RETRANS_TIMER,
+			    ctl | MSI_RETRANS_MASK_SEL_STD);
 		else if ((sc->alc_flags & ALC_FLAG_MSI) != 0)
-			CSR_WRITE_4(sc, ALC_MSI_RETRANS_TIMER, ctl |
-			    MSI_RETRANS_MASK_SEL_LINE);
+			CSR_WRITE_4(sc, ALC_MSI_RETRANS_TIMER,
+			    ctl | MSI_RETRANS_MASK_SEL_LINE);
 		else
 			CSR_WRITE_4(sc, ALC_MSI_RETRANS_TIMER, 0);
 	}
@@ -1475,8 +1464,8 @@ alc_attach(device_t dev)
 		sc->alc_flags |= ALC_FLAG_PCIE;
 		sc->alc_expcap = base;
 		burst = CSR_READ_2(sc, base + PCIER_DEVICE_CTL);
-		sc->alc_dma_rd_burst =
-		    (burst & PCIEM_CTL_MAX_READ_REQUEST) >> 12;
+		sc->alc_dma_rd_burst = (burst & PCIEM_CTL_MAX_READ_REQUEST) >>
+		    12;
 		sc->alc_dma_wr_burst = (burst & PCIEM_CTL_MAX_PAYLOAD) >> 5;
 		if (bootverbose) {
 			device_printf(dev, "Read request size : %u bytes.\n",
@@ -1494,7 +1483,7 @@ alc_attach(device_t dev)
 		 * Otherwise it triggers DMA write error.
 		 */
 		if ((sc->alc_flags &
-		    (ALC_FLAG_E2X00 | ALC_FLAG_AR816X_FAMILY)) != 0)
+			(ALC_FLAG_E2X00 | ALC_FLAG_AR816X_FAMILY)) != 0)
 			sc->alc_dma_wr_burst = 0;
 		alc_init_pcie(sc);
 	}
@@ -1537,8 +1526,8 @@ alc_attach(device_t dev)
 		if (msi_disable == 0 && (sc->alc_flags & ALC_FLAG_MSIX) == 0 &&
 		    msic > 0 && pci_alloc_msi(dev, &msic) == 0) {
 			if (msic == 1) {
-				device_printf(dev,
-				    "Using %d MSI message(s).\n", msic);
+				device_printf(dev, "Using %d MSI message(s).\n",
+				    msic);
 				sc->alc_flags |= ALC_FLAG_MSI;
 				sc->alc_irq_spec = alc_irq_spec_msi;
 			} else
@@ -1579,7 +1568,8 @@ alc_attach(device_t dev)
 	if_setcapabilities(ifp, IFCAP_TXCSUM | IFCAP_TSO4);
 	if_sethwassist(ifp, ALC_CSUM_FEATURES | CSUM_TSO);
 	if (pci_find_cap(dev, PCIY_PMG, &base) == 0) {
-		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST, 0);
+		if_setcapabilitiesbit(ifp, IFCAP_WOL_MAGIC | IFCAP_WOL_MCAST,
+		    0);
 		sc->alc_flags |= ALC_FLAG_PM;
 		sc->alc_pmcap = base;
 	}
@@ -1597,8 +1587,10 @@ alc_attach(device_t dev)
 	ether_ifattach(ifp, sc->alc_eaddr);
 
 	/* VLAN capability setup. */
-	if_setcapabilitiesbit(ifp, IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING |
-	    IFCAP_VLAN_HWCSUM | IFCAP_VLAN_HWTSO, 0);
+	if_setcapabilitiesbit(ifp,
+	    IFCAP_VLAN_MTU | IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM |
+		IFCAP_VLAN_HWTSO,
+	    0);
 	if_setcapenable(ifp, if_getcapabilities(ifp));
 	/*
 	 * XXX
@@ -1725,10 +1717,10 @@ alc_detach(device_t dev)
 	return (0);
 }
 
-#define	ALC_SYSCTL_STAT_ADD32(c, h, n, p, d)	\
-	    SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
-#define	ALC_SYSCTL_STAT_ADD64(c, h, n, p, d)	\
-	    SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
+#define ALC_SYSCTL_STAT_ADD32(c, h, n, p, d) \
+	SYSCTL_ADD_UINT(c, h, OID_AUTO, n, CTLFLAG_RD, p, 0, d)
+#define ALC_SYSCTL_STAT_ADD64(c, h, n, p, d) \
+	SYSCTL_ADD_UQUAD(c, h, OID_AUTO, n, CTLFLAG_RD, p, d)
 
 static void
 alc_sysctl_node(struct alc_softc *sc)
@@ -1756,7 +1748,8 @@ alc_sysctl_node(struct alc_softc *sc)
 	if (error == 0) {
 		if (sc->alc_int_rx_mod < ALC_IM_TIMER_MIN ||
 		    sc->alc_int_rx_mod > ALC_IM_TIMER_MAX) {
-			device_printf(sc->alc_dev, "int_rx_mod value out of "
+			device_printf(sc->alc_dev,
+			    "int_rx_mod value out of "
 			    "range; using default: %d\n",
 			    ALC_IM_RX_TIMER_DEFAULT);
 			sc->alc_int_rx_mod = ALC_IM_RX_TIMER_DEFAULT;
@@ -1768,7 +1761,8 @@ alc_sysctl_node(struct alc_softc *sc)
 	if (error == 0) {
 		if (sc->alc_int_tx_mod < ALC_IM_TIMER_MIN ||
 		    sc->alc_int_tx_mod > ALC_IM_TIMER_MAX) {
-			device_printf(sc->alc_dev, "int_tx_mod value out of "
+			device_printf(sc->alc_dev,
+			    "int_tx_mod value out of "
 			    "range; using default: %d\n",
 			    ALC_IM_TX_TIMER_DEFAULT);
 			sc->alc_int_tx_mod = ALC_IM_TX_TIMER_DEFAULT;
@@ -1788,7 +1782,8 @@ alc_sysctl_node(struct alc_softc *sc)
 		    sc->alc_process_limit > ALC_PROC_MAX) {
 			device_printf(sc->alc_dev,
 			    "process_limit value out of range; "
-			    "using default: %d\n", ALC_PROC_DEFAULT);
+			    "using default: %d\n",
+			    ALC_PROC_DEFAULT);
 			sc->alc_process_limit = ALC_PROC_DEFAULT;
 		}
 	}
@@ -1801,8 +1796,8 @@ alc_sysctl_node(struct alc_softc *sc)
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "rx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Rx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->rx_frames, "Good frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->rx_frames,
+	    "Good frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_bcast_frames",
 	    &stats->rx_bcast_frames, "Good broadcast frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_mcast_frames",
@@ -1811,22 +1806,22 @@ alc_sysctl_node(struct alc_softc *sc)
 	    &stats->rx_pause_frames, "Pause control frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "control_frames",
 	    &stats->rx_control_frames, "Control frames");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "crc_errs",
-	    &stats->rx_crcerrs, "CRC errors");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "len_errs",
-	    &stats->rx_lenerrs, "Frames with length mismatched");
-	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_octets",
-	    &stats->rx_bytes, "Good octets");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "crc_errs", &stats->rx_crcerrs,
+	    "CRC errors");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "len_errs", &stats->rx_lenerrs,
+	    "Frames with length mismatched");
+	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_octets", &stats->rx_bytes,
+	    "Good octets");
 	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_bcast_octets",
 	    &stats->rx_bcast_bytes, "Good broadcast octets");
 	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_mcast_octets",
 	    &stats->rx_mcast_bytes, "Good multicast octets");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "runts",
-	    &stats->rx_runts, "Too short frames");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "fragments",
-	    &stats->rx_fragments, "Fragmented frames");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_64",
-	    &stats->rx_pkts_64, "64 bytes frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "runts", &stats->rx_runts,
+	    "Too short frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "fragments", &stats->rx_fragments,
+	    "Fragmented frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_64", &stats->rx_pkts_64,
+	    "64 bytes frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_65_127",
 	    &stats->rx_pkts_65_127, "65 to 127 bytes frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_128_255",
@@ -1841,22 +1836,21 @@ alc_sysctl_node(struct alc_softc *sc)
 	    &stats->rx_pkts_1519_max, "1519 to max frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "trunc_errs",
 	    &stats->rx_pkts_truncated, "Truncated frames due to MTU size");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "fifo_oflows",
-	    &stats->rx_fifo_oflows, "FIFO overflows");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "rrs_errs",
-	    &stats->rx_rrs_errs, "Return status write-back errors");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "align_errs",
-	    &stats->rx_alignerrs, "Alignment errors");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "filtered",
-	    &stats->rx_pkts_filtered,
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "fifo_oflows", &stats->rx_fifo_oflows,
+	    "FIFO overflows");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "rrs_errs", &stats->rx_rrs_errs,
+	    "Return status write-back errors");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "align_errs", &stats->rx_alignerrs,
+	    "Alignment errors");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "filtered", &stats->rx_pkts_filtered,
 	    "Frames dropped due to address filtering");
 
 	/* Tx statistics. */
 	tree = SYSCTL_ADD_NODE(ctx, parent, OID_AUTO, "tx",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "Tx MAC statistics");
 	child = SYSCTL_CHILDREN(tree);
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_frames",
-	    &stats->tx_frames, "Good frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_frames", &stats->tx_frames,
+	    "Good frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_bcast_frames",
 	    &stats->tx_bcast_frames, "Good broadcast frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "good_mcast_frames",
@@ -1867,16 +1861,16 @@ alc_sysctl_node(struct alc_softc *sc)
 	    &stats->tx_control_frames, "Control frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "excess_defers",
 	    &stats->tx_excess_defer, "Frames with excessive derferrals");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "defers",
-	    &stats->tx_excess_defer, "Frames with derferrals");
-	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_octets",
-	    &stats->tx_bytes, "Good octets");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "defers", &stats->tx_excess_defer,
+	    "Frames with derferrals");
+	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_octets", &stats->tx_bytes,
+	    "Good octets");
 	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_bcast_octets",
 	    &stats->tx_bcast_bytes, "Good broadcast octets");
 	ALC_SYSCTL_STAT_ADD64(ctx, child, "good_mcast_octets",
 	    &stats->tx_mcast_bytes, "Good multicast octets");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_64",
-	    &stats->tx_pkts_64, "64 bytes frames");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_64", &stats->tx_pkts_64,
+	    "64 bytes frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_65_127",
 	    &stats->tx_pkts_65_127, "65 to 127 bytes frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "frames_128_255",
@@ -1891,18 +1885,18 @@ alc_sysctl_node(struct alc_softc *sc)
 	    &stats->tx_pkts_1519_max, "1519 to max frames");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "single_colls",
 	    &stats->tx_single_colls, "Single collisions");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "multi_colls",
-	    &stats->tx_multi_colls, "Multiple collisions");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "late_colls",
-	    &stats->tx_late_colls, "Late collisions");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "multi_colls", &stats->tx_multi_colls,
+	    "Multiple collisions");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "late_colls", &stats->tx_late_colls,
+	    "Late collisions");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "excess_colls",
 	    &stats->tx_excess_colls, "Excessive collisions");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "underruns",
-	    &stats->tx_underrun, "FIFO underruns");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "underruns", &stats->tx_underrun,
+	    "FIFO underruns");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "desc_underruns",
 	    &stats->tx_desc_underrun, "Descriptor write-back errors");
-	ALC_SYSCTL_STAT_ADD32(ctx, child, "len_errs",
-	    &stats->tx_lenerrs, "Frames with length mismatched");
+	ALC_SYSCTL_STAT_ADD32(ctx, child, "len_errs", &stats->tx_lenerrs,
+	    "Frames with length mismatched");
 	ALC_SYSCTL_STAT_ADD32(ctx, child, "trunc_errs",
 	    &stats->tx_pkts_truncated, "Truncated frames due to MTU size");
 }
@@ -1911,7 +1905,7 @@ alc_sysctl_node(struct alc_softc *sc)
 #undef ALC_SYSCTL_STAT_ADD64
 
 struct alc_dmamap_arg {
-	bus_addr_t	alc_busaddr;
+	bus_addr_t alc_busaddr;
 };
 
 static void
@@ -1945,13 +1939,13 @@ alc_check_boundary(struct alc_softc *sc)
 
 	/* 4GB boundary crossing is not allowed. */
 	if ((ALC_ADDR_HI(rx_ring_end) !=
-	    ALC_ADDR_HI(sc->alc_rdata.alc_rx_ring_paddr)) ||
+		ALC_ADDR_HI(sc->alc_rdata.alc_rx_ring_paddr)) ||
 	    (ALC_ADDR_HI(rr_ring_end) !=
-	    ALC_ADDR_HI(sc->alc_rdata.alc_rr_ring_paddr)) ||
+		ALC_ADDR_HI(sc->alc_rdata.alc_rr_ring_paddr)) ||
 	    (ALC_ADDR_HI(cmb_end) !=
-	    ALC_ADDR_HI(sc->alc_rdata.alc_cmb_paddr)) ||
+		ALC_ADDR_HI(sc->alc_rdata.alc_cmb_paddr)) ||
 	    (ALC_ADDR_HI(tx_ring_end) !=
-	    ALC_ADDR_HI(sc->alc_rdata.alc_tx_ring_paddr)))
+		ALC_ADDR_HI(sc->alc_rdata.alc_tx_ring_paddr)))
 		return (EFBIG);
 	/*
 	 * Make sure Rx return descriptor/Rx descriptor/CMB use
@@ -1978,17 +1972,16 @@ alc_dma_alloc(struct alc_softc *sc)
 		lowaddr = BUS_SPACE_MAXSIZE_32BIT;
 again:
 	/* Create parent DMA tag. */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->alc_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    lowaddr,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->alc_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    lowaddr,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_parent_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev,
@@ -1997,17 +1990,16 @@ again:
 	}
 
 	/* Create DMA tag for Tx descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_parent_tag, /* parent */
-	    ALC_TX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_TX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    ALC_TX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_parent_tag, /* parent */
+	    ALC_TX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    ALC_TX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    ALC_TX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_tx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev,
@@ -2016,17 +2008,16 @@ again:
 	}
 
 	/* Create DMA tag for Rx free descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_parent_tag, /* parent */
-	    ALC_RX_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_RX_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    ALC_RX_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_parent_tag, /* parent */
+	    ALC_RX_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    ALC_RX_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    ALC_RX_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_rx_ring_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev,
@@ -2034,17 +2025,16 @@ again:
 		goto fail;
 	}
 	/* Create DMA tag for Rx return descriptor ring. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_parent_tag, /* parent */
-	    ALC_RR_RING_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_RR_RING_SZ,		/* maxsize */
-	    1,				/* nsegments */
-	    ALC_RR_RING_SZ,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_parent_tag, /* parent */
+	    ALC_RR_RING_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	  /* lowaddr */
+	    BUS_SPACE_MAXADDR,	  /* highaddr */
+	    NULL, NULL,		  /* filter, filterarg */
+	    ALC_RR_RING_SZ,	  /* maxsize */
+	    1,			  /* nsegments */
+	    ALC_RR_RING_SZ,	  /* maxsegsize */
+	    0,			  /* flags */
+	    NULL, NULL,		  /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_rr_ring_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev,
@@ -2053,39 +2043,35 @@ again:
 	}
 
 	/* Create DMA tag for coalescing message block. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_parent_tag, /* parent */
-	    ALC_CMB_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_CMB_SZ,			/* maxsize */
-	    1,				/* nsegments */
-	    ALC_CMB_SZ,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_parent_tag, /* parent */
+	    ALC_CMB_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    ALC_CMB_SZ,	       /* maxsize */
+	    1,		       /* nsegments */
+	    ALC_CMB_SZ,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_cmb_tag);
 	if (error != 0) {
-		device_printf(sc->alc_dev,
-		    "could not create CMB DMA tag.\n");
+		device_printf(sc->alc_dev, "could not create CMB DMA tag.\n");
 		goto fail;
 	}
 	/* Create DMA tag for status message block. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_parent_tag, /* parent */
-	    ALC_SMB_ALIGN, 0,		/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_SMB_SZ,			/* maxsize */
-	    1,				/* nsegments */
-	    ALC_SMB_SZ,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_parent_tag, /* parent */
+	    ALC_SMB_ALIGN, 0,  /* alignment, boundary */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    ALC_SMB_SZ,	       /* maxsize */
+	    1,		       /* nsegments */
+	    ALC_SMB_SZ,	       /* maxsegsize */
+	    0,		       /* flags */
+	    NULL, NULL,	       /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_smb_tag);
 	if (error != 0) {
-		device_printf(sc->alc_dev,
-		    "could not create SMB DMA tag.\n");
+		device_printf(sc->alc_dev, "could not create SMB DMA tag.\n");
 		goto fail;
 	}
 
@@ -2164,8 +2150,8 @@ again:
 	}
 	ctx.alc_busaddr = 0;
 	error = bus_dmamap_load(sc->alc_cdata.alc_cmb_tag,
-	    sc->alc_cdata.alc_cmb_map, sc->alc_rdata.alc_cmb,
-	    ALC_CMB_SZ, alc_dmamap_cb, &ctx, 0);
+	    sc->alc_cdata.alc_cmb_map, sc->alc_rdata.alc_cmb, ALC_CMB_SZ,
+	    alc_dmamap_cb, &ctx, 0);
 	if (error != 0 || ctx.alc_busaddr == 0) {
 		device_printf(sc->alc_dev,
 		    "could not load DMA'able memory for CMB.\n");
@@ -2185,8 +2171,8 @@ again:
 	}
 	ctx.alc_busaddr = 0;
 	error = bus_dmamap_load(sc->alc_cdata.alc_smb_tag,
-	    sc->alc_cdata.alc_smb_map, sc->alc_rdata.alc_smb,
-	    ALC_SMB_SZ, alc_dmamap_cb, &ctx, 0);
+	    sc->alc_cdata.alc_smb_map, sc->alc_rdata.alc_smb, ALC_SMB_SZ,
+	    alc_dmamap_cb, &ctx, 0);
 	if (error != 0 || ctx.alc_busaddr == 0) {
 		device_printf(sc->alc_dev,
 		    "could not load DMA'able memory for CMB.\n");
@@ -2197,7 +2183,8 @@ again:
 	/* Make sure we've not crossed 4GB boundary. */
 	if (lowaddr != BUS_SPACE_MAXADDR_32BIT &&
 	    (error = alc_check_boundary(sc)) != 0) {
-		device_printf(sc->alc_dev, "4GB boundary crossed, "
+		device_printf(sc->alc_dev,
+		    "4GB boundary crossed, "
 		    "switching to 32bit DMA addressing mode.\n");
 		alc_dma_free(sc);
 		/*
@@ -2215,17 +2202,16 @@ again:
 	 * space could be restricted to be within 32bit address space
 	 * by 4GB boundary crossing.
 	 */
-	error = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->alc_dev), /* parent */
-	    1, 0,			/* alignment, boundary */
-	    lowaddr,			/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsize */
-	    0,				/* nsegments */
-	    BUS_SPACE_MAXSIZE_32BIT,	/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(sc->alc_dev), /* parent */
+	    1, 0,		     /* alignment, boundary */
+	    lowaddr,		     /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsize */
+	    0,			     /* nsegments */
+	    BUS_SPACE_MAXSIZE_32BIT, /* maxsegsize */
+	    0,			     /* flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_buffer_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev,
@@ -2234,17 +2220,16 @@ again:
 	}
 
 	/* Create DMA tag for Tx buffers. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_buffer_tag, /* parent */
-	    1, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    ALC_TSO_MAXSIZE,		/* maxsize */
-	    ALC_MAXTXSEGS,		/* nsegments */
-	    ALC_TSO_MAXSEGSIZE,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_buffer_tag, /* parent */
+	    1, 0,		/* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	/* lowaddr */
+	    BUS_SPACE_MAXADDR,	/* highaddr */
+	    NULL, NULL,		/* filter, filterarg */
+	    ALC_TSO_MAXSIZE,	/* maxsize */
+	    ALC_MAXTXSEGS,	/* nsegments */
+	    ALC_TSO_MAXSEGSIZE, /* maxsegsize */
+	    0,			/* flags */
+	    NULL, NULL,		/* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_tx_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev, "could not create Tx DMA tag.\n");
@@ -2252,17 +2237,16 @@ again:
 	}
 
 	/* Create DMA tag for Rx buffers. */
-	error = bus_dma_tag_create(
-	    sc->alc_cdata.alc_buffer_tag, /* parent */
-	    ALC_RX_BUF_ALIGN, 0,	/* alignment, boundary */
-	    BUS_SPACE_MAXADDR,		/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    MCLBYTES,			/* maxsize */
-	    1,				/* nsegments */
-	    MCLBYTES,			/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	error = bus_dma_tag_create(sc->alc_cdata.alc_buffer_tag, /* parent */
+	    ALC_RX_BUF_ALIGN, 0, /* alignment, boundary */
+	    BUS_SPACE_MAXADDR,	 /* lowaddr */
+	    BUS_SPACE_MAXADDR,	 /* highaddr */
+	    NULL, NULL,		 /* filter, filterarg */
+	    MCLBYTES,		 /* maxsize */
+	    1,			 /* nsegments */
+	    MCLBYTES,		 /* maxsegsize */
+	    0,			 /* flags */
+	    NULL, NULL,		 /* lockfunc, lockarg */
 	    &sc->alc_cdata.alc_rx_tag);
 	if (error != 0) {
 		device_printf(sc->alc_dev, "could not create Rx DMA tag.\n");
@@ -2283,7 +2267,7 @@ again:
 	}
 	/* Create DMA maps for Rx buffers. */
 	if ((error = bus_dmamap_create(sc->alc_cdata.alc_rx_tag, 0,
-	    &sc->alc_cdata.alc_rx_sparemap)) != 0) {
+		 &sc->alc_cdata.alc_rx_sparemap)) != 0) {
 		device_printf(sc->alc_dev,
 		    "could not create spare Rx dmamap.\n");
 		goto fail;
@@ -2392,8 +2376,7 @@ alc_dma_free(struct alc_softc *sc)
 			    sc->alc_cdata.alc_cmb_map);
 		if (sc->alc_rdata.alc_cmb != NULL)
 			bus_dmamem_free(sc->alc_cdata.alc_cmb_tag,
-			    sc->alc_rdata.alc_cmb,
-			    sc->alc_cdata.alc_cmb_map);		
+			    sc->alc_rdata.alc_cmb, sc->alc_cdata.alc_cmb_map);
 		sc->alc_rdata.alc_cmb_paddr = 0;
 		sc->alc_rdata.alc_cmb = NULL;
 		bus_dma_tag_destroy(sc->alc_cdata.alc_cmb_tag);
@@ -2406,8 +2389,7 @@ alc_dma_free(struct alc_softc *sc)
 			    sc->alc_cdata.alc_smb_map);
 		if (sc->alc_rdata.alc_smb != NULL)
 			bus_dmamem_free(sc->alc_cdata.alc_smb_tag,
-			    sc->alc_rdata.alc_smb,
-			    sc->alc_cdata.alc_smb_map);
+			    sc->alc_rdata.alc_smb, sc->alc_cdata.alc_smb_map);
 		sc->alc_rdata.alc_smb_paddr = 0;
 		sc->alc_rdata.alc_smb = NULL;
 		bus_dma_tag_destroy(sc->alc_cdata.alc_smb_tag);
@@ -2457,22 +2439,24 @@ alc_setlinkspeed(struct alc_softc *sc)
 	aneg = 0;
 	if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID)) ==
 	    (IFM_ACTIVE | IFM_AVALID)) {
-		switch IFM_SUBTYPE(mii->mii_media_active) {
-		case IFM_10_T:
-		case IFM_100_TX:
-			return;
-		case IFM_1000_T:
-			aneg++;
-			break;
-		default:
-			break;
-		}
+		switch
+			IFM_SUBTYPE(mii->mii_media_active)
+			{
+			case IFM_10_T:
+			case IFM_100_TX:
+				return;
+			case IFM_1000_T:
+				aneg++;
+				break;
+			default:
+				break;
+			}
 	}
 	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, MII_100T2CR, 0);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    MII_ANAR, ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
-	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr,
-	    MII_BMCR, BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, MII_ANAR,
+	    ANAR_TX_FD | ANAR_TX | ANAR_10_FD | ANAR_10 | ANAR_CSMA);
+	alc_miibus_writereg(sc->alc_dev, sc->alc_phyaddr, MII_BMCR,
+	    BMCR_RESET | BMCR_AUTOEN | BMCR_STARTNEG);
 	DELAY(1000);
 	if (aneg != 0) {
 		/*
@@ -2480,10 +2464,10 @@ alc_setlinkspeed(struct alc_softc *sc)
 		 */
 		for (i = 0; i < MII_ANEGTICKS_GIGE; i++) {
 			mii_pollstat(mii);
-			if ((mii->mii_media_status & (IFM_ACTIVE | IFM_AVALID))
-			    == (IFM_ACTIVE | IFM_AVALID)) {
-				switch (IFM_SUBTYPE(
-				    mii->mii_media_active)) {
+			if ((mii->mii_media_status &
+				(IFM_ACTIVE | IFM_AVALID)) ==
+			    (IFM_ACTIVE | IFM_AVALID)) {
+				switch (IFM_SUBTYPE(mii->mii_media_active)) {
 				case IFM_10_T:
 				case IFM_100_TX:
 					alc_mac_config(sc);
@@ -2555,8 +2539,8 @@ alc_setwol_813x(struct alc_softc *sc)
 		pmcs |= WOL_CFG_MAGIC | WOL_CFG_MAGIC_ENB;
 	CSR_WRITE_4(sc, ALC_WOL_CFG, pmcs);
 	reg = CSR_READ_4(sc, ALC_MAC_CFG);
-	reg &= ~(MAC_CFG_DBG | MAC_CFG_PROMISC | MAC_CFG_ALLMULTI |
-	    MAC_CFG_BCAST);
+	reg &= ~(
+	    MAC_CFG_DBG | MAC_CFG_PROMISC | MAC_CFG_ALLMULTI | MAC_CFG_BCAST);
 	if ((if_getcapenable(ifp) & IFCAP_WOL_MCAST) != 0)
 		reg |= MAC_CFG_ALLMULTI | MAC_CFG_BCAST;
 	if ((if_getcapenable(ifp) & IFCAP_WOL) != 0)
@@ -2573,13 +2557,13 @@ alc_setwol_813x(struct alc_softc *sc)
 		    CSR_READ_4(sc, ALC_MASTER_CFG) | MASTER_CLK_SEL_DIS);
 	}
 	/* Request PME. */
-	pmstat = pci_read_config(sc->alc_dev,
-	    sc->alc_pmcap + PCIR_POWER_STATUS, 2);
+	pmstat = pci_read_config(sc->alc_dev, sc->alc_pmcap + PCIR_POWER_STATUS,
+	    2);
 	pmstat &= ~(PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE);
 	if ((if_getcapenable(ifp) & IFCAP_WOL) != 0)
 		pmstat |= PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE;
-	pci_write_config(sc->alc_dev,
-	    sc->alc_pmcap + PCIR_POWER_STATUS, pmstat, 2);
+	pci_write_config(sc->alc_dev, sc->alc_pmcap + PCIR_POWER_STATUS, pmstat,
+	    2);
 }
 
 static void
@@ -2643,8 +2627,8 @@ alc_setwol_816x(struct alc_softc *sc)
 		pmstat &= ~(PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE);
 		if ((if_getcapenable(ifp) & IFCAP_WOL) != 0)
 			pmstat |= PCIM_PSTAT_PME | PCIM_PSTAT_PMEENABLE;
-		pci_write_config(sc->alc_dev,
-		    sc->alc_pmcap + PCIR_POWER_STATUS, pmstat, 2);
+		pci_write_config(sc->alc_dev, sc->alc_pmcap + PCIR_POWER_STATUS,
+		    pmstat, 2);
 	}
 }
 
@@ -2804,8 +2788,8 @@ alc_encap(struct alc_softc *sc, struct mbuf **m_head)
 	txd_last = txd;
 	map = txd->tx_dmamap;
 
-	error = bus_dmamap_load_mbuf_sg(sc->alc_cdata.alc_tx_tag, map,
-	    *m_head, txsegs, &nsegs, 0);
+	error = bus_dmamap_load_mbuf_sg(sc->alc_cdata.alc_tx_tag, map, *m_head,
+	    txsegs, &nsegs, 0);
 	if (error == EFBIG) {
 		m = m_collapse(*m_head, M_NOWAIT, ALC_MAXTXSEGS);
 		if (m == NULL) {
@@ -2870,8 +2854,8 @@ alc_encap(struct alc_softc *sc, struct mbuf **m_head)
 		if (m->m_len - hdrlen > 0) {
 			/* Handle remaining payload of the first fragment. */
 			desc = &sc->alc_rdata.alc_tx_ring[prod];
-			desc->len = htole32(TX_BYTES((m->m_len - hdrlen) |
-			    vtag));
+			desc->len = htole32(
+			    TX_BYTES((m->m_len - hdrlen) | vtag));
 			desc->flags = htole32(cflags);
 			desc->addr = htole64(txsegs[0].ds_addr + hdrlen);
 			sc->alc_cdata.alc_tx_cnt++;
@@ -2887,8 +2871,9 @@ alc_encap(struct alc_softc *sc, struct mbuf **m_head)
 		cflags |= ((poff >> 1) << TD_PLOAD_OFFSET_SHIFT) &
 		    TD_PLOAD_OFFSET_MASK;
 		/* Set checksum insertion position of TCP/UDP. */
-		cflags |= (((poff + m->m_pkthdr.csum_data) >> 1) <<
-		    TD_CUSTOM_CSUM_OFFSET_SHIFT) & TD_CUSTOM_CSUM_OFFSET_MASK;
+		cflags |= (((poff + m->m_pkthdr.csum_data) >> 1)
+			      << TD_CUSTOM_CSUM_OFFSET_SHIFT) &
+		    TD_CUSTOM_CSUM_OFFSET_MASK;
 #else
 		if ((m->m_pkthdr.csum_flags & CSUM_IP) != 0)
 			cflags |= TD_IPCSUM;
@@ -2954,10 +2939,11 @@ alc_start_locked(if_t ifp)
 		alc_txeof(sc);
 
 	if ((if_getdrvflags(ifp) & (IFF_DRV_RUNNING | IFF_DRV_OACTIVE)) !=
-	    IFF_DRV_RUNNING || (sc->alc_flags & ALC_FLAG_LINK) == 0)
+		IFF_DRV_RUNNING ||
+	    (sc->alc_flags & ALC_FLAG_LINK) == 0)
 		return;
 
-	for (enq = 0; !if_sendq_empty(ifp); ) {
+	for (enq = 0; !if_sendq_empty(ifp);) {
 		m_head = if_dequeue(ifp);
 		if (m_head == NULL)
 			break;
@@ -2999,9 +2985,8 @@ alc_start_tx(struct alc_softc *sc)
 		    (uint16_t)sc->alc_cdata.alc_tx_prod);
 	else
 		CSR_WRITE_4(sc, ALC_MBOX_TD_PROD_IDX,
-		    (sc->alc_cdata.alc_tx_prod <<
-		    MBOX_TD_PROD_LO_IDX_SHIFT) &
-		    MBOX_TD_PROD_LO_IDX_MASK);
+		    (sc->alc_cdata.alc_tx_prod << MBOX_TD_PROD_LO_IDX_SHIFT) &
+			MBOX_TD_PROD_LO_IDX_MASK);
 	/* Set a timeout in case the chip goes out to lunch. */
 	sc->alc_watchdog_timer = ALC_TX_TIMEOUT;
 }
@@ -3046,10 +3031,11 @@ alc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	switch (cmd) {
 	case SIOCSIFMTU:
 		if (ifr->ifr_mtu < ETHERMIN ||
-		    ifr->ifr_mtu > (sc->alc_ident->max_framelen -
-		    sizeof(struct ether_vlan_header) - ETHER_CRC_LEN) ||
+		    ifr->ifr_mtu >
+			(sc->alc_ident->max_framelen -
+			    sizeof(struct ether_vlan_header) - ETHER_CRC_LEN) ||
 		    ((sc->alc_flags & ALC_FLAG_JUMBO) == 0 &&
-		    ifr->ifr_mtu > ETHERMTU))
+			ifr->ifr_mtu > ETHERMTU))
 			error = EINVAL;
 		else if (if_getmtu(ifp) != ifr->ifr_mtu) {
 			ALC_LOCK(sc);
@@ -3069,7 +3055,7 @@ alc_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0 &&
 			    ((if_getflags(ifp) ^ sc->alc_if_flags) &
-			    (IFF_PROMISC | IFF_ALLMULTI)) != 0)
+				(IFF_PROMISC | IFF_ALLMULTI)) != 0)
 				alc_rxfilter(sc);
 			else
 				alc_init_locked(sc);
@@ -3201,13 +3187,13 @@ alc_stats_clear(struct alc_softc *sc)
 		    BUS_DMASYNC_PREREAD | BUS_DMASYNC_PREWRITE);
 	} else {
 		for (reg = &sb.rx_frames, i = 0; reg <= &sb.rx_pkts_filtered;
-		    reg++) {
+		     reg++) {
 			CSR_READ_4(sc, ALC_RX_MIB_BASE + i);
 			i += sizeof(uint32_t);
 		}
 		/* Read Tx statistics. */
 		for (reg = &sb.tx_frames, i = 0; reg <= &sb.tx_mcast_bytes;
-		    reg++) {
+		     reg++) {
 			CSR_READ_4(sc, ALC_TX_MIB_BASE + i);
 			i += sizeof(uint32_t);
 		}
@@ -3238,13 +3224,13 @@ alc_stats_update(struct alc_softc *sc)
 		smb = &sb;
 		/* Read Rx statistics. */
 		for (reg = &sb.rx_frames, i = 0; reg <= &sb.rx_pkts_filtered;
-		    reg++) {
+		     reg++) {
 			*reg = CSR_READ_4(sc, ALC_RX_MIB_BASE + i);
 			i += sizeof(uint32_t);
 		}
 		/* Read Tx statistics. */
 		for (reg = &sb.tx_frames, i = 0; reg <= &sb.tx_mcast_bytes;
-		    reg++) {
+		     reg++) {
 			*reg = CSR_READ_4(sc, ALC_TX_MIB_BASE + i);
 			i += sizeof(uint32_t);
 		}
@@ -3306,20 +3292,21 @@ alc_stats_update(struct alc_softc *sc)
 	/* Update counters in ifnet. */
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, smb->tx_frames);
 
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, smb->tx_single_colls +
-	    smb->tx_multi_colls * 2 + smb->tx_late_colls +
-	    smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    smb->tx_single_colls + smb->tx_multi_colls * 2 +
+		smb->tx_late_colls +
+		smb->tx_excess_colls * HDPX_CFG_RETRY_DEFAULT);
 
-	if_inc_counter(ifp, IFCOUNTER_OERRORS, smb->tx_late_colls +
-	    smb->tx_excess_colls + smb->tx_underrun + smb->tx_pkts_truncated);
+	if_inc_counter(ifp, IFCOUNTER_OERRORS,
+	    smb->tx_late_colls + smb->tx_excess_colls + smb->tx_underrun +
+		smb->tx_pkts_truncated);
 
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, smb->rx_frames);
 
 	if_inc_counter(ifp, IFCOUNTER_IERRORS,
-	    smb->rx_crcerrs + smb->rx_lenerrs +
-	    smb->rx_runts + smb->rx_pkts_truncated +
-	    smb->rx_fifo_oflows + smb->rx_rrs_errs +
-	    smb->rx_alignerrs);
+	    smb->rx_crcerrs + smb->rx_lenerrs + smb->rx_runts +
+		smb->rx_pkts_truncated + smb->rx_fifo_oflows +
+		smb->rx_rrs_errs + smb->rx_alignerrs);
 
 	if ((sc->alc_flags & ALC_FLAG_SMB_BUG) == 0) {
 		/* Update done, clear. */
@@ -3389,8 +3376,9 @@ alc_int_task(void *arg, int pending)
 				return;
 			}
 		}
-		if ((status & (INTR_DMA_RD_TO_RST | INTR_DMA_WR_TO_RST |
-		    INTR_TXQ_TO_RST)) != 0) {
+		if ((status &
+			(INTR_DMA_RD_TO_RST | INTR_DMA_WR_TO_RST |
+			    INTR_TXQ_TO_RST)) != 0) {
 			if ((status & INTR_DMA_RD_TO_RST) != 0)
 				device_printf(sc->alc_dev,
 				    "DMA read error! -- resetting\n");
@@ -3508,7 +3496,7 @@ alc_newbuf(struct alc_softc *sc, struct alc_rxdesc *rxd)
 #endif
 
 	if (bus_dmamap_load_mbuf_sg(sc->alc_cdata.alc_rx_tag,
-	    sc->alc_cdata.alc_rx_sparemap, m, segs, &nsegs, 0) != 0) {
+		sc->alc_cdata.alc_rx_sparemap, m, segs, &nsegs, 0) != 0) {
 		m_freem(m);
 		return (ENOBUFS);
 	}
@@ -3606,8 +3594,8 @@ static struct mbuf *
 alc_fixup_rx(if_t ifp, struct mbuf *m)
 {
 	struct mbuf *n;
-        int i;
-        uint16_t *src, *dst;
+	int i;
+	uint16_t *src, *dst;
 
 	src = mtod(m, uint16_t *);
 	dst = src - 3;
@@ -3670,13 +3658,14 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 		 *  errored frames.
 		 */
 		status |= RRD_TCP_UDPCSUM_NOK | RRD_IPCSUM_NOK;
-		if ((status & (RRD_ERR_CRC | RRD_ERR_ALIGN |
-		    RRD_ERR_TRUNC | RRD_ERR_RUNT)) != 0)
+		if ((status &
+			(RRD_ERR_CRC | RRD_ERR_ALIGN | RRD_ERR_TRUNC |
+			    RRD_ERR_RUNT)) != 0)
 			return;
 	}
 
-	for (count = 0; count < nsegs; count++,
-	    ALC_DESC_INC(rx_cons, ALC_RX_RING_CNT)) {
+	for (count = 0; count < nsegs;
+	     count++, ALC_DESC_INC(rx_cons, ALC_RX_RING_CNT)) {
 		rxd = &sc->alc_cdata.alc_rxdesc[rx_cons];
 		mp = rxd->rx_m;
 		/* Add a new receive buffer to the ring. */
@@ -3715,8 +3704,8 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 			 * It seems that L1C/L2C controller has no way
 			 * to tell hardware to strip CRC bytes.
 			 */
-			m->m_pkthdr.len =
-			    sc->alc_cdata.alc_rxlen - ETHER_CRC_LEN;
+			m->m_pkthdr.len = sc->alc_cdata.alc_rxlen -
+			    ETHER_CRC_LEN;
 			if (nsegs > 1) {
 				/* Set last mbuf size. */
 				mp->m_len = sc->alc_cdata.alc_rxlen -
@@ -3739,7 +3728,8 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 			 * Due to hardware bugs, Rx checksum offloading
 			 * was intentionally disabled.
 			 */
-			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) != 0 &&
+			if ((if_getcapenable(ifp) & IFCAP_VLAN_HWTAGGING) !=
+				0 &&
 			    (status & RRD_VLAN_TAG) != 0) {
 				vtag = RRD_VLAN(le32toh(rrd->vtag));
 				m->m_pkthdr.ether_vtag = ntohs(vtag);
@@ -3750,10 +3740,10 @@ alc_rxeof(struct alc_softc *sc, struct rx_rdesc *rrd)
 			if (m != NULL)
 #endif
 			{
-			/* Pass it on. */
-			ALC_UNLOCK(sc);
-			if_input(ifp, m);
-			ALC_LOCK(sc);
+				/* Pass it on. */
+				ALC_UNLOCK(sc);
+				if_input(ifp, m);
+				ALC_LOCK(sc);
 			}
 		}
 	}
@@ -3838,10 +3828,11 @@ alc_reset(struct alc_softc *sc)
 		    (sc->alc_rev & 0x01) != 0) {
 			/* Disable L0s/L1s before reset. */
 			pmcfg = CSR_READ_4(sc, ALC_PM_CFG);
-			if ((pmcfg & (PM_CFG_ASPM_L0S_ENB | PM_CFG_ASPM_L1_ENB))
-			    != 0) {
-				pmcfg &= ~(PM_CFG_ASPM_L0S_ENB |
-				    PM_CFG_ASPM_L1_ENB);
+			if ((pmcfg &
+				(PM_CFG_ASPM_L0S_ENB | PM_CFG_ASPM_L1_ENB)) !=
+			    0) {
+				pmcfg &= ~(
+				    PM_CFG_ASPM_L0S_ENB | PM_CFG_ASPM_L1_ENB);
 				CSR_WRITE_4(sc, ALC_PM_CFG, pmcfg);
 			}
 		}
@@ -3869,8 +3860,9 @@ alc_reset(struct alc_softc *sc)
 
 	for (i = ALC_RESET_TIMEOUT; i > 0; i--) {
 		reg = CSR_READ_4(sc, ALC_IDLE_STATUS);
-		if ((reg & (IDLE_STATUS_RXMAC | IDLE_STATUS_TXMAC |
-		    IDLE_STATUS_RXQ | IDLE_STATUS_TXQ)) == 0)
+		if ((reg &
+			(IDLE_STATUS_RXMAC | IDLE_STATUS_TXMAC |
+			    IDLE_STATUS_RXQ | IDLE_STATUS_TXQ)) == 0)
 			break;
 		DELAY(10);
 	}
@@ -3884,8 +3876,9 @@ alc_reset(struct alc_softc *sc)
 			reg |= MASTER_CLK_SEL_DIS;
 			CSR_WRITE_4(sc, ALC_MASTER_CFG, reg);
 			/* Restore L0s/L1s config. */
-			if ((pmcfg & (PM_CFG_ASPM_L0S_ENB | PM_CFG_ASPM_L1_ENB))
-			    != 0)
+			if ((pmcfg &
+				(PM_CFG_ASPM_L0S_ENB | PM_CFG_ASPM_L1_ENB)) !=
+			    0)
 				CSR_WRITE_4(sc, ALC_PM_CFG, pmcfg);
 		}
 
@@ -3906,7 +3899,7 @@ alc_reset(struct alc_softc *sc)
 	    sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8151_V2)
 		CSR_WRITE_4(sc, ALC_SERDES_LOCK,
 		    CSR_READ_4(sc, ALC_SERDES_LOCK) | SERDES_MAC_CLK_SLOWDOWN |
-		    SERDES_PHY_CLK_SLOWDOWN);
+			SERDES_PHY_CLK_SLOWDOWN);
 }
 
 static void
@@ -3956,10 +3949,10 @@ alc_init_locked(struct alc_softc *sc)
 
 	/* Enable all clocks. */
 	if ((sc->alc_flags & ALC_FLAG_AR816X_FAMILY) != 0) {
-		CSR_WRITE_4(sc, ALC_CLK_GATING_CFG, CLK_GATING_DMAW_ENB |
-		    CLK_GATING_DMAR_ENB | CLK_GATING_TXQ_ENB |
-		    CLK_GATING_RXQ_ENB | CLK_GATING_TXMAC_ENB |
-		    CLK_GATING_RXMAC_ENB);
+		CSR_WRITE_4(sc, ALC_CLK_GATING_CFG,
+		    CLK_GATING_DMAW_ENB | CLK_GATING_DMAR_ENB |
+			CLK_GATING_TXQ_ENB | CLK_GATING_RXQ_ENB |
+			CLK_GATING_TXMAC_ENB | CLK_GATING_RXMAC_ENB);
 		if (AR816X_REV(sc->alc_rev) >= AR816X_REV_B0)
 			CSR_WRITE_4(sc, ALC_IDLE_DECISN_TIMER,
 			    IDLE_DECISN_TIMER_DEFAULT_1MS);
@@ -4118,23 +4111,24 @@ alc_init_locked(struct alc_softc *sc)
 		/* Configure IPG/IFG parameters. */
 		CSR_WRITE_4(sc, ALC_IPG_IFG_CFG,
 		    ((IPG_IFG_IPGT_DEFAULT << IPG_IFG_IPGT_SHIFT) &
-		    IPG_IFG_IPGT_MASK) |
-		    ((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) &
-		    IPG_IFG_MIFG_MASK) |
-		    ((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) &
-		    IPG_IFG_IPG1_MASK) |
-		    ((IPG_IFG_IPG2_DEFAULT << IPG_IFG_IPG2_SHIFT) &
-		    IPG_IFG_IPG2_MASK));
+			IPG_IFG_IPGT_MASK) |
+			((IPG_IFG_MIFG_DEFAULT << IPG_IFG_MIFG_SHIFT) &
+			    IPG_IFG_MIFG_MASK) |
+			((IPG_IFG_IPG1_DEFAULT << IPG_IFG_IPG1_SHIFT) &
+			    IPG_IFG_IPG1_MASK) |
+			((IPG_IFG_IPG2_DEFAULT << IPG_IFG_IPG2_SHIFT) &
+			    IPG_IFG_IPG2_MASK));
 		/* Set parameters for half-duplex media. */
 		CSR_WRITE_4(sc, ALC_HDPX_CFG,
 		    ((HDPX_CFG_LCOL_DEFAULT << HDPX_CFG_LCOL_SHIFT) &
-		    HDPX_CFG_LCOL_MASK) |
-		    ((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
-		    HDPX_CFG_RETRY_MASK) | HDPX_CFG_EXC_DEF_EN |
-		    ((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
-		    HDPX_CFG_ABEBT_MASK) |
-		    ((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
-		    HDPX_CFG_JAMIPG_MASK));
+			HDPX_CFG_LCOL_MASK) |
+			((HDPX_CFG_RETRY_DEFAULT << HDPX_CFG_RETRY_SHIFT) &
+			    HDPX_CFG_RETRY_MASK) |
+			HDPX_CFG_EXC_DEF_EN |
+			((HDPX_CFG_ABEBT_DEFAULT << HDPX_CFG_ABEBT_SHIFT) &
+			    HDPX_CFG_ABEBT_MASK) |
+			((HDPX_CFG_JAMIPG_DEFAULT << HDPX_CFG_JAMIPG_SHIFT) &
+			    HDPX_CFG_JAMIPG_MASK));
 	}
 
 	/*
@@ -4148,8 +4142,9 @@ alc_init_locked(struct alc_softc *sc)
 		reg |= TSO_OFFLOAD_ERRLGPKT_DROP_ENB;
 	CSR_WRITE_4(sc, ALC_TSO_OFFLOAD_THRESH, reg);
 	/* Configure TxQ. */
-	reg = (alc_dma_burst[sc->alc_dma_rd_burst] <<
-	    TXQ_CFG_TX_FIFO_BURST_SHIFT) & TXQ_CFG_TX_FIFO_BURST_MASK;
+	reg = (alc_dma_burst[sc->alc_dma_rd_burst]
+		  << TXQ_CFG_TX_FIFO_BURST_SHIFT) &
+	    TXQ_CFG_TX_FIFO_BURST_MASK;
 	if (sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8152_B ||
 	    sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8152_B2)
 		reg >>= 1;
@@ -4172,10 +4167,12 @@ alc_init_locked(struct alc_softc *sc)
 	} else {
 		/* Configure Rx free descriptor pre-fetching. */
 		CSR_WRITE_4(sc, ALC_RX_RD_FREE_THRESH,
-		    ((RX_RD_FREE_THRESH_HI_DEFAULT <<
-		    RX_RD_FREE_THRESH_HI_SHIFT) & RX_RD_FREE_THRESH_HI_MASK) |
-		    ((RX_RD_FREE_THRESH_LO_DEFAULT <<
-		    RX_RD_FREE_THRESH_LO_SHIFT) & RX_RD_FREE_THRESH_LO_MASK));
+		    ((RX_RD_FREE_THRESH_HI_DEFAULT
+			 << RX_RD_FREE_THRESH_HI_SHIFT) &
+			RX_RD_FREE_THRESH_HI_MASK) |
+			((RX_RD_FREE_THRESH_LO_DEFAULT
+			     << RX_RD_FREE_THRESH_LO_SHIFT) &
+			    RX_RD_FREE_THRESH_LO_MASK));
 	}
 
 	/*
@@ -4194,10 +4191,10 @@ alc_init_locked(struct alc_softc *sc)
 		reg /= 8;
 		CSR_WRITE_4(sc, ALC_RX_FIFO_PAUSE_THRESH,
 		    ((reg << RX_FIFO_PAUSE_THRESH_LO_SHIFT) &
-		    RX_FIFO_PAUSE_THRESH_LO_MASK) |
-		    (((RX_FIFO_PAUSE_816X_RSVD / 8) <<
-		    RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
-		    RX_FIFO_PAUSE_THRESH_HI_MASK));
+			RX_FIFO_PAUSE_THRESH_LO_MASK) |
+			(((RX_FIFO_PAUSE_816X_RSVD / 8)
+			     << RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
+			    RX_FIFO_PAUSE_THRESH_HI_MASK));
 	} else if (sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8131 ||
 	    sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8132) {
 		reg = CSR_READ_4(sc, ALC_SRAM_RX_FIFO_LEN);
@@ -4205,9 +4202,9 @@ alc_init_locked(struct alc_softc *sc)
 		rxf_lo = (reg * 3) / 10;
 		CSR_WRITE_4(sc, ALC_RX_FIFO_PAUSE_THRESH,
 		    ((rxf_lo << RX_FIFO_PAUSE_THRESH_LO_SHIFT) &
-		     RX_FIFO_PAUSE_THRESH_LO_MASK) |
-		    ((rxf_hi << RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
-		     RX_FIFO_PAUSE_THRESH_HI_MASK));
+			RX_FIFO_PAUSE_THRESH_LO_MASK) |
+			((rxf_hi << RX_FIFO_PAUSE_THRESH_HI_SHIFT) &
+			    RX_FIFO_PAUSE_THRESH_HI_MASK));
 	}
 
 	if ((sc->alc_flags & ALC_FLAG_AR816X_FAMILY) == 0) {
@@ -4221,8 +4218,8 @@ alc_init_locked(struct alc_softc *sc)
 	    RXQ_CFG_RD_BURST_MASK;
 	reg |= RXQ_CFG_RSS_MODE_DIS;
 	if ((sc->alc_flags & ALC_FLAG_AR816X_FAMILY) != 0) {
-		reg |= (RXQ_CFG_816X_IDT_TBL_SIZE_DEFAULT <<
-		    RXQ_CFG_816X_IDT_TBL_SIZE_SHIFT) &
+		reg |= (RXQ_CFG_816X_IDT_TBL_SIZE_DEFAULT
+			   << RXQ_CFG_816X_IDT_TBL_SIZE_SHIFT) &
 		    RXQ_CFG_816X_IDT_TBL_SIZE_MASK;
 		if ((sc->alc_flags & ALC_FLAG_FASTETHER) == 0)
 			reg |= RXQ_CFG_ASPM_THROUGHPUT_LIMIT_100M;
@@ -4242,10 +4239,10 @@ alc_init_locked(struct alc_softc *sc)
 		reg |= DMA_CFG_SMB_ENB;
 	else
 		reg |= DMA_CFG_SMB_DIS;
-	reg |= (sc->alc_dma_rd_burst & DMA_CFG_RD_BURST_MASK) <<
-	    DMA_CFG_RD_BURST_SHIFT;
-	reg |= (sc->alc_dma_wr_burst & DMA_CFG_WR_BURST_MASK) <<
-	    DMA_CFG_WR_BURST_SHIFT;
+	reg |= (sc->alc_dma_rd_burst & DMA_CFG_RD_BURST_MASK)
+	    << DMA_CFG_RD_BURST_SHIFT;
+	reg |= (sc->alc_dma_wr_burst & DMA_CFG_WR_BURST_MASK)
+	    << DMA_CFG_WR_BURST_SHIFT;
 	reg |= (DMA_CFG_RD_DELAY_CNT_DEFAULT << DMA_CFG_RD_DELAY_CNT_SHIFT) &
 	    DMA_CFG_RD_DELAY_CNT_MASK;
 	reg |= (DMA_CFG_WR_DELAY_CNT_DEFAULT << DMA_CFG_WR_DELAY_CNT_SHIFT) &
@@ -4280,7 +4277,7 @@ alc_init_locked(struct alc_softc *sc)
 	 */
 	reg = MAC_CFG_TX_CRC_ENB | MAC_CFG_TX_AUTO_PAD | MAC_CFG_FULL_DUPLEX |
 	    ((MAC_CFG_PREAMBLE_DEFAULT << MAC_CFG_PREAMBLE_SHIFT) &
-	    MAC_CFG_PREAMBLE_MASK);
+		MAC_CFG_PREAMBLE_MASK);
 	if ((sc->alc_flags & ALC_FLAG_AR816X_FAMILY) != 0 ||
 	    sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8151 ||
 	    sc->alc_ident->deviceid == DEVICEID_ATHEROS_AR8151_V2 ||
@@ -4403,13 +4400,10 @@ alc_stop_mac(struct alc_softc *sc)
 static void
 alc_start_queue(struct alc_softc *sc)
 {
-	uint32_t qcfg[] = {
-		0,
-		RXQ_CFG_QUEUE0_ENB,
+	uint32_t qcfg[] = { 0, RXQ_CFG_QUEUE0_ENB,
 		RXQ_CFG_QUEUE0_ENB | RXQ_CFG_QUEUE1_ENB,
 		RXQ_CFG_QUEUE0_ENB | RXQ_CFG_QUEUE1_ENB | RXQ_CFG_QUEUE2_ENB,
-		RXQ_CFG_ENB
-	};
+		RXQ_CFG_ENB };
 	uint32_t cfg;
 
 	ALC_LOCK_ASSERT(sc);
@@ -4650,16 +4644,16 @@ sysctl_int_range(SYSCTL_HANDLER_ARGS, int low, int high)
 static int
 sysctl_hw_alc_proc_limit(SYSCTL_HANDLER_ARGS)
 {
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    ALC_PROC_MIN, ALC_PROC_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, ALC_PROC_MIN,
+	    ALC_PROC_MAX));
 }
 
 static int
 sysctl_hw_alc_int_mod(SYSCTL_HANDLER_ARGS)
 {
 
-	return (sysctl_int_range(oidp, arg1, arg2, req,
-	    ALC_IM_TIMER_MIN, ALC_IM_TIMER_MAX));
+	return (sysctl_int_range(oidp, arg1, arg2, req, ALC_IM_TIMER_MIN,
+	    ALC_IM_TIMER_MAX));
 }
 
 #ifdef DEBUGNET

@@ -39,38 +39,38 @@
 
 /* The GICv1/2 only supports 8 CPUs */
 #if MAXCPU > 8
-#define	GIC_MAXCPU	8
+#define GIC_MAXCPU 8
 #else
-#define	GIC_MAXCPU	MAXCPU
+#define GIC_MAXCPU MAXCPU
 #endif
 
 struct arm_gic_softc {
-	device_t		gic_dev;
-	void *			gic_intrhand;
-	struct gic_irqsrc *	gic_irqs;
-#define	GIC_RES_DIST		0
-#define	GIC_RES_CPU		1
-	struct resource *	gic_res[3];
-	uint8_t			ver;
-	struct mtx		mutex;
-	uint32_t		nirqs;
-	uint32_t		typer;
-	uint32_t		last_irq[GIC_MAXCPU];
+	device_t gic_dev;
+	void *gic_intrhand;
+	struct gic_irqsrc *gic_irqs;
+#define GIC_RES_DIST 0
+#define GIC_RES_CPU 1
+	struct resource *gic_res[3];
+	uint8_t ver;
+	struct mtx mutex;
+	uint32_t nirqs;
+	uint32_t typer;
+	uint32_t last_irq[GIC_MAXCPU];
 
-	uint32_t		gic_iidr;
-	u_int			gic_bus;
+	uint32_t gic_iidr;
+	u_int gic_bus;
 
-	int			nranges;
-	struct arm_gic_range *	ranges;
+	int nranges;
+	struct arm_gic_range *ranges;
 };
 
 DECLARE_CLASS(arm_gic_driver);
 
 struct arm_gicv2m_softc {
-	struct resource	*sc_mem;
-	uintptr_t	sc_xref;
-	u_int		sc_spi_start;
-	u_int		sc_spi_count;
+	struct resource *sc_mem;
+	uintptr_t sc_xref;
+	u_int sc_spi_start;
+	u_int sc_spi_count;
 };
 
 DECLARE_CLASS(arm_gicv2m_driver);

@@ -31,62 +31,62 @@
 
 #include "x86.h"
 
-#define SVM_IO_BITMAP_SIZE	(3 * PAGE_SIZE)
-#define SVM_MSR_BITMAP_SIZE	(2 * PAGE_SIZE)
+#define SVM_IO_BITMAP_SIZE (3 * PAGE_SIZE)
+#define SVM_MSR_BITMAP_SIZE (2 * PAGE_SIZE)
 
 struct svm_softc;
 
 struct dbg {
-	uint32_t	rflags_tf;   /* saved RFLAGS.TF value when single-stepping a vcpu */
-	bool		popf_sstep;  /* indicates that we've stepped over popf */
-	bool		pushf_sstep; /* indicates that we've stepped over pushf */
+	uint32_t
+	    rflags_tf;	 /* saved RFLAGS.TF value when single-stepping a vcpu */
+	bool popf_sstep; /* indicates that we've stepped over popf */
+	bool pushf_sstep; /* indicates that we've stepped over pushf */
 };
 
 struct asid {
-	uint64_t	gen;	/* range is [1, ~0UL] */
-	uint32_t	num;	/* range is [1, nasid - 1] */
+	uint64_t gen; /* range is [1, ~0UL] */
+	uint32_t num; /* range is [1, nasid - 1] */
 };
 
 struct svm_vcpu {
 	struct svm_softc *sc;
-	struct vcpu	*vcpu;
-	struct vmcb	*vmcb;	 /* hardware saved vcpu context */
+	struct vcpu *vcpu;
+	struct vmcb *vmcb;	 /* hardware saved vcpu context */
 	struct svm_regctx swctx; /* software saved vcpu context */
-	uint64_t	vmcb_pa; /* VMCB physical address */
-	uint64_t	nextrip; /* next instruction to be executed by guest */
-        int		lastcpu; /* host cpu that the vcpu last ran on */
-	uint32_t	dirty;	 /* state cache bits that must be cleared */
-	long		eptgen;	 /* pmap->pm_eptgen when the vcpu last ran */
-	struct asid	asid;
-	struct vm_mtrr  mtrr;
-	int		vcpuid;
-	struct dbg	dbg;
-	int		caps;	 /* optional vm capabilities */
+	uint64_t vmcb_pa;	 /* VMCB physical address */
+	uint64_t nextrip;	 /* next instruction to be executed by guest */
+	int lastcpu;		 /* host cpu that the vcpu last ran on */
+	uint32_t dirty;		 /* state cache bits that must be cleared */
+	long eptgen;		 /* pmap->pm_eptgen when the vcpu last ran */
+	struct asid asid;
+	struct vm_mtrr mtrr;
+	int vcpuid;
+	struct dbg dbg;
+	int caps; /* optional vm capabilities */
 };
 
 /*
  * SVM softc, one per virtual machine.
  */
 struct svm_softc {
-	vm_paddr_t 	nptp;			    /* nested page table */
-	uint8_t		*iopm_bitmap;    /* shared by all vcpus */
-	uint8_t		*msr_bitmap;    /* shared by all vcpus */
-	struct vm	*vm;
+	vm_paddr_t nptp;      /* nested page table */
+	uint8_t *iopm_bitmap; /* shared by all vcpus */
+	uint8_t *msr_bitmap;  /* shared by all vcpus */
+	struct vm *vm;
 };
 
-#define	SVM_CTR0(vcpu, format)						\
-	VCPU_CTR0((vcpu)->sc->vm, (vcpu)->vcpuid, format)
+#define SVM_CTR0(vcpu, format) VCPU_CTR0((vcpu)->sc->vm, (vcpu)->vcpuid, format)
 
-#define	SVM_CTR1(vcpu, format, p1)					\
+#define SVM_CTR1(vcpu, format, p1) \
 	VCPU_CTR1((vcpu)->sc->vm, (vcpu)->vcpuid, format, p1)
 
-#define	SVM_CTR2(vcpu, format, p1, p2)					\
+#define SVM_CTR2(vcpu, format, p1, p2) \
 	VCPU_CTR2((vcpu)->sc->vm, (vcpu)->vcpuid, format, p1, p2)
 
-#define	SVM_CTR3(vcpu, format, p1, p2, p3)				\
+#define SVM_CTR3(vcpu, format, p1, p2, p3) \
 	VCPU_CTR3((vcpu)->sc->vm, (vcpu)->vcpuid, format, p1, p2, p3)
 
-#define	SVM_CTR4(vcpu, format, p1, p2, p3, p4)				\
+#define SVM_CTR4(vcpu, format, p1, p2, p3, p4) \
 	VCPU_CTR4((vcpu)->sc->vm, (vcpu)->vcpuid, format, p1, p2, p3, p4)
 
 static __inline struct vmcb *
@@ -121,7 +121,7 @@ static __inline void
 svm_set_dirty(struct svm_vcpu *vcpu, uint32_t dirtybits)
 {
 
-        vcpu->dirty |= dirtybits;
+	vcpu->dirty |= dirtybits;
 }
 
 #endif /* _SVM_SOFTC_H_ */

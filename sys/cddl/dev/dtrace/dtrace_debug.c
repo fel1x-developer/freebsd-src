@@ -7,7 +7,7 @@
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice(s), this list of conditions and the following disclaimer as
- *    the first lines of this file unmodified other than the possible 
+ *    the first lines of this file unmodified other than the possible
  *    addition of one or more copyright notices.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice(s), this list of conditions and the following disclaimer in the
@@ -31,7 +31,7 @@
 
 #include <machine/atomic.h>
 
-#define DTRACE_DEBUG_BUFR_SIZE	(32 * 1024)
+#define DTRACE_DEBUG_BUFR_SIZE (32 * 1024)
 
 struct dtrace_debug_data {
 	uintptr_t lock __aligned(CACHE_LINE_SIZE);
@@ -46,11 +46,12 @@ static char dtrace_debug_bufr[DTRACE_DEBUG_BUFR_SIZE];
 static void
 dtrace_debug_lock(int cpu)
 {
-	 uintptr_t tid;
+	uintptr_t tid;
 
 	tid = (uintptr_t)curthread;
 	spinlock_enter();
-	while (atomic_cmpset_acq_ptr(&dtrace_debug_data[cpu].lock, 0, tid) == 0)		/* Loop until the lock is obtained. */
+	while (atomic_cmpset_acq_ptr(&dtrace_debug_data[cpu].lock, 0, tid) ==
+	    0) /* Loop until the lock is obtained. */
 		;
 }
 
@@ -67,7 +68,7 @@ dtrace_debug_init(void *dummy)
 	int i;
 	struct dtrace_debug_data *d;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		d = &dtrace_debug_data[i];
 
 		if (d->first == NULL) {
@@ -79,8 +80,10 @@ dtrace_debug_init(void *dummy)
 	}
 }
 
-SYSINIT(dtrace_debug_init, SI_SUB_KDTRACE, SI_ORDER_ANY, dtrace_debug_init, NULL);
-SYSINIT(dtrace_debug_smpinit, SI_SUB_SMP, SI_ORDER_ANY, dtrace_debug_init, NULL);
+SYSINIT(dtrace_debug_init, SI_SUB_KDTRACE, SI_ORDER_ANY, dtrace_debug_init,
+    NULL);
+SYSINIT(dtrace_debug_smpinit, SI_SUB_SMP, SI_ORDER_ANY, dtrace_debug_init,
+    NULL);
 
 static void
 dtrace_debug_output(void)
@@ -90,7 +93,7 @@ dtrace_debug_output(void)
 	struct dtrace_debug_data *d;
 	uintptr_t count;
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		dtrace_debug_lock(i);
 
 		d = &dtrace_debug_data[i];
@@ -100,19 +103,19 @@ dtrace_debug_output(void)
 		if (d->first < d->next) {
 			char *p1 = dtrace_debug_bufr;
 
-			count = (uintptr_t) d->next - (uintptr_t) d->first;
+			count = (uintptr_t)d->next - (uintptr_t)d->first;
 
 			for (p = d->first; p < d->next; p++)
 				*p1++ = *p;
 		} else if (d->first > d->next) {
 			char *p1 = dtrace_debug_bufr;
 
-			count = (uintptr_t) d->last - (uintptr_t) d->first;
+			count = (uintptr_t)d->last - (uintptr_t)d->first;
 
 			for (p = d->first; p < d->last; p++)
 				*p1++ = *p;
 
-			count += (uintptr_t) d->next - (uintptr_t) d->bufr;
+			count += (uintptr_t)d->next - (uintptr_t)d->bufr;
 
 			for (p = d->bufr; p < d->next; p++)
 				*p1++ = *p;
@@ -144,9 +147,10 @@ dtrace_debug_output(void)
 
 /*
  * Functions below here are called from the probe context, so they can't call
- * _any_ functions outside the dtrace module without running foul of the function
- * boundary trace provider (fbt). The purpose of these functions is limited to
- * buffering debug strings for output when the probe completes on the current CPU.
+ * _any_ functions outside the dtrace module without running foul of the
+ * function boundary trace provider (fbt). The purpose of these functions is
+ * limited to buffering debug strings for output when the probe completes on the
+ * current CPU.
  */
 
 static __inline void
@@ -186,7 +190,7 @@ static void __used
 dtrace_debug_puts(const char *s)
 {
 	int cpu;
-	
+
 	cpu = curcpu;
 	dtrace_debug_lock(cpu);
 
@@ -255,10 +259,22 @@ dtrace_debug_vprintf(int cpu, const char *fmt, va_list ap)
 			dtrace_debug__putc(cpu, ch);
 		}
 		percent = fmt - 1;
-		qflag = 0; lflag = 0; ladjust = 0; sharpflag = 0; neg = 0;
-		sign = 0; dot = 0; dwidth = 0; upper = 0;
-		cflag = 0; hflag = 0; jflag = 0; tflag = 0; zflag = 0;
-reswitch:	switch (ch = (u_char)*fmt++) {
+		qflag = 0;
+		lflag = 0;
+		ladjust = 0;
+		sharpflag = 0;
+		neg = 0;
+		sign = 0;
+		dot = 0;
+		dwidth = 0;
+		upper = 0;
+		cflag = 0;
+		hflag = 0;
+		jflag = 0;
+		tflag = 0;
+		zflag = 0;
+	reswitch:
+		switch (ch = (u_char)*fmt++) {
 		case '.':
 			dot = 1;
 			goto reswitch;
@@ -290,14 +306,21 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 				padc = '0';
 				goto reswitch;
 			}
-		case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
-				for (n = 0;; ++fmt) {
-					n = n * 10 + ch - '0';
-					ch = *fmt;
-					if (ch < '0' || ch > '9')
-						break;
-				}
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
+			for (n = 0;; ++fmt) {
+				n = n * 10 + ch - '0';
+				ch = *fmt;
+				if (ch < '0' || ch > '9')
+					break;
+			}
 			if (dot)
 				dwidth = n;
 			else
@@ -306,7 +329,9 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 		case 'b':
 			num = (u_int)va_arg(ap, int);
 			p = va_arg(ap, char *);
-			for (q = dtrace_debug_ksprintn(nbuf, num, *p++, NULL, 0); *q;)
+			for (q = dtrace_debug_ksprintn(nbuf, num, *p++, NULL,
+				 0);
+			     *q;)
 				dtrace_debug__putc(cpu, *q--);
 
 			if (num == 0)
@@ -315,7 +340,8 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			for (tmp = 0; *p;) {
 				n = *p++;
 				if (num & (1 << (n - 1))) {
-					dtrace_debug__putc(cpu, tmp ? ',' : '<');
+					dtrace_debug__putc(cpu,
+					    tmp ? ',' : '<');
 					for (; (n = *p) > ' '; ++p)
 						dtrace_debug__putc(cpu, n);
 					tmp = 1;
@@ -334,12 +360,12 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			p = va_arg(ap, char *);
 			if (!width)
 				width = 16;
-			while(width--) {
+			while (width--) {
 				dtrace_debug__putc(cpu, hex2ascii(*up >> 4));
 				dtrace_debug__putc(cpu, hex2ascii(*up & 0x0f));
 				up++;
 				if (width)
-					for (q=p;*q;q++)
+					for (q = p; *q; q++)
 						dtrace_debug__putc(cpu, *q);
 			}
 			break;
@@ -403,7 +429,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 			if (p == NULL)
 				p = "(null)";
 			if (!dot)
-				n = strlen (p);
+				n = strlen(p);
 			else
 				for (n = 0; n < dwidth && p[n]; n++)
 					continue;
@@ -437,7 +463,7 @@ reswitch:	switch (ch = (u_char)*fmt++) {
 		case 'z':
 			zflag = 1;
 			goto reswitch;
-handle_nosign:
+		handle_nosign:
 			sign = 0;
 			if (jflag)
 				num = va_arg(ap, uintmax_t);
@@ -456,7 +482,7 @@ handle_nosign:
 			else
 				num = va_arg(ap, u_int);
 			goto number;
-handle_sign:
+		handle_sign:
 			if (jflag)
 				num = va_arg(ap, intmax_t);
 			else if (qflag)
@@ -473,7 +499,7 @@ handle_sign:
 				num = (char)va_arg(ap, int);
 			else
 				num = va_arg(ap, int);
-number:
+		number:
 			if (sign && (intmax_t)num < 0) {
 				neg = 1;
 				num = -(intmax_t)num;
@@ -488,8 +514,8 @@ number:
 			if (neg)
 				tmp++;
 
-			if (!ladjust && padc != '0' && width
-			    && (width -= tmp) > 0)
+			if (!ladjust && padc != '0' && width &&
+			    (width -= tmp) > 0)
 				while (width--)
 					dtrace_debug__putc(cpu, padc);
 			if (neg)
@@ -518,7 +544,7 @@ number:
 			while (percent < fmt)
 				dtrace_debug__putc(cpu, *percent++);
 			/*
-			 * Since we ignore an formatting argument it is no 
+			 * Since we ignore an formatting argument it is no
 			 * longer safe to obey the remaining formatting
 			 * arguments as the arguments will no longer match
 			 * the format specs.

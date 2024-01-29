@@ -37,7 +37,6 @@
 #include <string.h>
 #include <unistd.h>
 
-
 size_t
 confstr(int name, char *buf, size_t len)
 {
@@ -104,7 +103,7 @@ confstr(int name, char *buf, size_t len)
 			p = "_POSIX_V6_ILP32_OFFBIG";
 		goto docopy;
 
-docopy:
+	docopy:
 		if (len != 0 && buf != NULL)
 			strlcpy(buf, p, len);
 		return (strlen(p) + 1);

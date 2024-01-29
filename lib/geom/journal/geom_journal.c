@@ -27,21 +27,21 @@
  */
 
 #include <sys/types.h>
+
+#include <assert.h>
+#include <core/geom.h>
 #include <errno.h>
+#include <geom/journal/g_journal.h>
+#include <libgeom.h>
+#include <misc/subr.h>
 #include <paths.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
-#include <libgeom.h>
-#include <geom/journal/g_journal.h>
-#include <core/geom.h>
-#include <misc/subr.h>
 
 #include "geom_journal.h"
-
 
 uint32_t lib_version = G_LIB_VERSION;
 uint32_t version = G_JOURNAL_VERSION;
@@ -51,35 +51,19 @@ static void journal_clear(struct gctl_req *req);
 static void journal_dump(struct gctl_req *req);
 static void journal_label(struct gctl_req *req);
 
-struct g_command class_commands[] = {
-	{ "clear", G_FLAG_VERBOSE, journal_main, G_NULL_OPTS,
-	    "[-v] prov ..."
-	},
-	{ "dump", 0, journal_main, G_NULL_OPTS,
-	    "prov ..."
-	},
+struct g_command class_commands[] = { { "clear", G_FLAG_VERBOSE, journal_main,
+					  G_NULL_OPTS, "[-v] prov ..." },
+	{ "dump", 0, journal_main, G_NULL_OPTS, "prov ..." },
 	{ "label", G_FLAG_VERBOSE, journal_main,
-	    {
-		{ 'c', "checksum", NULL, G_TYPE_BOOL },
+	    { { 'c', "checksum", NULL, G_TYPE_BOOL },
 		{ 'f', "force", NULL, G_TYPE_BOOL },
 		{ 'h', "hardcode", NULL, G_TYPE_BOOL },
-		{ 's', "jsize", "-1", G_TYPE_NUMBER },
-		G_OPT_SENTINEL
-	    },
-	    "[-cfhv] [-s jsize] dataprov [jprov]"
-	},
+		{ 's', "jsize", "-1", G_TYPE_NUMBER }, G_OPT_SENTINEL },
+	    "[-cfhv] [-s jsize] dataprov [jprov]" },
 	{ "stop", G_FLAG_VERBOSE, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] name ..."
-	},
-	{ "sync", G_FLAG_VERBOSE, NULL, G_NULL_OPTS,
-	    "[-v]"
-	},
-	G_CMD_SENTINEL
-};
+	    { { 'f', "force", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] name ..." },
+	{ "sync", G_FLAG_VERBOSE, NULL, G_NULL_OPTS, "[-v]" }, G_CMD_SENTINEL };
 
 static int verbose = 0;
 
@@ -143,7 +127,7 @@ journal_label(struct gctl_req *req)
 
 	bzero(sector, sizeof(sector));
 	nargs = gctl_get_int(req, "nargs");
-	str = NULL;	/* gcc */
+	str = NULL; /* gcc */
 
 	strlcpy(md.md_magic, G_JOURNAL_MAGIC, sizeof(md.md_magic));
 	md.md_version = G_JOURNAL_VERSION;
@@ -177,9 +161,11 @@ journal_label(struct gctl_req *req)
 	switch (nargs) {
 	case 1:
 		if (!force && g_journal_fs_exists(data)) {
-			gctl_error(req, "File system exists on %s and this "
+			gctl_error(req,
+			    "File system exists on %s and this "
 			    "operation would destroy it.\nUse -f if you "
-			    "really want to do it.", data);
+			    "really want to do it.",
+			    data);
 			return;
 		}
 		journal = data;
@@ -202,7 +188,8 @@ journal_label(struct gctl_req *req)
 			}
 		}
 		if (jsize + ssize >= msize) {
-			gctl_error(req, "Provider too small for journalling. "
+			gctl_error(req,
+			    "Provider too small for journalling. "
 			    "You can try smaller jsize (default is %jd).",
 			    jsize);
 			return;
@@ -212,14 +199,17 @@ journal_label(struct gctl_req *req)
 		break;
 	case 2:
 		if (!force && g_journal_fs_using_last_sector(data)) {
-			gctl_error(req, "File system on %s is using the last "
+			gctl_error(req,
+			    "File system on %s is using the last "
 			    "sector and this operation is going to overwrite "
-			    "it. Use -f if you really want to do it.", data);
+			    "it. Use -f if you really want to do it.",
+			    data);
 			return;
 		}
 		journal = gctl_get_ascii(req, "arg1");
 		if (jsize != -1) {
-			gctl_error(req, "jsize argument is valid only for "
+			gctl_error(req,
+			    "jsize argument is valid only for "
 			    "all-in-one configuration.");
 			return;
 		}

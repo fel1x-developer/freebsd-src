@@ -35,6 +35,7 @@
 #include <sys/domain.h>
 #include <sys/file.h>
 #include <sys/filedesc.h>
+#include <sys/filio.h> /* XXX */
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/malloc.h>
@@ -45,32 +46,30 @@
 #include <sys/signalvar.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/filio.h>			/* XXX */
 #include <sys/sockio.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/sysproto.h>
 #include <sys/taskqueue.h>
-#include <sys/uio.h>
 #include <sys/ucred.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 #include <sys/unpcb.h>
 #include <sys/user.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/route.h>
-#include <net/vnet.h>
-
-#include <netinet/in.h>
-#include <netinet/in_pcb.h>
-
-#include <security/mac/mac_framework.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_map.h>
+
+#include <net/if.h>
+#include <net/if_var.h>
+#include <net/route.h>
+#include <net/vnet.h>
+#include <netinet/in.h>
+#include <netinet/in_pcb.h>
+
+#include <security/mac/mac_framework.h>
 
 static SYSCTL_NODE(_kern_ipc, OID_AUTO, aio, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
     "socket AIO stats");
@@ -93,10 +92,9 @@ static fo_close_t soo_close;
 static fo_fill_kinfo_t soo_fill_kinfo;
 static fo_aio_queue_t soo_aio_queue;
 
-static void	soo_aio_cancel(struct kaiocb *job);
+static void soo_aio_cancel(struct kaiocb *job);
 
-struct fileops	socketops = {
-	.fo_read = soo_read,
+struct fileops socketops = { .fo_read = soo_read,
 	.fo_write = soo_write,
 	.fo_truncate = invfo_truncate,
 	.fo_ioctl = soo_ioctl,
@@ -110,12 +108,11 @@ struct fileops	socketops = {
 	.fo_fill_kinfo = soo_fill_kinfo,
 	.fo_aio_queue = soo_aio_queue,
 	.fo_cmp = file_kcmp_generic,
-	.fo_flags = DFLAG_PASSABLE
-};
+	.fo_flags = DFLAG_PASSABLE };
 
 static int
-soo_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
-    int flags, struct thread *td)
+soo_read(struct file *fp, struct uio *uio, struct ucred *active_cred, int flags,
+    struct thread *td)
 {
 	struct socket *so = fp->f_data;
 	int error;
@@ -250,7 +247,8 @@ soo_ioctl(struct file *fp, u_long cmd, void *data, struct ucred *active_cred,
 		if (SOLISTENING(so)) {
 			error = EINVAL;
 		} else {
-			*(int *)data = (so->so_rcv.sb_state & SBS_RCVATMARK) != 0;
+			*(int *)data = (so->so_rcv.sb_state & SBS_RCVATMARK) !=
+			    0;
 		}
 		break;
 	default:
@@ -296,7 +294,7 @@ soo_stat(struct file *fp, struct stat *ub, struct ucred *active_cred)
 	struct socket *so = fp->f_data;
 	int error = 0;
 
-	bzero((caddr_t)ub, sizeof (*ub));
+	bzero((caddr_t)ub, sizeof(*ub));
 	ub->st_mode = S_IFSOCK;
 #ifdef MAC
 	error = mac_socket_check_stat(active_cred, so);
@@ -375,17 +373,13 @@ soo_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 	case AF_INET6:
 		if (so->so_pcb != NULL) {
 			inpcb = (struct inpcb *)(so->so_pcb);
-			kif->kf_un.kf_sock.kf_sock_inpcb =
-			    (uintptr_t)inpcb->inp_ppcb;
+			kif->kf_un.kf_sock.kf_sock_inpcb = (uintptr_t)
+							       inpcb->inp_ppcb;
 		}
-		kif->kf_un.kf_sock.kf_sock_rcv_sb_state =
-		    so->so_rcv.sb_state;
-		kif->kf_un.kf_sock.kf_sock_snd_sb_state =
-		    so->so_snd.sb_state;
-		kif->kf_un.kf_sock.kf_sock_sendq =
-		    sbused(&so->so_snd);
-		kif->kf_un.kf_sock.kf_sock_recvq =
-		    sbused(&so->so_rcv);
+		kif->kf_un.kf_sock.kf_sock_rcv_sb_state = so->so_rcv.sb_state;
+		kif->kf_un.kf_sock.kf_sock_snd_sb_state = so->so_snd.sb_state;
+		kif->kf_un.kf_sock.kf_sock_sendq = sbused(&so->so_snd);
+		kif->kf_un.kf_sock.kf_sock_recvq = sbused(&so->so_rcv);
 		break;
 	case AF_UNIX:
 		if (so->so_pcb != NULL) {
@@ -397,36 +391,34 @@ soo_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 				    so->so_rcv.sb_state;
 				kif->kf_un.kf_sock.kf_sock_snd_sb_state =
 				    so->so_snd.sb_state;
-				kif->kf_un.kf_sock.kf_sock_sendq =
-				    sbused(&so->so_snd);
-				kif->kf_un.kf_sock.kf_sock_recvq =
-				    sbused(&so->so_rcv);
+				kif->kf_un.kf_sock.kf_sock_sendq = sbused(
+				    &so->so_snd);
+				kif->kf_un.kf_sock.kf_sock_recvq = sbused(
+				    &so->so_rcv);
 			}
 		}
 		break;
 	}
 	error = sosockaddr(so, (struct sockaddr *)&ss);
-	if (error == 0 &&
-	    ss.ss_len <= sizeof(kif->kf_un.kf_sock.kf_sa_local)) {
+	if (error == 0 && ss.ss_len <= sizeof(kif->kf_un.kf_sock.kf_sa_local)) {
 		bcopy(&ss, &kif->kf_un.kf_sock.kf_sa_local, ss.ss_len);
 	}
 	ss.ss_len = sizeof(ss);
 	error = sopeeraddr(so, (struct sockaddr *)&ss);
-	if (error == 0 &&
-	    ss.ss_len <= sizeof(kif->kf_un.kf_sock.kf_sa_peer)) {
+	if (error == 0 && ss.ss_len <= sizeof(kif->kf_un.kf_sock.kf_sa_peer)) {
 		bcopy(&ss, &kif->kf_un.kf_sock.kf_sa_peer, ss.ss_len);
 	}
 	strncpy(kif->kf_path, so->so_proto->pr_domain->dom_name,
 	    sizeof(kif->kf_path));
 	CURVNET_RESTORE();
-	return (0);	
+	return (0);
 }
 
 /*
  * Use the 'backend3' field in AIO jobs to store the amount of data
  * completed by the AIO job so far.
  */
-#define	aio_done	backend3
+#define aio_done backend3
 
 static STAILQ_HEAD(, task) soaio_jobs;
 static struct mtx soaio_jobs_lock;
@@ -535,8 +527,8 @@ soaio_kproc_create(void *context, int pending)
 		mtx_unlock(&soaio_jobs_lock);
 
 		id = alloc_unr(soaio_kproc_unr);
-		error = kproc_create(soaio_kproc_loop, (void *)(intptr_t)id,
-		    &p, 0, 0, "soaiod%d", id);
+		error = kproc_create(soaio_kproc_loop, (void *)(intptr_t)id, &p,
+		    0, 0, "soaiod%d", id);
 		if (error != 0) {
 			free_unr(soaio_kproc_unr, id);
 			mtx_lock(&soaio_jobs_lock);
@@ -665,7 +657,7 @@ retry:
 				SOCK_BUF_UNLOCK(so, which);
 				goto retry;
 			}
-			
+
 			if (!aio_set_cancel_function(job, soo_aio_cancel)) {
 				SOCK_BUF_UNLOCK(so, which);
 				if (done != 0)
@@ -679,9 +671,9 @@ retry:
 			return;
 		}
 		SOCK_BUF_UNLOCK(so, which);
-	}		
-	if (done != 0 && (error == ERESTART || error == EINTR ||
-	    error == EWOULDBLOCK))
+	}
+	if (done != 0 &&
+	    (error == ERESTART || error == EINTR || error == EWOULDBLOCK))
 		error = 0;
 	if (error)
 		aio_complete(job, -1, error);

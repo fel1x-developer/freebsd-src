@@ -31,38 +31,39 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "if_wtapvar.h"
-#include <sys/uio.h>    /* uio struct */
 #include <sys/jail.h>
+#include <sys/uio.h> /* uio struct */
+
 #include <net/if_var.h>
 #include <net/vnet.h>
-
 #include <net80211/ieee80211_ratectl.h>
+
 #include "if_medium.h"
+#include "if_wtapvar.h"
 #include "wtap_hal/hal.h"
 
 /*
  * This _requires_ vimage to be useful.
  */
-#ifndef	VIMAGE
-#error	if_wtap requires VIMAGE.
-#endif	/* VIMAGE */
+#ifndef VIMAGE
+#error if_wtap requires VIMAGE.
+#endif /* VIMAGE */
 
 /* device for IOCTL and read/write for debuggin purposes */
 /* Function prototypes */
-static	d_open_t	wtap_node_open;
-static	d_close_t	wtap_node_close;
-static	d_write_t	wtap_node_write;
-static	d_ioctl_t	wtap_node_ioctl;
+static d_open_t wtap_node_open;
+static d_close_t wtap_node_close;
+static d_write_t wtap_node_write;
+static d_ioctl_t wtap_node_ioctl;
 
 static struct cdevsw wtap_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open = 	wtap_node_open,
-	.d_close = 	wtap_node_close,
-	.d_write = 	wtap_node_write,
-	.d_ioctl =	wtap_node_ioctl,
-	.d_name =	"wtapnode",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = wtap_node_open,
+	.d_close = wtap_node_close,
+	.d_write = wtap_node_write,
+	.d_ioctl = wtap_node_ioctl,
+	.d_name = "wtapnode",
 };
 
 static int
@@ -71,7 +72,7 @@ wtap_node_open(struct cdev *dev, int oflags, int devtype, struct thread *p)
 
 	int err = 0;
 	uprintf("Opened device \"echo\" successfully.\n");
-	return(err);
+	return (err);
 }
 
 static int
@@ -79,7 +80,7 @@ wtap_node_close(struct cdev *dev, int fflag, int devtype, struct thread *p)
 {
 
 	uprintf("Closing device \"echo.\"\n");
-	return(0);
+	return (0);
 }
 
 static int
@@ -112,16 +113,16 @@ wtap_node_write(struct cdev *dev, struct uio *uio, int ioflag)
 
 	NET_EPOCH_EXIT(et);
 
-	return(err);
+	return (err);
 }
 
 int
-wtap_node_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int fflag, struct thread *td)
+wtap_node_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	int error = 0;
 
-	switch(cmd) {
+	switch (cmd) {
 	default:
 		DWTAP_PRINTF("Unknown WTAP IOCTL\n");
 		error = EINVAL;
@@ -130,7 +131,7 @@ wtap_node_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 }
 
 static int wtap_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
-	const struct ieee80211_bpf_params *params);
+    const struct ieee80211_bpf_params *params);
 
 static int
 wtap_medium_enqueue(struct wtap_vap *avp, struct mbuf *m)
@@ -144,8 +145,8 @@ wtap_medium_enqueue(struct wtap_vap *avp, struct mbuf *m)
  * and to do ibss merges.
  */
 static void
-wtap_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
-    int subtype, const struct ieee80211_rx_stats *stats, int rssi, int nf)
+wtap_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m, int subtype,
+    const struct ieee80211_rx_stats *stats, int rssi, int nf)
 {
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct wtap_softc *sc = vap->iv_ic->ic_softc;
@@ -177,7 +178,7 @@ wtap_recv_mgmt(struct ieee80211_node *ni, struct mbuf *m,
 			 * RUN -> RUN when this happens.
 			 */
 			if (le64toh(ni->ni_tstamp.tsf) >= tsf)
-				(void) ieee80211_ibss_merge(ni);
+				(void)ieee80211_ibss_merge(ni);
 		}
 		break;
 	}
@@ -243,10 +244,11 @@ wtap_beacon_intrp(void *arg)
 	uint64_t tsf;
 
 	if (vap->iv_state < IEEE80211_S_RUN) {
-	    DWTAP_PRINTF("Skip beacon, not running, state %d", vap->iv_state);
-	    return ;
+		DWTAP_PRINTF("Skip beacon, not running, state %d",
+		    vap->iv_state);
+		return;
 	}
-	DWTAP_PRINTF("[%d] beacon intrp\n", avp->id);	//burst mode
+	DWTAP_PRINTF("[%d] beacon intrp\n", avp->id); // burst mode
 	/*
 	 * Update dynamic beacon contents.  If this returns
 	 * non-zero then we need to remap the memory because
@@ -256,7 +258,8 @@ wtap_beacon_intrp(void *arg)
 	m = m_dup(avp->beacon, M_NOWAIT);
 	if (ieee80211_beacon_update(avp->bf_node, m, 0)) {
 		printf("%s, need to remap the memory because the beacon frame"
-		    " changed size.\n",__func__);
+		       " changed size.\n",
+		    __func__);
 	}
 
 	/* Get TSF from HAL, and insert it into beacon frame */
@@ -265,7 +268,7 @@ wtap_beacon_intrp(void *arg)
 	memcpy(&wh[1], &tsf, sizeof(tsf));
 
 	if (ieee80211_radiotap_active_vap(vap))
-	    ieee80211_radiotap_tx(vap, m);
+		ieee80211_radiotap_tx(vap, m);
 
 #if 0
 	medium_transmit(avp->av_md, avp->id, m);
@@ -327,7 +330,8 @@ wtap_newstate(struct ieee80211vap *vap, enum ieee80211_state nstate, int arg)
 
 			wtap_beacon_config(sc, vap);
 
-			/* Start TSF timer from now, and start s/w beacon alert */
+			/* Start TSF timer from now, and start s/w beacon alert
+			 */
 			wtap_hal_reset_tsf(sc->hal);
 			callout_reset(&avp->av_swba, avp->av_bcinterval,
 			    wtap_beacon_intrp, vap);
@@ -356,24 +360,24 @@ wtap_bmiss(struct ieee80211vap *vap)
 }
 
 static struct ieee80211vap *
-wtap_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ],
-    int unit, enum ieee80211_opmode opmode, int flags,
+wtap_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ], int unit,
+    enum ieee80211_opmode opmode, int flags,
     const uint8_t bssid[IEEE80211_ADDR_LEN],
     const uint8_t mac[IEEE80211_ADDR_LEN])
 {
-	 struct wtap_softc *sc = ic->ic_softc;
-	 struct ieee80211vap *vap;
-	 struct wtap_vap *avp;
-	 int error;
+	struct wtap_softc *sc = ic->ic_softc;
+	struct ieee80211vap *vap;
+	struct wtap_vap *avp;
+	int error;
 	struct ieee80211_node *ni;
 
-	 DWTAP_PRINTF("%s\n", __func__);
+	DWTAP_PRINTF("%s\n", __func__);
 
 	avp = malloc(sizeof(struct wtap_vap), M_80211_VAP, M_WAITOK | M_ZERO);
 	avp->id = sc->id;
 	avp->av_md = sc->sc_md;
-	avp->av_bcinterval = msecs_to_ticks(BEACON_INTRERVAL + 100*sc->id);
-	vap = (struct ieee80211vap *) avp;
+	avp->av_bcinterval = msecs_to_ticks(BEACON_INTRERVAL + 100 * sc->id);
+	vap = (struct ieee80211vap *)avp;
 	error = ieee80211_vap_setup(ic, vap, name, unit, opmode,
 	    flags | IEEE80211_CLONE_NOBEACONS, bssid);
 	if (error) {
@@ -394,8 +398,8 @@ wtap_vap_create(struct ieee80211com *ic, const char name[IFNAMSIZ],
 	/* complete setup */
 	ieee80211_vap_attach(vap, ieee80211_media_change,
 	    ieee80211_media_status, mac);
-	avp->av_dev = make_dev(&wtap_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
-	    "%s", (const char *)vap->iv_ifp->if_xname);
+	avp->av_dev = make_dev(&wtap_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600, "%s",
+	    (const char *)vap->iv_ifp->if_xname);
 	avp->av_dev->si_drv1 = sc;
 	callout_init(&avp->av_swba, 0);
 
@@ -459,13 +463,13 @@ wtap_set_channel(struct ieee80211com *ic)
 
 static int
 wtap_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
-	const struct ieee80211_bpf_params *params)
+    const struct ieee80211_bpf_params *params)
 {
 #if 0
 	DWTAP_PRINTF("%s, %p\n", __func__, m);
 #endif
-	struct ieee80211vap	*vap = ni->ni_vap;
-	struct wtap_vap 	*avp = WTAP_VAP(vap);
+	struct ieee80211vap *vap = ni->ni_vap;
+	struct wtap_vap *avp = WTAP_VAP(vap);
 
 	if (ieee80211_radiotap_active_vap(vap)) {
 		ieee80211_radiotap_tx(vap, m);
@@ -479,15 +483,15 @@ wtap_raw_xmit(struct ieee80211_node *ni, struct mbuf *m,
 void
 wtap_inject(struct wtap_softc *sc, struct mbuf *m)
 {
-      struct wtap_buf *bf = (struct wtap_buf *)malloc(sizeof(struct wtap_buf),
-          M_WTAP_RXBUF, M_NOWAIT | M_ZERO);
-      KASSERT(bf != NULL, ("could not allocated a new wtap_buf\n"));
-      bf->m = m;
+	struct wtap_buf *bf = (struct wtap_buf *)malloc(sizeof(struct wtap_buf),
+	    M_WTAP_RXBUF, M_NOWAIT | M_ZERO);
+	KASSERT(bf != NULL, ("could not allocated a new wtap_buf\n"));
+	bf->m = m;
 
-      mtx_lock(&sc->sc_mtx);
-      STAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
-      taskqueue_enqueue(sc->sc_tq, &sc->sc_rxtask);
-      mtx_unlock(&sc->sc_mtx);
+	mtx_lock(&sc->sc_mtx);
+	STAILQ_INSERT_TAIL(&sc->sc_rxbuf, bf, bf_list);
+	taskqueue_enqueue(sc->sc_tq, &sc->sc_rxtask);
+	mtx_unlock(&sc->sc_mtx);
 }
 
 static void
@@ -503,7 +507,7 @@ wtap_rx_proc(void *arg, int npending)
 	DWTAP_PRINTF("%s\n", __func__);
 #endif
 
-	for(;;) {
+	for (;;) {
 		mtx_lock(&sc->sc_mtx);
 		bf = STAILQ_FIRST(&sc->sc_rxbuf);
 		if (bf == NULL) {
@@ -515,7 +519,7 @@ wtap_rx_proc(void *arg, int npending)
 		KASSERT(bf != NULL, ("wtap_buf is NULL\n"));
 		m = bf->m;
 		DWTAP_PRINTF("[%d] receiving m=%p\n", sc->id, bf->m);
-		if (m == NULL) {		/* NB: shouldn't happen */
+		if (m == NULL) { /* NB: shouldn't happen */
 			ic_printf(ic, "%s: no mbuf!\n", __func__);
 			free(bf, M_WTAP_RXBUF);
 			return;
@@ -543,12 +547,12 @@ wtap_rx_proc(void *arg, int npending)
 			/*
 			 * Sending station is known, dispatch directly.
 			 */
-			ieee80211_input(ni, m, 1<<7, 10);
+			ieee80211_input(ni, m, 1 << 7, 10);
 			ieee80211_free_node(ni);
 		} else {
-			ieee80211_input_all(ic, m, 1<<7, 10);
+			ieee80211_input_all(ic, m, 1 << 7, 10);
 		}
-		
+
 		/* The mbufs are freed by the Net80211 stack */
 		free(bf, M_WTAP_RXBUF);
 	}
@@ -589,14 +593,13 @@ wtap_update_promisc(struct ieee80211com *ic)
 static int
 wtap_transmit(struct ieee80211com *ic, struct mbuf *m)
 {
-	struct ieee80211_node *ni =
-	    (struct ieee80211_node *) m->m_pkthdr.rcvif;
+	struct ieee80211_node *ni = (struct ieee80211_node *)m->m_pkthdr.rcvif;
 	struct ieee80211vap *vap = ni->ni_vap;
 	struct wtap_vap *avp = WTAP_VAP(vap);
 
-	if(ni == NULL){
+	if (ni == NULL) {
 		printf("m->m_pkthdr.rcvif is NULL we cant radiotap_tx\n");
-	}else{
+	} else {
 		if (ieee80211_radiotap_active_vap(vap))
 			ieee80211_radiotap_tx(vap, m);
 	}
@@ -614,7 +617,7 @@ wtap_node_alloc(struct ieee80211vap *vap, const uint8_t mac[IEEE80211_ADDR_LEN])
 	DWTAP_PRINTF("%s\n", __func__);
 
 	ni = malloc(sizeof(struct ieee80211_node), M_80211_NODE,
-	    M_NOWAIT|M_ZERO);
+	    M_NOWAIT | M_ZERO);
 	if (ni == NULL)
 		return (NULL);
 
@@ -687,9 +690,8 @@ wtap_attach(struct wtap_softc *sc, const uint8_t *macaddr)
 	ic->ic_scan_end = wtap_scan_end;
 	ic->ic_set_channel = wtap_set_channel;
 
-	ieee80211_radiotap_attach(ic,
-	    &sc->sc_tx_th.wt_ihdr, sizeof(sc->sc_tx_th),
-	    WTAP_TX_RADIOTAP_PRESENT,
+	ieee80211_radiotap_attach(ic, &sc->sc_tx_th.wt_ihdr,
+	    sizeof(sc->sc_tx_th), WTAP_TX_RADIOTAP_PRESENT,
 	    &sc->sc_rx_th.wr_ihdr, sizeof(sc->sc_rx_th),
 	    WTAP_RX_RADIOTAP_PRESENT);
 

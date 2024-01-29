@@ -26,60 +26,60 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_agp.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
+#include <sys/agpio.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/ioccom.h>
-#include <sys/agpio.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 #include <sys/rwlock.h>
 
-#include <dev/agp/agppriv.h>
-#include <dev/agp/agpvar.h>
-#include <dev/agp/agpreg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_param.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
-#include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
+
+#include <dev/agp/agppriv.h>
+#include <dev/agp/agpreg.h>
+#include <dev/agp/agpvar.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 MODULE_VERSION(agp, 1);
 
 MALLOC_DEFINE(M_AGP, "agp", "AGP data structures");
 
-				/* agp_drv.c */
+/* agp_drv.c */
 static d_open_t agp_open;
 static d_close_t agp_close;
 static d_ioctl_t agp_ioctl;
 static d_mmap_t agp_mmap;
 
 static struct cdevsw agp_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_NEEDGIANT,
-	.d_open =	agp_open,
-	.d_close =	agp_close,
-	.d_ioctl =	agp_ioctl,
-	.d_mmap =	agp_mmap,
-	.d_name =	"agp",
+	.d_version = D_VERSION,
+	.d_flags = D_NEEDGIANT,
+	.d_open = agp_open,
+	.d_close = agp_close,
+	.d_ioctl = agp_ioctl,
+	.d_mmap = agp_mmap,
+	.d_name = "agp",
 };
 
 static devclass_t agp_devclass;
@@ -115,13 +115,12 @@ agp_find_display(void)
 			continue;
 		for (i = 0; i < numkids; i++) {
 			dev = kids[i];
-			if (pci_get_class(dev) == PCIC_DISPLAY
-			    && pci_get_subclass(dev) == PCIS_DISPLAY_VGA)
+			if (pci_get_class(dev) == PCIC_DISPLAY &&
+			    pci_get_subclass(dev) == PCIS_DISPLAY_VGA)
 				if (agp_find_caps(dev)) {
 					free(kids, M_TEMP);
 					return dev;
 				}
-					
 		}
 		free(kids, M_TEMP);
 	}
@@ -137,9 +136,8 @@ agp_alloc_gatt(device_t dev)
 	struct agp_gatt *gatt;
 
 	if (bootverbose)
-		device_printf(dev,
-			      "allocating GATT for aperture of size %dM\n",
-			      apsize / (1024*1024));
+		device_printf(dev, "allocating GATT for aperture of size %dM\n",
+		    apsize / (1024 * 1024));
 
 	if (entries == 0) {
 		device_printf(dev, "bad aperture size\n");
@@ -159,7 +157,7 @@ agp_alloc_gatt(device_t dev)
 		free(gatt, M_AGP);
 		return 0;
 	}
-	gatt->ag_physical = vtophys((vm_offset_t) gatt->ag_virtual);
+	gatt->ag_physical = vtophys((vm_offset_t)gatt->ag_virtual);
 
 	return gatt;
 }
@@ -171,18 +169,10 @@ agp_free_gatt(struct agp_gatt *gatt)
 	free(gatt, M_AGP);
 }
 
-static u_int agp_max[][2] = {
-	{0,	0},
-	{32,	4},
-	{64,	28},
-	{128,	96},
-	{256,	204},
-	{512,	440},
-	{1024,	942},
-	{2048,	1920},
-	{4096,	3932}
-};
-#define	AGP_MAX_SIZE	nitems(agp_max)
+static u_int agp_max[][2] = { { 0, 0 }, { 32, 4 }, { 64, 28 }, { 128, 96 },
+	{ 256, 204 }, { 512, 440 }, { 1024, 942 }, { 2048, 1920 },
+	{ 4096, 3932 } };
+#define AGP_MAX_SIZE nitems(agp_max)
 
 /**
  * Sets the PCI resource which represents the AGP aperture.
@@ -372,14 +362,12 @@ agp_v3_enable(device_t dev, device_t mdev, u_int32_t mode)
 	sba = 1;
 
 	/* Set FW if all three support it. */
-	fw = (AGP_MODE_GET_FW(tstatus)
-	       & AGP_MODE_GET_FW(mstatus)
-	       & AGP_MODE_GET_FW(mode));
+	fw = (AGP_MODE_GET_FW(tstatus) & AGP_MODE_GET_FW(mstatus) &
+	    AGP_MODE_GET_FW(mode));
 
 	/* Figure out the max rate */
-	rate = (AGP_MODE_GET_RATE(tstatus)
-		& AGP_MODE_GET_RATE(mstatus)
-		& AGP_MODE_GET_RATE(mode));
+	rate = (AGP_MODE_GET_RATE(tstatus) & AGP_MODE_GET_RATE(mstatus) &
+	    AGP_MODE_GET_RATE(mode));
 	if (rate & AGP_MODE_V3_RATE_8x)
 		rate = AGP_MODE_V3_RATE_8x;
 	else
@@ -423,19 +411,16 @@ agp_v2_enable(device_t dev, device_t mdev, u_int32_t mode)
 		rq = AGP_MODE_GET_RQ(mstatus);
 
 	/* Set SBA if all three can deal with SBA */
-	sba = (AGP_MODE_GET_SBA(tstatus)
-	       & AGP_MODE_GET_SBA(mstatus)
-	       & AGP_MODE_GET_SBA(mode));
+	sba = (AGP_MODE_GET_SBA(tstatus) & AGP_MODE_GET_SBA(mstatus) &
+	    AGP_MODE_GET_SBA(mode));
 
 	/* Similar for FW */
-	fw = (AGP_MODE_GET_FW(tstatus)
-	       & AGP_MODE_GET_FW(mstatus)
-	       & AGP_MODE_GET_FW(mode));
+	fw = (AGP_MODE_GET_FW(tstatus) & AGP_MODE_GET_FW(mstatus) &
+	    AGP_MODE_GET_FW(mode));
 
 	/* Figure out the max rate */
-	rate = (AGP_MODE_GET_RATE(tstatus)
-		& AGP_MODE_GET_RATE(mstatus)
-		& AGP_MODE_GET_RATE(mode));
+	rate = (AGP_MODE_GET_RATE(tstatus) & AGP_MODE_GET_RATE(mstatus) &
+	    AGP_MODE_GET_RATE(mode));
 	if (rate & AGP_MODE_V2_RATE_4x)
 		rate = AGP_MODE_V2_RATE_4x;
 	else if (rate & AGP_MODE_V2_RATE_2x)
@@ -480,12 +465,11 @@ agp_generic_enable(device_t dev, u_int32_t mode)
 	 * but should work fine for a classic single AGP slot system
 	 * with AGP v3.
 	 */
-	if (AGP_MODE_GET_MODE_3(mode) &&
-	    AGP_MODE_GET_MODE_3(tstatus) &&
+	if (AGP_MODE_GET_MODE_3(mode) && AGP_MODE_GET_MODE_3(tstatus) &&
 	    AGP_MODE_GET_MODE_3(mstatus))
 		return (agp_v3_enable(dev, mdev, mode));
 	else
-		return (agp_v2_enable(dev, mdev, mode));	    
+		return (agp_v2_enable(dev, mdev, mode));
 }
 
 struct agp_memory *
@@ -501,8 +485,7 @@ agp_generic_alloc_memory(device_t dev, int type, vm_size_t size)
 		return 0;
 
 	if (type != 0) {
-		printf("agp_generic_alloc_memory: unsupported type %d\n",
-		       type);
+		printf("agp_generic_alloc_memory: unsupported type %d\n", type);
 		return 0;
 	}
 
@@ -537,7 +520,7 @@ agp_generic_free_memory(device_t dev, struct agp_memory *mem)
 
 int
 agp_generic_bind_memory(device_t dev, struct agp_memory *mem,
-			vm_offset_t offset)
+    vm_offset_t offset)
 {
 	struct agp_softc *sc = device_get_softc(dev);
 	vm_offset_t i, j, k;
@@ -593,14 +576,14 @@ agp_generic_bind_memory(device_t dev, struct agp_memory *mem,
 		/*
 		 * Install entries in the GATT, making sure that if
 		 * AGP_PAGE_SIZE < PAGE_SIZE and mem->am_size is not
-		 * aligned to PAGE_SIZE, we don't modify too many GATT 
+		 * aligned to PAGE_SIZE, we don't modify too many GATT
 		 * entries.
 		 */
 		for (j = 0; j < PAGE_SIZE && i + j < mem->am_size;
 		     j += AGP_PAGE_SIZE) {
 			vm_offset_t pa = VM_PAGE_TO_PHYS(m) + j;
 			AGP_DPF("binding offset %#jx to pa %#jx\n",
-				(uintmax_t)offset + i + j, (uintmax_t)pa);
+			    (uintmax_t)offset + i + j, (uintmax_t)pa);
 			error = AGP_BIND_PAGE(dev, offset + i + j, pa);
 			if (error) {
 				/*
@@ -716,7 +699,7 @@ agp_find_memory(device_t dev, int id)
 	struct agp_memory *mem;
 
 	AGP_DPF("searching for memory block %d\n", id);
-	TAILQ_FOREACH(mem, &sc->as_memory, am_link) {
+	TAILQ_FOREACH (mem, &sc->as_memory, am_link) {
 		AGP_DPF("considering memory block %d\n", mem->am_id);
 		if (mem->am_id == id)
 			return mem;
@@ -733,8 +716,8 @@ agp_info_user(device_t dev, agp_info *info)
 
 	bzero(info, sizeof *info);
 	info->bridge_id = pci_get_devid(dev);
-	info->agp_mode = 
-	    pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS, 4);
+	info->agp_mode = pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS,
+	    4);
 	if (sc->as_aperture)
 		info->aper_base = rman_get_start(sc->as_aperture);
 	else
@@ -757,9 +740,8 @@ agp_allocate_user(device_t dev, agp_allocate *alloc)
 {
 	struct agp_memory *mem;
 
-	mem = AGP_ALLOC_MEMORY(dev,
-			       alloc->type,
-			       alloc->pg_count << AGP_PAGE_SHIFT);
+	mem = AGP_ALLOC_MEMORY(dev, alloc->type,
+	    alloc->pg_count << AGP_PAGE_SHIFT);
 	if (mem) {
 		alloc->key = mem->am_id;
 		alloc->physical = mem->am_physical;
@@ -849,13 +831,14 @@ agp_close(struct cdev *kdev, int fflag, int devtype, struct thread *td)
 }
 
 static int
-agp_ioctl(struct cdev *kdev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+agp_ioctl(struct cdev *kdev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	device_t dev = kdev->si_drv1;
 
 	switch (cmd) {
 	case AGPIOC_INFO:
-		return agp_info_user(dev, (agp_info *) data);
+		return agp_info_user(dev, (agp_info *)data);
 
 	case AGPIOC_ACQUIRE:
 		return agp_acquire_helper(dev, AGP_ACQUIRE_USER);
@@ -870,7 +853,7 @@ agp_ioctl(struct cdev *kdev, u_long cmd, caddr_t data, int fflag, struct thread 
 		return agp_allocate_user(dev, (agp_allocate *)data);
 
 	case AGPIOC_DEALLOCATE:
-		return agp_deallocate_user(dev, *(int *) data);
+		return agp_deallocate_user(dev, *(int *)data);
 
 	case AGPIOC_BIND:
 		return agp_bind_user(dev, (agp_bind *)data);
@@ -886,8 +869,8 @@ agp_ioctl(struct cdev *kdev, u_long cmd, caddr_t data, int fflag, struct thread 
 }
 
 static int
-agp_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr,
-    int prot, vm_memattr_t *memattr)
+agp_mmap(struct cdev *kdev, vm_ooffset_t offset, vm_paddr_t *paddr, int prot,
+    vm_memattr_t *memattr)
 {
 	device_t dev = kdev->si_drv1;
 	struct agp_softc *sc = device_get_softc(dev);
@@ -935,8 +918,8 @@ agp_get_info(device_t dev, struct agp_info *info)
 {
 	struct agp_softc *sc = device_get_softc(dev);
 
-	info->ai_mode =
-		pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS, 4);
+	info->ai_mode = pci_read_config(dev, agp_find_caps(dev) + AGP_STATUS,
+	    4);
 	if (sc->as_aperture != NULL)
 		info->ai_aperture_base = rman_get_start(sc->as_aperture);
 	else
@@ -964,33 +947,37 @@ agp_enable(device_t dev, u_int32_t mode)
 	return AGP_ENABLE(dev, mode);
 }
 
-void *agp_alloc_memory(device_t dev, int type, vm_size_t bytes)
+void *
+agp_alloc_memory(device_t dev, int type, vm_size_t bytes)
 {
-	return  (void *) AGP_ALLOC_MEMORY(dev, type, bytes);
+	return (void *)AGP_ALLOC_MEMORY(dev, type, bytes);
 }
 
-void agp_free_memory(device_t dev, void *handle)
+void
+agp_free_memory(device_t dev, void *handle)
 {
-	struct agp_memory *mem = (struct agp_memory *) handle;
+	struct agp_memory *mem = (struct agp_memory *)handle;
 	AGP_FREE_MEMORY(dev, mem);
 }
 
-int agp_bind_memory(device_t dev, void *handle, vm_offset_t offset)
+int
+agp_bind_memory(device_t dev, void *handle, vm_offset_t offset)
 {
-	struct agp_memory *mem = (struct agp_memory *) handle;
+	struct agp_memory *mem = (struct agp_memory *)handle;
 	return AGP_BIND_MEMORY(dev, mem, offset);
 }
 
-int agp_unbind_memory(device_t dev, void *handle)
+int
+agp_unbind_memory(device_t dev, void *handle)
 {
-	struct agp_memory *mem = (struct agp_memory *) handle;
+	struct agp_memory *mem = (struct agp_memory *)handle;
 	return AGP_UNBIND_MEMORY(dev, mem);
 }
 
-void agp_memory_info(device_t dev, void *handle, struct
-		     agp_memory_info *mi)
+void
+agp_memory_info(device_t dev, void *handle, struct agp_memory_info *mi)
 {
-	struct agp_memory *mem = (struct agp_memory *) handle;
+	struct agp_memory *mem = (struct agp_memory *)handle;
 
 	mi->ami_size = mem->am_size;
 	mi->ami_physical = mem->am_physical;
@@ -1022,13 +1009,13 @@ agp_bind_pages(device_t dev, vm_page_t *pages, vm_size_t size,
 		/*
 		 * Install entries in the GATT, making sure that if
 		 * AGP_PAGE_SIZE < PAGE_SIZE and size is not
-		 * aligned to PAGE_SIZE, we don't modify too many GATT 
+		 * aligned to PAGE_SIZE, we don't modify too many GATT
 		 * entries.
 		 */
 		for (j = 0; j < PAGE_SIZE && i + j < size; j += AGP_PAGE_SIZE) {
 			pa = VM_PAGE_TO_PHYS(m) + j;
 			AGP_DPF("binding offset %#jx to pa %#jx\n",
-				(uintmax_t)offset + i + j, (uintmax_t)pa);
+			    (uintmax_t)offset + i + j, (uintmax_t)pa);
 			error = AGP_BIND_PAGE(dev, offset + i + j, pa);
 			if (error) {
 				/*

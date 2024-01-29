@@ -27,18 +27,17 @@
  */
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/mutex.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 
 #include <dev/ppbus/ppbconf.h>
+#include <dev/ppbus/ppbio.h>
 
 #include "ppbus_if.h"
-
-#include <dev/ppbus/ppbio.h>
 
 MODULE_VERSION(ppbus, 1);
 
@@ -52,8 +51,7 @@ MODULE_VERSION(ppbus, 1);
  * max is a delay in 10-milliseconds
  */
 int
-ppb_poll_bus(device_t bus, int max,
-	     uint8_t mask, uint8_t status, int how)
+ppb_poll_bus(device_t bus, int max, uint8_t mask, uint8_t status, int how)
 {
 	struct ppb_data *ppb = DEVTOSOFTC(bus);
 	int i, j, error;
@@ -72,16 +70,17 @@ ppb_poll_bus(device_t bus, int max,
 	}
 
 	if (!(how & PPB_POLL)) {
-	   for (i = 0; max == PPB_FOREVER || i < max-1; i++) {
-		if ((ppb_rstr(bus) & mask) == status)
-			return (0);
+		for (i = 0; max == PPB_FOREVER || i < max - 1; i++) {
+			if ((ppb_rstr(bus) & mask) == status)
+				return (0);
 
-		/* wait 10 ms */
-		error = mtx_sleep((caddr_t)bus, ppb->ppc_lock, PPBPRI |
-		    (how == PPB_NOINTR ? 0 : PCATCH), "ppbpoll", hz/100);
-		if (error != EWOULDBLOCK)
-			return (error);
-	   }
+			/* wait 10 ms */
+			error = mtx_sleep((caddr_t)bus, ppb->ppc_lock,
+			    PPBPRI | (how == PPB_NOINTR ? 0 : PCATCH),
+			    "ppbpoll", hz / 100);
+			if (error != EWOULDBLOCK)
+				return (error);
+		}
 	}
 
 	return (EWOULDBLOCK);
@@ -98,7 +97,8 @@ ppb_get_epp_protocol(device_t bus)
 	uintptr_t protocol;
 
 	ppb_assert_locked(bus);
-	BUS_READ_IVAR(device_get_parent(bus), bus, PPC_IVAR_EPP_PROTO, &protocol);
+	BUS_READ_IVAR(device_get_parent(bus), bus, PPC_IVAR_EPP_PROTO,
+	    &protocol);
 
 	return (protocol);
 }
@@ -161,7 +161,7 @@ ppb_reset_epp_timeout(device_t bus)
 {
 
 	ppb_assert_locked(bus);
-	return(PPBUS_RESET_EPP(device_get_parent(bus)));
+	return (PPBUS_RESET_EPP(device_get_parent(bus)));
 }
 
 /*
@@ -191,12 +191,12 @@ ppb_get_status(device_t bus, struct ppb_status *status)
 
 	r = status->status = ppb_rstr(bus);
 
-	status->timeout	= r & TIMEOUT;
-	status->error	= !(r & nFAULT);
-	status->select	= r & SELECT;
+	status->timeout = r & TIMEOUT;
+	status->error = !(r & nFAULT);
+	status->select = r & SELECT;
 	status->paper_end = r & PERROR;
-	status->ack	= !(r & nACK);
-	status->busy	= !(r & nBUSY);
+	status->ack = !(r & nACK);
+	status->busy = !(r & nBUSY);
 
 	return (0);
 }

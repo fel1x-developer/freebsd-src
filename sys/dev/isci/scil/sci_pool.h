@@ -77,36 +77,33 @@
  * Private operation for the pool
  */
 #define SCI_POOL_INCREMENT(this_pool, index) \
-  (((index) + 1) == (this_pool).size ? 0 : (index) + 1)
+	(((index) + 1) == (this_pool).size ? 0 : (index) + 1)
 
 /**
  * This creates a pool structure of pool_name. The members in the pool are
  * of type with number of elements equal to size.
  */
 #define SCI_POOL_CREATE(pool_name, type, pool_size) \
-struct \
-{ \
-   U32 size; \
-   U32 get; \
-   U32 put; \
-   type array[(pool_size) + 1]; \
-} pool_name
-
+	struct {                                    \
+		U32 size;                           \
+		U32 get;                            \
+		U32 put;                            \
+		type array[(pool_size) + 1];        \
+	} pool_name
 
 /**
  * This macro evaluates the pool and returns TRUE if the pool is empty.
  * If the pool is empty the user should not perform any get operation on
  * the pool.
  */
-#define sci_pool_empty(this_pool) \
-   ((this_pool).get == (this_pool).put)
+#define sci_pool_empty(this_pool) ((this_pool).get == (this_pool).put)
 
 /**
  * This macro evaluates the pool and returns TRUE if the pool is full.  If
  * the pool is full the user should not perform any put operation.
  */
 #define sci_pool_full(this_pool) \
-   (SCI_POOL_INCREMENT(this_pool, (this_pool).put) == (this_pool).get)
+	(SCI_POOL_INCREMENT(this_pool, (this_pool).put) == (this_pool).get)
 
 /**
  * This macro returns the size of the pool created.  The internal size
@@ -114,75 +111,71 @@ struct \
  * get and put pointers can be written simultaneously by different
  * users.  As a result, this macro subtracts 1 from the internal size
  */
-#define sci_pool_size(this_pool) \
-   ((this_pool).size - 1)
+#define sci_pool_size(this_pool) ((this_pool).size - 1)
 
 /**
  * This macro indicates the number of elements currently contained in the
  * pool.
  */
-#define sci_pool_count(this_pool) \
-   ( \
-      sci_pool_empty((this_pool)) \
-      ? 0 \
-      : ( \
-           sci_pool_full((this_pool)) \
-           ? sci_pool_size((this_pool)) \
-           : ( \
-                (this_pool).get > (this_pool).put \
-                ? ((this_pool).size - (this_pool).get + (this_pool).put) \
-                : ((this_pool).put - (this_pool).get) \
-             ) \
-        ) \
-   )
+#define sci_pool_count(this_pool)                                     \
+	(sci_pool_empty((this_pool)) ?                                \
+		0 :                                                   \
+		(sci_pool_full((this_pool)) ?                         \
+			sci_pool_size((this_pool)) :                  \
+			((this_pool).get > (this_pool).put ?          \
+				((this_pool).size - (this_pool).get + \
+				    (this_pool).put) :                \
+				((this_pool).put - (this_pool).get))))
 
 /**
  * This macro initializes the pool to an empty condition.
  */
-#define sci_pool_initialize(this_pool) \
-{ \
-   (this_pool).size = (sizeof((this_pool).array) / sizeof((this_pool).array[0])); \
-   (this_pool).get = 0; \
-   (this_pool).put = 0; \
-}
+#define sci_pool_initialize(this_pool)                          \
+	{                                                       \
+		(this_pool).size = (sizeof((this_pool).array) / \
+		    sizeof((this_pool).array[0]));              \
+		(this_pool).get = 0;                            \
+		(this_pool).put = 0;                            \
+	}
 
 /**
  * This macro will get the next free element from the pool.
  * This should only be called if the pool is not empty.
  */
-#define sci_pool_get(this_pool, my_value) \
-{ \
-   (my_value) = (this_pool).array[(this_pool).get]; \
-   (this_pool).get = SCI_POOL_INCREMENT((this_pool), (this_pool).get); \
-}
+#define sci_pool_get(this_pool, my_value)                         \
+	{                                                         \
+		(my_value) = (this_pool).array[(this_pool).get];  \
+		(this_pool).get = SCI_POOL_INCREMENT((this_pool), \
+		    (this_pool).get);                             \
+	}
 
 /**
  * This macro will put the value into the pool.
  * This should only be called if the pool is not full.
  */
-#define sci_pool_put(this_pool, the_value) \
-{ \
-   (this_pool).array[(this_pool).put] = (the_value); \
-   (this_pool).put = SCI_POOL_INCREMENT((this_pool), (this_pool).put); \
-}
+#define sci_pool_put(this_pool, the_value)                        \
+	{                                                         \
+		(this_pool).array[(this_pool).put] = (the_value); \
+		(this_pool).put = SCI_POOL_INCREMENT((this_pool), \
+		    (this_pool).put);                             \
+	}
 
 /**
  * This macro will search the pool and remove any elements in the pool
  * matching the supplied value.
  * @note This method can only be utilized on pools
  */
-#define sci_pool_erase(this_pool, type, the_value) \
-{ \
-   type tmp_value; \
-   U32 index; \
-   U32 element_count = sci_pool_count((this_pool)); \
- \
-   for (index = 0; index < element_count; index++) \
-   { \
-      sci_pool_get((this_pool), tmp_value); \
-      if (tmp_value != (the_value)) \
-         sci_pool_put((this_pool), tmp_value); \
-   } \
-}
+#define sci_pool_erase(this_pool, type, the_value)                    \
+	{                                                             \
+		type tmp_value;                                       \
+		U32 index;                                            \
+		U32 element_count = sci_pool_count((this_pool));      \
+                                                                      \
+		for (index = 0; index < element_count; index++) {     \
+			sci_pool_get((this_pool), tmp_value);         \
+			if (tmp_value != (the_value))                 \
+				sci_pool_put((this_pool), tmp_value); \
+		}                                                     \
+	}
 
 #endif // _SCI_POOL_H_

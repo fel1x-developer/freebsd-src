@@ -28,9 +28,9 @@
 #pragma once
 
 typedef struct nvstore {
-	char		*nvs_name;
-	void		*nvs_data;
-	nvs_callbacks_t	*nvs_cb;
+	char *nvs_name;
+	void *nvs_data;
+	nvs_callbacks_t *nvs_cb;
 	STAILQ_ENTRY(nvstore) nvs_next;
 } nvstore_t;
 

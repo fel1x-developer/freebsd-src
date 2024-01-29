@@ -23,16 +23,18 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
 
-int mlx5_core_mad_ifc(struct mlx5_core_dev *dev, const void *inb, void *outb,
-		      u16 opmod, u8 port)
+#include <linux/kernel.h>
+#include <linux/module.h>
+
+int
+mlx5_core_mad_ifc(struct mlx5_core_dev *dev, const void *inb, void *outb,
+    u16 opmod, u8 port)
 {
 	int outlen = MLX5_ST_SZ_BYTES(mad_ifc_out);
 	int inlen = MLX5_ST_SZ_BYTES(mad_ifc_in);
@@ -59,8 +61,7 @@ int mlx5_core_mad_ifc(struct mlx5_core_dev *dev, const void *inb, void *outb,
 		goto out;
 
 	resp = MLX5_ADDR_OF(mad_ifc_out, out, response_mad_packet);
-	memcpy(outb, resp,
-	       MLX5_FLD_SZ_BYTES(mad_ifc_out, response_mad_packet));
+	memcpy(outb, resp, MLX5_FLD_SZ_BYTES(mad_ifc_out, response_mad_packet));
 
 out:
 	kfree(out);

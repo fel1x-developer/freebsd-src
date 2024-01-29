@@ -48,7 +48,7 @@ __vdso_gettc(const struct vdso_timehands *th, u_int *tc)
 	if (__predict_false(th->th_algo != VDSO_TH_ALGO_PPC_TB))
 		return (ENOSYS);
 
-	__asm __volatile ("mftb %0" : "=r"(tb));
+	__asm __volatile("mftb %0" : "=r"(tb));
 	*tc = tb;
 	return (0);
 }

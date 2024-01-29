@@ -28,9 +28,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_RX_EDMA_H__
-#define	__IF_ATH_RX_EDMA_H__
+#ifndef __IF_ATH_RX_EDMA_H__
+#define __IF_ATH_RX_EDMA_H__
 
-extern	void ath_recv_setup_edma(struct ath_softc *sc);
+extern void ath_recv_setup_edma(struct ath_softc *sc);
 
 #endif

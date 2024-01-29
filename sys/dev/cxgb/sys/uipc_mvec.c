@@ -29,10 +29,11 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
+#include <sys/ktr.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/ktr.h>
+#include <sys/mvec.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
@@ -40,7 +41,6 @@
 #include <machine/bus.h>
 
 #include <cxgb_include.h>
-#include <sys/mvec.h>
 
 #ifdef INVARIANTS
 #define M_SANITY m_sanity
@@ -49,12 +49,12 @@
 #endif
 
 int
-busdma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map,
-	struct mbuf **m, bus_dma_segment_t *segs, int *nsegs)
+busdma_map_sg_collapse(bus_dma_tag_t tag, bus_dmamap_t map, struct mbuf **m,
+    bus_dma_segment_t *segs, int *nsegs)
 {
 	struct mbuf *n = *m;
 	int seg_count, defragged = 0, err = 0;
-	
+
 	KASSERT(n->m_pkthdr.len, ("packet has zero header len"));
 	if (n->m_pkthdr.len <= PIO_LEN)
 		return (0);
@@ -66,7 +66,7 @@ retry:
 			printf("empty segment chain\n");
 		err = EFBIG;
 		goto err_out;
-	}  else if (err == EFBIG || seg_count >= TX_MAX_SEGS) {
+	} else if (err == EFBIG || seg_count >= TX_MAX_SEGS) {
 		if (cxgb_debug)
 			printf("mbuf chain too long: %d max allowed %d\n",
 			    seg_count, TX_MAX_SEGS);
@@ -85,17 +85,16 @@ retry:
 	}
 
 	*nsegs = seg_count;
-err_out:	
+err_out:
 	return (err);
 }
 
 void
-busdma_map_sg_vec(bus_dma_tag_t tag, bus_dmamap_t map,
-    struct mbuf *m, bus_dma_segment_t *segs, int *nsegs)
+busdma_map_sg_vec(bus_dma_tag_t tag, bus_dmamap_t map, struct mbuf *m,
+    bus_dma_segment_t *segs, int *nsegs)
 {
 	int n = 0;
 
 	for (*nsegs = 0; m != NULL; segs += n, *nsegs += n, m = m->m_nextpkt)
 		bus_dmamap_load_mbuf_sg(tag, map, m, segs, &n, 0);
 }
-

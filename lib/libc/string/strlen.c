@@ -25,8 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/limits.h>
 #include <sys/types.h>
+#include <sys/limits.h>
+
 #include <string.h>
 
 /*
@@ -58,16 +59,16 @@ static const unsigned long mask80 = 0x8080808080808080;
 #error Unsupported word size
 #endif
 
-#define	LONGPTR_MASK (sizeof(long) - 1)
+#define LONGPTR_MASK (sizeof(long) - 1)
 
 /*
  * Helper macro to return string length if we caught the zero
  * byte.
  */
-#define testbyte(x)				\
-	do {					\
-		if (p[x] == '\0')		\
-		    return (p - str + x);	\
+#define testbyte(x)                           \
+	do {                                  \
+		if (p[x] == '\0')             \
+			return (p - str + x); \
 	} while (0)
 
 size_t
@@ -98,7 +99,7 @@ strlen(const char *str)
 				return (p - str);
 
 	/* Scan the rest of the string using word sized operation */
-	for (; ; lp++) {
+	for (;; lp++) {
 		va = (*lp - mask01);
 		vb = ((~*lp) & mask80);
 		if (va & vb) {

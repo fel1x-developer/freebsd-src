@@ -19,16 +19,16 @@
 
 /* Import. */
 
-#include "port_before.h"
-
 #include <arpa/nameser.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /* Public. */
 
 u_int
-ns_get16(const u_char *src) {
+ns_get16(const u_char *src)
+{
 	u_int dst;
 
 	NS_GET16(dst, src);
@@ -36,7 +36,8 @@ ns_get16(const u_char *src) {
 }
 
 u_long
-ns_get32(const u_char *src) {
+ns_get32(const u_char *src)
+{
 	u_long dst;
 
 	NS_GET32(dst, src);
@@ -44,12 +45,14 @@ ns_get32(const u_char *src) {
 }
 
 void
-ns_put16(u_int src, u_char *dst) {
+ns_put16(u_int src, u_char *dst)
+{
 	NS_PUT16(src, dst);
 }
 
 void
-ns_put32(u_long src, u_char *dst) {
+ns_put32(u_long src, u_char *dst)
+{
 	NS_PUT32(src, dst);
 }
 

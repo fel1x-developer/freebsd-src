@@ -83,15 +83,16 @@
  */
 
 #include <sys/param.h>
-#include <stand.h>
-#include <teken.h>
-#include <gfx_fb.h>
+#include <sys/endian.h>
 #include <sys/font.h>
 #include <sys/stdint.h>
-#include <sys/endian.h>
-#include <pnglite.h>
+
 #include <bootstrap.h>
+#include <gfx_fb.h>
 #include <lz4.h>
+#include <pnglite.h>
+#include <stand.h>
+#include <teken.h>
 #if defined(EFI)
 #include <efi.h>
 #include <efilib.h>
@@ -101,10 +102,10 @@
 
 /* VGA text mode does use bold font. */
 #if !defined(VGA_8X16_FONT)
-#define	VGA_8X16_FONT		"/boot/fonts/8x16b.fnt"
+#define VGA_8X16_FONT "/boot/fonts/8x16b.fnt"
 #endif
 #if !defined(DEFAULT_8X16_FONT)
-#define	DEFAULT_8X16_FONT	"/boot/fonts/8x16.fnt"
+#define DEFAULT_8X16_FONT "/boot/fonts/8x16.fnt"
 #endif
 
 /*
@@ -112,32 +113,32 @@
  */
 font_list_t fonts = STAILQ_HEAD_INITIALIZER(fonts);
 
-#define	DEFAULT_FONT_DATA	font_data_8x16
-extern vt_font_bitmap_data_t	font_data_8x16;
+#define DEFAULT_FONT_DATA font_data_8x16
+extern vt_font_bitmap_data_t font_data_8x16;
 teken_gfx_t gfx_state = { 0 };
 
 static struct {
-	unsigned char r;	/* Red percentage value. */
-	unsigned char g;	/* Green percentage value. */
-	unsigned char b;	/* Blue percentage value. */
+	unsigned char r; /* Red percentage value. */
+	unsigned char g; /* Green percentage value. */
+	unsigned char b; /* Blue percentage value. */
 } color_def[NCOLORS] = {
-	{0,	0,	0},	/* black */
-	{50,	0,	0},	/* dark red */
-	{0,	50,	0},	/* dark green */
-	{77,	63,	0},	/* dark yellow */
-	{20,	40,	64},	/* dark blue */
-	{50,	0,	50},	/* dark magenta */
-	{0,	50,	50},	/* dark cyan */
-	{75,	75,	75},	/* light gray */
+	{ 0, 0, 0 },	/* black */
+	{ 50, 0, 0 },	/* dark red */
+	{ 0, 50, 0 },	/* dark green */
+	{ 77, 63, 0 },	/* dark yellow */
+	{ 20, 40, 64 }, /* dark blue */
+	{ 50, 0, 50 },	/* dark magenta */
+	{ 0, 50, 50 },	/* dark cyan */
+	{ 75, 75, 75 }, /* light gray */
 
-	{18,	20,	21},	/* dark gray */
-	{100,	0,	0},	/* light red */
-	{0,	100,	0},	/* light green */
-	{100,	100,	0},	/* light yellow */
-	{45,	62,	81},	/* light blue */
-	{100,	0,	100},	/* light magenta */
-	{0,	100,	100},	/* light cyan */
-	{100,	100,	100},	/* white */
+	{ 18, 20, 21 },	   /* dark gray */
+	{ 100, 0, 0 },	   /* light red */
+	{ 0, 100, 0 },	   /* light green */
+	{ 100, 100, 0 },   /* light yellow */
+	{ 45, 62, 81 },	   /* light blue */
+	{ 100, 0, 100 },   /* light magenta */
+	{ 0, 100, 100 },   /* light cyan */
+	{ 100, 100, 100 }, /* white */
 };
 uint32_t cmap[NCMAP];
 
@@ -146,15 +147,11 @@ uint32_t cmap[NCMAP];
  *  - blue and red are swapped (1 <-> 4)
  *  - yellow and cyan are swapped (3 <-> 6)
  */
-const int cons_to_vga_colors[NCOLORS] = {
-	0,  4,  2,  6,  1,  5,  3,  7,
-	8, 12, 10, 14,  9, 13, 11, 15
-};
+const int cons_to_vga_colors[NCOLORS] = { 0, 4, 2, 6, 1, 5, 3, 7, 8, 12, 10, 14,
+	9, 13, 11, 15 };
 
-static const int vga_to_cons_colors[NCOLORS] = {
-	0,  1,  2,  3,  4,  5,  6,  7,
-	8,  9, 10, 11,  12, 13, 14, 15
-};
+static const int vga_to_cons_colors[NCOLORS] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+	10, 11, 12, 13, 14, 15 };
 
 struct text_pixel *screen_buffer;
 #if defined(EFI)
@@ -166,7 +163,7 @@ static size_t GlyphBufferSize;
 
 static bool insert_font(char *, FONT_FLAGS);
 static int font_set(struct env_var *, int, const void *);
-static void * allocate_glyphbuffer(uint32_t, uint32_t);
+static void *allocate_glyphbuffer(uint32_t, uint32_t);
 static void gfx_fb_cursor_draw(teken_gfx_t *, const teken_pos_t *, bool);
 
 /*
@@ -178,7 +175,7 @@ gfx_framework_init(void)
 	/*
 	 * Setup font list to have builtin font.
 	 */
-	(void) insert_font(NULL, FONT_BUILTIN);
+	(void)insert_font(NULL, FONT_BUILTIN);
 }
 
 static uint8_t *
@@ -207,7 +204,7 @@ gfx_parse_mode_str(char *str, int *x, int *y, int *depth)
 	if (*y == 0 || errno != 0)
 		return (false);
 	if (*end != 'x') {
-		*depth = -1;    /* auto select */
+		*depth = -1; /* auto select */
 	} else {
 		p = end + 1;
 		*depth = strtoul(p, &end, 0);
@@ -219,50 +216,50 @@ gfx_parse_mode_str(char *str, int *x, int *y, int *depth)
 }
 
 static uint32_t
-rgb_color_map(uint8_t index, uint32_t rmax, int roffset,
-    uint32_t gmax, int goffset, uint32_t bmax, int boffset)
+rgb_color_map(uint8_t index, uint32_t rmax, int roffset, uint32_t gmax,
+    int goffset, uint32_t bmax, int boffset)
 {
 	uint32_t color, code, gray, level;
 
 	if (index < NCOLORS) {
-#define	CF(_f, _i) ((_f ## max * color_def[(_i)]._f / 100) << _f ## offset)
+#define CF(_f, _i) ((_f##max * color_def[(_i)]._f / 100) << _f##offset)
 		return (CF(r, index) | CF(g, index) | CF(b, index));
-#undef  CF
-        }
+#undef CF
+	}
 
-#define	CF(_f, _c) ((_f ## max & _c) << _f ## offset)
-        /* 6x6x6 color cube */
-        if (index > 15 && index < 232) {
-                uint32_t red, green, blue;
+#define CF(_f, _c) ((_f##max & _c) << _f##offset)
+	/* 6x6x6 color cube */
+	if (index > 15 && index < 232) {
+		uint32_t red, green, blue;
 
-                for (red = 0; red < 6; red++) {
-                        for (green = 0; green < 6; green++) {
-                                for (blue = 0; blue < 6; blue++) {
-                                        code = 16 + (red * 36) +
-                                            (green * 6) + blue;
-                                        if (code != index)
-                                                continue;
-                                        red = red ? (red * 40 + 55) : 0;
-                                        green = green ? (green * 40 + 55) : 0;
-                                        blue = blue ? (blue * 40 + 55) : 0;
-                                        color = CF(r, red);
+		for (red = 0; red < 6; red++) {
+			for (green = 0; green < 6; green++) {
+				for (blue = 0; blue < 6; blue++) {
+					code = 16 + (red * 36) + (green * 6) +
+					    blue;
+					if (code != index)
+						continue;
+					red = red ? (red * 40 + 55) : 0;
+					green = green ? (green * 40 + 55) : 0;
+					blue = blue ? (blue * 40 + 55) : 0;
+					color = CF(r, red);
 					color |= CF(g, green);
 					color |= CF(b, blue);
 					return (color);
-                                }
-                        }
-                }
-        }
+				}
+			}
+		}
+	}
 
-        /* colors 232-255 are a grayscale ramp */
-        for (gray = 0; gray < 24; gray++) {
-                level = (gray * 10) + 8;
-                code = 232 + gray;
-                if (code == index)
-                        break;
-        }
-        return (CF(r, level) | CF(g, level) | CF(b, level));
-#undef  CF
+	/* colors 232-255 are a grayscale ramp */
+	for (gray = 0; gray < 24; gray++) {
+		level = (gray * 10) + 8;
+		code = 232 + gray;
+		if (code == index)
+			break;
+	}
+	return (CF(r, level) | CF(g, level) | CF(b, level));
+#undef CF
 }
 
 /*
@@ -278,8 +275,8 @@ gfx_fb_color_map(uint8_t index)
 	int roff, goff, boff, bpp;
 
 	roff = ffs(gfx_state.tg_fb.fb_mask_red) - 1;
-        goff = ffs(gfx_state.tg_fb.fb_mask_green) - 1;
-        boff = ffs(gfx_state.tg_fb.fb_mask_blue) - 1;
+	goff = ffs(gfx_state.tg_fb.fb_mask_green) - 1;
+	boff = ffs(gfx_state.tg_fb.fb_mask_blue) - 1;
 	bpp = roundup2(gfx_state.tg_fb.fb_bpp, 8) >> 3;
 
 	if (bpp == 2)
@@ -337,17 +334,16 @@ rgb_to_color_index(uint8_t r, uint8_t g, uint8_t b)
 		k = color;
 	return (k);
 #else
-	(void) r;
-	(void) g;
-	(void) b;
+	(void)r;
+	(void)g;
+	(void)b;
 	return (0);
 #endif
 }
 
 int
-generate_cons_palette(uint32_t *palette, int format,
-    uint32_t rmax, int roffset, uint32_t gmax, int goffset,
-    uint32_t bmax, int boffset)
+generate_cons_palette(uint32_t *palette, int format, uint32_t rmax, int roffset,
+    uint32_t gmax, int goffset, uint32_t bmax, int boffset)
 {
 	int i;
 
@@ -360,8 +356,8 @@ generate_cons_palette(uint32_t *palette, int format,
 		break;
 	case COLOR_FORMAT_RGB:
 		for (i = 0; i < NCMAP; i++)
-			palette[i] = rgb_color_map(i, rmax, roffset,
-			    gmax, goffset, bmax, boffset);
+			palette[i] = rgb_color_map(i, rmax, roffset, gmax,
+			    goffset, bmax, boffset);
 		break;
 	default:
 		return (ENODEV);
@@ -397,8 +393,8 @@ gfx_mem_wr4(uint8_t *base, size_t size, uint32_t o, uint32_t v)
 	*(uint32_t *)(base + o) = v;
 }
 
-static int gfxfb_blt_fill(void *BltBuffer,
-    uint32_t DestinationX, uint32_t DestinationY,
+static int
+gfxfb_blt_fill(void *BltBuffer, uint32_t DestinationX, uint32_t DestinationY,
     uint32_t Width, uint32_t Height)
 {
 #if defined(EFI)
@@ -432,12 +428,11 @@ static int gfxfb_blt_fill(void *BltBuffer,
 	if (gfx_state.tg_fb.fb_bpp == 8) {
 		data = rgb_to_color_index(p->Red, p->Green, p->Blue);
 	} else {
-		data = (p->Red &
-		    (gfx_state.tg_fb.fb_mask_red >> roff)) << roff;
-		data |= (p->Green &
-		    (gfx_state.tg_fb.fb_mask_green >> goff)) << goff;
-		data |= (p->Blue &
-		    (gfx_state.tg_fb.fb_mask_blue >> boff)) << boff;
+		data = (p->Red & (gfx_state.tg_fb.fb_mask_red >> roff)) << roff;
+		data |= (p->Green & (gfx_state.tg_fb.fb_mask_green >> goff))
+		    << goff;
+		data |= (p->Blue & (gfx_state.tg_fb.fb_mask_blue >> boff))
+		    << boff;
 	}
 
 	bpp = roundup2(gfx_state.tg_fb.fb_bpp, 8) >> 3;
@@ -452,7 +447,8 @@ static int gfxfb_blt_fill(void *BltBuffer,
 			case 1:
 				gfx_mem_wr1(destination, size, off,
 				    (data < NCOLORS) ?
-				    cons_to_vga_colors[data] : data);
+					cons_to_vga_colors[data] :
+					data);
 				break;
 			case 2:
 				gfx_mem_wr2(destination, size, off, data);
@@ -480,8 +476,8 @@ static int gfxfb_blt_fill(void *BltBuffer,
 
 static int
 gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
-    uint32_t DestinationX, uint32_t DestinationY,
-    uint32_t Width, uint32_t Height, uint32_t Delta)
+    uint32_t DestinationX, uint32_t DestinationY, uint32_t Width,
+    uint32_t Height, uint32_t Delta)
 {
 #if defined(EFI)
 	EFI_GRAPHICS_OUTPUT_BLT_PIXEL *p;
@@ -498,8 +494,7 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 	if (BltBuffer == NULL)
 		return (EINVAL);
 
-	if (SourceY + Height >
-	    gfx_state.tg_fb.fb_height)
+	if (SourceY + Height > gfx_state.tg_fb.fb_height)
 		return (EINVAL);
 
 	if (SourceX + Width > gfx_state.tg_fb.fb_width)
@@ -509,7 +504,7 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 		return (EINVAL);
 
 	if (Delta == 0)
-		Delta = Width * sizeof (*p);
+		Delta = Width * sizeof(*p);
 
 	bpp = roundup2(gfx_state.tg_fb.fb_bpp, 8) >> 3;
 	pitch = gfx_state.tg_fb.fb_stride * bpp;
@@ -524,17 +519,15 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 	bm = gfx_state.tg_fb.fb_mask_blue >> bp;
 
 	/* If FB pixel format is BGRA, we can use direct copy. */
-	bgra = bpp == 4 &&
-	    ffs(rm) - 1 == 8 && rp == 16 &&
-	    ffs(gm) - 1 == 8 && gp == 8 &&
-	    ffs(bm) - 1 == 8 && bp == 0;
+	bgra = bpp == 4 && ffs(rm) - 1 == 8 && rp == 16 && ffs(gm) - 1 == 8 &&
+	    gp == 8 && ffs(bm) - 1 == 8 && bp == 0;
 
 	for (sy = SourceY, dy = DestinationY; dy < Height + DestinationY;
-	    sy++, dy++) {
+	     sy++, dy++) {
 		off = sy * pitch + SourceX * bpp;
 		source = gfx_get_fb_address() + off;
 		destination = (uint8_t *)BltBuffer + dy * Delta +
-		    DestinationX * sizeof (*p);
+		    DestinationX * sizeof(*p);
 
 		if (bgra) {
 			bcopy(source, destination, copybytes);
@@ -542,7 +535,7 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 			for (x = 0; x < Width; x++) {
 				uint32_t c = 0;
 
-				p = (void *)(destination + x * sizeof (*p));
+				p = (void *)(destination + x * sizeof(*p));
 				sb = source + x * bpp;
 				switch (bpp) {
 				case 1:
@@ -563,8 +556,8 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 
 				if (bpp == 1) {
 					*(uint32_t *)p = gfx_fb_color_map(
-					    (c < 16) ?
-					    vga_to_cons_colors[c] : c);
+					    (c < 16) ? vga_to_cons_colors[c] :
+						       c);
 				} else {
 					p->Red = (c >> rp) & rm;
 					p->Green = (c >> gp) & gm;
@@ -580,8 +573,8 @@ gfxfb_blt_video_to_buffer(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 
 static int
 gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
-    uint32_t DestinationX, uint32_t DestinationY,
-    uint32_t Width, uint32_t Height, uint32_t Delta)
+    uint32_t DestinationX, uint32_t DestinationY, uint32_t Width,
+    uint32_t Height, uint32_t Delta)
 {
 #if defined(EFI)
 	EFI_GRAPHICS_OUTPUT_BLT_PIXEL *p;
@@ -598,8 +591,7 @@ gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 	if (BltBuffer == NULL)
 		return (EINVAL);
 
-	if (DestinationY + Height >
-	    gfx_state.tg_fb.fb_height)
+	if (DestinationY + Height > gfx_state.tg_fb.fb_height)
 		return (EINVAL);
 
 	if (DestinationX + Width > gfx_state.tg_fb.fb_width)
@@ -609,7 +601,7 @@ gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 		return (EINVAL);
 
 	if (Delta == 0)
-		Delta = Width * sizeof (*p);
+		Delta = Width * sizeof(*p);
 
 	bpp = roundup2(gfx_state.tg_fb.fb_bpp, 8) >> 3;
 	pitch = gfx_state.tg_fb.fb_stride * bpp;
@@ -624,30 +616,27 @@ gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 	bm = gfx_state.tg_fb.fb_mask_blue >> bp;
 
 	/* If FB pixel format is BGRA, we can use direct copy. */
-	bgra = bpp == 4 &&
-	    ffs(rm) - 1 == 8 && rp == 16 &&
-	    ffs(gm) - 1 == 8 && gp == 8 &&
-	    ffs(bm) - 1 == 8 && bp == 0;
+	bgra = bpp == 4 && ffs(rm) - 1 == 8 && rp == 16 && ffs(gm) - 1 == 8 &&
+	    gp == 8 && ffs(bm) - 1 == 8 && bp == 0;
 
 	for (sy = SourceY, dy = DestinationY; sy < Height + SourceY;
-	    sy++, dy++) {
+	     sy++, dy++) {
 		off = dy * pitch + DestinationX * bpp;
 		destination = gfx_get_fb_address() + off;
 
 		if (bgra) {
 			source = (uint8_t *)BltBuffer + sy * Delta +
-			    SourceX * sizeof (*p);
+			    SourceX * sizeof(*p);
 			bcopy(source, destination, copybytes);
 		} else {
 			for (x = 0; x < Width; x++) {
 				uint32_t c;
 
-				p = (void *)((uint8_t *)BltBuffer +
-				    sy * Delta +
-				    (SourceX + x) * sizeof (*p));
+				p = (void *)((uint8_t *)BltBuffer + sy * Delta +
+				    (SourceX + x) * sizeof(*p));
 				if (bpp == 1) {
-					c = rgb_to_color_index(p->Red,
-					    p->Green, p->Blue);
+					c = rgb_to_color_index(p->Red, p->Green,
+					    p->Blue);
 				} else {
 					c = (p->Red & rm) << rp |
 					    (p->Green & gm) << gp |
@@ -656,17 +645,17 @@ gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 				off = x * bpp;
 				switch (bpp) {
 				case 1:
-					gfx_mem_wr1(destination, copybytes,
-					    off, (c < 16) ?
-					    cons_to_vga_colors[c] : c);
+					gfx_mem_wr1(destination, copybytes, off,
+					    (c < 16) ? cons_to_vga_colors[c] :
+						       c);
 					break;
 				case 2:
-					gfx_mem_wr2(destination, copybytes,
-					    off, c);
+					gfx_mem_wr2(destination, copybytes, off,
+					    c);
 					break;
 				case 3:
-					gfx_mem_wr1(destination, copybytes,
-					    off, (c >> 16) & 0xff);
+					gfx_mem_wr1(destination, copybytes, off,
+					    (c >> 16) & 0xff);
 					gfx_mem_wr1(destination, copybytes,
 					    off + 1, (c >> 8) & 0xff);
 					gfx_mem_wr1(destination, copybytes,
@@ -688,23 +677,21 @@ gfxfb_blt_buffer_to_video(void *BltBuffer, uint32_t SourceX, uint32_t SourceY,
 
 static int
 gfxfb_blt_video_to_video(uint32_t SourceX, uint32_t SourceY,
-    uint32_t DestinationX, uint32_t DestinationY,
-    uint32_t Width, uint32_t Height)
+    uint32_t DestinationX, uint32_t DestinationY, uint32_t Width,
+    uint32_t Height)
 {
 	uint32_t bpp, copybytes;
 	int pitch;
 	uint8_t *source, *destination;
 	off_t off;
 
-	if (SourceY + Height >
-	    gfx_state.tg_fb.fb_height)
+	if (SourceY + Height > gfx_state.tg_fb.fb_height)
 		return (EINVAL);
 
 	if (SourceX + Width > gfx_state.tg_fb.fb_width)
 		return (EINVAL);
 
-	if (DestinationY + Height >
-	    gfx_state.tg_fb.fb_height)
+	if (DestinationY + Height > gfx_state.tg_fb.fb_height)
 		return (EINVAL);
 
 	if (DestinationX + Width > gfx_state.tg_fb.fb_width)
@@ -739,9 +726,8 @@ gfxfb_blt_video_to_video(uint32_t SourceX, uint32_t SourceY,
 }
 
 static void
-gfxfb_shadow_fill(uint32_t *BltBuffer,
-    uint32_t DestinationX, uint32_t DestinationY,
-    uint32_t Width, uint32_t Height)
+gfxfb_shadow_fill(uint32_t *BltBuffer, uint32_t DestinationX,
+    uint32_t DestinationY, uint32_t Width, uint32_t Height)
 {
 	uint32_t fbX, fbY;
 
@@ -771,9 +757,8 @@ gfxfb_shadow_fill(uint32_t *BltBuffer,
 }
 
 int
-gfxfb_blt(void *BltBuffer, GFXFB_BLT_OPERATION BltOperation,
-    uint32_t SourceX, uint32_t SourceY,
-    uint32_t DestinationX, uint32_t DestinationY,
+gfxfb_blt(void *BltBuffer, GFXFB_BLT_OPERATION BltOperation, uint32_t SourceX,
+    uint32_t SourceY, uint32_t DestinationX, uint32_t DestinationY,
     uint32_t Width, uint32_t Height, uint32_t Delta)
 {
 	int rv;
@@ -793,30 +778,29 @@ gfxfb_blt(void *BltBuffer, GFXFB_BLT_OPERATION BltOperation,
 		tpl = BS->RaiseTPL(TPL_NOTIFY);
 		switch (BltOperation) {
 		case GfxFbBltVideoFill:
-			gfxfb_shadow_fill(BltBuffer, DestinationX,
-			    DestinationY, Width, Height);
+			gfxfb_shadow_fill(BltBuffer, DestinationX, DestinationY,
+			    Width, Height);
 			status = gop->Blt(gop, BltBuffer, EfiBltVideoFill,
-			    SourceX, SourceY, DestinationX, DestinationY,
-			    Width, Height, Delta);
+			    SourceX, SourceY, DestinationX, DestinationY, Width,
+			    Height, Delta);
 			break;
 
 		case GfxFbBltVideoToBltBuffer:
 			status = gop->Blt(gop, BltBuffer,
-			    EfiBltVideoToBltBuffer,
-			    SourceX, SourceY, DestinationX, DestinationY,
-			    Width, Height, Delta);
+			    EfiBltVideoToBltBuffer, SourceX, SourceY,
+			    DestinationX, DestinationY, Width, Height, Delta);
 			break;
 
 		case GfxFbBltBufferToVideo:
 			status = gop->Blt(gop, BltBuffer, EfiBltBufferToVideo,
-			    SourceX, SourceY, DestinationX, DestinationY,
-			    Width, Height, Delta);
+			    SourceX, SourceY, DestinationX, DestinationY, Width,
+			    Height, Delta);
 			break;
 
 		case GfxFbBltVideoToVideo:
 			status = gop->Blt(gop, BltBuffer, EfiBltVideoToVideo,
-			    SourceX, SourceY, DestinationX, DestinationY,
-			    Width, Height, Delta);
+			    SourceX, SourceY, DestinationX, DestinationY, Width,
+			    Height, Delta);
 			break;
 
 		default:
@@ -846,8 +830,8 @@ gfxfb_blt(void *BltBuffer, GFXFB_BLT_OPERATION BltOperation,
 
 	switch (BltOperation) {
 	case GfxFbBltVideoFill:
-		gfxfb_shadow_fill(BltBuffer, DestinationX, DestinationY,
-		    Width, Height);
+		gfxfb_shadow_fill(BltBuffer, DestinationX, DestinationY, Width,
+		    Height);
 		rv = gfxfb_blt_fill(BltBuffer, DestinationX, DestinationY,
 		    Width, Height);
 		break;
@@ -863,8 +847,8 @@ gfxfb_blt(void *BltBuffer, GFXFB_BLT_OPERATION BltOperation,
 		break;
 
 	case GfxFbBltVideoToVideo:
-		rv = gfxfb_blt_video_to_video(SourceX, SourceY,
-		    DestinationX, DestinationY, Width, Height);
+		rv = gfxfb_blt_video_to_video(SourceX, SourceY, DestinationX,
+		    DestinationY, Width, Height);
 		break;
 
 	default:
@@ -883,10 +867,10 @@ gfx_bitblt_bitmap(teken_gfx_t *state, const uint8_t *glyph,
 	int bpp, bit, byte;
 	bool invert = false;
 
-	bpp = 4;		/* We only generate BGRA */
+	bpp = 4; /* We only generate BGRA */
 	width = state->tg_font.vf_width;
 	height = state->tg_font.vf_height;
-	bpl = (width + 7) / 8;  /* Bytes per source line. */
+	bpl = (width + 7) / 8; /* Bytes per source line. */
 
 	fgc = a->ta_fgcolor;
 	bgc = a->ta_bgcolor;
@@ -921,8 +905,8 @@ gfx_bitblt_bitmap(teken_gfx_t *state, const uint8_t *glyph,
 			o = y * width * bpp + x * bpp;
 			cc = glyph[byte] & bit ? fgc : bgc;
 
-			gfx_mem_wr4(state->tg_glyph,
-			    state->tg_glyph_size, o, cc);
+			gfx_mem_wr4(state->tg_glyph, state->tg_glyph_size, o,
+			    cc);
 		}
 	}
 }
@@ -995,10 +979,10 @@ gfx_fb_fill(void *arg, const teken_rect_t *r, teken_char_t c,
 	gfx_bitblt_bitmap(state, glyph, a, 0xff, false);
 
 	for (p.tp_row = r->tr_begin.tp_row; p.tp_row < r->tr_end.tp_row;
-	    p.tp_row++) {
+	     p.tp_row++) {
 		row = &screen_buffer[p.tp_row * state->tg_tp.tp_col];
-		for (p.tp_col = r->tr_begin.tp_col;
-		    p.tp_col < r->tr_end.tp_col; p.tp_col++) {
+		for (p.tp_col = r->tr_begin.tp_col; p.tp_col < r->tr_end.tp_col;
+		     p.tp_col++) {
 			row[p.tp_col].c = c;
 			row[p.tp_col].a = *a;
 			gfx_fb_printchar(state, &p);
@@ -1087,8 +1071,7 @@ is_same_pixel(struct text_pixel *px1, struct text_pixel *px2)
 		return (false);
 
 	/* Is there image stored? */
-	if ((px1->a.ta_format & TF_IMAGE) ||
-	    (px2->a.ta_format & TF_IMAGE))
+	if ((px1->a.ta_format & TF_IMAGE) || (px2->a.ta_format & TF_IMAGE))
 		return (false);
 
 	if (px1->a.ta_format != px2->a.ta_format)
@@ -1123,11 +1106,9 @@ gfx_fb_copy_area(teken_gfx_t *state, const teken_rect_t *s,
 	 * With no shadow fb, use video to video copy.
 	 */
 	if (state->tg_shadow_fb == NULL) {
-		(void) gfxfb_blt(NULL, GfxFbBltVideoToVideo,
-		    sx + state->tg_origin.tp_col,
-		    sy + state->tg_origin.tp_row,
-		    dx + state->tg_origin.tp_col,
-		    dy + state->tg_origin.tp_row,
+		(void)gfxfb_blt(NULL, GfxFbBltVideoToVideo,
+		    sx + state->tg_origin.tp_col, sy + state->tg_origin.tp_row,
+		    dx + state->tg_origin.tp_col, dy + state->tg_origin.tp_row,
 		    width, height, 0);
 		return;
 	}
@@ -1139,7 +1120,7 @@ gfx_fb_copy_area(teken_gfx_t *state, const teken_rect_t *s,
 
 	step = 1;
 	pitch = state->tg_fb.fb_width;
-	bytes = width * sizeof (*state->tg_shadow_fb);
+	bytes = width * sizeof(*state->tg_shadow_fb);
 
 	/*
 	 * To handle overlapping areas, set up reverse copy here.
@@ -1155,9 +1136,9 @@ gfx_fb_copy_area(teken_gfx_t *state, const teken_rect_t *s,
 		uint32_t *destination = &state->tg_shadow_fb[dy * pitch + dx];
 
 		bcopy(source, destination, bytes);
-		(void) gfxfb_blt(destination, GfxFbBltBufferToVideo,
-		    0, 0, dx + state->tg_origin.tp_col,
-		    dy + state->tg_origin.tp_row, width, 1, 0);
+		(void)gfxfb_blt(destination, GfxFbBltBufferToVideo, 0, 0,
+		    dx + state->tg_origin.tp_col, dy + state->tg_origin.tp_row,
+		    width, 1, 0);
 
 		sy += step;
 		dy += step;
@@ -1178,7 +1159,7 @@ gfx_fb_copy_line(teken_gfx_t *state, int ncol, teken_pos_t *s, teken_pos_t *d)
 
 	for (x = 0; x < ncol; x++) {
 		if (is_same_pixel(&screen_buffer[soffset + x],
-		    &screen_buffer[doffset + x])) {
+			&screen_buffer[doffset + x])) {
 			if (mark) {
 				gfx_fb_copy_area(state, &sr, &dp);
 				mark = false;
@@ -1312,7 +1293,7 @@ bitmap_cpy(void *dst, void *src, uint32_t size)
 	/*
 	 * we only implement alpha blending for depth 32.
 	 */
-	for (i = 0; i < size; i ++) {
+	for (i = 0; i < size; i++) {
 		a = ps[i].Reserved;
 		pd[i].Red = alpha_blend(ps[i].Red, pd[i].Red, a);
 		pd[i].Green = alpha_blend(ps[i].Green, pd[i].Green, a);
@@ -1326,7 +1307,7 @@ allocate_glyphbuffer(uint32_t width, uint32_t height)
 {
 	size_t size;
 
-	size = sizeof (*GlyphBuffer) * width * height;
+	size = sizeof(*GlyphBuffer) * width * height;
 	if (size != GlyphBufferSize) {
 		free(GlyphBuffer);
 		GlyphBuffer = malloc(size);
@@ -1359,11 +1340,11 @@ gfx_fb_cons_display(uint32_t x, uint32_t y, uint32_t width, uint32_t height,
 		p = data;
 		for (uint32_t sy = 0; sy < height; sy++) {
 			buf = (void *)(gfx_state.tg_shadow_fb +
-			    (y - gfx_state.tg_origin.tp_row) * pitch +
-			    x - gfx_state.tg_origin.tp_col);
+			    (y - gfx_state.tg_origin.tp_row) * pitch + x -
+			    gfx_state.tg_origin.tp_col);
 			bitmap_cpy(buf, &p[sy * width], width);
-			(void) gfxfb_blt(buf, GfxFbBltBufferToVideo,
-			    0, 0, x, y, width, 1, 0);
+			(void)gfxfb_blt(buf, GfxFbBltBufferToVideo, 0, 0, x, y,
+			    width, 1, 0);
 			y++;
 		}
 		return;
@@ -1373,8 +1354,8 @@ gfx_fb_cons_display(uint32_t x, uint32_t y, uint32_t width, uint32_t height,
 	 * Common data to display is glyph, use preallocated
 	 * glyph buffer.
 	 */
-        if (gfx_state.tg_glyph_size != GlyphBufferSize)
-                (void) allocate_glyphbuffer(width, height);
+	if (gfx_state.tg_glyph_size != GlyphBufferSize)
+		(void)allocate_glyphbuffer(width, height);
 
 	size = width * height * sizeof(*buf);
 	if (size == GlyphBufferSize)
@@ -1384,11 +1365,11 @@ gfx_fb_cons_display(uint32_t x, uint32_t y, uint32_t width, uint32_t height,
 	if (buf == NULL)
 		return;
 
-	if (gfxfb_blt(buf, GfxFbBltVideoToBltBuffer, x, y, 0, 0,
-	    width, height, 0) == 0) {
+	if (gfxfb_blt(buf, GfxFbBltVideoToBltBuffer, x, y, 0, 0, width, height,
+		0) == 0) {
 		bitmap_cpy(buf, data, width * height);
-		(void) gfxfb_blt(buf, GfxFbBltBufferToVideo, 0, 0, x, y,
-		    width, height, 0);
+		(void)gfxfb_blt(buf, GfxFbBltBufferToVideo, 0, 0, x, y, width,
+		    height, 0);
 	}
 	if (buf != GlyphBuffer)
 		free(buf);
@@ -1427,7 +1408,7 @@ gfx_fb_getcolor(void)
 	const teken_attr_t *ap;
 
 	ap = teken_get_curattr(&gfx_state.tg_teken);
-        if (ap->ta_format & TF_REVERSE) {
+	if (ap->ta_format & TF_REVERSE) {
 		c = ap->ta_bgcolor;
 		if (ap->ta_format & TF_BLINK)
 			c |= TC_LIGHT;
@@ -1451,8 +1432,7 @@ gfx_fb_setpixel(uint32_t x, uint32_t y)
 
 	c = gfx_fb_getcolor();
 
-	if (x >= gfx_state.tg_fb.fb_width ||
-	    y >= gfx_state.tg_fb.fb_height)
+	if (x >= gfx_state.tg_fb.fb_width || y >= gfx_state.tg_fb.fb_height)
 		return;
 
 	gfxfb_blt(&c, GfxFbBltVideoFill, 0, 0, x, y, 1, 1, 0);
@@ -1473,8 +1453,8 @@ gfx_fb_drawrect(uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2,
 	c = gfx_fb_getcolor();
 
 	if (fill != 0) {
-		gfxfb_blt(&c, GfxFbBltVideoFill, 0, 0, x1, y1, x2 - x1,
-		    y2 - y1, 0);
+		gfxfb_blt(&c, GfxFbBltVideoFill, 0, 0, x1, y1, x2 - x1, y2 - y1,
+		    0);
 	} else {
 		gfxfb_blt(&c, GfxFbBltVideoFill, 0, 0, x1, y1, x2 - x1, 1, 0);
 		gfxfb_blt(&c, GfxFbBltVideoFill, 0, 0, x1, y2, x2 - x1, 1, 0);
@@ -1493,18 +1473,18 @@ gfx_fb_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t wd)
 		return;
 
 	width = wd;
-	sx = x0 < x1? 1 : -1;
-	sy = y0 < y1? 1 : -1;
-	dx = x1 > x0? x1 - x0 : x0 - x1;
-	dy = y1 > y0? y1 - y0 : y0 - y1;
+	sx = x0 < x1 ? 1 : -1;
+	sy = y0 < y1 ? 1 : -1;
+	dx = x1 > x0 ? x1 - x0 : x0 - x1;
+	dy = y1 > y0 ? y1 - y0 : y0 - y1;
 	err = dx + dy;
-	ed = dx + dy == 0 ? 1: isqrt(dx * dx + dy * dy);
+	ed = dx + dy == 0 ? 1 : isqrt(dx * dx + dy * dy);
 
 	for (;;) {
 		gfx_fb_setpixel(x0, y0);
 		e2 = err;
 		x2 = x0;
-		if ((e2 << 1) >= -dx) {		/* x step */
+		if ((e2 << 1) >= -dx) { /* x step */
 			e2 += dy;
 			y2 = y0;
 			while (e2 < ed * width &&
@@ -1519,8 +1499,8 @@ gfx_fb_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t wd)
 			err -= dy;
 			x0 += sx;
 		}
-		if ((e2 << 1) <= dy) {		/* y step */
-			e2 = dx-e2;
+		if ((e2 << 1) <= dy) { /* y step */
+			e2 = dx - e2;
 			while (e2 < ed * width &&
 			    (x1 != (uint32_t)x2 || dx < dy)) {
 				x2 += sx;
@@ -1554,9 +1534,9 @@ gfx_fb_bezier(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t x2,
 	sy = y2 - y1;
 	xx = x0 - x1;
 	yy = y0 - y1;
-	curvature = xx*sy - yy*sx;
+	curvature = xx * sy - yy * sx;
 
-	if (sx*sx + sy*sy > xx*xx+yy*yy) {
+	if (sx * sx + sy * sy > xx * xx + yy * yy) {
 		x2 = x0;
 		x0 = sx + x1;
 		y2 = y0;
@@ -1565,12 +1545,12 @@ gfx_fb_bezier(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t x2,
 	}
 	if (curvature != 0) {
 		xx += sx;
-		sx = x0 < x2? 1 : -1;
+		sx = x0 < x2 ? 1 : -1;
 		xx *= sx;
 		yy += sy;
-		sy = y0 < y2? 1 : -1;
+		sy = y0 < y2 ? 1 : -1;
 		yy *= sy;
-		xy = (xx*yy) << 1;
+		xy = (xx * yy) << 1;
 		xx *= xx;
 		yy *= yy;
 		if (curvature * sx * sy < 0) {
@@ -1588,7 +1568,7 @@ gfx_fb_bezier(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t x2,
 			for (i = 0; i <= width; i++)
 				gfx_fb_setpixel(x0 + i, y0);
 			if (x0 == x2 && y0 == y2)
-				return;  /* last pixel -> curve finished */
+				return; /* last pixel -> curve finished */
 			y1 = 2 * err < dx;
 			if (2 * err > dy) {
 				x0 += sx;
@@ -1624,7 +1604,7 @@ gfx_term_drawrect(uint32_t ux1, uint32_t uy1, uint32_t ux2, uint32_t uy2)
 
 	vf_width = gfx_state.tg_font.vf_width;
 	vf_height = gfx_state.tg_font.vf_height;
-	width = vf_width / 4;			/* line width */
+	width = vf_width / 4; /* line width */
 	xshift = (vf_width - width) / 2;
 	yshift = (vf_height - width) / 2;
 
@@ -1676,7 +1656,8 @@ gfx_term_drawrect(uint32_t ux1, uint32_t uy1, uint32_t ux2, uint32_t uy2)
 	x2 += vf_width;
 	y2 = uy1 * vf_height + gfx_state.tg_origin.tp_row + yshift;
 	for (i = 0; i <= width; i++)
-		gfx_fb_bezier(x1 + i, y1, x1 + i, y2 + i, x2, y2 + i, width-i);
+		gfx_fb_bezier(x1 + i, y1, x1 + i, y2 + i, x2, y2 + i,
+		    width - i);
 
 	/* Draw lower left corner. */
 	x1 = ux1 * vf_width + gfx_state.tg_origin.tp_col;
@@ -1686,7 +1667,8 @@ gfx_term_drawrect(uint32_t ux1, uint32_t uy1, uint32_t ux2, uint32_t uy2)
 	x2 = ux1 * vf_width + gfx_state.tg_origin.tp_col + xshift;
 	y2 = uy2 * vf_height + gfx_state.tg_origin.tp_row;
 	for (i = 0; i <= width; i++)
-		gfx_fb_bezier(x1, y1 - i, x2 + i, y1 - i, x2 + i, y2, width-i);
+		gfx_fb_bezier(x1, y1 - i, x2 + i, y1 - i, x2 + i, y2,
+		    width - i);
 
 	/* Draw upper right corner. */
 	x1 = ux2 * vf_width + gfx_state.tg_origin.tp_col;
@@ -1696,7 +1678,8 @@ gfx_term_drawrect(uint32_t ux1, uint32_t uy1, uint32_t ux2, uint32_t uy2)
 	y2 = uy1 * vf_height + gfx_state.tg_origin.tp_row;
 	y2 += vf_height;
 	for (i = 0; i <= width; i++)
-		gfx_fb_bezier(x1, y1 + i, x2 + i, y1 + i, x2 + i, y2, width-i);
+		gfx_fb_bezier(x1, y1 + i, x2 + i, y1 + i, x2 + i, y2,
+		    width - i);
 
 	/* Draw lower right corner. */
 	x1 = ux2 * vf_width + gfx_state.tg_origin.tp_col;
@@ -1706,7 +1689,8 @@ gfx_term_drawrect(uint32_t ux1, uint32_t uy1, uint32_t ux2, uint32_t uy2)
 	x2 += vf_width - xshift - width;
 	y2 = uy2 * vf_height + gfx_state.tg_origin.tp_row;
 	for (i = 0; i <= width; i++)
-		gfx_fb_bezier(x1, y1 - i, x2 + i, y1 - i, x2 + i, y2, width-i);
+		gfx_fb_bezier(x1, y1 - i, x2 + i, y1 - i, x2 + i, y2,
+		    width - i);
 }
 
 int
@@ -1740,8 +1724,7 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 		return (1);
 	}
 
-	if (ux1 > gfx_state.tg_fb.fb_width ||
-	    uy1 > gfx_state.tg_fb.fb_height) {
+	if (ux1 > gfx_state.tg_fb.fb_width || uy1 > gfx_state.tg_fb.fb_height) {
 		if (trace)
 			printf("Top left coordinate off screen.\n");
 		return (1);
@@ -1777,8 +1760,7 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 		uy2 = uy1 + (png->height * (ux2 - ux1)) / png->width;
 	}
 
-	if (ux2 > gfx_state.tg_fb.fb_width ||
-	    uy2 > gfx_state.tg_fb.fb_height) {
+	if (ux2 > gfx_state.tg_fb.fb_width || uy2 > gfx_state.tg_fb.fb_height) {
 		if (trace)
 			printf("Bottom right coordinate off screen.\n");
 		return (1);
@@ -1825,8 +1807,8 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 	}
 
 	if (trace)
-		printf("Image %ux%u -> %ux%u @%ux%u\n",
-		    png->width, png->height, fwidth, fheight, ux1, uy1);
+		printf("Image %ux%u -> %ux%u @%ux%u\n", png->width, png->height,
+		    fwidth, fheight, ux1, uy1);
 
 	rect.tr_begin.tp_col = ux1 / gfx_state.tg_font.vf_width;
 	rect.tr_begin.tp_row = uy1 / gfx_state.tg_font.vf_height;
@@ -1855,7 +1837,7 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 	 */
 
 	/* Helper to calculate the pixel index from the source png */
-#define	GETPIXEL(xx, yy)	(((yy) * png->width + (xx)) * png->bpp)
+#define GETPIXEL(xx, yy) (((yy) * png->width + (xx)) * png->bpp)
 
 	/*
 	 * For each of the x and y directions, calculate the number of pixels
@@ -1866,12 +1848,15 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 	const uint32_t wcstep = ((png->width - 1) << 16) / (fwidth - 1);
 	const uint32_t hcstep = ((png->height - 1) << 16) / (fheight - 1);
 
-	rs = 8 - (fls(gfx_state.tg_fb.fb_mask_red) -
-	    ffs(gfx_state.tg_fb.fb_mask_red) + 1);
-	gs = 8 - (fls(gfx_state.tg_fb.fb_mask_green) -
-	    ffs(gfx_state.tg_fb.fb_mask_green) + 1);
-	bs = 8 - (fls(gfx_state.tg_fb.fb_mask_blue) -
-	    ffs(gfx_state.tg_fb.fb_mask_blue) + 1);
+	rs = 8 -
+	    (fls(gfx_state.tg_fb.fb_mask_red) -
+		ffs(gfx_state.tg_fb.fb_mask_red) + 1);
+	gs = 8 -
+	    (fls(gfx_state.tg_fb.fb_mask_green) -
+		ffs(gfx_state.tg_fb.fb_mask_green) + 1);
+	bs = 8 -
+	    (fls(gfx_state.tg_fb.fb_mask_blue) -
+		ffs(gfx_state.tg_fb.fb_mask_blue) + 1);
 
 	uint32_t hc = 0;
 	for (y = 0; y < fheight; y++) {
@@ -1927,12 +1912,14 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 				 * (hc1 + hc2) * (wc1 + wc2)
 				 */
 				for (i = 0; i < 4; i++)
-					pixel[i] = (
-					    (png->image[p00 + i] * hc1 +
-					    png->image[p01 + i] * hc2) * wc1 +
-					    (png->image[p10 + i] * hc1 +
-					    png->image[p11 + i] * hc2) * wc2)
-					    >> 14;
+					pixel[i] =
+					    ((png->image[p00 + i] * hc1 +
+						 png->image[p01 + i] * hc2) *
+						    wc1 +
+						(png->image[p10 + i] * hc1 +
+						    png->image[p11 + i] * hc2) *
+						    wc2) >>
+					    14;
 
 				r = pixel[0];
 				g = pixel[1];
@@ -1946,9 +1933,9 @@ gfx_fb_putimage(png_t *png, uint32_t ux1, uint32_t uy1, uint32_t ux2,
 			 * Rough colorspace reduction for 15/16 bit colors.
 			 */
 			p[j].Red = r >> rs;
-                        p[j].Green = g >> gs;
-                        p[j].Blue = b >> bs;
-                        p[j].Reserved = a;
+			p[j].Green = g >> gs;
+			p[j].Blue = b >> bs;
+			p[j].Reserved = a;
 
 			wc += wcstep;
 		}
@@ -1968,7 +1955,7 @@ reset_font_flags(void)
 {
 	struct fontlist *fl;
 
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		fl->font_flags = FONT_AUTO;
 	}
 }
@@ -1992,8 +1979,8 @@ edid_diagonal_squared(void)
 	/*
 	 * some monitors encode the aspect ratio instead of the physical size.
 	 */
-	if ((w == 16 && h == 9) || (w == 16 && h == 10) ||
-	    (w == 4 && h == 3) || (w == 5 && h == 4))
+	if ((w == 16 && h == 9) || (w == 16 && h == 10) || (w == 4 && h == 3) ||
+	    (w == 5 && h == 4))
 		return (0);
 
 	/*
@@ -2018,10 +2005,8 @@ gfx_get_ppi(void)
 	if (di == 0)
 		return (0);
 
-	dp = gfx_state.tg_fb.fb_width *
-	    gfx_state.tg_fb.fb_width +
-	    gfx_state.tg_fb.fb_height *
-	    gfx_state.tg_fb.fb_height;
+	dp = gfx_state.tg_fb.fb_width * gfx_state.tg_fb.fb_width +
+	    gfx_state.tg_fb.fb_height * gfx_state.tg_fb.fb_height;
 
 	return (isqrt(dp / di));
 }
@@ -2058,7 +2043,7 @@ gfx_get_font(void)
 	/* Apply display factor 2.  */
 	size = roundup(size * 2, 10) / 10;
 
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		next = STAILQ_NEXT(fl, font_next);
 
 		/*
@@ -2091,7 +2076,7 @@ set_font(teken_unit_t *rows, teken_unit_t *cols, teken_unit_t h, teken_unit_t w)
 	/*
 	 * First check for manually loaded font.
 	 */
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		if (fl->font_flags == FONT_MANUAL) {
 			font = fl->font_data;
 			if (font->vfbd_font == NULL && fl->font_load != NULL &&
@@ -2118,14 +2103,13 @@ set_font(teken_unit_t *rows, teken_unit_t *cols, teken_unit_t h, teken_unit_t w)
 	 * If height >= VT_FB_MAX_HEIGHT and width >= VT_FB_MAX_WIDTH,
 	 * do not use smaller font than our DEFAULT_FONT_DATA.
 	 */
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		font = fl->font_data;
 		if ((*rows * font->vfbd_height <= height &&
-		    *cols * font->vfbd_width <= width) ||
-		    (height >= VT_FB_MAX_HEIGHT &&
-		    width >= VT_FB_MAX_WIDTH &&
-		    font->vfbd_height == DEFAULT_FONT_DATA.vfbd_height &&
-		    font->vfbd_width == DEFAULT_FONT_DATA.vfbd_width)) {
+			*cols * font->vfbd_width <= width) ||
+		    (height >= VT_FB_MAX_HEIGHT && width >= VT_FB_MAX_WIDTH &&
+			font->vfbd_height == DEFAULT_FONT_DATA.vfbd_height &&
+			font->vfbd_width == DEFAULT_FONT_DATA.vfbd_width)) {
 			if (font->vfbd_font == NULL ||
 			    fl->font_flags == FONT_RELOAD) {
 				if (fl->font_load != NULL &&
@@ -2189,12 +2173,11 @@ setup_font(teken_gfx_t *state, teken_unit_t height, teken_unit_t width)
 	 */
 	font_data = set_font(&tp->tp_row, &tp->tp_col, height, width);
 
-        if (font_data == NULL)
+	if (font_data == NULL)
 		panic("out of memory");
 
 	for (i = 0; i < VFNT_MAPS; i++) {
-		state->tg_font.vf_map[i] =
-		    font_data->vfbd_font->vf_map[i];
+		state->tg_font.vf_map[i] = font_data->vfbd_font->vf_map[i];
 		state->tg_font.vf_map_count[i] =
 		    font_data->vfbd_font->vf_map_count[i];
 	}
@@ -2203,10 +2186,10 @@ setup_font(teken_gfx_t *state, teken_unit_t height, teken_unit_t width)
 	state->tg_font.vf_height = font_data->vfbd_font->vf_height;
 	state->tg_font.vf_width = font_data->vfbd_font->vf_width;
 
-	snprintf(env, sizeof (env), "%ux%u",
-	    state->tg_font.vf_width, state->tg_font.vf_height);
-	env_setenv("screen.font", EV_VOLATILE | EV_NOHOOK,
-	    env, font_set, env_nounset);
+	snprintf(env, sizeof(env), "%ux%u", state->tg_font.vf_width,
+	    state->tg_font.vf_height);
+	env_setenv("screen.font", EV_VOLATILE | EV_NOHOOK, env, font_set,
+	    env_nounset);
 }
 
 /* Binary search for the glyph. Return 0 if not found. */
@@ -2343,12 +2326,12 @@ load_font(char *path)
 	ssize_t rv;
 
 	/* Get our entry from the font list. */
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		if (strcmp(fl->font_name, path) == 0)
 			break;
 	}
 	if (fl == NULL)
-		return (NULL);	/* Should not happen. */
+		return (NULL); /* Should not happen. */
 
 	bp = fl->font_data;
 	if (bp->vfbd_font != NULL && fl->font_flags != FONT_RELOAD)
@@ -2379,9 +2362,8 @@ load_font(char *path)
 		    DEFAULT_FONT_DATA.vfbd_compressed_size;
 
 		if (lz4_decompress(DEFAULT_FONT_DATA.vfbd_compressed_data,
-		    fp->vf_bytes,
-		    DEFAULT_FONT_DATA.vfbd_compressed_size,
-		    DEFAULT_FONT_DATA.vfbd_uncompressed_size, 0) != 0) {
+			fp->vf_bytes, DEFAULT_FONT_DATA.vfbd_compressed_size,
+			DEFAULT_FONT_DATA.vfbd_uncompressed_size, 0) != 0) {
 			free(fp->vf_bytes);
 			free(fp);
 			return (NULL);
@@ -2448,7 +2430,7 @@ load_font(char *path)
 	 * output till the new font is in place and teken is notified.
 	 * We do need to keep fl->font_data for glyph dimensions.
 	 */
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		if (fl->font_data->vfbd_font == NULL)
 			continue;
 
@@ -2477,8 +2459,8 @@ free_done:
 }
 
 struct name_entry {
-	char			*n_name;
-	SLIST_ENTRY(name_entry)	n_entry;
+	char *n_name;
+	SLIST_ENTRY(name_entry) n_entry;
 };
 
 SLIST_HEAD(name_list, name_entry);
@@ -2513,7 +2495,7 @@ read_list(char *fonts)
 	}
 
 	SLIST_INIT(nl);
-	while ((len = fgetstr(buf, sizeof (buf), fd)) >= 0) {
+	while ((len = fgetstr(buf, sizeof(buf), fd)) >= 0) {
 		if (*buf == '#' || *buf == '\0')
 			continue;
 
@@ -2532,12 +2514,12 @@ read_list(char *fonts)
 		np = malloc(sizeof(*np));
 		if (np == NULL) {
 			close(fd);
-			return (nl);	/* return what we have */
+			return (nl); /* return what we have */
 		}
 		if (asprintf(&np->n_name, "%s/%s", dir, buf) < 0) {
 			free(np);
 			close(fd);
-			return (nl);    /* return what we have */
+			return (nl); /* return what we have */
 		}
 		SLIST_INSERT_HEAD(nl, np, n_entry);
 	}
@@ -2577,7 +2559,7 @@ insert_font(char *name, FONT_FLAGS flags)
 		fh.fh_width = DEFAULT_FONT_DATA.vfbd_width;
 		fh.fh_height = DEFAULT_FONT_DATA.vfbd_height;
 
-		(void) asprintf(&font_name, "%dx%d",
+		(void)asprintf(&font_name, "%dx%d",
 		    DEFAULT_FONT_DATA.vfbd_width,
 		    DEFAULT_FONT_DATA.vfbd_height);
 	} else {
@@ -2590,7 +2572,7 @@ insert_font(char *name, FONT_FLAGS flags)
 			return (false);
 
 		if (memcmp(fh.fh_magic, FONT_HEADER_MAGIC,
-		    sizeof(fh.fh_magic)) != 0)
+			sizeof(fh.fh_magic)) != 0)
 			return (false);
 		font_name = strdup(name);
 	}
@@ -2602,7 +2584,7 @@ insert_font(char *name, FONT_FLAGS flags)
 	 * If we have an entry with the same glyph dimensions, replace
 	 * the file name and mark us. We only support unique dimensions.
 	 */
-	STAILQ_FOREACH(entry, &fonts, font_next) {
+	STAILQ_FOREACH (entry, &fonts, font_next) {
 		if (fh.fh_width == entry->font_data->vfbd_width &&
 		    fh.fh_height == entry->font_data->vfbd_height) {
 			free(entry->font_name);
@@ -2639,7 +2621,7 @@ insert_font(char *name, FONT_FLAGS flags)
 	previous = NULL;
 	size = fp->font_data->vfbd_width * fp->font_data->vfbd_height;
 
-	STAILQ_FOREACH(entry, &fonts, font_next) {
+	STAILQ_FOREACH (entry, &fonts, font_next) {
 		vt_font_bitmap_data_t *bd;
 
 		bd = entry->font_data;
@@ -2657,7 +2639,7 @@ insert_font(char *name, FONT_FLAGS flags)
 		next = STAILQ_NEXT(entry, font_next);
 		if (next == NULL ||
 		    size > next->font_data->vfbd_width *
-		    next->font_data->vfbd_height) {
+			    next->font_data->vfbd_height) {
 			STAILQ_INSERT_AFTER(&fonts, entry, fp, font_next);
 			TSEXIT();
 			return (true);
@@ -2685,7 +2667,7 @@ font_set(struct env_var *ev __unused, int flags __unused, const void *value)
 		if (*eptr == 'x')
 			y = strtoul(eptr + 1, &eptr, 10);
 	}
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		if (fl->font_data->vfbd_width == x &&
 		    fl->font_data->vfbd_height == y)
 			break;
@@ -2701,7 +2683,7 @@ font_set(struct env_var *ev __unused, int flags __unused, const void *value)
 	}
 
 	printf("Available fonts:\n");
-	STAILQ_FOREACH(fl, &fonts, font_next) {
+	STAILQ_FOREACH (fl, &fonts, font_next) {
 		printf("    %dx%d\n", fl->font_data->vfbd_width,
 		    fl->font_data->vfbd_height);
 	}
@@ -2712,9 +2694,9 @@ void
 bios_text_font(bool use_vga_font)
 {
 	if (use_vga_font)
-		(void) insert_font(VGA_8X16_FONT, FONT_MANUAL);
+		(void)insert_font(VGA_8X16_FONT, FONT_MANUAL);
 	else
-		(void) insert_font(DEFAULT_8X16_FONT, FONT_MANUAL);
+		(void)insert_font(DEFAULT_8X16_FONT, FONT_MANUAL);
 }
 
 void
@@ -2745,7 +2727,7 @@ autoload_font(bool bios)
 		bios_text_font(true);
 	}
 
-	(void) cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
+	(void)cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
 
 	TSEXIT();
 }
@@ -2785,11 +2767,11 @@ command_font(int argc, char *argv[])
 	}
 
 	if (list) {
-		STAILQ_FOREACH(fl, &fonts, font_next) {
+		STAILQ_FOREACH (fl, &fonts, font_next) {
 			printf("font %s: %dx%d%s\n", fl->font_name,
 			    fl->font_data->vfbd_width,
 			    fl->font_data->vfbd_height,
-			    fl->font_data->vfbd_font == NULL? "" : " loaded");
+			    fl->font_data->vfbd_font == NULL ? "" : " loaded");
 		}
 		return (CMD_OK);
 	}
@@ -2805,7 +2787,7 @@ command_font(int argc, char *argv[])
 			return (CMD_ERROR);
 		}
 
-		(void) cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
+		(void)cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
 		return (CMD_OK);
 	}
 
@@ -2815,7 +2797,7 @@ command_font(int argc, char *argv[])
 		 * autoload flag. The font list does have at least the builtin
 		 * default font.
 		 */
-		STAILQ_FOREACH(fl, &fonts, font_next) {
+		STAILQ_FOREACH (fl, &fonts, font_next) {
 			if (fl->font_data->vfbd_font != NULL) {
 
 				bd = fl->font_data;
@@ -2831,7 +2813,7 @@ command_font(int argc, char *argv[])
 				fl->font_flags = FONT_AUTO;
 			}
 		}
-		(void) cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
+		(void)cons_update_mode(gfx_state.tg_fb_type != FB_TEXT);
 	}
 	return (rc);
 }
@@ -2844,8 +2826,8 @@ gfx_get_edid_resolution(struct vesa_edid_info *edid, edid_res_list_t *res)
 	/*
 	 * Walk detailed timings tables (4).
 	 */
-	if ((edid->display.supported_features
-	    & EDID_FEATURE_PREFERRED_TIMING_MODE) != 0) {
+	if ((edid->display.supported_features &
+		EDID_FEATURE_PREFERRED_TIMING_MODE) != 0) {
 		/* Walk detailed timing descriptors (4) */
 		for (int i = 0; i < DET_TIMINGS; i++) {
 			/*
@@ -2900,7 +2882,7 @@ gfx_get_edid_resolution(struct vesa_edid_info *edid, edid_res_list_t *res)
 		 * Create resolution list in decreasing order, except keep
 		 * first entry (preferred timing mode).
 		 */
-		TAILQ_FOREACH(p, res, next) {
+		TAILQ_FOREACH (p, res, next) {
 			if (p->width * p->height < rp->width * rp->height) {
 				/* Keep preferred mode first */
 				if (TAILQ_FIRST(res) == p)

@@ -18,44 +18,40 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_cam.h>
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_task.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 rtwn_init_cam(struct rtwn_softc *sc)
 {
 	/* Invalidate all CAM entries. */
-	rtwn_write_4(sc, R92C_CAMCMD,
-	    R92C_CAMCMD_POLLING | R92C_CAMCMD_CLR);
+	rtwn_write_4(sc, R92C_CAMCMD, R92C_CAMCMD_POLLING | R92C_CAMCMD_CLR);
 }
 
 static int
@@ -68,7 +64,7 @@ rtwn_cam_write(struct rtwn_softc *sc, uint32_t addr, uint32_t data)
 		return (error);
 	error = rtwn_write_4(sc, R92C_CAMCMD,
 	    R92C_CAMCMD_POLLING | R92C_CAMCMD_WRITE |
-	    SM(R92C_CAMCMD_ADDR, addr));
+		SM(R92C_CAMCMD_ADDR, addr));
 
 	return (error);
 }
@@ -82,7 +78,7 @@ rtwn_init_seccfg(struct rtwn_softc *sc)
 	seccfg = 0;
 	switch (sc->sc_hwcrypto) {
 	case RTWN_CRYPTO_SW:
-		break;	/* nothing to do */
+		break; /* nothing to do */
 	case RTWN_CRYPTO_PAIR:
 		/* NB: TXUCKEY_DEF / RXUCKEY_DEF are required for RTL8192C */
 		seccfg = R92C_SECCFG_TXUCKEY_DEF | R92C_SECCFG_RXUCKEY_DEF |
@@ -95,8 +91,9 @@ rtwn_init_seccfg(struct rtwn_softc *sc)
 		    R92C_SECCFG_TXBCKEY_DEF | R92C_SECCFG_RXBCKEY_DEF;
 		break;
 	default:
-		KASSERT(0, ("%s: case %d was not handled\n", __func__,
-		    sc->sc_hwcrypto));
+		KASSERT(0,
+		    ("%s: case %d was not handled\n", __func__,
+			sc->sc_hwcrypto));
 		break;
 	}
 
@@ -155,8 +152,9 @@ rtwn_key_alloc(struct ieee80211vap *vap, struct ieee80211_key *k,
 		start = 4;
 		break;
 	default:
-		KASSERT(0, ("%s: case %d was not handled!\n",
-		    __func__, sc->sc_hwcrypto));
+		KASSERT(0,
+		    ("%s: case %d was not handled!\n", __func__,
+			sc->sc_hwcrypto));
 		break;
 	}
 
@@ -207,16 +205,16 @@ rtwn_key_set_cb0(struct rtwn_softc *sc, const struct ieee80211_key *k)
 		algo = R92C_CAM_ALGO_AES;
 		break;
 	default:
-		device_printf(sc->sc_dev, "%s: unknown cipher %u\n",
-		    __func__, k->wk_cipher->ic_cipher);
+		device_printf(sc->sc_dev, "%s: unknown cipher %u\n", __func__,
+		    k->wk_cipher->ic_cipher);
 		return (EINVAL);
 	}
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_KEY,
 	    "%s: keyix %u, keyid %u, algo %u/%u, flags %04X, len %u, "
-	    "macaddr %s\n", __func__, k->wk_keyix, keyid,
-	    k->wk_cipher->ic_cipher, algo, k->wk_flags, k->wk_keylen,
-	    ether_sprintf(k->wk_macaddr));
+	    "macaddr %s\n",
+	    __func__, k->wk_keyix, keyid, k->wk_cipher->ic_cipher, algo,
+	    k->wk_flags, k->wk_keylen, ether_sprintf(k->wk_macaddr));
 
 	/* Clear high bits. */
 	rtwn_cam_write(sc, R92C_CAM_CTL6(k->wk_keyix), 0);
@@ -236,10 +234,9 @@ rtwn_key_set_cb0(struct rtwn_softc *sc, const struct ieee80211_key *k)
 	if (error != 0)
 		goto fail;
 	error = rtwn_cam_write(sc, R92C_CAM_CTL0(k->wk_keyix),
-	    SM(R92C_CAM_ALGO, algo) |
-	    SM(R92C_CAM_KEYID, keyid) |
-	    SM(R92C_CAM_MACLO, le16dec(&k->wk_macaddr[0])) |
-	    R92C_CAM_VALID);
+	    SM(R92C_CAM_ALGO, algo) | SM(R92C_CAM_KEYID, keyid) |
+		SM(R92C_CAM_MACLO, le16dec(&k->wk_macaddr[0])) |
+		R92C_CAM_VALID);
 	if (error != 0)
 		goto fail;
 
@@ -255,7 +252,7 @@ rtwn_key_set_cb(struct rtwn_softc *sc, union sec_param *data)
 {
 	const struct ieee80211_key *k = &data->key;
 
-	(void) rtwn_key_set_cb0(sc, k);
+	(void)rtwn_key_set_cb0(sc, k);
 }
 
 int
@@ -264,7 +261,7 @@ rtwn_init_static_keys(struct rtwn_softc *sc, struct rtwn_vap *rvp)
 	int i, error;
 
 	if (sc->sc_hwcrypto != RTWN_CRYPTO_FULL)
-		return (0);		/* nothing to do */
+		return (0); /* nothing to do */
 
 	for (i = 0; i < IEEE80211_WEP_NKID; i++) {
 		const struct ieee80211_key *k = rvp->keys[i];
@@ -285,8 +282,8 @@ rtwn_key_del_cb(struct rtwn_softc *sc, union sec_param *data)
 	int i;
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_KEY,
-	    "%s: keyix %u, flags %04X, macaddr %s\n", __func__,
-	    k->wk_keyix, k->wk_flags, ether_sprintf(k->wk_macaddr));
+	    "%s: keyix %u, flags %04X, macaddr %s\n", __func__, k->wk_keyix,
+	    k->wk_flags, ether_sprintf(k->wk_macaddr));
 
 	rtwn_cam_write(sc, R92C_CAM_CTL0(k->wk_keyix), 0);
 	rtwn_cam_write(sc, R92C_CAM_CTL1(k->wk_keyix), 0);

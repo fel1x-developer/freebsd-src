@@ -2,26 +2,27 @@
  * Copyright (c) 2016-2017, Marie Helene Kvello-Aune
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  * thislist of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #pragma once
@@ -29,20 +30,13 @@
 #include <sys/types.h>
 
 #include <net/if.h>
-
 #include <netinet/in.h>
 #include <netinet/ip_carp.h>
 #include <netinet6/in6_var.h>
 
-#define ND6_IFF_DEFAULTIF    0x8000
+#define ND6_IFF_DEFAULTIF 0x8000
 
-typedef enum {
-	OK = 0,
-	OTHER,
-	IOCTL,
-	SOCKET,
-	NETLINK
-} ifconfig_errtype;
+typedef enum { OK = 0, OTHER, IOCTL, SOCKET, NETLINK } ifconfig_errtype;
 
 /*
  * Opaque definition so calling application can just pass a
@@ -62,11 +56,11 @@ struct lagg_reqport;
 
 /** Stores extra info associated with a bridge(4) interface */
 struct ifconfig_bridge_status {
-	struct ifbropreq *params;	/**< current operational parameters */
-	struct ifbreq *members;		/**< list of bridge members */
-	size_t members_count;		/**< how many member interfaces */
-	uint32_t cache_size;		/**< size of address cache */
-	uint32_t cache_lifetime;	/**< address cache entry lifetime */
+	struct ifbropreq *params; /**< current operational parameters */
+	struct ifbreq *members;	  /**< list of bridge members */
+	size_t members_count;	  /**< how many member interfaces */
+	uint32_t cache_size;	  /**< size of address cache */
+	uint32_t cache_lifetime;  /**< address cache entry lifetime */
 };
 
 struct ifconfig_capabilities {
@@ -279,14 +273,14 @@ int ifconfig_media_get_downreason(ifconfig_handle_t *h, const char *name,
     struct ifdownreason *ifdr);
 
 struct ifconfig_carp {
-	size_t		carpr_count;
-	uint32_t	carpr_vhid;
-	uint32_t	carpr_state;
-	int32_t		carpr_advbase;
-	int32_t		carpr_advskew;
-	uint8_t		carpr_key[CARP_KEY_LEN];
-	struct in_addr	carpr_addr;
-	struct in6_addr	carpr_addr6;
+	size_t carpr_count;
+	uint32_t carpr_vhid;
+	uint32_t carpr_state;
+	int32_t carpr_advbase;
+	int32_t carpr_advskew;
+	uint8_t carpr_key[CARP_KEY_LEN];
+	struct in_addr carpr_addr;
+	struct in6_addr carpr_addr6;
 };
 
 int ifconfig_carp_get_vhid(ifconfig_handle_t *h, const char *name,
@@ -304,8 +298,8 @@ int ifconfig_carp_set_info(ifconfig_handle_t *h, const char *name,
  *              about the address.
  * @return	0 on success, nonzero on failure.
  */
-int ifconfig_inet_get_addrinfo(ifconfig_handle_t *h,
-    const char *name, struct ifaddrs *ifa, struct ifconfig_inet_addr *addr);
+int ifconfig_inet_get_addrinfo(ifconfig_handle_t *h, const char *name,
+    struct ifaddrs *ifa, struct ifconfig_inet_addr *addr);
 
 /** Retrieve additional information about an inet6 address
  * @param h	An open ifconfig state object
@@ -315,12 +309,12 @@ int ifconfig_inet_get_addrinfo(ifconfig_handle_t *h,
  *              about the address.
  * @return	0 on success, nonzero on failure.
  */
-int ifconfig_inet6_get_addrinfo(ifconfig_handle_t *h,
-    const char *name, struct ifaddrs *ifa, struct ifconfig_inet6_addr *addr);
+int ifconfig_inet6_get_addrinfo(ifconfig_handle_t *h, const char *name,
+    struct ifaddrs *ifa, struct ifconfig_inet6_addr *addr);
 
 /** Retrieve additional information about a bridge(4) interface */
-int ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_bridge_status **bridge);
+int ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_bridge_status **bridge);
 
 /** Frees the structure returned by ifconfig_bridge_get_bridge_status.  Does
  * nothing if the argument is NULL
@@ -329,12 +323,12 @@ int ifconfig_bridge_get_bridge_status(ifconfig_handle_t *h,
 void ifconfig_bridge_free_bridge_status(struct ifconfig_bridge_status *bridge);
 
 /** Retrieve additional information about a lagg(4) interface */
-int ifconfig_lagg_get_lagg_status(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_lagg_status **lagg_status);
+int ifconfig_lagg_get_lagg_status(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_lagg_status **lagg_status);
 
 /** Retrieve additional information about a member of a lagg(4) interface */
-int ifconfig_lagg_get_laggport_status(ifconfig_handle_t *h,
-    const char *name, struct lagg_reqport *rp);
+int ifconfig_lagg_get_laggport_status(ifconfig_handle_t *h, const char *name,
+    struct lagg_reqport *rp);
 
 /** Frees the structure returned by ifconfig_lagg_get_lagg_status.  Does
  * nothing if the argument is NULL

@@ -17,7 +17,7 @@
 #ifndef IF_RTWN_EFUSE_H
 #define IF_RTWN_EFUSE_H
 
-int	rtwn_efuse_read_next(struct rtwn_softc *, uint8_t *);
-int	rtwn_read_rom(struct rtwn_softc *);
+int rtwn_efuse_read_next(struct rtwn_softc *, uint8_t *);
+int rtwn_read_rom(struct rtwn_softc *);
 
-#endif	/* IF_RTWN_EFUSE_H */
+#endif /* IF_RTWN_EFUSE_H */

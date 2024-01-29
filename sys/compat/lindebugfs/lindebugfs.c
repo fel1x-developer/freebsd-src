@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/queue.h>
 #include <sys/blist.h>
+#include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/exec.h>
 #include <sys/filedesc.h>
@@ -38,35 +38,34 @@
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/mutex.h>
+#include <sys/pciio.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
 #include <sys/resourcevar.h>
 #include <sys/sbuf.h>
 #include <sys/smp.h>
 #include <sys/socket.h>
 #include <sys/vnode.h>
-#include <sys/bus.h>
-#include <sys/pciio.h>
-
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
-
-#include <net/if.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <vm/vm_map.h>
-#include <vm/vm_param.h>
-#include <vm/vm_object.h>
 #include <vm/swap_pager.h>
+#include <vm/vm_map.h>
+#include <vm/vm_object.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
 
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/if.h>
+
+#include <asm/atomic.h>
 #include <compat/linux/linux_ioctl.h>
 #include <compat/linux/linux_mib.h>
 #include <compat/linux/linux_util.h>
 #include <fs/pseudofs/pseudofs.h>
-
-#include <asm/atomic.h>
 #include <linux/compat.h>
 #include <linux/debugfs.h>
 #include <linux/fs.h>
@@ -130,7 +129,8 @@ debugfs_fill(PFS_FILL_ARGS)
 	rc = d->dm_fops->open(&vn, &lf);
 	if (rc < 0) {
 #ifdef INVARIANTS
-		printf("%s:%d open failed with %d\n", __FUNCTION__, __LINE__, rc);
+		printf("%s:%d open failed with %d\n", __FUNCTION__, __LINE__,
+		    rc);
 #endif
 		return (-rc);
 	}
@@ -138,7 +138,7 @@ debugfs_fill(PFS_FILL_ARGS)
 	rc = -ENODEV;
 	if (uio->uio_rw == UIO_READ && d->dm_fops->read) {
 		rc = -ENOMEM;
-		buf = (char *) malloc(sb->s_size, M_DFSINT, M_ZERO | M_NOWAIT);
+		buf = (char *)malloc(sb->s_size, M_DFSINT, M_ZERO | M_NOWAIT);
 		if (buf != NULL) {
 			rc = d->dm_fops->read(&lf, buf, sb->s_size, &off);
 			if (rc > 0)
@@ -158,7 +158,8 @@ debugfs_fill(PFS_FILL_ARGS)
 
 	if (rc < 0) {
 #ifdef INVARIANTS
-		printf("%s:%d read/write failed with %d\n", __FUNCTION__, __LINE__, rc);
+		printf("%s:%d read/write failed with %d\n", __FUNCTION__,
+		    __LINE__, rc);
 #endif
 		return (-rc);
 	}
@@ -176,9 +177,8 @@ debugfs_fill_data(PFS_FILL_ARGS)
 }
 
 struct dentry *
-debugfs_create_file(const char *name, umode_t mode,
-    struct dentry *parent, void *data,
-    const struct file_operations *fops)
+debugfs_create_file(const char *name, umode_t mode, struct dentry *parent,
+    void *data, const struct file_operations *fops)
 {
 	struct dentry_meta *dm;
 	struct dentry *dnode;
@@ -211,10 +211,8 @@ debugfs_create_file(const char *name, umode_t mode,
 }
 
 struct dentry *
-debugfs_create_file_size(const char *name, umode_t mode,
-    struct dentry *parent, void *data,
-    const struct file_operations *fops,
-    loff_t file_size __unused)
+debugfs_create_file_size(const char *name, umode_t mode, struct dentry *parent,
+    void *data, const struct file_operations *fops, loff_t file_size __unused)
 {
 
 	return debugfs_create_file(name, mode, parent, data, fops);
@@ -232,8 +230,7 @@ debugfs_create_file_size(const char *name, umode_t mode,
  */
 struct dentry *
 debugfs_create_file_unsafe(const char *name, umode_t mode,
-    struct dentry *parent, void *data,
-    const struct file_operations *fops)
+    struct dentry *parent, void *data, const struct file_operations *fops)
 {
 
 	return (debugfs_create_file(name, mode, parent, data, fops));
@@ -241,8 +238,7 @@ debugfs_create_file_unsafe(const char *name, umode_t mode,
 
 struct dentry *
 debugfs_create_mode_unsafe(const char *name, umode_t mode,
-    struct dentry *parent, void *data,
-    const struct file_operations *fops,
+    struct dentry *parent, void *data, const struct file_operations *fops,
     const struct file_operations *fops_ro,
     const struct file_operations *fops_wo)
 {
@@ -250,10 +246,12 @@ debugfs_create_mode_unsafe(const char *name, umode_t mode,
 	umode_t write = mode & S_IWUGO;
 
 	if (read && !write)
-		return (debugfs_create_file_unsafe(name, mode, parent, data, fops_ro));
+		return (debugfs_create_file_unsafe(name, mode, parent, data,
+		    fops_ro));
 
 	if (write && !read)
-		return (debugfs_create_file_unsafe(name, mode, parent, data, fops_wo));
+		return (debugfs_create_file_unsafe(name, mode, parent, data,
+		    fops_wo));
 
 	return (debugfs_create_file_unsafe(name, mode, parent, data, fops));
 }
@@ -276,7 +274,8 @@ debugfs_create_dir(const char *name, struct dentry *parent)
 	else
 		pnode = debugfs_root;
 
-	dnode->d_pfs_node = pfs_create_dir(pnode, name, debugfs_attr, NULL, debugfs_destroy, PFS_RD | PFS_NOWAIT);
+	dnode->d_pfs_node = pfs_create_dir(pnode, name, debugfs_attr, NULL,
+	    debugfs_destroy, PFS_RD | PFS_NOWAIT);
 	if (dnode->d_pfs_node == NULL) {
 		free(dm, M_DFSINT);
 		return (NULL);
@@ -309,14 +308,15 @@ debugfs_create_symlink(const char *name, struct dentry *parent,
 	else
 		pnode = debugfs_root;
 
-	dnode->d_pfs_node = pfs_create_link(pnode, name, &debugfs_fill_data, NULL, NULL, NULL, PFS_NOWAIT);
+	dnode->d_pfs_node = pfs_create_link(pnode, name, &debugfs_fill_data,
+	    NULL, NULL, NULL, PFS_NOWAIT);
 	if (dnode->d_pfs_node == NULL)
 		goto fail;
 	dnode->d_pfs_node->pn_data = dm;
 	return (dnode);
- fail:
+fail:
 	free(dm, M_DFSINT);
- fail1:
+fail1:
 	free(data, M_DFSINT);
 	return (NULL);
 }
@@ -365,18 +365,19 @@ debugfs_bool_set(void *data, uint64_t ullval)
 	return (0);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_bool, debugfs_bool_get, debugfs_bool_set, "%llu\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_bool, debugfs_bool_get, debugfs_bool_set,
+    "%llu\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_bool_ro, debugfs_bool_get, NULL, "%llu\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_bool_wo, NULL, debugfs_bool_set, "%llu\n");
 
 void
-debugfs_create_bool(const char *name, umode_t mode, struct dentry *parent, bool *value)
+debugfs_create_bool(const char *name, umode_t mode, struct dentry *parent,
+    bool *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_bool,
 	    &fops_bool_ro, &fops_bool_wo);
 }
-
 
 static int
 debugfs_u8_get(void *data, uint64_t *value)
@@ -399,25 +400,27 @@ DEFINE_DEBUGFS_ATTRIBUTE(fops_u8_ro, debugfs_u8_get, NULL, "%u\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_u8_wo, NULL, debugfs_u8_set, "%u\n");
 
 void
-debugfs_create_u8(const char *name, umode_t mode, struct dentry *parent, uint8_t *value)
+debugfs_create_u8(const char *name, umode_t mode, struct dentry *parent,
+    uint8_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_u8,
 	    &fops_u8_ro, &fops_u8_wo);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_x8, debugfs_u8_get, debugfs_u8_set, "0x%016llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_x8, debugfs_u8_get, debugfs_u8_set,
+    "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x8_ro, debugfs_u8_get, NULL, "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x8_wo, NULL, debugfs_u8_set, "0x%016llx\n");
 
 void
-debugfs_create_x8(const char *name, umode_t mode, struct dentry *parent, uint8_t *value)
+debugfs_create_x8(const char *name, umode_t mode, struct dentry *parent,
+    uint8_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_x8,
 	    &fops_x8_ro, &fops_x8_wo);
 }
-
 
 static int
 debugfs_u16_get(void *data, uint64_t *value)
@@ -440,25 +443,27 @@ DEFINE_DEBUGFS_ATTRIBUTE(fops_u16_ro, debugfs_u16_get, NULL, "%u\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_u16_wo, NULL, debugfs_u16_set, "%u\n");
 
 void
-debugfs_create_u16(const char *name, umode_t mode, struct dentry *parent, uint16_t *value)
+debugfs_create_u16(const char *name, umode_t mode, struct dentry *parent,
+    uint16_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_u16,
 	    &fops_u16_ro, &fops_u16_wo);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_x16, debugfs_u16_get, debugfs_u16_set, "0x%016llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_x16, debugfs_u16_get, debugfs_u16_set,
+    "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x16_ro, debugfs_u16_get, NULL, "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x16_wo, NULL, debugfs_u16_set, "0x%016llx\n");
 
 void
-debugfs_create_x16(const char *name, umode_t mode, struct dentry *parent, uint16_t *value)
+debugfs_create_x16(const char *name, umode_t mode, struct dentry *parent,
+    uint16_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_x16,
 	    &fops_x16_ro, &fops_x16_wo);
 }
-
 
 static int
 debugfs_u32_get(void *data, uint64_t *value)
@@ -481,25 +486,27 @@ DEFINE_DEBUGFS_ATTRIBUTE(fops_u32_ro, debugfs_u32_get, NULL, "%u\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_u32_wo, NULL, debugfs_u32_set, "%u\n");
 
 void
-debugfs_create_u32(const char *name, umode_t mode, struct dentry *parent, uint32_t *value)
+debugfs_create_u32(const char *name, umode_t mode, struct dentry *parent,
+    uint32_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_u32,
 	    &fops_u32_ro, &fops_u32_wo);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_x32, debugfs_u32_get, debugfs_u32_set, "0x%016llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_x32, debugfs_u32_get, debugfs_u32_set,
+    "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x32_ro, debugfs_u32_get, NULL, "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x32_wo, NULL, debugfs_u32_set, "0x%016llx\n");
 
 void
-debugfs_create_x32(const char *name, umode_t mode, struct dentry *parent, uint32_t *value)
+debugfs_create_x32(const char *name, umode_t mode, struct dentry *parent,
+    uint32_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_x32,
 	    &fops_x32_ro, &fops_x32_wo);
 }
-
 
 static int
 debugfs_u64_get(void *data, uint64_t *value)
@@ -522,25 +529,27 @@ DEFINE_DEBUGFS_ATTRIBUTE(fops_u64_ro, debugfs_u64_get, NULL, "%u\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_u64_wo, NULL, debugfs_u64_set, "%u\n");
 
 void
-debugfs_create_u64(const char *name, umode_t mode, struct dentry *parent, uint64_t *value)
+debugfs_create_u64(const char *name, umode_t mode, struct dentry *parent,
+    uint64_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_u64,
 	    &fops_u64_ro, &fops_u64_wo);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_x64, debugfs_u64_get, debugfs_u64_set, "0x%016llx\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_x64, debugfs_u64_get, debugfs_u64_set,
+    "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x64_ro, debugfs_u64_get, NULL, "0x%016llx\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_x64_wo, NULL, debugfs_u64_set, "0x%016llx\n");
 
 void
-debugfs_create_x64(const char *name, umode_t mode, struct dentry *parent, uint64_t *value)
+debugfs_create_x64(const char *name, umode_t mode, struct dentry *parent,
+    uint64_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_x64,
 	    &fops_x64_ro, &fops_x64_wo);
 }
-
 
 static int
 debugfs_ulong_get(void *data, uint64_t *value)
@@ -558,18 +567,19 @@ debugfs_ulong_set(void *data, uint64_t value)
 	return (0);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_ulong, debugfs_ulong_get, debugfs_ulong_set, "%llu\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_ulong, debugfs_ulong_get, debugfs_ulong_set,
+    "%llu\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_ulong_ro, debugfs_ulong_get, NULL, "%llu\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_ulong_wo, NULL, debugfs_ulong_set, "%llu\n");
 
 void
-debugfs_create_ulong(const char *name, umode_t mode, struct dentry *parent, unsigned long *value)
+debugfs_create_ulong(const char *name, umode_t mode, struct dentry *parent,
+    unsigned long *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_ulong,
 	    &fops_ulong_ro, &fops_ulong_wo);
 }
-
 
 static int
 debugfs_atomic_t_get(void *data, uint64_t *value)
@@ -587,21 +597,23 @@ debugfs_atomic_t_set(void *data, uint64_t value)
 	return (0);
 }
 
-DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_t, debugfs_atomic_t_get, debugfs_atomic_t_set, "%d\n");
+DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_t, debugfs_atomic_t_get,
+    debugfs_atomic_t_set, "%d\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_t_ro, debugfs_atomic_t_get, NULL, "%d\n");
 DEFINE_DEBUGFS_ATTRIBUTE(fops_atomic_t_wo, NULL, debugfs_atomic_t_set, "%d\n");
 
 void
-debugfs_create_atomic_t(const char *name, umode_t mode, struct dentry *parent, atomic_t *value)
+debugfs_create_atomic_t(const char *name, umode_t mode, struct dentry *parent,
+    atomic_t *value)
 {
 
 	debugfs_create_mode_unsafe(name, mode, parent, value, &fops_atomic_t,
 	    &fops_atomic_t_ro, &fops_atomic_t_wo);
 }
 
-
 static ssize_t
-fops_blob_read(struct file *filp, char __user *ubuf, size_t read_size, loff_t *ppos)
+fops_blob_read(struct file *filp, char __user *ubuf, size_t read_size,
+    loff_t *ppos)
 {
 	struct debugfs_blob_wrapper *blob;
 
@@ -611,7 +623,8 @@ fops_blob_read(struct file *filp, char __user *ubuf, size_t read_size, loff_t *p
 	if (blob->size == 0 || blob->data == NULL)
 		return (-EINVAL);
 
-	return (simple_read_from_buffer(ubuf, read_size, ppos, blob->data, blob->size));
+	return (simple_read_from_buffer(ubuf, read_size, ppos, blob->data,
+	    blob->size));
 }
 
 static int
@@ -621,21 +634,19 @@ fops_blob_open(struct inode *inode, struct file *filp)
 	return (simple_open(inode, filp));
 }
 
-static const struct file_operations __fops_blob_ro = {
-	.owner = THIS_MODULE,
+static const struct file_operations __fops_blob_ro = { .owner = THIS_MODULE,
 	.open = fops_blob_open,
 	.read = fops_blob_read,
-	.llseek = no_llseek
-};
+	.llseek = no_llseek };
 
 struct dentry *
 debugfs_create_blob(const char *name, umode_t mode, struct dentry *parent,
     struct debugfs_blob_wrapper *value)
 {
 	/* Blobs are read-only. */
-	return (debugfs_create_file(name, mode & 0444, parent, value, &__fops_blob_ro));
+	return (debugfs_create_file(name, mode & 0444, parent, value,
+	    &__fops_blob_ro));
 }
-
 
 static int
 lindebugfs_init(PFS_INIT_ARGS)

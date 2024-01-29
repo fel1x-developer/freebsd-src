@@ -27,60 +27,60 @@
  */
 
 #include <sys/param.h>
+#include <sys/_iovec.h>
 #include <sys/capsicum.h>
-#include <sys/sysctl.h>
+#include <sys/cpuset.h>
 #include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/mman.h>
 #include <sys/module.h>
-#include <sys/_iovec.h>
-#include <sys/cpuset.h>
-
-#include <capsicum_helpers.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-
-#include <libutil.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
+
 #include <machine/vmm.h>
 #include <machine/vmm_dev.h>
 #include <machine/vmm_snapshot.h>
 
-#include "vmmapi.h"
-#include "internal.h"
+#include <assert.h>
+#include <capsicum_helpers.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <libutil.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#define	MB	(1024 * 1024UL)
-#define	GB	(1024 * 1024 * 1024UL)
+#include "internal.h"
+#include "vmmapi.h"
+
+#define MB (1024 * 1024UL)
+#define GB (1024 * 1024 * 1024UL)
 
 /*
  * Size of the guard region before and after the virtual address space
  * mapping the guest physical memory. This must be a multiple of the
  * superpage size for performance reasons.
  */
-#define	VM_MMAP_GUARD_SIZE	(4 * MB)
+#define VM_MMAP_GUARD_SIZE (4 * MB)
 
-#define	PROT_RW		(PROT_READ | PROT_WRITE)
-#define	PROT_ALL	(PROT_READ | PROT_WRITE | PROT_EXEC)
+#define PROT_RW (PROT_READ | PROT_WRITE)
+#define PROT_ALL (PROT_READ | PROT_WRITE | PROT_EXEC)
 
 struct vmctx {
-	int	fd;
+	int fd;
 	uint32_t lowmem_limit;
-	int	memflags;
-	size_t	lowmem;
-	size_t	highmem;
-	char	*baseaddr;
-	char	*name;
+	int memflags;
+	size_t lowmem;
+	size_t highmem;
+	char *baseaddr;
+	char *name;
 };
 
-#define	CREATE(x)  sysctlbyname("hw.vmm.create", NULL, NULL, (x), strlen((x)))
-#define	DESTROY(x) sysctlbyname("hw.vmm.destroy", NULL, NULL, (x), strlen((x)))
+#define CREATE(x) sysctlbyname("hw.vmm.create", NULL, NULL, (x), strlen((x)))
+#define DESTROY(x) sysctlbyname("hw.vmm.destroy", NULL, NULL, (x), strlen((x)))
 
 static int
 vm_device_open(const char *name)
@@ -434,7 +434,7 @@ vm_setup_memory(struct vmctx *ctx, size_t memsize, enum vm_mmap_style vms)
 	if (memsize > ctx->lowmem_limit) {
 		ctx->lowmem = ctx->lowmem_limit;
 		ctx->highmem = memsize - ctx->lowmem_limit;
-		objsize = 4*GB + ctx->highmem;
+		objsize = 4 * GB + ctx->highmem;
 	} else {
 		ctx->lowmem = memsize;
 		ctx->highmem = 0;
@@ -456,7 +456,7 @@ vm_setup_memory(struct vmctx *ctx, size_t memsize, enum vm_mmap_style vms)
 
 	baseaddr = ptr + VM_MMAP_GUARD_SIZE;
 	if (ctx->highmem > 0) {
-		gpa = 4*GB;
+		gpa = 4 * GB;
 		len = ctx->highmem;
 		error = setup_memory_segment(ctx, gpa, len, baseaddr);
 		if (error)
@@ -494,10 +494,10 @@ vm_map_gpa(struct vmctx *ctx, vm_paddr_t gaddr, size_t len)
 	}
 
 	if (ctx->highmem > 0) {
-                if (gaddr >= 4*GB) {
-			if (gaddr < 4*GB + ctx->highmem &&
+		if (gaddr >= 4 * GB) {
+			if (gaddr < 4 * GB + ctx->highmem &&
 			    len <= ctx->highmem &&
-			    gaddr + len <= 4*GB + ctx->highmem)
+			    gaddr + len <= 4 * GB + ctx->highmem)
 				return (ctx->baseaddr + gaddr);
 		}
 	}
@@ -517,7 +517,7 @@ vm_rev_map_gpa(struct vmctx *ctx, void *addr)
 			return (offaddr);
 
 	if (ctx->highmem > 0)
-		if (offaddr >= 4*GB && offaddr < 4*GB + ctx->highmem)
+		if (offaddr >= 4 * GB && offaddr < 4 * GB + ctx->highmem)
 			return (offaddr);
 
 	return ((vm_paddr_t)-1);
@@ -607,8 +607,8 @@ vcpu_ioctl(struct vcpu *vcpu, u_long cmd, void *arg)
 }
 
 int
-vm_set_desc(struct vcpu *vcpu, int reg,
-	    uint64_t base, uint32_t limit, uint32_t access)
+vm_set_desc(struct vcpu *vcpu, int reg, uint64_t base, uint32_t limit,
+    uint32_t access)
 {
 	int error;
 	struct vm_seg_desc vmsegdesc;
@@ -681,8 +681,8 @@ vm_get_register(struct vcpu *vcpu, int reg, uint64_t *ret_val)
 }
 
 int
-vm_set_register_set(struct vcpu *vcpu, unsigned int count,
-    const int *regnums, uint64_t *regvals)
+vm_set_register_set(struct vcpu *vcpu, unsigned int count, const int *regnums,
+    uint64_t *regvals)
 {
 	int error;
 	struct vm_register_set vmregset;
@@ -697,8 +697,8 @@ vm_set_register_set(struct vcpu *vcpu, unsigned int count,
 }
 
 int
-vm_get_register_set(struct vcpu *vcpu, unsigned int count,
-    const int *regnums, uint64_t *regvals)
+vm_get_register_set(struct vcpu *vcpu, unsigned int count, const int *regnums,
+    uint64_t *regvals)
 {
 	int error;
 	struct vm_register_set vmregset;
@@ -834,8 +834,8 @@ vm_ioapic_pincount(struct vmctx *ctx, int *pincount)
 }
 
 int
-vm_readwrite_kernemu_device(struct vcpu *vcpu, vm_paddr_t gpa,
-    bool write, int size, uint64_t *value)
+vm_readwrite_kernemu_device(struct vcpu *vcpu, vm_paddr_t gpa, bool write,
+    int size, uint64_t *value)
 {
 	struct vm_readwrite_kernemu_device irp = {
 		.access_width = fls(size) - 1,
@@ -911,7 +911,7 @@ vm_inject_nmi(struct vcpu *vcpu)
 }
 
 static const char *capstrmap[] = {
-	[VM_CAP_HALT_EXIT]  = "hlt_exit",
+	[VM_CAP_HALT_EXIT] = "hlt_exit",
 	[VM_CAP_MTRAP_EXIT] = "mtrap_exit",
 	[VM_CAP_PAUSE_EXIT] = "pause_exit",
 	[VM_CAP_UNRESTRICTED_GUEST] = "unrestricted_guest",
@@ -995,7 +995,7 @@ vm_unassign_pptdev(struct vmctx *ctx, int bus, int slot, int func)
 
 int
 vm_map_pptdev_mmio(struct vmctx *ctx, int bus, int slot, int func,
-		   vm_paddr_t gpa, size_t len, vm_paddr_t hpa)
+    vm_paddr_t gpa, size_t len, vm_paddr_t hpa)
 {
 	struct vm_pptdev_mmio pptmmio;
 
@@ -1012,7 +1012,7 @@ vm_map_pptdev_mmio(struct vmctx *ctx, int bus, int slot, int func,
 
 int
 vm_unmap_pptdev_mmio(struct vmctx *ctx, int bus, int slot, int func,
-		     vm_paddr_t gpa, size_t len)
+    vm_paddr_t gpa, size_t len)
 {
 	struct vm_pptdev_mmio pptmmio;
 
@@ -1043,9 +1043,9 @@ vm_setup_pptdev_msi(struct vmctx *ctx, int bus, int slot, int func,
 	return (ioctl(ctx->fd, VM_PPTDEV_MSI, &pptmsi));
 }
 
-int	
-vm_setup_pptdev_msix(struct vmctx *ctx, int bus, int slot, int func,
-    int idx, uint64_t addr, uint64_t msg, uint32_t vector_control)
+int
+vm_setup_pptdev_msix(struct vmctx *ctx, int bus, int slot, int func, int idx,
+    uint64_t addr, uint64_t msg, uint32_t vector_control)
 {
 	struct vm_pptdev_msix pptmsix;
 
@@ -1075,8 +1075,7 @@ vm_disable_pptdev_msix(struct vmctx *ctx, int bus, int slot, int func)
 }
 
 uint64_t *
-vm_get_stats(struct vcpu *vcpu, struct timeval *ret_tv,
-	     int *ret_entries)
+vm_get_stats(struct vcpu *vcpu, struct timeval *ret_tv, int *ret_entries)
 {
 	static _Thread_local uint64_t *stats_buf;
 	static _Thread_local u_int stats_count;
@@ -1206,8 +1205,8 @@ vcpu_reset(struct vcpu *vcpu)
 	desc_base = 0xffff0000;
 	desc_limit = 0xffff;
 	desc_access = 0x0093;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_CS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_CS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
@@ -1221,28 +1220,28 @@ vcpu_reset(struct vcpu *vcpu)
 	desc_base = 0;
 	desc_limit = 0xffff;
 	desc_access = 0x0093;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_SS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_SS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_DS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_DS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_ES,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_ES, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_FS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_FS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GS,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GS, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
@@ -1300,13 +1299,13 @@ vcpu_reset(struct vcpu *vcpu)
 	desc_base = 0;
 	desc_limit = 0xffff;
 	desc_access = 0;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_GDTR, desc_base, desc_limit,
+	    desc_access);
 	if (error != 0)
 		goto done;
 
-	error = vm_set_desc(vcpu, VM_REG_GUEST_IDTR,
-			    desc_base, desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_IDTR, desc_base, desc_limit,
+	    desc_access);
 	if (error != 0)
 		goto done;
 
@@ -1326,8 +1325,8 @@ vcpu_reset(struct vcpu *vcpu)
 	desc_base = 0;
 	desc_limit = 0xffff;
 	desc_access = 0x00000082;
-	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, desc_base,
-			    desc_limit, desc_access);
+	error = vm_set_desc(vcpu, VM_REG_GUEST_LDTR, desc_base, desc_limit,
+	    desc_access);
 	if (error)
 		goto done;
 
@@ -1335,15 +1334,13 @@ vcpu_reset(struct vcpu *vcpu)
 	if ((error = vm_set_register(vcpu, VM_REG_GUEST_LDTR, 0)) != 0)
 		goto done;
 
-	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DR6,
-		 0xffff0ff0)) != 0)
+	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DR6, 0xffff0ff0)) != 0)
 		goto done;
-	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DR7, 0x400)) !=
-	    0)
+	if ((error = vm_set_register(vcpu, VM_REG_GUEST_DR7, 0x400)) != 0)
 		goto done;
 
-	if ((error = vm_set_register(vcpu, VM_REG_GUEST_INTR_SHADOW,
-		 zero)) != 0)
+	if ((error = vm_set_register(vcpu, VM_REG_GUEST_INTR_SHADOW, zero)) !=
+	    0)
 		goto done;
 
 	error = 0;
@@ -1385,8 +1382,8 @@ vm_get_hpet_capabilities(struct vmctx *ctx, uint32_t *capabilities)
 }
 
 int
-vm_gla2gpa(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    uint64_t gla, int prot, uint64_t *gpa, int *fault)
+vm_gla2gpa(struct vcpu *vcpu, struct vm_guest_paging *paging, uint64_t gla,
+    int prot, uint64_t *gpa, int *fault)
 {
 	struct vm_gla2gpa gg;
 	int error;
@@ -1425,13 +1422,12 @@ vm_gla2gpa_nofault(struct vcpu *vcpu, struct vm_guest_paging *paging,
 }
 
 #ifndef min
-#define	min(a,b)	(((a) < (b)) ? (a) : (b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
 int
-vm_copy_setup(struct vcpu *vcpu, struct vm_guest_paging *paging,
-    uint64_t gla, size_t len, int prot, struct iovec *iov, int iovcnt,
-    int *fault)
+vm_copy_setup(struct vcpu *vcpu, struct vm_guest_paging *paging, uint64_t gla,
+    size_t len, int prot, struct iovec *iov, int iovcnt, int *fault)
 {
 	void *va;
 	uint64_t gpa, off;
@@ -1702,8 +1698,8 @@ vm_snapshot_req(struct vmctx *ctx, struct vm_snapshot_meta *meta)
 
 	if (ioctl(ctx->fd, VM_SNAPSHOT_REQ, meta) == -1) {
 #ifdef SNAPSHOT_DEBUG
-		fprintf(stderr, "%s: snapshot failed for %s: %d\r\n",
-		    __func__, meta->dev_name, errno);
+		fprintf(stderr, "%s: snapshot failed for %s: %d\r\n", __func__,
+		    meta->dev_name, errno);
 #endif
 		return (-1);
 	}
@@ -1720,12 +1716,12 @@ vm_restore_time(struct vmctx *ctx)
 }
 
 int
-vm_set_topology(struct vmctx *ctx,
-    uint16_t sockets, uint16_t cores, uint16_t threads, uint16_t maxcpus)
+vm_set_topology(struct vmctx *ctx, uint16_t sockets, uint16_t cores,
+    uint16_t threads, uint16_t maxcpus)
 {
 	struct vm_cpu_topology topology;
 
-	bzero(&topology, sizeof (struct vm_cpu_topology));
+	bzero(&topology, sizeof(struct vm_cpu_topology));
 	topology.sockets = sockets;
 	topology.cores = cores;
 	topology.threads = threads;
@@ -1734,13 +1730,13 @@ vm_set_topology(struct vmctx *ctx,
 }
 
 int
-vm_get_topology(struct vmctx *ctx,
-    uint16_t *sockets, uint16_t *cores, uint16_t *threads, uint16_t *maxcpus)
+vm_get_topology(struct vmctx *ctx, uint16_t *sockets, uint16_t *cores,
+    uint16_t *threads, uint16_t *maxcpus)
 {
 	struct vm_cpu_topology topology;
 	int error;
 
-	bzero(&topology, sizeof (struct vm_cpu_topology));
+	bzero(&topology, sizeof(struct vm_cpu_topology));
 	error = ioctl(ctx->fd, VM_GET_TOPOLOGY, &topology);
 	if (error == 0) {
 		*sockets = topology.sockets;
@@ -1753,28 +1749,24 @@ vm_get_topology(struct vmctx *ctx,
 
 /* Keep in sync with machine/vmm_dev.h. */
 static const cap_ioctl_t vm_ioctl_cmds[] = { VM_RUN, VM_SUSPEND, VM_REINIT,
-    VM_ALLOC_MEMSEG, VM_GET_MEMSEG, VM_MMAP_MEMSEG, VM_MMAP_MEMSEG,
-    VM_MMAP_GETNEXT, VM_MUNMAP_MEMSEG, VM_SET_REGISTER, VM_GET_REGISTER,
-    VM_SET_SEGMENT_DESCRIPTOR, VM_GET_SEGMENT_DESCRIPTOR,
-    VM_SET_REGISTER_SET, VM_GET_REGISTER_SET,
-    VM_SET_KERNEMU_DEV, VM_GET_KERNEMU_DEV,
-    VM_INJECT_EXCEPTION, VM_LAPIC_IRQ, VM_LAPIC_LOCAL_IRQ,
-    VM_LAPIC_MSI, VM_IOAPIC_ASSERT_IRQ, VM_IOAPIC_DEASSERT_IRQ,
-    VM_IOAPIC_PULSE_IRQ, VM_IOAPIC_PINCOUNT, VM_ISA_ASSERT_IRQ,
-    VM_ISA_DEASSERT_IRQ, VM_ISA_PULSE_IRQ, VM_ISA_SET_IRQ_TRIGGER,
-    VM_SET_CAPABILITY, VM_GET_CAPABILITY, VM_BIND_PPTDEV,
-    VM_UNBIND_PPTDEV, VM_MAP_PPTDEV_MMIO, VM_PPTDEV_MSI,
-    VM_PPTDEV_MSIX, VM_UNMAP_PPTDEV_MMIO, VM_PPTDEV_DISABLE_MSIX,
-    VM_INJECT_NMI, VM_STATS, VM_STAT_DESC,
-    VM_SET_X2APIC_STATE, VM_GET_X2APIC_STATE,
-    VM_GET_HPET_CAPABILITIES, VM_GET_GPA_PMAP, VM_GLA2GPA,
-    VM_GLA2GPA_NOFAULT,
-    VM_ACTIVATE_CPU, VM_GET_CPUS, VM_SUSPEND_CPU, VM_RESUME_CPU,
-    VM_SET_INTINFO, VM_GET_INTINFO,
-    VM_RTC_WRITE, VM_RTC_READ, VM_RTC_SETTIME, VM_RTC_GETTIME,
-    VM_RESTART_INSTRUCTION, VM_SET_TOPOLOGY, VM_GET_TOPOLOGY,
-    VM_SNAPSHOT_REQ, VM_RESTORE_TIME
-};
+	VM_ALLOC_MEMSEG, VM_GET_MEMSEG, VM_MMAP_MEMSEG, VM_MMAP_MEMSEG,
+	VM_MMAP_GETNEXT, VM_MUNMAP_MEMSEG, VM_SET_REGISTER, VM_GET_REGISTER,
+	VM_SET_SEGMENT_DESCRIPTOR, VM_GET_SEGMENT_DESCRIPTOR,
+	VM_SET_REGISTER_SET, VM_GET_REGISTER_SET, VM_SET_KERNEMU_DEV,
+	VM_GET_KERNEMU_DEV, VM_INJECT_EXCEPTION, VM_LAPIC_IRQ,
+	VM_LAPIC_LOCAL_IRQ, VM_LAPIC_MSI, VM_IOAPIC_ASSERT_IRQ,
+	VM_IOAPIC_DEASSERT_IRQ, VM_IOAPIC_PULSE_IRQ, VM_IOAPIC_PINCOUNT,
+	VM_ISA_ASSERT_IRQ, VM_ISA_DEASSERT_IRQ, VM_ISA_PULSE_IRQ,
+	VM_ISA_SET_IRQ_TRIGGER, VM_SET_CAPABILITY, VM_GET_CAPABILITY,
+	VM_BIND_PPTDEV, VM_UNBIND_PPTDEV, VM_MAP_PPTDEV_MMIO, VM_PPTDEV_MSI,
+	VM_PPTDEV_MSIX, VM_UNMAP_PPTDEV_MMIO, VM_PPTDEV_DISABLE_MSIX,
+	VM_INJECT_NMI, VM_STATS, VM_STAT_DESC, VM_SET_X2APIC_STATE,
+	VM_GET_X2APIC_STATE, VM_GET_HPET_CAPABILITIES, VM_GET_GPA_PMAP,
+	VM_GLA2GPA, VM_GLA2GPA_NOFAULT, VM_ACTIVATE_CPU, VM_GET_CPUS,
+	VM_SUSPEND_CPU, VM_RESUME_CPU, VM_SET_INTINFO, VM_GET_INTINFO,
+	VM_RTC_WRITE, VM_RTC_READ, VM_RTC_SETTIME, VM_RTC_GETTIME,
+	VM_RESTART_INSTRUCTION, VM_SET_TOPOLOGY, VM_GET_TOPOLOGY,
+	VM_SNAPSHOT_REQ, VM_RESTORE_TIME };
 
 int
 vm_limit_rights(struct vmctx *ctx)

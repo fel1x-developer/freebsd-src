@@ -1,19 +1,21 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
-#include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
-#include "adf_cfg_strings.h"
-#include "adf_transport_access_macros.h"
-#include "adf_transport_internal.h"
+#include <sys/systm.h>
 #include <sys/bus.h>
+
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <sys/systm.h>
+
+#include "adf_accel_devices.h"
+#include "adf_cfg.h"
+#include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
+#include "adf_transport_access_macros.h"
+#include "adf_transport_internal.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define ADF_PPAERUCM_MASK (BIT(14) | BIT(20) | BIT(22))
 
@@ -45,7 +47,7 @@ linux_complete_common(struct completion *c, int all)
 struct adf_reset_dev_data {
 	int mode;
 	struct adf_accel_dev *accel_dev;
-	struct completion compl;
+	struct completion compl ;
 	struct work_struct reset_work;
 };
 
@@ -58,13 +60,13 @@ adf_aer_store_ppaerucm_reg(device_t dev, struct adf_hw_device_data *hw_data)
 		return -EINVAL;
 
 	if (pci_find_extcap(dev, PCIZ_AER, &aer_offset) == 0) {
-		reg_val =
-		    pci_read_config(dev, aer_offset + PCIR_AER_UC_MASK, 4);
+		reg_val = pci_read_config(dev, aer_offset + PCIR_AER_UC_MASK,
+		    4);
 
 		hw_data->aerucm_mask = reg_val;
 	} else {
 		device_printf(dev,
-			      "Unable to find AER capability of the device\n");
+		    "Unable to find AER capability of the device\n");
 		return -ENODEV;
 	}
 
@@ -86,7 +88,7 @@ adf_reset_sbr(struct adf_accel_dev *accel_dev)
 
 	if (!pcie_wait_for_pending_transactions(pdev, 0))
 		device_printf(GET_DEV(accel_dev),
-			      "Transaction still in progress. Proceeding\n");
+		    "Transaction still in progress. Proceeding\n");
 
 	device_printf(GET_DEV(accel_dev), "Secondary bus reset\n");
 
@@ -108,15 +110,14 @@ adf_reset_flr(struct adf_accel_dev *accel_dev)
 
 	pci_save_state(pdev);
 	if (pcie_flr(pdev,
-		     max(pcie_get_max_completion_timeout(pdev) / 1000, 10),
-		     true)) {
+		max(pcie_get_max_completion_timeout(pdev) / 1000, 10), true)) {
 		pci_restore_state(pdev);
 		return;
 	}
 	pci_restore_state(pdev);
 	device_printf(GET_DEV(accel_dev),
-		      "FLR qat_dev%d failed trying secondary bus reset\n",
-		      accel_dev->accel_id);
+	    "FLR qat_dev%d failed trying secondary bus reset\n",
+	    accel_dev->accel_id);
 	adf_reset_sbr(accel_dev);
 }
 
@@ -128,16 +129,14 @@ adf_dev_pre_reset(struct adf_accel_dev *accel_dev)
 	u32 aer_offset, reg_val = 0;
 
 	if (pci_find_extcap(pdev, PCIZ_AER, &aer_offset) == 0) {
-		reg_val =
-		    pci_read_config(pdev, aer_offset + PCIR_AER_UC_MASK, 4);
+		reg_val = pci_read_config(pdev, aer_offset + PCIR_AER_UC_MASK,
+		    4);
 		reg_val |= ADF_PPAERUCM_MASK;
-		pci_write_config(pdev,
-				 aer_offset + PCIR_AER_UC_MASK,
-				 reg_val,
-				 4);
+		pci_write_config(pdev, aer_offset + PCIR_AER_UC_MASK, reg_val,
+		    4);
 	} else {
 		device_printf(pdev,
-			      "Unable to find AER capability of the device\n");
+		    "Unable to find AER capability of the device\n");
 	}
 
 	if (hw_device->disable_arb) {
@@ -154,13 +153,11 @@ adf_dev_post_reset(struct adf_accel_dev *accel_dev)
 	u32 aer_offset;
 
 	if (pci_find_extcap(pdev, PCIZ_AER, &aer_offset) == 0) {
-		pci_write_config(pdev,
-				 aer_offset + PCIR_AER_UC_MASK,
-				 hw_device->aerucm_mask,
-				 4);
+		pci_write_config(pdev, aer_offset + PCIR_AER_UC_MASK,
+		    hw_device->aerucm_mask, 4);
 	} else {
 		device_printf(pdev,
-			      "Unable to find AER capability of the device\n");
+		    "Unable to find AER capability of the device\n");
 	}
 }
 
@@ -177,8 +174,7 @@ adf_dev_restore(struct adf_accel_dev *accel_dev)
 
 	if (hw_device->reset_device) {
 		device_printf(GET_DEV(accel_dev),
-			      "Resetting device qat_dev%d\n",
-			      accel_dev->accel_id);
+		    "Resetting device qat_dev%d\n", accel_dev->accel_id);
 		hw_device->reset_device(accel_dev);
 		pci_restore_state(pdev);
 		pci_save_state(pdev);
@@ -193,13 +189,13 @@ adf_dev_restore(struct adf_accel_dev *accel_dev)
 static void
 adf_device_reset_worker(struct work_struct *work)
 {
-	struct adf_reset_dev_data *reset_data =
-	    container_of(work, struct adf_reset_dev_data, reset_work);
+	struct adf_reset_dev_data *reset_data = container_of(work,
+	    struct adf_reset_dev_data, reset_work);
 	struct adf_accel_dev *accel_dev = reset_data->accel_dev;
 
 	if (adf_dev_restarting_notify(accel_dev)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Unable to send RESTARTING notification.\n");
+		    "Unable to send RESTARTING notification.\n");
 		return;
 	}
 
@@ -225,14 +221,14 @@ adf_device_reset_worker(struct work_struct *work)
 
 	/* The dev is back alive. Notify the caller if in sync mode */
 	if (reset_data->mode == ADF_DEV_RESET_SYNC)
-		complete(&reset_data->compl);
+		complete(&reset_data->compl );
 	else
 		kfree(reset_data);
 }
 
 int
 adf_dev_aer_schedule_reset(struct adf_accel_dev *accel_dev,
-			   enum adf_dev_reset_mode mode)
+    enum adf_dev_reset_mode mode)
 {
 	struct adf_reset_dev_data *reset_data;
 	if (!adf_dev_started(accel_dev) ||
@@ -243,7 +239,7 @@ adf_dev_aer_schedule_reset(struct adf_accel_dev *accel_dev,
 	if (!reset_data)
 		return -ENOMEM;
 	reset_data->accel_dev = accel_dev;
-	init_completion(&reset_data->compl);
+	init_completion(&reset_data->compl );
 	reset_data->mode = mode;
 	INIT_WORK(&reset_data->reset_work, adf_device_reset_worker);
 	queue_work(device_reset_wq, &reset_data->reset_work);
@@ -252,12 +248,11 @@ adf_dev_aer_schedule_reset(struct adf_accel_dev *accel_dev,
 		int ret = 0;
 		/* Maximum device reset time is 10 seconds */
 		unsigned long wait_jiffies = msecs_to_jiffies(10000);
-		unsigned long timeout =
-		    wait_for_completion_timeout(&reset_data->compl,
-						wait_jiffies);
+		unsigned long timeout = wait_for_completion_timeout(
+		    &reset_data->compl, wait_jiffies);
 		if (!timeout) {
 			device_printf(GET_DEV(accel_dev),
-				      "Reset device timeout expired\n");
+			    "Reset device timeout expired\n");
 			ret = -EFAULT;
 		}
 		kfree(reset_data);
@@ -277,8 +272,8 @@ adf_dev_autoreset(struct adf_accel_dev *accel_dev)
 static void
 adf_notify_fatal_error_work(struct work_struct *work)
 {
-	struct adf_fatal_error_data *wq_data =
-	    container_of(work, struct adf_fatal_error_data, work);
+	struct adf_fatal_error_data *wq_data = container_of(work,
+	    struct adf_fatal_error_data, work);
 	struct adf_accel_dev *accel_dev = wq_data->accel_dev;
 
 	adf_error_notifier((uintptr_t)accel_dev);
@@ -297,7 +292,7 @@ adf_notify_fatal_error(struct adf_accel_dev *accel_dev)
 	wq_data = kzalloc(sizeof(*wq_data), GFP_ATOMIC);
 	if (!wq_data) {
 		device_printf(GET_DEV(accel_dev),
-			      "Failed to allocate memory\n");
+		    "Failed to allocate memory\n");
 		return ENOMEM;
 	}
 	wq_data->accel_dev = accel_dev;

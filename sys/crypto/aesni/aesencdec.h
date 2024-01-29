@@ -31,13 +31,11 @@
 #define _AESENCDEC_H_
 
 #include <crypto/aesni/aesni_os.h>
-
 #include <wmmintrin.h>
 
 static inline void
-aesni_enc8(int rounds, const __m128i *keysched, __m128i a,
-    __m128i b, __m128i c, __m128i d, __m128i e, __m128i f, __m128i g,
-    __m128i h, __m128i out[8])
+aesni_enc8(int rounds, const __m128i *keysched, __m128i a, __m128i b, __m128i c,
+    __m128i d, __m128i e, __m128i f, __m128i g, __m128i h, __m128i out[8])
 {
 	int i;
 
@@ -72,9 +70,8 @@ aesni_enc8(int rounds, const __m128i *keysched, __m128i a,
 }
 
 static inline void
-aesni_dec8(int rounds, const __m128i *keysched, __m128i a,
-    __m128i b, __m128i c, __m128i d, __m128i e, __m128i f, __m128i g,
-    __m128i h, __m128i out[8])
+aesni_dec8(int rounds, const __m128i *keysched, __m128i a, __m128i b, __m128i c,
+    __m128i d, __m128i e, __m128i f, __m128i g, __m128i h, __m128i out[8])
 {
 	int i;
 

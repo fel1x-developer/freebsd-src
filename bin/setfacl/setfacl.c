@@ -41,18 +41,18 @@
 #include "setfacl.h"
 
 /* file operations */
-#define	OP_MERGE_ACL		0x00	/* merge acl's (-mM) */
-#define	OP_REMOVE_DEF		0x01	/* remove default acl's (-k) */
-#define	OP_REMOVE_EXT		0x02	/* remove extended acl's (-b) */
-#define	OP_REMOVE_ACL		0x03	/* remove acl's (-xX) */
-#define	OP_REMOVE_BY_NUMBER	0x04	/* remove acl's (-xX) by acl entry number */
-#define	OP_ADD_ACL		0x05	/* add acls entries at a given position */
+#define OP_MERGE_ACL 0x00	 /* merge acl's (-mM) */
+#define OP_REMOVE_DEF 0x01	 /* remove default acl's (-k) */
+#define OP_REMOVE_EXT 0x02	 /* remove extended acl's (-b) */
+#define OP_REMOVE_ACL 0x03	 /* remove acl's (-xX) */
+#define OP_REMOVE_BY_NUMBER 0x04 /* remove acl's (-xX) by acl entry number */
+#define OP_ADD_ACL 0x05		 /* add acls entries at a given position */
 
 /* TAILQ entry for acl operations */
 struct sf_entry {
-	uint	op;
-	acl_t	acl;
-	uint	entry_number;
+	uint op;
+	acl_t acl;
+	uint entry_number;
 	TAILQ_ENTRY(sf_entry) next;
 };
 static TAILQ_HEAD(, sf_entry) entrylist;
@@ -67,16 +67,17 @@ static bool R_flag;
 static bool need_mask;
 static acl_type_t acl_type = ACL_TYPE_ACCESS;
 
-static int	handle_file(FTS *ftsp, FTSENT *file);
-static acl_t	clear_inheritance_flags(acl_t acl);
-static char	**stdin_files(void);
-static void	usage(void);
+static int handle_file(FTS *ftsp, FTSENT *file);
+static acl_t clear_inheritance_flags(acl_t acl);
+static char **stdin_files(void);
+static void usage(void);
 
 static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: setfacl [-R [-H | -L | -P]] [-bdhkn] "
+	fprintf(stderr,
+	    "usage: setfacl [-R [-H | -L | -P]] [-bdhkn] "
 	    "[-a position entries] [-m entries] [-M file] "
 	    "[-x entries] [-X file] [file ...]\n");
 	exit(1);
@@ -110,7 +111,7 @@ stdin_files(void)
 			if (fl_count > SIZE_MAX / sizeof(char *))
 				errx(1, "Too many input files");
 			files_list = zrealloc(files_list,
-					fl_count * sizeof(char *));
+			    fl_count * sizeof(char *));
 		}
 	}
 
@@ -158,9 +159,8 @@ clear_inheritance_flags(acl_t acl)
 			continue;
 		}
 		if (acl_delete_flag_np(acl_flagset,
-		    ACL_ENTRY_FILE_INHERIT |
-		    ACL_ENTRY_DIRECTORY_INHERIT |
-		    ACL_ENTRY_NO_PROPAGATE_INHERIT) != 0)
+			ACL_ENTRY_FILE_INHERIT | ACL_ENTRY_DIRECTORY_INHERIT |
+			    ACL_ENTRY_NO_PROPAGATE_INHERIT) != 0)
 			warn("acl_delete_flag_np() failed");
 	}
 
@@ -218,8 +218,7 @@ handle_file(FTS *ftsp, FTSENT *file)
 		if (acl_type == ACL_TYPE_NFS4)
 			acl_type = ACL_TYPE_ACCESS;
 	} else if (ret < 0 && errno != EINVAL && errno != ENOENT) {
-		warn("%s: pathconf(_PC_ACL_NFS4) failed",
-		    file->fts_path);
+		warn("%s: pathconf(_PC_ACL_NFS4) failed", file->fts_path);
 	}
 
 	if (follow_symlink)
@@ -235,7 +234,7 @@ handle_file(FTS *ftsp, FTSENT *file)
 	}
 
 	/* Cycle through each option. */
-	TAILQ_FOREACH(entry, &entrylist, next) {
+	TAILQ_FOREACH (entry, &entrylist, next) {
 		nacl = entry->acl;
 		switch (entry->op) {
 		case OP_ADD_ACL:
@@ -259,7 +258,7 @@ handle_file(FTS *ftsp, FTSENT *file)
 			 */
 			if (acl_type == ACL_TYPE_DEFAULT &&
 			    acl_get_entry(acl, ACL_FIRST_ENTRY,
-			    &unused_entry) == 0) {
+				&unused_entry) == 0) {
 				local_error += remove_default(&acl,
 				    file->fts_path);
 				break;
@@ -270,7 +269,7 @@ handle_file(FTS *ftsp, FTSENT *file)
 		case OP_REMOVE_DEF:
 			if (acl_type == ACL_TYPE_NFS4) {
 				warnx("%s: there are no default entries in "
-				    "NFSv4 ACLs; cannot remove",
+				      "NFSv4 ACLs; cannot remove",
 				    file->fts_path);
 				local_error++;
 				break;
@@ -361,7 +360,7 @@ main(int argc, char *argv[])
 	TAILQ_INIT(&entrylist);
 
 	while ((ch = getopt(argc, argv, "HLM:PRX:a:bdhkm:nx:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'H':
 			H_flag = true;
 			L_flag = false;
@@ -474,7 +473,8 @@ main(int argc, char *argv[])
 
 	if (R_flag) {
 		if (h_flag)
-			errx(1, "the -R and -h options may not be "
+			errx(1,
+			    "the -R and -h options may not be "
 			    "specified together.");
 		if (L_flag) {
 			fts_options = FTS_LOGICAL;

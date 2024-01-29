@@ -25,13 +25,13 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_BP_H
-#define	_DPAA2_BP_H
+#ifndef _DPAA2_BP_H
+#define _DPAA2_BP_H
 
 #include <sys/bus.h>
 
 /* Maximum resources per DPBP: 1 DPMCP. */
-#define DPAA2_BP_MAX_RESOURCES	1
+#define DPAA2_BP_MAX_RESOURCES 1
 
 /**
  * @brief Attributes of the DPBP object.
@@ -41,26 +41,26 @@
  *		 acquire/release operations on buffers.
  */
 struct dpaa2_bp_attr {
-	uint32_t		 id;
-	uint16_t		 bpid;
+	uint32_t id;
+	uint16_t bpid;
 };
 
 /**
  * @brief Configuration/state of the buffer pool.
  */
 struct dpaa2_bp_conf {
-	uint8_t			 bdi;
-	uint8_t			 state; /* bitmask */
-	uint32_t		 free_bufn;
+	uint8_t bdi;
+	uint8_t state; /* bitmask */
+	uint32_t free_bufn;
 };
 
 /**
  * @brief Software context for the DPAA2 Buffer Pool driver.
  */
 struct dpaa2_bp_softc {
-	device_t		 dev;
-	struct dpaa2_bp_attr	 attr;
-	struct resource 	*res[DPAA2_BP_MAX_RESOURCES];
+	device_t dev;
+	struct dpaa2_bp_attr attr;
+	struct resource *res[DPAA2_BP_MAX_RESOURCES];
 };
 
 extern struct resource_spec dpaa2_bp_spec[];

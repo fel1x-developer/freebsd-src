@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
@@ -41,29 +42,30 @@
 #include <sys/sbuf.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
-#include <machine/metadata.h>
 #include <machine/md_var.h>
+#include <machine/metadata.h>
 #include <machine/resource.h>
-#include <contrib/dev/acpica/include/acpi.h>
-#include <dev/acpica/acpivar.h>
 
+#include <dev/acpica/acpivar.h>
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus_xact.h>
-#include <dev/hyperv/vmbus/hyperv_var.h>
-#include <dev/hyperv/vmbus/vmbus_reg.h>
-#include <dev/hyperv/vmbus/vmbus_var.h>
-#include <dev/hyperv/vmbus/vmbus_chanvar.h>
 #include <dev/hyperv/vmbus/aarch64/hyperv_machdep.h>
 #include <dev/hyperv/vmbus/aarch64/hyperv_reg.h>
 #include <dev/hyperv/vmbus/hyperv_common_reg.h>
+#include <dev/hyperv/vmbus/hyperv_var.h>
+#include <dev/hyperv/vmbus/vmbus_chanvar.h>
+#include <dev/hyperv/vmbus/vmbus_reg.h>
+#include <dev/hyperv/vmbus/vmbus_var.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
+
 #include "acpi_if.h"
 #include "pcib_if.h"
 #include "vmbus_if.h"
@@ -111,9 +113,9 @@ vmbus_setup_intr1(struct vmbus_softc *sc)
 	struct intr_map_data_acpi *irq_data;
 	device_t dev;
 
-	dev =  devclass_get_device(devclass_find("vmbus_res"), 0);
-	sc->ires = bus_alloc_resource_any(dev,
-	    SYS_RES_IRQ, &sc->vector, RF_ACTIVE | RF_SHAREABLE);
+	dev = devclass_get_device(devclass_find("vmbus_res"), 0);
+	sc->ires = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->vector,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (sc->ires == NULL) {
 		device_printf(sc->vmbus_dev, "bus_alloc_resouce_any failed\n");
 		return (ENXIO);
@@ -122,8 +124,9 @@ vmbus_setup_intr1(struct vmbus_softc *sc)
 		    (uint64_t)rman_get_start(sc->ires), sc->vector,
 		    (uint64_t)rman_get_end(sc->ires));
 	}
-	err = bus_setup_intr(sc->vmbus_dev, sc->ires, INTR_TYPE_MISC | INTR_MPSAFE,
-	    vmbus_handle_intr_new, NULL, sc, &sc->icookie);
+	err = bus_setup_intr(sc->vmbus_dev, sc->ires,
+	    INTR_TYPE_MISC | INTR_MPSAFE, vmbus_handle_intr_new, NULL, sc,
+	    &sc->icookie);
 	if (err) {
 		device_printf(sc->vmbus_dev, "failed to setup IRQ %d\n", err);
 		return (err);
@@ -142,7 +145,7 @@ vmbus_intr_teardown1(struct vmbus_softc *sc)
 	sc->vmbus_idtvec = -1;
 	bus_teardown_intr(sc->vmbus_dev, sc->ires, sc->icookie);
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		if (VMBUS_PCPU_GET(sc, event_tq, cpu) != NULL) {
 			taskqueue_free(VMBUS_PCPU_GET(sc, event_tq, cpu));
 			VMBUS_PCPU_GET(sc, event_tq, cpu) = NULL;

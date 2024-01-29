@@ -25,24 +25,24 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_TRACEPOINT_H
-#define	_LINUXKPI_LINUX_TRACEPOINT_H
+#ifndef _LINUXKPI_LINUX_TRACEPOINT_H
+#define _LINUXKPI_LINUX_TRACEPOINT_H
 
-#define	TP_PROTO(...)			__VA_ARGS__
-#define	TP_ARGS(...)
-#define	TP_STRUCT__entry(...)
-#define	TP_fast_assign(...)
-#define	TP_printk(...)
+#define TP_PROTO(...) __VA_ARGS__
+#define TP_ARGS(...)
+#define TP_STRUCT__entry(...)
+#define TP_fast_assign(...)
+#define TP_printk(...)
 
-#define	TRACE_EVENT(_name, _proto, _args, _struct, _assign, _printk)	\
-static inline void trace_ ## _name(_proto)				\
-{									\
-}
+#define TRACE_EVENT(_name, _proto, _args, _struct, _assign, _printk) \
+	static inline void trace_##_name(_proto)                     \
+	{                                                            \
+	}
 
-#define	DECLARE_EVENT_CLASS(...)
-#define	DEFINE_EVENT(_x, _name, _proto, _args)				\
-static inline void trace_ ## _name(_proto)				\
-{									\
-}
+#define DECLARE_EVENT_CLASS(...)
+#define DEFINE_EVENT(_x, _name, _proto, _args)   \
+	static inline void trace_##_name(_proto) \
+	{                                        \
+	}
 
-#endif	/* _LINUXKPI_LINUX_TRACEPOINT_H */
+#endif /* _LINUXKPI_LINUX_TRACEPOINT_H */

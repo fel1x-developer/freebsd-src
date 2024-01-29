@@ -65,69 +65,60 @@
 /**
  * Normal byte swap macro
  */
-#define SCIC_SWAP_DWORD(x) \
-   ( \
-       (((x) >> 24) & 0x000000FF) \
-     | (((x) >>  8) & 0x0000FF00) \
-     | (((x) <<  8) & 0x00FF0000) \
-     | (((x) << 24) & 0xFF000000) \
-   )
+#define SCIC_SWAP_DWORD(x)                                        \
+	((((x) >> 24) & 0x000000FF) | (((x) >> 8) & 0x0000FF00) | \
+	    (((x) << 8) & 0x00FF0000) | (((x) << 24) & 0xFF000000))
 
-#define SCIC_BUILD_DWORD(char_buffer) \
-   ( \
-     ((char_buffer)[0] << 24) \
-   | ((char_buffer)[1] << 16) \
-   | ((char_buffer)[2] <<  8) \
-   | ((char_buffer)[3]) \
-   )
+#define SCIC_BUILD_DWORD(char_buffer)                          \
+	(((char_buffer)[0] << 24) | ((char_buffer)[1] << 16) | \
+	    ((char_buffer)[2] << 8) | ((char_buffer)[3]))
 
-#define SCI_FIELD_OFFSET(type, field)   ((POINTER_UINT)&(((type *)0)->field))
+#define SCI_FIELD_OFFSET(type, field) ((POINTER_UINT) & (((type *)0)->field))
 
-//This macro counts how many bits being set in a mask.
-#define SCI_GET_BITS_SET_COUNT(mask, set_bit_count)     \
-{                                                  \
-   U8 index;                                       \
-   set_bit_count = 0;                              \
-   for (index = 0; index < sizeof(mask)*8; index++)            \
-   {                                               \
-      if( mask & (1<<index) )                      \
-         set_bit_count++;                          \
-   }                                               \
-}
+// This macro counts how many bits being set in a mask.
+#define SCI_GET_BITS_SET_COUNT(mask, set_bit_count)                  \
+	{                                                            \
+		U8 index;                                            \
+		set_bit_count = 0;                                   \
+		for (index = 0; index < sizeof(mask) * 8; index++) { \
+			if (mask & (1 << index))                     \
+				set_bit_count++;                     \
+		}                                                    \
+	}
 
 /**
  * This macro simply performs addition on an SCI_PHYSICAL_ADDRESS
  * type.  The lower U32 value is "clipped" or "wrapped" back through
  * 0.  When this occurs the upper 32-bits are incremented by 1.
  */
-#define sci_physical_address_add(physical_address, value) \
-{ \
-   U32 lower = sci_cb_physical_address_lower((physical_address)); \
-   U32 upper = sci_cb_physical_address_upper((physical_address)); \
- \
-   if (lower + (value) < lower) \
-      upper += 1; \
- \
-   lower += (value); \
-   sci_cb_make_physical_address(physical_address, upper, lower); \
-}
+#define sci_physical_address_add(physical_address, value)                      \
+	{                                                                      \
+		U32 lower = sci_cb_physical_address_lower((physical_address)); \
+		U32 upper = sci_cb_physical_address_upper((physical_address)); \
+                                                                               \
+		if (lower + (value) < lower)                                   \
+			upper += 1;                                            \
+                                                                               \
+		lower += (value);                                              \
+		sci_cb_make_physical_address(physical_address, upper, lower);  \
+	}
 
 /**
  * This macro simply performs subtraction on an SCI_PHYSICAL_ADDRESS
  * type.  The lower U32 value is "clipped" or "wrapped" back through
  * 0.  When this occurs the upper 32-bits are decremented by 1.
  */
-#define sci_physical_address_subtract(physical_address, value) \
-{ \
-   U32 lower = sci_cb_physical_address_lower((physical_address)); \
-   U32 upper = sci_cb_physical_address_upper((physical_address)); \
- \
-   if (lower - (value) > lower) \
-      upper -= 1; \
- \
-   lower -= (value); \
-   sci_cb_make_physical_address(physical_address, upper, lower); \
-}
+#define sci_physical_address_subtract(physical_address, value)                 \
+	{                                                                      \
+		U32 lower = sci_cb_physical_address_lower((physical_address)); \
+		U32 upper = sci_cb_physical_address_upper((physical_address)); \
+                                                                               \
+		if (lower - (value) > lower)                                   \
+			upper -= 1;                                            \
+                                                                               \
+		lower -= (value);                                              \
+		sci_cb_make_physical_address(physical_address, upper, lower);  \
+	}
 
 /**
  * @brief Copy the data from source to destination and swap the
@@ -142,17 +133,12 @@
  *
  * @return none
  */
-void scic_word_copy_with_swap(
-   U32 *destination,
-   U32 *source,
-   U32 word_count
-);
-
+void scic_word_copy_with_swap(U32 *destination, U32 *source, U32 word_count);
 
 #define sci_ssp_get_sense_data_length(sense_data_length_buffer) \
-   SCIC_BUILD_DWORD(sense_data_length_buffer)
+	SCIC_BUILD_DWORD(sense_data_length_buffer)
 
 #define sci_ssp_get_response_data_length(response_data_length_buffer) \
-   SCIC_BUILD_DWORD(response_data_length_buffer)
+	SCIC_BUILD_DWORD(response_data_length_buffer)
 
 #endif // _SCI_UTIL_H_

@@ -33,9 +33,10 @@
  */
 #include <sys/types.h>
 
-#include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+
+#include <arpa/inet.h>
 
 #ifndef _UTIL_H
 #define _UTIL_H
@@ -43,10 +44,10 @@
 /* common ip ranges */
 extern struct in_addr masq, pub, prv1, prv2, prv3, cgn, ext, ANY_ADDR;
 
-int		randcmp(const void *a, const void *b);
-void		hexdump(void *p, size_t len);
-struct ip *	ip_packet(u_char protocol, size_t len);
-struct udphdr * set_udp(struct ip *p, u_short sport, u_short dport);
+int randcmp(const void *a, const void *b);
+void hexdump(void *p, size_t len);
+struct ip *ip_packet(u_char protocol, size_t len);
+struct udphdr *set_udp(struct ip *p, u_short sport, u_short dport);
 
 static inline int
 addr_eq(struct in_addr a, struct in_addr b)
@@ -54,84 +55,91 @@ addr_eq(struct in_addr a, struct in_addr b)
 	return a.s_addr == b.s_addr;
 }
 
-#define a2h(a)	ntohl(a.s_addr)
+#define a2h(a) ntohl(a.s_addr)
 
 static inline int
 rand_range(int min, int max)
 {
-	return min + rand()%(max - min);
+	return min + rand() % (max - min);
 }
 
-#define NAT_CHECK(pip, src, dst, msq)	do {	\
-	int res;				\
-	int len = ntohs(pip->ip_len);		\
-	pip->ip_src = src;			\
-	pip->ip_dst = dst;			\
-	res = LibAliasOut(la, pip, len);	\
-	ATF_CHECK_MSG(res == PKT_ALIAS_OK,	\
-	    ">%d< not met PKT_ALIAS_OK", res);	\
-	ATF_CHECK(addr_eq(msq, pip->ip_src));	\
-	ATF_CHECK(addr_eq(dst, pip->ip_dst));	\
-} while(0)
+#define NAT_CHECK(pip, src, dst, msq)                  \
+	do {                                           \
+		int res;                               \
+		int len = ntohs(pip->ip_len);          \
+		pip->ip_src = src;                     \
+		pip->ip_dst = dst;                     \
+		res = LibAliasOut(la, pip, len);       \
+		ATF_CHECK_MSG(res == PKT_ALIAS_OK,     \
+		    ">%d< not met PKT_ALIAS_OK", res); \
+		ATF_CHECK(addr_eq(msq, pip->ip_src));  \
+		ATF_CHECK(addr_eq(dst, pip->ip_dst));  \
+	} while (0)
 
-#define NAT_FAIL(pip, src, dst)	do {		\
-	int res;				\
-	int len = ntohs(pip->ip_len);		\
-	pip->ip_src = src;			\
-	pip->ip_dst = dst;			\
-	res = LibAliasOut(la, pip, len);	\
-	ATF_CHECK_MSG(res != PKT_ALIAS_OK,	\
-	    ">%d< not met !PKT_ALIAS_OK", res);	\
-	ATF_CHECK(addr_eq(src, pip->ip_src));	\
-	ATF_CHECK(addr_eq(dst, pip->ip_dst));	\
-} while(0)
+#define NAT_FAIL(pip, src, dst)                         \
+	do {                                            \
+		int res;                                \
+		int len = ntohs(pip->ip_len);           \
+		pip->ip_src = src;                      \
+		pip->ip_dst = dst;                      \
+		res = LibAliasOut(la, pip, len);        \
+		ATF_CHECK_MSG(res != PKT_ALIAS_OK,      \
+		    ">%d< not met !PKT_ALIAS_OK", res); \
+		ATF_CHECK(addr_eq(src, pip->ip_src));   \
+		ATF_CHECK(addr_eq(dst, pip->ip_dst));   \
+	} while (0)
 
-#define UNNAT_CHECK(pip, src, dst, rel)	do {	\
-	int res;				\
-	int len = ntohs(pip->ip_len);		\
-	pip->ip_src = src;			\
-	pip->ip_dst = dst;			\
-	res = LibAliasIn(la, pip, len);		\
-	ATF_CHECK_MSG(res == PKT_ALIAS_OK,	\
-	    ">%d< not met PKT_ALIAS_OK", res);	\
-	ATF_CHECK(addr_eq(src, pip->ip_src));	\
-	ATF_CHECK(addr_eq(rel, pip->ip_dst));	\
-} while(0)
+#define UNNAT_CHECK(pip, src, dst, rel)                \
+	do {                                           \
+		int res;                               \
+		int len = ntohs(pip->ip_len);          \
+		pip->ip_src = src;                     \
+		pip->ip_dst = dst;                     \
+		res = LibAliasIn(la, pip, len);        \
+		ATF_CHECK_MSG(res == PKT_ALIAS_OK,     \
+		    ">%d< not met PKT_ALIAS_OK", res); \
+		ATF_CHECK(addr_eq(src, pip->ip_src));  \
+		ATF_CHECK(addr_eq(rel, pip->ip_dst));  \
+	} while (0)
 
-#define UNNAT_FAIL(pip, src, dst)	do {	\
-	int res;				\
-	int len = ntohs(pip->ip_len);		\
-	pip->ip_src = src;			\
-	pip->ip_dst = dst;			\
-	res = LibAliasIn(la, pip, len);		\
-	ATF_CHECK_MSG(res != PKT_ALIAS_OK,	\
-	    ">%d< not met !PKT_ALIAS_OK", res);	\
-	ATF_CHECK(addr_eq(src, pip->ip_src));	\
-	ATF_CHECK(addr_eq(dst, pip->ip_dst));	\
-} while(0)
+#define UNNAT_FAIL(pip, src, dst)                       \
+	do {                                            \
+		int res;                                \
+		int len = ntohs(pip->ip_len);           \
+		pip->ip_src = src;                      \
+		pip->ip_dst = dst;                      \
+		res = LibAliasIn(la, pip, len);         \
+		ATF_CHECK_MSG(res != PKT_ALIAS_OK,      \
+		    ">%d< not met !PKT_ALIAS_OK", res); \
+		ATF_CHECK(addr_eq(src, pip->ip_src));   \
+		ATF_CHECK(addr_eq(dst, pip->ip_dst));   \
+	} while (0)
 
-#define UDP_NAT_CHECK(p, u, si, sp, di, dp, mi)	do {	\
-	u = set_udp(p, (sp), (dp));			\
-	NAT_CHECK(p, (si), (di), (mi));			\
-	ATF_CHECK(u->uh_dport == htons(dp));		\
-} while(0)
+#define UDP_NAT_CHECK(p, u, si, sp, di, dp, mi)      \
+	do {                                         \
+		u = set_udp(p, (sp), (dp));          \
+		NAT_CHECK(p, (si), (di), (mi));      \
+		ATF_CHECK(u->uh_dport == htons(dp)); \
+	} while (0)
 
-#define UDP_NAT_FAIL(p, u, si, sp, di, dp)	do {	\
-	u = set_udp(p, (sp), (dp));			\
-	NAT_FAIL(p, (si), (di));			\
-} while(0)
+#define UDP_NAT_FAIL(p, u, si, sp, di, dp)  \
+	do {                                \
+		u = set_udp(p, (sp), (dp)); \
+		NAT_FAIL(p, (si), (di));    \
+	} while (0)
 
-#define UDP_UNNAT_CHECK(p, u, si, sp, mi, mp, di, dp)	\
-do {							\
-	u = set_udp(p, (sp), (mp));			\
-	UNNAT_CHECK(p, (si), (mi), (di));		\
-	ATF_CHECK(u->uh_sport == htons(sp));		\
-	ATF_CHECK(u->uh_dport == htons(dp));		\
-} while(0)
+#define UDP_UNNAT_CHECK(p, u, si, sp, mi, mp, di, dp) \
+	do {                                          \
+		u = set_udp(p, (sp), (mp));           \
+		UNNAT_CHECK(p, (si), (mi), (di));     \
+		ATF_CHECK(u->uh_sport == htons(sp));  \
+		ATF_CHECK(u->uh_dport == htons(dp));  \
+	} while (0)
 
-#define UDP_UNNAT_FAIL(p, u, si, sp, mi, mp)	do {	\
-	u = set_udp(p, (sp), (mp));			\
-	UNNAT_FAIL(p, (si), (mi));			\
-} while(0)
+#define UDP_UNNAT_FAIL(p, u, si, sp, mi, mp) \
+	do {                                 \
+		u = set_udp(p, (sp), (mp));  \
+		UNNAT_FAIL(p, (si), (mi));   \
+	} while (0)
 
 #endif /* _UTIL_H */

@@ -63,17 +63,17 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
+
+#include <net/if.h>
+#include <net/if_media.h>
 
 #include "miibus_if.h"
 
@@ -82,28 +82,21 @@ static int ukphy_attach(device_t);
 
 static device_method_t ukphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		ukphy_probe),
-	DEVMETHOD(device_attach,	ukphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, ukphy_probe),
+	DEVMETHOD(device_attach, ukphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t ukphy_driver = {
-	"ukphy",
-	ukphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t ukphy_driver = { "ukphy", ukphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(ukphy, miibus, ukphy_driver, 0, 0);
 
-static int	ukphy_service(struct mii_softc *, struct mii_data *, int);
+static int ukphy_service(struct mii_softc *, struct mii_data *, int);
 
-static const struct mii_phy_funcs ukphy_funcs = {
-	ukphy_service,
-	ukphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs ukphy_funcs = { ukphy_service, ukphy_status,
+	mii_phy_reset };
 
 static int
 ukphy_probe(device_t dev)

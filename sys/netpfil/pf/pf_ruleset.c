@@ -37,19 +37,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/refcount.h>
 #include <sys/mbuf.h>
+#include <sys/refcount.h>
+#include <sys/socket.h>
 
+#include <net/if.h>
+#include <net/pfvar.h>
+#include <net/vnet.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
-
-#include <net/if.h>
-#include <net/vnet.h>
-#include <net/pfvar.h>
 
 #ifdef INET6
 #include <netinet/ip6.h>
@@ -59,23 +58,23 @@
 #error "Kernel only file. Please use sbin/pfctl/pf_ruleset.c instead."
 #endif
 
-#define DPFPRINTF(format, x...)				\
-	if (V_pf_status.debug >= PF_DEBUG_NOISY)	\
-		printf(format , ##x)
-#define rs_malloc(x)		malloc(x, M_TEMP, M_NOWAIT|M_ZERO)
-#define rs_free(x)		free(x, M_TEMP)
+#define DPFPRINTF(format, x...)                  \
+	if (V_pf_status.debug >= PF_DEBUG_NOISY) \
+	printf(format, ##x)
+#define rs_malloc(x) malloc(x, M_TEMP, M_NOWAIT | M_ZERO)
+#define rs_free(x) free(x, M_TEMP)
 
-VNET_DEFINE(struct pf_kanchor_global,	pf_anchors);
-VNET_DEFINE(struct pf_kanchor,		pf_main_anchor);
-VNET_DEFINE(struct pf_keth_ruleset*,	pf_keth);
-VNET_DEFINE(struct pf_keth_anchor,	pf_main_keth_anchor);
-VNET_DEFINE(struct pf_keth_anchor_global,	 pf_keth_anchors);
+VNET_DEFINE(struct pf_kanchor_global, pf_anchors);
+VNET_DEFINE(struct pf_kanchor, pf_main_anchor);
+VNET_DEFINE(struct pf_keth_ruleset *, pf_keth);
+VNET_DEFINE(struct pf_keth_anchor, pf_main_keth_anchor);
+VNET_DEFINE(struct pf_keth_anchor_global, pf_keth_anchors);
 
-static __inline int		pf_kanchor_compare(struct pf_kanchor *,
-				    struct pf_kanchor *);
-static __inline int		pf_keth_anchor_compare(struct pf_keth_anchor *,
-				    struct pf_keth_anchor *);
-static struct pf_kanchor	*pf_find_kanchor(const char *);
+static __inline int pf_kanchor_compare(struct pf_kanchor *,
+    struct pf_kanchor *);
+static __inline int pf_keth_anchor_compare(struct pf_keth_anchor *,
+    struct pf_keth_anchor *);
+static struct pf_kanchor *pf_find_kanchor(const char *);
 
 RB_GENERATE(pf_kanchor_global, pf_kanchor, entry_global, pf_kanchor_compare);
 RB_GENERATE(pf_kanchor_node, pf_kanchor, entry_node, pf_kanchor_compare);
@@ -134,7 +133,7 @@ pf_get_ruleset_number(u_int8_t action)
 static struct pf_kanchor *
 pf_find_kanchor(const char *path)
 {
-	struct pf_kanchor	*key, *found;
+	struct pf_kanchor *key, *found;
 
 	key = (struct pf_kanchor *)rs_malloc(sizeof(*key));
 	if (key == NULL)
@@ -148,7 +147,7 @@ pf_find_kanchor(const char *path)
 void
 pf_init_kruleset(struct pf_kruleset *ruleset)
 {
-	int	i;
+	int i;
 
 	memset(ruleset, 0, sizeof(struct pf_kruleset));
 	for (i = 0; i < PF_RULESET_MAX; i++) {
@@ -177,7 +176,7 @@ pf_init_keth(struct pf_keth_ruleset *rs)
 struct pf_kruleset *
 pf_find_kruleset(const char *path)
 {
-	struct pf_kanchor	*anchor;
+	struct pf_kanchor *anchor;
 
 	while (*path == '/')
 		path++;
@@ -193,9 +192,9 @@ pf_find_kruleset(const char *path)
 struct pf_kruleset *
 pf_find_or_create_kruleset(const char *path)
 {
-	char			*p, *q, *r;
-	struct pf_kruleset	*ruleset;
-	struct pf_kanchor	*anchor = NULL, *dup, *parent = NULL;
+	char *p, *q, *r;
+	struct pf_kruleset *ruleset;
+	struct pf_kanchor *anchor = NULL, *dup, *parent = NULL;
 
 	if (path[0] == 0)
 		return (&pf_main_ruleset);
@@ -228,8 +227,9 @@ pf_find_or_create_kruleset(const char *path)
 		if (r != NULL)
 			*r = 0;
 		if (!*q || strlen(q) >= PF_ANCHOR_NAME_SIZE ||
-		    (parent != NULL && strlen(parent->path) >=
-		    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
+		    (parent != NULL &&
+			strlen(parent->path) >=
+			    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
 			rs_free(p);
 			return (NULL);
 		}
@@ -246,10 +246,10 @@ pf_find_or_create_kruleset(const char *path)
 			strlcat(anchor->path, "/", sizeof(anchor->path));
 		}
 		strlcat(anchor->path, anchor->name, sizeof(anchor->path));
-		if ((dup = RB_INSERT(pf_kanchor_global, &V_pf_anchors, anchor)) !=
-		    NULL) {
+		if ((dup = RB_INSERT(pf_kanchor_global, &V_pf_anchors,
+			 anchor)) != NULL) {
 			printf("pf_find_or_create_ruleset: RB_INSERT1 "
-			    "'%s' '%s' collides with '%s' '%s'\n",
+			       "'%s' '%s' collides with '%s' '%s'\n",
 			    anchor->path, anchor->name, dup->path, dup->name);
 			rs_free(anchor);
 			rs_free(p);
@@ -258,11 +258,12 @@ pf_find_or_create_kruleset(const char *path)
 		if (parent != NULL) {
 			anchor->parent = parent;
 			if ((dup = RB_INSERT(pf_kanchor_node, &parent->children,
-			    anchor)) != NULL) {
+				 anchor)) != NULL) {
 				printf("pf_find_or_create_ruleset: "
-				    "RB_INSERT2 '%s' '%s' collides with "
-				    "'%s' '%s'\n", anchor->path, anchor->name,
-				    dup->path, dup->name);
+				       "RB_INSERT2 '%s' '%s' collides with "
+				       "'%s' '%s'\n",
+				    anchor->path, anchor->name, dup->path,
+				    dup->name);
 				RB_REMOVE(pf_kanchor_global, &V_pf_anchors,
 				    anchor);
 				rs_free(anchor);
@@ -285,8 +286,8 @@ pf_find_or_create_kruleset(const char *path)
 void
 pf_remove_if_empty_kruleset(struct pf_kruleset *ruleset)
 {
-	struct pf_kanchor	*parent;
-	int			 i;
+	struct pf_kanchor *parent;
+	int i;
 
 	while (ruleset != NULL) {
 		if (ruleset == &pf_main_ruleset || ruleset->anchor == NULL ||
@@ -314,8 +315,8 @@ int
 pf_kanchor_setup(struct pf_krule *r, const struct pf_kruleset *s,
     const char *name)
 {
-	char			*p, *path;
-	struct pf_kruleset	*ruleset;
+	char *p, *path;
+	struct pf_kruleset *ruleset;
 
 	r->anchor = NULL;
 	r->anchor_relative = 0;
@@ -376,12 +377,11 @@ pf_kanchor_nvcopyout(const struct pf_kruleset *rs, const struct pf_krule *r,
 		goto done;
 	if (!r->anchor_relative) {
 		strlcpy(anchor_call, "/", sizeof(anchor_call));
-		strlcat(anchor_call, r->anchor->path,
-		    sizeof(anchor_call));
+		strlcat(anchor_call, r->anchor->path, sizeof(anchor_call));
 	} else {
-		char	 a[MAXPATHLEN];
-		char	*p;
-		int	 i;
+		char a[MAXPATHLEN];
+		char *p;
+		int i;
 		if (rs->anchor == NULL)
 			a[0] = 0;
 		else
@@ -390,8 +390,7 @@ pf_kanchor_nvcopyout(const struct pf_kruleset *rs, const struct pf_krule *r,
 			if ((p = strrchr(a, '/')) == NULL)
 				p = a;
 			*p = 0;
-			strlcat(anchor_call, "../",
-			    sizeof(anchor_call));
+			strlcat(anchor_call, "../", sizeof(anchor_call));
 		}
 		if (strncmp(a, r->anchor->path, strlen(a))) {
 			printf("pf_anchor_copyout: '%s' '%s'\n", a,
@@ -399,9 +398,9 @@ pf_kanchor_nvcopyout(const struct pf_kruleset *rs, const struct pf_krule *r,
 			return (1);
 		}
 		if (strlen(r->anchor->path) > strlen(a))
-			strlcat(anchor_call, r->anchor->path + (a[0] ?
-			    strlen(a) + 1 : 0), sizeof(anchor_call));
-
+			strlcat(anchor_call,
+			    r->anchor->path + (a[0] ? strlen(a) + 1 : 0),
+			    sizeof(anchor_call));
 	}
 	if (r->anchor_wildcard)
 		strlcat(anchor_call, anchor_call[0] ? "/*" : "*",
@@ -423,12 +422,11 @@ pf_keth_anchor_nvcopyout(const struct pf_keth_ruleset *rs,
 		goto done;
 	if (!r->anchor_relative) {
 		strlcpy(anchor_call, "/", sizeof(anchor_call));
-		strlcat(anchor_call, r->anchor->path,
-		    sizeof(anchor_call));
+		strlcat(anchor_call, r->anchor->path, sizeof(anchor_call));
 	} else {
-		char	 a[MAXPATHLEN];
-		char	*p;
-		int	 i;
+		char a[MAXPATHLEN];
+		char *p;
+		int i;
 		if (rs->anchor == NULL)
 			a[0] = 0;
 		else
@@ -437,8 +435,7 @@ pf_keth_anchor_nvcopyout(const struct pf_keth_ruleset *rs,
 			if ((p = strrchr(a, '/')) == NULL)
 				p = a;
 			*p = 0;
-			strlcat(anchor_call, "../",
-			    sizeof(anchor_call));
+			strlcat(anchor_call, "../", sizeof(anchor_call));
 		}
 		if (strncmp(a, r->anchor->path, strlen(a))) {
 			printf("%s(): '%s' '%s'\n", __func__, a,
@@ -446,9 +443,9 @@ pf_keth_anchor_nvcopyout(const struct pf_keth_ruleset *rs,
 			return (1);
 		}
 		if (strlen(r->anchor->path) > strlen(a))
-			strlcat(anchor_call, r->anchor->path + (a[0] ?
-			    strlen(a) + 1 : 0), sizeof(anchor_call));
-
+			strlcat(anchor_call,
+			    r->anchor->path + (a[0] ? strlen(a) + 1 : 0),
+			    sizeof(anchor_call));
 	}
 	if (r->anchor_wildcard)
 		strlcat(anchor_call, anchor_call[0] ? "/*" : "*",
@@ -472,8 +469,8 @@ pf_kanchor_copyout(const struct pf_kruleset *rs, const struct pf_krule *r,
 		strlcat(pr->anchor_call, r->anchor->path,
 		    sizeof(pr->anchor_call));
 	} else {
-		char	*a, *p;
-		int	 i;
+		char *a, *p;
+		int i;
 
 		a = (char *)rs_malloc(MAXPATHLEN);
 		if (a == NULL)
@@ -496,8 +493,9 @@ pf_kanchor_copyout(const struct pf_kruleset *rs, const struct pf_krule *r,
 			return (1);
 		}
 		if (strlen(r->anchor->path) > strlen(a))
-			strlcat(pr->anchor_call, r->anchor->path + (a[0] ?
-			    strlen(a) + 1 : 0), sizeof(pr->anchor_call));
+			strlcat(pr->anchor_call,
+			    r->anchor->path + (a[0] ? strlen(a) + 1 : 0),
+			    sizeof(pr->anchor_call));
 		rs_free(a);
 	}
 	if (r->anchor_wildcard)
@@ -524,7 +522,7 @@ pf_kanchor_remove(struct pf_krule *r)
 struct pf_keth_ruleset *
 pf_find_keth_ruleset(const char *path)
 {
-	struct pf_keth_anchor	*anchor;
+	struct pf_keth_anchor *anchor;
 
 	while (*path == '/')
 		path++;
@@ -540,7 +538,7 @@ pf_find_keth_ruleset(const char *path)
 static struct pf_keth_anchor *
 _pf_find_keth_anchor(struct pf_keth_ruleset *rs, const char *path)
 {
-	struct pf_keth_anchor	*key, *found;
+	struct pf_keth_anchor *key, *found;
 
 	key = (struct pf_keth_anchor *)rs_malloc(sizeof(*key));
 	if (key == NULL)
@@ -560,9 +558,9 @@ pf_find_keth_anchor(const char *path)
 struct pf_keth_ruleset *
 pf_find_or_create_keth_ruleset(const char *path)
 {
-	char			*p, *q, *r;
-	struct pf_keth_anchor	*anchor = NULL, *dup = NULL, *parent = NULL;
-	struct pf_keth_ruleset	*ruleset;
+	char *p, *q, *r;
+	struct pf_keth_anchor *anchor = NULL, *dup = NULL, *parent = NULL;
+	struct pf_keth_ruleset *ruleset;
 
 	if (path[0] == 0)
 		return (V_pf_keth);
@@ -595,8 +593,9 @@ pf_find_or_create_keth_ruleset(const char *path)
 		if (r != NULL)
 			*r = 0;
 		if (!*q || strlen(q) >= PF_ANCHOR_NAME_SIZE ||
-		    (parent != NULL && strlen(parent->path) >=
-		    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
+		    (parent != NULL &&
+			strlen(parent->path) >=
+			    MAXPATHLEN - PF_ANCHOR_NAME_SIZE - 1)) {
 			rs_free(p);
 			return (NULL);
 		}
@@ -613,25 +612,27 @@ pf_find_or_create_keth_ruleset(const char *path)
 			strlcat(anchor->path, "/", sizeof(anchor->path));
 		}
 		strlcat(anchor->path, anchor->name, sizeof(anchor->path));
-		if ((dup = RB_INSERT(pf_keth_anchor_global, &V_pf_keth_anchors, anchor)) !=
-		    NULL) {
+		if ((dup = RB_INSERT(pf_keth_anchor_global, &V_pf_keth_anchors,
+			 anchor)) != NULL) {
 			printf("%s: RB_INSERT1 "
-			    "'%s' '%s' collides with '%s' '%s'\n", __func__,
-			    anchor->path, anchor->name, dup->path, dup->name);
+			       "'%s' '%s' collides with '%s' '%s'\n",
+			    __func__, anchor->path, anchor->name, dup->path,
+			    dup->name);
 			rs_free(anchor);
 			rs_free(p);
 			return (NULL);
 		}
 		if (parent != NULL) {
 			anchor->parent = parent;
-			if ((dup = RB_INSERT(pf_keth_anchor_node, &parent->children,
-			    anchor)) != NULL) {
+			if ((dup = RB_INSERT(pf_keth_anchor_node,
+				 &parent->children, anchor)) != NULL) {
 				printf("%s: "
-				    "RB_INSERT2 '%s' '%s' collides with "
-				    "'%s' '%s'\n", __func__, anchor->path,
-				    anchor->name, dup->path, dup->name);
-				RB_REMOVE(pf_keth_anchor_global, &V_pf_keth_anchors,
-				    anchor);
+				       "RB_INSERT2 '%s' '%s' collides with "
+				       "'%s' '%s'\n",
+				    __func__, anchor->path, anchor->name,
+				    dup->path, dup->name);
+				RB_REMOVE(pf_keth_anchor_global,
+				    &V_pf_keth_anchors, anchor);
 				rs_free(anchor);
 				rs_free(p);
 				return (NULL);
@@ -653,8 +654,8 @@ int
 pf_keth_anchor_setup(struct pf_keth_rule *r, const struct pf_keth_ruleset *s,
     const char *name)
 {
-	char			*p, *path;
-	struct pf_keth_ruleset	*ruleset;
+	char *p, *path;
+	struct pf_keth_ruleset *ruleset;
 
 	r->anchor = NULL;
 	r->anchor_relative = 0;
@@ -723,8 +724,8 @@ pf_keth_anchor_remove(struct pf_keth_rule *r)
 void
 pf_remove_if_empty_keth_ruleset(struct pf_keth_ruleset *ruleset)
 {
-	struct pf_keth_anchor	*parent;
-	int			 i;
+	struct pf_keth_anchor *parent;
+	int i;
 
 	while (ruleset != NULL) {
 		if (ruleset == V_pf_keth || ruleset->anchor == NULL ||
@@ -736,7 +737,8 @@ pf_remove_if_empty_keth_ruleset(struct pf_keth_ruleset *ruleset)
 			    !TAILQ_EMPTY(ruleset->inactive.rules) ||
 			    ruleset->inactive.open)
 				return;
-		RB_REMOVE(pf_keth_anchor_global, &V_pf_keth_anchors, ruleset->anchor);
+		RB_REMOVE(pf_keth_anchor_global, &V_pf_keth_anchors,
+		    ruleset->anchor);
 		if ((parent = ruleset->anchor->parent) != NULL)
 			RB_REMOVE(pf_keth_anchor_node, &parent->children,
 			    ruleset->anchor);

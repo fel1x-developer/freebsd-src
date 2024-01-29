@@ -23,14 +23,14 @@
  * Use is subject to license terms.
  */
 
-#ifndef	_SYS_SYSEVENT_DEV_H
-#define	_SYS_SYSEVENT_DEV_H
+#ifndef _SYS_SYSEVENT_DEV_H
+#define _SYS_SYSEVENT_DEV_H
 
-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+#pragma ident "%Z%%M%	%I%	%E% SMI"
 
 #include <sys/sysevent/eventdefs.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -234,22 +234,22 @@ extern "C" {
  *			  without the "/devices" prefix.
  */
 
-#define	EV_VERSION		"version"
-#define	DEV_PHYS_PATH		"phys_path"
-#define	DEV_NAME		"dev_name"
-#define	DEV_DRIVER_NAME		"driver_name"
-#define	DEV_INSTANCE		"instance"
-#define	DEV_PROP_PREFIX		"prop-"
+#define EV_VERSION "version"
+#define DEV_PHYS_PATH "phys_path"
+#define DEV_NAME "dev_name"
+#define DEV_DRIVER_NAME "driver_name"
+#define DEV_INSTANCE "instance"
+#define DEV_PROP_PREFIX "prop-"
 
-#define	EV_V1			1
+#define EV_V1 1
 
 /* maximum number of devinfo node properties added to the event */
-#define	MAX_PROP_COUNT		100
+#define MAX_PROP_COUNT 100
 
 /* only properties with size less than PROP_LEN_LIMIT are added to the event */
-#define	PROP_LEN_LIMIT		1024
+#define PROP_LEN_LIMIT 1024
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 

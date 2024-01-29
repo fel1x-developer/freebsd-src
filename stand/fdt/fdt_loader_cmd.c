@@ -27,34 +27,39 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <libfdt.h>
-#include <fdt.h>
 #include <sys/param.h>
 #include <sys/linker.h>
+
 #include <machine/elf.h>
+
+#include <fdt.h>
+#include <libfdt.h>
+#include <stand.h>
 
 #include "bootstrap.h"
 #include "fdt_platform.h"
 
 #ifdef DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__);	\
-    printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
 
-#define FDT_CWD_LEN	256
-#define FDT_MAX_DEPTH	12
+#define FDT_CWD_LEN 256
+#define FDT_MAX_DEPTH 12
 
-#define FDT_PROP_SEP	" = "
+#define FDT_PROP_SEP " = "
 
-#define COPYOUT(s,d,l)	archsw.arch_copyout(s, d, l)
-#define COPYIN(s,d,l)	archsw.arch_copyin(s, d, l)
+#define COPYOUT(s, d, l) archsw.arch_copyout(s, d, l)
+#define COPYIN(s, d, l) archsw.arch_copyin(s, d, l)
 
-#define FDT_STATIC_DTB_SYMBOL	"fdt_static_dtb"
+#define FDT_STATIC_DTB_SYMBOL "fdt_static_dtb"
 
-#define	CMD_REQUIRES_BLOB	0x01
+#define CMD_REQUIRES_BLOB 0x01
 
 /* Location of FDT yet to be loaded. */
 /* This may be in read-only memory, so can't be manipulated directly. */
@@ -72,7 +77,7 @@ static void fdt_print_overlay_load_error(int err, const char *filename);
 static int fdt_check_overlay_compatible(void *base_fdt, void *overlay_fdt);
 
 static int fdt_cmd_nyi(int argc, char *argv[]);
-static int fdt_load_dtb_overlays_string(const char * filenames);
+static int fdt_load_dtb_overlays_string(const char *filenames);
 
 static int fdt_cmd_addr(int argc, char *argv[]);
 static int fdt_cmd_mkprop(int argc, char *argv[]);
@@ -88,25 +93,21 @@ static int fdt_cmd_mres(int argc, char *argv[]);
 typedef int cmdf_t(int, char *[]);
 
 struct cmdtab {
-	const char	*name;
-	cmdf_t		*handler;
-	int		flags;
+	const char *name;
+	cmdf_t *handler;
+	int flags;
 };
 
-static const struct cmdtab commands[] = {
-	{ "addr", &fdt_cmd_addr,	0 },
-	{ "alias", &fdt_cmd_nyi,	0 },
-	{ "cd", &fdt_cmd_cd,		CMD_REQUIRES_BLOB },
-	{ "header", &fdt_cmd_hdr,	CMD_REQUIRES_BLOB },
-	{ "ls", &fdt_cmd_ls,		CMD_REQUIRES_BLOB },
-	{ "mknode", &fdt_cmd_mknode,	CMD_REQUIRES_BLOB },
-	{ "mkprop", &fdt_cmd_mkprop,	CMD_REQUIRES_BLOB },
-	{ "mres", &fdt_cmd_mres,	CMD_REQUIRES_BLOB },
-	{ "prop", &fdt_cmd_prop,	CMD_REQUIRES_BLOB },
-	{ "pwd", &fdt_cmd_pwd,		CMD_REQUIRES_BLOB },
-	{ "rm", &fdt_cmd_rm,		CMD_REQUIRES_BLOB },
-	{ NULL, NULL }
-};
+static const struct cmdtab commands[] = { { "addr", &fdt_cmd_addr, 0 },
+	{ "alias", &fdt_cmd_nyi, 0 }, { "cd", &fdt_cmd_cd, CMD_REQUIRES_BLOB },
+	{ "header", &fdt_cmd_hdr, CMD_REQUIRES_BLOB },
+	{ "ls", &fdt_cmd_ls, CMD_REQUIRES_BLOB },
+	{ "mknode", &fdt_cmd_mknode, CMD_REQUIRES_BLOB },
+	{ "mkprop", &fdt_cmd_mkprop, CMD_REQUIRES_BLOB },
+	{ "mres", &fdt_cmd_mres, CMD_REQUIRES_BLOB },
+	{ "prop", &fdt_cmd_prop, CMD_REQUIRES_BLOB },
+	{ "pwd", &fdt_cmd_pwd, CMD_REQUIRES_BLOB },
+	{ "rm", &fdt_cmd_rm, CMD_REQUIRES_BLOB }, { NULL, NULL } };
 
 static char cwd[FDT_CWD_LEN] = "/";
 
@@ -217,7 +218,8 @@ fdt_load_dtb(vm_offset_t va)
 	}
 
 	COPYOUT(va, fdtp, fdtp_size);
-	debugf("DTB blob found at 0x%jx, size: 0x%jx\n", (uintmax_t)va, (uintmax_t)fdtp_size);
+	debugf("DTB blob found at 0x%jx, size: 0x%jx\n", (uintmax_t)va,
+	    (uintmax_t)fdtp_size);
 
 	return (0);
 }
@@ -247,7 +249,7 @@ fdt_load_dtb_addr(struct fdt_header *header)
 }
 
 int
-fdt_load_dtb_file(const char * filename)
+fdt_load_dtb_file(const char *filename)
 {
 	struct preloaded_file *bfp, *oldbfp;
 	int err;
@@ -274,7 +276,7 @@ fdt_load_dtb_file(const char * filename)
 }
 
 static int
-fdt_load_dtb_overlay(const char * filename)
+fdt_load_dtb_overlay(const char *filename)
 {
 	struct preloaded_file *bfp;
 	struct fdt_header header;
@@ -307,27 +309,26 @@ fdt_print_overlay_load_error(int err, const char *filename)
 {
 
 	switch (err) {
-		case FDT_ERR_NOTFOUND:
-			printf("%s: failed to load file\n", filename);
-			break;
-		case -FDT_ERR_BADVERSION:
-			printf("%s: incompatible blob version: %d, should be: %d\n",
-			    filename, fdt_version(fdtp),
-			    FDT_LAST_SUPPORTED_VERSION);
-			break;
-		default:
-			/* libfdt errs are negative */
-			if (err < 0)
-				printf("%s: error validating blob: %s\n",
-				    filename, fdt_strerror(err));
-			else
-				printf("%s: unknown load error\n", filename);
-			break;
+	case FDT_ERR_NOTFOUND:
+		printf("%s: failed to load file\n", filename);
+		break;
+	case -FDT_ERR_BADVERSION:
+		printf("%s: incompatible blob version: %d, should be: %d\n",
+		    filename, fdt_version(fdtp), FDT_LAST_SUPPORTED_VERSION);
+		break;
+	default:
+		/* libfdt errs are negative */
+		if (err < 0)
+			printf("%s: error validating blob: %s\n", filename,
+			    fdt_strerror(err));
+		else
+			printf("%s: unknown load error\n", filename);
+		break;
 	}
 }
 
 static int
-fdt_load_dtb_overlays_string(const char * filenames)
+fdt_load_dtb_overlays_string(const char *filenames)
 {
 	char *names;
 	char *name, *name_ext;
@@ -362,7 +363,7 @@ fdt_load_dtb_overlays_string(const char * filenames)
 		if (err != 0)
 			fdt_print_overlay_load_error(err, name);
 		name = comaptr + 1;
-	} while(comaptr);
+	} while (comaptr);
 
 	free(names);
 	return (0);
@@ -393,7 +394,8 @@ fdt_check_overlay_compatible(void *base_fdt, void *overlay_fdt)
 	 * The user assumes the risk of using an overlay without /compatible.
 	 */
 	if (fdt_get_property(overlay_fdt, oroot_offset, "compatible",
-	    &ocompat_len) == NULL || ocompat_len == 0)
+		&ocompat_len) == NULL ||
+	    ocompat_len == 0)
 		return (0);
 	root_offset = fdt_path_offset(base_fdt, "/");
 	if (root_offset < 0)
@@ -403,9 +405,9 @@ fdt_check_overlay_compatible(void *base_fdt, void *overlay_fdt)
 	 * because allowing this offers no advantages.
 	 */
 	if (fdt_get_property(base_fdt, root_offset, "compatible",
-	    &compat_len) == NULL)
+		&compat_len) == NULL)
 		return (compat_len);
-	else if(compat_len == 0)
+	else if (compat_len == 0)
 		return (1);
 
 	slidx = 0;
@@ -413,7 +415,7 @@ fdt_check_overlay_compatible(void *base_fdt, void *overlay_fdt)
 	    slidx, &sllen);
 	while (compat != NULL) {
 		if (fdt_stringlist_search(base_fdt, root_offset, "compatible",
-		    compat) >= 0)
+			compat) >= 0)
 			return (0);
 		++slidx;
 		compat = fdt_stringlist_get(overlay_fdt, oroot_offset,
@@ -456,7 +458,8 @@ fdt_apply_overlays(void)
 
 	overlay = malloc(max_overlay_size);
 	if (overlay == NULL) {
-		printf("failed to allocate memory for DTB blob with overlays\n");
+		printf(
+		    "failed to allocate memory for DTB blob with overlays\n");
 		return (0);
 	}
 	current_fdtp = fdtp;
@@ -555,13 +558,13 @@ fdt_setup_fdtp(void)
 {
 	struct preloaded_file *bfp;
 	vm_offset_t va;
-	
+
 	debugf("fdt_setup_fdtp()\n");
 
 	/* If we already loaded a file, use it. */
 	if ((bfp = file_findfile(NULL, "dtb")) != NULL) {
 		if (fdt_load_dtb(bfp->f_addr) == 0) {
-			printf("Using DTB from loaded file '%s'.\n", 
+			printf("Using DTB from loaded file '%s'.\n",
 			    bfp->f_name);
 			fdt_platform_load_overlays();
 			return (0);
@@ -590,17 +593,17 @@ fdt_setup_fdtp(void)
 			return (0);
 		}
 	}
-	
+
 	command_errmsg = "No device tree blob found!\n";
 	return (1);
 }
 
-#define fdt_strtovect(str, cellbuf, lim, cellsize) _fdt_strtovect((str), \
-    (cellbuf), (lim), (cellsize), 0);
+#define fdt_strtovect(str, cellbuf, lim, cellsize) \
+	_fdt_strtovect((str), (cellbuf), (lim), (cellsize), 0);
 
 /* Force using base 16 */
-#define fdt_strtovectx(str, cellbuf, lim, cellsize) _fdt_strtovect((str), \
-    (cellbuf), (lim), (cellsize), 16);
+#define fdt_strtovectx(str, cellbuf, lim, cellsize) \
+	_fdt_strtovect((str), (cellbuf), (lim), (cellsize), 16);
 
 static int
 _fdt_strtovect(const char *str, void *cellbuf, int lim, unsigned char cellsize,
@@ -627,8 +630,8 @@ _fdt_strtovect(const char *str, void *cellbuf, int lim, unsigned char cellsize,
 			buf++;
 
 		if (u32buf != NULL)
-			u32buf[cnt] =
-			    cpu_to_fdt32((uint32_t)strtol(buf, NULL, base));
+			u32buf[cnt] = cpu_to_fdt32(
+			    (uint32_t)strtol(buf, NULL, base));
 
 		else
 			u8buf[cnt] = (uint8_t)strtol(buf, NULL, base);
@@ -653,8 +656,8 @@ fdt_fixup_ethernet(const char *str, char *ethstr, int len)
 	/* Convert macaddr string into a vector of uints */
 	fdt_strtovectx(str, &tmp_addr, 6, sizeof(uint8_t));
 	/* Set actual property to a value from vect */
-	fdt_setprop(fdtp, fdt_path_offset(fdtp, ethstr),
-	    "local-mac-address", &tmp_addr, 6 * sizeof(uint8_t));
+	fdt_setprop(fdtp, fdt_path_offset(fdtp, ethstr), "local-mac-address",
+	    &tmp_addr, 6 * sizeof(uint8_t));
 }
 
 void
@@ -675,8 +678,8 @@ fdt_fixup_cpubusfreqs(unsigned long cpufreq, unsigned long busfreq)
 		maxo = fdt_next_node(fdtp, maxo, &depth);
 
 	/* Find CPU frequency properties */
-	o = fdt_node_offset_by_prop_value(fdtp, o, "clock-frequency",
-	    &zero, sizeof(uint32_t));
+	o = fdt_node_offset_by_prop_value(fdtp, o, "clock-frequency", &zero,
+	    sizeof(uint32_t));
 
 	o2 = fdt_node_offset_by_prop_value(fdtp, o, "bus-frequency", &zero,
 	    sizeof(uint32_t));
@@ -685,8 +688,8 @@ fdt_fixup_cpubusfreqs(unsigned long cpufreq, unsigned long busfreq)
 
 	while (o != -FDT_ERR_NOTFOUND && o2 != -FDT_ERR_NOTFOUND) {
 
-		o = fdt_node_offset_by_prop_value(fdtp, lo,
-		    "clock-frequency", &zero, sizeof(uint32_t));
+		o = fdt_node_offset_by_prop_value(fdtp, lo, "clock-frequency",
+		    &zero, sizeof(uint32_t));
 
 		o2 = fdt_node_offset_by_prop_value(fdtp, lo, "bus-frequency",
 		    &zero, sizeof(uint32_t));
@@ -732,8 +735,8 @@ fdt_reg_valid(uint32_t *reg, int len, int addr_cells, int size_cells)
 		if (cur_size == 0)
 			return (EINVAL);
 
-		debugf(" reg#%d (start: 0x%0x size: 0x%0x) valid!\n",
-		    i, cur_start, cur_size);
+		debugf(" reg#%d (start: 0x%0x size: 0x%0x) valid!\n", i,
+		    cur_start, cur_size);
 	}
 	return (0);
 }
@@ -764,7 +767,8 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 		if (memory <= 0) {
 			snprintf(command_errbuf, sizeof(command_errbuf),
 			    "Could not fixup '/memory' "
-			    "node, error code : %d!\n", memory);
+			    "node, error code : %d!\n",
+			    memory);
 			return;
 		}
 
@@ -796,8 +800,7 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 	 * Check if property already exists
 	 */
 	reserved = fdt_num_mem_rsv(fdtp);
-	if (reserved &&
-	    (fdt_getprop(fdtp, root, "memreserve", NULL) == NULL)) {
+	if (reserved && (fdt_getprop(fdtp, root, "memreserve", NULL) == NULL)) {
 		len = (addr_cells + size_cells) * reserved * sizeof(uint32_t);
 		sb = buf = (uint8_t *)malloc(len);
 		if (!buf)
@@ -809,21 +812,18 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 			if (fdt_get_mem_rsv(fdtp, i, &rstart, &rsize))
 				break;
 			if (rsize) {
-				/* Ensure endianness, and put cells into a buffer */
+				/* Ensure endianness, and put cells into a
+				 * buffer */
 				if (addr_cells == 2)
-					*(uint64_t *)buf =
-					    cpu_to_fdt64(rstart);
+					*(uint64_t *)buf = cpu_to_fdt64(rstart);
 				else
-					*(uint32_t *)buf =
-					    cpu_to_fdt32(rstart);
+					*(uint32_t *)buf = cpu_to_fdt32(rstart);
 
 				buf += sizeof(uint32_t) * addr_cells;
 				if (size_cells == 2)
-					*(uint64_t *)buf =
-					    cpu_to_fdt64(rsize);
+					*(uint64_t *)buf = cpu_to_fdt64(rsize);
 				else
-					*(uint32_t *)buf =
-					    cpu_to_fdt32(rsize);
+					*(uint32_t *)buf = cpu_to_fdt32(rsize);
 
 				buf += sizeof(uint32_t) * size_cells;
 			}
@@ -834,7 +834,7 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 			printf("Could not fixup 'memreserve' property.\n");
 
 		free(sb);
-	} 
+	}
 
 	/* Count valid memory regions entries in sysinfo. */
 	realmrno = num;
@@ -843,7 +843,8 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 			realmrno--;
 
 	if (realmrno == 0) {
-		sprintf(command_errbuf, "Could not fixup '/memory' node : "
+		sprintf(command_errbuf,
+		    "Could not fixup '/memory' node : "
 		    "sysinfo doesn't contain valid memory regions info!\n");
 		return;
 	}
@@ -860,19 +861,15 @@ fdt_fixup_memory(struct fdt_mem_region *region, size_t num)
 		if (curmr->size != 0) {
 			/* Ensure endianness, and put cells into a buffer */
 			if (addr_cells == 2)
-				*(uint64_t *)buf =
-				    cpu_to_fdt64(curmr->start);
+				*(uint64_t *)buf = cpu_to_fdt64(curmr->start);
 			else
-				*(uint32_t *)buf =
-				    cpu_to_fdt32(curmr->start);
+				*(uint32_t *)buf = cpu_to_fdt32(curmr->start);
 
 			buf += sizeof(uint32_t) * addr_cells;
 			if (size_cells == 2)
-				*(uint64_t *)buf =
-				    cpu_to_fdt64(curmr->size);
+				*(uint64_t *)buf = cpu_to_fdt64(curmr->size);
 			else
-				*(uint32_t *)buf =
-				    cpu_to_fdt32(curmr->size);
+				*(uint32_t *)buf = cpu_to_fdt32(curmr->size);
 
 			buf += sizeof(uint32_t) * size_cells;
 		}
@@ -924,10 +921,8 @@ fdt_fixup_stdout(const char *str)
 			 */
 			return;
 
-		fdt_setprop(fdtp, no, "stdout", &tmp,
-		    strlen((char *)&tmp) + 1);
-		fdt_setprop(fdtp, no, "stdin", &tmp,
-		    strlen((char *)&tmp) + 1);
+		fdt_setprop(fdtp, no, "stdout", &tmp, strlen((char *)&tmp) + 1);
+		fdt_setprop(fdtp, no, "stdin", &tmp, strlen((char *)&tmp) + 1);
 	}
 }
 
@@ -1007,8 +1002,6 @@ fdt_copy(vm_offset_t va)
 	return (fdtp_size);
 }
 
-
-
 int
 command_fdt_internal(int argc, char *argv[])
 {
@@ -1042,7 +1035,8 @@ command_fdt_internal(int argc, char *argv[])
 
 	if (flags & CMD_REQUIRES_BLOB) {
 		/*
-		 * Check if uboot env vars were parsed already. If not, do it now.
+		 * Check if uboot env vars were parsed already. If not, do it
+		 * now.
 		 */
 		if (fdt_fixup() == 0)
 			return (CMD_ERROR);
@@ -1163,7 +1157,7 @@ fdt_cmd_hdr(int argc __unused, char *argv[] __unused)
 	    fdt_off_mem_rsvmap(fdtp));
 	if (pager_output(line))
 		goto out;
-	sprintf(line, " version                 = %d\n", ver); 
+	sprintf(line, " version                 = %d\n", ver);
 	if (pager_output(line))
 		goto out;
 	sprintf(line, " last compatible version = %d\n",
@@ -1213,9 +1207,8 @@ fdt_cmd_ls(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 
-	for (depth = 0;
-	    (o >= 0) && (depth >= 0);
-	    o = fdt_next_node(fdtp, o, &depth)) {
+	for (depth = 0; (o >= 0) && (depth >= 0);
+	     o = fdt_next_node(fdtp, o, &depth)) {
 
 		name = fdt_get_name(fdtp, o, NULL);
 
@@ -1328,8 +1321,7 @@ fdt_data_str(const void *data, int len, int count, char **buf)
 		d = (const char *)data + i;
 		l = strlen(d) + 1;
 
-		sprintf(tmp, "\"%s\"%s", d,
-		    (i + l) < len ?  ", " : "");
+		sprintf(tmp, "\"%s\"%s", d, (i + l) < len ? ", " : "");
 		strcat(b, tmp);
 
 		i += l;
@@ -1506,8 +1498,8 @@ fdt_prop(int offset)
 		goto out2;
 	}
 
-	line = (char *)malloc(strlen(name) + strlen(FDT_PROP_SEP) +
-	    strlen(buf) + 2);
+	line = (char *)malloc(
+	    strlen(name) + strlen(FDT_PROP_SEP) + strlen(buf) + 2);
 	if (line == NULL) {
 		sprintf(command_errbuf, "could not allocate space for string");
 		rv = 4;
@@ -1543,7 +1535,7 @@ fdt_modprop(int nodeoff, char *propname, void *value, char mode)
 
 	if (p != NULL) {
 		if (mode == 1) {
-			 /* Adding inexistant value in mode 1 is forbidden */
+			/* Adding inexistant value in mode 1 is forbidden */
 			sprintf(command_errbuf, "property already exists!");
 			return (CMD_ERROR);
 		}
@@ -1560,16 +1552,14 @@ fdt_modprop(int nodeoff, char *propname, void *value, char mode)
 		break;
 	case '<':
 		/* Data cells */
-		len = fdt_strtovect(buf, (void *)&cells, 100,
-		    sizeof(uint32_t));
+		len = fdt_strtovect(buf, (void *)&cells, 100, sizeof(uint32_t));
 
 		rv = fdt_setprop(fdtp, nodeoff, propname, &cells,
 		    len * sizeof(uint32_t));
 		break;
 	case '[':
 		/* Data bytes */
-		len = fdt_strtovect(buf, (void *)&cells, 100,
-		    sizeof(uint8_t));
+		len = fdt_strtovect(buf, (void *)&cells, 100, sizeof(uint8_t));
 
 		rv = fdt_setprop(fdtp, nodeoff, propname, &cells,
 		    len * sizeof(uint8_t));
@@ -1610,7 +1600,8 @@ fdt_merge_strings(int argc, char *argv[], int start, char **buffer)
 
 	buf = (char *)malloc(sizeof(char) * sz);
 	if (buf == NULL) {
-		sprintf(command_errbuf, "could not allocate space "
+		sprintf(command_errbuf,
+		    "could not allocate space "
 		    "for string");
 		return (1);
 	}
@@ -1696,7 +1687,6 @@ fdt_cmd_prop(int argc, char *argv[])
 		if (rv)
 			return (CMD_ERROR);
 		return (CMD_OK);
-
 	}
 	/* User wants to display properties */
 	o = fdt_path_offset(fdtp, path);
@@ -1720,7 +1710,8 @@ fdt_cmd_prop(int argc, char *argv[])
 				break;
 
 			if (fdt_prop(o) != 0) {
-				sprintf(command_errbuf, "could not process "
+				sprintf(command_errbuf,
+				    "could not process "
 				    "property");
 				rv = CMD_ERROR;
 				goto out;
@@ -1799,7 +1790,8 @@ fdt_cmd_rm(int argc, char *argv[])
 			snprintf(command_errbuf, sizeof(command_errbuf),
 			    "could not delete %s\n",
 			    (rv == -FDT_ERR_NOTFOUND) ?
-			    "(property/node does not exist)" : "");
+				"(property/node does not exist)" :
+				"");
 			return (CMD_ERROR);
 
 		} else
@@ -1837,8 +1829,7 @@ fdt_cmd_mknode(int argc, char *argv[])
 			sprintf(command_errbuf,
 			    "Device tree blob is too small!\n");
 		else
-			sprintf(command_errbuf,
-			    "Could not add node!\n");
+			sprintf(command_errbuf, "Could not add node!\n");
 		return (CMD_ERROR);
 	}
 	return (CMD_OK);
@@ -1870,7 +1861,7 @@ fdt_cmd_mres(int argc, char *argv[])
 			goto out;
 		for (i = 0; i < total; i++) {
 			fdt_get_mem_rsv(fdtp, i, &start, &size);
-			sprintf(line, "reg#%d: (start: 0x%jx, size: 0x%jx)\n", 
+			sprintf(line, "reg#%d: (start: 0x%jx, size: 0x%jx)\n",
 			    i, start, size);
 			if (pager_output(line))
 				goto out;

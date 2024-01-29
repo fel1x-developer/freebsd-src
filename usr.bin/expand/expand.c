@@ -41,11 +41,11 @@
 /*
  * expand - expand tabs to equivalent spaces
  */
-static int	nstops;
-static int	tabstops[100];
+static int nstops;
+static int tabstops[100];
 
 static void getstops(char *);
-static void usage(void) __dead2; 
+static void usage(void) __dead2;
 
 int
 main(int argc, char *argv[])
@@ -63,10 +63,11 @@ main(int argc, char *argv[])
 	while (argc > 1 && argv[1][0] == '-' &&
 	    isdigit((unsigned char)argv[1][1])) {
 		getstops(&argv[1][1]);
-		argc--; argv++;
+		argc--;
+		argv++;
 	}
 
-	while ((c = getopt (argc, argv, "t:")) != -1) {
+	while ((c = getopt(argc, argv, "t:")) != -1) {
 		switch (c) {
 		case 't':
 			getstops(optarg);
@@ -108,7 +109,8 @@ main(int argc, char *argv[])
 					do {
 						putwchar(' ');
 						column++;
-					} while (((column - 1) % tabstops[0]) != (tabstops[0] - 1));
+					} while (((column - 1) % tabstops[0]) !=
+					    (tabstops[0] - 1));
 					continue;
 				}
 				for (n = 0; n < nstops; n++)
@@ -163,7 +165,7 @@ getstops(char *cp)
 			i = i * 10 + *cp++ - '0';
 		if (i <= 0)
 			errx(1, "bad tab stop spec");
-		if (nstops > 0 && i <= tabstops[nstops-1])
+		if (nstops > 0 && i <= tabstops[nstops - 1])
 			errx(1, "bad tab stop spec");
 		if (nstops == sizeof(tabstops) / sizeof(*tabstops))
 			errx(1, "too many tab stops");
@@ -179,6 +181,6 @@ getstops(char *cp)
 static void
 usage(void)
 {
-	(void)fprintf (stderr, "usage: expand [-t tablist] [file ...]\n");
+	(void)fprintf(stderr, "usage: expand [-t tablist] [file ...]\n");
 	exit(1);
 }

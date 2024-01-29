@@ -71,49 +71,42 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/bus.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
 
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
+#include "miibus_if.h"
 #include "miidevs.h"
 
-#include "miibus_if.h"
-
-static int	gentbi_probe(device_t);
-static int	gentbi_attach(device_t);
+static int gentbi_probe(device_t);
+static int gentbi_attach(device_t);
 
 static device_method_t gentbi_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		gentbi_probe),
-	DEVMETHOD(device_attach,	gentbi_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, gentbi_probe),
+	DEVMETHOD(device_attach, gentbi_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t gentbi_driver = {
-	"gentbi",
-	gentbi_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t gentbi_driver = { "gentbi", gentbi_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(gentbi, miibus, gentbi_driver, 0, 0);
 
-static int	gentbi_service(struct mii_softc *, struct mii_data *, int);
-static void	gentbi_status(struct mii_softc *);
+static int gentbi_service(struct mii_softc *, struct mii_data *, int);
+static void gentbi_status(struct mii_softc *);
 
-static const struct mii_phy_funcs gentbi_funcs = {
-	gentbi_service,
-	gentbi_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs gentbi_funcs = { gentbi_service,
+	gentbi_status, mii_phy_reset };
 
 static int
 gentbi_probe(device_t dev)
@@ -136,10 +129,10 @@ gentbi_probe(device_t dev)
 		return (ENXIO);
 
 	extsr = MIIBUS_READREG(parent, ma->mii_phyno, MII_EXTSR);
-	if (extsr & (EXTSR_1000TFDX|EXTSR_1000THDX))
+	if (extsr & (EXTSR_1000TFDX | EXTSR_1000THDX))
 		return (ENXIO);
 
-	if (extsr & (EXTSR_1000XFDX|EXTSR_1000XHDX)) {
+	if (extsr & (EXTSR_1000XFDX | EXTSR_1000XHDX)) {
 		/*
 		 * We think this is a generic TBI.  Return a match
 		 * priority higher than ukphy, but lower than what
@@ -167,8 +160,8 @@ gentbi_attach(device_t dev)
 	 * Mask out all media in the BMSR.  We only are really interested
 	 * in "auto".
 	 */
-	sc->mii_capabilities =
-	    PHY_READ(sc, MII_BMSR) & sc->mii_capmask & ~BMSR_MEDIAMASK;
+	sc->mii_capabilities = PHY_READ(sc, MII_BMSR) & sc->mii_capmask &
+	    ~BMSR_MEDIAMASK;
 	if (sc->mii_capabilities & BMSR_EXTSTAT)
 		sc->mii_extcapabilities = PHY_READ(sc, MII_EXTSR);
 
@@ -250,8 +243,8 @@ gentbi_status(struct mii_softc *sc)
 		anlpar = PHY_READ(sc, MII_ANLPAR);
 		if ((sc->mii_extcapabilities & EXTSR_1000XFDX) != 0 &&
 		    (anlpar & ANLPAR_X_FD) != 0)
-			mii->mii_media_active |=
-			    IFM_FDX | mii_phy_flowstatus(sc);
+			mii->mii_media_active |= IFM_FDX |
+			    mii_phy_flowstatus(sc);
 		else
 			mii->mii_media_active |= IFM_HDX;
 	} else

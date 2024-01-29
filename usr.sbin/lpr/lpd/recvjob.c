@@ -30,7 +30,7 @@
  * SUCH DAMAGE.
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * Receive printer jobs from the network, queue them and
  * start the printer daemon.
@@ -39,41 +39,41 @@
 #include <sys/mount.h>
 #include <sys/stat.h>
 
-#include <unistd.h>
-#include <signal.h>
-#include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
-#include <syslog.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lp.h"
-#include "lp.local.h"
+#include <syslog.h>
+#include <unistd.h>
+
 #include "ctlinfo.h"
 #include "extern.h"
+#include "lp.h"
+#include "lp.local.h"
 #include "pathnames.h"
 
-#define ack()	(void) write(STDOUT_FILENO, sp, (size_t)1)
+#define ack() (void)write(STDOUT_FILENO, sp, (size_t)1)
 
 /*
  * The buffer size to use when reading/writing spool files.
  */
-#define	SPL_BUFSIZ	BUFSIZ
+#define SPL_BUFSIZ BUFSIZ
 
-static char	 dfname[NAME_MAX];	/* data files */
-static int	 minfree;       /* keep at least minfree blocks available */
-static const char	*sp = "";
-static char	 tfname[NAME_MAX];	/* tmp copy of cf before linking */
+static char dfname[NAME_MAX]; /* data files */
+static int minfree;	      /* keep at least minfree blocks available */
+static const char *sp = "";
+static char tfname[NAME_MAX]; /* tmp copy of cf before linking */
 
-static int	 chksize(int _size);
-static void	 frecverr(const char *_msg, ...) __printf0like(1, 2);
-static int	 noresponse(void);
-static void	 rcleanup(int _signo);
-static int	 read_number(const char *_fn);
-static int	 readfile(struct printer *_pp, char *_file, size_t _size);
-static int	 readjob(struct printer *_pp);
-
+static int chksize(int _size);
+static void frecverr(const char *_msg, ...) __printf0like(1, 2);
+static int noresponse(void);
+static void rcleanup(int _signo);
+static int read_number(const char *_fn);
+static int readfile(struct printer *_pp, char *_file, size_t _size);
+static int readjob(struct printer *_pp);
 
 void
 recvjob(const char *printer)
@@ -99,11 +99,11 @@ recvjob(const char *printer)
 	default:
 		break;
 	}
-	
-	(void) close(STDERR_FILENO);			/* set up log file */
-	if (open(pp->log_file, O_WRONLY|O_APPEND, 0664) < 0) {
+
+	(void)close(STDERR_FILENO); /* set up log file */
+	if (open(pp->log_file, O_WRONLY | O_APPEND, 0664) < 0) {
 		syslog(LOG_ERR, "%s: %m", pp->log_file);
-		(void) open(_PATH_DEVNULL, O_WRONLY);
+		(void)open(_PATH_DEVNULL, O_WRONLY);
 	}
 
 	if (chdir(pp->spool_dir) < 0)
@@ -112,13 +112,13 @@ recvjob(const char *printer)
 	if (stat(pp->lock_file, &stb) == 0) {
 		if (stb.st_mode & 010) {
 			/* queue is disabled */
-			putchar('\1');		/* return error code */
+			putchar('\1'); /* return error code */
 			exit(1);
 		}
 	} else if (stat(pp->spool_dir, &stb) < 0)
 		frecverr("%s: stat(%s): %s", pp->printer, pp->spool_dir,
 		    strerror(errno));
-	minfree = 2 * read_number("minfree");	/* scale KB to 512 blocks */
+	minfree = 2 * read_number("minfree"); /* scale KB to 512 blocks */
 	signal(SIGTERM, rcleanup);
 	signal(SIGPIPE, rcleanup);
 
@@ -165,11 +165,11 @@ readjob(struct printer *pp)
 		*--cp = '\0';
 		cp = line;
 		switch (*cp++) {
-		case '\1':	/* cleanup because data sent was bad */
+		case '\1': /* cleanup because data sent was bad */
 			rcleanup(0);
 			continue;
 
-		case '\2':	/* read cf file */
+		case '\2': /* read cf file */
 			size = 0;
 			dfcnt = 0;
 			while (*cp >= '0' && *cp <= '9')
@@ -182,17 +182,17 @@ readjob(struct printer *pp)
 			 * something different than what gethostbyaddr()
 			 * returns
 			 */
-			strlcpy(cp + 6, from_host, sizeof(line)
-			    + (size_t)(line - cp - 6));
+			strlcpy(cp + 6, from_host,
+			    sizeof(line) + (size_t)(line - cp - 6));
 			if (strchr(cp, '/')) {
 				frecverr("readjob: %s: illegal path name", cp);
 				/*NOTREACHED*/
 			}
 			strlcpy(tfname, cp, sizeof(tfname));
-			tfname[sizeof (tfname) - 1] = '\0';
+			tfname[sizeof(tfname) - 1] = '\0';
 			tfname[0] = 't';
 			if (!chksize(size)) {
-				(void) write(STDOUT_FILENO, "\2", (size_t)1);
+				(void)write(STDOUT_FILENO, "\2", (size_t)1);
 				continue;
 			}
 			if (!readfile(pp, tfname, (size_t)size)) {
@@ -208,7 +208,7 @@ readjob(struct printer *pp)
 			cfcnt++;
 			continue;
 
-		case '\3':	/* read df file */
+		case '\3': /* read df file */
 			*givenid = '\0';
 			*givenhost = '\0';
 			size = 0;
@@ -221,13 +221,13 @@ readjob(struct printer *pp)
 				/*NOTREACHED*/
 			}
 			if (!chksize(size)) {
-				(void) write(STDOUT_FILENO, "\2", (size_t)1);
+				(void)write(STDOUT_FILENO, "\2", (size_t)1);
 				continue;
 			}
 			strlcpy(dfname, cp, sizeof(dfname));
 			dfcnt++;
 			trstat_init(pp, dfname, dfcnt);
-			(void) readfile(pp, dfname, (size_t)size);
+			(void)readfile(pp, dfname, (size_t)size);
 			trstat_write(pp, TR_RECVING, (size_t)size, givenid,
 			    from_host, givenhost);
 			continue;
@@ -248,10 +248,10 @@ readfile(struct printer *pp, char *file, size_t size)
 	size_t amt, i;
 	int err, fd, j;
 
-	fd = open(file, O_CREAT|O_EXCL|O_WRONLY, FILMOD);
+	fd = open(file, O_CREAT | O_EXCL | O_WRONLY, FILMOD);
 	if (fd < 0) {
-		frecverr("%s: readfile: error on open(%s): %s",
-			 pp->printer, file, strerror(errno));
+		frecverr("%s: readfile: error on open(%s): %s", pp->printer,
+		    file, strerror(errno));
 		/*NOTREACHED*/
 	}
 	ack();
@@ -278,14 +278,14 @@ readfile(struct printer *pp, char *file, size_t size)
 			break;
 		}
 	}
-	(void) close(fd);
+	(void)close(fd);
 	if (err) {
 		frecverr("%s: write error on close(%s)", pp->printer, file);
 		/*NOTREACHED*/
 	}
-	if (noresponse()) {		/* file sent had bad data in it */
+	if (noresponse()) { /* file sent had bad data in it */
 		if (strchr(file, '/') == NULL)
-			(void) unlink(file);
+			(void)unlink(file);
 		return (0);
 	}
 	ack();
@@ -302,8 +302,8 @@ noresponse(void)
 		/*NOTREACHED*/
 	}
 	if (resp == '\0')
-		return(0);
-	return(1);
+		return (0);
+	return (1);
 }
 
 /*
@@ -323,8 +323,8 @@ chksize(int size)
 	spacefree = sfb.f_bavail * (sfb.f_bsize / 512);
 	size = (size + 511) / 512;
 	if (minfree + size > spacefree)
-		return(0);
-	return(1);
+		return (0);
+	return (1);
 }
 
 static int
@@ -350,11 +350,11 @@ static void
 rcleanup(int signo __unused)
 {
 	if (tfname[0] && strchr(tfname, '/') == NULL)
-		(void) unlink(tfname);
+		(void)unlink(tfname);
 	if (dfname[0] && strchr(dfname, '/') == NULL) {
 		do {
 			do
-				(void) unlink(dfname);
+				(void)unlink(dfname);
 			while (dfname[2]-- != 'A');
 			dfname[2] = 'z';
 		} while (dfname[0]-- != 'd');
@@ -378,7 +378,7 @@ frecverr(const char *msg, ...)
 	 * supplied as parameters for that msg...
 	 */
 	rcleanup(0);
-	/* 
+	/*
 	 * Add a minimal delay before returning the final error code to
 	 * the sending host.  This just in case that machine responds
 	 * this error by INSTANTLY retrying (and instantly re-failing...).
@@ -386,8 +386,8 @@ frecverr(const char *msg, ...)
 	 * was a broken implementation which did it, the result might be
 	 * obscure performance problems and a flood of syslog messages on
 	 * the receiving host.
-	 */ 
-	sleep(2);		/* a paranoid throttling measure */
-	putchar('\1');		/* return error code */
+	 */
+	sleep(2);      /* a paranoid throttling measure */
+	putchar('\1'); /* return error code */
 	exit(1);
 }

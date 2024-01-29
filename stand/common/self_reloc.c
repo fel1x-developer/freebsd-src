@@ -25,36 +25,37 @@
  */
 
 #include <sys/types.h>
-#include <elf.h>
+
 #include <bootstrap.h>
+#include <elf.h>
 
 #if defined(__aarch64__) || defined(__amd64__) || defined(__riscv)
-#define	ElfW_Rel	Elf64_Rela
-#define	ElfW_Dyn	Elf64_Dyn
-#define	ELFW_R_TYPE	ELF64_R_TYPE
-#define	ELF_RELA
+#define ElfW_Rel Elf64_Rela
+#define ElfW_Dyn Elf64_Dyn
+#define ELFW_R_TYPE ELF64_R_TYPE
+#define ELF_RELA
 #elif defined(__arm__) || defined(__i386__)
-#define	ElfW_Rel	Elf32_Rel
-#define	ElfW_Dyn	Elf32_Dyn
-#define	ELFW_R_TYPE	ELF32_R_TYPE
+#define ElfW_Rel Elf32_Rel
+#define ElfW_Dyn Elf32_Dyn
+#define ELFW_R_TYPE ELF32_R_TYPE
 #else
 #error architecture not supported
 #endif
 #if defined(__aarch64__)
-#define	RELOC_TYPE_NONE		R_AARCH64_NONE
-#define	RELOC_TYPE_RELATIVE	R_AARCH64_RELATIVE
+#define RELOC_TYPE_NONE R_AARCH64_NONE
+#define RELOC_TYPE_RELATIVE R_AARCH64_RELATIVE
 #elif defined(__amd64__)
-#define	RELOC_TYPE_NONE		R_X86_64_NONE
-#define	RELOC_TYPE_RELATIVE	R_X86_64_RELATIVE
+#define RELOC_TYPE_NONE R_X86_64_NONE
+#define RELOC_TYPE_RELATIVE R_X86_64_RELATIVE
 #elif defined(__arm__)
-#define	RELOC_TYPE_NONE		R_ARM_NONE
-#define	RELOC_TYPE_RELATIVE	R_ARM_RELATIVE
+#define RELOC_TYPE_NONE R_ARM_NONE
+#define RELOC_TYPE_RELATIVE R_ARM_RELATIVE
 #elif defined(__i386__)
-#define	RELOC_TYPE_NONE		R_386_NONE
-#define	RELOC_TYPE_RELATIVE	R_386_RELATIVE
+#define RELOC_TYPE_NONE R_386_NONE
+#define RELOC_TYPE_RELATIVE R_386_RELATIVE
 #elif defined(__riscv)
-#define	RELOC_TYPE_NONE		R_RISCV_NONE
-#define	RELOC_TYPE_RELATIVE	R_RISCV_RELATIVE
+#define RELOC_TYPE_NONE R_RISCV_NONE
+#define RELOC_TYPE_RELATIVE R_RISCV_RELATIVE
 #endif
 
 void self_reloc(Elf_Addr baseaddr, ElfW_Dyn *dynamic);
@@ -119,6 +120,6 @@ self_reloc(Elf_Addr baseaddr, ElfW_Dyn *dynamic)
 			/* XXX: do we need other relocations ? */
 			break;
 		}
-		rel = (ElfW_Rel *)(void *)((caddr_t) rel + relent);
+		rel = (ElfW_Rel *)(void *)((caddr_t)rel + relent);
 	}
 }

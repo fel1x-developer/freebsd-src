@@ -37,46 +37,48 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
+#include <sys/bio.h>
 #include <sys/conf.h>
 #include <sys/ctype.h>
-#include <sys/bio.h>
 #include <sys/devctl.h>
+#include <sys/disk.h>
+#include <sys/errno.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
+#include <sys/limits.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/errno.h>
-#include <sys/time.h>
-#include <sys/disk.h>
-#include <sys/fcntl.h>
-#include <sys/limits.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
-#include <geom/geom.h>
-#include <geom/geom_int.h>
+#include <sys/time.h>
+
 #include <machine/stdarg.h>
 
+#include <geom/geom.h>
+#include <geom/geom_int.h>
+
 struct g_dev_softc {
-	struct mtx	 sc_mtx;
-	struct cdev	*sc_dev;
-	struct cdev	*sc_alias;
-	int		 sc_open;
-	u_int		 sc_active;
-	struct selinfo	 sc_selinfo;
-#define	SC_A_DESTROY	(1 << 31)
-#define	SC_A_OPEN	(1 << 30)
-#define	SC_A_ACTIVE	(SC_A_OPEN - 1)
+	struct mtx sc_mtx;
+	struct cdev *sc_dev;
+	struct cdev *sc_alias;
+	int sc_open;
+	u_int sc_active;
+	struct selinfo sc_selinfo;
+#define SC_A_DESTROY (1 << 31)
+#define SC_A_OPEN (1 << 30)
+#define SC_A_ACTIVE (SC_A_OPEN - 1)
 };
 
-static d_open_t		g_dev_open;
-static d_close_t	g_dev_close;
-static d_strategy_t	g_dev_strategy;
-static d_ioctl_t	g_dev_ioctl;
-static d_kqfilter_t	g_dev_kqfilter;
+static d_open_t g_dev_open;
+static d_close_t g_dev_close;
+static d_strategy_t g_dev_strategy;
+static d_ioctl_t g_dev_ioctl;
+static d_kqfilter_t g_dev_kqfilter;
 
-static void		gdev_filter_detach(struct knote *kn);
-static int		gdev_filter_vnode(struct knote *kn, long hint);
+static void gdev_filter_detach(struct knote *kn);
+static int gdev_filter_vnode(struct knote *kn, long hint);
 
 static struct filterops gdev_filterops_vnode = {
 	.f_isfd = 1,
@@ -85,16 +87,16 @@ static struct filterops gdev_filterops_vnode = {
 };
 
 static struct cdevsw g_dev_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	g_dev_open,
-	.d_close =	g_dev_close,
-	.d_read =	physread,
-	.d_write =	physwrite,
-	.d_ioctl =	g_dev_ioctl,
-	.d_strategy =	g_dev_strategy,
-	.d_name =	"g_dev",
-	.d_flags =	D_DISK | D_TRACKCLOSE,
-	.d_kqfilter =	g_dev_kqfilter,
+	.d_version = D_VERSION,
+	.d_open = g_dev_open,
+	.d_close = g_dev_close,
+	.d_read = physread,
+	.d_write = physwrite,
+	.d_ioctl = g_dev_ioctl,
+	.d_strategy = g_dev_strategy,
+	.d_name = "g_dev",
+	.d_flags = D_DISK | D_TRACKCLOSE,
+	.d_kqfilter = g_dev_kqfilter,
 };
 
 static g_init_t g_dev_init;
@@ -104,16 +106,14 @@ static g_orphan_t g_dev_orphan;
 static g_attrchanged_t g_dev_attrchanged;
 static g_resize_t g_dev_resize;
 
-static struct g_class g_dev_class	= {
-	.name = "DEV",
+static struct g_class g_dev_class = { .name = "DEV",
 	.version = G_VERSION,
 	.init = g_dev_init,
 	.fini = g_dev_fini,
 	.taste = g_dev_taste,
 	.orphan = g_dev_orphan,
 	.attrchanged = g_dev_attrchanged,
-	.resize = g_dev_resize
-};
+	.resize = g_dev_resize };
 
 /*
  * We target 262144 (8 x 32768) sectors by default as this significantly
@@ -125,7 +125,8 @@ SYSCTL_DECL(_kern_geom);
 SYSCTL_NODE(_kern_geom, OID_AUTO, dev, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "GEOM_DEV stuff");
 SYSCTL_QUAD(_kern_geom_dev, OID_AUTO, delete_max_sectors, CTLFLAG_RW,
-    &g_dev_del_max_sectors, 0, "Maximum number of sectors in a single "
+    &g_dev_del_max_sectors, 0,
+    "Maximum number of sectors in a single "
     "delete request sent to the provider. Larger requests are chunked "
     "so they can be interrupted. (0 = disable chunking)");
 
@@ -189,8 +190,8 @@ init_dumpdev(struct cdev *dev)
 	len = strlen(devprefix);
 	devname = devtoname(dev);
 	if (strcmp(devname, dumpdev) != 0 &&
-	   (strncmp(dumpdev, devprefix, len) != 0 ||
-	    strcmp(devname, dumpdev + len) != 0))
+	    (strncmp(dumpdev, devprefix, len) != 0 ||
+		strcmp(devname, dumpdev + len) != 0))
 		return (0);
 
 	cp = (struct g_consumer *)dev->si_drv2;
@@ -241,7 +242,7 @@ g_dev_print(void)
 	struct g_geom *gp;
 	char const *p = "";
 
-	LIST_FOREACH(gp, &g_dev_class.geom, geom) {
+	LIST_FOREACH (gp, &g_dev_class.geom, geom) {
 		printf("%s%s", p, gp->name);
 		p = " ";
 	}
@@ -260,7 +261,7 @@ g_dev_set_physpath(struct g_consumer *cp)
 
 	sc = cp->private;
 	physpath_len = MAXPATHLEN;
-	physpath = g_malloc(physpath_len, M_WAITOK|M_ZERO);
+	physpath = g_malloc(physpath_len, M_WAITOK | M_ZERO);
 	error = g_io_getattr("GEOM::physpath", cp, &physpath_len, physpath);
 	g_access(cp, -1, 0, 0);
 	if (error == 0 && strlen(physpath) != 0) {
@@ -406,11 +407,12 @@ g_dev_taste(struct g_class *mp, struct g_provider *pp, int insist __unused)
 	/*
 	 * Now add all the aliases for this drive
 	 */
-	LIST_FOREACH(gap, &pp->aliases, ga_next) {
-		error = make_dev_alias_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK, &adev, dev,
-		    "%s", gap->ga_alias);
+	LIST_FOREACH (gap, &pp->aliases, ga_next) {
+		error = make_dev_alias_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
+		    &adev, dev, "%s", gap->ga_alias);
 		if (error) {
-			printf("%s: make_dev_alias_p() failed (name=%s, error=%d)\n",
+			printf(
+			    "%s: make_dev_alias_p() failed (name=%s, error=%d)\n",
 			    __func__, gap->ga_alias, error);
 			continue;
 		}
@@ -429,8 +431,8 @@ g_dev_open(struct cdev *dev, int flags, int fmt, struct thread *td)
 	int error, r, w, e;
 
 	cp = dev->si_drv2;
-	g_trace(G_T_ACCESS, "g_dev_open(%s, %d, %d, %p)",
-	    cp->geom->name, flags, fmt, td);
+	g_trace(G_T_ACCESS, "g_dev_open(%s, %d, %d, %p)", cp->geom->name, flags,
+	    fmt, td);
 
 	r = flags & FREAD ? 1 : 0;
 	w = flags & FWRITE ? 1 : 0;
@@ -482,8 +484,8 @@ g_dev_close(struct cdev *dev, int flags, int fmt, struct thread *td)
 	int error, r, w, e;
 
 	cp = dev->si_drv2;
-	g_trace(G_T_ACCESS, "g_dev_close(%s, %d, %d, %p)",
-	    cp->geom->name, flags, fmt, td);
+	g_trace(G_T_ACCESS, "g_dev_close(%s, %d, %d, %p)", cp->geom->name,
+	    flags, fmt, td);
 
 	r = flags & FREAD ? -1 : 0;
 	w = flags & FWRITE ? -1 : 0;
@@ -515,7 +517,8 @@ g_dev_close(struct cdev *dev, int flags, int fmt, struct thread *td)
 		atomic_set_int(&sc->sc_active, SC_A_OPEN);
 	while (sc->sc_open == 0 && (sc->sc_active & SC_A_ACTIVE) != 0)
 		msleep(&sc->sc_active, &sc->sc_mtx, 0, "g_dev_close", hz / 10);
-	KNOTE_LOCKED(&sc->sc_selinfo.si_note, NOTE_CLOSE | (w ? NOTE_CLOSE_WRITE : 0));
+	KNOTE_LOCKED(&sc->sc_selinfo.si_note,
+	    NOTE_CLOSE | (w ? NOTE_CLOSE_WRITE : 0));
 	mtx_unlock(&sc->sc_mtx);
 	g_topology_lock();
 	error = g_access(cp, r, w, e);
@@ -524,7 +527,8 @@ g_dev_close(struct cdev *dev, int flags, int fmt, struct thread *td)
 }
 
 static int
-g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *td)
+g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	struct g_consumer *cp;
 	struct g_provider *pp;
@@ -566,8 +570,7 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 		if (error == 0 && *(u_int *)data == 0)
 			error = ENOENT;
 		break;
-	case DIOCSKERNELDUMP:
-	    {
+	case DIOCSKERNELDUMP: {
 		struct diocskerneldump_arg *kda;
 		uint8_t *encryptedkey;
 
@@ -583,7 +586,7 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 		if (kda->kda_encryption != KERNELDUMP_ENC_NONE) {
 			if (kda->kda_encryptedkeysize == 0 ||
 			    kda->kda_encryptedkeysize >
-			    KERNELDUMP_ENCKEY_MAX_SIZE) {
+				KERNELDUMP_ENCKEY_MAX_SIZE) {
 				explicit_bzero(kda, sizeof(*kda));
 				return (EINVAL);
 			}
@@ -601,7 +604,7 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 		zfree(encryptedkey, M_TEMP);
 		explicit_bzero(kda, sizeof(*kda));
 		break;
-	    }
+	}
 	case DIOCGFLUSH:
 		error = g_io_flush(cp);
 		break;
@@ -622,7 +625,8 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 				chunk = g_dev_del_max_sectors * pp->sectorsize;
 				if (pp->stripesize > 0) {
 					odd = (offset + chunk +
-					    pp->stripeoffset) % pp->stripesize;
+						  pp->stripeoffset) %
+					    pp->stripesize;
 					if (chunk > odd)
 						chunk -= odd;
 				}
@@ -669,7 +673,8 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 		break;
 	}
 	case DIOCZONECMD: {
-		struct disk_zone_args *zone_args =(struct disk_zone_args *)data;
+		struct disk_zone_args *zone_args = (struct disk_zone_args *)
+		    data;
 		struct disk_zone_rep_entry *new_entries, *old_entries;
 		struct disk_zone_report *rep;
 		size_t alloc_size;
@@ -681,7 +686,7 @@ g_dev_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread
 
 		if (zone_args->zone_cmd == DISK_ZONE_REPORT_ZONES) {
 			rep = &zone_args->zone_params.report;
-#define	MAXENTRIES	(maxphys / sizeof(struct disk_zone_rep_entry))
+#define MAXENTRIES (maxphys / sizeof(struct disk_zone_rep_entry))
 			if (rep->entries_allocated > MAXENTRIES)
 				rep->entries_allocated = MAXENTRIES;
 			alloc_size = rep->entries_allocated *
@@ -730,8 +735,8 @@ g_dev_done(struct bio *bp2)
 		bcopy(&bp2->bio_zone, &bp->bio_zone, sizeof(bp->bio_zone));
 
 	if (bp2->bio_error != 0) {
-		g_trace(G_T_BIO, "g_dev_done(%p) had error %d",
-		    bp2, bp2->bio_error);
+		g_trace(G_T_BIO, "g_dev_done(%p) had error %d", bp2,
+		    bp2->bio_error);
 		bp->bio_flags |= BIO_ERROR;
 	} else {
 		if (bp->bio_cmd == BIO_READ)
@@ -760,12 +765,10 @@ g_dev_strategy(struct bio *bp)
 	struct cdev *dev;
 	struct g_dev_softc *sc;
 
-	KASSERT(bp->bio_cmd == BIO_READ ||
-	        bp->bio_cmd == BIO_WRITE ||
-	        bp->bio_cmd == BIO_DELETE ||
-		bp->bio_cmd == BIO_FLUSH ||
+	KASSERT(bp->bio_cmd == BIO_READ || bp->bio_cmd == BIO_WRITE ||
+		bp->bio_cmd == BIO_DELETE || bp->bio_cmd == BIO_FLUSH ||
 		bp->bio_cmd == BIO_ZONE,
-		("Wrong bio_cmd bio=%p cmd=%d", bp, bp->bio_cmd));
+	    ("Wrong bio_cmd bio=%p cmd=%d", bp, bp->bio_cmd));
 	dev = bp->bio_dev;
 	cp = dev->si_drv2;
 	KASSERT(cp->acr || cp->acw,
@@ -796,13 +799,12 @@ g_dev_strategy(struct bio *bp)
 	KASSERT(bp2 != NULL, ("XXX: ENOMEM in a bad place"));
 	bp2->bio_done = g_dev_done;
 	g_trace(G_T_BIO,
-	    "g_dev_strategy(%p/%p) offset %jd length %jd data %p cmd %d",
-	    bp, bp2, (intmax_t)bp->bio_offset, (intmax_t)bp2->bio_length,
+	    "g_dev_strategy(%p/%p) offset %jd length %jd data %p cmd %d", bp,
+	    bp2, (intmax_t)bp->bio_offset, (intmax_t)bp2->bio_length,
 	    bp2->bio_data, bp2->bio_cmd);
 	g_io_request(bp2, cp);
 	KASSERT(cp->acr || cp->acw,
 	    ("g_dev_strategy raced with g_dev_close and lost"));
-
 }
 
 /*
@@ -895,8 +897,9 @@ g_dev_kqfilter(struct cdev *dev, struct knote *kn)
 	if (kn->kn_filter != EVFILT_VNODE)
 		return (EINVAL);
 
-#define SUPPORTED_EVENTS (NOTE_ATTRIB | NOTE_OPEN | NOTE_CLOSE | \
-    NOTE_CLOSE_WRITE | NOTE_READ | NOTE_WRITE)
+#define SUPPORTED_EVENTS                                                       \
+	(NOTE_ATTRIB | NOTE_OPEN | NOTE_CLOSE | NOTE_CLOSE_WRITE | NOTE_READ | \
+	    NOTE_WRITE)
 	if (kn->kn_sfflags & ~SUPPORTED_EVENTS)
 		return (EOPNOTSUPP);
 

@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/linker.h>
@@ -41,31 +42,33 @@
 #include <sys/sbuf.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
-#include <machine/metadata.h>
-#include <machine/md_var.h>
-#include <machine/resource.h>
 #include <machine/intr_machdep.h>
-#include <contrib/dev/acpica/include/acpi.h>
-#include <dev/acpica/acpivar.h>
+#include <machine/md_var.h>
+#include <machine/metadata.h>
+#include <machine/resource.h>
 
+#include <x86/include/apicvar.h>
+
+#include <dev/acpica/acpivar.h>
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus_xact.h>
+#include <dev/hyperv/vmbus/hyperv_common_reg.h>
 #include <dev/hyperv/vmbus/hyperv_var.h>
+#include <dev/hyperv/vmbus/vmbus_chanvar.h>
 #include <dev/hyperv/vmbus/vmbus_reg.h>
 #include <dev/hyperv/vmbus/vmbus_var.h>
-#include <dev/hyperv/vmbus/vmbus_chanvar.h>
-#include <x86/include/apicvar.h>
 #include <dev/hyperv/vmbus/x86/hyperv_machdep.h>
 #include <dev/hyperv/vmbus/x86/hyperv_reg.h>
-#include <dev/hyperv/vmbus/hyperv_common_reg.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
+
 #include "acpi_if.h"
 #include "pcib_if.h"
 #include "vmbus_if.h"
@@ -180,7 +183,7 @@ vmbus_intr_teardown1(struct vmbus_softc *sc)
 	pmap_pti_remove_kva(VMBUS_ISR_ADDR, VMBUS_ISR_ADDR + PAGE_SIZE);
 #endif
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		if (VMBUS_PCPU_GET(sc, event_tq, cpu) != NULL) {
 			taskqueue_free(VMBUS_PCPU_GET(sc, event_tq, cpu));
 			VMBUS_PCPU_GET(sc, event_tq, cpu) = NULL;

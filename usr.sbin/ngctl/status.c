@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -42,24 +42,20 @@
 
 #include "ngctl.h"
 
-#define NOSTATUS	"<no status>"
+#define NOSTATUS "<no status>"
 
 static int StatusCmd(int ac, char **av);
 
-const struct ngcmd status_cmd = {
-	StatusCmd,
-	"status <path>",
-	"Get human readable status information from the node at <path>",
-	NULL,
-	{ NULL }
-};
+const struct ngcmd status_cmd = { StatusCmd, "status <path>",
+	"Get human readable status information from the node at <path>", NULL,
+	{ NULL } };
 
 static int
 StatusCmd(int ac, char **av)
 {
 	u_char sbuf[sizeof(struct ng_mesg) + NG_TEXTRESPONSE];
-	struct ng_mesg *const resp = (struct ng_mesg *) sbuf;
-	char *const status = (char *) resp->data;
+	struct ng_mesg *const resp = (struct ng_mesg *)sbuf;
+	char *const status = (char *)resp->data;
 	char *path;
 	int nostat = 0;
 
@@ -73,8 +69,8 @@ StatusCmd(int ac, char **av)
 	}
 
 	/* Get node status summary */
-	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE,
-	    NGM_TEXT_STATUS, NULL, 0) < 0) {
+	if (NgSendMsg(csock, path, NGM_GENERIC_COOKIE, NGM_TEXT_STATUS, NULL,
+		0) < 0) {
 		switch (errno) {
 		case EINVAL:
 			nostat = 1;
@@ -84,8 +80,8 @@ StatusCmd(int ac, char **av)
 			return (CMDRTN_ERROR);
 		}
 	} else {
-		if (NgRecvMsg(csock, resp, sizeof(sbuf), NULL) < 0
-		    || (resp->header.flags & NGF_RESP) == 0)
+		if (NgRecvMsg(csock, resp, sizeof(sbuf), NULL) < 0 ||
+		    (resp->header.flags & NGF_RESP) == 0)
 			nostat = 1;
 	}
 
@@ -96,4 +92,3 @@ StatusCmd(int ac, char **av)
 		printf("Status for \"%s\":\n%s\n", path, status);
 	return (CMDRTN_OK);
 }
-

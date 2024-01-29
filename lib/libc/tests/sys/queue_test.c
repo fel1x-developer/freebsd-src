@@ -25,10 +25,10 @@
  */
 
 #include <sys/queue.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 ATF_TC(slist_test);
 ATF_TC_HEAD(slist_test, tc)
@@ -54,7 +54,7 @@ ATF_TC_BODY(slist_test, tc)
 
 	i = length = 0;
 
-	SLIST_FOREACH(np, &head, entries) {
+	SLIST_FOREACH (np, &head, entries) {
 		length++;
 	}
 	ATF_REQUIRE_EQ(length, 0);
@@ -71,7 +71,7 @@ ATF_TC_BODY(slist_test, tc)
 	ATF_REQUIRE_EQ(SLIST_FIRST(&head), n1);
 
 	j = length = 0;
-	SLIST_FOREACH(np, &head, entries) {
+	SLIST_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -94,7 +94,7 @@ ATF_TC_BODY(slist_test, tc)
 	SLIST_INSERT_AFTER(n2, n3, entries);
 
 	j = length = 0;
-	SLIST_FOREACH(np, &head, entries) {
+	SLIST_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -114,7 +114,7 @@ ATF_TC_BODY(slist_test, tc)
 
 	j = 1; /* Starting point's 1 this time */
 	length = 0;
-	SLIST_FOREACH(np, &head, entries) {
+	SLIST_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -128,7 +128,7 @@ ATF_TC_BODY(slist_test, tc)
 
 	j = 1; /* Starting point's 1 this time */
 	length = 0;
-	SLIST_FOREACH(np, &head, entries) {
+	SLIST_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -138,7 +138,6 @@ ATF_TC_BODY(slist_test, tc)
 
 	printf("Ensuring SLIST_FIRST returns element 2\n");
 	ATF_REQUIRE_EQ(SLIST_FIRST(&head), n2);
-
 }
 
 ATF_TC(stailq_test);
@@ -163,7 +162,7 @@ ATF_TC_BODY(stailq_test, tc)
 
 	i = length = 0;
 
-	STAILQ_FOREACH(np, &head, entries) {
+	STAILQ_FOREACH (np, &head, entries) {
 		length++;
 	}
 	ATF_REQUIRE_EQ(length, 0);
@@ -177,7 +176,7 @@ ATF_TC_BODY(stailq_test, tc)
 	STAILQ_INSERT_HEAD(&head, n1, entries);
 
 	j = length = 0;
-	STAILQ_FOREACH(np, &head, entries) {
+	STAILQ_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -200,7 +199,7 @@ ATF_TC_BODY(stailq_test, tc)
 	STAILQ_INSERT_TAIL(&head, n3, entries);
 
 	j = length = 0;
-	STAILQ_FOREACH(np, &head, entries) {
+	STAILQ_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
@@ -214,14 +213,13 @@ ATF_TC_BODY(stailq_test, tc)
 
 	j = 1; /* Starting point's 1 this time */
 	length = 0;
-	STAILQ_FOREACH(np, &head, entries) {
+	STAILQ_FOREACH (np, &head, entries) {
 		ATF_REQUIRE_EQ_MSG(np->i, j,
 		    "%d (entry counter) != %d (counter)", np->i, j);
 		j++;
 		length++;
 	}
 	ATF_REQUIRE_EQ(length, 2);
-
 }
 
 ATF_TP_ADD_TCS(tp)

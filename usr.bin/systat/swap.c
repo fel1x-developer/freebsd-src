@@ -30,8 +30,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * swapinfo - based on a program of the same name by Kevin Lahey
  */
@@ -40,17 +38,17 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
+#include <err.h>
 #include <kvm.h>
 #include <nlist.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <err.h>
+#include <unistd.h>
 
-#include "systat.h"
-#include "extern.h"
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
 static int pathlen;
 
@@ -78,7 +76,7 @@ closeswap(WINDOW *w)
  * Kevin Lahey <kml@rokkaku.atl.ga.us>.
  */
 
-#define NSWAP	16
+#define NSWAP 16
 
 static struct kvm_swap kvmsw[NSWAP];
 static int kvnsw, okvnsw;
@@ -137,9 +135,8 @@ labelswap(void)
 		return;
 	}
 
-	mvwprintw(wnd, 0, 0, "%*s%5s %5s %s",
-	    -pathlen, "Device/Path", "Size", "Used",
-	    "|0%  /10  /20  /30  /40  / 60\\  70\\  80\\  90\\ 100|");
+	mvwprintw(wnd, 0, 0, "%*s%5s %5s %s", -pathlen, "Device/Path", "Size",
+	    "Used", "|0%  /10  /20  /30  /40  / 60\\  70\\  80\\  90\\ 100|");
 }
 
 void

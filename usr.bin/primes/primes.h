@@ -41,11 +41,11 @@
 #include <stdint.h>
 
 /* ubig is the type that holds a large unsigned value */
-typedef uint64_t ubig;			/* must be >=32 bit unsigned value */
-#define	BIG		ULONG_MAX	/* largest value will sieve */
+typedef uint64_t ubig; /* must be >=32 bit unsigned value */
+#define BIG ULONG_MAX  /* largest value will sieve */
 
 /* bytes in sieve table (must be > 3*5*7*11) */
-#define	TABSIZE		256*1024
+#define TABSIZE 256 * 1024
 
 /*
  * prime[i] is the (i-1)th prime.
@@ -54,10 +54,10 @@ typedef uint64_t ubig;			/* must be >=32 bit unsigned value */
  * up to 65537 and 65537^2 > 2^32-1.
  */
 extern const ubig prime[];
-extern const ubig *const pr_limit;	/* largest prime in the prime array */
+extern const ubig *const pr_limit; /* largest prime in the prime array */
 
 /* Maximum size sieving alone can handle. */
-#define	SIEVEMAX 4295098368ULL
+#define SIEVEMAX 4295098368ULL
 
 /*
  * To avoid excessive sieves for small factors, we use the table below to
@@ -65,7 +65,7 @@ extern const ubig *const pr_limit;	/* largest prime in the prime array */
  * with 1.  All non-zero elements are factors of 3, 5, 7, 11 and 13.
  */
 extern const char pattern[];
-extern const size_t pattern_size;	/* length of pattern array */
+extern const size_t pattern_size; /* length of pattern array */
 
 /* Test for primality using strong pseudoprime tests. */
 int isprime(ubig);

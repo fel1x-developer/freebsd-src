@@ -37,91 +37,90 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_var.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/iflib.h>
-
-#include <dev/enetc/enetc_hw.h>
 #include <dev/enetc/enetc.h>
+#include <dev/enetc/enetc_hw.h>
 #include <dev/enetc/enetc_mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/iflib.h>
 
 #include "ifdi_if.h"
 #include "miibus_if.h"
 
-static device_register_t		enetc_register;
+static device_register_t enetc_register;
 
-static ifdi_attach_pre_t		enetc_attach_pre;
-static ifdi_attach_post_t		enetc_attach_post;
-static ifdi_detach_t			enetc_detach;
+static ifdi_attach_pre_t enetc_attach_pre;
+static ifdi_attach_post_t enetc_attach_post;
+static ifdi_detach_t enetc_detach;
 
-static ifdi_tx_queues_alloc_t		enetc_tx_queues_alloc;
-static ifdi_rx_queues_alloc_t		enetc_rx_queues_alloc;
-static ifdi_queues_free_t		enetc_queues_free;
+static ifdi_tx_queues_alloc_t enetc_tx_queues_alloc;
+static ifdi_rx_queues_alloc_t enetc_rx_queues_alloc;
+static ifdi_queues_free_t enetc_queues_free;
 
-static ifdi_init_t			enetc_init;
-static ifdi_stop_t			enetc_stop;
+static ifdi_init_t enetc_init;
+static ifdi_stop_t enetc_stop;
 
-static ifdi_msix_intr_assign_t		enetc_msix_intr_assign;
-static ifdi_tx_queue_intr_enable_t	enetc_tx_queue_intr_enable;
-static ifdi_rx_queue_intr_enable_t	enetc_rx_queue_intr_enable;
-static ifdi_intr_enable_t		enetc_intr_enable;
-static ifdi_intr_disable_t		enetc_intr_disable;
+static ifdi_msix_intr_assign_t enetc_msix_intr_assign;
+static ifdi_tx_queue_intr_enable_t enetc_tx_queue_intr_enable;
+static ifdi_rx_queue_intr_enable_t enetc_rx_queue_intr_enable;
+static ifdi_intr_enable_t enetc_intr_enable;
+static ifdi_intr_disable_t enetc_intr_disable;
 
-static int	enetc_isc_txd_encap(void*, if_pkt_info_t);
-static void	enetc_isc_txd_flush(void*, uint16_t, qidx_t);
-static int	enetc_isc_txd_credits_update(void*, uint16_t, bool);
-static int	enetc_isc_rxd_available(void*, uint16_t, qidx_t, qidx_t);
-static int	enetc_isc_rxd_pkt_get(void*, if_rxd_info_t);
-static void	enetc_isc_rxd_refill(void*, if_rxd_update_t);
-static void	enetc_isc_rxd_flush(void*, uint16_t, uint8_t, qidx_t);
+static int enetc_isc_txd_encap(void *, if_pkt_info_t);
+static void enetc_isc_txd_flush(void *, uint16_t, qidx_t);
+static int enetc_isc_txd_credits_update(void *, uint16_t, bool);
+static int enetc_isc_rxd_available(void *, uint16_t, qidx_t, qidx_t);
+static int enetc_isc_rxd_pkt_get(void *, if_rxd_info_t);
+static void enetc_isc_rxd_refill(void *, if_rxd_update_t);
+static void enetc_isc_rxd_flush(void *, uint16_t, uint8_t, qidx_t);
 
-static void	enetc_vlan_register(if_ctx_t, uint16_t);
-static void	enetc_vlan_unregister(if_ctx_t, uint16_t);
+static void enetc_vlan_register(if_ctx_t, uint16_t);
+static void enetc_vlan_unregister(if_ctx_t, uint16_t);
 
-static uint64_t	enetc_get_counter(if_ctx_t, ift_counter);
-static int	enetc_promisc_set(if_ctx_t, int);
-static int	enetc_mtu_set(if_ctx_t, uint32_t);
-static void	enetc_setup_multicast(if_ctx_t);
-static void	enetc_timer(if_ctx_t, uint16_t);
-static void	enetc_update_admin_status(if_ctx_t);
-static bool	enetc_if_needs_restart(if_ctx_t, enum iflib_restart_event);
+static uint64_t enetc_get_counter(if_ctx_t, ift_counter);
+static int enetc_promisc_set(if_ctx_t, int);
+static int enetc_mtu_set(if_ctx_t, uint32_t);
+static void enetc_setup_multicast(if_ctx_t);
+static void enetc_timer(if_ctx_t, uint16_t);
+static void enetc_update_admin_status(if_ctx_t);
+static bool enetc_if_needs_restart(if_ctx_t, enum iflib_restart_event);
 
-static miibus_readreg_t		enetc_miibus_readreg;
-static miibus_writereg_t	enetc_miibus_writereg;
-static miibus_linkchg_t		enetc_miibus_linkchg;
-static miibus_statchg_t		enetc_miibus_statchg;
+static miibus_readreg_t enetc_miibus_readreg;
+static miibus_writereg_t enetc_miibus_writereg;
+static miibus_linkchg_t enetc_miibus_linkchg;
+static miibus_statchg_t enetc_miibus_statchg;
 
-static int			enetc_media_change(if_t);
-static void			enetc_media_status(if_t, struct ifmediareq*);
+static int enetc_media_change(if_t);
+static void enetc_media_status(if_t, struct ifmediareq *);
 
-static int			enetc_fixed_media_change(if_t);
-static void			enetc_fixed_media_status(if_t, struct ifmediareq*);
+static int enetc_fixed_media_change(if_t);
+static void enetc_fixed_media_status(if_t, struct ifmediareq *);
 
-static void			enetc_max_nqueues(struct enetc_softc*, int*, int*);
-static int			enetc_setup_phy(struct enetc_softc*);
+static void enetc_max_nqueues(struct enetc_softc *, int *, int *);
+static int enetc_setup_phy(struct enetc_softc *);
 
-static void			enetc_get_hwaddr(struct enetc_softc*);
-static void			enetc_set_hwaddr(struct enetc_softc*);
-static int			enetc_setup_rss(struct enetc_softc*);
+static void enetc_get_hwaddr(struct enetc_softc *);
+static void enetc_set_hwaddr(struct enetc_softc *);
+static int enetc_setup_rss(struct enetc_softc *);
 
-static void			enetc_init_hw(struct enetc_softc*);
-static void			enetc_init_ctrl(struct enetc_softc*);
-static void			enetc_init_tx(struct enetc_softc*);
-static void			enetc_init_rx(struct enetc_softc*);
+static void enetc_init_hw(struct enetc_softc *);
+static void enetc_init_ctrl(struct enetc_softc *);
+static void enetc_init_tx(struct enetc_softc *);
+static void enetc_init_rx(struct enetc_softc *);
 
-static int			enetc_ctrl_send(struct enetc_softc*,
-				    uint16_t, uint16_t, iflib_dma_info_t);
+static int enetc_ctrl_send(struct enetc_softc *, uint16_t, uint16_t,
+    iflib_dma_info_t);
 
 static const char enetc_driver_version[] = "1.0.0";
 
@@ -131,37 +130,36 @@ static const pci_vendor_info_t enetc_vendor_info_array[] = {
 	PVID_END
 };
 
-#define ENETC_IFCAPS (IFCAP_VLAN_MTU | IFCAP_RXCSUM | IFCAP_JUMBO_MTU | \
-	IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWFILTER)
+#define ENETC_IFCAPS                                       \
+	(IFCAP_VLAN_MTU | IFCAP_RXCSUM | IFCAP_JUMBO_MTU | \
+	    IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWFILTER)
 
-static device_method_t enetc_methods[] = {
-	DEVMETHOD(device_register,	enetc_register),
-	DEVMETHOD(device_probe,		iflib_device_probe),
-	DEVMETHOD(device_attach,	iflib_device_attach),
-	DEVMETHOD(device_detach,	iflib_device_detach),
-	DEVMETHOD(device_shutdown,	iflib_device_shutdown),
-	DEVMETHOD(device_suspend,	iflib_device_suspend),
-	DEVMETHOD(device_resume,	iflib_device_resume),
+static device_method_t enetc_methods[] = { DEVMETHOD(device_register,
+					       enetc_register),
+	DEVMETHOD(device_probe, iflib_device_probe),
+	DEVMETHOD(device_attach, iflib_device_attach),
+	DEVMETHOD(device_detach, iflib_device_detach),
+	DEVMETHOD(device_shutdown, iflib_device_shutdown),
+	DEVMETHOD(device_suspend, iflib_device_suspend),
+	DEVMETHOD(device_resume, iflib_device_resume),
 
-	DEVMETHOD(miibus_readreg,	enetc_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	enetc_miibus_writereg),
-	DEVMETHOD(miibus_linkchg,	enetc_miibus_linkchg),
-	DEVMETHOD(miibus_statchg,	enetc_miibus_statchg),
+	DEVMETHOD(miibus_readreg, enetc_miibus_readreg),
+	DEVMETHOD(miibus_writereg, enetc_miibus_writereg),
+	DEVMETHOD(miibus_linkchg, enetc_miibus_linkchg),
+	DEVMETHOD(miibus_statchg, enetc_miibus_statchg),
 
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,		bus_generic_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,		bus_generic_alloc_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_alloc_resource),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t enetc_driver = {
-	"enetc", enetc_methods, sizeof(struct enetc_softc)
-};
+static driver_t enetc_driver = { "enetc", enetc_methods,
+	sizeof(struct enetc_softc) };
 
 DRIVER_MODULE(miibus, enetc, miibus_fdt_driver, NULL, NULL);
 /* Make sure miibus gets procesed first. */
@@ -174,55 +172,49 @@ MODULE_DEPEND(enetc, ether, 1, 1, 1);
 MODULE_DEPEND(enetc, iflib, 1, 1, 1);
 MODULE_DEPEND(enetc, miibus, 1, 1, 1);
 
-static device_method_t enetc_iflib_methods[] = {
-	DEVMETHOD(ifdi_attach_pre,		enetc_attach_pre),
-	DEVMETHOD(ifdi_attach_post,		enetc_attach_post),
-	DEVMETHOD(ifdi_detach,			enetc_detach),
+static device_method_t enetc_iflib_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						     enetc_attach_pre),
+	DEVMETHOD(ifdi_attach_post, enetc_attach_post),
+	DEVMETHOD(ifdi_detach, enetc_detach),
 
-	DEVMETHOD(ifdi_init,			enetc_init),
-	DEVMETHOD(ifdi_stop,			enetc_stop),
+	DEVMETHOD(ifdi_init, enetc_init), DEVMETHOD(ifdi_stop, enetc_stop),
 
-	DEVMETHOD(ifdi_tx_queues_alloc,		enetc_tx_queues_alloc),
-	DEVMETHOD(ifdi_rx_queues_alloc,		enetc_rx_queues_alloc),
-	DEVMETHOD(ifdi_queues_free,		enetc_queues_free),
+	DEVMETHOD(ifdi_tx_queues_alloc, enetc_tx_queues_alloc),
+	DEVMETHOD(ifdi_rx_queues_alloc, enetc_rx_queues_alloc),
+	DEVMETHOD(ifdi_queues_free, enetc_queues_free),
 
-	DEVMETHOD(ifdi_msix_intr_assign,	enetc_msix_intr_assign),
-	DEVMETHOD(ifdi_tx_queue_intr_enable,	enetc_tx_queue_intr_enable),
-	DEVMETHOD(ifdi_rx_queue_intr_enable,	enetc_rx_queue_intr_enable),
-	DEVMETHOD(ifdi_intr_enable,		enetc_intr_enable),
-	DEVMETHOD(ifdi_intr_disable,		enetc_intr_disable),
+	DEVMETHOD(ifdi_msix_intr_assign, enetc_msix_intr_assign),
+	DEVMETHOD(ifdi_tx_queue_intr_enable, enetc_tx_queue_intr_enable),
+	DEVMETHOD(ifdi_rx_queue_intr_enable, enetc_rx_queue_intr_enable),
+	DEVMETHOD(ifdi_intr_enable, enetc_intr_enable),
+	DEVMETHOD(ifdi_intr_disable, enetc_intr_disable),
 
-	DEVMETHOD(ifdi_vlan_register,		enetc_vlan_register),
-	DEVMETHOD(ifdi_vlan_unregister,		enetc_vlan_unregister),
+	DEVMETHOD(ifdi_vlan_register, enetc_vlan_register),
+	DEVMETHOD(ifdi_vlan_unregister, enetc_vlan_unregister),
 
-	DEVMETHOD(ifdi_get_counter,		enetc_get_counter),
-	DEVMETHOD(ifdi_mtu_set,			enetc_mtu_set),
-	DEVMETHOD(ifdi_multi_set,		enetc_setup_multicast),
-	DEVMETHOD(ifdi_promisc_set,		enetc_promisc_set),
-	DEVMETHOD(ifdi_timer,			enetc_timer),
-	DEVMETHOD(ifdi_update_admin_status,	enetc_update_admin_status),
+	DEVMETHOD(ifdi_get_counter, enetc_get_counter),
+	DEVMETHOD(ifdi_mtu_set, enetc_mtu_set),
+	DEVMETHOD(ifdi_multi_set, enetc_setup_multicast),
+	DEVMETHOD(ifdi_promisc_set, enetc_promisc_set),
+	DEVMETHOD(ifdi_timer, enetc_timer),
+	DEVMETHOD(ifdi_update_admin_status, enetc_update_admin_status),
 
-	DEVMETHOD(ifdi_needs_restart,		enetc_if_needs_restart),
+	DEVMETHOD(ifdi_needs_restart, enetc_if_needs_restart),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t enetc_iflib_driver = {
-	"enetc", enetc_iflib_methods, sizeof(struct enetc_softc)
-};
+static driver_t enetc_iflib_driver = { "enetc", enetc_iflib_methods,
+	sizeof(struct enetc_softc) };
 
-static struct if_txrx enetc_txrx = {
-	.ift_txd_encap = enetc_isc_txd_encap,
+static struct if_txrx enetc_txrx = { .ift_txd_encap = enetc_isc_txd_encap,
 	.ift_txd_flush = enetc_isc_txd_flush,
 	.ift_txd_credits_update = enetc_isc_txd_credits_update,
 	.ift_rxd_available = enetc_isc_rxd_available,
 	.ift_rxd_pkt_get = enetc_isc_rxd_pkt_get,
 	.ift_rxd_refill = enetc_isc_rxd_refill,
-	.ift_rxd_flush = enetc_isc_rxd_flush
-};
+	.ift_rxd_flush = enetc_isc_rxd_flush };
 
-static struct if_shared_ctx enetc_sctx_init = {
-	.isc_magic = IFLIB_MAGIC,
+static struct if_shared_ctx enetc_sctx_init = { .isc_magic = IFLIB_MAGIC,
 
 	.isc_q_align = ENETC_RING_ALIGN,
 
@@ -244,15 +236,14 @@ static struct if_shared_ctx enetc_sctx_init = {
 	.isc_driver = &enetc_iflib_driver,
 
 	.isc_flags = IFLIB_DRIVER_MEDIA | IFLIB_PRESERVE_TX_INDICES,
-	.isc_ntxd_min = {ENETC_MIN_DESC},
-	.isc_ntxd_max = {ENETC_MAX_DESC},
-	.isc_ntxd_default = {ENETC_DEFAULT_DESC},
-	.isc_nrxd_min = {ENETC_MIN_DESC},
-	.isc_nrxd_max = {ENETC_MAX_DESC},
-	.isc_nrxd_default = {ENETC_DEFAULT_DESC}
-};
+	.isc_ntxd_min = { ENETC_MIN_DESC },
+	.isc_ntxd_max = { ENETC_MAX_DESC },
+	.isc_ntxd_default = { ENETC_DEFAULT_DESC },
+	.isc_nrxd_min = { ENETC_MIN_DESC },
+	.isc_nrxd_max = { ENETC_MAX_DESC },
+	.isc_nrxd_default = { ENETC_DEFAULT_DESC } };
 
-static void*
+static void *
 enetc_register(device_t dev)
 {
 
@@ -334,7 +325,8 @@ enetc_setup_phy(struct enetc_softc *sc)
 	if (fixed_link != 0)
 		return (enetc_setup_fixed(sc, fixed_link));
 
-	size = OF_getencprop(node, "phy-handle", &phy_handle, sizeof(phy_handle));
+	size = OF_getencprop(node, "phy-handle", &phy_handle,
+	    sizeof(phy_handle));
 	if (size <= 0) {
 		device_printf(sc->dev,
 		    "Failed to acquire PHY handle from FDT.\n");
@@ -347,8 +339,8 @@ enetc_setup_phy(struct enetc_softc *sc)
 		return (ENXIO);
 	}
 	error = mii_attach(sc->dev, &sc->miibus, iflib_get_ifp(sc->ctx),
-	    enetc_media_change, enetc_media_status,
-	    BMSR_DEFCAPMASK, phy_addr, MII_OFFSET_ANY, MIIF_DOPAUSE);
+	    enetc_media_change, enetc_media_status, BMSR_DEFCAPMASK, phy_addr,
+	    MII_OFFSET_ANY, MIIF_DOPAUSE);
 	if (error != 0) {
 		device_printf(sc->dev, "mii_attach failed\n");
 		return (error);
@@ -379,27 +371,27 @@ enetc_attach_pre(if_ctx_t ctx)
 	pci_restore_state(sc->dev);
 
 	rid = PCIR_BAR(ENETC_BAR_REGS);
-	sc->regs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->regs = bus_alloc_resource_any(sc->dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 	if (sc->regs == NULL) {
-		device_printf(sc->dev,
-		    "Failed to allocate BAR %d\n", ENETC_BAR_REGS);
+		device_printf(sc->dev, "Failed to allocate BAR %d\n",
+		    ENETC_BAR_REGS);
 		return (ENXIO);
 	}
 
 	error = iflib_dma_alloc_align(ctx,
-	    ENETC_MIN_DESC * sizeof(struct enetc_cbd),
-	    ENETC_RING_ALIGN,
-	    &sc->ctrl_queue.dma,
-	    0);
+	    ENETC_MIN_DESC * sizeof(struct enetc_cbd), ENETC_RING_ALIGN,
+	    &sc->ctrl_queue.dma, 0);
 	if (error != 0) {
 		device_printf(sc->dev, "Failed to allocate control ring\n");
 		goto fail;
 	}
-	sc->ctrl_queue.ring = (struct enetc_cbd*)sc->ctrl_queue.dma.idi_vaddr;
+	sc->ctrl_queue.ring = (struct enetc_cbd *)sc->ctrl_queue.dma.idi_vaddr;
 
 	scctx->isc_txrx = &enetc_txrx;
 	scctx->isc_tx_nsegments = ENETC_MAX_SCATTER;
-	enetc_max_nqueues(sc, &scctx->isc_nrxqsets_max, &scctx->isc_ntxqsets_max);
+	enetc_max_nqueues(sc, &scctx->isc_nrxqsets_max,
+	    &scctx->isc_ntxqsets_max);
 
 	if (scctx->isc_ntxd[0] % ENETC_DESC_ALIGN != 0) {
 		device_printf(sc->dev,
@@ -497,7 +489,7 @@ enetc_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 	for (i = 0; i < sc->tx_num_queues; i++) {
 		queue = &sc->tx_queues[i];
 		queue->sc = sc;
-		queue->ring = (union enetc_tx_bd*)(vaddrs[i]);
+		queue->ring = (union enetc_tx_bd *)(vaddrs[i]);
 		queue->ring_paddr = paddrs[i];
 		queue->cidx = 0;
 	}
@@ -528,7 +520,7 @@ enetc_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 		queue = &sc->rx_queues[i];
 		queue->sc = sc;
 		queue->qid = i;
-		queue->ring = (union enetc_rx_bd*)(vaddrs[i]);
+		queue->ring = (union enetc_rx_bd *)(vaddrs[i]);
 		queue->ring_paddr = paddrs[i];
 	}
 
@@ -566,8 +558,7 @@ enetc_get_hwaddr(struct enetc_softc *sc)
 	memcpy(&hwaddr.octet[4], &high, 2);
 
 	if (ETHER_IS_BROADCAST(hwaddr.octet) ||
-	    ETHER_IS_MULTICAST(hwaddr.octet) ||
-	    ETHER_IS_ZERO(hwaddr.octet)) {
+	    ETHER_IS_MULTICAST(hwaddr.octet) || ETHER_IS_ZERO(hwaddr.octet)) {
 		ether_gen_addr(iflib_get_ifp(sc->ctx), &hwaddr);
 		device_printf(sc->dev,
 		    "Failed to obtain MAC address, using a random one\n");
@@ -587,9 +578,9 @@ enetc_set_hwaddr(struct enetc_softc *sc)
 	uint8_t *hwaddr;
 
 	ifp = iflib_get_ifp(sc->ctx);
-	hwaddr = (uint8_t*)if_getlladdr(ifp);
-	low = *((uint32_t*)hwaddr);
-	high = *((uint16_t*)(hwaddr+4));
+	hwaddr = (uint8_t *)if_getlladdr(ifp);
+	low = *((uint32_t *)hwaddr);
+	high = *((uint16_t *)(hwaddr + 4));
 
 	ENETC_PORT_WR4(sc, ENETC_PSIPMAR0(0), low);
 	ENETC_PORT_WR2(sc, ENETC_PSIPMAR1(0), high);
@@ -607,7 +598,7 @@ enetc_setup_rss(struct enetc_softc *sc)
 	if (reg & ENETC_SIPCAPR0_RSS) {
 		reg = ENETC_RD4(sc, ENETC_SIRSSCAPR);
 		buckets_num = ENETC_SIRSSCAPR_GET_NUM_RSS(reg);
-        }
+	}
 	if (buckets_num == 0)
 		return (ENOTSUP);
 
@@ -618,13 +609,11 @@ enetc_setup_rss(struct enetc_softc *sc)
 
 	ENETC_WR4(sc, ENETC_SIRBGCR, sc->rx_num_queues);
 
-	error = iflib_dma_alloc_align(sc->ctx,
-	    buckets_num * sizeof(*rss_table),
-	    ENETC_RING_ALIGN,
-	    &dma,
-	    0);
+	error = iflib_dma_alloc_align(sc->ctx, buckets_num * sizeof(*rss_table),
+	    ENETC_RING_ALIGN, &dma, 0);
 	if (error != 0) {
-		device_printf(sc->dev, "Failed to allocate DMA buffer for RSS\n");
+		device_printf(sc->dev,
+		    "Failed to allocate DMA buffer for RSS\n");
 		return (error);
 	}
 	rss_table = (uint8_t *)dma.idi_vaddr;
@@ -667,7 +656,8 @@ enetc_ctrl_send(struct enetc_softc *sc, uint16_t cmd, uint16_t size,
 	/* Sync command packet, */
 	bus_dmamap_sync(dma->idi_tag, dma->idi_map, BUS_DMASYNC_PREWRITE);
 	/* and the control ring. */
-	bus_dmamap_sync(queue->dma.idi_tag, queue->dma.idi_map, BUS_DMASYNC_PREWRITE);
+	bus_dmamap_sync(queue->dma.idi_tag, queue->dma.idi_map,
+	    BUS_DMASYNC_PREWRITE);
 	ENETC_WR4(sc, ENETC_SICBDRPIR, queue->pidx);
 
 	while (--timeout != 0) {
@@ -690,15 +680,16 @@ enetc_init_hw(struct enetc_softc *sc)
 	int error;
 
 	ENETC_PORT_WR4(sc, ENETC_PM0_CMD_CFG,
-	    ENETC_PM0_CMD_TXP | ENETC_PM0_PROMISC |
-	    ENETC_PM0_TX_EN | ENETC_PM0_RX_EN);
+	    ENETC_PM0_CMD_TXP | ENETC_PM0_PROMISC | ENETC_PM0_TX_EN |
+		ENETC_PM0_RX_EN);
 	ENETC_PORT_WR4(sc, ENETC_PM0_RX_FIFO, ENETC_PM0_RX_FIFO_VAL);
 	val = ENETC_PSICFGR0_SET_TXBDR(sc->tx_num_queues);
 	val |= ENETC_PSICFGR0_SET_RXBDR(sc->rx_num_queues);
 	val |= ENETC_PSICFGR0_SIVC(ENETC_VLAN_TYPE_C | ENETC_VLAN_TYPE_S);
 	ENETC_PORT_WR4(sc, ENETC_PSICFGR0(0), val);
 	ENETC_PORT_WR4(sc, ENETC_PSIPVMR, ENETC_PSIPVMR_SET_VUTA(1));
-	ENETC_PORT_WR4(sc, ENETC_PVCLCTR,  ENETC_VLAN_TYPE_C | ENETC_VLAN_TYPE_S);
+	ENETC_PORT_WR4(sc, ENETC_PVCLCTR,
+	    ENETC_VLAN_TYPE_C | ENETC_VLAN_TYPE_S);
 	ENETC_PORT_WR4(sc, ENETC_PSIVLANFMR, ENETC_PSIVLANFMR_VS);
 	ENETC_PORT_WR4(sc, ENETC_PAR_PORT_CFG, ENETC_PAR_PORT_L4CD);
 	ENETC_PORT_WR4(sc, ENETC_PMR, ENETC_PMR_SI0EN | ENETC_PMR_PSPEED_1000M);
@@ -715,7 +706,6 @@ enetc_init_hw(struct enetc_softc *sc)
 		ENETC_WR4(sc, ENETC_SIMR, ENETC_SIMR_EN);
 	else
 		ENETC_WR4(sc, ENETC_SIMR, ENETC_SIMR_EN | ENETC_SIMR_RSSE);
-
 }
 
 static void
@@ -723,10 +713,8 @@ enetc_init_ctrl(struct enetc_softc *sc)
 {
 	struct enetc_ctrl_queue *queue = &sc->ctrl_queue;
 
-	ENETC_WR4(sc, ENETC_SICBDRBAR0,
-	    (uint32_t)queue->dma.idi_paddr);
-	ENETC_WR4(sc, ENETC_SICBDRBAR1,
-	    (uint32_t)(queue->dma.idi_paddr >> 32));
+	ENETC_WR4(sc, ENETC_SICBDRBAR0, (uint32_t)queue->dma.idi_paddr);
+	ENETC_WR4(sc, ENETC_SICBDRBAR1, (uint32_t)(queue->dma.idi_paddr >> 32));
 	ENETC_WR4(sc, ENETC_SICBDRLENR,
 	    queue->dma.idi_size / sizeof(struct enetc_cbd));
 
@@ -745,8 +733,7 @@ enetc_init_tx(struct enetc_softc *sc)
 	for (i = 0; i < sc->tx_num_queues; i++) {
 		queue = &sc->tx_queues[i];
 
-		ENETC_TXQ_WR4(sc, i, ENETC_TBBAR0,
-		    (uint32_t)queue->ring_paddr);
+		ENETC_TXQ_WR4(sc, i, ENETC_TBBAR0, (uint32_t)queue->ring_paddr);
 		ENETC_TXQ_WR4(sc, i, ENETC_TBBAR1,
 		    (uint32_t)(queue->ring_paddr >> 32));
 		ENETC_TXQ_WR4(sc, i, ENETC_TBLENR, sc->tx_queue_size);
@@ -763,7 +750,6 @@ enetc_init_tx(struct enetc_softc *sc)
 #endif
 		ENETC_TXQ_WR4(sc, i, ENETC_TBMR, ENETC_TBMR_EN);
 	}
-
 }
 
 static void
@@ -778,8 +764,7 @@ enetc_init_rx(struct enetc_softc *sc)
 	for (i = 0; i < sc->rx_num_queues; i++) {
 		queue = &sc->rx_queues[i];
 
-		ENETC_RXQ_WR4(sc, i, ENETC_RBBAR0,
-		    (uint32_t)queue->ring_paddr);
+		ENETC_RXQ_WR4(sc, i, ENETC_RBBAR0, (uint32_t)queue->ring_paddr);
 		ENETC_RXQ_WR4(sc, i, ENETC_RBBAR1,
 		    (uint32_t)(queue->ring_paddr >> 32));
 		ENETC_RXQ_WR4(sc, i, ENETC_RBLENR, sc->rx_queue_size);
@@ -810,7 +795,7 @@ enetc_hash_mac(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 	for (i = 0; i < 6; i++) {
 		bit = 0;
 		for (j = 0; j < 8; j++)
-			bit ^= !!(address & BIT(i + j*6));
+			bit ^= !!(address & BIT(i + j * 6));
 
 		hash |= bit << i;
 	}
@@ -839,7 +824,6 @@ enetc_setup_multicast(if_ctx_t ctx)
 	 */
 	ENETC_PORT_WR4(sc, ENETC_PSIMMHFR0(0, revid == 1), bitmap & UINT32_MAX);
 	ENETC_PORT_WR4(sc, ENETC_PSIMMHFR1(0), bitmap >> 32);
-
 }
 
 static uint8_t
@@ -849,7 +833,7 @@ enetc_hash_vid(uint16_t vid)
 	bool bit;
 	int i;
 
-	for (i = 0;i < 6;i++) {
+	for (i = 0; i < 6; i++) {
 		bit = vid & BIT(i);
 		bit ^= !!(vid & BIT(i + 6));
 		hash |= bit << i;
@@ -925,8 +909,7 @@ enetc_init(if_ctx_t ctx)
 		ENETC_PORT_WR4(sc, ENETC_PSIPVMR,
 		    ENETC_PSIPVMR_SET_VUTA(1) | ENETC_PSIPVMR_SET_VP(1));
 	else
-		ENETC_PORT_WR4(sc, ENETC_PSIPVMR,
-		    ENETC_PSIPVMR_SET_VUTA(1));
+		ENETC_PORT_WR4(sc, ENETC_PSIPVMR, ENETC_PSIPVMR_SET_VUTA(1));
 
 	sc->rbmr = ENETC_RBMR_EN;
 
@@ -940,7 +923,8 @@ enetc_init(if_ctx_t ctx)
 	enetc_init_rx(sc);
 
 	if (sc->fixed_link) {
-		baudrate = ifmedia_baudrate(sc->fixed_ifmedia.ifm_cur->ifm_media);
+		baudrate = ifmedia_baudrate(
+		    sc->fixed_ifmedia.ifm_cur->ifm_media);
 		iflib_link_state_change(sc->ctx, LINK_STATE_UP, baudrate);
 	} else {
 		/*
@@ -958,7 +942,7 @@ static void
 enetc_disable_txq(struct enetc_softc *sc, int qid)
 {
 	qidx_t cidx, pidx;
-	int timeout = 10000;	/* this * DELAY(100) = 1s */
+	int timeout = 10000; /* this * DELAY(100) = 1s */
 
 	/* At this point iflib shouldn't be enquing any more frames. */
 	pidx = ENETC_TXQ_RD4(sc, qid, ENETC_TBPIR);
@@ -1009,23 +993,23 @@ enetc_msix_intr_assign(if_ctx_t ctx, int msix)
 	for (i = 0; i < sc->rx_num_queues; i++, vector++) {
 		rx_queue = &sc->rx_queues[i];
 		snprintf(irq_name, sizeof(irq_name), "rxtxq%d", i);
-		error = iflib_irq_alloc_generic(ctx,
-		    &rx_queue->irq, vector + 1, IFLIB_INTR_RXTX,
-		    NULL, rx_queue, i, irq_name);
+		error = iflib_irq_alloc_generic(ctx, &rx_queue->irq, vector + 1,
+		    IFLIB_INTR_RXTX, NULL, rx_queue, i, irq_name);
 		if (error != 0)
 			goto fail;
 
 		ENETC_WR4(sc, ENETC_SIMSIRRV(i), vector);
 		ENETC_RXQ_WR4(sc, i, ENETC_RBICR1, ENETC_RX_INTR_TIME_THR);
 		ENETC_RXQ_WR4(sc, i, ENETC_RBICR0,
-		    ENETC_RBICR0_ICEN | ENETC_RBICR0_SET_ICPT(ENETC_RX_INTR_PKT_THR));
+		    ENETC_RBICR0_ICEN |
+			ENETC_RBICR0_SET_ICPT(ENETC_RX_INTR_PKT_THR));
 	}
 	vector = 0;
-	for (i = 0;i < sc->tx_num_queues; i++, vector++) {
+	for (i = 0; i < sc->tx_num_queues; i++, vector++) {
 		tx_queue = &sc->tx_queues[i];
 		snprintf(irq_name, sizeof(irq_name), "txq%d", i);
-		iflib_softirq_alloc_generic(ctx, &tx_queue->irq,
-		    IFLIB_INTR_TX, tx_queue, i, irq_name);
+		iflib_softirq_alloc_generic(ctx, &tx_queue->irq, IFLIB_INTR_TX,
+		    tx_queue, i, irq_name);
 
 		ENETC_WR4(sc, ENETC_SIMSITRV(i), vector);
 	}
@@ -1131,7 +1115,7 @@ enetc_isc_txd_encap(void *data, if_pkt_info_t ipi)
 	}
 
 	/* Now add remaining descriptors. */
-	for (;i < ipi->ipi_nsegs; i++) {
+	for (; i < ipi->ipi_nsegs; i++) {
 		desc = &queue->ring[pidx];
 		bzero(desc, sizeof(*desc));
 		desc->addr = segs[i].ds_addr;
@@ -1170,11 +1154,11 @@ enetc_isc_txd_credits_update(void *data, uint16_t qid, bool clear)
 	 * RM states that the ring can hold at most ring_size - 1 descriptors.
 	 * Thanks to that we can assume that the ring is empty if cidx == pidx.
 	 * This requirement is guaranteed implicitly by iflib as it will only
-	 * encap a new frame if we have at least nfrags + 2 descriptors available
-	 * on the ring. This driver uses at most one additional descriptor for
-	 * VLAN tag insertion.
-	 * Also RM states that the TBCIR register is only updated once all
-	 * descriptors in the chain have been processed.
+	 * encap a new frame if we have at least nfrags + 2 descriptors
+	 * available on the ring. This driver uses at most one additional
+	 * descriptor for VLAN tag insertion. Also RM states that the TBCIR
+	 * register is only updated once all descriptors in the chain have been
+	 * processed.
 	 */
 	if (cidx == hw_cidx)
 		return (0);
@@ -1356,9 +1340,7 @@ enetc_mtu_set(if_ctx_t ctx, uint32_t mtu)
 	struct enetc_softc *sc = iflib_get_softc(ctx);
 	uint32_t max_frame_size;
 
-	max_frame_size = mtu +
-	    ETHER_HDR_LEN +
-	    ETHER_CRC_LEN +
+	max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN +
 	    sizeof(struct ether_vlan_header);
 
 	if (max_frame_size > ENETC_MAX_FRAME_LEN)
@@ -1431,8 +1413,8 @@ enetc_miibus_readreg(device_t dev, int phy, int reg)
 	sc = iflib_get_softc(device_get_softc(dev));
 
 	mtx_lock(&sc->mii_lock);
-	val = enetc_mdio_read(sc->regs, ENETC_PORT_BASE + ENETC_EMDIO_BASE,
-	    phy, reg);
+	val = enetc_mdio_read(sc->regs, ENETC_PORT_BASE + ENETC_EMDIO_BASE, phy,
+	    reg);
 	mtx_unlock(&sc->mii_lock);
 
 	return (val);
@@ -1482,7 +1464,6 @@ enetc_miibus_statchg(device_t dev)
 	}
 
 	iflib_link_state_change(sc->ctx, link_state, baudrate);
-
 }
 
 static int
@@ -1499,7 +1480,7 @@ enetc_media_change(if_t ifp)
 }
 
 static void
-enetc_media_status(if_t ifp, struct ifmediareq* ifmr)
+enetc_media_status(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct enetc_softc *sc;
 	struct mii_data *miid;
@@ -1521,7 +1502,7 @@ enetc_fixed_media_change(if_t ifp)
 	return (0);
 }
 static void
-enetc_fixed_media_status(if_t ifp, struct ifmediareq* ifmr)
+enetc_fixed_media_status(if_t ifp, struct ifmediareq *ifmr)
 {
 	struct enetc_softc *sc;
 

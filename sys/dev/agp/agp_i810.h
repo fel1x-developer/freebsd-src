@@ -29,7 +29,7 @@
  */
 
 #ifndef AGP_AGP_I810_H
-#define	AGP_AGP_I810_H
+#define AGP_AGP_I810_H
 
 #include <sys/param.h>
 #include <sys/rman.h>
@@ -39,8 +39,8 @@
 #include <vm/vm_page.h>
 
 /* Special gtt memory types */
-#define AGP_DCACHE_MEMORY	1
-#define AGP_PHYS_MEMORY		2
+#define AGP_DCACHE_MEMORY 1
+#define AGP_PHYS_MEMORY 2
 
 /* New caching attributes for gen6/sandybridge */
 #define AGP_USER_CACHED_MEMORY_LLC_MLC (AGP_USER_TYPES + 2)

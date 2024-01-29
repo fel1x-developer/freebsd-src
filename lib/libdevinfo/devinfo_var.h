@@ -28,30 +28,30 @@
  */
 
 #include <sys/types.h>
-#include <sys/rman.h>
 #include <sys/bus.h>
+#include <sys/rman.h>
 
 /*
  * This is defined by the version 1 interface.
  */
-#define DEVINFO_STRLEN	32
+#define DEVINFO_STRLEN 32
 
 /*
- * Devices.  
+ * Devices.
  *
  * Internal structure contains string buffers and list linkage;
  */
 struct devinfo_i_dev {
-	struct devinfo_dev		dd_dev;
-	char				*dd_name;
-	char				*dd_desc;
-	char				*dd_drivername;
-	char				*dd_pnpinfo;
-	char				*dd_location;
-	uint32_t			dd_devflags;
-	uint16_t			dd_flags;
-	device_state_t			dd_state;
-	TAILQ_ENTRY(devinfo_i_dev)	dd_link;
+	struct devinfo_dev dd_dev;
+	char *dd_name;
+	char *dd_desc;
+	char *dd_drivername;
+	char *dd_pnpinfo;
+	char *dd_location;
+	uint32_t dd_devflags;
+	uint16_t dd_flags;
+	device_state_t dd_state;
+	TAILQ_ENTRY(devinfo_i_dev) dd_link;
 };
 
 /*
@@ -60,12 +60,12 @@ struct devinfo_i_dev {
  * Internal structures contain string buffers and list linkage;
  */
 struct devinfo_i_rman {
-	struct devinfo_rman		dm_rman;
-	char				dm_desc[32];
-	TAILQ_ENTRY(devinfo_i_rman)	dm_link;
+	struct devinfo_rman dm_rman;
+	char dm_desc[32];
+	TAILQ_ENTRY(devinfo_i_rman) dm_link;
 };
 
 struct devinfo_i_res {
-	struct devinfo_res		dr_res;
-	TAILQ_ENTRY(devinfo_i_res)	dr_link;
+	struct devinfo_res dr_res;
+	TAILQ_ENTRY(devinfo_i_res) dr_link;
 };

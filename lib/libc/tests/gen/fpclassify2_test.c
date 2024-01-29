@@ -24,10 +24,10 @@
  * SUCH DAMAGE.
  */
 
+#include <atf-c.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(test_fpclassify);
 ATF_TC_BODY(test_fpclassify, tc)

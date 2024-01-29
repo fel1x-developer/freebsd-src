@@ -39,10 +39,10 @@
 
 /* Parse <size>@<baseaddr>:<irq>[:<id>] and add a child. */
 static void
-parsearg(driver_t *driver, device_t parent, char * arg)
+parsearg(driver_t *driver, device_t parent, char *arg)
 {
 	device_t child;
-	char * p;
+	char *p;
 	unsigned long sz;
 	unsigned long baseaddr;
 	unsigned long irq;
@@ -53,22 +53,28 @@ parsearg(driver_t *driver, device_t parent, char * arg)
 	if ((sz == 0) || (sz == ULONG_MAX))
 		goto bad;
 	switch (*p) {
-	case 'E': case 'e':
+	case 'E':
+	case 'e':
 		sz <<= 10;
 		/* FALLTHROUGH */
-	case 'P': case 'p':
+	case 'P':
+	case 'p':
 		sz <<= 10;
 		/* FALLTHROUGH */
-	case 'T': case 't':
+	case 'T':
+	case 't':
 		sz <<= 10;
 		/* FALLTHROUGH */
-	case 'G': case 'g':
+	case 'G':
+	case 'g':
 		sz <<= 10;
 		/* FALLTHROUGH */
-	case 'M': case 'm':
+	case 'M':
+	case 'm':
 		sz <<= 10;
 		/* FALLTHROUGH */
-	case 'K': case 'k':
+	case 'K':
+	case 'k':
 		sz <<= 10;
 		p++;
 		break;
@@ -120,7 +126,7 @@ vtmmio_cmdline_identify(driver_t *driver, device_t parent)
 {
 	size_t n;
 	char name[] = "virtio_mmio.device_XXXX";
-	char * val;
+	char *val;
 
 	/* First variable just has its own name. */
 	if ((val = kern_getenv("virtio_mmio.device")) == NULL)
@@ -139,11 +145,11 @@ vtmmio_cmdline_identify(driver_t *driver, device_t parent)
 }
 
 static device_method_t vtmmio_cmdline_methods[] = {
-        /* Device interface. */
-	DEVMETHOD(device_identify,	vtmmio_cmdline_identify),
-	DEVMETHOD(device_probe,		vtmmio_probe),
+	/* Device interface. */
+	DEVMETHOD(device_identify, vtmmio_cmdline_identify),
+	DEVMETHOD(device_probe, vtmmio_probe),
 
-        DEVMETHOD_END
+	DEVMETHOD_END
 };
 DEFINE_CLASS_1(virtio_mmio, vtmmio_cmdline_driver, vtmmio_cmdline_methods,
     sizeof(struct vtmmio_softc), vtmmio_driver);

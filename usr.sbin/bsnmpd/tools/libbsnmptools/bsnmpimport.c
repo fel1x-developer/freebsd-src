@@ -75,6 +75,9 @@
 #include <sys/queue.h>
 #include <sys/uio.h>
 
+#include <bsnmp/asn1.h>
+#include <bsnmp/snmp.h>
+#include <bsnmp/snmpagent.h> /* SNMP_INDEXES_MAX */
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -86,21 +89,14 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include <bsnmp/asn1.h>
-#include <bsnmp/snmp.h>
-#include <bsnmp/snmpagent.h>	/* SNMP_INDEXES_MAX */
 #include "bsnmptc.h"
 #include "bsnmptools.h"
 
-enum snmp_tbl_entry {
-	ENTRY_NONE = 0,
-	ENTRY_INDEX,
-	ENTRY_DATA
-};
+enum snmp_tbl_entry { ENTRY_NONE = 0, ENTRY_INDEX, ENTRY_DATA };
 
 enum {
-	FL_GET	= 0x01,
-	FL_SET	= 0x02,
+	FL_GET = 0x01,
+	FL_SET = 0x02,
 };
 
 /************************************************************
@@ -132,10 +128,10 @@ savestr(const char *s)
  * Input stack
  */
 struct input {
-	FILE		*fp;
-	uint32_t	lno;
-	char		*fname;
-	char		*path;
+	FILE *fp;
+	uint32_t lno;
+	char *fname;
+	char *path;
 	LIST_ENTRY(input) link;
 };
 
@@ -143,13 +139,10 @@ static LIST_HEAD(, input) inputs = LIST_HEAD_INITIALIZER(inputs);
 static struct input *input = NULL;
 static int32_t pbchar = -1;
 
-#define	MAX_PATHS	100
+#define MAX_PATHS 100
 
-static const char *paths[MAX_PATHS + 1] = {
-	"/usr/share/snmp/defs",
-	_PATH_LOCALBASE "/share/snmp/defs",
-	NULL
-};
+static const char *paths[MAX_PATHS + 1] = { "/usr/share/snmp/defs",
+	_PATH_LOCALBASE "/share/snmp/defs", NULL };
 
 static void
 input_new(FILE *fp, const char *path, const char *fname)
@@ -261,7 +254,7 @@ tungetc(int c)
  * Parsing input
  */
 enum tok {
-	TOK_EOF = 0200,	/* end-of-file seen */
+	TOK_EOF = 0200, /* end-of-file seen */
 	TOK_NUM,	/* number */
 	TOK_STR,	/* string */
 	TOK_ACCESS,	/* access operator */
@@ -276,12 +269,10 @@ enum tok {
 };
 
 static const struct {
-	const char	*str;
-	enum tok	tok;
-	uint32_t	val;
-} keywords[] = {
-	{ "GET", TOK_ACCESS, FL_GET },
-	{ "SET", TOK_ACCESS, FL_SET },
+	const char *str;
+	enum tok tok;
+	uint32_t val;
+} keywords[] = { { "GET", TOK_ACCESS, FL_GET }, { "SET", TOK_ACCESS, FL_SET },
 	{ "NULL", TOK_TYPE, SNMP_SYNTAX_NULL },
 	{ "INTEGER", TOK_TYPE, SNMP_SYNTAX_INTEGER },
 	{ "INTEGER32", TOK_TYPE, SNMP_SYNTAX_INTEGER },
@@ -295,22 +286,20 @@ static const struct {
 	{ "COUNTER64", TOK_TYPE, SNMP_SYNTAX_COUNTER64 },
 	{ "ENUM", TOK_ENUM, SNMP_SYNTAX_INTEGER },
 	{ "BITS", TOK_BITS, SNMP_SYNTAX_OCTETSTRING },
-	{ "typedef", TOK_TYPEDEF, 0 },
-	{ "include", TOK_INCLUDE, 0 },
-	{ NULL, 0, 0 }
-};
+	{ "typedef", TOK_TYPEDEF, 0 }, { "include", TOK_INCLUDE, 0 },
+	{ NULL, 0, 0 } };
 
 static struct {
 	/* Current OID type, regarding table membership. */
-	enum snmp_tbl_entry	tbl_type;
+	enum snmp_tbl_entry tbl_type;
 	/* A pointer to a structure in table list to add to its members. */
-	struct snmp_index_entry	*table_idx;
+	struct snmp_index_entry *table_idx;
 } table_data;
 
 static struct asn_oid current_oid;
 static char nexttok[MAXSTR];
-static u_long val;		/* integer values */
-static int32_t	all_cond;	/* all conditions are true */
+static u_long val;	 /* integer values */
+static int32_t all_cond; /* all conditions are true */
 static int32_t saved_token = -1;
 
 /* Prepare the global data before parsing a new file. */
@@ -341,7 +330,7 @@ gettoken(struct snmp_toolinfo *snmptoolctx)
 		return (c);
 	}
 
-  again:
+again:
 	/*
 	 * Skip any whitespace before the next token.
 	 */
@@ -355,7 +344,7 @@ gettoken(struct snmp_toolinfo *snmptoolctx)
 		return (TOK_EOF);
 
 	if (!isascii(c)) {
-		warnx("unexpected character %#2x", (u_int) c);
+		warnx("unexpected character %#2x", (u_int)c);
 		return (TOK_ERR);
 	}
 
@@ -435,7 +424,7 @@ gettoken(struct snmp_toolinfo *snmptoolctx)
 		nexttok[n++] = c;
 		while ((c = tgetc()) != EOF) {
 			if (!isalnum(c) && c != '_' && c != '-') {
-				if (tungetc (c) < 0)
+				if (tungetc(c) < 0)
 					return (TOK_ERR);
 				break;
 			}
@@ -468,7 +457,7 @@ gettoken(struct snmp_toolinfo *snmptoolctx)
 	if (isprint(c))
 		warnx("%u: unexpected character '%c'", input->lno, c);
 	else
-		warnx("%u: unexpected character 0x%02x", input->lno, (u_int) c);
+		warnx("%u: unexpected character 0x%02x", input->lno, (u_int)c);
 
 	return (TOK_ERR);
 }
@@ -480,32 +469,32 @@ static struct snmp_index_entry *
 snmp_import_update_table(enum snmp_tbl_entry te, struct snmp_index_entry *tbl)
 {
 	switch (te) {
-		case ENTRY_NONE:
-			if (table_data.tbl_type == ENTRY_NONE)
-				return (NULL);
-			if (table_data.tbl_type == ENTRY_INDEX)
-				table_data.table_idx = NULL;
-			table_data.tbl_type--;
+	case ENTRY_NONE:
+		if (table_data.tbl_type == ENTRY_NONE)
 			return (NULL);
+		if (table_data.tbl_type == ENTRY_INDEX)
+			table_data.table_idx = NULL;
+		table_data.tbl_type--;
+		return (NULL);
 
-		case ENTRY_INDEX:
-			if (tbl == NULL)
-				warnx("No table_index to add!!!");
-			table_data.table_idx = tbl;
-			table_data.tbl_type = ENTRY_INDEX;
-			return (tbl);
+	case ENTRY_INDEX:
+		if (tbl == NULL)
+			warnx("No table_index to add!!!");
+		table_data.table_idx = tbl;
+		table_data.tbl_type = ENTRY_INDEX;
+		return (tbl);
 
-		case ENTRY_DATA:
-			if (table_data.tbl_type == ENTRY_INDEX) {
-				table_data.tbl_type = ENTRY_DATA;
-				return (table_data.table_idx);
-			}
-			return (NULL);
+	case ENTRY_DATA:
+		if (table_data.tbl_type == ENTRY_INDEX) {
+			table_data.tbl_type = ENTRY_DATA;
+			return (table_data.table_idx);
+		}
+		return (NULL);
 
-		default:
-			/* NOTREACHED */
-			warnx("Unknown table entry type!!!");
-			break;
+	default:
+		/* NOTREACHED */
+		warnx("Unknown table entry type!!!");
+		break;
 	}
 
 	return (NULL);
@@ -531,8 +520,7 @@ parse_enum(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 }
 
 static int32_t
-parse_subtype(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
-    enum snmp_tc *tc)
+parse_subtype(struct snmp_toolinfo *snmptoolctx, int32_t *tok, enum snmp_tc *tc)
 {
 	if ((*tok = gettoken(snmptoolctx)) != TOK_STR) {
 		warnx("subtype expected after '|'");
@@ -546,8 +534,8 @@ parse_subtype(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 }
 
 static int32_t
-parse_type(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
-    enum snmp_tc *tc, struct enum_pairs **snmp_enum)
+parse_type(struct snmp_toolinfo *snmptoolctx, int32_t *tok, enum snmp_tc *tc,
+    struct enum_pairs **snmp_enum)
 {
 	int32_t syntax, mem;
 
@@ -613,7 +601,7 @@ snmp_import_head(struct snmp_toolinfo *snmptoolctx)
 	if ((tok = gettoken(snmptoolctx)) == '(')
 		tok = gettoken(snmptoolctx);
 
-	if (tok != TOK_NUM  || val > ASN_MAXID ) {
+	if (tok != TOK_NUM || val > ASN_MAXID) {
 		warnx("Suboid expected - line %d", input->lno);
 		return (-1);
 	}
@@ -656,7 +644,7 @@ snmp_import_table(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *obj)
 		}
 
 		if (snmp_syntax_insert(&(entry->index_list), enums, syntax,
-		    tc) < 0) {
+			tc) < 0) {
 			snmp_index_listfree(&(entry->index_list));
 			enum_pairs_free(enums);
 			free(entry);
@@ -693,7 +681,7 @@ snmp_import_table(struct snmp_toolinfo *snmptoolctx, struct snmp_oid2str *obj)
 		return (0);
 	}
 
-	(void) snmp_import_update_table(ENTRY_INDEX, entry);
+	(void)snmp_import_update_table(ENTRY_INDEX, entry);
 
 	return (1);
 }
@@ -707,9 +695,9 @@ snmp_import_leaf(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 {
 	int32_t i, syntax;
 
-	if ((syntax = parse_type(snmptoolctx, tok, &(oid2str->tc), &(oid2str->snmp_enum)))
-	    < 0)
-		return(-1);
+	if ((syntax = parse_type(snmptoolctx, tok, &(oid2str->tc),
+		 &(oid2str->snmp_enum))) < 0)
+		return (-1);
 
 	oid2str->syntax = syntax;
 	/*
@@ -720,7 +708,7 @@ snmp_import_leaf(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 		*tok = gettoken(snmptoolctx);
 
 	for (i = 0; i < SNMP_ACCESS_GETSET && *tok == TOK_ACCESS; i++) {
-		oid2str->access |=  (uint32_t) val;
+		oid2str->access |= (uint32_t)val;
 		*tok = gettoken(snmptoolctx);
 	}
 
@@ -729,7 +717,7 @@ snmp_import_leaf(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 		return (-1);
 	}
 
-	oid2str->table_idx = snmp_import_update_table(ENTRY_DATA,  NULL);
+	oid2str->table_idx = snmp_import_update_table(ENTRY_DATA, NULL);
 
 	if ((i = snmp_leaf_insert(snmptoolctx, oid2str)) < 0) {
 		warnx("Error adding leaf %s to list", oid2str->string);
@@ -740,12 +728,12 @@ snmp_import_leaf(struct snmp_toolinfo *snmptoolctx, int32_t *tok,
 	 * Same entry is already present in the mapping lists and
 	 * the new one was not inserted.
 	 */
-	if (i == 0)  {
+	if (i == 0) {
 		free(oid2str->string);
 		free(oid2str);
 	}
 
-	(void) snmp_import_update_table(ENTRY_NONE, NULL);
+	(void)snmp_import_update_table(ENTRY_NONE, NULL);
 
 	return (1);
 }
@@ -776,7 +764,7 @@ snmp_import_object(struct snmp_toolinfo *snmptoolctx)
 	oid2str->strlen = strlen(nexttok);
 
 	asn_append_oid(&(oid2str->var), &(current_oid));
-	if (snmp_suboid_append(&(oid2str->var), (asn_subid_t) val) < 0)
+	if (snmp_suboid_append(&(oid2str->var), (asn_subid_t)val) < 0)
 		goto error;
 
 	/*
@@ -792,7 +780,7 @@ snmp_import_object(struct snmp_toolinfo *snmptoolctx)
 	 */
 
 	switch (tok = gettoken(snmptoolctx)) {
-	    case  ')':
+	case ')':
 		if ((i = snmp_enum_insert(snmptoolctx, oid2str)) < 0)
 			goto error;
 		if (i == 0) {
@@ -801,8 +789,8 @@ snmp_import_object(struct snmp_toolinfo *snmptoolctx)
 		}
 		return (1);
 
-	    case '(':
-		if (snmp_suboid_append(&current_oid, (asn_subid_t) val) < 0)
+	case '(':
+		if (snmp_suboid_append(&current_oid, (asn_subid_t)val) < 0)
 			goto error;
 
 		/*
@@ -816,8 +804,8 @@ snmp_import_object(struct snmp_toolinfo *snmptoolctx)
 		}
 		return (snmp_import_object(snmptoolctx));
 
-	    case ':':
-		if (snmp_suboid_append(&current_oid, (asn_subid_t) val) < 0)
+	case ':':
+		if (snmp_suboid_append(&current_oid, (asn_subid_t)val) < 0)
 			goto error;
 		if (snmp_import_table(snmptoolctx, oid2str) < 0)
 			goto error;
@@ -828,18 +816,18 @@ snmp_import_object(struct snmp_toolinfo *snmptoolctx)
 		free(oid2str);
 		return (1);
 
-	    case TOK_TYPE:
+	case TOK_TYPE:
 		/* FALLTHROUGH */
-	    case TOK_DEFTYPE:
+	case TOK_DEFTYPE:
 		/* FALLTHROUGH */
-	    case TOK_ENUM:
-	    	/* FALLTHROUGH */
-	    case TOK_BITS:
+	case TOK_ENUM:
+		/* FALLTHROUGH */
+	case TOK_BITS:
 		if (snmp_import_leaf(snmptoolctx, &tok, oid2str) < 0)
-				goto error;
+			goto error;
 		return (1);
 
-	    default:
+	default:
 		warnx("Unexpected token at line %d - %s", input->lno,
 		    input->fname);
 		break;
@@ -856,18 +844,18 @@ snmp_import_tree(struct snmp_toolinfo *snmptoolctx, int32_t *tok)
 {
 	while (*tok != TOK_EOF) {
 		switch (*tok) {
-		    case TOK_ERR:
+		case TOK_ERR:
 			return (-1);
-		    case '(':
+		case '(':
 			if (snmp_import_object(snmptoolctx) < 0)
-			    return (-1);
+				return (-1);
 			break;
-		    case ')':
+		case ')':
 			if (snmp_suboid_pop(&current_oid) < 0)
-			    return (-1);
-			(void) snmp_import_update_table(ENTRY_NONE, NULL);
+				return (-1);
+			(void)snmp_import_update_table(ENTRY_NONE, NULL);
 			break;
-		    default:
+		default:
 			/* Anything else here would be illegal. */
 			return (-1);
 		}
@@ -914,7 +902,7 @@ snmp_import_top(struct snmp_toolinfo *snmptoolctx, int32_t *tok)
 			return (-1);
 		}
 
-		if (( i = add_filename(snmptoolctx, nexttok, NULL, 1)) == 0) {
+		if ((i = add_filename(snmptoolctx, nexttok, NULL, 1)) == 0) {
 			*tok = gettoken(snmptoolctx);
 			return (1);
 		}

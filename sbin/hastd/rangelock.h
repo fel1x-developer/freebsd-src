@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_RANGELOCK_H_
-#define	_RANGELOCK_H_
+#ifndef _RANGELOCK_H_
+#define _RANGELOCK_H_
 
 #include <stdbool.h>
 #include <unistd.h>
@@ -43,4 +43,4 @@ int rangelock_add(struct rangelocks *rls, off_t offset, off_t length);
 void rangelock_del(struct rangelocks *rls, off_t offset, off_t length);
 bool rangelock_islocked(struct rangelocks *rls, off_t offset, off_t length);
 
-#endif	/* !_RANGELOCK_H_ */
+#endif /* !_RANGELOCK_H_ */

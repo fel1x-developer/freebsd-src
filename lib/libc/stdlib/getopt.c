@@ -31,35 +31,35 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
-int	opterr = 1,		/* if error message should be printed */
-	optind = 1,		/* index into parent argv vector */
-	optopt,			/* character checked for validity */
-	optreset;		/* reset getopt */
-char	*optarg;		/* argument associated with option */
+int opterr = 1, /* if error message should be printed */
+    optind = 1, /* index into parent argv vector */
+    optopt,	/* character checked for validity */
+    optreset;	/* reset getopt */
+char *optarg;	/* argument associated with option */
 
-#define	BADCH	(int)'?'
-#define	BADARG	(int)':'
+#define BADCH (int)'?'
+#define BADARG (int)':'
 static char EMSG[] = "";
 /*
  * getopt --
  *	Parse argc/argv argument vector.
  */
 int
-getopt(int nargc, char * const nargv[], const char *ostr)
+getopt(int nargc, char *const nargv[], const char *ostr)
 {
-	static char *place = EMSG;		/* option letter processing */
-	char *oli;				/* option letter list index */
+	static char *place = EMSG; /* option letter processing */
+	char *oli;		   /* option letter list index */
 
-	if (optreset || *place == 0) {		/* update scanning pointer */
+	if (optreset || *place == 0) { /* update scanning pointer */
 		optreset = 0;
 		place = nargv[optind];
 		if (optind >= nargc || *place++ != '-') {
@@ -90,9 +90,8 @@ getopt(int nargc, char * const nargv[], const char *ostr)
 		if (*place == 0)
 			++optind;
 		if (opterr && *ostr != ':')
-			(void)fprintf(stderr,
-			    "%s: illegal option -- %c\n", _getprogname(),
-			    optopt);
+			(void)fprintf(stderr, "%s: illegal option -- %c\n",
+			    _getprogname(), optopt);
 		return (BADCH);
 	}
 
@@ -129,5 +128,5 @@ getopt(int nargc, char * const nargv[], const char *ostr)
 		place = EMSG;
 		++optind;
 	}
-	return (optopt);			/* return option letter */
+	return (optopt); /* return option letter */
 }

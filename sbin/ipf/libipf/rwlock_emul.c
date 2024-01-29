@@ -9,19 +9,20 @@
 
 #include "ipf.h"
 
-#define	EMM_MAGIC	0x97dd8b3a
+#define EMM_MAGIC 0x97dd8b3a
 
-void eMrwlock_read_enter(eMrwlock_t *rw, char *file, int line)
+void
+eMrwlock_read_enter(eMrwlock_t *rw, char *file, int line)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_read_enter(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_read != 0 || rw->eMrw_write != 0) {
 		fprintf(stderr,
-			"%s:eMrwlock_read_enter(%p): already locked: %d/%d\n",
-			rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
+		    "%s:eMrwlock_read_enter(%p): already locked: %d/%d\n",
+		    rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
 		abort();
 	}
 	rw->eMrw_read++;
@@ -29,18 +30,18 @@ void eMrwlock_read_enter(eMrwlock_t *rw, char *file, int line)
 	rw->eMrw_heldat = line;
 }
 
-
-void eMrwlock_write_enter(eMrwlock_t *rw, char *file, int line)
+void
+eMrwlock_write_enter(eMrwlock_t *rw, char *file, int line)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_write_enter(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_read != 0 || rw->eMrw_write != 0) {
 		fprintf(stderr,
-			"%s:eMrwlock_write_enter(%p): already locked: %d/%d\n",
-			rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
+		    "%s:eMrwlock_write_enter(%p): already locked: %d/%d\n",
+		    rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
 		abort();
 	}
 	rw->eMrw_write++;
@@ -48,18 +49,18 @@ void eMrwlock_write_enter(eMrwlock_t *rw, char *file, int line)
 	rw->eMrw_heldat = line;
 }
 
-
-void eMrwlock_try_upgrade(eMrwlock_t *rw, char *file, int line)
+void
+eMrwlock_try_upgrade(eMrwlock_t *rw, char *file, int line)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_write_enter(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_read != 0 || rw->eMrw_write != 0) {
 		fprintf(stderr,
-			"%s:eMrwlock_try_upgrade(%p): already locked: %d/%d\n",
-			rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
+		    "%s:eMrwlock_try_upgrade(%p): already locked: %d/%d\n",
+		    rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
 		abort();
 	}
 	rw->eMrw_write++;
@@ -67,17 +68,18 @@ void eMrwlock_try_upgrade(eMrwlock_t *rw, char *file, int line)
 	rw->eMrw_heldat = line;
 }
 
-void eMrwlock_downgrade(eMrwlock_t *rw, char *file, int line)
+void
+eMrwlock_downgrade(eMrwlock_t *rw, char *file, int line)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_write_enter(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_read != 0 || rw->eMrw_write != 1) {
 		fprintf(stderr,
-			"%s:eMrwlock_write_enter(%p): already locked: %d/%d\n",
-			rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
+		    "%s:eMrwlock_write_enter(%p): already locked: %d/%d\n",
+		    rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
 		abort();
 	}
 	rw->eMrw_write--;
@@ -86,17 +88,17 @@ void eMrwlock_downgrade(eMrwlock_t *rw, char *file, int line)
 	rw->eMrw_heldat = line;
 }
 
-
-void eMrwlock_exit(eMrwlock_t *rw)
+void
+eMrwlock_exit(eMrwlock_t *rw)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_exit(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_read != 1 && rw->eMrw_write != 1) {
 		fprintf(stderr, "%s:eMrwlock_exit(%p): not locked: %d/%d\n",
-			rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
+		    rw->eMrw_owner, rw, rw->eMrw_read, rw->eMrw_write);
 		abort();
 	}
 	if (rw->eMrw_read == 1)
@@ -107,15 +109,15 @@ void eMrwlock_exit(eMrwlock_t *rw)
 	rw->eMrw_heldat = 0;
 }
 
-
 static int initcount = 0;
 
-void eMrwlock_init(eMrwlock_t *rw, char *who)
+void
+eMrwlock_init(eMrwlock_t *rw, char *who)
 {
-	if (rw->eMrw_magic == EMM_MAGIC) {	/* safe bet ? */
+	if (rw->eMrw_magic == EMM_MAGIC) { /* safe bet ? */
 		fprintf(stderr,
-			"%s:eMrwlock_init(%p): already initialised?: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    "%s:eMrwlock_init(%p): already initialised?: %#x\n",
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	rw->eMrw_magic = EMM_MAGIC;
@@ -128,12 +130,12 @@ void eMrwlock_init(eMrwlock_t *rw, char *who)
 	initcount++;
 }
 
-
-void eMrwlock_destroy(eMrwlock_t *rw)
+void
+eMrwlock_destroy(eMrwlock_t *rw)
 {
 	if (rw->eMrw_magic != EMM_MAGIC) {
 		fprintf(stderr, "%s:eMrwlock_destroy(%p): bad magic: %#x\n",
-			rw->eMrw_owner, rw, rw->eMrw_magic);
+		    rw->eMrw_owner, rw, rw->eMrw_magic);
 		abort();
 	}
 	if (rw->eMrw_owner != NULL)
@@ -142,7 +144,8 @@ void eMrwlock_destroy(eMrwlock_t *rw)
 	initcount--;
 }
 
-void ipf_rwlock_clean(void)
+void
+ipf_rwlock_clean(void)
 {
 	if (initcount != 0)
 		abort();

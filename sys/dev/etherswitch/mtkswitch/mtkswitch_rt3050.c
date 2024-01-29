@@ -25,6 +25,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -36,22 +37,21 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
 
 #include <dev/etherswitch/etherswitch.h>
-#include <dev/etherswitch/mtkswitch/mtkswitchvar.h>
 #include <dev/etherswitch/mtkswitch/mtkswitch_rt3050.h>
+#include <dev/etherswitch/mtkswitch/mtkswitchvar.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
 static int
 mtkswitch_reg_read(device_t dev, int reg)
@@ -94,10 +94,12 @@ mtkswitch_phy_read(device_t dev, int phy, int reg)
 
 	MTKSWITCH_LOCK_ASSERT(sc, MA_NOTOWNED);
 	MTKSWITCH_LOCK(sc);
-	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE);
-	MTKSWITCH_WRITE(sc, MTKSWITCH_PCR0, PCR0_READ | PCR0_REG(reg) |
-	    PCR0_PHY(phy));
-	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE);
+	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE)
+		;
+	MTKSWITCH_WRITE(sc, MTKSWITCH_PCR0,
+	    PCR0_READ | PCR0_REG(reg) | PCR0_PHY(phy));
+	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE)
+		;
 	val = (MTKSWITCH_READ(sc, MTKSWITCH_PCR1) >> PCR1_DATA_OFF) &
 	    PCR1_DATA_MASK;
 	MTKSWITCH_UNLOCK(sc);
@@ -111,10 +113,12 @@ mtkswitch_phy_write(device_t dev, int phy, int reg, int val)
 
 	MTKSWITCH_LOCK_ASSERT(sc, MA_NOTOWNED);
 	MTKSWITCH_LOCK(sc);
-	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE);
-	MTKSWITCH_WRITE(sc, MTKSWITCH_PCR0, PCR0_WRITE | PCR0_REG(reg) |
-	    PCR0_PHY(phy) | PCR0_DATA(val));
-	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE);
+	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE)
+		;
+	MTKSWITCH_WRITE(sc, MTKSWITCH_PCR0,
+	    PCR0_WRITE | PCR0_REG(reg) | PCR0_PHY(phy) | PCR0_DATA(val));
+	while (MTKSWITCH_READ(sc, MTKSWITCH_PCR0) & PCR0_ACTIVE)
+		;
 	MTKSWITCH_UNLOCK(sc);
 	return (0);
 }
@@ -126,7 +130,8 @@ mtkswitch_reset(struct mtkswitch_softc *sc)
 	MTKSWITCH_LOCK_ASSERT(sc, MA_NOTOWNED);
 	MTKSWITCH_LOCK(sc);
 	MTKSWITCH_WRITE(sc, MTKSWITCH_STRT, STRT_RESET);
-	while (MTKSWITCH_READ(sc, MTKSWITCH_STRT) != 0);
+	while (MTKSWITCH_READ(sc, MTKSWITCH_STRT) != 0)
+		;
 	MTKSWITCH_UNLOCK(sc);
 
 	return (0);
@@ -314,22 +319,22 @@ mtkswitch_vlan_init_hw(struct mtkswitch_softc *sc)
 	vid = 0;
 	val = MTKSWITCH_READ(sc, MTKSWITCH_VMSC(vid));
 	val &= ~(VMSC_MASK << VMSC_OFF(vid));
-	val |= (((1<<sc->numports)-1) << VMSC_OFF(vid));
+	val |= (((1 << sc->numports) - 1) << VMSC_OFF(vid));
 	MTKSWITCH_WRITE(sc, MTKSWITCH_VMSC(vid), val);
 	if (sc->sc_switchtype != MTK_SWITCH_RT3050) {
 		val = MTKSWITCH_READ(sc, MTKSWITCH_VUB(vid));
 		val &= ~(VUB_MASK << VUB_OFF(vid));
-		val |= (((1<<sc->numports)-1) << VUB_OFF(vid));
+		val |= (((1 << sc->numports) - 1) << VUB_OFF(vid));
 		MTKSWITCH_WRITE(sc, MTKSWITCH_VUB(vid), val);
 	}
 	val = MTKSWITCH_READ(sc, MTKSWITCH_POC2);
 	if (sc->sc_switchtype != MTK_SWITCH_RT3050)
 		val |= POC2_UNTAG_VLAN;
-	val |= ((1<<sc->numports)-1);
+	val |= ((1 << sc->numports) - 1);
 	MTKSWITCH_WRITE(sc, MTKSWITCH_POC2, val);
 
 	/* only the first vlangroup is valid */
-	sc->valid_vlans = (1<<0);
+	sc->valid_vlans = (1 << 0);
 
 	/* Set all port PVIDs to 1 */
 	vid = 1;
@@ -363,24 +368,27 @@ mtkswitch_vlan_getvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 
 	/* Vlan ID */
 	v->es_vid = 0;
-	if ((sc->valid_vlans & (1<<v->es_vlangroup)) == 0)
+	if ((sc->valid_vlans & (1 << v->es_vlangroup)) == 0)
 		return (0);
 
 	MTKSWITCH_LOCK(sc);
 	v->es_vid = (MTKSWITCH_READ(sc, MTKSWITCH_VLANI(v->es_vlangroup)) >>
-	    VLANI_OFF(v->es_vlangroup)) & VLANI_MASK;
+			VLANI_OFF(v->es_vlangroup)) &
+	    VLANI_MASK;
 	v->es_vid |= ETHERSWITCH_VID_VALID;
 
 	/* Member ports */
 	v->es_member_ports = v->es_untagged_ports =
 	    (MTKSWITCH_READ(sc, MTKSWITCH_VMSC(v->es_vlangroup)) >>
-	    VMSC_OFF(v->es_vlangroup)) & VMSC_MASK;
+		VMSC_OFF(v->es_vlangroup)) &
+	    VMSC_MASK;
 
 	val = MTKSWITCH_READ(sc, MTKSWITCH_POC2);
 
 	if ((val & POC2_UNTAG_VLAN) && sc->sc_switchtype != MTK_SWITCH_RT3050) {
 		val = (MTKSWITCH_READ(sc, MTKSWITCH_VUB(v->es_vlangroup)) >>
-		    VUB_OFF(v->es_vlangroup)) & VUB_MASK;
+			  VUB_OFF(v->es_vlangroup)) &
+		    VUB_MASK;
 	} else {
 		val &= VUB_MASK;
 	}
@@ -443,8 +451,8 @@ mtkswitch_vlan_setvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 		/* Prefer per-Vlan untag and set its members */
 		val = MTKSWITCH_READ(sc, MTKSWITCH_VUB(v->es_vlangroup));
 		val &= ~(VUB_MASK << VUB_OFF(v->es_vlangroup));
-		val |= (((v->es_untagged_ports) & VUB_MASK) <<
-		    VUB_OFF(v->es_vlangroup));
+		val |= (((v->es_untagged_ports) & VUB_MASK)
+		    << VUB_OFF(v->es_vlangroup));
 		MTKSWITCH_WRITE(sc, MTKSWITCH_VUB(v->es_vlangroup), val);
 	}
 
@@ -460,7 +468,7 @@ mtkswitch_vlan_setvgroup(struct mtkswitch_softc *sc, etherswitch_vlangroup_t *v)
 	val |= (v->es_member_ports << VMSC_OFF(v->es_vlangroup));
 	MTKSWITCH_WRITE(sc, MTKSWITCH_VMSC(v->es_vlangroup), val);
 
-	sc->valid_vlans |= (1<<v->es_vlangroup);
+	sc->valid_vlans |= (1 << v->es_vlangroup);
 
 	MTKSWITCH_UNLOCK(sc);
 	return (0);
@@ -474,7 +482,7 @@ mtkswitch_vlan_get_pvid(struct mtkswitch_softc *sc, int port, int *pvid)
 	*pvid = (MTKSWITCH_READ(sc, MTKSWITCH_PVID(port)) >> PVID_OFF(port)) &
 	    PVID_MASK;
 
-	return (0); 
+	return (0);
 }
 
 static int
@@ -487,7 +495,7 @@ mtkswitch_vlan_set_pvid(struct mtkswitch_softc *sc, int port, int pvid)
 	val &= ~(PVID_MASK << PVID_OFF(port));
 	val |= (pvid & PVID_MASK) << PVID_OFF(port);
 	MTKSWITCH_WRITE(sc, MTKSWITCH_PVID(port), val);
-	
+
 	return (0);
 }
 

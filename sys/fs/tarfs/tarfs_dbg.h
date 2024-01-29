@@ -26,41 +26,40 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_FS_TARFS_TARFS_DBG_H_
-#define	_FS_TARFS_TARFS_DBG_H_
+#ifndef _FS_TARFS_TARFS_DBG_H_
+#define _FS_TARFS_TARFS_DBG_H_
 
 #ifndef _KERNEL
 #error Should only be included by kernel
 #endif
 
-#ifdef	TARFS_DEBUG
+#ifdef TARFS_DEBUG
 extern int tarfs_debug;
 
-#define	TARFS_DEBUG_ALLOC	0x01
-#define	TARFS_DEBUG_CHECKSUM	0x02
-#define	TARFS_DEBUG_FS		0x04
-#define	TARFS_DEBUG_LOOKUP	0x08
-#define	TARFS_DEBUG_VNODE	0x10
-#define	TARFS_DEBUG_IO		0x20
-#define	TARFS_DEBUG_ZIO		0x40
-#define	TARFS_DEBUG_ZIDX	0x80
-#define	TARFS_DEBUG_MAP		0x100
-#define	TARFS_DEBUG_BOUNCE	0x200
+#define TARFS_DEBUG_ALLOC 0x01
+#define TARFS_DEBUG_CHECKSUM 0x02
+#define TARFS_DEBUG_FS 0x04
+#define TARFS_DEBUG_LOOKUP 0x08
+#define TARFS_DEBUG_VNODE 0x10
+#define TARFS_DEBUG_IO 0x20
+#define TARFS_DEBUG_ZIO 0x40
+#define TARFS_DEBUG_ZIDX 0x80
+#define TARFS_DEBUG_MAP 0x100
+#define TARFS_DEBUG_BOUNCE 0x200
 
-#define	TARFS_DPF(category, fmt, ...)					\
-	do {								\
-		if ((tarfs_debug & TARFS_DEBUG_##category) != 0)	\
-			printf(fmt, ## __VA_ARGS__);			\
+#define TARFS_DPF(category, fmt, ...)                            \
+	do {                                                     \
+		if ((tarfs_debug & TARFS_DEBUG_##category) != 0) \
+			printf(fmt, ##__VA_ARGS__);              \
 	} while (0)
-#define	TARFS_DPF_IFF(category, cond, fmt, ...)				\
-	do {								\
-		if ((cond)						\
-		    && (tarfs_debug & TARFS_DEBUG_##category) != 0)	\
-			printf(fmt, ## __VA_ARGS__);			\
+#define TARFS_DPF_IFF(category, cond, fmt, ...)                            \
+	do {                                                               \
+		if ((cond) && (tarfs_debug & TARFS_DEBUG_##category) != 0) \
+			printf(fmt, ##__VA_ARGS__);                        \
 	} while (0)
 #else
-#define	TARFS_DPF(category, fmt, ...)
-#define	TARFS_DPF_IFF(category, cond, fmt, ...)
+#define TARFS_DPF(category, fmt, ...)
+#define TARFS_DPF_IFF(category, cond, fmt, ...)
 #endif
 
-#endif	/* _FS_TARFS_TARFS_DBG_H_ */
+#endif /* _FS_TARFS_TARFS_DBG_H_ */

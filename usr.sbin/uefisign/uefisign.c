@@ -31,28 +31,29 @@
 
 #include <sys/cdefs.h>
 #include <sys/wait.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/pkcs7.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/pem.h>
-#include <openssl/pkcs7.h>
-
-#include "uefisign.h"
 #include "magic.h"
+#include "uefisign.h"
 
 static void
 usage(void)
 {
 
-	fprintf(stderr, "usage: uefisign -c cert -k key -o outfile [-v] file\n"
-			"       uefisign -V [-c cert] [-v] file\n");
+	fprintf(stderr,
+	    "usage: uefisign -c cert -k key -o outfile [-v] file\n"
+	    "       uefisign -V [-c cert] [-v] file\n");
 	exit(1);
 }
 
@@ -281,8 +282,8 @@ sign(X509 *cert, EVP_PKEY *key, int pipefd)
 	 * XXX: All the signed binaries seem to have this, but where is it
 	 *      described in the spec?
 	 */
-	PKCS7_add_signed_attribute(info, NID_pkcs9_contentType,
-	    V_ASN1_OBJECT, OBJ_txt2obj("1.3.6.1.4.1.311.2.1.4", 1));
+	PKCS7_add_signed_attribute(info, NID_pkcs9_contentType, V_ASN1_OBJECT,
+	    OBJ_txt2obj("1.3.6.1.4.1.311.2.1.4", 1));
 
 	magic(pkcs7, digest, digest_len);
 
@@ -335,7 +336,8 @@ main(int argc, char **argv)
 {
 	int ch, error;
 	bool Vflag = false, vflag = false;
-	const char *certpath = NULL, *keypath = NULL, *outpath = NULL, *inpath = NULL;
+	const char *certpath = NULL, *keypath = NULL, *outpath = NULL,
+		   *inpath = NULL;
 	FILE *certfp = NULL, *keyfp = NULL;
 	X509 *cert = NULL;
 	EVP_PKEY *key = NULL;
@@ -397,8 +399,9 @@ main(int argc, char **argv)
 	inpath = argv[0];
 
 	OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG |
-	    OPENSSL_INIT_LOAD_CRYPTO_STRINGS |
-	    OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+		OPENSSL_INIT_LOAD_CRYPTO_STRINGS |
+		OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS,
+	    NULL);
 
 	error = pipe(pipefds);
 	if (error != 0)

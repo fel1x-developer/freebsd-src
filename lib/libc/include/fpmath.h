@@ -31,48 +31,49 @@
 #define _FPMATH_H_
 
 #include <sys/endian.h>
+
 #include "_fpmath.h"
 
 #ifndef _IEEE_WORD_ORDER
-#define	_IEEE_WORD_ORDER	_BYTE_ORDER
+#define _IEEE_WORD_ORDER _BYTE_ORDER
 #endif
 
 union IEEEf2bits {
-	float	f;
+	float f;
 	struct {
 #if _BYTE_ORDER == _LITTLE_ENDIAN
-		unsigned int	man	:23;
-		unsigned int	exp	:8;
-		unsigned int	sign	:1;
+		unsigned int man : 23;
+		unsigned int exp : 8;
+		unsigned int sign : 1;
 #else /* _BIG_ENDIAN */
-		unsigned int	sign	:1;
-		unsigned int	exp	:8;
-		unsigned int	man	:23;
+		unsigned int sign : 1;
+		unsigned int exp : 8;
+		unsigned int man : 23;
 #endif
 	} bits;
 };
 
-#define	DBL_MANH_SIZE	20
-#define	DBL_MANL_SIZE	32
+#define DBL_MANH_SIZE 20
+#define DBL_MANL_SIZE 32
 
 union IEEEd2bits {
-	double	d;
+	double d;
 	struct {
 #if _BYTE_ORDER == _LITTLE_ENDIAN
 #if _IEEE_WORD_ORDER == _LITTLE_ENDIAN
-		unsigned int	manl	:32;
+		unsigned int manl : 32;
 #endif
-		unsigned int	manh	:20;
-		unsigned int	exp	:11;
-		unsigned int	sign	:1;
+		unsigned int manh : 20;
+		unsigned int exp : 11;
+		unsigned int sign : 1;
 #if _IEEE_WORD_ORDER == _BIG_ENDIAN
-		unsigned int	manl	:32;
+		unsigned int manl : 32;
 #endif
 #else /* _BIG_ENDIAN */
-		unsigned int	sign	:1;
-		unsigned int	exp	:11;
-		unsigned int	manh	:20;
-		unsigned int	manl	:32;
+		unsigned int sign : 1;
+		unsigned int exp : 11;
+		unsigned int manh : 20;
+		unsigned int manl : 32;
 #endif
 	} bits;
 };

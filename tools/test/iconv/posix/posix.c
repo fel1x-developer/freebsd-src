@@ -58,7 +58,7 @@ open_1(void)
  * iconv_open must return (iconv_t)-1 if too much files are open
  * and set errno to ENFILE.
  */
-#define	MAX_LIMIT	1025
+#define MAX_LIMIT 1025
 static int
 open_2(void)
 {
@@ -98,10 +98,12 @@ close_1(void)
 static int
 conv_ebadf(void)
 {
-	iconv_t	cd = (iconv_t)-1;
+	iconv_t cd = (iconv_t)-1;
 
 	errno = 0;
-	return ((iconv(cd, NULL, 0, NULL, 0) == (size_t)-1 && errno == EBADF) ? 0 : 1);
+	return ((iconv(cd, NULL, 0, NULL, 0) == (size_t)-1 && errno == EBADF) ?
+		0 :
+		1);
 }
 
 static int
@@ -122,7 +124,9 @@ conv_ret(void)
 	inbytesleft = 8;
 	outbytesleft = 16;
 
-	return (iconv(cd, &inptr, &inbytesleft, &outptr, &outbytesleft) == 2 ? 0 : 1);
+	return (iconv(cd, &inptr, &inbytesleft, &outptr, &outbytesleft) == 2 ?
+		0 :
+		1);
 }
 
 static int
@@ -148,7 +152,8 @@ conv_2big(void)
 	ret = iconv(cd, &inptr, &inbytesleft, &outptr, &outbytesleft);
 
 #ifdef VERBOSE
-	printf("inptr - inbuf = %d\n", (const uint8_t *)inptr - (uint8_t *)inbuf);
+	printf("inptr - inbuf = %d\n",
+	    (const uint8_t *)inptr - (uint8_t *)inbuf);
 	printf("inbytesleft = %d\n", inbytesleft);
 	printf("outbytesleft = %d\n", outbytesleft);
 	printf("outptr - outbuf = %d\n", (uint8_t *)outptr - (uint8_t *)outbuf);
@@ -156,9 +161,10 @@ conv_2big(void)
 	printf("ret = %d\n", (int)ret);
 #endif
 
-	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 8) && (inbytesleft == 8)  &&
-	    (outbytesleft == 0) && ((uint8_t *)outptr - (uint8_t *)outbuf == 8) &&
-	    (errno == E2BIG) && ((size_t)ret == (size_t)-1))
+	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 8) &&
+	    (inbytesleft == 8) && (outbytesleft == 0) &&
+	    ((uint8_t *)outptr - (uint8_t *)outbuf == 8) && (errno == E2BIG) &&
+	    ((size_t)ret == (size_t)-1))
 		return (0);
 	else
 		return (1);
@@ -167,12 +173,12 @@ conv_2big(void)
 static int
 conv_einval(void)
 {
-	iconv_t	 cd;
+	iconv_t cd;
 	size_t inbytesleft, outbytesleft;
 	char *inptr;
 	char *outptr;
 	uint32_t outbuf[4];
-        uint16_t inbuf[1] = { 0xEA42 };
+	uint16_t inbuf[1] = { 0xEA42 };
 	int ret;
 
 	if ((cd = iconv_open("UTF-32", "BIG5")) == (iconv_t)-1)
@@ -187,7 +193,8 @@ conv_einval(void)
 	ret = iconv(cd, &inptr, &inbytesleft, &outptr, &outbytesleft);
 
 #ifdef VERBOSE
-	printf("inptr - inbuf = %d\n", (const uint8_t *)inptr - (uint8_t *)inbuf);
+	printf("inptr - inbuf = %d\n",
+	    (const uint8_t *)inptr - (uint8_t *)inbuf);
 	printf("inbytesleft = %d\n", inbytesleft);
 	printf("outbytesleft = %d\n", outbytesleft);
 	printf("outptr - outbuf = %d\n", (uint8_t *)outptr - (uint8_t *)outbuf);
@@ -195,9 +202,10 @@ conv_einval(void)
 	printf("ret = %d\n", (int)ret);
 #endif
 
-	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 1) && (inbytesleft == 1)  &&
-	    (outbytesleft == 8) && ((uint8_t *)outptr - (uint8_t *)outbuf == 8) &&
-	    (errno == EINVAL) && ((size_t)ret == (size_t)-1))
+	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 1) &&
+	    (inbytesleft == 1) && (outbytesleft == 8) &&
+	    ((uint8_t *)outptr - (uint8_t *)outbuf == 8) && (errno == EINVAL) &&
+	    ((size_t)ret == (size_t)-1))
 		return (0);
 	else
 		return (1);
@@ -226,7 +234,8 @@ conv_eilseq(void)
 	ret = iconv(cd, &inptr, &inbytesleft, &outptr, &outbytesleft);
 
 #ifdef VERBOSE
-	printf("inptr - inbuf = %d\n", (const uint8_t *)inptr - (uint8_t *)inbuf);
+	printf("inptr - inbuf = %d\n",
+	    (const uint8_t *)inptr - (uint8_t *)inbuf);
 	printf("inbytesleft = %d\n", inbytesleft);
 	printf("outbytesleft = %d\n", outbytesleft);
 	printf("outptr - outbuf = %d\n", (uint8_t *)outptr - (uint8_t *)outbuf);
@@ -234,16 +243,17 @@ conv_eilseq(void)
 	printf("ret = %d\n", (int)ret);
 #endif
 
-	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 0) && (inbytesleft == 4)  &&
-	    (outbytesleft == 16) && ((uint8_t *)outptr - (uint8_t *)outbuf == 0) &&
-	    (errno == EILSEQ) && ((size_t)ret == (size_t)-1))
+	if (((const uint8_t *)inptr - (uint8_t *)inbuf == 0) &&
+	    (inbytesleft == 4) && (outbytesleft == 16) &&
+	    ((uint8_t *)outptr - (uint8_t *)outbuf == 0) && (errno == EILSEQ) &&
+	    ((size_t)ret == (size_t)-1))
 		return (0);
 	else
 		return (1);
 }
 
 static void
-test(int (tester) (void), const char * label)
+test(int(tester)(void), const char *label)
 {
 	int ret;
 

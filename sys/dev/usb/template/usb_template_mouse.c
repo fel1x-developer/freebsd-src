@@ -37,34 +37,33 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_cdc.h>
-#include <dev/usb/usb_ioctl.h>
-#include <dev/usb/usb_util.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_ioctl.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	MOUSE_LANG_INDEX,
@@ -75,33 +74,29 @@ enum {
 	MOUSE_MAX_INDEX,
 };
 
-#define	MOUSE_DEFAULT_VENDOR_ID		USB_TEMPLATE_VENDOR
-#define	MOUSE_DEFAULT_PRODUCT_ID	0x27da
-#define	MOUSE_DEFAULT_INTERFACE		"Mouse interface"
-#define	MOUSE_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	MOUSE_DEFAULT_PRODUCT		"Mouse Test Interface"
-#define	MOUSE_DEFAULT_SERIAL_NUMBER	"March 2008"
+#define MOUSE_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define MOUSE_DEFAULT_PRODUCT_ID 0x27da
+#define MOUSE_DEFAULT_INTERFACE "Mouse interface"
+#define MOUSE_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define MOUSE_DEFAULT_PRODUCT "Mouse Test Interface"
+#define MOUSE_DEFAULT_SERIAL_NUMBER "March 2008"
 
-static struct usb_string_descriptor	mouse_interface;
-static struct usb_string_descriptor	mouse_manufacturer;
-static struct usb_string_descriptor	mouse_product;
-static struct usb_string_descriptor	mouse_serial_number;
+static struct usb_string_descriptor mouse_interface;
+static struct usb_string_descriptor mouse_manufacturer;
+static struct usb_string_descriptor mouse_product;
+static struct usb_string_descriptor mouse_serial_number;
 
-static struct sysctl_ctx_list		mouse_ctx_list;
+static struct sysctl_ctx_list mouse_ctx_list;
 
 /* prototypes */
 
 /* The following HID descriptor was dumped from a HP mouse. */
 
-static uint8_t mouse_hid_descriptor[] = {
-	0x05, 0x01, 0x09, 0x02, 0xa1, 0x01, 0x09, 0x01,
-	0xa1, 0x00, 0x05, 0x09, 0x19, 0x01, 0x29, 0x03,
-	0x15, 0x00, 0x25, 0x01, 0x95, 0x03, 0x75, 0x01,
-	0x81, 0x02, 0x95, 0x05, 0x81, 0x03, 0x05, 0x01,
-	0x09, 0x30, 0x09, 0x31, 0x09, 0x38, 0x15, 0x81,
-	0x25, 0x7f, 0x75, 0x08, 0x95, 0x03, 0x81, 0x06,
-	0xc0, 0xc0
-};
+static uint8_t mouse_hid_descriptor[] = { 0x05, 0x01, 0x09, 0x02, 0xa1, 0x01,
+	0x09, 0x01, 0xa1, 0x00, 0x05, 0x09, 0x19, 0x01, 0x29, 0x03, 0x15, 0x00,
+	0x25, 0x01, 0x95, 0x03, 0x75, 0x01, 0x81, 0x02, 0x95, 0x05, 0x81, 0x03,
+	0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x09, 0x38, 0x15, 0x81, 0x25, 0x7f,
+	0x75, 0x08, 0x95, 0x03, 0x81, 0x06, 0xc0, 0xc0 };
 
 static const struct usb_temp_packet_size mouse_intr_mps = {
 	.mps[USB_SPEED_LOW] = 8,
@@ -110,13 +105,13 @@ static const struct usb_temp_packet_size mouse_intr_mps = {
 };
 
 static const struct usb_temp_interval mouse_intr_interval = {
-	.bInterval[USB_SPEED_LOW] = 2,		/* 2ms */
-	.bInterval[USB_SPEED_FULL] = 2,		/* 2ms */
-	.bInterval[USB_SPEED_HIGH] = 5,		/* 2ms */
+	.bInterval[USB_SPEED_LOW] = 2,	/* 2ms */
+	.bInterval[USB_SPEED_FULL] = 2, /* 2ms */
+	.bInterval[USB_SPEED_HIGH] = 5, /* 2ms */
 };
 
 static const struct usb_temp_endpoint_desc mouse_ep_0 = {
-	.ppRawDesc = NULL,		/* no raw descriptors */
+	.ppRawDesc = NULL, /* no raw descriptors */
 	.pPacketSize = &mouse_intr_mps,
 	.pIntervals = &mouse_intr_interval,
 	.bEndpointAddress = UE_DIR_IN,
@@ -128,10 +123,8 @@ static const struct usb_temp_endpoint_desc *mouse_endpoints[] = {
 	NULL,
 };
 
-static const uint8_t mouse_raw_desc[] = {
-	0x09, 0x21, 0x10, 0x01, 0x00, 0x01, 0x22, sizeof(mouse_hid_descriptor),
-	0x00
-};
+static const uint8_t mouse_raw_desc[] = { 0x09, 0x21, 0x10, 0x01, 0x00, 0x01,
+	0x22, sizeof(mouse_hid_descriptor), 0x00 };
 
 static const void *mouse_iface_0_desc[] = {
 	mouse_raw_desc,
@@ -250,15 +243,14 @@ mouse_init(void *arg __unused)
 	sysctl_ctx_init(&mouse_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&mouse_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB Mouse device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "USB Mouse device side template");
 	SYSCTL_ADD_U16(&mouse_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_mouse.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_mouse.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&mouse_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_mouse.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_mouse.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&mouse_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "interface", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -271,8 +263,8 @@ mouse_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&mouse_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &mouse_product, sizeof(mouse_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &mouse_product, sizeof(mouse_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&mouse_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    &mouse_serial_number, sizeof(mouse_serial_number), usb_temp_sysctl,

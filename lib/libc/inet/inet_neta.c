@@ -17,23 +17,23 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
 /*%
@@ -76,7 +76,7 @@ inet_neta(in_addr_t src, char *dst, size_t size)
 	}
 	return (odst);
 
- emsgsize:
+emsgsize:
 	errno = EMSGSIZE;
 	return (NULL);
 }

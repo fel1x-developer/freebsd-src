@@ -42,24 +42,24 @@
 #define _ICE_IFLIB_H_
 
 /* include kernel options first */
-#include "ice_opts.h"
-
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_media.h>
-#include <net/ethernet.h>
-#include <net/iflib.h>
-#include "ifdi_if.h"
 
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net/if_var.h>
+#include <net/iflib.h>
+
+#include "ice_features.h"
 #include "ice_lib.h"
+#include "ice_opts.h"
 #include "ice_osdep.h"
 #include "ice_resmgr.h"
 #include "ice_type.h"
-#include "ice_features.h"
+#include "ifdi_if.h"
 
 /**
  * ASSERT_CTX_LOCKED - Assert that the iflib context lock is held
@@ -104,7 +104,7 @@
  * 8160 descriptors, which is not quite 2^13. Limit the maximum ring size for
  * iflib to just 2^12 (4096).
  */
-#define ICE_IFLIB_MAX_DESC_COUNT	4096
+#define ICE_IFLIB_MAX_DESC_COUNT 4096
 
 /**
  * @struct ice_irq_vector
@@ -119,9 +119,9 @@
  * software interrupts for the Tx queues.
  */
 struct ice_irq_vector {
-	u32			me;
+	u32 me;
 
-	struct if_irq		irq;
+	struct if_irq irq;
 };
 
 /**
@@ -142,24 +142,24 @@ struct ice_irq_vector {
  * Other parameters may be iflib driver specific
  */
 struct ice_tx_queue {
-	struct ice_vsi		*vsi;
-	struct ice_tx_desc	*tx_base;
-	bus_addr_t		tx_paddr;
-	struct tx_stats		stats;
-	u64			tso;
-	u16			desc_count;
-	u32			tail;
-	struct ice_irq_vector	*irqv;
-	u32			q_teid;
-	u32			me;
-	u16			q_handle;
-	u8			tc;
+	struct ice_vsi *vsi;
+	struct ice_tx_desc *tx_base;
+	bus_addr_t tx_paddr;
+	struct tx_stats stats;
+	u64 tso;
+	u16 desc_count;
+	u32 tail;
+	struct ice_irq_vector *irqv;
+	u32 q_teid;
+	u32 me;
+	u16 q_handle;
+	u8 tc;
 
 	/* descriptor writeback status */
-	qidx_t			*tx_rsq;
-	qidx_t			tx_rs_cidx;
-	qidx_t			tx_rs_pidx;
-	qidx_t			tx_cidx_processed;
+	qidx_t *tx_rsq;
+	qidx_t tx_rs_cidx;
+	qidx_t tx_rs_pidx;
+	qidx_t tx_cidx_processed;
 };
 
 /**
@@ -179,17 +179,17 @@ struct ice_tx_queue {
  * Other parameters may be iflib driver specific
  */
 struct ice_rx_queue {
-	struct ice_vsi			*vsi;
-	union ice_32b_rx_flex_desc	*rx_base;
-	bus_addr_t			rx_paddr;
-	struct rx_stats			stats;
-	u16				desc_count;
-	u32				tail;
-	struct ice_irq_vector		*irqv;
-	u32				me;
-	u8				tc;
+	struct ice_vsi *vsi;
+	union ice_32b_rx_flex_desc *rx_base;
+	bus_addr_t rx_paddr;
+	struct rx_stats stats;
+	u16 desc_count;
+	u32 tail;
+	struct ice_irq_vector *irqv;
+	u32 me;
+	u8 tc;
 
-	struct if_irq			que_irq;
+	struct if_irq que_irq;
 };
 
 /**
@@ -229,10 +229,10 @@ struct ice_rx_queue {
  */
 struct ice_softc {
 	struct ice_hw hw;
-	struct ice_vsi pf_vsi;		/* Main PF VSI */
+	struct ice_vsi pf_vsi; /* Main PF VSI */
 
-	char admin_mtx_name[16]; /* name of the admin mutex */
-	struct mtx admin_mtx; /* mutex to protect the admin timer */
+	char admin_mtx_name[16];    /* name of the admin mutex */
+	struct mtx admin_mtx;	    /* mutex to protect the admin timer */
 	struct callout admin_timer; /* timer to trigger admin task */
 
 	/* iRDMA peer interface */
@@ -240,10 +240,10 @@ struct ice_softc {
 	int irdma_vectors;
 	u16 *rdma_imap;
 
-	struct ice_vsi **all_vsi;	/* Array of VSI pointers */
-	u16 num_available_vsi;		/* Size of VSI array */
+	struct ice_vsi **all_vsi; /* Array of VSI pointers */
+	u16 num_available_vsi;	  /* Size of VSI array */
 
-	struct sysctl_oid *vsi_sysctls;	/* Sysctl node for VSI sysctls */
+	struct sysctl_oid *vsi_sysctls;	  /* Sysctl node for VSI sysctls */
 	struct sysctl_oid *debug_sysctls; /* Sysctl node for debug sysctls */
 
 	device_t dev;
@@ -309,7 +309,6 @@ struct ice_softc {
 	/* Tri-state feature flags (capable/enabled) */
 	ice_declare_bitmap(feat_cap, ICE_FEATURE_COUNT);
 	ice_declare_bitmap(feat_en, ICE_FEATURE_COUNT);
-
 };
 
 #endif /* _ICE_IFLIB_H_ */

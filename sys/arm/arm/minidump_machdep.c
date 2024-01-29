@@ -29,9 +29,9 @@
  * from: FreeBSD: src/sys/i386/i386/minidump_machdep.c,v 1.6 2008/08/17 23:27:27
  */
 
-#include <sys/cdefs.h>
 #include "opt_watchdog.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -40,12 +40,14 @@
 #include <sys/kerneldump.h>
 #include <sys/msgbuf.h>
 #include <sys/watchdog.h>
+
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/vm_dumpset.h>
 #include <vm/pmap.h>
+#include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
+
 #include <machine/atomic.h>
 #include <machine/cpu.h>
 #include <machine/elf.h>
@@ -81,7 +83,7 @@ blk_write(struct dumperinfo *di, char *ptr, vm_paddr_t pa, size_t sz)
 	u_int maxdumpsz;
 
 	maxdumpsz = min(di->maxiosize, MAXDUMPPGS * PAGE_SIZE);
-	if (maxdumpsz == 0)	/* seatbelt */
+	if (maxdumpsz == 0) /* seatbelt */
 		maxdumpsz = PAGE_SIZE;
 	error = 0;
 	if (ptr != NULL && pa != 0) {
@@ -191,7 +193,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	dumpsize += round_page(mbp->msg_size);
 	dumpsize += round_page(nitems(dump_avail) * sizeof(uint64_t));
 	dumpsize += round_page(BITSET_SIZE(vm_page_dump_pages));
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		/* Clear out undumpable pages now if needed */
 		if (vm_phys_is_dumpable(pa))
 			dumpsize += PAGE_SIZE;
@@ -274,7 +276,7 @@ cpu_minidumpsys(struct dumperinfo *di, const struct minidumpstate *state)
 	}
 
 	/* Dump memory chunks */
-	VM_PAGE_DUMP_FOREACH(state->dump_bitset, pa) {
+	VM_PAGE_DUMP_FOREACH (state->dump_bitset, pa) {
 		if (!count) {
 			prev_pa = pa;
 			count++;
@@ -318,7 +320,8 @@ fail:
 		printf("\nDump aborted\n");
 	else if (error == E2BIG || error == ENOSPC) {
 		printf("\nDump failed. Partition too small (about %lluMB were "
-		    "needed this time).\n", (long long)dumpsize >> 20);
+		       "needed this time).\n",
+		    (long long)dumpsize >> 20);
 	} else
 		printf("\n** DUMP FAILED (ERROR %d) **\n", error);
 	return (error);

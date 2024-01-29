@@ -29,9 +29,9 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "iavf_type.h"
 #include "iavf_adminq.h"
 #include "iavf_prototype.h"
+#include "iavf_type.h"
 #include "virtchnl.h"
 
 /**
@@ -41,7 +41,8 @@
  * This function sets the mac type of the adapter based on the
  * vendor ID and device ID stored in the hw structure.
  **/
-enum iavf_status iavf_set_mac_type(struct iavf_hw *hw)
+enum iavf_status
+iavf_set_mac_type(struct iavf_hw *hw)
 {
 	enum iavf_status status = IAVF_SUCCESS;
 
@@ -66,7 +67,7 @@ enum iavf_status iavf_set_mac_type(struct iavf_hw *hw)
 	}
 
 	DEBUGOUT2("iavf_set_mac_type found mac: %d, returns: %d\n",
-		  hw->mac.type, status);
+	    hw->mac.type, status);
 	return status;
 }
 
@@ -75,7 +76,8 @@ enum iavf_status iavf_set_mac_type(struct iavf_hw *hw)
  * @hw: pointer to the HW structure
  * @aq_err: the AQ error code to convert
  **/
-const char *iavf_aq_str(struct iavf_hw *hw, enum iavf_admin_queue_err aq_err)
+const char *
+iavf_aq_str(struct iavf_hw *hw, enum iavf_admin_queue_err aq_err)
 {
 	switch (aq_err) {
 	case IAVF_AQ_RC_OK:
@@ -135,7 +137,8 @@ const char *iavf_aq_str(struct iavf_hw *hw, enum iavf_admin_queue_err aq_err)
  * @hw: pointer to the HW structure
  * @stat_err: the status error code to convert
  **/
-const char *iavf_stat_str(struct iavf_hw *hw, enum iavf_status stat_err)
+const char *
+iavf_stat_str(struct iavf_hw *hw, enum iavf_status stat_err)
 {
 	switch (stat_err) {
 	case IAVF_SUCCESS:
@@ -288,8 +291,9 @@ const char *iavf_stat_str(struct iavf_hw *hw, enum iavf_status stat_err)
  *
  * Dumps debug log about adminq command with descriptor contents.
  **/
-void iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
-		   void *buffer, u16 buf_len)
+void
+iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
+    void *buffer, u16 buf_len)
 {
 	struct iavf_aq_desc *aq_desc = (struct iavf_aq_desc *)desc;
 	u8 *buf = (u8 *)buffer;
@@ -302,20 +306,18 @@ void iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
 	len = LE16_TO_CPU(aq_desc->datalen);
 
 	iavf_debug(hw, mask,
-		   "AQ CMD: opcode 0x%04X, flags 0x%04X, datalen 0x%04X, retval 0x%04X\n",
-		   LE16_TO_CPU(aq_desc->opcode),
-		   LE16_TO_CPU(aq_desc->flags),
-		   LE16_TO_CPU(aq_desc->datalen),
-		   LE16_TO_CPU(aq_desc->retval));
+	    "AQ CMD: opcode 0x%04X, flags 0x%04X, datalen 0x%04X, retval 0x%04X\n",
+	    LE16_TO_CPU(aq_desc->opcode), LE16_TO_CPU(aq_desc->flags),
+	    LE16_TO_CPU(aq_desc->datalen), LE16_TO_CPU(aq_desc->retval));
 	iavf_debug(hw, mask, "\tcookie (h,l) 0x%08X 0x%08X\n",
-		   LE32_TO_CPU(aq_desc->cookie_high),
-		   LE32_TO_CPU(aq_desc->cookie_low));
+	    LE32_TO_CPU(aq_desc->cookie_high),
+	    LE32_TO_CPU(aq_desc->cookie_low));
 	iavf_debug(hw, mask, "\tparam (0,1)  0x%08X 0x%08X\n",
-		   LE32_TO_CPU(aq_desc->params.internal.param0),
-		   LE32_TO_CPU(aq_desc->params.internal.param1));
+	    LE32_TO_CPU(aq_desc->params.internal.param0),
+	    LE32_TO_CPU(aq_desc->params.internal.param1));
 	iavf_debug(hw, mask, "\taddr (h,l)   0x%08X 0x%08X\n",
-		   LE32_TO_CPU(aq_desc->params.external.addr_high),
-		   LE32_TO_CPU(aq_desc->params.external.addr_low));
+	    LE32_TO_CPU(aq_desc->params.external.addr_high),
+	    LE32_TO_CPU(aq_desc->params.external.addr_low));
 
 	if ((buffer != NULL) && (aq_desc->datalen != 0)) {
 		iavf_debug(hw, mask, "AQ CMD Buffer:\n");
@@ -324,11 +326,11 @@ void iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
 		/* write the full 16-byte chunks */
 		for (i = 0; i < (len - 16); i += 16)
 			iavf_debug(hw, mask,
-				   "\t0x%04X  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-				   i, buf[i], buf[i+1], buf[i+2], buf[i+3],
-				   buf[i+4], buf[i+5], buf[i+6], buf[i+7],
-				   buf[i+8], buf[i+9], buf[i+10], buf[i+11],
-				   buf[i+12], buf[i+13], buf[i+14], buf[i+15]);
+			    "\t0x%04X  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+			    i, buf[i], buf[i + 1], buf[i + 2], buf[i + 3],
+			    buf[i + 4], buf[i + 5], buf[i + 6], buf[i + 7],
+			    buf[i + 8], buf[i + 9], buf[i + 10], buf[i + 11],
+			    buf[i + 12], buf[i + 13], buf[i + 14], buf[i + 15]);
 		/* the most we could have left is 16 bytes, pad with zeros */
 		if (i < len) {
 			char d_buf[16];
@@ -339,11 +341,11 @@ void iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
 			for (j = 0; i < len; j++, i++)
 				d_buf[j] = buf[i];
 			iavf_debug(hw, mask,
-				   "\t0x%04X  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-				   i_sav, d_buf[0], d_buf[1], d_buf[2], d_buf[3],
-				   d_buf[4], d_buf[5], d_buf[6], d_buf[7],
-				   d_buf[8], d_buf[9], d_buf[10], d_buf[11],
-				   d_buf[12], d_buf[13], d_buf[14], d_buf[15]);
+			    "\t0x%04X  %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+			    i_sav, d_buf[0], d_buf[1], d_buf[2], d_buf[3],
+			    d_buf[4], d_buf[5], d_buf[6], d_buf[7], d_buf[8],
+			    d_buf[9], d_buf[10], d_buf[11], d_buf[12],
+			    d_buf[13], d_buf[14], d_buf[15]);
 		}
 	}
 }
@@ -354,11 +356,12 @@ void iavf_debug_aq(struct iavf_hw *hw, enum iavf_debug_mask mask, void *desc,
  *
  * Returns true if Queue is enabled else false.
  **/
-bool iavf_check_asq_alive(struct iavf_hw *hw)
+bool
+iavf_check_asq_alive(struct iavf_hw *hw)
 {
 	if (hw->aq.asq.len)
-		return !!(rd32(hw, hw->aq.asq.len) &
-			IAVF_VF_ATQLEN1_ATQENABLE_MASK);
+		return !!(
+		    rd32(hw, hw->aq.asq.len) & IAVF_VF_ATQLEN1_ATQENABLE_MASK);
 	else
 		return false;
 }
@@ -371,16 +374,15 @@ bool iavf_check_asq_alive(struct iavf_hw *hw)
  * Tell the Firmware that we're shutting down the AdminQ and whether
  * or not the driver is unloading as well.
  **/
-enum iavf_status iavf_aq_queue_shutdown(struct iavf_hw *hw,
-					bool unloading)
+enum iavf_status
+iavf_aq_queue_shutdown(struct iavf_hw *hw, bool unloading)
 {
 	struct iavf_aq_desc desc;
 	struct iavf_aqc_queue_shutdown *cmd =
-		(struct iavf_aqc_queue_shutdown *)&desc.params.raw;
+	    (struct iavf_aqc_queue_shutdown *)&desc.params.raw;
 	enum iavf_status status;
 
-	iavf_fill_default_direct_cmd_desc(&desc,
-					  iavf_aqc_opc_queue_shutdown);
+	iavf_fill_default_direct_cmd_desc(&desc, iavf_aqc_opc_queue_shutdown);
 
 	if (unloading)
 		cmd->driver_unloading = CPU_TO_LE32(IAVF_AQ_DRIVER_UNLOADING);
@@ -400,43 +402,41 @@ enum iavf_status iavf_aq_queue_shutdown(struct iavf_hw *hw,
  *
  * Internal function to get or set RSS look up table
  **/
-STATIC enum iavf_status iavf_aq_get_set_rss_lut(struct iavf_hw *hw,
-						u16 vsi_id, bool pf_lut,
-						u8 *lut, u16 lut_size,
-						bool set)
+STATIC enum iavf_status
+iavf_aq_get_set_rss_lut(struct iavf_hw *hw, u16 vsi_id, bool pf_lut, u8 *lut,
+    u16 lut_size, bool set)
 {
 	enum iavf_status status;
 	struct iavf_aq_desc desc;
 	struct iavf_aqc_get_set_rss_lut *cmd_resp =
-		   (struct iavf_aqc_get_set_rss_lut *)&desc.params.raw;
+	    (struct iavf_aqc_get_set_rss_lut *)&desc.params.raw;
 
 	if (set)
 		iavf_fill_default_direct_cmd_desc(&desc,
-						  iavf_aqc_opc_set_rss_lut);
+		    iavf_aqc_opc_set_rss_lut);
 	else
 		iavf_fill_default_direct_cmd_desc(&desc,
-						  iavf_aqc_opc_get_rss_lut);
+		    iavf_aqc_opc_get_rss_lut);
 
 	/* Indirect command */
 	desc.flags |= CPU_TO_LE16((u16)IAVF_AQ_FLAG_BUF);
 	desc.flags |= CPU_TO_LE16((u16)IAVF_AQ_FLAG_RD);
 
-	cmd_resp->vsi_id =
-			CPU_TO_LE16((u16)((vsi_id <<
-					  IAVF_AQC_SET_RSS_LUT_VSI_ID_SHIFT) &
-					  IAVF_AQC_SET_RSS_LUT_VSI_ID_MASK));
+	cmd_resp->vsi_id = CPU_TO_LE16(
+	    (u16)((vsi_id << IAVF_AQC_SET_RSS_LUT_VSI_ID_SHIFT) &
+		IAVF_AQC_SET_RSS_LUT_VSI_ID_MASK));
 	cmd_resp->vsi_id |= CPU_TO_LE16((u16)IAVF_AQC_SET_RSS_LUT_VSI_VALID);
 
 	if (pf_lut)
-		cmd_resp->flags |= CPU_TO_LE16((u16)
-					((IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_PF <<
-					IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_SHIFT) &
-					IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_MASK));
+		cmd_resp->flags |= CPU_TO_LE16(
+		    (u16)((IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_PF
+			      << IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_SHIFT) &
+			IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_MASK));
 	else
-		cmd_resp->flags |= CPU_TO_LE16((u16)
-					((IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_VSI <<
-					IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_SHIFT) &
-					IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_MASK));
+		cmd_resp->flags |= CPU_TO_LE16(
+		    (u16)((IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_VSI
+			      << IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_SHIFT) &
+			IAVF_AQC_SET_RSS_LUT_TABLE_TYPE_MASK));
 
 	status = iavf_asq_send_command(hw, &desc, lut, lut_size, NULL);
 
@@ -453,11 +453,12 @@ STATIC enum iavf_status iavf_aq_get_set_rss_lut(struct iavf_hw *hw,
  *
  * get the RSS lookup table, PF or VSI type
  **/
-enum iavf_status iavf_aq_get_rss_lut(struct iavf_hw *hw, u16 vsi_id,
-				     bool pf_lut, u8 *lut, u16 lut_size)
+enum iavf_status
+iavf_aq_get_rss_lut(struct iavf_hw *hw, u16 vsi_id, bool pf_lut, u8 *lut,
+    u16 lut_size)
 {
 	return iavf_aq_get_set_rss_lut(hw, vsi_id, pf_lut, lut, lut_size,
-				       false);
+	    false);
 }
 
 /**
@@ -470,8 +471,9 @@ enum iavf_status iavf_aq_get_rss_lut(struct iavf_hw *hw, u16 vsi_id,
  *
  * set the RSS lookup table, PF or VSI type
  **/
-enum iavf_status iavf_aq_set_rss_lut(struct iavf_hw *hw, u16 vsi_id,
-				     bool pf_lut, u8 *lut, u16 lut_size)
+enum iavf_status
+iavf_aq_set_rss_lut(struct iavf_hw *hw, u16 vsi_id, bool pf_lut, u8 *lut,
+    u16 lut_size)
 {
 	return iavf_aq_get_set_rss_lut(hw, vsi_id, pf_lut, lut, lut_size, true);
 }
@@ -485,32 +487,30 @@ enum iavf_status iavf_aq_set_rss_lut(struct iavf_hw *hw, u16 vsi_id,
  *
  * get the RSS key per VSI
  **/
-STATIC enum iavf_status iavf_aq_get_set_rss_key(struct iavf_hw *hw,
-				      u16 vsi_id,
-				      struct iavf_aqc_get_set_rss_key_data *key,
-				      bool set)
+STATIC enum iavf_status
+iavf_aq_get_set_rss_key(struct iavf_hw *hw, u16 vsi_id,
+    struct iavf_aqc_get_set_rss_key_data *key, bool set)
 {
 	enum iavf_status status;
 	struct iavf_aq_desc desc;
 	struct iavf_aqc_get_set_rss_key *cmd_resp =
-			(struct iavf_aqc_get_set_rss_key *)&desc.params.raw;
+	    (struct iavf_aqc_get_set_rss_key *)&desc.params.raw;
 	u16 key_size = sizeof(struct iavf_aqc_get_set_rss_key_data);
 
 	if (set)
 		iavf_fill_default_direct_cmd_desc(&desc,
-						  iavf_aqc_opc_set_rss_key);
+		    iavf_aqc_opc_set_rss_key);
 	else
 		iavf_fill_default_direct_cmd_desc(&desc,
-						  iavf_aqc_opc_get_rss_key);
+		    iavf_aqc_opc_get_rss_key);
 
 	/* Indirect command */
 	desc.flags |= CPU_TO_LE16((u16)IAVF_AQ_FLAG_BUF);
 	desc.flags |= CPU_TO_LE16((u16)IAVF_AQ_FLAG_RD);
 
-	cmd_resp->vsi_id =
-			CPU_TO_LE16((u16)((vsi_id <<
-					  IAVF_AQC_SET_RSS_KEY_VSI_ID_SHIFT) &
-					  IAVF_AQC_SET_RSS_KEY_VSI_ID_MASK));
+	cmd_resp->vsi_id = CPU_TO_LE16(
+	    (u16)((vsi_id << IAVF_AQC_SET_RSS_KEY_VSI_ID_SHIFT) &
+		IAVF_AQC_SET_RSS_KEY_VSI_ID_MASK));
 	cmd_resp->vsi_id |= CPU_TO_LE16((u16)IAVF_AQC_SET_RSS_KEY_VSI_VALID);
 
 	status = iavf_asq_send_command(hw, &desc, key, key_size, NULL);
@@ -525,9 +525,9 @@ STATIC enum iavf_status iavf_aq_get_set_rss_key(struct iavf_hw *hw,
  * @key: pointer to key info struct
  *
  **/
-enum iavf_status iavf_aq_get_rss_key(struct iavf_hw *hw,
-				     u16 vsi_id,
-				     struct iavf_aqc_get_set_rss_key_data *key)
+enum iavf_status
+iavf_aq_get_rss_key(struct iavf_hw *hw, u16 vsi_id,
+    struct iavf_aqc_get_set_rss_key_data *key)
 {
 	return iavf_aq_get_set_rss_key(hw, vsi_id, key, false);
 }
@@ -540,9 +540,9 @@ enum iavf_status iavf_aq_get_rss_key(struct iavf_hw *hw,
  *
  * set the RSS key per VSI
  **/
-enum iavf_status iavf_aq_set_rss_key(struct iavf_hw *hw,
-				     u16 vsi_id,
-				     struct iavf_aqc_get_set_rss_key_data *key)
+enum iavf_status
+iavf_aq_set_rss_key(struct iavf_hw *hw, u16 vsi_id,
+    struct iavf_aqc_get_set_rss_key_data *key)
 {
 	return iavf_aq_get_set_rss_key(hw, vsi_id, key, true);
 }
@@ -571,39 +571,37 @@ enum iavf_status iavf_aq_set_rss_key(struct iavf_hw *hw,
  */
 
 /* macro to make the table lines short */
-#define IAVF_PTT(PTYPE, OUTER_IP, OUTER_IP_VER, OUTER_FRAG, T, TE, TEF, I, PL)\
-	{	PTYPE, \
-		1, \
-		IAVF_RX_PTYPE_OUTER_##OUTER_IP, \
-		IAVF_RX_PTYPE_OUTER_##OUTER_IP_VER, \
-		IAVF_RX_PTYPE_##OUTER_FRAG, \
-		IAVF_RX_PTYPE_TUNNEL_##T, \
-		IAVF_RX_PTYPE_TUNNEL_END_##TE, \
-		IAVF_RX_PTYPE_##TEF, \
-		IAVF_RX_PTYPE_INNER_PROT_##I, \
-		IAVF_RX_PTYPE_PAYLOAD_LAYER_##PL }
+#define IAVF_PTT(PTYPE, OUTER_IP, OUTER_IP_VER, OUTER_FRAG, T, TE, TEF, I, PL) \
+	{                                                                      \
+		PTYPE, 1, IAVF_RX_PTYPE_OUTER_##OUTER_IP,                      \
+		    IAVF_RX_PTYPE_OUTER_##OUTER_IP_VER,                        \
+		    IAVF_RX_PTYPE_##OUTER_FRAG, IAVF_RX_PTYPE_TUNNEL_##T,      \
+		    IAVF_RX_PTYPE_TUNNEL_END_##TE, IAVF_RX_PTYPE_##TEF,        \
+		    IAVF_RX_PTYPE_INNER_PROT_##I,                              \
+		    IAVF_RX_PTYPE_PAYLOAD_LAYER_##PL                           \
+	}
 
-#define IAVF_PTT_UNUSED_ENTRY(PTYPE) \
-		{ PTYPE, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+#define IAVF_PTT_UNUSED_ENTRY(PTYPE)             \
+	{                                        \
+		PTYPE, 0, 0, 0, 0, 0, 0, 0, 0, 0 \
+	}
 
 /* shorter macros makes the table fit but are terse */
-#define IAVF_RX_PTYPE_NOF		IAVF_RX_PTYPE_NOT_FRAG
-#define IAVF_RX_PTYPE_FRG		IAVF_RX_PTYPE_FRAG
-#define IAVF_RX_PTYPE_INNER_PROT_TS	IAVF_RX_PTYPE_INNER_PROT_TIMESYNC
+#define IAVF_RX_PTYPE_NOF IAVF_RX_PTYPE_NOT_FRAG
+#define IAVF_RX_PTYPE_FRG IAVF_RX_PTYPE_FRAG
+#define IAVF_RX_PTYPE_INNER_PROT_TS IAVF_RX_PTYPE_INNER_PROT_TIMESYNC
 
 /* Lookup table mapping the HW PTYPE to the bit field for decoding */
 struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* L2 Packet types */
 	IAVF_PTT_UNUSED_ENTRY(0),
-	IAVF_PTT(1,  L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
-	IAVF_PTT(2,  L2, NONE, NOF, NONE, NONE, NOF, TS,   PAY2),
-	IAVF_PTT(3,  L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
-	IAVF_PTT_UNUSED_ENTRY(4),
-	IAVF_PTT_UNUSED_ENTRY(5),
-	IAVF_PTT(6,  L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
-	IAVF_PTT(7,  L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
-	IAVF_PTT_UNUSED_ENTRY(8),
-	IAVF_PTT_UNUSED_ENTRY(9),
+	IAVF_PTT(1, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
+	IAVF_PTT(2, L2, NONE, NOF, NONE, NONE, NOF, TS, PAY2),
+	IAVF_PTT(3, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
+	IAVF_PTT_UNUSED_ENTRY(4), IAVF_PTT_UNUSED_ENTRY(5),
+	IAVF_PTT(6, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
+	IAVF_PTT(7, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
+	IAVF_PTT_UNUSED_ENTRY(8), IAVF_PTT_UNUSED_ENTRY(9),
 	IAVF_PTT(10, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY2),
 	IAVF_PTT(11, L2, NONE, NOF, NONE, NONE, NOF, NONE, NONE),
 	IAVF_PTT(12, L2, NONE, NOF, NONE, NONE, NOF, NONE, PAY3),
@@ -620,27 +618,27 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* Non Tunneled IPv4 */
 	IAVF_PTT(22, IP, IPV4, FRG, NONE, NONE, NOF, NONE, PAY3),
 	IAVF_PTT(23, IP, IPV4, NOF, NONE, NONE, NOF, NONE, PAY3),
-	IAVF_PTT(24, IP, IPV4, NOF, NONE, NONE, NOF, UDP,  PAY4),
+	IAVF_PTT(24, IP, IPV4, NOF, NONE, NONE, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(25),
-	IAVF_PTT(26, IP, IPV4, NOF, NONE, NONE, NOF, TCP,  PAY4),
+	IAVF_PTT(26, IP, IPV4, NOF, NONE, NONE, NOF, TCP, PAY4),
 	IAVF_PTT(27, IP, IPV4, NOF, NONE, NONE, NOF, SCTP, PAY4),
 	IAVF_PTT(28, IP, IPV4, NOF, NONE, NONE, NOF, ICMP, PAY4),
 
 	/* IPv4 --> IPv4 */
 	IAVF_PTT(29, IP, IPV4, NOF, IP_IP, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(30, IP, IPV4, NOF, IP_IP, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(31, IP, IPV4, NOF, IP_IP, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(31, IP, IPV4, NOF, IP_IP, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(32),
-	IAVF_PTT(33, IP, IPV4, NOF, IP_IP, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(33, IP, IPV4, NOF, IP_IP, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(34, IP, IPV4, NOF, IP_IP, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(35, IP, IPV4, NOF, IP_IP, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv4 --> IPv6 */
 	IAVF_PTT(36, IP, IPV4, NOF, IP_IP, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(37, IP, IPV4, NOF, IP_IP, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(38, IP, IPV4, NOF, IP_IP, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(38, IP, IPV4, NOF, IP_IP, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(39),
-	IAVF_PTT(40, IP, IPV4, NOF, IP_IP, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(40, IP, IPV4, NOF, IP_IP, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(41, IP, IPV4, NOF, IP_IP, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(42, IP, IPV4, NOF, IP_IP, IPV6, NOF, ICMP, PAY4),
 
@@ -650,18 +648,18 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv4 --> GRE/NAT --> IPv4 */
 	IAVF_PTT(44, IP, IPV4, NOF, IP_GRENAT, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(45, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(46, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(46, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(47),
-	IAVF_PTT(48, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(48, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(49, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(50, IP, IPV4, NOF, IP_GRENAT, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv4 --> GRE/NAT --> IPv6 */
 	IAVF_PTT(51, IP, IPV4, NOF, IP_GRENAT, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(52, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(53, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(53, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(54),
-	IAVF_PTT(55, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(55, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(56, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(57, IP, IPV4, NOF, IP_GRENAT, IPV6, NOF, ICMP, PAY4),
 
@@ -671,18 +669,18 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv4 --> GRE/NAT --> MAC --> IPv4 */
 	IAVF_PTT(59, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(60, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(61, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(61, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(62),
-	IAVF_PTT(63, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(63, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(64, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(65, IP, IPV4, NOF, IP_GRENAT_MAC, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv4 --> GRE/NAT -> MAC --> IPv6 */
 	IAVF_PTT(66, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(67, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(68, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(68, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(69),
-	IAVF_PTT(70, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(70, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(71, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(72, IP, IPV4, NOF, IP_GRENAT_MAC, IPV6, NOF, ICMP, PAY4),
 
@@ -692,45 +690,45 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv4 ---> GRE/NAT -> MAC/VLAN --> IPv4 */
 	IAVF_PTT(74, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(75, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(76, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(76, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(77),
-	IAVF_PTT(78, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(78, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(79, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(80, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv4 -> GRE/NAT -> MAC/VLAN --> IPv6 */
 	IAVF_PTT(81, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(82, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(83, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(83, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(84),
-	IAVF_PTT(85, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(85, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(86, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(87, IP, IPV4, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, ICMP, PAY4),
 
 	/* Non Tunneled IPv6 */
 	IAVF_PTT(88, IP, IPV6, FRG, NONE, NONE, NOF, NONE, PAY3),
 	IAVF_PTT(89, IP, IPV6, NOF, NONE, NONE, NOF, NONE, PAY3),
-	IAVF_PTT(90, IP, IPV6, NOF, NONE, NONE, NOF, UDP,  PAY4),
+	IAVF_PTT(90, IP, IPV6, NOF, NONE, NONE, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(91),
-	IAVF_PTT(92, IP, IPV6, NOF, NONE, NONE, NOF, TCP,  PAY4),
+	IAVF_PTT(92, IP, IPV6, NOF, NONE, NONE, NOF, TCP, PAY4),
 	IAVF_PTT(93, IP, IPV6, NOF, NONE, NONE, NOF, SCTP, PAY4),
 	IAVF_PTT(94, IP, IPV6, NOF, NONE, NONE, NOF, ICMP, PAY4),
 
 	/* IPv6 --> IPv4 */
-	IAVF_PTT(95,  IP, IPV6, NOF, IP_IP, IPV4, FRG, NONE, PAY3),
-	IAVF_PTT(96,  IP, IPV6, NOF, IP_IP, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(97,  IP, IPV6, NOF, IP_IP, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(95, IP, IPV6, NOF, IP_IP, IPV4, FRG, NONE, PAY3),
+	IAVF_PTT(96, IP, IPV6, NOF, IP_IP, IPV4, NOF, NONE, PAY3),
+	IAVF_PTT(97, IP, IPV6, NOF, IP_IP, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(98),
-	IAVF_PTT(99,  IP, IPV6, NOF, IP_IP, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(99, IP, IPV6, NOF, IP_IP, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(100, IP, IPV6, NOF, IP_IP, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(101, IP, IPV6, NOF, IP_IP, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv6 --> IPv6 */
 	IAVF_PTT(102, IP, IPV6, NOF, IP_IP, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(103, IP, IPV6, NOF, IP_IP, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(104, IP, IPV6, NOF, IP_IP, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(104, IP, IPV6, NOF, IP_IP, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(105),
-	IAVF_PTT(106, IP, IPV6, NOF, IP_IP, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(106, IP, IPV6, NOF, IP_IP, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(107, IP, IPV6, NOF, IP_IP, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(108, IP, IPV6, NOF, IP_IP, IPV6, NOF, ICMP, PAY4),
 
@@ -740,18 +738,18 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv6 --> GRE/NAT -> IPv4 */
 	IAVF_PTT(110, IP, IPV6, NOF, IP_GRENAT, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(111, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(112, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(112, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(113),
-	IAVF_PTT(114, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(114, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(115, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(116, IP, IPV6, NOF, IP_GRENAT, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv6 --> GRE/NAT -> IPv6 */
 	IAVF_PTT(117, IP, IPV6, NOF, IP_GRENAT, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(118, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(119, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(119, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(120),
-	IAVF_PTT(121, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(121, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(122, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(123, IP, IPV6, NOF, IP_GRENAT, IPV6, NOF, ICMP, PAY4),
 
@@ -761,18 +759,18 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv6 --> GRE/NAT -> MAC -> IPv4 */
 	IAVF_PTT(125, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(126, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(127, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(127, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(128),
-	IAVF_PTT(129, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(129, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(130, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(131, IP, IPV6, NOF, IP_GRENAT_MAC, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv6 --> GRE/NAT -> MAC -> IPv6 */
 	IAVF_PTT(132, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(133, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(134, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(134, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(135),
-	IAVF_PTT(136, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(136, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(137, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(138, IP, IPV6, NOF, IP_GRENAT_MAC, IPV6, NOF, ICMP, PAY4),
 
@@ -782,134 +780,83 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
 	/* IPv6 --> GRE/NAT -> MAC/VLAN --> IPv4 */
 	IAVF_PTT(140, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, FRG, NONE, PAY3),
 	IAVF_PTT(141, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, NONE, PAY3),
-	IAVF_PTT(142, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, UDP,  PAY4),
+	IAVF_PTT(142, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(143),
-	IAVF_PTT(144, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, TCP,  PAY4),
+	IAVF_PTT(144, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, TCP, PAY4),
 	IAVF_PTT(145, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, SCTP, PAY4),
 	IAVF_PTT(146, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV4, NOF, ICMP, PAY4),
 
 	/* IPv6 --> GRE/NAT -> MAC/VLAN --> IPv6 */
 	IAVF_PTT(147, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, FRG, NONE, PAY3),
 	IAVF_PTT(148, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, NONE, PAY3),
-	IAVF_PTT(149, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, UDP,  PAY4),
+	IAVF_PTT(149, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, UDP, PAY4),
 	IAVF_PTT_UNUSED_ENTRY(150),
-	IAVF_PTT(151, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, TCP,  PAY4),
+	IAVF_PTT(151, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, TCP, PAY4),
 	IAVF_PTT(152, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, SCTP, PAY4),
 	IAVF_PTT(153, IP, IPV6, NOF, IP_GRENAT_MAC_VLAN, IPV6, NOF, ICMP, PAY4),
 
 	/* unused entries */
-	IAVF_PTT_UNUSED_ENTRY(154),
-	IAVF_PTT_UNUSED_ENTRY(155),
-	IAVF_PTT_UNUSED_ENTRY(156),
-	IAVF_PTT_UNUSED_ENTRY(157),
-	IAVF_PTT_UNUSED_ENTRY(158),
-	IAVF_PTT_UNUSED_ENTRY(159),
+	IAVF_PTT_UNUSED_ENTRY(154), IAVF_PTT_UNUSED_ENTRY(155),
+	IAVF_PTT_UNUSED_ENTRY(156), IAVF_PTT_UNUSED_ENTRY(157),
+	IAVF_PTT_UNUSED_ENTRY(158), IAVF_PTT_UNUSED_ENTRY(159),
 
-	IAVF_PTT_UNUSED_ENTRY(160),
-	IAVF_PTT_UNUSED_ENTRY(161),
-	IAVF_PTT_UNUSED_ENTRY(162),
-	IAVF_PTT_UNUSED_ENTRY(163),
-	IAVF_PTT_UNUSED_ENTRY(164),
-	IAVF_PTT_UNUSED_ENTRY(165),
-	IAVF_PTT_UNUSED_ENTRY(166),
-	IAVF_PTT_UNUSED_ENTRY(167),
-	IAVF_PTT_UNUSED_ENTRY(168),
-	IAVF_PTT_UNUSED_ENTRY(169),
+	IAVF_PTT_UNUSED_ENTRY(160), IAVF_PTT_UNUSED_ENTRY(161),
+	IAVF_PTT_UNUSED_ENTRY(162), IAVF_PTT_UNUSED_ENTRY(163),
+	IAVF_PTT_UNUSED_ENTRY(164), IAVF_PTT_UNUSED_ENTRY(165),
+	IAVF_PTT_UNUSED_ENTRY(166), IAVF_PTT_UNUSED_ENTRY(167),
+	IAVF_PTT_UNUSED_ENTRY(168), IAVF_PTT_UNUSED_ENTRY(169),
 
-	IAVF_PTT_UNUSED_ENTRY(170),
-	IAVF_PTT_UNUSED_ENTRY(171),
-	IAVF_PTT_UNUSED_ENTRY(172),
-	IAVF_PTT_UNUSED_ENTRY(173),
-	IAVF_PTT_UNUSED_ENTRY(174),
-	IAVF_PTT_UNUSED_ENTRY(175),
-	IAVF_PTT_UNUSED_ENTRY(176),
-	IAVF_PTT_UNUSED_ENTRY(177),
-	IAVF_PTT_UNUSED_ENTRY(178),
-	IAVF_PTT_UNUSED_ENTRY(179),
+	IAVF_PTT_UNUSED_ENTRY(170), IAVF_PTT_UNUSED_ENTRY(171),
+	IAVF_PTT_UNUSED_ENTRY(172), IAVF_PTT_UNUSED_ENTRY(173),
+	IAVF_PTT_UNUSED_ENTRY(174), IAVF_PTT_UNUSED_ENTRY(175),
+	IAVF_PTT_UNUSED_ENTRY(176), IAVF_PTT_UNUSED_ENTRY(177),
+	IAVF_PTT_UNUSED_ENTRY(178), IAVF_PTT_UNUSED_ENTRY(179),
 
-	IAVF_PTT_UNUSED_ENTRY(180),
-	IAVF_PTT_UNUSED_ENTRY(181),
-	IAVF_PTT_UNUSED_ENTRY(182),
-	IAVF_PTT_UNUSED_ENTRY(183),
-	IAVF_PTT_UNUSED_ENTRY(184),
-	IAVF_PTT_UNUSED_ENTRY(185),
-	IAVF_PTT_UNUSED_ENTRY(186),
-	IAVF_PTT_UNUSED_ENTRY(187),
-	IAVF_PTT_UNUSED_ENTRY(188),
-	IAVF_PTT_UNUSED_ENTRY(189),
+	IAVF_PTT_UNUSED_ENTRY(180), IAVF_PTT_UNUSED_ENTRY(181),
+	IAVF_PTT_UNUSED_ENTRY(182), IAVF_PTT_UNUSED_ENTRY(183),
+	IAVF_PTT_UNUSED_ENTRY(184), IAVF_PTT_UNUSED_ENTRY(185),
+	IAVF_PTT_UNUSED_ENTRY(186), IAVF_PTT_UNUSED_ENTRY(187),
+	IAVF_PTT_UNUSED_ENTRY(188), IAVF_PTT_UNUSED_ENTRY(189),
 
-	IAVF_PTT_UNUSED_ENTRY(190),
-	IAVF_PTT_UNUSED_ENTRY(191),
-	IAVF_PTT_UNUSED_ENTRY(192),
-	IAVF_PTT_UNUSED_ENTRY(193),
-	IAVF_PTT_UNUSED_ENTRY(194),
-	IAVF_PTT_UNUSED_ENTRY(195),
-	IAVF_PTT_UNUSED_ENTRY(196),
-	IAVF_PTT_UNUSED_ENTRY(197),
-	IAVF_PTT_UNUSED_ENTRY(198),
-	IAVF_PTT_UNUSED_ENTRY(199),
+	IAVF_PTT_UNUSED_ENTRY(190), IAVF_PTT_UNUSED_ENTRY(191),
+	IAVF_PTT_UNUSED_ENTRY(192), IAVF_PTT_UNUSED_ENTRY(193),
+	IAVF_PTT_UNUSED_ENTRY(194), IAVF_PTT_UNUSED_ENTRY(195),
+	IAVF_PTT_UNUSED_ENTRY(196), IAVF_PTT_UNUSED_ENTRY(197),
+	IAVF_PTT_UNUSED_ENTRY(198), IAVF_PTT_UNUSED_ENTRY(199),
 
-	IAVF_PTT_UNUSED_ENTRY(200),
-	IAVF_PTT_UNUSED_ENTRY(201),
-	IAVF_PTT_UNUSED_ENTRY(202),
-	IAVF_PTT_UNUSED_ENTRY(203),
-	IAVF_PTT_UNUSED_ENTRY(204),
-	IAVF_PTT_UNUSED_ENTRY(205),
-	IAVF_PTT_UNUSED_ENTRY(206),
-	IAVF_PTT_UNUSED_ENTRY(207),
-	IAVF_PTT_UNUSED_ENTRY(208),
-	IAVF_PTT_UNUSED_ENTRY(209),
+	IAVF_PTT_UNUSED_ENTRY(200), IAVF_PTT_UNUSED_ENTRY(201),
+	IAVF_PTT_UNUSED_ENTRY(202), IAVF_PTT_UNUSED_ENTRY(203),
+	IAVF_PTT_UNUSED_ENTRY(204), IAVF_PTT_UNUSED_ENTRY(205),
+	IAVF_PTT_UNUSED_ENTRY(206), IAVF_PTT_UNUSED_ENTRY(207),
+	IAVF_PTT_UNUSED_ENTRY(208), IAVF_PTT_UNUSED_ENTRY(209),
 
-	IAVF_PTT_UNUSED_ENTRY(210),
-	IAVF_PTT_UNUSED_ENTRY(211),
-	IAVF_PTT_UNUSED_ENTRY(212),
-	IAVF_PTT_UNUSED_ENTRY(213),
-	IAVF_PTT_UNUSED_ENTRY(214),
-	IAVF_PTT_UNUSED_ENTRY(215),
-	IAVF_PTT_UNUSED_ENTRY(216),
-	IAVF_PTT_UNUSED_ENTRY(217),
-	IAVF_PTT_UNUSED_ENTRY(218),
-	IAVF_PTT_UNUSED_ENTRY(219),
+	IAVF_PTT_UNUSED_ENTRY(210), IAVF_PTT_UNUSED_ENTRY(211),
+	IAVF_PTT_UNUSED_ENTRY(212), IAVF_PTT_UNUSED_ENTRY(213),
+	IAVF_PTT_UNUSED_ENTRY(214), IAVF_PTT_UNUSED_ENTRY(215),
+	IAVF_PTT_UNUSED_ENTRY(216), IAVF_PTT_UNUSED_ENTRY(217),
+	IAVF_PTT_UNUSED_ENTRY(218), IAVF_PTT_UNUSED_ENTRY(219),
 
-	IAVF_PTT_UNUSED_ENTRY(220),
-	IAVF_PTT_UNUSED_ENTRY(221),
-	IAVF_PTT_UNUSED_ENTRY(222),
-	IAVF_PTT_UNUSED_ENTRY(223),
-	IAVF_PTT_UNUSED_ENTRY(224),
-	IAVF_PTT_UNUSED_ENTRY(225),
-	IAVF_PTT_UNUSED_ENTRY(226),
-	IAVF_PTT_UNUSED_ENTRY(227),
-	IAVF_PTT_UNUSED_ENTRY(228),
-	IAVF_PTT_UNUSED_ENTRY(229),
+	IAVF_PTT_UNUSED_ENTRY(220), IAVF_PTT_UNUSED_ENTRY(221),
+	IAVF_PTT_UNUSED_ENTRY(222), IAVF_PTT_UNUSED_ENTRY(223),
+	IAVF_PTT_UNUSED_ENTRY(224), IAVF_PTT_UNUSED_ENTRY(225),
+	IAVF_PTT_UNUSED_ENTRY(226), IAVF_PTT_UNUSED_ENTRY(227),
+	IAVF_PTT_UNUSED_ENTRY(228), IAVF_PTT_UNUSED_ENTRY(229),
 
-	IAVF_PTT_UNUSED_ENTRY(230),
-	IAVF_PTT_UNUSED_ENTRY(231),
-	IAVF_PTT_UNUSED_ENTRY(232),
-	IAVF_PTT_UNUSED_ENTRY(233),
-	IAVF_PTT_UNUSED_ENTRY(234),
-	IAVF_PTT_UNUSED_ENTRY(235),
-	IAVF_PTT_UNUSED_ENTRY(236),
-	IAVF_PTT_UNUSED_ENTRY(237),
-	IAVF_PTT_UNUSED_ENTRY(238),
-	IAVF_PTT_UNUSED_ENTRY(239),
+	IAVF_PTT_UNUSED_ENTRY(230), IAVF_PTT_UNUSED_ENTRY(231),
+	IAVF_PTT_UNUSED_ENTRY(232), IAVF_PTT_UNUSED_ENTRY(233),
+	IAVF_PTT_UNUSED_ENTRY(234), IAVF_PTT_UNUSED_ENTRY(235),
+	IAVF_PTT_UNUSED_ENTRY(236), IAVF_PTT_UNUSED_ENTRY(237),
+	IAVF_PTT_UNUSED_ENTRY(238), IAVF_PTT_UNUSED_ENTRY(239),
 
-	IAVF_PTT_UNUSED_ENTRY(240),
-	IAVF_PTT_UNUSED_ENTRY(241),
-	IAVF_PTT_UNUSED_ENTRY(242),
-	IAVF_PTT_UNUSED_ENTRY(243),
-	IAVF_PTT_UNUSED_ENTRY(244),
-	IAVF_PTT_UNUSED_ENTRY(245),
-	IAVF_PTT_UNUSED_ENTRY(246),
-	IAVF_PTT_UNUSED_ENTRY(247),
-	IAVF_PTT_UNUSED_ENTRY(248),
-	IAVF_PTT_UNUSED_ENTRY(249),
+	IAVF_PTT_UNUSED_ENTRY(240), IAVF_PTT_UNUSED_ENTRY(241),
+	IAVF_PTT_UNUSED_ENTRY(242), IAVF_PTT_UNUSED_ENTRY(243),
+	IAVF_PTT_UNUSED_ENTRY(244), IAVF_PTT_UNUSED_ENTRY(245),
+	IAVF_PTT_UNUSED_ENTRY(246), IAVF_PTT_UNUSED_ENTRY(247),
+	IAVF_PTT_UNUSED_ENTRY(248), IAVF_PTT_UNUSED_ENTRY(249),
 
-	IAVF_PTT_UNUSED_ENTRY(250),
-	IAVF_PTT_UNUSED_ENTRY(251),
-	IAVF_PTT_UNUSED_ENTRY(252),
-	IAVF_PTT_UNUSED_ENTRY(253),
-	IAVF_PTT_UNUSED_ENTRY(254),
-	IAVF_PTT_UNUSED_ENTRY(255)
+	IAVF_PTT_UNUSED_ENTRY(250), IAVF_PTT_UNUSED_ENTRY(251),
+	IAVF_PTT_UNUSED_ENTRY(252), IAVF_PTT_UNUSED_ENTRY(253),
+	IAVF_PTT_UNUSED_ENTRY(254), IAVF_PTT_UNUSED_ENTRY(255)
 };
 
 /**
@@ -918,7 +865,8 @@ struct iavf_rx_ptype_decoded iavf_ptype_lookup[] = {
  *
  * Tests a MAC address to ensure it is a valid Individual Address
  **/
-enum iavf_status iavf_validate_mac_addr(u8 *mac_addr)
+enum iavf_status
+iavf_validate_mac_addr(u8 *mac_addr)
 {
 	enum iavf_status status = IAVF_SUCCESS;
 
@@ -930,7 +878,7 @@ enum iavf_status iavf_validate_mac_addr(u8 *mac_addr)
 	 */
 	if (IAVF_IS_MULTICAST(mac_addr) ||
 	    (mac_addr[0] == 0 && mac_addr[1] == 0 && mac_addr[2] == 0 &&
-	      mac_addr[3] == 0 && mac_addr[4] == 0 && mac_addr[5] == 0))
+		mac_addr[3] == 0 && mac_addr[4] == 0 && mac_addr[5] == 0))
 		status = IAVF_ERR_INVALID_MAC_ADDR;
 
 	return status;
@@ -949,11 +897,10 @@ enum iavf_status iavf_validate_mac_addr(u8 *mac_addr)
  * is sent asynchronously, i.e. iavf_asq_send_command() does not wait for
  * completion before returning.
  **/
-enum iavf_status iavf_aq_send_msg_to_pf(struct iavf_hw *hw,
-				enum virtchnl_ops v_opcode,
-				enum iavf_status v_retval,
-				u8 *msg, u16 msglen,
-				struct iavf_asq_cmd_details *cmd_details)
+enum iavf_status
+iavf_aq_send_msg_to_pf(struct iavf_hw *hw, enum virtchnl_ops v_opcode,
+    enum iavf_status v_retval, u8 *msg, u16 msglen,
+    struct iavf_asq_cmd_details *cmd_details)
 {
 	struct iavf_aq_desc desc;
 	struct iavf_asq_cmd_details details;
@@ -964,8 +911,8 @@ enum iavf_status iavf_aq_send_msg_to_pf(struct iavf_hw *hw,
 	desc.cookie_high = CPU_TO_LE32(v_opcode);
 	desc.cookie_low = CPU_TO_LE32(v_retval);
 	if (msglen) {
-		desc.flags |= CPU_TO_LE16((u16)(IAVF_AQ_FLAG_BUF
-						| IAVF_AQ_FLAG_RD));
+		desc.flags |= CPU_TO_LE16(
+		    (u16)(IAVF_AQ_FLAG_BUF | IAVF_AQ_FLAG_RD));
 		if (msglen > IAVF_AQ_LARGE_BUF)
 			desc.flags |= CPU_TO_LE16((u16)IAVF_AQ_FLAG_LB);
 		desc.datalen = CPU_TO_LE16(msglen);
@@ -976,7 +923,7 @@ enum iavf_status iavf_aq_send_msg_to_pf(struct iavf_hw *hw,
 		cmd_details = &details;
 	}
 	status = iavf_asq_send_command(hw, (struct iavf_aq_desc *)&desc, msg,
-				       msglen, cmd_details);
+	    msglen, cmd_details);
 	return status;
 }
 
@@ -988,8 +935,8 @@ enum iavf_status iavf_aq_send_msg_to_pf(struct iavf_hw *hw,
  * Given a VF resource message from the PF, populate the hw struct
  * with appropriate information.
  **/
-void iavf_vf_parse_hw_config(struct iavf_hw *hw,
-			     struct virtchnl_vf_resource *msg)
+void
+iavf_vf_parse_hw_config(struct iavf_hw *hw, struct virtchnl_vf_resource *msg)
 {
 	struct virtchnl_vsi_resource *vsi_res;
 	int i;
@@ -1000,17 +947,14 @@ void iavf_vf_parse_hw_config(struct iavf_hw *hw,
 	hw->dev_caps.num_rx_qp = msg->num_queue_pairs;
 	hw->dev_caps.num_tx_qp = msg->num_queue_pairs;
 	hw->dev_caps.num_msix_vectors_vf = msg->max_vectors;
-	hw->dev_caps.dcb = msg->vf_cap_flags &
-			   VIRTCHNL_VF_OFFLOAD_L2;
+	hw->dev_caps.dcb = msg->vf_cap_flags & VIRTCHNL_VF_OFFLOAD_L2;
 	for (i = 0; i < msg->num_vsis; i++) {
 		if (vsi_res->vsi_type == VIRTCHNL_VSI_SRIOV) {
 			iavf_memcpy(hw->mac.perm_addr,
-				    vsi_res->default_mac_addr,
-				    ETH_ALEN,
-				    IAVF_NONDMA_TO_NONDMA);
+			    vsi_res->default_mac_addr, ETH_ALEN,
+			    IAVF_NONDMA_TO_NONDMA);
 			iavf_memcpy(hw->mac.addr, vsi_res->default_mac_addr,
-				    ETH_ALEN,
-				    IAVF_NONDMA_TO_NONDMA);
+			    ETH_ALEN, IAVF_NONDMA_TO_NONDMA);
 		}
 		vsi_res++;
 	}
@@ -1024,27 +968,29 @@ void iavf_vf_parse_hw_config(struct iavf_hw *hw,
  * as none will be forthcoming. Immediately after calling this function,
  * the admin queue should be shut down and (optionally) reinitialized.
  **/
-enum iavf_status iavf_vf_reset(struct iavf_hw *hw)
+enum iavf_status
+iavf_vf_reset(struct iavf_hw *hw)
 {
-	return iavf_aq_send_msg_to_pf(hw, VIRTCHNL_OP_RESET_VF,
-				      IAVF_SUCCESS, NULL, 0, NULL);
+	return iavf_aq_send_msg_to_pf(hw, VIRTCHNL_OP_RESET_VF, IAVF_SUCCESS,
+	    NULL, 0, NULL);
 }
 
 /**
-* iavf_aq_clear_all_wol_filters
-* @hw: pointer to the hw struct
-* @cmd_details: pointer to command details structure or NULL
-*
-* Get information for the reason of a Wake Up event
-**/
-enum iavf_status iavf_aq_clear_all_wol_filters(struct iavf_hw *hw,
-			struct iavf_asq_cmd_details *cmd_details)
+ * iavf_aq_clear_all_wol_filters
+ * @hw: pointer to the hw struct
+ * @cmd_details: pointer to command details structure or NULL
+ *
+ * Get information for the reason of a Wake Up event
+ **/
+enum iavf_status
+iavf_aq_clear_all_wol_filters(struct iavf_hw *hw,
+    struct iavf_asq_cmd_details *cmd_details)
 {
 	struct iavf_aq_desc desc;
 	enum iavf_status status;
 
 	iavf_fill_default_direct_cmd_desc(&desc,
-					  iavf_aqc_opc_clear_all_wol_filters);
+	    iavf_aqc_opc_clear_all_wol_filters);
 
 	status = iavf_asq_send_command(hw, &desc, NULL, 0, cmd_details);
 

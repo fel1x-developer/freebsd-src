@@ -40,52 +40,49 @@
 
 #include "opt_bus.h"
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/linker_set.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
 #include <sys/queue.h>
 #include <sys/rman.h>
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/linker_set.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 #include <sys/unistd.h>
-#include <sys/callout.h>
-#include <sys/malloc.h>
-#include <sys/priv.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ehci.h>
-#include <dev/usb/controller/ehcireg.h>
 
 #include <dev/bhnd/bhnd.h>
+#include <dev/usb/controller/ehci.h>
+#include <dev/usb/controller/ehcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
-#define	EHCI_HC_DEVSTR		"Broadcom EHCI"
+#define EHCI_HC_DEVSTR "Broadcom EHCI"
 
-#define	USB_BRIDGE_INTR_CAUSE	0x210
-#define	USB_BRIDGE_INTR_MASK	0x214
+#define USB_BRIDGE_INTR_CAUSE 0x210
+#define USB_BRIDGE_INTR_MASK 0x214
 
-static device_attach_t	bhnd_ehci_attach;
-static device_detach_t	bhnd_ehci_detach;
+static device_attach_t bhnd_ehci_attach;
+static device_detach_t bhnd_ehci_detach;
 
-static int		bhnd_ehci_probe(device_t self);
-static void		bhnd_ehci_post_reset(struct ehci_softc *ehci_softc);
+static int bhnd_ehci_probe(device_t self);
+static void bhnd_ehci_post_reset(struct ehci_softc *ehci_softc);
 
 static int
 bhnd_ehci_probe(device_t self)
@@ -99,21 +96,21 @@ bhnd_ehci_probe(device_t self)
 static void
 bhnd_ehci_post_reset(struct ehci_softc *ehci_softc)
 {
-        uint32_t	usbmode;
+	uint32_t usbmode;
 
-        /* Force HOST mode */
-        usbmode = EOREAD4(ehci_softc, EHCI_USBMODE_NOLPM);
-        usbmode &= ~EHCI_UM_CM;
-        usbmode |= EHCI_UM_CM_HOST;
-        EOWRITE4(ehci_softc, EHCI_USBMODE_NOLPM, usbmode);
+	/* Force HOST mode */
+	usbmode = EOREAD4(ehci_softc, EHCI_USBMODE_NOLPM);
+	usbmode &= ~EHCI_UM_CM;
+	usbmode |= EHCI_UM_CM_HOST;
+	EOWRITE4(ehci_softc, EHCI_USBMODE_NOLPM, usbmode);
 }
 
 static int
 bhnd_ehci_attach(device_t self)
 {
-	ehci_softc_t	*sc;
-	int		 err;
-	int		 rid;
+	ehci_softc_t *sc;
+	int err;
+	int rid;
 
 	sc = device_get_softc(self);
 	/* initialise some bus fields */
@@ -125,13 +122,13 @@ bhnd_ehci_attach(device_t self)
 
 	/* get all DMA memory */
 	if ((err = usb_bus_mem_alloc_all(&sc->sc_bus, USB_GET_DMA_TAG(self),
-	    &ehci_iterate_hw_softc)) != 0) {
+		 &ehci_iterate_hw_softc)) != 0) {
 		BHND_ERROR_DEV(self, "can't allocate DMA memory: %d", err);
 		return (ENOMEM);
 	}
 
 	rid = 0;
-	sc->sc_io_res = bus_alloc_resource_any(self, SYS_RES_MEMORY, &rid, 
+	sc->sc_io_res = bus_alloc_resource_any(self, SYS_RES_MEMORY, &rid,
 	    RF_ACTIVE);
 	if (!sc->sc_io_res) {
 		BHND_ERROR_DEV(self, "Could not map memory");
@@ -159,7 +156,7 @@ bhnd_ehci_attach(device_t self)
 	device_set_ivars(sc->sc_bus.bdev, &sc->sc_bus);
 	device_set_desc(sc->sc_bus.bdev, EHCI_HC_DEVSTR);
 
- 	sprintf(sc->sc_vendor, "Broadcom");
+	sprintf(sc->sc_vendor, "Broadcom");
 
 	err = bus_setup_intr(self, sc->sc_irq_res, INTR_TYPE_BIO | INTR_MPSAFE,
 	    NULL, (driver_intr_t *)ehci_interrupt, sc, &sc->sc_intr_hdl);
@@ -190,8 +187,8 @@ error:
 static int
 bhnd_ehci_detach(device_t self)
 {
-	ehci_softc_t	*sc;
-	int		 err;
+	ehci_softc_t *sc;
+	int err;
 
 	sc = device_get_softc(self);
 
@@ -207,7 +204,7 @@ bhnd_ehci_detach(device_t self)
 		EWRITE4(sc, USB_BRIDGE_INTR_MASK, 0);
 	}
 #endif
- 	if (sc->sc_irq_res && sc->sc_intr_hdl) {
+	if (sc->sc_irq_res && sc->sc_intr_hdl) {
 		/*
 		 * only call ehci_detach() after ehci_init()
 		 */
@@ -217,11 +214,12 @@ bhnd_ehci_detach(device_t self)
 
 		if (err)
 			/* XXX or should we panic? */
-			BHND_ERROR_DEV(self, "Could not tear down irq, %d", err);
+			BHND_ERROR_DEV(self, "Could not tear down irq, %d",
+			    err);
 
 		sc->sc_intr_hdl = NULL;
 	}
- 	if (sc->sc_irq_res) {
+	if (sc->sc_irq_res) {
 		bus_release_resource(self, SYS_RES_IRQ, 0, sc->sc_irq_res);
 		sc->sc_irq_res = NULL;
 	}
@@ -236,16 +234,15 @@ bhnd_ehci_detach(device_t self)
 
 static device_method_t ehci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		bhnd_ehci_probe),
-	DEVMETHOD(device_attach,	bhnd_ehci_attach),
-	DEVMETHOD(device_detach,	bhnd_ehci_detach),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, bhnd_ehci_probe),
+	DEVMETHOD(device_attach, bhnd_ehci_attach),
+	DEVMETHOD(device_detach, bhnd_ehci_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* Bus interface */
-	DEVMETHOD(bus_print_child,	bus_generic_print_child),
-	{0, 0}
+	DEVMETHOD(bus_print_child, bus_generic_print_child), { 0, 0 }
 };
 
 static driver_t ehci_driver = {

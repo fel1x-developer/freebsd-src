@@ -23,28 +23,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_RHASHTABLE_H
-#define	_LINUXKPI_LINUX_RHASHTABLE_H
+#ifndef _LINUXKPI_LINUX_RHASHTABLE_H
+#define _LINUXKPI_LINUX_RHASHTABLE_H
 
-#include <linux/kernel.h>	/* pr_debug */
+#include <linux/kernel.h> /* pr_debug */
 
-struct rhash_head {
-};
+struct rhash_head { };
 
 struct rhashtable_params {
-	uint16_t	head_offset;
-	uint16_t	key_len;
-	uint16_t	key_offset;
-	uint16_t	nelem_hint;
-	bool		automatic_shrinking;
+	uint16_t head_offset;
+	uint16_t key_len;
+	uint16_t key_offset;
+	uint16_t nelem_hint;
+	bool automatic_shrinking;
 };
 
-struct rhashtable {
-};
+struct rhashtable { };
 
 static inline int
-rhashtable_init(struct rhashtable *rht,
-    const struct rhashtable_params *params)
+rhashtable_init(struct rhashtable *rht, const struct rhashtable_params *params)
 {
 
 	pr_debug("%s: TODO\n", __func__);
@@ -76,12 +73,12 @@ rhashtable_lookup_get_insert_fast(struct rhashtable *rht,
 }
 
 static inline int
-rhashtable_remove_fast(struct rhashtable *rht,
-    struct rhash_head *obj, const struct rhashtable_params params)
+rhashtable_remove_fast(struct rhashtable *rht, struct rhash_head *obj,
+    const struct rhashtable_params params)
 {
 
 	pr_debug("%s: TODO\n", __func__);
 	return (-ENOENT);
 }
 
-#endif	/* _LINUXKPI_LINUX_RHASHTABLE_H */
+#endif /* _LINUXKPI_LINUX_RHASHTABLE_H */

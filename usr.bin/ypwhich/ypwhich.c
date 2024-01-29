@@ -29,25 +29,24 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 #include <rpc/rpc.h>
 #include <rpc/xdr.h>
 #include <rpcsvc/yp.h>
 #include <rpcsvc/ypclnt.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "yplib_host.h"
 
@@ -76,7 +75,6 @@ usage(void)
 	exit(1);
 }
 
-
 /*
  * Like yp_bind except can query a specific host
  */
@@ -103,9 +101,8 @@ bind_host(char *dom, struct sockaddr_in *sin)
 	tv.tv_sec = 5;
 	tv.tv_usec = 0;
 
-	r = clnt_call(client, YPBINDPROC_DOMAIN,
-		(xdrproc_t)xdr_domainname, &dom,
-		(xdrproc_t)xdr_ypbind_resp, &ypbr, tv);
+	r = clnt_call(client, YPBINDPROC_DOMAIN, (xdrproc_t)xdr_domainname,
+	    &dom, (xdrproc_t)xdr_ypbind_resp, &ypbr, tv);
 	if (r != RPC_SUCCESS) {
 		warnx("can't clnt_call: %s", yperr_string(YPERR_YPBIND));
 		clnt_destroy(client);
@@ -120,8 +117,9 @@ bind_host(char *dom, struct sockaddr_in *sin)
 	}
 	clnt_destroy(client);
 
-	memmove(&ss_addr.s_addr, &ypbr.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_addr,
-	    sizeof (ss_addr));
+	memmove(&ss_addr.s_addr,
+	    &ypbr.ypbind_resp_u.ypbind_bindinfo.ypbind_binding_addr,
+	    sizeof(ss_addr));
 
 	hent = gethostbyaddr((char *)&ss_addr.s_addr, sizeof(ss_addr.s_addr),
 	    AF_INET);
@@ -152,8 +150,7 @@ main(int argc, char *argv[])
 		case 'x':
 			for (i = 0; i < nitems(ypaliases); i++)
 				printf("\"%s\" is an alias for \"%s\"\n",
-					ypaliases[i].alias,
-					ypaliases[i].name);
+				    ypaliases[i].alias, ypaliases[i].name);
 			exit(0);
 		case 'h':
 			host = optarg;
@@ -189,8 +186,7 @@ main(int argc, char *argv[])
 			if (inet_aton(argv[0], &sin.sin_addr) == 0) {
 				hent = gethostbyname(argv[0]);
 				if (!hent) {
-					errx(1, "host %s unknown",
-					    argv[0]);
+					errx(1, "host %s unknown", argv[0]);
 				}
 			}
 			if (bind_host(domain, &sin))
@@ -229,8 +225,8 @@ main(int argc, char *argv[])
 		case YPERR_YPBIND:
 			errx(1, "not running ypbind");
 		default:
-			errx(1, "can't find master for map %s: reason: %s",
-			    map, yperr_string(r));
+			errx(1, "can't find master for map %s: reason: %s", map,
+			    yperr_string(r));
 		}
 		exit(0);
 	}
@@ -244,11 +240,11 @@ main(int argc, char *argv[])
 	r = 0;
 	switch (r) {
 	case 0:
-		for (y = ypml; y; ) {
+		for (y = ypml; y;) {
 			ypml = y;
 			if (host != NULL) {
-				r = yp_master_host(client,
-						   domain, ypml->map, &master);
+				r = yp_master_host(client, domain, ypml->map,
+				    &master);
 			} else {
 				r = yp_master(domain, ypml->map, &master);
 			}
@@ -269,8 +265,8 @@ main(int argc, char *argv[])
 	case YPERR_YPBIND:
 		errx(1, "not running ypbind");
 	default:
-		errx(1, "can't get map list for domain %s: reason: %s",
-		    domain, yperr_string(r));
+		errx(1, "can't get map list for domain %s: reason: %s", domain,
+		    yperr_string(r));
 	}
 	exit(0);
 }

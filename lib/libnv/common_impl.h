@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_COMMON_IMPL_H_
-#define	_COMMON_IMPL_H_
+#ifndef _COMMON_IMPL_H_
+#define _COMMON_IMPL_H_
 
 #include <errno.h>
 #include <fcntl.h>
@@ -43,4 +43,4 @@ fd_is_valid(int fd)
 	return (fcntl(fd, F_GETFD) != -1 || errno != EBADF);
 }
 
-#endif	/* !_COMMON_IMPL_H_ */
+#endif /* !_COMMON_IMPL_H_ */

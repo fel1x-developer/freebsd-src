@@ -29,11 +29,10 @@
 #include <sys/event.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <err.h>
 #include <signal.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 /*
  * A regression test for bugzilla 275286.

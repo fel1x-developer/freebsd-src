@@ -29,12 +29,12 @@
 #include "opt_ddb.h"
 #include "opt_gdb.h"
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kdb.h>
 #include <sys/pcpu.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 #include <sys/sysent.h>
 
 #include <machine/armreg.h>
@@ -44,8 +44,8 @@
 #include <machine/pcb.h>
 
 #ifdef DDB
-#include <ddb/ddb.h>
 #include <ddb/db_sym.h>
+#include <ddb/ddb.h>
 #endif
 
 enum dbg_t {
@@ -69,85 +69,87 @@ void dbg_monitor_enter(struct thread *);
 void dbg_monitor_exit(struct thread *, struct trapframe *);
 
 /* Watchpoints/breakpoints control register bitfields */
-#define DBG_WATCH_CTRL_LEN_1		(0x1 << 5)
-#define DBG_WATCH_CTRL_LEN_2		(0x3 << 5)
-#define DBG_WATCH_CTRL_LEN_4		(0xf << 5)
-#define DBG_WATCH_CTRL_LEN_8		(0xff << 5)
-#define DBG_WATCH_CTRL_LEN_MASK(x)	((x) & (0xff << 5))
-#define DBG_WATCH_CTRL_EXEC		(0x0 << 3)
-#define DBG_WATCH_CTRL_LOAD		(0x1 << 3)
-#define DBG_WATCH_CTRL_STORE		(0x2 << 3)
-#define DBG_WATCH_CTRL_ACCESS_MASK(x)	((x) & (0x3 << 3))
+#define DBG_WATCH_CTRL_LEN_1 (0x1 << 5)
+#define DBG_WATCH_CTRL_LEN_2 (0x3 << 5)
+#define DBG_WATCH_CTRL_LEN_4 (0xf << 5)
+#define DBG_WATCH_CTRL_LEN_8 (0xff << 5)
+#define DBG_WATCH_CTRL_LEN_MASK(x) ((x) & (0xff << 5))
+#define DBG_WATCH_CTRL_EXEC (0x0 << 3)
+#define DBG_WATCH_CTRL_LOAD (0x1 << 3)
+#define DBG_WATCH_CTRL_STORE (0x2 << 3)
+#define DBG_WATCH_CTRL_ACCESS_MASK(x) ((x) & (0x3 << 3))
 
 /* Common for breakpoint and watchpoint */
-#define DBG_WB_CTRL_EL1		(0x1 << 1)
-#define DBG_WB_CTRL_EL0		(0x2 << 1)
-#define DBG_WB_CTRL_ELX_MASK(x)	((x) & (0x3 << 1))
-#define DBG_WB_CTRL_E		(0x1 << 0)
+#define DBG_WB_CTRL_EL1 (0x1 << 1)
+#define DBG_WB_CTRL_EL0 (0x2 << 1)
+#define DBG_WB_CTRL_ELX_MASK(x) ((x) & (0x3 << 1))
+#define DBG_WB_CTRL_E (0x1 << 0)
 
-#define DBG_REG_BASE_BVR	0
-#define DBG_REG_BASE_BCR	(DBG_REG_BASE_BVR + 16)
-#define DBG_REG_BASE_WVR	(DBG_REG_BASE_BCR + 16)
-#define DBG_REG_BASE_WCR	(DBG_REG_BASE_WVR + 16)
+#define DBG_REG_BASE_BVR 0
+#define DBG_REG_BASE_BCR (DBG_REG_BASE_BVR + 16)
+#define DBG_REG_BASE_WVR (DBG_REG_BASE_BCR + 16)
+#define DBG_REG_BASE_WCR (DBG_REG_BASE_WVR + 16)
 
 /* Watchpoint/breakpoint helpers */
-#define DBG_WB_WVR	"wvr"
-#define DBG_WB_WCR	"wcr"
-#define DBG_WB_BVR	"bvr"
-#define DBG_WB_BCR	"bcr"
+#define DBG_WB_WVR "wvr"
+#define DBG_WB_WCR "wcr"
+#define DBG_WB_BVR "bvr"
+#define DBG_WB_BCR "bcr"
 
-#define DBG_WB_READ(reg, num, val) do {					\
-	__asm __volatile("mrs %0, dbg" reg #num "_el1" : "=r" (val));	\
-} while (0)
+#define DBG_WB_READ(reg, num, val)                                           \
+	do {                                                                 \
+		__asm __volatile("mrs %0, dbg" reg #num "_el1" : "=r"(val)); \
+	} while (0)
 
-#define DBG_WB_WRITE(reg, num, val) do {				\
-	__asm __volatile("msr dbg" reg #num "_el1, %0" :: "r" (val));	\
-} while (0)
+#define DBG_WB_WRITE(reg, num, val)                                         \
+	do {                                                                \
+		__asm __volatile("msr dbg" reg #num "_el1, %0" ::"r"(val)); \
+	} while (0)
 
-#define READ_WB_REG_CASE(reg, num, offset, val)		\
-	case (num + offset):				\
-		DBG_WB_READ(reg, num, val);		\
+#define READ_WB_REG_CASE(reg, num, offset, val) \
+	case (num + offset):                    \
+		DBG_WB_READ(reg, num, val);     \
 		break
 
-#define WRITE_WB_REG_CASE(reg, num, offset, val)	\
-	case (num + offset):				\
-		DBG_WB_WRITE(reg, num, val);		\
+#define WRITE_WB_REG_CASE(reg, num, offset, val) \
+	case (num + offset):                     \
+		DBG_WB_WRITE(reg, num, val);     \
 		break
 
-#define SWITCH_CASES_READ_WB_REG(reg, offset, val)	\
-	READ_WB_REG_CASE(reg,  0, offset, val);		\
-	READ_WB_REG_CASE(reg,  1, offset, val);		\
-	READ_WB_REG_CASE(reg,  2, offset, val);		\
-	READ_WB_REG_CASE(reg,  3, offset, val);		\
-	READ_WB_REG_CASE(reg,  4, offset, val);		\
-	READ_WB_REG_CASE(reg,  5, offset, val);		\
-	READ_WB_REG_CASE(reg,  6, offset, val);		\
-	READ_WB_REG_CASE(reg,  7, offset, val);		\
-	READ_WB_REG_CASE(reg,  8, offset, val);		\
-	READ_WB_REG_CASE(reg,  9, offset, val);		\
-	READ_WB_REG_CASE(reg, 10, offset, val);		\
-	READ_WB_REG_CASE(reg, 11, offset, val);		\
-	READ_WB_REG_CASE(reg, 12, offset, val);		\
-	READ_WB_REG_CASE(reg, 13, offset, val);		\
-	READ_WB_REG_CASE(reg, 14, offset, val);		\
+#define SWITCH_CASES_READ_WB_REG(reg, offset, val) \
+	READ_WB_REG_CASE(reg, 0, offset, val);     \
+	READ_WB_REG_CASE(reg, 1, offset, val);     \
+	READ_WB_REG_CASE(reg, 2, offset, val);     \
+	READ_WB_REG_CASE(reg, 3, offset, val);     \
+	READ_WB_REG_CASE(reg, 4, offset, val);     \
+	READ_WB_REG_CASE(reg, 5, offset, val);     \
+	READ_WB_REG_CASE(reg, 6, offset, val);     \
+	READ_WB_REG_CASE(reg, 7, offset, val);     \
+	READ_WB_REG_CASE(reg, 8, offset, val);     \
+	READ_WB_REG_CASE(reg, 9, offset, val);     \
+	READ_WB_REG_CASE(reg, 10, offset, val);    \
+	READ_WB_REG_CASE(reg, 11, offset, val);    \
+	READ_WB_REG_CASE(reg, 12, offset, val);    \
+	READ_WB_REG_CASE(reg, 13, offset, val);    \
+	READ_WB_REG_CASE(reg, 14, offset, val);    \
 	READ_WB_REG_CASE(reg, 15, offset, val)
 
-#define SWITCH_CASES_WRITE_WB_REG(reg, offset, val)	\
-	WRITE_WB_REG_CASE(reg,  0, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  1, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  2, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  3, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  4, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  5, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  6, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  7, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  8, offset, val);	\
-	WRITE_WB_REG_CASE(reg,  9, offset, val);	\
-	WRITE_WB_REG_CASE(reg, 10, offset, val);	\
-	WRITE_WB_REG_CASE(reg, 11, offset, val);	\
-	WRITE_WB_REG_CASE(reg, 12, offset, val);	\
-	WRITE_WB_REG_CASE(reg, 13, offset, val);	\
-	WRITE_WB_REG_CASE(reg, 14, offset, val);	\
+#define SWITCH_CASES_WRITE_WB_REG(reg, offset, val) \
+	WRITE_WB_REG_CASE(reg, 0, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 1, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 2, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 3, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 4, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 5, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 6, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 7, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 8, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 9, offset, val);     \
+	WRITE_WB_REG_CASE(reg, 10, offset, val);    \
+	WRITE_WB_REG_CASE(reg, 11, offset, val);    \
+	WRITE_WB_REG_CASE(reg, 12, offset, val);    \
+	WRITE_WB_REG_CASE(reg, 13, offset, val);    \
+	WRITE_WB_REG_CASE(reg, 14, offset, val);    \
 	WRITE_WB_REG_CASE(reg, 15, offset, val)
 
 #ifdef DDB
@@ -157,10 +159,10 @@ dbg_wb_read_reg(int reg, int n)
 	uint64_t val = 0;
 
 	switch (reg + n) {
-	SWITCH_CASES_READ_WB_REG(DBG_WB_WVR, DBG_REG_BASE_WVR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_WCR, DBG_REG_BASE_WCR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_BVR, DBG_REG_BASE_BVR, val);
-	SWITCH_CASES_READ_WB_REG(DBG_WB_BCR, DBG_REG_BASE_BCR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_WVR, DBG_REG_BASE_WVR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_WCR, DBG_REG_BASE_WCR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_BVR, DBG_REG_BASE_BVR, val);
+		SWITCH_CASES_READ_WB_REG(DBG_WB_BCR, DBG_REG_BASE_BCR, val);
 	default:
 		printf("trying to read from wrong debug register %d\n", n);
 	}
@@ -173,10 +175,10 @@ static void
 dbg_wb_write_reg(int reg, int n, uint64_t val)
 {
 	switch (reg + n) {
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_WVR, DBG_REG_BASE_WVR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_WCR, DBG_REG_BASE_WCR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_BVR, DBG_REG_BASE_BVR, val);
-	SWITCH_CASES_WRITE_WB_REG(DBG_WB_BCR, DBG_REG_BASE_BCR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_WVR, DBG_REG_BASE_WVR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_WCR, DBG_REG_BASE_WCR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_BVR, DBG_REG_BASE_BVR, val);
+		SWITCH_CASES_WRITE_WB_REG(DBG_WB_BCR, DBG_REG_BASE_BCR, val);
 	default:
 		printf("trying to write to wrong debug register %d\n", n);
 		return;
@@ -193,8 +195,8 @@ kdb_cpu_set_singlestep(void)
 	    ("%s: debug exceptions are not masked", __func__));
 
 	kdb_frame->tf_spsr |= PSR_SS;
-	WRITE_SPECIALREG(mdscr_el1, READ_SPECIALREG(mdscr_el1) |
-	    MDSCR_SS | MDSCR_KDE);
+	WRITE_SPECIALREG(mdscr_el1,
+	    READ_SPECIALREG(mdscr_el1) | MDSCR_SS | MDSCR_KDE);
 
 	/*
 	 * Disable breakpoints and watchpoints, e.g. stepping
@@ -214,8 +216,8 @@ kdb_cpu_clear_singlestep(void)
 	KASSERT((READ_SPECIALREG(daif) & PSR_D) == PSR_D,
 	    ("%s: debug exceptions are not masked", __func__));
 
-	WRITE_SPECIALREG(mdscr_el1, READ_SPECIALREG(mdscr_el1) &
-	    ~(MDSCR_SS | MDSCR_KDE));
+	WRITE_SPECIALREG(mdscr_el1,
+	    READ_SPECIALREG(mdscr_el1) & ~(MDSCR_SS | MDSCR_KDE));
 
 	/* Restore breakpoints and watchpoints */
 	if ((kernel_monitor.dbg_flags & DBGMON_ENABLED) != 0) {
@@ -264,16 +266,16 @@ static const char *
 dbg_watchtype_str(uint32_t type)
 {
 	switch (type) {
-		case DBG_WATCH_CTRL_EXEC:
-			return ("execute");
-		case DBG_WATCH_CTRL_STORE:
-			return ("write");
-		case DBG_WATCH_CTRL_LOAD:
-			return ("read");
-		case DBG_WATCH_CTRL_LOAD | DBG_WATCH_CTRL_STORE:
-			return ("read/write");
-		default:
-			return ("invalid");
+	case DBG_WATCH_CTRL_EXEC:
+		return ("execute");
+	case DBG_WATCH_CTRL_STORE:
+		return ("write");
+	case DBG_WATCH_CTRL_LOAD:
+		return ("read");
+	case DBG_WATCH_CTRL_LOAD | DBG_WATCH_CTRL_STORE:
+		return ("read/write");
+	default:
+		return ("invalid");
 	}
 }
 
@@ -302,16 +304,18 @@ dbg_show_watchpoint(void)
 	int i;
 
 	db_printf("\nhardware watchpoints:\n");
-	db_printf("  watch    status        type  len             address              symbol\n");
-	db_printf("  -----  --------  ----------  ---  ------------------  ------------------\n");
+	db_printf(
+	    "  watch    status        type  len             address              symbol\n");
+	db_printf(
+	    "  -----  --------  ----------  ---  ------------------  ------------------\n");
 	for (i = 0; i < dbg_watchpoint_num; i++) {
 		wcr = dbg_wb_read_reg(DBG_REG_BASE_WCR, i);
 		if ((wcr & DBG_WB_CTRL_E) != 0) {
 			type = DBG_WATCH_CTRL_ACCESS_MASK(wcr);
 			len = DBG_WATCH_CTRL_LEN_MASK(wcr);
 			addr = dbg_wb_read_reg(DBG_REG_BASE_WVR, i);
-			db_printf("  %-5d  %-8s  %10s  %3d  0x%16lx  ",
-			    i, "enabled", dbg_watchtype_str(type),
+			db_printf("  %-5d  %-8s  %10s  %3d  0x%16lx  ", i,
+			    "enabled", dbg_watchtype_str(type),
 			    dbg_watchtype_len(len), addr);
 			db_printsym((db_addr_t)addr, DB_STGY_ANY);
 			db_printf("\n");
@@ -328,7 +332,7 @@ dbg_find_free_slot(struct debug_monitor_state *monitor, enum dbg_t type)
 	uint64_t *reg;
 	u_int max, i;
 
-	switch(type) {
+	switch (type) {
 	case DBG_TYPE_BREAKPOINT:
 		max = dbg_breakpoint_num;
 		reg = monitor->dbg_bcr;
@@ -357,7 +361,7 @@ dbg_find_slot(struct debug_monitor_state *monitor, enum dbg_t type,
 	uint64_t *reg_addr, *reg_ctrl;
 	u_int max, i;
 
-	switch(type) {
+	switch (type) {
 	case DBG_TYPE_BREAKPOINT:
 		max = dbg_breakpoint_num;
 		reg_addr = monitor->dbg_bvr;
@@ -374,8 +378,7 @@ dbg_find_slot(struct debug_monitor_state *monitor, enum dbg_t type,
 	}
 
 	for (i = 0; i < max; i++) {
-		if (reg_addr[i] == addr &&
-		    (reg_ctrl[i] & DBG_WB_CTRL_E) != 0)
+		if (reg_addr[i] == addr && (reg_ctrl[i] & DBG_WB_CTRL_E) != 0)
 			return (i);
 	}
 
@@ -395,11 +398,12 @@ dbg_setup_watchpoint(struct debug_monitor_state *monitor, vm_offset_t addr,
 	i = dbg_find_free_slot(monitor, DBG_TYPE_WATCHPOINT);
 	if (i == -1) {
 		printf("Can not find slot for watchpoint, max %d"
-		    " watchpoints supported\n", dbg_watchpoint_num);
+		       " watchpoints supported\n",
+		    dbg_watchpoint_num);
 		return (EBUSY);
 	}
 
-	switch(size) {
+	switch (size) {
 	case 1:
 		wcr_size = DBG_WATCH_CTRL_LEN_1;
 		break;
@@ -422,7 +426,7 @@ dbg_setup_watchpoint(struct debug_monitor_state *monitor, vm_offset_t addr,
 	else
 		wcr_priv = DBG_WB_CTRL_EL1;
 
-	switch(access) {
+	switch (access) {
 	case HW_BREAKPOINT_X:
 		wcr_access = DBG_WATCH_CTRL_EXEC;
 		break;
@@ -554,7 +558,8 @@ dbg_monitor_enter(struct thread *thread)
 	if ((kernel_monitor.dbg_flags & DBGMON_ENABLED) != 0) {
 		/* Install the kernel version of the registers */
 		dbg_register_sync(&kernel_monitor);
-	} else if ((thread->td_pcb->pcb_dbg_regs.dbg_flags & DBGMON_ENABLED) != 0) {
+	} else if ((thread->td_pcb->pcb_dbg_regs.dbg_flags & DBGMON_ENABLED) !=
+	    0) {
 		/* Disable the user breakpoints until we return to userspace */
 		for (i = 0; i < dbg_watchpoint_num; i++) {
 			dbg_wb_write_reg(DBG_REG_BASE_WCR, i, 0);

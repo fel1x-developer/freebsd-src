@@ -61,11 +61,11 @@ static const char *infile, *outfile;
 static FILE *infp, *outfp;
 static bool base64, cflag, iflag, oflag, pflag, rflag, sflag;
 
-static void	usage(void);
-static int	decode(void);
-static int	decode2(void);
-static int	uu_decode(void);
-static int	base64_decode(void);
+static void usage(void);
+static int decode(void);
+static int decode2(void);
+static int uu_decode(void);
+static int base64_decode(void);
 
 int
 main_base64_decode(const char *in)
@@ -212,7 +212,7 @@ decode2(void)
 		*q++ = '\0';
 		/* q points to filename */
 		n = strlen(q);
-		while (n > 0 && (q[n-1] == '\n' || q[n-1] == '\r'))
+		while (n > 0 && (q[n - 1] == '\n' || q[n - 1] == '\r'))
 			q[--n] = '\0';
 		/* found valid header? */
 		if (n > 0)
@@ -343,7 +343,7 @@ uu_decode(void)
 {
 	int i, ch;
 	char *p;
-	char buf[MAXPATHLEN+1];
+	char buf[MAXPATHLEN + 1];
 
 	/* for each input line */
 	for (;;) {
@@ -354,14 +354,15 @@ uu_decode(void)
 			return (1);
 		}
 
-#define	DEC(c)		(((c) - ' ') & 077)	/* single character decode */
-#define IS_DEC(c)	 ( (((c) - ' ') >= 0) && (((c) - ' ') <= 077 + 1) )
+#define DEC(c) (((c) - ' ') & 077) /* single character decode */
+#define IS_DEC(c) ((((c) - ' ') >= 0) && (((c) - ' ') <= 077 + 1))
 
-#define OUT_OF_RANGE do {						\
-	warnx("%s: %s: character out of range: [%d-%d]",		\
-	    infile, outfile, ' ', 077 + ' ' + 1);			\
-	return (1);							\
-} while (0)
+#define OUT_OF_RANGE                                                     \
+	do {                                                             \
+		warnx("%s: %s: character out of range: [%d-%d]", infile, \
+		    outfile, ' ', 077 + ' ' + 1);                        \
+		return (1);                                              \
+	} while (0)
 
 		/*
 		 * `i' is used to avoid writing out all the characters
@@ -373,7 +374,7 @@ uu_decode(void)
 		for (++p; i > 0; p += 4, i -= 3)
 			if (i >= 3) {
 				if (!(IS_DEC(*p) && IS_DEC(*(p + 1)) &&
-				    IS_DEC(*(p + 2)) && IS_DEC(*(p + 3))))
+					IS_DEC(*(p + 2)) && IS_DEC(*(p + 3))))
 					OUT_OF_RANGE;
 
 				ch = DEC(p[0]) << 2 | DEC(p[1]) >> 4;
@@ -391,7 +392,7 @@ uu_decode(void)
 				}
 				if (i >= 2) {
 					if (!(IS_DEC(*(p + 1)) &&
-					    IS_DEC(*(p + 2))))
+						IS_DEC(*(p + 2))))
 						OUT_OF_RANGE;
 
 					ch = DEC(p[1]) << 4 | DEC(p[2]) >> 2;
@@ -399,7 +400,7 @@ uu_decode(void)
 				}
 				if (i >= 3) {
 					if (!(IS_DEC(*(p + 2)) &&
-					    IS_DEC(*(p + 3))))
+						IS_DEC(*(p + 3))))
 						OUT_OF_RANGE;
 					ch = DEC(p[2]) << 6 | DEC(p[3]);
 					putc(ch, outfp);

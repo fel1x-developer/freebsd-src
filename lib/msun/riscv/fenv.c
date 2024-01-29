@@ -24,7 +24,7 @@
  * SUCH DAMAGE.
  */
 
-#define	__fenv_static
+#define __fenv_static
 #include "fenv.h"
 
 #ifdef __GNUC_GNU_INLINE__
@@ -39,9 +39,9 @@ const fenv_t __fe_dfl_env = 0;
 
 #ifdef __riscv_float_abi_soft
 #define __set_env(env, flags, mask, rnd) env = ((flags) | (rnd) << 5)
-#define __env_flags(env)                ((env) & FE_ALL_EXCEPT)
-#define __env_mask(env)                 (0) /* No exception traps. */
-#define __env_round(env)                (((env) >> 5) & _ROUND_MASK)
+#define __env_flags(env) ((env) & FE_ALL_EXCEPT)
+#define __env_mask(env) (0) /* No exception traps. */
+#define __env_round(env) (((env) >> 5) & _ROUND_MASK)
 #include "fenv-softfloat.h"
 #endif
 

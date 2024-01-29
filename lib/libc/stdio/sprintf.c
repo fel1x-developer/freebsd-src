@@ -37,14 +37,15 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdarg.h>
 #include <limits.h>
+#include <stdarg.h>
+#include <stdio.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
 int
-sprintf(char * __restrict str, char const * __restrict fmt, ...)
+sprintf(char *__restrict str, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -55,8 +56,8 @@ sprintf(char * __restrict str, char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-sprintf_l(char * __restrict str, locale_t locale, char const * __restrict fmt,
-		...)
+sprintf_l(char *__restrict str, locale_t locale, char const *__restrict fmt,
+    ...)
 {
 	int ret;
 	va_list ap;

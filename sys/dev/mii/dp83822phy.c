@@ -41,57 +41,52 @@
 
 #include <machine/resource.h>
 
-#include <net/if.h>
-#include <net/if_media.h>
-
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
-#include "miidevs.h"
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "miibus_if.h"
+#include "miidevs.h"
 
-#define	BIT(x)			(1 << (x))
+#define BIT(x) (1 << (x))
 
-#define	DP83822_PHYSTS			0x10
-#define	DP83822_PHYSTS_LINK_UP		BIT(0)
-#define	DP83822_PHYSTS_SPEED_100	BIT(1)
-#define	DP83822_PHYSTS_FD		BIT(2)
+#define DP83822_PHYSTS 0x10
+#define DP83822_PHYSTS_LINK_UP BIT(0)
+#define DP83822_PHYSTS_SPEED_100 BIT(1)
+#define DP83822_PHYSTS_FD BIT(2)
 
-#define	DP83822_PHYSCR		0x11
-#define	DP83822_PHYSCR_INT_OE	BIT(0)	/* Behaviour of INT pin. */
-#define	DP83822_PHYSCR_INT_EN	BIT(1)
+#define DP83822_PHYSCR 0x11
+#define DP83822_PHYSCR_INT_OE BIT(0) /* Behaviour of INT pin. */
+#define DP83822_PHYSCR_INT_EN BIT(1)
 
-#define	DP83822_MISR1			0x12
-#define	DP83822_MISR1_AN_CMPL_EN	BIT(2)
-#define	DP83822_MISR1_DP_CHG_EN		BIT(3)
-#define	DP83822_MISR1_SPD_CHG_EN	BIT(4)
-#define	DP83822_MISR1_LINK_CHG_EN	BIT(5)
-#define	DP83822_MISR1_INT_MASK		0xFF
-#define	DP83822_MISR1_INT_STS_SHIFT	8
+#define DP83822_MISR1 0x12
+#define DP83822_MISR1_AN_CMPL_EN BIT(2)
+#define DP83822_MISR1_DP_CHG_EN BIT(3)
+#define DP83822_MISR1_SPD_CHG_EN BIT(4)
+#define DP83822_MISR1_LINK_CHG_EN BIT(5)
+#define DP83822_MISR1_INT_MASK 0xFF
+#define DP83822_MISR1_INT_STS_SHIFT 8
 
-#define	DP83822_MISR2			0x13
-#define	DP83822_MISR2_AN_ERR_EN		BIT(6)
-#define	DP83822_MISR2_INT_MASK		0xFF
-#define	DP83822_MISR2_INT_STS_SHIFT	8
+#define DP83822_MISR2 0x13
+#define DP83822_MISR2_AN_ERR_EN BIT(6)
+#define DP83822_MISR2_INT_MASK 0xFF
+#define DP83822_MISR2_INT_STS_SHIFT 8
 
-static int dp_service(struct mii_softc*, struct mii_data*, int);
+static int dp_service(struct mii_softc *, struct mii_data *, int);
 
 struct dp83822_softc {
 	struct mii_softc mii_sc;
 	struct resource *irq_res;
-	void 		*irq_cookie;
+	void *irq_cookie;
 };
 
-static const struct mii_phydesc dpphys[] = {
-	MII_PHY_DESC(xxTI, DP83822),
-	MII_PHY_END
-};
+static const struct mii_phydesc dpphys[] = { MII_PHY_DESC(xxTI, DP83822),
+	MII_PHY_END };
 
-static const struct mii_phy_funcs dpphy_funcs = {
-	dp_service,
-	ukphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs dpphy_funcs = { dp_service, ukphy_status,
+	mii_phy_reset };
 
 static void
 dp_intr(void *arg)
@@ -102,7 +97,7 @@ dp_intr(void *arg)
 	status = PHY_READ(sc, DP83822_MISR1);
 
 	if (!((status >> DP83822_MISR1_INT_STS_SHIFT) &
-	    (status & DP83822_MISR1_INT_MASK)))
+		(status & DP83822_MISR1_INT_MASK)))
 		return;
 
 	PHY_STATUS(sc);
@@ -150,14 +145,11 @@ dp_attach(device_t dev)
 	 * Interrupts are cleared on read.
 	 */
 	(void)PHY_READ(mii_sc, DP83822_MISR1);
-	value = DP83822_MISR1_AN_CMPL_EN |
-		DP83822_MISR1_DP_CHG_EN  |
-		DP83822_MISR1_SPD_CHG_EN |
-		DP83822_MISR1_LINK_CHG_EN;
+	value = DP83822_MISR1_AN_CMPL_EN | DP83822_MISR1_DP_CHG_EN |
+	    DP83822_MISR1_SPD_CHG_EN | DP83822_MISR1_LINK_CHG_EN;
 	PHY_WRITE(mii_sc, DP83822_MISR1, value);
 	value = PHY_READ(mii_sc, DP83822_PHYSCR);
-	value |= DP83822_PHYSCR_INT_OE |
-		 DP83822_PHYSCR_INT_EN;
+	value |= DP83822_PHYSCR_INT_OE | DP83822_PHYSCR_INT_EN;
 	PHY_WRITE(mii_sc, DP83822_PHYSCR, value);
 
 no_irq:
@@ -199,17 +191,11 @@ dp_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 	return (0);
 }
 
-static device_method_t dp_methods[] = {
-	DEVMETHOD(device_probe,         dp_probe),
-	DEVMETHOD(device_attach,        dp_attach),
-	DEVMETHOD(device_detach,        dp_detach),
-	DEVMETHOD_END
-};
+static device_method_t dp_methods[] = { DEVMETHOD(device_probe, dp_probe),
+	DEVMETHOD(device_attach, dp_attach),
+	DEVMETHOD(device_detach, dp_detach), DEVMETHOD_END };
 
-static driver_t dp_driver = {
-	"dp83822phy",
-	dp_methods,
-	sizeof(struct dp83822_softc)
-};
+static driver_t dp_driver = { "dp83822phy", dp_methods,
+	sizeof(struct dp83822_softc) };
 
 DRIVER_MODULE(dp83822phy, miibus, dp_driver, 0, 0);

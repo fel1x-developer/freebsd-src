@@ -24,8 +24,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 
@@ -62,28 +62,30 @@ mmc_sim_task(void *arg, int pending)
 	cts = &mmc_sim->ccb->cts;
 	switch (mmc_sim->ccb->ccb_h.func_code) {
 	case XPT_MMC_GET_TRAN_SETTINGS:
-		rv = MMC_SIM_GET_TRAN_SETTINGS(mmc_sim->dev, &cts->proto_specific.mmc);
+		rv = MMC_SIM_GET_TRAN_SETTINGS(mmc_sim->dev,
+		    &cts->proto_specific.mmc);
 		if (rv != 0)
 			mmc_sim->ccb->ccb_h.status = CAM_REQ_INVALID;
 		else
 			mmc_sim->ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	case XPT_MMC_SET_TRAN_SETTINGS:
-		rv = MMC_SIM_SET_TRAN_SETTINGS(mmc_sim->dev, &cts->proto_specific.mmc);
+		rv = MMC_SIM_SET_TRAN_SETTINGS(mmc_sim->dev,
+		    &cts->proto_specific.mmc);
 		if (rv != 0)
 			mmc_sim->ccb->ccb_h.status = CAM_REQ_INVALID;
 		else
 			mmc_sim->ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	default:
-		panic("Unsupported ccb func %x\n", mmc_sim->ccb->ccb_h.func_code);
+		panic("Unsupported ccb func %x\n",
+		    mmc_sim->ccb->ccb_h.func_code);
 		break;
 	}
 
 	xpt_done(mmc_sim->ccb);
 	mmc_sim->ccb = NULL;
 }
-
 
 static void
 mmc_cam_sim_default_action(struct cam_sim *sim, union ccb *ccb)
@@ -108,15 +110,15 @@ mmc_cam_sim_default_action(struct cam_sim *sim, union ccb *ccb)
 		if (rv != 0) {
 			ccb->ccb_h.status = CAM_REQ_INVALID;
 		} else {
-			mmc_path_inq(&ccb->cpi, "Deglitch Networks",
-			    sim, mmc.host_max_data);
+			mmc_path_inq(&ccb->cpi, "Deglitch Networks", sim,
+			    mmc.host_max_data);
 		}
 		break;
-	case XPT_GET_TRAN_SETTINGS:
-	{
+	case XPT_GET_TRAN_SETTINGS: {
 		struct ccb_trans_settings *cts = &ccb->cts;
 
-		rv = MMC_SIM_GET_TRAN_SETTINGS(mmc_sim->dev, &cts->proto_specific.mmc);
+		rv = MMC_SIM_GET_TRAN_SETTINGS(mmc_sim->dev,
+		    &cts->proto_specific.mmc);
 		if (rv != 0)
 			ccb->ccb_h.status = CAM_REQ_INVALID;
 		else {
@@ -129,8 +131,7 @@ mmc_cam_sim_default_action(struct cam_sim *sim, union ccb *ccb)
 		}
 		break;
 	}
-	case XPT_MMC_GET_TRAN_SETTINGS:
-	{
+	case XPT_MMC_GET_TRAN_SETTINGS: {
 		ccb->ccb_h.status = CAM_SIM_QUEUED;
 		mmc_sim->ccb = ccb;
 		taskqueue_enqueue(taskqueue_thread, &mmc_sim->sim_task);
@@ -138,19 +139,18 @@ mmc_cam_sim_default_action(struct cam_sim *sim, union ccb *ccb)
 		/* NOTREACHED */
 		break;
 	}
-	case XPT_SET_TRAN_SETTINGS:
-	{
+	case XPT_SET_TRAN_SETTINGS: {
 		struct ccb_trans_settings *cts = &ccb->cts;
 
-		rv = MMC_SIM_SET_TRAN_SETTINGS(mmc_sim->dev, &cts->proto_specific.mmc);
+		rv = MMC_SIM_SET_TRAN_SETTINGS(mmc_sim->dev,
+		    &cts->proto_specific.mmc);
 		if (rv != 0)
 			ccb->ccb_h.status = CAM_REQ_INVALID;
 		else
 			ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
 	}
-	case XPT_MMC_SET_TRAN_SETTINGS:
-	{
+	case XPT_MMC_SET_TRAN_SETTINGS: {
 		ccb->ccb_h.status = CAM_SIM_QUEUED;
 		mmc_sim->ccb = ccb;
 		taskqueue_enqueue(taskqueue_thread, &mmc_sim->sim_task);
@@ -161,8 +161,7 @@ mmc_cam_sim_default_action(struct cam_sim *sim, union ccb *ccb)
 	case XPT_RESET_BUS:
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		break;
-	case XPT_MMC_IO:
-	{
+	case XPT_MMC_IO: {
 		rv = MMC_SIM_CAM_REQUEST(mmc_sim->dev, ccb);
 		if (rv != 0)
 			ccb->ccb_h.status = CAM_SIM_QUEUED;
@@ -199,8 +198,8 @@ mmc_cam_sim_alloc(device_t dev, const char *name, struct mmc_sim *mmc_sim)
 	    kobj_desc);
 	mmc_sim->sim = cam_sim_alloc(mmc_cam_sim_default_action,
 	    kobj_method == &kobj_desc->deflt ? NULL : mmc_cam_default_poll,
-	    mmc_sim->name, mmc_sim, device_get_unit(dev),
-	    &mmc_sim->mtx, 1, 1, mmc_sim->devq);
+	    mmc_sim->name, mmc_sim, device_get_unit(dev), &mmc_sim->mtx, 1, 1,
+	    mmc_sim->devq);
 
 	if (mmc_sim->sim == NULL) {
 		cam_simq_free(mmc_sim->devq);

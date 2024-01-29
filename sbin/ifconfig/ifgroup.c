@@ -28,17 +28,17 @@
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+
 #include <net/if.h>
 
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <libifconfig.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libifconfig.h>
 
 #include "ifconfig.h"
 
@@ -54,8 +54,9 @@ setifgroup(if_ctx *ctx, const char *group_name, int dummy __unused)
 
 	if (strlcpy(ifgr.ifgr_group, group_name, IFNAMSIZ) >= IFNAMSIZ)
 		errx(1, "setifgroup: group name too long");
-	if (ioctl_ctx(ctx, SIOCAIFGROUP, (caddr_t)&ifgr) == -1 && errno != EEXIST)
-		err(1," SIOCAIFGROUP");
+	if (ioctl_ctx(ctx, SIOCAIFGROUP, (caddr_t)&ifgr) == -1 &&
+	    errno != EEXIST)
+		err(1, " SIOCAIFGROUP");
 }
 
 static void
@@ -70,7 +71,8 @@ unsetifgroup(if_ctx *ctx, const char *group_name, int dummy __unused)
 
 	if (strlcpy(ifgr.ifgr_group, group_name, IFNAMSIZ) >= IFNAMSIZ)
 		errx(1, "unsetifgroup: group name too long");
-	if (ioctl_ctx(ctx, SIOCDIFGROUP, (caddr_t)&ifgr) == -1 && errno != ENOENT)
+	if (ioctl_ctx(ctx, SIOCDIFGROUP, (caddr_t)&ifgr) == -1 &&
+	    errno != ENOENT)
 		err(1, "SIOCDIFGROUP");
 }
 
@@ -103,10 +105,10 @@ getifgroups(if_ctx *ctx)
 static void
 printgroup(const char *groupname)
 {
-	struct ifgroupreq	 ifgr;
-	struct ifg_req		*ifg;
-	unsigned int		 len;
-	int			 s;
+	struct ifgroupreq ifgr;
+	struct ifg_req *ifg;
+	unsigned int len;
+	int s;
 
 	s = socket(AF_LOCAL, SOCK_DGRAM, 0);
 	if (s == -1)
@@ -114,8 +116,7 @@ printgroup(const char *groupname)
 	bzero(&ifgr, sizeof(ifgr));
 	strlcpy(ifgr.ifgr_name, groupname, sizeof(ifgr.ifgr_name));
 	if (ioctl(s, SIOCGIFGMEMB, (caddr_t)&ifgr) == -1) {
-		if (errno == EINVAL || errno == ENOTTY ||
-		    errno == ENOENT)
+		if (errno == EINVAL || errno == ENOTTY || errno == ENOENT)
 			exit(exit_code);
 		else
 			err(1, "SIOCGIFGMEMB");
@@ -128,7 +129,7 @@ printgroup(const char *groupname)
 		err(1, "SIOCGIFGMEMB");
 
 	for (ifg = ifgr.ifgr_groups; ifg && len >= sizeof(struct ifg_req);
-	    ifg++) {
+	     ifg++) {
 		len -= sizeof(struct ifg_req);
 		printf("%s\n", ifg->ifgrq_member);
 	}
@@ -138,26 +139,26 @@ printgroup(const char *groupname)
 }
 
 static struct cmd group_cmds[] = {
-	DEF_CMD_ARG("group",	setifgroup),
-	DEF_CMD_ARG("-group",	unsetifgroup),
+	DEF_CMD_ARG("group", setifgroup),
+	DEF_CMD_ARG("-group", unsetifgroup),
 };
 
 static struct afswtch af_group = {
-	.af_name	= "af_group",
-	.af_af		= AF_UNSPEC,
+	.af_name = "af_group",
+	.af_af = AF_UNSPEC,
 	.af_other_status = getifgroups,
 };
 
 static struct option group_gopt = {
-	.opt		= "g:",
-	.opt_usage	= "[-g groupname]",
-	.cb		= printgroup,
+	.opt = "g:",
+	.opt_usage = "[-g groupname]",
+	.cb = printgroup,
 };
 
 static __constructor void
 group_ctor(void)
 {
-	for (size_t i = 0; i < nitems(group_cmds);  i++)
+	for (size_t i = 0; i < nitems(group_cmds); i++)
 		cmd_register(&group_cmds[i]);
 	af_register(&af_group);
 	opt_register(&group_gopt);

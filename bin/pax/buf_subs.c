@@ -35,36 +35,38 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <errno.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include "pax.h"
+#include <unistd.h>
+
 #include "extern.h"
+#include "pax.h"
 
 /*
  * routines which implement archive and file buffering
  */
 
-#define MINFBSZ		512		/* default block size for hole detect */
-#define MAXFLT		10		/* default media read error limit */
+#define MINFBSZ 512 /* default block size for hole detect */
+#define MAXFLT 10   /* default media read error limit */
 
 /*
  * Need to change bufmem to dynamic allocation when the upper
  * limit on blocking size is removed (though that will violate pax spec)
  * MAXBLK define and tests will also need to be updated.
  */
-static char bufmem[MAXBLK+BLKMULT];	/* i/o buffer + pushback id space */
-static char *buf;			/* normal start of i/o buffer */
-static char *bufend;			/* end or last char in i/o buffer */
-static char *bufpt;			/* read/write point in i/o buffer */
-int blksz = MAXBLK;			/* block input/output size in bytes */
-int wrblksz;				/* user spec output size in bytes */
-int maxflt = MAXFLT;			/* MAX consecutive media errors */
-int rdblksz;				/* first read blksize (tapes only) */
-off_t wrlimit;				/* # of bytes written per archive vol */
-off_t wrcnt;				/* # of bytes written on current vol */
-off_t rdcnt;				/* # of bytes read on current vol */
+static char bufmem[MAXBLK + BLKMULT]; /* i/o buffer + pushback id space */
+static char *buf;		      /* normal start of i/o buffer */
+static char *bufend;		      /* end or last char in i/o buffer */
+static char *bufpt;		      /* read/write point in i/o buffer */
+int blksz = MAXBLK;		      /* block input/output size in bytes */
+int wrblksz;			      /* user spec output size in bytes */
+int maxflt = MAXFLT;		      /* MAX consecutive media errors */
+int rdblksz;			      /* first read blksize (tapes only) */
+off_t wrlimit;			      /* # of bytes written per archive vol */
+off_t wrcnt;			      /* # of bytes written on current vol */
+off_t rdcnt;			      /* # of bytes read on current vol */
 
 /*
  * wr_start()
@@ -88,18 +90,19 @@ wr_start(void)
 		wrblksz = frmt->bsz;
 	if (wrblksz > MAXBLK) {
 		paxwarn(1, "Write block size of %d too large, maximum is: %d",
-			wrblksz, MAXBLK);
-		return(-1);
+		    wrblksz, MAXBLK);
+		return (-1);
 	}
 	if (wrblksz % BLKMULT) {
 		paxwarn(1, "Write block size of %d is not a %d byte multiple",
 		    wrblksz, BLKMULT);
-		return(-1);
+		return (-1);
 	}
 	if (wrblksz > MAXBLK_POSIX) {
-		paxwarn(0, "Write block size of %d larger than POSIX max %d, archive may not be portable",
-			wrblksz, MAXBLK_POSIX);
-		return(-1);
+		paxwarn(0,
+		    "Write block size of %d larger than POSIX max %d, archive may not be portable",
+		    wrblksz, MAXBLK_POSIX);
+		return (-1);
 	}
 
 	/*
@@ -107,11 +110,11 @@ wr_start(void)
 	 */
 	blksz = rdblksz = wrblksz;
 	if ((ar_open(arcname) < 0) && (ar_next() < 0))
-		return(-1);
+		return (-1);
 	wrcnt = 0;
 	bufend = buf + wrblksz;
 	bufpt = buf;
-	return(0);
+	return (0);
 }
 
 /*
@@ -132,14 +135,16 @@ rd_start(void)
 	buf = &(bufmem[BLKMULT]);
 	if ((act == APPND) && wrblksz) {
 		if (wrblksz > MAXBLK) {
-			paxwarn(1,"Write block size %d too large, maximum is: %d",
-				wrblksz, MAXBLK);
-			return(-1);
+			paxwarn(1,
+			    "Write block size %d too large, maximum is: %d",
+			    wrblksz, MAXBLK);
+			return (-1);
 		}
 		if (wrblksz % BLKMULT) {
-			paxwarn(1, "Write block size %d is not a %d byte multiple",
-			wrblksz, BLKMULT);
-			return(-1);
+			paxwarn(1,
+			    "Write block size %d is not a %d byte multiple",
+			    wrblksz, BLKMULT);
+			return (-1);
 		}
 	}
 
@@ -147,11 +152,11 @@ rd_start(void)
 	 * open the archive
 	 */
 	if ((ar_open(arcname) < 0) && (ar_next() < 0))
-		return(-1);
+		return (-1);
 	bufend = buf + rdblksz;
 	bufpt = bufend;
 	rdcnt = 0;
-	return(0);
+	return (0);
 }
 
 /*
@@ -206,7 +211,7 @@ appnd_start(off_t skcnt)
 
 	if (exit_val != 0) {
 		paxwarn(0, "Cannot append to an archive that may have flaws.");
-		return(-1);
+		return (-1);
 	}
 	/*
 	 * if the user did not specify a write blocksize, inherit the size used
@@ -222,7 +227,7 @@ appnd_start(off_t skcnt)
 	 * make sure that this volume allows appends
 	 */
 	if (ar_app_ok() < 0)
-		return(-1);
+		return (-1);
 
 	/*
 	 * Calculate bytes to move back and move in front of record where we
@@ -231,7 +236,7 @@ appnd_start(off_t skcnt)
 	 * travel skcnt + padding ROUNDED UP to blksize.
 	 */
 	skcnt += bufend - bufpt;
-	if ((cnt = (skcnt/blksz) * blksz) < skcnt)
+	if ((cnt = (skcnt / blksz) * blksz) < skcnt)
 		cnt += blksz;
 	if (ar_rev((off_t)cnt) < 0)
 		goto out;
@@ -277,15 +282,15 @@ appnd_start(off_t skcnt)
 	 * ARCHIVE mode (write) conditions
 	 */
 	if (ar_set_wr() < 0)
-		return(-1);
+		return (-1);
 	act = ARCHIVE;
-	return(0);
+	return (0);
 
-    out:
+out:
 	paxwarn(1, "Unable to rewrite archive trailer, cannot append.");
-	return(-1);
+	return (-1);
 }
-	
+
 /*
  * rd_sync()
  *	A read error occurred on this archive volume. Resync the buffer and
@@ -307,10 +312,11 @@ rd_sync(void)
 	 * if the user says bail out on first fault, we are out of here...
 	 */
 	if (maxflt == 0)
-		return(-1);
+		return (-1);
 	if (act == APPND) {
-		paxwarn(1, "Unable to append when there are archive read errors.");
-		return(-1);
+		paxwarn(1,
+		    "Unable to append when there are archive read errors.");
+		return (-1);
 	}
 
 	/*
@@ -318,7 +324,7 @@ rd_sync(void)
 	 */
 	if (ar_rdsync() < 0) {
 		if (ar_next() < 0)
-			return(-1);
+			return (-1);
 		else
 			rdcnt = 0;
 	}
@@ -331,7 +337,7 @@ rd_sync(void)
 			bufpt = buf;
 			bufend = buf + res;
 			rdcnt += res;
-			return(0);
+			return (0);
 		}
 
 		/*
@@ -343,7 +349,8 @@ rd_sync(void)
 		 * can extract out of the archive.
 		 */
 		if ((maxflt > 0) && (++errcnt > maxflt))
-			paxwarn(0,"Archive read error limit (%d) reached",maxflt);
+			paxwarn(0, "Archive read error limit (%d) reached",
+			    maxflt);
 		else if (ar_rdsync() == 0)
 			continue;
 		if (ar_next() < 0)
@@ -351,7 +358,7 @@ rd_sync(void)
 		rdcnt = 0;
 		errcnt = 0;
 	}
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -395,7 +402,7 @@ rd_skip(off_t skcnt)
 	 * do not want.
 	 */
 	if (skcnt == 0)
-		return(0);
+		return (0);
 	res = MIN((bufend - bufpt), skcnt);
 	bufpt += res;
 	skcnt -= res;
@@ -404,21 +411,21 @@ rd_skip(off_t skcnt)
 	 * if skcnt is now 0, then no additional i/o is needed
 	 */
 	if (skcnt == 0)
-		return(0);
+		return (0);
 
 	/*
 	 * We have to read more, calculate complete and partial record reads
 	 * based on rdblksz. we skip over "cnt" complete records
 	 */
-	res = skcnt%rdblksz;
-	cnt = (skcnt/rdblksz) * rdblksz;
+	res = skcnt % rdblksz;
+	cnt = (skcnt / rdblksz) * rdblksz;
 
 	/*
 	 * if the skip fails, we will have to resync. ar_fow will tell us
 	 * how much it can skip over. We will have to read the rest.
 	 */
 	if (ar_fow(cnt, &skipped) < 0)
-		return(-1);
+		return (-1);
 	res += cnt - skipped;
 	rdcnt += skipped;
 
@@ -432,14 +439,14 @@ rd_skip(off_t skcnt)
 		 * if the read fails, we will have to resync
 		 */
 		if ((cnt <= 0) && ((cnt = buf_fill()) < 0))
-			return(-1);
+			return (-1);
 		if (cnt == 0)
-			return(1);
+			return (1);
 		cnt = MIN(cnt, res);
 		bufpt += cnt;
 		res -= cnt;
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -483,7 +490,7 @@ wr_rdbuf(char *out, int outcnt)
 	while (outcnt > 0) {
 		cnt = bufend - bufpt;
 		if ((cnt <= 0) && ((cnt = buf_flush(blksz)) < 0))
-			return(-1);
+			return (-1);
 		/*
 		 * only move what we have space for
 		 */
@@ -493,7 +500,7 @@ wr_rdbuf(char *out, int outcnt)
 		out += cnt;
 		outcnt -= cnt;
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -527,8 +534,8 @@ rd_wrbuf(char *in, int cpcnt)
 			 * do with it
 			 */
 			if ((res = cpcnt - incnt) > 0)
-				return(res);
-			return(cnt);
+				return (res);
+			return (cnt);
 		}
 
 		/*
@@ -541,7 +548,7 @@ rd_wrbuf(char *in, int cpcnt)
 		incnt -= cnt;
 		in += cnt;
 	}
-	return(cpcnt);
+	return (cpcnt);
 }
 
 /*
@@ -566,13 +573,13 @@ wr_skip(off_t skcnt)
 	while (skcnt > 0L) {
 		cnt = bufend - bufpt;
 		if ((cnt <= 0) && ((cnt = buf_flush(blksz)) < 0))
-			return(-1);
+			return (-1);
 		cnt = MIN(cnt, skcnt);
 		memset(bufpt, 0, cnt);
 		bufpt += cnt;
 		skcnt -= cnt;
 	}
-	return(0);
+	return (0);
 }
 
 /*
@@ -608,7 +615,7 @@ wr_rdfile(ARCHD *arcn, int ifd, off_t *left)
 		cnt = bufend - bufpt;
 		if ((cnt <= 0) && ((cnt = buf_flush(blksz)) < 0)) {
 			*left = size;
-			return(-1);
+			return (-1);
 		}
 		cnt = MIN(cnt, size);
 		if ((res = read(ifd, bufpt, cnt)) <= 0)
@@ -629,9 +636,9 @@ wr_rdfile(ARCHD *arcn, int ifd, off_t *left)
 		syswarn(1, errno, "Failed stat on %s", arcn->org_name);
 	else if (arcn->sb.st_mtime != sb.st_mtime)
 		paxwarn(1, "File %s was modified during copy to archive",
-			arcn->org_name);
+		    arcn->org_name);
 	*left = size;
-	return(0);
+	return (0);
 }
 
 /*
@@ -675,7 +682,8 @@ rd_wrfile(ARCHD *arcn, int ofd, off_t *left)
 		if (sb.st_blksize > 0)
 			sz = (int)sb.st_blksize;
 	} else
-		syswarn(0,errno,"Unable to obtain block size for file %s",fnm);
+		syswarn(0, errno, "Unable to obtain block size for file %s",
+		    fnm);
 	rem = sz;
 	*left = 0L;
 
@@ -694,7 +702,8 @@ rd_wrfile(ARCHD *arcn, int ofd, off_t *left)
 		if ((cnt <= 0) && ((cnt = buf_fill()) <= 0))
 			break;
 		cnt = MIN(cnt, size);
-		if ((res = file_write(ofd,bufpt,cnt,&rem,&isem,sz,fnm)) <= 0) {
+		if ((res = file_write(ofd, bufpt, cnt, &rem, &isem, sz, fnm)) <=
+		    0) {
 			*left = size;
 			break;
 		}
@@ -724,15 +733,16 @@ rd_wrfile(ARCHD *arcn, int ofd, off_t *left)
 	 * if we failed from archive read, we do not want to skip
 	 */
 	if ((size > 0L) && (*left == 0L))
-		return(-1);
+		return (-1);
 
 	/*
 	 * some formats record a crc on file data. If so, then we compare the
 	 * calculated crc to the crc stored in the archive
 	 */
 	if (docrc && (size == 0L) && (arcn->crc != crc))
-		paxwarn(1,"Actual crc does not match expected crc %s",arcn->name);
-	return(0);
+		paxwarn(1, "Actual crc does not match expected crc %s",
+		    arcn->name);
+	return (0);
 }
 
 /*
@@ -759,7 +769,7 @@ cp_file(ARCHD *arcn, int fd1, int fd2)
 	 * check for holes in the source file. If none, we will use regular
 	 * write instead of file write.
 	 */
-	 if (((off_t)(arcn->sb.st_blocks * BLKMULT)) >= arcn->sb.st_size)
+	if (((off_t)(arcn->sb.st_blocks * BLKMULT)) >= arcn->sb.st_size)
 		++no_hole;
 
 	/*
@@ -770,13 +780,14 @@ cp_file(ARCHD *arcn, int fd1, int fd2)
 		if (sb.st_blksize > 0)
 			sz = sb.st_blksize;
 	} else
-		syswarn(0,errno,"Unable to obtain block size for file %s",fnm);
+		syswarn(0, errno, "Unable to obtain block size for file %s",
+		    fnm);
 	rem = sz;
 
 	/*
 	 * read the source file and copy to destination file until EOF
 	 */
-	for(;;) {
+	for (;;) {
 		if ((cnt = read(fd1, buf, blksz)) <= 0)
 			break;
 		if (no_hole)
@@ -793,15 +804,15 @@ cp_file(ARCHD *arcn, int fd1, int fd2)
 	 */
 	if (res < 0)
 		syswarn(1, errno, "Failed write during copy of %s to %s",
-			arcn->org_name, arcn->name);
+		    arcn->org_name, arcn->name);
 	else if (cpcnt != arcn->sb.st_size)
 		paxwarn(1, "File %s changed size during copy to %s",
-			arcn->org_name, arcn->name);
+		    arcn->org_name, arcn->name);
 	else if (fstat(fd1, &sb) < 0)
 		syswarn(1, errno, "Failed stat of %s", arcn->org_name);
 	else if (arcn->sb.st_mtime != sb.st_mtime)
 		paxwarn(1, "File %s was modified during copy to %s",
-			arcn->org_name, arcn->name);
+		    arcn->org_name, arcn->name);
 
 	/*
 	 * if the last block has a file hole (all zero), we must make sure this
@@ -830,9 +841,9 @@ buf_fill(void)
 	static int fini = 0;
 
 	if (fini)
-		return(0);
+		return (0);
 
-	for(;;) {
+	for (;;) {
 		/*
 		 * try to fill the buffer. on error the next archive volume is
 		 * opened and we try again.
@@ -841,7 +852,7 @@ buf_fill(void)
 			bufpt = buf;
 			bufend = buf + cnt;
 			rdcnt += cnt;
-			return(cnt);
+			return (cnt);
 		}
 
 		/*
@@ -854,12 +865,12 @@ buf_fill(void)
 			break;
 		if (frmt == NULL || ar_next() < 0) {
 			fini = 1;
-			return(0);
+			return (0);
 		}
 		rdcnt = 0;
 	}
 	exit_val = 1;
-	return(-1);
+	return (-1);
 }
 
 /*
@@ -889,7 +900,7 @@ buf_flush(int bufcnt)
 		if (ar_next() < 0) {
 			wrcnt = 0;
 			exit_val = 1;
-			return(-1);
+			return (-1);
 		}
 		wrcnt = 0;
 
@@ -904,7 +915,7 @@ buf_flush(int bufcnt)
 		 */
 		bufend = buf + blksz;
 		if (blksz > bufcnt)
-			return(0);
+			return (0);
 		if (blksz < bufcnt)
 			push = bufcnt - blksz;
 	}
@@ -936,7 +947,7 @@ buf_flush(int bufcnt)
 				}
 			} else
 				bufpt = buf;
-			return(totcnt);
+			return (totcnt);
 		} else if (cnt > 0) {
 			/*
 			 * Oh drat we got a partial write!
@@ -951,7 +962,7 @@ buf_flush(int bufcnt)
 			memcpy(buf, bufpt, cnt);
 			bufpt = buf + cnt;
 			if (!frmt->blkalgn || ((cnt % frmt->blkalgn) == 0))
-				return(totcnt);
+				return (totcnt);
 			break;
 		}
 
@@ -969,7 +980,7 @@ buf_flush(int bufcnt)
 		 */
 		bufend = buf + blksz;
 		if (blksz > bufcnt)
-			return(0);
+			return (0);
 		if (blksz < bufcnt)
 			push = bufcnt - blksz;
 	}
@@ -978,5 +989,5 @@ buf_flush(int bufcnt)
 	 * write failed, stop pax. we must not create a bad archive!
 	 */
 	exit_val = 1;
-	return(-1);
+	return (-1);
 }

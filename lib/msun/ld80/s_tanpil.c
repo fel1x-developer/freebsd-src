@@ -37,9 +37,8 @@
 #include "math.h"
 #include "math_private.h"
 
-static const double
-pi_hi =  3.1415926814079285e+00,	/* 0x400921fb 0x58000000 */
-pi_lo = -2.7818135228334233e-08;	/* 0xbe5dde97 0x3dcb3b3a */
+static const double pi_hi = 3.1415926814079285e+00, /* 0x400921fb 0x58000000 */
+    pi_lo = -2.7818135228334233e-08;		    /* 0xbe5dde97 0x3dcb3b3a */
 
 static inline long double
 __kernel_tanpil(long double x)
@@ -60,7 +59,7 @@ __kernel_tanpil(long double x)
 		lo = lo * (pi_lo + pi_hi) + hi * pi_lo;
 		hi *= pi_hi;
 		_2sumF(hi, lo);
-		t = - __kernel_tanl(hi, lo, 1);
+		t = -__kernel_tanl(hi, lo, 1);
 	} else
 		t = 1;
 
@@ -83,9 +82,9 @@ tanpil(long double x)
 
 	ENTERI();
 
-	if (ix < 0x3fff) {			/* |x| < 1 */
-		if (ix < 0x3ffe) {		/* |x| < 0.5 */
-			if (ix < 0x3fdd) {	/* |x| < 0x1p-34 */
+	if (ix < 0x3fff) {		   /* |x| < 1 */
+		if (ix < 0x3ffe) {	   /* |x| < 0.5 */
+			if (ix < 0x3fdd) { /* |x| < 0x1p-34 */
 				if (x == 0)
 					RETURNI(x);
 				INSERT_LDBL80_WORDS(hi, hx,
@@ -104,13 +103,13 @@ tanpil(long double x)
 		RETURNI((hx & 0x8000) ? -t : t);
 	}
 
-	if (ix < 0x403e) {			/* 1 <= |x| < 0x1p63 */
-		FFLOORL80(x, j0, ix, lx);	/* Integer part of ax. */
+	if (ix < 0x403e) {		  /* 1 <= |x| < 0x1p63 */
+		FFLOORL80(x, j0, ix, lx); /* Integer part of ax. */
 		odd = (uint64_t)x & 1 ? -1 : 1;
 		ax -= x;
 		EXTRACT_LDBL80_WORDS(ix, lx, ax);
 
-		if (ix < 0x3ffe)		/* |x| < 0.5 */
+		if (ix < 0x3ffe) /* |x| < 0.5 */
 			t = ix == 0 ? copysignl(0, odd) : __kernel_tanpil(ax);
 		else if (ax == 0.5L)
 			t = odd / vzero;

@@ -34,6 +34,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -52,8 +53,8 @@ main(void)
 	if (fstat(pipefd[1], &st2) == -1)
 		err(1, "FAIL: fstat st2");
 	if (st1.st_dev != st2.st_dev || st1.st_dev == 0 || st2.st_dev == 0)
-		errx(1, "FAIL: wrong dev number %ju %ju",
-		    (uintmax_t)st1.st_dev, (uintmax_t)st2.st_dev);
+		errx(1, "FAIL: wrong dev number %ju %ju", (uintmax_t)st1.st_dev,
+		    (uintmax_t)st2.st_dev);
 	if (st1.st_ino == st2.st_ino)
 		errx(1, "FAIL: inode numbers are equal: %ju",
 		    (uintmax_t)st1.st_ino);

@@ -19,44 +19,52 @@
 
 /* Import. */
 
-#include "port_before.h"
-
 #include <arpa/nameser.h>
-
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 #ifdef SPRINTF_CHAR
-# define SPRINTF(x) strlen(sprintf/**/x)
+#define SPRINTF(x) strlen(sprintf /**/ x)
 #else
-# define SPRINTF(x) ((size_t)sprintf x)
+#define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
 /* Forward. */
 
-static int	fmt1(int t, char s, char **buf, size_t *buflen);
+static int fmt1(int t, char s, char **buf, size_t *buflen);
 
 /* Macros. */
 
-#define T(x) if ((x) < 0) return (-1); else (void)NULL
+#define T(x)                 \
+	if ((x) < 0)         \
+		return (-1); \
+	else                 \
+		(void)NULL
 
 /* Public. */
 
 int
-ns_format_ttl(u_long src, char *dst, size_t dstlen) {
+ns_format_ttl(u_long src, char *dst, size_t dstlen)
+{
 	char *odst = dst;
 	int secs, mins, hours, days, weeks, x;
 	char *p;
 
-	secs = src % 60;   src /= 60;
-	mins = src % 60;   src /= 60;
-	hours = src % 24;  src /= 24;
-	days = src % 7;    src /= 7;
-	weeks = src;       src = 0;
+	secs = src % 60;
+	src /= 60;
+	mins = src % 60;
+	src /= 60;
+	hours = src % 24;
+	src /= 24;
+	days = src % 7;
+	src /= 7;
+	weeks = src;
+	src = 0;
 
 	x = 0;
 	if (weeks) {
@@ -92,7 +100,8 @@ ns_format_ttl(u_long src, char *dst, size_t dstlen) {
 }
 
 int
-ns_parse_ttl(const char *src, u_long *dst) {
+ns_parse_ttl(const char *src, u_long *dst)
+{
 	u_long ttl, tmp;
 	int ch, digits, dirty;
 
@@ -114,12 +123,18 @@ ns_parse_ttl(const char *src, u_long *dst) {
 		if (islower(ch))
 			ch = toupper(ch);
 		switch (ch) {
-		case 'W':  tmp *= 7;
-		case 'D':  tmp *= 24;
-		case 'H':  tmp *= 60;
-		case 'M':  tmp *= 60;
-		case 'S':  break;
-		default:   goto einval;
+		case 'W':
+			tmp *= 7;
+		case 'D':
+			tmp *= 24;
+		case 'H':
+			tmp *= 60;
+		case 'M':
+			tmp *= 60;
+		case 'S':
+			break;
+		default:
+			goto einval;
 		}
 		ttl += tmp;
 		tmp = 0;
@@ -136,7 +151,7 @@ ns_parse_ttl(const char *src, u_long *dst) {
 	*dst = ttl;
 	return (0);
 
- einval:
+einval:
 	errno = EINVAL;
 	return (-1);
 }
@@ -144,7 +159,8 @@ ns_parse_ttl(const char *src, u_long *dst) {
 /* Private. */
 
 static int
-fmt1(int t, char s, char **buf, size_t *buflen) {
+fmt1(int t, char s, char **buf, size_t *buflen)
+{
 	char tmp[50];
 	size_t len;
 

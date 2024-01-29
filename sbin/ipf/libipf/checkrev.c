@@ -8,6 +8,7 @@
  */
 
 #include <sys/ioctl.h>
+
 #include <fcntl.h>
 
 #include "ipf.h"

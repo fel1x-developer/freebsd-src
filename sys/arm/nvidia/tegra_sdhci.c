@@ -29,9 +29,11 @@
  * SDHCI driver glue for NVIDIA Tegra family
  *
  */
+#include "opt_mmccam.h"
+
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
 #include <sys/bus.h>
 #include <sys/gpio.h>
 #include <sys/kernel.h>
@@ -45,12 +47,12 @@
 #include <sys/taskqueue.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr.h>
+#include <machine/resource.h>
 
 #include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
 #include <dev/gpio/gpiobusvar.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/mmc/bridge.h>
 #include <dev/mmc/mmcbrvar.h>
 #include <dev/ofw/ofw_bus.h>
@@ -60,59 +62,56 @@
 
 #include "sdhci_if.h"
 
-#include "opt_mmccam.h"
-
 /* Tegra SDHOST controller vendor register definitions */
-#define	SDMMC_VENDOR_CLOCK_CNTRL		0x100
-#define	 VENDOR_CLOCK_CNTRL_CLK_SHIFT			8
-#define	 VENDOR_CLOCK_CNTRL_CLK_MASK			0xFF
-#define	SDMMC_VENDOR_SYS_SW_CNTRL		0x104
-#define	SDMMC_VENDOR_CAP_OVERRIDES		0x10C
-#define	SDMMC_VENDOR_BOOT_CNTRL			0x110
-#define	SDMMC_VENDOR_BOOT_ACK_TIMEOUT		0x114
-#define	SDMMC_VENDOR_BOOT_DAT_TIMEOUT		0x118
-#define	SDMMC_VENDOR_DEBOUNCE_COUNT		0x11C
-#define	SDMMC_VENDOR_MISC_CNTRL			0x120
-#define	 VENDOR_MISC_CTRL_ENABLE_SDR104			0x8
-#define	 VENDOR_MISC_CTRL_ENABLE_SDR50			0x10
-#define	 VENDOR_MISC_CTRL_ENABLE_SDHCI_SPEC_300		0x20
-#define	 VENDOR_MISC_CTRL_ENABLE_DDR50			0x200
-#define	SDMMC_MAX_CURRENT_OVERRIDE		0x124
-#define	SDMMC_MAX_CURRENT_OVERRIDE_HI		0x128
-#define	SDMMC_VENDOR_CLK_GATE_HYSTERESIS_COUNT 	0x1D0
-#define	SDMMC_VENDOR_PHWRESET_VAL0		0x1D4
-#define	SDMMC_VENDOR_PHWRESET_VAL1		0x1D8
-#define	SDMMC_VENDOR_PHWRESET_VAL2		0x1DC
-#define	SDMMC_SDMEMCOMPPADCTRL_0		0x1E0
-#define	SDMMC_AUTO_CAL_CONFIG			0x1E4
-#define	SDMMC_AUTO_CAL_INTERVAL			0x1E8
-#define	SDMMC_AUTO_CAL_STATUS			0x1EC
-#define	SDMMC_SDMMC_MCCIF_FIFOCTRL		0x1F4
-#define	SDMMC_TIMEOUT_WCOAL_SDMMC		0x1F8
+#define SDMMC_VENDOR_CLOCK_CNTRL 0x100
+#define VENDOR_CLOCK_CNTRL_CLK_SHIFT 8
+#define VENDOR_CLOCK_CNTRL_CLK_MASK 0xFF
+#define SDMMC_VENDOR_SYS_SW_CNTRL 0x104
+#define SDMMC_VENDOR_CAP_OVERRIDES 0x10C
+#define SDMMC_VENDOR_BOOT_CNTRL 0x110
+#define SDMMC_VENDOR_BOOT_ACK_TIMEOUT 0x114
+#define SDMMC_VENDOR_BOOT_DAT_TIMEOUT 0x118
+#define SDMMC_VENDOR_DEBOUNCE_COUNT 0x11C
+#define SDMMC_VENDOR_MISC_CNTRL 0x120
+#define VENDOR_MISC_CTRL_ENABLE_SDR104 0x8
+#define VENDOR_MISC_CTRL_ENABLE_SDR50 0x10
+#define VENDOR_MISC_CTRL_ENABLE_SDHCI_SPEC_300 0x20
+#define VENDOR_MISC_CTRL_ENABLE_DDR50 0x200
+#define SDMMC_MAX_CURRENT_OVERRIDE 0x124
+#define SDMMC_MAX_CURRENT_OVERRIDE_HI 0x128
+#define SDMMC_VENDOR_CLK_GATE_HYSTERESIS_COUNT 0x1D0
+#define SDMMC_VENDOR_PHWRESET_VAL0 0x1D4
+#define SDMMC_VENDOR_PHWRESET_VAL1 0x1D8
+#define SDMMC_VENDOR_PHWRESET_VAL2 0x1DC
+#define SDMMC_SDMEMCOMPPADCTRL_0 0x1E0
+#define SDMMC_AUTO_CAL_CONFIG 0x1E4
+#define SDMMC_AUTO_CAL_INTERVAL 0x1E8
+#define SDMMC_AUTO_CAL_STATUS 0x1EC
+#define SDMMC_SDMMC_MCCIF_FIFOCTRL 0x1F4
+#define SDMMC_TIMEOUT_WCOAL_SDMMC 0x1F8
 
 /* Compatible devices. */
 static struct ofw_compat_data compat_data[] = {
-	{"nvidia,tegra124-sdhci",	1},
-	{"nvidia,tegra210-sdhci",	1},
-	{NULL,				0},
+	{ "nvidia,tegra124-sdhci", 1 },
+	{ "nvidia,tegra210-sdhci", 1 },
+	{ NULL, 0 },
 };
 
 struct tegra_sdhci_softc {
-	device_t		dev;
-	struct resource *	mem_res;
-	struct resource *	irq_res;
-	void *			intr_cookie;
-	u_int			quirks;	/* Chip specific quirks */
-	u_int			caps;	/* If we override SDHCI_CAPABILITIES */
-	uint32_t		max_clk; /* Max possible freq */
-	clk_t			clk;
-	hwreset_t 		reset;
-	gpio_pin_t		gpio_power;
-	struct sdhci_fdt_gpio	*gpio;
+	device_t dev;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	void *intr_cookie;
+	u_int quirks;	  /* Chip specific quirks */
+	u_int caps;	  /* If we override SDHCI_CAPABILITIES */
+	uint32_t max_clk; /* Max possible freq */
+	clk_t clk;
+	hwreset_t reset;
+	gpio_pin_t gpio_power;
+	struct sdhci_fdt_gpio *gpio;
 
-	int			force_card_present;
-	struct sdhci_slot	slot;
-
+	int force_card_present;
+	struct sdhci_slot slot;
 };
 
 static inline uint32_t
@@ -279,8 +278,7 @@ tegra_sdhci_attach(device_t dev)
 	}
 
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (!sc->irq_res) {
 		device_printf(dev, "cannot allocate interrupt\n");
 		rv = ENXIO;
@@ -340,8 +338,7 @@ tegra_sdhci_attach(device_t dev)
 	/* Fill slot information. */
 	sc->max_clk = (int)freq;
 	sc->quirks |= SDHCI_QUIRK_BROKEN_TIMEOUT_VAL |
-	    SDHCI_QUIRK_DATA_TIMEOUT_USES_SDCLK |
-	    SDHCI_QUIRK_MISSING_CAPS;
+	    SDHCI_QUIRK_DATA_TIMEOUT_USES_SDCLK | SDHCI_QUIRK_MISSING_CAPS;
 
 	/* Limit real slot capabilities. */
 	sc->caps = RD4(sc, SDHCI_CAPABILITIES);
@@ -373,8 +370,8 @@ tegra_sdhci_attach(device_t dev)
 	sc->slot.max_clk = sc->max_clk;
 	sc->slot.caps = sc->caps;
 
-	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_BIO | INTR_MPSAFE,
-	    NULL, tegra_sdhci_intr, sc, &sc->intr_cookie)) {
+	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_BIO | INTR_MPSAFE, NULL,
+		tegra_sdhci_intr, sc, &sc->intr_cookie)) {
 		device_printf(dev, "cannot setup interrupt handler\n");
 		rv = ENXIO;
 		goto fail;
@@ -423,41 +420,40 @@ tegra_sdhci_detach(device_t dev)
 	clk_release(sc->clk);
 	bus_teardown_intr(dev, sc->irq_res, sc->intr_cookie);
 	bus_release_resource(dev, SYS_RES_IRQ, rman_get_rid(sc->irq_res),
-			     sc->irq_res);
+	    sc->irq_res);
 
 	sdhci_cleanup_slot(slot);
-	bus_release_resource(dev, SYS_RES_MEMORY,
-			     rman_get_rid(sc->mem_res),
-			     sc->mem_res);
+	bus_release_resource(dev, SYS_RES_MEMORY, rman_get_rid(sc->mem_res),
+	    sc->mem_res);
 	return (0);
 }
 
 static device_method_t tegra_sdhci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tegra_sdhci_probe),
-	DEVMETHOD(device_attach,	tegra_sdhci_attach),
-	DEVMETHOD(device_detach,	tegra_sdhci_detach),
+	DEVMETHOD(device_probe, tegra_sdhci_probe),
+	DEVMETHOD(device_attach, tegra_sdhci_attach),
+	DEVMETHOD(device_detach, tegra_sdhci_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	sdhci_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdhci_generic_write_ivar),
+	DEVMETHOD(bus_read_ivar, sdhci_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdhci_generic_write_ivar),
 
 	/* MMC bridge interface */
-	DEVMETHOD(mmcbr_update_ios,	sdhci_generic_update_ios),
-	DEVMETHOD(mmcbr_request,	sdhci_generic_request),
-	DEVMETHOD(mmcbr_get_ro,		tegra_sdhci_get_ro),
-	DEVMETHOD(mmcbr_acquire_host,	sdhci_generic_acquire_host),
-	DEVMETHOD(mmcbr_release_host,	sdhci_generic_release_host),
+	DEVMETHOD(mmcbr_update_ios, sdhci_generic_update_ios),
+	DEVMETHOD(mmcbr_request, sdhci_generic_request),
+	DEVMETHOD(mmcbr_get_ro, tegra_sdhci_get_ro),
+	DEVMETHOD(mmcbr_acquire_host, sdhci_generic_acquire_host),
+	DEVMETHOD(mmcbr_release_host, sdhci_generic_release_host),
 
 	/* SDHCI registers accessors */
-	DEVMETHOD(sdhci_read_1,		tegra_sdhci_read_1),
-	DEVMETHOD(sdhci_read_2,		tegra_sdhci_read_2),
-	DEVMETHOD(sdhci_read_4,		tegra_sdhci_read_4),
-	DEVMETHOD(sdhci_read_multi_4,	tegra_sdhci_read_multi_4),
-	DEVMETHOD(sdhci_write_1,	tegra_sdhci_write_1),
-	DEVMETHOD(sdhci_write_2,	tegra_sdhci_write_2),
-	DEVMETHOD(sdhci_write_4,	tegra_sdhci_write_4),
-	DEVMETHOD(sdhci_write_multi_4,	tegra_sdhci_write_multi_4),
+	DEVMETHOD(sdhci_read_1, tegra_sdhci_read_1),
+	DEVMETHOD(sdhci_read_2, tegra_sdhci_read_2),
+	DEVMETHOD(sdhci_read_4, tegra_sdhci_read_4),
+	DEVMETHOD(sdhci_read_multi_4, tegra_sdhci_read_multi_4),
+	DEVMETHOD(sdhci_write_1, tegra_sdhci_write_1),
+	DEVMETHOD(sdhci_write_2, tegra_sdhci_write_2),
+	DEVMETHOD(sdhci_write_4, tegra_sdhci_write_4),
+	DEVMETHOD(sdhci_write_multi_4, tegra_sdhci_write_multi_4),
 	DEVMETHOD(sdhci_get_card_present, tegra_sdhci_get_card_present),
 
 	DEVMETHOD_END

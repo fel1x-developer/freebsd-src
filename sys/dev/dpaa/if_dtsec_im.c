@@ -26,37 +26,35 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/sockio.h>
-
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
-#include <net/if_arp.h>
+#include <sys/sysctl.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
-#include "miibus_if.h"
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
 
-#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_mac_ext.h>
 #include <contrib/ncsw/inc/Peripherals/fm_port_ext.h>
+#include <contrib/ncsw/inc/integrations/dpaa_integration_ext.h>
 #include <contrib/ncsw/inc/xx_ext.h>
 
 #include "fman.h"
 #include "if_dtsec.h"
 #include "if_dtsec_im.h"
-
+#include "miibus_if.h"
 
 /**
  * @group dTSEC FMan PORT routines.
@@ -211,7 +209,6 @@ dtsec_im_fm_port_tx_init(struct dtsec_softc *sc, int unit)
 	return (0);
 }
 /** @} */
-
 
 /**
  * @group dTSEC IFnet routines.

@@ -31,7 +31,8 @@
 
 /*
  * Driver for the TWSI (aka I2C, aka IIC) bus controller found on Marvell
- * and Allwinner SoCs. Supports master operation only, and works in polling mode.
+ * and Allwinner SoCs. Supports master operation only, and works in polling
+ * mode.
  *
  * Calls to DELAY() are needed per Application Note AN-179 "TWSI Software
  * Guidelines for Discovery(TM), Horizon (TM) and Feroceon(TM) Devices".
@@ -41,51 +42,52 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/resource.h>
+#include <sys/rman.h>
 
 #include <machine/_inttypes.h>
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <sys/rman.h>
-
-#include <sys/lock.h>
-#include <sys/mutex.h>
-
-#include <dev/iicbus/iiconf.h>
+#include <dev/clk/clk.h>
+#include <dev/iicbus/controller/twsi/twsi.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/clk/clk.h>
-
 #include <arm/mv/mvreg.h>
 #include <arm/mv/mvvar.h>
-#include <dev/iicbus/controller/twsi/twsi.h>
 
 #include "iicbus_if.h"
 
-#define MV_TWSI_NAME		"twsi"
-#define	IICBUS_DEVNAME		"iicbus"
+#define MV_TWSI_NAME "twsi"
+#define IICBUS_DEVNAME "iicbus"
 
-#define TWSI_ADDR	0x00
-#define TWSI_DATA	0x04
-#define TWSI_CNTR	0x08
-#define TWSI_XADDR	0x10
-#define TWSI_STAT	0x0c
-#define TWSI_BAUD_RATE	0x0c
-#define TWSI_SRST	0x1c
+#define TWSI_ADDR 0x00
+#define TWSI_DATA 0x04
+#define TWSI_CNTR 0x08
+#define TWSI_XADDR 0x10
+#define TWSI_STAT 0x0c
+#define TWSI_BAUD_RATE 0x0c
+#define TWSI_SRST 0x1c
 
-#define	TWSI_BAUD_RATE_RAW(C,M,N)	((C)/((10*(M+1))<<(N+1)))
-#define	TWSI_BAUD_RATE_SLOW		50000	/* 50kHz */
-#define	TWSI_BAUD_RATE_FAST		100000	/* 100kHz */
+#define TWSI_BAUD_RATE_RAW(C, M, N) ((C) / ((10 * (M + 1)) << (N + 1)))
+#define TWSI_BAUD_RATE_SLOW 50000  /* 50kHz */
+#define TWSI_BAUD_RATE_FAST 100000 /* 100kHz */
 
 #define TWSI_DEBUG
 #undef TWSI_DEBUG
 
-#ifdef  TWSI_DEBUG
-#define debugf(fmt, args...) do { printf("%s(): ", __func__); printf(fmt,##args); } while (0)
+#ifdef TWSI_DEBUG
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
 #define debugf(fmt, args...)
 #endif
@@ -94,26 +96,23 @@ static phandle_t mv_twsi_get_node(device_t, device_t);
 static int mv_twsi_probe(device_t);
 static int mv_twsi_attach(device_t);
 
-static struct ofw_compat_data compat_data[] = {
-	{ "mrvl,twsi",			true },
-	{ "marvell,mv64xxx-i2c",	true },
-	{ "marvell,mv78230-i2c",	true },
-	{ NULL,				false }
-};
+static struct ofw_compat_data compat_data[] = { { "mrvl,twsi", true },
+	{ "marvell,mv64xxx-i2c", true }, { "marvell,mv78230-i2c", true },
+	{ NULL, false } };
 
 static device_method_t mv_twsi_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		mv_twsi_probe),
-	DEVMETHOD(device_attach,	mv_twsi_attach),
+	DEVMETHOD(device_probe, mv_twsi_probe),
+	DEVMETHOD(device_attach, mv_twsi_attach),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_node,	mv_twsi_get_node),
+	DEVMETHOD(ofw_bus_get_node, mv_twsi_get_node),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_1(twsi, mv_twsi_driver, mv_twsi_methods,
-    sizeof(struct twsi_softc), twsi_driver);
+DEFINE_CLASS_1(twsi, mv_twsi_driver, mv_twsi_methods, sizeof(struct twsi_softc),
+    twsi_driver);
 
 DRIVER_MODULE(twsi, simplebus, mv_twsi_driver, 0, 0);
 DRIVER_MODULE(iicbus, twsi, iicbus_driver, 0, 0);
@@ -142,7 +141,7 @@ mv_twsi_probe(device_t dev)
 	return (BUS_PROBE_DEFAULT);
 }
 
-#define	ABSSUB(a,b)	(((a) > (b)) ? (a) - (b) : (b) - (a))
+#define ABSSUB(a, b) (((a) > (b)) ? (a) - (b) : (b) - (a))
 static void
 mv_twsi_cal_baud_rate(struct twsi_softc *sc, const uint32_t target,
     struct twsi_baud_rate *rate)
@@ -152,13 +151,13 @@ mv_twsi_cal_baud_rate(struct twsi_softc *sc, const uint32_t target,
 	int m, n, m0, n0;
 
 	/* Calculate baud rate. */
-	m0 = n0 = 4;	/* Default values on reset */
+	m0 = n0 = 4; /* Default values on reset */
 	diff0 = 0xffffffff;
 	clk_get_freq(sc->clk_core, &clk);
 
 	for (n = 0; n < 8; n++) {
 		for (m = 0; m < 16; m++) {
-			cur = TWSI_BAUD_RATE_RAW(clk,m,n);
+			cur = TWSI_BAUD_RATE_RAW(clk, m, n);
 			diff = ABSSUB(target, cur);
 			if (diff < diff0) {
 				m0 = m;
@@ -202,18 +201,19 @@ mv_twsi_attach(device_t dev)
 		}
 	}
 
-	mv_twsi_cal_baud_rate(sc, TWSI_BAUD_RATE_SLOW, &sc->baud_rate[IIC_SLOW]);
-	mv_twsi_cal_baud_rate(sc, TWSI_BAUD_RATE_FAST, &sc->baud_rate[IIC_FAST]);
+	mv_twsi_cal_baud_rate(sc, TWSI_BAUD_RATE_SLOW,
+	    &sc->baud_rate[IIC_SLOW]);
+	mv_twsi_cal_baud_rate(sc, TWSI_BAUD_RATE_FAST,
+	    &sc->baud_rate[IIC_FAST]);
 	if (bootverbose)
-		device_printf(dev, "calculated baud rates are:\n"
+		device_printf(dev,
+		    "calculated baud rates are:\n"
 		    " %" PRIu32 " kHz (M=%d, N=%d) for slow,\n"
 		    " %" PRIu32 " kHz (M=%d, N=%d) for fast.\n",
 		    sc->baud_rate[IIC_SLOW].raw / 1000,
-		    sc->baud_rate[IIC_SLOW].m,
-		    sc->baud_rate[IIC_SLOW].n,
+		    sc->baud_rate[IIC_SLOW].m, sc->baud_rate[IIC_SLOW].n,
 		    sc->baud_rate[IIC_FAST].raw / 1000,
-		    sc->baud_rate[IIC_FAST].m,
-		    sc->baud_rate[IIC_FAST].n);
+		    sc->baud_rate[IIC_FAST].m, sc->baud_rate[IIC_FAST].n);
 
 	sc->reg_data = TWSI_DATA;
 	sc->reg_slave_addr = TWSI_ADDR;

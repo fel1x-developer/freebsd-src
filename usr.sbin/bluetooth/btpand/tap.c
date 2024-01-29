@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: tap.c,v 1.1 2008/08/17 13:20:57 plunky Exp $");
 
@@ -102,7 +101,7 @@ tap_init(void)
 	close(s);
 
 	log_info("Using interface %s with addr %s", ifr.ifr_name,
-		ether_ntoa((struct ether_addr *)&ifr.ifr_addr.sa_data));
+	    ether_ntoa((struct ether_addr *)&ifr.ifr_addr.sa_data));
 
 	chan = channel_alloc();
 	if (chan == NULL)
@@ -117,8 +116,8 @@ tap_init(void)
 	if (!channel_open(chan, fd))
 		exit(EXIT_FAILURE);
 
-	snprintf(pidfile, sizeof(pidfile), "%s/%s.pid",
-		_PATH_VARRUN, ifr.ifr_name);
+	snprintf(pidfile, sizeof(pidfile), "%s/%s.pid", _PATH_VARRUN,
+	    ifr.ifr_name);
 	chan->pfh = pidfile_open(pidfile, 0600, NULL);
 	if (chan->pfh == NULL)
 		log_err("can't create pidfile");

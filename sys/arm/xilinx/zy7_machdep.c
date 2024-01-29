@@ -45,7 +45,7 @@
 
 #include <machine/bus.h>
 #include <machine/machdep.h>
-#include <machine/platform.h> 
+#include <machine/platform.h>
 #include <machine/platformvar.h>
 
 #include <arm/xilinx/zy7_machdep.h>
@@ -83,15 +83,15 @@ zynq7_do_cpu_reset(platform_t plat)
 }
 
 static platform_method_t zynq7_methods[] = {
-	PLATFORMMETHOD(platform_devmap_init,	zynq7_devmap_init),
-	PLATFORMMETHOD(platform_cpu_reset,	zynq7_do_cpu_reset),
+	PLATFORMMETHOD(platform_devmap_init, zynq7_devmap_init),
+	PLATFORMMETHOD(platform_cpu_reset, zynq7_do_cpu_reset),
 
 #ifdef SMP
-	PLATFORMMETHOD(platform_mp_setmaxid,	zynq7_mp_setmaxid),
-	PLATFORMMETHOD(platform_mp_start_ap,	zynq7_mp_start_ap),
+	PLATFORMMETHOD(platform_mp_setmaxid, zynq7_mp_setmaxid),
+	PLATFORMMETHOD(platform_mp_start_ap, zynq7_mp_start_ap),
 #endif
 
-	PLATFORMMETHOD(platform_pl310_init,	zynq7_pl310_init),
+	PLATFORMMETHOD(platform_pl310_init, zynq7_pl310_init),
 
 	PLATFORMMETHOD_END,
 };

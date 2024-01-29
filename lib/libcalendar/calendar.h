@@ -26,17 +26,17 @@
  * SUCH DAMAGE.
  */
 struct date {
-	int y;	/* year */
-	int m;	/* month */
-	int d;	/* day */
+	int y; /* year */
+	int m; /* month */
+	int d; /* day */
 };
 
-struct date	*easterg(int _year, struct date *_dt);
-struct date	*easterog(int _year, struct date *_dt);
-struct date	*easteroj(int _year, struct date *_dt);
-struct date	*gdate(int _nd, struct date *_dt);
-struct date	*jdate(int _nd, struct date *_dt);
-int		 ndaysg(struct date *_dt);
-int		 ndaysj(struct date *_dt);
-int		 week(int _nd, int *_year);
-int		 weekday(int _nd);
+struct date *easterg(int _year, struct date *_dt);
+struct date *easterog(int _year, struct date *_dt);
+struct date *easteroj(int _year, struct date *_dt);
+struct date *gdate(int _nd, struct date *_dt);
+struct date *jdate(int _nd, struct date *_dt);
+int ndaysg(struct date *_dt);
+int ndaysj(struct date *_dt);
+int week(int _nd, int *_year);
+int weekday(int _nd);

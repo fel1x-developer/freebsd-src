@@ -39,8 +39,7 @@
 ATF_TC_WITHOUT_HEAD(aligned_even_length);
 ATF_TC_BODY(aligned_even_length, tc)
 {
-	u_char data[] __aligned(sizeof(u_short)) =
-		{0x12, 0x34, 0x56, 0x78};
+	u_char data[] __aligned(sizeof(u_short)) = { 0x12, 0x34, 0x56, 0x78 };
 	u_short sum;
 
 	sum = in_cksum(data, nitems(data));
@@ -51,8 +50,8 @@ ATF_TC_BODY(aligned_even_length, tc)
 ATF_TC_WITHOUT_HEAD(aligned_odd_length);
 ATF_TC_BODY(aligned_odd_length, tc)
 {
-	u_char data[] __aligned(sizeof(u_short)) =
-		{0x12, 0x34, 0x56, 0x78, 0x9a};
+	u_char data[] __aligned(
+	    sizeof(u_short)) = { 0x12, 0x34, 0x56, 0x78, 0x9a };
 	u_short sum;
 
 	sum = in_cksum(data, nitems(data));
@@ -63,8 +62,8 @@ ATF_TC_BODY(aligned_odd_length, tc)
 ATF_TC_WITHOUT_HEAD(unaligned_even_length);
 ATF_TC_BODY(unaligned_even_length, tc)
 {
-	u_char data[] __aligned(sizeof(u_short)) =
-		{0x00, 0x12, 0x34, 0x56, 0x78};
+	u_char data[] __aligned(
+	    sizeof(u_short)) = { 0x00, 0x12, 0x34, 0x56, 0x78 };
 	u_short sum;
 
 	sum = in_cksum(data + 1, nitems(data) - 1);
@@ -75,8 +74,8 @@ ATF_TC_BODY(unaligned_even_length, tc)
 ATF_TC_WITHOUT_HEAD(unaligned_odd_length);
 ATF_TC_BODY(unaligned_odd_length, tc)
 {
-	u_char data[] __aligned(sizeof(u_short)) =
-		{0x00, 0x12, 0x34, 0x56, 0x78, 0x9a};
+	u_char data[] __aligned(
+	    sizeof(u_short)) = { 0x00, 0x12, 0x34, 0x56, 0x78, 0x9a };
 	u_short sum;
 
 	sum = in_cksum(data + 1, nitems(data) - 1);

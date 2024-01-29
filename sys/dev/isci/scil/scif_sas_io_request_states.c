@@ -61,10 +61,9 @@
  */
 
 #include <dev/isci/scil/scic_controller.h>
-
-#include <dev/isci/scil/scif_sas_io_request.h>
-#include <dev/isci/scil/scif_sas_domain.h>
 #include <dev/isci/scil/scif_sas_controller.h>
+#include <dev/isci/scil/scif_sas_domain.h>
+#include <dev/isci/scil/scif_sas_io_request.h>
 #include <dev/isci/scil/scif_sas_logger.h>
 
 //******************************************************************************
@@ -81,23 +80,18 @@
  *
  * @return none
  */
-static
-void scif_sas_io_request_initial_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_initial_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_INITIAL
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_INITIAL);
 
-   // Initial state is a transitional state to the constructed state
-   sci_base_state_machine_change_state(
-      &fw_io->parent.parent.state_machine, SCI_BASE_REQUEST_STATE_CONSTRUCTED
-   );
+	// Initial state is a transitional state to the constructed state
+	sci_base_state_machine_change_state(&fw_io->parent.parent.state_machine,
+	    SCI_BASE_REQUEST_STATE_CONSTRUCTED);
 }
 
 /**
@@ -110,18 +104,14 @@ void scif_sas_io_request_initial_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_io_request_constructed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_constructed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_CONSTRUCTED
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_CONSTRUCTED);
 }
 
 /**
@@ -134,18 +124,14 @@ void scif_sas_io_request_constructed_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_io_request_started_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_started_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_STARTED
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_STARTED);
 }
 
 /**
@@ -158,18 +144,14 @@ void scif_sas_io_request_started_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_io_request_completed_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_completed_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_COMPLETED
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_COMPLETED);
 }
 
 /**
@@ -182,29 +164,22 @@ void scif_sas_io_request_completed_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_io_request_aborting_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_aborting_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SCIF_LOG_WARNING((
-      sci_base_object_get_logger(fw_io),
-      SCIF_LOG_OBJECT_IO_REQUEST | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
-      "Domain:0x%x Device:0x%x IORequest:0x%x terminating\n",
-      fw_io->parent.device->domain, fw_io->parent.device, fw_io
-   ));
+	SCIF_LOG_WARNING((sci_base_object_get_logger(fw_io),
+	    SCIF_LOG_OBJECT_IO_REQUEST | SCIF_LOG_OBJECT_TASK_MANAGEMENT,
+	    "Domain:0x%x Device:0x%x IORequest:0x%x terminating\n",
+	    fw_io->parent.device->domain, fw_io->parent.device, fw_io));
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_ABORTING
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_ABORTING);
 
-   fw_io->parent.status = scif_sas_request_terminate_start(
-                             &fw_io->parent, fw_io->parent.core_object
-                          );
+	fw_io->parent.status = scif_sas_request_terminate_start(&fw_io->parent,
+	    fw_io->parent.core_object);
 }
 
 /**
@@ -217,13 +192,11 @@ void scif_sas_io_request_aborting_state_enter(
  *
  * @return none
  */
-static
-void scif_sas_io_request_aborting_state_exit(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_aborting_state_exit(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REQUEST_T * fw_request = (SCIF_SAS_REQUEST_T *)object;
-   scif_sas_request_terminate_complete(fw_request);
+	SCIF_SAS_REQUEST_T *fw_request = (SCIF_SAS_REQUEST_T *)object;
+	scif_sas_request_terminate_complete(fw_request);
 }
 
 /**
@@ -236,51 +209,29 @@ void scif_sas_io_request_aborting_state_exit(
  *
  * @return none
  */
-static
-void scif_sas_io_request_final_state_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_io_request_final_state_enter(SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_IO_REQUEST_T * fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
+	SCIF_SAS_IO_REQUEST_T *fw_io = (SCIF_SAS_IO_REQUEST_T *)object;
 
-   SET_STATE_HANDLER(
-      &fw_io->parent,
-      scif_sas_io_request_state_handler_table,
-      SCI_BASE_REQUEST_STATE_FINAL
-   );
+	SET_STATE_HANDLER(&fw_io->parent,
+	    scif_sas_io_request_state_handler_table,
+	    SCI_BASE_REQUEST_STATE_FINAL);
 }
 
-SCI_BASE_STATE_T scif_sas_io_request_state_table[SCI_BASE_REQUEST_MAX_STATES] =
-{
-   {
-      SCI_BASE_REQUEST_STATE_INITIAL,
-      scif_sas_io_request_initial_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_CONSTRUCTED,
-      scif_sas_io_request_constructed_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_STARTED,
-      scif_sas_io_request_started_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_COMPLETED,
-      scif_sas_io_request_completed_state_enter,
-      NULL
-   },
-   {
-      SCI_BASE_REQUEST_STATE_ABORTING,
-      scif_sas_io_request_aborting_state_enter,
-      scif_sas_io_request_aborting_state_exit
-   },
-   {
-      SCI_BASE_REQUEST_STATE_FINAL,
-      scif_sas_io_request_final_state_enter,
-      NULL
-   },
-};
-
+SCI_BASE_STATE_T
+    scif_sas_io_request_state_table[SCI_BASE_REQUEST_MAX_STATES] = {
+	    { SCI_BASE_REQUEST_STATE_INITIAL,
+		scif_sas_io_request_initial_state_enter, NULL },
+	    { SCI_BASE_REQUEST_STATE_CONSTRUCTED,
+		scif_sas_io_request_constructed_state_enter, NULL },
+	    { SCI_BASE_REQUEST_STATE_STARTED,
+		scif_sas_io_request_started_state_enter, NULL },
+	    { SCI_BASE_REQUEST_STATE_COMPLETED,
+		scif_sas_io_request_completed_state_enter, NULL },
+	    { SCI_BASE_REQUEST_STATE_ABORTING,
+		scif_sas_io_request_aborting_state_enter,
+		scif_sas_io_request_aborting_state_exit },
+	    { SCI_BASE_REQUEST_STATE_FINAL,
+		scif_sas_io_request_final_state_enter, NULL },
+    };

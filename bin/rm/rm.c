@@ -29,9 +29,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 
 #include <err.h>
 #include <errno.h>
@@ -51,14 +51,14 @@ static int rflag, Iflag, xflag;
 static uid_t uid;
 static volatile sig_atomic_t info;
 
-static int	check(const char *, const char *, struct stat *);
-static int	check2(char **);
-static void	checkdot(char **);
-static void	checkslash(char **);
-static void	rm_file(char **);
-static void	rm_tree(char **);
+static int check(const char *, const char *, struct stat *);
+static int check2(char **);
+static void checkdot(char **);
+static void checkslash(char **);
+static void rm_file(char **);
+static void rm_tree(char **);
 static void siginfo(int __unused);
-static void	usage(void);
+static void usage(void);
 
 /*
  * rm --
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
 
 	rflag = xflag = 0;
 	while ((ch = getopt(argc, argv, "dfiIPRrvWx")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'd':
 			dflag = 1;
 			break;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
 			/* Compatibility no-op. */
 			break;
 		case 'R':
-		case 'r':			/* Compatibility. */
+		case 'r': /* Compatibility. */
 			rflag = 1;
 			break;
 		case 'v':
@@ -149,7 +149,7 @@ main(int argc, char *argv[])
 
 		if (Iflag) {
 			if (check2(argv) == 0)
-				exit (1);
+				exit(1);
 		}
 		if (rflag)
 			rm_tree(argv);
@@ -157,7 +157,7 @@ main(int argc, char *argv[])
 			rm_file(argv);
 	}
 
-	exit (eval);
+	exit(eval);
 }
 
 static void
@@ -179,7 +179,7 @@ rm_tree(char **argv)
 	 * If the -i option is specified, the user can skip on the pre-order
 	 * visit.  The fts_number field flags skipped directories.
 	 */
-#define	SKIPPED	1
+#define SKIPPED 1
 
 	flags = FTS_PHYSICAL;
 	if (!needstat)
@@ -197,8 +197,8 @@ rm_tree(char **argv)
 		switch (p->fts_info) {
 		case FTS_DNR:
 			if (!fflag || p->fts_errno != ENOENT) {
-				warnx("%s: %s",
-				    p->fts_path, strerror(p->fts_errno));
+				warnx("%s: %s", p->fts_path,
+				    strerror(p->fts_errno));
 				eval = 1;
 			}
 			continue;
@@ -212,23 +212,25 @@ rm_tree(char **argv)
 			if (!needstat)
 				break;
 			if (!fflag || p->fts_errno != ENOENT) {
-				warnx("%s: %s",
-				    p->fts_path, strerror(p->fts_errno));
+				warnx("%s: %s", p->fts_path,
+				    strerror(p->fts_errno));
 				eval = 1;
 			}
 			continue;
 		case FTS_D:
 			/* Pre-order: give user chance to skip. */
-			if (!fflag && !check(p->fts_path, p->fts_accpath,
-			    p->fts_statp)) {
+			if (!fflag &&
+			    !check(p->fts_path, p->fts_accpath, p->fts_statp)) {
 				(void)fts_set(fts, p, FTS_SKIP);
 				p->fts_number = SKIPPED;
-			}
-			else if (!uid &&
-				 (p->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-				 !(p->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
-				 lchflags(p->fts_accpath,
-					 p->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE)) < 0)
+			} else if (!uid &&
+			    (p->fts_statp->st_flags &
+				(UF_APPEND | UF_IMMUTABLE)) &&
+			    !(p->fts_statp->st_flags &
+				(SF_APPEND | SF_IMMUTABLE)) &&
+			    lchflags(p->fts_accpath,
+				p->fts_statp->st_flags &= ~(
+				    UF_APPEND | UF_IMMUTABLE)) < 0)
 				goto err;
 			continue;
 		case FTS_DP:
@@ -244,15 +246,16 @@ rm_tree(char **argv)
 
 		rval = 0;
 		if (!uid &&
-		    (p->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-		    !(p->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)))
+		    (p->fts_statp->st_flags & (UF_APPEND | UF_IMMUTABLE)) &&
+		    !(p->fts_statp->st_flags & (SF_APPEND | SF_IMMUTABLE)))
 			rval = lchflags(p->fts_accpath,
-				       p->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE));
+			    p->fts_statp->st_flags &= ~(
+				UF_APPEND | UF_IMMUTABLE));
 		if (rval == 0) {
 			/*
-			 * If we can't read or search the directory, may still be
-			 * able to remove it.  Don't print out the un{read,search}able
-			 * message unless the remove fails.
+			 * If we can't read or search the directory, may still
+			 * be able to remove it.  Don't print out the
+			 * un{read,search}able message unless the remove fails.
 			 */
 			switch (p->fts_info) {
 			case FTS_DP:
@@ -312,7 +315,7 @@ rm_tree(char **argv)
 				}
 			}
 		}
-err:
+	err:
 		warn("%s", p->fts_path);
 		eval = 1;
 	}
@@ -336,7 +339,7 @@ rm_file(char **argv)
 		/* Assume if can't stat the file, can't unlink it. */
 		if (lstat(f, &sb)) {
 			if (Wflag) {
-				sb.st_mode = S_IFWHT|S_IWUSR|S_IRUSR;
+				sb.st_mode = S_IFWHT | S_IWUSR | S_IRUSR;
 			} else {
 				if (!fflag || errno != ENOENT) {
 					warn("%s", f);
@@ -359,9 +362,10 @@ rm_file(char **argv)
 			continue;
 		rval = 0;
 		if (!uid && !S_ISWHT(sb.st_mode) &&
-		    (sb.st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
-		    !(sb.st_flags & (SF_APPEND|SF_IMMUTABLE)))
-			rval = lchflags(f, sb.st_flags & ~(UF_APPEND|UF_IMMUTABLE));
+		    (sb.st_flags & (UF_APPEND | UF_IMMUTABLE)) &&
+		    !(sb.st_flags & (SF_APPEND | SF_IMMUTABLE)))
+			rval = lchflags(f,
+			    sb.st_flags & ~(UF_APPEND | UF_IMMUTABLE));
 		if (rval == 0) {
 			if (S_ISWHT(sb.st_mode))
 				rval = undelete(f);
@@ -401,18 +405,16 @@ check(const char *path, const char *name, struct stat *sp)
 		 */
 		if (!stdin_ok || S_ISLNK(sp->st_mode) ||
 		    (!access(name, W_OK) &&
-		    !(sp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
-		    (!(sp->st_flags & (UF_APPEND|UF_IMMUTABLE)) || !uid)))
+			!(sp->st_flags & (SF_APPEND | SF_IMMUTABLE)) &&
+			(!(sp->st_flags & (UF_APPEND | UF_IMMUTABLE)) || !uid)))
 			return (1);
 		strmode(sp->st_mode, modep);
 		if ((flagsp = fflagstostr(sp->st_flags)) == NULL)
 			err(1, "fflagstostr");
 		(void)fprintf(stderr, "override %s%s%s/%s %s%sfor %s? ",
 		    modep + 1, modep[10] == ' ' ? "" : " ",
-		    user_from_uid(sp->st_uid, 0),
-		    group_from_gid(sp->st_gid, 0),
-		    *flagsp ? flagsp : "", *flagsp ? " " : "",
-		    path);
+		    user_from_uid(sp->st_uid, 0), group_from_gid(sp->st_gid, 0),
+		    *flagsp ? flagsp : "", *flagsp ? " " : "", path);
 		free(flagsp);
 	}
 	(void)fflush(stderr);
@@ -423,7 +425,7 @@ check(const char *path, const char *name, struct stat *sp)
 	return (first == 'y' || first == 'Y');
 }
 
-#define ISSLASH(a)	((a)[0] == '/' && (a)[1] == '\0')
+#define ISSLASH(a) ((a)[0] == '/' && (a)[1] == '\0')
 static void
 checkslash(char **argv)
 {
@@ -459,7 +461,7 @@ check2(char **argv)
 		if (lstat(argv[i], &st) == 0) {
 			if (S_ISDIR(st.st_mode)) {
 				++dcount;
-				dname = argv[i];    /* only used if 1 dir */
+				dname = argv[i]; /* only used if 1 dir */
 			} else {
 				++fcount;
 			}
@@ -480,7 +482,7 @@ check2(char **argv)
 		} else if (dcount + fcount > 3) {
 			fprintf(stderr, "remove %d files", dcount + fcount);
 		} else {
-			return(1);
+			return (1);
 		}
 		fprintf(stderr, "? ");
 		fflush(stderr);
@@ -494,7 +496,7 @@ check2(char **argv)
 	return (first == 'y' || first == 'Y');
 }
 
-#define ISDOT(a)	((a)[0] == '.' && (!(a)[1] || ((a)[1] == '.' && !(a)[2])))
+#define ISDOT(a) ((a)[0] == '.' && (!(a)[1] || ((a)[1] == '.' && !(a)[2])))
 static void
 checkdot(char **argv)
 {

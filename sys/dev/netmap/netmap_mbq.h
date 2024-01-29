@@ -29,7 +29,6 @@
 /*
  */
 
-
 #ifndef _NET_NETMAP_MBQ_H__
 #define _NET_NETMAP_MBQ_H__
 
@@ -41,19 +40,19 @@
 
 /* XXX probably rely on a previous definition of SPINLOCK_T */
 #ifdef linux
-#define SPINLOCK_T  safe_spinlock_t
-#elif defined (_WIN32)
-#define SPINLOCK_T 	win_spinlock_t
+#define SPINLOCK_T safe_spinlock_t
+#elif defined(_WIN32)
+#define SPINLOCK_T win_spinlock_t
 #else
-#define SPINLOCK_T  struct mtx
+#define SPINLOCK_T struct mtx
 #endif
 
 /* A FIFO queue of mbufs with an optional lock. */
 struct mbq {
-    struct mbuf *head;
-    struct mbuf *tail;
-    int count;
-    SPINLOCK_T lock;
+	struct mbuf *head;
+	struct mbuf *tail;
+	int count;
+	SPINLOCK_T lock;
 };
 
 /* We should clarify whether init can be used while
@@ -83,16 +82,16 @@ mbq_unlock(struct mbq *q)
 	mtx_unlock_spin(&q->lock);
 }
 
-
 void mbq_safe_init(struct mbq *q);
 void mbq_safe_fini(struct mbq *q);
 void mbq_safe_enqueue(struct mbq *q, struct mbuf *m);
 struct mbuf *mbq_safe_dequeue(struct mbq *q);
 void mbq_safe_purge(struct mbq *q);
 
-static inline unsigned int mbq_len(struct mbq *q)
+static inline unsigned int
+mbq_len(struct mbq *q)
 {
-    return q->count;
+	return q->count;
 }
 
 #endif /* _NET_NETMAP_MBQ_H_ */

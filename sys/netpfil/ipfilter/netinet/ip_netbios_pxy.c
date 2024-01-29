@@ -32,15 +32,15 @@
  * $Id$
  */
 
-#define	IPF_NETBIOS_PROXY
+#define IPF_NETBIOS_PROXY
 
 void ipf_p_netbios_main_load(void);
 void ipf_p_netbios_main_unload(void);
 int ipf_p_netbios_out(void *, fr_info_t *, ap_session_t *, nat_t *);
 
-static	frentry_t	netbiosfr;
+static frentry_t netbiosfr;
 
-int	netbios_proxy_init = 0;
+int netbios_proxy_init = 0;
 
 /*
  * Initialize local structures.
@@ -50,11 +50,10 @@ ipf_p_netbios_main_load(void)
 {
 	bzero((char *)&netbiosfr, sizeof(netbiosfr));
 	netbiosfr.fr_ref = 1;
-	netbiosfr.fr_flags = FR_INQUE|FR_PASS|FR_QUICK|FR_KEEPSTATE;
+	netbiosfr.fr_flags = FR_INQUE | FR_PASS | FR_QUICK | FR_KEEPSTATE;
 	MUTEX_INIT(&netbiosfr.fr_lock, "NETBIOS proxy rule lock");
 	netbios_proxy_init = 1;
 }
-
 
 void
 ipf_p_netbios_main_unload(void)
@@ -65,7 +64,6 @@ ipf_p_netbios_main_unload(void)
 	}
 }
 
-
 int
 ipf_p_netbios_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 {
@@ -75,8 +73,8 @@ ipf_p_netbios_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	ip_t *ip;
 	mb_t *m;
 
-	aps = aps;	/* LINT */
-	nat = nat;	/* LINT */
+	aps = aps; /* LINT */
+	nat = nat; /* LINT */
 
 	m = fin->fin_m;
 	dlen = fin->fin_dlen - sizeof(*udp);
@@ -101,13 +99,13 @@ ipf_p_netbios_out(void *arg, fr_info_t *fin, ap_session_t *aps, nat_t *nat)
 	off += 4;
 
 	/* Copy NATed source Address/port*/
-	dgmbuf[0] = (char)((ip->ip_src.s_addr     ) &0xFF);
-	dgmbuf[1] = (char)((ip->ip_src.s_addr >> 8) &0xFF);
-	dgmbuf[2] = (char)((ip->ip_src.s_addr >> 16)&0xFF);
-	dgmbuf[3] = (char)((ip->ip_src.s_addr >> 24)&0xFF);
+	dgmbuf[0] = (char)((ip->ip_src.s_addr) & 0xFF);
+	dgmbuf[1] = (char)((ip->ip_src.s_addr >> 8) & 0xFF);
+	dgmbuf[2] = (char)((ip->ip_src.s_addr >> 16) & 0xFF);
+	dgmbuf[3] = (char)((ip->ip_src.s_addr >> 24) & 0xFF);
 
-	dgmbuf[4] = (char)((udp->uh_sport     )&0xFF);
-	dgmbuf[5] = (char)((udp->uh_sport >> 8)&0xFF);
+	dgmbuf[4] = (char)((udp->uh_sport) & 0xFF);
+	dgmbuf[5] = (char)((udp->uh_sport >> 8) & 0xFF);
 
 	/* replace data in packet */
 	COPYBACK(m, off, sizeof(dgmbuf), dgmbuf);

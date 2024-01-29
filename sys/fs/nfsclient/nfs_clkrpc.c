@@ -33,20 +33,20 @@
  *
  */
 
-#include <sys/cdefs.h>
-#include "opt_kgssapi.h"
 #include "opt_kern_tls.h"
+#include "opt_kgssapi.h"
+
+#include <sys/cdefs.h>
 
 #include <fs/nfs/nfsport.h>
-
-#include <rpc/rpc.h>
 #include <rpc/replay.h>
+#include <rpc/rpc.h>
 #include <rpc/rpcsec_gss.h>
 #include <rpc/rpcsec_tls.h>
 
 NFSDLOCKMUTEX;
 
-extern SVCPOOL	*nfscbd_pool;
+extern SVCPOOL *nfscbd_pool;
 
 static int nfs_cbproc(struct nfsrv_descript *, u_int32_t);
 
@@ -95,7 +95,7 @@ nfscb_program(struct svc_req *rqst, SVCXPRT *xprt)
 	nd.nd_mreq = NULL;
 	nd.nd_cred = NULL;
 
-	NFSCL_DEBUG(1, "cbproc=%d\n",nd.nd_procnum);
+	NFSCL_DEBUG(1, "cbproc=%d\n", nd.nd_procnum);
 	if (nd.nd_procnum != NFSPROC_NULL) {
 		if (!svc_getcred(rqst, &nd.nd_cred, &credflavor)) {
 			svcerr_weakauth(rqst);
@@ -232,8 +232,8 @@ nfscbd_nfsd(struct thread *td, struct nfsd_nfscbd_args *args)
 	int error;
 
 	if (args != NULL) {
-		error = copyinstr(args->principal, principal,
-		    sizeof(principal), NULL);
+		error = copyinstr(args->principal, principal, sizeof(principal),
+		    NULL);
 		if (error)
 			return (error);
 	} else {
@@ -259,7 +259,7 @@ nfscbd_nfsd(struct thread *td, struct nfsd_nfscbd_args *args)
 
 		nfscbd_pool->sp_minthreads = 4;
 		nfscbd_pool->sp_maxthreads = 4;
-			
+
 		svc_run(nfscbd_pool);
 
 		rpc_gss_clear_svc_name_call(NFS_CALLBCKPROG, NFSV4_CBVERS);
@@ -287,7 +287,7 @@ nfsrvd_cbinit(int terminating)
 	if (terminating) {
 		/* Wait for any xprt registrations to complete. */
 		while (nfs_numnfscbd > 0)
-			msleep(&nfs_numnfscbd, NFSDLOCKMUTEXPTR, PZERO, 
+			msleep(&nfs_numnfscbd, NFSDLOCKMUTEXPTR, PZERO,
 			    "nfscbdt", 0);
 		if (nfscbd_pool != NULL) {
 			NFSD_UNLOCK();

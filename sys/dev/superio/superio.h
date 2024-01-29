@@ -56,11 +56,10 @@ bool superio_dev_enabled(device_t dev, uint8_t mask);
 void superio_dev_enable(device_t dev, uint8_t mask);
 void superio_dev_disable(device_t dev, uint8_t mask);
 
-device_t superio_find_dev(device_t superio, superio_dev_type_t type,
-    int ldn);
+device_t superio_find_dev(device_t superio, superio_dev_type_t type, int ldn);
 
 enum superio_ivars {
-	SUPERIO_IVAR_LDN =	10600,
+	SUPERIO_IVAR_LDN = 10600,
 	SUPERIO_IVAR_TYPE,
 	SUPERIO_IVAR_IOBASE,
 	SUPERIO_IVAR_IOBASE2,
@@ -68,15 +67,15 @@ enum superio_ivars {
 	SUPERIO_IVAR_DMA
 };
 
-#define	SUPERIO_ACCESSOR(var, ivar, type)				\
+#define SUPERIO_ACCESSOR(var, ivar, type) \
 	__BUS_ACCESSOR(superio, var, SUPERIO, ivar, type)
 
-SUPERIO_ACCESSOR(ldn,		LDN,		uint8_t)
-SUPERIO_ACCESSOR(type,		TYPE,		superio_dev_type_t)
-SUPERIO_ACCESSOR(iobase,	IOBASE,		uint16_t)
-SUPERIO_ACCESSOR(iobase2,	IOBASE2,	uint16_t)
-SUPERIO_ACCESSOR(irq,		IRQ,		uint8_t)
-SUPERIO_ACCESSOR(dma,		DMA,		uint8_t)
+SUPERIO_ACCESSOR(ldn, LDN, uint8_t)
+SUPERIO_ACCESSOR(type, TYPE, superio_dev_type_t)
+SUPERIO_ACCESSOR(iobase, IOBASE, uint16_t)
+SUPERIO_ACCESSOR(iobase2, IOBASE2, uint16_t)
+SUPERIO_ACCESSOR(irq, IRQ, uint8_t)
+SUPERIO_ACCESSOR(dma, DMA, uint8_t)
 
 #undef SUPERIO_ACCESSOR
 

@@ -25,25 +25,25 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/time.h>
 #include <sys/event.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/un.h>
+
 #include <aio.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <atf-c.h>
-
 static struct itimerval itv = {
 	.it_interval = { 0, 0 },
-	.it_value = { 1, 0 },	/* one second */
+	.it_value = { 1, 0 }, /* one second */
 };
 static sig_atomic_t timer_done = 0;
 static void
@@ -76,11 +76,10 @@ fill(int fd, void *buf, ssize_t len)
 	size_t llen = sizeof(unsigned long);
 	ssize_t sent;
 
-	ATF_REQUIRE(sysctlbyname("net.local.dgram.recvspace", &recvspace,
-	    &llen, NULL, 0) == 0);
-	for (sent = 0;
-	    sent + len + sizeof(struct sockaddr) < recvspace;
-	    sent += len + sizeof(struct sockaddr))
+	ATF_REQUIRE(sysctlbyname("net.local.dgram.recvspace", &recvspace, &llen,
+			NULL, 0) == 0);
+	for (sent = 0; sent + len + sizeof(struct sockaddr) < recvspace;
+	     sent += len + sizeof(struct sockaddr))
 		ATF_REQUIRE(send(fd, buf, len, 0) == len);
 }
 
@@ -98,16 +97,16 @@ ATF_TC_BODY(basic, tc)
 	 * - fd[0] to send, fd[1] to receive
 	 * - buf[maxdgram] for data
 	 */
-	ATF_REQUIRE(sysctlbyname("net.local.dgram.maxdgram", &maxdgram,
-	    &llen, NULL, 0) == 0);
+	ATF_REQUIRE(sysctlbyname("net.local.dgram.maxdgram", &maxdgram, &llen,
+			NULL, 0) == 0);
 	ATF_REQUIRE(socketpair(PF_UNIX, SOCK_DGRAM, 0, fd) != -1);
 	buf = malloc(maxdgram + 1);
 	ATF_REQUIRE(buf);
-	msg = (struct msghdr ){
+	msg = (struct msghdr) {
 		.msg_iov = iov,
 		.msg_iovlen = 1,
 	};
-	iov[0] = (struct iovec ){
+	iov[0] = (struct iovec) {
 		.iov_base = buf,
 	};
 
@@ -175,7 +174,7 @@ ATF_TC_WITHOUT_HEAD(one2many);
 ATF_TC_BODY(one2many, tc)
 {
 	int one, many[3], two;
-#define	BUFSIZE	1024
+#define BUFSIZE 1024
 	char buf[BUFSIZE], goodboy[BUFSIZE], flooder[BUFSIZE], notconn[BUFSIZE];
 
 	/* Establish one to many connection. */
@@ -186,7 +185,7 @@ ATF_TC_BODY(one2many, tc)
 	for (int i = 0; i < 3; i++) {
 		ATF_REQUIRE((many[i] = socket(PF_UNIX, SOCK_DGRAM, 0)) > 0);
 		ATF_REQUIRE(connect(many[i], (struct sockaddr *)&sun,
-		    sizeof(sun)) == 0);
+				sizeof(sun)) == 0);
 	}
 
 	/* accept() on UNIX/DGRAM is invalid. */
@@ -215,9 +214,9 @@ ATF_TC_BODY(one2many, tc)
 	 * latter is empty.  Otherwise discard it, to prevent against
 	 * connect-fill-close attack.
 	 */
-#define	FLOODER	13	/* for connected flooder on many[0] */
-#define	GOODBOY	42	/* for a good boy on many[1] */
-#define	NOTCONN	66	/* for sendto(2) via two */
+#define FLOODER 13 /* for connected flooder on many[0] */
+#define GOODBOY 42 /* for a good boy on many[1] */
+#define NOTCONN 66 /* for sendto(2) via two */
 	goodboy[0] = GOODBOY;
 	flooder[0] = FLOODER;
 	notconn[0] = NOTCONN;
@@ -225,12 +224,12 @@ ATF_TC_BODY(one2many, tc)
 	/* Connected priority over sendto(2). */
 	ATF_REQUIRE((two = socket(PF_UNIX, SOCK_DGRAM, 0)) > 0);
 	ATF_REQUIRE(sendto(two, notconn, BUFSIZE, 0, (struct sockaddr *)&sun,
-	    sizeof(sun)) == BUFSIZE);
+			sizeof(sun)) == BUFSIZE);
 	ATF_REQUIRE(send(many[1], goodboy, BUFSIZE, 0) == BUFSIZE);
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == GOODBOY);	/* message from good boy comes first */
+	ATF_REQUIRE(buf[0] == GOODBOY); /* message from good boy comes first */
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == NOTCONN);	/* only then message from sendto(2) */
+	ATF_REQUIRE(buf[0] == NOTCONN); /* only then message from sendto(2) */
 
 	/* Casual sender priority over a flooder. */
 	fill(many[0], flooder, sizeof(flooder));
@@ -238,9 +237,9 @@ ATF_TC_BODY(one2many, tc)
 	ATF_REQUIRE(errno == ENOBUFS);
 	ATF_REQUIRE(send(many[1], goodboy, BUFSIZE, 0) == BUFSIZE);
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == GOODBOY);	/* message from good boy comes first */
+	ATF_REQUIRE(buf[0] == GOODBOY); /* message from good boy comes first */
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == FLOODER);	/* only then message from flooder */
+	ATF_REQUIRE(buf[0] == FLOODER); /* only then message from flooder */
 
 	/* Once seen, a message can't be deprioritized by any other message. */
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), MSG_PEEK) == sizeof(buf));
@@ -255,25 +254,25 @@ ATF_TC_BODY(one2many, tc)
 
 	/* Disconnect in presence of data from not connected. */
 	ATF_REQUIRE(sendto(two, notconn, BUFSIZE, 0, (struct sockaddr *)&sun,
-	    sizeof(sun)) == BUFSIZE);
+			sizeof(sun)) == BUFSIZE);
 	close(many[0]);
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == NOTCONN);	/* message from sendto() */
+	ATF_REQUIRE(buf[0] == NOTCONN); /* message from sendto() */
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), MSG_DONTWAIT) == -1);
-	ATF_REQUIRE(errno == EAGAIN);	/* data from many[0] discarded */
+	ATF_REQUIRE(errno == EAGAIN); /* data from many[0] discarded */
 
 	/* Disconnect in absence of data from not connected. */
 	ATF_REQUIRE(send(many[1], goodboy, BUFSIZE, 0) == BUFSIZE);
 	close(many[1]);
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), 0) == sizeof(buf));
-	ATF_REQUIRE(buf[0] == GOODBOY);	/* message from many[1] preserved */
+	ATF_REQUIRE(buf[0] == GOODBOY); /* message from many[1] preserved */
 
 	/* Check that nothing leaks on close(2). */
 	ATF_REQUIRE(send(many[2], buf, 42, 0) == 42);
 	ATF_REQUIRE(send(many[2], buf, 42, 0) == 42);
 	ATF_REQUIRE(recv(one, buf, sizeof(buf), MSG_PEEK) == 42);
 	ATF_REQUIRE(sendto(two, notconn, 42, 0, (struct sockaddr *)&sun,
-	    sizeof(sun)) == 42);
+			sizeof(sun)) == 42);
 	close(one);
 }
 
@@ -360,7 +359,7 @@ ATF_TC_BODY(event, tc)
 	ATF_REQUIRE((fd[1] = socket(PF_UNIX, SOCK_DGRAM, 0)) > 0);
 	ATF_REQUIRE(bind(fd[0], (struct sockaddr *)&sun, sizeof(sun)) == 0);
 	ATF_REQUIRE(sendto(fd[1], buf, 42, 0, (struct sockaddr *)&sun,
-	    sizeof(sun)) == 42);
+			sizeof(sun)) == 42);
 	test42(fd[0]);
 }
 

@@ -28,8 +28,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#ifndef	__IF_ATH_TX_HT_H__
-#define	__IF_ATH_TX_HT_H__
+#ifndef __IF_ATH_TX_HT_H__
+#define __IF_ATH_TX_HT_H__
 
 enum {
 	MCS_HT20,
@@ -49,15 +49,14 @@ typedef enum {
 	ATH_AGGR_LEAK_CLOSED,
 } ATH_AGGR_STATUS;
 
-extern int	ath_max_4ms_framelen[4][32];
+extern int ath_max_4ms_framelen[4][32];
 
 extern void ath_tx_rate_fill_rcflags(struct ath_softc *sc, struct ath_buf *bf);
 
-extern void	ath_buf_set_rate(struct ath_softc *sc,
-		struct ieee80211_node *ni, struct ath_buf *bf);
+extern void ath_buf_set_rate(struct ath_softc *sc, struct ieee80211_node *ni,
+    struct ath_buf *bf);
 
-extern ATH_AGGR_STATUS
-	    ath_tx_form_aggr(struct ath_softc *sc, struct ath_node *an,
-	    struct ath_tid *tid, ath_bufhead *bf_q);
+extern ATH_AGGR_STATUS ath_tx_form_aggr(struct ath_softc *sc,
+    struct ath_node *an, struct ath_tid *tid, ath_bufhead *bf_q);
 
 #endif

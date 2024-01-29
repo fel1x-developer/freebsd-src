@@ -23,6 +23,7 @@
  */
 
 #include <sys/types.h>
+
 #include "kboot.h"
 
 void

@@ -6,13 +6,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
+#include <sys/timepps.h>
+
+#include <err.h>
+#include <fcntl.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <err.h>
-#include <sys/timepps.h>
 
 static int aflag, Aflag, cflag, Cflag, eflag, uflag, vflag;
 
@@ -41,21 +42,42 @@ main(int argc, char **argv)
 	ofn = NULL;
 	while ((i = getopt(argc, argv, "aAbBcCeo:uv")) != -1) {
 		switch (i) {
-		case 'a': aflag = 1; break;
-		case 'A': Aflag = 1; break;
-		case 'b': aflag = 1; cflag = 1; break;
-		case 'B': Aflag = 1; Cflag = 1; break;
-		case 'c': cflag = 1; break;
-		case 'C': Cflag = 1; break;
-		case 'e': eflag = 1; break;
-		case 'o': ofn = optarg; break;
-		case 'u': uflag = 1; break;
-		case 'v': vflag = 1; break;
+		case 'a':
+			aflag = 1;
+			break;
+		case 'A':
+			Aflag = 1;
+			break;
+		case 'b':
+			aflag = 1;
+			cflag = 1;
+			break;
+		case 'B':
+			Aflag = 1;
+			Cflag = 1;
+			break;
+		case 'c':
+			cflag = 1;
+			break;
+		case 'C':
+			Cflag = 1;
+			break;
+		case 'e':
+			eflag = 1;
+			break;
+		case 'o':
+			ofn = optarg;
+			break;
+		case 'u':
+			uflag = 1;
+			break;
+		case 'v':
+			vflag = 1;
+			break;
 		case '?':
 		default:
-			fprintf(stderr,
-			    "Usage: ppsapitest [-aAcC] device\n");
-			exit (1);
+			fprintf(stderr, "Usage: ppsapitest [-aAcC] device\n");
+			exit(1);
 		}
 	}
 	if (ofn != NULL) {
@@ -69,7 +91,7 @@ main(int argc, char **argv)
 	argv += optind;
 	if (argc > 0) {
 		fd = open(argv[0], O_RDONLY);
-		if (fd < 0) 
+		if (fd < 0)
 			err(1, "%s", argv[0]);
 	} else {
 		fd = 0;
@@ -140,7 +162,7 @@ main(int argc, char **argv)
 
 	if (!(pp.mode & PPS_TSFMT_TSPEC))
 		pp.mode |= PPS_TSFMT_TSPEC;
-	
+
 	i = time_pps_setparams(ph, &pp);
 	if (i < 0) {
 		err(1, "time_pps_setparams(mode %x):", pp.mode);
@@ -179,9 +201,9 @@ main(int argc, char **argv)
 				fflush(fdo);
 		}
 		Chew(&pi.assert_timestamp, &pi.clear_timestamp,
-			pi.assert_sequence, pi.clear_sequence);
+		    pi.assert_sequence, pi.clear_sequence);
 		olda = pi.assert_sequence;
 		oldc = pi.clear_sequence;
 	}
-	return(0);
+	return (0);
 }

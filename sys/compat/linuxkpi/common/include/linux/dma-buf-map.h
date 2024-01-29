@@ -51,8 +51,8 @@ dma_buf_map_is_set(const struct dma_buf_map *dbm)
 }
 
 static inline bool
-dma_buf_map_is_equal(
-    const struct dma_buf_map *dbm_a, const struct dma_buf_map *dbm_b)
+dma_buf_map_is_equal(const struct dma_buf_map *dbm_a,
+    const struct dma_buf_map *dbm_b)
 {
 	if (dbm_a->is_iomem != dbm_b->is_iomem)
 		return (false);

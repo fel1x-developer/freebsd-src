@@ -5,10 +5,11 @@
  */
 
 #include <sys/cdefs.h>
+
+#include "igc_base.h"
 #include "igc_hw.h"
 #include "igc_i225.h"
 #include "igc_mac.h"
-#include "igc_base.h"
 
 /**
  *  igc_acquire_phy_base - Acquire rights to access PHY
@@ -16,7 +17,8 @@
  *
  *  Acquire access rights to the correct PHY.
  **/
-s32 igc_acquire_phy_base(struct igc_hw *hw)
+s32
+igc_acquire_phy_base(struct igc_hw *hw)
 {
 	u16 mask = IGC_SWFW_PHY0_SM;
 
@@ -34,7 +36,8 @@ s32 igc_acquire_phy_base(struct igc_hw *hw)
  *
  *  A wrapper to release access rights to the correct PHY.
  **/
-void igc_release_phy_base(struct igc_hw *hw)
+void
+igc_release_phy_base(struct igc_hw *hw)
 {
 	u16 mask = IGC_SWFW_PHY0_SM;
 
@@ -52,7 +55,8 @@ void igc_release_phy_base(struct igc_hw *hw)
  *
  *  This inits the hardware readying it for operation.
  **/
-s32 igc_init_hw_base(struct igc_hw *hw)
+s32
+igc_init_hw_base(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	s32 ret_val;
@@ -93,7 +97,8 @@ s32 igc_init_hw_base(struct igc_hw *hw)
  * In the case of a PHY power down to save power, or to turn off link during a
  * driver unload, or wake on lan is not enabled, remove the link.
  **/
-void igc_power_down_phy_copper_base(struct igc_hw *hw)
+void
+igc_power_down_phy_copper_base(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 
@@ -116,7 +121,8 @@ void igc_power_down_phy_copper_base(struct igc_hw *hw)
  *  function clears the FIFOs and flushes any packets that came in as Rx was
  *  being enabled.
  **/
-void igc_rx_fifo_flush_base(struct igc_hw *hw)
+void
+igc_rx_fifo_flush_base(struct igc_hw *hw)
 {
 	u32 rctl, rlpml, rxdctl[4], rfctl, temp_rctl, rx_enabled;
 	int i, ms_wait;
@@ -135,7 +141,7 @@ void igc_rx_fifo_flush_base(struct igc_hw *hw)
 	for (i = 0; i < 4; i++) {
 		rxdctl[i] = IGC_READ_REG(hw, IGC_RXDCTL(i));
 		IGC_WRITE_REG(hw, IGC_RXDCTL(i),
-				rxdctl[i] & ~IGC_RXDCTL_QUEUE_ENABLE);
+		    rxdctl[i] & ~IGC_RXDCTL_QUEUE_ENABLE);
 	}
 	/* Poll all queues to verify they have shut down */
 	for (ms_wait = 0; ms_wait < 10; ms_wait++) {

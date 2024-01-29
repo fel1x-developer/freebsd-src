@@ -60,8 +60,8 @@ static void usage(void) __dead2;
 
 static struct wallgroup {
 	struct wallgroup *next;
-	char		*name;
-	gid_t		gid;
+	char *name;
+	gid_t gid;
 } *grouplist;
 static int nobanner;
 static int mbufsize;
@@ -148,7 +148,8 @@ main(int argc, char *argv[])
 					ingroup = 1;
 				else if ((grp = getgrgid(g->gid)) != NULL) {
 					for (np = grp->gr_mem; *np; np++) {
-						if (strcmp(*np, utmp->ut_user) == 0) {
+						if (strcmp(*np,
+							utmp->ut_user) == 0) {
 							ingroup = 1;
 							break;
 						}
@@ -158,7 +159,7 @@ main(int argc, char *argv[])
 			if (ingroup == 0)
 				continue;
 		}
-		if ((p = ttymsg(&iov, 1, utmp->ut_line, 60*5)) != NULL)
+		if ((p = ttymsg(&iov, 1, utmp->ut_line, 60 * 5)) != NULL)
 			warnx("%s", p);
 	}
 	exit(0);
@@ -212,13 +213,12 @@ makemsg(char *fname)
 		 * in column 80, but that can't be helped.
 		 */
 		(void)fwprintf(fp, L"\r%79s\r\n", " ");
-		(void)swprintf(lbuf, sizeof(lbuf)/sizeof(wchar_t),
-		    L"Broadcast Message from %s@%s",
-		    whom, hostname);
+		(void)swprintf(lbuf, sizeof(lbuf) / sizeof(wchar_t),
+		    L"Broadcast Message from %s@%s", whom, hostname);
 		(void)fwprintf(fp, L"%-79.79S\007\007\r\n", lbuf);
-		(void)swprintf(lbuf, sizeof(lbuf)/sizeof(wchar_t),
-		    L"        (%s) at %d:%02d %s...", tty,
-		    lt->tm_hour, lt->tm_min, lt->tm_zone);
+		(void)swprintf(lbuf, sizeof(lbuf) / sizeof(wchar_t),
+		    L"        (%s) at %d:%02d %s...", tty, lt->tm_hour,
+		    lt->tm_min, lt->tm_zone);
 		(void)fwprintf(fp, L"%-79.79S\r\n", lbuf);
 	}
 	(void)fwprintf(fp, L"%79s\r\n", " ");
@@ -232,7 +232,7 @@ makemsg(char *fname)
 			err(1, "setegid failed");
 	}
 	cnt = 0;
-	while (fgetws(lbuf, sizeof(lbuf)/sizeof(wchar_t), stdin)) {
+	while (fgetws(lbuf, sizeof(lbuf) / sizeof(wchar_t), stdin)) {
 		for (p = lbuf; (ch = *p) != L'\0'; ++p, ++cnt) {
 			if (ch == L'\r') {
 				putwc(L'\r', fp);
@@ -250,10 +250,13 @@ makemsg(char *fname)
 				putwc(L'\n', fp);
 				cnt = 0;
 			}
-			if (iswprint(ch) || iswspace(ch) || ch == L'\a' || ch == L'\b') {
+			if (iswprint(ch) || iswspace(ch) || ch == L'\a' ||
+			    ch == L'\b') {
 				putwc(ch, fp);
 			} else {
-				(void)swprintf(codebuf, sizeof(codebuf)/sizeof(wchar_t), L"<0x%X>", ch);
+				(void)swprintf(codebuf,
+				    sizeof(codebuf) / sizeof(wchar_t),
+				    L"<0x%X>", ch);
 				for (tmp = codebuf; *tmp != L'\0'; ++tmp) {
 					putwc(*tmp, fp);
 					if (++cnt == 79) {

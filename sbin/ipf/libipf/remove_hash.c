@@ -7,12 +7,13 @@
  * $Id$
  */
 
-#include <fcntl.h>
 #include <sys/ioctl.h>
-#include "ipf.h"
-#include "netinet/ip_lookup.h"
-#include "netinet/ip_htable.h"
 
+#include <fcntl.h>
+
+#include "ipf.h"
+#include "netinet/ip_htable.h"
+#include "netinet/ip_lookup.h"
 
 int
 remove_hash(iphtable_t *iphp, ioctlfunc_t iocfunc)
@@ -40,7 +41,7 @@ remove_hash(iphtable_t *iphp, ioctlfunc_t iocfunc)
 	if (pool_ioctl(iocfunc, SIOCLOOKUPDELTABLE, &op)) {
 		if ((opts & OPT_DONOTHING) == 0) {
 			return (ipf_perror_fd(pool_fd(), iocfunc,
-					     "remove lookup hash table"));
+			    "remove lookup hash table"));
 		}
 	}
 	return (0);

@@ -28,233 +28,231 @@
 
 /* Driver for VirtIO network devices. */
 
+#include "opt_inet.h"
+#include "opt_inet6.h"
+
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
-#include <sys/sockio.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/msan.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/random.h>
-#include <sys/sglist.h>
-#include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/taskqueue.h>
+#include <sys/random.h>
+#include <sys/rman.h>
+#include <sys/sglist.h>
 #include <sys/smp.h>
-#include <machine/smp.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
 
 #include <vm/uma.h>
 
-#include <net/debugnet.h>
-#include <net/ethernet.h>
-#include <net/pfil.h>
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
-#include <net/if_media.h>
-#include <net/if_vlan_var.h>
-
-#include <net/bpf.h>
-
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/ip6.h>
-#include <netinet6/ip6_var.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
-#include <netinet/tcp_lro.h>
-
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
+#include <machine/smp.h>
 
+#include <dev/virtio/network/if_vtnetvar.h>
+#include <dev/virtio/network/virtio_net.h>
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtqueue.h>
-#include <dev/virtio/network/virtio_net.h>
-#include <dev/virtio/network/if_vtnetvar.h>
-#include "virtio_if.h"
 
-#include "opt_inet.h"
-#include "opt_inet6.h"
+#include <net/bpf.h>
+#include <net/debugnet.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/if_vlan_var.h>
+#include <net/pfil.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <netinet/tcp.h>
+#include <netinet/tcp_lro.h>
+#include <netinet/udp.h>
+#include <netinet6/ip6_var.h>
+
+#include "virtio_if.h"
 
 #if defined(INET) || defined(INET6)
 #include <machine/in_cksum.h>
 #endif
 
-static int	vtnet_modevent(module_t, int, void *);
+static int vtnet_modevent(module_t, int, void *);
 
-static int	vtnet_probe(device_t);
-static int	vtnet_attach(device_t);
-static int	vtnet_detach(device_t);
-static int	vtnet_suspend(device_t);
-static int	vtnet_resume(device_t);
-static int	vtnet_shutdown(device_t);
-static int	vtnet_attach_completed(device_t);
-static int	vtnet_config_change(device_t);
+static int vtnet_probe(device_t);
+static int vtnet_attach(device_t);
+static int vtnet_detach(device_t);
+static int vtnet_suspend(device_t);
+static int vtnet_resume(device_t);
+static int vtnet_shutdown(device_t);
+static int vtnet_attach_completed(device_t);
+static int vtnet_config_change(device_t);
 
-static int	vtnet_negotiate_features(struct vtnet_softc *);
-static int	vtnet_setup_features(struct vtnet_softc *);
-static int	vtnet_init_rxq(struct vtnet_softc *, int);
-static int	vtnet_init_txq(struct vtnet_softc *, int);
-static int	vtnet_alloc_rxtx_queues(struct vtnet_softc *);
-static void	vtnet_free_rxtx_queues(struct vtnet_softc *);
-static int	vtnet_alloc_rx_filters(struct vtnet_softc *);
-static void	vtnet_free_rx_filters(struct vtnet_softc *);
-static int	vtnet_alloc_virtqueues(struct vtnet_softc *);
-static int	vtnet_alloc_interface(struct vtnet_softc *);
-static int	vtnet_setup_interface(struct vtnet_softc *);
-static int	vtnet_ioctl_mtu(struct vtnet_softc *, u_int);
-static int	vtnet_ioctl_ifflags(struct vtnet_softc *);
-static int	vtnet_ioctl_multi(struct vtnet_softc *);
-static int	vtnet_ioctl_ifcap(struct vtnet_softc *, struct ifreq *);
-static int	vtnet_ioctl(if_t, u_long, caddr_t);
-static uint64_t	vtnet_get_counter(if_t, ift_counter);
+static int vtnet_negotiate_features(struct vtnet_softc *);
+static int vtnet_setup_features(struct vtnet_softc *);
+static int vtnet_init_rxq(struct vtnet_softc *, int);
+static int vtnet_init_txq(struct vtnet_softc *, int);
+static int vtnet_alloc_rxtx_queues(struct vtnet_softc *);
+static void vtnet_free_rxtx_queues(struct vtnet_softc *);
+static int vtnet_alloc_rx_filters(struct vtnet_softc *);
+static void vtnet_free_rx_filters(struct vtnet_softc *);
+static int vtnet_alloc_virtqueues(struct vtnet_softc *);
+static int vtnet_alloc_interface(struct vtnet_softc *);
+static int vtnet_setup_interface(struct vtnet_softc *);
+static int vtnet_ioctl_mtu(struct vtnet_softc *, u_int);
+static int vtnet_ioctl_ifflags(struct vtnet_softc *);
+static int vtnet_ioctl_multi(struct vtnet_softc *);
+static int vtnet_ioctl_ifcap(struct vtnet_softc *, struct ifreq *);
+static int vtnet_ioctl(if_t, u_long, caddr_t);
+static uint64_t vtnet_get_counter(if_t, ift_counter);
 
-static int	vtnet_rxq_populate(struct vtnet_rxq *);
-static void	vtnet_rxq_free_mbufs(struct vtnet_rxq *);
-static struct mbuf *
-		vtnet_rx_alloc_buf(struct vtnet_softc *, int , struct mbuf **);
-static int	vtnet_rxq_replace_lro_nomrg_buf(struct vtnet_rxq *,
-		    struct mbuf *, int);
-static int	vtnet_rxq_replace_buf(struct vtnet_rxq *, struct mbuf *, int);
-static int	vtnet_rxq_enqueue_buf(struct vtnet_rxq *, struct mbuf *);
-static int	vtnet_rxq_new_buf(struct vtnet_rxq *);
-static int	vtnet_rxq_csum_needs_csum(struct vtnet_rxq *, struct mbuf *,
-		     uint16_t, int, struct virtio_net_hdr *);
-static int	vtnet_rxq_csum_data_valid(struct vtnet_rxq *, struct mbuf *,
-		     uint16_t, int, struct virtio_net_hdr *);
-static int	vtnet_rxq_csum(struct vtnet_rxq *, struct mbuf *,
-		     struct virtio_net_hdr *);
-static void	vtnet_rxq_discard_merged_bufs(struct vtnet_rxq *, int);
-static void	vtnet_rxq_discard_buf(struct vtnet_rxq *, struct mbuf *);
-static int	vtnet_rxq_merged_eof(struct vtnet_rxq *, struct mbuf *, int);
-static void	vtnet_rxq_input(struct vtnet_rxq *, struct mbuf *,
-		    struct virtio_net_hdr *);
-static int	vtnet_rxq_eof(struct vtnet_rxq *);
-static void	vtnet_rx_vq_process(struct vtnet_rxq *rxq, int tries);
-static void	vtnet_rx_vq_intr(void *);
-static void	vtnet_rxq_tq_intr(void *, int);
+static int vtnet_rxq_populate(struct vtnet_rxq *);
+static void vtnet_rxq_free_mbufs(struct vtnet_rxq *);
+static struct mbuf *vtnet_rx_alloc_buf(struct vtnet_softc *, int,
+    struct mbuf **);
+static int vtnet_rxq_replace_lro_nomrg_buf(struct vtnet_rxq *, struct mbuf *,
+    int);
+static int vtnet_rxq_replace_buf(struct vtnet_rxq *, struct mbuf *, int);
+static int vtnet_rxq_enqueue_buf(struct vtnet_rxq *, struct mbuf *);
+static int vtnet_rxq_new_buf(struct vtnet_rxq *);
+static int vtnet_rxq_csum_needs_csum(struct vtnet_rxq *, struct mbuf *,
+    uint16_t, int, struct virtio_net_hdr *);
+static int vtnet_rxq_csum_data_valid(struct vtnet_rxq *, struct mbuf *,
+    uint16_t, int, struct virtio_net_hdr *);
+static int vtnet_rxq_csum(struct vtnet_rxq *, struct mbuf *,
+    struct virtio_net_hdr *);
+static void vtnet_rxq_discard_merged_bufs(struct vtnet_rxq *, int);
+static void vtnet_rxq_discard_buf(struct vtnet_rxq *, struct mbuf *);
+static int vtnet_rxq_merged_eof(struct vtnet_rxq *, struct mbuf *, int);
+static void vtnet_rxq_input(struct vtnet_rxq *, struct mbuf *,
+    struct virtio_net_hdr *);
+static int vtnet_rxq_eof(struct vtnet_rxq *);
+static void vtnet_rx_vq_process(struct vtnet_rxq *rxq, int tries);
+static void vtnet_rx_vq_intr(void *);
+static void vtnet_rxq_tq_intr(void *, int);
 
-static int	vtnet_txq_intr_threshold(struct vtnet_txq *);
-static int	vtnet_txq_below_threshold(struct vtnet_txq *);
-static int	vtnet_txq_notify(struct vtnet_txq *);
-static void	vtnet_txq_free_mbufs(struct vtnet_txq *);
-static int	vtnet_txq_offload_ctx(struct vtnet_txq *, struct mbuf *,
-		    int *, int *, int *);
-static int	vtnet_txq_offload_tso(struct vtnet_txq *, struct mbuf *, int,
-		    int, struct virtio_net_hdr *);
-static struct mbuf *
-		vtnet_txq_offload(struct vtnet_txq *, struct mbuf *,
-		    struct virtio_net_hdr *);
-static int	vtnet_txq_enqueue_buf(struct vtnet_txq *, struct mbuf **,
-		    struct vtnet_tx_header *);
-static int	vtnet_txq_encap(struct vtnet_txq *, struct mbuf **, int);
+static int vtnet_txq_intr_threshold(struct vtnet_txq *);
+static int vtnet_txq_below_threshold(struct vtnet_txq *);
+static int vtnet_txq_notify(struct vtnet_txq *);
+static void vtnet_txq_free_mbufs(struct vtnet_txq *);
+static int vtnet_txq_offload_ctx(struct vtnet_txq *, struct mbuf *, int *,
+    int *, int *);
+static int vtnet_txq_offload_tso(struct vtnet_txq *, struct mbuf *, int, int,
+    struct virtio_net_hdr *);
+static struct mbuf *vtnet_txq_offload(struct vtnet_txq *, struct mbuf *,
+    struct virtio_net_hdr *);
+static int vtnet_txq_enqueue_buf(struct vtnet_txq *, struct mbuf **,
+    struct vtnet_tx_header *);
+static int vtnet_txq_encap(struct vtnet_txq *, struct mbuf **, int);
 #ifdef VTNET_LEGACY_TX
-static void	vtnet_start_locked(struct vtnet_txq *, if_t);
-static void	vtnet_start(if_t);
+static void vtnet_start_locked(struct vtnet_txq *, if_t);
+static void vtnet_start(if_t);
 #else
-static int	vtnet_txq_mq_start_locked(struct vtnet_txq *, struct mbuf *);
-static int	vtnet_txq_mq_start(if_t, struct mbuf *);
-static void	vtnet_txq_tq_deferred(void *, int);
+static int vtnet_txq_mq_start_locked(struct vtnet_txq *, struct mbuf *);
+static int vtnet_txq_mq_start(if_t, struct mbuf *);
+static void vtnet_txq_tq_deferred(void *, int);
 #endif
-static void	vtnet_txq_start(struct vtnet_txq *);
-static void	vtnet_txq_tq_intr(void *, int);
-static int	vtnet_txq_eof(struct vtnet_txq *);
-static void	vtnet_tx_vq_intr(void *);
-static void	vtnet_tx_start_all(struct vtnet_softc *);
+static void vtnet_txq_start(struct vtnet_txq *);
+static void vtnet_txq_tq_intr(void *, int);
+static int vtnet_txq_eof(struct vtnet_txq *);
+static void vtnet_tx_vq_intr(void *);
+static void vtnet_tx_start_all(struct vtnet_softc *);
 
 #ifndef VTNET_LEGACY_TX
-static void	vtnet_qflush(if_t);
+static void vtnet_qflush(if_t);
 #endif
 
-static int	vtnet_watchdog(struct vtnet_txq *);
-static void	vtnet_accum_stats(struct vtnet_softc *,
-		    struct vtnet_rxq_stats *, struct vtnet_txq_stats *);
-static void	vtnet_tick(void *);
+static int vtnet_watchdog(struct vtnet_txq *);
+static void vtnet_accum_stats(struct vtnet_softc *, struct vtnet_rxq_stats *,
+    struct vtnet_txq_stats *);
+static void vtnet_tick(void *);
 
-static void	vtnet_start_taskqueues(struct vtnet_softc *);
-static void	vtnet_free_taskqueues(struct vtnet_softc *);
-static void	vtnet_drain_taskqueues(struct vtnet_softc *);
+static void vtnet_start_taskqueues(struct vtnet_softc *);
+static void vtnet_free_taskqueues(struct vtnet_softc *);
+static void vtnet_drain_taskqueues(struct vtnet_softc *);
 
-static void	vtnet_drain_rxtx_queues(struct vtnet_softc *);
-static void	vtnet_stop_rendezvous(struct vtnet_softc *);
-static void	vtnet_stop(struct vtnet_softc *);
-static int	vtnet_virtio_reinit(struct vtnet_softc *);
-static void	vtnet_init_rx_filters(struct vtnet_softc *);
-static int	vtnet_init_rx_queues(struct vtnet_softc *);
-static int	vtnet_init_tx_queues(struct vtnet_softc *);
-static int	vtnet_init_rxtx_queues(struct vtnet_softc *);
-static void	vtnet_set_active_vq_pairs(struct vtnet_softc *);
-static void	vtnet_update_rx_offloads(struct vtnet_softc *);
-static int	vtnet_reinit(struct vtnet_softc *);
-static void	vtnet_init_locked(struct vtnet_softc *, int);
-static void	vtnet_init(void *);
+static void vtnet_drain_rxtx_queues(struct vtnet_softc *);
+static void vtnet_stop_rendezvous(struct vtnet_softc *);
+static void vtnet_stop(struct vtnet_softc *);
+static int vtnet_virtio_reinit(struct vtnet_softc *);
+static void vtnet_init_rx_filters(struct vtnet_softc *);
+static int vtnet_init_rx_queues(struct vtnet_softc *);
+static int vtnet_init_tx_queues(struct vtnet_softc *);
+static int vtnet_init_rxtx_queues(struct vtnet_softc *);
+static void vtnet_set_active_vq_pairs(struct vtnet_softc *);
+static void vtnet_update_rx_offloads(struct vtnet_softc *);
+static int vtnet_reinit(struct vtnet_softc *);
+static void vtnet_init_locked(struct vtnet_softc *, int);
+static void vtnet_init(void *);
 
-static void	vtnet_free_ctrl_vq(struct vtnet_softc *);
-static void	vtnet_exec_ctrl_cmd(struct vtnet_softc *, void *,
-		    struct sglist *, int, int);
-static int	vtnet_ctrl_mac_cmd(struct vtnet_softc *, uint8_t *);
-static int	vtnet_ctrl_guest_offloads(struct vtnet_softc *, uint64_t);
-static int	vtnet_ctrl_mq_cmd(struct vtnet_softc *, uint16_t);
-static int	vtnet_ctrl_rx_cmd(struct vtnet_softc *, uint8_t, bool);
-static int	vtnet_set_promisc(struct vtnet_softc *, bool);
-static int	vtnet_set_allmulti(struct vtnet_softc *, bool);
-static void	vtnet_rx_filter(struct vtnet_softc *);
-static void	vtnet_rx_filter_mac(struct vtnet_softc *);
-static int	vtnet_exec_vlan_filter(struct vtnet_softc *, int, uint16_t);
-static void	vtnet_rx_filter_vlan(struct vtnet_softc *);
-static void	vtnet_update_vlan_filter(struct vtnet_softc *, int, uint16_t);
-static void	vtnet_register_vlan(void *, if_t, uint16_t);
-static void	vtnet_unregister_vlan(void *, if_t, uint16_t);
+static void vtnet_free_ctrl_vq(struct vtnet_softc *);
+static void vtnet_exec_ctrl_cmd(struct vtnet_softc *, void *, struct sglist *,
+    int, int);
+static int vtnet_ctrl_mac_cmd(struct vtnet_softc *, uint8_t *);
+static int vtnet_ctrl_guest_offloads(struct vtnet_softc *, uint64_t);
+static int vtnet_ctrl_mq_cmd(struct vtnet_softc *, uint16_t);
+static int vtnet_ctrl_rx_cmd(struct vtnet_softc *, uint8_t, bool);
+static int vtnet_set_promisc(struct vtnet_softc *, bool);
+static int vtnet_set_allmulti(struct vtnet_softc *, bool);
+static void vtnet_rx_filter(struct vtnet_softc *);
+static void vtnet_rx_filter_mac(struct vtnet_softc *);
+static int vtnet_exec_vlan_filter(struct vtnet_softc *, int, uint16_t);
+static void vtnet_rx_filter_vlan(struct vtnet_softc *);
+static void vtnet_update_vlan_filter(struct vtnet_softc *, int, uint16_t);
+static void vtnet_register_vlan(void *, if_t, uint16_t);
+static void vtnet_unregister_vlan(void *, if_t, uint16_t);
 
-static void	vtnet_update_speed_duplex(struct vtnet_softc *);
-static int	vtnet_is_link_up(struct vtnet_softc *);
-static void	vtnet_update_link_status(struct vtnet_softc *);
-static int	vtnet_ifmedia_upd(if_t);
-static void	vtnet_ifmedia_sts(if_t, struct ifmediareq *);
-static void	vtnet_get_macaddr(struct vtnet_softc *);
-static void	vtnet_set_macaddr(struct vtnet_softc *);
-static void	vtnet_attached_set_macaddr(struct vtnet_softc *);
-static void	vtnet_vlan_tag_remove(struct mbuf *);
-static void	vtnet_set_rx_process_limit(struct vtnet_softc *);
+static void vtnet_update_speed_duplex(struct vtnet_softc *);
+static int vtnet_is_link_up(struct vtnet_softc *);
+static void vtnet_update_link_status(struct vtnet_softc *);
+static int vtnet_ifmedia_upd(if_t);
+static void vtnet_ifmedia_sts(if_t, struct ifmediareq *);
+static void vtnet_get_macaddr(struct vtnet_softc *);
+static void vtnet_set_macaddr(struct vtnet_softc *);
+static void vtnet_attached_set_macaddr(struct vtnet_softc *);
+static void vtnet_vlan_tag_remove(struct mbuf *);
+static void vtnet_set_rx_process_limit(struct vtnet_softc *);
 
-static void	vtnet_setup_rxq_sysctl(struct sysctl_ctx_list *,
-		    struct sysctl_oid_list *, struct vtnet_rxq *);
-static void	vtnet_setup_txq_sysctl(struct sysctl_ctx_list *,
-		    struct sysctl_oid_list *, struct vtnet_txq *);
-static void	vtnet_setup_queue_sysctl(struct vtnet_softc *);
-static void	vtnet_load_tunables(struct vtnet_softc *);
-static void	vtnet_setup_sysctl(struct vtnet_softc *);
+static void vtnet_setup_rxq_sysctl(struct sysctl_ctx_list *,
+    struct sysctl_oid_list *, struct vtnet_rxq *);
+static void vtnet_setup_txq_sysctl(struct sysctl_ctx_list *,
+    struct sysctl_oid_list *, struct vtnet_txq *);
+static void vtnet_setup_queue_sysctl(struct vtnet_softc *);
+static void vtnet_load_tunables(struct vtnet_softc *);
+static void vtnet_setup_sysctl(struct vtnet_softc *);
 
-static int	vtnet_rxq_enable_intr(struct vtnet_rxq *);
-static void	vtnet_rxq_disable_intr(struct vtnet_rxq *);
-static int	vtnet_txq_enable_intr(struct vtnet_txq *);
-static void	vtnet_txq_disable_intr(struct vtnet_txq *);
-static void	vtnet_enable_rx_interrupts(struct vtnet_softc *);
-static void	vtnet_enable_tx_interrupts(struct vtnet_softc *);
-static void	vtnet_enable_interrupts(struct vtnet_softc *);
-static void	vtnet_disable_rx_interrupts(struct vtnet_softc *);
-static void	vtnet_disable_tx_interrupts(struct vtnet_softc *);
-static void	vtnet_disable_interrupts(struct vtnet_softc *);
+static int vtnet_rxq_enable_intr(struct vtnet_rxq *);
+static void vtnet_rxq_disable_intr(struct vtnet_rxq *);
+static int vtnet_txq_enable_intr(struct vtnet_txq *);
+static void vtnet_txq_disable_intr(struct vtnet_txq *);
+static void vtnet_enable_rx_interrupts(struct vtnet_softc *);
+static void vtnet_enable_tx_interrupts(struct vtnet_softc *);
+static void vtnet_enable_interrupts(struct vtnet_softc *);
+static void vtnet_disable_rx_interrupts(struct vtnet_softc *);
+static void vtnet_disable_tx_interrupts(struct vtnet_softc *);
+static void vtnet_disable_interrupts(struct vtnet_softc *);
 
-static int	vtnet_tunable_int(struct vtnet_softc *, const char *, int);
+static int vtnet_tunable_int(struct vtnet_softc *, const char *, int);
 
 DEBUGNET_DEFINE(vtnet);
 
-#define vtnet_htog16(_sc, _val)	virtio_htog16(vtnet_modern(_sc), _val)
-#define vtnet_htog32(_sc, _val)	virtio_htog32(vtnet_modern(_sc), _val)
-#define vtnet_htog64(_sc, _val)	virtio_htog64(vtnet_modern(_sc), _val)
-#define vtnet_gtoh16(_sc, _val)	virtio_gtoh16(vtnet_modern(_sc), _val)
-#define vtnet_gtoh32(_sc, _val)	virtio_gtoh32(vtnet_modern(_sc), _val)
-#define vtnet_gtoh64(_sc, _val)	virtio_gtoh64(vtnet_modern(_sc), _val)
+#define vtnet_htog16(_sc, _val) virtio_htog16(vtnet_modern(_sc), _val)
+#define vtnet_htog32(_sc, _val) virtio_htog32(vtnet_modern(_sc), _val)
+#define vtnet_htog64(_sc, _val) virtio_htog64(vtnet_modern(_sc), _val)
+#define vtnet_gtoh16(_sc, _val) virtio_gtoh16(vtnet_modern(_sc), _val)
+#define vtnet_gtoh32(_sc, _val) virtio_gtoh32(vtnet_modern(_sc), _val)
+#define vtnet_gtoh64(_sc, _val) virtio_gtoh64(vtnet_modern(_sc), _val)
 
 /* Tunables. */
 static SYSCTL_NODE(_hw, OID_AUTO, vtnet, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
@@ -270,29 +268,28 @@ SYSCTL_INT(_hw_vtnet, OID_AUTO, fixup_needs_csum, CTLFLAG_RDTUN,
     "Calculate valid checksum for NEEDS_CSUM packets");
 
 static int vtnet_tso_disable = 0;
-SYSCTL_INT(_hw_vtnet, OID_AUTO, tso_disable, CTLFLAG_RDTUN,
-    &vtnet_tso_disable, 0, "Disables TSO");
+SYSCTL_INT(_hw_vtnet, OID_AUTO, tso_disable, CTLFLAG_RDTUN, &vtnet_tso_disable,
+    0, "Disables TSO");
 
 static int vtnet_lro_disable = 0;
-SYSCTL_INT(_hw_vtnet, OID_AUTO, lro_disable, CTLFLAG_RDTUN,
-    &vtnet_lro_disable, 0, "Disables hardware LRO");
+SYSCTL_INT(_hw_vtnet, OID_AUTO, lro_disable, CTLFLAG_RDTUN, &vtnet_lro_disable,
+    0, "Disables hardware LRO");
 
 static int vtnet_mq_disable = 0;
-SYSCTL_INT(_hw_vtnet, OID_AUTO, mq_disable, CTLFLAG_RDTUN,
-    &vtnet_mq_disable, 0, "Disables multiqueue support");
+SYSCTL_INT(_hw_vtnet, OID_AUTO, mq_disable, CTLFLAG_RDTUN, &vtnet_mq_disable, 0,
+    "Disables multiqueue support");
 
 static int vtnet_mq_max_pairs = VTNET_MAX_QUEUE_PAIRS;
 SYSCTL_INT(_hw_vtnet, OID_AUTO, mq_max_pairs, CTLFLAG_RDTUN,
     &vtnet_mq_max_pairs, 0, "Maximum number of multiqueue pairs");
 
 static int vtnet_tso_maxlen = IP_MAXPACKET;
-SYSCTL_INT(_hw_vtnet, OID_AUTO, tso_maxlen, CTLFLAG_RDTUN,
-    &vtnet_tso_maxlen, 0, "TSO burst limit");
+SYSCTL_INT(_hw_vtnet, OID_AUTO, tso_maxlen, CTLFLAG_RDTUN, &vtnet_tso_maxlen, 0,
+    "TSO burst limit");
 
 static int vtnet_rx_process_limit = 1024;
 SYSCTL_INT(_hw_vtnet, OID_AUTO, rx_process_limit, CTLFLAG_RDTUN,
-    &vtnet_rx_process_limit, 0,
-    "Number of RX segments processed in one pass");
+    &vtnet_rx_process_limit, 0, "Number of RX segments processed in one pass");
 
 static int vtnet_lro_entry_count = 128;
 SYSCTL_INT(_hw_vtnet, OID_AUTO, lro_entry_count, CTLFLAG_RDTUN,
@@ -305,46 +302,43 @@ SYSCTL_UINT(_hw_vtnet, OID_AUTO, lro_mbufq_depth, CTLFLAG_RDTUN,
 
 static uma_zone_t vtnet_tx_header_zone;
 
-static struct virtio_feature_desc vtnet_feature_desc[] = {
-	{ VIRTIO_NET_F_CSUM,			"TxChecksum"		},
-	{ VIRTIO_NET_F_GUEST_CSUM,		"RxChecksum"		},
-	{ VIRTIO_NET_F_CTRL_GUEST_OFFLOADS,	"CtrlRxOffloads"	},
-	{ VIRTIO_NET_F_MAC,			"MAC"			},
-	{ VIRTIO_NET_F_GSO,			"TxGSO"			},
-	{ VIRTIO_NET_F_GUEST_TSO4,		"RxLROv4"		},
-	{ VIRTIO_NET_F_GUEST_TSO6,		"RxLROv6"		},
-	{ VIRTIO_NET_F_GUEST_ECN,		"RxLROECN"		},
-	{ VIRTIO_NET_F_GUEST_UFO,		"RxUFO"			},
-	{ VIRTIO_NET_F_HOST_TSO4,		"TxTSOv4"		},
-	{ VIRTIO_NET_F_HOST_TSO6,		"TxTSOv6"		},
-	{ VIRTIO_NET_F_HOST_ECN,		"TxTSOECN"		},
-	{ VIRTIO_NET_F_HOST_UFO,		"TxUFO"			},
-	{ VIRTIO_NET_F_MRG_RXBUF,		"MrgRxBuf"		},
-	{ VIRTIO_NET_F_STATUS,			"Status"		},
-	{ VIRTIO_NET_F_CTRL_VQ,			"CtrlVq"		},
-	{ VIRTIO_NET_F_CTRL_RX,			"CtrlRxMode"		},
-	{ VIRTIO_NET_F_CTRL_VLAN,		"CtrlVLANFilter"	},
-	{ VIRTIO_NET_F_CTRL_RX_EXTRA,		"CtrlRxModeExtra"	},
-	{ VIRTIO_NET_F_GUEST_ANNOUNCE,		"GuestAnnounce"		},
-	{ VIRTIO_NET_F_MQ,			"Multiqueue"		},
-	{ VIRTIO_NET_F_CTRL_MAC_ADDR,		"CtrlMacAddr"		},
-	{ VIRTIO_NET_F_SPEED_DUPLEX,		"SpeedDuplex"		},
+static struct virtio_feature_desc vtnet_feature_desc[] = { { VIRTIO_NET_F_CSUM,
+							       "TxChecksum" },
+	{ VIRTIO_NET_F_GUEST_CSUM, "RxChecksum" },
+	{ VIRTIO_NET_F_CTRL_GUEST_OFFLOADS, "CtrlRxOffloads" },
+	{ VIRTIO_NET_F_MAC, "MAC" }, { VIRTIO_NET_F_GSO, "TxGSO" },
+	{ VIRTIO_NET_F_GUEST_TSO4, "RxLROv4" },
+	{ VIRTIO_NET_F_GUEST_TSO6, "RxLROv6" },
+	{ VIRTIO_NET_F_GUEST_ECN, "RxLROECN" },
+	{ VIRTIO_NET_F_GUEST_UFO, "RxUFO" },
+	{ VIRTIO_NET_F_HOST_TSO4, "TxTSOv4" },
+	{ VIRTIO_NET_F_HOST_TSO6, "TxTSOv6" },
+	{ VIRTIO_NET_F_HOST_ECN, "TxTSOECN" },
+	{ VIRTIO_NET_F_HOST_UFO, "TxUFO" },
+	{ VIRTIO_NET_F_MRG_RXBUF, "MrgRxBuf" },
+	{ VIRTIO_NET_F_STATUS, "Status" }, { VIRTIO_NET_F_CTRL_VQ, "CtrlVq" },
+	{ VIRTIO_NET_F_CTRL_RX, "CtrlRxMode" },
+	{ VIRTIO_NET_F_CTRL_VLAN, "CtrlVLANFilter" },
+	{ VIRTIO_NET_F_CTRL_RX_EXTRA, "CtrlRxModeExtra" },
+	{ VIRTIO_NET_F_GUEST_ANNOUNCE, "GuestAnnounce" },
+	{ VIRTIO_NET_F_MQ, "Multiqueue" },
+	{ VIRTIO_NET_F_CTRL_MAC_ADDR, "CtrlMacAddr" },
+	{ VIRTIO_NET_F_SPEED_DUPLEX, "SpeedDuplex" },
 
-	{ 0, NULL }
-};
+	{ 0, NULL } };
 
 static device_method_t vtnet_methods[] = {
 	/* Device methods. */
-	DEVMETHOD(device_probe,			vtnet_probe),
-	DEVMETHOD(device_attach,		vtnet_attach),
-	DEVMETHOD(device_detach,		vtnet_detach),
-	DEVMETHOD(device_suspend,		vtnet_suspend),
-	DEVMETHOD(device_resume,		vtnet_resume),
-	DEVMETHOD(device_shutdown,		vtnet_shutdown),
+	DEVMETHOD(device_probe, vtnet_probe),
+	DEVMETHOD(device_attach, vtnet_attach),
+	DEVMETHOD(device_detach, vtnet_detach),
+	DEVMETHOD(device_suspend, vtnet_suspend),
+	DEVMETHOD(device_resume, vtnet_resume),
+	DEVMETHOD(device_shutdown, vtnet_shutdown),
 
 	/* VirtIO methods. */
-	DEVMETHOD(virtio_attach_completed,	vtnet_attach_completed),
-	DEVMETHOD(virtio_config_change,		vtnet_config_change),
+	DEVMETHOD(virtio_attach_completed, vtnet_attach_completed),
+	DEVMETHOD(virtio_config_change, vtnet_config_change),
 
 	DEVMETHOD_END
 };
@@ -353,11 +347,9 @@ static device_method_t vtnet_methods[] = {
 #include <dev/netmap/if_vtnet_netmap.h>
 #endif
 
-static driver_t vtnet_driver = {
-    .name = "vtnet",
-    .methods = vtnet_methods,
-    .size = sizeof(struct vtnet_softc)
-};
+static driver_t vtnet_driver = { .name = "vtnet",
+	.methods = vtnet_methods,
+	.size = sizeof(struct vtnet_softc) };
 VIRTIO_DRIVER_MODULE(vtnet, vtnet_driver, vtnet_modevent, NULL);
 MODULE_VERSION(vtnet, 1);
 MODULE_DEPEND(vtnet, virtio, 1, 1, 1);
@@ -377,17 +369,20 @@ vtnet_modevent(module_t mod __unused, int type, void *unused __unused)
 	case MOD_LOAD:
 		if (loaded++ == 0) {
 			vtnet_tx_header_zone = uma_zcreate("vtnet_tx_hdr",
-				sizeof(struct vtnet_tx_header),
-				NULL, NULL, NULL, NULL, 0, 0);
+			    sizeof(struct vtnet_tx_header), NULL, NULL, NULL,
+			    NULL, 0, 0);
 #ifdef DEBUGNET
 			/*
-			 * We need to allocate from this zone in the transmit path, so ensure
-			 * that we have at least one item per header available.
-			 * XXX add a separate zone like we do for mbufs? otherwise we may alloc
-			 * buckets
+			 * We need to allocate from this zone in the transmit
+			 * path, so ensure that we have at least one item per
+			 * header available.
+			 * XXX add a separate zone like we do for mbufs?
+			 * otherwise we may alloc buckets
 			 */
-			uma_zone_reserve(vtnet_tx_header_zone, DEBUGNET_MAX_IN_FLIGHT * 2);
-			uma_prealloc(vtnet_tx_header_zone, DEBUGNET_MAX_IN_FLIGHT * 2);
+			uma_zone_reserve(vtnet_tx_header_zone,
+			    DEBUGNET_MAX_IN_FLIGHT * 2);
+			uma_prealloc(vtnet_tx_header_zone,
+			    DEBUGNET_MAX_IN_FLIGHT * 2);
 #endif
 		}
 		break;
@@ -628,7 +623,7 @@ vtnet_negotiate_features(struct vtnet_softc *sc)
 
 	dev = sc->vtnet_dev;
 	features = virtio_bus_is_modern(dev) ? VTNET_MODERN_FEATURES :
-	    VTNET_LEGACY_FEATURES;
+					       VTNET_LEGACY_FEATURES;
 
 	/*
 	 * TSO and LRO are only available when their corresponding checksum
@@ -657,11 +652,13 @@ vtnet_negotiate_features(struct vtnet_softc *sc)
 		mtu = virtio_read_dev_config_2(dev,
 		    offsetof(struct virtio_net_config, mtu));
 		if (mtu < VTNET_MIN_MTU /* || mtu > VTNET_MAX_MTU */) {
-			device_printf(dev, "Invalid MTU value: %d. "
-			    "MTU feature disabled.\n", mtu);
+			device_printf(dev,
+			    "Invalid MTU value: %d. "
+			    "MTU feature disabled.\n",
+			    mtu);
 			features &= ~VIRTIO_NET_F_MTU;
-			negotiated_features =
-			    virtio_negotiate_features(dev, features);
+			negotiated_features = virtio_negotiate_features(dev,
+			    features);
 		}
 	}
 
@@ -672,11 +669,13 @@ vtnet_negotiate_features(struct vtnet_softc *sc)
 		    offsetof(struct virtio_net_config, max_virtqueue_pairs));
 		if (npairs < VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MIN ||
 		    npairs > VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MAX) {
-			device_printf(dev, "Invalid max_virtqueue_pairs value: "
-			    "%d. Multiqueue feature disabled.\n", npairs);
+			device_printf(dev,
+			    "Invalid max_virtqueue_pairs value: "
+			    "%d. Multiqueue feature disabled.\n",
+			    npairs);
 			features &= ~VIRTIO_NET_F_MQ;
-			negotiated_features =
-			    virtio_negotiate_features(dev, features);
+			negotiated_features = virtio_negotiate_features(dev,
+			    features);
 		}
 	}
 
@@ -696,8 +695,8 @@ vtnet_negotiate_features(struct vtnet_softc *sc)
 			    "Host LRO disabled since both mergeable buffers "
 			    "and indirect descriptors were not negotiated\n");
 			features &= ~VTNET_LRO_FEATURES;
-			negotiated_features =
-			    virtio_negotiate_features(dev, features);
+			negotiated_features = virtio_negotiate_features(dev,
+			    features);
 		} else
 			sc->vtnet_flags |= VTNET_FLAG_LRO_NOMRG;
 	}
@@ -785,7 +784,7 @@ vtnet_setup_features(struct vtnet_softc *sc)
 		if (virtio_with_feature(dev, VIRTIO_NET_F_MQ)) {
 			sc->vtnet_max_vq_pairs = virtio_read_dev_config_2(dev,
 			    offsetof(struct virtio_net_config,
-			    max_virtqueue_pairs));
+				max_virtqueue_pairs));
 		}
 	}
 
@@ -835,7 +834,8 @@ vtnet_init_rxq(struct vtnet_softc *sc, int id)
 #if defined(INET) || defined(INET6)
 	if (vtnet_software_lro(sc)) {
 		if (tcp_lro_init_args(&rxq->vtnrx_lro, sc->vtnet_ifp,
-		    sc->vtnet_lro_entry_count, sc->vtnet_lro_mbufq_depth) != 0)
+			sc->vtnet_lro_entry_count,
+			sc->vtnet_lro_mbufq_depth) != 0)
 			return (ENOMEM);
 	}
 #endif
@@ -987,7 +987,8 @@ vtnet_alloc_rx_filters(struct vtnet_softc *sc)
 
 	if (sc->vtnet_flags & VTNET_FLAG_VLAN_FILTER) {
 		sc->vtnet_vlan_filter = malloc(sizeof(uint32_t) *
-		    VTNET_VLAN_FILTER_NWORDS, M_DEVBUF, M_NOWAIT | M_ZERO);
+			VTNET_VLAN_FILTER_NWORDS,
+		    M_DEVBUF, M_NOWAIT | M_ZERO);
 		if (sc->vtnet_vlan_filter == NULL)
 			return (ENOMEM);
 	}
@@ -1032,13 +1033,13 @@ vtnet_alloc_virtqueues(struct vtnet_softc *sc)
 	for (i = 0, idx = 0; i < sc->vtnet_req_vq_pairs; i++, idx += 2) {
 		rxq = &sc->vtnet_rxqs[i];
 		VQ_ALLOC_INFO_INIT(&info[idx], sc->vtnet_rx_nsegs,
-		    vtnet_rx_vq_intr, rxq, &rxq->vtnrx_vq,
-		    "%s-rx%d", device_get_nameunit(dev), rxq->vtnrx_id);
+		    vtnet_rx_vq_intr, rxq, &rxq->vtnrx_vq, "%s-rx%d",
+		    device_get_nameunit(dev), rxq->vtnrx_id);
 
 		txq = &sc->vtnet_txqs[i];
-		VQ_ALLOC_INFO_INIT(&info[idx+1], sc->vtnet_tx_nsegs,
-		    vtnet_tx_vq_intr, txq, &txq->vtntx_vq,
-		    "%s-tx%d", device_get_nameunit(dev), txq->vtntx_id);
+		VQ_ALLOC_INFO_INIT(&info[idx + 1], sc->vtnet_tx_nsegs,
+		    vtnet_tx_vq_intr, txq, &txq->vtntx_vq, "%s-tx%d",
+		    device_get_nameunit(dev), txq->vtntx_id);
 	}
 
 	/* These queues will not be used so allocate the minimum resources. */
@@ -1048,7 +1049,7 @@ vtnet_alloc_virtqueues(struct vtnet_softc *sc)
 		    "%s-rx%d", device_get_nameunit(dev), rxq->vtnrx_id);
 
 		txq = &sc->vtnet_txqs[i];
-		VQ_ALLOC_INFO_INIT(&info[idx+1], 0, NULL, txq, &txq->vtntx_vq,
+		VQ_ALLOC_INFO_INIT(&info[idx + 1], 0, NULL, txq, &txq->vtntx_vq,
 		    "%s-tx%d", device_get_nameunit(dev), txq->vtntx_id);
 	}
 
@@ -1136,8 +1137,9 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 
 			tso_maxlen = vtnet_tunable_int(sc, "tso_maxlen",
 			    vtnet_tso_maxlen);
-			if_sethwtsomax(ifp, tso_maxlen -
-			    (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
+			if_sethwtsomax(ifp,
+			    tso_maxlen -
+				(ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
 			if_sethwtsomaxsegcount(ifp, sc->vtnet_tx_nsegs - 1);
 			if_sethwtsomaxsegsize(ifp, PAGE_SIZE);
 		}
@@ -1151,7 +1153,7 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 #endif
 
 		if (vtnet_tunable_int(sc, "fixup_needs_csum",
-		    vtnet_fixup_needs_csum) != 0)
+			vtnet_fixup_needs_csum) != 0)
 			sc->vtnet_flags |= VTNET_FLAG_FIXUP_NEEDS_CSUM;
 
 		/* Support either "hardware" or software LRO. */
@@ -1165,7 +1167,8 @@ vtnet_setup_interface(struct vtnet_softc *sc)
 		 * transmit and receive. We are then able to do checksum
 		 * offloading of VLAN frames.
 		 */
-		if_setcapabilitiesbit(ifp, IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM, 0);
+		if_setcapabilitiesbit(ifp,
+		    IFCAP_VLAN_HWTAGGING | IFCAP_VLAN_HWCSUM, 0);
 	}
 
 	if (sc->vtnet_max_mtu >= ETHERMTU_JUMBO)
@@ -1325,7 +1328,8 @@ vtnet_ioctl_ifcap(struct vtnet_softc *sc, struct ifreq *ifr)
 	int mask, reinit, update;
 
 	ifp = sc->vtnet_ifp;
-	mask = (ifr->ifr_reqcap & if_getcapabilities(ifp)) ^ if_getcapenable(ifp);
+	mask = (ifr->ifr_reqcap & if_getcapabilities(ifp)) ^
+	    if_getcapenable(ifp);
 	reinit = update = 0;
 
 	VTNET_CORE_LOCK_ASSERT(sc);
@@ -1351,7 +1355,8 @@ vtnet_ioctl_ifcap(struct vtnet_softc *sc, struct ifreq *ifr)
 
 		/* BMV: Avoid needless renegotiation for just software LRO. */
 		if ((mask & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6 | IFCAP_LRO)) ==
-		    IFCAP_LRO && vtnet_software_lro(sc))
+			IFCAP_LRO &&
+		    vtnet_software_lro(sc))
 			reinit = update = 0;
 
 		if (mask & IFCAP_RXCSUM)
@@ -1408,7 +1413,7 @@ vtnet_ioctl(if_t ifp, u_long cmd, caddr_t data)
 	int error;
 
 	sc = if_getsoftc(ifp);
-	ifr = (struct ifreq *) data;
+	ifr = (struct ifreq *)data;
 	error = 0;
 
 	switch (cmd) {
@@ -1463,7 +1468,7 @@ vtnet_rxq_populate(struct vtnet_rxq *rxq)
 	error = vtnet_netmap_rxq_populate(rxq);
 	if (error >= 0)
 		return (error);
-#endif  /* DEV_NETMAP */
+#endif /* DEV_NETMAP */
 
 	vq = rxq->vtnrx_vq;
 	error = ENOSPC;
@@ -1495,8 +1500,8 @@ vtnet_rxq_free_mbufs(struct vtnet_rxq *rxq)
 	struct mbuf *m;
 	int last;
 #ifdef DEV_NETMAP
-	struct netmap_kring *kring = netmap_kring_on(NA(rxq->vtnrx_sc->vtnet_ifp),
-							rxq->vtnrx_id, NR_RX);
+	struct netmap_kring *kring =
+	    netmap_kring_on(NA(rxq->vtnrx_sc->vtnet_ifp), rxq->vtnrx_id, NR_RX);
 #else  /* !DEV_NETMAP */
 	void *kring = NULL;
 #endif /* !DEV_NETMAP */
@@ -1585,7 +1590,7 @@ vtnet_rxq_replace_lro_nomrg_buf(struct vtnet_rxq *rxq, struct mbuf *m0,
 		 */
 		KASSERT(m->m_len == clustersz,
 		    ("%s: mbuf size %d not expected cluster size %d", __func__,
-		    m->m_len, clustersz));
+			m->m_len, clustersz));
 
 		m->m_len = MIN(m->m_len, len);
 		len -= m->m_len;
@@ -1596,8 +1601,8 @@ vtnet_rxq_replace_lro_nomrg_buf(struct vtnet_rxq *rxq, struct mbuf *m0,
 	}
 
 	KASSERT(nreplace > 0 && nreplace <= sc->vtnet_rx_nmbufs,
-	    ("%s: invalid replacement mbuf count %d max %d", __func__,
-	    nreplace, sc->vtnet_rx_nmbufs));
+	    ("%s: invalid replacement mbuf count %d max %d", __func__, nreplace,
+		sc->vtnet_rx_nmbufs));
 
 	m_new = vtnet_rx_alloc_buf(sc, nreplace, &m_tail);
 	if (m_new == NULL) {
@@ -1681,13 +1686,14 @@ vtnet_rxq_enqueue_buf(struct vtnet_rxq *rxq, struct mbuf *m)
 
 	sglist_reset(sg);
 	header_inlined = vtnet_modern(sc) ||
-	    (sc->vtnet_flags & VTNET_FLAG_MRG_RXBUFS) != 0; /* TODO: ANY_LAYOUT */
+	    (sc->vtnet_flags & VTNET_FLAG_MRG_RXBUFS) !=
+		0; /* TODO: ANY_LAYOUT */
 
 	if (header_inlined)
 		error = sglist_append_mbuf(sg, m);
 	else {
-		struct vtnet_rx_header *rxhdr =
-		    mtod(m, struct vtnet_rx_header *);
+		struct vtnet_rx_header *rxhdr = mtod(m,
+		    struct vtnet_rx_header *);
 		MPASS(sc->vtnet_hdr_size == sizeof(struct virtio_net_hdr));
 
 		/* Append the header and remaining mbuf data. */
@@ -1803,8 +1809,8 @@ vtnet_rxq_csum_needs_csum(struct vtnet_rxq *rxq, struct mbuf *m, uint16_t etype,
 }
 
 static int
-vtnet_rxq_csum_data_valid(struct vtnet_rxq *rxq, struct mbuf *m,
-    uint16_t etype, int hoff, struct virtio_net_hdr *hdr __unused)
+vtnet_rxq_csum_data_valid(struct vtnet_rxq *rxq, struct mbuf *m, uint16_t etype,
+    int hoff, struct virtio_net_hdr *hdr __unused)
 {
 #if 0
 	struct vtnet_softc *sc;
@@ -1828,8 +1834,8 @@ vtnet_rxq_csum_data_valid(struct vtnet_rxq *rxq, struct mbuf *m,
 #endif
 #if defined(INET6)
 	case ETHERTYPE_IPV6:
-		if (__predict_false(m->m_len < hoff + sizeof(struct ip6_hdr))
-		    || ip6_lasthdr(m, hoff, IPPROTO_IPV6, &protocol) < 0)
+		if (__predict_false(m->m_len < hoff + sizeof(struct ip6_hdr)) ||
+		    ip6_lasthdr(m, hoff, IPPROTO_IPV6, &protocol) < 0)
 			protocol = IPPROTO_DONE;
 		break;
 #endif
@@ -1875,8 +1881,8 @@ vtnet_rxq_csum(struct vtnet_rxq *rxq, struct mbuf *m,
 	etype = ntohs(eh->ether_type);
 	if (etype == ETHERTYPE_VLAN) {
 		/* TODO BMV: Handle QinQ. */
-		const struct ether_vlan_header *evh =
-		    mtod(m, const struct ether_vlan_header *);
+		const struct ether_vlan_header *evh = mtod(m,
+		    const struct ether_vlan_header *);
 		etype = ntohs(evh->evl_proto);
 		hoff = sizeof(struct ether_vlan_header);
 	} else
@@ -2019,8 +2025,8 @@ vtnet_rxq_input(struct vtnet_rxq *rxq, struct mbuf *m,
 		switch (hdr->gso_type & ~VIRTIO_NET_HDR_GSO_ECN) {
 		case VIRTIO_NET_HDR_GSO_TCPV4:
 		case VIRTIO_NET_HDR_GSO_TCPV6:
-			m->m_pkthdr.lro_nsegs =
-			    howmany(m->m_pkthdr.len, hdr->gso_size);
+			m->m_pkthdr.lro_nsegs = howmany(m->m_pkthdr.len,
+			    hdr->gso_size);
 			rxq->vtnrx_stats.vrxs_host_lro++;
 			break;
 		}
@@ -2072,8 +2078,8 @@ vtnet_rxq_eof(struct vtnet_rxq *rxq)
 		}
 
 		if (sc->vtnet_flags & VTNET_FLAG_MRG_RXBUFS) {
-			struct virtio_net_hdr_mrg_rxbuf *mhdr =
-			    mtod(m, struct virtio_net_hdr_mrg_rxbuf *);
+			struct virtio_net_hdr_mrg_rxbuf *mhdr = mtod(m,
+			    struct virtio_net_hdr_mrg_rxbuf *);
 			kmsan_mark(mhdr, sizeof(*mhdr), KMSAN_STATE_INITED);
 			nbufs = vtnet_htog16(sc, mhdr->num_buffers);
 			adjsz = sizeof(struct virtio_net_hdr_mrg_rxbuf);
@@ -2312,8 +2318,8 @@ vtnet_txq_free_mbufs(struct vtnet_txq *txq)
 	struct vtnet_tx_header *txhdr;
 	int last;
 #ifdef DEV_NETMAP
-	struct netmap_kring *kring = netmap_kring_on(NA(txq->vtntx_sc->vtnet_ifp),
-							txq->vtntx_id, NR_TX);
+	struct netmap_kring *kring =
+	    netmap_kring_on(NA(txq->vtntx_sc->vtnet_ifp), txq->vtntx_id, NR_TX);
 #else  /* !DEV_NETMAP */
 	void *kring = NULL;
 #endif /* !DEV_NETMAP */
@@ -2367,7 +2373,7 @@ vtnet_txq_offload_ctx(struct vtnet_txq *txq, struct mbuf *m, int *etype,
 		struct ip *ip, iphdr;
 		if (__predict_false(m->m_len < offset + sizeof(struct ip))) {
 			m_copydata(m, offset, sizeof(struct ip),
-			    (caddr_t) &iphdr);
+			    (caddr_t)&iphdr);
 			ip = &iphdr;
 		} else
 			ip = (struct ip *)(m->m_data + offset);
@@ -2383,7 +2389,7 @@ vtnet_txq_offload_ctx(struct vtnet_txq *txq, struct mbuf *m, int *etype,
 		/* Assert the network stack sent us a valid packet. */
 		KASSERT(*start > offset,
 		    ("%s: mbuf %p start %d offset %d proto %d", __func__, m,
-		    *start, offset, *proto));
+			*start, offset, *proto));
 		break;
 #endif
 	default:
@@ -2406,7 +2412,7 @@ vtnet_txq_offload_tso(struct vtnet_txq *txq, struct mbuf *m, int eth_type,
 	sc = txq->vtntx_sc;
 
 	if (__predict_false(m->m_len < offset + sizeof(struct tcphdr))) {
-		m_copydata(m, offset, sizeof(struct tcphdr), (caddr_t) &tcphdr);
+		m_copydata(m, offset, sizeof(struct tcphdr), (caddr_t)&tcphdr);
 		tcp = &tcphdr;
 	} else
 		tcp = (struct tcphdr *)(m->m_data + offset);
@@ -2414,7 +2420,7 @@ vtnet_txq_offload_tso(struct vtnet_txq *txq, struct mbuf *m, int eth_type,
 	hdr->hdr_len = vtnet_gtoh16(sc, offset + (tcp->th_off << 2));
 	hdr->gso_size = vtnet_gtoh16(sc, m->m_pkthdr.tso_segsz);
 	hdr->gso_type = eth_type == ETHERTYPE_IP ? VIRTIO_NET_HDR_GSO_TCPV4 :
-	    VIRTIO_NET_HDR_GSO_TCPV6;
+						   VIRTIO_NET_HDR_GSO_TCPV6;
 
 	if (__predict_false(tcp->th_flags & TH_CWR)) {
 		/*
@@ -2453,9 +2459,10 @@ vtnet_txq_offload(struct vtnet_txq *txq, struct mbuf *m,
 
 	if (flags & (VTNET_CSUM_OFFLOAD | VTNET_CSUM_OFFLOAD_IPV6)) {
 		/* Sanity check the parsed mbuf matches the offload flags. */
-		if (__predict_false((flags & VTNET_CSUM_OFFLOAD &&
-		    etype != ETHERTYPE_IP) || (flags & VTNET_CSUM_OFFLOAD_IPV6
-		    && etype != ETHERTYPE_IPV6))) {
+		if (__predict_false(
+			(flags & VTNET_CSUM_OFFLOAD && etype != ETHERTYPE_IP) ||
+			(flags & VTNET_CSUM_OFFLOAD_IPV6 &&
+			    etype != ETHERTYPE_IPV6))) {
 			sc->vtnet_stats.tx_csum_proto_mismatch++;
 			goto drop;
 		}
@@ -2474,8 +2481,9 @@ vtnet_txq_offload(struct vtnet_txq *txq, struct mbuf *m,
 		if (__predict_false(proto != IPPROTO_TCP)) {
 			sc->vtnet_stats.tx_tso_not_tcp++;
 			goto drop;
-		} else if (__predict_false((hdr->flags &
-		    VIRTIO_NET_HDR_F_NEEDS_CSUM) == 0)) {
+		} else if (__predict_false(
+			       (hdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM) ==
+			       0)) {
 			sc->vtnet_stats.tx_tso_without_csum++;
 			goto drop;
 		}
@@ -2510,8 +2518,9 @@ vtnet_txq_enqueue_buf(struct vtnet_txq *txq, struct mbuf **m_head,
 	sglist_reset(sg);
 	error = sglist_append(sg, &txhdr->vth_uhdr, sc->vtnet_hdr_size);
 	if (error != 0 || sg->sg_nseg != 1) {
-		KASSERT(0, ("%s: cannot add header to sglist error %d nseg %d",
-		    __func__, error, sg->sg_nseg));
+		KASSERT(0,
+		    ("%s: cannot add header to sglist error %d nseg %d",
+			__func__, error, sg->sg_nseg));
 		goto fail;
 	}
 
@@ -3268,10 +3277,11 @@ vtnet_init_rx_queues(struct vtnet_softc *sc)
 
 	if (sc->vtnet_flags & VTNET_FLAG_LRO_NOMRG) {
 		sc->vtnet_rx_nmbufs = howmany(sizeof(struct vtnet_rx_header) +
-		    VTNET_MAX_RX_SIZE, clustersz);
+			VTNET_MAX_RX_SIZE,
+		    clustersz);
 		KASSERT(sc->vtnet_rx_nmbufs < sc->vtnet_rx_nsegs,
 		    ("%s: too many rx mbufs %d for %d segments", __func__,
-		    sc->vtnet_rx_nmbufs, sc->vtnet_rx_nsegs));
+			sc->vtnet_rx_nmbufs, sc->vtnet_rx_nsegs));
 	} else
 		sc->vtnet_rx_nmbufs = 1;
 
@@ -3342,8 +3352,10 @@ vtnet_set_active_vq_pairs(struct vtnet_softc *sc)
 	npairs = sc->vtnet_req_vq_pairs;
 
 	if (vtnet_ctrl_mq_cmd(sc, npairs) != 0) {
-		device_printf(dev, "cannot set active queue pairs to %d, "
-		    "falling back to 1 queue pair\n", npairs);
+		device_printf(dev,
+		    "cannot set active queue pairs to %d, "
+		    "falling back to 1 queue pair\n",
+		    npairs);
 		npairs = 1;
 	}
 
@@ -3377,12 +3389,13 @@ vtnet_update_rx_offloads(struct vtnet_softc *sc)
 	}
 
 	error = vtnet_ctrl_guest_offloads(sc,
-	    features & (VIRTIO_NET_F_GUEST_CSUM | VIRTIO_NET_F_GUEST_TSO4 |
-		        VIRTIO_NET_F_GUEST_TSO6 | VIRTIO_NET_F_GUEST_ECN  |
-			VIRTIO_NET_F_GUEST_UFO));
+	    features &
+		(VIRTIO_NET_F_GUEST_CSUM | VIRTIO_NET_F_GUEST_TSO4 |
+		    VIRTIO_NET_F_GUEST_TSO6 | VIRTIO_NET_F_GUEST_ECN |
+		    VIRTIO_NET_F_GUEST_UFO));
 	if (error) {
-		device_printf(sc->vtnet_dev,
-		    "%s: cannot update Rx features\n", __func__);
+		device_printf(sc->vtnet_dev, "%s: cannot update Rx features\n",
+		    __func__);
 		if (if_getdrvflags(ifp) & IFF_DRV_RUNNING) {
 			if_setdrvflagbits(ifp, 0, IFF_DRV_RUNNING);
 			vtnet_init_locked(sc, 0);
@@ -3495,8 +3508,8 @@ vtnet_free_ctrl_vq(struct vtnet_softc *sc)
 }
 
 static void
-vtnet_exec_ctrl_cmd(struct vtnet_softc *sc, void *cookie,
-    struct sglist *sg, int readable, int writable)
+vtnet_exec_ctrl_cmd(struct vtnet_softc *sc, void *cookie, struct sglist *sg,
+    int readable, int writable)
 {
 	struct virtqueue *vq;
 
@@ -3512,7 +3525,7 @@ vtnet_exec_ctrl_cmd(struct vtnet_softc *sc, void *cookie,
 	 * Poll for the response, but the command is likely completed before
 	 * returning from the notify.
 	 */
-	if (virtqueue_enqueue(vq, cookie, sg, readable, writable) == 0)  {
+	if (virtqueue_enqueue(vq, cookie, sg, readable, writable) == 0) {
 		virtqueue_notify(vq);
 		virtqueue_poll(vq, NULL);
 	}
@@ -3742,7 +3755,8 @@ vtnet_rx_filter_mac(struct vtnet_softc *sc)
 
 	if (promisc) {
 		ucnt = 0;
-		if_printf(ifp, "more than %d MAC addresses assigned, "
+		if_printf(ifp,
+		    "more than %d MAC addresses assigned, "
 		    "falling back to promiscuous mode\n",
 		    VTNET_MAX_MAC_ENTRIES);
 	}
@@ -3753,7 +3767,8 @@ vtnet_rx_filter_mac(struct vtnet_softc *sc)
 
 	if (allmulti) {
 		mcnt = 0;
-		if_printf(ifp, "more than %d multicast MAC addresses "
+		if_printf(ifp,
+		    "more than %d multicast MAC addresses "
 		    "assigned, falling back to all-multicast mode\n",
 		    VTNET_MAX_MAC_ENTRIES);
 	}
@@ -4037,7 +4052,7 @@ vtnet_vlan_tag_remove(struct mbuf *m)
 	m->m_flags |= M_VLANTAG;
 
 	/* Strip the 802.1Q header. */
-	bcopy((char *) evh, (char *) evh + ETHER_VLAN_ENCAP_LEN,
+	bcopy((char *)evh, (char *)evh + ETHER_VLAN_ENCAP_LEN,
 	    ETHER_HDR_LEN - ETHER_TYPE_LEN);
 	m_adj(m, ETHER_VLAN_ENCAP_LEN);
 }
@@ -4085,8 +4100,7 @@ vtnet_setup_rxq_sysctl(struct sysctl_ctx_list *ctx,
 	SYSCTL_ADD_UQUAD(ctx, list, OID_AUTO, "host_lro", CTLFLAG_RD,
 	    &stats->vrxs_host_lro, "Receive host segmentation offloaded");
 	SYSCTL_ADD_UQUAD(ctx, list, OID_AUTO, "rescheduled", CTLFLAG_RD,
-	    &stats->vrxs_rescheduled,
-	    "Receive interrupt handler rescheduled");
+	    &stats->vrxs_rescheduled, "Receive interrupt handler rescheduled");
 }
 
 static void
@@ -4116,8 +4130,7 @@ vtnet_setup_txq_sysctl(struct sysctl_ctx_list *ctx,
 	SYSCTL_ADD_UQUAD(ctx, list, OID_AUTO, "tso", CTLFLAG_RD,
 	    &stats->vtxs_tso, "Transmit TCP segmentation offloaded");
 	SYSCTL_ADD_UQUAD(ctx, list, OID_AUTO, "rescheduled", CTLFLAG_RD,
-	    &stats->vtxs_rescheduled,
-	    "Transmit interrupt handler rescheduled");
+	    &stats->vtxs_rescheduled, "Transmit interrupt handler rescheduled");
 }
 
 static void
@@ -4158,12 +4171,11 @@ vtnet_setup_stat_sysctl(struct sysctl_ctx_list *ctx,
 	stats->tx_tso_offloaded = txaccum.vtxs_tso;
 	stats->tx_task_rescheduled = txaccum.vtxs_rescheduled;
 
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "mbuf_alloc_failed",
-	    CTLFLAG_RD, &stats->mbuf_alloc_failed,
-	    "Mbuf cluster allocation failures");
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "mbuf_alloc_failed", CTLFLAG_RD,
+	    &stats->mbuf_alloc_failed, "Mbuf cluster allocation failures");
 
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_frame_too_large",
-	    CTLFLAG_RD, &stats->rx_frame_too_large,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_frame_too_large", CTLFLAG_RD,
+	    &stats->rx_frame_too_large,
 	    "Received frame larger than the mbuf chain");
 	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_enq_replacement_failed",
 	    CTLFLAG_RD, &stats->rx_enq_replacement_failed,
@@ -4178,17 +4190,16 @@ vtnet_setup_stat_sysctl(struct sysctl_ctx_list *ctx,
 	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_bad_ipproto",
 	    CTLFLAG_RD, &stats->rx_csum_bad_ipproto,
 	    "Received checksum offloaded buffer with incorrect IP protocol");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_bad_offset",
-	    CTLFLAG_RD, &stats->rx_csum_bad_offset,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_bad_offset", CTLFLAG_RD,
+	    &stats->rx_csum_bad_offset,
 	    "Received checksum offloaded buffer with incorrect offset");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_bad_proto",
-	    CTLFLAG_RD, &stats->rx_csum_bad_proto,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_bad_proto", CTLFLAG_RD,
+	    &stats->rx_csum_bad_proto,
 	    "Received checksum offloaded buffer with incorrect protocol");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_failed",
-	    CTLFLAG_RD, &stats->rx_csum_failed,
-	    "Received buffer checksum offload failed");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_offloaded",
-	    CTLFLAG_RD, &stats->rx_csum_offloaded,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_failed", CTLFLAG_RD,
+	    &stats->rx_csum_failed, "Received buffer checksum offload failed");
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_csum_offloaded", CTLFLAG_RD,
+	    &stats->rx_csum_offloaded,
 	    "Received buffer checksum offload succeeded");
 	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "rx_task_rescheduled",
 	    CTLFLAG_RD, &stats->rx_task_rescheduled,
@@ -4202,23 +4213,22 @@ vtnet_setup_stat_sysctl(struct sysctl_ctx_list *ctx,
 	    CTLFLAG_RD, &stats->tx_csum_proto_mismatch,
 	    "Aborted transmit of checksum offloaded buffer because mismatched "
 	    "protocols");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_tso_not_tcp",
-	    CTLFLAG_RD, &stats->tx_tso_not_tcp,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_tso_not_tcp", CTLFLAG_RD,
+	    &stats->tx_tso_not_tcp,
 	    "Aborted transmit of TSO buffer with non TCP protocol");
 	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_tso_without_csum",
 	    CTLFLAG_RD, &stats->tx_tso_without_csum,
 	    "Aborted transmit of TSO buffer without TCP checksum offload");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_defragged",
-	    CTLFLAG_RD, &stats->tx_defragged,
-	    "Transmit mbufs defragged");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_defrag_failed",
-	    CTLFLAG_RD, &stats->tx_defrag_failed,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_defragged", CTLFLAG_RD,
+	    &stats->tx_defragged, "Transmit mbufs defragged");
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_defrag_failed", CTLFLAG_RD,
+	    &stats->tx_defrag_failed,
 	    "Aborted transmit of buffer because defrag failed");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_csum_offloaded",
-	    CTLFLAG_RD, &stats->tx_csum_offloaded,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_csum_offloaded", CTLFLAG_RD,
+	    &stats->tx_csum_offloaded,
 	    "Offloaded checksum of transmitted buffer");
-	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_tso_offloaded",
-	    CTLFLAG_RD, &stats->tx_tso_offloaded,
+	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_tso_offloaded", CTLFLAG_RD,
+	    &stats->tx_tso_offloaded,
 	    "Segmentation offload of transmitted buffer");
 	SYSCTL_ADD_UQUAD(ctx, child, OID_AUTO, "tx_task_rescheduled",
 	    CTLFLAG_RD, &stats->tx_task_rescheduled,
@@ -4238,15 +4248,13 @@ vtnet_setup_sysctl(struct vtnet_softc *sc)
 	tree = device_get_sysctl_tree(dev);
 	child = SYSCTL_CHILDREN(tree);
 
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "max_vq_pairs",
-	    CTLFLAG_RD, &sc->vtnet_max_vq_pairs, 0,
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "max_vq_pairs", CTLFLAG_RD,
+	    &sc->vtnet_max_vq_pairs, 0,
 	    "Number of maximum supported virtqueue pairs");
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "req_vq_pairs",
-	    CTLFLAG_RD, &sc->vtnet_req_vq_pairs, 0,
-	    "Number of requested virtqueue pairs");
-	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "act_vq_pairs",
-	    CTLFLAG_RD, &sc->vtnet_act_vq_pairs, 0,
-	    "Number of active virtqueue pairs");
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "req_vq_pairs", CTLFLAG_RD,
+	    &sc->vtnet_req_vq_pairs, 0, "Number of requested virtqueue pairs");
+	SYSCTL_ADD_INT(ctx, child, OID_AUTO, "act_vq_pairs", CTLFLAG_RD,
+	    &sc->vtnet_act_vq_pairs, 0, "Number of active virtqueue pairs");
 
 	vtnet_setup_stat_sysctl(ctx, child, sc);
 }
@@ -4255,13 +4263,13 @@ static void
 vtnet_load_tunables(struct vtnet_softc *sc)
 {
 
-	sc->vtnet_lro_entry_count = vtnet_tunable_int(sc,
-	    "lro_entry_count", vtnet_lro_entry_count);
+	sc->vtnet_lro_entry_count = vtnet_tunable_int(sc, "lro_entry_count",
+	    vtnet_lro_entry_count);
 	if (sc->vtnet_lro_entry_count < TCP_LRO_ENTRIES)
 		sc->vtnet_lro_entry_count = TCP_LRO_ENTRIES;
 
-	sc->vtnet_lro_mbufq_depth = vtnet_tunable_int(sc,
-	    "lro_mbufq_depth", vtnet_lro_mbufq_depth);
+	sc->vtnet_lro_mbufq_depth = vtnet_tunable_int(sc, "lro_mbufq_depth",
+	    vtnet_lro_mbufq_depth);
 }
 
 static int
@@ -4363,8 +4371,8 @@ vtnet_tunable_int(struct vtnet_softc *sc, const char *knob, int def)
 {
 	char path[64];
 
-	snprintf(path, sizeof(path),
-	    "hw.vtnet.%d.%s", device_get_unit(sc->vtnet_dev), knob);
+	snprintf(path, sizeof(path), "hw.vtnet.%d.%s",
+	    device_get_unit(sc->vtnet_dev), knob);
 	TUNABLE_INT_FETCH(path, &def);
 
 	return (def);

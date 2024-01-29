@@ -36,11 +36,11 @@
 #include <limits.h>
 #include <paths.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
-extern int __sysctl(const int *name, u_int namelen, void *oldp,
-    size_t *oldlenp, const void *newp, size_t newlen);
+extern int __sysctl(const int *name, u_int namelen, void *oldp, size_t *oldlenp,
+    const void *newp, size_t newlen);
 
 static int
 set_user_str(void *dstp, size_t *dstlenp, const char *src, size_t len,
@@ -92,7 +92,7 @@ sysctl(const int *name, u_int namelen, void *oldp, size_t *oldlenp,
 		if (oldlenp == NULL || *oldlenp > sizeof(""))
 			return (0);
 		return (set_user_str(oldp, oldlenp, _PATH_LOCALBASE,
-			sizeof(_PATH_LOCALBASE), orig_oldlen));
+		    sizeof(_PATH_LOCALBASE), orig_oldlen));
 	}
 
 	/* Variables under CLT_USER whose values are immutably defined below */
@@ -151,49 +151,49 @@ sysctl(const int *name, u_int namelen, void *oldp, size_t *oldlenp,
 #endif
 		return (0);
 	case USER_POSIX2_C_DEV:
-#ifdef	POSIX2_C_DEV
+#ifdef POSIX2_C_DEV
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_CHAR_TERM:
-#ifdef	POSIX2_CHAR_TERM
+#ifdef POSIX2_CHAR_TERM
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_FORT_DEV:
-#ifdef	POSIX2_FORT_DEV
+#ifdef POSIX2_FORT_DEV
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_FORT_RUN:
-#ifdef	POSIX2_FORT_RUN
+#ifdef POSIX2_FORT_RUN
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_LOCALEDEF:
-#ifdef	POSIX2_LOCALEDEF
+#ifdef POSIX2_LOCALEDEF
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_SW_DEV:
-#ifdef	POSIX2_SW_DEV
+#ifdef POSIX2_SW_DEV
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;
 #endif
 		return (0);
 	case USER_POSIX2_UPE:
-#ifdef	POSIX2_UPE
+#ifdef POSIX2_UPE
 		*(int *)oldp = 1;
 #else
 		*(int *)oldp = 0;

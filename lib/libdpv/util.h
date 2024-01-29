@@ -10,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,18 +31,18 @@
 
 #include <paths.h>
 
-#define SHELL_SPAWN_DEBUG	0	/* Debug spawning of sh(1) commands */
+#define SHELL_SPAWN_DEBUG 0 /* Debug spawning of sh(1) commands */
 
 #ifdef _PATH_BSHELL
-#define PATH_SHELL	_PATH_BSHELL
+#define PATH_SHELL _PATH_BSHELL
 #else
-#define PATH_SHELL	"/bin/sh"
+#define PATH_SHELL "/bin/sh"
 #endif
 
-#define CMDBUFMAX	65536
+#define CMDBUFMAX 65536
 
 __BEGIN_DECLS
-int	shell_spawn_pipecmd(const char *_cmd, const char *_label, pid_t *_pid);
+int shell_spawn_pipecmd(const char *_cmd, const char *_label, pid_t *_pid);
 __END_DECLS
 
 #endif /* !_UTIL_H_ */

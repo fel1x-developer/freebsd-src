@@ -29,23 +29,23 @@
 #include <sys/types.h>
 #include <sys/errno.h>
 #include <sys/sysctl.h>
-#include <stddef.h>
-#include <stdlib.h>
+
 #include <err.h>
+#include <libpmcstat.h>
 #include <limits.h>
-#include <string.h>
 #include <pmc.h>
 #include <pmclog.h>
-#include <libpmcstat.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <libpmcstat.h>
 #include "cmd_pmc.h"
 
-int	pmc_displayheight = DEFAULT_DISPLAY_HEIGHT;
-int	pmc_displaywidth = DEFAULT_DISPLAY_WIDTH;
-int	pmc_kq;
+int pmc_displayheight = DEFAULT_DISPLAY_HEIGHT;
+int pmc_displaywidth = DEFAULT_DISPLAY_WIDTH;
+int pmc_kq;
 struct pmcstat_args pmc_args;
 
 struct pmcstat_pmcs pmcstat_pmcs = LIST_HEAD_INITIALIZER(pmcstat_pmcs);
@@ -59,14 +59,10 @@ struct cmd_handler {
 	cmd_disp_t ch_fn;
 };
 
-static struct cmd_handler disp_table[] = {
-	{"stat", cmd_pmc_stat},
-	{"stat-system", cmd_pmc_stat_system},
-	{"list-events", cmd_pmc_list_events},
-	{"filter", cmd_pmc_filter},
-	{"summary", cmd_pmc_summary},
-	{NULL, NULL}
-};
+static struct cmd_handler disp_table[] = { { "stat", cmd_pmc_stat },
+	{ "stat-system", cmd_pmc_stat_system },
+	{ "list-events", cmd_pmc_list_events }, { "filter", cmd_pmc_filter },
+	{ "summary", cmd_pmc_summary }, { NULL, NULL } };
 
 static void __dead2
 usage(void)
@@ -74,10 +70,9 @@ usage(void)
 	errx(EX_USAGE,
 	    "\t pmc management utility\n"
 	    "\t stat <program> run program and print stats\n"
-		 "\t stat-system <program> run program and print system wide stats for duration of execution\n"
-		 "\t list-events list PMC events available on host\n"
-		 "\t filter filter records by lwp, pid, or event\n"
-	    );
+	    "\t stat-system <program> run program and print system wide stats for duration of execution\n"
+	    "\t list-events list PMC events available on host\n"
+	    "\t filter filter records by lwp, pid, or event\n");
 }
 
 static cmd_disp_t
@@ -111,7 +106,6 @@ main(int argc, char **argv)
 		err(EX_OSERR, "ERROR: Cannot allocate kqueue");
 	if (pmc_init() < 0)
 		err(EX_UNAVAILABLE,
-		    "ERROR: Initialization of the pmc(3) library failed"
-		    );
+		    "ERROR: Initialization of the pmc(3) library failed");
 	return (disp(argc, argv));
 }

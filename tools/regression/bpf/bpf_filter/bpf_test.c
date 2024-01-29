@@ -24,46 +24,46 @@
  */
 
 #include <sys/cdefs.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <sys/types.h>
 
 #include <net/bpf.h>
 
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include BPF_TEST_H
 
-#define	PASSED		0
-#define	FAILED		1
-#define	FATAL		-1
+#define PASSED 0
+#define FAILED 1
+#define FATAL -1
 
 #ifndef LOG_LEVEL
-#define	LOG_LEVEL	1
+#define LOG_LEVEL 1
 #endif
 
 #ifdef BPF_BENCHMARK
-#define	BPF_NRUNS	10000000
+#define BPF_NRUNS 10000000
 #else
-#define	BPF_NRUNS	1
+#define BPF_NRUNS 1
 #endif
 
-static void	sig_handler(int);
+static void sig_handler(int);
 
-static int	nins = sizeof(pc) / sizeof(pc[0]);
-static int	verbose = LOG_LEVEL;
+static int nins = sizeof(pc) / sizeof(pc[0]);
+static int verbose = LOG_LEVEL;
 
 #ifdef BPF_JIT_COMPILER
 
-#include <libutil.h>
-
 #include <net/bpf_jitter.h>
+
+#include <libutil.h>
 
 static u_int
 bpf_compile_and_filter(void)
 {
-	bpf_jit_filter	*filter;
-	u_int		i, ret;
+	bpf_jit_filter *filter;
+	u_int i, ret;
 
 	/* Compile the BPF filter program and generate native code. */
 	if ((filter = bpf_jitter(pc, nins)) == NULL) {
@@ -88,32 +88,32 @@ bpf_compile_and_filter(void)
 
 #else
 
-u_int	bpf_filter(const struct bpf_insn *, u_char *, u_int, u_int);
+u_int bpf_filter(const struct bpf_insn *, u_char *, u_int, u_int);
 
 #endif
 
 #ifdef BPF_VALIDATE
-static const u_short	bpf_code_map[] = {
-	0x10ff,	/* 0x00-0x0f: 1111111100001000 */
-	0x3070,	/* 0x10-0x1f: 0000111000001100 */
-	0x3131,	/* 0x20-0x2f: 1000110010001100 */
-	0x3031,	/* 0x30-0x3f: 1000110000001100 */
-	0x3131,	/* 0x40-0x4f: 1000110010001100 */
-	0x1011,	/* 0x50-0x5f: 1000100000001000 */
-	0x1013,	/* 0x60-0x6f: 1100100000001000 */
-	0x1010,	/* 0x70-0x7f: 0000100000001000 */
-	0x0093,	/* 0x80-0x8f: 1100100100000000 */
-	0x1010,	/* 0x90-0x9f: 0000100000001000 */
-	0x1010,	/* 0xa0-0xaf: 0000100000001000 */
-	0x0002,	/* 0xb0-0xbf: 0100000000000000 */
-	0x0000,	/* 0xc0-0xcf: 0000000000000000 */
-	0x0000,	/* 0xd0-0xdf: 0000000000000000 */
-	0x0000,	/* 0xe0-0xef: 0000000000000000 */
+static const u_short bpf_code_map[] = {
+	0x10ff, /* 0x00-0x0f: 1111111100001000 */
+	0x3070, /* 0x10-0x1f: 0000111000001100 */
+	0x3131, /* 0x20-0x2f: 1000110010001100 */
+	0x3031, /* 0x30-0x3f: 1000110000001100 */
+	0x3131, /* 0x40-0x4f: 1000110010001100 */
+	0x1011, /* 0x50-0x5f: 1000100000001000 */
+	0x1013, /* 0x60-0x6f: 1100100000001000 */
+	0x1010, /* 0x70-0x7f: 0000100000001000 */
+	0x0093, /* 0x80-0x8f: 1100100100000000 */
+	0x1010, /* 0x90-0x9f: 0000100000001000 */
+	0x1010, /* 0xa0-0xaf: 0000100000001000 */
+	0x0002, /* 0xb0-0xbf: 0100000000000000 */
+	0x0000, /* 0xc0-0xcf: 0000000000000000 */
+	0x0000, /* 0xd0-0xdf: 0000000000000000 */
+	0x0000, /* 0xe0-0xef: 0000000000000000 */
 	0x0000	/* 0xf0-0xff: 0000000000000000 */
 };
 
-#define	BPF_VALIDATE_CODE(c)	\
-    ((c) <= 0xff && (bpf_code_map[(c) >> 4] & (1 << ((c) & 0xf))) != 0)
+#define BPF_VALIDATE_CODE(c) \
+	((c) <= 0xff && (bpf_code_map[(c) >> 4] & (1 << ((c) & 0xf))) != 0)
 
 /*
  * XXX Copied from sys/net/bpf_filter.c and modified.
@@ -153,7 +153,7 @@ bpf_validate(const struct bpf_insn *f, int len)
 		if (BPF_CLASS(p->code) == BPF_JMP) {
 			register u_int offset;
 
-			if (p->code == (BPF_JMP|BPF_JA))
+			if (p->code == (BPF_JMP | BPF_JA))
 				offset = p->k;
 			else
 				offset = p->jt > p->jf ? p->jt : p->jf;
@@ -165,8 +165,8 @@ bpf_validate(const struct bpf_insn *f, int len)
 		 * Check that memory operations use valid addresses.
 		 */
 		if (p->code == BPF_ST || p->code == BPF_STX ||
-		    p->code == (BPF_LD|BPF_MEM) ||
-		    p->code == (BPF_LDX|BPF_MEM)) {
+		    p->code == (BPF_LD | BPF_MEM) ||
+		    p->code == (BPF_LDX | BPF_MEM)) {
 			if (p->k >= BPF_MEMWORDS)
 				return (0);
 			continue;
@@ -174,8 +174,9 @@ bpf_validate(const struct bpf_insn *f, int len)
 		/*
 		 * Check for constant division by 0.
 		 */
-		if ((p->code == (BPF_ALU|BPF_DIV|BPF_K) ||
-		    p->code == (BPF_ALU|BPF_MOD|BPF_K)) && p->k == 0)
+		if ((p->code == (BPF_ALU | BPF_DIV | BPF_K) ||
+			p->code == (BPF_ALU | BPF_MOD | BPF_K)) &&
+		    p->k == 0)
 			return (0);
 	}
 	return (BPF_CLASS(f[len - 1].code) == BPF_RET);
@@ -186,12 +187,12 @@ int
 main(void)
 {
 #ifndef BPF_JIT_COMPILER
-	u_int	i;
+	u_int i;
 #endif
-	u_int   ret;
-	int     sig;
+	u_int ret;
+	int sig;
 #ifdef BPF_VALIDATE
-	int	valid;
+	int valid;
 #endif
 
 	/* Try to catch all signals */

@@ -36,8 +36,8 @@
 #include <sys/module.h>
 #include <sys/selinfo.h>
 
-#include <dev/smbus/smbconf.h>
 #include <dev/smbus/smb.h>
+#include <dev/smbus/smbconf.h>
 
 #include "smbus_if.h"
 
@@ -47,12 +47,12 @@
 #include <dev/ipmi/ipmivars.h>
 #endif
 
-#define SMBUS_WRITE_SINGLE	0x02
-#define SMBUS_WRITE_START	0x06
-#define SMBUS_WRITE_CONT	0x07
-#define SMBUS_READ_START	0x03
-#define SMBUS_READ_CONT		0x09
-#define SMBUS_DATA_SIZE		32
+#define SMBUS_WRITE_SINGLE 0x02
+#define SMBUS_WRITE_START 0x06
+#define SMBUS_WRITE_CONT 0x07
+#define SMBUS_READ_START 0x03
+#define SMBUS_READ_CONT 0x09
+#define SMBUS_DATA_SIZE 32
 
 #ifdef SSIF_DEBUG
 static void
@@ -97,9 +97,9 @@ ssif_polled_request(struct ipmi_softc *sc, struct ipmi_request *req)
 		dump_buffer(dev, "WRITE_SINGLE", ssif_buf,
 		    req->ir_requestlen + 2);
 #endif
-		error = smbus_error(smbus_bwrite(smbus,
-			sc->ipmi_ssif_smbus_address, SMBUS_WRITE_SINGLE,
-			req->ir_requestlen + 2, ssif_buf));
+		error = smbus_error(
+		    smbus_bwrite(smbus, sc->ipmi_ssif_smbus_address,
+			SMBUS_WRITE_SINGLE, req->ir_requestlen + 2, ssif_buf));
 		if (error) {
 #ifdef SSIF_ERROR_DEBUG
 			device_printf(dev, "SSIF: WRITE_SINGLE error %d\n",
@@ -112,9 +112,9 @@ ssif_polled_request(struct ipmi_softc *sc, struct ipmi_request *req)
 #ifdef SSIF_DEBUG
 		dump_buffer(dev, "WRITE_START", ssif_buf, SMBUS_DATA_SIZE);
 #endif
-		error = smbus_error(smbus_bwrite(smbus,
-			sc->ipmi_ssif_smbus_address, SMBUS_WRITE_START,
-			SMBUS_DATA_SIZE, ssif_buf));
+		error = smbus_error(
+		    smbus_bwrite(smbus, sc->ipmi_ssif_smbus_address,
+			SMBUS_WRITE_START, SMBUS_DATA_SIZE, ssif_buf));
 		if (error) {
 #ifdef SSIF_ERROR_DEBUG
 			device_printf(dev, "SSIF: WRITE_START error %d\n",
@@ -135,8 +135,8 @@ ssif_polled_request(struct ipmi_softc *sc, struct ipmi_request *req)
 			    min(len, SMBUS_DATA_SIZE), cp));
 			if (error) {
 #ifdef SSIF_ERROR_DEBUG
-				device_printf(dev, "SSIF: WRITE_CONT error %d\n",
-				    error);
+				device_printf(dev,
+				    "SSIF: WRITE_CONT error %d\n", error);
 #endif
 				goto fail;
 			}
@@ -157,13 +157,13 @@ ssif_polled_request(struct ipmi_softc *sc, struct ipmi_request *req)
 #ifdef SSIF_DEBUG
 			dump_buffer(dev, "WRITE_CONT", &c, 1);
 #endif
-			error = smbus_error(smbus_bwrite(smbus,
-				sc->ipmi_ssif_smbus_address, SMBUS_WRITE_CONT,
-				1, &c));
+			error = smbus_error(
+			    smbus_bwrite(smbus, sc->ipmi_ssif_smbus_address,
+				SMBUS_WRITE_CONT, 1, &c));
 			if (error) {
 #ifdef SSIF_ERROR_DEBUG
-				device_printf(dev, "SSIF: WRITE_CONT error %d\n",
-				    error);
+				device_printf(dev,
+				    "SSIF: WRITE_CONT error %d\n", error);
 #endif
 				goto fail;
 			}
@@ -181,8 +181,8 @@ read_start:
 	if (smbus_request_bus(smbus, dev, SMB_WAIT) != 0)
 		return (0);
 	count = SMBUS_DATA_SIZE;
-	error = smbus_error(smbus_bread(smbus,
-	    sc->ipmi_ssif_smbus_address, SMBUS_READ_START, &count, ssif_buf));
+	error = smbus_error(smbus_bread(smbus, sc->ipmi_ssif_smbus_address,
+	    SMBUS_READ_START, &count, ssif_buf));
 	if (error == ENXIO || error == EBUSY) {
 		smbus_release_bus(smbus, dev);
 #ifdef SSIF_DEBUG
@@ -257,9 +257,9 @@ read_start:
 	for (;;) {
 		/* Read another packet via READ_CONT. */
 		count = SMBUS_DATA_SIZE;
-		error = smbus_error(smbus_bread(smbus,
-		    sc->ipmi_ssif_smbus_address, SMBUS_READ_CONT, &count,
-		    ssif_buf));
+		error = smbus_error(
+		    smbus_bread(smbus, sc->ipmi_ssif_smbus_address,
+			SMBUS_READ_CONT, &count, ssif_buf));
 		if (error) {
 #ifdef SSIF_ERROR_DEBUG
 			printf("SSIF: READ_CONT failed: %d\n", error);
@@ -354,8 +354,8 @@ static int
 ssif_startup(struct ipmi_softc *sc)
 {
 
-	return (kproc_create(ssif_loop, sc, &sc->ipmi_kthread, 0, 0,
-	    "%s: ssif", device_get_nameunit(sc->ipmi_dev)));
+	return (kproc_create(ssif_loop, sc, &sc->ipmi_kthread, 0, 0, "%s: ssif",
+	    device_get_nameunit(sc->ipmi_dev)));
 }
 
 static int

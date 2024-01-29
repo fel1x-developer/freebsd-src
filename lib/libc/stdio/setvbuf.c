@@ -32,20 +32,21 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Set one of the three kinds of buffering, optionally including
  * a buffer.
  */
 int
-setvbuf(FILE * __restrict fp, char * __restrict buf, int mode, size_t size)
+setvbuf(FILE *__restrict fp, char *__restrict buf, int mode, size_t size)
 {
 	int ret, flags;
 	size_t iosize;
@@ -75,7 +76,8 @@ setvbuf(FILE * __restrict fp, char * __restrict buf, int mode, size_t size)
 	flags = fp->_flags;
 	if (flags & __SMBF)
 		free((void *)fp->_bf._base);
-	flags &= ~(__SLBF | __SNBF | __SMBF | __SOPT | __SOFF | __SNPT | __SEOF);
+	flags &= ~(
+	    __SLBF | __SNBF | __SMBF | __SOPT | __SOFF | __SNPT | __SEOF);
 
 	/* If setting unbuffered mode, skip all the hard work. */
 	if (mode == _IONBF)
@@ -88,7 +90,7 @@ setvbuf(FILE * __restrict fp, char * __restrict buf, int mode, size_t size)
 	 */
 	flags |= __swhatbuf(fp, &iosize, &ttyflag);
 	if (size == 0) {
-		buf = NULL;	/* force local allocation */
+		buf = NULL; /* force local allocation */
 		size = iosize;
 	}
 
@@ -107,7 +109,7 @@ setvbuf(FILE * __restrict fp, char * __restrict buf, int mode, size_t size)
 		}
 		if (buf == NULL) {
 			/* No luck; switch to unbuffered I/O. */
-nbf:
+		nbf:
 			fp->_flags = flags | __SNBF;
 			fp->_w = 0;
 			fp->_bf._base = fp->_p = fp->_nbuf;

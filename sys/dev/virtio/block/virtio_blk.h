@@ -32,26 +32,27 @@
 #define _VIRTIO_BLK_H
 
 /* Feature bits */
-#define VIRTIO_BLK_F_SIZE_MAX		0x0002	/* Indicates maximum segment size */
-#define VIRTIO_BLK_F_SEG_MAX		0x0004	/* Indicates maximum # of segments */
-#define VIRTIO_BLK_F_GEOMETRY		0x0010	/* Legacy geometry available  */
-#define VIRTIO_BLK_F_RO			0x0020	/* Disk is read-only */
-#define VIRTIO_BLK_F_BLK_SIZE		0x0040	/* Block size of disk is available*/
-#define VIRTIO_BLK_F_FLUSH		0x0200	/* Flush command supported */
-#define VIRTIO_BLK_F_TOPOLOGY		0x0400	/* Topology information is available */
-#define VIRTIO_BLK_F_CONFIG_WCE		0x0800	/* Writeback mode available in config */
-#define VIRTIO_BLK_F_MQ			0x1000	/* Support more than one vq */
-#define VIRTIO_BLK_F_DISCARD		0x2000	/* DISCARD is supported */
-#define VIRTIO_BLK_F_WRITE_ZEROES	0x4000	/* WRITE ZEROES is supported */
+#define VIRTIO_BLK_F_SIZE_MAX 0x0002	 /* Indicates maximum segment size */
+#define VIRTIO_BLK_F_SEG_MAX 0x0004	 /* Indicates maximum # of segments */
+#define VIRTIO_BLK_F_GEOMETRY 0x0010	 /* Legacy geometry available  */
+#define VIRTIO_BLK_F_RO 0x0020		 /* Disk is read-only */
+#define VIRTIO_BLK_F_BLK_SIZE 0x0040	 /* Block size of disk is available*/
+#define VIRTIO_BLK_F_FLUSH 0x0200	 /* Flush command supported */
+#define VIRTIO_BLK_F_TOPOLOGY 0x0400	 /* Topology information is available */
+#define VIRTIO_BLK_F_CONFIG_WCE 0x0800	 /* Writeback mode available in config \
+					  */
+#define VIRTIO_BLK_F_MQ 0x1000		 /* Support more than one vq */
+#define VIRTIO_BLK_F_DISCARD 0x2000	 /* DISCARD is supported */
+#define VIRTIO_BLK_F_WRITE_ZEROES 0x4000 /* WRITE ZEROES is supported */
 
 /* Legacy feature bits */
-#define VIRTIO_BLK_F_BARRIER	0x0001	/* Does host support barriers? */
-#define VIRTIO_BLK_F_SCSI	0x0080	/* Supports scsi command passthru */
+#define VIRTIO_BLK_F_BARRIER 0x0001 /* Does host support barriers? */
+#define VIRTIO_BLK_F_SCSI 0x0080    /* Supports scsi command passthru */
 
 /* Old (deprecated) name for VIRTIO_BLK_F_FLUSH. */
 #define VIRTIO_BLK_F_WCE VIRTIO_BLK_F_FLUSH
 
-#define VIRTIO_BLK_ID_BYTES	20	/* ID string length */
+#define VIRTIO_BLK_ID_BYTES 20 /* ID string length */
 
 struct virtio_blk_config {
 	/* The capacity (in 512-byte sectors). */
@@ -138,31 +139,31 @@ struct virtio_blk_config {
  */
 
 /* These two define direction. */
-#define VIRTIO_BLK_T_IN			0
-#define VIRTIO_BLK_T_OUT		1
+#define VIRTIO_BLK_T_IN 0
+#define VIRTIO_BLK_T_OUT 1
 
 /* This bit says it's a scsi command, not an actual read or write. */
-#define VIRTIO_BLK_T_SCSI_CMD		2
-#define VIRTIO_BLK_T_SCSI_CMD_OUT	3
+#define VIRTIO_BLK_T_SCSI_CMD 2
+#define VIRTIO_BLK_T_SCSI_CMD_OUT 3
 
 /* Cache flush command */
-#define VIRTIO_BLK_T_FLUSH		4
-#define VIRTIO_BLK_T_FLUSH_OUT		5
+#define VIRTIO_BLK_T_FLUSH 4
+#define VIRTIO_BLK_T_FLUSH_OUT 5
 
 /* Get device ID command */
-#define VIRTIO_BLK_T_GET_ID		8
+#define VIRTIO_BLK_T_GET_ID 8
 
 /* Discard command */
-#define VIRTIO_BLK_T_DISCARD		11
+#define VIRTIO_BLK_T_DISCARD 11
 
 /* Write zeros command */
-#define VIRTIO_BLK_T_WRITE_ZEROES	13
+#define VIRTIO_BLK_T_WRITE_ZEROES 13
 
 /* Barrier before this op. */
-#define VIRTIO_BLK_T_BARRIER		0x80000000
+#define VIRTIO_BLK_T_BARRIER 0x80000000
 
 /* Unmap this range (only valid for write zeroes command) */
-#define VIRTIO_BLK_WRITE_ZEROES_FLAG_UNMAP	0x00000001
+#define VIRTIO_BLK_WRITE_ZEROES_FLAG_UNMAP 0x00000001
 
 /*
  * This comes first in the read scatter-gather list.
@@ -179,7 +180,7 @@ struct virtio_blk_outhdr {
 };
 
 /* Unmap this range (only valid for write zeroes command) */
-#define VIRTIO_BLK_WRITE_ZEROES_FLAG_UNMAP	0x00000001
+#define VIRTIO_BLK_WRITE_ZEROES_FLAG_UNMAP 0x00000001
 
 /* Discard/write zeroes range for each request. */
 struct virtio_blk_discard_write_zeroes {
@@ -199,8 +200,8 @@ struct virtio_scsi_inhdr {
 };
 
 /* And this is the final byte of the write scatter-gather list. */
-#define VIRTIO_BLK_S_OK		0
-#define VIRTIO_BLK_S_IOERR	1
-#define VIRTIO_BLK_S_UNSUPP	2
+#define VIRTIO_BLK_S_OK 0
+#define VIRTIO_BLK_S_IOERR 1
+#define VIRTIO_BLK_S_UNSUPP 2
 
 #endif /* _VIRTIO_BLK_H */

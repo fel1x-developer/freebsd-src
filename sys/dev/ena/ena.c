@@ -27,9 +27,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <sys/cdefs.h>
 #include "opt_rss.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -68,9 +68,9 @@
 #include <net/if_types.h>
 #include <net/if_var.h>
 #include <net/if_vlan_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
@@ -173,14 +173,13 @@ static void ena_timer_service(void *);
 static char ena_version[] = ENA_DEVICE_NAME ENA_DRV_MODULE_NAME
     " v" ENA_DRV_MODULE_VERSION;
 
-static ena_vendor_info_t ena_vendor_info_array[] = {
-	{ PCI_VENDOR_ID_AMAZON, PCI_DEV_ID_ENA_PF, 0 },
+static ena_vendor_info_t ena_vendor_info_array[] = { { PCI_VENDOR_ID_AMAZON,
+							 PCI_DEV_ID_ENA_PF, 0 },
 	{ PCI_VENDOR_ID_AMAZON, PCI_DEV_ID_ENA_PF_RSERV0, 0 },
 	{ PCI_VENDOR_ID_AMAZON, PCI_DEV_ID_ENA_VF, 0 },
 	{ PCI_VENDOR_ID_AMAZON, PCI_DEV_ID_ENA_VF_RSERV0, 0 },
 	/* Last entry */
-	{ 0, 0, 0 }
-};
+	{ 0, 0, 0 } };
 
 struct sx ena_global_lock;
 
@@ -326,7 +325,8 @@ ena_change_mtu(if_t ifp, int new_mtu)
 	int rc;
 
 	if ((new_mtu > adapter->max_mtu) || (new_mtu < ENA_MIN_MTU)) {
-		ena_log(pdev, ERR, "Invalid MTU setting. new_mtu: %d max mtu: %d min mtu: %d\n",
+		ena_log(pdev, ERR,
+		    "Invalid MTU setting. new_mtu: %d max mtu: %d min mtu: %d\n",
 		    new_mtu, adapter->max_mtu, ENA_MIN_MTU);
 		return (EINVAL);
 	}
@@ -496,8 +496,8 @@ ena_setup_tx_dma_tag(struct ena_adapter *adapter)
 	int ret;
 
 	/* Create DMA tag for Tx buffers */
-	ret = bus_dma_tag_create(bus_get_dma_tag(adapter->pdev),
-	    1, 0,				  /* alignment, bounds 	     */
+	ret = bus_dma_tag_create(bus_get_dma_tag(adapter->pdev), 1,
+	    0,					  /* alignment, bounds 	     */
 	    ENA_DMA_BIT_MASK(adapter->dma_width), /* lowaddr of excl window  */
 	    BUS_SPACE_MAXADDR,			  /* highaddr of excl window */
 	    NULL, NULL,				  /* filter, filterarg 	     */
@@ -731,7 +731,8 @@ ena_free_tx_resources(struct ena_adapter *adapter, int qid)
 	int j;
 #endif /* DEV_NETMAP */
 
-	while (taskqueue_cancel(tx_ring->enqueue_tq, &tx_ring->enqueue_task, NULL))
+	while (
+	    taskqueue_cancel(tx_ring->enqueue_tq, &tx_ring->enqueue_task, NULL))
 		taskqueue_drain(tx_ring->enqueue_tq, &tx_ring->enqueue_task);
 
 	taskqueue_free(tx_ring->enqueue_tq);
@@ -1492,8 +1493,10 @@ ena_destroy_all_io_queues(struct ena_adapter *adapter)
 
 	for (i = 0; i < adapter->num_io_queues; i++) {
 		queue = &adapter->que[i];
-		while (taskqueue_cancel(queue->cleanup_tq, &queue->cleanup_task, NULL))
-			taskqueue_drain(queue->cleanup_tq, &queue->cleanup_task);
+		while (taskqueue_cancel(queue->cleanup_tq, &queue->cleanup_task,
+		    NULL))
+			taskqueue_drain(queue->cleanup_tq,
+			    &queue->cleanup_task);
 		taskqueue_free(queue->cleanup_tq);
 	}
 
@@ -1766,8 +1769,10 @@ ena_setup_io_intr(struct ena_adapter *adapter)
 		if (adapter->irq_cpu_base > ENA_BASE_CPU_UNSPECIFIED) {
 			adapter->que[i].cpu = adapter->irq_tbl[irq_idx].cpu =
 			    (unsigned)(adapter->irq_cpu_base +
-			    i * adapter->irq_cpu_stride) % (unsigned)mp_ncpus;
-			CPU_SETOF(adapter->que[i].cpu, &adapter->que[i].cpu_mask);
+				i * adapter->irq_cpu_stride) %
+			    (unsigned)mp_ncpus;
+			CPU_SETOF(adapter->que[i].cpu,
+			    &adapter->que[i].cpu_mask);
 		}
 
 #ifdef RSS
@@ -1877,7 +1882,8 @@ ena_request_io_irq(struct ena_adapter *adapter)
 		}
 		irq->requested = true;
 
-		if (adapter->rss_enabled || adapter->irq_cpu_base > ENA_BASE_CPU_UNSPECIFIED) {
+		if (adapter->rss_enabled ||
+		    adapter->irq_cpu_base > ENA_BASE_CPU_UNSPECIFIED) {
 			rc = bus_bind_intr(adapter->pdev, irq->res, irq->cpu);
 			if (unlikely(rc != 0)) {
 				ena_log(pdev, ERR,
@@ -2110,11 +2116,11 @@ create_queues_with_size_backoff(struct ena_adapter *adapter)
 
 		return (0);
 
-err_io_que:
+	err_io_que:
 		ena_free_all_rx_resources(adapter);
-err_setup_rx:
+	err_setup_rx:
 		ena_free_all_tx_resources(adapter);
-err_setup_tx:
+	err_setup_tx:
 		/*
 		 * Lower the ring size if ENOMEM. Otherwise, return the
 		 * error straightaway.
@@ -2192,11 +2198,12 @@ ena_up(struct ena_adapter *adapter)
 
 	ena_log(adapter->pdev, INFO,
 	    "Creating %u IO queues. Rx queue size: %d, Tx queue size: %d, LLQ is %s\n",
-	    adapter->num_io_queues,
-	    adapter->requested_rx_ring_size,
+	    adapter->num_io_queues, adapter->requested_rx_ring_size,
 	    adapter->requested_tx_ring_size,
 	    (adapter->ena_dev->tx_mem_queue_type ==
-		ENA_ADMIN_PLACEMENT_POLICY_DEV) ? "ENABLED" : "DISABLED");
+		ENA_ADMIN_PLACEMENT_POLICY_DEV) ?
+		"ENABLED" :
+		"DISABLED");
 
 	rc = create_queues_with_size_backoff(adapter);
 	if (unlikely(rc != 0)) {
@@ -2333,8 +2340,8 @@ ena_ioctl(if_t ifp, u_long command, caddr_t data)
 	case SIOCSIFFLAGS:
 		if ((if_getflags(ifp) & IFF_UP) != 0) {
 			if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0) {
-				if ((if_getflags(ifp) & (IFF_PROMISC |
-				    IFF_ALLMULTI)) != 0) {
+				if ((if_getflags(ifp) &
+					(IFF_PROMISC | IFF_ALLMULTI)) != 0) {
 					ena_log(adapter->pdev, INFO,
 					    "ioctl promisc/allmulti\n");
 				}
@@ -2361,25 +2368,24 @@ ena_ioctl(if_t ifp, u_long command, caddr_t data)
 		rc = ifmedia_ioctl(ifp, ifr, &adapter->media, command);
 		break;
 
-	case SIOCSIFCAP:
-		{
-			int reinit = 0;
+	case SIOCSIFCAP: {
+		int reinit = 0;
 
-			if (ifr->ifr_reqcap != if_getcapenable(ifp)) {
-				if_setcapenable(ifp, ifr->ifr_reqcap);
-				reinit = 1;
-			}
-
-			if ((reinit != 0) &&
-			    ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0)) {
-				ENA_LOCK_LOCK();
-				ena_down(adapter);
-				rc = ena_up(adapter);
-				ENA_LOCK_UNLOCK();
-			}
+		if (ifr->ifr_reqcap != if_getcapenable(ifp)) {
+			if_setcapenable(ifp, ifr->ifr_reqcap);
+			reinit = 1;
 		}
 
-		break;
+		if ((reinit != 0) &&
+		    ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) != 0)) {
+			ENA_LOCK_LOCK();
+			ena_down(adapter);
+			rc = ena_up(adapter);
+			ENA_LOCK_UNLOCK();
+		}
+	}
+
+	break;
 	default:
 		rc = ether_ioctl(ifp, command, data);
 		break;
@@ -2394,29 +2400,32 @@ ena_get_dev_offloads(struct ena_com_dev_get_features_ctx *feat)
 	int caps = 0;
 
 	if ((feat->offload.tx &
-	    (ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_FULL_MASK |
-	    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_PART_MASK |
-	    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L3_CSUM_IPV4_MASK)) != 0)
+		(ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_FULL_MASK |
+		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_PART_MASK |
+		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L3_CSUM_IPV4_MASK)) != 0)
 		caps |= IFCAP_TXCSUM;
 
 	if ((feat->offload.tx &
-	    (ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_FULL_MASK |
-	    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_PART_MASK)) != 0)
+		(ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_FULL_MASK |
+		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV6_CSUM_PART_MASK)) !=
+	    0)
 		caps |= IFCAP_TXCSUM_IPV6;
 
-	if ((feat->offload.tx & ENA_ADMIN_FEATURE_OFFLOAD_DESC_TSO_IPV4_MASK) != 0)
+	if ((feat->offload.tx & ENA_ADMIN_FEATURE_OFFLOAD_DESC_TSO_IPV4_MASK) !=
+	    0)
 		caps |= IFCAP_TSO4;
 
-	if ((feat->offload.tx & ENA_ADMIN_FEATURE_OFFLOAD_DESC_TSO_IPV6_MASK) != 0)
+	if ((feat->offload.tx & ENA_ADMIN_FEATURE_OFFLOAD_DESC_TSO_IPV6_MASK) !=
+	    0)
 		caps |= IFCAP_TSO6;
 
 	if ((feat->offload.rx_supported &
-	    (ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L4_IPV4_CSUM_MASK |
-	    ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L3_CSUM_IPV4_MASK)) != 0)
+		(ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L4_IPV4_CSUM_MASK |
+		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L3_CSUM_IPV4_MASK)) != 0)
 		caps |= IFCAP_RXCSUM;
 
 	if ((feat->offload.rx_supported &
-	    ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L4_IPV6_CSUM_MASK) != 0)
+		ENA_ADMIN_FEATURE_OFFLOAD_DESC_RX_L4_IPV6_CSUM_MASK) != 0)
 		caps |= IFCAP_RXCSUM_IPV6;
 
 	caps |= IFCAP_LRO | IFCAP_JUMBO_MTU;
@@ -2427,7 +2436,8 @@ ena_get_dev_offloads(struct ena_com_dev_get_features_ctx *feat)
 static void
 ena_update_host_info(struct ena_admin_host_info *host_info, if_t ifp)
 {
-	host_info->supported_network_features[0] = (uint32_t)if_getcapabilities(ifp);
+	host_info->supported_network_features[0] = (uint32_t)if_getcapabilities(
+	    ifp);
 }
 
 static void
@@ -2442,11 +2452,13 @@ ena_update_hwassist(struct ena_adapter *adapter)
 
 	if ((cap & IFCAP_TXCSUM) != 0) {
 		if ((feat &
-		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L3_CSUM_IPV4_MASK) != 0)
+			ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L3_CSUM_IPV4_MASK) !=
+		    0)
 			flags |= CSUM_IP;
 		if ((feat &
-		    (ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_FULL_MASK |
-		    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_PART_MASK)) != 0)
+			(ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_FULL_MASK |
+			    ENA_ADMIN_FEATURE_OFFLOAD_DESC_TX_L4_IPV4_CSUM_PART_MASK)) !=
+		    0)
 			flags |= CSUM_IP_UDP | CSUM_IP_TCP;
 	}
 
@@ -2498,8 +2510,8 @@ ena_setup_ifnet(device_t pdev, struct ena_adapter *adapter,
 	if_setcapabilitiesbit(ifp, caps, 0);
 
 	/* TSO parameters */
-	if_sethwtsomax(ifp, ENA_TSO_MAXSIZE -
-	    (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
+	if_sethwtsomax(ifp,
+	    ENA_TSO_MAXSIZE - (ETHER_HDR_LEN + ETHER_VLAN_ENCAP_LEN));
 	if_sethwtsomaxsegcount(ifp, adapter->max_tx_sgl_size - 1);
 	if_sethwtsomaxsegsize(ifp, ENA_TSO_MAXSIZE);
 
@@ -2692,7 +2704,8 @@ set_default_llq_configurations(struct ena_llq_configurations *llq_config,
 	llq_config->llq_num_decs_before_header =
 	    ENA_ADMIN_LLQ_NUM_DESCS_BEFORE_HEADER_2;
 	if ((llq->entry_size_ctrl_supported & ENA_ADMIN_LIST_ENTRY_SIZE_256B) !=
-	    0 && ena_force_large_llq_header) {
+		0 &&
+	    ena_force_large_llq_header) {
 		llq_config->llq_ring_entry_size =
 		    ENA_ADMIN_LIST_ENTRY_SIZE_256B;
 		llq_config->llq_ring_entry_size_value = 256;
@@ -2765,9 +2778,9 @@ ena_calc_io_queue_size(struct ena_calc_queue_size_ctx *ctx)
 	 */
 	if (ena_force_large_llq_header) {
 		if ((llq->entry_size_ctrl_supported &
-		    ENA_ADMIN_LIST_ENTRY_SIZE_256B) != 0 &&
+			ENA_ADMIN_LIST_ENTRY_SIZE_256B) != 0 &&
 		    ena_dev->tx_mem_queue_type ==
-		    ENA_ADMIN_PLACEMENT_POLICY_DEV) {
+			ENA_ADMIN_PLACEMENT_POLICY_DEV) {
 			max_tx_queue_size /= 2;
 			ena_log(ctx->pdev, INFO,
 			    "Forcing large headers and decreasing maximum Tx queue size to %d\n",
@@ -2822,7 +2835,8 @@ ena_config_host_info(struct ena_com_dev *ena_dev, device_t dev)
 
 	host_info->driver_version = (ENA_DRV_MODULE_VER_MAJOR) |
 	    (ENA_DRV_MODULE_VER_MINOR << ENA_ADMIN_HOST_INFO_MINOR_SHIFT) |
-	    (ENA_DRV_MODULE_VER_SUBMINOR << ENA_ADMIN_HOST_INFO_SUB_MINOR_SHIFT);
+	    (ENA_DRV_MODULE_VER_SUBMINOR
+		<< ENA_ADMIN_HOST_INFO_SUB_MINOR_SHIFT);
 	host_info->num_cpus = mp_ncpus;
 	host_info->driver_supported_features =
 	    ENA_ADMIN_HOST_INFO_RX_OFFSET_MASK |
@@ -2913,10 +2927,8 @@ ena_device_init(struct ena_adapter *adapter, device_t pdev,
 		goto err_admin_init;
 	}
 
-	aenq_groups = BIT(ENA_ADMIN_LINK_CHANGE) |
-	    BIT(ENA_ADMIN_FATAL_ERROR) |
-	    BIT(ENA_ADMIN_WARNING) |
-	    BIT(ENA_ADMIN_NOTIFICATION) |
+	aenq_groups = BIT(ENA_ADMIN_LINK_CHANGE) | BIT(ENA_ADMIN_FATAL_ERROR) |
+	    BIT(ENA_ADMIN_WARNING) | BIT(ENA_ADMIN_NOTIFICATION) |
 	    BIT(ENA_ADMIN_KEEP_ALIVE);
 
 	aenq_groups &= get_feat_ctx->aenq.supported_groups;
@@ -3028,7 +3040,8 @@ check_for_missing_keep_alive(struct ena_adapter *adapter)
 static void
 check_for_admin_com_state(struct ena_adapter *adapter)
 {
-	if (unlikely(ena_com_get_admin_running_state(adapter->ena_dev) == false)) {
+	if (unlikely(
+		ena_com_get_admin_running_state(adapter->ena_dev) == false)) {
 		ena_log(adapter->pdev, ERR,
 		    "ENA admin queue is not in running state!\n");
 		counter_u64_add(adapter->dev_stats.admin_q_pause, 1);
@@ -3086,7 +3099,7 @@ check_missing_comp_in_tx_queue(struct ena_adapter *adapter,
 		time_offset = bttosbt(time);
 
 		if (unlikely(!atomic_load_8(&tx_ring->first_interrupt) &&
-		    time_offset > 2 * adapter->missing_tx_timeout)) {
+			time_offset > 2 * adapter->missing_tx_timeout)) {
 			/*
 			 * If after graceful period interrupt is still not
 			 * received, we schedule a reset.
@@ -3104,8 +3117,8 @@ check_missing_comp_in_tx_queue(struct ena_adapter *adapter,
 		if (unlikely(time_offset > adapter->missing_tx_timeout)) {
 
 			if (tx_buf->print_once) {
-				time_since_last_cleanup = TICKS_2_MSEC(ticks -
-				    tx_ring->tx_last_cleanup_ticks);
+				time_since_last_cleanup = TICKS_2_MSEC(
+				    ticks - tx_ring->tx_last_cleanup_ticks);
 				missing_tx_comp_to = sbttoms(
 				    adapter->missing_tx_timeout);
 				ena_log(pdev, WARN,
@@ -3161,7 +3174,8 @@ check_for_missing_completions(struct ena_adapter *adapter)
 
 	budget = adapter->missing_tx_max_queues;
 
-	for (i = adapter->next_monitored_tx_qid; i < adapter->num_io_queues; i++) {
+	for (i = adapter->next_monitored_tx_qid; i < adapter->num_io_queues;
+	     i++) {
 		tx_ring = &adapter->tx_ring[i];
 		rx_ring = &adapter->rx_ring[i];
 
@@ -3245,7 +3259,8 @@ ena_update_hints(struct ena_adapter *adapter,
 
 	if (hints->mmio_read_timeout)
 		/* convert to usec */
-		ena_dev->mmio_read.reg_read_to = hints->mmio_read_timeout * 1000;
+		ena_dev->mmio_read.reg_read_to = hints->mmio_read_timeout *
+		    1000;
 
 	if (hints->missed_tx_completion_count_threshold_to_reset)
 		adapter->missing_tx_threshold =
@@ -3310,7 +3325,8 @@ ena_copy_eni_metrics(struct ena_adapter *adapter)
 static int
 ena_copy_srd_metrics(struct ena_adapter *adapter)
 {
-	return ena_com_get_ena_srd_info(adapter->ena_dev, &adapter->ena_srd_info);
+	return ena_com_get_ena_srd_info(adapter->ena_dev,
+	    &adapter->ena_srd_info);
 }
 
 static int
@@ -3358,11 +3374,10 @@ ena_timer_service(void *data)
 	 */
 	if ((adapter->metrics_sample_interval != 0) &&
 	    (++adapter->metrics_sample_interval_cnt >=
-	    adapter->metrics_sample_interval)) {
+		adapter->metrics_sample_interval)) {
 		taskqueue_enqueue(adapter->metrics_tq, &adapter->metrics_task);
 		adapter->metrics_sample_interval_cnt = 0;
 	}
-
 
 	if (host_info != NULL)
 		ena_update_host_info(host_info, adapter->ifp);
@@ -3455,7 +3470,7 @@ ena_device_validate_params(struct ena_adapter *adapter,
     struct ena_com_dev_get_features_ctx *get_feat_ctx)
 {
 	if (memcmp(get_feat_ctx->dev_attr.mac_addr, adapter->mac_addr,
-	    ETHER_ADDR_LEN) != 0) {
+		ETHER_ADDR_LEN) != 0) {
 		ena_log(adapter->pdev, ERR, "Error, mac addresses differ\n");
 		return (EINVAL);
 	}
@@ -3516,7 +3531,8 @@ ena_restore_device(struct ena_adapter *adapter)
 	 * are available.
 	 */
 	if ((adapter->msix_vecs - ENA_ADMIN_MSIX_VEC) < adapter->num_io_queues)
-		adapter->num_io_queues = adapter->msix_vecs - ENA_ADMIN_MSIX_VEC;
+		adapter->num_io_queues = adapter->msix_vecs -
+		    ENA_ADMIN_MSIX_VEC;
 
 	/* Re-initialize rings basic information */
 	ena_init_io_rings(adapter);
@@ -3605,7 +3621,6 @@ ena_free_stats(struct ena_adapter *adapter)
 	    sizeof(struct ena_hw_stats));
 	ena_free_counters((counter_u64_t *)&adapter->dev_stats,
 	    sizeof(struct ena_stats_dev));
-
 }
 /**
  * ena_attach - Device Initialization Routine
@@ -3793,13 +3808,15 @@ ena_attach(device_t pdev)
 
 	rc = ena_com_allocate_customer_metrics_buffer(ena_dev);
 	if (rc) {
-		ena_log(pdev, ERR, "Failed to allocate customer metrics buffer.\n");
+		ena_log(pdev, ERR,
+		    "Failed to allocate customer metrics buffer.\n");
 		goto err_msix_free;
 	}
 
 	rc = ena_sysctl_allocate_customer_metrics_buffer(adapter);
-	if (unlikely(rc)){
-		ena_log(pdev, ERR, "Failed to allocate sysctl customer metrics buffer.\n");
+	if (unlikely(rc)) {
+		ena_log(pdev, ERR,
+		    "Failed to allocate sysctl customer metrics buffer.\n");
 		goto err_metrics_buffer_destroy;
 	}
 
@@ -3908,7 +3925,8 @@ ena_detach(device_t pdev)
 	ENA_LOCK_UNLOCK();
 
 	/* Release metrics task */
-	while (taskqueue_cancel(adapter->metrics_tq, &adapter->metrics_task, NULL))
+	while (
+	    taskqueue_cancel(adapter->metrics_tq, &adapter->metrics_task, NULL))
 		taskqueue_drain(adapter->metrics_tq, &adapter->metrics_task);
 	taskqueue_free(adapter->metrics_tq);
 

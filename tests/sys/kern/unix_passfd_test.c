@@ -27,13 +27,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/un.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -41,8 +42,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #if !defined(TEST_PROTO)
 #error Need TEST_PROTO defined to SOCK_STREAM or SOCK_DGRAM
@@ -101,8 +100,8 @@ static void
 dofstat(int fd, struct stat *sb)
 {
 
-	ATF_REQUIRE_MSG(fstat(fd, sb) == 0,
-	    "fstat failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(fstat(fd, sb) == 0, "fstat failed: %s",
+	    strerror(errno));
 }
 
 static int
@@ -266,11 +265,11 @@ recvfd(int sockfd, int *recv_fd, int flags)
 }
 
 #if TEST_PROTO == SOCK_STREAM
-#define	LOCAL_SENDSPACE_SYSCTL	"net.local.stream.sendspace"
-#define	LOCAL_RECVSPACE_SYSCTL	"net.local.stream.recvspace"
+#define LOCAL_SENDSPACE_SYSCTL "net.local.stream.sendspace"
+#define LOCAL_RECVSPACE_SYSCTL "net.local.stream.recvspace"
 #elif TEST_PROTO == SOCK_DGRAM
-#define	LOCAL_SENDSPACE_SYSCTL	"net.local.dgram.maxdgram"
-#define	LOCAL_RECVSPACE_SYSCTL	"net.local.dgram.recvspace"
+#define LOCAL_SENDSPACE_SYSCTL "net.local.dgram.maxdgram"
+#define LOCAL_RECVSPACE_SYSCTL "net.local.dgram.recvspace"
 #endif
 
 static u_long
@@ -279,7 +278,7 @@ getsendspace(void)
 	u_long sendspace;
 
 	ATF_REQUIRE_MSG(sysctlbyname(LOCAL_SENDSPACE_SYSCTL, &sendspace,
-            &(size_t){sizeof(u_long)}, NULL, 0) != -1,
+			    &(size_t) { sizeof(u_long) }, NULL, 0) != -1,
 	    "sysctl %s failed: %s", LOCAL_SENDSPACE_SYSCTL, strerror(errno));
 
 	return (sendspace);
@@ -291,7 +290,7 @@ getrecvspace(void)
 	u_long recvspace;
 
 	ATF_REQUIRE_MSG(sysctlbyname(LOCAL_RECVSPACE_SYSCTL, &recvspace,
-            &(size_t){sizeof(u_long)}, NULL, 0) != -1,
+			    &(size_t) { sizeof(u_long) }, NULL, 0) != -1,
 	    "sysctl %s failed: %s", LOCAL_RECVSPACE_SYSCTL, strerror(errno));
 
 	return (recvspace);
@@ -313,13 +312,14 @@ fill(int fd)
 	    "fcntl(O_NONBLOCK) failed: %s", strerror(errno));
 
 #if TEST_PROTO == SOCK_STREAM
-	do {} while (send(fd, buf, sendspace, 0) == (ssize_t)sendspace);
+	do {
+	} while (send(fd, buf, sendspace, 0) == (ssize_t)sendspace);
 #elif TEST_PROTO == SOCK_DGRAM
 	u_long recvspace = getrecvspace();
 
 	for (ssize_t sent = 0;
-	    sent + sendspace + sizeof(struct sockaddr) < recvspace;
-	    sent += sendspace + sizeof(struct sockaddr))
+	     sent + sendspace + sizeof(struct sockaddr) < recvspace;
+	     sent += sendspace + sizeof(struct sockaddr))
 		ATF_REQUIRE(send(fd, buf, sendspace, 0) == (ssize_t)sendspace);
 #endif
 	free(buf);
@@ -439,7 +439,7 @@ ATF_TC_BODY(send_and_shutdown, tc)
  * and that we can successfully send maximum possible amount.  Check that we
  * can not exploit getrlimit(3).
  */
-#define	MAXFDS	((MCLBYTES - _ALIGN(sizeof(struct cmsghdr)))/sizeof(void *))
+#define MAXFDS ((MCLBYTES - _ALIGN(sizeof(struct cmsghdr))) / sizeof(void *))
 ATF_TC_WITHOUT_HEAD(send_a_lot);
 ATF_TC_BODY(send_a_lot, tc)
 {
@@ -454,7 +454,7 @@ ATF_TC_BODY(send_a_lot, tc)
 	ATF_REQUIRE(cmsg != NULL);
 	iov.iov_base = &ch;
 	iov.iov_len = sizeof(ch);
-	msghdr = (struct msghdr ){
+	msghdr = (struct msghdr) {
 		.msg_control = cmsg,
 		.msg_controllen = CMSG_LEN((MAXFDS + 1) * sizeof(int)),
 		.msg_iov = &iov,
@@ -540,7 +540,6 @@ ATF_TC_BODY(send_overflow, tc)
 	ATF_REQUIRE(nfiles == openfiles());
 	closesocketpair(fd);
 }
-
 
 /*
  * Send two files.  Then receive them.  Make sure they are returned in the
@@ -652,16 +651,16 @@ ATF_TC_BODY(rights_creds_payload, tc)
 
 	len = sendfd_payload(fd[0], putfd, buf, sendspace);
 #if TEST_PROTO == SOCK_STREAM
-	ATF_REQUIRE_MSG(len != -1 , "sendmsg failed: %s", strerror(errno));
-	ATF_REQUIRE_MSG((size_t)len < sendspace,
-	    "sendmsg: %zd bytes sent", len);
+	ATF_REQUIRE_MSG(len != -1, "sendmsg failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG((size_t)len < sendspace, "sendmsg: %zd bytes sent",
+	    len);
 	recvfd_payload(fd[1], &getfd, buf, len,
 	    CMSG_SPACE(SOCKCREDSIZE(CMGROUP_MAX)) + CMSG_SPACE(sizeof(int)), 0);
 #endif
 #if TEST_PROTO == SOCK_DGRAM
-	ATF_REQUIRE_MSG(len != -1 , "sendmsg failed: %s", strerror(errno));
-	ATF_REQUIRE_MSG((size_t)len == sendspace,
-	    "sendmsg: %zd bytes sent", len);
+	ATF_REQUIRE_MSG(len != -1, "sendmsg failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG((size_t)len == sendspace, "sendmsg: %zd bytes sent",
+	    len);
 	recvfd_payload(fd[1], &getfd, buf, len,
 	    CMSG_SPACE(SOCKCREDSIZE(CMGROUP_MAX)) + CMSG_SPACE(sizeof(int)), 0);
 #endif
@@ -690,8 +689,7 @@ send_cmsg(int sockfd, void *cmsg, size_t cmsgsz)
 	msghdr.msg_iovlen = 1;
 
 	len = sendmsg(sockfd, &msghdr, 0);
-	ATF_REQUIRE_MSG(len != -1,
-	    "sendmsg failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(len != -1, "sendmsg failed: %s", strerror(errno));
 	ATF_REQUIRE_MSG(len == sizeof(ch),
 	    "sendmsg: %zd bytes sent; expected %zu", len, sizeof(ch));
 }
@@ -715,8 +713,7 @@ recv_cmsg(int sockfd, char *cmsg, size_t cmsgsz, int flags)
 	msghdr.msg_iovlen = 1;
 
 	len = recvmsg(sockfd, &msghdr, 0);
-	ATF_REQUIRE_MSG(len != -1,
-	    "recvmsg failed: %s", strerror(errno));
+	ATF_REQUIRE_MSG(len != -1, "recvmsg failed: %s", strerror(errno));
 	ATF_REQUIRE_MSG(len == sizeof(ch),
 	    "recvmsg: %zd bytes received; expected %zu", len, sizeof(ch));
 	ATF_REQUIRE_MSG((msghdr.msg_flags & flags) == flags,
@@ -845,8 +842,8 @@ ATF_TC_BODY(copyout_rights_error, tc)
 	len = recvmsg(fd[1], &msghdr, 0);
 	error = errno;
 	ATF_REQUIRE_MSG(len == -1, "recvmsg succeeded: %zd", len);
-	ATF_REQUIRE_MSG(errno == EFAULT, "expected EFAULT, got %d (%s)",
-	    error, strerror(errno));
+	ATF_REQUIRE_MSG(errno == EFAULT, "expected EFAULT, got %d (%s)", error,
+	    strerror(errno));
 
 	/* Verify that no FDs were leaked. */
 	ATF_REQUIRE(getnfds() == nfds);
@@ -882,10 +879,10 @@ ATF_TC_BODY(empty_rights_message, tc)
 	 * CMSG_SPACE(0) > sizeof(struct cmsghdr), this will exercise
 	 * an edge case.
 	 */
-	cmsg = (struct cmsghdr ){
-	    .cmsg_len = sizeof(struct cmsghdr),	/* not CMSG_LEN(0)! */
-	    .cmsg_level = SOL_SOCKET,
-	    .cmsg_type = SCM_RIGHTS,
+	cmsg = (struct cmsghdr) {
+		.cmsg_len = sizeof(struct cmsghdr), /* not CMSG_LEN(0)! */
+		.cmsg_level = SOL_SOCKET,
+		.cmsg_type = SCM_RIGHTS,
 	};
 	msghdr.msg_control = &cmsg;
 	msghdr.msg_controllen = CMSG_SPACE(0);

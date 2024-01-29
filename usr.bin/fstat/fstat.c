@@ -31,71 +31,64 @@
  */
 
 #include <sys/param.h>
-#include <sys/user.h>
-#include <sys/stat.h>
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
-#include <sys/queue.h>
 #include <sys/un.h>
+#include <sys/user.h>
 
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <assert.h>
 #include <ctype.h>
 #include <err.h>
 #include <libprocstat.h>
 #include <limits.h>
+#include <netdb.h>
 #include <pwd.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 #include <unistd.h>
-#include <netdb.h>
 
 #include "functions.h"
 
-static int 	fsflg,	/* show files on same filesystem as file(s) argument */
-		pflg,	/* show files open by a particular pid */
-		sflg,	/* show socket details */
-		uflg;	/* show files open by a particular (effective) user */
-static int 	checkfile; /* restrict to particular files or filesystems */
-static int	nflg;	/* (numerical) display f.s. and rdev as dev_t */
-static int	mflg;	/* include memory-mapped files */
-static int	vflg;	/* be verbose */
+static int fsflg,     /* show files on same filesystem as file(s) argument */
+    pflg,	      /* show files open by a particular pid */
+    sflg,	      /* show socket details */
+    uflg;	      /* show files open by a particular (effective) user */
+static int checkfile; /* restrict to particular files or filesystems */
+static int nflg;      /* (numerical) display f.s. and rdev as dev_t */
+static int mflg;      /* include memory-mapped files */
+static int vflg;      /* be verbose */
 
 typedef struct devs {
-	struct devs	*next;
-	uint64_t	fsid;
-	uint64_t	ino;
-	const char	*name;
+	struct devs *next;
+	uint64_t fsid;
+	uint64_t ino;
+	const char *name;
 } DEVS;
 
 static DEVS *devs;
 static char *memf, *nlistf;
 
-static int	getfname(const char *filename);
-static void	dofiles(struct procstat *procstat, struct kinfo_proc *p);
-static void	print_access_flags(int flags);
-static void	print_file_info(struct procstat *procstat,
-    struct filestat *fst, const char *uname, const char *cmd, int pid);
-static void	print_pipe_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	print_pts_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	print_sem_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	print_shm_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	print_socket_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	print_vnode_info(struct procstat *procstat,
-    struct filestat *fst);
-static void	usage(void) __dead2;
+static int getfname(const char *filename);
+static void dofiles(struct procstat *procstat, struct kinfo_proc *p);
+static void print_access_flags(int flags);
+static void print_file_info(struct procstat *procstat, struct filestat *fst,
+    const char *uname, const char *cmd, int pid);
+static void print_pipe_info(struct procstat *procstat, struct filestat *fst);
+static void print_pts_info(struct procstat *procstat, struct filestat *fst);
+static void print_sem_info(struct procstat *procstat, struct filestat *fst);
+static void print_shm_info(struct procstat *procstat, struct filestat *fst);
+static void print_socket_info(struct procstat *procstat, struct filestat *fst);
+static void print_vnode_info(struct procstat *procstat, struct filestat *fst);
+static void usage(void) __dead2;
 
 int
 do_fstat(int argc, char **argv)
@@ -110,7 +103,7 @@ do_fstat(int argc, char **argv)
 	what = KERN_PROC_PROC;
 	nlistf = memf = NULL;
 	while ((ch = getopt(argc, argv, "fmnp:su:vN:M:")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'f':
 			fsflg = 1;
 			break;
@@ -160,7 +153,7 @@ do_fstat(int argc, char **argv)
 			if (getfname(*argv))
 				checkfile = 1;
 		}
-		if (!checkfile)	/* file(s) specified, but none accessible */
+		if (!checkfile) /* file(s) specified, but none accessible */
 			exit(1);
 	}
 
@@ -186,10 +179,10 @@ do_fstat(int argc, char **argv)
 	 */
 	if (nflg)
 		printf("%s",
-"USER     CMD          PID   FD  DEV    INUM       MODE SZ|DV R/W");
+		    "USER     CMD          PID   FD  DEV    INUM       MODE SZ|DV R/W");
 	else
 		printf("%s",
-"USER     CMD          PID   FD MOUNT      INUM MODE         SZ|DV R/W");
+		    "USER     CMD          PID   FD MOUNT      INUM MODE         SZ|DV R/W");
 	if (checkfile && fsflg == 0)
 		printf(" NAME\n");
 	else
@@ -224,11 +217,10 @@ dofiles(struct procstat *procstat, struct kinfo_proc *kp)
 	head = procstat_getfiles(procstat, kp, mflg);
 	if (head == NULL)
 		return;
-	STAILQ_FOREACH(fst, head, next)
+	STAILQ_FOREACH (fst, head, next)
 		print_file_info(procstat, fst, uname, cmd, pid);
 	procstat_freefiles(procstat, head);
 }
-
 
 static void
 print_file_info(struct procstat *procstat, struct filestat *fst,
@@ -307,7 +299,7 @@ print_file_info(struct procstat *procstat, struct filestat *fst,
 		break;
 	case PS_FST_TYPE_DEV:
 		break;
-	default:	
+	default:
 		if (vflg)
 			fprintf(stderr,
 			    "unknown file type %d for file %d of pid %d\n",
@@ -341,9 +333,9 @@ addr_to_string(struct sockaddr_storage *ss, char *buffer, int buflen)
 			snprintf(buffer, buflen, "%s:%d", "*",
 			    ntohs(sin->sin_port));
 		else if (inet_ntop(AF_INET, &sin->sin_addr, buffer2,
-		    sizeof(buffer2)) != NULL)
+			     sizeof(buffer2)) != NULL)
 			snprintf(buffer, buflen, "%s:%d", buffer2,
-		            ntohs(sin->sin_port));
+			    ntohs(sin->sin_port));
 		break;
 
 	case AF_INET6:
@@ -352,7 +344,7 @@ addr_to_string(struct sockaddr_storage *ss, char *buffer, int buflen)
 			snprintf(buffer, buflen, "%s.%d", "*",
 			    ntohs(sin6->sin6_port));
 		else if (inet_ntop(AF_INET6, &sin6->sin6_addr, buffer2,
-		    sizeof(buffer2)) != NULL)
+			     sizeof(buffer2)) != NULL)
 			snprintf(buffer, buflen, "%s.%d", buffer2,
 			    ntohs(sin6->sin6_port));
 		else
@@ -366,17 +358,16 @@ addr_to_string(struct sockaddr_storage *ss, char *buffer, int buflen)
 	return buffer;
 }
 
-
 static void
 print_socket_info(struct procstat *procstat, struct filestat *fst)
 {
 	static const char *stypename[] = {
-		"unused",	/* 0 */
-		"stream",	/* 1 */
-		"dgram",	/* 2 */
-		"raw",		/* 3 */
-		"rdm",		/* 4 */
-		"seqpak"	/* 5 */
+		"unused", /* 0 */
+		"stream", /* 1 */
+		"dgram",  /* 2 */
+		"raw",	  /* 3 */
+		"rdm",	  /* 4 */
+		"seqpak"  /* 5 */
 	};
 #define STYPEMAX 5
 	struct sockstat sock;
@@ -417,11 +408,10 @@ print_socket_info(struct procstat *procstat, struct filestat *fst)
 			printf(" %s", pe->p_name);
 		else
 			printf(" %d", sock.proto);
-		if (sock.proto == IPPROTO_TCP ) {
+		if (sock.proto == IPPROTO_TCP) {
 			if (sock.inp_ppcb != 0)
 				printf(" %lx", (u_long)sock.inp_ppcb);
-		}
-		else if (sock.so_pcb != 0)
+		} else if (sock.so_pcb != 0)
 			printf(" %lx", (u_long)sock.so_pcb);
 		if (!sflg)
 			break;
@@ -458,11 +448,11 @@ print_socket_info(struct procstat *procstat, struct filestat *fst)
 		 *  connected, and the path strings can get long.
 		 */
 		if (sun->sun_path[0] != 0)
-			addr_to_string(&sock.sa_local,
-			    src_addr, sizeof(src_addr));
+			addr_to_string(&sock.sa_local, src_addr,
+			    sizeof(src_addr));
 		else
-			addr_to_string(&sock.sa_peer,
-			    src_addr, sizeof(src_addr));
+			addr_to_string(&sock.sa_peer, src_addr,
+			    sizeof(src_addr));
 		printf(" %s", src_addr);
 		break;
 	default:
@@ -594,7 +584,8 @@ print_vnode_info(struct procstat *procstat, struct filestat *fst)
 	}
 	(void)printf(" %6jd %10s", (intmax_t)vn.vn_fileid, mode);
 
-	if (vn.vn_type == PS_FST_VTYPE_VBLK || vn.vn_type == PS_FST_VTYPE_VCHR) {
+	if (vn.vn_type == PS_FST_VTYPE_VBLK ||
+	    vn.vn_type == PS_FST_VTYPE_VCHR) {
 		if (nflg || !*vn.vn_devname)
 			printf(" %#6jx", (uintmax_t)vn.vn_dev);
 		else {
@@ -643,6 +634,6 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
- "usage: fstat [-fmnv] [-M core] [-N system] [-p pid] [-u user] [file ...]\n");
+	    "usage: fstat [-fmnv] [-M core] [-N system] [-p pid] [-u user] [file ...]\n");
 	exit(1);
 }

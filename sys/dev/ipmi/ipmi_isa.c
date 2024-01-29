@@ -30,14 +30,15 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/condvar.h>
+#include <sys/efi.h>
 #include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/selinfo.h>
-#include <sys/efi.h>
 
 #include <machine/pci_cfgreg.h>
+
 #include <dev/pci/pcireg.h>
 
 #include <isa/isavar.h>
@@ -47,6 +48,7 @@
 #include <ipmivars.h>
 #else
 #include <sys/ipmi.h>
+
 #include <dev/ipmi/ipmivars.h>
 #endif
 
@@ -179,8 +181,7 @@ ipmi_isa_attach(device_t dev)
 	 * Pull info out of the SMBIOS table.  If that doesn't work, use
 	 * hints to enumerate a device.
 	 */
-	if (!ipmi_smbios_identify(&info) &&
-	    !ipmi_hint_identify(dev, &info))
+	if (!ipmi_smbios_identify(&info) && !ipmi_hint_identify(dev, &info))
 		return (ENXIO);
 
 	switch (info.iface_type) {
@@ -203,9 +204,8 @@ ipmi_isa_attach(device_t dev)
 	sc->ipmi_dev = dev;
 
 	device_printf(dev, "%s mode found at %s 0x%jx alignment 0x%x on %s\n",
-	    mode, info.io_mode ? "io" : "mem",
-	    (uintmax_t)info.address, info.offset,
-	    device_get_name(device_get_parent(dev)));
+	    mode, info.io_mode ? "io" : "mem", (uintmax_t)info.address,
+	    info.offset, device_get_name(device_get_parent(dev)));
 	if (info.io_mode)
 		type = SYS_RES_IOPORT;
 	else
@@ -273,11 +273,10 @@ bad:
 
 static device_method_t ipmi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,      ipmi_isa_identify),
-	DEVMETHOD(device_probe,		ipmi_isa_probe),
-	DEVMETHOD(device_attach,	ipmi_isa_attach),
-	DEVMETHOD(device_detach,	ipmi_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, ipmi_isa_identify),
+	DEVMETHOD(device_probe, ipmi_isa_probe),
+	DEVMETHOD(device_attach, ipmi_isa_attach),
+	DEVMETHOD(device_detach, ipmi_detach), { 0, 0 }
 };
 
 static driver_t ipmi_isa_driver = {

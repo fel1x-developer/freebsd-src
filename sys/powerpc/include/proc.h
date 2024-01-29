@@ -34,28 +34,28 @@
  */
 
 #ifndef _MACHINE_PROC_H_
-#define	_MACHINE_PROC_H_
+#define _MACHINE_PROC_H_
 
 /*
  * Machine-dependent part of the proc structure
  */
 struct mdthread {
-	int	md_spinlock_count;	/* (k) */
-	register_t md_saved_msr;	/* (k) */
+	int md_spinlock_count;	 /* (k) */
+	register_t md_saved_msr; /* (k) */
 };
 
 struct mdproc {
 	/*
 	 * Avoid empty structs because they are undefined behavior.
 	 */
-	long	md_spare;
+	long md_spare;
 };
 
 #ifdef __powerpc64__
-#define	KINFO_PROC_SIZE 1088
-#define	KINFO_PROC32_SIZE 816
+#define KINFO_PROC_SIZE 1088
+#define KINFO_PROC32_SIZE 816
 #else
-#define	KINFO_PROC_SIZE 816
+#define KINFO_PROC_SIZE 816
 #endif
 
 #endif /* !_MACHINE_PROC_H_ */

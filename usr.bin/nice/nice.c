@@ -30,8 +30,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -39,10 +39,10 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
-#define	DEFNICE	10
+#define DEFNICE 10
 
 void usage(void);
 
@@ -54,8 +54,9 @@ main(int argc, char *argv[])
 	char *ep;
 
 	/* Obsolescent syntax: -number, --number */
-	if (argc >= 2 && argv[1][0] == '-' && (argv[1][1] == '-' ||
-	    isdigit((unsigned char)argv[1][1])) && strcmp(argv[1], "--") != 0)
+	if (argc >= 2 && argv[1][0] == '-' &&
+	    (argv[1][1] == '-' || isdigit((unsigned char)argv[1][1])) &&
+	    strcmp(argv[1], "--") != 0)
 		if (asprintf(&argv[1], "-n%s", argv[1] + 1) < 0)
 			err(1, "asprintf");
 

@@ -38,14 +38,14 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
+#include <sys/rman.h>
 
 #include <vm/vm.h>
 
@@ -53,65 +53,64 @@
 #include <machine/resource.h>
 
 #ifdef DEV_ACPI
-#include <contrib/dev/acpica/include/acpi.h>
 #include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 
 #ifdef FDT
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/ofw_pci.h>
+#include <dev/ofw/openfirm.h>
 #endif
 
-#include "pcib_if.h"
-#include "pci_if.h"
-
 #include "dpaa2_mc.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 /* Macros to read/write MC registers */
-#define	mcreg_read_4(_sc, _r)		bus_read_4(&(_sc)->map[1], (_r))
-#define	mcreg_write_4(_sc, _r, _v)	bus_write_4(&(_sc)->map[1], (_r), (_v))
+#define mcreg_read_4(_sc, _r) bus_read_4(&(_sc)->map[1], (_r))
+#define mcreg_write_4(_sc, _r, _v) bus_write_4(&(_sc)->map[1], (_r), (_v))
 
-#define IORT_DEVICE_NAME		"MCE"
+#define IORT_DEVICE_NAME "MCE"
 
 /* MC Registers */
-#define MC_REG_GCR1			0x0000u
-#define MC_REG_GCR2			0x0004u /* TODO: Does it exist? */
-#define MC_REG_GSR			0x0008u
-#define MC_REG_FAPR			0x0028u
+#define MC_REG_GCR1 0x0000u
+#define MC_REG_GCR2 0x0004u /* TODO: Does it exist? */
+#define MC_REG_GSR 0x0008u
+#define MC_REG_FAPR 0x0028u
 
 /* General Control Register 1 (GCR1) */
-#define GCR1_P1_STOP			0x80000000u
-#define GCR1_P2_STOP			0x40000000u
+#define GCR1_P1_STOP 0x80000000u
+#define GCR1_P2_STOP 0x40000000u
 
 /* General Status Register (GSR) */
-#define GSR_HW_ERR(v)			(((v) & 0x80000000u) >> 31)
-#define GSR_CAT_ERR(v)			(((v) & 0x40000000u) >> 30)
-#define GSR_DPL_OFFSET(v)		(((v) & 0x3FFFFF00u) >> 8)
-#define GSR_MCS(v)			(((v) & 0xFFu) >> 0)
+#define GSR_HW_ERR(v) (((v) & 0x80000000u) >> 31)
+#define GSR_CAT_ERR(v) (((v) & 0x40000000u) >> 30)
+#define GSR_DPL_OFFSET(v) (((v) & 0x3FFFFF00u) >> 8)
+#define GSR_MCS(v) (((v) & 0xFFu) >> 0)
 
 /* Timeouts to wait for the MC status. */
-#define MC_STAT_TIMEOUT			1000u	/* us */
-#define MC_STAT_ATTEMPTS		100u
+#define MC_STAT_TIMEOUT 1000u /* us */
+#define MC_STAT_ATTEMPTS 100u
 
 /**
  * @brief Structure to describe a DPAA2 device as a managed resource.
  */
 struct dpaa2_mc_devinfo {
 	STAILQ_ENTRY(dpaa2_mc_devinfo) link;
-	device_t	dpaa2_dev;
-	uint32_t	flags;
-	uint32_t	owners;
+	device_t dpaa2_dev;
+	uint32_t flags;
+	uint32_t owners;
 };
 
 MALLOC_DEFINE(M_DPAA2_MC, "dpaa2_mc", "DPAA2 Management Complex");
 
-static struct resource_spec dpaa2_mc_spec[] = {
-	{ SYS_RES_MEMORY, 0, RF_ACTIVE | RF_UNMAPPED },
+static struct resource_spec dpaa2_mc_spec[] = { { SYS_RES_MEMORY, 0,
+						    RF_ACTIVE | RF_UNMAPPED },
 	{ SYS_RES_MEMORY, 1, RF_ACTIVE | RF_UNMAPPED | RF_OPTIONAL },
-	RESOURCE_SPEC_END
-};
+	RESOURCE_SPEC_END };
 
 static u_int dpaa2_mc_get_xref(device_t, device_t);
 static u_int dpaa2_mc_map_id(device_t, device_t, uintptr_t *);
@@ -152,8 +151,10 @@ dpaa2_mc_attach(device_t dev)
 		error = bus_map_resource(sc->dev, SYS_RES_MEMORY, sc->res[1],
 		    &req, &sc->map[1]);
 		if (error) {
-			device_printf(dev, "%s: failed to map control "
-			    "registers\n", __func__);
+			device_printf(dev,
+			    "%s: failed to map control "
+			    "registers\n",
+			    __func__);
 			dpaa2_mc_detach(dev);
 			return (ENXIO);
 		}
@@ -192,8 +193,10 @@ dpaa2_mc_attach(device_t dev)
 
 	/* At least 64 bytes of the command portal should be available. */
 	if (rman_get_size(sc->res[0]) < DPAA2_MCP_MEM_WIDTH) {
-		device_printf(dev, "%s: MC portal memory region too small: "
-		    "%jd\n", __func__, rman_get_size(sc->res[0]));
+		device_printf(dev,
+		    "%s: MC portal memory region too small: "
+		    "%jd\n",
+		    __func__, rman_get_size(sc->res[0]));
 		dpaa2_mc_detach(dev);
 		return (ENXIO);
 	}
@@ -201,8 +204,8 @@ dpaa2_mc_attach(device_t dev)
 	/* Map MC portal memory resource. */
 	resource_init_map_request(&req);
 	req.memattr = VM_MEMATTR_DEVICE;
-	error = bus_map_resource(sc->dev, SYS_RES_MEMORY, sc->res[0],
-	    &req, &sc->map[0]);
+	error = bus_map_resource(sc->dev, SYS_RES_MEMORY, sc->res[0], &req,
+	    &sc->map[0]);
 	if (error) {
 		device_printf(dev, "Failed to map MC portal memory\n");
 		dpaa2_mc_detach(dev);
@@ -214,8 +217,10 @@ dpaa2_mc_attach(device_t dev)
 	sc->dpio_rman.rm_descr = "DPAA2 DPIO objects";
 	error = rman_init(&sc->dpio_rman);
 	if (error) {
-		device_printf(dev, "Failed to initialize a resource manager for "
-		    "the DPAA2 I/O objects: error=%d\n", error);
+		device_printf(dev,
+		    "Failed to initialize a resource manager for "
+		    "the DPAA2 I/O objects: error=%d\n",
+		    error);
 		dpaa2_mc_detach(dev);
 		return (ENXIO);
 	}
@@ -225,8 +230,10 @@ dpaa2_mc_attach(device_t dev)
 	sc->dpbp_rman.rm_descr = "DPAA2 DPBP objects";
 	error = rman_init(&sc->dpbp_rman);
 	if (error) {
-		device_printf(dev, "Failed to initialize a resource manager for "
-		    "the DPAA2 buffer pools: error=%d\n", error);
+		device_printf(dev,
+		    "Failed to initialize a resource manager for "
+		    "the DPAA2 buffer pools: error=%d\n",
+		    error);
 		dpaa2_mc_detach(dev);
 		return (ENXIO);
 	}
@@ -236,8 +243,10 @@ dpaa2_mc_attach(device_t dev)
 	sc->dpcon_rman.rm_descr = "DPAA2 DPCON objects";
 	error = rman_init(&sc->dpcon_rman);
 	if (error) {
-		device_printf(dev, "Failed to initialize a resource manager for "
-		    "the DPAA2 concentrators: error=%d\n", error);
+		device_printf(dev,
+		    "Failed to initialize a resource manager for "
+		    "the DPAA2 concentrators: error=%d\n",
+		    error);
 		dpaa2_mc_detach(dev);
 		return (ENXIO);
 	}
@@ -247,8 +256,10 @@ dpaa2_mc_attach(device_t dev)
 	sc->dpmcp_rman.rm_descr = "DPAA2 DPMCP objects";
 	error = rman_init(&sc->dpmcp_rman);
 	if (error) {
-		device_printf(dev, "Failed to initialize a resource manager for "
-		    "the DPAA2 MC portals: error=%d\n", error);
+		device_printf(dev,
+		    "Failed to initialize a resource manager for "
+		    "the DPAA2 MC portals: error=%d\n",
+		    error);
 		dpaa2_mc_detach(dev);
 		return (ENXIO);
 	}
@@ -324,17 +335,20 @@ dpaa2_mc_alloc_resource(device_t mcdev, device_t child, int type, int *rid,
 	if (type <= DPAA2_DEV_MC) {
 		error = rman_manage_region(rm, start, end);
 		if (error) {
-			device_printf(mcdev, "rman_manage_region() failed: "
-			    "start=%#jx, end=%#jx, error=%d\n", start, end,
-			    error);
+			device_printf(mcdev,
+			    "rman_manage_region() failed: "
+			    "start=%#jx, end=%#jx, error=%d\n",
+			    start, end, error);
 			goto fail;
 		}
 	}
 
 	res = rman_reserve_resource(rm, start, end, count, flags, child);
 	if (!res) {
-		device_printf(mcdev, "rman_reserve_resource() failed: "
-		    "start=%#jx, end=%#jx, count=%#jx\n", start, end, count);
+		device_printf(mcdev,
+		    "rman_reserve_resource() failed: "
+		    "start=%#jx, end=%#jx, count=%#jx\n",
+		    start, end, count);
 		goto fail;
 	}
 
@@ -342,18 +356,21 @@ dpaa2_mc_alloc_resource(device_t mcdev, device_t child, int type, int *rid,
 
 	if (flags & RF_ACTIVE) {
 		if (bus_activate_resource(child, type, *rid, res)) {
-			device_printf(mcdev, "bus_activate_resource() failed: "
-			    "rid=%d, res=%#jx\n", *rid, (uintmax_t) res);
+			device_printf(mcdev,
+			    "bus_activate_resource() failed: "
+			    "rid=%d, res=%#jx\n",
+			    *rid, (uintmax_t)res);
 			rman_release_resource(res);
 			goto fail;
 		}
 	}
 
 	return (res);
- fail:
-	device_printf(mcdev, "%s() failed: type=%d, rid=%d, start=%#jx, "
-	    "end=%#jx, count=%#jx, flags=%x\n", __func__, type, *rid, start, end,
-	    count, flags);
+fail:
+	device_printf(mcdev,
+	    "%s() failed: type=%d, rid=%d, start=%#jx, "
+	    "end=%#jx, count=%#jx, flags=%x\n",
+	    __func__, type, *rid, start, end, count, flags);
 	return (NULL);
 }
 
@@ -502,8 +519,8 @@ dpaa2_mc_manage_dev(device_t mcdev, device_t dpaa2_dev, uint32_t flags)
 		if (!rm)
 			return (ENOENT);
 		/* Manage DPAA2 device as an allocatable resource. */
-		error = rman_manage_region(rm, (rman_res_t) dpaa2_dev,
-		    (rman_res_t) dpaa2_dev);
+		error = rman_manage_region(rm, (rman_res_t)dpaa2_dev,
+		    (rman_res_t)dpaa2_dev);
 		if (error)
 			return (error);
 	}
@@ -531,10 +548,12 @@ dpaa2_mc_get_free_dev(device_t mcdev, device_t *dpaa2_dev,
 	if (error)
 		return (error);
 
-	KASSERT(start == end, ("start != end, but should be the same pointer "
-	    "to the DPAA2 device: start=%jx, end=%jx", start, end));
+	KASSERT(start == end,
+	    ("start != end, but should be the same pointer "
+	     "to the DPAA2 device: start=%jx, end=%jx",
+		start, end));
 
-	*dpaa2_dev = (device_t) start;
+	*dpaa2_dev = (device_t)start;
 
 	return (0);
 }
@@ -556,7 +575,7 @@ dpaa2_mc_get_dev(device_t mcdev, device_t *dpaa2_dev,
 	mtx_assert(&sc->mdev_lock, MA_NOTOWNED);
 	mtx_lock(&sc->mdev_lock);
 
-	STAILQ_FOREACH(di, &sc->mdev_list, link) {
+	STAILQ_FOREACH (di, &sc->mdev_list, link) {
 		dinfo = device_get_ivars(di->dpaa2_dev);
 		if (dinfo->dtype == devtype && dinfo->id == obj_id) {
 			*dpaa2_dev = di->dpaa2_dev;
@@ -589,7 +608,7 @@ dpaa2_mc_get_shared_dev(device_t mcdev, device_t *dpaa2_dev,
 	mtx_assert(&sc->mdev_lock, MA_NOTOWNED);
 	mtx_lock(&sc->mdev_lock);
 
-	STAILQ_FOREACH(di, &sc->mdev_list, link) {
+	STAILQ_FOREACH (di, &sc->mdev_list, link) {
 		dinfo = device_get_ivars(di->dpaa2_dev);
 
 		if ((dinfo->dtype == devtype) &&
@@ -625,7 +644,7 @@ dpaa2_mc_reserve_dev(device_t mcdev, device_t dpaa2_dev,
 	mtx_assert(&sc->mdev_lock, MA_NOTOWNED);
 	mtx_lock(&sc->mdev_lock);
 
-	STAILQ_FOREACH(di, &sc->mdev_list, link) {
+	STAILQ_FOREACH (di, &sc->mdev_list, link) {
 		if (di->dpaa2_dev == dpaa2_dev &&
 		    (di->flags & DPAA2_MC_DEV_SHAREABLE)) {
 			di->owners++;
@@ -655,7 +674,7 @@ dpaa2_mc_release_dev(device_t mcdev, device_t dpaa2_dev,
 	mtx_assert(&sc->mdev_lock, MA_NOTOWNED);
 	mtx_lock(&sc->mdev_lock);
 
-	STAILQ_FOREACH(di, &sc->mdev_list, link) {
+	STAILQ_FOREACH (di, &sc->mdev_list, link) {
 		if (di->dpaa2_dev == dpaa2_dev &&
 		    (di->flags & DPAA2_MC_DEV_SHAREABLE)) {
 			di->owners -= di->owners > 0 ? 1 : 0;
@@ -706,7 +725,7 @@ dpaa2_mc_get_xref(device_t mcdev, device_t child)
 			    &msi_parent, NULL);
 			if (error)
 				return (0);
-			return ((u_int) msi_parent);
+			return ((u_int)msi_parent);
 		}
 #endif
 	}
@@ -778,8 +797,8 @@ dpaa2_mc_rman(device_t mcdev, int type)
  * @internal
  * @brief Allocates requested number of MSIs.
  *
- * NOTE: This function is a part of fallback solution when IOMMU isn't available.
- *	 Total number of IRQs is limited to 32.
+ * NOTE: This function is a part of fallback solution when IOMMU isn't
+ *available. Total number of IRQs is limited to 32.
  */
 static int
 dpaa2_mc_alloc_msi_impl(device_t mcdev, device_t child, int count, int maxcount,
@@ -791,11 +810,14 @@ dpaa2_mc_alloc_msi_impl(device_t mcdev, device_t child, int count, int maxcount,
 
 	/* Pre-allocate a bunch of MSIs for MC to be used by its children. */
 	if (!sc->msi_allocated) {
-		error = intr_alloc_msi(mcdev, child, dpaa2_mc_get_xref(mcdev,
-		    child), DPAA2_MC_MSI_COUNT, DPAA2_MC_MSI_COUNT, msi_irqs);
+		error = intr_alloc_msi(mcdev, child,
+		    dpaa2_mc_get_xref(mcdev, child), DPAA2_MC_MSI_COUNT,
+		    DPAA2_MC_MSI_COUNT, msi_irqs);
 		if (error) {
-			device_printf(mcdev, "failed to pre-allocate %d MSIs: "
-			    "error=%d\n", DPAA2_MC_MSI_COUNT, error);
+			device_printf(mcdev,
+			    "failed to pre-allocate %d MSIs: "
+			    "error=%d\n",
+			    DPAA2_MC_MSI_COUNT, error);
 			return (error);
 		}
 
@@ -821,9 +843,10 @@ dpaa2_mc_alloc_msi_impl(device_t mcdev, device_t child, int count, int maxcount,
 		error = 0;
 		for (int j = 0; j < count; j++) {
 			if (i + j >= DPAA2_MC_MSI_COUNT) {
-				device_printf(mcdev, "requested %d MSIs exceed "
-				    "limit of %d available\n", count,
-				    DPAA2_MC_MSI_COUNT);
+				device_printf(mcdev,
+				    "requested %d MSIs exceed "
+				    "limit of %d available\n",
+				    count, DPAA2_MC_MSI_COUNT);
 				error = E2BIG;
 				break;
 			}
@@ -841,9 +864,9 @@ dpaa2_mc_alloc_msi_impl(device_t mcdev, device_t child, int count, int maxcount,
  * @internal
  * @brief Marks IRQs as free in the pre-allocated pool of MSIs.
  *
- * NOTE: This function is a part of fallback solution when IOMMU isn't available.
- *	 Total number of IRQs is limited to 32.
- * NOTE: MSIs are kept allocated in the kernel as a part of the pool.
+ * NOTE: This function is a part of fallback solution when IOMMU isn't
+ *available. Total number of IRQs is limited to 32. NOTE: MSIs are kept
+ *allocated in the kernel as a part of the pool.
  */
 static int
 dpaa2_mc_release_msi_impl(device_t mcdev, device_t child, int count, int *irqs)
@@ -872,8 +895,8 @@ dpaa2_mc_release_msi_impl(device_t mcdev, device_t child, int count, int *irqs)
  * @brief Provides address to write to and data according to the given MSI from
  * the pre-allocated pool.
  *
- * NOTE: This function is a part of fallback solution when IOMMU isn't available.
- *	 Total number of IRQs is limited to 32.
+ * NOTE: This function is a part of fallback solution when IOMMU isn't
+ *available. Total number of IRQs is limited to 32.
  */
 static int
 dpaa2_mc_map_msi_impl(device_t mcdev, device_t child, int irq, uint64_t *addr,
@@ -894,15 +917,13 @@ dpaa2_mc_map_msi_impl(device_t mcdev, device_t child, int irq, uint64_t *addr,
 	if (error)
 		return (error);
 
-	return (intr_map_msi(mcdev, sc->msi_owner, dpaa2_mc_get_xref(mcdev,
-	    sc->msi_owner), irq, addr, data));
+	return (intr_map_msi(mcdev, sc->msi_owner,
+	    dpaa2_mc_get_xref(mcdev, sc->msi_owner), irq, addr, data));
 }
 
 #endif /* defined(INTRNG) && !defined(IOMMU) */
 
-static device_method_t dpaa2_mc_methods[] = {
-	DEVMETHOD_END
-};
+static device_method_t dpaa2_mc_methods[] = { DEVMETHOD_END };
 
 DEFINE_CLASS_0(dpaa2_mc, dpaa2_mc_driver, dpaa2_mc_methods,
     sizeof(struct dpaa2_mc_softc));

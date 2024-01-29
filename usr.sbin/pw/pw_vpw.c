@@ -27,18 +27,18 @@
  *
  */
 
-#include <pwd.h>
+#include <err.h>
 #include <grp.h>
 #include <libutil.h>
+#include <pwd.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <err.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "pwupd.h"
 
-static FILE * pwd_fp = NULL;
+static FILE *pwd_fp = NULL;
 static int pwd_scanflag;
 static const char *pwd_filename;
 
@@ -79,19 +79,21 @@ vnextpwent(char const *nam, uid_t uid, int doclose)
 		}
 		pwd_fp = fopen(getpwpath(pwd_filename), "r");
 	}
-	 
+
 	if (pwd_fp != NULL) {
 		while ((linelen = getline(&line, &linecap, pwd_fp)) > 0) {
 			/* Skip comments and empty lines */
 			if (*line == '\n' || *line == '#')
 				continue;
 			/* trim latest \n */
-			if (line[linelen - 1 ] == '\n')
+			if (line[linelen - 1] == '\n')
 				line[linelen - 1] = '\0';
 			pw = pw_scan(line, pwd_scanflag);
 			if (pw == NULL)
-				errx(EXIT_FAILURE, "Invalid user entry in '%s':"
-				    " '%s'", getpwpath(pwd_filename), line);
+				errx(EXIT_FAILURE,
+				    "Invalid user entry in '%s':"
+				    " '%s'",
+				    getpwpath(pwd_filename), line);
 			if (uid != (uid_t)-1) {
 				if (uid == pw->pw_uid)
 					break;
@@ -114,23 +116,22 @@ vnextpwent(char const *nam, uid_t uid, int doclose)
 struct passwd *
 vgetpwent(void)
 {
-  return vnextpwent(NULL, -1, 0);
+	return vnextpwent(NULL, -1, 0);
 }
 
 struct passwd *
 vgetpwuid(uid_t uid)
 {
-  return vnextpwent(NULL, uid, 1);
+	return vnextpwent(NULL, uid, 1);
 }
 
 struct passwd *
-vgetpwnam(const char * nam)
+vgetpwnam(const char *nam)
 {
-  return vnextpwent(nam, -1, 1);
+	return vnextpwent(nam, -1, 1);
 }
 
-
-static FILE * grp_fp = NULL;
+static FILE *grp_fp = NULL;
 
 void
 vendgrent(void)
@@ -159,18 +160,21 @@ vnextgrent(char const *nam, gid_t gid, int doclose)
 	line = NULL;
 	linecap = 0;
 
-	if (grp_fp != NULL || (grp_fp = fopen(getgrpath(_GROUP), "r")) != NULL) {
+	if (grp_fp != NULL ||
+	    (grp_fp = fopen(getgrpath(_GROUP), "r")) != NULL) {
 		while ((linelen = getline(&line, &linecap, grp_fp)) > 0) {
 			/* Skip comments and empty lines */
 			if (*line == '\n' || *line == '#')
 				continue;
 			/* trim latest \n */
-			if (line[linelen - 1 ] == '\n')
+			if (line[linelen - 1] == '\n')
 				line[linelen - 1] = '\0';
 			gr = gr_scan(line);
 			if (gr == NULL)
-				errx(EXIT_FAILURE, "Invalid group entry in '%s':"
-				    " '%s'", getgrpath(_GROUP), line);
+				errx(EXIT_FAILURE,
+				    "Invalid group entry in '%s':"
+				    " '%s'",
+				    getgrpath(_GROUP), line);
 			if (gid != (gid_t)-1) {
 				if (gid == gr->gr_gid)
 					break;
@@ -193,19 +197,17 @@ vnextgrent(char const *nam, gid_t gid, int doclose)
 struct group *
 vgetgrent(void)
 {
-  return vnextgrent(NULL, -1, 0);
+	return vnextgrent(NULL, -1, 0);
 }
-
 
 struct group *
 vgetgrgid(gid_t gid)
 {
-  return vnextgrent(NULL, gid, 1);
+	return vnextgrent(NULL, gid, 1);
 }
 
 struct group *
-vgetgrnam(const char * nam)
+vgetgrnam(const char *nam)
 {
-  return vnextgrent(nam, -1, 1);
+	return vnextgrent(nam, -1, 1);
 }
-

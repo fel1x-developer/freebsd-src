@@ -34,21 +34,22 @@
 #include "math.h"
 #include "math_private.h"
 
-#define	MANT_DIG	LDBL_MANT_DIG
-#define	MAX_EXP		LDBL_MAX_EXP
-#define	MIN_EXP		LDBL_MIN_EXP
+#define MANT_DIG LDBL_MANT_DIG
+#define MAX_EXP LDBL_MAX_EXP
+#define MIN_EXP LDBL_MIN_EXP
 
-static const double
-ln2_hi = 6.9314718055829871e-1;		/*  0x162e42fefa0000.0p-53 */
+static const double ln2_hi =
+    6.9314718055829871e-1; /*  0x162e42fefa0000.0p-53 */
 
 #if LDBL_MANT_DIG == 64
-#define	MULT_REDUX	0x1p32		/* exponent MANT_DIG / 2 rounded up */
-static const double
-ln2l_lo = 1.6465949582897082e-12;	/*  0x1cf79abc9e3b3a.0p-92 */
+#define MULT_REDUX 0x1p32 /* exponent MANT_DIG / 2 rounded up */
+static const double ln2l_lo =
+    1.6465949582897082e-12; /*  0x1cf79abc9e3b3a.0p-92 */
 #elif LDBL_MANT_DIG == 113
-#define	MULT_REDUX	0x1p57
-static const long double
-ln2l_lo = 1.64659495828970812809844307550013433e-12L;	/*  0x1cf79abc9e3b39803f2f6af40f343.0p-152L */
+#define MULT_REDUX 0x1p57
+static const long double ln2l_lo =
+    1.64659495828970812809844307550013433e-12L; /*  0x1cf79abc9e3b39803f2f6af40f343.0p-152L
+						 */
 #else
 #error "Unsupported long double format"
 #endif
@@ -99,14 +100,16 @@ clogl(long double complex z)
 	/* Avoid overflow. */
 	if (kx >= MAX_EXP - 1)
 		RETURNI(CMPLXL(logl(hypotl(x * 0x1p-16382L, y * 0x1p-16382L)) +
-		    (MAX_EXP - 2) * ln2l_lo + (MAX_EXP - 2) * ln2_hi, v));
+			(MAX_EXP - 2) * ln2l_lo + (MAX_EXP - 2) * ln2_hi,
+		    v));
 	if (kx >= (MAX_EXP - 1) / 2)
 		RETURNI(CMPLXL(logl(hypotl(x, y)), v));
 
 	/* Reduce inaccuracies and avoid underflow when ax is denormal. */
 	if (kx <= MIN_EXP - 2)
 		RETURNI(CMPLXL(logl(hypotl(x * 0x1p16383L, y * 0x1p16383L)) +
-		    (MIN_EXP - 2) * ln2l_lo + (MIN_EXP - 2) * ln2_hi, v));
+			(MIN_EXP - 2) * ln2l_lo + (MIN_EXP - 2) * ln2_hi,
+		    v));
 
 	/* Avoid remaining underflows (when ax is small but not denormal). */
 	if (ky < (MIN_EXP - 1) / 2 + MANT_DIG)

@@ -60,9 +60,9 @@
  *        objects.
  */
 
-#include <dev/isci/scil/sci_types.h>
-#include <dev/isci/scil/sci_base_subject.h>
 #include <dev/isci/scil/sci_base_observer.h>
+#include <dev/isci/scil/sci_base_subject.h>
+#include <dev/isci/scil/sci_types.h>
 
 #if defined(SCI_LOGGING)
 
@@ -70,38 +70,33 @@
 //* P U B L I C   M E T H O D S
 //******************************************************************************
 
-void sci_base_observer_construct(
-   struct SCI_BASE_OBSERVER *this_observer,
-   SCI_BASE_OBSERVER_UPDATE_T update
-)
+void
+sci_base_observer_construct(struct SCI_BASE_OBSERVER *this_observer,
+    SCI_BASE_OBSERVER_UPDATE_T update)
 {
-   this_observer->next = NULL;
-   this_observer->update = update;
+	this_observer->next = NULL;
+	this_observer->update = update;
 }
 
 // ---------------------------------------------------------------------------
 
-void sci_base_observer_initialize(
-   SCI_BASE_OBSERVER_T        * the_observer,
-   SCI_BASE_OBSERVER_UPDATE_T   update,
-   SCI_BASE_SUBJECT_T         * the_subject
-)
+void
+sci_base_observer_initialize(SCI_BASE_OBSERVER_T *the_observer,
+    SCI_BASE_OBSERVER_UPDATE_T update, SCI_BASE_SUBJECT_T *the_subject)
 {
-   sci_base_observer_construct(the_observer, update);
-   sci_base_subject_attach_observer(the_subject, the_observer);
+	sci_base_observer_construct(the_observer, update);
+	sci_base_subject_attach_observer(the_subject, the_observer);
 }
 
 // ---------------------------------------------------------------------------
 
-void sci_base_observer_update(
-   SCI_BASE_OBSERVER_T *this_observer,
-   SCI_BASE_SUBJECT_T  *the_subject
-)
+void
+sci_base_observer_update(SCI_BASE_OBSERVER_T *this_observer,
+    SCI_BASE_SUBJECT_T *the_subject)
 {
-   if (this_observer->update != NULL)
-   {
-      this_observer->update(this_observer, the_subject);
-   }
+	if (this_observer->update != NULL) {
+		this_observer->update(this_observer, the_subject);
+	}
 }
 
 #endif // defined(SCI_LOGGING)

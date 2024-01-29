@@ -31,26 +31,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <dev/usb/usbhid.h>
+
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <err.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <dev/usb/usbhid.h>
-#include <usbhid.h>
 #include <syslog.h>
-#include <signal.h>
-#include <errno.h>
-#include <sys/stat.h>
+#include <unistd.h>
+#include <usbhid.h>
 
-static int	verbose = 0;
-static int	isdemon = 0;
-static int	reparse = 1;
-static const char *	pidfile = "/var/run/usbaction.pid";
+static int verbose = 0;
+static int isdemon = 0;
+static int reparse = 1;
+static const char *pidfile = "/var/run/usbaction.pid";
 
 struct command {
 	struct command *next;
@@ -99,7 +101,7 @@ main(int argc, char **argv)
 	ignore = 0;
 	dieearly = 0;
 	while ((ch = getopt(argc, argv, "c:def:ip:r:t:v")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'c':
 			conf = optarg;
 			break;
@@ -143,7 +145,7 @@ main(int argc, char **argv)
 
 	if (dev[0] != '/') {
 		snprintf(devnamebuf, sizeof(devnamebuf), "/dev/%s%s",
-			 isdigit(dev[0]) ? "uhid" : "", dev);
+		    isdigit(dev[0]) ? "uhid" : "", dev);
 		dev = devnamebuf;
 	}
 
@@ -166,7 +168,8 @@ main(int argc, char **argv)
 	(void)signal(SIGHUP, sighup);
 
 	if (demon) {
-		fp = open(pidfile, O_WRONLY|O_CREAT, S_IRUSR|S_IRGRP|S_IROTH);
+		fp = open(pidfile, O_WRONLY | O_CREAT,
+		    S_IRUSR | S_IRGRP | S_IROTH);
 		if (fp < 0)
 			err(1, "%s", pidfile);
 		if (daemon(0, 0) < 0)
@@ -179,7 +182,7 @@ main(int argc, char **argv)
 		isdemon = 1;
 	}
 
-	for(;;) {
+	for (;;) {
 		n = read(fd, buf, sz);
 		if (verbose > 2) {
 			printf("read %d bytes:", n);
@@ -214,24 +217,26 @@ main(int argc, char **argv)
 				}
 				cmd->item.pos = pos;
 				val = (i < cmd->item.report_count) ?
-				    cmd->value : -1;
+				    cmd->value :
+				    -1;
 			}
 			if (cmd->value != val && cmd->anyvalue == 0)
 				goto next;
 			if ((cmd->debounce == 0) ||
-			    ((cmd->debounce == 1) && ((cmd->lastseen == -1) ||
-					       (cmd->lastseen != val)))) {
+			    ((cmd->debounce == 1) &&
+				((cmd->lastseen == -1) ||
+				    (cmd->lastseen != val)))) {
 				docmd(cmd, val, dev, argc, argv);
 				goto next;
 			}
 			if ((cmd->debounce > 1) &&
 			    ((cmd->lastused == -1) ||
-			     (abs(cmd->lastused - val) >= cmd->debounce))) {
+				(abs(cmd->lastused - val) >= cmd->debounce))) {
 				docmd(cmd, val, dev, argc, argv);
 				cmd->lastused = val;
 				goto next;
 			}
-next:
+		next:
 			cmd->lastseen = val;
 		}
 
@@ -239,8 +244,8 @@ next:
 			exit(0);
 
 		if (reparse) {
-			struct command *cmds =
-			    parse_conf(conf, repd, reportid, ignore);
+			struct command *cmds = parse_conf(conf, repd, reportid,
+			    ignore);
 			if (cmds) {
 				freecommands(commands);
 				commands = cmds;
@@ -256,8 +261,10 @@ void
 usage(void)
 {
 
-	fprintf(stderr, "Usage: %s [-deiv] -c config_file -f hid_dev "
-		"[-p pidfile] [-t tablefile]\n", getprogname());
+	fprintf(stderr,
+	    "Usage: %s [-deiv] -c config_file -f hid_dev "
+	    "[-p pidfile] [-t tablefile]\n",
+	    getprogname());
 	exit(1);
 }
 
@@ -290,7 +297,7 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 		err(1, "%s", conf);
 
 	cmds = NULL;
-	for (line = 1; ; line++) {
+	for (line = 1;; line++) {
 		if (fgets(buf, sizeof buf, f) == NULL)
 			break;
 		if (buf[0] == '#' || buf[0] == '\n')
@@ -303,16 +310,20 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 		}
 		if (p)
 			*p = 0;
-		if (sscanf(buf, "%s %s %s %[^\n]",
-			   name, value, debounce, action) != 4) {
+		if (sscanf(buf, "%s %s %s %[^\n]", name, value, debounce,
+			action) != 4) {
 			if (isdemon) {
-				syslog(LOG_WARNING, "config file `%s', line %d"
-				       ", syntax error: %s", conf, line, buf);
+				syslog(LOG_WARNING,
+				    "config file `%s', line %d"
+				    ", syntax error: %s",
+				    conf, line, buf);
 				freecommands(cmds);
 				return (NULL);
 			} else {
-				errx(1, "config file `%s', line %d,"
-				     ", syntax error: %s", conf, line, buf);
+				errx(1,
+				    "config file `%s', line %d,"
+				    ", syntax error: %s",
+				    conf, line, buf);
 			}
 		}
 		tmp = strchr(name, '#');
@@ -336,15 +347,16 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 			if (sscanf(value, "%d", &cmd->value) != 1) {
 				if (isdemon) {
 					syslog(LOG_WARNING,
-					       "config file `%s', line %d, "
-					       "bad value: %s (should be * or a number)\n",
-					       conf, line, value);
+					    "config file `%s', line %d, "
+					    "bad value: %s (should be * or a number)\n",
+					    conf, line, value);
 					freecommands(cmds);
 					return (NULL);
 				} else {
-					errx(1, "config file `%s', line %d, "
-					     "bad value: %s (should be * or a number)\n",
-					     conf, line, value);
+					errx(1,
+					    "config file `%s', line %d, "
+					    "bad value: %s (should be * or a number)\n",
+					    conf, line, value);
 				}
 			}
 		}
@@ -352,22 +364,23 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 		if (sscanf(debounce, "%d", &cmd->debounce) != 1) {
 			if (isdemon) {
 				syslog(LOG_WARNING,
-				       "config file `%s', line %d, "
-				       "bad value: %s (should be a number >= 0)\n",
-				       conf, line, debounce);
+				    "config file `%s', line %d, "
+				    "bad value: %s (should be a number >= 0)\n",
+				    conf, line, debounce);
 				freecommands(cmds);
 				return (NULL);
 			} else {
-				errx(1, "config file `%s', line %d, "
-				     "bad value: %s (should be a number >= 0)\n",
-				     conf, line, debounce);
+				errx(1,
+				    "config file `%s', line %d, "
+				    "bad value: %s (should be a number >= 0)\n",
+				    conf, line, debounce);
 			}
 		}
 
 		coll[0] = 0;
 		cinst = 0;
 		for (d = hid_start_parse(repd, 1 << hid_input, reportid);
-		     hid_get_item(d, &h); ) {
+		     hid_get_item(d, &h);) {
 			if (verbose > 2)
 				printf("kind=%d usage=%x\n", h.kind, h.usage);
 			if (h.flags & HIO_CONST)
@@ -387,14 +400,14 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 				for (u = lo; u <= hi; u++) {
 					if (coll[0]) {
 						snprintf(usbuf, sizeof usbuf,
-						  "%s.%s:%s", coll+1,
-						  hid_usage_page(HID_PAGE(u)),
-						  hid_usage_in_page(u));
+						    "%s.%s:%s", coll + 1,
+						    hid_usage_page(HID_PAGE(u)),
+						    hid_usage_in_page(u));
 					} else {
 						snprintf(usbuf, sizeof usbuf,
-						  "%s:%s",
-						  hid_usage_page(HID_PAGE(u)),
-						  hid_usage_in_page(u));
+						    "%s:%s",
+						    hid_usage_page(HID_PAGE(u)),
+						    hid_usage_in_page(u));
 					}
 					if (verbose > 2)
 						printf("usage %s\n", usbuf);
@@ -412,8 +425,8 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 				break;
 			case hid_collection:
 				snprintf(coll + strlen(coll),
-				    sizeof coll - strlen(coll),  ".%s:%s",
-				    hid_usage_page(HID_PAGE(h.usage)), 
+				    sizeof coll - strlen(coll), ".%s:%s",
+				    hid_usage_page(HID_PAGE(h.usage)),
 				    hid_usage_in_page(h.usage));
 				break;
 			case hid_endcollection:
@@ -430,13 +443,17 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 			continue;
 		}
 		if (isdemon) {
-			syslog(LOG_WARNING, "config file `%s', line %d, HID "
-			       "item not found: `%s'\n", conf, line, name);
+			syslog(LOG_WARNING,
+			    "config file `%s', line %d, HID "
+			    "item not found: `%s'\n",
+			    conf, line, name);
 			freecommands(cmds);
 			return (NULL);
 		} else {
-			errx(1, "config file `%s', line %d, HID item "
-			     "not found: `%s'\n", conf, line, name);
+			errx(1,
+			    "config file `%s', line %d, HID item "
+			    "not found: `%s'\n",
+			    conf, line, name);
 		}
 
 	foundhid:
@@ -455,7 +472,7 @@ parse_conf(const char *conf, report_desc_t repd, int reportid, int ignore)
 
 		if (verbose)
 			printf("PARSE:%d %s, %d, '%s'\n", cmd->line, name,
-			       cmd->value, cmd->action);
+			    cmd->value, cmd->action);
 	}
 	fclose(f);
 	return (cmds);
@@ -468,10 +485,10 @@ docmd(struct command *cmd, int value, const char *hid, int argc, char **argv)
 	size_t len;
 	int n, r;
 
-	for (p = cmd->action, q = cmdbuf; *p && q < &cmdbuf[SIZE-1]; ) {
+	for (p = cmd->action, q = cmdbuf; *p && q < &cmdbuf[SIZE - 1];) {
 		if (*p == '$') {
 			p++;
-			len = &cmdbuf[SIZE-1] - q;
+			len = &cmdbuf[SIZE - 1] - q;
 			if (isdigit(*p)) {
 				n = strtol(p, &p, 10) - 1;
 				if (n >= 0 && n < argc) {

@@ -46,35 +46,32 @@
  * clknode for clkctrl, implements gate and mux (for gpioc)
  */
 
-#define GPIO_X_GDBCLK_MASK	0x00040000
-#define IDLEST_MASK		0x00030000
-#define MODULEMODE_MASK		0x00000003
+#define GPIO_X_GDBCLK_MASK 0x00040000
+#define IDLEST_MASK 0x00030000
+#define MODULEMODE_MASK 0x00000003
 
-#define GPIOX_GDBCLK_ENABLE	0x00040000
-#define GPIOX_GDBCLK_DISABLE	0x00000000
-#define IDLEST_FUNC		0x00000000
-#define IDLEST_TRANS		0x00010000
-#define IDLEST_IDLE		0x00020000
-#define IDLEST_DISABLE		0x00030000
+#define GPIOX_GDBCLK_ENABLE 0x00040000
+#define GPIOX_GDBCLK_DISABLE 0x00000000
+#define IDLEST_FUNC 0x00000000
+#define IDLEST_TRANS 0x00010000
+#define IDLEST_IDLE 0x00020000
+#define IDLEST_DISABLE 0x00030000
 
-#define MODULEMODE_DISABLE	0x0
-#define MODULEMODE_ENABLE	0x2
+#define MODULEMODE_DISABLE 0x0
+#define MODULEMODE_ENABLE 0x2
 
 struct ti_clkctrl_clknode_sc {
-	device_t	dev;
-	bool		gdbclk;
+	device_t dev;
+	bool gdbclk;
 	/* omap4-cm range.host + ti,clkctrl reg[0] */
-	uint32_t	register_offset;
+	uint32_t register_offset;
 };
 
-#define	WRITE4(_clk, off, val)						\
+#define WRITE4(_clk, off, val) \
 	CLKDEV_WRITE_4(clknode_get_device(_clk), off, val)
-#define	READ4(_clk, off, val)						\
-	CLKDEV_READ_4(clknode_get_device(_clk), off, val)
-#define	DEVICE_LOCK(_clk)						\
-	CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
-#define	DEVICE_UNLOCK(_clk)						\
-	CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
+#define READ4(_clk, off, val) CLKDEV_READ_4(clknode_get_device(_clk), off, val)
+#define DEVICE_LOCK(_clk) CLKDEV_DEVICE_LOCK(clknode_get_device(_clk))
+#define DEVICE_UNLOCK(_clk) CLKDEV_DEVICE_UNLOCK(clknode_get_device(_clk))
 
 static int
 ti_clkctrl_init(struct clknode *clk, device_t dev)
@@ -98,9 +95,8 @@ ti_clkctrl_set_gdbclk_gate(struct clknode *clk, bool enable)
 	sc = clknode_get_softc(clk);
 
 	READ4(clk, sc->register_offset, &val);
-	DPRINTF(sc->dev, "val(%x) & (%x | %x = %x)\n",
-	    val, GPIO_X_GDBCLK_MASK, MODULEMODE_MASK,
-	    GPIO_X_GDBCLK_MASK | MODULEMODE_MASK);
+	DPRINTF(sc->dev, "val(%x) & (%x | %x = %x)\n", val, GPIO_X_GDBCLK_MASK,
+	    MODULEMODE_MASK, GPIO_X_GDBCLK_MASK | MODULEMODE_MASK);
 
 	if (enable) {
 		val = val & MODULEMODE_MASK;
@@ -136,8 +132,8 @@ static int
 ti_clkctrl_set_gate(struct clknode *clk, bool enable)
 {
 	struct ti_clkctrl_clknode_sc *sc;
-	uint32_t	val, idlest, module;
-	uint32_t timeout=100;
+	uint32_t val, idlest, module;
+	uint32_t timeout = 100;
 	int err;
 
 	sc = clknode_get_softc(clk);
@@ -162,8 +158,7 @@ ti_clkctrl_set_gate(struct clknode *clk, bool enable)
 		    (idlest == IDLEST_FUNC || idlest == IDLEST_TRANS) &&
 		    module == MODULEMODE_ENABLE)
 			break;
-		else if (!enable &&
-		    idlest == IDLEST_DISABLE &&
+		else if (!enable && idlest == IDLEST_DISABLE &&
 		    module == MODULEMODE_DISABLE)
 			break;
 		DELAY(10);
@@ -180,9 +175,8 @@ ti_clkctrl_set_gate(struct clknode *clk, bool enable)
 
 static clknode_method_t ti_clkctrl_clknode_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,	ti_clkctrl_init),
-	CLKNODEMETHOD(clknode_set_gate, ti_clkctrl_set_gate),
-	CLKNODEMETHOD_END
+	CLKNODEMETHOD(clknode_init, ti_clkctrl_init),
+	CLKNODEMETHOD(clknode_set_gate, ti_clkctrl_set_gate), CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(ti_clkctrl_clknode, ti_clkctrl_clknode_class,

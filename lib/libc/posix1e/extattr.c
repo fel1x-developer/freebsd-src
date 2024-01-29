@@ -40,7 +40,7 @@ int
 extattr_namespace_to_string(int attrnamespace, char **string)
 {
 
-	switch(attrnamespace) {
+	switch (attrnamespace) {
 	case EXTATTR_NAMESPACE_USER:
 		if (string != NULL)
 			*string = strdup(EXTATTR_NAMESPACE_USER_STRING);

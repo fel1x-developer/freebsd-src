@@ -25,21 +25,22 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <sys/ioctl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_enc.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 int
 main(int a, char **v)
@@ -51,7 +52,7 @@ main(int a, char **v)
 	char *x;
 
 	if (a != 7) {
-usage:
+	usage:
 		fprintf(stderr,
 		    "usage: %s device objectid stat0 stat1 stat2 stat3\n", *v);
 		return (1);
@@ -69,15 +70,15 @@ usage:
 	obj.elm_idx = cvt;
 	for (i = 0; i < 4; i++) {
 		x = v[3 + i];
-		cvt = strtol(v[3 + i],  &x, 0);
+		cvt = strtol(v[3 + i], &x, 0);
 		if (x == v[3 + i]) {
 			goto usage;
 		}
 		obj.cstat[i] = cvt;
 	}
-	if (ioctl(fd, ENCIOC_SETELMSTAT, (caddr_t) &obj) < 0) {
+	if (ioctl(fd, ENCIOC_SETELMSTAT, (caddr_t)&obj) < 0) {
 		perror("ENCIOC_SETELMSTAT");
 	}
-	(void) close(fd);
+	(void)close(fd);
 	return (0);
 }

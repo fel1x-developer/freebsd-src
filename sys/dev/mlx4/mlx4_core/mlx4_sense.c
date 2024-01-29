@@ -31,29 +31,29 @@
  *
  */
 
+#include <dev/mlx4/cmd.h>
+
 #include <linux/errno.h>
 #include <linux/if_ether.h>
 
-#include <dev/mlx4/cmd.h>
-
 #include "mlx4.h"
 
-int mlx4_SENSE_PORT(struct mlx4_dev *dev, int port,
-		    enum mlx4_port_type *type)
+int
+mlx4_SENSE_PORT(struct mlx4_dev *dev, int port, enum mlx4_port_type *type)
 {
 	u64 out_param;
 	int err = 0;
 
-	err = mlx4_cmd_imm(dev, 0, &out_param, port, 0,
-			   MLX4_CMD_SENSE_PORT, MLX4_CMD_TIME_CLASS_B,
-			   MLX4_CMD_WRAPPED);
+	err = mlx4_cmd_imm(dev, 0, &out_param, port, 0, MLX4_CMD_SENSE_PORT,
+	    MLX4_CMD_TIME_CLASS_B, MLX4_CMD_WRAPPED);
 	if (err) {
 		mlx4_err(dev, "Sense command failed for port: %d\n", port);
 		return err;
 	}
 
 	if (out_param > 2) {
-		mlx4_err(dev, "Sense returned illegal value: 0x%llx\n", (long long)out_param);
+		mlx4_err(dev, "Sense returned illegal value: 0x%llx\n",
+		    (long long)out_param);
 		return -EINVAL;
 	}
 
@@ -61,9 +61,9 @@ int mlx4_SENSE_PORT(struct mlx4_dev *dev, int port,
 	return 0;
 }
 
-void mlx4_do_sense_ports(struct mlx4_dev *dev,
-			 enum mlx4_port_type *stype,
-			 enum mlx4_port_type *defaults)
+void
+mlx4_do_sense_ports(struct mlx4_dev *dev, enum mlx4_port_type *stype,
+    enum mlx4_port_type *defaults)
 {
 	struct mlx4_sense *sense = &mlx4_priv(dev)->sense;
 	int err;
@@ -85,14 +85,14 @@ void mlx4_do_sense_ports(struct mlx4_dev *dev,
 	 */
 	for (i = 0; i < dev->caps.num_ports; i++)
 		stype[i] = stype[i] ? stype[i] : defaults[i];
-
 }
 
-static void mlx4_sense_port(struct work_struct *work)
+static void
+mlx4_sense_port(struct work_struct *work)
 {
 	struct delayed_work *delay = to_delayed_work(work);
 	struct mlx4_sense *sense = container_of(delay, struct mlx4_sense,
-						sense_poll);
+	    sense_poll);
 	struct mlx4_dev *dev = sense->dev;
 	struct mlx4_priv *priv = mlx4_priv(dev);
 	enum mlx4_port_type stype[MLX4_MAX_PORTS];
@@ -111,12 +111,13 @@ static void mlx4_sense_port(struct work_struct *work)
 		mlx4_err(dev, "Failed to change port_types\n");
 
 sense_again:
-	queue_delayed_work(mlx4_wq , &sense->sense_poll,
-			   round_jiffies_relative(MLX4_SENSE_RANGE));
+	queue_delayed_work(mlx4_wq, &sense->sense_poll,
+	    round_jiffies_relative(MLX4_SENSE_RANGE));
 	mutex_unlock(&priv->port_mutex);
 }
 
-void mlx4_start_sense(struct mlx4_dev *dev)
+void
+mlx4_start_sense(struct mlx4_dev *dev)
 {
 	struct mlx4_priv *priv = mlx4_priv(dev);
 	struct mlx4_sense *sense = &priv->sense;
@@ -126,12 +127,13 @@ void mlx4_start_sense(struct mlx4_dev *dev)
 
 	mutex_lock(&priv->port_mutex);
 	sense->gone = 0;
-	queue_delayed_work(mlx4_wq , &sense->sense_poll,
-			   round_jiffies_relative(MLX4_SENSE_RANGE));
+	queue_delayed_work(mlx4_wq, &sense->sense_poll,
+	    round_jiffies_relative(MLX4_SENSE_RANGE));
 	mutex_unlock(&priv->port_mutex);
 }
 
-void mlx4_stop_sense(struct mlx4_dev *dev)
+void
+mlx4_stop_sense(struct mlx4_dev *dev)
 {
 	struct mlx4_priv *priv = mlx4_priv(dev);
 	struct mlx4_sense *sense = &priv->sense;
@@ -143,7 +145,8 @@ void mlx4_stop_sense(struct mlx4_dev *dev)
 	cancel_delayed_work_sync(&mlx4_priv(dev)->sense.sense_poll);
 }
 
-void  mlx4_sense_init(struct mlx4_dev *dev)
+void
+mlx4_sense_init(struct mlx4_dev *dev)
 {
 	struct mlx4_priv *priv = mlx4_priv(dev);
 	struct mlx4_sense *sense = &priv->sense;

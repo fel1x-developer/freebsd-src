@@ -1,20 +1,18 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <linux/delay.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include <linux/delay.h>
-#include "adf_accel_devices.h"
-#include "adf_common_drv.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
 #include "icp_qat_hal.h"
 #include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define BAD_REGADDR 0xffff
 #define MAX_RETRY_TIMES 1000000
@@ -28,89 +26,207 @@
 #define RST_CSR_AE_LSB 0
 #define MC_TIMESTAMP_ENABLE (0x1 << 7)
 
-#define IGNORE_W1C_MASK                                                        \
-	((~(1 << CE_BREAKPOINT_BITPOS)) &                                      \
-	 (~(1 << CE_CNTL_STORE_PARITY_ERROR_BITPOS)) &                         \
-	 (~(1 << CE_REG_PAR_ERR_BITPOS)))
-#define INSERT_IMMED_GPRA_CONST(inst, const_val)                               \
-	(inst = ((inst & 0xFFFF00C03FFull) |                                   \
-		 ((((const_val) << 12) & 0x0FF00000ull) |                      \
-		  (((const_val) << 10) & 0x0003FC00ull))))
-#define INSERT_IMMED_GPRB_CONST(inst, const_val)                               \
-	(inst = ((inst & 0xFFFF00FFF00ull) |                                   \
-		 ((((const_val) << 12) & 0x0FF00000ull) |                      \
-		  (((const_val) << 0) & 0x000000FFull))))
+#define IGNORE_W1C_MASK                                   \
+	((~(1 << CE_BREAKPOINT_BITPOS)) &                 \
+	    (~(1 << CE_CNTL_STORE_PARITY_ERROR_BITPOS)) & \
+	    (~(1 << CE_REG_PAR_ERR_BITPOS)))
+#define INSERT_IMMED_GPRA_CONST(inst, const_val)      \
+	(inst = ((inst & 0xFFFF00C03FFull) |          \
+	     ((((const_val) << 12) & 0x0FF00000ull) | \
+		 (((const_val) << 10) & 0x0003FC00ull))))
+#define INSERT_IMMED_GPRB_CONST(inst, const_val)      \
+	(inst = ((inst & 0xFFFF00FFF00ull) |          \
+	     ((((const_val) << 12) & 0x0FF00000ull) | \
+		 (((const_val) << 0) & 0x000000FFull))))
 
 #define AE(handle, ae) ((handle)->hal_handle->aes[ae])
 
 static const uint64_t inst_4b[] = { 0x0F0400C0000ull, 0x0F4400C0000ull,
-				    0x0F040000300ull, 0x0F440000300ull,
-				    0x0FC066C0000ull, 0x0F0000C0300ull,
-				    0x0F0000C0300ull, 0x0F0000C0300ull,
-				    0x0A021000000ull };
+	0x0F040000300ull, 0x0F440000300ull, 0x0FC066C0000ull, 0x0F0000C0300ull,
+	0x0F0000C0300ull, 0x0F0000C0300ull, 0x0A021000000ull };
 
 static const uint64_t inst[] = {
-	0x0F0000C0000ull, 0x0F000000380ull, 0x0D805000011ull, 0x0FC082C0300ull,
-	0x0F0000C0300ull, 0x0F0000C0300ull, 0x0F0000C0300ull, 0x0F0000C0300ull,
-	0x0A0643C0000ull, 0x0BAC0000301ull, 0x0D802000101ull, 0x0F0000C0001ull,
-	0x0FC066C0001ull, 0x0F0000C0300ull, 0x0F0000C0300ull, 0x0F0000C0300ull,
-	0x0F000400300ull, 0x0A0610C0000ull, 0x0BAC0000301ull, 0x0D804400101ull,
-	0x0A0580C0000ull, 0x0A0581C0000ull, 0x0A0582C0000ull, 0x0A0583C0000ull,
-	0x0A0584C0000ull, 0x0A0585C0000ull, 0x0A0586C0000ull, 0x0A0587C0000ull,
-	0x0A0588C0000ull, 0x0A0589C0000ull, 0x0A058AC0000ull, 0x0A058BC0000ull,
-	0x0A058CC0000ull, 0x0A058DC0000ull, 0x0A058EC0000ull, 0x0A058FC0000ull,
-	0x0A05C0C0000ull, 0x0A05C1C0000ull, 0x0A05C2C0000ull, 0x0A05C3C0000ull,
-	0x0A05C4C0000ull, 0x0A05C5C0000ull, 0x0A05C6C0000ull, 0x0A05C7C0000ull,
-	0x0A05C8C0000ull, 0x0A05C9C0000ull, 0x0A05CAC0000ull, 0x0A05CBC0000ull,
-	0x0A05CCC0000ull, 0x0A05CDC0000ull, 0x0A05CEC0000ull, 0x0A05CFC0000ull,
-	0x0A0400C0000ull, 0x0B0400C0000ull, 0x0A0401C0000ull, 0x0B0401C0000ull,
-	0x0A0402C0000ull, 0x0B0402C0000ull, 0x0A0403C0000ull, 0x0B0403C0000ull,
-	0x0A0404C0000ull, 0x0B0404C0000ull, 0x0A0405C0000ull, 0x0B0405C0000ull,
-	0x0A0406C0000ull, 0x0B0406C0000ull, 0x0A0407C0000ull, 0x0B0407C0000ull,
-	0x0A0408C0000ull, 0x0B0408C0000ull, 0x0A0409C0000ull, 0x0B0409C0000ull,
-	0x0A040AC0000ull, 0x0B040AC0000ull, 0x0A040BC0000ull, 0x0B040BC0000ull,
-	0x0A040CC0000ull, 0x0B040CC0000ull, 0x0A040DC0000ull, 0x0B040DC0000ull,
-	0x0A040EC0000ull, 0x0B040EC0000ull, 0x0A040FC0000ull, 0x0B040FC0000ull,
-	0x0D81581C010ull, 0x0E000010000ull, 0x0E000010000ull,
+	0x0F0000C0000ull,
+	0x0F000000380ull,
+	0x0D805000011ull,
+	0x0FC082C0300ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0A0643C0000ull,
+	0x0BAC0000301ull,
+	0x0D802000101ull,
+	0x0F0000C0001ull,
+	0x0FC066C0001ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F000400300ull,
+	0x0A0610C0000ull,
+	0x0BAC0000301ull,
+	0x0D804400101ull,
+	0x0A0580C0000ull,
+	0x0A0581C0000ull,
+	0x0A0582C0000ull,
+	0x0A0583C0000ull,
+	0x0A0584C0000ull,
+	0x0A0585C0000ull,
+	0x0A0586C0000ull,
+	0x0A0587C0000ull,
+	0x0A0588C0000ull,
+	0x0A0589C0000ull,
+	0x0A058AC0000ull,
+	0x0A058BC0000ull,
+	0x0A058CC0000ull,
+	0x0A058DC0000ull,
+	0x0A058EC0000ull,
+	0x0A058FC0000ull,
+	0x0A05C0C0000ull,
+	0x0A05C1C0000ull,
+	0x0A05C2C0000ull,
+	0x0A05C3C0000ull,
+	0x0A05C4C0000ull,
+	0x0A05C5C0000ull,
+	0x0A05C6C0000ull,
+	0x0A05C7C0000ull,
+	0x0A05C8C0000ull,
+	0x0A05C9C0000ull,
+	0x0A05CAC0000ull,
+	0x0A05CBC0000ull,
+	0x0A05CCC0000ull,
+	0x0A05CDC0000ull,
+	0x0A05CEC0000ull,
+	0x0A05CFC0000ull,
+	0x0A0400C0000ull,
+	0x0B0400C0000ull,
+	0x0A0401C0000ull,
+	0x0B0401C0000ull,
+	0x0A0402C0000ull,
+	0x0B0402C0000ull,
+	0x0A0403C0000ull,
+	0x0B0403C0000ull,
+	0x0A0404C0000ull,
+	0x0B0404C0000ull,
+	0x0A0405C0000ull,
+	0x0B0405C0000ull,
+	0x0A0406C0000ull,
+	0x0B0406C0000ull,
+	0x0A0407C0000ull,
+	0x0B0407C0000ull,
+	0x0A0408C0000ull,
+	0x0B0408C0000ull,
+	0x0A0409C0000ull,
+	0x0B0409C0000ull,
+	0x0A040AC0000ull,
+	0x0B040AC0000ull,
+	0x0A040BC0000ull,
+	0x0B040BC0000ull,
+	0x0A040CC0000ull,
+	0x0B040CC0000ull,
+	0x0A040DC0000ull,
+	0x0B040DC0000ull,
+	0x0A040EC0000ull,
+	0x0B040EC0000ull,
+	0x0A040FC0000ull,
+	0x0B040FC0000ull,
+	0x0D81581C010ull,
+	0x0E000010000ull,
+	0x0E000010000ull,
 };
 
 static const uint64_t inst_CPM2X[] = {
-	0x0F0000C0000ull, 0x0D802C00011ull, 0x0F0000C0001ull, 0x0FC066C0001ull,
-	0x0F0000C0300ull, 0x0F0000C0300ull, 0x0F0000C0300ull, 0x0F000500300ull,
-	0x0A0610C0000ull, 0x0BAC0000301ull, 0x0D802000101ull, 0x0A0580C0000ull,
-	0x0A0581C0000ull, 0x0A0582C0000ull, 0x0A0583C0000ull, 0x0A0584C0000ull,
-	0x0A0585C0000ull, 0x0A0586C0000ull, 0x0A0587C0000ull, 0x0A0588C0000ull,
-	0x0A0589C0000ull, 0x0A058AC0000ull, 0x0A058BC0000ull, 0x0A058CC0000ull,
-	0x0A058DC0000ull, 0x0A058EC0000ull, 0x0A058FC0000ull, 0x0A05C0C0000ull,
-	0x0A05C1C0000ull, 0x0A05C2C0000ull, 0x0A05C3C0000ull, 0x0A05C4C0000ull,
-	0x0A05C5C0000ull, 0x0A05C6C0000ull, 0x0A05C7C0000ull, 0x0A05C8C0000ull,
-	0x0A05C9C0000ull, 0x0A05CAC0000ull, 0x0A05CBC0000ull, 0x0A05CCC0000ull,
-	0x0A05CDC0000ull, 0x0A05CEC0000ull, 0x0A05CFC0000ull, 0x0A0400C0000ull,
-	0x0B0400C0000ull, 0x0A0401C0000ull, 0x0B0401C0000ull, 0x0A0402C0000ull,
-	0x0B0402C0000ull, 0x0A0403C0000ull, 0x0B0403C0000ull, 0x0A0404C0000ull,
-	0x0B0404C0000ull, 0x0A0405C0000ull, 0x0B0405C0000ull, 0x0A0406C0000ull,
-	0x0B0406C0000ull, 0x0A0407C0000ull, 0x0B0407C0000ull, 0x0A0408C0000ull,
-	0x0B0408C0000ull, 0x0A0409C0000ull, 0x0B0409C0000ull, 0x0A040AC0000ull,
-	0x0B040AC0000ull, 0x0A040BC0000ull, 0x0B040BC0000ull, 0x0A040CC0000ull,
-	0x0B040CC0000ull, 0x0A040DC0000ull, 0x0B040DC0000ull, 0x0A040EC0000ull,
-	0x0B040EC0000ull, 0x0A040FC0000ull, 0x0B040FC0000ull, 0x0D81341C010ull,
-	0x0E000000001ull, 0x0E000010000ull,
+	0x0F0000C0000ull,
+	0x0D802C00011ull,
+	0x0F0000C0001ull,
+	0x0FC066C0001ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F0000C0300ull,
+	0x0F000500300ull,
+	0x0A0610C0000ull,
+	0x0BAC0000301ull,
+	0x0D802000101ull,
+	0x0A0580C0000ull,
+	0x0A0581C0000ull,
+	0x0A0582C0000ull,
+	0x0A0583C0000ull,
+	0x0A0584C0000ull,
+	0x0A0585C0000ull,
+	0x0A0586C0000ull,
+	0x0A0587C0000ull,
+	0x0A0588C0000ull,
+	0x0A0589C0000ull,
+	0x0A058AC0000ull,
+	0x0A058BC0000ull,
+	0x0A058CC0000ull,
+	0x0A058DC0000ull,
+	0x0A058EC0000ull,
+	0x0A058FC0000ull,
+	0x0A05C0C0000ull,
+	0x0A05C1C0000ull,
+	0x0A05C2C0000ull,
+	0x0A05C3C0000ull,
+	0x0A05C4C0000ull,
+	0x0A05C5C0000ull,
+	0x0A05C6C0000ull,
+	0x0A05C7C0000ull,
+	0x0A05C8C0000ull,
+	0x0A05C9C0000ull,
+	0x0A05CAC0000ull,
+	0x0A05CBC0000ull,
+	0x0A05CCC0000ull,
+	0x0A05CDC0000ull,
+	0x0A05CEC0000ull,
+	0x0A05CFC0000ull,
+	0x0A0400C0000ull,
+	0x0B0400C0000ull,
+	0x0A0401C0000ull,
+	0x0B0401C0000ull,
+	0x0A0402C0000ull,
+	0x0B0402C0000ull,
+	0x0A0403C0000ull,
+	0x0B0403C0000ull,
+	0x0A0404C0000ull,
+	0x0B0404C0000ull,
+	0x0A0405C0000ull,
+	0x0B0405C0000ull,
+	0x0A0406C0000ull,
+	0x0B0406C0000ull,
+	0x0A0407C0000ull,
+	0x0B0407C0000ull,
+	0x0A0408C0000ull,
+	0x0B0408C0000ull,
+	0x0A0409C0000ull,
+	0x0B0409C0000ull,
+	0x0A040AC0000ull,
+	0x0B040AC0000ull,
+	0x0A040BC0000ull,
+	0x0B040BC0000ull,
+	0x0A040CC0000ull,
+	0x0B040CC0000ull,
+	0x0A040DC0000ull,
+	0x0B040DC0000ull,
+	0x0A040EC0000ull,
+	0x0B040EC0000ull,
+	0x0A040FC0000ull,
+	0x0B040FC0000ull,
+	0x0D81341C010ull,
+	0x0E000000001ull,
+	0x0E000010000ull,
 };
 
 void
-qat_hal_set_live_ctx(struct icp_qat_fw_loader_handle *handle,
-		     unsigned char ae,
-		     unsigned int ctx_mask)
+qat_hal_set_live_ctx(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask)
 {
 	AE(handle, ae).live_ctx_mask = ctx_mask;
 }
 
 #define CSR_RETRY_TIMES 500
 static int
-qat_hal_rd_ae_csr(struct icp_qat_fw_loader_handle *handle,
-		  unsigned char ae,
-		  unsigned int csr,
-		  unsigned int *value)
+qat_hal_rd_ae_csr(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int csr, unsigned int *value)
 {
 	unsigned int iterations = CSR_RETRY_TIMES;
 
@@ -125,10 +241,8 @@ qat_hal_rd_ae_csr(struct icp_qat_fw_loader_handle *handle,
 }
 
 static int
-qat_hal_wr_ae_csr(struct icp_qat_fw_loader_handle *handle,
-		  unsigned char ae,
-		  unsigned int csr,
-		  unsigned int value)
+qat_hal_wr_ae_csr(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int csr, unsigned int value)
 {
 	unsigned int iterations = CSR_RETRY_TIMES;
 
@@ -144,9 +258,7 @@ qat_hal_wr_ae_csr(struct icp_qat_fw_loader_handle *handle,
 
 static void
 qat_hal_get_wakeup_event(struct icp_qat_fw_loader_handle *handle,
-			 unsigned char ae,
-			 unsigned char ctx,
-			 unsigned int *events)
+    unsigned char ae, unsigned char ctx, unsigned int *events)
 {
 	unsigned int cur_ctx;
 
@@ -157,10 +269,8 @@ qat_hal_get_wakeup_event(struct icp_qat_fw_loader_handle *handle,
 }
 
 static int
-qat_hal_wait_cycles(struct icp_qat_fw_loader_handle *handle,
-		    unsigned char ae,
-		    unsigned int cycles,
-		    int chk_inactive)
+qat_hal_wait_cycles(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int cycles, int chk_inactive)
 {
 	unsigned int base_cnt = 0, cur_cnt = 0;
 	unsigned int csr = (1 << ACS_ABO_BITPOS);
@@ -202,8 +312,7 @@ qat_hal_get_scs_neigh_ae(unsigned char ae, unsigned char *ae_neigh)
 
 int
 qat_hal_set_ae_ctx_mode(struct icp_qat_fw_loader_handle *handle,
-			unsigned char ae,
-			unsigned char mode)
+    unsigned char ae, unsigned char mode)
 {
 	unsigned int csr, new_csr;
 
@@ -223,8 +332,7 @@ qat_hal_set_ae_ctx_mode(struct icp_qat_fw_loader_handle *handle,
 
 int
 qat_hal_set_ae_nn_mode(struct icp_qat_fw_loader_handle *handle,
-		       unsigned char ae,
-		       unsigned char mode)
+    unsigned char ae, unsigned char mode)
 {
 	unsigned int csr, new_csr;
 
@@ -247,9 +355,7 @@ qat_hal_set_ae_nn_mode(struct icp_qat_fw_loader_handle *handle,
 
 int
 qat_hal_set_ae_lm_mode(struct icp_qat_fw_loader_handle *handle,
-		       unsigned char ae,
-		       enum icp_qat_uof_regtype lm_type,
-		       unsigned char mode)
+    unsigned char ae, enum icp_qat_uof_regtype lm_type, unsigned char mode)
 {
 	unsigned int csr, new_csr;
 
@@ -284,8 +390,7 @@ qat_hal_set_ae_lm_mode(struct icp_qat_fw_loader_handle *handle,
 
 void
 qat_hal_set_ae_tindex_mode(struct icp_qat_fw_loader_handle *handle,
-			   unsigned char ae,
-			   unsigned char mode)
+    unsigned char ae, unsigned char mode)
 {
 	unsigned int csr, new_csr;
 
@@ -299,8 +404,7 @@ qat_hal_set_ae_tindex_mode(struct icp_qat_fw_loader_handle *handle,
 
 void
 qat_hal_set_ae_scs_mode(struct icp_qat_fw_loader_handle *handle,
-			unsigned char ae,
-			unsigned char mode)
+    unsigned char ae, unsigned char mode)
 {
 	unsigned int csr, new_csr;
 
@@ -405,22 +509,22 @@ qat_hal_reset(struct icp_qat_fw_loader_handle *handle)
 		if (i == 0) {
 			if (IS_QAT_GEN4(
 				pci_get_device(GET_DEV(handle->accel_dev)))) {
-				valid_ae_mask =
-				    qat_hal_get_ae_mask_gen4(handle);
+				valid_ae_mask = qat_hal_get_ae_mask_gen4(
+				    handle);
 				valid_slice_mask =
 				    handle->hal_handle->slice_mask;
 			} else {
-				valid_ae_mask =
-				    handle->hal_handle->ae_mask & 0xFFFF;
+				valid_ae_mask = handle->hal_handle->ae_mask &
+				    0xFFFF;
 				valid_slice_mask =
 				    handle->hal_handle->slice_mask & 0x3F;
 			}
 		} else {
-			valid_ae_mask =
-			    (handle->hal_handle->ae_mask >> AES_PER_CPP) &
+			valid_ae_mask = (handle->hal_handle->ae_mask >>
+					    AES_PER_CPP) &
 			    0xFFFF;
-			valid_slice_mask =
-			    (handle->hal_handle->slice_mask >> SLICES_PER_CPP) &
+			valid_slice_mask = (handle->hal_handle->slice_mask >>
+					       SLICES_PER_CPP) &
 			    0x3F;
 		}
 
@@ -432,11 +536,8 @@ qat_hal_reset(struct icp_qat_fw_loader_handle *handle)
 }
 
 static void
-qat_hal_wr_indr_csr(struct icp_qat_fw_loader_handle *handle,
-		    unsigned char ae,
-		    unsigned int ctx_mask,
-		    unsigned int ae_csr,
-		    unsigned int csr_val)
+qat_hal_wr_indr_csr(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask, unsigned int ae_csr, unsigned int csr_val)
 {
 	unsigned int ctx, cur_ctx;
 
@@ -453,11 +554,8 @@ qat_hal_wr_indr_csr(struct icp_qat_fw_loader_handle *handle,
 }
 
 static void
-qat_hal_rd_indr_csr(struct icp_qat_fw_loader_handle *handle,
-		    unsigned char ae,
-		    unsigned char ctx,
-		    unsigned int ae_csr,
-		    unsigned int *csr_val)
+qat_hal_rd_indr_csr(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned char ctx, unsigned int ae_csr, unsigned int *csr_val)
 {
 	unsigned int cur_ctx;
 
@@ -468,10 +566,8 @@ qat_hal_rd_indr_csr(struct icp_qat_fw_loader_handle *handle,
 }
 
 static void
-qat_hal_put_sig_event(struct icp_qat_fw_loader_handle *handle,
-		      unsigned char ae,
-		      unsigned int ctx_mask,
-		      unsigned int events)
+qat_hal_put_sig_event(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask, unsigned int events)
 {
 	unsigned int ctx, cur_ctx;
 
@@ -487,9 +583,7 @@ qat_hal_put_sig_event(struct icp_qat_fw_loader_handle *handle,
 
 static void
 qat_hal_put_wakeup_event(struct icp_qat_fw_loader_handle *handle,
-			 unsigned char ae,
-			 unsigned int ctx_mask,
-			 unsigned int events)
+    unsigned char ae, unsigned int ctx_mask, unsigned int events)
 {
 	unsigned int ctx, cur_ctx;
 
@@ -498,10 +592,8 @@ qat_hal_put_wakeup_event(struct icp_qat_fw_loader_handle *handle,
 		if (!(ctx_mask & (1 << ctx)))
 			continue;
 		qat_hal_wr_ae_csr(handle, ae, CSR_CTX_POINTER, ctx);
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  CTX_WAKEUP_EVENTS_INDIRECT,
-				  events);
+		qat_hal_wr_ae_csr(handle, ae, CTX_WAKEUP_EVENTS_INDIRECT,
+		    events);
 	}
 	qat_hal_wr_ae_csr(handle, ae, CSR_CTX_POINTER, cur_ctx);
 }
@@ -516,17 +608,13 @@ qat_hal_check_ae_alive(struct icp_qat_fw_loader_handle *handle)
 
 	for_each_set_bit(ae, &ae_mask, handle->hal_handle->ae_max_num)
 	{
-		qat_hal_rd_ae_csr(handle,
-				  ae,
-				  PROFILE_COUNT,
-				  (unsigned int *)&base_cnt);
+		qat_hal_rd_ae_csr(handle, ae, PROFILE_COUNT,
+		    (unsigned int *)&base_cnt);
 		base_cnt &= 0xffff;
 
 		do {
-			qat_hal_rd_ae_csr(handle,
-					  ae,
-					  PROFILE_COUNT,
-					  (unsigned int *)&cur_cnt);
+			qat_hal_rd_ae_csr(handle, ae, PROFILE_COUNT,
+			    (unsigned int *)&cur_cnt);
 			cur_cnt &= 0xffff;
 		} while (times-- && (cur_cnt == base_cnt));
 
@@ -541,7 +629,7 @@ qat_hal_check_ae_alive(struct icp_qat_fw_loader_handle *handle)
 
 int
 qat_hal_check_ae_active(struct icp_qat_fw_loader_handle *handle,
-			unsigned int ae)
+    unsigned int ae)
 {
 	unsigned int enable = 0, active = 0;
 
@@ -561,16 +649,15 @@ qat_hal_reset_timestamp(struct icp_qat_fw_loader_handle *handle)
 	unsigned char ae;
 	unsigned long ae_mask = handle->hal_handle->ae_mask;
 
-	misc_ctl_csr =
-	    (IS_QAT_GEN3_OR_GEN4(pci_get_device(GET_DEV(handle->accel_dev)))) ?
+	misc_ctl_csr = (IS_QAT_GEN3_OR_GEN4(
+			   pci_get_device(GET_DEV(handle->accel_dev)))) ?
 	    MISC_CONTROL_C4XXX :
 	    MISC_CONTROL;
 	/* stop the timestamp timers */
 	misc_ctl = GET_GLB_CSR(handle, misc_ctl_csr);
 	if (misc_ctl & MC_TIMESTAMP_ENABLE)
-		SET_GLB_CSR(handle,
-			    misc_ctl_csr,
-			    misc_ctl & (~MC_TIMESTAMP_ENABLE));
+		SET_GLB_CSR(handle, misc_ctl_csr,
+		    misc_ctl & (~MC_TIMESTAMP_ENABLE));
 
 	for_each_set_bit(ae, &ae_mask, handle->hal_handle->ae_max_num)
 	{
@@ -589,8 +676,8 @@ qat_hal_reset_timestamp(struct icp_qat_fw_loader_handle *handle)
 static int
 qat_hal_init_esram(struct icp_qat_fw_loader_handle *handle)
 {
-	uintptr_t csr_addr =
-	    ((uintptr_t)handle->hal_ep_csr_addr_v + ESRAM_AUTO_INIT_CSR_OFFSET);
+	uintptr_t csr_addr = ((uintptr_t)handle->hal_ep_csr_addr_v +
+	    ESRAM_AUTO_INIT_CSR_OFFSET);
 	unsigned int csr_val;
 	int times = 30;
 
@@ -651,22 +738,22 @@ qat_hal_clr_reset(struct icp_qat_fw_loader_handle *handle)
 		if (i == 0) {
 			if (IS_QAT_GEN4(
 				pci_get_device(GET_DEV(handle->accel_dev)))) {
-				valid_ae_mask =
-				    qat_hal_get_ae_mask_gen4(handle);
+				valid_ae_mask = qat_hal_get_ae_mask_gen4(
+				    handle);
 				valid_slice_mask =
 				    handle->hal_handle->slice_mask;
 			} else {
-				valid_ae_mask =
-				    handle->hal_handle->ae_mask & 0xFFFF;
+				valid_ae_mask = handle->hal_handle->ae_mask &
+				    0xFFFF;
 				valid_slice_mask =
 				    handle->hal_handle->slice_mask & 0x3F;
 			}
 		} else {
-			valid_ae_mask =
-			    (handle->hal_handle->ae_mask >> AES_PER_CPP) &
+			valid_ae_mask = (handle->hal_handle->ae_mask >>
+					    AES_PER_CPP) &
 			    0xFFFF;
-			valid_slice_mask =
-			    (handle->hal_handle->slice_mask >> SLICES_PER_CPP) &
+			valid_slice_mask = (handle->hal_handle->slice_mask >>
+					       SLICES_PER_CPP) &
 			    0x3F;
 		}
 		/* write to the reset csr */
@@ -693,26 +780,17 @@ qat_hal_clr_reset(struct icp_qat_fw_loader_handle *handle)
 	/* Set undefined power-up/reset states to reasonable default values */
 	for_each_set_bit(ae, &ae_mask, handle->hal_handle->ae_max_num)
 	{
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  CTX_ENABLES,
-				  INIT_CTX_ENABLE_VALUE);
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    ICP_QAT_UCLO_AE_ALL_CTX,
-				    CTX_STS_INDIRECT,
-				    handle->hal_handle->upc_mask &
-					INIT_PC_VALUE);
+		qat_hal_wr_ae_csr(handle, ae, CTX_ENABLES,
+		    INIT_CTX_ENABLE_VALUE);
+		qat_hal_wr_indr_csr(handle, ae, ICP_QAT_UCLO_AE_ALL_CTX,
+		    CTX_STS_INDIRECT,
+		    handle->hal_handle->upc_mask & INIT_PC_VALUE);
 		qat_hal_wr_ae_csr(handle, ae, CTX_ARB_CNTL, INIT_CTX_ARB_VALUE);
 		qat_hal_wr_ae_csr(handle, ae, CC_ENABLE, INIT_CCENABLE_VALUE);
-		qat_hal_put_wakeup_event(handle,
-					 ae,
-					 ICP_QAT_UCLO_AE_ALL_CTX,
-					 INIT_WAKEUP_EVENTS_VALUE);
-		qat_hal_put_sig_event(handle,
-				      ae,
-				      ICP_QAT_UCLO_AE_ALL_CTX,
-				      INIT_SIG_EVENTS_VALUE);
+		qat_hal_put_wakeup_event(handle, ae, ICP_QAT_UCLO_AE_ALL_CTX,
+		    INIT_WAKEUP_EVENTS_VALUE);
+		qat_hal_put_sig_event(handle, ae, ICP_QAT_UCLO_AE_ALL_CTX,
+		    INIT_SIG_EVENTS_VALUE);
 	}
 	if (qat_hal_init_esram(handle))
 		goto out_err;
@@ -727,9 +805,8 @@ out_err:
 }
 
 static void
-qat_hal_disable_ctx(struct icp_qat_fw_loader_handle *handle,
-		    unsigned char ae,
-		    unsigned int ctx_mask)
+qat_hal_disable_ctx(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask)
 {
 	unsigned int ctx;
 
@@ -772,11 +849,8 @@ qat_hal_set_uword_ecc(uint64_t uword)
 }
 
 void
-qat_hal_wr_uwords(struct icp_qat_fw_loader_handle *handle,
-		  unsigned char ae,
-		  unsigned int uaddr,
-		  unsigned int words_num,
-		  const uint64_t *uword)
+qat_hal_wr_uwords(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int uaddr, unsigned int words_num, const uint64_t *uword)
 {
 	unsigned int ustore_addr;
 	unsigned int i, ae_in_group;
@@ -816,19 +890,16 @@ qat_hal_wr_uwords(struct icp_qat_fw_loader_handle *handle,
 
 void
 qat_hal_wr_coalesce_uwords(struct icp_qat_fw_loader_handle *handle,
-			   unsigned char ae,
-			   unsigned int uaddr,
-			   unsigned int words_num,
-			   u64 *uword)
+    unsigned char ae, unsigned int uaddr, unsigned int words_num, u64 *uword)
 {
 	u64 *even_uwrods, *odd_uwords;
 	unsigned char neigh_ae, odd_ae, even_ae;
 	int i, even_cpy_cnt = 0, odd_cpy_cnt = 0;
 
-	even_uwrods =
-	    malloc(16 * 1024 * sizeof(*uword), M_QAT, M_WAITOK | M_ZERO);
-	odd_uwords =
-	    malloc(16 * 1024 * sizeof(*uword), M_QAT, M_WAITOK | M_ZERO);
+	even_uwrods = malloc(16 * 1024 * sizeof(*uword), M_QAT,
+	    M_WAITOK | M_ZERO);
+	odd_uwords = malloc(16 * 1024 * sizeof(*uword), M_QAT,
+	    M_WAITOK | M_ZERO);
 	qat_hal_get_scs_neigh_ae(ae, &neigh_ae);
 	if (ae & 1) {
 		odd_ae = ae;
@@ -844,22 +915,18 @@ qat_hal_wr_coalesce_uwords(struct icp_qat_fw_loader_handle *handle,
 			even_uwrods[even_cpy_cnt++] = uword[i];
 	}
 	if (even_cpy_cnt)
-		qat_hal_wr_uwords(handle,
-				  even_ae,
-				  (uaddr + 1) / 2,
-				  even_cpy_cnt,
-				  even_uwrods);
+		qat_hal_wr_uwords(handle, even_ae, (uaddr + 1) / 2,
+		    even_cpy_cnt, even_uwrods);
 	if (odd_cpy_cnt)
-		qat_hal_wr_uwords(
-		    handle, odd_ae, uaddr / 2, odd_cpy_cnt, odd_uwords);
+		qat_hal_wr_uwords(handle, odd_ae, uaddr / 2, odd_cpy_cnt,
+		    odd_uwords);
 	free(even_uwrods, M_QAT);
 	free(odd_uwords, M_QAT);
 }
 
 static void
-qat_hal_enable_ctx(struct icp_qat_fw_loader_handle *handle,
-		   unsigned char ae,
-		   unsigned int ctx_mask)
+qat_hal_enable_ctx(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask)
 {
 	unsigned int ctx;
 
@@ -880,10 +947,10 @@ qat_hal_clear_xfer(struct icp_qat_fw_loader_handle *handle)
 	for_each_set_bit(ae, &ae_mask, handle->hal_handle->ae_max_num)
 	{
 		for (reg = 0; reg < ICP_QAT_UCLO_MAX_GPR_REG; reg++) {
-			qat_hal_init_rd_xfer(
-			    handle, ae, 0, ICP_SR_RD_ABS, reg, 0);
-			qat_hal_init_rd_xfer(
-			    handle, ae, 0, ICP_DR_RD_ABS, reg, 0);
+			qat_hal_init_rd_xfer(handle, ae, 0, ICP_SR_RD_ABS, reg,
+			    0);
+			qat_hal_init_rd_xfer(handle, ae, 0, ICP_DR_RD_ABS, reg,
+			    0);
 		}
 	}
 }
@@ -915,29 +982,20 @@ qat_hal_clear_gpr(struct icp_qat_fw_loader_handle *handle)
 
 		if (IS_QAT_GEN4(pci_get_device(GET_DEV(handle->accel_dev)))) {
 			if (ae % 4 == 0)
-				qat_hal_wr_uwords(handle,
-						  ae,
-						  0,
-						  ARRAY_SIZE(inst_CPM2X),
-						  (const uint64_t *)inst_CPM2X);
+				qat_hal_wr_uwords(handle, ae, 0,
+				    ARRAY_SIZE(inst_CPM2X),
+				    (const uint64_t *)inst_CPM2X);
 		} else {
-			qat_hal_wr_uwords(handle,
-					  ae,
-					  0,
-					  ARRAY_SIZE(inst),
-					  (const uint64_t *)inst);
+			qat_hal_wr_uwords(handle, ae, 0, ARRAY_SIZE(inst),
+			    (const uint64_t *)inst);
 		}
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    ctx_mask,
-				    CTX_STS_INDIRECT,
-				    handle->hal_handle->upc_mask &
-					INIT_PC_VALUE);
+		qat_hal_wr_indr_csr(handle, ae, ctx_mask, CTX_STS_INDIRECT,
+		    handle->hal_handle->upc_mask & INIT_PC_VALUE);
 		qat_hal_rd_ae_csr(handle, ae, ACTIVE_CTX_STATUS, &savctx);
 		qat_hal_wr_ae_csr(handle, ae, ACTIVE_CTX_STATUS, 0);
 		qat_hal_put_wakeup_event(handle, ae, ctx_mask, XCWE_VOLUNTARY);
-		qat_hal_wr_indr_csr(
-		    handle, ae, ctx_mask, CTX_SIG_EVENTS_INDIRECT, 0);
+		qat_hal_wr_indr_csr(handle, ae, ctx_mask,
+		    CTX_SIG_EVENTS_INDIRECT, 0);
 		qat_hal_wr_ae_csr(handle, ae, CTX_SIG_EVENTS_ACTIVE, 0);
 		qat_hal_enable_ctx(handle, ae, ctx_mask);
 	}
@@ -958,30 +1016,18 @@ qat_hal_clear_gpr(struct icp_qat_fw_loader_handle *handle)
 		if (scs_flag)
 			csr_val |= (1 << MMC_SHARE_CS_BITPOS);
 		qat_hal_wr_ae_csr(handle, ae, AE_MISC_CONTROL, csr_val);
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  ACTIVE_CTX_STATUS,
-				  savctx & ACS_ACNO);
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  CTX_ENABLES,
-				  INIT_CTX_ENABLE_VALUE);
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    ctx_mask,
-				    CTX_STS_INDIRECT,
-				    handle->hal_handle->upc_mask &
-					INIT_PC_VALUE);
+		qat_hal_wr_ae_csr(handle, ae, ACTIVE_CTX_STATUS,
+		    savctx & ACS_ACNO);
+		qat_hal_wr_ae_csr(handle, ae, CTX_ENABLES,
+		    INIT_CTX_ENABLE_VALUE);
+		qat_hal_wr_indr_csr(handle, ae, ctx_mask, CTX_STS_INDIRECT,
+		    handle->hal_handle->upc_mask & INIT_PC_VALUE);
 		qat_hal_wr_ae_csr(handle, ae, CTX_ARB_CNTL, INIT_CTX_ARB_VALUE);
 		qat_hal_wr_ae_csr(handle, ae, CC_ENABLE, INIT_CCENABLE_VALUE);
-		qat_hal_put_wakeup_event(handle,
-					 ae,
-					 ctx_mask,
-					 INIT_WAKEUP_EVENTS_VALUE);
-		qat_hal_put_sig_event(handle,
-				      ae,
-				      ctx_mask,
-				      INIT_SIG_EVENTS_VALUE);
+		qat_hal_put_wakeup_event(handle, ae, ctx_mask,
+		    INIT_WAKEUP_EVENTS_VALUE);
+		qat_hal_put_sig_event(handle, ae, ctx_mask,
+		    INIT_SIG_EVENTS_VALUE);
 	}
 	return 0;
 }
@@ -1038,24 +1084,22 @@ qat_hal_init(struct adf_accel_dev *accel_dev)
 		sram_bar =
 		    &pci_info->pci_bars[hw_data->get_sram_bar_id(hw_data)];
 		if (IS_QAT_GEN3(pci_get_device(GET_DEV(handle->accel_dev))))
-			sram_offset =
-			    0x400000 + accel_dev->aram_info->mmp_region_offset;
+			sram_offset = 0x400000 +
+			    accel_dev->aram_info->mmp_region_offset;
 		handle->hal_sram_addr_v = sram_bar->virt_addr;
 		handle->hal_sram_offset = sram_offset;
 		handle->hal_sram_size = sram_bar->size;
 	}
-	GET_CSR_OFFSET(pci_get_device(GET_DEV(handle->accel_dev)),
-		       cap_offset,
-		       ae_offset,
-		       ep_offset);
+	GET_CSR_OFFSET(pci_get_device(GET_DEV(handle->accel_dev)), cap_offset,
+	    ae_offset, ep_offset);
 	handle->hal_cap_g_ctl_csr_addr_v = cap_offset;
 	handle->hal_cap_ae_xfer_csr_addr_v = ae_offset;
 	handle->hal_ep_csr_addr_v = ep_offset;
 	handle->hal_cap_ae_local_csr_addr_v =
 	    ((uintptr_t)handle->hal_cap_ae_xfer_csr_addr_v +
-	     LOCAL_TO_XFER_REG_OFFSET);
+		LOCAL_TO_XFER_REG_OFFSET);
 	handle->fw_auth = (pci_get_device(GET_DEV(handle->accel_dev)) ==
-			   ADF_DH895XCC_PCI_DEVICE_ID) ?
+			      ADF_DH895XCC_PCI_DEVICE_ID) ?
 	    false :
 	    true;
 	if (handle->fw_auth && qat_hal_check_imr(handle)) {
@@ -1064,8 +1108,8 @@ qat_hal_init(struct adf_accel_dev *accel_dev)
 		goto out_hal_handle;
 	}
 
-	handle->hal_handle =
-	    malloc(sizeof(*handle->hal_handle), M_QAT, M_WAITOK | M_ZERO);
+	handle->hal_handle = malloc(sizeof(*handle->hal_handle), M_QAT,
+	    M_WAITOK | M_ZERO);
 	handle->hal_handle->revision_id = accel_dev->accel_pci_dev.revid;
 	handle->hal_handle->ae_mask = hw_data->ae_mask;
 	handle->hal_handle->admin_ae_mask = hw_data->admin_ae_mask;
@@ -1167,21 +1211,17 @@ qat_hal_start(struct icp_qat_fw_loader_handle *handle)
 			if (((fcu_sts >> FCU_STS_DONE_POS) & 0x1))
 				return ae_ctr;
 		} while (retry++ < FW_AUTH_MAX_RETRY);
-		pr_err("QAT: start error (AE 0x%x FCU_STS = 0x%x)\n",
-		       ae,
-		       fcu_sts);
+		pr_err("QAT: start error (AE 0x%x FCU_STS = 0x%x)\n", ae,
+		    fcu_sts);
 		return 0;
 	} else {
 		for_each_set_bit(ae, &ae_mask, handle->hal_handle->ae_max_num)
 		{
-			qat_hal_put_wakeup_event(handle,
-						 ae,
-						 0,
-						 IS_QAT_GEN4(
-						     pci_get_device(GET_DEV(
-							 handle->accel_dev))) ?
-						     0x80000000 :
-						     0x10000);
+			qat_hal_put_wakeup_event(handle, ae, 0,
+			    IS_QAT_GEN4(
+				pci_get_device(GET_DEV(handle->accel_dev))) ?
+				0x80000000 :
+				0x10000);
 			qat_hal_enable_ctx(handle, ae, ICP_QAT_UCLO_AE_ALL_CTX);
 			ae_ctr++;
 		}
@@ -1190,33 +1230,24 @@ qat_hal_start(struct icp_qat_fw_loader_handle *handle)
 }
 
 void
-qat_hal_stop(struct icp_qat_fw_loader_handle *handle,
-	     unsigned char ae,
-	     unsigned int ctx_mask)
+qat_hal_stop(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask)
 {
 	if (!handle->fw_auth)
 		qat_hal_disable_ctx(handle, ae, ctx_mask);
 }
 
 void
-qat_hal_set_pc(struct icp_qat_fw_loader_handle *handle,
-	       unsigned char ae,
-	       unsigned int ctx_mask,
-	       unsigned int upc)
+qat_hal_set_pc(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int ctx_mask, unsigned int upc)
 {
-	qat_hal_wr_indr_csr(handle,
-			    ae,
-			    ctx_mask,
-			    CTX_STS_INDIRECT,
-			    handle->hal_handle->upc_mask & upc);
+	qat_hal_wr_indr_csr(handle, ae, ctx_mask, CTX_STS_INDIRECT,
+	    handle->hal_handle->upc_mask & upc);
 }
 
 static void
-qat_hal_get_uwords(struct icp_qat_fw_loader_handle *handle,
-		   unsigned char ae,
-		   unsigned int uaddr,
-		   unsigned int words_num,
-		   uint64_t *uword)
+qat_hal_get_uwords(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int uaddr, unsigned int words_num, uint64_t *uword)
 {
 	unsigned int i, uwrd_lo, uwrd_hi;
 	unsigned int ustore_addr, misc_control;
@@ -1225,10 +1256,8 @@ qat_hal_get_uwords(struct icp_qat_fw_loader_handle *handle,
 	qat_hal_rd_ae_csr(handle, ae, AE_MISC_CONTROL, &misc_control);
 	scs_flag = misc_control & (0x1 << MMC_SHARE_CS_BITPOS);
 	/*disable scs*/
-	qat_hal_wr_ae_csr(handle,
-			  ae,
-			  AE_MISC_CONTROL,
-			  misc_control & 0xfffffffb);
+	qat_hal_wr_ae_csr(handle, ae, AE_MISC_CONTROL,
+	    misc_control & 0xfffffffb);
 	qat_hal_rd_ae_csr(handle, ae, USTORE_ADDRESS, &ustore_addr);
 	uaddr |= UA_ECS;
 	for (i = 0; i < words_num; i++) {
@@ -1246,11 +1275,8 @@ qat_hal_get_uwords(struct icp_qat_fw_loader_handle *handle,
 }
 
 void
-qat_hal_wr_umem(struct icp_qat_fw_loader_handle *handle,
-		unsigned char ae,
-		unsigned int uaddr,
-		unsigned int words_num,
-		unsigned int *data)
+qat_hal_wr_umem(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned int uaddr, unsigned int words_num, unsigned int *data)
 {
 	unsigned int i, ustore_addr;
 
@@ -1275,13 +1301,9 @@ qat_hal_wr_umem(struct icp_qat_fw_loader_handle *handle,
 #define MAX_EXEC_INST 100
 static int
 qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
-			unsigned char ae,
-			unsigned char ctx,
-			uint64_t *micro_inst,
-			unsigned int inst_num,
-			int code_off,
-			unsigned int max_cycle,
-			unsigned int *endpc)
+    unsigned char ae, unsigned char ctx, uint64_t *micro_inst,
+    unsigned int inst_num, int code_off, unsigned int max_cycle,
+    unsigned int *endpc)
 {
 	uint64_t savuwords[MAX_EXEC_INST];
 	unsigned int ind_lm_addr0, ind_lm_addr1;
@@ -1303,32 +1325,23 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 	/* save current context */
 	qat_hal_rd_indr_csr(handle, ae, ctx, LM_ADDR_0_INDIRECT, &ind_lm_addr0);
 	qat_hal_rd_indr_csr(handle, ae, ctx, LM_ADDR_1_INDIRECT, &ind_lm_addr1);
-	qat_hal_rd_indr_csr(
-	    handle, ae, ctx, INDIRECT_LM_ADDR_0_BYTE_INDEX, &ind_lm_addr_byte0);
-	qat_hal_rd_indr_csr(
-	    handle, ae, ctx, INDIRECT_LM_ADDR_1_BYTE_INDEX, &ind_lm_addr_byte1);
+	qat_hal_rd_indr_csr(handle, ae, ctx, INDIRECT_LM_ADDR_0_BYTE_INDEX,
+	    &ind_lm_addr_byte0);
+	qat_hal_rd_indr_csr(handle, ae, ctx, INDIRECT_LM_ADDR_1_BYTE_INDEX,
+	    &ind_lm_addr_byte1);
 	if (IS_QAT_GEN3_OR_GEN4(pci_get_device(GET_DEV(handle->accel_dev)))) {
-		qat_hal_rd_indr_csr(
-		    handle, ae, ctx, LM_ADDR_2_INDIRECT, &ind_lm_addr2);
-		qat_hal_rd_indr_csr(
-		    handle, ae, ctx, LM_ADDR_3_INDIRECT, &ind_lm_addr3);
-		qat_hal_rd_indr_csr(handle,
-				    ae,
-				    ctx,
-				    INDIRECT_LM_ADDR_2_BYTE_INDEX,
-				    &ind_lm_addr_byte2);
-		qat_hal_rd_indr_csr(handle,
-				    ae,
-				    ctx,
-				    INDIRECT_LM_ADDR_3_BYTE_INDEX,
-				    &ind_lm_addr_byte3);
-		qat_hal_rd_indr_csr(
-		    handle, ae, ctx, INDIRECT_T_INDEX, &ind_t_index);
-		qat_hal_rd_indr_csr(handle,
-				    ae,
-				    ctx,
-				    INDIRECT_T_INDEX_BYTE_INDEX,
-				    &ind_t_index_byte);
+		qat_hal_rd_indr_csr(handle, ae, ctx, LM_ADDR_2_INDIRECT,
+		    &ind_lm_addr2);
+		qat_hal_rd_indr_csr(handle, ae, ctx, LM_ADDR_3_INDIRECT,
+		    &ind_lm_addr3);
+		qat_hal_rd_indr_csr(handle, ae, ctx,
+		    INDIRECT_LM_ADDR_2_BYTE_INDEX, &ind_lm_addr_byte2);
+		qat_hal_rd_indr_csr(handle, ae, ctx,
+		    INDIRECT_LM_ADDR_3_BYTE_INDEX, &ind_lm_addr_byte3);
+		qat_hal_rd_indr_csr(handle, ae, ctx, INDIRECT_T_INDEX,
+		    &ind_t_index);
+		qat_hal_rd_indr_csr(handle, ae, ctx,
+		    INDIRECT_T_INDEX_BYTE_INDEX, &ind_t_index_byte);
 	}
 	qat_hal_rd_ae_csr(handle, ae, AE_MISC_CONTROL, &csr_val);
 	scs_flag = csr_val & (1 << MMC_SHARE_CS_BITPOS);
@@ -1344,8 +1357,8 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 	qat_hal_rd_ae_csr(handle, ae, CC_ENABLE, &savcc);
 	qat_hal_rd_ae_csr(handle, ae, ACTIVE_CTX_STATUS, &savctx);
 	qat_hal_rd_ae_csr(handle, ae, CTX_ARB_CNTL, &ctxarb_ctl);
-	qat_hal_rd_indr_csr(
-	    handle, ae, ctx, FUTURE_COUNT_SIGNAL_INDIRECT, &ind_cnt_sig);
+	qat_hal_rd_indr_csr(handle, ae, ctx, FUTURE_COUNT_SIGNAL_INDIRECT,
+	    &ind_cnt_sig);
 	qat_hal_rd_indr_csr(handle, ae, ctx, CTX_SIG_EVENTS_INDIRECT, &ind_sig);
 	qat_hal_rd_ae_csr(handle, ae, CTX_SIG_EVENTS_ACTIVE, &act_sig);
 	/* execute micro codes */
@@ -1365,8 +1378,8 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 	if (endpc) {
 		unsigned int ctx_status;
 
-		qat_hal_rd_indr_csr(
-		    handle, ae, ctx, CTX_STS_INDIRECT, &ctx_status);
+		qat_hal_rd_indr_csr(handle, ae, ctx, CTX_STS_INDIRECT,
+		    &ctx_status);
 		*endpc = ctx_status & handle->hal_handle->upc_mask;
 	}
 	/* retore to saved context */
@@ -1374,11 +1387,8 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 	if (inst_num <= MAX_EXEC_INST)
 		qat_hal_wr_uwords(handle, ae, 0, inst_num, savuwords);
 	qat_hal_put_wakeup_event(handle, ae, (1 << ctx), wakeup_events);
-	qat_hal_wr_indr_csr(handle,
-			    ae,
-			    (1 << ctx),
-			    CTX_STS_INDIRECT,
-			    handle->hal_handle->upc_mask & savpc);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx), CTX_STS_INDIRECT,
+	    handle->hal_handle->upc_mask & savpc);
 	qat_hal_rd_ae_csr(handle, ae, AE_MISC_CONTROL, &csr_val);
 	newcsr_val = scs_flag ? SET_BIT(csr_val, MMC_SHARE_CS_BITPOS) :
 				CLR_BIT(csr_val, MMC_SHARE_CS_BITPOS);
@@ -1386,47 +1396,32 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 	qat_hal_wr_ae_csr(handle, ae, CC_ENABLE, savcc);
 	qat_hal_wr_ae_csr(handle, ae, ACTIVE_CTX_STATUS, savctx & ACS_ACNO);
 	qat_hal_wr_ae_csr(handle, ae, CTX_ARB_CNTL, ctxarb_ctl);
-	qat_hal_wr_indr_csr(
-	    handle, ae, (1 << ctx), LM_ADDR_0_INDIRECT, ind_lm_addr0);
-	qat_hal_wr_indr_csr(
-	    handle, ae, (1 << ctx), LM_ADDR_1_INDIRECT, ind_lm_addr1);
-	qat_hal_wr_indr_csr(handle,
-			    ae,
-			    (1 << ctx),
-			    INDIRECT_LM_ADDR_0_BYTE_INDEX,
-			    ind_lm_addr_byte0);
-	qat_hal_wr_indr_csr(handle,
-			    ae,
-			    (1 << ctx),
-			    INDIRECT_LM_ADDR_1_BYTE_INDEX,
-			    ind_lm_addr_byte1);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx), LM_ADDR_0_INDIRECT,
+	    ind_lm_addr0);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx), LM_ADDR_1_INDIRECT,
+	    ind_lm_addr1);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+	    INDIRECT_LM_ADDR_0_BYTE_INDEX, ind_lm_addr_byte0);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+	    INDIRECT_LM_ADDR_1_BYTE_INDEX, ind_lm_addr_byte1);
 	if (IS_QAT_GEN3_OR_GEN4(pci_get_device(GET_DEV(handle->accel_dev)))) {
-		qat_hal_wr_indr_csr(
-		    handle, ae, (1 << ctx), LM_ADDR_2_INDIRECT, ind_lm_addr2);
-		qat_hal_wr_indr_csr(
-		    handle, ae, (1 << ctx), LM_ADDR_3_INDIRECT, ind_lm_addr3);
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    (1 << ctx),
-				    INDIRECT_LM_ADDR_2_BYTE_INDEX,
-				    ind_lm_addr_byte2);
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    (1 << ctx),
-				    INDIRECT_LM_ADDR_3_BYTE_INDEX,
-				    ind_lm_addr_byte3);
-		qat_hal_wr_indr_csr(
-		    handle, ae, (1 << ctx), INDIRECT_T_INDEX, ind_t_index);
-		qat_hal_wr_indr_csr(handle,
-				    ae,
-				    (1 << ctx),
-				    INDIRECT_T_INDEX_BYTE_INDEX,
-				    ind_t_index_byte);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx), LM_ADDR_2_INDIRECT,
+		    ind_lm_addr2);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx), LM_ADDR_3_INDIRECT,
+		    ind_lm_addr3);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+		    INDIRECT_LM_ADDR_2_BYTE_INDEX, ind_lm_addr_byte2);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+		    INDIRECT_LM_ADDR_3_BYTE_INDEX, ind_lm_addr_byte3);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx), INDIRECT_T_INDEX,
+		    ind_t_index);
+		qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+		    INDIRECT_T_INDEX_BYTE_INDEX, ind_t_index_byte);
 	}
-	qat_hal_wr_indr_csr(
-	    handle, ae, (1 << ctx), FUTURE_COUNT_SIGNAL_INDIRECT, ind_cnt_sig);
-	qat_hal_wr_indr_csr(
-	    handle, ae, (1 << ctx), CTX_SIG_EVENTS_INDIRECT, ind_sig);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx),
+	    FUTURE_COUNT_SIGNAL_INDIRECT, ind_cnt_sig);
+	qat_hal_wr_indr_csr(handle, ae, (1 << ctx), CTX_SIG_EVENTS_INDIRECT,
+	    ind_sig);
 	qat_hal_wr_ae_csr(handle, ae, CTX_SIG_EVENTS_ACTIVE, act_sig);
 	qat_hal_wr_ae_csr(handle, ae, CTX_ENABLES, ctx_enables);
 
@@ -1434,12 +1429,9 @@ qat_hal_exec_micro_inst(struct icp_qat_fw_loader_handle *handle,
 }
 
 static int
-qat_hal_rd_rel_reg(struct icp_qat_fw_loader_handle *handle,
-		   unsigned char ae,
-		   unsigned char ctx,
-		   enum icp_qat_uof_regtype reg_type,
-		   unsigned short reg_num,
-		   unsigned int *data)
+qat_hal_rd_rel_reg(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned char ctx, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int *data)
 {
 	unsigned int savctx, uaddr, uwrd_lo, uwrd_hi;
 	unsigned int ctxarb_cntl, ustore_addr, ctx_enables;
@@ -1471,10 +1463,8 @@ qat_hal_rd_rel_reg(struct icp_qat_fw_loader_handle *handle,
 	qat_hal_rd_ae_csr(handle, ae, CTX_ENABLES, &ctx_enables);
 	ctx_enables &= IGNORE_W1C_MASK;
 	if (ctx != (savctx & ACS_ACNO))
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  ACTIVE_CTX_STATUS,
-				  ctx & ACS_ACNO);
+		qat_hal_wr_ae_csr(handle, ae, ACTIVE_CTX_STATUS,
+		    ctx & ACS_ACNO);
 	qat_hal_get_uwords(handle, ae, 0, 1, &savuword);
 	qat_hal_wr_ae_csr(handle, ae, CTX_ENABLES, ctx_enables);
 	qat_hal_rd_ae_csr(handle, ae, USTORE_ADDRESS, &ustore_addr);
@@ -1497,10 +1487,8 @@ qat_hal_rd_rel_reg(struct icp_qat_fw_loader_handle *handle,
 	qat_hal_wr_ae_csr(handle, ae, USTORE_ADDRESS, ustore_addr);
 	qat_hal_wr_uwords(handle, ae, 0, 1, &savuword);
 	if (ctx != (savctx & ACS_ACNO))
-		qat_hal_wr_ae_csr(handle,
-				  ae,
-				  ACTIVE_CTX_STATUS,
-				  savctx & ACS_ACNO);
+		qat_hal_wr_ae_csr(handle, ae, ACTIVE_CTX_STATUS,
+		    savctx & ACS_ACNO);
 	qat_hal_wr_ae_csr(handle, ae, CTX_ARB_CNTL, ctxarb_cntl);
 	qat_hal_rd_ae_csr(handle, ae, AE_MISC_CONTROL, &csr_val);
 	newcsr_val = scs_flag ? SET_BIT(csr_val, MMC_SHARE_CS_BITPOS) :
@@ -1512,18 +1500,13 @@ qat_hal_rd_rel_reg(struct icp_qat_fw_loader_handle *handle,
 }
 
 static int
-qat_hal_wr_rel_reg(struct icp_qat_fw_loader_handle *handle,
-		   unsigned char ae,
-		   unsigned char ctx,
-		   enum icp_qat_uof_regtype reg_type,
-		   unsigned short reg_num,
-		   unsigned int data)
+qat_hal_wr_rel_reg(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned char ctx, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int data)
 {
 	unsigned short src_hiaddr, src_lowaddr, dest_addr, data16hi, data16lo;
-	uint64_t insts[] = { 0x0F440000000ull,
-			     0x0F040000000ull,
-			     0x0F0000C0300ull,
-			     0x0E000010000ull };
+	uint64_t insts[] = { 0x0F440000000ull, 0x0F040000000ull,
+		0x0F0000C0300ull, 0x0E000010000ull };
 	const int num_inst = ARRAY_SIZE(insts), code_off = 1;
 	const int imm_w1 = 0, imm_w0 = 1;
 
@@ -1536,9 +1519,9 @@ qat_hal_wr_rel_reg(struct icp_qat_fw_loader_handle *handle,
 	data16lo = 0xffff & data;
 	data16hi = 0xffff & (data >> 0x10);
 	src_hiaddr = qat_hal_get_reg_addr(ICP_NO_DEST,
-					  (unsigned short)(0xff & data16hi));
+	    (unsigned short)(0xff & data16hi));
 	src_lowaddr = qat_hal_get_reg_addr(ICP_NO_DEST,
-					   (unsigned short)(0xff & data16lo));
+	    (unsigned short)(0xff & data16lo));
 	switch (reg_type) {
 	case ICP_GPA_REL:
 		insts[imm_w1] = insts[imm_w1] | ((data16hi >> 8) << 20) |
@@ -1555,8 +1538,8 @@ qat_hal_wr_rel_reg(struct icp_qat_fw_loader_handle *handle,
 		break;
 	}
 
-	return qat_hal_exec_micro_inst(
-	    handle, ae, ctx, insts, num_inst, code_off, num_inst * 0x5, NULL);
+	return qat_hal_exec_micro_inst(handle, ae, ctx, insts, num_inst,
+	    code_off, num_inst * 0x5, NULL);
 }
 
 int
@@ -1566,11 +1549,8 @@ qat_hal_get_ins_num(void)
 }
 
 static int
-qat_hal_concat_micro_code(uint64_t *micro_inst,
-			  unsigned int inst_num,
-			  unsigned int size,
-			  unsigned int addr,
-			  unsigned int *value)
+qat_hal_concat_micro_code(uint64_t *micro_inst, unsigned int inst_num,
+    unsigned int size, unsigned int addr, unsigned int *value)
 {
 	int i;
 	unsigned int cur_value;
@@ -1602,11 +1582,8 @@ qat_hal_concat_micro_code(uint64_t *micro_inst,
 
 static int
 qat_hal_exec_micro_init_lm(struct icp_qat_fw_loader_handle *handle,
-			   unsigned char ae,
-			   unsigned char ctx,
-			   int *pfirst_exec,
-			   uint64_t *micro_inst,
-			   unsigned int inst_num)
+    unsigned char ae, unsigned char ctx, int *pfirst_exec, uint64_t *micro_inst,
+    unsigned int inst_num)
 {
 	int stat = 0;
 	unsigned int gpra0 = 0, gpra1 = 0, gpra2 = 0;
@@ -1620,8 +1597,8 @@ qat_hal_exec_micro_init_lm(struct icp_qat_fw_loader_handle *handle,
 		qat_hal_rd_rel_reg(handle, ae, ctx, ICP_GPB_REL, 0x1, &gprb1);
 		*pfirst_exec = 0;
 	}
-	stat = qat_hal_exec_micro_inst(
-	    handle, ae, ctx, micro_inst, inst_num, 1, inst_num * 0x5, NULL);
+	stat = qat_hal_exec_micro_inst(handle, ae, ctx, micro_inst, inst_num, 1,
+	    inst_num * 0x5, NULL);
 	if (stat != 0)
 		return EFAULT;
 	qat_hal_wr_rel_reg(handle, ae, ctx, ICP_GPA_REL, 0, gpra0);
@@ -1634,9 +1611,8 @@ qat_hal_exec_micro_init_lm(struct icp_qat_fw_loader_handle *handle,
 }
 
 int
-qat_hal_batch_wr_lm(struct icp_qat_fw_loader_handle *handle,
-		    unsigned char ae,
-		    struct icp_qat_uof_batch_init *lm_init_header)
+qat_hal_batch_wr_lm(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    struct icp_qat_uof_batch_init *lm_init_header)
 {
 	struct icp_qat_uof_batch_init *plm_init;
 	uint64_t *micro_inst_arry;
@@ -1651,9 +1627,8 @@ qat_hal_batch_wr_lm(struct icp_qat_fw_loader_handle *handle,
 	alloc_inst_size = lm_init_header->size;
 	if ((unsigned int)alloc_inst_size > handle->hal_handle->max_ustore)
 		alloc_inst_size = handle->hal_handle->max_ustore;
-	micro_inst_arry = malloc(alloc_inst_size * sizeof(uint64_t),
-				 M_QAT,
-				 M_WAITOK | M_ZERO);
+	micro_inst_arry = malloc(alloc_inst_size * sizeof(uint64_t), M_QAT,
+	    M_WAITOK | M_ZERO);
 	micro_inst_num = 0;
 	while (plm_init) {
 		unsigned int addr, *value, size;
@@ -1662,19 +1637,15 @@ qat_hal_batch_wr_lm(struct icp_qat_fw_loader_handle *handle,
 		addr = plm_init->addr;
 		value = plm_init->value;
 		size = plm_init->size;
-		micro_inst_num += qat_hal_concat_micro_code(
-		    micro_inst_arry, micro_inst_num, size, addr, value);
+		micro_inst_num += qat_hal_concat_micro_code(micro_inst_arry,
+		    micro_inst_num, size, addr, value);
 		plm_init = plm_init->next;
 	}
 	/* exec micro codes */
 	if (micro_inst_arry && micro_inst_num > 0) {
 		micro_inst_arry[micro_inst_num++] = 0x0E000010000ull;
-		stat = qat_hal_exec_micro_init_lm(handle,
-						  ae,
-						  0,
-						  &first_exec,
-						  micro_inst_arry,
-						  micro_inst_num);
+		stat = qat_hal_exec_micro_init_lm(handle, ae, 0, &first_exec,
+		    micro_inst_arry, micro_inst_num);
 	}
 	free(micro_inst_arry, M_QAT);
 	return stat;
@@ -1682,11 +1653,8 @@ qat_hal_batch_wr_lm(struct icp_qat_fw_loader_handle *handle,
 
 static int
 qat_hal_put_rel_rd_xfer(struct icp_qat_fw_loader_handle *handle,
-			unsigned char ae,
-			unsigned char ctx,
-			enum icp_qat_uof_regtype reg_type,
-			unsigned short reg_num,
-			unsigned int val)
+    unsigned char ae, unsigned char ctx, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int val)
 {
 	int status = 0;
 	unsigned int reg_addr;
@@ -1726,22 +1694,16 @@ qat_hal_put_rel_rd_xfer(struct icp_qat_fw_loader_handle *handle,
 
 static int
 qat_hal_put_rel_wr_xfer(struct icp_qat_fw_loader_handle *handle,
-			unsigned char ae,
-			unsigned char ctx,
-			enum icp_qat_uof_regtype reg_type,
-			unsigned short reg_num,
-			unsigned int data)
+    unsigned char ae, unsigned char ctx, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int data)
 {
 	unsigned int gprval, ctx_enables;
 	unsigned short src_hiaddr, src_lowaddr, gpr_addr, xfr_addr, data16hi,
 	    data16low;
 	unsigned short reg_mask;
 	int status = 0;
-	uint64_t micro_inst[] = { 0x0F440000000ull,
-				  0x0F040000000ull,
-				  0x0A000000000ull,
-				  0x0F0000C0300ull,
-				  0x0E000010000ull };
+	uint64_t micro_inst[] = { 0x0F440000000ull, 0x0F040000000ull,
+		0x0A000000000ull, 0x0F0000C0300ull, 0x0E000010000ull };
 	const int num_inst = ARRAY_SIZE(micro_inst), code_off = 1;
 	const unsigned short gprnum = 0, dly = num_inst * 0x5;
 
@@ -1767,27 +1729,24 @@ qat_hal_put_rel_wr_xfer(struct icp_qat_fw_loader_handle *handle,
 	data16low = 0xffff & data;
 	data16hi = 0xffff & (data >> 0x10);
 	src_hiaddr = qat_hal_get_reg_addr(ICP_NO_DEST,
-					  (unsigned short)(0xff & data16hi));
+	    (unsigned short)(0xff & data16hi));
 	src_lowaddr = qat_hal_get_reg_addr(ICP_NO_DEST,
-					   (unsigned short)(0xff & data16low));
+	    (unsigned short)(0xff & data16low));
 	micro_inst[0] = micro_inst[0x0] | ((data16hi >> 8) << 20) |
 	    ((gpr_addr & 0x3ff) << 10) | (src_hiaddr & 0x3ff);
 	micro_inst[1] = micro_inst[0x1] | ((data16low >> 8) << 20) |
 	    ((gpr_addr & 0x3ff) << 10) | (src_lowaddr & 0x3ff);
 	micro_inst[0x2] = micro_inst[0x2] | ((xfr_addr & 0x3ff) << 20) |
 	    ((gpr_addr & 0x3ff) << 10);
-	status = qat_hal_exec_micro_inst(
-	    handle, ae, ctx, micro_inst, num_inst, code_off, dly, NULL);
+	status = qat_hal_exec_micro_inst(handle, ae, ctx, micro_inst, num_inst,
+	    code_off, dly, NULL);
 	qat_hal_wr_rel_reg(handle, ae, ctx, ICP_GPB_REL, gprnum, gprval);
 	return status;
 }
 
 static int
-qat_hal_put_rel_nn(struct icp_qat_fw_loader_handle *handle,
-		   unsigned char ae,
-		   unsigned char ctx,
-		   unsigned short nn,
-		   unsigned int val)
+qat_hal_put_rel_nn(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned char ctx, unsigned short nn, unsigned int val)
 {
 	unsigned int ctx_enables;
 	int stat = 0;
@@ -1803,10 +1762,8 @@ qat_hal_put_rel_nn(struct icp_qat_fw_loader_handle *handle,
 
 static int
 qat_hal_convert_abs_to_rel(struct icp_qat_fw_loader_handle *handle,
-			   unsigned char ae,
-			   unsigned short absreg_num,
-			   unsigned short *relreg,
-			   unsigned char *ctx)
+    unsigned char ae, unsigned short absreg_num, unsigned short *relreg,
+    unsigned char *ctx)
 {
 	unsigned int ctx_enables;
 
@@ -1824,12 +1781,9 @@ qat_hal_convert_abs_to_rel(struct icp_qat_fw_loader_handle *handle,
 }
 
 int
-qat_hal_init_gpr(struct icp_qat_fw_loader_handle *handle,
-		 unsigned char ae,
-		 unsigned long ctx_mask,
-		 enum icp_qat_uof_regtype reg_type,
-		 unsigned short reg_num,
-		 unsigned int regdata)
+qat_hal_init_gpr(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned long ctx_mask, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int regdata)
 {
 	int stat = 0;
 	unsigned short reg;
@@ -1841,8 +1795,8 @@ qat_hal_init_gpr(struct icp_qat_fw_loader_handle *handle,
 
 	do {
 		if (ctx_mask == 0) {
-			qat_hal_convert_abs_to_rel(
-			    handle, ae, reg_num, &reg, &ctx);
+			qat_hal_convert_abs_to_rel(handle, ae, reg_num, &reg,
+			    &ctx);
 			type = reg_type - 1;
 		} else {
 			reg = reg_num;
@@ -1861,12 +1815,9 @@ qat_hal_init_gpr(struct icp_qat_fw_loader_handle *handle,
 }
 
 int
-qat_hal_init_wr_xfer(struct icp_qat_fw_loader_handle *handle,
-		     unsigned char ae,
-		     unsigned long ctx_mask,
-		     enum icp_qat_uof_regtype reg_type,
-		     unsigned short reg_num,
-		     unsigned int regdata)
+qat_hal_init_wr_xfer(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned long ctx_mask, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int regdata)
 {
 	int stat = 0;
 	unsigned short reg;
@@ -1878,8 +1829,8 @@ qat_hal_init_wr_xfer(struct icp_qat_fw_loader_handle *handle,
 
 	do {
 		if (ctx_mask == 0) {
-			qat_hal_convert_abs_to_rel(
-			    handle, ae, reg_num, &reg, &ctx);
+			qat_hal_convert_abs_to_rel(handle, ae, reg_num, &reg,
+			    &ctx);
 			type = reg_type - 3;
 		} else {
 			reg = reg_num;
@@ -1887,8 +1838,8 @@ qat_hal_init_wr_xfer(struct icp_qat_fw_loader_handle *handle,
 			if (!test_bit(ctx, &ctx_mask))
 				continue;
 		}
-		stat = qat_hal_put_rel_wr_xfer(
-		    handle, ae, ctx, type, reg, regdata);
+		stat = qat_hal_put_rel_wr_xfer(handle, ae, ctx, type, reg,
+		    regdata);
 		if (stat) {
 			pr_err("QAT: write wr xfer fail\n");
 			return EINVAL;
@@ -1899,12 +1850,9 @@ qat_hal_init_wr_xfer(struct icp_qat_fw_loader_handle *handle,
 }
 
 int
-qat_hal_init_rd_xfer(struct icp_qat_fw_loader_handle *handle,
-		     unsigned char ae,
-		     unsigned long ctx_mask,
-		     enum icp_qat_uof_regtype reg_type,
-		     unsigned short reg_num,
-		     unsigned int regdata)
+qat_hal_init_rd_xfer(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned long ctx_mask, enum icp_qat_uof_regtype reg_type,
+    unsigned short reg_num, unsigned int regdata)
 {
 	int stat = 0;
 	unsigned short reg;
@@ -1916,8 +1864,8 @@ qat_hal_init_rd_xfer(struct icp_qat_fw_loader_handle *handle,
 
 	do {
 		if (ctx_mask == 0) {
-			qat_hal_convert_abs_to_rel(
-			    handle, ae, reg_num, &reg, &ctx);
+			qat_hal_convert_abs_to_rel(handle, ae, reg_num, &reg,
+			    &ctx);
 			type = reg_type - 3;
 		} else {
 			reg = reg_num;
@@ -1925,8 +1873,8 @@ qat_hal_init_rd_xfer(struct icp_qat_fw_loader_handle *handle,
 			if (!test_bit(ctx, &ctx_mask))
 				continue;
 		}
-		stat = qat_hal_put_rel_rd_xfer(
-		    handle, ae, ctx, type, reg, regdata);
+		stat = qat_hal_put_rel_rd_xfer(handle, ae, ctx, type, reg,
+		    regdata);
 		if (stat) {
 			pr_err("QAT: write rd xfer fail\n");
 			return EINVAL;
@@ -1937,11 +1885,8 @@ qat_hal_init_rd_xfer(struct icp_qat_fw_loader_handle *handle,
 }
 
 int
-qat_hal_init_nn(struct icp_qat_fw_loader_handle *handle,
-		unsigned char ae,
-		unsigned long ctx_mask,
-		unsigned short reg_num,
-		unsigned int regdata)
+qat_hal_init_nn(struct icp_qat_fw_loader_handle *handle, unsigned char ae,
+    unsigned long ctx_mask, unsigned short reg_num, unsigned int regdata)
 {
 	int stat = 0;
 	unsigned char ctx;

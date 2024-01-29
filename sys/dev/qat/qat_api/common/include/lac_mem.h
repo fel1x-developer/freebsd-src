@@ -19,8 +19,8 @@
  * Include header files
  ***************************************************************************/
 #include "cpa.h"
-#include "qat_utils.h"
 #include "lac_common.h"
+#include "qat_utils.h"
 
 /**
  *******************************************************************************
@@ -69,27 +69,27 @@
  *
  * @retval none
  ******************************************************************************/
-#define LAC_MEM_SHARED_WRITE_SWAP(var, data)                                   \
-	do {                                                                   \
-		switch (sizeof(var)) {                                         \
-		case 1:                                                        \
-			(var) = (Cpa8U)(data);                                 \
-			break;                                                 \
-		case 2:                                                        \
-			(var) = (Cpa16U)(data);                                \
-			(var) = LAC_MEM_WR_16(((Cpa16U)var));                  \
-			break;                                                 \
-		case 4:                                                        \
-			(var) = (Cpa32U)(data);                                \
-			(var) = LAC_MEM_WR_32(((Cpa32U)var));                  \
-			break;                                                 \
-		case 8:                                                        \
-			(var) = (Cpa64U)(data);                                \
-			(var) = LAC_MEM_WR_64(((Cpa64U)var));                  \
-			break;                                                 \
-		default:                                                       \
-			break;                                                 \
-		}                                                              \
+#define LAC_MEM_SHARED_WRITE_SWAP(var, data)                  \
+	do {                                                  \
+		switch (sizeof(var)) {                        \
+		case 1:                                       \
+			(var) = (Cpa8U)(data);                \
+			break;                                \
+		case 2:                                       \
+			(var) = (Cpa16U)(data);               \
+			(var) = LAC_MEM_WR_16(((Cpa16U)var)); \
+			break;                                \
+		case 4:                                       \
+			(var) = (Cpa32U)(data);               \
+			(var) = LAC_MEM_WR_32(((Cpa32U)var)); \
+			break;                                \
+		case 8:                                       \
+			(var) = (Cpa64U)(data);               \
+			(var) = LAC_MEM_WR_64(((Cpa64U)var)); \
+			break;                                \
+		default:                                      \
+			break;                                \
+		}                                             \
 	} while (0)
 
 /**
@@ -108,24 +108,24 @@
  *
  * @retval none
  ******************************************************************************/
-#define LAC_MEM_SHARED_READ_SWAP(var, data)                                    \
-	do {                                                                   \
-		switch (sizeof(var)) {                                         \
-		case 1:                                                        \
-			(data) = (var);                                        \
-			break;                                                 \
-		case 2:                                                        \
-			(data) = LAC_MEM_RD_16(((Cpa16U)var));                 \
-			break;                                                 \
-		case 4:                                                        \
-			(data) = LAC_MEM_RD_32(((Cpa32U)var));                 \
-			break;                                                 \
-		case 8:                                                        \
-			(data) = LAC_MEM_RD_64(((Cpa64U)var));                 \
-			break;                                                 \
-		default:                                                       \
-			break;                                                 \
-		}                                                              \
+#define LAC_MEM_SHARED_READ_SWAP(var, data)                    \
+	do {                                                   \
+		switch (sizeof(var)) {                         \
+		case 1:                                        \
+			(data) = (var);                        \
+			break;                                 \
+		case 2:                                        \
+			(data) = LAC_MEM_RD_16(((Cpa16U)var)); \
+			break;                                 \
+		case 4:                                        \
+			(data) = LAC_MEM_RD_32(((Cpa32U)var)); \
+			break;                                 \
+		case 8:                                        \
+			(data) = LAC_MEM_RD_64(((Cpa64U)var)); \
+			break;                                 \
+		default:                                       \
+			break;                                 \
+		}                                              \
 	} while (0)
 
 /**
@@ -142,7 +142,7 @@
  * @retval none
  ******************************************************************************/
 /* cast pointer to scalar of same size of the native pointer */
-#define LAC_MEM_SHARED_WRITE_FROM_PTR(var, data)                               \
+#define LAC_MEM_SHARED_WRITE_FROM_PTR(var, data) \
 	((var) = (Cpa64U)(LAC_ARCH_UINT)(data))
 
 /* Note: any changes to this macro implementation should also be made to the
@@ -163,7 +163,7 @@
  * @retval none
  ******************************************************************************/
 /* Cast back to native pointer */
-#define LAC_MEM_SHARED_READ_TO_PTR(var, data)                                  \
+#define LAC_MEM_SHARED_READ_TO_PTR(var, data) \
 	((data) = (void *)(LAC_ARCH_UINT)(var))
 
 /**
@@ -188,7 +188,7 @@
  *
  * @retval The converted physical address
  ******************************************************************************/
-#define LAC_OS_VIRT_TO_PHYS_INTERNAL(pVirtAddr)                                \
+#define LAC_OS_VIRT_TO_PHYS_INTERNAL(pVirtAddr) \
 	(QAT_UTILS_MMU_VIRT_TO_PHYS(pVirtAddr))
 
 /**
@@ -204,7 +204,7 @@
  *
  * @retval The converted physical address
  ******************************************************************************/
-#define LAC_OS_VIRT_TO_PHYS_EXTERNAL(genService, pVirtAddr)                    \
+#define LAC_OS_VIRT_TO_PHYS_EXTERNAL(genService, pVirtAddr) \
 	((SalMem_virt2PhysExternal(pVirtAddr, &(genService))))
 
 /**
@@ -221,12 +221,12 @@
  *
  * @retval none
  ******************************************************************************/
-#define LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_INTERNAL(var, pPtr)              \
-	do {                                                                   \
-		Cpa64U physAddr = 0;                                           \
-		physAddr = LAC_MEM_CAST_PTR_TO_UINT64(                         \
-		    LAC_OS_VIRT_TO_PHYS_INTERNAL(pPtr));                       \
-		var = physAddr;                                                \
+#define LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_INTERNAL(var, pPtr) \
+	do {                                                      \
+		Cpa64U physAddr = 0;                              \
+		physAddr = LAC_MEM_CAST_PTR_TO_UINT64(            \
+		    LAC_OS_VIRT_TO_PHYS_INTERNAL(pPtr));          \
+		var = physAddr;                                   \
 	} while (0)
 
 /**
@@ -244,12 +244,12 @@
  *
  * @retval none
  ******************************************************************************/
-#define LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(pService, var, pPtr)    \
-	do {                                                                   \
-		Cpa64U physAddr = 0;                                           \
-		physAddr = LAC_MEM_CAST_PTR_TO_UINT64(                         \
-		    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService, pPtr));             \
-		var = physAddr;                                                \
+#define LAC_MEM_SHARED_WRITE_VIRT_TO_PHYS_PTR_EXTERNAL(pService, var, pPtr) \
+	do {                                                                \
+		Cpa64U physAddr = 0;                                        \
+		physAddr = LAC_MEM_CAST_PTR_TO_UINT64(                      \
+		    LAC_OS_VIRT_TO_PHYS_EXTERNAL(pService, pPtr));          \
+		var = physAddr;                                             \
 	} while (0)
 
 /*
@@ -296,10 +296,8 @@ LacMem_OsMemAlloc(void **ppMemAddr, Cpa32U sizeBytes)
  *
  ******************************************************************************/
 static __inline CpaStatus
-LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
-			     Cpa32U sizeBytes,
-			     Cpa32U alignmentBytes,
-			     Cpa32U node)
+LacMem_OsContigAlignMemAlloc(void **ppMemAddr, Cpa32U sizeBytes,
+    Cpa32U alignmentBytes, Cpa32U node)
 {
 	if ((alignmentBytes & (alignmentBytes - 1)) !=
 	    0) /* if is not power of 2 */
@@ -309,8 +307,8 @@ LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
 		return CPA_STATUS_INVALID_PARAM;
 	}
 
-	*ppMemAddr =
-	    qatUtilsMemAllocContiguousNUMA(sizeBytes, node, alignmentBytes);
+	*ppMemAddr = qatUtilsMemAllocContiguousNUMA(sizeBytes, node,
+	    alignmentBytes);
 
 	if (NULL == *ppMemAddr) {
 		return CPA_STATUS_RESOURCE;
@@ -333,11 +331,9 @@ LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
  *      Macro from the LacMem_OsContigAlignMemAlloc function
  *
  ******************************************************************************/
-#define LAC_OS_CAMALLOC(ppMemAddr, sizeBytes, alignmentBytes, node)            \
-	LacMem_OsContigAlignMemAlloc((void *)ppMemAddr,                        \
-				     sizeBytes,                                \
-				     alignmentBytes,                           \
-				     node)
+#define LAC_OS_CAMALLOC(ppMemAddr, sizeBytes, alignmentBytes, node) \
+	LacMem_OsContigAlignMemAlloc((void *)ppMemAddr, sizeBytes,  \
+	    alignmentBytes, node)
 
 /**
  *******************************************************************************
@@ -360,61 +356,62 @@ LacMem_OsContigAlignMemAlloc(void **ppMemAddr,
  *  are strictly forbidden and will result in compilation error.
  *  Use typedef to provide one-word type name for MACRO's usage.
  ******************************************************************************/
-#define LAC_DECLARE_HIGHEST_BIT_OF(TYPE)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
-	static const unsigned int highest_bit_of_##TYPE =                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
-	    (sizeof(TYPE) & 0x80000000 ? 31 : (sizeof(TYPE) & 0x40000000 ? 30 : (sizeof(TYPE) & 0x20000000 ? 29 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
-														      sizeof(TYPE) & 0x10000000 ? 28 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
-																			   sizeof(TYPE) & 0x08000000 ? 27 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-																								sizeof(TYPE) & 0x04000000 ? 26 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             \
-																												     sizeof(TYPE) & 0x02000000 ? 25 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
-																																	  sizeof(TYPE) & 0x01000000 ? 24 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
-																																					       sizeof(TYPE) & 0x00800000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     \
-																																						   23 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
-																																						   (sizeof(TYPE) & 0x00400000 ? 22 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \
-																																											 sizeof(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
-																																											     TYPE) &                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           \
-																																												 0x00200000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-																																											     21 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
-																																											     (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-																																												 sizeof(TYPE) & 0x00100000 ? 20 : (sizeof(TYPE) & 0x00080000 ? 19 : (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
-																																																					sizeof(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                \
-																																																					    TYPE) &                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
-																																																						0x00040000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
-																																																					    18 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
-																																																					    (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
-																																																						sizeof(TYPE) & 0x00020000 ? 17 : (                                                                                                                                                                                                                                                                                                                                                                                                                                             \
-																																																										     sizeof(TYPE) & 0x00010000 ? 16 : (sizeof(TYPE) &                                                                                                                                                                                                                                                                                                                                                                                          \
-																																																															       0x00008000 ?                                                                                                                                                                                                                                                                                                                                                                                    \
-																																																															   15 :                                                                                                                                                                                                                                                                                                                                                                                                \
-																																																															   (sizeof(TYPE) & 0x00004000 ? 14 : (                                                                                                                                                                                                                                                                                                                                                                 \
-																																																																				 sizeof(TYPE) & 0x00002000 ? 13 :                                                                                                                                                                                                                                                                                                                              \
-																																																																							     (                                                                                                                                                                                                                                                                                                                                 \
-																																																																								 sizeof(TYPE) & 0x00001000 ? 12 : (                                                                                                                                                                                                                                                                                            \
-																																																																												      sizeof(TYPE) & 0x00000800 ? 11 : (                                                                                                                                                                                                                                                       \
-																																																																																	   sizeof(TYPE) & 0x00000400 ? 10 :                                                                                                                                                                                                                    \
-																																																																																				       (                                                                                                                                                                                                                       \
-																																																																																					   sizeof(TYPE) &                                                                                                                                                                                                      \
-																																																																																						   0x00000200 ?                                                                                                                                                                                                \
-																																																																																					       9 :                                                                                                                                                                                                             \
-																																																																																					       (sizeof(                                                                                                                                                                                                        \
-																																																																																						    TYPE) &                                                                                                                                                                                                    \
-																																																																																							0x00000100 ?                                                                                                                                                                                           \
-																																																																																						    8 :                                                                                                                                                                                                        \
-																																																																																						    (sizeof(TYPE) & 0x00000080 ? 7 :                                                                                                                                                                           \
-																																																																																										 (                                                                                                                                                                             \
-																																																																																										     sizeof(TYPE) & 0x00000040 ?                                                                                                                                               \
-																																																																																											 6 :                                                                                                                                                                   \
-																																																																																											 (                                                                                                                                                                     \
-																																																																																											     sizeof(TYPE) & 0x00000020 ? 5 :                                                                                                                                   \
-																																																																																															 (                                                                                                                                     \
-																																																																																															     sizeof(TYPE) & 0x00000010 ? 4 :                                                                                                   \
-																																																																																																			 (                                                                                                     \
-																																																																																																			     sizeof(TYPE) & 0x00000008 ? 3 :                                                                   \
-																																																																																																							 (                                                                     \
-																																																																																																							     sizeof(TYPE) & 0x00000004 ? 2 :                                   \
-																																																																																																											 (                                     \
-																																																																																																											     sizeof(TYPE) & 0x00000002 ? 1 : ( \
-																																																																																																																 sizeof(TYPE) & 0x00000001 ? 0 : 32))))))))))))))))) /*16*/))))))))))))))) /* 31 */
+#define LAC_DECLARE_HIGHEST_BIT_OF(TYPE)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
+	static const unsigned int highest_bit_of_##TYPE =                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+	    (sizeof(TYPE) & 0x80000000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
+		    31 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              \
+		    (sizeof(TYPE) & 0x40000000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
+			    30 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      \
+			    (sizeof(TYPE) & 0x20000000 ? 29 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \
+							 (sizeof(TYPE) & 0x10000000 ? 28 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+										      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+											  sizeof(TYPE) & 0x08000000 ? 27 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+														      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+															  sizeof(TYPE) & 0x04000000 ? 26 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+																		      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+																			  sizeof(TYPE) & 0x02000000 ? 25 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+																						      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+																							  sizeof(TYPE) & 0x01000000 ? 24 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+																										      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               \
+																											  sizeof(TYPE) & 0x00800000 ? 23 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            \
+																														      (sizeof(                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
+																															   TYPE) &                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    \
+																																  0x00400000 ?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        \
+																															      22 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    \
+																															      (                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
+																																  sizeof(TYPE) & 0x00200000 ? 21 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    \
+																																			      (sizeof(TYPE) & 0x00100000 ? 20 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
+																																							   (sizeof(TYPE) & 0x00080000 ? 19 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          \
+																																											(sizeof(TYPE) & 0x00040000 ? 18 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             \
+																																														     (sizeof(TYPE) & 0x00020000 ? 17 :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                \
+																																																		  (sizeof(TYPE) & 0x00010000 ? 16 :                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
+																																																					       (sizeof(TYPE) & 0x00008000 ? 15 :                                                                                                                                                                                                                                                                                                                                                                                                                      \
+																																																									    (sizeof(TYPE) & 0x00004000 ? 14 :                                                                                                                                                                                                                                                                                                                                                                                         \
+																																																													 (                                                                                                                                                                                                                                                                                                                                                                                            \
+																																																													     sizeof(TYPE) & 0x00002000 ? 13 :                                                                                                                                                                                                                                                                                                                                                         \
+																																																																	 (                                                                                                                                                                                                                                                                                                                                                            \
+																																																																	     sizeof(TYPE) & 0x00001000 ? 12 :                                                                                                                                                                                                                                                                                                                         \
+																																																																					 (                                                                                                                                                                                                                                                                                                                            \
+																																																																					     sizeof(TYPE) & 0x00000800 ? 11 :                                                                                                                                                                                                                                                                                         \
+																																																																									 (sizeof(TYPE) & 0x00000400 ? 10 :                                                                                                                                                                                                                                                            \
+																																																																												      (sizeof(TYPE) & 0x00000200 ? 9 :                                                                                                                                                                                                                                \
+																																																																																   (                                                                                                                                                                                                                                  \
+																																																																																       sizeof(TYPE) & 0x00000100 ? 8 :                                                                                                                                                                                                \
+																																																																																				   (                                                                                                                                                                                                  \
+																																																																																				       sizeof(TYPE) & 0x00000080 ? 7 :                                                                                                                                                                \
+																																																																																								   (                                                                                                                                                                  \
+																																																																																								       sizeof(TYPE) & 0x00000040 ? 6 :                                                                                                                                \
+																																																																																												   (                                                                                                                                  \
+																																																																																												       sizeof(TYPE) & 0x00000020 ? 5 :                                                                                                \
+																																																																																																   (sizeof(TYPE) & 0x00000010 ? 4 :                                                                   \
+																																																																																																				(sizeof(TYPE) & 0x00000008 ? 3 :                                      \
+																																																																																																							     (sizeof(                                 \
+																																																																																																								  TYPE) &                             \
+																																																																																																									 0x00000004 ?                 \
+																																																																																																								     2 :                              \
+																																																																																																								     (sizeof(TYPE) & 0x00000002 ? 1 : \
+																																																																																																												  (   \
+																																																																																																												      sizeof(TYPE) & 0x00000001 ? 0 : 32))))))))))))))))) /*16*/))))))))))))))) /* 31 */
 
 /**
  *******************************************************************************
@@ -462,115 +459,109 @@ LacMem_OsContigAlignMemFree(void **ppMemAddr)
 
 /**
 *******************************************************************************
- * @ingroup LacMem
- *     Copies user data to a working buffer of the correct size (required by
- *     PKE services)
- *
- * @description
- *      This function produces a correctly sized working buffer from the input
- *      user buffer. If the original buffer is too small a new buffer shall
- *      be allocated and memory is copied (left padded with zeros to the
+* @ingroup LacMem
+*     Copies user data to a working buffer of the correct size (required by
+*     PKE services)
+*
+* @description
+*      This function produces a correctly sized working buffer from the input
+*      user buffer. If the original buffer is too small a new buffer shall
+*      be allocated and memory is copied (left padded with zeros to the
 *required
- *      length).
- *
- *      The returned working buffer is guaranteed to be of the desired size for
- *      QAT.
- *
- *      When this function is called pInternalMem describes the user_buffer and
- *      when the function returns pInternalMem describes the working buffer.
- *      This is because pInternalMem describes the memory that will be sent to
- *      QAT.
- *
- *      The caller must keep the original buffer pointer. The alllocated buffer
+*      length).
+*
+*      The returned working buffer is guaranteed to be of the desired size for
+*      QAT.
+*
+*      When this function is called pInternalMem describes the user_buffer and
+*      when the function returns pInternalMem describes the working buffer.
+*      This is because pInternalMem describes the memory that will be sent to
+*      QAT.
+*
+*      The caller must keep the original buffer pointer. The alllocated buffer
 *is
- *      freed (as necessary) using icp_LacBufferRestore().
- *
- * @param[in] instanceHandle Handle to crypto instance so pke_resize mem pool
+*      freed (as necessary) using icp_LacBufferRestore().
+*
+* @param[in] instanceHandle Handle to crypto instance so pke_resize mem pool
 *can
- *                           be located
- * @param[in] pUserBuffer Pointer on the user buffer
- * @param[in] userLen     length of the user buffer
- * @param[in] workingLen  length of the working (correctly sized) buffer
- * @param[in/out] pInternalMem    pointer to boolean if TRUE on input then
- *                                user_buffer is internally allocated memory
- *                                if false then it is externally allocated.
- *                                This value gets updated by the function
- *                                if the returned pointer references internally
- *                                allocated memory.
- *
- * @return a pointer to the working (correctly sized) buffer or NULL if the
- *      allocation failed
- *
- * @note the working length cannot be smaller than the user buffer length
- *
- * @warning the working buffer may be the same or different from the original
- * user buffer; the caller should make no assumptions in this regard
- *
- * @see icp_LacBufferRestore()
- *
- ******************************************************************************/
-Cpa8U *icp_LacBufferResize(CpaInstanceHandle instanceHandle,
-			   Cpa8U *pUserBuffer,
-			   Cpa32U userLen,
-			   Cpa32U workingLen,
-			   CpaBoolean *pInternalMemory);
+*                           be located
+* @param[in] pUserBuffer Pointer on the user buffer
+* @param[in] userLen     length of the user buffer
+* @param[in] workingLen  length of the working (correctly sized) buffer
+* @param[in/out] pInternalMem    pointer to boolean if TRUE on input then
+*                                user_buffer is internally allocated memory
+*                                if false then it is externally allocated.
+*                                This value gets updated by the function
+*                                if the returned pointer references internally
+*                                allocated memory.
+*
+* @return a pointer to the working (correctly sized) buffer or NULL if the
+*      allocation failed
+*
+* @note the working length cannot be smaller than the user buffer length
+*
+* @warning the working buffer may be the same or different from the original
+* user buffer; the caller should make no assumptions in this regard
+*
+* @see icp_LacBufferRestore()
+*
+******************************************************************************/
+Cpa8U *icp_LacBufferResize(CpaInstanceHandle instanceHandle, Cpa8U *pUserBuffer,
+    Cpa32U userLen, Cpa32U workingLen, CpaBoolean *pInternalMemory);
 
 /**
 *******************************************************************************
- * @ingroup LacMem
- *     Restores a user buffer
- *
- * @description
- *      This function restores a user buffer and releases its
- *      corresponding working buffer. The working buffer, assumed to be
- *      previously obtained using icp_LacBufferResize(), is freed as necessary.
- *
- *      The contents are copied in the process.
- *
- * @note the working length cannot be smaller than the user buffer length
- *
- * @param[out] pUserBuffer     Pointer on the user buffer
- * @param[in] userLen          length of the user buffer
- * @param[in] pWorkingBuffer   Pointer on the working buffer
- * @param[in] workingLen       working buffer length
- * @param[in] copyBuf          if set _TRUE the data in the workingBuffer
- *                             will be copied to the userBuffer before the
- *                             workingBuffer is freed.
- *
- * @return the status of the operation
- *
- * @see icp_LacBufferResize()
- *
- ******************************************************************************/
-CpaStatus icp_LacBufferRestore(Cpa8U *pUserBuffer,
-			       Cpa32U userLen,
-			       Cpa8U *pWorkingBuffer,
-			       Cpa32U workingLen,
-			       CpaBoolean copyBuf);
+* @ingroup LacMem
+*     Restores a user buffer
+*
+* @description
+*      This function restores a user buffer and releases its
+*      corresponding working buffer. The working buffer, assumed to be
+*      previously obtained using icp_LacBufferResize(), is freed as necessary.
+*
+*      The contents are copied in the process.
+*
+* @note the working length cannot be smaller than the user buffer length
+*
+* @param[out] pUserBuffer     Pointer on the user buffer
+* @param[in] userLen          length of the user buffer
+* @param[in] pWorkingBuffer   Pointer on the working buffer
+* @param[in] workingLen       working buffer length
+* @param[in] copyBuf          if set _TRUE the data in the workingBuffer
+*                             will be copied to the userBuffer before the
+*                             workingBuffer is freed.
+*
+* @return the status of the operation
+*
+* @see icp_LacBufferResize()
+*
+******************************************************************************/
+CpaStatus icp_LacBufferRestore(Cpa8U *pUserBuffer, Cpa32U userLen,
+    Cpa8U *pWorkingBuffer, Cpa32U workingLen, CpaBoolean copyBuf);
 
 /**
 *******************************************************************************
- * @ingroup LacMem
- *    Uses an instance specific user supplied virt2phys function to convert a
- *    virtual address to a physical address.
- *
- * @description
- *    Uses an instance specific user supplied virt2phys function to convert a
- *    virtual address to a physical address. A client of QA API can set the
- *    virt2phys function for an instance by using the
- *    cpaXxSetAddressTranslation() function. If the client does not set the
- *    virt2phys function and the instance is in kernel space then OS specific
- *    virt2phys function will be used. In user space the virt2phys function
- *    MUST be set by the user.
- *
- * @param[in] pVirtAddr         the virtual addr to be converted
- * @param[in] pServiceGen       Pointer on the sal_service_t structure
- *                              so client supplied virt2phys function can be
- *                              called.
- *
- * @return the physical address
- *
- ******************************************************************************/
+* @ingroup LacMem
+*    Uses an instance specific user supplied virt2phys function to convert a
+*    virtual address to a physical address.
+*
+* @description
+*    Uses an instance specific user supplied virt2phys function to convert a
+*    virtual address to a physical address. A client of QA API can set the
+*    virt2phys function for an instance by using the
+*    cpaXxSetAddressTranslation() function. If the client does not set the
+*    virt2phys function and the instance is in kernel space then OS specific
+*    virt2phys function will be used. In user space the virt2phys function
+*    MUST be set by the user.
+*
+* @param[in] pVirtAddr         the virtual addr to be converted
+* @param[in] pServiceGen       Pointer on the sal_service_t structure
+*                              so client supplied virt2phys function can be
+*                              called.
+*
+* @return the physical address
+*
+******************************************************************************/
 CpaPhysicalAddr SalMem_virt2PhysExternal(void *pVirtAddr, void *pServiceGen);
 
 #endif /* LAC_MEM_H */

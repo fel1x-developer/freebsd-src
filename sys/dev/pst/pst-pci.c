@@ -30,100 +30,105 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/bus.h>
 #include <sys/bio.h>
-#include <sys/malloc.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <machine/stdarg.h>
-#include <machine/resource.h>
+
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <dev/pci/pcivar.h>
+#include <machine/resource.h>
+#include <machine/stdarg.h>
+
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "dev/pst/pst-iop.h"
 
 static int
 iop_pci_probe(device_t dev)
 {
-    /* tested with actual hardware kindly donated by Promise */
-    if (pci_get_devid(dev) == 0x19628086 && pci_get_subvendor(dev) == 0x105a) {
-	device_set_desc(dev, "Promise SuperTrak SX6000 ATA RAID controller");
-	return BUS_PROBE_DEFAULT;
-    } 
+	/* tested with actual hardware kindly donated by Promise */
+	if (pci_get_devid(dev) == 0x19628086 &&
+	    pci_get_subvendor(dev) == 0x105a) {
+		device_set_desc(dev,
+		    "Promise SuperTrak SX6000 ATA RAID controller");
+		return BUS_PROBE_DEFAULT;
+	}
 
-    /* support the older SuperTrak 100 as well */
-    if (pci_get_devid(dev) == 0x19608086 && pci_get_subvendor(dev) == 0x105a) {
-	device_set_desc(dev, "Promise SuperTrak 100 ATA RAID controller");
-	return BUS_PROBE_DEFAULT;
-    } 
+	/* support the older SuperTrak 100 as well */
+	if (pci_get_devid(dev) == 0x19608086 &&
+	    pci_get_subvendor(dev) == 0x105a) {
+		device_set_desc(dev,
+		    "Promise SuperTrak 100 ATA RAID controller");
+		return BUS_PROBE_DEFAULT;
+	}
 
-    return ENXIO;
+	return ENXIO;
 }
 
 static int
 iop_pci_attach(device_t dev)
 {
-    struct iop_softc *sc = device_get_softc(dev);
-    int rid;
+	struct iop_softc *sc = device_get_softc(dev);
+	int rid;
 
-    /* get resources */
-    rid = PCIR_BAR(0);
-    sc->r_mem = 
-	bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	/* get resources */
+	rid = PCIR_BAR(0);
+	sc->r_mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
-    if (!sc->r_mem)
-	return ENXIO;
+	if (!sc->r_mem)
+		return ENXIO;
 
-    rid = 0x00;
-    sc->r_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-				       RF_SHAREABLE | RF_ACTIVE);
+	rid = 0x00;
+	sc->r_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 
-    /* now setup the infrastructure to talk to the device */
-    pci_enable_busmaster(dev);
+	/* now setup the infrastructure to talk to the device */
+	pci_enable_busmaster(dev);
 
-    sc->ibase = rman_get_virtual(sc->r_mem);
-    sc->reg = (struct i2o_registers *)sc->ibase;
-    sc->dev = dev;
-    mtx_init(&sc->mtx, "pst lock", NULL, MTX_DEF);
+	sc->ibase = rman_get_virtual(sc->r_mem);
+	sc->reg = (struct i2o_registers *)sc->ibase;
+	sc->dev = dev;
+	mtx_init(&sc->mtx, "pst lock", NULL, MTX_DEF);
 
-    if (!iop_init(sc))
-	return 0;
-    return bus_generic_attach(dev);
+	if (!iop_init(sc))
+		return 0;
+	return bus_generic_attach(dev);
 }
 
 static int
 iop_pci_detach(device_t dev)
 {
-    struct iop_softc *sc = device_get_softc(dev);
-    int error;
+	struct iop_softc *sc = device_get_softc(dev);
+	int error;
 
-    error = bus_generic_detach(dev);
-    if (error)
-	    return (error);
-    bus_teardown_intr(dev, sc->r_irq, sc->handle);
-    bus_release_resource(dev, SYS_RES_IRQ, 0x00, sc->r_irq);
-    bus_release_resource(dev, SYS_RES_MEMORY, PCIR_BAR(0), sc->r_mem);
-    mtx_destroy(&sc->mtx);
-    return (0);
+	error = bus_generic_detach(dev);
+	if (error)
+		return (error);
+	bus_teardown_intr(dev, sc->r_irq, sc->handle);
+	bus_release_resource(dev, SYS_RES_IRQ, 0x00, sc->r_irq);
+	bus_release_resource(dev, SYS_RES_MEMORY, PCIR_BAR(0), sc->r_mem);
+	mtx_destroy(&sc->mtx);
+	return (0);
 }
 
-static device_method_t pst_pci_methods[] = {
-    DEVMETHOD(device_probe,		iop_pci_probe),
-    DEVMETHOD(device_attach,		iop_pci_attach),
-    DEVMETHOD(device_detach,		iop_pci_detach),
-    { 0, 0 }
-};
+static device_method_t pst_pci_methods[] = { DEVMETHOD(device_probe,
+						 iop_pci_probe),
+	DEVMETHOD(device_attach, iop_pci_attach),
+	DEVMETHOD(device_detach, iop_pci_detach), { 0, 0 } };
 
 static driver_t pst_pci_driver = {
-    "pstpci",
-    pst_pci_methods,
-    sizeof(struct iop_softc),
+	"pstpci",
+	pst_pci_methods,
+	sizeof(struct iop_softc),
 };
 
 DRIVER_MODULE(pstpci, pci, pst_pci_driver, 0, 0);

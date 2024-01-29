@@ -50,7 +50,7 @@ digittoint(int c)
 int
 isalnum(int c)
 {
-	return (__sbistype(c, _CTYPE_A|_CTYPE_N));
+	return (__sbistype(c, _CTYPE_A | _CTYPE_N));
 }
 
 #undef isalpha
@@ -95,7 +95,7 @@ isgraph(int c)
 	return (__sbistype(c, _CTYPE_G));
 }
 
-#undef ishexnumber 
+#undef ishexnumber
 int
 ishexnumber(int c)
 {
@@ -123,7 +123,7 @@ isnumber(int c)
 	return (__sbistype(c, _CTYPE_N));
 }
 
-#undef isphonogram	
+#undef isphonogram
 int
 isphonogram(int c)
 {
@@ -199,4 +199,3 @@ toupper(int c)
 {
 	return (__sbtoupper(c));
 }
-

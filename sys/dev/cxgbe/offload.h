@@ -31,39 +31,44 @@
 #ifndef __T4_OFFLOAD_H__
 #define __T4_OFFLOAD_H__
 #include <sys/param.h>
-#include <sys/proc.h>
 #include <sys/condvar.h>
+#include <sys/proc.h>
 
-#define INIT_ULPTX_WRH(w, wrlen, atomic, tid) do { \
-	(w)->wr_hi = htonl(V_FW_WR_OP(FW_ULPTX_WR) | V_FW_WR_ATOMIC(atomic)); \
-	(w)->wr_mid = htonl(V_FW_WR_LEN16(DIV_ROUND_UP(wrlen, 16)) | \
-			       V_FW_WR_FLOWID(tid)); \
-	(w)->wr_lo = cpu_to_be64(0); \
-} while (0)
+#define INIT_ULPTX_WRH(w, wrlen, atomic, tid)                                \
+	do {                                                                 \
+		(w)->wr_hi = htonl(                                          \
+		    V_FW_WR_OP(FW_ULPTX_WR) | V_FW_WR_ATOMIC(atomic));       \
+		(w)->wr_mid = htonl(V_FW_WR_LEN16(DIV_ROUND_UP(wrlen, 16)) | \
+		    V_FW_WR_FLOWID(tid));                                    \
+		(w)->wr_lo = cpu_to_be64(0);                                 \
+	} while (0)
 
 #define INIT_ULPTX_WR(w, wrlen, atomic, tid) \
-    INIT_ULPTX_WRH(&((w)->wr), wrlen, atomic, tid)
+	INIT_ULPTX_WRH(&((w)->wr), wrlen, atomic, tid)
 
-#define INIT_TP_WR(w, tid) do { \
-	(w)->wr.wr_hi = htonl(V_FW_WR_OP(FW_TP_WR) | \
-                              V_FW_WR_IMMDLEN(sizeof(*w) - sizeof(w->wr))); \
-	(w)->wr.wr_mid = htonl(V_FW_WR_LEN16(DIV_ROUND_UP(sizeof(*w), 16)) | \
-                               V_FW_WR_FLOWID(tid)); \
-	(w)->wr.wr_lo = cpu_to_be64(0); \
-} while (0)
+#define INIT_TP_WR(w, tid)                                        \
+	do {                                                      \
+		(w)->wr.wr_hi = htonl(V_FW_WR_OP(FW_TP_WR) |      \
+		    V_FW_WR_IMMDLEN(sizeof(*w) - sizeof(w->wr))); \
+		(w)->wr.wr_mid = htonl(                           \
+		    V_FW_WR_LEN16(DIV_ROUND_UP(sizeof(*w), 16)) | \
+		    V_FW_WR_FLOWID(tid));                         \
+		(w)->wr.wr_lo = cpu_to_be64(0);                   \
+	} while (0)
 
-#define INIT_TP_WR_MIT_CPL(w, cpl, tid) do { \
-	INIT_TP_WR(w, tid); \
-	OPCODE_TID(w) = htonl(MK_OPCODE_TID(cpl, tid)); \
-} while (0)
+#define INIT_TP_WR_MIT_CPL(w, cpl, tid)                         \
+	do {                                                    \
+		INIT_TP_WR(w, tid);                             \
+		OPCODE_TID(w) = htonl(MK_OPCODE_TID(cpl, tid)); \
+	} while (0)
 
 TAILQ_HEAD(stid_head, stid_region);
 struct listen_ctx;
 
 struct stid_region {
 	TAILQ_ENTRY(stid_region) link;
-	u_int used;	/* # of stids used by this region */
-	u_int free;	/* # of contiguous stids free right after this region */
+	u_int used; /* # of stids used by this region */
+	u_int free; /* # of contiguous stids free right after this region */
 };
 
 /*
@@ -79,10 +84,10 @@ union aopen_entry {
 
 /* cxgbe_rate_tag flags */
 enum {
-	EO_FLOWC_PENDING	= (1 << 0),	/* flowc needs to be sent */
-	EO_FLOWC_RPL_PENDING	= (1 << 1),	/* flowc credits due back */
-	EO_SND_TAG_REF		= (1 << 2),	/* kernel has a ref on us */
-	EO_FLUSH_RPL_PENDING	= (1 << 3),	/* credit flush rpl due back */
+	EO_FLOWC_PENDING = (1 << 0),	 /* flowc needs to be sent */
+	EO_FLOWC_RPL_PENDING = (1 << 1), /* flowc credits due back */
+	EO_SND_TAG_REF = (1 << 2),	 /* kernel has a ref on us */
+	EO_FLUSH_RPL_PENDING = (1 << 3), /* credit flush rpl due back */
 };
 
 struct cxgbe_rate_tag {
@@ -98,11 +103,11 @@ struct cxgbe_rate_tag {
 	uint32_t ctrl0;
 	uint16_t iqid;
 	int8_t schedcl;
-	uint64_t max_rate;      /* in bytes/s */
-	uint8_t tx_total;	/* total tx WR credits (in 16B units) */
-	uint8_t tx_credits;	/* tx WR credits (in 16B units) available */
-	uint8_t tx_nocompl;	/* tx WR credits since last compl request */
-	uint8_t ncompl;		/* # of completions outstanding. */
+	uint64_t max_rate;  /* in bytes/s */
+	uint8_t tx_total;   /* total tx WR credits (in 16B units) */
+	uint8_t tx_credits; /* tx WR credits (in 16B units) available */
+	uint8_t tx_nocompl; /* tx WR credits since last compl request */
+	uint8_t ncompl;	    /* # of completions outstanding. */
 };
 
 static inline struct cxgbe_rate_tag *
@@ -144,7 +149,7 @@ struct tid_info {
 	struct mtx stid_lock __aligned(CACHE_LINE_SIZE);
 	struct listen_ctx **stid_tab;
 	u_int stids_in_use;
-	u_int nstids_free_head;	/* # of available stids at the beginning */
+	u_int nstids_free_head; /* # of available stids at the beginning */
 	struct stid_head stids;
 
 	struct mtx atid_lock __aligned(CACHE_LINE_SIZE);
@@ -169,9 +174,9 @@ struct tid_info {
 	void **tid_tab;
 	u_int tids_in_use;
 
-	void *hftid_hash_4t;	/* LIST_HEAD(, filter_entry) *hftid_hash_4t; */
+	void *hftid_hash_4t; /* LIST_HEAD(, filter_entry) *hftid_hash_4t; */
 	u_long hftid_4t_mask;
-	void *hftid_hash_tid;	/* LIST_HEAD(, filter_entry) *hftid_hash_tid; */
+	void *hftid_hash_tid; /* LIST_HEAD(, filter_entry) *hftid_hash_tid; */
 	u_long hftid_tid_mask;
 
 	struct mtx etid_lock __aligned(CACHE_LINE_SIZE);
@@ -185,7 +190,7 @@ struct t4_range {
 	u_int size;
 };
 
-struct t4_virt_res {                      /* virtualized HW resources */
+struct t4_virt_res { /* virtualized HW resources */
 	struct t4_range ddp;
 	struct t4_range iscsi;
 	struct t4_range stag;
@@ -199,12 +204,7 @@ struct t4_virt_res {                      /* virtualized HW resources */
 	struct t4_range key;
 };
 
-enum {
-	ULD_TOM = 0,
-	ULD_IWARP,
-	ULD_ISCSI,
-	ULD_MAX = ULD_ISCSI
-};
+enum { ULD_TOM = 0, ULD_IWARP, ULD_ISCSI, ULD_MAX = ULD_ISCSI };
 
 struct adapter;
 struct port_info;

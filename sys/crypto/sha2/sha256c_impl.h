@@ -30,8 +30,8 @@
 #define _SHA256_IMPL_H_
 
 #if defined(ARM64_SHA2)
-void SHA256_Transform_arm64_impl(uint32_t * state,
-    const unsigned char block[64], const uint32_t K[64]);
+void SHA256_Transform_arm64_impl(uint32_t *state, const unsigned char block[64],
+    const uint32_t K[64]);
 #endif
 
 #endif /* !_SHA256_IMPL_H_ */

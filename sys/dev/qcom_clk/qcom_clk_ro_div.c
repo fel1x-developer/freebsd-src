@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,9 +37,8 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
-#include "qcom_clk_ro_div.h"
-
 #include "clkdev_if.h"
+#include "qcom_clk_ro_div.h"
 
 #if 0
 #define DPRINTF(dev, msg...) device_printf(dev, "cpufreq_dt: " msg);
@@ -55,7 +55,7 @@
  */
 
 struct qcom_clk_ro_div_sc {
-	struct clknode	*clknode;
+	struct clknode *clknode;
 	uint32_t offset;
 	uint32_t shift;
 	uint32_t width;
@@ -90,12 +90,8 @@ qcom_clk_ro_div_recalc(struct clknode *clk, uint64_t *freq)
 	}
 
 	DPRINTF(clknode_get_device(sc->clknode),
-	    "%s: freq=%llu, idx=%u, div=%u, out_freq=%llu\n",
-	    __func__,
-	    *freq,
-	    idx,
-	    div,
-	    *freq / div);
+	    "%s: freq=%llu, idx=%u, div=%u, out_freq=%llu\n", __func__, *freq,
+	    idx, div, *freq / div);
 
 	*freq = *freq / div;
 	return (0);
@@ -116,14 +112,13 @@ qcom_clk_ro_div_init(struct clknode *clk, device_t dev)
 
 static clknode_method_t qcom_clk_ro_div_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_ro_div_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qcom_clk_ro_div_recalc),
+	CLKNODEMETHOD(clknode_init, qcom_clk_ro_div_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qcom_clk_ro_div_recalc),
 	CLKNODEMETHOD_END
 };
 
-DEFINE_CLASS_1(qcom_clk_fepll, qcom_clk_ro_div_class,
-   qcom_clk_ro_div_methods, sizeof(struct qcom_clk_ro_div_sc),
-   clknode_class);
+DEFINE_CLASS_1(qcom_clk_fepll, qcom_clk_ro_div_class, qcom_clk_ro_div_methods,
+    sizeof(struct qcom_clk_ro_div_sc), clknode_class);
 
 int
 qcom_clk_ro_div_register(struct clkdom *clkdom,
@@ -132,8 +127,7 @@ qcom_clk_ro_div_register(struct clkdom *clkdom,
 	struct clknode *clk;
 	struct qcom_clk_ro_div_sc *sc;
 
-	clk = clknode_create(clkdom, &qcom_clk_ro_div_class,
-	    &clkdef->clkdef);
+	clk = clknode_create(clkdom, &qcom_clk_ro_div_class, &clkdef->clkdef);
 	if (clk == NULL)
 		return (1);
 

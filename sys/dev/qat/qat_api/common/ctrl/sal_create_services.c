@@ -14,28 +14,24 @@
  *****************************************************************************/
 
 #include "cpa.h"
-#include "lac_mem.h"
-#include "lac_mem_pools.h"
-#include "qat_utils.h"
-#include "lac_list.h"
-#include "icp_adf_transport.h"
 #include "icp_accel_devices.h"
 #include "icp_adf_debug.h"
-
-#include "icp_qat_fw_la.h"
-#include "lac_sym_qat.h"
-#include "sal_types_compression.h"
-#include "lac_sal_types_crypto.h"
-
 #include "icp_adf_init.h"
-
+#include "icp_adf_transport.h"
+#include "icp_qat_fw_la.h"
+#include "lac_list.h"
+#include "lac_mem.h"
+#include "lac_mem_pools.h"
 #include "lac_sal.h"
 #include "lac_sal_ctrl.h"
+#include "lac_sal_types_crypto.h"
+#include "lac_sym_qat.h"
+#include "qat_utils.h"
+#include "sal_types_compression.h"
 
 CpaStatus
-SalCtrl_ServiceCreate(sal_service_type_t serviceType,
-		      Cpa32U instance,
-		      sal_service_t **ppInst)
+SalCtrl_ServiceCreate(sal_service_type_t serviceType, Cpa32U instance,
+    sal_service_t **ppInst)
 {
 	sal_crypto_service_t *pCrypto_service = NULL;
 	sal_compression_service_t *pCompression_service = NULL;
@@ -44,8 +40,8 @@ SalCtrl_ServiceCreate(sal_service_type_t serviceType,
 	case SAL_SERVICE_TYPE_CRYPTO_ASYM:
 	case SAL_SERVICE_TYPE_CRYPTO_SYM:
 	case SAL_SERVICE_TYPE_CRYPTO: {
-		pCrypto_service =
-		    malloc(sizeof(sal_crypto_service_t), M_QAT, M_WAITOK);
+		pCrypto_service = malloc(sizeof(sal_crypto_service_t), M_QAT,
+		    M_WAITOK);
 
 		/* Zero memory */
 		memset(pCrypto_service, 0, sizeof(sal_crypto_service_t));
@@ -71,13 +67,12 @@ SalCtrl_ServiceCreate(sal_service_type_t serviceType,
 		return CPA_STATUS_SUCCESS;
 	}
 	case SAL_SERVICE_TYPE_COMPRESSION: {
-		pCompression_service =
-		    malloc(sizeof(sal_compression_service_t), M_QAT, M_WAITOK);
+		pCompression_service = malloc(sizeof(sal_compression_service_t),
+		    M_QAT, M_WAITOK);
 
 		/* Zero memory */
-		memset(pCompression_service,
-		       0,
-		       sizeof(sal_compression_service_t));
+		memset(pCompression_service, 0,
+		    sizeof(sal_compression_service_t));
 
 		pCompression_service->generic_service_info.type =
 		    (sal_service_type_t)serviceType;

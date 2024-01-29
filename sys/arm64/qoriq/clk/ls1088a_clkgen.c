@@ -37,27 +37,23 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
+#include <dev/clk/clk_fixed.h>
 #include <dev/fdt/simplebus.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/clk/clk_fixed.h>
-
 #include <arm64/qoriq/clk/qoriq_clkgen.h>
 
-static uint8_t ls1088a_pltfrm_pll_divs[] = {
-	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0
-};
+static uint8_t ls1088a_pltfrm_pll_divs[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	12, 13, 14, 15, 16, 0 };
 
 static struct qoriq_clk_pll_def ls1088a_pltfrm_pll = {
-	.clkdef = {
-		.name = "ls1088a_platform_pll",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_PLATFORM_PLL, 0),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_platform_pll",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_PLATFORM_PLL, 0),
+	    .flags = 0 },
 	.offset = 0x60080,
 	.shift = 1,
 	.mask = 0xFE,
@@ -65,16 +61,12 @@ static struct qoriq_clk_pll_def ls1088a_pltfrm_pll = {
 	.flags = QORIQ_CLK_PLL_HAS_KILL_BIT
 };
 
-static const uint8_t ls1088a_cga_pll_divs[] = {
-	2, 3, 4, 0
-};
+static const uint8_t ls1088a_cga_pll_divs[] = { 2, 3, 4, 0 };
 
 static struct qoriq_clk_pll_def ls1088a_cga_pll1 = {
-	.clkdef = {
-		.name = "ls1088a_cga_pll1",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_INTERNAL, 0),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_cga_pll1",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_INTERNAL, 0),
+	    .flags = 0 },
 	.offset = 0x80,
 	.shift = 1,
 	.mask = 0xFE,
@@ -83,11 +75,9 @@ static struct qoriq_clk_pll_def ls1088a_cga_pll1 = {
 };
 
 static struct qoriq_clk_pll_def ls1088a_cga_pll2 = {
-	.clkdef = {
-		.name = "ls1088a_cga_pll2",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_INTERNAL, 20),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_cga_pll2",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_INTERNAL, 20),
+	    .flags = 0 },
 	.offset = 0xA0,
 	.shift = 1,
 	.mask = 0xFE,
@@ -95,31 +85,20 @@ static struct qoriq_clk_pll_def ls1088a_cga_pll2 = {
 	.flags = QORIQ_CLK_PLL_HAS_KILL_BIT
 };
 
-static struct qoriq_clk_pll_def *ls1088a_cga_plls[] = {
-	&ls1088a_cga_pll1,
-	&ls1088a_cga_pll2
-};
-
+static struct qoriq_clk_pll_def *ls1088a_cga_plls[] = { &ls1088a_cga_pll1,
+	&ls1088a_cga_pll2 };
 
 /* 4.7.2 Core Cluster a Clock Control/Status Register (CLKC1CSR - CLKC2CSR) */
-static const char *ls1088a_cmux0_parent_names[] = {
-	"ls1088a_cga_pll1",
-	"ls1088a_cga_pll1_div2",
-	"ls1088a_cga_pll1_div4",
-	NULL,
-	"ls1088a_cga_pll2",
-	"ls1088a_cga_pll2_div2",
-	"ls1088a_cga_pll2_div4"
-};
+static const char *ls1088a_cmux0_parent_names[] = { "ls1088a_cga_pll1",
+	"ls1088a_cga_pll1_div2", "ls1088a_cga_pll1_div4", NULL,
+	"ls1088a_cga_pll2", "ls1088a_cga_pll2_div2", "ls1088a_cga_pll2_div4" };
 
 static struct clk_mux_def ls1088a_cmux0 = {
-	.clkdef = {
-		.name = "ls1088a_cmux0",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_CMUX, 0),
-		.parent_names = ls1088a_cmux0_parent_names,
-		.parent_cnt = nitems(ls1088a_cmux0_parent_names),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_cmux0",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_CMUX, 0),
+	    .parent_names = ls1088a_cmux0_parent_names,
+	    .parent_cnt = nitems(ls1088a_cmux0_parent_names),
+	    .flags = 0 },
 	.offset = 0x70000,
 	.shift = 27,
 	.width = 4,
@@ -127,13 +106,11 @@ static struct clk_mux_def ls1088a_cmux0 = {
 };
 
 static struct clk_mux_def ls1088a_cmux1 = {
-	.clkdef = {
-		.name = "ls1088a_cmux1",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_CMUX, 1),
-		.parent_names = ls1088a_cmux0_parent_names,
-		.parent_cnt = nitems(ls1088a_cmux0_parent_names),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_cmux1",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_CMUX, 1),
+	    .parent_names = ls1088a_cmux0_parent_names,
+	    .parent_cnt = nitems(ls1088a_cmux0_parent_names),
+	    .flags = 0 },
 	.offset = 0x70020,
 	.shift = 27,
 	.width = 4,
@@ -141,47 +118,26 @@ static struct clk_mux_def ls1088a_cmux1 = {
 };
 
 /* 4.4.2 HWAaCSR (HWA1CSR - HWA3CSR) */
-static const char *ls1088a_hwaccel1_parent_names[] = {
-	"ls1088a_platform_pll",
-	"ls1088a_cga_pll1",
-	"ls1088a_cga_pll1_div2",
-	"ls1088a_cga_pll1_div3",
-	"ls1088a_cga_pll1_div4",
-	NULL,	/* HWAMUX1 External Clock Source */
-	"ls1088a_cga_pll2_div2",
-	"ls1088a_cga_pll2_div3"
-};
+static const char *ls1088a_hwaccel1_parent_names[] = { "ls1088a_platform_pll",
+	"ls1088a_cga_pll1", "ls1088a_cga_pll1_div2", "ls1088a_cga_pll1_div3",
+	"ls1088a_cga_pll1_div4", NULL, /* HWAMUX1 External Clock Source */
+	"ls1088a_cga_pll2_div2", "ls1088a_cga_pll2_div3" };
 
-static const char *ls1088a_hwaccel2_parent_names[] = {
-	"ls1088a_platform_pll",
-	"ls1088a_cga_pll2",
-	"ls1088a_cga_pll2_div2",
-	"ls1088a_cga_pll2_div3",
-	"ls1088a_cga_pll2_div4",
-	NULL,	/* HWAMUX2 External Clock Source */
-	"ls1088a_cga_pll1_div2",
-	"ls1088a_cga_pll1_div3"
-};
+static const char *ls1088a_hwaccel2_parent_names[] = { "ls1088a_platform_pll",
+	"ls1088a_cga_pll2", "ls1088a_cga_pll2_div2", "ls1088a_cga_pll2_div3",
+	"ls1088a_cga_pll2_div4", NULL, /* HWAMUX2 External Clock Source */
+	"ls1088a_cga_pll1_div2", "ls1088a_cga_pll1_div3" };
 
-static const char *ls1088a_hwaccel3_parent_names[] = {
-	"ls1088a_platform_pll",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,	/* HWAMUX3 External Clock Source */
-	"ls1088a_cga_pll2_div2",
-	"ls1088a_cga_pll2_div3"
-};
+static const char *ls1088a_hwaccel3_parent_names[] = { "ls1088a_platform_pll",
+	NULL, NULL, NULL, NULL, NULL, /* HWAMUX3 External Clock Source */
+	"ls1088a_cga_pll2_div2", "ls1088a_cga_pll2_div3" };
 
 static struct clk_mux_def ls1088a_hwaccel1 = {
-	.clkdef = {
-		.name = "ls1088a_hwaccel1",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 0),
-		.parent_names = ls1088a_hwaccel1_parent_names,
-		.parent_cnt = nitems(ls1088a_hwaccel1_parent_names),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_hwaccel1",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 0),
+	    .parent_names = ls1088a_hwaccel1_parent_names,
+	    .parent_cnt = nitems(ls1088a_hwaccel1_parent_names),
+	    .flags = 0 },
 	.offset = 0x10,
 	.shift = 27,
 	.width = 4,
@@ -189,13 +145,11 @@ static struct clk_mux_def ls1088a_hwaccel1 = {
 };
 
 static struct clk_mux_def ls1088a_hwaccel2 = {
-	.clkdef = {
-		.name = "ls1088a_hwaccel2",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 1),
-		.parent_names = ls1088a_hwaccel2_parent_names,
-		.parent_cnt = nitems(ls1088a_hwaccel2_parent_names),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_hwaccel2",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 1),
+	    .parent_names = ls1088a_hwaccel2_parent_names,
+	    .parent_cnt = nitems(ls1088a_hwaccel2_parent_names),
+	    .flags = 0 },
 	.offset = 0x30,
 	.shift = 27,
 	.width = 4,
@@ -203,27 +157,20 @@ static struct clk_mux_def ls1088a_hwaccel2 = {
 };
 
 static struct clk_mux_def ls1088a_hwaccel3 = {
-	.clkdef = {
-		.name = "ls1088a_hwaccel3",
-		.id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 2),
-		.parent_names = ls1088a_hwaccel3_parent_names,
-		.parent_cnt = nitems(ls1088a_hwaccel3_parent_names),
-		.flags = 0
-	},
+	.clkdef = { .name = "ls1088a_hwaccel3",
+	    .id = QORIQ_CLK_ID(QORIQ_TYPE_HWACCEL, 2),
+	    .parent_names = ls1088a_hwaccel3_parent_names,
+	    .parent_cnt = nitems(ls1088a_hwaccel3_parent_names),
+	    .flags = 0 },
 	.offset = 0x50,
 	.shift = 27,
 	.width = 4,
 	.mux_flags = 0
 };
 
-
-static struct clk_mux_def *ls1088a_mux_nodes[] = {
-	&ls1088a_cmux0,
-	&ls1088a_cmux1,
-	&ls1088a_hwaccel1,
-	&ls1088a_hwaccel2,
-	&ls1088a_hwaccel3
-};
+static struct clk_mux_def *ls1088a_mux_nodes[] = { &ls1088a_cmux0,
+	&ls1088a_cmux1, &ls1088a_hwaccel1, &ls1088a_hwaccel2,
+	&ls1088a_hwaccel3 };
 
 static int
 ls1088a_clkgen_probe(device_t dev)
@@ -232,7 +179,7 @@ ls1088a_clkgen_probe(device_t dev)
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
-	if(!ofw_bus_is_compatible(dev, "fsl,ls1088a-clockgen"))
+	if (!ofw_bus_is_compatible(dev, "fsl,ls1088a-clockgen"))
 		return (ENXIO);
 
 	device_set_desc(dev, "LS1088A clockgen");
@@ -256,12 +203,11 @@ ls1088a_clkgen_attach(device_t dev)
 	return (qoriq_clkgen_attach(dev));
 }
 
-static device_method_t ls1088a_clkgen_methods[] = {
-	DEVMETHOD(device_probe,		ls1088a_clkgen_probe),
-	DEVMETHOD(device_attach,	ls1088a_clkgen_attach),
+static device_method_t ls1088a_clkgen_methods[] = { DEVMETHOD(device_probe,
+							ls1088a_clkgen_probe),
+	DEVMETHOD(device_attach, ls1088a_clkgen_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(ls1088a_clkgen, ls1088a_clkgen_driver, ls1088a_clkgen_methods,
     sizeof(struct qoriq_clkgen_softc), qoriq_clkgen_driver);

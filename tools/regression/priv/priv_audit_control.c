@@ -38,7 +38,6 @@
 #include <sys/types.h>
 
 #include <bsm/audit.h>
-
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -64,8 +63,7 @@ priv_audit_control(int asroot, int injail, struct test *test)
 
 	error = auditon(A_GETPOLICY, &policy, sizeof(policy));
 	if (asroot && injail)
-		expect("priv_audit_control(asroot, injail)", error, -1,
-		    ENOSYS);
+		expect("priv_audit_control(asroot, injail)", error, -1, ENOSYS);
 	if (asroot && !injail)
 		expect("priv_audit_control(asroot, !injail)", error, 0, 0);
 	if (!asroot && injail)
@@ -79,5 +77,4 @@ priv_audit_control(int asroot, int injail, struct test *test)
 void
 priv_audit_control_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

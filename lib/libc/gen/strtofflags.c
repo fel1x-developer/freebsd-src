@@ -37,52 +37,36 @@
 #include <string.h>
 #include <unistd.h>
 
-#define longestflaglen	12
+#define longestflaglen 12
 static struct {
 	char name[longestflaglen + 1];
 	char invert;
 	u_long flag;
 } const mapping[] = {
 	/* shorter names per flag first, all prefixed by "no" */
-	{ "nosappnd",		0, SF_APPEND	},
-	{ "nosappend",		0, SF_APPEND	},
-	{ "noarch",		0, SF_ARCHIVED	},
-	{ "noarchived",		0, SF_ARCHIVED	},
-	{ "noschg",		0, SF_IMMUTABLE	},
-	{ "noschange",		0, SF_IMMUTABLE	},
-	{ "nosimmutable",	0, SF_IMMUTABLE	},
-	{ "nosunlnk",		0, SF_NOUNLINK	},
-	{ "nosunlink",		0, SF_NOUNLINK	},
+	{ "nosappnd", 0, SF_APPEND }, { "nosappend", 0, SF_APPEND },
+	{ "noarch", 0, SF_ARCHIVED }, { "noarchived", 0, SF_ARCHIVED },
+	{ "noschg", 0, SF_IMMUTABLE }, { "noschange", 0, SF_IMMUTABLE },
+	{ "nosimmutable", 0, SF_IMMUTABLE }, { "nosunlnk", 0, SF_NOUNLINK },
+	{ "nosunlink", 0, SF_NOUNLINK },
 #ifdef SF_SNAPSHOT
-	{ "nosnapshot",		0, SF_SNAPSHOT	},
+	{ "nosnapshot", 0, SF_SNAPSHOT },
 #endif
-	{ "nouappnd",		0, UF_APPEND	},
-	{ "nouappend",		0, UF_APPEND	},
-	{ "nouarch", 		0, UF_ARCHIVE	},
-	{ "nouarchive",		0, UF_ARCHIVE	},
-	{ "nohidden",		0, UF_HIDDEN	},
-	{ "nouhidden",		0, UF_HIDDEN	},
-	{ "nouchg",		0, UF_IMMUTABLE	},
-	{ "nouchange",		0, UF_IMMUTABLE	},
-	{ "nouimmutable",	0, UF_IMMUTABLE	},
-	{ "nodump",		1, UF_NODUMP	},
-	{ "nouunlnk",		0, UF_NOUNLINK	},
-	{ "nouunlink",		0, UF_NOUNLINK	},
-	{ "nooffline",		0, UF_OFFLINE	},
-	{ "nouoffline",		0, UF_OFFLINE	},
-	{ "noopaque",		0, UF_OPAQUE	},
-	{ "nordonly",		0, UF_READONLY	},
-	{ "nourdonly",		0, UF_READONLY	},
-	{ "noreadonly",		0, UF_READONLY	},
-	{ "noureadonly",	0, UF_READONLY	},
-	{ "noreparse",		0, UF_REPARSE	},
-	{ "noureparse",		0, UF_REPARSE	},
-	{ "nosparse",		0, UF_SPARSE	},
-	{ "nousparse",		0, UF_SPARSE	},
-	{ "nosystem",		0, UF_SYSTEM	},
-	{ "nousystem",		0, UF_SYSTEM	}
+	{ "nouappnd", 0, UF_APPEND }, { "nouappend", 0, UF_APPEND },
+	{ "nouarch", 0, UF_ARCHIVE }, { "nouarchive", 0, UF_ARCHIVE },
+	{ "nohidden", 0, UF_HIDDEN }, { "nouhidden", 0, UF_HIDDEN },
+	{ "nouchg", 0, UF_IMMUTABLE }, { "nouchange", 0, UF_IMMUTABLE },
+	{ "nouimmutable", 0, UF_IMMUTABLE }, { "nodump", 1, UF_NODUMP },
+	{ "nouunlnk", 0, UF_NOUNLINK }, { "nouunlink", 0, UF_NOUNLINK },
+	{ "nooffline", 0, UF_OFFLINE }, { "nouoffline", 0, UF_OFFLINE },
+	{ "noopaque", 0, UF_OPAQUE }, { "nordonly", 0, UF_READONLY },
+	{ "nourdonly", 0, UF_READONLY }, { "noreadonly", 0, UF_READONLY },
+	{ "noureadonly", 0, UF_READONLY }, { "noreparse", 0, UF_REPARSE },
+	{ "noureparse", 0, UF_REPARSE }, { "nosparse", 0, UF_SPARSE },
+	{ "nousparse", 0, UF_SPARSE }, { "nosystem", 0, UF_SYSTEM },
+	{ "nousystem", 0, UF_SYSTEM }
 };
-#define nmappings	(sizeof(mapping) / sizeof(mapping[0]))
+#define nmappings (sizeof(mapping) / sizeof(mapping[0]))
 
 /*
  * fflagstostr --
@@ -108,7 +92,9 @@ fflagstostr(u_long flags)
 			if (dp > string)
 				*dp++ = ',';
 			for (sp = mapping[i].invert ? mapping[i].name :
-			    mapping[i].name + 2; *sp; *dp++ = *sp++) ;
+						      mapping[i].name + 2;
+			     *sp; *dp++ = *sp++)
+				;
 			setflags &= ~mapping[i].flag;
 		}
 	}

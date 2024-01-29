@@ -36,7 +36,7 @@
  */
 
 #ifndef _DEV_CFI_VAR_H_
-#define	_DEV_CFI_VAR_H_
+#define _DEV_CFI_VAR_H_
 
 enum cfi_wait_cmd {
 	CFI_TIMEOUT_ERASE,
@@ -45,42 +45,42 @@ enum cfi_wait_cmd {
 };
 
 struct cfi_region {
-	u_int		r_blocks;
-	u_int		r_blksz;
+	u_int r_blocks;
+	u_int r_blksz;
 };
 
 struct cfi_softc {
-	device_t	sc_dev;
+	device_t sc_dev;
 
-	struct resource	*sc_res;
+	struct resource *sc_res;
 	bus_space_handle_t sc_handle;
-	bus_space_tag_t	sc_tag;
-	int		sc_rid;
+	bus_space_tag_t sc_tag;
+	int sc_rid;
 
-	u_int		sc_size;	/* Flash size. */
-	u_int		sc_width;	/* Interface width. */
-	u_int		sc_regions;	/* Erase regions. */
-	struct cfi_region *sc_region;	/* Array of region info. */
+	u_int sc_size;		      /* Flash size. */
+	u_int sc_width;		      /* Interface width. */
+	u_int sc_regions;	      /* Erase regions. */
+	struct cfi_region *sc_region; /* Array of region info. */
 
-	u_int		sc_cmdset;
-	sbintime_t	sc_typical_timeouts[3];
-	sbintime_t	sc_max_timeouts[3];
-	u_int		sc_tto_counts[3];
-	u_int		sc_mto_counts[3];
+	u_int sc_cmdset;
+	sbintime_t sc_typical_timeouts[3];
+	sbintime_t sc_max_timeouts[3];
+	u_int sc_tto_counts[3];
+	u_int sc_mto_counts[3];
 
-	u_int		sc_maxbuf;
+	u_int sc_maxbuf;
 
-	struct cdev	*sc_nod;
-	struct proc	*sc_opened;	/* Process that has us opened. */
+	struct cdev *sc_nod;
+	struct proc *sc_opened; /* Process that has us opened. */
 
-	u_char		*sc_wrbuf;
-	u_char		*sc_wrbufcpy;
-	u_int		sc_wrbufsz;
-	u_int		sc_wrofs;
-	u_int		sc_writing;
+	u_char *sc_wrbuf;
+	u_char *sc_wrbufcpy;
+	u_int sc_wrbufsz;
+	u_int sc_wrofs;
+	u_int sc_writing;
 
-	u_int		sc_manid;
-	u_int		sc_devid;
+	u_int sc_manid;
+	u_int sc_devid;
 };
 
 extern char cfi_driver_name[];
@@ -97,10 +97,10 @@ int cfi_block_start(struct cfi_softc *, u_int);
 int cfi_block_finish(struct cfi_softc *);
 
 #ifdef CFI_SUPPORT_STRATAFLASH
-int	cfi_intel_get_factory_pr(struct cfi_softc *sc, uint64_t *);
-int	cfi_intel_get_oem_pr(struct cfi_softc *sc, uint64_t *);
-int	cfi_intel_set_oem_pr(struct cfi_softc *sc, uint64_t);
-int	cfi_intel_get_plr(struct cfi_softc *sc, uint32_t *);
-int	cfi_intel_set_plr(struct cfi_softc *sc);
+int cfi_intel_get_factory_pr(struct cfi_softc *sc, uint64_t *);
+int cfi_intel_get_oem_pr(struct cfi_softc *sc, uint64_t *);
+int cfi_intel_set_oem_pr(struct cfi_softc *sc, uint64_t);
+int cfi_intel_get_plr(struct cfi_softc *sc, uint32_t *);
+int cfi_intel_set_plr(struct cfi_softc *sc);
 #endif /* CFI_SUPPORT_STRATAFLASH */
 #endif /* _DEV_CFI_VAR_H_ */

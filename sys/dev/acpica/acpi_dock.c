@@ -25,44 +25,45 @@
  */
 
 #include "opt_acpi.h"
+
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
-#include <dev/acpica/acpivar.h>
 #include <dev/acpica/acpiio.h>
+#include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 /* Hooks for the ACPI CA debugging infrastructure */
-#define _COMPONENT	ACPI_DOCK
+#define _COMPONENT ACPI_DOCK
 ACPI_MODULE_NAME("DOCK")
 
 /* For Docking status */
-#define ACPI_DOCK_STATUS_UNKNOWN	-1
-#define ACPI_DOCK_STATUS_UNDOCKED	0
-#define ACPI_DOCK_STATUS_DOCKED		1
+#define ACPI_DOCK_STATUS_UNKNOWN -1
+#define ACPI_DOCK_STATUS_UNDOCKED 0
+#define ACPI_DOCK_STATUS_DOCKED 1
 
-#define ACPI_DOCK_UNLOCK		0 /* Allow device to be ejected */
-#define ACPI_DOCK_LOCK			1 /* Prevent dev from being removed */
+#define ACPI_DOCK_UNLOCK 0 /* Allow device to be ejected */
+#define ACPI_DOCK_LOCK 1   /* Prevent dev from being removed */
 
-#define ACPI_DOCK_ISOLATE		0 /* Isolate from dock connector */
-#define ACPI_DOCK_CONNECT		1 /* Connect to dock */
+#define ACPI_DOCK_ISOLATE 0 /* Isolate from dock connector */
+#define ACPI_DOCK_CONNECT 1 /* Connect to dock */
 
 struct acpi_dock_softc {
-	int		_sta;
-	int		_bdn;
-	int		_uid;
-	int		status;
-	struct sysctl_ctx_list	*sysctl_ctx;
-	struct sysctl_oid	*sysctl_tree;
+	int _sta;
+	int _bdn;
+	int _uid;
+	int status;
+	struct sysctl_ctx_list *sysctl_ctx;
+	struct sysctl_oid *sysctl_tree;
 };
 
 ACPI_SERIAL_DECL(dock, "ACPI Docking Station");
 
-static char *acpi_dock_pnp_ids[] = {"PNP0C15", NULL};
+static char *acpi_dock_pnp_ids[] = { "PNP0C15", NULL };
 
 /*
  * Utility functions
@@ -72,7 +73,7 @@ static void
 acpi_dock_get_info(device_t dev)
 {
 	struct acpi_dock_softc *sc;
-	ACPI_HANDLE	h;
+	ACPI_HANDLE h;
 
 	sc = device_get_softc(dev);
 	h = acpi_get_handle(dev);
@@ -84,19 +85,19 @@ acpi_dock_get_info(device_t dev)
 	if (ACPI_FAILURE(acpi_GetInteger(h, "_UID", &sc->_uid)))
 		sc->_uid = ACPI_DOCK_STATUS_UNKNOWN;
 	ACPI_VPRINT(dev, acpi_device_get_parent_softc(dev),
-		    "_STA: %04x, _BDN: %04x, _UID: %04x\n", sc->_sta,
-		    sc->_bdn, sc->_uid);
+	    "_STA: %04x, _BDN: %04x, _UID: %04x\n", sc->_sta, sc->_bdn,
+	    sc->_uid);
 }
 
 static int
 acpi_dock_execute_dck(device_t dev, int dock)
 {
-	ACPI_HANDLE	h;
-	ACPI_OBJECT	argobj;
+	ACPI_HANDLE h;
+	ACPI_OBJECT argobj;
 	ACPI_OBJECT_LIST args;
-	ACPI_BUFFER	buf;
-	ACPI_OBJECT	retobj;
-	ACPI_STATUS	status;
+	ACPI_BUFFER buf;
+	ACPI_OBJECT retobj;
+	ACPI_STATUS status;
 
 	h = acpi_get_handle(dev);
 
@@ -126,7 +127,7 @@ acpi_dock_execute_dck(device_t dev, int dock)
 static void
 acpi_dock_execute_lck(device_t dev, int lock)
 {
-	ACPI_HANDLE	h;
+	ACPI_HANDLE h;
 
 	h = acpi_get_handle(dev);
 	acpi_SetInteger(h, "_LCK", lock);
@@ -136,9 +137,9 @@ acpi_dock_execute_lck(device_t dev, int lock)
 static int
 acpi_dock_execute_ejx(device_t dev, int eject, int state)
 {
-	ACPI_HANDLE	h;
-	ACPI_STATUS	status;
-	char		ejx[5];
+	ACPI_HANDLE h;
+	ACPI_STATUS status;
+	char ejx[5];
 
 	h = acpi_get_handle(dev);
 	snprintf(ejx, sizeof(ejx), "_EJ%d", state);
@@ -153,10 +154,10 @@ acpi_dock_execute_ejx(device_t dev, int eject, int state)
 static int
 acpi_dock_is_ejd_device(ACPI_HANDLE dock_handle, ACPI_HANDLE handle)
 {
-	int		ret;
-	ACPI_STATUS	ret_status;
-	ACPI_BUFFER	ejd_buffer;
-	ACPI_OBJECT	*obj;
+	int ret;
+	ACPI_STATUS ret_status;
+	ACPI_BUFFER ejd_buffer;
+	ACPI_OBJECT *obj;
 
 	ret = 0;
 
@@ -184,7 +185,7 @@ out:
 static void
 acpi_dock_attach_later(void *context)
 {
-	device_t	dev;
+	device_t dev;
 
 	dev = (device_t)context;
 
@@ -200,8 +201,8 @@ static ACPI_STATUS
 acpi_dock_insert_child(ACPI_HANDLE handle, UINT32 level, void *context,
     void **status)
 {
-	device_t	dock_dev, dev;
-	ACPI_HANDLE	dock_handle;
+	device_t dock_dev, dev;
+	ACPI_HANDLE dock_handle;
 
 	dock_dev = (device_t)context;
 	dock_handle = acpi_get_handle(dock_dev);
@@ -210,7 +211,7 @@ acpi_dock_insert_child(ACPI_HANDLE handle, UINT32 level, void *context,
 		goto out;
 
 	ACPI_VPRINT(dock_dev, acpi_device_get_parent_softc(dock_dev),
-		    "inserting device for %s\n", acpi_name(handle));
+	    "inserting device for %s\n", acpi_name(handle));
 
 #if 0
 	/*
@@ -243,21 +244,21 @@ out:
 static void
 acpi_dock_insert_children(device_t dev)
 {
-	ACPI_STATUS	status;
-	ACPI_HANDLE	sb_handle;
+	ACPI_STATUS status;
+	ACPI_HANDLE sb_handle;
 
 	status = AcpiGetHandle(ACPI_ROOT_OBJECT, "\\_SB_", &sb_handle);
 	if (ACPI_SUCCESS(status)) {
-		AcpiWalkNamespace(ACPI_TYPE_DEVICE, sb_handle,
-		    100, acpi_dock_insert_child, NULL, dev, NULL);
+		AcpiWalkNamespace(ACPI_TYPE_DEVICE, sb_handle, 100,
+		    acpi_dock_insert_child, NULL, dev, NULL);
 	}
 }
 
 static void
 acpi_dock_insert(device_t dev)
 {
-	struct acpi_dock_softc	*sc;
-	ACPI_HANDLE		h;
+	struct acpi_dock_softc *sc;
+	ACPI_HANDLE h;
 
 	ACPI_SERIAL_ASSERT(dock);
 
@@ -290,8 +291,8 @@ static ACPI_STATUS
 acpi_dock_eject_child(ACPI_HANDLE handle, UINT32 level, void *context,
     void **status)
 {
-	device_t	dock_dev, dev;
-	ACPI_HANDLE	dock_handle;
+	device_t dock_dev, dev;
+	ACPI_HANDLE dock_handle;
 
 	dock_dev = *(device_t *)context;
 	dock_handle = acpi_get_handle(dock_dev);
@@ -317,13 +318,13 @@ out:
 static void
 acpi_dock_eject_children(device_t dev)
 {
-	ACPI_HANDLE	sb_handle;
-	ACPI_STATUS	status;
+	ACPI_HANDLE sb_handle;
+	ACPI_STATUS status;
 
 	status = AcpiGetHandle(ACPI_ROOT_OBJECT, "\\_SB_", &sb_handle);
 	if (ACPI_SUCCESS(status)) {
-		AcpiWalkNamespace(ACPI_TYPE_DEVICE, sb_handle,
-		    100, acpi_dock_eject_child, NULL, &dev, NULL);
+		AcpiWalkNamespace(ACPI_TYPE_DEVICE, sb_handle, 100,
+		    acpi_dock_eject_child, NULL, &dev, NULL);
 	}
 }
 
@@ -331,7 +332,7 @@ static void
 acpi_dock_removal(device_t dev)
 {
 	struct acpi_dock_softc *sc;
-	ACPI_HANDLE		h;
+	ACPI_HANDLE h;
 
 	ACPI_SERIAL_ASSERT(dock);
 
@@ -394,11 +395,11 @@ acpi_dock_device_check(device_t dev)
 static void
 acpi_dock_notify_handler(ACPI_HANDLE h, UINT32 notify, void *context)
 {
-	device_t	dev;
+	device_t dev;
 
-	dev = (device_t) context;
+	dev = (device_t)context;
 	ACPI_VPRINT(dev, acpi_device_get_parent_softc(dev),
-		    "got notification %#x\n", notify);
+	    "got notification %#x\n", notify);
 
 	ACPI_SERIAL_BEGIN(dock);
 	switch (notify) {
@@ -420,8 +421,8 @@ static int
 acpi_dock_status_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct acpi_dock_softc *sc;
-	device_t	dev;
-	int		status, err;
+	device_t dev;
+	int status, err;
 
 	dev = (device_t)arg1;
 
@@ -461,7 +462,7 @@ out:
 static int
 acpi_dock_probe(device_t dev)
 {
-	ACPI_HANDLE	h, tmp;
+	ACPI_HANDLE h, tmp;
 
 	h = acpi_get_handle(dev);
 	if (acpi_disabled("dock") ||
@@ -481,7 +482,7 @@ static int
 acpi_dock_attach(device_t dev)
 {
 	struct acpi_dock_softc *sc;
-	ACPI_HANDLE	h;
+	ACPI_HANDLE h;
 
 	sc = device_get_softc(dev);
 	h = acpi_get_handle(dev);
@@ -500,29 +501,20 @@ acpi_dock_attach(device_t dev)
 	sc->sysctl_ctx = device_get_sysctl_ctx(dev);
 	sc->sysctl_tree = device_get_sysctl_tree(dev);
 
-	SYSCTL_ADD_INT(sc->sysctl_ctx,
-		SYSCTL_CHILDREN(sc->sysctl_tree),
-		OID_AUTO, "_sta", CTLFLAG_RD,
-		&sc->_sta, 0, "Dock _STA");
-	SYSCTL_ADD_INT(sc->sysctl_ctx,
-		SYSCTL_CHILDREN(sc->sysctl_tree),
-		OID_AUTO, "_bdn", CTLFLAG_RD,
-		&sc->_bdn, 0, "Dock _BDN");
-	SYSCTL_ADD_INT(sc->sysctl_ctx,
-		SYSCTL_CHILDREN(sc->sysctl_tree),
-		OID_AUTO, "_uid", CTLFLAG_RD,
-		&sc->_uid, 0, "Dock _UID");
-	SYSCTL_ADD_PROC(sc->sysctl_ctx,
-		SYSCTL_CHILDREN(sc->sysctl_tree),
-		OID_AUTO, "status",
-		CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev, 0,
-		acpi_dock_status_sysctl, "I",
-		"Dock/Undock operation");
+	SYSCTL_ADD_INT(sc->sysctl_ctx, SYSCTL_CHILDREN(sc->sysctl_tree),
+	    OID_AUTO, "_sta", CTLFLAG_RD, &sc->_sta, 0, "Dock _STA");
+	SYSCTL_ADD_INT(sc->sysctl_ctx, SYSCTL_CHILDREN(sc->sysctl_tree),
+	    OID_AUTO, "_bdn", CTLFLAG_RD, &sc->_bdn, 0, "Dock _BDN");
+	SYSCTL_ADD_INT(sc->sysctl_ctx, SYSCTL_CHILDREN(sc->sysctl_tree),
+	    OID_AUTO, "_uid", CTLFLAG_RD, &sc->_uid, 0, "Dock _UID");
+	SYSCTL_ADD_PROC(sc->sysctl_ctx, SYSCTL_CHILDREN(sc->sysctl_tree),
+	    OID_AUTO, "status", CTLTYPE_INT | CTLFLAG_RW | CTLFLAG_MPSAFE, dev,
+	    0, acpi_dock_status_sysctl, "I", "Dock/Undock operation");
 
 	ACPI_SERIAL_END(dock);
 
-	AcpiInstallNotifyHandler(h, ACPI_ALL_NOTIFY,
-				 acpi_dock_notify_handler, dev);
+	AcpiInstallNotifyHandler(h, ACPI_ALL_NOTIFY, acpi_dock_notify_handler,
+	    dev);
 
 	return (0);
 }
@@ -535,7 +527,7 @@ static device_method_t acpi_dock_methods[] = {
 	DEVMETHOD_END
 };
 
-static driver_t	acpi_dock_driver = {
+static driver_t acpi_dock_driver = {
 	"acpi_dock",
 	acpi_dock_methods,
 	sizeof(struct acpi_dock_softc),

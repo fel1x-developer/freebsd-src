@@ -36,14 +36,15 @@
  * If this routine returns, the program is aborted.
  */
 
-#include "namespace.h"
 #include <setjmp.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 void
 longjmperror(void)
 {
-#define	ERRMSG	"longjmp botch.\n"
+#define ERRMSG "longjmp botch.\n"
 	(void)_write(STDERR_FILENO, ERRMSG, sizeof(ERRMSG) - 1);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,25 +29,25 @@
  * File : ecore_l2.c
  */
 #include <sys/cdefs.h>
-#include "bcm_osal.h"
 
+#include "bcm_osal.h"
 #include "ecore.h"
-#include "ecore_status.h"
-#include "ecore_hsi_eth.h"
 #include "ecore_chain.h"
-#include "ecore_spq.h"
-#include "ecore_init_fw_funcs.h"
 #include "ecore_cxt.h"
-#include "ecore_l2.h"
-#include "ecore_sp_commands.h"
 #include "ecore_gtt_reg_addr.h"
-#include "ecore_iro.h"
-#include "reg_addr.h"
-#include "ecore_int.h"
+#include "ecore_hsi_eth.h"
 #include "ecore_hw.h"
-#include "ecore_vf.h"
-#include "ecore_sriov.h"
+#include "ecore_init_fw_funcs.h"
+#include "ecore_int.h"
+#include "ecore_iro.h"
+#include "ecore_l2.h"
 #include "ecore_mcp.h"
+#include "ecore_sp_commands.h"
+#include "ecore_spq.h"
+#include "ecore_sriov.h"
+#include "ecore_status.h"
+#include "ecore_vf.h"
+#include "reg_addr.h"
 
 #define ECORE_MAX_SGES_NUM 16
 #define CRC32_POLY 0x1edc6f41
@@ -67,7 +67,8 @@ struct ecore_l2_info {
 	osal_mutex_t lock;
 };
 
-enum _ecore_status_t ecore_l2_alloc(struct ecore_hwfn *p_hwfn)
+enum _ecore_status_t
+ecore_l2_alloc(struct ecore_hwfn *p_hwfn)
 {
 	struct ecore_l2_info *p_l2_info;
 	unsigned long **pp_qids;
@@ -93,15 +94,14 @@ enum _ecore_status_t ecore_l2_alloc(struct ecore_hwfn *p_hwfn)
 	}
 
 	pp_qids = OSAL_VZALLOC(p_hwfn->p_dev,
-			       sizeof(unsigned long *) *
-			       p_l2_info->queues);
+	    sizeof(unsigned long *) * p_l2_info->queues);
 	if (pp_qids == OSAL_NULL)
 		return ECORE_NOMEM;
 	p_l2_info->pp_qid_usage = pp_qids;
 
 	for (i = 0; i < p_l2_info->queues; i++) {
 		pp_qids[i] = OSAL_VZALLOC(p_hwfn->p_dev,
-					  MAX_QUEUES_PER_QZONE / 8);
+		    MAX_QUEUES_PER_QZONE / 8);
 		if (pp_qids[i] == OSAL_NULL)
 			return ECORE_NOMEM;
 	}
@@ -114,7 +114,8 @@ enum _ecore_status_t ecore_l2_alloc(struct ecore_hwfn *p_hwfn)
 	return ECORE_SUCCESS;
 }
 
-void ecore_l2_setup(struct ecore_hwfn *p_hwfn)
+void
+ecore_l2_setup(struct ecore_hwfn *p_hwfn)
 {
 	if (!ECORE_IS_L2_PERSONALITY(p_hwfn))
 		return;
@@ -122,7 +123,8 @@ void ecore_l2_setup(struct ecore_hwfn *p_hwfn)
 	OSAL_MUTEX_INIT(&p_hwfn->p_l2_info->lock);
 }
 
-void ecore_l2_free(struct ecore_hwfn *p_hwfn)
+void
+ecore_l2_free(struct ecore_hwfn *p_hwfn)
 {
 	u32 i;
 
@@ -139,8 +141,7 @@ void ecore_l2_free(struct ecore_hwfn *p_hwfn)
 	for (i = 0; i < p_hwfn->p_l2_info->queues; i++) {
 		if (p_hwfn->p_l2_info->pp_qid_usage[i] == OSAL_NULL)
 			break;
-		OSAL_VFREE(p_hwfn->p_dev,
-			   p_hwfn->p_l2_info->pp_qid_usage[i]);
+		OSAL_VFREE(p_hwfn->p_dev, p_hwfn->p_l2_info->pp_qid_usage[i]);
 		p_hwfn->p_l2_info->pp_qid_usage[i] = OSAL_NULL;
 	}
 
@@ -159,8 +160,9 @@ out_l2_info:
 }
 
 /* TODO - we'll need locking around these... */
-static bool ecore_eth_queue_qid_usage_add(struct ecore_hwfn *p_hwfn,
-					  struct ecore_queue_cid *p_cid)
+static bool
+ecore_eth_queue_qid_usage_add(struct ecore_hwfn *p_hwfn,
+    struct ecore_queue_cid *p_cid)
 {
 	struct ecore_l2_info *p_l2_info = p_hwfn->p_l2_info;
 	u16 queue_id = p_cid->rel.queue_id;
@@ -171,14 +173,14 @@ static bool ecore_eth_queue_qid_usage_add(struct ecore_hwfn *p_hwfn,
 
 	if (queue_id > p_l2_info->queues) {
 		DP_NOTICE(p_hwfn, true,
-			  "Requested to increase usage for qzone %04x out of %08x\n",
-			  queue_id, p_l2_info->queues);
+		    "Requested to increase usage for qzone %04x out of %08x\n",
+		    queue_id, p_l2_info->queues);
 		b_rc = false;
 		goto out;
 	}
 
 	first = (u8)OSAL_FIND_FIRST_ZERO_BIT(p_l2_info->pp_qid_usage[queue_id],
-					     MAX_QUEUES_PER_QZONE);
+	    MAX_QUEUES_PER_QZONE);
 	if (first >= MAX_QUEUES_PER_QZONE) {
 		b_rc = false;
 		goto out;
@@ -192,22 +194,23 @@ out:
 	return b_rc;
 }
 
-static void ecore_eth_queue_qid_usage_del(struct ecore_hwfn *p_hwfn,
-					  struct ecore_queue_cid *p_cid)
+static void
+ecore_eth_queue_qid_usage_del(struct ecore_hwfn *p_hwfn,
+    struct ecore_queue_cid *p_cid)
 {
 	OSAL_MUTEX_ACQUIRE(&p_hwfn->p_l2_info->lock);
 
 	OSAL_CLEAR_BIT(p_cid->qid_usage_idx,
-		       p_hwfn->p_l2_info->pp_qid_usage[p_cid->rel.queue_id]);
+	    p_hwfn->p_l2_info->pp_qid_usage[p_cid->rel.queue_id]);
 
 	OSAL_MUTEX_RELEASE(&p_hwfn->p_l2_info->lock);
 }
 
-void ecore_eth_queue_cid_release(struct ecore_hwfn *p_hwfn,
-				 struct ecore_queue_cid *p_cid)
+void
+ecore_eth_queue_cid_release(struct ecore_hwfn *p_hwfn,
+    struct ecore_queue_cid *p_cid)
 {
-	bool b_legacy_vf = !!(p_cid->vf_legacy &
-			      ECORE_QCID_LEGACY_VF_CID);
+	bool b_legacy_vf = !!(p_cid->vf_legacy & ECORE_QCID_LEGACY_VF_CID);
 
 	/* VFs' CIDs are 0-based in PF-view, and uninitialized on VF.
 	 * For legacy vf-queues, the CID doesn't go through here.
@@ -226,11 +229,9 @@ void ecore_eth_queue_cid_release(struct ecore_hwfn *p_hwfn,
  * for their VFs.
  */
 static struct ecore_queue_cid *
-_ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn,
-			u16 opaque_fid, u32 cid,
-			struct ecore_queue_start_common_params *p_params,
-			bool b_is_rx,
-			struct ecore_queue_cid_vf_params *p_vf_params)
+_ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn, u16 opaque_fid, u32 cid,
+    struct ecore_queue_start_common_params *p_params, bool b_is_rx,
+    struct ecore_queue_cid_vf_params *p_vf_params)
 {
 	struct ecore_queue_cid *p_cid;
 	enum _ecore_status_t rc;
@@ -276,7 +277,7 @@ _ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn,
 		goto fail;
 
 	rc = ecore_fw_l2_queue(p_hwfn, p_cid->rel.queue_id,
-			       &p_cid->abs.queue_id);
+	    &p_cid->abs.queue_id);
 	if (rc != ECORE_SUCCESS)
 		goto fail;
 
@@ -285,7 +286,7 @@ _ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn,
 	 */
 	if (p_cid->vfid == ECORE_QUEUE_CID_PF) {
 		rc = ecore_fw_vport(p_hwfn, p_cid->rel.stats_id,
-				    &p_cid->abs.stats_id);
+		    &p_cid->abs.stats_id);
 		if (rc != ECORE_SUCCESS)
 			goto fail;
 	} else {
@@ -304,13 +305,11 @@ out:
 	}
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-		   "opaque_fid: %04x CID %08x vport %02x [%02x] qzone %04x.%02x [%04x] stats %02x [%02x] SB %04x PI %02x\n",
-		   p_cid->opaque_fid, p_cid->cid,
-		   p_cid->rel.vport_id, p_cid->abs.vport_id,
-		   p_cid->rel.queue_id,	p_cid->qid_usage_idx,
-		   p_cid->abs.queue_id,
-		   p_cid->rel.stats_id, p_cid->abs.stats_id,
-		   p_cid->sb_igu_id, p_cid->sb_idx);
+	    "opaque_fid: %04x CID %08x vport %02x [%02x] qzone %04x.%02x [%04x] stats %02x [%02x] SB %04x PI %02x\n",
+	    p_cid->opaque_fid, p_cid->cid, p_cid->rel.vport_id,
+	    p_cid->abs.vport_id, p_cid->rel.queue_id, p_cid->qid_usage_idx,
+	    p_cid->abs.queue_id, p_cid->rel.stats_id, p_cid->abs.stats_id,
+	    p_cid->sb_igu_id, p_cid->sb_idx);
 
 	return p_cid;
 
@@ -321,9 +320,8 @@ fail:
 
 struct ecore_queue_cid *
 ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
-		       struct ecore_queue_start_common_params *p_params,
-		       bool b_is_rx,
-		       struct ecore_queue_cid_vf_params *p_vf_params)
+    struct ecore_queue_start_common_params *p_params, bool b_is_rx,
+    struct ecore_queue_cid_vf_params *p_vf_params)
 {
 	struct ecore_queue_cid *p_cid;
 	u8 vfid = ECORE_CXT_PF_CID;
@@ -337,8 +335,7 @@ ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
 	if (p_vf_params) {
 		vfid = p_vf_params->vfid;
 
-		if (p_vf_params->vf_legacy &
-		    ECORE_QCID_LEGACY_VF_CID) {
+		if (p_vf_params->vf_legacy & ECORE_QCID_LEGACY_VF_CID) {
 			b_legacy_vf = true;
 			cid = p_vf_params->vf_qid;
 		}
@@ -349,15 +346,15 @@ ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
 	 * by PF.
 	 */
 	if (IS_PF(p_hwfn->p_dev) && !b_legacy_vf) {
-		if (_ecore_cxt_acquire_cid(p_hwfn, PROTOCOLID_ETH,
-					   &cid, vfid) != ECORE_SUCCESS) {
+		if (_ecore_cxt_acquire_cid(p_hwfn, PROTOCOLID_ETH, &cid,
+			vfid) != ECORE_SUCCESS) {
 			DP_NOTICE(p_hwfn, true, "Failed to acquire cid\n");
 			return OSAL_NULL;
 		}
 	}
 
-	p_cid = _ecore_eth_queue_to_cid(p_hwfn, opaque_fid, cid,
-					p_params, b_is_rx, p_vf_params);
+	p_cid = _ecore_eth_queue_to_cid(p_hwfn, opaque_fid, cid, p_params,
+	    b_is_rx, p_vf_params);
 	if ((p_cid == OSAL_NULL) && IS_PF(p_hwfn->p_dev) && !b_legacy_vf)
 		_ecore_cxt_release_cid(p_hwfn, cid, vfid);
 
@@ -366,15 +363,15 @@ ecore_eth_queue_to_cid(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
 
 static struct ecore_queue_cid *
 ecore_eth_queue_to_cid_pf(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
-			  bool b_is_rx,
-			  struct ecore_queue_start_common_params *p_params)
+    bool b_is_rx, struct ecore_queue_start_common_params *p_params)
 {
 	return ecore_eth_queue_to_cid(p_hwfn, opaque_fid, p_params, b_is_rx,
-				      OSAL_NULL);
+	    OSAL_NULL);
 }
 
-enum _ecore_status_t ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
-					      struct ecore_sp_vport_start_params *p_params)
+enum _ecore_status_t
+ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
+    struct ecore_sp_vport_start_params *p_params)
 {
 	struct vport_start_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -394,9 +391,8 @@ enum _ecore_status_t ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = p_params->opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_VPORT_START,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_VPORT_START,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -405,38 +401,35 @@ enum _ecore_status_t ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
 
 	p_ramrod->mtu = OSAL_CPU_TO_LE16(p_params->mtu);
 	p_ramrod->handle_ptp_pkts = p_params->handle_ptp_pkts;
-	p_ramrod->inner_vlan_removal_en	= p_params->remove_inner_vlan;
-	p_ramrod->drop_ttl0_en	= p_params->drop_ttl0;
+	p_ramrod->inner_vlan_removal_en = p_params->remove_inner_vlan;
+	p_ramrod->drop_ttl0_en = p_params->drop_ttl0;
 	p_ramrod->untagged = p_params->only_untagged;
 	p_ramrod->zero_placement_offset = p_params->zero_placement_offset;
 
 	SET_FIELD(rx_mode, ETH_VPORT_RX_MODE_UCAST_DROP_ALL, 1);
 	SET_FIELD(rx_mode, ETH_VPORT_RX_MODE_MCAST_DROP_ALL, 1);
 
-	p_ramrod->rx_mode.state	= OSAL_CPU_TO_LE16(rx_mode);
+	p_ramrod->rx_mode.state = OSAL_CPU_TO_LE16(rx_mode);
 
 	/* Handle requests for strict behavior on transmission errors */
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_ILLEGAL_VLAN_MODE,
-		  p_params->b_err_illegal_vlan_mode ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_illegal_vlan_mode ? ETH_TX_ERR_ASSERT_MALICIOUS :
+						0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_PACKET_TOO_SMALL,
-		  p_params->b_err_small_pkt ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_small_pkt ? ETH_TX_ERR_ASSERT_MALICIOUS : 0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_ANTI_SPOOFING_ERR,
-		  p_params->b_err_anti_spoof ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_anti_spoof ? ETH_TX_ERR_ASSERT_MALICIOUS : 0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_ILLEGAL_INBAND_TAGS,
-		  p_params->b_err_illegal_inband_mode ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_illegal_inband_mode ? ETH_TX_ERR_ASSERT_MALICIOUS :
+						  0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_VLAN_INSERTION_W_INBAND_TAG,
-		  p_params->b_err_vlan_insert_with_inband ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_vlan_insert_with_inband ?
+		ETH_TX_ERR_ASSERT_MALICIOUS :
+		0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_MTU_VIOLATION,
-		  p_params->b_err_big_pkt ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_big_pkt ? ETH_TX_ERR_ASSERT_MALICIOUS : 0);
 	SET_FIELD(tx_err, ETH_TX_ERR_VALS_ILLEGAL_CONTROL_FRAME,
-		  p_params->b_err_ctrl_frame ?
-		  ETH_TX_ERR_ASSERT_MALICIOUS : 0);
+	    p_params->b_err_ctrl_frame ? ETH_TX_ERR_ASSERT_MALICIOUS : 0);
 	p_ramrod->tx_err_behav.values = OSAL_CPU_TO_LE16(tx_err);
 
 	/* TPA related fields */
@@ -448,8 +441,8 @@ enum _ecore_status_t ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
 	case ECORE_TPA_MODE_GRO:
 		p_tpa->tpa_max_aggs_num = ETH_TPA_MAX_AGGS_NUM;
 		p_tpa->tpa_max_size = (u16)-1;
-		p_tpa->tpa_min_size_to_cont = p_params->mtu/2;
-		p_tpa->tpa_min_size_to_start = p_params->mtu/2;
+		p_tpa->tpa_min_size_to_cont = p_params->mtu / 2;
+		p_tpa->tpa_min_size_to_start = p_params->mtu / 2;
 		p_tpa->tpa_ipv4_en_flg = 1;
 		p_tpa->tpa_ipv6_en_flg = 1;
 		p_tpa->tpa_ipv4_tunn_en_flg = 1;
@@ -476,25 +469,22 @@ enum _ecore_status_t ecore_sp_eth_vport_start(struct ecore_hwfn *p_hwfn,
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-enum _ecore_status_t ecore_sp_vport_start(struct ecore_hwfn *p_hwfn,
-					  struct ecore_sp_vport_start_params *p_params)
+enum _ecore_status_t
+ecore_sp_vport_start(struct ecore_hwfn *p_hwfn,
+    struct ecore_sp_vport_start_params *p_params)
 {
 	if (IS_VF(p_hwfn->p_dev))
 		return ecore_vf_pf_vport_start(p_hwfn, p_params->vport_id,
-					       p_params->mtu,
-					       p_params->remove_inner_vlan,
-					       p_params->tpa_mode,
-					       p_params->max_buffers_per_cqe,
-					       p_params->only_untagged,
-					       p_params->zero_placement_offset);
+		    p_params->mtu, p_params->remove_inner_vlan,
+		    p_params->tpa_mode, p_params->max_buffers_per_cqe,
+		    p_params->only_untagged, p_params->zero_placement_offset);
 
 	return ecore_sp_eth_vport_start(p_hwfn, p_params);
 }
 
 static enum _ecore_status_t
 ecore_sp_vport_update_rss(struct ecore_hwfn *p_hwfn,
-			  struct vport_update_ramrod_data *p_ramrod,
-			  struct ecore_rss_params *p_rss)
+    struct vport_update_ramrod_data *p_ramrod, struct ecore_rss_params *p_rss)
 {
 	struct eth_vport_rss_config *p_config;
 	u16 capabilities = 0;
@@ -507,11 +497,10 @@ ecore_sp_vport_update_rss(struct ecore_hwfn *p_hwfn,
 	}
 	p_config = &p_ramrod->rss_config;
 
-	OSAL_BUILD_BUG_ON(ECORE_RSS_IND_TABLE_SIZE !=
-			   ETH_RSS_IND_TABLE_ENTRIES_NUM);
+	OSAL_BUILD_BUG_ON(
+	    ECORE_RSS_IND_TABLE_SIZE != ETH_RSS_IND_TABLE_ENTRIES_NUM);
 
-	rc = ecore_fw_rss_eng(p_hwfn, p_rss->rss_eng_id,
-			      &p_config->rss_id);
+	rc = ecore_fw_rss_eng(p_hwfn, p_rss->rss_eng_id, &p_config->rss_id);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -520,79 +509,68 @@ ecore_sp_vport_update_rss(struct ecore_hwfn *p_hwfn,
 	p_config->update_rss_ind_table = p_rss->update_rss_ind_table;
 	p_config->update_rss_key = p_rss->update_rss_key;
 
-	p_config->rss_mode = p_rss->rss_enable ?
-			     ETH_VPORT_RSS_MODE_REGULAR :
-			     ETH_VPORT_RSS_MODE_DISABLED;
+	p_config->rss_mode = p_rss->rss_enable ? ETH_VPORT_RSS_MODE_REGULAR :
+						 ETH_VPORT_RSS_MODE_DISABLED;
 
 	p_config->capabilities = 0;
 
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV4_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV4));
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV6_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV6));
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV4_TCP_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV4_TCP));
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV6_TCP_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV6_TCP));
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV4_UDP_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV4_UDP));
-	SET_FIELD(capabilities,
-		  ETH_VPORT_RSS_CONFIG_IPV6_UDP_CAPABILITY,
-		  !!(p_rss->rss_caps & ECORE_RSS_IPV6_UDP));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV4_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV4));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV6_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV6));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV4_TCP_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV4_TCP));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV6_TCP_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV6_TCP));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV4_UDP_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV4_UDP));
+	SET_FIELD(capabilities, ETH_VPORT_RSS_CONFIG_IPV6_UDP_CAPABILITY,
+	    !!(p_rss->rss_caps & ECORE_RSS_IPV6_UDP));
 	p_config->tbl_size = p_rss->rss_table_size_log;
 	p_config->capabilities = OSAL_CPU_TO_LE16(capabilities);
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_IFUP,
-		   "update rss flag %d, rss_mode = %d, update_caps = %d, capabilities = %d, update_ind = %d, update_rss_key = %d\n",
-		   p_ramrod->common.update_rss_flg,
-		   p_config->rss_mode,
-		   p_config->update_rss_capabilities,
-		   p_config->capabilities,
-		   p_config->update_rss_ind_table,
-		   p_config->update_rss_key);
+	    "update rss flag %d, rss_mode = %d, update_caps = %d, capabilities = %d, update_ind = %d, update_rss_key = %d\n",
+	    p_ramrod->common.update_rss_flg, p_config->rss_mode,
+	    p_config->update_rss_capabilities, p_config->capabilities,
+	    p_config->update_rss_ind_table, p_config->update_rss_key);
 
 	table_size = OSAL_MIN_T(int, ECORE_RSS_IND_TABLE_SIZE,
-				1 << p_config->tbl_size);
+	    1 << p_config->tbl_size);
 	for (i = 0; i < table_size; i++) {
 		struct ecore_queue_cid *p_queue = p_rss->rss_ind_table[i];
 
 		if (!p_queue)
 			return ECORE_INVAL;
 
-		p_config->indirection_table[i] =
-				OSAL_CPU_TO_LE16(p_queue->abs.queue_id);
+		p_config->indirection_table[i] = OSAL_CPU_TO_LE16(
+		    p_queue->abs.queue_id);
 	}
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_IFUP,
-		   "Configured RSS indirection table [%d entries]:\n",
-		   table_size);
+	    "Configured RSS indirection table [%d entries]:\n", table_size);
 	for (i = 0; i < ECORE_RSS_IND_TABLE_SIZE; i += 0x10) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_IFUP,
-			   "%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n",
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 1]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 2]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 3]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 4]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 5]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 6]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 7]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 8]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 9]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 10]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 11]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 12]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 13]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 14]),
-			   OSAL_LE16_TO_CPU(p_config->indirection_table[i + 15]));
+		    "%04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n",
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 1]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 2]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 3]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 4]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 5]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 6]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 7]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 8]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 9]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 10]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 11]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 12]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 13]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 14]),
+		    OSAL_LE16_TO_CPU(p_config->indirection_table[i + 15]));
 	}
 
-	for (i = 0; i <  10; i++)
+	for (i = 0; i < 10; i++)
 		p_config->rss_key[i] = OSAL_CPU_TO_LE32(p_rss->rss_key[i]);
 
 	return rc;
@@ -600,13 +578,13 @@ ecore_sp_vport_update_rss(struct ecore_hwfn *p_hwfn,
 
 static void
 ecore_sp_update_accept_mode(struct ecore_hwfn *p_hwfn,
-			    struct vport_update_ramrod_data *p_ramrod,
-			    struct ecore_filter_accept_flags accept_flags)
+    struct vport_update_ramrod_data *p_ramrod,
+    struct ecore_filter_accept_flags accept_flags)
 {
 	p_ramrod->common.update_rx_mode_flg =
-					accept_flags.update_rx_mode_config;
+	    accept_flags.update_rx_mode_config;
 	p_ramrod->common.update_tx_mode_flg =
-					accept_flags.update_tx_mode_config;
+	    accept_flags.update_tx_mode_config;
 
 #ifndef ASIC_ONLY
 	/* On B0 emulation we cannot enable Tx, since this would cause writes
@@ -614,7 +592,7 @@ ecore_sp_update_accept_mode(struct ecore_hwfn *p_hwfn,
 	 */
 	if (CHIP_REV_IS_SLOW(p_hwfn->p_dev)) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Non-Asic - prevent Tx mode in vport update\n");
+		    "Non-Asic - prevent Tx mode in vport update\n");
 		p_ramrod->common.update_tx_mode_flg = 0;
 	}
 #endif
@@ -625,27 +603,27 @@ ecore_sp_update_accept_mode(struct ecore_hwfn *p_hwfn,
 		u16 state = 0;
 
 		SET_FIELD(state, ETH_VPORT_RX_MODE_UCAST_DROP_ALL,
-			  !(!!(accept_filter & ECORE_ACCEPT_UCAST_MATCHED) ||
-			   !!(accept_filter & ECORE_ACCEPT_UCAST_UNMATCHED)));
+		    !(!!(accept_filter & ECORE_ACCEPT_UCAST_MATCHED) ||
+			!!(accept_filter & ECORE_ACCEPT_UCAST_UNMATCHED)));
 
 		SET_FIELD(state, ETH_VPORT_RX_MODE_UCAST_ACCEPT_UNMATCHED,
-			  !!(accept_filter & ECORE_ACCEPT_UCAST_UNMATCHED));
+		    !!(accept_filter & ECORE_ACCEPT_UCAST_UNMATCHED));
 
 		SET_FIELD(state, ETH_VPORT_RX_MODE_MCAST_DROP_ALL,
-			  !(!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) ||
-			   !!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
+		    !(!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) ||
+			!!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
 
 		SET_FIELD(state, ETH_VPORT_RX_MODE_MCAST_ACCEPT_ALL,
-			  (!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) &&
-			   !!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
+		    (!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) &&
+			!!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
 
 		SET_FIELD(state, ETH_VPORT_RX_MODE_BCAST_ACCEPT_ALL,
-			  !!(accept_filter & ECORE_ACCEPT_BCAST));
+		    !!(accept_filter & ECORE_ACCEPT_BCAST));
 
 		p_ramrod->rx_mode.state = OSAL_CPU_TO_LE16(state);
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "vport[%02x] p_ramrod->rx_mode.state = 0x%x\n",
-			   p_ramrod->common.vport_id, state);
+		    "vport[%02x] p_ramrod->rx_mode.state = 0x%x\n",
+		    p_ramrod->common.vport_id, state);
 	}
 
 	/* Set Tx mode accept flags */
@@ -654,28 +632,28 @@ ecore_sp_update_accept_mode(struct ecore_hwfn *p_hwfn,
 		u16 state = 0;
 
 		SET_FIELD(state, ETH_VPORT_TX_MODE_UCAST_DROP_ALL,
-			  !!(accept_filter & ECORE_ACCEPT_NONE));
+		    !!(accept_filter & ECORE_ACCEPT_NONE));
 
 		SET_FIELD(state, ETH_VPORT_TX_MODE_MCAST_DROP_ALL,
-			  !!(accept_filter & ECORE_ACCEPT_NONE));
+		    !!(accept_filter & ECORE_ACCEPT_NONE));
 
 		SET_FIELD(state, ETH_VPORT_TX_MODE_MCAST_ACCEPT_ALL,
-			  (!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) &&
-			   !!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
+		    (!!(accept_filter & ECORE_ACCEPT_MCAST_MATCHED) &&
+			!!(accept_filter & ECORE_ACCEPT_MCAST_UNMATCHED)));
 
 		SET_FIELD(state, ETH_VPORT_TX_MODE_BCAST_ACCEPT_ALL,
-			  !!(accept_filter & ECORE_ACCEPT_BCAST));
+		    !!(accept_filter & ECORE_ACCEPT_BCAST));
 
 		p_ramrod->tx_mode.state = OSAL_CPU_TO_LE16(state);
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "vport[%02x] p_ramrod->tx_mode.state = 0x%x\n",
-			   p_ramrod->common.vport_id, state);
+		    "vport[%02x] p_ramrod->tx_mode.state = 0x%x\n",
+		    p_ramrod->common.vport_id, state);
 	}
 }
 
 static void
 ecore_sp_vport_update_sge_tpa(struct vport_update_ramrod_data *p_ramrod,
-			      struct ecore_sge_tpa_params *p_params)
+    struct ecore_sge_tpa_params *p_params)
 {
 	struct eth_vport_tpa_param *p_tpa;
 	u16 val;
@@ -710,12 +688,12 @@ ecore_sp_vport_update_sge_tpa(struct vport_update_ramrod_data *p_ramrod,
 
 static void
 ecore_sp_update_mcast_bin(struct vport_update_ramrod_data *p_ramrod,
-			  struct ecore_sp_vport_update_params *p_params)
+    struct ecore_sp_vport_update_params *p_params)
 {
 	int i;
 
 	OSAL_MEMSET(&p_ramrod->approx_mcast.bins, 0,
-		    sizeof(p_ramrod->approx_mcast.bins));
+	    sizeof(p_ramrod->approx_mcast.bins));
 
 	if (!p_params->update_approx_mcast_flg)
 		return;
@@ -728,10 +706,10 @@ ecore_sp_update_mcast_bin(struct vport_update_ramrod_data *p_ramrod,
 	}
 }
 
-enum _ecore_status_t ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
-					   struct ecore_sp_vport_update_params *p_params,
-					   enum spq_mode comp_mode,
-					   struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
+    struct ecore_sp_vport_update_params *p_params, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct ecore_rss_params *p_rss_params = p_params->rss_params;
 	struct vport_update_ramrod_data_cmn *p_cmn;
@@ -757,9 +735,8 @@ enum _ecore_status_t ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
 	init_data.comp_mode = comp_mode;
 	init_data.p_comp_data = p_comp_data;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_VPORT_UPDATE,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_VPORT_UPDATE,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -796,7 +773,8 @@ enum _ecore_status_t ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
 	if (CHIP_REV_IS_FPGA(p_hwfn->p_dev))
 		if (p_ramrod->common.tx_switching_en ||
 		    p_ramrod->common.update_tx_switching_en_flg) {
-			DP_NOTICE(p_hwfn, false, "FPGA - why are we seeing tx-switching? Overriding it\n");
+			DP_NOTICE(p_hwfn, false,
+			    "FPGA - why are we seeing tx-switching? Overriding it\n");
 			p_ramrod->common.tx_switching_en = 0;
 			p_ramrod->common.update_tx_switching_en_flg = 1;
 		}
@@ -822,9 +800,8 @@ enum _ecore_status_t ecore_sp_vport_update(struct ecore_hwfn *p_hwfn,
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-enum _ecore_status_t ecore_sp_vport_stop(struct ecore_hwfn *p_hwfn,
-					  u16 opaque_fid,
-					  u8 vport_id)
+enum _ecore_status_t
+ecore_sp_vport_stop(struct ecore_hwfn *p_hwfn, u16 opaque_fid, u8 vport_id)
 {
 	struct vport_stop_ramrod_data *p_ramrod;
 	struct ecore_sp_init_data init_data;
@@ -845,9 +822,8 @@ enum _ecore_status_t ecore_sp_vport_stop(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_VPORT_STOP,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_VPORT_STOP,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -859,24 +835,22 @@ enum _ecore_status_t ecore_sp_vport_stop(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_vf_pf_accept_flags(struct ecore_hwfn *p_hwfn,
-			 struct ecore_filter_accept_flags *p_accept_flags)
+    struct ecore_filter_accept_flags *p_accept_flags)
 {
 	struct ecore_sp_vport_update_params s_params;
 
 	OSAL_MEMSET(&s_params, 0, sizeof(s_params));
 	OSAL_MEMCPY(&s_params.accept_flags, p_accept_flags,
-		    sizeof(struct ecore_filter_accept_flags));
+	    sizeof(struct ecore_filter_accept_flags));
 
 	return ecore_vf_pf_vport_update(p_hwfn, &s_params);
 }
 
-enum _ecore_status_t ecore_filter_accept_cmd(struct ecore_dev *p_dev,
-					     u8 vport,
-					     struct ecore_filter_accept_flags accept_flags,
-					     u8 update_accept_any_vlan,
-					     u8 accept_any_vlan,
-					     enum spq_mode comp_mode,
-					     struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_filter_accept_cmd(struct ecore_dev *p_dev, u8 vport,
+    struct ecore_filter_accept_flags accept_flags, u8 update_accept_any_vlan,
+    u8 accept_any_vlan, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct ecore_sp_vport_update_params vport_update_params;
 	int i, rc;
@@ -888,7 +862,8 @@ enum _ecore_status_t ecore_filter_accept_cmd(struct ecore_dev *p_dev,
 	vport_update_params.update_accept_any_vlan_flg = update_accept_any_vlan;
 	vport_update_params.accept_any_vlan = accept_any_vlan;
 
-	for_each_hwfn(p_dev, i) {
+	for_each_hwfn(p_dev, i)
+	{
 		struct ecore_hwfn *p_hwfn = &p_dev->hwfns[i];
 
 		vport_update_params.opaque_fid = p_hwfn->hw_info.opaque_fid;
@@ -901,21 +876,20 @@ enum _ecore_status_t ecore_filter_accept_cmd(struct ecore_dev *p_dev,
 		}
 
 		rc = ecore_sp_vport_update(p_hwfn, &vport_update_params,
-					   comp_mode, p_comp_data);
+		    comp_mode, p_comp_data);
 		if (rc != ECORE_SUCCESS) {
 			DP_ERR(p_dev, "Update rx_mode failed %d\n", rc);
 			return rc;
 		}
 
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Accept filter configured, flags = [Rx]%x [Tx]%x\n",
-			   accept_flags.rx_accept_filter,
-			   accept_flags.tx_accept_filter);
+		    "Accept filter configured, flags = [Rx]%x [Tx]%x\n",
+		    accept_flags.rx_accept_filter,
+		    accept_flags.tx_accept_filter);
 
 		if (update_accept_any_vlan)
 			DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-				   "accept_any_vlan=%d configured\n",
-				   accept_any_vlan);
+			    "accept_any_vlan=%d configured\n", accept_any_vlan);
 	}
 
 	return 0;
@@ -923,20 +897,18 @@ enum _ecore_status_t ecore_filter_accept_cmd(struct ecore_dev *p_dev,
 
 enum _ecore_status_t
 ecore_eth_rxq_start_ramrod(struct ecore_hwfn *p_hwfn,
-			   struct ecore_queue_cid *p_cid,
-			   u16 bd_max_bytes,
-			   dma_addr_t bd_chain_phys_addr,
-			   dma_addr_t cqe_pbl_addr,
-			   u16 cqe_pbl_size)
+    struct ecore_queue_cid *p_cid, u16 bd_max_bytes,
+    dma_addr_t bd_chain_phys_addr, dma_addr_t cqe_pbl_addr, u16 cqe_pbl_size)
 {
 	struct rx_queue_start_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
 	struct ecore_sp_init_data init_data;
 	enum _ecore_status_t rc = ECORE_NOTIMPL;
 
-	DP_VERBOSE(p_hwfn, ECORE_MSG_SP, "opaque_fid=0x%x, cid=0x%x, rx_qzone=0x%x, vport_id=0x%x, sb_id=0x%x\n",
-		   p_cid->opaque_fid, p_cid->cid, p_cid->abs.queue_id,
-		   p_cid->abs.vport_id, p_cid->sb_igu_id);
+	DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
+	    "opaque_fid=0x%x, cid=0x%x, rx_qzone=0x%x, vport_id=0x%x, sb_id=0x%x\n",
+	    p_cid->opaque_fid, p_cid->cid, p_cid->abs.queue_id,
+	    p_cid->abs.vport_id, p_cid->sb_igu_id);
 
 	/* Get SPQ entry */
 	OSAL_MEMSET(&init_data, 0, sizeof(init_data));
@@ -944,9 +916,8 @@ ecore_eth_rxq_start_ramrod(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = p_cid->opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_RX_QUEUE_START,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_RX_QUEUE_START,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -967,13 +938,13 @@ ecore_eth_rxq_start_ramrod(struct ecore_hwfn *p_hwfn,
 	DMA_REGPAIR_LE(p_ramrod->cqe_pbl_addr, cqe_pbl_addr);
 
 	if (p_cid->vfid != ECORE_QUEUE_CID_PF) {
-		bool b_legacy_vf = !!(p_cid->vf_legacy &
-				      ECORE_QCID_LEGACY_VF_RX_PROD);
+		bool b_legacy_vf = !!(
+		    p_cid->vf_legacy & ECORE_QCID_LEGACY_VF_RX_PROD);
 
 		p_ramrod->vf_rx_prod_index = p_cid->vf_qid;
-		DP_VERBOSE(p_hwfn, ECORE_MSG_SP, "Queue%s is meant for VF rxq[%02x]\n",
-			   b_legacy_vf ? " [legacy]" : "",
-			   p_cid->vf_qid);
+		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
+		    "Queue%s is meant for VF rxq[%02x]\n",
+		    b_legacy_vf ? " [legacy]" : "", p_cid->vf_qid);
 		p_ramrod->vf_rx_prod_use_zone_a = b_legacy_vf;
 	}
 
@@ -982,39 +953,29 @@ ecore_eth_rxq_start_ramrod(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_eth_pf_rx_queue_start(struct ecore_hwfn *p_hwfn,
-			    struct ecore_queue_cid *p_cid,
-			    u16 bd_max_bytes,
-			    dma_addr_t bd_chain_phys_addr,
-			    dma_addr_t cqe_pbl_addr,
-			    u16 cqe_pbl_size,
-			    void OSAL_IOMEM **pp_prod)
+    struct ecore_queue_cid *p_cid, u16 bd_max_bytes,
+    dma_addr_t bd_chain_phys_addr, dma_addr_t cqe_pbl_addr, u16 cqe_pbl_size,
+    void OSAL_IOMEM **pp_prod)
 {
 	u32 init_prod_val = 0;
 
-	*pp_prod = (u8 OSAL_IOMEM*)
-		    p_hwfn->regview +
-		    GTT_BAR0_MAP_REG_MSDM_RAM +
-		    MSTORM_ETH_PF_PRODS_OFFSET(p_cid->abs.queue_id);
+	*pp_prod = (u8 OSAL_IOMEM *)p_hwfn->regview +
+	    GTT_BAR0_MAP_REG_MSDM_RAM +
+	    MSTORM_ETH_PF_PRODS_OFFSET(p_cid->abs.queue_id);
 
 	/* Init the rcq, rx bd and rx sge (if valid) producers to 0 */
 	__internal_ram_wr(p_hwfn, *pp_prod, sizeof(u32),
-			  (u32 *)(&init_prod_val));
+	    (u32 *)(&init_prod_val));
 
-	return ecore_eth_rxq_start_ramrod(p_hwfn, p_cid,
-					  bd_max_bytes,
-					  bd_chain_phys_addr,
-					  cqe_pbl_addr, cqe_pbl_size);
+	return ecore_eth_rxq_start_ramrod(p_hwfn, p_cid, bd_max_bytes,
+	    bd_chain_phys_addr, cqe_pbl_addr, cqe_pbl_size);
 }
 
 enum _ecore_status_t
-ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
-			 u16 opaque_fid,
-			 struct ecore_queue_start_common_params *p_params,
-			 u16 bd_max_bytes,
-			 dma_addr_t bd_chain_phys_addr,
-			 dma_addr_t cqe_pbl_addr,
-			 u16 cqe_pbl_size,
-			 struct ecore_rxq_start_ret_params *p_ret_params)
+ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
+    struct ecore_queue_start_common_params *p_params, u16 bd_max_bytes,
+    dma_addr_t bd_chain_phys_addr, dma_addr_t cqe_pbl_addr, u16 cqe_pbl_size,
+    struct ecore_rxq_start_ret_params *p_ret_params)
 {
 	struct ecore_queue_cid *p_cid;
 	enum _ecore_status_t rc;
@@ -1025,18 +986,13 @@ ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
 		return ECORE_NOMEM;
 
 	if (IS_PF(p_hwfn->p_dev))
-		rc = ecore_eth_pf_rx_queue_start(p_hwfn, p_cid,
-						 bd_max_bytes,
-						 bd_chain_phys_addr,
-						 cqe_pbl_addr, cqe_pbl_size,
-						 &p_ret_params->p_prod);
+		rc = ecore_eth_pf_rx_queue_start(p_hwfn, p_cid, bd_max_bytes,
+		    bd_chain_phys_addr, cqe_pbl_addr, cqe_pbl_size,
+		    &p_ret_params->p_prod);
 	else
-		rc = ecore_vf_pf_rxq_start(p_hwfn, p_cid,
-					   bd_max_bytes,
-					   bd_chain_phys_addr,
-					   cqe_pbl_addr,
-					   cqe_pbl_size,
-					   &p_ret_params->p_prod);
+		rc = ecore_vf_pf_rxq_start(p_hwfn, p_cid, bd_max_bytes,
+		    bd_chain_phys_addr, cqe_pbl_addr, cqe_pbl_size,
+		    &p_ret_params->p_prod);
 
 	/* Provide the caller with a reference to as handler */
 	if (rc != ECORE_SUCCESS)
@@ -1047,13 +1003,10 @@ ecore_eth_rx_queue_start(struct ecore_hwfn *p_hwfn,
 	return rc;
 }
 
-enum _ecore_status_t ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
-						   void **pp_rxq_handles,
-						   u8 num_rxqs,
-						   u8 complete_cqe_flg,
-						   u8 complete_event_flg,
-						   enum spq_mode comp_mode,
-						   struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn, void **pp_rxq_handles,
+    u8 num_rxqs, u8 complete_cqe_flg, u8 complete_event_flg,
+    enum spq_mode comp_mode, struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct rx_queue_update_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1065,11 +1018,8 @@ enum _ecore_status_t ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
 #ifndef LINUX_REMOVE
 	if (IS_VF(p_hwfn->p_dev))
 		return ecore_vf_pf_rxqs_update(p_hwfn,
-					       (struct ecore_queue_cid **)
-					       pp_rxq_handles,
-					       num_rxqs,
-					       complete_cqe_flg,
-					       complete_event_flg);
+		    (struct ecore_queue_cid **)pp_rxq_handles, num_rxqs,
+		    complete_cqe_flg, complete_event_flg);
 #endif
 
 	OSAL_MEMSET(&init_data, 0, sizeof(init_data));
@@ -1084,8 +1034,7 @@ enum _ecore_status_t ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
 		init_data.opaque_fid = p_cid->opaque_fid;
 
 		rc = ecore_sp_init_request(p_hwfn, &p_ent,
-					   ETH_RAMROD_RX_QUEUE_UPDATE,
-					   PROTOCOLID_ETH, &init_data);
+		    ETH_RAMROD_RX_QUEUE_UPDATE, PROTOCOLID_ETH, &init_data);
 		if (rc != ECORE_SUCCESS)
 			return rc;
 
@@ -1106,9 +1055,8 @@ enum _ecore_status_t ecore_sp_eth_rx_queues_update(struct ecore_hwfn *p_hwfn,
 
 enum _ecore_status_t
 ecore_sp_eth_rx_queues_set_default(struct ecore_hwfn *p_hwfn,
-				   void *p_rxq_handler,
-				   enum spq_mode comp_mode,
-				   struct ecore_spq_comp_cb *p_comp_data)
+    void *p_rxq_handler, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct rx_queue_update_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1129,9 +1077,8 @@ ecore_sp_eth_rx_queues_set_default(struct ecore_hwfn *p_hwfn,
 	init_data.cid = p_cid->cid;
 	init_data.opaque_fid = p_cid->opaque_fid;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_RX_QUEUE_UPDATE,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_RX_QUEUE_UPDATE,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1150,9 +1097,8 @@ ecore_sp_eth_rx_queues_set_default(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_eth_pf_rx_queue_stop(struct ecore_hwfn *p_hwfn,
-			   struct ecore_queue_cid *p_cid,
-			   bool b_eq_completion_only,
-			   bool b_cqe_completion)
+    struct ecore_queue_cid *p_cid, bool b_eq_completion_only,
+    bool b_cqe_completion)
 {
 	struct rx_queue_stop_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1164,9 +1110,8 @@ ecore_eth_pf_rx_queue_stop(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = p_cid->opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_RX_QUEUE_STOP,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_RX_QUEUE_STOP,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1178,26 +1123,24 @@ ecore_eth_pf_rx_queue_stop(struct ecore_hwfn *p_hwfn,
 	 * In addition, VFs require the answer to come as eqe to PF.
 	 */
 	p_ramrod->complete_cqe_flg = ((p_cid->vfid == ECORE_QUEUE_CID_PF) &&
-				      !b_eq_completion_only) ||
-				     b_cqe_completion;
+					 !b_eq_completion_only) ||
+	    b_cqe_completion;
 	p_ramrod->complete_event_flg = (p_cid->vfid != ECORE_QUEUE_CID_PF) ||
-				       b_eq_completion_only;
+	    b_eq_completion_only;
 
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-enum _ecore_status_t ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn,
-					     void *p_rxq,
-					     bool eq_completion_only,
-					     bool cqe_completion)
+enum _ecore_status_t
+ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn, void *p_rxq,
+    bool eq_completion_only, bool cqe_completion)
 {
 	struct ecore_queue_cid *p_cid = (struct ecore_queue_cid *)p_rxq;
 	enum _ecore_status_t rc = ECORE_NOTIMPL;
 
 	if (IS_PF(p_hwfn->p_dev))
 		rc = ecore_eth_pf_rx_queue_stop(p_hwfn, p_cid,
-						eq_completion_only,
-						cqe_completion);
+		    eq_completion_only, cqe_completion);
 	else
 		rc = ecore_vf_pf_rxq_stop(p_hwfn, p_cid, cqe_completion);
 
@@ -1208,9 +1151,7 @@ enum _ecore_status_t ecore_eth_rx_queue_stop(struct ecore_hwfn *p_hwfn,
 
 enum _ecore_status_t
 ecore_eth_txq_start_ramrod(struct ecore_hwfn *p_hwfn,
-			   struct ecore_queue_cid *p_cid,
-			   dma_addr_t pbl_addr, u16 pbl_size,
-			   u16 pq_id)
+    struct ecore_queue_cid *p_cid, dma_addr_t pbl_addr, u16 pbl_size, u16 pq_id)
 {
 	struct tx_queue_start_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1223,9 +1164,8 @@ ecore_eth_txq_start_ramrod(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = p_cid->opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_TX_QUEUE_START,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_TX_QUEUE_START,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1249,34 +1189,29 @@ ecore_eth_txq_start_ramrod(struct ecore_hwfn *p_hwfn,
 
 static enum _ecore_status_t
 ecore_eth_pf_tx_queue_start(struct ecore_hwfn *p_hwfn,
-			    struct ecore_queue_cid *p_cid,
-			    u8 tc,
-			    dma_addr_t pbl_addr, u16 pbl_size,
-			    void OSAL_IOMEM **pp_doorbell)
+    struct ecore_queue_cid *p_cid, u8 tc, dma_addr_t pbl_addr, u16 pbl_size,
+    void OSAL_IOMEM **pp_doorbell)
 {
 	enum _ecore_status_t rc;
 
 	/* TODO - set tc in the pq_params for multi-cos */
-	rc = ecore_eth_txq_start_ramrod(p_hwfn, p_cid,
-					pbl_addr, pbl_size,
-					ecore_get_cm_pq_idx_mcos(p_hwfn, tc));
+	rc = ecore_eth_txq_start_ramrod(p_hwfn, p_cid, pbl_addr, pbl_size,
+	    ecore_get_cm_pq_idx_mcos(p_hwfn, tc));
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
 	/* Provide the caller with the necessary return values */
-	*pp_doorbell = (u8 OSAL_IOMEM *)
-		       p_hwfn->doorbells +
-		       DB_ADDR(p_cid->cid, DQ_DEMS_LEGACY);
+	*pp_doorbell = (u8 OSAL_IOMEM *)p_hwfn->doorbells +
+	    DB_ADDR(p_cid->cid, DQ_DEMS_LEGACY);
 
 	return ECORE_SUCCESS;
 }
 
 enum _ecore_status_t
 ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
-			 struct ecore_queue_start_common_params *p_params,
-			 u8 tc,
-			 dma_addr_t pbl_addr, u16 pbl_size,
-			 struct ecore_txq_start_ret_params *p_ret_params)
+    struct ecore_queue_start_common_params *p_params, u8 tc,
+    dma_addr_t pbl_addr, u16 pbl_size,
+    struct ecore_txq_start_ret_params *p_ret_params)
 {
 	struct ecore_queue_cid *p_cid;
 	enum _ecore_status_t rc;
@@ -1286,13 +1221,11 @@ ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
 		return ECORE_INVAL;
 
 	if (IS_PF(p_hwfn->p_dev))
-		rc = ecore_eth_pf_tx_queue_start(p_hwfn, p_cid, tc,
-						 pbl_addr, pbl_size,
-						 &p_ret_params->p_doorbell);
+		rc = ecore_eth_pf_tx_queue_start(p_hwfn, p_cid, tc, pbl_addr,
+		    pbl_size, &p_ret_params->p_doorbell);
 	else
-		rc = ecore_vf_pf_txq_start(p_hwfn, p_cid,
-					   pbl_addr, pbl_size,
-					   &p_ret_params->p_doorbell);
+		rc = ecore_vf_pf_txq_start(p_hwfn, p_cid, pbl_addr, pbl_size,
+		    &p_ret_params->p_doorbell);
 
 	if (rc != ECORE_SUCCESS)
 		ecore_eth_queue_cid_release(p_hwfn, p_cid);
@@ -1304,7 +1237,7 @@ ecore_eth_tx_queue_start(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
 
 static enum _ecore_status_t
 ecore_eth_pf_tx_queue_stop(struct ecore_hwfn *p_hwfn,
-			   struct ecore_queue_cid *p_cid)
+    struct ecore_queue_cid *p_cid)
 {
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
 	struct ecore_sp_init_data init_data;
@@ -1315,17 +1248,16 @@ ecore_eth_pf_tx_queue_stop(struct ecore_hwfn *p_hwfn,
 	init_data.opaque_fid = p_cid->opaque_fid;
 	init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_TX_QUEUE_STOP,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_TX_QUEUE_STOP,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
-enum _ecore_status_t ecore_eth_tx_queue_stop(struct ecore_hwfn *p_hwfn,
-					     void *p_handle)
+enum _ecore_status_t
+ecore_eth_tx_queue_stop(struct ecore_hwfn *p_hwfn, void *p_handle)
 {
 	struct ecore_queue_cid *p_cid = (struct ecore_queue_cid *)p_handle;
 	enum _ecore_status_t rc;
@@ -1340,7 +1272,8 @@ enum _ecore_status_t ecore_eth_tx_queue_stop(struct ecore_hwfn *p_hwfn,
 	return rc;
 }
 
-static enum eth_filter_action ecore_filter_action(enum ecore_filter_opcode opcode)
+static enum eth_filter_action
+ecore_filter_action(enum ecore_filter_opcode opcode)
 {
 	enum eth_filter_action action = MAX_ETH_FILTER_ACTION;
 
@@ -1362,13 +1295,11 @@ static enum eth_filter_action ecore_filter_action(enum ecore_filter_opcode opcod
 }
 
 static enum _ecore_status_t
-ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
-			  u16 opaque_fid,
-			  struct ecore_filter_ucast *p_filter_cmd,
-			  struct vport_filter_update_ramrod_data **pp_ramrod,
-			  struct ecore_spq_entry **pp_ent,
-			  enum spq_mode comp_mode,
-			  struct ecore_spq_comp_cb *p_comp_data)
+ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
+    struct ecore_filter_ucast *p_filter_cmd,
+    struct vport_filter_update_ramrod_data **pp_ramrod,
+    struct ecore_spq_entry **pp_ent, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	u8 vport_to_add_to = 0, vport_to_remove_from = 0;
 	struct vport_filter_update_ramrod_data *p_ramrod;
@@ -1379,12 +1310,12 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 	enum _ecore_status_t rc;
 
 	rc = ecore_fw_vport(p_hwfn, p_filter_cmd->vport_to_remove_from,
-			    &vport_to_remove_from);
+	    &vport_to_remove_from);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
 	rc = ecore_fw_vport(p_hwfn, p_filter_cmd->vport_to_add_to,
-			    &vport_to_add_to);
+	    &vport_to_add_to);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1395,9 +1326,8 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 	init_data.comp_mode = comp_mode;
 	init_data.p_comp_data = p_comp_data;
 
-	rc = ecore_sp_init_request(p_hwfn, pp_ent,
-				   ETH_RAMROD_FILTERS_UPDATE,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, pp_ent, ETH_RAMROD_FILTERS_UPDATE,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1409,7 +1339,7 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 #ifndef ASIC_ONLY
 	if (CHIP_REV_IS_SLOW(p_hwfn->p_dev)) {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Non-Asic - prevent Tx filters\n");
+		    "Non-Asic - prevent Tx filters\n");
 		p_ramrod->filter_cmd_hdr.tx = 0;
 	}
 
@@ -1418,9 +1348,11 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 	switch (p_filter_cmd->opcode) {
 	case ECORE_FILTER_REPLACE:
 	case ECORE_FILTER_MOVE:
-		p_ramrod->filter_cmd_hdr.cmd_cnt = 2; break;
+		p_ramrod->filter_cmd_hdr.cmd_cnt = 2;
+		break;
 	default:
-		p_ramrod->filter_cmd_hdr.cmd_cnt = 1; break;
+		p_ramrod->filter_cmd_hdr.cmd_cnt = 1;
+		break;
 	}
 
 	p_first_filter = &p_ramrod->filter_cmds[0];
@@ -1428,24 +1360,32 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 
 	switch (p_filter_cmd->type) {
 	case ECORE_FILTER_MAC:
-		p_first_filter->type = ETH_FILTER_TYPE_MAC; break;
+		p_first_filter->type = ETH_FILTER_TYPE_MAC;
+		break;
 	case ECORE_FILTER_VLAN:
-		p_first_filter->type = ETH_FILTER_TYPE_VLAN; break;
+		p_first_filter->type = ETH_FILTER_TYPE_VLAN;
+		break;
 	case ECORE_FILTER_MAC_VLAN:
-		p_first_filter->type = ETH_FILTER_TYPE_PAIR; break;
+		p_first_filter->type = ETH_FILTER_TYPE_PAIR;
+		break;
 	case ECORE_FILTER_INNER_MAC:
-		p_first_filter->type = ETH_FILTER_TYPE_INNER_MAC; break;
+		p_first_filter->type = ETH_FILTER_TYPE_INNER_MAC;
+		break;
 	case ECORE_FILTER_INNER_VLAN:
-		p_first_filter->type = ETH_FILTER_TYPE_INNER_VLAN; break;
+		p_first_filter->type = ETH_FILTER_TYPE_INNER_VLAN;
+		break;
 	case ECORE_FILTER_INNER_PAIR:
-		p_first_filter->type = ETH_FILTER_TYPE_INNER_PAIR; break;
+		p_first_filter->type = ETH_FILTER_TYPE_INNER_PAIR;
+		break;
 	case ECORE_FILTER_INNER_MAC_VNI_PAIR:
 		p_first_filter->type = ETH_FILTER_TYPE_INNER_MAC_VNI_PAIR;
 		break;
 	case ECORE_FILTER_MAC_VNI_PAIR:
-		p_first_filter->type = ETH_FILTER_TYPE_MAC_VNI_PAIR; break;
+		p_first_filter->type = ETH_FILTER_TYPE_MAC_VNI_PAIR;
+		break;
 	case ECORE_FILTER_VNI:
-		p_first_filter->type = ETH_FILTER_TYPE_VNI; break;
+		p_first_filter->type = ETH_FILTER_TYPE_VNI;
+		break;
 	}
 
 	if ((p_first_filter->type == ETH_FILTER_TYPE_MAC) ||
@@ -1455,9 +1395,8 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 	    (p_first_filter->type == ETH_FILTER_TYPE_INNER_MAC_VNI_PAIR) ||
 	    (p_first_filter->type == ETH_FILTER_TYPE_MAC_VNI_PAIR))
 		ecore_set_fw_mac_addr(&p_first_filter->mac_msb,
-				      &p_first_filter->mac_mid,
-				      &p_first_filter->mac_lsb,
-				      (u8 *)p_filter_cmd->mac);
+		    &p_first_filter->mac_mid, &p_first_filter->mac_lsb,
+		    (u8 *)p_filter_cmd->mac);
 
 	if ((p_first_filter->type == ETH_FILTER_TYPE_VLAN) ||
 	    (p_first_filter->type == ETH_FILTER_TYPE_PAIR) ||
@@ -1487,33 +1426,32 @@ ecore_filter_ucast_common(struct ecore_hwfn *p_hwfn,
 	} else if (p_filter_cmd->opcode == ECORE_FILTER_REPLACE) {
 		p_first_filter->vport_id = vport_to_add_to;
 		OSAL_MEMCPY(p_second_filter, p_first_filter,
-			    sizeof(*p_second_filter));
+		    sizeof(*p_second_filter));
 		p_first_filter->action = ETH_FILTER_ACTION_REMOVE_ALL;
 		p_second_filter->action = ETH_FILTER_ACTION_ADD;
 	} else {
 		action = ecore_filter_action(p_filter_cmd->opcode);
 
 		if (action == MAX_ETH_FILTER_ACTION) {
-			DP_NOTICE(p_hwfn, true,
-				  "%d is not supported yet\n",
-				  p_filter_cmd->opcode);
+			DP_NOTICE(p_hwfn, true, "%d is not supported yet\n",
+			    p_filter_cmd->opcode);
 			return ECORE_NOTIMPL;
 		}
 
 		p_first_filter->action = action;
-		p_first_filter->vport_id =
-			(p_filter_cmd->opcode == ECORE_FILTER_REMOVE) ?
-			vport_to_remove_from : vport_to_add_to;
+		p_first_filter->vport_id = (p_filter_cmd->opcode ==
+					       ECORE_FILTER_REMOVE) ?
+		    vport_to_remove_from :
+		    vport_to_add_to;
 	}
 
 	return ECORE_SUCCESS;
 }
 
-enum _ecore_status_t ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
-					       u16 opaque_fid,
-					       struct ecore_filter_ucast *p_filter_cmd,
-					       enum spq_mode comp_mode,
-					       struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn, u16 opaque_fid,
+    struct ecore_filter_ucast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct vport_filter_update_ramrod_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -1521,8 +1459,7 @@ enum _ecore_status_t ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
 	enum _ecore_status_t rc;
 
 	rc = ecore_filter_ucast_common(p_hwfn, opaque_fid, p_filter_cmd,
-				       &p_ramrod, &p_ent,
-				       comp_mode, p_comp_data);
+	    &p_ramrod, &p_ent, comp_mode, p_comp_data);
 	if (rc != ECORE_SUCCESS) {
 		DP_ERR(p_hwfn, "Uni. filter command failed %d\n", rc);
 		return rc;
@@ -1532,33 +1469,31 @@ enum _ecore_status_t ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
 
 	rc = ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 	if (rc != ECORE_SUCCESS) {
-		DP_ERR(p_hwfn,
-		       "Unicast filter ADD command failed %d\n",
-		       rc);
+		DP_ERR(p_hwfn, "Unicast filter ADD command failed %d\n", rc);
 		return rc;
 	}
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-		   "Unicast filter configured, opcode = %s, type = %s, cmd_cnt = %d, is_rx_filter = %d, is_tx_filter = %d\n",
-		   (p_filter_cmd->opcode == ECORE_FILTER_ADD) ? "ADD" :
-		    ((p_filter_cmd->opcode == ECORE_FILTER_REMOVE) ?
-		     "REMOVE" :
-		     ((p_filter_cmd->opcode == ECORE_FILTER_MOVE) ?
-		      "MOVE" : "REPLACE")),
-		   (p_filter_cmd->type == ECORE_FILTER_MAC) ? "MAC" :
-		    ((p_filter_cmd->type == ECORE_FILTER_VLAN) ?
-		     "VLAN" : "MAC & VLAN"),
-		   p_ramrod->filter_cmd_hdr.cmd_cnt,
-		   p_filter_cmd->is_rx_filter,
-		   p_filter_cmd->is_tx_filter);
+	    "Unicast filter configured, opcode = %s, type = %s, cmd_cnt = %d, is_rx_filter = %d, is_tx_filter = %d\n",
+	    (p_filter_cmd->opcode == ECORE_FILTER_ADD) ?
+		"ADD" :
+		((p_filter_cmd->opcode == ECORE_FILTER_REMOVE) ?
+			"REMOVE" :
+			((p_filter_cmd->opcode == ECORE_FILTER_MOVE) ?
+				"MOVE" :
+				"REPLACE")),
+	    (p_filter_cmd->type == ECORE_FILTER_MAC) ?
+		"MAC" :
+		((p_filter_cmd->type == ECORE_FILTER_VLAN) ? "VLAN" :
+							     "MAC & VLAN"),
+	    p_ramrod->filter_cmd_hdr.cmd_cnt, p_filter_cmd->is_rx_filter,
+	    p_filter_cmd->is_tx_filter);
 	DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-		   "vport_to_add_to = %d, vport_to_remove_from = %d, mac = %2x:%2x:%2x:%2x:%2x:%2x, vlan = %d\n",
-		   p_filter_cmd->vport_to_add_to,
-		   p_filter_cmd->vport_to_remove_from,
-		   p_filter_cmd->mac[0], p_filter_cmd->mac[1],
-		   p_filter_cmd->mac[2], p_filter_cmd->mac[3],
-		   p_filter_cmd->mac[4], p_filter_cmd->mac[5],
-		   p_filter_cmd->vlan);
+	    "vport_to_add_to = %d, vport_to_remove_from = %d, mac = %2x:%2x:%2x:%2x:%2x:%2x, vlan = %d\n",
+	    p_filter_cmd->vport_to_add_to, p_filter_cmd->vport_to_remove_from,
+	    p_filter_cmd->mac[0], p_filter_cmd->mac[1], p_filter_cmd->mac[2],
+	    p_filter_cmd->mac[3], p_filter_cmd->mac[4], p_filter_cmd->mac[5],
+	    p_filter_cmd->vlan);
 
 	return ECORE_SUCCESS;
 }
@@ -1569,13 +1504,13 @@ enum _ecore_status_t ecore_sp_eth_filter_ucast(struct ecore_hwfn *p_hwfn,
  *         Note: crc32_length MUST be aligned to 8
  * Return:
  ******************************************************************************/
-static u32 ecore_calc_crc32c(u8 *crc32_packet, u32 crc32_length, u32 crc32_seed)
+static u32
+ecore_calc_crc32c(u8 *crc32_packet, u32 crc32_length, u32 crc32_seed)
 {
 	u32 byte = 0, bit = 0, crc32_result = crc32_seed;
-	u8  msb = 0, current_byte = 0;
+	u8 msb = 0, current_byte = 0;
 
-	if ((crc32_packet == OSAL_NULL) ||
-	    (crc32_length == 0) ||
+	if ((crc32_packet == OSAL_NULL) || (crc32_length == 0) ||
 	    ((crc32_length % 8) != 0)) {
 		return crc32_result;
 	}
@@ -1595,15 +1530,17 @@ static u32 ecore_calc_crc32c(u8 *crc32_packet, u32 crc32_length, u32 crc32_seed)
 	return crc32_result;
 }
 
-static u32 ecore_crc32c_le(u32 seed, u8 *mac)
+static u32
+ecore_crc32c_le(u32 seed, u8 *mac)
 {
-	u32 packet_buf[2] = {0};
+	u32 packet_buf[2] = { 0 };
 
 	OSAL_MEMCPY((u8 *)(&packet_buf[0]), &mac[0], 6);
 	return ecore_calc_crc32c((u8 *)packet_buf, 8, seed);
 }
 
-u8 ecore_mcast_bin_from_mac(u8 *mac)
+u8
+ecore_mcast_bin_from_mac(u8 *mac)
 {
 	u32 crc = ecore_crc32c_le(ETH_MULTICAST_BIN_FROM_MAC_SEED, mac);
 
@@ -1612,9 +1549,8 @@ u8 ecore_mcast_bin_from_mac(u8 *mac)
 
 static enum _ecore_status_t
 ecore_sp_eth_filter_mcast(struct ecore_hwfn *p_hwfn,
-			  struct ecore_filter_mcast *p_filter_cmd,
-			  enum spq_mode comp_mode,
-			  struct ecore_spq_comp_cb *p_comp_data)
+    struct ecore_filter_mcast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	struct vport_update_ramrod_data *p_ramrod = OSAL_NULL;
 	u32 bins[ETH_MULTICAST_MAC_BINS_IN_REGS];
@@ -1626,10 +1562,10 @@ ecore_sp_eth_filter_mcast(struct ecore_hwfn *p_hwfn,
 
 	if (p_filter_cmd->opcode == ECORE_FILTER_ADD)
 		rc = ecore_fw_vport(p_hwfn, p_filter_cmd->vport_to_add_to,
-				    &abs_vport_id);
+		    &abs_vport_id);
 	else
 		rc = ecore_fw_vport(p_hwfn, p_filter_cmd->vport_to_remove_from,
-				    &abs_vport_id);
+		    &abs_vport_id);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -1640,9 +1576,8 @@ ecore_sp_eth_filter_mcast(struct ecore_hwfn *p_hwfn,
 	init_data.comp_mode = comp_mode;
 	init_data.p_comp_data = p_comp_data;
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_VPORT_UPDATE,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_VPORT_UPDATE,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS) {
 		DP_ERR(p_hwfn, "Multi-cast command failed %d\n", rc);
 		return rc;
@@ -1652,12 +1587,12 @@ ecore_sp_eth_filter_mcast(struct ecore_hwfn *p_hwfn,
 	p_ramrod->common.update_approx_mcast_flg = 1;
 
 	/* explicitly clear out the entire vector */
-	OSAL_MEMSET(&p_ramrod->approx_mcast.bins,
-		    0, sizeof(p_ramrod->approx_mcast.bins));
+	OSAL_MEMSET(&p_ramrod->approx_mcast.bins, 0,
+	    sizeof(p_ramrod->approx_mcast.bins));
 	OSAL_MEMSET(bins, 0, sizeof(u32) * ETH_MULTICAST_MAC_BINS_IN_REGS);
 	/* filter ADD op is explicit set op and it removes
-	*  any existing filters for the vport.
-	*/
+	 *  any existing filters for the vport.
+	 */
 	if (p_filter_cmd->opcode == ECORE_FILTER_ADD) {
 		for (i = 0; i < p_filter_cmd->num_mc_addrs; i++) {
 			u32 bit;
@@ -1684,22 +1619,23 @@ ecore_sp_eth_filter_mcast(struct ecore_hwfn *p_hwfn,
 	return rc;
 }
 
-enum _ecore_status_t ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
-					    struct ecore_filter_mcast *p_filter_cmd,
-					    enum spq_mode comp_mode,
-					    struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
+    struct ecore_filter_mcast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	enum _ecore_status_t rc = ECORE_SUCCESS;
 	int i;
 
 	/* only ADD and REMOVE operations are supported for multi-cast */
-	if ((p_filter_cmd->opcode != ECORE_FILTER_ADD  &&
-	     (p_filter_cmd->opcode != ECORE_FILTER_REMOVE)) ||
-	     (p_filter_cmd->num_mc_addrs > ECORE_MAX_MC_ADDRS)) {
+	if ((p_filter_cmd->opcode != ECORE_FILTER_ADD &&
+		(p_filter_cmd->opcode != ECORE_FILTER_REMOVE)) ||
+	    (p_filter_cmd->num_mc_addrs > ECORE_MAX_MC_ADDRS)) {
 		return ECORE_INVAL;
 	}
 
-	for_each_hwfn(p_dev, i) {
+	for_each_hwfn(p_dev, i)
+	{
 		struct ecore_hwfn *p_hwfn = &p_dev->hwfns[i];
 
 		if (IS_VF(p_dev)) {
@@ -1707,10 +1643,8 @@ enum _ecore_status_t ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
 			continue;
 		}
 
-		rc = ecore_sp_eth_filter_mcast(p_hwfn,
-					       p_filter_cmd,
-					       comp_mode,
-					       p_comp_data);
+		rc = ecore_sp_eth_filter_mcast(p_hwfn, p_filter_cmd, comp_mode,
+		    p_comp_data);
 		if (rc != ECORE_SUCCESS)
 			break;
 	}
@@ -1718,15 +1652,16 @@ enum _ecore_status_t ecore_filter_mcast_cmd(struct ecore_dev *p_dev,
 	return rc;
 }
 
-enum _ecore_status_t ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
-					    struct ecore_filter_ucast *p_filter_cmd,
-					    enum spq_mode comp_mode,
-					    struct ecore_spq_comp_cb *p_comp_data)
+enum _ecore_status_t
+ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
+    struct ecore_filter_ucast *p_filter_cmd, enum spq_mode comp_mode,
+    struct ecore_spq_comp_cb *p_comp_data)
 {
 	enum _ecore_status_t rc = ECORE_SUCCESS;
 	int i;
 
-	for_each_hwfn(p_dev, i) {
+	for_each_hwfn(p_dev, i)
+	{
 		struct ecore_hwfn *p_hwfn = &p_dev->hwfns[i];
 		u16 opaque_fid;
 
@@ -1736,11 +1671,8 @@ enum _ecore_status_t ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
 		}
 
 		opaque_fid = p_hwfn->hw_info.opaque_fid;
-		rc = ecore_sp_eth_filter_ucast(p_hwfn,
-					       opaque_fid,
-					       p_filter_cmd,
-					       comp_mode,
-					       p_comp_data);
+		rc = ecore_sp_eth_filter_ucast(p_hwfn, opaque_fid, p_filter_cmd,
+		    comp_mode, p_comp_data);
 		if (rc != ECORE_SUCCESS)
 			break;
 	}
@@ -1749,13 +1681,13 @@ enum _ecore_status_t ecore_filter_ucast_cmd(struct ecore_dev *p_dev,
 }
 
 /* Statistics related code */
-static void __ecore_get_vport_pstats_addrlen(struct ecore_hwfn *p_hwfn,
-					     u32 *p_addr, u32 *p_len,
-					     u16 statistics_bin)
+static void
+__ecore_get_vport_pstats_addrlen(struct ecore_hwfn *p_hwfn, u32 *p_addr,
+    u32 *p_len, u16 statistics_bin)
 {
 	if (IS_PF(p_hwfn->p_dev)) {
 		*p_addr = BAR0_MAP_REG_PSDM_RAM +
-			  PSTORM_QUEUE_STAT_OFFSET(statistics_bin);
+		    PSTORM_QUEUE_STAT_OFFSET(statistics_bin);
 		*p_len = sizeof(struct eth_pstorm_per_queue_stat);
 	} else {
 		struct ecore_vf_iov *p_iov = p_hwfn->vf_iov_info;
@@ -1766,47 +1698,45 @@ static void __ecore_get_vport_pstats_addrlen(struct ecore_hwfn *p_hwfn,
 	}
 }
 
-static void __ecore_get_vport_pstats(struct ecore_hwfn *p_hwfn,
-				     struct ecore_ptt *p_ptt,
-				     struct ecore_eth_stats *p_stats,
-				     u16 statistics_bin)
+static void
+__ecore_get_vport_pstats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *p_stats, u16 statistics_bin)
 {
 	struct eth_pstorm_per_queue_stat pstats;
 	u32 pstats_addr = 0, pstats_len = 0;
 
 	__ecore_get_vport_pstats_addrlen(p_hwfn, &pstats_addr, &pstats_len,
-					 statistics_bin);
+	    statistics_bin);
 
 	OSAL_MEMSET(&pstats, 0, sizeof(pstats));
-	ecore_memcpy_from(p_hwfn, p_ptt, &pstats,
-			  pstats_addr, pstats_len);
+	ecore_memcpy_from(p_hwfn, p_ptt, &pstats, pstats_addr, pstats_len);
 
-	p_stats->common.tx_ucast_bytes +=
-		HILO_64_REGPAIR(pstats.sent_ucast_bytes);
-	p_stats->common.tx_mcast_bytes +=
-		HILO_64_REGPAIR(pstats.sent_mcast_bytes);
-	p_stats->common.tx_bcast_bytes +=
-		HILO_64_REGPAIR(pstats.sent_bcast_bytes);
-	p_stats->common.tx_ucast_pkts +=
-		HILO_64_REGPAIR(pstats.sent_ucast_pkts);
-	p_stats->common.tx_mcast_pkts +=
-		HILO_64_REGPAIR(pstats.sent_mcast_pkts);
-	p_stats->common.tx_bcast_pkts +=
-		HILO_64_REGPAIR(pstats.sent_bcast_pkts);
-	p_stats->common.tx_err_drop_pkts +=
-		HILO_64_REGPAIR(pstats.error_drop_pkts);
+	p_stats->common.tx_ucast_bytes += HILO_64_REGPAIR(
+	    pstats.sent_ucast_bytes);
+	p_stats->common.tx_mcast_bytes += HILO_64_REGPAIR(
+	    pstats.sent_mcast_bytes);
+	p_stats->common.tx_bcast_bytes += HILO_64_REGPAIR(
+	    pstats.sent_bcast_bytes);
+	p_stats->common.tx_ucast_pkts += HILO_64_REGPAIR(
+	    pstats.sent_ucast_pkts);
+	p_stats->common.tx_mcast_pkts += HILO_64_REGPAIR(
+	    pstats.sent_mcast_pkts);
+	p_stats->common.tx_bcast_pkts += HILO_64_REGPAIR(
+	    pstats.sent_bcast_pkts);
+	p_stats->common.tx_err_drop_pkts += HILO_64_REGPAIR(
+	    pstats.error_drop_pkts);
 }
 
-static void __ecore_get_vport_tstats(struct ecore_hwfn *p_hwfn,
-				     struct ecore_ptt *p_ptt,
-				     struct ecore_eth_stats *p_stats)
+static void
+__ecore_get_vport_tstats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *p_stats)
 {
 	struct tstorm_per_port_stat tstats;
 	u32 tstats_addr, tstats_len;
 
 	if (IS_PF(p_hwfn->p_dev)) {
 		tstats_addr = BAR0_MAP_REG_TSDM_RAM +
-			      TSTORM_PORT_STAT_OFFSET(MFW_PORT(p_hwfn));
+		    TSTORM_PORT_STAT_OFFSET(MFW_PORT(p_hwfn));
 		tstats_len = sizeof(struct tstorm_per_port_stat);
 	} else {
 		struct ecore_vf_iov *p_iov = p_hwfn->vf_iov_info;
@@ -1817,22 +1747,21 @@ static void __ecore_get_vport_tstats(struct ecore_hwfn *p_hwfn,
 	}
 
 	OSAL_MEMSET(&tstats, 0, sizeof(tstats));
-	ecore_memcpy_from(p_hwfn, p_ptt, &tstats,
-			  tstats_addr, tstats_len);
+	ecore_memcpy_from(p_hwfn, p_ptt, &tstats, tstats_addr, tstats_len);
 
-	p_stats->common.mftag_filter_discards +=
-		HILO_64_REGPAIR(tstats.mftag_filter_discard);
-	p_stats->common.mac_filter_discards +=
-		HILO_64_REGPAIR(tstats.eth_mac_filter_discard);
+	p_stats->common.mftag_filter_discards += HILO_64_REGPAIR(
+	    tstats.mftag_filter_discard);
+	p_stats->common.mac_filter_discards += HILO_64_REGPAIR(
+	    tstats.eth_mac_filter_discard);
 }
 
-static void __ecore_get_vport_ustats_addrlen(struct ecore_hwfn *p_hwfn,
-					     u32 *p_addr, u32 *p_len,
-					     u16 statistics_bin)
+static void
+__ecore_get_vport_ustats_addrlen(struct ecore_hwfn *p_hwfn, u32 *p_addr,
+    u32 *p_len, u16 statistics_bin)
 {
 	if (IS_PF(p_hwfn->p_dev)) {
 		*p_addr = BAR0_MAP_REG_USDM_RAM +
-			  USTORM_QUEUE_STAT_OFFSET(statistics_bin);
+		    USTORM_QUEUE_STAT_OFFSET(statistics_bin);
 		*p_len = sizeof(struct eth_ustorm_per_queue_stat);
 	} else {
 		struct ecore_vf_iov *p_iov = p_hwfn->vf_iov_info;
@@ -1843,42 +1772,37 @@ static void __ecore_get_vport_ustats_addrlen(struct ecore_hwfn *p_hwfn,
 	}
 }
 
-static void __ecore_get_vport_ustats(struct ecore_hwfn *p_hwfn,
-				     struct ecore_ptt *p_ptt,
-				     struct ecore_eth_stats *p_stats,
-				     u16 statistics_bin)
+static void
+__ecore_get_vport_ustats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *p_stats, u16 statistics_bin)
 {
 	struct eth_ustorm_per_queue_stat ustats;
 	u32 ustats_addr = 0, ustats_len = 0;
 
 	__ecore_get_vport_ustats_addrlen(p_hwfn, &ustats_addr, &ustats_len,
-					 statistics_bin);
+	    statistics_bin);
 
 	OSAL_MEMSET(&ustats, 0, sizeof(ustats));
-	ecore_memcpy_from(p_hwfn, p_ptt, &ustats,
-			  ustats_addr, ustats_len);
+	ecore_memcpy_from(p_hwfn, p_ptt, &ustats, ustats_addr, ustats_len);
 
-	p_stats->common.rx_ucast_bytes +=
-		HILO_64_REGPAIR(ustats.rcv_ucast_bytes);
-	p_stats->common.rx_mcast_bytes +=
-		HILO_64_REGPAIR(ustats.rcv_mcast_bytes);
-	p_stats->common.rx_bcast_bytes +=
-		HILO_64_REGPAIR(ustats.rcv_bcast_bytes);
-	p_stats->common.rx_ucast_pkts +=
-		HILO_64_REGPAIR(ustats.rcv_ucast_pkts);
-	p_stats->common.rx_mcast_pkts +=
-		HILO_64_REGPAIR(ustats.rcv_mcast_pkts);
-	p_stats->common.rx_bcast_pkts +=
-		HILO_64_REGPAIR(ustats.rcv_bcast_pkts);
+	p_stats->common.rx_ucast_bytes += HILO_64_REGPAIR(
+	    ustats.rcv_ucast_bytes);
+	p_stats->common.rx_mcast_bytes += HILO_64_REGPAIR(
+	    ustats.rcv_mcast_bytes);
+	p_stats->common.rx_bcast_bytes += HILO_64_REGPAIR(
+	    ustats.rcv_bcast_bytes);
+	p_stats->common.rx_ucast_pkts += HILO_64_REGPAIR(ustats.rcv_ucast_pkts);
+	p_stats->common.rx_mcast_pkts += HILO_64_REGPAIR(ustats.rcv_mcast_pkts);
+	p_stats->common.rx_bcast_pkts += HILO_64_REGPAIR(ustats.rcv_bcast_pkts);
 }
 
-static void __ecore_get_vport_mstats_addrlen(struct ecore_hwfn *p_hwfn,
-					     u32 *p_addr, u32 *p_len,
-					     u16 statistics_bin)
+static void
+__ecore_get_vport_mstats_addrlen(struct ecore_hwfn *p_hwfn, u32 *p_addr,
+    u32 *p_len, u16 statistics_bin)
 {
 	if (IS_PF(p_hwfn->p_dev)) {
 		*p_addr = BAR0_MAP_REG_MSDM_RAM +
-			  MSTORM_QUEUE_STAT_OFFSET(statistics_bin);
+		    MSTORM_QUEUE_STAT_OFFSET(statistics_bin);
 		*p_len = sizeof(struct eth_mstorm_per_queue_stat);
 	} else {
 		struct ecore_vf_iov *p_iov = p_hwfn->vf_iov_info;
@@ -1889,40 +1813,37 @@ static void __ecore_get_vport_mstats_addrlen(struct ecore_hwfn *p_hwfn,
 	}
 }
 
-static void __ecore_get_vport_mstats(struct ecore_hwfn *p_hwfn,
-				     struct ecore_ptt *p_ptt,
-				     struct ecore_eth_stats *p_stats,
-				     u16 statistics_bin)
+static void
+__ecore_get_vport_mstats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *p_stats, u16 statistics_bin)
 {
 	struct eth_mstorm_per_queue_stat mstats;
 	u32 mstats_addr = 0, mstats_len = 0;
 
 	__ecore_get_vport_mstats_addrlen(p_hwfn, &mstats_addr, &mstats_len,
-					 statistics_bin);
+	    statistics_bin);
 
 	OSAL_MEMSET(&mstats, 0, sizeof(mstats));
-	ecore_memcpy_from(p_hwfn, p_ptt, &mstats,
-			  mstats_addr, mstats_len);
+	ecore_memcpy_from(p_hwfn, p_ptt, &mstats, mstats_addr, mstats_len);
 
-	p_stats->common.no_buff_discards +=
-		HILO_64_REGPAIR(mstats.no_buff_discard);
-	p_stats->common.packet_too_big_discard +=
-		HILO_64_REGPAIR(mstats.packet_too_big_discard);
-	p_stats->common.ttl0_discard +=
-		HILO_64_REGPAIR(mstats.ttl0_discard);
-	p_stats->common.tpa_coalesced_pkts +=
-		HILO_64_REGPAIR(mstats.tpa_coalesced_pkts);
-	p_stats->common.tpa_coalesced_events +=
-		HILO_64_REGPAIR(mstats.tpa_coalesced_events);
-	p_stats->common.tpa_aborts_num +=
-		HILO_64_REGPAIR(mstats.tpa_aborts_num);
-	p_stats->common.tpa_coalesced_bytes +=
-		HILO_64_REGPAIR(mstats.tpa_coalesced_bytes);
+	p_stats->common.no_buff_discards += HILO_64_REGPAIR(
+	    mstats.no_buff_discard);
+	p_stats->common.packet_too_big_discard += HILO_64_REGPAIR(
+	    mstats.packet_too_big_discard);
+	p_stats->common.ttl0_discard += HILO_64_REGPAIR(mstats.ttl0_discard);
+	p_stats->common.tpa_coalesced_pkts += HILO_64_REGPAIR(
+	    mstats.tpa_coalesced_pkts);
+	p_stats->common.tpa_coalesced_events += HILO_64_REGPAIR(
+	    mstats.tpa_coalesced_events);
+	p_stats->common.tpa_aborts_num += HILO_64_REGPAIR(
+	    mstats.tpa_aborts_num);
+	p_stats->common.tpa_coalesced_bytes += HILO_64_REGPAIR(
+	    mstats.tpa_coalesced_bytes);
 }
 
-static void __ecore_get_vport_port_stats(struct ecore_hwfn *p_hwfn,
-					 struct ecore_ptt *p_ptt,
-					 struct ecore_eth_stats *p_stats)
+static void
+__ecore_get_vport_port_stats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *p_stats)
 {
 	struct ecore_eth_stats_common *p_common = &p_stats->common;
 	struct port_stats port_stats;
@@ -1931,9 +1852,8 @@ static void __ecore_get_vport_port_stats(struct ecore_hwfn *p_hwfn,
 	OSAL_MEMSET(&port_stats, 0, sizeof(port_stats));
 
 	ecore_memcpy_from(p_hwfn, p_ptt, &port_stats,
-			  p_hwfn->mcp_info->port_addr +
-			  OFFSETOF(struct public_port, stats),
-			  sizeof(port_stats));
+	    p_hwfn->mcp_info->port_addr + OFFSETOF(struct public_port, stats),
+	    sizeof(port_stats));
 
 	p_common->rx_64_byte_packets += port_stats.eth.r64;
 	p_common->rx_65_to_127_byte_packets += port_stats.eth.r127;
@@ -1978,44 +1898,42 @@ static void __ecore_get_vport_port_stats(struct ecore_hwfn *p_hwfn,
 		struct ecore_eth_stats_bb *p_bb = &p_stats->bb;
 
 		p_bb->rx_1519_to_1522_byte_packets +=
-			port_stats.eth.u0.bb0.r1522;
+		    port_stats.eth.u0.bb0.r1522;
 		p_bb->rx_1519_to_2047_byte_packets +=
-			port_stats.eth.u0.bb0.r2047;
+		    port_stats.eth.u0.bb0.r2047;
 		p_bb->rx_2048_to_4095_byte_packets +=
-			port_stats.eth.u0.bb0.r4095;
+		    port_stats.eth.u0.bb0.r4095;
 		p_bb->rx_4096_to_9216_byte_packets +=
-			port_stats.eth.u0.bb0.r9216;
+		    port_stats.eth.u0.bb0.r9216;
 		p_bb->rx_9217_to_16383_byte_packets +=
-			port_stats.eth.u0.bb0.r16383;
+		    port_stats.eth.u0.bb0.r16383;
 		p_bb->tx_1519_to_2047_byte_packets +=
-			port_stats.eth.u1.bb1.t2047;
+		    port_stats.eth.u1.bb1.t2047;
 		p_bb->tx_2048_to_4095_byte_packets +=
-			port_stats.eth.u1.bb1.t4095;
+		    port_stats.eth.u1.bb1.t4095;
 		p_bb->tx_4096_to_9216_byte_packets +=
-			port_stats.eth.u1.bb1.t9216;
+		    port_stats.eth.u1.bb1.t9216;
 		p_bb->tx_9217_to_16383_byte_packets +=
-			port_stats.eth.u1.bb1.t16383;
+		    port_stats.eth.u1.bb1.t16383;
 		p_bb->tx_lpi_entry_count += port_stats.eth.u2.bb2.tlpiec;
 		p_bb->tx_total_collisions += port_stats.eth.u2.bb2.tncl;
 	} else {
 		struct ecore_eth_stats_ah *p_ah = &p_stats->ah;
 
 		p_ah->rx_1519_to_max_byte_packets +=
-			port_stats.eth.u0.ah0.r1519_to_max;
+		    port_stats.eth.u0.ah0.r1519_to_max;
 		p_ah->tx_1519_to_max_byte_packets =
-			port_stats.eth.u1.ah1.t1519_to_max;
+		    port_stats.eth.u1.ah1.t1519_to_max;
 	}
 
 	p_common->link_change_count = ecore_rd(p_hwfn, p_ptt,
-					       p_hwfn->mcp_info->port_addr +
-					       OFFSETOF(struct public_port,
-							link_change_count));
+	    p_hwfn->mcp_info->port_addr +
+		OFFSETOF(struct public_port, link_change_count));
 }
 
-void __ecore_get_vport_stats(struct ecore_hwfn *p_hwfn,
-			     struct ecore_ptt *p_ptt,
-			     struct ecore_eth_stats *stats,
-			     u16 statistics_bin, bool b_get_port_stats)
+void
+__ecore_get_vport_stats(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_eth_stats *stats, u16 statistics_bin, bool b_get_port_stats)
 {
 	__ecore_get_vport_mstats(p_hwfn, p_ptt, stats, statistics_bin);
 	__ecore_get_vport_ustats(p_hwfn, p_ptt, stats, statistics_bin);
@@ -2032,18 +1950,20 @@ void __ecore_get_vport_stats(struct ecore_hwfn *p_hwfn,
 		__ecore_get_vport_port_stats(p_hwfn, p_ptt, stats);
 }
 
-static void _ecore_get_vport_stats(struct ecore_dev *p_dev,
-				   struct ecore_eth_stats *stats)
+static void
+_ecore_get_vport_stats(struct ecore_dev *p_dev, struct ecore_eth_stats *stats)
 {
 	u8 fw_vport = 0;
 	int i;
 
 	OSAL_MEMSET(stats, 0, sizeof(*stats));
 
-	for_each_hwfn(p_dev, i) {
+	for_each_hwfn(p_dev, i)
+	{
 		struct ecore_hwfn *p_hwfn = &p_dev->hwfns[i];
 		struct ecore_ptt *p_ptt = IS_PF(p_dev) ?
-					  ecore_ptt_acquire(p_hwfn) : OSAL_NULL;
+		    ecore_ptt_acquire(p_hwfn) :
+		    OSAL_NULL;
 		bool b_get_port_stats;
 
 		if (IS_PF(p_dev)) {
@@ -2061,16 +1981,16 @@ static void _ecore_get_vport_stats(struct ecore_dev *p_dev,
 
 		b_get_port_stats = IS_PF(p_dev) && IS_LEAD_HWFN(p_hwfn);
 		__ecore_get_vport_stats(p_hwfn, p_ptt, stats, fw_vport,
-					b_get_port_stats);
+		    b_get_port_stats);
 
-out:
+	out:
 		if (IS_PF(p_dev) && p_ptt)
 			ecore_ptt_release(p_hwfn, p_ptt);
 	}
 }
 
-void ecore_get_vport_stats(struct ecore_dev *p_dev,
-			   struct ecore_eth_stats *stats)
+void
+ecore_get_vport_stats(struct ecore_dev *p_dev, struct ecore_eth_stats *stats)
 {
 	u32 i;
 
@@ -2090,17 +2010,20 @@ void ecore_get_vport_stats(struct ecore_dev *p_dev,
 }
 
 /* zeroes V-PORT specific portion of stats (Port stats remains untouched) */
-void ecore_reset_vport_stats(struct ecore_dev *p_dev)
+void
+ecore_reset_vport_stats(struct ecore_dev *p_dev)
 {
 	int i;
 
-	for_each_hwfn(p_dev, i) {
+	for_each_hwfn(p_dev, i)
+	{
 		struct ecore_hwfn *p_hwfn = &p_dev->hwfns[i];
 		struct eth_mstorm_per_queue_stat mstats;
 		struct eth_ustorm_per_queue_stat ustats;
 		struct eth_pstorm_per_queue_stat pstats;
 		struct ecore_ptt *p_ptt = IS_PF(p_dev) ?
-					  ecore_ptt_acquire(p_hwfn) : OSAL_NULL;
+		    ecore_ptt_acquire(p_hwfn) :
+		    OSAL_NULL;
 		u32 addr = 0, len = 0;
 
 		if (IS_PF(p_dev) && !p_ptt) {
@@ -2146,27 +2069,25 @@ ecore_arfs_mode_to_hsi(enum ecore_filter_config_mode mode)
 	return GFT_PROFILE_TYPE_L4_DST_PORT;
 }
 
-void ecore_arfs_mode_configure(struct ecore_hwfn *p_hwfn,
-			       struct ecore_ptt *p_ptt,
-			       struct ecore_arfs_config_params *p_cfg_params)
+void
+ecore_arfs_mode_configure(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_arfs_config_params *p_cfg_params)
 {
 	if (OSAL_TEST_BIT(ECORE_MF_DISABLE_ARFS, &p_hwfn->p_dev->mf_bits))
 		return;
 
 	if (p_cfg_params->mode != ECORE_FILTER_CONFIG_MODE_DISABLE) {
 		ecore_gft_config(p_hwfn, p_ptt, p_hwfn->rel_pf_id,
-				 p_cfg_params->tcp,
-				 p_cfg_params->udp,
-				 p_cfg_params->ipv4,
-				 p_cfg_params->ipv6,
-				 ecore_arfs_mode_to_hsi(p_cfg_params->mode));
+		    p_cfg_params->tcp, p_cfg_params->udp, p_cfg_params->ipv4,
+		    p_cfg_params->ipv6,
+		    ecore_arfs_mode_to_hsi(p_cfg_params->mode));
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-			   "Configured Filtering: tcp = %s, udp = %s, ipv4 = %s, ipv6 =%s mode=%08x\n",
-			   p_cfg_params->tcp ? "Enable" : "Disable",
-			   p_cfg_params->udp ? "Enable" : "Disable",
-			   p_cfg_params->ipv4 ? "Enable" : "Disable",
-			   p_cfg_params->ipv6 ? "Enable" : "Disable",
-			   (u32)p_cfg_params->mode);
+		    "Configured Filtering: tcp = %s, udp = %s, ipv4 = %s, ipv6 =%s mode=%08x\n",
+		    p_cfg_params->tcp ? "Enable" : "Disable",
+		    p_cfg_params->udp ? "Enable" : "Disable",
+		    p_cfg_params->ipv4 ? "Enable" : "Disable",
+		    p_cfg_params->ipv6 ? "Enable" : "Disable",
+		    (u32)p_cfg_params->mode);
 	} else {
 		DP_VERBOSE(p_hwfn, ECORE_MSG_SP, "Disabled Filtering\n");
 		ecore_gft_disable(p_hwfn, p_ptt, p_hwfn->rel_pf_id);
@@ -2175,8 +2096,7 @@ void ecore_arfs_mode_configure(struct ecore_hwfn *p_hwfn,
 
 enum _ecore_status_t
 ecore_configure_rfs_ntuple_filter(struct ecore_hwfn *p_hwfn,
-				  struct ecore_spq_comp_cb *p_cb,
-				  struct ecore_ntuple_filter_params *p_params)
+    struct ecore_spq_comp_cb *p_cb, struct ecore_ntuple_filter_params *p_params)
 {
 	struct rx_update_gft_filter_data *p_ramrod = OSAL_NULL;
 	struct ecore_spq_entry *p_ent = OSAL_NULL;
@@ -2208,9 +2128,8 @@ ecore_configure_rfs_ntuple_filter(struct ecore_hwfn *p_hwfn,
 		init_data.comp_mode = ECORE_SPQ_MODE_EBLOCK;
 	}
 
-	rc = ecore_sp_init_request(p_hwfn, &p_ent,
-				   ETH_RAMROD_GFT_UPDATE_FILTER,
-				   PROTOCOLID_ETH, &init_data);
+	rc = ecore_sp_init_request(p_hwfn, &p_ent, ETH_RAMROD_GFT_UPDATE_FILTER,
+	    PROTOCOLID_ETH, &init_data);
 	if (rc != ECORE_SUCCESS)
 		return rc;
 
@@ -2227,34 +2146,32 @@ ecore_configure_rfs_ntuple_filter(struct ecore_hwfn *p_hwfn,
 	p_ramrod->flow_id_valid = 0;
 	p_ramrod->flow_id = 0;
 
-	p_ramrod->vport_id = OSAL_CPU_TO_LE16 ((u16)abs_vport_id);
-	p_ramrod->filter_action = p_params->b_is_add ? GFT_ADD_FILTER
-						     : GFT_DELETE_FILTER;
+	p_ramrod->vport_id = OSAL_CPU_TO_LE16((u16)abs_vport_id);
+	p_ramrod->filter_action = p_params->b_is_add ? GFT_ADD_FILTER :
+						       GFT_DELETE_FILTER;
 
 	DP_VERBOSE(p_hwfn, ECORE_MSG_SP,
-		   "V[%0x], Q[%04x] - %s filter from 0x%llx [length %04xb]\n",
-		   abs_vport_id, abs_rx_q_id,
-		   p_params->b_is_add ? "Adding" : "Removing",
-		   (unsigned long long)p_params->addr, p_params->length);
+	    "V[%0x], Q[%04x] - %s filter from 0x%llx [length %04xb]\n",
+	    abs_vport_id, abs_rx_q_id,
+	    p_params->b_is_add ? "Adding" : "Removing",
+	    (unsigned long long)p_params->addr, p_params->length);
 
 	return ecore_spq_post(p_hwfn, p_ent, OSAL_NULL);
 }
 
 enum _ecore_status_t
-ecore_get_rxq_coalesce(struct ecore_hwfn *p_hwfn,
-			   struct ecore_ptt *p_ptt,
-			   struct ecore_queue_cid *p_cid,
-			   u16 *p_rx_coal)
+ecore_get_rxq_coalesce(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_queue_cid *p_cid, u16 *p_rx_coal)
 {
 	u32 coalesce, address, is_valid;
 	struct cau_sb_entry sb_entry;
 	u8 timer_res;
 	enum _ecore_status_t rc;
 
-	rc = ecore_dmae_grc2host(p_hwfn, p_ptt, CAU_REG_SB_VAR_MEMORY +
-				 p_cid->sb_igu_id * sizeof(u64),
-				 (u64)(osal_uintptr_t)&sb_entry, 2,
-				 OSAL_NULL /* default parameters */);
+	rc = ecore_dmae_grc2host(p_hwfn, p_ptt,
+	    CAU_REG_SB_VAR_MEMORY + p_cid->sb_igu_id * sizeof(u64),
+	    (u64)(osal_uintptr_t)&sb_entry, 2,
+	    OSAL_NULL /* default parameters */);
 	if (rc != ECORE_SUCCESS) {
 		DP_ERR(p_hwfn, "dmae_grc2host failed %d\n", rc);
 		return rc;
@@ -2263,7 +2180,7 @@ ecore_get_rxq_coalesce(struct ecore_hwfn *p_hwfn,
 	timer_res = GET_FIELD(sb_entry.params, CAU_SB_ENTRY_TIMER_RES0);
 
 	address = BAR0_MAP_REG_USDM_RAM +
-		  USTORM_ETH_QUEUE_ZONE_OFFSET(p_cid->abs.queue_id);
+	    USTORM_ETH_QUEUE_ZONE_OFFSET(p_cid->abs.queue_id);
 	coalesce = ecore_rd(p_hwfn, p_ptt, address);
 
 	is_valid = GET_FIELD(coalesce, COALESCING_TIMESET_VALID);
@@ -2277,20 +2194,18 @@ ecore_get_rxq_coalesce(struct ecore_hwfn *p_hwfn,
 }
 
 enum _ecore_status_t
-ecore_get_txq_coalesce(struct ecore_hwfn *p_hwfn,
-			   struct ecore_ptt *p_ptt,
-			   struct ecore_queue_cid *p_cid,
-			   u16 *p_tx_coal)
+ecore_get_txq_coalesce(struct ecore_hwfn *p_hwfn, struct ecore_ptt *p_ptt,
+    struct ecore_queue_cid *p_cid, u16 *p_tx_coal)
 {
 	u32 coalesce, address, is_valid;
 	struct cau_sb_entry sb_entry;
 	u8 timer_res;
 	enum _ecore_status_t rc;
 
-	rc = ecore_dmae_grc2host(p_hwfn, p_ptt, CAU_REG_SB_VAR_MEMORY +
-				 p_cid->sb_igu_id * sizeof(u64),
-				 (u64)(osal_uintptr_t)&sb_entry, 2,
-				 OSAL_NULL /* default parameters */);
+	rc = ecore_dmae_grc2host(p_hwfn, p_ptt,
+	    CAU_REG_SB_VAR_MEMORY + p_cid->sb_igu_id * sizeof(u64),
+	    (u64)(osal_uintptr_t)&sb_entry, 2,
+	    OSAL_NULL /* default parameters */);
 	if (rc != ECORE_SUCCESS) {
 		DP_ERR(p_hwfn, "dmae_grc2host failed %d\n", rc);
 		return rc;
@@ -2299,7 +2214,7 @@ ecore_get_txq_coalesce(struct ecore_hwfn *p_hwfn,
 	timer_res = GET_FIELD(sb_entry.params, CAU_SB_ENTRY_TIMER_RES1);
 
 	address = BAR0_MAP_REG_XSDM_RAM +
-		  XSTORM_ETH_QUEUE_ZONE_OFFSET(p_cid->abs.queue_id);
+	    XSTORM_ETH_QUEUE_ZONE_OFFSET(p_cid->abs.queue_id);
 	coalesce = ecore_rd(p_hwfn, p_ptt, address);
 
 	is_valid = GET_FIELD(coalesce, COALESCING_TIMESET_VALID);
@@ -2313,8 +2228,7 @@ ecore_get_txq_coalesce(struct ecore_hwfn *p_hwfn,
 }
 
 enum _ecore_status_t
-ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 *p_coal,
-			 void *handle)
+ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 *p_coal, void *handle)
 {
 	struct ecore_queue_cid *p_cid = (struct ecore_queue_cid *)handle;
 	enum _ecore_status_t rc = ECORE_SUCCESS;
@@ -2325,7 +2239,7 @@ ecore_get_queue_coalesce(struct ecore_hwfn *p_hwfn, u16 *p_coal,
 		rc = ecore_vf_pf_get_coalesce(p_hwfn, p_coal, p_cid);
 		if (rc != ECORE_SUCCESS)
 			DP_NOTICE(p_hwfn, false,
-				  "Unable to read queue calescing\n");
+			    "Unable to read queue calescing\n");
 
 		return rc;
 	}

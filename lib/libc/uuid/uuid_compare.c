@@ -31,10 +31,11 @@
 #include <uuid.h>
 
 /* A macro used to improve the readability of uuid_compare(). */
-#define DIFF_RETURN(a, b, field)	do {			\
-	if ((a)->field != (b)->field)				\
-		return (((a)->field < (b)->field) ? -1 : 1);	\
-} while (0)
+#define DIFF_RETURN(a, b, field)                                     \
+	do {                                                         \
+		if ((a)->field != (b)->field)                        \
+			return (((a)->field < (b)->field) ? -1 : 1); \
+	} while (0)
 
 /*
  * uuid_compare() - compare two UUIDs.
@@ -47,7 +48,7 @@
 int32_t
 uuid_compare(const uuid_t *a, const uuid_t *b, uint32_t *status)
 {
-	int	res;
+	int res;
 
 	if (status != NULL)
 		*status = uuid_s_ok;

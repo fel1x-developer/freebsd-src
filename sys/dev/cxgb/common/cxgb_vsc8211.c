@@ -29,6 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 ***************************************************************************/
 
 #include <sys/cdefs.h>
+
 #include <cxgb_include.h>
 
 #undef msleep
@@ -36,52 +37,53 @@ POSSIBILITY OF SUCH DAMAGE.
 
 /* VSC8211 PHY specific registers. */
 enum {
-	VSC8211_SIGDET_CTRL   = 19,
-	VSC8211_EXT_CTRL      = 23,
-	VSC8211_PHY_CTRL      = 24,
-	VSC8211_INTR_ENABLE   = 25,
-	VSC8211_INTR_STATUS   = 26,
-	VSC8211_LED_CTRL      = 27,
+	VSC8211_SIGDET_CTRL = 19,
+	VSC8211_EXT_CTRL = 23,
+	VSC8211_PHY_CTRL = 24,
+	VSC8211_INTR_ENABLE = 25,
+	VSC8211_INTR_STATUS = 26,
+	VSC8211_LED_CTRL = 27,
 	VSC8211_AUX_CTRL_STAT = 28,
-	VSC8211_EXT_PAGE_AXS  = 31,
+	VSC8211_EXT_PAGE_AXS = 31,
 };
 
 enum {
-	VSC_INTR_RX_ERR     = 1 << 0,
-	VSC_INTR_MS_ERR     = 1 << 1,  /* master/slave resolution error */
-	VSC_INTR_CABLE      = 1 << 2,  /* cable impairment */
-	VSC_INTR_FALSE_CARR = 1 << 3,  /* false carrier */
-	VSC_INTR_MEDIA_CHG  = 1 << 4,  /* AMS media change */
-	VSC_INTR_RX_FIFO    = 1 << 5,  /* Rx FIFO over/underflow */
-	VSC_INTR_TX_FIFO    = 1 << 6,  /* Tx FIFO over/underflow */
-	VSC_INTR_DESCRAMBL  = 1 << 7,  /* descrambler lock-lost */
-	VSC_INTR_SYMBOL_ERR = 1 << 8,  /* symbol error */
-	VSC_INTR_NEG_DONE   = 1 << 10, /* autoneg done */
-	VSC_INTR_NEG_ERR    = 1 << 11, /* autoneg error */
-	VSC_INTR_DPLX_CHG   = 1 << 12, /* duplex change */
-	VSC_INTR_LINK_CHG   = 1 << 13, /* link change */
-	VSC_INTR_SPD_CHG    = 1 << 14, /* speed change */
-	VSC_INTR_ENABLE     = 1 << 15, /* interrupt enable */
+	VSC_INTR_RX_ERR = 1 << 0,
+	VSC_INTR_MS_ERR = 1 << 1,     /* master/slave resolution error */
+	VSC_INTR_CABLE = 1 << 2,      /* cable impairment */
+	VSC_INTR_FALSE_CARR = 1 << 3, /* false carrier */
+	VSC_INTR_MEDIA_CHG = 1 << 4,  /* AMS media change */
+	VSC_INTR_RX_FIFO = 1 << 5,    /* Rx FIFO over/underflow */
+	VSC_INTR_TX_FIFO = 1 << 6,    /* Tx FIFO over/underflow */
+	VSC_INTR_DESCRAMBL = 1 << 7,  /* descrambler lock-lost */
+	VSC_INTR_SYMBOL_ERR = 1 << 8, /* symbol error */
+	VSC_INTR_NEG_DONE = 1 << 10,  /* autoneg done */
+	VSC_INTR_NEG_ERR = 1 << 11,   /* autoneg error */
+	VSC_INTR_DPLX_CHG = 1 << 12,  /* duplex change */
+	VSC_INTR_LINK_CHG = 1 << 13,  /* link change */
+	VSC_INTR_SPD_CHG = 1 << 14,   /* speed change */
+	VSC_INTR_ENABLE = 1 << 15,    /* interrupt enable */
 };
 
 enum {
-	VSC_CTRL_CLAUSE37_VIEW = 1 << 4,   /* Switch to Clause 37 view */
-	VSC_CTRL_MEDIA_MODE_HI = 0xf000    /* High part of media mode select */
+	VSC_CTRL_CLAUSE37_VIEW = 1 << 4, /* Switch to Clause 37 view */
+	VSC_CTRL_MEDIA_MODE_HI = 0xf000	 /* High part of media mode select */
 };
 
-#define CFG_CHG_INTR_MASK (VSC_INTR_LINK_CHG | VSC_INTR_NEG_ERR | \
-			   VSC_INTR_DPLX_CHG | VSC_INTR_SPD_CHG | \
-	 		   VSC_INTR_NEG_DONE)
-#define INTR_MASK (CFG_CHG_INTR_MASK | VSC_INTR_TX_FIFO | VSC_INTR_RX_FIFO | \
-		   VSC_INTR_ENABLE)
+#define CFG_CHG_INTR_MASK                                           \
+	(VSC_INTR_LINK_CHG | VSC_INTR_NEG_ERR | VSC_INTR_DPLX_CHG | \
+	    VSC_INTR_SPD_CHG | VSC_INTR_NEG_DONE)
+#define INTR_MASK                                                  \
+	(CFG_CHG_INTR_MASK | VSC_INTR_TX_FIFO | VSC_INTR_RX_FIFO | \
+	    VSC_INTR_ENABLE)
 
 /* PHY specific auxiliary control & status register fields */
-#define S_ACSR_ACTIPHY_TMR    0
-#define M_ACSR_ACTIPHY_TMR    0x3
+#define S_ACSR_ACTIPHY_TMR 0
+#define M_ACSR_ACTIPHY_TMR 0x3
 #define V_ACSR_ACTIPHY_TMR(x) ((x) << S_ACSR_ACTIPHY_TMR)
 
-#define S_ACSR_SPEED    3
-#define M_ACSR_SPEED    0x3
+#define S_ACSR_SPEED 3
+#define M_ACSR_SPEED 0x3
 #define G_ACSR_SPEED(x) (((x) >> S_ACSR_SPEED) & M_ACSR_SPEED)
 
 #define S_ACSR_DUPLEX 5
@@ -93,22 +95,26 @@ enum {
 /*
  * Reset the PHY.  This PHY completes reset immediately so we never wait.
  */
-static int vsc8211_reset(struct cphy *cphy, int wait)
+static int
+vsc8211_reset(struct cphy *cphy, int wait)
 {
 	return t3_phy_reset(cphy, 0, 0);
 }
 
-static int vsc8211_intr_enable(struct cphy *cphy)
+static int
+vsc8211_intr_enable(struct cphy *cphy)
 {
 	return mdio_write(cphy, 0, VSC8211_INTR_ENABLE, INTR_MASK);
 }
 
-static int vsc8211_intr_disable(struct cphy *cphy)
+static int
+vsc8211_intr_disable(struct cphy *cphy)
 {
 	return mdio_write(cphy, 0, VSC8211_INTR_ENABLE, 0);
 }
 
-static int vsc8211_intr_clear(struct cphy *cphy)
+static int
+vsc8211_intr_clear(struct cphy *cphy)
 {
 	u32 val;
 
@@ -116,20 +122,23 @@ static int vsc8211_intr_clear(struct cphy *cphy)
 	return mdio_read(cphy, 0, VSC8211_INTR_STATUS, &val);
 }
 
-static int vsc8211_autoneg_enable(struct cphy *cphy)
+static int
+vsc8211_autoneg_enable(struct cphy *cphy)
 {
 	return t3_mdio_change_bits(cphy, 0, MII_BMCR, BMCR_PDOWN | BMCR_ISOLATE,
-				   BMCR_ANENABLE | BMCR_ANRESTART);
+	    BMCR_ANENABLE | BMCR_ANRESTART);
 }
 
-static int vsc8211_autoneg_restart(struct cphy *cphy)
+static int
+vsc8211_autoneg_restart(struct cphy *cphy)
 {
 	return t3_mdio_change_bits(cphy, 0, MII_BMCR, BMCR_PDOWN | BMCR_ISOLATE,
-				   BMCR_ANRESTART);
+	    BMCR_ANRESTART);
 }
 
-static int vsc8211_get_link_status(struct cphy *cphy, int *link_state,
-				     int *speed, int *duplex, int *fc)
+static int
+vsc8211_get_link_status(struct cphy *cphy, int *link_state, int *speed,
+    int *duplex, int *fc)
 {
 	unsigned int bmcr, status, lpa, adv;
 	int err, sp = -1, dplx = -1, pause = 0;
@@ -150,7 +159,7 @@ static int vsc8211_get_link_status(struct cphy *cphy, int *link_state,
 		if (err)
 			return err;
 		*link_state = status & BMSR_LSTATUS ? PHY_LINK_UP :
-		    PHY_LINK_DOWN;
+						      PHY_LINK_DOWN;
 	}
 	if (!(bmcr & BMCR_ANENABLE)) {
 		dplx = (bmcr & BMCR_FULLDPLX) ? DUPLEX_FULL : DUPLEX_HALF;
@@ -184,11 +193,11 @@ static int vsc8211_get_link_status(struct cphy *cphy, int *link_state,
 			if (lpa & adv & ADVERTISE_PAUSE_CAP)
 				pause = PAUSE_RX | PAUSE_TX;
 			else if ((lpa & ADVERTISE_PAUSE_CAP) &&
-				 (lpa & ADVERTISE_PAUSE_ASYM) &&
-				 (adv & ADVERTISE_PAUSE_ASYM))
+			    (lpa & ADVERTISE_PAUSE_ASYM) &&
+			    (adv & ADVERTISE_PAUSE_ASYM))
 				pause = PAUSE_TX;
 			else if ((lpa & ADVERTISE_PAUSE_ASYM) &&
-				 (adv & ADVERTISE_PAUSE_CAP))
+			    (adv & ADVERTISE_PAUSE_CAP))
 				pause = PAUSE_RX;
 		}
 	}
@@ -201,8 +210,9 @@ static int vsc8211_get_link_status(struct cphy *cphy, int *link_state,
 	return 0;
 }
 
-static int vsc8211_get_link_status_fiber(struct cphy *cphy, int *link_state,
-					 int *speed, int *duplex, int *fc)
+static int
+vsc8211_get_link_status_fiber(struct cphy *cphy, int *link_state, int *speed,
+    int *duplex, int *fc)
 {
 	unsigned int bmcr, status, lpa, adv;
 	int err, sp = -1, dplx = -1, pause = 0;
@@ -223,7 +233,7 @@ static int vsc8211_get_link_status_fiber(struct cphy *cphy, int *link_state,
 		if (err)
 			return err;
 		*link_state = status & BMSR_LSTATUS ? PHY_LINK_UP :
-		    PHY_LINK_DOWN;
+						      PHY_LINK_DOWN;
 	}
 	if (!(bmcr & BMCR_ANENABLE)) {
 		dplx = (bmcr & BMCR_FULLDPLX) ? DUPLEX_FULL : DUPLEX_HALF;
@@ -252,10 +262,10 @@ static int vsc8211_get_link_status_fiber(struct cphy *cphy, int *link_state,
 			if (lpa & adv & ADVERTISE_1000XPAUSE)
 				pause = PAUSE_RX | PAUSE_TX;
 			else if ((lpa & ADVERTISE_1000XPAUSE) &&
-				 (adv & lpa & ADVERTISE_1000XPSE_ASYM))
+			    (adv & lpa & ADVERTISE_1000XPSE_ASYM))
 				pause = PAUSE_TX;
 			else if ((lpa & ADVERTISE_1000XPSE_ASYM) &&
-				 (adv & ADVERTISE_1000XPAUSE))
+			    (adv & ADVERTISE_1000XPAUSE))
 				pause = PAUSE_RX;
 		}
 	}
@@ -271,7 +281,8 @@ static int vsc8211_get_link_status_fiber(struct cphy *cphy, int *link_state,
 /*
  * Enable/disable auto MDI/MDI-X in forced link speed mode.
  */
-static int vsc8211_set_automdi(struct cphy *phy, int enable)
+static int
+vsc8211_set_automdi(struct cphy *phy, int enable)
 {
 	int err;
 
@@ -284,7 +295,8 @@ static int vsc8211_set_automdi(struct cphy *phy, int enable)
 	return 0;
 }
 
-static int vsc8211_set_speed_duplex(struct cphy *phy, int speed, int duplex)
+static int
+vsc8211_set_speed_duplex(struct cphy *phy, int speed, int duplex)
 {
 	int err;
 
@@ -294,13 +306,15 @@ static int vsc8211_set_speed_duplex(struct cphy *phy, int speed, int duplex)
 	return err;
 }
 
-static int vsc8211_power_down(struct cphy *cphy, int enable)
+static int
+vsc8211_power_down(struct cphy *cphy, int enable)
 {
 	return t3_mdio_change_bits(cphy, 0, MII_BMCR, BMCR_PDOWN,
-				   enable ? BMCR_PDOWN : 0);
+	    enable ? BMCR_PDOWN : 0);
 }
 
-static int vsc8211_intr_handler(struct cphy *cphy)
+static int
+vsc8211_intr_handler(struct cphy *cphy)
 {
 	unsigned int cause;
 	int err, cphy_cause = 0;
@@ -349,47 +363,50 @@ static struct cphy_ops vsc8211_fiber_ops = {
 };
 #else
 static struct cphy_ops vsc8211_ops = {
-	.reset             = vsc8211_reset,
-	.intr_enable       = vsc8211_intr_enable,
-	.intr_disable      = vsc8211_intr_disable,
-	.intr_clear        = vsc8211_intr_clear,
-	.intr_handler      = vsc8211_intr_handler,
-	.autoneg_enable    = vsc8211_autoneg_enable,
-	.autoneg_restart   = vsc8211_autoneg_restart,
-	.advertise         = t3_phy_advertise,
-	.set_speed_duplex  = vsc8211_set_speed_duplex,
-	.get_link_status   = vsc8211_get_link_status,
-	.power_down        = vsc8211_power_down,
+	.reset = vsc8211_reset,
+	.intr_enable = vsc8211_intr_enable,
+	.intr_disable = vsc8211_intr_disable,
+	.intr_clear = vsc8211_intr_clear,
+	.intr_handler = vsc8211_intr_handler,
+	.autoneg_enable = vsc8211_autoneg_enable,
+	.autoneg_restart = vsc8211_autoneg_restart,
+	.advertise = t3_phy_advertise,
+	.set_speed_duplex = vsc8211_set_speed_duplex,
+	.get_link_status = vsc8211_get_link_status,
+	.power_down = vsc8211_power_down,
 };
 
 static struct cphy_ops vsc8211_fiber_ops = {
-	.reset             = vsc8211_reset,
-	.intr_enable       = vsc8211_intr_enable,
-	.intr_disable      = vsc8211_intr_disable,
-	.intr_clear        = vsc8211_intr_clear,
-	.intr_handler      = vsc8211_intr_handler,
-	.autoneg_enable    = vsc8211_autoneg_enable,
-	.autoneg_restart   = vsc8211_autoneg_restart,
-	.advertise         = t3_phy_advertise_fiber,
-	.set_speed_duplex  = t3_set_phy_speed_duplex,
-	.get_link_status   = vsc8211_get_link_status_fiber,
-	.power_down        = vsc8211_power_down,
+	.reset = vsc8211_reset,
+	.intr_enable = vsc8211_intr_enable,
+	.intr_disable = vsc8211_intr_disable,
+	.intr_clear = vsc8211_intr_clear,
+	.intr_handler = vsc8211_intr_handler,
+	.autoneg_enable = vsc8211_autoneg_enable,
+	.autoneg_restart = vsc8211_autoneg_restart,
+	.advertise = t3_phy_advertise_fiber,
+	.set_speed_duplex = t3_set_phy_speed_duplex,
+	.get_link_status = vsc8211_get_link_status_fiber,
+	.power_down = vsc8211_power_down,
 };
 #endif
 
 #define VSC8211_PHY_CTRL 24
 
-#define S_VSC8211_TXFIFODEPTH    7
-#define M_VSC8211_TXFIFODEPTH    0x7
+#define S_VSC8211_TXFIFODEPTH 7
+#define M_VSC8211_TXFIFODEPTH 0x7
 #define V_VSC8211_TXFIFODEPTH(x) ((x) << S_VSC8211_TXFIFODEPTH)
-#define G_VSC8211_TXFIFODEPTH(x) (((x) >> S_VSC8211_TXFIFODEPTH) & M_VSC8211_TXFIFODEPTH)
+#define G_VSC8211_TXFIFODEPTH(x) \
+	(((x) >> S_VSC8211_TXFIFODEPTH) & M_VSC8211_TXFIFODEPTH)
 
-#define S_VSC8211_RXFIFODEPTH    4
-#define M_VSC8211_RXFIFODEPTH    0x7
+#define S_VSC8211_RXFIFODEPTH 4
+#define M_VSC8211_RXFIFODEPTH 0x7
 #define V_VSC8211_RXFIFODEPTH(x) ((x) << S_VSC8211_RXFIFODEPTH)
-#define G_VSC8211_RXFIFODEPTH(x) (((x) >> S_VSC8211_RXFIFODEPTH) & M_VSC8211_RXFIFODEPTH)
+#define G_VSC8211_RXFIFODEPTH(x) \
+	(((x) >> S_VSC8211_RXFIFODEPTH) & M_VSC8211_RXFIFODEPTH)
 
-int t3_vsc8211_fifo_depth(adapter_t *adap, unsigned int mtu, int port)
+int
+t3_vsc8211_fifo_depth(adapter_t *adap, unsigned int mtu, int port)
 {
 	/* TX FIFO Depth set bits 9:7 to 100 (IEEE mode) */
 	unsigned int val = 4;
@@ -412,31 +429,34 @@ int t3_vsc8211_fifo_depth(adapter_t *adap, unsigned int mtu, int port)
 	/* IEEE mode supports up to 1518 bytes */
 	/* mtu does not contain the header + FCS (18 bytes) */
 	if (mtu > 1500)
-		/* 
-		 * If using a packet size > 1500  set TX FIFO Depth bits 
-		 * 9:7 to 011 (Jumbo packet mode) 
+		/*
+		 * If using a packet size > 1500  set TX FIFO Depth bits
+		 * 9:7 to 011 (Jumbo packet mode)
 		 */
 		val = 3;
 
-	regval = V_VSC8211_TXFIFODEPTH(val) | V_VSC8211_RXFIFODEPTH(val) | 
-		(currentregval & ~V_VSC8211_TXFIFODEPTH(M_VSC8211_TXFIFODEPTH) &
+	regval = V_VSC8211_TXFIFODEPTH(val) | V_VSC8211_RXFIFODEPTH(val) |
+	    (currentregval & ~V_VSC8211_TXFIFODEPTH(M_VSC8211_TXFIFODEPTH) &
 		~V_VSC8211_RXFIFODEPTH(M_VSC8211_RXFIFODEPTH));
 
-	return  mdio_write(phy, 0, VSC8211_PHY_CTRL, regval);
+	return mdio_write(phy, 0, VSC8211_PHY_CTRL, regval);
 }
 
-int t3_vsc8211_phy_prep(pinfo_t *pinfo, int phy_addr,
-			const struct mdio_ops *mdio_ops)
+int
+t3_vsc8211_phy_prep(pinfo_t *pinfo, int phy_addr,
+    const struct mdio_ops *mdio_ops)
 {
 	struct cphy *phy = &pinfo->phy;
 	int err;
 	unsigned int val;
 
-	cphy_init(&pinfo->phy, pinfo->adapter, pinfo, phy_addr, &vsc8211_ops, mdio_ops,
-		  SUPPORTED_10baseT_Full | SUPPORTED_100baseT_Full |
-		  SUPPORTED_1000baseT_Full | SUPPORTED_Autoneg | SUPPORTED_MII |
-		  SUPPORTED_TP | SUPPORTED_IRQ, "10/100/1000BASE-T");
-	msleep(20);       /* PHY needs ~10ms to start responding to MDIO */
+	cphy_init(&pinfo->phy, pinfo->adapter, pinfo, phy_addr, &vsc8211_ops,
+	    mdio_ops,
+	    SUPPORTED_10baseT_Full | SUPPORTED_100baseT_Full |
+		SUPPORTED_1000baseT_Full | SUPPORTED_Autoneg | SUPPORTED_MII |
+		SUPPORTED_TP | SUPPORTED_IRQ,
+	    "10/100/1000BASE-T");
+	msleep(20); /* PHY needs ~10ms to start responding to MDIO */
 
 	err = mdio_read(phy, 0, VSC8211_EXT_CTRL, &val);
 	if (err)
@@ -447,7 +467,7 @@ int t3_vsc8211_phy_prep(pinfo_t *pinfo, int phy_addr,
 	}
 
 	phy->caps = SUPPORTED_1000baseT_Full | SUPPORTED_Autoneg |
-		    SUPPORTED_MII | SUPPORTED_FIBRE | SUPPORTED_IRQ;
+	    SUPPORTED_MII | SUPPORTED_FIBRE | SUPPORTED_IRQ;
 	phy->desc = "1000BASE-X";
 	phy->ops = &vsc8211_fiber_ops;
 
@@ -455,7 +475,7 @@ int t3_vsc8211_phy_prep(pinfo_t *pinfo, int phy_addr,
 	    (err = mdio_write(phy, 0, VSC8211_SIGDET_CTRL, 1)) != 0 ||
 	    (err = mdio_write(phy, 0, VSC8211_EXT_PAGE_AXS, 0)) != 0 ||
 	    (err = mdio_write(phy, 0, VSC8211_EXT_CTRL,
-			      val | VSC_CTRL_CLAUSE37_VIEW)) != 0 ||
+		 val | VSC_CTRL_CLAUSE37_VIEW)) != 0 ||
 	    (err = vsc8211_reset(phy, 0)) != 0)
 		return err;
 

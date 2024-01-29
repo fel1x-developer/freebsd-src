@@ -62,26 +62,20 @@
 
 #if !defined(DISABLE_SATI_PASSTHROUGH)
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-SATI_STATUS sati_passthrough_12_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_passthrough_12_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_passthrough_16_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_passthrough_16_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_passthrough_translate_response(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_passthrough_translate_response(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 #endif // !defined(DISABLE_SATI_PASSTHROUGH)
 

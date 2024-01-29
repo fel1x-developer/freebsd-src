@@ -16,18 +16,18 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-
 #include <sys/types.h>
 #include <sys/alq.h>
 #include <sys/endian.h>
 
 #include <dev/ath/if_ath_alq.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "tdma.h"
 
@@ -40,11 +40,11 @@ ath_tdma_beacon_state(struct if_ath_alq_payload *a)
 	memcpy(&t, &a->payload, sizeof(t));
 
 	printf("[%u.%06u] [%llu] BEACON: RX TSF=%llu Beacon TSF=%llu (%d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp_sec),
-	    (unsigned int) be32toh(a->hdr.tstamp_usec),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.rx_tsf),
-	    (unsigned long long) be64toh(t.beacon_tsf),
+	    (unsigned int)be32toh(a->hdr.tstamp_sec),
+	    (unsigned int)be32toh(a->hdr.tstamp_usec),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.rx_tsf),
+	    (unsigned long long)be64toh(t.beacon_tsf),
 	    be64toh(t.beacon_tsf) - last_beacon_tx);
 
 	last_beacon_tx = be64toh(t.beacon_tsf);
@@ -65,15 +65,13 @@ ath_tdma_slot_calc(struct if_ath_alq_payload *a)
 
 	memcpy(&t, &a->payload, sizeof(t));
 	printf("[%u.%06u] [%llu] SLOTCALC: NEXTTBTT=%llu nextslot=%llu "
-	    "tsfdelta=%d avg (%d/%d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp_sec),
-	    (unsigned int) be32toh(a->hdr.tstamp_usec),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.nexttbtt),
-	    (unsigned long long) be64toh(t.next_slot),
-	    (int) be32toh(t.tsfdelta),
-	    (int) be32toh(t.avg_plus),
-	    (int) be32toh(t.avg_minus));
+	       "tsfdelta=%d avg (%d/%d)\n",
+	    (unsigned int)be32toh(a->hdr.tstamp_sec),
+	    (unsigned int)be32toh(a->hdr.tstamp_usec),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.nexttbtt),
+	    (unsigned long long)be64toh(t.next_slot), (int)be32toh(t.tsfdelta),
+	    (int)be32toh(t.avg_plus), (int)be32toh(t.avg_minus));
 }
 
 void
@@ -83,13 +81,12 @@ ath_tdma_tsf_adjust(struct if_ath_alq_payload *a)
 
 	memcpy(&t, &a->payload, sizeof(t));
 	printf("[%u.%06u] [%llu] TSFADJUST: TSF64 was %llu, adj=%d, "
-	    "now %llu\n",
-	    (unsigned int) be32toh(a->hdr.tstamp_sec),
-	    (unsigned int) be32toh(a->hdr.tstamp_usec),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.tsf64_old),
-	    (int) be32toh(t.tsfdelta),
-	    (unsigned long long) be64toh(t.tsf64_new));
+	       "now %llu\n",
+	    (unsigned int)be32toh(a->hdr.tstamp_sec),
+	    (unsigned int)be32toh(a->hdr.tstamp_usec),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.tsf64_old), (int)be32toh(t.tsfdelta),
+	    (unsigned long long)be64toh(t.tsf64_new));
 }
 
 void
@@ -99,17 +96,12 @@ ath_tdma_timer_set(struct if_ath_alq_payload *a)
 
 	memcpy(&t, &a->payload, sizeof(t));
 	printf("[%u.%06u] [%llu] TIMERSET: bt_intval=%d nexttbtt=%d "
-	    "nextdba=%d nextswba=%d nextatim=%d flags=0x%x tdmadbaprep=%d "
-	    "tdmaswbaprep=%d\n",
-	    (unsigned int) be32toh(a->hdr.tstamp_sec),
-	    (unsigned int) be32toh(a->hdr.tstamp_usec),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    be32toh(t.bt_intval),
-	    be32toh(t.bt_nexttbtt),
-	    be32toh(t.bt_nextdba),
-	    be32toh(t.bt_nextswba),
-	    be32toh(t.bt_nextatim),
-	    be32toh(t.bt_flags),
-	    be32toh(t.sc_tdmadbaprep),
-	    be32toh(t.sc_tdmaswbaprep));
+	       "nextdba=%d nextswba=%d nextatim=%d flags=0x%x tdmadbaprep=%d "
+	       "tdmaswbaprep=%d\n",
+	    (unsigned int)be32toh(a->hdr.tstamp_sec),
+	    (unsigned int)be32toh(a->hdr.tstamp_usec),
+	    (unsigned long long)be64toh(a->hdr.threadid), be32toh(t.bt_intval),
+	    be32toh(t.bt_nexttbtt), be32toh(t.bt_nextdba),
+	    be32toh(t.bt_nextswba), be32toh(t.bt_nextatim), be32toh(t.bt_flags),
+	    be32toh(t.sc_tdmadbaprep), be32toh(t.sc_tdmaswbaprep));
 }

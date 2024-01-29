@@ -20,82 +20,86 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <sys/stat.h>
+
+#include <fcntl.h>
+#include <stdio.h>
+
 #include "namespace.h"
 #include "private.h"
-
-#include "tzfile.h"
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <stdio.h>
-#include "un-namespace.h"
 #include "timelocal.h"
+#include "tzfile.h"
+#include "un-namespace.h"
 
-static char *	_add(const char *, char *, const char *);
-static char *	_conv(int, const char *, char *, const char *, locale_t);
-static char *	_fmt(const char *, const struct tm *, char *, const char *,
-			int *, locale_t);
-static char *	_yconv(int, int, int, int, char *, const char *, locale_t);
+static char *_add(const char *, char *, const char *);
+static char *_conv(int, const char *, char *, const char *, locale_t);
+static char *_fmt(const char *, const struct tm *, char *, const char *, int *,
+    locale_t);
+static char *_yconv(int, int, int, int, char *, const char *, locale_t);
 
-extern char *	tzname[];
+extern char *tzname[];
 
 #ifndef YEAR_2000_NAME
-#define YEAR_2000_NAME	"CHECK_STRFTIME_FORMATS_FOR_TWO_DIGIT_YEARS"
+#define YEAR_2000_NAME "CHECK_STRFTIME_FORMATS_FOR_TWO_DIGIT_YEARS"
 #endif /* !defined YEAR_2000_NAME */
 
-#define	IN_NONE	0
-#define	IN_SOME	1
-#define	IN_THIS	2
-#define	IN_ALL	3
+#define IN_NONE 0
+#define IN_SOME 1
+#define IN_THIS 2
+#define IN_ALL 3
 
-#define	PAD_DEFAULT	0
-#define	PAD_LESS	1
-#define	PAD_SPACE	2
-#define	PAD_ZERO	3
+#define PAD_DEFAULT 0
+#define PAD_LESS 1
+#define PAD_SPACE 2
+#define PAD_ZERO 3
 
 static const char fmt_padding[][4][5] = {
-	/* DEFAULT,	LESS,	SPACE,	ZERO */
-#define	PAD_FMT_MONTHDAY	0
-#define	PAD_FMT_HMS		0
-#define	PAD_FMT_CENTURY		0
-#define	PAD_FMT_SHORTYEAR	0
-#define	PAD_FMT_MONTH		0
-#define	PAD_FMT_WEEKOFYEAR	0
-#define	PAD_FMT_DAYOFMONTH	0
-	{ "%02d",	"%d",	"%2d",	"%02d" },
-#define	PAD_FMT_SDAYOFMONTH	1
-#define	PAD_FMT_SHMS		1
-	{ "%2d",	"%d",	"%2d",	"%02d" },
-#define	PAD_FMT_DAYOFYEAR	2
-	{ "%03d",	"%d",	"%3d",	"%03d" },
-#define	PAD_FMT_YEAR		3
-	{ "%04d",	"%d",	"%4d",	"%04d" }
+/* DEFAULT,	LESS,	SPACE,	ZERO */
+#define PAD_FMT_MONTHDAY 0
+#define PAD_FMT_HMS 0
+#define PAD_FMT_CENTURY 0
+#define PAD_FMT_SHORTYEAR 0
+#define PAD_FMT_MONTH 0
+#define PAD_FMT_WEEKOFYEAR 0
+#define PAD_FMT_DAYOFMONTH 0
+	{ "%02d", "%d", "%2d", "%02d" },
+#define PAD_FMT_SDAYOFMONTH 1
+#define PAD_FMT_SHMS 1
+	{ "%2d", "%d", "%2d", "%02d" },
+#define PAD_FMT_DAYOFYEAR 2
+	{ "%03d", "%d", "%3d", "%03d" },
+#define PAD_FMT_YEAR 3
+	{ "%04d", "%d", "%4d", "%04d" }
 };
 
 size_t
-strftime_l(char * __restrict s, size_t maxsize, const char * __restrict format,
-    const struct tm * __restrict t, locale_t loc)
+strftime_l(char *__restrict s, size_t maxsize, const char *__restrict format,
+    const struct tm *__restrict t, locale_t loc)
 {
-	char *	p;
-	int	warn;
+	char *p;
+	int warn;
 	FIX_LOCALE(loc);
 
 	tzset();
 	warn = IN_NONE;
-	p = _fmt(((format == NULL) ? "%c" : format), t, s, s + maxsize, &warn, loc);
+	p = _fmt(((format == NULL) ? "%c" : format), t, s, s + maxsize, &warn,
+	    loc);
 #ifndef NO_RUN_TIME_WARNINGS_ABOUT_YEAR_2000_PROBLEMS_THANK_YOU
 	if (warn != IN_NONE && getenv(YEAR_2000_NAME) != NULL) {
-		(void) fprintf_l(stderr, loc, "\n");
+		(void)fprintf_l(stderr, loc, "\n");
 		if (format == NULL)
-			(void) fputs("NULL strftime format ", stderr);
-		else	(void) fprintf_l(stderr, loc, "strftime format \"%s\" ",
-				format);
-		(void) fputs("yields only two digits of years in ", stderr);
+			(void)fputs("NULL strftime format ", stderr);
+		else
+			(void)fprintf_l(stderr, loc, "strftime format \"%s\" ",
+			    format);
+		(void)fputs("yields only two digits of years in ", stderr);
 		if (warn == IN_SOME)
-			(void) fputs("some locales", stderr);
+			(void)fputs("some locales", stderr);
 		else if (warn == IN_THIS)
-			(void) fputs("the current locale", stderr);
-		else	(void) fputs("all locales", stderr);
-		(void) fputs("\n", stderr);
+			(void)fputs("the current locale", stderr);
+		else
+			(void)fputs("all locales", stderr);
+		(void)fputs("\n", stderr);
 	}
 #endif /* !defined NO_RUN_TIME_WARNINGS_ABOUT_YEAR_2000_PROBLEMS_THANK_YOU */
 	if (p == s + maxsize)
@@ -105,54 +109,58 @@ strftime_l(char * __restrict s, size_t maxsize, const char * __restrict format,
 }
 
 size_t
-strftime(char * __restrict s, size_t maxsize, const char * __restrict format,
-    const struct tm * __restrict t)
+strftime(char *__restrict s, size_t maxsize, const char *__restrict format,
+    const struct tm *__restrict t)
 {
 	return strftime_l(s, maxsize, format, t, __get_locale());
 }
 
 static char *
-_fmt(const char *format, const struct tm * const t, char *pt,
-    const char * const ptlim, int *warnp, locale_t loc)
+_fmt(const char *format, const struct tm *const t, char *pt,
+    const char *const ptlim, int *warnp, locale_t loc)
 {
 	int Ealternative, Oalternative, PadIndex;
 	struct lc_time_T *tptr = __get_current_time_locale(loc);
 
-	for ( ; *format; ++format) {
+	for (; *format; ++format) {
 		if (*format == '%') {
 			Ealternative = 0;
 			Oalternative = 0;
-			PadIndex	 = PAD_DEFAULT;
-label:
+			PadIndex = PAD_DEFAULT;
+		label:
 			switch (*++format) {
 			case '\0':
 				--format;
 				break;
 			case 'A':
 				pt = _add((t->tm_wday < 0 ||
-					t->tm_wday >= DAYSPERWEEK) ?
-					"?" : tptr->weekday[t->tm_wday],
-					pt, ptlim);
+					      t->tm_wday >= DAYSPERWEEK) ?
+					"?" :
+					tptr->weekday[t->tm_wday],
+				    pt, ptlim);
 				continue;
 			case 'a':
 				pt = _add((t->tm_wday < 0 ||
-					t->tm_wday >= DAYSPERWEEK) ?
-					"?" : tptr->wday[t->tm_wday],
-					pt, ptlim);
+					      t->tm_wday >= DAYSPERWEEK) ?
+					"?" :
+					tptr->wday[t->tm_wday],
+				    pt, ptlim);
 				continue;
 			case 'B':
 				pt = _add((t->tm_mon < 0 ||
-					t->tm_mon >= MONSPERYEAR) ?
-					"?" : (Oalternative ? tptr->alt_month :
-					tptr->month)[t->tm_mon],
-					pt, ptlim);
+					      t->tm_mon >= MONSPERYEAR) ?
+					"?" :
+					(Oalternative ? tptr->alt_month :
+							tptr->month)[t->tm_mon],
+				    pt, ptlim);
 				continue;
 			case 'b':
 			case 'h':
 				pt = _add((t->tm_mon < 0 ||
-					t->tm_mon >= MONSPERYEAR) ?
-					"?" : tptr->mon[t->tm_mon],
-					pt, ptlim);
+					      t->tm_mon >= MONSPERYEAR) ?
+					"?" :
+					tptr->mon[t->tm_mon],
+				    pt, ptlim);
 				continue;
 			case 'C':
 				/*
@@ -162,27 +170,27 @@ label:
 				 * something completely different.
 				 * (ado, 1993-05-24)
 				 */
-				pt = _yconv(t->tm_year, TM_YEAR_BASE, 1, 0,
-					pt, ptlim, loc);
+				pt = _yconv(t->tm_year, TM_YEAR_BASE, 1, 0, pt,
+				    ptlim, loc);
 				continue;
-			case 'c':
-				{
+			case 'c': {
 				int warn2 = IN_SOME;
 
-				pt = _fmt(tptr->c_fmt, t, pt, ptlim, &warn2, loc);
+				pt = _fmt(tptr->c_fmt, t, pt, ptlim, &warn2,
+				    loc);
 				if (warn2 == IN_ALL)
 					warn2 = IN_THIS;
 				if (warn2 > *warnp)
 					*warnp = warn2;
-				}
+			}
 				continue;
 			case 'D':
 				pt = _fmt("%m/%d/%y", t, pt, ptlim, warnp, loc);
 				continue;
 			case 'd':
 				pt = _conv(t->tm_mday,
-					fmt_padding[PAD_FMT_DAYOFMONTH][PadIndex],
-					pt, ptlim, loc);
+				    fmt_padding[PAD_FMT_DAYOFMONTH][PadIndex],
+				    pt, ptlim, loc);
 				continue;
 			case 'E':
 				if (Ealternative || Oalternative)
@@ -208,26 +216,28 @@ label:
 				goto label;
 			case 'e':
 				pt = _conv(t->tm_mday,
-					fmt_padding[PAD_FMT_SDAYOFMONTH][PadIndex],
-					pt, ptlim, loc);
+				    fmt_padding[PAD_FMT_SDAYOFMONTH][PadIndex],
+				    pt, ptlim, loc);
 				continue;
 			case 'F':
 				pt = _fmt("%Y-%m-%d", t, pt, ptlim, warnp, loc);
 				continue;
 			case 'H':
-				pt = _conv(t->tm_hour, fmt_padding[PAD_FMT_HMS][PadIndex],
-					pt, ptlim, loc);
+				pt = _conv(t->tm_hour,
+				    fmt_padding[PAD_FMT_HMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 			case 'I':
 				pt = _conv((t->tm_hour % 12) ?
-					(t->tm_hour % 12) : 12,
-					fmt_padding[PAD_FMT_HMS][PadIndex],
-					pt, ptlim, loc);
+					(t->tm_hour % 12) :
+					12,
+				    fmt_padding[PAD_FMT_HMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 			case 'j':
 				pt = _conv(t->tm_yday + 1,
-					fmt_padding[PAD_FMT_DAYOFYEAR][PadIndex],
-					pt, ptlim, loc);
+				    fmt_padding[PAD_FMT_DAYOFYEAR][PadIndex],
+				    pt, ptlim, loc);
 				continue;
 			case 'k':
 				/*
@@ -240,8 +250,9 @@ label:
 				 * "%l" have been swapped.
 				 * (ado, 1993-05-24)
 				 */
-				pt = _conv(t->tm_hour, fmt_padding[PAD_FMT_SHMS][PadIndex],
-					pt, ptlim, loc);
+				pt = _conv(t->tm_hour,
+				    fmt_padding[PAD_FMT_SHMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 #ifdef KITCHEN_SINK
 			case 'K':
@@ -262,54 +273,57 @@ label:
 				 * (ado, 1993-05-24)
 				 */
 				pt = _conv((t->tm_hour % 12) ?
-					(t->tm_hour % 12) : 12,
-					fmt_padding[PAD_FMT_SHMS][PadIndex],
-					pt, ptlim, loc);
+					(t->tm_hour % 12) :
+					12,
+				    fmt_padding[PAD_FMT_SHMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 			case 'M':
-				pt = _conv(t->tm_min, fmt_padding[PAD_FMT_HMS][PadIndex],
-					pt, ptlim, loc);
+				pt = _conv(t->tm_min,
+				    fmt_padding[PAD_FMT_HMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 			case 'm':
 				pt = _conv(t->tm_mon + 1,
-					fmt_padding[PAD_FMT_MONTH][PadIndex],
-					pt, ptlim, loc);
+				    fmt_padding[PAD_FMT_MONTH][PadIndex], pt,
+				    ptlim, loc);
 				continue;
 			case 'n':
 				pt = _add("\n", pt, ptlim);
 				continue;
 			case 'p':
 				pt = _add((t->tm_hour >= (HOURSPERDAY / 2)) ?
-					tptr->pm : tptr->am,
-					pt, ptlim);
+					tptr->pm :
+					tptr->am,
+				    pt, ptlim);
 				continue;
 			case 'R':
 				pt = _fmt("%H:%M", t, pt, ptlim, warnp, loc);
 				continue;
 			case 'r':
-				pt = _fmt(tptr->ampm_fmt, t, pt, ptlim,
-					warnp, loc);
+				pt = _fmt(tptr->ampm_fmt, t, pt, ptlim, warnp,
+				    loc);
 				continue;
 			case 'S':
-				pt = _conv(t->tm_sec, fmt_padding[PAD_FMT_HMS][PadIndex],
-					pt, ptlim, loc);
+				pt = _conv(t->tm_sec,
+				    fmt_padding[PAD_FMT_HMS][PadIndex], pt,
+				    ptlim, loc);
 				continue;
-			case 's':
-				{
-					struct tm	tm;
-					char		buf[INT_STRLEN_MAXIMUM(
-								time_t) + 1];
-					time_t		mkt;
+			case 's': {
+				struct tm tm;
+				char buf[INT_STRLEN_MAXIMUM(time_t) + 1];
+				time_t mkt;
 
-					tm = *t;
-					mkt = mktime(&tm);
-					if (TYPE_SIGNED(time_t))
-						(void) sprintf_l(buf, loc, "%ld",
-							(long) mkt);
-					else	(void) sprintf_l(buf, loc, "%lu",
-							(unsigned long) mkt);
-					pt = _add(buf, pt, ptlim);
-				}
+				tm = *t;
+				mkt = mktime(&tm);
+				if (TYPE_SIGNED(time_t))
+					(void)sprintf_l(buf, loc, "%ld",
+					    (long)mkt);
+				else
+					(void)sprintf_l(buf, loc, "%lu",
+					    (unsigned long)mkt);
+				pt = _add(buf, pt, ptlim);
+			}
 				continue;
 			case 'T':
 				pt = _fmt("%H:%M:%S", t, pt, ptlim, warnp, loc);
@@ -319,9 +333,10 @@ label:
 				continue;
 			case 'U':
 				pt = _conv((t->tm_yday + DAYSPERWEEK -
-					t->tm_wday) / DAYSPERWEEK,
-					fmt_padding[PAD_FMT_WEEKOFYEAR][PadIndex],
-					pt, ptlim, loc);
+					       t->tm_wday) /
+					DAYSPERWEEK,
+				    fmt_padding[PAD_FMT_WEEKOFYEAR][PadIndex],
+				    pt, ptlim, loc);
 				continue;
 			case 'u':
 				/*
@@ -330,62 +345,68 @@ label:
 				 * [1 (Monday) - 7]"
 				 * (ado, 1993-05-24)
 				 */
-				pt = _conv((t->tm_wday == 0) ?
-					DAYSPERWEEK : t->tm_wday,
-					"%d", pt, ptlim, loc);
+				pt = _conv((t->tm_wday == 0) ? DAYSPERWEEK :
+							       t->tm_wday,
+				    "%d", pt, ptlim, loc);
 				continue;
-			case 'V':	/* ISO 8601 week number */
-			case 'G':	/* ISO 8601 year (four digits) */
-			case 'g':	/* ISO 8601 year (two digits) */
-/*
- * From Arnold Robbins' strftime version 3.0: "the week number of the
- * year (the first Monday as the first day of week 1) as a decimal number
- * (01-53)."
- * (ado, 1993-05-24)
- *
- * From "http://www.ft.uni-erlangen.de/~mskuhn/iso-time.html" by Markus Kuhn:
- * "Week 01 of a year is per definition the first week which has the
- * Thursday in this year, which is equivalent to the week which contains
- * the fourth day of January. In other words, the first week of a new year
- * is the week which has the majority of its days in the new year. Week 01
- * might also contain days from the previous year and the week before week
- * 01 of a year is the last week (52 or 53) of the previous year even if
- * it contains days from the new year. A week starts with Monday (day 1)
- * and ends with Sunday (day 7). For example, the first week of the year
- * 1997 lasts from 1996-12-30 to 1997-01-05..."
- * (ado, 1996-01-02)
- */
+			case 'V': /* ISO 8601 week number */
+			case 'G': /* ISO 8601 year (four digits) */
+			case 'g': /* ISO 8601 year (two digits) */
+				  /*
+				   * From Arnold Robbins' strftime version 3.0:
+				   * "the week number of the   year (the first
+				   * Monday as the first day of week 1) as a
+				   * decimal number   (01-53)."   (ado, 1993-05-24)
+				   *
+				   * From
+				   * "http://www.ft.uni-erlangen.de/~mskuhn/iso-time.html"
+				   * by Markus Kuhn:   "Week 01 of a year is per
+				   * definition the first week which has the
+				   * Thursday in this year, which is equivalent to
+				   * the week which contains   the fourth day of
+				   * January. In other words, the first week of a
+				   * new year   is the week which has the majority
+				   * of its days in the new year. Week 01   might
+				   * also contain days from the previous year and
+				   * the week before week   01 of a year is the last
+				   * week (52 or 53) of the previous year even if
+				   * it contains days from the new year. A week
+				   * starts with Monday (day 1)   and ends with
+				   * Sunday (day 7). For example, the first week
+				   * of the year   1997 lasts from 1996-12-30 to
+				   * 1997-01-05..."   (ado, 1996-01-02)
+				   */
 				{
-					int	year;
-					int	base;
-					int	yday;
-					int	wday;
-					int	w;
+					int year;
+					int base;
+					int yday;
+					int wday;
+					int w;
 
 					year = t->tm_year;
 					base = TM_YEAR_BASE;
 					yday = t->tm_yday;
 					wday = t->tm_wday;
-					for ( ; ; ) {
-						int	len;
-						int	bot;
-						int	top;
+					for (;;) {
+						int len;
+						int bot;
+						int top;
 
 						len = isleap_sum(year, base) ?
-							DAYSPERLYEAR :
-							DAYSPERNYEAR;
+						    DAYSPERLYEAR :
+						    DAYSPERNYEAR;
 						/*
 						 * What yday (-3 ... 3) does
 						 * the ISO year begin on?
 						 */
 						bot = ((yday + 11 - wday) %
-							DAYSPERWEEK) - 3;
+							  DAYSPERWEEK) -
+						    3;
 						/*
 						 * What yday does the NEXT
 						 * ISO year begin on?
 						 */
-						top = bot -
-							(len % DAYSPERWEEK);
+						top = bot - (len % DAYSPERWEEK);
 						if (top < -3)
 							top += DAYSPERWEEK;
 						top += len;
@@ -395,31 +416,36 @@ label:
 							break;
 						}
 						if (yday >= bot) {
-							w = 1 + ((yday - bot) /
+							w = 1 +
+							    ((yday - bot) /
 								DAYSPERWEEK);
 							break;
 						}
 						--base;
 						yday += isleap_sum(year, base) ?
-							DAYSPERLYEAR :
-							DAYSPERNYEAR;
+						    DAYSPERLYEAR :
+						    DAYSPERNYEAR;
 					}
 #ifdef XPG4_1994_04_09
 					if ((w == 52 &&
 						t->tm_mon == TM_JANUARY) ||
-						(w == 1 &&
+					    (w == 1 &&
 						t->tm_mon == TM_DECEMBER))
-							w = 53;
+						w = 53;
 #endif /* defined XPG4_1994_04_09 */
 					if (*format == 'V')
-						pt = _conv(w, fmt_padding[PAD_FMT_WEEKOFYEAR][PadIndex],
-							pt, ptlim, loc);
+						pt = _conv(w,
+						    fmt_padding
+							[PAD_FMT_WEEKOFYEAR]
+							[PadIndex],
+						    pt, ptlim, loc);
 					else if (*format == 'g') {
 						*warnp = IN_ALL;
 						pt = _yconv(year, base, 0, 1,
-							pt, ptlim, loc);
-					} else	pt = _yconv(year, base, 1, 1,
-							pt, ptlim, loc);
+						    pt, ptlim, loc);
+					} else
+						pt = _yconv(year, base, 1, 1,
+						    pt, ptlim, loc);
 				}
 				continue;
 			case 'v':
@@ -432,37 +458,39 @@ label:
 				continue;
 			case 'W':
 				pt = _conv((t->tm_yday + DAYSPERWEEK -
-					(t->tm_wday ?
-					(t->tm_wday - 1) :
-					(DAYSPERWEEK - 1))) / DAYSPERWEEK,
-					fmt_padding[PAD_FMT_WEEKOFYEAR][PadIndex],
-					pt, ptlim, loc);
+					       (t->tm_wday ?
+						       (t->tm_wday - 1) :
+						       (DAYSPERWEEK - 1))) /
+					DAYSPERWEEK,
+				    fmt_padding[PAD_FMT_WEEKOFYEAR][PadIndex],
+				    pt, ptlim, loc);
 				continue;
 			case 'w':
 				pt = _conv(t->tm_wday, "%d", pt, ptlim, loc);
 				continue;
 			case 'X':
-				pt = _fmt(tptr->X_fmt, t, pt, ptlim, warnp, loc);
+				pt = _fmt(tptr->X_fmt, t, pt, ptlim, warnp,
+				    loc);
 				continue;
-			case 'x':
-				{
-				int	warn2 = IN_SOME;
+			case 'x': {
+				int warn2 = IN_SOME;
 
-				pt = _fmt(tptr->x_fmt, t, pt, ptlim, &warn2, loc);
+				pt = _fmt(tptr->x_fmt, t, pt, ptlim, &warn2,
+				    loc);
 				if (warn2 == IN_ALL)
 					warn2 = IN_THIS;
 				if (warn2 > *warnp)
 					*warnp = warn2;
-				}
+			}
 				continue;
 			case 'y':
 				*warnp = IN_ALL;
-				pt = _yconv(t->tm_year, TM_YEAR_BASE, 0, 1,
-					pt, ptlim, loc);
+				pt = _yconv(t->tm_year, TM_YEAR_BASE, 0, 1, pt,
+				    ptlim, loc);
 				continue;
 			case 'Y':
-				pt = _yconv(t->tm_year, TM_YEAR_BASE, 1, 1,
-					pt, ptlim, loc);
+				pt = _yconv(t->tm_year, TM_YEAR_BASE, 1, 1, pt,
+				    ptlim, loc);
 				continue;
 			case 'Z':
 #ifdef TM_ZONE
@@ -470,19 +498,19 @@ label:
 					pt = _add(t->TM_ZONE, pt, ptlim);
 				else
 #endif /* defined TM_ZONE */
-				if (t->tm_isdst >= 0)
-					pt = _add(tzname[t->tm_isdst != 0],
-						pt, ptlim);
+					if (t->tm_isdst >= 0)
+						pt = _add(
+						    tzname[t->tm_isdst != 0],
+						    pt, ptlim);
 				/*
 				 * C99 says that %Z must be replaced by the
 				 * empty string if the time zone is not
 				 * determinable.
 				 */
 				continue;
-			case 'z':
-				{
-				int		diff;
-				char const *	sign;
+			case 'z': {
+				int diff;
+				char const *sign;
 
 				if (t->tm_isdst < 0)
 					continue;
@@ -511,13 +539,13 @@ label:
 				if (t->tm_isdst == 0)
 #ifdef USG_COMPAT
 					diff = -timezone;
-#else /* !defined USG_COMPAT */
+#else  /* !defined USG_COMPAT */
 					continue;
 #endif /* !defined USG_COMPAT */
 				else
 #ifdef ALTZONE
 					diff = -altzone;
-#else /* !defined ALTZONE */
+#else  /* !defined ALTZONE */
 					continue;
 #endif /* !defined ALTZONE */
 #endif /* !defined TM_GMTOFF */
@@ -529,15 +557,15 @@ label:
 				pt = _add(sign, pt, ptlim);
 				diff /= SECSPERMIN;
 				diff = (diff / MINSPERHOUR) * 100 +
-					(diff % MINSPERHOUR);
+				    (diff % MINSPERHOUR);
 				pt = _conv(diff,
-					fmt_padding[PAD_FMT_YEAR][PadIndex],
-					pt, ptlim, loc);
-				}
+				    fmt_padding[PAD_FMT_YEAR][PadIndex], pt,
+				    ptlim, loc);
+			}
 				continue;
 			case '+':
-				pt = _fmt(tptr->date_fmt, t, pt, ptlim,
-					warnp, loc);
+				pt = _fmt(tptr->date_fmt, t, pt, ptlim, warnp,
+				    loc);
 				continue;
 			case '-':
 				if (PadIndex != PAD_DEFAULT)
@@ -572,17 +600,17 @@ label:
 }
 
 static char *
-_conv(const int n, const char * const format, char * const pt,
-    const char * const ptlim, locale_t  loc)
+_conv(const int n, const char *const format, char *const pt,
+    const char *const ptlim, locale_t loc)
 {
-	char	buf[INT_STRLEN_MAXIMUM(int) + 1];
+	char buf[INT_STRLEN_MAXIMUM(int) + 1];
 
-	(void) sprintf_l(buf, loc, format, n);
+	(void)sprintf_l(buf, loc, format, n);
 	return _add(buf, pt, ptlim);
 }
 
 static char *
-_add(const char *str, char *pt, const char * const ptlim)
+_add(const char *str, char *pt, const char *const ptlim)
 {
 	while (pt < ptlim && (*pt = *str++) != '\0')
 		++pt;
@@ -599,12 +627,12 @@ _add(const char *str, char *pt, const char * const ptlim)
 
 static char *
 _yconv(const int a, const int b, const int convert_top, const int convert_yy,
-    char *pt, const char * const ptlim, locale_t  loc)
+    char *pt, const char *const ptlim, locale_t loc)
 {
-	register int	lead;
-	register int	trail;
+	register int lead;
+	register int trail;
 
-#define	DIVISOR	100
+#define DIVISOR 100
 	trail = a % DIVISOR + b % DIVISOR;
 	lead = a / DIVISOR + b / DIVISOR + trail / DIVISOR;
 	trail %= DIVISOR;
@@ -618,10 +646,11 @@ _yconv(const int a, const int b, const int convert_top, const int convert_yy,
 	if (convert_top) {
 		if (lead == 0 && trail < 0)
 			pt = _add("-0", pt, ptlim);
-		else	pt = _conv(lead, "%02d", pt, ptlim, loc);
+		else
+			pt = _conv(lead, "%02d", pt, ptlim, loc);
 	}
 	if (convert_yy)
-		pt = _conv(((trail < 0) ? -trail : trail), "%02d", pt,
-		     ptlim, loc);
+		pt = _conv(((trail < 0) ? -trail : trail), "%02d", pt, ptlim,
+		    loc);
 	return (pt);
 }

@@ -27,7 +27,6 @@
  */
 
 struct _gss_context {
-	struct _gss_mech_switch	*gc_mech;
-	gss_ctx_id_t		gc_ctx;
+	struct _gss_mech_switch *gc_mech;
+	gss_ctx_id_t gc_ctx;
 };
-

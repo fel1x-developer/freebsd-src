@@ -26,8 +26,9 @@
 #include <sys/cdefs.h>
 #include <sys/stat.h>
 
-#include "libsecureboot-priv.h"
 #include <verify_file.h>
+
+#include "libsecureboot-priv.h"
 
 /*
  * Values to pass to kernel by envs.
@@ -99,9 +100,9 @@ pass_manifest(const char *path, const char *prefix)
 
 	strcpy(manifest_path, path);
 
-	hexdigest(manifest_hash, 2 * br_sha256_SIZE + 2,
-	    digest, br_sha256_SIZE);
-	manifest_hash[2*br_sha256_SIZE] = '\0';
+	hexdigest(manifest_hash, 2 * br_sha256_SIZE + 2, digest,
+	    br_sha256_SIZE);
+	manifest_hash[2 * br_sha256_SIZE] = '\0';
 
 	manifest_present = 1;
 	rc = 0;
@@ -145,4 +146,3 @@ pass_manifest_export_envs()
 
 	return (rc);
 }
-

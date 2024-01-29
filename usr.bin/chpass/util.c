@@ -52,10 +52,9 @@
 
 #include "chpass.h"
 
-static const char *months[] =
-	{ "January", "February", "March", "April", "May", "June",
-	  "July", "August", "September", "October", "November",
-	  "December", NULL };
+static const char *months[] = { "January", "February", "March", "April", "May",
+	"June", "July", "August", "September", "October", "November",
+	"December", NULL };
 
 char *
 ttoa(time_t tval)
@@ -67,8 +66,7 @@ ttoa(time_t tval)
 		tp = localtime(&tval);
 		(void)sprintf(tbuf, "%s %d, %d", months[tp->tm_mon],
 		    tp->tm_mday, tp->tm_year + 1900);
-	}
-	else
+	} else
 		*tbuf = '\0';
 	return (tbuf);
 }
@@ -119,7 +117,8 @@ atot(char *p, time_t *store)
 	else if (year < 100)
 		year += 1900;
 	if (year < 1969)
-bad:		return (1);
+	bad:
+		return (1);
 	lt->tm_year = year - 1900;
 	lt->tm_mon = month - 1;
 	lt->tm_mday = day;

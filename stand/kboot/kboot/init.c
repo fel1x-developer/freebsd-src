@@ -8,9 +8,9 @@
  * Mini-init(8) so we can run as init/pid 1 in a LinuxBoot environment.
  */
 
-#include "stand.h"
 #include "host_syscall.h"
 #include "kboot.h"
+#include "stand.h"
 
 /*
  * Create a 'standard' early boot environment. Cribbed from the things that
@@ -46,10 +46,9 @@ init_fs_env(void)
 	host_symlink("fd/1", "/dev/stdout");
 	host_symlink("fd/2", "/dev/stderr");
 
-
 	/*
-	 * Unsure if we need this, but create a sane /tmp just in case that's useful.
-	 * and point /run over to it.
+	 * Unsure if we need this, but create a sane /tmp just in case that's
+	 * useful. and point /run over to it.
 	 */
 	host_mkdir("/tmp", 01777);
 	host_mount("tmpfs", "/tmp", "tmpfs", MS_RELATIME, "size=10%,mode=1777");
@@ -70,8 +69,8 @@ init_tty(void)
 	int fd;
 
 	/*
-	 * sysvinit asks the linux kernel to convert the CTRL-ALT-DEL to a SIGINT,
-	 * but we skip that.
+	 * sysvinit asks the linux kernel to convert the CTRL-ALT-DEL to a
+	 * SIGINT, but we skip that.
 	 */
 
 	/*

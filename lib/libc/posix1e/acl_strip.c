@@ -26,11 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <assert.h>
 #include <sys/acl.h>
 #include <sys/stat.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <stdio.h>
 
 #include "acl_support.h"
 
@@ -38,9 +39,9 @@
  * These routines from sys/kern/subr_acl_nfs4.c are used by both kernel
  * and libc.
  */
-void	acl_nfs4_sync_mode_from_acl(mode_t *_mode, const struct acl *aclp);
-void	acl_nfs4_trivial_from_mode_libc(struct acl *aclp, int file_owner_id,
-	    int canonical_six);
+void acl_nfs4_sync_mode_from_acl(mode_t *_mode, const struct acl *aclp);
+void acl_nfs4_trivial_from_mode_libc(struct acl *aclp, int file_owner_id,
+    int canonical_six);
 
 static acl_t
 _nfs4_acl_strip_np(const acl_t aclp, int canonical_six)
@@ -57,7 +58,8 @@ _nfs4_acl_strip_np(const acl_t aclp, int canonical_six)
 	_acl_brand_as(newacl, ACL_BRAND_NFS4);
 
 	acl_nfs4_sync_mode_from_acl(&mode, &(aclp->ats_acl));
-	acl_nfs4_trivial_from_mode_libc(&(newacl->ats_acl), mode, canonical_six);
+	acl_nfs4_trivial_from_mode_libc(&(newacl->ats_acl), mode,
+	    canonical_six);
 
 	return (newacl);
 }
@@ -96,7 +98,7 @@ _posix1e_acl_strip_np(const acl_t aclp, int recalculate_mask)
 		if (acl_get_tag_type(entry, &tag) == -1)
 			goto fail;
 
-		switch(tag) {
+		switch (tag) {
 		case ACL_USER_OBJ:
 		case ACL_GROUP_OBJ:
 		case ACL_OTHER:
@@ -182,7 +184,7 @@ acl_is_trivial_np(const acl_t aclp, int *trivialp)
 			*trivialp = 0;
 			return (0);
 		}
-			
+
 		/*
 		 * Calculate trivial ACL - using acl_strip_np(3) - and compare
 		 * with the original.

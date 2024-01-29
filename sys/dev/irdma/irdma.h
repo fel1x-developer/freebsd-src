@@ -35,8 +35,8 @@
 #ifndef IRDMA_H
 #define IRDMA_H
 
-#define RDMA_BIT2(type, a) ((u##type) 1UL << a)
-#define RDMA_MASK3(type, mask, shift)	((u##type) mask << shift)
+#define RDMA_BIT2(type, a) ((u##type)1UL << a)
+#define RDMA_MASK3(type, mask, shift) ((u##type)mask << shift)
 #define MAKEMASK(m, s) ((m) << (s))
 
 #define IRDMA_WQEALLOC_WQE_DESC_INDEX_S 20
@@ -156,7 +156,7 @@ enum irdma_masks {
 	IRDMA_MAX_MASKS, /* Must be last entry */
 };
 
-#define IRDMA_MAX_MGS_PER_CTX	8
+#define IRDMA_MAX_MGS_PER_CTX 8
 
 struct irdma_mcast_grp_ctx_entry_info {
 	u32 qp_id;
@@ -169,14 +169,15 @@ struct irdma_mcast_grp_info {
 	u8 dest_mac_addr[ETHER_ADDR_LEN];
 	u16 vlan_id;
 	u16 hmc_fcn_id;
-	bool ipv4_valid:1;
-	bool vlan_valid:1;
+	bool ipv4_valid : 1;
+	bool vlan_valid : 1;
 	u16 mg_id;
 	u32 no_of_mgs;
 	u32 dest_ip_addr[4];
 	u16 qs_handle;
 	struct irdma_dma_mem dma_mem_mc;
-	struct irdma_mcast_grp_ctx_entry_info mg_ctx_info[IRDMA_MAX_MGS_PER_CTX];
+	struct irdma_mcast_grp_ctx_entry_info
+	    mg_ctx_info[IRDMA_MAX_MGS_PER_CTX];
 };
 
 enum irdma_vers {

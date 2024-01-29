@@ -28,110 +28,107 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <pthread.h>
 #include <pthread_np.h>
 #include <unistd.h>
 
-#include "pci_hda.h"
 #include "audio.h"
+#include "pci_hda.h"
 
 /*
  * HDA Codec defines
  */
-#define INTEL_VENDORID				0x8086
+#define INTEL_VENDORID 0x8086
 
-#define HDA_CODEC_SUBSYSTEM_ID			((INTEL_VENDORID << 16) | 0x01)
-#define HDA_CODEC_ROOT_NID			0x00
-#define HDA_CODEC_FG_NID			0x01
-#define HDA_CODEC_AUDIO_OUTPUT_NID		0x02
-#define HDA_CODEC_PIN_OUTPUT_NID		0x03
-#define HDA_CODEC_AUDIO_INPUT_NID		0x04
-#define HDA_CODEC_PIN_INPUT_NID			0x05
+#define HDA_CODEC_SUBSYSTEM_ID ((INTEL_VENDORID << 16) | 0x01)
+#define HDA_CODEC_ROOT_NID 0x00
+#define HDA_CODEC_FG_NID 0x01
+#define HDA_CODEC_AUDIO_OUTPUT_NID 0x02
+#define HDA_CODEC_PIN_OUTPUT_NID 0x03
+#define HDA_CODEC_AUDIO_INPUT_NID 0x04
+#define HDA_CODEC_PIN_INPUT_NID 0x05
 
-#define HDA_CODEC_STREAMS_COUNT			0x02
-#define HDA_CODEC_STREAM_OUTPUT			0x00
-#define HDA_CODEC_STREAM_INPUT			0x01
+#define HDA_CODEC_STREAMS_COUNT 0x02
+#define HDA_CODEC_STREAM_OUTPUT 0x00
+#define HDA_CODEC_STREAM_INPUT 0x01
 
-#define HDA_CODEC_PARAMS_COUNT			0x14
-#define HDA_CODEC_CONN_LIST_COUNT		0x01
-#define HDA_CODEC_RESPONSE_EX_UNSOL		0x10
-#define HDA_CODEC_RESPONSE_EX_SOL		0x00
-#define HDA_CODEC_AMP_NUMSTEPS			0x4a
+#define HDA_CODEC_PARAMS_COUNT 0x14
+#define HDA_CODEC_CONN_LIST_COUNT 0x01
+#define HDA_CODEC_RESPONSE_EX_UNSOL 0x10
+#define HDA_CODEC_RESPONSE_EX_SOL 0x00
+#define HDA_CODEC_AMP_NUMSTEPS 0x4a
 
-#define HDA_CODEC_SUPP_STREAM_FORMATS_PCM				\
+#define HDA_CODEC_SUPP_STREAM_FORMATS_PCM \
 	(1 << HDA_PARAM_SUPP_STREAM_FORMATS_PCM_SHIFT)
 
-#define HDA_CODEC_FMT_BASE_MASK			(0x01 << 14)
+#define HDA_CODEC_FMT_BASE_MASK (0x01 << 14)
 
-#define HDA_CODEC_FMT_MULT_MASK			(0x07 << 11)
-#define HDA_CODEC_FMT_MULT_2			(0x01 << 11)
-#define HDA_CODEC_FMT_MULT_3			(0x02 << 11)
-#define HDA_CODEC_FMT_MULT_4			(0x03 << 11)
+#define HDA_CODEC_FMT_MULT_MASK (0x07 << 11)
+#define HDA_CODEC_FMT_MULT_2 (0x01 << 11)
+#define HDA_CODEC_FMT_MULT_3 (0x02 << 11)
+#define HDA_CODEC_FMT_MULT_4 (0x03 << 11)
 
-#define HDA_CODEC_FMT_DIV_MASK			0x07
-#define HDA_CODEC_FMT_DIV_SHIFT			8
+#define HDA_CODEC_FMT_DIV_MASK 0x07
+#define HDA_CODEC_FMT_DIV_SHIFT 8
 
-#define HDA_CODEC_FMT_BITS_MASK			(0x07 << 4)
-#define HDA_CODEC_FMT_BITS_8			(0x00 << 4)
-#define HDA_CODEC_FMT_BITS_16			(0x01 << 4)
-#define HDA_CODEC_FMT_BITS_24			(0x03 << 4)
-#define HDA_CODEC_FMT_BITS_32			(0x04 << 4)
+#define HDA_CODEC_FMT_BITS_MASK (0x07 << 4)
+#define HDA_CODEC_FMT_BITS_8 (0x00 << 4)
+#define HDA_CODEC_FMT_BITS_16 (0x01 << 4)
+#define HDA_CODEC_FMT_BITS_24 (0x03 << 4)
+#define HDA_CODEC_FMT_BITS_32 (0x04 << 4)
 
-#define HDA_CODEC_FMT_CHAN_MASK			(0x0f << 0)
+#define HDA_CODEC_FMT_CHAN_MASK (0x0f << 0)
 
-#define HDA_CODEC_AUDIO_WCAP_OUTPUT					\
+#define HDA_CODEC_AUDIO_WCAP_OUTPUT \
 	(0x00 << HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_INPUT					\
+#define HDA_CODEC_AUDIO_WCAP_INPUT \
 	(0x01 << HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_PIN					\
-	(0x04 << HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_CONN_LIST					\
+#define HDA_CODEC_AUDIO_WCAP_PIN (0x04 << HDA_PARAM_AUDIO_WIDGET_CAP_TYPE_SHIFT)
+#define HDA_CODEC_AUDIO_WCAP_CONN_LIST \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_CONN_LIST_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_FORMAT_OVR					\
+#define HDA_CODEC_AUDIO_WCAP_FORMAT_OVR \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_FORMAT_OVR_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_AMP_OVR					\
+#define HDA_CODEC_AUDIO_WCAP_AMP_OVR \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_AMP_OVR_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_OUT_AMP					\
+#define HDA_CODEC_AUDIO_WCAP_OUT_AMP \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_OUT_AMP_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_IN_AMP					\
+#define HDA_CODEC_AUDIO_WCAP_IN_AMP \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_IN_AMP_SHIFT)
-#define HDA_CODEC_AUDIO_WCAP_STEREO					\
+#define HDA_CODEC_AUDIO_WCAP_STEREO \
 	(1 << HDA_PARAM_AUDIO_WIDGET_CAP_STEREO_SHIFT)
 
-#define HDA_CODEC_PIN_CAP_OUTPUT					\
-	(1 << HDA_PARAM_PIN_CAP_OUTPUT_CAP_SHIFT)
-#define HDA_CODEC_PIN_CAP_INPUT						\
-	(1 << HDA_PARAM_PIN_CAP_INPUT_CAP_SHIFT)
-#define HDA_CODEC_PIN_CAP_PRESENCE_DETECT				\
+#define HDA_CODEC_PIN_CAP_OUTPUT (1 << HDA_PARAM_PIN_CAP_OUTPUT_CAP_SHIFT)
+#define HDA_CODEC_PIN_CAP_INPUT (1 << HDA_PARAM_PIN_CAP_INPUT_CAP_SHIFT)
+#define HDA_CODEC_PIN_CAP_PRESENCE_DETECT \
 	(1 << HDA_PARAM_PIN_CAP_PRESENCE_DETECT_CAP_SHIFT)
 
-#define HDA_CODEC_OUTPUT_AMP_CAP_MUTE_CAP				\
+#define HDA_CODEC_OUTPUT_AMP_CAP_MUTE_CAP \
 	(1 << HDA_PARAM_OUTPUT_AMP_CAP_MUTE_CAP_SHIFT)
-#define HDA_CODEC_OUTPUT_AMP_CAP_STEPSIZE				\
+#define HDA_CODEC_OUTPUT_AMP_CAP_STEPSIZE \
 	(0x03 << HDA_PARAM_OUTPUT_AMP_CAP_STEPSIZE_SHIFT)
-#define HDA_CODEC_OUTPUT_AMP_CAP_NUMSTEPS				\
+#define HDA_CODEC_OUTPUT_AMP_CAP_NUMSTEPS \
 	(HDA_CODEC_AMP_NUMSTEPS << HDA_PARAM_OUTPUT_AMP_CAP_NUMSTEPS_SHIFT)
-#define HDA_CODEC_OUTPUT_AMP_CAP_OFFSET					\
+#define HDA_CODEC_OUTPUT_AMP_CAP_OFFSET \
 	(HDA_CODEC_AMP_NUMSTEPS << HDA_PARAM_OUTPUT_AMP_CAP_OFFSET_SHIFT)
 
-#define HDA_CODEC_SET_AMP_GAIN_MUTE_MUTE	0x80
-#define HDA_CODEC_SET_AMP_GAIN_MUTE_GAIN_MASK	0x7f
+#define HDA_CODEC_SET_AMP_GAIN_MUTE_MUTE 0x80
+#define HDA_CODEC_SET_AMP_GAIN_MUTE_GAIN_MASK 0x7f
 
-#define HDA_CODEC_PIN_SENSE_PRESENCE_PLUGGED	(1 << 31)
-#define HDA_CODEC_PIN_WIDGET_CTRL_OUT_ENABLE				\
+#define HDA_CODEC_PIN_SENSE_PRESENCE_PLUGGED (1 << 31)
+#define HDA_CODEC_PIN_WIDGET_CTRL_OUT_ENABLE \
 	(1 << HDA_CMD_GET_PIN_WIDGET_CTRL_OUT_ENABLE_SHIFT)
-#define HDA_CODEC_PIN_WIDGET_CTRL_IN_ENABLE				\
+#define HDA_CODEC_PIN_WIDGET_CTRL_IN_ENABLE \
 	(1 << HDA_CMD_GET_PIN_WIDGET_CTRL_IN_ENABLE_SHIFT)
 
-#define HDA_CONFIG_DEFAULTCONF_COLOR_BLACK				\
+#define HDA_CONFIG_DEFAULTCONF_COLOR_BLACK \
 	(0x01 << HDA_CONFIG_DEFAULTCONF_COLOR_SHIFT)
-#define HDA_CONFIG_DEFAULTCONF_COLOR_RED				\
+#define HDA_CONFIG_DEFAULTCONF_COLOR_RED \
 	(0x05 << HDA_CONFIG_DEFAULTCONF_COLOR_SHIFT)
 
-#define HDA_CODEC_BUF_SIZE			HDA_FIFO_SIZE
+#define HDA_CODEC_BUF_SIZE HDA_FIFO_SIZE
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-
 
 /*
  * HDA Audio Context data structures
@@ -168,8 +165,8 @@ static int hda_audio_ctxt_stop(struct hda_audio_ctxt *actx);
 
 struct hda_codec_softc;
 
-typedef uint32_t (*verb_func_t)(struct hda_codec_softc *sc, uint16_t verb,
-				    uint16_t payload);
+typedef uint32_t (
+    *verb_func_t)(struct hda_codec_softc *sc, uint16_t verb, uint16_t payload);
 
 struct hda_codec_stream {
 	uint8_t buf[HDA_CODEC_BUF_SIZE];
@@ -227,45 +224,43 @@ static uint32_t hda_codec_audio_inout_nid(struct hda_codec_stream *st,
  * HDA Codec global data
  */
 
-#define HDA_CODEC_ROOT_DESC						\
-	[HDA_CODEC_ROOT_NID] = {					\
-		[HDA_PARAM_VENDOR_ID] = INTEL_VENDORID,			\
-		[HDA_PARAM_REVISION_ID] = 0xffff,			\
-		/* 1 Subnode, StartNid = 1 */				\
-		[HDA_PARAM_SUB_NODE_COUNT] = 0x00010001,		\
-	},								\
+#define HDA_CODEC_ROOT_DESC                               \
+	[HDA_CODEC_ROOT_NID] = {                          \
+		[HDA_PARAM_VENDOR_ID] = INTEL_VENDORID,   \
+		[HDA_PARAM_REVISION_ID] =                 \
+		    0xffff, /* 1 Subnode, StartNid = 1 */ \
+		[HDA_PARAM_SUB_NODE_COUNT] = 0x00010001,  \
+	},
 
-#define HDA_CODEC_FG_COMMON_DESC					\
-	[HDA_PARAM_FCT_GRP_TYPE] = HDA_PARAM_FCT_GRP_TYPE_NODE_TYPE_AUDIO,\
-	/* B8 - B32, 8.0 - 192.0kHz */					\
-	[HDA_PARAM_SUPP_PCM_SIZE_RATE] = (0x1f << 16) | 0x7ff,		\
-	[HDA_PARAM_SUPP_STREAM_FORMATS] = HDA_CODEC_SUPP_STREAM_FORMATS_PCM,\
-	[HDA_PARAM_INPUT_AMP_CAP] = 0x00,	/* None */		\
-	[HDA_PARAM_OUTPUT_AMP_CAP] = 0x00,	/* None */		\
-	[HDA_PARAM_GPIO_COUNT] = 0x00,					\
+#define HDA_CODEC_FG_COMMON_DESC                                             \
+	[HDA_PARAM_FCT_GRP_TYPE] =                                           \
+	    HDA_PARAM_FCT_GRP_TYPE_NODE_TYPE_AUDIO, /* B8 - B32, 8.0 -       \
+						       192.0kHz */           \
+	    [HDA_PARAM_SUPP_PCM_SIZE_RATE] = (0x1f << 16) | 0x7ff,           \
+	[HDA_PARAM_SUPP_STREAM_FORMATS] = HDA_CODEC_SUPP_STREAM_FORMATS_PCM, \
+	[HDA_PARAM_INPUT_AMP_CAP] = 0x00,      /* None */                    \
+	    [HDA_PARAM_OUTPUT_AMP_CAP] = 0x00, /* None */                    \
+	    [HDA_PARAM_GPIO_COUNT] = 0x00,
 
-#define HDA_CODEC_FG_OUTPUT_DESC					\
-	[HDA_CODEC_FG_NID] = {						\
-		/* 2 Subnodes, StartNid = 2 */				\
-		[HDA_PARAM_SUB_NODE_COUNT] = 0x00020002,		\
-		HDA_CODEC_FG_COMMON_DESC				\
-	},								\
+#define HDA_CODEC_FG_OUTPUT_DESC                              \
+	[HDA_CODEC_FG_NID] = { /* 2 Subnodes, StartNid = 2 */ \
+		[HDA_PARAM_SUB_NODE_COUNT] = 0x00020002,      \
+		HDA_CODEC_FG_COMMON_DESC                      \
+	},
 
-#define HDA_CODEC_FG_INPUT_DESC						\
-	[HDA_CODEC_FG_NID] = {						\
-		/* 2 Subnodes, StartNid = 4 */				\
-		[HDA_PARAM_SUB_NODE_COUNT] = 0x00040002,		\
-		HDA_CODEC_FG_COMMON_DESC				\
-	},								\
+#define HDA_CODEC_FG_INPUT_DESC                               \
+	[HDA_CODEC_FG_NID] = { /* 2 Subnodes, StartNid = 4 */ \
+		[HDA_PARAM_SUB_NODE_COUNT] = 0x00040002,      \
+		HDA_CODEC_FG_COMMON_DESC                      \
+	},
 
-#define HDA_CODEC_FG_DUPLEX_DESC					\
-	[HDA_CODEC_FG_NID] = {						\
-		/* 4 Subnodes, StartNid = 2 */				\
-		[HDA_PARAM_SUB_NODE_COUNT] = 0x00020004,		\
-		HDA_CODEC_FG_COMMON_DESC				\
-	},								\
+#define HDA_CODEC_FG_DUPLEX_DESC                              \
+	[HDA_CODEC_FG_NID] = { /* 4 Subnodes, StartNid = 2 */ \
+		[HDA_PARAM_SUB_NODE_COUNT] = 0x00020004,      \
+		HDA_CODEC_FG_COMMON_DESC                      \
+	},
 
-#define HDA_CODEC_OUTPUT_DESC						\
+#define HDA_CODEC_OUTPUT_DESC \
 	[HDA_CODEC_AUDIO_OUTPUT_NID] = {				\
 		[HDA_PARAM_AUDIO_WIDGET_CAP] = 				\
 				HDA_CODEC_AUDIO_WCAP_OUTPUT |		\
@@ -295,9 +290,9 @@ static uint32_t hda_codec_audio_inout_nid(struct hda_codec_stream *st,
 		[HDA_PARAM_INPUT_AMP_CAP] = 0x00,	/* None */	\
 		[HDA_PARAM_CONN_LIST_LENGTH] = 0x01,			\
 		[HDA_PARAM_OUTPUT_AMP_CAP] = 0x00,	/* None */	\
-	},								\
+	},
 
-#define HDA_CODEC_INPUT_DESC						\
+#define HDA_CODEC_INPUT_DESC \
 	[HDA_CODEC_AUDIO_INPUT_NID] = {					\
 		[HDA_PARAM_AUDIO_WIDGET_CAP] =				\
 				HDA_CODEC_AUDIO_WCAP_INPUT |		\
@@ -326,59 +321,46 @@ static uint32_t hda_codec_audio_inout_nid(struct hda_codec_stream *st,
 				HDA_CODEC_PIN_CAP_PRESENCE_DETECT,	\
 		[HDA_PARAM_INPUT_AMP_CAP] = 0x00,	/* None */	\
 		[HDA_PARAM_OUTPUT_AMP_CAP] = 0x00,	/* None */	\
-	},								\
+	},
 
-static const uint32_t
-hda_codec_output_parameters[][HDA_CODEC_PARAMS_COUNT] = {
-	HDA_CODEC_ROOT_DESC
-	HDA_CODEC_FG_OUTPUT_DESC
-	HDA_CODEC_OUTPUT_DESC
+static const uint32_t hda_codec_output_parameters[][HDA_CODEC_PARAMS_COUNT] = {
+	HDA_CODEC_ROOT_DESC HDA_CODEC_FG_OUTPUT_DESC HDA_CODEC_OUTPUT_DESC
 };
 
-static const uint32_t
-hda_codec_input_parameters[][HDA_CODEC_PARAMS_COUNT] = {
-	HDA_CODEC_ROOT_DESC
-	HDA_CODEC_FG_INPUT_DESC
-	HDA_CODEC_INPUT_DESC
+static const uint32_t hda_codec_input_parameters[][HDA_CODEC_PARAMS_COUNT] = {
+	HDA_CODEC_ROOT_DESC HDA_CODEC_FG_INPUT_DESC HDA_CODEC_INPUT_DESC
 };
 
-static const uint32_t
-hda_codec_duplex_parameters[][HDA_CODEC_PARAMS_COUNT] = {
-	HDA_CODEC_ROOT_DESC
-	HDA_CODEC_FG_DUPLEX_DESC
-	HDA_CODEC_OUTPUT_DESC
-	HDA_CODEC_INPUT_DESC
+static const uint32_t hda_codec_duplex_parameters[][HDA_CODEC_PARAMS_COUNT] = {
+	HDA_CODEC_ROOT_DESC HDA_CODEC_FG_DUPLEX_DESC HDA_CODEC_OUTPUT_DESC
+	    HDA_CODEC_INPUT_DESC
 };
 
-#define HDA_CODEC_NODES_COUNT	(ARRAY_SIZE(hda_codec_duplex_parameters))
+#define HDA_CODEC_NODES_COUNT (ARRAY_SIZE(hda_codec_duplex_parameters))
 
 static const uint8_t
-hda_codec_conn_list[HDA_CODEC_NODES_COUNT][HDA_CODEC_CONN_LIST_COUNT] = {
-	[HDA_CODEC_PIN_OUTPUT_NID] = {HDA_CODEC_AUDIO_OUTPUT_NID},
-	[HDA_CODEC_AUDIO_INPUT_NID] = {HDA_CODEC_PIN_INPUT_NID},
-};
+    hda_codec_conn_list[HDA_CODEC_NODES_COUNT][HDA_CODEC_CONN_LIST_COUNT] = {
+	    [HDA_CODEC_PIN_OUTPUT_NID] = { HDA_CODEC_AUDIO_OUTPUT_NID },
+	    [HDA_CODEC_AUDIO_INPUT_NID] = { HDA_CODEC_PIN_INPUT_NID },
+    };
 
-static const uint32_t
-hda_codec_conf_default[HDA_CODEC_NODES_COUNT] = {
-	[HDA_CODEC_PIN_OUTPUT_NID] =					\
-		HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_JACK |
-		HDA_CONFIG_DEFAULTCONF_DEVICE_LINE_OUT |
-		HDA_CONFIG_DEFAULTCONF_COLOR_BLACK |
-		(0x01 << HDA_CONFIG_DEFAULTCONF_ASSOCIATION_SHIFT),
+static const uint32_t hda_codec_conf_default[HDA_CODEC_NODES_COUNT] = {
+	[HDA_CODEC_PIN_OUTPUT_NID] = HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_JACK |
+	    HDA_CONFIG_DEFAULTCONF_DEVICE_LINE_OUT |
+	    HDA_CONFIG_DEFAULTCONF_COLOR_BLACK |
+	    (0x01 << HDA_CONFIG_DEFAULTCONF_ASSOCIATION_SHIFT),
 	[HDA_CODEC_PIN_INPUT_NID] = HDA_CONFIG_DEFAULTCONF_CONNECTIVITY_JACK |
-				    HDA_CONFIG_DEFAULTCONF_DEVICE_LINE_IN |
-				    HDA_CONFIG_DEFAULTCONF_COLOR_RED |
-			(0x02 << HDA_CONFIG_DEFAULTCONF_ASSOCIATION_SHIFT),
+	    HDA_CONFIG_DEFAULTCONF_DEVICE_LINE_IN |
+	    HDA_CONFIG_DEFAULTCONF_COLOR_RED |
+	    (0x02 << HDA_CONFIG_DEFAULTCONF_ASSOCIATION_SHIFT),
 };
 
-static const uint8_t
-hda_codec_pin_ctrl_default[HDA_CODEC_NODES_COUNT] = {
+static const uint8_t hda_codec_pin_ctrl_default[HDA_CODEC_NODES_COUNT] = {
 	[HDA_CODEC_PIN_OUTPUT_NID] = HDA_CODEC_PIN_WIDGET_CTRL_OUT_ENABLE,
 	[HDA_CODEC_PIN_INPUT_NID] = HDA_CODEC_PIN_WIDGET_CTRL_IN_ENABLE,
 };
 
-static const
-verb_func_t hda_codec_verb_handlers[HDA_CODEC_NODES_COUNT] = {
+static const verb_func_t hda_codec_verb_handlers[HDA_CODEC_NODES_COUNT] = {
 	[HDA_CODEC_AUDIO_OUTPUT_NID] = hda_codec_audio_output_nid,
 	[HDA_CODEC_AUDIO_INPUT_NID] = hda_codec_audio_input_nid,
 };
@@ -388,8 +370,7 @@ verb_func_t hda_codec_verb_handlers[HDA_CODEC_NODES_COUNT] = {
  */
 
 static int
-hda_codec_init(struct hda_codec_inst *hci, const char *play,
-    const char *rec)
+hda_codec_init(struct hda_codec_inst *hci, const char *play, const char *rec)
 {
 	struct hda_codec_softc *sc = NULL;
 	struct hda_codec_stream *st = NULL;
@@ -425,8 +406,8 @@ hda_codec_init(struct hda_codec_inst *hci, const char *play,
 		st = &sc->streams[HDA_CODEC_STREAM_OUTPUT];
 
 		err = hda_audio_ctxt_init(&st->actx, "hda-audio-output",
-			hda_codec_audio_output_do_transfer,
-			hda_codec_audio_output_do_setup, sc);
+		    hda_codec_audio_output_do_transfer,
+		    hda_codec_audio_output_do_setup, sc);
 		assert(!err);
 
 		st->aud = audio_init(play, 1);
@@ -443,8 +424,8 @@ hda_codec_init(struct hda_codec_inst *hci, const char *play,
 		st = &sc->streams[HDA_CODEC_STREAM_INPUT];
 
 		err = hda_audio_ctxt_init(&st->actx, "hda-audio-input",
-			hda_codec_audio_input_do_transfer,
-			hda_codec_audio_input_do_setup, sc);
+		    hda_codec_audio_input_do_transfer,
+		    hda_codec_audio_input_do_setup, sc);
 		assert(!err);
 
 		st->aud = audio_init(rec, 0);
@@ -573,8 +554,8 @@ hda_codec_command(struct hda_codec_inst *hci, uint32_t cmd_data)
 }
 
 static int
-hda_codec_notify(struct hda_codec_inst *hci, uint8_t run,
-    uint8_t stream, uint8_t dir)
+hda_codec_notify(struct hda_codec_inst *hci, uint8_t run, uint8_t stream,
+    uint8_t dir)
 {
 	struct hda_codec_softc *sc = NULL;
 	struct hda_codec_stream *st = NULL;
@@ -591,8 +572,8 @@ hda_codec_notify(struct hda_codec_inst *hci, uint8_t run,
 	i = dir ? HDA_CODEC_STREAM_OUTPUT : HDA_CODEC_STREAM_INPUT;
 	st = &sc->streams[i];
 
-	DPRINTF("run: %d, stream: 0x%x, st->stream: 0x%x dir: %d",
-	    run, stream, st->stream, dir);
+	DPRINTF("run: %d, stream: 0x%x, st->stream: 0x%x dir: %d", run, stream,
+	    st->stream, dir);
 
 	if (stream != st->stream) {
 		DPRINTF("Stream not found");
@@ -715,8 +696,8 @@ hda_codec_audio_output_do_setup(void *arg)
 	if (err)
 		return (-1);
 
-	DPRINTF("rate: %d, channels: %d, format: 0x%x",
-	    params.rate, params.channels, params.format);
+	DPRINTF("rate: %d, channels: %d, format: 0x%x", params.rate,
+	    params.channels, params.format);
 
 	return (audio_set_params(aud, &params));
 }
@@ -774,8 +755,8 @@ hda_codec_audio_input_do_setup(void *arg)
 	if (err)
 		return (-1);
 
-	DPRINTF("rate: %d, channels: %d, format: 0x%x",
-	    params.rate, params.channels, params.format);
+	DPRINTF("rate: %d, channels: %d, format: 0x%x", params.rate,
+	    params.channels, params.format);
 
 	return (audio_set_params(aud, &params));
 }
@@ -814,14 +795,16 @@ hda_codec_audio_inout_nid(struct hda_codec_stream *st, uint16_t verb,
 			st->left_mute = mute;
 			st->left_gain = gain;
 			DPRINTF("SET_AMP_GAIN_MUTE_LEFT: \
-			    mute: 0x%x gain: 0x%x", mute, gain);
+			    mute: 0x%x gain: 0x%x",
+			    mute, gain);
 		}
 
 		if (payload & HDA_CMD_SET_AMP_GAIN_MUTE_RIGHT) {
 			st->right_mute = mute;
 			st->right_gain = gain;
 			DPRINTF("SET_AMP_GAIN_MUTE_RIGHT: \
-			    mute: 0x%x gain: 0x%x", mute, gain);
+			    mute: 0x%x gain: 0x%x",
+			    mute, gain);
 		}
 		break;
 	case HDA_CMD_VERB_GET_CONV_STREAM_CHAN:
@@ -830,8 +813,8 @@ hda_codec_audio_inout_nid(struct hda_codec_stream *st, uint16_t verb,
 	case HDA_CMD_VERB_SET_CONV_STREAM_CHAN:
 		st->channel = payload & 0x0f;
 		st->stream = (payload >> 4) & 0x0f;
-		DPRINTF("st->channel: 0x%x st->stream: 0x%x",
-		    st->channel, st->stream);
+		DPRINTF("st->channel: 0x%x st->stream: 0x%x", st->channel,
+		    st->stream);
 		if (!st->stream)
 			hda_audio_ctxt_stop(&st->actx);
 		break;
@@ -844,11 +827,11 @@ hda_codec_audio_inout_nid(struct hda_codec_stream *st, uint16_t verb,
 }
 
 static const struct hda_codec_class hda_codec = {
-	.name		= "hda_codec",
-	.init		= hda_codec_init,
-	.reset		= hda_codec_reset,
-	.command	= hda_codec_command,
-	.notify		= hda_codec_notify,
+	.name = "hda_codec",
+	.init = hda_codec_init,
+	.reset = hda_codec_reset,
+	.command = hda_codec_command,
+	.notify = hda_codec_notify,
 };
 HDA_EMUL_SET(hda_codec);
 
@@ -928,7 +911,7 @@ hda_audio_ctxt_start(struct hda_audio_ctxt *actx)
 		return (-1);
 
 	pthread_mutex_lock(&actx->mtx);
-	err = (* actx->do_setup)(actx->priv);
+	err = (*actx->do_setup)(actx->priv);
 	if (!err) {
 		actx->run = 1;
 		pthread_cond_signal(&actx->cond);

@@ -29,55 +29,48 @@
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
 #include <sys/param.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/proc.h>
-#include <sys/ucred.h>
+#include <sys/callout.h>
+#include <sys/conf.h> /* cdevsw struct */
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/jail.h>
-
-#include <sys/sockio.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
-#include <sys/taskqueue.h>
-#include <sys/priv.h>
+#include <sys/sockio.h>
 #include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/ucred.h>
+#include <sys/uio.h> /* uio struct */
 
 #include <machine/bus.h>
 
+#include <net/bpf.h>
+#include <net/ethernet.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
 #include <net/vnet.h>
-
-#include <net80211/ieee80211_var.h>
 #include <net80211/ieee80211_regdomain.h>
-
-#include <net/bpf.h>
-
-#include <sys/errno.h>
-#include <sys/conf.h>   /* cdevsw struct */
-#include <sys/uio.h>    /* uio struct */
-
-#include <netinet/in.h>
+#include <net80211/ieee80211_var.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 
-#include "if_wtapvar.h"
-#include "if_wtapioctl.h"
 #include "if_medium.h"
+#include "if_wtapioctl.h"
+#include "if_wtapvar.h"
 #include "wtap_hal/hal.h"
 
 /* WTAP PLUGINS */
@@ -89,34 +82,34 @@ MALLOC_DEFINE(M_WTAP_RXBUF, "wtap rxbuf",
     "wtap wireless simulator receive buffer");
 MALLOC_DEFINE(M_WTAP_PLUGIN, "wtap plugin", "wtap wireless simulator plugin");
 
-static struct wtap_hal		*hal;
+static struct wtap_hal *hal;
 
 /* Function prototypes */
-static d_ioctl_t	wtap_ioctl;
+static d_ioctl_t wtap_ioctl;
 
 static struct cdev *sdev;
 static struct cdevsw wtap_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_ioctl =	wtap_ioctl,
-	.d_name =	"wtapctl",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_ioctl = wtap_ioctl,
+	.d_name = "wtapctl",
 };
 
 int
-wtap_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int fflag, struct thread *td)
+wtap_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
+    struct thread *td)
 {
 	int error = 0;
 
 	CURVNET_SET(CRED_TO_VNET(curthread->td_ucred));
 
-	switch(cmd) {
+	switch (cmd) {
 	case WTAPIOCTLCRT:
-		if(new_wtap(hal, *(int *)data))
+		if (new_wtap(hal, *(int *)data))
 			error = EINVAL;
 		break;
 	case WTAPIOCTLDEL:
-		if(free_wtap(hal, *(int *)data))
+		if (free_wtap(hal, *(int *)data))
 			error = EINVAL;
 		break;
 	default:
@@ -130,32 +123,32 @@ wtap_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 
 /* The function called at load/unload. */
 static int
-event_handler(module_t module, int event, void *arg) 
+event_handler(module_t module, int event, void *arg)
 {
 	struct visibility_plugin *plugin;
 	int e = 0; /* Error, 0 for normal return status */
 
 	switch (event) {
 	case MOD_LOAD:
-		sdev = make_dev(&wtap_cdevsw,0,UID_ROOT,
-		    GID_WHEEL,0600,(const char *)"wtapctl");
-		hal = (struct wtap_hal *)malloc(sizeof(struct wtap_hal),
-		    M_WTAP, M_NOWAIT | M_ZERO);
+		sdev = make_dev(&wtap_cdevsw, 0, UID_ROOT, GID_WHEEL, 0600,
+		    (const char *)"wtapctl");
+		hal = (struct wtap_hal *)malloc(sizeof(struct wtap_hal), M_WTAP,
+		    M_NOWAIT | M_ZERO);
 
 		init_hal(hal);
 
 		/* Setting up a simple plugin */
-		plugin = (struct visibility_plugin *)malloc
-		    (sizeof(struct visibility_plugin), M_WTAP_PLUGIN,
-		    M_NOWAIT | M_ZERO);
-		plugin->base.wp_hal  = hal;
+		plugin = (struct visibility_plugin *)
+		    malloc(sizeof(struct visibility_plugin), M_WTAP_PLUGIN,
+			M_NOWAIT | M_ZERO);
+		plugin->base.wp_hal = hal;
 		plugin->base.init = visibility_init;
 		plugin->base.deinit = visibility_deinit;
 		plugin->base.work = visibility_work;
 		register_plugin(hal, (struct wtap_plugin *)plugin);
 
-                printf("Loaded wtap wireless simulator\n");
-                break;
+		printf("Loaded wtap wireless simulator\n");
+		break;
 	case MOD_UNLOAD:
 		destroy_dev(sdev);
 		deregister_plugin(hal);
@@ -168,15 +161,15 @@ event_handler(module_t module, int event, void *arg)
 		break;
 	}
 
-	return(e);
+	return (e);
 }
 
 /* The second argument of DECLARE_MODULE. */
 static moduledata_t wtap_conf = {
-	"wtap",		/* module name */
-	event_handler,	/* event handler */
-	NULL		/* extra data */
+	"wtap",	       /* module name */
+	event_handler, /* event handler */
+	NULL	       /* extra data */
 };
 
 DECLARE_MODULE(wtap, wtap_conf, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
-MODULE_DEPEND(wtap, wlan, 1, 1, 1);	/* 802.11 media layer */
+MODULE_DEPEND(wtap, wlan, 1, 1, 1); /* 802.11 media layer */

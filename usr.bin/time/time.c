@@ -40,9 +40,9 @@
 #include <errno.h>
 #include <locale.h>
 #include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -71,12 +71,12 @@ main(int argc, char **argv)
 	char *ofn = NULL;
 	FILE *out = stderr;
 
-	(void) setlocale(LC_NUMERIC, "");
+	(void)setlocale(LC_NUMERIC, "");
 	decimal_point = localeconv()->decimal_point[0];
 
 	aflag = hflag = lflag = pflag = 0;
 	while ((ch = getopt(argc, argv, "ahlo:p")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'a':
 			aflag = 1;
 			break;
@@ -102,18 +102,18 @@ main(int argc, char **argv)
 	argv += optind;
 
 	if (ofn) {
-	        if ((out = fopen(ofn, aflag ? "ae" : "we")) == NULL)
-		        err(1, "%s", ofn);
+		if ((out = fopen(ofn, aflag ? "ae" : "we")) == NULL)
+			err(1, "%s", ofn);
 		setvbuf(out, (char *)NULL, _IONBF, (size_t)0);
 	}
 
 	if (clock_gettime(CLOCK_MONOTONIC, &before_ts))
 		err(1, "clock_gettime");
-	switch(pid = fork()) {
-	case -1:			/* error */
+	switch (pid = fork()) {
+	case -1: /* error */
 		err(1, "time");
 		/* NOTREACHED */
-	case 0:				/* child */
+	case 0: /* child */
 		execvp(*argv, argv);
 		err(errno == ENOENT ? 127 : 126, "%s", *argv);
 		/* NOTREACHED */
@@ -135,7 +135,7 @@ main(int argc, char **argv)
 	}
 	if (clock_gettime(CLOCK_MONOTONIC, &after))
 		err(1, "clock_gettime");
-	if ( ! WIFEXITED(status))
+	if (!WIFEXITED(status))
 		warnx("command terminated abnormally");
 	exitonsig = WIFSIGNALED(status) ? WTERMSIG(status) : 0;
 	showtime(out, &before_ts, &after, &ru);
@@ -144,7 +144,7 @@ main(int argc, char **argv)
 		u_long ticks;
 
 		ticks = hz * (ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) +
-		     hz * (ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1000000;
+		    hz * (ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1000000;
 
 		/*
 		 * If our round-off on the tick calculation still puts us at 0,
@@ -153,34 +153,28 @@ main(int argc, char **argv)
 		if (ticks == 0)
 			ticks = 1;
 
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_maxrss, "maximum resident set size");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_ixrss / ticks, "average shared memory size");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_idrss / ticks, "average unshared data size");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_isrss / ticks, "average unshared stack size");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_minflt, "page reclaims");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_majflt, "page faults");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_nswap, "swaps");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_inblock, "block input operations");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_oublock, "block output operations");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_msgsnd, "messages sent");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_msgrcv, "messages received");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_nsignals, "signals received");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_nvcsw, "voluntary context switches");
-		fprintf(out, "%10ld  %s\n",
-			ru.ru_nivcsw, "involuntary context switches");
+		fprintf(out, "%10ld  %s\n", ru.ru_maxrss,
+		    "maximum resident set size");
+		fprintf(out, "%10ld  %s\n", ru.ru_ixrss / ticks,
+		    "average shared memory size");
+		fprintf(out, "%10ld  %s\n", ru.ru_idrss / ticks,
+		    "average unshared data size");
+		fprintf(out, "%10ld  %s\n", ru.ru_isrss / ticks,
+		    "average unshared stack size");
+		fprintf(out, "%10ld  %s\n", ru.ru_minflt, "page reclaims");
+		fprintf(out, "%10ld  %s\n", ru.ru_majflt, "page faults");
+		fprintf(out, "%10ld  %s\n", ru.ru_nswap, "swaps");
+		fprintf(out, "%10ld  %s\n", ru.ru_inblock,
+		    "block input operations");
+		fprintf(out, "%10ld  %s\n", ru.ru_oublock,
+		    "block output operations");
+		fprintf(out, "%10ld  %s\n", ru.ru_msgsnd, "messages sent");
+		fprintf(out, "%10ld  %s\n", ru.ru_msgrcv, "messages received");
+		fprintf(out, "%10ld  %s\n", ru.ru_nsignals, "signals received");
+		fprintf(out, "%10ld  %s\n", ru.ru_nvcsw,
+		    "voluntary context switches");
+		fprintf(out, "%10ld  %s\n", ru.ru_nivcsw,
+		    "involuntary context switches");
 	}
 	/*
 	 * If the child has exited on a signal, exit on the same
@@ -197,7 +191,7 @@ main(int argc, char **argv)
 			kill(getpid(), exitonsig);
 		}
 	}
-	exit (WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
+	exit(WIFEXITED(status) ? WEXITSTATUS(status) : EXIT_FAILURE);
 }
 
 static void
@@ -262,32 +256,28 @@ showtime(FILE *out, struct timespec *before, struct timespec *after,
 		/* POSIX wants output that must look like
 		"real %f\nuser %f\nsys %f\n" and requires
 		at least two digits after the radix. */
-		fprintf(out, "real %jd%c%02ld\n",
-			(intmax_t)after->tv_sec, decimal_point,
-			after->tv_nsec/10000000);
-		fprintf(out, "user %jd%c%02ld\n",
-			(intmax_t)ru->ru_utime.tv_sec, decimal_point,
-			ru->ru_utime.tv_usec/10000);
-		fprintf(out, "sys %jd%c%02ld\n",
-			(intmax_t)ru->ru_stime.tv_sec, decimal_point,
-			ru->ru_stime.tv_usec/10000);
+		fprintf(out, "real %jd%c%02ld\n", (intmax_t)after->tv_sec,
+		    decimal_point, after->tv_nsec / 10000000);
+		fprintf(out, "user %jd%c%02ld\n", (intmax_t)ru->ru_utime.tv_sec,
+		    decimal_point, ru->ru_utime.tv_usec / 10000);
+		fprintf(out, "sys %jd%c%02ld\n", (intmax_t)ru->ru_stime.tv_sec,
+		    decimal_point, ru->ru_stime.tv_usec / 10000);
 	} else if (hflag) {
-		humantime(out, after->tv_sec, after->tv_nsec/10000000);
+		humantime(out, after->tv_sec, after->tv_nsec / 10000000);
 		fprintf(out, " real\t");
-		humantime(out, ru->ru_utime.tv_sec, ru->ru_utime.tv_usec/10000);
+		humantime(out, ru->ru_utime.tv_sec,
+		    ru->ru_utime.tv_usec / 10000);
 		fprintf(out, " user\t");
-		humantime(out, ru->ru_stime.tv_sec, ru->ru_stime.tv_usec/10000);
+		humantime(out, ru->ru_stime.tv_sec,
+		    ru->ru_stime.tv_usec / 10000);
 		fprintf(out, " sys\n");
 	} else {
-		fprintf(out, "%9jd%c%02ld real ",
-			(intmax_t)after->tv_sec, decimal_point,
-			after->tv_nsec/10000000);
-		fprintf(out, "%9jd%c%02ld user ",
-			(intmax_t)ru->ru_utime.tv_sec, decimal_point,
-			ru->ru_utime.tv_usec/10000);
-		fprintf(out, "%9jd%c%02ld sys\n",
-			(intmax_t)ru->ru_stime.tv_sec, decimal_point,
-			ru->ru_stime.tv_usec/10000);
+		fprintf(out, "%9jd%c%02ld real ", (intmax_t)after->tv_sec,
+		    decimal_point, after->tv_nsec / 10000000);
+		fprintf(out, "%9jd%c%02ld user ", (intmax_t)ru->ru_utime.tv_sec,
+		    decimal_point, ru->ru_utime.tv_usec / 10000);
+		fprintf(out, "%9jd%c%02ld sys\n", (intmax_t)ru->ru_stime.tv_sec,
+		    decimal_point, ru->ru_stime.tv_usec / 10000);
 	}
 }
 

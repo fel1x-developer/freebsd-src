@@ -28,17 +28,18 @@
  */
 
 #include <sys/ioctl.h>
+
 #include <termios.h>
 
 struct info {
-	int fd;					/* file descriptor */
-	int ldisc;				/* line discipline */
-	int off;				/* turn off */
-	int set;				/* need set */
-	int wset;				/* need window set */
-	const char *arg;			/* argument */
-	struct termios t;			/* terminal info */
-	struct winsize win;			/* window info */
+	int fd;		    /* file descriptor */
+	int ldisc;	    /* line discipline */
+	int off;	    /* turn off */
+	int set;	    /* need set */
+	int wset;	    /* need window set */
+	const char *arg;    /* argument */
+	struct termios t;   /* terminal info */
+	struct winsize win; /* window info */
 };
 
 struct cchar {
@@ -49,4 +50,4 @@ struct cchar {
 
 enum FMT { NOTSET, GFLAG, BSD, POSIX };
 
-#define	LINELENGTH	72
+#define LINELENGTH 72

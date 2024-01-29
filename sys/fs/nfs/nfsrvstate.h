@@ -27,7 +27,7 @@
  */
 
 #ifndef _NFS_NFSRVSTATE_H_
-#define	_NFS_NFSRVSTATE_H_
+#define _NFS_NFSRVSTATE_H_
 
 #if defined(_KERNEL) || defined(KERNEL)
 /*
@@ -55,34 +55,38 @@ LIST_HEAD(nfsdontlisthead, nfsdontlist);
  */
 TAILQ_HEAD(nfsuserhashhead, nfsusrgrp);
 
-#define	NFSCLIENTHASH(id)						\
+#define NFSCLIENTHASH(id) \
 	(&NFSD_VNET(nfsclienthash)[(id).lval[1] % nfsrv_clienthashsize])
-#define	NFSSTATEHASH(clp, id)						\
+#define NFSSTATEHASH(clp, id) \
 	(&((clp)->lc_stateid[(id).other[2] % nfsrv_statehashsize]))
-#define	NFSUSERHASH(id)							\
-	(&NFSD_VNET(nfsuserhash)[(id) % nfsrv_lughashsize])
-#define	NFSUSERNAMEHASH(p, l)						\
-	(&NFSD_VNET(nfsusernamehash)[((l)>=4?(*(p)+*((p)+1)+*((p)+2)+*((p)+3)):*(p)) \
-		% nfsrv_lughashsize])
-#define	NFSGROUPHASH(id)						\
-	(&NFSD_VNET(nfsgrouphash)[(id) % nfsrv_lughashsize])
-#define	NFSGROUPNAMEHASH(p, l)						\
-	(&NFSD_VNET(nfsgroupnamehash)[((l)>=4?(*(p)+*((p)+1)+*((p)+2)+*((p)+3)):*(p)) \
-		% nfsrv_lughashsize])
+#define NFSUSERHASH(id) (&NFSD_VNET(nfsuserhash)[(id) % nfsrv_lughashsize])
+#define NFSUSERNAMEHASH(p, l)                                              \
+	(&NFSD_VNET(                                                       \
+	    nfsusernamehash)[((l) >= 4 ? (*(p) + *((p) + 1) + *((p) + 2) + \
+					     *((p) + 3)) :                 \
+					 *(p)) %                           \
+	    nfsrv_lughashsize])
+#define NFSGROUPHASH(id) (&NFSD_VNET(nfsgrouphash)[(id) % nfsrv_lughashsize])
+#define NFSGROUPNAMEHASH(p, l)                                              \
+	(&NFSD_VNET(                                                        \
+	    nfsgroupnamehash)[((l) >= 4 ? (*(p) + *((p) + 1) + *((p) + 2) + \
+					      *((p) + 3)) :                 \
+					  *(p)) %                           \
+	    nfsrv_lughashsize])
 
 struct nfssessionhash {
-	struct mtx			mtx;
-	struct nfssessionhashhead	list;
+	struct mtx mtx;
+	struct nfssessionhashhead list;
 };
-#define	NFSSESSIONHASH(f) 						\
-	(&NFSD_VNET(nfssessionhash)[nfsrv_hashsessionid(f) %		\
-	 nfsrv_sessionhashsize])
+#define NFSSESSIONHASH(f) \
+	(&NFSD_VNET(      \
+	    nfssessionhash)[nfsrv_hashsessionid(f) % nfsrv_sessionhashsize])
 
 struct nfslayouthash {
-	struct mtx		mtx;
-	struct nfslayouthead	list;
+	struct mtx mtx;
+	struct nfslayouthead list;
 };
-#define	NFSLAYOUTHASH(f) 						\
+#define NFSLAYOUTHASH(f) \
 	(&nfslayouthash[nfsrv_hashfh(f) % nfsrv_layouthashsize])
 
 /*
@@ -92,65 +96,65 @@ struct nfslayouthash {
  * The actual size malloc'd is large enough to accommodate the id string.
  */
 struct nfsclient {
-	LIST_ENTRY(nfsclient) lc_hash;		/* Clientid hash list */
-	struct nfsstatehead *lc_stateid;	/* Stateid hash */
-	struct nfsstatehead lc_open;		/* Open owner list */
-	struct nfsstatehead lc_deleg;		/* Delegations */
-	struct nfsstatehead lc_olddeleg;	/* and old delegations */
-	struct nfssessionhead lc_session;	/* List of NFSv4.1 sessions */
-	uint64_t	lc_prevsess;		/* CreateSession cache */
-	time_t		lc_expiry;		/* Expiry time (sec) */
-	time_t		lc_delegtime;		/* Old deleg expiry (sec) */
-	nfsquad_t	lc_clientid;		/* 64 bit clientid */
-	nfsquad_t	lc_confirm;		/* 64 bit confirm value */
-	nfsopbit_t	lc_mustops;		/* Must ops SP4_MACH_CRED */
-	nfsopbit_t	lc_allowops;		/* Allowed ops SP4_MACH_CRED */
-	u_int32_t	lc_program;		/* RPC Program # */
-	u_int32_t	lc_callback;		/* Callback id */
-	u_int32_t	lc_stateindex;		/* Current state index# */
-	u_int32_t	lc_statemaxindex;	/* Max state index# */
-	u_int32_t	lc_cbref;		/* Cnt of callbacks */
-	uid_t		lc_uid;			/* User credential */
-	gid_t		lc_gid;
-	u_int16_t	lc_idlen;		/* Client ID and len */
-	u_int16_t	lc_namelen;		/* plus GSS principal and len */
-	u_char		*lc_name;
-	struct nfssockreq lc_req;		/* Callback info */
-	u_int32_t	lc_flags;		/* LCL_ flag bits */
-	u_char		lc_verf[NFSX_VERF];	 /* client verifier */
-	u_char		lc_id[1];		/* Malloc'd correct size */
+	LIST_ENTRY(nfsclient) lc_hash;	  /* Clientid hash list */
+	struct nfsstatehead *lc_stateid;  /* Stateid hash */
+	struct nfsstatehead lc_open;	  /* Open owner list */
+	struct nfsstatehead lc_deleg;	  /* Delegations */
+	struct nfsstatehead lc_olddeleg;  /* and old delegations */
+	struct nfssessionhead lc_session; /* List of NFSv4.1 sessions */
+	uint64_t lc_prevsess;		  /* CreateSession cache */
+	time_t lc_expiry;		  /* Expiry time (sec) */
+	time_t lc_delegtime;		  /* Old deleg expiry (sec) */
+	nfsquad_t lc_clientid;		  /* 64 bit clientid */
+	nfsquad_t lc_confirm;		  /* 64 bit confirm value */
+	nfsopbit_t lc_mustops;		  /* Must ops SP4_MACH_CRED */
+	nfsopbit_t lc_allowops;		  /* Allowed ops SP4_MACH_CRED */
+	u_int32_t lc_program;		  /* RPC Program # */
+	u_int32_t lc_callback;		  /* Callback id */
+	u_int32_t lc_stateindex;	  /* Current state index# */
+	u_int32_t lc_statemaxindex;	  /* Max state index# */
+	u_int32_t lc_cbref;		  /* Cnt of callbacks */
+	uid_t lc_uid;			  /* User credential */
+	gid_t lc_gid;
+	u_int16_t lc_idlen;   /* Client ID and len */
+	u_int16_t lc_namelen; /* plus GSS principal and len */
+	u_char *lc_name;
+	struct nfssockreq lc_req;  /* Callback info */
+	u_int32_t lc_flags;	   /* LCL_ flag bits */
+	u_char lc_verf[NFSX_VERF]; /* client verifier */
+	u_char lc_id[1];	   /* Malloc'd correct size */
 };
 
-#define	CLOPS_CONFIRM		0x0001
-#define	CLOPS_RENEW		0x0002
-#define	CLOPS_RENEWOP		0x0004
+#define CLOPS_CONFIRM 0x0001
+#define CLOPS_RENEW 0x0002
+#define CLOPS_RENEWOP 0x0004
 
 /*
  * Structure for NFSv4.1 Layouts.
  * Malloc'd to correct size for the lay_xdr.
  */
 struct nfslayout {
-	TAILQ_ENTRY(nfslayout)	lay_list;
-	nfsv4stateid_t		lay_stateid;
-	nfsquad_t		lay_clientid;
-	fhandle_t		lay_fh;
-	char			lay_deviceid[NFSX_V4DEVICEID];
-	fsid_t			lay_fsid;
-	uint32_t		lay_layoutlen;
-	uint16_t		lay_mirrorcnt;
-	uint16_t		lay_trycnt;
-	uint16_t		lay_type;
-	uint16_t		lay_flags;
-	uint32_t		lay_xdr[0];
+	TAILQ_ENTRY(nfslayout) lay_list;
+	nfsv4stateid_t lay_stateid;
+	nfsquad_t lay_clientid;
+	fhandle_t lay_fh;
+	char lay_deviceid[NFSX_V4DEVICEID];
+	fsid_t lay_fsid;
+	uint32_t lay_layoutlen;
+	uint16_t lay_mirrorcnt;
+	uint16_t lay_trycnt;
+	uint16_t lay_type;
+	uint16_t lay_flags;
+	uint32_t lay_xdr[0];
 };
 
 /* Flags for lay_flags. */
-#define	NFSLAY_READ	0x0001
-#define	NFSLAY_RW	0x0002
-#define	NFSLAY_RECALL	0x0004
-#define	NFSLAY_RETURNED	0x0008
-#define	NFSLAY_CALLB	0x0010
-#define	NFSLAY_NOSPC	0x0020
+#define NFSLAY_READ 0x0001
+#define NFSLAY_RW 0x0002
+#define NFSLAY_RECALL 0x0004
+#define NFSLAY_RETURNED 0x0008
+#define NFSLAY_CALLB 0x0010
+#define NFSLAY_NOSPC 0x0020
 
 /*
  * Structure for an NFSv4.1 session.
@@ -169,24 +173,24 @@ struct nfslayout {
  * NFSLOCKSESSION(session hashhead) must be locked.
  */
 struct nfsdsession {
-	uint64_t		sess_refcnt;	/* Reference count. */
-	LIST_ENTRY(nfsdsession)	sess_hash;	/* Hash list of sessions. */
-	LIST_ENTRY(nfsdsession)	sess_list;	/* List of client sessions. */
-	struct nfsslot		sess_slots[NFSV4_SLOTS];
-	struct nfsclient	*sess_clp;	/* Associated clientid. */
-	uint32_t		sess_crflags;
-	uint32_t		sess_cbprogram;
-	uint32_t		sess_maxreq;
-	uint32_t		sess_maxresp;
-	uint32_t		sess_maxrespcached;
-	uint32_t		sess_maxops;
-	uint32_t		sess_maxslots;
-	uint32_t		sess_cbmaxreq;
-	uint32_t		sess_cbmaxresp;
-	uint32_t		sess_cbmaxrespcached;
-	uint32_t		sess_cbmaxops;
-	uint8_t			sess_sessionid[NFSX_V4SESSIONID];
-	struct nfsclsession	sess_cbsess;	/* Callback session. */
+	uint64_t sess_refcnt;		   /* Reference count. */
+	LIST_ENTRY(nfsdsession) sess_hash; /* Hash list of sessions. */
+	LIST_ENTRY(nfsdsession) sess_list; /* List of client sessions. */
+	struct nfsslot sess_slots[NFSV4_SLOTS];
+	struct nfsclient *sess_clp; /* Associated clientid. */
+	uint32_t sess_crflags;
+	uint32_t sess_cbprogram;
+	uint32_t sess_maxreq;
+	uint32_t sess_maxresp;
+	uint32_t sess_maxrespcached;
+	uint32_t sess_maxops;
+	uint32_t sess_maxslots;
+	uint32_t sess_cbmaxreq;
+	uint32_t sess_cbmaxresp;
+	uint32_t sess_cbmaxrespcached;
+	uint32_t sess_cbmaxops;
+	uint8_t sess_sessionid[NFSX_V4SESSIONID];
+	struct nfsclsession sess_cbsess; /* Callback session. */
 };
 
 /*
@@ -204,46 +208,46 @@ struct nfsdsession {
  * nfsclient for stateid.
  */
 struct nfsstate {
-	LIST_ENTRY(nfsstate)	ls_hash;	/* Hash list entry */
-	LIST_ENTRY(nfsstate)	ls_list;	/* List of opens/delegs */
-	LIST_ENTRY(nfsstate)	ls_file;	/* Opens/Delegs for a file */
+	LIST_ENTRY(nfsstate) ls_hash; /* Hash list entry */
+	LIST_ENTRY(nfsstate) ls_list; /* List of opens/delegs */
+	LIST_ENTRY(nfsstate) ls_file; /* Opens/Delegs for a file */
 	union {
-		struct nfsstatehead	open; /* Opens list */
-		struct nfslockhead	lock; /* Locks list */
+		struct nfsstatehead open; /* Opens list */
+		struct nfslockhead lock;  /* Locks list */
 	} ls_head;
-	nfsv4stateid_t		ls_stateid;	/* The state id */
-	u_int32_t		ls_seq;		/* seq id */
-	uid_t			ls_uid;		/* uid of locker */
-	u_int32_t		ls_flags;	/* Type of lock, etc. */
+	nfsv4stateid_t ls_stateid; /* The state id */
+	u_int32_t ls_seq;	   /* seq id */
+	uid_t ls_uid;		   /* uid of locker */
+	u_int32_t ls_flags;	   /* Type of lock, etc. */
 	union {
-		struct nfsstate	*openowner;	/* Open only */
-		u_int32_t	opentolockseq;	/* Lock call only */
-		u_int32_t	noopens;	/* Openowner only */
+		struct nfsstate *openowner; /* Open only */
+		u_int32_t opentolockseq;    /* Lock call only */
+		u_int32_t noopens;	    /* Openowner only */
 		struct {
-			u_quad_t	filerev; /* Delegations only */
-			time_t		expiry;
-			time_t		limit;
-			u_int64_t	compref;
-			time_t		last;
+			u_quad_t filerev; /* Delegations only */
+			time_t expiry;
+			time_t limit;
+			u_int64_t compref;
+			time_t last;
 		} deleg;
 	} ls_un;
-	struct nfslockfile	*ls_lfp;	/* Back pointer */
-	struct nfsrvcache	*ls_op;		/* Op cache reference */
-	struct nfsclient	*ls_clp;	/* Back pointer */
-	u_short			ls_ownerlen;	/* Length of ls_owner */
-	u_char			ls_owner[1];	/* malloc'd the correct size */
+	struct nfslockfile *ls_lfp; /* Back pointer */
+	struct nfsrvcache *ls_op;   /* Op cache reference */
+	struct nfsclient *ls_clp;   /* Back pointer */
+	u_short ls_ownerlen;	    /* Length of ls_owner */
+	u_char ls_owner[1];	    /* malloc'd the correct size */
 };
-#define	ls_lock			ls_head.lock
-#define	ls_open			ls_head.open
-#define	ls_opentolockseq	ls_un.opentolockseq
-#define	ls_openowner		ls_un.openowner
-#define	ls_openstp		ls_un.openowner
-#define	ls_noopens		ls_un.noopens
-#define	ls_filerev		ls_un.deleg.filerev
-#define	ls_delegtime		ls_un.deleg.expiry
-#define	ls_delegtimelimit	ls_un.deleg.limit
-#define	ls_compref		ls_un.deleg.compref
-#define	ls_lastrecall		ls_un.deleg.last
+#define ls_lock ls_head.lock
+#define ls_open ls_head.open
+#define ls_opentolockseq ls_un.opentolockseq
+#define ls_openowner ls_un.openowner
+#define ls_openstp ls_un.openowner
+#define ls_noopens ls_un.noopens
+#define ls_filerev ls_un.deleg.filerev
+#define ls_delegtime ls_un.deleg.expiry
+#define ls_delegtimelimit ls_un.deleg.limit
+#define ls_compref ls_un.deleg.compref
+#define ls_lastrecall ls_un.deleg.last
 
 /*
  * Nfs lock structure.
@@ -253,13 +257,13 @@ struct nfsstate {
  * It also has back pointers to the associated lock_owner and lockfile.
  */
 struct nfslock {
-	LIST_ENTRY(nfslock)	lo_lckowner;
-	LIST_ENTRY(nfslock)	lo_lckfile;
-	struct nfsstate		*lo_stp;
-	struct nfslockfile	*lo_lfp;
-	u_int64_t		lo_first;
-	u_int64_t		lo_end;
-	u_int32_t		lo_flags;
+	LIST_ENTRY(nfslock) lo_lckowner;
+	LIST_ENTRY(nfslock) lo_lckfile;
+	struct nfsstate *lo_stp;
+	struct nfslockfile *lo_lfp;
+	u_int64_t lo_first;
+	u_int64_t lo_end;
+	u_int32_t lo_flags;
 };
 
 /*
@@ -267,12 +271,12 @@ struct nfslock {
  * enough for the largest lock owner we can have.)
  */
 struct nfslockconflict {
-	nfsquad_t		cl_clientid;
-	u_int64_t		cl_first;
-	u_int64_t		cl_end;
-	u_int32_t		cl_flags;
-	u_short			cl_ownerlen;
-	u_char			cl_owner[NFSV4_OPAQUELIMIT];
+	nfsquad_t cl_clientid;
+	u_int64_t cl_first;
+	u_int64_t cl_end;
+	u_int32_t cl_flags;
+	u_short cl_ownerlen;
+	u_char cl_owner[NFSV4_OPAQUELIMIT];
 };
 
 /*
@@ -280,10 +284,10 @@ struct nfslockconflict {
  * to be rolled back.
  */
 struct nfsrollback {
-	LIST_ENTRY(nfsrollback)	rlck_list;
-	uint64_t		rlck_first;
-	uint64_t		rlck_end;
-	int			rlck_type;
+	LIST_ENTRY(nfsrollback) rlck_list;
+	uint64_t rlck_first;
+	uint64_t rlck_end;
+	int rlck_type;
 };
 
 /*
@@ -292,15 +296,15 @@ struct nfsrollback {
  * open or lock owner.
  */
 struct nfslockfile {
-	LIST_HEAD(, nfsstate)	lf_open;	/* Open list */
-	LIST_HEAD(, nfsstate)	lf_deleg;	/* Delegation list */
-	LIST_HEAD(, nfslock)	lf_lock;	/* Lock list */
-	LIST_HEAD(, nfslock)	lf_locallock;	/* Local lock list */
-	LIST_HEAD(, nfsrollback) lf_rollback;	/* Local lock rollback list */
-	LIST_ENTRY(nfslockfile)	lf_hash;	/* Hash list entry */
-	fhandle_t		lf_fh;		/* The file handle */
-	struct nfsv4lock	lf_locallock_lck; /* serialize local locking */
-	int			lf_usecount;	/* Ref count for locking */
+	LIST_HEAD(, nfsstate) lf_open;	      /* Open list */
+	LIST_HEAD(, nfsstate) lf_deleg;	      /* Delegation list */
+	LIST_HEAD(, nfslock) lf_lock;	      /* Lock list */
+	LIST_HEAD(, nfslock) lf_locallock;    /* Local lock list */
+	LIST_HEAD(, nfsrollback) lf_rollback; /* Local lock rollback list */
+	LIST_ENTRY(nfslockfile) lf_hash;      /* Hash list entry */
+	fhandle_t lf_fh;		      /* The file handle */
+	struct nfsv4lock lf_locallock_lck;    /* serialize local locking */
+	int lf_usecount;		      /* Ref count for locking */
 };
 
 /*
@@ -308,19 +312,19 @@ struct nfslockfile {
  * names.
  */
 struct nfsusrgrp {
-	TAILQ_ENTRY(nfsusrgrp)	lug_numhash;	/* Hash by id# */
-	TAILQ_ENTRY(nfsusrgrp)	lug_namehash;	/* and by name */
-	time_t			lug_expiry;	/* Expiry time in sec */
+	TAILQ_ENTRY(nfsusrgrp) lug_numhash;  /* Hash by id# */
+	TAILQ_ENTRY(nfsusrgrp) lug_namehash; /* and by name */
+	time_t lug_expiry;		     /* Expiry time in sec */
 	union {
-		uid_t		un_uid;		/* id# */
-		gid_t		un_gid;
+		uid_t un_uid; /* id# */
+		gid_t un_gid;
 	} lug_un;
-	struct ucred		*lug_cred;	/* Cred. with groups list */
-	int			lug_namelen;	/* Name length */
-	u_char			lug_name[1];	/* malloc'd correct length */
+	struct ucred *lug_cred; /* Cred. with groups list */
+	int lug_namelen;	/* Name length */
+	u_char lug_name[1];	/* malloc'd correct length */
 };
-#define	lug_uid		lug_un.un_uid
-#define	lug_gid		lug_un.un_gid
+#define lug_uid lug_un.un_uid
+#define lug_gid lug_un.un_gid
 
 /*
  * These structures are used for the stable storage restart stuff.
@@ -329,8 +333,8 @@ struct nfsusrgrp {
  * Record at beginning of file.
  */
 struct nfsf_rec {
-	u_int32_t	lease;			/* Lease duration */
-	u_int32_t	numboots;		/* Number of boottimes */
+	u_int32_t lease;    /* Lease duration */
+	u_int32_t numboots; /* Number of boottimes */
 };
 
 void nfsrv_cleanclient(struct nfsclient *, NFSPROC_T *);
@@ -344,21 +348,21 @@ void nfsrv_freedeleglist(struct nfsstatehead *);
  * It is allocated with nfsrv_dsdirsize nfsdev_dsdir[] entries.
  */
 struct nfsdevice {
-	TAILQ_ENTRY(nfsdevice)	nfsdev_list;
-	vnode_t			nfsdev_dvp;
-	struct nfsmount		*nfsdev_nmp;
-	char			nfsdev_deviceid[NFSX_V4DEVICEID];
-	uint16_t		nfsdev_hostnamelen;
-	uint16_t		nfsdev_fileaddrlen;
-	uint16_t		nfsdev_flexaddrlen;
-	uint16_t		nfsdev_mdsisset;
-	char			*nfsdev_fileaddr;
-	char			*nfsdev_flexaddr;
-	char			*nfsdev_host;
-	fsid_t			nfsdev_mdsfsid;
-	uint32_t		nfsdev_nextdir;
-	bool			nfsdev_nospc;
-	vnode_t			nfsdev_dsdir[0];
+	TAILQ_ENTRY(nfsdevice) nfsdev_list;
+	vnode_t nfsdev_dvp;
+	struct nfsmount *nfsdev_nmp;
+	char nfsdev_deviceid[NFSX_V4DEVICEID];
+	uint16_t nfsdev_hostnamelen;
+	uint16_t nfsdev_fileaddrlen;
+	uint16_t nfsdev_flexaddrlen;
+	uint16_t nfsdev_mdsisset;
+	char *nfsdev_fileaddr;
+	char *nfsdev_flexaddr;
+	char *nfsdev_host;
+	fsid_t nfsdev_mdsfsid;
+	uint32_t nfsdev_nextdir;
+	bool nfsdev_nospc;
+	vnode_t nfsdev_dsdir[0];
 };
 
 /*
@@ -368,18 +372,18 @@ struct nfsdevice {
  * opnfsdsattr was missing the va_bytes field and, as such, it was updated.
  */
 struct opnfsdsattr {
-	uint64_t	dsa_filerev;
-	uint64_t	dsa_size;
-	struct timespec	dsa_atime;
-	struct timespec	dsa_mtime;
+	uint64_t dsa_filerev;
+	uint64_t dsa_size;
+	struct timespec dsa_atime;
+	struct timespec dsa_mtime;
 };
 
 struct pnfsdsattr {
-	uint64_t	dsa_filerev;
-	uint64_t	dsa_size;
-	struct timespec	dsa_atime;
-	struct timespec	dsa_mtime;
-	uint64_t	dsa_bytes;
+	uint64_t dsa_filerev;
+	uint64_t dsa_size;
+	struct timespec dsa_atime;
+	struct timespec dsa_mtime;
+	uint64_t dsa_bytes;
 };
 
 /*
@@ -387,31 +391,31 @@ struct pnfsdsattr {
  * mark that the recovery of a mirror file is in progress.
  */
 struct nfsdontlist {
-	LIST_ENTRY(nfsdontlist)	nfsmr_list;
-	uint32_t		nfsmr_flags;
-	fhandle_t		nfsmr_fh;
+	LIST_ENTRY(nfsdontlist) nfsmr_list;
+	uint32_t nfsmr_flags;
+	fhandle_t nfsmr_fh;
 };
 
 /* nfsmr_flags bits. */
-#define	NFSMR_DONTLAYOUT	0x00000001
+#define NFSMR_DONTLAYOUT 0x00000001
 
-#endif	/* defined(_KERNEL) || defined(KERNEL) */
+#endif /* defined(_KERNEL) || defined(KERNEL) */
 
 /*
  * This structure holds the information about the DS file and is stored
  * in the metadata file's extended attribute called pnfsd.dsfile.
  */
-#define	PNFS_FILENAME_LEN	(2 * sizeof(fhandle_t))
+#define PNFS_FILENAME_LEN (2 * sizeof(fhandle_t))
 struct pnfsdsfile {
-	fhandle_t	dsf_fh;
-	uint32_t	dsf_dir;
+	fhandle_t dsf_fh;
+	uint32_t dsf_dir;
 	union {
-		struct sockaddr_in	sin;
-		struct sockaddr_in6	sin6;
+		struct sockaddr_in sin;
+		struct sockaddr_in6 sin6;
 	} dsf_nam;
-	char		dsf_filename[PNFS_FILENAME_LEN + 1];
+	char dsf_filename[PNFS_FILENAME_LEN + 1];
 };
-#define	dsf_sin		dsf_nam.sin
-#define	dsf_sin6	dsf_nam.sin6
+#define dsf_sin dsf_nam.sin
+#define dsf_sin6 dsf_nam.sin6
 
-#endif	/* _NFS_NFSRVSTATE_H_ */
+#endif /* _NFS_NFSRVSTATE_H_ */

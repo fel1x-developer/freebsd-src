@@ -27,42 +27,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-#include <sys/malloc.h>
 
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_arp.h>
-
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/sbni/if_sbnireg.h>
 #include <dev/sbni/if_sbnivar.h>
 
-static int	sbni_pci_probe(device_t);
-static int	sbni_pci_attach(device_t);
-static int	sbni_pci_detach(device_t);
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+
+static int sbni_pci_probe(device_t);
+static int sbni_pci_attach(device_t);
+static int sbni_pci_detach(device_t);
 
 static device_method_t sbni_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,	sbni_pci_probe),
+	DEVMETHOD(device_probe, sbni_pci_probe),
 	DEVMETHOD(device_attach, sbni_pci_attach),
-	DEVMETHOD(device_detach, sbni_pci_detach),
-	{ 0, 0 }
+	DEVMETHOD(device_detach, sbni_pci_detach), { 0, 0 }
 };
 
-static driver_t sbni_pci_driver = {
-	"sbni",
-	sbni_pci_methods,
-	sizeof(struct sbni_softc)
-};
+static driver_t sbni_pci_driver = { "sbni", sbni_pci_methods,
+	sizeof(struct sbni_softc) };
 
 DRIVER_MODULE(sbni, pci, sbni_pci_driver, 0, 0);
 MODULE_DEPEND(sbni, pci, 1, 1, 1);
@@ -70,7 +66,7 @@ MODULE_DEPEND(sbni, pci, 1, 1, 1);
 static int
 sbni_pci_probe(device_t dev)
 {
-	struct sbni_softc  *sc;
+	struct sbni_softc *sc;
 
 	if (pci_get_vendor(dev) != SBNI_PCI_VENDOR ||
 	    pci_get_device(dev) != SBNI_PCI_DEVICE)
@@ -78,8 +74,8 @@ sbni_pci_probe(device_t dev)
 
 	sc = device_get_softc(dev);
 	if (pci_get_subdevice(dev) == 2) {
-		sc->slave_sc = malloc(sizeof(struct sbni_softc),
-				      M_DEVBUF, M_NOWAIT | M_ZERO);
+		sc->slave_sc = malloc(sizeof(struct sbni_softc), M_DEVBUF,
+		    M_NOWAIT | M_ZERO);
 		if (!sc->slave_sc)
 			return (ENOMEM);
 		device_set_desc(dev, "Granch SBNI12/PCI Dual adapter");
@@ -87,8 +83,8 @@ sbni_pci_probe(device_t dev)
 		device_set_desc(dev, "Granch SBNI12/PCI adapter");
 
 	sc->io_rid = PCIR_BAR(0);
- 	sc->io_res = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-					    &sc->io_rid, RF_ACTIVE);
+	sc->io_res = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &sc->io_rid,
+	    RF_ACTIVE);
 	if (!sc->io_res) {
 		device_printf(dev, "cannot allocate io ports!\n");
 		if (sc->slave_sc)
@@ -121,7 +117,7 @@ sbni_pci_attach(device_t dev)
 	sc->dev = dev;
 
 	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &sc->irq_rid,
-					     RF_SHAREABLE);
+	    RF_SHAREABLE);
 
 	if (sc->irq_res == NULL) {
 		device_printf(dev, "cannot claim irq!\n");
@@ -147,8 +143,9 @@ sbni_pci_attach(device_t dev)
 	}
 
 	if (sc->irq_res) {
-		error = bus_setup_intr(dev, sc->irq_res, INTR_TYPE_NET |
-		    INTR_MPSAFE, NULL, sbni_intr, sc, &sc->irq_handle);
+		error = bus_setup_intr(dev, sc->irq_res,
+		    INTR_TYPE_NET | INTR_MPSAFE, NULL, sbni_intr, sc,
+		    &sc->irq_handle);
 		if (error) {
 			device_printf(dev, "bus_setup_intr\n");
 			sbni_detach(sc);

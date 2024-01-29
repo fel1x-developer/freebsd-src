@@ -27,19 +27,19 @@
  */
 
 #include <sys/param.h>
-#include <sys/linker_set.h>
 #include <sys/_iovec.h>
+#include <sys/linker_set.h>
 #include <sys/mman.h>
-
-#include <x86/psl.h>
 
 #include <machine/vmm.h>
 #include <machine/vmm_instruction_emul.h>
-#include <vmmapi.h>
 
+#include <x86/psl.h>
+
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
+#include <vmmapi.h>
 
 #include "bhyverun.h"
 #include "config.h"
@@ -47,21 +47,21 @@
 
 SET_DECLARE(inout_port_set, struct inout_port);
 
-#define	MAX_IOPORTS	(1 << 16)
+#define MAX_IOPORTS (1 << 16)
 
-#define	VERIFY_IOPORT(port, size) \
+#define VERIFY_IOPORT(port, size) \
 	assert((port) >= 0 && (size) > 0 && ((port) + (size)) <= MAX_IOPORTS)
 
 static struct {
-	const char	*name;
-	int		flags;
-	inout_func_t	handler;
-	void		*arg;
+	const char *name;
+	int flags;
+	inout_func_t handler;
+	void *arg;
 } inout_handlers[MAX_IOPORTS];
 
 static int
-default_inout(struct vmctx *ctx __unused, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+default_inout(struct vmctx *ctx __unused, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 	if (in) {
 		switch (bytes) {
@@ -154,24 +154,24 @@ emulate_inout(struct vmctx *ctx, struct vcpu *vcpu, struct vm_exit *vmexit)
 		while (iterations > 0) {
 			assert(retval == 0);
 			if (vie_calculate_gla(vis->paging.cpu_mode,
-			    vis->seg_name, &vis->seg_desc, index, bytes,
-			    addrsize, prot, &gla)) {
+				vis->seg_name, &vis->seg_desc, index, bytes,
+				addrsize, prot, &gla)) {
 				vm_inject_gp(vcpu);
 				break;
 			}
 
-			error = vm_copy_setup(vcpu, &vis->paging, gla,
-			    bytes, prot, iov, nitems(iov), &fault);
+			error = vm_copy_setup(vcpu, &vis->paging, gla, bytes,
+			    prot, iov, nitems(iov), &fault);
 			if (error) {
-				retval = -1;  /* Unrecoverable error */
+				retval = -1; /* Unrecoverable error */
 				break;
 			} else if (fault) {
-				retval = 0;  /* Resume guest to handle fault */
+				retval = 0; /* Resume guest to handle fault */
 				break;
 			}
 
 			if (vie_alignment_check(vis->paging.cpl, bytes,
-			    vis->cr0, vis->rflags, gla)) {
+				vis->cr0, vis->rflags, gla)) {
 				vm_inject_ac(vcpu, 0);
 				break;
 			}
@@ -223,8 +223,7 @@ emulate_inout(struct vmctx *ctx, struct vcpu *vcpu, struct vm_exit *vmexit)
 		if (retval == 0 && in) {
 			eax &= ~vie_size2mask(bytes);
 			eax |= val & vie_size2mask(bytes);
-			error = vm_set_register(vcpu, VM_REG_GUEST_RAX,
-			    eax);
+			error = vm_set_register(vcpu, VM_REG_GUEST_RAX, eax);
 			assert(error == 0);
 		}
 	}
@@ -244,7 +243,8 @@ init_inout(void)
 	/*
 	 * Overwrite with specified handlers
 	 */
-	SET_FOREACH(iopp, inout_port_set) {
+	SET_FOREACH(iopp, inout_port_set)
+	{
 		iop = *iopp;
 		assert(iop->port < MAX_IOPORTS);
 		inout_handlers[iop->port].name = iop->name;

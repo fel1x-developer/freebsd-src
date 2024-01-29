@@ -4,69 +4,71 @@
  *
  * See the IPFILTER.LICENCE file for details on licencing.
  */
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 #if !defined(__SVR4) && !defined(__GNUC__)
 #include <strings.h>
 #endif
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/file.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <sys/time.h>
-#include <net/if.h>
 #include <netinet/ip.h>
-#include <netdb.h>
+
 #include <arpa/nameser.h>
+#include <netdb.h>
 #include <resolv.h>
+#include <stddef.h>
+#include <stdlib.h>
+
 #include "ipf.h"
 #include "netinet/ipl.h"
 
-
-#ifndef	IPF_SAVEDIR
-# define	IPF_SAVEDIR	"/var/db/ipf"
+#ifndef IPF_SAVEDIR
+#define IPF_SAVEDIR "/var/db/ipf"
 #endif
 #ifndef IPF_NATFILE
-# define	IPF_NATFILE	"ipnat.ipf"
+#define IPF_NATFILE "ipnat.ipf"
 #endif
 #ifndef IPF_STATEFILE
-# define	IPF_STATEFILE	"ipstate.ipf"
+#define IPF_STATEFILE "ipstate.ipf"
 #endif
 
 #if !defined(__SVR4) && defined(__GNUC__)
-extern	char	*index(const char *, int);
+extern char *index(const char *, int);
 #endif
 
-extern	char	*optarg;
-extern	int	optind;
+extern char *optarg;
+extern int optind;
 
-int	main(int, char *[]);
-void	usage(void);
-int	changestateif(char *, char *);
-int	changenatif(char *, char *);
-int	readstate(int, char *);
-int	readnat(int, char *);
-int	writestate(int, char *);
-int	opendevice(char *);
-void	closedevice(int);
-int	setlock(int, int);
-int	writeall(char *);
-int	readall(char *);
-int	writenat(int, char *);
+int main(int, char *[]);
+void usage(void);
+int changestateif(char *, char *);
+int changenatif(char *, char *);
+int readstate(int, char *);
+int readnat(int, char *);
+int writestate(int, char *);
+int opendevice(char *);
+void closedevice(int);
+int setlock(int, int);
+int writeall(char *);
+int readall(char *);
+int writenat(int, char *);
 
-int	opts = 0;
-char	*progname;
+int opts = 0;
+char *progname;
 
-
-void usage()
+void
+usage()
 {
 	fprintf(stderr, "usage: %s [-nv] -l\n", progname);
 	fprintf(stderr, "usage: %s [-nv] -u\n", progname);
@@ -75,15 +77,15 @@ void usage()
 	fprintf(stderr, "usage: %s [-nNSv] [-f <file>] -r\n", progname);
 	fprintf(stderr, "usage: %s [-nNSv] [-f <file>] -w\n", progname);
 	fprintf(stderr, "usage: %s [-nNSv] -f <filename> -i <if1>,<if2>\n",
-		progname);
+	    progname);
 	exit(1);
 }
-
 
 /*
  * Change interface names in state information saved out to disk.
  */
-int changestateif(char *ifs, char *fname)
+int
+changestateif(char *ifs, char *fname)
 {
 	int fd, olen, nlen, rw;
 	ipstate_save_t ips;
@@ -106,7 +108,7 @@ int changestateif(char *ifs, char *fname)
 		exit(1);
 	}
 
-	for (pos = 0; read(fd, &ips, sizeof(ips)) == sizeof(ips); ) {
+	for (pos = 0; read(fd, &ips, sizeof(ips)) == sizeof(ips);) {
 		rw = 0;
 		if (!strncmp(ips.ips_is.is_ifname[0], ifs, olen + 1)) {
 			strcpy(ips.ips_is.is_ifname[0], s);
@@ -141,11 +143,11 @@ int changestateif(char *ifs, char *fname)
 	return (0);
 }
 
-
 /*
  * Change interface names in NAT information saved out to disk.
  */
-int changenatif(char *ifs, char *fname)
+int
+changenatif(char *ifs, char *fname)
 {
 	int fd, olen, nlen, rw;
 	nat_save_t ipn;
@@ -170,7 +172,7 @@ int changenatif(char *ifs, char *fname)
 		exit(1);
 	}
 
-	for (pos = 0; read(fd, &ipn, sizeof(ipn)) == sizeof(ipn); ) {
+	for (pos = 0; read(fd, &ipn, sizeof(ipn)) == sizeof(ipn);) {
 		rw = 0;
 		if (!strncmp(nat->nat_ifnames[0], ifs, olen + 1)) {
 			strcpy(nat->nat_ifnames[0], s);
@@ -197,84 +199,83 @@ int changenatif(char *ifs, char *fname)
 	return (0);
 }
 
-
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	int c, lock = -1, devfd = -1, err = 0, rw = -1, ns = -1, set = 0;
 	char *dirname = NULL, *filename = NULL, *ifs = NULL;
 
 	progname = argv[0];
 	while ((c = getopt(argc, argv, "d:f:i:lNnSRruvWw")) != -1)
-		switch (c)
-		{
-		case 'd' :
+		switch (c) {
+		case 'd':
 			if ((set == 0) && !dirname && !filename)
 				dirname = optarg;
 			else
 				usage();
 			break;
-		case 'f' :
+		case 'f':
 			if ((set != 0) && !dirname && !filename)
 				filename = optarg;
 			else
 				usage();
 			break;
-		case 'i' :
+		case 'i':
 			ifs = optarg;
 			set = 1;
 			break;
-		case 'l' :
+		case 'l':
 			if (filename || dirname || set)
 				usage();
 			lock = 1;
 			set = 1;
 			break;
-		case 'n' :
+		case 'n':
 			opts |= OPT_DONOTHING;
 			break;
-		case 'N' :
+		case 'N':
 			if ((ns >= 0) || dirname || (rw != -1) || set)
 				usage();
 			ns = 0;
 			set = 1;
 			break;
-		case 'r' :
+		case 'r':
 			if (dirname || (rw != -1) || (ns == -1))
 				usage();
 			rw = 0;
 			set = 1;
 			break;
-		case 'R' :
+		case 'R':
 			rw = 2;
 			set = 1;
 			break;
-		case 'S' :
+		case 'S':
 			if ((ns >= 0) || dirname || (rw != -1) || set)
 				usage();
 			ns = 1;
 			set = 1;
 			break;
-		case 'u' :
+		case 'u':
 			if (filename || dirname || set)
 				usage();
 			lock = 0;
 			set = 1;
 			break;
-		case 'v' :
+		case 'v':
 			opts |= OPT_VERBOSE;
 			break;
-		case 'w' :
+		case 'w':
 			if (dirname || (rw != -1) || (ns == -1))
 				usage();
 			rw = 1;
 			set = 1;
 			break;
-		case 'W' :
+		case 'W':
 			rw = 3;
 			set = 1;
 			break;
-		case '?' :
-		default :
+		case '?':
+		default:
 			usage();
 		}
 
@@ -303,7 +304,7 @@ int main(int argc, char *argv[])
 	if (lock >= 0)
 		err = setlock(devfd, lock);
 	else if (rw >= 0) {
-		if (rw & 1) {	/* WRITE */
+		if (rw & 1) { /* WRITE */
 			if (rw & 2)
 				err = writeall(dirname);
 			else {
@@ -326,8 +327,8 @@ int main(int argc, char *argv[])
 	return (err);
 }
 
-
-int opendevice(char *ipfdev)
+int
+opendevice(char *ipfdev)
 {
 	int fd = -1;
 
@@ -343,14 +344,14 @@ int opendevice(char *ipfdev)
 	return (fd);
 }
 
-
-void closedevice(int fd)
+void
+closedevice(int fd)
 {
 	close(fd);
 }
 
-
-int setlock(int fd, int lock)
+int
+setlock(int fd, int lock)
 {
 	if (opts & OPT_VERBOSE)
 		printf("Turn lock %s\n", lock ? "on" : "off");
@@ -365,8 +366,8 @@ int setlock(int fd, int lock)
 	return (0);
 }
 
-
-int writestate(int fd, char *file)
+int
+writestate(int fd, char *file)
 {
 	ipstate_save_t ips, *ipsp;
 	ipfobj_t obj;
@@ -375,7 +376,7 @@ int writestate(int fd, char *file)
 	if (!file)
 		file = IPF_STATEFILE;
 
-	wfd = open(file, O_WRONLY|O_TRUNC|O_CREAT, 0600);
+	wfd = open(file, O_WRONLY | O_TRUNC | O_CREAT, 0600);
 	if (wfd == -1) {
 		fprintf(stderr, "%s ", file);
 		perror("state:open");
@@ -415,8 +416,8 @@ int writestate(int fd, char *file)
 	return (0);
 }
 
-
-int readstate(int fd, char *file)
+int
+readstate(int fd, char *file)
 {
 	ipstate_save_t ips, *is, *ipshead = NULL, *is1, *ipstail = NULL;
 	int sfd = -1, i;
@@ -446,8 +447,8 @@ int readstate(int fd, char *file)
 		if (i == 0)
 			break;
 		if (i != sizeof(ips)) {
-			fprintf(stderr, "state:incomplete read: %d != %d\n",
-				i, (int)sizeof(ips));
+			fprintf(stderr, "state:incomplete read: %d != %d\n", i,
+			    (int)sizeof(ips));
 			goto freeipshead;
 		}
 		is = (ipstate_save_t *)malloc(sizeof(*is));
@@ -530,8 +531,8 @@ freeipshead:
 	return (1);
 }
 
-
-int readnat(int fd, char *file)
+int
+readnat(int fd, char *file)
 {
 	nat_save_t ipn, *in, *ipnhead = NULL, *in1, *ipntail = NULL;
 	ipfobj_t obj;
@@ -569,8 +570,8 @@ int readnat(int fd, char *file)
 		if (i == 0)
 			break;
 		if (i != sizeof(ipn)) {
-			fprintf(stderr, "nat:incomplete read: %d != %d\n",
-				i, (int)sizeof(ipn));
+			fprintf(stderr, "nat:incomplete read: %d != %d\n", i,
+			    (int)sizeof(ipn));
 			goto freenathead;
 		}
 
@@ -584,7 +585,7 @@ int readnat(int fd, char *file)
 			n = ipn.ipn_dsize - sizeof(ipn);
 			if (n > 0) {
 				s = in->ipn_data + sizeof(in->ipn_data);
- 				i = read(nfd, s, n);
+				i = read(nfd, s, n);
 				if (i == 0)
 					break;
 				if (i != n) {
@@ -675,8 +676,8 @@ freenathead:
 	return (1);
 }
 
-
-int writenat(int fd, char *file)
+int
+writenat(int fd, char *file)
 {
 	nat_save_t *ipnp = NULL, *next = NULL;
 	ipfobj_t obj;
@@ -686,7 +687,7 @@ int writenat(int fd, char *file)
 	if (!file)
 		file = IPF_NATFILE;
 
-	nfd = open(file, O_WRONLY|O_TRUNC|O_CREAT, 0600);
+	nfd = open(file, O_WRONLY | O_TRUNC | O_CREAT, 0600);
 	if (nfd == -1) {
 		fprintf(stderr, "%s ", file);
 		perror("nat:open");
@@ -720,8 +721,8 @@ int writenat(int fd, char *file)
 		else
 			ipnp = realloc((char *)ipnp, ng.ng_sz);
 		if (!ipnp) {
-			fprintf(stderr,
-				"malloc for %d bytes failed\n", ng.ng_sz);
+			fprintf(stderr, "malloc for %d bytes failed\n",
+			    ng.ng_sz);
 			break;
 		}
 
@@ -741,7 +742,7 @@ int writenat(int fd, char *file)
 
 		if (opts & OPT_VERBOSE)
 			printf("Got nat next %p ipn_dsize %d ng_sz %d\n",
-				ipnp->ipn_next, ipnp->ipn_dsize, ng.ng_sz);
+			    ipnp->ipn_next, ipnp->ipn_dsize, ng.ng_sz);
 		if (write(nfd, ipnp, ipnp->ipn_dsize) != ipnp->ipn_dsize) {
 			perror("nat:write");
 			close(nfd);
@@ -757,8 +758,8 @@ int writenat(int fd, char *file)
 	return (0);
 }
 
-
-int writeall(char *dirname)
+int
+writeall(char *dirname)
 {
 	int fd, devfd;
 
@@ -807,8 +808,8 @@ bad:
 	return (1);
 }
 
-
-int readall(char *dirname)
+int
+readall(char *dirname)
 {
 	int fd, devfd;
 

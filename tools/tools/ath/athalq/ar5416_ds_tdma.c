@@ -16,24 +16,24 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
-
 #include <sys/types.h>
 #include <sys/alq.h>
 #include <sys/endian.h>
 
-#include <dev/ath/if_ath_alq.h>
 #include <dev/ath/ath_hal/ar5416/ar5416desc.h>
+#include <dev/ath/if_ath_alq.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ar5416_ds.h"
 
-#define	MS(_v, _f)	( ((_v) & (_f)) >> _f##_S )
-#define	MF(_v, _f) ( !! ((_v) & (_f)))
+#define MS(_v, _f) (((_v) & (_f)) >> _f##_S)
+#define MF(_v, _f) (!!((_v) & (_f)))
 
 static void
 ar5416_decode_txstatus(struct if_ath_alq_payload *a)
@@ -48,10 +48,9 @@ ar5416_decode_txstatus(struct if_ath_alq_payload *a)
 		return;
 
 	printf("[%u] [%llu] TXSTATUS: TxDone=%d, TS=0x%08x (delta %d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    MF(txs.u.tx.status[9], AR_TxDone),
-	    txs.u.tx.status[2],
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    MF(txs.u.tx.status[9], AR_TxDone), txs.u.tx.status[2],
 	    txs.u.tx.status[2] - tx_tsf);
 
 	tx_tsf = txs.u.tx.status[2];
@@ -128,9 +127,8 @@ ar5416_decode_txdesc(struct if_ath_alq_payload *a)
 	/* XXX assumes txs is smaller than PAYLOAD_LEN! */
 	memcpy(&txc, &a->payload, sizeof(struct ar5416_desc));
 
-	printf("[%u] [%llu] TXD\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid));
+	printf("[%u] [%llu] TXD\n", (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid));
 
 #if 0
 	printf("  link=0x%08x, data=0x%08x\n",
@@ -266,10 +264,9 @@ ar5416_decode_rxstatus(struct if_ath_alq_payload *a)
 		return;
 
 	printf("[%u] [%llu] RXSTATUS: RxDone=%d, TS=0x%08x (delta %d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    MF(rxs.ds_rxstatus8, AR_RxDone),
-	    rxs.ds_rxstatus2,
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    MF(rxs.ds_rxstatus8, AR_RxDone), rxs.ds_rxstatus2,
 	    rxs.ds_rxstatus2 - rx_tsf);
 
 	rx_tsf = rxs.ds_rxstatus2;
@@ -364,10 +361,10 @@ ath_tdma_beacon_state(struct if_ath_alq_payload *a)
 	memcpy(&t, &a->payload, sizeof(t));
 
 	printf("[%u] [%llu] BEACON: RX TSF=%llu Beacon TSF=%llu (%d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.rx_tsf),
-	    (unsigned long long) be64toh(t.beacon_tsf),
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.rx_tsf),
+	    (unsigned long long)be64toh(t.beacon_tsf),
 	    be64toh(t.beacon_tsf) - last_beacon_tx);
 
 	last_beacon_tx = be64toh(t.beacon_tsf);
@@ -387,14 +384,13 @@ ath_tdma_slot_calc(struct if_ath_alq_payload *a)
 	struct if_ath_alq_tdma_slot_calc t;
 
 	memcpy(&t, &a->payload, sizeof(t));
-	printf("[%u] [%llu] SLOTCALC: NEXTTBTT=%llu nextslot=%llu tsfdelta=%d avg (%d/%d)\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.nexttbtt),
-	    (unsigned long long) be64toh(t.next_slot),
-	    (int) be32toh(t.tsfdelta),
-	    (int) be32toh(t.avg_plus),
-	    (int) be32toh(t.avg_minus));
+	printf(
+	    "[%u] [%llu] SLOTCALC: NEXTTBTT=%llu nextslot=%llu tsfdelta=%d avg (%d/%d)\n",
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.nexttbtt),
+	    (unsigned long long)be64toh(t.next_slot), (int)be32toh(t.tsfdelta),
+	    (int)be32toh(t.avg_plus), (int)be32toh(t.avg_minus));
 }
 
 static void
@@ -404,11 +400,10 @@ ath_tdma_tsf_adjust(struct if_ath_alq_payload *a)
 
 	memcpy(&t, &a->payload, sizeof(t));
 	printf("[%u] [%llu] TSFADJUST: TSF64 was %llu, adj=%d, now %llu\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    (unsigned long long) be64toh(t.tsf64_old),
-	    (int) be32toh(t.tsfdelta),
-	    (unsigned long long) be64toh(t.tsf64_new));
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid),
+	    (unsigned long long)be64toh(t.tsf64_old), (int)be32toh(t.tsfdelta),
+	    (unsigned long long)be64toh(t.tsf64_new));
 }
 
 static void
@@ -417,52 +412,47 @@ ath_tdma_timer_set(struct if_ath_alq_payload *a)
 	struct if_ath_alq_tdma_timer_set t;
 
 	memcpy(&t, &a->payload, sizeof(t));
-	printf("[%u] [%llu] TIMERSET: bt_intval=%d nexttbtt=%d nextdba=%d nextswba=%d nextatim=%d flags=0x%x tdmadbaprep=%d tdmaswbaprep=%d\n",
-	    (unsigned int) be32toh(a->hdr.tstamp),
-	    (unsigned long long) be64toh(a->hdr.threadid),
-	    be32toh(t.bt_intval),
-	    be32toh(t.bt_nexttbtt),
-	    be32toh(t.bt_nextdba),
-	    be32toh(t.bt_nextswba),
-	    be32toh(t.bt_nextatim),
-	    be32toh(t.bt_flags),
-	    be32toh(t.sc_tdmadbaprep),
-	    be32toh(t.sc_tdmaswbaprep));
+	printf(
+	    "[%u] [%llu] TIMERSET: bt_intval=%d nexttbtt=%d nextdba=%d nextswba=%d nextatim=%d flags=0x%x tdmadbaprep=%d tdmaswbaprep=%d\n",
+	    (unsigned int)be32toh(a->hdr.tstamp),
+	    (unsigned long long)be64toh(a->hdr.threadid), be32toh(t.bt_intval),
+	    be32toh(t.bt_nexttbtt), be32toh(t.bt_nextdba),
+	    be32toh(t.bt_nextswba), be32toh(t.bt_nextatim), be32toh(t.bt_flags),
+	    be32toh(t.sc_tdmadbaprep), be32toh(t.sc_tdmaswbaprep));
 }
 
 void
 ar5416_alq_payload(struct if_ath_alq_payload *a)
 {
 
-		switch (be16toh(a->hdr.op)) {
-			case ATH_ALQ_EDMA_TXSTATUS:	/* TXSTATUS */
-				ar5416_decode_txstatus(a);
-				break;
-			case ATH_ALQ_EDMA_RXSTATUS:	/* RXSTATUS */
-				ar5416_decode_rxstatus(a);
-				break;
-			case ATH_ALQ_EDMA_TXDESC:	/* TXDESC */
-				ar5416_decode_txdesc(a);
-				break;
-			case ATH_ALQ_TDMA_BEACON_STATE:
-				ath_tdma_beacon_state(a);
-				break;
-			case ATH_ALQ_TDMA_TIMER_CONFIG:
-				ath_tdma_timer_config(a);
-				break;
-			case ATH_ALQ_TDMA_SLOT_CALC:
-				ath_tdma_slot_calc(a);
-				break;
-			case ATH_ALQ_TDMA_TSF_ADJUST:
-				ath_tdma_tsf_adjust(a);
-				break;
-			case ATH_ALQ_TDMA_TIMER_SET:
-				ath_tdma_timer_set(a);
-				break;
-			default:
-				printf("[%d] [%lld] op: %d; len %d\n",
-				    be32toh(a->hdr.tstamp),
-				    be64toh(a->hdr.threadid),
-				    be16toh(a->hdr.op), be16toh(a->hdr.len));
-		}
+	switch (be16toh(a->hdr.op)) {
+	case ATH_ALQ_EDMA_TXSTATUS: /* TXSTATUS */
+		ar5416_decode_txstatus(a);
+		break;
+	case ATH_ALQ_EDMA_RXSTATUS: /* RXSTATUS */
+		ar5416_decode_rxstatus(a);
+		break;
+	case ATH_ALQ_EDMA_TXDESC: /* TXDESC */
+		ar5416_decode_txdesc(a);
+		break;
+	case ATH_ALQ_TDMA_BEACON_STATE:
+		ath_tdma_beacon_state(a);
+		break;
+	case ATH_ALQ_TDMA_TIMER_CONFIG:
+		ath_tdma_timer_config(a);
+		break;
+	case ATH_ALQ_TDMA_SLOT_CALC:
+		ath_tdma_slot_calc(a);
+		break;
+	case ATH_ALQ_TDMA_TSF_ADJUST:
+		ath_tdma_tsf_adjust(a);
+		break;
+	case ATH_ALQ_TDMA_TIMER_SET:
+		ath_tdma_timer_set(a);
+		break;
+	default:
+		printf("[%d] [%lld] op: %d; len %d\n", be32toh(a->hdr.tstamp),
+		    be64toh(a->hdr.threadid), be16toh(a->hdr.op),
+		    be16toh(a->hdr.len));
+	}
 }

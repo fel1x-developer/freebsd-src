@@ -36,21 +36,17 @@
 /* These data make no real sense, they are here just to make sfupdate happy.
  * Any code that would rely on it is broken.
  */
-static const uint8_t fake_dynamic_cfg_nvram[] = {
-	0x7a, 0xda, 0x10, 0xef, 0x0c, 0x00, 0x00, 0x00,
-	0x00, 0x05, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-	0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x10,
-	0x08, 0x00, 0x00, 0x00, 0x90, 0x04, 0x00, 0x52,
-	0x56, 0x01, 0xc3, 0x78, 0x01, 0x00, 0x03, 0x10,
-	0x08, 0x00, 0x00, 0x00, 0x90, 0x04, 0x00, 0x52,
-	0x56, 0x01, 0xc3, 0x78, 0x57, 0x1a, 0x10, 0xef,
-	0x08, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-	0x02, 0x0b, 0x64, 0x7d, 0xee, 0xee, 0xee, 0xee
-};
+static const uint8_t fake_dynamic_cfg_nvram[] = { 0x7a, 0xda, 0x10, 0xef, 0x0c,
+	0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x48,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x10, 0x08, 0x00, 0x00, 0x00, 0x90,
+	0x04, 0x00, 0x52, 0x56, 0x01, 0xc3, 0x78, 0x01, 0x00, 0x03, 0x10, 0x08,
+	0x00, 0x00, 0x00, 0x90, 0x04, 0x00, 0x52, 0x56, 0x01, 0xc3, 0x78, 0x57,
+	0x1a, 0x10, 0xef, 0x08, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02,
+	0x0b, 0x64, 0x7d, 0xee, 0xee, 0xee, 0xee };
 
 static int
 sfxge_nvram_rw(struct sfxge_softc *sc, sfxge_ioc_t *ip, efx_nvram_type_t type,
-	       boolean_t write)
+    boolean_t write)
 {
 	efx_nic_t *enp = sc->enp;
 	size_t total_size = ip->u.nvram.size;
@@ -63,7 +59,7 @@ sfxge_nvram_rw(struct sfxge_softc *sc, sfxge_ioc_t *ip, efx_nvram_type_t type,
 		if (write)
 			return (0);
 		rc = copyout(fake_dynamic_cfg_nvram, ip->u.nvram.data,
-			     MIN(total_size, sizeof(fake_dynamic_cfg_nvram)));
+		    MIN(total_size, sizeof(fake_dynamic_cfg_nvram)));
 		return (rc);
 	}
 
@@ -81,12 +77,12 @@ sfxge_nvram_rw(struct sfxge_softc *sc, sfxge_ioc_t *ip, efx_nvram_type_t type,
 			if (rc != 0)
 				goto fail3;
 			rc = efx_nvram_write_chunk(enp, type,
-						   ip->u.nvram.offset + off, buf, len);
+			    ip->u.nvram.offset + off, buf, len);
 			if (rc != 0)
 				goto fail3;
 		} else {
 			rc = efx_nvram_read_chunk(enp, type,
-						  ip->u.nvram.offset + off, buf, len);
+			    ip->u.nvram.offset + off, buf, len);
 			if (rc != 0)
 				goto fail3;
 			rc = copyout(buf, ip->u.nvram.data + off, len);
@@ -128,17 +124,17 @@ int
 sfxge_nvram_ioctl(struct sfxge_softc *sc, sfxge_ioc_t *ip)
 {
 	static const efx_nvram_type_t nvram_types[] = {
-		[SFXGE_NVRAM_TYPE_BOOTROM]  = EFX_NVRAM_BOOTROM,
-		[SFXGE_NVRAM_TYPE_BOOTROM_CFG]  = EFX_NVRAM_BOOTROM_CFG,
-		[SFXGE_NVRAM_TYPE_MC]  = EFX_NVRAM_MC_FIRMWARE,
-		[SFXGE_NVRAM_TYPE_MC_GOLDEN]  = EFX_NVRAM_MC_GOLDEN,
-		[SFXGE_NVRAM_TYPE_PHY]  = EFX_NVRAM_PHY,
-		[SFXGE_NVRAM_TYPE_NULL_PHY]  = EFX_NVRAM_NULLPHY,
-		[SFXGE_NVRAM_TYPE_FPGA]  = EFX_NVRAM_FPGA,
-		[SFXGE_NVRAM_TYPE_FCFW]  = EFX_NVRAM_FCFW,
-		[SFXGE_NVRAM_TYPE_CPLD]  = EFX_NVRAM_CPLD,
-		[SFXGE_NVRAM_TYPE_FPGA_BACKUP]  = EFX_NVRAM_FPGA_BACKUP,
-		[SFXGE_NVRAM_TYPE_DYNAMIC_CFG]  = EFX_NVRAM_DYNAMIC_CFG,
+		[SFXGE_NVRAM_TYPE_BOOTROM] = EFX_NVRAM_BOOTROM,
+		[SFXGE_NVRAM_TYPE_BOOTROM_CFG] = EFX_NVRAM_BOOTROM_CFG,
+		[SFXGE_NVRAM_TYPE_MC] = EFX_NVRAM_MC_FIRMWARE,
+		[SFXGE_NVRAM_TYPE_MC_GOLDEN] = EFX_NVRAM_MC_GOLDEN,
+		[SFXGE_NVRAM_TYPE_PHY] = EFX_NVRAM_PHY,
+		[SFXGE_NVRAM_TYPE_NULL_PHY] = EFX_NVRAM_NULLPHY,
+		[SFXGE_NVRAM_TYPE_FPGA] = EFX_NVRAM_FPGA,
+		[SFXGE_NVRAM_TYPE_FCFW] = EFX_NVRAM_FCFW,
+		[SFXGE_NVRAM_TYPE_CPLD] = EFX_NVRAM_CPLD,
+		[SFXGE_NVRAM_TYPE_FPGA_BACKUP] = EFX_NVRAM_FPGA_BACKUP,
+		[SFXGE_NVRAM_TYPE_DYNAMIC_CFG] = EFX_NVRAM_DYNAMIC_CFG,
 	};
 
 	efx_nic_t *enp = sc->enp;
@@ -150,16 +146,16 @@ sfxge_nvram_ioctl(struct sfxge_softc *sc, sfxge_ioc_t *ip)
 	type = nvram_types[ip->u.nvram.type];
 	if (type == EFX_NVRAM_MC_GOLDEN &&
 	    (ip->u.nvram.op == SFXGE_NVRAM_OP_WRITE ||
-	     ip->u.nvram.op == SFXGE_NVRAM_OP_ERASE ||
-	     ip->u.nvram.op == SFXGE_NVRAM_OP_SET_VER))
+		ip->u.nvram.op == SFXGE_NVRAM_OP_ERASE ||
+		ip->u.nvram.op == SFXGE_NVRAM_OP_SET_VER))
 		return (EOPNOTSUPP);
 
 	switch (ip->u.nvram.op) {
-	case SFXGE_NVRAM_OP_SIZE:
-	{
+	case SFXGE_NVRAM_OP_SIZE: {
 		size_t size;
 
-		if (type == EFX_NVRAM_DYNAMIC_CFG && sc->family == EFX_FAMILY_SIENA) {
+		if (type == EFX_NVRAM_DYNAMIC_CFG &&
+		    sc->family == EFX_FAMILY_SIENA) {
 			ip->u.nvram.size = sizeof(fake_dynamic_cfg_nvram);
 		} else {
 			if ((rc = efx_nvram_size(enp, type, &size)) != 0)
@@ -179,7 +175,7 @@ sfxge_nvram_ioctl(struct sfxge_softc *sc, sfxge_ioc_t *ip)
 		break;
 	case SFXGE_NVRAM_OP_GET_VER:
 		rc = efx_nvram_get_version(enp, type, &ip->u.nvram.subtype,
-					   &ip->u.nvram.version[0]);
+		    &ip->u.nvram.version[0]);
 		break;
 	case SFXGE_NVRAM_OP_SET_VER:
 		rc = efx_nvram_set_version(enp, type, &ip->u.nvram.version[0]);

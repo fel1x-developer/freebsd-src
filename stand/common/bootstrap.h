@@ -25,149 +25,145 @@
  */
 
 #ifndef _BOOTSTRAP_H_
-#define	_BOOTSTRAP_H_
+#define _BOOTSTRAP_H_
+
+#include <sys/types.h>
+#include <sys/linker_set.h>
+#include <sys/queue.h>
 
 #include <stand.h>
-#include <sys/types.h>
-#include <sys/queue.h>
-#include <sys/linker_set.h>
 #include <stdbool.h>
 
 #include "readin.h"
 
 /* Commands and return values; nonzero return sets command_errmsg != NULL */
-typedef int	(bootblk_cmd_t)(int argc, char *argv[]);
-#define	COMMAND_ERRBUFSZ	(256)
+typedef int(bootblk_cmd_t)(int argc, char *argv[]);
+#define COMMAND_ERRBUFSZ (256)
 extern const char *command_errmsg;
-extern char	command_errbuf[COMMAND_ERRBUFSZ];
-#define	CMD_OK		0
-#define	CMD_WARN	1
-#define	CMD_ERROR	2
-#define	CMD_CRIT	3
-#define	CMD_FATAL	4
+extern char command_errbuf[COMMAND_ERRBUFSZ];
+#define CMD_OK 0
+#define CMD_WARN 1
+#define CMD_ERROR 2
+#define CMD_CRIT 3
+#define CMD_FATAL 4
 
 /* interp.c */
-void	interact(void);
-void	interp_emit_prompt(void);
-int	interp_builtin_cmd(int argc, char *argv[]);
-bool	interp_has_builtin_cmd(const char *cmd);
+void interact(void);
+void interp_emit_prompt(void);
+int interp_builtin_cmd(int argc, char *argv[]);
+bool interp_has_builtin_cmd(const char *cmd);
 
 /* Called by interp.c for interp_*.c embedded interpreters */
-int	interp_include(const char *);	/* Execute commands from filename */
-void	interp_init(void);		/* Initialize interpreater */
-int	interp_run(const char *);	/* Run a single command */
+int interp_include(const char *); /* Execute commands from filename */
+void interp_init(void);		  /* Initialize interpreater */
+int interp_run(const char *);	  /* Run a single command */
 
 /* interp_backslash.c */
-char	*backslash(const char *str);
+char *backslash(const char *str);
 
 /* interp_parse.c */
-int	parse(int *argc, char ***argv, const char *str);
+int parse(int *argc, char ***argv, const char *str);
 
 /* boot.c */
-void	autoboot_maybe(void);
-int	getrootmount(char *rootdev);
+void autoboot_maybe(void);
+int getrootmount(char *rootdev);
 
 /* misc.c */
-char	*unargv(int argc, char *argv[]);
-size_t	strlenout(vm_offset_t str);
-char	*strdupout(vm_offset_t str);
-void	kern_bzero(vm_offset_t dest, size_t len);
-int	kern_pread(readin_handle_t fd, vm_offset_t dest, size_t len, off_t off);
-void	*alloc_pread(readin_handle_t fd, off_t off, size_t len);
+char *unargv(int argc, char *argv[]);
+size_t strlenout(vm_offset_t str);
+char *strdupout(vm_offset_t str);
+void kern_bzero(vm_offset_t dest, size_t len);
+int kern_pread(readin_handle_t fd, vm_offset_t dest, size_t len, off_t off);
+void *alloc_pread(readin_handle_t fd, off_t off, size_t len);
 
 /* bcache.c */
-void	bcache_init(size_t nblks, size_t bsize);
-void	bcache_add_dev(int);
-void	*bcache_allocate(void);
-void	bcache_free(void *);
-int	bcache_strategy(void *devdata, int rw, daddr_t blk, size_t size,
-			char *buf, size_t *rsize);
+void bcache_init(size_t nblks, size_t bsize);
+void bcache_add_dev(int);
+void *bcache_allocate(void);
+void bcache_free(void *);
+int bcache_strategy(void *devdata, int rw, daddr_t blk, size_t size, char *buf,
+    size_t *rsize);
 
 /*
  * Disk block cache
  */
-struct bcache_devdata
-{
-	int	(*dv_strategy)(void *, int, daddr_t, size_t, char *, size_t *);
-	void	*dv_devdata;
-	void	*dv_cache;
+struct bcache_devdata {
+	int (*dv_strategy)(void *, int, daddr_t, size_t, char *, size_t *);
+	void *dv_devdata;
+	void *dv_cache;
 };
 
 /*
  * Modular console support.
  */
-struct console
-{
-	const char	*c_name;
-	const char	*c_desc;
-	int		c_flags;
-#define	C_PRESENTIN	(1<<0)	    /* console can provide input */
-#define	C_PRESENTOUT	(1<<1)	    /* console can provide output */
-#define	C_ACTIVEIN	(1<<2)	    /* user wants input from console */
-#define	C_ACTIVEOUT	(1<<3)	    /* user wants output to console */
-#define	C_WIDEOUT	(1<<4)	    /* c_out routine groks wide chars */
+struct console {
+	const char *c_name;
+	const char *c_desc;
+	int c_flags;
+#define C_PRESENTIN (1 << 0)  /* console can provide input */
+#define C_PRESENTOUT (1 << 1) /* console can provide output */
+#define C_ACTIVEIN (1 << 2)   /* user wants input from console */
+#define C_ACTIVEOUT (1 << 3)  /* user wants output to console */
+#define C_WIDEOUT (1 << 4)    /* c_out routine groks wide chars */
 
 	/* set c_flags to match hardware */
-	void	(* c_probe)(struct console *cp);
+	void (*c_probe)(struct console *cp);
 	/* reinit XXX may need more args */
-	int		(* c_init)(int arg);
+	int (*c_init)(int arg);
 	/* emit c */
-	void		(* c_out)(int c);
+	void (*c_out)(int c);
 	/* wait for and return input */
-	int		(* c_in)(void);
+	int (*c_in)(void);
 	/* return nonzero if input waiting */
-	int		(* c_ready)(void);
+	int (*c_ready)(void);
 };
 extern struct console *consoles[];
 void cons_probe(void);
-bool		cons_update_mode(bool);
-void		autoload_font(bool);
+bool cons_update_mode(bool);
+void autoload_font(bool);
 
 extern int module_verbose;
 enum {
-	MODULE_VERBOSE_SILENT,		/* say nothing */
-	MODULE_VERBOSE_SIZE,		/* print name and size */
-	MODULE_VERBOSE_TWIDDLE,		/* show progress */
-	MODULE_VERBOSE_FULL,		/* all we have */
+	MODULE_VERBOSE_SILENT,	/* say nothing */
+	MODULE_VERBOSE_SIZE,	/* print name and size */
+	MODULE_VERBOSE_TWIDDLE, /* show progress */
+	MODULE_VERBOSE_FULL,	/* all we have */
 };
 
 /*
  * Plug-and-play enumerator/configurator interface.
  */
-struct pnphandler
-{
-	const char *pp_name;		/* handler/bus name */
+struct pnphandler {
+	const char *pp_name;	    /* handler/bus name */
 	void (*pp_enumerate)(void); /* enumerate PnP devices, add to chain */
 };
 
-struct pnpident
-{
+struct pnpident {
 	/* ASCII identifier, actual format varies with bus/handler */
-	char			*id_ident;
-	STAILQ_ENTRY(pnpident)	id_link;
+	char *id_ident;
+	STAILQ_ENTRY(pnpident) id_link;
 };
 
-struct pnpinfo
-{
-	char	*pi_desc;	/* ASCII description, optional */
-	int	pi_revision;	/* optional revision (or -1) if not supported */
-	char	*pi_module;	/* module/args nominated to handle device */
-	int	pi_argc;	/* module arguments */
-	char	**pi_argv;
-	struct pnphandler *pi_handler;	/* handler which detected this device */
-	STAILQ_HEAD(, pnpident)	pi_ident;	/* list of identifiers */
-	STAILQ_ENTRY(pnpinfo)	pi_link;
+struct pnpinfo {
+	char *pi_desc;	 /* ASCII description, optional */
+	int pi_revision; /* optional revision (or -1) if not supported */
+	char *pi_module; /* module/args nominated to handle device */
+	int pi_argc;	 /* module arguments */
+	char **pi_argv;
+	struct pnphandler *pi_handler; /* handler which detected this device */
+	STAILQ_HEAD(, pnpident) pi_ident; /* list of identifiers */
+	STAILQ_ENTRY(pnpinfo) pi_link;
 };
 
 STAILQ_HEAD(pnpinfo_stql, pnpinfo);
 
-extern struct pnphandler *pnphandlers[];	/* provided by MD code */
+extern struct pnphandler *pnphandlers[]; /* provided by MD code */
 
-void			pnp_addident(struct pnpinfo *pi, char *ident);
-struct pnpinfo		*pnp_allocinfo(void);
-void			pnp_freeinfo(struct pnpinfo *pi);
-void			pnp_addinfo(struct pnpinfo *pi);
-char			*pnp_eisaformat(uint8_t *data);
+void pnp_addident(struct pnpinfo *pi, char *ident);
+struct pnpinfo *pnp_allocinfo(void);
+void pnp_freeinfo(struct pnpinfo *pi);
+void pnp_addinfo(struct pnpinfo *pi);
+char *pnp_eisaformat(uint8_t *data);
 
 /*
  *  < 0	- No ISA in system
@@ -186,9 +182,8 @@ extern unsigned bootprog_rev;
  * Interpreter information
  */
 extern const char bootprog_interp[];
-#define	INTERP_DEFINE(interpstr) \
-const char bootprog_interp[] = "$Interpreter:" interpstr
-
+#define INTERP_DEFINE(interpstr) \
+	const char bootprog_interp[] = "$Interpreter:" interpstr
 
 /*
  * Preloaded file metadata header.
@@ -196,25 +191,23 @@ const char bootprog_interp[] = "$Interpreter:" interpstr
  * Metadata are allocated on our heap, and copied into kernel space
  * before executing the kernel.
  */
-struct file_metadata
-{
-	size_t		md_size;
-	uint16_t	md_type;
-	vm_offset_t	md_addr;	/* Valid after copied to kernel space */
+struct file_metadata {
+	size_t md_size;
+	uint16_t md_type;
+	vm_offset_t md_addr; /* Valid after copied to kernel space */
 	struct file_metadata *md_next;
-	char		md_data[1];	/* data are immediately appended */
+	char md_data[1]; /* data are immediately appended */
 };
 
 struct preloaded_file;
 struct mod_depend;
 
-struct kernel_module
-{
-	char	*m_name;	/* module name */
-	int	m_version;	/* module version */
-	/* char			*m_args; */	/* arguments for the module */
-	struct preloaded_file	*m_fp;
-	struct kernel_module	*m_next;
+struct kernel_module {
+	char *m_name;			    /* module name */
+	int m_version;			    /* module version */
+	/* char			*m_args; */ /* arguments for the module */
+	struct preloaded_file *m_fp;
+	struct kernel_module *m_next;
 };
 
 /*
@@ -226,28 +219,26 @@ struct kernel_module
  *
  * String fields (m_name, m_type) should be dynamically allocated.
  */
-struct preloaded_file
-{
-	char *f_name;	/* file name */
+struct preloaded_file {
+	char *f_name; /* file name */
 	char *f_type; /* verbose file type, eg 'ELF kernel', 'pnptable', etc. */
-	char *f_args;	/* arguments for the file */
+	char *f_args; /* arguments for the file */
 	/* metadata that will be placed in the module directory */
 	struct file_metadata *f_metadata;
-	int f_loader;	/* index of the loader that read the file */
-	vm_offset_t f_addr;	/* load address */
-	size_t f_size;		/* file size */
-	struct kernel_module	*f_modules;	/* list of modules if any */
-	struct preloaded_file	*f_next;	/* next file */
+	int f_loader;	    /* index of the loader that read the file */
+	vm_offset_t f_addr; /* load address */
+	size_t f_size;	    /* file size */
+	struct kernel_module *f_modules; /* list of modules if any */
+	struct preloaded_file *f_next;	 /* next file */
 #ifdef __amd64__
-	bool			f_kernphys_relocatable;
+	bool f_kernphys_relocatable;
 #endif
 #if defined(__i386__)
-	bool			f_tg_kernel_support;
+	bool f_tg_kernel_support;
 #endif
 };
 
-struct file_format
-{
+struct file_format {
 	/*
 	 * Load function must return EFTYPE if it can't handle
 	 * the module supplied
@@ -260,7 +251,7 @@ struct file_format
 	int (*l_exec)(struct preloaded_file *);
 };
 
-extern struct file_format *file_formats[];	/* supplied by consumer */
+extern struct file_format *file_formats[]; /* supplied by consumer */
 extern struct preloaded_file *preloaded_files;
 
 int mod_load(char *name, struct mod_depend *verinfo, int argc, char *argv[]);
@@ -285,20 +276,19 @@ vm_offset_t build_font_module(vm_offset_t);
 /* MI module loaders */
 #ifdef __elfN
 /* Relocation types. */
-#define	ELF_RELOC_REL	1
-#define	ELF_RELOC_RELA	2
+#define ELF_RELOC_REL 1
+#define ELF_RELOC_RELA 2
 
 /* Relocation offset for some architectures */
 extern uint64_t __elfN(relocation_offset);
 
 struct elf_file;
-typedef Elf_Addr (symaddr_fn)(struct elf_file *ef, Elf_Size symidx);
+typedef Elf_Addr(symaddr_fn)(struct elf_file *ef, Elf_Size symidx);
 
-int	__elfN(loadfile)(char *, uint64_t, struct preloaded_file **);
-int	__elfN(obj_loadfile)(char *, uint64_t, struct preloaded_file **);
-int	__elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr,
-	    const void *reldata, int reltype, Elf_Addr relbase,
-	    Elf_Addr dataaddr, void *data, size_t len);
+int __elfN(loadfile)(char *, uint64_t, struct preloaded_file **);
+int __elfN(obj_loadfile)(char *, uint64_t, struct preloaded_file **);
+int __elfN(reloc)(struct elf_file *ef, symaddr_fn *symaddr, const void *reldata,
+    int reltype, Elf_Addr relbase, Elf_Addr dataaddr, void *data, size_t len);
 int __elfN(loadfile_raw)(char *, uint64_t, struct preloaded_file **, int);
 int __elfN(load_modmetadata)(struct preloaded_file *, uint64_t);
 #endif
@@ -306,17 +296,16 @@ int __elfN(load_modmetadata)(struct preloaded_file *, uint64_t);
 /*
  * Support for commands
  */
-struct bootblk_command
-{
-    const char		*c_name;
-    const char		*c_desc;
-    bootblk_cmd_t	*c_fn;
+struct bootblk_command {
+	const char *c_name;
+	const char *c_desc;
+	bootblk_cmd_t *c_fn;
 };
 
-#define	COMMAND_SET(tag, key, desc, func)				\
-    static bootblk_cmd_t func;						\
-    static struct bootblk_command _cmd_ ## tag = { key, desc, func };	\
-    DATA_SET(Xcommand_set, _cmd_ ## tag)
+#define COMMAND_SET(tag, key, desc, func)                               \
+	static bootblk_cmd_t func;                                      \
+	static struct bootblk_command _cmd_##tag = { key, desc, func }; \
+	DATA_SET(Xcommand_set, _cmd_##tag)
 
 SET_DECLARE(Xcommand_set, struct bootblk_command);
 
@@ -326,8 +315,7 @@ SET_DECLARE(Xcommand_set, struct bootblk_command);
  * MD code may selectively populate the switch at runtime based on the
  * actual configuration of the target system.
  */
-struct arch_switch
-{
+struct arch_switch {
 	/* Automatically load modules as required by detected hardware */
 	int (*arch_autoload)(void);
 	/* Locate the device for (name), return pointer to tail in (*path) */
@@ -336,14 +324,14 @@ struct arch_switch
 	 * Copy from local address space to module address space,
 	 * similar to bcopy()
 	 */
-	ssize_t	(*arch_copyin)(const void *, vm_offset_t, const size_t);
+	ssize_t (*arch_copyin)(const void *, vm_offset_t, const size_t);
 	/*
 	 * Copy to local address space from module address space,
 	 * similar to bcopy()
 	 */
-	ssize_t	(*arch_copyout)(const vm_offset_t, void *, const size_t);
+	ssize_t (*arch_copyout)(const vm_offset_t, void *, const size_t);
 	/* Read from file to module address space, same semantics as read() */
-	ssize_t	(*arch_readin)(readin_handle_t, vm_offset_t, const size_t);
+	ssize_t (*arch_readin)(readin_handle_t, vm_offset_t, const size_t);
 	/* Perform ISA byte port I/O (only for systems with ISA) */
 	int (*arch_isainb)(int port);
 	void (*arch_isaoutb)(int port, int value);
@@ -353,8 +341,8 @@ struct arch_switch
 	 * being loaded.
 	 */
 	uint64_t (*arch_loadaddr)(u_int type, void *data, uint64_t addr);
-#define	LOAD_ELF	1	/* data points to the ELF header. */
-#define	LOAD_RAW	2	/* data points to the file name. */
+#define LOAD_ELF 1 /* data points to the ELF header. */
+#define LOAD_RAW 2 /* data points to the file name. */
 
 	/*
 	 * Interface to inform MD code about a loaded (ELF) segment. This
@@ -375,7 +363,7 @@ struct arch_switch
 extern struct arch_switch archsw;
 
 /* This must be provided by the MD code, but should it be in the archsw? */
-void	delay(int delay);
+void delay(int delay);
 
 /* common code to set currdev variable. */
 int gen_setcurrdev(struct env_var *ev, int flags, const void *value);
@@ -383,7 +371,7 @@ int mount_currdev(struct env_var *, int, const void *);
 void set_currdev(const char *devname);
 
 #ifndef CTASSERT
-#define	CTASSERT(x)	_Static_assert(x, "compile-time assertion failed")
+#define CTASSERT(x) _Static_assert(x, "compile-time assertion failed")
 #endif
 
 #endif /* !_BOOTSTRAP_H_ */

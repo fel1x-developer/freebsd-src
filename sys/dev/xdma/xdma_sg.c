@@ -29,11 +29,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
@@ -41,12 +42,12 @@
 #include <sys/mutex.h>
 #include <sys/rwlock.h>
 
-#include <machine/bus.h>
-
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_page.h>
+
+#include <machine/bus.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -104,20 +105,20 @@ xchan_bufs_alloc_reserved(xdma_channel_t *xchan)
 	for (i = 0; i < xchan->xr_num; i++) {
 		xr = &xchan->xr_mem[i];
 		size = round_page(xchan->maxsegsize);
-		if (vmem_alloc(xchan->vmem, size,
-		    M_BESTFIT | M_NOWAIT, &addr)) {
-			device_printf(xdma->dev,
-			    "%s: Can't allocate memory\n", __func__);
+		if (vmem_alloc(xchan->vmem, size, M_BESTFIT | M_NOWAIT,
+			&addr)) {
+			device_printf(xdma->dev, "%s: Can't allocate memory\n",
+			    __func__);
 			xchan_bufs_free_reserved(xchan);
 			return (ENOMEM);
 		}
-		
+
 		xr->buf.size = size;
 		xr->buf.paddr = addr;
 		xr->buf.vaddr = kva_alloc(size);
 		if (xr->buf.vaddr == 0) {
-			device_printf(xdma->dev,
-			    "%s: Can't allocate KVA\n", __func__);
+			device_printf(xdma->dev, "%s: Can't allocate KVA\n",
+			    __func__);
 			xchan_bufs_free_reserved(xchan);
 			return (ENOMEM);
 		}
@@ -138,29 +139,27 @@ xchan_bufs_alloc_busdma(xdma_channel_t *xchan)
 	xdma = xchan->xdma;
 
 	/* Create bus_dma tag */
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(xdma->dev),	/* Parent tag. */
-	    xchan->alignment,		/* alignment */
-	    xchan->boundary,		/* boundary */
-	    xchan->lowaddr,		/* lowaddr */
-	    xchan->highaddr,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
+	err = bus_dma_tag_create(bus_get_dma_tag(xdma->dev), /* Parent tag. */
+	    xchan->alignment,				     /* alignment */
+	    xchan->boundary,				     /* boundary */
+	    xchan->lowaddr,				     /* lowaddr */
+	    xchan->highaddr,				     /* highaddr */
+	    NULL, NULL,				 /* filter, filterarg */
 	    xchan->maxsegsize * xchan->maxnsegs, /* maxsize */
-	    xchan->maxnsegs,		/* nsegments */
-	    xchan->maxsegsize,		/* maxsegsize */
-	    0,				/* flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	    xchan->maxnsegs,			 /* nsegments */
+	    xchan->maxsegsize,			 /* maxsegsize */
+	    0,					 /* flags */
+	    NULL, NULL,				 /* lockfunc, lockarg */
 	    &xchan->dma_tag_bufs);
 	if (err != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't create bus_dma tag.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't create bus_dma tag.\n",
+		    __func__);
 		return (-1);
 	}
 
 	for (i = 0; i < xchan->xr_num; i++) {
 		xr = &xchan->xr_mem[i];
-		err = bus_dmamap_create(xchan->dma_tag_bufs, 0,
-		    &xr->buf.map);
+		err = bus_dmamap_create(xchan->dma_tag_bufs, 0, &xr->buf.map);
 		if (err != 0) {
 			device_printf(xdma->dev,
 			    "%s: Can't create buf DMA map.\n", __func__);
@@ -194,8 +193,8 @@ xchan_bufs_alloc(xdma_channel_t *xchan)
 		ret = xchan_bufs_alloc_reserved(xchan);
 	}
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't allocate bufs.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't allocate bufs.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -244,9 +243,8 @@ xdma_channel_free_sg(xdma_channel_t *xchan)
  * maxsegsize - maximum allowed scatter-gather list element size in bytes
  */
 int
-xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
-    bus_size_t maxsegsize, bus_size_t maxnsegs,
-    bus_size_t alignment, bus_addr_t boundary,
+xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num, bus_size_t maxsegsize,
+    bus_size_t maxnsegs, bus_size_t alignment, bus_addr_t boundary,
     bus_addr_t lowaddr, bus_addr_t highaddr)
 {
 	xdma_controller_t *xdma;
@@ -257,8 +255,8 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 	KASSERT(xdma != NULL, ("xdma is NULL"));
 
 	if (xchan->flags & XCHAN_CONFIGURED) {
-		device_printf(xdma->dev,
-		    "%s: Channel is already configured.\n", __func__);
+		device_printf(xdma->dev, "%s: Channel is already configured.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -271,8 +269,7 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 	xchan->highaddr = highaddr;
 
 	if (xchan->maxnsegs > XDMA_MAX_SEG) {
-		device_printf(xdma->dev, "%s: maxnsegs is too big\n",
-		    __func__);
+		device_printf(xdma->dev, "%s: maxnsegs is too big\n", __func__);
 		return (-1);
 	}
 
@@ -281,8 +278,8 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 	/* Allocate sglist. */
 	ret = xchan_sglist_alloc(xchan);
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't allocate sglist.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't allocate sglist.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -290,8 +287,8 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 	if (xchan->caps & (XCHAN_CAP_BUSDMA | XCHAN_CAP_BOUNCE)) {
 		ret = xchan_bufs_alloc(xchan);
 		if (ret != 0) {
-			device_printf(xdma->dev,
-			    "%s: Can't allocate bufs.\n", __func__);
+			device_printf(xdma->dev, "%s: Can't allocate bufs.\n",
+			    __func__);
 
 			/* Cleanup */
 			xchan_sglist_free(xchan);
@@ -306,8 +303,8 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 	XCHAN_LOCK(xchan);
 	ret = XDMA_CHANNEL_PREP_SG(xdma->dma_dev, xchan);
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't prepare SG transfer.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't prepare SG transfer.\n",
+		    __func__);
 		XCHAN_UNLOCK(xchan);
 
 		return (-1);
@@ -318,8 +315,7 @@ xdma_prep_sg(xdma_channel_t *xchan, uint32_t xr_num,
 }
 
 void
-xchan_seg_done(xdma_channel_t *xchan,
-    struct xdma_transfer_status *st)
+xchan_seg_done(xdma_channel_t *xchan, struct xdma_transfer_status *st)
 {
 	struct xdma_request *xr;
 	struct xchan_buf *b;
@@ -336,10 +332,10 @@ xchan_seg_done(xdma_channel_t *xchan,
 	if (b->nsegs_left == 0) {
 		if (xchan->caps & XCHAN_CAP_BUSDMA) {
 			if (xr->direction == XDMA_MEM_TO_DEV)
-				bus_dmamap_sync(xchan->dma_tag_bufs, b->map, 
+				bus_dmamap_sync(xchan->dma_tag_bufs, b->map,
 				    BUS_DMASYNC_POSTWRITE);
 			else
-				bus_dmamap_sync(xchan->dma_tag_bufs, b->map, 
+				bus_dmamap_sync(xchan->dma_tag_bufs, b->map,
 				    BUS_DMASYNC_POSTREAD);
 			bus_dmamap_unload(xchan->dma_tag_bufs, b->map);
 		} else if (xchan->caps & XCHAN_CAP_BOUNCE) {
@@ -414,12 +410,12 @@ _xdma_load_data_busdma(xdma_channel_t *xchan, struct xdma_request *xr,
 		slr.nsegs = 0;
 		slr.error = 0;
 		slr.seg = seg;
-		error = bus_dmamap_load_bio(xchan->dma_tag_bufs,
-		    xr->buf.map, xr->bp, xdma_dmamap_cb, &slr, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load_bio(xchan->dma_tag_bufs, xr->buf.map,
+		    xr->bp, xdma_dmamap_cb, &slr, BUS_DMA_NOWAIT);
 		if (slr.error != 0) {
 			device_printf(xdma->dma_dev,
-			    "%s: bus_dmamap_load failed, err %d\n",
-			    __func__, slr.error);
+			    "%s: bus_dmamap_load failed, err %d\n", __func__,
+			    slr.error);
 			return (0);
 		}
 		nsegs = slr.nsegs;
@@ -440,13 +436,13 @@ _xdma_load_data_busdma(xdma_channel_t *xchan, struct xdma_request *xr,
 		slr.nsegs = 0;
 		slr.error = 0;
 		slr.seg = seg;
-		error = bus_dmamap_load(xchan->dma_tag_bufs, xr->buf.map,
-		    addr, (xr->block_len * xr->block_num),
-		    xdma_dmamap_cb, &slr, BUS_DMA_NOWAIT);
+		error = bus_dmamap_load(xchan->dma_tag_bufs, xr->buf.map, addr,
+		    (xr->block_len * xr->block_num), xdma_dmamap_cb, &slr,
+		    BUS_DMA_NOWAIT);
 		if (slr.error != 0) {
 			device_printf(xdma->dma_dev,
-			    "%s: bus_dmamap_load failed, err %d\n",
-			    __func__, slr.error);
+			    "%s: bus_dmamap_load failed, err %d\n", __func__,
+			    slr.error);
 			return (0);
 		}
 		nsegs = slr.nsegs;
@@ -511,8 +507,8 @@ _xdma_load_data(xdma_channel_t *xchan, struct xdma_request *xr,
 			else
 				prot = VM_PROT_WRITE;
 
-			xdma_iommu_add_entry(xchan, &va,
-			    pa, m->m_pkthdr.len, prot);
+			xdma_iommu_add_entry(xchan, &va, pa, m->m_pkthdr.len,
+			    prot);
 
 			/*
 			 * Save VA so we can unload data later
@@ -537,8 +533,8 @@ _xdma_load_data(xdma_channel_t *xchan, struct xdma_request *xr,
 }
 
 static int
-xdma_load_data(xdma_channel_t *xchan,
-    struct xdma_request *xr, struct bus_dma_segment *seg)
+xdma_load_data(xdma_channel_t *xchan, struct xdma_request *xr,
+    struct bus_dma_segment *seg)
 {
 	int nsegs;
 
@@ -558,8 +554,7 @@ xdma_load_data(xdma_channel_t *xchan,
 }
 
 static int
-xdma_process(xdma_channel_t *xchan,
-    struct xdma_sglist *sg)
+xdma_process(xdma_channel_t *xchan, struct xdma_sglist *sg)
 {
 	struct bus_dma_segment seg[XDMA_MAX_SEG];
 	struct xdma_request *xr;
@@ -585,7 +580,7 @@ xdma_process(xdma_channel_t *xchan,
 		return (-1);
 	}
 
-	TAILQ_FOREACH_SAFE(xr, &xchan->queue_in, xr_next, xr_tmp) {
+	TAILQ_FOREACH_SAFE (xr, &xchan->queue_in, xr_next, xr_tmp) {
 		switch (xr->req_type) {
 		case XR_TYPE_MBUF:
 			if ((xchan->caps & XCHAN_CAP_NOSEG) ||
@@ -646,10 +641,9 @@ xdma_queue_submit_sg(xdma_channel_t *xchan)
 	sg = xchan->sg;
 
 	if ((xchan->caps & (XCHAN_CAP_BOUNCE | XCHAN_CAP_BUSDMA)) &&
-	   (xchan->flags & XCHAN_BUFS_ALLOCATED) == 0) {
+	    (xchan->flags & XCHAN_BUFS_ALLOCATED) == 0) {
 		device_printf(xdma->dev,
-		    "%s: Can't submit a transfer: no bufs\n",
-		    __func__);
+		    "%s: Can't submit a transfer: no bufs\n", __func__);
 		return (-1);
 	}
 
@@ -660,8 +654,8 @@ xdma_queue_submit_sg(xdma_channel_t *xchan)
 	/* Now submit sglist to DMA engine driver. */
 	ret = XDMA_CHANNEL_SUBMIT_SG(xdma->dma_dev, xchan, sg, sg_n);
 	if (ret != 0) {
-		device_printf(xdma->dev,
-		    "%s: Can't submit an sglist.\n", __func__);
+		device_printf(xdma->dev, "%s: Can't submit an sglist.\n",
+		    __func__);
 		return (-1);
 	}
 

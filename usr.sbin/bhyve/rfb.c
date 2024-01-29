@@ -32,17 +32,19 @@
 #include <sys/capsicum.h>
 #endif
 #include <sys/endian.h>
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
-#include <arpa/inet.h>
-#include <stdatomic.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
-#include <netinet/in.h>
-#include <netdb.h>
 
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
 #include <assert.h>
+#include <netdb.h>
+#include <stdatomic.h>
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
@@ -52,17 +54,16 @@
 #include <pthread_np.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
-
 #include <zlib.h>
 
 #include "bhyvegc.h"
-#include "debug.h"
 #include "console.h"
+#include "debug.h"
 #include "rfb.h"
 #include "sockstream.h"
 
@@ -71,177 +72,179 @@
 #endif
 
 /* Delays in microseconds */
-#define	CFD_SEL_DELAY	10000
-#define	SCREEN_REFRESH_DELAY	33300	/* 30Hz */
-#define	SCREEN_POLL_DELAY	(SCREEN_REFRESH_DELAY / 2)
+#define CFD_SEL_DELAY 10000
+#define SCREEN_REFRESH_DELAY 33300 /* 30Hz */
+#define SCREEN_POLL_DELAY (SCREEN_REFRESH_DELAY / 2)
 
 static int rfb_debug = 0;
-#define	DPRINTF(params) if (rfb_debug) PRINTLN params
-#define	WPRINTF(params) PRINTLN params
+#define DPRINTF(params) \
+	if (rfb_debug)  \
+	PRINTLN params
+#define WPRINTF(params) PRINTLN params
 
-#define VERSION_LENGTH	12
-#define AUTH_LENGTH	16
-#define PASSWD_LENGTH	8
+#define VERSION_LENGTH 12
+#define AUTH_LENGTH 16
+#define PASSWD_LENGTH 8
 
 /* Protocol versions */
-#define CVERS_3_3	'3'
-#define CVERS_3_7	'7'
-#define CVERS_3_8	'8'
+#define CVERS_3_3 '3'
+#define CVERS_3_7 '7'
+#define CVERS_3_8 '8'
 
 /* Client-to-server msg types */
-#define CS_SET_PIXEL_FORMAT	0
-#define CS_SET_ENCODINGS	2
-#define CS_UPDATE_MSG		3
-#define CS_KEY_EVENT		4
-#define CS_POINTER_EVENT	5
-#define CS_CUT_TEXT		6
-#define CS_MSG_CLIENT_QEMU	255
+#define CS_SET_PIXEL_FORMAT 0
+#define CS_SET_ENCODINGS 2
+#define CS_UPDATE_MSG 3
+#define CS_KEY_EVENT 4
+#define CS_POINTER_EVENT 5
+#define CS_CUT_TEXT 6
+#define CS_MSG_CLIENT_QEMU 255
 
-#define SECURITY_TYPE_NONE	1
-#define SECURITY_TYPE_VNC_AUTH	2
+#define SECURITY_TYPE_NONE 1
+#define SECURITY_TYPE_VNC_AUTH 2
 
-#define AUTH_FAILED_UNAUTH	1
-#define AUTH_FAILED_ERROR	2
+#define AUTH_FAILED_UNAUTH 1
+#define AUTH_FAILED_ERROR 2
 
 struct rfb_softc {
-	int		sfd;
-	pthread_t	tid;
+	int sfd;
+	pthread_t tid;
 
-	int		cfd;
+	int cfd;
 
-	int		width, height;
+	int width, height;
 
-	const char	*password;
+	const char *password;
 
-	bool		enc_raw_ok;
-	bool		enc_zlib_ok;
-	bool		enc_resize_ok;
-	bool		enc_extkeyevent_ok;
+	bool enc_raw_ok;
+	bool enc_zlib_ok;
+	bool enc_resize_ok;
+	bool enc_extkeyevent_ok;
 
-	bool		enc_extkeyevent_send;
+	bool enc_extkeyevent_send;
 
-	z_stream	zstream;
-	uint8_t		*zbuf;
-	int		zbuflen;
+	z_stream zstream;
+	uint8_t *zbuf;
+	int zbuflen;
 
-	int		conn_wait;
-	int		wrcount;
+	int conn_wait;
+	int wrcount;
 
-	atomic_bool	sending;
-	atomic_bool	pending;
-	atomic_bool	update_all;
-	atomic_bool	input_detected;
+	atomic_bool sending;
+	atomic_bool pending;
+	atomic_bool update_all;
+	atomic_bool input_detected;
 
 	pthread_mutex_t mtx;
-	pthread_cond_t  cond;
+	pthread_cond_t cond;
 
-	int		hw_crc;
-	uint32_t	*crc;		/* WxH crc cells */
-	uint32_t	*crc_tmp;	/* buffer to store single crc row */
-	int		crc_width, crc_height;
+	int hw_crc;
+	uint32_t *crc;	   /* WxH crc cells */
+	uint32_t *crc_tmp; /* buffer to store single crc row */
+	int crc_width, crc_height;
 };
 
 struct rfb_pixfmt {
-	uint8_t		bpp;
-	uint8_t		depth;
-	uint8_t		bigendian;
-	uint8_t		truecolor;
-	uint16_t	red_max;
-	uint16_t	green_max;
-	uint16_t	blue_max;
-	uint8_t		red_shift;
-	uint8_t		green_shift;
-	uint8_t		blue_shift;
-	uint8_t		pad[3];
+	uint8_t bpp;
+	uint8_t depth;
+	uint8_t bigendian;
+	uint8_t truecolor;
+	uint16_t red_max;
+	uint16_t green_max;
+	uint16_t blue_max;
+	uint8_t red_shift;
+	uint8_t green_shift;
+	uint8_t blue_shift;
+	uint8_t pad[3];
 };
 
 struct rfb_srvr_info {
-	uint16_t		width;
-	uint16_t		height;
-	struct rfb_pixfmt	pixfmt;
-	uint32_t		namelen;
+	uint16_t width;
+	uint16_t height;
+	struct rfb_pixfmt pixfmt;
+	uint32_t namelen;
 };
 
 struct rfb_pixfmt_msg {
-	uint8_t			type;
-	uint8_t			pad[3];
-	struct rfb_pixfmt	pixfmt;
+	uint8_t type;
+	uint8_t pad[3];
+	struct rfb_pixfmt pixfmt;
 };
 
-#define	RFB_ENCODING_RAW		0
-#define	RFB_ENCODING_ZLIB		6
-#define	RFB_ENCODING_RESIZE		-223
-#define	RFB_ENCODING_EXT_KEYEVENT	-258
+#define RFB_ENCODING_RAW 0
+#define RFB_ENCODING_ZLIB 6
+#define RFB_ENCODING_RESIZE -223
+#define RFB_ENCODING_EXT_KEYEVENT -258
 
-#define	RFB_CLIENTMSG_EXT_KEYEVENT	0
+#define RFB_CLIENTMSG_EXT_KEYEVENT 0
 
-#define	RFB_MAX_WIDTH			2000
-#define	RFB_MAX_HEIGHT			1200
-#define	RFB_ZLIB_BUFSZ			RFB_MAX_WIDTH*RFB_MAX_HEIGHT*4
+#define RFB_MAX_WIDTH 2000
+#define RFB_MAX_HEIGHT 1200
+#define RFB_ZLIB_BUFSZ RFB_MAX_WIDTH *RFB_MAX_HEIGHT * 4
 
 /* percentage changes to screen before sending the entire screen */
-#define	RFB_SEND_ALL_THRESH		25
+#define RFB_SEND_ALL_THRESH 25
 
 struct rfb_enc_msg {
-	uint8_t		type;
-	uint8_t		pad;
-	uint16_t	numencs;
+	uint8_t type;
+	uint8_t pad;
+	uint16_t numencs;
 };
 
 struct rfb_updt_msg {
-	uint8_t		type;
-	uint8_t		incremental;
-	uint16_t	x;
-	uint16_t	y;
-	uint16_t	width;
-	uint16_t	height;
+	uint8_t type;
+	uint8_t incremental;
+	uint16_t x;
+	uint16_t y;
+	uint16_t width;
+	uint16_t height;
 };
 
 struct rfb_key_msg {
-	uint8_t		type;
-	uint8_t		down;
-	uint16_t	pad;
-	uint32_t	sym;
+	uint8_t type;
+	uint8_t down;
+	uint16_t pad;
+	uint32_t sym;
 };
 
 struct rfb_client_msg {
-	uint8_t		type;
-	uint8_t		subtype;
+	uint8_t type;
+	uint8_t subtype;
 };
 
 struct rfb_extended_key_msg {
-	uint8_t		type;
-	uint8_t		subtype;
-	uint16_t	down;
-	uint32_t	sym;
-	uint32_t	code;
+	uint8_t type;
+	uint8_t subtype;
+	uint16_t down;
+	uint32_t sym;
+	uint32_t code;
 };
 
 struct rfb_ptr_msg {
-	uint8_t		type;
-	uint8_t		button;
-	uint16_t	x;
-	uint16_t	y;
+	uint8_t type;
+	uint8_t button;
+	uint16_t x;
+	uint16_t y;
 };
 
 struct rfb_srvr_updt_msg {
-	uint8_t		type;
-	uint8_t		pad;
-	uint16_t	numrects;
+	uint8_t type;
+	uint8_t pad;
+	uint16_t numrects;
 };
 
 struct rfb_srvr_rect_hdr {
-	uint16_t	x;
-	uint16_t	y;
-	uint16_t	width;
-	uint16_t	height;
-	uint32_t	encoding;
+	uint16_t x;
+	uint16_t y;
+	uint16_t width;
+	uint16_t height;
+	uint32_t encoding;
 };
 
 struct rfb_cuttext_msg {
-	uint8_t		type;
-	uint8_t		padding[3];
-	uint32_t	length;
+	uint8_t type;
+	uint8_t padding[3];
+	uint32_t length;
 };
 
 static void
@@ -364,11 +367,9 @@ fast_crc32(void *buf, int len, uint32_t crcval)
 	uint32_t *p = (uint32_t *)buf;
 
 	while (q--) {
-		asm volatile (
-			".byte 0xf2, 0xf, 0x38, 0xf1, 0xf1;"
-			:"=S" (crcval)
-			:"0" (crcval), "c" (*p)
-		);
+		asm volatile(".byte 0xf2, 0xf, 0x38, 0xf1, 0xf1;"
+			     : "=S"(crcval)
+			     : "0"(crcval), "c"(*p));
 		p++;
 	}
 
@@ -384,13 +385,12 @@ rfb_send_update_header(struct rfb_softc *rc __unused, int cfd, int numrects)
 	supdt_msg.pad = 0;
 	supdt_msg.numrects = htons(numrects);
 
-	return stream_write(cfd, &supdt_msg,
-	    sizeof(struct rfb_srvr_updt_msg));
+	return stream_write(cfd, &supdt_msg, sizeof(struct rfb_srvr_updt_msg));
 }
 
 static int
-rfb_send_rect(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc,
-              int x, int y, int w, int h)
+rfb_send_rect(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc, int x,
+    int y, int w, int h)
 {
 	struct rfb_srvr_rect_hdr srect_hdr;
 	unsigned long zlen;
@@ -420,7 +420,7 @@ rfb_send_rect(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc,
 			rc->zstream.avail_in = w;
 			rc->zstream.next_out = (Bytef *)zbufp;
 			rc->zstream.avail_out = RFB_ZLIB_BUFSZ + 16 -
-			                        rc->zstream.total_out;
+			    rc->zstream.total_out;
 			rc->zstream.data_type = Z_BINARY;
 
 			/* Compress with zlib */
@@ -436,7 +436,7 @@ rfb_send_rect(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc,
 		}
 		srect_hdr.encoding = htonl(RFB_ENCODING_ZLIB);
 		nwrite = stream_write(cfd, &srect_hdr,
-		                      sizeof(struct rfb_srvr_rect_hdr));
+		    sizeof(struct rfb_srvr_rect_hdr));
 		if (nwrite <= 0)
 			return (nwrite);
 
@@ -460,7 +460,7 @@ doraw:
 
 	srect_hdr.encoding = htonl(RFB_ENCODING_RAW);
 	nwrite = stream_write(cfd, &srect_hdr,
-	                      sizeof(struct rfb_srvr_rect_hdr));
+	    sizeof(struct rfb_srvr_rect_hdr));
 	if (nwrite <= 0)
 		return (nwrite);
 
@@ -473,7 +473,7 @@ static int
 rfb_send_all(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc)
 {
 	struct rfb_srvr_updt_msg supdt_msg;
-        struct rfb_srvr_rect_hdr srect_hdr;
+	struct rfb_srvr_rect_hdr srect_hdr;
 	ssize_t nwrite;
 	unsigned long zlen;
 	int err;
@@ -487,7 +487,7 @@ rfb_send_all(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc)
 	supdt_msg.pad = 0;
 	supdt_msg.numrects = htons(1);
 	nwrite = stream_write(cfd, &supdt_msg,
-	                      sizeof(struct rfb_srvr_updt_msg));
+	    sizeof(struct rfb_srvr_updt_msg));
 	if (nwrite <= 0)
 		return (nwrite);
 
@@ -499,7 +499,7 @@ rfb_send_all(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc)
 	if (rc->enc_zlib_ok) {
 		rc->zstream.next_in = (Bytef *)gc->data;
 		rc->zstream.avail_in = gc->width * gc->height *
-		                   sizeof(uint32_t);
+		    sizeof(uint32_t);
 		rc->zstream.next_out = (Bytef *)rc->zbuf;
 		rc->zstream.avail_out = RFB_ZLIB_BUFSZ + 16;
 		rc->zstream.data_type = Z_BINARY;
@@ -518,7 +518,7 @@ rfb_send_all(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc)
 
 		srect_hdr.encoding = htonl(RFB_ENCODING_ZLIB);
 		nwrite = stream_write(cfd, &srect_hdr,
-		                      sizeof(struct rfb_srvr_rect_hdr));
+		    sizeof(struct rfb_srvr_rect_hdr));
 		if (nwrite <= 0)
 			return (nwrite);
 
@@ -532,19 +532,19 @@ rfb_send_all(struct rfb_softc *rc, int cfd, struct bhyvegc_image *gc)
 doraw:
 	srect_hdr.encoding = htonl(RFB_ENCODING_RAW);
 	nwrite = stream_write(cfd, &srect_hdr,
-	                      sizeof(struct rfb_srvr_rect_hdr));
+	    sizeof(struct rfb_srvr_rect_hdr));
 	if (nwrite <= 0)
 		return (nwrite);
 
 	nwrite = stream_write(cfd, gc->data,
-	               gc->width * gc->height * sizeof(uint32_t));
+	    gc->width * gc->height * sizeof(uint32_t));
 
 	return (nwrite);
 }
 
-#define	PIX_PER_CELL	32
-#define	PIXCELL_SHIFT	5
-#define	PIXCELL_MASK	0x1F
+#define PIX_PER_CELL 32
+#define PIXCELL_SHIFT 5
+#define PIXCELL_MASK 0x1F
 
 static int
 rfb_send_screen(struct rfb_softc *rc, int cfd)
@@ -556,7 +556,7 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 	int xcells, ycells;
 	int w, h;
 	uint32_t *p;
-	int rem_x, rem_y;   /* remainder for resolutions not x32 pixels ratio */
+	int rem_x, rem_y; /* remainder for resolutions not x32 pixels ratio */
 	int retval;
 	uint32_t *crc_p, *orig_crc;
 	int changes;
@@ -564,7 +564,8 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 
 	/* Return if another thread sending */
 	expected = false;
-	if (atomic_compare_exchange_strong(&rc->sending, &expected, true) == false)
+	if (atomic_compare_exchange_strong(&rc->sending, &expected, true) ==
+	    false)
 		return (1);
 
 	retval = 1;
@@ -579,29 +580,28 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 	/* Clear old CRC values when the size changes */
 	if (rc->crc_width != gc_image->width ||
 	    rc->crc_height != gc_image->height) {
-		memset(rc->crc, 0, sizeof(uint32_t) *
-		    howmany(RFB_MAX_WIDTH, PIX_PER_CELL) *
-		    howmany(RFB_MAX_HEIGHT, PIX_PER_CELL));
+		memset(rc->crc, 0,
+		    sizeof(uint32_t) * howmany(RFB_MAX_WIDTH, PIX_PER_CELL) *
+			howmany(RFB_MAX_HEIGHT, PIX_PER_CELL));
 		rc->crc_width = gc_image->width;
 		rc->crc_height = gc_image->height;
 	}
 
-       /* A size update counts as an update in itself */
-       if (rc->width != gc_image->width ||
-           rc->height != gc_image->height) {
-               rc->width = gc_image->width;
-               rc->height = gc_image->height;
-               if (rc->enc_resize_ok) {
-                       rfb_send_resize_update_msg(rc, cfd);
-		       rc->update_all = true;
-                       goto done;
-               }
-       }
+	/* A size update counts as an update in itself */
+	if (rc->width != gc_image->width || rc->height != gc_image->height) {
+		rc->width = gc_image->width;
+		rc->height = gc_image->height;
+		if (rc->enc_resize_ok) {
+			rfb_send_resize_update_msg(rc, cfd);
+			rc->update_all = true;
+			goto done;
+		}
+	}
 
-       if (atomic_exchange(&rc->update_all, false) == true) {
-	       retval = rfb_send_all(rc, cfd, gc_image);
-	       goto done;
-       }
+	if (atomic_exchange(&rc->update_all, false) == true) {
+		retval = rfb_send_all(rc, cfd, gc_image);
+		goto done;
+	}
 
 	/*
 	 * Calculate the checksum for each 32x32 cell. Send each that
@@ -645,17 +645,16 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 
 			if (rc->hw_crc)
 				crc_p[x] = fast_crc32(p,
-				             cellwidth * sizeof(uint32_t),
-				             crc_p[x]);
+				    cellwidth * sizeof(uint32_t), crc_p[x]);
 			else
-				crc_p[x] = (uint32_t)crc32(crc_p[x],
-				             (Bytef *)p,
-				             cellwidth * sizeof(uint32_t));
+				crc_p[x] = (uint32_t)crc32(crc_p[x], (Bytef *)p,
+				    cellwidth * sizeof(uint32_t));
 
 			p += cellwidth;
 
 			/* check for crc delta if last row in cell */
-			if ((y & PIXCELL_MASK) == PIXCELL_MASK || y == (h-1)) {
+			if ((y & PIXCELL_MASK) == PIXCELL_MASK ||
+			    y == (h - 1)) {
 				if (orig_crc[x] != crc_p[x]) {
 					orig_crc[x] = crc_p[x];
 					crc_p[x] = 1;
@@ -667,11 +666,11 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 		}
 	}
 
-       /*
-	* We only send the update if there are changes.
-	* Restore the pending flag since it was unconditionally cleared
-	* above.
-	*/
+	/*
+	 * We only send the update if there are changes.
+	 * Restore the pending flag since it was unconditionally cleared
+	 * above.
+	 */
 	if (!changes) {
 		rc->pending = true;
 		goto done;
@@ -700,12 +699,9 @@ rfb_send_screen(struct rfb_softc *rc, int cfd)
 				cellwidth = rem_x;
 			else
 				cellwidth = PIX_PER_CELL;
-			nwrite = rfb_send_rect(rc, cfd,
-				gc_image,
-				x * PIX_PER_CELL,
-				celly * PIX_PER_CELL,
-			        cellwidth,
-				y + PIX_PER_CELL >= h ? rem_y : PIX_PER_CELL);
+			nwrite = rfb_send_rect(rc, cfd, gc_image,
+			    x * PIX_PER_CELL, celly * PIX_PER_CELL, cellwidth,
+			    y + PIX_PER_CELL >= h ? rem_y : PIX_PER_CELL);
 			if (nwrite <= 0) {
 				retval = nwrite;
 				goto done;
@@ -719,13 +715,12 @@ done:
 	return (retval);
 }
 
-
 static void
 rfb_recv_update_msg(struct rfb_softc *rc, int cfd)
 {
 	struct rfb_updt_msg updt_msg;
 
-	(void)stream_read(cfd, (uint8_t *)&updt_msg + 1 , sizeof(updt_msg) - 1);
+	(void)stream_read(cfd, (uint8_t *)&updt_msg + 1, sizeof(updt_msg) - 1);
 
 	if (rc->enc_extkeyevent_ok && (!rc->enc_extkeyevent_send)) {
 		rfb_send_extended_keyevent_update_msg(rc, cfd);
@@ -760,7 +755,8 @@ rfb_recv_client_msg(struct rfb_softc *rc, int cfd)
 	if (client_msg.subtype == RFB_CLIENTMSG_EXT_KEYEVENT) {
 		(void)stream_read(cfd, (uint8_t *)&extkey_msg + 2,
 		    sizeof(extkey_msg) - 2);
-		console_key_event((int)extkey_msg.down, htonl(extkey_msg.sym), htonl(extkey_msg.code));
+		console_key_event((int)extkey_msg.down, htonl(extkey_msg.sym),
+		    htonl(extkey_msg.code));
 		rc->input_detected = true;
 	}
 }
@@ -786,8 +782,8 @@ rfb_recv_cuttext_msg(struct rfb_softc *rc __unused, int cfd)
 	len = stream_read(cfd, (uint8_t *)&ct_msg + 1, sizeof(ct_msg) - 1);
 	ct_msg.length = htonl(ct_msg.length);
 	while (ct_msg.length > 0) {
-		len = stream_read(cfd, buf, ct_msg.length > sizeof(buf) ?
-			sizeof(buf) : ct_msg.length);
+		len = stream_read(cfd, buf,
+		    ct_msg.length > sizeof(buf) ? sizeof(buf) : ct_msg.length);
 		ct_msg.length -= len;
 	}
 }
@@ -823,7 +819,7 @@ rfb_wr_thr(void *arg)
 		tv.tv_sec = 0;
 		tv.tv_usec = CFD_SEL_DELAY;
 
-		err = select(cfd+1, &rfds, NULL, NULL, &tv);
+		err = select(cfd + 1, &rfds, NULL, NULL, &tv);
 		if (err < 0)
 			return (NULL);
 
@@ -836,8 +832,8 @@ rfb_wr_thr(void *arg)
 			prev_tv.tv_usec = tv.tv_usec;
 			input = atomic_exchange(&rc->input_detected, false);
 			/*
-			 * Refresh the screen on every second trip through the loop,
-			 * or if keyboard/mouse input has been detected.
+			 * Refresh the screen on every second trip through the
+			 * loop, or if keyboard/mouse input has been detected.
 			 */
 			if ((++rc->wrcount & 1) || input) {
 				if (rfb_send_screen(rc, cfd) <= 0) {
@@ -951,12 +947,12 @@ rfb_handle(struct rfb_softc *rc, int cfd)
 		 * Here we flip each byte of the keystr.
 		 */
 		for (i = 0; i < PASSWD_LENGTH; i++) {
-			keystr[i] = (keystr[i] & 0xF0) >> 4
-				  | (keystr[i] & 0x0F) << 4;
-			keystr[i] = (keystr[i] & 0xCC) >> 2
-				  | (keystr[i] & 0x33) << 2;
-			keystr[i] = (keystr[i] & 0xAA) >> 1
-				  | (keystr[i] & 0x55) << 1;
+			keystr[i] = (keystr[i] & 0xF0) >> 4 |
+			    (keystr[i] & 0x0F) << 4;
+			keystr[i] = (keystr[i] & 0xCC) >> 2 |
+			    (keystr[i] & 0x33) << 2;
+			keystr[i] = (keystr[i] & 0xAA) >> 1 |
+			    (keystr[i] & 0x55) << 1;
 		}
 
 		/* Initialize a 16-byte random challenge */
@@ -971,12 +967,10 @@ rfb_handle(struct rfb_softc *rc, int cfd)
 		/* Encrypt the Challenge with DES */
 		DES_set_key((const_DES_cblock *)keystr, &ks);
 		DES_ecb_encrypt((const_DES_cblock *)challenge,
-				(const_DES_cblock *)crypt_expected,
-				&ks, DES_ENCRYPT);
+		    (const_DES_cblock *)crypt_expected, &ks, DES_ENCRYPT);
 		DES_ecb_encrypt((const_DES_cblock *)(challenge + PASSWD_LENGTH),
-				(const_DES_cblock *)(crypt_expected +
-				PASSWD_LENGTH),
-				&ks, DES_ENCRYPT);
+		    (const_DES_cblock *)(crypt_expected + PASSWD_LENGTH), &ks,
+		    DES_ENCRYPT);
 
 		if (memcmp(crypt_expected, buf, AUTH_LENGTH) != 0) {
 			message = "Auth Failed: Invalid Password.";
@@ -995,7 +989,7 @@ rfb_handle(struct rfb_softc *rc, int cfd)
 	switch (client_ver) {
 	case CVERS_3_7:
 	case CVERS_3_8:
-report_and_done:
+	report_and_done:
 		/* 2d. Write back a status */
 		stream_write(cfd, &sres, 4);
 
@@ -1036,7 +1030,7 @@ report_and_done:
 	if (perror == 0)
 		pthread_set_name_np(tid, "rfbout");
 
-        /* Now read in client requests. 1st byte identifies type */
+	/* Now read in client requests. 1st byte identifies type */
 	for (;;) {
 		len = read(cfd, buf, 1);
 		if (len <= 0) {
@@ -1222,7 +1216,7 @@ rfb_init(const char *hostname, int port, int wait, const char *password)
 	freeaddrinfo(ai);
 	return (0);
 
- error:
+error:
 	if (ai != NULL)
 		freeaddrinfo(ai);
 	if (rc->sfd != -1)

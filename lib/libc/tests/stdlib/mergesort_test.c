@@ -54,8 +54,8 @@ ATF_TC_BODY(mergesort_test, tc)
 		/* Compare results */
 		for (i = 0; i < j; i++)
 			ATF_CHECK_MSG(testvector[i] == sresvector[i],
-			    "item at index %d didn't match: %d != %d",
-			    i, testvector[i], sresvector[i]);
+			    "item at index %d didn't match: %d != %d", i,
+			    testvector[i], sresvector[i]);
 	}
 }
 

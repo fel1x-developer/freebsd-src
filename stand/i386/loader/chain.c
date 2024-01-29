@@ -32,14 +32,15 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
 #include <sys/param.h>
-#include <sys/linker.h>
 #include <sys/diskmbr.h>
+#include <sys/linker.h>
+
+#include <stand.h>
 
 #include "bootstrap.h"
-#include "libi386/libi386.h"
 #include "btxv86.h"
+#include "libi386/libi386.h"
 
 #ifdef LOADER_VERIEXEC_VECTX
 #define VECTX_HANDLE(x) vctx
@@ -52,7 +53,7 @@
  * Read 512B to temporary location and set up relocation. Then
  * exec relocator.
  */
-#define	SECTOR_SIZE	(512)
+#define SECTOR_SIZE (512)
 
 COMMAND_SET(chain, "chain", "chain load boot block from device", command_chain);
 
@@ -101,7 +102,7 @@ command_chain(int argc, char *argv[])
 #endif
 #endif
 	len = strlen(argv[1]);
-	if (argv[1][len-1] != ':') {
+	if (argv[1][len - 1] != ':') {
 		if (fstat(fd, &st) == -1) {
 			command_errmsg = "stat failed";
 			close(fd);
@@ -134,7 +135,7 @@ command_chain(int argc, char *argv[])
 		return (CMD_ERROR);
 	}
 #endif
-	if (argv[1][len-1] == ':' &&
+	if (argv[1][len - 1] == ':' &&
 	    *((uint16_t *)PTOV(mem + DOSMAGICOFFSET)) != DOSMAGIC) {
 		command_errmsg = "wrong magic";
 		return (CMD_ERROR);
@@ -163,5 +164,5 @@ command_chain(int argc, char *argv[])
 	__exec((void *)0x600);
 
 	panic("exec returned");
-	return (CMD_ERROR);		/* not reached */
+	return (CMD_ERROR); /* not reached */
 }

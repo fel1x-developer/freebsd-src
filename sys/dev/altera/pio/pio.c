@@ -36,22 +36,22 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/timeet.h>
 #include <sys/timetc.h>
 
-#include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cpu.h>
+#include <machine/fdt.h>
 
 #include <dev/altera/pio/pio.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+
 #include "pio_if.h"
 
 #define READ4(_sc, _reg) bus_read_4((_sc)->res[0], _reg)
@@ -62,18 +62,15 @@
 #define WRITE1(_sc, _reg, _val) bus_write_1((_sc)->res[0], _reg, _val)
 
 struct pio_softc {
-	struct resource		*res[2];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	device_t		dev;
-	void			*ih;
+	struct resource *res[2];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	device_t dev;
+	void *ih;
 };
 
-static struct resource_spec pio_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec pio_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 0, RF_ACTIVE }, { -1, 0 } };
 
 static int
 pio_setup_irq(device_t dev, void *intr_handler, void *ih_user)
@@ -178,7 +175,7 @@ pio_attach(device_t dev)
 	if ((node = ofw_bus_get_node(sc->dev)) == -1)
 		return (ENXIO);
 
-	fic = malloc(sizeof(*fic), M_DEVBUF, M_WAITOK|M_ZERO);
+	fic = malloc(sizeof(*fic), M_DEVBUF, M_WAITOK | M_ZERO);
 	fic->iph = node;
 	fic->dev = dev;
 	SLIST_INSERT_HEAD(&fdt_ic_list_head, fic, fdt_ics);
@@ -186,18 +183,13 @@ pio_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t pio_methods[] = {
-	DEVMETHOD(device_probe,		pio_probe),
-	DEVMETHOD(device_attach,	pio_attach),
+static device_method_t pio_methods[] = { DEVMETHOD(device_probe, pio_probe),
+	DEVMETHOD(device_attach, pio_attach),
 
 	/* pio_if.m */
-	DEVMETHOD(pio_read,		pio_read),
-	DEVMETHOD(pio_configure,	pio_configure),
-	DEVMETHOD(pio_set,		pio_set),
-	DEVMETHOD(pio_setup_irq,	pio_setup_irq),
-	DEVMETHOD(pio_teardown_irq,	pio_teardown_irq),
-	DEVMETHOD_END
-};
+	DEVMETHOD(pio_read, pio_read), DEVMETHOD(pio_configure, pio_configure),
+	DEVMETHOD(pio_set, pio_set), DEVMETHOD(pio_setup_irq, pio_setup_irq),
+	DEVMETHOD(pio_teardown_irq, pio_teardown_irq), DEVMETHOD_END };
 
 static driver_t pio_driver = {
 	"altera_pio",

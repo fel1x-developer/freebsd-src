@@ -30,20 +30,20 @@
  * SOFTWARE.
  */
 
-#include <linux/string.h>
 #include <linux/gfp.h>
+#include <linux/string.h>
 
-#include "mthca_dev.h"
 #include "mthca_cmd.h"
+#include "mthca_dev.h"
 
 struct mthca_mgm {
 	__be32 next_gid_index;
-	u32    reserved[3];
-	u8     gid[16];
+	u32 reserved[3];
+	u8 gid[16];
 	__be32 qp[MTHCA_QP_PER_MGM];
 };
 
-static const u8 zero_gid[16];	/* automatically initialized to 0 */
+static const u8 zero_gid[16]; /* automatically initialized to 0 */
 
 /*
  * Caller must hold MCG table semaphore.  gid and mgm parameters must
@@ -60,9 +60,9 @@ static const u8 zero_gid[16];	/* automatically initialized to 0 */
  * If no AMGM exists for given gid, *index = -1, *prev = index of last
  * entry in hash chain and *mgm holds end of hash chain.
  */
-static int find_mgm(struct mthca_dev *dev,
-		    u8 *gid, struct mthca_mailbox *mgm_mailbox,
-		    u16 *hash, int *prev, int *index)
+static int
+find_mgm(struct mthca_dev *dev, u8 *gid, struct mthca_mailbox *mgm_mailbox,
+    u16 *hash, int *prev, int *index)
 {
 	struct mthca_mailbox *mailbox;
 	struct mthca_mgm *mgm = mgm_mailbox->buf;
@@ -86,7 +86,7 @@ static int find_mgm(struct mthca_dev *dev,
 		mthca_dbg(dev, "Hash for %pI6 is %04x\n", gid, *hash);
 
 	*index = *hash;
-	*prev  = -1;
+	*prev = -1;
 
 	do {
 		err = mthca_READ_MGM(dev, *index, mgm_mailbox);
@@ -112,12 +112,13 @@ static int find_mgm(struct mthca_dev *dev,
 
 	*index = -1;
 
- out:
+out:
 	mthca_free_mailbox(dev, mailbox);
 	return err;
 }
 
-int mthca_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
+int
+mthca_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 {
 	struct mthca_dev *dev = to_mdev(ibqp->device);
 	struct mthca_mailbox *mailbox;
@@ -164,7 +165,7 @@ int mthca_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 	for (i = 0; i < MTHCA_QP_PER_MGM; ++i)
 		if (mgm->qp[i] == cpu_to_be32(ibqp->qp_num | (1 << 31))) {
 			mthca_dbg(dev, "QP %06x already a member of MGM\n",
-				  ibqp->qp_num);
+			    ibqp->qp_num);
 			err = 0;
 			goto out;
 		} else if (!(mgm->qp[i] & cpu_to_be32(1 << 31))) {
@@ -200,7 +201,7 @@ int mthca_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 	if (err)
 		mthca_err(dev, "WRITE_MGM returned %d\n", err);
 
- out:
+out:
 	if (err && link && index != -1) {
 		BUG_ON(index < dev->limits.num_mgms);
 		mthca_free(&dev->mcg_table.alloc, index);
@@ -211,7 +212,8 @@ int mthca_multicast_attach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 	return err;
 }
 
-int mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
+int
+mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 {
 	struct mthca_dev *dev = to_mdev(ibqp->device);
 	struct mthca_mailbox *mailbox;
@@ -251,7 +253,7 @@ int mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 		goto out;
 	}
 
-	mgm->qp[loc]   = mgm->qp[i - 1];
+	mgm->qp[loc] = mgm->qp[i - 1];
 	mgm->qp[i - 1] = 0;
 
 	err = mthca_WRITE_MGM(dev, index, mailbox);
@@ -267,8 +269,7 @@ int mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 		/* Remove entry from MGM */
 		int amgm_index_to_free = be32_to_cpu(mgm->next_gid_index) >> 6;
 		if (amgm_index_to_free) {
-			err = mthca_READ_MGM(dev, amgm_index_to_free,
-					     mailbox);
+			err = mthca_READ_MGM(dev, amgm_index_to_free, mailbox);
 			if (err) {
 				mthca_err(dev, "READ_MGM returned %d\n", err);
 				goto out;
@@ -305,22 +306,21 @@ int mthca_multicast_detach(struct ib_qp *ibqp, union ib_gid *gid, u16 lid)
 		mthca_free(&dev->mcg_table.alloc, index);
 	}
 
- out:
+out:
 	mutex_unlock(&dev->mcg_table.mutex);
 
 	mthca_free_mailbox(dev, mailbox);
 	return err;
 }
 
-int mthca_init_mcg_table(struct mthca_dev *dev)
+int
+mthca_init_mcg_table(struct mthca_dev *dev)
 {
 	int err;
 	int table_size = dev->limits.num_mgms + dev->limits.num_amgms;
 
-	err = mthca_alloc_init(&dev->mcg_table.alloc,
-			       table_size,
-			       table_size - 1,
-			       dev->limits.num_mgms);
+	err = mthca_alloc_init(&dev->mcg_table.alloc, table_size,
+	    table_size - 1, dev->limits.num_mgms);
 	if (err)
 		return err;
 
@@ -329,7 +329,8 @@ int mthca_init_mcg_table(struct mthca_dev *dev)
 	return 0;
 }
 
-void mthca_cleanup_mcg_table(struct mthca_dev *dev)
+void
+mthca_cleanup_mcg_table(struct mthca_dev *dev)
 {
 	mthca_alloc_cleanup(&dev->mcg_table.alloc);
 }

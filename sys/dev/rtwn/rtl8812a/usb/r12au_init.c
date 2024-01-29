@@ -24,37 +24,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8812a/r12a_var.h>
-
 #include <dev/rtwn/rtl8812a/usb/r12au.h>
 #include <dev/rtwn/rtl8812a/usb/r12au_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r12au_init_rx_agg(struct rtwn_softc *sc)
@@ -64,8 +61,7 @@ r12au_init_rx_agg(struct rtwn_softc *sc)
 	/* Rx aggregation (USB). */
 	rtwn_write_2(sc, R92C_RXDMA_AGG_PG_TH,
 	    rs->ac_usb_dma_size | (rs->ac_usb_dma_time << 8));
-	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0,
-	    R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
+	rtwn_setbits_1(sc, R92C_TRXDMA_CTRL, 0, R92C_TRXDMA_CTRL_RXDMA_AGG_EN);
 }
 
 void
@@ -91,7 +87,7 @@ r12au_init_burstlen(struct rtwn_softc *sc)
 
 	if (rtwn_read_1(sc, R92C_TYPE_ID + 3) & 0x80)
 		r12au_init_burstlen_usb2(sc);
-	else {		/* USB 3.0 */
+	else { /* USB 3.0 */
 		/* Set burst packet length to 1 KB. */
 		rtwn_setbits_1(sc, R12A_RXDMA_PRO, R12A_BURST_SZ_M,
 		    dma_count | SM(R12A_BURST_SZ, R12A_BURST_SZ_USB3));
@@ -123,8 +119,8 @@ r12au_arfb_init(struct rtwn_softc *sc)
 void
 r12au_init_ampdu_fwhw(struct rtwn_softc *sc)
 {
-	rtwn_setbits_1(sc, R92C_FWHW_TXQ_CTRL,
-	    R92C_FWHW_TXQ_CTRL_AMPDU_RTY_NEW, 0);
+	rtwn_setbits_1(sc, R92C_FWHW_TXQ_CTRL, R92C_FWHW_TXQ_CTRL_AMPDU_RTY_NEW,
+	    0);
 }
 
 void

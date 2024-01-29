@@ -55,52 +55,54 @@ enum comm_element_t {
 };
 
 struct cached_connection_params {
-	char	*socket_path;
-	struct	timeval	timeout;
+	char *socket_path;
+	struct timeval timeout;
 };
 
 struct cached_connection_ {
-	int	sockfd;
-	int	read_queue;
-	int	write_queue;
+	int sockfd;
+	int read_queue;
+	int write_queue;
 
-	int	mp_flag;	/* shows if the connection is used for
-				 * multipart operations */
+	int mp_flag; /* shows if the connection is used for
+		      * multipart operations */
 };
 
 /* simple abstractions for not to write "struct" every time */
-typedef struct cached_connection_	*cached_connection;
-typedef struct cached_connection_	*cached_mp_write_session;
-typedef struct cached_connection_	*cached_mp_read_session;
+typedef struct cached_connection_ *cached_connection;
+typedef struct cached_connection_ *cached_mp_write_session;
+typedef struct cached_connection_ *cached_mp_read_session;
 
-#define	INVALID_CACHED_CONNECTION	(NULL)
-#define	INVALID_CACHED_MP_WRITE_SESSION	(NULL)
-#define	INVALID_CACHED_MP_READ_SESSION	(NULL)
+#define INVALID_CACHED_CONNECTION (NULL)
+#define INVALID_CACHED_MP_WRITE_SESSION (NULL)
+#define INVALID_CACHED_MP_READ_SESSION (NULL)
 
 __BEGIN_DECLS
 
 /* initialization/destruction routines */
-extern	cached_connection __open_cached_connection(
-	struct cached_connection_params const *);
-extern	void __close_cached_connection(cached_connection);
+extern cached_connection __open_cached_connection(
+    struct cached_connection_params const *);
+extern void __close_cached_connection(cached_connection);
 
 /* simple read/write operations */
-extern	int __cached_write(cached_connection, const char *, const char *,
-	size_t, const char *, size_t);
-extern	int __cached_read(cached_connection, const char *, const char *,
-	size_t, char *, size_t *);
+extern int __cached_write(cached_connection, const char *, const char *, size_t,
+    const char *, size_t);
+extern int __cached_read(cached_connection, const char *, const char *, size_t,
+    char *, size_t *);
 
 /* multipart read/write operations */
-extern	cached_mp_write_session __open_cached_mp_write_session(
-	struct cached_connection_params const *, const char *);
-extern	int __cached_mp_write(cached_mp_write_session, const char *, size_t);
-extern	int __abandon_cached_mp_write_session(cached_mp_write_session);
-extern	int __close_cached_mp_write_session(cached_mp_write_session);
+extern cached_mp_write_session
+__open_cached_mp_write_session(struct cached_connection_params const *,
+    const char *);
+extern int __cached_mp_write(cached_mp_write_session, const char *, size_t);
+extern int __abandon_cached_mp_write_session(cached_mp_write_session);
+extern int __close_cached_mp_write_session(cached_mp_write_session);
 
-extern	cached_mp_read_session __open_cached_mp_read_session(
-	struct cached_connection_params const *, const char *);
-extern	int __cached_mp_read(cached_mp_read_session, char *, size_t *);
-extern	int __close_cached_mp_read_session(cached_mp_read_session);
+extern cached_mp_read_session
+__open_cached_mp_read_session(struct cached_connection_params const *,
+    const char *);
+extern int __cached_mp_read(cached_mp_read_session, char *, size_t *);
+extern int __close_cached_mp_read_session(cached_mp_read_session);
 
 __END_DECLS
 

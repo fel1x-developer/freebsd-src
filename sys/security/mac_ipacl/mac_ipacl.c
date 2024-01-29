@@ -48,23 +48,22 @@
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
-#include <sys/module.h>
+#include <sys/systm.h>
 #include <sys/errno.h>
+#include <sys/jail.h>
 #include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/priv.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-#include <sys/types.h>
 #include <sys/ucred.h>
-#include <sys/jail.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
 #include <netinet6/scope6_var.h>
 
@@ -72,62 +71,62 @@
 
 SYSCTL_DECL(_security_mac);
 
-static SYSCTL_NODE(_security_mac, OID_AUTO, ipacl, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TrustedBSD mac_ipacl policy controls");
+static SYSCTL_NODE(_security_mac, OID_AUTO, ipacl, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "TrustedBSD mac_ipacl policy controls");
 
 #ifdef INET
 static int ipacl_ipv4 = 1;
-SYSCTL_INT(_security_mac_ipacl, OID_AUTO, ipv4, CTLFLAG_RWTUN,
-    &ipacl_ipv4, 0, "Enforce mac_ipacl for IPv4 addresses");
+SYSCTL_INT(_security_mac_ipacl, OID_AUTO, ipv4, CTLFLAG_RWTUN, &ipacl_ipv4, 0,
+    "Enforce mac_ipacl for IPv4 addresses");
 #endif
 
 #ifdef INET6
 static int ipacl_ipv6 = 1;
-SYSCTL_INT(_security_mac_ipacl, OID_AUTO, ipv6, CTLFLAG_RWTUN,
-    &ipacl_ipv6, 0, "Enforce mac_ipacl for IPv6 addresses");
+SYSCTL_INT(_security_mac_ipacl, OID_AUTO, ipv6, CTLFLAG_RWTUN, &ipacl_ipv6, 0,
+    "Enforce mac_ipacl for IPv6 addresses");
 #endif
 
 static MALLOC_DEFINE(M_IPACL, "ipacl_rule", "Rules for mac_ipacl");
 
-#define	MAC_RULE_STRING_LEN	1024
+#define MAC_RULE_STRING_LEN 1024
 
 struct ipacl_addr {
 	union {
 #ifdef INET
-		struct in_addr	ipv4;
+		struct in_addr ipv4;
 #endif
 #ifdef INET6
-		struct in6_addr	ipv6;
+		struct in6_addr ipv6;
 #endif
-		u_int8_t	addr8[16];
-		u_int16_t	addr16[8];
-		u_int32_t	addr32[4];
+		u_int8_t addr8[16];
+		u_int16_t addr16[8];
+		u_int32_t addr32[4];
 	} ipa; /* 128 bit address*/
 #ifdef INET
-#define v4	ipa.ipv4
+#define v4 ipa.ipv4
 #endif
 #ifdef INET6
-#define v6	ipa.ipv6
+#define v6 ipa.ipv6
 #endif
-#define addr8	ipa.addr8
-#define addr16	ipa.addr16
-#define addr32	ipa.addr32
+#define addr8 ipa.addr8
+#define addr16 ipa.addr16
+#define addr32 ipa.addr32
 };
 
 struct ip_rule {
-	int			jid;
-	bool			allow;
-	bool			subnet_apply; /* Apply rule on whole subnet. */
-	char			if_name[IFNAMSIZ];
-	int			af; /* Address family. */
-	struct	ipacl_addr	addr;
-	struct	ipacl_addr	mask;
-	TAILQ_ENTRY(ip_rule)	r_entries;
+	int jid;
+	bool allow;
+	bool subnet_apply; /* Apply rule on whole subnet. */
+	char if_name[IFNAMSIZ];
+	int af; /* Address family. */
+	struct ipacl_addr addr;
+	struct ipacl_addr mask;
+	TAILQ_ENTRY(ip_rule) r_entries;
 };
 
-static struct mtx			rule_mtx;
-static TAILQ_HEAD(rulehead, ip_rule)	rule_head;
-static char				rule_string[MAC_RULE_STRING_LEN];
+static struct mtx rule_mtx;
+static TAILQ_HEAD(rulehead, ip_rule) rule_head;
+static char rule_string[MAC_RULE_STRING_LEN];
 
 static void
 destroy_rules(struct rulehead *head)
@@ -188,7 +187,8 @@ parse_rule_element(char *element, struct ip_rule *rule)
 	if (tok == NULL)
 		return (EINVAL);
 	rule->af = (strcmp(tok, "AF_INET") == 0) ? AF_INET :
-	    (strcmp(tok, "AF_INET6") == 0) ? AF_INET6 : -1;
+	    (strcmp(tok, "AF_INET6") == 0)	 ? AF_INET6 :
+						   -1;
 	if (rule->af == -1)
 		return (EINVAL);
 	tok = strsep(&element, "/");
@@ -216,8 +216,8 @@ parse_rule_element(char *element, struct ip_rule *rule)
 			if (prefix == 0)
 				rule->mask.addr32[0] = htonl(0);
 			else
-				rule->mask.addr32[0] =
-				    htonl(~((1 << (32 - prefix)) - 1));
+				rule->mask.addr32[0] = htonl(
+				    ~((1 << (32 - prefix)) - 1));
 			rule->addr.addr32[0] &= rule->mask.addr32[0];
 			break;
 #endif
@@ -227,7 +227,8 @@ parse_rule_element(char *element, struct ip_rule *rule)
 				return (EINVAL);
 
 			for (i = 0; prefix > 0; prefix -= 8, i++)
-				rule->mask.addr8[i] = prefix >= 8 ? 0xFF :
+				rule->mask.addr8[i] = prefix >= 8 ?
+				    0xFF :
 				    (u_int8_t)((0xFFU << (8 - prefix)) & 0xFFU);
 			for (i = 0; i < 16; i++)
 				rule->addr.addr8[i] &= rule->mask.addr8[i];
@@ -312,12 +313,11 @@ out:
 	return (error);
 }
 SYSCTL_PROC(_security_mac_ipacl, OID_AUTO, rules,
-    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    0, sysctl_rules, "A", "IP ACL Rules");
+    CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_MPSAFE, 0, 0, sysctl_rules, "A",
+    "IP ACL Rules");
 
 static int
-rules_check(struct ucred *cred,
-    struct ipacl_addr *ip_addr, if_t ifp)
+rules_check(struct ucred *cred, struct ipacl_addr *ip_addr, if_t ifp)
 {
 	struct ip_rule *rule;
 	int error;
@@ -338,7 +338,7 @@ rules_check(struct ucred *cred,
 	 * Walk the policy rules list in reverse order until rule applicable
 	 * to the requested IP address is found.
 	 */
-	TAILQ_FOREACH_REVERSE(rule, &rule_head, rulehead, r_entries) {
+	TAILQ_FOREACH_REVERSE (rule, &rule_head, rulehead, r_entries) {
 		/* Skip if current rule applies to different jail. */
 		if (cred->cr_prison->pr_id != rule->jid)
 			continue;
@@ -354,9 +354,8 @@ rules_check(struct ucred *cred,
 				if (rule->addr.v4.s_addr !=
 				    (ip_addr->v4.s_addr & rule->mask.v4.s_addr))
 					continue;
-			} else
-				if (ip_addr->v4.s_addr != rule->addr.v4.s_addr)
-					continue;
+			} else if (ip_addr->v4.s_addr != rule->addr.v4.s_addr)
+				continue;
 			break;
 #endif
 #ifdef INET6
@@ -366,16 +365,14 @@ rules_check(struct ucred *cred,
 				for (i = 0; i < 16; i++)
 					if (rule->addr.v6.s6_addr[i] !=
 					    (ip_addr->v6.s6_addr[i] &
-					    rule->mask.v6.s6_addr[i])) {
+						rule->mask.v6.s6_addr[i])) {
 						same_subnet = false;
 						break;
 					}
 				if (!same_subnet)
 					continue;
-			} else
-				if (bcmp(&rule->addr, ip_addr,
-				    sizeof(*ip_addr)))
-					continue;
+			} else if (bcmp(&rule->addr, ip_addr, sizeof(*ip_addr)))
+				continue;
 			break;
 #endif
 		}
@@ -396,8 +393,7 @@ rules_check(struct ucred *cred,
  */
 #ifdef INET
 static int
-ipacl_ip4_check_jail(struct ucred *cred,
-    const struct in_addr *ia, if_t ifp)
+ipacl_ip4_check_jail(struct ucred *cred, const struct in_addr *ia, if_t ifp)
 {
 	struct ipacl_addr ip4_addr;
 
@@ -416,12 +412,11 @@ ipacl_ip4_check_jail(struct ucred *cred,
 
 #ifdef INET6
 static int
-ipacl_ip6_check_jail(struct ucred *cred,
-    const struct in6_addr *ia6, if_t ifp)
+ipacl_ip6_check_jail(struct ucred *cred, const struct in6_addr *ia6, if_t ifp)
 {
 	struct ipacl_addr ip6_addr;
 
-	ip6_addr.v6 = *ia6; /* Make copy to not alter the original. */
+	ip6_addr.v6 = *ia6;	      /* Make copy to not alter the original. */
 	in6_clearscope(&ip6_addr.v6); /* Clear the scope id. */
 
 	if (!jailed(cred))
@@ -435,8 +430,7 @@ ipacl_ip6_check_jail(struct ucred *cred,
 }
 #endif
 
-static struct mac_policy_ops ipacl_ops =
-{
+static struct mac_policy_ops ipacl_ops = {
 	.mpo_init = ipacl_init,
 	.mpo_destroy = ipacl_destroy,
 #ifdef INET

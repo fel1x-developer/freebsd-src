@@ -3,30 +3,31 @@
  *
  * Copyright (c) 2023 Google LLC
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "gve.h"
 #include "gve_adminq.h"
@@ -37,7 +38,7 @@ gve_rx_free_ring(struct gve_priv *priv, int i)
 	struct gve_rx_ring *rx = &priv->rx[i];
 	struct gve_ring_com *com = &rx->com;
 
-        /* Safe to call even if never allocated */
+	/* Safe to call even if never allocated */
 	gve_free_counters((counter_u64_t *)&rx->stats, NUM_RX_STATS);
 
 	if (rx->page_info != NULL) {
@@ -100,33 +101,36 @@ gve_rx_alloc_ring(struct gve_priv *priv, int i)
 		return (ENOMEM);
 	}
 
-	rx->page_info = malloc(priv->rx_desc_cnt * sizeof(*rx->page_info), M_GVE,
-	    M_WAITOK | M_ZERO);
+	rx->page_info = malloc(priv->rx_desc_cnt * sizeof(*rx->page_info),
+	    M_GVE, M_WAITOK | M_ZERO);
 
 	gve_alloc_counters((counter_u64_t *)&rx->stats, NUM_RX_STATS);
 
 	err = gve_dma_alloc_coherent(priv, sizeof(struct gve_queue_resources),
 	    PAGE_SIZE, &com->q_resources_mem);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to alloc queue resources for rx ring %d", i);
+		device_printf(priv->dev,
+		    "Failed to alloc queue resources for rx ring %d", i);
 		goto abort;
 	}
 	com->q_resources = com->q_resources_mem.cpu_addr;
 
 	err = gve_dma_alloc_coherent(priv,
-	    sizeof(struct gve_rx_desc) * priv->rx_desc_cnt,
-	    CACHE_LINE_SIZE, &rx->desc_ring_mem);
+	    sizeof(struct gve_rx_desc) * priv->rx_desc_cnt, CACHE_LINE_SIZE,
+	    &rx->desc_ring_mem);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to alloc desc ring for rx ring %d", i);
+		device_printf(priv->dev,
+		    "Failed to alloc desc ring for rx ring %d", i);
 		goto abort;
 	}
 	rx->desc_ring = rx->desc_ring_mem.cpu_addr;
 
 	err = gve_dma_alloc_coherent(priv,
-	    sizeof(union gve_rx_data_slot) * priv->rx_desc_cnt,
-	    CACHE_LINE_SIZE, &rx->data_ring_mem);
+	    sizeof(union gve_rx_data_slot) * priv->rx_desc_cnt, CACHE_LINE_SIZE,
+	    &rx->data_ring_mem);
 	if (err != 0) {
-		device_printf(priv->dev, "Failed to alloc data ring for rx ring %d", i);
+		device_printf(priv->dev,
+		    "Failed to alloc data ring for rx ring %d", i);
 		goto abort;
 	}
 	rx->data_ring = rx->data_ring_mem.cpu_addr;
@@ -186,12 +190,13 @@ gve_rx_clear_data_ring(struct gve_rx_ring *rx)
 	 * established initially by gve_prefill_rx_slots at alloc-time and is
 	 * maintained by the cleanup taskqueue. This invariant implies that the
 	 * ring can be considered to be fully posted with buffers at this point,
-	 * even if there are unfreed mbufs still being processed, which is why we
-	 * can fill the ring without waiting on can_flip at each slot to become true.
+	 * even if there are unfreed mbufs still being processed, which is why
+	 * we can fill the ring without waiting on can_flip at each slot to
+	 * become true.
 	 */
 	for (i = 0; i < priv->rx_desc_cnt; i++) {
-		rx->data_ring[i].qpl_offset = htobe64(PAGE_SIZE * i +
-		    rx->page_info[i].page_offset);
+		rx->data_ring[i].qpl_offset = htobe64(
+		    PAGE_SIZE * i + rx->page_info[i].page_offset);
 		rx->fill_cnt++;
 	}
 
@@ -206,7 +211,7 @@ gve_rx_clear_desc_ring(struct gve_rx_ring *rx)
 	int i;
 
 	for (i = 0; i < priv->rx_desc_cnt; i++)
-		rx->desc_ring[i] = (struct gve_rx_desc){};
+		rx->desc_ring[i] = (struct gve_rx_desc) {};
 
 	bus_dmamap_sync(rx->desc_ring_mem.tag, rx->desc_ring_mem.map,
 	    BUS_DMASYNC_PREWRITE);
@@ -234,7 +239,8 @@ gve_start_rx_ring(struct gve_priv *priv, int i)
 
 	if ((if_getcapenable(priv->ifp) & IFCAP_LRO) != 0) {
 		if (tcp_lro_init(&rx->lro) != 0)
-			device_printf(priv->dev, "Failed to init lro for rx ring %d", i);
+			device_printf(priv->dev,
+			    "Failed to init lro for rx ring %d", i);
 		rx->lro.ifp = priv->ifp;
 	}
 
@@ -242,8 +248,8 @@ gve_start_rx_ring(struct gve_priv *priv, int i)
 	com->cleanup_tq = taskqueue_create_fast("gve rx", M_WAITOK,
 	    taskqueue_thread_enqueue, &com->cleanup_tq);
 
-	taskqueue_start_threads(&com->cleanup_tq, 1, PI_NET,
-	    "%s rxq %d", device_get_nameunit(priv->dev), i);
+	taskqueue_start_threads(&com->cleanup_tq, 1, PI_NET, "%s rxq %d",
+	    device_get_nameunit(priv->dev), i);
 
 	gve_db_bar_write_4(priv, com->db_offset, rx->fill_cnt);
 }
@@ -273,10 +279,11 @@ gve_create_rx_rings(struct gve_priv *priv)
 		rx = &priv->rx[i];
 		com = &rx->com;
 
-		com->irq_db_offset = 4 * be32toh(priv->irq_db_indices[com->ntfy_id].index);
+		com->irq_db_offset = 4 *
+		    be32toh(priv->irq_db_indices[com->ntfy_id].index);
 
-		bus_dmamap_sync(com->q_resources_mem.tag, com->q_resources_mem.map,
-		    BUS_DMASYNC_POSTREAD);
+		bus_dmamap_sync(com->q_resources_mem.tag,
+		    com->q_resources_mem.map, BUS_DMASYNC_POSTREAD);
 		com->db_offset = 4 * be32toh(com->q_resources->db_index);
 		com->counter_idx = be32toh(com->q_resources->counter_index);
 
@@ -300,7 +307,7 @@ gve_stop_rx_ring(struct gve_priv *priv, int i)
 	}
 
 	tcp_lro_free(&rx->lro);
-	rx->ctx = (struct gve_rx_ctx){};
+	rx->ctx = (struct gve_rx_ctx) {};
 }
 
 int
@@ -313,7 +320,8 @@ gve_destroy_rx_rings(struct gve_priv *priv)
 		gve_stop_rx_ring(priv, i);
 
 	if (gve_get_state_flag(priv, GVE_STATE_FLAG_RX_RINGS_OK)) {
-		err = gve_adminq_destroy_rx_queues(priv, priv->rx_cfg.num_queues);
+		err = gve_adminq_destroy_rx_queues(priv,
+		    priv->rx_cfg.num_queues);
 		if (err != 0)
 			return (err);
 		gve_clear_state_flag(priv, GVE_STATE_FLAG_RX_RINGS_OK);
@@ -413,7 +421,8 @@ gve_rx_create_mbuf(struct gve_priv *priv, struct gve_rx_ring *rx,
 		ctx->mbuf_tail = mbuf;
 	} else {
 		struct mbuf *mbuf_tail = ctx->mbuf_tail;
-		KASSERT(len <= MCLBYTES, ("gve rx fragment bigger than cluster mbuf"));
+		KASSERT(len <= MCLBYTES,
+		    ("gve rx fragment bigger than cluster mbuf"));
 
 		/*
 		 * This page was created with VM_ALLOC_WIRED, thus the lowest
@@ -425,8 +434,9 @@ gve_rx_create_mbuf(struct gve_priv *priv, struct gve_rx_ring *rx,
 		 * driver, the wire count rises to 2.
 		 *
 		 * If it is 1 again, it necessarily means that the mbuf has been
-		 * consumed and it was gve_mextadd_free that brought down the wire
-		 * count back to 1. We only need to eventually observe the 1.
+		 * consumed and it was gve_mextadd_free that brought down the
+		 * wire count back to 1. We only need to eventually observe
+		 * the 1.
 		 */
 		ref_count = atomic_load_int(&page_info->page->ref_count);
 		can_flip = VPRC_WIRE_COUNT(ref_count) == 1;
@@ -454,16 +464,18 @@ gve_rx_create_mbuf(struct gve_priv *priv, struct gve_rx_ring *rx,
 
 		if (can_flip) {
 			MEXTADD(mbuf, va, len, gve_mextadd_free,
-			    page_info->page, page_info->page_address,
-			    0, EXT_NET_DRV);
+			    page_info->page, page_info->page_address, 0,
+			    EXT_NET_DRV);
 
 			counter_enter();
-			counter_u64_add_protected(rx->stats.rx_frag_flip_cnt, 1);
+			counter_u64_add_protected(rx->stats.rx_frag_flip_cnt,
+			    1);
 			counter_exit();
 
 			/*
-			 * Grab an extra ref to the page so that gve_mextadd_free
-			 * does not end up freeing the page while the interface exists.
+			 * Grab an extra ref to the page so that
+			 * gve_mextadd_free does not end up freeing the page
+			 * while the interface exists.
 			 */
 			vm_page_wire(page_info->page);
 
@@ -471,7 +483,8 @@ gve_rx_create_mbuf(struct gve_priv *priv, struct gve_rx_ring *rx,
 		} else {
 			m_copyback(mbuf, 0, len, va);
 			counter_enter();
-			counter_u64_add_protected(rx->stats.rx_frag_copy_cnt, 1);
+			counter_u64_add_protected(rx->stats.rx_frag_copy_cnt,
+			    1);
 			counter_exit();
 		}
 	}
@@ -537,7 +550,8 @@ gve_rx(struct gve_priv *priv, struct gve_rx_ring *rx, struct gve_rx_desc *desc,
 	if (mbuf == NULL) {
 		ctx->drop_pkt = true;
 		counter_enter();
-		counter_u64_add_protected(rx->stats.rx_dropped_pkt_mbuf_alloc_fail, 1);
+		counter_u64_add_protected(
+		    rx->stats.rx_dropped_pkt_mbuf_alloc_fail, 1);
 		counter_u64_add_protected(rx->stats.rx_dropped_pkt, 1);
 		counter_exit();
 		m_freem(ctx->mbuf_head);
@@ -553,11 +567,10 @@ gve_rx(struct gve_priv *priv, struct gve_rx_ring *rx, struct gve_rx_desc *desc,
 			mbuf->m_pkthdr.flowid = be32toh(desc->rss_hash);
 		}
 
-		if ((desc->csum != 0) && ((desc->flags_seq & GVE_RXF_FRAG) == 0)) {
+		if ((desc->csum != 0) &&
+		    ((desc->flags_seq & GVE_RXF_FRAG) == 0)) {
 			mbuf->m_pkthdr.csum_flags = CSUM_IP_CHECKED |
-				                    CSUM_IP_VALID |
-						    CSUM_DATA_VALID |
-						    CSUM_PSEUDO_HDR;
+			    CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 			mbuf->m_pkthdr.csum_data = 0xffff;
 		}
 	}
@@ -567,10 +580,12 @@ gve_rx(struct gve_priv *priv, struct gve_rx_ring *rx, struct gve_rx_desc *desc,
 		mbuf->m_pkthdr.len = ctx->total_size;
 		do_if_input = true;
 
-		if (((if_getcapenable(priv->ifp) & IFCAP_LRO) != 0) &&      /* LRO is enabled */
-		    (ctx->is_tcp) &&                      		    /* pkt is a TCP pkt */
-		    ((mbuf->m_pkthdr.csum_flags & CSUM_DATA_VALID) != 0) && /* NIC verified csum */
-		    (rx->lro.lro_cnt != 0) &&                               /* LRO resources exist */
+		if (((if_getcapenable(priv->ifp) & IFCAP_LRO) !=
+			0) &&	     /* LRO is enabled */
+		    (ctx->is_tcp) && /* pkt is a TCP pkt */
+		    ((mbuf->m_pkthdr.csum_flags & CSUM_DATA_VALID) !=
+			0) &&		      /* NIC verified csum */
+		    (rx->lro.lro_cnt != 0) && /* LRO resources exist */
 		    (tcp_lro_rx(&rx->lro, mbuf, 0) == 0))
 			do_if_input = false;
 
@@ -586,7 +601,7 @@ gve_rx(struct gve_priv *priv, struct gve_rx_ring *rx, struct gve_rx_desc *desc,
 finish_frag:
 	ctx->frag_cnt++;
 	if (is_last_frag)
-		rx->ctx = (struct gve_rx_ctx){};
+		rx->ctx = (struct gve_rx_ctx) {};
 }
 
 static bool
@@ -639,7 +654,7 @@ gve_rx_cleanup(struct gve_priv *priv, struct gve_rx_ring *rx, int budget)
 	/* The device will only send whole packets. */
 	if (__predict_false(ctx->frag_cnt)) {
 		m_freem(ctx->mbuf_head);
-		rx->ctx = (struct gve_rx_ctx){};
+		rx->ctx = (struct gve_rx_ctx) {};
 		device_printf(priv->dev,
 		    "Unexpected seq number %d with incomplete packet, expected %d, scheduling reset",
 		    GVE_SEQNO(desc->flags_seq), rx->seq_no);
@@ -672,8 +687,8 @@ gve_rx_cleanup_tq(void *arg, int pending)
 	    GVE_IRQ_ACK | GVE_IRQ_EVENT);
 
 	/*
-	 * Fragments received before this barrier MAY NOT cause the NIC to send an
-	 * interrupt but they will still be handled by the enqueue below.
+	 * Fragments received before this barrier MAY NOT cause the NIC to send
+	 * an interrupt but they will still be handled by the enqueue below.
 	 * Fragments received after the barrier WILL trigger an interrupt.
 	 */
 	mb();

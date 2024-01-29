@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ACTIVEMAP_H_
-#define	_ACTIVEMAP_H_
+#ifndef _ACTIVEMAP_H_
+#define _ACTIVEMAP_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -66,4 +66,4 @@ bool activemap_need_sync(struct activemap *amp, off_t offset, off_t length);
 
 void activemap_dump(const struct activemap *amp);
 
-#endif	/* !_ACTIVEMAP_H_ */
+#endif /* !_ACTIVEMAP_H_ */

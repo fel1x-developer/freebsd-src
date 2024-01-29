@@ -30,20 +30,20 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/proc.h>
-#include <sys/stat.h>
-
 #include <sys/mac.h>
-#include <sys/user.h>
+#include <sys/proc.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/user.h>
 #include <sys/vmmeter.h>
 
 #include <err.h>
 #include <grp.h>
 #include <jail.h>
 #include <langinfo.h>
+#include <libxo/xo.h>
 #include <locale.h>
 #include <math.h>
 #include <nlist.h>
@@ -55,14 +55,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <vis.h>
-#include <libxo/xo.h>
 
 #include "ps.h"
 
-#define	COMMAND_WIDTH	16
-#define	ARGUMENTS_WIDTH	16
+#define COMMAND_WIDTH 16
+#define ARGUMENTS_WIDTH 16
 
-#define	ps_pgtok(a)	(((a) * getpagesize()) / 1024)
+#define ps_pgtok(a) (((a) * getpagesize()) / 1024)
 
 void
 printheader(void)
@@ -70,16 +69,16 @@ printheader(void)
 	VAR *v;
 	struct varent *vent;
 
-	STAILQ_FOREACH(vent, &varlist, next_ve)
+	STAILQ_FOREACH (vent, &varlist, next_ve)
 		if (*vent->header != '\0')
 			break;
 	if (!vent)
 		return;
 
-	STAILQ_FOREACH(vent, &varlist, next_ve) {
+	STAILQ_FOREACH (vent, &varlist, next_ve) {
 		v = vent->var;
 		if (v->flag & LJUST) {
-			if (STAILQ_NEXT(vent, next_ve) == NULL)	/* last one */
+			if (STAILQ_NEXT(vent, next_ve) == NULL) /* last one */
 				xo_emit("{T:/%hs}", vent->header);
 			else
 				xo_emit("{T:/%-*hs}", v->width, vent->header);
@@ -100,7 +99,8 @@ arguments(KINFO *k, VARENT *ve)
 		xo_errx(1, "malloc failed");
 	strvis(vis_args, k->ki_args, VIS_TAB | VIS_NL | VIS_NOSLASH);
 
-	if (STAILQ_NEXT(ve, next_ve) != NULL && strlen(vis_args) > ARGUMENTS_WIDTH)
+	if (STAILQ_NEXT(ve, next_ve) != NULL &&
+	    strlen(vis_args) > ARGUMENTS_WIDTH)
 		vis_args[ARGUMENTS_WIDTH] = '\0';
 
 	return (vis_args);
@@ -117,9 +117,14 @@ command(KINFO *k, VARENT *ve)
 			asprintf(&str, "%s%s%s%s%s",
 			    k->ki_d.prefix ? k->ki_d.prefix : "",
 			    k->ki_p->ki_comm,
-			    (showthreads && k->ki_p->ki_numthreads > 1) ? "/" : "",
-			    (showthreads && k->ki_p->ki_numthreads > 1) ? k->ki_p->ki_tdname : "",
-			    (showthreads && k->ki_p->ki_numthreads > 1) ? k->ki_p->ki_moretdname : "");
+			    (showthreads && k->ki_p->ki_numthreads > 1) ? "/" :
+									  "",
+			    (showthreads && k->ki_p->ki_numthreads > 1) ?
+				k->ki_p->ki_tdname :
+				"",
+			    (showthreads && k->ki_p->ki_numthreads > 1) ?
+				k->ki_p->ki_moretdname :
+				"");
 		} else
 			str = strdup(k->ki_p->ki_comm);
 
@@ -133,19 +138,16 @@ command(KINFO *k, VARENT *ve)
 		/* last field */
 
 		if (k->ki_env) {
-			if ((vis_env = malloc(strlen(k->ki_env) * 4 + 1))
-			    == NULL)
+			if ((vis_env = malloc(strlen(k->ki_env) * 4 + 1)) ==
+			    NULL)
 				xo_errx(1, "malloc failed");
 			strvis(vis_env, k->ki_env,
 			    VIS_TAB | VIS_NL | VIS_NOSLASH);
 		} else
 			vis_env = NULL;
 
-		asprintf(&str, "%s%s%s%s",
-		    k->ki_d.prefix ? k->ki_d.prefix : "",
-		    vis_env ? vis_env : "",
-		    vis_env ? " " : "",
-		    vis_args);
+		asprintf(&str, "%s%s%s%s", k->ki_d.prefix ? k->ki_d.prefix : "",
+		    vis_env ? vis_env : "", vis_env ? " " : "", vis_args);
 
 		if (vis_env != NULL)
 			free(vis_env);
@@ -166,13 +168,16 @@ ucomm(KINFO *k, VARENT *ve)
 {
 	char *str;
 
-	if (STAILQ_NEXT(ve, next_ve) == NULL) {	/* last field, don't pad */
+	if (STAILQ_NEXT(ve, next_ve) == NULL) { /* last field, don't pad */
 		asprintf(&str, "%s%s%s%s%s",
-		    k->ki_d.prefix ? k->ki_d.prefix : "",
-		    k->ki_p->ki_comm,
+		    k->ki_d.prefix ? k->ki_d.prefix : "", k->ki_p->ki_comm,
 		    (showthreads && k->ki_p->ki_numthreads > 1) ? "/" : "",
-		    (showthreads && k->ki_p->ki_numthreads > 1) ? k->ki_p->ki_tdname : "",
-		    (showthreads && k->ki_p->ki_numthreads > 1) ? k->ki_p->ki_moretdname : "");
+		    (showthreads && k->ki_p->ki_numthreads > 1) ?
+			k->ki_p->ki_tdname :
+			"",
+		    (showthreads && k->ki_p->ki_numthreads > 1) ?
+			k->ki_p->ki_moretdname :
+			"");
 	} else {
 		if (showthreads && k->ki_p->ki_numthreads > 1)
 			asprintf(&str, "%s/%s%s", k->ki_p->ki_comm,
@@ -217,7 +222,7 @@ state(KINFO *k, VARENT *ve __unused)
 		xo_errx(1, "malloc failed");
 
 	flag = k->ki_p->ki_flag;
-	tdflags = k->ki_p->ki_tdflags;	/* XXXKSE */
+	tdflags = k->ki_p->ki_tdflags; /* XXXKSE */
 	cp = buf;
 
 	switch (k->ki_p->ki_stat) {
@@ -227,7 +232,7 @@ state(KINFO *k, VARENT *ve __unused)
 		break;
 
 	case SSLEEP:
-		if (tdflags & TDF_SINTR)	/* interruptible (long) */
+		if (tdflags & TDF_SINTR) /* interruptible (long) */
 			*cp = k->ki_p->ki_slptime >= MAXSLP ? 'I' : 'S';
 		else
 			*cp = 'D';
@@ -256,9 +261,11 @@ state(KINFO *k, VARENT *ve __unused)
 	cp++;
 	if (!(flag & P_INMEM))
 		*cp++ = 'W';
-	if (k->ki_p->ki_nice < NZERO || k->ki_p->ki_pri.pri_class == PRI_REALTIME)
+	if (k->ki_p->ki_nice < NZERO ||
+	    k->ki_p->ki_pri.pri_class == PRI_REALTIME)
 		*cp++ = '<';
-	else if (k->ki_p->ki_nice > NZERO || k->ki_p->ki_pri.pri_class == PRI_IDLE)
+	else if (k->ki_p->ki_nice > NZERO ||
+	    k->ki_p->ki_pri.pri_class == PRI_IDLE)
 		*cp++ = 'N';
 	if (flag & P_TRACED)
 		*cp++ = 'X';
@@ -280,7 +287,7 @@ state(KINFO *k, VARENT *ve __unused)
 	return (buf);
 }
 
-#define	scalepri(x)	((x) - PZERO)
+#define scalepri(x) ((x)-PZERO)
 
 char *
 pri(KINFO *k, VARENT *ve __unused)
@@ -478,7 +485,7 @@ mwchan(KINFO *k, VARENT *ve __unused)
 		if (k->ki_p->ki_wmesg[0] != 0)
 			str = strdup(k->ki_p->ki_wmesg);
 		else
-                        asprintf(&str, "%lx", (long)k->ki_p->ki_wchan);
+			asprintf(&str, "%lx", (long)k->ki_p->ki_wchan);
 	} else if (k->ki_p->ki_kiflag & KI_LOCKBLOCK) {
 		if (k->ki_p->ki_lockname[0]) {
 			str = strdup(k->ki_p->ki_lockname);
@@ -517,8 +524,8 @@ printtime(KINFO *k, VARENT *ve __unused, long secs, long psecs)
 		secs += psecs / 100;
 		psecs = psecs % 100;
 	}
-	asprintf(&str, "%ld:%02ld%c%02ld",
-	    secs / 60, secs % 60, decimal_point, psecs);
+	asprintf(&str, "%ld:%02ld%c%02ld", secs / 60, secs % 60, decimal_point,
+	    psecs);
 	return (str);
 }
 
@@ -631,7 +638,7 @@ getpcpu(const KINFO *k)
 	if (failure)
 		return (0.0);
 
-#define	fxtofl(fixpt)	((double)(fixpt) / fscale)
+#define fxtofl(fixpt) ((double)(fixpt) / fscale)
 
 	/* XXX - I don't like this */
 	if (k->ki_p->ki_swtime == 0 || (k->ki_p->ki_flag & P_INMEM) == 0)
@@ -639,7 +646,7 @@ getpcpu(const KINFO *k)
 	if (rawcpu)
 		return (100.0 * fxtofl(k->ki_p->ki_pctcpu));
 	return (100.0 * fxtofl(k->ki_p->ki_pctcpu) /
-		(1.0 - exp(k->ki_p->ki_swtime * log(fxtofl(ccpu)))));
+	    (1.0 - exp(k->ki_p->ki_swtime * log(fxtofl(ccpu)))));
 }
 
 char *
@@ -709,22 +716,22 @@ priorityr(KINFO *k, VARENT *ve __unused)
 	level = lpri->pri_level;
 	switch (class) {
 	case RTP_PRIO_REALTIME:
-	/* alias for PRI_REALTIME */
+		/* alias for PRI_REALTIME */
 		asprintf(&str, "real:%u", level - PRI_MIN_REALTIME);
 		break;
 	case RTP_PRIO_NORMAL:
-	/* alias for PRI_TIMESHARE */
+		/* alias for PRI_TIMESHARE */
 		if (level >= PRI_MIN_TIMESHARE)
 			asprintf(&str, "normal:%u", level - PRI_MIN_TIMESHARE);
 		else
 			asprintf(&str, "kernel:%u", level - PRI_MIN_KERN);
 		break;
 	case RTP_PRIO_IDLE:
-	/* alias for PRI_IDLE */
+		/* alias for PRI_IDLE */
 		asprintf(&str, "idle:%u", level - PRI_MIN_IDLE);
 		break;
 	case RTP_PRIO_ITHD:
-	/* alias for PRI_ITHD */
+		/* alias for PRI_ITHD */
 		asprintf(&str, "intr:%u", level - PRI_MIN_ITHD);
 		break;
 	default:
@@ -747,9 +754,10 @@ printval(void *bp, VAR *v)
 
 	cp = ofmt + 1;
 	fcp = v->fmt;
-	while ((*cp++ = *fcp++));
+	while ((*cp++ = *fcp++))
+		;
 
-#define	CHKINF127(n)	(((n) > 127) && (v->flag & INF127) ? 127 : (n))
+#define CHKINF127(n) (((n) > 127) && (v->flag & INF127) ? 127 : (n))
 
 	switch (v->type) {
 	case CHAR:

@@ -27,37 +27,37 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_evdev.h"
 #include "opt_syscons.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/cons.h>
+#include <sys/consio.h>
+#include <sys/kernel.h>
+#include <sys/mouse.h>
 #include <sys/priv.h>
 #include <sys/serial.h>
 #include <sys/tty.h>
 #include <sys/ttydefaults.h>
-#include <sys/kernel.h>
-#include <sys/cons.h>
-#include <sys/consio.h>
-#include <sys/mouse.h>
 
 #include <dev/syscons/syscons.h>
 
 #ifdef EVDEV_SUPPORT
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
+#include <dev/evdev/input.h>
 #endif
 
 #ifndef SC_NO_SYSMOUSE
 
 /* local variables */
-static struct tty	*sysmouse_tty;
-static int		mouse_level;	/* sysmouse protocol level */
-static mousestatus_t	mouse_status;
+static struct tty *sysmouse_tty;
+static int mouse_level; /* sysmouse protocol level */
+static mousestatus_t mouse_status;
 
 #ifdef EVDEV_SUPPORT
-static struct evdev_dev	*sysmouse_evdev;
+static struct evdev_dev *sysmouse_evdev;
 
 static void
 smdev_evdev_init(void)
@@ -111,7 +111,7 @@ smdev_evdev_write(int x, int y, int z, int buttons)
 			evdev_push_rel(sysmouse_evdev, REL_HWHEEL, 1);
 		else if (buttons & (1 << 5))
 			evdev_push_rel(sysmouse_evdev, REL_HWHEEL, -1);
-		buttons &= ~((1 << 5)|(1 << 6));
+		buttons &= ~((1 << 5) | (1 << 6));
 		/* PASSTHROUGH */
 	case EVDEV_SYSMOUSE_T_AXIS_NONE:
 	default:
@@ -135,24 +135,24 @@ smdev_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 	mousemode_t *mode;
 
 	switch (cmd) {
-	case MOUSE_GETHWINFO:	/* get device information */
+	case MOUSE_GETHWINFO: /* get device information */
 		hw = (mousehw_t *)data;
-		hw->buttons = 10;		/* XXX unknown */
+		hw->buttons = 10; /* XXX unknown */
 		hw->iftype = MOUSE_IF_SYSMOUSE;
 		hw->type = MOUSE_MOUSE;
 		hw->model = MOUSE_MODEL_GENERIC;
 		hw->hwid = 0;
 		return 0;
 
-	case MOUSE_GETMODE:	/* get protocol/mode */
+	case MOUSE_GETMODE: /* get protocol/mode */
 		mode = (mousemode_t *)data;
 		mode->level = mouse_level;
 		switch (mode->level) {
 		case 0: /* emulate MouseSystems protocol */
 			mode->protocol = MOUSE_PROTO_MSC;
-			mode->rate = -1;		/* unknown */
-			mode->resolution = -1;	/* unknown */
-			mode->accelfactor = 0;	/* disabled */
+			mode->rate = -1;       /* unknown */
+			mode->resolution = -1; /* unknown */
+			mode->accelfactor = 0; /* disabled */
 			mode->packetsize = MOUSE_MSC_PACKETSIZE;
 			mode->syncmask[0] = MOUSE_MSC_SYNCMASK;
 			mode->syncmask[1] = MOUSE_MSC_SYNC;
@@ -170,27 +170,27 @@ smdev_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		}
 		return 0;
 
-	case MOUSE_SETMODE:	/* set protocol/mode */
+	case MOUSE_SETMODE: /* set protocol/mode */
 		mode = (mousemode_t *)data;
 		if (mode->level == -1)
-			; 	/* don't change the current setting */
+			; /* don't change the current setting */
 		else if ((mode->level < 0) || (mode->level > 1))
 			return EINVAL;
 		else
 			mouse_level = mode->level;
 		return 0;
 
-	case MOUSE_GETLEVEL:	/* get operation level */
+	case MOUSE_GETLEVEL: /* get operation level */
 		*(int *)data = mouse_level;
 		return 0;
 
-	case MOUSE_SETLEVEL:	/* set operation level */
-		if ((*(int *)data  < 0) || (*(int *)data > 1))
+	case MOUSE_SETLEVEL: /* set operation level */
+		if ((*(int *)data < 0) || (*(int *)data > 1))
 			return EINVAL;
 		mouse_level = *(int *)data;
 		return 0;
 
-	case MOUSE_GETSTATUS:	/* get accumulated mouse events */
+	case MOUSE_GETSTATUS: /* get accumulated mouse events */
 		*(mousestatus_t *)data = mouse_status;
 		mouse_status.flags = 0;
 		mouse_status.obutton = mouse_status.button;
@@ -199,8 +199,8 @@ smdev_ioctl(struct tty *tp, u_long cmd, caddr_t data, struct thread *td)
 		mouse_status.dz = 0;
 		return 0;
 
-	case MOUSE_READSTATE:	/* read status from the device */
-	case MOUSE_READDATA:	/* read data from the device */
+	case MOUSE_READSTATE: /* read status from the device */
+	case MOUSE_READDATA:  /* read data from the device */
 		return ENODEV;
 	}
 
@@ -222,10 +222,10 @@ smdev_param(struct tty *tp, struct termios *t)
 }
 
 static struct ttydevsw smdev_ttydevsw = {
-	.tsw_flags	= TF_NOPREFIX,
-	.tsw_close	= smdev_close,
-	.tsw_ioctl	= smdev_ioctl,
-	.tsw_param	= smdev_param,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_close = smdev_close,
+	.tsw_ioctl = smdev_ioctl,
+	.tsw_param = smdev_param,
 };
 
 static void
@@ -247,14 +247,14 @@ sysmouse_event(mouse_info_t *info)
 {
 	/* MOUSE_BUTTON?DOWN -> MOUSE_MSC_BUTTON?UP */
 	static int butmap[8] = {
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON3UP,
-	    MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP,
-	    MOUSE_MSC_BUTTON2UP,
-	    MOUSE_MSC_BUTTON1UP,
-	    0,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON2UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON3UP,
+		MOUSE_MSC_BUTTON1UP | MOUSE_MSC_BUTTON2UP,
+		MOUSE_MSC_BUTTON2UP,
+		MOUSE_MSC_BUTTON1UP,
+		0,
 	};
 	u_char buf[8];
 	int x, y, z;
@@ -264,7 +264,7 @@ sysmouse_event(mouse_info_t *info)
 
 	switch (info->operation) {
 	case MOUSE_ACTION:
-        	mouse_status.button = info->u.data.buttons;
+		mouse_status.button = info->u.data.buttons;
 		/* FALL THROUGH */
 	case MOUSE_MOTION_EVENT:
 		x = info->u.data.x;
@@ -285,8 +285,8 @@ sysmouse_event(mouse_info_t *info)
 	mouse_status.dx += x;
 	mouse_status.dy += y;
 	mouse_status.dz += z;
-	mouse_status.flags |= ((x || y || z) ? MOUSE_POSCHANGED : 0)
-			      | (mouse_status.obutton ^ mouse_status.button);
+	mouse_status.flags |= ((x || y || z) ? MOUSE_POSCHANGED : 0) |
+	    (mouse_status.obutton ^ mouse_status.button);
 	flags = mouse_status.flags;
 	if (flags == 0)
 		goto done;
@@ -301,8 +301,8 @@ sysmouse_event(mouse_info_t *info)
 		goto done;
 
 	/* the first five bytes are compatible with MouseSystems' */
-	buf[0] = MOUSE_MSC_SYNC
-		 | butmap[mouse_status.button & MOUSE_STDBUTTONS];
+	buf[0] = MOUSE_MSC_SYNC |
+	    butmap[mouse_status.button & MOUSE_STDBUTTONS];
 	x = imax(imin(x, 255), -256);
 	buf[1] = x >> 1;
 	buf[3] = x - buf[1];
@@ -313,17 +313,18 @@ sysmouse_event(mouse_info_t *info)
 		ttydisc_rint(sysmouse_tty, buf[i], 0);
 	if (mouse_level >= 1) {
 		/* extended part */
-        	z = imax(imin(z, 127), -128);
-        	buf[5] = (z >> 1) & 0x7f;
-        	buf[6] = (z - (z >> 1)) & 0x7f;
-        	/* buttons 4-10 */
-        	buf[7] = (~mouse_status.button >> 3) & 0x7f;
-        	for (i = MOUSE_MSC_PACKETSIZE; i < MOUSE_SYS_PACKETSIZE; ++i)
+		z = imax(imin(z, 127), -128);
+		buf[5] = (z >> 1) & 0x7f;
+		buf[6] = (z - (z >> 1)) & 0x7f;
+		/* buttons 4-10 */
+		buf[7] = (~mouse_status.button >> 3) & 0x7f;
+		for (i = MOUSE_MSC_PACKETSIZE; i < MOUSE_SYS_PACKETSIZE; ++i)
 			ttydisc_rint(sysmouse_tty, buf[i], 0);
 	}
 	ttydisc_rint_done(sysmouse_tty);
 
-done:	tty_unlock(sysmouse_tty);
+done:
+	tty_unlock(sysmouse_tty);
 	return (flags);
 }
 

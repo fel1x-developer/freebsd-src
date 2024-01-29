@@ -3,6 +3,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdio.h>
 #include <zlib.h>
 
@@ -13,23 +14,23 @@ FILE *zdopen(int fd, const char *mode);
 static int
 xgzread(void *cookie, char *data, int size)
 {
-    return gzread(cookie, data, size);
+	return gzread(cookie, data, size);
 }
 
 static int
 xgzwrite(void *cookie, const char *data, int size)
 {
-    return gzwrite(cookie, (void*)data, size);
+	return gzwrite(cookie, (void *)data, size);
 }
 
 static int
 xgzclose(void *cookie)
 {
-    return gzclose(cookie);
+	return gzclose(cookie);
 }
 
 static fpos_t
-xgzseek(void *cookie,  fpos_t offset, int whence)
+xgzseek(void *cookie, fpos_t offset, int whence)
 {
 	return gzseek(cookie, (z_off_t)offset, whence);
 }
@@ -37,14 +38,14 @@ xgzseek(void *cookie,  fpos_t offset, int whence)
 FILE *
 zopen(const char *fname, const char *mode)
 {
-    gzFile gz = gzopen(fname, mode);
-    if(gz == NULL)
-	return NULL;
+	gzFile gz = gzopen(fname, mode);
+	if (gz == NULL)
+		return NULL;
 
-    if(*mode == 'r')
-	return (funopen(gz, xgzread, NULL, xgzseek, xgzclose));
-    else
-	return (funopen(gz, NULL, xgzwrite, xgzseek, xgzclose));
+	if (*mode == 'r')
+		return (funopen(gz, xgzread, NULL, xgzseek, xgzclose));
+	else
+		return (funopen(gz, NULL, xgzwrite, xgzseek, xgzclose));
 }
 
 FILE *

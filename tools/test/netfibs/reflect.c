@@ -27,14 +27,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/socket.h>
 #include <sys/types.h>
-
-#include <arpa/inet.h>
+#include <sys/socket.h>
 
 #include <netinet/in.h>
 
-
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <limits.h>
@@ -66,7 +64,7 @@ reflect_conn(int s, char *buf, size_t buflen, ssize_t l, struct sockaddr *sa,
 	if ((size_t)l > (buflen - 1))
 		errx(EX_DATAERR, "Input too long");
 	/* Nuke the \n from echo | netcat. */
-	buf[l-1] = '\0';
+	buf[l - 1] = '\0';
 
 	/*
 	 * Match three cases: (1) START, (2) DONE, (3) anything else.
@@ -78,14 +76,18 @@ reflect_conn(int s, char *buf, size_t buflen, ssize_t l, struct sockaddr *sa,
 	 */
 	if (accepts == 0 && nostart == 0) {
 		if (strncmp(buf, "START ", 6) != 0)
-			errx(EX_PROTOCOL, "Not received START on first "
-			    "connect: %s", buf);
+			errx(EX_PROTOCOL,
+			    "Not received START on first "
+			    "connect: %s",
+			    buf);
 		if (l < 8)
 			errx(EX_PROTOCOL, "START without test case name: %s",
 			    buf);
-		if (strcmp(buf+6, testcase) != 0)
-			errx(EX_PROTOCOL, "START test case does not match "
-			    "'%s': '%s'", testcase, buf+6);
+		if (strcmp(buf + 6, testcase) != 0)
+			errx(EX_PROTOCOL,
+			    "START test case does not match "
+			    "'%s': '%s'",
+			    testcase, buf + 6);
 	}
 	/* If debug is on, log. */
 	if (debug > 0)
@@ -96,12 +98,12 @@ reflect_conn(int s, char *buf, size_t buflen, ssize_t l, struct sockaddr *sa,
 
 	/* If debug is on, log. */
 	if (debug > 0) {
-		buf[l-1] = '\0';
+		buf[l - 1] = '\0';
 		fprintf(stderr, ">> %s: %s\n", testcase, buf);
 	}
 
 	/* Reflect data with \n again. */
-	buf[l-1] = '\n';
+	buf[l - 1] = '\n';
 
 	if (sa != NULL) {
 		m = sendto(s, buf, l, 0, sa, salen);
@@ -115,9 +117,8 @@ reflect_conn(int s, char *buf, size_t buflen, ssize_t l, struct sockaddr *sa,
 	else if (m != l)
 		err(EX_OSERR, "short write(%s, %zd) %zd", buf, l, m);
 
-
 	accepts++;
-	
+
 	/* See if we got an end signal. */
 	if (strncmp(buf, "DONE", 4) == 0)
 		return (-2);
@@ -238,7 +239,7 @@ reflect_6(int domain, int type)
 	rc = bind(s, (struct sockaddr *)&sin6, sizeof(sin6));
 	if (rc == -1)
 		err(EX_OSERR, "bind(%d)", s);
-	
+
 	if (type == SOCK_STREAM) {
 		rc = listen(s, port);
 		if (rc == -1)
@@ -256,7 +257,7 @@ reflect_6(int domain, int type)
 		if (rc == -1 && errno != EINTR)
 			err(EX_OSERR, "select()");
 
-		if (rc == 0 || errno == EINTR)	
+		if (rc == 0 || errno == EINTR)
 			continue;
 
 		if (rc != 1)
@@ -324,7 +325,7 @@ main(int argc, char *argv[])
 			reflectfib = (u_int)l;
 			break;
 		case 'N':
-			nostart=1;
+			nostart = 1;
 			break;
 		case 'p':
 			l = strtoll(optarg, &dummy, 10);

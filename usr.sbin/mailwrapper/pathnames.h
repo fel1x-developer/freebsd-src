@@ -32,5 +32,5 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _PATH_MAILERCONF	"/etc/mail/mailer.conf"
-#define _PATH_DEFAULTMTA	"/usr/libexec/dma"
+#define _PATH_MAILERCONF "/etc/mail/mailer.conf"
+#define _PATH_DEFAULTMTA "/usr/libexec/dma"

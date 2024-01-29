@@ -33,9 +33,9 @@
 
 #include "opt_mmccam.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/kernel.h>
@@ -63,12 +63,9 @@
 #endif
 
 #include <dev/gpio/gpiobusvar.h>
-
+#include <dev/mmc/bridge.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/mmc/bridge.h>
-
 #include <dev/sdhci/sdhci.h>
 #include <dev/sdhci/sdhci_fdt_gpio.h>
 
@@ -76,30 +73,30 @@
 #include "sdhci_if.h"
 
 struct fsl_sdhci_softc {
-	device_t		dev;
-	struct resource *	mem_res;
-	struct resource *	irq_res;
-	void *			intr_cookie;
-	struct sdhci_slot	slot;
-	struct callout		r1bfix_callout;
-	sbintime_t		r1bfix_timeout_at;
-	struct sdhci_fdt_gpio * gpio;
-	uint32_t		baseclk_hz;
-	uint32_t		cmd_and_mode;
-	uint32_t		r1bfix_intmask;
-	uint16_t		sdclockreg_freq_bits;
-	uint8_t			r1bfix_type;
-	uint8_t			hwtype;
-	bool			slot_init_done;
+	device_t dev;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	void *intr_cookie;
+	struct sdhci_slot slot;
+	struct callout r1bfix_callout;
+	sbintime_t r1bfix_timeout_at;
+	struct sdhci_fdt_gpio *gpio;
+	uint32_t baseclk_hz;
+	uint32_t cmd_and_mode;
+	uint32_t r1bfix_intmask;
+	uint16_t sdclockreg_freq_bits;
+	uint8_t r1bfix_type;
+	uint8_t hwtype;
+	bool slot_init_done;
 };
 
-#define	R1BFIX_NONE	0	/* No fix needed at next interrupt. */
-#define	R1BFIX_NODATA	1	/* Synthesize DATA_END for R1B w/o data. */
-#define	R1BFIX_AC12	2	/* Wait for busy after auto command 12. */
+#define R1BFIX_NONE 0	/* No fix needed at next interrupt. */
+#define R1BFIX_NODATA 1 /* Synthesize DATA_END for R1B w/o data. */
+#define R1BFIX_AC12 2	/* Wait for busy after auto command 12. */
 
-#define	HWTYPE_NONE	0	/* Hardware not recognized/supported. */
-#define	HWTYPE_ESDHC	1	/* fsl5x and earlier. */
-#define	HWTYPE_USDHC	2	/* fsl6. */
+#define HWTYPE_NONE 0  /* Hardware not recognized/supported. */
+#define HWTYPE_ESDHC 1 /* fsl5x and earlier. */
+#define HWTYPE_USDHC 2 /* fsl6. */
 
 /*
  * Freescale-specific registers, or in some cases the layout of bits within the
@@ -107,55 +104,55 @@ struct fsl_sdhci_softc {
  * SDHC_ (not SDHCI_).
  */
 
-#define	SDHC_WTMK_LVL		0x44	/* Watermark Level register. */
-#define	USDHC_MIX_CONTROL	0x48	/* Mix(ed) Control register. */
-#define	SDHC_VEND_SPEC		0xC0	/* Vendor-specific register. */
-#define	 SDHC_VEND_FRC_SDCLK_ON	(1 <<  8)
-#define	 SDHC_VEND_IPGEN	(1 << 11)
-#define	 SDHC_VEND_HCKEN	(1 << 12)
-#define	 SDHC_VEND_PEREN	(1 << 13)
+#define SDHC_WTMK_LVL 0x44     /* Watermark Level register. */
+#define USDHC_MIX_CONTROL 0x48 /* Mix(ed) Control register. */
+#define SDHC_VEND_SPEC 0xC0    /* Vendor-specific register. */
+#define SDHC_VEND_FRC_SDCLK_ON (1 << 8)
+#define SDHC_VEND_IPGEN (1 << 11)
+#define SDHC_VEND_HCKEN (1 << 12)
+#define SDHC_VEND_PEREN (1 << 13)
 
-#define	SDHC_PRES_STATE		0x24
-#define	  SDHC_PRES_CIHB	  (1 <<  0)
-#define	  SDHC_PRES_CDIHB	  (1 <<  1)
-#define	  SDHC_PRES_DLA		  (1 <<  2)
-#define	  SDHC_PRES_SDSTB	  (1 <<  3)
-#define	  SDHC_PRES_IPGOFF	  (1 <<  4)
-#define	  SDHC_PRES_HCKOFF	  (1 <<  5)
-#define	  SDHC_PRES_PEROFF	  (1 <<  6)
-#define	  SDHC_PRES_SDOFF	  (1 <<  7)
-#define	  SDHC_PRES_WTA		  (1 <<  8)
-#define	  SDHC_PRES_RTA		  (1 <<  9)
-#define	  SDHC_PRES_BWEN	  (1 << 10)
-#define	  SDHC_PRES_BREN	  (1 << 11)
-#define	  SDHC_PRES_RTR		  (1 << 12)
-#define	  SDHC_PRES_CINST	  (1 << 16)
-#define	  SDHC_PRES_CDPL	  (1 << 18)
-#define	  SDHC_PRES_WPSPL	  (1 << 19)
-#define	  SDHC_PRES_CLSL	  (1 << 23)
-#define	  SDHC_PRES_DLSL_SHIFT	  24
-#define	  SDHC_PRES_DLSL_MASK	  (0xffU << SDHC_PRES_DLSL_SHIFT)
+#define SDHC_PRES_STATE 0x24
+#define SDHC_PRES_CIHB (1 << 0)
+#define SDHC_PRES_CDIHB (1 << 1)
+#define SDHC_PRES_DLA (1 << 2)
+#define SDHC_PRES_SDSTB (1 << 3)
+#define SDHC_PRES_IPGOFF (1 << 4)
+#define SDHC_PRES_HCKOFF (1 << 5)
+#define SDHC_PRES_PEROFF (1 << 6)
+#define SDHC_PRES_SDOFF (1 << 7)
+#define SDHC_PRES_WTA (1 << 8)
+#define SDHC_PRES_RTA (1 << 9)
+#define SDHC_PRES_BWEN (1 << 10)
+#define SDHC_PRES_BREN (1 << 11)
+#define SDHC_PRES_RTR (1 << 12)
+#define SDHC_PRES_CINST (1 << 16)
+#define SDHC_PRES_CDPL (1 << 18)
+#define SDHC_PRES_WPSPL (1 << 19)
+#define SDHC_PRES_CLSL (1 << 23)
+#define SDHC_PRES_DLSL_SHIFT 24
+#define SDHC_PRES_DLSL_MASK (0xffU << SDHC_PRES_DLSL_SHIFT)
 
-#define	SDHC_PROT_CTRL		0x28
-#define	 SDHC_PROT_LED		(1 << 0)
-#define	 SDHC_PROT_WIDTH_1BIT	(0 << 1)
-#define	 SDHC_PROT_WIDTH_4BIT	(1 << 1)
-#define	 SDHC_PROT_WIDTH_8BIT	(2 << 1)
-#define	 SDHC_PROT_WIDTH_MASK	(3 << 1)
-#define	 SDHC_PROT_D3CD		(1 << 3)
-#define	 SDHC_PROT_EMODE_BIG	(0 << 4)
-#define	 SDHC_PROT_EMODE_HALF	(1 << 4)
-#define	 SDHC_PROT_EMODE_LITTLE	(2 << 4)
-#define	 SDHC_PROT_EMODE_MASK	(3 << 4)
-#define	 SDHC_PROT_SDMA		(0 << 8)
-#define	 SDHC_PROT_ADMA1	(1 << 8)
-#define	 SDHC_PROT_ADMA2	(2 << 8)
-#define	 SDHC_PROT_ADMA264	(3 << 8)
-#define	 SDHC_PROT_DMA_MASK	(3 << 8)
-#define	 SDHC_PROT_CDTL		(1 << 6)
-#define	 SDHC_PROT_CDSS		(1 << 7)
+#define SDHC_PROT_CTRL 0x28
+#define SDHC_PROT_LED (1 << 0)
+#define SDHC_PROT_WIDTH_1BIT (0 << 1)
+#define SDHC_PROT_WIDTH_4BIT (1 << 1)
+#define SDHC_PROT_WIDTH_8BIT (2 << 1)
+#define SDHC_PROT_WIDTH_MASK (3 << 1)
+#define SDHC_PROT_D3CD (1 << 3)
+#define SDHC_PROT_EMODE_BIG (0 << 4)
+#define SDHC_PROT_EMODE_HALF (1 << 4)
+#define SDHC_PROT_EMODE_LITTLE (2 << 4)
+#define SDHC_PROT_EMODE_MASK (3 << 4)
+#define SDHC_PROT_SDMA (0 << 8)
+#define SDHC_PROT_ADMA1 (1 << 8)
+#define SDHC_PROT_ADMA2 (2 << 8)
+#define SDHC_PROT_ADMA264 (3 << 8)
+#define SDHC_PROT_DMA_MASK (3 << 8)
+#define SDHC_PROT_CDTL (1 << 6)
+#define SDHC_PROT_CDSS (1 << 7)
 
-#define	SDHC_SYS_CTRL		0x2c
+#define SDHC_SYS_CTRL 0x2c
 
 /*
  * The clock enable bits exist in different registers for ESDHC vs USDHC, but
@@ -163,23 +160,23 @@ struct fsl_sdhci_softc {
  * standard sdhci clock register, but in different bit positions and meanings
    than the sdhci spec values.
  */
-#define	SDHC_CLK_IPGEN		(1 << 0)
-#define	SDHC_CLK_HCKEN		(1 << 1)
-#define	SDHC_CLK_PEREN		(1 << 2)
-#define	SDHC_CLK_SDCLKEN	(1 << 3)
-#define	SDHC_CLK_ENABLE_MASK	0x0000000f
-#define	SDHC_CLK_DIVISOR_MASK	0x000000f0
-#define	SDHC_CLK_DIVISOR_SHIFT	4
-#define	SDHC_CLK_PRESCALE_MASK	0x0000ff00
-#define	SDHC_CLK_PRESCALE_SHIFT	8
+#define SDHC_CLK_IPGEN (1 << 0)
+#define SDHC_CLK_HCKEN (1 << 1)
+#define SDHC_CLK_PEREN (1 << 2)
+#define SDHC_CLK_SDCLKEN (1 << 3)
+#define SDHC_CLK_ENABLE_MASK 0x0000000f
+#define SDHC_CLK_DIVISOR_MASK 0x000000f0
+#define SDHC_CLK_DIVISOR_SHIFT 4
+#define SDHC_CLK_PRESCALE_MASK 0x0000ff00
+#define SDHC_CLK_PRESCALE_SHIFT 8
 
 static struct ofw_compat_data compat_data[] = {
-	{"fsl,imx6q-usdhc",	HWTYPE_USDHC},
-	{"fsl,imx6sl-usdhc",	HWTYPE_USDHC},
-	{"fsl,imx53-esdhc",	HWTYPE_ESDHC},
-	{"fsl,imx51-esdhc",	HWTYPE_ESDHC},
-	{"fsl,esdhc",		HWTYPE_ESDHC},
-	{NULL,			HWTYPE_NONE},
+	{ "fsl,imx6q-usdhc", HWTYPE_USDHC },
+	{ "fsl,imx6sl-usdhc", HWTYPE_USDHC },
+	{ "fsl,imx53-esdhc", HWTYPE_ESDHC },
+	{ "fsl,imx51-esdhc", HWTYPE_ESDHC },
+	{ "fsl,esdhc", HWTYPE_ESDHC },
+	{ NULL, HWTYPE_NONE },
 };
 
 static uint16_t fsl_sdhc_get_clock(struct fsl_sdhci_softc *sc);
@@ -213,8 +210,9 @@ fsl_sdhci_read_1(device_t dev, struct sdhci_slot *slot, bus_size_t off)
 	 */
 	if (off == SDHCI_HOST_CONTROL) {
 		wrk32 = RD4(sc, SDHC_PROT_CTRL);
-		val32 = wrk32 & (SDHCI_CTRL_LED | SDHCI_CTRL_CARD_DET |
-		    SDHCI_CTRL_FORCE_CARD);
+		val32 = wrk32 &
+		    (SDHCI_CTRL_LED | SDHCI_CTRL_CARD_DET |
+			SDHCI_CTRL_FORCE_CARD);
 		switch (wrk32 & SDHC_PROT_WIDTH_MASK) {
 		case SDHC_PROT_WIDTH_1BIT:
 			/* Value is already 0. */
@@ -295,7 +293,7 @@ fsl_sdhci_read_2(device_t dev, struct sdhci_slot *slot, bus_size_t off)
 	 * must be coming from our one and only slot.
 	 */
 	if (off == SDHCI_SLOT_INT_STATUS) {
-		val32  = RD4(sc, SDHCI_INT_STATUS);
+		val32 = RD4(sc, SDHCI_INT_STATUS);
 		val32 &= RD4(sc, SDHCI_SIGNAL_ENABLE);
 		return (val32 ? 1 : 0);
 	}
@@ -374,7 +372,8 @@ fsl_sdhci_read_multi_4(device_t dev, struct sdhci_slot *slot, bus_size_t off,
 }
 
 static void
-fsl_sdhci_write_1(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint8_t val)
+fsl_sdhci_write_1(device_t dev, struct sdhci_slot *slot, bus_size_t off,
+    uint8_t val)
 {
 	struct fsl_sdhci_softc *sc = device_get_softc(dev);
 	uint32_t val32;
@@ -417,7 +416,8 @@ fsl_sdhci_write_1(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint8_t
 }
 
 static void
-fsl_sdhci_write_2(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint16_t val)
+fsl_sdhci_write_2(device_t dev, struct sdhci_slot *slot, bus_size_t off,
+    uint16_t val)
 {
 	struct fsl_sdhci_softc *sc = device_get_softc(dev);
 	uint32_t val32;
@@ -447,14 +447,18 @@ fsl_sdhci_write_2(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint16_
 	 */
 	if (off == SDHCI_COMMAND_FLAGS) {
 		if (val & SDHCI_CMD_DATA) {
-			const uint32_t MBAUTOCMD = SDHCI_TRNS_ACMD12 | SDHCI_TRNS_MULTI;
+			const uint32_t MBAUTOCMD = SDHCI_TRNS_ACMD12 |
+			    SDHCI_TRNS_MULTI;
 			val32 = RD4(sc, USDHC_MIX_CONTROL);
 			if ((val32 & MBAUTOCMD) == MBAUTOCMD)
 				sc->r1bfix_type = R1BFIX_AC12;
 		} else {
-			if ((val & SDHCI_CMD_RESP_MASK) == SDHCI_CMD_RESP_SHORT_BUSY) {
-				WR4(sc, SDHCI_INT_ENABLE, slot->intmask | SDHCI_INT_RESPONSE);
-				WR4(sc, SDHCI_SIGNAL_ENABLE, slot->intmask | SDHCI_INT_RESPONSE);
+			if ((val & SDHCI_CMD_RESP_MASK) ==
+			    SDHCI_CMD_RESP_SHORT_BUSY) {
+				WR4(sc, SDHCI_INT_ENABLE,
+				    slot->intmask | SDHCI_INT_RESPONSE);
+				WR4(sc, SDHCI_SIGNAL_ENABLE,
+				    slot->intmask | SDHCI_INT_RESPONSE);
 				sc->r1bfix_type = R1BFIX_NODATA;
 			}
 		}
@@ -478,12 +482,12 @@ fsl_sdhci_write_2(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint16_
 		}
 	} else if (sc->hwtype == HWTYPE_ESDHC) {
 		if (off == SDHCI_TRANSFER_MODE) {
-			sc->cmd_and_mode =
-			    (sc->cmd_and_mode & 0xffff0000) | val;
+			sc->cmd_and_mode = (sc->cmd_and_mode & 0xffff0000) |
+			    val;
 			return;
 		} else if (off == SDHCI_COMMAND_FLAGS) {
-			sc->cmd_and_mode =
-			    (sc->cmd_and_mode & 0xffff) | (val << 16);
+			sc->cmd_and_mode = (sc->cmd_and_mode & 0xffff) |
+			    (val << 16);
 			WR4(sc, SDHCI_TRANSFER_MODE, sc->cmd_and_mode);
 			return;
 		}
@@ -492,11 +496,12 @@ fsl_sdhci_write_2(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint16_
 	val32 = RD4(sc, off & ~3);
 	val32 &= ~(0xffff << (off & 3) * 8);
 	val32 |= ((val & 0xffff) << (off & 3) * 8);
-	WR4(sc, off & ~3, val32);	
+	WR4(sc, off & ~3, val32);
 }
 
 static void
-fsl_sdhci_write_4(device_t dev, struct sdhci_slot *slot, bus_size_t off, uint32_t val)
+fsl_sdhci_write_4(device_t dev, struct sdhci_slot *slot, bus_size_t off,
+    uint32_t val)
 {
 	struct fsl_sdhci_softc *sc = device_get_softc(dev);
 
@@ -539,7 +544,7 @@ fsl_sdhc_get_clock(struct fsl_sdhci_softc *sc)
 	 */
 	val |= SDHCI_CLOCK_INT_EN;
 	if (RD4(sc, SDHC_PRES_STATE) & SDHC_PRES_SDSTB)
-	    val |= SDHCI_CLOCK_INT_STABLE;
+		val |= SDHCI_CLOCK_INT_STABLE;
 
 	/*
 	 * On i.MX ESDHC hardware the card bus clock enable is in the usual
@@ -564,7 +569,7 @@ fsl_sdhc_get_clock(struct fsl_sdhci_softc *sc)
 	return (val);
 }
 
-static void 
+static void
 fsl_sdhc_set_clock(struct fsl_sdhci_softc *sc, uint16_t val)
 {
 	uint32_t divisor, freq, prescale, val32;
@@ -608,8 +613,8 @@ fsl_sdhc_set_clock(struct fsl_sdhci_softc *sc, uint16_t val)
 		if ((val & SDHCI_CLOCK_CARD_EN) == 0)
 			return;
 		divisor = ((val >> SDHCI_DIVIDER_SHIFT) & SDHCI_DIVIDER_MASK) |
-		    ((val >> SDHCI_DIVIDER_HI_SHIFT) & SDHCI_DIVIDER_HI_MASK) <<
-		    SDHCI_DIVIDER_MASK_LEN;
+		    ((val >> SDHCI_DIVIDER_HI_SHIFT) & SDHCI_DIVIDER_HI_MASK)
+			<< SDHCI_DIVIDER_MASK_LEN;
 		if (divisor == 0)
 			freq = sc->baseclk_hz;
 		else
@@ -625,12 +630,12 @@ fsl_sdhc_set_clock(struct fsl_sdhci_softc *sc, uint16_t val)
 	for (divisor = 1; freq < sc->baseclk_hz / (prescale * divisor);)
 		++divisor;
 
-#ifdef DEBUG	
+#ifdef DEBUG
 	device_printf(sc->dev,
 	    "desired SD freq: %d, actual: %d; base %d prescale %d divisor %d\n",
-	    freq, sc->baseclk_hz / (prescale * divisor), sc->baseclk_hz, 
+	    freq, sc->baseclk_hz / (prescale * divisor), sc->baseclk_hz,
 	    prescale, divisor);
-#endif	
+#endif
 
 	/*
 	 * Adjust to zero-based values, and store them to the hardware.
@@ -662,7 +667,7 @@ fsl_sdhci_r1bfix_is_wait_done(struct fsl_sdhci_softc *sc)
 	inhibit = RD4(sc, SDHC_PRES_STATE) & (SDHC_PRES_DLA | SDHC_PRES_CDIHB);
 
 	if (inhibit && getsbinuptime() < sc->r1bfix_timeout_at) {
-		callout_reset_sbt(&sc->r1bfix_callout, SBT_1MS, 0, 
+		callout_reset_sbt(&sc->r1bfix_callout, SBT_1MS, 0,
 		    fsl_sdhci_r1bfix_func, sc, 0);
 		return (false);
 	}
@@ -687,7 +692,7 @@ fsl_sdhci_r1bfix_is_wait_done(struct fsl_sdhci_softc *sc)
 }
 
 static void
-fsl_sdhci_r1bfix_func(void * arg)
+fsl_sdhci_r1bfix_func(void *arg)
 {
 	struct fsl_sdhci_softc *sc = arg;
 	boolean_t r1bwait_done;
@@ -740,7 +745,7 @@ fsl_sdhci_intr(void *arg)
 		sc->r1bfix_timeout_at = getsbinuptime() + 250 * SBT_1MS;
 		if (!fsl_sdhci_r1bfix_is_wait_done(sc)) {
 			WR4(sc, SDHCI_INT_STATUS, intmask);
-			bus_barrier(sc->mem_res, SDHCI_INT_STATUS, 4, 
+			bus_barrier(sc->mem_res, SDHCI_INT_STATUS, 4,
 			    BUS_SPACE_BARRIER_WRITE);
 		}
 	}
@@ -775,12 +780,14 @@ fsl_sdhci_get_platform_clock(device_t dev)
 	node = ofw_bus_get_node(dev);
 
 	/* Get sdhci node properties */
-	if((OF_getprop(node, "clock-frequency", (void *)&clock,
-	    sizeof(clock)) <= 0) || (clock == 0)) {
+	if ((OF_getprop(node, "clock-frequency", (void *)&clock,
+		 sizeof(clock)) <= 0) ||
+	    (clock == 0)) {
 		clock = mpc85xx_get_system_clock();
 
 		if (clock == 0) {
-			device_printf(dev,"Cannot acquire correct sdhci "
+			device_printf(dev,
+			    "Cannot acquire correct sdhci "
 			    "frequency from DTS.\n");
 
 			return (0);
@@ -849,16 +856,15 @@ fsl_sdhci_attach(device_t dev)
 	}
 
 	rid = 0;
-	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-	    RF_ACTIVE);
+	sc->irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
 	if (!sc->irq_res) {
 		device_printf(dev, "cannot allocate interrupt\n");
 		err = ENXIO;
 		goto fail;
 	}
 
-	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_BIO | INTR_MPSAFE,
-	    NULL, fsl_sdhci_intr, sc, &sc->intr_cookie)) {
+	if (bus_setup_intr(dev, sc->irq_res, INTR_TYPE_BIO | INTR_MPSAFE, NULL,
+		fsl_sdhci_intr, sc, &sc->intr_cookie)) {
 		device_printf(dev, "cannot setup interrupt handler\n");
 		err = ENXIO;
 		goto fail;
@@ -893,10 +899,10 @@ fsl_sdhci_attach(device_t dev)
 	else
 		WR4(sc, SDHC_WTMK_LVL, 0x08800880);
 
-	/*
-	 * We read in native byte order in the main driver, but the register
-	 * defaults to little endian.
-	 */
+		/*
+		 * We read in native byte order in the main driver, but the
+		 * register defaults to little endian.
+		 */
 #ifdef __powerpc__
 	sc->baseclk_hz = fsl_sdhci_get_platform_clock(dev);
 #else
@@ -959,31 +965,31 @@ fsl_sdhci_probe(device_t dev)
 
 static device_method_t fsl_sdhci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		fsl_sdhci_probe),
-	DEVMETHOD(device_attach,	fsl_sdhci_attach),
-	DEVMETHOD(device_detach,	fsl_sdhci_detach),
+	DEVMETHOD(device_probe, fsl_sdhci_probe),
+	DEVMETHOD(device_attach, fsl_sdhci_attach),
+	DEVMETHOD(device_detach, fsl_sdhci_detach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,	sdhci_generic_read_ivar),
-	DEVMETHOD(bus_write_ivar,	sdhci_generic_write_ivar),
+	DEVMETHOD(bus_read_ivar, sdhci_generic_read_ivar),
+	DEVMETHOD(bus_write_ivar, sdhci_generic_write_ivar),
 
 	/* MMC bridge interface */
-	DEVMETHOD(mmcbr_update_ios,	sdhci_generic_update_ios),
-	DEVMETHOD(mmcbr_request,	sdhci_generic_request),
-	DEVMETHOD(mmcbr_get_ro,		fsl_sdhci_get_ro),
-	DEVMETHOD(mmcbr_acquire_host,	sdhci_generic_acquire_host),
-	DEVMETHOD(mmcbr_release_host,	sdhci_generic_release_host),
+	DEVMETHOD(mmcbr_update_ios, sdhci_generic_update_ios),
+	DEVMETHOD(mmcbr_request, sdhci_generic_request),
+	DEVMETHOD(mmcbr_get_ro, fsl_sdhci_get_ro),
+	DEVMETHOD(mmcbr_acquire_host, sdhci_generic_acquire_host),
+	DEVMETHOD(mmcbr_release_host, sdhci_generic_release_host),
 
 	/* SDHCI accessors */
-	DEVMETHOD(sdhci_read_1,		fsl_sdhci_read_1),
-	DEVMETHOD(sdhci_read_2,		fsl_sdhci_read_2),
-	DEVMETHOD(sdhci_read_4,		fsl_sdhci_read_4),
-	DEVMETHOD(sdhci_read_multi_4,	fsl_sdhci_read_multi_4),
-	DEVMETHOD(sdhci_write_1,	fsl_sdhci_write_1),
-	DEVMETHOD(sdhci_write_2,	fsl_sdhci_write_2),
-	DEVMETHOD(sdhci_write_4,	fsl_sdhci_write_4),
-	DEVMETHOD(sdhci_write_multi_4,	fsl_sdhci_write_multi_4),
-	DEVMETHOD(sdhci_get_card_present,fsl_sdhci_get_card_present),
+	DEVMETHOD(sdhci_read_1, fsl_sdhci_read_1),
+	DEVMETHOD(sdhci_read_2, fsl_sdhci_read_2),
+	DEVMETHOD(sdhci_read_4, fsl_sdhci_read_4),
+	DEVMETHOD(sdhci_read_multi_4, fsl_sdhci_read_multi_4),
+	DEVMETHOD(sdhci_write_1, fsl_sdhci_write_1),
+	DEVMETHOD(sdhci_write_2, fsl_sdhci_write_2),
+	DEVMETHOD(sdhci_write_4, fsl_sdhci_write_4),
+	DEVMETHOD(sdhci_write_multi_4, fsl_sdhci_write_multi_4),
+	DEVMETHOD(sdhci_get_card_present, fsl_sdhci_get_card_present),
 
 	DEVMETHOD_END
 };

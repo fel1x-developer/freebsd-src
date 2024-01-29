@@ -27,9 +27,9 @@
  */
 
 #ifndef _DEV_PUC_BFE_H_
-#define	_DEV_PUC_BFE_H_
+#define _DEV_PUC_BFE_H_
 
-#define	PUC_PCI_BARS	6
+#define PUC_PCI_BARS 6
 
 struct puc_cfg;
 struct puc_port;
@@ -40,40 +40,40 @@ extern const char puc_driver_name[];
 
 struct puc_bar {
 	struct resource *b_res;
-	int		b_rid;
-	int		b_type;
+	int b_rid;
+	int b_type;
 };
 
 struct puc_softc {
-	device_t	sc_dev;
+	device_t sc_dev;
 
 	const struct puc_cfg *sc_cfg;
-	intptr_t	sc_cfg_data;
+	intptr_t sc_cfg_data;
 
-	struct puc_bar	sc_bar[PUC_PCI_BARS];
-	struct rman	sc_ioport;
-	struct rman	sc_iomem;
-	struct rman	sc_irq;
+	struct puc_bar sc_bar[PUC_PCI_BARS];
+	struct rman sc_ioport;
+	struct rman sc_iomem;
+	struct rman sc_irq;
 
 	struct resource *sc_ires;
-	void		*sc_icookie;
-	int		sc_irid;
+	void *sc_icookie;
+	int sc_irid;
 
-	int		sc_nports;
+	int sc_nports;
 	struct puc_port *sc_port;
 
-	bool		sc_fastintr:1;
-	bool		sc_leaving:1;
-	bool		sc_polled:1;
-	bool		sc_msi:1;
+	bool sc_fastintr : 1;
+	bool sc_leaving : 1;
+	bool sc_polled : 1;
+	bool sc_msi : 1;
 
-	int		sc_ilr;
+	int sc_ilr;
 
 	/*
 	 * Bitmask of ports that use the serdev I/F. This allows for
 	 * 32 ports on ILP32 machines and 64 ports on LP64 machines.
 	 */
-	u_long		sc_serdevs;
+	u_long sc_serdevs;
 };
 
 struct puc_bar *puc_get_bar(struct puc_softc *sc, int rid);
@@ -86,7 +86,8 @@ int puc_bus_child_location(device_t, device_t, struct sbuf *sb);
 int puc_bus_child_pnpinfo(device_t, device_t, struct sbuf *sb);
 struct resource *puc_bus_alloc_resource(device_t, device_t, int, int *,
     rman_res_t, rman_res_t, rman_res_t, u_int);
-int puc_bus_get_resource(device_t, device_t, int, int, rman_res_t *, rman_res_t *);
+int puc_bus_get_resource(device_t, device_t, int, int, rman_res_t *,
+    rman_res_t *);
 int puc_bus_print_child(device_t, device_t);
 int puc_bus_read_ivar(device_t, device_t, int, uintptr_t *);
 int puc_bus_release_resource(device_t, device_t, int, int, struct resource *);

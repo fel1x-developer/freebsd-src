@@ -51,9 +51,11 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "Usage: %s [--signal sig | -s sig] [--preserve-status]"
+	fprintf(stderr,
+	    "Usage: %s [--signal sig | -s sig] [--preserve-status]"
 	    " [--kill-after time | -k time] [--foreground] <duration> <command>"
-	    " <arg ...>\n", getprogname());
+	    " <arg ...>\n",
+	    getprogname());
 
 	exit(EXIT_FAILURE);
 }
@@ -186,29 +188,27 @@ main(int argc, char **argv)
 	foreground = preserve = 0;
 	second_kill = 0;
 
-	const struct option longopts[] = {
-		{ "preserve-status", no_argument,       &preserve,    1 },
-		{ "foreground",      no_argument,       &foreground,  1 },
-		{ "kill-after",      required_argument, NULL,        'k'},
-		{ "signal",          required_argument, NULL,        's'},
-		{ "help",            no_argument,       NULL,        'h'},
-		{ NULL,              0,                 NULL,         0 }
-	};
+	const struct option longopts[] = { { "preserve-status", no_argument,
+					       &preserve, 1 },
+		{ "foreground", no_argument, &foreground, 1 },
+		{ "kill-after", required_argument, NULL, 'k' },
+		{ "signal", required_argument, NULL, 's' },
+		{ "help", no_argument, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
 	while ((ch = getopt_long(argc, argv, "+k:s:h", longopts, NULL)) != -1) {
 		switch (ch) {
-			case 'k':
-				do_second_kill = true;
-				second_kill = parse_duration(optarg);
-				break;
-			case 's':
-				killsig = parse_signal(optarg);
-				break;
-			case 0:
-				break;
-			case 'h':
-			default:
-				usage();
+		case 'k':
+			do_second_kill = true;
+			second_kill = parse_duration(optarg);
+			break;
+		case 's':
+			killsig = parse_signal(optarg);
+			break;
+		case 0:
+			break;
+		case 'h':
+		default:
+			usage();
 		}
 	}
 

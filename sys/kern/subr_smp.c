@@ -30,16 +30,18 @@
  * used for the kernel SMP support.
  */
 
+#include "opt_sched.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
-#include <sys/proc.h>
-#include <sys/bus.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/proc.h>
 #include <sys/sched.h>
 #include <sys/smp.h>
 #include <sys/sysctl.h>
@@ -47,8 +49,6 @@
 #include <machine/cpu.h>
 #include <machine/pcb.h>
 #include <machine/smp.h>
-
-#include "opt_sched.h"
 
 #ifdef SMP
 MALLOC_DEFINE(M_TOPO, "toponodes", "SMP topology data");
@@ -78,36 +78,35 @@ u_int mp_maxid;
 struct pcb *stoppcbs;
 
 static SYSCTL_NODE(_kern, OID_AUTO, smp,
-    CTLFLAG_RD | CTLFLAG_CAPRD | CTLFLAG_MPSAFE, NULL,
-    "Kernel SMP");
+    CTLFLAG_RD | CTLFLAG_CAPRD | CTLFLAG_MPSAFE, NULL, "Kernel SMP");
 
-SYSCTL_INT(_kern_smp, OID_AUTO, maxid, CTLFLAG_RD|CTLFLAG_CAPRD, &mp_maxid, 0,
+SYSCTL_INT(_kern_smp, OID_AUTO, maxid, CTLFLAG_RD | CTLFLAG_CAPRD, &mp_maxid, 0,
     "Max CPU ID.");
 
-SYSCTL_INT(_kern_smp, OID_AUTO, maxcpus, CTLFLAG_RD|CTLFLAG_CAPRD, &mp_maxcpus,
-    0, "Max number of CPUs that the system was compiled for.");
+SYSCTL_INT(_kern_smp, OID_AUTO, maxcpus, CTLFLAG_RD | CTLFLAG_CAPRD,
+    &mp_maxcpus, 0, "Max number of CPUs that the system was compiled for.");
 
-SYSCTL_PROC(_kern_smp, OID_AUTO, active, CTLFLAG_RD|CTLTYPE_INT|CTLFLAG_MPSAFE,
-    NULL, 0, sysctl_kern_smp_active, "I",
-    "Indicates system is running in SMP mode");
+SYSCTL_PROC(_kern_smp, OID_AUTO, active,
+    CTLFLAG_RD | CTLTYPE_INT | CTLFLAG_MPSAFE, NULL, 0, sysctl_kern_smp_active,
+    "I", "Indicates system is running in SMP mode");
 
-int smp_disabled = 0;	/* has smp been disabled? */
-SYSCTL_INT(_kern_smp, OID_AUTO, disabled, CTLFLAG_RDTUN|CTLFLAG_CAPRD,
+int smp_disabled = 0; /* has smp been disabled? */
+SYSCTL_INT(_kern_smp, OID_AUTO, disabled, CTLFLAG_RDTUN | CTLFLAG_CAPRD,
     &smp_disabled, 0, "SMP has been disabled from the loader");
 
-int smp_cpus = 1;	/* how many cpu's running */
-SYSCTL_INT(_kern_smp, OID_AUTO, cpus, CTLFLAG_RD|CTLFLAG_CAPRD, &smp_cpus, 0,
+int smp_cpus = 1; /* how many cpu's running */
+SYSCTL_INT(_kern_smp, OID_AUTO, cpus, CTLFLAG_RD | CTLFLAG_CAPRD, &smp_cpus, 0,
     "Number of CPUs online");
 
-int smp_threads_per_core = 1;	/* how many SMT threads are running per core */
-SYSCTL_INT(_kern_smp, OID_AUTO, threads_per_core, CTLFLAG_RD|CTLFLAG_CAPRD,
+int smp_threads_per_core = 1; /* how many SMT threads are running per core */
+SYSCTL_INT(_kern_smp, OID_AUTO, threads_per_core, CTLFLAG_RD | CTLFLAG_CAPRD,
     &smp_threads_per_core, 0, "Number of SMT threads online per core");
 
-int mp_ncores = -1;	/* how many physical cores running */
-SYSCTL_INT(_kern_smp, OID_AUTO, cores, CTLFLAG_RD|CTLFLAG_CAPRD, &mp_ncores, 0,
-    "Number of physical cores online");
+int mp_ncores = -1; /* how many physical cores running */
+SYSCTL_INT(_kern_smp, OID_AUTO, cores, CTLFLAG_RD | CTLFLAG_CAPRD, &mp_ncores,
+    0, "Number of physical cores online");
 
-int smp_topology = 0;	/* Which topology we're using. */
+int smp_topology = 0; /* Which topology we're using. */
 SYSCTL_INT(_kern_smp, OID_AUTO, topology, CTLFLAG_RDTUN, &smp_topology, 0,
     "Topology override setting; 0 is default provided by hardware.");
 
@@ -141,8 +140,8 @@ mp_setmaxid(void *dummy)
 	KASSERT(mp_ncpus > 1 || mp_maxid == 0,
 	    ("%s: one CPU but mp_maxid is not zero", __func__));
 	KASSERT(mp_maxid >= mp_ncpus - 1,
-	    ("%s: counters out of sync: max %d, count %d", __func__,
-		mp_maxid, mp_ncpus));
+	    ("%s: counters out of sync: max %d, count %d", __func__, mp_maxid,
+		mp_ncpus));
 
 	cpusetsizemin = howmany(mp_maxid + 1, NBBY);
 }
@@ -225,9 +224,9 @@ forward_signal(struct thread *td)
  *
  */
 #if defined(__amd64__) || defined(__i386__)
-#define	X86	1
+#define X86 1
 #else
-#define	X86	0
+#define X86 0
 #endif
 static int
 generic_stop_cpus(cpuset_t map, u_int type)
@@ -239,12 +238,12 @@ generic_stop_cpus(cpuset_t map, u_int type)
 	int i;
 	volatile cpuset_t *cpus;
 
-	KASSERT(
-	    type == IPI_STOP || type == IPI_STOP_HARD
+	KASSERT(type == IPI_STOP || type == IPI_STOP_HARD
 #if X86
-	    || type == IPI_SUSPEND
+		|| type == IPI_SUSPEND
 #endif
-	    , ("%s: invalid stop type", __func__));
+	    ,
+	    ("%s: invalid stop type", __func__));
 
 	if (!smp_started)
 		return (0);
@@ -267,14 +266,14 @@ generic_stop_cpus(cpuset_t map, u_int type)
 #if X86
 	if (!nmi_is_broadcast || nmi_kdb_lock == 0) {
 #endif
-	if (stopping_cpu != PCPU_GET(cpuid))
-		while (atomic_cmpset_int(&stopping_cpu, NOCPU,
-		    PCPU_GET(cpuid)) == 0)
-			while (stopping_cpu != NOCPU)
-				cpu_spinwait(); /* spin */
+		if (stopping_cpu != PCPU_GET(cpuid))
+			while (atomic_cmpset_int(&stopping_cpu, NOCPU,
+				   PCPU_GET(cpuid)) == 0)
+				while (stopping_cpu != NOCPU)
+					cpu_spinwait(); /* spin */
 
-	/* send the stop IPI to all CPUs in map */
-	ipi_selected(map, type);
+		/* send the stop IPI to all CPUs in map */
+		ipi_selected(map, type);
 #if X86
 	}
 #endif
@@ -351,8 +350,9 @@ generic_restart_cpus(cpuset_t map, u_int type)
 	volatile cpuset_t *cpus;
 
 #if X86
-	KASSERT(type == IPI_STOP || type == IPI_STOP_HARD
-	    || type == IPI_SUSPEND, ("%s: invalid stop type", __func__));
+	KASSERT(type == IPI_STOP || type == IPI_STOP_HARD ||
+		type == IPI_SUSPEND,
+	    ("%s: invalid stop type", __func__));
 
 	if (!smp_started)
 		return (0);
@@ -379,7 +379,7 @@ generic_restart_cpus(cpuset_t map, u_int type)
 		struct monitorbuf *mb;
 		u_int id;
 
-		CPU_FOREACH(id) {
+		CPU_FOREACH (id) {
 			if (!CPU_ISSET(id, &map))
 				continue;
 
@@ -446,9 +446,9 @@ smp_rendezvous_action(void)
 {
 	struct thread *td;
 	void *local_func_arg;
-	void (*local_setup_func)(void*);
-	void (*local_action_func)(void*);
-	void (*local_teardown_func)(void*);
+	void (*local_setup_func)(void *);
+	void (*local_action_func)(void *);
+	void (*local_teardown_func)(void *);
 #ifdef INVARIANTS
 	int owepreempt;
 #endif
@@ -502,7 +502,7 @@ smp_rendezvous_action(void)
 			local_setup_func(local_func_arg);
 		atomic_add_int(&smp_rv_waiters[1], 1);
 		while (smp_rv_waiters[1] < smp_rv_ncpus)
-                	cpu_spinwait();
+			cpu_spinwait();
 	}
 
 	if (local_action_func != NULL)
@@ -541,11 +541,8 @@ smp_rendezvous_action(void)
 }
 
 void
-smp_rendezvous_cpus(cpuset_t map,
-	void (* setup_func)(void *), 
-	void (* action_func)(void *),
-	void (* teardown_func)(void *),
-	void *arg)
+smp_rendezvous_cpus(cpuset_t map, void (*setup_func)(void *),
+    void (*action_func)(void *), void (*teardown_func)(void *), void *arg)
 {
 	int curcpumap, i, ncpus = 0;
 
@@ -568,7 +565,7 @@ smp_rendezvous_cpus(cpuset_t map,
 	 */
 	MPASS(curthread->td_md.md_spinlock_count == 0);
 
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (CPU_ISSET(i, &map))
 			ncpus++;
 	}
@@ -618,12 +615,11 @@ smp_rendezvous_cpus(cpuset_t map,
 }
 
 void
-smp_rendezvous(void (* setup_func)(void *), 
-	       void (* action_func)(void *),
-	       void (* teardown_func)(void *),
-	       void *arg)
+smp_rendezvous(void (*setup_func)(void *), void (*action_func)(void *),
+    void (*teardown_func)(void *), void *arg)
 {
-	smp_rendezvous_cpus(all_cpus, setup_func, action_func, teardown_func, arg);
+	smp_rendezvous_cpus(all_cpus, setup_func, action_func, teardown_func,
+	    arg);
 }
 
 static void
@@ -692,11 +688,11 @@ smp_topo(void)
 	 * Verify the returned topology.
 	 */
 	if (top->cg_count != mp_ncpus)
-		panic("Built bad topology at %p.  CPU count %d != %d",
-		    top, top->cg_count, mp_ncpus);
+		panic("Built bad topology at %p.  CPU count %d != %d", top,
+		    top->cg_count, mp_ncpus);
 	if (CPU_CMP(&top->cg_mask, &all_cpus))
-		panic("Built bad topology at %p.  CPU mask (%s) != (%s)",
-		    top, cpusetobj_strprint(cpusetbuf, &top->cg_mask),
+		panic("Built bad topology at %p.  CPU mask (%s) != (%s)", top,
+		    cpusetobj_strprint(cpusetbuf, &top->cg_mask),
 		    cpusetobj_strprint(cpusetbuf2, &all_cpus));
 
 	/*
@@ -796,8 +792,7 @@ smp_topo_1level(int share, int count, int flags)
 }
 
 struct cpu_group *
-smp_topo_2level(int l2share, int l2count, int l1share, int l1count,
-    int l1flags)
+smp_topo_2level(int l2share, int l2count, int l1share, int l1count, int l1flags)
 {
 	struct cpu_group *top;
 	struct cpu_group *l1g;
@@ -807,8 +802,8 @@ smp_topo_2level(int l2share, int l2count, int l1share, int l1count,
 	int j;
 
 	cpu = 0;
-	top = smp_topo_alloc(1 + mp_ncpus / (l2count * l1count) +
-	    mp_ncpus / l1count);
+	top = smp_topo_alloc(
+	    1 + mp_ncpus / (l2count * l1count) + mp_ncpus / l1count);
 	l2g = top + 1;
 	top->cg_child = l2g;
 	top->cg_level = CG_SHARE_NONE;
@@ -847,14 +842,11 @@ smp_topo_find(struct cpu_group *top, int cpu)
 	}
 	return (NULL);
 }
-#else /* !SMP */
+#else  /* !SMP */
 
 void
-smp_rendezvous_cpus(cpuset_t map,
-	void (*setup_func)(void *), 
-	void (*action_func)(void *),
-	void (*teardown_func)(void *),
-	void *arg)
+smp_rendezvous_cpus(cpuset_t map, void (*setup_func)(void *),
+    void (*action_func)(void *), void (*teardown_func)(void *), void *arg)
 {
 	/*
 	 * In the !SMP case we just need to ensure the same initial conditions
@@ -871,10 +863,8 @@ smp_rendezvous_cpus(cpuset_t map,
 }
 
 void
-smp_rendezvous(void (*setup_func)(void *), 
-	       void (*action_func)(void *),
-	       void (*teardown_func)(void *),
-	       void *arg)
+smp_rendezvous(void (*setup_func)(void *), void (*action_func)(void *),
+    void (*teardown_func)(void *), void *arg)
 {
 
 	smp_rendezvous_cpus(all_cpus, setup_func, action_func, teardown_func,
@@ -902,17 +892,15 @@ void
 smp_no_rendezvous_barrier(void *dummy)
 {
 #ifdef SMP
-	KASSERT((!smp_started),("smp_no_rendezvous called and smp is started"));
+	KASSERT((!smp_started),
+	    ("smp_no_rendezvous called and smp is started"));
 #endif
 }
 
 void
-smp_rendezvous_cpus_retry(cpuset_t map,
-	void (* setup_func)(void *),
-	void (* action_func)(void *),
-	void (* teardown_func)(void *),
-	void (* wait_func)(void *, int),
-	struct smp_rendezvous_cpus_retry_arg *arg)
+smp_rendezvous_cpus_retry(cpuset_t map, void (*setup_func)(void *),
+    void (*action_func)(void *), void (*teardown_func)(void *),
+    void (*wait_func)(void *, int), struct smp_rendezvous_cpus_retry_arg *arg)
 {
 	int cpu;
 
@@ -938,17 +926,13 @@ smp_rendezvous_cpus_retry(cpuset_t map,
 	 * all acknowledge completion.
 	 */
 	for (;;) {
-		smp_rendezvous_cpus(
-		    arg->cpus,
-		    setup_func,
-		    action_func,
-		    teardown_func,
-		    arg);
+		smp_rendezvous_cpus(arg->cpus, setup_func, action_func,
+		    teardown_func, arg);
 
 		if (CPU_EMPTY(&arg->cpus))
 			break;
 
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			if (!CPU_ISSET(cpu, &arg->cpus))
 				continue;
 			wait_func(arg, cpu);
@@ -1039,15 +1023,15 @@ quiesce_all_critical(void)
 
 	MPASS(curthread->td_critnest == 0);
 
-	CPU_FOREACH(cpu) {
+	CPU_FOREACH (cpu) {
 		pcpu = cpuid_to_pcpu[cpu];
 		td = pcpu->pc_curthread;
 		for (;;) {
 			if (td->td_critnest == 0)
 				break;
 			cpu_spinwait();
-			newtd = (struct thread *)
-			    atomic_load_acq_ptr((void *)pcpu->pc_curthread);
+			newtd = (struct thread *)atomic_load_acq_ptr(
+			    (void *)pcpu->pc_curthread);
 			if (td != newtd)
 				break;
 		}
@@ -1073,12 +1057,8 @@ cpus_fence_seq_cst(void)
 {
 
 #ifdef SMP
-	smp_rendezvous(
-	    smp_no_rendezvous_barrier,
-	    cpus_fence_seq_cst_issue,
-	    smp_no_rendezvous_barrier,
-	    NULL
-	);
+	smp_rendezvous(smp_no_rendezvous_barrier, cpus_fence_seq_cst_issue,
+	    smp_no_rendezvous_barrier, NULL);
 #else
 	cpus_fence_seq_cst_issue(NULL);
 #endif
@@ -1117,15 +1097,15 @@ topo_init_root(struct topo_node *root)
  * Do nothing if there is already a child with that ID.
  */
 struct topo_node *
-topo_add_node_by_hwid(struct topo_node *parent, int hwid,
-    topo_node_type type, uintptr_t subtype)
+topo_add_node_by_hwid(struct topo_node *parent, int hwid, topo_node_type type,
+    uintptr_t subtype)
 {
 	struct topo_node *node;
 
-	TAILQ_FOREACH_REVERSE(node, &parent->children,
-	    topo_children, siblings) {
-		if (node->hwid == hwid
-		    && node->type == type && node->subtype == subtype) {
+	TAILQ_FOREACH_REVERSE (node, &parent->children, topo_children,
+	    siblings) {
+		if (node->hwid == hwid && node->type == type &&
+		    node->subtype == subtype) {
 			return (node);
 		}
 	}
@@ -1146,15 +1126,15 @@ topo_add_node_by_hwid(struct topo_node *parent, int hwid,
  * Find a child node with the given ID under the given parent.
  */
 struct topo_node *
-topo_find_node_by_hwid(struct topo_node *parent, int hwid,
-    topo_node_type type, uintptr_t subtype)
+topo_find_node_by_hwid(struct topo_node *parent, int hwid, topo_node_type type,
+    uintptr_t subtype)
 {
 
 	struct topo_node *node;
 
-	TAILQ_FOREACH(node, &parent->children, siblings) {
-		if (node->hwid == hwid
-		    && node->type == type && node->subtype == subtype) {
+	TAILQ_FOREACH (node, &parent->children, siblings) {
+		if (node->hwid == hwid && node->type == type &&
+		    node->subtype == subtype) {
 			return (node);
 		}
 	}
@@ -1256,9 +1236,9 @@ topo_set_pu_id(struct topo_node *node, cpuid_t id)
 }
 
 static struct topology_spec {
-	topo_node_type	type;
-	bool		match_subtype;
-	uintptr_t	subtype;
+	topo_node_type type;
+	bool match_subtype;
+	uintptr_t subtype;
 } topology_level_table[TOPO_LEVEL_COUNT] = {
 	[TOPO_LEVEL_PKG] = { .type = TOPO_TYPE_PKG, },
 	[TOPO_LEVEL_GROUP] = { .type = TOPO_TYPE_GROUP, },
@@ -1344,7 +1324,7 @@ topo_analyze(struct topo_node *topo_root, int all,
 		return (0);
 
 	KASSERT(results->entities[TOPO_LEVEL_PKG] > 0,
-		("bug in topology or analysis"));
+	    ("bug in topology or analysis"));
 
 	return (1);
 }

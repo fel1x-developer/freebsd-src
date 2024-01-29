@@ -32,53 +32,51 @@
  * those of the authors and should not be interpreted as representing
  * official policies,either expressed or implied, of the FreeBSD Project.
  *
- * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES, 1621
- * Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
+ * Send feedback to: <megaraidfbsd@avagotech.com> Mail to: AVAGO TECHNOLOGIES,
+ * 1621 Barber Lane, Milpitas, CA 95035 ATTN: MegaRaid FreeBSD
  *
  */
 
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/capsicum.h>
-
 #include <sys/conf.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/file.h>
 #include <sys/proc.h>
+
 #include <machine/bus.h>
 
-#if defined(__amd64__)			/* Assume amd64 wants 32 bit Linux */
+#if defined(__amd64__) /* Assume amd64 wants 32 bit Linux */
 #include <machine/../linux32/linux.h>
 #include <machine/../linux32/linux32_proto.h>
 #else
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
 #endif
+#include <dev/mrsas/mrsas.h>
+
 #include <compat/linux/linux_ioctl.h>
 #include <compat/linux/linux_util.h>
-
-#include <dev/mrsas/mrsas.h>
 #undef COMPAT_FREEBSD32
 #include <dev/mrsas/mrsas_ioctl.h>
 
 /* There are multiple ioctl number ranges that need to be handled */
-#define	MRSAS_LINUX_IOCTL_MIN  0x4d00
-#define	MRSAS_LINUX_IOCTL_MAX  0x4d01
+#define MRSAS_LINUX_IOCTL_MIN 0x4d00
+#define MRSAS_LINUX_IOCTL_MAX 0x4d01
 
 static linux_ioctl_function_t mrsas_linux_ioctl;
-static struct linux_ioctl_handler mrsas_linux_handler = {mrsas_linux_ioctl,
-	MRSAS_LINUX_IOCTL_MIN,
-MRSAS_LINUX_IOCTL_MAX};
+static struct linux_ioctl_handler mrsas_linux_handler = { mrsas_linux_ioctl,
+	MRSAS_LINUX_IOCTL_MIN, MRSAS_LINUX_IOCTL_MAX };
 
 SYSINIT(mrsas_register, SI_SUB_KLD, SI_ORDER_MIDDLE,
     linux_ioctl_register_handler, &mrsas_linux_handler);
 SYSUNINIT(mrsas_unregister, SI_SUB_KLD, SI_ORDER_MIDDLE,
     linux_ioctl_unregister_handler, &mrsas_linux_handler);
 
-static struct linux_device_handler mrsas_device_handler =
-{"mrsas", "megaraid_sas", "mrsas0", "megaraid_sas_ioctl_node", -1, 0, 1};
+static struct linux_device_handler mrsas_device_handler = { "mrsas",
+	"megaraid_sas", "mrsas0", "megaraid_sas_ioctl_node", -1, 0, 1 };
 
 SYSINIT(mrsas_register2, SI_SUB_KLD, SI_ORDER_MIDDLE,
     linux_device_register_handler, &mrsas_device_handler);
@@ -86,7 +84,8 @@ SYSUNINIT(mrsas_unregister2, SI_SUB_KLD, SI_ORDER_MIDDLE,
     linux_device_unregister_handler, &mrsas_device_handler);
 
 static int
-mrsas_linux_modevent(module_t mod __unused, int cmd __unused, void *data __unused)
+mrsas_linux_modevent(module_t mod __unused, int cmd __unused,
+    void *data __unused)
 {
 	return (0);
 }

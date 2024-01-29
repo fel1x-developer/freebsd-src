@@ -51,40 +51,40 @@
  * transaction, which helps performance a great deal.
  */
 
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR cue_debug
+#define USB_DEBUG_VAR cue_debug
+#include <dev/usb/net/if_cuereg.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_cuereg.h>
 
 /*
  * Various supported device vendors/products.
@@ -93,7 +93,10 @@
 /* Belkin F5U111 adapter covered by NETMATE entry */
 
 static const STRUCT_USB_HOST_ID cue_devs[] = {
-#define	CUE_DEV(v,p) { USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) }
+#define CUE_DEV(v, p)                                         \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##p) \
+	}
 	CUE_DEV(CATC, NETMATE),
 	CUE_DEV(CATC, NETMATE2),
 	CUE_DEV(SMARTBRIDGES, SMARTLINK),
@@ -117,13 +120,13 @@ static uether_fn_t cue_tick;
 static uether_fn_t cue_setmulti;
 static uether_fn_t cue_setpromisc;
 
-static uint8_t	cue_csr_read_1(struct cue_softc *, uint16_t);
-static uint16_t	cue_csr_read_2(struct cue_softc *, uint8_t);
-static int	cue_csr_write_1(struct cue_softc *, uint16_t, uint16_t);
-static int	cue_mem(struct cue_softc *, uint8_t, uint16_t, void *, int);
-static int	cue_getmac(struct cue_softc *, void *);
-static uint32_t	cue_mchash(const uint8_t *);
-static void	cue_reset(struct cue_softc *);
+static uint8_t cue_csr_read_1(struct cue_softc *, uint16_t);
+static uint16_t cue_csr_read_2(struct cue_softc *, uint8_t);
+static int cue_csr_write_1(struct cue_softc *, uint16_t, uint16_t);
+static int cue_mem(struct cue_softc *, uint8_t, uint16_t, void *, int);
+static int cue_getmac(struct cue_softc *, void *);
+static uint32_t cue_mchash(const uint8_t *);
+static void cue_reset(struct cue_softc *);
 
 #ifdef USB_DEBUG
 static int cue_debug = 0;
@@ -187,10 +190,10 @@ static const struct usb_ether_methods cue_ue_methods = {
 	.ue_setpromisc = cue_setpromisc,
 };
 
-#define	CUE_SETBIT(sc, reg, x)				\
+#define CUE_SETBIT(sc, reg, x) \
 	cue_csr_write_1(sc, reg, cue_csr_read_1(sc, reg) | (x))
 
-#define	CUE_CLRBIT(sc, reg, x)				\
+#define CUE_CLRBIT(sc, reg, x) \
 	cue_csr_write_1(sc, reg, cue_csr_read_1(sc, reg) & ~(x))
 
 static uint8_t
@@ -272,7 +275,7 @@ cue_getmac(struct cue_softc *sc, void *buf)
 	return (uether_do_request(&sc->sc_ue, &req, buf, 1000));
 }
 
-#define	CUE_BITS 9
+#define CUE_BITS 9
 
 static uint32_t
 cue_mchash(const uint8_t *addr)
@@ -328,8 +331,8 @@ cue_setmulti(struct usb_ether *ue)
 	if (if_getflags(ifp) & IFF_ALLMULTI || if_getflags(ifp) & IFF_PROMISC) {
 		for (i = 0; i < 8; i++)
 			hashtbl[i] = 0xff;
-		cue_mem(sc, CUE_CMD_WRITESRAM, CUE_MCAST_TABLE_ADDR,
-		    &hashtbl, 8);
+		cue_mem(sc, CUE_CMD_WRITESRAM, CUE_MCAST_TABLE_ADDR, &hashtbl,
+		    8);
 		return;
 	}
 
@@ -339,7 +342,7 @@ cue_setmulti(struct usb_ether *ue)
 	/*
 	 * Also include the broadcast address in the filter
 	 * so we can receive broadcast frames.
- 	 */
+	 */
 	if (if_getflags(ifp) & IFF_BROADCAST) {
 		h = cue_mchash(if_getbroadcastaddr(ifp));
 		hashtbl[h >> 3] |= 1 << (h & 0x7);
@@ -409,8 +412,8 @@ cue_attach(device_t dev)
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
 	iface_index = CUE_IFACE_IDX;
-	error = usbd_transfer_setup(uaa->device, &iface_index,
-	    sc->sc_xfer, cue_config, CUE_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
+	    cue_config, CUE_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "allocating USB transfers failed\n");
 		goto detach;
@@ -427,11 +430,11 @@ cue_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	cue_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -476,15 +479,14 @@ cue_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		uether_rxbuf(ue, pc, 2, len);
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(ue);
 		return;
 
-	default:			/* Error */
-		DPRINTF("bulk read error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("bulk read error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			/* try to clear stall first */
@@ -511,7 +513,7 @@ cue_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		m = if_dequeue(ifp);
 
 		if (m == NULL)
@@ -541,9 +543,8 @@ tr_setup:
 
 		return;
 
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 
@@ -564,9 +565,12 @@ cue_tick(struct usb_ether *ue)
 
 	CUE_LOCK_ASSERT(sc, MA_OWNED);
 
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, cue_csr_read_2(sc, CUE_TX_SINGLECOLL));
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, cue_csr_read_2(sc, CUE_TX_MULTICOLL));
-	if_inc_counter(ifp, IFCOUNTER_COLLISIONS, cue_csr_read_2(sc, CUE_TX_EXCESSCOLL));
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    cue_csr_read_2(sc, CUE_TX_SINGLECOLL));
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    cue_csr_read_2(sc, CUE_TX_MULTICOLL));
+	if_inc_counter(ifp, IFCOUNTER_COLLISIONS,
+	    cue_csr_read_2(sc, CUE_TX_EXCESSCOLL));
 
 	if (cue_csr_read_2(sc, CUE_RX_FRAMEERR))
 		if_inc_counter(ifp, IFCOUNTER_IERRORS, 1);
@@ -619,7 +623,7 @@ cue_init(struct usb_ether *ue)
 
 	/* Set advanced operation modes. */
 	cue_csr_write_1(sc, CUE_ADVANCED_OPMODES,
-	    CUE_AOP_EMBED_RXLEN | 0x01);/* 1 wait state */
+	    CUE_AOP_EMBED_RXLEN | 0x01); /* 1 wait state */
 
 	/* Program the LED operation. */
 	cue_csr_write_1(sc, CUE_LEDCTL, CUE_LEDCTL_FOLLOW_LINK);

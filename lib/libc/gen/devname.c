@@ -30,13 +30,13 @@
  */
 
 #include <sys/param.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 
 char *
 devname_r(dev_t dev, mode_t type, char *buf, int len)
@@ -51,14 +51,14 @@ devname_r(dev_t dev, mode_t type, char *buf, int len)
 
 	if (S_ISCHR(type)) {
 		j = len;
-		i = sysctlbyname("kern.devname", buf, &j, &dev, sizeof (dev));
+		i = sysctlbyname("kern.devname", buf, &j, &dev, sizeof(dev));
 		if (i == 0)
 			return (buf);
 	}
 
 	/* Finally just format it */
-	snprintf(buf, len, "#%c:%#jx",
-	    S_ISCHR(type) ? 'C' : 'B', (uintmax_t)dev);
+	snprintf(buf, len, "#%c:%#jx", S_ISCHR(type) ? 'C' : 'B',
+	    (uintmax_t)dev);
 	return (buf);
 }
 

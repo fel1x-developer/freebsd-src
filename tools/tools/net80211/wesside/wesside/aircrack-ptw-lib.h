@@ -33,7 +33,8 @@
 // 10 seems to be a reasonable choice
 #define PTW_CONTROLSESSIONS 10
 
-// The maximum possible length of the main key, 13 is the maximum for a 104 bit key
+// The maximum possible length of the main key, 13 is the maximum for a 104 bit
+// key
 #define PTW_KEYHSBYTES 13
 
 // How long the IV is, 3 is the default value for WEP
@@ -56,27 +57,27 @@ typedef struct {
 // A recovered session
 typedef struct {
 	// The IV used in this session
-        uint8_t iv[PTW_IVBYTES];
+	uint8_t iv[PTW_IVBYTES];
 	// The keystream used in this session
-        uint8_t keystream[PTW_KSBYTES];
+	uint8_t keystream[PTW_KSBYTES];
 } PTW_session;
 
 // The state of an attack
 // You should usually never modify these values manually
 typedef struct {
 	// How many unique packets or IVs have been collected
-        int packets_collected;
+	int packets_collected;
 	// Table to check for duplicate IVs
-        uint8_t seen_iv[PTW_IVTABLELEN];
+	uint8_t seen_iv[PTW_IVTABLELEN];
 	// How many sessions for checking a guessed key have been collected
-        int sessions_collected;
+	int sessions_collected;
 	// The actual recovered sessions
-        PTW_session sessions[PTW_CONTROLSESSIONS];
+	PTW_session sessions[PTW_CONTROLSESSIONS];
 	// The table with votes for the keybytesums
-        PTW_tableentry table[PTW_KEYHSBYTES][PTW_n];
+	PTW_tableentry table[PTW_KEYHSBYTES][PTW_n];
 } PTW_attackstate;
 
-PTW_attackstate * PTW_newattackstate();
+PTW_attackstate *PTW_newattackstate();
 void PTW_freeattackstate(PTW_attackstate *);
 int PTW_addsession(PTW_attackstate *, uint8_t *, uint8_t *);
 int PTW_computeKey(PTW_attackstate *, uint8_t *, int, int);

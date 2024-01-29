@@ -31,12 +31,12 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
-	__checkReturn	efx_rc_t
-efx_port_init(
-	__in		efx_nic_t *enp)
+__checkReturn efx_rc_t
+efx_port_init(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -64,7 +64,7 @@ efx_port_init(
 	epp->ep_emop->emo_reconfigure(enp);
 
 	/* Pick up current phy capababilities */
-	(void) efx_port_poll(enp, NULL);
+	(void)efx_port_poll(enp, NULL);
 
 	/*
 	 * Turn on the PHY if available, otherwise reset it, and
@@ -98,10 +98,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn	efx_rc_t
-efx_port_poll(
-	__in		efx_nic_t *enp,
-	__out_opt	efx_link_mode_t	*link_modep)
+__checkReturn efx_rc_t
+efx_port_poll(__in efx_nic_t *enp, __out_opt efx_link_mode_t *link_modep)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_mac_ops_t *emop = epp->ep_emop;
@@ -129,11 +127,9 @@ fail1:
 
 #if EFSYS_OPT_LOOPBACK
 
-	__checkReturn	efx_rc_t
-efx_port_loopback_set(
-	__in		efx_nic_t *enp,
-	__in		efx_link_mode_t link_mode,
-	__in		efx_loopback_type_t loopback_type)
+__checkReturn efx_rc_t
+efx_port_loopback_set(__in efx_nic_t *enp, __in efx_link_mode_t link_mode,
+    __in efx_loopback_type_t loopback_type)
 {
 	efx_port_t *epp = &(enp->en_port);
 	efx_nic_cfg_t *encp = &(enp->en_nic_cfg);
@@ -171,7 +167,7 @@ fail1:
 
 #if EFSYS_OPT_NAMES
 
-static const char * const __efx_loopback_type_name[] = {
+static const char *const __efx_loopback_type_name[] = {
 	"OFF",
 	"DATA",
 	"GMAC",
@@ -212,13 +208,11 @@ static const char * const __efx_loopback_type_name[] = {
 	"FORCE_EXT_LINK",
 };
 
-	__checkReturn	const char *
-efx_loopback_type_name(
-	__in		efx_nic_t *enp,
-	__in		efx_loopback_type_t type)
+__checkReturn const char *
+efx_loopback_type_name(__in efx_nic_t *enp, __in efx_loopback_type_t type)
 {
-	EFX_STATIC_ASSERT(EFX_ARRAY_SIZE(__efx_loopback_type_name) ==
-	    EFX_LOOPBACK_NTYPES);
+	EFX_STATIC_ASSERT(
+	    EFX_ARRAY_SIZE(__efx_loopback_type_name) == EFX_LOOPBACK_NTYPES);
 
 	_NOTE(ARGUNUSED(enp))
 	EFSYS_ASSERT3U(enp->en_magic, ==, EFX_NIC_MAGIC);
@@ -227,13 +221,12 @@ efx_loopback_type_name(
 	return (__efx_loopback_type_name[type]);
 }
 
-#endif	/* EFSYS_OPT_NAMES */
+#endif /* EFSYS_OPT_NAMES */
 
-#endif	/* EFSYS_OPT_LOOPBACK */
+#endif /* EFSYS_OPT_LOOPBACK */
 
-			void
-efx_port_fini(
-	__in		efx_nic_t *enp)
+void
+efx_port_fini(__in efx_nic_t *enp)
 {
 	efx_port_t *epp = &(enp->en_port);
 	const efx_phy_ops_t *epop = epp->ep_epop;
@@ -251,7 +244,7 @@ efx_port_fini(
 
 	/* Turn off the PHY */
 	if (epop->epo_power != NULL)
-		(void) epop->epo_power(enp, B_FALSE);
+		(void)epop->epo_power(enp, B_FALSE);
 
 	enp->en_mod_flags &= ~EFX_MOD_PORT;
 }

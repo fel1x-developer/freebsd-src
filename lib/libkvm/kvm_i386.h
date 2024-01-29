@@ -24,41 +24,41 @@
  */
 
 #ifndef __KVM_I386_H__
-#define	__KVM_I386_H__
+#define __KVM_I386_H__
 
 #ifdef __i386__
 #include <vm/vm.h>
 #include <vm/pmap.h>
 #endif
 
-typedef uint32_t	i386_physaddr_t;
-typedef uint32_t	i386_pte_t;
-typedef uint32_t	i386_pde_t;
-typedef uint64_t	i386_physaddr_pae_t;
-typedef	uint64_t	i386_pte_pae_t;
-typedef	uint64_t	i386_pde_pae_t;
+typedef uint32_t i386_physaddr_t;
+typedef uint32_t i386_pte_t;
+typedef uint32_t i386_pde_t;
+typedef uint64_t i386_physaddr_pae_t;
+typedef uint64_t i386_pte_pae_t;
+typedef uint64_t i386_pde_pae_t;
 
-#define	I386_PAGE_SHIFT		12
-#define	I386_PAGE_SIZE		(1 << I386_PAGE_SHIFT)
-#define	I386_PAGE_MASK		(I386_PAGE_SIZE - 1)
-#define	I386_NPTEPG		(I386_PAGE_SIZE / sizeof(i386_pte_t))
-#define	I386_PDRSHIFT		22
-#define	I386_NBPDR		(1 << I386_PDRSHIFT)
-#define	I386_PAGE_PS_MASK	(I386_NBPDR - 1)
-#define	I386_NPTEPG_PAE		(I386_PAGE_SIZE / sizeof(i386_pte_pae_t))
-#define	I386_PDRSHIFT_PAE	21
-#define	I386_NBPDR_PAE		(1 << I386_PDRSHIFT_PAE)
-#define	I386_PAGE_PS_MASK_PAE	(I386_NBPDR_PAE - 1)
+#define I386_PAGE_SHIFT 12
+#define I386_PAGE_SIZE (1 << I386_PAGE_SHIFT)
+#define I386_PAGE_MASK (I386_PAGE_SIZE - 1)
+#define I386_NPTEPG (I386_PAGE_SIZE / sizeof(i386_pte_t))
+#define I386_PDRSHIFT 22
+#define I386_NBPDR (1 << I386_PDRSHIFT)
+#define I386_PAGE_PS_MASK (I386_NBPDR - 1)
+#define I386_NPTEPG_PAE (I386_PAGE_SIZE / sizeof(i386_pte_pae_t))
+#define I386_PDRSHIFT_PAE 21
+#define I386_NBPDR_PAE (1 << I386_PDRSHIFT_PAE)
+#define I386_PAGE_PS_MASK_PAE (I386_NBPDR_PAE - 1)
 
 /* Source: i386/include/pmap.h */
-#define	I386_PG_V		0x001
-#define	I386_PG_RW		0x002
-#define	I386_PG_PS		0x080
-#define	I386_PG_NX		(1ULL << 63)
-#define	I386_PG_FRAME_PAE	(0x000ffffffffff000ull)
-#define	I386_PG_PS_FRAME_PAE	(0x000fffffffe00000ull)
-#define	I386_PG_FRAME		(0xfffff000)
-#define	I386_PG_PS_FRAME	(0xffc00000)
+#define I386_PG_V 0x001
+#define I386_PG_RW 0x002
+#define I386_PG_PS 0x080
+#define I386_PG_NX (1ULL << 63)
+#define I386_PG_FRAME_PAE (0x000ffffffffff000ull)
+#define I386_PG_PS_FRAME_PAE (0x000fffffffe00000ull)
+#define I386_PG_FRAME (0xfffff000)
+#define I386_PG_PS_FRAME (0xffc00000)
 
 #ifdef __i386__
 _Static_assert(PAGE_SHIFT == I386_PAGE_SHIFT, "PAGE_SHIFT mismatch");
@@ -76,6 +76,6 @@ _Static_assert((u_int)PG_FRAME_NOPAE == I386_PG_FRAME, "PG_FRAME mismatch");
 _Static_assert(PG_PS_FRAME_NOPAE == I386_PG_PS_FRAME, "PG_PS_FRAME mismatch");
 #endif
 
-int	_i386_native(kvm_t *);
+int _i386_native(kvm_t *);
 
 #endif /* !__KVM_I386_H__ */

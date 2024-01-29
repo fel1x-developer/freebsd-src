@@ -30,15 +30,15 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Hack to provide libevent (see devel/libevent port) like API.
  * Should be removed if FreeBSD ever decides to import libevent into base.
  */
 
+#include <sys/queue.h>
 #include <sys/select.h>
 #include <sys/time.h>
-#include <sys/queue.h>
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -49,22 +49,21 @@
 #define L2CAP_SOCKET_CHECKED
 #include "btpand.h"
 
-#define		__event_link(ev) \
-do { \
+#define __event_link(ev)                               \
+	do {                                           \
 		TAILQ_INSERT_TAIL(&pending, ev, next); \
-		ev->flags |= EV_PENDING; \
-} while (0)
+		ev->flags |= EV_PENDING;               \
+	} while (0)
 
-static void	tv_add(struct timeval *, struct timeval const *);
-static void	tv_sub(struct timeval *, struct timeval const *);
-static int	tv_cmp(struct timeval const *, struct timeval const *);
-static int	__event_dispatch(void);
-static void	__event_add_current(struct event *);
-static void	__event_del_current(struct event *);
+static void tv_add(struct timeval *, struct timeval const *);
+static void tv_sub(struct timeval *, struct timeval const *);
+static int tv_cmp(struct timeval const *, struct timeval const *);
+static int __event_dispatch(void);
+static void __event_add_current(struct event *);
+static void __event_del_current(struct event *);
 
-
-static TAILQ_HEAD(, event)	pending;
-static TAILQ_HEAD(, event)	current;
+static TAILQ_HEAD(, event) pending;
+static TAILQ_HEAD(, event) current;
 
 void
 event_init(void)
@@ -84,10 +83,10 @@ event_dispatch(void)
 static int
 __event_dispatch(void)
 {
-	fd_set			r, w;
-	int			nfd;
-	struct event		*ev;
-	struct timeval		now, timeout, t;
+	fd_set r, w;
+	int nfd;
+	struct event *ev;
+	struct timeval now, timeout, t;
 
 	FD_ZERO(&r);
 	FD_ZERO(&w);
@@ -96,7 +95,7 @@ __event_dispatch(void)
 
 	gettimeofday(&now, NULL);
 
-	timeout.tv_sec = 10;	/* arbitrary */
+	timeout.tv_sec = 10; /* arbitrary */
 	timeout.tv_usec = 0;
 
 	TAILQ_INIT(&current);
@@ -166,15 +165,15 @@ __event_dispatch(void)
 						event_add(ev, NULL);
 				}
 
-				nfd --;
+				nfd--;
 
-				event_log_debug("%s: calling %p(%d, %p), " \
-					"ev=%p", __func__, ev->cb, ev->fd,
-					ev->cbarg, ev);
+				event_log_debug("%s: calling %p(%d, %p), "
+						"ev=%p",
+				    __func__, ev->cb, ev->fd, ev->cbarg, ev);
 
 				(ev->cb)(ev->fd,
-					(ev->flags & (EV_READ|EV_WRITE)),
-					ev->cbarg);
+				    (ev->flags & (EV_READ | EV_WRITE)),
+				    ev->cbarg);
 
 				continue;
 			}
@@ -188,20 +187,19 @@ __event_dispatch(void)
 
 		/* check if event has expired */
 		if (tv_cmp(&now, &ev->expire) >= 0) {
-			if (ev->flags & EV_PERSIST) 
+			if (ev->flags & EV_PERSIST)
 				event_add(ev, &ev->timeout);
 
 			event_log_debug("%s: calling %p(%d, %p), ev=%p",
-				__func__, ev->cb, ev->fd, ev->cbarg, ev);
+			    __func__, ev->cb, ev->fd, ev->cbarg, ev);
 
-			(ev->cb)(ev->fd,
-				(ev->flags & (EV_READ|EV_WRITE)),
-				ev->cbarg);
+			(ev->cb)(ev->fd, (ev->flags & (EV_READ | EV_WRITE)),
+			    ev->cbarg);
 
 			continue;
 		}
 
-		assert((ev->flags & (EV_PENDING|EV_CURRENT)) == 0);
+		assert((ev->flags & (EV_PENDING | EV_CURRENT)) == 0);
 		__event_link(ev);
 	}
 
@@ -210,7 +208,7 @@ __event_dispatch(void)
 
 void
 __event_set(struct event *ev, int fd, short flags,
-	void (*cb)(int, short, void *), void *cbarg)
+    void (*cb)(int, short, void *), void *cbarg)
 {
 	ev->fd = fd;
 	ev->flags = flags;
@@ -221,7 +219,7 @@ __event_set(struct event *ev, int fd, short flags,
 int
 __event_add(struct event *ev, const struct timeval *timeout)
 {
-	assert((ev->flags & (EV_PENDING|EV_CURRENT)) == 0);
+	assert((ev->flags & (EV_PENDING | EV_CURRENT)) == 0);
 
 	if (timeout != NULL) {
 		gettimeofday(&ev->expire, NULL);
@@ -252,7 +250,7 @@ __event_del(struct event *ev)
 static void
 __event_add_current(struct event *ev)
 {
-	assert((ev->flags & (EV_PENDING|EV_CURRENT)) == 0);
+	assert((ev->flags & (EV_PENDING | EV_CURRENT)) == 0);
 
 	TAILQ_INSERT_TAIL(&current, ev, next);
 	ev->flags |= EV_CURRENT;
@@ -261,7 +259,7 @@ __event_add_current(struct event *ev)
 static void
 __event_del_current(struct event *ev)
 {
-	assert((ev->flags & (EV_CURRENT|EV_PENDING)) == EV_CURRENT);
+	assert((ev->flags & (EV_CURRENT | EV_PENDING)) == EV_CURRENT);
 
 	TAILQ_REMOVE(&current, ev, next);
 	ev->flags &= ~EV_CURRENT;
@@ -273,7 +271,7 @@ tv_add(struct timeval *a, struct timeval const *b)
 	a->tv_sec += b->tv_sec;
 	a->tv_usec += b->tv_usec;
 
-	if(a->tv_usec >= 1000000) {
+	if (a->tv_usec >= 1000000) {
 		a->tv_usec -= 1000000;
 		a->tv_sec += 1;
 	}
@@ -294,7 +292,7 @@ tv_sub(struct timeval *a, struct timeval const *b)
 static int
 tv_cmp(struct timeval const *a, struct timeval const *b)
 {
- 	if (a->tv_sec > b->tv_sec)
+	if (a->tv_sec > b->tv_sec)
 		return (1);
 
 	if (a->tv_sec < b->tv_sec)
@@ -308,4 +306,3 @@ tv_cmp(struct timeval const *a, struct timeval const *b)
 
 	return (0);
 }
-

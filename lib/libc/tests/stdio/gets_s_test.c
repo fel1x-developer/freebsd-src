@@ -23,21 +23,21 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <assert.h>
+#include <atf-c.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <sys/wait.h>
- 
-#include <atf-c.h>
 
 static errno_t error_code;
-static const char * message;
+static const char *message;
 
 void
-h(const char * msg, void * ptr __unused, errno_t error)
+h(const char *msg, void *ptr __unused, errno_t error)
 {
 	error_code = error;
 	message = msg;
@@ -48,29 +48,30 @@ ATF_TC_WITHOUT_HEAD(null_ptr);
 ATF_TC_BODY(null_ptr, tc)
 {
 	ATF_CHECK_MSG(gets_s(NULL, 1) == NULL,
-		"gets_s() failed to handle NULL pointer");
+	    "gets_s() failed to handle NULL pointer");
 }
 
 /* normal */
 ATF_TC_WITHOUT_HEAD(normal);
 ATF_TC_BODY(normal, tc)
 {
-	pid_t	kidpid;
-	int	fd[2];
-	int	nfd;
+	pid_t kidpid;
+	int fd[2];
+	int nfd;
 
 	// close(STDIN_FILENO);
 	// close(STDOUT_FILENO);
 	pipe(fd);
 
 	if ((kidpid = fork()) == 0) {
-		char	b[10];
+		char b[10];
 
 		close(fd[1]);
 		nfd = dup2(fd[0], 0);
 		close(fd[0]);
 		stdin = fdopen(nfd, "r");
-		ATF_CHECK_MSG(gets_s(b, sizeof(b)) == 0, "gets_s() normal failed");
+		ATF_CHECK_MSG(gets_s(b, sizeof(b)) == 0,
+		    "gets_s() normal failed");
 		fclose(stdin);
 	} else {
 		int stat;
@@ -79,7 +80,7 @@ ATF_TC_BODY(normal, tc)
 		stdout = fdopen(fd[1], "w");
 		puts("a sting");
 		fclose(stdout);
-		(void) waitpid(kidpid, &stat, WEXITED);
+		(void)waitpid(kidpid, &stat, WEXITED);
 	}
 }
 
@@ -90,7 +91,7 @@ ATF_TC_BODY(n_gt_rmax, tc)
 	char b;
 
 	ATF_CHECK_MSG(gets_s(&b, RSIZE_MAX + 1) == NULL,
-		"gets_s() n > RSIZE_MAX");
+	    "gets_s() n > RSIZE_MAX");
 }
 
 /* n == 0 */
@@ -111,9 +112,11 @@ ATF_TC_BODY(n_gt_rmax_handler, tc)
 	error_code = 0;
 	message = NULL;
 	set_constraint_handler_s(h);
-	ATF_CHECK_MSG(gets_s(&b, RSIZE_MAX + 1) == NULL, "gets_s() n > RSIZE_MAX");
+	ATF_CHECK_MSG(gets_s(&b, RSIZE_MAX + 1) == NULL,
+	    "gets_s() n > RSIZE_MAX");
 	ATF_CHECK_MSG(error_code > 0, "gets_s() error code is %d", error_code);
-	ATF_CHECK_MSG(strcmp(message, "gets_s : n > RSIZE_MAX") == 0, "gets_s(): incorrect error message");
+	ATF_CHECK_MSG(strcmp(message, "gets_s : n > RSIZE_MAX") == 0,
+	    "gets_s(): incorrect error message");
 }
 
 /* n == 0, handler */
@@ -127,7 +130,8 @@ ATF_TC_BODY(n_eq_zero_handler, tc)
 	set_constraint_handler_s(h);
 	ATF_CHECK(gets_s(&b, 0) == NULL);
 	ATF_CHECK_MSG(error_code > 0, "gets_s() error code is %d", error_code);
-	ATF_CHECK_MSG(strcmp(message, "gets_s : n == 0") == 0, "gets_s(): incorrect error message");
+	ATF_CHECK_MSG(strcmp(message, "gets_s : n == 0") == 0,
+	    "gets_s(): incorrect error message");
 }
 
 ATF_TP_ADD_TCS(tp)

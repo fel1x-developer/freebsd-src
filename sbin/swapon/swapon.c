@@ -36,8 +36,9 @@
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/wait.h>
-#include <vm/vm_param.h>
+
 #include <vm/swap_pager.h>
+#include <vm/vm_param.h>
 
 #include <err.h>
 #include <errno.h>
@@ -85,11 +86,11 @@ main(int argc, char **argv)
 	else if (strstr(ptr, "swapoff") != NULL)
 		which_prog = SWAPOFF;
 	orig_prog = which_prog;
-	
+
 	doall = 0;
 	etc_fstab = NULL;
 	while ((ch = getopt(argc, argv, "AadEfghklLmqsUF:")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'A':
 			if (which_prog == SWAPCTL) {
 				doall = 1;
@@ -175,14 +176,14 @@ main(int argc, char **argv)
 				if (strstr(fsp->fs_mntops, "noauto") != NULL)
 					continue;
 				if (which_prog != SWAPOFF &&
-				    strstr(fsp->fs_mntops, "late") &&
-				    late == 0)
+				    strstr(fsp->fs_mntops, "late") && late == 0)
 					continue;
 				if (which_prog == SWAPOFF &&
 				    strstr(fsp->fs_mntops, "late") == NULL &&
 				    late != 0)
 					continue;
-				Eflag |= (strstr(fsp->fs_mntops, "trimonce") != NULL);
+				Eflag |= (strstr(fsp->fs_mntops, "trimonce") !=
+				    NULL);
 				swfile = swap_on_off(fsp->fs_spec, 1,
 				    fsp->fs_mntops);
 				Eflag &= ~1;
@@ -193,8 +194,9 @@ main(int argc, char **argv)
 				if (qflag == 0) {
 					printf("%s: %sing %s as swap device\n",
 					    getprogname(),
-					    (which_prog == SWAPOFF) ?
-					    "remov" : "add", swfile);
+					    (which_prog == SWAPOFF) ? "remov" :
+								      "add",
+					    swfile);
 				}
 			}
 		} else if (*argv == NULL)
@@ -215,7 +217,7 @@ main(int argc, char **argv)
 	} else {
 		if (lflag || sflag)
 			swaplist(lflag, sflag, hflag);
-		else 
+		else
 			usage();
 	}
 	exit(ret);
@@ -229,10 +231,10 @@ swap_on_off(const char *name, int doingall, char *mntops)
 	/* Swap on vnode-backed md(4) device. */
 	if (mntops != NULL &&
 	    (fnmatch(_PATH_DEV MD_NAME "[0-9]*", name, 0) == 0 ||
-	     fnmatch(MD_NAME "[0-9]*", name, 0) == 0 ||
-	     strncmp(_PATH_DEV MD_NAME, name,
-		sizeof(_PATH_DEV) + sizeof(MD_NAME)) == 0 ||
-	     strncmp(MD_NAME, name, sizeof(MD_NAME)) == 0))
+		fnmatch(MD_NAME "[0-9]*", name, 0) == 0 ||
+		strncmp(_PATH_DEV MD_NAME, name,
+		    sizeof(_PATH_DEV) + sizeof(MD_NAME)) == 0 ||
+		strncmp(MD_NAME, name, sizeof(MD_NAME)) == 0))
 		return (swap_on_off_md(name, mntops, doingall));
 
 	basebuf = strdup(name);
@@ -288,8 +290,8 @@ swap_on_off_gbde(const char *name, int doingall)
 			sprintf(&pass[2 * i], "%02x", bpass[i]);
 		pass[sizeof(pass) - 1] = '\0';
 
-		error = run_cmd(NULL, "%s init %s -P %s", _PATH_GBDE,
-		    dname, pass);
+		error = run_cmd(NULL, "%s init %s -P %s", _PATH_GBDE, dname,
+		    pass);
 		if (error) {
 			/* bde device found.  Ignore it. */
 			free(dname);
@@ -297,8 +299,8 @@ swap_on_off_gbde(const char *name, int doingall)
 				warnx("%s: Device already in use", name);
 			return (NULL);
 		}
-		error = run_cmd(NULL, "%s attach %s -p %s", _PATH_GBDE,
-		    dname, pass);
+		error = run_cmd(NULL, "%s attach %s -p %s", _PATH_GBDE, dname,
+		    pass);
 		free(dname);
 		if (error) {
 			warnx("gbde (attach) error: %s", name);
@@ -365,7 +367,8 @@ swap_on_geli_args(const char *mntops)
 					return (NULL);
 				}
 				lflag = " -l ";
-			} else if ((p = strstr(token, "sectorsize=")) == token) {
+			} else if ((p = strstr(token, "sectorsize=")) ==
+			    token) {
 				sectorsize_str = p + sizeof("sectorsize=") - 1;
 				errno = 0;
 				ul = strtoul(sectorsize_str, &p, 10);
@@ -382,7 +385,7 @@ swap_on_geli_args(const char *mntops)
 			} else if (strcmp(token, "notrim") == 0) {
 				if (Eflag) {
 					warn("Options \"notrim\" and "
-					    "\"trimonce\" conflict");
+					     "\"trimonce\" conflict");
 					free(ops);
 					return (NULL);
 				}
@@ -417,9 +420,8 @@ swap_on_geli_args(const char *mntops)
 		sectorsize_str = p;
 	}
 
-	(void)asprintf(&args, "%s%s%s%s%s%s%s%s%s -d",
-	    aflag, aalgo, eflag, ealgo, lflag, keylen_str, Tflag,
-	    sflag, sectorsize_str);
+	(void)asprintf(&args, "%s%s%s%s%s%s%s%s%s -d", aflag, aalgo, eflag,
+	    ealgo, lflag, keylen_str, Tflag, sflag, sectorsize_str);
 
 	free(ops);
 	return (args);
@@ -434,34 +436,35 @@ swap_on_off_geli(const char *name, char *mntops, int doingall)
 
 	error = stat(name, &sb);
 
-	if (which_prog == SWAPON) do {
-		/* Skip if the .eli device already exists. */
-		if (error == 0)
-			break;
+	if (which_prog == SWAPON)
+		do {
+			/* Skip if the .eli device already exists. */
+			if (error == 0)
+				break;
 
-		args = swap_on_geli_args(mntops);
-		if (args == NULL)
-			return (NULL);
+			args = swap_on_geli_args(mntops);
+			if (args == NULL)
+				return (NULL);
 
-		dname = swap_basename(name);
-		if (dname == NULL) {
+			dname = swap_basename(name);
+			if (dname == NULL) {
+				free(args);
+				return (NULL);
+			}
+
+			error = run_cmd(NULL, "%s onetime%s %s", _PATH_GELI,
+			    args, dname);
+
+			free(dname);
 			free(args);
-			return (NULL);
-		}
 
-		error = run_cmd(NULL, "%s onetime%s %s", _PATH_GELI, args,
-		    dname);
-
-		free(dname);
-		free(args);
-
-		if (error) {
-			/* error occurred during creation. */
-			if (qflag == 0)
-				warnx("%s: Invalid parameters", name);
-			return (NULL);
-		}
-	} while (0);
+			if (error) {
+				/* error occurred during creation. */
+				if (qflag == 0)
+					warnx("%s: Invalid parameters", name);
+				return (NULL);
+			}
+		} while (0);
 
 	return (swap_on_off_sfile(name, doingall));
 }
@@ -509,8 +512,8 @@ swap_on_off_md(const char *name, char *mntops, int doingall)
 
 	if (which_prog == SWAPON) {
 		if (mdunit == -1) {
-			error = run_cmd(&fd, "%s -l -n -f %s",
-			    _PATH_MDCONFIG, vnodefile);
+			error = run_cmd(&fd, "%s -l -n -f %s", _PATH_MDCONFIG,
+			    vnodefile);
 			if (error == 0) {
 				/* md device found.  Ignore it. */
 				close(fd);
@@ -563,7 +566,8 @@ swap_on_off_md(const char *name, char *mntops, int doingall)
 				close(fd);
 				if (qflag == 0)
 					warnx("md%d on %s: Device already "
-					    "in use", mdunit, vnodefile);
+					      "in use",
+					    mdunit, vnodefile);
 				free(vnodefile);
 				return (NULL);
 			}
@@ -571,15 +575,16 @@ swap_on_off_md(const char *name, char *mntops, int doingall)
 			    _PATH_MDCONFIG, mdunit, vnodefile);
 			if (error) {
 				warnx("mdconfig (attach) error: "
-				    "md%d on file=%s", mdunit, vnodefile);
+				      "md%d on file=%s",
+				    mdunit, vnodefile);
 				free(vnodefile);
 				return (NULL);
 			}
 		}
 	} else /* SWAPOFF */ {
 		if (mdunit == -1) {
-			error = run_cmd(&fd, "%s -l -n -f %s",
-			    _PATH_MDCONFIG, vnodefile);
+			error = run_cmd(&fd, "%s -l -n -f %s", _PATH_MDCONFIG,
+			    vnodefile);
 			if (error) {
 				/* md device not found.  Ignore it. */
 				close(fd);
@@ -633,15 +638,14 @@ swap_on_off_md(const char *name, char *mntops, int doingall)
 			}
 		}
 	}
-	snprintf(mdpath, sizeof(mdpath), "%s%s%d", _PATH_DEV,
-	    MD_NAME, mdunit);
+	snprintf(mdpath, sizeof(mdpath), "%s%s%d", _PATH_DEV, MD_NAME, mdunit);
 	mdpath[sizeof(mdpath) - 1] = '\0';
 	ret = swap_on_off_sfile(mdpath, doingall);
 
 	if (which_prog == SWAPOFF) {
 		if (ret != NULL) {
-			error = run_cmd(NULL, "%s -d -u %d",
-			    _PATH_MDCONFIG, mdunit);
+			error = run_cmd(NULL, "%s -d -u %d", _PATH_MDCONFIG,
+			    mdunit);
 			if (error)
 				warn("mdconfig (detach) detach failed: %s%s%d",
 				    _PATH_DEV, MD_NAME, mdunit);
@@ -681,7 +685,7 @@ run_cmd(int *ofd, const char *cmdline, ...)
 			*argvp = NULL;
 			break;
 		}
-	/* The argv array ends up NULL-terminated here. */
+		/* The argv array ends up NULL-terminated here. */
 #if 0
 	{
 		int i;
@@ -808,16 +812,16 @@ usage(void)
 {
 
 	fprintf(stderr, "usage: %s ", getprogname());
-	switch(orig_prog) {
+	switch (orig_prog) {
 	case SWAPON:
-	    fprintf(stderr, "[-F fstab] -aLq | [-E] file ...\n");
-	    break;
+		fprintf(stderr, "[-F fstab] -aLq | [-E] file ...\n");
+		break;
 	case SWAPOFF:
-	    fprintf(stderr, "[-F fstab] -afLq | file ...\n");
-	    break;
+		fprintf(stderr, "[-F fstab] -afLq | file ...\n");
+		break;
 	case SWAPCTL:
-	    fprintf(stderr, "[-AghklmsU] [-a file ... | -d file ...]\n");
-	    break;
+		fprintf(stderr, "[-AghklmsU] [-a file ... | -d file ...]\n");
+		break;
 	}
 	exit(1);
 }
@@ -848,9 +852,9 @@ swaplist(int lflag, int sflag, int hflag)
 	long long tmp_total;
 	long long tmp_used;
 	char buf[32];
-	
+
 	pagesize = getpagesize();
-	switch(hflag) {
+	switch (hflag) {
 	case 'G':
 		blocksize = 1024 * 1024 * 1024;
 		strlcpy(buf, "1GB-blocks", sizeof(buf));
@@ -876,30 +880,27 @@ swaplist(int lflag, int sflag, int hflag)
 		snprintf(buf, sizeof(buf), "%ld-blocks", blocksize);
 		break;
 	}
-	
+
 	mibsize = nitems(mib);
 	if (sysctlnametomib("vm.swap_info", mib, &mibsize) == -1)
 		err(1, "sysctlnametomib()");
-	
+
 	if (lflag) {
-		printf("%-13s %*s %*s\n",
-		    "Device:", 
-		    hlen, buf,
-		    hlen, "Used:");
+		printf("%-13s %*s %*s\n", "Device:", hlen, buf, hlen, "Used:");
 	}
-	
-	for (n = 0; ; ++n) {
+
+	for (n = 0;; ++n) {
 		mib[mibsize] = n;
 		size = sizeof xsw;
 		if (sysctl(mib, mibsize + 1, &xsw, &size, NULL, 0) == -1)
 			break;
 		if (xsw.xsw_version != XSWDEV_VERSION)
 			errx(1, "xswdev version mismatch");
-		
+
 		tmp_total = (long long)xsw.xsw_nblks * pagesize;
-		tmp_used  = (long long)xsw.xsw_used * pagesize;
+		tmp_used = (long long)xsw.xsw_used * pagesize;
 		total += tmp_total;
-		used  += tmp_used;
+		used += tmp_used;
 		if (lflag) {
 			sizetobuf(buf, sizeof(buf), hflag, tmp_total, hlen,
 			    blocksize);
@@ -912,7 +913,7 @@ swaplist(int lflag, int sflag, int hflag)
 	}
 	if (errno != ENOENT)
 		err(1, "sysctl()");
-	
+
 	if (sflag) {
 		sizetobuf(buf, sizeof(buf), hflag, total, hlen, blocksize);
 		printf("Total:        %s ", buf);
@@ -920,4 +921,3 @@ swaplist(int lflag, int sflag, int hflag)
 		printf("%s\n", buf);
 	}
 }
-

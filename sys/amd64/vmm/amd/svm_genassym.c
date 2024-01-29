@@ -28,6 +28,7 @@
 
 #include <sys/param.h>
 #include <sys/assym.h>
+
 #include <x86/specialreg.h>
 
 #include "svm.h"
@@ -38,8 +39,8 @@ ASSYM(SCTX_RBP, offsetof(struct svm_regctx, sctx_rbp));
 ASSYM(SCTX_RDX, offsetof(struct svm_regctx, sctx_rdx));
 ASSYM(SCTX_RDI, offsetof(struct svm_regctx, sctx_rdi));
 ASSYM(SCTX_RSI, offsetof(struct svm_regctx, sctx_rsi));
-ASSYM(SCTX_R8,  offsetof(struct svm_regctx, sctx_r8));
-ASSYM(SCTX_R9,  offsetof(struct svm_regctx, sctx_r9));
+ASSYM(SCTX_R8, offsetof(struct svm_regctx, sctx_r8));
+ASSYM(SCTX_R9, offsetof(struct svm_regctx, sctx_r9));
 ASSYM(SCTX_R10, offsetof(struct svm_regctx, sctx_r10));
 ASSYM(SCTX_R11, offsetof(struct svm_regctx, sctx_r11));
 ASSYM(SCTX_R12, offsetof(struct svm_regctx, sctx_r12));

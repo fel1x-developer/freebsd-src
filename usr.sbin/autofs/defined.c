@@ -35,15 +35,16 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/ioctl.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <sys/linker.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/wait.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -61,14 +62,14 @@
 
 #include "common.h"
 
-static TAILQ_HEAD(, defined_value)	defined_values;
+static TAILQ_HEAD(, defined_value) defined_values;
 
 static const char *
 defined_find(const char *name)
 {
 	struct defined_value *d;
 
-	TAILQ_FOREACH(d, &defined_values, d_next) {
+	TAILQ_FOREACH (d, &defined_values, d_next) {
 		if (strcmp(d->d_name, name) == 0)
 			return (d->d_value);
 	}
@@ -185,12 +186,12 @@ defined_expand(const char *string)
 		/*
 		 * Concatenate it back.
 		 */
-		ret = asprintf(&expanded, "%.*s%s%s",
-		    before_len, string, value, string + after_off);
+		ret = asprintf(&expanded, "%.*s%s%s", before_len, string, value,
+		    string + after_off);
 		if (ret < 0)
 			log_err(1, "asprintf");
 
-		//log_debugx("\"%s\" expanded to \"%s\"", string, expanded);
+		// log_debugx("\"%s\" expanded to \"%s\"", string, expanded);
 		free(name);
 
 		/*
@@ -203,7 +204,8 @@ defined_expand(const char *string)
 		assert(i <= (int)strlen(string));
 	}
 
-	if (before_len != 0 || name_off != 0 || name_len != 0 || after_off != 0) {
+	if (before_len != 0 || name_off != 0 || name_len != 0 ||
+	    after_off != 0) {
 		log_warnx("truncated variable");
 		return (NULL);
 	}

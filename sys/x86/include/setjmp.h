@@ -30,11 +30,11 @@
  */
 
 #ifndef _MACHINE_SETJMP_H_
-#define	_MACHINE_SETJMP_H_
+#define _MACHINE_SETJMP_H_
 
 #include <sys/cdefs.h>
 
-#define	_JBLEN	12		/* Size of the jmp_buf on AMD64. */
+#define _JBLEN 12 /* Size of the jmp_buf on AMD64. */
 
 /*
  * jmp_buf and sigjmp_buf are encapsulated in different structs to force
@@ -42,9 +42,13 @@
  * internally to avoid some run-time errors for mismatches.
  */
 #if __BSD_VISIBLE || __POSIX_VISIBLE || __XSI_VISIBLE
-typedef	struct _sigjmp_buf { long _sjb[_JBLEN]; } sigjmp_buf[1];
+typedef struct _sigjmp_buf {
+	long _sjb[_JBLEN];
+} sigjmp_buf[1];
 #endif
 
-typedef	struct _jmp_buf { long _jb[_JBLEN]; } jmp_buf[1];
+typedef struct _jmp_buf {
+	long _jb[_JBLEN];
+} jmp_buf[1];
 
 #endif /* !_MACHINE_SETJMP_H_ */

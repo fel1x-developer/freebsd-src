@@ -24,31 +24,34 @@
  */
 
 struct spi_command {
-	void	*tx_cmd;
+	void *tx_cmd;
 	uint32_t tx_cmd_sz;
-	void	*rx_cmd;
+	void *rx_cmd;
 	uint32_t rx_cmd_sz;
-	void	*tx_data;
+	void *tx_data;
 	uint32_t tx_data_sz;
-	void	*rx_data;
+	void *rx_data;
 	uint32_t rx_data_sz;
 	uint32_t flags;
 };
-#define	SPI_COMMAND_INITIALIZER	{ 0 }
+#define SPI_COMMAND_INITIALIZER \
+	{                       \
+		0               \
+	}
 
-#define	SPI_FLAG_KEEP_CS	0x1		/* Keep chip select asserted */
-#define	SPI_FLAG_NO_SLEEP	0x2		/* Prevent driver from sleeping (use polling) */
+#define SPI_FLAG_KEEP_CS 0x1  /* Keep chip select asserted */
+#define SPI_FLAG_NO_SLEEP 0x2 /* Prevent driver from sleeping (use polling) */
 
-#define	SPI_CHIP_SELECT_HIGH	0x1		/* Chip select high (else low) */
+#define SPI_CHIP_SELECT_HIGH 0x1 /* Chip select high (else low) */
 
 #ifdef FDT
-#define	SPIBUS_FDT_PNP_INFO(t)	FDTCOMPAT_PNP_INFO(t, spibus)
+#define SPIBUS_FDT_PNP_INFO(t) FDTCOMPAT_PNP_INFO(t, spibus)
 #else
-#define	SPIBUS_FDT_PNP_INFO(t)
+#define SPIBUS_FDT_PNP_INFO(t)
 #endif
 
 #ifdef DEV_ACPI
-#define	SPIBUS_ACPI_PNP_INFO(t)	ACPICOMPAT_PNP_INFO(t, spibus)
+#define SPIBUS_ACPI_PNP_INFO(t) ACPICOMPAT_PNP_INFO(t, spibus)
 #else
-#define	SPIBUS_ACPI_PNP_INFO(t)
+#define SPIBUS_ACPI_PNP_INFO(t)
 #endif

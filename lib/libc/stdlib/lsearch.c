@@ -4,26 +4,28 @@
  * All rights reserved.
  *
  * As long as the above copyright statement and this notice remain
- * unchanged, you can do what ever you want with this file. 
+ * unchanged, you can do what ever you want with this file.
  */
 #include <sys/types.h>
-#define	_SEARCH_PRIVATE
+#define _SEARCH_PRIVATE
 #include <search.h>
-#include <stdint.h>	/* for uint8_t */
-#include <stdlib.h>	/* for NULL */
-#include <string.h>	/* for memcpy() prototype */
+#include <stdint.h> /* for uint8_t */
+#include <stdlib.h> /* for NULL */
+#include <string.h> /* for memcpy() prototype */
 
 static void *lwork(const void *, const void *, size_t *, size_t,
     int (*)(const void *, const void *), int);
 
-void *lsearch(const void *key, void *base, size_t *nelp, size_t width,
+void *
+lsearch(const void *key, void *base, size_t *nelp, size_t width,
     int (*compar)(const void *, const void *))
 {
 
 	return (lwork(key, base, nelp, width, compar, 1));
 }
 
-void *lfind(const void *key, const void *base, size_t *nelp, size_t width,
+void *
+lfind(const void *key, const void *base, size_t *nelp, size_t width,
     int (*compar)(const void *, const void *))
 {
 

@@ -32,6 +32,7 @@
  * "ja_JP.eucJP". Other encodings are not tested.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
@@ -39,8 +40,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(wcrtomb_test);
 ATF_TC_BODY(wcrtomb_test, tc)
@@ -65,7 +64,8 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	memset(buf, 0xcc, sizeof(buf));
 	len = wcrtomb(buf, L'\0', &s);
 	ATF_REQUIRE(len == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
 
 	/* Latin letter A, internal state. */
 	ATF_REQUIRE(wcrtomb(NULL, L'\0', NULL) == 1);
@@ -76,7 +76,8 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	memset(buf, 0xcc, sizeof(buf));
 	len = wcrtomb(buf, L'A', &s);
 	ATF_REQUIRE(len == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
 
 	/* Invalid code. */
 	ATF_REQUIRE(wcrtomb(buf, UCHAR_MAX + 1, NULL) == (size_t)-1);
@@ -86,7 +87,8 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	 * Japanese (EUC) locale.
 	 */
 
-	ATF_REQUIRE(strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
+	ATF_REQUIRE(
+	    strcmp(setlocale(LC_CTYPE, "ja_JP.eucJP"), "ja_JP.eucJP") == 0);
 	ATF_REQUIRE(MB_CUR_MAX == 3);
 
 	/*
@@ -100,7 +102,8 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	memset(buf, 0xcc, sizeof(buf));
 	len = wcrtomb(buf, L'\0', &s);
 	ATF_REQUIRE(len == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
 
 	/* Latin letter A, internal state. */
 	ATF_REQUIRE(wcrtomb(NULL, L'\0', NULL) == 1);
@@ -111,7 +114,8 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	memset(buf, 0xcc, sizeof(buf));
 	len = wcrtomb(buf, L'A', &s);
 	ATF_REQUIRE(len == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
 
 	/* Full width letter A. */
 	memset(&s, 0, sizeof(s));
@@ -119,8 +123,7 @@ ATF_TC_BODY(wcrtomb_test, tc)
 	len = wcrtomb(buf, 0xa3c1, &s);
 	ATF_REQUIRE(len == 2);
 	ATF_REQUIRE((unsigned char)buf[0] == 0xa3 &&
-		(unsigned char)buf[1] == 0xc1 &&
-		(unsigned char)buf[2] == 0xcc);
+	    (unsigned char)buf[1] == 0xc1 && (unsigned char)buf[2] == 0xcc);
 }
 
 ATF_TP_ADD_TCS(tp)

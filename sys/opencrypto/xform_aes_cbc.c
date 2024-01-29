@@ -48,6 +48,7 @@
  */
 
 #include <sys/types.h>
+
 #include <crypto/rijndael/rijndael.h>
 #include <opencrypto/xform_enc.h>
 
@@ -56,12 +57,12 @@ struct aes_cbc_ctx {
 	char iv[AES_BLOCK_LEN];
 };
 
-static	int aes_cbc_setkey(void *, const uint8_t *, int);
-static	void aes_cbc_encrypt(void *, const uint8_t *, uint8_t *);
-static	void aes_cbc_decrypt(void *, const uint8_t *, uint8_t *);
-static	void aes_cbc_encrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
-static	void aes_cbc_decrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
-static  void aes_cbc_reinit(void *, const uint8_t *, size_t);
+static int aes_cbc_setkey(void *, const uint8_t *, int);
+static void aes_cbc_encrypt(void *, const uint8_t *, uint8_t *);
+static void aes_cbc_decrypt(void *, const uint8_t *, uint8_t *);
+static void aes_cbc_encrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_cbc_decrypt_multi(void *, const uint8_t *, uint8_t *, size_t);
+static void aes_cbc_reinit(void *, const uint8_t *, size_t);
 
 /* Encryption instances */
 const struct enc_xform enc_xform_aes_cbc = {

@@ -23,24 +23,23 @@
  * SUCH DAMAGE.
  */
 
-#include "diag.h"
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <getopt.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "ah.h"
 #include "ah_internal.h"
-
-#include <getopt.h>
-#include <errno.h>
-#include <err.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
+#include "diag.h"
 
 struct spectralhandler {
-	struct		ath_diag atd;
-	int		s;
-	struct ifreq	ifr;
-	int		ah_devid;
+	struct ath_diag atd;
+	int s;
+	struct ifreq ifr;
+	int ah_devid;
 };
 
 int
@@ -54,11 +53,11 @@ spectral_opendev(struct spectralhandler *spectral, const char *devid)
 		return 0;
 	}
 
-	strncpy(spectral->atd.ad_name, devid, sizeof (spectral->atd.ad_name));
+	strncpy(spectral->atd.ad_name, devid, sizeof(spectral->atd.ad_name));
 
 	/* Get the hardware revision, just to verify things are working */
 	spectral->atd.ad_id = HAL_DIAG_REVS;
-	spectral->atd.ad_out_data = (caddr_t) &revs;
+	spectral->atd.ad_out_data = (caddr_t)&revs;
 	spectral->atd.ad_out_size = sizeof(revs);
 	if (ioctl(spectral->s, SIOCGATHDIAG, &spectral->atd) < 0) {
 		warn("%s", spectral->atd.ad_name);
@@ -110,7 +109,7 @@ spectralset(struct spectralhandler *spectral, int op, u_int32_t param)
 	spectral->atd.ad_id = SPECTRAL_CONTROL_SET_PARAMS | ATH_DIAG_IN;
 	spectral->atd.ad_out_data = NULL;
 	spectral->atd.ad_out_size = 0;
-	spectral->atd.ad_in_data = (caddr_t) &pe;
+	spectral->atd.ad_in_data = (caddr_t)&pe;
 	spectral->atd.ad_in_size = sizeof(HAL_SPECTRAL_PARAM);
 	if (ioctl(spectral->s, SIOCGATHSPECTRAL, &spectral->atd) < 0)
 		err(1, "%s", spectral->atd.ad_name);
@@ -126,7 +125,7 @@ spectral_get(struct spectralhandler *spectral)
 
 	spectral->atd.ad_in_data = NULL;
 	spectral->atd.ad_in_size = 0;
-	spectral->atd.ad_out_data = (caddr_t) &pe;
+	spectral->atd.ad_out_data = (caddr_t)&pe;
 	spectral->atd.ad_out_size = sizeof(pe);
 
 	if (ioctl(spectral->s, SIOCGATHSPECTRAL, &spectral->atd) < 0)
@@ -157,7 +156,7 @@ spectral_start(struct spectralhandler *spectral)
 	 */
 	spectral->atd.ad_in_data = NULL;
 	spectral->atd.ad_in_size = 0;
-	spectral->atd.ad_out_data = (caddr_t) &pe;
+	spectral->atd.ad_out_data = (caddr_t)&pe;
 	spectral->atd.ad_out_size = sizeof(pe);
 
 	if (ioctl(spectral->s, SIOCGATHSPECTRAL, &spectral->atd) < 0)
@@ -178,7 +177,7 @@ spectral_stop(struct spectralhandler *spectral)
 	 */
 	spectral->atd.ad_in_data = NULL;
 	spectral->atd.ad_in_size = 0;
-	spectral->atd.ad_out_data = (caddr_t) &pe;
+	spectral->atd.ad_out_data = (caddr_t)&pe;
 	spectral->atd.ad_out_size = sizeof(pe);
 
 	if (ioctl(spectral->s, SIOCGATHSPECTRAL, &spectral->atd) < 0)
@@ -190,8 +189,7 @@ spectral_enable_at_reset(struct spectralhandler *spectral, int val)
 {
 	int v = val;
 
-	spectral->atd.ad_id = SPECTRAL_CONTROL_ENABLE_AT_RESET
-	    | ATH_DIAG_IN;
+	spectral->atd.ad_id = SPECTRAL_CONTROL_ENABLE_AT_RESET | ATH_DIAG_IN;
 
 	/*
 	 * XXX don't need these, but need to eliminate the ATH_DIAG_DYN flag
@@ -199,7 +197,7 @@ spectral_enable_at_reset(struct spectralhandler *spectral, int val)
 	 */
 	spectral->atd.ad_out_data = NULL;
 	spectral->atd.ad_out_size = 0;
-	spectral->atd.ad_in_data = (caddr_t) &v;
+	spectral->atd.ad_in_data = (caddr_t)&v;
 	spectral->atd.ad_in_size = sizeof(v);
 
 	printf("%s: val=%d\n", __func__, v);
@@ -281,7 +279,8 @@ usage(const char *progname)
 	printf("\tset <param> <value>:\t\tSet spectral parameter\n");
 	printf("\tstart: Start spectral scan\n");
 	printf("\tstop: Stop spectral scan\n");
-	printf("\tenable_at_reset <0|1>: enable reporting upon channel reset\n");
+	printf(
+	    "\tenable_at_reset <0|1>: enable reporting upon channel reset\n");
 }
 
 int
@@ -309,7 +308,8 @@ main(int argc, char *argv[])
 			exit(127);
 		}
 		devname = argv[2];
-		argc -= 2; argv += 2;
+		argc -= 2;
+		argv += 2;
 	}
 
 	/* At this point we require at least one command */

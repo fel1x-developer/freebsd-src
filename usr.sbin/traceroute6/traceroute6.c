@@ -236,39 +236,37 @@
 
 #include <sys/param.h>
 #include <sys/capsicum.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
+#include <sys/uio.h>
 
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
-#include <libcasper.h>
-#include <casper/cap_dns.h>
 #include <capsicum_helpers.h>
-
+#include <casper/cap_dns.h>
+#include <err.h>
+#include <libcasper.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <err.h>
 #ifdef HAVE_POLL
 #include <poll.h>
 #endif
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
+#include <netinet/icmp6.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
-#include <netinet/icmp6.h>
 #include <netinet/sctp.h>
 #include <netinet/sctp_header.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #ifdef IPSEC
 #include <net/route.h>
@@ -279,35 +277,35 @@
 
 #define DUMMY_PORT 10010
 
-#define	MAXPACKET	65535	/* max ip packet size */
+#define MAXPACKET 65535 /* max ip packet size */
 
-static u_char	packet[512];		/* last inbound (icmp) packet */
-static char 	*outpacket;		/* last output packet */
+static u_char packet[512]; /* last inbound (icmp) packet */
+static char *outpacket;	   /* last output packet */
 
-int	main(int, char *[]);
-int	wait_for_reply(int, struct msghdr *);
+int main(int, char *[]);
+int wait_for_reply(int, struct msghdr *);
 #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
-int	setpolicy(int so, char *policy);
+int setpolicy(int so, char *policy);
 #endif
-void	send_probe(int, u_long);
-void	*get_uphdr(struct ip6_hdr *, u_char *);
-void	capdns_open(void);
-int	get_hoplim(struct msghdr *);
-double	deltaT(struct timeval *, struct timeval *);
+void send_probe(int, u_long);
+void *get_uphdr(struct ip6_hdr *, u_char *);
+void capdns_open(void);
+int get_hoplim(struct msghdr *);
+double deltaT(struct timeval *, struct timeval *);
 const char *pr_type(int);
-int	packet_ok(struct msghdr *, int, int, u_char *, u_char *, u_char *);
-void	print(struct msghdr *, int);
+int packet_ok(struct msghdr *, int, int, u_char *, u_char *, u_char *);
+void print(struct msghdr *, int);
 const char *inetname(struct sockaddr *);
 u_int32_t sctp_crc32c(void *, u_int32_t);
 u_int16_t in_cksum(u_int16_t *addr, int);
-u_int16_t udp_cksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
-    void *, u_int32_t);
-u_int16_t tcp_chksum(struct sockaddr_in6 *, struct sockaddr_in6 *,
-    void *, u_int32_t);
-void	usage(void);
+u_int16_t udp_cksum(struct sockaddr_in6 *, struct sockaddr_in6 *, void *,
+    u_int32_t);
+u_int16_t tcp_chksum(struct sockaddr_in6 *, struct sockaddr_in6 *, void *,
+    u_int32_t);
+void usage(void);
 
-static int rcvsock;			/* receive (icmp) socket file descriptor */
-static int sndsock;			/* send (raw/udp) socket file descriptor */
+static int rcvsock; /* receive (icmp) socket file descriptor */
+static int sndsock; /* send (raw/udp) socket file descriptor */
 
 static struct msghdr rcvmhdr;
 static struct iovec rcviov[2];
@@ -315,8 +313,8 @@ static int rcvhlim;
 static struct in6_pktinfo *rcvpktinfo;
 
 static struct sockaddr_in6 Src, Dst, Rcv;
-static u_long datalen = 20;			/* How much data */
-#define	ICMP6ECHOLEN	8
+static u_long datalen = 20; /* How much data */
+#define ICMP6ECHOLEN 8
 /* XXX: 2064 = 127(max hops in type 0 rthdr) * sizeof(ip6_hdr) + 16(margin) */
 static char rtbuf[2064];
 static struct ip6_rthdr *rth;
@@ -331,17 +329,18 @@ static u_long nprobes = 3;
 static u_long first_hop = 1;
 static u_long max_hops = 30;
 static u_int16_t srcport;
-static u_int16_t port = 32768 + 666;	/* start udp dest port # for probe packets */
+static u_int16_t port = 32768 +
+    666; /* start udp dest port # for probe packets */
 static u_int16_t ident;
 static int tclass = -1;
-static int options;			/* socket options */
+static int options; /* socket options */
 static int verbose;
-static int waittime = 5;		/* time to wait for response (in seconds) */
-static int nflag;			/* print addresses numerically */
-static int useproto = IPPROTO_UDP;	/* protocol to use to send packet */
-static int lflag;			/* print both numerical address & hostname */
-static int as_path;			/* print as numbers for each hop */
-static int ecnflag;			/* ECN bleaching detection flag */
+static int waittime = 5;	   /* time to wait for response (in seconds) */
+static int nflag;		   /* print addresses numerically */
+static int useproto = IPPROTO_UDP; /* protocol to use to send packet */
+static int lflag;		   /* print both numerical address & hostname */
+static int as_path;		   /* print as numbers for each hop */
+static int ecnflag;		   /* ECN bleaching detection flag */
 static char *as_server = NULL;
 static void *asn;
 
@@ -375,35 +374,37 @@ main(int argc, char *argv[])
 	}
 
 	size = sizeof(i);
-	(void) sysctl(mib, sizeof(mib) / sizeof(mib[0]), &i, &size, NULL, 0);
+	(void)sysctl(mib, sizeof(mib) / sizeof(mib[0]), &i, &size, NULL, 0);
 	max_hops = i;
 
 	/* specify to tell receiving interface */
 #ifdef IPV6_RECVPKTINFO
 	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on,
-	    sizeof(on)) < 0)
+		sizeof(on)) < 0)
 		err(1, "setsockopt(IPV6_RECVPKTINFO)");
-#else  /* old adv. API */
-	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_PKTINFO, &on,
-	    sizeof(on)) < 0)
+#else /* old adv. API */
+	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_PKTINFO, &on, sizeof(on)) <
+	    0)
 		err(1, "setsockopt(IPV6_PKTINFO)");
 #endif
 
-	/* specify to tell value of hoplimit field of received IP6 hdr */
+		/* specify to tell value of hoplimit field of received IP6 hdr
+		 */
 #ifdef IPV6_RECVHOPLIMIT
 	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_RECVHOPLIMIT, &on,
-	    sizeof(on)) < 0)
+		sizeof(on)) < 0)
 		err(1, "setsockopt(IPV6_RECVHOPLIMIT)");
-#else  /* old adv. API */
-	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_HOPLIMIT, &on,
-	    sizeof(on)) < 0)
+#else /* old adv. API */
+	if (setsockopt(rcvsock, IPPROTO_IPV6, IPV6_HOPLIMIT, &on, sizeof(on)) <
+	    0)
 		err(1, "setsockopt(IPV6_HOPLIMIT)");
 #endif
 
 	seq = 0;
 	ident = htons(getpid() & 0xffff); /* same as ping6 */
 
-	while ((ch = getopt(argc, argv, "aA:dEf:g:Ilm:nNp:q:rs:St:TUvw:")) != -1)
+	while (
+	    (ch = getopt(argc, argv, "aA:dEf:g:Ilm:nNp:q:rs:St:TUvw:")) != -1)
 		switch (ch) {
 		case 'a':
 			as_path = 1;
@@ -442,17 +443,16 @@ main(int argc, char *argv[])
 				 * intermediate nodes yet.
 				 */
 				if ((rth = inet6_rth_init((void *)rtbuf,
-				    sizeof(rtbuf), IPV6_RTHDR_TYPE_0,
-				    0)) == NULL) {
+					 sizeof(rtbuf), IPV6_RTHDR_TYPE_0,
+					 0)) == NULL) {
 					fprintf(stderr,
 					    "inet6_rth_init failed.\n");
 					exit(1);
 				}
 			}
 			if (inet6_rth_add((void *)rth,
-			    (struct in6_addr *)hp->h_addr)) {
-				fprintf(stderr,
-				    "inet6_rth_add failed for %s\n",
+				(struct in6_addr *)hp->h_addr)) {
+				fprintf(stderr, "inet6_rth_add failed for %s\n",
 				    optarg);
 				exit(1);
 			}
@@ -607,7 +607,7 @@ main(int argc, char *argv[])
 
 	if (tclass != -1) {
 		if (setsockopt(sndsock, IPPROTO_IPV6, IPV6_TCLASS, &tclass,
-		    sizeof(int)) == -1) {
+			sizeof(int)) == -1) {
 			perror("setsockopt(IPV6_TCLASS)");
 			exit(7);
 		}
@@ -631,13 +631,11 @@ main(int argc, char *argv[])
 	error = cap_getaddrinfo(capdns, *argv, NULL, &hints, &res);
 
 	if (error) {
-		fprintf(stderr,
-		    "traceroute6: %s\n", gai_strerror(error));
+		fprintf(stderr, "traceroute6: %s\n", gai_strerror(error));
 		exit(1);
 	}
 	if (res->ai_addrlen != sizeof(Dst)) {
-		fprintf(stderr,
-		    "traceroute6: size of sockaddr mismatch\n");
+		fprintf(stderr, "traceroute6: size of sockaddr mismatch\n");
 		exit(1);
 	}
 	memcpy(&Dst, res->ai_addr, res->ai_addrlen);
@@ -648,10 +646,12 @@ main(int argc, char *argv[])
 	}
 	if (res->ai_next) {
 		if (cap_getnameinfo(capdns, res->ai_addr, res->ai_addrlen, hbuf,
-		    sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
+			sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
 			strlcpy(hbuf, "?", sizeof(hbuf));
-		fprintf(stderr, "traceroute6: Warning: %s has multiple "
-		    "addresses; using %s\n", hostname, hbuf);
+		fprintf(stderr,
+		    "traceroute6: Warning: %s has multiple "
+		    "addresses; using %s\n",
+		    hostname, hbuf);
 	}
 	freeaddrinfo(res);
 	if (*++argv) {
@@ -690,8 +690,8 @@ main(int argc, char *argv[])
 		datalen = minlen;
 	else if (datalen >= MAXPACKET) {
 		fprintf(stderr,
-		    "traceroute6: packet size must be %zu <= s < %d.\n",
-		    minlen, MAXPACKET);
+		    "traceroute6: packet size must be %zu <= s < %d.\n", minlen,
+		    MAXPACKET);
 		exit(1);
 	}
 	if ((useproto == IPPROTO_SCTP) && (datalen & 3)) {
@@ -704,7 +704,7 @@ main(int argc, char *argv[])
 		perror("malloc");
 		exit(1);
 	}
-	(void) bzero((char *)outpacket, datalen);
+	(void)bzero((char *)outpacket, datalen);
 
 	/* initialize msghdr for receiving packets */
 	rcviov[0].iov_base = (caddr_t)packet;
@@ -719,15 +719,15 @@ main(int argc, char *argv[])
 		fprintf(stderr, "traceroute6: malloc failed\n");
 		exit(1);
 	}
-	rcvmhdr.msg_control = (caddr_t) rcvcmsgbuf;
+	rcvmhdr.msg_control = (caddr_t)rcvcmsgbuf;
 	rcvmhdr.msg_controllen = rcvcmsglen;
 
 	if (options & SO_DEBUG)
-		(void) setsockopt(rcvsock, SOL_SOCKET, SO_DEBUG,
-		    (char *)&on, sizeof(on));
+		(void)setsockopt(rcvsock, SOL_SOCKET, SO_DEBUG, (char *)&on,
+		    sizeof(on));
 	if (options & SO_DONTROUTE)
-		(void) setsockopt(rcvsock, SOL_SOCKET, SO_DONTROUTE,
-		    (char *)&on, sizeof(on));
+		(void)setsockopt(rcvsock, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
+		    sizeof(on));
 #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
 	/*
 	 * do not raise error even if setsockopt fails, kernel may have ipsec
@@ -738,47 +738,47 @@ main(int argc, char *argv[])
 	if (setpolicy(rcvsock, ipsec_outpolicy) < 0)
 		errx(1, "%s", ipsec_strerror());
 #else
-    {
-	int level = IPSEC_LEVEL_NONE;
+	{
+		int level = IPSEC_LEVEL_NONE;
 
-	(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL, &level,
-	    sizeof(level));
-	(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_ESP_NETWORK_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
+		    &level, sizeof(level));
+		(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_ESP_NETWORK_LEVEL,
+		    &level, sizeof(level));
 #ifdef IP_AUTH_TRANS_LEVEL
-	(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
+		    &level, sizeof(level));
 #else
-	(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_LEVEL, &level,
+		    sizeof(level));
 #endif
 #ifdef IP_AUTH_NETWORK_LEVEL
-	(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_NETWORK_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(rcvsock, IPPROTO_IPV6, IPV6_AUTH_NETWORK_LEVEL,
+		    &level, sizeof(level));
 #endif
-    }
+	}
 #endif /* !(IPSEC && IPSEC_POLICY_IPSEC) */
 
 #ifdef SO_SNDBUF
 	i = datalen;
 	if (i == 0)
 		i = 1;
-	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&i,
-	    sizeof(i)) < 0) {
+	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&i, sizeof(i)) <
+	    0) {
 		perror("setsockopt(SO_SNDBUF)");
 		exit(6);
 	}
 #endif /* SO_SNDBUF */
 	if (options & SO_DEBUG)
-		(void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
-		    (char *)&on, sizeof(on));
+		(void)setsockopt(sndsock, SOL_SOCKET, SO_DEBUG, (char *)&on,
+		    sizeof(on));
 	if (options & SO_DONTROUTE)
-		(void) setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
-		    (char *)&on, sizeof(on));
-	if (rth) {/* XXX: there is no library to finalize the header... */
+		(void)setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE, (char *)&on,
+		    sizeof(on));
+	if (rth) { /* XXX: there is no library to finalize the header... */
 		rth->ip6r_len = rth->ip6r_segleft * 2;
-		if (setsockopt(sndsock, IPPROTO_IPV6, IPV6_RTHDR,
-		    (void *)rth, (rth->ip6r_len + 1) << 3)) {
+		if (setsockopt(sndsock, IPPROTO_IPV6, IPV6_RTHDR, (void *)rth,
+			(rth->ip6r_len + 1) << 3)) {
 			fprintf(stderr, "setsockopt(IPV6_RTHDR): %s\n",
 			    strerror(errno));
 			exit(1);
@@ -794,25 +794,25 @@ main(int argc, char *argv[])
 	if (setpolicy(sndsock, ipsec_outpolicy) < 0)
 		errx(1, "%s", ipsec_strerror());
 #else
-    {
-	int level = IPSEC_LEVEL_BYPASS;
+	{
+		int level = IPSEC_LEVEL_BYPASS;
 
-	(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL, &level,
-	    sizeof(level));
-	(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_ESP_NETWORK_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_ESP_TRANS_LEVEL,
+		    &level, sizeof(level));
+		(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_ESP_NETWORK_LEVEL,
+		    &level, sizeof(level));
 #ifdef IP_AUTH_TRANS_LEVEL
-	(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_TRANS_LEVEL,
+		    &level, sizeof(level));
 #else
-	(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_LEVEL, &level,
+		    sizeof(level));
 #endif
 #ifdef IP_AUTH_NETWORK_LEVEL
-	(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_NETWORK_LEVEL, &level,
-	    sizeof(level));
+		(void)setsockopt(sndsock, IPPROTO_IPV6, IPV6_AUTH_NETWORK_LEVEL,
+		    &level, sizeof(level));
 #endif
-    }
+	}
 #endif /* !(IPSEC && IPSEC_POLICY_IPSEC) */
 
 	/*
@@ -822,7 +822,7 @@ main(int argc, char *argv[])
 	if (source) {
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_INET6;
-		hints.ai_socktype = SOCK_DGRAM;	/*dummy*/
+		hints.ai_socktype = SOCK_DGRAM; /*dummy*/
 		hints.ai_flags = AI_NUMERICHOST;
 		error = cap_getaddrinfo(capdns, source, "0", &hints, &res);
 		if (error) {
@@ -860,8 +860,9 @@ main(int argc, char *argv[])
 			perror("getsockname");
 			exit(1);
 		}
-		if (cap_getnameinfo(capdns, (struct sockaddr *)&Src, Src.sin6_len,
-		    src0, sizeof(src0), NULL, 0, NI_NUMERICHOST)) {
+		if (cap_getnameinfo(capdns, (struct sockaddr *)&Src,
+			Src.sin6_len, src0, sizeof(src0), NULL, 0,
+			NI_NUMERICHOST)) {
 			fprintf(stderr, "getnameinfo failed for source\n");
 			exit(1);
 		}
@@ -901,22 +902,20 @@ main(int argc, char *argv[])
 	 * Message to users
 	 */
 	if (cap_getnameinfo(capdns, (struct sockaddr *)&Dst, Dst.sin6_len, hbuf,
-	    sizeof(hbuf), NULL, 0, NI_NUMERICHOST))
+		sizeof(hbuf), NULL, 0, NI_NUMERICHOST))
 		strlcpy(hbuf, "(invalid)", sizeof(hbuf));
 	fprintf(stderr, "traceroute6");
 	fprintf(stderr, " to %s (%s)", hostname, hbuf);
 	if (source)
 		fprintf(stderr, " from %s", source);
-	fprintf(stderr, ", %lu hops max, %lu byte packets\n",
-	    max_hops,
+	fprintf(stderr, ", %lu hops max, %lu byte packets\n", max_hops,
 	    datalen + ((useproto == IPPROTO_UDP) ? sizeof(struct udphdr) : 0));
-	(void) fflush(stderr);
+	(void)fflush(stderr);
 
 	if (first_hop > 1)
 		printf("Skipping %lu intermediate hops\n", first_hop - 1);
 
-	if (connect(sndsock, (struct sockaddr *)&Dst,
-	    sizeof(Dst)) != 0) {
+	if (connect(sndsock, (struct sockaddr *)&Dst, sizeof(Dst)) != 0) {
 		fprintf(stderr, "connect: %s\n", strerror(errno));
 		exit(1);
 	}
@@ -958,13 +957,14 @@ main(int argc, char *argv[])
 			int cc;
 			struct timeval t1, t2;
 
-			(void) gettimeofday(&t1, NULL);
+			(void)gettimeofday(&t1, NULL);
 			send_probe(++seq, hops);
 			while ((cc = wait_for_reply(rcvsock, &rcvmhdr))) {
-				(void) gettimeofday(&t2, NULL);
-				if (packet_ok(&rcvmhdr, cc, seq, &type, &code, &ecn)) {
+				(void)gettimeofday(&t2, NULL);
+				if (packet_ok(&rcvmhdr, cc, seq, &type, &code,
+					&ecn)) {
 					if (!IN6_ARE_ADDR_EQUAL(&Rcv.sin6_addr,
-					    &lastaddr)) {
+						&lastaddr)) {
 						if (probe > 0)
 							fputs("\n   ", stdout);
 						print(&rcvmhdr, cc);
@@ -977,13 +977,16 @@ main(int argc, char *argv[])
 							printf(" (ecn=passed)");
 							break;
 						case IPTOS_ECN_NOTECT:
-							printf(" (ecn=bleached)");
+							printf(
+							    " (ecn=bleached)");
 							break;
 						case IPTOS_ECN_CE:
-							printf(" (ecn=congested)");
+							printf(
+							    " (ecn=congested)");
 							break;
 						default:
-							printf(" (ecn=mangled)");
+							printf(
+							    " (ecn=mangled)");
 							break;
 						}
 					}
@@ -1013,7 +1016,8 @@ main(int argc, char *argv[])
 							break;
 						}
 					} else if (type == ICMP6_PARAM_PROB &&
-					    code == ICMP6_PARAMPROB_NEXTHEADER) {
+					    code ==
+						ICMP6_PARAMPROB_NEXTHEADER) {
 						printf(" !H");
 						++got_there;
 					} else if (type == ICMP6_ECHO_REPLY) {
@@ -1030,7 +1034,7 @@ main(int argc, char *argv[])
 			}
 			if (cc == 0)
 				printf(" *");
-			(void) fflush(stdout);
+			(void)fflush(stdout);
 		}
 		putchar('\n');
 		if (got_there ||
@@ -1055,8 +1059,7 @@ wait_for_reply(int sock, struct msghdr *mhdr)
 	pfd[0].events = POLLIN;
 	pfd[0].revents = 0;
 
-	if (poll(pfd, 1, waittime * 1000) > 0 &&
-	    pfd[0].revents & POLLIN)
+	if (poll(pfd, 1, waittime * 1000) > 0 && pfd[0].revents & POLLIN)
 		cc = recvmsg(rcvsock, mhdr, 0);
 
 	return (cc);
@@ -1070,7 +1073,8 @@ wait_for_reply(int sock, struct msghdr *mhdr)
 		err(1, "malloc");
 	memset(fdsp, 0, fdsn);
 	FD_SET(sock, fdsp);
-	wait.tv_sec = waittime; wait.tv_usec = 0;
+	wait.tv_sec = waittime;
+	wait.tv_usec = 0;
 
 	if (select(sock + 1, fdsp, (fd_set *)0, (fd_set *)0, &wait) > 0)
 		cc = recvmsg(rcvsock, mhdr, 0);
@@ -1091,8 +1095,8 @@ setpolicy(int so, char *policy)
 		warnx("%s", ipsec_strerror());
 		return (-1);
 	}
-	(void)setsockopt(so, IPPROTO_IPV6, IPV6_IPSEC_POLICY,
-	    buf, ipsec_get_policylen(buf));
+	(void)setsockopt(so, IPPROTO_IPV6, IPV6_IPSEC_POLICY, buf,
+	    ipsec_get_policylen(buf));
 
 	free(buf);
 
@@ -1113,8 +1117,8 @@ send_probe(int seq, u_long hops)
 	int i;
 
 	i = hops;
-	if (setsockopt(sndsock, IPPROTO_IPV6, IPV6_UNICAST_HOPS,
-	    (char *)&i, sizeof(i)) < 0) {
+	if (setsockopt(sndsock, IPPROTO_IPV6, IPV6_UNICAST_HOPS, (char *)&i,
+		sizeof(i)) < 0) {
 		perror("setsockopt IPV6_UNICAST_HOPS");
 	}
 
@@ -1131,7 +1135,7 @@ send_probe(int seq, u_long hops)
 		icp->icmp6_seq = htons(seq);
 		break;
 	case IPPROTO_UDP:
-		outudp = (struct udphdr *) outpacket;
+		outudp = (struct udphdr *)outpacket;
 		outudp->uh_sport = htons(ident);
 		outudp->uh_dport = htons(port + seq);
 		outudp->uh_ulen = htons(datalen);
@@ -1147,14 +1151,14 @@ send_probe(int seq, u_long hops)
 		sctp->src_port = htons(ident);
 		sctp->dest_port = htons(port + seq);
 		if (datalen >= (u_long)(sizeof(struct sctphdr) +
-		    sizeof(struct sctp_init_chunk))) {
+				   sizeof(struct sctp_init_chunk))) {
 			sctp->v_tag = 0;
 		} else {
 			sctp->v_tag = (sctp->src_port << 16) | sctp->dest_port;
 		}
 		sctp->checksum = htonl(0);
 		if (datalen >= (u_long)(sizeof(struct sctphdr) +
-		    sizeof(struct sctp_init_chunk))) {
+				   sizeof(struct sctp_init_chunk))) {
 			/*
 			 * Send a packet containing an INIT chunk. This works
 			 * better in case of firewalls on the path, but
@@ -1165,8 +1169,8 @@ send_probe(int seq, u_long hops)
 			init = (struct sctp_init_chunk *)(sctp + 1);
 			init->ch.chunk_type = SCTP_INITIATION;
 			init->ch.chunk_flags = 0;
-			init->ch.chunk_length = htons((u_int16_t)(datalen -
-			    sizeof(struct sctphdr)));
+			init->ch.chunk_length = htons(
+			    (u_int16_t)(datalen - sizeof(struct sctphdr)));
 			init->init.initiate_tag = (sctp->src_port << 16) |
 			    sctp->dest_port;
 			init->init.a_rwnd = htonl(1500);
@@ -1174,14 +1178,14 @@ send_probe(int seq, u_long hops)
 			init->init.num_inbound_streams = htons(1);
 			init->init.initial_tsn = htonl(0);
 			if (datalen >= (u_long)(sizeof(struct sctphdr) +
-			    sizeof(struct sctp_init_chunk) +
-			    sizeof(struct sctp_paramhdr))) {
+					   sizeof(struct sctp_init_chunk) +
+					   sizeof(struct sctp_paramhdr))) {
 				param = (struct sctp_paramhdr *)(init + 1);
 				param->param_type = htons(SCTP_PAD);
-				param->param_length =
-				    htons((u_int16_t)(datalen -
-				    sizeof(struct sctphdr) -
-				    sizeof(struct sctp_init_chunk)));
+				param->param_length = htons(
+				    (u_int16_t)(datalen -
+					sizeof(struct sctphdr) -
+					sizeof(struct sctp_init_chunk)));
 			}
 		} else {
 			/*
@@ -1189,14 +1193,14 @@ send_probe(int seq, u_long hops)
 			 * possibly followed by a PAD chunk.
 			 */
 			if (datalen >= (u_long)(sizeof(struct sctphdr) +
-			    sizeof(struct sctp_chunkhdr))) {
+					   sizeof(struct sctp_chunkhdr))) {
 				chk = (struct sctp_chunkhdr *)(sctp + 1);
 				chk->chunk_type = SCTP_SHUTDOWN_ACK;
 				chk->chunk_flags = 0;
 				chk->chunk_length = htons(4);
 			}
 			if (datalen >= (u_long)(sizeof(struct sctphdr) +
-			    2 * sizeof(struct sctp_chunkhdr))) {
+					   2 * sizeof(struct sctp_chunkhdr))) {
 				chk = chk + 1;
 				chk->chunk_type = SCTP_PAD_CHUNK;
 				chk->chunk_flags = 0;
@@ -1225,12 +1229,12 @@ send_probe(int seq, u_long hops)
 	}
 
 	i = send(sndsock, (char *)outpacket, datalen, 0);
-	if (i < 0 || (u_long)i != datalen)  {
+	if (i < 0 || (u_long)i != datalen) {
 		if (i < 0)
 			perror("send");
-		printf("traceroute6: wrote %s %lu chars, ret=%d\n",
-		    hostname, datalen, i);
-		(void) fflush(stdout);
+		printf("traceroute6: wrote %s %lu chars, ret=%d\n", hostname,
+		    datalen, i);
+		(void)fflush(stdout);
 	}
 }
 
@@ -1240,7 +1244,7 @@ get_hoplim(struct msghdr *mhdr)
 	struct cmsghdr *cm;
 
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
-	    cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
+	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_HOPLIMIT &&
 		    cm->cmsg_len == CMSG_LEN(sizeof(int)))
@@ -1336,12 +1340,13 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 #endif
 
 #ifdef OLDRAWSOCKET
-	ip = (struct ip6_hdr *) buf;
+	ip = (struct ip6_hdr *)buf;
 	hlen = sizeof(struct ip6_hdr);
 	if (cc < hlen + sizeof(struct icmp6_hdr)) {
 		if (verbose) {
-			if (cap_getnameinfo(capdns, (struct sockaddr *)from, from->sin6_len,
-			    hbuf, sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
+			if (cap_getnameinfo(capdns, (struct sockaddr *)from,
+				from->sin6_len, hbuf, sizeof(hbuf), NULL, 0,
+				NI_NUMERICHOST) != 0)
 				strlcpy(hbuf, "invalid", sizeof(hbuf));
 			printf("packet too short (%d bytes) from %s\n", cc,
 			    hbuf);
@@ -1353,8 +1358,9 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 #else
 	if (cc < (int)sizeof(struct icmp6_hdr)) {
 		if (verbose) {
-			if (cap_getnameinfo(capdns, (struct sockaddr *)from, from->sin6_len,
-			    hbuf, sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
+			if (cap_getnameinfo(capdns, (struct sockaddr *)from,
+				from->sin6_len, hbuf, sizeof(hbuf), NULL, 0,
+				NI_NUMERICHOST) != 0)
 				strlcpy(hbuf, "invalid", sizeof(hbuf));
 			printf("data too short (%d bytes) from %s\n", cc, hbuf);
 		}
@@ -1366,11 +1372,10 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 	rcvpktinfo = NULL;
 	hlimp = NULL;
 	for (cm = (struct cmsghdr *)CMSG_FIRSTHDR(mhdr); cm;
-	    cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
+	     cm = (struct cmsghdr *)CMSG_NXTHDR(mhdr, cm)) {
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
 		    cm->cmsg_type == IPV6_PKTINFO &&
-		    cm->cmsg_len ==
-		    CMSG_LEN(sizeof(struct in6_pktinfo)))
+		    cm->cmsg_len == CMSG_LEN(sizeof(struct in6_pktinfo)))
 			rcvpktinfo = (struct in6_pktinfo *)(CMSG_DATA(cm));
 
 		if (cm->cmsg_level == IPPROTO_IPV6 &&
@@ -1383,7 +1388,7 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 #if 0
 		return (0);
 #else
-		rcvhlim = 0;	/*XXX*/
+		rcvhlim = 0; /*XXX*/
 #endif
 	} else
 		rcvhlim = *hlimp;
@@ -1391,10 +1396,10 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 	*type = icp->icmp6_type;
 	*code = icp->icmp6_code;
 	if ((*type == ICMP6_TIME_EXCEEDED &&
-	    *code == ICMP6_TIME_EXCEED_TRANSIT) ||
+		*code == ICMP6_TIME_EXCEED_TRANSIT) ||
 	    (*type == ICMP6_DST_UNREACH) ||
 	    (*type == ICMP6_PARAM_PROB &&
-	    *code == ICMP6_PARAMPROB_NEXTHEADER)) {
+		*code == ICMP6_PARAMPROB_NEXTHEADER)) {
 		struct ip6_hdr *hip;
 		struct icmp6_hdr *icmp;
 		struct sctp_init_chunk *init;
@@ -1430,7 +1435,7 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 				break;
 			}
 			if (datalen >= (u_long)(sizeof(struct sctphdr) +
-			    sizeof(struct sctp_init_chunk))) {
+					   sizeof(struct sctp_init_chunk))) {
 				if (sctp->v_tag != 0) {
 					break;
 				}
@@ -1439,14 +1444,15 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 				if ((char *)&init->init.a_rwnd > buf + cc) {
 					return (1);
 				}
-				if (init->init.initiate_tag == (u_int32_t)
-				    ((sctp->src_port << 16) | sctp->dest_port)) {
+				if (init->init.initiate_tag ==
+				    (u_int32_t)((sctp->src_port << 16) |
+					sctp->dest_port)) {
 					return (1);
 				}
 			} else {
 				if (sctp->v_tag ==
 				    (u_int32_t)((sctp->src_port << 16) |
-				    sctp->dest_port)) {
+					sctp->dest_port)) {
 					return (1);
 				}
 			}
@@ -1456,7 +1462,8 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 			if (tcp->th_sport == htons(ident) &&
 			    tcp->th_dport == htons(port + seq) &&
 			    tcp->th_seq ==
-			    (tcp_seq)((tcp->th_sport << 16) | tcp->th_dport))
+				(tcp_seq)((tcp->th_sport << 16) |
+				    tcp->th_dport))
 				return (1);
 			break;
 		case IPPROTO_NONE:
@@ -1466,8 +1473,7 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 			break;
 		}
 	} else if (useproto == IPPROTO_ICMPV6 && *type == ICMP6_ECHO_REPLY) {
-		if (icp->icmp6_id == ident &&
-		    icp->icmp6_seq == htons(seq))
+		if (icp->icmp6_id == ident && icp->icmp6_seq == htons(seq))
 			return (1);
 	}
 	if (verbose) {
@@ -1475,16 +1481,18 @@ packet_ok(struct msghdr *mhdr, int cc, int seq, u_char *type, u_char *code,
 		u_int8_t *p;
 		int i;
 
-		if (cap_getnameinfo(capdns, (struct sockaddr *)from, from->sin6_len,
-		    sbuf, sizeof(sbuf), NULL, 0, NI_NUMERICHOST) != 0)
+		if (cap_getnameinfo(capdns, (struct sockaddr *)from,
+			from->sin6_len, sbuf, sizeof(sbuf), NULL, 0,
+			NI_NUMERICHOST) != 0)
 			strlcpy(sbuf, "invalid", sizeof(sbuf));
 		printf("\n%d bytes from %s to %s", cc, sbuf,
 		    rcvpktinfo ? inet_ntop(AF_INET6, &rcvpktinfo->ipi6_addr,
-		    dbuf, sizeof(dbuf)) : "?");
+				     dbuf, sizeof(dbuf)) :
+				 "?");
 		printf(": icmp type %d (%s) code %d\n", *type, pr_type(*type),
 		    *code);
 		p = (u_int8_t *)(icp + 1);
-#define WIDTH	16
+#define WIDTH 16
 		for (i = 0; i < cc; i++) {
 			if (i % WIDTH == 0)
 				printf("%04x:", i);
@@ -1551,7 +1559,7 @@ get_uphdr(struct ip6_hdr *ip6, u_char *lim)
 void
 capdns_open(void)
 {
-#ifdef	WITH_CASPER
+#ifdef WITH_CASPER
 	const char *types[] = { "NAME", "ADDR" };
 	int families[1];
 	cap_channel_t *casper;
@@ -1568,7 +1576,7 @@ capdns_open(void)
 	if (cap_dns_family_limit(capdns, families, nitems(families)) < 0)
 		errx(1, "unable to limit access to system.dns service");
 	cap_close(casper);
-#endif	/* WITH_CASPER */
+#endif /* WITH_CASPER */
 }
 
 void
@@ -1578,7 +1586,7 @@ print(struct msghdr *mhdr, int cc)
 	char hbuf[NI_MAXHOST];
 
 	if (cap_getnameinfo(capdns, (struct sockaddr *)from, from->sin6_len,
-	    hbuf, sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
+		hbuf, sizeof(hbuf), NULL, 0, NI_NUMERICHOST) != 0)
 		strlcpy(hbuf, "invalid", sizeof(hbuf));
 	if (as_path)
 		printf(" [AS%u]", as_lookup(asn, hbuf, AF_INET6));
@@ -1593,11 +1601,13 @@ print(struct msghdr *mhdr, int cc)
 #ifdef OLDRAWSOCKET
 		printf(" %d bytes to %s", cc,
 		    rcvpktinfo ? inet_ntop(AF_INET6, &rcvpktinfo->ipi6_addr,
-		    hbuf, sizeof(hbuf)) : "?");
+				     hbuf, sizeof(hbuf)) :
+				 "?");
 #else
 		printf(" %d bytes of data to %s", cc,
-		    rcvpktinfo ?  inet_ntop(AF_INET6, &rcvpktinfo->ipi6_addr,
-		    hbuf, sizeof(hbuf)) : "?");
+		    rcvpktinfo ? inet_ntop(AF_INET6, &rcvpktinfo->ipi6_addr,
+				     hbuf, sizeof(hbuf)) :
+				 "?");
 #endif
 	}
 }
@@ -1618,16 +1628,15 @@ inetname(struct sockaddr *sa)
 		first = 0;
 		if (gethostname(domain, sizeof(domain)) == 0 &&
 		    (cp = strchr(domain, '.')))
-			(void) strlcpy(domain, cp + 1, sizeof(domain));
+			(void)strlcpy(domain, cp + 1, sizeof(domain));
 		else
 			domain[0] = 0;
 	}
 	cp = NULL;
 	if (!nflag) {
-		if (cap_getnameinfo(capdns, sa, sa->sa_len, line, sizeof(line), NULL, 0,
-		    NI_NAMEREQD) == 0) {
-			if ((cp = strchr(line, '.')) &&
-			    !strcmp(cp + 1, domain))
+		if (cap_getnameinfo(capdns, sa, sa->sa_len, line, sizeof(line),
+			NULL, 0, NI_NAMEREQD) == 0) {
+			if ((cp = strchr(line, '.')) && !strcmp(cp + 1, domain))
 				*cp = 0;
 			cp = line;
 		}
@@ -1636,7 +1645,7 @@ inetname(struct sockaddr *sa)
 		return (cp);
 
 	if (cap_getnameinfo(capdns, sa, sa->sa_len, line, sizeof(line), NULL, 0,
-	    NI_NUMERICHOST) != 0)
+		NI_NUMERICHOST) != 0)
 		strlcpy(line, "invalid", sizeof(line));
 	return (line);
 }
@@ -1647,72 +1656,50 @@ inetname(struct sockaddr *sa)
 
 #define CRC32C(c, d) (c = (c >> 8) ^ crc_c[(c ^ (d)) & 0xFF])
 
-static u_int32_t crc_c[256] = {
-	0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4,
-	0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB,
-	0x8AD958CF, 0x78B2DBCC, 0x6BE22838, 0x9989AB3B,
-	0x4D43CFD0, 0xBF284CD3, 0xAC78BF27, 0x5E133C24,
-	0x105EC76F, 0xE235446C, 0xF165B798, 0x030E349B,
-	0xD7C45070, 0x25AFD373, 0x36FF2087, 0xC494A384,
-	0x9A879FA0, 0x68EC1CA3, 0x7BBCEF57, 0x89D76C54,
-	0x5D1D08BF, 0xAF768BBC, 0xBC267848, 0x4E4DFB4B,
-	0x20BD8EDE, 0xD2D60DDD, 0xC186FE29, 0x33ED7D2A,
-	0xE72719C1, 0x154C9AC2, 0x061C6936, 0xF477EA35,
-	0xAA64D611, 0x580F5512, 0x4B5FA6E6, 0xB93425E5,
-	0x6DFE410E, 0x9F95C20D, 0x8CC531F9, 0x7EAEB2FA,
-	0x30E349B1, 0xC288CAB2, 0xD1D83946, 0x23B3BA45,
-	0xF779DEAE, 0x05125DAD, 0x1642AE59, 0xE4292D5A,
-	0xBA3A117E, 0x4851927D, 0x5B016189, 0xA96AE28A,
-	0x7DA08661, 0x8FCB0562, 0x9C9BF696, 0x6EF07595,
-	0x417B1DBC, 0xB3109EBF, 0xA0406D4B, 0x522BEE48,
-	0x86E18AA3, 0x748A09A0, 0x67DAFA54, 0x95B17957,
-	0xCBA24573, 0x39C9C670, 0x2A993584, 0xD8F2B687,
-	0x0C38D26C, 0xFE53516F, 0xED03A29B, 0x1F682198,
-	0x5125DAD3, 0xA34E59D0, 0xB01EAA24, 0x42752927,
-	0x96BF4DCC, 0x64D4CECF, 0x77843D3B, 0x85EFBE38,
-	0xDBFC821C, 0x2997011F, 0x3AC7F2EB, 0xC8AC71E8,
-	0x1C661503, 0xEE0D9600, 0xFD5D65F4, 0x0F36E6F7,
-	0x61C69362, 0x93AD1061, 0x80FDE395, 0x72966096,
-	0xA65C047D, 0x5437877E, 0x4767748A, 0xB50CF789,
-	0xEB1FCBAD, 0x197448AE, 0x0A24BB5A, 0xF84F3859,
-	0x2C855CB2, 0xDEEEDFB1, 0xCDBE2C45, 0x3FD5AF46,
-	0x7198540D, 0x83F3D70E, 0x90A324FA, 0x62C8A7F9,
-	0xB602C312, 0x44694011, 0x5739B3E5, 0xA55230E6,
-	0xFB410CC2, 0x092A8FC1, 0x1A7A7C35, 0xE811FF36,
-	0x3CDB9BDD, 0xCEB018DE, 0xDDE0EB2A, 0x2F8B6829,
-	0x82F63B78, 0x709DB87B, 0x63CD4B8F, 0x91A6C88C,
-	0x456CAC67, 0xB7072F64, 0xA457DC90, 0x563C5F93,
-	0x082F63B7, 0xFA44E0B4, 0xE9141340, 0x1B7F9043,
-	0xCFB5F4A8, 0x3DDE77AB, 0x2E8E845F, 0xDCE5075C,
-	0x92A8FC17, 0x60C37F14, 0x73938CE0, 0x81F80FE3,
-	0x55326B08, 0xA759E80B, 0xB4091BFF, 0x466298FC,
-	0x1871A4D8, 0xEA1A27DB, 0xF94AD42F, 0x0B21572C,
-	0xDFEB33C7, 0x2D80B0C4, 0x3ED04330, 0xCCBBC033,
-	0xA24BB5A6, 0x502036A5, 0x4370C551, 0xB11B4652,
-	0x65D122B9, 0x97BAA1BA, 0x84EA524E, 0x7681D14D,
-	0x2892ED69, 0xDAF96E6A, 0xC9A99D9E, 0x3BC21E9D,
-	0xEF087A76, 0x1D63F975, 0x0E330A81, 0xFC588982,
-	0xB21572C9, 0x407EF1CA, 0x532E023E, 0xA145813D,
-	0x758FE5D6, 0x87E466D5, 0x94B49521, 0x66DF1622,
-	0x38CC2A06, 0xCAA7A905, 0xD9F75AF1, 0x2B9CD9F2,
-	0xFF56BD19, 0x0D3D3E1A, 0x1E6DCDEE, 0xEC064EED,
-	0xC38D26C4, 0x31E6A5C7, 0x22B65633, 0xD0DDD530,
-	0x0417B1DB, 0xF67C32D8, 0xE52CC12C, 0x1747422F,
-	0x49547E0B, 0xBB3FFD08, 0xA86F0EFC, 0x5A048DFF,
-	0x8ECEE914, 0x7CA56A17, 0x6FF599E3, 0x9D9E1AE0,
-	0xD3D3E1AB, 0x21B862A8, 0x32E8915C, 0xC083125F,
-	0x144976B4, 0xE622F5B7, 0xF5720643, 0x07198540,
-	0x590AB964, 0xAB613A67, 0xB831C993, 0x4A5A4A90,
-	0x9E902E7B, 0x6CFBAD78, 0x7FAB5E8C, 0x8DC0DD8F,
-	0xE330A81A, 0x115B2B19, 0x020BD8ED, 0xF0605BEE,
-	0x24AA3F05, 0xD6C1BC06, 0xC5914FF2, 0x37FACCF1,
-	0x69E9F0D5, 0x9B8273D6, 0x88D28022, 0x7AB90321,
-	0xAE7367CA, 0x5C18E4C9, 0x4F48173D, 0xBD23943E,
-	0xF36E6F75, 0x0105EC76, 0x12551F82, 0xE03E9C81,
-	0x34F4F86A, 0xC69F7B69, 0xD5CF889D, 0x27A40B9E,
-	0x79B737BA, 0x8BDCB4B9, 0x988C474D, 0x6AE7C44E,
-	0xBE2DA0A5, 0x4C4623A6, 0x5F16D052, 0xAD7D5351
-};
+static u_int32_t crc_c[256] = { 0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4,
+	0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB, 0x8AD958CF, 0x78B2DBCC,
+	0x6BE22838, 0x9989AB3B, 0x4D43CFD0, 0xBF284CD3, 0xAC78BF27, 0x5E133C24,
+	0x105EC76F, 0xE235446C, 0xF165B798, 0x030E349B, 0xD7C45070, 0x25AFD373,
+	0x36FF2087, 0xC494A384, 0x9A879FA0, 0x68EC1CA3, 0x7BBCEF57, 0x89D76C54,
+	0x5D1D08BF, 0xAF768BBC, 0xBC267848, 0x4E4DFB4B, 0x20BD8EDE, 0xD2D60DDD,
+	0xC186FE29, 0x33ED7D2A, 0xE72719C1, 0x154C9AC2, 0x061C6936, 0xF477EA35,
+	0xAA64D611, 0x580F5512, 0x4B5FA6E6, 0xB93425E5, 0x6DFE410E, 0x9F95C20D,
+	0x8CC531F9, 0x7EAEB2FA, 0x30E349B1, 0xC288CAB2, 0xD1D83946, 0x23B3BA45,
+	0xF779DEAE, 0x05125DAD, 0x1642AE59, 0xE4292D5A, 0xBA3A117E, 0x4851927D,
+	0x5B016189, 0xA96AE28A, 0x7DA08661, 0x8FCB0562, 0x9C9BF696, 0x6EF07595,
+	0x417B1DBC, 0xB3109EBF, 0xA0406D4B, 0x522BEE48, 0x86E18AA3, 0x748A09A0,
+	0x67DAFA54, 0x95B17957, 0xCBA24573, 0x39C9C670, 0x2A993584, 0xD8F2B687,
+	0x0C38D26C, 0xFE53516F, 0xED03A29B, 0x1F682198, 0x5125DAD3, 0xA34E59D0,
+	0xB01EAA24, 0x42752927, 0x96BF4DCC, 0x64D4CECF, 0x77843D3B, 0x85EFBE38,
+	0xDBFC821C, 0x2997011F, 0x3AC7F2EB, 0xC8AC71E8, 0x1C661503, 0xEE0D9600,
+	0xFD5D65F4, 0x0F36E6F7, 0x61C69362, 0x93AD1061, 0x80FDE395, 0x72966096,
+	0xA65C047D, 0x5437877E, 0x4767748A, 0xB50CF789, 0xEB1FCBAD, 0x197448AE,
+	0x0A24BB5A, 0xF84F3859, 0x2C855CB2, 0xDEEEDFB1, 0xCDBE2C45, 0x3FD5AF46,
+	0x7198540D, 0x83F3D70E, 0x90A324FA, 0x62C8A7F9, 0xB602C312, 0x44694011,
+	0x5739B3E5, 0xA55230E6, 0xFB410CC2, 0x092A8FC1, 0x1A7A7C35, 0xE811FF36,
+	0x3CDB9BDD, 0xCEB018DE, 0xDDE0EB2A, 0x2F8B6829, 0x82F63B78, 0x709DB87B,
+	0x63CD4B8F, 0x91A6C88C, 0x456CAC67, 0xB7072F64, 0xA457DC90, 0x563C5F93,
+	0x082F63B7, 0xFA44E0B4, 0xE9141340, 0x1B7F9043, 0xCFB5F4A8, 0x3DDE77AB,
+	0x2E8E845F, 0xDCE5075C, 0x92A8FC17, 0x60C37F14, 0x73938CE0, 0x81F80FE3,
+	0x55326B08, 0xA759E80B, 0xB4091BFF, 0x466298FC, 0x1871A4D8, 0xEA1A27DB,
+	0xF94AD42F, 0x0B21572C, 0xDFEB33C7, 0x2D80B0C4, 0x3ED04330, 0xCCBBC033,
+	0xA24BB5A6, 0x502036A5, 0x4370C551, 0xB11B4652, 0x65D122B9, 0x97BAA1BA,
+	0x84EA524E, 0x7681D14D, 0x2892ED69, 0xDAF96E6A, 0xC9A99D9E, 0x3BC21E9D,
+	0xEF087A76, 0x1D63F975, 0x0E330A81, 0xFC588982, 0xB21572C9, 0x407EF1CA,
+	0x532E023E, 0xA145813D, 0x758FE5D6, 0x87E466D5, 0x94B49521, 0x66DF1622,
+	0x38CC2A06, 0xCAA7A905, 0xD9F75AF1, 0x2B9CD9F2, 0xFF56BD19, 0x0D3D3E1A,
+	0x1E6DCDEE, 0xEC064EED, 0xC38D26C4, 0x31E6A5C7, 0x22B65633, 0xD0DDD530,
+	0x0417B1DB, 0xF67C32D8, 0xE52CC12C, 0x1747422F, 0x49547E0B, 0xBB3FFD08,
+	0xA86F0EFC, 0x5A048DFF, 0x8ECEE914, 0x7CA56A17, 0x6FF599E3, 0x9D9E1AE0,
+	0xD3D3E1AB, 0x21B862A8, 0x32E8915C, 0xC083125F, 0x144976B4, 0xE622F5B7,
+	0xF5720643, 0x07198540, 0x590AB964, 0xAB613A67, 0xB831C993, 0x4A5A4A90,
+	0x9E902E7B, 0x6CFBAD78, 0x7FAB5E8C, 0x8DC0DD8F, 0xE330A81A, 0x115B2B19,
+	0x020BD8ED, 0xF0605BEE, 0x24AA3F05, 0xD6C1BC06, 0xC5914FF2, 0x37FACCF1,
+	0x69E9F0D5, 0x9B8273D6, 0x88D28022, 0x7AB90321, 0xAE7367CA, 0x5C18E4C9,
+	0x4F48173D, 0xBD23943E, 0xF36E6F75, 0x0105EC76, 0x12551F82, 0xE03E9C81,
+	0x34F4F86A, 0xC69F7B69, 0xD5CF889D, 0x27A40B9E, 0x79B737BA, 0x8BDCB4B9,
+	0x988C474D, 0x6AE7C44E, 0xBE2DA0A5, 0x4C4623A6, 0x5F16D052,
+	0xAD7D5351 };
 
 u_int32_t
 sctp_crc32c(void *pack, u_int32_t len)
@@ -1725,10 +1712,10 @@ sctp_crc32c(void *pack, u_int32_t len)
 	for (i = 0; i < len; i++)
 		CRC32C(crc32c, buf[i]);
 	crc32c = ~crc32c;
-	byte0  = crc32c & 0xff;
-	byte1  = (crc32c >> 8) & 0xff;
-	byte2  = (crc32c >> 16) & 0xff;
-	byte3  = (crc32c >> 24) & 0xff;
+	byte0 = crc32c & 0xff;
+	byte1 = (crc32c >> 8) & 0xff;
+	byte2 = (crc32c >> 16) & 0xff;
+	byte3 = (crc32c >> 24) & 0xff;
 	crc32c = ((byte0 << 24) | (byte1 << 16) | (byte2 << 8) | byte3);
 	return (htonl(crc32c));
 }
@@ -1747,7 +1734,7 @@ in_cksum(u_int16_t *addr, int len)
 	 *  back all the carry bits from the top 16 bits into the lower
 	 *  16 bits.
 	 */
-	while (nleft > 1)  {
+	while (nleft > 1) {
 		sum += *w++;
 		nleft -= 2;
 	}
@@ -1759,15 +1746,15 @@ in_cksum(u_int16_t *addr, int len)
 	/*
 	 * add back carry outs from top 16 bits to low 16 bits
 	 */
-	sum = (sum >> 16) + (sum & 0xffff);	/* add hi 16 to low 16 */
-	sum += (sum >> 16);			/* add carry */
-	answer = ~sum;				/* truncate to 16 bits */
+	sum = (sum >> 16) + (sum & 0xffff); /* add hi 16 to low 16 */
+	sum += (sum >> 16);		    /* add carry */
+	answer = ~sum;			    /* truncate to 16 bits */
 	return (answer);
 }
 
 u_int16_t
-udp_cksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
-    void *payload, u_int32_t len)
+udp_cksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst, void *payload,
+    u_int32_t len)
 {
 	struct {
 		struct in6_addr src;
@@ -1793,8 +1780,8 @@ udp_cksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
 }
 
 u_int16_t
-tcp_chksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst,
-    void *payload, u_int32_t len)
+tcp_chksum(struct sockaddr_in6 *src, struct sockaddr_in6 *dst, void *payload,
+    u_int32_t len)
 {
 	struct {
 		struct in6_addr src;
@@ -1824,8 +1811,8 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: traceroute6 [-adEIlnNrSTUv] [-A as_server] [-f firsthop] [-g gateway]\n"
-"       [-m hoplimit] [-p port] [-q probes] [-s src] [-w waittime] target\n"
-"       [datalen]\n");
+	    "usage: traceroute6 [-adEIlnNrSTUv] [-A as_server] [-f firsthop] [-g gateway]\n"
+	    "       [-m hoplimit] [-p port] [-q probes] [-s src] [-w waittime] target\n"
+	    "       [datalen]\n");
 	exit(1);
 }

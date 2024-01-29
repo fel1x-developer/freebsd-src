@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Cavium, Inc. 
+ * Copyright (c) 2017-2018 Cavium, Inc.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
  */
 
 #ifndef __IWARP_COMMON__
-#define __IWARP_COMMON__ 
+#define __IWARP_COMMON__
 /************************************************************************/
 /* Add include to common rdma target for both eCore and protocol rdma driver */
 /************************************************************************/
@@ -39,15 +39,20 @@
 #define IWARP_ACTIVE_MODE 0
 #define IWARP_PASSIVE_MODE 1
 
-#define IWARP_SHARED_QUEUE_PAGE_SIZE			(0x8000)		//32KB page for Shared Queue Page
-#define IWARP_SHARED_QUEUE_PAGE_RQ_PBL_OFFSET	(0x4000)		//First 12KB of Shared Queue Page is reserved for FW
-#define IWARP_SHARED_QUEUE_PAGE_RQ_PBL_MAX_SIZE (0x1000)		//Max RQ PBL Size is 4KB
-#define IWARP_SHARED_QUEUE_PAGE_SQ_PBL_OFFSET	(0x5000)		
-#define IWARP_SHARED_QUEUE_PAGE_SQ_PBL_MAX_SIZE	(0x3000)		//Max SQ PBL Size is 12KB
+#define IWARP_SHARED_QUEUE_PAGE_SIZE (0x8000) // 32KB page for Shared Queue Page
+#define IWARP_SHARED_QUEUE_PAGE_RQ_PBL_OFFSET \
+	(0x4000) // First 12KB of Shared Queue Page is reserved for FW
+#define IWARP_SHARED_QUEUE_PAGE_RQ_PBL_MAX_SIZE \
+	(0x1000) // Max RQ PBL Size is 4KB
+#define IWARP_SHARED_QUEUE_PAGE_SQ_PBL_OFFSET (0x5000)
+#define IWARP_SHARED_QUEUE_PAGE_SQ_PBL_MAX_SIZE \
+	(0x3000) // Max SQ PBL Size is 12KB
 
-#define IWARP_REQ_MAX_INLINE_DATA_SIZE		(128)	//max size of inline data in single request
-#define IWARP_REQ_MAX_SINGLE_SQ_WQE_SIZE	(176)	//Maximum size of single SQ WQE (rdma wqe and inline data)
+#define IWARP_REQ_MAX_INLINE_DATA_SIZE \
+	(128) // max size of inline data in single request
+#define IWARP_REQ_MAX_SINGLE_SQ_WQE_SIZE \
+	(176) // Maximum size of single SQ WQE (rdma wqe and inline data)
 
-#define IWARP_MAX_QPS				(64*1024)
+#define IWARP_MAX_QPS (64 * 1024)
 
 #endif /* __IWARP_COMMON__ */

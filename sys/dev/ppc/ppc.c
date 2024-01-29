@@ -27,46 +27,47 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ppc.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/interrupt.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #ifdef __i386__
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include <machine/vmparam.h>
+
 #include <machine/pc/bios.h>
+#include <machine/vmparam.h>
 #endif
 
-#include <dev/ppbus/ppbconf.h>
 #include <dev/ppbus/ppb_msq.h>
-
-#include <dev/ppc/ppcvar.h>
+#include <dev/ppbus/ppbconf.h>
 #include <dev/ppc/ppcreg.h>
+#include <dev/ppc/ppcvar.h>
 
 #include "ppbus_if.h"
 
 static void ppcintr(void *arg);
 
-#define	IO_LPTSIZE_EXTENDED	8	/* "Extended" LPT controllers */
-#define	IO_LPTSIZE_NORMAL	4	/* "Normal" LPT controllers */
+#define IO_LPTSIZE_EXTENDED 8 /* "Extended" LPT controllers */
+#define IO_LPTSIZE_NORMAL 4   /* "Normal" LPT controllers */
 
 #define LOG_PPC(function, ppc, string) \
-		if (bootverbose) printf("%s: %s\n", function, string)
+	if (bootverbose)               \
+	printf("%s: %s\n", function, string)
 
 #define DEVTOSOFTC(dev) ((struct ppc_data *)device_get_softc(dev))
 
@@ -75,42 +76,35 @@ static void ppcintr(void *arg);
  * detect the devices. We just want to make sure that both of our writes
  * happen without someone else also writing to those config registers. Since
  * we just do this at startup, Giant keeps multiple threads from executing,
- * and critical_enter() then is all that's needed to keep us from being preempted
- * during the critical sequences with the hardware.
+ * and critical_enter() then is all that's needed to keep us from being
+ * preempted during the critical sequences with the hardware.
  *
  * Note: this doesn't prevent multiple threads from putting the chips into
  * config mode, but since we only do that to detect the type at startup the
  * extra overhead isn't needed since Giant protects us from multiple entry
  * and no other code changes these registers.
  */
-#define PPC_CONFIG_LOCK(ppc)		critical_enter()
-#define PPC_CONFIG_UNLOCK(ppc)		critical_exit()
+#define PPC_CONFIG_LOCK(ppc) critical_enter()
+#define PPC_CONFIG_UNLOCK(ppc) critical_exit()
 
 const char ppc_driver_name[] = "ppc";
 
-static char *ppc_models[] = {
-	"SMC-like", "SMC FDC37C665GT", "SMC FDC37C666GT", "PC87332", "PC87306",
-	"82091AA", "Generic", "W83877F", "W83877AF", "Winbond", "PC87334",
-	"SMC FDC37C935", "PC87303", 0
-};
+static char *ppc_models[] = { "SMC-like", "SMC FDC37C665GT", "SMC FDC37C666GT",
+	"PC87332", "PC87306", "82091AA", "Generic", "W83877F", "W83877AF",
+	"Winbond", "PC87334", "SMC FDC37C935", "PC87303", 0 };
 
 /* list of available modes */
-static char *ppc_avms[] = {
-	"COMPATIBLE", "NIBBLE-only", "PS2-only", "PS2/NIBBLE", "EPP-only",
-	"EPP/NIBBLE", "EPP/PS2", "EPP/PS2/NIBBLE", "ECP-only",
-	"ECP/NIBBLE", "ECP/PS2", "ECP/PS2/NIBBLE", "ECP/EPP",
-	"ECP/EPP/NIBBLE", "ECP/EPP/PS2", "ECP/EPP/PS2/NIBBLE", 0
-};
+static char *ppc_avms[] = { "COMPATIBLE", "NIBBLE-only", "PS2-only",
+	"PS2/NIBBLE", "EPP-only", "EPP/NIBBLE", "EPP/PS2", "EPP/PS2/NIBBLE",
+	"ECP-only", "ECP/NIBBLE", "ECP/PS2", "ECP/PS2/NIBBLE", "ECP/EPP",
+	"ECP/EPP/NIBBLE", "ECP/EPP/PS2", "ECP/EPP/PS2/NIBBLE", 0 };
 
 /* list of current executing modes
  * Note that few modes do not actually exist.
  */
-static char *ppc_modes[] = {
-	"COMPATIBLE", "NIBBLE", "PS/2", "PS/2", "EPP",
-	"EPP", "EPP", "EPP", "ECP",
-	"ECP", "ECP+PS2", "ECP+PS2", "ECP+EPP",
-	"ECP+EPP", "ECP+EPP", "ECP+EPP", 0
-};
+static char *ppc_modes[] = { "COMPATIBLE", "NIBBLE", "PS/2", "PS/2", "EPP",
+	"EPP", "EPP", "EPP", "ECP", "ECP", "ECP+PS2", "ECP+PS2", "ECP+EPP",
+	"ECP+EPP", "ECP+EPP", "ECP+EPP", 0 };
 
 static char *ppc_epp_protocol[] = { " (EPP 1.9)", " (EPP 1.7)", 0 };
 
@@ -118,9 +112,9 @@ static char *ppc_epp_protocol[] = { " (EPP 1.9)", " (EPP 1.7)", 0 };
 /*
  * BIOS printer list - used by BIOS probe.
  */
-#define	BIOS_PPC_PORTS	0x408
-#define	BIOS_PORTS	((short *)BIOS_PADDRTOVADDR(BIOS_PPC_PORTS))
-#define	BIOS_MAX_PPC	4
+#define BIOS_PPC_PORTS 0x408
+#define BIOS_PORTS ((short *)BIOS_PADDRTOVADDR(BIOS_PPC_PORTS))
+#define BIOS_MAX_PPC 4
 #endif
 
 /*
@@ -180,15 +174,15 @@ ppc_detect_fifo(struct ppc_data *ppc)
 		goto error;
 	}
 
-	w_ecr(ppc, 0x34);		/* byte mode, no interrupt, no DMA */
+	w_ecr(ppc, 0x34); /* byte mode, no interrupt, no DMA */
 	ctr = r_ctr(ppc);
-	w_ctr(ppc, ctr | PCD);		/* set direction to 1 */
+	w_ctr(ppc, ctr | PCD); /* set direction to 1 */
 
 	/* enter ECP test mode, no interrupt, no DMA */
 	w_ecr(ppc, 0xd4);
 
 	/* flush the FIFO */
-	for (i=0; i<1024; i++) {
+	for (i = 0; i < 1024; i++) {
 		if (r_ecr(ppc) & PPC_FIFO_EMPTY)
 			break;
 		r_fifo(ppc);
@@ -205,14 +199,14 @@ ppc_detect_fifo(struct ppc_data *ppc)
 	/* determine readIntrThreshold
 	 * fill the FIFO until serviceIntr is set
 	 */
-	for (i=0; i<1024; i++) {
+	for (i = 0; i < 1024; i++) {
 		w_fifo(ppc, (char)i);
 		if (!ppc->ppc_rthr && (r_ecr(ppc) & PPC_SERVICE_INTR)) {
 			/* readThreshold reached */
-			ppc->ppc_rthr = i+1;
+			ppc->ppc_rthr = i + 1;
 		}
 		if (r_ecr(ppc) & PPC_FIFO_FULL) {
-			ppc->ppc_fifo = i+1;
+			ppc->ppc_fifo = i + 1;
 			break;
 		}
 	}
@@ -222,24 +216,24 @@ ppc_detect_fifo(struct ppc_data *ppc)
 		goto error;
 	}
 
-	w_ecr(ppc, 0xd4);		/* test mode, no interrupt, no DMA */
-	w_ctr(ppc, ctr & ~PCD);		/* set direction to 0 */
-	w_ecr(ppc, 0xd0);		/* enable interrupts */
+	w_ecr(ppc, 0xd4);	/* test mode, no interrupt, no DMA */
+	w_ctr(ppc, ctr & ~PCD); /* set direction to 0 */
+	w_ecr(ppc, 0xd0);	/* enable interrupts */
 
 	/* determine writeIntrThreshold
 	 * empty the FIFO until serviceIntr is set
 	 */
-	for (i=ppc->ppc_fifo; i>0; i--) {
-		if (r_fifo(ppc) != (char)(ppc->ppc_fifo-i)) {
+	for (i = ppc->ppc_fifo; i > 0; i--) {
+		if (r_fifo(ppc) != (char)(ppc->ppc_fifo - i)) {
 			LOG_PPC(__func__, ppc, "invalid data in FIFO");
 			goto error;
 		}
 		if (r_ecr(ppc) & PPC_SERVICE_INTR) {
 			/* writeIntrThreshold reached */
-			ppc->ppc_wthr = ppc->ppc_fifo - i+1;
+			ppc->ppc_wthr = ppc->ppc_fifo - i + 1;
 		}
 		/* if FIFO empty before the last byte, error */
-		if (i>1 && (r_ecr(ppc) & PPC_FIFO_EMPTY)) {
+		if (i > 1 && (r_ecr(ppc) & PPC_FIFO_EMPTY)) {
 			LOG_PPC(__func__, ppc, "data lost in FIFO");
 			goto error;
 		}
@@ -267,7 +261,7 @@ static int
 ppc_detect_port(struct ppc_data *ppc)
 {
 
-	w_ctr(ppc, 0x0c);	/* To avoid missing PS2 ports */
+	w_ctr(ppc, 0x0c); /* To avoid missing PS2 ports */
 	w_dtr(ppc, 0xaa);
 	if (r_dtr(ppc) != 0xaa)
 		return (0);
@@ -398,296 +392,311 @@ ppc_smclike_setmode(struct ppc_data *ppc, int mode)
  * References in this function are to the National Semiconductor
  * PC87332 datasheet TL/C/11930, May 1995 revision.
  */
-static int pc873xx_basetab[] = {0x0398, 0x026e, 0x015c, 0x002e, 0};
-static int pc873xx_porttab[] = {0x0378, 0x03bc, 0x0278, 0};
-static int pc873xx_irqtab[] = {5, 7, 5, 0};
+static int pc873xx_basetab[] = { 0x0398, 0x026e, 0x015c, 0x002e, 0 };
+static int pc873xx_porttab[] = { 0x0378, 0x03bc, 0x0278, 0 };
+static int pc873xx_irqtab[] = { 5, 7, 5, 0 };
 
-static int pc873xx_regstab[] = {
-	PC873_FER, PC873_FAR, PC873_PTR,
-	PC873_FCR, PC873_PCR, PC873_PMC,
-	PC873_TUP, PC873_SID, PC873_PNP0,
-	PC873_PNP1, PC873_LPTBA, -1
-};
+static int pc873xx_regstab[] = { PC873_FER, PC873_FAR, PC873_PTR, PC873_FCR,
+	PC873_PCR, PC873_PMC, PC873_TUP, PC873_SID, PC873_PNP0, PC873_PNP1,
+	PC873_LPTBA, -1 };
 
-static char *pc873xx_rnametab[] = {
-	"FER", "FAR", "PTR", "FCR", "PCR",
-	"PMC", "TUP", "SID", "PNP0", "PNP1",
-	"LPTBA", NULL
-};
+static char *pc873xx_rnametab[] = { "FER", "FAR", "PTR", "FCR", "PCR", "PMC",
+	"TUP", "SID", "PNP0", "PNP1", "LPTBA", NULL };
 
 static int
-ppc_pc873xx_detect(struct ppc_data *ppc, int chipset_mode)	/* XXX mode never forced */
+ppc_pc873xx_detect(struct ppc_data *ppc,
+    int chipset_mode) /* XXX mode never forced */
 {
-    static int	index = 0;
-    int		idport, irq;
-    int		ptr, pcr, val, i;
+	static int index = 0;
+	int idport, irq;
+	int ptr, pcr, val, i;
 
-    while ((idport = pc873xx_basetab[index++])) {
-	/* XXX should check first to see if this location is already claimed */
+	while ((idport = pc873xx_basetab[index++])) {
+		/* XXX should check first to see if this location is already
+		 * claimed */
 
-	/*
-	 * Pull the 873xx through the power-on ID cycle (2.2,1.).
-	 * We can't use this to locate the chip as it may already have
-	 * been used by the BIOS.
-	 */
-	(void)inb(idport); (void)inb(idport);
-	(void)inb(idport); (void)inb(idport);
-
-	/*
-	 * Read the SID byte.  Possible values are :
-	 *
-	 * 01010xxx	PC87334
-	 * 0001xxxx	PC87332
-	 * 01110xxx	PC87306
-	 * 00110xxx	PC87303
-	 */
-	outb(idport, PC873_SID);
-	val = inb(idport + 1);
-	if ((val & 0xf0) == 0x10) {
-	    ppc->ppc_model = NS_PC87332;
-	} else if ((val & 0xf8) == 0x70) {
-	    ppc->ppc_model = NS_PC87306;
-	} else if ((val & 0xf8) == 0x50) {
-	    ppc->ppc_model = NS_PC87334;
-	} else if ((val & 0xf8) == 0x40) { /* Should be 0x30 by the
-					      documentation, but probing
-					      yielded 0x40... */
-	    ppc->ppc_model = NS_PC87303;
-	} else {
-	    if (bootverbose && (val != 0xff))
-		printf("PC873xx probe at 0x%x got unknown ID 0x%x\n", idport, val);
-	    continue ;		/* not recognised */
-	}
-
-	/* print registers */
-	if (bootverbose) {
-		printf("PC873xx");
-		for (i=0; pc873xx_regstab[i] != -1; i++) {
-			outb(idport, pc873xx_regstab[i]);
-			printf(" %s=0x%x", pc873xx_rnametab[i],
-						inb(idport + 1) & 0xff);
-		}
-		printf("\n");
-	}
-
-	/*
-	 * We think we have one.  Is it enabled and where we want it to be?
-	 */
-	outb(idport, PC873_FER);
-	val = inb(idport + 1);
-	if (!(val & PC873_PPENABLE)) {
-	    if (bootverbose)
-		printf("PC873xx parallel port disabled\n");
-	    continue;
-	}
-	outb(idport, PC873_FAR);
-	val = inb(idport + 1);
-	/* XXX we should create a driver instance for every port found */
-	if (pc873xx_porttab[val & 0x3] != ppc->ppc_base) {
-	    /* First try to change the port address to that requested... */
-
-	    switch (ppc->ppc_base) {
-		case 0x378:
-		val &= 0xfc;
-		break;
-
-		case 0x3bc:
-		val &= 0xfd;
-		break;
-
-		case 0x278:
-		val &= 0xfe;
-		break;
-
-		default:
-		val &= 0xfd;
-		break;
-	    }
-
-	    outb(idport, PC873_FAR);
-	    outb(idport + 1, val);
-	    outb(idport + 1, val);
-
-	    /* Check for success by reading back the value we supposedly
-	       wrote and comparing...*/
-
-	    outb(idport, PC873_FAR);
-	    val = inb(idport + 1) & 0x3;
-
-	    /* If we fail, report the failure... */
-
-	    if (pc873xx_porttab[val] != ppc->ppc_base) {
- 		if (bootverbose)
-	  	    printf("PC873xx at 0x%x not for driver at port 0x%x\n",
-			   pc873xx_porttab[val], ppc->ppc_base);
-	    }
-	    continue;
-	}
-
-	outb(idport, PC873_PTR);
-	ptr = inb(idport + 1);
-
-	/* get irq settings */
-	if (ppc->ppc_base == 0x378)
-		irq = (ptr & PC873_LPTBIRQ7) ? 7 : 5;
-	else
-		irq = pc873xx_irqtab[val];
-
-	if (bootverbose)
-		printf("PC873xx irq %d at 0x%x\n", irq, ppc->ppc_base);
-
-	/*
-	 * Check if irq settings are correct
-	 */
-	if (irq != ppc->ppc_irq) {
 		/*
-		 * If the chipset is not locked and base address is 0x378,
-		 * we have another chance
+		 * Pull the 873xx through the power-on ID cycle (2.2,1.).
+		 * We can't use this to locate the chip as it may already have
+		 * been used by the BIOS.
 		 */
-		if (ppc->ppc_base == 0x378 && !(ptr & PC873_CFGLOCK)) {
-			if (ppc->ppc_irq == 7) {
-				outb(idport + 1, (ptr | PC873_LPTBIRQ7));
-				outb(idport + 1, (ptr | PC873_LPTBIRQ7));
-			} else {
-				outb(idport + 1, (ptr & ~PC873_LPTBIRQ7));
-				outb(idport + 1, (ptr & ~PC873_LPTBIRQ7));
-			}
-			if (bootverbose)
-			   printf("PC873xx irq set to %d\n", ppc->ppc_irq);
+		(void)inb(idport);
+		(void)inb(idport);
+		(void)inb(idport);
+		(void)inb(idport);
+
+		/*
+		 * Read the SID byte.  Possible values are :
+		 *
+		 * 01010xxx	PC87334
+		 * 0001xxxx	PC87332
+		 * 01110xxx	PC87306
+		 * 00110xxx	PC87303
+		 */
+		outb(idport, PC873_SID);
+		val = inb(idport + 1);
+		if ((val & 0xf0) == 0x10) {
+			ppc->ppc_model = NS_PC87332;
+		} else if ((val & 0xf8) == 0x70) {
+			ppc->ppc_model = NS_PC87306;
+		} else if ((val & 0xf8) == 0x50) {
+			ppc->ppc_model = NS_PC87334;
+		} else if ((val & 0xf8) == 0x40) { /* Should be 0x30 by the
+						      documentation, but probing
+						      yielded 0x40... */
+			ppc->ppc_model = NS_PC87303;
 		} else {
+			if (bootverbose && (val != 0xff))
+				printf(
+				    "PC873xx probe at 0x%x got unknown ID 0x%x\n",
+				    idport, val);
+			continue; /* not recognised */
+		}
+
+		/* print registers */
+		if (bootverbose) {
+			printf("PC873xx");
+			for (i = 0; pc873xx_regstab[i] != -1; i++) {
+				outb(idport, pc873xx_regstab[i]);
+				printf(" %s=0x%x", pc873xx_rnametab[i],
+				    inb(idport + 1) & 0xff);
+			}
+			printf("\n");
+		}
+
+		/*
+		 * We think we have one.  Is it enabled and where we want it to
+		 * be?
+		 */
+		outb(idport, PC873_FER);
+		val = inb(idport + 1);
+		if (!(val & PC873_PPENABLE)) {
 			if (bootverbose)
-			   printf("PC873xx sorry, can't change irq setting\n");
+				printf("PC873xx parallel port disabled\n");
+			continue;
 		}
-	} else {
-		if (bootverbose)
-			printf("PC873xx irq settings are correct\n");
-	}
+		outb(idport, PC873_FAR);
+		val = inb(idport + 1);
+		/* XXX we should create a driver instance for every port found
+		 */
+		if (pc873xx_porttab[val & 0x3] != ppc->ppc_base) {
+			/* First try to change the port address to that
+			 * requested... */
 
-	outb(idport, PC873_PCR);
-	pcr = inb(idport + 1);
+			switch (ppc->ppc_base) {
+			case 0x378:
+				val &= 0xfc;
+				break;
 
-	if ((ptr & PC873_CFGLOCK) || !chipset_mode) {
-	    if (bootverbose)
-		printf("PC873xx %s", (ptr & PC873_CFGLOCK)?"locked":"unlocked");
+			case 0x3bc:
+				val &= 0xfd;
+				break;
 
-	    ppc->ppc_avm |= PPB_NIBBLE;
-	    if (bootverbose)
-		printf(", NIBBLE");
+			case 0x278:
+				val &= 0xfe;
+				break;
 
-	    if (pcr & PC873_EPPEN) {
-		ppc->ppc_avm |= PPB_EPP;
+			default:
+				val &= 0xfd;
+				break;
+			}
 
-		if (bootverbose)
-			printf(", EPP");
+			outb(idport, PC873_FAR);
+			outb(idport + 1, val);
+			outb(idport + 1, val);
 
-		if (pcr & PC873_EPP19)
-			ppc->ppc_epp = EPP_1_9;
-		else
-			ppc->ppc_epp = EPP_1_7;
+			/* Check for success by reading back the value we
+			   supposedly wrote and comparing...*/
 
-		if ((ppc->ppc_model == NS_PC87332) && bootverbose) {
-			outb(idport, PC873_PTR);
-			ptr = inb(idport + 1);
-			if (ptr & PC873_EPPRDIR)
-				printf(", Regular mode");
-			else
-				printf(", Automatic mode");
+			outb(idport, PC873_FAR);
+			val = inb(idport + 1) & 0x3;
+
+			/* If we fail, report the failure... */
+
+			if (pc873xx_porttab[val] != ppc->ppc_base) {
+				if (bootverbose)
+					printf(
+					    "PC873xx at 0x%x not for driver at port 0x%x\n",
+					    pc873xx_porttab[val],
+					    ppc->ppc_base);
+			}
+			continue;
 		}
-	    } else if (pcr & PC873_ECPEN) {
-		ppc->ppc_avm |= PPB_ECP;
-		if (bootverbose)
-			printf(", ECP");
 
-		if (pcr & PC873_ECPCLK)	{		/* XXX */
-			ppc->ppc_avm |= PPB_PS2;
-			if (bootverbose)
-				printf(", PS/2");
-		}
-	    } else {
 		outb(idport, PC873_PTR);
 		ptr = inb(idport + 1);
-		if (ptr & PC873_EXTENDED) {
-			ppc->ppc_avm |= PPB_SPP;
-			if (bootverbose)
-				printf(", SPP");
-		}
-	    }
-	} else {
+
+		/* get irq settings */
+		if (ppc->ppc_base == 0x378)
+			irq = (ptr & PC873_LPTBIRQ7) ? 7 : 5;
+		else
+			irq = pc873xx_irqtab[val];
+
 		if (bootverbose)
-			printf("PC873xx unlocked");
+			printf("PC873xx irq %d at 0x%x\n", irq, ppc->ppc_base);
 
-		if (chipset_mode & PPB_ECP) {
-			if ((chipset_mode & PPB_EPP) && bootverbose)
-				printf(", ECP+EPP not supported");
-
-			pcr &= ~PC873_EPPEN;
-			pcr |= (PC873_ECPEN | PC873_ECPCLK);	/* XXX */
-			outb(idport + 1, pcr);
-			outb(idport + 1, pcr);
-
-			if (bootverbose)
-				printf(", ECP");
-
-		} else if (chipset_mode & PPB_EPP) {
-			pcr &= ~(PC873_ECPEN | PC873_ECPCLK);
-			pcr |= (PC873_EPPEN | PC873_EPP19);
-			outb(idport + 1, pcr);
-			outb(idport + 1, pcr);
-
-			ppc->ppc_epp = EPP_1_9;			/* XXX */
-
-			if (bootverbose)
-				printf(", EPP1.9");
-
-			/* enable automatic direction turnover */
-			if (ppc->ppc_model == NS_PC87332) {
-				outb(idport, PC873_PTR);
-				ptr = inb(idport + 1);
-				ptr &= ~PC873_EPPRDIR;
-				outb(idport + 1, ptr);
-				outb(idport + 1, ptr);
-
+		/*
+		 * Check if irq settings are correct
+		 */
+		if (irq != ppc->ppc_irq) {
+			/*
+			 * If the chipset is not locked and base address is
+			 * 0x378, we have another chance
+			 */
+			if (ppc->ppc_base == 0x378 && !(ptr & PC873_CFGLOCK)) {
+				if (ppc->ppc_irq == 7) {
+					outb(idport + 1,
+					    (ptr | PC873_LPTBIRQ7));
+					outb(idport + 1,
+					    (ptr | PC873_LPTBIRQ7));
+				} else {
+					outb(idport + 1,
+					    (ptr & ~PC873_LPTBIRQ7));
+					outb(idport + 1,
+					    (ptr & ~PC873_LPTBIRQ7));
+				}
 				if (bootverbose)
-					printf(", Automatic mode");
+					printf("PC873xx irq set to %d\n",
+					    ppc->ppc_irq);
+			} else {
+				if (bootverbose)
+					printf(
+					    "PC873xx sorry, can't change irq setting\n");
 			}
 		} else {
-			pcr &= ~(PC873_ECPEN | PC873_ECPCLK | PC873_EPPEN);
-			outb(idport + 1, pcr);
-			outb(idport + 1, pcr);
-
-			/* configure extended bit in PTR */
-			outb(idport, PC873_PTR);
-			ptr = inb(idport + 1);
-
-			if (chipset_mode & PPB_PS2) {
-				ptr |= PC873_EXTENDED;
-
-				if (bootverbose)
-					printf(", PS/2");
-
-			} else {
-				/* default to NIBBLE mode */
-				ptr &= ~PC873_EXTENDED;
-
-				if (bootverbose)
-					printf(", NIBBLE");
-			}
-			outb(idport + 1, ptr);
-			outb(idport + 1, ptr);
+			if (bootverbose)
+				printf("PC873xx irq settings are correct\n");
 		}
 
-		ppc->ppc_avm = chipset_mode;
+		outb(idport, PC873_PCR);
+		pcr = inb(idport + 1);
+
+		if ((ptr & PC873_CFGLOCK) || !chipset_mode) {
+			if (bootverbose)
+				printf("PC873xx %s",
+				    (ptr & PC873_CFGLOCK) ? "locked" :
+							    "unlocked");
+
+			ppc->ppc_avm |= PPB_NIBBLE;
+			if (bootverbose)
+				printf(", NIBBLE");
+
+			if (pcr & PC873_EPPEN) {
+				ppc->ppc_avm |= PPB_EPP;
+
+				if (bootverbose)
+					printf(", EPP");
+
+				if (pcr & PC873_EPP19)
+					ppc->ppc_epp = EPP_1_9;
+				else
+					ppc->ppc_epp = EPP_1_7;
+
+				if ((ppc->ppc_model == NS_PC87332) &&
+				    bootverbose) {
+					outb(idport, PC873_PTR);
+					ptr = inb(idport + 1);
+					if (ptr & PC873_EPPRDIR)
+						printf(", Regular mode");
+					else
+						printf(", Automatic mode");
+				}
+			} else if (pcr & PC873_ECPEN) {
+				ppc->ppc_avm |= PPB_ECP;
+				if (bootverbose)
+					printf(", ECP");
+
+				if (pcr & PC873_ECPCLK) { /* XXX */
+					ppc->ppc_avm |= PPB_PS2;
+					if (bootverbose)
+						printf(", PS/2");
+				}
+			} else {
+				outb(idport, PC873_PTR);
+				ptr = inb(idport + 1);
+				if (ptr & PC873_EXTENDED) {
+					ppc->ppc_avm |= PPB_SPP;
+					if (bootverbose)
+						printf(", SPP");
+				}
+			}
+		} else {
+			if (bootverbose)
+				printf("PC873xx unlocked");
+
+			if (chipset_mode & PPB_ECP) {
+				if ((chipset_mode & PPB_EPP) && bootverbose)
+					printf(", ECP+EPP not supported");
+
+				pcr &= ~PC873_EPPEN;
+				pcr |= (PC873_ECPEN | PC873_ECPCLK); /* XXX */
+				outb(idport + 1, pcr);
+				outb(idport + 1, pcr);
+
+				if (bootverbose)
+					printf(", ECP");
+
+			} else if (chipset_mode & PPB_EPP) {
+				pcr &= ~(PC873_ECPEN | PC873_ECPCLK);
+				pcr |= (PC873_EPPEN | PC873_EPP19);
+				outb(idport + 1, pcr);
+				outb(idport + 1, pcr);
+
+				ppc->ppc_epp = EPP_1_9; /* XXX */
+
+				if (bootverbose)
+					printf(", EPP1.9");
+
+				/* enable automatic direction turnover */
+				if (ppc->ppc_model == NS_PC87332) {
+					outb(idport, PC873_PTR);
+					ptr = inb(idport + 1);
+					ptr &= ~PC873_EPPRDIR;
+					outb(idport + 1, ptr);
+					outb(idport + 1, ptr);
+
+					if (bootverbose)
+						printf(", Automatic mode");
+				}
+			} else {
+				pcr &= ~(
+				    PC873_ECPEN | PC873_ECPCLK | PC873_EPPEN);
+				outb(idport + 1, pcr);
+				outb(idport + 1, pcr);
+
+				/* configure extended bit in PTR */
+				outb(idport, PC873_PTR);
+				ptr = inb(idport + 1);
+
+				if (chipset_mode & PPB_PS2) {
+					ptr |= PC873_EXTENDED;
+
+					if (bootverbose)
+						printf(", PS/2");
+
+				} else {
+					/* default to NIBBLE mode */
+					ptr &= ~PC873_EXTENDED;
+
+					if (bootverbose)
+						printf(", NIBBLE");
+				}
+				outb(idport + 1, ptr);
+				outb(idport + 1, ptr);
+			}
+
+			ppc->ppc_avm = chipset_mode;
+		}
+
+		if (bootverbose)
+			printf("\n");
+
+		ppc->ppc_type = PPC_TYPE_GENERIC;
+		ppc_generic_setmode(ppc, chipset_mode);
+
+		return (chipset_mode);
 	}
-
-	if (bootverbose)
-		printf("\n");
-
-	ppc->ppc_type = PPC_TYPE_GENERIC;
-	ppc_generic_setmode(ppc, chipset_mode);
-
-	return(chipset_mode);
-    }
-    return(-1);
+	return (-1);
 }
 
 /*
@@ -701,11 +710,11 @@ ppc_smc37c66xgt_detect(struct ppc_data *ppc, int chipset_mode)
 	int i;
 	u_char r;
 	int type = -1;
-	int csr = SMC66x_CSR;	/* initial value is 0x3F0 */
+	int csr = SMC66x_CSR; /* initial value is 0x3F0 */
 
-	int port_address[] = { -1 /* disabled */ , 0x3bc, 0x378, 0x278 };
+	int port_address[] = { -1 /* disabled */, 0x3bc, 0x378, 0x278 };
 
-#define cio csr+1	/* config IO port is either 0x3F1 or 0x371 */
+#define cio csr + 1 /* config IO port is either 0x3F1 or 0x371 */
 
 	/*
 	 * Detection: enter configuration mode and read CRD register.
@@ -742,7 +751,7 @@ config:
 	 * If chipset not found, do not continue.
 	 */
 	if (type == -1) {
-		outb(csr, 0xaa);	/* end config mode */
+		outb(csr, 0xaa); /* end config mode */
 		return (-1);
 	}
 
@@ -752,7 +761,7 @@ config:
 	/* read the port's address: bits 0 and 1 of CR1 */
 	r = inb(cio) & SMC_CR1_ADDR;
 	if (port_address[(int)r] != ppc->ppc_base) {
-		outb(csr, 0xaa);	/* end config mode */
+		outb(csr, 0xaa); /* end config mode */
 		return (-1);
 	}
 
@@ -782,11 +791,10 @@ config:
 		if (type == SMC_37C666GT) {
 			ppc->ppc_avm |= PPB_ECP | PPB_EPP | PPB_SPP;
 			if (bootverbose)
-				printf(" configuration hardwired, supposing " \
-					"ECP+EPP SPP");
+				printf(" configuration hardwired, supposing "
+				       "ECP+EPP SPP");
 
-		} else
-		   if ((inb(cio) & SMC_CR1_MODE) == 0) {
+		} else if ((inb(cio) & SMC_CR1_MODE) == 0) {
 			/* already in extended parallel port mode, read CR4 */
 			outb(csr, 0x4);
 			r = (inb(cio) & SMC_CR4_EMODE);
@@ -816,12 +824,12 @@ config:
 					printf(" ECP+EPP SPP");
 				break;
 			}
-		   } else {
+		} else {
 			/* not an extended port mode */
 			ppc->ppc_avm |= PPB_SPP;
 			if (bootverbose)
 				printf(" SPP");
-		   }
+		}
 
 	} else {
 		/* mode forced */
@@ -875,7 +883,7 @@ config:
 end_detect:
 
 	if (bootverbose)
-		printf ("\n");
+		printf("\n");
 
 	if (ppc->ppc_avm & PPB_EPP) {
 		/* select CR4 */
@@ -892,7 +900,7 @@ end_detect:
 			outb(cio, (r | SMC_CR4_EPPTYPE));
 	}
 
-	outb(csr, 0xaa);	/* end config mode */
+	outb(csr, 0xaa); /* end config mode */
 
 	ppc->ppc_type = PPC_TYPE_SMCLIKE;
 	ppc_smclike_setmode(ppc, chipset_mode);
@@ -926,7 +934,7 @@ ppc_smc37c935_detect(struct ppc_data *ppc, int chipset_mode)
 	ppc->ppc_model = type;
 
 	outb(SMC935_IND, SMC935_LOGDEV); /* select parallel port, */
-	outb(SMC935_DAT, 3);	     /* which is logical device 3 */
+	outb(SMC935_DAT, 3);		 /* which is logical device 3 */
 
 	/* set io port base */
 	outb(SMC935_IND, SMC935_PORTHI);
@@ -997,7 +1005,8 @@ ppc_smc37c935_detect(struct ppc_data *ppc, int chipset_mode)
 static int w83877f_efers[] = { 0x250, 0x3f0, 0x3f0, 0x250 };
 static int w83877f_keys[] = { 0x89, 0x86, 0x87, 0x88 };
 static int w83877f_keyiter[] = { 1, 2, 2, 1 };
-static int w83877f_hefs[] = { WINB_HEFERE, WINB_HEFRAS, WINB_HEFERE | WINB_HEFRAS, 0 };
+static int w83877f_hefs[] = { WINB_HEFERE, WINB_HEFRAS,
+	WINB_HEFERE | WINB_HEFRAS, 0 };
 
 static int
 ppc_w83877f_detect(struct ppc_data *ppc, int chipset_mode)
@@ -1005,19 +1014,19 @@ ppc_w83877f_detect(struct ppc_data *ppc, int chipset_mode)
 	int i, j, efer;
 	unsigned char r, hefere, hefras;
 
-	for (i = 0; i < 4; i ++) {
+	for (i = 0; i < 4; i++) {
 		/* first try to enable configuration registers */
 		efer = w83877f_efers[i];
 
 		/* write the key to the EFER */
-		for (j = 0; j < w83877f_keyiter[i]; j ++)
-			outb (efer, w83877f_keys[i]);
+		for (j = 0; j < w83877f_keyiter[i]; j++)
+			outb(efer, w83877f_keys[i]);
 
 		/* then check HEFERE and HEFRAS bits */
-		outb (efir, 0x0c);
+		outb(efir, 0x0c);
 		hefere = inb(efdr) & WINB_HEFERE;
 
-		outb (efir, 0x16);
+		outb(efir, 0x16);
 		hefras = inb(efdr) & WINB_HEFRAS;
 
 		/*
@@ -1031,44 +1040,44 @@ ppc_w83877f_detect(struct ppc_data *ppc, int chipset_mode)
 			goto found;
 	}
 
-	return (-1);	/* failed */
+	return (-1); /* failed */
 
 found:
 	/* check base port address - read from CR23 */
 	outb(efir, 0x23);
-	if (ppc->ppc_base != inb(efdr) * 4)		/* 4 bytes boundaries */
+	if (ppc->ppc_base != inb(efdr) * 4) /* 4 bytes boundaries */
 		return (-1);
 
 	/* read CHIP ID from CR9/bits0-3 */
 	outb(efir, 0x9);
 
 	switch (inb(efdr) & WINB_CHIPID) {
-		case WINB_W83877F_ID:
-			ppc->ppc_model = WINB_W83877F;
-			break;
+	case WINB_W83877F_ID:
+		ppc->ppc_model = WINB_W83877F;
+		break;
 
-		case WINB_W83877AF_ID:
-			ppc->ppc_model = WINB_W83877AF;
-			break;
+	case WINB_W83877AF_ID:
+		ppc->ppc_model = WINB_W83877AF;
+		break;
 
-		default:
-			ppc->ppc_model = WINB_UNKNOWN;
+	default:
+		ppc->ppc_model = WINB_UNKNOWN;
 	}
 
 	if (bootverbose) {
 		/* dump of registers */
 		device_printf(ppc->ppc_dev, "0x%x - ", w83877f_keys[i]);
-		for (i = 0; i <= 0xd; i ++) {
+		for (i = 0; i <= 0xd; i++) {
 			outb(efir, i);
 			printf("0x%x ", inb(efdr));
 		}
-		for (i = 0x10; i <= 0x17; i ++) {
+		for (i = 0x10; i <= 0x17; i++) {
 			outb(efir, i);
 			printf("0x%x ", inb(efdr));
 		}
 		outb(efir, 0x1e);
 		printf("0x%x ", inb(efdr));
-		for (i = 0x20; i <= 0x29; i ++) {
+		for (i = 0x20; i <= 0x29; i++) {
 			outb(efir, i);
 			printf("0x%x ", inb(efdr));
 		}
@@ -1093,7 +1102,7 @@ found:
 			if (bootverbose)
 				device_printf(ppc->ppc_dev,
 				    "W83757 compatible mode\n");
-			return (-1);	/* generic or SMC-like */
+			return (-1); /* generic or SMC-like */
 
 		case WINB_EXTFDC:
 		case WINB_EXTADP:
@@ -1249,24 +1258,20 @@ ppc_generic_detect(struct ppc_data *ppc, int chipset_mode)
  * mode is the mode suggested at boot
  */
 static int
-ppc_detect(struct ppc_data *ppc, int chipset_mode) {
+ppc_detect(struct ppc_data *ppc, int chipset_mode)
+{
 #ifdef PPC_PROBE_CHIPSET
 	int i, mode;
 
 	/* list of supported chipsets */
-	int (*chipset_detect[])(struct ppc_data *, int) = {
-		ppc_pc873xx_detect,
-		ppc_smc37c66xgt_detect,
-		ppc_w83877f_detect,
-		ppc_smc37c935_detect,
-		ppc_generic_detect,
-		NULL
-	};
+	int (*chipset_detect[])(struct ppc_data *, int) = { ppc_pc873xx_detect,
+		ppc_smc37c66xgt_detect, ppc_w83877f_detect,
+		ppc_smc37c935_detect, ppc_generic_detect, NULL };
 #endif
 
 	/* if can't find the port and mode not forced return error */
 	if (!ppc_detect_port(ppc) && chipset_mode == 0)
-		return (EIO);			/* failed, port not present */
+		return (EIO); /* failed, port not present */
 
 	/* assume centronics compatible mode is supported */
 	ppc->ppc_avm = PPB_COMPATIBLE;
@@ -1286,8 +1291,9 @@ ppc_detect(struct ppc_data *ppc, int chipset_mode) {
 
 #ifdef PPC_PROBE_CHIPSET
 	} else {
-		for (i=0; chipset_detect[i] != NULL; i++) {
-			if ((mode = chipset_detect[i](ppc, chipset_mode)) != -1) {
+		for (i = 0; chipset_detect[i] != NULL; i++) {
+			if ((mode = chipset_detect[i](ppc, chipset_mode)) !=
+			    -1) {
 				ppc->ppc_mode = mode;
 				break;
 			}
@@ -1324,12 +1330,12 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 
 	struct ppb_microseq *stack = NULL;
 
-/* microsequence registers are equivalent to PC-like port registers */
+	/* microsequence registers are equivalent to PC-like port registers */
 
-#define r_reg(reg,ppc) (bus_read_1((ppc)->res_ioport, reg))
+#define r_reg(reg, ppc) (bus_read_1((ppc)->res_ioport, reg))
 #define w_reg(reg, ppc, byte) (bus_write_1((ppc)->res_ioport, reg, byte))
 
-#define INCR_PC (mi ++)		/* increment program counter */
+#define INCR_PC (mi++) /* increment program counter */
 
 	PPC_ASSERT_LOCKED(ppc);
 	mi = *p_msq;
@@ -1337,8 +1343,8 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 		switch (mi->opcode) {
 		case MS_OP_RSET:
 			cc = r_reg(mi->arg[0].i, ppc);
-			cc &= (char)mi->arg[2].i;	/* clear mask */
-			cc |= (char)mi->arg[1].i;	/* assert mask */
+			cc &= (char)mi->arg[2].i; /* clear mask */
+			cc |= (char)mi->arg[1].i; /* assert mask */
 			w_reg(mi->arg[0].i, ppc, cc);
 			INCR_PC;
 			break;
@@ -1353,7 +1359,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 					w_reg(reg, ppc, *ptr++);
 				ppc->ppc_accum = accum;
 			} else
-				for (i=0; i<len; i++)
+				for (i = 0; i < len; i++)
 					w_reg(reg, ppc, *ptr++);
 			ppc->ppc_ptr = ptr;
 
@@ -1371,7 +1377,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 					*ptr++ = r_reg(reg, ppc) & mask;
 				ppc->ppc_accum = accum;
 			} else
-				for (i=0; i<len; i++)
+				for (i = 0; i < len; i++)
 					*ptr++ = r_reg(reg, ppc) & mask;
 			ppc->ppc_ptr = ptr;
 
@@ -1379,8 +1385,8 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 			break;
 
 		case MS_OP_RFETCH:
-			*((char *) mi->arg[2].p) = r_reg(mi->arg[0].i, ppc) &
-							(char)mi->arg[1].i;
+			*((char *)mi->arg[2].p) = r_reg(mi->arg[0].i, ppc) &
+			    (char)mi->arg[1].i;
 			INCR_PC;
 			break;
 
@@ -1389,7 +1395,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 
 		/* let's suppose the next instr. is the same */
 		prefetch:
-			for (;mi->opcode == MS_OP_RASSERT; INCR_PC)
+			for (; mi->opcode == MS_OP_RASSERT; INCR_PC)
 				w_reg(mi->arg[0].i, ppc, (char)mi->arg[1].i);
 
 			if (mi->opcode == MS_OP_DELAY) {
@@ -1402,7 +1408,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 		case MS_OP_ADELAY:
 			if (mi->arg[0].i) {
 				PPC_UNLOCK(ppc);
-				pause("ppbdelay", mi->arg[0].i * (hz/1000));
+				pause("ppbdelay", mi->arg[0].i * (hz / 1000));
 				PPC_LOCK(ppc);
 			}
 			INCR_PC;
@@ -1414,7 +1420,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 			p = (char *)mi->arg[2].p;
 
 			/* XXX delay limited to 255 us */
-			for (i=0; i<iter; i++) {
+			for (i = 0; i < iter; i++) {
 				w_reg(reg, ppc, *p++);
 				DELAY((unsigned char)*p++);
 			}
@@ -1449,7 +1455,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 		case MS_OP_BRSTAT:
 			cc = r_str(ppc);
 			if ((cc & ((char)mi->arg[0].i | (char)mi->arg[1].i)) ==
-							(char)mi->arg[0].i)
+			    (char)mi->arg[0].i)
 				mi += mi->arg[2].i;
 			INCR_PC;
 			break;
@@ -1506,7 +1512,7 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 			 * of a submicrosequence */
 			if (stack)
 				panic("%s: can't return to ppb level",
-								__func__);
+				    __func__);
 
 			/* update pc for ppb level of execution */
 			*p_msq = mi;
@@ -1515,8 +1521,8 @@ ppc_exec_microseq(device_t dev, struct ppb_microseq **p_msq)
 			return (0);
 
 		default:
-			panic("%s: unknown microsequence opcode 0x%x",
-			    __func__, mi->opcode);
+			panic("%s: unknown microsequence opcode 0x%x", __func__,
+			    mi->opcode);
 		}
 	}
 
@@ -1548,7 +1554,7 @@ ppcintr(void *arg)
 	ecr = r_ecr(ppc);
 
 #if defined(PPC_DEBUG) && PPC_DEBUG > 1
-		printf("![%x/%x/%x]", ctr, ecr, str);
+	printf("![%x/%x/%x]", ctr, ecr, str);
 #endif
 
 	/* don't use ecp mode with IRQENABLE set */
@@ -1562,7 +1568,7 @@ ppcintr(void *arg)
 	if ((str & nFAULT) && (ppc->ppc_mode & PPB_ECP)) {
 		/* check if ppc driver has programmed the
 		 * nFault interrupt */
-		if  (ppc->ppc_irqstat & PPC_IRQ_nFAULT) {
+		if (ppc->ppc_irqstat & PPC_IRQ_nFAULT) {
 			w_ecr(ppc, ecr | PPC_nFAULT_INTR);
 			ppc->ppc_irqstat &= ~PPC_IRQ_nFAULT;
 		} else {
@@ -1688,7 +1694,7 @@ ppc_probe(device_t dev, int rid)
 			return (ENXIO);
 		}
 		bus_set_resource(dev, SYS_RES_IOPORT, rid, port,
-				 IO_LPTSIZE_EXTENDED);
+		    IO_LPTSIZE_EXTENDED);
 	}
 #endif
 
@@ -1696,41 +1702,37 @@ ppc_probe(device_t dev, int rid)
 
 	/* Try "extended" IO port range...*/
 	ppc->res_ioport = bus_alloc_resource_anywhere(dev, SYS_RES_IOPORT,
-						      &ppc->rid_ioport,
-						      IO_LPTSIZE_EXTENDED,
-						      RF_ACTIVE);
+	    &ppc->rid_ioport, IO_LPTSIZE_EXTENDED, RF_ACTIVE);
 
 	if (ppc->res_ioport != 0) {
 		if (bootverbose)
 			device_printf(dev, "using extended I/O port range\n");
 	} else {
 		/* Failed? If so, then try the "normal" IO port range... */
-		 ppc->res_ioport = bus_alloc_resource_anywhere(dev,
-		 	 				       SYS_RES_IOPORT,
-							       &ppc->rid_ioport,
-							       IO_LPTSIZE_NORMAL,
-							       RF_ACTIVE);
+		ppc->res_ioport = bus_alloc_resource_anywhere(dev,
+		    SYS_RES_IOPORT, &ppc->rid_ioport, IO_LPTSIZE_NORMAL,
+		    RF_ACTIVE);
 		if (ppc->res_ioport != 0) {
 			if (bootverbose)
-				device_printf(dev, "using normal I/O port range\n");
+				device_printf(dev,
+				    "using normal I/O port range\n");
 		} else {
 			if (bootverbose)
-				device_printf(dev, "cannot reserve I/O port range\n");
+				device_printf(dev,
+				    "cannot reserve I/O port range\n");
 			goto error;
 		}
 	}
 
- 	ppc->ppc_base = rman_get_start(ppc->res_ioport);
+	ppc->ppc_base = rman_get_start(ppc->res_ioport);
 
 	ppc->ppc_flags = device_get_flags(dev);
 
 	if (!(ppc->ppc_flags & 0x20)) {
 		ppc->res_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-						      &ppc->rid_irq,
-						      RF_SHAREABLE);
+		    &ppc->rid_irq, RF_SHAREABLE);
 		ppc->res_drq = bus_alloc_resource_any(dev, SYS_RES_DRQ,
-						      &ppc->rid_drq,
-						      RF_ACTIVE);
+		    &ppc->rid_drq, RF_ACTIVE);
 	}
 
 	if (ppc->res_irq)
@@ -1757,15 +1759,15 @@ ppc_probe(device_t dev, int rid)
 error:
 	if (ppc->res_irq != 0) {
 		bus_release_resource(dev, SYS_RES_IRQ, ppc->rid_irq,
-				     ppc->res_irq);
+		    ppc->res_irq);
 	}
 	if (ppc->res_ioport != 0) {
 		bus_release_resource(dev, SYS_RES_IOPORT, ppc->rid_ioport,
-				     ppc->res_ioport);
+		    ppc->res_ioport);
 	}
 	if (ppc->res_drq != 0) {
 		bus_release_resource(dev, SYS_RES_DRQ, ppc->rid_drq,
-				     ppc->res_drq);
+		    ppc->res_drq);
 	}
 	return (ENXIO);
 }
@@ -1779,18 +1781,19 @@ ppc_attach(device_t dev)
 	mtx_init(&ppc->ppc_lock, device_get_nameunit(dev), "ppc", MTX_DEF);
 
 	device_printf(dev, "%s chipset (%s) in %s mode%s\n",
-		      ppc_models[ppc->ppc_model], ppc_avms[ppc->ppc_avm],
-		      ppc_modes[ppc->ppc_mode], (PPB_IS_EPP(ppc->ppc_mode)) ?
-		      ppc_epp_protocol[ppc->ppc_epp] : "");
+	    ppc_models[ppc->ppc_model], ppc_avms[ppc->ppc_avm],
+	    ppc_modes[ppc->ppc_mode],
+	    (PPB_IS_EPP(ppc->ppc_mode)) ? ppc_epp_protocol[ppc->ppc_epp] : "");
 
 	if (ppc->ppc_fifo)
 		device_printf(dev, "FIFO with %d/%d/%d bytes threshold\n",
-			      ppc->ppc_fifo, ppc->ppc_wthr, ppc->ppc_rthr);
+		    ppc->ppc_fifo, ppc->ppc_wthr, ppc->ppc_rthr);
 
 	if (ppc->res_irq) {
-		/* default to the tty mask for registration */	/* XXX */
-		error = bus_setup_intr(dev, ppc->res_irq, INTR_TYPE_TTY |
-		    INTR_MPSAFE, NULL, ppcintr, ppc, &ppc->intr_cookie);
+		/* default to the tty mask for registration */ /* XXX */
+		error = bus_setup_intr(dev, ppc->res_irq,
+		    INTR_TYPE_TTY | INTR_MPSAFE, NULL, ppcintr, ppc,
+		    &ppc->intr_cookie);
 		if (error) {
 			device_printf(dev,
 			    "failed to register interrupt handler: %d\n",
@@ -1826,15 +1829,15 @@ ppc_detach(device_t dev)
 	if (ppc->res_irq != 0) {
 		bus_teardown_intr(dev, ppc->res_irq, ppc->intr_cookie);
 		bus_release_resource(dev, SYS_RES_IRQ, ppc->rid_irq,
-				     ppc->res_irq);
+		    ppc->res_irq);
 	}
 	if (ppc->res_ioport != 0) {
 		bus_release_resource(dev, SYS_RES_IOPORT, ppc->rid_ioport,
-				     ppc->res_ioport);
+		    ppc->res_ioport);
 	}
 	if (ppc->res_drq != 0) {
 		bus_release_resource(dev, SYS_RES_DRQ, ppc->rid_drq,
-				     ppc->res_drq);
+		    ppc->res_drq);
 	}
 
 	mtx_destroy(&ppc->ppc_lock);
@@ -1850,22 +1853,26 @@ ppc_io(device_t ppcdev, int iop, u_char *addr, int cnt, u_char byte)
 	PPC_ASSERT_LOCKED(ppc);
 	switch (iop) {
 	case PPB_OUTSB_EPP:
-	    bus_write_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
+		bus_write_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
 		break;
 	case PPB_OUTSW_EPP:
-	    bus_write_multi_2(ppc->res_ioport, PPC_EPP_DATA, (u_int16_t *)addr, cnt);
+		bus_write_multi_2(ppc->res_ioport, PPC_EPP_DATA,
+		    (u_int16_t *)addr, cnt);
 		break;
 	case PPB_OUTSL_EPP:
-	    bus_write_multi_4(ppc->res_ioport, PPC_EPP_DATA, (u_int32_t *)addr, cnt);
+		bus_write_multi_4(ppc->res_ioport, PPC_EPP_DATA,
+		    (u_int32_t *)addr, cnt);
 		break;
 	case PPB_INSB_EPP:
-	    bus_read_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
+		bus_read_multi_1(ppc->res_ioport, PPC_EPP_DATA, addr, cnt);
 		break;
 	case PPB_INSW_EPP:
-	    bus_read_multi_2(ppc->res_ioport, PPC_EPP_DATA, (u_int16_t *)addr, cnt);
+		bus_read_multi_2(ppc->res_ioport, PPC_EPP_DATA,
+		    (u_int16_t *)addr, cnt);
 		break;
 	case PPB_INSL_EPP:
-	    bus_read_multi_4(ppc->res_ioport, PPC_EPP_DATA, (u_int32_t *)addr, cnt);
+		bus_read_multi_4(ppc->res_ioport, PPC_EPP_DATA,
+		    (u_int32_t *)addr, cnt);
 		break;
 	case PPB_RDTR:
 		return (r_dtr(ppc));
@@ -1907,7 +1914,7 @@ ppc_io(device_t ppcdev, int iop, u_char *addr, int cnt, u_char byte)
 		break;
 	}
 
-	return (0);	/* not significative */
+	return (0); /* not significative */
 }
 
 int

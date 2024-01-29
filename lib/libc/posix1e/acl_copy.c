@@ -27,14 +27,14 @@
  */
 
 #include <sys/types.h>
-#include "namespace.h"
 #include <sys/acl.h>
-#include "un-namespace.h"
 
 #include <errno.h>
 #include <string.h>
 
 #include "acl_support.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * acl_copy_entry() (23.4.4): copy the contents of ACL entry src_d to

@@ -28,11 +28,11 @@
 #include <sys/ioctl.h>
 #include <sys/uio.h>
 
-#include </sys/dev/mfi/mfireg.h>
-#include </sys/dev/mfi/mfi_ioctl.h>
-
 #include <errno.h>
 #include <stdio.h>
+
+#include </sys/dev/mfi/mfi_ioctl.h>
+#include </sys/dev/mfi/mfireg.h>
 
 /*
  * Simple program to print out the queue stats on the given queue index.
@@ -71,7 +71,8 @@ main(int argc, char **argv)
 		return (-1);
 	}
 
-	printf("length= %d, max= %d\n",sr.ms_qstat.q_length, sr.ms_qstat.q_max);
+	printf("length= %d, max= %d\n", sr.ms_qstat.q_length,
+	    sr.ms_qstat.q_max);
 
 	close(fd);
 	return 0;

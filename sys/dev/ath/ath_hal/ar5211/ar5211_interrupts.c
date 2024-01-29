@@ -20,7 +20,6 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5211/ar5211.h"
 #include "ar5211/ar5211reg.h"
 
@@ -86,8 +85,8 @@ ar5211GetPendingInterrupts(struct ath_hal *ah, HAL_INT *masked)
 		AH_PRIVATE(ah)->ah_fatalState[4] = OS_REG_READ(ah, AR_ISR_S3_S);
 		AH_PRIVATE(ah)->ah_fatalState[5] = OS_REG_READ(ah, AR_ISR_S4_S);
 		HALDEBUG(ah, HAL_DEBUG_ANY,
-		    "%s: fatal error, ISR_RAC=0x%x ISR_S2_S=0x%x\n",
-		    __func__, isr, AH_PRIVATE(ah)->ah_fatalState[3]);
+		    "%s: fatal error, ISR_RAC=0x%x ISR_S2_S=0x%x\n", __func__,
+		    isr, AH_PRIVATE(ah)->ah_fatalState[3]);
 	}
 	return AH_TRUE;
 }
@@ -109,8 +108,8 @@ ar5211SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	uint32_t omask = ahp->ah_maskReg;
 	uint32_t mask;
 
-	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n",
-	    __func__, omask, ints);
+	HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: 0x%x => 0x%x\n", __func__, omask,
+	    ints);
 
 	/*
 	 * Disable interrupts here before reading & modifying
@@ -118,10 +117,11 @@ ar5211SetInterrupts(struct ath_hal *ah, HAL_INT ints)
 	 * out from under us.
 	 */
 	if (omask & HAL_INT_GLOBAL) {
-		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n", __func__);
+		HALDEBUG(ah, HAL_DEBUG_INTERRUPT, "%s: disable IER\n",
+		    __func__);
 		OS_REG_WRITE(ah, AR_IER, AR_IER_DISABLE);
 		/* XXX??? */
-		(void) OS_REG_READ(ah, AR_IER);	/* flush write to HW */
+		(void)OS_REG_READ(ah, AR_IER); /* flush write to HW */
 	}
 
 	mask = ints & HAL_INT_COMMON;

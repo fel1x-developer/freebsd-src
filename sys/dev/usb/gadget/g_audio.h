@@ -26,16 +26,16 @@
  */
 
 #ifndef _G_AUDIO_H_
-#define	_G_AUDIO_H_
+#define _G_AUDIO_H_
 
-#define	G_AUDIO_MAX_STRLEN 32		/* chars */
-#define	G_AUDIO_FRAMES 8
-#define	G_AUDIO_BUFSIZE (G_AUDIO_FRAMES * 2 * 2 * 48)	/* units */
+#define G_AUDIO_MAX_STRLEN 32 /* chars */
+#define G_AUDIO_FRAMES 8
+#define G_AUDIO_BUFSIZE (G_AUDIO_FRAMES * 2 * 2 * 48) /* units */
 
-#define	G_AUDIO_MODE_SILENT 0
-#define	G_AUDIO_MODE_DUMP 1
-#define	G_AUDIO_MODE_LOOP 2
-#define	G_AUDIO_MODE_PATTERN 3
-#define	G_AUDIO_MODE_MAX 4
+#define G_AUDIO_MODE_SILENT 0
+#define G_AUDIO_MODE_DUMP 1
+#define G_AUDIO_MODE_LOOP 2
+#define G_AUDIO_MODE_PATTERN 3
+#define G_AUDIO_MODE_MAX 4
 
-#endif					/* _G_AUDIO_H_ */
+#endif /* _G_AUDIO_H_ */

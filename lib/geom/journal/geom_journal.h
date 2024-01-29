@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_GEOM_JOURNAL_H_
-#define	_GEOM_JOURNAL_H_
+#ifndef _GEOM_JOURNAL_H_
+#define _GEOM_JOURNAL_H_
 int g_journal_ufs_exists(const char *prov);
 int g_journal_ufs_using_last_sector(const char *prov);
-#endif	/* !_GEOM_JOURNAL_H_ */
+#endif /* !_GEOM_JOURNAL_H_ */

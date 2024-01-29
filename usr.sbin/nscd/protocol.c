@@ -26,6 +26,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,15 +68,16 @@ init_comm_element(struct comm_element *element, enum comm_element_t type)
 		init_cache_mp_write_session_request(&element->c_mp_ws_request);
 		break;
 	case CET_MP_WRITE_SESSION_RESPONSE:
-		init_cache_mp_write_session_response(&element->c_mp_ws_response);
+		init_cache_mp_write_session_response(
+		    &element->c_mp_ws_response);
 		break;
 	case CET_MP_WRITE_SESSION_WRITE_REQUEST:
 		init_cache_mp_write_session_write_request(
-			&element->c_mp_ws_write_request);
+		    &element->c_mp_ws_write_request);
 		break;
 	case CET_MP_WRITE_SESSION_WRITE_RESPONSE:
 		init_cache_mp_write_session_write_response(
-			&element->c_mp_ws_write_response);
+		    &element->c_mp_ws_write_response);
 		break;
 	case CET_MP_READ_SESSION_REQUEST:
 		init_cache_mp_read_session_request(&element->c_mp_rs_request);
@@ -85,14 +87,14 @@ init_comm_element(struct comm_element *element, enum comm_element_t type)
 		break;
 	case CET_MP_READ_SESSION_READ_RESPONSE:
 		init_cache_mp_read_session_read_response(
-			&element->c_mp_rs_read_response);
+		    &element->c_mp_rs_read_response);
 		break;
 	case CET_UNDEFINED:
 		break;
 	default:
 		LOG_ERR_2("init_comm_element", "invalid communication element");
 		TRACE_OUT(init_comm_element);
-	return;
+		return;
 	}
 
 	element->type = type;
@@ -122,40 +124,40 @@ finalize_comm_element(struct comm_element *element)
 		break;
 	case CET_TRANSFORM_RESPONSE:
 		finalize_cache_transform_response(
-			&element->c_transform_response);
+		    &element->c_transform_response);
 		break;
 	case CET_MP_WRITE_SESSION_REQUEST:
 		finalize_cache_mp_write_session_request(
-			&element->c_mp_ws_request);
+		    &element->c_mp_ws_request);
 		break;
 	case CET_MP_WRITE_SESSION_RESPONSE:
 		finalize_cache_mp_write_session_response(
-			&element->c_mp_ws_response);
+		    &element->c_mp_ws_response);
 		break;
 	case CET_MP_WRITE_SESSION_WRITE_REQUEST:
 		finalize_cache_mp_write_session_write_request(
-			&element->c_mp_ws_write_request);
+		    &element->c_mp_ws_write_request);
 		break;
 	case CET_MP_WRITE_SESSION_WRITE_RESPONSE:
 		finalize_cache_mp_write_session_write_response(
-			&element->c_mp_ws_write_response);
+		    &element->c_mp_ws_write_response);
 		break;
 	case CET_MP_READ_SESSION_REQUEST:
 		finalize_cache_mp_read_session_request(
-			&element->c_mp_rs_request);
+		    &element->c_mp_rs_request);
 		break;
 	case CET_MP_READ_SESSION_RESPONSE:
 		finalize_cache_mp_read_session_response(
-			&element->c_mp_rs_response);
+		    &element->c_mp_rs_response);
 		break;
 	case CET_MP_READ_SESSION_READ_RESPONSE:
 		finalize_cache_mp_read_session_read_response(
-			&element->c_mp_rs_read_response);
+		    &element->c_mp_rs_read_response);
 		break;
 	case CET_UNDEFINED:
 		break;
 	default:
-	break;
+		break;
 	}
 
 	element->type = CET_UNDEFINED;
@@ -287,7 +289,7 @@ init_cache_transform_request(struct cache_transform_request *transform_request)
 
 void
 finalize_cache_transform_request(
-	struct cache_transform_request *transform_request)
+    struct cache_transform_request *transform_request)
 {
 
 	TRACE_IN(finalize_cache_transform_request);
@@ -307,7 +309,7 @@ get_cache_transform_request(struct comm_element *element)
 
 void
 init_cache_transform_response(
-	struct cache_transform_response *transform_response)
+    struct cache_transform_response *transform_response)
 {
 
 	TRACE_IN(init_cache_transform_request);
@@ -317,7 +319,7 @@ init_cache_transform_response(
 
 void
 finalize_cache_transform_response(
-	struct cache_transform_response *transform_response)
+    struct cache_transform_response *transform_response)
 {
 
 	TRACE_IN(finalize_cache_transform_response);
@@ -334,21 +336,19 @@ get_cache_transform_response(struct comm_element *element)
 	return (&element->c_transform_response);
 }
 
-
 void
 init_cache_mp_write_session_request(
-	struct cache_mp_write_session_request *mp_ws_request)
+    struct cache_mp_write_session_request *mp_ws_request)
 {
 
 	TRACE_IN(init_cache_mp_write_session_request);
-	memset(mp_ws_request, 0,
-    		sizeof(struct cache_mp_write_session_request));
+	memset(mp_ws_request, 0, sizeof(struct cache_mp_write_session_request));
 	TRACE_OUT(init_cache_mp_write_session_request);
 }
 
 void
 finalize_cache_mp_write_session_request(
-	struct cache_mp_write_session_request *mp_ws_request)
+    struct cache_mp_write_session_request *mp_ws_request)
 {
 
 	TRACE_IN(finalize_cache_mp_write_session_request);
@@ -368,18 +368,18 @@ get_cache_mp_write_session_request(struct comm_element *element)
 
 void
 init_cache_mp_write_session_response(
-	struct cache_mp_write_session_response *mp_ws_response)
+    struct cache_mp_write_session_response *mp_ws_response)
 {
 
 	TRACE_IN(init_cache_mp_write_session_response);
 	memset(mp_ws_response, 0,
-    		sizeof(struct cache_mp_write_session_response));
+	    sizeof(struct cache_mp_write_session_response));
 	TRACE_OUT(init_cache_mp_write_session_response);
 }
 
 void
 finalize_cache_mp_write_session_response(
-	struct cache_mp_write_session_response *mp_ws_response)
+    struct cache_mp_write_session_response *mp_ws_response)
 {
 
 	TRACE_IN(finalize_cache_mp_write_session_response);
@@ -398,18 +398,18 @@ get_cache_mp_write_session_response(struct comm_element *element)
 
 void
 init_cache_mp_write_session_write_request(
-	struct cache_mp_write_session_write_request *mp_ws_write_request)
+    struct cache_mp_write_session_write_request *mp_ws_write_request)
 {
 
 	TRACE_IN(init_cache_mp_write_session_write_request);
 	memset(mp_ws_write_request, 0,
-		sizeof(struct cache_mp_write_session_write_request));
+	    sizeof(struct cache_mp_write_session_write_request));
 	TRACE_OUT(init_cache_mp_write_session_write_response);
 }
 
 void
 finalize_cache_mp_write_session_write_request(
-	struct cache_mp_write_session_write_request *mp_ws_write_request)
+    struct cache_mp_write_session_write_request *mp_ws_write_request)
 {
 
 	TRACE_IN(finalize_cache_mp_write_session_write_request);
@@ -429,18 +429,18 @@ get_cache_mp_write_session_write_request(struct comm_element *element)
 
 void
 init_cache_mp_write_session_write_response(
-	struct cache_mp_write_session_write_response *mp_ws_write_response)
+    struct cache_mp_write_session_write_response *mp_ws_write_response)
 {
 
 	TRACE_IN(init_cache_mp_write_session_write_response);
 	memset(mp_ws_write_response, 0,
-		sizeof(struct cache_mp_write_session_write_response));
+	    sizeof(struct cache_mp_write_session_write_response));
 	TRACE_OUT(init_cache_mp_write_session_write_response);
 }
 
 void
 finalize_cache_mp_write_session_write_response(
-	struct cache_mp_write_session_write_response *mp_ws_write_response)
+    struct cache_mp_write_session_write_response *mp_ws_write_response)
 {
 
 	TRACE_IN(finalize_cache_mp_write_session_write_response);
@@ -459,7 +459,7 @@ get_cache_mp_write_session_write_response(struct comm_element *element)
 
 void
 init_cache_mp_read_session_request(
-	struct cache_mp_read_session_request *mp_rs_request)
+    struct cache_mp_read_session_request *mp_rs_request)
 {
 
 	TRACE_IN(init_cache_mp_read_session_request);
@@ -469,7 +469,7 @@ init_cache_mp_read_session_request(
 
 void
 finalize_cache_mp_read_session_request(
-	struct cache_mp_read_session_request *mp_rs_request)
+    struct cache_mp_read_session_request *mp_rs_request)
 {
 
 	TRACE_IN(finalize_cache_mp_read_session_request);
@@ -489,18 +489,18 @@ get_cache_mp_read_session_request(struct comm_element *element)
 
 void
 init_cache_mp_read_session_response(
-	struct cache_mp_read_session_response *mp_rs_response)
+    struct cache_mp_read_session_response *mp_rs_response)
 {
 
 	TRACE_IN(init_cache_mp_read_session_response);
 	memset(mp_rs_response, 0,
-    		sizeof(struct cache_mp_read_session_response));
+	    sizeof(struct cache_mp_read_session_response));
 	TRACE_OUT(init_cache_mp_read_session_response);
 }
 
 void
 finalize_cache_mp_read_session_response(
-	struct cache_mp_read_session_response *mp_rs_response)
+    struct cache_mp_read_session_response *mp_rs_response)
 {
 
 	TRACE_IN(finalize_cache_mp_read_session_response);
@@ -519,18 +519,18 @@ get_cache_mp_read_session_response(struct comm_element *element)
 
 void
 init_cache_mp_read_session_read_response(
-	struct cache_mp_read_session_read_response *mp_ws_read_response)
+    struct cache_mp_read_session_read_response *mp_ws_read_response)
 {
 
 	TRACE_IN(init_cache_mp_read_session_read_response);
 	memset(mp_ws_read_response, 0,
-		sizeof(struct cache_mp_read_session_read_response));
+	    sizeof(struct cache_mp_read_session_read_response));
 	TRACE_OUT(init_cache_mp_read_session_read_response);
 }
 
 void
 finalize_cache_mp_read_session_read_response(
-	struct cache_mp_read_session_read_response *mp_rs_read_response)
+    struct cache_mp_read_session_read_response *mp_rs_read_response)
 {
 
 	TRACE_IN(finalize_cache_mp_read_session_read_response);

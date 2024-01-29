@@ -54,12 +54,12 @@ static const char *errpath = "dirdoesnotexist/fileforaudit";
 static const char *successreg = "fileforaudit.*return,success";
 static const char *failurereg = "fileforaudit.*return,failure";
 
-
 ATF_TC_WITH_CLEANUP(stat_success);
 ATF_TC_HEAD(stat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"stat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "stat(2) call");
 }
 
 ATF_TC_BODY(stat_success, tc)
@@ -77,12 +77,12 @@ ATF_TC_CLEANUP(stat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(stat_failure);
 ATF_TC_HEAD(stat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"stat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "stat(2) call");
 }
 
 ATF_TC_BODY(stat_failure, tc)
@@ -98,12 +98,12 @@ ATF_TC_CLEANUP(stat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lstat_success);
 ATF_TC_HEAD(lstat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"lstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "lstat(2) call");
 }
 
 ATF_TC_BODY(lstat_success, tc)
@@ -120,12 +120,12 @@ ATF_TC_CLEANUP(lstat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lstat_failure);
 ATF_TC_HEAD(lstat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"lstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "lstat(2) call");
 }
 
 ATF_TC_BODY(lstat_failure, tc)
@@ -141,12 +141,12 @@ ATF_TC_CLEANUP(lstat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstat_success);
 ATF_TC_HEAD(fstat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fstat(2) call");
 }
 
 ATF_TC_BODY(fstat_success, tc)
@@ -156,8 +156,8 @@ ATF_TC_BODY(fstat_success, tc)
 	FILE *pipefd = setup(fds, auclass);
 	ATF_REQUIRE_EQ(0, fstat(filedesc, &statbuff));
 
-	snprintf(extregex, sizeof(extregex),
-		"fstat.*%jd.*return,success", (intmax_t)statbuff.st_ino);
+	snprintf(extregex, sizeof(extregex), "fstat.*%jd.*return,success",
+	    (intmax_t)statbuff.st_ino);
 	check_audit(fds, extregex, pipefd);
 	close(filedesc);
 }
@@ -167,12 +167,12 @@ ATF_TC_CLEANUP(fstat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstat_failure);
 ATF_TC_HEAD(fstat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fstat(2) call");
 }
 
 ATF_TC_BODY(fstat_failure, tc)
@@ -189,12 +189,12 @@ ATF_TC_CLEANUP(fstat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstatat_success);
 ATF_TC_HEAD(fstatat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fstatat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fstatat(2) call");
 }
 
 ATF_TC_BODY(fstatat_success, tc)
@@ -202,8 +202,8 @@ ATF_TC_BODY(fstatat_success, tc)
 	/* File or Symbolic link needs to exist to call lstat(2) */
 	ATF_REQUIRE_EQ(0, symlink("symlink", path));
 	FILE *pipefd = setup(fds, auclass);
-	ATF_REQUIRE_EQ(0, fstatat(AT_FDCWD, path, &statbuff,
-		AT_SYMLINK_NOFOLLOW));
+	ATF_REQUIRE_EQ(0,
+	    fstatat(AT_FDCWD, path, &statbuff, AT_SYMLINK_NOFOLLOW));
 	check_audit(fds, successreg, pipefd);
 }
 
@@ -212,12 +212,12 @@ ATF_TC_CLEANUP(fstatat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstatat_failure);
 ATF_TC_HEAD(fstatat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fstatat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fstatat(2) call");
 }
 
 ATF_TC_BODY(fstatat_failure, tc)
@@ -234,12 +234,12 @@ ATF_TC_CLEANUP(fstatat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(statfs_success);
 ATF_TC_HEAD(statfs_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"statfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "statfs(2) call");
 }
 
 ATF_TC_BODY(statfs_success, tc)
@@ -257,12 +257,12 @@ ATF_TC_CLEANUP(statfs_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(statfs_failure);
 ATF_TC_HEAD(statfs_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"statfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "statfs(2) call");
 }
 
 ATF_TC_BODY(statfs_failure, tc)
@@ -278,12 +278,12 @@ ATF_TC_CLEANUP(statfs_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstatfs_success);
 ATF_TC_HEAD(fstatfs_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fstatfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fstatfs(2) call");
 }
 
 ATF_TC_BODY(fstatfs_success, tc)
@@ -296,7 +296,7 @@ ATF_TC_BODY(fstatfs_success, tc)
 	ATF_REQUIRE_EQ(0, fstatfs(filedesc, &statfsbuff));
 
 	snprintf(extregex, sizeof(extregex), "fstatfs.*%jd.*return,success",
-			(intmax_t)statbuff.st_ino);
+	    (intmax_t)statbuff.st_ino);
 	check_audit(fds, extregex, pipefd);
 	close(filedesc);
 }
@@ -306,12 +306,12 @@ ATF_TC_CLEANUP(fstatfs_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fstatfs_failure);
 ATF_TC_HEAD(fstatfs_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fstatfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fstatfs(2) call");
 }
 
 ATF_TC_BODY(fstatfs_failure, tc)
@@ -328,12 +328,12 @@ ATF_TC_CLEANUP(fstatfs_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(getfsstat_success);
 ATF_TC_HEAD(getfsstat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"getfsstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "getfsstat(2) call");
 }
 
 ATF_TC_BODY(getfsstat_success, tc)
@@ -351,12 +351,12 @@ ATF_TC_CLEANUP(getfsstat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(getfsstat_failure);
 ATF_TC_HEAD(getfsstat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"getfsstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "getfsstat(2) call");
 }
 
 ATF_TC_BODY(getfsstat_failure, tc)
@@ -373,12 +373,12 @@ ATF_TC_CLEANUP(getfsstat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lgetfh_success);
 ATF_TC_HEAD(lgetfh_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"lgetfh(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "lgetfh(2) call");
 }
 
 ATF_TC_BODY(lgetfh_success, tc)
@@ -396,12 +396,12 @@ ATF_TC_CLEANUP(lgetfh_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lgetfh_failure);
 ATF_TC_HEAD(lgetfh_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"lgetfh(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "lgetfh(2) call");
 }
 
 ATF_TC_BODY(lgetfh_failure, tc)
@@ -418,12 +418,12 @@ ATF_TC_CLEANUP(lgetfh_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhopen_success);
 ATF_TC_HEAD(fhopen_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fhopen(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fhopen(2) call");
 }
 
 ATF_TC_BODY(fhopen_success, tc)
@@ -449,12 +449,12 @@ ATF_TC_CLEANUP(fhopen_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhopen_failure);
 ATF_TC_HEAD(fhopen_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fhopen(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fhopen(2) call");
 }
 
 ATF_TC_BODY(fhopen_failure, tc)
@@ -474,12 +474,12 @@ ATF_TC_CLEANUP(fhopen_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhstat_success);
 ATF_TC_HEAD(fhstat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fstat(2) call");
 }
 
 ATF_TC_BODY(fhstat_success, tc)
@@ -503,12 +503,12 @@ ATF_TC_CLEANUP(fhstat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhstat_failure);
 ATF_TC_HEAD(fhstat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fhstat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fhstat(2) call");
 }
 
 ATF_TC_BODY(fhstat_failure, tc)
@@ -525,12 +525,12 @@ ATF_TC_CLEANUP(fhstat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhstatfs_success);
 ATF_TC_HEAD(fhstatfs_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fstatfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fstatfs(2) call");
 }
 
 ATF_TC_BODY(fhstatfs_success, tc)
@@ -554,12 +554,12 @@ ATF_TC_CLEANUP(fhstatfs_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fhstatfs_failure);
 ATF_TC_HEAD(fhstatfs_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fhstatfs(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fhstatfs(2) call");
 }
 
 ATF_TC_BODY(fhstatfs_failure, tc)
@@ -576,12 +576,12 @@ ATF_TC_CLEANUP(fhstatfs_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(access_success);
 ATF_TC_HEAD(access_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"access(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "access(2) call");
 }
 
 ATF_TC_BODY(access_success, tc)
@@ -599,12 +599,12 @@ ATF_TC_CLEANUP(access_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(access_failure);
 ATF_TC_HEAD(access_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"access(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "access(2) call");
 }
 
 ATF_TC_BODY(access_failure, tc)
@@ -620,12 +620,12 @@ ATF_TC_CLEANUP(access_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(eaccess_success);
 ATF_TC_HEAD(eaccess_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"eaccess(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "eaccess(2) call");
 }
 
 ATF_TC_BODY(eaccess_success, tc)
@@ -643,12 +643,12 @@ ATF_TC_CLEANUP(eaccess_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(eaccess_failure);
 ATF_TC_HEAD(eaccess_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"eaccess(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "eaccess(2) call");
 }
 
 ATF_TC_BODY(eaccess_failure, tc)
@@ -664,12 +664,12 @@ ATF_TC_CLEANUP(eaccess_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(faccessat_success);
 ATF_TC_HEAD(faccessat_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"faccessat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "faccessat(2) call");
 }
 
 ATF_TC_BODY(faccessat_success, tc)
@@ -687,12 +687,12 @@ ATF_TC_CLEANUP(faccessat_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(faccessat_failure);
 ATF_TC_HEAD(faccessat_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"faccessat(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "faccessat(2) call");
 }
 
 ATF_TC_BODY(faccessat_failure, tc)
@@ -709,12 +709,12 @@ ATF_TC_CLEANUP(faccessat_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(pathconf_success);
 ATF_TC_HEAD(pathconf_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"pathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "pathconf(2) call");
 }
 
 ATF_TC_BODY(pathconf_success, tc)
@@ -733,12 +733,12 @@ ATF_TC_CLEANUP(pathconf_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(pathconf_failure);
 ATF_TC_HEAD(pathconf_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"pathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "pathconf(2) call");
 }
 
 ATF_TC_BODY(pathconf_failure, tc)
@@ -754,12 +754,12 @@ ATF_TC_CLEANUP(pathconf_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lpathconf_success);
 ATF_TC_HEAD(lpathconf_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"lpathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "lpathconf(2) call");
 }
 
 ATF_TC_BODY(lpathconf_success, tc)
@@ -777,12 +777,12 @@ ATF_TC_CLEANUP(lpathconf_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(lpathconf_failure);
 ATF_TC_HEAD(lpathconf_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"lpathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "lpathconf(2) call");
 }
 
 ATF_TC_BODY(lpathconf_failure, tc)
@@ -798,12 +798,12 @@ ATF_TC_CLEANUP(lpathconf_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fpathconf_success);
 ATF_TC_HEAD(fpathconf_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"fpathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "fpathconf(2) call");
 }
 
 ATF_TC_BODY(fpathconf_success, tc)
@@ -825,12 +825,12 @@ ATF_TC_CLEANUP(fpathconf_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(fpathconf_failure);
 ATF_TC_HEAD(fpathconf_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"fpathconf(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "fpathconf(2) call");
 }
 
 ATF_TC_BODY(fpathconf_failure, tc)
@@ -847,12 +847,12 @@ ATF_TC_CLEANUP(fpathconf_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_file_success);
 ATF_TC_HEAD(extattr_get_file_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_get_file(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_get_file(2) call");
 }
 
 ATF_TC_BODY(extattr_get_file_success, tc)
@@ -868,7 +868,7 @@ ATF_TC_BODY(extattr_get_file_success, tc)
 
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_get_file.*%s.*%s.*return,success", path, name);
+	    "extattr_get_file.*%s.*%s.*return,success", path, name);
 
 	FILE *pipefd = setup(fds, auclass);
 	REQUIRE_EXTATTR_RESULT(sizeof(buff),
@@ -882,19 +882,19 @@ ATF_TC_CLEANUP(extattr_get_file_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_file_failure);
 ATF_TC_HEAD(extattr_get_file_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_get_file(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_get_file(2) call");
 }
 
 ATF_TC_BODY(extattr_get_file_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_get_file.*%s.*%s.*failure", path, name);
+	    "extattr_get_file.*%s.*%s.*failure", path, name);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: file does not exist */
@@ -909,12 +909,12 @@ ATF_TC_CLEANUP(extattr_get_file_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_fd_success);
 ATF_TC_HEAD(extattr_get_fd_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_get_fd(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_get_fd(2) call");
 }
 
 ATF_TC_BODY(extattr_get_fd_success, tc)
@@ -930,7 +930,7 @@ ATF_TC_BODY(extattr_get_fd_success, tc)
 
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_get_fd.*%s.*return,success", name);
+	    "extattr_get_fd.*%s.*return,success", name);
 
 	FILE *pipefd = setup(fds, auclass);
 	REQUIRE_EXTATTR_RESULT(sizeof(buff),
@@ -944,19 +944,19 @@ ATF_TC_CLEANUP(extattr_get_fd_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_fd_failure);
 ATF_TC_HEAD(extattr_get_fd_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_get_fd(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_get_fd(2) call");
 }
 
 ATF_TC_BODY(extattr_get_fd_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-	"extattr_get_fd.*%s.*return,failure : Bad file descriptor", name);
+	    "extattr_get_fd.*%s.*return,failure : Bad file descriptor", name);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid file descriptor */
@@ -970,12 +970,12 @@ ATF_TC_CLEANUP(extattr_get_fd_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_link_success);
 ATF_TC_HEAD(extattr_get_link_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_get_link(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_get_link(2) call");
 }
 
 ATF_TC_BODY(extattr_get_link_success, tc)
@@ -991,7 +991,7 @@ ATF_TC_BODY(extattr_get_link_success, tc)
 
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_get_link.*%s.*%s.*return,success", path, name);
+	    "extattr_get_link.*%s.*%s.*return,success", path, name);
 
 	FILE *pipefd = setup(fds, auclass);
 	REQUIRE_EXTATTR_RESULT(sizeof(buff),
@@ -1004,19 +1004,19 @@ ATF_TC_CLEANUP(extattr_get_link_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_get_link_failure);
 ATF_TC_HEAD(extattr_get_link_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_get_link(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_get_link(2) call");
 }
 
 ATF_TC_BODY(extattr_get_link_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_get_link.*%s.*%s.*failure", path, name);
+	    "extattr_get_link.*%s.*%s.*failure", path, name);
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: symbolic link does not exist */
 	ATF_REQUIRE_ERRNO(ENOENT,
@@ -1029,12 +1029,12 @@ ATF_TC_CLEANUP(extattr_get_link_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_file_success);
 ATF_TC_HEAD(extattr_list_file_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_list_file(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_list_file(2) call");
 }
 
 ATF_TC_BODY(extattr_list_file_success, tc)
@@ -1058,19 +1058,19 @@ ATF_TC_CLEANUP(extattr_list_file_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_file_failure);
 ATF_TC_HEAD(extattr_list_file_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_list_file(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_list_file(2) call");
 }
 
 ATF_TC_BODY(extattr_list_file_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_list_file.*%s.*return,failure", path);
+	    "extattr_list_file.*%s.*return,failure", path);
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: file does not exist */
@@ -1084,12 +1084,12 @@ ATF_TC_CLEANUP(extattr_list_file_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_fd_success);
 ATF_TC_HEAD(extattr_list_fd_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_list_fd(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_list_fd(2) call");
 }
 
 ATF_TC_BODY(extattr_list_fd_success, tc)
@@ -1114,19 +1114,19 @@ ATF_TC_CLEANUP(extattr_list_fd_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_fd_failure);
 ATF_TC_HEAD(extattr_list_fd_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_list_fd(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_list_fd(2) call");
 }
 
 ATF_TC_BODY(extattr_list_fd_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
 	snprintf(extregex, sizeof(extregex),
-		"extattr_list_fd.*return,failure : Bad file descriptor");
+	    "extattr_list_fd.*return,failure : Bad file descriptor");
 
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: Invalid file descriptor */
@@ -1140,12 +1140,12 @@ ATF_TC_CLEANUP(extattr_list_fd_failure, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_link_success);
 ATF_TC_HEAD(extattr_list_link_success, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of a successful "
-					"extattr_list_link(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of a successful "
+	    "extattr_list_link(2) call");
 }
 
 ATF_TC_BODY(extattr_list_link_success, tc)
@@ -1169,19 +1169,19 @@ ATF_TC_CLEANUP(extattr_list_link_success, tc)
 	cleanup();
 }
 
-
 ATF_TC_WITH_CLEANUP(extattr_list_link_failure);
 ATF_TC_HEAD(extattr_list_link_failure, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Tests the audit of an unsuccessful "
-					"extattr_list_link(2) call");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the audit of an unsuccessful "
+	    "extattr_list_link(2) call");
 }
 
 ATF_TC_BODY(extattr_list_link_failure, tc)
 {
 	/* Prepare the regex to be checked in the audit record */
-	snprintf(extregex, sizeof(extregex),
-		"extattr_list_link.*%s.*failure", path);
+	snprintf(extregex, sizeof(extregex), "extattr_list_link.*%s.*failure",
+	    path);
 	FILE *pipefd = setup(fds, auclass);
 	/* Failure reason: symbolic link does not exist */
 	ATF_REQUIRE_ERRNO(ENOENT,
@@ -1193,7 +1193,6 @@ ATF_TC_CLEANUP(extattr_list_link_failure, tc)
 {
 	cleanup();
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

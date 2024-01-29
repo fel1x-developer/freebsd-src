@@ -33,13 +33,13 @@
 #include <nl_types.h>
 #endif
 
-#include <limits.h>
 #include <errno.h>
-#include <string.h>
+#include <limits.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "errlst.h"
 #include "../locale/xlocale_private.h"
+#include "errlst.h"
 #include "libc_private.h"
 
 /*
@@ -47,7 +47,7 @@
  * 64-bit signed integer converted to ASCII decimal (19 bytes) with
  * optional leading sign (1 byte), and a trailing NUL.
  */
-#define	EBUFSIZE	(2 + 19 + 1 + 1)
+#define EBUFSIZE (2 + 19 + 1 + 1)
 
 /*
  * Doing this by hand instead of linking with stdio(3) avoids bloat for
@@ -92,16 +92,16 @@ strerror_rl(int errnum, char *strerrbuf, size_t buflen, locale_t locale)
 #else
 		    __uprefix,
 #endif
-		   strerrbuf, buflen);
+		    strerrbuf, buflen);
 		retval = EINVAL;
 	} else {
 		if (strlcpy(strerrbuf,
 #if defined(NLS)
-		    catgets(catd, 1, errnum, __hidden_sys_errlist[errnum]),
+			catgets(catd, 1, errnum, __hidden_sys_errlist[errnum]),
 #else
-		    __hidden_sys_errlist[errnum],
+			__hidden_sys_errlist[errnum],
 #endif
-		    buflen) >= buflen)
+			buflen) >= buflen)
 			retval = ERANGE;
 	}
 

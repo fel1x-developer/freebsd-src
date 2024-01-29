@@ -38,21 +38,23 @@
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/memdesc.h>
-#include <sys/tree.h>
-#include <sys/taskqueue.h>
-#include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/sx.h>
 #include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/tree.h>
+
 #include <vm/vm.h>
 
+#include <machine/bus.h>
+#include <machine/vmparam.h>
+
+#include <dev/iommu/busdma_iommu.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <machine/bus.h>
-#include <dev/iommu/busdma_iommu.h>
-#include <machine/vmparam.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -65,9 +67,9 @@
 
 static MALLOC_DEFINE(M_IOMMU, "IOMMU", "IOMMU framework");
 
-#define	IOMMU_LIST_LOCK()		sx_xlock(&iommu_sx)
-#define	IOMMU_LIST_UNLOCK()		sx_xunlock(&iommu_sx)
-#define	IOMMU_LIST_ASSERT_LOCKED()	sx_assert(&iommu_sx, SA_XLOCKED)
+#define IOMMU_LIST_LOCK() sx_xlock(&iommu_sx)
+#define IOMMU_LIST_UNLOCK() sx_xunlock(&iommu_sx)
+#define IOMMU_LIST_ASSERT_LOCKED() sx_assert(&iommu_sx, SA_XLOCKED)
 
 #define dprintf(fmt, ...)
 
@@ -215,8 +217,8 @@ iommu_ctx_init(device_t requester, struct iommu_ctx *ioctx)
 	if (error)
 		return (error);
 
-	tag = ioctx->tag = malloc(sizeof(struct bus_dma_tag_iommu),
-	    M_IOMMU, M_WAITOK | M_ZERO);
+	tag = ioctx->tag = malloc(sizeof(struct bus_dma_tag_iommu), M_IOMMU,
+	    M_WAITOK | M_ZERO);
 	tag->owner = requester;
 	tag->ctx = ioctx;
 	tag->ctx->domain = iodom;
@@ -233,7 +235,7 @@ iommu_lookup(device_t dev)
 	struct iommu_unit *iommu;
 
 	IOMMU_LIST_LOCK();
-	LIST_FOREACH(entry, &iommu_list, next) {
+	LIST_FOREACH (entry, &iommu_list, next) {
 		iommu = entry->iommu;
 		if (iommu->dev == dev) {
 			IOMMU_LIST_UNLOCK();
@@ -261,13 +263,13 @@ iommu_get_ctx_ofw(device_t dev, int channel)
 
 	node = ofw_bus_get_node(dev);
 	if (node <= 0) {
-		device_printf(dev,
-		    "%s called on not ofw based device.\n", __func__);
+		device_printf(dev, "%s called on not ofw based device.\n",
+		    __func__);
 		return (NULL);
 	}
 
-	error = ofw_bus_parse_xref_list_get_length(node,
-	    "iommus", "#iommu-cells", &niommus);
+	error = ofw_bus_parse_xref_list_get_length(node, "iommus",
+	    "#iommu-cells", &niommus);
 	if (error) {
 		device_printf(dev, "%s can't get iommu list.\n", __func__);
 		return (NULL);
@@ -334,8 +336,8 @@ iommu_get_ctx_ofw(device_t dev, int channel)
 #endif
 
 struct iommu_ctx *
-iommu_get_ctx(struct iommu_unit *iommu, device_t requester,
-    uint16_t rid, bool disabled, bool rmrr)
+iommu_get_ctx(struct iommu_unit *iommu, device_t requester, uint16_t rid,
+    bool disabled, bool rmrr)
 {
 	struct iommu_domain *iodom;
 	struct iommu_ctx *ioctx;
@@ -425,15 +427,15 @@ iommu_domain_unload(struct iommu_domain *iodom,
 	struct iommu_map_entry *entry, *entry1;
 	int error __diagused;
 
-	TAILQ_FOREACH_SAFE(entry, entries, dmamap_link, entry1) {
+	TAILQ_FOREACH_SAFE (entry, entries, dmamap_link, entry1) {
 		KASSERT((entry->flags & IOMMU_MAP_ENTRY_MAP) != 0,
 		    ("not mapped entry %p %p", iodom, entry));
-		error = iodom->ops->unmap(iodom, entry->start, entry->end -
-		    entry->start, cansleep ? IOMMU_PGF_WAITOK : 0);
+		error = iodom->ops->unmap(iodom, entry->start,
+		    entry->end - entry->start, cansleep ? IOMMU_PGF_WAITOK : 0);
 		KASSERT(error == 0, ("unmap %p error %d", iodom, error));
 		TAILQ_REMOVE(entries, entry, dmamap_link);
 		iommu_domain_free_entry(entry, true);
-        }
+	}
 
 	if (TAILQ_EMPTY(entries))
 		return;
@@ -466,7 +468,7 @@ iommu_unregister(struct iommu_unit *iommu)
 	struct iommu_entry *entry, *tmp;
 
 	IOMMU_LIST_LOCK();
-	LIST_FOREACH_SAFE(entry, &iommu_list, next, tmp) {
+	LIST_FOREACH_SAFE (entry, &iommu_list, next, tmp) {
 		if (entry->iommu == iommu) {
 			LIST_REMOVE(entry, next);
 			free(entry, M_IOMMU);
@@ -489,7 +491,7 @@ iommu_find(device_t dev, bool verbose)
 	int error;
 
 	IOMMU_LIST_LOCK();
-	LIST_FOREACH(entry, &iommu_list, next) {
+	LIST_FOREACH (entry, &iommu_list, next) {
 		iommu = entry->iommu;
 		error = IOMMU_FIND(iommu->dev, dev);
 		if (error == 0) {

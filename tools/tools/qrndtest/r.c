@@ -69,10 +69,11 @@ main(int argc, char *argv[])
 
 	for (;;) {
 		vals[f() % 4]++;
-		if (((i++) % (4*1024*1024)) == 0) {
+		if (((i++) % (4 * 1024 * 1024)) == 0) {
 			avg = vals[0] + vals[1] + vals[2] + vals[3];
 			avg /= 4;
-			printf("%d: %ld %ld %ld %ld\n", i, vals[0] - avg, vals[1] - avg, vals[2] - avg, vals[3] - avg);
+			printf("%d: %ld %ld %ld %ld\n", i, vals[0] - avg,
+			    vals[1] - avg, vals[2] - avg, vals[3] - avg);
 		}
 	}
 	return 0;

@@ -46,15 +46,15 @@
 #include <string.h>
 #include <unistd.h>
 
-static void	id_print(struct passwd *, int, int, int);
-static void	pline(struct passwd *);
-static void	pretty(struct passwd *);
+static void id_print(struct passwd *, int, int, int);
+static void pline(struct passwd *);
+static void pretty(struct passwd *);
 #ifdef USE_BSM_AUDIT
-static void	auditid(void);
+static void auditid(void);
 #endif
-static void	group(struct passwd *, int);
-static void	maclabel(void);
-static void	usage(void);
+static void group(struct passwd *, int);
+static void maclabel(void);
+static void usage(void);
 static struct passwd *who(char *);
 
 static int isgroups, iswhoami;
@@ -78,15 +78,14 @@ main(int argc, char *argv[])
 	if (strcmp(myname, "groups") == 0) {
 		isgroups = 1;
 		Gflag = nflag = 1;
-	}
-	else if (strcmp(myname, "whoami") == 0) {
+	} else if (strcmp(myname, "whoami") == 0) {
 		iswhoami = 1;
 		uflag = nflag = 1;
 	}
 
 	while ((ch = getopt(argc, argv,
-	    (isgroups || iswhoami) ? "" : "APGMacgnpru")) != -1)
-		switch(ch) {
+		    (isgroups || iswhoami) ? "" : "APGMacgnpru")) != -1)
+		switch (ch) {
 #ifdef USE_BSM_AUDIT
 		case 'A':
 			Aflag = 1;
@@ -133,7 +132,7 @@ main(int argc, char *argv[])
 	if ((cflag || Aflag || Mflag) && argc > 0)
 		usage();
 
-	switch(Aflag + Gflag + Mflag + Pflag + gflag + pflag + uflag) {
+	switch (Aflag + Gflag + Mflag + Pflag + gflag + pflag + uflag) {
 	case 1:
 		break;
 	case 0:
@@ -204,8 +203,7 @@ main(int argc, char *argv[])
 
 	if (pw) {
 		id_print(pw, 1, 0, 0);
-	}
-	else {
+	} else {
 		id = getuid();
 		pw = getpwuid(id);
 		id_print(pw, 0, 1, 1);
@@ -267,8 +265,7 @@ id_print(struct passwd *pw, int use_ggl, int p_euid, int p_egid)
 	if (pw != NULL) {
 		uid = pw->pw_uid;
 		gid = pw->pw_gid;
-	}
-	else {
+	} else {
 		uid = getuid();
 		gid = getgid();
 	}
@@ -280,14 +277,13 @@ id_print(struct passwd *pw, int use_ggl, int p_euid, int p_egid)
 	if (use_ggl && pw != NULL) {
 		ngroups = ngroups_max;
 		getgrouplist(pw->pw_name, gid, groups, &ngroups);
-	}
-	else {
+	} else {
 		ngroups = getgroups(ngroups_max, groups);
 	}
 
 	if (pw != NULL)
 		printf("uid=%u(%s)", uid, pw->pw_name);
-	else 
+	else
 		printf("uid=%u", getuid());
 	printf(" gid=%u", gid);
 	if ((gr = getgrgid(gid)))
@@ -333,33 +329,33 @@ auditid(void)
 	} else if (ret < 0)
 		err(1, "getaudit");
 	if (extended != 0) {
-		(void) printf("auid=%d\n"
-		    "mask.success=0x%08x\n"
-		    "mask.failure=0x%08x\n"
-		    "asid=%d\n"
-		    "termid_addr.port=0x%08jx\n"
-		    "termid_addr.addr[0]=0x%08x\n"
-		    "termid_addr.addr[1]=0x%08x\n"
-		    "termid_addr.addr[2]=0x%08x\n"
-		    "termid_addr.addr[3]=0x%08x\n",
-			ainfo_addr.ai_auid, ainfo_addr.ai_mask.am_success,
-			ainfo_addr.ai_mask.am_failure, ainfo_addr.ai_asid,
-			(uintmax_t)ainfo_addr.ai_termid.at_port,
-			ainfo_addr.ai_termid.at_addr[0],
-			ainfo_addr.ai_termid.at_addr[1],
-			ainfo_addr.ai_termid.at_addr[2],
-			ainfo_addr.ai_termid.at_addr[3]);
+		(void)printf("auid=%d\n"
+			     "mask.success=0x%08x\n"
+			     "mask.failure=0x%08x\n"
+			     "asid=%d\n"
+			     "termid_addr.port=0x%08jx\n"
+			     "termid_addr.addr[0]=0x%08x\n"
+			     "termid_addr.addr[1]=0x%08x\n"
+			     "termid_addr.addr[2]=0x%08x\n"
+			     "termid_addr.addr[3]=0x%08x\n",
+		    ainfo_addr.ai_auid, ainfo_addr.ai_mask.am_success,
+		    ainfo_addr.ai_mask.am_failure, ainfo_addr.ai_asid,
+		    (uintmax_t)ainfo_addr.ai_termid.at_port,
+		    ainfo_addr.ai_termid.at_addr[0],
+		    ainfo_addr.ai_termid.at_addr[1],
+		    ainfo_addr.ai_termid.at_addr[2],
+		    ainfo_addr.ai_termid.at_addr[3]);
 	} else {
-		(void) printf("auid=%d\n"
-		    "mask.success=0x%08x\n"
-		    "mask.failure=0x%08x\n"
-		    "asid=%d\n"
-		    "termid.port=0x%08jx\n"
-		    "termid.machine=0x%08x\n",
-			auditinfo.ai_auid, auditinfo.ai_mask.am_success,
-			auditinfo.ai_mask.am_failure,
-			auditinfo.ai_asid, (uintmax_t)auditinfo.ai_termid.port,
-			auditinfo.ai_termid.machine);
+		(void)printf("auid=%d\n"
+			     "mask.success=0x%08x\n"
+			     "mask.failure=0x%08x\n"
+			     "asid=%d\n"
+			     "termid.port=0x%08jx\n"
+			     "termid.machine=0x%08x\n",
+		    auditinfo.ai_auid, auditinfo.ai_mask.am_success,
+		    auditinfo.ai_mask.am_failure, auditinfo.ai_asid,
+		    (uintmax_t)auditinfo.ai_termid.port,
+		    auditinfo.ai_termid.machine);
 	}
 }
 #endif
@@ -379,7 +375,7 @@ group(struct passwd *pw, int nflag)
 
 	if (pw) {
 		ngroups = ngroups_max;
-		(void) getgrouplist(pw->pw_name, pw->pw_gid, groups, &ngroups);
+		(void)getgrouplist(pw->pw_name, pw->pw_gid, groups, &ngroups);
 	} else {
 		ngroups = getgroups(ngroups_max, groups);
 	}
@@ -391,8 +387,7 @@ group(struct passwd *pw, int nflag)
 			if ((gr = getgrgid(id)))
 				(void)printf(fmt, gr->gr_name);
 			else
-				(void)printf(*fmt == ' ' ? " %u" : "%u",
-				    id);
+				(void)printf(*fmt == ' ' ? " %u" : "%u", id);
 			fmt = " %s";
 		} else {
 			(void)printf(fmt, id);
@@ -440,10 +435,10 @@ who(char *u)
 	 * get it as specified.  If that fails, try it as a number.
 	 */
 	if ((pw = getpwnam(u)))
-		return(pw);
+		return (pw);
 	id = strtol(u, &ep, 10);
 	if (*u && !*ep && (pw = getpwuid(id)))
-		return(pw);
+		return (pw);
 	errx(1, "%s: no such user", u);
 	/* NOTREACHED */
 }
@@ -458,11 +453,10 @@ pline(struct passwd *pw)
 	}
 
 	(void)printf("%s:%s:%d:%d:%s:%ld:%ld:%s:%s:%s\n", pw->pw_name,
-			pw->pw_passwd, pw->pw_uid, pw->pw_gid, pw->pw_class,
-			(long)pw->pw_change, (long)pw->pw_expire, pw->pw_gecos,
-			pw->pw_dir, pw->pw_shell);
+	    pw->pw_passwd, pw->pw_uid, pw->pw_gid, pw->pw_class,
+	    (long)pw->pw_change, (long)pw->pw_expire, pw->pw_gecos, pw->pw_dir,
+	    pw->pw_shell);
 }
-
 
 static void
 usage(void)
@@ -480,12 +474,9 @@ usage(void)
 #else
 		    "",
 #endif
-		    "       id -G [-n] [user]",
-		    "       id -M",
-		    "       id -P [user]",
-		    "       id -c",
-		    "       id -g [-nr] [user]",
-		    "       id -p [user]",
+		    "       id -G [-n] [user]", "       id -M",
+		    "       id -P [user]", "       id -c",
+		    "       id -g [-nr] [user]", "       id -p [user]",
 		    "       id -u [-nr] [user]");
 	exit(1);
 }

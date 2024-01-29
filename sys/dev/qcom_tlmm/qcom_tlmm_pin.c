@@ -29,32 +29,28 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
+#include <sys/gpio.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/gpio.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <dev/gpio/gpiobusvar.h>
 
 #include <dev/fdt/fdt_common.h>
+#include <dev/fdt/fdt_pinctrl.h>
+#include <dev/gpio/gpiobusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/fdt/fdt_pinctrl.h>
-
-#include "qcom_tlmm_var.h"
-#include "qcom_tlmm_pin.h"
-
-#include "qcom_tlmm_ipq4018_reg.h"
-#include "qcom_tlmm_ipq4018_hw.h"
-
 #include "gpio_if.h"
+#include "qcom_tlmm_ipq4018_hw.h"
+#include "qcom_tlmm_ipq4018_reg.h"
+#include "qcom_tlmm_pin.h"
+#include "qcom_tlmm_var.h"
 
 static struct gpio_pin *
 qcom_tlmm_pin_lookup(struct qcom_tlmm_softc *sc, int pin)
@@ -66,8 +62,8 @@ qcom_tlmm_pin_lookup(struct qcom_tlmm_softc *sc, int pin)
 }
 
 static void
-qcom_tlmm_pin_configure(struct qcom_tlmm_softc *sc,
-    struct gpio_pin *pin, unsigned int flags)
+qcom_tlmm_pin_configure(struct qcom_tlmm_softc *sc, struct gpio_pin *pin,
+    unsigned int flags)
 {
 
 	GPIO_LOCK_ASSERT(sc);
@@ -75,8 +71,8 @@ qcom_tlmm_pin_configure(struct qcom_tlmm_softc *sc,
 	/*
 	 * Manage input/output
 	 */
-	if (flags & (GPIO_PIN_INPUT|GPIO_PIN_OUTPUT)) {
-		pin->gp_flags &= ~(GPIO_PIN_INPUT|GPIO_PIN_OUTPUT);
+	if (flags & (GPIO_PIN_INPUT | GPIO_PIN_OUTPUT)) {
+		pin->gp_flags &= ~(GPIO_PIN_INPUT | GPIO_PIN_OUTPUT);
 		if (flags & GPIO_PIN_OUTPUT) {
 			/*
 			 * XXX TODO: read GPIO_PIN_PRESET_LOW /
@@ -85,12 +81,10 @@ qcom_tlmm_pin_configure(struct qcom_tlmm_softc *sc,
 			 * pin value before we flip on oe_output.
 			 */
 			pin->gp_flags |= GPIO_PIN_OUTPUT;
-			qcom_tlmm_ipq4018_hw_pin_set_oe_output(sc,
-			    pin->gp_pin);
+			qcom_tlmm_ipq4018_hw_pin_set_oe_output(sc, pin->gp_pin);
 		} else {
 			pin->gp_flags |= GPIO_PIN_INPUT;
-			qcom_tlmm_ipq4018_hw_pin_set_oe_input(sc,
-			    pin->gp_pin);
+			qcom_tlmm_ipq4018_hw_pin_set_oe_input(sc, pin->gp_pin);
 		}
 	}
 
@@ -183,8 +177,7 @@ qcom_tlmm_pin_getflags(device_t dev, uint32_t pin, uint32_t *flags)
 		*flags |= GPIO_PIN_INPUT;
 
 	/* Lookup pull-up / pull-down state */
-	ret = qcom_tlmm_ipq4018_hw_pin_get_pupd_config(sc, pin,
-	    &pupd_config);
+	ret = qcom_tlmm_ipq4018_hw_pin_get_pupd_config(sc, pin, &pupd_config);
 	if (ret != 0)
 		goto done;
 
@@ -316,4 +309,3 @@ qcom_tlmm_pin_get_node(device_t dev, device_t bus)
 	/* We only have one child, the GPIO bus, which needs our own node. */
 	return (ofw_bus_get_node(dev));
 }
-

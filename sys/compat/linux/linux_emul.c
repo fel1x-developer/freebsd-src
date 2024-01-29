@@ -48,9 +48,9 @@
 #include <compat/linux/linux_util.h>
 
 #if BYTE_ORDER == LITTLE_ENDIAN
-#define SHELLMAGIC	0x2123 /* #! */
+#define SHELLMAGIC 0x2123 /* #! */
 #else
-#define SHELLMAGIC	0x2321
+#define SHELLMAGIC 0x2321
 #endif
 
 /*
@@ -171,7 +171,8 @@ linux_proc_init(struct thread *td, struct thread *newtd, bool init_thread)
 
 		/* lookup the old one */
 		em = em_find(td);
-		KASSERT(em != NULL, ("proc_init: thread emuldata not found.\n"));
+		KASSERT(em != NULL,
+		    ("proc_init: thread emuldata not found.\n"));
 
 		em->em_tid = p->p_pid;
 		em->flags = 0;
@@ -194,8 +195,8 @@ linux_on_exit(struct proc *p)
 
 	MPASS(SV_CURPROC_ABI() == SV_ABI_LINUX);
 
-	LINUX_CTR3(proc_exit, "thread(%d) proc(%d) p %p",
-	    td->td_tid, p->p_pid, p);
+	LINUX_CTR3(proc_exit, "thread(%d) proc(%d) p %p", td->td_tid, p->p_pid,
+	    p);
 
 	pem = pem_find(p);
 	if (pem == NULL)
@@ -239,11 +240,13 @@ linux_common_execve(struct thread *td, struct image_args *eargs)
 
 		PROC_LOCK(p);
 		em = em_find(td);
-		KASSERT(em != NULL, ("proc_exec: thread emuldata not found.\n"));
+		KASSERT(em != NULL,
+		    ("proc_exec: thread emuldata not found.\n"));
 		td->td_emuldata = NULL;
 
 		pem = pem_find(p);
-		KASSERT(pem != NULL, ("proc_exec: proc pemuldata not found.\n"));
+		KASSERT(pem != NULL,
+		    ("proc_exec: proc pemuldata not found.\n"));
 		p->p_emuldata = NULL;
 		PROC_UNLOCK(p);
 
@@ -289,7 +292,7 @@ linux_on_exec(struct proc *p, struct image_params *imgp)
 		 * linux_thread_detach() can find expected but unused
 		 * emuldata.
 		 */
-		FOREACH_THREAD_IN_PROC(td->td_proc, othertd) {
+		FOREACH_THREAD_IN_PROC (td->td_proc, othertd) {
 			if (othertd == td)
 				continue;
 			linux_proc_init(td, othertd, true);
@@ -344,8 +347,7 @@ linux_schedtail(struct thread *td)
 	child_set_tid = em->child_set_tid;
 
 	if (child_set_tid != NULL) {
-		error = copyout(&em->em_tid, child_set_tid,
-		    sizeof(em->em_tid));
+		error = copyout(&em->em_tid, child_set_tid, sizeof(em->em_tid));
 		LINUX_CTR4(schedtail, "thread(%d) %p stored %d error %d",
 		    td->td_tid, child_set_tid, em->em_tid, error);
 	} else

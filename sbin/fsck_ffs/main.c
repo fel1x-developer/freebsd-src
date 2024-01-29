@@ -31,16 +31,13 @@
 
 #define _WANT_P_OSREL
 #include <sys/param.h>
+#include <sys/disklabel.h>
 #include <sys/file.h>
 #include <sys/mount.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <sys/disklabel.h>
-
-#include <ufs/ufs/dinode.h>
-#include <ufs/ffs/fs.h>
 
 #include <err.h>
 #include <errno.h>
@@ -52,11 +49,13 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <ufs/ffs/fs.h>
+#include <ufs/ufs/dinode.h>
 
 #include "fsck.h"
 
-static int  restarts;
-static char snapname[BUFSIZ];	/* when doing snapshots, the name of the file */
+static int restarts;
+static char snapname[BUFSIZ]; /* when doing snapshots, the name of the file */
 
 static void usage(void) __dead2;
 static intmax_t argtoimax(int flag, const char *req, const char *str, int base);
@@ -114,7 +113,7 @@ main(int argc, char *argv[])
 
 		case 'm':
 			lfmode = argtoimax('m', "mode", optarg, 8);
-			if (lfmode &~ 07777)
+			if (lfmode & ~07777)
 				errx(EEXIT, "bad mode to -m: %o", lfmode);
 			printf("** lost+found creation mode %o\n", lfmode);
 			break;
@@ -259,9 +258,9 @@ checkfilesys(char *filesys)
 		sbreadfailed = 1;
 	if (bkgrdcheck) {
 		if (sbreadfailed)
-			exit(3);	/* Cannot read superblock */
+			exit(3); /* Cannot read superblock */
 		if ((sblock.fs_flags & FS_NEEDSFSCK) == FS_NEEDSFSCK)
-			exit(4);	/* Earlier background failed */
+			exit(4); /* Earlier background failed */
 		if ((sblock.fs_flags & FS_SUJ) == FS_SUJ) {
 			maxino = sblock.fs_ncg * sblock.fs_ipg;
 			maxfsblock = sblock.fs_size;
@@ -271,13 +270,13 @@ checkfilesys(char *filesys)
 				exit(4); /* Journal good, run it now */
 		}
 		if ((sblock.fs_flags & FS_DOSOFTDEP) == 0)
-			exit(5);	/* Not running soft updates */
+			exit(5); /* Not running soft updates */
 		size = MIBSIZE;
 		if (sysctlnametomib("vfs.ffs.adjrefcnt", adjrefcnt, &size) < 0)
-			exit(6);	/* Lacks kernel support */
+			exit(6); /* Lacks kernel support */
 		if ((mntp == NULL && sblock.fs_clean == 1) ||
 		    (mntp != NULL && (sblock.fs_flags & FS_UNCLEAN) == 0))
-			exit(7);	/* Filesystem clean, report it now */
+			exit(7); /* Filesystem clean, report it now */
 		exit(0);
 	}
 	if (ckclean && skipclean) {
@@ -285,7 +284,7 @@ checkfilesys(char *filesys)
 		 * If file system is gjournaled, check it here.
 		 */
 		if (sbreadfailed)
-			exit(3);	/* Cannot read superblock */
+			exit(3); /* Cannot read superblock */
 		if (bkgrdflag == 0 &&
 		    (nflag || (fswritefd = open(filesys, O_WRONLY)) < 0)) {
 			fswritefd = -1;
@@ -298,8 +297,8 @@ checkfilesys(char *filesys)
 				pwarn("FILE SYSTEM CLEAN; SKIPPING CHECKS\n");
 				exit(0);
 			}
-			if ((sblock.fs_flags &
-			    (FS_UNCLEAN | FS_NEEDSFSCK)) == 0) {
+			if ((sblock.fs_flags & (FS_UNCLEAN | FS_NEEDSFSCK)) ==
+			    0) {
 				bufinit();
 				gjournal_check(filesys);
 				if (chkdoreload(mntp, pwarn) == 0)
@@ -307,7 +306,7 @@ checkfilesys(char *filesys)
 				exit(4);
 			} else {
 				pfatal("FULL FSCK NEEDED, CANNOT RUN FAST "
-				    "FSCK\n");
+				       "FSCK\n");
 			}
 		}
 		close(fswritefd);
@@ -332,8 +331,9 @@ checkfilesys(char *filesys)
 		return (EEXIT);
 	case -1:
 	clean:
-		pwarn("clean, %ld free ", (long)(sblock.fs_cstotal.cs_nffree +
-		    sblock.fs_frag * sblock.fs_cstotal.cs_nbfree));
+		pwarn("clean, %ld free ",
+		    (long)(sblock.fs_cstotal.cs_nffree +
+			sblock.fs_frag * sblock.fs_cstotal.cs_nbfree));
 		printf("(%jd frags, %jd blocks, %.1f%% fragmentation)\n",
 		    (intmax_t)sblock.fs_cstotal.cs_nffree,
 		    (intmax_t)sblock.fs_cstotal.cs_nbfree,
@@ -355,7 +355,7 @@ checkfilesys(char *filesys)
 			}
 			sujrecovery = 0;
 			pwarn("Skipping journal, "
-			    "falling through to full fsck\n");
+			      "falling through to full fsck\n");
 		}
 		if (fswritefd != -1) {
 			/*
@@ -488,7 +488,7 @@ checkfilesys(char *filesys)
 	snapflush(std_checkblkavail);
 	if (cgheader_corrupt) {
 		printf("PHASE 5 SKIPPED DUE TO CORRUPT CYLINDER GROUP "
-		    "HEADER(S)\n\n");
+		       "HEADER(S)\n\n");
 	} else {
 		pass5();
 		IOstats("Pass5");
@@ -510,8 +510,7 @@ checkfilesys(char *filesys)
 		pwarn("Reclaimed: %ld directories, %jd files, %jd fragments\n",
 		    countdirs, files - countdirs, blks);
 	}
-	pwarn("%ld files, %jd used, %ju free ",
-	    (long)n_files, (intmax_t)n_blks,
+	pwarn("%ld files, %jd used, %ju free ", (long)n_files, (intmax_t)n_blks,
 	    (uintmax_t)n_ffree + sblock.fs_frag * n_bfree);
 	printf("(%ju frags, %ju blocks, %.1f%% fragmentation)\n",
 	    (uintmax_t)n_ffree, (uintmax_t)n_bfree,
@@ -613,7 +612,7 @@ setup_bkgrdchk(struct statfs *mntp, int sbreadfailed, char **filesys)
 		return (0);
 	}
 	if (skipclean && ckclean &&
-	   (sblock.fs_flags & (FS_UNCLEAN|FS_NEEDSFSCK)) == 0) {
+	    (sblock.fs_flags & (FS_UNCLEAN | FS_NEEDSFSCK)) == 0) {
 		/*
 		 * file system is clean;
 		 * skip snapshot and report it clean
@@ -623,10 +622,10 @@ setup_bkgrdchk(struct statfs *mntp, int sbreadfailed, char **filesys)
 	}
 	/* Check that kernel supports background fsck */
 	size = MIBSIZE;
-	if (sysctlnametomib("vfs.ffs.adjrefcnt", adjrefcnt, &size) < 0||
-	    sysctlnametomib("vfs.ffs.adjblkcnt", adjblkcnt, &size) < 0||
+	if (sysctlnametomib("vfs.ffs.adjrefcnt", adjrefcnt, &size) < 0 ||
+	    sysctlnametomib("vfs.ffs.adjblkcnt", adjblkcnt, &size) < 0 ||
 	    sysctlnametomib("vfs.ffs.setsize", setsize, &size) < 0 ||
-	    sysctlnametomib("vfs.ffs.freefiles", freefiles, &size) < 0||
+	    sysctlnametomib("vfs.ffs.freefiles", freefiles, &size) < 0 ||
 	    sysctlnametomib("vfs.ffs.freedirs", freedirs, &size) < 0 ||
 	    sysctlnametomib("vfs.ffs.freeblks", freeblks, &size) < 0) {
 		pwarn("KERNEL LACKS BACKGROUND FSCK SUPPORT\n");
@@ -642,30 +641,31 @@ setup_bkgrdchk(struct statfs *mntp, int sbreadfailed, char **filesys)
 	 */
 	bkgrdsumadj = 1;
 	if (sysctlnametomib("vfs.ffs.adjndir", adjndir, &size) < 0 ||
-	   sysctlnametomib("vfs.ffs.adjnbfree", adjnbfree, &size) < 0 ||
-	   sysctlnametomib("vfs.ffs.adjnifree", adjnifree, &size) < 0 ||
-	   sysctlnametomib("vfs.ffs.adjnffree", adjnffree, &size) < 0 ||
-	   sysctlnametomib("vfs.ffs.adjnumclusters", adjnumclusters,
-	   &size) < 0) {
+	    sysctlnametomib("vfs.ffs.adjnbfree", adjnbfree, &size) < 0 ||
+	    sysctlnametomib("vfs.ffs.adjnifree", adjnifree, &size) < 0 ||
+	    sysctlnametomib("vfs.ffs.adjnffree", adjnffree, &size) < 0 ||
+	    sysctlnametomib("vfs.ffs.adjnumclusters", adjnumclusters, &size) <
+		0) {
 		bkgrdsumadj = 0;
 		pwarn("KERNEL LACKS RUNTIME SUPERBLOCK SUMMARY ADJUSTMENT "
-		    "SUPPORT\n");
+		      "SUPPORT\n");
 	}
 	/* Find or create the snapshot directory */
 	snprintf(snapname, sizeof snapname, "%s/.snap", mntp->f_mntonname);
 	if (stat(snapname, &snapdir) < 0) {
 		if (errno != ENOENT) {
 			pwarn("CANNOT FIND SNAPSHOT DIRECTORY %s: %s, CANNOT "
-			    "RUN IN BACKGROUND\n", snapname, strerror(errno));
+			      "RUN IN BACKGROUND\n",
+			    snapname, strerror(errno));
 			return (0);
 		}
 		if ((grp = getgrnam("operator")) == NULL ||
-			   mkdir(snapname, 0770) < 0 ||
-			   chown(snapname, -1, grp->gr_gid) < 0 ||
-			   chmod(snapname, 0770) < 0) {
+		    mkdir(snapname, 0770) < 0 ||
+		    chown(snapname, -1, grp->gr_gid) < 0 ||
+		    chmod(snapname, 0770) < 0) {
 			pwarn("CANNOT CREATE SNAPSHOT DIRECTORY %s: %s, "
-			    "CANNOT RUN IN BACKGROUND\n", snapname,
-			    strerror(errno));
+			      "CANNOT RUN IN BACKGROUND\n",
+			    snapname, strerror(errno));
 			return (0);
 		}
 	} else if (!S_ISDIR(snapdir.st_mode)) {
@@ -697,7 +697,8 @@ setup_bkgrdchk(struct statfs *mntp, int sbreadfailed, char **filesys)
 	if (openfilesys(snapname) == 0) {
 		unlink(snapname);
 		pwarn("CANNOT OPEN SNAPSHOT %s: %s, CANNOT RUN IN "
-		    "BACKGROUND\n", snapname, strerror(errno));
+		      "BACKGROUND\n",
+		    snapname, strerror(errno));
 		return (0);
 	}
 	/* Immediately unlink snapshot so that it will be deleted when closed */
@@ -717,8 +718,8 @@ setup_bkgrdchk(struct statfs *mntp, int sbreadfailed, char **filesys)
 static void
 usage(void)
 {
-	(void) fprintf(stderr,
-"usage: %s [-BCdEFfnpRrSyZ] [-b block] [-c level] [-m mode] filesystem ...\n",
+	(void)fprintf(stderr,
+	    "usage: %s [-BCdEFfnpRrSyZ] [-b block] [-c level] [-m mode] filesystem ...\n",
 	    getprogname());
 	exit(1);
 }

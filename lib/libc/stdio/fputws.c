@@ -31,19 +31,20 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <wchar.h>
-#include "un-namespace.h"
+
 #include "fvwrite.h"
 #include "libc_private.h"
 #include "local.h"
 #include "mblocal.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
-fputws_l(const wchar_t * __restrict ws, FILE * __restrict fp, locale_t locale)
+fputws_l(const wchar_t *__restrict ws, FILE *__restrict fp, locale_t locale)
 {
 	size_t nbytes;
 	char buf[BUFSIZ];
@@ -79,7 +80,7 @@ end:
 }
 
 int
-fputws(const wchar_t * __restrict ws, FILE * __restrict fp)
+fputws(const wchar_t *__restrict ws, FILE *__restrict fp)
 {
 	return fputws_l(ws, fp, __get_locale());
 }

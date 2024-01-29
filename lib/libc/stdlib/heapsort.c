@@ -53,24 +53,26 @@ typedef DECLARE_BLOCK(int, heapsort_block, const void *, const void *);
  * isn't worth optimizing; the SWAP's get sped up by the cache, and pointer
  * arithmetic gets lost in the time required for comparison function calls.
  */
-#define	SWAP(a, b, count, size, tmp) { \
-	count = size; \
-	do { \
-		tmp = *a; \
-		*a++ = *b; \
-		*b++ = tmp; \
-	} while (--count); \
-}
+#define SWAP(a, b, count, size, tmp) \
+	{                            \
+		count = size;        \
+		do {                 \
+			tmp = *a;    \
+			*a++ = *b;   \
+			*b++ = tmp;  \
+		} while (--count);   \
+	}
 
 /* Copy one block of size size to another. */
-#define COPY(a, b, count, size, tmp1, tmp2) { \
-	count = size; \
-	tmp1 = a; \
-	tmp2 = b; \
-	do { \
-		*tmp1++ = *tmp2++; \
-	} while (--count); \
-}
+#define COPY(a, b, count, size, tmp1, tmp2) \
+	{                                   \
+		count = size;               \
+		tmp1 = a;                   \
+		tmp2 = b;                   \
+		do {                        \
+			*tmp1++ = *tmp2++;  \
+		} while (--count);          \
+	}
 
 /*
  * Build the list into a heap, where a heap is defined such that for
@@ -79,20 +81,22 @@ typedef DECLARE_BLOCK(int, heapsort_block, const void *, const void *);
  * There two cases.  If j == nmemb, select largest of Ki and Kj.  If
  * j < nmemb, select largest of Ki, Kj and Kj+1.
  */
-#define CREATE(initval, nmemb, par_i, child_i, par, child, size, count, tmp) { \
-	for (par_i = initval; (child_i = par_i * 2) <= nmemb; \
-	    par_i = child_i) { \
-		child = base + child_i * size; \
-		if (child_i < nmemb && COMPAR(child, child + size) < 0) { \
-			child += size; \
-			++child_i; \
-		} \
-		par = base + par_i * size; \
-		if (COMPAR(child, par) <= 0) \
-			break; \
-		SWAP(par, child, count, size, tmp); \
-	} \
-}
+#define CREATE(initval, nmemb, par_i, child_i, par, child, size, count, tmp) \
+	{                                                                    \
+		for (par_i = initval; (child_i = par_i * 2) <= nmemb;        \
+		     par_i = child_i) {                                      \
+			child = base + child_i * size;                       \
+			if (child_i < nmemb &&                               \
+			    COMPAR(child, child + size) < 0) {               \
+				child += size;                               \
+				++child_i;                                   \
+			}                                                    \
+			par = base + par_i * size;                           \
+			if (COMPAR(child, par) <= 0)                         \
+				break;                                       \
+			SWAP(par, child, count, size, tmp);                  \
+		}                                                            \
+	}
 
 /*
  * Select the top of the heap and 'heapify'.  Since by far the most expensive
@@ -111,34 +115,36 @@ typedef DECLARE_BLOCK(int, heapsort_block, const void *, const void *);
  *
  * XXX Don't break the #define SELECT line, below.  Reiser cpp gets upset.
  */
-#define SELECT(par_i, child_i, nmemb, par, child, size, k, count, tmp1, tmp2) { \
-	for (par_i = 1; (child_i = par_i * 2) <= nmemb; par_i = child_i) { \
-		child = base + child_i * size; \
-		if (child_i < nmemb && COMPAR(child, child + size) < 0) { \
-			child += size; \
-			++child_i; \
-		} \
-		par = base + par_i * size; \
-		COPY(par, child, count, size, tmp1, tmp2); \
-	} \
-	for (;;) { \
-		child_i = par_i; \
-		par_i = child_i / 2; \
-		child = base + child_i * size; \
-		par = base + par_i * size; \
-		if (child_i == 1 || COMPAR(k, par) < 0) { \
-			COPY(child, k, count, size, tmp1, tmp2); \
-			break; \
-		} \
-		COPY(child, par, count, size, tmp1, tmp2); \
-	} \
-}
+#define SELECT(par_i, child_i, nmemb, par, child, size, k, count, tmp1, tmp2) \
+	{                                                                     \
+		for (par_i = 1; (child_i = par_i * 2) <= nmemb;               \
+		     par_i = child_i) {                                       \
+			child = base + child_i * size;                        \
+			if (child_i < nmemb &&                                \
+			    COMPAR(child, child + size) < 0) {                \
+				child += size;                                \
+				++child_i;                                    \
+			}                                                     \
+			par = base + par_i * size;                            \
+			COPY(par, child, count, size, tmp1, tmp2);            \
+		}                                                             \
+		for (;;) {                                                    \
+			child_i = par_i;                                      \
+			par_i = child_i / 2;                                  \
+			child = base + child_i * size;                        \
+			par = base + par_i * size;                            \
+			if (child_i == 1 || COMPAR(k, par) < 0) {             \
+				COPY(child, k, count, size, tmp1, tmp2);      \
+				break;                                        \
+			}                                                     \
+			COPY(child, par, count, size, tmp1, tmp2);            \
+		}                                                             \
+	}
 
 #ifdef I_AM_HEAPSORT_B
 int heapsort_b(void *, size_t, size_t, heapsort_block);
 #else
-int heapsort(void *, size_t, size_t,
-    int (*)(const void *, const void *));
+int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 #endif
 /*
  * Heapsort -- Knuth, Vol. 3, page 145.  Runs in O (N lg N), both average

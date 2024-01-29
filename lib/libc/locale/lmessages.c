@@ -38,7 +38,7 @@
 
 #define LCMESSAGES_SIZE_FULL (sizeof(struct lc_messages_T) / sizeof(char *))
 #define LCMESSAGES_SIZE_MIN \
-		(offsetof(struct lc_messages_T, yesstr) / sizeof(char *))
+	(offsetof(struct lc_messages_T, yesstr) / sizeof(char *))
 
 struct xlocale_messages {
 	struct xlocale_component header;
@@ -51,10 +51,10 @@ struct xlocale_messages __xlocale_global_messages;
 static char empty[] = "";
 
 static const struct lc_messages_T _C_messages_locale = {
-	"^[yY]" ,	/* yesexpr */
-	"^[nN]" ,	/* noexpr */
-	"yes" , 	/* yesstr */
-	"no"		/* nostr */
+	"^[yY]", /* yesexpr */
+	"^[nN]", /* noexpr */
+	"yes",	 /* yesstr */
+	"no"	 /* nostr */
 };
 
 static void
@@ -73,10 +73,9 @@ messages_load_locale(struct xlocale_messages *loc, int *using_locale,
 	int ret;
 	struct lc_messages_T *l = &loc->locale;
 
-	ret = __part_load_locale(name, using_locale,
-		  &loc->buffer, "LC_MESSAGES",
-		  LCMESSAGES_SIZE_FULL, LCMESSAGES_SIZE_MIN,
-		  (const char **)l);
+	ret = __part_load_locale(name, using_locale, &loc->buffer,
+	    "LC_MESSAGES", LCMESSAGES_SIZE_FULL, LCMESSAGES_SIZE_MIN,
+	    (const char **)l);
 	if (ret == _LDP_LOADED) {
 		if (l->yesstr == NULL)
 			l->yesstr = empty;
@@ -112,22 +111,21 @@ __messages_load(const char *name, locale_t l)
 struct lc_messages_T *
 __get_current_messages_locale(locale_t loc)
 {
-	return (loc->using_messages_locale ? &((struct xlocale_messages *)
-	    loc->components[XLC_MESSAGES])->locale :
-	    (struct lc_messages_T *)&_C_messages_locale);
+	return (loc->using_messages_locale ?
+		&((struct xlocale_messages *)loc->components[XLC_MESSAGES])
+		     ->locale :
+		(struct lc_messages_T *)&_C_messages_locale);
 }
 
 #ifdef LOCALE_DEBUG
 void
-msgdebug(void) {
-printf(	"yesexpr = %s\n"
-	"noexpr = %s\n"
-	"yesstr = %s\n"
-	"nostr = %s\n",
-	_messages_locale.yesexpr,
-	_messages_locale.noexpr,
-	_messages_locale.yesstr,
-	_messages_locale.nostr
-);
+msgdebug(void)
+{
+	printf("yesexpr = %s\n"
+	       "noexpr = %s\n"
+	       "yesstr = %s\n"
+	       "nostr = %s\n",
+	    _messages_locale.yesexpr, _messages_locale.noexpr,
+	    _messages_locale.yesstr, _messages_locale.nostr);
 }
 #endif /* LOCALE_DEBUG */

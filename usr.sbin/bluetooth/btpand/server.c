@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: server.c,v 1.2 2009/01/24 17:29:28 plunky Exp $");
 
@@ -35,20 +34,20 @@ __RCSID("$NetBSD: server.c,v 1.2 2009/01/24 17:29:28 plunky Exp $");
 
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
-#include <inttypes.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <sdp.h>
 #include <unistd.h>
 
-#include "btpand.h"
 #include "bnep.h"
+#include "btpand.h"
 
-static struct event	server_ev;
-static int		server_fd;
-static int		server_avail;
+static struct event server_ev;
+static int server_fd;
+static int server_avail;
 
-static void *		server_ss;
-static uint32_t		server_handle;
+static void *server_ss;
+static uint32_t server_handle;
 
 static void server_open(void);
 static void server_close(void);
@@ -107,7 +106,7 @@ server_open(void)
 	sa.l2cap_psm = htole16(l2cap_psm);
 	sa.l2cap_bdaddr_type = BDADDR_BREDR;
 	sa.l2cap_cid = 0;
-	
+
 	bdaddr_copy(&sa.l2cap_bdaddr, &local_bdaddr);
 	if (bind(server_fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		log_err("Could not bind server socket: %m");
@@ -115,8 +114,8 @@ server_open(void)
 	}
 
 	mru = BNEP_MTU_MIN;
-	if (setsockopt(server_fd, SOL_L2CAP,
-	    SO_L2CAP_IMTU, &mru, sizeof(mru)) == -1) {
+	if (setsockopt(server_fd, SOL_L2CAP, SO_L2CAP_IMTU, &mru,
+		sizeof(mru)) == -1) {
 		log_err("Could not set L2CAP IMTU (%d): %m", mru);
 		exit(EXIT_FAILURE);
 	}
@@ -126,7 +125,8 @@ server_open(void)
 		exit(EXIT_FAILURE);
 	}
 
-	event_set(&server_ev, server_fd, EV_READ | EV_PERSIST, server_read, NULL);
+	event_set(&server_ev, server_fd, EV_READ | EV_PERSIST, server_read,
+	    NULL);
 	if (event_add(&server_ev, NULL) == -1) {
 		log_err("Could not add server event: %m");
 		exit(EXIT_FAILURE);
@@ -176,7 +176,7 @@ server_read(int s, short ev, void *arg)
 		close(fd);
 		return;
 	}
-	if(mru < BNEP_MTU_MIN) {
+	if (mru < BNEP_MTU_MIN) {
 		log_err("L2CAP IMTU too small (%d)", mru);
 		close(fd);
 		return;
@@ -215,8 +215,11 @@ server_read(int s, short ev, void *arg)
 
 	if (n < (mtu * 2)) {
 		n = mtu * 2;
-		if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &n, sizeof(n)) == -1) {
-			log_err("Could not set socket send buffer size (%d): %m", n);
+		if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &n, sizeof(n)) ==
+		    -1) {
+			log_err(
+			    "Could not set socket send buffer size (%d): %m",
+			    n);
 			close(fd);
 			return;
 		}
@@ -236,7 +239,8 @@ server_read(int s, short ev, void *arg)
 		return;
 	}
 
-	log_info("Accepted connection from %s", bt_ntoa(&ra.l2cap_bdaddr, NULL));
+	log_info("Accepted connection from %s",
+	    bt_ntoa(&ra.l2cap_bdaddr, NULL));
 
 	chan = channel_alloc();
 	if (chan == NULL) {
@@ -280,8 +284,8 @@ server_register(void)
 	p.security_description = (l2cap_mode == 0 ? 0x0000 : 0x0001);
 
 	if (server_handle)
-		rv = sdp_change_service(server_ss, server_handle,
-		    (uint8_t *)&p, sizeof(p));
+		rv = sdp_change_service(server_ss, server_handle, (uint8_t *)&p,
+		    sizeof(p));
 	else
 		rv = sdp_register_service(server_ss, service_class,
 		    &local_bdaddr, (uint8_t *)&p, sizeof(p), &server_handle);

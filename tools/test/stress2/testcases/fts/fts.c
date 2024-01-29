@@ -28,6 +28,7 @@
 /* Directory scan */
 
 #include <sys/param.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fts.h>
@@ -58,7 +59,7 @@ test(void)
 	FTS *fts;
 	FTSENT *p;
 	int ftsoptions;
-	char *args[2] = {NULL, NULL};
+	char *args[2] = { NULL, NULL };
 
 	ftsoptions = FTS_LOGICAL;
 	args[0] = strdup(".");
@@ -68,30 +69,31 @@ test(void)
 
 	while ((p = fts_read(fts)) != NULL && done_testing == 0) {
 		if (op->verbose > 2)
-			(void) printf("%s\n", p->fts_path);
+			(void)printf("%s\n", p->fts_path);
 		switch (p->fts_info) {
-			case FTS_F:			/* Ignore. */
-				break;
-			case FTS_D:			/* Ignore. */
-				break;
-			case FTS_DP:
-				break;
-			case FTS_DC:			/* Ignore. */
-				break;
-			case FTS_SL:			/* Ignore. */
-				break;
-			case FTS_SLNONE:		/* Ignore. */
-				break;
-			case FTS_DNR:			/* Warn, continue. */
-			case FTS_ERR:
-			case FTS_NS:
-			case FTS_DEFAULT:
-				if (op->verbose > 1)
-					warnx("%s: %s", p->fts_path, strerror(p->fts_errno));
-				break;
-			default:
-				printf("%s: default, %d\n", getprogname(), p->fts_info);
-				break;
+		case FTS_F: /* Ignore. */
+			break;
+		case FTS_D: /* Ignore. */
+			break;
+		case FTS_DP:
+			break;
+		case FTS_DC: /* Ignore. */
+			break;
+		case FTS_SL: /* Ignore. */
+			break;
+		case FTS_SLNONE: /* Ignore. */
+			break;
+		case FTS_DNR: /* Warn, continue. */
+		case FTS_ERR:
+		case FTS_NS:
+		case FTS_DEFAULT:
+			if (op->verbose > 1)
+				warnx("%s: %s", p->fts_path,
+				    strerror(p->fts_errno));
+			break;
+		default:
+			printf("%s: default, %d\n", getprogname(), p->fts_info);
+			break;
 		}
 	}
 

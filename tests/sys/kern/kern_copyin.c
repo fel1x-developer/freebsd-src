@@ -29,20 +29,22 @@
 
 #include <sys/param.h>
 #include <sys/exec.h>
+#include <sys/mman.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
-#include <sys/mman.h>
 
+#include <vm/vm.h>
+#include <vm/pmap.h>
+
+#include <machine/vmparam.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <atf-c.h>
-#include <vm/vm.h>
-#include <vm/pmap.h>
-#include <machine/vmparam.h>
 
 static int scratch_file;
 
@@ -85,10 +87,10 @@ get_vm_layout(struct kinfo_vm_layout *kvm)
 	return (sysctl(mib, nitems(mib), kvm, &len, NULL, 0));
 }
 
-#define	FMAX	ULONG_MAX
+#define FMAX ULONG_MAX
 #if __SIZEOF_POINTER__ == 8
 /* PR 257193 */
-#define	ADDR_SIGNED	0x800000c000000000
+#define ADDR_SIGNED 0x800000c000000000
 #endif
 
 ATF_TC_WITHOUT_HEAD(kern_copyin);

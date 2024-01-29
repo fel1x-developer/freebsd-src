@@ -43,9 +43,9 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static int	all;
-static int	nstops;
-static int	tabstops[100];
+static int all;
+static int nstops;
+static int tabstops[100];
 
 static void getstops(const char *);
 static void usage(void) __dead2;
@@ -63,10 +63,10 @@ main(int argc, char *argv[])
 	tabstops[0] = 8;
 	while ((ch = getopt(argc, argv, "at:")) != -1) {
 		switch (ch) {
-		case 'a':	/* Un-expand all spaces, not just leading. */
+		case 'a': /* Un-expand all spaces, not just leading. */
 			all = 1;
 			break;
-		case 't':	/* Specify tab list, implies -a. */
+		case 't': /* Specify tab list, implies -a. */
 			getstops(optarg);
 			all = 1;
 			break;
@@ -116,12 +116,11 @@ tabify(const char *curfile)
 			continue;
 		} else if (ch == '\t') {
 			if (nstops == 1) {
-				dcol = (1 + dcol / tabstops[0]) *
-				    tabstops[0];
+				dcol = (1 + dcol / tabstops[0]) * tabstops[0];
 				continue;
 			} else {
-				for (n = 0; n < nstops &&
-				    tabstops[n] - 1 < dcol; n++)
+				for (n = 0;
+				     n < nstops && tabstops[n] - 1 < dcol; n++)
 					;
 				if (n < nstops - 1 && tabstops[n] - 1 < limit) {
 					dcol = tabstops[n];
@@ -133,13 +132,12 @@ tabify(const char *curfile)
 
 		/* Output maximal number of tabs. */
 		if (nstops == 1) {
-			while (((ocol + tabstops[0]) / tabstops[0])
-			    <= (dcol / tabstops[0])) {
+			while (((ocol + tabstops[0]) / tabstops[0]) <=
+			    (dcol / tabstops[0])) {
 				if (dcol - ocol < 2)
 					break;
 				putwchar('\t');
-				ocol = (1 + ocol / tabstops[0]) *
-				    tabstops[0];
+				ocol = (1 + ocol / tabstops[0]) * tabstops[0];
 			}
 		} else {
 			for (n = 0; n < nstops && tabstops[n] - 1 < ocol; n++)
@@ -201,7 +199,7 @@ getstops(const char *cp)
 			i = i * 10 + *cp++ - '0';
 		if (i <= 0)
 			errx(1, "bad tab stop spec");
-		if (nstops > 0 && i <= tabstops[nstops-1])
+		if (nstops > 0 && i <= tabstops[nstops - 1])
 			errx(1, "bad tab stop spec");
 		if (nstops == sizeof(tabstops) / sizeof(*tabstops))
 			errx(1, "too many tab stops");

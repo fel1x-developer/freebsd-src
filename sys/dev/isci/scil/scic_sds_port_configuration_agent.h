@@ -65,8 +65,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/scic_sds_port.h>
 #include <dev/isci/scil/scic_sds_phy.h>
+#include <dev/isci/scil/scic_sds_port.h>
 
 struct SCIC_SDS_CONTROLLER;
 struct SCIC_SDS_PORT_CONFIGURATION_AGENT;
@@ -74,52 +74,43 @@ struct SCIC_SDS_PORT;
 struct SCIC_SDS_PHY;
 
 typedef void (*SCIC_SDS_PORT_CONFIGURATION_AGENT_PHY_HANDLER_T)(
-   struct SCIC_SDS_CONTROLLER *,
-   struct SCIC_SDS_PORT_CONFIGURATION_AGENT *,
-   struct SCIC_SDS_PORT *,
-   struct SCIC_SDS_PHY  *
-);
+    struct SCIC_SDS_CONTROLLER *, struct SCIC_SDS_PORT_CONFIGURATION_AGENT *,
+    struct SCIC_SDS_PORT *, struct SCIC_SDS_PHY *);
 
-struct SCIC_SDS_PORT_RANGE
-{
-   U8 min_index;
-   U8 max_index;
+struct SCIC_SDS_PORT_RANGE {
+	U8 min_index;
+	U8 max_index;
 };
 
-typedef struct SCIC_SDS_PORT_CONFIGURATION_AGENT
-{
-   U16 phy_configured_mask;
-   U16 phy_ready_mask;
+typedef struct SCIC_SDS_PORT_CONFIGURATION_AGENT {
+	U16 phy_configured_mask;
+	U16 phy_ready_mask;
 
-   struct SCIC_SDS_PORT_RANGE phy_valid_port_range[SCI_MAX_PHYS];
+	struct SCIC_SDS_PORT_RANGE phy_valid_port_range[SCI_MAX_PHYS];
 
-   BOOL timer_pending;
+	BOOL timer_pending;
 
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_PHY_HANDLER_T link_up_handler;
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_PHY_HANDLER_T link_down_handler;
+	SCIC_SDS_PORT_CONFIGURATION_AGENT_PHY_HANDLER_T link_up_handler;
+	SCIC_SDS_PORT_CONFIGURATION_AGENT_PHY_HANDLER_T link_down_handler;
 
-   void *timer;
+	void *timer;
 
 } SCIC_SDS_PORT_CONFIGURATION_AGENT_T;
 
 void scic_sds_port_configuration_agent_construct(
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-);
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent);
 
 SCI_STATUS scic_sds_port_configuration_agent_initialize(
-   struct SCIC_SDS_CONTROLLER          * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-);
+    struct SCIC_SDS_CONTROLLER *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent);
 
 void scic_sds_port_configuration_agent_destroy(
-   struct SCIC_SDS_CONTROLLER          * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-);
+    struct SCIC_SDS_CONTROLLER *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent);
 
 void scic_sds_port_configuration_agent_release_resource(
-   struct SCIC_SDS_CONTROLLER          * controller,
-   SCIC_SDS_PORT_CONFIGURATION_AGENT_T * port_agent
-);
+    struct SCIC_SDS_CONTROLLER *controller,
+    SCIC_SDS_PORT_CONFIGURATION_AGENT_T *port_agent);
 
 #ifdef __cplusplus
 }

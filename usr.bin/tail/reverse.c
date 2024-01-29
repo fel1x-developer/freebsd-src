@@ -33,21 +33,20 @@
  */
 
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -81,7 +80,7 @@ reverse(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 	if (S_ISREG(sbp->st_mode))
 		r_reg(fp, fn, style, off, sbp);
 	else
-		switch(style) {
+		switch (style) {
 		case FBYTES:
 		case RBYTES:
 			bytes(fp, fn, off);
@@ -166,7 +165,7 @@ r_reg(FILE *fp, const char *fn, enum STYLE style, off_t off, struct stat *sbp)
 		ierr(fn);
 }
 
-#define BSZ	(128 * 1024)
+#define BSZ (128 * 1024)
 typedef struct bfelem {
 	TAILQ_ENTRY(bfelem) entries;
 	size_t len;
@@ -245,7 +244,7 @@ r_buf(FILE *fp, const char *fn)
 		struct bfelem *temp;
 
 		for (p = tl->l + tl->len - 1, llen = 0; p >= tl->l;
-		    --p, ++llen) {
+		     --p, ++llen) {
 			int start = (tl == first && p == tl->l);
 
 			if ((*p == '\n') || start) {
@@ -261,7 +260,7 @@ r_buf(FILE *fp, const char *fn)
 				tr = TAILQ_NEXT(tl, entries);
 				llen = 0;
 				if (tr != NULL) {
-					TAILQ_FOREACH_FROM_SAFE(tr, &head,
+					TAILQ_FOREACH_FROM_SAFE (tr, &head,
 					    entries, temp) {
 						if (tr->len)
 							WR(&tr->l, tr->len);

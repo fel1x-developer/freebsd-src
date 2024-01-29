@@ -32,20 +32,24 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/stat.h>
 #ifndef NO_UDOM_SUPPORT
 #include <sys/socket.h>
 #include <sys/un.h>
+
 #include <netdb.h>
 #endif
 
 #include <capsicum_helpers.h>
+#include <casper/cap_fileargs.h>
+#include <casper/cap_net.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libcasper.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,10 +57,6 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
-#include <casper/cap_net.h>
 
 static int bflag, eflag, lflag, nflag, sflag, tflag, vflag;
 static int rval;
@@ -81,17 +81,16 @@ static int udom_open(const char *path, int flags);
  * Memory strategy threshold, in pages: if physmem is larger than this,
  * use a large buffer.
  */
-#define	PHYSPAGES_THRESHOLD (32 * 1024)
+#define PHYSPAGES_THRESHOLD (32 * 1024)
 
 /* Maximum buffer size in bytes - do not allow it to grow larger than this. */
-#define	BUFSIZE_MAX (2 * 1024 * 1024)
+#define BUFSIZE_MAX (2 * 1024 * 1024)
 
 /*
  * Small (default) buffer size in bytes. It's inefficient for this to be
  * smaller than MAXPHYS.
  */
-#define	BUFSIZE_SMALL (MAXPHYS)
-
+#define BUFSIZE_SMALL (MAXPHYS)
 
 /*
  * For the bootstrapped cat binary (needed for locked appending to METALOG), we
@@ -117,8 +116,8 @@ init_casper_net(cap_channel_t *casper)
 	if (capnet == NULL)
 		err(EXIT_FAILURE, "unable to create network service");
 
-	limit = cap_net_limit_init(capnet, CAPNET_NAME2ADDR |
-	    CAPNET_CONNECTDNS);
+	limit = cap_net_limit_init(capnet,
+	    CAPNET_NAME2ADDR | CAPNET_CONNECTDNS);
 	if (limit == NULL)
 		err(EXIT_FAILURE, "unable to create limits");
 
@@ -141,7 +140,8 @@ init_casper(int argc, char *argv[])
 		err(EXIT_FAILURE, "unable to create Casper");
 
 	fa = fileargs_cinit(casper, argc, argv, O_RDONLY, 0,
-	    cap_rights_init(&rights, CAP_READ | CAP_FSTAT | CAP_FCNTL | CAP_SEEK),
+	    cap_rights_init(&rights,
+		CAP_READ | CAP_FSTAT | CAP_FCNTL | CAP_SEEK),
 	    FA_OPEN | FA_REALPATH);
 	if (fa == NULL)
 		err(EXIT_FAILURE, "unable to create fileargs");
@@ -164,10 +164,10 @@ main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, SUPPORTED_FLAGS)) != -1)
 		switch (ch) {
 		case 'b':
-			bflag = nflag = 1;	/* -b implies -n */
+			bflag = nflag = 1; /* -b implies -n */
 			break;
 		case 'e':
-			eflag = vflag = 1;	/* -e implies -v */
+			eflag = vflag = 1; /* -e implies -v */
 			break;
 		case 'l':
 			lflag = 1;
@@ -179,7 +179,7 @@ main(int argc, char *argv[])
 			sflag = 1;
 			break;
 		case 't':
-			tflag = vflag = 1;	/* -t implies -v */
+			tflag = vflag = 1; /* -t implies -v */
 			break;
 		case 'u':
 			setbuf(stdout, NULL);
@@ -338,7 +338,8 @@ cook_cat(FILE *fp)
 				if (ferror(fp) && errno == EILSEQ) {
 					clearerr(fp);
 					/* Resync attempt. */
-					memset(&fp->_mbstate, 0, sizeof(mbstate_t));
+					memset(&fp->_mbstate, 0,
+					    sizeof(mbstate_t));
 					if ((ch = getc(fp)) == EOF)
 						break;
 					wch = ch;
@@ -347,7 +348,7 @@ cook_cat(FILE *fp)
 					break;
 			}
 			if (!iswascii(wch) && !iswprint(wch)) {
-ilseq:
+			ilseq:
 				if (putchar('M') == EOF || putchar('-') == EOF)
 					break;
 				wch = toascii(wch);
@@ -456,15 +457,14 @@ udom_open(const char *path, int flags)
 		errno = EINVAL;
 		return (-1);
 	}
-	cap_rights_init(&rights, CAP_CONNECT, CAP_READ, CAP_WRITE,
-	    CAP_SHUTDOWN, CAP_FSTAT, CAP_FCNTL);
+	cap_rights_init(&rights, CAP_CONNECT, CAP_READ, CAP_WRITE, CAP_SHUTDOWN,
+	    CAP_FSTAT, CAP_FCNTL);
 
 	/* Default error if something goes wrong. */
 	serrno = EINVAL;
 
 	for (res = res0; res != NULL; res = res->ai_next) {
-		fd = socket(res->ai_family, res->ai_socktype,
-		    res->ai_protocol);
+		fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (fd < 0) {
 			serrno = errno;
 			freeaddrinfo(res0);

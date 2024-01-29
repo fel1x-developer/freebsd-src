@@ -25,39 +25,39 @@
  */
 
 #ifndef _DEV_PHY_USB_H_
-#define	_DEV_PHY_USB_H_
+#define _DEV_PHY_USB_H_
 
 #include <dev/phy/phy.h>
+
 #include "phynode_usb_if.h"
 
-#define	PHY_USB_MODE_UNKNOWN	0
-#define	PHY_USB_MODE_HOST	1
-#define	PHY_USB_MODE_OTG	2
-#define	PHY_USB_MODE_DEVICE	3
+#define PHY_USB_MODE_UNKNOWN 0
+#define PHY_USB_MODE_HOST 1
+#define PHY_USB_MODE_OTG 2
+#define PHY_USB_MODE_DEVICE 3
 
 /* Standard USB phy parameters. */
 struct phynode_usb_std_param {
-	int	usb_mode;
+	int usb_mode;
 };
 
 struct phynode_usb_sc {
-   struct phynode_usb_std_param		std_param;
+	struct phynode_usb_std_param std_param;
 };
 
 /* Initialization parameters. */
 struct phynode_usb_init_def {
-	struct phynode_init_def		phynode_init_def;
-	struct phynode_usb_std_param	std_param; /* Standard parameters */
+	struct phynode_init_def phynode_init_def;
+	struct phynode_usb_std_param std_param; /* Standard parameters */
 };
-
 
 /*
  * Shorthands for constructing method tables.
  */
-#define	PHYNODEUSBMETHOD	KOBJMETHOD
-#define	PHYNODEUSBMETHOD_END	KOBJMETHOD_END
-#define phynode_usb_method_t	kobj_method_t
-#define phynode_usb_class_t	kobj_class_t
+#define PHYNODEUSBMETHOD KOBJMETHOD
+#define PHYNODEUSBMETHOD_END KOBJMETHOD_END
+#define phynode_usb_method_t kobj_method_t
+#define phynode_usb_class_t kobj_class_t
 DECLARE_CLASS(phynode_usb_class);
 
 struct phynode *phynode_usb_create(device_t pdev, phynode_class_t phynode_class,

@@ -26,27 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#define	LAYER_ASYNC	2
-#define	LAYER_SYNC	3
-#define	LAYER_HDLC	4
-#define	LAYER_ACF	5
-#define	LAYER_PROTO	6
-#define	LAYER_LQR	7
-#define	LAYER_CCP	8
-#define	LAYER_VJ	9
-#define	LAYER_NAT	10
+#define LAYER_ASYNC 2
+#define LAYER_SYNC 3
+#define LAYER_HDLC 4
+#define LAYER_ACF 5
+#define LAYER_PROTO 6
+#define LAYER_LQR 7
+#define LAYER_CCP 8
+#define LAYER_VJ 9
+#define LAYER_NAT 10
 
-#define	LAYER_MAX	10	/* How many layers we can handle on a link */
+#define LAYER_MAX 10 /* How many layers we can handle on a link */
 
 struct mbuf;
 struct link;
 struct bundle;
 
 struct layer {
-  int type;
-  const char *name;
-  struct mbuf *(*push)(struct bundle *, struct link *, struct mbuf *,
-                       int pri, u_short *proto);
-  struct mbuf *(*pull)(struct bundle *, struct link *, struct mbuf *,
-                       u_short *);
+	int type;
+	const char *name;
+	struct mbuf *(*push)(struct bundle *, struct link *, struct mbuf *,
+	    int pri, u_short *proto);
+	struct mbuf *(
+	    *pull)(struct bundle *, struct link *, struct mbuf *, u_short *);
 };

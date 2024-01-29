@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <errno.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -33,8 +34,8 @@
 #include "pw.h"
 
 uintmax_t
-strtounum(const char * __restrict np, uintmax_t minval, uintmax_t maxval,
-    const char ** __restrict errpp)
+strtounum(const char *__restrict np, uintmax_t minval, uintmax_t maxval,
+    const char **__restrict errpp)
 {
 	char *endp;
 	uintmax_t ret;

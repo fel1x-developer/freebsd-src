@@ -47,7 +47,7 @@ __lshldi3(quad_t a, qshift_t shift)
 	aa.q = a;
 	if (shift >= LONG_BITS) {
 		aa.ul[H] = shift >= QUAD_BITS ? 0 :
-		    aa.ul[L] << (shift - LONG_BITS);
+						aa.ul[L] << (shift - LONG_BITS);
 		aa.ul[L] = 0;
 	} else if (shift > 0) {
 		aa.ul[H] = (aa.ul[H] << shift) |

@@ -5,7 +5,7 @@
  * All rights reserved
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted providing that the following conditions 
+ * modification, are permitted providing that the following conditions
  * are met:
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
@@ -70,18 +70,26 @@ add_off_t(off_t a, off_t b)
 	return result;
 }
 
-static off_t offtin(u_char *buf)
+static off_t
+offtin(u_char *buf)
 {
 	off_t y;
 
 	y = buf[7] & 0x7F;
-	y = y * 256; y += buf[6];
-	y = y * 256; y += buf[5];
-	y = y * 256; y += buf[4];
-	y = y * 256; y += buf[3];
-	y = y * 256; y += buf[2];
-	y = y * 256; y += buf[1];
-	y = y * 256; y += buf[0];
+	y = y * 256;
+	y += buf[6];
+	y = y * 256;
+	y += buf[5];
+	y = y * 256;
+	y += buf[4];
+	y = y * 256;
+	y += buf[3];
+	y = y * 256;
+	y += buf[2];
+	y = y * 256;
+	y += buf[1];
+	y = y * 256;
+	y += buf[0];
 
 	if (buf[7] & 0x80)
 		y = -y;
@@ -97,7 +105,8 @@ usage(void)
 	exit(1);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
 	FILE *f, *cpf, *dpf, *epf;
 	BZFILE *cpfbz2, *dpfbz2, *epfbz2;
@@ -143,7 +152,7 @@ int main(int argc, char *argv[])
 		err(1, "basename");
 	/* open newfile */
 	if ((newfd = openat(dirfd, newfile,
-	    O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0666)) < 0)
+		 O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, 0666)) < 0)
 		err(1, "open(%s)", argv[2]);
 	atexit(exit_cleanup);
 
@@ -162,7 +171,8 @@ int main(int argc, char *argv[])
 	    cap_rights_limit(oldfd, &rights_ro) < 0 ||
 	    cap_rights_limit(newfd, &rights_wr) < 0 ||
 	    cap_rights_limit(dirfd, &rights_dir) < 0)
-		err(1, "cap_rights_limit() failed, could not restrict"
+		err(1,
+		    "cap_rights_limit() failed, could not restrict"
 		    " capabilities");
 #endif
 
@@ -220,11 +230,9 @@ int main(int argc, char *argv[])
 		errx(1, "BZ2_bzReadOpen, bz2err = %d", ebz2err);
 
 	if ((oldsize = lseek(oldfd, 0, SEEK_END)) == -1 ||
-	    oldsize > SSIZE_MAX ||
-	    (old = malloc(oldsize)) == NULL ||
+	    oldsize > SSIZE_MAX || (old = malloc(oldsize)) == NULL ||
 	    lseek(oldfd, 0, SEEK_SET) != 0 ||
-	    read(oldfd, old, oldsize) != oldsize ||
-	    close(oldfd) == -1)
+	    read(oldfd, old, oldsize) != oldsize || close(oldfd) == -1)
 		err(1, "%s", argv[1]);
 	if ((new = malloc(newsize)) == NULL)
 		err(1, NULL);
@@ -235,15 +243,15 @@ int main(int argc, char *argv[])
 		/* Read control data */
 		for (i = 0; i <= 2; i++) {
 			lenread = BZ2_bzRead(&cbz2err, cpfbz2, buf, 8);
-			if ((lenread < 8) || ((cbz2err != BZ_OK) &&
-			    (cbz2err != BZ_STREAM_END)))
+			if ((lenread < 8) ||
+			    ((cbz2err != BZ_OK) && (cbz2err != BZ_STREAM_END)))
 				errx(1, "Corrupt patch");
 			ctrl[i] = offtin(buf);
 		}
 
 		/* Sanity-check */
-		if (ctrl[0] < 0 || ctrl[0] > INT_MAX ||
-		    ctrl[1] < 0 || ctrl[1] > INT_MAX)
+		if (ctrl[0] < 0 || ctrl[0] > INT_MAX || ctrl[1] < 0 ||
+		    ctrl[1] > INT_MAX)
 			errx(1, "Corrupt patch");
 
 		/* Sanity-check */

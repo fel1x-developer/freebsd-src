@@ -26,21 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "un-namespace.h"
+
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static const char CorruptEnvFindMsg[] = "environment corrupt; unable to find ";
 static const char CorruptEnvValueMsg[] =
     "environment corrupt; missing value for ";
-
 
 /*
  * Standard environ.  environ variable is exposed to entire process.
@@ -90,10 +91,8 @@ static int envActive = 0;
 static int envVarsSize = 0;
 static int envVarsTotal = 0;
 
-
 /* Deinitialization of new environment. */
-static void __attribute__ ((destructor)) __clean_env_destructor(void);
-
+static void __attribute__((destructor)) __clean_env_destructor(void);
 
 /*
  * A simple version of warnx() to avoid the bloat of including stdio in static
@@ -114,7 +113,6 @@ __env_warnx(const char *msg, const char *name, size_t nameLen)
 	return;
 }
 
-
 /*
  * Inline strlen() for performance.  Also, perform check for an equals sign.
  * Cheaper here than performing a strchr() later.
@@ -131,7 +129,6 @@ __strleneq(const char *str)
 	return (s - str);
 }
 
-
 /*
  * Comparison of an environment name=value to a name.
  */
@@ -143,7 +140,6 @@ strncmpeq(const char *nameValue, const char *name, size_t nameLen)
 
 	return (false);
 }
-
 
 /*
  * Using environment, returns pointer to value associated with name, if any,
@@ -165,18 +161,17 @@ __findenv(const char *name, size_t nameLen, int *envNdx, bool onlyActive)
 			if (strncmpeq(envVars[ndx].name, name, nameLen)) {
 				*envNdx = ndx;
 				return (envVars[ndx].name + nameLen +
-				    sizeof ("=") - 1);
+				    sizeof("=") - 1);
 			}
 		} else if ((!onlyActive || envVars[ndx].active) &&
 		    (envVars[ndx].nameLen == nameLen &&
-		    strncmpeq(envVars[ndx].name, name, nameLen))) {
+			strncmpeq(envVars[ndx].name, name, nameLen))) {
 			*envNdx = ndx;
 			return (envVars[ndx].value);
 		}
 
 	return (NULL);
 }
-
 
 /*
  * Using environ, returns pointer to value associated with name, if any, else
@@ -195,7 +190,6 @@ __findenv_environ(const char *name, size_t nameLen)
 	return (NULL);
 }
 
-
 /*
  * Remove variable added by putenv() from variable tracking array.
  */
@@ -205,12 +199,11 @@ __remove_putenv(int envNdx)
 	envVarsTotal--;
 	if (envVarsTotal > envNdx)
 		memmove(&(envVars[envNdx]), &(envVars[envNdx + 1]),
-		    (envVarsTotal - envNdx) * sizeof (*envVars));
-	memset(&(envVars[envVarsTotal]), 0, sizeof (*envVars));
+		    (envVarsTotal - envNdx) * sizeof(*envVars));
+	memset(&(envVars[envVarsTotal]), 0, sizeof(*envVars));
 
 	return;
 }
-
 
 /*
  * Deallocate the environment built from environ as well as environ then set
@@ -253,7 +246,6 @@ __clean_env(bool freeVars)
 	return;
 }
 
-
 /*
  * Using the environment, rebuild the environ array for use by other C library
  * calls that depend upon it.
@@ -290,7 +282,6 @@ __rebuild_environ(int newEnvironSize)
 	return (0);
 }
 
-
 /*
  * Enlarge new environment.
  */
@@ -315,7 +306,6 @@ __enlarge_env(void)
 
 	return (true);
 }
-
 
 /*
  * Using environ, build an environment for use by standard C library calls.
@@ -346,15 +336,15 @@ __build_env(void)
 	/* Copy environ values and keep track of them. */
 	for (envNdx = envVarsTotal - 1; envNdx >= 0; envNdx--) {
 		envVars[envNdx].putenv = false;
-		envVars[envNdx].name =
-		    strdup(environ[envVarsTotal - envNdx - 1]);
+		envVars[envNdx].name = strdup(
+		    environ[envVarsTotal - envNdx - 1]);
 		if (envVars[envNdx].name == NULL)
 			goto Failure;
 		envVars[envNdx].value = strchr(envVars[envNdx].name, '=');
 		if (envVars[envNdx].value != NULL) {
 			envVars[envNdx].value++;
-			envVars[envNdx].valueSize =
-			    strlen(envVars[envNdx].value);
+			envVars[envNdx].valueSize = strlen(
+			    envVars[envNdx].value);
 		} else {
 			__env_warnx(CorruptEnvValueMsg, envVars[envNdx].name,
 			    strlen(envVars[envNdx].name));
@@ -371,7 +361,7 @@ __build_env(void)
 		envVars[envNdx].nameLen = nameLen;
 		activeNdx = envVarsTotal - 1;
 		if (__findenv(envVars[envNdx].name, nameLen, &activeNdx,
-		    false) == NULL) {
+			false) == NULL) {
 			__env_warnx(CorruptEnvFindMsg, envVars[envNdx].name,
 			    nameLen);
 			errno = EFAULT;
@@ -394,7 +384,6 @@ Failure:
 	return (-1);
 }
 
-
 /*
  * Destructor function with default argument to __clean_env().
  */
@@ -405,7 +394,6 @@ __clean_env_destructor(void)
 
 	return;
 }
-
 
 /*
  * Returns the value of a variable or NULL if none are found.
@@ -441,7 +429,6 @@ getenv(const char *name)
 		return (__findenv(name, nameLen, &envNdx, true));
 	}
 }
-
 
 /*
  * Runs getenv() unless the current process is tainted by uid or gid changes, in
@@ -497,15 +484,14 @@ __setenv(const char *name, size_t nameLen, const char *value, int overwrite)
 	}
 
 	/* Create new variable if none was found of sufficient size. */
-	if (! reuse) {
+	if (!reuse) {
 		/* Enlarge environment. */
 		envNdx = envVarsTotal;
 		if (!__enlarge_env())
 			return (-1);
 
 		/* Create environment entry. */
-		envVars[envNdx].name = malloc(nameLen + sizeof ("=") +
-		    valueLen);
+		envVars[envNdx].name = malloc(nameLen + sizeof("=") + valueLen);
 		if (envVars[envNdx].name == NULL) {
 			envVarsTotal--;
 			return (-1);
@@ -516,8 +502,7 @@ __setenv(const char *name, size_t nameLen, const char *value, int overwrite)
 		/* Save name of name/value pair. */
 		env = stpncpy(envVars[envNdx].name, name, nameLen);
 		*env++ = '=';
-	}
-	else
+	} else
 		env = envVars[envNdx].value;
 
 	/* Save value of name/value pair. */
@@ -532,7 +517,6 @@ __setenv(const char *name, size_t nameLen, const char *value, int overwrite)
 	else
 		return (__rebuild_environ(newEnvActive));
 }
-
 
 /*
  * If the program attempts to replace the array of environment variables
@@ -550,8 +534,8 @@ __merge_environ(void)
 	 * using the count of active variables against a NULL as the first value
 	 * in environ).  Clean up everything.
 	 */
-	if (intEnviron != NULL && (environ != intEnviron || (envActive > 0 &&
-	    environ[0] == NULL))) {
+	if (intEnviron != NULL &&
+	    (environ != intEnviron || (envActive > 0 && environ[0] == NULL))) {
 		/* Deactivate all environment variables. */
 		if (envActive > 0) {
 			origEnviron = NULL;
@@ -572,14 +556,13 @@ __merge_environ(void)
 					return (-1);
 				}
 				if (__setenv(*env, equals - *env, equals + 1,
-				    1) == -1)
+					1) == -1)
 					return (-1);
 			}
 	}
 
 	return (0);
 }
-
 
 /*
  * The exposed setenv() that performs a few tests before calling the function
@@ -603,7 +586,6 @@ setenv(const char *name, const char *value, int overwrite)
 
 	return (__setenv(name, nameLen, value, overwrite));
 }
-
 
 /*
  * Insert a "name=value" string into the environment.  Special settings must be
@@ -659,7 +641,6 @@ putenv(char *string)
 
 	return (__rebuild_environ(newEnvActive));
 }
-
 
 /*
  * Unset variable with the same name by flagging it as inactive.  No variable is

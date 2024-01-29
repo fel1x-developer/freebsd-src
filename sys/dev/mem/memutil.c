@@ -27,14 +27,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/memrange.h>
 #include <sys/rwlock.h>
-#include <sys/systm.h>
 
-static struct rwlock	mr_lock;
+static struct rwlock mr_lock;
 
 /*
  * Implementation-neutral, kernel-callable functions for manipulating

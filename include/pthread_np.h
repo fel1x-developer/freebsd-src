@@ -37,7 +37,7 @@
 /*
  * Non-POSIX type definitions:
  */
-typedef void	(*pthread_switch_routine_t)(pthread_t, pthread_t);
+typedef void (*pthread_switch_routine_t)(pthread_t, pthread_t);
 
 /*
  * Non-POSIX thread function prototype definitions:

@@ -1,8 +1,8 @@
-#include "namespace.h"
 #include <stdlib.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 __weak_reference(_getprogname, getprogname);
 

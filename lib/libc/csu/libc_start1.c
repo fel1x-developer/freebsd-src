@@ -28,7 +28,9 @@
 #include <sys/param.h>
 #include <sys/elf.h>
 #include <sys/elf_common.h>
+
 #include <stdlib.h>
+
 #include "libc_private.h"
 
 extern void (*__preinit_array_start[])(int, char **, char **) __hidden;
@@ -162,9 +164,8 @@ extern void _mcleanup(void);
 extern void monstartup(void *, void *);
 
 void
-__libc_start1_gcrt(int argc, char *argv[], char *env[],
-    void (*cleanup)(void), int (*mainX)(int, char *[], char *[]),
-    int *eprolp, int *etextp)
+__libc_start1_gcrt(int argc, char *argv[], char *env[], void (*cleanup)(void),
+    int (*mainX)(int, char *[], char *[]), int *eprolp, int *etextp)
 {
 	handle_argv(argc, argv, env);
 

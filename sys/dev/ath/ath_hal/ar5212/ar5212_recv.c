@@ -19,12 +19,11 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
 #include "ah_desc.h"
-
+#include "ah_internal.h"
 #include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212desc.h"
+#include "ar5212/ar5212reg.h"
 
 /*
  * Get the RXDP.
@@ -65,15 +64,15 @@ HAL_BOOL
 ar5212StopDmaReceive(struct ath_hal *ah)
 {
 	OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_DMA_STOP);
-	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD);	/* Set receive disable bit */
+	OS_REG_WRITE(ah, AR_CR, AR_CR_RXD); /* Set receive disable bit */
 	if (!ath_hal_wait(ah, AR_CR, AR_CR_RXE, 0)) {
 		OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_DMA_STOP_ERR);
 #ifdef AH_DEBUG
-		ath_hal_printf(ah, "%s: dma failed to stop in 10ms\n"
-			"AR_CR=0x%08x\nAR_DIAG_SW=0x%08x\n",
-			__func__,
-			OS_REG_READ(ah, AR_CR),
-			OS_REG_READ(ah, AR_DIAG_SW));
+		ath_hal_printf(ah,
+		    "%s: dma failed to stop in 10ms\n"
+		    "AR_CR=0x%08x\nAR_DIAG_SW=0x%08x\n",
+		    __func__, OS_REG_READ(ah, AR_CR),
+		    OS_REG_READ(ah, AR_DIAG_SW));
 #endif
 		return AH_FALSE;
 	} else {
@@ -91,7 +90,7 @@ ar5212StartPcuReceive(struct ath_hal *ah, HAL_BOOL is_scanning)
 
 	OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_PCU_START);
 	OS_REG_WRITE(ah, AR_DIAG_SW,
-		OS_REG_READ(ah, AR_DIAG_SW) &~ AR_DIAG_RX_DIS);
+	    OS_REG_READ(ah, AR_DIAG_SW) & ~AR_DIAG_RX_DIS);
 	ar5212EnableMibCounters(ah);
 	/* NB: restore current settings if we're not scanning */
 	ar5212AniReset(ah, ahp->ah_curchan, ahp->ah_opmode, !is_scanning);
@@ -105,7 +104,7 @@ ar5212StopPcuReceive(struct ath_hal *ah)
 {
 	OS_MARK(ah, AH_MARK_RX_CTL, AH_MARK_RX_CTL_PCU_STOP);
 	OS_REG_WRITE(ah, AR_DIAG_SW,
-		OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_RX_DIS);
+	    OS_REG_READ(ah, AR_DIAG_SW) | AR_DIAG_RX_DIS);
 	ar5212DisableMibCounters(ah);
 }
 
@@ -132,10 +131,10 @@ ar5212ClrMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val &~ (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val & ~(1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val &~ (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val & ~(1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -152,10 +151,10 @@ ar5212SetMulticastFilterIndex(struct ath_hal *ah, uint32_t ix)
 		return AH_FALSE;
 	if (ix >= 32) {
 		val = OS_REG_READ(ah, AR_MCAST_FIL1);
-		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1<<(ix-32))));
+		OS_REG_WRITE(ah, AR_MCAST_FIL1, (val | (1 << (ix - 32))));
 	} else {
 		val = OS_REG_READ(ah, AR_MCAST_FIL0);
-		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1<<ix)));
+		OS_REG_WRITE(ah, AR_MCAST_FIL0, (val | (1 << ix)));
 	}
 	return AH_TRUE;
 }
@@ -170,7 +169,7 @@ ar5212GetRxFilter(struct ath_hal *ah)
 	uint32_t phybits = OS_REG_READ(ah, AR_PHY_ERR);
 	if (phybits & AR_PHY_ERR_RADAR)
 		bits |= HAL_RX_FILTER_PHYRADAR;
-	if (phybits & (AR_PHY_ERR_OFDM_TIMING|AR_PHY_ERR_CCK_TIMING))
+	if (phybits & (AR_PHY_ERR_OFDM_TIMING | AR_PHY_ERR_CCK_TIMING))
 		bits |= HAL_RX_FILTER_PHYERR;
 	if (AH_PRIVATE(ah)->ah_caps.halBssidMatchSupport &&
 	    (AH5212(ah)->ah_miscMode & AR_MISC_MODE_BSSID_MATCH_FORCE))
@@ -188,8 +187,9 @@ ar5212SetRxFilter(struct ath_hal *ah, uint32_t bits)
 	uint32_t phybits;
 
 	OS_REG_WRITE(ah, AR_RX_FILTER,
-	    bits &~ (HAL_RX_FILTER_PHYRADAR|HAL_RX_FILTER_PHYERR|
-	    HAL_RX_FILTER_BSSID));
+	    bits &
+		~(HAL_RX_FILTER_PHYRADAR | HAL_RX_FILTER_PHYERR |
+		    HAL_RX_FILTER_BSSID));
 	phybits = 0;
 	if (bits & HAL_RX_FILTER_PHYRADAR)
 		phybits |= AR_PHY_ERR_RADAR;
@@ -198,17 +198,18 @@ ar5212SetRxFilter(struct ath_hal *ah, uint32_t bits)
 	OS_REG_WRITE(ah, AR_PHY_ERR, phybits);
 	if (phybits) {
 		OS_REG_WRITE(ah, AR_RXCFG,
-			OS_REG_READ(ah, AR_RXCFG) | AR_RXCFG_ZLFDMA);
+		    OS_REG_READ(ah, AR_RXCFG) | AR_RXCFG_ZLFDMA);
 	} else {
 		OS_REG_WRITE(ah, AR_RXCFG,
-			OS_REG_READ(ah, AR_RXCFG) &~ AR_RXCFG_ZLFDMA);
+		    OS_REG_READ(ah, AR_RXCFG) & ~AR_RXCFG_ZLFDMA);
 	}
 	if (AH_PRIVATE(ah)->ah_caps.halBssidMatchSupport) {
 		if (bits & HAL_RX_FILTER_BSSID)
 			ahp->ah_miscMode |= AR_MISC_MODE_BSSID_MATCH_FORCE;
 		else
 			ahp->ah_miscMode &= ~AR_MISC_MODE_BSSID_MATCH_FORCE;
-		OS_REG_WRITE(ah, AR_MISC_MODE, OS_REG_READ(ah, AR_MISC_MODE) | ahp->ah_miscMode);
+		OS_REG_WRITE(ah, AR_MISC_MODE,
+		    OS_REG_READ(ah, AR_MISC_MODE) | ahp->ah_miscMode);
 	}
 }
 
@@ -217,12 +218,12 @@ ar5212SetRxFilter(struct ath_hal *ah, uint32_t bits)
  * the size (and any other flags).
  */
 HAL_BOOL
-ar5212SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t size, u_int flags)
+ar5212SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t size,
+    u_int flags)
 {
 	struct ar5212_desc *ads = AR5212DESC(ds);
 
-	HALASSERT((size &~ AR_BufLen) == 0);
+	HALASSERT((size & ~AR_BufLen) == 0);
 
 	ads->ds_ctl0 = 0;
 	ads->ds_ctl1 = size & AR_BufLen;
@@ -243,9 +244,8 @@ ar5212SetupRxDesc(struct ath_hal *ah, struct ath_desc *ds,
  *     of the descriptor (e.g. flushing any cached copy).
  */
 HAL_STATUS
-ar5212ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
-	uint32_t pa, struct ath_desc *nds, uint64_t tsf,
-	struct ath_rx_status *rs)
+ar5212ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds, uint32_t pa,
+    struct ath_desc *nds, uint64_t tsf, struct ath_rx_status *rs)
 {
 	struct ar5212_desc *ads = AR5212DESC(ds);
 	struct ar5212_desc *ands = AR5212DESC(nds);
@@ -257,7 +257,8 @@ ar5212ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 	 * done with this descriptor; the hw may have done this descriptor
 	 * once and picked it up again...make sure the hw has moved on.
 	 */
-	if ((ands->ds_rxstatus1&AR_Done) == 0 && OS_REG_READ(ah, AR_RXDP) == pa)
+	if ((ands->ds_rxstatus1 & AR_Done) == 0 &&
+	    OS_REG_READ(ah, AR_RXDP) == pa)
 		return HAL_EINPROGRESS;
 
 	rs->rs_datalen = ads->ds_rxstatus0 & AR_DataLen;
@@ -275,7 +276,7 @@ ar5212ProcRxDesc(struct ath_hal *ah, struct ath_desc *ds,
 		rs->rs_status |= HAL_RXERR_KEYMISS;
 	/* NB: caller expected to do rate table mapping */
 	rs->rs_rate = MS(ads->ds_rxstatus0, AR_RcvRate);
-	rs->rs_antenna  = MS(ads->ds_rxstatus0, AR_RcvAntenna);
+	rs->rs_antenna = MS(ads->ds_rxstatus0, AR_RcvAntenna);
 	rs->rs_more = (ads->ds_rxstatus0 & AR_More) ? 1 : 0;
 
 	/*

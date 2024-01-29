@@ -30,16 +30,17 @@
 #include <sys/disk.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <md5.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define NBBY 8
@@ -67,8 +68,9 @@ ldi_get_size(void *priv)
 }
 
 #define ZFS_TEST
-#define	printf(...)	 fprintf(stderr, __VA_ARGS__)
+#define printf(...) fprintf(stderr, __VA_ARGS__)
 #include "libzfs.h"
+
 #include "zfsimpl.c"
 #undef printf
 
@@ -85,7 +87,7 @@ vdev_read(vdev_t *vdev, void *priv, off_t off, void *buf, size_t bytes)
 static int
 zfs_read(spa_t *spa, dnode_phys_t *dn, void *buf, size_t size, off_t off)
 {
-	const znode_phys_t *zp = (const znode_phys_t *) dn->dn_bonus;
+	const znode_phys_t *zp = (const znode_phys_t *)dn->dn_bonus;
 	size_t n;
 	int rc;
 
@@ -101,7 +103,7 @@ zfs_read(spa_t *spa, dnode_phys_t *dn, void *buf, size_t size, off_t off)
 }
 
 int
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
 	char buf[512], hash[33];
 	MD5_CTX ctx;
@@ -152,7 +154,7 @@ main(int argc, char** argv)
 		}
 	}
 
-	STAILQ_FOREACH(spa, &zfs_pools, spa_link) {
+	STAILQ_FOREACH (spa, &zfs_pools, spa_link) {
 		if (zfs_spa_init(spa)) {
 			fprintf(stderr, "can't init pool %s\n", spa->spa_name);
 			exit(1);

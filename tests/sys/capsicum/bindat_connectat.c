@@ -26,12 +26,12 @@
 #include <sys/param.h>
 #include <sys/capsicum.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include <arpa/inet.h>
 #include <atf-c.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -52,7 +52,7 @@ open(const char *path, int flags, ...)
 	if (flags & O_CREAT) {
 		va_list ap;
 		va_start(ap, flags);
-		mode = (mode_t) va_arg(ap, int);
+		mode = (mode_t)va_arg(ap, int);
 		va_end(ap);
 	}
 
@@ -88,7 +88,6 @@ bindat_fdcwd(int s, const struct sockaddr *name, socklen_t namelen)
 	return (bindat(AT_FDCWD, s, name, namelen));
 }
 
-
 ATF_TC(bindat_connectat_1);
 ATF_TC_HEAD(bindat_connectat_1, tc)
 {
@@ -102,8 +101,8 @@ check_1(socket_fun f, int s, const struct sockaddr_in *name)
 
 	ATF_REQUIRE((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
 	ATF_REQUIRE_ERRNO(EAFNOSUPPORT,
-	    f(s, (const struct sockaddr *)(name),
-	        sizeof(struct sockaddr_in)) < 0);
+	    f(s, (const struct sockaddr *)(name), sizeof(struct sockaddr_in)) <
+		0);
 }
 
 ATF_TC_BODY(bindat_connectat_1, tc)
@@ -121,7 +120,6 @@ ATF_TC_BODY(bindat_connectat_1, tc)
 	check_1(connect, 0, &sin);
 }
 
-
 ATF_TC(bindat_connectat_2);
 ATF_TC_HEAD(bindat_connectat_2, tc)
 {
@@ -134,8 +132,8 @@ check_2(socket_fun f, int s, const struct sockaddr_in *name)
 {
 
 	ATF_REQUIRE_ERRNO(ECAPMODE,
-	    f(s, (const struct sockaddr *)name,
-	        sizeof(struct sockaddr_in)) < 0);
+	    f(s, (const struct sockaddr *)name, sizeof(struct sockaddr_in)) <
+		0);
 }
 
 ATF_TC_BODY(bindat_connectat_2, tc)
@@ -166,7 +164,6 @@ ATF_TC_BODY(bindat_connectat_2, tc)
 	check_2(connect, sock, &sin);
 }
 
-
 ATF_TC(bindat_connectat_3);
 ATF_TC_HEAD(bindat_connectat_3, tc)
 {
@@ -183,13 +180,13 @@ check_3(socket_fun f, int s, const struct sockaddr_in *name,
 	ATF_REQUIRE((s = socket(AF_INET, SOCK_STREAM, 0)) >= 0);
 	ATF_REQUIRE(cap_rights_limit(s, rights) >= 0);
 	ATF_REQUIRE_ERRNO(EAFNOSUPPORT,
-	    f(s, (const struct sockaddr *)name,
-	        sizeof(struct sockaddr_in)) < 0);
-	ATF_REQUIRE(cap_rights_limit(s,
-	                cap_rights_remove(rights, sub_rights)) >= 0);
+	    f(s, (const struct sockaddr *)name, sizeof(struct sockaddr_in)) <
+		0);
+	ATF_REQUIRE(
+	    cap_rights_limit(s, cap_rights_remove(rights, sub_rights)) >= 0);
 	ATF_REQUIRE_ERRNO(ENOTCAPABLE,
-	    f(s, (const struct sockaddr *)name,
-	        sizeof(struct sockaddr_in)) < 0);
+	    f(s, (const struct sockaddr *)name, sizeof(struct sockaddr_in)) <
+		0);
 }
 
 ATF_TC_BODY(bindat_connectat_3, tc)
@@ -207,17 +204,14 @@ ATF_TC_BODY(bindat_connectat_3, tc)
 	check_3(bindat_fdcwd, 0, &sin,
 	    cap_rights_init(&rights, CAP_SOCK_SERVER),
 	    cap_rights_init(&sub_rights, CAP_BIND));
-	check_3(bind, 0, &sin,
-	    cap_rights_init(&rights, CAP_SOCK_SERVER),
+	check_3(bind, 0, &sin, cap_rights_init(&rights, CAP_SOCK_SERVER),
 	    cap_rights_init(&sub_rights, CAP_BIND));
 	check_3(connectat_fdcwd, 0, &sin,
 	    cap_rights_init(&rights, CAP_SOCK_CLIENT),
 	    cap_rights_init(&sub_rights, CAP_CONNECT));
-	check_3(connect, 0, &sin,
-	    cap_rights_init(&rights, CAP_SOCK_CLIENT),
+	check_3(connect, 0, &sin, cap_rights_init(&rights, CAP_SOCK_CLIENT),
 	    cap_rights_init(&sub_rights, CAP_CONNECT));
 }
-
 
 ATF_TP_ADD_TCS(tp)
 {

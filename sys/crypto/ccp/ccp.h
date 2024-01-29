@@ -33,13 +33,13 @@
  * SHA3-224 is the next largest block size, at 1152 bits.  However, crypto(4)
  * doesn't support any SHA3 hash, so SHA2 is the constraint:
  */
-#define CCP_HASH_MAX_BLOCK_SIZE	(SHA2_512_BLOCK_LEN)
+#define CCP_HASH_MAX_BLOCK_SIZE (SHA2_512_BLOCK_LEN)
 
-#define CCP_AES_MAX_KEY_LEN	(AES_XTS_MAX_KEY)
-#define CCP_MAX_CRYPTO_IV_LEN	32	/* GCM IV + GHASH context */
+#define CCP_AES_MAX_KEY_LEN (AES_XTS_MAX_KEY)
+#define CCP_MAX_CRYPTO_IV_LEN 32 /* GCM IV + GHASH context */
 
-#define MAX_HW_QUEUES		5
-#define MAX_LSB_REGIONS		8
+#define MAX_HW_QUEUES 5
+#define MAX_LSB_REGIONS 8
 
 #ifndef __must_check
 #define __must_check __attribute__((__warn_unused_result__))
@@ -53,7 +53,9 @@ enum sha_version {
 #if 0
 	SHA2_224,
 #endif
-	SHA2_256, SHA2_384, SHA2_512
+	SHA2_256,
+	SHA2_384,
+	SHA2_512
 };
 
 /*
@@ -97,31 +99,31 @@ struct ccp_session {
 
 struct ccp_softc;
 struct ccp_queue {
-	struct mtx		cq_lock;
-	unsigned		cq_qindex;
-	struct ccp_softc	*cq_softc;
+	struct mtx cq_lock;
+	unsigned cq_qindex;
+	struct ccp_softc *cq_softc;
 
 	/* Host memory and tracking structures for descriptor ring. */
-	bus_dma_tag_t		ring_desc_tag;
-	bus_dmamap_t		ring_desc_map;
-	struct ccp_desc		*desc_ring;
-	bus_addr_t		desc_ring_bus_addr;
+	bus_dma_tag_t ring_desc_tag;
+	bus_dmamap_t ring_desc_map;
+	struct ccp_desc *desc_ring;
+	bus_addr_t desc_ring_bus_addr;
 	/* Callbacks and arguments ring; indices correspond to above ring. */
 	struct ccp_completion_ctx *completions_ring;
 
-	uint32_t		qcontrol;	/* Cached register value */
-	unsigned		lsb_mask;	/* LSBs available to queue */
-	int			private_lsb;	/* Reserved LSB #, or -1 */
+	uint32_t qcontrol; /* Cached register value */
+	unsigned lsb_mask; /* LSBs available to queue */
+	int private_lsb;   /* Reserved LSB #, or -1 */
 
-	unsigned		cq_head;
-	unsigned		cq_tail;
-	unsigned		cq_acq_tail;
+	unsigned cq_head;
+	unsigned cq_tail;
+	unsigned cq_acq_tail;
 
-	bool			cq_waiting;	/* Thread waiting for space */
+	bool cq_waiting; /* Thread waiting for space */
 
-	struct sglist		*cq_sg_crp;
-	struct sglist		*cq_sg_ulptx;
-	struct sglist		*cq_sg_dst;
+	struct sglist *cq_sg_crp;
+	struct sglist *cq_sg_ulptx;
+	struct sglist *cq_sg_dst;
 };
 
 struct ccp_completion_ctx {
@@ -178,24 +180,26 @@ extern struct ccp_softc *g_ccp_softc;
 /*
  * Debug macros.
  */
-#define DPRINTF(dev, ...)	do {				\
-	if (!g_debug_print)					\
-		break;						\
-	if ((dev) != NULL)					\
-		device_printf((dev), "XXX " __VA_ARGS__);	\
-	else							\
-		printf("ccpXXX: " __VA_ARGS__);			\
-} while (0)
+#define DPRINTF(dev, ...)                                         \
+	do {                                                      \
+		if (!g_debug_print)                               \
+			break;                                    \
+		if ((dev) != NULL)                                \
+			device_printf((dev), "XXX " __VA_ARGS__); \
+		else                                              \
+			printf("ccpXXX: " __VA_ARGS__);           \
+	} while (0)
 
 #if 0
-#define INSECURE_DEBUG(dev, ...)	do {			\
-	if (!g_debug_print)					\
-		break;						\
-	if ((dev) != NULL)					\
-		device_printf((dev), "XXX " __VA_ARGS__);	\
-	else							\
-		printf("ccpXXX: " __VA_ARGS__);			\
-} while (0)
+#define INSECURE_DEBUG(dev, ...)                                  \
+	do {                                                      \
+		if (!g_debug_print)                               \
+			break;                                    \
+		if ((dev) != NULL)                                \
+			device_printf((dev), "XXX " __VA_ARGS__); \
+		else                                              \
+			printf("ccpXXX: " __VA_ARGS__);           \
+	} while (0)
 #else
 #define INSECURE_DEBUG(dev, ...)
 #endif
@@ -220,10 +224,10 @@ int ccp_authenc(struct ccp_queue *sc, struct ccp_session *s,
     struct cryptop *crp) __must_check;
 int ccp_blkcipher(struct ccp_queue *sc, struct ccp_session *s,
     struct cryptop *crp) __must_check;
-int ccp_gcm(struct ccp_queue *sc, struct ccp_session *s, struct cryptop *crp)
-    __must_check;
-int ccp_hmac(struct ccp_queue *sc, struct ccp_session *s, struct cryptop *crp)
-    __must_check;
+int ccp_gcm(struct ccp_queue *sc, struct ccp_session *s,
+    struct cryptop *crp) __must_check;
+int ccp_hmac(struct ccp_queue *sc, struct ccp_session *s,
+    struct cryptop *crp) __must_check;
 
 /*
  * Internal hardware TRNG read routine.
@@ -231,8 +235,8 @@ int ccp_hmac(struct ccp_queue *sc, struct ccp_session *s, struct cryptop *crp)
 u_int random_ccp_read(void *v, u_int c);
 
 /* XXX */
-int ccp_queue_acquire_reserve(struct ccp_queue *qp, unsigned n, int mflags)
-    __must_check;
+int ccp_queue_acquire_reserve(struct ccp_queue *qp, unsigned n,
+    int mflags) __must_check;
 void ccp_queue_abort(struct ccp_queue *qp);
 void ccp_queue_release(struct ccp_queue *qp);
 

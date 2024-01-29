@@ -44,13 +44,14 @@
 #define ENOMEDIUM -1
 #define EINVAL -2
 
-#define WARN_ON(cond) ({                                        \
-      bool __ret = (cond);                                      \
-      if (__ret) {                                              \
-	      printf("WARNING %s failed at %s:%d\n",		\
-		     #cond, __FILE__, __LINE__);	        \
-      }                                                         \
-      (__ret);                                                  \
-})
+#define WARN_ON(cond)                                                 \
+	({                                                            \
+		bool __ret = (cond);                                  \
+		if (__ret) {                                          \
+			printf("WARNING %s failed at %s:%d\n", #cond, \
+			    __FILE__, __LINE__);                      \
+		}                                                     \
+		(__ret);                                              \
+	})
 
 #endif

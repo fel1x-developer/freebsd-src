@@ -1,13 +1,14 @@
 
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/mman.h>
-#include <semaphore.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <sys/wait.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #define SEM_NAME "/semtst"
@@ -24,8 +25,8 @@ test_unnamed(void)
 	int status;
 
 	printf("testing unnamed process-shared semaphore\n");
-	s = (sem_t *)mmap(NULL, sizeof(sem_t), PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED,
-		-1, 0);
+	s = (sem_t *)mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE,
+	    MAP_ANON | MAP_SHARED, -1, 0);
 	if (s == MAP_FAILED)
 		err(1, "mmap failed");
 	if (sem_init(s, 1, 0))
@@ -67,7 +68,7 @@ test_named(void)
 		err(2, "second sem_open call failed");
 	if (s != s2)
 		errx(3,
-"two sem_open calls for same semaphore do not return same address");
+		    "two sem_open calls for same semaphore do not return same address");
 	if (sem_close(s2))
 		err(4, "sem_close failed");
 	if ((pid = fork()) == 0) {
@@ -90,7 +91,7 @@ test_named(void)
 
 	if (sem_close(s))
 		err(7, "sem_close failed");
-	
+
 	return (0);
 }
 
@@ -115,13 +116,13 @@ test_named2(void)
 		err(4, "third sem_open call failed");
 	if (s != s3)
 		errx(5,
-"two sem_open calls for same semaphore do not return same address");
+		    "two sem_open calls for same semaphore do not return same address");
 	if (sem_close(s3))
 		err(6, "sem_close failed");
 
 	if (sem_close(s))
 		err(7, "sem_close failed");
-	
+
 	printf("OK.\n");
 	return (0);
 }

@@ -34,10 +34,11 @@
  * SUCH DAMAGE.
  */
 
-#include <limits.h>
-#include <errno.h>
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -47,8 +48,8 @@
  * alphabets and digits are each contiguous.
  */
 unsigned long long
-strtoull_l(const char * __restrict nptr, char ** __restrict endptr, int base,
-		locale_t locale)
+strtoull_l(const char *__restrict nptr, char **__restrict endptr, int base,
+    locale_t locale)
 {
 	const char *s;
 	unsigned long long acc;
@@ -72,17 +73,14 @@ strtoull_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 		if (c == '+')
 			c = *s++;
 	}
-	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X') &&
-	    ((s[1] >= '0' && s[1] <= '9') ||
-	    (s[1] >= 'A' && s[1] <= 'F') ||
-	    (s[1] >= 'a' && s[1] <= 'f'))) {
+	if ((base == 0 || base == 16) && c == '0' && (*s == 'x' || *s == 'X') &&
+	    ((s[1] >= '0' && s[1] <= '9') || (s[1] >= 'A' && s[1] <= 'F') ||
+		(s[1] >= 'a' && s[1] <= 'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;
 	}
-	if ((base == 0 || base == 2) &&
-	    c == '0' && (*s == 'b' || *s == 'B') &&
+	if ((base == 0 || base == 2) && c == '0' && (*s == 'b' || *s == 'B') &&
 	    (s[1] >= '0' && s[1] <= '1')) {
 		c = s[1];
 		s += 2;
@@ -96,7 +94,7 @@ strtoull_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 
 	cutoff = ULLONG_MAX / base;
 	cutlim = ULLONG_MAX % base;
-	for ( ; ; c = *s++) {
+	for (;; c = *s++) {
 		if (c >= '0' && c <= '9')
 			c -= '0';
 		else if (c >= 'A' && c <= 'Z')
@@ -119,7 +117,7 @@ strtoull_l(const char * __restrict nptr, char ** __restrict endptr, int base,
 		acc = ULLONG_MAX;
 		errno = ERANGE;
 	} else if (!any) {
-noconv:
+	noconv:
 		errno = EINVAL;
 	} else if (neg)
 		acc = -acc;
@@ -128,7 +126,7 @@ noconv:
 	return (acc);
 }
 unsigned long long
-strtoull(const char * __restrict nptr, char ** __restrict endptr, int base)
+strtoull(const char *__restrict nptr, char **__restrict endptr, int base)
 {
 	return strtoull_l(nptr, endptr, base, __get_locale());
 }

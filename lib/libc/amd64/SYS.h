@@ -33,25 +33,28 @@
  */
 
 #include <sys/syscall.h>
+
 #include <machine/asm.h>
 
-#define	_SYSCALL(name)							\
-			mov $SYS_##name, %eax;				\
-			movq %rcx, %r10;				\
-			syscall
+#define _SYSCALL(name)          \
+	mov $SYS_##name, % eax; \
+	movq % rcx, % r10;      \
+	syscall
 
-#define	_SYSCALL_BODY(name)						\
-			_SYSCALL(name);					\
-			jb HIDENAME(cerror);				\
-			ret
+#define _SYSCALL_BODY(name)  \
+	_SYSCALL(name);      \
+	jb HIDENAME(cerror); \
+	ret
 
-#define	RSYSCALL(name)	ENTRY(__sys_##name);				\
-			WEAK_REFERENCE(__sys_##name, name);		\
-			WEAK_REFERENCE(__sys_##name, _##name);		\
-			_SYSCALL_BODY(name);				\
-			END(__sys_##name)
+#define RSYSCALL(name)                         \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, name);    \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL_BODY(name);                   \
+	END(__sys_##name)
 
-#define	PSEUDO(name)	ENTRY(__sys_##name);				\
-			WEAK_REFERENCE(__sys_##name, _##name);		\
-			_SYSCALL_BODY(name);				\
-			END(__sys_##name)
+#define PSEUDO(name)                           \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL_BODY(name);                   \
+	END(__sys_##name)

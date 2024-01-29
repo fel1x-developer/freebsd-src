@@ -31,15 +31,15 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_CORES_CHIPC_CHIPC_PRIVATE_H_
 #define _BHND_CORES_CHIPC_CHIPC_PRIVATE_H_
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/rman.h>
 
 #include <machine/bus.h>
@@ -56,54 +56,48 @@ struct chipc_caps;
 struct chipc_region;
 struct chipc_softc;
 
-int			 chipc_init_child_resource(struct resource *r,
-			     struct resource *parent, 
-			     bhnd_size_t offset, bhnd_size_t size);
+int chipc_init_child_resource(struct resource *r, struct resource *parent,
+    bhnd_size_t offset, bhnd_size_t size);
 
-int			 chipc_set_irq_resource(struct chipc_softc *sc,
-			     device_t child, int rid, u_int intr);
-int			 chipc_set_mem_resource(struct chipc_softc *sc,
-			     device_t child, int rid, rman_res_t start,
-			     rman_res_t count, u_int port, u_int region);
+int chipc_set_irq_resource(struct chipc_softc *sc, device_t child, int rid,
+    u_int intr);
+int chipc_set_mem_resource(struct chipc_softc *sc, device_t child, int rid,
+    rman_res_t start, rman_res_t count, u_int port, u_int region);
 
-struct chipc_region	*chipc_alloc_region(struct chipc_softc *sc,
-			     bhnd_port_type type, u_int port,
-			     u_int region);
-void			 chipc_free_region(struct chipc_softc *sc,
-			     struct chipc_region *cr);
-struct chipc_region	*chipc_find_region(struct chipc_softc *sc,
-			     rman_res_t start, rman_res_t end);
-struct chipc_region	*chipc_find_region_by_rid(struct chipc_softc *sc,
-			     int rid);
+struct chipc_region *chipc_alloc_region(struct chipc_softc *sc,
+    bhnd_port_type type, u_int port, u_int region);
+void chipc_free_region(struct chipc_softc *sc, struct chipc_region *cr);
+struct chipc_region *chipc_find_region(struct chipc_softc *sc, rman_res_t start,
+    rman_res_t end);
+struct chipc_region *chipc_find_region_by_rid(struct chipc_softc *sc, int rid);
 
-int			 chipc_retain_region(struct chipc_softc *sc,
-			     struct chipc_region *cr, int flags);
-int			 chipc_release_region(struct chipc_softc *sc,
-			     struct chipc_region *cr, int flags);
+int chipc_retain_region(struct chipc_softc *sc, struct chipc_region *cr,
+    int flags);
+int chipc_release_region(struct chipc_softc *sc, struct chipc_region *cr,
+    int flags);
 
-void			 chipc_print_caps(device_t dev,
-			     struct chipc_caps *caps);
+void chipc_print_caps(device_t dev, struct chipc_caps *caps);
 
 /**
  * chipc SYS_RES_MEMORY region allocation record.
  */
 struct chipc_region {
-	bhnd_port_type		 cr_port_type;	/**< bhnd port type */
-	u_int			 cr_port_num;	/**< bhnd port number */
-	u_int			 cr_region_num;	/**< bhnd region number */
+	bhnd_port_type cr_port_type; /**< bhnd port type */
+	u_int cr_port_num;	     /**< bhnd port number */
+	u_int cr_region_num;	     /**< bhnd region number */
 
-	bhnd_addr_t		 cr_addr;	/**< region base address */
-	bhnd_addr_t		 cr_end;	/**< region end address */
-	bhnd_size_t		 cr_count;	/**< region count */
-	int			 cr_rid;	/**< rid to use when performing
-						     resource allocation, or -1
-						     if region has no assigned
-						     resource ID */
+	bhnd_addr_t cr_addr;  /**< region base address */
+	bhnd_addr_t cr_end;   /**< region end address */
+	bhnd_size_t cr_count; /**< region count */
+	int cr_rid;	      /**< rid to use when performing
+				   resource allocation, or -1
+				   if region has no assigned
+				   resource ID */
 
-	struct bhnd_resource	*cr_res;	/**< bus resource, or NULL */
-	int			 cr_res_rid;	/**< cr_res RID, if any. */
-	u_int			 cr_refs;	/**< RF_ALLOCATED refcount */
-	u_int			 cr_act_refs;	/**< RF_ACTIVE refcount */
+	struct bhnd_resource *cr_res; /**< bus resource, or NULL */
+	int cr_res_rid;		      /**< cr_res RID, if any. */
+	u_int cr_refs;		      /**< RF_ALLOCATED refcount */
+	u_int cr_act_refs;	      /**< RF_ACTIVE refcount */
 
 	STAILQ_ENTRY(chipc_region) cr_link;
 };

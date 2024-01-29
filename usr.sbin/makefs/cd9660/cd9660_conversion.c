@@ -1,4 +1,5 @@
-/*	$NetBSD: cd9660_conversion.c,v 1.4 2007/03/14 14:11:17 christos Exp $	*/
+/*	$NetBSD: cd9660_conversion.c,v 1.4 2007/03/14 14:11:17 christos Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -33,9 +34,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  */
-#include "cd9660.h"
-
 #include <sys/cdefs.h>
+
+#include "cd9660.h"
 static char cd9660_compute_gm_offset(time_t);
 
 #if 0
@@ -48,8 +49,8 @@ int length;
 #endif
 
 /*
-* These can probably be implemented using a macro
-*/
+ * These can probably be implemented using a macro
+ */
 
 /* Little endian */
 void
@@ -58,7 +59,7 @@ cd9660_721(uint16_t w, unsigned char *twochar)
 #if BYTE_ORDER == BIG_ENDIAN
 	w = bswap16(w);
 #endif
-	memcpy(twochar,&w,2);
+	memcpy(twochar, &w, 2);
 }
 
 void
@@ -67,7 +68,7 @@ cd9660_731(uint32_t w, unsigned char *fourchar)
 #if BYTE_ORDER == BIG_ENDIAN
 	w = bswap32(w);
 #endif
-	memcpy(fourchar,&w,4);
+	memcpy(fourchar, &w, 4);
 }
 
 /* Big endian */
@@ -77,7 +78,7 @@ cd9660_722(uint16_t w, unsigned char *twochar)
 #if BYTE_ORDER == LITTLE_ENDIAN
 	w = bswap16(w);
 #endif
-	memcpy(twochar,&w,2);
+	memcpy(twochar, &w, 2);
 }
 
 void
@@ -86,15 +87,15 @@ cd9660_732(uint32_t w, unsigned char *fourchar)
 #if BYTE_ORDER == LITTLE_ENDIAN
 	w = bswap32(w);
 #endif
-	memcpy(fourchar,&w,4);
+	memcpy(fourchar, &w, 4);
 }
 
 /**
-* Convert a dword into a double endian string of eight characters
-* @param int The double word to convert
-* @param char* The string to write the both endian double word to - It is assumed this is allocated and at least
-*		eight characters long
-*/
+ * Convert a dword into a double endian string of eight characters
+ * @param int The double word to convert
+ * @param char* The string to write the both endian double word to - It is
+ *assumed this is allocated and at least eight characters long
+ */
 void
 cd9660_bothendian_dword(uint32_t dw, unsigned char *eightchar)
 {
@@ -108,15 +109,15 @@ cd9660_bothendian_dword(uint32_t dw, unsigned char *eightchar)
 	le = bswap32(dw);
 #endif
 	memcpy(eightchar, &le, 4);
-	memcpy((eightchar+4), &be, 4);
+	memcpy((eightchar + 4), &be, 4);
 }
 
 /**
-* Convert a word into a double endian string of four characters
-* @param int The word to convert
-* @param char* The string to write the both endian word to - It is assumed this is allocated and at least
-*		four characters long
-*/
+ * Convert a word into a double endian string of four characters
+ * @param int The word to convert
+ * @param char* The string to write the both endian word to - It is assumed this
+ *is allocated and at least four characters long
+ */
 void
 cd9660_bothendian_word(uint16_t dw, unsigned char *fourchar)
 {
@@ -130,7 +131,7 @@ cd9660_bothendian_word(uint16_t dw, unsigned char *fourchar)
 	le = bswap16(dw);
 #endif
 	memcpy(fourchar, &le, 2);
-	memcpy((fourchar+2), &be, 2);
+	memcpy((fourchar + 2), &be, 2);
 }
 
 void
@@ -138,7 +139,7 @@ cd9660_pad_string_spaces(char *str, int len)
 {
 	int i;
 
-	for (i = 0; i < len; i ++) {
+	for (i = 0; i < len; i++) {
 		if (str[i] == '\0')
 			str[i] = 0x20;
 	}
@@ -154,13 +155,13 @@ cd9660_compute_gm_offset(time_t tim)
 	gm.tm_year -= t.tm_year;
 	gm.tm_yday -= t.tm_yday;
 	gm.tm_hour -= t.tm_hour;
-	gm.tm_min  -= t.tm_min;
+	gm.tm_min -= t.tm_min;
 	if (gm.tm_year < 0)
 		gm.tm_yday = -1;
 	else if (gm.tm_year > 0)
 		gm.tm_yday = 1;
 
-	return (char)(-(gm.tm_min + 60* (24 * gm.tm_yday + gm.tm_hour)) / 15);
+	return (char)(-(gm.tm_min + 60 * (24 * gm.tm_yday + gm.tm_hour)) / 15);
 }
 
 /* Long dates: 17 characters */
@@ -172,13 +173,8 @@ cd9660_time_8426(unsigned char *buf, time_t tim)
 
 	(void)localtime_r(&tim, &t);
 	(void)snprintf(temp, sizeof(temp), "%04i%02i%02i%02i%02i%02i%02i",
-		1900+(int)t.tm_year,
-		(int)t.tm_mon+1,
-		(int)t.tm_mday,
-		(int)t.tm_hour,
-		(int)t.tm_min,
-		(int)t.tm_sec,
-		0);
+	    1900 + (int)t.tm_year, (int)t.tm_mon + 1, (int)t.tm_mday,
+	    (int)t.tm_hour, (int)t.tm_min, (int)t.tm_sec, 0);
 	(void)memcpy(buf, temp, 16);
 	buf[16] = cd9660_compute_gm_offset(tim);
 }
@@ -191,7 +187,7 @@ cd9660_time_915(unsigned char *buf, time_t tim)
 
 	(void)localtime_r(&tim, &t);
 	buf[0] = t.tm_year;
-	buf[1] = t.tm_mon+1;
+	buf[1] = t.tm_mon + 1;
 	buf[2] = t.tm_mday;
 	buf[3] = t.tm_hour;
 	buf[4] = t.tm_min;

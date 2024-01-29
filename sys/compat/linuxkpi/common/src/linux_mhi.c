@@ -25,12 +25,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 
-#include <linux/kernel.h>	/* pr_debug */
+#include <linux/kernel.h> /* pr_debug */
 #include <linux/mhi.h>
 
 static MALLOC_DEFINE(M_LKPIMHI, "lkpimhi", "LinuxKPI MHI compat");
@@ -61,8 +61,8 @@ linuxkpi_mhi_register_controller(struct mhi_controller *mhi_ctrl,
 	if (mhi_ctrl == NULL || cfg == NULL)
 		return (-EINVAL);
 
-#define	CHECK_FIELD(_f)						\
-	if (!mhi_ctrl->_f)					\
+#define CHECK_FIELD(_f)    \
+	if (!mhi_ctrl->_f) \
 		return (-ENXIO);
 	CHECK_FIELD(cntrl_dev);
 	CHECK_FIELD(regs);

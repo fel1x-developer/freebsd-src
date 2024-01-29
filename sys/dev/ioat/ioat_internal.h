@@ -28,25 +28,23 @@
 
 #include <sys/_task.h>
 
-#define	DEVICE2SOFTC(dev)	((struct ioat_softc *) device_get_softc(dev))
-#define	KTR_IOAT		KTR_SPARE3
+#define DEVICE2SOFTC(dev) ((struct ioat_softc *)device_get_softc(dev))
+#define KTR_IOAT KTR_SPARE3
 
-#define	ioat_read_chancnt(ioat) \
-	ioat_read_1((ioat), IOAT_CHANCNT_OFFSET)
+#define ioat_read_chancnt(ioat) ioat_read_1((ioat), IOAT_CHANCNT_OFFSET)
 
-#define	ioat_read_xfercap(ioat) \
+#define ioat_read_xfercap(ioat) \
 	(ioat_read_1((ioat), IOAT_XFERCAP_OFFSET) & IOAT_XFERCAP_VALID_MASK)
 
-#define	ioat_write_intrctrl(ioat, value) \
+#define ioat_write_intrctrl(ioat, value) \
 	ioat_write_1((ioat), IOAT_INTRCTRL_OFFSET, (value))
 
-#define	ioat_read_cbver(ioat) \
-	(ioat_read_1((ioat), IOAT_CBVER_OFFSET) & 0xFF)
+#define ioat_read_cbver(ioat) (ioat_read_1((ioat), IOAT_CBVER_OFFSET) & 0xFF)
 
-#define	ioat_read_dmacapability(ioat) \
+#define ioat_read_dmacapability(ioat) \
 	ioat_read_4((ioat), IOAT_DMACAPABILITY_OFFSET)
 
-#define	ioat_write_chanctrl(ioat, value) \
+#define ioat_write_chanctrl(ioat, value) \
 	ioat_write_2((ioat), IOAT_CHANCTRL_OFFSET, (value))
 
 static __inline uint64_t
@@ -76,42 +74,39 @@ ioat_bus_space_write_8_lower_first(bus_space_tag_t tag,
 #endif
 
 #define ioat_read_1(ioat, offset) \
-	bus_space_read_1((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
-	    (offset))
+	bus_space_read_1((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, (offset))
 
 #define ioat_read_2(ioat, offset) \
-	bus_space_read_2((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
-	    (offset))
+	bus_space_read_2((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, (offset))
 
 #define ioat_read_4(ioat, offset) \
-	bus_space_read_4((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
-	    (offset))
+	bus_space_read_4((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, (offset))
 
-#define ioat_read_8(ioat, offset) \
+#define ioat_read_8(ioat, offset)                                          \
 	ioat_bus_space_read_8((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
 	    (offset))
 
-#define ioat_read_double_4(ioat, offset) \
+#define ioat_read_double_4(ioat, offset)                       \
 	ioat_bus_space_read_8_lower_first((ioat)->pci_bus_tag, \
 	    (ioat)->pci_bus_handle, (offset))
 
-#define ioat_write_1(ioat, offset, value) \
+#define ioat_write_1(ioat, offset, value)                              \
 	bus_space_write_1((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
 	    (offset), (value))
 
-#define ioat_write_2(ioat, offset, value) \
+#define ioat_write_2(ioat, offset, value)                              \
 	bus_space_write_2((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
 	    (offset), (value))
 
-#define ioat_write_4(ioat, offset, value) \
+#define ioat_write_4(ioat, offset, value)                              \
 	bus_space_write_4((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
 	    (offset), (value))
 
-#define ioat_write_8(ioat, offset, value) \
+#define ioat_write_8(ioat, offset, value)                                   \
 	ioat_bus_space_write_8((ioat)->pci_bus_tag, (ioat)->pci_bus_handle, \
 	    (offset), (value))
 
-#define ioat_write_double_4(ioat, offset, value) \
+#define ioat_write_double_4(ioat, offset, value)                \
 	ioat_bus_space_write_8_lower_first((ioat)->pci_bus_tag, \
 	    (ioat)->pci_bus_handle, (offset), (value))
 
@@ -122,19 +117,19 @@ SYSCTL_DECL(_hw_ioat);
 extern int g_ioat_debug_level;
 
 struct generic_dma_control {
-	uint32_t int_enable:1;
-	uint32_t src_snoop_disable:1;
-	uint32_t dest_snoop_disable:1;
-	uint32_t completion_update:1;
-	uint32_t fence:1;
-	uint32_t reserved1:1;
-	uint32_t src_page_break:1;
-	uint32_t dest_page_break:1;
-	uint32_t bundle:1;
-	uint32_t dest_dca:1;
-	uint32_t hint:1;
-	uint32_t reserved2:13;
-	uint32_t op:8;
+	uint32_t int_enable : 1;
+	uint32_t src_snoop_disable : 1;
+	uint32_t dest_snoop_disable : 1;
+	uint32_t completion_update : 1;
+	uint32_t fence : 1;
+	uint32_t reserved1 : 1;
+	uint32_t src_page_break : 1;
+	uint32_t dest_page_break : 1;
+	uint32_t bundle : 1;
+	uint32_t dest_dca : 1;
+	uint32_t hint : 1;
+	uint32_t reserved2 : 13;
+	uint32_t op : 8;
 };
 
 struct ioat_generic_hw_descriptor {
@@ -155,20 +150,20 @@ struct ioat_dma_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t src_snoop_disable:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t null:1;
-			uint32_t src_page_break:1;
-			uint32_t dest_page_break:1;
-			uint32_t bundle:1;
-			uint32_t dest_dca:1;
-			uint32_t hint:1;
-			uint32_t reserved:13;
-			#define IOAT_OP_COPY 0x00
-			uint32_t op:8;
+			uint32_t int_enable : 1;
+			uint32_t src_snoop_disable : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t null : 1;
+			uint32_t src_page_break : 1;
+			uint32_t dest_page_break : 1;
+			uint32_t bundle : 1;
+			uint32_t dest_dca : 1;
+			uint32_t hint : 1;
+			uint32_t reserved : 13;
+#define IOAT_OP_COPY 0x00
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_addr;
@@ -186,17 +181,17 @@ struct ioat_fill_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t reserved:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t reserved2:2;
-			uint32_t dest_page_break:1;
-			uint32_t bundle:1;
-			uint32_t reserved3:15;
-			#define IOAT_OP_FILL 0x01
-			uint32_t op:8;
+			uint32_t int_enable : 1;
+			uint32_t reserved : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t reserved2 : 2;
+			uint32_t dest_page_break : 1;
+			uint32_t bundle : 1;
+			uint32_t reserved3 : 15;
+#define IOAT_OP_FILL 0x01
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_data;
@@ -214,16 +209,16 @@ struct ioat_crc32_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t src_snoop_disable:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t reserved1:3;
-			uint32_t bundle:1;
-			uint32_t dest_dca:1;
-			uint32_t hint:1;
-			uint32_t use_seed:1;
+			uint32_t int_enable : 1;
+			uint32_t src_snoop_disable : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t reserved1 : 3;
+			uint32_t bundle : 1;
+			uint32_t dest_dca : 1;
+			uint32_t hint : 1;
+			uint32_t use_seed : 1;
 			/*
 			 * crc_location:
 			 * For IOAT_OP_MOVECRC_TEST and IOAT_OP_CRC_TEST:
@@ -245,36 +240,36 @@ struct ioat_crc32_hw_descriptor {
 			 * 1: Result will be stored directly following the
 			 *    *destination* data.
 			 */
-			uint32_t crc_location:1;
-			uint32_t reserved2:11;
-			/*
-			 * MOVECRC - Move data in the same way as standard copy
-			 * operation, but also compute CRC32.
-			 *
-			 * CRC - Only compute CRC on source data.
-			 *
-			 * There is a CRC accumulator register in the hardware.
-			 * If 'initial' is set, it is initialized to the value
-			 * in 'seed.'
-			 *
-			 * In all modes, these operators accumulate size bytes
-			 * at src_addr into the running CRC32C.
-			 *
-			 * Store mode emits the accumulated CRC, in wire
-			 * format, as specified by the crc_location bit above.
-			 *
-			 * Test mode compares the accumulated CRC against the
-			 * reference CRC, as described in crc_location above.
-			 * On failure, halts the DMA engine with a CRC error
-			 * status.
-			 */
-			#define	IOAT_OP_MOVECRC		0x41
-			#define	IOAT_OP_MOVECRC_TEST	0x42
-			#define	IOAT_OP_MOVECRC_STORE	0x43
-			#define	IOAT_OP_CRC		0x81
-			#define	IOAT_OP_CRC_TEST	0x82
-			#define	IOAT_OP_CRC_STORE	0x83
-			uint32_t op:8;
+			uint32_t crc_location : 1;
+			uint32_t reserved2 : 11;
+/*
+ * MOVECRC - Move data in the same way as standard copy
+ * operation, but also compute CRC32.
+ *
+ * CRC - Only compute CRC on source data.
+ *
+ * There is a CRC accumulator register in the hardware.
+ * If 'initial' is set, it is initialized to the value
+ * in 'seed.'
+ *
+ * In all modes, these operators accumulate size bytes
+ * at src_addr into the running CRC32C.
+ *
+ * Store mode emits the accumulated CRC, in wire
+ * format, as specified by the crc_location bit above.
+ *
+ * Test mode compares the accumulated CRC against the
+ * reference CRC, as described in crc_location above.
+ * On failure, halts the DMA engine with a CRC error
+ * status.
+ */
+#define IOAT_OP_MOVECRC 0x41
+#define IOAT_OP_MOVECRC_TEST 0x42
+#define IOAT_OP_MOVECRC_STORE 0x43
+#define IOAT_OP_CRC 0x81
+#define IOAT_OP_CRC_TEST 0x82
+#define IOAT_OP_CRC_STORE 0x83
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_addr;
@@ -293,19 +288,19 @@ struct ioat_xor_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t src_snoop_disable:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t src_count:3;
-			uint32_t bundle:1;
-			uint32_t dest_dca:1;
-			uint32_t hint:1;
-			uint32_t reserved:13;
-			#define IOAT_OP_XOR 0x87
-			#define IOAT_OP_XOR_VAL 0x88
-			uint32_t op:8;
+			uint32_t int_enable : 1;
+			uint32_t src_snoop_disable : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t src_count : 3;
+			uint32_t bundle : 1;
+			uint32_t dest_dca : 1;
+			uint32_t hint : 1;
+			uint32_t reserved : 13;
+#define IOAT_OP_XOR 0x87
+#define IOAT_OP_XOR_VAL 0x88
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_addr;
@@ -331,21 +326,21 @@ struct ioat_pq_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t src_snoop_disable:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t src_count:3;
-			uint32_t bundle:1;
-			uint32_t dest_dca:1;
-			uint32_t hint:1;
-			uint32_t p_disable:1;
-			uint32_t q_disable:1;
-			uint32_t reserved:11;
-			#define IOAT_OP_PQ 0x89
-			#define IOAT_OP_PQ_VAL 0x8a
-			uint32_t op:8;
+			uint32_t int_enable : 1;
+			uint32_t src_snoop_disable : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t src_count : 3;
+			uint32_t bundle : 1;
+			uint32_t dest_dca : 1;
+			uint32_t hint : 1;
+			uint32_t p_disable : 1;
+			uint32_t q_disable : 1;
+			uint32_t reserved : 11;
+#define IOAT_OP_PQ 0x89
+#define IOAT_OP_PQ_VAL 0x8a
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_addr;
@@ -353,7 +348,7 @@ struct ioat_pq_hw_descriptor {
 	uint64_t next;
 	uint64_t src_addr2;
 	uint64_t src_addr3;
-	uint8_t  coef[8];
+	uint8_t coef[8];
 	uint64_t q_addr;
 };
 
@@ -373,21 +368,21 @@ struct ioat_pq_update_hw_descriptor {
 		uint32_t control_raw;
 		struct generic_dma_control control_generic;
 		struct {
-			uint32_t int_enable:1;
-			uint32_t src_snoop_disable:1;
-			uint32_t dest_snoop_disable:1;
-			uint32_t completion_update:1;
-			uint32_t fence:1;
-			uint32_t src_cnt:3;
-			uint32_t bundle:1;
-			uint32_t dest_dca:1;
-			uint32_t hint:1;
-			uint32_t p_disable:1;
-			uint32_t q_disable:1;
-			uint32_t reserved:3;
-			uint32_t coef:8;
-			#define IOAT_OP_PQ_UP 0x8b
-			uint32_t op:8;
+			uint32_t int_enable : 1;
+			uint32_t src_snoop_disable : 1;
+			uint32_t dest_snoop_disable : 1;
+			uint32_t completion_update : 1;
+			uint32_t fence : 1;
+			uint32_t src_cnt : 3;
+			uint32_t bundle : 1;
+			uint32_t dest_dca : 1;
+			uint32_t hint : 1;
+			uint32_t p_disable : 1;
+			uint32_t q_disable : 1;
+			uint32_t reserved : 3;
+			uint32_t coef : 8;
+#define IOAT_OP_PQ_UP 0x8b
+			uint32_t op : 8;
 		} control;
 	} u;
 	uint64_t src_addr;
@@ -405,111 +400,113 @@ struct ioat_raw_hw_descriptor {
 
 struct bus_dmadesc {
 	bus_dmaengine_callback_t callback_fn;
-	void			 *callback_arg;
+	void *callback_arg;
 };
 
 struct ioat_descriptor {
-	struct bus_dmadesc	bus_dmadesc;
-	uint32_t		id;
-	bus_dmamap_t		src_dmamap;
-	bus_dmamap_t		dst_dmamap;
-	bus_dmamap_t		src2_dmamap;
-	bus_dmamap_t		dst2_dmamap;
+	struct bus_dmadesc bus_dmadesc;
+	uint32_t id;
+	bus_dmamap_t src_dmamap;
+	bus_dmamap_t dst_dmamap;
+	bus_dmamap_t src2_dmamap;
+	bus_dmamap_t dst2_dmamap;
 };
 
 /* Unused by this driver at this time. */
-#define	IOAT_OP_MARKER		0x84
+#define IOAT_OP_MARKER 0x84
 
 /*
  * Deprecated OPs -- v3 DMA generates an abort if given these.  And this driver
  * doesn't support anything older than v3.
  */
-#define	IOAT_OP_OLD_XOR		0x85
-#define	IOAT_OP_OLD_XOR_VAL	0x86
+#define IOAT_OP_OLD_XOR 0x85
+#define IOAT_OP_OLD_XOR_VAL 0x86
 
 /* One of these per allocated PCI device. */
 struct ioat_softc {
-	bus_dmaengine_t		dmaengine;
-#define	to_ioat_softc(_dmaeng)						\
-({									\
-	bus_dmaengine_t *_p = (_dmaeng);				\
-	(struct ioat_softc *)((char *)_p -				\
-	    offsetof(struct ioat_softc, dmaengine));			\
-})
+	bus_dmaengine_t dmaengine;
+#define to_ioat_softc(_dmaeng)                               \
+	({                                                   \
+		bus_dmaengine_t *_p = (_dmaeng);             \
+		(struct ioat_softc *)((char *)_p -           \
+		    offsetof(struct ioat_softc, dmaengine)); \
+	})
 
-	device_t		device;
-	int			domain;
-	int			cpu;
-	int			version;
-	unsigned		chan_idx;
+	device_t device;
+	int domain;
+	int cpu;
+	int version;
+	unsigned chan_idx;
 
-	bus_space_tag_t		pci_bus_tag;
-	bus_space_handle_t	pci_bus_handle;
-	struct resource		*pci_resource;
-	int			pci_resource_id;
-	uint32_t		max_xfer_size;
-	uint32_t		capabilities;
-	uint32_t		ring_size_order;
-	uint16_t		intrdelay_max;
-	uint16_t		cached_intrdelay;
+	bus_space_tag_t pci_bus_tag;
+	bus_space_handle_t pci_bus_handle;
+	struct resource *pci_resource;
+	int pci_resource_id;
+	uint32_t max_xfer_size;
+	uint32_t capabilities;
+	uint32_t ring_size_order;
+	uint16_t intrdelay_max;
+	uint16_t cached_intrdelay;
 
-	int			rid;
-	struct resource		*res;
-	void			*tag;
+	int rid;
+	struct resource *res;
+	void *tag;
 
-	bus_dma_tag_t		hw_desc_tag;
-	bus_dmamap_t		hw_desc_map;
+	bus_dma_tag_t hw_desc_tag;
+	bus_dmamap_t hw_desc_map;
 
-	bus_dma_tag_t		data_tag;
+	bus_dma_tag_t data_tag;
 
-	bus_dma_tag_t		comp_update_tag;
-	bus_dmamap_t		comp_update_map;
-	uint64_t		*comp_update;
-	bus_addr_t		comp_update_bus_addr;
+	bus_dma_tag_t comp_update_tag;
+	bus_dmamap_t comp_update_map;
+	uint64_t *comp_update;
+	bus_addr_t comp_update_bus_addr;
 
-	boolean_t		quiescing;
-	boolean_t		destroying;
-	boolean_t		is_submitter_processing;
-	boolean_t		intrdelay_supported;
-	boolean_t		resetting;		/* submit_lock */
-	boolean_t		resetting_cleanup;	/* cleanup_lock */
+	boolean_t quiescing;
+	boolean_t destroying;
+	boolean_t is_submitter_processing;
+	boolean_t intrdelay_supported;
+	boolean_t resetting;	     /* submit_lock */
+	boolean_t resetting_cleanup; /* cleanup_lock */
 
-	struct ioat_descriptor	*ring;
+	struct ioat_descriptor *ring;
 
 	union ioat_hw_descriptor {
-		struct ioat_generic_hw_descriptor	generic;
-		struct ioat_dma_hw_descriptor		dma;
-		struct ioat_fill_hw_descriptor		fill;
-		struct ioat_crc32_hw_descriptor		crc32;
-		struct ioat_xor_hw_descriptor		xor;
-		struct ioat_xor_ext_hw_descriptor	xor_ext;
-		struct ioat_pq_hw_descriptor		pq;
-		struct ioat_pq_ext_hw_descriptor	pq_ext;
-		struct ioat_raw_hw_descriptor		raw;
+		struct ioat_generic_hw_descriptor generic;
+		struct ioat_dma_hw_descriptor dma;
+		struct ioat_fill_hw_descriptor fill;
+		struct ioat_crc32_hw_descriptor crc32;
+		struct ioat_xor_hw_descriptor xor ;
+		struct ioat_xor_ext_hw_descriptor xor_ext;
+		struct ioat_pq_hw_descriptor pq;
+		struct ioat_pq_ext_hw_descriptor pq_ext;
+		struct ioat_raw_hw_descriptor raw;
 	} *hw_desc_ring;
-	bus_addr_t		hw_desc_bus_addr;
-#define	RING_PHYS_ADDR(sc, i)	(sc)->hw_desc_bus_addr + \
-    (((i) % (1 << (sc)->ring_size_order)) * sizeof(struct ioat_dma_hw_descriptor))
+	bus_addr_t hw_desc_bus_addr;
+#define RING_PHYS_ADDR(sc, i)                       \
+	(sc)->hw_desc_bus_addr +                    \
+	    (((i) % (1 << (sc)->ring_size_order)) * \
+		sizeof(struct ioat_dma_hw_descriptor))
 
-	struct mtx_padalign	submit_lock;
-	struct callout		poll_timer;
-	struct task		reset_task;
-	struct mtx_padalign	cleanup_lock;
+	struct mtx_padalign submit_lock;
+	struct callout poll_timer;
+	struct task reset_task;
+	struct mtx_padalign cleanup_lock;
 
-	uint32_t		refcnt;
-	uint32_t		head;
-	uint32_t		acq_head;
-	uint32_t		tail;
-	bus_addr_t		last_seen;
+	uint32_t refcnt;
+	uint32_t head;
+	uint32_t acq_head;
+	uint32_t tail;
+	bus_addr_t last_seen;
 
 	struct {
-		uint64_t	interrupts;
-		uint64_t	descriptors_processed;
-		uint64_t	descriptors_error;
-		uint64_t	descriptors_submitted;
+		uint64_t interrupts;
+		uint64_t descriptors_processed;
+		uint64_t descriptors_error;
+		uint64_t descriptors_submitted;
 
-		uint32_t	channel_halts;
-		uint32_t	last_halt_chanerr;
+		uint32_t channel_halts;
+		uint32_t last_halt_chanerr;
 	} stats;
 };
 

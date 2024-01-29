@@ -31,8 +31,8 @@
 
 #include "defs.h"
 static struct rt_spare *rts_better(struct rt_entry *);
-static struct rt_spare rts_empty = {0,0,0,HOPCNT_INFINITY,0,0,0};
-static void  set_need_flash(void);
+static struct rt_spare rts_empty = { 0, 0, 0, HOPCNT_INFINITY, 0, 0, 0 };
+static void set_need_flash(void);
 #ifdef _HAVE_SIN_LEN
 static void masktrim(struct sockaddr_in *ap);
 #else
@@ -40,25 +40,23 @@ static void masktrim(struct sockaddr_in_new *ap);
 #endif
 static void rtbad(struct rt_entry *);
 
+struct radix_node_head *rhead; /* root of the radix tree */
 
-struct radix_node_head *rhead;		/* root of the radix tree */
+int need_flash = 1; /* flash update needed
+		     * start =1 to suppress the 1st
+		     */
 
-int	need_flash = 1;			/* flash update needed
-					 * start =1 to suppress the 1st
-					 */
-
-struct timeval age_timer;		/* next check of old routes */
-struct timeval need_kern = {		/* need to update kernel table */
-	EPOCH+MIN_WAITTIME-1, 0
+struct timeval age_timer;    /* next check of old routes */
+struct timeval need_kern = { /* need to update kernel table */
+	EPOCH + MIN_WAITTIME - 1, 0
 };
 
-int	stopint;
+int stopint;
 
-int	total_routes;
+int total_routes;
 
 /* zap any old routes through this gateway */
 static naddr age_bad_gate;
-
 
 /* It is desirable to "aggregate" routes, to combine differing routes of
  * the same metric and next hop into a common route with a smaller netmask
@@ -84,36 +82,37 @@ static naddr age_bad_gate;
  * sorted first by address, with the smallest address first.
  */
 
-static struct ag_info ag_slots[NUM_AG_SLOTS], *ag_avail, *ag_corsest, *ag_finest;
+static struct ag_info ag_slots[NUM_AG_SLOTS], *ag_avail, *ag_corsest,
+    *ag_finest;
 
 /* #define DEBUG_AG */
 #ifdef DEBUG_AG
-#define CHECK_AG() {int acnt = 0; struct ag_info *cag;		\
-	for (cag = ag_avail; cag != NULL; cag = cag->ag_fine)	\
-		acnt++;						\
-	for (cag = ag_corsest; cag != NULL; cag = cag->ag_fine)	\
-		acnt++;						\
-	if (acnt != NUM_AG_SLOTS) {				\
-		(void)fflush(stderr);				\
-		abort();					\
-	}							\
-}
+#define CHECK_AG()                                                      \
+	{                                                               \
+		int acnt = 0;                                           \
+		struct ag_info *cag;                                    \
+		for (cag = ag_avail; cag != NULL; cag = cag->ag_fine)   \
+			acnt++;                                         \
+		for (cag = ag_corsest; cag != NULL; cag = cag->ag_fine) \
+			acnt++;                                         \
+		if (acnt != NUM_AG_SLOTS) {                             \
+			(void)fflush(stderr);                           \
+			abort();                                        \
+		}                                                       \
+	}
 #else
 #define CHECK_AG()
 #endif
-
 
 /* Output the contents of an aggregation table slot.
  *	This function must always be immediately followed with the deletion
  *	of the target slot.
  */
 static void
-ag_out(struct ag_info *ag,
-	 void (*out)(struct ag_info *))
+ag_out(struct ag_info *ag, void (*out)(struct ag_info *))
 {
 	struct ag_info *ag_cors;
 	naddr bit;
-
 
 	/* Forget it if this route should not be output for split-horizon. */
 	if (ag->ag_state & AGS_SPLIT_HZ)
@@ -129,12 +128,11 @@ ag_out(struct ag_info *ag,
 	 * ensures that the twins are seen before the parent is emitted.
 	 */
 	ag_cors = ag->ag_cors;
-	if (ag_cors != NULL
-	    && ag_cors->ag_mask == ag->ag_mask<<1
-	    && ag_cors->ag_dst_h == (ag->ag_dst_h & ag_cors->ag_mask)) {
-		ag_cors->ag_state |= ((ag_cors->ag_dst_h == ag->ag_dst_h)
-				      ? AGS_REDUN0
-				      : AGS_REDUN1);
+	if (ag_cors != NULL && ag_cors->ag_mask == ag->ag_mask << 1 &&
+	    ag_cors->ag_dst_h == (ag->ag_dst_h & ag_cors->ag_mask)) {
+		ag_cors->ag_state |= ((ag_cors->ag_dst_h == ag->ag_dst_h) ?
+			AGS_REDUN0 :
+			AGS_REDUN1);
 	}
 
 	/* Skip it if this route is itself redundant.
@@ -144,7 +142,7 @@ ag_out(struct ag_info *ag,
 	 */
 	if (ag->ag_state & AGS_REDUN0) {
 		if (ag->ag_state & AGS_REDUN1)
-			return;		/* quit if fully redundant */
+			return; /* quit if fully redundant */
 		/* make it finer if it is half-redundant */
 		bit = (-ag->ag_mask) >> 1;
 		ag->ag_dst_h |= bit;
@@ -157,7 +155,6 @@ ag_out(struct ag_info *ag,
 	}
 	out(ag);
 }
-
 
 static void
 ag_del(struct ag_info *ag)
@@ -180,7 +177,6 @@ ag_del(struct ag_info *ag)
 	CHECK_AG();
 }
 
-
 /* Flush routes waiting for aggregation.
  *	This must not suppress a route unless it is known that among all
  *	routes with coarser masks that match it, the one with the longest
@@ -189,16 +185,14 @@ ag_del(struct ag_info *ag)
  *	among routes to the same destination.
  */
 void
-ag_flush(naddr lim_dst_h,		/* flush routes to here */
-	 naddr lim_mask,		/* matching this mask */
-	 void (*out)(struct ag_info *))
+ag_flush(naddr lim_dst_h, /* flush routes to here */
+    naddr lim_mask,	  /* matching this mask */
+    void (*out)(struct ag_info *))
 {
 	struct ag_info *ag, *ag_cors;
 	naddr dst_h;
 
-
-	for (ag = ag_finest;
-	     ag != NULL && ag->ag_mask >= lim_mask;
+	for (ag = ag_finest; ag != NULL && ag->ag_mask >= lim_mask;
 	     ag = ag_cors) {
 		ag_cors = ag->ag_cors;
 
@@ -210,53 +204,65 @@ ag_flush(naddr lim_dst_h,		/* flush routes to here */
 		if (!(ag->ag_state & AGS_SUPPRESS))
 			ag_out(ag, out);
 
-		else for ( ; ; ag_cors = ag_cors->ag_cors) {
-			/* Look for a route that can suppress the
-			 * current route */
-			if (ag_cors == NULL) {
-				/* failed, so output it and look for
-				 * another route to work on
-				 */
-				ag_out(ag, out);
-				break;
-			}
-
-			if ((dst_h & ag_cors->ag_mask) == ag_cors->ag_dst_h) {
-				/* We found a route with a coarser mask that
-				 * aggregates the current target.
-				 *
-				 * If it has a different next hop, it
-				 * cannot replace the target, so output
-				 * the target.
-				 */
-				if (ag->ag_gate != ag_cors->ag_gate
-				    && !(ag->ag_state & AGS_FINE_GATE)
-				    && !(ag_cors->ag_state & AGS_CORS_GATE)) {
+		else
+			for (;; ag_cors = ag_cors->ag_cors) {
+				/* Look for a route that can suppress the
+				 * current route */
+				if (ag_cors == NULL) {
+					/* failed, so output it and look for
+					 * another route to work on
+					 */
 					ag_out(ag, out);
 					break;
 				}
 
-				/* If the coarse route has a good enough
-				 * metric, it suppresses the target.
-				 * If the suppressed target was redundant,
-				 * then mark the suppressor redundant.
-				 */
-				if (ag_cors->ag_pref <= ag->ag_pref) {
-				    if (AG_IS_REDUN(ag->ag_state)
-					&& ag_cors->ag_mask==ag->ag_mask<<1) {
-					if (ag_cors->ag_dst_h == dst_h)
-					    ag_cors->ag_state |= AGS_REDUN0;
-					else
-					    ag_cors->ag_state |= AGS_REDUN1;
-				    }
-				    if (ag->ag_tag != ag_cors->ag_tag)
-					    ag_cors->ag_tag = 0;
-				    if (ag->ag_nhop != ag_cors->ag_nhop)
-					    ag_cors->ag_nhop = 0;
-				    break;
+				if ((dst_h & ag_cors->ag_mask) ==
+				    ag_cors->ag_dst_h) {
+					/* We found a route with a coarser mask
+					 * that aggregates the current target.
+					 *
+					 * If it has a different next hop, it
+					 * cannot replace the target, so output
+					 * the target.
+					 */
+					if (ag->ag_gate != ag_cors->ag_gate &&
+					    !(ag->ag_state & AGS_FINE_GATE) &&
+					    !(ag_cors->ag_state &
+						AGS_CORS_GATE)) {
+						ag_out(ag, out);
+						break;
+					}
+
+					/* If the coarse route has a good enough
+					 * metric, it suppresses the target.
+					 * If the suppressed target was
+					 * redundant, then mark the suppressor
+					 * redundant.
+					 */
+					if (ag_cors->ag_pref <= ag->ag_pref) {
+						if (AG_IS_REDUN(ag->ag_state) &&
+						    ag_cors->ag_mask ==
+							ag->ag_mask << 1) {
+							if (ag_cors->ag_dst_h ==
+							    dst_h)
+								ag_cors
+								    ->ag_state |=
+								    AGS_REDUN0;
+							else
+								ag_cors
+								    ->ag_state |=
+								    AGS_REDUN1;
+						}
+						if (ag->ag_tag !=
+						    ag_cors->ag_tag)
+							ag_cors->ag_tag = 0;
+						if (ag->ag_nhop !=
+						    ag_cors->ag_nhop)
+							ag_cors->ag_nhop = 0;
+						break;
+					}
 				}
 			}
-		}
 
 		/* That route has either been output or suppressed */
 		ag_cors = ag->ag_cors;
@@ -266,20 +272,12 @@ ag_flush(naddr lim_dst_h,		/* flush routes to here */
 	CHECK_AG();
 }
 
-
 /* Try to aggregate a route with previous routes.
  */
 void
-ag_check(naddr	dst,
-	 naddr	mask,
-	 naddr	gate,
-	 naddr	nhop,
-	 char	metric,
-	 char	pref,
-	 u_int	new_seqno,
-	 u_short tag,
-	 u_short state,
-	 void (*out)(struct ag_info *))	/* output using this */
+ag_check(naddr dst, naddr mask, naddr gate, naddr nhop, char metric, char pref,
+    u_int new_seqno, u_short tag, u_short state,
+    void (*out)(struct ag_info *)) /* output using this */
 {
 	struct ag_info *ag, *nag, *ag_cors;
 	naddr xaddr;
@@ -325,19 +323,18 @@ ag_check(naddr	dst,
 		 * This check keeps poor routes (e.g. with large hop counts)
 		 * from preventing suppression of finer routes.
 		 */
-		if (ag_cors != NULL
-		    && ag->ag_dst_h < dst
-		    && (ag->ag_state & AGS_SUPPRESS)
-		    && ag_cors->ag_pref <= ag->ag_pref
-		    && (ag->ag_dst_h & ag_cors->ag_mask) == ag_cors->ag_dst_h
-		    && (ag_cors->ag_gate == ag->ag_gate
-			|| (ag->ag_state & AGS_FINE_GATE)
-			|| (ag_cors->ag_state & AGS_CORS_GATE))) {
+		if (ag_cors != NULL && ag->ag_dst_h < dst &&
+		    (ag->ag_state & AGS_SUPPRESS) &&
+		    ag_cors->ag_pref <= ag->ag_pref &&
+		    (ag->ag_dst_h & ag_cors->ag_mask) == ag_cors->ag_dst_h &&
+		    (ag_cors->ag_gate == ag->ag_gate ||
+			(ag->ag_state & AGS_FINE_GATE) ||
+			(ag_cors->ag_state & AGS_CORS_GATE))) {
 			/*  If the suppressed target was redundant,
 			 * then mark the suppressor redundant.
 			 */
-			if (AG_IS_REDUN(ag->ag_state)
-			    && ag_cors->ag_mask == ag->ag_mask<<1) {
+			if (AG_IS_REDUN(ag->ag_state) &&
+			    ag_cors->ag_mask == ag->ag_mask << 1) {
 				if (ag_cors->ag_dst_h == dst)
 					ag_cors->ag_state |= AGS_REDUN0;
 				else
@@ -364,9 +361,8 @@ ag_check(naddr	dst,
 	 * times around this loop, it could be the even twin promoted
 	 * from the even/odd pair of twins of the finer route.
 	 */
-	while (ag != NULL
-	       && ag->ag_mask == mask
-	       && ((ag->ag_dst_h ^ dst) & (mask<<1)) == 0) {
+	while (ag != NULL && ag->ag_mask == mask &&
+	    ((ag->ag_dst_h ^ dst) & (mask << 1)) == 0) {
 
 		/* Here we know the target route and the route in the current
 		 * slot have the same netmasks and differ by at most the
@@ -402,9 +398,9 @@ ag_check(naddr	dst,
 			 * except when the route is for an interface.
 			 */
 			if (!(ag->ag_state & AGS_IF))
-				ag->ag_state |= (state & (AGS_AGGREGATE_EITHER
-							| AGS_REDUN0
-							| AGS_REDUN1));
+				ag->ag_state |= (state &
+				    (AGS_AGGREGATE_EITHER | AGS_REDUN0 |
+					AGS_REDUN1));
 			return;
 		}
 
@@ -415,21 +411,18 @@ ag_check(naddr	dst,
 		 * Any route that can be promoted is always
 		 * marked to be eligible to be suppressed.
 		 */
-		if (!((state & AGS_AGGREGATE)
-		      && (ag->ag_state & AGS_SUPPRESS))
-		    && !((ag->ag_state & AGS_AGGREGATE)
-			 && (state & AGS_SUPPRESS)))
+		if (!((state & AGS_AGGREGATE) &&
+			(ag->ag_state & AGS_SUPPRESS)) &&
+		    !((ag->ag_state & AGS_AGGREGATE) && (state & AGS_SUPPRESS)))
 			break;
 
 		/* A pair of even/odd twin routes can be combined
 		 * if either is redundant, or if they are via the
 		 * same gateway and have the same metric.
 		 */
-		if (AG_IS_REDUN(ag->ag_state)
-		    || AG_IS_REDUN(state)
-		    || (ag->ag_gate == gate
-			&& ag->ag_pref == pref
-			&& (state & ag->ag_state & AGS_AGGREGATE) != 0)) {
+		if (AG_IS_REDUN(ag->ag_state) || AG_IS_REDUN(state) ||
+		    (ag->ag_gate == gate && ag->ag_pref == pref &&
+			(state & ag->ag_state & AGS_AGGREGATE) != 0)) {
 
 			/* We have both the even and odd pairs.
 			 * Since the routes are encountered in order,
@@ -456,8 +449,8 @@ ag_check(naddr	dst,
 			 */
 			ag_del(ag);
 
-		} else if (ag->ag_pref >= pref
-			   && (ag->ag_state & AGS_AGGREGATE)) {
+		} else if (ag->ag_pref >= pref &&
+		    (ag->ag_state & AGS_AGGREGATE)) {
 			/* If we cannot combine the pair, maybe the route
 			 * with the worse metric can be promoted.
 			 *
@@ -506,7 +499,7 @@ ag_check(naddr	dst,
 
 		} else {
 			if (!(state & AGS_AGGREGATE))
-				break;	/* cannot promote either twin */
+				break; /* cannot promote either twin */
 
 			/* Promote the new, odd twin by shaving its
 			 * mask and address.
@@ -543,8 +536,7 @@ ag_check(naddr	dst,
 	 * In case we moved toward coarser masks,
 	 * get back where we belong
 	 */
-	if (ag != NULL
-	    && ag->ag_mask < mask) {
+	if (ag != NULL && ag->ag_mask < mask) {
 		ag_cors = ag;
 		ag = ag->ag_fine;
 	}
@@ -600,41 +592,25 @@ ag_check(naddr	dst,
 static const char *
 rtm_type_name(u_char type)
 {
-	static const char * const rtm_types[] = {
-		"RTM_ADD",
-		"RTM_DELETE",
-		"RTM_CHANGE",
-		"RTM_GET",
-		"RTM_LOSING",
-		"RTM_REDIRECT",
-		"RTM_MISS",
-		"RTM_LOCK",
-		"RTM_OLDADD",
-		"RTM_OLDDEL",
-		"RTM_RESOLVE",
-		"RTM_NEWADDR",
-		"RTM_DELADDR",
+	static const char *const rtm_types[] = { "RTM_ADD", "RTM_DELETE",
+		"RTM_CHANGE", "RTM_GET", "RTM_LOSING", "RTM_REDIRECT",
+		"RTM_MISS", "RTM_LOCK", "RTM_OLDADD", "RTM_OLDDEL",
+		"RTM_RESOLVE", "RTM_NEWADDR", "RTM_DELADDR",
 #ifdef RTM_OIFINFO
 		"RTM_OIFINFO",
 #endif
-		"RTM_IFINFO",
-		"RTM_NEWMADDR",
-		"RTM_DELMADDR"
-	};
+		"RTM_IFINFO", "RTM_NEWMADDR", "RTM_DELMADDR" };
 #define NEW_RTM_PAT "RTM type %#x"
-	static char name0[sizeof(NEW_RTM_PAT)+2];
+	static char name0[sizeof(NEW_RTM_PAT) + 2];
 
-
-	if (type > sizeof(rtm_types)/sizeof(rtm_types[0])
-	    || type == 0) {
+	if (type > sizeof(rtm_types) / sizeof(rtm_types[0]) || type == 0) {
 		snprintf(name0, sizeof(name0), NEW_RTM_PAT, type);
 		return name0;
 	} else {
-		return rtm_types[type-1];
+		return rtm_types[type - 1];
 	}
 #undef NEW_RTM_PAT
 }
-
 
 /* Trim a mask in a sockaddr
  *	Produce a length of 0 for an address of 0.
@@ -653,22 +629,17 @@ masktrim(struct sockaddr_in_new *ap)
 		ap->sin_len = 0;
 		return;
 	}
-	cp = (char *)(&ap->sin_addr.s_addr+1);
+	cp = (char *)(&ap->sin_addr.s_addr + 1);
 	while (*--cp == 0)
 		continue;
-	ap->sin_len = cp - (char*)ap + 1;
+	ap->sin_len = cp - (char *)ap + 1;
 }
-
 
 /* Tell the kernel to add, delete or change a route
  */
 static void
-rtioctl(int action,			/* RTM_DELETE, etc */
-	naddr dst,
-	naddr gate,
-	naddr mask,
-	int metric,
-	int flags)
+rtioctl(int action, /* RTM_DELETE, etc */
+    naddr dst, naddr gate, naddr mask, int metric, int flags)
 {
 	struct {
 		struct rt_msghdr w_rtm;
@@ -681,8 +652,8 @@ rtioctl(int action,			/* RTM_DELETE, etc */
 #endif
 	} w;
 	long cc;
-#   define PAT " %-10s %s metric=%d flags=%#x"
-#   define ARGS rtm_type_name(action), rtname(dst,mask,gate), metric, flags
+#define PAT " %-10s %s metric=%d flags=%#x"
+#define ARGS rtm_type_name(action), rtname(dst, mask, gate), metric, flags
 
 again:
 	memset(&w, 0, sizeof(w));
@@ -691,7 +662,7 @@ again:
 	w.w_rtm.rtm_type = action;
 	w.w_rtm.rtm_flags = flags;
 	w.w_rtm.rtm_seq = ++rt_sock_seqno;
-	w.w_rtm.rtm_addrs = RTA_DST|RTA_GATEWAY;
+	w.w_rtm.rtm_addrs = RTA_DST | RTA_GATEWAY;
 	if (metric != 0 || action == RTM_CHANGE) {
 		w.w_rtm.rtm_rmx.rmx_hopcount = metric;
 		w.w_rtm.rtm_inits |= RTV_HOPCOUNT;
@@ -721,8 +692,8 @@ again:
 #ifndef NO_INSTALL
 	cc = write(rt_sock, &w, w.w_rtm.rtm_msglen);
 	if (cc < 0) {
-		if (errno == ESRCH
-		    && (action == RTM_CHANGE || action == RTM_DELETE)) {
+		if (errno == ESRCH &&
+		    (action == RTM_CHANGE || action == RTM_DELETE)) {
 			trace_act("route disappeared before" PAT, ARGS);
 			if (action == RTM_CHANGE) {
 				action = RTM_ADD;
@@ -733,8 +704,8 @@ again:
 		msglog("write(rt_sock)" PAT ": %s", ARGS, strerror(errno));
 		return;
 	} else if (cc != w.w_rtm.rtm_msglen) {
-		msglog("write(rt_sock) wrote %ld instead of %d for" PAT,
-		       cc, w.w_rtm.rtm_msglen, ARGS);
+		msglog("write(rt_sock) wrote %ld instead of %d for" PAT, cc,
+		    w.w_rtm.rtm_msglen, ARGS);
 		return;
 	}
 #endif
@@ -744,38 +715,36 @@ again:
 #undef ARGS
 }
 
-
-#define KHASH_SIZE 71			/* should be prime */
-#define KHASH(a,m) khash_bins[((a) ^ (m)) % KHASH_SIZE]
+#define KHASH_SIZE 71 /* should be prime */
+#define KHASH(a, m) khash_bins[((a) ^ (m)) % KHASH_SIZE]
 static struct khash {
 	struct khash *k_next;
-	naddr	k_dst;
-	naddr	k_mask;
-	naddr	k_gate;
-	short	k_metric;
-	u_short	k_state;
-#define	    KS_NEW	0x001
-#define	    KS_DELETE	0x002		/* need to delete the route */
-#define	    KS_ADD	0x004		/* add to the kernel */
-#define	    KS_CHANGE	0x008		/* tell kernel to change the route */
-#define	    KS_DEL_ADD	0x010		/* delete & add to change the kernel */
-#define	    KS_STATIC	0x020		/* Static flag in kernel */
-#define	    KS_GATEWAY	0x040		/* G flag in kernel */
-#define	    KS_DYNAMIC	0x080		/* result of redirect */
-#define	    KS_DELETED	0x100		/* already deleted from kernel */
-#define	    KS_CHECK	0x200
-	time_t	k_keep;
-#define	    K_KEEP_LIM	30
-	time_t	k_redirect_time;	/* when redirected route 1st seen */
+	naddr k_dst;
+	naddr k_mask;
+	naddr k_gate;
+	short k_metric;
+	u_short k_state;
+#define KS_NEW 0x001
+#define KS_DELETE 0x002	 /* need to delete the route */
+#define KS_ADD 0x004	 /* add to the kernel */
+#define KS_CHANGE 0x008	 /* tell kernel to change the route */
+#define KS_DEL_ADD 0x010 /* delete & add to change the kernel */
+#define KS_STATIC 0x020	 /* Static flag in kernel */
+#define KS_GATEWAY 0x040 /* G flag in kernel */
+#define KS_DYNAMIC 0x080 /* result of redirect */
+#define KS_DELETED 0x100 /* already deleted from kernel */
+#define KS_CHECK 0x200
+	time_t k_keep;
+#define K_KEEP_LIM 30
+	time_t k_redirect_time; /* when redirected route 1st seen */
 } *khash_bins[KHASH_SIZE];
 
-
-static struct khash*
+static struct khash *
 kern_find(naddr dst, naddr mask, struct khash ***ppk)
 {
 	struct khash *k, **pk;
 
-	for (pk = &KHASH(dst,mask); (k = *pk) != NULL; pk = &k->k_next) {
+	for (pk = &KHASH(dst, mask); (k = *pk) != NULL; pk = &k->k_next) {
 		if (k->k_dst == dst && k->k_mask == mask)
 			break;
 	}
@@ -784,8 +753,7 @@ kern_find(naddr dst, naddr mask, struct khash ***ppk)
 	return k;
 }
 
-
-static struct khash*
+static struct khash *
 kern_add(naddr dst, naddr mask)
 {
 	struct khash *k, **pk;
@@ -806,13 +774,11 @@ kern_add(naddr dst, naddr mask)
 	return k;
 }
 
-
 /* If a kernel route has a non-zero metric, check that it is still in the
  *	daemon table, and not deleted by interfaces coming and going.
  */
 static void
-kern_check_static(struct khash *k,
-		  struct interface *ifp)
+kern_check_static(struct khash *k, struct interface *ifp)
 {
 	struct rt_entry *rt;
 	struct rt_spare new;
@@ -836,13 +802,11 @@ kern_check_static(struct khash *k,
 	}
 }
 
-
 /* operate on a kernel entry
  */
 static void
-kern_ioctl(struct khash *k,
-	   int action,			/* RTM_DELETE, etc */
-	   int flags)
+kern_ioctl(struct khash *k, int action, /* RTM_DELETE, etc */
+    int flags)
 
 {
 	switch (action) {
@@ -866,18 +830,14 @@ kern_ioctl(struct khash *k,
 	rtioctl(action, k->k_dst, k->k_gate, k->k_mask, k->k_metric, flags);
 }
 
-
 /* add a route the kernel told us
  */
 static void
-rtm_add(struct rt_msghdr *rtm,
-	struct rt_addrinfo *info,
-	time_t keep)
+rtm_add(struct rt_msghdr *rtm, struct rt_addrinfo *info, time_t keep)
 {
 	struct khash *k;
 	struct interface *ifp;
 	naddr mask;
-
 
 	if (rtm->rtm_flags & RTF_HOST) {
 		mask = HOST_MASK;
@@ -890,40 +850,38 @@ rtm_add(struct rt_msghdr *rtm,
 
 	k = kern_add(S_ADDR(INFO_DST(info)), mask);
 	if (k->k_state & KS_NEW)
-		k->k_keep = now.tv_sec+keep;
+		k->k_keep = now.tv_sec + keep;
 	if (INFO_GATE(info) == 0) {
 		trace_act("note %s without gateway",
-			  rtm_type_name(rtm->rtm_type));
+		    rtm_type_name(rtm->rtm_type));
 		k->k_metric = HOPCNT_INFINITY;
 	} else if (INFO_GATE(info)->sa_family != AF_INET) {
 		trace_act("note %s with gateway AF=%d",
-			  rtm_type_name(rtm->rtm_type),
-			  INFO_GATE(info)->sa_family);
+		    rtm_type_name(rtm->rtm_type), INFO_GATE(info)->sa_family);
 		k->k_metric = HOPCNT_INFINITY;
 	} else {
 		k->k_gate = S_ADDR(INFO_GATE(info));
 		k->k_metric = rtm->rtm_rmx.rmx_hopcount;
 		if (k->k_metric < 0)
 			k->k_metric = 0;
-		else if (k->k_metric > HOPCNT_INFINITY-1)
-			k->k_metric = HOPCNT_INFINITY-1;
+		else if (k->k_metric > HOPCNT_INFINITY - 1)
+			k->k_metric = HOPCNT_INFINITY - 1;
 	}
-	k->k_state &= ~(KS_DELETE | KS_ADD | KS_CHANGE | KS_DEL_ADD
-			| KS_DELETED | KS_GATEWAY | KS_STATIC
-			| KS_NEW | KS_CHECK);
+	k->k_state &= ~(KS_DELETE | KS_ADD | KS_CHANGE | KS_DEL_ADD |
+	    KS_DELETED | KS_GATEWAY | KS_STATIC | KS_NEW | KS_CHECK);
 	if (rtm->rtm_flags & RTF_GATEWAY)
 		k->k_state |= KS_GATEWAY;
 	if (rtm->rtm_flags & RTF_STATIC)
 		k->k_state |= KS_STATIC;
 
 	if (0 != (rtm->rtm_flags & (RTF_DYNAMIC | RTF_MODIFIED))) {
-		if (INFO_AUTHOR(info) != 0
-		    && INFO_AUTHOR(info)->sa_family == AF_INET)
+		if (INFO_AUTHOR(info) != 0 &&
+		    INFO_AUTHOR(info)->sa_family == AF_INET)
 			ifp = iflookup(S_ADDR(INFO_AUTHOR(info)));
 		else
 			ifp = NULL;
-		if (supplier
-		    && (ifp == NULL || !(ifp->int_state & IS_REDIRECT_OK))) {
+		if (supplier &&
+		    (ifp == NULL || !(ifp->int_state & IS_REDIRECT_OK))) {
 			/* Routers are not supposed to listen to redirects,
 			 * so delete it if it came via an unknown interface
 			 * or the interface does not have special permission.
@@ -933,16 +891,16 @@ rtm_add(struct rt_msghdr *rtm,
 			LIM_SEC(need_kern, 0);
 			trace_act("mark for deletion redirected %s --> %s"
 				  " via %s",
-				  addrname(k->k_dst, k->k_mask, 0),
-				  naddr_ntoa(k->k_gate),
-				  ifp ? ifp->int_name : "unknown interface");
+			    addrname(k->k_dst, k->k_mask, 0),
+			    naddr_ntoa(k->k_gate),
+			    ifp ? ifp->int_name : "unknown interface");
 		} else {
 			k->k_state |= KS_DYNAMIC;
 			k->k_redirect_time = now.tv_sec;
 			trace_act("accept redirected %s --> %s via %s",
-				  addrname(k->k_dst, k->k_mask, 0),
-				  naddr_ntoa(k->k_gate),
-				  ifp ? ifp->int_name : "unknown interface");
+			    addrname(k->k_dst, k->k_mask, 0),
+			    naddr_ntoa(k->k_gate),
+			    ifp ? ifp->int_name : "unknown interface");
 		}
 		return;
 	}
@@ -964,23 +922,20 @@ rtm_add(struct rt_msghdr *rtm,
 	ifp = iflookup(k->k_gate);
 	if (ifp == NULL)
 		msglog("static route %s --> %s impossibly lacks ifp",
-		       addrname(S_ADDR(INFO_DST(info)), mask, 0),
-		       naddr_ntoa(k->k_gate));
+		    addrname(S_ADDR(INFO_DST(info)), mask, 0),
+		    naddr_ntoa(k->k_gate));
 
 	kern_check_static(k, ifp);
 }
 
-
 /* deal with packet loss
  */
 static void
-rtm_lose(struct rt_msghdr *rtm,
-	 struct rt_addrinfo *info)
+rtm_lose(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 {
-	if (INFO_GATE(info) == 0
-	    || INFO_GATE(info)->sa_family != AF_INET) {
+	if (INFO_GATE(info) == 0 || INFO_GATE(info)->sa_family != AF_INET) {
 		trace_act("ignore %s without gateway",
-			  rtm_type_name(rtm->rtm_type));
+		    rtm_type_name(rtm->rtm_type));
 		return;
 	}
 
@@ -989,14 +944,12 @@ rtm_lose(struct rt_msghdr *rtm,
 	age(S_ADDR(INFO_GATE(info)));
 }
 
-
 /* Make the gateway slot of an info structure point to something
  * useful.  If it is not already useful, but it specifies an interface,
  * then fill in the sockaddr_in provided and point it there.
  */
 static int
-get_info_gate(struct sockaddr **sap,
-	      struct sockaddr_in *rsin)
+get_info_gate(struct sockaddr **sap, struct sockaddr_in *rsin)
 {
 	struct sockaddr_dl *sdl = (struct sockaddr_dl *)*sap;
 	struct interface *ifp;
@@ -1017,11 +970,10 @@ get_info_gate(struct sockaddr **sap,
 	rsin->sin_len = sizeof(*rsin);
 #endif
 	rsin->sin_family = AF_INET;
-	*sap = (struct sockaddr*)rsin;
+	*sap = (struct sockaddr *)rsin;
 
 	return 1;
 }
-
 
 /* Clean the kernel table by copying it to the daemon image.
  * Eventually the daemon will delete any extra routes.
@@ -1040,7 +992,6 @@ flush_kern(void)
 	int i;
 	struct khash *k;
 
-
 	for (i = 0; i < KHASH_SIZE; i++) {
 		for (k = khash_bins[i]; k != NULL; k = k->k_next) {
 			k->k_state |= KS_CHECK;
@@ -1049,28 +1000,28 @@ flush_kern(void)
 
 	mib[0] = CTL_NET;
 	mib[1] = PF_ROUTE;
-	mib[2] = 0;		/* protocol */
-	mib[3] = 0;		/* wildcard address family */
+	mib[2] = 0; /* protocol */
+	mib[3] = 0; /* wildcard address family */
 	mib[4] = NET_RT_DUMP;
-	mib[5] = 0;		/* no flags */
+	mib[5] = 0; /* no flags */
 	for (;;) {
 		if ((needed = sysctl_buf_size) != 0) {
-			if (sysctl(mib, 6, sysctl_buf,&needed, 0, 0) >= 0)
+			if (sysctl(mib, 6, sysctl_buf, &needed, 0, 0) >= 0)
 				break;
 			if (errno != ENOMEM && errno != EFAULT)
-				BADERR(1,"flush_kern: sysctl(RT_DUMP)");
+				BADERR(1, "flush_kern: sysctl(RT_DUMP)");
 			free(sysctl_buf);
 			needed = 0;
 		}
 		if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
-			BADERR(1,"flush_kern: sysctl(RT_DUMP) estimate");
+			BADERR(1, "flush_kern: sysctl(RT_DUMP) estimate");
 		/* Kludge around the habit of some systems, such as
 		 * BSD/OS 3.1, to not admit how many routes are in the
 		 * kernel, or at least to be quite wrong.
 		 */
-		needed += 50*(sizeof(*rtm)+5*sizeof(struct sockaddr));
+		needed += 50 * (sizeof(*rtm) + 5 * sizeof(struct sockaddr));
 		sysctl_buf = rtmalloc(sysctl_buf_size = needed,
-				      "flush_kern sysctl(RT_DUMP)");
+		    "flush_kern sysctl(RT_DUMP)");
 	}
 
 	lim = sysctl_buf + needed;
@@ -1079,20 +1030,19 @@ flush_kern(void)
 		if (rtm->rtm_msglen == 0) {
 			msglog("zero length kernel route at "
 			       " %#lx in buffer %#lx before %#lx",
-			       (u_long)rtm, (u_long)sysctl_buf, (u_long)lim);
+			    (u_long)rtm, (u_long)sysctl_buf, (u_long)lim);
 			break;
 		}
 
-		rt_xaddrs(&info,
-			  (struct sockaddr *)(rtm+1),
-			  (struct sockaddr *)(next + rtm->rtm_msglen),
-			  rtm->rtm_addrs);
+		rt_xaddrs(&info, (struct sockaddr *)(rtm + 1),
+		    (struct sockaddr *)(next + rtm->rtm_msglen),
+		    rtm->rtm_addrs);
 
-		if (INFO_DST(&info) == 0
-		    || INFO_DST(&info)->sa_family != AF_INET)
+		if (INFO_DST(&info) == 0 ||
+		    INFO_DST(&info)->sa_family != AF_INET)
 			continue;
 
-#if defined (RTF_LLINFO)		
+#if defined(RTF_LLINFO)
 		/* ignore ARP table entries on systems with a merged route
 		 * and ARP table.
 		 */
@@ -1121,21 +1071,20 @@ flush_kern(void)
 		 * few seconds to allow a RIP or router-discovery
 		 * response to be heard.
 		 */
-		rtm_add(rtm,&info,MIN_WAITTIME);
+		rtm_add(rtm, &info, MIN_WAITTIME);
 	}
 
 	for (i = 0; i < KHASH_SIZE; i++) {
 		for (k = khash_bins[i]; k != NULL; k = k->k_next) {
 			if (k->k_state & KS_CHECK) {
 				msglog("%s --> %s disappeared from kernel",
-				       addrname(k->k_dst, k->k_mask, 0),
-				       naddr_ntoa(k->k_gate));
+				    addrname(k->k_dst, k->k_mask, 0),
+				    naddr_ntoa(k->k_gate));
 				del_static(k->k_dst, k->k_mask, k->k_gate, 1);
 			}
 		}
 	}
 }
-
 
 /* Listen to announcements from the kernel
  */
@@ -1156,7 +1105,6 @@ read_rt(void)
 	char str[100], *strp;
 	struct rt_addrinfo info;
 
-
 	for (;;) {
 		cc = read(rt_sock, &m, sizeof(m));
 		if (cc <= 0) {
@@ -1167,14 +1115,14 @@ read_rt(void)
 
 		if (m.r.rtm.rtm_version != RTM_VERSION) {
 			msglog("bogus routing message version %d",
-			       m.r.rtm.rtm_version);
+			    m.r.rtm.rtm_version);
 			continue;
 		}
 
 		/* Ignore our own results.
 		 */
-		if (m.r.rtm.rtm_type <= RTM_CHANGE
-		    && m.r.rtm.rtm_pid == mypid) {
+		if (m.r.rtm.rtm_type <= RTM_CHANGE &&
+		    m.r.rtm.rtm_pid == mypid) {
 			static int complained = 0;
 			if (!complained) {
 				msglog("receiving our own change messages");
@@ -1183,22 +1131,20 @@ read_rt(void)
 			continue;
 		}
 
-		if (m.r.rtm.rtm_type == RTM_IFINFO
-		    || m.r.rtm.rtm_type == RTM_NEWADDR
-		    || m.r.rtm.rtm_type == RTM_DELADDR) {
+		if (m.r.rtm.rtm_type == RTM_IFINFO ||
+		    m.r.rtm.rtm_type == RTM_NEWADDR ||
+		    m.r.rtm.rtm_type == RTM_DELADDR) {
 			ifp = ifwithindex(m.ifm.ifm_index,
-					  m.r.rtm.rtm_type != RTM_DELADDR);
+			    m.r.rtm.rtm_type != RTM_DELADDR);
 			if (ifp == NULL)
 				trace_act("note %s with flags %#x"
 					  " for unknown interface index #%d",
-					  rtm_type_name(m.r.rtm.rtm_type),
-					  m.ifm.ifm_flags,
-					  m.ifm.ifm_index);
+				    rtm_type_name(m.r.rtm.rtm_type),
+				    m.ifm.ifm_flags, m.ifm.ifm_index);
 			else
 				trace_act("note %s with flags %#x for %s",
-					  rtm_type_name(m.r.rtm.rtm_type),
-					  m.ifm.ifm_flags,
-					  ifp->int_name);
+				    rtm_type_name(m.r.rtm.rtm_type),
+				    m.ifm.ifm_flags, ifp->int_name);
 
 			/* After being informed of a change to an interface,
 			 * check them all now if the check would otherwise
@@ -1206,22 +1152,23 @@ read_rt(void)
 			 * not known, or if the interface has been turned
 			 * off or on.
 			 */
-			if (ifinit_timer.tv_sec-now.tv_sec>=CHECK_BAD_INTERVAL
-			    || ifp == NULL
-			    || ((ifp->int_if_flags ^ m.ifm.ifm_flags)
-				& IFF_UP) != 0)
+			if (ifinit_timer.tv_sec - now.tv_sec >=
+				CHECK_BAD_INTERVAL ||
+			    ifp == NULL ||
+			    ((ifp->int_if_flags ^ m.ifm.ifm_flags) & IFF_UP) !=
+				0)
 				ifinit_timer.tv_sec = now.tv_sec;
 			continue;
 		}
 #ifdef RTM_OIFINFO
 		if (m.r.rtm.rtm_type == RTM_OIFINFO)
-			continue;	/* ignore compat message */
+			continue; /* ignore compat message */
 #endif
 
 		strlcpy(str, rtm_type_name(m.r.rtm.rtm_type), sizeof(str));
 		strp = &str[strlen(str)];
 		if (m.r.rtm.rtm_type <= RTM_CHANGE)
-			strp += sprintf(strp," from pid %d",m.r.rtm.rtm_pid);
+			strp += sprintf(strp, " from pid %d", m.r.rtm.rtm_pid);
 
 		/*
 		 * Only messages that use the struct rt_msghdr format are
@@ -1231,9 +1178,9 @@ read_rt(void)
 			trace_act("ignore %s", str);
 			continue;
 		}
-		
+
 		rt_xaddrs(&info, m.r.addrs, &m.r.addrs[RTAX_MAX],
-			  m.r.rtm.rtm_addrs);
+		    m.r.rtm.rtm_addrs);
 
 		if (INFO_DST(&info) == 0) {
 			trace_act("ignore %s without dst", str);
@@ -1242,31 +1189,31 @@ read_rt(void)
 
 		if (INFO_DST(&info)->sa_family != AF_INET) {
 			trace_act("ignore %s for AF %d", str,
-				  INFO_DST(&info)->sa_family);
+			    INFO_DST(&info)->sa_family);
 			continue;
 		}
 
-		mask = ((INFO_MASK(&info) != 0)
-			? ntohl(S_ADDR(INFO_MASK(&info)))
-			: (m.r.rtm.rtm_flags & RTF_HOST)
-			? HOST_MASK
-			: std_mask(S_ADDR(INFO_DST(&info))));
+		mask = ((INFO_MASK(&info) != 0) ?
+			ntohl(S_ADDR(INFO_MASK(&info))) :
+			(m.r.rtm.rtm_flags & RTF_HOST) ?
+			HOST_MASK :
+			std_mask(S_ADDR(INFO_DST(&info))));
 
 		strp += sprintf(strp, ": %s",
-				addrname(S_ADDR(INFO_DST(&info)), mask, 0));
+		    addrname(S_ADDR(INFO_DST(&info)), mask, 0));
 
 		if (IN_MULTICAST(ntohl(S_ADDR(INFO_DST(&info))))) {
 			trace_act("ignore multicast %s", str);
 			continue;
 		}
 
-#if defined(RTF_LLINFO) 
+#if defined(RTF_LLINFO)
 		if (m.r.rtm.rtm_flags & RTF_LLINFO) {
 			trace_act("ignore ARP %s", str);
 			continue;
 		}
 #endif
-		
+
 #if defined(RTF_WASCLONED) && defined(__FreeBSD__)
 		if (m.r.rtm.rtm_flags & RTF_WASCLONED) {
 			trace_act("ignore cloned %s", str);
@@ -1283,36 +1230,36 @@ read_rt(void)
 
 		if (INFO_AUTHOR(&info) != 0)
 			strp += sprintf(strp, " by authority of %s",
-					saddr_ntoa(INFO_AUTHOR(&info)));
+			    saddr_ntoa(INFO_AUTHOR(&info)));
 
 		switch (m.r.rtm.rtm_type) {
 		case RTM_ADD:
 		case RTM_CHANGE:
 		case RTM_REDIRECT:
 			if (m.r.rtm.rtm_errno != 0) {
-				trace_act("ignore %s with \"%s\" error",
-					  str, strerror(m.r.rtm.rtm_errno));
+				trace_act("ignore %s with \"%s\" error", str,
+				    strerror(m.r.rtm.rtm_errno));
 			} else {
 				trace_act("%s", str);
-				rtm_add(&m.r.rtm,&info,0);
+				rtm_add(&m.r.rtm, &info, 0);
 			}
 			break;
 
 		case RTM_DELETE:
-			if (m.r.rtm.rtm_errno != 0
-			    && m.r.rtm.rtm_errno != ESRCH) {
-				trace_act("ignore %s with \"%s\" error",
-					  str, strerror(m.r.rtm.rtm_errno));
+			if (m.r.rtm.rtm_errno != 0 &&
+			    m.r.rtm.rtm_errno != ESRCH) {
+				trace_act("ignore %s with \"%s\" error", str,
+				    strerror(m.r.rtm.rtm_errno));
 			} else {
 				trace_act("%s", str);
-				del_static(S_ADDR(INFO_DST(&info)), mask,
-					   gate, 1);
+				del_static(S_ADDR(INFO_DST(&info)), mask, gate,
+				    1);
 			}
 			break;
 
 		case RTM_LOSING:
 			trace_act("%s", str);
-			rtm_lose(&m.r.rtm,&info);
+			rtm_lose(&m.r.rtm, &info);
 			break;
 
 		default:
@@ -1322,14 +1269,12 @@ read_rt(void)
 	}
 }
 
-
 /* after aggregating, note routes that belong in the kernel
  */
 static void
 kern_out(struct ag_info *ag)
 {
 	struct khash *k;
-
 
 	/* Do not install bad routes if they are not already present.
 	 * This includes routes that had RS_NET_SYN for interfaces that
@@ -1357,8 +1302,7 @@ kern_out(struct ag_info *ag)
 		return;
 
 	/* modify existing kernel entry if necessary */
-	if (k->k_gate != ag->ag_gate
-	    || k->k_metric != ag->ag_metric) {
+	if (k->k_gate != ag->ag_gate || k->k_metric != ag->ag_metric) {
 		/* Must delete bad interface routes etc. to change them. */
 		if (k->k_metric == HOPCNT_INFINITY)
 			k->k_state |= KS_DEL_ADD;
@@ -1377,12 +1321,10 @@ kern_out(struct ag_info *ag)
 		k->k_state |= (KS_ADD | KS_DEL_ADD);
 	}
 
-	if ((k->k_state & KS_GATEWAY)
-	    && !(ag->ag_state & AGS_GATEWAY)) {
+	if ((k->k_state & KS_GATEWAY) && !(ag->ag_state & AGS_GATEWAY)) {
 		k->k_state &= ~KS_GATEWAY;
 		k->k_state |= (KS_ADD | KS_DEL_ADD);
-	} else if (!(k->k_state & KS_GATEWAY)
-		   && (ag->ag_state & AGS_GATEWAY)) {
+	} else if (!(k->k_state & KS_GATEWAY) && (ag->ag_state & AGS_GATEWAY)) {
 		k->k_state |= KS_GATEWAY;
 		k->k_state |= (KS_ADD | KS_DEL_ADD);
 	}
@@ -1391,24 +1333,20 @@ kern_out(struct ag_info *ag)
 	 * Just delete instead of deleting and then adding a bad route.
 	 * Otherwise, we want to keep the route in the kernel.
 	 */
-	if (k->k_metric == HOPCNT_INFINITY
-	    && (k->k_state & KS_DEL_ADD))
+	if (k->k_metric == HOPCNT_INFINITY && (k->k_state & KS_DEL_ADD))
 		k->k_state |= KS_DELETE;
 	else
 		k->k_state &= ~KS_DELETE;
 #undef RT
 }
 
-
 /* ARGSUSED */
 static int
-walk_kern(struct radix_node *rn,
-	  struct walkarg *argp UNUSED)
+walk_kern(struct radix_node *rn, struct walkarg *argp UNUSED)
 {
 #define RT ((struct rt_entry *)rn)
 	char metric, pref;
 	u_int ags = 0;
-
 
 	/* Do not install synthetic routes */
 	if (RT->rt_state & RS_NET_SYN)
@@ -1427,8 +1365,7 @@ walk_kern(struct radix_node *rn,
 		/* Do not install host routes directly to hosts, to avoid
 		 * interfering with ARP entries in the kernel table.
 		 */
-		if (RT_ISHOST(RT)
-		    && ntohl(RT->rt_dst) == RT->rt_gate)
+		if (RT_ISHOST(RT) && ntohl(RT->rt_dst) == RT->rt_gate)
 			return 0;
 
 	} else {
@@ -1449,8 +1386,7 @@ walk_kern(struct radix_node *rn,
 		 * If it is a "remote" interface, it is also a "gateway" to
 		 * the kernel if is not an alias.
 		 */
-		if (RT->rt_ifp == 0
-		    || (RT->rt_ifp->int_state & IS_REMOTE))
+		if (RT->rt_ifp == 0 || (RT->rt_ifp->int_state & IS_REMOTE))
 			ags |= (AGS_GATEWAY | AGS_SUPPRESS | AGS_AGGREGATE);
 	}
 
@@ -1470,12 +1406,11 @@ walk_kern(struct radix_node *rn,
 		ags &= ~(AGS_IF | AGS_CORS_GATE);
 	}
 
-	ag_check(RT->rt_dst, RT->rt_mask, RT->rt_gate, 0,
-		 metric,pref, 0, 0, ags, kern_out);
+	ag_check(RT->rt_dst, RT->rt_mask, RT->rt_gate, 0, metric, pref, 0, 0,
+	    ags, kern_out);
 	return 0;
 #undef RT
 }
-
 
 /* Update the kernel table to match the daemon table.
  */
@@ -1485,19 +1420,18 @@ fix_kern(void)
 	int i;
 	struct khash *k, **pk;
 
-
 	need_kern = age_timer;
 
 	/* Walk daemon table, updating the copy of the kernel table.
 	 */
 	(void)rn_walktree(rhead, walk_kern, 0);
-	ag_flush(0,0,kern_out);
+	ag_flush(0, 0, kern_out);
 
 	for (i = 0; i < KHASH_SIZE; i++) {
-		for (pk = &khash_bins[i]; (k = *pk) != NULL; ) {
+		for (pk = &khash_bins[i]; (k = *pk) != NULL;) {
 			/* Do not touch static routes */
 			if (k->k_state & KS_STATIC) {
-				kern_check_static(k,0);
+				kern_check_static(k, 0);
 				pk = &k->k_next;
 				continue;
 			}
@@ -1512,8 +1446,8 @@ fix_kern(void)
 				continue;
 			}
 
-			if ((k->k_state & KS_DELETE)
-			    && !(k->k_state & KS_DYNAMIC)) {
+			if ((k->k_state & KS_DELETE) &&
+			    !(k->k_state & KS_DYNAMIC)) {
 				kern_ioctl(k, RTM_DELETE, 0);
 				*pk = k->k_next;
 				free(k);
@@ -1525,16 +1459,20 @@ fix_kern(void)
 
 			if (k->k_state & KS_ADD) {
 				kern_ioctl(k, RTM_ADD,
-					   ((0 != (k->k_state & (KS_GATEWAY
-							| KS_DYNAMIC)))
-					    ? RTF_GATEWAY : 0));
+				    ((0 !=
+					 (k->k_state &
+					     (KS_GATEWAY | KS_DYNAMIC))) ?
+					    RTF_GATEWAY :
+					    0));
 			} else if (k->k_state & KS_CHANGE) {
-				kern_ioctl(k,  RTM_CHANGE,
-					   ((0 != (k->k_state & (KS_GATEWAY
-							| KS_DYNAMIC)))
-					    ? RTF_GATEWAY : 0));
+				kern_ioctl(k, RTM_CHANGE,
+				    ((0 !=
+					 (k->k_state &
+					     (KS_GATEWAY | KS_DYNAMIC))) ?
+					    RTF_GATEWAY :
+					    0));
 			}
-			k->k_state &= ~(KS_ADD|KS_CHANGE|KS_DEL_ADD);
+			k->k_state &= ~(KS_ADD | KS_CHANGE | KS_DEL_ADD);
 
 			/* Mark this route to be deleted in the next cycle.
 			 * This deletes routes that disappear from the
@@ -1548,14 +1486,10 @@ fix_kern(void)
 	}
 }
 
-
 /* Delete a static route in the image of the kernel table.
  */
 void
-del_static(naddr dst,
-	   naddr mask,
-	   naddr gate,
-	   int gone)
+del_static(naddr dst, naddr mask, naddr gate, int gone)
 {
 	struct khash *k;
 	struct rt_entry *rt;
@@ -1582,39 +1516,34 @@ del_static(naddr dst,
 		rtbad(rt);
 }
 
-
 /* Delete all routes generated from ICMP Redirects that use a given gateway,
  * as well as old redirected routes.
  */
 void
-del_redirects(naddr bad_gate,
-	      time_t old)
+del_redirects(naddr bad_gate, time_t old)
 {
 	int i;
 	struct khash *k;
 
-
 	for (i = 0; i < KHASH_SIZE; i++) {
 		for (k = khash_bins[i]; k != NULL; k = k->k_next) {
-			if (!(k->k_state & KS_DYNAMIC)
-			    || (k->k_state & KS_STATIC))
+			if (!(k->k_state & KS_DYNAMIC) ||
+			    (k->k_state & KS_STATIC))
 				continue;
 
-			if (k->k_gate != bad_gate
-			    && k->k_redirect_time > old
-			    && !supplier)
+			if (k->k_gate != bad_gate && k->k_redirect_time > old &&
+			    !supplier)
 				continue;
 
 			k->k_state |= KS_DELETE;
 			k->k_state &= ~KS_DYNAMIC;
 			need_kern.tv_sec = now.tv_sec;
 			trace_act("mark redirected %s --> %s for deletion",
-				  addrname(k->k_dst, k->k_mask, 0),
-				  naddr_ntoa(k->k_gate));
+			    addrname(k->k_dst, k->k_mask, 0),
+			    naddr_ntoa(k->k_gate));
 		}
 	}
 }
-
 
 /* Start the daemon tables.
  */
@@ -1634,20 +1563,20 @@ rtinit(void)
 	/* mark all of the slots in the table free */
 	ag_avail = ag_slots;
 	for (ag = ag_slots, i = 1; i < NUM_AG_SLOTS; i++) {
-		ag->ag_fine = ag+1;
+		ag->ag_fine = ag + 1;
 		ag++;
 	}
 }
 
-
 #ifdef _HAVE_SIN_LEN
-static struct sockaddr_in dst_sock = {sizeof(dst_sock), AF_INET, 0, {0}, {0}};
-static struct sockaddr_in mask_sock = {sizeof(mask_sock), AF_INET, 0, {0}, {0}};
+static struct sockaddr_in dst_sock = { sizeof(dst_sock), AF_INET, 0, { 0 },
+	{ 0 } };
+static struct sockaddr_in mask_sock = { sizeof(mask_sock), AF_INET, 0, { 0 },
+	{ 0 } };
 #else
-static struct sockaddr_in_new dst_sock = {_SIN_ADDR_SIZE, AF_INET};
-static struct sockaddr_in_new mask_sock = {_SIN_ADDR_SIZE, AF_INET};
+static struct sockaddr_in_new dst_sock = { _SIN_ADDR_SIZE, AF_INET };
+static struct sockaddr_in_new mask_sock = { _SIN_ADDR_SIZE, AF_INET };
 #endif
-
 
 static void
 set_need_flash(void)
@@ -1661,7 +1590,6 @@ set_need_flash(void)
 	}
 }
 
-
 /* Get a particular routing table entry
  */
 struct rt_entry *
@@ -1672,15 +1600,12 @@ rtget(naddr dst, naddr mask)
 	dst_sock.sin_addr.s_addr = dst;
 	mask_sock.sin_addr.s_addr = htonl(mask);
 	masktrim(&mask_sock);
-	rt = (struct rt_entry *)rhead->rnh_lookup(&dst_sock,&mask_sock,rhead);
-	if (!rt
-	    || rt->rt_dst != dst
-	    || rt->rt_mask != mask)
+	rt = (struct rt_entry *)rhead->rnh_lookup(&dst_sock, &mask_sock, rhead);
+	if (!rt || rt->rt_dst != dst || rt->rt_mask != mask)
 		return 0;
 
 	return rt;
 }
-
 
 /* Find a route to dst as the kernel would.
  */
@@ -1691,21 +1616,18 @@ rtfind(naddr dst)
 	return (struct rt_entry *)rhead->rnh_matchaddr(&dst_sock, rhead);
 }
 
-
 /* add a route to the table
  */
 void
-rtadd(naddr	dst,
-      naddr	mask,
-      u_int	state,			/* rt_state for the entry */
-      struct	rt_spare *new)
+rtadd(naddr dst, naddr mask, u_int state, /* rt_state for the entry */
+    struct rt_spare *new)
 {
 	struct rt_entry *rt;
 	naddr smask;
 	int i;
 	struct rt_spare *rts;
 
-	rt = (struct rt_entry *)rtmalloc(sizeof (*rt), "rtadd");
+	rt = (struct rt_entry *)rtmalloc(sizeof(*rt), "rtadd");
 	memset(rt, 0, sizeof(*rt));
 	for (rts = rt->rt_spares, i = NUM_SPARES; i != 0; i--, rts++)
 		rts->rts_metric = HOPCNT_INFINITY;
@@ -1738,22 +1660,20 @@ rtadd(naddr	dst,
 	need_kern.tv_sec = now.tv_sec;
 	set_need_flash();
 
-	if (0 == rhead->rnh_addaddr(&rt->rt_dst_sock, &mask_sock,
-				    rhead, rt->rt_nodes)) {
-		msglog("rnh_addaddr() failed for %s mask=%#lx",
-		       naddr_ntoa(dst), (u_long)mask);
+	if (0 ==
+	    rhead->rnh_addaddr(&rt->rt_dst_sock, &mask_sock, rhead,
+		rt->rt_nodes)) {
+		msglog("rnh_addaddr() failed for %s mask=%#lx", naddr_ntoa(dst),
+		    (u_long)mask);
 		free(rt);
 	}
 }
 
-
 /* notice a changed route
  */
 void
-rtchange(struct rt_entry *rt,
-	 u_int	state,			/* new state bits */
-	 struct rt_spare *new,
-	 char	*label)
+rtchange(struct rt_entry *rt, u_int state, /* new state bits */
+    struct rt_spare *new, char *label)
 {
 	if (rt->rt_metric != new->rts_metric) {
 		/* Fix the kernel immediately if it seems the route
@@ -1783,13 +1703,11 @@ rtchange(struct rt_entry *rt,
 		new->rts_time = now.tv_sec;
 
 	if (TRACEACTIONS)
-		trace_change(rt, state, new,
-			     label ? label : "Chg   ");
+		trace_change(rt, state, new, label ? label : "Chg   ");
 
 	rt->rt_state = state;
 	rt->rt_spares[0] = *new;
 }
-
 
 /* check for a better route among the spares
  */
@@ -1800,29 +1718,27 @@ rts_better(struct rt_entry *rt)
 	int i;
 
 	/* find the best alternative among the spares */
-	rts = rt->rt_spares+1;
-	for (i = NUM_SPARES, rts1 = rts+1; i > 2; i--, rts1++) {
-		if (BETTER_LINK(rt,rts1,rts))
+	rts = rt->rt_spares + 1;
+	for (i = NUM_SPARES, rts1 = rts + 1; i > 2; i--, rts1++) {
+		if (BETTER_LINK(rt, rts1, rts))
 			rts = rts1;
 	}
 
 	return rts;
 }
 
-
 /* switch to a backup route
  */
 void
-rtswitch(struct rt_entry *rt,
-	 struct rt_spare *rts)
+rtswitch(struct rt_entry *rt, struct rt_spare *rts)
 {
 	struct rt_spare swap;
 	char label[10];
 
-
 	/* Do not change permanent routes */
-	if (0 != (rt->rt_state & (RS_MHOME | RS_STATIC | RS_RDISC
-				  | RS_NET_SYN | RS_IF)))
+	if (0 !=
+	    (rt->rt_state &
+		(RS_MHOME | RS_STATIC | RS_RDISC | RS_NET_SYN | RS_IF)))
 		return;
 
 	/* find the best alternative among the spares */
@@ -1844,12 +1760,10 @@ rtswitch(struct rt_entry *rt,
 	}
 }
 
-
 void
 rtdelete(struct rt_entry *rt)
 {
 	struct khash *k;
-
 
 	if (TRACEACTIONS)
 		trace_add_del("Del", rt);
@@ -1863,8 +1777,9 @@ rtdelete(struct rt_entry *rt)
 	dst_sock.sin_addr.s_addr = rt->rt_dst;
 	mask_sock.sin_addr.s_addr = htonl(rt->rt_mask);
 	masktrim(&mask_sock);
-	if (rt != (struct rt_entry *)rhead->rnh_deladdr(&dst_sock, &mask_sock,
-							rhead)) {
+	if (rt !=
+	    (struct rt_entry *)rhead->rnh_deladdr(&dst_sock, &mask_sock,
+		rhead)) {
 		msglog("rnh_deladdr() failed");
 	} else {
 		free(rt);
@@ -1872,15 +1787,12 @@ rtdelete(struct rt_entry *rt)
 	}
 }
 
-
 void
-rts_delete(struct rt_entry *rt,
-	   struct rt_spare *rts)
+rts_delete(struct rt_entry *rt, struct rt_spare *rts)
 {
 	trace_upslot(rt, rts, &rts_empty);
 	*rts = rts_empty;
 }
-
 
 /* Get rid of a bad route, and try to switch to a replacement.
  */
@@ -1896,7 +1808,6 @@ rtbad(struct rt_entry *rt)
 	rtswitch(rt, 0);
 }
 
-
 /* Junk a RS_NET_SYN or RS_LOCAL route,
  *	unless it is needed by another interface.
  */
@@ -1907,7 +1818,6 @@ rtbad_sub(struct rt_entry *rt)
 	struct intnet *intnetp;
 	u_int state;
 
-
 	ifp1 = NULL;
 	state = 0;
 
@@ -1916,7 +1826,7 @@ rtbad_sub(struct rt_entry *rt)
 		 * If so, see if it is used by any other interfaces, such
 		 * as a point-to-point interface with the same local address.
 		 */
-		LIST_FOREACH(ifp, &ifnet, int_list) {
+		LIST_FOREACH (ifp, &ifnet, int_list) {
 			/* Retain it if another interface needs it.
 			 */
 			if (ifp->int_addr == rt->rt_ifp->int_addr) {
@@ -1925,7 +1835,6 @@ rtbad_sub(struct rt_entry *rt)
 				break;
 			}
 		}
-
 	}
 
 	if (!(state & RS_LOCAL)) {
@@ -1933,10 +1842,10 @@ rtbad_sub(struct rt_entry *rt)
 		 * interface that justifies it.
 		 */
 		if (rt->rt_state & RS_NET_SYN) {
-			LIST_FOREACH(ifp, &ifnet, int_list) {
-				if ((ifp->int_state & IS_NEED_NET_SYN)
-				    && rt->rt_mask == ifp->int_std_mask
-				    && rt->rt_dst == ifp->int_std_addr) {
+			LIST_FOREACH (ifp, &ifnet, int_list) {
+				if ((ifp->int_state & IS_NEED_NET_SYN) &&
+				    rt->rt_mask == ifp->int_std_mask &&
+				    rt->rt_dst == ifp->int_std_addr) {
 					state |= RS_NET_SYN;
 					ifp1 = ifp;
 					break;
@@ -1945,11 +1854,10 @@ rtbad_sub(struct rt_entry *rt)
 		}
 
 		/* or if there is an authority route that needs it. */
-		for (intnetp = intnets;
-		     intnetp != NULL;
+		for (intnetp = intnets; intnetp != NULL;
 		     intnetp = intnetp->intnet_next) {
-			if (intnetp->intnet_addr == rt->rt_dst
-			    && intnetp->intnet_mask == rt->rt_mask) {
+			if (intnetp->intnet_addr == rt->rt_dst &&
+			    intnetp->intnet_mask == rt->rt_mask) {
 				state |= (RS_NET_SYN | RS_NET_INT);
 				break;
 			}
@@ -1959,35 +1867,33 @@ rtbad_sub(struct rt_entry *rt)
 	if (ifp1 != NULL || (state & RS_NET_SYN)) {
 		struct rt_spare new = rt->rt_spares[0];
 		new.rts_ifp = ifp1;
-		rtchange(rt, ((rt->rt_state & ~(RS_NET_SYN|RS_LOCAL)) | state),
-			 &new, 0);
+		rtchange(rt,
+		    ((rt->rt_state & ~(RS_NET_SYN | RS_LOCAL)) | state), &new,
+		    0);
 	} else {
 		rtbad(rt);
 	}
 }
-
 
 /* Called while walking the table looking for sick interfaces
  * or after a time change.
  */
 /* ARGSUSED */
 int
-walk_bad(struct radix_node *rn,
-	 struct walkarg *argp UNUSED)
+walk_bad(struct radix_node *rn, struct walkarg *argp UNUSED)
 {
 #define RT ((struct rt_entry *)rn)
 	struct rt_spare *rts;
 	int i;
-
 
 	/* fix any spare routes through the interface
 	 */
 	rts = RT->rt_spares;
 	for (i = NUM_SPARES; i != 1; i--) {
 		rts++;
-		if (rts->rts_metric < HOPCNT_INFINITY
-		    && (rts->rts_ifp == NULL
-			|| (rts->rts_ifp->int_state & IS_BROKE)))
+		if (rts->rts_metric < HOPCNT_INFINITY &&
+		    (rts->rts_ifp == NULL ||
+			(rts->rts_ifp->int_state & IS_BROKE)))
 			rts_delete(RT, rts);
 	}
 
@@ -2010,19 +1916,16 @@ walk_bad(struct radix_node *rn,
 #undef RT
 }
 
-
 /* Check the age of an individual route.
  */
 /* ARGSUSED */
 static int
-walk_age(struct radix_node *rn,
-	   struct walkarg *argp UNUSED)
+walk_age(struct radix_node *rn, struct walkarg *argp UNUSED)
 {
 #define RT ((struct rt_entry *)rn)
 	struct interface *ifp;
 	struct rt_spare *rts;
 	int i;
-
 
 	/* age all of the spare routes, including the primary route
 	 * currently in use
@@ -2050,18 +1953,16 @@ walk_age(struct radix_node *rn,
 
 		/* age failing routes
 		 */
-		if (age_bad_gate == rts->rts_gate
-		    && rts->rts_time >= now_stale) {
+		if (age_bad_gate == rts->rts_gate &&
+		    rts->rts_time >= now_stale) {
 			rts->rts_time -= SUPPLY_INTERVAL;
 		}
 
 		/* trash the spare routes when they go bad */
-		if (rts->rts_metric < HOPCNT_INFINITY
-		    && now_garbage > rts->rts_time
-		    && i != NUM_SPARES)
+		if (rts->rts_metric < HOPCNT_INFINITY &&
+		    now_garbage > rts->rts_time && i != NUM_SPARES)
 			rts_delete(RT, rts);
 	}
-
 
 	/* finished if the active route is still fresh */
 	if (now_stale <= RT->rt_time)
@@ -2085,7 +1986,6 @@ walk_age(struct radix_node *rn,
 	return 0;
 }
 
-
 /* Watch for dead routes and interfaces.
  */
 void
@@ -2097,13 +1997,13 @@ age(naddr bad_gate)
 	/* If not listening to RIP, there is no need to age the routes in
 	 * the table.
 	 */
-	age_timer.tv_sec = (now.tv_sec
-			    + ((rip_sock < 0) ? NEVER : SUPPLY_INTERVAL));
+	age_timer.tv_sec = (now.tv_sec +
+	    ((rip_sock < 0) ? NEVER : SUPPLY_INTERVAL));
 
 	/* Check for dead IS_REMOTE interfaces by timing their
 	 * transmissions.
 	 */
-	LIST_FOREACH(ifp, &ifnet, int_list) {
+	LIST_FOREACH (ifp, &ifnet, int_list) {
 		if (!(ifp->int_state & IS_REMOTE))
 			continue;
 
@@ -2116,14 +2016,13 @@ age(naddr bad_gate)
 		if (ifp->int_state & IS_BROKE)
 			if_ok(ifp, "remote ");
 
-		if (ifp->int_act_time != NEVER
-		    && now.tv_sec - ifp->int_act_time > EXPIRE_TIME) {
+		if (ifp->int_act_time != NEVER &&
+		    now.tv_sec - ifp->int_act_time > EXPIRE_TIME) {
 			msglog("remote interface %s to %s timed out after"
 			       " %ld:%ld",
-			       ifp->int_name,
-			       naddr_ntoa(ifp->int_dstaddr),
-			       (long)(now.tv_sec - ifp->int_act_time)/60,
-			       (long)(now.tv_sec - ifp->int_act_time)%60);
+			    ifp->int_name, naddr_ntoa(ifp->int_dstaddr),
+			    (long)(now.tv_sec - ifp->int_act_time) / 60,
+			    (long)(now.tv_sec - ifp->int_act_time) % 60);
 			if_sick(ifp);
 		}
 
@@ -2143,7 +2042,7 @@ age(naddr bad_gate)
 	/* delete old redirected routes to keep the kernel table small
 	 * and prevent blackholes
 	 */
-	del_redirects(bad_gate, now.tv_sec-STALE_TIME);
+	del_redirects(bad_gate, now.tv_sec - STALE_TIME);
 
 	/* Update the kernel routing table. */
 	fix_kern();

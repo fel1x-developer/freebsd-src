@@ -28,8 +28,8 @@
 
 #include <math.h>
 
-#define	NMAX	65536
-#define	NMIN	-65536
+#define NMAX 65536
+#define NMIN -65536
 
 double
 scalbln(double x, long n)

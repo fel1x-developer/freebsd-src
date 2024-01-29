@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 #include <string.h>
 
@@ -47,8 +48,7 @@ userboot_getdev(void **vdev, const char *devspec, const char **path)
 	 * If it looks like this is just a path and no
 	 * device, go with the current device.
 	 */
-	if ((devspec == NULL) ||
-	    (devspec[0] == '/') ||
+	if ((devspec == NULL) || (devspec[0] == '/') ||
 	    (strchr(devspec, ':') == NULL)) {
 
 		rv = devparse(dev, getenv("currdev"), NULL);

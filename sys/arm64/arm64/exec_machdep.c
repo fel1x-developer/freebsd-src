@@ -46,9 +46,9 @@
 #include <sys/ucontext.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
 #include <machine/armreg.h>
 #include <machine/kdb.h>
@@ -161,8 +161,7 @@ fill_fpregs(struct thread *td, struct fpreg *regs)
 
 	KASSERT(pcb->pcb_fpusaved == &pcb->pcb_fpustate,
 	    ("Called fill_fpregs while the kernel is using the VFP"));
-	memcpy(regs->fp_q, pcb->pcb_fpustate.vfp_regs,
-	    sizeof(regs->fp_q));
+	memcpy(regs->fp_q, pcb->pcb_fpustate.vfp_regs, sizeof(regs->fp_q));
 	regs->fp_cr = pcb->pcb_fpustate.vfp_fpcr;
 	regs->fp_sr = pcb->pcb_fpustate.vfp_fpsr;
 #else
@@ -198,10 +197,8 @@ fill_dbregs(struct thread *td, struct dbreg *regs)
 
 	extract_user_id_field(ID_AA64DFR0_EL1, ID_AA64DFR0_DebugVer_SHIFT,
 	    &debug_ver);
-	extract_user_id_field(ID_AA64DFR0_EL1, ID_AA64DFR0_BRPs_SHIFT,
-	    &nbkpts);
-	extract_user_id_field(ID_AA64DFR0_EL1, ID_AA64DFR0_WRPs_SHIFT,
-	    &nwtpts);
+	extract_user_id_field(ID_AA64DFR0_EL1, ID_AA64DFR0_BRPs_SHIFT, &nbkpts);
+	extract_user_id_field(ID_AA64DFR0_EL1, ID_AA64DFR0_WRPs_SHIFT, &nwtpts);
 
 	/*
 	 * The BRPs field contains the number of breakpoints - 1. Armv8-A
@@ -428,10 +425,9 @@ exec_setregs(struct thread *td, struct image_params *imgp, uintptr_t stack)
 }
 
 /* Sanity check these are the same size, they will be memcpy'd to and from */
-CTASSERT(sizeof(((struct trapframe *)0)->tf_x) ==
-    sizeof((struct gpregs *)0)->gp_x);
-CTASSERT(sizeof(((struct trapframe *)0)->tf_x) ==
-    sizeof((struct reg *)0)->x);
+CTASSERT(
+    sizeof(((struct trapframe *)0)->tf_x) == sizeof((struct gpregs *)0)->gp_x);
+CTASSERT(sizeof(((struct trapframe *)0)->tf_x) == sizeof((struct reg *)0)->x);
 
 int
 get_mcontext(struct thread *td, mcontext_t *mcp, int clear_ret)
@@ -460,7 +456,7 @@ get_mcontext(struct thread *td, mcontext_t *mcp, int clear_ret)
 int
 set_mcontext(struct thread *td, mcontext_t *mcp)
 {
-#define	PSR_13_MASK	0xfffffffful
+#define PSR_13_MASK 0xfffffffful
 	struct trapframe *tf = td->td_frame;
 	uint64_t spsr;
 
@@ -476,10 +472,9 @@ set_mcontext(struct thread *td, mcontext_t *mcp)
 	}
 #endif
 
-	if ((spsr & PSR_M_MASK) != PSR_M_EL0t ||
-	    (spsr & PSR_AARCH32) != 0 ||
+	if ((spsr & PSR_M_MASK) != PSR_M_EL0t || (spsr & PSR_AARCH32) != 0 ||
 	    (spsr & PSR_DAIF) != (td->td_frame->tf_spsr & PSR_DAIF))
-		return (EINVAL); 
+		return (EINVAL);
 
 	memcpy(tf->tf_x, mcp->mc_gpregs.gp_x, sizeof(tf->tf_x));
 
@@ -632,7 +627,8 @@ sendsig(sig_t catcher, ksiginfo_t *ksi, sigset_t *mask)
 	frame.sf_uc.uc_sigmask = *mask;
 	frame.sf_uc.uc_stack = td->td_sigstk;
 	frame.sf_uc.uc_stack.ss_flags = (td->td_pflags & TDP_ALTSTACK) != 0 ?
-	    (onstack ? SS_ONSTACK : 0) : SS_DISABLE;
+	    (onstack ? SS_ONSTACK : 0) :
+	    SS_DISABLE;
 	mtx_unlock(&psp->ps_mtx);
 	PROC_UNLOCK(td->td_proc);
 

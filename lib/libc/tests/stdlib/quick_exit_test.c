@@ -6,31 +6,34 @@
 
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-static void func_a(void)
+static void
+func_a(void)
 {
 	if (write(STDOUT_FILENO, "a", 1) != 1)
 		_Exit(1);
 }
 
-static void func_b(void)
+static void
+func_b(void)
 {
 	if (write(STDOUT_FILENO, "b", 1) != 1)
 		_Exit(1);
 }
 
-static void func_c(void)
+static void
+func_c(void)
 {
 	if (write(STDOUT_FILENO, "c", 1) != 1)
 		_Exit(1);
 }
 
-static void child(void)
+static void
+child(void)
 {
 	// this will be received by the parent
 	printf("hello, ");
@@ -38,8 +41,7 @@ static void child(void)
 	// this won't, because quick_exit() does not flush
 	printf("world");
 	// these will be called in reverse order, producing "abc"
-	if (at_quick_exit(func_c) != 0 ||
-	    at_quick_exit(func_b) != 0 ||
+	if (at_quick_exit(func_c) != 0 || at_quick_exit(func_b) != 0 ||
 	    at_quick_exit(func_a) != 0)
 		_Exit(1);
 	quick_exit(0);
@@ -63,12 +65,10 @@ ATF_TC_BODY(quick_exit, tc)
 		child();
 		_Exit(1);
 	}
-	ATF_REQUIRE_MSG(pid > 0,
-	    "expect fork() to succeed");
+	ATF_REQUIRE_MSG(pid > 0, "expect fork() to succeed");
 	ATF_CHECK_EQ_MSG(pid, waitpid(pid, &wstatus, 0),
 	    "expect to collect child process");
-	ATF_CHECK_EQ_MSG(0, wstatus,
-	    "expect child to exit cleanly");
+	ATF_CHECK_EQ_MSG(0, wstatus, "expect child to exit cleanly");
 	ATF_CHECK_MSG((len = read(p[0], buf, sizeof(buf))) > 0,
 	    "expect to receive output from child");
 	ATF_CHECK_STREQ("hello, abc", buf);

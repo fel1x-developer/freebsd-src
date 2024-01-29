@@ -45,10 +45,10 @@
 
 #ifdef _KERNEL
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_page.h>
-#include <vm/vm_phys.h>
 #include <vm/vm_dumpset.h>
+#include <vm/vm_page.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 #include <machine/md_var.h>
 #include <machine/resource.h>
@@ -66,23 +66,23 @@
  * with the region.
  */
 #ifdef DEV_ACPI
-#define	MAX_HWCNT	32	/* ACPI needs more regions */
-#define	MAX_EXCNT	32
+#define MAX_HWCNT 32 /* ACPI needs more regions */
+#define MAX_EXCNT 32
 #else
-#define	MAX_HWCNT	16
-#define	MAX_EXCNT	16
+#define MAX_HWCNT 16
+#define MAX_EXCNT 16
 #endif
 
 #if defined(__arm__)
-#define	MAX_PHYS_ADDR	0xFFFFFFFFull
+#define MAX_PHYS_ADDR 0xFFFFFFFFull
 #elif defined(__aarch64__) || defined(__amd64__) || defined(__riscv)
-#define	MAX_PHYS_ADDR	0xFFFFFFFFFFFFFFFFull
+#define MAX_PHYS_ADDR 0xFFFFFFFFFFFFFFFFull
 #endif
 
 struct region {
-	vm_paddr_t	addr;
-	vm_size_t	size;
-	uint32_t	flags;
+	vm_paddr_t addr;
+	vm_size_t size;
+	uint32_t flags;
 };
 
 static struct region hwregions[MAX_HWCNT];
@@ -135,13 +135,13 @@ physmem_dump_tables(int (*prfunc)(const char *, ...) __printflike(1, 2))
 
 	prfunc("Excluded memory regions:\n");
 	for (i = 0; i < excnt; ++i) {
-		addr  = exregions[i].addr;
-		size  = exregions[i].size;
+		addr = exregions[i].addr;
+		size = exregions[i].size;
 		flags = exregions[i].flags;
 		prfunc("  0x%08jx - 0x%08jx, %5ju MB (%7ju pages) %s %s\n",
 		    addr, addr + size - 1, size / mbyte, size / PAGE_SIZE,
 		    (flags & EXFLAG_NOALLOC) ? "NoAlloc" : "",
-		    (flags & EXFLAG_NODUMP)  ? "NoDump" : "");
+		    (flags & EXFLAG_NODUMP) ? "NoDump" : "");
 	}
 
 #ifdef DEBUG
@@ -170,7 +170,7 @@ physmem_print_tables(void)
 /*
  * Walk the list of hardware regions, processing it against the list of
  * exclusions that contain the given exflags, and generating an "avail list".
- * 
+ *
  * If maxphyssz is not zero it sets upper limit, in bytes, for the total
  * "avail list" size. Walk stops once the limit is reached and the last region
  * is cut short if necessary.
@@ -194,9 +194,9 @@ regions_to_avail(vm_paddr_t *avail, uint32_t exflags, size_t maxavail,
 	availsz = 0;
 	acnt = 0;
 	for (hwi = 0, hwp = hwregions; hwi < hwcnt; ++hwi, ++hwp) {
-		adj   = round_page(hwp->addr) - hwp->addr;
+		adj = round_page(hwp->addr) - hwp->addr;
 		start = round_page(hwp->addr);
-		end   = trunc_page(hwp->size + adj) + start;
+		end = trunc_page(hwp->size + adj) + start;
 		totalmem += atop((vm_offset_t)(end - start));
 		for (exi = 0, exp = exregions; exi < excnt; ++exi, ++exp) {
 			/*
@@ -206,7 +206,7 @@ regions_to_avail(vm_paddr_t *avail, uint32_t exflags, size_t maxavail,
 			if ((exp->flags & exflags) == 0)
 				continue;
 			xstart = exp->addr;
-			xend   = exp->size + xstart;
+			xend = exp->size + xstart;
 			/*
 			 * If the excluded region ends before this hw region,
 			 * continue checking with the next excluded region.
@@ -421,8 +421,8 @@ insert_region(struct region *regions, size_t rcnt, vm_paddr_t addr,
 			break;
 		}
 	}
-	rp->addr  = addr;
-	rp->size  = size;
+	rp->addr = addr;
+	rp->size = size;
 	rp->flags = flags;
 	rcnt++;
 
@@ -442,7 +442,7 @@ physmem_hardware_region(uint64_t pa, uint64_t sz)
 	if (pa == 0) {
 		if (sz <= PAGE_SIZE)
 			return;
-		pa  = PAGE_SIZE;
+		pa = PAGE_SIZE;
 		sz -= PAGE_SIZE;
 	} else if (pa > MAX_PHYS_ADDR) {
 		/* This range is past usable memory, ignore it */
@@ -484,8 +484,8 @@ physmem_exclude_region(vm_paddr_t pa, vm_size_t sz, uint32_t exflags)
 	 * ending page up to a page boundary.
 	 */
 	adj = pa - trunc_page(pa);
-	pa  = trunc_page(pa);
-	sz  = round_page(sz + adj);
+	pa = trunc_page(pa);
+	sz = round_page(sz + adj);
 
 	if (excnt >= nitems(exregions))
 		panic("failed to exclude region %#jx-%#jx", (uintmax_t)pa,
@@ -497,7 +497,8 @@ size_t
 physmem_avail(vm_paddr_t *avail, size_t maxavail)
 {
 
-	return (regions_to_avail(avail, EXFLAG_NOALLOC, maxavail, 0, NULL, NULL));
+	return (
+	    regions_to_avail(avail, EXFLAG_NOALLOC, maxavail, 0, NULL, NULL));
 }
 
 bool
@@ -554,8 +555,8 @@ DB_SHOW_COMMAND_FLAGS(physmem, db_show_physmem, DB_CMD_MEMSAFE)
 #endif /* DDB */
 
 /*
- * ram pseudo driver - this reserves I/O space resources corresponding to physical
- * memory regions.
+ * ram pseudo driver - this reserves I/O space resources corresponding to
+ * physical memory regions.
  */
 
 static void
@@ -603,7 +604,7 @@ ram_attach(device_t dev)
 			    (uintmax_t)start, (uintmax_t)end);
 
 		if (bus_alloc_resource(dev, SYS_RES_MEMORY, &rid, start, end,
-		    end - start, 0) == NULL)
+			end - start, 0) == NULL)
 			panic("ram_attach: resource %d failed to attach", rid);
 		rid++;
 	}
@@ -624,9 +625,10 @@ ram_attach(device_t dev)
 		 * will cover or overlap some I/O range.
 		 */
 		if (bus_alloc_resource(dev, SYS_RES_MEMORY, &rid, start, end,
-		    end - start, 0) == NULL) {
+			end - start, 0) == NULL) {
 			if (bootverbose)
-				device_printf(dev, "failed to reserve region\n");
+				device_printf(dev,
+				    "failed to reserve region\n");
 			continue;
 		}
 		rid++;
@@ -637,9 +639,9 @@ ram_attach(device_t dev)
 
 static device_method_t ram_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	ram_identify),
-	DEVMETHOD(device_probe,		ram_probe),
-	DEVMETHOD(device_attach,	ram_attach),
+	DEVMETHOD(device_identify, ram_identify),
+	DEVMETHOD(device_probe, ram_probe),
+	DEVMETHOD(device_attach, ram_attach),
 
 	DEVMETHOD_END
 };

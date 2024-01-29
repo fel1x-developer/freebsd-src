@@ -33,28 +33,27 @@
 #include <net/sff8436.h>
 #include <net/sff8472.h>
 
-#include <math.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libifconfig.h>
+#include <libifconfig_internal.h>
+#include <libifconfig_sfp.h>
+#include <libifconfig_sfp_tables_internal.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <libifconfig.h>
-#include <libifconfig_internal.h>
-#include <libifconfig_sfp.h>
-#include <libifconfig_sfp_tables_internal.h>
-
-#define     SFF_8636_EXT_COMPLIANCE 0x80
+#define SFF_8636_EXT_COMPLIANCE 0x80
 
 struct i2c_info {
 	struct ifreq ifr;
 	ifconfig_handle_t *h;
-	int error;		/* Store first error */
-	enum sfp_id id;		/* Module type */
+	int error;	/* Store first error */
+	enum sfp_id id; /* Module type */
 };
 
 static uint8_t
@@ -97,8 +96,8 @@ read_i2c(struct i2c_info *ii, uint8_t addr, uint8_t off, uint8_t len,
 	while (len > 0) {
 		l = MIN(sizeof(req.data), len);
 		req.len = l;
-		if (ifconfig_ioctlwrap(ii->h, AF_LOCAL, SIOCGI2C,
-		    &ii->ifr) != 0) {
+		if (ifconfig_ioctlwrap(ii->h, AF_LOCAL, SIOCGI2C, &ii->ifr) !=
+		    0) {
 			ii->error = errno;
 			return (errno);
 		}
@@ -157,8 +156,8 @@ get_sfp_info(struct i2c_info *ii, struct ifconfig_sfp_info *sfp)
 		sfp->sfp_eth_10g = find_zero_bit(sfp_eth_10g_table, code, 1);
 		if (sfp->sfp_eth_10g == 0) {
 			/* No match. Try Ethernet 1G */
-			read_i2c(ii, SFF_8472_BASE, SFF_8472_TRANS_START + 3,
-			    1, &code);
+			read_i2c(ii, SFF_8472_BASE, SFF_8472_TRANS_START + 3, 1,
+			    &code);
 			sfp->sfp_eth = find_zero_bit(sfp_eth_table, code, 1);
 		}
 	}
@@ -183,16 +182,16 @@ get_qsfp_info(struct i2c_info *ii, struct ifconfig_sfp_info *sfp)
 		    &sfp->sfp_eth_ext);
 	} else {
 		/* Check 10/40G Ethernet class only */
-		sfp->sfp_eth_1040g =
-		    find_zero_bit(sfp_eth_1040g_table, code, 1);
+		sfp->sfp_eth_1040g = find_zero_bit(sfp_eth_1040g_table, code,
+		    1);
 	}
 
 	return (ii->error);
 }
 
 int
-ifconfig_sfp_get_sfp_info(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_sfp_info *sfp)
+ifconfig_sfp_get_sfp_info(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_sfp_info *sfp)
 {
 	struct i2c_info ii;
 	char buf[8];
@@ -216,8 +215,8 @@ ifconfig_sfp_get_sfp_info(ifconfig_handle_t *h,
 	sfp->sfp_fc_len = find_zero_bit(sfp_fc_len_table, buf[4], 1);
 	sfp->sfp_fc_media = find_zero_bit(sfp_fc_media_table, buf[6], 1);
 	sfp->sfp_fc_speed = find_zero_bit(sfp_fc_speed_table, buf[7], 1);
-	sfp->sfp_cab_tech =
-	    find_zero_bit(sfp_cab_tech_table, (buf[4] << 8) | buf[5], 2);
+	sfp->sfp_cab_tech = find_zero_bit(sfp_cab_tech_table,
+	    (buf[4] << 8) | buf[5], 2);
 
 	if (ifconfig_sfp_id_is_qsfp(ii.id))
 		return (get_qsfp_info(&ii, sfp));
@@ -255,7 +254,9 @@ get_sff_string(struct i2c_info *ii, uint8_t addr, uint8_t off, char *dst)
 {
 	read_i2c(ii, addr, off, SFF_VENDOR_STRING_SIZE, dst);
 	dst += SFF_VENDOR_STRING_SIZE;
-	do { *dst-- = '\0'; } while (*dst == 0x20);
+	do {
+		*dst-- = '\0';
+	} while (*dst == 0x20);
 }
 
 static void
@@ -264,8 +265,8 @@ get_sff_date(struct i2c_info *ii, uint8_t addr, uint8_t off, char *dst)
 	char buf[SFF_VENDOR_DATE_SIZE];
 
 	read_i2c(ii, addr, off, SFF_VENDOR_DATE_SIZE, buf);
-	sprintf(dst, "20%c%c-%c%c-%c%c", buf[0], buf[1], buf[2], buf[3],
-	    buf[4], buf[5]);
+	sprintf(dst, "20%c%c-%c%c-%c%c", buf[0], buf[1], buf[2], buf[3], buf[4],
+	    buf[5]);
 }
 
 static int
@@ -289,8 +290,8 @@ get_qsfp_vendor_info(struct i2c_info *ii, struct ifconfig_sfp_vendor_info *vi)
 }
 
 int
-ifconfig_sfp_get_sfp_vendor_info(ifconfig_handle_t *h,
-    const char *name, struct ifconfig_sfp_vendor_info *vi)
+ifconfig_sfp_get_sfp_vendor_info(ifconfig_handle_t *h, const char *name,
+    struct ifconfig_sfp_vendor_info *vi)
 {
 	struct i2c_info ii;
 
@@ -406,8 +407,10 @@ get_sfp_status(struct i2c_info *ii, struct ifconfig_sfp_status *ss)
 		ii->h->error.errcode = ENOMEM;
 		return (-1);
 	}
-	ss->channel[0].rx = get_sff_channel(ii, SFF_8472_DIAG, SFF_8472_RX_POWER);
-	ss->channel[0].tx = get_sff_channel(ii, SFF_8472_DIAG, SFF_8472_TX_BIAS);
+	ss->channel[0].rx = get_sff_channel(ii, SFF_8472_DIAG,
+	    SFF_8472_RX_POWER);
+	ss->channel[0].tx = get_sff_channel(ii, SFF_8472_DIAG,
+	    SFF_8472_TX_BIAS);
 	return (ii->error);
 }
 
@@ -445,10 +448,10 @@ get_qsfp_status(struct i2c_info *ii, struct ifconfig_sfp_status *ss)
 	for (size_t chan = 0; chan < channels; ++chan) {
 		uint8_t rxoffs = SFF_8436_RX_CH1_MSB + chan * sizeof(uint16_t);
 		uint8_t txoffs = SFF_8436_TX_CH1_MSB + chan * sizeof(uint16_t);
-		ss->channel[chan].rx =
-		    get_sff_channel(ii, SFF_8436_BASE, rxoffs);
-		ss->channel[chan].tx =
-		    get_sff_channel(ii, SFF_8436_BASE, txoffs);
+		ss->channel[chan].rx = get_sff_channel(ii, SFF_8436_BASE,
+		    rxoffs);
+		ss->channel[chan].tx = get_sff_channel(ii, SFF_8436_BASE,
+		    txoffs);
 	}
 	ss->bitrate = get_qsfp_bitrate(ii);
 	return (ii->error);

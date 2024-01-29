@@ -28,36 +28,37 @@
 SYSCTL_NODE(_kern, OID_AUTO, iser, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "iSER module");
 int iser_debug = 0;
-SYSCTL_INT(_kern_iser, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &iser_debug, 0, "Enable iser debug messages");
+SYSCTL_INT(_kern_iser, OID_AUTO, debug, CTLFLAG_RWTUN, &iser_debug, 0,
+    "Enable iser debug messages");
 
 static MALLOC_DEFINE(M_ICL_ISER, "icl_iser", "iSCSI iser backend");
 static uma_zone_t icl_pdu_zone;
 
-static volatile u_int	icl_iser_ncons;
+static volatile u_int icl_iser_ncons;
 struct iser_global ig;
 
 static void iser_conn_release(struct icl_conn *ic);
 
-static icl_conn_new_pdu_t	iser_conn_new_pdu;
-static icl_conn_pdu_free_t	iser_conn_pdu_free;
+static icl_conn_new_pdu_t iser_conn_new_pdu;
+static icl_conn_pdu_free_t iser_conn_pdu_free;
 static icl_conn_pdu_data_segment_length_t iser_conn_pdu_data_segment_length;
-static icl_conn_pdu_append_bio_t	iser_conn_pdu_append_bio;
-static icl_conn_pdu_append_data_t	iser_conn_pdu_append_data;
-static icl_conn_pdu_queue_t	iser_conn_pdu_queue;
-static icl_conn_handoff_t	iser_conn_handoff;
-static icl_conn_free_t		iser_conn_free;
-static icl_conn_close_t		iser_conn_close;
-static icl_conn_connect_t	iser_conn_connect;
-static icl_conn_task_setup_t	iser_conn_task_setup;
-static icl_conn_task_done_t	iser_conn_task_done;
-static icl_conn_pdu_get_bio_t	iser_conn_pdu_get_bio;
-static icl_conn_pdu_get_data_t	iser_conn_pdu_get_data;
+static icl_conn_pdu_append_bio_t iser_conn_pdu_append_bio;
+static icl_conn_pdu_append_data_t iser_conn_pdu_append_data;
+static icl_conn_pdu_queue_t iser_conn_pdu_queue;
+static icl_conn_handoff_t iser_conn_handoff;
+static icl_conn_free_t iser_conn_free;
+static icl_conn_close_t iser_conn_close;
+static icl_conn_connect_t iser_conn_connect;
+static icl_conn_task_setup_t iser_conn_task_setup;
+static icl_conn_task_done_t iser_conn_task_done;
+static icl_conn_pdu_get_bio_t iser_conn_pdu_get_bio;
+static icl_conn_pdu_get_data_t iser_conn_pdu_get_data;
 
-static kobj_method_t icl_iser_methods[] = {
-	KOBJMETHOD(icl_conn_new_pdu, iser_conn_new_pdu),
+static kobj_method_t icl_iser_methods[] = { KOBJMETHOD(icl_conn_new_pdu,
+						iser_conn_new_pdu),
 	KOBJMETHOD(icl_conn_pdu_free, iser_conn_pdu_free),
-	KOBJMETHOD(icl_conn_pdu_data_segment_length, iser_conn_pdu_data_segment_length),
+	KOBJMETHOD(icl_conn_pdu_data_segment_length,
+	    iser_conn_pdu_data_segment_length),
 	KOBJMETHOD(icl_conn_pdu_append_bio, iser_conn_pdu_append_bio),
 	KOBJMETHOD(icl_conn_pdu_append_data, iser_conn_pdu_append_data),
 	KOBJMETHOD(icl_conn_pdu_queue, iser_conn_pdu_queue),
@@ -68,9 +69,7 @@ static kobj_method_t icl_iser_methods[] = {
 	KOBJMETHOD(icl_conn_task_setup, iser_conn_task_setup),
 	KOBJMETHOD(icl_conn_task_done, iser_conn_task_done),
 	KOBJMETHOD(icl_conn_pdu_get_bio, iser_conn_pdu_get_bio),
-	KOBJMETHOD(icl_conn_pdu_get_data, iser_conn_pdu_get_data),
-	{ 0, 0 }
-};
+	KOBJMETHOD(icl_conn_pdu_get_data, iser_conn_pdu_get_data), { 0, 0 } };
 
 DEFINE_CLASS(icl_iser, icl_iser_methods, sizeof(struct iser_conn));
 
@@ -94,7 +93,7 @@ iser_initialize_headers(struct icl_iser_pdu *pdu, struct iser_conn *iser_conn)
 	int ret = 0;
 
 	dma_addr = ib_dma_map_single(device->ib_device, (void *)tx_desc,
-				ISER_HEADERS_LEN, DMA_TO_DEVICE);
+	    ISER_HEADERS_LEN, DMA_TO_DEVICE);
 	if (ib_dma_mapping_error(device->ib_device, dma_addr)) {
 		ret = -ENOMEM;
 		goto out;
@@ -102,9 +101,9 @@ iser_initialize_headers(struct icl_iser_pdu *pdu, struct iser_conn *iser_conn)
 
 	tx_desc->mapped = true;
 	tx_desc->dma_addr = dma_addr;
-	tx_desc->tx_sg[0].addr   = tx_desc->dma_addr;
+	tx_desc->tx_sg[0].addr = tx_desc->dma_addr;
 	tx_desc->tx_sg[0].length = ISER_HEADERS_LEN;
-	tx_desc->tx_sg[0].lkey   = device->mr->lkey;
+	tx_desc->tx_sg[0].lkey = device->mr->lkey;
 
 out:
 
@@ -113,19 +112,19 @@ out:
 
 int
 iser_conn_pdu_append_bio(struct icl_conn *ic, struct icl_pdu *request,
-			 struct bio *bp, size_t offset, size_t len, int flags)
+    struct bio *bp, size_t offset, size_t len, int flags)
 {
 	MPASS(!((request->ip_bhs->bhs_opcode & ISCSI_OPCODE_MASK) ==
-	    ISCSI_BHS_OPCODE_LOGIN_REQUEST ||
+		ISCSI_BHS_OPCODE_LOGIN_REQUEST ||
 	    (request->ip_bhs->bhs_opcode & ISCSI_OPCODE_MASK) ==
-	    ISCSI_BHS_OPCODE_TEXT_REQUEST));
+		ISCSI_BHS_OPCODE_TEXT_REQUEST));
 
 	return (0);
 }
 
 int
 iser_conn_pdu_append_data(struct icl_conn *ic, struct icl_pdu *request,
-			  const void *addr, size_t len, int flags)
+    const void *addr, size_t len, int flags)
 {
 	struct iser_conn *iser_conn = icl_to_iser_conn(ic);
 
@@ -142,16 +141,15 @@ iser_conn_pdu_append_data(struct icl_conn *ic, struct icl_pdu *request,
 }
 
 void
-iser_conn_pdu_get_bio(struct icl_conn *ic, struct icl_pdu *ip,
-		      size_t pdu_off, struct bio *bp, size_t bio_off,
-		      size_t len)
+iser_conn_pdu_get_bio(struct icl_conn *ic, struct icl_pdu *ip, size_t pdu_off,
+    struct bio *bp, size_t bio_off, size_t len)
 {
 	MPASS(ip->ip_data_mbuf == NULL);
 }
 
 void
-iser_conn_pdu_get_data(struct icl_conn *ic, struct icl_pdu *ip,
-		       size_t off, void *addr, size_t len)
+iser_conn_pdu_get_data(struct icl_conn *ic, struct icl_pdu *ip, size_t off,
+    void *addr, size_t len)
 {
 	/* If we have a receive data, copy it to upper layer buffer */
 	if (ip->ip_data_mbuf)
@@ -198,7 +196,7 @@ iser_pdu_free(struct icl_conn *ic, struct icl_pdu *ip)
 
 size_t
 iser_conn_pdu_data_segment_length(struct icl_conn *ic,
-				  const struct icl_pdu *request)
+    const struct icl_pdu *request)
 {
 	uint32_t len = 0;
 
@@ -223,17 +221,17 @@ is_control_opcode(uint8_t opcode)
 	bool is_control = false;
 
 	switch (opcode & ISCSI_OPCODE_MASK) {
-		case ISCSI_BHS_OPCODE_NOP_OUT:
-		case ISCSI_BHS_OPCODE_LOGIN_REQUEST:
-		case ISCSI_BHS_OPCODE_LOGOUT_REQUEST:
-		case ISCSI_BHS_OPCODE_TEXT_REQUEST:
-			is_control = true;
-			break;
-		case ISCSI_BHS_OPCODE_SCSI_COMMAND:
-			is_control = false;
-			break;
-		default:
-			ISER_ERR("unknown opcode %d", opcode);
+	case ISCSI_BHS_OPCODE_NOP_OUT:
+	case ISCSI_BHS_OPCODE_LOGIN_REQUEST:
+	case ISCSI_BHS_OPCODE_LOGOUT_REQUEST:
+	case ISCSI_BHS_OPCODE_TEXT_REQUEST:
+		is_control = true;
+		break;
+	case ISCSI_BHS_OPCODE_SCSI_COMMAND:
+		is_control = false;
+		break;
+	default:
+		ISER_ERR("unknown opcode %d", opcode);
 	}
 
 	return (is_control);
@@ -274,7 +272,8 @@ iser_new_conn(const char *name, struct mtx *lock)
 
 	refcount_acquire(&icl_iser_ncons);
 
-	iser_conn = (struct iser_conn *)kobj_create(&icl_iser_class, M_ICL_ISER, M_WAITOK | M_ZERO);
+	iser_conn = (struct iser_conn *)kobj_create(&icl_iser_class, M_ICL_ISER,
+	    M_WAITOK | M_ZERO);
 	if (!iser_conn) {
 		ISER_ERR("failed to allocate iser conn");
 		refcount_release(&icl_iser_ncons);
@@ -283,7 +282,8 @@ iser_new_conn(const char *name, struct mtx *lock)
 
 	cv_init(&iser_conn->up_cv, "iser_cv");
 	sx_init(&iser_conn->state_mutex, "iser_conn_state_mutex");
-	mtx_init(&iser_conn->ib_conn.beacon.flush_lock, "iser_flush_lock", NULL, MTX_DEF);
+	mtx_init(&iser_conn->ib_conn.beacon.flush_lock, "iser_flush_lock", NULL,
+	    MTX_DEF);
 	cv_init(&iser_conn->ib_conn.beacon.flush_cv, "flush_cv");
 	mtx_init(&iser_conn->ib_conn.lock, "iser_lock", NULL, MTX_DEF);
 
@@ -322,7 +322,7 @@ iser_conn_handoff(struct icl_conn *ic, int fd)
 	if (iser_conn->state != ISER_CONN_UP) {
 		error = EINVAL;
 		ISER_ERR("iser_conn %p state is %d, teardown started\n",
-			 iser_conn, iser_conn->state);
+		    iser_conn, iser_conn->state);
 		goto out;
 	}
 
@@ -344,7 +344,6 @@ post_error:
 out:
 	sx_xunlock(&iser_conn->state_mutex);
 	return (error);
-
 }
 
 /**
@@ -363,7 +362,8 @@ iser_conn_release(struct icl_conn *ic)
 	 * It may not be there in case of failure in connection establishment
 	 * stage.
 	 */
-	list_for_each_entry_safe(curr, tmp, &ig.connlist, conn_list) {
+	list_for_each_entry_safe(curr, tmp, &ig.connlist, conn_list)
+	{
 		if (iser_conn == curr) {
 			ISER_WARN("found iser_conn %p", iser_conn);
 			list_del(&iser_conn->conn_list);
@@ -383,7 +383,6 @@ iser_conn_release(struct icl_conn *ic)
 		rdma_destroy_id(ib_conn->cma_id);
 		ib_conn->cma_id = NULL;
 	}
-
 }
 
 void
@@ -396,18 +395,19 @@ iser_conn_close(struct icl_conn *ic)
 	sx_xlock(&iser_conn->state_mutex);
 	/*
 	 * In case iser connection is waiting on conditional variable
-	 * (state PENDING) and we try to close it before connection establishment,
-	 * we need to signal it to continue releasing connection properly.
+	 * (state PENDING) and we try to close it before connection
+	 * establishment, we need to signal it to continue releasing connection
+	 * properly.
 	 */
-	if (!iser_conn_terminate(iser_conn) && iser_conn->state == ISER_CONN_PENDING)
+	if (!iser_conn_terminate(iser_conn) &&
+	    iser_conn->state == ISER_CONN_PENDING)
 		cv_signal(&iser_conn->up_cv);
 	sx_xunlock(&iser_conn->state_mutex);
-
 }
 
 int
-iser_conn_connect(struct icl_conn *ic, int domain, int socktype,
-		int protocol, struct sockaddr *from_sa, struct sockaddr *to_sa)
+iser_conn_connect(struct icl_conn *ic, int domain, int socktype, int protocol,
+    struct sockaddr *from_sa, struct sockaddr *to_sa)
 {
 	struct iser_conn *iser_conn = icl_to_iser_conn(ic);
 	struct ib_conn *ib_conn = &iser_conn->ib_conn;
@@ -416,14 +416,14 @@ iser_conn_connect(struct icl_conn *ic, int domain, int socktype,
 	iser_conn_release(ic);
 
 	sx_xlock(&iser_conn->state_mutex);
-	 /* the device is known only --after-- address resolution */
+	/* the device is known only --after-- address resolution */
 	ib_conn->device = NULL;
 	iser_conn->handoff_done = false;
 
 	iser_conn->state = ISER_CONN_PENDING;
 
-	ib_conn->cma_id = rdma_create_id(&init_net, iser_cma_handler, (void *)iser_conn,
-			RDMA_PS_TCP, IB_QPT_RC);
+	ib_conn->cma_id = rdma_create_id(&init_net, iser_cma_handler,
+	    (void *)iser_conn, RDMA_PS_TCP, IB_QPT_RC);
 	if (IS_ERR(ib_conn->cma_id)) {
 		err = -PTR_ERR(ib_conn->cma_id);
 		ISER_ERR("rdma_create_id failed: %d", err);
@@ -467,8 +467,7 @@ addr_failure:
 
 int
 iser_conn_task_setup(struct icl_conn *ic, struct icl_pdu *ip,
-		     struct ccb_scsiio *csio,
-		     uint32_t *task_tagp, void **prvp)
+    struct ccb_scsiio *csio, uint32_t *task_tagp, void **prvp)
 {
 	struct icl_iser_pdu *iser_pdu = icl_to_iser_pdu(ip);
 
@@ -488,21 +487,19 @@ iser_conn_task_done(struct icl_conn *ic, void *prv)
 
 	if (iser_pdu->dir[ISER_DIR_IN]) {
 		iser_unreg_rdma_mem(iser_pdu, ISER_DIR_IN);
-		iser_dma_unmap_task_data(iser_pdu,
-					 &iser_pdu->data[ISER_DIR_IN],
-					 DMA_FROM_DEVICE);
+		iser_dma_unmap_task_data(iser_pdu, &iser_pdu->data[ISER_DIR_IN],
+		    DMA_FROM_DEVICE);
 	}
 
 	if (iser_pdu->dir[ISER_DIR_OUT]) {
 		iser_unreg_rdma_mem(iser_pdu, ISER_DIR_OUT);
 		iser_dma_unmap_task_data(iser_pdu,
-					 &iser_pdu->data[ISER_DIR_OUT],
-					 DMA_TO_DEVICE);
+		    &iser_pdu->data[ISER_DIR_OUT], DMA_TO_DEVICE);
 	}
 
 	if (likely(tx_desc->mapped)) {
 		ib_dma_unmap_single(device->ib_device, tx_desc->dma_addr,
-				    ISER_HEADERS_LEN, DMA_TO_DEVICE);
+		    ISER_HEADERS_LEN, DMA_TO_DEVICE);
 		tx_desc->mapped = false;
 	}
 
@@ -529,8 +526,7 @@ icl_iser_load(void)
 	ISER_DBG("Starting iSER datamover...");
 
 	icl_pdu_zone = uma_zcreate("icl_iser_pdu", sizeof(struct icl_iser_pdu),
-				   NULL, NULL, NULL, NULL,
-				   UMA_ALIGN_PTR, 0);
+	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	/* FIXME: Check rc */
 
 	refcount_init(&icl_iser_ncons, 0);
@@ -541,11 +537,11 @@ icl_iser_load(void)
 	memset(&ig, 0, sizeof(struct iser_global));
 
 	/* device init is called only after the first addr resolution */
-	sx_init(&ig.device_list_mutex,  "global_device_lock");
+	sx_init(&ig.device_list_mutex, "global_device_lock");
 	INIT_LIST_HEAD(&ig.device_list);
 	mtx_init(&ig.connlist_mutex, "iser_global_conn_lock", NULL, MTX_DEF);
 	INIT_LIST_HEAD(&ig.connlist);
-	sx_init(&ig.close_conns_mutex,  "global_close_conns_lock");
+	sx_init(&ig.close_conns_mutex, "global_close_conns_lock");
 
 	return (error);
 }
@@ -582,11 +578,9 @@ icl_iser_modevent(module_t mod, int what, void *arg)
 	}
 }
 
-moduledata_t icl_iser_data = {
-	.name = "icl_iser",
+moduledata_t icl_iser_data = { .name = "icl_iser",
 	.evhand = icl_iser_modevent,
-	.priv = 0
-};
+	.priv = 0 };
 
 DECLARE_MODULE(icl_iser, icl_iser_data, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
 MODULE_DEPEND(icl_iser, icl, 1, 1, 1);

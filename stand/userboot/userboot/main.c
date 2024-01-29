@@ -26,10 +26,11 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/disk.h>
+
+#include <setjmp.h>
 #include <stand.h>
 #include <string.h>
-#include <setjmp.h>
-#include <sys/disk.h>
 
 #include "bootstrap.h"
 #include "disk.h"
@@ -37,6 +38,7 @@
 
 #if defined(USERBOOT_ZFS_SUPPORT)
 #include <sys/zfs_bootenv.h>
+
 #include "libzfs.h"
 
 static void userboot_zfs_probe(void);
@@ -44,22 +46,22 @@ static int userboot_zfs_found;
 #endif
 
 /* Minimum version required */
-#define	USERBOOT_VERSION	USERBOOT_VERSION_3
+#define USERBOOT_VERSION USERBOOT_VERSION_3
 
-#define	LOADER_PATH		"/boot/loader"
-#define	INTERP_MARKER		"$Interpreter:"
+#define LOADER_PATH "/boot/loader"
+#define INTERP_MARKER "$Interpreter:"
 
-#define	MALLOCSZ		(64*1024*1024)
+#define MALLOCSZ (64 * 1024 * 1024)
 
 struct loader_callbacks *callbacks;
 void *callbacks_arg;
 
 static jmp_buf jb;
 
-struct arch_switch archsw;	/* MI/MD interface boundary */
+struct arch_switch archsw; /* MI/MD interface boundary */
 
-static void	extract_currdev(void);
-static void	check_interpreter(void);
+static void extract_currdev(void);
+static void check_interpreter(void);
 
 void
 delay(int usec)
@@ -102,7 +104,7 @@ check_interpreter(void)
 	 * simply letting us roll on with whatever interpreter we were compiled
 	 * with.  This is likely not going to be an issue in reality.
 	 */
-	buf =  NULL;
+	buf = NULL;
 	if (stat(LOADER_PATH, &st) != 0)
 		return;
 	if ((fd = open(LOADER_PATH, O_RDONLY)) < 0)
@@ -124,8 +126,8 @@ check_interpreter(void)
 	 * should have this properly specified, so our assumption should always
 	 * be a good one.
 	 */
-	if ((guest_interp = memmem(buf, rdsize, INTERP_MARKER,
-	    marklen)) != NULL)
+	if ((guest_interp = memmem(buf, rdsize, INTERP_MARKER, marklen)) !=
+	    NULL)
 		guest_interp += marklen;
 	else
 		guest_interp = "4th";
@@ -177,7 +179,7 @@ loader_main(struct loader_callbacks *cb, void *arg, int version, int ndisks)
 	printf("Memory: %ld k\n", memsize() / 1024);
 #endif
 
-	setenv("LINES", "24", 1);	/* optional */
+	setenv("LINES", "24", 1); /* optional */
 
 	/*
 	 * Set custom environment variables
@@ -217,13 +219,13 @@ loader_main(struct loader_callbacks *cb, void *arg, int version, int ndisks)
 	if (setjmp(jb))
 		return;
 
-	interact();			/* doesn't return */
+	interact(); /* doesn't return */
 
 	exit(0);
 }
 
 /*
- * Set the 'current device' by (if possible) recovering the boot device as 
+ * Set the 'current device' by (if possible) recovering the boot device as
  * supplied by the initial bootstrap.
  */
 static void
@@ -235,17 +237,17 @@ extract_currdev(void)
 	struct zfs_devdesc zdev;
 
 	if (userboot_zfs_found) {
-	
+
 		/* Leave the pool/root guid's unassigned */
 		bzero(&zdev, sizeof(zdev));
 		zdev.dd.d_dev = &zfs_dev;
-		
+
 		init_zfs_boot_options(devformat(&zdev.dd));
 		dd = &zdev.dd;
 	} else
 #endif
 
-	if (userboot_disk_maxunit > 0) {
+	    if (userboot_disk_maxunit > 0) {
 		dev.dd.d_dev = &userboot_disk;
 		dev.dd.d_unit = 0;
 		dev.d_slice = D_SLICEWILD;
@@ -271,7 +273,8 @@ extract_currdev(void)
 	if (userboot_zfs_found) {
 		char buf[VDEV_PAD_SIZE];
 
-		if (zfs_get_bootonce(&zdev, OS_BOOTONCE, buf, sizeof(buf)) == 0) {
+		if (zfs_get_bootonce(&zdev, OS_BOOTONCE, buf, sizeof(buf)) ==
+		    0) {
 			printf("zfs bootonce: %s\n", buf);
 			set_currdev(buf);
 			setenv("zfs-bootonce", buf, 1);

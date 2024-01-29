@@ -50,24 +50,21 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "hostres_snmp.h"
 #include "hostres_oid.h"
+#include "hostres_snmp.h"
 #include "hostres_tree.h"
 
-enum hrDiskStrorageAccess {
-	DS_READ_WRITE = 1,
-	DS_READ_ONLY  = 2
-};
+enum hrDiskStrorageAccess { DS_READ_WRITE = 1, DS_READ_ONLY = 2 };
 
 enum hrDiskStrorageMedia {
-	DSM_OTHER	=	1,
-	DSM_UNKNOWN	=	2,
-	DSM_HARDDISK	=	3,
-	DSM_FLOPPYDISK	=	4,
-	DSM_OPTICALDISKROM=	5,
-	DSM_OPTICALDISKWORM=	6,
-	DSM_OPTICALDISKRW=	7,
-	DSM_RAMDISK	=	8
+	DSM_OTHER = 1,
+	DSM_UNKNOWN = 2,
+	DSM_HARDDISK = 3,
+	DSM_FLOPPYDISK = 4,
+	DSM_OPTICALDISKROM = 5,
+	DSM_OPTICALDISKWORM = 6,
+	DSM_OPTICALDISKRW = 7,
+	DSM_RAMDISK = 8
 };
 
 /*
@@ -79,28 +76,27 @@ enum hrDiskStrorageMedia {
  * device itself (like a USB card reader)
  */
 struct disk_entry {
-	int32_t		index;
-	int32_t		access;		/* enum hrDiskStrorageAccess */
-	int32_t		media;		/* enum hrDiskStrorageMedia*/
-	int32_t		removable; 	/* enum snmpTCTruthValue*/
-	int32_t		capacity;
+	int32_t index;
+	int32_t access;	   /* enum hrDiskStrorageAccess */
+	int32_t media;	   /* enum hrDiskStrorageMedia*/
+	int32_t removable; /* enum snmpTCTruthValue*/
+	int32_t capacity;
 	TAILQ_ENTRY(disk_entry) link;
 	/*
 	 * next items are not from the SNMP mib table, only to be used
 	 * internally
 	 */
-#define HR_DISKSTORAGE_FOUND	0x001
-#define HR_DISKSTORAGE_ATA	0x002 /* belongs to the ATA subsystem */
-#define HR_DISKSTORAGE_MD	0x004 /* it is a MD (memory disk) */
-	uint32_t	flags;
-	uint64_t	r_tick;
-	u_char		dev_name[32];	/* device name, i.e. "ad4" or "acd0" */
+#define HR_DISKSTORAGE_FOUND 0x001
+#define HR_DISKSTORAGE_ATA 0x002 /* belongs to the ATA subsystem */
+#define HR_DISKSTORAGE_MD 0x004	 /* it is a MD (memory disk) */
+	uint32_t flags;
+	uint64_t r_tick;
+	u_char dev_name[32]; /* device name, i.e. "ad4" or "acd0" */
 };
 TAILQ_HEAD(disk_tbl, disk_entry);
 
 /* the head of the list with hrDiskStorageTable's entries */
-static struct disk_tbl disk_tbl =
-    TAILQ_HEAD_INITIALIZER(disk_tbl);
+static struct disk_tbl disk_tbl = TAILQ_HEAD_INITIALIZER(disk_tbl);
 
 /* last tick when hrFSTable was updated */
 static uint64_t disk_storage_tick;
@@ -133,8 +129,8 @@ mdmaybeload(void)
 		/* Not present in kernel, try loading it. */
 		if (kldload(name2) == -1 || modfind(name1) == -1) {
 			if (errno != EEXIST) {
-				errx(EXIT_FAILURE,
-				    "%s module not available!", name2);
+				errx(EXIT_FAILURE, "%s module not available!",
+				    name2);
 			}
 		}
 	}
@@ -197,7 +193,7 @@ disk_find_by_index(int32_t idx)
 {
 	struct disk_entry *entry;
 
-	TAILQ_FOREACH(entry, &disk_tbl, link)
+	TAILQ_FOREACH (entry, &disk_tbl, link)
 		if (entry->index == idx)
 			return (entry);
 
@@ -217,19 +213,19 @@ disk_query_disk(struct disk_entry *entry)
 	if (entry == NULL || entry->dev_name[0] == '\0')
 		return;
 
-	snprintf(dev_path, sizeof(dev_path),
-	    "%s%s", _PATH_DEV, entry->dev_name);
+	snprintf(dev_path, sizeof(dev_path), "%s%s", _PATH_DEV,
+	    entry->dev_name);
 	entry->capacity = 0;
 
 	HRDBG("OPENING device %s", dev_path);
-	if ((fd = open(dev_path, O_RDONLY|O_NONBLOCK)) == -1) {
+	if ((fd = open(dev_path, O_RDONLY | O_NONBLOCK)) == -1) {
 		HRDBG("OPEN device %s failed: %s", dev_path, strerror(errno));
 		return;
 	}
 
 	if (ioctl(fd, DIOCGMEDIASIZE, &mediasize) < 0) {
-		HRDBG("DIOCGMEDIASIZE for device %s failed: %s",
-		    dev_path, strerror(errno));
+		HRDBG("DIOCGMEDIASIZE for device %s failed: %s", dev_path,
+		    strerror(errno));
 		(void)close(fd);
 		return;
 	}
@@ -254,43 +250,33 @@ disk_OS_get_ATA_disks(void)
 
 	/* Things we know are ata disks */
 	static const struct disk_entry lookup[] = {
-		{
-		    .dev_name = "ad",
+		{ .dev_name = "ad",
 		    .media = DSM_HARDDISK,
-		    .removable = SNMP_FALSE
-		},
-		{
-		    .dev_name = "ar",
+		    .removable = SNMP_FALSE },
+		{ .dev_name = "ar",
 		    .media = DSM_OTHER,
-		    .removable = SNMP_FALSE
-		},
-		{
-		    .dev_name = "acd",
+		    .removable = SNMP_FALSE },
+		{ .dev_name = "acd",
 		    .media = DSM_OPTICALDISKROM,
-		    .removable = SNMP_TRUE
-		},
-		{
-		    .dev_name = "afd",
+		    .removable = SNMP_TRUE },
+		{ .dev_name = "afd",
 		    .media = DSM_FLOPPYDISK,
-		    .removable = SNMP_TRUE
-		},
-		{
-		    .dev_name = "ast",
+		    .removable = SNMP_TRUE },
+		{ .dev_name = "ast",
 		    .media = DSM_OTHER,
-		    .removable = SNMP_TRUE
-		},
+		    .removable = SNMP_TRUE },
 
 		{ .media = DSM_UNKNOWN }
 	};
 
 	/* Walk over the device table looking for ata disks */
-	STAILQ_FOREACH(map, &device_map, link) {
+	STAILQ_FOREACH (map, &device_map, link) {
 		/* Skip deleted entries. */
 		if (map->entry_p == NULL)
 			continue;
 		for (found = lookup; found->media != DSM_UNKNOWN; found++) {
 			if (strncmp(map->name_key, found->dev_name,
-			    strlen(found->dev_name)) != 0)
+				strlen(found->dev_name)) != 0)
 				continue;
 
 			/*
@@ -345,7 +331,7 @@ disk_OS_get_MD_disks(void)
 		return;
 
 	/* Look for md devices */
-	STAILQ_FOREACH(map, &device_map, link) {
+	STAILQ_FOREACH (map, &device_map, link) {
 		/* Skip deleted entries. */
 		if (map->entry_p == NULL)
 			continue;
@@ -438,16 +424,18 @@ disk_OS_get_disks(void)
 		if (disk == NULL)
 			break;
 
-		snprintf(disk_device, sizeof(disk_device),
-		    "%s%s", _PATH_DEV, disk);
+		snprintf(disk_device, sizeof(disk_device), "%s%s", _PATH_DEV,
+		    disk);
 
 		/* First check if the disk is in the hrDeviceTable. */
 		if ((entry = device_find_by_name(disk)) == NULL) {
 			/*
 			 * not found there - insert it as immutable
 			 */
-			syslog(LOG_WARNING, "%s: adding device '%s' to "
-			    "device list", __func__, disk);
+			syslog(LOG_WARNING,
+			    "%s: adding device '%s' to "
+			    "device list",
+			    __func__, disk);
 
 			if ((entry = device_entry_create(disk, "", "")) == NULL)
 				continue;
@@ -487,7 +475,7 @@ disk_OS_get_disks(void)
 		} else if (strncmp(disk_entry->dev_name, "cd", 2) == 0) {
 			disk_entry->media = DSM_OPTICALDISKROM;
 			disk_entry->removable = SNMP_TRUE;
-	 	} else {
+		} else {
 			disk_entry->media = DSM_UNKNOWN;
 			disk_entry->removable = SNMP_FALSE;
 		}
@@ -518,17 +506,17 @@ refresh_disk_storage_tbl(int force)
 	partition_tbl_pre_refresh();
 
 	/* mark each entry as missing */
-	TAILQ_FOREACH(entry, &disk_tbl, link)
+	TAILQ_FOREACH (entry, &disk_tbl, link)
 		entry->flags &= ~HR_DISKSTORAGE_FOUND;
 
-	disk_OS_get_ATA_disks();	/* this must be called first ! */
+	disk_OS_get_ATA_disks(); /* this must be called first ! */
 	disk_OS_get_MD_disks();
 	disk_OS_get_disks();
 
 	/*
 	 * Purge items that disappeared
 	 */
-	TAILQ_FOREACH_SAFE(entry, &disk_tbl, link, entry_tmp)
+	TAILQ_FOREACH_SAFE (entry, &disk_tbl, link, entry_tmp)
 		if (!(entry->flags & HR_DISKSTORAGE_FOUND))
 			/* XXX remove IMMUTABLE entries that have disappeared */
 			disk_entry_delete(entry);
@@ -554,8 +542,10 @@ init_disk_storage_tbl(void)
 	md_fd = -1;
 	snprintf(mddev, sizeof(mddev) - 1, "%s%s", _PATH_DEV, MDCTL_NAME);
 	if ((md_fd = open(mddev, O_RDWR)) == -1) {
-		syslog(LOG_ERR, "open %s failed - will not include md(4) "
-		    "info: %m", mddev);
+		syslog(LOG_ERR,
+		    "open %s failed - will not include md(4) "
+		    "info: %m",
+		    mddev);
 	}
 
 	refresh_disk_storage_tbl(1);
@@ -581,7 +571,7 @@ fini_disk_storage_tbl(void)
 
 	if (md_fd > 0) {
 		if (close(md_fd) == -1)
-			syslog(LOG_ERR,"close (/dev/mdctl) failed: %m");
+			syslog(LOG_ERR, "close (/dev/mdctl) failed: %m");
 		md_fd = -1;
 	}
 }
@@ -603,49 +593,49 @@ op_hrDiskStorageTable(struct snmp_context *ctx __unused,
 	switch (curr_op) {
 
 	case SNMP_OP_GETNEXT:
-		if ((entry = NEXT_OBJECT_INT(&disk_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = NEXT_OBJECT_INT(&disk_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		value->var.len = sub + 1;
 		value->var.subs[sub] = entry->index;
 		goto get;
 
 	case SNMP_OP_GET:
-		if ((entry = FIND_OBJECT_INT(&disk_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&disk_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NOSUCHNAME);
 		goto get;
 
 	case SNMP_OP_SET:
-		if ((entry = FIND_OBJECT_INT(&disk_tbl,
-		    &value->var, sub)) == NULL)
+		if ((entry = FIND_OBJECT_INT(&disk_tbl, &value->var, sub)) ==
+		    NULL)
 			return (SNMP_ERR_NO_CREATION);
 		return (SNMP_ERR_NOT_WRITEABLE);
 
 	case SNMP_OP_ROLLBACK:
 	case SNMP_OP_COMMIT:
-	  	abort();
+		abort();
 	}
 	abort();
 
-  get:
+get:
 	switch (value->var.subs[sub - 1]) {
 
 	case LEAF_hrDiskStorageAccess:
-	  	value->v.integer = entry->access;
-	  	return (SNMP_ERR_NOERROR);
+		value->v.integer = entry->access;
+		return (SNMP_ERR_NOERROR);
 
 	case LEAF_hrDiskStorageMedia:
-	  	value->v.integer = entry->media;
-	  	return (SNMP_ERR_NOERROR);
+		value->v.integer = entry->media;
+		return (SNMP_ERR_NOERROR);
 
 	case LEAF_hrDiskStorageRemovable:
-	  	value->v.integer = entry->removable;
-	  	return (SNMP_ERR_NOERROR);
+		value->v.integer = entry->removable;
+		return (SNMP_ERR_NOERROR);
 
 	case LEAF_hrDiskStorageCapacity:
-	  	value->v.integer = entry->capacity;
-	  	return (SNMP_ERR_NOERROR);
+		value->v.integer = entry->capacity;
+		return (SNMP_ERR_NOERROR);
 	}
 	abort();
 }

@@ -38,23 +38,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/msg.h>
 #include <sys/mutex.h>
+#include <sys/namei.h>
 #include <sys/sbuf.h>
 #include <sys/sdt.h>
-#include <sys/systm.h>
-#include <sys/vnode.h>
-#include <sys/mount.h>
-#include <sys/file.h>
-#include <sys/namei.h>
 #include <sys/sysctl.h>
-#include <sys/msg.h>
+#include <sys/vnode.h>
 
 #include <security/mac/mac_framework.h>
 #include <security/mac/mac_internal.h>
@@ -167,12 +167,12 @@ mac_sysvmsq_cleanup(struct msqid_kernel *msqkptr)
 	MAC_POLICY_PERFORM_NOSLEEP(sysvmsq_cleanup, msqkptr->label);
 }
 
-MAC_CHECK_PROBE_DEFINE3(sysvmsq_check_msgmsq, "struct ucred *",
-    "struct msg *", "struct msqid_kernel *");
+MAC_CHECK_PROBE_DEFINE3(sysvmsq_check_msgmsq, "struct ucred *", "struct msg *",
+    "struct msqid_kernel *");
 
 int
 mac_sysvmsq_check_msgmsq(struct ucred *cred, struct msg *msgptr,
-	struct msqid_kernel *msqkptr)
+    struct msqid_kernel *msqkptr)
 {
 	int error;
 
@@ -183,8 +183,7 @@ mac_sysvmsq_check_msgmsq(struct ucred *cred, struct msg *msgptr,
 	return (error);
 }
 
-MAC_CHECK_PROBE_DEFINE2(sysvmsq_check_msgrcv, "struct ucred *",
-    "struct msg *");
+MAC_CHECK_PROBE_DEFINE2(sysvmsq_check_msgrcv, "struct ucred *", "struct msg *");
 
 int
 mac_sysvmsq_check_msgrcv(struct ucred *cred, struct msg *msgptr)

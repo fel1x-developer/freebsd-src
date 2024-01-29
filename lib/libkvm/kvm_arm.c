@@ -39,6 +39,7 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+
 #include <kvm.h>
 #include <limits.h>
 #include <stdint.h>
@@ -49,8 +50,8 @@
 #include <machine/vmparam.h>
 #endif
 
-#include "kvm_private.h"
 #include "kvm_arm.h"
+#include "kvm_private.h"
 
 struct vmstate {
 	arm_pd_entry_t *l1pt;
@@ -143,8 +144,8 @@ _arm_initvtop(kvm_t *kd)
 #ifdef __arm__
 			kernbase = KERNBASE;
 #else
-		_kvm_err(kd, kd->program, "cannot resolve kernbase");
-		return (-1);
+			_kvm_err(kd, kd->program, "cannot resolve kernbase");
+			return (-1);
 #endif
 		} else
 			kernbase = nl[0].n_value;
@@ -162,7 +163,7 @@ _arm_initvtop(kvm_t *kd)
 		return (-1);
 	}
 	if (kvm_read2(kd, (nl[0].n_value - kernbase + physaddr), &pa,
-	    sizeof(pa)) != sizeof(pa)) {
+		sizeof(pa)) != sizeof(pa)) {
 		_kvm_err(kd, kd->program, "cannot read kernel_l1pa");
 		return (-1);
 	}
@@ -181,13 +182,12 @@ _arm_initvtop(kvm_t *kd)
 }
 
 /* from arm/pmap.c */
-#define	ARM_L1_IDX(va)		((va) >> ARM_L1_S_SHIFT)
+#define ARM_L1_IDX(va) ((va) >> ARM_L1_S_SHIFT)
 
-#define	l1pte_section_p(pde)	(((pde) & ARM_L1_TYPE_MASK) == ARM_L1_TYPE_S)
-#define	l1pte_valid(pde)	((pde) != 0)
-#define	l2pte_valid(pte)	((pte) != 0)
-#define l2pte_index(v)		(((v) & ARM_L1_S_OFFSET) >> ARM_L2_S_SHIFT)
-
+#define l1pte_section_p(pde) (((pde) & ARM_L1_TYPE_MASK) == ARM_L1_TYPE_S)
+#define l1pte_valid(pde) ((pde) != 0)
+#define l2pte_valid(pte) ((pte) != 0)
+#define l2pte_index(v) (((v) & ARM_L1_S_OFFSET) >> ARM_L2_S_SHIFT)
 
 static int
 _arm_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
@@ -206,7 +206,7 @@ _arm_kvatop(kvm_t *kd, kvaddr_t va, off_t *pa)
 	if (l1pte_section_p(pd)) {
 		/* 1MB section mapping. */
 		*pa = (pd & ARM_L1_S_ADDR_MASK) + (va & ARM_L1_S_OFFSET);
-		return  (_kvm_pa2off(kd, *pa, pa, ARM_L1_S_SIZE));
+		return (_kvm_pa2off(kd, *pa, pa, ARM_L1_S_SIZE));
 	}
 	pte_pa = (pd & ARM_L1_C_ADDR_MASK) + l2pte_index(va) * sizeof(pte);
 	_kvm_pa2off(kd, pte_pa, &pte_off, ARM_L1_S_SIZE);

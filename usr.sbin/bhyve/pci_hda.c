@@ -28,43 +28,43 @@
  */
 
 #include <sys/param.h>
+
 #include <time.h>
 
-#include "pci_hda.h"
 #include "bhyverun.h"
 #include "config.h"
-#include "pci_emul.h"
 #include "hdac_reg.h"
+#include "pci_emul.h"
+#include "pci_hda.h"
 
 /*
  * HDA defines
  */
-#define PCIR_HDCTL		0x40
-#define INTEL_VENDORID		0x8086
-#define HDA_INTEL_82801G	0x27d8
+#define PCIR_HDCTL 0x40
+#define INTEL_VENDORID 0x8086
+#define HDA_INTEL_82801G 0x27d8
 
-#define HDA_IOSS_NO		0x08
-#define HDA_OSS_NO		0x04
-#define HDA_ISS_NO		0x04
-#define HDA_CODEC_MAX		0x0f
-#define HDA_LAST_OFFSET						\
-	(0x2084 + ((HDA_ISS_NO) * 0x20) + ((HDA_OSS_NO) * 0x20))
-#define HDA_CORB_ENTRY_LEN	0x04
-#define HDA_RIRB_ENTRY_LEN	0x08
-#define HDA_BDL_ENTRY_LEN	0x10
-#define HDA_DMA_PIB_ENTRY_LEN	0x08
-#define HDA_STREAM_TAGS_CNT	0x10
-#define HDA_STREAM_REGS_BASE	0x80
-#define HDA_STREAM_REGS_LEN	0x20
+#define HDA_IOSS_NO 0x08
+#define HDA_OSS_NO 0x04
+#define HDA_ISS_NO 0x04
+#define HDA_CODEC_MAX 0x0f
+#define HDA_LAST_OFFSET (0x2084 + ((HDA_ISS_NO) * 0x20) + ((HDA_OSS_NO) * 0x20))
+#define HDA_CORB_ENTRY_LEN 0x04
+#define HDA_RIRB_ENTRY_LEN 0x08
+#define HDA_BDL_ENTRY_LEN 0x10
+#define HDA_DMA_PIB_ENTRY_LEN 0x08
+#define HDA_STREAM_TAGS_CNT 0x10
+#define HDA_STREAM_REGS_BASE 0x80
+#define HDA_STREAM_REGS_LEN 0x20
 
-#define HDA_DMA_ACCESS_LEN	(sizeof(uint32_t))
-#define HDA_BDL_MAX_LEN		0x0100
+#define HDA_DMA_ACCESS_LEN (sizeof(uint32_t))
+#define HDA_BDL_MAX_LEN 0x0100
 
-#define HDAC_SDSTS_FIFORDY	(1 << 5)
+#define HDAC_SDSTS_FIFORDY (1 << 5)
 
-#define HDA_RIRBSTS_IRQ_MASK	(HDAC_RIRBSTS_RINTFL | HDAC_RIRBSTS_RIRBOIS)
-#define HDA_STATESTS_IRQ_MASK	((1 << HDA_CODEC_MAX) - 1)
-#define HDA_SDSTS_IRQ_MASK					\
+#define HDA_RIRBSTS_IRQ_MASK (HDAC_RIRBSTS_RINTFL | HDAC_RIRBSTS_RIRBOIS)
+#define HDA_STATESTS_IRQ_MASK ((1 << HDA_CODEC_MAX) - 1)
+#define HDA_SDSTS_IRQ_MASK \
 	(HDAC_SDSTS_DESE | HDAC_SDSTS_FIFOE | HDAC_SDSTS_BCIS)
 
 /*
@@ -73,8 +73,8 @@
 
 struct hda_softc;
 
-typedef void (*hda_set_reg_handler)(struct hda_softc *sc, uint32_t offset,
-		uint32_t old);
+typedef void (
+    *hda_set_reg_handler)(struct hda_softc *sc, uint32_t offset, uint32_t old);
 
 struct hda_bdle {
 	uint32_t addrl;
@@ -152,8 +152,8 @@ static int hda_codec_constructor(struct hda_softc *sc,
 static struct hda_codec_class *hda_find_codec_class(const char *name);
 
 static int hda_send_command(struct hda_softc *sc, uint32_t verb);
-static int hda_notify_codecs(struct hda_softc *sc, uint8_t run,
-    uint8_t stream, uint8_t dir);
+static int hda_notify_codecs(struct hda_softc *sc, uint8_t run, uint8_t stream,
+    uint8_t dir);
 static void hda_reset(struct hda_softc *sc);
 static void hda_reset_regs(struct hda_softc *sc);
 static void hda_stream_reset(struct hda_softc *sc, uint8_t stream_ind);
@@ -196,8 +196,8 @@ static void hda_set_sdsts(struct hda_softc *sc, uint32_t offset, uint32_t old);
 static int hda_signal_state_change(struct hda_codec_inst *hci);
 static int hda_response(struct hda_codec_inst *hci, uint32_t response,
     uint8_t unsol);
-static int hda_transfer(struct hda_codec_inst *hci, uint8_t stream,
-    uint8_t dir, uint8_t *buf, size_t count);
+static int hda_transfer(struct hda_codec_inst *hci, uint8_t stream, uint8_t dir,
+    uint8_t *buf, size_t count);
 
 static void hda_set_pib(struct hda_softc *sc, uint8_t stream_ind, uint32_t pib);
 static uint64_t hda_get_clock_ns(void);
@@ -223,53 +223,52 @@ static const hda_set_reg_handler hda_set_reg_table[] = {
 	[HDAC_RIRBSTS] = hda_set_rirbsts,
 	[HDAC_DPIBLBASE] = hda_set_dpiblbase,
 
-#define HDAC_ISTREAM(n, iss, oss)				\
-	[_HDAC_ISDCTL(n, iss, oss)] = hda_set_sdctl,		\
-	[_HDAC_ISDCTL(n, iss, oss) + 2] = hda_set_sdctl2,	\
-	[_HDAC_ISDSTS(n, iss, oss)] = hda_set_sdsts,		\
+#define HDAC_ISTREAM(n, iss, oss)                          \
+	[_HDAC_ISDCTL(n, iss, oss)] = hda_set_sdctl,       \
+			      [_HDAC_ISDCTL(n, iss, oss) + \
+				  2] = hda_set_sdctl2,     \
+			      [_HDAC_ISDSTS(n, iss, oss)] = hda_set_sdsts,
 
-#define HDAC_OSTREAM(n, iss, oss)				\
-	[_HDAC_OSDCTL(n, iss, oss)] = hda_set_sdctl,		\
-	[_HDAC_OSDCTL(n, iss, oss) + 2] = hda_set_sdctl2,	\
-	[_HDAC_OSDSTS(n, iss, oss)] = hda_set_sdsts,		\
+#define HDAC_OSTREAM(n, iss, oss)                          \
+	[_HDAC_OSDCTL(n, iss, oss)] = hda_set_sdctl,       \
+			      [_HDAC_OSDCTL(n, iss, oss) + \
+				  2] = hda_set_sdctl2,     \
+			      [_HDAC_OSDSTS(n, iss, oss)] = hda_set_sdsts,
 
-	HDAC_ISTREAM(0, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_ISTREAM(1, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_ISTREAM(2, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_ISTREAM(3, HDA_ISS_NO, HDA_OSS_NO)
+	HDAC_ISTREAM(0, HDA_ISS_NO, HDA_OSS_NO) HDAC_ISTREAM(1, HDA_ISS_NO,
+	    HDA_OSS_NO) HDAC_ISTREAM(2, HDA_ISS_NO, HDA_OSS_NO)
+	    HDAC_ISTREAM(3, HDA_ISS_NO, HDA_OSS_NO)
 
-	HDAC_OSTREAM(0, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_OSTREAM(1, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_OSTREAM(2, HDA_ISS_NO, HDA_OSS_NO)
-	HDAC_OSTREAM(3, HDA_ISS_NO, HDA_OSS_NO)
+		HDAC_OSTREAM(0, HDA_ISS_NO, HDA_OSS_NO)
+		    HDAC_OSTREAM(1, HDA_ISS_NO, HDA_OSS_NO)
+			HDAC_OSTREAM(2, HDA_ISS_NO, HDA_OSS_NO)
+			    HDAC_OSTREAM(3, HDA_ISS_NO, HDA_OSS_NO)
 };
 
 static const uint16_t hda_corb_sizes[] = {
-	[HDAC_CORBSIZE_CORBSIZE_2]	= 2,
-	[HDAC_CORBSIZE_CORBSIZE_16]	= 16,
-	[HDAC_CORBSIZE_CORBSIZE_256]	= 256,
-	[HDAC_CORBSIZE_CORBSIZE_MASK]	= 0,
+	[HDAC_CORBSIZE_CORBSIZE_2] = 2,
+	[HDAC_CORBSIZE_CORBSIZE_16] = 16,
+	[HDAC_CORBSIZE_CORBSIZE_256] = 256,
+	[HDAC_CORBSIZE_CORBSIZE_MASK] = 0,
 };
 
 static const uint16_t hda_rirb_sizes[] = {
-	[HDAC_RIRBSIZE_RIRBSIZE_2]	= 2,
-	[HDAC_RIRBSIZE_RIRBSIZE_16]	= 16,
-	[HDAC_RIRBSIZE_RIRBSIZE_256]	= 256,
-	[HDAC_RIRBSIZE_RIRBSIZE_MASK]	= 0,
+	[HDAC_RIRBSIZE_RIRBSIZE_2] = 2,
+	[HDAC_RIRBSIZE_RIRBSIZE_16] = 16,
+	[HDAC_RIRBSIZE_RIRBSIZE_256] = 256,
+	[HDAC_RIRBSIZE_RIRBSIZE_MASK] = 0,
 };
 
 static const struct hda_ops hops = {
-	.signal		= hda_signal_state_change,
-	.response	= hda_response,
-	.transfer	= hda_transfer,
+	.signal = hda_signal_state_change,
+	.response = hda_response,
+	.transfer = hda_transfer,
 };
 
-static const struct pci_devemu pci_de_hda = {
-	.pe_emu		= "hda",
-	.pe_init	= pci_hda_init,
-	.pe_barwrite	= pci_hda_write,
-	.pe_barread	= pci_hda_read
-};
+static const struct pci_devemu pci_de_hda = { .pe_emu = "hda",
+	.pe_init = pci_hda_init,
+	.pe_barwrite = pci_hda_write,
+	.pe_barread = pci_hda_read };
 PCI_EMUL_SET(pci_de_hda);
 
 SET_DECLARE(hda_codec_class_set, struct hda_codec_class);
@@ -297,8 +296,8 @@ hda_get_reg_by_offset(struct hda_softc *sc, uint32_t offset)
 }
 
 static inline void
-hda_set_field_by_offset(struct hda_softc *sc, uint32_t offset,
-    uint32_t mask, uint32_t value)
+hda_set_field_by_offset(struct hda_softc *sc, uint32_t offset, uint32_t mask,
+    uint32_t value)
 {
 	uint32_t reg_value = 0;
 
@@ -395,8 +394,8 @@ hda_update_intr(struct hda_softc *sc)
 
 	hda_set_reg_by_offset(sc, HDAC_INTSTS, intsts);
 
-	if ((intctl & HDAC_INTCTL_GIE) && ((intsts &			\
-		~HDAC_INTSTS_GIS) & intctl)) {
+	if ((intctl & HDAC_INTCTL_GIE) &&
+	    ((intsts & ~HDAC_INTSTS_GIS) & intctl)) {
 		if (!sc->lintr) {
 			pci_lintr_assert(pi);
 			sc->lintr = 1;
@@ -417,7 +416,7 @@ hda_response_interrupt(struct hda_softc *sc)
 	if ((rirbctl & HDAC_RIRBCTL_RINTCTL) && sc->rirb_cnt) {
 		sc->rirb_cnt = 0;
 		hda_set_field_by_offset(sc, HDAC_RIRBSTS, HDAC_RIRBSTS_RINTFL,
-				HDAC_RIRBSTS_RINTFL);
+		    HDAC_RIRBSTS_RINTFL);
 		hda_update_intr(sc);
 	}
 }
@@ -455,7 +454,8 @@ hda_find_codec_class(const char *name)
 {
 	struct hda_codec_class **pdpp = NULL, *pdp = NULL;
 
-	SET_FOREACH(pdpp, hda_codec_class_set) {
+	SET_FOREACH(pdpp, hda_codec_class_set)
+	{
 		pdp = *pdpp;
 		if (!strcmp(pdp->name, name)) {
 			return (pdp);
@@ -553,9 +553,8 @@ hda_reset_regs(struct hda_softc *sc)
 	memset(sc->regs, 0, sizeof(sc->regs));
 
 	hda_set_reg_by_offset(sc, HDAC_GCAP,
-			HDAC_GCAP_64OK |
-			(HDA_ISS_NO << HDAC_GCAP_ISS_SHIFT) |
-			(HDA_OSS_NO << HDAC_GCAP_OSS_SHIFT));
+	    HDAC_GCAP_64OK | (HDA_ISS_NO << HDAC_GCAP_ISS_SHIFT) |
+		(HDA_OSS_NO << HDAC_GCAP_OSS_SHIFT));
 	hda_set_reg_by_offset(sc, HDAC_VMAJ, 0x01);
 	hda_set_reg_by_offset(sc, HDAC_OUTPAY, 0x3c);
 	hda_set_reg_by_offset(sc, HDAC_INPAY, 0x1d);
@@ -584,10 +583,10 @@ hda_stream_reset(struct hda_softc *sc, uint8_t stream_ind)
 	/* Reset the Stream Descriptor */
 	memset(st, 0, sizeof(*st));
 
-	hda_set_field_by_offset(sc, off + HDAC_SDSTS,
-	    HDAC_SDSTS_FIFORDY, HDAC_SDSTS_FIFORDY);
-	hda_set_field_by_offset(sc, off + HDAC_SDCTL0,
-	    HDAC_SDCTL_SRST, HDAC_SDCTL_SRST);
+	hda_set_field_by_offset(sc, off + HDAC_SDSTS, HDAC_SDSTS_FIFORDY,
+	    HDAC_SDSTS_FIFORDY);
+	hda_set_field_by_offset(sc, off + HDAC_SDCTL0, HDAC_SDCTL_SRST,
+	    HDAC_SDCTL_SRST);
 }
 
 static int
@@ -629,8 +628,8 @@ hda_stream_start(struct hda_softc *sc, uint8_t stream_ind)
 		return (-1);
 	}
 
-	DPRINTF("stream: 0x%x bdl_cnt: 0x%x bdl_paddr: 0x%lx",
-	    stream_ind, bdl_cnt, bdl_paddr);
+	DPRINTF("stream: 0x%x bdl_cnt: 0x%x bdl_paddr: 0x%lx", stream_ind,
+	    bdl_cnt, bdl_paddr);
 
 	st->bdl_cnt = bdl_cnt;
 
@@ -698,8 +697,8 @@ static uint32_t
 hda_read(struct hda_softc *sc, uint32_t offset)
 {
 	if (offset == HDAC_WALCLK)
-		return (24 * (hda_get_clock_ns() -			\
-			sc->wall_clock_start) / 1000);
+		return (
+		    24 * (hda_get_clock_ns() - sc->wall_clock_start) / 1000);
 
 	return (hda_get_reg_by_offset(sc, offset));
 }
@@ -708,8 +707,8 @@ static int
 hda_write(struct hda_softc *sc, uint32_t offset, uint8_t size, uint32_t value)
 {
 	uint32_t old = hda_get_reg_by_offset(sc, offset);
-	uint32_t masks[] = {0x00000000, 0x000000ff, 0x0000ffff,
-			0x00ffffff, 0xffffffff};
+	uint32_t masks[] = { 0x00000000, 0x000000ff, 0x0000ffff, 0x00ffffff,
+		0xffffffff };
 	hda_set_reg_handler set_reg_handler = NULL;
 
 	if (offset < nitems(hda_set_reg_table))
@@ -734,7 +733,9 @@ hda_print_cmd_ctl_data(struct hda_codec_cmd_ctl *p)
 }
 #else
 static inline void
-hda_print_cmd_ctl_data(struct hda_codec_cmd_ctl *p __unused) {}
+hda_print_cmd_ctl_data(struct hda_codec_cmd_ctl *p __unused)
+{
+}
 #endif
 
 static int
@@ -748,8 +749,8 @@ hda_corb_start(struct hda_softc *sc)
 
 	corb->name = "CORB";
 
-	corbsize = hda_get_reg_by_offset(sc, HDAC_CORBSIZE) &		\
-		   HDAC_CORBSIZE_CORBSIZE_MASK;
+	corbsize = hda_get_reg_by_offset(sc, HDAC_CORBSIZE) &
+	    HDAC_CORBSIZE_CORBSIZE_MASK;
 	corb->size = hda_corb_sizes[corbsize];
 
 	if (!corb->size) {
@@ -764,7 +765,7 @@ hda_corb_start(struct hda_softc *sc)
 	DPRINTF("CORB dma_paddr: %p", (void *)corbpaddr);
 
 	corb->dma_vaddr = hda_dma_get_vaddr(sc, corbpaddr,
-			HDA_CORB_ENTRY_LEN * corb->size);
+	    HDA_CORB_ENTRY_LEN * corb->size);
 	if (!corb->dma_vaddr) {
 		DPRINTF("Fail to get the guest virtual address");
 		return (-1);
@@ -793,8 +794,8 @@ hda_corb_run(struct hda_softc *sc)
 		corb->rp++;
 		corb->rp %= corb->size;
 
-		verb = hda_dma_ld_dword((uint8_t *)corb->dma_vaddr +
-		    HDA_CORB_ENTRY_LEN * corb->rp);
+		verb = hda_dma_ld_dword(
+		    (uint8_t *)corb->dma_vaddr + HDA_CORB_ENTRY_LEN * corb->rp);
 
 		err = hda_send_command(sc, verb);
 		assert(!err);
@@ -819,8 +820,8 @@ hda_rirb_start(struct hda_softc *sc)
 
 	rirb->name = "RIRB";
 
-	rirbsize = hda_get_reg_by_offset(sc, HDAC_RIRBSIZE) &		\
-		   HDAC_RIRBSIZE_RIRBSIZE_MASK;
+	rirbsize = hda_get_reg_by_offset(sc, HDAC_RIRBSIZE) &
+	    HDAC_RIRBSIZE_RIRBSIZE_MASK;
 	rirb->size = hda_rirb_sizes[rirbsize];
 
 	if (!rirb->size) {
@@ -835,7 +836,7 @@ hda_rirb_start(struct hda_softc *sc)
 	DPRINTF("RIRB dma_paddr: %p", (void *)rirbpaddr);
 
 	rirb->dma_vaddr = hda_dma_get_vaddr(sc, rirbpaddr,
-			HDA_RIRB_ENTRY_LEN * rirb->size);
+	    HDA_RIRB_ENTRY_LEN * rirb->size);
 	if (!rirb->dma_vaddr) {
 		DPRINTF("Fail to get the guest virtual address");
 		return (-1);
@@ -864,13 +865,13 @@ hda_dma_get_vaddr(struct hda_softc *sc, uint64_t dma_paddr, size_t len)
 static void
 hda_dma_st_dword(void *dma_vaddr, uint32_t data)
 {
-	*(uint32_t*)dma_vaddr = data;
+	*(uint32_t *)dma_vaddr = data;
 }
 
 static uint32_t
 hda_dma_ld_dword(void *dma_vaddr)
 {
-	return (*(uint32_t*)dma_vaddr);
+	return (*(uint32_t *)dma_vaddr);
 }
 
 static inline uint8_t
@@ -976,8 +977,8 @@ hda_set_dpiblbase(struct hda_softc *sc, uint32_t offset, uint32_t old)
 	uint64_t dpibubase = 0;
 	uint64_t dpibpaddr = 0;
 
-	if ((value & HDAC_DPLBASE_DPLBASE_DMAPBE) != (old &		\
-				HDAC_DPLBASE_DPLBASE_DMAPBE)) {
+	if ((value & HDAC_DPLBASE_DPLBASE_DMAPBE) !=
+	    (old & HDAC_DPLBASE_DPLBASE_DMAPBE)) {
 		if (value & HDAC_DPLBASE_DPLBASE_DMAPBE) {
 			dpiblbase = value & HDAC_DPLBASE_DPLBASE_MASK;
 			dpibubase = hda_get_reg_by_offset(sc, HDAC_DPIBUBASE);
@@ -987,7 +988,7 @@ hda_set_dpiblbase(struct hda_softc *sc, uint32_t offset, uint32_t old)
 			    (void *)dpibpaddr);
 
 			sc->dma_pib_vaddr = hda_dma_get_vaddr(sc, dpibpaddr,
-					HDA_DMA_PIB_ENTRY_LEN * HDA_IOSS_NO);
+			    HDA_DMA_PIB_ENTRY_LEN * HDA_IOSS_NO);
 			if (!sc->dma_pib_vaddr) {
 				DPRINTF("Fail to get the guest \
 					 virtual address");
@@ -1007,8 +1008,8 @@ hda_set_sdctl(struct hda_softc *sc, uint32_t offset, uint32_t old)
 	uint32_t value = hda_get_reg_by_offset(sc, offset);
 	int err;
 
-	DPRINTF("stream_ind: 0x%x old: 0x%x value: 0x%x",
-	    stream_ind, old, value);
+	DPRINTF("stream_ind: 0x%x old: 0x%x value: 0x%x", stream_ind, old,
+	    value);
 
 	if (value & HDAC_SDCTL_SRST) {
 		hda_stream_reset(sc, stream_ind);
@@ -1089,9 +1090,11 @@ hda_response(struct hda_codec_inst *hci, uint32_t response, uint8_t unsol)
 		rirb->wp %= rirb->size;
 
 		hda_dma_st_dword((uint8_t *)rirb->dma_vaddr +
-		    HDA_RIRB_ENTRY_LEN * rirb->wp, response);
+			HDA_RIRB_ENTRY_LEN * rirb->wp,
+		    response);
 		hda_dma_st_dword((uint8_t *)rirb->dma_vaddr +
-		    HDA_RIRB_ENTRY_LEN * rirb->wp + 0x04, response_ex);
+			HDA_RIRB_ENTRY_LEN * rirb->wp + 0x04,
+		    response_ex);
 
 		hda_set_reg_by_offset(sc, HDAC_RIRBWP, rirb->wp);
 
@@ -1164,8 +1167,8 @@ hda_transfer(struct hda_codec_inst *hci, uint8_t stream, uint8_t dir,
 			*(uint32_t *)buf = hda_dma_ld_dword(
 			    (uint8_t *)bdle_desc->addr + st->bp);
 		else
-			hda_dma_st_dword((uint8_t *)bdle_desc->addr +
-			    st->bp, *(uint32_t *)buf);
+			hda_dma_st_dword((uint8_t *)bdle_desc->addr + st->bp,
+			    *(uint32_t *)buf);
 
 		buf += HDA_DMA_ACCESS_LEN;
 		st->bp += HDA_DMA_ACCESS_LEN;
@@ -1188,8 +1191,8 @@ hda_transfer(struct hda_codec_inst *hci, uint8_t stream, uint8_t dir,
 	hda_set_pib(sc, stream_ind, lpib);
 
 	if (irq) {
-		hda_set_field_by_offset(sc, off + HDAC_SDSTS,
-				HDAC_SDSTS_BCIS, HDAC_SDSTS_BCIS);
+		hda_set_field_by_offset(sc, off + HDAC_SDSTS, HDAC_SDSTS_BCIS,
+		    HDAC_SDSTS_BCIS);
 		hda_update_intr(sc);
 	}
 
@@ -1205,11 +1208,12 @@ hda_set_pib(struct hda_softc *sc, uint8_t stream_ind, uint32_t pib)
 	/* LPIB Alias */
 	hda_set_reg_by_offset(sc, 0x2000 + off + HDAC_SDLPIB, pib);
 	if (sc->dma_pib_vaddr)
-		*(uint32_t *)((uint8_t *)sc->dma_pib_vaddr + stream_ind *
-		    HDA_DMA_PIB_ENTRY_LEN) = pib;
+		*(uint32_t *)((uint8_t *)sc->dma_pib_vaddr +
+		    stream_ind * HDA_DMA_PIB_ENTRY_LEN) = pib;
 }
 
-static uint64_t hda_get_clock_ns(void)
+static uint64_t
+hda_get_clock_ns(void)
 {
 	struct timespec ts;
 	int err;

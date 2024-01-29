@@ -20,124 +20,121 @@
 #ifndef IF_RTWNREG_H
 #define IF_RTWNREG_H
 
-#define R92C_MIN_TX_PWR		0x00
-#define R92C_MAX_TX_PWR		0x3f
+#define R92C_MIN_TX_PWR 0x00
+#define R92C_MAX_TX_PWR 0x3f
 
-#define R92C_H2C_NBOX		4
+#define R92C_H2C_NBOX 4
 
 /* Common part of Tx descriptor (named only!). */
 struct rtwn_tx_desc_common {
-	uint16_t	pktlen;
-	uint8_t		offset;
-	uint8_t		flags0;
-#define RTWN_FLAGS0_OWN	0x80
+	uint16_t pktlen;
+	uint8_t offset;
+	uint8_t flags0;
+#define RTWN_FLAGS0_OWN 0x80
 
-	uint32_t	txdw1;
+	uint32_t txdw1;
 /* NB: qsel is shared too; however, it looks better at the lower level */
-#define RTWN_TXDW1_CIPHER_M	0x00c00000
-#define RTWN_TXDW1_CIPHER_S	22
-#define RTWN_TXDW1_CIPHER_NONE	0
-#define RTWN_TXDW1_CIPHER_RC4	1
-#define RTWN_TXDW1_CIPHER_SM4	2
-#define RTWN_TXDW1_CIPHER_AES	3
+#define RTWN_TXDW1_CIPHER_M 0x00c00000
+#define RTWN_TXDW1_CIPHER_S 22
+#define RTWN_TXDW1_CIPHER_NONE 0
+#define RTWN_TXDW1_CIPHER_RC4 1
+#define RTWN_TXDW1_CIPHER_SM4 2
+#define RTWN_TXDW1_CIPHER_AES 3
 
-	uint32_t	reserved[5];
+	uint32_t reserved[5];
 
 	union txdw7_shared {
-		uint16_t	usb_checksum;
-		uint16_t	pci_txbufsize;
+		uint16_t usb_checksum;
+		uint16_t pci_txbufsize;
 	} txdw7;
 } __packed __attribute__((aligned(4)));
 
 /* Common part of Rx descriptor. */
 struct rtwn_rx_stat_common {
-	uint32_t	rxdw0;
-#define RTWN_RXDW0_PKTLEN_M	0x00003fff
-#define RTWN_RXDW0_PKTLEN_S	0
-#define RTWN_RXDW0_CRCERR	0x00004000
-#define RTWN_RXDW0_ICVERR	0x00008000
-#define RTWN_RXDW0_INFOSZ_M	0x000f0000
-#define RTWN_RXDW0_INFOSZ_S	16
-#define RTWN_RXDW0_CIPHER_M	0x00700000
-#define RTWN_RXDW0_CIPHER_S	20
-#define RTWN_RXDW0_QOS		0x00800000
-#define RTWN_RXDW0_SHIFT_M	0x03000000
-#define RTWN_RXDW0_SHIFT_S	24
-#define RTWN_RXDW0_PHYST	0x04000000
-#define RTWN_RXDW0_SWDEC	0x08000000
-#define RTWN_RXDW0_LS		0x10000000
-#define RTWN_RXDW0_FS		0x20000000
-#define RTWN_RXDW0_EOR		0x40000000
-#define RTWN_RXDW0_OWN		0x80000000
+	uint32_t rxdw0;
+#define RTWN_RXDW0_PKTLEN_M 0x00003fff
+#define RTWN_RXDW0_PKTLEN_S 0
+#define RTWN_RXDW0_CRCERR 0x00004000
+#define RTWN_RXDW0_ICVERR 0x00008000
+#define RTWN_RXDW0_INFOSZ_M 0x000f0000
+#define RTWN_RXDW0_INFOSZ_S 16
+#define RTWN_RXDW0_CIPHER_M 0x00700000
+#define RTWN_RXDW0_CIPHER_S 20
+#define RTWN_RXDW0_QOS 0x00800000
+#define RTWN_RXDW0_SHIFT_M 0x03000000
+#define RTWN_RXDW0_SHIFT_S 24
+#define RTWN_RXDW0_PHYST 0x04000000
+#define RTWN_RXDW0_SWDEC 0x08000000
+#define RTWN_RXDW0_LS 0x10000000
+#define RTWN_RXDW0_FS 0x20000000
+#define RTWN_RXDW0_EOR 0x40000000
+#define RTWN_RXDW0_OWN 0x80000000
 
-	uint32_t	rxdw1;
-#define RTWN_RXDW1_AMSDU	0x00002000
-#define RTWN_RXDW1_MC		0x40000000
-#define RTWN_RXDW1_BC		0x80000000
+	uint32_t rxdw1;
+#define RTWN_RXDW1_AMSDU 0x00002000
+#define RTWN_RXDW1_MC 0x40000000
+#define RTWN_RXDW1_BC 0x80000000
 
-	uint32_t	rxdw2;
-	uint32_t	rxdw3;
-#define RTWN_RXDW3_HTC		0x00000400
+	uint32_t rxdw2;
+	uint32_t rxdw3;
+#define RTWN_RXDW3_HTC 0x00000400
 #define RTWN_RXDW3_BSSID01_FIT_M 0x00003000
 #define RTWN_RXDW3_BSSID01_FIT_S 12
 
-	uint32_t	rxdw4;
-	uint32_t	tsf_low;
+	uint32_t rxdw4;
+	uint32_t tsf_low;
 } __packed __attribute__((aligned(4)));
 
 /* Rx descriptor for PCIe devices. */
 struct rtwn_rx_stat_pci {
-	uint32_t	rxdw0;
-	uint32_t	rxdw1;
-	uint32_t	rxdw2;
-	uint32_t	rxdw3;
-	uint32_t	rxdw4;
-	uint32_t	tsf_low;
+	uint32_t rxdw0;
+	uint32_t rxdw1;
+	uint32_t rxdw2;
+	uint32_t rxdw3;
+	uint32_t rxdw4;
+	uint32_t tsf_low;
 
-	uint32_t	rxbufaddr;
-	uint32_t	rxbufaddr64;
+	uint32_t rxbufaddr;
+	uint32_t rxbufaddr64;
 } __packed __attribute__((aligned(4)));
 
 /*
  * Macros to access subfields in registers.
  */
 /* Mask and Shift (getter). */
-#define MS(val, field)							\
-	(((val) & field##_M) >> field##_S)
+#define MS(val, field) (((val) & field##_M) >> field##_S)
 
 /* Shift and Mask (setter). */
-#define SM(field, val)							\
-	(((val) << field##_S) & field##_M)
+#define SM(field, val) (((val) << field##_S) & field##_M)
 
 /* Rewrite. */
-#define RW(var, field, val)						\
-	(((var) & ~field##_M) | SM(field, val))
+#define RW(var, field, val) (((var) & ~field##_M) | SM(field, val))
 
-#define RTWN_MAX_CONDITIONS	3
+#define RTWN_MAX_CONDITIONS 3
 
 /*
  * Structure for MAC initialization values.
  */
 struct rtwn_mac_prog {
-	uint16_t	reg;
-	uint8_t		val;
+	uint16_t reg;
+	uint8_t val;
 };
 
 /*
  * Structure for baseband initialization values.
  */
 struct rtwn_bb_prog {
-	int		count;
-	const uint16_t	*reg;
-	const uint32_t	*val;
-	const uint8_t	cond[RTWN_MAX_CONDITIONS];
+	int count;
+	const uint16_t *reg;
+	const uint32_t *val;
+	const uint8_t cond[RTWN_MAX_CONDITIONS];
 	const struct rtwn_bb_prog *next;
 };
 
 struct rtwn_agc_prog {
-	int		count;
-	const uint32_t	*val;
-	const uint8_t	cond[RTWN_MAX_CONDITIONS];
+	int count;
+	const uint32_t *val;
+	const uint8_t cond[RTWN_MAX_CONDITIONS];
 	const struct rtwn_agc_prog *next;
 };
 
@@ -145,10 +142,10 @@ struct rtwn_agc_prog {
  * Structure for RF initialization values.
  */
 struct rtwn_rf_prog {
-	int		count;
-	const uint8_t	*reg;
-	const uint32_t	*val;
-	const uint8_t	cond[RTWN_MAX_CONDITIONS];
+	int count;
+	const uint8_t *reg;
+	const uint32_t *val;
+	const uint8_t cond[RTWN_MAX_CONDITIONS];
 	const struct rtwn_rf_prog *next;
 };
 
@@ -165,4 +162,4 @@ rtwn_chan2centieee(const struct ieee80211_channel *c)
 	return (chan);
 }
 
-#endif	/* IF_RTWNREG_H */
+#endif /* IF_RTWNREG_H */

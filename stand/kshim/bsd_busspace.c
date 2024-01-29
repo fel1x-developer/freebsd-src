@@ -108,22 +108,22 @@ bus_space_write_multi_4(bus_space_tag_t t, bus_space_handle_t h,
 }
 
 void
-bus_space_write_1(bus_space_tag_t t, bus_space_handle_t h,
-    bus_size_t offset, uint8_t data)
+bus_space_write_1(bus_space_tag_t t, bus_space_handle_t h, bus_size_t offset,
+    uint8_t data)
 {
 	*((volatile uint8_t *)(h + offset)) = data;
 }
 
 void
-bus_space_write_2(bus_space_tag_t t, bus_space_handle_t h,
-    bus_size_t offset, uint16_t data)
+bus_space_write_2(bus_space_tag_t t, bus_space_handle_t h, bus_size_t offset,
+    uint16_t data)
 {
 	*((volatile uint16_t *)(h + offset)) = data;
 }
 
 void
-bus_space_write_4(bus_space_tag_t t, bus_space_handle_t h,
-    bus_size_t offset, uint32_t data)
+bus_space_write_4(bus_space_tag_t t, bus_space_handle_t h, bus_size_t offset,
+    uint32_t data)
 {
 	*((volatile uint32_t *)(h + offset)) = data;
 }

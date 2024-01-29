@@ -42,22 +42,21 @@
 
 struct vm_snapshot_meta;
 
-
 /*
  * BLOCKIF_IOV_MAX is the maximum number of scatter/gather entries in
  * a single request.  BLOCKIF_RING_MAX is the maxmimum number of
  * pending requests that can be queued.
  */
-#define	BLOCKIF_IOV_MAX		128	/* not practical to be IOV_MAX */
-#define	BLOCKIF_RING_MAX	128
+#define BLOCKIF_IOV_MAX 128 /* not practical to be IOV_MAX */
+#define BLOCKIF_RING_MAX 128
 
 struct blockif_req {
-	int		br_iovcnt;
-	off_t		br_offset;
-	ssize_t		br_resid;
-	void		(*br_callback)(struct blockif_req *req, int err);
-	void		*br_param;
-	struct iovec	br_iov[BLOCKIF_IOV_MAX];
+	int br_iovcnt;
+	off_t br_offset;
+	ssize_t br_resid;
+	void (*br_callback)(struct blockif_req *req, int err);
+	void *br_param;
+	struct iovec br_iov[BLOCKIF_IOV_MAX];
 };
 
 struct pci_devinst;
@@ -65,28 +64,28 @@ struct blockif_ctxt;
 
 typedef void blockif_resize_cb(struct blockif_ctxt *, void *, size_t);
 
-int	blockif_legacy_config(nvlist_t *nvl, const char *opts);
-int 	blockif_add_boot_device(struct pci_devinst *const pi, struct blockif_ctxt *const bc);
+int blockif_legacy_config(nvlist_t *nvl, const char *opts);
+int blockif_add_boot_device(struct pci_devinst *const pi,
+    struct blockif_ctxt *const bc);
 struct blockif_ctxt *blockif_open(nvlist_t *nvl, const char *ident);
-int	blockif_register_resize_callback(struct blockif_ctxt *bc,
+int blockif_register_resize_callback(struct blockif_ctxt *bc,
     blockif_resize_cb *cb, void *cb_arg);
-off_t	blockif_size(struct blockif_ctxt *bc);
-void	blockif_chs(struct blockif_ctxt *bc, uint16_t *c, uint8_t *h,
-    uint8_t *s);
-int	blockif_sectsz(struct blockif_ctxt *bc);
-void	blockif_psectsz(struct blockif_ctxt *bc, int *size, int *off);
-int	blockif_queuesz(struct blockif_ctxt *bc);
-int	blockif_is_ro(struct blockif_ctxt *bc);
-int	blockif_candelete(struct blockif_ctxt *bc);
-int	blockif_read(struct blockif_ctxt *bc, struct blockif_req *breq);
-int	blockif_write(struct blockif_ctxt *bc, struct blockif_req *breq);
-int	blockif_flush(struct blockif_ctxt *bc, struct blockif_req *breq);
-int	blockif_delete(struct blockif_ctxt *bc, struct blockif_req *breq);
-int	blockif_cancel(struct blockif_ctxt *bc, struct blockif_req *breq);
-int	blockif_close(struct blockif_ctxt *bc);
+off_t blockif_size(struct blockif_ctxt *bc);
+void blockif_chs(struct blockif_ctxt *bc, uint16_t *c, uint8_t *h, uint8_t *s);
+int blockif_sectsz(struct blockif_ctxt *bc);
+void blockif_psectsz(struct blockif_ctxt *bc, int *size, int *off);
+int blockif_queuesz(struct blockif_ctxt *bc);
+int blockif_is_ro(struct blockif_ctxt *bc);
+int blockif_candelete(struct blockif_ctxt *bc);
+int blockif_read(struct blockif_ctxt *bc, struct blockif_req *breq);
+int blockif_write(struct blockif_ctxt *bc, struct blockif_req *breq);
+int blockif_flush(struct blockif_ctxt *bc, struct blockif_req *breq);
+int blockif_delete(struct blockif_ctxt *bc, struct blockif_req *breq);
+int blockif_cancel(struct blockif_ctxt *bc, struct blockif_req *breq);
+int blockif_close(struct blockif_ctxt *bc);
 #ifdef BHYVE_SNAPSHOT
-void	blockif_pause(struct blockif_ctxt *bc);
-void	blockif_resume(struct blockif_ctxt *bc);
+void blockif_pause(struct blockif_ctxt *bc);
+void blockif_resume(struct blockif_ctxt *bc);
 #endif
 
 #endif /* _BLOCK_IF_H_ */

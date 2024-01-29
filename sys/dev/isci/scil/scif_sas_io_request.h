@@ -65,18 +65,17 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/scif_io_request.h>
+#include <dev/isci/scil/intel_sas.h>
 #include <dev/isci/scil/sci_base_request.h>
+#include <dev/isci/scil/scif_io_request.h>
 #include <dev/isci/scil/scif_sas_request.h>
 #include <dev/isci/scil/scif_sas_stp_io_request.h>
-#include <dev/isci/scil/intel_sas.h>
-
 
 struct SCIF_SAS_CONTROLLER;
 struct SCIF_SAS_REMOTE_DEVICE;
 
-//Note 0xFF is the maximum possible value to IO_RETRY_LIMIT since the io_retry_count in
-//SCIF_SAS_IO_REQUEST is in type of U8.
+// Note 0xFF is the maximum possible value to IO_RETRY_LIMIT since the
+// io_retry_count in SCIF_SAS_IO_REQUEST is in type of U8.
 #define SCIF_SAS_IO_RETRY_LIMIT 0xFF
 
 /**
@@ -87,66 +86,54 @@ struct SCIF_SAS_REMOTE_DEVICE;
  *        it provides a higher level of abstraction for the core IO request
  *        object.
  */
-typedef struct SCIF_SAS_IO_REQUEST
-{
-   /**
-    * The SCI_BASE_REQUEST is the parent object for the
-    * SCIF_SAS_IO_REQUEST object.
-    */
-   SCIF_SAS_REQUEST_T  parent;
+typedef struct SCIF_SAS_IO_REQUEST {
+	/**
+	 * The SCI_BASE_REQUEST is the parent object for the
+	 * SCIF_SAS_IO_REQUEST object.
+	 */
+	SCIF_SAS_REQUEST_T parent;
 
-   /**
-    * This field specifies the number of bytes to be utilized for this
-    * IO request.  This field is utilized during internal IO requests.
-    */
-   U32  transfer_length;
+	/**
+	 * This field specifies the number of bytes to be utilized for this
+	 * IO request.  This field is utilized during internal IO requests.
+	 */
+	U32 transfer_length;
 
-   /**
-    * This field keeps track of how many times an io got retried.
-    */
-   U8 retry_count;
+	/**
+	 * This field keeps track of how many times an io got retried.
+	 */
+	U8 retry_count;
 
 } SCIF_SAS_IO_REQUEST_T;
 
 extern SCI_BASE_STATE_T scif_sas_io_request_state_table[];
 extern SCI_BASE_REQUEST_STATE_HANDLER_T
-   scif_sas_io_request_state_handler_table[];
+    scif_sas_io_request_state_handler_table[];
 
 SCI_STATUS scif_sas_io_request_constructed_start_handler(
-   SCI_BASE_REQUEST_T * io_request
-);
+    SCI_BASE_REQUEST_T *io_request);
 
 SCI_STATUS scif_sas_io_request_constructed_abort_handler(
-   SCI_BASE_REQUEST_T * io_request
-);
+    SCI_BASE_REQUEST_T *io_request);
 
 SCI_STATUS scif_sas_io_request_default_complete_handler(
-   SCI_BASE_REQUEST_T * io_request
-);
+    SCI_BASE_REQUEST_T *io_request);
 
 SCI_STATUS scif_sas_io_request_default_destruct_handler(
-   SCI_BASE_REQUEST_T * io_request
-);
+    SCI_BASE_REQUEST_T *io_request);
 
-SCI_STATUS scif_sas_io_request_construct_smp(
-   struct SCIF_SAS_CONTROLLER       * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE    * fw_device,
-   void                             * fw_io_memory,
-   void                             * core_io_memory,
-   U16                                io_tag,
-   SMP_REQUEST_T                    * smp_command,
-   void                             * user_request_object
-);
+SCI_STATUS
+scif_sas_io_request_construct_smp(struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, void *fw_io_memory,
+    void *core_io_memory, U16 io_tag, SMP_REQUEST_T *smp_command,
+    void *user_request_object);
 
-SCI_STATUS scif_sas_io_request_continue(
-   struct SCIF_SAS_CONTROLLER       * fw_controller,
-   struct SCIF_SAS_REMOTE_DEVICE    * fw_device,
-   SCIF_SAS_REQUEST_T               * fw_request
-);
+SCI_STATUS
+scif_sas_io_request_continue(struct SCIF_SAS_CONTROLLER *fw_controller,
+    struct SCIF_SAS_REMOTE_DEVICE *fw_device, SCIF_SAS_REQUEST_T *fw_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_SAS_IO_REQUEST_H_
-

@@ -24,37 +24,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_ridx.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8812a/r12a.h>
 #include <dev/rtwn/rtl8812a/r12a_tx_desc.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static int
 r12a_get_primary_channel(struct rtwn_softc *sc, struct ieee80211_channel *c)
@@ -77,10 +74,9 @@ r12a_tx_set_ht40(struct rtwn_softc *sc, void *buf, struct ieee80211_node *ni)
 		int prim_chan;
 
 		prim_chan = r12a_get_primary_channel(sc, ni->ni_chan);
-		txd->txdw5 |= htole32(SM(R12A_TXDW5_DATA_BW,
-		    R12A_TXDW5_DATA_BW40));
-		txd->txdw5 |= htole32(SM(R12A_TXDW5_DATA_PRIM_CHAN,
-		    prim_chan));
+		txd->txdw5 |= htole32(
+		    SM(R12A_TXDW5_DATA_BW, R12A_TXDW5_DATA_BW40));
+		txd->txdw5 |= htole32(SM(R12A_TXDW5_DATA_PRIM_CHAN, prim_chan));
 	}
 }
 
@@ -102,8 +98,7 @@ r12a_tx_protection(struct rtwn_softc *sc, struct r12a_tx_desc *txd,
 		break;
 	}
 
-	if (mode == IEEE80211_PROT_CTSONLY ||
-	    mode == IEEE80211_PROT_RTSCTS) {
+	if (mode == IEEE80211_PROT_CTSONLY || mode == IEEE80211_PROT_RTSCTS) {
 		if (ridx >= RTWN_RIDX_HT_MCS(0))
 			rate = rtwn_ctl_mcsrate(ic->ic_rt, ridx);
 		else
@@ -130,8 +125,8 @@ r12a_tx_raid(struct rtwn_softc *sc, struct r12a_tx_desc *txd,
 	enum ieee80211_phymode mode;
 	uint8_t raid;
 
-	chan = (ni->ni_chan != IEEE80211_CHAN_ANYC) ?
-		ni->ni_chan : ic->ic_curchan;
+	chan = (ni->ni_chan != IEEE80211_CHAN_ANYC) ? ni->ni_chan :
+						      ic->ic_curchan;
 	mode = ieee80211_chan2mode(chan);
 
 	/* NB: group addressed frames are done at 11bg rates for now */
@@ -201,10 +196,10 @@ r12a_tx_set_sgi(struct rtwn_softc *sc, void *buf, struct ieee80211_node *ni)
 	struct r12a_tx_desc *txd = (struct r12a_tx_desc *)buf;
 	struct ieee80211vap *vap = ni->ni_vap;
 
-	if ((vap->iv_flags_ht & IEEE80211_FHT_SHORTGI20) &&	/* HT20 */
+	if ((vap->iv_flags_ht & IEEE80211_FHT_SHORTGI20) && /* HT20 */
 	    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI20))
 		txd->txdw5 |= htole32(R12A_TXDW5_DATA_SHORT);
-	else if (ni->ni_chan != IEEE80211_CHAN_ANYC &&		/* HT40 */
+	else if (ni->ni_chan != IEEE80211_CHAN_ANYC && /* HT40 */
 	    IEEE80211_IS_CHAN_HT40(ni->ni_chan) &&
 	    (ni->ni_htcap & IEEE80211_HTCAP_SHORTGI40) &&
 	    (vap->iv_flags_ht & IEEE80211_FHT_SHORTGI40))
@@ -257,11 +252,12 @@ r12a_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 
 	if (!ismcast) {
 		/* Unicast frame, check if an ACK is expected. */
-		if (!qos || (qos & IEEE80211_QOS_ACKPOLICY) !=
-		    IEEE80211_QOS_ACKPOLICY_NOACK) {
+		if (!qos ||
+		    (qos & IEEE80211_QOS_ACKPOLICY) !=
+			IEEE80211_QOS_ACKPOLICY_NOACK) {
 			txd->txdw4 = htole32(R12A_TXDW4_RETRY_LMT_ENA);
-			txd->txdw4 |= htole32(SM(R12A_TXDW4_RETRY_LMT,
-			    maxretry));
+			txd->txdw4 |= htole32(
+			    SM(R12A_TXDW4_RETRY_LMT, maxretry));
 		}
 
 		struct rtwn_node *un = RTWN_NODE(ni);
@@ -274,8 +270,8 @@ r12a_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 				txd->txdw2 |= htole32(R12A_TXDW2_AGGEN);
 				txd->txdw2 |= htole32(SM(R12A_TXDW2_AMPDU_DEN,
 				    vap->iv_ampdu_density));
-				txd->txdw3 |= htole32(SM(R12A_TXDW3_MAX_AGG,
-				    0x1f));	/* XXX */
+				txd->txdw3 |= htole32(
+				    SM(R12A_TXDW3_MAX_AGG, 0x1f)); /* XXX */
 			} else
 				txd->txdw2 |= htole32(R12A_TXDW2_AGGBK);
 
@@ -300,13 +296,13 @@ r12a_fill_tx_desc(struct rtwn_softc *sc, struct ieee80211_node *ni,
 			/* XXX fix last comparison for A-MSDU (in net80211) */
 			/* XXX A-MPDU? */
 			if (m->m_pkthdr.len + IEEE80211_CRC_LEN >
-			    vap->iv_rtsthreshold &&
+				vap->iv_rtsthreshold &&
 			    vap->iv_rtsthreshold != IEEE80211_RTS_MAX)
 				prot = IEEE80211_PROT_RTSCTS;
 
 			if (prot != IEEE80211_PROT_NONE)
 				r12a_tx_protection(sc, txd, prot, ridx);
-		} else	/* IEEE80211_FC0_TYPE_MGT */
+		} else /* IEEE80211_FC0_TYPE_MGT */
 			qsel = R12A_TXDW1_QSEL_MGNT;
 	} else {
 		macid = RTWN_MACID_BC;
@@ -369,8 +365,8 @@ r12a_fill_tx_desc_raw(struct rtwn_softc *sc, struct ieee80211_node *ni,
 
 	if ((params->ibp_flags & IEEE80211_BPF_NOACK) == 0) {
 		txd->txdw4 = htole32(R12A_TXDW4_RETRY_LMT_ENA);
-		txd->txdw4 |= htole32(SM(R12A_TXDW4_RETRY_LMT,
-		    params->ibp_try0));
+		txd->txdw4 |= htole32(
+		    SM(R12A_TXDW4_RETRY_LMT, params->ibp_try0));
 	}
 	if (params->ibp_flags & IEEE80211_BPF_RTS)
 		r12a_tx_protection(sc, txd, IEEE80211_PROT_RTSCTS, ridx);
@@ -393,8 +389,8 @@ r12a_fill_tx_desc_raw(struct rtwn_softc *sc, struct ieee80211_node *ni,
 		txd->txdw3 |= htole32(SM(R12A_TXDW3_SEQ_SEL, uvp->id));
 	} else {
 		/* Set sequence number. */
-		txd->txdw9 |= htole32(SM(R12A_TXDW9_SEQ,
-		    M_SEQNO_GET(m) % IEEE80211_SEQ_RANGE));
+		txd->txdw9 |= htole32(
+		    SM(R12A_TXDW9_SEQ, M_SEQNO_GET(m) % IEEE80211_SEQ_RANGE));
 	}
 }
 
@@ -405,17 +401,14 @@ r12a_fill_tx_desc_null(struct rtwn_softc *sc, void *buf, int is11b, int qos,
 	struct r12a_tx_desc *txd = (struct r12a_tx_desc *)buf;
 
 	txd->flags0 = R12A_FLAGS0_FSG | R12A_FLAGS0_LSG | R12A_FLAGS0_OWN;
-	txd->txdw1 = htole32(
-	    SM(R12A_TXDW1_QSEL, R12A_TXDW1_QSEL_MGNT));
+	txd->txdw1 = htole32(SM(R12A_TXDW1_QSEL, R12A_TXDW1_QSEL_MGNT));
 
 	txd->txdw3 = htole32(R12A_TXDW3_DRVRATE);
 	txd->txdw6 = htole32(SM(R21A_TXDW6_MBSSID, id));
 	if (is11b) {
-		txd->txdw4 = htole32(SM(R12A_TXDW4_DATARATE,
-		    RTWN_RIDX_CCK1));
+		txd->txdw4 = htole32(SM(R12A_TXDW4_DATARATE, RTWN_RIDX_CCK1));
 	} else {
-		txd->txdw4 = htole32(SM(R12A_TXDW4_DATARATE,
-		    RTWN_RIDX_OFDM6));
+		txd->txdw4 = htole32(SM(R12A_TXDW4_DATARATE, RTWN_RIDX_OFDM6));
 	}
 
 	if (!qos) {

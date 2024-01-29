@@ -27,11 +27,13 @@
  *
  */
 
+#include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/ioctl.h>
-#include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
+
+#include <dev/mfi/mfi_ioctl.h>
 
 #include <err.h>
 #include <fcntl.h>
@@ -41,7 +43,6 @@
 #include <unistd.h>
 
 #include "mfiutil.h"
-#include <dev/mfi/mfi_ioctl.h>
 
 MFI_TABLE(top, ctrlprop);
 
@@ -73,7 +74,7 @@ mfi_ctrl_rebuild_rate(int ac, char **av)
 
 	if (ac > 2) {
 		warn("mfi_ctrl_set_rebuild_rate");
-		return(-1);
+		return (-1);
 	}
 
 	fd = mfi_open(mfi_device, O_RDWR);
@@ -84,7 +85,7 @@ mfi_ctrl_rebuild_rate(int ac, char **av)
 	}
 
 	error = mfi_ctrl_get_properties(fd, &ctrl_props);
-	if ( error < 0) {
+	if (error < 0) {
 		error = errno;
 		warn("Failed to get controller properties");
 		close(fd);
@@ -96,7 +97,7 @@ mfi_ctrl_rebuild_rate(int ac, char **av)
 	if (ac > 1) {
 		ctrl_props.rebuild_rate = atoi(av[ac - 1]);
 		error = mfi_ctrl_set_properties(fd, &ctrl_props);
-		if ( error < 0) {
+		if (error < 0) {
 			error = errno;
 			warn("Failed to set controller properties");
 			close(fd);
@@ -104,15 +105,14 @@ mfi_ctrl_rebuild_rate(int ac, char **av)
 		}
 
 		error = mfi_ctrl_get_properties(fd, &ctrl_props);
-		if ( error < 0) {
+		if (error < 0) {
 			error = errno;
 			warn("Failed to get controller properties");
 			close(fd);
 			return (error);
 		}
 	}
-	printf ("controller rebuild rate: %%%u \n",
-		ctrl_props.rebuild_rate);
+	printf("controller rebuild rate: %%%u \n", ctrl_props.rebuild_rate);
 	return (0);
 }
 MFI_COMMAND(ctrlprop, rebuild, mfi_ctrl_rebuild_rate);
@@ -125,7 +125,7 @@ mfi_ctrl_alarm_enable(int ac, char **av)
 
 	if (ac > 2) {
 		warn("mfi_ctrl_alarm_enable");
-		return(-1);
+		return (-1);
 	}
 
 	fd = mfi_open(mfi_device, O_RDWR);
@@ -136,19 +136,19 @@ mfi_ctrl_alarm_enable(int ac, char **av)
 	}
 
 	error = mfi_ctrl_get_properties(fd, &ctrl_props);
-	if ( error < 0) {
+	if (error < 0) {
 		error = errno;
 		warn("Failed to get controller properties");
 		close(fd);
 		return (error);
 	}
-	printf ("controller alarm was : %s\n",
-		(ctrl_props.alarm_enable ? "enabled" : "disabled"));
+	printf("controller alarm was : %s\n",
+	    (ctrl_props.alarm_enable ? "enabled" : "disabled"));
 
 	if (ac > 1) {
 		ctrl_props.alarm_enable = atoi(av[ac - 1]);
 		error = mfi_ctrl_set_properties(fd, &ctrl_props);
-		if ( error < 0) {
+		if (error < 0) {
 			error = errno;
 			warn("Failed to set controller properties");
 			close(fd);
@@ -156,15 +156,15 @@ mfi_ctrl_alarm_enable(int ac, char **av)
 		}
 
 		error = mfi_ctrl_get_properties(fd, &ctrl_props);
-		if ( error < 0) {
+		if (error < 0) {
 			error = errno;
 			warn("Failed to get controller properties");
 			close(fd);
 			return (error);
 		}
 	}
-	printf ("controller alarm was : %s\n",
-		(ctrl_props.alarm_enable ? "enabled" : "disabled"));
+	printf("controller alarm was : %s\n",
+	    (ctrl_props.alarm_enable ? "enabled" : "disabled"));
 	return (0);
 }
 

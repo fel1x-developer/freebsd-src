@@ -86,21 +86,21 @@ ef_amd64_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 	}
 
 	switch (rtype) {
-	case R_X86_64_NONE:	/* none */
+	case R_X86_64_NONE: /* none */
 		break;
-	case R_X86_64_64:	/* S + A */
+	case R_X86_64_64: /* S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		le64enc(where, addr);
 		break;
-	case R_X86_64_32S:	/* S + A sign extend */
+	case R_X86_64_32S: /* S + A sign extend */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		le32enc(where, addr);
 		break;
-	case R_X86_64_GLOB_DAT:	/* S */
+	case R_X86_64_GLOB_DAT: /* S */
 		addr = EF_SYMADDR(ef, symidx);
 		le64enc(where, addr);
 		break;
-	case R_X86_64_RELATIVE:	/* B + A */
+	case R_X86_64_RELATIVE: /* B + A */
 		addr = relbase + addend;
 		le64enc(where, addr);
 		break;

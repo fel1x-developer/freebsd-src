@@ -32,12 +32,13 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
-#include "un-namespace.h"
+
 #include "fvwrite.h"
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 int
 putw(int w, FILE *fp)

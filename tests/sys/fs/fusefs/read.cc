@@ -48,62 +48,66 @@ extern "C" {
 
 using namespace testing;
 
-class Read: public FuseTest {
+class Read : public FuseTest {
 
-public:
-void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
-{
-	FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
-}
+    public:
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
+	{
+		FuseTest::expect_lookup(relpath, ino, S_IFREG | 0644, size, 1);
+	}
 };
 
-class RofsRead: public Read {
-public:
-virtual void SetUp() {
-	m_ro = true;
-	Read::SetUp();
-}
+class RofsRead : public Read {
+    public:
+	virtual void SetUp()
+	{
+		m_ro = true;
+		Read::SetUp();
+	}
 };
 
-class Read_7_8: public FuseTest {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 8;
-	FuseTest::SetUp();
-}
+class Read_7_8 : public FuseTest {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 8;
+		FuseTest::SetUp();
+	}
 
-void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
-{
-	FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, size, 1);
-}
+	void expect_lookup(const char *relpath, uint64_t ino, uint64_t size)
+	{
+		FuseTest::expect_lookup_7_8(relpath, ino, S_IFREG | 0644, size,
+		    1);
+	}
 };
 
-class AioRead: public Read {
-public:
-virtual void SetUp() {
-	if (!is_unsafe_aio_enabled())
-		GTEST_SKIP() <<
-			"vfs.aio.enable_unsafe must be set for this test";
-	FuseTest::SetUp();
-}
+class AioRead : public Read {
+    public:
+	virtual void SetUp()
+	{
+		if (!is_unsafe_aio_enabled())
+			GTEST_SKIP()
+			    << "vfs.aio.enable_unsafe must be set for this test";
+		FuseTest::SetUp();
+	}
 };
 
-class AsyncRead: public AioRead {
-	virtual void SetUp() {
+class AsyncRead : public AioRead {
+	virtual void SetUp()
+	{
 		m_init_flags = FUSE_ASYNC_READ;
 		AioRead::SetUp();
 	}
 };
 
-class ReadAhead: public Read,
-		 public WithParamInterface<tuple<bool, int>>
-{
-	virtual void SetUp() {
+class ReadAhead : public Read, public WithParamInterface<tuple<bool, int>> {
+	virtual void SetUp()
+	{
 		int val;
 		const char *node = "vfs.maxbcachebuf";
 		size_t size = sizeof(val);
 		ASSERT_EQ(0, sysctlbyname(node, &val, &size, NULL, 0))
-			<< strerror(errno);
+		    << strerror(errno);
 
 		m_maxreadahead = val * get<1>(GetParam());
 		m_noclusterr = get<0>(GetParam());
@@ -111,33 +115,34 @@ class ReadAhead: public Read,
 	}
 };
 
-class ReadNoatime: public Read {
-	virtual void SetUp() {
+class ReadNoatime : public Read {
+	virtual void SetUp()
+	{
 		m_noatime = true;
 		Read::SetUp();
 	}
 };
 
-class ReadSigbus: public Read
-{
-public:
-static jmp_buf s_jmpbuf;
-static void *s_si_addr;
+class ReadSigbus : public Read {
+    public:
+	static jmp_buf s_jmpbuf;
+	static void *s_si_addr;
 
-void TearDown() {
-	struct sigaction sa;
+	void TearDown()
+	{
+		struct sigaction sa;
 
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = SIG_DFL;
-	sigaction(SIGBUS, &sa, NULL);
+		bzero(&sa, sizeof(sa));
+		sa.sa_handler = SIG_DFL;
+		sigaction(SIGBUS, &sa, NULL);
 
-	FuseTest::TearDown();
-}
-
+		FuseTest::TearDown();
+	}
 };
 
 static void
-handle_sigbus(int signo __unused, siginfo_t *info, void *uap __unused) {
+handle_sigbus(int signo __unused, siginfo_t *info, void *uap __unused)
+{
 	ReadSigbus::s_si_addr = info->si_addr;
 	longjmp(ReadSigbus::s_jmpbuf, 1);
 }
@@ -145,12 +150,13 @@ handle_sigbus(int signo __unused, siginfo_t *info, void *uap __unused) {
 jmp_buf ReadSigbus::s_jmpbuf;
 void *ReadSigbus::s_si_addr;
 
-class TimeGran: public Read, public WithParamInterface<unsigned> {
-public:
-virtual void SetUp() {
-	m_time_gran = 1 << GetParam();
-	Read::SetUp();
-}
+class TimeGran : public Read, public WithParamInterface<unsigned> {
+    public:
+	virtual void SetUp()
+	{
+		m_time_gran = 1 << GetParam();
+		Read::SetUp();
+	}
 };
 
 /* AIO reads need to set the header's pid field correctly */
@@ -185,7 +191,7 @@ TEST_F(AioRead, aio_read)
 	leak(fd);
 }
 
-/* 
+/*
  * Without the FUSE_ASYNC_READ mount option, fuse(4) should ensure that there
  * is at most one outstanding read operation per file handle
  */
@@ -204,35 +210,39 @@ TEST_F(AioRead, async_read_disabled)
 
 	expect_lookup(RELPATH, ino, 131072);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == FH &&
-				in.body.read.offset == (uint64_t)off0);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke([&](auto in __unused, auto &out __unused) {
-		read_count++;
-		/* Filesystem is slow to respond */
-	}));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == FH &&
-				in.body.read.offset == (uint64_t)off1);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke([&](auto in __unused, auto &out __unused) {
-		read_count++;
-		/* Filesystem is slow to respond */
-	}));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == FH &&
+				    in.body.read.offset == (uint64_t)off0);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(Invoke([&](auto in __unused, auto &out __unused) {
+		    read_count++;
+		    /* Filesystem is slow to respond */
+	    }));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == FH &&
+				    in.body.read.offset == (uint64_t)off1);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(Invoke([&](auto in __unused, auto &out __unused) {
+		    read_count++;
+		    /* Filesystem is slow to respond */
+	    }));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
-	/* 
+	/*
 	 * Submit two AIO read requests, and respond to neither.  If the
 	 * filesystem ever gets the second read request, then we failed to
 	 * limit outstanding reads.
@@ -251,13 +261,13 @@ TEST_F(AioRead, async_read_disabled)
 	iocb1.aio_sigevent.sigev_notify = SIGEV_NONE;
 	ASSERT_EQ(0, aio_read(&iocb1)) << strerror(errno);
 
-	/* 
+	/*
 	 * Sleep for awhile to make sure the kernel has had a chance to issue
 	 * the second read, even though the first has not yet returned
 	 */
 	nap();
 	EXPECT_EQ(read_count, 1);
-	
+
 	m_mock->kill_daemon();
 	/* Wait for AIO activity to complete, but ignore errors */
 	(void)aio_waitcomplete(NULL, NULL);
@@ -265,7 +275,7 @@ TEST_F(AioRead, async_read_disabled)
 	leak(fd);
 }
 
-/* 
+/*
  * With the FUSE_ASYNC_READ mount option, fuse(4) may issue multiple
  * simultaneous read requests on the same file handle.
  */
@@ -287,35 +297,39 @@ TEST_F(AsyncRead, async_read)
 
 	expect_lookup(RELPATH, ino, fsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == FH &&
-				in.body.read.offset == (uint64_t)off0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
-		sem_post(&sem);
-		/* Filesystem is slow to respond */
-	}));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == FH &&
-				in.body.read.offset == (uint64_t)off1);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
-		sem_post(&sem);
-		/* Filesystem is slow to respond */
-	}));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == FH &&
+				    in.body.read.offset == (uint64_t)off0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
+		    sem_post(&sem);
+		    /* Filesystem is slow to respond */
+	    }));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == FH &&
+				    in.body.read.offset == (uint64_t)off1);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke([&](auto in __unused, auto &out __unused) {
+		    sem_post(&sem);
+		    /* Filesystem is slow to respond */
+	    }));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
-	/* 
+	/*
 	 * Submit two AIO read requests, but respond to neither.  Ensure that
 	 * we received both.
 	 */
@@ -340,7 +354,7 @@ TEST_F(AsyncRead, async_read)
 	m_mock->kill_daemon();
 	/* Wait for AIO activity to complete, but ignore errors */
 	(void)aio_waitcomplete(NULL, NULL);
-	
+
 	leak(fd);
 }
 
@@ -430,23 +444,25 @@ TEST_F(Read, atime_during_close)
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([&](auto in) {
-			uint32_t valid = FATTR_ATIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				(time_t)in.body.setattr.atime ==
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[&](auto in) {
+				uint32_t valid = FATTR_ATIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    (time_t)in.body.setattr.atime ==
 					sb.st_atim.tv_sec &&
-				(long)in.body.setattr.atimensec ==
+				    (long)in.body.setattr.atimensec ==
 					sb.st_atim.tv_nsec);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FuseTest::FH);
 
@@ -480,15 +496,17 @@ TEST_F(Read, atime_during_close_eacces)
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([&](auto in) {
-			uint32_t valid = FATTR_ATIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EACCES)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[&](auto in) {
+				uint32_t valid = FATTR_ATIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EACCES)));
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FuseTest::FH);
 
@@ -519,23 +537,25 @@ TEST_F(Read, atime_during_setattr)
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([&](auto in) {
-			uint32_t valid = FATTR_MODE | FATTR_ATIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				(time_t)in.body.setattr.atime ==
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[&](auto in) {
+				uint32_t valid = FATTR_MODE | FATTR_ATIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    (time_t)in.body.setattr.atime ==
 					sb.st_atim.tv_sec &&
-				(long)in.body.setattr.atimensec ==
+				    (long)in.body.setattr.atimensec ==
 					sb.st_atim.tv_nsec);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -570,7 +590,7 @@ TEST_F(Read, direct_io_read_nothing)
 	leak(fd);
 }
 
-/* 
+/*
  * With direct_io, reads should not fill the cache.  They should go straight to
  * the daemon
  */
@@ -603,7 +623,7 @@ TEST_F(Read, direct_io_pread)
 	leak(fd);
 }
 
-/* 
+/*
  * With direct_io, filesystems are allowed to return less data than is
  * requested.  fuse(4) should return a short read to userland.
  */
@@ -627,7 +647,7 @@ TEST_F(Read, direct_io_short_read)
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(halfbufsize, pread(fd, buf, bufsize, offset))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(buf, CONTENTS, halfbufsize));
 	leak(fd);
 }
@@ -644,12 +664,14 @@ TEST_F(Read, eio)
 
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EIO)));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -659,10 +681,10 @@ TEST_F(Read, eio)
 	leak(fd);
 }
 
-/* 
+/*
  * If the server returns a short read when direct io is not in use, that
  * indicates EOF, because of a server-side truncation.  We should invalidate
- * all cached attributes.  We may update the file size, 
+ * all cached attributes.  We may update the file size,
  */
 TEST_F(Read, eof)
 {
@@ -718,16 +740,16 @@ TEST_F(Read, eof_of_whole_buffer)
 
 	/* Cache the third block */
 	ASSERT_EQ(bufsize, pread(fd, buf, bufsize, m_maxbcachebuf * 2))
-		<< strerror(errno);
+	    << strerror(errno);
 	/* Try to read the 2nd block, but it's past EOF */
 	ASSERT_EQ(0, pread(fd, buf, bufsize, m_maxbcachebuf))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(0, fstat(fd, &sb));
 	EXPECT_EQ((off_t)(m_maxbcachebuf), sb.st_size);
 	leak(fd);
 }
 
-/* 
+/*
  * With the keep_cache option, the kernel may keep its read cache across
  * multiple open(2)s.
  */
@@ -762,7 +784,7 @@ TEST_F(Read, keep_cache)
 	leak(fd1);
 }
 
-/* 
+/*
  * Without the keep_cache option, the kernel should drop its read caches on
  * every open
  */
@@ -814,19 +836,21 @@ TEST_F(Read, mmap)
 
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == Read::FH &&
-				in.body.read.offset == 0 &&
-				in.body.read.size == bufsize);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.len = sizeof(struct fuse_out_header) + bufsize;
-		memmove(out.body.bytes, CONTENTS, bufsize);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == Read::FH &&
+				    in.body.read.offset == 0 &&
+				    in.body.read.size == bufsize);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.len = sizeof(struct fuse_out_header) + bufsize;
+		    memmove(out.body.bytes, CONTENTS, bufsize);
+	    })));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -931,14 +955,16 @@ TEST_F(ReadSigbus, mmap_eio)
 
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == Read::FH);
-		}, Eq(true)),
-		_)
-	).WillRepeatedly(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == Read::FH);
+			},
+			Eq(true)),
+		_))
+	    .WillRepeatedly(Invoke(ReturnErrno(EIO)));
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -955,7 +981,7 @@ TEST_F(ReadSigbus, mmap_eio)
 	ASSERT_EQ(0, sigaction(SIGBUS, &sa, NULL)) << strerror(errno);
 	if (setjmp(ReadSigbus::s_jmpbuf) == 0) {
 		atomic_signal_fence(std::memory_order::memory_order_seq_cst);
-		volatile char x __unused = *(volatile char*)p;
+		volatile char x __unused = *(volatile char *)p;
 		FAIL() << "shouldn't get here";
 	}
 
@@ -964,7 +990,7 @@ TEST_F(ReadSigbus, mmap_eio)
 	leak(fd);
 }
 
-/* 
+/*
  * A read via mmap comes up short, indicating that the file was truncated
  * server-side.
  */
@@ -984,19 +1010,22 @@ TEST_F(Read, mmap_eof)
 
 	expect_lookup(RELPATH, ino, m_maxbcachebuf);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == Read::FH &&
-				in.body.read.offset == 0 &&
-				in.body.read.size == (uint32_t)m_maxbcachebuf);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.len = sizeof(struct fuse_out_header) + bufsize;
-		memmove(out.body.bytes, CONTENTS, bufsize);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == Read::FH &&
+				    in.body.read.offset == 0 &&
+				    in.body.read.size ==
+					(uint32_t)m_maxbcachebuf);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.len = sizeof(struct fuse_out_header) + bufsize;
+		    memmove(out.body.bytes, CONTENTS, bufsize);
+	    })));
 	expect_getattr(ino, bufsize);
 
 	fd = open(FULLPATH, O_RDONLY);
@@ -1037,36 +1066,43 @@ TEST_F(ReadSigbus, mmap_getblksz_fail)
 
 	FuseTest::expect_lookup(RELPATH, ino, mode, bufsize, 1, 0);
 	/* Expect two GETATTR calls that succeed, followed by one that fail. */
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).Times(2)
-	.InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = mode;
-		out.body.attr.attr.size = bufsize;
-		out.body.attr.attr_valid = 0;
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == ino);
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillRepeatedly(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .Times(2)
+	    .InSequence(seq)
+	    .WillRepeatedly(
+		Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+			SET_OUT_HEADER_LEN(out, attr);
+			out.body.attr.attr.ino = ino;
+			out.body.attr.attr.mode = mode;
+			out.body.attr.attr.size = bufsize;
+			out.body.attr.attr_valid = 0;
+		})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == ino);
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillRepeatedly(Invoke(ReturnErrno(EIO)));
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1082,7 +1118,7 @@ TEST_F(ReadSigbus, mmap_getblksz_fail)
 	ASSERT_EQ(0, sigaction(SIGBUS, &sa, NULL)) << strerror(errno);
 	if (setjmp(ReadSigbus::s_jmpbuf) == 0) {
 		atomic_signal_fence(std::memory_order::memory_order_seq_cst);
-		volatile char x __unused = *(volatile char*)p;
+		volatile char x __unused = *(volatile char *)p;
 		FAIL() << "shouldn't get here";
 	}
 
@@ -1133,7 +1169,7 @@ TEST_F(Read, pread)
 	const char *CONTENTS = "abcdefgh";
 	uint64_t ino = 42;
 	int fd;
-	/* 
+	/*
 	 * Set offset to a maxbcachebuf boundary so we'll be sure what offset
 	 * to read from.  Without this, the read might start at a lower offset.
 	 */
@@ -1199,7 +1235,7 @@ TEST_F(Read_7_8, read)
 	leak(fd);
 }
 
-/* 
+/*
  * If cacheing is enabled, the kernel should try to read an entire cache block
  * at a time.
  */
@@ -1221,8 +1257,7 @@ TEST_F(Read, cache_block)
 
 	expect_lookup(RELPATH, ino, filesize);
 	expect_open(ino, 0, 1);
-	expect_read(ino, 0, m_maxbcachebuf, m_maxbcachebuf,
-		contents);
+	expect_read(ino, 0, m_maxbcachebuf, m_maxbcachebuf, contents);
 
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
@@ -1252,29 +1287,31 @@ TEST_F(Read, sendfile)
 
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ &&
-				in.header.nodeid == ino &&
-				in.body.read.fh == Read::FH &&
-				in.body.read.offset == 0 &&
-				in.body.read.size == bufsize);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		out.header.len = sizeof(struct fuse_out_header) + bufsize;
-		memmove(out.body.bytes, CONTENTS, bufsize);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ &&
+				    in.header.nodeid == ino &&
+				    in.body.read.fh == Read::FH &&
+				    in.body.read.offset == 0 &&
+				    in.body.read.size == bufsize);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    out.header.len = sizeof(struct fuse_out_header) + bufsize;
+		    memmove(out.body.bytes, CONTENTS, bufsize);
+	    })));
 
 	ASSERT_EQ(0, socketpair(PF_LOCAL, SOCK_STREAM, 0, sp))
-		<< strerror(errno);
+	    << strerror(errno);
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
 	ASSERT_EQ(0, sendfile(fd, sp[1], 0, bufsize, NULL, &sbytes, 0))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(static_cast<ssize_t>(bufsize), read(sp[0], buf, bufsize))
-		<< strerror(errno);
+	    << strerror(errno);
 	ASSERT_EQ(0, memcmp(buf, CONTENTS, bufsize));
 
 	close(sp[1]);
@@ -1297,15 +1334,17 @@ TEST_F(Read, sendfile_eio)
 
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_READ);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(EIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_READ);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(EIO)));
 
 	ASSERT_EQ(0, socketpair(PF_LOCAL, SOCK_STREAM, 0, sp))
-		<< strerror(errno);
+	    << strerror(errno);
 	fd = open(FULLPATH, O_RDONLY);
 	ASSERT_LE(0, fd) << strerror(errno);
 
@@ -1320,7 +1359,8 @@ TEST_F(Read, sendfile_eio)
  * Sequential reads should use readahead.  And if allowed, large reads should
  * be clustered.
  */
-TEST_P(ReadAhead, readahead) {
+TEST_P(ReadAhead, readahead)
+{
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	uint64_t ino = 42;
@@ -1338,7 +1378,7 @@ TEST_P(ReadAhead, readahead) {
 	expect_lookup(RELPATH, ino, filesize);
 	expect_open(ino, 0, 1);
 	maxcontig = m_noclusterr ? m_maxbcachebuf :
-		m_maxbcachebuf + m_maxreadahead;
+				   m_maxbcachebuf + m_maxreadahead;
 	clustersize = MIN(maxcontig, m_maxphys);
 	for (offs = 0; offs < bufsize; offs += clustersize) {
 		len = std::min((size_t)clustersize, (size_t)(filesize - offs));
@@ -1360,13 +1400,10 @@ TEST_P(ReadAhead, readahead) {
 }
 
 INSTANTIATE_TEST_SUITE_P(RA, ReadAhead,
-	Values(tuple<bool, int>(false, 0),
-	       tuple<bool, int>(false, 1),
-	       tuple<bool, int>(false, 2),
-	       tuple<bool, int>(false, 3),
-	       tuple<bool, int>(true, 0),
-	       tuple<bool, int>(true, 1),
-	       tuple<bool, int>(true, 2)));
+    Values(tuple<bool, int>(false, 0), tuple<bool, int>(false, 1),
+	tuple<bool, int>(false, 2), tuple<bool, int>(false, 3),
+	tuple<bool, int>(true, 0), tuple<bool, int>(true, 1),
+	tuple<bool, int>(true, 2)));
 
 /* With read-only mounts, fuse should never update atime during close */
 TEST_F(RofsRead, atime_during_close)
@@ -1382,12 +1419,14 @@ TEST_F(RofsRead, atime_during_close)
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([&](auto in) {
-			return (in.header.opcode == FUSE_SETATTR);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[&](auto in) {
+				return (in.header.opcode == FUSE_SETATTR);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 	expect_flush(ino, 1, ReturnErrno(0));
 	expect_release(ino, FuseTest::FH);
 
@@ -1417,20 +1456,23 @@ TEST_P(TimeGran, atime_during_setattr)
 	expect_lookup(RELPATH, ino, bufsize);
 	expect_open(ino, 0, 1);
 	expect_read(ino, 0, bufsize, bufsize, CONTENTS);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			uint32_t valid = FATTR_MODE | FATTR_ATIME;
-			return (in.header.opcode == FUSE_SETATTR &&
-				in.header.nodeid == ino &&
-				in.body.setattr.valid == valid &&
-				in.body.setattr.atimensec % m_time_gran == 0);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, attr);
-		out.body.attr.attr.ino = ino;
-		out.body.attr.attr.mode = S_IFREG | newmode;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				uint32_t valid = FATTR_MODE | FATTR_ATIME;
+				return (in.header.opcode == FUSE_SETATTR &&
+				    in.header.nodeid == ino &&
+				    in.body.setattr.valid == valid &&
+				    in.body.setattr.atimensec % m_time_gran ==
+					0);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, attr);
+		    out.body.attr.attr.ino = ino;
+		    out.body.attr.attr.mode = S_IFREG | newmode;
+	    })));
 
 	fd = open(FULLPATH, O_RDWR);
 	ASSERT_LE(0, fd) << strerror(errno);

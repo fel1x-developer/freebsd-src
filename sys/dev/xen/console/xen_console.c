@@ -24,37 +24,36 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_ddb.h"
+#include "opt_printf.h"
+
 #include <sys/param.h>
-#include <sys/module.h>
 #include <sys/systm.h>
-#include <sys/eventhandler.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/cons.h>
 #include <sys/consio.h>
+#include <sys/eventhandler.h>
+#include <sys/kdb.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
-#include <sys/uio.h>
-#include <sys/tty.h>
-#include <sys/systm.h>
-#include <sys/taskqueue.h>
-#include <sys/conf.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/cons.h>
-#include <sys/kdb.h>
-#include <sys/proc.h>
 #include <sys/reboot.h>
-
-#include <machine/stdarg.h>
+#include <sys/taskqueue.h>
+#include <sys/tty.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <xen/xen-os.h>
-#include <xen/hypervisor.h>
-#include <xen/xen_intr.h>
-#include <contrib/xen/io/console.h>
+#include <machine/stdarg.h>
 
-#include "opt_ddb.h"
-#include "opt_printf.h"
+#include <xen/hypervisor.h>
+#include <xen/xen-os.h>
+#include <xen/xen_intr.h>
+
+#include <contrib/xen/io/console.h>
 
 #ifdef DDB
 #include <ddb/ddb.h>
@@ -77,50 +76,50 @@ struct xencons_ops {
 	 * Called by the low-level driver during early boot.
 	 * Only the minimal set up to get a console should be done here.
 	 */
-	xencons_early_init_t	*early_init;
+	xencons_early_init_t *early_init;
 	/* Prepare the console to be fully use */
-	xencons_init_t		*init;
+	xencons_init_t *init;
 	/* Read/write helpers */
-	xencons_read_t		*read;
-	xencons_write_t		*write;
+	xencons_read_t *read;
+	xencons_write_t *write;
 };
 
 struct xencons_priv {
 	/* Mutex to protect the shared ring and the internal buffers */
-	struct mtx			mtx;
+	struct mtx mtx;
 	/* Interrupt handler used for notify the backend */
-	xen_intr_handle_t		intr_handle;
+	xen_intr_handle_t intr_handle;
 	/* KDB internal state */
 #ifdef KDB
-	int				altbrk;
+	int altbrk;
 #endif
 	/* Status of the tty */
-	bool				opened;
+	bool opened;
 	/* Callout used when the write buffer is full */
-	struct callout			callout;
+	struct callout callout;
 
 	/* Internal buffers must be used with mtx locked */
-#define WBUF_SIZE     4096
-#define WBUF_MASK(_i) ((_i)&(WBUF_SIZE-1))
-	char				wbuf[WBUF_SIZE];
-	unsigned int			wc, wp; /* Consumer/producer wbuf */
+#define WBUF_SIZE 4096
+#define WBUF_MASK(_i) ((_i) & (WBUF_SIZE - 1))
+	char wbuf[WBUF_SIZE];
+	unsigned int wc, wp; /* Consumer/producer wbuf */
 
-#define RBUF_SIZE     1024
-#define RBUF_MASK(_i) ((_i)&(RBUF_SIZE-1))
-	char				rbuf[RBUF_SIZE];
-	unsigned int			rc, rp; /* Consumer/producer rbuf */
+#define RBUF_SIZE 1024
+#define RBUF_MASK(_i) ((_i) & (RBUF_SIZE - 1))
+	char rbuf[RBUF_SIZE];
+	unsigned int rc, rp; /* Consumer/producer rbuf */
 
 	/* Pointer to the console operations */
-	const struct xencons_ops	*ops;
+	const struct xencons_ops *ops;
 
 	/*
 	 * Ring specific fields
 	 * XXX: make an union?
 	 */
 	/* Event channel number for early notification (PV only) */
-	uint32_t			evtchn;
+	uint32_t evtchn;
 	/* Console shared page */
-	struct xencons_interface	*intf;
+	struct xencons_interface *intf;
 };
 
 /*
@@ -129,13 +128,13 @@ struct xencons_priv {
  */
 static struct xencons_priv main_cons;
 
-#define XC_POLLTIME 	(hz/10)
+#define XC_POLLTIME (hz / 10)
 
 /*----------------------------- Debug function ------------------------------*/
 struct putchar_arg {
-	char	*buf;
-	size_t	size;
-	size_t	n_next;
+	char *buf;
+	size_t size;
+	size_t n_next;
 };
 
 static void
@@ -194,22 +193,23 @@ xc_printf(const char *fmt, ...)
  * The lock is not used when the kernel is panicing as it will never recover
  * and we want to output no matter what it costs.
  */
-static inline void xencons_lock(struct xencons_priv *cons)
+static inline void
+xencons_lock(struct xencons_priv *cons)
 {
 
 	if (!KERNEL_PANICKED())
 		mtx_lock_spin(&cons->mtx);
-
 }
 
-static inline void xencons_unlock(struct xencons_priv *cons)
+static inline void
+xencons_unlock(struct xencons_priv *cons)
 {
 
 	if (!KERNEL_PANICKED())
 		mtx_unlock_spin(&cons->mtx);
 }
 
-#define xencons_lock_assert(cons)	mtx_assert(&(cons)->mtx, MA_OWNED)
+#define xencons_lock_assert(cons) mtx_assert(&(cons)->mtx, MA_OWNED)
 
 /*------------------ Helpers for the hypervisor console ---------------------*/
 static void
@@ -230,8 +230,8 @@ xencons_init_hypervisor(device_t dev, struct tty *tp,
 
 	cons = tty_softc(tp);
 
-	err = xen_intr_bind_virq(dev, VIRQ_CONSOLE, 0, NULL,
-	    intr_handler, tp, INTR_TYPE_TTY | INTR_MPSAFE, &cons->intr_handle);
+	err = xen_intr_bind_virq(dev, VIRQ_CONSOLE, 0, NULL, intr_handler, tp,
+	    INTR_TYPE_TTY | INTR_MPSAFE, &cons->intr_handle);
 	if (err != 0)
 		device_printf(dev, "Can't register console interrupt\n");
 
@@ -259,10 +259,10 @@ xencons_read_hypervisor(struct xencons_priv *cons, char *buffer,
 }
 
 static const struct xencons_ops xencons_hypervisor_ops = {
-	.early_init	= xencons_early_init_hypervisor,
-	.init		= xencons_init_hypervisor,
-	.read		= xencons_read_hypervisor,
-	.write		= xencons_write_hypervisor,
+	.early_init = xencons_early_init_hypervisor,
+	.init = xencons_init_hypervisor,
+	.read = xencons_read_hypervisor,
+	.write = xencons_write_hypervisor,
 };
 
 /*------------------ Helpers for the ring console ---------------------------*/
@@ -285,8 +285,8 @@ xencons_init_ring(device_t dev, struct tty *tp, driver_intr_t intr_handler)
 	if (cons->evtchn == 0)
 		return (ENODEV);
 
-	err = xen_intr_bind_local_port(dev, cons->evtchn, NULL,
-	    intr_handler, tp, INTR_TYPE_TTY | INTR_MPSAFE, &cons->intr_handle);
+	err = xen_intr_bind_local_port(dev, cons->evtchn, NULL, intr_handler,
+	    tp, INTR_TYPE_TTY | INTR_MPSAFE, &cons->intr_handle);
 	if (err != 0)
 		return (err);
 
@@ -304,9 +304,7 @@ xencons_notify_ring(struct xencons_priv *cons)
 	if (__predict_true(cons->intr_handle != NULL))
 		xen_intr_signal(cons->intr_handle);
 	else {
-		struct evtchn_send send = {
-			.port = cons->evtchn
-		};
+		struct evtchn_send send = { .port = cons->evtchn };
 
 		HYPERVISOR_event_channel_op(EVTCHNOP_send, &send);
 	}
@@ -329,7 +327,7 @@ xencons_write_ring(struct xencons_priv *cons, const char *buffer,
 
 	mb();
 	KASSERT((wprod - wcons) <= sizeof(intf->out),
-		("console send ring inconsistent"));
+	    ("console send ring inconsistent"));
 
 	for (sent = 0; sent < size; sent++, wprod++) {
 		if ((wprod - wcons) >= sizeof(intf->out))
@@ -377,10 +375,10 @@ xencons_read_ring(struct xencons_priv *cons, char *buffer, unsigned int size)
 }
 
 static const struct xencons_ops xencons_ring_ops = {
-	.early_init	= xencons_early_init_ring,
-	.init		= xencons_init_ring,
-	.read		= xencons_read_ring,
-	.write		= xencons_write_ring,
+	.early_init = xencons_early_init_ring,
+	.init = xencons_init_ring,
+	.read = xencons_read_ring,
+	.write = xencons_write_ring,
 };
 
 /*------------------ Common implementation of the console -------------------*/
@@ -440,7 +438,7 @@ xencons_tx_full(struct xencons_priv *cons)
 static void
 xencons_tx_flush(struct xencons_priv *cons, int force)
 {
-	int        sz;
+	int sz;
 
 	xencons_lock(cons);
 	while (cons->wc != cons->wp) {
@@ -669,8 +667,7 @@ xencons_timeout(void *v)
 	cons = tty_softc(tp);
 
 	if (!xencons_tx(tp))
-		callout_reset(&cons->callout, XC_POLLTIME,
-		    xencons_timeout, tp);
+		callout_reset(&cons->callout, XC_POLLTIME, xencons_timeout, tp);
 }
 
 static void
@@ -683,15 +680,14 @@ xencons_tty_outwakeup(struct tty *tp)
 	callout_stop(&cons->callout);
 
 	if (!xencons_tx(tp))
-		callout_reset(&cons->callout, XC_POLLTIME,
-		    xencons_timeout, tp);
+		callout_reset(&cons->callout, XC_POLLTIME, xencons_timeout, tp);
 }
 
 static struct ttydevsw xencons_ttydevsw = {
-        .tsw_flags	= TF_NOPREFIX,
-        .tsw_open	= xencons_tty_open,
-        .tsw_close	= xencons_tty_close,
-        .tsw_outwakeup	= xencons_tty_outwakeup,
+	.tsw_flags = TF_NOPREFIX,
+	.tsw_open = xencons_tty_open,
+	.tsw_close = xencons_tty_close,
+	.tsw_outwakeup = xencons_tty_outwakeup,
 };
 
 /*------------------------ Main console driver ------------------------------*/
@@ -741,8 +737,8 @@ xencons_attach(device_t dev)
 	}
 
 	/* register handler to flush console on shutdown */
-	if ((EVENTHANDLER_REGISTER(shutdown_post_sync, xencons_shutdown,
-	    tp, SHUTDOWN_PRI_DEFAULT)) == NULL)
+	if ((EVENTHANDLER_REGISTER(shutdown_post_sync, xencons_shutdown, tp,
+		SHUTDOWN_PRI_DEFAULT)) == NULL)
 		device_printf(dev, "shutdown event registration failed!\n");
 
 	return (0);
@@ -768,14 +764,13 @@ xencons_resume(device_t dev)
 	return (0);
 }
 
-static device_method_t xencons_methods[] = {
-	DEVMETHOD(device_identify, xencons_identify),
+static device_method_t xencons_methods[] = { DEVMETHOD(device_identify,
+						 xencons_identify),
 	DEVMETHOD(device_probe, xencons_probe),
 	DEVMETHOD(device_attach, xencons_attach),
 	DEVMETHOD(device_resume, xencons_resume),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t xencons_driver = {
 	driver_name,

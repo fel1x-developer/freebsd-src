@@ -24,11 +24,11 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
-#ifndef	_SIBA_SIBA_EROMVAR_H_
-#define	_SIBA_SIBA_EROMVAR_H_
+#ifndef _SIBA_SIBA_EROMVAR_H_
+#define _SIBA_SIBA_EROMVAR_H_
 
 #include <dev/bhnd/bhnd.h>
 #include <dev/bhnd/bhnd_erom.h>
@@ -37,9 +37,9 @@
 
 struct siba_erom;
 
-#define	SIBA_EROM_
+#define SIBA_EROM_
 
-int	siba_erom_get_core_id(struct siba_erom *sc, u_int core_idx,
-	    struct siba_core_id *result);
+int siba_erom_get_core_id(struct siba_erom *sc, u_int core_idx,
+    struct siba_core_id *result);
 
 #endif /* _SIBA_SIBA_EROMVAR_H_ */

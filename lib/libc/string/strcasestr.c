@@ -39,6 +39,7 @@
 
 #include <ctype.h>
 #include <string.h>
+
 #include "xlocale_private.h"
 
 /*
@@ -58,7 +59,8 @@ strcasestr_l(const char *s, const char *find, locale_t locale)
 			do {
 				if ((sc = *s++) == 0)
 					return (NULL);
-			} while ((char)tolower_l((unsigned char)sc, locale) != c);
+			} while (
+			    (char)tolower_l((unsigned char)sc, locale) != c);
 		} while (strncasecmp_l(s, find, len, locale) != 0);
 		s--;
 	}

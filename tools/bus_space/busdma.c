@@ -27,6 +27,7 @@
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -36,42 +37,41 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "../../sys/dev/proto/proto_dev.h"
 #include "busdma.h"
 
-#include "../../sys/dev/proto/proto_dev.h"
-
 struct obj {
-	int	oid;
-	u_int	type;
-#define	OBJ_TYPE_NONE	0
-#define	OBJ_TYPE_TAG	1
-#define	OBJ_TYPE_MD	2
-#define	OBJ_TYPE_SEG	3
-	u_int	refcnt;
-	int	fd;
+	int oid;
+	u_int type;
+#define OBJ_TYPE_NONE 0
+#define OBJ_TYPE_TAG 1
+#define OBJ_TYPE_MD 2
+#define OBJ_TYPE_SEG 3
+	u_int refcnt;
+	int fd;
 	struct obj *parent;
-	u_long	key;
+	u_long key;
 	union {
 		struct {
-			unsigned long	align;
-			unsigned long	bndry;
-			unsigned long	maxaddr;
-			unsigned long	maxsz;
-			unsigned long	maxsegsz;
-			unsigned long	nsegs;
-			unsigned long	datarate;
+			unsigned long align;
+			unsigned long bndry;
+			unsigned long maxaddr;
+			unsigned long maxsz;
+			unsigned long maxsegsz;
+			unsigned long nsegs;
+			unsigned long datarate;
 		} tag;
 		struct {
-			struct obj	*seg[3];
-			int		nsegs[3];
-#define	BUSDMA_MD_BUS	0
-#define	BUSDMA_MD_PHYS	1
-#define	BUSDMA_MD_VIRT	2
+			struct obj *seg[3];
+			int nsegs[3];
+#define BUSDMA_MD_BUS 0
+#define BUSDMA_MD_PHYS 1
+#define BUSDMA_MD_VIRT 2
 		} md;
 		struct {
-			struct obj	*next;
-			unsigned long	address;
-			unsigned long	size;
+			struct obj *next;
+			unsigned long address;
+			unsigned long size;
 		} seg;
 	} u;
 };
@@ -137,9 +137,8 @@ obj_lookup(int oid, u_int type)
 }
 
 static struct obj *
-bd_tag_new(struct obj *ptag, int fd, u_long align, u_long bndry,
-    u_long maxaddr, u_long maxsz, u_int nsegs, u_long maxsegsz,
-    u_int datarate, u_int flags)
+bd_tag_new(struct obj *ptag, int fd, u_long align, u_long bndry, u_long maxaddr,
+    u_long maxsz, u_int nsegs, u_long maxsegsz, u_int datarate, u_int flags)
 {
 	struct proto_ioc_busdma ioc;
 	struct obj *tag;
@@ -150,7 +149,7 @@ bd_tag_new(struct obj *ptag, int fd, u_long align, u_long bndry,
 
 	memset(&ioc, 0, sizeof(ioc));
 	ioc.request = (ptag != NULL) ? PROTO_IOC_BUSDMA_TAG_DERIVE :
-	    PROTO_IOC_BUSDMA_TAG_CREATE;
+				       PROTO_IOC_BUSDMA_TAG_CREATE;
 	ioc.key = (ptag != NULL) ? ptag->key : 0;
 	ioc.u.tag.align = align;
 	ioc.u.tag.bndry = bndry;
@@ -428,7 +427,7 @@ bd_mem_alloc(int tid, u_int flags)
 
 	return (md->oid);
 
- fail:
+fail:
 	memset(&ioc, 0, sizeof(ioc));
 	ioc.request = PROTO_IOC_BUSDMA_MEM_FREE;
 	ioc.key = md->key;

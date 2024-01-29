@@ -30,11 +30,11 @@
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
+
 #include <stdlib.h>
 #include <string.h>
 
 #include "libutil.h"
-
 
 /*
  * Sort processes first by pid and then tid.

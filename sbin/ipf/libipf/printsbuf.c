@@ -7,10 +7,11 @@
  * $Id$
  */
 
-#ifdef	IPFILTER_SCAN
+#ifdef IPFILTER_SCAN
 
 #include <ctype.h>
 #include <stdio.h>
+
 #include "ipf.h"
 #include "netinet/ip_scan.h"
 
@@ -30,7 +31,8 @@ printsbuf(char *buf)
 #else
 void printsbuf(char *buf);
 
-void printsbuf(char *buf)
+void
+printsbuf(char *buf)
 {
 #if 0
 	buf = buf;	/* gcc -Wextra */

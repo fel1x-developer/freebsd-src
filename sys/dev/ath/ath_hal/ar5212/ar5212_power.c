@@ -20,10 +20,9 @@
 
 #include "ah.h"
 #include "ah_internal.h"
-
 #include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212desc.h"
+#include "ar5212/ar5212reg.h"
 
 /*
  * Notify Power Mgt is enabled in self-generated frames.
@@ -37,10 +36,10 @@
 static HAL_BOOL
 ar5212SetPowerModeAwake(struct ath_hal *ah, int setChip)
 {
-#define	AR_SCR_MASK \
-    (AR_SCR_SLDUR|AR_SCR_SLE|AR_SCR_SLDTP|AR_SCR_SLDWP|\
-     AR_SCR_SLEPOL|AR_SCR_MIBIE|AR_SCR_UNKNOWN)
-#define	POWER_UP_TIME	2000
+#define AR_SCR_MASK                                                \
+	(AR_SCR_SLDUR | AR_SCR_SLE | AR_SCR_SLDTP | AR_SCR_SLDWP | \
+	    AR_SCR_SLEPOL | AR_SCR_MIBIE | AR_SCR_UNKNOWN)
+#define POWER_UP_TIME 2000
 	uint32_t scr, val;
 	int i;
 
@@ -48,7 +47,7 @@ ar5212SetPowerModeAwake(struct ath_hal *ah, int setChip)
 		/*
 		 * Be careful setting the AWAKE mode.  When we are called
 		 * with the chip powered down the read returns 0xffffffff
-		 * which when blindly written back with OS_REG_RMW_FIELD 
+		 * which when blindly written back with OS_REG_RMW_FIELD
 		 * enables the MIB interrupt for the sleep performance
 		 * counters.  This can result in an interrupt storm when
 		 * ANI is in operation as no one knows to turn off the MIB
@@ -57,13 +56,13 @@ ar5212SetPowerModeAwake(struct ath_hal *ah, int setChip)
 		scr = OS_REG_READ(ah, AR_SCR);
 		if (scr & ~AR_SCR_MASK) {
 			HALDEBUG(ah, HAL_DEBUG_ANY,
-			    "%s: bogus SCR 0x%x, PCICFG 0x%x\n",
-			    __func__, scr, OS_REG_READ(ah, AR_PCICFG));
+			    "%s: bogus SCR 0x%x, PCICFG 0x%x\n", __func__, scr,
+			    OS_REG_READ(ah, AR_PCICFG));
 			scr = 0;
 		}
-		scr = (scr &~ AR_SCR_SLE) | AR_SCR_SLE_WAKE;
+		scr = (scr & ~AR_SCR_SLE) | AR_SCR_SLE_WAKE;
 		OS_REG_WRITE(ah, AR_SCR, scr);
-		OS_DELAY(10);	/* Give chip the chance to awake */
+		OS_DELAY(10); /* Give chip the chance to awake */
 
 		for (i = POWER_UP_TIME / 50; i != 0; i--) {
 			val = OS_REG_READ(ah, AR_PCICFG);
@@ -75,11 +74,11 @@ ar5212SetPowerModeAwake(struct ath_hal *ah, int setChip)
 		if (i == 0) {
 #ifdef AH_DEBUG
 			ath_hal_printf(ah, "%s: Failed to wakeup in %ums\n",
-				__func__, POWER_UP_TIME/50);
+			    __func__, POWER_UP_TIME / 50);
 #endif
 			return AH_FALSE;
 		}
-	} 
+	}
 
 	OS_REG_CLR_BIT(ah, AR_STA_ID1, AR_STA_ID1_PWR_SAV);
 	return AH_TRUE;
@@ -120,18 +119,13 @@ HAL_BOOL
 ar5212SetPowerMode(struct ath_hal *ah, HAL_POWER_MODE mode, int setChip)
 {
 #ifdef AH_DEBUG
-	static const char* modes[] = {
-		"AWAKE",
-		"FULL-SLEEP",
-		"NETWORK SLEEP",
-		"UNDEFINED"
-	};
+	static const char *modes[] = { "AWAKE", "FULL-SLEEP", "NETWORK SLEEP",
+		"UNDEFINED" };
 #endif
 	int status = AH_TRUE;
 
 	HALDEBUG(ah, HAL_DEBUG_POWER, "%s: %s -> %s (%s)\n", __func__,
-		modes[ah->ah_powerMode], modes[mode],
-		setChip ? "set chip " : "");
+	    modes[ah->ah_powerMode], modes[mode], setChip ? "set chip " : "");
 	switch (mode) {
 	case HAL_PM_AWAKE:
 		if (setChip)

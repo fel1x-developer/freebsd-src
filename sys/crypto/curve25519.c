@@ -32,11 +32,9 @@
 #include <sodium/crypto_scalarmult_curve25519.h>
 
 bool
-curve25519(uint8_t *public, const uint8_t *secret,
-    const uint8_t *basepoint)
+curve25519(uint8_t *public, const uint8_t *secret, const uint8_t *basepoint)
 {
-	return (crypto_scalarmult_curve25519(public, secret,
-	    basepoint) == 0);
+	return (crypto_scalarmult_curve25519(public, secret, basepoint) == 0);
 }
 
 bool

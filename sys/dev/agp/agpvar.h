@@ -31,7 +31,7 @@
 
 /*
  * The AGP chipset can be acquired by user or kernel code. If the
- * chipset has already been acquired, it cannot be acquired by another 
+ * chipset has already been acquired, it cannot be acquired by another
  * user until the previous user has released it.
  */
 enum agp_acquire_state {
@@ -44,19 +44,19 @@ enum agp_acquire_state {
  * This structure is used to query the state of the AGP system.
  */
 struct agp_info {
-	u_int32_t	ai_mode;
-	vm_offset_t	ai_aperture_base;
-	vm_size_t	ai_aperture_size;
-	vm_size_t	ai_memory_allowed;
-	vm_size_t	ai_memory_used;
-	u_int32_t	ai_devid;
+	u_int32_t ai_mode;
+	vm_offset_t ai_aperture_base;
+	vm_size_t ai_aperture_size;
+	vm_size_t ai_memory_allowed;
+	vm_size_t ai_memory_used;
+	u_int32_t ai_devid;
 };
 
 struct agp_memory_info {
-	vm_size_t	ami_size;	/* size in bytes */
-	vm_offset_t	ami_physical;	/* bogus hack for i810 */
-	vm_offset_t	ami_offset;	/* page offset if bound */
-	int		ami_is_bound;	/* non-zero if bound */
+	vm_size_t ami_size;	  /* size in bytes */
+	vm_offset_t ami_physical; /* bogus hack for i810 */
+	vm_offset_t ami_offset;	  /* page offset if bound */
+	int ami_is_bound;	  /* non-zero if bound */
 };
 
 /*
@@ -76,7 +76,7 @@ void agp_get_info(device_t dev, struct agp_info *info);
 
 /*
  * Acquire the AGP chipset for use by the kernel. Returns EBUSY if the
- * AGP chipset is already acquired by another user. 
+ * AGP chipset is already acquired by another user.
  */
 int agp_acquire(device_t dev);
 
@@ -127,7 +127,7 @@ void agp_memory_info(device_t dev, void *handle, struct agp_memory_info *mi);
  * Returns EINVAL if the given size or offset is not at an AGP page boundary.
  */
 int agp_bind_pages(device_t dev, vm_page_t *pages, vm_size_t size,
-		   vm_offset_t offset);
+    vm_offset_t offset);
 
 /*
  * Unbind a set of pages from the AGP aperture.

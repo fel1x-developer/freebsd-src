@@ -5,13 +5,14 @@
 
 #include <adf_accel_devices.h>
 #include <adf_common_drv.h>
+
 #include "adf_c4xxx_hw_data.h"
 
 /* IA2IOSFSB register definitions */
 #define ADF_C4XXX_IA2IOSFSB_PORTCMD (0x60000 + 0x1320)
 #define ADF_C4XXX_IA2IOSFSB_LOADD (0x60000 + 0x1324)
 #define ADF_C4XXX_IA2IOSFSB_HIADD (0x60000 + 0x1328)
-#define ADF_C4XXX_IA2IOSFSB_DATA(index) ((index)*0x4 + 0x60000 + 0x132C)
+#define ADF_C4XXX_IA2IOSFSB_DATA(index) ((index) * 0x4 + 0x60000 + 0x132C)
 #define ADF_C4XXX_IA2IOSFSB_KHOLE (0x60000 + 0x136C)
 #define ADF_C4XXX_IA2IOSFSB_STATUS (0x60000 + 0x1370)
 
@@ -32,11 +33,12 @@
 #define ADF_C4XXX_MOPCODE 0x07
 
 /* Compute port command based on port ID */
-#define ADF_C4XXX_GET_PORT_CMD(port_id)                                        \
-	((((port_id)&0xFF) << 24) | (ADF_C4XXX_PORTD_CMD_BE << 16) |           \
-	 (ADF_C4XXX_PORTD_CMD_NP << 15) | (ADF_C4XXX_PORTD_CMD_LENDW << 10) |  \
-	 (ADF_C4XXX_PORTD_CMD_EH << 9) | (ADF_C4XXX_PORTD_CMD_ALEN << 8) |     \
-	 (ADF_C4XXX_MOPCODE))
+#define ADF_C4XXX_GET_PORT_CMD(port_id)                                       \
+	((((port_id) & 0xFF) << 24) | (ADF_C4XXX_PORTD_CMD_BE << 16) |        \
+	    (ADF_C4XXX_PORTD_CMD_NP << 15) |                                  \
+	    (ADF_C4XXX_PORTD_CMD_LENDW << 10) |                               \
+	    (ADF_C4XXX_PORTD_CMD_EH << 9) | (ADF_C4XXX_PORTD_CMD_ALEN << 8) | \
+	    (ADF_C4XXX_MOPCODE))
 
 /* Pending reset event/ack message over IOSF-SB */
 #define ADF_C4XXX_IOSFSB_RESET_EVENT BIT(0)

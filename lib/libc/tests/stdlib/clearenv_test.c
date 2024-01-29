@@ -30,12 +30,11 @@
  */
 
 #include <atf-c.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST_VARIABLE		"TEST_VAR"
-#define TEST_SYSTEM_VARIABLE	"PWD"
+#define TEST_VARIABLE "TEST_VAR"
+#define TEST_SYSTEM_VARIABLE "PWD"
 
 extern char **environ;
 

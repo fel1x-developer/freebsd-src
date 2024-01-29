@@ -24,128 +24,128 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_platform.h"
-#include "opt_kbd.h"
 #include "opt_evdev.h"
+#include "opt_kbd.h"
+#include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
+#include <sys/filio.h>
 #include <sys/gpio.h>
+#include <sys/ioccom.h>
+#include <sys/kbio.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/kdb.h>
-
-#include <sys/ioccom.h>
-#include <sys/filio.h>
-#include <sys/kbio.h>
-
-#include <dev/kbd/kbdreg.h>
-#include <dev/kbd/kbdtables.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/gpio/gpiokeys.h>
+#include <dev/kbd/kbdreg.h>
+#include <dev/kbd/kbdtables.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 
 #ifdef EVDEV_SUPPORT
 #include <dev/evdev/evdev.h>
 #include <dev/evdev/input.h>
 #endif
 
-#define	KBD_DRIVER_NAME	"gpiokeys"
+#define KBD_DRIVER_NAME "gpiokeys"
 
-#define	GPIOKEYS_LOCK(_sc)		mtx_lock(&(_sc)->sc_mtx)
-#define	GPIOKEYS_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	GPIOKEYS_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), \
-	    "gpiokeys", MTX_DEF)
-#define	GPIOKEYS_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->sc_mtx);
-#define	GPIOKEYS_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define GPIOKEYS_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define GPIOKEYS_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define GPIOKEYS_LOCK_INIT(_sc)                                                \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), "gpiokeys", \
+	    MTX_DEF)
+#define GPIOKEYS_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx);
+#define GPIOKEYS_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
 
-#define	GPIOKEY_LOCK(_key)		mtx_lock(&(_key)->mtx)
-#define	GPIOKEY_UNLOCK(_key)		mtx_unlock(&(_key)->mtx)
-#define	GPIOKEY_LOCK_INIT(_key) \
+#define GPIOKEY_LOCK(_key) mtx_lock(&(_key)->mtx)
+#define GPIOKEY_UNLOCK(_key) mtx_unlock(&(_key)->mtx)
+#define GPIOKEY_LOCK_INIT(_key) \
 	mtx_init(&(_key)->mtx, "gpiokey", "gpiokey", MTX_DEF)
-#define	GPIOKEY_LOCK_DESTROY(_key)	mtx_destroy(&(_key)->mtx);
+#define GPIOKEY_LOCK_DESTROY(_key) mtx_destroy(&(_key)->mtx);
 
-#define	KEY_PRESS	  0
-#define	KEY_RELEASE	  0x80
+#define KEY_PRESS 0
+#define KEY_RELEASE 0x80
 
-#define	SCAN_PRESS	  0
-#define	SCAN_RELEASE	  0x80
-#define	SCAN_CHAR(c)	((c) & 0x7f)
+#define SCAN_PRESS 0
+#define SCAN_RELEASE 0x80
+#define SCAN_CHAR(c) ((c) & 0x7f)
 
-#define	GPIOKEYS_GLOBAL_NMOD                     8	/* units */
-#define	GPIOKEYS_GLOBAL_NKEYCODE                 6	/* units */
-#define	GPIOKEYS_GLOBAL_IN_BUF_SIZE  (2*(GPIOKEYS_GLOBAL_NMOD + (2*GPIOKEYS_GLOBAL_NKEYCODE)))	/* bytes */
-#define	GPIOKEYS_GLOBAL_IN_BUF_FULL  (GPIOKEYS_GLOBAL_IN_BUF_SIZE / 2)	/* bytes */
-#define	GPIOKEYS_GLOBAL_NFKEY        (sizeof(fkey_tab)/sizeof(fkey_tab[0]))	/* units */
-#define	GPIOKEYS_GLOBAL_BUFFER_SIZE	      64	/* bytes */
+#define GPIOKEYS_GLOBAL_NMOD 8	   /* units */
+#define GPIOKEYS_GLOBAL_NKEYCODE 6 /* units */
+#define GPIOKEYS_GLOBAL_IN_BUF_SIZE \
+	(2 *                        \
+	    (GPIOKEYS_GLOBAL_NMOD + \
+		(2 * GPIOKEYS_GLOBAL_NKEYCODE))) /* bytes */
+#define GPIOKEYS_GLOBAL_IN_BUF_FULL \
+	(GPIOKEYS_GLOBAL_IN_BUF_SIZE / 2) /* bytes */
+#define GPIOKEYS_GLOBAL_NFKEY \
+	(sizeof(fkey_tab) / sizeof(fkey_tab[0])) /* units */
+#define GPIOKEYS_GLOBAL_BUFFER_SIZE 64		 /* bytes */
 
-#define	AUTOREPEAT_DELAY	250
-#define	AUTOREPEAT_REPEAT	34
+#define AUTOREPEAT_DELAY 250
+#define AUTOREPEAT_REPEAT 34
 
 struct gpiokeys_softc;
 
-struct gpiokey
-{
-	struct gpiokeys_softc	*parent_sc;
-	gpio_pin_t		pin;
-	int			irq_rid;
-	struct resource		*irq_res;
-	void			*intr_hl;
-	struct mtx		mtx;
+struct gpiokey {
+	struct gpiokeys_softc *parent_sc;
+	gpio_pin_t pin;
+	int irq_rid;
+	struct resource *irq_res;
+	void *intr_hl;
+	struct mtx mtx;
 #ifdef EVDEV_SUPPORT
-	uint32_t		evcode;
+	uint32_t evcode;
 #endif
-	uint32_t		keycode;
-	int			autorepeat;
-	struct callout		debounce_callout;
-	struct callout		repeat_callout;
-	int			repeat_delay;
-	int			repeat;
-	int			debounce_interval;
+	uint32_t keycode;
+	int autorepeat;
+	struct callout debounce_callout;
+	struct callout repeat_callout;
+	int repeat_delay;
+	int repeat;
+	int debounce_interval;
 };
 
-struct gpiokeys_softc
-{
-	device_t	sc_dev;
-	struct mtx	sc_mtx;
-	struct gpiokey	*sc_keys;
-	int		sc_total_keys;
+struct gpiokeys_softc {
+	device_t sc_dev;
+	struct mtx sc_mtx;
+	struct gpiokey *sc_keys;
+	int sc_total_keys;
 
 #ifdef EVDEV_SUPPORT
-	struct evdev_dev	*sc_evdev;
+	struct evdev_dev *sc_evdev;
 #endif
-	keyboard_t	sc_kbd;
-	keymap_t	sc_keymap;
-	accentmap_t	sc_accmap;
-	fkeytab_t	sc_fkeymap[GPIOKEYS_GLOBAL_NFKEY];
+	keyboard_t sc_kbd;
+	keymap_t sc_keymap;
+	accentmap_t sc_accmap;
+	fkeytab_t sc_fkeymap[GPIOKEYS_GLOBAL_NFKEY];
 
-	uint32_t	sc_input[GPIOKEYS_GLOBAL_IN_BUF_SIZE];	/* input buffer */
-	uint32_t	sc_time_ms;
-#define	GPIOKEYS_GLOBAL_FLAG_POLLING	0x00000002
+	uint32_t sc_input[GPIOKEYS_GLOBAL_IN_BUF_SIZE]; /* input buffer */
+	uint32_t sc_time_ms;
+#define GPIOKEYS_GLOBAL_FLAG_POLLING 0x00000002
 
-	uint32_t	sc_flags;		/* flags */
+	uint32_t sc_flags; /* flags */
 
-	int		sc_mode;		/* input mode (K_XLATE,K_RAW,K_CODE) */
-	int		sc_state;		/* shift/lock key state */
-	int		sc_accents;		/* accent key index (> 0) */
-	int		sc_kbd_size;
+	int sc_mode;	/* input mode (K_XLATE,K_RAW,K_CODE) */
+	int sc_state;	/* shift/lock key state */
+	int sc_accents; /* accent key index (> 0) */
+	int sc_kbd_size;
 
-	uint16_t	sc_inputs;
-	uint16_t	sc_inputhead;
-	uint16_t	sc_inputtail;
+	uint16_t sc_inputs;
+	uint16_t sc_inputhead;
+	uint16_t sc_inputtail;
 
-	uint8_t		sc_kbd_id;
+	uint8_t sc_kbd_id;
 };
 
 /* gpio-keys device */
@@ -154,13 +154,13 @@ static int gpiokeys_attach(device_t);
 static int gpiokeys_detach(device_t);
 
 /* kbd methods prototypes */
-static int	gpiokeys_set_typematic(keyboard_t *, int);
-static uint32_t	gpiokeys_read_char(keyboard_t *, int);
-static void	gpiokeys_clear_state(keyboard_t *);
-static int	gpiokeys_ioctl(keyboard_t *, u_long, caddr_t);
-static int	gpiokeys_enable(keyboard_t *);
-static int	gpiokeys_disable(keyboard_t *);
-static void	gpiokeys_event_keyinput(struct gpiokeys_softc *);
+static int gpiokeys_set_typematic(keyboard_t *, int);
+static uint32_t gpiokeys_read_char(keyboard_t *, int);
+static void gpiokeys_clear_state(keyboard_t *);
+static int gpiokeys_ioctl(keyboard_t *, u_long, caddr_t);
+static int gpiokeys_enable(keyboard_t *);
+static int gpiokeys_disable(keyboard_t *);
+static void gpiokeys_event_keyinput(struct gpiokeys_softc *);
 
 static void
 gpiokeys_put_key(struct gpiokeys_softc *sc, uint32_t key)
@@ -224,8 +224,8 @@ gpiokey_autorepeat(void *arg)
 
 	gpiokeys_key_event(key->parent_sc, key, 1);
 
-	callout_reset(&key->repeat_callout, key->repeat,
-		    gpiokey_autorepeat, key);
+	callout_reset(&key->repeat_callout, key->repeat, gpiokey_autorepeat,
+	    key);
 }
 
 static void
@@ -243,10 +243,8 @@ gpiokey_debounced_intr(void *arg)
 			callout_reset(&key->repeat_callout, key->repeat_delay,
 			    gpiokey_autorepeat, key);
 		}
-	}
-	else {
-		if (key->autorepeat &&
-		    callout_pending(&key->repeat_callout))
+	} else {
+		if (key->autorepeat && callout_pending(&key->repeat_callout))
 			callout_stop(&key->repeat_callout);
 		gpiokeys_key_event(key->parent_sc, key, 0);
 	}
@@ -315,16 +313,16 @@ gpiokeys_attach_key(struct gpiokeys_softc *sc, phandle_t node,
 		code = fdt32_to_cpu(prop);
 		key->keycode = gpiokey_map_linux_code(code);
 		if (key->keycode == GPIOKEY_NONE)
-			device_printf(sc->sc_dev, "<%s> failed to map linux,code value 0x%x\n",
+			device_printf(sc->sc_dev,
+			    "<%s> failed to map linux,code value 0x%x\n",
 			    key_name, code);
 #ifdef EVDEV_SUPPORT
 		key->evcode = code;
 		evdev_support_key(sc->sc_evdev, code);
 #endif
-	}
-	else
-		device_printf(sc->sc_dev, "<%s> no linux,code or freebsd,code property\n",
-		    key_name);
+	} else
+		device_printf(sc->sc_dev,
+		    "<%s> no linux,code or freebsd,code property\n", key_name);
 
 	err = gpio_pin_get_by_ofw_idx(sc->sc_dev, node, 0, &key->pin);
 	if (err) {
@@ -337,7 +335,8 @@ gpiokeys_attach_key(struct gpiokeys_softc *sc, phandle_t node,
 	key->irq_res = gpio_alloc_intr_resource(sc->sc_dev, &key->irq_rid,
 	    RF_ACTIVE, key->pin, GPIO_INTR_EDGE_BOTH);
 	if (!key->irq_res) {
-		device_printf(sc->sc_dev, "<%s> cannot allocate interrupt\n", key_name);
+		device_printf(sc->sc_dev, "<%s> cannot allocate interrupt\n",
+		    key_name);
 		gpio_pin_release(key->pin);
 		key->pin = NULL;
 		if (name)
@@ -345,10 +344,11 @@ gpiokeys_attach_key(struct gpiokeys_softc *sc, phandle_t node,
 		return;
 	}
 
-	if (bus_setup_intr(sc->sc_dev, key->irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
-			NULL, gpiokey_intr, key,
-			&key->intr_hl) != 0) {
-		device_printf(sc->sc_dev, "<%s> unable to setup the irq handler\n", key_name);
+	if (bus_setup_intr(sc->sc_dev, key->irq_res,
+		INTR_TYPE_MISC | INTR_MPSAFE, NULL, gpiokey_intr, key,
+		&key->intr_hl) != 0) {
+		device_printf(sc->sc_dev,
+		    "<%s> unable to setup the irq handler\n", key_name);
 		bus_release_resource(sc->sc_dev, SYS_RES_IRQ, key->irq_rid,
 		    key->irq_res);
 		gpio_pin_release(key->pin);
@@ -360,9 +360,11 @@ gpiokeys_attach_key(struct gpiokeys_softc *sc, phandle_t node,
 	}
 
 	if (bootverbose)
-		device_printf(sc->sc_dev, "<%s> code=%08x, autorepeat=%d, "\
-		    "repeat=%d, repeat_delay=%d\n", key_name, key->keycode,
-		    key->autorepeat, key->repeat, key->repeat_delay);
+		device_printf(sc->sc_dev,
+		    "<%s> code=%08x, autorepeat=%d, "
+		    "repeat=%d, repeat_delay=%d\n",
+		    key_name, key->keycode, key->autorepeat, key->repeat,
+		    key->repeat_delay);
 
 	if (name)
 		OF_prop_free(name);
@@ -376,8 +378,8 @@ gpiokeys_detach_key(struct gpiokeys_softc *sc, struct gpiokey *key)
 	if (key->intr_hl)
 		bus_teardown_intr(sc->sc_dev, key->irq_res, key->intr_hl);
 	if (key->irq_res)
-		bus_release_resource(sc->sc_dev, SYS_RES_IRQ,
-		    key->irq_rid, key->irq_res);
+		bus_release_resource(sc->sc_dev, SYS_RES_IRQ, key->irq_rid,
+		    key->irq_res);
 	if (callout_pending(&key->repeat_callout))
 		callout_drain(&key->repeat_callout);
 	if (callout_pending(&key->debounce_callout))
@@ -428,8 +430,8 @@ gpiokeys_attach(device_t dev)
 	sc->sc_keymap = key_map;
 	sc->sc_accmap = accent_map;
 
-	kbd_set_maps(kbd, &sc->sc_keymap, &sc->sc_accmap,
-	    sc->sc_fkeymap, GPIOKEYS_GLOBAL_NFKEY);
+	kbd_set_maps(kbd, &sc->sc_keymap, &sc->sc_accmap, sc->sc_fkeymap,
+	    GPIOKEYS_GLOBAL_NFKEY);
 
 	KBD_FOUND_DEVICE(kbd);
 
@@ -480,15 +482,17 @@ gpiokeys_attach(device_t dev)
 	}
 
 	if (total_keys) {
-		sc->sc_keys =  malloc(sizeof(struct gpiokey) * total_keys,
+		sc->sc_keys = malloc(sizeof(struct gpiokey) * total_keys,
 		    M_DEVBUF, M_WAITOK | M_ZERO);
 
 		sc->sc_total_keys = 0;
 		/* Traverse the 'gpio-keys' node and count keys */
-		for (child = OF_child(keys); child != 0; child = OF_peer(child)) {
+		for (child = OF_child(keys); child != 0;
+		     child = OF_peer(child)) {
 			if (!OF_hasprop(child, "gpios"))
 				continue;
-			gpiokeys_attach_key(sc, child ,&sc->sc_keys[sc->sc_total_keys]);
+			gpiokeys_attach_key(sc, child,
+			    &sc->sc_keys[sc->sc_total_keys]);
 			sc->sc_total_keys++;
 		}
 	}
@@ -519,8 +523,8 @@ gpiokeys_detach(device_t dev)
 	for (i = 0; i < sc->sc_total_keys; i++)
 		gpiokeys_detach_key(sc, &sc->sc_keys[i]);
 
-	kbd = kbd_get_keyboard(kbd_find_keyboard(KBD_DRIVER_NAME,
-	    device_get_unit(dev)));
+	kbd = kbd_get_keyboard(
+	    kbd_find_keyboard(KBD_DRIVER_NAME, device_get_unit(dev)));
 
 #ifdef KBD_INSTALL_CDEV
 	kbd_detach(kbd);
@@ -689,8 +693,8 @@ gpiokeys_get_key(struct gpiokeys_softc *sc, uint8_t wait)
 {
 	int32_t c;
 
-	KASSERT((!kdb_active && !SCHEDULER_STOPPED())
-	    || (sc->sc_flags & GPIOKEYS_GLOBAL_FLAG_POLLING) != 0,
+	KASSERT((!kdb_active && !SCHEDULER_STOPPED()) ||
+		(sc->sc_flags & GPIOKEYS_GLOBAL_FLAG_POLLING) != 0,
 	    ("not polling in kdb or panic\n"));
 
 	GPIOKEYS_ASSERT_LOCKED(sc);
@@ -764,8 +768,7 @@ next_code:
 
 	/* keycode to key action */
 	action = genkbd_keyaction(kbd, SCAN_CHAR(keycode),
-	    (keycode & SCAN_RELEASE),
-	    &sc->sc_state, &sc->sc_accents);
+	    (keycode & SCAN_RELEASE), &sc->sc_state, &sc->sc_accents);
 	if (action == NOKEY) {
 		goto next_code;
 	}
@@ -799,7 +802,7 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 #endif
 
 	switch (cmd) {
-	case KDGKBMODE:		/* get keyboard mode */
+	case KDGKBMODE: /* get keyboard mode */
 		*(int *)arg = sc->sc_mode;
 		break;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
@@ -809,7 +812,7 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBMODE:		/* set keyboard mode */
+	case KDSKBMODE: /* set keyboard mode */
 		switch (*(int *)arg) {
 		case K_XLATE:
 			if (sc->sc_mode != K_XLATE) {
@@ -821,7 +824,8 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		case K_RAW:
 		case K_CODE:
 			if (sc->sc_mode != *(int *)arg) {
-				if ((sc->sc_flags & GPIOKEYS_GLOBAL_FLAG_POLLING) == 0)
+				if ((sc->sc_flags &
+					GPIOKEYS_GLOBAL_FLAG_POLLING) == 0)
 					gpiokeys_clear_state(kbd);
 				sc->sc_mode = *(int *)arg;
 			}
@@ -831,7 +835,7 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		}
 		break;
 
-	case KDGETLED:			/* get keyboard LED */
+	case KDGETLED: /* get keyboard LED */
 		*(int *)arg = KBD_LED_VAL(kbd);
 		break;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
@@ -841,10 +845,10 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETLED:			/* set keyboard LED */
+	case KDSETLED: /* set keyboard LED */
 		KBD_LED_VAL(kbd) = *(int *)arg;
 		break;
-	case KDGKBSTATE:		/* get lock key state */
+	case KDGKBSTATE: /* get lock key state */
 		*(int *)arg = sc->sc_state & LOCK_MASK;
 		break;
 #if defined(COMPAT_FREEBSD6) || defined(COMPAT_FREEBSD5) || \
@@ -854,7 +858,7 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSKBSTATE:		/* set lock key state */
+	case KDSKBSTATE: /* set lock key state */
 		if (*(int *)arg & ~LOCK_MASK) {
 			return (EINVAL);
 		}
@@ -862,8 +866,8 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		sc->sc_state |= *(int *)arg;
 		return (0);
 
-	case KDSETREPEAT:		/* set keyboard repeat rate (new
-					 * interface) */
+	case KDSETREPEAT: /* set keyboard repeat rate (new
+			   * interface) */
 		if (!KBD_HAS_DEVICE(kbd)) {
 			return (0);
 		}
@@ -873,7 +877,7 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		if (((int *)arg)[0] < 0) {
 			return (EINVAL);
 		}
-		if (((int *)arg)[0] < 200)	/* fastest possible value */
+		if (((int *)arg)[0] < 200) /* fastest possible value */
 			kbd->kb_delay1 = 200;
 		else
 			kbd->kb_delay1 = ((int *)arg)[0];
@@ -887,20 +891,20 @@ gpiokeys_ioctl_locked(keyboard_t *kbd, u_long cmd, caddr_t arg)
 		arg = (caddr_t)&ival;
 		/* FALLTHROUGH */
 #endif
-	case KDSETRAD:			/* set keyboard repeat rate (old
-					 * interface) */
+	case KDSETRAD: /* set keyboard repeat rate (old
+			* interface) */
 		return (gpiokeys_set_typematic(kbd, *(int *)arg));
 
-	case PIO_KEYMAP:		/* set keyboard translation table */
-	case PIO_KEYMAPENT:		/* set keyboard translation table
-					 * entry */
-	case PIO_DEADKEYMAP:		/* set accent key translation table */
+	case PIO_KEYMAP:     /* set keyboard translation table */
+	case PIO_KEYMAPENT:  /* set keyboard translation table
+			      * entry */
+	case PIO_DEADKEYMAP: /* set accent key translation table */
 #ifdef COMPAT_FREEBSD13
-	case OPIO_KEYMAP:		/* set keyboard translation table
-					 * (compat) */
-	case OPIO_DEADKEYMAP:		/* set accent key translation table
-					 * (compat) */
-#endif /* COMPAT_FREEBSD13 */
+	case OPIO_KEYMAP:     /* set keyboard translation table
+			       * (compat) */
+	case OPIO_DEADKEYMAP: /* set accent key translation table
+			       * (compat) */
+#endif			      /* COMPAT_FREEBSD13 */
 		sc->sc_accents = 0;
 		/* FALLTHROUGH */
 	default:
@@ -937,7 +941,7 @@ gpiokeys_clear_state(keyboard_t *kbd)
 	struct gpiokeys_softc *sc = kbd->kb_data;
 
 	sc->sc_flags &= ~(GPIOKEYS_GLOBAL_FLAG_POLLING);
-	sc->sc_state &= LOCK_MASK;	/* preserve locking key state */
+	sc->sc_state &= LOCK_MASK; /* preserve locking key state */
 	sc->sc_accents = 0;
 }
 
@@ -989,10 +993,9 @@ gpiokeys_event_keyinput(struct gpiokeys_softc *sc)
 	if ((sc->sc_flags & GPIOKEYS_GLOBAL_FLAG_POLLING) != 0)
 		return;
 
-	if (KBD_IS_ACTIVE(&sc->sc_kbd) &&
-	    KBD_IS_BUSY(&sc->sc_kbd)) {
+	if (KBD_IS_ACTIVE(&sc->sc_kbd) && KBD_IS_BUSY(&sc->sc_kbd)) {
 		/* let the callback function process the input */
-		(sc->sc_kbd.kb_callback.kc_func) (&sc->sc_kbd, KBDIO_KEYINPUT,
+		(sc->sc_kbd.kb_callback.kc_func)(&sc->sc_kbd, KBDIO_KEYINPUT,
 		    sc->sc_kbd.kb_callback.kc_arg);
 	} else {
 		/* read and discard the input, no one is waiting for it */
@@ -1038,13 +1041,12 @@ gpiokeys_driver_load(module_t mod, int what, void *arg)
 	return (0);
 }
 
-static device_method_t gpiokeys_methods[] = {
-	DEVMETHOD(device_probe,		gpiokeys_probe),
-	DEVMETHOD(device_attach,	gpiokeys_attach),
-	DEVMETHOD(device_detach,	gpiokeys_detach),
+static device_method_t gpiokeys_methods[] = { DEVMETHOD(device_probe,
+						  gpiokeys_probe),
+	DEVMETHOD(device_attach, gpiokeys_attach),
+	DEVMETHOD(device_detach, gpiokeys_detach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t gpiokeys_driver = {
 	"gpiokeys",

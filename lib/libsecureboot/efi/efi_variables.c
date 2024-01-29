@@ -25,16 +25,17 @@
  */
 
 #include <sys/cdefs.h>
+
+#include <Guid/ImageAuthentication.h>
+#include <efi.h>
+#include <efilib.h>
 #include <stand.h>
 #include <string.h>
 
-#include <efi.h>
-#include <efilib.h>
-#include <Guid/ImageAuthentication.h>
-
 #define NEED_BRSSL_H
-#include "../libsecureboot-priv.h"
 #include <brssl.h>
+
+#include "../libsecureboot-priv.h"
 
 static EFI_GUID ImageSecurityDatabaseGUID = EFI_IMAGE_SECURITY_DATABASE_GUID;
 
@@ -80,7 +81,7 @@ efi_secure_boot_enabled(void)
  * Iterate through UEFI variable and extract X509 certificates from it.
  * The EFI_* structures and related guids are defined in UEFI standard.
  */
-static br_x509_certificate*
+static br_x509_certificate *
 efi_get_certs(const char *name, size_t *count)
 {
 	br_x509_certificate *certs;
@@ -99,7 +100,8 @@ efi_get_certs(const char *name, size_t *count)
 	/*
 	 * Read variable length and allocate memory for it
 	 */
-	status = efi_getenv(&ImageSecurityDatabaseGUID, name, database, &db_size);
+	status = efi_getenv(&ImageSecurityDatabaseGUID, name, database,
+	    &db_size);
 	if (status != EFI_BUFFER_TOO_SMALL)
 		return (NULL);
 
@@ -107,27 +109,25 @@ efi_get_certs(const char *name, size_t *count)
 	if (database == NULL)
 		return (NULL);
 
-	status = efi_getenv(&ImageSecurityDatabaseGUID, name, database, &db_size);
+	status = efi_getenv(&ImageSecurityDatabaseGUID, name, database,
+	    &db_size);
 	if (status != EFI_SUCCESS)
 		goto fail;
 
-	for (list = (EFI_SIGNATURE_LIST*) database;
-	    db_size >= list->SignatureListSize && db_size > 0;
-	    db_size -= list->SignatureListSize,
-	    list = (EFI_SIGNATURE_LIST*)
-	    ((UINT8*)list + list->SignatureListSize)) {
+	for (list = (EFI_SIGNATURE_LIST *)database;
+	     db_size >= list->SignatureListSize && db_size > 0;
+	     db_size -= list->SignatureListSize,
+	    list = (EFI_SIGNATURE_LIST *)((UINT8 *)list +
+		list->SignatureListSize)) {
 
 		/* We are only interested in entries containing X509 certs. */
-		if (memcmp(&efiCertX509GUID,
-		    &list->SignatureType,
-		    sizeof(EFI_GUID)) != 0) {
+		if (memcmp(&efiCertX509GUID, &list->SignatureType,
+			sizeof(EFI_GUID)) != 0) {
 			continue;
 		}
 
-		entry = (EFI_SIGNATURE_DATA*)
-		    ((UINT8*)list +
-		    sizeof(EFI_SIGNATURE_LIST) +
-		    list->SignatureHeaderSize);
+		entry = (EFI_SIGNATURE_DATA *)((UINT8 *)list +
+		    sizeof(EFI_SIGNATURE_LIST) + list->SignatureHeaderSize);
 
 		certs = realloc(certs,
 		    (cert_count + 1) * sizeof(br_x509_certificate));
@@ -136,13 +136,13 @@ efi_get_certs(const char *name, size_t *count)
 			goto fail;
 		}
 
-		certs[cert_count].data_len = list->SignatureSize - sizeof(EFI_GUID);
+		certs[cert_count].data_len = list->SignatureSize -
+		    sizeof(EFI_GUID);
 		certs[cert_count].data = malloc(certs[cert_count].data_len);
 		if (certs[cert_count].data == NULL)
 			goto fail;
 
-		memcpy(certs[cert_count].data,
-		    entry->SignatureData,
+		memcpy(certs[cert_count].data, entry->SignatureData,
 		    certs[cert_count].data_len);
 
 		cert_count++;
@@ -157,14 +157,13 @@ fail:
 	free_certificates(certs, cert_count);
 	xfree(database);
 	return (NULL);
-
 }
 
 /*
  * Extract digests from UEFI "dbx" variable.
  * UEFI standard specifies three types of digest - sha256, sha386, sha512.
  */
-hash_data*
+hash_data *
 efi_get_forbidden_digests(size_t *count)
 {
 	UINT8 *database;
@@ -180,7 +179,8 @@ efi_get_forbidden_digests(size_t *count)
 	database = NULL;
 	digests = NULL;
 
-	status = efi_getenv(&ImageSecurityDatabaseGUID, "dbx", database, &db_size);
+	status = efi_getenv(&ImageSecurityDatabaseGUID, "dbx", database,
+	    &db_size);
 	if (status != EFI_BUFFER_TOO_SMALL)
 		return (NULL);
 
@@ -188,26 +188,26 @@ efi_get_forbidden_digests(size_t *count)
 	if (database == NULL)
 		return (NULL);
 
-	status = efi_getenv(&ImageSecurityDatabaseGUID, "dbx", database, &db_size);
+	status = efi_getenv(&ImageSecurityDatabaseGUID, "dbx", database,
+	    &db_size);
 	if (status != EFI_SUCCESS)
 		goto fail;
 
-
-	for (list = (EFI_SIGNATURE_LIST*) database;
-	    db_size >= list->SignatureListSize && db_size > 0;
-	    db_size -= list->SignatureListSize,
-	    list = (EFI_SIGNATURE_LIST*)
-	    ((UINT8*)list + list->SignatureListSize)) {
+	for (list = (EFI_SIGNATURE_LIST *)database;
+	     db_size >= list->SignatureListSize && db_size > 0;
+	     db_size -= list->SignatureListSize,
+	    list = (EFI_SIGNATURE_LIST *)((UINT8 *)list +
+		list->SignatureListSize)) {
 
 		/* We are only interested in entries that contain digests. */
 		if (memcmp(&efiCertX509Sha256GUID, &list->SignatureType,
-		    sizeof(EFI_GUID)) == 0) {
+			sizeof(EFI_GUID)) == 0) {
 			hash_size = br_sha256_SIZE;
 		} else if (memcmp(&efiCertX509Sha384GUID, &list->SignatureType,
-		    sizeof(EFI_GUID)) == 0) {
+			       sizeof(EFI_GUID)) == 0) {
 			hash_size = br_sha384_SIZE;
 		} else if (memcmp(&efiCertX509Sha5122UID, &list->SignatureType,
-		    sizeof(EFI_GUID)) == 0) {
+			       sizeof(EFI_GUID)) == 0) {
 			hash_size = br_sha512_SIZE;
 		} else {
 			continue;
@@ -217,12 +217,13 @@ efi_get_forbidden_digests(size_t *count)
 		 * A single entry can have multiple digests
 		 * of the same type for some reason.
 		 */
-		header_size = sizeof(EFI_SIGNATURE_LIST) + list->SignatureHeaderSize;
+		header_size = sizeof(EFI_SIGNATURE_LIST) +
+		    list->SignatureHeaderSize;
 
 		/* Calculate the number of entries basing on structure size */
 		entry_count = list->SignatureListSize - header_size;
 		entry_count /= list->SignatureSize;
-		entry = (EFI_SIGNATURE_DATA*)((UINT8*)list + header_size);
+		entry = (EFI_SIGNATURE_DATA *)((UINT8 *)list + header_size);
 		while (entry_count-- > 0) {
 			digests = realloc(digests,
 			    (digest_count + 1) * sizeof(hash_data));
@@ -235,12 +236,12 @@ efi_get_forbidden_digests(size_t *count)
 			if (digests[digest_count].data == NULL)
 				goto fail;
 
-			memcpy(digests[digest_count].data,
-			    entry->SignatureData,
+			memcpy(digests[digest_count].data, entry->SignatureData,
 			    hash_size);
 			digests[digest_count].hash_size = hash_size;
 
-			entry = (EFI_SIGNATURE_DATA*)(entry + list->SignatureSize);
+			entry = (EFI_SIGNATURE_DATA *)(entry +
+			    list->SignatureSize);
 			digest_count++;
 		}
 	}
@@ -260,14 +261,14 @@ fail:
 }
 
 /* Copy x509 certificates from db */
-br_x509_certificate*
+br_x509_certificate *
 efi_get_trusted_certs(size_t *count)
 {
 	return (efi_get_certs("db", count));
 }
 
 /* Copy forbidden certificates from dbx */
-br_x509_certificate*
+br_x509_certificate *
 efi_get_forbidden_certs(size_t *count)
 {
 	return (efi_get_certs("dbx", count));

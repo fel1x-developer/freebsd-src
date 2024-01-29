@@ -10,7 +10,9 @@
 #define pm_runtime_use_autosuspend(x) (void)(x)
 #define pm_runtime_dont_use_autosuspend(x) (void)(x)
 #define pm_runtime_put_autosuspend(x) (void)(x)
-#define pm_runtime_set_autosuspend_delay(x, y) (void)(x); (void)(y)
+#define pm_runtime_set_autosuspend_delay(x, y) \
+	(void)(x);                             \
+	(void)(y)
 #define pm_runtime_set_active(x) (void)(x)
 #define pm_runtime_allow(x) (void)(x)
 #define pm_runtime_put_noidle(x) (void)(x)
@@ -46,4 +48,4 @@ pm_runtime_suspended(struct device *dev)
 	return 0;
 }
 
-#endif	/* _LINUXKPI_LINUX_PM_RUNTIME_H_ */
+#endif /* _LINUXKPI_LINUX_PM_RUNTIME_H_ */

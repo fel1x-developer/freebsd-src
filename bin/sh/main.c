@@ -32,35 +32,36 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <signal.h>
 #include <sys/stat.h>
-#include <unistd.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <errno.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
 
-#include "shell.h"
-#include "main.h"
+#include "builtins.h"
+#include "cd.h"
+#include "error.h"
+#include "eval.h"
+#include "exec.h"
+#include "expand.h"
+#include "input.h"
+#include "jobs.h"
 #include "mail.h"
+#include "main.h"
+#include "memalloc.h"
+#include "mystring.h"
+#include "nodes.h"
 #include "options.h"
 #include "output.h"
 #include "parser.h"
-#include "nodes.h"
-#include "expand.h"
-#include "eval.h"
-#include "jobs.h"
-#include "input.h"
+#include "redir.h"
+#include "shell.h"
+#include "show.h"
 #include "trap.h"
 #include "var.h"
-#include "show.h"
-#include "memalloc.h"
-#include "error.h"
-#include "mystring.h"
-#include "exec.h"
-#include "cd.h"
-#include "redir.h"
-#include "builtins.h"
 #ifndef NO_HISTORY
 #include "myhistedit.h"
 #endif
@@ -96,18 +97,18 @@ main(int argc, char *argv[])
 	volatile int state;
 	char *shinit;
 
-	(void) setlocale(LC_ALL, "");
+	(void)setlocale(LC_ALL, "");
 	initcharset();
 	state = 0;
 	if (setjmp(main_handler.loc)) {
-		if (state == 0 || iflag == 0 || ! rootshell ||
+		if (state == 0 || iflag == 0 || !rootshell ||
 		    exception == EXEXIT)
 			exitshell(exitstatus);
 		reset();
 		if (exception == EXINT)
 			out2fmt_flush("\n");
 		popstackmark(&smark);
-		FORCEINTON;				/* enable interrupts */
+		FORCEINTON; /* enable interrupts */
 		if (state == 1)
 			goto state1;
 		else if (state == 2)
@@ -120,7 +121,8 @@ main(int argc, char *argv[])
 	handler = &main_handler;
 #ifdef DEBUG
 	opentrace();
-	trputs("Shell args:  ");  trargs(argv);
+	trputs("Shell args:  ");
+	trargs(argv);
 #endif
 	rootpid = getpid();
 	rootshell = 1;
@@ -137,7 +139,7 @@ main(int argc, char *argv[])
 	if (argv[0] && argv[0][0] == '-') {
 		state = 1;
 		read_profile("/etc/profile");
-state1:
+	state1:
 		state = 2;
 		if (privileged == 0)
 			read_profile("${HOME-}/.profile");
@@ -211,7 +213,8 @@ cmdloop(int top)
 			if (!stoppedjobs()) {
 				if (!Iflag)
 					break;
-				out2fmt_flush("\nUse \"exit\" to leave shell.\n");
+				out2fmt_flush(
+				    "\nUse \"exit\" to leave shell.\n");
 			}
 			numeof++;
 		} else if (n != NULL && nflag == 0) {
@@ -233,8 +236,6 @@ cmdloop(int top)
 		flushout(out2);
 	}
 }
-
-
 
 /*
  * Read /etc/profile or .profile.  Return on error.
@@ -263,8 +264,6 @@ read_profile(const char *name)
 	popfile();
 }
 
-
-
 /*
  * Read a file containing shell functions.
  */
@@ -277,13 +276,10 @@ readcmdfile(const char *name, int verify)
 	popfile();
 }
 
-
-
 /*
  * Take commands from a file.  To be compatible we should do a path
  * search for the file, which is necessary to find sub-commands.
  */
-
 
 static char *
 find_dot_file(char *basename)
@@ -294,7 +290,7 @@ find_dot_file(char *basename)
 	struct stat statb;
 
 	/* don't try this for absolute or relative paths */
-	if( strchr(basename, '/'))
+	if (strchr(basename, '/'))
 		return basename;
 
 	while ((fullname = padvance(&path, &opt, basename)) != NULL) {
@@ -333,7 +329,6 @@ dotcmd(int argc, char **argv)
 	popfile();
 	return exitstatus;
 }
-
 
 int
 exitcmd(int argc, char **argv)

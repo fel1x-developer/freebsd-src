@@ -30,9 +30,10 @@
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
-#include "opal.h"
 
 #include <machine/cpufunc.h>
+
+#include "opal.h"
 
 /*
  * Manage asynchronous tokens for the OPAL abstraction layer.
@@ -47,8 +48,8 @@ static vmem_t *async_token_pool;
 static void opal_handle_async_completion(void *, struct opal_msg *);
 
 struct async_completion {
-	volatile uint64_t 	completed;
-	struct opal_msg 	msg;
+	volatile uint64_t completed;
+	struct opal_msg msg;
 };
 
 struct async_completion *completions;
@@ -63,8 +64,8 @@ opal_init_async_tokens(int count)
 
 	async_token_pool = vmem_create("OPAL Async", 0, count, 1, 1,
 	    M_WAITOK | M_FIRSTFIT);
-	completions = malloc(count * sizeof(struct async_completion),
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	completions = malloc(count * sizeof(struct async_completion), M_DEVBUF,
+	    M_WAITOK | M_ZERO);
 
 	EVENTHANDLER_REGISTER(OPAL_ASYNC_COMP, opal_handle_async_completion,
 	    NULL, EVENTHANDLER_PRI_ANY);
@@ -100,8 +101,8 @@ opal_wait_completion(void *buf, uint64_t size, int token)
 	int err;
 
 	do {
-		err = opal_call(OPAL_CHECK_ASYNC_COMPLETION,
-		    vtophys(buf), size, token);
+		err = opal_call(OPAL_CHECK_ASYNC_COMPLETION, vtophys(buf), size,
+		    token);
 		if (err == OPAL_BUSY) {
 			if (completions[token].completed) {
 				atomic_thread_fence_acq();
@@ -115,7 +116,8 @@ opal_wait_completion(void *buf, uint64_t size, int token)
 	return (err);
 }
 
-static void opal_handle_async_completion(void *arg, struct opal_msg *msg)
+static void
+opal_handle_async_completion(void *arg, struct opal_msg *msg)
 {
 	int token;
 

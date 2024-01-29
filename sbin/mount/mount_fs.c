@@ -46,16 +46,13 @@
 #include "extern.h"
 #include "mntopts.h"
 
-static struct mntopt mopts[] = {
-	MOPT_STDOPTS,
-	MOPT_END
-};
+static struct mntopt mopts[] = { MOPT_STDOPTS, MOPT_END };
 
 static void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: mount [-t fstype] [-o options] target_fs mount_point\n");
+	    "usage: mount [-t fstype] [-o options] target_fs mount_point\n");
 	exit(1);
 }
 
@@ -78,9 +75,9 @@ mount_fs(const char *vfstype, int argc, char *argv[])
 	iov = NULL;
 	iovlen = 0;
 
-	optind = optreset = 1;		/* Reset for parse of new argv. */
+	optind = optreset = 1; /* Reset for parse of new argv. */
 	while ((ch = getopt(argc, argv, "o:")) != -1) {
-		switch(ch) {
+		switch (ch) {
 		case 'o':
 			getmntopts(optarg, mopts, &mntflags, 0);
 			p = strchr(optarg, '=');

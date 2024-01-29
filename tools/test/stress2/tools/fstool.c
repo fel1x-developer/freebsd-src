@@ -26,8 +26,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/errno.h>
 #include <sys/param.h>
+#include <sys/errno.h>
 #include <sys/stat.h>
 #include <sys/sysctl.h>
 
@@ -46,7 +46,8 @@ static char *buffer;
 static char here[MAXPATHLEN + 1];
 
 static void
-mkDir2(char *path) {
+mkDir2(char *path)
+{
 	int fd, i, j, len;
 	char newPath[MAXPATHLEN + 1];
 	char file[128];
@@ -57,17 +58,17 @@ mkDir2(char *path) {
 		err(1, "chdir(%s) @ %d", path, __LINE__);
 
 	for (i = 0; i < max; i++) {
-		sprintf(newPath,"d%d", i);
+		sprintf(newPath, "d%d", i);
 		if (mkdir(newPath, 0700) == -1)
 			err(1, "mkdir(%s) @ %d", newPath, __LINE__);
 		if (chdir(newPath) == -1)
 			err(1, "chdir(%s) @ %d", newPath, __LINE__);
 
 		len = fs;
-		for (j = 0; j <  files; j++) {
+		for (j = 0; j < files; j++) {
 			if (rnd)
 				len = arc4random() % fs + 1;
-			sprintf(file,"f%05d", j);
+			sprintf(file, "f%05d", j);
 			if ((fd = creat(file, 0660)) == -1) {
 				if (errno != EINTR) {
 					err(1, "%d: creat(%s)", j, file);
@@ -75,14 +76,14 @@ mkDir2(char *path) {
 				}
 			}
 			if (write(fd, buffer, len) != len)
-				err(1, "%d: write(%s), %s:%d", j, file, __FILE__, __LINE__);
+				err(1, "%d: write(%s), %s:%d", j, file,
+				    __FILE__, __LINE__);
 
 			if (fd != -1 && close(fd) == -1)
 				err(2, "%d: close(%d)", j, j);
-
 		}
-		for (j = 0; j <  edirs; j++) {
-			sprintf(newPath,"e%d", j);
+		for (j = 0; j < edirs; j++) {
+			sprintf(newPath, "e%d", j);
 			if (mkdir(newPath, 0700) == -1)
 				err(1, "mkdir(%s) @ %d", newPath, __LINE__);
 		}
@@ -91,12 +92,13 @@ mkDir2(char *path) {
 }
 
 static void
-mkDir(void) {
+mkDir(void)
+{
 	int i;
 	char path[MAXPATHLEN + 1];
 
 	for (i = 0; i < dirs; i++) {
-		sprintf(path,"fstool.%06d.%d", pid, i);
+		sprintf(path, "fstool.%06d.%d", pid, i);
 		mkDir2(path);
 	}
 }
@@ -107,19 +109,20 @@ rmFile(void)
 	int j;
 	char file[128], newPath[128];
 
-	for (j = 0; j <  files; j++) {
-		sprintf(file,"f%05d", j);
-		(void) unlink(file);
+	for (j = 0; j < files; j++) {
+		sprintf(file, "f%05d", j);
+		(void)unlink(file);
 	}
-	for (j = 0; j <  edirs; j++) {
-		sprintf(newPath,"e%d", j);
+	for (j = 0; j < edirs; j++) {
+		sprintf(newPath, "e%d", j);
 		if (rmdir(newPath) == -1)
 			err(1, "rmdir(%s) @ %d", newPath, __LINE__);
 	}
 }
 
 static void
-rmDir2(char *path) {
+rmDir2(char *path)
+{
 	int i, j;
 	char newPath[10];
 
@@ -127,31 +130,32 @@ rmDir2(char *path) {
 		err(1, "chdir(%s)", path);
 
 	for (i = 0; i < max; i++) {
-		sprintf(newPath,"d%d", i);
+		sprintf(newPath, "d%d", i);
 		if (chdir(newPath) == -1)
 			err(1, "chdir(%s)", newPath);
 	}
 	for (j = 0; j < max; j++) {
 		rmFile();
-		if (chdir ("..") == -1)
+		if (chdir("..") == -1)
 			err(1, "chdir(\"..\")");
-		sprintf(newPath,"d%d", max - j - 1);
+		sprintf(newPath, "d%d", max - j - 1);
 		if (rmdir(newPath) == -1)
 			err(1, "rmdir(%s) @ %d", newPath, __LINE__);
 	}
-	if (chdir ("..") == -1)
+	if (chdir("..") == -1)
 		err(1, "chdir(\"..\")");
 	if (rmdir(path) == -1)
 		err(1, "rmdir(%s) @ %d", path, __LINE__);
 }
 
 static void
-rmDir(void) {
+rmDir(void)
+{
 	int i;
 	char path[MAXPATHLEN + 1];
 
 	for (i = 0; i < dirs; i++) {
-		sprintf(path,"fstool.%06d.%d", pid, i);
+		sprintf(path, "fstool.%06d.%d", pid, i);
 		rmDir2(path);
 	}
 }
@@ -172,49 +176,50 @@ main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, "ad:e:ln:r:f:s:t:")) != -1)
 		switch (c) {
-			case 'a':
-				rnd = 1;
-				break;
-			case 'd':
-				dirs = atoi(optarg);
-				break;
-			case 'e':
-				edirs = atoi(optarg);
-				break;
-			case 'f':
-				files = atoi(optarg);
-				break;
-			case 'l':
-				leave = 1;
-				break;
-			case 'n':
-				levels = atoi(optarg);
-				break;
-			case 's':
-				sscanf(optarg, "%d%c", &fs, &ch);
-				if (ch == 'k' || ch == 'K')
-					fs = fs * 1024;
-				if (ch == 'm' || ch == 'M')
-					fs = fs * 1024 * 1024;
-				break;
-			case 't':
-				times = atoi(optarg);
-				break;
-			default:
-				fprintf(stderr,
-				    "Usage: %s [ -a ] "
-				    "[ -d <parallel dirs> ] [ -e <dirs> ] "
-				    "[ -f <num> ][ -l] [ -n <depth> ] "
-				    " [ -s <file size> ]\n", argv[0]);
-				printf("   -a: random file size 1-s.\n");
-				printf("   -d: Tree width (defaults to 1).\n");
-				printf("   -e: Directories at each level.\n");
-				printf("   -f: Number of files.\n");
-				printf("   -l: Leave the files and dirs.\n");
-				printf("   -n: Tree depth.\n");
-				printf("   -s: Size of each file.\n");
-				printf("   -t: Number of times to repeat\n");
-				exit(1);
+		case 'a':
+			rnd = 1;
+			break;
+		case 'd':
+			dirs = atoi(optarg);
+			break;
+		case 'e':
+			edirs = atoi(optarg);
+			break;
+		case 'f':
+			files = atoi(optarg);
+			break;
+		case 'l':
+			leave = 1;
+			break;
+		case 'n':
+			levels = atoi(optarg);
+			break;
+		case 's':
+			sscanf(optarg, "%d%c", &fs, &ch);
+			if (ch == 'k' || ch == 'K')
+				fs = fs * 1024;
+			if (ch == 'm' || ch == 'M')
+				fs = fs * 1024 * 1024;
+			break;
+		case 't':
+			times = atoi(optarg);
+			break;
+		default:
+			fprintf(stderr,
+			    "Usage: %s [ -a ] "
+			    "[ -d <parallel dirs> ] [ -e <dirs> ] "
+			    "[ -f <num> ][ -l] [ -n <depth> ] "
+			    " [ -s <file size> ]\n",
+			    argv[0]);
+			printf("   -a: random file size 1-s.\n");
+			printf("   -d: Tree width (defaults to 1).\n");
+			printf("   -e: Directories at each level.\n");
+			printf("   -f: Number of files.\n");
+			printf("   -l: Leave the files and dirs.\n");
+			printf("   -n: Tree depth.\n");
+			printf("   -s: Size of each file.\n");
+			printf("   -t: Number of times to repeat\n");
+			exit(1);
 		}
 
 	if (times != 1)

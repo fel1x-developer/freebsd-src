@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <stdbool.h>
-
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/vnode.h>
+
+#include <stdbool.h>
 #define _KERNEL
 #include <sys/mount.h>
 #undef _KERNEL
@@ -40,14 +40,13 @@
 
 #include <assert.h>
 #include <err.h>
+#include <fs/smbfs/smbfs.h>
+#include <fs/smbfs/smbfs_node.h>
 #include <kvm.h>
 #include <stdlib.h>
 
-#include <fs/smbfs/smbfs.h>
-#include <fs/smbfs/smbfs_node.h>
-
-#include "libprocstat.h"
 #include "common_kvm.h"
+#include "libprocstat.h"
 
 int
 smbfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
@@ -64,13 +63,13 @@ smbfs_filestat(kvm_t *kd, struct vnode *vp, struct vnstat *vn)
 		warnx("can't read smbfs fnode at %p", (void *)VTOSMB(vp));
 		return (1);
 	}
-        error = kvm_read_all(kd, (unsigned long)getvnodemount(vp), &mnt,
+	error = kvm_read_all(kd, (unsigned long)getvnodemount(vp), &mnt,
 	    sizeof(mnt));
-        if (error != 0) {
-                warnx("can't read mount at %p for vnode %p",
-                    (void *)getvnodemount(vp), vp);
-                return (1);
-        }
+	if (error != 0) {
+		warnx("can't read mount at %p for vnode %p",
+		    (void *)getvnodemount(vp), vp);
+		return (1);
+	}
 	vn->vn_fileid = node.n_ino;
 	if (vn->vn_fileid == 0)
 		vn->vn_fileid = 2;

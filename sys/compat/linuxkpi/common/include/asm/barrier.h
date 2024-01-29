@@ -26,9 +26,10 @@
  */
 
 #ifndef _LINUXKPI_ASM_BARRIER_H_
-#define	_LINUXKPI_ASM_BARRIER_H_
+#define _LINUXKPI_ASM_BARRIER_H_
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 
 #include <asm/atomic.h>
@@ -36,26 +37,33 @@
 
 /* TODO: Check other archs for atomic_thread_fence_* useability */
 #if defined(__amd64__) || defined(__i386__)
-#define	smp_mb()	atomic_thread_fence_seq_cst()
-#define	smp_wmb()	atomic_thread_fence_rel()
-#define	smp_rmb()	atomic_thread_fence_acq()
-#define	smp_store_mb(x, v)	do { (void)xchg(&(x), v); } while (0)
+#define smp_mb() atomic_thread_fence_seq_cst()
+#define smp_wmb() atomic_thread_fence_rel()
+#define smp_rmb() atomic_thread_fence_acq()
+#define smp_store_mb(x, v)           \
+	do {                         \
+		(void)xchg(&(x), v); \
+	} while (0)
 #endif
 
-#ifndef	smp_mb
-#define	smp_mb()	mb()
+#ifndef smp_mb
+#define smp_mb() mb()
 #endif
-#ifndef	smp_wmb
-#define	smp_wmb()	wmb()
+#ifndef smp_wmb
+#define smp_wmb() wmb()
 #endif
-#ifndef	smp_rmb
-#define	smp_rmb()	rmb()
+#ifndef smp_rmb
+#define smp_rmb() rmb()
 #endif
-#ifndef	smp_store_mb
-#define	smp_store_mb(x, v)	do { WRITE_ONCE(x, v); smp_mb(); } while (0)
+#ifndef smp_store_mb
+#define smp_store_mb(x, v)        \
+	do {                      \
+		WRITE_ONCE(x, v); \
+		smp_mb();         \
+	} while (0)
 #endif
 
-#define	smp_mb__before_atomic()	barrier()
-#define	smp_mb__after_atomic()	barrier()
+#define smp_mb__before_atomic() barrier()
+#define smp_mb__after_atomic() barrier()
 
-#endif	/* _LINUXKPI_ASM_BARRIER_H_ */
+#endif /* _LINUXKPI_ASM_BARRIER_H_ */

@@ -31,8 +31,8 @@
  * but with a request/response messaging protocol.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/errno.h>
 #include <sys/uio.h>
 
@@ -42,43 +42,39 @@
 #include <string.h>
 
 #include "bhyverun.h"
-#include "inout.h"
 #include "fwctl.h"
+#include "inout.h"
 
 /*
  * Messaging protocol base operations
  */
-#define	OP_NULL		1
-#define	OP_ECHO		2
-#define	OP_GET		3
-#define	OP_GET_LEN	4
-#define	OP_SET		5
-#define	OP_MAX		OP_SET
+#define OP_NULL 1
+#define OP_ECHO 2
+#define OP_GET 3
+#define OP_GET_LEN 4
+#define OP_SET 5
+#define OP_MAX OP_SET
 
 /* I/O ports */
-#define	FWCTL_OUT	0x510
-#define	FWCTL_IN	0x511
+#define FWCTL_OUT 0x510
+#define FWCTL_IN 0x511
 
 /*
  * Back-end state-machine
  */
-static enum state {
-	IDENT,
-	REQ,
-	RESP
-} be_state;
+static enum state { IDENT, REQ, RESP } be_state;
 
 static uint8_t sig[] = { 'B', 'H', 'Y', 'V' };
 static u_int ident_idx;
 
 struct op_info {
 	int op;
-	int  (*op_start)(uint32_t len);
+	int (*op_start)(uint32_t len);
 	void (*op_data)(uint32_t data);
-	int  (*op_result)(struct iovec **data);
+	int (*op_result)(struct iovec **data);
 	void (*op_done)(struct iovec *data);
 };
-static struct op_info *ops[OP_MAX+1];
+static struct op_info *ops[OP_MAX + 1];
 
 /* Return 0-padded uint32_t */
 static uint32_t
@@ -99,7 +95,7 @@ fwctl_send_rest(uint8_t *data, size_t len)
 
 /*
  * error op dummy proto - drop all data sent and return an error
-*/
+ */
 static int errop_code;
 
 static void
@@ -141,12 +137,10 @@ errop_done(struct iovec *data __unused)
 	/* assert data is NULL */
 }
 
-static struct op_info errop_info = {
-	.op_start  = errop_start,
-	.op_data   = errop_data,
+static struct op_info errop_info = { .op_start = errop_start,
+	.op_data = errop_data,
 	.op_result = errop_result,
-	.op_done   = errop_done
-};
+	.op_done = errop_done };
 
 /* OID search */
 SET_DECLARE(ctl_set, struct ctl);
@@ -158,7 +152,8 @@ ctl_locate(const char *str, int maxlen)
 {
 	struct ctl *cp, **cpp;
 
-	SET_FOREACH(cpp, ctl_set)  {
+	SET_FOREACH(cpp, ctl_set)
+	{
 		cp = *cpp;
 		if (!strncmp(str, cp->c_oid, maxlen))
 			return (cp);
@@ -168,7 +163,7 @@ ctl_locate(const char *str, int maxlen)
 }
 
 /* uefi-sysctl get-len */
-#define FGET_STRSZ	80
+#define FGET_STRSZ 80
 static struct iovec fget_biov[2];
 static char fget_str[FGET_STRSZ];
 static struct {
@@ -183,7 +178,7 @@ fget_start(uint32_t len)
 {
 
 	if (len > FGET_STRSZ)
-		return(E2BIG);
+		return (E2BIG);
 
 	fget_cnt = 0;
 
@@ -219,16 +214,16 @@ fget_result(struct iovec **data, int val)
 			fget_buf.f_sz = cp->c_len;
 			memcpy(fget_buf.f_data, cp->c_data, cp->c_len);
 			fget_biov[0].iov_base = (char *)&fget_buf;
-			fget_biov[0].iov_len  = sizeof(fget_buf.f_sz) +
-				cp->c_len;
+			fget_biov[0].iov_len = sizeof(fget_buf.f_sz) +
+			    cp->c_len;
 		} else {
 			fget_size = cp->c_len;
 			fget_biov[0].iov_base = (char *)&fget_size;
-			fget_biov[0].iov_len  = sizeof(fget_size);
+			fget_biov[0].iov_len = sizeof(fget_size);
 		}
 
 		fget_biov[1].iov_base = NULL;
-		fget_biov[1].iov_len  = 0;
+		fget_biov[1].iov_len = 0;
 		*data = fget_biov;
 	}
 
@@ -254,31 +249,27 @@ fget_val_result(struct iovec **data)
 	return (fget_result(data, 1));
 }
 
-static struct op_info fgetlen_info = {
-	.op_start  = fget_start,
-	.op_data   = fget_data,
+static struct op_info fgetlen_info = { .op_start = fget_start,
+	.op_data = fget_data,
 	.op_result = fget_len_result,
-	.op_done   = fget_done
-};
+	.op_done = fget_done };
 
-static struct op_info fgetval_info = {
-	.op_start  = fget_start,
-	.op_data   = fget_data,
+static struct op_info fgetval_info = { .op_start = fget_start,
+	.op_data = fget_data,
 	.op_result = fget_val_result,
-	.op_done   = fget_done
-};
+	.op_done = fget_done };
 
 static struct req_info {
-	int      req_error;
-	u_int    req_count;
+	int req_error;
+	u_int req_count;
 	uint32_t req_size;
 	uint32_t req_type;
 	uint32_t req_txid;
 	struct op_info *req_op;
-	int	 resp_error;
-	int	 resp_count;
-	size_t	 resp_size;
-	size_t	 resp_off;
+	int resp_error;
+	int resp_count;
+	size_t resp_size;
+	size_t resp_off;
 	struct iovec *resp_biov;
 } rinfo;
 
@@ -396,10 +387,10 @@ fwctl_response(uint32_t *retval)
 	uint8_t *dp;
 	ssize_t remlen;
 
-	switch(rinfo.resp_count) {
+	switch (rinfo.resp_count) {
 	case 0:
 		/* 4 x u32 header len + data */
-		*retval = 4*sizeof(uint32_t) +
+		*retval = 4 * sizeof(uint32_t) +
 		    roundup(rinfo.resp_size, sizeof(uint32_t));
 		rinfo.resp_count++;
 		break;
@@ -427,8 +418,7 @@ fwctl_response(uint32_t *retval)
 		break;
 	}
 
-	if (rinfo.resp_count > 3 &&
-	    rinfo.resp_off >= rinfo.resp_size) {
+	if (rinfo.resp_count > 3 && rinfo.resp_off >= rinfo.resp_size) {
 		fwctl_response_done();
 		return (1);
 	}
@@ -442,7 +432,8 @@ fwctl_reset(void)
 
 	switch (be_state) {
 	case RESP:
-		/* If a response was generated but not fully read, discard it. */
+		/* If a response was generated but not fully read, discard it.
+		 */
 		fwctl_response_done();
 		break;
 	case REQ:
@@ -456,7 +447,6 @@ fwctl_reset(void)
 	be_state = IDENT;
 	ident_idx = 0;
 }
-
 
 /*
  * i/o port handling.
@@ -523,12 +513,11 @@ fwctl_outl(uint32_t val)
 	default:
 		break;
 	}
-
 }
 
 static int
-fwctl_handler(struct vmctx *ctx __unused, int in,
-    int port __unused, int bytes, uint32_t *eax, void *arg __unused)
+fwctl_handler(struct vmctx *ctx __unused, int in, int port __unused, int bytes,
+    uint32_t *eax, void *arg __unused)
 {
 
 	if (in) {
@@ -560,7 +549,7 @@ fwctl_init(void)
 	iop.size = 1;
 	iop.flags = IOPORT_F_INOUT;
 	iop.handler = fwctl_handler;
-	
+
 	error = register_inout(&iop);
 	assert(error == 0);
 
@@ -575,7 +564,7 @@ fwctl_init(void)
 	assert(error == 0);
 
 	ops[OP_GET_LEN] = &fgetlen_info;
-	ops[OP_GET]     = &fgetval_info;
+	ops[OP_GET] = &fgetval_info;
 
 	be_state = IDENT;
 }

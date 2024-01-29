@@ -39,14 +39,14 @@
 /*
  * [ac3 , dts , linear , 0, linear, 0]
  */
-#define FMTLIST_MAX		6
-#define FMTLIST_OFFSET		4
-#define DIGFMTS_MAX		2
+#define FMTLIST_MAX 6
+#define FMTLIST_OFFSET 4
+#define DIGFMTS_MAX 2
 
 #ifdef SND_DEBUG
 static int snd_passthrough_verbose = 0;
 SYSCTL_INT(_hw_snd, OID_AUTO, passthrough_verbose, CTLFLAG_RWTUN,
-	&snd_passthrough_verbose, 0, "passthrough verbosity");
+    &snd_passthrough_verbose, 0, "passthrough verbosity");
 
 #endif
 
@@ -58,8 +58,8 @@ struct vchan_info {
 };
 
 static void *
-vchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b,
-    struct pcm_channel *c, int dir)
+vchan_init(kobj_t obj, void *devinfo, struct snd_dbuf *b, struct pcm_channel *c,
+    int dir)
 {
 	struct vchan_info *info;
 	struct pcm_channel *p;
@@ -209,7 +209,7 @@ vchan_getcaps(kobj_t obj, void *data)
 		}
 		if (c->format & AFMT_PASSTHROUGH)
 			info->caps.minspeed = c->speed;
-		else 
+		else
 			info->caps.minspeed = pspeed;
 		info->caps.maxspeed = info->caps.minspeed;
 	} else {
@@ -218,8 +218,8 @@ vchan_getcaps(kobj_t obj, void *data)
 			info->caps.fmtlist[0] = pformat;
 		else {
 			device_printf(c->dev,
-			    "%s(): invalid vchan format 0x%08x",
-			    __func__, pformat);
+			    "%s(): invalid vchan format 0x%08x", __func__,
+			    pformat);
 			info->caps.fmtlist[0] = VCHAN_DEFAULT_FORMAT;
 		}
 		info->caps.minspeed = pspeed;
@@ -236,21 +236,18 @@ vchan_getmatrix(kobj_t obj, void *data, uint32_t format)
 	return (feeder_matrix_format_map(format));
 }
 
-static kobj_method_t vchan_methods[] = {
-	KOBJMETHOD(channel_init,		vchan_init),
-	KOBJMETHOD(channel_free,		vchan_free),
-	KOBJMETHOD(channel_setformat,		vchan_setformat),
-	KOBJMETHOD(channel_setspeed,		vchan_setspeed),
-	KOBJMETHOD(channel_trigger,		vchan_trigger),
-	KOBJMETHOD(channel_getcaps,		vchan_getcaps),
-	KOBJMETHOD(channel_getmatrix,		vchan_getmatrix),
-	KOBJMETHOD_END
-};
+static kobj_method_t vchan_methods[] = { KOBJMETHOD(channel_init, vchan_init),
+	KOBJMETHOD(channel_free, vchan_free),
+	KOBJMETHOD(channel_setformat, vchan_setformat),
+	KOBJMETHOD(channel_setspeed, vchan_setspeed),
+	KOBJMETHOD(channel_trigger, vchan_trigger),
+	KOBJMETHOD(channel_getcaps, vchan_getcaps),
+	KOBJMETHOD(channel_getmatrix, vchan_getmatrix), KOBJMETHOD_END };
 CHANNEL_DECLARE(vchan);
 
 static void
-pcm_getparentchannel(struct snddev_info *d,
-    struct pcm_channel **wrch, struct pcm_channel **rdch)
+pcm_getparentchannel(struct snddev_info *d, struct pcm_channel **wrch,
+    struct pcm_channel **rdch)
 {
 	struct pcm_channel **ch, *wch, *rch, *c;
 
@@ -262,7 +259,8 @@ pcm_getparentchannel(struct snddev_info *d,
 	wch = NULL;
 	rch = NULL;
 
-	CHN_FOREACH(c, d, channels.pcm) {
+	CHN_FOREACH(c, d, channels.pcm)
+	{
 		CHN_LOCK(c);
 		ch = (c->direction == PCMDIR_PLAY) ? &wch : &rch;
 		if (c->flags & CHN_F_VIRTUAL) {
@@ -387,8 +385,9 @@ sysctl_dev_pcm_vchanmode(SYSCTL_HANDLER_ARGS)
 		return (EINVAL);
 	}
 
-	KASSERT(direction == c->direction, ("%s(): invalid direction %d/%d",
-	    __func__, direction, c->direction));
+	KASSERT(direction == c->direction,
+	    ("%s(): invalid direction %d/%d", __func__, direction,
+		c->direction));
 
 	CHN_LOCK(c);
 	if (c->flags & CHN_F_VCHAN_PASSTHROUGH)
@@ -431,14 +430,13 @@ sysctl_dev_pcm_vchanmode(SYSCTL_HANDLER_ARGS)
 	return (ret);
 }
 
-/* 
+/*
  * On the fly vchan rate/format settings
  */
 
-#define VCHAN_ACCESSIBLE(c)	(!((c)->flags & (CHN_F_PASSTHROUGH |	\
-				 CHN_F_EXCLUSIVE)) &&			\
-				 (((c)->flags & CHN_F_VCHAN_DYNAMIC) ||	\
-				 CHN_STOPPED(c)))
+#define VCHAN_ACCESSIBLE(c)                                       \
+	(!((c)->flags & (CHN_F_PASSTHROUGH | CHN_F_EXCLUSIVE)) && \
+	    (((c)->flags & CHN_F_VCHAN_DYNAMIC) || CHN_STOPPED(c)))
 static int
 sysctl_dev_pcm_vchanrate(SYSCTL_HANDLER_ARGS)
 {
@@ -489,8 +487,9 @@ sysctl_dev_pcm_vchanrate(SYSCTL_HANDLER_ARGS)
 		return (EINVAL);
 	}
 
-	KASSERT(direction == c->direction, ("%s(): invalid direction %d/%d",
-	    __func__, direction, c->direction));
+	KASSERT(direction == c->direction,
+	    ("%s(): invalid direction %d/%d", __func__, direction,
+		c->direction));
 
 	CHN_LOCK(c);
 	newspd = c->speed;
@@ -520,15 +519,16 @@ sysctl_dev_pcm_vchanrate(SYSCTL_HANDLER_ARGS)
 		if (feeder_rate_round) {
 			caps = chn_getcaps(c);
 			RANGE(newspd, caps->minspeed, caps->maxspeed);
-			newspd = CHANNEL_SETSPEED(c->methods,
-			    c->devinfo, newspd);
+			newspd = CHANNEL_SETSPEED(c->methods, c->devinfo,
+			    newspd);
 		}
 
 		ret = chn_reset(c, c->format, newspd);
 		if (ret == 0) {
 			*vchanrate = c->speed;
 			if (restart != 0) {
-				CHN_FOREACH(ch, c, children.busy) {
+				CHN_FOREACH(ch, c, children.busy)
+				{
 					CHN_LOCK(ch);
 					if (VCHAN_SYNC_REQUIRED(ch))
 						vchan_sync(ch);
@@ -598,8 +598,9 @@ sysctl_dev_pcm_vchanformat(SYSCTL_HANDLER_ARGS)
 		return (EINVAL);
 	}
 
-	KASSERT(direction == c->direction, ("%s(): invalid direction %d/%d",
-	    __func__, direction, c->direction));
+	KASSERT(direction == c->direction,
+	    ("%s(): invalid direction %d/%d", __func__, direction,
+		c->direction));
 
 	CHN_LOCK(c);
 
@@ -635,7 +636,8 @@ sysctl_dev_pcm_vchanformat(SYSCTL_HANDLER_ARGS)
 		if (ret == 0) {
 			*vchanformat = c->format;
 			if (restart != 0) {
-				CHN_FOREACH(ch, c, children.busy) {
+				CHN_FOREACH(ch, c, children.busy)
+				{
 					CHN_LOCK(ch);
 					if (VCHAN_SYNC_REQUIRED(ch))
 						vchan_sync(ch);
@@ -656,10 +658,10 @@ sysctl_dev_pcm_vchanformat(SYSCTL_HANDLER_ARGS)
 
 /* virtual channel interface */
 
-#define VCHAN_FMT_HINT(x)	((x) == PCMDIR_PLAY_VIRTUAL) ?		\
-				"play.vchanformat" : "rec.vchanformat"
-#define VCHAN_SPD_HINT(x)	((x) == PCMDIR_PLAY_VIRTUAL) ?		\
-				"play.vchanrate" : "rec.vchanrate"
+#define VCHAN_FMT_HINT(x) \
+	((x) == PCMDIR_PLAY_VIRTUAL) ? "play.vchanformat" : "rec.vchanformat"
+#define VCHAN_SPD_HINT(x) \
+	((x) == PCMDIR_PLAY_VIRTUAL) ? "play.vchanrate" : "rec.vchanrate"
 
 int
 vchan_create(struct pcm_channel *parent, int num)
@@ -679,7 +681,7 @@ vchan_create(struct pcm_channel *parent, int num)
 		return (EBUSY);
 
 	if (!(parent->direction == PCMDIR_PLAY ||
-	    parent->direction == PCMDIR_REC))
+		parent->direction == PCMDIR_REC))
 		return (EINVAL);
 
 	d = parent->parentsnddev;
@@ -854,8 +856,8 @@ vchan_destroy(struct pcm_channel *c)
 	int ret;
 
 	KASSERT(c != NULL && c->parentchannel != NULL &&
-	    c->parentsnddev != NULL, ("%s(): invalid channel=%p",
-	    __func__, c));
+		c->parentsnddev != NULL,
+	    ("%s(): invalid channel=%p", __func__, c));
 
 	CHN_LOCKASSERT(c);
 
@@ -907,7 +909,7 @@ vchan_sync(struct pcm_channel *c)
 	int ret;
 
 	KASSERT(c != NULL && c->parentchannel != NULL &&
-	    (c->flags & CHN_F_VIRTUAL),
+		(c->flags & CHN_F_VIRTUAL),
 	    ("%s(): invalid passthrough", __func__));
 	CHN_LOCKASSERT(c);
 	CHN_LOCKASSERT(c->parentchannel);
@@ -924,8 +926,7 @@ vchan_sync(struct pcm_channel *c)
 		char *devname, buf[CHN_NAMELEN];
 
 		devname = dsp_unit2name(buf, sizeof(buf), c->unit);
-		device_printf(c->dev,
-		    "%s(%s/%s) %s() -> re-sync err=%d\n",
+		device_printf(c->dev, "%s(%s/%s) %s() -> re-sync err=%d\n",
 		    __func__, (devname != NULL) ? devname : "dspX", c->comm,
 		    caller, ret);
 	}
@@ -945,51 +946,42 @@ vchan_initsys(device_t dev)
 
 	/* Play */
 	SYSCTL_ADD_PROC(&d->play_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->play_sysctl_tree),
-	    OID_AUTO, "vchans", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
+	    SYSCTL_CHILDREN(d->play_sysctl_tree), OID_AUTO, "vchans",
+	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, PLAY), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchans, "I", "total allocated virtual channel");
 	SYSCTL_ADD_PROC(&d->play_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->play_sysctl_tree),
-	    OID_AUTO, "vchanmode",
+	    SYSCTL_CHILDREN(d->play_sysctl_tree), OID_AUTO, "vchanmode",
 	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, PLAY), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchanmode, "A",
 	    "vchan format/rate selection: 0=fixed, 1=passthrough, 2=adaptive");
 	SYSCTL_ADD_PROC(&d->play_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->play_sysctl_tree),
-	    OID_AUTO, "vchanrate",
+	    SYSCTL_CHILDREN(d->play_sysctl_tree), OID_AUTO, "vchanrate",
 	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, PLAY), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchanrate, "I", "virtual channel mixing speed/rate");
 	SYSCTL_ADD_PROC(&d->play_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->play_sysctl_tree),
-	    OID_AUTO, "vchanformat",
+	    SYSCTL_CHILDREN(d->play_sysctl_tree), OID_AUTO, "vchanformat",
 	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, PLAY), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchanformat, "A", "virtual channel mixing format");
 	/* Rec */
-	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->rec_sysctl_tree),
-	    OID_AUTO, "vchans",
-	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
+	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx, SYSCTL_CHILDREN(d->rec_sysctl_tree),
+	    OID_AUTO, "vchans", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, REC), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchans, "I", "total allocated virtual channel");
-	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->rec_sysctl_tree),
+	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx, SYSCTL_CHILDREN(d->rec_sysctl_tree),
 	    OID_AUTO, "vchanmode",
 	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, REC), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchanmode, "A",
 	    "vchan format/rate selection: 0=fixed, 1=passthrough, 2=adaptive");
-	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->rec_sysctl_tree),
-	    OID_AUTO, "vchanrate",
-	    CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
+	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx, SYSCTL_CHILDREN(d->rec_sysctl_tree),
+	    OID_AUTO, "vchanrate", CTLTYPE_INT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, REC), VCHAN_SYSCTL_DATA_SIZE,
 	    sysctl_dev_pcm_vchanrate, "I", "virtual channel mixing speed/rate");
-	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx,
-	    SYSCTL_CHILDREN(d->rec_sysctl_tree),
+	SYSCTL_ADD_PROC(&d->rec_sysctl_ctx, SYSCTL_CHILDREN(d->rec_sysctl_tree),
 	    OID_AUTO, "vchanformat",
 	    CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
 	    VCHAN_SYSCTL_DATA(unit, REC), VCHAN_SYSCTL_DATA_SIZE,

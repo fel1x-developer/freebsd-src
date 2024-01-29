@@ -28,15 +28,15 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 #include <sys/sbuf.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtio_config.h>
@@ -48,37 +48,30 @@ static int virtio_modevent(module_t, int, void *);
 static const char *virtio_feature_name(uint64_t, struct virtio_feature_desc *);
 
 static struct virtio_ident {
-	uint16_t	devid;
-	const char	*name;
-} virtio_ident_table[] = {
-	{ VIRTIO_ID_NETWORK,		"Network"			},
-	{ VIRTIO_ID_BLOCK,		"Block"				},
-	{ VIRTIO_ID_CONSOLE,		"Console"			},
-	{ VIRTIO_ID_ENTROPY,		"Entropy"			},
-	{ VIRTIO_ID_BALLOON,		"Balloon"			},
-	{ VIRTIO_ID_IOMEMORY,		"IOMemory"			},
-	{ VIRTIO_ID_RPMSG,		"Remote Processor Messaging"	},
-	{ VIRTIO_ID_SCSI,		"SCSI"				},
-	{ VIRTIO_ID_9P,			"9P Transport"			},
-	{ VIRTIO_ID_RPROC_SERIAL,	"Remote Processor Serial"	},
-	{ VIRTIO_ID_CAIF,		"CAIF"				},
-	{ VIRTIO_ID_GPU,		"GPU"				},
-	{ VIRTIO_ID_INPUT,		"Input"				},
-	{ VIRTIO_ID_VSOCK,		"VSOCK Transport"		},
-	{ VIRTIO_ID_CRYPTO,		"Crypto"			},
+	uint16_t devid;
+	const char *name;
+} virtio_ident_table[] = { { VIRTIO_ID_NETWORK, "Network" },
+	{ VIRTIO_ID_BLOCK, "Block" }, { VIRTIO_ID_CONSOLE, "Console" },
+	{ VIRTIO_ID_ENTROPY, "Entropy" }, { VIRTIO_ID_BALLOON, "Balloon" },
+	{ VIRTIO_ID_IOMEMORY, "IOMemory" },
+	{ VIRTIO_ID_RPMSG, "Remote Processor Messaging" },
+	{ VIRTIO_ID_SCSI, "SCSI" }, { VIRTIO_ID_9P, "9P Transport" },
+	{ VIRTIO_ID_RPROC_SERIAL, "Remote Processor Serial" },
+	{ VIRTIO_ID_CAIF, "CAIF" }, { VIRTIO_ID_GPU, "GPU" },
+	{ VIRTIO_ID_INPUT, "Input" }, { VIRTIO_ID_VSOCK, "VSOCK Transport" },
+	{ VIRTIO_ID_CRYPTO, "Crypto" },
 
-	{ 0, NULL }
-};
+	{ 0, NULL } };
 
 /* Device independent features. */
 static struct virtio_feature_desc virtio_common_feature_desc[] = {
-	{ VIRTIO_F_NOTIFY_ON_EMPTY,	"NotifyOnEmpty"		}, /* Legacy */
-	{ VIRTIO_F_ANY_LAYOUT,		"AnyLayout"		}, /* Legacy */
-	{ VIRTIO_RING_F_INDIRECT_DESC,	"RingIndirectDesc"	},
-	{ VIRTIO_RING_F_EVENT_IDX,	"RingEventIdx"		},
-	{ VIRTIO_F_BAD_FEATURE,		"BadFeature"		}, /* Legacy */
-	{ VIRTIO_F_VERSION_1,		"Version1"		},
-	{ VIRTIO_F_IOMMU_PLATFORM,	"IOMMUPlatform"		},
+	{ VIRTIO_F_NOTIFY_ON_EMPTY, "NotifyOnEmpty" }, /* Legacy */
+	{ VIRTIO_F_ANY_LAYOUT, "AnyLayout" },	       /* Legacy */
+	{ VIRTIO_RING_F_INDIRECT_DESC, "RingIndirectDesc" },
+	{ VIRTIO_RING_F_EVENT_IDX, "RingEventIdx" },
+	{ VIRTIO_F_BAD_FEATURE, "BadFeature" }, /* Legacy */
+	{ VIRTIO_F_VERSION_1, "Version1" },
+	{ VIRTIO_F_IOMMU_PLATFORM, "IOMMUPlatform" },
 
 	{ 0, NULL }
 };
@@ -101,7 +94,7 @@ virtio_feature_name(uint64_t val, struct virtio_feature_desc *desc)
 {
 	int i, j;
 	struct virtio_feature_desc *descs[2] = { desc,
-	    virtio_common_feature_desc };
+		virtio_common_feature_desc };
 
 	for (i = 0; i < 2; i++) {
 		if (descs[i] == NULL)
@@ -124,7 +117,7 @@ virtio_describe_sbuf(struct sbuf *sb, uint64_t features,
 	uint64_t val;
 	int n;
 
-	sbuf_printf(sb, "%#jx", (uintmax_t) features);
+	sbuf_printf(sb, "%#jx", (uintmax_t)features);
 
 	for (n = 0, val = 1ULL << 63; val != 0; val >>= 1) {
 		/*
@@ -141,7 +134,7 @@ virtio_describe_sbuf(struct sbuf *sb, uint64_t features,
 
 		name = virtio_feature_name(val, desc);
 		if (name == NULL)
-			sbuf_printf(sb, "%#jx", (uintmax_t) val);
+			sbuf_printf(sb, "%#jx", (uintmax_t)val);
 		else
 			sbuf_cat(sb, name);
 	}
@@ -178,7 +171,7 @@ virtio_describe(device_t dev, const char *msg, uint64_t features,
 out:
 	if (error != 0) {
 		device_printf(dev, "%s features: %#jx\n", msg,
-		    (uintmax_t) features);
+		    (uintmax_t)features);
 	}
 }
 
@@ -187,8 +180,8 @@ virtio_filter_transport_features(uint64_t features)
 {
 	uint64_t transport, mask;
 
-	transport = (1ULL <<
-	    (VIRTIO_TRANSPORT_F_END - VIRTIO_TRANSPORT_F_START)) - 1;
+	transport =
+	    (1ULL << (VIRTIO_TRANSPORT_F_END - VIRTIO_TRANSPORT_F_START)) - 1;
 	transport <<= VIRTIO_TRANSPORT_F_START;
 
 	mask = -1ULL & ~transport;
@@ -219,7 +212,7 @@ virtio_read_device_config_array(device_t dev, bus_size_t offset, void *dst,
 
 		for (i = 0; i < count; i++) {
 			virtio_read_device_config(dev, offset + i * size,
-			    (uint8_t *) dst + i * size, size);
+			    (uint8_t *)dst + i * size, size);
 		}
 	} while (gen != virtio_config_generation(dev));
 }
@@ -259,11 +252,11 @@ virtio_finalize_features(device_t dev)
 }
 
 int
-virtio_alloc_virtqueues(device_t dev, int nvqs,
-    struct vq_alloc_info *info)
+virtio_alloc_virtqueues(device_t dev, int nvqs, struct vq_alloc_info *info)
 {
 
-	return (VIRTIO_BUS_ALLOC_VIRTQUEUES(device_get_parent(dev), nvqs, info));
+	return (
+	    VIRTIO_BUS_ALLOC_VIRTQUEUES(device_get_parent(dev), nvqs, info));
 }
 
 int
@@ -312,16 +305,16 @@ void
 virtio_read_device_config(device_t dev, bus_size_t offset, void *dst, int len)
 {
 
-	VIRTIO_BUS_READ_DEVICE_CONFIG(device_get_parent(dev),
-	    offset, dst, len);
+	VIRTIO_BUS_READ_DEVICE_CONFIG(device_get_parent(dev), offset, dst, len);
 }
 
 void
-virtio_write_device_config(device_t dev, bus_size_t offset, const void *dst, int len)
+virtio_write_device_config(device_t dev, bus_size_t offset, const void *dst,
+    int len)
 {
 
-	VIRTIO_BUS_WRITE_DEVICE_CONFIG(device_get_parent(dev),
-	    offset, dst, len);
+	VIRTIO_BUS_WRITE_DEVICE_CONFIG(device_get_parent(dev), offset, dst,
+	    len);
 }
 
 int
@@ -339,8 +332,10 @@ virtio_child_pnpinfo(device_t busdev __unused, device_t child, struct sbuf *sb)
 	 * see a lot of PNP utility in exposing the same value under a
 	 * different name.
 	 */
-	sbuf_printf(sb, "vendor=0x%08x device=0x%04x subvendor=0x%04x "
-	    "device_type=0x%08x", (unsigned)virtio_get_vendor(child),
+	sbuf_printf(sb,
+	    "vendor=0x%08x device=0x%04x subvendor=0x%04x "
+	    "device_type=0x%08x",
+	    (unsigned)virtio_get_vendor(child),
 	    (unsigned)virtio_get_device(child),
 	    (unsigned)virtio_get_subvendor(child),
 	    (unsigned)virtio_get_device_type(child));
@@ -367,11 +362,7 @@ virtio_modevent(module_t mod, int type, void *unused)
 	return (error);
 }
 
-static moduledata_t virtio_mod = {
-	"virtio",
-	virtio_modevent,
-	0
-};
+static moduledata_t virtio_mod = { "virtio", virtio_modevent, 0 };
 
 DECLARE_MODULE(virtio, virtio_mod, SI_SUB_DRIVERS, SI_ORDER_FIRST);
 MODULE_VERSION(virtio, 1);

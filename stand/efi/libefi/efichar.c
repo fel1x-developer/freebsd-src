@@ -25,16 +25,19 @@
  */
 
 #include <sys/types.h>
+
 #include <errno.h>
 #ifdef _STANDALONE
 #include <stand.h>
 #else
+#include <sys/efi.h>
+
+#include <machine/efi.h>
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/efi.h>
-#include <machine/efi.h>
 #endif
 
 #include "efichar.h"

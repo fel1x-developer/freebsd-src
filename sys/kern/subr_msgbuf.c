@@ -31,17 +31,17 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/lock.h>
 #include <sys/kernel.h>
-#include <sys/mutex.h>
+#include <sys/lock.h>
 #include <sys/msgbuf.h>
+#include <sys/mutex.h>
 #include <sys/sysctl.h>
 
 /*
  * Maximum number conversion buffer length: uintmax_t in base 2, plus <>
  * around the priority, and a terminating NUL.
  */
-#define	MAXPRIBUF	(sizeof(intmax_t) * NBBY + 3)
+#define MAXPRIBUF (sizeof(intmax_t) * NBBY + 3)
 
 /* Read/write sequence numbers are modulo a multiple of the buffer size. */
 #define SEQMOD(size) ((size) * 16)
@@ -92,7 +92,7 @@ msgbuf_reinit(struct msgbuf *mbp, void *ptr, int size)
 	mbp->msg_seqmod = SEQMOD(size);
 	mbp->msg_wseq = MSGBUF_SEQNORM(mbp, mbp->msg_wseq);
 	mbp->msg_rseq = MSGBUF_SEQNORM(mbp, mbp->msg_rseq);
-        mbp->msg_ptr = ptr;
+	mbp->msg_ptr = ptr;
 	cksum = msgbuf_cksum(mbp);
 	if (cksum != mbp->msg_cksum) {
 		if (bootverbose) {
@@ -145,14 +145,13 @@ msgbuf_getcount(struct msgbuf *mbp)
  * The caller should hold the message buffer spinlock.
  */
 static void
-msgbuf_do_addchar(struct msgbuf * const mbp, const int c)
+msgbuf_do_addchar(struct msgbuf *const mbp, const int c)
 {
 	u_int pos;
 
 	/* Make sure we properly wrap the sequence number. */
 	pos = MSGBUF_SEQ_TO_POS(mbp, mbp->msg_wseq);
-	mbp->msg_cksum += (u_int)(u_char)c -
-	    (u_int)(u_char)mbp->msg_ptr[pos];
+	mbp->msg_cksum += (u_int)(u_char)c - (u_int)(u_char)mbp->msg_ptr[pos];
 	mbp->msg_ptr[pos] = c;
 	mbp->msg_wseq = MSGBUF_SEQADD(mbp, mbp->msg_wseq, 1);
 }
@@ -250,7 +249,7 @@ msgbuf_addstr(struct msgbuf *mbp, int pri, const char *str, int filter_cr)
 		/*
 		 * Don't copy carriage returns if the caller requested
 		 * filtering.
-		 * 
+		 *
 		 * XXX This matches the behavior of msglogchar(), but is it
 		 * necessary?  Testing has shown that we don't seem to get
 		 * carriage returns here.
@@ -278,7 +277,6 @@ msgbuf_addstr(struct msgbuf *mbp, int pri, const char *str, int filter_cr)
 	mbp->msg_lastpri = pri;
 
 	mtx_unlock_spin(&mbp->msg_lock);
-
 }
 
 /*
@@ -362,7 +360,8 @@ msgbuf_peekbytes(struct msgbuf *mbp, char *buf, int buflen, u_int *seqp)
 	if (buf == NULL) {
 		/* Just initialise *seqp. */
 		if (mbp->msg_flags & MSGBUF_WRAP)
-			*seqp = MSGBUF_SEQSUB(mbp, mbp->msg_wseq, mbp->msg_size);
+			*seqp = MSGBUF_SEQSUB(mbp, mbp->msg_wseq,
+			    mbp->msg_size);
 		else
 			*seqp = 0;
 		mtx_unlock_spin(&mbp->msg_lock);

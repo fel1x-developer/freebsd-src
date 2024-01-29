@@ -33,24 +33,26 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
-
+#include <dev/pci/pcivar.h>
 #include <dev/smbus/smbconf.h>
+
 #include "smbus_if.h"
 
-#define AMDPM_DEBUG(x)	if (amdpm_debug) (x)
+#define AMDPM_DEBUG(x)   \
+	if (amdpm_debug) \
+	(x)
 
 #ifdef DEBUG
 static int amdpm_debug = 1;
@@ -72,10 +74,10 @@ static int amdpm_debug = 0;
 
 /* PCI Configuration space registers */
 #define AMDPCI_PMBASE 0x58
-#define NFPCI_PMBASE  0x14
+#define NFPCI_PMBASE 0x14
 
 #define AMDPCI_GEN_CONFIG_PM 0x41
-#define AMDPCI_PMIOEN (1<<7)
+#define AMDPCI_PMIOEN (1 << 7)
 
 #define AMDPCI_SCIINT_CONFIG_PM 0x42
 #define AMDPCI_SCISEL_IRQ11 11
@@ -88,18 +90,20 @@ static int amdpm_debug = 0;
  */
 
 #define AMDSMB_GLOBAL_STATUS (0x00)
-#define AMDSMB_GS_TO_STS (1<<5)
-#define AMDSMB_GS_HCYC_STS (1<<4)
-#define AMDSMB_GS_HST_STS (1<<3)
-#define AMDSMB_GS_PRERR_STS (1<<2)
-#define AMDSMB_GS_COL_STS (1<<1)
-#define AMDSMB_GS_ABRT_STS (1<<0)
-#define AMDSMB_GS_CLEAR_STS (AMDSMB_GS_TO_STS|AMDSMB_GS_HCYC_STS|AMDSMB_GS_PRERR_STS|AMDSMB_GS_COL_STS|AMDSMB_GS_ABRT_STS)
+#define AMDSMB_GS_TO_STS (1 << 5)
+#define AMDSMB_GS_HCYC_STS (1 << 4)
+#define AMDSMB_GS_HST_STS (1 << 3)
+#define AMDSMB_GS_PRERR_STS (1 << 2)
+#define AMDSMB_GS_COL_STS (1 << 1)
+#define AMDSMB_GS_ABRT_STS (1 << 0)
+#define AMDSMB_GS_CLEAR_STS                                            \
+	(AMDSMB_GS_TO_STS | AMDSMB_GS_HCYC_STS | AMDSMB_GS_PRERR_STS | \
+	    AMDSMB_GS_COL_STS | AMDSMB_GS_ABRT_STS)
 
 #define AMDSMB_GLOBAL_ENABLE (0x02)
-#define AMDSMB_GE_ABORT (1<<5)
-#define AMDSMB_GE_HCYC_EN (1<<4)
-#define AMDSMB_GE_HOST_STC (1<<3)
+#define AMDSMB_GE_ABORT (1 << 5)
+#define AMDSMB_GE_HCYC_EN (1 << 4)
+#define AMDSMB_GE_HOST_STC (1 << 3)
 #define AMDSMB_GE_CYC_QUICK 0
 #define AMDSMB_GE_CYC_BYTE 1
 #define AMDSMB_GE_CYC_BDATA 2
@@ -107,16 +111,16 @@ static int amdpm_debug = 0;
 #define AMDSMB_GE_CYC_PROCCALL 4
 #define AMDSMB_GE_CYC_BLOCK 5
 
-#define	LSB		0x1	/* XXX: Better name: Read/Write? */
+#define LSB 0x1 /* XXX: Better name: Read/Write? */
 
-#define AMDSMB_HSTADDR  (0x04)
-#define AMDSMB_HSTDATA  (0x06)
-#define AMDSMB_HSTCMD   (0x08)
+#define AMDSMB_HSTADDR (0x04)
+#define AMDSMB_HSTDATA (0x06)
+#define AMDSMB_HSTCMD (0x08)
 #define AMDSMB_HSTDFIFO (0x09)
 #define AMDSMB_HSLVDATA (0x0A)
-#define AMDSMB_HSLVDA   (0x0C)
-#define AMDSMB_HSLVDDR  (0x0E)
-#define AMDSMB_SNPADDR  (0x0F)
+#define AMDSMB_HSLVDA (0x0C)
+#define AMDSMB_HSLVDDR (0x0E)
+#define AMDSMB_SNPADDR (0x0F)
 
 struct amdpm_softc {
 	int base;
@@ -126,20 +130,18 @@ struct amdpm_softc {
 	struct mtx lock;
 };
 
-#define	AMDPM_LOCK(amdpm)		mtx_lock(&(amdpm)->lock)
-#define	AMDPM_UNLOCK(amdpm)		mtx_unlock(&(amdpm)->lock)
-#define	AMDPM_LOCK_ASSERT(amdpm)	mtx_assert(&(amdpm)->lock, MA_OWNED)
+#define AMDPM_LOCK(amdpm) mtx_lock(&(amdpm)->lock)
+#define AMDPM_UNLOCK(amdpm) mtx_unlock(&(amdpm)->lock)
+#define AMDPM_LOCK_ASSERT(amdpm) mtx_assert(&(amdpm)->lock, MA_OWNED)
 
-#define AMDPM_SMBINB(amdpm,register) \
-	(bus_read_1(amdpm->res, register))
-#define AMDPM_SMBOUTB(amdpm,register,value) \
+#define AMDPM_SMBINB(amdpm, register) (bus_read_1(amdpm->res, register))
+#define AMDPM_SMBOUTB(amdpm, register, value) \
 	(bus_write_1(amdpm->res, register, value))
-#define AMDPM_SMBINW(amdpm,register) \
-	(bus_read_2(amdpm->res, register))
-#define AMDPM_SMBOUTW(amdpm,register,value) \
+#define AMDPM_SMBINW(amdpm, register) (bus_read_2(amdpm->res, register))
+#define AMDPM_SMBOUTW(amdpm, register, value) \
 	(bus_write_2(amdpm->res, register, value))
 
-static int	amdpm_detach(device_t dev);
+static int amdpm_detach(device_t dev);
 
 static int
 amdpm_probe(device_t dev)
@@ -152,34 +154,33 @@ amdpm_probe(device_t dev)
 	did = pci_get_device(dev);
 	if ((vid == AMDPM_VENDORID_AMD) &&
 	    ((did == AMDPM_DEVICEID_AMD756PM) ||
-	     (did == AMDPM_DEVICEID_AMD766PM) ||
-	     (did == AMDPM_DEVICEID_AMD768PM) ||
-	     (did == AMDPM_DEVICEID_AMD8111PM))) {
-		device_set_desc(dev, "AMD 756/766/768/8111 Power Management Controller");
+		(did == AMDPM_DEVICEID_AMD766PM) ||
+		(did == AMDPM_DEVICEID_AMD768PM) ||
+		(did == AMDPM_DEVICEID_AMD8111PM))) {
+		device_set_desc(dev,
+		    "AMD 756/766/768/8111 Power Management Controller");
 
-		/* 
+		/*
 		 * We have to do this, since the BIOS won't give us the
 		 * resource info (not mine, anyway).
 		 */
 		base = pci_read_config(dev, AMDPCI_PMBASE, 4);
 		base &= 0xff00;
 		bus_set_resource(dev, SYS_RES_IOPORT, AMDPCI_PMBASE,
-				 base+0xe0, 32);
+		    base + 0xe0, 32);
 		return (BUS_PROBE_DEFAULT);
 	}
 
-	if ((vid == AMDPM_VENDORID_NVIDIA) &&
-	    (did == AMDPM_DEVICEID_NF_SMB)) {
+	if ((vid == AMDPM_VENDORID_NVIDIA) && (did == AMDPM_DEVICEID_NF_SMB)) {
 		device_set_desc(dev, "nForce SMBus Controller");
 
-		/* 
-		* We have to do this, since the BIOS won't give us the
-		* resource info (not mine, anyway).
-		*/
+		/*
+		 * We have to do this, since the BIOS won't give us the
+		 * resource info (not mine, anyway).
+		 */
 		base = pci_read_config(dev, NFPCI_PMBASE, 4);
 		base &= 0xff00;
-		bus_set_resource(dev, SYS_RES_IOPORT, NFPCI_PMBASE,
-				 base, 32);
+		bus_set_resource(dev, SYS_RES_IOPORT, NFPCI_PMBASE, base, 32);
 
 		return (BUS_PROBE_DEFAULT);
 	}
@@ -204,12 +205,12 @@ amdpm_attach(device_t dev)
 	else
 		amdpm_sc->rid = NFPCI_PMBASE;
 	amdpm_sc->res = bus_alloc_resource_any(dev, SYS_RES_IOPORT,
-		&amdpm_sc->rid, RF_ACTIVE);
+	    &amdpm_sc->rid, RF_ACTIVE);
 
 	if (amdpm_sc->res == NULL) {
 		device_printf(dev, "could not map i/o space\n");
 		return (ENXIO);
-	}	     
+	}
 
 	mtx_init(&amdpm_sc->lock, device_get_nameunit(dev), "amdpm", MTX_DEF);
 
@@ -238,7 +239,7 @@ amdpm_detach(device_t dev)
 	mtx_destroy(&amdpm_sc->lock);
 	if (amdpm_sc->res)
 		bus_release_resource(dev, SYS_RES_IOPORT, amdpm_sc->rid,
-				     amdpm_sc->res);
+		    amdpm_sc->res);
 
 	return (0);
 }
@@ -308,7 +309,7 @@ amdpm_wait(struct amdpm_softc *sc)
 
 	AMDPM_LOCK_ASSERT(sc);
 	/* Wait for command to complete (SMBus controller is idle) */
-	while(count--) {
+	while (count--) {
 		DELAY(10);
 		sts = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_STATUS);
 		if (!(sts & AMDSMB_GS_HST_STS))
@@ -364,7 +365,8 @@ amdpm_quick(device_t dev, u_char slave, int how)
 		panic("%s: unknown QUICK command (%x)!", __func__, how);
 	}
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_QUICK | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_QUICK | AMDSMB_GE_HOST_STC);
 
 	error = amdpm_wait(sc);
 
@@ -391,11 +393,13 @@ amdpm_sendb(device_t dev, u_char slave, char byte)
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTADDR, slave & ~LSB);
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTDATA, byte);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_BYTE | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_BYTE | AMDSMB_GE_HOST_STC);
 
 	error = amdpm_wait(sc);
 
-	AMDPM_DEBUG(printf("amdpm: SENDB to 0x%x, byte=0x%x, error=0x%x\n", slave, byte, error));
+	AMDPM_DEBUG(printf("amdpm: SENDB to 0x%x, byte=0x%x, error=0x%x\n",
+	    slave, byte, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -417,12 +421,14 @@ amdpm_recvb(device_t dev, u_char slave, char *byte)
 
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTADDR, slave | LSB);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_BYTE | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_BYTE | AMDSMB_GE_HOST_STC);
 
 	if ((error = amdpm_wait(sc)) == SMB_ENOERR)
 		*byte = AMDPM_SMBINW(sc, AMDSMB_HSTDATA);
 
-	AMDPM_DEBUG(printf("amdpm: RECVB from 0x%x, byte=0x%x, error=0x%x\n", slave, *byte, error));
+	AMDPM_DEBUG(printf("amdpm: RECVB from 0x%x, byte=0x%x, error=0x%x\n",
+	    slave, *byte, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -446,11 +452,14 @@ amdpm_writeb(device_t dev, u_char slave, char cmd, char byte)
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTDATA, byte);
 	AMDPM_SMBOUTB(sc, AMDSMB_HSTCMD, cmd);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_BDATA | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_BDATA | AMDSMB_GE_HOST_STC);
 
 	error = amdpm_wait(sc);
 
-	AMDPM_DEBUG(printf("amdpm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, byte, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: WRITEB to 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, byte, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -473,12 +482,15 @@ amdpm_readb(device_t dev, u_char slave, char cmd, char *byte)
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTADDR, slave | LSB);
 	AMDPM_SMBOUTB(sc, AMDSMB_HSTCMD, cmd);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_BDATA | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_BDATA | AMDSMB_GE_HOST_STC);
 
 	if ((error = amdpm_wait(sc)) == SMB_ENOERR)
 		*byte = AMDPM_SMBINW(sc, AMDSMB_HSTDATA);
 
-	AMDPM_DEBUG(printf("amdpm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n", slave, cmd, *byte, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: READB from 0x%x, cmd=0x%x, byte=0x%x, error=0x%x\n",
+		slave, cmd, *byte, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -502,11 +514,14 @@ amdpm_writew(device_t dev, u_char slave, char cmd, short word)
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTDATA, word);
 	AMDPM_SMBOUTB(sc, AMDSMB_HSTCMD, cmd);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_WDATA | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_WDATA | AMDSMB_GE_HOST_STC);
 
 	error = amdpm_wait(sc);
 
-	AMDPM_DEBUG(printf("amdpm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, word, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: WRITEW to 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, word, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -529,12 +544,15 @@ amdpm_readw(device_t dev, u_char slave, char cmd, short *word)
 	AMDPM_SMBOUTW(sc, AMDSMB_HSTADDR, slave | LSB);
 	AMDPM_SMBOUTB(sc, AMDSMB_HSTCMD, cmd);
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
-	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE, (l & 0xfff8) | AMDSMB_GE_CYC_WDATA | AMDSMB_GE_HOST_STC);
+	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
+	    (l & 0xfff8) | AMDSMB_GE_CYC_WDATA | AMDSMB_GE_HOST_STC);
 
 	if ((error = amdpm_wait(sc)) == SMB_ENOERR)
 		*word = AMDPM_SMBINW(sc, AMDSMB_HSTDATA);
 
-	AMDPM_DEBUG(printf("amdpm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n", slave, cmd, *word, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: READW from 0x%x, cmd=0x%x, word=0x%x, error=0x%x\n",
+		slave, cmd, *word, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -578,7 +596,9 @@ amdpm_bwrite(device_t dev, u_char slave, char cmd, u_char count, char *buf)
 
 	error = amdpm_wait(sc);
 
-	AMDPM_DEBUG(printf("amdpm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, count, cmd, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: WRITEBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, count, cmd, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -609,7 +629,7 @@ amdpm_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	l = AMDPM_SMBINW(sc, AMDSMB_GLOBAL_ENABLE);
 	AMDPM_SMBOUTW(sc, AMDSMB_GLOBAL_ENABLE,
 	    (l & 0xfff8) | AMDSMB_GE_CYC_BLOCK | AMDSMB_GE_HOST_STC);
-		
+
 	if ((error = amdpm_wait(sc)) != SMB_ENOERR)
 		goto error;
 
@@ -625,7 +645,9 @@ amdpm_bread(device_t dev, u_char slave, char cmd, u_char *count, char *buf)
 	*count = len;
 
 error:
-	AMDPM_DEBUG(printf("amdpm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x", slave, *count, cmd, error));
+	AMDPM_DEBUG(
+	    printf("amdpm: READBLK to 0x%x, count=0x%x, cmd=0x%x, error=0x%x",
+		slave, *count, cmd, error));
 	AMDPM_UNLOCK(sc);
 
 	return (error);
@@ -633,22 +655,21 @@ error:
 
 static device_method_t amdpm_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		amdpm_probe),
-	DEVMETHOD(device_attach,	amdpm_attach),
-	DEVMETHOD(device_detach,	amdpm_detach),
+	DEVMETHOD(device_probe, amdpm_probe),
+	DEVMETHOD(device_attach, amdpm_attach),
+	DEVMETHOD(device_detach, amdpm_detach),
 
 	/* SMBus interface */
-	DEVMETHOD(smbus_callback,	amdpm_callback),
-	DEVMETHOD(smbus_quick,		amdpm_quick),
-	DEVMETHOD(smbus_sendb,		amdpm_sendb),
-	DEVMETHOD(smbus_recvb,		amdpm_recvb),
-	DEVMETHOD(smbus_writeb,		amdpm_writeb),
-	DEVMETHOD(smbus_readb,		amdpm_readb),
-	DEVMETHOD(smbus_writew,		amdpm_writew),
-	DEVMETHOD(smbus_readw,		amdpm_readw),
-	DEVMETHOD(smbus_bwrite,		amdpm_bwrite),
-	DEVMETHOD(smbus_bread,		amdpm_bread),
-	{ 0, 0 }
+	DEVMETHOD(smbus_callback, amdpm_callback),
+	DEVMETHOD(smbus_quick, amdpm_quick),
+	DEVMETHOD(smbus_sendb, amdpm_sendb),
+	DEVMETHOD(smbus_recvb, amdpm_recvb),
+	DEVMETHOD(smbus_writeb, amdpm_writeb),
+	DEVMETHOD(smbus_readb, amdpm_readb),
+	DEVMETHOD(smbus_writew, amdpm_writew),
+	DEVMETHOD(smbus_readw, amdpm_readw),
+	DEVMETHOD(smbus_bwrite, amdpm_bwrite),
+	DEVMETHOD(smbus_bread, amdpm_bread), { 0, 0 }
 };
 
 static driver_t amdpm_driver = {

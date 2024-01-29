@@ -30,8 +30,8 @@
 #include <arm/pcpu.h>
 #else /* !__arm__ */
 
-#ifndef	_MACHINE_PCPU_H_
-#define	_MACHINE_PCPU_H_
+#ifndef _MACHINE_PCPU_H_
+#define _MACHINE_PCPU_H_
 
 #include <machine/cpu.h>
 #include <machine/cpufunc.h>
@@ -40,17 +40,17 @@ typedef int (*pcpu_bp_harden)(void);
 typedef int (*pcpu_ssbd)(int);
 struct debug_monitor_state;
 
-#define	PCPU_MD_FIELDS							\
-	u_int	pc_acpi_id;	/* ACPI CPU id */			\
-	u_int	pc_midr;	/* stored MIDR value */			\
-	uint64_t pc_clock;						\
-	pcpu_bp_harden pc_bp_harden;					\
-	pcpu_ssbd pc_ssbd;						\
-	struct pmap *pc_curpmap;					\
-	struct pmap *pc_curvmpmap;					\
-	/* Store as two u_int values to preserve KBI */			\
-	uint64_t pc_mpidr;						\
-	u_int	pc_bcast_tlbi_workaround;				\
+#define PCPU_MD_FIELDS                                  \
+	u_int pc_acpi_id; /* ACPI CPU id */             \
+	u_int pc_midr;	  /* stored MIDR value */       \
+	uint64_t pc_clock;                              \
+	pcpu_bp_harden pc_bp_harden;                    \
+	pcpu_ssbd pc_ssbd;                              \
+	struct pmap *pc_curpmap;                        \
+	struct pmap *pc_curvmpmap;                      \
+	/* Store as two u_int values to preserve KBI */ \
+	uint64_t pc_mpidr;                              \
+	u_int pc_bcast_tlbi_workaround;                 \
 	char __pad[197]
 
 #ifdef _KERNEL
@@ -58,7 +58,7 @@ struct debug_monitor_state;
 struct pcb;
 struct pcpu;
 
-register struct pcpu *pcpup __asm ("x18");
+register struct pcpu *pcpup __asm("x18");
 
 static inline struct pcpu *
 get_pcpu(void)
@@ -78,17 +78,17 @@ get_curthread(void)
 	return (td);
 }
 
-#define	curthread get_curthread()
+#define curthread get_curthread()
 
-#define	PCPU_GET(member)	(pcpup->pc_ ## member)
-#define	PCPU_ADD(member, value)	(pcpup->pc_ ## member += (value))
-#define	PCPU_PTR(member)	(&pcpup->pc_ ## member)
-#define	PCPU_SET(member,value)	(pcpup->pc_ ## member = (value))
+#define PCPU_GET(member) (pcpup->pc_##member)
+#define PCPU_ADD(member, value) (pcpup->pc_##member += (value))
+#define PCPU_PTR(member) (&pcpup->pc_##member)
+#define PCPU_SET(member, value) (pcpup->pc_##member = (value))
 
-#define	PCPU_GET_MPIDR(pc)	((pc)->pc_mpidr)
+#define PCPU_GET_MPIDR(pc) ((pc)->pc_mpidr)
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#endif	/* !_MACHINE_PCPU_H_ */
+#endif /* !_MACHINE_PCPU_H_ */
 
 #endif /* !__arm__ */

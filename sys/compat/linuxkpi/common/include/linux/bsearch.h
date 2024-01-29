@@ -28,9 +28,9 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_BSEARCH_H
-#define	_LINUXKPI_LINUX_BSEARCH_H
+#ifndef _LINUXKPI_LINUX_BSEARCH_H
+#define _LINUXKPI_LINUX_BSEARCH_H
 
 #include <sys/libkern.h>
 
-#endif	/* _LINUXKPI_LINUX_BSEARCH_H */
+#endif /* _LINUXKPI_LINUX_BSEARCH_H */

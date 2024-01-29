@@ -24,17 +24,16 @@
  */
 
 #include "opt_kern_tls.h"
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <dev/mlx5/mlx5_en/en.h>
-
-#include <dev/mlx5/tls.h>
+#include <sys/ktls.h>
 
 #include <dev/mlx5/fs.h>
 #include <dev/mlx5/mlx5_core/fs_tcp.h>
+#include <dev/mlx5/mlx5_en/en.h>
+#include <dev/mlx5/tls.h>
 
-#include <sys/ktls.h>
 #include <opencrypto/cryptodev.h>
 
 #ifdef KERN_TLS
@@ -60,15 +59,17 @@ struct mlx5_ifc_sw_tls_rx_cntx_bits {
 	} key;
 };
 
-CTASSERT(MLX5_ST_SZ_BYTES(sw_tls_rx_cntx) <= sizeof(((struct mlx5e_tls_rx_tag *)NULL)->crypto_params));
-CTASSERT(MLX5_ST_SZ_BYTES(mkc) == sizeof(((struct mlx5e_tx_umr_wqe *)NULL)->mkc));
+CTASSERT(MLX5_ST_SZ_BYTES(sw_tls_rx_cntx) <=
+    sizeof(((struct mlx5e_tls_rx_tag *)NULL)->crypto_params));
+CTASSERT(
+    MLX5_ST_SZ_BYTES(mkc) == sizeof(((struct mlx5e_tx_umr_wqe *)NULL)->mkc));
 
-static const char *mlx5e_tls_rx_stats_desc[] = {
-	MLX5E_TLS_RX_STATS(MLX5E_STATS_DESC)
-};
+static const char *mlx5e_tls_rx_stats_desc[] = { MLX5E_TLS_RX_STATS(
+    MLX5E_STATS_DESC) };
 
 static void mlx5e_tls_rx_work(struct work_struct *);
-static bool mlx5e_tls_rx_snd_tag_find_tcp_sn_and_tls_rcd(struct mlx5e_tls_rx_tag *,
+static bool
+mlx5e_tls_rx_snd_tag_find_tcp_sn_and_tls_rcd(struct mlx5e_tls_rx_tag *,
     uint32_t, uint32_t *, uint64_t *);
 
 CTASSERT((MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param) % 16) == 0);
@@ -134,10 +135,12 @@ mlx5e_tls_rx_send_static_parameters_cb(void *arg)
  * Zero is returned upon success. Else some error happend.
  */
 static int
-mlx5e_tls_rx_send_static_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_rx_tag *ptag)
+mlx5e_tls_rx_send_static_parameters(struct mlx5e_iq *iq,
+    struct mlx5e_tls_rx_tag *ptag)
 {
 	const u32 ds_cnt = DIV_ROUND_UP(sizeof(struct mlx5e_tx_umr_wqe) +
-	    MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param), MLX5_SEND_WQE_DS);
+		MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param),
+	    MLX5_SEND_WQE_DS);
 	struct mlx5e_tx_umr_wqe *wqe;
 	int pi;
 
@@ -152,18 +155,21 @@ mlx5e_tls_rx_send_static_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_rx_tag
 	memset(wqe, 0, sizeof(*wqe));
 
 	wqe->ctrl.opmod_idx_opcode = cpu_to_be32((iq->pc << 8) |
-	    MLX5_OPCODE_UMR | (MLX5_OPCODE_MOD_UMR_TLS_TIR_STATIC_PARAMS << 24));
+	    MLX5_OPCODE_UMR |
+	    (MLX5_OPCODE_MOD_UMR_TLS_TIR_STATIC_PARAMS << 24));
 	wqe->ctrl.qpn_ds = cpu_to_be32((iq->sqn << 8) | ds_cnt);
 	wqe->ctrl.imm = cpu_to_be32(ptag->tirn << 8);
-	wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE | MLX5_FENCE_MODE_INITIATOR_SMALL;
+	wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE |
+	    MLX5_FENCE_MODE_INITIATOR_SMALL;
 
 	/* fill out UMR control segment */
-	wqe->umr.flags = 0x80;	/* inline data */
-	wqe->umr.bsf_octowords =
-	    cpu_to_be16(MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param) / 16);
+	wqe->umr.flags = 0x80; /* inline data */
+	wqe->umr.bsf_octowords = cpu_to_be16(
+	    MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param) / 16);
 
 	/* copy in the static crypto parameters */
-	memcpy(wqe + 1, MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params, param),
+	memcpy(wqe + 1,
+	    MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params, param),
 	    MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param));
 
 	/* copy data for doorbell */
@@ -181,7 +187,7 @@ mlx5e_tls_rx_send_static_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_rx_tag
 
 	mtx_unlock(&iq->lock);
 
-	return (0);	/* success */
+	return (0); /* success */
 }
 
 static void
@@ -225,12 +231,14 @@ mlx5e_tls_rx_send_progress_parameters_sync(struct mlx5e_iq *iq,
 	memset(wqe, 0, sizeof(*wqe));
 
 	wqe->ctrl.opmod_idx_opcode = cpu_to_be32((iq->pc << 8) |
-	    MLX5_OPCODE_SET_PSV | (MLX5_OPCODE_MOD_PSV_TLS_TIR_PROGRESS_PARAMS << 24));
+	    MLX5_OPCODE_SET_PSV |
+	    (MLX5_OPCODE_MOD_PSV_TLS_TIR_PROGRESS_PARAMS << 24));
 	wqe->ctrl.qpn_ds = cpu_to_be32((iq->sqn << 8) | ds_cnt);
 	wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
 
 	/* copy in the PSV control segment */
-	memcpy(&wqe->psv, MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params, progress),
+	memcpy(&wqe->psv,
+	    MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params, progress),
 	    sizeof(wqe->psv));
 
 	/* copy data for doorbell */
@@ -249,7 +257,8 @@ mlx5e_tls_rx_send_progress_parameters_sync(struct mlx5e_iq *iq,
 	mtx_unlock(&iq->lock);
 
 	while (1) {
-		if (wait_for_completion_timeout(&ptag->progress_complete, hz) != 0)
+		if (wait_for_completion_timeout(&ptag->progress_complete, hz) !=
+		    0)
 			break;
 		priv = container_of(iq, struct mlx5e_channel, iq)->priv;
 		if (priv->mdev->state == MLX5_DEVICE_STATE_INTERNAL_ERROR ||
@@ -257,15 +266,16 @@ mlx5e_tls_rx_send_progress_parameters_sync(struct mlx5e_iq *iq,
 			return (-EWOULDBLOCK);
 	}
 
-	return (0);	/* success */
+	return (0); /* success */
 }
 
-CTASSERT(MLX5E_TLS_RX_PROGRESS_BUFFER_SIZE >= MLX5_ST_SZ_BYTES(tls_progress_params));
+CTASSERT(
+    MLX5E_TLS_RX_PROGRESS_BUFFER_SIZE >= MLX5_ST_SZ_BYTES(tls_progress_params));
 CTASSERT(MLX5E_TLS_RX_PROGRESS_BUFFER_SIZE <= PAGE_SIZE);
 
 struct mlx5e_get_tls_progress_params_wqe {
 	struct mlx5_wqe_ctrl_seg ctrl;
-	struct mlx5_seg_get_psv	 psv;
+	struct mlx5_seg_get_psv psv;
 };
 
 static void
@@ -299,18 +309,19 @@ mlx5e_tls_rx_receive_progress_parameters_cb(void *arg)
 		goto done;
 	}
 
-	tcp_curr_sn_he = MLX5_GET(tls_progress_params, buffer, hw_resync_tcp_sn);
+	tcp_curr_sn_he = MLX5_GET(tls_progress_params, buffer,
+	    hw_resync_tcp_sn);
 
 	if (mlx5e_tls_rx_snd_tag_find_tcp_sn_and_tls_rcd(ptag, tcp_curr_sn_he,
-	    &tcp_next_sn_he, &tls_rcd_num)) {
+		&tcp_next_sn_he, &tls_rcd_num)) {
 
 		MLX5_SET64(sw_tls_rx_cntx, ptag->crypto_params,
 		    param.initial_record_number, tls_rcd_num);
 		MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params,
 		    param.resync_tcp_sn, tcp_curr_sn_he);
 
-		iq = mlx5e_tls_rx_get_iq(
-		    container_of(ptag->tls_rx, struct mlx5e_priv, tls_rx),
+		iq = mlx5e_tls_rx_get_iq(container_of(ptag->tls_rx,
+					     struct mlx5e_priv, tls_rx),
 		    ptag->flowid, ptag->flowtype);
 
 		if (mlx5e_tls_rx_send_static_parameters(iq, ptag) != 0)
@@ -330,7 +341,8 @@ done:
  * Zero is returned upon success, else some error happened.
  */
 static int
-mlx5e_tls_rx_receive_progress_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_rx_tag *ptag)
+mlx5e_tls_rx_receive_progress_parameters(struct mlx5e_iq *iq,
+    struct mlx5e_tls_rx_tag *ptag)
 {
 	struct mlx5e_get_tls_progress_params_wqe *wqe;
 	const u32 ds_cnt = DIV_ROUND_UP(sizeof(*wqe), MLX5_SEND_WQE_DS);
@@ -346,15 +358,16 @@ mlx5e_tls_rx_receive_progress_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_r
 
 	mlx5e_iq_load_memory_single(iq, pi,
 	    mlx5e_tls_rx_get_progress_buffer(ptag),
-	    MLX5E_TLS_RX_PROGRESS_BUFFER_SIZE,
-	    &dma_address, BUS_DMASYNC_PREREAD);
+	    MLX5E_TLS_RX_PROGRESS_BUFFER_SIZE, &dma_address,
+	    BUS_DMASYNC_PREREAD);
 
 	wqe = mlx5_wq_cyc_get_wqe(&iq->wq, pi);
 
 	memset(wqe, 0, sizeof(*wqe));
 
 	wqe->ctrl.opmod_idx_opcode = cpu_to_be32((iq->pc << 8) |
-	    MLX5_OPCODE_GET_PSV | (MLX5_OPCODE_MOD_PSV_TLS_TIR_PROGRESS_PARAMS << 24));
+	    MLX5_OPCODE_GET_PSV |
+	    (MLX5_OPCODE_MOD_PSV_TLS_TIR_PROGRESS_PARAMS << 24));
 	wqe->ctrl.qpn_ds = cpu_to_be32((iq->sqn << 8) | ds_cnt);
 	wqe->ctrl.fm_ce_se = MLX5_WQE_CTRL_CQ_UPDATE;
 	wqe->psv.num_psv = 1 << 4;
@@ -377,7 +390,7 @@ mlx5e_tls_rx_receive_progress_parameters(struct mlx5e_iq *iq, struct mlx5e_tls_r
 
 	mtx_unlock(&iq->lock);
 
-	return (0);	/* success */
+	return (0); /* success */
 }
 
 /*
@@ -459,7 +472,8 @@ mlx5e_tls_rx_init(struct mlx5e_priv *priv)
 
 	if (MLX5_CAP_GEN(priv->mdev, tls_rx) == 0 ||
 	    MLX5_CAP_GEN(priv->mdev, log_max_dek) == 0 ||
-	    MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev, ft_field_support.outer_ip_version) == 0)
+	    MLX5_CAP_FLOWTABLE_NIC_RX(priv->mdev,
+		ft_field_support.outer_ip_version) == 0)
 		return (0);
 
 	ptls->wq = create_singlethread_workqueue("mlx5-tls-rx-wq");
@@ -468,8 +482,8 @@ mlx5e_tls_rx_init(struct mlx5e_priv *priv)
 
 	sysctl_ctx_init(&ptls->ctx);
 
-	snprintf(ptls->zname, sizeof(ptls->zname),
-	    "mlx5_%u_tls_rx", device_get_unit(priv->mdev->pdev->dev.bsddev));
+	snprintf(ptls->zname, sizeof(ptls->zname), "mlx5_%u_tls_rx",
+	    device_get_unit(priv->mdev->pdev->dev.bsddev));
 
 	ptls->zone = uma_zcache_create(ptls->zname,
 	    sizeof(struct mlx5e_tls_rx_tag), NULL, NULL, NULL, NULL,
@@ -485,15 +499,13 @@ mlx5e_tls_rx_init(struct mlx5e_priv *priv)
 	ptls->init = 1;
 
 	node = SYSCTL_ADD_NODE(&priv->sysctl_ctx,
-	    SYSCTL_CHILDREN(priv->sysctl_ifnet), OID_AUTO,
-	    "tls_rx", CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, "Hardware TLS receive offload");
+	    SYSCTL_CHILDREN(priv->sysctl_ifnet), OID_AUTO, "tls_rx",
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, NULL, "Hardware TLS receive offload");
 	if (node == NULL)
 		return (0);
 
-	mlx5e_create_counter_stats(&ptls->ctx,
-	    SYSCTL_CHILDREN(node), "stats",
-	    mlx5e_tls_rx_stats_desc, MLX5E_TLS_RX_STATS_NUM,
-	    ptls->stats.arg);
+	mlx5e_create_counter_stats(&ptls->ctx, SYSCTL_CHILDREN(node), "stats",
+	    mlx5e_tls_rx_stats_desc, MLX5E_TLS_RX_STATS_NUM, ptls->stats.arg);
 
 	return (0);
 }
@@ -541,17 +553,21 @@ mlx5e_tls_rx_work(struct work_struct *work)
 	case MLX5E_TLS_RX_ST_INIT:
 		/* try to allocate new TIR context */
 		err = mlx5_tls_open_tir(priv->mdev, priv->tdn,
-		    priv->channel[mlx5e_tls_rx_get_ch(priv, ptag->flowid, ptag->flowtype)].rqtn,
+		    priv->channel[mlx5e_tls_rx_get_ch(priv, ptag->flowid,
+				      ptag->flowtype)]
+			.rqtn,
 		    &ptag->tirn);
 		if (err) {
 			MLX5E_TLS_RX_STAT_INC(ptag, rx_error, 1);
 			break;
 		}
-		MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, progress.pd, ptag->tirn);
+		MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, progress.pd,
+		    ptag->tirn);
 
 		/* try to allocate a DEK context ID */
 		err = mlx5_encryption_key_create(priv->mdev, priv->pdn,
-		    MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params, key.key_data),
+		    MLX5_ADDR_OF(sw_tls_rx_cntx, ptag->crypto_params,
+			key.key_data),
 		    MLX5_GET(sw_tls_rx_cntx, ptag->crypto_params, key.key_len),
 		    &ptag->dek_index);
 		if (err) {
@@ -559,7 +575,8 @@ mlx5e_tls_rx_work(struct work_struct *work)
 			break;
 		}
 
-		MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, param.dek_index, ptag->dek_index);
+		MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, param.dek_index,
+		    ptag->dek_index);
 
 		ptag->dek_index_ok = 1;
 
@@ -576,7 +593,8 @@ mlx5e_tls_rx_work(struct work_struct *work)
 
 		/* try to destroy DEK context by ID */
 		if (ptag->dek_index_ok)
-			mlx5_encryption_key_destroy(priv->mdev, ptag->dek_index);
+			mlx5_encryption_key_destroy(priv->mdev,
+			    ptag->dek_index);
 
 		/* try to destroy TIR context by ID */
 		if (ptag->tirn != 0)
@@ -599,7 +617,8 @@ mlx5e_tls_rx_work(struct work_struct *work)
  * Returns zero on success, else an error happened.
  */
 static int
-mlx5e_tls_rx_set_params(void *ctx, struct inpcb *inp, const struct tls_session_params *en)
+mlx5e_tls_rx_set_params(void *ctx, struct inpcb *inp,
+    const struct tls_session_params *en)
 {
 	uint32_t tcp_sn_he;
 	uint64_t tls_sn_he;
@@ -616,15 +635,16 @@ mlx5e_tls_rx_set_params(void *ctx, struct inpcb *inp, const struct tls_session_p
 	switch (en->iv_len) {
 	case MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param.gcm_iv):
 	case MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param.gcm_iv) +
-	     MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param.implicit_iv):
-		memcpy(MLX5_ADDR_OF(sw_tls_rx_cntx, ctx, param.gcm_iv),
-		    en->iv, en->iv_len);
+	    MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, param.implicit_iv):
+		memcpy(MLX5_ADDR_OF(sw_tls_rx_cntx, ctx, param.gcm_iv), en->iv,
+		    en->iv_len);
 		break;
 	default:
 		return (EINVAL);
 	}
 
-	if (en->cipher_key_len <= MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, key.key_data)) {
+	if (en->cipher_key_len <=
+	    MLX5_FLD_SZ_BYTES(sw_tls_rx_cntx, key.key_data)) {
 		memcpy(MLX5_ADDR_OF(sw_tls_rx_cntx, ctx, key.key_data),
 		    en->cipher_key, en->cipher_key_len);
 		MLX5_SET(sw_tls_rx_cntx, ctx, key.key_len, en->cipher_key_len);
@@ -633,7 +653,7 @@ mlx5e_tls_rx_set_params(void *ctx, struct inpcb *inp, const struct tls_session_p
 	}
 
 	if (__predict_false(inp == NULL ||
-	    ktls_get_rx_sequence(inp, &tcp_sn_he, &tls_sn_he) != 0))
+		ktls_get_rx_sequence(inp, &tcp_sn_he, &tls_sn_he) != 0))
 		return (EINVAL);
 
 	MLX5_SET64(sw_tls_rx_cntx, ctx, param.initial_record_number, tls_sn_he);
@@ -652,8 +672,7 @@ CTASSERT(MLX5E_TLS_RX_ST_INIT == 0);
  * Returns zero on success else an error happened.
  */
 int
-mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
-    union if_snd_tag_alloc_params *params,
+mlx5e_tls_rx_snd_tag_alloc(if_t ifp, union if_snd_tag_alloc_params *params,
     struct m_snd_tag **ppmt)
 {
 	struct mlx5e_iq *iq;
@@ -667,7 +686,7 @@ mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
 	priv = if_getsoftc(ifp);
 
 	if (unlikely(priv->gone != 0 || priv->tls_rx.init == 0 ||
-	    params->hdr.flowtype == M_HASHTYPE_NONE))
+		params->hdr.flowtype == M_HASHTYPE_NONE))
 		return (EOPNOTSUPP);
 
 	/* allocate new tag from zone, if any */
@@ -698,9 +717,9 @@ mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
 	if (en->tls_vmajor != TLS_MAJOR_VER_ONE ||
 	    (en->tls_vminor != TLS_MINOR_VER_TWO
 #ifdef TLS_MINOR_VER_THREE
-	     && en->tls_vminor != TLS_MINOR_VER_THREE
+		&& en->tls_vminor != TLS_MINOR_VER_THREE
 #endif
-	     )) {
+		)) {
 		error = EPROTONOSUPPORT;
 		goto failure;
 	}
@@ -710,36 +729,40 @@ mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
 		switch (en->cipher_key_len) {
 		case 128 / 8:
 			if (en->tls_vminor == TLS_MINOR_VER_TWO) {
-				if (MLX5_CAP_TLS(priv->mdev, tls_1_2_aes_gcm_128) == 0) {
+				if (MLX5_CAP_TLS(priv->mdev,
+					tls_1_2_aes_gcm_128) == 0) {
 					error = EPROTONOSUPPORT;
 					goto failure;
 				}
 			} else {
-				if (MLX5_CAP_TLS(priv->mdev, tls_1_3_aes_gcm_128) == 0) {
+				if (MLX5_CAP_TLS(priv->mdev,
+					tls_1_3_aes_gcm_128) == 0) {
 					error = EPROTONOSUPPORT;
 					goto failure;
 				}
 			}
-			error = mlx5e_tls_rx_set_params(
-			    ptag->crypto_params, params->tls_rx.inp, en);
+			error = mlx5e_tls_rx_set_params(ptag->crypto_params,
+			    params->tls_rx.inp, en);
 			if (error)
 				goto failure;
 			break;
 
 		case 256 / 8:
 			if (en->tls_vminor == TLS_MINOR_VER_TWO) {
-				if (MLX5_CAP_TLS(priv->mdev, tls_1_2_aes_gcm_256) == 0) {
+				if (MLX5_CAP_TLS(priv->mdev,
+					tls_1_2_aes_gcm_256) == 0) {
 					error = EPROTONOSUPPORT;
 					goto failure;
 				}
 			} else {
-				if (MLX5_CAP_TLS(priv->mdev, tls_1_3_aes_gcm_256) == 0) {
+				if (MLX5_CAP_TLS(priv->mdev,
+					tls_1_3_aes_gcm_256) == 0) {
 					error = EPROTONOSUPPORT;
 					goto failure;
 				}
 			}
-			error = mlx5e_tls_rx_set_params(
-			    ptag->crypto_params, params->tls_rx.inp, en);
+			error = mlx5e_tls_rx_set_params(ptag->crypto_params,
+			    params->tls_rx.inp, en);
 			if (error)
 				goto failure;
 			break;
@@ -789,7 +812,8 @@ mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
 
 	MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, progress.auth_state,
 	    MLX5E_TLS_RX_PROGRESS_PARAMS_AUTH_STATE_NO_OFFLOAD);
-	MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params, progress.record_tracker_state,
+	MLX5_SET(sw_tls_rx_cntx, ptag->crypto_params,
+	    progress.record_tracker_state,
 	    MLX5E_TLS_RX_PROGRESS_PARAMS_RECORD_TRACKER_STATE_START);
 
 	/* reset state to all zeros */
@@ -802,11 +826,13 @@ mlx5e_tls_rx_snd_tag_alloc(if_t ifp,
 	if (if_getpcp(ifp) != IFNET_PCP_NONE || params->tls_rx.vlan_id != 0) {
 		/* create flow rule for TLS RX traffic (tagged) */
 		flow_rule = mlx5e_accel_fs_add_inpcb(priv, params->tls_rx.inp,
-		    ptag->tirn, MLX5_FS_DEFAULT_FLOW_TAG, params->tls_rx.vlan_id);
+		    ptag->tirn, MLX5_FS_DEFAULT_FLOW_TAG,
+		    params->tls_rx.vlan_id);
 	} else {
 		/* create flow rule for TLS RX traffic (untagged) */
 		flow_rule = mlx5e_accel_fs_add_inpcb(priv, params->tls_rx.inp,
-		    ptag->tirn, MLX5_FS_DEFAULT_FLOW_TAG, MLX5E_ACCEL_FS_ADD_INPCB_NO_VLAN);
+		    ptag->tirn, MLX5_FS_DEFAULT_FLOW_TAG,
+		    MLX5E_ACCEL_FS_ADD_INPCB_NO_VLAN);
 	}
 
 	if (IS_ERR_OR_NULL(flow_rule)) {
@@ -827,7 +853,6 @@ failure:
 	mlx5e_tls_rx_tag_zfree(ptag);
 	return (error);
 }
-
 
 /*
  * This function adds the TCP sequence number and TLS record number in
@@ -852,8 +877,7 @@ mlx5e_tls_rx_snd_tag_add_tcp_sequence(struct mlx5e_tls_rx_tag *ptag,
 	uint16_t i, j, n;
 
 	if (ptag->tcp_resync_active == 0 ||
-	    ptag->tcp_resync_next != tcp_sn_he ||
-	    len == 0) {
+	    ptag->tcp_resync_next != tcp_sn_he || len == 0) {
 		/* start over again or terminate */
 		ptag->tcp_resync_active = (len != 0);
 		ptag->tcp_resync_len[0] = len;
@@ -872,16 +896,20 @@ mlx5e_tls_rx_snd_tag_add_tcp_sequence(struct mlx5e_tls_rx_tag *ptag,
 			/* use existing entry */
 			ptag->tcp_resync_num[i]++;
 		} else if (n == MLX5E_TLS_RX_RESYNC_MAX) {
-			j = ptag->tcp_resync_cc++ & (MLX5E_TLS_RX_RESYNC_MAX - 1);
+			j = ptag->tcp_resync_cc++ &
+			    (MLX5E_TLS_RX_RESYNC_MAX - 1);
 			/* adjust starting TCP sequence number */
 			ptag->rcd_resync_start += ptag->tcp_resync_num[j];
-			ptag->tcp_resync_start += ptag->tcp_resync_len[j] * ptag->tcp_resync_num[j];
-			i = ptag->tcp_resync_pc++ & (MLX5E_TLS_RX_RESYNC_MAX - 1);
+			ptag->tcp_resync_start += ptag->tcp_resync_len[j] *
+			    ptag->tcp_resync_num[j];
+			i = ptag->tcp_resync_pc++ &
+			    (MLX5E_TLS_RX_RESYNC_MAX - 1);
 			/* store new entry */
 			ptag->tcp_resync_len[i] = len;
 			ptag->tcp_resync_num[i] = 1;
 		} else {
-			i = ptag->tcp_resync_pc++ & (MLX5E_TLS_RX_RESYNC_MAX - 1);
+			i = ptag->tcp_resync_pc++ &
+			    (MLX5E_TLS_RX_RESYNC_MAX - 1);
 			/* add new entry */
 			ptag->tcp_resync_len[i] = len;
 			ptag->tcp_resync_num[i] = 1;
@@ -926,14 +954,14 @@ mlx5e_tls_rx_snd_tag_find_tcp_sn_and_tls_rcd(struct mlx5e_tls_rx_tag *ptag,
 				*p_tls_rcd = ptag->rcd_resync_start +
 				    (uint64_t)rcd +
 				    (uint64_t)(delta / ptag->tcp_resync_len[j]);
-				return (true);		/* success */
+				return (true); /* success */
 			}
-			break;	/* invalid offset */
+			break; /* invalid offset */
 		}
 		rcd += ptag->tcp_resync_num[j];
 		off += leap;
 	}
-	return (false);	/* not found */
+	return (false); /* not found */
 }
 
 /*
@@ -943,7 +971,8 @@ mlx5e_tls_rx_snd_tag_find_tcp_sn_and_tls_rcd(struct mlx5e_tls_rx_tag *ptag,
  * Returns zero on success else an error happened.
  */
 static int
-mlx5e_tls_rx_snd_tag_modify(struct m_snd_tag *pmt, union if_snd_tag_modify_params *params)
+mlx5e_tls_rx_snd_tag_modify(struct m_snd_tag *pmt,
+    union if_snd_tag_modify_params *params)
 {
 	struct mlx5e_tls_rx_tag *ptag;
 	struct mlx5e_priv *priv;
@@ -961,9 +990,8 @@ mlx5e_tls_rx_snd_tag_modify(struct m_snd_tag *pmt, union if_snd_tag_modify_param
 	MLX5E_TLS_RX_TAG_LOCK(ptag);
 
 	if (mlx5e_tls_rx_snd_tag_add_tcp_sequence(ptag,
-	    params->tls_rx.tls_hdr_tcp_sn,
-	    params->tls_rx.tls_rec_length,
-	    params->tls_rx.tls_seq_number) &&
+		params->tls_rx.tls_hdr_tcp_sn, params->tls_rx.tls_rec_length,
+		params->tls_rx.tls_seq_number) &&
 	    ptag->tcp_resync_pending == 0) {
 		err = mlx5e_tls_rx_receive_progress_parameters(iq, ptag);
 		if (err != 0) {
@@ -986,8 +1014,8 @@ mlx5e_tls_rx_snd_tag_modify(struct m_snd_tag *pmt, union if_snd_tag_modify_param
 static void
 mlx5e_tls_rx_snd_tag_free(struct m_snd_tag *pmt)
 {
-	struct mlx5e_tls_rx_tag *ptag =
-	    container_of(pmt, struct mlx5e_tls_rx_tag, tag);
+	struct mlx5e_tls_rx_tag *ptag = container_of(pmt,
+	    struct mlx5e_tls_rx_tag, tag);
 	struct mlx5e_priv *priv;
 
 	MLX5E_TLS_RX_TAG_LOCK(ptag);

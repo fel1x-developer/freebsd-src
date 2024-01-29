@@ -36,17 +36,16 @@ struct _citrus_stdenc;
 struct _citrus_stdenc_ops;
 struct _citrus_stdenc_traits;
 
-#define _CITRUS_STDENC_SDID_GENERIC		0
-struct _citrus_stdenc_state_desc
-{
+#define _CITRUS_STDENC_SDID_GENERIC 0
+struct _citrus_stdenc_state_desc {
 	union {
 		struct {
-			int	state;
-#define _CITRUS_STDENC_SDGEN_UNKNOWN		0
-#define _CITRUS_STDENC_SDGEN_INITIAL		1
-#define _CITRUS_STDENC_SDGEN_STABLE		2
-#define _CITRUS_STDENC_SDGEN_INCOMPLETE_CHAR	3
-#define _CITRUS_STDENC_SDGEN_INCOMPLETE_SHIFT	4
+			int state;
+#define _CITRUS_STDENC_SDGEN_UNKNOWN 0
+#define _CITRUS_STDENC_SDGEN_INITIAL 1
+#define _CITRUS_STDENC_SDGEN_STABLE 2
+#define _CITRUS_STDENC_SDGEN_INCOMPLETE_CHAR 3
+#define _CITRUS_STDENC_SDGEN_INCOMPLETE_SHIFT 4
 		} generic;
 	} u;
 };
@@ -54,54 +53,53 @@ struct _citrus_stdenc_state_desc
 #include "citrus_stdenc_local.h"
 
 __BEGIN_DECLS
-int	 _citrus_stdenc_open(struct _citrus_stdenc * __restrict * __restrict,
-	    char const * __restrict, const void * __restrict, size_t);
-void	 _citrus_stdenc_close(struct _citrus_stdenc *);
+int _citrus_stdenc_open(struct _citrus_stdenc *__restrict *__restrict,
+    char const *__restrict, const void *__restrict, size_t);
+void _citrus_stdenc_close(struct _citrus_stdenc *);
 __END_DECLS
 
 static __inline int
-_citrus_stdenc_init_state(struct _citrus_stdenc * __restrict ce,
-    void * __restrict ps)
+_citrus_stdenc_init_state(struct _citrus_stdenc *__restrict ce,
+    void *__restrict ps)
 {
 
 	return ((*ce->ce_ops->eo_init_state)(ce, ps));
 }
 
 static __inline int
-_citrus_stdenc_mbtocs(struct _citrus_stdenc * __restrict ce,
-    _citrus_csid_t * __restrict csid, _citrus_index_t * __restrict idx,
-    char ** __restrict s, size_t n, void * __restrict ps,
-    size_t * __restrict nresult, struct iconv_hooks *hooks)
+_citrus_stdenc_mbtocs(struct _citrus_stdenc *__restrict ce,
+    _citrus_csid_t *__restrict csid, _citrus_index_t *__restrict idx,
+    char **__restrict s, size_t n, void *__restrict ps,
+    size_t *__restrict nresult, struct iconv_hooks *hooks)
 {
 
-	return ((*ce->ce_ops->eo_mbtocs)(ce, csid, idx, s, n, ps, nresult,
-	    hooks));
+	return (
+	    (*ce->ce_ops->eo_mbtocs)(ce, csid, idx, s, n, ps, nresult, hooks));
 }
 
 static __inline int
-_citrus_stdenc_cstomb(struct _citrus_stdenc * __restrict ce,
-    char * __restrict s, size_t n, _citrus_csid_t csid, _citrus_index_t idx,
-    void * __restrict ps, size_t * __restrict nresult,
+_citrus_stdenc_cstomb(struct _citrus_stdenc *__restrict ce, char *__restrict s,
+    size_t n, _citrus_csid_t csid, _citrus_index_t idx, void *__restrict ps,
+    size_t *__restrict nresult, struct iconv_hooks *hooks)
+{
+
+	return (
+	    (*ce->ce_ops->eo_cstomb)(ce, s, n, csid, idx, ps, nresult, hooks));
+}
+
+static __inline int
+_citrus_stdenc_wctomb(struct _citrus_stdenc *__restrict ce, char *__restrict s,
+    size_t n, _citrus_wc_t wc, void *__restrict ps, size_t *__restrict nresult,
     struct iconv_hooks *hooks)
-{
-
-	return ((*ce->ce_ops->eo_cstomb)(ce, s, n, csid, idx, ps, nresult,
-	    hooks));
-}
-
-static __inline int
-_citrus_stdenc_wctomb(struct _citrus_stdenc * __restrict ce,
-    char * __restrict s, size_t n, _citrus_wc_t wc, void * __restrict ps,
-    size_t * __restrict nresult, struct iconv_hooks *hooks)
 {
 
 	return ((*ce->ce_ops->eo_wctomb)(ce, s, n, wc, ps, nresult, hooks));
 }
 
 static __inline int
-_citrus_stdenc_put_state_reset(struct _citrus_stdenc * __restrict ce,
-    char * __restrict s, size_t n, void * __restrict ps,
-    size_t * __restrict nresult)
+_citrus_stdenc_put_state_reset(struct _citrus_stdenc *__restrict ce,
+    char *__restrict s, size_t n, void *__restrict ps,
+    size_t *__restrict nresult)
 {
 
 	return ((*ce->ce_ops->eo_put_state_reset)(ce, s, n, ps, nresult));
@@ -129,9 +127,8 @@ _citrus_stdenc_get_mb_cur_max(struct _citrus_stdenc *ce)
 }
 
 static __inline int
-_citrus_stdenc_get_state_desc(struct _citrus_stdenc * __restrict ce,
-    void * __restrict ps, int id,
-    struct _citrus_stdenc_state_desc * __restrict d)
+_citrus_stdenc_get_state_desc(struct _citrus_stdenc *__restrict ce,
+    void *__restrict ps, int id, struct _citrus_stdenc_state_desc *__restrict d)
 {
 
 	return ((*ce->ce_ops->eo_get_state_desc)(ce, ps, id, d));

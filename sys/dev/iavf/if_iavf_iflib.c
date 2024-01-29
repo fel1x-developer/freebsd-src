@@ -38,67 +38,68 @@
  * driver values to load an iflib driver.
  */
 
-#include "iavf_iflib.h"
-#include "iavf_vc_common.h"
-
 #include "iavf_drv_info.h"
+#include "iavf_iflib.h"
 #include "iavf_sysctls_iflib.h"
+#include "iavf_vc_common.h"
 
 /*********************************************************************
  *  Function prototypes
  *********************************************************************/
-static void	 *iavf_register(device_t dev);
-static int	 iavf_if_attach_pre(if_ctx_t ctx);
-static int	 iavf_if_attach_post(if_ctx_t ctx);
-static int	 iavf_if_detach(if_ctx_t ctx);
-static int	 iavf_if_shutdown(if_ctx_t ctx);
-static int	 iavf_if_suspend(if_ctx_t ctx);
-static int	 iavf_if_resume(if_ctx_t ctx);
-static int	 iavf_if_msix_intr_assign(if_ctx_t ctx, int msix);
-static void	 iavf_if_enable_intr(if_ctx_t ctx);
-static void	 iavf_if_disable_intr(if_ctx_t ctx);
-static int	 iavf_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t rxqid);
-static int	 iavf_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid);
-static int	 iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs, int ntxqsets);
-static int	 iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nqs, int nqsets);
-static void	 iavf_if_queues_free(if_ctx_t ctx);
-static void	 iavf_if_update_admin_status(if_ctx_t ctx);
-static void	 iavf_if_multi_set(if_ctx_t ctx);
-static int	 iavf_if_mtu_set(if_ctx_t ctx, uint32_t mtu);
-static void	 iavf_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr);
-static int	 iavf_if_media_change(if_ctx_t ctx);
-static int	 iavf_if_promisc_set(if_ctx_t ctx, int flags);
-static void	 iavf_if_timer(if_ctx_t ctx, uint16_t qid);
-static void	 iavf_if_vlan_register(if_ctx_t ctx, u16 vtag);
-static void	 iavf_if_vlan_unregister(if_ctx_t ctx, u16 vtag);
-static uint64_t	 iavf_if_get_counter(if_ctx_t ctx, ift_counter cnt);
-static void	 iavf_if_init(if_ctx_t ctx);
-static void	 iavf_if_stop(if_ctx_t ctx);
-static bool	 iavf_if_needs_restart(if_ctx_t, enum iflib_restart_event);
+static void *iavf_register(device_t dev);
+static int iavf_if_attach_pre(if_ctx_t ctx);
+static int iavf_if_attach_post(if_ctx_t ctx);
+static int iavf_if_detach(if_ctx_t ctx);
+static int iavf_if_shutdown(if_ctx_t ctx);
+static int iavf_if_suspend(if_ctx_t ctx);
+static int iavf_if_resume(if_ctx_t ctx);
+static int iavf_if_msix_intr_assign(if_ctx_t ctx, int msix);
+static void iavf_if_enable_intr(if_ctx_t ctx);
+static void iavf_if_disable_intr(if_ctx_t ctx);
+static int iavf_if_rx_queue_intr_enable(if_ctx_t ctx, uint16_t rxqid);
+static int iavf_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid);
+static int iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int ntxqs, int ntxqsets);
+static int iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int nqs, int nqsets);
+static void iavf_if_queues_free(if_ctx_t ctx);
+static void iavf_if_update_admin_status(if_ctx_t ctx);
+static void iavf_if_multi_set(if_ctx_t ctx);
+static int iavf_if_mtu_set(if_ctx_t ctx, uint32_t mtu);
+static void iavf_if_media_status(if_ctx_t ctx, struct ifmediareq *ifmr);
+static int iavf_if_media_change(if_ctx_t ctx);
+static int iavf_if_promisc_set(if_ctx_t ctx, int flags);
+static void iavf_if_timer(if_ctx_t ctx, uint16_t qid);
+static void iavf_if_vlan_register(if_ctx_t ctx, u16 vtag);
+static void iavf_if_vlan_unregister(if_ctx_t ctx, u16 vtag);
+static uint64_t iavf_if_get_counter(if_ctx_t ctx, ift_counter cnt);
+static void iavf_if_init(if_ctx_t ctx);
+static void iavf_if_stop(if_ctx_t ctx);
+static bool iavf_if_needs_restart(if_ctx_t, enum iflib_restart_event);
 
-static int	iavf_allocate_pci_resources(struct iavf_sc *);
-static void	iavf_free_pci_resources(struct iavf_sc *);
-static void	iavf_setup_interface(struct iavf_sc *);
-static void	iavf_add_device_sysctls(struct iavf_sc *);
-static void	iavf_enable_queue_irq(struct iavf_hw *, int);
-static void	iavf_disable_queue_irq(struct iavf_hw *, int);
-static void	iavf_stop(struct iavf_sc *);
+static int iavf_allocate_pci_resources(struct iavf_sc *);
+static void iavf_free_pci_resources(struct iavf_sc *);
+static void iavf_setup_interface(struct iavf_sc *);
+static void iavf_add_device_sysctls(struct iavf_sc *);
+static void iavf_enable_queue_irq(struct iavf_hw *, int);
+static void iavf_disable_queue_irq(struct iavf_hw *, int);
+static void iavf_stop(struct iavf_sc *);
 
-static int	iavf_del_mac_filter(struct iavf_sc *sc, u8 *macaddr);
-static int	iavf_msix_que(void *);
-static int	iavf_msix_adminq(void *);
-static void	iavf_configure_itr(struct iavf_sc *sc);
+static int iavf_del_mac_filter(struct iavf_sc *sc, u8 *macaddr);
+static int iavf_msix_que(void *);
+static int iavf_msix_adminq(void *);
+static void iavf_configure_itr(struct iavf_sc *sc);
 
-static int	iavf_sysctl_queue_interrupt_table(SYSCTL_HANDLER_ARGS);
+static int iavf_sysctl_queue_interrupt_table(SYSCTL_HANDLER_ARGS);
 #ifdef IAVF_DEBUG
-static int	iavf_sysctl_vf_reset(SYSCTL_HANDLER_ARGS);
-static int	iavf_sysctl_vflr_reset(SYSCTL_HANDLER_ARGS);
+static int iavf_sysctl_vf_reset(SYSCTL_HANDLER_ARGS);
+static int iavf_sysctl_vflr_reset(SYSCTL_HANDLER_ARGS);
 #endif
 
 static enum iavf_status iavf_process_adminq(struct iavf_sc *, u16 *);
-static void	iavf_vc_task(void *arg, int pending __unused);
-static int	iavf_setup_vc_tq(struct iavf_sc *sc);
-static int	iavf_vc_sleep_wait(struct iavf_sc *sc, u32 op);
+static void iavf_vc_task(void *arg, int pending __unused);
+static int iavf_setup_vc_tq(struct iavf_sc *sc);
+static int iavf_vc_sleep_wait(struct iavf_sc *sc, u32 op);
 
 /*********************************************************************
  *  FreeBSD Device Interface Entry Points
@@ -117,12 +118,13 @@ static device_method_t iavf_methods[] = {
 	DEVMETHOD(device_probe, iflib_device_probe),
 	DEVMETHOD(device_attach, iflib_device_attach),
 	DEVMETHOD(device_detach, iflib_device_detach),
-	DEVMETHOD(device_shutdown, iflib_device_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_shutdown, iflib_device_shutdown), DEVMETHOD_END
 };
 
 static driver_t iavf_driver = {
-	"iavf", iavf_methods, sizeof(struct iavf_sc),
+	"iavf",
+	iavf_methods,
+	sizeof(struct iavf_sc),
 };
 
 DRIVER_MODULE(iavf, pci, iavf_driver, 0, 0);
@@ -143,15 +145,14 @@ IFLIB_PNP_INFO(pci, iavf, iavf_vendor_info_array);
  */
 MALLOC_DEFINE(M_IAVF, "iavf", "iavf driver allocations");
 
-static device_method_t iavf_if_methods[] = {
-	DEVMETHOD(ifdi_attach_pre, iavf_if_attach_pre),
+static device_method_t iavf_if_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						 iavf_if_attach_pre),
 	DEVMETHOD(ifdi_attach_post, iavf_if_attach_post),
 	DEVMETHOD(ifdi_detach, iavf_if_detach),
 	DEVMETHOD(ifdi_shutdown, iavf_if_shutdown),
 	DEVMETHOD(ifdi_suspend, iavf_if_suspend),
 	DEVMETHOD(ifdi_resume, iavf_if_resume),
-	DEVMETHOD(ifdi_init, iavf_if_init),
-	DEVMETHOD(ifdi_stop, iavf_if_stop),
+	DEVMETHOD(ifdi_init, iavf_if_init), DEVMETHOD(ifdi_stop, iavf_if_stop),
 	DEVMETHOD(ifdi_msix_intr_assign, iavf_if_msix_intr_assign),
 	DEVMETHOD(ifdi_intr_enable, iavf_if_enable_intr),
 	DEVMETHOD(ifdi_intr_disable, iavf_if_disable_intr),
@@ -170,13 +171,10 @@ static device_method_t iavf_if_methods[] = {
 	DEVMETHOD(ifdi_vlan_register, iavf_if_vlan_register),
 	DEVMETHOD(ifdi_vlan_unregister, iavf_if_vlan_unregister),
 	DEVMETHOD(ifdi_get_counter, iavf_if_get_counter),
-	DEVMETHOD(ifdi_needs_restart, iavf_if_needs_restart),
-	DEVMETHOD_END
-};
+	DEVMETHOD(ifdi_needs_restart, iavf_if_needs_restart), DEVMETHOD_END };
 
-static driver_t iavf_if_driver = {
-	"iavf_if", iavf_if_methods, sizeof(struct iavf_sc)
-};
+static driver_t iavf_if_driver = { "iavf_if", iavf_if_methods,
+	sizeof(struct iavf_sc) };
 
 extern struct if_txrx iavf_txrx_hwb;
 extern struct if_txrx iavf_txrx_dwb;
@@ -199,14 +197,15 @@ static struct if_shared_ctx iavf_sctx = {
 	.isc_vendor_info = iavf_vendor_info_array,
 	.isc_driver_version = __DECONST(char *, iavf_driver_version),
 	.isc_driver = &iavf_if_driver,
-	.isc_flags = IFLIB_NEED_SCRATCH | IFLIB_NEED_ZERO_CSUM | IFLIB_TSO_INIT_IP | IFLIB_IS_VF,
+	.isc_flags = IFLIB_NEED_SCRATCH | IFLIB_NEED_ZERO_CSUM |
+	    IFLIB_TSO_INIT_IP | IFLIB_IS_VF,
 
-	.isc_nrxd_min = {IAVF_MIN_RING},
-	.isc_ntxd_min = {IAVF_MIN_RING},
-	.isc_nrxd_max = {IAVF_MAX_RING},
-	.isc_ntxd_max = {IAVF_MAX_RING},
-	.isc_nrxd_default = {IAVF_DEFAULT_RING},
-	.isc_ntxd_default = {IAVF_DEFAULT_RING},
+	.isc_nrxd_min = { IAVF_MIN_RING },
+	.isc_ntxd_min = { IAVF_MIN_RING },
+	.isc_nrxd_max = { IAVF_MAX_RING },
+	.isc_ntxd_max = { IAVF_MAX_RING },
+	.isc_nrxd_default = { IAVF_DEFAULT_RING },
+	.isc_ntxd_default = { IAVF_DEFAULT_RING },
 };
 
 /*** Functions ***/
@@ -280,8 +279,8 @@ iavf_if_attach_pre(if_ctx_t ctx)
 	iavf_save_tunables(sc);
 
 	/* Setup VC mutex */
-	snprintf(sc->vc_mtx_name, sizeof(sc->vc_mtx_name),
-		 "%s:vc", device_get_nameunit(dev));
+	snprintf(sc->vc_mtx_name, sizeof(sc->vc_mtx_name), "%s:vc",
+	    device_get_nameunit(dev));
 	mtx_init(&sc->vc_mtx, sc->vc_mtx_name, NULL, MTX_DEF);
 
 	/* Do PCI setup - map BAR0, etc */
@@ -296,8 +295,8 @@ iavf_if_attach_pre(if_ctx_t ctx)
 
 	error = iavf_set_mac_type(hw);
 	if (error) {
-		device_printf(dev, "%s: set_mac_type failed: %d\n",
-		    __func__, error);
+		device_printf(dev, "%s: set_mac_type failed: %d\n", __func__,
+		    error);
 		goto err_pci_res;
 	}
 
@@ -360,16 +359,20 @@ iavf_if_attach_pre(if_ctx_t ctx)
 	scctx->isc_ntxqsets_max = scctx->isc_nrxqsets_max =
 	    sc->vsi_res->num_queue_pairs;
 	if (vsi->enable_head_writeback) {
-		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0]
-		    * sizeof(struct iavf_tx_desc) + sizeof(u32), DBA_ALIGN);
+		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0] *
+			    sizeof(struct iavf_tx_desc) +
+			sizeof(u32),
+		    DBA_ALIGN);
 		scctx->isc_txrx = &iavf_txrx_hwb;
 	} else {
-		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0]
-		    * sizeof(struct iavf_tx_desc), DBA_ALIGN);
+		scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0] *
+			sizeof(struct iavf_tx_desc),
+		    DBA_ALIGN);
 		scctx->isc_txrx = &iavf_txrx_dwb;
 	}
-	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0]
-	    * sizeof(union iavf_32byte_rx_desc), DBA_ALIGN);
+	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0] *
+		sizeof(union iavf_32byte_rx_desc),
+	    DBA_ALIGN);
 	scctx->isc_msix_bar = PCIR_BAR(IAVF_MSIX_BAR);
 	scctx->isc_tx_nsegments = IAVF_MAX_TX_SEGS;
 	scctx->isc_tx_tso_segments_max = IAVF_MAX_TSO_SEGS;
@@ -435,14 +438,15 @@ iavf_setup_vc_tq(struct iavf_sc *sc)
 	sc->vc_tq = taskqueue_create_fast("iavf_vc", M_NOWAIT,
 	    taskqueue_thread_enqueue, &sc->vc_tq);
 	if (!sc->vc_tq) {
-		device_printf(dev, "taskqueue_create_fast (for VC task) returned NULL!\n");
+		device_printf(dev,
+		    "taskqueue_create_fast (for VC task) returned NULL!\n");
 		return (ENOMEM);
 	}
 	error = taskqueue_start_threads(&sc->vc_tq, 1, PI_NET, "%s vc",
 	    device_get_nameunit(dev));
 	if (error) {
-		device_printf(dev, "taskqueue_start_threads (for VC task) error: %d\n",
-		    error);
+		device_printf(dev,
+		    "taskqueue_start_threads (for VC task) error: %d\n", error);
 		taskqueue_free(sc->vc_tq);
 		return (error);
 	}
@@ -466,8 +470,8 @@ iavf_if_attach_post(if_ctx_t ctx)
 #ifdef IXL_DEBUG
 	device_t dev = iflib_get_dev(ctx);
 #endif
-	struct iavf_sc	*sc;
-	struct iavf_hw	*hw;
+	struct iavf_sc *sc;
+	struct iavf_hw *hw;
 	struct iavf_vsi *vsi;
 	int error = 0;
 
@@ -611,8 +615,8 @@ iavf_vc_sleep_wait(struct iavf_sc *sc, u32 op)
 
 	iavf_dbg_vc(sc, "Sleeping for op %b\n", op, IAVF_FLAGS);
 
-	error = mtx_sleep(iavf_vc_get_op_chan(sc, op),
-	    &sc->vc_mtx, PRI_MAX, "iavf_vc", IAVF_AQ_TIMEOUT);
+	error = mtx_sleep(iavf_vc_get_op_chan(sc, op), &sc->vc_mtx, PRI_MAX,
+	    "iavf_vc", IAVF_AQ_TIMEOUT);
 
 	return (error);
 }
@@ -639,7 +643,8 @@ iavf_send_vc_msg_sleep(struct iavf_sc *sc, u32 op)
 	IAVF_VC_LOCK(sc);
 	error = iavf_vc_send_cmd(sc, op);
 	if (error != 0) {
-		iavf_dbg_vc(sc, "Error sending %b: %d\n", op, IAVF_FLAGS, error);
+		iavf_dbg_vc(sc, "Error sending %b: %d\n", op, IAVF_FLAGS,
+		    error);
 		goto release_lock;
 	}
 
@@ -649,7 +654,8 @@ iavf_send_vc_msg_sleep(struct iavf_sc *sc, u32 op)
 		IAVF_VC_LOCK_ASSERT(sc);
 
 		if (error == EWOULDBLOCK)
-			device_printf(sc->dev, "%b timed out\n", op, IAVF_FLAGS);
+			device_printf(sc->dev, "%b timed out\n", op,
+			    IAVF_FLAGS);
 	}
 release_lock:
 	IAVF_VC_UNLOCK(sc);
@@ -672,7 +678,8 @@ iavf_send_vc_msg(struct iavf_sc *sc, u32 op)
 
 	error = iavf_vc_send_cmd(sc, op);
 	if (error != 0)
-		iavf_dbg_vc(sc, "Error sending %b: %d\n", op, IAVF_FLAGS, error);
+		iavf_dbg_vc(sc, "Error sending %b: %d\n", op, IAVF_FLAGS,
+		    error);
 
 	return (error);
 }
@@ -734,8 +741,7 @@ iavf_if_init(if_ctx_t ctx)
 
 	error = iavf_reset_complete(hw);
 	if (error) {
-		device_printf(sc->dev, "%s: VF reset failed\n",
-		    __func__);
+		device_printf(sc->dev, "%s: VF reset failed\n", __func__);
 	}
 
 	if (!iavf_check_asq_alive(hw)) {
@@ -745,15 +751,14 @@ iavf_if_init(if_ctx_t ctx)
 		status = iavf_shutdown_adminq(hw);
 		if (status != IAVF_SUCCESS) {
 			device_printf(dev,
-			    "%s: iavf_shutdown_adminq failed: %s\n",
-			    __func__, iavf_stat_str(hw, status));
+			    "%s: iavf_shutdown_adminq failed: %s\n", __func__,
+			    iavf_stat_str(hw, status));
 			return;
 		}
 
 		status = iavf_init_adminq(hw);
 		if (status != IAVF_SUCCESS) {
-			device_printf(dev,
-			"%s: iavf_init_adminq failed: %s\n",
+			device_printf(dev, "%s: iavf_init_adminq failed: %s\n",
 			    __func__, iavf_stat_str(hw, status));
 			return;
 		}
@@ -842,15 +847,18 @@ iavf_if_msix_intr_assign(if_ctx_t ctx, int msix __unused)
 	}
 
 	/* Now set up the stations */
-	for (i = 0, vector = 1; i < vsi->shared->isc_nrxqsets; i++, vector++, rx_que++) {
+	for (i = 0, vector = 1; i < vsi->shared->isc_nrxqsets;
+	     i++, vector++, rx_que++) {
 		rid = vector + 1;
 
 		snprintf(buf, sizeof(buf), "rxq%d", i);
 		err = iflib_irq_alloc_generic(ctx, &rx_que->que_irq, rid,
-		    IFLIB_INTR_RXTX, iavf_msix_que, rx_que, rx_que->rxr.me, buf);
+		    IFLIB_INTR_RXTX, iavf_msix_que, rx_que, rx_que->rxr.me,
+		    buf);
 		if (err) {
 			device_printf(iflib_get_dev(ctx),
-			    "Failed to allocate queue RX int vector %d, err: %d\n", i, err);
+			    "Failed to allocate queue RX int vector %d, err: %d\n",
+			    i, err);
 			vsi->num_rx_queues = i + 1;
 			goto fail;
 		}
@@ -965,7 +973,8 @@ iavf_if_tx_queue_intr_enable(if_ctx_t ctx, uint16_t txqid)
  * @returns zero or a non-zero error code on failure
  */
 static int
-iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs, int ntxqsets)
+iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
+    int ntxqs, int ntxqsets)
 {
 	struct iavf_sc *sc = iavf_sc_from_ctx(ctx);
 	struct iavf_vsi *vsi = &sc->vsi;
@@ -978,9 +987,11 @@ iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntx
 	MPASS(scctx->isc_ntxqsets == ntxqsets);
 
 	/* Allocate queue structure memory */
-	if (!(vsi->tx_queues =
-	    (struct iavf_tx_queue *)malloc(sizeof(struct iavf_tx_queue) *ntxqsets, M_IAVF, M_NOWAIT | M_ZERO))) {
-		device_printf(iflib_get_dev(ctx), "Unable to allocate TX ring memory\n");
+	if (!(vsi->tx_queues = (struct iavf_tx_queue *)
+		    malloc(sizeof(struct iavf_tx_queue) * ntxqsets, M_IAVF,
+			M_NOWAIT | M_ZERO))) {
+		device_printf(iflib_get_dev(ctx),
+		    "Unable to allocate TX ring memory\n");
 		return (ENOMEM);
 	}
 
@@ -992,8 +1003,11 @@ iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntx
 
 		if (!vsi->enable_head_writeback) {
 			/* Allocate report status array */
-			if (!(txr->tx_rsq = (qidx_t *)malloc(sizeof(qidx_t) * scctx->isc_ntxd[0], M_IAVF, M_NOWAIT))) {
-				device_printf(iflib_get_dev(ctx), "failed to allocate tx_rsq memory\n");
+			if (!(txr->tx_rsq = (qidx_t *)malloc(sizeof(qidx_t) *
+				      scctx->isc_ntxd[0],
+				  M_IAVF, M_NOWAIT))) {
+				device_printf(iflib_get_dev(ctx),
+				    "failed to allocate tx_rsq memory\n");
 				error = ENOMEM;
 				goto fail;
 			}
@@ -1001,7 +1015,8 @@ iavf_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntx
 			for (j = 0; j < scctx->isc_ntxd[0]; j++)
 				txr->tx_rsq[j] = QIDX_INVALID;
 		}
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		txr->tail = IAVF_QTX_TAIL1(txr->me);
 		txr->tx_base = (struct iavf_tx_desc *)vaddrs[i * ntxqs];
 		txr->tx_paddr = paddrs[i * ntxqs];
@@ -1029,7 +1044,8 @@ fail:
  * @returns zero or a non-zero error code on failure
  */
 static int
-iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrxqs, int nrxqsets)
+iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
+    int nrxqs, int nrxqsets)
 {
 	struct iavf_sc *sc = iavf_sc_from_ctx(ctx);
 	struct iavf_vsi *vsi = &sc->vsi;
@@ -1044,10 +1060,11 @@ iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrx
 #endif
 
 	/* Allocate queue structure memory */
-	if (!(vsi->rx_queues =
-	    (struct iavf_rx_queue *) malloc(sizeof(struct iavf_rx_queue) *
-	    nrxqsets, M_IAVF, M_NOWAIT | M_ZERO))) {
-		device_printf(iflib_get_dev(ctx), "Unable to allocate RX ring memory\n");
+	if (!(vsi->rx_queues = (struct iavf_rx_queue *)
+		    malloc(sizeof(struct iavf_rx_queue) * nrxqsets, M_IAVF,
+			M_NOWAIT | M_ZERO))) {
+		device_printf(iflib_get_dev(ctx),
+		    "Unable to allocate RX ring memory\n");
 		error = ENOMEM;
 		goto fail;
 	}
@@ -1058,7 +1075,8 @@ iavf_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nrx
 		rxr->me = i;
 		que->vsi = vsi;
 
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		rxr->tail = IAVF_QRX_TAIL1(rxr->me);
 		rxr->rx_base = (union iavf_rx_desc *)vaddrs[i * nrxqs];
 		rxr->rx_paddr = paddrs[i * nrxqs];
@@ -1093,7 +1111,8 @@ iavf_if_queues_free(if_ctx_t ctx)
 		struct iavf_tx_queue *que;
 		int i = 0;
 
-		for (i = 0, que = vsi->tx_queues; i < vsi->shared->isc_ntxqsets; i++, que++) {
+		for (i = 0, que = vsi->tx_queues; i < vsi->shared->isc_ntxqsets;
+		     i++, que++) {
 			struct tx_ring *txr = &que->txr;
 			if (txr->tx_rsq != NULL) {
 				free(txr->tx_rsq, M_IAVF);
@@ -1214,7 +1233,7 @@ iavf_process_adminq(struct iavf_sc *sc, u16 *pending)
 	}
 
 	event.buf_len = IAVF_AQ_BUF_SZ;
-        event.msg_buf = sc->aq_buffer;
+	event.msg_buf = sc->aq_buffer;
 	bzero(event.msg_buf, IAVF_AQ_BUF_SZ);
 	v_msg = (struct virtchnl_msg *)&event.desc;
 
@@ -1228,8 +1247,8 @@ iavf_process_adminq(struct iavf_sc *sc, u16 *pending)
 		 */
 		if (status)
 			break;
-		iavf_vc_completion(sc, v_msg->v_opcode,
-		    v_msg->v_retval, event.msg_buf, event.msg_len);
+		iavf_vc_completion(sc, v_msg->v_opcode, v_msg->v_retval,
+		    event.msg_buf, event.msg_len);
 		bzero(event.msg_buf, IAVF_AQ_BUF_SZ);
 	} while (*pending && (loop++ < IAVF_ADM_LIMIT));
 	IAVF_VC_UNLOCK(sc);
@@ -1309,7 +1328,7 @@ iavf_if_mtu_set(if_ctx_t ctx, uint32_t mtu)
 	}
 
 	vsi->shared->isc_max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN +
-		ETHER_VLAN_ENCAP_LEN;
+	    ETHER_VLAN_ENCAP_LEN;
 
 	return (0);
 }
@@ -1382,10 +1401,8 @@ iavf_if_timer(if_ctx_t ctx, uint16_t qid)
 		return;
 
 	/* Check for when PF triggers a VF reset */
-	val = rd32(hw, IAVF_VFGEN_RSTAT) &
-	    IAVF_VFGEN_RSTAT_VFR_STATE_MASK;
-	if (val != VIRTCHNL_VFR_VFACTIVE
-	    && val != VIRTCHNL_VFR_COMPLETED) {
+	val = rd32(hw, IAVF_VFGEN_RSTAT) & IAVF_VFGEN_RSTAT_VFR_STATE_MASK;
+	if (val != VIRTCHNL_VFR_VFACTIVE && val != VIRTCHNL_VFR_COMPLETED) {
 		iavf_dbg_info(sc, "reset in progress! (%d)\n", val);
 		return;
 	}
@@ -1410,7 +1427,7 @@ iavf_if_vlan_register(if_ctx_t ctx, u16 vtag)
 	struct iavf_sc *sc = iavf_sc_from_ctx(ctx);
 	struct iavf_vsi *vsi = &sc->vsi;
 
-	if ((vtag == 0) || (vtag > 4095))	/* Invalid */
+	if ((vtag == 0) || (vtag > 4095)) /* Invalid */
 		return;
 
 	/* Add VLAN 0 to list, for untagged traffic */
@@ -1438,7 +1455,7 @@ iavf_if_vlan_unregister(if_ctx_t ctx, u16 vtag)
 	struct iavf_vsi *vsi = &sc->vsi;
 	int i = 0;
 
-	if ((vtag == 0) || (vtag > 4095) || (vsi->num_vlans == 0))	/* Invalid */
+	if ((vtag == 0) || (vtag > 4095) || (vsi->num_vlans == 0)) /* Invalid */
 		return;
 
 	i = iavf_mark_del_vlan_filter(sc, vtag);
@@ -1528,9 +1545,9 @@ iavf_if_needs_restart(if_ctx_t ctx __unused, enum iflib_restart_event event)
 static void
 iavf_free_pci_resources(struct iavf_sc *sc)
 {
-	struct iavf_vsi		*vsi = &sc->vsi;
-	struct iavf_rx_queue	*rx_que = vsi->rx_queues;
-	device_t                dev = sc->dev;
+	struct iavf_vsi *vsi = &sc->vsi;
+	struct iavf_rx_queue *rx_que = vsi->rx_queues;
+	device_t dev = sc->dev;
 
 	/* We may get here before stations are set up */
 	if (rx_que == NULL)
@@ -1564,9 +1581,8 @@ iavf_setup_interface(struct iavf_sc *sc)
 
 	iavf_dbg_init(sc, "begin\n");
 
-	vsi->shared->isc_max_frame_size =
-	    if_getmtu(ifp) + ETHER_HDR_LEN + ETHER_CRC_LEN
-	    + ETHER_VLAN_ENCAP_LEN;
+	vsi->shared->isc_max_frame_size = if_getmtu(ifp) + ETHER_HDR_LEN +
+	    ETHER_CRC_LEN + ETHER_VLAN_ENCAP_LEN;
 
 	iavf_set_initial_baudrate(ifp);
 
@@ -1587,21 +1603,21 @@ iavf_setup_interface(struct iavf_sc *sc)
 static int
 iavf_msix_adminq(void *arg)
 {
-	struct iavf_sc	*sc = (struct iavf_sc *)arg;
-	struct iavf_hw	*hw = &sc->hw;
-	u32		reg, mask;
+	struct iavf_sc *sc = (struct iavf_sc *)arg;
+	struct iavf_hw *hw = &sc->hw;
+	u32 reg, mask;
 
 	++sc->admin_irq;
 
 	if (!iavf_test_state(&sc->state, IAVF_STATE_INITIALIZED))
 		return (FILTER_HANDLED);
 
-        reg = rd32(hw, IAVF_VFINT_ICR01);
+	reg = rd32(hw, IAVF_VFINT_ICR01);
 	/*
 	 * For masking off interrupt causes that need to be handled before
 	 * they can be re-enabled
 	 */
-        mask = rd32(hw, IAVF_VFINT_ICR0_ENA1);
+	mask = rd32(hw, IAVF_VFINT_ICR0_ENA1);
 
 	/* Check on the cause */
 	if (reg & IAVF_VFINT_ICR01_ADMINQ_MASK) {
@@ -1645,8 +1661,8 @@ iavf_enable_intr(struct iavf_vsi *vsi)
 void
 iavf_disable_intr(struct iavf_vsi *vsi)
 {
-        struct iavf_hw *hw = vsi->hw;
-        struct iavf_rx_queue *que = vsi->rx_queues;
+	struct iavf_hw *hw = vsi->hw;
+	struct iavf_rx_queue *que = vsi->rx_queues;
 
 	for (int i = 0; i < vsi->num_rx_queues; i++, que++)
 		iavf_disable_queue_irq(hw, que->rxr.me);
@@ -1662,7 +1678,7 @@ iavf_disable_intr(struct iavf_vsi *vsi)
 static void
 iavf_enable_queue_irq(struct iavf_hw *hw, int id)
 {
-	u32		reg;
+	u32 reg;
 
 	reg = IAVF_VFINT_DYN_CTLN1_INTENA_MASK |
 	    IAVF_VFINT_DYN_CTLN1_CLEARPBA_MASK |
@@ -1680,8 +1696,7 @@ iavf_enable_queue_irq(struct iavf_hw *hw, int id)
 static void
 iavf_disable_queue_irq(struct iavf_hw *hw, int id)
 {
-	wr32(hw, IAVF_VFINT_DYN_CTLN1(id),
-	    IAVF_VFINT_DYN_CTLN1_ITR_INDX_MASK);
+	wr32(hw, IAVF_VFINT_DYN_CTLN1(id), IAVF_VFINT_DYN_CTLN1_ITR_INDX_MASK);
 	rd32(hw, IAVF_VFGEN_RSTAT);
 }
 
@@ -1707,9 +1722,9 @@ iavf_configure_itr(struct iavf_sc *sc)
 static void
 iavf_set_queue_rx_itr(struct iavf_rx_queue *que)
 {
-	struct iavf_vsi	*vsi = que->vsi;
-	struct iavf_hw	*hw = vsi->hw;
-	struct rx_ring	*rxr = &que->rxr;
+	struct iavf_vsi *vsi = que->vsi;
+	struct iavf_hw *hw = vsi->hw;
+	struct rx_ring *rxr = &que->rxr;
 
 	/* Idle, do nothing */
 	if (rxr->bytes == 0)
@@ -1718,8 +1733,7 @@ iavf_set_queue_rx_itr(struct iavf_rx_queue *que)
 	/* Update the hardware if needed */
 	if (rxr->itr != vsi->rx_itr_setting) {
 		rxr->itr = vsi->rx_itr_setting;
-		wr32(hw, IAVF_VFINT_ITRN1(IAVF_RX_ITR,
-		    que->rxr.me), rxr->itr);
+		wr32(hw, IAVF_VFINT_ITRN1(IAVF_RX_ITR, que->rxr.me), rxr->itr);
 	}
 }
 
@@ -1761,12 +1775,14 @@ iavf_update_link_status(struct iavf_sc *sc)
 	struct iavf_vsi *vsi = &sc->vsi;
 	u64 baudrate;
 
-	if (sc->link_up){
+	if (sc->link_up) {
 		if (vsi->link_active == FALSE) {
 			vsi->link_active = TRUE;
 			baudrate = iavf_baudrate_from_link_speed(sc);
-			iavf_dbg_info(sc, "baudrate: %llu\n", (unsigned long long)baudrate);
-			iflib_link_state_change(vsi->ctx, LINK_STATE_UP, baudrate);
+			iavf_dbg_info(sc, "baudrate: %llu\n",
+			    (unsigned long long)baudrate);
+			iflib_link_state_change(vsi->ctx, LINK_STATE_UP,
+			    baudrate);
 		}
 	} else { /* Link down */
 		if (vsi->link_active == TRUE) {
@@ -1820,7 +1836,7 @@ iavf_if_stop(if_ctx_t ctx)
 static int
 iavf_del_mac_filter(struct iavf_sc *sc, u8 *macaddr)
 {
-	struct iavf_mac_filter	*f;
+	struct iavf_mac_filter *f;
 
 	f = iavf_find_mac_filter(sc, macaddr);
 	if (f == NULL)
@@ -1844,7 +1860,8 @@ iavf_init_tx_rsqs(struct iavf_vsi *vsi)
 	struct iavf_tx_queue *tx_que;
 	int i, j;
 
-	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues; i++, tx_que++) {
+	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues;
+	     i++, tx_que++) {
 		struct tx_ring *txr = &tx_que->txr;
 
 		txr->tx_rs_cidx = txr->tx_rs_pidx;
@@ -1875,7 +1892,8 @@ iavf_init_tx_cidx(struct iavf_vsi *vsi)
 	struct iavf_tx_queue *tx_que;
 	int i;
 
-	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues; i++, tx_que++) {
+	for (i = 0, tx_que = vsi->tx_queues; i < vsi->num_tx_queues;
+	     i++, tx_que++) {
 		struct tx_ring *txr = &tx_que->txr;
 
 		txr->tx_cidx_processed = scctx->isc_ntxd[0] - 1;
@@ -1902,18 +1920,19 @@ iavf_add_device_sysctls(struct iavf_sc *sc)
 
 	iavf_add_debug_sysctls_common(sc, debug_list);
 
-	SYSCTL_ADD_PROC(ctx, debug_list,
-	    OID_AUTO, "queue_interrupt_table", CTLTYPE_STRING | CTLFLAG_RD,
-	    sc, 0, iavf_sysctl_queue_interrupt_table, "A", "View MSI-X indices for TX/RX queues");
+	SYSCTL_ADD_PROC(ctx, debug_list, OID_AUTO, "queue_interrupt_table",
+	    CTLTYPE_STRING | CTLFLAG_RD, sc, 0,
+	    iavf_sysctl_queue_interrupt_table, "A",
+	    "View MSI-X indices for TX/RX queues");
 
 #ifdef IAVF_DEBUG
-	SYSCTL_ADD_PROC(ctx, debug_list,
-	    OID_AUTO, "do_vf_reset", CTLTYPE_INT | CTLFLAG_WR,
-	    sc, 0, iavf_sysctl_vf_reset, "A", "Request a VF reset from PF");
+	SYSCTL_ADD_PROC(ctx, debug_list, OID_AUTO, "do_vf_reset",
+	    CTLTYPE_INT | CTLFLAG_WR, sc, 0, iavf_sysctl_vf_reset, "A",
+	    "Request a VF reset from PF");
 
-	SYSCTL_ADD_PROC(ctx, debug_list,
-	    OID_AUTO, "do_vflr_reset", CTLTYPE_INT | CTLFLAG_WR,
-	    sc, 0, iavf_sysctl_vflr_reset, "A", "Request a VFLR reset from HW");
+	SYSCTL_ADD_PROC(ctx, debug_list, OID_AUTO, "do_vflr_reset",
+	    CTLTYPE_INT | CTLFLAG_WR, sc, 0, iavf_sysctl_vflr_reset, "A",
+	    "Request a VFLR reset from HW");
 #endif
 
 	/* Add stats sysctls */
@@ -1948,55 +1967,48 @@ iavf_add_queues_sysctls(device_t dev, struct iavf_vsi *vsi)
 	for (int q = 0; q < vsi->num_rx_queues; q++) {
 		bzero(queue_namebuf, sizeof(queue_namebuf));
 		snprintf(queue_namebuf, IAVF_QUEUE_NAME_LEN, "rxq%02d", q);
-		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list,
-		    OID_AUTO, queue_namebuf, CTLFLAG_RD, NULL, "RX Queue #");
+		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list, OID_AUTO,
+		    queue_namebuf, CTLFLAG_RD, NULL, "RX Queue #");
 		queue_list = SYSCTL_CHILDREN(queue_node);
 
 		rx_que = &(vsi->rx_queues[q]);
 		rxr = &(rx_que->rxr);
 
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "irqs",
-				CTLFLAG_RD, &(rx_que->irqs),
-				"irqs on this queue (both Tx and Rx)");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "irqs", CTLFLAG_RD,
+		    &(rx_que->irqs), "irqs on this queue (both Tx and Rx)");
 
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "packets",
-				CTLFLAG_RD, &(rxr->rx_packets),
-				"Queue Packets Received");
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes",
-				CTLFLAG_RD, &(rxr->rx_bytes),
-				"Queue Bytes Received");
+		    CTLFLAG_RD, &(rxr->rx_packets), "Queue Packets Received");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes", CTLFLAG_RD,
+		    &(rxr->rx_bytes), "Queue Bytes Received");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "desc_err",
-				CTLFLAG_RD, &(rxr->desc_errs),
-				"Queue Rx Descriptor Errors");
-		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr",
-				CTLFLAG_RD, &(rxr->itr), 0,
-				"Queue Rx ITR Interval");
+		    CTLFLAG_RD, &(rxr->desc_errs),
+		    "Queue Rx Descriptor Errors");
+		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr", CTLFLAG_RD,
+		    &(rxr->itr), 0, "Queue Rx ITR Interval");
 	}
 	for (int q = 0; q < vsi->num_tx_queues; q++) {
 		bzero(queue_namebuf, sizeof(queue_namebuf));
 		snprintf(queue_namebuf, IAVF_QUEUE_NAME_LEN, "txq%02d", q);
-		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list,
-		    OID_AUTO, queue_namebuf, CTLFLAG_RD, NULL, "TX Queue #");
+		queue_node = SYSCTL_ADD_NODE(ctx, vsi_list, OID_AUTO,
+		    queue_namebuf, CTLFLAG_RD, NULL, "TX Queue #");
 		queue_list = SYSCTL_CHILDREN(queue_node);
 
 		tx_que = &(vsi->tx_queues[q]);
 		txr = &(tx_que->txr);
 
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "tso",
-				CTLFLAG_RD, &(tx_que->tso),
-				"TSO");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "tso", CTLFLAG_RD,
+		    &(tx_que->tso), "TSO");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "mss_too_small",
-				CTLFLAG_RD, &(txr->mss_too_small),
-				"TSO sends with an MSS less than 64");
+		    CTLFLAG_RD, &(txr->mss_too_small),
+		    "TSO sends with an MSS less than 64");
 		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "packets",
-				CTLFLAG_RD, &(txr->tx_packets),
-				"Queue Packets Transmitted");
-		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes",
-				CTLFLAG_RD, &(txr->tx_bytes),
-				"Queue Bytes Transmitted");
-		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr",
-				CTLFLAG_RD, &(txr->itr), 0,
-				"Queue Tx ITR Interval");
+		    CTLFLAG_RD, &(txr->tx_packets),
+		    "Queue Packets Transmitted");
+		SYSCTL_ADD_UQUAD(ctx, queue_list, OID_AUTO, "bytes", CTLFLAG_RD,
+		    &(txr->tx_bytes), "Queue Bytes Transmitted");
+		SYSCTL_ADD_UINT(ctx, queue_list, OID_AUTO, "itr", CTLFLAG_RD,
+		    &(txr->itr), 0, "Queue Tx ITR Interval");
 	}
 }
 
@@ -2019,7 +2031,7 @@ bool
 iavf_driver_is_detaching(struct iavf_sc *sc)
 {
 	return (!iavf_test_state(&sc->state, IAVF_STATE_INITIALIZED) ||
-		iflib_in_detach(sc->vsi.ctx));
+	    iflib_in_detach(sc->vsi.ctx));
 }
 
 /**
@@ -2140,11 +2152,12 @@ iavf_sysctl_vflr_reset(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (do_reset == 1) {
-		if (!pcie_flr(dev, max(pcie_get_max_completion_timeout(dev) / 1000, 10), true)) {
+		if (!pcie_flr(dev,
+			max(pcie_get_max_completion_timeout(dev) / 1000, 10),
+			true)) {
 			device_printf(dev, "PCIE FLR failed\n");
 			error = EIO;
-		}
-		else if (CTX_ACTIVE(sc->vsi.ctx))
+		} else if (CTX_ACTIVE(sc->vsi.ctx))
 			iflib_request_reset(sc->vsi.ctx);
 	}
 

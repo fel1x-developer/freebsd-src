@@ -192,12 +192,15 @@ typedef struct icp_qat_fw_la_bulk_req_s {
 /*
  *  LA BULK (SYMMETRIC CRYPTO) COMMAND FLAGS
  *
- *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ----- +
- *  |  Bit  |   [15:13]  |  12   |  11   |  10   |  7-9  |   6   |   5   |   4   |  3    |   2   |  1-0  |
- *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ------+ ----- +
- *  | Flags | Resvd Bits | ZUC   | GcmIV |Digest | Prot  | Cmp   | Rtn   | Upd   | Ciph/ | CiphIV| Part- |
- *  |       |     =0     | Prot  | Len   | In Buf| flgs  | Auth  | Auth  | State | Auth  | Field |  ial  |
- *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ----- + ------+ ----- +
+ *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + -----
+ * + ----- + ----- + ----- + |  Bit  |   [15:13]  |  12   |  11   |  10   |  7-9
+ * |   6   |   5   |   4   |  3    |   2   |  1-0  |
+ *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + -----
+ * + ----- + ------+ ----- + | Flags | Resvd Bits | ZUC   | GcmIV |Digest | Prot
+ * | Cmp   | Rtn   | Upd   | Ciph/ | CiphIV| Part- | |       |     =0     | Prot
+ * | Len   | In Buf| flgs  | Auth  | Auth  | State | Auth  | Field |  ial  |
+ *  + ===== + ---------- + ----- + ----- + ----- + ----- + ----- + ----- + -----
+ * + ----- + ------+ ----- +
  */
 
 /* Private defines */
@@ -512,33 +515,26 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param partial          Inidicate if the packet is a partial part
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_FLAGS_BUILD(zuc_proto,                                   \
-				  gcm_iv_len,                                  \
-				  auth_rslt,                                   \
-				  proto,                                       \
-				  cmp_auth,                                    \
-				  ret_auth,                                    \
-				  update_state,                                \
-				  ciphIV,                                      \
-				  ciphcfg,                                     \
-				  partial)                                     \
-	(((zuc_proto & QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)                       \
-	  << QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS) |                             \
-	 ((gcm_iv_len & QAT_LA_GCM_IV_LEN_FLAG_MASK)                           \
-	  << QAT_LA_GCM_IV_LEN_FLAG_BITPOS) |                                  \
-	 ((auth_rslt & QAT_LA_DIGEST_IN_BUFFER_MASK)                           \
-	  << QAT_LA_DIGEST_IN_BUFFER_BITPOS) |                                 \
-	 ((proto & QAT_LA_PROTO_MASK) << QAT_LA_PROTO_BITPOS) |                \
-	 ((cmp_auth & QAT_LA_CMP_AUTH_RES_MASK)                                \
-	  << QAT_LA_CMP_AUTH_RES_BITPOS) |                                     \
-	 ((ret_auth & QAT_LA_RET_AUTH_RES_MASK)                                \
-	  << QAT_LA_RET_AUTH_RES_BITPOS) |                                     \
-	 ((update_state & QAT_LA_UPDATE_STATE_MASK)                            \
-	  << QAT_LA_UPDATE_STATE_BITPOS) |                                     \
-	 ((ciphIV & QAT_LA_CIPH_IV_FLD_MASK) << QAT_LA_CIPH_IV_FLD_BITPOS) |   \
-	 ((ciphcfg & QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)                         \
-	  << QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS) |                             \
-	 ((partial & QAT_LA_PARTIAL_MASK) << QAT_LA_PARTIAL_BITPOS))
+#define ICP_QAT_FW_LA_FLAGS_BUILD(zuc_proto, gcm_iv_len, auth_rslt, proto, \
+    cmp_auth, ret_auth, update_state, ciphIV, ciphcfg, partial)            \
+	(((zuc_proto & QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)                   \
+	     << QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS) |                      \
+	    ((gcm_iv_len & QAT_LA_GCM_IV_LEN_FLAG_MASK)                    \
+		<< QAT_LA_GCM_IV_LEN_FLAG_BITPOS) |                        \
+	    ((auth_rslt & QAT_LA_DIGEST_IN_BUFFER_MASK)                    \
+		<< QAT_LA_DIGEST_IN_BUFFER_BITPOS) |                       \
+	    ((proto & QAT_LA_PROTO_MASK) << QAT_LA_PROTO_BITPOS) |         \
+	    ((cmp_auth & QAT_LA_CMP_AUTH_RES_MASK)                         \
+		<< QAT_LA_CMP_AUTH_RES_BITPOS) |                           \
+	    ((ret_auth & QAT_LA_RET_AUTH_RES_MASK)                         \
+		<< QAT_LA_RET_AUTH_RES_BITPOS) |                           \
+	    ((update_state & QAT_LA_UPDATE_STATE_MASK)                     \
+		<< QAT_LA_UPDATE_STATE_BITPOS) |                           \
+	    ((ciphIV & QAT_LA_CIPH_IV_FLD_MASK)                            \
+		<< QAT_LA_CIPH_IV_FLD_BITPOS) |                            \
+	    ((ciphcfg & QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)                  \
+		<< QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS) |                   \
+	    ((partial & QAT_LA_PARTIAL_MASK) << QAT_LA_PARTIAL_BITPOS))
 
 /* Macros for extracting field bits */
 /**
@@ -551,7 +547,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the Cipher IV field contents
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CIPH_IV_FLD_FLAG_GET(flags)                              \
+#define ICP_QAT_FW_LA_CIPH_IV_FLD_FLAG_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_LA_CIPH_IV_FLD_BITPOS, QAT_LA_CIPH_IV_FLD_MASK)
 
 /**
@@ -566,10 +562,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  *                     offset type
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CIPH_AUTH_CFG_OFFSET_FLAG_GET(flags)                     \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS,                      \
-		      QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)
+#define ICP_QAT_FW_LA_CIPH_AUTH_CFG_OFFSET_FLAG_GET(flags)       \
+	QAT_FIELD_GET(flags, QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS, \
+	    QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)
 
 /**
  ******************************************************************************
@@ -582,10 +577,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the ZUC protocol bit
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_ZUC_3G_PROTO_FLAG_GET(flags)                             \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS,                      \
-		      QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)
+#define ICP_QAT_FW_LA_ZUC_3G_PROTO_FLAG_GET(flags)               \
+	QAT_FIELD_GET(flags, QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS, \
+	    QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -598,10 +592,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the GCM IV length
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_GET(flags)                               \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_GCM_IV_LEN_FLAG_BITPOS,                           \
-		      QAT_LA_GCM_IV_LEN_FLAG_MASK)
+#define ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_GET(flags)            \
+	QAT_FIELD_GET(flags, QAT_LA_GCM_IV_LEN_FLAG_BITPOS, \
+	    QAT_LA_GCM_IV_LEN_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -613,7 +606,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the protocol state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_PROTO_GET(flags)                                         \
+#define ICP_QAT_FW_LA_PROTO_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_LA_PROTO_BITPOS, QAT_LA_PROTO_MASK)
 
 /**
@@ -626,10 +619,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the compare auth result state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CMP_AUTH_GET(flags)                                      \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_CMP_AUTH_RES_BITPOS,                              \
-		      QAT_LA_CMP_AUTH_RES_MASK)
+#define ICP_QAT_FW_LA_CMP_AUTH_GET(flags)                \
+	QAT_FIELD_GET(flags, QAT_LA_CMP_AUTH_RES_BITPOS, \
+	    QAT_LA_CMP_AUTH_RES_MASK)
 
 /**
  ******************************************************************************
@@ -641,10 +633,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the return auth result state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_RET_AUTH_GET(flags)                                      \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_RET_AUTH_RES_BITPOS,                              \
-		      QAT_LA_RET_AUTH_RES_MASK)
+#define ICP_QAT_FW_LA_RET_AUTH_GET(flags)                \
+	QAT_FIELD_GET(flags, QAT_LA_RET_AUTH_RES_BITPOS, \
+	    QAT_LA_RET_AUTH_RES_MASK)
 
 /**
  ******************************************************************************
@@ -656,10 +647,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags     Flags to extract the digest in buffer state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_DIGEST_IN_BUFFER_GET(flags)                              \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_DIGEST_IN_BUFFER_BITPOS,                          \
-		      QAT_LA_DIGEST_IN_BUFFER_MASK)
+#define ICP_QAT_FW_LA_DIGEST_IN_BUFFER_GET(flags)            \
+	QAT_FIELD_GET(flags, QAT_LA_DIGEST_IN_BUFFER_BITPOS, \
+	    QAT_LA_DIGEST_IN_BUFFER_MASK)
 
 /**
  ******************************************************************************
@@ -671,10 +661,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the update content state bit
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_UPDATE_STATE_GET(flags)                                  \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_UPDATE_STATE_BITPOS,                              \
-		      QAT_LA_UPDATE_STATE_MASK)
+#define ICP_QAT_FW_LA_UPDATE_STATE_GET(flags)            \
+	QAT_FIELD_GET(flags, QAT_LA_UPDATE_STATE_BITPOS, \
+	    QAT_LA_UPDATE_STATE_MASK)
 
 /**
  ******************************************************************************
@@ -686,7 +675,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the partial state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_PARTIAL_GET(flags)                                       \
+#define ICP_QAT_FW_LA_PARTIAL_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_LA_PARTIAL_BITPOS, QAT_LA_PARTIAL_MASK)
 
 /**
@@ -700,10 +689,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_USE_EXTENDED_PROTOCOL_FLAGS_GET(flags)                      \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_BITPOS,               \
-		      QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_MASK)
+#define ICP_QAT_FW_USE_EXTENDED_PROTOCOL_FLAGS_GET(flags)               \
+	QAT_FIELD_GET(flags, QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_BITPOS, \
+	    QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_MASK)
 
 /**
  ******************************************************************************
@@ -715,7 +703,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param flags        Flags to extract the protocol state
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_SLICE_TYPE_GET(flags)                                    \
+#define ICP_QAT_FW_LA_SLICE_TYPE_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_LA_SLICE_TYPE_BITPOS, QAT_LA_SLICE_TYPE_MASK)
 
 /* Macros for setting field bits */
@@ -730,11 +718,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val          Field contents indicator value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CIPH_IV_FLD_FLAG_SET(flags, val)                         \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_CIPH_IV_FLD_BITPOS,                               \
-		      QAT_LA_CIPH_IV_FLD_MASK)
+#define ICP_QAT_FW_LA_CIPH_IV_FLD_FLAG_SET(flags, val)       \
+	QAT_FIELD_SET(flags, val, QAT_LA_CIPH_IV_FLD_BITPOS, \
+	    QAT_LA_CIPH_IV_FLD_MASK)
 
 /**
  ******************************************************************************
@@ -748,11 +734,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val          Offset type value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CIPH_AUTH_CFG_OFFSET_FLAG_SET(flags, val)                \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS,                      \
-		      QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)
+#define ICP_QAT_FW_LA_CIPH_AUTH_CFG_OFFSET_FLAG_SET(flags, val)       \
+	QAT_FIELD_SET(flags, val, QAT_LA_CIPH_AUTH_CFG_OFFSET_BITPOS, \
+	    QAT_LA_CIPH_AUTH_CFG_OFFSET_MASK)
 
 /**
  ******************************************************************************
@@ -765,11 +749,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Protocol value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_ZUC_3G_PROTO_FLAG_SET(flags, val)                        \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS,                      \
-		      QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)
+#define ICP_QAT_FW_LA_ZUC_3G_PROTO_FLAG_SET(flags, val)               \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_ZUC_3G_PROTO_FLAG_BITPOS, \
+	    QAT_FW_LA_ZUC_3G_PROTO_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -782,11 +764,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Protocol value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_SET(flags, val)                   \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_BITPOS,                 \
-		      QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_MASK)
+#define ICP_QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_SET(flags, val)               \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_BITPOS, \
+	    QAT_FW_LA_SINGLE_PASS_PROTO_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -799,11 +779,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Protocol value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(flags, val)                          \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_GCM_IV_LEN_FLAG_BITPOS,                           \
-		      QAT_LA_GCM_IV_LEN_FLAG_MASK)
+#define ICP_QAT_FW_LA_GCM_IV_LEN_FLAG_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_LA_GCM_IV_LEN_FLAG_BITPOS, \
+	    QAT_LA_GCM_IV_LEN_FLAG_MASK)
 
 /**
  ******************************************************************************
@@ -816,7 +794,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val          Protocol value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_PROTO_SET(flags, val)                                    \
+#define ICP_QAT_FW_LA_PROTO_SET(flags, val) \
 	QAT_FIELD_SET(flags, val, QAT_LA_PROTO_BITPOS, QAT_LA_PROTO_MASK)
 
 /**
@@ -830,11 +808,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Compare Auth value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_CMP_AUTH_SET(flags, val)                                 \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_CMP_AUTH_RES_BITPOS,                              \
-		      QAT_LA_CMP_AUTH_RES_MASK)
+#define ICP_QAT_FW_LA_CMP_AUTH_SET(flags, val)                \
+	QAT_FIELD_SET(flags, val, QAT_LA_CMP_AUTH_RES_BITPOS, \
+	    QAT_LA_CMP_AUTH_RES_MASK)
 
 /**
  ******************************************************************************
@@ -847,11 +823,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Return Auth value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_RET_AUTH_SET(flags, val)                                 \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_RET_AUTH_RES_BITPOS,                              \
-		      QAT_LA_RET_AUTH_RES_MASK)
+#define ICP_QAT_FW_LA_RET_AUTH_SET(flags, val)                \
+	QAT_FIELD_SET(flags, val, QAT_LA_RET_AUTH_RES_BITPOS, \
+	    QAT_LA_RET_AUTH_RES_MASK)
 
 /**
  ******************************************************************************
@@ -864,11 +838,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val       Digest in buffer value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_DIGEST_IN_BUFFER_SET(flags, val)                         \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_DIGEST_IN_BUFFER_BITPOS,                          \
-		      QAT_LA_DIGEST_IN_BUFFER_MASK)
+#define ICP_QAT_FW_LA_DIGEST_IN_BUFFER_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_LA_DIGEST_IN_BUFFER_BITPOS, \
+	    QAT_LA_DIGEST_IN_BUFFER_MASK)
 
 /**
  ******************************************************************************
@@ -881,11 +853,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Update Content State flag value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_UPDATE_STATE_SET(flags, val)                             \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_UPDATE_STATE_BITPOS,                              \
-		      QAT_LA_UPDATE_STATE_MASK)
+#define ICP_QAT_FW_LA_UPDATE_STATE_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_LA_UPDATE_STATE_BITPOS, \
+	    QAT_LA_UPDATE_STATE_MASK)
 
 /**
  ******************************************************************************
@@ -898,7 +868,7 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Partial state value
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_PARTIAL_SET(flags, val)                                  \
+#define ICP_QAT_FW_LA_PARTIAL_SET(flags, val) \
 	QAT_FIELD_SET(flags, val, QAT_LA_PARTIAL_BITPOS, QAT_LA_PARTIAL_MASK)
 
 /**
@@ -912,11 +882,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_USE_EXTENDED_PROTOCOL_FLAGS_SET(flags, val)                 \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_BITPOS,               \
-		      QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_MASK)
+#define ICP_QAT_FW_USE_EXTENDED_PROTOCOL_FLAGS_SET(flags, val)               \
+	QAT_FIELD_SET(flags, val, QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_BITPOS, \
+	    QAT_LA_USE_EXTENDED_PROTOCOL_FLAGS_MASK)
 
 /**
 ******************************************************************************
@@ -929,11 +897,9 @@ typedef struct icp_qat_fw_la_bulk_req_s {
 * @param val        Value of the slice type to be set.
 *
 *****************************************************************************/
-#define ICP_QAT_FW_LA_SLICE_TYPE_SET(flags, val)                               \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_LA_SLICE_TYPE_BITPOS,                                \
-		      QAT_LA_SLICE_TYPE_MASK)
+#define ICP_QAT_FW_LA_SLICE_TYPE_SET(flags, val)            \
+	QAT_FIELD_SET(flags, val, QAT_LA_SLICE_TYPE_BITPOS, \
+	    QAT_LA_SLICE_TYPE_MASK)
 
 /**
  *****************************************************************************
@@ -1399,10 +1365,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_GET(flags)                        \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_FW_LA_AUTH_HDR_NESTED_BITPOS,                        \
-		      QAT_FW_LA_AUTH_HDR_NESTED_MASK)
+#define ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_GET(flags)        \
+	QAT_FIELD_GET(flags, QAT_FW_LA_AUTH_HDR_NESTED_BITPOS, \
+	    QAT_FW_LA_AUTH_HDR_NESTED_MASK)
 
 /**
  ******************************************************************************
@@ -1414,10 +1379,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param flags     Hash Flags
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_GET(flags)                 \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_INNER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_GET(flags)        \
+	QAT_FIELD_GET(flags, QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_INNER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1427,11 +1391,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_SET(flags, val)            \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_SKIP_INNER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_SKIP_INNER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1443,10 +1405,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param flags     Hash Flags
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_GET(flags)                 \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_GET(flags)        \
+	QAT_FIELD_GET(flags, QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1459,11 +1420,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_SET(flags, val)            \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1476,10 +1435,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SNOW3G_UIA2_GET(flags)                            \
-	QAT_FIELD_GET(flags,                                                   \
-		      QAT_FW_LA_SNOW3G_UIA2_BITPOS,                            \
-		      QAT_FW_LA_SNOW3G_UIA2_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SNOW3G_UIA2_GET(flags)        \
+	QAT_FIELD_GET(flags, QAT_FW_LA_SNOW3G_UIA2_BITPOS, \
+	    QAT_FW_LA_SNOW3G_UIA2_MASK)
 
 /**
  ******************************************************************************
@@ -1492,7 +1450,7 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_ZUC_EIA3_GET(flags)                               \
+#define ICP_QAT_FW_HASH_FLAG_ZUC_EIA3_GET(flags) \
 	QAT_FIELD_GET(flags, QAT_FW_LA_ZUC_EIA3_BITPOS, QAT_FW_LA_ZUC_EIA3_MASK)
 
 /* Macros for setting hash flags */
@@ -1508,11 +1466,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(flags, val)                   \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_AUTH_HDR_NESTED_BITPOS,                        \
-		      QAT_FW_LA_AUTH_HDR_NESTED_MASK)
+#define ICP_QAT_FW_HASH_FLAG_AUTH_HDR_NESTED_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_AUTH_HDR_NESTED_BITPOS, \
+	    QAT_FW_LA_AUTH_HDR_NESTED_MASK)
 
 /**
  ******************************************************************************
@@ -1525,11 +1481,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_SET(flags, val)            \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_SKIP_INNER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_INNER_STATE1_LOAD_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SKIP_INNER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_SKIP_INNER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1542,11 +1496,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_SET(flags, val)            \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS,                 \
-		      QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SKIP_OUTER_STATE1_LOAD_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_BITPOS, \
+	    QAT_FW_LA_SKIP_OUTER_STATE1_LOAD_MASK)
 
 /**
  ******************************************************************************
@@ -1559,11 +1511,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_SNOW3G_UIA2_SET(flags, val)                       \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_SNOW3G_UIA2_BITPOS,                            \
-		      QAT_FW_LA_SNOW3G_UIA2_MASK)
+#define ICP_QAT_FW_HASH_FLAG_SNOW3G_UIA2_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_SNOW3G_UIA2_BITPOS, \
+	    QAT_FW_LA_SNOW3G_UIA2_MASK)
 
 /**
  ******************************************************************************
@@ -1576,11 +1526,9 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_ZUC_EIA3_SET(flags, val)                          \
-	QAT_FIELD_SET(flags,                                                   \
-		      val,                                                     \
-		      QAT_FW_LA_ZUC_EIA3_BITPOS,                               \
-		      QAT_FW_LA_ZUC_EIA3_MASK)
+#define ICP_QAT_FW_HASH_FLAG_ZUC_EIA3_SET(flags, val)        \
+	QAT_FIELD_SET(flags, val, QAT_FW_LA_ZUC_EIA3_BITPOS, \
+	    QAT_FW_LA_ZUC_EIA3_MASK)
 
 /**
  ******************************************************************************
@@ -1593,7 +1541,7 @@ typedef struct icp_qat_fw_cipher_auth_cd_ctrl_hdr_s {
  * @param val        Value of the flag
  *
  *****************************************************************************/
-#define ICP_QAT_FW_HASH_FLAG_MODE2_SET(flags, val)                             \
+#define ICP_QAT_FW_HASH_FLAG_MODE2_SET(flags, val) \
 	QAT_FIELD_SET(flags, val, QAT_FW_LA_MODE2_BITPOS, QAT_FW_LA_MODE2_MASK)
 
 #define ICP_QAT_FW_CCM_GCM_AAD_SZ_MAX 240
@@ -2229,48 +2177,48 @@ typedef struct icp_qat_fw_la_hkdf_key_material_input_s {
  *
  *****************************************************************************/
 /** Cipher fields within Cipher + Authentication structure */
-#define ICP_QAT_FW_CIPHER_NEXT_ID_GET(cd_ctrl_hdr_t)                           \
-	((((cd_ctrl_hdr_t)->next_curr_id_cipher) &                             \
-	  ICP_QAT_FW_COMN_NEXT_ID_MASK) >>                                     \
-	 (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
+#define ICP_QAT_FW_CIPHER_NEXT_ID_GET(cd_ctrl_hdr_t) \
+	((((cd_ctrl_hdr_t)->next_curr_id_cipher) &   \
+	     ICP_QAT_FW_COMN_NEXT_ID_MASK) >>        \
+	    (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
 
-#define ICP_QAT_FW_CIPHER_NEXT_ID_SET(cd_ctrl_hdr_t, val)                      \
-	(cd_ctrl_hdr_t)->next_curr_id_cipher =                                 \
-	    ((((cd_ctrl_hdr_t)->next_curr_id_cipher) &                         \
-	      ICP_QAT_FW_COMN_CURR_ID_MASK) |                                  \
-	     ((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) &                        \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK))
+#define ICP_QAT_FW_CIPHER_NEXT_ID_SET(cd_ctrl_hdr_t, val)  \
+	(cd_ctrl_hdr_t)->next_curr_id_cipher =             \
+	    ((((cd_ctrl_hdr_t)->next_curr_id_cipher) &     \
+		 ICP_QAT_FW_COMN_CURR_ID_MASK) |           \
+		((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) & \
+		    ICP_QAT_FW_COMN_NEXT_ID_MASK))
 
-#define ICP_QAT_FW_CIPHER_CURR_ID_GET(cd_ctrl_hdr_t)                           \
+#define ICP_QAT_FW_CIPHER_CURR_ID_GET(cd_ctrl_hdr_t) \
 	(((cd_ctrl_hdr_t)->next_curr_id_cipher) & ICP_QAT_FW_COMN_CURR_ID_MASK)
 
-#define ICP_QAT_FW_CIPHER_CURR_ID_SET(cd_ctrl_hdr_t, val)                      \
-	(cd_ctrl_hdr_t)->next_curr_id_cipher =                                 \
-	    ((((cd_ctrl_hdr_t)->next_curr_id_cipher) &                         \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK) |                                  \
-	     ((val)&ICP_QAT_FW_COMN_CURR_ID_MASK))
+#define ICP_QAT_FW_CIPHER_CURR_ID_SET(cd_ctrl_hdr_t, val) \
+	(cd_ctrl_hdr_t)->next_curr_id_cipher =            \
+	    ((((cd_ctrl_hdr_t)->next_curr_id_cipher) &    \
+		 ICP_QAT_FW_COMN_NEXT_ID_MASK) |          \
+		((val) & ICP_QAT_FW_COMN_CURR_ID_MASK))
 
 /** Authentication fields within Cipher + Authentication structure */
-#define ICP_QAT_FW_AUTH_NEXT_ID_GET(cd_ctrl_hdr_t)                             \
-	((((cd_ctrl_hdr_t)->next_curr_id_auth) &                               \
-	  ICP_QAT_FW_COMN_NEXT_ID_MASK) >>                                     \
-	 (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
+#define ICP_QAT_FW_AUTH_NEXT_ID_GET(cd_ctrl_hdr_t) \
+	((((cd_ctrl_hdr_t)->next_curr_id_auth) &   \
+	     ICP_QAT_FW_COMN_NEXT_ID_MASK) >>      \
+	    (ICP_QAT_FW_COMN_NEXT_ID_BITPOS))
 
-#define ICP_QAT_FW_AUTH_NEXT_ID_SET(cd_ctrl_hdr_t, val)                        \
-	(cd_ctrl_hdr_t)->next_curr_id_auth =                                   \
-	    ((((cd_ctrl_hdr_t)->next_curr_id_auth) &                           \
-	      ICP_QAT_FW_COMN_CURR_ID_MASK) |                                  \
-	     ((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) &                        \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK))
+#define ICP_QAT_FW_AUTH_NEXT_ID_SET(cd_ctrl_hdr_t, val)    \
+	(cd_ctrl_hdr_t)->next_curr_id_auth =               \
+	    ((((cd_ctrl_hdr_t)->next_curr_id_auth) &       \
+		 ICP_QAT_FW_COMN_CURR_ID_MASK) |           \
+		((val << ICP_QAT_FW_COMN_NEXT_ID_BITPOS) & \
+		    ICP_QAT_FW_COMN_NEXT_ID_MASK))
 
-#define ICP_QAT_FW_AUTH_CURR_ID_GET(cd_ctrl_hdr_t)                             \
+#define ICP_QAT_FW_AUTH_CURR_ID_GET(cd_ctrl_hdr_t) \
 	(((cd_ctrl_hdr_t)->next_curr_id_auth) & ICP_QAT_FW_COMN_CURR_ID_MASK)
 
-#define ICP_QAT_FW_AUTH_CURR_ID_SET(cd_ctrl_hdr_t, val)                        \
-	(cd_ctrl_hdr_t)->next_curr_id_auth =                                   \
-	    ((((cd_ctrl_hdr_t)->next_curr_id_auth) &                           \
-	      ICP_QAT_FW_COMN_NEXT_ID_MASK) |                                  \
-	     ((val)&ICP_QAT_FW_COMN_CURR_ID_MASK))
+#define ICP_QAT_FW_AUTH_CURR_ID_SET(cd_ctrl_hdr_t, val) \
+	(cd_ctrl_hdr_t)->next_curr_id_auth =            \
+	    ((((cd_ctrl_hdr_t)->next_curr_id_auth) &    \
+		 ICP_QAT_FW_COMN_NEXT_ID_MASK) |        \
+		((val) & ICP_QAT_FW_COMN_CURR_ID_MASK))
 
 /*  Definitions of the bits in the test_status_info of the TRNG_TEST response.
  *  The values returned by the Lookaside service are given below
@@ -2339,10 +2287,9 @@ typedef struct icp_qat_fw_la_hkdf_key_material_input_s {
  * @param test_status        8 bit test_status value to extract the status bit
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_TRNG_TEST_STATUS_TS_FLD_GET(test_status)                 \
-	QAT_FIELD_GET(test_status,                                             \
-		      QAT_FW_LA_TRNG_TEST_STATUS_TS_BITPOS,                    \
-		      QAT_FW_LA_TRNG_TEST_STATUS_TS_MASK)
+#define ICP_QAT_FW_LA_TRNG_TEST_STATUS_TS_FLD_GET(test_status)           \
+	QAT_FIELD_GET(test_status, QAT_FW_LA_TRNG_TEST_STATUS_TS_BITPOS, \
+	    QAT_FW_LA_TRNG_TEST_STATUS_TS_MASK)
 /**
  ******************************************************************************
  * @ingroup icp_qat_fw_la
@@ -2355,10 +2302,9 @@ typedef struct icp_qat_fw_la_hkdf_key_material_input_s {
  *                           Results valid bit
  *
  *****************************************************************************/
-#define ICP_QAT_FW_LA_TRNG_TEST_STATUS_TV_FLD_GET(test_status)                 \
-	QAT_FIELD_GET(test_status,                                             \
-		      QAT_FW_LA_TRNG_TEST_STATUS_TV_BITPOS,                    \
-		      QAT_FW_LA_TRNG_TEST_STATUS_TV_MASK)
+#define ICP_QAT_FW_LA_TRNG_TEST_STATUS_TV_FLD_GET(test_status)           \
+	QAT_FIELD_GET(test_status, QAT_FW_LA_TRNG_TEST_STATUS_TV_BITPOS, \
+	    QAT_FW_LA_TRNG_TEST_STATUS_TV_MASK)
 
 /*
  ******************************************************************************
@@ -2439,9 +2385,9 @@ typedef struct icp_qat_fw_la_hkdf_key_material_input_s {
 #define QAT_FW_HKDF_LABEL_LEN_SZ 1
 #define QAT_FW_HKDF_LABEL_FLAGS_SZ 1
 
-#define QAT_FW_HKDF_LABEL_STRUCT_SZ                                            \
-	(QAT_FW_HKDF_LABEL_BUFFER_SZ + QAT_FW_HKDF_LABEL_LEN_SZ +              \
-	 QAT_FW_HKDF_LABEL_FLAGS_SZ)
+#define QAT_FW_HKDF_LABEL_STRUCT_SZ                               \
+	(QAT_FW_HKDF_LABEL_BUFFER_SZ + QAT_FW_HKDF_LABEL_LEN_SZ + \
+	    QAT_FW_HKDF_LABEL_FLAGS_SZ)
 
 /**
  *****************************************************************************

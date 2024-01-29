@@ -29,8 +29,9 @@
 
 /* Provoked:
 	lock order reversal:
-	 1st 0xc50057a0 vnode interlock (vnode interlock) @ kern/kern_lockf.c:190
-	 2nd 0xc14710e8 system map (system map) @ vm/vm_kern.c:296
+	 1st 0xc50057a0 vnode interlock (vnode interlock) @
+   kern/kern_lockf.c:190 2nd 0xc14710e8 system map (system map) @
+   vm/vm_kern.c:296
  */
 
 #include <sys/types.h>
@@ -63,32 +64,34 @@ setup(int nb)
 		getdf(&bl, &in);
 
 		/* Resource requirements: */
-		reserve_in =       1 * op->incarnations;
+		reserve_in = 1 * op->incarnations;
 		reserve_bl = 1081344 * op->incarnations;
 		freespace = (reserve_bl <= bl && reserve_in <= in);
 		if (!freespace)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("lockf2(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-			    op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "lockf2(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    op->incarnations, bl / 1024, in, reserve_bl / 1024,
+			    reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(freespace);
 	} else {
 		freespace = getval();
 	}
 	if (!freespace)
-		exit (0);
+		exit(0);
 
 	sprintf(file, "lockf.%d", getpid());
-	if ((fd = open(file,O_CREAT | O_TRUNC | O_RDWR, 0600)) == -1)
+	if ((fd = open(file, O_CREAT | O_TRUNC | O_RDWR, 0600)) == -1)
 		err(1, "creat(%s)", file);
 	bzero(buf, sizeof(buf));
 	for (i = 0; i < 1024; i++)
 		if (write(fd, &buf, sizeof(buf)) != sizeof(buf))
 			err(1, "write");
 	close(fd);
-        return (0);
+	return (0);
 }
 
 void
@@ -122,9 +125,8 @@ test(void)
 		size = random_int(1, size);
 		if (lockf(fd, F_ULOCK, size) == -1)
 			err(1, "lockf(%s, F_ULOCK)", file);
-
 	}
 	close(fd);
 
-        return (0);
+	return (0);
 }

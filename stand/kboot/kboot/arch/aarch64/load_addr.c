@@ -6,13 +6,15 @@
 
 #include <sys/param.h>
 #include <sys/efi.h>
-#include <machine/metadata.h>
 #include <sys/linker.h>
+
+#include <machine/metadata.h>
+
 #include <fdt_platform.h>
 #include <libfdt.h>
 
-#include "kboot.h"
 #include "bootstrap.h"
+#include "kboot.h"
 
 /*
  * Info from dtb about the EFI system
@@ -20,8 +22,8 @@
 vm_paddr_t efi_systbl_phys;
 struct efi_map_header *efi_map_hdr;
 uint32_t efi_map_size;
-vm_paddr_t efi_map_phys_src;	/* From DTB */
-vm_paddr_t efi_map_phys_dst;	/* From our memory map metadata module */
+vm_paddr_t efi_map_phys_src; /* From DTB */
+vm_paddr_t efi_map_phys_dst; /* From our memory map metadata module */
 
 static bool
 do_memory_from_fdt(int fd)
@@ -79,8 +81,8 @@ do_memory_from_fdt(int fd)
 	mmap_pa = fdt64_to_cpu(*u64p);
 	free(buf);
 
-	printf("UEFI MMAP: Ver %d Ent Size %d Tot Size %d PA %#lx\n",
-	    ver, esz, sz, mmap_pa);
+	printf("UEFI MMAP: Ver %d Ent Size %d Tot Size %d PA %#lx\n", ver, esz,
+	    sz, mmap_pa);
 
 	/*
 	 * We may have no ability to read the PA that this map is in, so pass
@@ -100,9 +102,9 @@ do_memory_from_fdt(int fd)
 	efihdr->descriptor_version = ver;
 
 	/*
-	 * Save EFI table. Either this will be an empty table filled in by the trampoline,
-	 * or we'll read it below. Either way, set these two variables so we share the best
-	 * UEFI memory map with the kernel.
+	 * Save EFI table. Either this will be an empty table filled in by the
+	 * trampoline, or we'll read it below. Either way, set these two
+	 * variables so we share the best UEFI memory map with the kernel.
 	 */
 	efi_map_hdr = efihdr;
 	efi_map_size = sz + efisz;
@@ -112,7 +114,8 @@ do_memory_from_fdt(int fd)
 	 */
 	fd2 = open("host:/dev/mem", O_RDONLY);
 	if (fd2 < 0) {
-		printf("Will read UEFI mem map in tramp: no /dev/mem, need CONFIG_DEVMEM=y\n");
+		printf(
+		    "Will read UEFI mem map in tramp: no /dev/mem, need CONFIG_DEVMEM=y\n");
 		goto no_read;
 	}
 	if (lseek(fd2, mmap_pa, SEEK_SET) < 0) {
@@ -122,20 +125,23 @@ do_memory_from_fdt(int fd)
 	len = read(fd2, map, sz);
 	if (len != sz) {
 		if (len < 0 && errno == EPERM)
-			printf("Will read UEFI mem map in tramp: kernel needs CONFIG_STRICT_DEVMEM=n\n");
+			printf(
+			    "Will read UEFI mem map in tramp: kernel needs CONFIG_STRICT_DEVMEM=n\n");
 		else
-			printf("Will read UEFI mem map in tramp: lean = %d errno = %d\n", len, errno);
+			printf(
+			    "Will read UEFI mem map in tramp: lean = %d errno = %d\n",
+			    len, errno);
 		goto no_read;
 	}
 	printf("Read UEFI mem map from physmem\n");
 	efi_map_phys_src = 0; /* Mark MODINFOMD_EFI_MAP as valid */
 	close(fd2);
-	return true;	/* OK, we really have the memory map */
+	return true; /* OK, we really have the memory map */
 
 no_read:
 	efi_map_phys_src = mmap_pa;
 	close(fd2);
-	return true;	/* We can get it the trampoline */
+	return true; /* We can get it the trampoline */
 
 errout:
 	free(buf);
@@ -172,9 +178,9 @@ enumerate_memory_arch(void)
 uint64_t
 kboot_get_phys_load_segment(void)
 {
-#define HOLE_SIZE	(64ul << 20)
-#define KERN_ALIGN	(2ul << 20)
-	static uint64_t	s = 0;
+#define HOLE_SIZE (64ul << 20)
+#define KERN_ALIGN (2ul << 20)
+	static uint64_t s = 0;
 
 	if (s != 0)
 		return (s);
@@ -182,7 +188,7 @@ kboot_get_phys_load_segment(void)
 	s = first_avail(KERN_ALIGN, HOLE_SIZE, SYSTEM_RAM);
 	if (s != 0)
 		return (s);
-	s = 0x40000000 | 0x4200000;	/* should never get here */
+	s = 0x40000000 | 0x4200000; /* should never get here */
 	printf("Falling back to crazy address %#lx\n", s);
 	return (s);
 }
@@ -195,7 +201,8 @@ bi_loadsmap(struct preloaded_file *kfp)
 	 * Make a note of a systbl. This is nearly mandatory on AARCH64.
 	 */
 	if (efi_systbl_phys)
-		file_addmetadata(kfp, MODINFOMD_FW_HANDLE, sizeof(efi_systbl_phys), &efi_systbl_phys);
+		file_addmetadata(kfp, MODINFOMD_FW_HANDLE,
+		    sizeof(efi_systbl_phys), &efi_systbl_phys);
 
 	/*
 	 * If we have efi_map_hdr, then it's a pointer to the PA where this
@@ -203,8 +210,10 @@ bi_loadsmap(struct preloaded_file *kfp)
 	 * have it, we use whatever we found in /proc/iomap.
 	 */
 	if (efi_map_hdr != NULL) {
-		file_addmetadata(kfp, MODINFOMD_EFI_MAP, efi_map_size, efi_map_hdr);
+		file_addmetadata(kfp, MODINFOMD_EFI_MAP, efi_map_size,
+		    efi_map_hdr);
 		return;
 	}
-	panic("Can't get UEFI memory map, nor a pointer to it, can't proceed.\n");
+	panic(
+	    "Can't get UEFI memory map, nor a pointer to it, can't proceed.\n");
 }

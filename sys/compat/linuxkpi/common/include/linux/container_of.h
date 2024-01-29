@@ -28,19 +28,19 @@
  */
 
 #ifndef _LINUXKPI_LINUX_CONTAINER_OF_H
-#define	_LINUXKPI_LINUX_CONTAINER_OF_H
+#define _LINUXKPI_LINUX_CONTAINER_OF_H
 
 #include <sys/stdint.h>
 
 #include <linux/build_bug.h>
 #include <linux/stddef.h>
 
-#define	container_of(ptr, type, member)				\
-({								\
-	const __typeof(((type *)0)->member) *__p = (ptr);	\
-	(type *)((uintptr_t)__p - offsetof(type, member));	\
-})
+#define container_of(ptr, type, member)                            \
+	({                                                         \
+		const __typeof(((type *)0)->member) *__p = (ptr);  \
+		(type *)((uintptr_t)__p - offsetof(type, member)); \
+	})
 
-#define	typeof_member(type, member)	__typeof(((type *)0)->member)
+#define typeof_member(type, member) __typeof(((type *)0)->member)
 
 #endif

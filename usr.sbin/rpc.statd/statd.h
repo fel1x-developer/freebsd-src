@@ -32,8 +32,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include "sm_inter.h"
 
 /* ------------------------------------------------------------------------- */
@@ -61,46 +59,43 @@
   is an empty slot in the file.
 */
 
-typedef struct MonList_s
-{
-  struct MonList_s *next;	/* Next in list or NULL			*/
-  char notifyHost[SM_MAXSTRLEN + 1];	/* Host to notify		*/
-  int notifyProg;		/* RPC program number to call		*/
-  int notifyVers;		/* version number			*/
-  int notifyProc;		/* procedure number			*/
-  unsigned char notifyData[16];	/* Opaque data from caller		*/
+typedef struct MonList_s {
+	struct MonList_s *next;		   /* Next in list or NULL			*/
+	char notifyHost[SM_MAXSTRLEN + 1]; /* Host to notify		*/
+	int notifyProg;			   /* RPC program number to call		*/
+	int notifyVers;			   /* version number			*/
+	int notifyProc;			   /* procedure number			*/
+	unsigned char notifyData[16];	   /* Opaque data from caller
+					    */
 } MonList;
 
-typedef struct
-{
-  char hostname[SM_MAXSTRLEN + 1];	/* Name of monitored host	*/
-  int notifyReqd;		/* TRUE if we've crashed and not yet	*/
-				/* informed the monitored host		*/
-  MonList *monList;		/* List of clients to inform if we	*/
-				/* hear that the monitored host has	*/
-				/* crashed, NULL if no longer monitored	*/
+typedef struct {
+	char hostname[SM_MAXSTRLEN + 1]; /* Name of monitored host	*/
+	int notifyReqd;			 /* TRUE if we've crashed and not yet	*/
+					 /* informed the monitored host		*/
+	MonList *monList;		 /* List of clients to inform if we	*/
+					 /* hear that the monitored host has	*/
+	/* crashed, NULL if no longer monitored	*/
 } HostInfo;
-
 
 /* Overall file layout.  						*/
 
-typedef struct
-{
-  int ourState;		/* State number as defined in statd protocol	*/
-  int noOfHosts;	/* Number of elements in hosts[]		*/
-  char reserved[248];	/* Reserved for future use			*/
-  HostInfo hosts[1];	/* vector of monitored hosts			*/
+typedef struct {
+	int ourState;	    /* State number as defined in statd protocol	*/
+	int noOfHosts;	    /* Number of elements in hosts[]		*/
+	char reserved[248]; /* Reserved for future use			*/
+	HostInfo hosts[1];  /* vector of monitored hosts			*/
 } FileLayout;
 
-#define	HEADER_LEN (sizeof(FileLayout) - sizeof(HostInfo))
+#define HEADER_LEN (sizeof(FileLayout) - sizeof(HostInfo))
 
 /* ------------------------------------------------------------------------- */
 
 /* Global variables		*/
 
-extern FileLayout *status_info;	/* The mmap()ed status file		*/
+extern FileLayout *status_info; /* The mmap()ed status file		*/
 
-extern int debug;		/* =1 to enable diagnostics to syslog	*/
+extern int debug; /* =1 to enable diagnostics to syslog	*/
 
 /* Function prototypes		*/
 

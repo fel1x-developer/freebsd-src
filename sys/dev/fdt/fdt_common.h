@@ -31,18 +31,20 @@
 #ifndef _FDT_COMMON_H_
 #define _FDT_COMMON_H_
 
-#include <sys/sysctl.h>
 #include <sys/slicer.h>
-#include <contrib/libfdt/libfdt_env.h>
+#include <sys/sysctl.h>
+
 #include <dev/ofw/ofw_bus.h>
 
-#define FDT_MEM_REGIONS	16
+#include <contrib/libfdt/libfdt_env.h>
 
-#define DI_MAX_INTR_NUM	32
+#define FDT_MEM_REGIONS 16
+
+#define DI_MAX_INTR_NUM 32
 
 struct fdt_sense_level {
-	enum intr_trigger	trig;
-	enum intr_polarity	pol;
+	enum intr_trigger trig;
+	enum intr_polarity pol;
 };
 
 #if defined(__arm__) && !defined(INTRNG)
@@ -53,17 +55,17 @@ extern fdt_pic_decode_t fdt_pic_table[];
 #if defined(__arm__) || defined(__powerpc__)
 typedef void (*fdt_fixup_t)(phandle_t);
 struct fdt_fixup_entry {
-	char		*model;
-	fdt_fixup_t	handler;
+	char *model;
+	fdt_fixup_t handler;
 };
 extern struct fdt_fixup_entry fdt_fixup_table[];
 #endif
 
 extern SLIST_HEAD(fdt_ic_list, fdt_ic) fdt_ic_list_head;
 struct fdt_ic {
-	SLIST_ENTRY(fdt_ic)	fdt_ics;
-	ihandle_t		iph;
-	device_t		dev;
+	SLIST_ENTRY(fdt_ic) fdt_ics;
+	ihandle_t iph;
+	device_t dev;
 };
 
 extern vm_paddr_t fdt_immr_pa;

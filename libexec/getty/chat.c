@@ -34,36 +34,33 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#include "gettytab.h"
 #include "extern.h"
+#include "gettytab.h"
 
-#define	PAUSE_CH		(unsigned char)'\xff'   /* pause kludge */
+#define PAUSE_CH (unsigned char)'\xff' /* pause kludge */
 
-#define	CHATDEBUG_RECEIVE	0x01
-#define	CHATDEBUG_SEND		0x02
-#define	CHATDEBUG_EXPECT	0x04
-#define	CHATDEBUG_MISC		0x08
+#define CHATDEBUG_RECEIVE 0x01
+#define CHATDEBUG_SEND 0x02
+#define CHATDEBUG_EXPECT 0x04
+#define CHATDEBUG_MISC 0x08
 
-#define	CHATDEBUG_DEFAULT	0
-#define CHAT_DEFAULT_TIMEOUT	10
-
+#define CHATDEBUG_DEFAULT 0
+#define CHAT_DEFAULT_TIMEOUT 10
 
 static int chat_debug = CHATDEBUG_DEFAULT;
 static int chat_alarm = CHAT_DEFAULT_TIMEOUT; /* Default */
 
 static volatile int alarmed = 0;
 
-
-static void   chat_alrm(int);
-static int    chat_unalarm(void);
-static int    getdigit(char **, int, int);
-static char   **read_chat(char **);
-static char   *cleanchr(char **, unsigned char);
+static void chat_alrm(int);
+static int chat_unalarm(void);
+static int getdigit(char **, int, int);
+static char **read_chat(char **);
+static char *cleanchr(char **, unsigned char);
 static const char *cleanstr(const char *, int);
 static const char *result(int);
-static int    chat_expect(const char *);
-static int    chat_send(char const *);
-
+static int chat_expect(const char *);
+static int chat_send(char const *);
 
 /*
  * alarm signal handler
@@ -83,7 +80,6 @@ chat_alrm(int signo __unused)
 	ioctl(STDIN_FILENO, FIONBIO, &on);
 }
 
-
 /*
  * Turn back on blocking mode reset by chat_alrm()
  */
@@ -95,7 +91,6 @@ chat_unalarm(void)
 	return ioctl(STDIN_FILENO, FIONBIO, &off);
 }
 
-
 /*
  * convert a string of a given base (octal/hex) to binary
  */
@@ -104,13 +99,13 @@ static int
 getdigit(char **ptr, int base, int max)
 {
 	int i, val = 0;
-	char * q;
+	char *q;
 
 	static const char xdigits[] = "0123456789abcdef";
 
 	for (i = 0, q = *ptr; i++ < max; ++q) {
 		int sval;
-		const char * s = strchr(xdigits, tolower(*q));
+		const char *s = strchr(xdigits, tolower(*q));
 
 		if (s == NULL || (sval = s - xdigits) >= base)
 			break;
@@ -119,7 +114,6 @@ getdigit(char **ptr, int base, int max)
 	*ptr = q;
 	return val;
 }
-
 
 /*
  * read_chat()
@@ -137,25 +131,21 @@ read_chat(char **chatstr)
 		char *tmp = NULL;
 		int l;
 
-		if ((l=strlen(str)) > 0 && (tmp=malloc(l + 1)) != NULL &&
-		    (res=malloc(((l + 1) / 2 + 1) * sizeof(char *))) != NULL) {
+		if ((l = strlen(str)) > 0 && (tmp = malloc(l + 1)) != NULL &&
+		    (res = malloc(((l + 1) / 2 + 1) * sizeof(char *))) !=
+			NULL) {
 			static char ws[] = " \t";
-			char * p;
+			char *p;
 
-			for (l = 0, p = strtok(strcpy(tmp, str), ws);
-			     p != NULL;
-			     p = strtok(NULL, ws))
-			{
+			for (l = 0, p = strtok(strcpy(tmp, str), ws); p != NULL;
+			     p = strtok(NULL, ws)) {
 				char *q, *r;
 
 				/* Read escapes */
-				for (q = r = p; *r; ++q)
-				{
-					if (*q == '\\')
-					{
+				for (q = r = p; *r; ++q) {
+					if (*q == '\\') {
 						/* handle special escapes */
-						switch (*++q)
-						{
+						switch (*++q) {
 						case 'a': /* bell */
 							*r++ = '\a';
 							break;
@@ -186,12 +176,14 @@ read_chat(char **chatstr)
 							break;
 						case 'x': /* hexdigit */
 							++q;
-							*r++ = getdigit(&q, 16, 2);
+							*r++ = getdigit(&q, 16,
+							    2);
 							--q;
 							break;
 						case '0': /* octal */
 							++q;
-							*r++ = getdigit(&q, 8, 3);
+							*r++ = getdigit(&q, 8,
+							    3);
 							--q;
 							break;
 						default: /* literal */
@@ -210,8 +202,9 @@ read_chat(char **chatstr)
 				/* Remove surrounding quotes, if any
 				 */
 				if (*p == '"' || *p == '\'') {
-					q = strrchr(p+1, *p);
-					if (q != NULL && *q == *p && q[1] == '\0') {
+					q = strrchr(p + 1, *p);
+					if (q != NULL && *q == *p &&
+					    q[1] == '\0') {
 						*q = '\0';
 						p++;
 					}
@@ -228,7 +221,6 @@ read_chat(char **chatstr)
 	return res;
 }
 
-
 /*
  * clean a character for display (ctrl/meta character)
  */
@@ -238,7 +230,7 @@ cleanchr(char **buf, unsigned char ch)
 {
 	int l;
 	static char tmpbuf[5];
-	char * tmp = buf ? *buf : tmpbuf;
+	char *tmp = buf ? *buf : tmpbuf;
 
 	if (ch & 0x80) {
 		strcpy(tmp, "M-");
@@ -262,7 +254,6 @@ cleanchr(char **buf, unsigned char ch)
 	return tmp;
 }
 
-
 /*
  * clean a string for display (ctrl/meta characters)
  */
@@ -270,7 +261,7 @@ cleanchr(char **buf, unsigned char ch)
 static const char *
 cleanstr(const char *s, int l)
 {
-	static char * tmp = NULL;
+	static char *tmp = NULL;
 	static int tmplen = 0;
 
 	if (tmplen < l * 4 + 1)
@@ -281,7 +272,7 @@ cleanstr(const char *s, int l)
 		return "(mem alloc error)";
 	} else {
 		int i = 0;
-		char * p = tmp;
+		char *p = tmp;
 
 		while (i < l)
 			cleanchr(&p, s[i++]);
@@ -291,7 +282,6 @@ cleanstr(const char *s, int l)
 	return tmp;
 }
 
-
 /*
  * return result as a pseudo-english word
  */
@@ -299,12 +289,10 @@ cleanstr(const char *s, int l)
 static const char *
 result(int r)
 {
-	static const char * results[] = {
-		"OK", "MEMERROR", "IOERROR", "TIMEOUT"
-	};
+	static const char *results[] = { "OK", "MEMERROR", "IOERROR",
+		"TIMEOUT" };
 	return results[r & 3];
 }
-
 
 /*
  * chat_expect()
@@ -317,17 +305,18 @@ chat_expect(const char *str)
 	int len, r = 0;
 
 	if (chat_debug & CHATDEBUG_EXPECT)
-		syslog(LOG_DEBUG, "chat_expect '%s'", cleanstr(str, strlen(str)));
+		syslog(LOG_DEBUG, "chat_expect '%s'",
+		    cleanstr(str, strlen(str)));
 
 	if ((len = strlen(str)) > 0) {
 		int i = 0;
-		char * got;
+		char *got;
 
 		if ((got = malloc(len + 1)) == NULL)
 			r = 1;
 		else {
 
-			memset(got, 0, len+1);
+			memset(got, 0, len + 1);
 			alarm(chat_alarm);
 			alarmed = 0;
 
@@ -339,22 +328,30 @@ chat_expect(const char *str)
 
 					if (read(STDIN_FILENO, &ch, 1) == 1) {
 
-						if (chat_debug & CHATDEBUG_RECEIVE)
-							syslog(LOG_DEBUG, "chat_recv '%s' m=%d",
-							    cleanchr(NULL, ch), i);
+						if (chat_debug &
+						    CHATDEBUG_RECEIVE)
+							syslog(LOG_DEBUG,
+							    "chat_recv '%s' m=%d",
+							    cleanchr(NULL, ch),
+							    i);
 
 						if (ch == str[i])
 							got[i++] = ch;
 						else if (i > 0) {
 							int j = 1;
 
-							/* See if we can resync on a
-							 * partial match in our buffer
+							/* See if we can resync
+							 * on a partial match in
+							 * our buffer
 							 */
-							while (j < i && memcmp(got + j, str, i - j) != 0)
+							while (j < i &&
+							    memcmp(got + j, str,
+								i - j) != 0)
 								j++;
 							if (j < i)
-								memcpy(got, got + j, i - j);
+								memcpy(got,
+								    got + j,
+								    i - j);
 							i -= j;
 						}
 					} else
@@ -374,7 +371,6 @@ chat_expect(const char *str)
 	return r;
 }
 
-
 /*
  * chat_send()
  * send a chat string
@@ -389,33 +385,31 @@ chat_send(char const *str)
 		syslog(LOG_DEBUG, "chat_send '%s'", cleanstr(str, strlen(str)));
 
 	if (*str) {
-                alarm(chat_alarm);
-                alarmed = 0;
-                while (r == 0 && *str)
-                {
-                        unsigned char ch = (unsigned char)*str++;
+		alarm(chat_alarm);
+		alarmed = 0;
+		while (r == 0 && *str) {
+			unsigned char ch = (unsigned char)*str++;
 
-                        if (alarmed)
+			if (alarmed)
 				r = 3;
-                        else if (ch == PAUSE_CH)
+			else if (ch == PAUSE_CH)
 				usleep(500000); /* 1/2 second */
-			else  {
-				usleep(10000);	/* be kind to modem */
-                                if (write(STDOUT_FILENO, &ch, 1) != 1)
+			else {
+				usleep(10000); /* be kind to modem */
+				if (write(STDOUT_FILENO, &ch, 1) != 1)
 					r = alarmed ? 3 : 2;
-                        }
-                }
-                alarm(0);
-                chat_unalarm();
-                alarmed = 0;
+			}
+		}
+		alarm(0);
+		chat_unalarm();
+		alarmed = 0;
 	}
 
-        if (chat_debug & CHATDEBUG_SEND)
+	if (chat_debug & CHATDEBUG_SEND)
 		syslog(LOG_DEBUG, "chat_send %s", result(r));
 
-        return r;
+	return r;
 }
-
 
 /*
  * getty_chat()
@@ -436,50 +430,50 @@ chat_send(char const *str)
 int
 getty_chat(char *scrstr, int timeout, int debug)
 {
-        int r = -1;
+	int r = -1;
 
-        chat_alarm = timeout ? timeout : CHAT_DEFAULT_TIMEOUT;
-        chat_debug = debug;
+	chat_alarm = timeout ? timeout : CHAT_DEFAULT_TIMEOUT;
+	chat_debug = debug;
 
-        if (scrstr != NULL) {
-                char **script;
+	if (scrstr != NULL) {
+		char **script;
 
-                if (chat_debug & CHATDEBUG_MISC)
+		if (chat_debug & CHATDEBUG_MISC)
 			syslog(LOG_DEBUG, "getty_chat script='%s'", scrstr);
 
-                if ((script = read_chat(&scrstr)) != NULL) {
-                        int i = r = 0;
+		if ((script = read_chat(&scrstr)) != NULL) {
+			int i = r = 0;
 			int off = 0;
-                        sig_t old_alarm;
+			sig_t old_alarm;
 
-                        /*
+			/*
 			 * We need to be in raw mode for all this
 			 * Rely on caller...
-                         */
+			 */
 
-                        old_alarm = signal(SIGALRM, chat_alrm);
-                        chat_unalarm(); /* Force blocking mode at start */
+			old_alarm = signal(SIGALRM, chat_alrm);
+			chat_unalarm(); /* Force blocking mode at start */
 
 			/*
 			 * This is the send/expect loop
 			 */
-                        while (r == 0 && script[i] != NULL)
-				if ((r = chat_expect(script[i++])) == 0 && script[i] != NULL)
+			while (r == 0 && script[i] != NULL)
+				if ((r = chat_expect(script[i++])) == 0 &&
+				    script[i] != NULL)
 					r = chat_send(script[i++]);
 
-                        signal(SIGALRM, old_alarm);
-                        free(script);
-                        free(scrstr);
+			signal(SIGALRM, old_alarm);
+			free(script);
+			free(scrstr);
 
 			/*
 			 * Ensure stdin is in blocking mode
 			 */
-                        ioctl(STDIN_FILENO, FIONBIO, &off);
-                }
+			ioctl(STDIN_FILENO, FIONBIO, &off);
+		}
 
-                if (chat_debug & CHATDEBUG_MISC)
+		if (chat_debug & CHATDEBUG_MISC)
 			syslog(LOG_DEBUG, "getty_chat %s", result(r));
-
-        }
-        return r;
+	}
+	return r;
 }

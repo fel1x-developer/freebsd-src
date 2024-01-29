@@ -29,9 +29,9 @@
 struct physical;
 struct device;
 
-#define DEF_NGCDDELAY	5	/* Default ``set cd'' value */
+#define DEF_NGCDDELAY 5 /* Default ``set cd'' value */
 
 extern struct device *ng_Create(struct physical *);
 extern struct device *ng_iov2device(int, struct physical *, struct iovec *,
-                                    int *, int, int *, int *);
+    int *, int, int *, int *);
 extern unsigned ng_DeviceSize(void);

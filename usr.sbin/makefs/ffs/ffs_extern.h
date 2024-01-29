@@ -41,36 +41,36 @@ struct inode;
  * ufs_getlbns and used by truncate and bmap code.
  */
 struct indir {
-	daddr_t in_lbn;		/* Logical block number. */
-	int	in_off;			/* Offset in buffer. */
+	daddr_t in_lbn; /* Logical block number. */
+	int in_off;	/* Offset in buffer. */
 };
 
-	/* ffs.c */
+/* ffs.c */
 _Noreturn void panic(const char *, ...) __printflike(1, 2);
 
-	/* ffs_alloc.c */
+/* ffs_alloc.c */
 int ffs_alloc(struct inode *, daddr_t, daddr_t, int, daddr_t *);
 daddr_t ffs_blkpref_ufs1(struct inode *, daddr_t, int, int32_t *);
 daddr_t ffs_blkpref_ufs2(struct inode *, daddr_t, int, int64_t *);
 void ffs_blkfree(struct inode *, daddr_t, long);
 void ffs_clusteracct(struct fs *, struct cg *, int32_t, int);
 
-	/* ffs_balloc.c */
+/* ffs_balloc.c */
 int ffs_balloc(struct inode *, off_t, int, struct m_buf **);
 
-	/* ffs_bswap.c */
-void ffs_sb_swap(struct fs*, struct fs *);
+/* ffs_bswap.c */
+void ffs_sb_swap(struct fs *, struct fs *);
 void ffs_dinode1_swap(struct ufs1_dinode *, struct ufs1_dinode *);
 void ffs_dinode2_swap(struct ufs2_dinode *, struct ufs2_dinode *);
 void ffs_csum_swap(struct csum *, struct csum *, int);
 void ffs_cg_swap(struct cg *, struct cg *, struct fs *);
 
-	/* ffs_subr.c */
+/* ffs_subr.c */
 void ffs_fragacct(struct fs *, int, int32_t[], int, int);
 int ffs_isblock(struct fs *, u_char *, int32_t);
 int ffs_isfreeblock(struct fs *, u_char *, int32_t);
 void ffs_clrblock(struct fs *, u_char *, int32_t);
 void ffs_setblock(struct fs *, u_char *, int32_t);
 
-	/* ufs_bmap.c */
+/* ufs_bmap.c */
 int ufs_getlbns(struct inode *, daddr_t, struct indir *, int *);

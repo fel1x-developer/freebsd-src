@@ -39,19 +39,17 @@
 #include <sys/byteorder.h>
 #include <sys/fs/zfs.h>
 
-#include <syslog.h>
-
-#include <string>
-#include <list>
-#include <sstream>
-
 #include <devdctl/exception.h>
 #include <devdctl/guid.h>
-
 #include <libzfs.h>
+#include <syslog.h>
 
 #include "vdev.h"
 #include "zfsd_exception.h"
+
+#include <list>
+#include <sstream>
+#include <string>
 /*============================ Namespace Control =============================*/
 using std::endl;
 using std::string;
@@ -60,9 +58,9 @@ using std::stringstream;
 /*=========================== Class Implementations ==========================*/
 /*------------------------------- ZfsdException ------------------------------*/
 ZfsdException::ZfsdException(const char *fmt, ...)
- : DevdCtl::Exception(),
-   m_poolConfig(NULL),
-   m_vdevConfig(NULL)
+    : DevdCtl::Exception()
+    , m_poolConfig(NULL)
+    , m_vdevConfig(NULL)
 {
 	va_list ap;
 
@@ -72,9 +70,9 @@ ZfsdException::ZfsdException(const char *fmt, ...)
 }
 
 ZfsdException::ZfsdException(zpool_handle_t *pool, const char *fmt, ...)
- : DevdCtl::Exception(),
-   m_poolConfig(zpool_get_config(pool, NULL)),
-   m_vdevConfig(NULL)
+    : DevdCtl::Exception()
+    , m_poolConfig(zpool_get_config(pool, NULL))
+    , m_vdevConfig(NULL)
 {
 	va_list ap;
 
@@ -84,9 +82,9 @@ ZfsdException::ZfsdException(zpool_handle_t *pool, const char *fmt, ...)
 }
 
 ZfsdException::ZfsdException(nvlist_t *poolConfig, const char *fmt, ...)
- : DevdCtl::Exception(),
-   m_poolConfig(poolConfig),
-   m_vdevConfig(NULL)
+    : DevdCtl::Exception()
+    , m_poolConfig(poolConfig)
+    , m_vdevConfig(NULL)
 {
 	va_list ap;
 
@@ -106,7 +104,7 @@ ZfsdException::Log() const
 
 		const char *poolName;
 		if (nvlist_lookup_string(m_poolConfig, ZPOOL_CONFIG_POOL_NAME,
-				     &poolName) == 0)
+			&poolName) == 0)
 			output << poolName;
 		else
 			output << "Unknown";
@@ -118,16 +116,15 @@ ZfsdException::Log() const
 		if (m_poolConfig != NULL) {
 			Vdev vdev(m_poolConfig, m_vdevConfig);
 
-			output << "Vdev " <<  vdev.GUID() << ": ";
+			output << "Vdev " << vdev.GUID() << ": ";
 		} else {
 			Vdev vdev(m_vdevConfig);
 
-			output << "Pool " <<  vdev.PoolGUID() << ": ";
-			output << "Vdev " <<  vdev.GUID() << ": ";
+			output << "Pool " << vdev.PoolGUID() << ": ";
+			output << "Vdev " << vdev.GUID() << ": ";
 		}
 	}
 
 	output << m_log << endl;
 	syslog(LOG_ERR, "%s", output.str().c_str());
 }
-

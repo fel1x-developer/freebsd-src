@@ -57,17 +57,17 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
 #include <sys/queue.h>
-#include <sys/systm.h>
-#include <sys/endian.h>
 
 #include <machine/stdarg.h>
 
@@ -82,15 +82,15 @@ MALLOC_DEFINE(M_OFWPROP, "openfirm", "Open Firmware properties");
 
 static ihandle_t stdout;
 
-static ofw_def_t	*ofw_def_impl = NULL;
-static ofw_t		ofw_obj;
-static struct ofw_kobj	ofw_kernel_obj;
-static struct kobj_ops	ofw_kernel_kops;
+static ofw_def_t *ofw_def_impl = NULL;
+static ofw_t ofw_obj;
+static struct ofw_kobj ofw_kernel_obj;
+static struct kobj_ops ofw_kernel_kops;
 
 struct xrefinfo {
-	phandle_t	xref;
-	phandle_t 	node;
-	device_t  	dev;
+	phandle_t xref;
+	phandle_t node;
+	device_t dev;
 	SLIST_ENTRY(xrefinfo) next_entry;
 };
 
@@ -98,9 +98,9 @@ static SLIST_HEAD(, xrefinfo) xreflist = SLIST_HEAD_INITIALIZER(xreflist);
 static struct mtx xreflist_lock;
 static boolean_t xref_init_done;
 
-#define	FIND_BY_XREF	0
-#define	FIND_BY_NODE	1
-#define	FIND_BY_DEV	2
+#define FIND_BY_XREF 0
+#define FIND_BY_NODE 1
+#define FIND_BY_DEV 2
 
 /*
  * xref-phandle-device lookup helper routines.
@@ -116,7 +116,7 @@ static boolean_t xref_init_done;
 static void
 xrefinfo_create(phandle_t node)
 {
-	struct xrefinfo * xi;
+	struct xrefinfo *xi;
 	phandle_t child, xref;
 
 	/*
@@ -127,9 +127,11 @@ xrefinfo_create(phandle_t node)
 	for (child = OF_child(node); child != 0; child = OF_peer(child)) {
 		xrefinfo_create(child);
 		if (OF_getencprop(child, "phandle", &xref, sizeof(xref)) ==
-		    -1 && OF_getencprop(child, "ibm,phandle", &xref,
-		    sizeof(xref)) == -1 && OF_getencprop(child,
-		    "linux,phandle", &xref, sizeof(xref)) == -1)
+			-1 &&
+		    OF_getencprop(child, "ibm,phandle", &xref, sizeof(xref)) ==
+			-1 &&
+		    OF_getencprop(child, "linux,phandle", &xref,
+			sizeof(xref)) == -1)
 			continue;
 		xi = malloc(sizeof(*xi), M_OFWPROP, M_WAITOK | M_ZERO);
 		xi->node = child;
@@ -160,7 +162,7 @@ xrefinfo_find(uintptr_t key, int find_by)
 
 	rv = NULL;
 	mtx_lock(&xreflist_lock);
-	SLIST_FOREACH(xi, &xreflist, next_entry) {
+	SLIST_FOREACH (xi, &xreflist, next_entry) {
 		if ((find_by == FIND_BY_XREF && (phandle_t)key == xi->xref) ||
 		    (find_by == FIND_BY_NODE && (phandle_t)key == xi->node) ||
 		    (find_by == FIND_BY_DEV && key == (uintptr_t)xi->dev)) {
@@ -180,7 +182,7 @@ xrefinfo_add(phandle_t node, phandle_t xref, device_t dev)
 	xi = malloc(sizeof(*xi), M_OFWPROP, M_WAITOK);
 	xi->node = node;
 	xi->xref = xref;
-	xi->dev  = dev;
+	xi->dev = dev;
 	mtx_lock(&xreflist_lock);
 	SLIST_INSERT_HEAD(&xreflist, xi, next_entry);
 	mtx_unlock(&xreflist_lock);
@@ -208,11 +210,11 @@ OF_install(char *name, int prio)
 	/*
 	 * Try and locate the OFW kobj corresponding to the name.
 	 */
-	SET_FOREACH(ofwpp, ofw_set) {
+	SET_FOREACH(ofwpp, ofw_set)
+	{
 		ofwp = *ofwpp;
 
-		if (ofwp->name &&
-		    !strcmp(ofwp->name, name) &&
+		if (ofwp->name && !strcmp(ofwp->name, name) &&
 		    prio >= curr_prio) {
 			curr_prio = prio;
 			ofw_def_impl = ofwp;
@@ -244,8 +246,8 @@ OF_init(void *cookie)
 	rv = OFW_INIT(ofw_obj, cookie);
 
 	if ((chosen = OF_finddevice("/chosen")) != -1)
-		if (OF_getencprop(chosen, "stdout", &stdout,
-		    sizeof(stdout)) == -1)
+		if (OF_getencprop(chosen, "stdout", &stdout, sizeof(stdout)) ==
+		    -1)
 			stdout = -1;
 
 	return (rv);
@@ -268,7 +270,7 @@ OF_putchar(int c, void *arg __unused)
 void
 OF_printf(const char *fmt, ...)
 {
-	va_list	va;
+	va_list va;
 
 	va_start(va, fmt);
 	(void)kvprintf(fmt, OF_putchar, NULL, 10, va);
@@ -403,7 +405,7 @@ OF_getencprop(phandle_t node, const char *propname, pcell_t *buf, size_t len)
 	if (retval <= 0)
 		return (retval);
 
-	for (i = 0; i < len/4; i++)
+	for (i = 0; i < len / 4; i++)
 		buf[i] = be32toh(buf[i]);
 
 	return (retval);
@@ -466,13 +468,13 @@ OF_getprop_alloc(phandle_t package, const char *propname, void **buf)
  * single element, the number of elements is return in number.
  */
 ssize_t
-OF_getprop_alloc_multi(phandle_t package, const char *propname, int elsz, void **buf)
+OF_getprop_alloc_multi(phandle_t package, const char *propname, int elsz,
+    void **buf)
 {
 	int len;
 
 	*buf = NULL;
-	if ((len = OF_getproplen(package, propname)) == -1 ||
-	    len % elsz != 0)
+	if ((len = OF_getproplen(package, propname)) == -1 || len % elsz != 0)
 		return (-1);
 
 	if (len > 0) {
@@ -491,8 +493,7 @@ OF_getencprop_alloc(phandle_t package, const char *name, void **buf)
 {
 	ssize_t ret;
 
-	ret = OF_getencprop_alloc_multi(package, name, sizeof(pcell_t),
-	    buf);
+	ret = OF_getencprop_alloc_multi(package, name, sizeof(pcell_t), buf);
 	if (ret < 0)
 		return (ret);
 	else
@@ -519,7 +520,8 @@ OF_getencprop_alloc_multi(phandle_t package, const char *name, int elsz,
 }
 
 /* Free buffer allocated by OF_getencprop_alloc or OF_getprop_alloc */
-void OF_prop_free(void *buf)
+void
+OF_prop_free(void *buf)
 {
 
 	free(buf, M_OFWPROP);
@@ -544,7 +546,7 @@ OF_setprop(phandle_t package, const char *propname, const void *buf, size_t len)
 	if (ofw_def_impl == NULL)
 		return (-1);
 
-	return (OFW_SETPROP(ofw_obj, package, propname, buf,len));
+	return (OFW_SETPROP(ofw_obj, package, propname, buf, len));
 }
 
 /* Convert a device specifier to a fully qualified pathname. */
@@ -609,9 +611,11 @@ OF_child_xref_phandle(phandle_t parent, phandle_t xref)
 			return (rxref);
 
 		if (OF_getencprop(child, "phandle", &rxref, sizeof(rxref)) ==
-		    -1 && OF_getencprop(child, "ibm,phandle", &rxref,
-		    sizeof(rxref)) == -1 && OF_getencprop(child,
-		    "linux,phandle", &rxref, sizeof(rxref)) == -1)
+			-1 &&
+		    OF_getencprop(child, "ibm,phandle", &rxref,
+			sizeof(rxref)) == -1 &&
+		    OF_getencprop(child, "linux,phandle", &rxref,
+			sizeof(rxref)) == -1)
 			continue;
 
 		if (rxref == xref)
@@ -697,7 +701,7 @@ OF_device_register_xref(phandle_t xref, device_t dev)
 	if (xref_init_done) {
 		if ((xi = xrefinfo_find(xref, FIND_BY_XREF)) == NULL)
 			xrefinfo_add(xref, xref, dev);
-		else 
+		else
 			xi->dev = dev;
 		return (0);
 	}
@@ -841,6 +845,6 @@ OF_exit(void)
 	/* Should not return */
 	OFW_EXIT(ofw_obj);
 
-	for (;;)			/* just in case */
+	for (;;) /* just in case */
 		;
 }

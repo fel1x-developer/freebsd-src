@@ -17,14 +17,14 @@
  * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "port_before.h"
-
 #include <sys/types.h>
+
 #include <arpa/nameser.h>
 #include <errno.h>
 #include <string.h>
 
 #include "port_after.h"
+#include "port_before.h"
 
 /*%
  *	Check whether a name belongs to a domain.
@@ -46,7 +46,8 @@
  */
 
 int
-ns_samedomain(const char *a, const char *b) {
+ns_samedomain(const char *a, const char *b)
+{
 	size_t la, lb;
 	int diff, i, escaped;
 	const char *cp;
@@ -120,7 +121,7 @@ ns_samedomain(const char *a, const char *b) {
 
 	/*
 	 * We're not sure about that '.', however.  It could be escaped
-         * and thus not a really a label separator.
+	 * and thus not a really a label separator.
 	 */
 	escaped = 0;
 	for (i = diff - 2; i >= 0; i--)
@@ -133,7 +134,7 @@ ns_samedomain(const char *a, const char *b) {
 			break;
 	if (escaped)
 		return (0);
-	  
+
 	/* Now compare aligned trailing substring. */
 	cp = a + diff;
 	return (strncasecmp(cp, b, lb) == 0);
@@ -144,7 +145,8 @@ ns_samedomain(const char *a, const char *b) {
  *	is "a" a subdomain of "b"?
  */
 int
-ns_subdomain(const char *a, const char *b) {
+ns_subdomain(const char *a, const char *b)
+{
 	return (ns_samename(a, b) != 1 && ns_samedomain(a, b));
 }
 #endif
@@ -163,17 +165,18 @@ ns_subdomain(const char *a, const char *b) {
  */
 
 int
-ns_makecanon(const char *src, char *dst, size_t dstsize) {
+ns_makecanon(const char *src, char *dst, size_t dstsize)
+{
 	size_t n = strlen(src);
 
-	if (n + sizeof "." > dstsize) {			/*%< Note: sizeof == 2 */
+	if (n + sizeof "." > dstsize) { /*%< Note: sizeof == 2 */
 		errno = EMSGSIZE;
 		return (-1);
 	}
 	strcpy(dst, src);
-	while (n >= 1U && dst[n - 1] == '.')		/*%< Ends in "." */
-		if (n >= 2U && dst[n - 2] == '\\' &&	/*%< Ends in "\." */
-		    (n < 3U || dst[n - 3] != '\\'))	/*%< But not "\\." */
+	while (n >= 1U && dst[n - 1] == '.')	     /*%< Ends in "." */
+		if (n >= 2U && dst[n - 2] == '\\' && /*%< Ends in "\." */
+		    (n < 3U || dst[n - 3] != '\\'))  /*%< But not "\\." */
 			break;
 		else
 			dst[--n] = '\0';
@@ -192,7 +195,8 @@ ns_makecanon(const char *src, char *dst, size_t dstsize) {
  */
 
 int
-ns_samename(const char *a, const char *b) {
+ns_samename(const char *a, const char *b)
+{
 	char ta[NS_MAXDNAME], tb[NS_MAXDNAME];
 
 	if (ns_makecanon(a, ta, sizeof ta) < 0 ||

@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_cfg.h"
+#include "adf_common_drv.h"
 #include "cpa.h"
 #include "icp_accel_devices.h"
-#include "adf_common_drv.h"
 #include "icp_adf_debug.h"
 #include "icp_adf_init.h"
 #include "lac_sal_ctrl.h"

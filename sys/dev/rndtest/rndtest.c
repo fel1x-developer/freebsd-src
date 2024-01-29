@@ -42,21 +42,22 @@
 #include <sys/module.h>
 #include <sys/random.h>
 #include <sys/sysctl.h>
+
 #include <machine/stdarg.h>
 
 #include <dev/rndtest/rndtest.h>
 
-static	void rndtest_test(struct rndtest_state *);
-static	void rndtest_timeout(void *);
+static void rndtest_test(struct rndtest_state *);
+static void rndtest_timeout(void *);
 
 /* The tests themselves */
-static	int rndtest_monobit(struct rndtest_state *);
-static	int rndtest_runs(struct rndtest_state *);
-static	int rndtest_longruns(struct rndtest_state *);
-static	int rndtest_chi_4(struct rndtest_state *);
+static int rndtest_monobit(struct rndtest_state *);
+static int rndtest_runs(struct rndtest_state *);
+static int rndtest_longruns(struct rndtest_state *);
+static int rndtest_chi_4(struct rndtest_state *);
 
-static	int rndtest_runs_check(struct rndtest_state *, int, int *);
-static	void rndtest_runs_record(struct rndtest_state *, int, int *);
+static int rndtest_runs_check(struct rndtest_state *, int, int *);
+static void rndtest_runs_record(struct rndtest_state *, int, int *);
 
 static const struct rndtest_testfunc {
 	int (*test)(struct rndtest_state *);
@@ -67,26 +68,26 @@ static const struct rndtest_testfunc {
 	{ rndtest_longruns },
 };
 
-#define	RNDTEST_NTESTS	nitems(rndtest_funcs)
+#define RNDTEST_NTESTS nitems(rndtest_funcs)
 
 static SYSCTL_NODE(_kern, OID_AUTO, rndtest, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "RNG test parameters");
-static	int rndtest_retest = 120;		/* interval in seconds */
-SYSCTL_INT(_kern_rndtest, OID_AUTO, retest, CTLFLAG_RW, &rndtest_retest,
-	    0, "retest interval (seconds)");
+static int rndtest_retest = 120; /* interval in seconds */
+SYSCTL_INT(_kern_rndtest, OID_AUTO, retest, CTLFLAG_RW, &rndtest_retest, 0,
+    "retest interval (seconds)");
 static struct rndtest_stats rndstats;
 SYSCTL_STRUCT(_kern_rndtest, OID_AUTO, stats, CTLFLAG_RD, &rndstats,
-	    rndtest_stats, "RNG test statistics");
-static	int rndtest_verbose = 1;		/* report only failures */
-SYSCTL_INT(_kern_rndtest, OID_AUTO, verbose, CTLFLAG_RW, &rndtest_verbose,
-	    0, "display results on console");
+    rndtest_stats, "RNG test statistics");
+static int rndtest_verbose = 1; /* report only failures */
+SYSCTL_INT(_kern_rndtest, OID_AUTO, verbose, CTLFLAG_RW, &rndtest_verbose, 0,
+    "display results on console");
 
 struct rndtest_state *
 rndtest_attach(device_t dev)
 {
 	struct rndtest_state *rsp;
 
-	rsp = malloc(sizeof (*rsp), M_DEVBUF, M_NOWAIT);
+	rsp = malloc(sizeof(*rsp), M_DEVBUF, M_NOWAIT);
 	if (rsp != NULL) {
 		rsp->rs_begin = rsp->rs_buf;
 		rsp->rs_end = rsp->rs_buf + sizeof(rsp->rs_buf);
@@ -116,7 +117,7 @@ rndtest_harvest(struct rndtest_state *rsp, void *buf, u_int len)
 	 */
 	if (rsp->rs_collect) {
 		for (i = 0; i < len; i++) {
-			*rsp->rs_current = ((u_char *) buf)[i];
+			*rsp->rs_current = ((u_char *)buf)[i];
 			if (++rsp->rs_current == rsp->rs_end) {
 				rndtest_test(rsp);
 				rsp->rs_current = rsp->rs_begin;
@@ -128,8 +129,8 @@ rndtest_harvest(struct rndtest_state *rsp, void *buf, u_int len)
 				if (!rsp->rs_discard && rndtest_retest != 0) {
 					rsp->rs_collect = 0;
 					callout_reset(&rsp->rs_to,
-						hz * rndtest_retest,
-						rndtest_timeout, rsp);
+					    hz * rndtest_retest,
+					    rndtest_timeout, rsp);
 					break;
 				}
 			}
@@ -141,8 +142,8 @@ rndtest_harvest(struct rndtest_state *rsp, void *buf, u_int len)
 	if (rsp->rs_discard)
 		rndstats.rst_discard += len;
 	else
-	/* MarkM: FIX!! Check that this does not swamp the harvester! */
-	random_harvest_queue(buf, len, RANDOM_PURE_RNDTEST);
+		/* MarkM: FIX!! Check that this does not swamp the harvester! */
+		random_harvest_queue(buf, len, RANDOM_PURE_RNDTEST);
 }
 
 static void
@@ -164,16 +165,16 @@ rndtest_report(struct rndtest_state *rsp, int failure, const char *fmt, ...)
 
 	if (rndtest_verbose == 0)
 		return;
-	if (!failure && rndtest_verbose == 1)	/* don't report successes */
+	if (!failure && rndtest_verbose == 1) /* don't report successes */
 		return;
 	va_start(ap, fmt);
-	vsnprintf(buf, sizeof (buf), fmt, ap);
+	vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
 	device_printf(rsp->rs_parent, "rndtest: %s\n", buf);
 }
 
-#define	RNDTEST_MONOBIT_MINONES	9725
-#define	RNDTEST_MONOBIT_MAXONES	10275
+#define RNDTEST_MONOBIT_MINONES 9725
+#define RNDTEST_MONOBIT_MAXONES 10275
 
 static int
 rndtest_monobit(struct rndtest_state *rsp)
@@ -187,8 +188,7 @@ rndtest_monobit(struct rndtest_state *rsp)
 			if (r & 0x80)
 				ones++;
 	}
-	if (ones > RNDTEST_MONOBIT_MINONES &&
-	    ones < RNDTEST_MONOBIT_MAXONES) {
+	if (ones > RNDTEST_MONOBIT_MINONES && ones < RNDTEST_MONOBIT_MAXONES) {
 		if (rndtest_verbose > 1)
 			rndtest_report(rsp, 0, "monobit pass (%d < %d < %d)",
 			    RNDTEST_MONOBIT_MINONES, ones,
@@ -196,14 +196,14 @@ rndtest_monobit(struct rndtest_state *rsp)
 		return (0);
 	} else {
 		if (rndtest_verbose)
-			rndtest_report(rsp, 1,
-			    "monobit failed (%d ones)", ones);
+			rndtest_report(rsp, 1, "monobit failed (%d ones)",
+			    ones);
 		rndstats.rst_monobit++;
 		return (-1);
 	}
 }
 
-#define	RNDTEST_RUNS_NINTERVAL	6
+#define RNDTEST_RUNS_NINTERVAL 6
 
 static const struct rndtest_runs_tabs {
 	u_int16_t min, max;
@@ -273,15 +273,14 @@ rndtest_runs_check(struct rndtest_state *rsp, int val, int *src)
 		    src[i] > rndtest_runs_tab[i].max) {
 			rndtest_report(rsp, 1,
 			    "%s interval %d failed (%d, %d-%d)",
-			    val ? "ones" : "zeros",
-			    i + 1, src[i], rndtest_runs_tab[i].min,
-			    rndtest_runs_tab[i].max);
+			    val ? "ones" : "zeros", i + 1, src[i],
+			    rndtest_runs_tab[i].min, rndtest_runs_tab[i].max);
 			rv = -1;
 		} else {
 			rndtest_report(rsp, 0,
 			    "runs pass %s interval %d (%d < %d < %d)",
-			    val ? "ones" : "zeros",
-			    i + 1, rndtest_runs_tab[i].min, src[i],
+			    val ? "ones" : "zeros", i + 1,
+			    rndtest_runs_tab[i].min, src[i],
 			    rndtest_runs_tab[i].max);
 		}
 	}
@@ -313,11 +312,11 @@ rndtest_longruns(struct rndtest_state *rsp)
 
 	if (maxones < 26 && maxzeros < 26) {
 		rndtest_report(rsp, 0, "longruns pass (%d ones, %d zeros)",
-			maxones, maxzeros);
+		    maxones, maxzeros);
 		return (0);
 	} else {
 		rndtest_report(rsp, 1, "longruns fail (%d ones, %d zeros)",
-			maxones, maxzeros);
+		    maxones, maxzeros);
 		rndstats.rst_longruns++;
 		return (-1);
 	}
@@ -329,16 +328,16 @@ rndtest_longruns(struct rndtest_state *rsp)
  * by Knuth vol 2 is something different, and I take him as authoritative
  * on nomenclature over NIST).
  */
-#define	RNDTEST_CHI4_K	16
-#define	RNDTEST_CHI4_K_MASK	(RNDTEST_CHI4_K - 1)
+#define RNDTEST_CHI4_K 16
+#define RNDTEST_CHI4_K_MASK (RNDTEST_CHI4_K - 1)
 
 /*
  * The unnormalized values are used so that we don't have to worry about
  * fractional precision.  The "real" value is found by:
  *	(V - 1562500) * (16 / 5000) = Vn   (where V is the unnormalized value)
  */
-#define	RNDTEST_CHI4_VMIN	1563181		/* 2.1792 */
-#define	RNDTEST_CHI4_VMAX	1576929		/* 46.1728 */
+#define RNDTEST_CHI4_VMIN 1563181 /* 2.1792 */
+#define RNDTEST_CHI4_VMAX 1576929 /* 46.1728 */
 
 static int
 rndtest_chi_4(struct rndtest_state *rsp)
@@ -387,10 +386,6 @@ rndtest_modevent(module_t mod, int type, void *unused)
 	return EINVAL;
 }
 
-static moduledata_t rndtest_mod = {
-	"rndtest",
-	rndtest_modevent,
-	0
-};
+static moduledata_t rndtest_mod = { "rndtest", rndtest_modevent, 0 };
 DECLARE_MODULE(rndtest, rndtest_mod, SI_SUB_DRIVERS, SI_ORDER_ANY);
 MODULE_VERSION(rndtest, 1);

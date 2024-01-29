@@ -25,20 +25,19 @@
  * SUCH DAMAGE.
  */
 #ifndef _NETLINK_NETLINK_ROUTE_H_
-#define	_NETLINK_NETLINK_ROUTE_H_
+#define _NETLINK_NETLINK_ROUTE_H_
 
 #include <sys/types.h>
 
 #include <net/if.h>
 #include <net/if_types.h>
 #include <net/if_var.h>
-
 #include <netlink/netlink_bitset.h>
 #include <netlink/route/common.h>
 #include <netlink/route/ifaddrs.h>
 #include <netlink/route/interface.h>
 #include <netlink/route/neigh.h>
-#include <netlink/route/route.h>
 #include <netlink/route/nexthop.h>
+#include <netlink/route/route.h>
 
 #endif

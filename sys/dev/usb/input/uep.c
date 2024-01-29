@@ -33,6 +33,7 @@
 #include "opt_evdev.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
@@ -41,20 +42,20 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbhid.h>
+
 #include "usbdevs.h"
 
 #ifdef EVDEV_SUPPORT
-#include <dev/evdev/input.h>
 #include <dev/evdev/evdev.h>
+#include <dev/evdev/input.h>
 #else
-#include <sys/ioccom.h>
 #include <sys/fcntl.h>
+#include <sys/ioccom.h>
 #endif
 
 #define USB_DEBUG_VAR uep_debug
@@ -65,26 +66,26 @@ static int uep_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, uep, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB uep");
-SYSCTL_INT(_hw_usb_uep, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &uep_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_uep, OID_AUTO, debug, CTLFLAG_RWTUN, &uep_debug, 0,
+    "Debug level");
 #endif
 
-#define UEP_MAX_X		2047
-#define UEP_MAX_Y		2047
+#define UEP_MAX_X 2047
+#define UEP_MAX_Y 2047
 
-#define UEP_DOWN		0x01
-#define UEP_PACKET_LEN_MAX	16
-#define UEP_PACKET_LEN_REPORT	5
-#define UEP_PACKET_LEN_REPORT2	6
-#define UEP_PACKET_DIAG		0x0a
-#define UEP_PACKET_REPORT_MASK		0xe0
-#define UEP_PACKET_REPORT		0x80
-#define UEP_PACKET_REPORT_PRESSURE	0xc0
-#define UEP_PACKET_REPORT_PLAYER	0xa0
-#define	UEP_PACKET_LEN_MASK	
+#define UEP_DOWN 0x01
+#define UEP_PACKET_LEN_MAX 16
+#define UEP_PACKET_LEN_REPORT 5
+#define UEP_PACKET_LEN_REPORT2 6
+#define UEP_PACKET_DIAG 0x0a
+#define UEP_PACKET_REPORT_MASK 0xe0
+#define UEP_PACKET_REPORT 0x80
+#define UEP_PACKET_REPORT_PRESSURE 0xc0
+#define UEP_PACKET_REPORT_PLAYER 0xa0
+#define UEP_PACKET_LEN_MASK
 
-#define UEP_FIFO_BUF_SIZE	8	/* bytes */
-#define UEP_FIFO_QUEUE_MAXLEN	50	/* units */
+#define UEP_FIFO_BUF_SIZE 8	 /* bytes */
+#define UEP_FIFO_QUEUE_MAXLEN 50 /* units */
 
 enum {
 	UEP_INTR_DT,
@@ -100,38 +101,38 @@ struct uep_softc {
 #else
 	struct usb_fifo_sc fifo;
 
-	u_int		pollrate;
-	u_int		state;
-#define UEP_ENABLED	0x01
+	u_int pollrate;
+	u_int state;
+#define UEP_ENABLED 0x01
 #endif
 
 	/* Reassembling buffer. */
-	u_char		buf[UEP_PACKET_LEN_MAX];
-	uint8_t		buf_len;
+	u_char buf[UEP_PACKET_LEN_MAX];
+	uint8_t buf_len;
 };
 
 static usb_callback_t uep_intr_callback;
 
-static device_probe_t	uep_probe;
-static device_attach_t	uep_attach;
-static device_detach_t	uep_detach;
+static device_probe_t uep_probe;
+static device_attach_t uep_attach;
+static device_detach_t uep_detach;
 
 #ifdef EVDEV_SUPPORT
 
-static evdev_open_t	uep_ev_open;
-static evdev_close_t	uep_ev_close;
+static evdev_open_t uep_ev_open;
+static evdev_close_t uep_ev_close;
 
 static const struct evdev_methods uep_evdev_methods = {
 	.ev_open = &uep_ev_open,
 	.ev_close = &uep_ev_close,
 };
 
-#else /* !EVDEV_SUPPORT */
+#else  /* !EVDEV_SUPPORT */
 
-static usb_fifo_cmd_t	uep_start_read;
-static usb_fifo_cmd_t	uep_stop_read;
-static usb_fifo_open_t	uep_open;
-static usb_fifo_close_t	uep_close;
+static usb_fifo_cmd_t uep_start_read;
+static usb_fifo_cmd_t uep_stop_read;
+static usb_fifo_open_t uep_open;
+static usb_fifo_close_t uep_close;
 
 static void uep_put_queue(struct uep_softc *, u_char *);
 
@@ -233,8 +234,7 @@ uep_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
-	case USB_ST_TRANSFERRED:
-	    {
+	case USB_ST_TRANSFERRED: {
 		struct usb_page_cache *pc;
 		u_char buf[17], *p;
 		int pkt_len;
@@ -293,7 +293,7 @@ uep_intr_callback(struct usb_xfer *xfer, usb_error_t error)
 			p += pkt_len;
 			len -= pkt_len;
 		}
-	    }
+	}
 	case USB_ST_SETUP:
 	tr_setup:
 #ifndef EVDEV_SUPPORT
@@ -327,9 +327,9 @@ static const struct usb_config uep_config[UEP_N_TRANSFER] = {
 };
 
 static const STRUCT_USB_HOST_ID uep_devs[] = {
-	{USB_VPI(USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL, 0)},
-	{USB_VPI(USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL2, 0)},
-	{USB_VPI(USB_VENDOR_EGALAX2, USB_PRODUCT_EGALAX2_TPANEL, 0)},
+	{ USB_VPI(USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL, 0) },
+	{ USB_VPI(USB_VENDOR_EGALAX, USB_PRODUCT_EGALAX_TPANEL2, 0) },
+	{ USB_VPI(USB_VENDOR_EGALAX2, USB_PRODUCT_EGALAX2_TPANEL, 0) },
 };
 
 static int
@@ -387,20 +387,20 @@ uep_attach(device_t dev)
 		DPRINTF("evdev_register_mtx error=%s\n", usbd_errstr(error));
 		goto detach;
 	}
-#else /* !EVDEV_SUPPORT */
+#else  /* !EVDEV_SUPPORT */
 	error = usb_fifo_attach(uaa->device, sc, &sc->mtx, &uep_fifo_methods,
 	    &sc->fifo, device_get_unit(dev), -1, uaa->info.bIfaceIndex,
 	    UID_ROOT, GID_OPERATOR, 0644);
 
-        if (error) {
+	if (error) {
 		DPRINTF("usb_fifo_attach error=%s\n", usbd_errstr(error));
-                goto detach;
-        }
+		goto detach;
+	}
 #endif /* !EVDEV_SUPPORT */
 
 	sc->buf_len = 0;
 
-	return (0);	
+	return (0);
 
 detach:
 	uep_detach(dev);
@@ -450,7 +450,7 @@ uep_ev_open(struct evdev_dev *evdev)
 	return (0);
 }
 
-#else /* !EVDEV_SUPPORT */
+#else  /* !EVDEV_SUPPORT */
 
 static void
 uep_start_read(struct usb_fifo *fifo)
@@ -494,7 +494,7 @@ uep_open(struct usb_fifo *fifo, int fflags)
 		if (sc->state & UEP_ENABLED)
 			return (EBUSY);
 		if (usb_fifo_alloc_buffer(fifo, UEP_FIFO_BUF_SIZE,
-		    UEP_FIFO_QUEUE_MAXLEN))
+			UEP_FIFO_QUEUE_MAXLEN))
 			return (ENOMEM);
 
 		sc->state |= UEP_ENABLED;
@@ -517,7 +517,7 @@ uep_close(struct usb_fifo *fifo, int fflags)
 
 static device_method_t uep_methods[] = {
 	DEVMETHOD(device_probe, uep_probe),
-       	DEVMETHOD(device_attach, uep_attach),
+	DEVMETHOD(device_attach, uep_attach),
 	DEVMETHOD(device_detach, uep_detach),
 	{ 0, 0 },
 };

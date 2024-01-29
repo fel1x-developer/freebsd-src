@@ -24,25 +24,25 @@
  */
 
 #ifndef __DEVCTL_H__
-#define	__DEVCTL_H__
+#define __DEVCTL_H__
 
 #include <stdbool.h>
 
 __BEGIN_DECLS
-int	devctl_attach(const char *device);
-int	devctl_detach(const char *device, bool force);
-int	devctl_enable(const char *device);
-int	devctl_disable(const char *device, bool force_detach);
-int	devctl_suspend(const char *device);
-int	devctl_resume(const char *device);
-int	devctl_set_driver(const char *device, const char *driver, bool force);
-int	devctl_clear_driver(const char *device, bool force);
-int	devctl_rescan(const char *device);
-int	devctl_delete(const char *device, bool force);
-int	devctl_freeze(void);
-int	devctl_thaw(void);
-int	devctl_reset(const char *device, bool detach);
-int	devctl_getpath(const char *device, const char *locator, char **buffer);
+int devctl_attach(const char *device);
+int devctl_detach(const char *device, bool force);
+int devctl_enable(const char *device);
+int devctl_disable(const char *device, bool force_detach);
+int devctl_suspend(const char *device);
+int devctl_resume(const char *device);
+int devctl_set_driver(const char *device, const char *driver, bool force);
+int devctl_clear_driver(const char *device, bool force);
+int devctl_rescan(const char *device);
+int devctl_delete(const char *device, bool force);
+int devctl_freeze(void);
+int devctl_thaw(void);
+int devctl_reset(const char *device, bool detach);
+int devctl_getpath(const char *device, const char *locator, char **buffer);
 __END_DECLS
 
 #endif /* !__DEVCTL_H__ */

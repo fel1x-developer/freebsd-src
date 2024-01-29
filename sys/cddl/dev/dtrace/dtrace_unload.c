@@ -63,7 +63,7 @@ dtrace_unload(void)
 		dtrace_state_destroy(state);
 	}
 
-	bzero(&dtrace_anon, sizeof (dtrace_anon_t));
+	bzero(&dtrace_anon, sizeof(dtrace_anon_t));
 
 	mutex_exit(&cpu_lock);
 

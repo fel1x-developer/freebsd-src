@@ -29,7 +29,6 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
@@ -37,12 +36,14 @@
 
 #include <errno.h>
 #include <string.h>
-#define	TTYDEFCHARS
+
+#include "namespace.h"
+#define TTYDEFCHARS
 #include <termios.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
 #include "libc_private.h"
+#include "un-namespace.h"
 
 int
 tcgetattr(int fd, struct termios *t)
@@ -163,12 +164,14 @@ void
 cfmakeraw(struct termios *t)
 {
 
-	t->c_iflag &= ~(IMAXBEL|IXOFF|INPCK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON|IGNPAR);
+	t->c_iflag &= ~(IMAXBEL | IXOFF | INPCK | BRKINT | PARMRK | ISTRIP |
+	    INLCR | IGNCR | ICRNL | IXON | IGNPAR);
 	t->c_iflag |= IGNBRK;
 	t->c_oflag &= ~OPOST;
-	t->c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|ICANON|ISIG|IEXTEN|NOFLSH|TOSTOP|PENDIN);
-	t->c_cflag &= ~(CSIZE|PARENB);
-	t->c_cflag |= CS8|CREAD;
+	t->c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ICANON | ISIG | IEXTEN |
+	    NOFLSH | TOSTOP | PENDIN);
+	t->c_cflag &= ~(CSIZE | PARENB);
+	t->c_cflag |= CS8 | CREAD;
 	t->c_cc[VMIN] = 1;
 	t->c_cc[VTIME] = 0;
 }
@@ -217,8 +220,7 @@ int
 tcdrain(int fd)
 {
 
-	return (((int (*)(int))
-	    __libc_interposing[INTERPOS_tcdrain])(fd));
+	return (((int (*)(int))__libc_interposing[INTERPOS_tcdrain])(fd));
 }
 
 __weak_reference(__libc_tcdrain, __tcdrain);

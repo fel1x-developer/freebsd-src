@@ -1,4 +1,5 @@
-/*	$NetBSD: cd9660_eltorito.c,v 1.23 2018/03/28 06:48:55 nonaka Exp $	*/
+/*	$NetBSD: cd9660_eltorito.c,v 1.23 2018/03/28 06:48:55 nonaka Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -34,23 +35,24 @@
  * OF SUCH DAMAGE.
  */
 
-#include "cd9660.h"
-#include "cd9660_eltorito.h"
+#include <sys/cdefs.h>
+
 #include <util.h>
 
-#include <sys/cdefs.h>
+#include "cd9660.h"
+#include "cd9660_eltorito.h"
 /*
  * Partition Status Information from Apple Tech Note 1189
  */
-#define	APPLE_PS_VALID		0x00000001	/* Entry is valid */
-#define	APPLE_PS_ALLOCATED	0x00000002	/* Entry is allocated */
-#define	APPLE_PS_READABLE	0x00000010	/* Entry is readable */
-#define	APPLE_PS_WRITABLE	0x00000020	/* Entry is writable */
+#define APPLE_PS_VALID 0x00000001     /* Entry is valid */
+#define APPLE_PS_ALLOCATED 0x00000002 /* Entry is allocated */
+#define APPLE_PS_READABLE 0x00000010  /* Entry is readable */
+#define APPLE_PS_WRITABLE 0x00000020  /* Entry is writable */
 
 #ifdef DEBUG
-#define	ELTORITO_DPRINTF(__x)	printf __x
+#define ELTORITO_DPRINTF(__x) printf __x
 #else
-#define	ELTORITO_DPRINTF(__x)
+#define ELTORITO_DPRINTF(__x)
 #endif
 
 #include <util.h>
@@ -91,7 +93,7 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 	filename = strchr(sysname, ';');
 	if (filename == NULL) {
 		warnx("supply boot disk information in the format "
-		    "'system;filename'");
+		      "'system;filename'");
 		free(temp);
 		return 0;
 	}
@@ -103,7 +105,7 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 		    sysname, filename);
 	}
 	new_image = ecalloc(1, sizeof(*new_image));
-	new_image->loadSegment = 0;	/* default for now */
+	new_image->loadSegment = 0; /* default for now */
 
 	/* Decode System */
 	if (strcmp(sysname, "i386") == 0)
@@ -111,7 +113,7 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 	else if (strcmp(sysname, "powerpc") == 0)
 		new_image->system = ET_SYS_PPC;
 	else if (strcmp(sysname, "macppc") == 0 ||
-	         strcmp(sysname, "mac68k") == 0)
+	    strcmp(sysname, "mac68k") == 0)
 		new_image->system = ET_SYS_MAC;
 	else if (strcmp(sysname, "efi") == 0)
 		new_image->system = ET_SYS_EFI;
@@ -122,7 +124,6 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 		free(new_image);
 		return 0;
 	}
-
 
 	new_image->filename = estrdup(filename);
 
@@ -156,8 +157,8 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 		printf("%s\n", mode_msg);
 
 	new_image->size = stbuf.st_size;
-	new_image->num_sectors =
-	    howmany(new_image->size, diskStructure->sectorSize) *
+	new_image->num_sectors = howmany(new_image->size,
+				     diskStructure->sectorSize) *
 	    howmany(diskStructure->sectorSize, 512);
 	if (diskStructure->verbose_level > 0) {
 		printf("New image has size %d, uses %d 512-byte sectors\n",
@@ -169,7 +170,7 @@ cd9660_add_boot_disk(iso9660_disk *diskStructure, const char *boot_info)
 	/* Add boot disk */
 
 	/* Group images for the same platform together. */
-	TAILQ_FOREACH(tmp_image, &diskStructure->boot_images, image_list) {
+	TAILQ_FOREACH (tmp_image, &diskStructure->boot_images, image_list) {
 		if (tmp_image->system != new_image->system)
 			break;
 	}
@@ -204,12 +205,13 @@ cd9660_eltorito_add_boot_option(iso9660_disk *diskStructure,
 	assert(option_string != NULL);
 
 	/* Find the last image added */
-	TAILQ_FOREACH(image, &diskStructure->boot_images, image_list) {
+	TAILQ_FOREACH (image, &diskStructure->boot_images, image_list) {
 		if (image->serialno + 1 == diskStructure->image_serialno)
 			break;
 	}
 	if (image == NULL)
-		errx(EXIT_FAILURE, "Attempted to add boot option, "
+		errx(EXIT_FAILURE,
+		    "Attempted to add boot option, "
 		    "but no boot images have been specified");
 
 	if (strcmp(option_string, "no-emul-boot") == 0) {
@@ -264,7 +266,7 @@ cd9660_boot_setup_validation_entry(char sys)
 	/* Calculate checksum */
 	checksum = 0;
 	cd9660_721(0, ve->checksum);
-	csptr = (unsigned char*)ve;
+	csptr = (unsigned char *)ve;
 	for (i = 0; i < sizeof(*ve); i += 2) {
 		checksum += (int16_t)csptr[i];
 		checksum += 256 * (int16_t)csptr[i + 1];
@@ -272,9 +274,11 @@ cd9660_boot_setup_validation_entry(char sys)
 	checksum = -checksum;
 	cd9660_721(checksum, ve->checksum);
 
-        ELTORITO_DPRINTF(("%s: header_id %d, platform_id %d, key[0] %d, key[1] %d, "
-	    "checksum %04x\n", __func__, ve->header_id[0], ve->platform_id[0],
-	    ve->key[0], ve->key[1], checksum));
+	ELTORITO_DPRINTF(
+	    ("%s: header_id %d, platform_id %d, key[0] %d, key[1] %d, "
+	     "checksum %04x\n",
+		__func__, ve->header_id[0], ve->platform_id[0], ve->key[0],
+		ve->key[1], checksum));
 	return entry;
 }
 
@@ -299,10 +303,11 @@ cd9660_boot_setup_default_entry(struct cd9660_boot_image *disk)
 	cd9660_731(disk->sector, ie->load_rba);
 
 	ELTORITO_DPRINTF(("%s: boot indicator %d, media type %d, "
-	    "load segment %04x, system type %d, sector count %d, "
-	    "load rba %d\n", __func__, ie->boot_indicator[0],
-	    ie->media_type[0], disk->loadSegment, ie->system_type[0],
-	    disk->num_sectors, disk->sector));
+			  "load segment %04x, system type %d, sector count %d, "
+			  "load rba %d\n",
+	    __func__, ie->boot_indicator[0], ie->media_type[0],
+	    disk->loadSegment, ie->system_type[0], disk->num_sectors,
+	    disk->sector));
 	return default_entry;
 }
 
@@ -370,7 +375,7 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 	int num_entries = 0;
 	int catalog_sectors;
 	struct boot_catalog_entry *x86_head, *mac_head, *ppc_head, *efi_head,
-		*valid_entry, *default_entry, *temp, *head, **headp, *next;
+	    *valid_entry, *default_entry, *temp, *head, **headp, *next;
 	struct cd9660_boot_image *tmp_disk;
 	uint8_t system;
 
@@ -392,7 +397,7 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 	 * X86 system type if not found.
 	 */
 	system = default_boot_image != NULL ? default_boot_image->system :
-	    ET_SYS_X86;
+					      ET_SYS_X86;
 
 	/* Step 1: Generate boot catalog */
 	/* Step 1a: Validation entry */
@@ -407,24 +412,25 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 	num_entries = 1;
 	used_sectors = 0;
 
-	TAILQ_FOREACH(tmp_disk, &diskStructure->boot_images, image_list) {
+	TAILQ_FOREACH (tmp_disk, &diskStructure->boot_images, image_list) {
 		used_sectors += tmp_disk->num_sectors;
 
 		/* One default entry per image */
 		num_entries++;
 	}
-	catalog_sectors = howmany(num_entries * 0x20, diskStructure->sectorSize);
+	catalog_sectors = howmany(num_entries * 0x20,
+	    diskStructure->sectorSize);
 	used_sectors += catalog_sectors;
 
 	if (diskStructure->verbose_level > 0) {
 		printf("%s: there will be %i entries consuming %i sectors. "
-		       "Catalog is %i sectors\n", __func__, num_entries,
-		       used_sectors, catalog_sectors);
+		       "Catalog is %i sectors\n",
+		    __func__, num_entries, used_sectors, catalog_sectors);
 	}
 
 	/* Populate sector numbers */
 	sector = first_sector + catalog_sectors;
-	TAILQ_FOREACH(tmp_disk, &diskStructure->boot_images, image_list) {
+	TAILQ_FOREACH (tmp_disk, &diskStructure->boot_images, image_list) {
 		tmp_disk->sector = sector;
 		sector += tmp_disk->num_sectors /
 		    (diskStructure->sectorSize / 512);
@@ -436,7 +442,7 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 	/* TODO : PARAM */
 	if (default_boot_image != NULL) {
 		struct cd9660_boot_image *tcbi;
-		TAILQ_FOREACH(tcbi, &diskStructure->boot_images, image_list) {
+		TAILQ_FOREACH (tcbi, &diskStructure->boot_images, image_list) {
 			if (tcbi == default_boot_image) {
 				tmp_disk = tcbi;
 				break;
@@ -486,8 +492,8 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 		}
 
 		if (*headp == NULL) {
-			head =
-			  cd9660_boot_setup_section_head(tmp_disk->platform_id);
+			head = cd9660_boot_setup_section_head(
+			    tmp_disk->platform_id);
 			if (head == NULL) {
 				warnx("Error: memory allocation failed in "
 				      "cd9660_setup_boot");
@@ -508,7 +514,7 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 		}
 
 		while ((next = LIST_NEXT(head, ll_struct)) != NULL &&
-		       next->entry_type == ET_ENTRY_SE)
+		    next->entry_type == ET_ENTRY_SE)
 			head = next;
 
 		LIST_INSERT_AFTER(head, temp, ll_struct);
@@ -516,12 +522,13 @@ cd9660_setup_boot(iso9660_disk *diskStructure, int first_sector)
 
 	/* Find the last Section Header entry and mark it as the last. */
 	head = NULL;
-	LIST_FOREACH(next, &diskStructure->boot_entries, ll_struct) {
+	LIST_FOREACH (next, &diskStructure->boot_entries, ll_struct) {
 		if (next->entry_type == ET_ENTRY_SH)
 			head = next;
 	}
 	if (head != NULL)
-		head->entry_data.SH.header_indicator[0] = ET_SECTION_HEADER_LAST;
+		head->entry_data.SH.header_indicator[0] =
+		    ET_SECTION_HEADER_LAST;
 
 	/* TODO: Remaining boot disks when implemented */
 
@@ -532,16 +539,16 @@ int
 cd9660_setup_boot_volume_descriptor(iso9660_disk *diskStructure,
     volume_descriptor *bvd)
 {
-	boot_volume_descriptor *bvdData =
-	    (boot_volume_descriptor*)bvd->volumeDescriptorData;
+	boot_volume_descriptor *bvdData = (boot_volume_descriptor *)
+					      bvd->volumeDescriptorData;
 
 	bvdData->boot_record_indicator[0] = ISO_VOLUME_DESCRIPTOR_BOOT;
 	memcpy(bvdData->identifier, ISO_VOLUME_DESCRIPTOR_STANDARD_ID, 5);
 	bvdData->version[0] = 1;
 	memcpy(bvdData->boot_system_identifier, ET_ID, 23);
 	memcpy(bvdData->identifier, ISO_VOLUME_DESCRIPTOR_STANDARD_ID, 5);
-	diskStructure->boot_descriptor =
-	    (boot_volume_descriptor*) bvd->volumeDescriptorData;
+	diskStructure->boot_descriptor = (boot_volume_descriptor *)
+					     bvd->volumeDescriptorData;
 	return 1;
 }
 
@@ -636,15 +643,17 @@ cd9660_write_boot(iso9660_disk *diskStructure, FILE *fd)
 	int mbr_partitions = 0;
 
 	/* write boot catalog */
-	if (fseeko(fd, (off_t)diskStructure->boot_catalog_sector *
-	    diskStructure->sectorSize, SEEK_SET) == -1)
+	if (fseeko(fd,
+		(off_t)diskStructure->boot_catalog_sector *
+		    diskStructure->sectorSize,
+		SEEK_SET) == -1)
 		err(1, "fseeko");
 
 	if (diskStructure->verbose_level > 0) {
 		printf("Writing boot catalog to sector %" PRId64 "\n",
 		    diskStructure->boot_catalog_sector);
 	}
-	LIST_FOREACH(e, &diskStructure->boot_entries, ll_struct) {
+	LIST_FOREACH (e, &diskStructure->boot_entries, ll_struct) {
 		if (diskStructure->verbose_level > 0) {
 			printf("Writing catalog entry of type %d\n",
 			    e->entry_type);
@@ -659,7 +668,7 @@ cd9660_write_boot(iso9660_disk *diskStructure, FILE *fd)
 		printf("Finished writing boot catalog\n");
 
 	/* copy boot images */
-	TAILQ_FOREACH(t, &diskStructure->boot_images, image_list) {
+	TAILQ_FOREACH (t, &diskStructure->boot_images, image_list) {
 		if (diskStructure->verbose_level > 0) {
 			printf("Writing boot image from %s to sectors %d\n",
 			    t->filename, t->sector);
@@ -685,11 +694,13 @@ cd9660_write_boot(iso9660_disk *diskStructure, FILE *fd)
 		/* Write ISO9660 descriptor, enclosing the whole disk */
 		if (diskStructure->chrp_boot)
 			cd9660_write_mbr_partition_entry(fd, mbr_partitions++,
-			    0, diskStructure->totalSectors *
-			    (diskStructure->sectorSize / 512), 0x96);
+			    0,
+			    diskStructure->totalSectors *
+				(diskStructure->sectorSize / 512),
+			    0x96);
 
 		/* Write all partition entries */
-		TAILQ_FOREACH(t, &diskStructure->boot_images, image_list) {
+		TAILQ_FOREACH (t, &diskStructure->boot_images, image_list) {
 			if (t->system != ET_SYS_PPC)
 				continue;
 			cd9660_write_mbr_partition_entry(fd, mbr_partitions++,
@@ -729,7 +740,7 @@ cd9660_write_boot(iso9660_disk *diskStructure, FILE *fd)
 
 		/* Write all partition entries */
 		apm_partitions = 0;
-		TAILQ_FOREACH(t, &diskStructure->boot_images, image_list) {
+		TAILQ_FOREACH (t, &diskStructure->boot_images, image_list) {
 			if (t->system != ET_SYS_MAC)
 				continue;
 
@@ -742,9 +753,10 @@ cd9660_write_boot(iso9660_disk *diskStructure, FILE *fd)
 
 		/* Write ISO9660 descriptor, enclosing the whole disk */
 		cd9660_write_apm_partition_entry(fd, 2 + apm_partitions,
-		    total_parts, 0, diskStructure->totalSectors *
-		    (diskStructure->sectorSize / 512), 512, "ISO9660",
-		    "CD_ROM_Mode_1");
+		    total_parts, 0,
+		    diskStructure->totalSectors *
+			(diskStructure->sectorSize / 512),
+		    512, "ISO9660", "CD_ROM_Mode_1");
 	}
 
 	return 0;

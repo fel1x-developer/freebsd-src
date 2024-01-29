@@ -29,7 +29,7 @@
  */
 
 #ifndef _ARCH_ARM_PTHREAD_TLS_H
-#define	_ARCH_ARM_PTHREAD_TLS_H
+#define _ARCH_ARM_PTHREAD_TLS_H
 
 static __inline uintptr_t
 _get_static_tls_base(struct pthread *thr, size_t offset)

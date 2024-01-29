@@ -39,14 +39,15 @@
 #include <limits.h>
 #include <wchar.h>
 #include <wctype.h>
+
 #include "xlocale_private.h"
 
 /*
  * Convert a string to a long integer.
  */
 long
-wcstol_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int
-		base, locale_t locale)
+wcstol_l(const wchar_t *__restrict nptr, wchar_t **__restrict endptr, int base,
+    locale_t locale)
 {
 	const wchar_t *s;
 	unsigned long acc;
@@ -70,18 +71,16 @@ wcstol_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int
 		if (c == L'+')
 			c = *s++;
 	}
-	if ((base == 0 || base == 16) &&
-	    c == L'0' && (*s == L'x' || *s == L'X') &&
-	    ((s[1] >= L'0' && s[1] <= L'9') ||
-	    (s[1] >= L'A' && s[1] <= L'F') ||
-	    (s[1] >= L'a' && s[1] <= L'f'))) {
+	if ((base == 0 || base == 16) && c == L'0' &&
+	    (*s == L'x' || *s == L'X') &&
+	    ((s[1] >= L'0' && s[1] <= L'9') || (s[1] >= L'A' && s[1] <= L'F') ||
+		(s[1] >= L'a' && s[1] <= L'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;
 	}
-	if ((base == 0 || base == 2) &&
-	    c == L'0' && (*s == L'b' || *s == L'B') &&
-	    (s[1] >= L'0' && s[1] <= L'1')) {
+	if ((base == 0 || base == 2) && c == L'0' &&
+	    (*s == L'b' || *s == L'B') && (s[1] >= L'0' && s[1] <= L'1')) {
 		c = s[1];
 		s += 2;
 		base = 2;
@@ -92,17 +91,17 @@ wcstol_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int
 	if (base < 2 || base > 36)
 		goto noconv;
 
-	cutoff = neg ? (unsigned long)-(LONG_MIN + LONG_MAX) + LONG_MAX
-	    : LONG_MAX;
+	cutoff = neg ? (unsigned long)-(LONG_MIN + LONG_MAX) + LONG_MAX :
+		       LONG_MAX;
 	cutlim = cutoff % base;
 	cutoff /= base;
-	for ( ; ; c = *s++) {
+	for (;; c = *s++) {
 #ifdef notyet
 		if (iswdigit_l(c, locale))
 			c = digittoint_l(c, locale);
 		else
 #endif
-		if (c >= L'0' && c <= L'9')
+		    if (c >= L'0' && c <= L'9')
 			c -= L'0';
 		else if (c >= L'A' && c <= L'Z')
 			c -= L'A' - 10;
@@ -124,7 +123,7 @@ wcstol_l(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int
 		acc = neg ? LONG_MIN : LONG_MAX;
 		errno = ERANGE;
 	} else if (!any) {
-noconv:
+	noconv:
 		errno = EINVAL;
 	} else if (neg)
 		acc = -acc;
@@ -133,7 +132,7 @@ noconv:
 	return (acc);
 }
 long
-wcstol(const wchar_t * __restrict nptr, wchar_t ** __restrict endptr, int base)
+wcstol(const wchar_t *__restrict nptr, wchar_t **__restrict endptr, int base)
 {
 	return wcstol_l(nptr, endptr, base, __get_locale());
 }

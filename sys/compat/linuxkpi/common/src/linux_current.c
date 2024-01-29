@@ -26,24 +26,25 @@
 
 #include <sys/cdefs.h>
 #ifdef __amd64__
-#define	DEV_APIC
+#define DEV_APIC
 #elif defined(__i386__)
 #include "opt_apic.h"
 #endif
 
-#include <linux/compat.h>
-#include <linux/completion.h>
-#include <linux/mm.h>
-#include <linux/kthread.h>
-#include <linux/moduleparam.h>
-
-#include <sys/kernel.h>
 #include <sys/eventhandler.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/sysctl.h>
+
 #include <vm/uma.h>
 
-#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) ||	\
+#include <linux/compat.h>
+#include <linux/completion.h>
+#include <linux/kthread.h>
+#include <linux/mm.h>
+#include <linux/moduleparam.h>
+
+#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) || \
     defined(__i386__)
 #include <machine/fpu.h>
 #endif
@@ -66,7 +67,7 @@ find_other_mm(struct proc *p)
 	struct mm_struct *mm;
 
 	PROC_LOCK_ASSERT(p, MA_OWNED);
-	FOREACH_THREAD_IN_PROC(p, td) {
+	FOREACH_THREAD_IN_PROC (p, td) {
 		ts = td->td_lkpi_task;
 		if (ts == NULL)
 			continue;
@@ -125,7 +126,7 @@ linux_alloc_current(struct thread *td, int flags)
 		if (mm == NULL) {
 			if ((flags & (M_WAITOK | M_NOWAIT)) == M_WAITOK)
 				panic(
-			    "linux_alloc_current: failed to allocate mm");
+				    "linux_alloc_current: failed to allocate mm");
 			uma_zfree(linux_current_zone, mm);
 			return (ENOMEM);
 		}
@@ -161,7 +162,7 @@ linux_alloc_current(struct thread *td, int flags)
 int
 linux_set_fpu_ctx(struct task_struct *task)
 {
-#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) ||	\
+#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) || \
     defined(__i386__)
 	if (task->fpu_ctx == NULL && curthread->td_critnest == 0)
 		task->fpu_ctx = fpu_kern_alloc_ctx(FPU_KERN_NOWAIT);
@@ -192,7 +193,7 @@ void
 linux_free_current(struct task_struct *ts)
 {
 	mmput(ts->mm);
-#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) ||	\
+#if defined(__aarch64__) || defined(__arm__) || defined(__amd64__) || \
     defined(__i386__)
 	if (ts->fpu_ctx != NULL)
 		fpu_kern_free_ctx(ts->fpu_ctx);
@@ -234,7 +235,7 @@ linux_get_pid_task_int(pid_t pid, const bool do_get)
 		/* try to find corresponding procedure */
 		p = pfind(pid);
 		if (p != NULL) {
-			FOREACH_THREAD_IN_PROC(p, td) {
+			FOREACH_THREAD_IN_PROC (p, td) {
 				ts = td->td_lkpi_task;
 				if (ts != NULL) {
 					if (do_get)
@@ -306,17 +307,15 @@ linux_current_init(void *arg __unused)
 		 */
 		lkpi_task_resrv = first_msi_irq + num_msi_irqs + MAXCPU;
 #else
-		lkpi_task_resrv = 1024;		/* XXXKIB arbitrary */
+		lkpi_task_resrv = 1024; /* XXXKIB arbitrary */
 #endif
 	}
-	linux_current_zone = uma_zcreate("lkpicurr",
-	    sizeof(struct task_struct), NULL, NULL, NULL, NULL,
-	    UMA_ALIGN_PTR, 0);
+	linux_current_zone = uma_zcreate("lkpicurr", sizeof(struct task_struct),
+	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	uma_zone_reserve(linux_current_zone, lkpi_task_resrv);
 	uma_prealloc(linux_current_zone, lkpi_task_resrv);
-	linux_mm_zone = uma_zcreate("lkpimm",
-	    sizeof(struct mm_struct), NULL, NULL, NULL, NULL,
-	    UMA_ALIGN_PTR, 0);
+	linux_mm_zone = uma_zcreate("lkpimm", sizeof(struct mm_struct), NULL,
+	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 	uma_zone_reserve(linux_mm_zone, lkpi_task_resrv);
 	uma_prealloc(linux_mm_zone, lkpi_task_resrv);
 
@@ -341,9 +340,9 @@ linux_current_uninit(void *arg __unused)
 	atomic_thread_fence_seq_cst();
 
 	sx_slock(&allproc_lock);
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		PROC_LOCK(p);
-		FOREACH_THREAD_IN_PROC(p, td) {
+		FOREACH_THREAD_IN_PROC (p, td) {
 			if ((ts = td->td_lkpi_task) != NULL) {
 				td->td_lkpi_task = NULL;
 				put_task_struct(ts);

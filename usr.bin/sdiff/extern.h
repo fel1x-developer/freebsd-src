@@ -5,7 +5,7 @@
  * Public domain.
  */
 
-extern FILE		*outfp;		/* file to save changes to */
-extern const char	*tmpdir;
+extern FILE *outfp; /* file to save changes to */
+extern const char *tmpdir;
 
 int eparse(const char *, const char *, const char *);

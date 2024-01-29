@@ -61,31 +61,21 @@
  *        translate data for both 10 byte and 16 byte read capacity flavors.
  */
 
-#include <dev/isci/scil/sati_types.h>
 #include <dev/isci/scil/sati_translator_sequence.h>
+#include <dev/isci/scil/sati_types.h>
 
-SATI_STATUS sati_read_capacity_10_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_read_capacity_10_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-SATI_STATUS sati_read_capacity_16_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_read_capacity_16_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
-void sati_read_capacity_10_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void sati_read_capacity_10_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
-void sati_read_capacity_16_translate_data(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * ata_input_data,
-   void                       * scsi_io
-);
+void sati_read_capacity_16_translate_data(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *ata_input_data, void *scsi_io);
 
 #endif // _SATI_READ_CAPACITY_H_

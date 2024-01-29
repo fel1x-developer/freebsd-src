@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DPAA2_TYPES_H
-#define	_DPAA2_TYPES_H
+#ifndef _DPAA2_TYPES_H
+#define _DPAA2_TYPES_H
 
 #include <sys/param.h>
 #include <sys/lock.h>
@@ -35,27 +35,27 @@
 #include <machine/atomic.h>
 #include <machine/bus.h>
 
-#define DPAA2_MAGIC	((uint32_t) 0xD4AA2C0Du)
+#define DPAA2_MAGIC ((uint32_t)0xD4AA2C0Du)
 
-#define DPAA2_MAX_CHANNELS	 16 /* CPU cores */
-#define DPAA2_MAX_TCS		 8  /* Traffic classes */
+#define DPAA2_MAX_CHANNELS 16 /* CPU cores */
+#define DPAA2_MAX_TCS 8	      /* Traffic classes */
 
 /**
  * @brief Types of the DPAA2 devices.
  */
 enum dpaa2_dev_type {
-	DPAA2_DEV_MC = 7500,	/* Management Complex (firmware bus) */
-	DPAA2_DEV_RC,		/* Resource Container (firmware bus) */
-	DPAA2_DEV_IO,		/* I/O object (to work with QBMan portal) */
-	DPAA2_DEV_NI,		/* Network Interface */
-	DPAA2_DEV_MCP,		/* MC portal */
-	DPAA2_DEV_BP,		/* Buffer Pool */
-	DPAA2_DEV_CON,		/* Concentrator */
-	DPAA2_DEV_MAC,		/* MAC object */
-	DPAA2_DEV_MUX,		/* MUX (Datacenter bridge) object */
-	DPAA2_DEV_SW,		/* Ethernet Switch */
+	DPAA2_DEV_MC = 7500, /* Management Complex (firmware bus) */
+	DPAA2_DEV_RC,	     /* Resource Container (firmware bus) */
+	DPAA2_DEV_IO,	     /* I/O object (to work with QBMan portal) */
+	DPAA2_DEV_NI,	     /* Network Interface */
+	DPAA2_DEV_MCP,	     /* MC portal */
+	DPAA2_DEV_BP,	     /* Buffer Pool */
+	DPAA2_DEV_CON,	     /* Concentrator */
+	DPAA2_DEV_MAC,	     /* MAC object */
+	DPAA2_DEV_MUX,	     /* MUX (Datacenter bridge) object */
+	DPAA2_DEV_SW,	     /* Ethernet Switch */
 
-	DPAA2_DEV_NOTYPE	/* Shouldn't be assigned to any DPAA2 device. */
+	DPAA2_DEV_NOTYPE /* Shouldn't be assigned to any DPAA2 device. */
 };
 
 /**
@@ -81,12 +81,12 @@ struct dpaa2_atomic {
  * lock:	Lock for the ring buffer.
  */
 struct dpaa2_ni_tx_ring {
-	struct dpaa2_ni_fq	*fq;
-	uint32_t		 fqid;
-	uint32_t		 txid; /* Tx ring index */
+	struct dpaa2_ni_fq *fq;
+	uint32_t fqid;
+	uint32_t txid; /* Tx ring index */
 
-	struct buf_ring		*br;
-	struct mtx		 lock;
+	struct buf_ring *br;
+	struct mtx lock;
 } __aligned(CACHE_LINE_SIZE);
 
 /**
@@ -101,32 +101,28 @@ struct dpaa2_ni_tx_ring {
  * fqid:	Frame queue ID, can be used to enqueue/dequeue or execute other
  *		commands on the queue through DPIO.
  * txq_n:	Number of configured Tx queues.
- * tx_fqid:	Frame queue IDs of the Tx queues which belong to the same flowid.
- *		Note that Tx queues are logical queues and not all management
- *		commands are available on these queue types.
- * qdbin:	Queue destination bin. Can be used with the DPIO enqueue
- *		operation based on QDID, QDBIN and QPRI. Note that all Tx queues
- *		with the same flowid have the same destination bin.
+ * tx_fqid:	Frame queue IDs of the Tx queues which belong to the same
+ *flowid. Note that Tx queues are logical queues and not all management commands
+ *are available on these queue types. qdbin:	Queue destination bin. Can be
+ *used with the DPIO enqueue operation based on QDID, QDBIN and QPRI. Note that
+ *all Tx queues with the same flowid have the same destination bin.
  */
 struct dpaa2_ni_fq {
-	struct dpaa2_channel	*chan;
-	uint32_t		 fqid;
-	uint16_t		 flowid;
-	uint8_t			 tc;
+	struct dpaa2_channel *chan;
+	uint32_t fqid;
+	uint16_t flowid;
+	uint8_t tc;
 	enum dpaa2_ni_queue_type type;
 
 	/* Optional fields (for TxConf queue). */
-	struct dpaa2_ni_tx_ring	 tx_rings[DPAA2_MAX_TCS];
-	uint32_t		 tx_qdbin;
+	struct dpaa2_ni_tx_ring tx_rings[DPAA2_MAX_TCS];
+	uint32_t tx_qdbin;
 } __aligned(CACHE_LINE_SIZE);
 
 /* Handy wrappers over atomic operations. */
-#define DPAA2_ATOMIC_XCHG(a, val) \
-	(atomic_swap_int(&(a)->counter, (val)))
-#define DPAA2_ATOMIC_READ(a) \
-	(atomic_load_acq_int(&(a)->counter))
-#define DPAA2_ATOMIC_ADD(a, val) \
-	(atomic_add_acq_int(&(a)->counter, (val)))
+#define DPAA2_ATOMIC_XCHG(a, val) (atomic_swap_int(&(a)->counter, (val)))
+#define DPAA2_ATOMIC_READ(a) (atomic_load_acq_int(&(a)->counter))
+#define DPAA2_ATOMIC_ADD(a, val) (atomic_add_acq_int(&(a)->counter, (val)))
 
 const char *dpaa2_ttos(enum dpaa2_dev_type);
 enum dpaa2_dev_type dpaa2_stot(const char *);

@@ -36,6 +36,6 @@
 
 #include <linux/io.h>
 
-#define	virt_to_phys(x)		vtophys(x)
+#define virt_to_phys(x) vtophys(x)
 
-#endif	/* _LINUXKPI_ASM_IO_H_ */
+#endif /* _LINUXKPI_ASM_IO_H_ */

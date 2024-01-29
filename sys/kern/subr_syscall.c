@@ -40,12 +40,13 @@
 
 #include "opt_capsicum.h"
 #include "opt_ktrace.h"
+
 #include <sys/capsicum.h>
 #include <sys/ktr.h>
 #include <sys/vmmeter.h>
 #ifdef KTRACE
-#include <sys/uio.h>
 #include <sys/ktrace.h>
+#include <sys/uio.h>
 #endif
 #include <security/audit/audit.h>
 
@@ -80,9 +81,9 @@ syscallenter(struct thread *td)
 	if (KTRPOINT(td, KTR_SYSCALL))
 		ktrsyscall(sa->code, se->sy_narg, sa->args);
 #endif
-	KTR_START4(KTR_SYSC, "syscall", syscallname(p, sa->code),
-	    (uintptr_t)td, "pid:%d", td->td_proc->p_pid, "arg0:%p", sa->args[0],
-	    "arg1:%p", sa->args[1], "arg2:%p", sa->args[2]);
+	KTR_START4(KTR_SYSC, "syscall", syscallname(p, sa->code), (uintptr_t)td,
+	    "pid:%d", td->td_proc->p_pid, "arg0:%p", sa->args[0], "arg1:%p",
+	    sa->args[1], "arg2:%p", sa->args[2]);
 
 	if (__predict_false(error != 0)) {
 		td->td_errno = error;
@@ -119,7 +120,7 @@ syscallenter(struct thread *td)
 	 * flagged with SYF_CAPENABLED.
 	 */
 	if (__predict_false(IN_CAPABILITY_MODE(td) &&
-	    (se->sy_flags & SYF_CAPENABLED) == 0)) {
+		(se->sy_flags & SYF_CAPENABLED) == 0)) {
 		td->td_errno = error = ECAPMODE;
 		goto retval;
 	}
@@ -139,8 +140,7 @@ syscallenter(struct thread *td)
 	sy_thr_static = (se->sy_thrcnt & SY_THR_STATIC) != 0;
 
 	if (__predict_false(SYSTRACE_ENABLED() ||
-	    AUDIT_SYSCALL_ENTER(sa->code, td) ||
-	    !sy_thr_static)) {
+		AUDIT_SYSCALL_ENTER(sa->code, td) || !sy_thr_static)) {
 		if (!sy_thr_static) {
 			error = syscall_thread_enter(td, &se);
 			sy_thr_static = (se->sy_thrcnt & SY_THR_STATIC) != 0;
@@ -191,11 +191,10 @@ syscallenter(struct thread *td)
 			td->td_errno = error;
 	}
 
- retval:
-	KTR_STOP4(KTR_SYSC, "syscall", syscallname(p, sa->code),
-	    (uintptr_t)td, "pid:%d", td->td_proc->p_pid, "error:%d", error,
-	    "retval0:%#lx", td->td_retval[0], "retval1:%#lx",
-	    td->td_retval[1]);
+retval:
+	KTR_STOP4(KTR_SYSC, "syscall", syscallname(p, sa->code), (uintptr_t)td,
+	    "pid:%d", td->td_proc->p_pid, "error:%d", error, "retval0:%#lx",
+	    td->td_retval[0], "retval1:%#lx", td->td_retval[1]);
 	if (__predict_false(traced)) {
 		PROC_LOCK(p);
 		td->td_dbgflags &= ~(TDB_SCE | TDB_BOUNDARY);
@@ -217,10 +216,10 @@ syscallret(struct thread *td)
 
 	p = td->td_proc;
 	sa = &td->td_sa;
-	if (__predict_false(td->td_errno == ENOTCAPABLE ||
-	    td->td_errno == ECAPMODE)) {
-		if ((trap_enotcap ||
-		    (p->p_flag2 & P2_TRAPCAP) != 0) && IN_CAPABILITY_MODE(td)) {
+	if (__predict_false(
+		td->td_errno == ENOTCAPABLE || td->td_errno == ECAPMODE)) {
+		if ((trap_enotcap || (p->p_flag2 & P2_TRAPCAP) != 0) &&
+		    IN_CAPABILITY_MODE(td)) {
 			ksiginfo_init_trap(&ksi);
 			ksi.ksi_signo = SIGTRAP;
 			ksi.ksi_errno = td->td_errno;
@@ -248,8 +247,8 @@ syscallret(struct thread *td)
 		td->td_dbgflags |= TDB_SCX;
 		PROC_UNLOCK(p);
 	}
-	if (__predict_false(traced ||
-	    (td->td_dbgflags & (TDB_EXEC | TDB_FORK)) != 0)) {
+	if (__predict_false(
+		traced || (td->td_dbgflags & (TDB_EXEC | TDB_FORK)) != 0)) {
 		PROC_LOCK(p);
 		/*
 		 * Linux debuggers expect an additional stop for exec,
@@ -277,13 +276,13 @@ syscallret(struct thread *td)
 		 */
 		if (traced &&
 		    ((td->td_dbgflags & (TDB_FORK | TDB_EXEC)) != 0 ||
-		    (p->p_ptevents & PTRACE_SCX) != 0)) {
+			(p->p_ptevents & PTRACE_SCX) != 0)) {
 			MPASS((td->td_dbgflags & TDB_BOUNDARY) == 0);
 			td->td_dbgflags |= TDB_BOUNDARY;
 			ptracestop(td, SIGTRAP, NULL);
 		}
-		td->td_dbgflags &= ~(TDB_SCX | TDB_EXEC | TDB_FORK |
-		    TDB_BOUNDARY);
+		td->td_dbgflags &= ~(
+		    TDB_SCX | TDB_EXEC | TDB_FORK | TDB_BOUNDARY);
 		PROC_UNLOCK(p);
 	}
 }

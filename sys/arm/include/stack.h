@@ -28,14 +28,14 @@
  */
 
 #ifndef _MACHINE_STACK_H_
-#define	_MACHINE_STACK_H_
+#define _MACHINE_STACK_H_
 
-#define INKERNEL(va)	(((vm_offset_t)(va)) >= VM_MIN_KERNEL_ADDRESS)
+#define INKERNEL(va) (((vm_offset_t)(va)) >= VM_MIN_KERNEL_ADDRESS)
 
-#define FR_SCP	(0)
-#define FR_RLV	(-1)
-#define FR_RSP	(-2)
-#define FR_RFP	(-3)
+#define FR_SCP (0)
+#define FR_RLV (-1)
+#define FR_RSP (-2)
+#define FR_RFP (-3)
 
 /* The state of the unwind process */
 struct unwind_state {
@@ -48,10 +48,10 @@ struct unwind_state {
 };
 
 /* The register names */
-#define	FP	11
-#define	SP	13
-#define	LR	14
-#define	PC	15
+#define FP 11
+#define SP 13
+#define LR 14
+#define PC 15
 
 #ifdef _KERNEL
 
@@ -66,20 +66,22 @@ void unwind_module_unloaded(struct linker_file *);
 #include <machine/pcb.h>
 
 /* Get the current kernel thread stack usage. */
-#define	GET_STACK_USAGE(total, used) do {				\
-	struct thread *td = curthread;					\
-	(total) = td->td_kstack_pages * PAGE_SIZE - sizeof(struct pcb);	\
-	(used) = td->td_kstack + (total) - (vm_offset_t)&td;		\
-} while (0)
+#define GET_STACK_USAGE(total, used)                                   \
+	do {                                                           \
+		struct thread *td = curthread;                         \
+		(total) = td->td_kstack_pages * PAGE_SIZE -            \
+		    sizeof(struct pcb);                                \
+		(used) = td->td_kstack + (total) - (vm_offset_t) & td; \
+	} while (0)
 
 static __inline bool
 kstack_contains(struct thread *td, vm_offset_t va, size_t len)
 {
 	return (va >= td->td_kstack && va + len >= va &&
 	    va + len <= td->td_kstack + td->td_kstack_pages * PAGE_SIZE -
-	    sizeof(struct pcb));
+		    sizeof(struct pcb));
 }
-#endif	/* _SYS_PROC_H_ */
+#endif /* _SYS_PROC_H_ */
 
 #endif
 

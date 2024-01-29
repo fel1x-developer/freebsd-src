@@ -27,8 +27,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/sysctl.h>
 #include <sys/ioctl.h>
+#include <sys/sysctl.h>
 #include <sys/ttycom.h>
 
 #include <err.h>
@@ -39,14 +39,13 @@
 #include <string.h>
 #include <unistd.h>
 
-#define DEVDIR	"/dev/"
+#define DEVDIR "/dev/"
 
 static void __dead2
 usage(void)
 {
 
-	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n",
-	    "usage: conscontrol [list]",
+	(void)fprintf(stderr, "%s\n%s\n%s\n%s\n", "usage: conscontrol [list]",
 	    "       conscontrol mute on | off",
 	    "       conscontrol add | delete console",
 	    "       conscontrol set | unset console");
@@ -74,10 +73,10 @@ consstatus(void)
 	p = avail;
 	*avail++ = '\0';
 	if (p != buf)
-		*--p = '\0';			/* remove trailing ',' */
+		*--p = '\0'; /* remove trailing ',' */
 	p = avail + strlen(avail);
 	if (p != avail)
-		*--p = '\0';			/* remove trailing ',' */
+		*--p = '\0'; /* remove trailing ',' */
 	printf("Configured: %s\n", buf);
 	printf(" Available: %s\n", avail);
 	printf("    Muting: %s\n", mute ? "on" : "off");
@@ -107,16 +106,16 @@ consmute(const char *onoff)
  * specifies a name in some other directory, it's an error.
  */
 
-static char*
+static char *
 stripdev(char *devnam)
 {
-	if (memcmp (devnam, DEVDIR, strlen(DEVDIR)) == 0)
-		return (&devnam[strlen(DEVDIR)]);	    /* remove /dev */
-	else if (strchr (devnam, '/')) {
+	if (memcmp(devnam, DEVDIR, strlen(DEVDIR)) == 0)
+		return (&devnam[strlen(DEVDIR)]); /* remove /dev */
+	else if (strchr(devnam, '/')) {
 		fprintf(stderr, "Not a device in /dev: %s\n", devnam);
-		return (NULL);				    /* end of string */
+		return (NULL); /* end of string */
 	} else
-		return (devnam);			    /* passed */
+		return (devnam); /* passed */
 }
 
 static void

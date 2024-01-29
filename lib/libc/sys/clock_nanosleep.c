@@ -31,7 +31,9 @@
  */
 
 #include <sys/types.h>
+
 #include <time.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_clock_nanosleep, __clock_nanosleep);
@@ -43,7 +45,6 @@ clock_nanosleep(clockid_t clock_id, int flags, const struct timespec *rqtp,
 {
 
 	return (((int (*)(clockid_t, int, const struct timespec *,
-	    struct timespec *))
-	    __libc_interposing[INTERPOS_clock_nanosleep])(clock_id, flags,
-	    rqtp, rmtp));
+	    struct timespec *))__libc_interposing[INTERPOS_clock_nanosleep])(
+	    clock_id, flags, rqtp, rmtp));
 }

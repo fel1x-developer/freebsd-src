@@ -62,13 +62,14 @@
  * SUCH DAMAGE.
  *
  */
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
 
 #include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
+
+#include "namespace.h"
 #define _NS_PRIVATE
 #include <nsswitch.h>
 #include <pthread.h>
@@ -78,29 +79,30 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
-#include "un-namespace.h"
-#include "nss_tls.h"
+
 #include "libc_private.h"
+#include "nss_tls.h"
+#include "un-namespace.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 
 enum _nss_constants {
 	/* Number of elements allocated when we grow a vector */
-	ELEMSPERCHUNK =	8
+	ELEMSPERCHUNK = 8
 };
 
 /*
  * Global NSS data structures are mostly read-only, but we update
  * them when we read or re-read the nsswitch.conf.
  */
-static	pthread_rwlock_t	nss_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t nss_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
  * Runtime determination of whether we are dynamically linked or not.
  */
-extern	int		_DYNAMIC __attribute__ ((weak));
-#define	is_dynamic()	(&_DYNAMIC != NULL)
+extern int _DYNAMIC __attribute__((weak));
+#define is_dynamic() (&_DYNAMIC != NULL)
 
 /*
  * default sourcelist: `files'
@@ -111,23 +113,23 @@ const ns_src __nsdefaultsrc[] = {
 };
 
 /* Database, source mappings. */
-static	unsigned int		 _nsmapsize;
-static	ns_dbt			*_nsmap = NULL;
+static unsigned int _nsmapsize;
+static ns_dbt *_nsmap = NULL;
 
 /* NSS modules. */
-static	unsigned int		 _nsmodsize;
-static	ns_mod			*_nsmod;
+static unsigned int _nsmodsize;
+static ns_mod *_nsmod;
 
 /* Placeholder for builtin modules' dlopen `handle'. */
-static	int			 __nss_builtin_handle;
-static	void			*nss_builtin_handle = &__nss_builtin_handle;
+static int __nss_builtin_handle;
+static void *nss_builtin_handle = &__nss_builtin_handle;
 
 #ifdef NS_CACHING
 /*
  * Cache lookup cycle prevention function - if !NULL then no cache lookups
  * will be made
  */
-static	void			*nss_cache_cycle_prevention_func = NULL;
+static void *nss_cache_cycle_prevention_func = NULL;
 #endif
 
 /*
@@ -140,10 +142,10 @@ static	void			*nss_cache_cycle_prevention_func = NULL;
  * methods to perform arbitrary lookups.
  */
 struct fb_state {
-	int	dispatch_depth;
-	int	fallback_depth;
+	int dispatch_depth;
+	int fallback_depth;
 };
-static	void	fb_endstate(void *);
+static void fb_endstate(void *);
 NSS_TLS_HANDLING(fb);
 
 /*
@@ -151,41 +153,36 @@ NSS_TLS_HANDLING(fb);
  */
 #define nss_log(level, fmt, ...) \
 	syslog((level), "NSSWITCH(%s): " fmt, __func__, __VA_ARGS__)
-#define nss_log_simple(level, s) \
-	syslog((level), "NSSWITCH(%s): " s, __func__)
+#define nss_log_simple(level, s) syslog((level), "NSSWITCH(%s): " s, __func__)
 
 /*
  * Dynamically growable arrays are used for lists of databases, sources,
  * and modules.  The following `vector' interface is used to isolate the
  * common operations.
  */
-typedef	int	(*vector_comparison)(const void *, const void *);
-typedef	void	(*vector_free_elem)(void *);
-static	void	  vector_sort(void *, unsigned int, size_t,
-		    vector_comparison);
-static	void	  vector_free(void *, unsigned int *, size_t,
-		    vector_free_elem);
-static	void	 *vector_ref(unsigned int, void *, unsigned int, size_t);
-static	void	 *vector_search(const void *, void *, unsigned int, size_t,
-		    vector_comparison);
-static	void	 *vector_append(const void *, void *, unsigned int *, size_t);
-
+typedef int (*vector_comparison)(const void *, const void *);
+typedef void (*vector_free_elem)(void *);
+static void vector_sort(void *, unsigned int, size_t, vector_comparison);
+static void vector_free(void *, unsigned int *, size_t, vector_free_elem);
+static void *vector_ref(unsigned int, void *, unsigned int, size_t);
+static void *vector_search(const void *, void *, unsigned int, size_t,
+    vector_comparison);
+static void *vector_append(const void *, void *, unsigned int *, size_t);
 
 /*
  * Internal interfaces.
  */
-static	int	 string_compare(const void *, const void *);
-static	int	 mtab_compare(const void *, const void *);
-static	int	 nss_configure(void);
-static	void	 ns_dbt_free(ns_dbt *);
-static	void	 ns_mod_free(ns_mod *);
-static	void	 ns_src_free(ns_src **, int);
-static	void	 nss_load_builtin_modules(void);
-static	void	 nss_load_module(const char *, nss_module_register_fn);
-static	void	 nss_atexit(void);
+static int string_compare(const void *, const void *);
+static int mtab_compare(const void *, const void *);
+static int nss_configure(void);
+static void ns_dbt_free(ns_dbt *);
+static void ns_mod_free(ns_mod *);
+static void ns_src_free(ns_src **, int);
+static void nss_load_builtin_modules(void);
+static void nss_load_module(const char *, nss_module_register_fn);
+static void nss_atexit(void);
 /* nsparser */
-extern	FILE	*_nsyyin;
-
+extern FILE *_nsyyin;
 
 /*
  * The vector operations
@@ -197,7 +194,6 @@ vector_sort(void *vec, unsigned int count, size_t esize,
 	qsort(vec, count, esize, comparison);
 }
 
-
 static void *
 vector_search(const void *key, void *vec, unsigned int count, size_t esize,
     vector_comparison comparison)
@@ -205,11 +201,10 @@ vector_search(const void *key, void *vec, unsigned int count, size_t esize,
 	return (bsearch(key, vec, count, esize, comparison));
 }
 
-
 static void *
 vector_append(const void *elem, void *vec, unsigned int *count, size_t esize)
 {
-	void	*p;
+	void *p;
 
 	if ((*count % ELEMSPERCHUNK) == 0) {
 		p = reallocarray(vec, *count + ELEMSPERCHUNK, esize);
@@ -224,7 +219,6 @@ vector_append(const void *elem, void *vec, unsigned int *count, size_t esize)
 	return (vec);
 }
 
-
 static void *
 vector_ref(unsigned int i, void *vec, unsigned int count, size_t esize)
 {
@@ -234,15 +228,17 @@ vector_ref(unsigned int i, void *vec, unsigned int count, size_t esize)
 		return (NULL);
 }
 
-
-#define VECTOR_FREE(v, c, s, f) \
-	do { vector_free(v, c, s, f); v = NULL; } while (0)
+#define VECTOR_FREE(v, c, s, f)          \
+	do {                             \
+		vector_free(v, c, s, f); \
+		v = NULL;                \
+	} while (0)
 static void
 vector_free(void *vec, unsigned int *count, size_t esize,
     vector_free_elem free_elem)
 {
-	unsigned int	 i;
-	void		*elem;
+	unsigned int i;
+	void *elem;
 
 	for (i = 0; i < *count; i++) {
 		elem = vector_ref(i, vec, *count, esize);
@@ -259,21 +255,20 @@ vector_free(void *vec, unsigned int *count, size_t esize,
 static int
 string_compare(const void *a, const void *b)
 {
-      return (strcasecmp(*(const char * const *)a, *(const char * const *)b));
+	return (strcasecmp(*(const char *const *)a, *(const char *const *)b));
 }
-
 
 static int
 mtab_compare(const void *a, const void *b)
 {
-      int     cmp;
+	int cmp;
 
-      cmp = strcmp(((const ns_mtab *)a)->name, ((const ns_mtab *)b)->name);
-      if (cmp != 0)
-	      return (cmp);
-      else
-	      return (strcmp(((const ns_mtab *)a)->database,
-		  ((const ns_mtab *)b)->database));
+	cmp = strcmp(((const ns_mtab *)a)->name, ((const ns_mtab *)b)->name);
+	if (cmp != 0)
+		return (cmp);
+	else
+		return (strcmp(((const ns_mtab *)a)->database,
+		    ((const ns_mtab *)b)->database));
 }
 
 /*
@@ -282,7 +277,7 @@ mtab_compare(const void *a, const void *b)
 void
 _nsdbtaddsrc(ns_dbt *dbt, const ns_src *src)
 {
-	const ns_mod	*modp;
+	const ns_mod *modp;
 
 	dbt->srclist = vector_append(src, dbt->srclist, &dbt->srclistsize,
 	    sizeof(*src));
@@ -291,7 +286,6 @@ _nsdbtaddsrc(ns_dbt *dbt, const ns_src *src)
 	if (modp == NULL)
 		nss_load_module(src->name, NULL);
 }
-
 
 #ifdef _NSS_DEBUG
 void
@@ -304,7 +298,7 @@ _nsdbtdump(const ns_dbt *dbt)
 	for (i = 0; i < (int)dbt->srclistsize; i++) {
 		printf(" %s", dbt->srclist[i].name);
 		if (!(dbt->srclist[i].flags &
-		    (NS_UNAVAIL|NS_NOTFOUND|NS_TRYAGAIN)) &&
+			(NS_UNAVAIL | NS_NOTFOUND | NS_TRYAGAIN)) &&
 		    (dbt->srclist[i].flags & NS_SUCCESS))
 			continue;
 		printf(" [");
@@ -322,7 +316,6 @@ _nsdbtdump(const ns_dbt *dbt)
 }
 #endif
 
-
 /*
  * The first time nsdispatch is called (during a process's lifetime,
  * or after nsswitch.conf has been updated), nss_configure will
@@ -331,15 +324,15 @@ _nsdbtdump(const ns_dbt *dbt)
 static int
 nss_configure(void)
 {
-	static time_t	 confmod;
+	static time_t confmod;
 #ifndef NS_REREAD_CONF
-	static int	 already_initialized = 0;
+	static int already_initialized = 0;
 #endif
-	struct stat	 statbuf;
-	int		 result, isthreaded;
-	const char	*path;
+	struct stat statbuf;
+	int result, isthreaded;
+	const char *path;
 #ifdef NS_CACHING
-	void		*handle;
+	void *handle;
 #endif
 
 	result = 0;
@@ -408,12 +401,11 @@ fin:
 	return (result);
 }
 
-
 void
 _nsdbtput(const ns_dbt *dbt)
 {
-	unsigned int	 i;
-	ns_dbt		*p;
+	unsigned int i;
+	ns_dbt *p;
 
 	for (i = 0; i < _nsmapsize; i++) {
 		p = vector_ref(i, _nsmap, _nsmapsize, sizeof(*_nsmap));
@@ -428,7 +420,6 @@ _nsdbtput(const ns_dbt *dbt)
 	_nsmap = vector_append(dbt, _nsmap, &_nsmapsize, sizeof(*_nsmap));
 }
 
-
 static void
 ns_dbt_free(ns_dbt *dbt)
 {
@@ -437,11 +428,10 @@ ns_dbt_free(ns_dbt *dbt)
 		free((void *)dbt->name);
 }
 
-
 static void
 ns_src_free(ns_src **src, int srclistsize)
 {
-	int	i;
+	int i;
 
 	for (i = 0; i < srclistsize; i++)
 		if ((*src)[i].name != NULL)
@@ -453,14 +443,12 @@ ns_src_free(ns_src **src, int srclistsize)
 	*src = NULL;
 }
 
-
-
 /*
  * NSS module management.
  */
 /* The built-in NSS modules are all loaded at once. */
 #define NSS_BACKEND(name, reg) \
-ns_mtab	*reg(unsigned int *, nss_module_unregister_fn *);
+	ns_mtab *reg(unsigned int *, nss_module_unregister_fn *);
 #include "nss_backends.h"
 #undef NSS_BACKEND
 
@@ -472,7 +460,6 @@ nss_load_builtin_modules(void)
 #undef NSS_BACKEND
 }
 
-
 /* Load a built-in or dynamically linked module.  If the `reg_fn'
  * argument is non-NULL, assume a built-in module and use reg_fn to
  * register it.  Otherwise, search for a dynamic NSS module.
@@ -480,8 +467,8 @@ nss_load_builtin_modules(void)
 static void
 nss_load_module(const char *source, nss_module_register_fn reg_fn)
 {
-	char		 buf[PATH_MAX];
-	ns_mod		 mod;
+	char buf[PATH_MAX];
+	ns_mod mod;
 	nss_module_register_fn fn;
 
 	memset(&mod, 0, sizeof(mod));
@@ -500,8 +487,7 @@ nss_load_module(const char *source, nss_module_register_fn reg_fn)
 		goto fin;
 	} else if (strcmp(source, NSSRC_CACHE) == 0 ||
 	    strcmp(source, NSSRC_COMPAT) == 0 ||
-	    strcmp(source, NSSRC_DB) == 0 ||
-	    strcmp(source, NSSRC_DNS) == 0 ||
+	    strcmp(source, NSSRC_DB) == 0 || strcmp(source, NSSRC_DNS) == 0 ||
 	    strcmp(source, NSSRC_FILES) == 0 ||
 	    strcmp(source, NSSRC_NIS) == 0) {
 		/*
@@ -510,9 +496,9 @@ nss_load_module(const char *source, nss_module_register_fn reg_fn)
 		goto fin;
 	} else {
 		if (snprintf(buf, sizeof(buf), "nss_%s.so.%d", mod.name,
-		    NSS_MODULE_INTERFACE_VERSION) >= (int)sizeof(buf))
+			NSS_MODULE_INTERFACE_VERSION) >= (int)sizeof(buf))
 			goto fin;
-		mod.handle = libc_dlopen(buf, RTLD_LOCAL|RTLD_LAZY);
+		mod.handle = libc_dlopen(buf, RTLD_LOCAL | RTLD_LAZY);
 		if (mod.handle == NULL) {
 #ifdef _NSS_DEBUG
 			/* This gets pretty annoying since the built-in
@@ -586,12 +572,12 @@ nss_atexit(void)
  * Finally, the actual implementation.
  */
 static nss_method
-nss_method_lookup(const char *source, const char *database,
-    const char *method, const ns_dtab disp_tab[], void **mdata)
+nss_method_lookup(const char *source, const char *database, const char *method,
+    const ns_dtab disp_tab[], void **mdata)
 {
-	ns_mod	*mod;
-	ns_mtab	*match, key;
-	int	 i;
+	ns_mod *mod;
+	ns_mtab *match, key;
+	int i;
 
 	if (disp_tab != NULL)
 		for (i = 0; disp_tab[i].src != NULL; i++)
@@ -626,23 +612,23 @@ __weak_reference(_nsdispatch, nsdispatch);
 
 int
 _nsdispatch(void *retval, const ns_dtab disp_tab[], const char *database,
-	    const char *method_name, const ns_src defaults[], ...)
+    const char *method_name, const ns_src defaults[], ...)
 {
-	va_list		 ap;
-	const ns_dbt	*dbt;
-	const ns_src	*srclist;
-	nss_method	 method, fb_method;
-	void		*mdata;
-	int		 isthreaded, serrno, i, result, srclistsize;
-	struct fb_state	*st;
-	int		 saved_depth;
+	va_list ap;
+	const ns_dbt *dbt;
+	const ns_src *srclist;
+	nss_method method, fb_method;
+	void *mdata;
+	int isthreaded, serrno, i, result, srclistsize;
+	struct fb_state *st;
+	int saved_depth;
 
 #ifdef NS_CACHING
-	nss_cache_data	 cache_data;
-	nss_cache_data	*cache_data_p;
-	int		 cache_flag;
+	nss_cache_data cache_data;
+	nss_cache_data *cache_data_p;
+	int cache_flag;
 #endif
-	
+
 	dbt = NULL;
 	fb_method = NULL;
 
@@ -669,8 +655,8 @@ _nsdispatch(void *retval, const ns_dtab disp_tab[], const char *database,
 	}
 	++st->dispatch_depth;
 	if (st->dispatch_depth > st->fallback_depth) {
-		dbt = vector_search(&database, _nsmap, _nsmapsize, sizeof(*_nsmap),
-		    string_compare);
+		dbt = vector_search(&database, _nsmap, _nsmapsize,
+		    sizeof(*_nsmap), string_compare);
 		fb_method = nss_method_lookup(NSSRC_FALLBACK, database,
 		    method_name, disp_tab, &mdata);
 	}
@@ -726,7 +712,7 @@ _nsdispatch(void *retval, const ns_dtab disp_tab[], const char *database,
 				result = method(retval, mdata, ap);
 				va_end(ap);
 			}
-#else /* NS_CACHING */
+#else  /* NS_CACHING */
 			errno = 0;
 			va_start(ap, defaults);
 			result = method(retval, mdata, ap);
@@ -745,15 +731,16 @@ _nsdispatch(void *retval, const ns_dtab disp_tab[], const char *database,
 				va_end(ap);
 				st->fallback_depth = saved_depth;
 			} else
-				nss_log(LOG_DEBUG, "%s, %s, %s, not found, "
+				nss_log(LOG_DEBUG,
+				    "%s, %s, %s, not found, "
 				    "and no fallback provided",
 				    srclist[i].name, database, method_name);
 		}
 	}
 
 #ifdef NS_CACHING
-	if (cache_data_p != NULL &&
-	    (result & (NS_NOTFOUND | NS_SUCCESS)) && cache_flag == 0) {
+	if (cache_data_p != NULL && (result & (NS_NOTFOUND | NS_SUCCESS)) &&
+	    cache_flag == 0) {
 		va_start(ap, defaults);
 		if (result == NS_SUCCESS) {
 			if (cache_data.info->id_func != NULL)

@@ -2,40 +2,40 @@
 
   Copyright (c) 2013-2018, Intel Corporation
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
+
+  Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
-  
-   1. Redistributions of source code must retain the above copyright notice, 
+
+   1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-  
-   2. Redistributions in binary form must reproduce the above copyright 
-      notice, this list of conditions and the following disclaimer in the 
+
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-  
-   3. Neither the name of the Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+   3. Neither the name of the Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 
 ******************************************************************************/
 
+#include "i40e_alloc.h"
+#include "i40e_hmc.h"
 #include "i40e_osdep.h"
 #include "i40e_register.h"
 #include "i40e_status.h"
-#include "i40e_alloc.h"
-#include "i40e_hmc.h"
 #include "i40e_type.h"
 
 /**
@@ -46,15 +46,13 @@
  * @type: what type of segment descriptor we're manipulating
  * @direct_mode_sz: size to alloc in direct mode
  **/
-enum i40e_status_code i40e_add_sd_table_entry(struct i40e_hw *hw,
-					      struct i40e_hmc_info *hmc_info,
-					      u32 sd_index,
-					      enum i40e_sd_entry_type type,
-					      u64 direct_mode_sz)
+enum i40e_status_code
+i40e_add_sd_table_entry(struct i40e_hw *hw, struct i40e_hmc_info *hmc_info,
+    u32 sd_index, enum i40e_sd_entry_type type, u64 direct_mode_sz)
 {
 	enum i40e_status_code ret_code = I40E_SUCCESS;
 	struct i40e_hmc_sd_entry *sd_entry;
-	enum   i40e_memory_type mem_type;
+	enum i40e_memory_type mem_type;
 	bool dma_mem_alloc_done = FALSE;
 	struct i40e_dma_mem mem;
 	u64 alloc_len;
@@ -83,26 +81,24 @@ enum i40e_status_code i40e_add_sd_table_entry(struct i40e_hw *hw,
 
 		/* allocate a 4K pd page or 2M backing page */
 		ret_code = i40e_allocate_dma_mem(hw, &mem, mem_type, alloc_len,
-						 I40E_HMC_PD_BP_BUF_ALIGNMENT);
+		    I40E_HMC_PD_BP_BUF_ALIGNMENT);
 		if (ret_code)
 			goto exit;
 		dma_mem_alloc_done = TRUE;
 		if (I40E_SD_TYPE_PAGED == type) {
 			ret_code = i40e_allocate_virt_mem(hw,
-					&sd_entry->u.pd_table.pd_entry_virt_mem,
-					sizeof(struct i40e_hmc_pd_entry) * 512);
+			    &sd_entry->u.pd_table.pd_entry_virt_mem,
+			    sizeof(struct i40e_hmc_pd_entry) * 512);
 			if (ret_code)
 				goto exit;
 			sd_entry->u.pd_table.pd_entry =
-				(struct i40e_hmc_pd_entry *)
+			    (struct i40e_hmc_pd_entry *)
 				sd_entry->u.pd_table.pd_entry_virt_mem.va;
-			i40e_memcpy(&sd_entry->u.pd_table.pd_page_addr,
-				    &mem, sizeof(struct i40e_dma_mem),
-				    I40E_NONDMA_TO_NONDMA);
+			i40e_memcpy(&sd_entry->u.pd_table.pd_page_addr, &mem,
+			    sizeof(struct i40e_dma_mem), I40E_NONDMA_TO_NONDMA);
 		} else {
-			i40e_memcpy(&sd_entry->u.bp.addr,
-				    &mem, sizeof(struct i40e_dma_mem),
-				    I40E_NONDMA_TO_NONDMA);
+			i40e_memcpy(&sd_entry->u.bp.addr, &mem,
+			    sizeof(struct i40e_dma_mem), I40E_NONDMA_TO_NONDMA);
 			sd_entry->u.bp.sd_pd_index = sd_index;
 		}
 		/* initialize the sd entry */
@@ -139,10 +135,9 @@ exit:
  *	   aligned on 4K boundary and zeroed memory.
  *	2. It should be 4K in size.
  **/
-enum i40e_status_code i40e_add_pd_table_entry(struct i40e_hw *hw,
-					      struct i40e_hmc_info *hmc_info,
-					      u32 pd_index,
-					      struct i40e_dma_mem *rsrc_pg)
+enum i40e_status_code
+i40e_add_pd_table_entry(struct i40e_hw *hw, struct i40e_hmc_info *hmc_info,
+    u32 pd_index, struct i40e_dma_mem *rsrc_pg)
 {
 	enum i40e_status_code ret_code = I40E_SUCCESS;
 	struct i40e_hmc_pd_table *pd_table;
@@ -175,15 +170,15 @@ enum i40e_status_code i40e_add_pd_table_entry(struct i40e_hw *hw,
 		} else {
 			/* allocate a 4K backing page */
 			ret_code = i40e_allocate_dma_mem(hw, page, i40e_mem_bp,
-						I40E_HMC_PAGED_BP_SIZE,
-						I40E_HMC_PD_BP_BUF_ALIGNMENT);
+			    I40E_HMC_PAGED_BP_SIZE,
+			    I40E_HMC_PD_BP_BUF_ALIGNMENT);
 			if (ret_code)
 				goto exit;
 			pd_entry->rsrc_pg = FALSE;
 		}
 
 		i40e_memcpy(&pd_entry->bp.addr, page,
-			    sizeof(struct i40e_dma_mem), I40E_NONDMA_TO_NONDMA);
+		    sizeof(struct i40e_dma_mem), I40E_NONDMA_TO_NONDMA);
 		pd_entry->bp.sd_pd_index = pd_index;
 		pd_entry->bp.entry_type = I40E_SD_TYPE_PAGED;
 		/* Set page address and valid bit */
@@ -194,7 +189,7 @@ enum i40e_status_code i40e_add_pd_table_entry(struct i40e_hw *hw,
 
 		/* Add the backing page physical address in the pd entry */
 		i40e_memcpy(pd_addr, &page_desc, sizeof(u64),
-			    I40E_NONDMA_TO_DMA);
+		    I40E_NONDMA_TO_DMA);
 
 		pd_entry->sd_index = sd_idx;
 		pd_entry->valid = TRUE;
@@ -220,9 +215,8 @@ exit:
  *	1. Caller can deallocate the memory used by backing storage after this
  *	   function returns.
  **/
-enum i40e_status_code i40e_remove_pd_bp(struct i40e_hw *hw,
-					struct i40e_hmc_info *hmc_info,
-					u32 idx)
+enum i40e_status_code
+i40e_remove_pd_bp(struct i40e_hw *hw, struct i40e_hmc_info *hmc_info, u32 idx)
 {
 	enum i40e_status_code ret_code = I40E_SUCCESS;
 	struct i40e_hmc_pd_entry *pd_entry;
@@ -276,8 +270,8 @@ exit:
  * @hmc_info: pointer to the HMC configuration information structure
  * @idx: the page index
  **/
-enum i40e_status_code i40e_prep_remove_sd_bp(struct i40e_hmc_info *hmc_info,
-					     u32 idx)
+enum i40e_status_code
+i40e_prep_remove_sd_bp(struct i40e_hmc_info *hmc_info, u32 idx)
 {
 	enum i40e_status_code ret_code = I40E_SUCCESS;
 	struct i40e_hmc_sd_entry *sd_entry;
@@ -304,9 +298,9 @@ exit:
  * @idx: the page index
  * @is_pf: used to distinguish between VF and PF
  **/
-enum i40e_status_code i40e_remove_sd_bp_new(struct i40e_hw *hw,
-					    struct i40e_hmc_info *hmc_info,
-					    u32 idx, bool is_pf)
+enum i40e_status_code
+i40e_remove_sd_bp_new(struct i40e_hw *hw, struct i40e_hmc_info *hmc_info,
+    u32 idx, bool is_pf)
 {
 	struct i40e_hmc_sd_entry *sd_entry;
 
@@ -325,8 +319,8 @@ enum i40e_status_code i40e_remove_sd_bp_new(struct i40e_hw *hw,
  * @hmc_info: pointer to the HMC configuration information structure
  * @idx: segment descriptor index to find the relevant page descriptor
  **/
-enum i40e_status_code i40e_prep_remove_pd_page(struct i40e_hmc_info *hmc_info,
-					       u32 idx)
+enum i40e_status_code
+i40e_prep_remove_pd_page(struct i40e_hmc_info *hmc_info, u32 idx)
 {
 	enum i40e_status_code ret_code = I40E_SUCCESS;
 	struct i40e_hmc_sd_entry *sd_entry;
@@ -353,9 +347,9 @@ exit:
  * @idx: segment descriptor index to find the relevant page descriptor
  * @is_pf: used to distinguish between VF and PF
  **/
-enum i40e_status_code i40e_remove_pd_page_new(struct i40e_hw *hw,
-					      struct i40e_hmc_info *hmc_info,
-					      u32 idx, bool is_pf)
+enum i40e_status_code
+i40e_remove_pd_page_new(struct i40e_hw *hw, struct i40e_hmc_info *hmc_info,
+    u32 idx, bool is_pf)
 {
 	struct i40e_hmc_sd_entry *sd_entry;
 

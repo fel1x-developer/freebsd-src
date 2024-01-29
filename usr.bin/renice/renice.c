@@ -30,8 +30,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
 #include <err.h>
 #include <errno.h>
@@ -42,9 +42,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int	donice(int, int, int, bool);
-static int	getnum(const char *, const char *, int *);
-static void	usage(void);
+static int donice(int, int, int, bool);
+static int getnum(const char *, const char *, int *);
+static void usage(void);
 
 /*
  * Change the priority (nice) of processes
@@ -143,8 +143,8 @@ donice(int which, int who, int prio, bool incr)
 		warn("%d: setpriority", who);
 		return (1);
 	}
-	fprintf(stderr, "%d: old priority %d, new priority %d\n", who,
-	    oldprio, prio);
+	fprintf(stderr, "%d: old priority %d, new priority %d\n", who, oldprio,
+	    prio);
 	return (0);
 }
 
@@ -173,7 +173,7 @@ static void
 usage(void)
 {
 	fprintf(stderr, "%s\n%s\n",
-"usage: renice priority [[-p] pid ...] [[-g] pgrp ...] [[-u] user ...]",
-"       renice -n increment [[-p] pid ...] [[-g] pgrp ...] [[-u] user ...]");
+	    "usage: renice priority [[-p] pid ...] [[-g] pgrp ...] [[-u] user ...]",
+	    "       renice -n increment [[-p] pid ...] [[-g] pgrp ...] [[-u] user ...]");
 	exit(1);
 }

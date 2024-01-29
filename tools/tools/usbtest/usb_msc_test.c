@@ -23,65 +23,63 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <err.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-
 #include <sys/sysctl.h>
 #include <sys/time.h>
 
-#include <libusb20.h>
-#include <libusb20_desc.h>
-
 #include <dev/usb/usb_endian.h>
 
-#include "usbtest.h"
+#include <err.h>
+#include <errno.h>
+#include <libusb20.h>
+#include <libusb20_desc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "usb_msc_test.h"
+#include "usbtest.h"
 
 /* Command Block Wrapper */
 typedef struct {
-	uDWord	dCBWSignature;
-#define	CBWSIGNATURE	0x43425355
-	uDWord	dCBWTag;
-	uDWord	dCBWDataTransferLength;
-	uByte	bCBWFlags;
-#define	CBWFLAGS_OUT	0x00
-#define	CBWFLAGS_IN	0x80
-	uByte	bCBWLUN;
-	uByte	bCDBLength;
-#define	CBWCDBLENGTH	16
-	uByte	CBWCDB[CBWCDBLENGTH];
+	uDWord dCBWSignature;
+#define CBWSIGNATURE 0x43425355
+	uDWord dCBWTag;
+	uDWord dCBWDataTransferLength;
+	uByte bCBWFlags;
+#define CBWFLAGS_OUT 0x00
+#define CBWFLAGS_IN 0x80
+	uByte bCBWLUN;
+	uByte bCDBLength;
+#define CBWCDBLENGTH 16
+	uByte CBWCDB[CBWCDBLENGTH];
 } umass_bbb_cbw_t;
 
-#define	UMASS_BBB_CBW_SIZE	31
+#define UMASS_BBB_CBW_SIZE 31
 
 /* Command Status Wrapper */
 typedef struct {
-	uDWord	dCSWSignature;
-#define	CSWSIGNATURE	0x53425355
-#define	CSWSIGNATURE_IMAGINATION_DBX1	0x43425355
-#define	CSWSIGNATURE_OLYMPUS_C1	0x55425355
-	uDWord	dCSWTag;
-	uDWord	dCSWDataResidue;
-	uByte	bCSWStatus;
-#define	CSWSTATUS_GOOD	0x0
-#define	CSWSTATUS_FAILED	0x1
-#define	CSWSTATUS_PHASE	0x2
+	uDWord dCSWSignature;
+#define CSWSIGNATURE 0x53425355
+#define CSWSIGNATURE_IMAGINATION_DBX1 0x43425355
+#define CSWSIGNATURE_OLYMPUS_C1 0x55425355
+	uDWord dCSWTag;
+	uDWord dCSWDataResidue;
+	uByte bCSWStatus;
+#define CSWSTATUS_GOOD 0x0
+#define CSWSTATUS_FAILED 0x1
+#define CSWSTATUS_PHASE 0x2
 } umass_bbb_csw_t;
 
-#define	UMASS_BBB_CSW_SIZE	13
+#define UMASS_BBB_CSW_SIZE 13
 
-#define	SC_READ_6			0x08
-#define	SC_READ_10			0x28
-#define	SC_READ_12			0xa8
-#define	SC_WRITE_6			0x0a
-#define	SC_WRITE_10			0x2a
-#define	SC_WRITE_12			0xaa
+#define SC_READ_6 0x08
+#define SC_READ_10 0x28
+#define SC_READ_12 0xa8
+#define SC_WRITE_6 0x0a
+#define SC_WRITE_10 0x2a
+#define SC_WRITE_12 0xaa
 
 static struct stats {
 	uint64_t xfer_error;
@@ -90,7 +88,7 @@ static struct stats {
 	uint64_t xfer_rx_bytes;
 	uint64_t xfer_tx_bytes;
 	uint64_t data_error;
-}	stats;
+} stats;
 
 static uint32_t xfer_current_id;
 static uint32_t xfer_wrapper_sig;
@@ -107,16 +105,18 @@ static int sense_recurse;
  * adjusted!  Refer to "dev/usb/storage/ustorage_fs.c" for more
  * information.
  */
-static uint8_t mode_sense_6[0x6] = {0x1a, 0, 0x3f, 0, 0x0c};
-static uint8_t read_capacity[0xA] = {0x25,};
-static uint8_t request_sense[0xC] = {0x03, 0, 0, 0, 0x12};
-static uint8_t test_unit_ready[0x6] = {0};
-static uint8_t mode_page_inquiry[0x6] = {0x12, 1, 0x80, 0, 0xff, 0};
-static uint8_t request_invalid[0xC] = {0xEA, 0, 0, 0, 0};
-static uint8_t prevent_removal[0x6] = {0x1E, 0, 0, 0, 1};
-static uint8_t read_toc[0xA] = {0x43, 0x02, 0, 0, 0, 0xAA, 0, 0x0C};
+static uint8_t mode_sense_6[0x6] = { 0x1a, 0, 0x3f, 0, 0x0c };
+static uint8_t read_capacity[0xA] = {
+	0x25,
+};
+static uint8_t request_sense[0xC] = { 0x03, 0, 0, 0, 0x12 };
+static uint8_t test_unit_ready[0x6] = { 0 };
+static uint8_t mode_page_inquiry[0x6] = { 0x12, 1, 0x80, 0, 0xff, 0 };
+static uint8_t request_invalid[0xC] = { 0xEA, 0, 0, 0, 0 };
+static uint8_t prevent_removal[0x6] = { 0x1E, 0, 0, 0, 1 };
+static uint8_t read_toc[0xA] = { 0x43, 0x02, 0, 0, 0, 0xAA, 0, 0x0C };
 
-#define	TIMEOUT_FILTER(x) (x)
+#define TIMEOUT_FILTER(x) (x)
 
 static void usb_request_sense(uint8_t lun);
 
@@ -129,7 +129,7 @@ do_msc_reset(uint8_t lun)
 
 	setup.bmRequestType = LIBUSB20_REQUEST_TYPE_CLASS |
 	    LIBUSB20_RECIPIENT_INTERFACE;
-	setup.bRequest = 0xFF;		/* BBB reset */
+	setup.bRequest = 0xFF; /* BBB reset */
 	setup.wValue = 0;
 	setup.wIndex = usb_iface;
 	setup.wLength = 0;
@@ -173,15 +173,15 @@ do_msc_cmd(uint8_t *pcmd, uint8_t cmdlen, void *pdata, uint32_t datalen,
 	timeout = ((datalen + 299999) / 300000) * 1000;
 	timeout += 5000;
 
-	if ((error = libusb20_tr_bulk_intr_sync(xfer_out,
-	    &cbw, sizeof(cbw), &actlen, TIMEOUT_FILTER(1000)))) {
+	if ((error = libusb20_tr_bulk_intr_sync(xfer_out, &cbw, sizeof(cbw),
+		 &actlen, TIMEOUT_FILTER(1000)))) {
 		printf("ERROR: CBW reception: %d\n", error);
 		do_msc_reset(lun);
 		return (1);
 	}
 	if (actlen != sizeof(cbw)) {
-		printf("ERROR: CBW length: %d != %d\n",
-		    actlen, (int)sizeof(cbw));
+		printf("ERROR: CBW length: %d != %d\n", actlen,
+		    (int)sizeof(cbw));
 		do_msc_reset(lun);
 		return (1);
 	}
@@ -191,15 +191,15 @@ do_msc_cmd(uint8_t *pcmd, uint8_t cmdlen, void *pdata, uint32_t datalen,
 	if (datalen != 0) {
 		xfer_io = isread ? xfer_in : xfer_out;
 
-		if ((error = libusb20_tr_bulk_intr_sync(xfer_io,
-		    pdata, datalen, &actlen, TIMEOUT_FILTER(timeout)))) {
+		if ((error = libusb20_tr_bulk_intr_sync(xfer_io, pdata, datalen,
+			 &actlen, TIMEOUT_FILTER(timeout)))) {
 			printf("ERROR: Data transfer: %d\n", error);
 			do_msc_reset(lun);
 			return (1);
 		}
 		if ((actlen != datalen) && (!isshort)) {
-			printf("ERROR: Short data: %d of %d bytes\n",
-			    actlen, datalen);
+			printf("ERROR: Short data: %d of %d bytes\n", actlen,
+			    datalen);
 			do_msc_reset(lun);
 			return (1);
 		}
@@ -208,12 +208,13 @@ do_msc_cmd(uint8_t *pcmd, uint8_t cmdlen, void *pdata, uint32_t datalen,
 	timeout = 8;
 
 	do {
-		error = libusb20_tr_bulk_intr_sync(xfer_in, &csw,
-		    sizeof(csw), &actlen, TIMEOUT_FILTER(1000));
+		error = libusb20_tr_bulk_intr_sync(xfer_in, &csw, sizeof(csw),
+		    &actlen, TIMEOUT_FILTER(1000));
 		if (error) {
 			if (error == LIBUSB20_TRANSFER_TIMED_OUT) {
 				printf("TIMEOUT: Trying to get CSW again. "
-				    "%d tries left.\n", timeout);
+				       "%d tries left.\n",
+				    timeout);
 			} else {
 				break;
 			}
@@ -224,12 +225,13 @@ do_msc_cmd(uint8_t *pcmd, uint8_t cmdlen, void *pdata, uint32_t datalen,
 
 	if (error) {
 		libusb20_tr_clear_stall_sync(xfer_in);
-		error = libusb20_tr_bulk_intr_sync(xfer_in, &csw,
-		    sizeof(csw), &actlen, TIMEOUT_FILTER(1000));
+		error = libusb20_tr_bulk_intr_sync(xfer_in, &csw, sizeof(csw),
+		    &actlen, TIMEOUT_FILTER(1000));
 		if (error) {
 			libusb20_tr_clear_stall_sync(xfer_in);
 			printf("ERROR: Could not read CSW: Stalled or "
-			    "timeout (%d).\n", error);
+			       "timeout (%d).\n",
+			    error);
 			do_msc_reset(lun);
 			return (1);
 		}
@@ -240,8 +242,8 @@ do_msc_cmd(uint8_t *pcmd, uint8_t cmdlen, void *pdata, uint32_t datalen,
 		return (1);
 	}
 	if (actlen != sizeof(csw)) {
-		printf("ERROR: Wrong CSW length: %d != %d\n",
-		    actlen, (int)sizeof(csw));
+		printf("ERROR: Wrong CSW length: %d != %d\n", actlen,
+		    (int)sizeof(csw));
 		do_msc_reset(lun);
 		return (1);
 	}
@@ -265,18 +267,18 @@ do_msc_shorter_cmd(uint8_t lun)
 	memset(buffer, 0, sizeof(buffer));
 
 	for (x = 0; x != (sizeof(buffer) - 1); x++) {
-		error = libusb20_tr_bulk_intr_sync(xfer_out,
-		    buffer, x, &actlen, 250);
+		error = libusb20_tr_bulk_intr_sync(xfer_out, buffer, x, &actlen,
+		    250);
 
 		printf("Sent short %d of %d bytes wrapper block, "
-		    "status = %d\n", x, (int)(sizeof(buffer) - 1),
-		    error);
+		       "status = %d\n",
+		    x, (int)(sizeof(buffer) - 1), error);
 
 		do_msc_reset(lun);
 
 		if (error != 0) {
 			printf("ERROR: Too short command wrapper "
-			    "was not accepted\n");
+			       "was not accepted\n");
 			stats.xfer_error++;
 			break;
 		}
@@ -449,8 +451,8 @@ do_io_test(struct usb_msc_params *p, uint8_t lun, uint32_t lba_max,
 
 		if (retval == 0) {
 			if (bcmp(buffer + (io_offset * block_size),
-			    reference + (io_offset * block_size),
-			    io_size * block_size)) {
+				reference + (io_offset * block_size),
+				io_size * block_size)) {
 				printf("ERROR: Data comparison failure\n");
 				stats.data_error++;
 				retval = 1;
@@ -466,8 +468,8 @@ do_io_test(struct usb_msc_params *p, uint8_t lun, uint32_t lba_max,
 		stats.xfer_tx_bytes += (io_size * block_size);
 	}
 
-	if ((stats.xfer_error + stats.data_error +
-	    stats.xfer_reset) >= p->max_errors) {
+	if ((stats.xfer_error + stats.data_error + stats.xfer_reset) >=
+	    p->max_errors) {
 		printf("Maximum number of errors exceeded\n");
 		p->done = 1;
 	}
@@ -483,8 +485,8 @@ usb_request_sense(uint8_t lun)
 
 	sense_recurse++;
 
-	do_msc_cmd(request_sense, sizeof(request_sense),
-	    dummy_buf, 255, 1, 1, lun, 0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
 
 	sense_recurse--;
 }
@@ -542,7 +544,7 @@ usb_msc_test(struct usb_msc_params *p)
 		printf("Requesting sense from LUN 0..255 ... ");
 		for (x = y = 0; x != 256; x++) {
 			if (do_msc_cmd(mode_sense_6, sizeof(mode_sense_6),
-			    dummy_buf, 255, 1, 1, x, 0))
+				dummy_buf, 255, 1, 1, x, 0))
 				y++;
 
 			if (libusb20_dev_check_connected(usb_pdev) != 0) {
@@ -552,17 +554,17 @@ usb_msc_test(struct usb_msc_params *p)
 		}
 		printf("Passed=%d, Failed=%d\n", 256 - y, y);
 	}
-	do_msc_cmd(mode_sense_6, sizeof(mode_sense_6),
-	    dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(request_sense, sizeof(request_sense),
-	    dummy_buf, 255, 1, 1, lun, 0);
+	do_msc_cmd(mode_sense_6, sizeof(mode_sense_6), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
 
 	for (tries = 0; tries != 4; tries++) {
 
 		memset(dummy_buf, 0, sizeof(dummy_buf));
 
-		if (do_msc_cmd(read_capacity, sizeof(read_capacity),
-		    dummy_buf, 255, 1, 1, lun, 0) != 0) {
+		if (do_msc_cmd(read_capacity, sizeof(read_capacity), dummy_buf,
+			255, 1, 1, lun, 0) != 0) {
 			printf("Cannot read disk capacity (%u / 4)\n", tries);
 			if (tries == 3)
 				return;
@@ -576,8 +578,8 @@ usb_msc_test(struct usb_msc_params *p)
 	capacity_lba = be32toh(dummy_buf[0]);
 	capacity_bs = be32toh(dummy_buf[1]);
 
-	printf("Disk reports a capacity of LBA=%u and BS=%u\n",
-	    capacity_lba, capacity_bs);
+	printf("Disk reports a capacity of LBA=%u and BS=%u\n", capacity_lba,
+	    capacity_bs);
 
 	block_size = capacity_bs;
 
@@ -605,8 +607,8 @@ usb_msc_test(struct usb_msc_params *p)
 			printf("Trying invalid SCSI command: ");
 
 			status = do_msc_cmd(request_invalid,
-			    sizeof(request_invalid), dummy_buf,
-			    255, 1, 1, lun, 0);
+			    sizeof(request_invalid), dummy_buf, 255, 1, 1, lun,
+			    0);
 
 			printf("Result%s as expected\n", status ? "" : " NOT");
 
@@ -623,8 +625,8 @@ usb_msc_test(struct usb_msc_params *p)
 			xfer_wrapper_sig = 0x55663322;
 
 			status = do_msc_cmd(read_capacity,
-			    sizeof(read_capacity), dummy_buf,
-			    255, 1, 1, lun, 0);
+			    sizeof(read_capacity), dummy_buf, 255, 1, 1, lun,
+			    0);
 
 			printf("Result%s as expected\n", status ? "" : " NOT");
 
@@ -633,29 +635,45 @@ usb_msc_test(struct usb_msc_params *p)
 			usleep(50000);
 		}
 	}
-	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(read_capacity, sizeof(read_capacity), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun, 0);
-	do_msc_cmd(read_capacity, sizeof(read_capacity), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(mode_page_inquiry, sizeof(mode_page_inquiry), dummy_buf, 255, 1, 1, lun, 0);
-	do_msc_cmd(mode_page_inquiry, sizeof(mode_page_inquiry), dummy_buf, 255, 1, 1, lun, 0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(read_capacity, sizeof(read_capacity), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(request_sense, sizeof(request_sense), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(test_unit_ready, sizeof(test_unit_ready), 0, 0, 1, 1, lun,
+	    0);
+	do_msc_cmd(read_capacity, sizeof(read_capacity), dummy_buf, 255, 1, 1,
+	    lun, 0);
+	do_msc_cmd(mode_page_inquiry, sizeof(mode_page_inquiry), dummy_buf, 255,
+	    1, 1, lun, 0);
+	do_msc_cmd(mode_page_inquiry, sizeof(mode_page_inquiry), dummy_buf, 255,
+	    1, 1, lun, 0);
 
-	if (do_msc_cmd(prevent_removal, sizeof(prevent_removal),
-	    0, 0, 1, 1, lun, 0)) {
+	if (do_msc_cmd(prevent_removal, sizeof(prevent_removal), 0, 0, 1, 1,
+		lun, 0)) {
 		printf("INFO: Prevent medium removal failed\n");
 	}
-	if (do_msc_cmd(read_toc, sizeof(read_toc),
-	    dummy_buf, 255, 1, 1, lun, 0)) {
+	if (do_msc_cmd(read_toc, sizeof(read_toc), dummy_buf, 255, 1, 1, lun,
+		0)) {
 		printf("INFO: Read Table Of Content failed\n");
 	}
 	if (p->try_last_lba) {
@@ -666,18 +684,21 @@ usb_msc_test(struct usb_msc_params *p)
 		}
 
 		printf("Highest readable LBA: %u (%s), "
-		    "Capacity is %u MBytes\n", y,
-		    (capacity_lba != y) ? "WRONG" : "OK",
+		       "Capacity is %u MBytes\n",
+		    y, (capacity_lba != y) ? "WRONG" : "OK",
 		    (int)((((uint64_t)(y) * (uint64_t)block_size) +
-		    (uint64_t)block_size) / 1000000ULL));
+			      (uint64_t)block_size) /
+			1000000ULL));
 	} else {
 
 		y = capacity_lba;
 
 		printf("Highest readable LBA: %u (not "
-		    "verified), Capacity is %u MBytes\n", y,
+		       "verified), Capacity is %u MBytes\n",
+		    y,
 		    (int)((((uint64_t)(y) * (uint64_t)block_size) +
-		    (uint64_t)block_size) / 1000000ULL));
+			      (uint64_t)block_size) /
+			1000000ULL));
 	}
 
 	if (y != 0xFFFFFFFFU)
@@ -718,7 +739,8 @@ usb_msc_test(struct usb_msc_params *p)
 retry_read_init:
 
 	printf("Setting up initial data pattern, "
-	    "LBA limit = %u ... ", lba_max);
+	       "LBA limit = %u ... ",
+	    lba_max);
 
 	switch (p->io_mode) {
 	case USB_MSC_IO_MODE_WRITE_ONCE_READ_ONLY:
@@ -737,8 +759,8 @@ retry_read_init:
 				reference[x + 6] = 0xFF;
 				reference[x + 7] = 0x00;
 			}
-			if (do_write_10(0, lba_max * block_size,
-			    reference, lun)) {
+			if (do_write_10(0, lba_max * block_size, reference,
+				lun)) {
 				printf("FAILED\n");
 				lba_max /= 2;
 				if (lba_max)
@@ -751,8 +773,8 @@ retry_read_init:
 			for (x = 0; x != (block_size * lba_max); x++) {
 				reference[x] = usb_ts_rand_noise() % 255U;
 			}
-			if (do_write_10(0, lba_max * block_size,
-			    reference, lun)) {
+			if (do_write_10(0, lba_max * block_size, reference,
+				lun)) {
 				printf("FAILED\n");
 				lba_max /= 2;
 				if (lba_max)
@@ -762,8 +784,8 @@ retry_read_init:
 			printf("SUCCESS\n");
 			break;
 		default:
-			if (do_read_10(0, lba_max * block_size,
-			    reference, lun)) {
+			if (do_read_10(0, lba_max * block_size, reference,
+				lun)) {
 				printf("FAILED\n");
 				lba_max /= 2;
 				if (lba_max)
@@ -786,7 +808,6 @@ retry_read_init:
 		printf("SUCCESS\n");
 		break;
 	}
-
 
 	if (p->try_abort_data_write) {
 		if (do_write_10(0, (2 * block_size) | 1, reference, lun))
@@ -814,14 +835,13 @@ retry_read_init:
 		if (last_sec != sub_tv.tv_sec) {
 
 			printf("STATUS: ID=%u, RX=%u bytes/sec, "
-			    "TX=%u bytes/sec, ERR=%u, RST=%u, DERR=%u\n",
+			       "TX=%u bytes/sec, ERR=%u, RST=%u, DERR=%u\n",
 			    (int)xfer_current_id,
 			    (int)(stats.xfer_rx_bytes -
-			    last_stat.xfer_rx_bytes),
+				last_stat.xfer_rx_bytes),
 			    (int)(stats.xfer_tx_bytes -
-			    last_stat.xfer_tx_bytes),
-			    (int)(stats.xfer_error),
-			    (int)(stats.xfer_reset),
+				last_stat.xfer_tx_bytes),
+			    (int)(stats.xfer_error), (int)(stats.xfer_reset),
 			    (int)(stats.data_error));
 
 			fflush(stdout);
@@ -930,8 +950,8 @@ find_usb_device(struct uaddr uaddr)
 		if ((uaddr.vid == ddesc->idVendor) &&
 		    (uaddr.pid == ddesc->idProduct) &&
 		    (uaddr.addr == 0 ||
-		     (uaddr.addr == libusb20_dev_get_address(pdev) &&
-		      uaddr.bus == libusb20_dev_get_bus_number(pdev)))) {
+			(uaddr.addr == libusb20_dev_get_address(pdev) &&
+			    uaddr.bus == libusb20_dev_get_bus_number(pdev)))) {
 			libusb20_be_dequeue_device(pbe, pdev);
 			break;
 		}
@@ -945,8 +965,8 @@ find_usb_device(struct uaddr uaddr)
 
 void
 find_usb_endpoints(struct libusb20_device *pdev, uint8_t class,
-    uint8_t subclass, uint8_t protocol, uint8_t alt_setting,
-    uint8_t *pif, uint8_t *in_ep, uint8_t *out_ep, uint8_t next_if)
+    uint8_t subclass, uint8_t protocol, uint8_t alt_setting, uint8_t *pif,
+    uint8_t *in_ep, uint8_t *out_ep, uint8_t next_if)
 {
 	struct libusb20_config *pcfg;
 	struct libusb20_interface *iface;
@@ -973,9 +993,9 @@ find_usb_endpoints(struct libusb20_device *pdev, uint8_t class,
 
 		if ((iface->desc.bInterfaceClass == class) &&
 		    (iface->desc.bInterfaceSubClass == subclass ||
-		    subclass == 255) &&
+			subclass == 255) &&
 		    (iface->desc.bInterfaceProtocol == protocol ||
-		    protocol == 255)) {
+			protocol == 255)) {
 
 			if (next_if) {
 				x++;
@@ -1032,8 +1052,8 @@ exec_host_msc_test(struct usb_msc_params *p, struct uaddr uaddr)
 		libusb20_dev_free(pdev);
 		return;
 	}
-	printf("Attaching to: %s @ iface %d\n",
-	    libusb20_dev_get_desc(pdev), iface);
+	printf("Attaching to: %s @ iface %d\n", libusb20_dev_get_desc(pdev),
+	    iface);
 
 	if (libusb20_dev_open(pdev, 2)) {
 		printf("Could not open USB device\n");
@@ -1070,7 +1090,7 @@ set_defaults(struct usb_msc_params *p)
 {
 	memset(p, 0, sizeof(*p));
 
-	p->duration = 60;		/* seconds */
+	p->duration = 60; /* seconds */
 	p->try_invalid_scsi_command = 1;
 	p->try_invalid_wrapper_block = 1;
 	p->try_last_lba = 1;
@@ -1080,7 +1100,7 @@ set_defaults(struct usb_msc_params *p)
 static const char *
 get_io_mode(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_mode) {
 	case USB_MSC_IO_MODE_READ_ONLY:
 		return ("Read Only");
@@ -1098,7 +1118,7 @@ get_io_mode(const struct usb_msc_params *p)
 static const char *
 get_io_pattern(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_pattern) {
 	case USB_MSC_IO_PATTERN_FIXED:
 		return ("Fixed");
@@ -1114,7 +1134,7 @@ get_io_pattern(const struct usb_msc_params *p)
 static const char *
 get_io_size(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_size) {
 	case USB_MSC_IO_SIZE_RANDOM:
 		return ("Random");
@@ -1150,7 +1170,7 @@ get_io_size(const struct usb_msc_params *p)
 static const char *
 get_io_delay(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_delay) {
 	case USB_MSC_IO_DELAY_NONE:
 		return ("None");
@@ -1170,7 +1190,7 @@ get_io_delay(const struct usb_msc_params *p)
 static const char *
 get_io_offset(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_offset) {
 	case USB_MSC_IO_OFF_START_OF_DISK:
 		return ("Start Of Disk");
@@ -1184,7 +1204,7 @@ get_io_offset(const struct usb_msc_params *p)
 static const char *
 get_io_area(const struct usb_msc_params *p)
 {
-	;				/* indent fix */
+	; /* indent fix */
 	switch (p->io_area) {
 	case USB_MSC_IO_AREA_COMPLETE:
 		return ("Complete Disk");
@@ -1211,8 +1231,7 @@ show_host_msc_test(uint8_t level, struct uaddr uaddr, uint32_t duration)
 
 	while (1) {
 
-		retval = usb_ts_show_menu(level,
-		    "Mass Storage Test Parameters",
+		retval = usb_ts_show_menu(level, "Mass Storage Test Parameters",
 		    " 1) Toggle I/O mode: <%s>\n"
 		    " 2) Toggle I/O size: <%s>\n"
 		    " 3) Toggle I/O delay: <%s>\n"
@@ -1234,19 +1253,14 @@ show_host_msc_test(uint8_t level, struct uaddr uaddr, uint32_t duration)
 		    "30) Start test (VID=0x%04x, PID=0x%04x)\n"
 		    "40) Select another device\n"
 		    " x) Return to previous menu \n",
-		    get_io_mode(&params),
-		    get_io_size(&params),
-		    get_io_delay(&params),
-		    get_io_offset(&params),
-		    get_io_area(&params),
-		    get_io_pattern(&params),
+		    get_io_mode(&params), get_io_size(&params),
+		    get_io_delay(&params), get_io_offset(&params),
+		    get_io_area(&params), get_io_pattern(&params),
 		    (params.try_invalid_scsi_command ? "YES" : "NO"),
 		    (params.try_invalid_wrapper_block ? "YES" : "NO"),
 		    (params.try_invalid_max_packet_size ? "YES" : "NO"),
-		    (params.try_last_lba ? "YES" : "NO"),
-		    params.io_lun,
-		    (int)params.max_errors,
-		    (int)params.duration,
+		    (params.try_last_lba ? "YES" : "NO"), params.io_lun,
+		    (int)params.max_errors, (int)params.duration,
 		    (params.try_abort_data_write ? "YES" : "NO"),
 		    (params.try_sense_on_error ? "YES" : "NO"),
 		    (params.try_all_lun ? "YES" : "NO"),

@@ -23,7 +23,7 @@
  * SUCH DAMAGE.
  */
 
-#define	_SEARCH_PRIVATE
+#define _SEARCH_PRIVATE
 #include <search.h>
 #include <stdlib.h>
 
@@ -46,7 +46,7 @@ tsearch(const void *key, posix_tnode **rootp,
 	 * if we've found an existing entry. Keep track of the path that
 	 * is taken to get to the node, as we will need it to adjust the
 	 * balances.
-	*/
+	 */
 	path_init(&path);
 	leaf = rootp;
 	while (*leaf != NULL) {
@@ -88,7 +88,7 @@ tsearch(const void *key, posix_tnode **rootp,
 	 * balances. Except for the first node, all of these nodes must
 	 * have a balance of zero, meaning that these nodes will not get
 	 * out of balance.
-	*/
+	 */
 	for (n = *rootp; n != *leaf;) {
 		if (path_took_left(&path)) {
 			n->balance += 1;

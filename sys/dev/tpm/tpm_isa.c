@@ -23,26 +23,25 @@
 #include <sys/proc.h>
 
 #ifdef __FreeBSD__
-#include <sys/module.h>
-#include <sys/conf.h>
-#include <sys/uio.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/uio.h>
 
 #include <machine/bus.h>
-#include <sys/rman.h>
-#include <machine/resource.h>
-
 #include <machine/md_var.h>
+#include <machine/resource.h>
 
 #include <isa/isareg.h>
 #include <isa/isavar.h>
 #else
 #include <sys/device.h>
 
-#include <machine/cpu.h>
 #include <machine/bus.h>
-#include <machine/intr.h>
 #include <machine/conf.h>
+#include <machine/cpu.h>
+#include <machine/intr.h>
 
 #include <dev/isa/isareg.h>
 #include <dev/isa/isavar.h>
@@ -76,16 +75,17 @@ static device_method_t tpm_methods[] = {
 #if 0
 	DEVMETHOD(device_identify,	tpm_identify),
 #endif
-	DEVMETHOD(device_probe,		tpm_isa_probe),
-	DEVMETHOD(device_attach,	tpm_attach),
-	DEVMETHOD(device_detach,	tpm_detach),
-	DEVMETHOD(device_suspend,	tpm_suspend),
-	DEVMETHOD(device_resume,	tpm_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, tpm_isa_probe),
+	DEVMETHOD(device_attach, tpm_attach),
+	DEVMETHOD(device_detach, tpm_detach),
+	DEVMETHOD(device_suspend, tpm_suspend),
+	DEVMETHOD(device_resume, tpm_resume), { 0, 0 }
 };
 
 static driver_t tpm_driver = {
-	"tpm", tpm_methods, sizeof(struct tpm_softc),
+	"tpm",
+	tpm_methods,
+	sizeof(struct tpm_softc),
 };
 
 DRIVER_MODULE(tpm, isa, tpm_driver, 0, 0);

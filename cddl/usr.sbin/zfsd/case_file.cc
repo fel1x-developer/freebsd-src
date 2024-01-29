@@ -40,45 +40,42 @@
  */
 #include <sys/cdefs.h>
 #include <sys/byteorder.h>
+#include <sys/fs/zfs.h>
 #include <sys/time.h>
 
-#include <sys/fs/zfs.h>
-
-#include <dirent.h>
-#include <fcntl.h>
-#include <iomanip>
-#include <fstream>
-#include <functional>
-#include <sstream>
-#include <syslog.h>
-#include <unistd.h>
-
-#include <libzfs.h>
-
-#include <list>
-#include <map>
-#include <string>
-
-#include <devdctl/guid.h>
+#include <devdctl/consumer.h>
 #include <devdctl/event.h>
 #include <devdctl/event_factory.h>
 #include <devdctl/exception.h>
-#include <devdctl/consumer.h>
+#include <devdctl/guid.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <libzfs.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "callout.h"
-#include "vdev_iterator.h"
-#include "zfsd_event.h"
 #include "case_file.h"
 #include "vdev.h"
+#include "vdev_iterator.h"
 #include "zfsd.h"
+#include "zfsd_event.h"
 #include "zfsd_exception.h"
 #include "zpool_list.h"
+
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <list>
+#include <map>
+#include <sstream>
+#include <string>
 /*============================ Namespace Control =============================*/
 using std::hex;
 using std::ifstream;
-using std::stringstream;
 using std::setfill;
 using std::setw;
+using std::stringstream;
 
 using DevdCtl::Event;
 using DevdCtl::EventFactory;
@@ -89,9 +86,9 @@ using DevdCtl::ParseException;
 /*--------------------------------- CaseFile ---------------------------------*/
 //- CaseFile Static Data -------------------------------------------------------
 
-CaseFileList  CaseFile::s_activeCases;
-const string  CaseFile::s_caseFilePath = "/var/db/zfsd/cases";
-const timeval CaseFile::s_removeGracePeriod = { 60 /*sec*/, 0 /*usec*/};
+CaseFileList CaseFile::s_activeCases;
+const string CaseFile::s_caseFilePath = "/var/db/zfsd/cases";
+const timeval CaseFile::s_removeGracePeriod = { 60 /*sec*/, 0 /*usec*/ };
 
 //- CaseFile Static Public Methods ---------------------------------------------
 CaseFile *
@@ -100,9 +97,9 @@ CaseFile::Find(Guid poolGUID, Guid vdevGUID)
 	for (CaseFileList::iterator curCase = s_activeCases.begin();
 	     curCase != s_activeCases.end(); curCase++) {
 
-		if (((*curCase)->PoolGUID() != poolGUID
-		  && Guid::InvalidGuid() != poolGUID)
-		 || (*curCase)->VdevGUID() != vdevGUID)
+		if (((*curCase)->PoolGUID() != poolGUID &&
+			Guid::InvalidGuid() != poolGUID) ||
+		    (*curCase)->VdevGUID() != vdevGUID)
 			continue;
 
 		/*
@@ -117,9 +114,9 @@ void
 CaseFile::Find(Guid poolGUID, Guid vdevGUID, CaseFileList &cases)
 {
 	for (CaseFileList::iterator curCase = s_activeCases.begin();
-	    curCase != s_activeCases.end(); curCase++) {
+	     curCase != s_activeCases.end(); curCase++) {
 		if (((*curCase)->PoolGUID() != poolGUID &&
-		    Guid::InvalidGuid() != poolGUID) ||
+			Guid::InvalidGuid() != poolGUID) ||
 		    (*curCase)->VdevGUID() != vdevGUID)
 			continue;
 
@@ -145,7 +142,8 @@ CaseFile::Find(const string &physPath)
 			continue;
 
 		if (result != NULL) {
-			syslog(LOG_WARNING, "Multiple casefiles found for "
+			syslog(LOG_WARNING,
+			    "Multiple casefiles found for "
 			    "physical path %s.  "
 			    "This is most likely a bug in zfsd",
 			    physPath.c_str());
@@ -155,12 +153,12 @@ CaseFile::Find(const string &physPath)
 	return (result);
 }
 
-
 void
 CaseFile::ReEvaluateByGuid(Guid poolGUID, const ZfsEvent &event)
 {
 	CaseFileList::iterator casefile;
-	for (casefile = s_activeCases.begin(); casefile != s_activeCases.end();){
+	for (casefile = s_activeCases.begin();
+	     casefile != s_activeCases.end();) {
 		CaseFileList::iterator next = casefile;
 		next++;
 		if (poolGUID == (*casefile)->PoolGUID())
@@ -187,7 +185,7 @@ CaseFile::DeSerialize()
 	struct dirent **caseFiles;
 
 	int numCaseFiles(scandir(s_caseFilePath.c_str(), &caseFiles,
-			 DeSerializeSelector, /*compar*/NULL));
+	    DeSerializeSelector, /*compar*/ NULL));
 
 	if (numCaseFiles == -1)
 		return;
@@ -231,7 +229,6 @@ CaseFile::PurgeAll()
 		casefile->Serialize();
 		delete casefile;
 	}
-
 }
 
 int
@@ -253,7 +250,7 @@ CaseFile::RefreshVdevState()
 	if (vd.DoesNotExist())
 		return (false);
 
-	m_vdevState    = vd.State();
+	m_vdevState = vd.State();
 	m_vdevPhysPath = vd.PhysicalPath();
 	return (true);
 }
@@ -274,17 +271,16 @@ CaseFile::ReEvaluate(const string &devPath, const string &physPath, Vdev *vdev)
 		 * event.
 		 */
 		syslog(LOG_INFO,
-		       "CaseFile::ReEvaluate(%s,%s) Pool/Vdev unconfigured.  "
-		       "Closing\n",
-		       PoolGUIDString().c_str(),
-		       VdevGUIDString().c_str());
+		    "CaseFile::ReEvaluate(%s,%s) Pool/Vdev unconfigured.  "
+		    "Closing\n",
+		    PoolGUIDString().c_str(), VdevGUIDString().c_str());
 		Close();
 
 		/*
 		 * Since this event was not used to close this
 		 * case, do not report it as consumed.
 		 */
-		return (/*consumed*/false);
+		return (/*consumed*/ false);
 	}
 
 	if (VdevState() > VDEV_STATE_CANT_OPEN) {
@@ -294,32 +290,33 @@ CaseFile::ReEvaluate(const string &devPath, const string &physPath, Vdev *vdev)
 		 * use a newly inserted spare to replace a degraded
 		 * or faulted device.
 		 */
-		syslog(LOG_INFO, "CaseFile::ReEvaluate(%s,%s): Pool/Vdev ignored",
+		syslog(LOG_INFO,
+		    "CaseFile::ReEvaluate(%s,%s): Pool/Vdev ignored",
 		    PoolGUIDString().c_str(), VdevGUIDString().c_str());
-		return (/*consumed*/false);
+		return (/*consumed*/ false);
 	}
 
-	if (vdev != NULL
-	 && ( vdev->PoolGUID() == m_poolGUID
-	   || vdev->PoolGUID() == Guid::InvalidGuid())
-	 && vdev->GUID() == m_vdevGUID) {
+	if (vdev != NULL &&
+	    (vdev->PoolGUID() == m_poolGUID ||
+		vdev->PoolGUID() == Guid::InvalidGuid()) &&
+	    vdev->GUID() == m_vdevGUID) {
 
 		if (IsSpare())
 			flags |= ZFS_ONLINE_SPARE;
-		if (zpool_vdev_online(pool, vdev->GUIDString().c_str(),
-		    flags, &m_vdevState) != 0) {
+		if (zpool_vdev_online(pool, vdev->GUIDString().c_str(), flags,
+			&m_vdevState) != 0) {
 			syslog(LOG_ERR,
 			    "Failed to online vdev(%s/%s:%s): %s: %s\n",
 			    zpool_get_name(pool), vdev->GUIDString().c_str(),
 			    devPath.c_str(), libzfs_error_action(g_zfsHandle),
 			    libzfs_error_description(g_zfsHandle));
-			return (/*consumed*/false);
+			return (/*consumed*/ false);
 		}
 
 		syslog(LOG_INFO, "Onlined vdev(%s/%s:%s).  State now %s.\n",
-		       zpool_get_name(pool), vdev->GUIDString().c_str(),
-		       devPath.c_str(),
-		       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+		    zpool_get_name(pool), vdev->GUIDString().c_str(),
+		    devPath.c_str(),
+		    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
 
 		/*
 		 * Check the vdev state post the online action to see
@@ -327,7 +324,7 @@ CaseFile::ReEvaluate(const string &devPath, const string &physPath, Vdev *vdev)
 		 */
 		CloseIfSolved();
 
-		return (/*consumed*/true);
+		return (/*consumed*/ true);
 	}
 
 	/*
@@ -336,48 +333,45 @@ CaseFile::ReEvaluate(const string &devPath, const string &physPath, Vdev *vdev)
 	 */
 	if (zpool_get_prop_int(pool, ZPOOL_PROP_AUTOREPLACE, NULL) == 0) {
 		syslog(LOG_INFO,
-		       "CaseFile(%s:%s:%s): AutoReplace not set.  "
-		       "Ignoring device insertion.\n",
-		       PoolGUIDString().c_str(),
-		       VdevGUIDString().c_str(),
-		       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
-		return (/*consumed*/false);
+		    "CaseFile(%s:%s:%s): AutoReplace not set.  "
+		    "Ignoring device insertion.\n",
+		    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+		    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+		return (/*consumed*/ false);
 	}
 
 	if (PhysicalPath().empty()) {
 		syslog(LOG_INFO,
-		       "CaseFile(%s:%s:%s): No physical path information.  "
-		       "Ignoring device insertion.\n",
-		       PoolGUIDString().c_str(),
-		       VdevGUIDString().c_str(),
-		       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
-		return (/*consumed*/false);
+		    "CaseFile(%s:%s:%s): No physical path information.  "
+		    "Ignoring device insertion.\n",
+		    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+		    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+		return (/*consumed*/ false);
 	}
 
 	if (physPath != PhysicalPath()) {
 		syslog(LOG_INFO,
-		       "CaseFile(%s:%s:%s): Physical path mismatch.  "
-		       "Ignoring device insertion.\n",
-		       PoolGUIDString().c_str(),
-		       VdevGUIDString().c_str(),
-		       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
-		return (/*consumed*/false);
+		    "CaseFile(%s:%s:%s): Physical path mismatch.  "
+		    "Ignoring device insertion.\n",
+		    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+		    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+		return (/*consumed*/ false);
 	}
 
 	/* Write a label on the newly inserted disk. */
 	if (zpool_label_disk(g_zfsHandle, pool, devPath.c_str()) != 0) {
 		syslog(LOG_ERR,
-		       "Replace vdev(%s/%s) by physical path (label): %s: %s\n",
-		       zpool_get_name(pool), VdevGUIDString().c_str(),
-		       libzfs_error_action(g_zfsHandle),
-		       libzfs_error_description(g_zfsHandle));
-		return (/*consumed*/false);
+		    "Replace vdev(%s/%s) by physical path (label): %s: %s\n",
+		    zpool_get_name(pool), VdevGUIDString().c_str(),
+		    libzfs_error_action(g_zfsHandle),
+		    libzfs_error_description(g_zfsHandle));
+		return (/*consumed*/ false);
 	}
 
 	syslog(LOG_INFO, "CaseFile::ReEvaluate(%s/%s): Replacing with %s",
 	    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
 	    devPath.c_str());
-	return (Replace(VDEV_TYPE_DISK, devPath.c_str(), /*isspare*/false));
+	return (Replace(VDEV_TYPE_DISK, devPath.c_str(), /*isspare*/ false));
 }
 
 bool
@@ -392,18 +386,17 @@ CaseFile::ReEvaluate(const ZfsEvent &event)
 		 */
 		Close();
 
-		return (/*consumed*/true);
+		return (/*consumed*/ true);
 	} else if (event.Value("type") == "sysevent.fs.zfs.pool_destroy") {
 		/* This Pool has been destroyed.  Discard the case */
 		Close();
 
-		return (/*consumed*/true);
+		return (/*consumed*/ true);
 	} else if (event.Value("type") == "sysevent.fs.zfs.config_sync") {
 		RefreshVdevState();
 		if (VdevState() < VDEV_STATE_HEALTHY)
 			consumed = ActivateSpare();
 	}
-
 
 	if (event.Value("class") == "resource.fs.zfs.removed") {
 		bool spare_activated;
@@ -417,10 +410,9 @@ CaseFile::ReEvaluate(const ZfsEvent &event)
 			 * event.
 			 */
 			syslog(LOG_INFO,
-			       "CaseFile::ReEvaluate(%s,%s) Pool/Vdev "
-			       "unconfigured.  Closing\n",
-			       PoolGUIDString().c_str(),
-			       VdevGUIDString().c_str());
+			    "CaseFile::ReEvaluate(%s,%s) Pool/Vdev "
+			    "unconfigured.  Closing\n",
+			    PoolGUIDString().c_str(), VdevGUIDString().c_str());
 			/*
 			 * Close the case now so we won't waste cycles in the
 			 * system rescan
@@ -431,7 +423,7 @@ CaseFile::ReEvaluate(const ZfsEvent &event)
 			 * Since this event was not used to close this
 			 * case, do not report it as consumed.
 			 */
-			return (/*consumed*/false);
+			return (/*consumed*/ false);
 		}
 
 		/*
@@ -466,12 +458,11 @@ CaseFile::ReEvaluate(const ZfsEvent &event)
 		if (VdevState() == VDEV_STATE_FAULTED ||
 		    VdevState() == VDEV_STATE_DEGRADED ||
 		    VdevState() == VDEV_STATE_CANT_OPEN)
-			(void) ActivateSpare();
+			(void)ActivateSpare();
 		consumed = true;
-	}
-	else if (event.Value("class") == "ereport.fs.zfs.io" ||
-	         event.Value("class") == "ereport.fs.zfs.checksum" ||
-		 event.Value("class") == "ereport.fs.zfs.delay") {
+	} else if (event.Value("class") == "ereport.fs.zfs.io" ||
+	    event.Value("class") == "ereport.fs.zfs.checksum" ||
+	    event.Value("class") == "ereport.fs.zfs.delay") {
 
 		m_tentativeEvents.push_front(event.DeepCopy());
 		RegisterCallout(event);
@@ -484,15 +475,15 @@ CaseFile::ReEvaluate(const ZfsEvent &event)
 }
 
 /* Find a Vdev containing the vdev with the given GUID */
-static nvlist_t*
+static nvlist_t *
 find_parent(nvlist_t *pool_config, nvlist_t *config, DevdCtl::Guid child_guid)
 {
 	nvlist_t **vdevChildren;
-	int        error;
-	unsigned   ch, numChildren;
+	int error;
+	unsigned ch, numChildren;
 
 	error = nvlist_lookup_nvlist_array(config, ZPOOL_CONFIG_CHILDREN,
-					   &vdevChildren, &numChildren);
+	    &vdevChildren, &numChildren);
 
 	if (error != 0 || numChildren == 0)
 		return (NULL);
@@ -513,31 +504,38 @@ find_parent(nvlist_t *pool_config, nvlist_t *config, DevdCtl::Guid child_guid)
 }
 
 bool
-CaseFile::ActivateSpare() {
-	nvlist_t	*config, *nvroot, *parent_config;
-	nvlist_t       **spares;
-	const char	*devPath, *poolname, *vdev_type;
-	u_int		 nspares, i;
-	int		 error;
+CaseFile::ActivateSpare()
+{
+	nvlist_t *config, *nvroot, *parent_config;
+	nvlist_t **spares;
+	const char *devPath, *poolname, *vdev_type;
+	u_int nspares, i;
+	int error;
 
 	ZpoolList zpl(ZpoolList::ZpoolByGUID, &m_poolGUID);
-	zpool_handle_t	*zhp(zpl.empty() ? NULL : zpl.front());
+	zpool_handle_t *zhp(zpl.empty() ? NULL : zpl.front());
 	if (zhp == NULL) {
-		syslog(LOG_ERR, "CaseFile::ActivateSpare: Could not find pool "
-		       "for pool_guid %" PRIu64".", (uint64_t)m_poolGUID);
+		syslog(LOG_ERR,
+		    "CaseFile::ActivateSpare: Could not find pool "
+		    "for pool_guid %" PRIu64 ".",
+		    (uint64_t)m_poolGUID);
 		return (false);
 	}
 	poolname = zpool_get_name(zhp);
 	config = zpool_get_config(zhp, NULL);
 	if (config == NULL) {
-		syslog(LOG_ERR, "CaseFile::ActivateSpare: Could not find pool "
-		       "config for pool %s", poolname);
+		syslog(LOG_ERR,
+		    "CaseFile::ActivateSpare: Could not find pool "
+		    "config for pool %s",
+		    poolname);
 		return (false);
 	}
 	error = nvlist_lookup_nvlist(config, ZPOOL_CONFIG_VDEV_TREE, &nvroot);
-	if (error != 0){
-		syslog(LOG_ERR, "CaseFile::ActivateSpare: Could not find vdev "
-		       "tree for pool %s", poolname);
+	if (error != 0) {
+		syslog(LOG_ERR,
+		    "CaseFile::ActivateSpare: Could not find vdev "
+		    "tree for pool %s",
+		    poolname);
 		return (false);
 	}
 
@@ -545,42 +543,45 @@ CaseFile::ActivateSpare() {
 	if (parent_config != NULL) {
 		const char *parent_type;
 
-		/* 
+		/*
 		 * Don't activate spares for members of a "replacing" vdev.
 		 * They're already dealt with.  Sparing them will just drag out
 		 * the resilver process.
 		 */
-		error = nvlist_lookup_string(parent_config,
-		    ZPOOL_CONFIG_TYPE, &parent_type);
+		error = nvlist_lookup_string(parent_config, ZPOOL_CONFIG_TYPE,
+		    &parent_type);
 		if (error == 0 && strcmp(parent_type, VDEV_TYPE_REPLACING) == 0)
 			return (false);
 	}
 
 	nspares = 0;
 	nvlist_lookup_nvlist_array(nvroot, ZPOOL_CONFIG_SPARES, &spares,
-				   &nspares);
+	    &nspares);
 	if (nspares == 0) {
 		/* The pool has no spares configured */
-		syslog(LOG_INFO, "CaseFile::ActivateSpare: "
-		       "No spares available for pool %s", poolname);
+		syslog(LOG_INFO,
+		    "CaseFile::ActivateSpare: "
+		    "No spares available for pool %s",
+		    poolname);
 		return (false);
 	}
 	for (i = 0; i < nspares; i++) {
-		uint64_t    *nvlist_array;
+		uint64_t *nvlist_array;
 		vdev_stat_t *vs;
-		uint_t	     nstats;
+		uint_t nstats;
 
 		if (nvlist_lookup_uint64_array(spares[i],
-		    ZPOOL_CONFIG_VDEV_STATS, &nvlist_array, &nstats) != 0) {
-			syslog(LOG_ERR, "CaseFile::ActivateSpare: Could not "
-			       "find vdev stats for pool %s, spare %d",
-			       poolname, i);
+			ZPOOL_CONFIG_VDEV_STATS, &nvlist_array, &nstats) != 0) {
+			syslog(LOG_ERR,
+			    "CaseFile::ActivateSpare: Could not "
+			    "find vdev stats for pool %s, spare %d",
+			    poolname, i);
 			return (false);
 		}
 		vs = reinterpret_cast<vdev_stat_t *>(nvlist_array);
 
-		if ((vs->vs_aux != VDEV_AUX_SPARED)
-		 && (vs->vs_state == VDEV_STATE_HEALTHY)) {
+		if ((vs->vs_aux != VDEV_AUX_SPARED) &&
+		    (vs->vs_state == VDEV_STATE_HEALTHY)) {
 			/* We found a usable spare */
 			break;
 		}
@@ -593,21 +594,23 @@ CaseFile::ActivateSpare() {
 
 	error = nvlist_lookup_string(spares[i], ZPOOL_CONFIG_PATH, &devPath);
 	if (error != 0) {
-		syslog(LOG_ERR, "CaseFile::ActivateSpare: Cannot determine "
-		       "the path of pool %s, spare %d. Error %d",
-		       poolname, i, error);
+		syslog(LOG_ERR,
+		    "CaseFile::ActivateSpare: Cannot determine "
+		    "the path of pool %s, spare %d. Error %d",
+		    poolname, i, error);
 		return (false);
 	}
 
 	error = nvlist_lookup_string(spares[i], ZPOOL_CONFIG_TYPE, &vdev_type);
 	if (error != 0) {
-		syslog(LOG_ERR, "CaseFile::ActivateSpare: Cannot determine "
-		       "the vdev type of pool %s, spare %d. Error %d",
-		       poolname, i, error);
+		syslog(LOG_ERR,
+		    "CaseFile::ActivateSpare: Cannot determine "
+		    "the vdev type of pool %s, spare %d. Error %d",
+		    poolname, i, error);
 		return (false);
 	}
 
-	return (Replace(vdev_type, devPath, /*isspare*/true));
+	return (Replace(vdev_type, devPath, /*isspare*/ true));
 }
 
 void
@@ -631,17 +634,15 @@ CaseFile::RegisterCallout(const Event &event)
 
 	remaining = m_tentativeTimer.TimeRemaining();
 
-	if (!m_tentativeTimer.IsPending()
-	 || timercmp(&countdown, &remaining, <))
+	if (!m_tentativeTimer.IsPending() ||
+	    timercmp(&countdown, &remaining, <))
 		m_tentativeTimer.Reset(countdown, OnGracePeriodEnded, this);
 }
-
 
 bool
 CaseFile::CloseIfSolved()
 {
-	if (m_events.empty()
-	 && m_tentativeEvents.empty()) {
+	if (m_events.empty() && m_tentativeEvents.empty()) {
 
 		/*
 		 * We currently do not track or take actions on
@@ -670,11 +671,11 @@ CaseFile::CloseIfSolved()
 		case VDEV_STATE_UNKNOWN:
 		case VDEV_STATE_CLOSED:
 		case VDEV_STATE_OFFLINE:
-			/*
-			 * Keep open?  This may not be the correct behavior,
-			 * but it's what we've always done
-			 */
-			;
+		    /*
+		     * Keep open?  This may not be the correct behavior,
+		     * but it's what we've always done
+		     */
+		    ;
 		}
 
 		/*
@@ -691,9 +692,9 @@ void
 CaseFile::Log()
 {
 	syslog(LOG_INFO, "CaseFile(%s,%s,%s)\n", PoolGUIDString().c_str(),
-	       VdevGUIDString().c_str(), PhysicalPath().c_str());
+	    VdevGUIDString().c_str(), PhysicalPath().c_str());
 	syslog(LOG_INFO, "\tVdev State = %s\n",
-	       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+	    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
 	if (m_tentativeEvents.size() != 0) {
 		syslog(LOG_INFO, "\t=== Tentative Events ===\n");
 		for (EventList::iterator event(m_tentativeEvents.begin());
@@ -723,9 +724,9 @@ CaseFile::DeSerializeSelector(const struct dirent *dirEntry)
 	uint64_t poolGUID;
 	uint64_t vdevGUID;
 
-	if (dirEntry->d_type == DT_REG
-	 && sscanf(dirEntry->d_name, "pool_%" PRIu64 "_vdev_%" PRIu64 ".case",
-		   &poolGUID, &vdevGUID) == 2)
+	if (dirEntry->d_type == DT_REG &&
+	    sscanf(dirEntry->d_name, "pool_%" PRIu64 "_vdev_%" PRIu64 ".case",
+		&poolGUID, &vdevGUID) == 2)
 		return (1);
 	return (0);
 }
@@ -733,7 +734,7 @@ CaseFile::DeSerializeSelector(const struct dirent *dirEntry)
 void
 CaseFile::DeSerializeFile(const char *fileName)
 {
-	string	  fullName(s_caseFilePath + '/' + fileName);
+	string fullName(s_caseFilePath + '/' + fileName);
 	CaseFile *existingCaseFile(NULL);
 	CaseFile *caseFile(NULL);
 
@@ -743,9 +744,11 @@ CaseFile::DeSerializeFile(const char *fileName)
 		nvlist_t *vdevConf;
 
 		if (sscanf(fileName, "pool_%" PRIu64 "_vdev_%" PRIu64 ".case",
-		       &poolGUID, &vdevGUID) != 2) {
-			throw ZfsdException("CaseFile::DeSerialize: "
-			    "Unintelligible CaseFile filename %s.\n", fileName);
+			&poolGUID, &vdevGUID) != 2) {
+			throw ZfsdException(
+			    "CaseFile::DeSerialize: "
+			    "Unintelligible CaseFile filename %s.\n",
+			    fileName);
 		}
 		existingCaseFile = Find(Guid(poolGUID), Guid(vdevGUID));
 		if (existingCaseFile != NULL) {
@@ -759,16 +762,16 @@ CaseFile::DeSerializeFile(const char *fileName)
 			 */
 			caseFile = existingCaseFile;
 			vdev_state curState(caseFile->VdevState());
-			if (curState > VDEV_STATE_CANT_OPEN
-			 && curState < VDEV_STATE_HEALTHY) {
+			if (curState > VDEV_STATE_CANT_OPEN &&
+			    curState < VDEV_STATE_HEALTHY) {
 				unlink(fileName);
 				return;
 			}
 		} else {
 			ZpoolList zpl(ZpoolList::ZpoolByGUID, &poolGUID);
-			if (zpl.empty()
-			 || (vdevConf = VdevIterator(zpl.front())
-						    .Find(vdevGUID)) == NULL) {
+			if (zpl.empty() ||
+			    (vdevConf = VdevIterator(zpl.front())
+					    .Find(vdevGUID)) == NULL) {
 				/*
 				 * Either the pool no longer exists
 				 * or this vdev is no longer a member of
@@ -789,7 +792,8 @@ CaseFile::DeSerializeFile(const char *fileName)
 		ifstream caseStream(fullName.c_str());
 		if (!caseStream)
 			throw ZfsdException("CaseFile::DeSerialize: Unable to "
-					    "read %s.\n", fileName);
+					    "read %s.\n",
+			    fileName);
 
 		caseFile->DeSerialize(caseStream);
 	} catch (const ParseException &exp) {
@@ -813,11 +817,11 @@ CaseFile::DeSerializeFile(const char *fileName)
 
 //- CaseFile Protected Methods -------------------------------------------------
 CaseFile::CaseFile(const Vdev &vdev)
- : m_poolGUID(vdev.PoolGUID()),
-   m_vdevGUID(vdev.GUID()),
-   m_vdevState(vdev.State()),
-   m_vdevPhysPath(vdev.PhysicalPath()),
-   m_is_spare(vdev.IsSpare())
+    : m_poolGUID(vdev.PoolGUID())
+    , m_vdevGUID(vdev.GUID())
+    , m_vdevState(vdev.State())
+    , m_vdevPhysPath(vdev.PhysicalPath())
+    , m_is_spare(vdev.IsSpare())
 {
 	stringstream guidString;
 
@@ -863,7 +867,7 @@ CaseFile::PurgeTentativeEvents()
 
 void
 CaseFile::SerializeEvList(const EventList events, int fd,
-		const char* prefix) const
+    const char *prefix) const
 {
 	if (events.empty())
 		return;
@@ -883,10 +887,8 @@ CaseFile::Serialize()
 {
 	stringstream saveFile;
 
-	saveFile << setfill('0')
-		 << s_caseFilePath << "/"
-		 << "pool_" << PoolGUIDString()
-		 << "_vdev_" << VdevGUIDString()
+	saveFile << setfill('0') << s_caseFilePath << "/"
+		 << "pool_" << PoolGUIDString() << "_vdev_" << VdevGUIDString()
 		 << ".case";
 
 	if (m_events.empty() && m_tentativeEvents.empty()) {
@@ -894,10 +896,11 @@ CaseFile::Serialize()
 		return;
 	}
 
-	int fd(open(saveFile.str().c_str(), O_CREAT|O_TRUNC|O_WRONLY, 0644));
+	int fd(
+	    open(saveFile.str().c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644));
 	if (fd == -1) {
 		syslog(LOG_ERR, "CaseFile::Serialize: Unable to open %s.\n",
-		       saveFile.str().c_str());
+		    saveFile.str().c_str());
 		return;
 	}
 	SerializeEvList(m_events, fd);
@@ -913,7 +916,7 @@ CaseFile::Serialize()
 void
 CaseFile::DeSerialize(ifstream &caseStream)
 {
-	string	      evString;
+	string evString;
 	const EventFactory &factory(ZfsDaemon::Get().GetFactory());
 
 	caseStream >> std::noskipws >> std::ws;
@@ -925,13 +928,13 @@ CaseFile::DeSerialize(ifstream &caseStream)
 		 * Create a new event
 		 * continue
 		 */
-		EventList* destEvents;
+		EventList *destEvents;
 		const string tentFlag("tentative ");
 		string line;
 		std::stringbuf lineBuf;
 
 		caseStream.get(lineBuf);
-		caseStream.ignore();  /*discard the newline character*/
+		caseStream.ignore(); /*discard the newline character*/
 		line = lineBuf.str();
 		if (line.compare(0, tentFlag.size(), tentFlag) == 0) {
 			/* Discard "tentative" */
@@ -956,8 +959,8 @@ CaseFile::Close()
 	 * serialization file, and delete the case.
 	 */
 	syslog(LOG_INFO, "CaseFile(%s,%s) closed - State %s\n",
-	       PoolGUIDString().c_str(), VdevGUIDString().c_str(),
-	       zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
+	    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+	    zpool_state_to_name(VdevState(), VDEV_AUX_NONE));
 
 	/*
 	 * Serialization of a Case with no event data, clears the
@@ -981,8 +984,8 @@ CaseFile::OnGracePeriodEnded()
 	should_degrade = ShouldDegrade();
 
 	if (should_fault || should_degrade) {
-		if (zhp == NULL
-		 || (VdevIterator(zhp).Find(m_vdevGUID)) == NULL) {
+		if (zhp == NULL ||
+		    (VdevIterator(zhp).Find(m_vdevGUID)) == NULL) {
 			/*
 			 * Either the pool no longer exists
 			 * or this vdev is no longer a member of
@@ -991,51 +994,44 @@ CaseFile::OnGracePeriodEnded()
 			Close();
 			return;
 		}
-
 	}
 
 	/* A fault condition has priority over a degrade condition */
 	if (ShouldFault()) {
 		/* Fault the vdev and close the case. */
 		if (zpool_vdev_fault(zhp, (uint64_t)m_vdevGUID,
-				       VDEV_AUX_ERR_EXCEEDED) == 0) {
+			VDEV_AUX_ERR_EXCEEDED) == 0) {
 			syslog(LOG_INFO, "Faulting vdev(%s/%s)",
-			       PoolGUIDString().c_str(),
-			       VdevGUIDString().c_str());
+			    PoolGUIDString().c_str(), VdevGUIDString().c_str());
 			Close();
 			return;
-		}
-		else {
+		} else {
 			syslog(LOG_ERR, "Fault vdev(%s/%s): %s: %s\n",
-			       PoolGUIDString().c_str(),
-			       VdevGUIDString().c_str(),
-			       libzfs_error_action(g_zfsHandle),
-			       libzfs_error_description(g_zfsHandle));
+			    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+			    libzfs_error_action(g_zfsHandle),
+			    libzfs_error_description(g_zfsHandle));
 		}
-	}
-	else if (ShouldDegrade()) {
+	} else if (ShouldDegrade()) {
 		/* Degrade the vdev and close the case. */
 		if (zpool_vdev_degrade(zhp, (uint64_t)m_vdevGUID,
-				       VDEV_AUX_ERR_EXCEEDED) == 0) {
+			VDEV_AUX_ERR_EXCEEDED) == 0) {
 			syslog(LOG_INFO, "Degrading vdev(%s/%s)",
-			       PoolGUIDString().c_str(),
-			       VdevGUIDString().c_str());
+			    PoolGUIDString().c_str(), VdevGUIDString().c_str());
 			Close();
 			return;
-		}
-		else {
+		} else {
 			syslog(LOG_ERR, "Degrade vdev(%s/%s): %s: %s\n",
-			       PoolGUIDString().c_str(),
-			       VdevGUIDString().c_str(),
-			       libzfs_error_action(g_zfsHandle),
-			       libzfs_error_description(g_zfsHandle));
+			    PoolGUIDString().c_str(), VdevGUIDString().c_str(),
+			    libzfs_error_action(g_zfsHandle),
+			    libzfs_error_description(g_zfsHandle));
 		}
 	}
 	Serialize();
 }
 
 Vdev
-CaseFile::BeingReplacedBy(zpool_handle_t *zhp) {
+CaseFile::BeingReplacedBy(zpool_handle_t *zhp)
+{
 	Vdev vd(zhp, CaseVdev(zhp));
 	std::list<Vdev> children;
 	std::list<Vdev>::iterator children_it;
@@ -1052,13 +1048,13 @@ CaseFile::BeingReplacedBy(zpool_handle_t *zhp) {
 	 * If the spare is healthy, then the case file should be closed very
 	 * soon after this check.
 	 */
-	if (parent.DoesNotExist()
-	 || parent.Name(zhp, /*verbose*/false) != "spare")
+	if (parent.DoesNotExist() ||
+	    parent.Name(zhp, /*verbose*/ false) != "spare")
 		return (NonexistentVdev);
 
 	children = parent.Children();
 	children_it = children.begin();
-	for (;children_it != children.end(); children_it++) {
+	for (; children_it != children.end(); children_it++) {
 		Vdev child = *children_it;
 
 		/* Skip our vdev. */
@@ -1068,8 +1064,8 @@ CaseFile::BeingReplacedBy(zpool_handle_t *zhp) {
 		 * Accept the first child that doesn't match our GUID, or
 		 * any resilvering/healthy device if one exists.
 		 */
-		if (replacing.DoesNotExist() || child.IsResilvering()
-		 || child.State() == VDEV_STATE_HEALTHY)
+		if (replacing.DoesNotExist() || child.IsResilvering() ||
+		    child.State() == VDEV_STATE_HEALTHY)
 			replacing = child;
 	}
 
@@ -1077,7 +1073,8 @@ CaseFile::BeingReplacedBy(zpool_handle_t *zhp) {
 }
 
 bool
-CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
+CaseFile::Replace(const char *vdev_type, const char *path, bool isspare)
+{
 	nvlist_t *nvroot, *newvd;
 	const char *poolname;
 	string oldstr(VdevGUIDString());
@@ -1087,8 +1084,10 @@ CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
 	ZpoolList zpl(ZpoolList::ZpoolByGUID, &m_poolGUID);
 	zpool_handle_t *zhp(zpl.empty() ? NULL : zpl.front());
 	if (zhp == NULL) {
-		syslog(LOG_ERR, "CaseFile::Replace: could not find pool for "
-		       "pool_guid %" PRIu64 ".", (uint64_t)m_poolGUID);
+		syslog(LOG_ERR,
+		    "CaseFile::Replace: could not find pool for "
+		    "pool_guid %" PRIu64 ".",
+		    (uint64_t)m_poolGUID);
 		return (false);
 	}
 	poolname = zpool_get_name(zhp);
@@ -1097,20 +1096,23 @@ CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
 
 	if (isspare && !vd.IsSpare() && !replaced.DoesNotExist()) {
 		/* If we are already being replaced by a working spare, pass. */
-		if (replaced.IsResilvering()
-		 || replaced.State() == VDEV_STATE_HEALTHY) {
-			syslog(LOG_INFO, "CaseFile::Replace(%s->%s): already "
-			    "replaced", VdevGUIDString().c_str(), path);
-			return (/*consumed*/false);
+		if (replaced.IsResilvering() ||
+		    replaced.State() == VDEV_STATE_HEALTHY) {
+			syslog(LOG_INFO,
+			    "CaseFile::Replace(%s->%s): already "
+			    "replaced",
+			    VdevGUIDString().c_str(), path);
+			return (/*consumed*/ false);
 		}
 		/*
 		 * If we have already been replaced by a spare, but that spare
 		 * is broken, we must spare the spare, not the original device.
 		 */
 		oldstr = replaced.GUIDString();
-		syslog(LOG_INFO, "CaseFile::Replace(%s->%s): sparing "
-		    "broken spare %s instead", VdevGUIDString().c_str(),
-		    path, oldstr.c_str());
+		syslog(LOG_INFO,
+		    "CaseFile::Replace(%s->%s): sparing "
+		    "broken spare %s instead",
+		    VdevGUIDString().c_str(), path, oldstr.c_str());
 	}
 
 	/*
@@ -1121,21 +1123,25 @@ CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
 	nvroot = NULL;
 	newvd = NULL;
 
-	if (nvlist_alloc(&nvroot, NV_UNIQUE_NAME, 0) != 0
-	 || nvlist_alloc(&newvd, NV_UNIQUE_NAME, 0) != 0) {
-		syslog(LOG_ERR, "Replace vdev(%s/%s): Unable to allocate "
-		    "configuration data.", poolname, oldstr.c_str());
+	if (nvlist_alloc(&nvroot, NV_UNIQUE_NAME, 0) != 0 ||
+	    nvlist_alloc(&newvd, NV_UNIQUE_NAME, 0) != 0) {
+		syslog(LOG_ERR,
+		    "Replace vdev(%s/%s): Unable to allocate "
+		    "configuration data.",
+		    poolname, oldstr.c_str());
 		if (nvroot != NULL)
 			nvlist_free(nvroot);
 		return (false);
 	}
-	if (nvlist_add_string(newvd, ZPOOL_CONFIG_TYPE, vdev_type) != 0
-	 || nvlist_add_string(newvd, ZPOOL_CONFIG_PATH, path) != 0
-	 || nvlist_add_string(nvroot, ZPOOL_CONFIG_TYPE, VDEV_TYPE_ROOT) != 0
-	 || nvlist_add_nvlist_array(nvroot, ZPOOL_CONFIG_CHILDREN,
-				    &newvd, 1) != 0) {
-		syslog(LOG_ERR, "Replace vdev(%s/%s): Unable to initialize "
-		    "configuration data.", poolname, oldstr.c_str());
+	if (nvlist_add_string(newvd, ZPOOL_CONFIG_TYPE, vdev_type) != 0 ||
+	    nvlist_add_string(newvd, ZPOOL_CONFIG_PATH, path) != 0 ||
+	    nvlist_add_string(nvroot, ZPOOL_CONFIG_TYPE, VDEV_TYPE_ROOT) != 0 ||
+	    nvlist_add_nvlist_array(nvroot, ZPOOL_CONFIG_CHILDREN, &newvd, 1) !=
+		0) {
+		syslog(LOG_ERR,
+		    "Replace vdev(%s/%s): Unable to initialize "
+		    "configuration data.",
+		    poolname, oldstr.c_str());
 		nvlist_free(newvd);
 		nvlist_free(nvroot);
 		return (true);
@@ -1145,13 +1151,13 @@ CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
 	nvlist_free(newvd);
 
 	retval = (zpool_vdev_attach(zhp, oldstr.c_str(), path, nvroot,
-       /*replace*/B_TRUE, /*rebuild*/ B_FALSE) == 0);
+		      /*replace*/ B_TRUE, /*rebuild*/ B_FALSE) == 0);
 	if (retval)
-		syslog(LOG_INFO, "Replacing vdev(%s/%s) with %s\n",
-		    poolname, oldstr.c_str(), path);
+		syslog(LOG_INFO, "Replacing vdev(%s/%s) with %s\n", poolname,
+		    oldstr.c_str(), path);
 	else
-		syslog(LOG_ERR, "Replace vdev(%s/%s): %s: %s\n",
-		    poolname, oldstr.c_str(), libzfs_error_action(g_zfsHandle),
+		syslog(LOG_ERR, "Replace vdev(%s/%s): %s: %s\n", poolname,
+		    oldstr.c_str(), libzfs_error_action(g_zfsHandle),
 		    libzfs_error_description(g_zfsHandle));
 	nvlist_free(nvroot);
 
@@ -1160,21 +1166,21 @@ CaseFile::Replace(const char* vdev_type, const char* path, bool isspare) {
 
 /* Does the argument event refer to a checksum error? */
 static bool
-IsChecksumEvent(const Event* const event)
+IsChecksumEvent(const Event *const event)
 {
 	return ("ereport.fs.zfs.checksum" == event->Value("type"));
 }
 
 /* Does the argument event refer to an IO error? */
 static bool
-IsIOEvent(const Event* const event)
+IsIOEvent(const Event *const event)
 {
 	return ("ereport.fs.zfs.io" == event->Value("type"));
 }
 
 /* Does the argument event refer to an IO delay? */
 static bool
-IsDelayEvent(const Event* const event)
+IsDelayEvent(const Event *const event)
 {
 	return ("ereport.fs.zfs.delay" == event->Value("type"));
 }
@@ -1183,7 +1189,7 @@ bool
 CaseFile::ShouldDegrade() const
 {
 	return (std::count_if(m_events.begin(), m_events.end(),
-			      IsChecksumEvent) > ZFS_DEGRADE_IO_COUNT);
+		    IsChecksumEvent) > ZFS_DEGRADE_IO_COUNT);
 }
 
 bool
@@ -1192,9 +1198,9 @@ CaseFile::ShouldFault() const
 	bool should_fault_for_io, should_fault_for_delay;
 
 	should_fault_for_io = std::count_if(m_events.begin(), m_events.end(),
-			      IsIOEvent) > ZFS_DEGRADE_IO_COUNT;
+				  IsIOEvent) > ZFS_DEGRADE_IO_COUNT;
 	should_fault_for_delay = std::count_if(m_events.begin(), m_events.end(),
-			      IsDelayEvent) > ZFS_FAULT_DELAY_COUNT;
+				     IsDelayEvent) > ZFS_FAULT_DELAY_COUNT;
 
 	return (should_fault_for_io || should_fault_for_delay);
 }

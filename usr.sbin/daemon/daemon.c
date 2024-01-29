@@ -34,37 +34,36 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 
-#include <fcntl.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <libutil.h>
 #include <login_cap.h>
 #include <paths.h>
 #include <pwd.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 #define SYSLOG_NAMES
+#include <assert.h>
 #include <syslog.h>
 #include <time.h>
-#include <assert.h>
 
 /* 1 year in seconds */
-#define MAX_RESTART_DELAY 60*60*24*365
+#define MAX_RESTART_DELAY 60 * 60 * 24 * 365
 
 #define LBUF_SIZE 4096
 
 enum daemon_mode {
-	MODE_DAEMON = 0,   /* simply daemonize, no supervision */
-	MODE_SUPERVISE,    /* initial supervision state */
-	MODE_TERMINATING,  /* user requested termination */
-	MODE_NOCHILD,      /* child is terminated, final state of the event loop */
+	MODE_DAEMON = 0,  /* simply daemonize, no supervision */
+	MODE_SUPERVISE,	  /* initial supervision state */
+	MODE_TERMINATING, /* user requested termination */
+	MODE_NOCHILD, /* child is terminated, final state of the event loop */
 };
-
 
 struct daemon_state {
 	unsigned char buf[LBUF_SIZE];
@@ -95,10 +94,10 @@ struct daemon_state {
 };
 
 static void restrict_process(const char *);
-static int  open_log(const char *);
+static int open_log(const char *);
 static void reopen_log(struct daemon_state *);
 static bool listen_child(struct daemon_state *);
-static int  get_log_mapping(const char *, const CODE *);
+static int get_log_mapping(const char *, const CODE *);
 static void open_pid_files(struct daemon_state *);
 static void do_output(const unsigned char *, size_t, struct daemon_state *);
 static void daemon_sleep(struct daemon_state *);
@@ -111,25 +110,23 @@ static void daemon_set_child_pipe(struct daemon_state *);
 
 static const char shortopts[] = "+cfHSp:P:ru:o:s:l:t:m:R:T:h";
 
-static const struct option longopts[] = {
-	{ "change-dir",         no_argument,            NULL,           'c' },
-	{ "close-fds",          no_argument,            NULL,           'f' },
-	{ "sighup",             no_argument,            NULL,           'H' },
-	{ "syslog",             no_argument,            NULL,           'S' },
-	{ "output-file",        required_argument,      NULL,           'o' },
-	{ "output-mask",        required_argument,      NULL,           'm' },
-	{ "child-pidfile",      required_argument,      NULL,           'p' },
-	{ "supervisor-pidfile", required_argument,      NULL,           'P' },
-	{ "restart",            no_argument,            NULL,           'r' },
-	{ "restart-delay",      required_argument,      NULL,           'R' },
-	{ "title",              required_argument,      NULL,           't' },
-	{ "user",               required_argument,      NULL,           'u' },
-	{ "syslog-priority",    required_argument,      NULL,           's' },
-	{ "syslog-facility",    required_argument,      NULL,           'l' },
-	{ "syslog-tag",         required_argument,      NULL,           'T' },
-	{ "help",               no_argument,            NULL,           'h' },
-	{ NULL,                 0,                      NULL,            0  }
-};
+static const struct option longopts[] = { { "change-dir", no_argument, NULL,
+					      'c' },
+	{ "close-fds", no_argument, NULL, 'f' },
+	{ "sighup", no_argument, NULL, 'H' },
+	{ "syslog", no_argument, NULL, 'S' },
+	{ "output-file", required_argument, NULL, 'o' },
+	{ "output-mask", required_argument, NULL, 'm' },
+	{ "child-pidfile", required_argument, NULL, 'p' },
+	{ "supervisor-pidfile", required_argument, NULL, 'P' },
+	{ "restart", no_argument, NULL, 'r' },
+	{ "restart-delay", required_argument, NULL, 'R' },
+	{ "title", required_argument, NULL, 't' },
+	{ "user", required_argument, NULL, 'u' },
+	{ "syslog-priority", required_argument, NULL, 's' },
+	{ "syslog-facility", required_argument, NULL, 'l' },
+	{ "syslog-tag", required_argument, NULL, 'T' },
+	{ "help", no_argument, NULL, 'h' }, { NULL, 0, NULL, 0 } };
 
 static _Noreturn void
 usage(int exitcode)
@@ -188,12 +185,13 @@ main(int argc, char *argv[])
 	 *
 	 * In supervision mode daemon executes the command in a forked process
 	 * and observes the child by waiting for SIGCHILD. In supervision mode
-	 * daemon must never exit before the child, this is necessary  to prevent
-	 * orphaning the child and leaving a stale pid file.
-	 * To achieve this daemon catches SIGTERM and
-	 * forwards it to the child, expecting to get SIGCHLD eventually.
+	 * daemon must never exit before the child, this is necessary  to
+	 * prevent orphaning the child and leaving a stale pid file. To achieve
+	 * this daemon catches SIGTERM and forwards it to the child, expecting
+	 * to get SIGCHLD eventually.
 	 */
-	while ((ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
+	while (
+	    (ch = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'c':
 			state.keep_cur_workdir = 0;
@@ -385,13 +383,13 @@ daemon_eventloop(struct daemon_state *state)
 	state->pipe_wr = pipe_fd[1];
 
 	kq = kqueuex(KQUEUE_CLOEXEC);
-	EV_SET(&event, state->pipe_rd, EVFILT_READ, EV_ADD|EV_CLEAR, 0, 0,
+	EV_SET(&event, state->pipe_rd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0,
 	    NULL);
 	if (kevent(kq, &event, 1, NULL, 0, NULL) == -1) {
 		err(EXIT_FAILURE, "failed to register kevent");
 	}
 
-	EV_SET(&event, SIGHUP,  EVFILT_SIGNAL, EV_ADD, 0, 0, NULL);
+	EV_SET(&event, SIGHUP, EVFILT_SIGNAL, EV_ADD, 0, 0, NULL);
 	if (kevent(kq, &event, 1, NULL, 0, NULL) == -1) {
 		err(EXIT_FAILURE, "failed to register kevent");
 	}
@@ -478,7 +476,8 @@ daemon_eventloop(struct daemon_state *state)
 				 */
 				continue;
 			case SIGHUP:
-				if (state->log_reopen && state->output_fd >= 0) {
+				if (state->log_reopen &&
+				    state->output_fd >= 0) {
 					reopen_log(state);
 				}
 				continue;
@@ -528,7 +527,8 @@ open_pid_files(struct daemon_state *state)
 	int serrno;
 
 	if (state->child_pidfile) {
-		state->child_pidfh = pidfile_open(state->child_pidfile, 0600, &fpid);
+		state->child_pidfh = pidfile_open(state->child_pidfile, 0600,
+		    &fpid);
 		if (state->child_pidfh == NULL) {
 			if (errno == EEXIST) {
 				errx(3, "process already running, pid: %d",
@@ -539,14 +539,15 @@ open_pid_files(struct daemon_state *state)
 	}
 	/* Do the same for the actual daemon process. */
 	if (state->parent_pidfile) {
-		state->parent_pidfh= pidfile_open(state->parent_pidfile, 0600, &fpid);
+		state->parent_pidfh = pidfile_open(state->parent_pidfile, 0600,
+		    &fpid);
 		if (state->parent_pidfh == NULL) {
 			serrno = errno;
 			pidfile_remove(state->child_pidfh);
 			errno = serrno;
 			if (errno == EEXIST) {
 				errx(3, "process already running, pid: %d",
-				     fpid);
+				    fpid);
 			}
 			err(2, "ppidfile ``%s''", state->parent_pidfile);
 		}
@@ -667,8 +668,7 @@ do_output(const unsigned char *buf, size_t len, struct daemon_state *state)
 		if (write(state->output_fd, buf, len) == -1)
 			warn("write");
 	}
-	if (state->keep_fds_open &&
-	    !state->syslog_enabled &&
+	if (state->keep_fds_open && !state->syslog_enabled &&
 	    state->output_fd == -1) {
 		printf("%.*s", (int)len, buf);
 	}
@@ -697,7 +697,7 @@ static void
 daemon_state_init(struct daemon_state *state)
 {
 	*state = (struct daemon_state) {
-		.buf = {0},
+		.buf = { 0 },
 		.pos = 0,
 		.argv = NULL,
 		.parent_pidfh = NULL,

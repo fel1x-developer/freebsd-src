@@ -27,15 +27,15 @@
  */
 
 #ifndef _BHYVEGC_H_
-#define	_BHYVEGC_H_
+#define _BHYVEGC_H_
 
 struct bhyvegc;
 
 struct bhyvegc_image {
-	int		vgamode;
-	int		width;
-	int		height;
-	uint32_t	*data;
+	int vgamode;
+	int width;
+	int height;
+	uint32_t *data;
 };
 
 struct bhyvegc *bhyvegc_init(int width, int height, void *fbaddr);

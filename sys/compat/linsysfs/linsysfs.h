@@ -32,7 +32,7 @@ MALLOC_DECLARE(M_LINSYSFS);
 
 extern struct pfs_node *net;
 
-void	linsysfs_net_init(void);
-void	linsysfs_net_uninit(void);
+void linsysfs_net_init(void);
+void linsysfs_net_uninit(void);
 
 #endif /* _COMPAT_LINSYSFS_LINSYSFS_H_ */

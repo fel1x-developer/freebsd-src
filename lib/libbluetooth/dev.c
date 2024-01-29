@@ -35,18 +35,17 @@
 #include <stdio.h>
 #include <string.h>
 
-struct bt_devaddr_match_arg
-{
-	char		devname[HCI_DEVNAME_SIZE];
-	bdaddr_t const	*bdaddr;
+struct bt_devaddr_match_arg {
+	char devname[HCI_DEVNAME_SIZE];
+	bdaddr_t const *bdaddr;
 };
 
-static bt_devenum_cb_t	bt_devaddr_match;
+static bt_devenum_cb_t bt_devaddr_match;
 
 int
 bt_devaddr(char const *devname, bdaddr_t *addr)
 {
-	struct bt_devinfo	di;
+	struct bt_devinfo di;
 
 	strlcpy(di.devname, devname, sizeof(di.devname));
 
@@ -62,14 +61,14 @@ bt_devaddr(char const *devname, bdaddr_t *addr)
 int
 bt_devname(char *devname, bdaddr_t const *addr)
 {
-	struct bt_devaddr_match_arg	arg;
+	struct bt_devaddr_match_arg arg;
 
 	memset(&arg, 0, sizeof(arg));
 	arg.bdaddr = addr;
 
 	if (bt_devenum(&bt_devaddr_match, &arg) < 0)
 		return (0);
-	
+
 	if (arg.devname[0] == '\0') {
 		errno = ENXIO;
 		return (0);
@@ -84,7 +83,7 @@ bt_devname(char *devname, bdaddr_t const *addr)
 static int
 bt_devaddr_match(int s, struct bt_devinfo const *di, void *arg)
 {
-	struct bt_devaddr_match_arg	*m = (struct bt_devaddr_match_arg *)arg;
+	struct bt_devaddr_match_arg *m = (struct bt_devaddr_match_arg *)arg;
 
 	if (!bdaddr_same(&di->bdaddr, m->bdaddr))
 		return (0);
@@ -93,4 +92,3 @@ bt_devaddr_match(int s, struct bt_devinfo const *di, void *arg)
 
 	return (1);
 }
-

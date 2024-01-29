@@ -92,6 +92,7 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
+#include <crypto/cryptodev.h>
 #include <err.h>
 #include <fcntl.h>
 #include <paths.h>
@@ -101,56 +102,56 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <crypto/cryptodev.h>
+#define CHUNK 64 /* how much to display */
+#define streq(a, b) (strcasecmp(a, b) == 0)
 
-#define	CHUNK	64	/* how much to display */
-#define	streq(a,b)	(strcasecmp(a,b) == 0)
+void hexdump(char *, int);
 
-void	hexdump(char *, int);
-
-int	verbose = 0;
-int	opflags = 0;
-int	verify = 0;
-int	crid = CRYPTO_FLAG_HARDWARE;
+int verbose = 0;
+int opflags = 0;
+int verify = 0;
+int crid = CRYPTO_FLAG_HARDWARE;
 
 struct alg {
-	const char* name;
-	int	ishash;
-	int	blocksize;
-	int	minkeylen;
-	int	maxkeylen;
-	int	code;
+	const char *name;
+	int ishash;
+	int blocksize;
+	int minkeylen;
+	int maxkeylen;
+	int code;
 } algorithms[] = {
 #ifdef CRYPTO_NULL_CBC
-	{ "null",	0,	8,	1,	256,	CRYPTO_NULL_CBC },
+	{ "null", 0, 8, 1, 256, CRYPTO_NULL_CBC },
 #endif
-	{ "des",	0,	8,	8,	8,	CRYPTO_DES_CBC },
-	{ "3des",	0,	8,	24,	24,	CRYPTO_3DES_CBC },
-	{ "blf",	0,	8,	5,	56,	CRYPTO_BLF_CBC },
-	{ "cast",	0,	8,	5,	16,	CRYPTO_CAST_CBC },
-	{ "skj",	0,	8,	10,	10,	CRYPTO_SKIPJACK_CBC },
-	{ "rij",	0,	16,	16,	16,	CRYPTO_RIJNDAEL128_CBC},
-	{ "aes",	0,	16,	16,	16,	CRYPTO_AES_CBC},
-	{ "aes192",	0,	16,	24,	24,	CRYPTO_AES_CBC},
-	{ "aes256",	0,	16,	32,	32,	CRYPTO_AES_CBC},
-	{ "chacha20",	0,	1,	32,	32,	CRYPTO_CHACHA20},
-	{ "blake2b",	1,	128,	64,	64,	CRYPTO_BLAKE2B },
-	{ "blake2s",	1,	64,	32,	32,	CRYPTO_BLAKE2S },
-	{ "md5",	1,	8,	16,	16,	CRYPTO_MD5_HMAC },
-	{ "sha1",	1,	8,	20,	20,	CRYPTO_SHA1_HMAC },
-	{ "sha256",	1,	8,	32,	32,	CRYPTO_SHA2_256_HMAC },
-	{ "sha384",	1,	8,	48,	48,	CRYPTO_SHA2_384_HMAC },
-	{ "sha512",	1,	8,	64,	64,	CRYPTO_SHA2_512_HMAC },
+	{ "des", 0, 8, 8, 8, CRYPTO_DES_CBC },
+	{ "3des", 0, 8, 24, 24, CRYPTO_3DES_CBC },
+	{ "blf", 0, 8, 5, 56, CRYPTO_BLF_CBC },
+	{ "cast", 0, 8, 5, 16, CRYPTO_CAST_CBC },
+	{ "skj", 0, 8, 10, 10, CRYPTO_SKIPJACK_CBC },
+	{ "rij", 0, 16, 16, 16, CRYPTO_RIJNDAEL128_CBC },
+	{ "aes", 0, 16, 16, 16, CRYPTO_AES_CBC },
+	{ "aes192", 0, 16, 24, 24, CRYPTO_AES_CBC },
+	{ "aes256", 0, 16, 32, 32, CRYPTO_AES_CBC },
+	{ "chacha20", 0, 1, 32, 32, CRYPTO_CHACHA20 },
+	{ "blake2b", 1, 128, 64, 64, CRYPTO_BLAKE2B },
+	{ "blake2s", 1, 64, 32, 32, CRYPTO_BLAKE2S },
+	{ "md5", 1, 8, 16, 16, CRYPTO_MD5_HMAC },
+	{ "sha1", 1, 8, 20, 20, CRYPTO_SHA1_HMAC },
+	{ "sha256", 1, 8, 32, 32, CRYPTO_SHA2_256_HMAC },
+	{ "sha384", 1, 8, 48, 48, CRYPTO_SHA2_384_HMAC },
+	{ "sha512", 1, 8, 64, 64, CRYPTO_SHA2_512_HMAC },
 };
 
 void
-usage(const char* cmd)
+usage(const char *cmd)
 {
-	printf("usage: %s [-czsbv] [-d dev] [-a algorithm] [count] [size ...]\n",
-		cmd);
+	printf(
+	    "usage: %s [-czsbv] [-d dev] [-a algorithm] [count] [size ...]\n",
+	    cmd);
 	printf("where algorithm is one of:\n");
 	printf("    null des 3des (default) blowfish cast skipjack rij\n");
-	printf("    aes aes192 aes256 chacha20 md5 sha1 sha256 sha384 sha512\n");
+	printf(
+	    "    aes aes192 aes256 chacha20 md5 sha1 sha256 sha384 sha512\n");
 	printf("    blake2b blake2s\n");
 	printf(" or an encryption algorithm concatented with authentication\n");
 	printf(" algorithm with '+' in the middle, e.g., aes+sha1.\n");
@@ -158,8 +159,10 @@ usage(const char* cmd)
 	printf("size is the number of bytes of text to encrypt+decrypt\n");
 	printf("\n");
 	printf("-c check the results (slows timing)\n");
-	printf("-d use specific device, specify 'soft' for testing software implementations\n");
-	printf("\tNOTE: to use software you must set:\n\t sysctl kern.cryptodevallowsoft=1\n");
+	printf(
+	    "-d use specific device, specify 'soft' for testing software implementations\n");
+	printf(
+	    "\tNOTE: to use software you must set:\n\t sysctl kern.cryptodevallowsoft=1\n");
 	printf("-z run all available algorithms on a variety of sizes\n");
 	printf("-v be verbose\n");
 	printf("-b mark operations for batching\n");
@@ -168,7 +171,7 @@ usage(const char* cmd)
 	exit(-1);
 }
 
-struct alg*
+struct alg *
 getalgbycode(int cipher)
 {
 	int i;
@@ -179,8 +182,8 @@ getalgbycode(int cipher)
 	return NULL;
 }
 
-struct alg*
-getalgbyname(const char* name)
+struct alg *
+getalgbyname(const char *name)
 {
 	int i;
 
@@ -235,15 +238,15 @@ crfind(int crid)
 char
 rdigit(void)
 {
-	const char a[] = {
-		0x10,0x54,0x11,0x48,0x45,0x12,0x4f,0x13,0x49,0x53,0x14,0x41,
-		0x15,0x16,0x4e,0x55,0x54,0x17,0x18,0x4a,0x4f,0x42,0x19,0x01
-	};
-	return 0x20+a[random()%nitems(a)];
+	const char a[] = { 0x10, 0x54, 0x11, 0x48, 0x45, 0x12, 0x4f, 0x13, 0x49,
+		0x53, 0x14, 0x41, 0x15, 0x16, 0x4e, 0x55, 0x54, 0x17, 0x18,
+		0x4a, 0x4f, 0x42, 0x19, 0x01 };
+	return 0x20 + a[random() % nitems(a)];
 }
 
 void
-runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, struct timeval *tv)
+runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd,
+    struct timeval *tv)
 {
 	int i, fd = devcrypto();
 	struct timeval start, stop, dt;
@@ -251,7 +254,7 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 	struct session2_op sop;
 	struct crypt_op cop;
 	char iv[EALG_MAX_BLOCK_LEN];
-	char digest[512/8];
+	char digest[512 / 8];
 
 	/* Canonicalize 'ealg' to crypt alg and 'alg' to authentication alg. */
 	if (ealg == NULL && !alg->ishash) {
@@ -261,8 +264,8 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 
 	bzero(&sop, sizeof(sop));
 	if (ealg != NULL) {
-		sop.keylen = (ealg->minkeylen + ealg->maxkeylen)/2;
-		key = (char *) malloc(sop.keylen);
+		sop.keylen = (ealg->minkeylen + ealg->maxkeylen) / 2;
+		key = (char *)malloc(sop.keylen);
 		if (key == NULL)
 			err(1, "malloc (key)");
 		for (i = 0; i < sop.keylen; i++)
@@ -271,8 +274,8 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 		sop.cipher = ealg->code;
 	}
 	if (alg != NULL) {
-		sop.mackeylen = (alg->minkeylen + alg->maxkeylen)/2;
-		key = (char *) malloc(sop.mackeylen);
+		sop.mackeylen = (alg->minkeylen + alg->maxkeylen) / 2;
+		key = (char *)malloc(sop.mackeylen);
 		if (key == NULL)
 			err(1, "malloc (mac)");
 		for (i = 0; i < sop.mackeylen; i++)
@@ -286,12 +289,13 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 		if (cmd == CIOCGSESSION || cmd == CIOCGSESSION2) {
 			close(fd);
 			if (verbose) {
-				printf("cipher %s%s%s", ealg? ealg->name : "",
+				printf("cipher %s%s%s", ealg ? ealg->name : "",
 				    (ealg && alg) ? "+" : "",
-				    alg? alg->name : "");
+				    alg ? alg->name : "");
 
 				if (alg->ishash)
-					printf(" mackeylen %u\n", sop.mackeylen);
+					printf(" mackeylen %u\n",
+					    sop.mackeylen);
 				else
 					printf(" keylen %u\n", sop.keylen);
 				perror("CIOCGSESSION");
@@ -300,16 +304,16 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 			return;
 		}
 		printf("cipher %s%s%s keylen %u mackeylen %u\n",
-		    ealg? ealg->name : "", (ealg && alg) ? "+" : "",
-		    alg? alg->name : "", sop.keylen, sop.mackeylen);
+		    ealg ? ealg->name : "", (ealg && alg) ? "+" : "",
+		    alg ? alg->name : "", sop.keylen, sop.mackeylen);
 		err(1, "CIOCGSESSION");
 	}
 
-	originaltext = malloc(3*size);
+	originaltext = malloc(3 * size);
 	if (originaltext == NULL)
 		err(1, "malloc (text)");
-	cleartext = originaltext+size;
-	ciphertext = cleartext+size;
+	cleartext = originaltext + size;
+	ciphertext = cleartext + size;
 	for (i = 0; i < size; i++)
 		cleartext[i] = rdigit();
 	memcpy(originaltext, cleartext, size);
@@ -367,7 +371,8 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 			if (ioctl(fd, CIOCCRYPT, &cop) < 0)
 				err(1, "ioctl(CIOCCRYPT)");
 
-			if (verify && bcmp(cleartext, originaltext, size) != 0) {
+			if (verify &&
+			    bcmp(cleartext, originaltext, size) != 0) {
 				printf("decrypt mismatch:\n");
 				printf("original:");
 				hexdump(originaltext, size);
@@ -391,7 +396,7 @@ runtest(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, stru
 		}
 	}
 	gettimeofday(&stop, NULL);
- 
+
 	if (ioctl(fd, CIOCFSESSION, &sop.ses) < 0)
 		perror("ioctl(CIOCFSESSION)");
 
@@ -413,40 +418,43 @@ resetstats()
 	struct cryptostats stats;
 	size_t slen;
 
-	slen = sizeof (stats);
+	slen = sizeof(stats);
 	if (sysctlbyname("kern.crypto_stats", &stats, &slen, NULL, 0) < 0) {
 		perror("kern.crypto_stats");
 		return;
 	}
-	bzero(&stats.cs_invoke, sizeof (stats.cs_invoke));
-	bzero(&stats.cs_done, sizeof (stats.cs_done));
-	bzero(&stats.cs_cb, sizeof (stats.cs_cb));
-	bzero(&stats.cs_finis, sizeof (stats.cs_finis));
+	bzero(&stats.cs_invoke, sizeof(stats.cs_invoke));
+	bzero(&stats.cs_done, sizeof(stats.cs_done));
+	bzero(&stats.cs_cb, sizeof(stats.cs_cb));
+	bzero(&stats.cs_finis, sizeof(stats.cs_finis));
 	stats.cs_invoke.min.tv_sec = 10000;
 	stats.cs_done.min.tv_sec = 10000;
 	stats.cs_cb.min.tv_sec = 10000;
 	stats.cs_finis.min.tv_sec = 10000;
-	if (sysctlbyname("kern.crypto_stats", NULL, NULL, &stats, sizeof (stats)) < 0)
+	if (sysctlbyname("kern.crypto_stats", NULL, NULL, &stats,
+		sizeof(stats)) < 0)
 		perror("kern.cryptostats");
 }
 
 void
-printt(const char* tag, struct cryptotstat *ts)
+printt(const char *tag, struct cryptotstat *ts)
 {
 	uint64_t avg, min, max;
 
 	if (ts->count == 0)
 		return;
-	avg = (1000000000LL*ts->acc.tv_sec + ts->acc.tv_nsec) / ts->count;
-	min = 1000000000LL*ts->min.tv_sec + ts->min.tv_nsec;
-	max = 1000000000LL*ts->max.tv_sec + ts->max.tv_nsec;
-	printf("%16.16s: avg %6llu ns : min %6llu ns : max %7llu ns [%u samps]\n",
-		tag, avg, min, max, ts->count);
+	avg = (1000000000LL * ts->acc.tv_sec + ts->acc.tv_nsec) / ts->count;
+	min = 1000000000LL * ts->min.tv_sec + ts->min.tv_nsec;
+	max = 1000000000LL * ts->max.tv_sec + ts->max.tv_nsec;
+	printf(
+	    "%16.16s: avg %6llu ns : min %6llu ns : max %7llu ns [%u samps]\n",
+	    tag, avg, min, max, ts->count);
 }
 #endif
 
 void
-runtests(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, int threads, int profile)
+runtests(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd,
+    int threads, int profile)
 {
 	int i, status;
 	double t;
@@ -458,28 +466,28 @@ runtests(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, int
 	if (size % alg->blocksize || (ealg && size % ealg->blocksize)) {
 		if (verbose)
 			printf("skipping blocksize %u 'cuz not a multiple of "
-				"%s blocksize %u (or %s blocksize %u)\n",
-				size, alg->name, alg->blocksize,
-				ealg ?  ealg->name : "n/a",
-				ealg ? ealg->blocksize : 0);
+			       "%s blocksize %u (or %s blocksize %u)\n",
+			    size, alg->name, alg->blocksize,
+			    ealg ? ealg->name : "n/a",
+			    ealg ? ealg->blocksize : 0);
 		return;
 	}
 
-	region = mmap(NULL, threads * sizeof (struct timeval),
-			PROT_READ|PROT_WRITE, MAP_ANON|MAP_SHARED, -1, 0);
+	region = mmap(NULL, threads * sizeof(struct timeval),
+	    PROT_READ | PROT_WRITE, MAP_ANON | MAP_SHARED, -1, 0);
 	if (region == MAP_FAILED) {
 		perror("mmap");
 		return;
 	}
-	tvp = (struct timeval *) region;
+	tvp = (struct timeval *)region;
 #ifdef __FreeBSD__
 	if (profile) {
-		size_t tlen = sizeof (otiming);
+		size_t tlen = sizeof(otiming);
 		int timing = 1;
 
 		resetstats();
 		if (sysctlbyname("debug.crypto_timing", &otiming, &tlen,
-				&timing, sizeof (timing)) < 0)
+			&timing, sizeof(timing)) < 0)
 			perror("debug.crypto_timing");
 	}
 #endif
@@ -490,8 +498,8 @@ runtests(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, int
 				cpuset_t mask;
 				CPU_ZERO(&mask);
 				CPU_SET(i, &mask);
-				cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID,
-				    -1, sizeof(mask), &mask);
+				cpuset_setaffinity(CPU_LEVEL_WHICH,
+				    CPU_WHICH_PID, -1, sizeof(mask), &mask);
 				runtest(ealg, alg, count, size, cmd, &tvp[i]);
 				exit(0);
 			}
@@ -502,25 +510,28 @@ runtests(struct alg *ealg, struct alg *alg, int count, int size, u_long cmd, int
 
 	t = 0;
 	for (i = 0; i < threads; i++)
-		t += (((double)tvp[i].tv_sec * 1000000 + tvp[i].tv_usec) / 1000000);
+		t += (((double)tvp[i].tv_sec * 1000000 + tvp[i].tv_usec) /
+		    1000000);
 	if (t) {
-		int nops = alg->ishash ? count : 2*count;
+		int nops = alg->ishash ? count : 2 * count;
 
 		nops *= threads;
-		printf("%8.3lf sec, %7d %6s%s%6s crypts, %7d bytes, %8.0lf byte/sec, %7.1lf Mb/sec\n",
-		    t, nops, alg->name, ealg? "+" : "", ealg? ealg->name : "",
-		    size, (double)nops*size / t,
-		    (double)nops*size / t * 8 / 1024 / 1024);
+		printf(
+		    "%8.3lf sec, %7d %6s%s%6s crypts, %7d bytes, %8.0lf byte/sec, %7.1lf Mb/sec\n",
+		    t, nops, alg->name, ealg ? "+" : "", ealg ? ealg->name : "",
+		    size, (double)nops * size / t,
+		    (double)nops * size / t * 8 / 1024 / 1024);
 	}
 #ifdef __FreeBSD__
 	if (profile) {
 		struct cryptostats stats;
-		size_t slen = sizeof (stats);
+		size_t slen = sizeof(stats);
 
-		if (sysctlbyname("debug.crypto_timing", NULL, NULL,
-				&otiming, sizeof (otiming)) < 0)
+		if (sysctlbyname("debug.crypto_timing", NULL, NULL, &otiming,
+			sizeof(otiming)) < 0)
 			perror("debug.crypto_timing");
-		if (sysctlbyname("kern.crypto_stats", &stats, &slen, NULL, 0) < 0)
+		if (sysctlbyname("kern.crypto_stats", &stats, &slen, NULL, 0) <
+		    0)
 			perror("kern.cryptostats");
 		if (stats.cs_invoke.count) {
 			printt("dispatch->invoke", &stats.cs_invoke);
@@ -610,16 +621,17 @@ main(int argc, char **argv)
 		argc--, argv++;
 	}
 	if (maxthreads > CPU_SETSIZE)
-		errx(EX_USAGE, "Too many threads, %d, choose fewer.", maxthreads);
-	
+		errx(EX_USAGE, "Too many threads, %d, choose fewer.",
+		    maxthreads);
+
 	if (nsizes == 0) {
 		if (alg)
 			sizes[nsizes++] = alg->blocksize;
 		else
 			sizes[nsizes++] = 8;
 		if (testall) {
-			while (sizes[nsizes-1] < 8*1024) {
-				sizes[nsizes] = sizes[nsizes-1]<<1;
+			while (sizes[nsizes - 1] < 8 * 1024) {
+				sizes[nsizes] = sizes[nsizes - 1] << 1;
 				nsizes++;
 			}
 		}
@@ -630,13 +642,15 @@ main(int argc, char **argv)
 			int j;
 			alg = &algorithms[i];
 			for (j = 0; j < nsizes; j++)
-				runtests(ealg, alg, count, sizes[j], cmd, maxthreads, profile);
+				runtests(ealg, alg, count, sizes[j], cmd,
+				    maxthreads, profile);
 		}
 	} else {
 		if (alg == NULL)
 			alg = getalgbycode(CRYPTO_3DES_CBC);
 		for (i = 0; i < nsizes; i++)
-			runtests(ealg, alg, count, sizes[i], cmd, maxthreads, profile);
+			runtests(ealg, alg, count, sizes[i], cmd, maxthreads,
+			    profile);
 	}
 
 	return (0);

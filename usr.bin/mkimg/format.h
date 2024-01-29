@@ -25,26 +25,29 @@
  */
 
 #ifndef _MKIMG_FORMAT_H_
-#define	_MKIMG_FORMAT_H_
+#define _MKIMG_FORMAT_H_
 
 struct mkimg_format {
 	struct mkimg_format *next;
-	const char	*name;
-	const char	*description;
-	int		(*resize)(lba_t);
-	int		(*write)(int);
+	const char *name;
+	const char *description;
+	int (*resize)(lba_t);
+	int (*write)(int);
 };
 
-#define	FORMAT_DEFINE(nm)						\
-static void format_register_##nm(void) __attribute__((constructor));	\
-static void format_register_##nm(void) { format_register(&nm); }
+#define FORMAT_DEFINE(nm)                                                    \
+	static void format_register_##nm(void) __attribute__((constructor)); \
+	static void format_register_##nm(void)                               \
+	{                                                                    \
+		format_register(&nm);                                        \
+	}
 
 struct mkimg_format *format_iterate(struct mkimg_format *);
-void	format_register(struct mkimg_format *);
-int	format_select(const char *);
+void format_register(struct mkimg_format *);
+int format_select(const char *);
 struct mkimg_format *format_selected(void);
 
-int	format_resize(lba_t);
-int	format_write(int);
+int format_resize(lba_t);
+int format_write(int);
 
 #endif /* _MKIMG_FORMAT_H_ */

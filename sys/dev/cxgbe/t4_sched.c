@@ -25,22 +25,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_ratelimit.h"
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/malloc.h>
 #include <sys/queue.h>
 #include <sys/sbuf.h>
-#include <sys/taskqueue.h>
 #include <sys/sysctl.h>
+#include <sys/taskqueue.h>
 
 #include "common/common.h"
+#include "common/t4_msg.h"
 #include "common/t4_regs.h"
 #include "common/t4_regs_values.h"
-#include "common/t4_msg.h"
 
 static int
 in_range(int val, int lo, int hi)
@@ -153,7 +153,7 @@ set_sched_class_params(struct adapter *sc, struct t4_sched_class_params *p,
 		 * Valid weight must be provided.
 		 */
 		if (p->weight < 0)
-		       return (EINVAL);
+			return (EINVAL);
 		if (!in_range(p->weight, 1, 99))
 			return (ERANGE);
 
@@ -233,12 +233,13 @@ set_sched_class_params(struct adapter *sc, struct t4_sched_class_params *p,
 			/* parameters failed so we don't park at params_set */
 			tc->state = CS_UNINITIALIZED;
 			tc->flags &= ~CF_USER;
-			CH_ERR(pi, "failed to configure traffic class %d: %d.  "
+			CH_ERR(pi,
+			    "failed to configure traffic class %d: %d.  "
 			    "params: mode %d, rateunit %d, ratemode %d, "
 			    "channel %d, minrate %d, maxrate %d, pktsize %d, "
-			    "burstsize %d\n", p->cl, rc, fw_mode, fw_rateunit,
-			    fw_ratemode, p->channel, p->minrate, p->maxrate,
-			    p->pktsize, 0);
+			    "burstsize %d\n",
+			    p->cl, rc, fw_mode, fw_rateunit, fw_ratemode,
+			    p->channel, p->minrate, p->maxrate, p->pktsize, 0);
 		}
 		mtx_unlock(&sc->tc_lock);
 	}
@@ -256,7 +257,8 @@ update_tx_sched(void *context, int pending)
 	const int n = sc->params.nsched_cls;
 
 	mtx_lock(&sc->tc_lock);
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		pi = sc->port[i];
 		tc = &pi->sched_params->cl_rl[0];
 		for (j = 0; j < n; j++, tc++) {
@@ -266,7 +268,7 @@ update_tx_sched(void *context, int pending)
 			mtx_unlock(&sc->tc_lock);
 
 			if (begin_synchronized_op(sc, NULL, SLEEP_OK | INTR_OK,
-			    "t4utxs") != 0) {
+				"t4utxs") != 0) {
 				mtx_lock(&sc->tc_lock);
 				continue;
 			}
@@ -287,12 +289,14 @@ update_tx_sched(void *context, int pending)
 				tc->state = CS_PARAMS_SET;
 			else
 				tc->state = CS_UNINITIALIZED;
-			CH_ERR(pi, "failed to configure traffic class %d: %d.  "
+			CH_ERR(pi,
+			    "failed to configure traffic class %d: %d.  "
 			    "params: mode %d, rateunit %d, ratemode %d, "
 			    "channel %d, minrate %d, maxrate %d, pktsize %d, "
-			    "burstsize %d\n", j, rc, tc->mode, tc->rateunit,
-			    tc->ratemode, pi->tx_chan, 0, tc->maxrate,
-			    tc->pktsize, tc->burstsize);
+			    "burstsize %d\n",
+			    j, rc, tc->mode, tc->rateunit, tc->ratemode,
+			    pi->tx_chan, 0, tc->maxrate, tc->pktsize,
+			    tc->burstsize);
 		}
 	}
 	mtx_unlock(&sc->tc_lock);
@@ -326,11 +330,11 @@ bind_txq_to_traffic_class(struct adapter *sc, struct sge_txq *txq, int idx)
 
 	mtx_lock(&sc->tc_lock);
 	if (txq->tc_idx == -2) {
-		rc = EBUSY;	/* Another bind/unbind in progress already. */
+		rc = EBUSY; /* Another bind/unbind in progress already. */
 		goto done;
 	}
 	if (idx == txq->tc_idx) {
-		rc = 0;		/* No change, nothing to do. */
+		rc = 0; /* No change, nothing to do. */
 		goto done;
 	}
 
@@ -360,7 +364,8 @@ bind_txq_to_traffic_class(struct adapter *sc, struct sge_txq *txq, int idx)
 	rc = begin_synchronized_op(sc, NULL, SLEEP_OK | INTR_OK, "t4btxq");
 	if (rc == 0) {
 		fw_mnem = (V_FW_PARAMS_MNEM(FW_PARAMS_MNEM_DMAQ) |
-		    V_FW_PARAMS_PARAM_X(FW_PARAMS_PARAM_DMAQ_EQ_SCHEDCLASS_ETH) |
+		    V_FW_PARAMS_PARAM_X(
+			FW_PARAMS_PARAM_DMAQ_EQ_SCHEDCLASS_ETH) |
 		    V_FW_PARAMS_PARAM_YZ(txq->eq.cntxt_id));
 		fw_class = idx < 0 ? 0xffffffff : idx;
 		rc = -t4_set_params(sc, sc->mbox, sc->pf, 0, 1, &fw_mnem,
@@ -431,7 +436,8 @@ t4_set_sched_queue(struct adapter *sc, struct t4_sched_queue *p)
 		 * Change the scheduling on all the TX queues for the
 		 * interface.
 		 */
-		for_each_txq(vi, i, txq) {
+		for_each_txq(vi, i, txq)
+		{
 			rc = bind_txq_to_traffic_class(sc, txq, p->cl);
 			if (rc != 0)
 				break;
@@ -457,10 +463,12 @@ t4_init_tx_sched(struct adapter *sc)
 
 	mtx_init(&sc->tc_lock, "tx_sched lock", NULL, MTX_DEF);
 	TASK_INIT(&sc->tc_task, 0, update_tx_sched, sc);
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		pi = sc->port[i];
 		pi->sched_params = malloc(sizeof(*pi->sched_params) +
-		    n * sizeof(struct tx_cl_rl_params), M_CXGBE, M_ZERO | M_WAITOK);
+			n * sizeof(struct tx_cl_rl_params),
+		    M_CXGBE, M_ZERO | M_WAITOK);
 	}
 
 	return (0);
@@ -473,7 +481,8 @@ t4_free_tx_sched(struct adapter *sc)
 
 	taskqueue_drain(taskqueue_thread, &sc->tc_task);
 
-	for_each_port(sc, i) {
+	for_each_port(sc, i)
+	{
 		if (sc->port[i] != NULL)
 			free(sc->port[i]->sched_params, M_CXGBE);
 	}
@@ -534,10 +543,10 @@ t4_reserve_cl_rl_kbps(struct adapter *sc, int port_id, u_int maxrate,
 
 		if (fa < 0 && tc->state == CS_UNINITIALIZED) {
 			MPASS(tc->refcount == 0);
-			fa = i;		/* first available, never used. */
+			fa = i; /* first available, never used. */
 		}
 		if (fa2 < 0 && tc->refcount == 0 && !(tc->flags & CF_USER)) {
-			fa2 = i;	/* first available, used previously.  */
+			fa2 = i; /* first available, used previously.  */
 		}
 	}
 	/* Not found */
@@ -712,7 +721,7 @@ t4_init_etid_table(struct adapter *sc)
 
 	mtx_init(&t->etid_lock, "etid lock", NULL, MTX_DEF);
 	t->etid_tab = malloc(sizeof(*t->etid_tab) * t->netids, M_CXGBE,
-			M_ZERO | M_WAITOK);
+	    M_ZERO | M_WAITOK);
 	t->efree = t->etid_tab;
 	t->etids_in_use = 0;
 	for (i = 1; i < t->netids; i++)
@@ -815,7 +824,7 @@ cxgbe_rate_tag_alloc(if_t ifp, union if_snd_tag_alloc_params *params,
 
 	cst = malloc(sizeof(*cst), M_CXGBE, M_ZERO | M_NOWAIT);
 	if (cst == NULL) {
-failed:
+	failed:
 		t4_release_cl_rl(sc, pi->port_id, schedcl);
 		return (ENOMEM);
 	}
@@ -843,7 +852,8 @@ failed:
 	    V_TXPKT_VF(vi->vin) | V_TXPKT_VF_VLD(vi->vfvld));
 
 	/*
-	 * Queues will be selected later when the connection flowid is available.
+	 * Queues will be selected later when the connection flowid is
+	 * available.
 	 */
 
 	*pt = &cst->com;
@@ -888,8 +898,8 @@ cxgbe_rate_tag_query(struct m_snd_tag *mst,
 	params->rate_limit.max_rate = cst->max_rate;
 
 #define CST_TO_MST_QLEVEL_SCALE (IF_SND_QUEUE_LEVEL_MAX / cst->tx_total)
-	params->rate_limit.queue_level =
-		(cst->tx_total - cst->tx_credits) * CST_TO_MST_QLEVEL_SCALE;
+	params->rate_limit.queue_level = (cst->tx_total - cst->tx_credits) *
+	    CST_TO_MST_QLEVEL_SCALE;
 
 	return (0);
 }
@@ -937,7 +947,7 @@ cxgbe_rate_tag_free(struct m_snd_tag *mst)
 		 */
 		if (cst->tx_credits == cst->tx_total) {
 			cxgbe_rate_tag_free_locked(cst);
-			return;	/* cst is gone. */
+			return; /* cst is gone. */
 		}
 		send_etid_flush_wr(cst);
 	}
@@ -954,8 +964,8 @@ cxgbe_ratelimit_query(if_t ifp, struct if_ratelimit_query_results *q)
 	q->flags = RT_IS_SELECTABLE;
 	/*
 	 * Absolute max limits from the firmware configuration.  Practical
-	 * limits depend on the burstsize, pktsize (if_getmtu(ifp) ultimately) and
-	 * the card's cclk.
+	 * limits depend on the burstsize, pktsize (if_getmtu(ifp) ultimately)
+	 * and the card's cclk.
 	 */
 	q->max_flows = sc->tids.netids;
 	q->number_of_rates = sc->params.nsched_cls;

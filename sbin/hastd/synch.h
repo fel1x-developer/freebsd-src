@@ -29,20 +29,19 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_SYNCH_H_
-#define	_SYNCH_H_
+#ifndef _SYNCH_H_
+#define _SYNCH_H_
 
 #include <errno.h>
+#include <pjdlog.h>
 #include <pthread.h>
 #include <pthread_np.h>
 #include <stdbool.h>
 #include <time.h>
 
-#include <pjdlog.h>
-
-#ifndef	PJDLOG_ASSERT
+#ifndef PJDLOG_ASSERT
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
 static __inline void
@@ -192,4 +191,4 @@ cv_broadcast(pthread_cond_t *cv)
 	error = pthread_cond_broadcast(cv);
 	PJDLOG_ASSERT(error == 0);
 }
-#endif	/* !_SYNCH_H_ */
+#endif /* !_SYNCH_H_ */

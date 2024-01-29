@@ -43,13 +43,13 @@ usage(void)
 	exit(EX_USAGE);
 }
 
-#define OPT_NULL	0x00
-#define OPT_ID		0x01
-#define OPT_VERBOSE	0x02
-#define OPT_FORCE	0x04
+#define OPT_NULL 0x00
+#define OPT_ID 0x01
+#define OPT_VERBOSE 0x02
+#define OPT_FORCE 0x04
 
 int
-main(int argc, char** argv)
+main(int argc, char **argv)
 {
 	struct kld_file_stat stat;
 	int c, fileid, force, opt;
@@ -67,7 +67,7 @@ main(int argc, char** argv)
 			opt |= OPT_ID;
 			break;
 		case 'n':
-			/* 
+			/*
 			 * XXX: For backward compatibility. Currently does
 			 * nothing
 			 */
@@ -100,7 +100,7 @@ main(int argc, char** argv)
 			stat.version = sizeof(stat);
 			if (kldstat(fileid, &stat) < 0)
 				err(EXIT_FAILURE, "can't stat file");
-			(void) printf("Unloading %s, id=%d\n", stat.name,
+			(void)printf("Unloading %s, id=%d\n", stat.name,
 			    fileid);
 		}
 		if (opt & OPT_FORCE)

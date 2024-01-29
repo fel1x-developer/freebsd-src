@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -39,32 +39,25 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
-
+#include <dev/usb/controller/dwc_otg.h>
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_bus.h>
 #include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
 #include <dev/usb/usb_process.h>
 #include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-
-#include <dev/usb/controller/dwc_otg.h>
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 static device_probe_t dwc_otg_probe;
 static device_attach_t dwc_otg_attach;
 static device_attach_t dwc_otg_detach;
 
-static char *dwc_otg_ids[] = {
-	"BCM2848",
-	NULL
-};
+static char *dwc_otg_ids[] = { "BCM2848", NULL };
 
 static int
 dwc_otg_probe(device_t dev)
@@ -97,15 +90,15 @@ dwc_otg_attach(device_t dev)
 	sc->sc_mode = DWC_MODE_DEVICE;
 
 	rid = 0;
-	sc->sc_io_res =
-	    bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid, RF_ACTIVE);
+	sc->sc_io_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
+	    RF_ACTIVE);
 
 	if (sc->sc_io_res == NULL)
 		goto error;
 
 	rid = 0;
-	sc->sc_irq_res =
-	    bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid, RF_ACTIVE);
+	sc->sc_irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
+	    RF_ACTIVE);
 	if (sc->sc_irq_res == NULL)
 		goto error;
 
@@ -137,20 +130,17 @@ dwc_otg_detach(device_t dev)
 		 */
 		dwc_otg_uninit(sc);
 
-		bus_teardown_intr(dev, sc->sc_irq_res,
-		    sc->sc_intr_hdl);
+		bus_teardown_intr(dev, sc->sc_irq_res, sc->sc_intr_hdl);
 		sc->sc_intr_hdl = NULL;
 	}
 	/* free IRQ channel, if any */
 	if (sc->sc_irq_res) {
-		bus_release_resource(dev, SYS_RES_IRQ, 0,
-		    sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, 0, sc->sc_irq_res);
 		sc->sc_irq_res = NULL;
 	}
 	/* free memory resource, if any */
 	if (sc->sc_io_res) {
-		bus_release_resource(dev, SYS_RES_MEMORY, 0,
-		    sc->sc_io_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, 0, sc->sc_io_res);
 		sc->sc_io_res = NULL;
 	}
 	usb_bus_mem_free_all(&sc->sc_bus, NULL);

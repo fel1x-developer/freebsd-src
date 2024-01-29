@@ -26,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt_snd.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -33,105 +35,101 @@
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/rman.h>
 #include <sys/resource.h>
-#include <machine/bus.h>
+#include <sys/rman.h>
 
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
+#include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/regulator/regulator.h>
-
-#include "syscon_if.h"
-
-#include "opt_snd.h"
-#include <dev/sound/pcm/sound.h>
 #include <dev/sound/fdt/audio_dai.h>
+#include <dev/sound/pcm/sound.h>
+
 #include "audio_dai_if.h"
 #include "mixer_if.h"
+#include "syscon_if.h"
 
-#define	A64_PR_CFG		0x00
-#define	 A64_AC_PR_RST		(1 << 28)
-#define	 A64_AC_PR_RW		(1 << 24)
-#define	 A64_AC_PR_ADDR_MASK	(0x1f << 16)
-#define	 A64_AC_PR_ADDR(n)	(((n) & 0x1f) << 16)
-#define	 A64_ACDA_PR_WDAT_MASK	(0xff << 8)
-#define	 A64_ACDA_PR_WDAT(n)	(((n) & 0xff) << 8)
-#define	 A64_ACDA_PR_RDAT(n)	((n) & 0xff)
+#define A64_PR_CFG 0x00
+#define A64_AC_PR_RST (1 << 28)
+#define A64_AC_PR_RW (1 << 24)
+#define A64_AC_PR_ADDR_MASK (0x1f << 16)
+#define A64_AC_PR_ADDR(n) (((n) & 0x1f) << 16)
+#define A64_ACDA_PR_WDAT_MASK (0xff << 8)
+#define A64_ACDA_PR_WDAT(n) (((n) & 0xff) << 8)
+#define A64_ACDA_PR_RDAT(n) ((n) & 0xff)
 
-#define	A64_HP_CTRL		0x00
-#define	 A64_HPPA_EN		(1 << 6)
-#define	 A64_HPVOL_MASK		0x3f
-#define	 A64_HPVOL(n)		((n) & 0x3f)
-#define	A64_OL_MIX_CTRL		0x01
-#define	 A64_LMIXMUTE_LDAC	(1 << 1)
-#define	A64_OR_MIX_CTRL		0x02
-#define	 A64_RMIXMUTE_RDAC	(1 << 1)
-#define	A64_LINEOUT_CTRL0	0x05
-#define	 A64_LINEOUT_LEFT_EN	(1 << 7)
-#define	 A64_LINEOUT_RIGHT_EN	(1 << 6)
-#define	 A64_LINEOUT_EN		(A64_LINEOUT_LEFT_EN|A64_LINEOUT_RIGHT_EN)
-#define	A64_LINEOUT_CTRL1	0x06
-#define	 A64_LINEOUT_VOL	__BITS(4,0)
-#define	A64_MIC1_CTRL		0x07
-#define	 A64_MIC1G		__BITS(6,4)
-#define	 A64_MIC1AMPEN		(1 << 3)
-#define	 A64_MIC1BOOST		__BITS(2,0)
-#define	A64_MIC2_CTRL		0x08
-#define	 A64_MIC2_SEL		(1 << 7)
-#define	 A64_MIC2G_MASK		(7 << 4)
-#define	 A64_MIC2G(n)		(((n) & 7) << 4)
-#define	 A64_MIC2AMPEN		(1 << 3)
-#define	 A64_MIC2BOOST_MASK	(7 << 0)
-#define	 A64_MIC2BOOST(n)	(((n) & 7) << 0)
-#define	A64_LINEIN_CTRL		0x09
-#define	 A64_LINEING		__BITS(6,4)
-#define	A64_MIX_DAC_CTRL	0x0a
-#define	 A64_DACAREN		(1 << 7)
-#define	 A64_DACALEN		(1 << 6)
-#define	 A64_RMIXEN		(1 << 5)
-#define	 A64_LMIXEN		(1 << 4)
-#define	 A64_RHPPAMUTE		(1 << 3)
-#define	 A64_LHPPAMUTE		(1 << 2)
-#define	 A64_RHPIS		(1 << 1)
-#define	 A64_LHPIS		(1 << 0)
-#define	A64_L_ADCMIX_SRC	0x0b
-#define	A64_R_ADCMIX_SRC	0x0c
-#define	 A64_ADCMIX_SRC_MIC1	(1 << 6)
-#define	 A64_ADCMIX_SRC_MIC2	(1 << 5)
-#define	 A64_ADCMIX_SRC_LINEIN	(1 << 2)
-#define	 A64_ADCMIX_SRC_OMIXER	(1 << 1)
-#define	A64_ADC_CTRL		0x0d
-#define	 A64_ADCREN		(1 << 7)
-#define	 A64_ADCLEN		(1 << 6)
-#define	 A64_ADCG		__BITS(2,0)
-#define	A64_JACK_MIC_CTRL	0x1d
-#define	 A64_JACKDETEN		(1 << 7)
-#define	 A64_INNERRESEN		(1 << 6)
-#define	 A64_HMICBIASEN		(1 << 5)
-#define	 A64_AUTOPLEN		(1 << 1)
+#define A64_HP_CTRL 0x00
+#define A64_HPPA_EN (1 << 6)
+#define A64_HPVOL_MASK 0x3f
+#define A64_HPVOL(n) ((n) & 0x3f)
+#define A64_OL_MIX_CTRL 0x01
+#define A64_LMIXMUTE_LDAC (1 << 1)
+#define A64_OR_MIX_CTRL 0x02
+#define A64_RMIXMUTE_RDAC (1 << 1)
+#define A64_LINEOUT_CTRL0 0x05
+#define A64_LINEOUT_LEFT_EN (1 << 7)
+#define A64_LINEOUT_RIGHT_EN (1 << 6)
+#define A64_LINEOUT_EN (A64_LINEOUT_LEFT_EN | A64_LINEOUT_RIGHT_EN)
+#define A64_LINEOUT_CTRL1 0x06
+#define A64_LINEOUT_VOL __BITS(4, 0)
+#define A64_MIC1_CTRL 0x07
+#define A64_MIC1G __BITS(6, 4)
+#define A64_MIC1AMPEN (1 << 3)
+#define A64_MIC1BOOST __BITS(2, 0)
+#define A64_MIC2_CTRL 0x08
+#define A64_MIC2_SEL (1 << 7)
+#define A64_MIC2G_MASK (7 << 4)
+#define A64_MIC2G(n) (((n) & 7) << 4)
+#define A64_MIC2AMPEN (1 << 3)
+#define A64_MIC2BOOST_MASK (7 << 0)
+#define A64_MIC2BOOST(n) (((n) & 7) << 0)
+#define A64_LINEIN_CTRL 0x09
+#define A64_LINEING __BITS(6, 4)
+#define A64_MIX_DAC_CTRL 0x0a
+#define A64_DACAREN (1 << 7)
+#define A64_DACALEN (1 << 6)
+#define A64_RMIXEN (1 << 5)
+#define A64_LMIXEN (1 << 4)
+#define A64_RHPPAMUTE (1 << 3)
+#define A64_LHPPAMUTE (1 << 2)
+#define A64_RHPIS (1 << 1)
+#define A64_LHPIS (1 << 0)
+#define A64_L_ADCMIX_SRC 0x0b
+#define A64_R_ADCMIX_SRC 0x0c
+#define A64_ADCMIX_SRC_MIC1 (1 << 6)
+#define A64_ADCMIX_SRC_MIC2 (1 << 5)
+#define A64_ADCMIX_SRC_LINEIN (1 << 2)
+#define A64_ADCMIX_SRC_OMIXER (1 << 1)
+#define A64_ADC_CTRL 0x0d
+#define A64_ADCREN (1 << 7)
+#define A64_ADCLEN (1 << 6)
+#define A64_ADCG __BITS(2, 0)
+#define A64_JACK_MIC_CTRL 0x1d
+#define A64_JACKDETEN (1 << 7)
+#define A64_INNERRESEN (1 << 6)
+#define A64_HMICBIASEN (1 << 5)
+#define A64_AUTOPLEN (1 << 1)
 
-#define	A64CODEC_MIXER_DEVS	((1 << SOUND_MIXER_VOLUME) | \
-	(1 << SOUND_MIXER_MIC))
+#define A64CODEC_MIXER_DEVS ((1 << SOUND_MIXER_VOLUME) | (1 << SOUND_MIXER_MIC))
 
 static struct ofw_compat_data compat_data[] = {
-	{ "allwinner,sun50i-a64-codec-analog",	1},
-	{ NULL,					0 }
+	{ "allwinner,sun50i-a64-codec-analog", 1 }, { NULL, 0 }
 };
 
 struct a64codec_softc {
-	device_t	dev;
-	struct resource	*res;
-	struct mtx	mtx;
-	u_int	regaddr;	/* address for the sysctl */
+	device_t dev;
+	struct resource *res;
+	struct mtx mtx;
+	u_int regaddr; /* address for the sysctl */
 };
 
-#define	A64CODEC_LOCK(sc)		mtx_lock(&(sc)->mtx)
-#define	A64CODEC_UNLOCK(sc)		mtx_unlock(&(sc)->mtx)
-#define	A64CODEC_READ(sc, reg)		bus_read_4((sc)->res, (reg))
-#define	A64CODEC_WRITE(sc, reg, val)	bus_write_4((sc)->res, (reg), (val))
+#define A64CODEC_LOCK(sc) mtx_lock(&(sc)->mtx)
+#define A64CODEC_UNLOCK(sc) mtx_unlock(&(sc)->mtx)
+#define A64CODEC_READ(sc, reg) bus_read_4((sc)->res, (reg))
+#define A64CODEC_WRITE(sc, reg, val) bus_write_4((sc)->res, (reg), (val))
 
 static int a64codec_probe(device_t dev);
 static int a64codec_attach(device_t dev);
@@ -195,7 +193,8 @@ a64_acodec_pr_write(struct a64codec_softc *sc, u_int addr, u_int data)
 }
 
 static void
-a64_acodec_pr_set_clear(struct a64codec_softc *sc, u_int addr, u_int set, u_int clr)
+a64_acodec_pr_set_clear(struct a64codec_softc *sc, u_int addr, u_int set,
+    u_int clr)
 {
 	u_int old, new;
 
@@ -247,24 +246,19 @@ a64codec_attach(device_t dev)
 	}
 
 	/* Right & Left Headphone PA enable */
-	a64_acodec_pr_set_clear(sc, A64_HP_CTRL,
-	    A64_HPPA_EN, 0);
+	a64_acodec_pr_set_clear(sc, A64_HP_CTRL, A64_HPPA_EN, 0);
 
 	/* Microphone BIAS enable */
 	a64_acodec_pr_set_clear(sc, A64_JACK_MIC_CTRL,
 	    A64_HMICBIASEN | A64_INNERRESEN, 0);
 
 	/* Unmute DAC to output mixer */
-	a64_acodec_pr_set_clear(sc, A64_OL_MIX_CTRL,
-	    A64_LMIXMUTE_LDAC, 0);
-	a64_acodec_pr_set_clear(sc, A64_OR_MIX_CTRL,
-	    A64_RMIXMUTE_RDAC, 0);
+	a64_acodec_pr_set_clear(sc, A64_OL_MIX_CTRL, A64_LMIXMUTE_LDAC, 0);
+	a64_acodec_pr_set_clear(sc, A64_OR_MIX_CTRL, A64_RMIXMUTE_RDAC, 0);
 
 	/* For now we work only with headphones */
-	a64_acodec_pr_set_clear(sc, A64_LINEOUT_CTRL0,
-	    0, A64_LINEOUT_EN);
-	a64_acodec_pr_set_clear(sc, A64_HP_CTRL,
-	    A64_HPPA_EN, 0);
+	a64_acodec_pr_set_clear(sc, A64_LINEOUT_CTRL0, 0, A64_LINEOUT_EN);
+	a64_acodec_pr_set_clear(sc, A64_HP_CTRL, A64_HPPA_EN, 0);
 
 	u_int val = a64_acodec_pr_read(sc, A64_HP_CTRL);
 	val &= ~(0x3f);
@@ -275,10 +269,8 @@ a64codec_attach(device_t dev)
 	    A64_MIC2AMPEN | A64_MIC2_SEL | A64_MIC2G(0x3) | A64_MIC2BOOST(0x4),
 	    A64_MIC2G_MASK | A64_MIC2BOOST_MASK);
 
-	a64_acodec_pr_write(sc, A64_L_ADCMIX_SRC,
-	    A64_ADCMIX_SRC_MIC2);
-	a64_acodec_pr_write(sc, A64_R_ADCMIX_SRC,
-	    A64_ADCMIX_SRC_MIC2);
+	a64_acodec_pr_write(sc, A64_L_ADCMIX_SRC, A64_ADCMIX_SRC_MIC2);
+	a64_acodec_pr_write(sc, A64_R_ADCMIX_SRC, A64_ADCMIX_SRC_MIC2);
 
 	/* Max out MIC2 gain */
 	val = a64_acodec_pr_read(sc, A64_MIC2_CTRL);
@@ -336,7 +328,8 @@ a64codec_mixer_reinit(struct snd_mixer *m)
 }
 
 static int
-a64codec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned right)
+a64codec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left,
+    unsigned right)
 {
 	struct a64codec_softc *sc;
 	struct mtx *mixer_lock;
@@ -356,7 +349,7 @@ a64codec_mixer_set(struct snd_mixer *m, unsigned dev, unsigned left, unsigned ri
 	right = left;
 
 	A64CODEC_LOCK(sc);
-	switch(dev) {
+	switch (dev) {
 	case SOUND_MIXER_VOLUME:
 		val = a64_acodec_pr_read(sc, A64_HP_CTRL);
 		val &= ~(A64_HPVOL_MASK);
@@ -389,14 +382,12 @@ a64codec_mixer_setrecsrc(struct snd_mixer *m, unsigned src)
 	return (0);
 }
 
-static kobj_method_t a64codec_mixer_methods[] = {
-	KOBJMETHOD(mixer_init,		a64codec_mixer_init),
-	KOBJMETHOD(mixer_uninit,	a64codec_mixer_uninit),
-	KOBJMETHOD(mixer_reinit,	a64codec_mixer_reinit),
-	KOBJMETHOD(mixer_set,		a64codec_mixer_set),
-	KOBJMETHOD(mixer_setrecsrc,	a64codec_mixer_setrecsrc),
-	KOBJMETHOD_END
-};
+static kobj_method_t a64codec_mixer_methods[] = { KOBJMETHOD(mixer_init,
+						      a64codec_mixer_init),
+	KOBJMETHOD(mixer_uninit, a64codec_mixer_uninit),
+	KOBJMETHOD(mixer_reinit, a64codec_mixer_reinit),
+	KOBJMETHOD(mixer_set, a64codec_mixer_set),
+	KOBJMETHOD(mixer_setrecsrc, a64codec_mixer_setrecsrc), KOBJMETHOD_END };
 
 MIXER_DECLARE(a64codec_mixer);
 
@@ -410,7 +401,7 @@ a64codec_dai_init(device_t dev, uint32_t format)
 static int
 a64codec_dai_trigger(device_t dev, int go, int pcm_dir)
 {
-	struct a64codec_softc 	*sc = device_get_softc(dev);
+	struct a64codec_softc *sc = device_get_softc(dev);
 
 	if ((pcm_dir != PCMDIR_PLAY) && (pcm_dir != PCMDIR_REC))
 		return (EINVAL);
@@ -418,12 +409,13 @@ a64codec_dai_trigger(device_t dev, int go, int pcm_dir)
 	switch (go) {
 	case PCMTRIG_START:
 		if (pcm_dir == PCMDIR_PLAY) {
-			/* Enable DAC analog l/r channels, HP PA, and output mixer */
+			/* Enable DAC analog l/r channels, HP PA, and output
+			 * mixer */
 			a64_acodec_pr_set_clear(sc, A64_MIX_DAC_CTRL,
-			    A64_DACAREN | A64_DACALEN | A64_RMIXEN | A64_LMIXEN |
-			    A64_RHPPAMUTE | A64_LHPPAMUTE, 0);
-		}
-		else if (pcm_dir == PCMDIR_REC) {
+			    A64_DACAREN | A64_DACALEN | A64_RMIXEN |
+				A64_LMIXEN | A64_RHPPAMUTE | A64_LHPPAMUTE,
+			    0);
+		} else if (pcm_dir == PCMDIR_REC) {
 			/* Enable ADC analog l/r channels */
 			a64_acodec_pr_set_clear(sc, A64_ADC_CTRL,
 			    A64_ADCREN | A64_ADCLEN, 0);
@@ -433,15 +425,15 @@ a64codec_dai_trigger(device_t dev, int go, int pcm_dir)
 	case PCMTRIG_STOP:
 	case PCMTRIG_ABORT:
 		if (pcm_dir == PCMDIR_PLAY) {
-			/* Disable DAC analog l/r channels, HP PA, and output mixer */
-			a64_acodec_pr_set_clear(sc, A64_MIX_DAC_CTRL,
-			    0, A64_DACAREN | A64_DACALEN | A64_RMIXEN | A64_LMIXEN |
-			    A64_RHPPAMUTE | A64_LHPPAMUTE);
-		}
-		else if (pcm_dir == PCMDIR_REC) {
+			/* Disable DAC analog l/r channels, HP PA, and output
+			 * mixer */
+			a64_acodec_pr_set_clear(sc, A64_MIX_DAC_CTRL, 0,
+			    A64_DACAREN | A64_DACALEN | A64_RMIXEN |
+				A64_LMIXEN | A64_RHPPAMUTE | A64_LHPPAMUTE);
+		} else if (pcm_dir == PCMDIR_REC) {
 			/* Disable ADC analog l/r channels */
-			a64_acodec_pr_set_clear(sc, A64_ADC_CTRL,
-			    0, A64_ADCREN | A64_ADCLEN);
+			a64_acodec_pr_set_clear(sc, A64_ADC_CTRL, 0,
+			    A64_ADCREN | A64_ADCLEN);
 		}
 		break;
 	}
@@ -460,13 +452,13 @@ a64codec_dai_setup_mixer(device_t dev, device_t pcmdev)
 
 static device_method_t a64codec_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		a64codec_probe),
-	DEVMETHOD(device_attach,	a64codec_attach),
-	DEVMETHOD(device_detach,	a64codec_detach),
+	DEVMETHOD(device_probe, a64codec_probe),
+	DEVMETHOD(device_attach, a64codec_attach),
+	DEVMETHOD(device_detach, a64codec_detach),
 
-	DEVMETHOD(audio_dai_init,	a64codec_dai_init),
-	DEVMETHOD(audio_dai_setup_mixer,	a64codec_dai_setup_mixer),
-	DEVMETHOD(audio_dai_trigger,	a64codec_dai_trigger),
+	DEVMETHOD(audio_dai_init, a64codec_dai_init),
+	DEVMETHOD(audio_dai_setup_mixer, a64codec_dai_setup_mixer),
+	DEVMETHOD(audio_dai_trigger, a64codec_dai_trigger),
 
 	DEVMETHOD_END
 };

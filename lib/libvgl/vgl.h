@@ -31,82 +31,87 @@
 #ifndef _VGL_H_
 #define _VGL_H_
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 #include <machine/cpufunc.h>
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 typedef unsigned char byte;
 typedef struct {
-  byte 	Type;
-  int  	Xsize, Ysize;
-  int  	VXsize, VYsize;
-  int   Xorigin, Yorigin;
-  byte 	*Bitmap;
-  int	PixelBytes;
+	byte Type;
+	int Xsize, Ysize;
+	int VXsize, VYsize;
+	int Xorigin, Yorigin;
+	byte *Bitmap;
+	int PixelBytes;
 } VGLBitmap;
 
-#define VGLBITMAP_INITIALIZER(t, x, y, bits)	\
-	{ (t), (x), (y), (x), (y), 0, 0, (bits), -1 }
+#define VGLBITMAP_INITIALIZER(t, x, y, bits)              \
+	{                                                 \
+		(t), (x), (y), (x), (y), 0, 0, (bits), -1 \
+	}
 
 /*
  * Defined Type's
  */
-#define MEMBUF		0
-#define VIDBUF4		1
-#define VIDBUF8		2
-#define VIDBUF8X	3
-#define VIDBUF8S	4
-#define VIDBUF4S	5
-#define VIDBUF16	6		/* Direct Color linear buffer */
-#define VIDBUF24	7		/* Direct Color linear buffer */
-#define VIDBUF32	8		/* Direct Color linear buffer */
-#define VIDBUF16S	9		/* Direct Color segmented buffer */
-#define VIDBUF24S	10		/* Direct Color segmented buffer */
-#define VIDBUF32S	11		/* Direct Color segmented buffer */
-#define NOBUF		255
+#define MEMBUF 0
+#define VIDBUF4 1
+#define VIDBUF8 2
+#define VIDBUF8X 3
+#define VIDBUF8S 4
+#define VIDBUF4S 5
+#define VIDBUF16 6   /* Direct Color linear buffer */
+#define VIDBUF24 7   /* Direct Color linear buffer */
+#define VIDBUF32 8   /* Direct Color linear buffer */
+#define VIDBUF16S 9  /* Direct Color segmented buffer */
+#define VIDBUF24S 10 /* Direct Color segmented buffer */
+#define VIDBUF32S 11 /* Direct Color segmented buffer */
+#define NOBUF 255
 
 typedef struct VGLText {
-  byte	Width, Height;
-  byte	*BitmapArray;
+	byte Width, Height;
+	byte *BitmapArray;
 } VGLText;
 
 typedef struct VGLObject {
-  int	  	Id;
-  int	  	Type;
-  int	  	Status;
-  int	  	Xpos, Ypos;
-  int	  	Xhot, Yhot;
-  VGLBitmap 	*Image;
-  VGLBitmap 	*Mask;
-  int		(*CallBackFunction)();
+	int Id;
+	int Type;
+	int Status;
+	int Xpos, Ypos;
+	int Xhot, Yhot;
+	VGLBitmap *Image;
+	VGLBitmap *Mask;
+	int (*CallBackFunction)();
 } VGLObject;
 
-#define MOUSE_IMG_SIZE		16
-#define VGL_MOUSEHIDE		0
-#define VGL_MOUSESHOW		1
-#define VGL_MOUSEFREEZE		0
-#define VGL_MOUSEUNFREEZE	1
-#define VGL_DIR_RIGHT		0
-#define VGL_DIR_UP		1
-#define VGL_DIR_LEFT		2
-#define VGL_DIR_DOWN		3
-#define VGL_RAWKEYS		1
-#define VGL_CODEKEYS		2
-#define VGL_XLATEKEYS		3
+#define MOUSE_IMG_SIZE 16
+#define VGL_MOUSEHIDE 0
+#define VGL_MOUSESHOW 1
+#define VGL_MOUSEFREEZE 0
+#define VGL_MOUSEUNFREEZE 1
+#define VGL_DIR_RIGHT 0
+#define VGL_DIR_UP 1
+#define VGL_DIR_LEFT 2
+#define VGL_DIR_DOWN 3
+#define VGL_RAWKEYS 1
+#define VGL_CODEKEYS 2
+#define VGL_XLATEKEYS 3
 
-extern video_adapter_info_t	VGLAdpInfo;
-extern video_info_t		VGLModeInfo;
-extern VGLBitmap 		*VGLDisplay;
-extern VGLBitmap 		VGLVDisplay;
-extern byte 			*VGLBuf;
+extern video_adapter_info_t VGLAdpInfo;
+extern video_info_t VGLModeInfo;
+extern VGLBitmap *VGLDisplay;
+extern VGLBitmap VGLVDisplay;
+extern byte *VGLBuf;
 
 /*
  * Prototypes
  */
 /* bitmap.c */
-int __VGLBitmapCopy(VGLBitmap *src, int srcx, int srcy, VGLBitmap *dst, int dstx, int dsty, int width, int hight);
-int VGLBitmapCopy(VGLBitmap *src, int srcx, int srcy, VGLBitmap *dst, int dstx, int dsty, int width, int hight);
+int __VGLBitmapCopy(VGLBitmap *src, int srcx, int srcy, VGLBitmap *dst,
+    int dstx, int dsty, int width, int hight);
+int VGLBitmapCopy(VGLBitmap *src, int srcx, int srcy, VGLBitmap *dst, int dstx,
+    int dsty, int width, int hight);
 VGLBitmap *VGLBitmapCreate(int type, int xsize, int ysize, byte *bits);
 void VGLBitmapDestroy(VGLBitmap *object);
 int VGLBitmapAllocateBits(VGLBitmap *object);
@@ -140,9 +145,11 @@ void VGLSetXY(VGLBitmap *object, int x, int y, u_long color);
 u_long VGLGetXY(VGLBitmap *object, int x, int y);
 void VGLLine(VGLBitmap *object, int x1, int y1, int x2, int y2, u_long color);
 void VGLBox(VGLBitmap *object, int x1, int y1, int x2, int y2, u_long color);
-void VGLFilledBox(VGLBitmap *object, int x1, int y1, int x2, int y2, u_long color);
+void VGLFilledBox(VGLBitmap *object, int x1, int y1, int x2, int y2,
+    u_long color);
 void VGLEllipse(VGLBitmap *object, int xc, int yc, int a, int b, u_long color);
-void VGLFilledEllipse(VGLBitmap *object, int xc, int yc, int a, int b, u_long color);
+void VGLFilledEllipse(VGLBitmap *object, int xc, int yc, int a, int b,
+    u_long color);
 void VGLClear(VGLBitmap *object, u_long color);
 u_long VGLrgb332ToNative(byte c);
 void VGLRestoreBlank(void);
@@ -155,7 +162,9 @@ void VGLSetBorder(byte color);
 void VGLBlankDisplay(int blank);
 /* text.c */
 int VGLTextSetFontFile(char *filename);
-void VGLBitmapPutChar(VGLBitmap *Object, int x, int y, byte ch, u_long fgcol, u_long bgcol, int fill, int dir);
-void VGLBitmapString(VGLBitmap *Object, int x, int y, char *str, u_long fgcol, u_long bgcol, int fill, int dir);
+void VGLBitmapPutChar(VGLBitmap *Object, int x, int y, byte ch, u_long fgcol,
+    u_long bgcol, int fill, int dir);
+void VGLBitmapString(VGLBitmap *Object, int x, int y, char *str, u_long fgcol,
+    u_long bgcol, int fill, int dir);
 
 #endif /* !_VGL_H_ */

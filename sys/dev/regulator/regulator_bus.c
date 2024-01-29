@@ -26,14 +26,13 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/bus.h>
 
 #include <dev/fdt/simplebus.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 struct ofw_regulator_bus_softc {
 	struct simplebus_softc simplebus_sc;
@@ -42,7 +41,7 @@ struct ofw_regulator_bus_softc {
 static int
 ofw_regulator_bus_probe(device_t dev)
 {
-	const char	*name;
+	const char *name;
 
 	name = ofw_bus_get_name(dev);
 	if (name == NULL || strcmp(name, "regulators") != 0)
@@ -57,7 +56,7 @@ ofw_regulator_bus_attach(device_t dev)
 {
 	phandle_t node, child;
 
-	node  = ofw_bus_get_node(dev);
+	node = ofw_bus_get_node(dev);
 	simplebus_init(dev, node);
 
 	for (child = OF_child(node); child > 0; child = OF_peer(child)) {
@@ -69,8 +68,8 @@ ofw_regulator_bus_attach(device_t dev)
 
 static device_method_t ofw_regulator_bus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_regulator_bus_probe),
-	DEVMETHOD(device_attach,	ofw_regulator_bus_attach),
+	DEVMETHOD(device_probe, ofw_regulator_bus_probe),
+	DEVMETHOD(device_attach, ofw_regulator_bus_attach),
 
 	DEVMETHOD_END
 };
@@ -78,6 +77,6 @@ static device_method_t ofw_regulator_bus_methods[] = {
 DEFINE_CLASS_1(ofw_regulator_bus, ofw_regulator_bus_driver,
     ofw_regulator_bus_methods, sizeof(struct ofw_regulator_bus_softc),
     simplebus_driver);
-EARLY_DRIVER_MODULE(ofw_regulator_bus, simplebus, ofw_regulator_bus_driver,
-    0, 0, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(ofw_regulator_bus, simplebus, ofw_regulator_bus_driver, 0,
+    0, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
 MODULE_VERSION(ofw_regulator_bus, 1);

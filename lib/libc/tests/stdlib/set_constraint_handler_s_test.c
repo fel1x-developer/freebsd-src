@@ -24,9 +24,8 @@
  */
 
 #include <assert.h>
-#include <stdlib.h>
-
 #include <atf-c.h>
+#include <stdlib.h>
 
 /* null */
 ATF_TC_WITHOUT_HEAD(null_handler);

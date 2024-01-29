@@ -50,20 +50,18 @@ drm_le_cmp(const void *d1, const void *d2, void *priv)
  * Punt and use array sort.
  */
 void
-drm_list_sort(void *priv, struct list_head *head, int (*cmp)(void *priv,
-    struct list_head *a, struct list_head *b))
+drm_list_sort(void *priv, struct list_head *head,
+    int (*cmp)(void *priv, struct list_head *a, struct list_head *b))
 {
 	struct drm_list_sort_thunk thunk;
 	struct list_head **ar, *le;
 	int count, i;
 
 	count = 0;
-	list_for_each(le, head)
-		count++;
+	list_for_each(le, head) count++;
 	ar = malloc(sizeof(struct list_head *) * count, M_TEMP, M_WAITOK);
 	i = 0;
-	list_for_each(le, head)
-		ar[i++] = le;
+	list_for_each(le, head) ar[i++] = le;
 	thunk.cmp = cmp;
 	thunk.priv = priv;
 	qsort_r(ar, count, sizeof(struct list_head *), drm_le_cmp, &thunk);

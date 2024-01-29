@@ -35,8 +35,8 @@
  *
  */
 
-extern int	debug_level;
-extern int	grace_expired;
-pid_t	client_request(void);
+extern int debug_level;
+extern int grace_expired;
+pid_t client_request(void);
 extern int nsm_state;
 extern pid_t client_pid;

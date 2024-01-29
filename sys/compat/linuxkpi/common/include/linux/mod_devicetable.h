@@ -27,7 +27,7 @@
  */
 
 #ifndef __LINUXKPI_LINUX_MOD_DEVICETABLE_H__
-#define	__LINUXKPI_LINUX_MOD_DEVICETABLE_H__
+#define __LINUXKPI_LINUX_MOD_DEVICETABLE_H__
 
 #include <linux/types.h>
 
@@ -72,10 +72,16 @@ struct dmi_system_id {
 	void *driver_data;
 };
 
-#define DMI_MATCH(a, b) { .slot = a, .substr = b }
-#define DMI_EXACT_MATCH(a, b)   { .slot = a, .substr = b, .exact_match = 1 }
+#define DMI_MATCH(a, b)                \
+	{                              \
+		.slot = a, .substr = b \
+	}
+#define DMI_EXACT_MATCH(a, b)                            \
+	{                                                \
+		.slot = a, .substr = b, .exact_match = 1 \
+	}
 
-#define	I2C_NAME_SIZE		20
-#define	I2C_MODULE_PREFIX	"i2c:"
+#define I2C_NAME_SIZE 20
+#define I2C_MODULE_PREFIX "i2c:"
 
-#endif	/* __LINUXKPI_LINUX_MOD_DEVICETABLE_H__ */
+#endif /* __LINUXKPI_LINUX_MOD_DEVICETABLE_H__ */

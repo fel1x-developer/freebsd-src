@@ -23,9 +23,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -38,7 +38,7 @@
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
-#include <geom/geom_disk.h>
+#include <vm/pmap.h>
 
 #include <machine/bus.h>
 
@@ -46,70 +46,69 @@
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <vm/pmap.h>
+#include <geom/geom_disk.h>
 
 #include "flex_spi.h"
 
-static MALLOC_DEFINE(SECTOR_BUFFER, "flex_spi", "FSL QSPI sector buffer memory");
+static MALLOC_DEFINE(SECTOR_BUFFER, "flex_spi",
+    "FSL QSPI sector buffer memory");
 
-#define	AHB_LUT_ID	31
-#define	MHZ(x)			((x)*1000*1000)
-#define	SPI_DEFAULT_CLK_RATE	(MHZ(10))
+#define AHB_LUT_ID 31
+#define MHZ(x) ((x) * 1000 * 1000)
+#define SPI_DEFAULT_CLK_RATE (MHZ(10))
 
 static int driver_flags = 0;
 SYSCTL_NODE(_hw, OID_AUTO, flex_spi, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "FlexSPI driver parameters");
-SYSCTL_INT(_hw_flex_spi, OID_AUTO, driver_flags, CTLFLAG_RDTUN, &driver_flags, 0,
-    "Configuration flags and quirks");
+SYSCTL_INT(_hw_flex_spi, OID_AUTO, driver_flags, CTLFLAG_RDTUN, &driver_flags,
+    0, "Configuration flags and quirks");
 
 static struct ofw_compat_data flex_spi_compat_data[] = {
-	{"nxp,lx2160a-fspi",  true},
-	{NULL,               false}
+	{ "nxp,lx2160a-fspi", true }, { NULL, false }
 };
 
 struct flex_spi_flash_info {
-	char*		name;
-	uint32_t	jedecid;
-	uint32_t	sectorsize;
-	uint32_t	sectorcount;
-	uint32_t	erasesize;
-	uint32_t	maxclk;
+	char *name;
+	uint32_t jedecid;
+	uint32_t sectorsize;
+	uint32_t sectorcount;
+	uint32_t erasesize;
+	uint32_t maxclk;
 };
 
 /* Add information about supported Flashes. TODO: use SFDP instead */
 static struct flex_spi_flash_info flex_spi_flash_info[] = {
-		{"W25Q128JW", 0x001860ef, 64*1024, 256, 4096, MHZ(100)},
-		{NULL, 0, 0, 0, 0, 0}
+	{ "W25Q128JW", 0x001860ef, 64 * 1024, 256, 4096, MHZ(100) },
+	{ NULL, 0, 0, 0, 0, 0 }
 };
 
-struct flex_spi_softc
-{
-	device_t		dev;
-	unsigned int		flags;
+struct flex_spi_softc {
+	device_t dev;
+	unsigned int flags;
 
-	struct bio_queue_head	bio_queue;
-	struct mtx		disk_mtx;
-	struct disk		*disk;
-	struct proc		*p;
-	unsigned int		taskstate;
-	uint8_t			*buf;
+	struct bio_queue_head bio_queue;
+	struct mtx disk_mtx;
+	struct disk *disk;
+	struct proc *p;
+	unsigned int taskstate;
+	uint8_t *buf;
 
-	struct resource		*ahb_mem_res;
-	struct resource		*mem_res;
+	struct resource *ahb_mem_res;
+	struct resource *mem_res;
 
-	clk_t			fspi_clk_en;
-	clk_t			fspi_clk;
-	uint64_t		fspi_clk_en_hz;
-	uint64_t		fspi_clk_hz;
+	clk_t fspi_clk_en;
+	clk_t fspi_clk;
+	uint64_t fspi_clk_en_hz;
+	uint64_t fspi_clk_hz;
 
 	/* TODO: support more than one Flash per bus */
-	uint64_t		fspi_max_clk;
-	uint32_t		quirks;
+	uint64_t fspi_max_clk;
+	uint32_t quirks;
 
 	/* Flash parameters */
-	uint32_t		sectorsize;
-	uint32_t		sectorcount;
-	uint32_t		erasesize;
+	uint32_t sectorsize;
+	uint32_t sectorcount;
+	uint32_t erasesize;
 };
 
 static int flex_spi_read(struct flex_spi_softc *sc, off_t offset, caddr_t data,
@@ -210,9 +209,9 @@ flex_spi_prepare_lut(struct flex_spi_softc *sc, uint8_t op)
 		break;
 	case LUT_FLASH_CMD_READ:
 		lut = LUT_DEF(0, LUT_CMD, LUT_PAD(1), FSPI_CMD_FAST_READ);
-		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3*8);
+		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3 * 8);
 		write_reg(sc, FSPI_LUT_REG(lut_id), lut);
-		lut = LUT_DEF(0, LUT_DUMMY, LUT_PAD(1), 1*8);
+		lut = LUT_DEF(0, LUT_DUMMY, LUT_PAD(1), 1 * 8);
 		lut |= LUT_DEF(1, LUT_NXP_READ, LUT_PAD(1), 0);
 		write_reg(sc, FSPI_LUT_REG(lut_id) + 4, lut);
 		write_reg(sc, FSPI_LUT_REG(lut_id) + 8, 0);
@@ -225,7 +224,7 @@ flex_spi_prepare_lut(struct flex_spi_softc *sc, uint8_t op)
 		break;
 	case LUT_FLASH_CMD_PAGE_PROGRAM:
 		lut = LUT_DEF(0, LUT_CMD, LUT_PAD(1), FSPI_CMD_PAGE_PROGRAM);
-		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3*8);
+		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3 * 8);
 		write_reg(sc, FSPI_LUT_REG(lut_id), lut);
 		lut = LUT_DEF(0, LUT_NXP_WRITE, LUT_PAD(1), 0);
 		write_reg(sc, FSPI_LUT_REG(lut_id) + 4, lut);
@@ -243,7 +242,7 @@ flex_spi_prepare_lut(struct flex_spi_softc *sc, uint8_t op)
 		break;
 	case LUT_FLASH_CMD_SECTOR_ERASE:
 		lut = LUT_DEF(0, LUT_CMD, LUT_PAD(1), FSPI_CMD_SECTOR_ERASE);
-		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3*8);
+		lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3 * 8);
 		write_reg(sc, FSPI_LUT_REG(lut_id), lut);
 		write_reg(sc, FSPI_LUT_REG(lut_id) + 4, 0);
 		break;
@@ -268,9 +267,9 @@ flex_spi_prepare_ahb_lut(struct flex_spi_softc *sc)
 
 	lut_id = AHB_LUT_ID;
 	lut = LUT_DEF(0, LUT_CMD, LUT_PAD(1), FSPI_CMD_FAST_READ);
-	lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3*8);
+	lut |= LUT_DEF(1, LUT_ADDR, LUT_PAD(1), 3 * 8);
 	write_reg(sc, FSPI_LUT_REG(lut_id), lut);
-	lut = LUT_DEF(0, LUT_DUMMY, LUT_PAD(1), 1*8);
+	lut = LUT_DEF(0, LUT_DUMMY, LUT_PAD(1), 1 * 8);
 	lut |= LUT_DEF(1, LUT_NXP_READ, LUT_PAD(1), 0);
 	write_reg(sc, FSPI_LUT_REG(lut_id) + 4, lut);
 	write_reg(sc, FSPI_LUT_REG(lut_id) + 8, 0);
@@ -280,8 +279,8 @@ flex_spi_prepare_ahb_lut(struct flex_spi_softc *sc)
 	write_reg(sc, FSPI_LCKCR, FSPI_LCKER_LOCK);
 }
 
-#define	DIR_READ	0
-#define	DIR_WRITE	1
+#define DIR_READ 0
+#define DIR_WRITE 1
 
 static void
 flex_spi_read_rxfifo(struct flex_spi_softc *sc, uint8_t *buf, uint8_t size)
@@ -295,8 +294,8 @@ flex_spi_read_rxfifo(struct flex_spi_softc *sc, uint8_t *buf, uint8_t size)
 	for (i = 0; i < size; i += 4) {
 		/* Wait for RXFIFO available */
 		if (i % 8 == 0) {
-			ret = reg_read_poll_tout(sc, FSPI_INTR, FSPI_INTR_IPRXWA,
-			    1, 50000, 1);
+			ret = reg_read_poll_tout(sc, FSPI_INTR,
+			    FSPI_INTR_IPRXWA, 1, 50000, 1);
 			if (ret)
 				device_printf(sc->dev,
 				    "timed out waiting for FSPI_INTR_IPRXWA\n");
@@ -307,7 +306,7 @@ flex_spi_read_rxfifo(struct flex_spi_softc *sc, uint8_t *buf, uint8_t size)
 		else
 			reg = read_reg(sc, FSPI_RFDR + 4);
 
-		if (size  >= (i + 4))
+		if (size >= (i + 4))
 			*(uint32_t *)(buf + i) = reg;
 		else
 			memcpy(buf + i, &reg, size - i);
@@ -338,14 +337,14 @@ flex_spi_write_txfifo(struct flex_spi_softc *sc, uint8_t *buf, uint8_t size)
 	for (i = 0; i < size; i += 4) {
 		/* Wait for RXFIFO available */
 		if (i % 8 == 0) {
-			ret = reg_read_poll_tout(sc, FSPI_INTR, FSPI_INTR_IPTXWE,
-			    1, 50000, 1);
+			ret = reg_read_poll_tout(sc, FSPI_INTR,
+			    FSPI_INTR_IPTXWE, 1, 50000, 1);
 			if (ret)
 				device_printf(sc->dev,
 				    "timed out waiting for FSPI_INTR_IPRXWA\n");
 		}
 
-		if (size  >= (i + 4))
+		if (size >= (i + 4))
 			reg = *(uint32_t *)(buf + i);
 		else {
 			reg = 0;
@@ -388,15 +387,15 @@ flex_spi_do_op(struct flex_spi_softc *sc, uint32_t op, uint32_t addr,
 	 * the LUT at each BIO operation. And also specify the DATA
 	 * length, since it's has not been specified in the LUT.
 	 */
-	write_reg(sc, FSPI_IPCR1, size |
-	    (0 << FSPI_IPCR1_SEQID_SHIFT) | (0 << FSPI_IPCR1_SEQNUM_SHIFT));
+	write_reg(sc, FSPI_IPCR1,
+	    size | (0 << FSPI_IPCR1_SEQID_SHIFT) |
+		(0 << FSPI_IPCR1_SEQNUM_SHIFT));
 
 	if ((size != 0) && (dir == DIR_WRITE))
 		flex_spi_write_txfifo(sc, buf, size);
 
 	/* Trigger the LUT now. */
 	write_reg(sc, FSPI_IPCMD, FSPI_IPCMD_TRG);
-
 
 	/* Wait for completion. */
 	do {
@@ -408,7 +407,8 @@ flex_spi_do_op(struct flex_spi_softc *sc, uint32_t op, uint32_t addr,
 		DELAY(1);
 	} while (--cnt);
 	if (cnt == 0) {
-		device_printf(sc->dev, "timed out waiting for command completion\n");
+		device_printf(sc->dev,
+		    "timed out waiting for command completion\n");
 		return (ETIMEDOUT);
 	}
 
@@ -425,8 +425,8 @@ flex_spi_wait_for_controller(struct flex_spi_softc *sc)
 	int err;
 
 	/* Wait for controller being ready. */
-	err = reg_read_poll_tout(sc, FSPI_STS0,
-	   FSPI_STS0_ARB_IDLE, 1, POLL_TOUT, 1);
+	err = reg_read_poll_tout(sc, FSPI_STS0, FSPI_STS0_ARB_IDLE, 1,
+	    POLL_TOUT, 1);
 
 	return (err);
 }
@@ -439,15 +439,17 @@ flex_spi_wait_for_flash(struct flex_spi_softc *sc)
 
 	ret = flex_spi_wait_for_controller(sc);
 	if (ret != 0) {
-		device_printf(sc->dev, "%s: timed out waiting for controller", __func__);
+		device_printf(sc->dev, "%s: timed out waiting for controller",
+		    __func__);
 		return (ret);
 	}
 
 	do {
-		ret = flex_spi_do_op(sc, LUT_FLASH_CMD_STATUS_READ, 0, (void*)&status,
-		    1, DIR_READ);
+		ret = flex_spi_do_op(sc, LUT_FLASH_CMD_STATUS_READ, 0,
+		    (void *)&status, 1, DIR_READ);
 		if (ret != 0) {
-			device_printf(sc->dev, "ERROR: failed to get flash status\n");
+			device_printf(sc->dev,
+			    "ERROR: failed to get flash status\n");
 			return (ret);
 		}
 
@@ -463,7 +465,8 @@ flex_spi_identify(struct flex_spi_softc *sc)
 	uint32_t id = 0;
 	struct flex_spi_flash_info *finfo = flex_spi_flash_info;
 
-	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_JEDECID, 0, (void*)&id, sizeof(id), DIR_READ);
+	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_JEDECID, 0, (void *)&id,
+	    sizeof(id), DIR_READ);
 	if (ret != 0) {
 		device_printf(sc->dev, "ERROR: failed to identify device\n");
 		return (ret);
@@ -514,12 +517,14 @@ flex_spi_read(struct flex_spi_softc *sc, off_t offset, caddr_t data,
 	if (flex_spi_force_ip_mode(sc) != 0) {
 		do {
 			if (((offset % 4) != 0) || (count < 4)) {
-				*(uint8_t*)data = bus_read_1(sc->ahb_mem_res, offset);
+				*(uint8_t *)data = bus_read_1(sc->ahb_mem_res,
+				    offset);
 				data++;
 				count--;
 				offset++;
 			} else {
-				*(uint32_t*)data = bus_read_4(sc->ahb_mem_res, offset);
+				*(uint32_t *)data = bus_read_4(sc->ahb_mem_res,
+				    offset);
 				data += 4;
 				count -= 4;
 				offset += 4;
@@ -531,8 +536,8 @@ flex_spi_read(struct flex_spi_softc *sc, off_t offset, caddr_t data,
 
 	do {
 		len = min(64, count);
-		err = flex_spi_do_op(sc, LUT_FLASH_CMD_READ, offset, (void*)data,
-				len, DIR_READ);
+		err = flex_spi_do_op(sc, LUT_FLASH_CMD_READ, offset,
+		    (void *)data, len, DIR_READ);
 		if (err)
 			return (err);
 		offset += len;
@@ -551,8 +556,8 @@ flex_spi_write(struct flex_spi_softc *sc, off_t offset, uint8_t *data,
 	size_t ptr;
 
 	flex_spi_wait_for_flash(sc);
-	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_WRITE_ENABLE, offset, NULL,
-				0, DIR_READ);
+	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_WRITE_ENABLE, offset, NULL, 0,
+	    DIR_READ);
 	if (ret != 0) {
 		device_printf(sc->dev, "ERROR: failed to enable writes\n");
 		return (ret);
@@ -570,18 +575,18 @@ flex_spi_write(struct flex_spi_softc *sc, off_t offset, uint8_t *data,
 		/* Read sector */
 		ret = flex_spi_read(sc, sector_base, sc->buf, sc->erasesize);
 		if (ret != 0) {
-			device_printf(sc->dev, "ERROR: failed to read sector %d\n",
-			    sector_base);
+			device_printf(sc->dev,
+			    "ERROR: failed to read sector %d\n", sector_base);
 			goto exit;
 		}
 
 		/* Erase sector */
 		flex_spi_wait_for_flash(sc);
-		ret = flex_spi_do_op(sc, LUT_FLASH_CMD_SECTOR_ERASE, offset, NULL,
-				0, DIR_READ);
+		ret = flex_spi_do_op(sc, LUT_FLASH_CMD_SECTOR_ERASE, offset,
+		    NULL, 0, DIR_READ);
 		if (ret != 0) {
-			device_printf(sc->dev, "ERROR: failed to erase sector %d\n",
-			    sector_base);
+			device_printf(sc->dev,
+			    "ERROR: failed to erase sector %d\n", sector_base);
 			goto exit;
 		}
 
@@ -595,10 +600,12 @@ flex_spi_write(struct flex_spi_softc *sc, off_t offset, uint8_t *data,
 		for (ptr = 0; ptr < sc->erasesize; ptr += 32) {
 			flex_spi_wait_for_flash(sc);
 			ret = flex_spi_do_op(sc, LUT_FLASH_CMD_PAGE_PROGRAM,
-			    sector_base + ptr, (void*)(sc->buf + ptr), 32, DIR_WRITE);
+			    sector_base + ptr, (void *)(sc->buf + ptr), 32,
+			    DIR_WRITE);
 			if (ret != 0) {
-				device_printf(sc->dev, "ERROR: failed to write address %ld\n",
-				   sector_base + ptr);
+				device_printf(sc->dev,
+				    "ERROR: failed to write address %ld\n",
+				    sector_base + ptr);
 				goto exit;
 			}
 		}
@@ -609,8 +616,8 @@ flex_spi_write(struct flex_spi_softc *sc, off_t offset, uint8_t *data,
 	}
 
 	flex_spi_wait_for_flash(sc);
-	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_WRITE_DISABLE, offset, (void*)sc->buf,
-				0, DIR_READ);
+	ret = flex_spi_do_op(sc, LUT_FLASH_CMD_WRITE_DISABLE, offset,
+	    (void *)sc->buf, 0, DIR_READ);
 	if (ret != 0) {
 		device_printf(sc->dev, "ERROR: failed to disable writes\n");
 		goto exit;
@@ -638,7 +645,8 @@ flex_spi_default_setup(struct flex_spi_softc *sc)
 	reg = read_reg(sc, FSPI_MCR0);
 	reg |= FSPI_MCR0_SWRST;
 	write_reg(sc, FSPI_MCR0, reg);
-	ret = reg_read_poll_tout(sc, FSPI_MCR0, FSPI_MCR0_SWRST, 1000, POLL_TOUT, 0);
+	ret = reg_read_poll_tout(sc, FSPI_MCR0, FSPI_MCR0_SWRST, 1000,
+	    POLL_TOUT, 0);
 	if (ret != 0) {
 		device_printf(sc->dev, "time out waiting for reset");
 		return (ret);
@@ -652,8 +660,9 @@ flex_spi_default_setup(struct flex_spi_softc *sc)
 	write_reg(sc, FSPI_DLLBCR, FSPI_DLLBCR_OVRDEN);
 
 	/* enable module */
-	write_reg(sc, FSPI_MCR0, FSPI_MCR0_AHB_TIMEOUT(0xFF) |
-		    FSPI_MCR0_IP_TIMEOUT(0xFF) | (uint32_t) FSPI_MCR0_OCTCOMB_EN);
+	write_reg(sc, FSPI_MCR0,
+	    FSPI_MCR0_AHB_TIMEOUT(0xFF) | FSPI_MCR0_IP_TIMEOUT(0xFF) |
+		(uint32_t)FSPI_MCR0_OCTCOMB_EN);
 
 	/*
 	 * Disable same device enable bit and configure all slave devices
@@ -671,8 +680,7 @@ flex_spi_default_setup(struct flex_spi_softc *sc)
 	 * Set ADATSZ with the maximum AHB buffer size to improve the read
 	 * performance.
 	 */
-	write_reg(sc, FSPI_AHBRX_BUF7CR0, (2048 / 8 |
-		  FSPI_AHBRXBUF0CR7_PREF));
+	write_reg(sc, FSPI_AHBRX_BUF7CR0, (2048 / 8 | FSPI_AHBRXBUF0CR7_PREF));
 
 	/* prefetch and no start address alignment limitation */
 	write_reg(sc, FSPI_AHBCR, FSPI_AHBCR_PREF_EN | FSPI_AHBCR_RDADDROPT);
@@ -734,22 +742,22 @@ flex_spi_attach(device_t dev)
 	}
 
 	/* Get clocks */
-	if ((clk_get_by_ofw_name(dev, node, "fspi_en", &sc->fspi_clk_en) != 0)
-	    || (clk_get_freq(sc->fspi_clk_en, &sc->fspi_clk_en_hz) != 0)) {
+	if ((clk_get_by_ofw_name(dev, node, "fspi_en", &sc->fspi_clk_en) !=
+		0) ||
+	    (clk_get_freq(sc->fspi_clk_en, &sc->fspi_clk_en_hz) != 0)) {
 		device_printf(dev, "could not get fspi_en clock\n");
 		flex_spi_detach(dev);
 		return (EINVAL);
 	}
-	if ((clk_get_by_ofw_name(dev, node, "fspi", &sc->fspi_clk) != 0)
-	    || (clk_get_freq(sc->fspi_clk, &sc->fspi_clk_hz) != 0)) {
+	if ((clk_get_by_ofw_name(dev, node, "fspi", &sc->fspi_clk) != 0) ||
+	    (clk_get_freq(sc->fspi_clk, &sc->fspi_clk_hz) != 0)) {
 		device_printf(dev, "could not get fspi clock\n");
 		flex_spi_detach(dev);
 		return (EINVAL);
 	}
 
 	/* Enable clocks */
-	if (clk_enable(sc->fspi_clk_en) != 0 ||
-	    clk_enable(sc->fspi_clk) != 0) {
+	if (clk_enable(sc->fspi_clk_en) != 0 || clk_enable(sc->fspi_clk) != 0) {
 		device_printf(dev, "could not enable clocks\n");
 		flex_spi_detach(dev);
 		return (EINVAL);
@@ -768,7 +776,7 @@ flex_spi_attach(device_t dev)
 	}
 
 	/* Identify attached Flash */
-	if(flex_spi_identify(sc) != 0) {
+	if (flex_spi_identify(sc) != 0) {
 		device_printf(sc->dev, "Unable to identify Flash\n");
 		flex_spi_detach(dev);
 		return (ENXIO);
@@ -782,7 +790,8 @@ flex_spi_attach(device_t dev)
 
 	sc->buf = malloc(sc->erasesize, SECTOR_BUFFER, M_WAITOK);
 	if (sc->buf == NULL) {
-		device_printf(sc->dev, "Unable to set up allocate internal buffer\n");
+		device_printf(sc->dev,
+		    "Unable to set up allocate internal buffer\n");
 		flex_spi_detach(dev);
 		return (ENOMEM);
 	}
@@ -972,9 +981,9 @@ flex_spi_task(void *arg)
 
 static device_method_t flex_spi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		flex_spi_probe),
-	DEVMETHOD(device_attach,	flex_spi_attach),
-	DEVMETHOD(device_detach,	flex_spi_detach),
+	DEVMETHOD(device_probe, flex_spi_probe),
+	DEVMETHOD(device_attach, flex_spi_attach),
+	DEVMETHOD(device_detach, flex_spi_detach),
 
 	{ 0, 0 }
 };

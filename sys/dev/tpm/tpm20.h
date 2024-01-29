@@ -26,20 +26,22 @@
  */
 
 #ifndef _TPM20_H_
-#define	_TPM20_H_
+#define _TPM20_H_
+
+#include "opt_acpi.h"
+#include "opt_tpm.h"
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/proc.h>
 #include <sys/systm.h>
-
 #include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/sx.h>
 #include <sys/taskqueue.h>
@@ -49,85 +51,83 @@
 #include <machine/md_var.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
 #include <dev/acpica/acpivar.h>
-#include "opt_acpi.h"
 
-#include "opt_tpm.h"
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-#define	BIT(x) (1 << (x))
+#define BIT(x) (1 << (x))
 
 /* Timeouts in us */
-#define	TPM_TIMEOUT_A			750000
-#define	TPM_TIMEOUT_B			2000000
-#define	TPM_TIMEOUT_C			200000
-#define	TPM_TIMEOUT_D			30000
+#define TPM_TIMEOUT_A 750000
+#define TPM_TIMEOUT_B 2000000
+#define TPM_TIMEOUT_C 200000
+#define TPM_TIMEOUT_D 30000
 
 /*
  * Generating RSA key pair takes ~(10-20s), which is significantly longer than
  * any timeout defined in spec. Because of that we need a new one.
  */
-#define	TPM_TIMEOUT_LONG		40000000
+#define TPM_TIMEOUT_LONG 40000000
 
 /* List of commands that require TPM_TIMEOUT_LONG time to complete */
-#define	TPM_CC_CreatePrimary		0x00000131
-#define	TPM_CC_Create			0x00000153
-#define	TPM_CC_CreateLoaded		0x00000191
+#define TPM_CC_CreatePrimary 0x00000131
+#define TPM_CC_Create 0x00000153
+#define TPM_CC_CreateLoaded 0x00000191
 
 /* List of commands that require only TPM_TIMEOUT_C time to complete */
-#define	TPM_CC_SequenceComplete		0x0000013e
-#define	TPM_CC_Startup			0x00000144
-#define	TPM_CC_SequenceUpdate		0x0000015c
-#define	TPM_CC_GetCapability		0x0000017a
-#define	TPM_CC_PCR_Extend		0x00000182
-#define	TPM_CC_EventSequenceComplete	0x00000185
-#define	TPM_CC_HashSequenceStart	0x00000186
+#define TPM_CC_SequenceComplete 0x0000013e
+#define TPM_CC_Startup 0x00000144
+#define TPM_CC_SequenceUpdate 0x0000015c
+#define TPM_CC_GetCapability 0x0000017a
+#define TPM_CC_PCR_Extend 0x00000182
+#define TPM_CC_EventSequenceComplete 0x00000185
+#define TPM_CC_HashSequenceStart 0x00000186
 
 /* Timeout before data in read buffer is discarded */
-#define	TPM_READ_TIMEOUT		500000
+#define TPM_READ_TIMEOUT 500000
 
-#define	TPM_BUFSIZE			0x1000
+#define TPM_BUFSIZE 0x1000
 
-#define	TPM_HEADER_SIZE			10
+#define TPM_HEADER_SIZE 10
 
-#define	TPM_CDEV_NAME			"tpm0"
-#define	TPM_CDEV_PERM_FLAG		0600
+#define TPM_CDEV_NAME "tpm0"
+#define TPM_CDEV_PERM_FLAG 0600
 
-#define	TPM2_START_METHOD_ACPI		2
-#define	TPM2_START_METHOD_TIS		6
-#define	TPM2_START_METHOD_CRB		7
-#define	TPM2_START_METHOD_CRB_ACPI	8
+#define TPM2_START_METHOD_ACPI 2
+#define TPM2_START_METHOD_TIS 6
+#define TPM2_START_METHOD_CRB 7
+#define TPM2_START_METHOD_CRB_ACPI 8
 
 MALLOC_DECLARE(M_TPM20);
 
 struct tpm_sc {
-	device_t	dev;
+	device_t dev;
 
-	struct resource	*mem_res;
-	struct resource	*irq_res;
-	int		mem_rid;
-	int		irq_rid;
+	struct resource *mem_res;
+	struct resource *irq_res;
+	int mem_rid;
+	int irq_rid;
 
-	struct cdev	*sc_cdev;
+	struct cdev *sc_cdev;
 
-	struct sx 	dev_lock;
-	struct cv	buf_cv;
+	struct sx dev_lock;
+	struct cv buf_cv;
 
-	void 		*intr_cookie;
-	int 		intr_type;	/* Current event type */
-	bool 		interrupts;
+	void *intr_cookie;
+	int intr_type; /* Current event type */
+	bool interrupts;
 
-	uint8_t 	*buf;
-	size_t		pending_data_length;
-	lwpid_t		owner_tid;
+	uint8_t *buf;
+	size_t pending_data_length;
+	lwpid_t owner_tid;
 
-	struct callout 	discard_buffer_callout;
+	struct callout discard_buffer_callout;
 #ifdef TPM_HARVEST
-	struct timeout_task 	harvest_task;
+	struct timeout_task harvest_task;
 #endif
 
-	int		(*transmit)(struct tpm_sc *, size_t);
+	int (*transmit)(struct tpm_sc *, size_t);
 };
 
 int tpm20_suspend(device_t dev);
@@ -187,4 +187,4 @@ OR4(struct tpm_sc *sc, bus_size_t off, uint32_t val)
 
 	WR4(sc, off, RD4(sc, off) | val);
 }
-#endif	/* _TPM20_H_ */
+#endif /* _TPM20_H_ */

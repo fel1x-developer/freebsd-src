@@ -27,8 +27,8 @@
 #ifndef _PADLOCK_H_
 #define _PADLOCK_H_
 
-#include <opencrypto/cryptodev.h>
 #include <crypto/rijndael/rijndael.h>
+#include <opencrypto/cryptodev.h>
 
 union padlock_cw {
 	uint64_t raw;
@@ -45,38 +45,40 @@ union padlock_cw {
 		u_int filler3 : 32;
 	} __field;
 };
-#define	cw_round_count		__field.round_count
-#define	cw_algorithm_type	__field.algorithm_type
-#define	cw_key_generation	__field.key_generation
-#define	cw_intermediate		__field.intermediate
-#define	cw_direction		__field.direction
-#define	cw_key_size		__field.key_size
-#define	cw_filler0		__field.filler0
-#define	cw_filler1		__field.filler1
-#define	cw_filler2		__field.filler2
-#define	cw_filler3		__field.filler3
+#define cw_round_count __field.round_count
+#define cw_algorithm_type __field.algorithm_type
+#define cw_key_generation __field.key_generation
+#define cw_intermediate __field.intermediate
+#define cw_direction __field.direction
+#define cw_key_size __field.key_size
+#define cw_filler0 __field.filler0
+#define cw_filler1 __field.filler1
+#define cw_filler2 __field.filler2
+#define cw_filler3 __field.filler3
 
 struct padlock_session {
 	union padlock_cw ses_cw __aligned(16);
-	uint32_t	ses_ekey[4 * (RIJNDAEL_MAXNR + 1) + 4] __aligned(16);	/* 128 bit aligned */
-	uint32_t	ses_dkey[4 * (RIJNDAEL_MAXNR + 1) + 4] __aligned(16);	/* 128 bit aligned */
+	uint32_t ses_ekey[4 * (RIJNDAEL_MAXNR + 1) + 4] __aligned(
+	    16); /* 128 bit aligned */
+	uint32_t ses_dkey[4 * (RIJNDAEL_MAXNR + 1) + 4] __aligned(
+	    16); /* 128 bit aligned */
 	const struct auth_hash *ses_axf;
-	uint8_t		*ses_ictx;
-	uint8_t		*ses_octx;
-	int		ses_mlen;
+	uint8_t *ses_ictx;
+	uint8_t *ses_octx;
+	int ses_mlen;
 };
 
-#define	PADLOCK_ALIGN(p)	(void *)(roundup2((uintptr_t)(p), 16))
+#define PADLOCK_ALIGN(p) (void *)(roundup2((uintptr_t)(p), 16))
 
-int	padlock_cipher_setup(struct padlock_session *ses,
-	    const struct crypto_session_params *csp);
-int	padlock_cipher_process(struct padlock_session *ses,
-	    struct cryptop *crp, const struct crypto_session_params *csp);
-bool	padlock_hash_check(const struct crypto_session_params *csp);
-int	padlock_hash_setup(struct padlock_session *ses,
-	    const struct crypto_session_params *csp);
-int	padlock_hash_process(struct padlock_session *ses,
-	    struct cryptop *crp, const struct crypto_session_params *csp);
-void	padlock_hash_free(struct padlock_session *ses);
+int padlock_cipher_setup(struct padlock_session *ses,
+    const struct crypto_session_params *csp);
+int padlock_cipher_process(struct padlock_session *ses, struct cryptop *crp,
+    const struct crypto_session_params *csp);
+bool padlock_hash_check(const struct crypto_session_params *csp);
+int padlock_hash_setup(struct padlock_session *ses,
+    const struct crypto_session_params *csp);
+int padlock_hash_process(struct padlock_session *ses, struct cryptop *crp,
+    const struct crypto_session_params *csp);
+void padlock_hash_free(struct padlock_session *ses);
 
-#endif	/* !_PADLOCK_H_ */
+#endif /* !_PADLOCK_H_ */

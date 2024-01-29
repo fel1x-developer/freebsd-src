@@ -69,14 +69,14 @@
 #include <sys/vmmeter.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
+#include <vm/pmap.h>
 #include <vm/vm_kern.h>
+#include <vm/vm_map.h>
 #include <vm/vm_object.h>
 #include <vm/vm_page.h>
-#include <vm/vm_phys.h>
-#include <vm/pmap.h>
-#include <vm/vm_map.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
+#include <vm/vm_phys.h>
 
 #include <machine/cpu.h>
 #include <machine/fpe.h>
@@ -92,9 +92,10 @@
 #include <machine/vmparam.h>
 
 #ifdef FDT
-#include <contrib/libfdt/libfdt.h>
 #include <dev/fdt/fdt_common.h>
 #include <dev/ofw/openfirm.h>
+
+#include <contrib/libfdt/libfdt.h>
 #endif
 
 struct pcpu __pcpu[MAXCPU];
@@ -104,16 +105,16 @@ static struct trapframe proc0_tf;
 int early_boot = 1;
 int cold = 1;
 
-#define	DTB_SIZE_MAX	(1024 * 1024)
+#define DTB_SIZE_MAX (1024 * 1024)
 
 struct kva_md_info kmi;
 
-int64_t dcache_line_size;	/* The minimum D cache line size */
-int64_t icache_line_size;	/* The minimum I cache line size */
-int64_t idcache_line_size;	/* The minimum cache line size */
+int64_t dcache_line_size;  /* The minimum D cache line size */
+int64_t icache_line_size;  /* The minimum I cache line size */
+int64_t idcache_line_size; /* The minimum cache line size */
 
-#define BOOT_HART_INVALID	0xffffffff
-uint32_t boot_hart = BOOT_HART_INVALID;	/* The hart we booted on. */
+#define BOOT_HART_INVALID 0xffffffff
+uint32_t boot_hart = BOOT_HART_INVALID; /* The hart we booted on. */
 
 cpuset_t all_harts;
 
@@ -142,8 +143,7 @@ cpu_startup(void *dummy)
 			vm_paddr_t size;
 
 			size = phys_avail[indx + 1] - phys_avail[indx];
-			printf(
-			    "0x%016jx - 0x%016jx, %ju bytes (%ju pages)\n",
+			printf("0x%016jx - 0x%016jx, %ju bytes (%ju pages)\n",
 			    (uintmax_t)phys_avail[indx],
 			    (uintmax_t)phys_avail[indx + 1] - 1,
 			    (uintmax_t)size, (uintmax_t)size / PAGE_SIZE);
@@ -179,9 +179,8 @@ cpu_idle(int busy)
 	if (!busy)
 		cpu_idleclock();
 	if (!sched_runnable())
-		__asm __volatile(
-		    "fence \n"
-		    "wfi   \n");
+		__asm __volatile("fence \n"
+				 "wfi   \n");
 	if (!busy)
 		cpu_activeclock();
 	spinlock_exit();
@@ -288,7 +287,8 @@ init_proc0(vm_offset_t kstack)
 	thread0.td_kstack = kstack;
 	thread0.td_kstack_pages = KSTACK_PAGES;
 	thread0.td_pcb = (struct pcb *)(thread0.td_kstack +
-	    thread0.td_kstack_pages * PAGE_SIZE) - 1;
+			     thread0.td_kstack_pages * PAGE_SIZE) -
+	    1;
 	thread0.td_pcb->pcb_fpflags = 0;
 	thread0.td_frame = &proc0_tf;
 	pcpup->pc_curpcb = thread0.td_pcb;
@@ -345,19 +345,21 @@ fake_preload_metadata(struct riscv_bootparams *rvbp)
 	vm_offset_t lastaddr;
 	size_t fake_size, dtb_size;
 
-#define PRELOAD_PUSH_VALUE(type, value) do {			\
-	*(type *)((char *)fake_preload + fake_size) = (value);	\
-	fake_size += sizeof(type);				\
-} while (0)
+#define PRELOAD_PUSH_VALUE(type, value)                                \
+	do {                                                           \
+		*(type *)((char *)fake_preload + fake_size) = (value); \
+		fake_size += sizeof(type);                             \
+	} while (0)
 
-#define PRELOAD_PUSH_STRING(str) do {				\
-	uint32_t ssize;						\
-	ssize = strlen(str) + 1;				\
-	PRELOAD_PUSH_VALUE(uint32_t, ssize);			\
-	strcpy(((char *)fake_preload + fake_size), str);	\
-	fake_size += ssize;					\
-	fake_size = roundup(fake_size, sizeof(u_long));		\
-} while (0)
+#define PRELOAD_PUSH_STRING(str)                                 \
+	do {                                                     \
+		uint32_t ssize;                                  \
+		ssize = strlen(str) + 1;                         \
+		PRELOAD_PUSH_VALUE(uint32_t, ssize);             \
+		strcpy(((char *)fake_preload + fake_size), str); \
+		fake_size += ssize;                              \
+		fake_size = roundup(fake_size, sizeof(u_long));  \
+	} while (0)
 
 	fake_size = 0;
 	lastaddr = (vm_offset_t)&end;
@@ -486,7 +488,7 @@ initriscv(struct riscv_bootparams *rvbp)
 	pcpu_init(pcpup, 0, sizeof(struct pcpu));
 
 	/* Set the pcpu pointer */
-	__asm __volatile("mv tp, %0" :: "r"(pcpup));
+	__asm __volatile("mv tp, %0" ::"r"(pcpup));
 
 	PCPU_SET(curthread, &thread0);
 

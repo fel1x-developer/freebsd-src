@@ -50,7 +50,7 @@
  * text strings.
  */
 
-#define _NLS_MAGIC	0xff88ff89
+#define _NLS_MAGIC 0xff88ff89
 
 struct _nls_cat_hdr {
 	int32_t __magic;
@@ -58,39 +58,39 @@ struct _nls_cat_hdr {
 	int32_t __mem;
 	int32_t __msg_hdr_offset;
 	int32_t __msg_txt_offset;
-} ;
+};
 
 struct _nls_set_hdr {
-	int32_t __setno;	/* set number: 0 < x <= NL_SETMAX */
-	int32_t __nmsgs;	/* number of messages in the set  */
-	int32_t __index;	/* index of first msg_hdr in msg_hdr table */
-} ;
+	int32_t __setno; /* set number: 0 < x <= NL_SETMAX */
+	int32_t __nmsgs; /* number of messages in the set  */
+	int32_t __index; /* index of first msg_hdr in msg_hdr table */
+};
 
 struct _nls_msg_hdr {
-	int32_t __msgno;	/* msg number: 0 < x <= NL_MSGMAX */
+	int32_t __msgno; /* msg number: 0 < x <= NL_MSGMAX */
 	int32_t __msglen;
 	int32_t __offset;
-} ;
+};
 
-#endif	/* _NLS_PRIVATE */
+#endif /* _NLS_PRIVATE */
 
-#define	NL_SETD		0
-#define	NL_CAT_LOCALE	1
+#define NL_SETD 0
+#define NL_CAT_LOCALE 1
 
 typedef struct __nl_cat_d {
-	void	*__data;
-	int	__size;
+	void *__data;
+	int __size;
 } *nl_catd;
 
 #ifndef _NL_ITEM_DECLARED
-typedef	__nl_item	nl_item;
-#define	_NL_ITEM_DECLARED
+typedef __nl_item nl_item;
+#define _NL_ITEM_DECLARED
 #endif
 
 __BEGIN_DECLS
-nl_catd  catopen(const char *, int);
-char    *catgets(nl_catd, int, int, const char *) __format_arg(4);
-int	 catclose(nl_catd);
+nl_catd catopen(const char *, int);
+char *catgets(nl_catd, int, int, const char *) __format_arg(4);
+int catclose(nl_catd);
 __END_DECLS
 
-#endif	/* _NL_TYPES_H_ */
+#endif /* _NL_TYPES_H_ */

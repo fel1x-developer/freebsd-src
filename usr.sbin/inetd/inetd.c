@@ -53,7 +53,7 @@
  * a space or tab.  All fields must be present in each entry.
  *
  *	service name			must be in /etc/services
- *					or name a tcpmux service 
+ *					or name a tcpmux service
  *					or specify a unix domain socket
  *	socket type			stream/dgram/raw/rdm/seqpacket
  *	protocol			tcp[4][6], udp[4][6], unix
@@ -98,27 +98,27 @@
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/wait.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <rpc/rpc.h>
-#include <rpc/pmap_clnt.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
-#include <errno.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <libutil.h>
 #include <limits.h>
 #include <netdb.h>
 #include <pwd.h>
+#include <rpc/pmap_clnt.h>
+#include <rpc/rpc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,29 +135,29 @@
 
 #ifdef IPSEC
 #include <netipsec/ipsec.h>
-#ifndef IPSEC_POLICY_IPSEC	/* no ipsec support on old ipsec */
+#ifndef IPSEC_POLICY_IPSEC /* no ipsec support on old ipsec */
 #undef IPSEC
 #endif
 #endif
 
 #ifndef LIBWRAP_ALLOW_FACILITY
-# define LIBWRAP_ALLOW_FACILITY LOG_AUTH
+#define LIBWRAP_ALLOW_FACILITY LOG_AUTH
 #endif
 #ifndef LIBWRAP_ALLOW_SEVERITY
-# define LIBWRAP_ALLOW_SEVERITY LOG_INFO
+#define LIBWRAP_ALLOW_SEVERITY LOG_INFO
 #endif
 #ifndef LIBWRAP_DENY_FACILITY
-# define LIBWRAP_DENY_FACILITY LOG_AUTH
+#define LIBWRAP_DENY_FACILITY LOG_AUTH
 #endif
 #ifndef LIBWRAP_DENY_SEVERITY
-# define LIBWRAP_DENY_SEVERITY LOG_WARNING
+#define LIBWRAP_DENY_SEVERITY LOG_WARNING
 #endif
 
-#define ISWRAP(sep)	\
-	   ( ((wrap_ex && !(sep)->se_bi) || (wrap_bi && (sep)->se_bi)) \
-	&& (sep->se_family == AF_INET || sep->se_family == AF_INET6) \
-	&& ( ((sep)->se_accept && (sep)->se_socktype == SOCK_STREAM) \
-	    || (sep)->se_socktype == SOCK_DGRAM))
+#define ISWRAP(sep)                                                      \
+	(((wrap_ex && !(sep)->se_bi) || (wrap_bi && (sep)->se_bi)) &&    \
+	    (sep->se_family == AF_INET || sep->se_family == AF_INET6) && \
+	    (((sep)->se_accept && (sep)->se_socktype == SOCK_STREAM) ||  \
+		(sep)->se_socktype == SOCK_DGRAM))
 
 #ifdef LOGIN_CAP
 #include <login_cap.h>
@@ -167,114 +167,117 @@
 
 #endif
 
-#ifndef	MAXCHILD
-#define	MAXCHILD	-1		/* maximum number of this service
-					   < 0 = no limit */
+#ifndef MAXCHILD
+#define MAXCHILD                             \
+	-1 /* maximum number of this service \
+	      < 0 = no limit */
 #endif
 
-#ifndef	MAXCPM
-#define	MAXCPM		-1		/* rate limit invocations from a
-					   single remote address,
-					   < 0 = no limit */
+#ifndef MAXCPM
+#define MAXCPM                              \
+	-1 /* rate limit invocations from a \
+	      single remote address,        \
+	      < 0 = no limit */
 #endif
 
-#ifndef	MAXPERIP
-#define	MAXPERIP	-1		/* maximum number of this service
-					   from a single remote address,
-					   < 0 = no limit */
+#ifndef MAXPERIP
+#define MAXPERIP                             \
+	-1 /* maximum number of this service \
+	      from a single remote address,  \
+	      < 0 = no limit */
 #endif
 
 #ifndef TOOMANY
-#define	TOOMANY		256		/* don't start more than TOOMANY */
+#define TOOMANY 256 /* don't start more than TOOMANY */
 #endif
-#define	CNT_INTVL	60		/* servers in CNT_INTVL sec. */
-#define	RETRYTIME	(60*10)		/* retry after bind or server fail */
-#define MAX_MAXCHLD	32767		/* max allowable max children */
+#define CNT_INTVL 60	    /* servers in CNT_INTVL sec. */
+#define RETRYTIME (60 * 10) /* retry after bind or server fail */
+#define MAX_MAXCHLD 32767   /* max allowable max children */
 
-#define	SIGBLOCK	(sigmask(SIGCHLD)|sigmask(SIGHUP)|sigmask(SIGALRM))
+#define SIGBLOCK (sigmask(SIGCHLD) | sigmask(SIGHUP) | sigmask(SIGALRM))
 
-#define	satosin(sa)	((struct sockaddr_in *)(void *)sa)
-#define	csatosin(sa)	((const struct sockaddr_in *)(const void *)sa)
+#define satosin(sa) ((struct sockaddr_in *)(void *)sa)
+#define csatosin(sa) ((const struct sockaddr_in *)(const void *)sa)
 #ifdef INET6
-#define	satosin6(sa)	((struct sockaddr_in6 *)(void *)sa)
-#define	csatosin6(sa)	((const struct sockaddr_in6 *)(const void *)sa)
+#define satosin6(sa) ((struct sockaddr_in6 *)(void *)sa)
+#define csatosin6(sa) ((const struct sockaddr_in6 *)(const void *)sa)
 #endif
-static void	close_sep(struct servtab *);
-static void	flag_signal(int);
-static void	config(void);
-static int	cpmip(const struct servtab *, int);
-static void	endconfig(void);
+static void close_sep(struct servtab *);
+static void flag_signal(int);
+static void config(void);
+static int cpmip(const struct servtab *, int);
+static void endconfig(void);
 static struct servtab *enter(struct servtab *);
-static void	freeconfig(struct servtab *);
+static void freeconfig(struct servtab *);
 static struct servtab *getconfigent(void);
-static int	matchservent(const char *, const char *, const char *);
-static char	*nextline(FILE *);
-static void	addchild(struct servtab *, int);
-static void	reapchild(void);
-static void	enable(struct servtab *);
-static void	disable(struct servtab *);
-static void	retry(void);
-static int	setconfig(void);
-static void	setup(struct servtab *);
+static int matchservent(const char *, const char *, const char *);
+static char *nextline(FILE *);
+static void addchild(struct servtab *, int);
+static void reapchild(void);
+static void enable(struct servtab *);
+static void disable(struct servtab *);
+static void retry(void);
+static int setconfig(void);
+static void setup(struct servtab *);
 #ifdef IPSEC
-static void	ipsecsetup(struct servtab *);
+static void ipsecsetup(struct servtab *);
 #endif
-static void	unregisterrpc(register struct servtab *sep);
+static void unregisterrpc(register struct servtab *sep);
 static struct conninfo *search_conn(struct servtab *sep, int ctrl);
-static int	room_conn(struct servtab *sep, struct conninfo *conn);
-static void	addchild_conn(struct conninfo *conn, pid_t pid);
-static void	reapchild_conn(pid_t pid);
-static void	free_conn(struct conninfo *conn);
-static void	resize_conn(struct servtab *sep, int maxperip);
-static void	free_connlist(struct servtab *sep);
-static void	free_proc(struct procinfo *);
+static int room_conn(struct servtab *sep, struct conninfo *conn);
+static void addchild_conn(struct conninfo *conn, pid_t pid);
+static void reapchild_conn(pid_t pid);
+static void free_conn(struct conninfo *conn);
+static void resize_conn(struct servtab *sep, int maxperip);
+static void free_connlist(struct servtab *sep);
+static void free_proc(struct procinfo *);
 static struct procinfo *search_proc(pid_t pid, int add);
-static int	hashval(char *p, int len);
-static char	*skip(char **);
-static char	*sskip(char **);
-static char	*newstr(const char *);
-static void	print_service(const char *, const struct servtab *);
+static int hashval(char *p, int len);
+static char *skip(char **);
+static char *sskip(char **);
+static char *newstr(const char *);
+static void print_service(const char *, const struct servtab *);
 
 #ifdef LIBWRAP
 /* tcpd.h */
-int	allow_severity;
-int	deny_severity;
+int allow_severity;
+int deny_severity;
 #endif
 
-static int	wrap_ex = 0;
-static int	wrap_bi = 0;
-int	debug = 0;
-static int	dolog = 0;
-static int	maxsock;		/* highest-numbered descriptor */
-static fd_set	allsock;
-static int	options;
-static int	timingout;
-static int	toomany = TOOMANY;
-static int	maxchild = MAXCHILD;
-static int	maxcpm = MAXCPM;
-static int	maxperip = MAXPERIP;
-static struct	servent *sp;
-static struct	rpcent *rpc;
-static char	*hostname = NULL;
-static struct	sockaddr_in *bind_sa4;
-static int	v4bind_ok = 0;
+static int wrap_ex = 0;
+static int wrap_bi = 0;
+int debug = 0;
+static int dolog = 0;
+static int maxsock; /* highest-numbered descriptor */
+static fd_set allsock;
+static int options;
+static int timingout;
+static int toomany = TOOMANY;
+static int maxchild = MAXCHILD;
+static int maxcpm = MAXCPM;
+static int maxperip = MAXPERIP;
+static struct servent *sp;
+static struct rpcent *rpc;
+static char *hostname = NULL;
+static struct sockaddr_in *bind_sa4;
+static int v4bind_ok = 0;
 #ifdef INET6
-static struct	sockaddr_in6 *bind_sa6;
-static int	v6bind_ok = 0;
+static struct sockaddr_in6 *bind_sa6;
+static int v6bind_ok = 0;
 #endif
-static int	signalpipe[2];
+static int signalpipe[2];
 #ifdef SANITY_CHECK
-static int	nsock;
+static int nsock;
 #endif
-static uid_t	euid;
-static gid_t	egid;
-static mode_t	mask;
+static uid_t euid;
+static gid_t egid;
+static mode_t mask;
 
 struct servtab *servtab;
 
-static const char	*CONFIG = _PATH_INETDCONF;
-static const char	*pid_file = _PATH_INETDPID;
-static struct pidfh	*pfh = NULL;
+static const char *CONFIG = _PATH_INETDCONF;
+static const char *pid_file = _PATH_INETDPID;
+static struct pidfh *pfh = NULL;
 
 static struct netconfig *udpconf, *tcpconf, *udp6conf, *tcp6conf;
 
@@ -283,16 +286,16 @@ static LIST_HEAD(, procinfo) proctable[PERIPSIZE];
 static int
 getvalue(const char *arg, int *value, const char *whine)
 {
-	int  tmp;
+	int tmp;
 	char *p;
 
 	tmp = strtol(arg, &p, 0);
 	if (tmp < 0 || *p) {
 		syslog(LOG_ERR, whine, arg);
-		return 1;			/* failure */
+		return 1; /* failure */
 	}
 	*value = tmp;
-	return 0;				/* success */
+	return 0; /* success */
 }
 
 #ifdef LIBWRAP
@@ -341,7 +344,7 @@ main(int argc, char **argv)
 	openlog("inetd", LOG_PID | LOG_NOWAIT | LOG_PERROR, LOG_DAEMON);
 
 	while ((ch = getopt(argc, argv, "dlwWR:a:c:C:p:s:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'd':
 			debug = 1;
 			options |= SO_DEBUG;
@@ -351,15 +354,15 @@ main(int argc, char **argv)
 			break;
 		case 'R':
 			getvalue(optarg, &toomany,
-				"-R %s: bad value for service invocation rate");
+			    "-R %s: bad value for service invocation rate");
 			break;
 		case 'c':
 			getvalue(optarg, &maxchild,
-				"-c %s: bad value for maximum children");
+			    "-c %s: bad value for maximum children");
 			break;
 		case 'C':
 			getvalue(optarg, &maxcpm,
-				"-C %s: bad value for maximum children/minute");
+			    "-C %s: bad value for maximum children/minute");
 			break;
 		case 'a':
 			hostname = optarg;
@@ -369,7 +372,7 @@ main(int argc, char **argv)
 			break;
 		case 's':
 			getvalue(optarg, &maxperip,
-				"-s %s: bad value for maximum children per source address");
+			    "-s %s: bad value for maximum children per source address");
 			break;
 		case 'w':
 			wrap_ex++;
@@ -380,9 +383,9 @@ main(int argc, char **argv)
 		case '?':
 		default:
 			syslog(LOG_ERR,
-				"usage: inetd [-dlWw] [-a address] [-C rate]"
-				" [-c maximum] [-p filename] [-R rate]"
-				" [-s maximum] [configuration_file]");
+			    "usage: inetd [-dlWw] [-a address] [-C rate]"
+			    " [-c maximum] [-p filename] [-R rate]"
+			    " [-s maximum] [configuration_file]");
 			exit(EX_USAGE);
 		}
 	/*
@@ -400,7 +403,7 @@ main(int argc, char **argv)
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;	/* dummy */
+	hints.ai_socktype = SOCK_STREAM; /* dummy */
 	error = getaddrinfo(hostname, servname, &hints, &res);
 	if (error != 0) {
 		syslog(LOG_ERR, "-a %s: %s", hostname, gai_strerror(error));
@@ -437,14 +440,14 @@ main(int argc, char **argv)
 #ifdef INET6
 		    && v6bind_ok
 #endif
-		    )
+		)
 			break;
 	} while ((res = res->ai_next) != NULL);
 	if (!v4bind_ok
 #ifdef INET6
 	    && !v6bind_ok
 #endif
-	    ) {
+	) {
 		syslog(LOG_ERR, "-a %s: unknown address family", hostname);
 		exit(EX_USAGE);
 	}
@@ -502,7 +505,7 @@ main(int argc, char **argv)
 	if (v4bind_ok) {
 		udpconf = getnetconfigent("udp");
 		tcpconf = getnetconfigent("tcp");
-		if (udpconf == NULL || tcpconf == NULL) {	
+		if (udpconf == NULL || tcpconf == NULL) {
 			syslog(LOG_ERR, "unknown rpc/udp or rpc/tcp");
 			exit(EX_USAGE);
 		}
@@ -511,16 +514,16 @@ main(int argc, char **argv)
 	if (v6bind_ok) {
 		udp6conf = getnetconfigent("udp6");
 		tcp6conf = getnetconfigent("tcp6");
-		if (udp6conf == NULL || tcp6conf == NULL) {	
+		if (udp6conf == NULL || tcp6conf == NULL) {
 			syslog(LOG_ERR, "unknown rpc/udp6 or rpc/tcp6");
 			exit(EX_USAGE);
 		}
 	}
 #endif
 
-	sa = (struct sigaction){
-	    .sa_flags = 0,
-	    .sa_handler = flag_signal,
+	sa = (struct sigaction) {
+		.sa_flags = 0,
+		.sa_handler = flag_signal,
 	};
 	sigemptyset(&sa.sa_mask);
 	sigaddset(&sa.sa_mask, SIGALRM);
@@ -535,7 +538,7 @@ main(int argc, char **argv)
 
 	{
 		/* space for daemons to overwrite environment for ps */
-#define	DUMMYSIZE	100
+#define DUMMYSIZE 100
 		char dummy[DUMMYSIZE];
 
 		(void)memset(dummy, 'x', DUMMYSIZE - 1);
@@ -554,331 +557,424 @@ main(int argc, char **argv)
 	maxsock = MAX(MAX(maxsock, signalpipe[0]), signalpipe[1]);
 
 	for (;;) {
-	    int n, ctrl;
-	    fd_set readable;
+		int n, ctrl;
+		fd_set readable;
 
 #ifdef SANITY_CHECK
-	    if (nsock == 0) {
-		syslog(LOG_ERR, "%s: nsock=0", __func__);
-		exit(EX_SOFTWARE);
-	    }
-#endif
-	    readable = allsock;
-	    if ((n = select(maxsock + 1, &readable, (fd_set *)0,
-		(fd_set *)0, (struct timeval *)0)) <= 0) {
-		    if (n < 0 && errno != EINTR) {
-			syslog(LOG_WARNING, "select: %m");
-			sleep(1);
-		    }
-		    continue;
-	    }
-	    /* handle any queued signal flags */
-	    if (FD_ISSET(signalpipe[0], &readable)) {
-		int nsig, signo;
-
-		if (ioctl(signalpipe[0], FIONREAD, &nsig) != 0) {
-			syslog(LOG_ERR, "ioctl: %m");
-			exit(EX_OSERR);
+		if (nsock == 0) {
+			syslog(LOG_ERR, "%s: nsock=0", __func__);
+			exit(EX_SOFTWARE);
 		}
-		nsig /= sizeof(signo);
-		while (--nsig >= 0) {
-			size_t len;
+#endif
+		readable = allsock;
+		if ((n = select(maxsock + 1, &readable, (fd_set *)0,
+			 (fd_set *)0, (struct timeval *)0)) <= 0) {
+			if (n < 0 && errno != EINTR) {
+				syslog(LOG_WARNING, "select: %m");
+				sleep(1);
+			}
+			continue;
+		}
+		/* handle any queued signal flags */
+		if (FD_ISSET(signalpipe[0], &readable)) {
+			int nsig, signo;
 
-			len = read(signalpipe[0], &signo, sizeof(signo));
-			if (len != sizeof(signo)) {
-				syslog(LOG_ERR, "read: %m");
+			if (ioctl(signalpipe[0], FIONREAD, &nsig) != 0) {
+				syslog(LOG_ERR, "ioctl: %m");
 				exit(EX_OSERR);
 			}
-			if (debug)
-				warnx("handling signal flag %d", signo);
-			switch (signo) {
-			case SIGALRM:
-				retry();
-				break;
-			case SIGCHLD:
-				reapchild();
-				break;
-			case SIGHUP:
-				config();
-				break;
+			nsig /= sizeof(signo);
+			while (--nsig >= 0) {
+				size_t len;
+
+				len = read(signalpipe[0], &signo,
+				    sizeof(signo));
+				if (len != sizeof(signo)) {
+					syslog(LOG_ERR, "read: %m");
+					exit(EX_OSERR);
+				}
+				if (debug)
+					warnx("handling signal flag %d", signo);
+				switch (signo) {
+				case SIGALRM:
+					retry();
+					break;
+				case SIGCHLD:
+					reapchild();
+					break;
+				case SIGHUP:
+					config();
+					break;
+				}
 			}
 		}
-	    }
-	    for (sep = servtab; n && sep; sep = sep->se_next)
-	        if (sep->se_fd != -1 && FD_ISSET(sep->se_fd, &readable)) {
-		    n--;
-		    if (debug)
-			    warnx("someone wants %s", sep->se_service);
-		    dofork = !sep->se_bi || sep->se_bi->bi_fork || ISWRAP(sep);
-		    conn = NULL;
-		    if (sep->se_accept && sep->se_socktype == SOCK_STREAM) {
-			    i = 1;
-			    if (ioctl(sep->se_fd, FIONBIO, &i) < 0)
-				    syslog(LOG_ERR, "ioctl (FIONBIO, 1): %m");
-			    ctrl = accept(sep->se_fd, (struct sockaddr *)0,
-				(socklen_t *)0);
-			    if (debug)
-				    warnx("accept, ctrl %d", ctrl);
-			    if (ctrl < 0) {
-				    if (errno != EINTR)
-					    syslog(LOG_WARNING,
-						"accept (for %s): %m",
-						sep->se_service);
-                                      if (sep->se_accept &&
-                                          sep->se_socktype == SOCK_STREAM)
-                                              close(ctrl);
-				    continue;
-			    }
-			    i = 0;
-			    if (ioctl(sep->se_fd, FIONBIO, &i) < 0)
-				    syslog(LOG_ERR, "ioctl1(FIONBIO, 0): %m");
-			    if (ioctl(ctrl, FIONBIO, &i) < 0)
-				    syslog(LOG_ERR, "ioctl2(FIONBIO, 0): %m");
-			    if (cpmip(sep, ctrl) < 0) {
-				close(ctrl);
-				continue;
-			    }
-			    if (dofork &&
-				(conn = search_conn(sep, ctrl)) != NULL &&
-				!room_conn(sep, conn)) {
-				close(ctrl);
-				continue;
-			    }
-		    } else
-			    ctrl = sep->se_fd;
-		    if (dolog && !ISWRAP(sep)) {
-			    char pname[NI_MAXHOST] = "unknown";
-			    socklen_t sl;
-			    sl = sizeof(peer);
-			    if (getpeername(ctrl, (struct sockaddr *)
-					    &peer, &sl)) {
-				    sl = sizeof(peer);
-				    if (recvfrom(ctrl, buf, sizeof(buf),
-					MSG_PEEK,
-					(struct sockaddr *)&peer,
-					&sl) >= 0) {
-				      getnameinfo((struct sockaddr *)&peer,
-						  peer.ss_len,
-						  pname, sizeof(pname),
-						  NULL, 0, NI_NUMERICHOST);
-				    }
-			    } else {
-			            getnameinfo((struct sockaddr *)&peer,
-						peer.ss_len,
-						pname, sizeof(pname),
-						NULL, 0, NI_NUMERICHOST);
-			    }
-			    syslog(LOG_INFO,"%s from %s", sep->se_service, pname);
-		    }
-		    (void) sigblock(SIGBLOCK);
-		    pid = 0;
-		    /*
-		     * Fork for all external services, builtins which need to
-		     * fork and anything we're wrapping (as wrapping might
-		     * block or use hosts_options(5) twist).
-		     */
-		    if (dofork) {
-			    if (sep->se_count++ == 0)
-				(void)clock_gettime(CLOCK_MONOTONIC_FAST, &sep->se_time);
-			    else if (toomany > 0 && sep->se_count >= toomany) {
-				struct timespec now;
+		for (sep = servtab; n && sep; sep = sep->se_next)
+			if (sep->se_fd != -1 &&
+			    FD_ISSET(sep->se_fd, &readable)) {
+				n--;
+				if (debug)
+					warnx("someone wants %s",
+					    sep->se_service);
+				dofork = !sep->se_bi || sep->se_bi->bi_fork ||
+				    ISWRAP(sep);
+				conn = NULL;
+				if (sep->se_accept &&
+				    sep->se_socktype == SOCK_STREAM) {
+					i = 1;
+					if (ioctl(sep->se_fd, FIONBIO, &i) < 0)
+						syslog(LOG_ERR,
+						    "ioctl (FIONBIO, 1): %m");
+					ctrl = accept(sep->se_fd,
+					    (struct sockaddr *)0,
+					    (socklen_t *)0);
+					if (debug)
+						warnx("accept, ctrl %d", ctrl);
+					if (ctrl < 0) {
+						if (errno != EINTR)
+							syslog(LOG_WARNING,
+							    "accept (for %s): %m",
+							    sep->se_service);
+						if (sep->se_accept &&
+						    sep->se_socktype ==
+							SOCK_STREAM)
+							close(ctrl);
+						continue;
+					}
+					i = 0;
+					if (ioctl(sep->se_fd, FIONBIO, &i) < 0)
+						syslog(LOG_ERR,
+						    "ioctl1(FIONBIO, 0): %m");
+					if (ioctl(ctrl, FIONBIO, &i) < 0)
+						syslog(LOG_ERR,
+						    "ioctl2(FIONBIO, 0): %m");
+					if (cpmip(sep, ctrl) < 0) {
+						close(ctrl);
+						continue;
+					}
+					if (dofork &&
+					    (conn = search_conn(sep, ctrl)) !=
+						NULL &&
+					    !room_conn(sep, conn)) {
+						close(ctrl);
+						continue;
+					}
+				} else
+					ctrl = sep->se_fd;
+				if (dolog && !ISWRAP(sep)) {
+					char pname[NI_MAXHOST] = "unknown";
+					socklen_t sl;
+					sl = sizeof(peer);
+					if (getpeername(ctrl,
+						(struct sockaddr *)&peer,
+						&sl)) {
+						sl = sizeof(peer);
+						if (recvfrom(ctrl, buf,
+							sizeof(buf), MSG_PEEK,
+							(struct sockaddr
+								*)&peer,
+							&sl) >= 0) {
+							getnameinfo(
+							    (struct sockaddr
+								    *)&peer,
+							    peer.ss_len, pname,
+							    sizeof(pname), NULL,
+							    0, NI_NUMERICHOST);
+						}
+					} else {
+						getnameinfo(
+						    (struct sockaddr *)&peer,
+						    peer.ss_len, pname,
+						    sizeof(pname), NULL, 0,
+						    NI_NUMERICHOST);
+					}
+					syslog(LOG_INFO, "%s from %s",
+					    sep->se_service, pname);
+				}
+				(void)sigblock(SIGBLOCK);
+				pid = 0;
+				/*
+				 * Fork for all external services, builtins
+				 * which need to fork and anything we're
+				 * wrapping (as wrapping might block or use
+				 * hosts_options(5) twist).
+				 */
+				if (dofork) {
+					if (sep->se_count++ == 0)
+						(void)clock_gettime(
+						    CLOCK_MONOTONIC_FAST,
+						    &sep->se_time);
+					else if (toomany > 0 &&
+					    sep->se_count >= toomany) {
+						struct timespec now;
 
-				(void)clock_gettime(CLOCK_MONOTONIC_FAST, &now);
-				if (now.tv_sec - sep->se_time.tv_sec >
-				    CNT_INTVL) {
-					sep->se_time = now;
-					sep->se_count = 1;
-				} else {
-					syslog(LOG_ERR,
-			"%s/%s server failing (looping), service terminated",
-					    sep->se_service, sep->se_proto);
+						(void)clock_gettime(
+						    CLOCK_MONOTONIC_FAST, &now);
+						if (now.tv_sec -
+							sep->se_time.tv_sec >
+						    CNT_INTVL) {
+							sep->se_time = now;
+							sep->se_count = 1;
+						} else {
+							syslog(LOG_ERR,
+							    "%s/%s server failing (looping), service terminated",
+							    sep->se_service,
+							    sep->se_proto);
+							if (sep->se_accept &&
+							    sep->se_socktype ==
+								SOCK_STREAM)
+								close(ctrl);
+							close_sep(sep);
+							free_conn(conn);
+							sigsetmask(0L);
+							if (!timingout) {
+								timingout = 1;
+								alarm(
+								    RETRYTIME);
+							}
+							continue;
+						}
+					}
+					pid = fork();
+				}
+				if (pid < 0) {
+					syslog(LOG_ERR, "fork: %m");
 					if (sep->se_accept &&
 					    sep->se_socktype == SOCK_STREAM)
 						close(ctrl);
-					close_sep(sep);
 					free_conn(conn);
 					sigsetmask(0L);
-					if (!timingout) {
-						timingout = 1;
-						alarm(RETRYTIME);
-					}
+					sleep(1);
 					continue;
 				}
-			    }
-			    pid = fork();
-		    }
-		    if (pid < 0) {
-			    syslog(LOG_ERR, "fork: %m");
-			    if (sep->se_accept &&
-				sep->se_socktype == SOCK_STREAM)
-				    close(ctrl);
-			    free_conn(conn);
-			    sigsetmask(0L);
-			    sleep(1);
-			    continue;
-		    }
-		    if (pid) {
-			addchild_conn(conn, pid);
-			addchild(sep, pid);
-		    }
-		    sigsetmask(0L);
-		    if (pid == 0) {
-			    pidfile_close(pfh);
-			    if (dofork) {
-				sigaction(SIGALRM, &saalrm, (struct sigaction *)0);
-				sigaction(SIGCHLD, &sachld, (struct sigaction *)0);
-				sigaction(SIGHUP, &sahup, (struct sigaction *)0);
-				/* SIGPIPE reset before exec */
-			    }
-			    /*
-			     * Call tcpmux to find the real service to exec.
-			     */
-			    if (sep->se_bi &&
-				sep->se_bi->bi_fn == (bi_fn_t *) tcpmux) {
-				    sep = tcpmux(ctrl);
-				    if (sep == NULL) {
-					    close(ctrl);
-					    _exit(0);
-				    }
-			    }
+				if (pid) {
+					addchild_conn(conn, pid);
+					addchild(sep, pid);
+				}
+				sigsetmask(0L);
+				if (pid == 0) {
+					pidfile_close(pfh);
+					if (dofork) {
+						sigaction(SIGALRM, &saalrm,
+						    (struct sigaction *)0);
+						sigaction(SIGCHLD, &sachld,
+						    (struct sigaction *)0);
+						sigaction(SIGHUP, &sahup,
+						    (struct sigaction *)0);
+						/* SIGPIPE reset before exec */
+					}
+					/*
+					 * Call tcpmux to find the real service
+					 * to exec.
+					 */
+					if (sep->se_bi &&
+					    sep->se_bi->bi_fn ==
+						(bi_fn_t *)tcpmux) {
+						sep = tcpmux(ctrl);
+						if (sep == NULL) {
+							close(ctrl);
+							_exit(0);
+						}
+					}
 #ifdef LIBWRAP
-			    if (ISWRAP(sep)) {
-				inetd_setproctitle("wrapping", ctrl);
-				service = sep->se_server_name ?
-				    sep->se_server_name : sep->se_service;
-				request_init(&req, RQ_DAEMON, service, RQ_FILE, ctrl, 0);
-				fromhost(&req);
-				deny_severity = LIBWRAP_DENY_FACILITY|LIBWRAP_DENY_SEVERITY;
-				allow_severity = LIBWRAP_ALLOW_FACILITY|LIBWRAP_ALLOW_SEVERITY;
-				denied = !hosts_access(&req);
-				if (denied) {
-				    syslog(deny_severity,
-				        "refused connection from %.500s, service %s (%s%s)",
-				        eval_client(&req), service, sep->se_proto,
-					(whichaf(&req) == AF_INET6) ? "6" : "");
-				    if (sep->se_socktype != SOCK_STREAM)
-					recv(ctrl, buf, sizeof (buf), 0);
-				    if (dofork) {
-					sleep(1);
-					_exit(0);
-				    }
-				}
-				if (dolog) {
-				    syslog(allow_severity,
-				        "connection from %.500s, service %s (%s%s)",
-					eval_client(&req), service, sep->se_proto,
-					(whichaf(&req) == AF_INET6) ? "6" : "");
-				}
-			    }
+					if (ISWRAP(sep)) {
+						inetd_setproctitle("wrapping",
+						    ctrl);
+						service = sep->se_server_name ?
+						    sep->se_server_name :
+						    sep->se_service;
+						request_init(&req, RQ_DAEMON,
+						    service, RQ_FILE, ctrl, 0);
+						fromhost(&req);
+						deny_severity =
+						    LIBWRAP_DENY_FACILITY |
+						    LIBWRAP_DENY_SEVERITY;
+						allow_severity =
+						    LIBWRAP_ALLOW_FACILITY |
+						    LIBWRAP_ALLOW_SEVERITY;
+						denied = !hosts_access(&req);
+						if (denied) {
+							syslog(deny_severity,
+							    "refused connection from %.500s, service %s (%s%s)",
+							    eval_client(&req),
+							    service,
+							    sep->se_proto,
+							    (whichaf(&req) ==
+								AF_INET6) ?
+								"6" :
+								"");
+							if (sep->se_socktype !=
+							    SOCK_STREAM)
+								recv(ctrl, buf,
+								    sizeof(buf),
+								    0);
+							if (dofork) {
+								sleep(1);
+								_exit(0);
+							}
+						}
+						if (dolog) {
+							syslog(allow_severity,
+							    "connection from %.500s, service %s (%s%s)",
+							    eval_client(&req),
+							    service,
+							    sep->se_proto,
+							    (whichaf(&req) ==
+								AF_INET6) ?
+								"6" :
+								"");
+						}
+					}
 #endif
-			    if (sep->se_bi) {
-				(*sep->se_bi->bi_fn)(ctrl, sep);
-			    } else {
-				if (debug)
-					warnx("%d execl %s",
-						getpid(), sep->se_server);
-				/* Clear close-on-exec. */
-				if (fcntl(ctrl, F_SETFD, 0) < 0) {
-					syslog(LOG_ERR,
-					    "%s/%s: fcntl (F_SETFD, 0): %m",
-						sep->se_service, sep->se_proto);
-					_exit(EX_OSERR);
-				}
-				if (ctrl != 0) {
-					dup2(ctrl, 0);
-					close(ctrl);
-				}
-				dup2(0, 1);
-				dup2(0, 2);
-				if ((pwd = getpwnam(sep->se_user)) == NULL) {
-					syslog(LOG_ERR,
-					    "%s/%s: %s: no such user",
-						sep->se_service, sep->se_proto,
-						sep->se_user);
-					if (sep->se_socktype != SOCK_STREAM)
-						recv(0, buf, sizeof (buf), 0);
-					_exit(EX_NOUSER);
-				}
-				grp = NULL;
-				if (   sep->se_group != NULL
-				    && (grp = getgrnam(sep->se_group)) == NULL
-				   ) {
-					syslog(LOG_ERR,
-					    "%s/%s: %s: no such group",
-						sep->se_service, sep->se_proto,
-						sep->se_group);
-					if (sep->se_socktype != SOCK_STREAM)
-						recv(0, buf, sizeof (buf), 0);
-					_exit(EX_NOUSER);
-				}
-				if (grp != NULL)
-					pwd->pw_gid = grp->gr_gid;
+					if (sep->se_bi) {
+						(*sep->se_bi->bi_fn)(ctrl, sep);
+					} else {
+						if (debug)
+							warnx("%d execl %s",
+							    getpid(),
+							    sep->se_server);
+						/* Clear close-on-exec. */
+						if (fcntl(ctrl, F_SETFD, 0) <
+						    0) {
+							syslog(LOG_ERR,
+							    "%s/%s: fcntl (F_SETFD, 0): %m",
+							    sep->se_service,
+							    sep->se_proto);
+							_exit(EX_OSERR);
+						}
+						if (ctrl != 0) {
+							dup2(ctrl, 0);
+							close(ctrl);
+						}
+						dup2(0, 1);
+						dup2(0, 2);
+						if ((pwd = getpwnam(
+							 sep->se_user)) ==
+						    NULL) {
+							syslog(LOG_ERR,
+							    "%s/%s: %s: no such user",
+							    sep->se_service,
+							    sep->se_proto,
+							    sep->se_user);
+							if (sep->se_socktype !=
+							    SOCK_STREAM)
+								recv(0, buf,
+								    sizeof(buf),
+								    0);
+							_exit(EX_NOUSER);
+						}
+						grp = NULL;
+						if (sep->se_group != NULL &&
+						    (grp = getgrnam(
+							 sep->se_group)) ==
+							NULL) {
+							syslog(LOG_ERR,
+							    "%s/%s: %s: no such group",
+							    sep->se_service,
+							    sep->se_proto,
+							    sep->se_group);
+							if (sep->se_socktype !=
+							    SOCK_STREAM)
+								recv(0, buf,
+								    sizeof(buf),
+								    0);
+							_exit(EX_NOUSER);
+						}
+						if (grp != NULL)
+							pwd->pw_gid =
+							    grp->gr_gid;
 #ifdef LOGIN_CAP
-				if ((lc = login_getclass(sep->se_class)) == NULL) {
-					/* error syslogged by getclass */
-					syslog(LOG_ERR,
-					    "%s/%s: %s: login class error",
-						sep->se_service, sep->se_proto,
-						sep->se_class);
-					if (sep->se_socktype != SOCK_STREAM)
-						recv(0, buf, sizeof (buf), 0);
-					_exit(EX_NOUSER);
-				}
+						if ((lc = login_getclass(
+							 sep->se_class)) ==
+						    NULL) {
+							/* error syslogged by
+							 * getclass */
+							syslog(LOG_ERR,
+							    "%s/%s: %s: login class error",
+							    sep->se_service,
+							    sep->se_proto,
+							    sep->se_class);
+							if (sep->se_socktype !=
+							    SOCK_STREAM)
+								recv(0, buf,
+								    sizeof(buf),
+								    0);
+							_exit(EX_NOUSER);
+						}
 #endif
-				if (setsid() < 0) {
-					syslog(LOG_ERR,
-						"%s: can't setsid(): %m",
-						 sep->se_service);
-					/* _exit(EX_OSERR); not fatal yet */
-				}
+						if (setsid() < 0) {
+							syslog(LOG_ERR,
+							    "%s: can't setsid(): %m",
+							    sep->se_service);
+							/* _exit(EX_OSERR); not
+							 * fatal yet */
+						}
 #ifdef LOGIN_CAP
-				if (setusercontext(lc, pwd, pwd->pw_uid,
-				    LOGIN_SETALL & ~LOGIN_SETMAC)
-				    != 0) {
-					syslog(LOG_ERR,
-					 "%s: can't setusercontext(..%s..): %m",
-					 sep->se_service, sep->se_user);
-					_exit(EX_OSERR);
-				}
-				login_close(lc);
+						if (setusercontext(lc, pwd,
+							pwd->pw_uid,
+							LOGIN_SETALL &
+							    ~LOGIN_SETMAC) !=
+						    0) {
+							syslog(LOG_ERR,
+							    "%s: can't setusercontext(..%s..): %m",
+							    sep->se_service,
+							    sep->se_user);
+							_exit(EX_OSERR);
+						}
+						login_close(lc);
 #else
-				if (pwd->pw_uid) {
-					if (setlogin(sep->se_user) < 0) {
-						syslog(LOG_ERR,
-						 "%s: can't setlogin(%s): %m",
-						 sep->se_service, sep->se_user);
-						/* _exit(EX_OSERR); not yet */
-					}
-					if (setgid(pwd->pw_gid) < 0) {
-						syslog(LOG_ERR,
-						  "%s: can't set gid %d: %m",
-						  sep->se_service, pwd->pw_gid);
-						_exit(EX_OSERR);
-					}
-					(void) initgroups(pwd->pw_name,
-							pwd->pw_gid);
-					if (setuid(pwd->pw_uid) < 0) {
-						syslog(LOG_ERR,
-						  "%s: can't set uid %d: %m",
-						  sep->se_service, pwd->pw_uid);
-						_exit(EX_OSERR);
-					}
-				}
+						if (pwd->pw_uid) {
+							if (setlogin(
+								sep->se_user) <
+							    0) {
+								syslog(LOG_ERR,
+								    "%s: can't setlogin(%s): %m",
+								    sep->se_service,
+								    sep->se_user);
+								/* _exit(EX_OSERR);
+								 * not yet */
+							}
+							if (setgid(
+								pwd->pw_gid) <
+							    0) {
+								syslog(LOG_ERR,
+								    "%s: can't set gid %d: %m",
+								    sep->se_service,
+								    pwd->pw_gid);
+								_exit(EX_OSERR);
+							}
+							(void)initgroups(
+							    pwd->pw_name,
+							    pwd->pw_gid);
+							if (setuid(
+								pwd->pw_uid) <
+							    0) {
+								syslog(LOG_ERR,
+								    "%s: can't set uid %d: %m",
+								    sep->se_service,
+								    pwd->pw_uid);
+								_exit(EX_OSERR);
+							}
+						}
 #endif
-				sigaction(SIGPIPE, &sapipe,
-				    (struct sigaction *)0);
-				execv(sep->se_server, sep->se_argv);
-				syslog(LOG_ERR,
-				    "cannot execute %s: %m", sep->se_server);
-				if (sep->se_socktype != SOCK_STREAM)
-					recv(0, buf, sizeof (buf), 0);
-			    }
-			    if (dofork)
-				_exit(0);
-		    }
-		    if (sep->se_accept && sep->se_socktype == SOCK_STREAM)
-			    close(ctrl);
-		}
+						sigaction(SIGPIPE, &sapipe,
+						    (struct sigaction *)0);
+						execv(sep->se_server,
+						    sep->se_argv);
+						syslog(LOG_ERR,
+						    "cannot execute %s: %m",
+						    sep->se_server);
+						if (sep->se_socktype !=
+						    SOCK_STREAM)
+							recv(0, buf,
+							    sizeof(buf), 0);
+					}
+					if (dofork)
+						_exit(0);
+				}
+				if (sep->se_accept &&
+				    sep->se_socktype == SOCK_STREAM)
+					close(ctrl);
+			}
 	}
 }
 
@@ -910,8 +1006,8 @@ addchild(struct servtab *sep, pid_t pid)
 
 #ifdef SANITY_CHECK
 	if (SERVTAB_EXCEEDS_LIMIT(sep)) {
-		syslog(LOG_ERR, "%s: %d >= %d",
-		    __func__, sep->se_numchild, sep->se_maxchild);
+		syslog(LOG_ERR, "%s: %d >= %d", __func__, sep->se_numchild,
+		    sep->se_maxchild);
 		exit(EX_SOFTWARE);
 	}
 #endif
@@ -942,10 +1038,10 @@ reapchild(void)
 		if (debug)
 			warnx("%d reaped, %s %u", pid,
 			    WIFEXITED(status) ? "status" : "signal",
-			    WIFEXITED(status) ? WEXITSTATUS(status)
-				: WTERMSIG(status));
+			    WIFEXITED(status) ? WEXITSTATUS(status) :
+						WTERMSIG(status));
 		for (sep = servtab; sep; sep = sep->se_next) {
-			LIST_FOREACH(sc, &sep->se_children, sc_link) {
+			LIST_FOREACH (sc, &sep->se_children, sc_link) {
 				if (sc->sc_pid == pid)
 					break;
 			}
@@ -957,12 +1053,11 @@ reapchild(void)
 			free(sc);
 			--sep->se_numchild;
 			if (WIFSIGNALED(status) || WEXITSTATUS(status))
-				syslog(LOG_WARNING,
-				    "%s[%d]: exited, %s %u",
+				syslog(LOG_WARNING, "%s[%d]: exited, %s %u",
 				    sep->se_server, pid,
 				    WIFEXITED(status) ? "status" : "signal",
-				    WIFEXITED(status) ? WEXITSTATUS(status)
-					: WTERMSIG(status));
+				    WIFEXITED(status) ? WEXITSTATUS(status) :
+							WTERMSIG(status));
 			break;
 		}
 		reapchild_conn(pid);
@@ -988,22 +1083,22 @@ config(void)
 	while ((new = getconfigent())) {
 		if (getpwnam(new->se_user) == NULL) {
 			syslog(LOG_ERR,
-				"%s/%s: no such user '%s', service ignored",
-				new->se_service, new->se_proto, new->se_user);
+			    "%s/%s: no such user '%s', service ignored",
+			    new->se_service, new->se_proto, new->se_user);
 			continue;
 		}
 		if (new->se_group && getgrnam(new->se_group) == NULL) {
 			syslog(LOG_ERR,
-				"%s/%s: no such group '%s', service ignored",
-				new->se_service, new->se_proto, new->se_group);
+			    "%s/%s: no such group '%s', service ignored",
+			    new->se_service, new->se_proto, new->se_group);
 			continue;
 		}
 #ifdef LOGIN_CAP
 		if ((lc = login_getclass(new->se_class)) == NULL) {
 			/* error syslogged by getclass */
 			syslog(LOG_ERR,
-				"%s/%s: %s: login class error, service ignored",
-				new->se_service, new->se_proto, new->se_class);
+			    "%s/%s: %s: login class error, service ignored",
+			    new->se_service, new->se_proto, new->se_class);
 			continue;
 		}
 		login_close(lc);
@@ -1019,7 +1114,12 @@ config(void)
 		if (sep != 0) {
 			int i;
 
-#define SWAP(t,a, b) { t c = a; a = b; b = c; }
+#define SWAP(t, a, b)    \
+	{                \
+		t c = a; \
+		a = b;   \
+		b = c;   \
+	}
 			omask = sigblock(SIGBLOCK);
 			if (sep->se_nomapped != new->se_nomapped) {
 				/* for rpc keep old nommaped till unregister */
@@ -1040,13 +1140,13 @@ config(void)
 			sep->se_bi = new->se_bi;
 			/* might need to turn on or off service now */
 			if (sep->se_fd >= 0) {
-			      if (SERVTAB_EXCEEDS_LIMIT(sep)) {
-				      if (FD_ISSET(sep->se_fd, &allsock))
-					  disable(sep);
-			      } else {
-				      if (!FD_ISSET(sep->se_fd, &allsock))
-					  enable(sep);
-			      }
+				if (SERVTAB_EXCEEDS_LIMIT(sep)) {
+					if (FD_ISSET(sep->se_fd, &allsock))
+						disable(sep);
+				} else {
+					if (!FD_ISSET(sep->se_fd, &allsock))
+						enable(sep);
+				}
 			}
 			sep->se_accept = new->se_accept;
 			SWAP(char *, sep->se_user, new->se_user);
@@ -1094,10 +1194,12 @@ config(void)
 		}
 		if (!sep->se_rpc) {
 			if (sep->se_family != AF_UNIX) {
-				sp = getservbyname(sep->se_service, sep->se_proto);
+				sp = getservbyname(sep->se_service,
+				    sep->se_proto);
 				if (sp == 0) {
-					syslog(LOG_ERR, "%s/%s: unknown service",
-					sep->se_service, sep->se_proto);
+					syslog(LOG_ERR,
+					    "%s/%s: unknown service",
+					    sep->se_service, sep->se_proto);
 					sep->se_checked = 0;
 					continue;
 				}
@@ -1105,17 +1207,15 @@ config(void)
 			switch (sep->se_family) {
 			case AF_INET:
 				if (sp->s_port != sep->se_ctrladdr4.sin_port) {
-					sep->se_ctrladdr4.sin_port =
-						sp->s_port;
+					sep->se_ctrladdr4.sin_port = sp->s_port;
 					sep->se_reset = 1;
 				}
 				break;
 #ifdef INET6
 			case AF_INET6:
-				if (sp->s_port !=
-				    sep->se_ctrladdr6.sin6_port) {
+				if (sp->s_port != sep->se_ctrladdr6.sin6_port) {
 					sep->se_ctrladdr6.sin6_port =
-						sp->s_port;
+					    sp->s_port;
 					sep->se_reset = 1;
 				}
 				break;
@@ -1127,11 +1227,11 @@ config(void)
 			rpc = getrpcbyname(sep->se_service);
 			if (rpc == 0) {
 				syslog(LOG_ERR, "%s/%s unknown RPC service",
-					sep->se_service, sep->se_proto);
+				    sep->se_service, sep->se_proto);
 				if (sep->se_fd != -1)
-					(void) close(sep->se_fd);
+					(void)close(sep->se_fd);
 				sep->se_fd = -1;
-					continue;
+				continue;
 			}
 			if (sep->se_reset != 0 ||
 			    rpc->r_number != sep->se_rpc_prog) {
@@ -1139,7 +1239,7 @@ config(void)
 					unregisterrpc(sep);
 				sep->se_rpc_prog = rpc->r_number;
 				if (sep->se_fd != -1)
-					(void) close(sep->se_fd);
+					(void)close(sep->se_fd);
 				sep->se_fd = -1;
 			}
 			sep->se_nomapped = new_nomapped;
@@ -1169,14 +1269,14 @@ config(void)
 		freeconfig(sep);
 		free(sep);
 	}
-	(void) sigsetmask(omask);
+	(void)sigsetmask(omask);
 }
 
 static void
 unregisterrpc(struct servtab *sep)
 {
-        u_int i;
-        struct servtab *sepp;
+	u_int i;
+	struct servtab *sepp;
 	long omask;
 	struct netconfig *netid4, *netid6;
 
@@ -1195,13 +1295,12 @@ unregisterrpc(struct servtab *sep)
 	 * There is also transport conflict if destroying INET when INET46
 	 * exists, or destroying INET46 when INET exists
 	 */
-        for (sepp = servtab; sepp; sepp = sepp->se_next) {
-                if (sepp == sep)
-                        continue;
-		if (sepp->se_checked == 0 ||
-                    !sepp->se_rpc ||
+	for (sepp = servtab; sepp; sepp = sepp->se_next) {
+		if (sepp == sep)
+			continue;
+		if (sepp->se_checked == 0 || !sepp->se_rpc ||
 		    strcmp(sep->se_proto, sepp->se_proto) != 0 ||
-                    sep->se_rpc_prog != sepp->se_rpc_prog)
+		    sep->se_rpc_prog != sepp->se_rpc_prog)
 			continue;
 		if (sepp->se_family == AF_INET)
 			netid4 = NULL;
@@ -1212,19 +1311,19 @@ unregisterrpc(struct servtab *sep)
 		}
 		if (netid4 == NULL && netid6 == NULL)
 			return;
-        }
-        if (debug)
-                print_service("UNREG", sep);
-        for (i = sep->se_rpc_lowvers; i <= sep->se_rpc_highvers; i++) {
+	}
+	if (debug)
+		print_service("UNREG", sep);
+	for (i = sep->se_rpc_lowvers; i <= sep->se_rpc_highvers; i++) {
 		if (netid4)
 			rpcb_unset(sep->se_rpc_prog, i, netid4);
 		if (netid6)
 			rpcb_unset(sep->se_rpc_prog, i, netid6);
 	}
-        if (sep->se_fd != -1)
-                (void) close(sep->se_fd);
-        sep->se_fd = -1;
-	(void) sigsetmask(omask);
+	if (sep->se_fd != -1)
+		(void)close(sep->se_fd);
+	sep->se_fd = -1;
+	(void)sigsetmask(omask);
 }
 
 static void
@@ -1245,16 +1344,15 @@ setup(struct servtab *sep)
 
 	/* Set all listening sockets to close-on-exec. */
 	if ((sep->se_fd = socket(sep->se_family,
-	    sep->se_socktype | SOCK_CLOEXEC, 0)) < 0) {
+		 sep->se_socktype | SOCK_CLOEXEC, 0)) < 0) {
 		if (debug)
-			warn("socket failed on %s/%s",
-				sep->se_service, sep->se_proto);
-		syslog(LOG_ERR, "%s/%s: socket: %m",
-		    sep->se_service, sep->se_proto);
+			warn("socket failed on %s/%s", sep->se_service,
+			    sep->se_proto);
+		syslog(LOG_ERR, "%s/%s: socket: %m", sep->se_service,
+		    sep->se_proto);
 		return;
 	}
-#define	turnon(fd, opt) \
-setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
+#define turnon(fd, opt) setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof(on))
 	if (strcmp(sep->se_proto, "tcp") == 0 && (options & SO_DEBUG) &&
 	    turnon(sep->se_fd, SO_DEBUG) < 0)
 		syslog(LOG_ERR, "setsockopt (SO_DEBUG): %m");
@@ -1264,18 +1362,17 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 	if (turnon(sep->se_fd, SO_PRIVSTATE) < 0)
 		syslog(LOG_ERR, "setsockopt (SO_PRIVSTATE): %m");
 #endif
-	/* tftpd opens a new connection then needs more infos */
+		/* tftpd opens a new connection then needs more infos */
 #ifdef INET6
 	if ((sep->se_family == AF_INET6) &&
-	    (strcmp(sep->se_proto, "udp") == 0) &&
-	    (sep->se_accept == 0) &&
-	    (setsockopt(sep->se_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO,
-			(char *)&on, sizeof (on)) < 0))
+	    (strcmp(sep->se_proto, "udp") == 0) && (sep->se_accept == 0) &&
+	    (setsockopt(sep->se_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on,
+		 sizeof(on)) < 0))
 		syslog(LOG_ERR, "setsockopt (IPV6_RECVPKTINFO): %m");
 	if (sep->se_family == AF_INET6) {
 		int flag = sep->se_nomapped ? 1 : 0;
 		if (setsockopt(sep->se_fd, IPPROTO_IPV6, IPV6_V6ONLY,
-			       (char *)&flag, sizeof (flag)) < 0)
+			(char *)&flag, sizeof(flag)) < 0)
 			syslog(LOG_ERR, "setsockopt (IPV6_V6ONLY): %m");
 	}
 #endif
@@ -1284,17 +1381,17 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 	ipsecsetup(sep);
 #endif
 	if (sep->se_family == AF_UNIX) {
-		(void) unlink(sep->se_ctrladdr_un.sun_path);
+		(void)unlink(sep->se_ctrladdr_un.sun_path);
 		umask(0777); /* Make socket with conservative permissions */
 	}
 	if (bind(sep->se_fd, (struct sockaddr *)&sep->se_ctrladdr,
-	    sep->se_ctrladdr_size) < 0) {
+		sep->se_ctrladdr_size) < 0) {
 		if (debug)
-			warn("bind failed on %s/%s",
-				sep->se_service, sep->se_proto);
-		syslog(LOG_ERR, "%s/%s: bind: %m",
-		    sep->se_service, sep->se_proto);
-		(void) close(sep->se_fd);
+			warn("bind failed on %s/%s", sep->se_service,
+			    sep->se_proto);
+		syslog(LOG_ERR, "%s/%s: bind: %m", sep->se_service,
+		    sep->se_proto);
+		(void)close(sep->se_fd);
 		sep->se_fd = -1;
 		if (!timingout) {
 			timingout = 1;
@@ -1306,13 +1403,14 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 	}
 	if (sep->se_family == AF_UNIX) {
 		/* Ick - fch{own,mod} don't work on Unix domain sockets */
-		if (chown(sep->se_service, sep->se_sockuid, sep->se_sockgid) < 0)
+		if (chown(sep->se_service, sep->se_sockuid, sep->se_sockgid) <
+		    0)
 			syslog(LOG_ERR, "chown socket: %m");
 		if (chmod(sep->se_service, sep->se_sockmode) < 0)
 			syslog(LOG_ERR, "chmod socket: %m");
 		umask(mask);
 	}
-        if (sep->se_rpc) {
+	if (sep->se_rpc) {
 		u_int i;
 		socklen_t len = sep->se_ctrladdr_size;
 		struct netconfig *netid, *netid2 = NULL;
@@ -1321,24 +1419,26 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 #endif
 		struct netbuf nbuf, nbuf2;
 
-                if (getsockname(sep->se_fd,
-				(struct sockaddr*)&sep->se_ctrladdr, &len) < 0){
-                        syslog(LOG_ERR, "%s/%s: getsockname: %m",
-                               sep->se_service, sep->se_proto);
-                        (void) close(sep->se_fd);
-                        sep->se_fd = -1;
-                        return;
-                }
+		if (getsockname(sep->se_fd,
+			(struct sockaddr *)&sep->se_ctrladdr, &len) < 0) {
+			syslog(LOG_ERR, "%s/%s: getsockname: %m",
+			    sep->se_service, sep->se_proto);
+			(void)close(sep->se_fd);
+			sep->se_fd = -1;
+			return;
+		}
 		nbuf.buf = &sep->se_ctrladdr;
 		nbuf.len = sep->se_ctrladdr.sa_len;
 		if (sep->se_family == AF_INET)
-			netid = sep->se_socktype==SOCK_DGRAM? udpconf:tcpconf;
+			netid = sep->se_socktype == SOCK_DGRAM ? udpconf :
+								 tcpconf;
 #ifdef INET6
-		else  {
-			netid = sep->se_socktype==SOCK_DGRAM? udp6conf:tcp6conf;
+		else {
+			netid = sep->se_socktype == SOCK_DGRAM ? udp6conf :
+								 tcp6conf;
 			if (!sep->se_nomapped) { /* INET and INET6 */
-				netid2 = netid==udp6conf? udpconf:tcpconf;
-				memset(&sock, 0, sizeof sock);	/* ADDR_ANY */
+				netid2 = netid == udp6conf ? udpconf : tcpconf;
+				memset(&sock, 0, sizeof sock); /* ADDR_ANY */
 				nbuf2.buf = &sock;
 				nbuf2.len = sock.sin_len = sizeof sock;
 				sock.sin_family = AF_INET;
@@ -1350,28 +1450,27 @@ setsockopt(fd, SOL_SOCKET, opt, (char *)&on, sizeof (on))
 			syslog(LOG_ERR,
 			    "%s/%s: inetd compiled without inet6 support\n",
 			    sep->se_service, sep->se_proto);
-			(void) close(sep->se_fd);
+			(void)close(sep->se_fd);
 			sep->se_fd = -1;
 			return;
 		}
 #endif
-                if (debug)
-                        print_service("REG ", sep);
-                for (i = sep->se_rpc_lowvers; i <= sep->se_rpc_highvers; i++) {
+		if (debug)
+			print_service("REG ", sep);
+		for (i = sep->se_rpc_lowvers; i <= sep->se_rpc_highvers; i++) {
 			rpcb_unset(sep->se_rpc_prog, i, netid);
 			rpcb_set(sep->se_rpc_prog, i, netid, &nbuf);
 			if (netid2) {
 				rpcb_unset(sep->se_rpc_prog, i, netid2);
 				rpcb_set(sep->se_rpc_prog, i, netid2, &nbuf2);
 			}
-                }
-        }
+		}
+	}
 	if (sep->se_socktype == SOCK_STREAM)
 		listen(sep->se_fd, -1);
 	enable(sep);
 	if (debug) {
-		warnx("registered %s on %d",
-			sep->se_server, sep->se_fd);
+		warnx("registered %s on %d", sep->se_server, sep->se_fd);
 	}
 }
 
@@ -1411,7 +1510,7 @@ ipsecsetup(struct servtab *sep)
 			policy_out = sep->se_policy;
 		else {
 			syslog(LOG_ERR, "invalid security policy \"%s\"",
-				sep->se_policy);
+			    sep->se_policy);
 			return;
 		}
 	}
@@ -1419,30 +1518,28 @@ ipsecsetup(struct servtab *sep)
 	if (policy_in != NULL) {
 		buf = ipsec_set_policy(policy_in, strlen(policy_in));
 		if (buf != NULL) {
-			if (setsockopt(sep->se_fd, level, opt,
-					buf, ipsec_get_policylen(buf)) < 0 &&
+			if (setsockopt(sep->se_fd, level, opt, buf,
+				ipsec_get_policylen(buf)) < 0 &&
 			    debug != 0)
 				warnx("%s/%s: ipsec initialization failed; %s",
-				      sep->se_service, sep->se_proto,
-				      policy_in);
+				    sep->se_service, sep->se_proto, policy_in);
 			free(buf);
 		} else
 			syslog(LOG_ERR, "invalid security policy \"%s\"",
-				policy_in);
+			    policy_in);
 	}
 	if (policy_out != NULL) {
 		buf = ipsec_set_policy(policy_out, strlen(policy_out));
 		if (buf != NULL) {
-			if (setsockopt(sep->se_fd, level, opt,
-					buf, ipsec_get_policylen(buf)) < 0 &&
+			if (setsockopt(sep->se_fd, level, opt, buf,
+				ipsec_get_policylen(buf)) < 0 &&
 			    debug != 0)
 				warnx("%s/%s: ipsec initialization failed; %s",
-				      sep->se_service, sep->se_proto,
-				      policy_out);
+				    sep->se_service, sep->se_proto, policy_out);
 			free(buf);
 		} else
 			syslog(LOG_ERR, "invalid security policy \"%s\"",
-				policy_out);
+			    policy_out);
 	}
 }
 #endif
@@ -1456,11 +1553,11 @@ close_sep(struct servtab *sep)
 	if (sep->se_fd >= 0) {
 		if (FD_ISSET(sep->se_fd, &allsock))
 			disable(sep);
-		(void) close(sep->se_fd);
+		(void)close(sep->se_fd);
 		sep->se_fd = -1;
 	}
 	sep->se_count = 0;
-	sep->se_numchild = 0;	/* forget about any existing children */
+	sep->se_numchild = 0; /* forget about any existing children */
 }
 
 static int
@@ -1476,15 +1573,15 @@ matchservent(const char *name1, const char *name2, const char *proto)
 			name2 = p + 1;
 	}
 	if (strcmp(name1, name2) == 0)
-		return(1);
+		return (1);
 	if ((se = getservbyname(name1, proto)) != NULL) {
 		if (strcmp(name2, se->s_name) == 0)
-			return(1);
+			return (1);
 		for (alias = se->s_aliases; *alias; alias++)
 			if (strcmp(name2, *alias) == 0)
-				return(1);
+				return (1);
 	}
-	return(0);
+	return (0);
 }
 
 static struct servtab *
@@ -1511,22 +1608,18 @@ static void
 enable(struct servtab *sep)
 {
 	if (debug)
-		warnx(
-		    "enabling %s, fd %d", sep->se_service, sep->se_fd);
+		warnx("enabling %s, fd %d", sep->se_service, sep->se_fd);
 #ifdef SANITY_CHECK
 	if (sep->se_fd < 0) {
-		syslog(LOG_ERR,
-		    "%s: %s: bad fd", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: bad fd", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	if (ISMUX(sep)) {
-		syslog(LOG_ERR,
-		    "%s: %s: is mux", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: is mux", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	if (FD_ISSET(sep->se_fd, &allsock)) {
-		syslog(LOG_ERR,
-		    "%s: %s: not off", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: not off", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	nsock++;
@@ -1539,22 +1632,18 @@ static void
 disable(struct servtab *sep)
 {
 	if (debug)
-		warnx(
-		    "disabling %s, fd %d", sep->se_service, sep->se_fd);
+		warnx("disabling %s, fd %d", sep->se_service, sep->se_fd);
 #ifdef SANITY_CHECK
 	if (sep->se_fd < 0) {
-		syslog(LOG_ERR,
-		    "%s: %s: bad fd", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: bad fd", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	if (ISMUX(sep)) {
-		syslog(LOG_ERR,
-		    "%s: %s: is mux", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: is mux", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	if (!FD_ISSET(sep->se_fd, &allsock)) {
-		syslog(LOG_ERR,
-		    "%s: %s: not on", __func__, sep->se_service);
+		syslog(LOG_ERR, "%s: %s: not on", __func__, sep->se_service);
 		exit(EX_SOFTWARE);
 	}
 	if (nsock == 0) {
@@ -1568,9 +1657,9 @@ disable(struct servtab *sep)
 		maxsock--;
 }
 
-static FILE	*fconfig = NULL;
-static struct	servtab serv;
-static char	line[LINE_MAX];
+static FILE *fconfig = NULL;
+static struct servtab serv;
+static char line[LINE_MAX];
 
 static int
 setconfig(void)
@@ -1588,7 +1677,7 @@ static void
 endconfig(void)
 {
 	if (fconfig) {
-		(void) fclose(fconfig);
+		(void)fclose(fconfig);
 		fconfig = NULL;
 	}
 }
@@ -1601,7 +1690,7 @@ getconfigent(void)
 	char *cp, *arg, *s;
 	char *versp;
 	static char TCPMUX_TOKEN[] = "tcpmux/";
-#define MUX_LEN		(sizeof(TCPMUX_TOKEN)-1)
+#define MUX_LEN (sizeof(TCPMUX_TOKEN) - 1)
 #ifdef IPSEC
 	char *policy;
 #endif
@@ -1634,8 +1723,8 @@ more:
 				policy = newstr(p);
 			} else {
 				syslog(LOG_ERR,
-					"%s: invalid ipsec policy \"%s\"",
-					CONFIG, p);
+				    "%s: invalid ipsec policy \"%s\"", CONFIG,
+				    p);
 				exit(EX_CONFIG);
 			}
 		}
@@ -1665,7 +1754,7 @@ more:
 		char *user, *group, *perm;
 		struct passwd *pw;
 		struct group *gr;
-		user = arg+1;
+		user = arg + 1;
 		if ((group = strchr(user, ':')) == NULL) {
 			syslog(LOG_ERR, "no group after user '%s'", user);
 			goto more;
@@ -1738,39 +1827,34 @@ more:
 		}
 		sep->se_proto = newstr(arg);
 	}
-        if (strncmp(sep->se_proto, "rpc/", 4) == 0) {
-                memmove(sep->se_proto, sep->se_proto + 4,
-                    strlen(sep->se_proto) + 1 - 4);
-                sep->se_rpc = 1;
-                sep->se_rpc_prog = sep->se_rpc_lowvers =
-			sep->se_rpc_highvers = 0;
-                if ((versp = strrchr(sep->se_service, '/'))) {
-                        *versp++ = '\0';
-                        switch (sscanf(versp, "%u-%u",
-                                       &sep->se_rpc_lowvers,
-                                       &sep->se_rpc_highvers)) {
-                        case 2:
-                                break;
-                        case 1:
-                                sep->se_rpc_highvers =
-                                        sep->se_rpc_lowvers;
-                                break;
-                        default:
-                                syslog(LOG_ERR,
-					"bad RPC version specifier; %s",
-					sep->se_service);
-                                freeconfig(sep);
-                                goto more;
-                        }
-                }
-                else {
-                        sep->se_rpc_lowvers =
-                                sep->se_rpc_highvers = 1;
-                }
-        }
+	if (strncmp(sep->se_proto, "rpc/", 4) == 0) {
+		memmove(sep->se_proto, sep->se_proto + 4,
+		    strlen(sep->se_proto) + 1 - 4);
+		sep->se_rpc = 1;
+		sep->se_rpc_prog = sep->se_rpc_lowvers = sep->se_rpc_highvers =
+		    0;
+		if ((versp = strrchr(sep->se_service, '/'))) {
+			*versp++ = '\0';
+			switch (sscanf(versp, "%u-%u", &sep->se_rpc_lowvers,
+			    &sep->se_rpc_highvers)) {
+			case 2:
+				break;
+			case 1:
+				sep->se_rpc_highvers = sep->se_rpc_lowvers;
+				break;
+			default:
+				syslog(LOG_ERR, "bad RPC version specifier; %s",
+				    sep->se_service);
+				freeconfig(sep);
+				goto more;
+			}
+		} else {
+			sep->se_rpc_lowvers = sep->se_rpc_highvers = 1;
+		}
+	}
 	sep->se_nomapped = 0;
 	if (strcmp(sep->se_proto, "unix") == 0) {
-	        sep->se_family = AF_UNIX;
+		sep->se_family = AF_UNIX;
 	} else {
 		while (isdigit(sep->se_proto[strlen(sep->se_proto) - 1])) {
 #ifdef INET6
@@ -1788,14 +1872,14 @@ more:
 				continue;
 			}
 			/* illegal version num */
-			syslog(LOG_ERR,	"bad IP version for %s", sep->se_proto);
+			syslog(LOG_ERR, "bad IP version for %s", sep->se_proto);
 			freeconfig(sep);
 			goto more;
 		}
 #ifdef INET6
 		if (v6bind && !v6bind_ok) {
 			syslog(LOG_INFO, "IPv6 bind is ignored for %s",
-			       sep->se_service);
+			    sep->se_service);
 			if (v4bind && v4bind_ok)
 				v6bind = 0;
 			else {
@@ -1811,8 +1895,9 @@ more:
 #endif
 		{ /* default to v4 bind if not v6 bind */
 			if (!v4bind_ok) {
-				syslog(LOG_NOTICE, "IPv4 bind is ignored for %s",
-				       sep->se_service);
+				syslog(LOG_NOTICE,
+				    "IPv4 bind is ignored for %s",
+				    sep->se_service);
 				freeconfig(sep);
 				goto more;
 			}
@@ -1820,33 +1905,31 @@ more:
 		}
 	}
 	/* init ctladdr */
-	switch(sep->se_family) {
+	switch (sep->se_family) {
 	case AF_INET:
-		memcpy(&sep->se_ctrladdr4, bind_sa4,
-		       sizeof(sep->se_ctrladdr4));
-		sep->se_ctrladdr_size =	sizeof(sep->se_ctrladdr4);
+		memcpy(&sep->se_ctrladdr4, bind_sa4, sizeof(sep->se_ctrladdr4));
+		sep->se_ctrladdr_size = sizeof(sep->se_ctrladdr4);
 		break;
 #ifdef INET6
 	case AF_INET6:
-		memcpy(&sep->se_ctrladdr6, bind_sa6,
-		       sizeof(sep->se_ctrladdr6));
-		sep->se_ctrladdr_size =	sizeof(sep->se_ctrladdr6);
+		memcpy(&sep->se_ctrladdr6, bind_sa6, sizeof(sep->se_ctrladdr6));
+		sep->se_ctrladdr_size = sizeof(sep->se_ctrladdr6);
 		break;
 #endif
 	case AF_UNIX:
-#define	SUN_PATH_MAXSIZE	sizeof(sep->se_ctrladdr_un.sun_path)
+#define SUN_PATH_MAXSIZE sizeof(sep->se_ctrladdr_un.sun_path)
 		memset(&sep->se_ctrladdr, 0, sizeof(sep->se_ctrladdr));
 		sep->se_ctrladdr_un.sun_family = sep->se_family;
 		if (strlcpy(sep->se_ctrladdr_un.sun_path, sep->se_service,
-		    SUN_PATH_MAXSIZE) >= SUN_PATH_MAXSIZE) {
+			SUN_PATH_MAXSIZE) >= SUN_PATH_MAXSIZE) {
 			syslog(LOG_ERR,
 			    "domain socket pathname too long for service %s",
 			    sep->se_service);
 			goto more;
 		}
 #undef SUN_PATH_MAXSIZE
-		sep->se_ctrladdr_size = sep->se_ctrladdr_un.sun_len =
-		    SUN_LEN(&sep->se_ctrladdr_un);
+		sep->se_ctrladdr_size = sep->se_ctrladdr_un.sun_len = SUN_LEN(
+		    &sep->se_ctrladdr_un);
 	}
 	arg = sskip(&cp);
 	if (!strncmp(arg, "wait", 4))
@@ -1854,9 +1937,8 @@ more:
 	else if (!strncmp(arg, "nowait", 6))
 		sep->se_accept = 1;
 	else {
-		syslog(LOG_ERR,
-			"%s: bad wait/nowait for service %s",
-			CONFIG, sep->se_service);
+		syslog(LOG_ERR, "%s: bad wait/nowait for service %s", CONFIG,
+		    sep->se_service);
 		goto more;
 	}
 	sep->se_maxchild = -1;
@@ -1868,15 +1950,15 @@ more:
 
 		val = strtoul(s + 1, &eptr, 10);
 		if (eptr == s + 1 || val > MAX_MAXCHLD) {
-			syslog(LOG_ERR,
-				"%s: bad max-child for service %s",
-				CONFIG, sep->se_service);
+			syslog(LOG_ERR, "%s: bad max-child for service %s",
+			    CONFIG, sep->se_service);
 			goto more;
 		}
 		if (debug)
 			if (!sep->se_accept && val != 1)
 				warnx("maxchild=%lu for wait service %s"
-				    " not recommended", val, sep->se_service);
+				      " not recommended",
+				    val, sep->se_service);
 		sep->se_maxchild = val;
 		if (*eptr == '/')
 			sep->se_maxcpm = strtol(eptr + 1, &eptr, 10);
@@ -1895,14 +1977,14 @@ more:
 		sep->se_accept = 1;
 		if (strcmp(sep->se_proto, "tcp")) {
 			syslog(LOG_ERR,
-				"%s: bad protocol for tcpmux service %s",
-				CONFIG, sep->se_service);
+			    "%s: bad protocol for tcpmux service %s", CONFIG,
+			    sep->se_service);
 			goto more;
 		}
 		if (sep->se_socktype != SOCK_STREAM) {
 			syslog(LOG_ERR,
-				"%s: bad socket type for tcpmux service %s",
-				CONFIG, sep->se_service);
+			    "%s: bad socket type for tcpmux service %s", CONFIG,
+			    sep->se_service);
 			goto more;
 		}
 	}
@@ -1928,14 +2010,14 @@ more:
 		for (bi = biltins; bi->bi_service; bi++)
 			if (bi->bi_socktype == sep->se_socktype &&
 			    matchservent(bi->bi_service, sep->se_service,
-			    sep->se_proto))
+				sep->se_proto))
 				break;
 		if (bi->bi_service == 0) {
 			syslog(LOG_ERR, "internal service %s unknown",
-				sep->se_service);
+			    sep->se_service);
 			goto more;
 		}
-		sep->se_accept = 1;	/* force accept mode for built-ins */
+		sep->se_accept = 1; /* force accept mode for built-ins */
 		sep->se_bi = bi;
 	} else
 		sep->se_bi = NULL;
@@ -1943,10 +2025,10 @@ more:
 		sep->se_maxperip = maxperip;
 	if (sep->se_maxcpm < 0)
 		sep->se_maxcpm = maxcpm;
-	if (sep->se_maxchild < 0) {	/* apply default max-children */
+	if (sep->se_maxchild < 0) { /* apply default max-children */
 		if (sep->se_bi && sep->se_bi->bi_maxchild >= 0)
 			sep->se_maxchild = sep->se_bi->bi_maxchild;
-		else if (sep->se_accept) 
+		else if (sep->se_accept)
 			sep->se_maxchild = MAX(maxchild, 0);
 		else
 			sep->se_maxchild = 1;
@@ -1957,9 +2039,8 @@ more:
 		if (argc < MAXARGV) {
 			sep->se_argv[argc++] = newstr(arg);
 		} else {
-			syslog(LOG_ERR,
-				"%s: too many arguments for service %s",
-				CONFIG, sep->se_service);
+			syslog(LOG_ERR, "%s: too many arguments for service %s",
+			    CONFIG, sep->se_service);
 			goto more;
 		}
 	while (argc <= MAXARGV)
@@ -2001,7 +2082,6 @@ freeconfig(struct servtab *cp)
 #endif
 }
 
-
 /*
  * Safe skip - if skip returns null, log a syntax error in the
  * configuration file and exit.
@@ -2033,7 +2113,7 @@ again:
 		int c;
 
 		c = getc(fconfig);
-		(void) ungetc(c, fconfig);
+		(void)ungetc(c, fconfig);
 		if (c == ' ' || c == '\t')
 			if ((cp = nextline(fconfig)))
 				goto again;
@@ -2060,7 +2140,7 @@ nextline(FILE *fd)
 {
 	char *cp;
 
-	if (fgets(line, sizeof (line), fd) == NULL)
+	if (fgets(line, sizeof(line), fd) == NULL)
 		return ((char *)0);
 	cp = strchr(line, '\n');
 	if (cp)
@@ -2089,10 +2169,10 @@ inetd_setproctitle(const char *a, int s)
 	size = sizeof(ss);
 	if (getpeername(s, (struct sockaddr *)&ss, &size) == 0) {
 		getnameinfo((struct sockaddr *)&ss, size, pbuf, sizeof(pbuf),
-			    NULL, 0, NI_NUMERICHOST);
-		(void) sprintf(buf, "%s [%s]", a, pbuf);
+		    NULL, 0, NI_NUMERICHOST);
+		(void)sprintf(buf, "%s [%s]", a, pbuf);
 	} else
-		(void) sprintf(buf, "%s", a);
+		(void)sprintf(buf, "%s", a);
 	setproctitle("%s", buf);
 }
 
@@ -2124,11 +2204,10 @@ check_loop(const struct sockaddr *sa, const struct servtab *sep)
 		}
 	isloop:
 		getnameinfo(sa, sa->sa_len, pname, sizeof(pname), NULL, 0,
-			    NI_NUMERICHOST);
+		    NI_NUMERICHOST);
 		syslog(LOG_WARNING, "%s/%s:%s/%s loop request REFUSED from %s",
-		       sep->se_service, sep->se_proto,
-		       se2->se_service, se2->se_proto,
-		       pname);
+		    sep->se_service, sep->se_proto, se2->se_service,
+		    se2->se_proto, pname);
 		return 1;
 	}
 	return 0;
@@ -2151,42 +2230,43 @@ print_service(const char *action, const struct servtab *sep)
 	    " policy=\"%s\""
 #endif
 	    "\n",
-	    action, sep->se_service, sep->se_proto,
-	    sep->se_accept, sep->se_maxchild, sep->se_user, sep->se_group,
+	    action, sep->se_service, sep->se_proto, sep->se_accept,
+	    sep->se_maxchild, sep->se_user, sep->se_group,
 #ifdef LOGIN_CAP
 	    sep->se_class,
 #endif
-	    (void *) sep->se_bi, sep->se_server
+	    (void *)sep->se_bi, sep->se_server
 #ifdef IPSEC
-	    , (sep->se_policy ? sep->se_policy : "")
+	    ,
+	    (sep->se_policy ? sep->se_policy : "")
 #endif
-	    );
+	);
 }
 
-#define CPMHSIZE	256
-#define CPMHMASK	(CPMHSIZE-1)
-#define CHTGRAN		10
-#define CHTSIZE		6
+#define CPMHSIZE 256
+#define CPMHMASK (CPMHSIZE - 1)
+#define CHTGRAN 10
+#define CHTSIZE 6
 
 typedef struct CTime {
-	unsigned long 	ct_Ticks;
-	int		ct_Count;
+	unsigned long ct_Ticks;
+	int ct_Count;
 } CTime;
 
 typedef struct CHash {
 	union {
-		struct in_addr	c4_Addr;
-		struct in6_addr	c6_Addr;
+		struct in_addr c4_Addr;
+		struct in6_addr c6_Addr;
 	} cu_Addr;
-#define	ch_Addr4	cu_Addr.c4_Addr
-#define	ch_Addr6	cu_Addr.c6_Addr
-	int		ch_Family;
-	time_t		ch_LTime;
-	char		*ch_Service;
-	CTime		ch_Times[CHTSIZE];
+#define ch_Addr4 cu_Addr.c4_Addr
+#define ch_Addr6 cu_Addr.c6_Addr
+	int ch_Family;
+	time_t ch_LTime;
+	char *ch_Service;
+	CTime ch_Times[CHTSIZE];
 } CHash;
 
-static CHash	CHashAry[CPMHSIZE];
+static CHash CHashAry[CPMHSIZE];
 
 static int
 cpmip(const struct servtab *sep, int ctrl)
@@ -2200,9 +2280,9 @@ cpmip(const struct servtab *sep, int ctrl)
 	 * enabled the condition is caught elsewhere)
 	 */
 
-	if (sep->se_maxcpm > 0 && 
-	   (sep->se_family == AF_INET || sep->se_family == AF_INET6) &&
-	    getpeername(ctrl, (struct sockaddr *)&rss, &rssLen) == 0 ) {
+	if (sep->se_maxcpm > 0 &&
+	    (sep->se_family == AF_INET || sep->se_family == AF_INET6) &&
+	    getpeername(ctrl, (struct sockaddr *)&rss, &rssLen) == 0) {
 		time_t t = time(NULL);
 		unsigned int hv = 0xABC3D20F;
 		int i;
@@ -2249,8 +2329,8 @@ cpmip(const struct servtab *sep, int ctrl)
 			if (rss.ss_family == AF_INET &&
 			    ch->ch_Family == AF_INET &&
 			    sin4->sin_addr.s_addr == ch->ch_Addr4.s_addr &&
-			    ch->ch_Service && strcmp(sep->se_service,
-			    ch->ch_Service) == 0) {
+			    ch->ch_Service &&
+			    strcmp(sep->se_service, ch->ch_Service) == 0) {
 				chBest = ch;
 				break;
 			}
@@ -2258,21 +2338,22 @@ cpmip(const struct servtab *sep, int ctrl)
 			if (rss.ss_family == AF_INET6 &&
 			    ch->ch_Family == AF_INET6 &&
 			    IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-					       &ch->ch_Addr6) != 0 &&
-			    ch->ch_Service && strcmp(sep->se_service,
-			    ch->ch_Service) == 0) {
+				&ch->ch_Addr6) != 0 &&
+			    ch->ch_Service &&
+			    strcmp(sep->se_service, ch->ch_Service) == 0) {
 				chBest = ch;
 				break;
 			}
 #endif
-			if (chBest == NULL || ch->ch_LTime == 0 || 
+			if (chBest == NULL || ch->ch_LTime == 0 ||
 			    ch->ch_LTime < chBest->ch_LTime) {
 				chBest = ch;
 			}
 		}
 		if ((rss.ss_family == AF_INET &&
-		     (chBest->ch_Family != AF_INET ||
-		      sin4->sin_addr.s_addr != chBest->ch_Addr4.s_addr)) ||
+			(chBest->ch_Family != AF_INET ||
+			    sin4->sin_addr.s_addr !=
+				chBest->ch_Addr4.s_addr)) ||
 		    chBest->ch_Service == NULL ||
 		    strcmp(sep->se_service, chBest->ch_Service) != 0) {
 			chBest->ch_Family = sin4->sin_family;
@@ -2280,12 +2361,12 @@ cpmip(const struct servtab *sep, int ctrl)
 			free(chBest->ch_Service);
 			chBest->ch_Service = strdup(sep->se_service);
 			memset(chBest->ch_Times, 0, sizeof(chBest->ch_Times));
-		} 
+		}
 #ifdef INET6
 		if ((rss.ss_family == AF_INET6 &&
-		     (chBest->ch_Family != AF_INET6 ||
-		      IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
-					 &chBest->ch_Addr6) == 0)) ||
+			(chBest->ch_Family != AF_INET6 ||
+			    IN6_ARE_ADDR_EQUAL(&sin6->sin6_addr,
+				&chBest->ch_Addr6) == 0)) ||
 		    chBest->ch_Service == NULL ||
 		    strcmp(sep->se_service, chBest->ch_Service) != 0) {
 			chBest->ch_Family = sin6->sin6_family;
@@ -2315,17 +2396,15 @@ cpmip(const struct servtab *sep, int ctrl)
 			char pname[NI_MAXHOST];
 
 			getnameinfo((struct sockaddr *)&rss,
-				    ((struct sockaddr *)&rss)->sa_len,
-				    pname, sizeof(pname), NULL, 0,
-				    NI_NUMERICHOST);
+			    ((struct sockaddr *)&rss)->sa_len, pname,
+			    sizeof(pname), NULL, 0, NI_NUMERICHOST);
 			r = -1;
 			syslog(LOG_ERR,
 			    "%s from %s exceeded counts/min (limit %d/min)",
-			    sep->se_service, pname,
-			    sep->se_maxcpm);
+			    sep->se_service, pname, sep->se_maxcpm);
 		}
 	}
-	return(r);
+	return (r);
 }
 
 static struct conninfo *
@@ -2335,7 +2414,7 @@ search_conn(struct servtab *sep, int ctrl)
 	socklen_t sslen = sizeof(ss);
 	struct conninfo *conn;
 	int hv;
-	char pname[NI_MAXHOST],  pname2[NI_MAXHOST];
+	char pname[NI_MAXHOST], pname2[NI_MAXHOST];
 
 	if (sep->se_maxperip <= 0)
 		return NULL;
@@ -2367,13 +2446,13 @@ search_conn(struct servtab *sep, int ctrl)
 	}
 
 	if (getnameinfo((struct sockaddr *)&ss, sslen, pname, sizeof(pname),
-	    NULL, 0, NI_NUMERICHOST) != 0)
+		NULL, 0, NI_NUMERICHOST) != 0)
 		return NULL;
 
-	LIST_FOREACH(conn, &sep->se_conn[hv], co_link) {
+	LIST_FOREACH (conn, &sep->se_conn[hv], co_link) {
 		if (getnameinfo((struct sockaddr *)&conn->co_addr,
-		    conn->co_addr.ss_len, pname2, sizeof(pname2), NULL, 0,
-		    NI_NUMERICHOST) == 0 &&
+			conn->co_addr.ss_len, pname2, sizeof(pname2), NULL, 0,
+			NI_NUMERICHOST) == 0 &&
 		    strcmp(pname, pname2) == 0)
 			break;
 	}
@@ -2472,7 +2551,7 @@ resize_conn(struct servtab *sep, int maxpip)
 		return;
 	}
 	for (i = 0; i < PERIPSIZE; ++i) {
-		LIST_FOREACH(conn, &sep->se_conn[i], co_link) {
+		LIST_FOREACH (conn, &sep->se_conn[i], co_link) {
 			for (j = maxpip; j < conn->co_numchild; ++j)
 				free_proc(conn->co_proc[j]);
 			conn->co_proc = reallocarray(conn->co_proc, maxpip,
@@ -2494,7 +2573,7 @@ free_connlist(struct servtab *sep)
 	int i, j;
 
 	for (i = 0; i < PERIPSIZE; ++i) {
-		LIST_FOREACH_SAFE(conn, &sep->se_conn[i], co_link, conn_temp) {
+		LIST_FOREACH_SAFE (conn, &sep->se_conn[i], co_link, conn_temp) {
 			if (conn == NULL) {
 				LIST_REMOVE(conn, co_link);
 				continue;
@@ -2526,7 +2605,7 @@ search_proc(pid_t pid, int add)
 	int hv;
 
 	hv = hashval((char *)&pid, sizeof(pid));
-	LIST_FOREACH(proc, &proctable[hv], pr_link) {
+	LIST_FOREACH (proc, &proctable[hv], pr_link) {
 		if (proc->pr_pid == pid)
 			break;
 	}

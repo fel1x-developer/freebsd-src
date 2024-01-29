@@ -24,13 +24,13 @@
  * SUCH DAMAGE.
  */
 
-#include <ufs/ffs/fs.h>
+#include <sys/stat.h>
 
 #include <err.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/stat.h>
 #include <libufs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ufs/ffs/fs.h>
 
 union dinode {
 	struct ufs1_dinode *dp1;
@@ -69,8 +69,7 @@ main(int argc, char *argv[])
 		argc = 3;
 	}
 	if (argc < 3) {
-		(void)fprintf(stderr, "%s\n%s\n",
-		    "usage: prtblknos filename",
+		(void)fprintf(stderr, "%s\n%s\n", "usage: prtblknos filename",
 		    "       prtblknos filesystem inode ...");
 		exit(1);
 	}
@@ -87,7 +86,7 @@ main(int argc, char *argv[])
 	while (*++argv) {
 		/* get the inode number. */
 		if ((inonum = atoi(*argv)) <= 0 ||
-		     inonum >= (ino_t)fs->fs_ipg * fs->fs_ncg)
+		    inonum >= (ino_t)fs->fs_ipg * fs->fs_ncg)
 			warnx("%s is not a valid inode number", *argv);
 		if (filename == NULL)
 			(void)printf("inode #%jd: ", (intmax_t)inonum);

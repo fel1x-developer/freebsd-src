@@ -29,17 +29,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/types.h>
+
 #include <dirent.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include "libc_private.h"
 #include "gen-private.h"
+#include "libc_private.h"
+#include "namespace.h"
 #include "telldir.h"
+#include "un-namespace.h"
 
 /*
  * close a directory.

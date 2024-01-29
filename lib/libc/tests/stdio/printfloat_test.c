@@ -28,19 +28,18 @@
  * Test for printf() floating point formats.
  */
 
+#include <atf-c.h>
 #include <err.h>
 #include <fenv.h>
 #include <float.h>
 #include <locale.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
-
-#include <atf-c.h>
 
 static void
 smash_stack(void)
@@ -53,12 +52,12 @@ smash_stack(void)
 		buf[i] = junk;
 }
 
-#define	testfmt(result, fmt, ...)       \
+#define testfmt(result, fmt, ...) \
 	_testfmt((result), #__VA_ARGS__, fmt, __VA_ARGS__)
 static void
-_testfmt(const char *result, const char *argstr, const char *fmt,...)
+_testfmt(const char *result, const char *argstr, const char *fmt, ...)
 {
-#define	BUF	100
+#define BUF 100
 	wchar_t ws[BUF], wfmt[BUF], wresult[BUF];
 	char s[BUF];
 	va_list ap, ap2;
@@ -68,8 +67,8 @@ _testfmt(const char *result, const char *argstr, const char *fmt,...)
 	smash_stack();
 	vsnprintf(s, sizeof(s), fmt, ap);
 	ATF_CHECK_MSG(strcmp(result, s) == 0,
-	    "printf(\"%s\", %s) ==> [%s], expected [%s]",
-	    fmt, argstr, s, result);
+	    "printf(\"%s\", %s) ==> [%s], expected [%s]", fmt, argstr, s,
+	    result);
 
 	smash_stack();
 	mbstowcs(ws, s, BUF - 1);
@@ -77,8 +76,8 @@ _testfmt(const char *result, const char *argstr, const char *fmt,...)
 	mbstowcs(wresult, result, BUF - 1);
 	vswprintf(ws, sizeof(ws) / sizeof(ws[0]), wfmt, ap2);
 	ATF_CHECK_MSG(wcscmp(wresult, ws) == 0,
-	    "wprintf(\"%ls\", %s) ==> [%ls], expected [%ls]",
-	    wfmt, argstr, ws, wresult);
+	    "wprintf(\"%ls\", %s) ==> [%ls], expected [%ls]", wfmt, argstr, ws,
+	    wresult);
 
 	va_end(ap);
 	va_end(ap2);
@@ -173,17 +172,20 @@ ATF_TC_BODY(thousands_separator_and_other_locale_tests, tc)
 	testfmt("12345678.0625", "%'.04f", 12345678.0625);
 	testfmt("0012345678.0625", "%'015.4F", 12345678.0625);
 
-	ATF_REQUIRE(setlocale(LC_NUMERIC, "hi_IN.ISCII-DEV")); /* grouping == 2;3 */
+	ATF_REQUIRE(
+	    setlocale(LC_NUMERIC, "hi_IN.ISCII-DEV")); /* grouping == 2;3 */
 	testfmt("1,23,45,678.0625", "%'.4f", 12345678.0625);
 	testfmt("01,23,45,678.0625", "%'017.4F", 12345678.0625);
 	testfmt(" 9,000", "%'6.0f", 9000.0);
 	testfmt("9,000.0", "%'.1f", 9000.0);
 
-	ATF_REQUIRE(setlocale(LC_NUMERIC, "ru_RU.ISO8859-5")); /* decimalpoint==, */
+	ATF_REQUIRE(
+	    setlocale(LC_NUMERIC, "ru_RU.ISO8859-5")); /* decimalpoint==, */
 	testfmt("3,1415", "%g", 3.1415);
 
 	/* thousands=. decimalpoint=, grouping=3;3 */
-	ATF_REQUIRE(setlocale(LC_NUMERIC, "el_GR.ISO8859-7")); /* decimalpoint==, */
+	ATF_REQUIRE(
+	    setlocale(LC_NUMERIC, "el_GR.ISO8859-7")); /* decimalpoint==, */
 	testfmt("1.234,00", "%'.2f", 1234.00);
 	testfmt("123.456,789", "%'.3f", 123456.789);
 

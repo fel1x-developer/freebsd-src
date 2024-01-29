@@ -34,30 +34,28 @@
 #include <machine/bus.h>
 #include <machine/fdt.h>
 
+#include <dev/clk/clk.h>
 #include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/clk/clk.h>
-
-#include <arm/mv/mvwin.h>
-#include <arm/mv/mvreg.h>
-#include <arm/mv/mvvar.h>
 
 #include <arm/mv/clk/armada38x_gen.h>
+#include <arm/mv/mvreg.h>
+#include <arm/mv/mvvar.h>
+#include <arm/mv/mvwin.h>
 
 #include "clkdev_if.h"
 
 #define ARMADA38X_CORECLK_MAXREG 0
 
 static struct resource_spec armada38x_coreclk_specs[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 struct armada38x_coreclk_softc {
-	struct resource	*res;
-	struct clkdom	*clkdom;
-	struct mtx	mtx;
+	struct resource *res;
+	struct clkdom *clkdom;
+	struct mtx mtx;
 };
 
 static int armada38x_coreclk_attach(device_t dev);
@@ -198,13 +196,13 @@ armada38x_coreclk_attach(device_t dev)
 }
 
 static device_method_t amada38x_coreclk_methods[] = {
-	DEVMETHOD(clkdev_write_4,	armada38x_coreclk_write_4),
-	DEVMETHOD(clkdev_read_4,	armada38x_coreclk_read_4),
-	DEVMETHOD(clkdev_device_lock,	armada38x_coreclk_device_lock),
-	DEVMETHOD(clkdev_device_unlock,	armada38x_coreclk_device_unlock),
+	DEVMETHOD(clkdev_write_4, armada38x_coreclk_write_4),
+	DEVMETHOD(clkdev_read_4, armada38x_coreclk_read_4),
+	DEVMETHOD(clkdev_device_lock, armada38x_coreclk_device_lock),
+	DEVMETHOD(clkdev_device_unlock, armada38x_coreclk_device_unlock),
 
-	DEVMETHOD(device_attach,	armada38x_coreclk_attach),
-	DEVMETHOD(device_probe,		armada38x_coreclk_probe),
+	DEVMETHOD(device_attach, armada38x_coreclk_attach),
+	DEVMETHOD(device_probe, armada38x_coreclk_probe),
 
 	DEVMETHOD_END
 };
@@ -215,5 +213,5 @@ static driver_t armada38x_coreclk_driver = {
 	sizeof(struct armada38x_coreclk_softc),
 };
 
-EARLY_DRIVER_MODULE(armada38x_coreclk, simplebus, armada38x_coreclk_driver, 0, 0,
-    BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(armada38x_coreclk, simplebus, armada38x_coreclk_driver, 0,
+    0, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE);

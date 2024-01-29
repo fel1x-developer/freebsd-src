@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_CLK_APSS_H__
-#define	__QCOM_CLK_APSS_H__
+#ifndef __QCOM_CLK_APSS_H__
+#define __QCOM_CLK_APSS_H__
 
 #include "qcom_clk_freqtbl.h"
 
@@ -40,7 +40,7 @@ struct qcom_clk_apssdiv_def {
 	const struct qcom_clk_freq_tbl *freq_tbl;
 };
 
-extern	int qcom_clk_apssdiv_register(struct clkdom *clkdom,
-	    struct qcom_clk_apssdiv_def *clkdef);
+extern int qcom_clk_apssdiv_register(struct clkdom *clkdom,
+    struct qcom_clk_apssdiv_def *clkdef);
 
-#endif	/* __QCOM_CLK_APSS_H__ */
+#endif /* __QCOM_CLK_APSS_H__ */

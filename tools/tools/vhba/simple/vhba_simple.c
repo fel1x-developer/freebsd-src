@@ -28,21 +28,21 @@
  */
 #include "vhba.h"
 
-#define	MAX_TGT		1
-#define	MAX_LUN		1
+#define MAX_TGT 1
+#define MAX_LUN 1
 
-#define	DISK_SIZE	32
-#define	DISK_SHIFT	9
-#define	DISK_NBLKS	((DISK_SIZE << 20) >> DISK_SHIFT)
-#define	PSEUDO_SPT	64
-#define	PSEUDO_HDS	64
-#define	PSEUDO_SPC	(PSEUDO_SPT * PSEUDO_HDS)
+#define DISK_SIZE 32
+#define DISK_SHIFT 9
+#define DISK_NBLKS ((DISK_SIZE << 20) >> DISK_SHIFT)
+#define PSEUDO_SPT 64
+#define PSEUDO_HDS 64
+#define PSEUDO_SPC (PSEUDO_SPT * PSEUDO_HDS)
 
 typedef struct {
-	vhba_softc_t *	vhba;
-	uint8_t *	disk;
-	size_t		disk_size;
-	struct task	qt;
+	vhba_softc_t *vhba;
+	uint8_t *disk;
+	size_t disk_size;
+	struct task qt;
 } vhbasimple_t;
 
 static void vhba_task(void *, int);
@@ -54,11 +54,10 @@ vhba_init(vhba_softc_t *vhba)
 	static vhbasimple_t vhbas;
 	vhbas.vhba = vhba;
 	vhbas.disk_size = DISK_SIZE << 20;
-	vhbas.disk = malloc(vhbas.disk_size, M_DEVBUF, M_WAITOK|M_ZERO);
+	vhbas.disk = malloc(vhbas.disk_size, M_DEVBUF, M_WAITOK | M_ZERO);
 	vhba->private = &vhbas;
 	TASK_INIT(&vhbas.qt, 0, vhba_task, &vhbas);
 }
-
 
 void
 vhba_fini(vhba_softc_t *vhba)
@@ -84,7 +83,7 @@ vhba_task(void *arg, int pending)
 	mtx_lock(&vhbas->vhba->lock);
 	while ((ccbh = TAILQ_FIRST(&vhbas->vhba->actv)) != NULL) {
 		TAILQ_REMOVE(&vhbas->vhba->actv, ccbh, sim_links.tqe);
-                vhbasimple_act(vhbas, (struct ccb_scsiio *)ccbh);
+		vhbasimple_act(vhbas, (struct ccb_scsiio *)ccbh);
 	}
 	while ((ccbh = TAILQ_FIRST(&vhbas->vhba->done)) != NULL) {
 		TAILQ_REMOVE(&vhbas->vhba->done, ccbh, sim_links.tqe);
@@ -100,28 +99,30 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 	uint8_t *cdb, *ptr, status;
 	uint32_t data_len;
 	uint64_t off;
-	    
+
 	data_len = 0;
 	status = SCSI_STATUS_OK;
 
-	memset(&csio->sense_data, 0, sizeof (csio->sense_data));
+	memset(&csio->sense_data, 0, sizeof(csio->sense_data));
 	cdb = csio->cdb_io.cdb_bytes;
 
-	if (csio->ccb_h.target_id >=  MAX_TGT) {
+	if (csio->ccb_h.target_id >= MAX_TGT) {
 		csio->ccb_h.status = CAM_SEL_TIMEOUT;
-		TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h, sim_links.tqe);
+		TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h,
+		    sim_links.tqe);
 		return;
 	}
-	if (csio->ccb_h.target_lun >= MAX_LUN && cdb[0] != INQUIRY && cdb[0] != REPORT_LUNS && cdb[0] != REQUEST_SENSE) {
+	if (csio->ccb_h.target_lun >= MAX_LUN && cdb[0] != INQUIRY &&
+	    cdb[0] != REPORT_LUNS && cdb[0] != REQUEST_SENSE) {
 		vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x25, 0x0);
-		TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h, sim_links.tqe);
+		TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h,
+		    sim_links.tqe);
 		return;
 	}
 
 	switch (cdb[0]) {
 	case MODE_SENSE:
-	case MODE_SENSE_10:
-	{
+	case MODE_SENSE_10: {
 		unsigned int nbyte;
 		uint8_t page = cdb[2] & SMS_PAGE_CODE;
 		uint8_t pgctl = cdb[2] & SMS_PAGE_CTRL_MASK;
@@ -134,11 +135,13 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 		case SMS_ALL_PAGES_PAGE:
 			break;
 		default:
-			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24, 0x0);
-			TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h, sim_links.tqe);
+			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24,
+			    0x0);
+			TAILQ_INSERT_TAIL(&vhbas->vhba->done, &csio->ccb_h,
+			    sim_links.tqe);
 			return;
 		}
-		memset(junk, 0, sizeof (junk));
+		memset(junk, 0, sizeof(junk));
 		if (cdb[1] & SMS_DBD) {
 			ptr = &junk[4];
 		} else {
@@ -146,7 +149,7 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 			ptr[3] = 8;
 			ptr[4] = ((1 << DISK_SHIFT) >> 24) & 0xff;
 			ptr[5] = ((1 << DISK_SHIFT) >> 16) & 0xff;
-			ptr[6] = ((1 << DISK_SHIFT) >>  8) & 0xff;
+			ptr[6] = ((1 << DISK_SHIFT) >> 8) & 0xff;
 			ptr[7] = ((1 << DISK_SHIFT)) & 0xff;
 
 			ptr[8] = (DISK_NBLKS >> 24) & 0xff;
@@ -156,7 +159,8 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 			ptr += 12;
 		}
 
-		if (page == SMS_ALL_PAGES_PAGE || page == SMS_FORMAT_DEVICE_PAGE) {
+		if (page == SMS_ALL_PAGES_PAGE ||
+		    page == SMS_FORMAT_DEVICE_PAGE) {
 			ptr[0] = SMS_FORMAT_DEVICE_PAGE;
 			ptr[1] = 24;
 			if (pgctl != SMS_PAGE_CTRL_CHANGEABLE) {
@@ -196,7 +200,9 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 			ptr[0] = SMS_GEOMETRY_PAGE;
 			ptr[1] = 24;
 			if (pgctl != SMS_PAGE_CTRL_CHANGEABLE) {
-				uint32_t cyl = (DISK_NBLKS + ((PSEUDO_SPC - 1))) / PSEUDO_SPC;
+				uint32_t cyl = (DISK_NBLKS +
+						   ((PSEUDO_SPC - 1))) /
+				    PSEUDO_SPC;
 				/* number of cylinders */
 				ptr[2] = (cyl >> 24) & 0xff;
 				ptr[3] = (cyl >> 16) & 0xff;
@@ -236,12 +242,14 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 			ptr += 20;
 		}
 
-		if (page == SMS_ALL_PAGES_PAGE || page == SMS_CONTROL_MODE_PAGE) {
+		if (page == SMS_ALL_PAGES_PAGE ||
+		    page == SMS_CONTROL_MODE_PAGE) {
 			ptr[0] = SMS_CONTROL_MODE_PAGE;
 			ptr[1] = 10;
 			if (pgctl != SMS_PAGE_CTRL_CHANGEABLE) {
-				ptr[3] = 1 << 4; /* unrestricted reordering allowed */
-				ptr[8] = 0x75;   /* 30000 ms */
+				ptr[3] = 1
+				    << 4; /* unrestricted reordering allowed */
+				ptr[8] = 0x75; /* 30000 ms */
 				ptr[9] = 0x30;
 			}
 			ptr += 12;
@@ -271,14 +279,17 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 	case WRITE_12:
 	case WRITE_16:
 		if (vhba_rwparm(cdb, &off, &data_len, DISK_NBLKS, DISK_SHIFT)) {
-			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24, 0x0);
+			vhba_fill_sense(csio, SSD_KEY_ILLEGAL_REQUEST, 0x24,
+			    0x0);
 			break;
 		}
 		if (data_len) {
 			if ((cdb[0] & 0xf) == 8) {
-				memcpy(csio->data_ptr, &vhbas->disk[off], data_len);
+				memcpy(csio->data_ptr, &vhbas->disk[off],
+				    data_len);
 			} else {
-				memcpy(&vhbas->disk[off], csio->data_ptr, data_len);
+				memcpy(&vhbas->disk[off], csio->data_ptr,
+				    data_len);
 			}
 			csio->resid = csio->dxfer_len - data_len;
 		} else {
@@ -289,7 +300,8 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 
 	case READ_CAPACITY:
 		if (cdb[2] || cdb[3] || cdb[4] || cdb[5]) {
-			vhba_fill_sense(csio, SSD_KEY_UNIT_ATTENTION, 0x24, 0x0);
+			vhba_fill_sense(csio, SSD_KEY_UNIT_ATTENTION, 0x24,
+			    0x0);
 			break;
 		}
 		if (cdb[8] & 0x1) { /* PMI */
@@ -300,20 +312,20 @@ vhbasimple_act(vhbasimple_t *vhbas, struct ccb_scsiio *csio)
 		} else {
 			uint64_t last_blk = DISK_NBLKS - 1;
 			if (last_blk < 0xffffffffULL) {
-			    csio->data_ptr[0] = (last_blk >> 24) & 0xff;
-			    csio->data_ptr[1] = (last_blk >> 16) & 0xff;
-			    csio->data_ptr[2] = (last_blk >>  8) & 0xff;
-			    csio->data_ptr[3] = (last_blk) & 0xff;
+				csio->data_ptr[0] = (last_blk >> 24) & 0xff;
+				csio->data_ptr[1] = (last_blk >> 16) & 0xff;
+				csio->data_ptr[2] = (last_blk >> 8) & 0xff;
+				csio->data_ptr[3] = (last_blk) & 0xff;
 			} else {
-			    csio->data_ptr[0] = 0xff;
-			    csio->data_ptr[1] = 0xff;
-			    csio->data_ptr[2] = 0xff;
-			    csio->data_ptr[3] = 0xff;
+				csio->data_ptr[0] = 0xff;
+				csio->data_ptr[1] = 0xff;
+				csio->data_ptr[2] = 0xff;
+				csio->data_ptr[3] = 0xff;
 			}
 		}
 		csio->data_ptr[4] = ((1 << DISK_SHIFT) >> 24) & 0xff;
 		csio->data_ptr[5] = ((1 << DISK_SHIFT) >> 16) & 0xff;
-		csio->data_ptr[6] = ((1 << DISK_SHIFT) >>  8) & 0xff;
+		csio->data_ptr[6] = ((1 << DISK_SHIFT) >> 8) & 0xff;
 		csio->data_ptr[7] = ((1 << DISK_SHIFT)) & 0xff;
 		break;
 

@@ -19,49 +19,46 @@
 #include "opt_ah.h"
 
 #include "ah.h"
-#include "ah_internal.h"
-
 #include "ah_eeprom_v3.h"
-
+#include "ah_internal.h"
 #include "ar5212/ar5212.h"
-#include "ar5212/ar5212reg.h"
 #include "ar5212/ar5212phy.h"
+#include "ar5212/ar5212reg.h"
 
 #define AH_5212_5111
 #include "ar5212/ar5212.ini"
 
-#define	N(a)	(sizeof(a)/sizeof(a[0]))
+#define N(a) (sizeof(a) / sizeof(a[0]))
 
 struct ar5111State {
-	RF_HAL_FUNCS	base;		/* public state, must be first */
-	uint16_t	pcdacTable[PWR_TABLE_SIZE];
+	RF_HAL_FUNCS base; /* public state, must be first */
+	uint16_t pcdacTable[PWR_TABLE_SIZE];
 
-	uint32_t	Bank0Data[N(ar5212Bank0_5111)];
-	uint32_t	Bank1Data[N(ar5212Bank1_5111)];
-	uint32_t	Bank2Data[N(ar5212Bank2_5111)];
-	uint32_t	Bank3Data[N(ar5212Bank3_5111)];
-	uint32_t	Bank6Data[N(ar5212Bank6_5111)];
-	uint32_t	Bank7Data[N(ar5212Bank7_5111)];
+	uint32_t Bank0Data[N(ar5212Bank0_5111)];
+	uint32_t Bank1Data[N(ar5212Bank1_5111)];
+	uint32_t Bank2Data[N(ar5212Bank2_5111)];
+	uint32_t Bank3Data[N(ar5212Bank3_5111)];
+	uint32_t Bank6Data[N(ar5212Bank6_5111)];
+	uint32_t Bank7Data[N(ar5212Bank7_5111)];
 };
-#define	AR5111(ah)	((struct ar5111State *) AH5212(ah)->ah_rfHal)
+#define AR5111(ah) ((struct ar5111State *)AH5212(ah)->ah_rfHal)
 
 static uint16_t ar5212GetScaledPower(uint16_t channel, uint16_t pcdacValue,
-		const PCDACS_EEPROM *pSrcStruct);
+    const PCDACS_EEPROM *pSrcStruct);
 static HAL_BOOL ar5212FindValueInList(uint16_t channel, uint16_t pcdacValue,
-		const PCDACS_EEPROM *pSrcStruct, uint16_t *powerValue);
+    const PCDACS_EEPROM *pSrcStruct, uint16_t *powerValue);
 static void ar5212GetLowerUpperPcdacs(uint16_t pcdac, uint16_t channel,
-		const PCDACS_EEPROM *pSrcStruct,
-		uint16_t *pLowerPcdac, uint16_t *pUpperPcdac);
+    const PCDACS_EEPROM *pSrcStruct, uint16_t *pLowerPcdac,
+    uint16_t *pUpperPcdac);
 
-extern void ar5212GetLowerUpperValues(uint16_t value,
-		const uint16_t *pList, uint16_t listSize,
-		uint16_t *pLowerValue, uint16_t *pUpperValue);
-extern	void ar5212ModifyRfBuffer(uint32_t *rfBuf, uint32_t reg32,
-		uint32_t numBits, uint32_t firstBit, uint32_t column);
+extern void ar5212GetLowerUpperValues(uint16_t value, const uint16_t *pList,
+    uint16_t listSize, uint16_t *pLowerValue, uint16_t *pUpperValue);
+extern void ar5212ModifyRfBuffer(uint32_t *rfBuf, uint32_t reg32,
+    uint32_t numBits, uint32_t firstBit, uint32_t column);
 
 static void
 ar5111WriteRegs(struct ath_hal *ah, u_int modesIndex, u_int freqIndex,
-	int writes)
+    int writes)
 {
 	HAL_INI_WRITE_ARRAY(ah, ar5212Modes_5111, modesIndex, writes);
 	HAL_INI_WRITE_ARRAY(ah, ar5212Common_5111, 1, writes);
@@ -86,98 +83,99 @@ ar5111SetChannel(struct ath_hal *ah, const struct ieee80211_channel *chan)
 	 * 16 MHz mode, divider ratio = 198 = NP+S. N=16, S=4 or 6, P=12
 	 */
 	typedef struct {
-		uint32_t	refClkSel;	/* reference clock, 1 for 16 MHz */
-		uint32_t	channelSelect;	/* P[7:4]S[3:0] bits */
-		uint16_t	channel5111;	/* 11a channel for 5111 */
+		uint32_t refClkSel;	/* reference clock, 1 for 16 MHz */
+		uint32_t channelSelect; /* P[7:4]S[3:0] bits */
+		uint16_t channel5111;	/* 11a channel for 5111 */
 	} CHAN_INFO_2GHZ;
 
 	static const CHAN_INFO_2GHZ chan2GHzData[] = {
-		{ 1, 0x46, 96  },	/* 2312 -19 */
-		{ 1, 0x46, 97  },	/* 2317 -18 */
-		{ 1, 0x46, 98  },	/* 2322 -17 */
-		{ 1, 0x46, 99  },	/* 2327 -16 */
-		{ 1, 0x46, 100 },	/* 2332 -15 */
-		{ 1, 0x46, 101 },	/* 2337 -14 */
-		{ 1, 0x46, 102 },	/* 2342 -13 */
-		{ 1, 0x46, 103 },	/* 2347 -12 */
-		{ 1, 0x46, 104 },	/* 2352 -11 */
-		{ 1, 0x46, 105 },	/* 2357 -10 */
-		{ 1, 0x46, 106 },	/* 2362  -9 */
-		{ 1, 0x46, 107 },	/* 2367  -8 */
-		{ 1, 0x46, 108 },	/* 2372  -7 */
+		{ 1, 0x46, 96 },  /* 2312 -19 */
+		{ 1, 0x46, 97 },  /* 2317 -18 */
+		{ 1, 0x46, 98 },  /* 2322 -17 */
+		{ 1, 0x46, 99 },  /* 2327 -16 */
+		{ 1, 0x46, 100 }, /* 2332 -15 */
+		{ 1, 0x46, 101 }, /* 2337 -14 */
+		{ 1, 0x46, 102 }, /* 2342 -13 */
+		{ 1, 0x46, 103 }, /* 2347 -12 */
+		{ 1, 0x46, 104 }, /* 2352 -11 */
+		{ 1, 0x46, 105 }, /* 2357 -10 */
+		{ 1, 0x46, 106 }, /* 2362  -9 */
+		{ 1, 0x46, 107 }, /* 2367  -8 */
+		{ 1, 0x46, 108 }, /* 2372  -7 */
 		/* index -6 to 0 are pad to make this a nolookup table */
-		{ 1, 0x46, 116 },	/*       -6 */
-		{ 1, 0x46, 116 },	/*       -5 */
-		{ 1, 0x46, 116 },	/*       -4 */
-		{ 1, 0x46, 116 },	/*       -3 */
-		{ 1, 0x46, 116 },	/*       -2 */
-		{ 1, 0x46, 116 },	/*       -1 */
-		{ 1, 0x46, 116 },	/*        0 */
-		{ 1, 0x46, 116 },	/* 2412   1 */
-		{ 1, 0x46, 117 },	/* 2417   2 */
-		{ 1, 0x46, 118 },	/* 2422   3 */
-		{ 1, 0x46, 119 },	/* 2427   4 */
-		{ 1, 0x46, 120 },	/* 2432   5 */
-		{ 1, 0x46, 121 },	/* 2437   6 */
-		{ 1, 0x46, 122 },	/* 2442   7 */
-		{ 1, 0x46, 123 },	/* 2447   8 */
-		{ 1, 0x46, 124 },	/* 2452   9 */
-		{ 1, 0x46, 125 },	/* 2457  10 */
-		{ 1, 0x46, 126 },	/* 2462  11 */
-		{ 1, 0x46, 127 },	/* 2467  12 */
-		{ 1, 0x46, 128 },	/* 2472  13 */
-		{ 1, 0x44, 124 },	/* 2484  14 */
-		{ 1, 0x46, 136 },	/* 2512  15 */
-		{ 1, 0x46, 140 },	/* 2532  16 */
-		{ 1, 0x46, 144 },	/* 2552  17 */
-		{ 1, 0x46, 148 },	/* 2572  18 */
-		{ 1, 0x46, 152 },	/* 2592  19 */
-		{ 1, 0x46, 156 },	/* 2612  20 */
-		{ 1, 0x46, 160 },	/* 2632  21 */
-		{ 1, 0x46, 164 },	/* 2652  22 */
-		{ 1, 0x46, 168 },	/* 2672  23 */
-		{ 1, 0x46, 172 },	/* 2692  24 */
-		{ 1, 0x46, 176 },	/* 2712  25 */
-		{ 1, 0x46, 180 } 	/* 2732  26 */
+		{ 1, 0x46, 116 }, /*       -6 */
+		{ 1, 0x46, 116 }, /*       -5 */
+		{ 1, 0x46, 116 }, /*       -4 */
+		{ 1, 0x46, 116 }, /*       -3 */
+		{ 1, 0x46, 116 }, /*       -2 */
+		{ 1, 0x46, 116 }, /*       -1 */
+		{ 1, 0x46, 116 }, /*        0 */
+		{ 1, 0x46, 116 }, /* 2412   1 */
+		{ 1, 0x46, 117 }, /* 2417   2 */
+		{ 1, 0x46, 118 }, /* 2422   3 */
+		{ 1, 0x46, 119 }, /* 2427   4 */
+		{ 1, 0x46, 120 }, /* 2432   5 */
+		{ 1, 0x46, 121 }, /* 2437   6 */
+		{ 1, 0x46, 122 }, /* 2442   7 */
+		{ 1, 0x46, 123 }, /* 2447   8 */
+		{ 1, 0x46, 124 }, /* 2452   9 */
+		{ 1, 0x46, 125 }, /* 2457  10 */
+		{ 1, 0x46, 126 }, /* 2462  11 */
+		{ 1, 0x46, 127 }, /* 2467  12 */
+		{ 1, 0x46, 128 }, /* 2472  13 */
+		{ 1, 0x44, 124 }, /* 2484  14 */
+		{ 1, 0x46, 136 }, /* 2512  15 */
+		{ 1, 0x46, 140 }, /* 2532  16 */
+		{ 1, 0x46, 144 }, /* 2552  17 */
+		{ 1, 0x46, 148 }, /* 2572  18 */
+		{ 1, 0x46, 152 }, /* 2592  19 */
+		{ 1, 0x46, 156 }, /* 2612  20 */
+		{ 1, 0x46, 160 }, /* 2632  21 */
+		{ 1, 0x46, 164 }, /* 2652  22 */
+		{ 1, 0x46, 168 }, /* 2672  23 */
+		{ 1, 0x46, 172 }, /* 2692  24 */
+		{ 1, 0x46, 176 }, /* 2712  25 */
+		{ 1, 0x46, 180 }  /* 2732  26 */
 	};
 
 	OS_MARK(ah, AH_MARK_SETCHANNEL, freq);
 
 	chanIEEE = chan->ic_ieee;
 	if (IEEE80211_IS_CHAN_2GHZ(chan)) {
-		const CHAN_INFO_2GHZ* ci =
-			&chan2GHzData[chanIEEE + CI_2GHZ_INDEX_CORRECTION];
+		const CHAN_INFO_2GHZ *ci =
+		    &chan2GHzData[chanIEEE + CI_2GHZ_INDEX_CORRECTION];
 		uint32_t txctl;
 
 		data2111 = ((ath_hal_reverseBits(ci->channelSelect, 8) & 0xff)
-				<< 5)
-			 | (ci->refClkSel << 4);
+			       << 5) |
+		    (ci->refClkSel << 4);
 		chan5111 = ci->channel5111;
 		txctl = OS_REG_READ(ah, AR_PHY_CCK_TX_CTRL);
 		if (freq == 2484) {
 			/* Enable channel spreading for channel 14 */
 			OS_REG_WRITE(ah, AR_PHY_CCK_TX_CTRL,
-				txctl | AR_PHY_CCK_TX_CTRL_JAPAN);
+			    txctl | AR_PHY_CCK_TX_CTRL_JAPAN);
 		} else {
 			OS_REG_WRITE(ah, AR_PHY_CCK_TX_CTRL,
-				txctl &~ AR_PHY_CCK_TX_CTRL_JAPAN);
+			    txctl & ~AR_PHY_CCK_TX_CTRL_JAPAN);
 		}
 	} else {
-		chan5111 = chanIEEE;	/* no conversion needed */
+		chan5111 = chanIEEE; /* no conversion needed */
 		data2111 = 0;
 	}
 
 	/* Rest of the code is common for 5 GHz and 2.4 GHz. */
 	if (chan5111 >= 145 || (chan5111 & 0x1)) {
-		reg32  = ath_hal_reverseBits(chan5111 - 24, 8) & 0xff;
+		reg32 = ath_hal_reverseBits(chan5111 - 24, 8) & 0xff;
 		refClk = 1;
 	} else {
-		reg32  = ath_hal_reverseBits(((chan5111 - 24)/2), 8) & 0xff;
+		reg32 = ath_hal_reverseBits(((chan5111 - 24) / 2), 8) & 0xff;
 		refClk = 0;
 	}
 
 	reg32 = (reg32 << 2) | (refClk << 1) | (1 << 10) | 0x1;
-	OS_REG_WRITE(ah, AR_PHY(0x27), ((data2111 & 0xff) << 8) | (reg32 & 0xff));
+	OS_REG_WRITE(ah, AR_PHY(0x27),
+	    ((data2111 & 0xff) << 8) | (reg32 & 0xff));
 	reg32 >>= 8;
 	OS_REG_WRITE(ah, AR_PHY(0x34), (data2111 & 0xff00) | (reg32 & 0xff));
 
@@ -196,12 +194,18 @@ ar5111GetRfBank(struct ath_hal *ah, int bank)
 
 	HALASSERT(priv != AH_NULL);
 	switch (bank) {
-	case 0: return priv->Bank0Data;
-	case 1: return priv->Bank1Data;
-	case 2: return priv->Bank2Data;
-	case 3: return priv->Bank3Data;
-	case 6: return priv->Bank6Data;
-	case 7: return priv->Bank7Data;
+	case 0:
+		return priv->Bank0Data;
+	case 1:
+		return priv->Bank1Data;
+	case 2:
+		return priv->Bank2Data;
+	case 3:
+		return priv->Bank3Data;
+	case 6:
+		return priv->Bank6Data;
+	case 7:
+		return priv->Bank7Data;
 	}
 	HALDEBUG(ah, HAL_DEBUG_ANY, "%s: unknown RF Bank %d requested\n",
 	    __func__, bank);
@@ -216,7 +220,7 @@ ar5111GetRfBank(struct ath_hal *ah, int bank)
  */
 static HAL_BOOL
 ar5111SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
-	uint16_t modesIndex, uint16_t *rfXpdGain)
+    uint16_t modesIndex, uint16_t *rfXpdGain)
 {
 	uint16_t freq = ath_hal_gethwchannel(ah, chan);
 	struct ath_hal_5212 *ahp = AH5212(ah);
@@ -267,7 +271,7 @@ ar5111SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 		gainI = ee->ee_gainI[headerInfo11B];
 		break;
 	case IEEE80211_CHAN_G:
-	case IEEE80211_CHAN_PUREG:	/* NB: really 108G */
+	case IEEE80211_CHAN_PUREG: /* NB: really 108G */
 		tempOB = ee->ee_obFor24g;
 		tempDB = ee->ee_dbFor24g;
 		ob2GHz = ee->ee_ob2GHz[1];
@@ -308,7 +312,7 @@ ar5111SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 	/* Bank 6 Write */
 	for (i = 0; i < N(ar5212Bank6_5111); i++)
 		rfReg[i] = ar5212Bank6_5111[i][modesIndex];
-	if (IEEE80211_IS_CHAN_A(chan)) {	/* NB: CHANNEL_A | CHANNEL_T */
+	if (IEEE80211_IS_CHAN_A(chan)) { /* NB: CHANNEL_A | CHANNEL_T */
 		ar5212ModifyRfBuffer(rfReg, ee->ee_cornerCal.pd84, 1, 51, 3);
 		ar5212ModifyRfBuffer(rfReg, ee->ee_cornerCal.pd90, 1, 45, 3);
 	}
@@ -322,18 +326,18 @@ ar5111SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
 	/* Bank 7 Write */
 	for (i = 0; i < N(ar5212Bank7_5111); i++)
 		rfReg[i] = ar5212Bank7_5111[i][modesIndex];
-	ar5212ModifyRfBuffer(rfReg, gainI, 6, 29, 0);   
-	ar5212ModifyRfBuffer(rfReg, rfPloSel, 1, 4, 0);   
+	ar5212ModifyRfBuffer(rfReg, gainI, 6, 29, 0);
+	ar5212ModifyRfBuffer(rfReg, rfPloSel, 1, 4, 0);
 
 	if (IEEE80211_IS_CHAN_QUARTER(chan) || IEEE80211_IS_CHAN_HALF(chan)) {
-        	uint32_t	rfWaitI, rfWaitS, rfMaxTime;
+		uint32_t rfWaitI, rfWaitS, rfMaxTime;
 
-        	rfWaitS = 0x1f;
-        	rfWaitI = (IEEE80211_IS_CHAN_HALF(chan)) ?  0x10 : 0x1f;
-        	rfMaxTime = 3;
-        	ar5212ModifyRfBuffer(rfReg, rfWaitS, 5, 19, 0);
-        	ar5212ModifyRfBuffer(rfReg, rfWaitI, 5, 24, 0);
-        	ar5212ModifyRfBuffer(rfReg, rfMaxTime, 2, 49, 0);
+		rfWaitS = 0x1f;
+		rfWaitI = (IEEE80211_IS_CHAN_HALF(chan)) ? 0x10 : 0x1f;
+		rfMaxTime = 3;
+		ar5212ModifyRfBuffer(rfReg, rfWaitS, 5, 19, 0);
+		ar5212ModifyRfBuffer(rfReg, rfWaitI, 5, 24, 0);
+		ar5212ModifyRfBuffer(rfReg, rfMaxTime, 2, 49, 0);
 	}
 
 	HAL_INI_WRITE_BANK(ah, ar5212Bank7_5111, rfReg, regWrites);
@@ -349,12 +353,13 @@ ar5111SetRfRegs(struct ath_hal *ah, const struct ieee80211_channel *chan,
  */
 static uint16_t
 interpolate(uint16_t target, uint16_t srcLeft, uint16_t srcRight,
-	uint16_t targetLeft, uint16_t targetRight)
+    uint16_t targetLeft, uint16_t targetRight)
 {
 	uint16_t rv;
 	int16_t lRatio;
 
-	/* to get an accurate ratio, always scale, if want to scale, then don't scale back down */
+	/* to get an accurate ratio, always scale, if want to scale, then don't
+	 * scale back down */
 	if ((targetLeft * targetRight) == 0)
 		return 0;
 
@@ -365,14 +370,16 @@ interpolate(uint16_t target, uint16_t srcLeft, uint16_t srcRight,
 		 */
 		lRatio = (target - srcLeft) * EEP_SCALE / (srcRight - srcLeft);
 		if (lRatio < 0) {
-		    /* Return as Left target if value would be negative */
-		    rv = targetLeft;
+			/* Return as Left target if value would be negative */
+			rv = targetLeft;
 		} else if (lRatio > EEP_SCALE) {
-		    /* Return as Right target if Ratio is greater than 100% (SCALE) */
-		    rv = targetRight;
+			/* Return as Right target if Ratio is greater than 100%
+			 * (SCALE) */
+			rv = targetRight;
 		} else {
-			rv = (lRatio * targetRight + (EEP_SCALE - lRatio) *
-					targetLeft) / EEP_SCALE;
+			rv = (lRatio * targetRight +
+				 (EEP_SCALE - lRatio) * targetLeft) /
+			    EEP_SCALE;
 		}
 	} else {
 		rv = targetLeft;
@@ -386,10 +393,8 @@ interpolate(uint16_t target, uint16_t srcLeft, uint16_t srcRight,
  * Organize the transmit power values into a table for writing into the hardware
  */
 static HAL_BOOL
-ar5111SetPowerTable(struct ath_hal *ah,
-	int16_t *pMinPower, int16_t *pMaxPower,
-	const struct ieee80211_channel *chan,
-	uint16_t *rfXpdGain)
+ar5111SetPowerTable(struct ath_hal *ah, int16_t *pMinPower, int16_t *pMaxPower,
+    const struct ieee80211_channel *chan, uint16_t *rfXpdGain)
 {
 	uint16_t freq = ath_hal_gethwchannel(ah, chan);
 	struct ath_hal_5212 *ahp = AH5212(ah);
@@ -397,15 +402,15 @@ ar5111SetPowerTable(struct ath_hal *ah,
 	FULL_PCDAC_STRUCT pcdacStruct;
 	int i, j;
 
-	uint16_t     *pPcdacValues;
-	int16_t      *pScaledUpDbm;
-	int16_t      minScaledPwr;
-	int16_t      maxScaledPwr;
-	int16_t      pwr;
-	uint16_t     pcdacMin = 0;
-	uint16_t     pcdacMax = PCDAC_STOP;
-	uint16_t     pcdacTableIndex;
-	uint16_t     scaledPcdac;
+	uint16_t *pPcdacValues;
+	int16_t *pScaledUpDbm;
+	int16_t minScaledPwr;
+	int16_t maxScaledPwr;
+	int16_t pwr;
+	uint16_t pcdacMin = 0;
+	uint16_t pcdacMax = PCDAC_STOP;
+	uint16_t pcdacTableIndex;
+	uint16_t scaledPcdac;
 	PCDACS_EEPROM *pSrcStruct;
 	PCDACS_EEPROM eepromPcdacs;
 
@@ -413,19 +418,19 @@ ar5111SetPowerTable(struct ath_hal *ah,
 	switch (chan->ic_flags & IEEE80211_CHAN_ALLTURBOFULL) {
 	case IEEE80211_CHAN_A:
 	case IEEE80211_CHAN_ST:
-		eepromPcdacs.numChannels     = ee->ee_numChannels11a;
-		eepromPcdacs.pChannelList    = ee->ee_channels11a;
+		eepromPcdacs.numChannels = ee->ee_numChannels11a;
+		eepromPcdacs.pChannelList = ee->ee_channels11a;
 		eepromPcdacs.pDataPerChannel = ee->ee_dataPerChannel11a;
 		break;
 	case IEEE80211_CHAN_B:
-		eepromPcdacs.numChannels     = ee->ee_numChannels2_4;
-		eepromPcdacs.pChannelList    = ee->ee_channels11b;
+		eepromPcdacs.numChannels = ee->ee_numChannels2_4;
+		eepromPcdacs.pChannelList = ee->ee_channels11b;
 		eepromPcdacs.pDataPerChannel = ee->ee_dataPerChannel11b;
 		break;
 	case IEEE80211_CHAN_G:
 	case IEEE80211_CHAN_108G:
-		eepromPcdacs.numChannels     = ee->ee_numChannels2_4;
-		eepromPcdacs.pChannelList    = ee->ee_channels11g;
+		eepromPcdacs.numChannels = ee->ee_numChannels2_4;
+		eepromPcdacs.pChannelList = ee->ee_channels11g;
 		eepromPcdacs.pDataPerChannel = ee->ee_dataPerChannel11g;
 		break;
 	default:
@@ -441,7 +446,7 @@ ar5111SetPowerTable(struct ath_hal *ah,
 	pScaledUpDbm = pcdacStruct.PwrValues;
 
 	/* Initialize the pcdacs to dBM structs pcdacs to be 1 to 63 */
-	for (i = PCDAC_START, j = 0; i <= PCDAC_STOP; i+= PCDAC_STEP, j++)
+	for (i = PCDAC_START, j = 0; i <= PCDAC_STOP; i += PCDAC_STEP, j++)
 		pPcdacValues[j] = i;
 
 	pcdacStruct.numPcdacValues = j;
@@ -449,9 +454,9 @@ ar5111SetPowerTable(struct ath_hal *ah,
 	pcdacStruct.pcdacMax = PCDAC_STOP;
 
 	/* Fill out the power values for this channel */
-	for (j = 0; j < pcdacStruct.numPcdacValues; j++ )
-		pScaledUpDbm[j] = ar5212GetScaledPower(freq,
-			pPcdacValues[j], pSrcStruct);
+	for (j = 0; j < pcdacStruct.numPcdacValues; j++)
+		pScaledUpDbm[j] = ar5212GetScaledPower(freq, pPcdacValues[j],
+		    pSrcStruct);
 
 	/* Now scale the pcdac values to fit in the 64 entry power table */
 	minScaledPwr = pScaledUpDbm[0];
@@ -471,7 +476,7 @@ ar5111SetPowerTable(struct ath_hal *ah,
 		i = (uint16_t)(pcdacStruct.numPcdacValues - 1 - j);
 		if (i == 0)
 			break;
-		if (pScaledUpDbm[i-1] > pScaledUpDbm[i]) {
+		if (pScaledUpDbm[i - 1] > pScaledUpDbm[i]) {
 			/*
 			 * It could be a glitch, so make the power for
 			 * this pcdac the same as the power from the
@@ -489,7 +494,8 @@ ar5111SetPowerTable(struct ath_hal *ah,
 
 	/* Find the first power level with a pcdac */
 	pwr = (uint16_t)(PWR_STEP *
-		((minScaledPwr - PWR_MIN + PWR_STEP / 2) / PWR_STEP) + PWR_MIN);
+		((minScaledPwr - PWR_MIN + PWR_STEP / 2) / PWR_STEP) +
+	    PWR_MIN);
 
 	/* Write all the first pcdac entries based off the pcdacMin */
 	pcdacTableIndex = 0;
@@ -504,13 +510,15 @@ ar5111SetPowerTable(struct ath_hal *ah,
 		pwr += PWR_STEP;
 		/* stop if dbM > max_power_possible */
 		while (pwr < pScaledUpDbm[pcdacStruct.numPcdacValues - 1] &&
-		       (pwr - pScaledUpDbm[i])*(pwr - pScaledUpDbm[i+1]) > 0)
+		    (pwr - pScaledUpDbm[i]) * (pwr - pScaledUpDbm[i + 1]) > 0)
 			i++;
 		/* scale by 2 and add 1 to enable round up or down as needed */
-		scaledPcdac = (uint16_t)(interpolate(pwr,
-			pScaledUpDbm[i], pScaledUpDbm[i + 1],
-			(uint16_t)(pPcdacValues[i] * 2),
-			(uint16_t)(pPcdacValues[i + 1] * 2)) + 1);
+		scaledPcdac = (uint16_t)(interpolate(pwr, pScaledUpDbm[i],
+					     pScaledUpDbm[i + 1],
+					     (uint16_t)(pPcdacValues[i] * 2),
+					     (uint16_t)(pPcdacValues[i + 1] *
+						 2)) +
+		    1);
 
 		HALASSERT(pcdacTableIndex < PWR_TABLE_SIZE);
 		ahp->ah_pcdacTable[pcdacTableIndex] = scaledPcdac / 2;
@@ -522,7 +530,7 @@ ar5111SetPowerTable(struct ath_hal *ah,
 	/* Write all the last pcdac entries based off the last valid pcdac */
 	while (pcdacTableIndex < PWR_TABLE_SIZE) {
 		ahp->ah_pcdacTable[pcdacTableIndex] =
-			ahp->ah_pcdacTable[pcdacTableIndex - 1];
+		    ahp->ah_pcdacTable[pcdacTableIndex - 1];
 		pcdacTableIndex++;
 	}
 
@@ -537,27 +545,27 @@ ar5111SetPowerTable(struct ath_hal *ah,
  */
 static uint16_t
 ar5212GetScaledPower(uint16_t channel, uint16_t pcdacValue,
-	const PCDACS_EEPROM *pSrcStruct)
+    const PCDACS_EEPROM *pSrcStruct)
 {
 	uint16_t powerValue;
-	uint16_t lFreq, rFreq;		/* left and right frequency values */
-	uint16_t llPcdac, ulPcdac;	/* lower and upper left pcdac values */
-	uint16_t lrPcdac, urPcdac;	/* lower and upper right pcdac values */
-	uint16_t lPwr, uPwr;		/* lower and upper temp pwr values */
+	uint16_t lFreq, rFreq;	   /* left and right frequency values */
+	uint16_t llPcdac, ulPcdac; /* lower and upper left pcdac values */
+	uint16_t lrPcdac, urPcdac; /* lower and upper right pcdac values */
+	uint16_t lPwr, uPwr;	   /* lower and upper temp pwr values */
 	uint16_t lScaledPwr, rScaledPwr; /* left and right scaled power */
 
-	if (ar5212FindValueInList(channel, pcdacValue, pSrcStruct, &powerValue)) {
+	if (ar5212FindValueInList(channel, pcdacValue, pSrcStruct,
+		&powerValue)) {
 		/* value was copied from srcStruct */
 		return powerValue;
 	}
 
-	ar5212GetLowerUpperValues(channel,
-		pSrcStruct->pChannelList, pSrcStruct->numChannels,
-		&lFreq, &rFreq);
-	ar5212GetLowerUpperPcdacs(pcdacValue,
-		lFreq, pSrcStruct, &llPcdac, &ulPcdac);
-	ar5212GetLowerUpperPcdacs(pcdacValue,
-		rFreq, pSrcStruct, &lrPcdac, &urPcdac);
+	ar5212GetLowerUpperValues(channel, pSrcStruct->pChannelList,
+	    pSrcStruct->numChannels, &lFreq, &rFreq);
+	ar5212GetLowerUpperPcdacs(pcdacValue, lFreq, pSrcStruct, &llPcdac,
+	    &ulPcdac);
+	ar5212GetLowerUpperPcdacs(pcdacValue, rFreq, pSrcStruct, &lrPcdac,
+	    &urPcdac);
 
 	/* get the power index for the pcdac value */
 	ar5212FindValueInList(lFreq, llPcdac, pSrcStruct, &lPwr);
@@ -576,19 +584,20 @@ ar5212GetScaledPower(uint16_t channel, uint16_t pcdacValue,
  */
 static HAL_BOOL
 ar5212FindValueInList(uint16_t channel, uint16_t pcdacValue,
-	const PCDACS_EEPROM *pSrcStruct, uint16_t *powerValue)
+    const PCDACS_EEPROM *pSrcStruct, uint16_t *powerValue)
 {
 	const DATA_PER_CHANNEL *pChannelData = pSrcStruct->pDataPerChannel;
 	int i;
 
-	for (i = 0; i < pSrcStruct->numChannels; i++ ) {
+	for (i = 0; i < pSrcStruct->numChannels; i++) {
 		if (pChannelData->channelValue == channel) {
-			const uint16_t* pPcdac = pChannelData->PcdacValues;
+			const uint16_t *pPcdac = pChannelData->PcdacValues;
 			int j;
 
-			for (j = 0; j < pChannelData->numPcdacValues; j++ ) {
+			for (j = 0; j < pChannelData->numPcdacValues; j++) {
 				if (*pPcdac == pcdacValue) {
-					*powerValue = pChannelData->PwrValues[j];
+					*powerValue =
+					    pChannelData->PwrValues[j];
 					return AH_TRUE;
 				}
 				pPcdac++;
@@ -605,8 +614,8 @@ ar5212FindValueInList(uint16_t channel, uint16_t pcdacValue,
  */
 static void
 ar5212GetLowerUpperPcdacs(uint16_t pcdac, uint16_t channel,
-	const PCDACS_EEPROM *pSrcStruct,
-	uint16_t *pLowerPcdac, uint16_t *pUpperPcdac)
+    const PCDACS_EEPROM *pSrcStruct, uint16_t *pLowerPcdac,
+    uint16_t *pUpperPcdac)
 {
 	const DATA_PER_CHANNEL *pChannelData = pSrcStruct->pDataPerChannel;
 	int i;
@@ -618,14 +627,12 @@ ar5212GetLowerUpperPcdacs(uint16_t pcdac, uint16_t channel,
 		pChannelData++;
 	}
 	ar5212GetLowerUpperValues(pcdac, pChannelData->PcdacValues,
-		      pChannelData->numPcdacValues,
-		      pLowerPcdac, pUpperPcdac);
+	    pChannelData->numPcdacValues, pLowerPcdac, pUpperPcdac);
 }
 
 static HAL_BOOL
 ar5111GetChannelMaxMinPower(struct ath_hal *ah,
-	const struct ieee80211_channel *chan,
-	int16_t *maxPow, int16_t *minPow)
+    const struct ieee80211_channel *chan, int16_t *maxPow, int16_t *minPow)
 {
 	/* XXX - Get 5111 power limits! */
 	/* NB: caller will cope */
@@ -640,9 +647,9 @@ ar5111GetNfAdjust(struct ath_hal *ah, const HAL_CHANNEL_INTERNAL *c)
 {
 	static const struct {
 		uint16_t freqLow;
-		int16_t	  adjust;
+		int16_t adjust;
 	} adjust5111[] = {
-		{ 5790,	6 },	/* NB: ordered high -> low */
+		{ 5790, 6 }, /* NB: ordered high -> low */
 		{ 5730, 4 },
 		{ 5690, 3 },
 		{ 5660, 2 },
@@ -652,7 +659,7 @@ ar5111GetNfAdjust(struct ath_hal *ah, const HAL_CHANNEL_INTERNAL *c)
 		{ 5379, 1 },
 		{ 5209, 3 },
 		{ 3000, 5 },
-		{    0, 0 },
+		{ 0, 0 },
 	};
 	int i;
 
@@ -691,17 +698,17 @@ ar5111RfAttach(struct ath_hal *ah, HAL_STATUS *status)
 	if (priv == AH_NULL) {
 		HALDEBUG(ah, HAL_DEBUG_ANY,
 		    "%s: cannot allocate private state\n", __func__);
-		*status = HAL_ENOMEM;		/* XXX */
+		*status = HAL_ENOMEM; /* XXX */
 		return AH_FALSE;
 	}
-	priv->base.rfDetach		= ar5111RfDetach;
-	priv->base.writeRegs		= ar5111WriteRegs;
-	priv->base.getRfBank		= ar5111GetRfBank;
-	priv->base.setChannel		= ar5111SetChannel;
-	priv->base.setRfRegs		= ar5111SetRfRegs;
-	priv->base.setPowerTable	= ar5111SetPowerTable;
+	priv->base.rfDetach = ar5111RfDetach;
+	priv->base.writeRegs = ar5111WriteRegs;
+	priv->base.getRfBank = ar5111GetRfBank;
+	priv->base.setChannel = ar5111SetChannel;
+	priv->base.setRfRegs = ar5111SetRfRegs;
+	priv->base.setPowerTable = ar5111SetPowerTable;
 	priv->base.getChannelMaxMinPower = ar5111GetChannelMaxMinPower;
-	priv->base.getNfAdjust		= ar5111GetNfAdjust;
+	priv->base.getNfAdjust = ar5111GetNfAdjust;
 
 	ahp->ah_pcdacTable = priv->pcdacTable;
 	ahp->ah_pcdacTableSize = sizeof(priv->pcdacTable);

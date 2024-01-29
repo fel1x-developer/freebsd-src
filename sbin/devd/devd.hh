@@ -37,9 +37,8 @@ class config;
  * to the event in question, in addition to having global variables.  This
  * allows for future flexibility.
  */
-class var_list
-{
-public:
+class var_list {
+    public:
 	/** Set a variable in this var list.
 	 */
 	void set_variable(const std::string &var, const std::string &val);
@@ -55,7 +54,7 @@ public:
 	static const std::string bogus;
 	static const std::string nothing;
 
-private:
+    private:
 	std::string fix_value(const std::string &val) const;
 
 	std::map<std::string, std::string> _vars;
@@ -65,10 +64,9 @@ private:
  * eps is short for event_proc_single.  It is a single entry in an
  * event_proc.  Each keyword needs its own subclass from eps.
  */
-struct eps
-{
-public:
-	virtual ~eps() {}
+struct eps {
+    public:
+	virtual ~eps() { }
 	/** Does this eps match the current config?
 	 */
 	virtual bool do_match(config &) = 0;
@@ -81,14 +79,14 @@ public:
  * match is the subclass used to match an individual variable.  Its
  * actions are nops.
  */
-class match : public eps
-{
-public:
+class match : public eps {
+    public:
 	match(config &, const char *var, const char *re);
 	virtual ~match();
 	virtual bool do_match(config &);
 	virtual bool do_action(config &) { return true; }
-private:
+
+    private:
 	bool _inv;
 	std::string _var;
 	std::string _re;
@@ -99,14 +97,14 @@ private:
  * media is the subclass used to match an individual variable.  Its
  * actions are nops.
  */
-class media : public eps
-{
-public:
+class media : public eps {
+    public:
 	media(config &, const char *var, const char *type);
 	virtual ~media();
 	virtual bool do_match(config &);
 	virtual bool do_action(config &) { return true; }
-private:
+
+    private:
 	std::string _var;
 	int _type;
 };
@@ -114,20 +112,19 @@ private:
 /**
  * action is used to fork a process.  It matches everything.
  */
-class action : public eps
-{
-public:
+class action : public eps {
+    public:
 	action(const char *cmd);
 	virtual ~action();
 	virtual bool do_match(config &) { return true; }
 	virtual bool do_action(config &);
-private:
+
+    private:
 	std::string _cmd;
 };
 
-struct event_proc
-{
-public:
+struct event_proc {
+    public:
 	event_proc();
 	virtual ~event_proc();
 	int get_priority() const { return (_prio); }
@@ -135,14 +132,14 @@ public:
 	void add(eps *);
 	bool matches(config &) const;
 	bool run(config &) const;
-private:
+
+    private:
 	int _prio;
 	std::vector<eps *> _epsvec;
 };
 
-class config
-{
-public:
+class config {
+    public:
 	config() { push_var_table(); }
 	virtual ~config() { reset(); }
 	void add_attach(int, event_proc *);
@@ -161,11 +158,12 @@ public:
 	void pop_var_table();
 	void set_variable(const char *var, const char *val);
 	const std::string &get_variable(const std::string &var);
-	const std::string expand_string(const char * var, 
-	    const char * prepend = NULL, const char * append = NULL);
+	const std::string expand_string(const char *var,
+	    const char *prepend = NULL, const char *append = NULL);
 	char *set_vars(char *);
 	void find_and_execute(char);
-protected:
+
+    protected:
 	void sort_vector(std::vector<event_proc *> &);
 	void parse_one_file(const char *fn);
 	void parse_files_in_dir(const char *dirname);
@@ -173,7 +171,8 @@ protected:
 	std::string shell_quote(const std::string &s);
 	bool is_id_char(char) const;
 	bool chop_var(char *&buffer, char *&lhs, char *&rhs) const;
-private:
+
+    private:
 	std::vector<std::string> _dir_list;
 	std::string _pidfile;
 	std::vector<var_list *> _var_list_table;

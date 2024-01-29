@@ -28,27 +28,26 @@
  * Tests for basic and miscellaneous printf() formats.
  */
 
+#include <atf-c.h>
 #include <err.h>
 #include <limits.h>
 #include <locale.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
-#include <atf-c.h>
+#define S_UINT64MAX "18446744073709551615"
+#define S_UINT32MAX "4294967295"
+#define S_INT64MIN "-9223372036854775808"
+#define S_INT32MIN "-2147483648"
 
-#define	S_UINT64MAX	"18446744073709551615"
-#define	S_UINT32MAX	"4294967295"
-#define	S_INT64MIN	"-9223372036854775808"
-#define	S_INT32MIN	"-2147483648"
-
-#define	S_SIZEMAX	(SIZE_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
-#define	S_ULONGMAX	(ULONG_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
-#define	S_ULLONGMAX	(ULLONG_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
+#define S_SIZEMAX (SIZE_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
+#define S_ULONGMAX (ULONG_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
+#define S_ULLONGMAX (ULLONG_MAX == UINT64_MAX ? S_UINT64MAX : S_UINT32MAX)
 
 static void
 smash_stack(void)
@@ -61,12 +60,12 @@ smash_stack(void)
 		buf[i] = junk;
 }
 
-#define	testfmt(result, fmt, ...)       \
+#define testfmt(result, fmt, ...) \
 	_testfmt((result), #__VA_ARGS__, fmt, __VA_ARGS__)
 static void
-_testfmt(const char *result, const char *argstr, const char *fmt,...)
+_testfmt(const char *result, const char *argstr, const char *fmt, ...)
 {
-#define	BUF	100
+#define BUF 100
 	wchar_t ws[BUF], wfmt[BUF], wresult[BUF];
 	char s[BUF];
 	va_list ap, ap2;
@@ -76,8 +75,8 @@ _testfmt(const char *result, const char *argstr, const char *fmt,...)
 	smash_stack();
 	vsnprintf(s, sizeof(s), fmt, ap);
 	ATF_CHECK_MSG(strcmp(result, s) == 0,
-	    "printf(\"%s\", %s) ==> [%s], expected [%s]",
-	    fmt, argstr, s, result);
+	    "printf(\"%s\", %s) ==> [%s], expected [%s]", fmt, argstr, s,
+	    result);
 
 	smash_stack();
 	mbstowcs(ws, s, BUF - 1);
@@ -85,8 +84,8 @@ _testfmt(const char *result, const char *argstr, const char *fmt,...)
 	mbstowcs(wresult, result, BUF - 1);
 	vswprintf(ws, sizeof(ws) / sizeof(ws[0]), wfmt, ap2);
 	ATF_CHECK_MSG(wcscmp(wresult, ws) == 0,
-	    "wprintf(\"%ls\", %s) ==> [%ls], expected [%ls]",
-	    wfmt, argstr, ws, wresult);
+	    "wprintf(\"%ls\", %s) ==> [%ls], expected [%ls]", wfmt, argstr, ws,
+	    wresult);
 
 	va_end(ap);
 	va_end(ap2);
@@ -109,7 +108,8 @@ ATF_TC_BODY(int_within_limits, tc)
 	testfmt(S_UINT64MAX, "%ju", UINT64_MAX);
 
 	if (sizeof(ptrdiff_t) != sizeof(uintmax_t))
-		atf_tc_expect_fail("the %%t qualifier is broken on 32-bit "
+		atf_tc_expect_fail(
+		    "the %%t qualifier is broken on 32-bit "
 		    "platforms where there's a mismatch between ptrdiff_t and "
 		    "uintmax_t's type width; bug # 191674");
 

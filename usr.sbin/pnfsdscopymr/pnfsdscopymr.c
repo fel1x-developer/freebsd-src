@@ -27,37 +27,35 @@
  */
 
 #include <sys/cdefs.h>
-#include <err.h>
-#include <errno.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <netdb.h>
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/extattr.h>
 #include <sys/mount.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/sysctl.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <nfs/nfssvc.h>
 
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
+#include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <err.h>
+#include <errno.h>
 #include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
 #include <fs/nfs/nfsrvstate.h>
+#include <getopt.h>
+#include <netdb.h>
+#include <nfs/nfssvc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 static void usage(void) __dead2;
 
-static struct option longopts[] = {
-	{ "migrate",	required_argument,	NULL,	'm'	},
-	{ "mirror",	required_argument,	NULL,	'r'	},
-	{ NULL,		0,			NULL,	0	}
-};
+static struct option longopts[] = { { "migrate", required_argument, NULL, 'm' },
+	{ "mirror", required_argument, NULL, 'r' }, { NULL, 0, NULL, 0 } };
 
 /*
  * This program creates a copy of the file's (first argument) data on the
@@ -116,8 +114,8 @@ main(int argc, char *argv[])
 
 	/* Get the pNFS service's mirror level. */
 	mirlen = sizeof(mirrorlevel);
-	ret = sysctlbyname("vfs.nfs.pnfsmirror", &mirrorlevel, &mirlen,
-	    NULL, 0);
+	ret = sysctlbyname("vfs.nfs.pnfsmirror", &mirrorlevel, &mirlen, NULL,
+	    0);
 	if (ret < 0)
 		errx(1, "Can't get vfs.nfs.pnfsmirror");
 
@@ -145,14 +143,15 @@ main(int argc, char *argv[])
 	}
 
 	/* If already mirrored for default case, just exit(0); */
-	if (mirrorit == 0 && migrateit == 0 && (mirrorlevel < 2 ||
-	    (fndzero == 0 && mirrorcnt >= mirrorlevel) ||
-	    (fndzero != 0 && mirrorcnt > mirrorlevel)))
+	if (mirrorit == 0 && migrateit == 0 &&
+	    (mirrorlevel < 2 || (fndzero == 0 && mirrorcnt >= mirrorlevel) ||
+		(fndzero != 0 && mirrorcnt > mirrorlevel)))
 		exit(0);
 
 	/* For the "-r" case, there must be a 0.0.0.0 entry. */
-	if (mirrorit != 0 && (fndzero == 0 || mirrorlevel < 2 ||
-	    mirrorcnt < 2 || mirrorcnt > mirrorlevel))
+	if (mirrorit != 0 &&
+	    (fndzero == 0 || mirrorlevel < 2 || mirrorcnt < 2 ||
+		mirrorcnt > mirrorlevel))
 		exit(0);
 
 	/* For pnfsdarg.dspath set, if it is already in list, just exit(0); */
@@ -169,7 +168,7 @@ main(int argc, char *argv[])
 		if (strcmp(sf.f_mntonname, pnfsdarg.dspath) != 0)
 			errx(1, "%s is not the mounted-on dir for the new DS",
 			    pnfsdarg.dspath);
-	
+
 		/*
 		 * Check the IP address of the NFS server against the entrie(s)
 		 * in the extended attribute.
@@ -199,15 +198,20 @@ main(int argc, char *argv[])
 						memcpy(&sin, nres->ai_addr,
 						    sizeof(sin));
 						if (sin.sin_addr.s_addr ==
-						    dsfile[i].dsf_sin.sin_addr.s_addr)
+						    dsfile[i]
+							.dsf_sin.sin_addr
+							.s_addr)
 							exit(0);
 					} else if (nres->ai_family ==
-					    AF_INET6 && nres->ai_addrlen >=
-					    sizeof(sin6)) {
+						AF_INET6 &&
+					    nres->ai_addrlen >= sizeof(sin6)) {
 						memcpy(&sin6, nres->ai_addr,
 						    sizeof(sin6));
-						if (IN6_ARE_ADDR_EQUAL(&sin6.sin6_addr,
-						    &dsfile[i].dsf_sin6.sin6_addr))
+						if (IN6_ARE_ADDR_EQUAL(
+							&sin6.sin6_addr,
+							&dsfile[i]
+							     .dsf_sin6
+							     .sin6_addr))
 							exit(0);
 					}
 				}
@@ -231,7 +235,7 @@ main(int argc, char *argv[])
 		if (strcmp(sf.f_mntonname, pnfsdarg.curdspath) != 0)
 			errx(1, "%s is not the mounted-on dir of the cur DS",
 			    pnfsdarg.curdspath);
-	
+
 		/*
 		 * Check the IP address of the NFS server against the entrie(s)
 		 * in the extended attribute.
@@ -260,17 +264,22 @@ main(int argc, char *argv[])
 						memcpy(&sin, nres->ai_addr,
 						    sizeof(sin));
 						if (sin.sin_addr.s_addr ==
-						    dsfile[i].dsf_sin.sin_addr.s_addr) {
+						    dsfile[i]
+							.dsf_sin.sin_addr
+							.s_addr) {
 							fnd = 1;
 							break;
 						}
 					} else if (nres->ai_family ==
-					    AF_INET6 && nres->ai_addrlen >=
-					    sizeof(sin6)) {
+						AF_INET6 &&
+					    nres->ai_addrlen >= sizeof(sin6)) {
 						memcpy(&sin6, nres->ai_addr,
 						    sizeof(sin6));
-						if (IN6_ARE_ADDR_EQUAL(&sin6.sin6_addr,
-						    &dsfile[i].dsf_sin6.sin6_addr)) {
+						if (IN6_ARE_ADDR_EQUAL(
+							&sin6.sin6_addr,
+							&dsfile[i]
+							     .dsf_sin6
+							     .sin6_addr)) {
 							fnd = 1;
 							break;
 						}
@@ -301,9 +310,9 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "pnfsdscopymr [-r recovered-DS-mounted-on-path] "
+	fprintf(stderr,
+	    "pnfsdscopymr [-r recovered-DS-mounted-on-path] "
 	    "[-m soure-DS-mounted-on-path destination-DS-mounted-on-path] "
 	    "mds-filename");
 	exit(1);
 }
-

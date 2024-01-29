@@ -31,19 +31,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
-
-#include <dev/isci/scil/scif_user_callback.h>
-#include <dev/isci/scil/scic_user_callback.h>
-#include <dev/isci/scil/sci_logger.h>
-
-#include <machine/stdarg.h>
 #include <sys/time.h>
 
-#define ERROR_LEVEL	0
-#define WARNING_LEVEL	1
-#define TRACE_LEVEL	2
-#define INFO_LEVEL	3
+#include <machine/stdarg.h>
+
+#include <dev/isci/isci.h>
+#include <dev/isci/scil/sci_logger.h>
+#include <dev/isci/scil/scic_user_callback.h>
+#include <dev/isci/scil/scif_user_callback.h>
+
+#define ERROR_LEVEL 0
+#define WARNING_LEVEL 1
+#define TRACE_LEVEL 2
+#define INFO_LEVEL 3
 
 void
 isci_log_message(uint32_t verbosity, char *log_message_prefix,
@@ -56,8 +56,8 @@ isci_log_message(uint32_t verbosity, char *log_message_prefix,
 	if (verbosity > g_isci_debug_level)
 		return;
 
-	va_start (argp, log_message);
-	vsnprintf(buffer, sizeof(buffer)-1, log_message, argp);
+	va_start(argp, log_message);
+	vsnprintf(buffer, sizeof(buffer) - 1, log_message, argp);
 	va_end(argp);
 	microtime(&tv);
 
@@ -65,37 +65,31 @@ isci_log_message(uint32_t verbosity, char *log_message_prefix,
 	    log_message_prefix, buffer);
 }
 
-
 #ifdef SCI_LOGGING
-#define SCI_ENABLE_LOGGING_ERROR	1
-#define SCI_ENABLE_LOGGING_WARNING	1
-#define SCI_ENABLE_LOGGING_INFO		1
-#define SCI_ENABLE_LOGGING_TRACE	1
-#define SCI_ENABLE_LOGGING_STATES	1
+#define SCI_ENABLE_LOGGING_ERROR 1
+#define SCI_ENABLE_LOGGING_WARNING 1
+#define SCI_ENABLE_LOGGING_INFO 1
+#define SCI_ENABLE_LOGGING_TRACE 1
+#define SCI_ENABLE_LOGGING_STATES 1
 
-#define ISCI_LOG_MESSAGE(			\
-	logger_object,				\
-	log_object_mask,			\
-	log_message,				\
-	verbosity,				\
-	log_message_prefix			\
-)						\
-{						\
-	va_list argp;				\
-	char buffer[512];			\
-						\
-	if (!sci_logger_is_enabled(logger_object, log_object_mask, verbosity)) \
-		return;				\
-						\
-	va_start (argp, log_message);		\
-	vsnprintf(buffer, sizeof(buffer)-1, log_message, argp); \
-	va_end(argp);				\
-						\
-	/* prepend the "object:verbosity_level:" */ \
-	isci_log_message(verbosity, log_message_prefix, buffer); \
-}
+#define ISCI_LOG_MESSAGE(logger_object, log_object_mask, log_message,      \
+    verbosity, log_message_prefix)                                         \
+	{                                                                  \
+		va_list argp;                                              \
+		char buffer[512];                                          \
+                                                                           \
+		if (!sci_logger_is_enabled(logger_object, log_object_mask, \
+			verbosity))                                        \
+			return;                                            \
+                                                                           \
+		va_start(argp, log_message);                               \
+		vsnprintf(buffer, sizeof(buffer) - 1, log_message, argp);  \
+		va_end(argp);                                              \
+                                                                           \
+		/* prepend the "object:verbosity_level:" */                \
+		isci_log_message(verbosity, log_message_prefix, buffer);   \
+	}
 #endif /* SCI_LOGGING */
-
 
 #ifdef SCI_ENABLE_LOGGING_ERROR
 /**
@@ -112,7 +106,8 @@ isci_log_message(uint32_t verbosity, char *log_message_prefix,
  *
  * @return none
  */
-void scif_cb_logger_log_error(SCI_LOGGER_HANDLE_T logger_object,
+void
+scif_cb_logger_log_error(SCI_LOGGER_HANDLE_T logger_object,
     uint32_t log_object_mask, char *log_message, ...)
 {
 

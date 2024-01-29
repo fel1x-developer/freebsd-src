@@ -22,9 +22,10 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/param.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+
 #include <errno.h>
 #include <fnmatch.h>
 #include <login_cap.h>
@@ -32,7 +33,6 @@
 #include <string.h>
 #include <ttyent.h>
 #include <unistd.h>
-
 
 /* -- support functions -- */
 
@@ -47,17 +47,16 @@
 int
 login_strinlist(const char **list, char const *str, int flags)
 {
-    int rc = 0;
+	int rc = 0;
 
-    if (str != NULL && *str != '\0') {
-	int	i = 0;
+	if (str != NULL && *str != '\0') {
+		int i = 0;
 
-	while (rc == 0 && list[i] != NULL)
-	    rc = fnmatch(list[i++], str, flags) == 0;
-    }
-    return rc;
+		while (rc == 0 && list[i] != NULL)
+			rc = fnmatch(list[i++], str, flags) == 0;
+	}
+	return rc;
 }
-
 
 /*
  * login_str2inlist()
@@ -65,17 +64,17 @@ login_strinlist(const char **list, char const *str, int flags)
  */
 
 int
-login_str2inlist(const char **ttlst, const char *str1, const char *str2, int flags)
+login_str2inlist(const char **ttlst, const char *str1, const char *str2,
+    int flags)
 {
-    int	    rc = 0;
+	int rc = 0;
 
-    if (login_strinlist(ttlst, str1, flags))
-	rc = 1;
-    else if (login_strinlist(ttlst, str2, flags))
-	rc = 1;
-    return rc;
+	if (login_strinlist(ttlst, str1, flags))
+		rc = 1;
+	else if (login_strinlist(ttlst, str2, flags))
+		rc = 1;
+	return rc;
 }
-
 
 /*
  * login_timelist()
@@ -86,33 +85,33 @@ login_str2inlist(const char **ttlst, const char *str1, const char *str2, int fla
 
 login_time_t *
 login_timelist(login_cap_t *lc, char const *cap, int *ltno,
-	       login_time_t **ltptr)
+    login_time_t **ltptr)
 {
-    int			j = 0;
-    struct login_time	*lt = NULL;
-    const char		**tl;
+	int j = 0;
+	struct login_time *lt = NULL;
+	const char **tl;
 
-    if ((tl = login_getcaplist(lc, cap, NULL)) != NULL) {
+	if ((tl = login_getcaplist(lc, cap, NULL)) != NULL) {
 
-	while (tl[j++] != NULL)
-	    ;
-	if (*ltno >= j)
-	    lt = *ltptr;
-	else if ((lt = realloc(*ltptr, j * sizeof(struct login_time))) != NULL) {
-	    *ltno = j;
-	    *ltptr = lt;
+		while (tl[j++] != NULL)
+			;
+		if (*ltno >= j)
+			lt = *ltptr;
+		else if ((lt = realloc(*ltptr,
+			      j * sizeof(struct login_time))) != NULL) {
+			*ltno = j;
+			*ltptr = lt;
+		}
+		if (lt != NULL) {
+			int i = 0;
+
+			for (--j; i < j; i++)
+				lt[i] = parse_lt(tl[i]);
+			lt[i].lt_dow = LTM_NONE;
+		}
 	}
-	if (lt != NULL) {
-	    int	    i = 0;
-
-	    for (--j; i < j; i++)
-		lt[i] = parse_lt(tl[i]);
-	    lt[i].lt_dow = LTM_NONE;
-	}
-    }
-    return lt;
+	return lt;
 }
-
 
 /*
  * login_ttyok()
@@ -123,32 +122,31 @@ login_timelist(login_cap_t *lc, char const *cap, int *ltno,
 
 int
 login_ttyok(login_cap_t *lc, const char *tty, const char *allowcap,
-	    const char *denycap)
+    const char *denycap)
 {
-    int	    rc = 1;
+	int rc = 1;
 
-    if (lc != NULL && tty != NULL && *tty != '\0') {
-	struct ttyent	*te;
-	char		*grp;
-	const char	**ttl;
+	if (lc != NULL && tty != NULL && *tty != '\0') {
+		struct ttyent *te;
+		char *grp;
+		const char **ttl;
 
-	te = getttynam(tty);  /* Need group name */
-	grp = te ? te->ty_group : NULL;
-	ttl = login_getcaplist(lc, allowcap, NULL);
+		te = getttynam(tty); /* Need group name */
+		grp = te ? te->ty_group : NULL;
+		ttl = login_getcaplist(lc, allowcap, NULL);
 
-	if (ttl != NULL && !login_str2inlist(ttl, tty, grp, 0))
-	    rc = 0;	/* tty or ttygroup not in allow list */
-	else {
+		if (ttl != NULL && !login_str2inlist(ttl, tty, grp, 0))
+			rc = 0; /* tty or ttygroup not in allow list */
+		else {
 
-	    ttl = login_getcaplist(lc, denycap, NULL);
-	    if (ttl != NULL && login_str2inlist(ttl, tty, grp, 0))
-		rc = 0; /* tty or ttygroup in deny list */
+			ttl = login_getcaplist(lc, denycap, NULL);
+			if (ttl != NULL && login_str2inlist(ttl, tty, grp, 0))
+				rc = 0; /* tty or ttygroup in deny list */
+		}
 	}
-    }
 
-    return rc;
+	return rc;
 }
-
 
 /*
  * auth_ttyok()
@@ -157,11 +155,10 @@ login_ttyok(login_cap_t *lc, const char *tty, const char *allowcap,
  */
 
 int
-auth_ttyok(login_cap_t *lc, const char * tty)
+auth_ttyok(login_cap_t *lc, const char *tty)
 {
-    return login_ttyok(lc, tty, "ttys.allow", "ttys.deny");
+	return login_ttyok(lc, tty, "ttys.allow", "ttys.deny");
 }
-
 
 /*
  * login_hostok()
@@ -172,28 +169,28 @@ auth_ttyok(login_cap_t *lc, const char * tty)
 
 int
 login_hostok(login_cap_t *lc, const char *host, const char *ip,
-	     const char *allowcap, const char *denycap)
+    const char *allowcap, const char *denycap)
 {
-    int	    rc = 1; /* Default is ok */
+	int rc = 1; /* Default is ok */
 
-    if (lc != NULL &&
-	((host != NULL && *host != '\0') || (ip != NULL && *ip != '\0'))) {
-	const char **hl;
+	if (lc != NULL &&
+	    ((host != NULL && *host != '\0') || (ip != NULL && *ip != '\0'))) {
+		const char **hl;
 
-	hl = login_getcaplist(lc, allowcap, NULL);
-	if (hl != NULL && !login_str2inlist(hl, host, ip, FNM_CASEFOLD))
-	    rc = 0;	/* host or IP not in allow list */
-	else {
+		hl = login_getcaplist(lc, allowcap, NULL);
+		if (hl != NULL && !login_str2inlist(hl, host, ip, FNM_CASEFOLD))
+			rc = 0; /* host or IP not in allow list */
+		else {
 
-	    hl = login_getcaplist(lc, denycap, NULL);
-	    if (hl != NULL && login_str2inlist(hl, host, ip, FNM_CASEFOLD))
-		rc = 0; /* host or IP in deny list */
+			hl = login_getcaplist(lc, denycap, NULL);
+			if (hl != NULL &&
+			    login_str2inlist(hl, host, ip, FNM_CASEFOLD))
+				rc = 0; /* host or IP in deny list */
+		}
 	}
-    }
 
-    return rc;
+	return rc;
 }
-
 
 /*
  * auth_hostok()
@@ -203,9 +200,8 @@ login_hostok(login_cap_t *lc, const char *host, const char *ip,
 int
 auth_hostok(login_cap_t *lc, const char *host, const char *ip)
 {
-    return login_hostok(lc, host, ip, "host.allow", "host.deny");
+	return login_hostok(lc, host, ip, "host.allow", "host.deny");
 }
-
 
 /*
  * auth_timeok()
@@ -215,33 +211,35 @@ auth_hostok(login_cap_t *lc, const char *host, const char *ip)
 int
 auth_timeok(login_cap_t *lc, time_t t)
 {
-    int	    rc = 1; /* Default is ok */
+	int rc = 1; /* Default is ok */
 
-    if (lc != NULL && t != (time_t)0 && t != (time_t)-1) {
-	struct tm	*tptr;
+	if (lc != NULL && t != (time_t)0 && t != (time_t)-1) {
+		struct tm *tptr;
 
-	static int 	ltimesno = 0;
-	static struct login_time *ltimes = NULL;
+		static int ltimesno = 0;
+		static struct login_time *ltimes = NULL;
 
-	if ((tptr = localtime(&t)) != NULL) {
-	    struct login_time	*lt;
+		if ((tptr = localtime(&t)) != NULL) {
+			struct login_time *lt;
 
-	  lt = login_timelist(lc, "times.allow", &ltimesno, &ltimes);
-	  if (lt != NULL && in_ltms(lt, tptr, NULL) == -1)
-	      rc = 0;	  /* not in allowed times list */
-	  else {
+			lt = login_timelist(lc, "times.allow", &ltimesno,
+			    &ltimes);
+			if (lt != NULL && in_ltms(lt, tptr, NULL) == -1)
+				rc = 0; /* not in allowed times list */
+			else {
 
-	      lt = login_timelist(lc, "times.deny", &ltimesno, &ltimes);
-	      if (lt != NULL && in_ltms(lt, tptr, NULL) != -1)
-		  rc = 0; /* in deny times list */
-	  }
-	  if (ltimes) {
-	      free(ltimes);
-	      ltimes = NULL;
-	      ltimesno = 0;
-	  }
+				lt = login_timelist(lc, "times.deny", &ltimesno,
+				    &ltimes);
+				if (lt != NULL && in_ltms(lt, tptr, NULL) != -1)
+					rc = 0; /* in deny times list */
+			}
+			if (ltimes) {
+				free(ltimes);
+				ltimes = NULL;
+				ltimesno = 0;
+			}
+		}
 	}
-    }
 
-    return rc;
+	return rc;
 }

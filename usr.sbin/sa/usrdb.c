@@ -30,9 +30,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/acct.h>
+
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -41,21 +42,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "extern.h"
 #include "pathnames.h"
 
 static int uid_compare(const DBT *, const DBT *);
 
-static DB	*usracct_db;
+static DB *usracct_db;
 
 /* Legacy format in AHZV1 units. */
 struct userinfov1 {
-	uid_t		ui_uid;			/* user id; for consistency */
-	u_quad_t	ui_calls;		/* number of invocations */
-	u_quad_t	ui_utime;		/* user time */
-	u_quad_t	ui_stime;		/* system time */
-	u_quad_t	ui_mem;			/* memory use */
-	u_quad_t	ui_io;			/* number of disk i/o ops */
+	uid_t ui_uid;	   /* user id; for consistency */
+	u_quad_t ui_calls; /* number of invocations */
+	u_quad_t ui_utime; /* user time */
+	u_quad_t ui_stime; /* system time */
+	u_quad_t ui_mem;   /* memory use */
+	u_quad_t ui_io;	   /* number of disk i/o ops */
 };
 
 /*
@@ -76,7 +78,7 @@ v1_to_v2(DBT *key, DBT *data)
 
 	/* Convert key. */
 	key->size = sizeof(uid_t);
-	uid = (uid_t)*(u_long *)(key->data);
+	uid = (uid_t) * (u_long *)(key->data);
 	key->data = &uid;
 
 	/* Convert data. */
@@ -103,8 +105,8 @@ usracct_init(void)
 	bzero(&bti, sizeof bti);
 	bti.compare = uid_compare;
 
-	return (db_copy_in(&usracct_db, usrdb_file, "user accounting",
-	    &bti, v1_to_v2));
+	return (db_copy_in(&usracct_db, usrdb_file, "user accounting", &bti,
+	    v1_to_v2));
 }
 
 void
@@ -129,7 +131,7 @@ usracct_add(const struct cmdinfo *ci)
 	if (rv < 0) {
 		warn("get key %u from user accounting stats", uid);
 		return (-1);
-	} else if (rv == 0) {	/* it's there; copy whole thing */
+	} else if (rv == 0) { /* it's there; copy whole thing */
 		/* add the old data to the new data */
 		bcopy(data.data, &newui, data.size);
 		if (newui.ui_uid != uid) {
@@ -138,7 +140,7 @@ usracct_add(const struct cmdinfo *ci)
 			warnx("inconsistent user accounting stats");
 			return (-1);
 		}
-	} else {		/* it's not there; zero it and copy the key */
+	} else { /* it's not there; zero it and copy the key */
 		bzero(&newui, sizeof newui);
 		newui.ui_uid = ci->ci_uid;
 	}
@@ -172,8 +174,7 @@ usracct_update(void)
 	bzero(&bti, sizeof bti);
 	bti.compare = uid_compare;
 
-	return (db_copy_out(usracct_db, usrdb_file, "user accounting",
-	    &bti));
+	return (db_copy_out(usracct_db, usrdb_file, "user accounting", &bti));
 }
 
 void
@@ -195,15 +196,14 @@ usracct_print(void)
 		    user_from_uid(ui->ui_uid, 0), (uintmax_t)ui->ui_calls);
 
 		t = (ui->ui_utime + ui->ui_stime) / 1000000;
-		if (t < 0.000001)		/* kill divide by zero */
+		if (t < 0.000001) /* kill divide by zero */
 			t = 0.000001;
 
 		printf("%12.2f%s ", t / 60.0, "cpu");
 
 		/* ui->ui_calls is always != 0 */
 		if (dflag)
-			printf("%12.0f%s",
-			    ui->ui_io / ui->ui_calls, "avio");
+			printf("%12.0f%s", ui->ui_io / ui->ui_calls, "avio");
 		else
 			printf("%12.0f%s", ui->ui_io, "tio");
 

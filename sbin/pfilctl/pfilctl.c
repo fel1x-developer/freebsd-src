@@ -27,6 +27,7 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
+
 #include <net/if.h>
 #include <net/pfil.h>
 
@@ -39,7 +40,7 @@
 
 static int dev;
 
-static const char * const typenames[] = {
+static const char *const typenames[] = {
 	[PFIL_TYPE_IP4] = "IPv4",
 	[PFIL_TYPE_IP6] = "IPv6",
 	[PFIL_TYPE_ETHERNET] = "Ethernet",
@@ -51,14 +52,14 @@ static void hook(int argc, char *argv[]);
 static void help(void);
 
 static const struct cmd {
-	const char	*cmd_name;
-	void		(*cmd_func)(int argc, char *argv[]);
+	const char *cmd_name;
+	void (*cmd_func)(int argc, char *argv[]);
 } cmds[] = {
-	{ "heads",	listheads },
-	{ "hooks",	listhooks },
-	{ "link",	hook },
-	{ "unlink",	hook },
-	{ NULL,		NULL },
+	{ "heads", listheads },
+	{ "hooks", listhooks },
+	{ "link", hook },
+	{ "unlink", hook },
+	{ NULL, NULL },
 };
 
 int
@@ -128,8 +129,8 @@ retry:
 		goto retry;
 	}
 
-#define	FMTHD	"%16s %8s\n"
-#define	FMTHK	"%29s %16s:%s\n"
+#define FMTHD "%16s %8s\n"
+#define FMTHK "%29s %16s:%s\n"
 	printf("%16s %8s %3s %16s\n", "Intercept point", "Type", "Dir", "Hook");
 	for (i = 0, h = 0; i < plh.pio_nheads; i++) {
 		printf(FMTHD, plh.pio_heads[i].pio_name,

@@ -31,20 +31,22 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
+
 #include <string.h>
 
 /* States*/
-#define NAMING	0
-#define GOTONE	1
-#define GOTTWO	2
-#define RESET	3
+#define NAMING 0
+#define GOTONE 1
+#define GOTTWO 2
+#define RESET 3
 /* Inputs */
-#define	DIGIT	(4*0)
-#define	END	(4*1)
-#define DELIM	(4*2)
-#define LETTER	(4*3)
+#define DIGIT (4 * 0)
+#define END (4 * 1)
+#define DELIM (4 * 2)
+#define LETTER (4 * 3)
 
 void
 link_addr(const char *addr, struct sockaddr_dl *sdl)
@@ -66,8 +68,8 @@ link_addr(const char *addr, struct sockaddr_dl *sdl)
 		} else if (*addr == 0) {
 			state |= END;
 		} else if (state == NAMING &&
-			   (((*addr >= 'A') && (*addr <= 'Z')) ||
-			   ((*addr >= 'a') && (*addr <= 'z'))))
+		    (((*addr >= 'A') && (*addr <= 'Z')) ||
+			((*addr >= 'a') && (*addr <= 'z'))))
 			state |= LETTER;
 		else
 			state |= DELIM;

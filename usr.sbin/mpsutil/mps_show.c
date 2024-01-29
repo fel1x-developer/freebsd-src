@@ -32,17 +32,19 @@
  */
 
 #include <sys/param.h>
-#include <sys/errno.h>
 #include <sys/endian.h>
+#include <sys/errno.h>
+
 #include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "mpsutil.h"
 
-static char * get_device_speed(uint8_t rate);
-static char * get_device_type(uint32_t di);
+static char *get_device_speed(uint8_t rate);
+static char *get_device_type(uint32_t di);
 static int show_all(int ac, char **av);
 static int show_devices(int ac, char **av);
 static int show_enclosures(int ac, char **av);
@@ -50,19 +52,19 @@ static int show_expanders(int ac, char **av);
 
 MPS_TABLE(top, show);
 
-#define	STANDALONE_STATE	"ONLINE"
+#define STANDALONE_STATE "ONLINE"
 
 static int
 show_adapter(int ac, char **av)
 {
-	const char* pcie_speed[] = { "2.5", "5.0", "8.0", "16.0", "32.0" };
-	const char* temp_units[] = { "", "F", "C" };
-	const char* ioc_speeds[] = { "", "Full", "Half", "Quarter", "Eighth" };
+	const char *pcie_speed[] = { "2.5", "5.0", "8.0", "16.0", "32.0" };
+	const char *temp_units[] = { "", "F", "C" };
+	const char *ioc_speeds[] = { "", "Full", "Half", "Quarter", "Eighth" };
 
-	MPI2_CONFIG_PAGE_SASIOUNIT_0	*sas0;
-	MPI2_CONFIG_PAGE_SASIOUNIT_1	*sas1;
-	MPI2_SAS_IO_UNIT0_PHY_DATA	*phy0;
-	MPI2_SAS_IO_UNIT1_PHY_DATA	*phy1;
+	MPI2_CONFIG_PAGE_SASIOUNIT_0 *sas0;
+	MPI2_CONFIG_PAGE_SASIOUNIT_1 *sas1;
+	MPI2_SAS_IO_UNIT0_PHY_DATA *phy0;
+	MPI2_SAS_IO_UNIT1_PHY_DATA *phy1;
 	MPI2_CONFIG_PAGE_MAN_0 *man0;
 	MPI2_CONFIG_PAGE_BIOS_3 *bios3;
 	MPI2_CONFIG_PAGE_IO_UNIT_1 *iounit1;
@@ -95,7 +97,7 @@ show_adapter(int ac, char **av)
 		warnx("Invalid controller info");
 		return (EINVAL);
 	}
-	printf("mp%s%d Adapter:\n", is_mps ? "s": "r", mps_unit);
+	printf("mp%s%d Adapter:\n", is_mps ? "s" : "r", mps_unit);
 	printf("       Board Name: %.16s\n", man0->BoardName);
 	printf("   Board Assembly: %.16s\n", man0->BoardAssembly);
 	printf("        Chip Name: %.16s\n", man0->ChipName);
@@ -110,7 +112,7 @@ show_adapter(int ac, char **av)
 	}
 	v = le32toh(bios3->BiosVersion);
 	printf("    BIOS Revision: %d.%02d.%02d.%02d\n",
-	    ((v & 0xff000000) >> 24), ((v &0xff0000) >> 16),
+	    ((v & 0xff000000) >> 24), ((v & 0xff0000) >> 16),
 	    ((v & 0xff00) >> 8), (v & 0xff));
 	free(bios3);
 
@@ -121,39 +123,46 @@ show_adapter(int ac, char **av)
 	}
 	v = facts->FWVersion.Word;
 	printf("Firmware Revision: %d.%02d.%02d.%02d\n",
-	    ((v & 0xff000000) >> 24), ((v &0xff0000) >> 16),
+	    ((v & 0xff000000) >> 24), ((v & 0xff0000) >> 16),
 	    ((v & 0xff00) >> 8), (v & 0xff));
 	printf("  Integrated RAID: %s\n",
-	    (facts->IOCCapabilities & MPI2_IOCFACTS_CAPABILITY_INTEGRATED_RAID)
-	    ? "yes" : "no");
+	    (facts->IOCCapabilities &
+		MPI2_IOCFACTS_CAPABILITY_INTEGRATED_RAID) ?
+		"yes" :
+		"no");
 	free(facts);
 
-	iounit1 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1, 0, NULL);
+	iounit1 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 1, 0,
+	    NULL);
 	if (iounit1 == NULL) {
 		error = errno;
 		warn("Failed to get IOUNIT page 1 info");
 		return (error);
 	}
 	printf("         SATA NCQ: %s\n",
-		((iounit1->Flags & MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE) == 0) ?
-		"ENABLED" : "DISABLED");
+	    ((iounit1->Flags & MPI2_IOUNITPAGE1_NATIVE_COMMAND_Q_DISABLE) ==
+		0) ?
+		"ENABLED" :
+		"DISABLED");
 	free(iounit1);
 
-	iounit7 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 7, 0, NULL);
+	iounit7 = mps_read_config_page(fd, MPI2_CONFIG_PAGETYPE_IO_UNIT, 7, 0,
+	    NULL);
 	if (iounit7 == NULL) {
 		error = errno;
 		warn("Failed to get IOUNIT page 7 info");
 		return (error);
 	}
 	printf(" PCIe Width/Speed: x%d (%s GB/sec)\n", iounit7->PCIeWidth,
-		pcie_speed[iounit7->PCIeSpeed]);
+	    pcie_speed[iounit7->PCIeSpeed]);
 	printf("        IOC Speed: %s\n", ioc_speeds[iounit7->IOCSpeed]);
 	printf("      Temperature: ");
-	if (iounit7->IOCTemperatureUnits == MPI2_IOUNITPAGE7_IOC_TEMP_NOT_PRESENT)
+	if (iounit7->IOCTemperatureUnits ==
+	    MPI2_IOUNITPAGE7_IOC_TEMP_NOT_PRESENT)
 		printf("Unknown/Unsupported\n");
 	else
 		printf("%d %s\n", iounit7->IOCTemperature,
-			temp_units[iounit7->IOCTemperatureUnits]);
+		    temp_units[iounit7->IOCTemperatureUnits]);
 	free(iounit7);
 
 	fd = mps_open(mps_unit);
@@ -192,7 +201,7 @@ show_adapter(int ac, char **av)
 		phy0 = &sas0->PhyData[i];
 		phy1 = &sas1->PhyData[i];
 		if (phy0->PortFlags &
-		     MPI2_SASIOUNIT0_PORTFLAGS_DISCOVERY_IN_PROGRESS) {
+		    MPI2_SASIOUNIT0_PORTFLAGS_DISCOVERY_IN_PROGRESS) {
 			printf("Discovery still in progress\n");
 			continue;
 		}
@@ -216,9 +225,8 @@ show_adapter(int ac, char **av)
 			snprintf(ctrlhandle, sizeof(ctrlhandle), "    ");
 			speed = "     ";
 		}
-		printf("%-8d%-12s%-11s%-10s%-8s%-7s%-7s%s\n",
-		    i, ctrlhandle, devhandle, isdisabled, speed, minspeed,
-		    maxspeed, type);
+		printf("%-8d%-12s%-11s%-10s%-8s%-7s%-7s%s\n", i, ctrlhandle,
+		    devhandle, isdisabled, speed, minspeed, maxspeed, type);
 	}
 	free(sas0);
 	free(sas1);
@@ -252,20 +260,34 @@ show_iocfacts(int ac, char **av)
 
 	fb = (uint8_t *)facts;
 
-#define IOCCAP "\3ScsiTaskFull" "\4DiagTrace" "\5SnapBuf" "\6ExtBuf" \
-    "\7EEDP" "\10BiDirTarg" "\11Multicast" "\14TransRetry" "\15IR" \
-    "\16EventReplay" "\17RaidAccel" "\20MSIXIndex" "\21HostDisc" \
-    "\22FastPath" "\23RDPQArray" "\24AtomicReqDesc" "\25PCIeSRIOV"
+#define IOCCAP             \
+	"\3ScsiTaskFull"   \
+	"\4DiagTrace"      \
+	"\5SnapBuf"        \
+	"\6ExtBuf"         \
+	"\7EEDP"           \
+	"\10BiDirTarg"     \
+	"\11Multicast"     \
+	"\14TransRetry"    \
+	"\15IR"            \
+	"\16EventReplay"   \
+	"\17RaidAccel"     \
+	"\20MSIXIndex"     \
+	"\21HostDisc"      \
+	"\22FastPath"      \
+	"\23RDPQArray"     \
+	"\24AtomicReqDesc" \
+	"\25PCIeSRIOV"
 
 	bzero(tmpbuf, sizeof(tmpbuf));
 	mps_parse_flags(facts->IOCCapabilities, IOCCAP, tmpbuf, sizeof(tmpbuf));
 
-	printf("          MsgVersion: %d.%d\n",
-	    facts->MsgVersion >> 8, facts->MsgVersion & 0xff);
+	printf("          MsgVersion: %d.%d\n", facts->MsgVersion >> 8,
+	    facts->MsgVersion & 0xff);
 	printf("           MsgLength: %d\n", facts->MsgLength);
 	printf("            Function: 0x%x\n", facts->Function);
-	printf("       HeaderVersion: %02d,%02d\n",
-	    facts->HeaderVersion >> 8, facts->HeaderVersion & 0xff);
+	printf("       HeaderVersion: %02d,%02d\n", facts->HeaderVersion >> 8,
+	    facts->HeaderVersion & 0xff);
 	printf("           IOCNumber: %d\n", facts->IOCNumber);
 	printf("            MsgFlags: 0x%x\n", facts->MsgFlags);
 	printf("               VP_ID: %d\n", facts->VP_ID);
@@ -320,7 +342,8 @@ show_adapters(int ac, char **av)
 	MPI2_IOC_FACTS_REPLY *facts;
 	int unit, fd, error;
 
-	printf("Device Name\t      Chip Name        Board Name        Firmware\n");
+	printf(
+	    "Device Name\t      Chip Name        Board Name        Firmware\n");
 	for (unit = 0; unit < MPS_MAX_UNIT; unit++) {
 		fd = mps_open(unit);
 		if (fd < 0)
@@ -348,15 +371,16 @@ show_adapters(int ac, char **av)
 			return (EINVAL);
 		}
 		printf("/dev/mp%s%d\t%16s %16s        %08x\n",
-		    is_mps ? "s": "r", unit,
-		    man0->ChipName, man0->BoardName, facts->FWVersion.Word);
+		    is_mps ? "s" : "r", unit, man0->ChipName, man0->BoardName,
+		    facts->FWVersion.Word);
 		free(man0);
 		free(facts);
 		close(fd);
 	}
 	return (0);
 }
-MPS_COMMAND(show, adapters, show_adapters, "", "Show a summary of all adapters");
+MPS_COMMAND(show, adapters, show_adapters, "",
+    "Show a summary of all adapters");
 
 static char *
 get_device_type(uint32_t di)
@@ -415,21 +439,8 @@ get_enc_type(uint32_t flags, int *issep)
 	return (type);
 }
 
-static char *
-mps_device_speed[] = {
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"1.5",
-	"3.0",
-	"6.0",
-	"12 "
-};
+static char *mps_device_speed[] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+	NULL, "1.5", "3.0", "6.0", "12 " };
 
 static char *
 get_device_speed(uint8_t rate)
@@ -445,36 +456,12 @@ get_device_speed(uint8_t rate)
 	return (speed);
 }
 
-static char *
-mps_page_name[] = {
-	"IO Unit",
-	"IOC",
-	"BIOS",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"RAID Volume",
-	"Manufacturing",
-	"RAID Physical Disk",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	"SAS IO Unit",
-	"SAS Expander",
-	"SAS Device",
-	"SAS PHY",
-	"Log",
-	"Enclosure",
-	"RAID Configuration",
-	"Driver Persistent Mapping",
-	"SAS Port",
-	"Ethernet Port",
-	"Extended Manufacturing"
-};
+static char *mps_page_name[] = { "IO Unit", "IOC", "BIOS", NULL, NULL, NULL,
+	NULL, NULL, "RAID Volume", "Manufacturing", "RAID Physical Disk", NULL,
+	NULL, NULL, NULL, NULL, "SAS IO Unit", "SAS Expander", "SAS Device",
+	"SAS PHY", "Log", "Enclosure", "RAID Configuration",
+	"Driver Persistent Mapping", "SAS Port", "Ethernet Port",
+	"Extended Manufacturing" };
 
 static char *
 get_page_name(u_int page)
@@ -508,10 +495,10 @@ MPS_COMMAND(show, all, show_all, "", "Show all devices");
 static int
 show_devices(int ac, char **av)
 {
-	MPI2_CONFIG_PAGE_SASIOUNIT_0	*sas0;
-	MPI2_SAS_IO_UNIT0_PHY_DATA	*phydata;
-	MPI2_CONFIG_PAGE_SAS_DEV_0	*device;
-	MPI2_CONFIG_PAGE_EXPANDER_1	*exp1;
+	MPI2_CONFIG_PAGE_SASIOUNIT_0 *sas0;
+	MPI2_SAS_IO_UNIT0_PHY_DATA *phydata;
+	MPI2_CONFIG_PAGE_SAS_DEV_0 *device;
+	MPI2_CONFIG_PAGE_EXPANDER_1 *exp1;
 	uint16_t IOCStatus, handle, bus, target;
 	char *type, *speed, enchandle[8], slot[8], bt[16];
 	char buf[256];
@@ -534,9 +521,9 @@ show_devices(int ac, char **av)
 	}
 	nphys = sas0->NumPhys;
 
-	printf("B____%-5s%-17s%-8s%-10s%-14s%-6s%-5s%-6s%s\n",
-	    "T", "SAS Address", "Handle", "Parent", "Device", "Speed",
-	    "Enc", "Slot", "Wdt");
+	printf("B____%-5s%-17s%-8s%-10s%-14s%-6s%-5s%-6s%s\n", "T",
+	    "SAS Address", "Handle", "Parent", "Device", "Speed", "Enc", "Slot",
+	    "Wdt");
 	handle = 0xffff;
 	while (1) {
 		device = mps_read_extended_config_page(fd,
@@ -573,10 +560,11 @@ show_devices(int ac, char **av)
 
 		type = get_device_type(le32toh(device->DeviceInfo));
 
-		if (device->DeviceInfo & 0x800) {	/* Direct Attached */
+		if (device->DeviceInfo & 0x800) { /* Direct Attached */
 			if (device->PhyNum < nphys) {
 				phydata = &sas0->PhyData[device->PhyNum];
-				speed = get_device_speed(phydata->NegotiatedLinkRate);
+				speed = get_device_speed(
+				    phydata->NegotiatedLinkRate);
 			} else
 				speed = "";
 		} else if (device->ParentDevHandle > 0) {
@@ -584,13 +572,16 @@ show_devices(int ac, char **av)
 			    MPI2_CONFIG_EXTPAGETYPE_SAS_EXPANDER,
 			    MPI2_SASEXPANDER1_PAGEVERSION, 1,
 			    MPI2_SAS_EXPAND_PGAD_FORM_HNDL_PHY_NUM |
-			    (device->PhyNum <<
-			    MPI2_SAS_EXPAND_PGAD_PHYNUM_SHIFT) |
-			    le16toh(device->ParentDevHandle), &IOCStatus);
+				(device->PhyNum
+				    << MPI2_SAS_EXPAND_PGAD_PHYNUM_SHIFT) |
+				le16toh(device->ParentDevHandle),
+			    &IOCStatus);
 			if (exp1 == NULL) {
-				if (IOCStatus != MPI2_IOCSTATUS_CONFIG_INVALID_PAGE) {
+				if (IOCStatus !=
+				    MPI2_IOCSTATUS_CONFIG_INVALID_PAGE) {
 					error = errno;
-					warn("Error retrieving expander page 1: 0x%x",
+					warn(
+					    "Error retrieving expander page 1: 0x%x",
 					    IOCStatus);
 					close(fd);
 					free(device);
@@ -598,29 +589,34 @@ show_devices(int ac, char **av)
 				}
 				speed = "";
 			} else {
-				speed = get_device_speed(exp1->NegotiatedLinkRate);
+				speed = get_device_speed(
+				    exp1->NegotiatedLinkRate);
 				free(exp1);
 			}
 		} else
 			speed = "";
 
 		if (device->EnclosureHandle != 0) {
-			snprintf(enchandle, sizeof(enchandle), "%04x", le16toh(device->EnclosureHandle));
-			snprintf(slot, sizeof(slot), "%02d", le16toh(device->Slot));
+			snprintf(enchandle, sizeof(enchandle), "%04x",
+			    le16toh(device->EnclosureHandle));
+			snprintf(slot, sizeof(slot), "%02d",
+			    le16toh(device->Slot));
 		} else {
 			snprintf(enchandle, sizeof(enchandle), "    ");
 			snprintf(slot, sizeof(slot), "  ");
 		}
 		printf("%-10s", bt);
-		snprintf(buf, sizeof(buf), "%08x%08x", le32toh(device->SASAddress.High),
+		snprintf(buf, sizeof(buf), "%08x%08x",
+		    le32toh(device->SASAddress.High),
 		    le32toh(device->SASAddress.Low));
 		printf("%-17s", buf);
 		snprintf(buf, sizeof(buf), "%04x", le16toh(device->DevHandle));
 		printf("%-8s", buf);
-		snprintf(buf, sizeof(buf), "%04x", le16toh(device->ParentDevHandle));
+		snprintf(buf, sizeof(buf), "%04x",
+		    le16toh(device->ParentDevHandle));
 		printf("%-10s", buf);
-		printf("%-14s%-6s%-5s%-6s%d\n", type, speed,
-		    enchandle, slot, device->MaxPortConnections);
+		printf("%-14s%-6s%-5s%-6s%d\n", type, speed, enchandle, slot,
+		    device->MaxPortConnections);
 		free(device);
 	}
 	printf("\n");
@@ -665,11 +661,13 @@ show_enclosures(int ac, char **av)
 		if (issep == 0)
 			snprintf(sepstr, sizeof(sepstr), "    ");
 		else
-			snprintf(sepstr, sizeof(sepstr), "%04x", le16toh(enc->SEPDevHandle));
+			snprintf(sepstr, sizeof(sepstr), "%04x",
+			    le16toh(enc->SEPDevHandle));
 		printf("  %.2d    %08x%08x    %s       %04x     %s\n",
-		    le16toh(enc->NumSlots), le32toh(enc->EnclosureLogicalID.High),
-		    le32toh(enc->EnclosureLogicalID.Low), sepstr, le16toh(enc->EnclosureHandle),
-		    type);
+		    le16toh(enc->NumSlots),
+		    le32toh(enc->EnclosureLogicalID.High),
+		    le32toh(enc->EnclosureLogicalID.Low), sepstr,
+		    le16toh(enc->EnclosureHandle), type);
 		handle = le16toh(enc->EnclosureHandle);
 		free(enc);
 	}
@@ -682,8 +680,8 @@ MPS_COMMAND(show, enclosures, show_enclosures, "", "Show attached enclosures");
 static int
 show_expanders(int ac, char **av)
 {
-	MPI2_CONFIG_PAGE_EXPANDER_0	*exp0;
-	MPI2_CONFIG_PAGE_EXPANDER_1	*exp1;
+	MPI2_CONFIG_PAGE_EXPANDER_0 *exp0;
+	MPI2_CONFIG_PAGE_EXPANDER_1 *exp1;
 	uint16_t IOCStatus, handle;
 	char enchandle[8], parent[8], rphy[4], rhandle[8];
 	char *speed, *min, *max, *type;
@@ -696,7 +694,8 @@ show_expanders(int ac, char **av)
 		return (error);
 	}
 
-	printf("NumPhys   SAS Address     DevHandle   Parent  EncHandle  SAS Level\n");
+	printf(
+	    "NumPhys   SAS Address     DevHandle   Parent  EncHandle  SAS Level\n");
 	handle = 0xffff;
 	while (1) {
 		exp0 = mps_read_extended_config_page(fd,
@@ -719,32 +718,38 @@ show_expanders(int ac, char **av)
 		if (exp0->EnclosureHandle == 0x00)
 			snprintf(enchandle, sizeof(enchandle), "    ");
 		else
-			snprintf(enchandle, sizeof(enchandle), "%04d", le16toh(exp0->EnclosureHandle));
+			snprintf(enchandle, sizeof(enchandle), "%04d",
+			    le16toh(exp0->EnclosureHandle));
 		if (exp0->ParentDevHandle == 0x0)
 			snprintf(parent, sizeof(parent), "    ");
 		else
-			snprintf(parent, sizeof(parent), "%04x", le16toh(exp0->ParentDevHandle));
+			snprintf(parent, sizeof(parent), "%04x",
+			    le16toh(exp0->ParentDevHandle));
 		printf("  %02d    %08x%08x    %04x       %s     %s       %d\n",
-		    exp0->NumPhys, le32toh(exp0->SASAddress.High), le32toh(exp0->SASAddress.Low),
-		    le16toh(exp0->DevHandle), parent, enchandle, exp0->SASLevel);
+		    exp0->NumPhys, le32toh(exp0->SASAddress.High),
+		    le32toh(exp0->SASAddress.Low), le16toh(exp0->DevHandle),
+		    parent, enchandle, exp0->SASLevel);
 
 		printf("\n");
-		printf("     Phy  RemotePhy  DevHandle  Speed  Min   Max    Device\n");
+		printf(
+		    "     Phy  RemotePhy  DevHandle  Speed  Min   Max    Device\n");
 		for (i = 0; i < nphys; i++) {
 			exp1 = mps_read_extended_config_page(fd,
 			    MPI2_CONFIG_EXTPAGETYPE_SAS_EXPANDER,
 			    MPI2_SASEXPANDER1_PAGEVERSION, 1,
 			    MPI2_SAS_EXPAND_PGAD_FORM_HNDL_PHY_NUM |
-			    (i << MPI2_SAS_EXPAND_PGAD_PHYNUM_SHIFT) |
-			    exp0->DevHandle, &IOCStatus);
+				(i << MPI2_SAS_EXPAND_PGAD_PHYNUM_SHIFT) |
+				exp0->DevHandle,
+			    &IOCStatus);
 			if (exp1 == NULL) {
 				if (IOCStatus !=
 				    MPI2_IOCSTATUS_CONFIG_INVALID_PAGE)
 					warn("Error retrieving expander pg 1");
 				continue;
 			}
-			type = get_device_type(le32toh(exp1->AttachedDeviceInfo));
-			if ((le32toh(exp1->AttachedDeviceInfo) &0x7) == 0) {
+			type = get_device_type(
+			    le32toh(exp1->AttachedDeviceInfo));
+			if ((le32toh(exp1->AttachedDeviceInfo) & 0x7) == 0) {
 				speed = "   ";
 				snprintf(rphy, sizeof(rphy), "  ");
 				snprintf(rhandle, sizeof(rhandle), "    ");
@@ -758,7 +763,9 @@ show_expanders(int ac, char **av)
 			}
 			min = get_device_speed(exp1->HwLinkRate);
 			max = get_device_speed(exp1->HwLinkRate >> 4);
-			printf("     %02d      %s        %s      %s   %s   %s   %s\n", exp1->Phy, rphy, rhandle, speed, min, max, type);
+			printf(
+			    "     %02d      %s        %s      %s   %s   %s   %s\n",
+			    exp1->Phy, rphy, rhandle, speed, min, max, type);
 
 			free(exp1);
 		}
@@ -812,7 +819,7 @@ show_cfgpage(int ac, char **av)
 	if (page >= 0x10)
 		data = mps_read_extended_config_page(fd, page, 0, num, addr,
 		    &IOCStatus);
-	 else 
+	else
 		data = mps_read_config_page(fd, page, num, addr, &IOCStatus);
 
 	if (data == NULL) {
@@ -851,4 +858,5 @@ show_cfgpage(int ac, char **av)
 	return (0);
 }
 
-MPS_COMMAND(show, cfgpage, show_cfgpage, "page [num] [addr]", "Display config page");
+MPS_COMMAND(show, cfgpage, show_cfgpage, "page [num] [addr]",
+    "Display config page");

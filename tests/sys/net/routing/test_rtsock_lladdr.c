@@ -83,7 +83,7 @@ presetup_ipv4(const atf_tc_t *tc)
 
 static void
 prepare_route_message(struct rt_msghdr *rtm, int cmd, struct sockaddr *dst,
-  struct sockaddr *gw)
+    struct sockaddr *gw)
 {
 
 	rtsock_prepare_route_message(rtm, cmd, dst, NULL, gw);
@@ -92,34 +92,32 @@ prepare_route_message(struct rt_msghdr *rtm, int cmd, struct sockaddr *dst,
 }
 
 /* TESTS */
-#define	DECLARE_TEST_VARS					\
-	char buffer[2048], msg[512];				\
-	ssize_t len;						\
-	int ret;						\
-	struct rtsock_test_config *c;				\
-	struct rt_msghdr *rtm = (struct rt_msghdr *)buffer;	\
-	struct sockaddr *sa;					\
-								\
+#define DECLARE_TEST_VARS                                   \
+	char buffer[2048], msg[512];                        \
+	ssize_t len;                                        \
+	int ret;                                            \
+	struct rtsock_test_config *c;                       \
+	struct rt_msghdr *rtm = (struct rt_msghdr *)buffer; \
+	struct sockaddr *sa;
 
-#define	DECLARE_CLEANUP_VARS					\
-	struct rtsock_test_config *c = config_setup(tc);	\
-								\
+#define DECLARE_CLEANUP_VARS struct rtsock_test_config *c = config_setup(tc);
 
-#define	DESCRIBE_ROOT_TEST(_msg)	config_describe_root_test(tc, _msg)
-#define	CLEANUP_AFTER_TEST	config_generic_cleanup(tc)
+#define DESCRIBE_ROOT_TEST(_msg) config_describe_root_test(tc, _msg)
+#define CLEANUP_AFTER_TEST config_generic_cleanup(tc)
 
-#define	RTM_DECLARE_ROOT_TEST(_name, _descr)			\
-ATF_TC_WITH_CLEANUP(_name);					\
-ATF_TC_HEAD(_name, tc)						\
-{								\
-	DESCRIBE_ROOT_TEST(_descr);				\
-}								\
-ATF_TC_CLEANUP(_name, tc)					\
-{								\
-	CLEANUP_AFTER_TEST;					\
-}
+#define RTM_DECLARE_ROOT_TEST(_name, _descr) \
+	ATF_TC_WITH_CLEANUP(_name);          \
+	ATF_TC_HEAD(_name, tc)               \
+	{                                    \
+		DESCRIBE_ROOT_TEST(_descr);  \
+	}                                    \
+	ATF_TC_CLEANUP(_name, tc)            \
+	{                                    \
+		CLEANUP_AFTER_TEST;          \
+	}
 
-RTM_DECLARE_ROOT_TEST(rtm_add_v6_ll_lle_success, "Tests addition of link-local IPv6 ND entry");
+RTM_DECLARE_ROOT_TEST(rtm_add_v6_ll_lle_success,
+    "Tests addition of link-local IPv6 ND entry");
 ATF_TC_BODY(rtm_add_v6_ll_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -134,29 +132,34 @@ ATF_TC_BODY(rtm_add_v6_ll_lle_success, tc)
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&sin6);
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/*
 	 * Got message of size 240 on 2019-12-17 15:06:51
-	 * RTM_ADD: Add Route: len 240, pid: 0, seq 0, errno 0, flags: <UP,HOST,DONE,LLINFO>
-	 * sockaddrs: 0x3 <DST,GATEWAY>
-	 *  af=inet6 len=28 addr=fe80::4242:4242 scope_id=3 if_name=tap4242
-	 *  af=link len=54 sdl_index=3 if_name=tap4242 addr=52:54:00:14:E3:10
+	 * RTM_ADD: Add Route: len 240, pid: 0, seq 0, errno 0, flags:
+	 * <UP,HOST,DONE,LLINFO> sockaddrs: 0x3 <DST,GATEWAY> af=inet6 len=28
+	 * addr=fe80::4242:4242 scope_id=3 if_name=tap4242 af=link len=54
+	 * sdl_index=3 if_name=tap4242 addr=52:54:00:14:E3:10
 	 */
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin6, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 #if 0
@@ -167,7 +170,8 @@ ATF_TC_BODY(rtm_add_v6_ll_lle_success, tc)
 #endif
 }
 
-RTM_DECLARE_ROOT_TEST(rtm_add_v6_gu_lle_success, "Tests addition of global IPv6 ND entry");
+RTM_DECLARE_ROOT_TEST(rtm_add_v6_gu_lle_success,
+    "Tests addition of global IPv6 ND entry");
 ATF_TC_BODY(rtm_add_v6_gu_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -183,32 +187,37 @@ ATF_TC_BODY(rtm_add_v6_gu_lle_success, tc)
 #undef _s6_addr32
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/*
 	 * Got message of size 240 on 2019-12-17 14:56:43
-	 * RTM_ADD: Add Route: len 240, pid: 0, seq 0, errno 0, flags: <UP,HOST,DONE,LLINFO>
-	 * sockaddrs: 0x3 <DST,GATEWAY>
-	 *  af=inet6 len=28 addr=2001:db8::4242:4242
- 	 *  af=link len=54 sdl_index=3 if_name=tap4242 addr=52:54:00:14:E3:10
+	 * RTM_ADD: Add Route: len 240, pid: 0, seq 0, errno 0, flags:
+	 * <UP,HOST,DONE,LLINFO> sockaddrs: 0x3 <DST,GATEWAY> af=inet6 len=28
+	 * addr=2001:db8::4242:4242 af=link len=54 sdl_index=3 if_name=tap4242
+	 * addr=52:54:00:14:E3:10
 	 */
 
 	/* XXX: where is uRPF?! this should fail */
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin6, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 #if 0
@@ -219,7 +228,8 @@ ATF_TC_BODY(rtm_add_v6_gu_lle_success, tc)
 #endif
 }
 
-RTM_DECLARE_ROOT_TEST(rtm_add_v4_gu_lle_success, "Tests addition of IPv4 ARP entry");
+RTM_DECLARE_ROOT_TEST(rtm_add_v4_gu_lle_success,
+    "Tests addition of IPv4 ARP entry");
 ATF_TC_BODY(rtm_add_v4_gu_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -234,29 +244,34 @@ ATF_TC_BODY(rtm_add_v4_gu_lle_success, tc)
 	sin.sin_addr.s_addr = htonl(ntohl(sin.sin_addr.s_addr) + 1);
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin,
+	    (struct sockaddr *)&ether);
 
 	len = rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/*
-	 * RTM_ADD: Add Route: len 224, pid: 43131, seq 42, errno 0, flags: <HOST,DONE,LLINFO,STATIC>
-	 * sockaddrs: 0x3 <DST,GATEWAY>
-	 *  af=inet len=16 addr=192.0.2.2
-	 *  af=link len=54 sdl_index=3 if_name=tap4242 addr=52:54:00:14:E3:10
+	 * RTM_ADD: Add Route: len 224, pid: 43131, seq 42, errno 0, flags:
+	 * <HOST,DONE,LLINFO,STATIC> sockaddrs: 0x3 <DST,GATEWAY> af=inet len=16
+	 * addr=192.0.2.2 af=link len=54 sdl_index=3 if_name=tap4242
+	 * addr=52:54:00:14:E3:10
 	 */
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 	/*
@@ -264,7 +279,8 @@ ATF_TC_BODY(rtm_add_v4_gu_lle_success, tc)
 	 */
 }
 
-RTM_DECLARE_ROOT_TEST(rtm_del_v6_ll_lle_success, "Tests removal of link-local IPv6 ND entry");
+RTM_DECLARE_ROOT_TEST(rtm_del_v6_ll_lle_success,
+    "Tests removal of link-local IPv6 ND entry");
 ATF_TC_BODY(rtm_del_v6_ll_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -280,29 +296,36 @@ ATF_TC_BODY(rtm_del_v6_ll_lle_success, tc)
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&sin6);
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/* Successfully added an entry, let's try to remove it. */
-	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE, "rtm_type is not delete");
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE,
+	    "rtm_type is not delete");
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin6, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 	/*
@@ -310,7 +333,8 @@ ATF_TC_BODY(rtm_del_v6_ll_lle_success, tc)
 	 */
 }
 
-RTM_DECLARE_ROOT_TEST(rtm_del_v6_gu_lle_success, "Tests removal of global IPv6 ND entry");
+RTM_DECLARE_ROOT_TEST(rtm_del_v6_gu_lle_success,
+    "Tests removal of global IPv6 ND entry");
 ATF_TC_BODY(rtm_del_v6_gu_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -326,29 +350,36 @@ ATF_TC_BODY(rtm_del_v6_gu_lle_success, tc)
 #undef _s6_addr32
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 
 	len = rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/* Successfully added an entry, let's try to remove it. */
-	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin6, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin6,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE, "rtm_type is not delete");
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE,
+	    "rtm_type is not delete");
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin6, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 	/*
@@ -356,7 +387,8 @@ ATF_TC_BODY(rtm_del_v6_gu_lle_success, tc)
 	 */
 }
 
-RTM_DECLARE_ROOT_TEST(rtm_del_v4_gu_lle_success, "Tests removal of IPv4 ARP entry");
+RTM_DECLARE_ROOT_TEST(rtm_del_v4_gu_lle_success,
+    "Tests removal of IPv4 ARP entry");
 ATF_TC_BODY(rtm_del_v4_gu_lle_success, tc)
 {
 	DECLARE_TEST_VARS;
@@ -371,29 +403,36 @@ ATF_TC_BODY(rtm_del_v4_gu_lle_success, tc)
 	sin.sin_addr.s_addr = htonl(ntohl(sin.sin_addr.s_addr) + 1);
 
 	struct sockaddr_dl ether;
-	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr, c->ifname);
+	snprintf(str_buf, sizeof(str_buf), "%s%%%s", c->remote_lladdr,
+	    c->ifname);
 	sa_convert_str_to_sa(str_buf, (struct sockaddr *)&ether);
 
-	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_ADD, (struct sockaddr *)&sin,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
 	/* We successfully added an entry, let's try to remove it. */
-	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin, (struct sockaddr *)&ether);
+	prepare_route_message(rtm, RTM_DELETE, (struct sockaddr *)&sin,
+	    (struct sockaddr *)&ether);
 
 	rtsock_send_rtm(c->rtsock_fd, rtm);
 
-	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer), rtm->rtm_seq);
+	rtm = rtsock_read_rtm_reply(c->rtsock_fd, buffer, sizeof(buffer),
+	    rtm->rtm_seq);
 
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE, "rtm_type is not delete");
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_type == RTM_DELETE,
+	    "rtm_type is not delete");
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_DST);
 	ret = sa_equal_msg(sa, (struct sockaddr *)&sin, msg, sizeof(msg));
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "DST sa diff: %s", msg);
 
 	sa = rtsock_find_rtm_sa(rtm, RTA_GATEWAY);
-	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE | SA_F_IGNORE_MEMCMP;
-	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg, sizeof(msg), sa_flags);
+	int sa_flags = SA_F_IGNORE_IFNAME | SA_F_IGNORE_IFTYPE |
+	    SA_F_IGNORE_MEMCMP;
+	ret = sa_equal_msg_flags(sa, (struct sockaddr *)&ether, msg,
+	    sizeof(msg), sa_flags);
 	RTSOCK_ATF_REQUIRE_MSG(rtm, ret != 0, "GATEWAY sa diff: %s", msg);
 
 	/*
@@ -412,5 +451,3 @@ ATF_TP_ADD_TCS(tp)
 
 	return (atf_no_error());
 }
-
-

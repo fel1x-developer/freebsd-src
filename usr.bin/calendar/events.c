@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -24,27 +24,28 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  */
 
 #include <sys/cdefs.h>
 #include <sys/time.h>
+
 #include <err.h>
 #include <langinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef WITH_ICONV
-#include <iconv.h>
 #include <errno.h>
+#include <iconv.h>
 
 static iconv_t conv = (iconv_t)-1;
 static char *currentEncoding = NULL;
 
 #endif
 
-#include "pathnames.h"
 #include "calendar.h"
+#include "pathnames.h"
 
 #ifdef WITH_ICONV
 void
@@ -65,9 +66,9 @@ set_new_encoding(void)
 	currentEncoding = strdup(newenc);
 	if (currentEncoding == NULL)
 		errx(1, "set_new_encoding: cannot allocate memory");
-	if (conv != (iconv_t) -1) {
+	if (conv != (iconv_t)-1) {
 		iconv_close(conv);
-		conv = (iconv_t) -1;
+		conv = (iconv_t)-1;
 	}
 }
 #endif
@@ -110,9 +111,11 @@ convert(char *input)
 		outbuf = output + converted;
 		outleft = outlen - converted;
 
-		converted = iconv(conv, (char **) &inbuf, &inleft, &outbuf, &outleft);
-		if (converted != (size_t) -1 || errno == EINVAL) {
-			/* finished or invalid multibyte, so truncate and ignore */
+		converted = iconv(conv, (char **)&inbuf, &inleft, &outbuf,
+		    &outleft);
+		if (converted != (size_t)-1 || errno == EINVAL) {
+			/* finished or invalid multibyte, so truncate and ignore
+			 */
 			break;
 		}
 
@@ -214,7 +217,8 @@ event_print_all(FILE *fp)
 			tm.tm_mday = e->day;
 			tm.tm_mon = e->month - 1;
 			tm.tm_year = e->year - 1900;
-			(void)strftime(dbuf, sizeof(dbuf), d_first ? "%e %b" : "%b %e", &tm);
+			(void)strftime(dbuf, sizeof(dbuf),
+			    d_first ? "%e %b" : "%b %e", &tm);
 		}
 
 		/*
@@ -226,8 +230,7 @@ event_print_all(FILE *fp)
 			    e->var ? '*' : ' ', e->text,
 			    e->extra != NULL ? " (" : "",
 			    e->extra != NULL ? e->extra : "",
-			    e->extra != NULL ? ")" : ""
-			);
+			    e->extra != NULL ? ")" : "");
 
 			e = e->next;
 		}

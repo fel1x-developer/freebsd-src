@@ -25,17 +25,19 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <errno.h>
 #include <sys/ioctl.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "ses.h"
 
 /*
@@ -43,8 +45,8 @@
  * and turn all but INFO enclosure status
  * values into CRITICAL enclosure status.
  */
-#define	BADSTAT	\
-	(SES_ENCSTAT_UNRECOV|SES_ENCSTAT_CRITICAL|SES_ENCSTAT_NONCRITICAL)
+#define BADSTAT \
+	(SES_ENCSTAT_UNRECOV | SES_ENCSTAT_CRITICAL | SES_ENCSTAT_NONCRITICAL)
 int
 main(int a, char **v)
 {
@@ -52,8 +54,10 @@ main(int a, char **v)
 	ses_encstat stat, *carray;
 
 	if (a < 3) {
-		fprintf(stderr, "usage: %s polling-interval device "
-		    "[ device ... ]\n", *v);
+		fprintf(stderr,
+		    "usage: %s polling-interval device "
+		    "[ device ... ]\n",
+		    *v);
 		return (1);
 	}
 	delay = atoi(v[1]);
@@ -76,48 +80,50 @@ main(int a, char **v)
 			 * a latched status.
 			 */
 			stat = 0;
-			if (ioctl(fd, SESIOC_SETENCSTAT, (caddr_t) &stat) < 0) {
+			if (ioctl(fd, SESIOC_SETENCSTAT, (caddr_t)&stat) < 0) {
 				fprintf(stderr, "%s: SESIOC_SETENCSTAT1: %s\n",
 				    v[dev], strerror(errno));
-				(void) close(fd);
+				(void)close(fd);
 				continue;
 			}
 			/*
 			 * Now get the actual current enclosure status.
 			 */
-			if (ioctl(fd, SESIOC_GETENCSTAT, (caddr_t) &stat) < 0) {
+			if (ioctl(fd, SESIOC_GETENCSTAT, (caddr_t)&stat) < 0) {
 				fprintf(stderr, "%s: SESIOC_GETENCSTAT: %s\n",
 				    v[dev], strerror(errno));
-				(void) close(fd);
+				(void)close(fd);
 				continue;
 			}
 
 			if ((stat & BADSTAT) == 0) {
 				if (carray[dev]) {
-					fprintf(stdout, "%s: Clearing CRITICAL "
-					    "condition\n", v[dev]);
+					fprintf(stdout,
+					    "%s: Clearing CRITICAL "
+					    "condition\n",
+					    v[dev]);
 					carray[dev] = 0;
 				}
-				(void) close(fd);
+				(void)close(fd);
 				continue;
 			}
 			carray[dev] = 1;
 			fprintf(stdout, "%s: Setting CRITICAL from:", v[dev]);
 			if (stat & SES_ENCSTAT_UNRECOV)
 				fprintf(stdout, " UNRECOVERABLE");
-		
+
 			if (stat & SES_ENCSTAT_CRITICAL)
 				fprintf(stdout, " CRITICAL");
-		
+
 			if (stat & SES_ENCSTAT_NONCRITICAL)
 				fprintf(stdout, " NONCRITICAL");
 			putchar('\n');
 			stat = SES_ENCSTAT_CRITICAL;
-			if (ioctl(fd, SESIOC_SETENCSTAT, (caddr_t) &stat) < 0) {
+			if (ioctl(fd, SESIOC_SETENCSTAT, (caddr_t)&stat) < 0) {
 				fprintf(stderr, "%s: SESIOC_SETENCSTAT 2: %s\n",
 				    v[dev], strerror(errno));
 			}
-			(void) close(fd);
+			(void)close(fd);
 		}
 		sleep(delay);
 	}

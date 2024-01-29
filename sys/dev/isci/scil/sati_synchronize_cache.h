@@ -62,10 +62,8 @@
 
 #include <dev/isci/scil/sati_translator_sequence.h>
 
-SATI_STATUS sati_synchronize_cache_translate_command(
-   SATI_TRANSLATOR_SEQUENCE_T * sequence,
-   void                       * scsi_io,
-   void                       * ata_io
-);
+SATI_STATUS
+sati_synchronize_cache_translate_command(SATI_TRANSLATOR_SEQUENCE_T *sequence,
+    void *scsi_io, void *ata_io);
 
 #endif // _SATI_SYNCHRONIZE_CACHE_H_

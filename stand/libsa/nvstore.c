@@ -43,10 +43,12 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdbool.h>
 #include <sys/queue.h>
-#include "stand.h"
+
+#include <stdbool.h>
+
 #include "nvstore.h"
+#include "stand.h"
 
 nvstore_list_t stores = STAILQ_HEAD_INITIALIZER(stores);
 
@@ -57,7 +59,7 @@ nvstore_get_store(const char *name)
 
 	st = NULL;
 
-	STAILQ_FOREACH(st, &stores, nvs_next) {
+	STAILQ_FOREACH (st, &stores, nvs_next) {
 		if (strcmp(name, st->nvs_name) == 0)
 			break;
 	}
@@ -74,7 +76,7 @@ nvstore_init(const char *name, nvs_callbacks_t *cb, void *data)
 	if (st != NULL)
 		return (EEXIST);
 
-	if ((st = malloc(sizeof (*st))) == NULL)
+	if ((st = malloc(sizeof(*st))) == NULL)
 		return (ENOMEM);
 
 	if ((st->nvs_name = strdup(name)) == NULL) {
@@ -123,8 +125,7 @@ nvstore_get_var(void *ptr, const char *name, void **data)
 }
 
 int
-nvstore_set_var(void *ptr, int type, const char *name,
-    void *data, size_t size)
+nvstore_set_var(void *ptr, int type, const char *name, void *data, size_t size)
 {
 	nvstore_t *st = ptr;
 

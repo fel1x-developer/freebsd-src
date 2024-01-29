@@ -39,6 +39,7 @@ __RCSID("$NetBSD: lastlogin.c,v 1.4 1998/02/03 04:45:35 perry Exp $");
 #endif
 
 #include <err.h>
+#include <libxo/xo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,23 +47,22 @@ __RCSID("$NetBSD: lastlogin.c,v 1.4 1998/02/03 04:45:35 perry Exp $");
 #include <unistd.h>
 #include <utmpx.h>
 
-#include <libxo/xo.h>
+int main(int, char **);
+static void output(struct utmpx *);
+static void usage(void);
+static int utcmp_user(const void *, const void *);
 
-	int	main(int, char **);
-static	void	output(struct utmpx *);
-static	void	usage(void);
-static int	utcmp_user(const void *, const void *);
-
-static int	order = 1;
+static int order = 1;
 static const char *file = NULL;
-static int	(*utcmp)(const void *, const void *) = utcmp_user;
+static int (*utcmp)(const void *, const void *) = utcmp_user;
 
 static int
 utcmp_user(const void *u1, const void *u2)
 {
 
-	return (order * strcmp(((const struct utmpx *)u1)->ut_user,
-	    ((const struct utmpx *)u2)->ut_user));
+	return (order *
+	    strcmp(((const struct utmpx *)u1)->ut_user,
+		((const struct utmpx *)u2)->ut_user));
 }
 
 static int
@@ -78,7 +78,7 @@ utcmp_time(const void *u1, const void *u2)
 int
 main(int argc, char *argv[])
 {
-	int	ch, i, ulistsize;
+	int ch, i, ulistsize;
 	struct utmpx *u, *ulist;
 
 	argc = xo_parse_args(argc, argv);
@@ -157,7 +157,7 @@ output(struct utmpx *u)
 
 	xo_open_instance("lastlogin");
 	xo_emit("{:user/%-10s/%s} {:tty/%-8s/%s} {:from/%-22.22s/%s}",
-		u->ut_user, u->ut_line, u->ut_host);
+	    u->ut_user, u->ut_line, u->ut_host);
 	xo_attr("seconds", "%lu", (unsigned long)t);
 	xo_emit(" {:login-time/%.24s/%.24s}\n", ctime(&t));
 	xo_close_instance("lastlogin");

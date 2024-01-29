@@ -31,7 +31,6 @@
 #include <netinet/tcp.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -40,13 +39,13 @@
 #include <string.h>
 #include <unistd.h>
 
-
 static void
 usage(void)
 {
 
 	fprintf(stderr, "tcpconnect server port\n");
-	fprintf(stderr, "tcpconnect client ip port count [nonblock] [tcpmd5]\n");
+	fprintf(stderr,
+	    "tcpconnect client ip port count [nonblock] [tcpmd5]\n");
 	exit(-1);
 }
 
@@ -98,7 +97,7 @@ tcpconnect_client(int argc, char *argv[])
 
 	if (argc < 3 || argc > 5)
 		usage();
-	for (i=3; i < argc; i++) {
+	for (i = 3; i < argc; i++) {
 		if (strcmp(argv[i], "nonblock") == 0)
 			nonblock = 1;
 		if (strcmp(argv[i], "tcpmd5") == 0)
@@ -126,8 +125,8 @@ tcpconnect_client(int argc, char *argv[])
 			err(-1, "socket");
 
 		/* No warning in default case on ENOPROTOOPT. */
-		if (setsockopt(sock, IPPROTO_TCP, TCP_MD5SIG,
-		    &md5enable, sizeof(md5enable)) != 0) {
+		if (setsockopt(sock, IPPROTO_TCP, TCP_MD5SIG, &md5enable,
+			sizeof(md5enable)) != 0) {
 			if (errno == ENOPROTOOPT && md5enable > 0)
 				err(-1, "setsockopt(TCP_MD5SIG)");
 			else if (errno != ENOPROTOOPT)
@@ -139,11 +138,12 @@ tcpconnect_client(int argc, char *argv[])
 				err(-1, "fcntl(F_SETFL)");
 
 			if (connect(sock, (struct sockaddr *)&sin,
-			    sizeof(sin)) == -1 && errno != EINPROGRESS)
+				sizeof(sin)) == -1 &&
+			    errno != EINPROGRESS)
 				err(-1, "connect");
 		} else {
 			if (connect(sock, (struct sockaddr *)&sin,
-			    sizeof(sin)) == -1)
+				sizeof(sin)) == -1)
 				err(-1, "connect");
 		}
 

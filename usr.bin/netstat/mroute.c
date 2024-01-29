@@ -45,35 +45,36 @@
  */
 
 #include <sys/param.h>
+#include <sys/mbuf.h>
+#include <sys/protosw.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
-#include <sys/protosw.h>
-#include <sys/mbuf.h>
 #include <sys/time.h>
 
 #include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/igmp.h>
 #include <net/route.h>
+#include <netinet/igmp.h>
+#include <netinet/in.h>
 
 #define _NETSTAT 1
 #include <netinet/ip_mroute.h>
 #undef _NETSTAT_
 
 #include <err.h>
+#include <libxo/xo.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <libxo/xo.h>
+
 #include "netstat.h"
 #include "nl_defs.h"
 
-static void	print_bw_meter(struct bw_meter *, int *);
-static void	print_mfc(struct mfc *, int, int *);
+static void print_bw_meter(struct bw_meter *, int *);
+static void print_mfc(struct mfc *, int, int *);
 
 static void
 print_bw_meter(struct bw_meter *bw_meter, int *banner_printed)
@@ -83,7 +84,7 @@ print_bw_meter(struct bw_meter *bw_meter, int *banner_printed)
 
 	gettimeofday(&now, NULL);
 
-	if (! *banner_printed) {
+	if (!*banner_printed) {
 		xo_open_list("bandwidth-meter");
 		xo_emit(" {T:Bandwidth Meters}\n");
 		xo_emit("  {T:/%-30s}", "Measured(Start|Packets|Bytes)");
@@ -112,13 +113,15 @@ print_bw_meter(struct bw_meter *bw_meter, int *banner_printed)
 	} else
 		strcpy(s2, "?");
 	xo_emit("  {[:-30}{:start-time/%lu.%06lu}|{q:measured-packets/%s}"
-	    "|{q:measured-bytes%s}{]:}",
+		"|{q:measured-bytes%s}{]:}",
 	    (u_long)bw_meter->bm_start_time.tv_sec,
 	    (u_long)bw_meter->bm_start_time.tv_usec, s1, s2);
 
 	/* The type of entry */
-	xo_emit("  {t:type/%-3s}", (bw_meter->bm_flags & BW_METER_GEQ) ? ">=" :
-	    (bw_meter->bm_flags & BW_METER_LEQ) ? "<=" : "?");
+	xo_emit("  {t:type/%-3s}",
+	    (bw_meter->bm_flags & BW_METER_GEQ)	    ? ">=" :
+		(bw_meter->bm_flags & BW_METER_LEQ) ? "<=" :
+						      "?");
 
 	/* The threshold values */
 	if (bw_meter->bm_flags & BW_METER_UNIT_PACKETS) {
@@ -137,24 +140,22 @@ print_bw_meter(struct bw_meter *bw_meter, int *banner_printed)
 		strcpy(s2, "?");
 
 	xo_emit("  {[:-30}{:threshold-time/%lu.%06lu}|{q:threshold-packets/%s}"
-	    "|{q:threshold-bytes%s}{]:}",
+		"|{q:threshold-bytes%s}{]:}",
 	    (u_long)bw_meter->bm_threshold.b_time.tv_sec,
 	    (u_long)bw_meter->bm_threshold.b_time.tv_usec, s1, s2);
 
 	/* Remaining time */
-	timeradd(&bw_meter->bm_start_time,
-		 &bw_meter->bm_threshold.b_time, &end);
+	timeradd(&bw_meter->bm_start_time, &bw_meter->bm_threshold.b_time,
+	    &end);
 	if (timercmp(&now, &end, <=)) {
 		timersub(&end, &now, &delta);
-		snprintf(s3, sizeof(s3), "%lu.%06lu",
-			(u_long)delta.tv_sec,
-			(u_long)delta.tv_usec);
+		snprintf(s3, sizeof(s3), "%lu.%06lu", (u_long)delta.tv_sec,
+		    (u_long)delta.tv_usec);
 	} else {
 		/* Negative time */
 		timersub(&now, &end, &delta);
-		snprintf(s3, sizeof(s3), "-%lu.06%lu",
-			(u_long)delta.tv_sec,
-			(u_long)delta.tv_usec);
+		snprintf(s3, sizeof(s3), "-%lu.06%lu", (u_long)delta.tv_sec,
+		    (u_long)delta.tv_usec);
 	}
 	xo_emit(" {:remaining-time/%s}", s3);
 
@@ -178,19 +179,18 @@ print_mfc(struct mfc *m, int maxvif, int *banner_printed)
 	sin.sin_len = sizeof(sin);
 	sin.sin_family = AF_INET;
 
-	if (! *banner_printed) {
+	if (!*banner_printed) {
 		xo_open_list("multicast-forwarding-entry");
 		xo_emit("\n{T:IPv4 Multicast Forwarding Table}\n"
-		    " {T:Origin}          {T:Group}            "
-		    " {T:Packets In-Vif}  {T:Out-Vifs:Ttls}\n");
+			" {T:Origin}          {T:Group}            "
+			" {T:Packets In-Vif}  {T:Out-Vifs:Ttls}\n");
 		*banner_printed = 1;
 	}
 
 	memcpy(&sin.sin_addr, &m->mfc_origin, sizeof(sin.sin_addr));
 	xo_emit(" {:origin-address/%-15.15s}", routename(sa, numeric_addr));
 	memcpy(&sin.sin_addr, &m->mfc_mcastgrp, sizeof(sin.sin_addr));
-	xo_emit(" {:group-address/%-15.15s}",
-	    routename(sa, numeric_addr));
+	xo_emit(" {:group-address/%-15.15s}", routename(sa, numeric_addr));
 	xo_emit(" {:sent-packets/%9lu}", m->mfc_pkt_cnt);
 	xo_emit("  {:parent/%3d}   ", m->mfc_parent);
 	xo_open_list("vif-ttl");
@@ -211,8 +211,7 @@ print_mfc(struct mfc *m, int maxvif, int *banner_printed)
 	 */
 	bwm = m->mfc_bw_meter_leq;
 	while (bwm != NULL) {
-		error = kread((u_long)bwm, (char *)&bw_meter,
-		    sizeof(bw_meter));
+		error = kread((u_long)bwm, (char *)&bw_meter, sizeof(bw_meter));
 		if (error)
 			break;
 		print_bw_meter(&bw_meter, &bw_banner_printed);
@@ -220,8 +219,7 @@ print_mfc(struct mfc *m, int maxvif, int *banner_printed)
 	}
 	bwm = m->mfc_bw_meter_geq;
 	while (bwm != NULL) {
-		error = kread((u_long)bwm, (char *)&bw_meter,
-		    sizeof(bw_meter));
+		error = kread((u_long)bwm, (char *)&bw_meter, sizeof(bw_meter));
 		if (error)
 			break;
 		print_bw_meter(&bw_meter, &bw_banner_printed);
@@ -271,7 +269,7 @@ mroutepr(void)
 	len = sizeof(viftable);
 	if (live) {
 		if (sysctlbyname("net.inet.ip.viftable", viftable, &len, NULL,
-		    0) < 0) {
+			0) < 0) {
 			xo_warn("sysctl: net.inet.ip.viftable");
 			return;
 		}
@@ -296,8 +294,8 @@ mroutepr(void)
 		maxvif = vifi;
 		if (!banner_printed) {
 			xo_emit("\n{T:IPv4 Virtual Interface Table\n"
-			    " Vif   Thresh   Local-Address   "
-			    "Remote-Address    Pkts-In   Pkts-Out}\n");
+				" Vif   Thresh   Local-Address   "
+				"Remote-Address    Pkts-In   Pkts-Out}\n");
 			banner_printed = 1;
 			xo_open_list("vif");
 		}
@@ -305,12 +303,12 @@ mroutepr(void)
 		xo_open_instance("vif");
 		memcpy(&sin.sin_addr, &v->v_lcl_addr, sizeof(sin.sin_addr));
 		xo_emit(" {:vif/%2u}    {:threshold/%6u}   {:route/%-15.15s}",
-					/* opposite math of add_vif() */
-		    vifi, v->v_threshold,
-		    routename(sa, numeric_addr));
+		    /* opposite math of add_vif() */
+		    vifi, v->v_threshold, routename(sa, numeric_addr));
 		memcpy(&sin.sin_addr, &v->v_rmt_addr, sizeof(sin.sin_addr));
-		xo_emit(" {:source/%-15.15s}", (v->v_flags & VIFF_TUNNEL) ?
-		    routename(sa, numeric_addr) : "");
+		xo_emit(" {:source/%-15.15s}",
+		    (v->v_flags & VIFF_TUNNEL) ? routename(sa, numeric_addr) :
+						 "");
 
 		xo_emit(" {:received-packets/%9lu}  {:sent-packets/%9lu}\n",
 		    v->v_pkt_in, v->v_pkt_out);
@@ -337,8 +335,8 @@ mroutepr(void)
 		struct mfc *mfctable;
 
 		len = 0;
-		if (sysctlbyname("net.inet.ip.mfctable", NULL, &len, NULL,
-		    0) < 0) {
+		if (sysctlbyname("net.inet.ip.mfctable", NULL, &len, NULL, 0) <
+		    0) {
 			xo_warn("sysctl: net.inet.ip.mfctable");
 			return;
 		}
@@ -349,7 +347,7 @@ mroutepr(void)
 			return;
 		}
 		if (sysctlbyname("net.inet.ip.mfctable", mfctable, &len, NULL,
-		    0) < 0) {
+			0) < 0) {
 			free(mfctable);
 			xo_warn("sysctl: net.inet.ip.mfctable");
 			return;
@@ -388,7 +386,7 @@ mroutepr(void)
 		kread(pmfchashtbl, (char *)&mfchashtbl, len);
 
 		for (i = 0; i < mfctablesize; i++) {
-			LIST_FOREACH(m, &mfchashtbl[i], mfc_hash) {
+			LIST_FOREACH (m, &mfchashtbl[i], mfc_hash) {
 				kread((u_long)m, (char *)&mfc, sizeof(mfc));
 				print_mfc(m, maxvif, &banner_printed);
 			}
@@ -415,7 +413,7 @@ mrt_stats(void)
 	mstaddr = nl[N_MRTSTAT].n_value;
 
 	if (fetch_stats("net.inet.ip.mrtstat", mstaddr, &mrtstat,
-	    sizeof(mrtstat), kread_counters) != 0) {
+		sizeof(mrtstat), kread_counters) != 0) {
 		if ((live && errno == ENOENT) || (!live && mstaddr == 0))
 			fprintf(stderr, "No IPv4 MROUTING kernel support.\n");
 		return;
@@ -423,41 +421,55 @@ mrt_stats(void)
 
 	xo_emit("{T:IPv4 multicast forwarding}:\n");
 
-#define	p(f, m) if (mrtstat.f || sflag <= 1) \
+#define p(f, m)                      \
+	if (mrtstat.f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)mrtstat.f, plural(mrtstat.f))
-#define	p2(f, m) if (mrtstat.f || sflag <= 1) \
+#define p2(f, m)                     \
+	if (mrtstat.f || sflag <= 1) \
 	xo_emit(m, (uintmax_t)mrtstat.f, plurales(mrtstat.f))
 
 	xo_open_container("multicast-statistics");
 
-	p(mrts_mfc_lookups, "\t{:cache-lookups/%ju} "
+	p(mrts_mfc_lookups,
+	    "\t{:cache-lookups/%ju} "
 	    "{N:/multicast forwarding cache lookup%s}\n");
-	p2(mrts_mfc_misses, "\t{:cache-misses/%ju} "
+	p2(mrts_mfc_misses,
+	    "\t{:cache-misses/%ju} "
 	    "{N:/multicast forwarding cache miss%s}\n");
-	p(mrts_upcalls, "\t{:upcalls-total/%ju} "
+	p(mrts_upcalls,
+	    "\t{:upcalls-total/%ju} "
 	    "{N:/upcall%s to multicast routing daemon}\n");
-	p(mrts_upq_ovflw, "\t{:upcall-overflows/%ju} "
+	p(mrts_upq_ovflw,
+	    "\t{:upcall-overflows/%ju} "
 	    "{N:/upcall queue overflow%s}\n");
 	p(mrts_upq_sockfull,
 	    "\t{:upcalls-dropped-full-buffer/%ju} "
 	    "{N:/upcall%s dropped due to full socket buffer}\n");
-	p(mrts_cache_cleanups, "\t{:cache-cleanups/%ju} "
+	p(mrts_cache_cleanups,
+	    "\t{:cache-cleanups/%ju} "
 	    "{N:/cache cleanup%s}\n");
-	p(mrts_no_route, "\t{:dropped-no-origin/%ju} "
+	p(mrts_no_route,
+	    "\t{:dropped-no-origin/%ju} "
 	    "{N:/datagram%s with no route for origin}\n");
-	p(mrts_bad_tunnel, "\t{:dropped-bad-tunnel/%ju} "
+	p(mrts_bad_tunnel,
+	    "\t{:dropped-bad-tunnel/%ju} "
 	    "{N:/datagram%s arrived with bad tunneling}\n");
-	p(mrts_cant_tunnel, "\t{:dropped-could-not-tunnel/%ju} "
+	p(mrts_cant_tunnel,
+	    "\t{:dropped-could-not-tunnel/%ju} "
 	    "{N:/datagram%s could not be tunneled}\n");
-	p(mrts_wrong_if, "\t{:dropped-wrong-incoming-interface/%ju} "
+	p(mrts_wrong_if,
+	    "\t{:dropped-wrong-incoming-interface/%ju} "
 	    "{N:/datagram%s arrived on wrong interface}\n");
-	p(mrts_drop_sel, "\t{:dropped-selectively/%ju} "
+	p(mrts_drop_sel,
+	    "\t{:dropped-selectively/%ju} "
 	    "{N:/datagram%s selectively dropped}\n");
-	p(mrts_q_overflow, "\t{:dropped-queue-overflow/%ju} "
+	p(mrts_q_overflow,
+	    "\t{:dropped-queue-overflow/%ju} "
 	    "{N:/datagram%s dropped due to queue overflow}\n");
-	p(mrts_pkt2large, "\t{:dropped-too-large/%ju} "
+	p(mrts_pkt2large,
+	    "\t{:dropped-too-large/%ju} "
 	    "{N:/datagram%s dropped for being too large}\n");
 
-#undef	p2
-#undef	p
+#undef p2
+#undef p
 }

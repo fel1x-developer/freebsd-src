@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/msgbuf.h>
 #include <sys/sysctl.h>
+#include <sys/syslog.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -41,24 +42,22 @@
 #include <limits.h>
 #include <locale.h>
 #include <nlist.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <vis.h>
-#include <sys/syslog.h>
 
 static struct nlist nl[] = {
-#define	X_MSGBUF	0
+#define X_MSGBUF 0
 	{ "_msgbufp", 0, 0, 0, 0 },
 	{ NULL, 0, 0, 0, 0 },
 };
 
 void usage(void) __dead2;
 
-#define	KREAD(addr, var) \
-	kvm_read(kd, addr, &var, sizeof(var)) != sizeof(var)
+#define KREAD(addr, var) kvm_read(kd, addr, &var, sizeof(var)) != sizeof(var)
 
 int
 main(int argc, char *argv[])
@@ -73,10 +72,10 @@ main(int argc, char *argv[])
 
 	all = false;
 	clear = false;
-	(void) setlocale(LC_CTYPE, "");
+	(void)setlocale(LC_CTYPE, "");
 	memf = nlistf = NULL;
 	while ((ch = getopt(argc, argv, "acM:N:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'a':
 			all = true;
 			break;
@@ -107,7 +106,7 @@ main(int argc, char *argv[])
 		if (sysctlbyname("kern.msgbuf", NULL, &buflen, NULL, 0) == -1)
 			err(1, "sysctl kern.msgbuf");
 		/* Allocate extra room for growth between the sysctl calls. */
-		buflen += buflen/8;
+		buflen += buflen / 8;
 		/* Allocate more than sysctl sees, for room to append \n\0. */
 		if ((bp = malloc(buflen + 2)) == NULL)
 			errx(1, "malloc failed");
@@ -116,13 +115,14 @@ main(int argc, char *argv[])
 		if (buflen > 0 && bp[buflen - 1] == '\0')
 			buflen--;
 		if (clear)
-			if (sysctlbyname("kern.msgbuf_clear", NULL, NULL, &clear, sizeof(int)))
+			if (sysctlbyname("kern.msgbuf_clear", NULL, NULL,
+				&clear, sizeof(int)))
 				err(1, "sysctl kern.msgbuf_clear");
 	} else {
 		/* Read in kernel message buffer and do sanity checks. */
 		kd = kvm_open(nlistf, memf, NULL, O_RDONLY, "dmesg");
 		if (kd == NULL)
-			exit (1);
+			exit(1);
 		if (kvm_nlist(kd, nl) == -1)
 			errx(1, "kvm_nlist: %s", kvm_geterr(kd));
 		if (nl[X_MSGBUF].n_type == 0)
@@ -131,7 +131,8 @@ main(int argc, char *argv[])
 		if (KREAD(nl[X_MSGBUF].n_value, bufp) || KREAD((long)bufp, cur))
 			errx(1, "kvm_read: %s", kvm_geterr(kd));
 		if (cur.msg_magic != MSG_MAGIC)
-			errx(1, "kernel message buffer has different magic "
+			errx(1,
+			    "kernel message buffer has different magic "
 			    "number");
 		if ((bp = malloc(cur.msg_size + 2)) == NULL)
 			errx(1, "malloc failed");
@@ -139,10 +140,12 @@ main(int argc, char *argv[])
 		/* Unwrap the circular buffer to start from the oldest data. */
 		bufpos = MSGBUF_SEQ_TO_POS(&cur, cur.msg_wseq);
 		if (kvm_read(kd, (long)&cur.msg_ptr[bufpos], bp,
-		    cur.msg_size - bufpos) != (ssize_t)(cur.msg_size - bufpos))
+			cur.msg_size - bufpos) !=
+		    (ssize_t)(cur.msg_size - bufpos))
 			errx(1, "kvm_read: %s", kvm_geterr(kd));
-		if (bufpos != 0 && kvm_read(kd, (long)cur.msg_ptr,
-		    &bp[cur.msg_size - bufpos], bufpos) != (ssize_t)bufpos)
+		if (bufpos != 0 &&
+		    kvm_read(kd, (long)cur.msg_ptr, &bp[cur.msg_size - bufpos],
+			bufpos) != (ssize_t)bufpos)
 			errx(1, "kvm_read: %s", kvm_geterr(kd));
 		kvm_close(kd);
 		buflen = cur.msg_size;
@@ -176,7 +179,7 @@ main(int argc, char *argv[])
 		nextp++;
 
 		/* Skip ^<[0-9]+> syslog sequences. */
-		if (*p == '<' && isdigit(*(p+1))) {
+		if (*p == '<' && isdigit(*(p + 1))) {
 			errno = 0;
 			pri = strtol(p + 1, &q, 10);
 			if (*q == '>' && pri >= 0 && pri < INT_MAX &&

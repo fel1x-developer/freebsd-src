@@ -37,18 +37,19 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/ic/ns16550.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_fdt.h>
-#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_dev_ns8250.h>
-#include <dev/ic/ns16550.h>
 
 #include "uart_if.h"
 
@@ -56,9 +57,9 @@
  * High-level UART interface.
  */
 struct tegra_softc {
-	struct ns8250_softc 	ns8250_base;
-	clk_t			clk;
-	hwreset_t		reset;
+	struct ns8250_softc ns8250_base;
+	clk_t clk;
+	hwreset_t reset;
 };
 
 /*
@@ -68,7 +69,7 @@ static int
 tegra_uart_attach(struct uart_softc *sc)
 {
 	int rv;
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas = &sc->sc_bas;
 
 	rv = ns8250_bus_attach(sc);
@@ -88,7 +89,7 @@ static void
 tegra_uart_grab(struct uart_softc *sc)
 {
 	struct uart_bas *bas = &sc->sc_bas;
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	u_char ier;
 
 	/*
@@ -111,7 +112,7 @@ tegra_uart_grab(struct uart_softc *sc)
 static void
 tegra_uart_ungrab(struct uart_softc *sc)
 {
-	struct ns8250_softc *ns8250 = (struct ns8250_softc*)sc;
+	struct ns8250_softc *ns8250 = (struct ns8250_softc *)sc;
 	struct uart_bas *bas = &sc->sc_bas;
 
 	/*
@@ -124,23 +125,21 @@ tegra_uart_ungrab(struct uart_softc *sc)
 	uart_unlock(sc->sc_hwmtx);
 }
 
-static kobj_method_t tegra_methods[] = {
-	KOBJMETHOD(uart_probe,		ns8250_bus_probe),
-	KOBJMETHOD(uart_attach,		tegra_uart_attach),
-	KOBJMETHOD(uart_detach,		ns8250_bus_detach),
-	KOBJMETHOD(uart_flush,		ns8250_bus_flush),
-	KOBJMETHOD(uart_getsig,		ns8250_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		ns8250_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		ns8250_bus_ipend),
-	KOBJMETHOD(uart_param,		ns8250_bus_param),
-	KOBJMETHOD(uart_receive,	ns8250_bus_receive),
-	KOBJMETHOD(uart_setsig,		ns8250_bus_setsig),
-	KOBJMETHOD(uart_transmit,	ns8250_bus_transmit),
-	KOBJMETHOD(uart_txbusy,		ns8250_bus_txbusy),
-	KOBJMETHOD(uart_grab,		tegra_uart_grab),
-	KOBJMETHOD(uart_ungrab,		tegra_uart_ungrab),
-	KOBJMETHOD_END
-};
+static kobj_method_t tegra_methods[] = { KOBJMETHOD(uart_probe,
+					     ns8250_bus_probe),
+	KOBJMETHOD(uart_attach, tegra_uart_attach),
+	KOBJMETHOD(uart_detach, ns8250_bus_detach),
+	KOBJMETHOD(uart_flush, ns8250_bus_flush),
+	KOBJMETHOD(uart_getsig, ns8250_bus_getsig),
+	KOBJMETHOD(uart_ioctl, ns8250_bus_ioctl),
+	KOBJMETHOD(uart_ipend, ns8250_bus_ipend),
+	KOBJMETHOD(uart_param, ns8250_bus_param),
+	KOBJMETHOD(uart_receive, ns8250_bus_receive),
+	KOBJMETHOD(uart_setsig, ns8250_bus_setsig),
+	KOBJMETHOD(uart_transmit, ns8250_bus_transmit),
+	KOBJMETHOD(uart_txbusy, ns8250_bus_txbusy),
+	KOBJMETHOD(uart_grab, tegra_uart_grab),
+	KOBJMETHOD(uart_ungrab, tegra_uart_ungrab), KOBJMETHOD_END };
 
 static struct uart_class tegra_uart_class = {
 	"tegra class",
@@ -153,9 +152,9 @@ static struct uart_class tegra_uart_class = {
 
 /* Compatible devices. */
 static struct ofw_compat_data compat_data[] = {
-	{"nvidia,tegra124-uart", (uintptr_t)&tegra_uart_class},
-	{"nvidia,tegra210-uart", (uintptr_t)&tegra_uart_class},
-	{NULL,			 (uintptr_t)NULL},
+	{ "nvidia,tegra124-uart", (uintptr_t)&tegra_uart_class },
+	{ "nvidia,tegra210-uart", (uintptr_t)&tegra_uart_class },
+	{ NULL, (uintptr_t)NULL },
 };
 
 UART_FDT_CLASS(compat_data);
@@ -235,10 +234,9 @@ tegra_uart_detach(device_t dev)
 
 static device_method_t tegra_uart_bus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tegra_uart_probe),
-	DEVMETHOD(device_attach,	uart_bus_attach),
-	DEVMETHOD(device_detach,	tegra_uart_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, tegra_uart_probe),
+	DEVMETHOD(device_attach, uart_bus_attach),
+	DEVMETHOD(device_detach, tegra_uart_detach), DEVMETHOD_END
 };
 
 static driver_t tegra_uart_driver = {
@@ -247,4 +245,4 @@ static driver_t tegra_uart_driver = {
 	sizeof(struct tegra_softc),
 };
 
-DRIVER_MODULE(tegra_uart, simplebus,  tegra_uart_driver, 0, 0);
+DRIVER_MODULE(tegra_uart, simplebus, tegra_uart_driver, 0, 0);

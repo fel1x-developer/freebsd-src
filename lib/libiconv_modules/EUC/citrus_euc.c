@@ -71,43 +71,41 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
 #include "citrus_bcs.h"
-#include "citrus_types.h"
-#include "citrus_module.h"
-#include "citrus_stdenc.h"
 #include "citrus_euc.h"
-
+#include "citrus_module.h"
+#include "citrus_namespace.h"
+#include "citrus_stdenc.h"
+#include "citrus_types.h"
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 typedef struct {
-	int	 chlen;
-	char	 ch[3];
+	int chlen;
+	char ch[3];
 } _EUCState;
 
 typedef struct {
-	wchar_t		 bits[4];
-	wchar_t		 mask;
-	unsigned	 count[4];
-	unsigned	 mb_cur_max;
+	wchar_t bits[4];
+	wchar_t mask;
+	unsigned count[4];
+	unsigned mb_cur_max;
 } _EUCEncodingInfo;
 
-#define	_SS2	0x008e
-#define	_SS3	0x008f
+#define _SS2 0x008e
+#define _SS3 0x008f
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_cei_, _func_)	(_cei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_cei_, _func_) (_cei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_EUC_##m
-#define _ENCODING_INFO			_EUCEncodingInfo
-#define _ENCODING_STATE			_EUCState
-#define _ENCODING_MB_CUR_MAX(_ei_)	(_ei_)->mb_cur_max
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
-
+#define _FUNCNAME(m) _citrus_EUC_##m
+#define _ENCODING_INFO _EUCEncodingInfo
+#define _ENCODING_STATE _EUCState
+#define _ENCODING_MB_CUR_MAX(_ei_) (_ei_)->mb_cur_max
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static __inline int
 _citrus_EUC_cs(unsigned int c)
@@ -138,7 +136,8 @@ _citrus_EUC_parse_variable(_EUCEncodingInfo *ei, const void *var,
 	ei->mb_cur_max = 1;
 	for (x = 0; x < 4; ++x) {
 		ei->count[x] = (int)_bcs_strtol(v, (char **)&e, 0);
-		if (v == e || !(v = e) || ei->count[x] < 1 || ei->count[x] > 4) {
+		if (v == e || !(v = e) || ei->count[x] < 1 ||
+		    ei->count[x] > 4) {
 			return (EFTYPE);
 		}
 		if (ei->mb_cur_max < ei->count[x])
@@ -159,7 +158,6 @@ _citrus_EUC_parse_variable(_EUCEncodingInfo *ei, const void *var,
 
 	return (0);
 }
-
 
 static __inline void
 /*ARGSUSED*/
@@ -190,8 +188,8 @@ _citrus_EUC_unpack_state(_EUCEncodingInfo *ei __unused, _EUCState *s,
 #endif
 
 static int
-_citrus_EUC_mbrtowc_priv(_EUCEncodingInfo *ei, wchar_t *pwc, char **s,
-    size_t n, _EUCState *psenc, size_t *nresult)
+_citrus_EUC_mbrtowc_priv(_EUCEncodingInfo *ei, wchar_t *pwc, char **s, size_t n,
+    _EUCState *psenc, size_t *nresult)
 {
 	wchar_t wchar;
 	int c, chlenbak, cs, len;
@@ -322,8 +320,8 @@ err:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUC_stdenc_wctocs(_EUCEncodingInfo * __restrict ei,
-    _csid_t * __restrict csid, _index_t * __restrict idx, wchar_t wc)
+_citrus_EUC_stdenc_wctocs(_EUCEncodingInfo *__restrict ei,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 	wchar_t m, nm;
 
@@ -331,15 +329,15 @@ _citrus_EUC_stdenc_wctocs(_EUCEncodingInfo * __restrict ei,
 	nm = wc & ~m;
 
 	*csid = (_citrus_csid_t)m;
-	*idx  = (_citrus_index_t)nm;
+	*idx = (_citrus_index_t)nm;
 
 	return (0);
 }
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUC_stdenc_cstowc(_EUCEncodingInfo * __restrict ei,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_EUC_stdenc_cstowc(_EUCEncodingInfo *__restrict ei,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if ((csid & ~ei->mask) != 0 || (idx & ei->mask) != 0)
@@ -352,19 +350,20 @@ _citrus_EUC_stdenc_cstowc(_EUCEncodingInfo * __restrict ei,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_EUC_stdenc_get_state_desc_generic(_EUCEncodingInfo * __restrict ei __unused,
-    _EUCState * __restrict psenc, int * __restrict rstate)
+_citrus_EUC_stdenc_get_state_desc_generic(
+    _EUCEncodingInfo *__restrict ei __unused, _EUCState *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
 static int
 /*ARGSUSED*/
-_citrus_EUC_encoding_module_init(_EUCEncodingInfo * __restrict ei,
-    const void * __restrict var, size_t lenvar)
+_citrus_EUC_encoding_module_init(_EUCEncodingInfo *__restrict ei,
+    const void *__restrict var, size_t lenvar)
 {
 
 	return (_citrus_EUC_parse_variable(ei, var, lenvar));
@@ -372,9 +371,8 @@ _citrus_EUC_encoding_module_init(_EUCEncodingInfo * __restrict ei,
 
 static void
 /*ARGSUSED*/
-_citrus_EUC_encoding_module_uninit(_EUCEncodingInfo * __restrict ei __unused)
+_citrus_EUC_encoding_module_uninit(_EUCEncodingInfo *__restrict ei __unused)
 {
-
 }
 
 /* ----------------------------------------------------------------------

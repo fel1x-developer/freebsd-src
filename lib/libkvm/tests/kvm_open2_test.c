@@ -24,6 +24,8 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <kvm.h>
@@ -34,8 +36,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <atf-c.h>
-
 #include "kvm_test_common.h"
 
 ATF_TC_WITHOUT_HEAD(kvm_open2_negative_test_nonexistent_corefile);
@@ -43,11 +43,12 @@ ATF_TC_BODY(kvm_open2_negative_test_nonexistent_corefile, tc)
 {
 
 	errbuf_clear();
-	ATF_CHECK(kvm_open2(NULL, "/nonexistent", O_RDONLY, NULL, NULL) == NULL);
+	ATF_CHECK(
+	    kvm_open2(NULL, "/nonexistent", O_RDONLY, NULL, NULL) == NULL);
 	ATF_CHECK(!errbuf_has_error(errbuf));
 	errbuf_clear();
-	ATF_CHECK(kvm_open2(NULL, "/nonexistent", O_RDONLY,
-	    errbuf, NULL) == NULL);
+	ATF_CHECK(
+	    kvm_open2(NULL, "/nonexistent", O_RDONLY, errbuf, NULL) == NULL);
 	ATF_CHECK(errbuf_has_error(errbuf));
 }
 
@@ -56,12 +57,12 @@ ATF_TC_BODY(kvm_open2_negative_test_nonexistent_execfile, tc)
 {
 
 	errbuf_clear();
-	ATF_CHECK(kvm_open2("/nonexistent", _PATH_DEVZERO, O_RDONLY,
-	    NULL, NULL) == NULL);
+	ATF_CHECK(kvm_open2("/nonexistent", _PATH_DEVZERO, O_RDONLY, NULL,
+		      NULL) == NULL);
 	ATF_CHECK(strlen(errbuf) == 0);
 	errbuf_clear();
-	ATF_CHECK(kvm_open2("/nonexistent", _PATH_DEVZERO, O_RDONLY,
-	    errbuf, NULL) == NULL);
+	ATF_CHECK(kvm_open2("/nonexistent", _PATH_DEVZERO, O_RDONLY, errbuf,
+		      NULL) == NULL);
 	ATF_CHECK(errbuf_has_error(errbuf));
 }
 

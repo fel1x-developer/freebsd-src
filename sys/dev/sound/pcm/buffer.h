@@ -28,22 +28,22 @@
 
 #define SNDBUF_LOCKASSERT(b)
 
-#define	SNDBUF_F_MANAGED	0x00000008
+#define SNDBUF_F_MANAGED 0x00000008
 
-#define SNDBUF_NAMELEN	48
+#define SNDBUF_NAMELEN 48
 
 struct snd_dbuf {
 	device_t dev;
 	u_int8_t *buf, *tmpbuf;
 	u_int8_t *shadbuf; /**< shadow buffer used w/ S_D_SILENCE/SKIP */
-	volatile int sl; /**< shadbuf ready length in # of bytes */
+	volatile int sl;   /**< shadbuf ready length in # of bytes */
 	unsigned int bufsize, maxsize, allocsize;
 	volatile int dl; /* transfer size */
 	volatile int rp; /* pointers to the ready area */
 	volatile int rl; /* length of ready area */
 	volatile int hp;
 	volatile u_int64_t total, prev_total;
-	int dmachan, dir;       /* dma channel */
+	int dmachan, dir; /* dma channel */
 	u_int32_t fmt, spd, bps, align;
 	unsigned int blksz, blkcnt;
 	int xrun;
@@ -57,16 +57,19 @@ struct snd_dbuf {
 	char name[SNDBUF_NAMELEN];
 };
 
-struct snd_dbuf *sndbuf_create(device_t dev, char *drv, char *desc, struct pcm_channel *channel);
+struct snd_dbuf *sndbuf_create(device_t dev, char *drv, char *desc,
+    struct pcm_channel *channel);
 void sndbuf_destroy(struct snd_dbuf *b);
 
 void sndbuf_dump(struct snd_dbuf *b, char *s, u_int32_t what);
 
-int sndbuf_alloc(struct snd_dbuf *b, bus_dma_tag_t dmatag, int dmaflags, unsigned int size);
+int sndbuf_alloc(struct snd_dbuf *b, bus_dma_tag_t dmatag, int dmaflags,
+    unsigned int size);
 int sndbuf_setup(struct snd_dbuf *b, void *buf, unsigned int size);
 void sndbuf_free(struct snd_dbuf *b);
 int sndbuf_resize(struct snd_dbuf *b, unsigned int blkcnt, unsigned int blksz);
-int sndbuf_remalloc(struct snd_dbuf *b, unsigned int blkcnt, unsigned int blksz);
+int sndbuf_remalloc(struct snd_dbuf *b, unsigned int blkcnt,
+    unsigned int blksz);
 void sndbuf_reset(struct snd_dbuf *b);
 void sndbuf_clear(struct snd_dbuf *b, unsigned int length);
 void sndbuf_fillsilence(struct snd_dbuf *b);
@@ -108,13 +111,15 @@ u_int64_t sndbuf_getblocks(struct snd_dbuf *b);
 u_int64_t sndbuf_getprevblocks(struct snd_dbuf *b);
 u_int64_t sndbuf_gettotal(struct snd_dbuf *b);
 u_int64_t sndbuf_getprevtotal(struct snd_dbuf *b);
-unsigned int sndbuf_xbytes(unsigned int v, struct snd_dbuf *from, struct snd_dbuf *to);
+unsigned int sndbuf_xbytes(unsigned int v, struct snd_dbuf *from,
+    struct snd_dbuf *to);
 u_int8_t sndbuf_zerodata(u_int32_t fmt);
 void sndbuf_updateprevtotal(struct snd_dbuf *b);
 
 int sndbuf_acquire(struct snd_dbuf *b, u_int8_t *from, unsigned int count);
 int sndbuf_dispose(struct snd_dbuf *b, u_int8_t *to, unsigned int count);
-int sndbuf_feed(struct snd_dbuf *from, struct snd_dbuf *to, struct pcm_channel *channel, struct pcm_feeder *feeder, unsigned int count);
+int sndbuf_feed(struct snd_dbuf *from, struct snd_dbuf *to,
+    struct pcm_channel *channel, struct pcm_feeder *feeder, unsigned int count);
 
 u_int32_t sndbuf_getflags(struct snd_dbuf *b);
 void sndbuf_setflags(struct snd_dbuf *b, u_int32_t flags, int on);

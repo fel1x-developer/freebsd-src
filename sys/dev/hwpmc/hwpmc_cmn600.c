@@ -33,25 +33,24 @@
 /* Arm CoreLink CMN-600 Coherent Mesh Network PMU Driver */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
-#include <sys/systm.h>
 
 #include <machine/cmn600_reg.h>
 
 struct cmn600_descr {
-	struct pmc_descr pd_descr;  /* "base class" */
-	void		*pd_rw_arg; /* Argument to use with read/write */
-	struct pmc	*pd_pmc;
-	struct pmc_hw	*pd_phw;
-	uint32_t	 pd_nodeid;
-	int32_t		 pd_node_type;
-	int		 pd_local_counter;
-
+	struct pmc_descr pd_descr; /* "base class" */
+	void *pd_rw_arg;	   /* Argument to use with read/write */
+	struct pmc *pd_pmc;
+	struct pmc_hw *pd_phw;
+	uint32_t pd_nodeid;
+	int32_t pd_node_type;
+	int pd_local_counter;
 };
 
 static struct cmn600_descr **cmn600_pmcdesc;
@@ -73,10 +72,10 @@ class_ri2unit(int ri)
 	return (ri / CMN600_COUNTERS_N);
 }
 
-#define	EVENCNTR(x)	(((x) >> POR_DT_PMEVCNT_EVENCNT_SHIFT) << \
-    POR_DTM_PMEVCNT_CNTR_WIDTH)
-#define	ODDCNTR(x)	(((x) >> POR_DT_PMEVCNT_ODDCNT_SHIFT) << \
-    POR_DTM_PMEVCNT_CNTR_WIDTH)
+#define EVENCNTR(x) \
+	(((x) >> POR_DT_PMEVCNT_EVENCNT_SHIFT) << POR_DTM_PMEVCNT_CNTR_WIDTH)
+#define ODDCNTR(x) \
+	(((x) >> POR_DT_PMEVCNT_ODDCNT_SHIFT) << POR_DTM_PMEVCNT_CNTR_WIDTH)
 
 static uint64_t
 cmn600_pmu_readcntr(void *arg, u_int nodeid, u_int xpcntr, u_int dtccntr,
@@ -84,10 +83,14 @@ cmn600_pmu_readcntr(void *arg, u_int nodeid, u_int xpcntr, u_int dtccntr,
 {
 	uint64_t dtcval, xpval;
 
-	KASSERT(xpcntr < 4, ("[cmn600,%d] XP counter number %d is too big."
-	    " Max: 3", __LINE__, xpcntr));
-	KASSERT(dtccntr < 8, ("[cmn600,%d] Global counter number %d is too"
-	    " big. Max: 7", __LINE__, dtccntr));
+	KASSERT(xpcntr < 4,
+	    ("[cmn600,%d] XP counter number %d is too big."
+	     " Max: 3",
+		__LINE__, xpcntr));
+	KASSERT(dtccntr < 8,
+	    ("[cmn600,%d] Global counter number %d is too"
+	     " big. Max: 7",
+		__LINE__, dtccntr));
 
 	dtcval = pmu_cmn600_rd8(arg, nodeid, NODE_TYPE_DTC,
 	    POR_DT_PMEVCNT(dtccntr >> 1));
@@ -109,21 +112,26 @@ cmn600_pmu_writecntr(void *arg, u_int nodeid, u_int xpcntr, u_int dtccntr,
 {
 	int shift;
 
-	KASSERT(xpcntr < 4, ("[cmn600,%d] XP counter number %d is too big."
-	    " Max: 3", __LINE__, xpcntr));
-	KASSERT(dtccntr < 8, ("[cmn600,%d] Global counter number %d is too"
-	    " big. Max: 7", __LINE__, dtccntr));
+	KASSERT(xpcntr < 4,
+	    ("[cmn600,%d] XP counter number %d is too big."
+	     " Max: 3",
+		__LINE__, xpcntr));
+	KASSERT(dtccntr < 8,
+	    ("[cmn600,%d] Global counter number %d is too"
+	     " big. Max: 7",
+		__LINE__, dtccntr));
 
 	if (width == 4) {
 		shift = (dtccntr & 1) ? POR_DT_PMEVCNT_ODDCNT_SHIFT :
-		    POR_DT_PMEVCNT_EVENCNT_SHIFT;
+					POR_DT_PMEVCNT_EVENCNT_SHIFT;
 		pmu_cmn600_md8(arg, nodeid, NODE_TYPE_DTC,
 		    POR_DT_PMEVCNT(dtccntr >> 1), 0xffffffffUL << shift,
-		    ((val >> POR_DTM_PMEVCNT_CNTR_WIDTH) & 0xffffffff) << shift);
+		    ((val >> POR_DTM_PMEVCNT_CNTR_WIDTH) & 0xffffffff)
+			<< shift);
 	} else
 		pmu_cmn600_wr8(arg, nodeid, NODE_TYPE_DTC,
-		    POR_DT_PMEVCNT(dtccntr & ~0x1), val >>
-		    POR_DTM_PMEVCNT_CNTR_WIDTH);
+		    POR_DT_PMEVCNT(dtccntr & ~0x1),
+		    val >> POR_DTM_PMEVCNT_CNTR_WIDTH);
 
 	shift = xpcntr * POR_DTM_PMEVCNT_CNTR_WIDTH;
 	val &= 0xffffUL;
@@ -131,8 +139,8 @@ cmn600_pmu_writecntr(void *arg, u_int nodeid, u_int xpcntr, u_int dtccntr,
 	    0xffffUL << shift, val << shift);
 }
 
-#undef	EVENCNTR
-#undef	ODDCNTR
+#undef EVENCNTR
+#undef ODDCNTR
 
 /*
  * read a pmc register
@@ -146,8 +154,8 @@ cmn600_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	counter = ri % CMN600_COUNTERS_N;
 	desc = cmn600desc(ri);
@@ -173,8 +181,8 @@ cmn600_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	counter = ri % CMN600_COUNTERS_N;
 	desc = cmn600desc(ri);
@@ -183,8 +191,7 @@ cmn600_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 	local_counter = pm->pm_md.pm_cmn600.pm_cmn600_local_counter;
 
 	KASSERT(pm != NULL,
-	    ("[cmn600,%d] PMC not owned (cpu%d,pmc%d)", __LINE__,
-		cpu, ri));
+	    ("[cmn600,%d] PMC not owned (cpu%d,pmc%d)", __LINE__, cpu, ri));
 
 	PMCDBG4(MDP, WRI, 1, "%s cpu=%d ri=%d v=%jx", __func__, cpu, ri, v);
 
@@ -205,14 +212,14 @@ cmn600_config_pmc(int cpu, int ri, struct pmc *pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	phw = cmn600desc(ri)->pd_phw;
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[cmn600,%d] pm=%p phw->pm=%p hwpmc not unconfigured",
-		__LINE__, pm, phw->phw_pmc));
+	    ("[cmn600,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__,
+		pm, phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 	return (0);
@@ -230,8 +237,11 @@ cmn600_get_config(int cpu, int ri, struct pmc **ppm)
 	return (0);
 }
 
-#define	CASE_DN_VER_EVT(n, id) case PMC_EV_CMN600_PMU_ ## n: { *event = id; \
-	return (0); }
+#define CASE_DN_VER_EVT(n, id)        \
+	case PMC_EV_CMN600_PMU_##n: { \
+		*event = id;          \
+		return (0);           \
+	}
 static int
 cmn600_map_ev2event(int ev, int rev, int *node_type, uint8_t *event)
 {
@@ -242,26 +252,29 @@ cmn600_map_ev2event(int ev, int rev, int *node_type, uint8_t *event)
 		*node_type = NODE_TYPE_DVM;
 		if (rev < 0x200) {
 			switch (ev) {
-			CASE_DN_VER_EVT(dn_rxreq_dvmop, 1);
-			CASE_DN_VER_EVT(dn_rxreq_dvmsync, 2);
-			CASE_DN_VER_EVT(dn_rxreq_dvmop_vmid_filtered, 3);
-			CASE_DN_VER_EVT(dn_rxreq_retried, 4);
-			CASE_DN_VER_EVT(dn_rxreq_trk_occupancy, 5);
+				CASE_DN_VER_EVT(dn_rxreq_dvmop, 1);
+				CASE_DN_VER_EVT(dn_rxreq_dvmsync, 2);
+				CASE_DN_VER_EVT(dn_rxreq_dvmop_vmid_filtered,
+				    3);
+				CASE_DN_VER_EVT(dn_rxreq_retried, 4);
+				CASE_DN_VER_EVT(dn_rxreq_trk_occupancy, 5);
 			}
 		} else {
 			switch (ev) {
-			CASE_DN_VER_EVT(dn_rxreq_tlbi_dvmop, 0x01);
-			CASE_DN_VER_EVT(dn_rxreq_bpi_dvmop, 0x02);
-			CASE_DN_VER_EVT(dn_rxreq_pici_dvmop, 0x03);
-			CASE_DN_VER_EVT(dn_rxreq_vivi_dvmop, 0x04);
-			CASE_DN_VER_EVT(dn_rxreq_dvmsync, 0x05);
-			CASE_DN_VER_EVT(dn_rxreq_dvmop_vmid_filtered, 0x06);
-			CASE_DN_VER_EVT(dn_rxreq_dvmop_other_filtered, 0x07);
-			CASE_DN_VER_EVT(dn_rxreq_retried, 0x08);
-			CASE_DN_VER_EVT(dn_rxreq_snp_sent, 0x09);
-			CASE_DN_VER_EVT(dn_rxreq_snp_stalled, 0x0a);
-			CASE_DN_VER_EVT(dn_rxreq_trk_full, 0x0b);
-			CASE_DN_VER_EVT(dn_rxreq_trk_occupancy, 0x0c);
+				CASE_DN_VER_EVT(dn_rxreq_tlbi_dvmop, 0x01);
+				CASE_DN_VER_EVT(dn_rxreq_bpi_dvmop, 0x02);
+				CASE_DN_VER_EVT(dn_rxreq_pici_dvmop, 0x03);
+				CASE_DN_VER_EVT(dn_rxreq_vivi_dvmop, 0x04);
+				CASE_DN_VER_EVT(dn_rxreq_dvmsync, 0x05);
+				CASE_DN_VER_EVT(dn_rxreq_dvmop_vmid_filtered,
+				    0x06);
+				CASE_DN_VER_EVT(dn_rxreq_dvmop_other_filtered,
+				    0x07);
+				CASE_DN_VER_EVT(dn_rxreq_retried, 0x08);
+				CASE_DN_VER_EVT(dn_rxreq_snp_sent, 0x09);
+				CASE_DN_VER_EVT(dn_rxreq_snp_stalled, 0x0a);
+				CASE_DN_VER_EVT(dn_rxreq_trk_full, 0x0b);
+				CASE_DN_VER_EVT(dn_rxreq_trk_occupancy, 0x0c);
 			}
 		}
 		return (EINVAL);
@@ -322,12 +335,12 @@ cmn600_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	uint8_t e;
 	int err;
 
-	(void) cpu;
+	(void)cpu;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = cmn600desc(ri);
 	arg = desc->pd_rw_arg;
@@ -377,16 +390,16 @@ cmn600_release_pmc(int cpu, int ri, struct pmc *pmc)
 	struct pmc *pm __diagused;
 	int err;
 
-	(void) pmc;
+	(void)pmc;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = cmn600desc(ri);
 	phw = desc->pd_phw;
-	pm  = phw->phw_pmc;
+	pm = phw->phw_pmc;
 	err = pmu_cmn600_free_localpmc(desc->pd_rw_arg, desc->pd_nodeid,
 	    desc->pd_node_type, desc->pd_local_counter);
 	if (err != 0)
@@ -404,7 +417,7 @@ cmn600_encode_source(int node_type, int counter, int port, int sub)
 	/* Calculate pmevcnt0_input_sel based on list in Table 3-794. */
 	if (node_type == NODE_TYPE_XP)
 		return (0x4 | counter);
-	
+
 	return (((port + 1) << 4) | (sub << 2) | counter);
 }
 
@@ -424,8 +437,8 @@ cmn600_start_pmc(int cpu, int ri, struct pmc *pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	counter = ri % CMN600_COUNTERS_N;
 	desc = cmn600desc(ri);
@@ -462,8 +475,7 @@ cmn600_start_pmc(int cpu, int ri, struct pmc *pm)
 	 * 1. Ensure that the NIDEN input is asserted. HW side. */
 	/* 2. Select event of target node for one of four outputs. */
 	pmu_cmn600_md8(arg, nodeid, node_type, CMN600_COMMON_PMU_EVENT_SEL,
-	    0xff << (local_counter * 8),
-	    event << (local_counter * 8));
+	    0xff << (local_counter * 8), event << (local_counter * 8));
 
 	xp_pmucfg = pmu_cmn600_rd8(arg, nodeid, NODE_TYPE_XP,
 	    POR_DTM_PMU_CONFIG);
@@ -489,10 +501,11 @@ cmn600_start_pmc(int cpu, int ri, struct pmc *pm)
 
 	/* 6. Enable XP's PMU function. */
 	xp_pmucfg |= POR_DTM_PMU_CONFIG_PMU_EN;
-	pmu_cmn600_wr8(arg, nodeid, NODE_TYPE_XP, POR_DTM_PMU_CONFIG, xp_pmucfg);
+	pmu_cmn600_wr8(arg, nodeid, NODE_TYPE_XP, POR_DTM_PMU_CONFIG,
+	    xp_pmucfg);
 	if (node_type == NODE_TYPE_CXLA)
-		pmu_cmn600_set8(arg, nodeid, NODE_TYPE_CXLA,
-		    POR_CXG_RA_CFG_CTL, EN_CXLA_PMUCMD_PROP);
+		pmu_cmn600_set8(arg, nodeid, NODE_TYPE_CXLA, POR_CXG_RA_CFG_CTL,
+		    EN_CXLA_PMUCMD_PROP);
 
 	/* 7. Enable DTM. */
 	pmu_cmn600_set8(arg, nodeid, NODE_TYPE_XP, POR_DTM_CONTROL,
@@ -530,8 +543,8 @@ cmn600_stop_pmc(int cpu, int ri, struct pmc *pm)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU value %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	desc = cmn600desc(ri);
 
@@ -565,8 +578,8 @@ cmn600_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[cmn600,%d] illegal CPU %d", __LINE__, cpu));
-	KASSERT(ri >= 0, ("[cmn600,%d] row-index %d out of range", __LINE__,
-	    ri));
+	KASSERT(ri >= 0,
+	    ("[cmn600,%d] row-index %d out of range", __LINE__, ri));
 
 	phw = cmn600desc(ri)->pd_phw;
 	pd = &cmn600desc(ri)->pd_descr;
@@ -576,10 +589,10 @@ cmn600_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc          = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -593,7 +606,7 @@ static int
 cmn600_pcpu_init(struct pmc_mdep *md, int cpu)
 {
 	int first_ri, n, npmc;
-	struct pmc_hw  *phw;
+	struct pmc_hw *phw;
 	struct pmc_cpu *pc;
 	int mdep_class;
 
@@ -654,7 +667,7 @@ cmn600_pmu_intr(struct trapframe *tf, int unit, int i)
 
 	phw = cmn600desc(ri)->pd_phw;
 	KASSERT(phw != NULL, ("phw != NULL"));
-	pm  = phw->phw_pmc;
+	pm = phw->phw_pmc;
 	if (pm == NULL)
 		return (0);
 
@@ -695,7 +708,7 @@ cmn600_init_pmc_units(void)
 
 	for (i = 0; i < cmn600_units; i++) {
 		if (cmn600_pmc_getunit(i, &cmn600_pmcs[i].arg,
-		    &cmn600_pmcs[i].domain) != 0)
+			&cmn600_pmcs[i].domain) != 0)
 			cmn600_pmcs[i].arg = NULL;
 	}
 	return (0);
@@ -721,51 +734,50 @@ pmc_cmn600_initialize(struct pmc_mdep *md)
 	KASSERT(cmn600_units < CMN600_UNIT_MAX,
 	    ("[cmn600,%d] cmn600_units too big", __LINE__));
 
-	PMCDBG0(MDP,INI,1, "cmn600-initialize");
+	PMCDBG0(MDP, INI, 1, "cmn600-initialize");
 
 	npmc = CMN600_COUNTERS_N * cmn600_units;
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_CMN600];
 
-	pcd->pcd_caps		= PMC_CAP_SYSTEM | PMC_CAP_READ |
-	    PMC_CAP_WRITE | PMC_CAP_QUALIFIER | PMC_CAP_INTERRUPT |
-	    PMC_CAP_DOMWIDE;
-	pcd->pcd_class	= PMC_CLASS_CMN600_PMU;
-	pcd->pcd_num	= npmc;
-	pcd->pcd_ri	= md->pmd_npmc;
-	pcd->pcd_width	= 48;
+	pcd->pcd_caps = PMC_CAP_SYSTEM | PMC_CAP_READ | PMC_CAP_WRITE |
+	    PMC_CAP_QUALIFIER | PMC_CAP_INTERRUPT | PMC_CAP_DOMWIDE;
+	pcd->pcd_class = PMC_CLASS_CMN600_PMU;
+	pcd->pcd_num = npmc;
+	pcd->pcd_ri = md->pmd_npmc;
+	pcd->pcd_width = 48;
 
-	pcd->pcd_allocate_pmc	= cmn600_allocate_pmc;
-	pcd->pcd_config_pmc	= cmn600_config_pmc;
-	pcd->pcd_describe	= cmn600_describe;
-	pcd->pcd_get_config	= cmn600_get_config;
-	pcd->pcd_get_msr	= NULL;
-	pcd->pcd_pcpu_fini	= cmn600_pcpu_fini;
-	pcd->pcd_pcpu_init	= cmn600_pcpu_init;
-	pcd->pcd_read_pmc	= cmn600_read_pmc;
-	pcd->pcd_release_pmc	= cmn600_release_pmc;
-	pcd->pcd_start_pmc	= cmn600_start_pmc;
-	pcd->pcd_stop_pmc	= cmn600_stop_pmc;
-	pcd->pcd_write_pmc	= cmn600_write_pmc;
+	pcd->pcd_allocate_pmc = cmn600_allocate_pmc;
+	pcd->pcd_config_pmc = cmn600_config_pmc;
+	pcd->pcd_describe = cmn600_describe;
+	pcd->pcd_get_config = cmn600_get_config;
+	pcd->pcd_get_msr = NULL;
+	pcd->pcd_pcpu_fini = cmn600_pcpu_fini;
+	pcd->pcd_pcpu_init = cmn600_pcpu_init;
+	pcd->pcd_read_pmc = cmn600_read_pmc;
+	pcd->pcd_release_pmc = cmn600_release_pmc;
+	pcd->pcd_start_pmc = cmn600_start_pmc;
+	pcd->pcd_stop_pmc = cmn600_stop_pmc;
+	pcd->pcd_write_pmc = cmn600_write_pmc;
 
-	md->pmd_npmc	       += npmc;
+	md->pmd_npmc += npmc;
 	cmn600_pmcdesc = malloc(sizeof(struct cmn600_descr *) * npmc *
-	    CMN600_PMU_DEFAULT_UNITS_N, M_PMC, M_WAITOK|M_ZERO);
+		CMN600_PMU_DEFAULT_UNITS_N,
+	    M_PMC, M_WAITOK | M_ZERO);
 	for (i = 0; i < npmc; i++) {
 		cmn600_pmcdesc[i] = malloc(sizeof(struct cmn600_descr), M_PMC,
-		    M_WAITOK|M_ZERO);
+		    M_WAITOK | M_ZERO);
 
 		unit = i / CMN600_COUNTERS_N;
 		KASSERT(unit >= 0, ("unit >= 0"));
 		KASSERT(cmn600_pmcs[unit].arg != NULL, ("arg != NULL"));
 
 		cmn600_pmcdesc[i]->pd_rw_arg = cmn600_pmcs[unit].arg;
-		cmn600_pmcdesc[i]->pd_descr.pd_class =
-		    PMC_CLASS_CMN600_PMU;
+		cmn600_pmcdesc[i]->pd_descr.pd_class = PMC_CLASS_CMN600_PMU;
 		cmn600_pmcdesc[i]->pd_descr.pd_caps = pcd->pcd_caps;
-		cmn600_pmcdesc[i]->pd_phw = (struct pmc_hw *)malloc(
-		    sizeof(struct pmc_hw), M_PMC, M_WAITOK|M_ZERO);
-		snprintf(cmn600_pmcdesc[i]->pd_descr.pd_name, 63,
-		    "CMN600_%d", i);
+		cmn600_pmcdesc[i]->pd_phw = (struct pmc_hw *)
+		    malloc(sizeof(struct pmc_hw), M_PMC, M_WAITOK | M_ZERO);
+		snprintf(cmn600_pmcdesc[i]->pd_descr.pd_name, 63, "CMN600_%d",
+		    i);
 		cmn600_pmu_intr_cb(cmn600_pmcs[unit].arg, cmn600_pmu_intr);
 	}
 
@@ -779,8 +791,8 @@ pmc_cmn600_finalize(struct pmc_mdep *md)
 	int i, npmc;
 
 	KASSERT(md->pmd_classdep[PMC_MDEP_CLASS_INDEX_CMN600].pcd_class ==
-	    PMC_CLASS_CMN600_PMU, ("[cmn600,%d] pmc class mismatch",
-	    __LINE__));
+		PMC_CLASS_CMN600_PMU,
+	    ("[cmn600,%d] pmc class mismatch", __LINE__));
 
 	pcd = &md->pmd_classdep[PMC_MDEP_CLASS_INDEX_CMN600];
 

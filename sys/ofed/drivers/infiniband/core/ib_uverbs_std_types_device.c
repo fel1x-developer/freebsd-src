@@ -3,10 +3,11 @@
  * Copyright (c) 2018, Mellanox Technologies inc.  All rights reserved.
  */
 
+#include <rdma/uverbs_ioctl.h>
 #include <rdma/uverbs_std_types.h>
+
 #include "rdma_core.h"
 #include "uverbs.h"
-#include <rdma/uverbs_ioctl.h>
 
 /*
  * This ioctl method allows calling any defined write or write_ex
@@ -14,8 +15,8 @@
  * marshalling, and brings the non-ex path into the same marshalling as the ex
  * path.
  */
-static int UVERBS_HANDLER(UVERBS_METHOD_INVOKE_WRITE)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_INVOKE_WRITE)(struct uverbs_attr_bundle *attrs)
 {
 	struct uverbs_api *uapi = attrs->ufile->device->uapi;
 	const struct uverbs_api_write_method *method_elm;
@@ -31,7 +32,7 @@ static int UVERBS_HANDLER(UVERBS_METHOD_INVOKE_WRITE)(
 		return PTR_ERR(method_elm);
 
 	uverbs_fill_udata(attrs, &attrs->ucore, UVERBS_ATTR_CORE_IN,
-			  UVERBS_ATTR_CORE_OUT);
+	    UVERBS_ATTR_CORE_OUT);
 
 	if (attrs->ucore.inlen < method_elm->req_size ||
 	    attrs->ucore.outlen < method_elm->resp_size)
@@ -41,23 +42,18 @@ static int UVERBS_HANDLER(UVERBS_METHOD_INVOKE_WRITE)(
 }
 
 DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_INVOKE_WRITE,
-			    UVERBS_ATTR_CONST_IN(UVERBS_ATTR_WRITE_CMD,
-						 enum ib_uverbs_write_cmds,
-						 UA_MANDATORY),
-			    UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CORE_IN,
-					       UVERBS_ATTR_MIN_SIZE(sizeof(u32)),
-					       UA_OPTIONAL),
-			    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_CORE_OUT,
-						UVERBS_ATTR_MIN_SIZE(0),
-						UA_OPTIONAL),
-			    UVERBS_ATTR_UHW());
+    UVERBS_ATTR_CONST_IN(UVERBS_ATTR_WRITE_CMD, enum ib_uverbs_write_cmds,
+	UA_MANDATORY),
+    UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CORE_IN, UVERBS_ATTR_MIN_SIZE(sizeof(u32)),
+	UA_OPTIONAL),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_CORE_OUT, UVERBS_ATTR_MIN_SIZE(0),
+	UA_OPTIONAL),
+    UVERBS_ATTR_UHW());
 
 static uint32_t *
 gather_objects_handle(struct ib_uverbs_file *ufile,
-		      const struct uverbs_api_object *uapi_object,
-		      struct uverbs_attr_bundle *attrs,
-		      ssize_t out_len,
-		      u64 *total)
+    const struct uverbs_api_object *uapi_object,
+    struct uverbs_attr_bundle *attrs, ssize_t out_len, u64 *total)
 {
 	u64 max_count = out_len / sizeof(u32);
 	struct ib_uobject *obj;
@@ -72,7 +68,8 @@ gather_objects_handle(struct ib_uverbs_file *ufile,
 		return handles;
 
 	spin_lock_irq(&ufile->uobjects_lock);
-	list_for_each_entry(obj, &ufile->uobjects, list) {
+	list_for_each_entry(obj, &ufile->uobjects, list)
+	{
 		u32 obj_id = obj->id;
 
 		if (obj->uapi_object != uapi_object)
@@ -90,8 +87,8 @@ gather_objects_handle(struct ib_uverbs_file *ufile,
 	return handles;
 }
 
-static int UVERBS_HANDLER(UVERBS_METHOD_INFO_HANDLES)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_INFO_HANDLES)(struct uverbs_attr_bundle *attrs)
 {
 	const struct uverbs_api_object *uapi_object;
 	ssize_t out_len;
@@ -113,24 +110,25 @@ static int UVERBS_HANDLER(UVERBS_METHOD_INFO_HANDLES)(
 		return -EINVAL;
 
 	handles = gather_objects_handle(attrs->ufile, uapi_object, attrs,
-					out_len, &total);
+	    out_len, &total);
 	if (IS_ERR(handles))
 		return PTR_ERR(handles);
 
 	ret = uverbs_copy_to(attrs, UVERBS_ATTR_INFO_HANDLES_LIST, handles,
-			     sizeof(u32) * total);
+	    sizeof(u32) * total);
 	if (ret)
 		goto err;
 
 	ret = uverbs_copy_to(attrs, UVERBS_ATTR_INFO_TOTAL_HANDLES, &total,
-			     sizeof(total));
+	    sizeof(total));
 err:
 	return ret;
 }
 
-void copy_port_attr_to_resp(struct ib_port_attr *attr,
-			    struct ib_uverbs_query_port_resp *resp,
-			    struct ib_device *ib_dev, u8 port_num)
+void
+copy_port_attr_to_resp(struct ib_port_attr *attr,
+    struct ib_uverbs_query_port_resp *resp, struct ib_device *ib_dev,
+    u8 port_num)
 {
 	resp->state = attr->state;
 	resp->max_mtu = attr->max_mtu;
@@ -158,8 +156,8 @@ void copy_port_attr_to_resp(struct ib_port_attr *attr,
 	resp->link_layer = rdma_port_get_link_layer(ib_dev, port_num);
 }
 
-static int UVERBS_HANDLER(UVERBS_METHOD_QUERY_PORT)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_QUERY_PORT)(struct uverbs_attr_bundle *attrs)
 {
 	struct ib_device *ib_dev;
 	struct ib_port_attr attr = {};
@@ -178,7 +176,7 @@ static int UVERBS_HANDLER(UVERBS_METHOD_QUERY_PORT)(
 		return -EOPNOTSUPP;
 
 	ret = uverbs_get_const(&port_num, attrs,
-			       UVERBS_ATTR_QUERY_PORT_PORT_NUM);
+	    UVERBS_ATTR_QUERY_PORT_PORT_NUM);
 	if (ret)
 		return ret;
 
@@ -190,23 +188,23 @@ static int UVERBS_HANDLER(UVERBS_METHOD_QUERY_PORT)(
 	resp.port_cap_flags2 = 0;
 
 	return uverbs_copy_to_struct_or_zero(attrs, UVERBS_ATTR_QUERY_PORT_RESP,
-					     &resp, sizeof(resp));
+	    &resp, sizeof(resp));
 }
 
-static int UVERBS_HANDLER(UVERBS_METHOD_GET_CONTEXT)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_GET_CONTEXT)(struct uverbs_attr_bundle *attrs)
 {
 	u32 num_comp = attrs->ufile->device->num_comp_vectors;
 	u64 core_support = IB_UVERBS_CORE_SUPPORT_OPTIONAL_MR_ACCESS;
 	int ret;
 
 	ret = uverbs_copy_to(attrs, UVERBS_ATTR_GET_CONTEXT_NUM_COMP_VECTORS,
-			     &num_comp, sizeof(num_comp));
+	    &num_comp, sizeof(num_comp));
 	if (IS_UVERBS_COPY_ERR(ret))
 		return ret;
 
 	ret = uverbs_copy_to(attrs, UVERBS_ATTR_GET_CONTEXT_CORE_SUPPORT,
-			     &core_support, sizeof(core_support));
+	    &core_support, sizeof(core_support));
 	if (IS_UVERBS_COPY_ERR(ret))
 		return ret;
 
@@ -222,38 +220,33 @@ static int UVERBS_HANDLER(UVERBS_METHOD_GET_CONTEXT)(
 	return 0;
 }
 
-DECLARE_UVERBS_NAMED_METHOD(
-	UVERBS_METHOD_GET_CONTEXT,
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_GET_CONTEXT_NUM_COMP_VECTORS,
-			    UVERBS_ATTR_TYPE(u32), UA_OPTIONAL),
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_GET_CONTEXT_CORE_SUPPORT,
-			    UVERBS_ATTR_TYPE(u64), UA_OPTIONAL),
-	UVERBS_ATTR_UHW());
+DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_GET_CONTEXT,
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_GET_CONTEXT_NUM_COMP_VECTORS,
+	UVERBS_ATTR_TYPE(u32), UA_OPTIONAL),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_GET_CONTEXT_CORE_SUPPORT,
+	UVERBS_ATTR_TYPE(u64), UA_OPTIONAL),
+    UVERBS_ATTR_UHW());
 
-DECLARE_UVERBS_NAMED_METHOD(
-	UVERBS_METHOD_INFO_HANDLES,
-	/* Also includes any device specific object ids */
-	UVERBS_ATTR_CONST_IN(UVERBS_ATTR_INFO_OBJECT_ID,
-			     enum uverbs_default_objects, UA_MANDATORY),
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_INFO_TOTAL_HANDLES,
-			    UVERBS_ATTR_TYPE(u32), UA_OPTIONAL),
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_INFO_HANDLES_LIST,
-			    UVERBS_ATTR_MIN_SIZE(sizeof(u32)), UA_OPTIONAL));
+DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_INFO_HANDLES,
+    /* Also includes any device specific object ids */
+    UVERBS_ATTR_CONST_IN(UVERBS_ATTR_INFO_OBJECT_ID,
+	enum uverbs_default_objects, UA_MANDATORY),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_INFO_TOTAL_HANDLES, UVERBS_ATTR_TYPE(u32),
+	UA_OPTIONAL),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_INFO_HANDLES_LIST,
+	UVERBS_ATTR_MIN_SIZE(sizeof(u32)), UA_OPTIONAL));
 
-DECLARE_UVERBS_NAMED_METHOD(
-	UVERBS_METHOD_QUERY_PORT,
-	UVERBS_ATTR_CONST_IN(UVERBS_ATTR_QUERY_PORT_PORT_NUM, u8, UA_MANDATORY),
-	UVERBS_ATTR_PTR_OUT(
-		UVERBS_ATTR_QUERY_PORT_RESP,
-		UVERBS_ATTR_STRUCT(struct ib_uverbs_query_port_resp_ex,
-				   reserved),
-		UA_MANDATORY));
+DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_QUERY_PORT,
+    UVERBS_ATTR_CONST_IN(UVERBS_ATTR_QUERY_PORT_PORT_NUM, u8, UA_MANDATORY),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_QUERY_PORT_RESP,
+	UVERBS_ATTR_STRUCT(struct ib_uverbs_query_port_resp_ex, reserved),
+	UA_MANDATORY));
 
 DECLARE_UVERBS_GLOBAL_METHODS(UVERBS_OBJECT_DEVICE,
-			      &UVERBS_METHOD(UVERBS_METHOD_GET_CONTEXT),
-			      &UVERBS_METHOD(UVERBS_METHOD_INVOKE_WRITE),
-			      &UVERBS_METHOD(UVERBS_METHOD_INFO_HANDLES),
-			      &UVERBS_METHOD(UVERBS_METHOD_QUERY_PORT));
+    &UVERBS_METHOD(UVERBS_METHOD_GET_CONTEXT),
+    &UVERBS_METHOD(UVERBS_METHOD_INVOKE_WRITE),
+    &UVERBS_METHOD(UVERBS_METHOD_INFO_HANDLES),
+    &UVERBS_METHOD(UVERBS_METHOD_QUERY_PORT));
 
 const struct uapi_definition uverbs_def_obj_device[] = {
 	UAPI_DEF_CHAIN_OBJ_TREE_NAMED(UVERBS_OBJECT_DEVICE),

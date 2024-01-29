@@ -31,15 +31,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "nvmecontrol.h"
 #include "comnd.h"
+#include "nvmecontrol.h"
 
 /* Tables for command line parsing */
 
 static cmd_fn_t gnsid;
 
 static struct nsid_options {
-	const char	*dev;
+	const char *dev;
 } nsid_opt = {
 	.dev = NULL,
 };
@@ -63,9 +63,9 @@ CMD_COMMAND(nsid_cmd);
 static void
 gnsid(const struct cmd *f, int argc, char *argv[])
 {
-	char		*path;
-	int		fd;
-	uint32_t	nsid;
+	char *path;
+	int fd;
+	uint32_t nsid;
 
 	if (arg_parse(argc, argv, f))
 		return;

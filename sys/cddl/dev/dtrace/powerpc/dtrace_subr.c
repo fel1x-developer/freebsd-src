@@ -27,22 +27,25 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/dtrace_bsd.h>
+#include <sys/dtrace_impl.h>
 #include <sys/kernel.h>
-#include <sys/malloc.h>
 #include <sys/kmem.h>
+#include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/smp.h>
-#include <sys/dtrace_impl.h>
-#include <sys/dtrace_bsd.h>
-#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#include <vm/pmap.h>
+
 #include <machine/clock.h>
 #include <machine/frame.h>
 #include <machine/trap.h>
-#include <vm/pmap.h>
 
-#define	DELAYBRANCH(x)	((int)(x) < 0)
-		
-extern dtrace_id_t	dtrace_probeid_error;
+#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#define DELAYBRANCH(x) ((int)(x) < 0)
+
+extern dtrace_id_t dtrace_probeid_error;
 extern int (*dtrace_invop_jump_addr)(struct trapframe *);
 
 extern void dtrace_getnanotime(struct timespec *tsp);
@@ -80,7 +83,7 @@ dtrace_invop_add(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 {
 	dtrace_invop_hdlr_t *hdlr;
 
-	hdlr = kmem_alloc(sizeof (dtrace_invop_hdlr_t), KM_SLEEP);
+	hdlr = kmem_alloc(sizeof(dtrace_invop_hdlr_t), KM_SLEEP);
 	hdlr->dtih_func = func;
 	hdlr->dtih_next = dtrace_invop_hdlr;
 	dtrace_invop_hdlr = hdlr;
@@ -113,7 +116,6 @@ dtrace_invop_remove(int (*func)(uintptr_t, struct trapframe *, uintptr_t))
 	kmem_free(hdlr, 0);
 }
 
-
 /*ARGSUSED*/
 void
 dtrace_toxic_ranges(void (*func)(uintptr_t base, uintptr_t limit))
@@ -134,7 +136,7 @@ dtrace_xcall(processorid_t cpu, dtrace_xcall_t func, void *arg)
 		CPU_SETOF(cpu, &cpus);
 
 	smp_rendezvous_cpus(cpus, smp_no_rendezvous_barrier, func,
-			smp_no_rendezvous_barrier, arg);
+	    smp_no_rendezvous_barrier, arg);
 }
 
 static void
@@ -148,10 +150,10 @@ dtrace_sync(void)
 	dtrace_xcall(DTRACE_CPUALL, (dtrace_xcall_t)dtrace_sync_func, NULL);
 }
 
-static int64_t	tgt_cpu_tsc;
-static int64_t	hst_cpu_tsc;
-static int64_t	timebase_skew[MAXCPU];
-static uint64_t	nsec_scale;
+static int64_t tgt_cpu_tsc;
+static int64_t hst_cpu_tsc;
+static int64_t timebase_skew[MAXCPU];
+static uint64_t nsec_scale;
 
 /* See below for the explanation of this macro. */
 /* This is taken from the amd64 dtrace_subr, to provide a synchronized timer
@@ -159,12 +161,12 @@ static uint64_t	nsec_scale;
  * lower than x86, the scale shift is 26 instead of 28, allowing for a 15.63MHz
  * timebase.
  */
-#define SCALE_SHIFT	26
+#define SCALE_SHIFT 26
 
 static void
 dtrace_gethrtime_init_cpu(void *arg)
 {
-	uintptr_t cpu = (uintptr_t) arg;
+	uintptr_t cpu = (uintptr_t)arg;
 
 	if (cpu == curcpu)
 		tgt_cpu_tsc = mftb();
@@ -188,7 +190,8 @@ dtrace_gethrtime_init(void *arg)
 	 * another 32-bit integer without overflowing 64-bit.
 	 * Thus minimum supported Timebase frequency is 15.63MHz.
 	 */
-	KASSERT(tb_f > (NANOSEC >> (32 - SCALE_SHIFT)), ("Timebase frequency is too low"));
+	KASSERT(tb_f > (NANOSEC >> (32 - SCALE_SHIFT)),
+	    ("Timebase frequency is too low"));
 
 	/*
 	 * We scale up NANOSEC/tb_f ratio to preserve as much precision
@@ -202,7 +205,7 @@ dtrace_gethrtime_init(void *arg)
 	/* The current CPU is the reference one. */
 	sched_pin();
 	timebase_skew[curcpu] = 0;
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		if (i == curcpu)
 			continue;
 
@@ -210,9 +213,8 @@ dtrace_gethrtime_init(void *arg)
 		CPU_SETOF(PCPU_GET(cpuid), &map);
 		CPU_SET(pc->pc_cpuid, &map);
 
-		smp_rendezvous_cpus(map, NULL,
-		    dtrace_gethrtime_init_cpu,
-		    smp_no_rendezvous_barrier, (void *)(uintptr_t) i);
+		smp_rendezvous_cpus(map, NULL, dtrace_gethrtime_init_cpu,
+		    smp_no_rendezvous_barrier, (void *)(uintptr_t)i);
 
 		timebase_skew[i] = tgt_cpu_tsc - hst_cpu_tsc;
 	}
@@ -241,10 +243,10 @@ dtrace_gethrtime(void)
 	uint32_t hi;
 
 	/*
-	 * We split timebase value into lower and higher 32-bit halves and separately
-	 * scale them with nsec_scale, then we scale them down by 2^28
-	 * (see nsec_scale calculations) taking into account 32-bit shift of
-	 * the higher half and finally add.
+	 * We split timebase value into lower and higher 32-bit halves and
+	 * separately scale them with nsec_scale, then we scale them down by
+	 * 2^28 (see nsec_scale calculations) taking into account 32-bit shift
+	 * of the higher half and finally add.
 	 */
 	timebase = mftb() - timebase_skew[curcpu];
 	lo = timebase;
@@ -256,7 +258,7 @@ dtrace_gethrtime(void)
 uint64_t
 dtrace_gethrestime(void)
 {
-	struct      timespec curtime;
+	struct timespec curtime;
 
 	dtrace_getnanotime(&curtime);
 
@@ -292,7 +294,8 @@ dtrace_trap(struct trapframe *frame, u_int type)
 		case EXC_DSI:
 		case EXC_DSE:
 			/* Flag a bad address. */
-			cpu_core[curcpu].cpuc_dtrace_flags |= CPU_DTRACE_BADADDR;
+			cpu_core[curcpu].cpuc_dtrace_flags |=
+			    CPU_DTRACE_BADADDR;
 			cpu_core[curcpu].cpuc_dtrace_illval = frame->dar;
 
 			/*
@@ -304,7 +307,8 @@ dtrace_trap(struct trapframe *frame, u_int type)
 		case EXC_ISI:
 		case EXC_ISE:
 			/* Flag a bad address. */
-			cpu_core[curcpu].cpuc_dtrace_flags |= CPU_DTRACE_BADADDR;
+			cpu_core[curcpu].cpuc_dtrace_flags |=
+			    CPU_DTRACE_BADADDR;
 			cpu_core[curcpu].cpuc_dtrace_illval = frame->srr0;
 
 			/*
@@ -329,8 +333,8 @@ dtrace_probe_error(dtrace_state_t *state, dtrace_epid_t epid, int which,
 {
 
 	dtrace_probe(dtrace_probeid_error, (uint64_t)(uintptr_t)state,
-	    (uintptr_t)epid,
-	    (uintptr_t)which, (uintptr_t)fault, (uintptr_t)fltoffs);
+	    (uintptr_t)epid, (uintptr_t)which, (uintptr_t)fault,
+	    (uintptr_t)fltoffs);
 }
 
 static int
@@ -356,12 +360,14 @@ dtrace_invop_start(struct trapframe *frame)
 	return (0);
 }
 
-void dtrace_invop_init(void)
+void
+dtrace_invop_init(void)
 {
 	dtrace_invop_jump_addr = dtrace_invop_start;
 }
 
-void dtrace_invop_uninit(void)
+void
+dtrace_invop_uninit(void)
 {
 	dtrace_invop_jump_addr = 0;
 }

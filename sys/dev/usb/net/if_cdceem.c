@@ -38,48 +38,49 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/gsb_crc32.h>
-#include <sys/eventhandler.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/queue.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/eventhandler.h>
+#include <sys/gsb_crc32.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
+
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usbdi.h>
+#include <dev/usb/usbdi_util.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR cdceem_debug
+#define USB_DEBUG_VAR cdceem_debug
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
 #include <dev/usb/usb_msctest.h>
+#include <dev/usb/usb_process.h>
+
 #include "usb_if.h"
 
-#include <dev/usb/net/usb_ethernet.h>
+#define CDCEEM_FRAMES_MAX 1
+#define CDCEEM_ECHO_MAX 1024
 
-#define	CDCEEM_FRAMES_MAX	1
-#define	CDCEEM_ECHO_MAX		1024
-
-#define	CDCEEM_ECHO_PAYLOAD	\
-    "ICH DALEKOPIS FALSZUJE GDY PROBY XQV NIE WYTRZYMUJE 1234567890"
+#define CDCEEM_ECHO_PAYLOAD \
+	"ICH DALEKOPIS FALSZUJE GDY PROBY XQV NIE WYTRZYMUJE 1234567890"
 
 enum {
 	CDCEEM_BULK_RX,
@@ -88,22 +89,22 @@ enum {
 };
 
 struct cdceem_softc {
-	struct usb_ether	sc_ue;
-	struct mtx		sc_mtx;
-	int			sc_flags;
-	struct usb_xfer		*sc_xfer[CDCEEM_N_TRANSFER];
-	size_t			sc_echo_len;
-	char			sc_echo_buffer[CDCEEM_ECHO_MAX];
+	struct usb_ether sc_ue;
+	struct mtx sc_mtx;
+	int sc_flags;
+	struct usb_xfer *sc_xfer[CDCEEM_N_TRANSFER];
+	size_t sc_echo_len;
+	char sc_echo_buffer[CDCEEM_ECHO_MAX];
 };
 
-#define	CDCEEM_SC_FLAGS_ECHO_RESPONSE_PENDING	0x1
-#define	CDCEEM_SC_FLAGS_ECHO_PENDING		0x2
+#define CDCEEM_SC_FLAGS_ECHO_RESPONSE_PENDING 0x1
+#define CDCEEM_SC_FLAGS_ECHO_PENDING 0x2
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, cdceem, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB CDC EEM");
 static int cdceem_debug = 1;
-SYSCTL_INT(_hw_usb_cdceem, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &cdceem_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_cdceem, OID_AUTO, debug, CTLFLAG_RWTUN, &cdceem_debug, 0,
+    "Debug level");
 static int cdceem_send_echoes = 0;
 SYSCTL_INT(_hw_usb_cdceem, OID_AUTO, send_echoes, CTLFLAG_RWTUN,
     &cdceem_send_echoes, 0, "Send an Echo command");
@@ -111,43 +112,42 @@ static int cdceem_send_fake_crc = 0;
 SYSCTL_INT(_hw_usb_cdceem, OID_AUTO, send_fake_crc, CTLFLAG_RWTUN,
     &cdceem_send_fake_crc, 0, "Use 0xdeadbeef instead of CRC");
 
-#define	CDCEEM_DEBUG(S, X, ...)						\
-	do {								\
-		if (cdceem_debug > 1) {					\
-			device_printf(S->sc_ue.ue_dev, "%s: " X "\n",	\
-			    __func__, ## __VA_ARGS__);			\
-		}							\
+#define CDCEEM_DEBUG(S, X, ...)                                       \
+	do {                                                          \
+		if (cdceem_debug > 1) {                               \
+			device_printf(S->sc_ue.ue_dev, "%s: " X "\n", \
+			    __func__, ##__VA_ARGS__);                 \
+		}                                                     \
 	} while (0)
 
-#define	CDCEEM_WARN(S, X, ...)						\
-	do {								\
-		if (cdceem_debug > 0) {					\
-			device_printf(S->sc_ue.ue_dev,			\
-			    "WARNING: %s: " X "\n",			\
-			    __func__, ## __VA_ARGS__);			\
-		}							\
+#define CDCEEM_WARN(S, X, ...)                                                 \
+	do {                                                                   \
+		if (cdceem_debug > 0) {                                        \
+			device_printf(S->sc_ue.ue_dev, "WARNING: %s: " X "\n", \
+			    __func__, ##__VA_ARGS__);                          \
+		}                                                              \
 	} while (0)
 
-#define	CDCEEM_LOCK(X)				mtx_lock(&(X)->sc_mtx)
-#define	CDCEEM_UNLOCK(X)			mtx_unlock(&(X)->sc_mtx)
+#define CDCEEM_LOCK(X) mtx_lock(&(X)->sc_mtx)
+#define CDCEEM_UNLOCK(X) mtx_unlock(&(X)->sc_mtx)
 
-#define	CDCEEM_TYPE_CMD				(0x1 << 15)
+#define CDCEEM_TYPE_CMD (0x1 << 15)
 
-#define	CDCEEM_CMD_MASK				(0x7 << 11)
+#define CDCEEM_CMD_MASK (0x7 << 11)
 
-#define	CDCEEM_CMD_ECHO				(0x0 << 11)
-#define	CDCEEM_CMD_ECHO_RESPONSE		(0x1 << 11)
-#define	CDCEEM_CMD_SUSPEND_HINT			(0x2 << 11)
-#define	CDCEEM_CMD_RESPONSE_HINT		(0x3 << 11)
-#define	CDCEEM_CMD_RESPONSE_COMPLETE_HINT	(0x4 << 11)
-#define	CDCEEM_CMD_TICKLE			(0x5 << 11)
+#define CDCEEM_CMD_ECHO (0x0 << 11)
+#define CDCEEM_CMD_ECHO_RESPONSE (0x1 << 11)
+#define CDCEEM_CMD_SUSPEND_HINT (0x2 << 11)
+#define CDCEEM_CMD_RESPONSE_HINT (0x3 << 11)
+#define CDCEEM_CMD_RESPONSE_COMPLETE_HINT (0x4 << 11)
+#define CDCEEM_CMD_TICKLE (0x5 << 11)
 
-#define	CDCEEM_CMD_RESERVED			(0x1 << 14)
+#define CDCEEM_CMD_RESERVED (0x1 << 14)
 
-#define	CDCEEM_ECHO_LEN_MASK			0x3ff
+#define CDCEEM_ECHO_LEN_MASK 0x3ff
 
-#define	CDCEEM_DATA_CRC				(0x1 << 14)
-#define	CDCEEM_DATA_LEN_MASK			0x3fff
+#define CDCEEM_DATA_CRC (0x1 << 14)
+#define CDCEEM_DATA_LEN_MASK 0x3fff
 
 static device_probe_t cdceem_probe;
 static device_attach_t cdceem_attach;
@@ -165,7 +165,7 @@ static uether_fn_t cdceem_start;
 static uether_fn_t cdceem_setmulti;
 static uether_fn_t cdceem_setpromisc;
 
-static uint32_t	cdceem_m_crc32(struct mbuf *, uint32_t, uint32_t);
+static uint32_t cdceem_m_crc32(struct mbuf *, uint32_t, uint32_t);
 
 static const struct usb_config cdceem_config[CDCEEM_N_TRANSFER] = {
 	[CDCEEM_BULK_TX] = {
@@ -209,9 +209,8 @@ static driver_t cdceem_driver = {
 };
 
 static const STRUCT_USB_DUAL_ID cdceem_dual_devs[] = {
-	{USB_IFACE_CLASS(UICLASS_CDC),
-		USB_IFACE_SUBCLASS(UISUBCLASS_ETHERNET_EMULATION_MODEL),
-		0},
+	{ USB_IFACE_CLASS(UICLASS_CDC),
+	    USB_IFACE_SUBCLASS(UISUBCLASS_ETHERNET_EMULATION_MODEL), 0 },
 };
 
 DRIVER_MODULE(cdceem, uhub, cdceem_driver, NULL, NULL);
@@ -272,16 +271,16 @@ cdceem_attach(device_t dev)
 	error = usbd_transfer_setup(uaa->device, &iface_index, sc->sc_xfer,
 	    cdceem_config, CDCEEM_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error != 0) {
-		CDCEEM_WARN(sc,
-		    "allocating USB transfers failed, error %d", error);
+		CDCEEM_WARN(sc, "allocating USB transfers failed, error %d",
+		    error);
 		mtx_destroy(&sc->sc_mtx);
 		return (error);
 	}
 
 	/* Random MAC address. */
 	arc4rand(ue->ue_eaddr, ETHER_ADDR_LEN, 0);
-	ue->ue_eaddr[0] &= ~0x01;	/* unicast */
-	ue->ue_eaddr[0] |= 0x02;	/* locally administered */
+	ue->ue_eaddr[0] &= ~0x01; /* unicast */
+	ue->ue_eaddr[0] |= 0x02;  /* locally administered */
 
 	ue->ue_sc = sc;
 	ue->ue_dev = dev;
@@ -328,8 +327,10 @@ cdceem_handle_cmd(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 	usbd_xfer_status(xfer, &actlen, NULL, NULL, NULL);
 
 	if (hdr & CDCEEM_CMD_RESERVED) {
-		CDCEEM_WARN(sc, "received command header %#x "
-		    "with Reserved bit set; ignoring", hdr);
+		CDCEEM_WARN(sc,
+		    "received command header %#x "
+		    "with Reserved bit set; ignoring",
+		    hdr);
 		return;
 	}
 
@@ -340,8 +341,8 @@ cdceem_handle_cmd(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 
 		if (pktlen > (actlen - off)) {
 			CDCEEM_WARN(sc,
-			    "bad Echo length %d, should be at most %d",
-			    pktlen, actlen - off);
+			    "bad Echo length %d, should be at most %d", pktlen,
+			    actlen - off);
 			break;
 		}
 
@@ -371,7 +372,8 @@ cdceem_handle_cmd(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 		}
 
 		if (pktlen != sizeof(CDCEEM_ECHO_PAYLOAD)) {
-			CDCEEM_WARN(sc, "received Echo Response with bad "
+			CDCEEM_WARN(sc,
+			    "received Echo Response with bad "
 			    "length %hu, should be %zd",
 			    pktlen, sizeof(CDCEEM_ECHO_PAYLOAD));
 			break;
@@ -381,7 +383,7 @@ cdceem_handle_cmd(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 		off += pktlen;
 
 		if (memcmp(sc->sc_echo_buffer, CDCEEM_ECHO_PAYLOAD,
-		    sizeof(CDCEEM_ECHO_PAYLOAD)) != 0) {
+			sizeof(CDCEEM_ECHO_PAYLOAD)) != 0) {
 			CDCEEM_WARN(sc,
 			    "received Echo Response payload does not match");
 		} else {
@@ -437,8 +439,7 @@ cdceem_handle_data(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 
 	pktlen = hdr & CDCEEM_DATA_LEN_MASK;
 	CDCEEM_DEBUG(sc, "received Data, CRC %s, length %d",
-	    (hdr & CDCEEM_DATA_CRC) ? "valid" : "absent",
-	    pktlen);
+	    (hdr & CDCEEM_DATA_CRC) ? "valid" : "absent", pktlen);
 
 	if (pktlen < (ETHER_HDR_LEN + 4)) {
 		CDCEEM_WARN(sc,
@@ -466,8 +467,8 @@ cdceem_handle_data(struct usb_xfer *xfer, uint16_t hdr, int *offp)
 	pktlen -= 4; /* Subtract the CRC. */
 
 	if (pktlen > m->m_len) {
-		CDCEEM_WARN(sc, "buffer too small %d vs %d bytes",
-		    pktlen, m->m_len);
+		CDCEEM_WARN(sc, "buffer too small %d vs %d bytes", pktlen,
+		    m->m_len);
 		if_inc_counter(ifp, IFCOUNTER_IQDROPS, 1);
 		m_freem(m);
 		return;
@@ -512,8 +513,8 @@ cdceem_bulk_read_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		CDCEEM_DEBUG(sc,
-		    "received %u bytes in %u frames", actlen, aframes);
+		CDCEEM_DEBUG(sc, "received %u bytes in %u frames", actlen,
+		    aframes);
 
 		pc = usbd_xfer_get_frame(xfer, 0);
 		off = 0;
@@ -538,13 +539,13 @@ cdceem_bulk_read_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 
 			KASSERT(off <= actlen,
 			    ("%s: went past the buffer, off %d, actlen %d",
-			     __func__, off, actlen));
+				__func__, off, actlen));
 		}
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
 		CDCEEM_DEBUG(sc, "setup");
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		uether_rxflush(&sc->sc_ue);
@@ -580,7 +581,7 @@ cdceem_send_echo(struct usb_xfer *xfer, int *offp)
 
 	KASSERT(off + sizeof(hdr) + sizeof(CDCEEM_ECHO_PAYLOAD) < maxlen,
 	    ("%s: out of space; have %d, need %zd", __func__, maxlen,
-	    off + sizeof(hdr) + sizeof(CDCEEM_ECHO_PAYLOAD)));
+		off + sizeof(hdr) + sizeof(CDCEEM_ECHO_PAYLOAD)));
 
 	hdr = 0;
 	hdr |= CDCEEM_TYPE_CMD;
@@ -592,8 +593,7 @@ cdceem_send_echo(struct usb_xfer *xfer, int *offp)
 	usbd_copy_in(pc, off, &hdr, sizeof(hdr));
 	off += sizeof(hdr);
 
-	usbd_copy_in(pc, off, CDCEEM_ECHO_PAYLOAD,
-	    sizeof(CDCEEM_ECHO_PAYLOAD));
+	usbd_copy_in(pc, off, CDCEEM_ECHO_PAYLOAD, sizeof(CDCEEM_ECHO_PAYLOAD));
 	off += sizeof(CDCEEM_ECHO_PAYLOAD);
 
 	sc->sc_flags &= ~CDCEEM_SC_FLAGS_ECHO_PENDING;
@@ -616,7 +616,7 @@ cdceem_send_echo_response(struct usb_xfer *xfer, int *offp)
 
 	KASSERT(off + sizeof(hdr) + sc->sc_echo_len < maxlen,
 	    ("%s: out of space; have %d, need %zd", __func__, maxlen,
-	    off + sizeof(hdr) + sc->sc_echo_len));
+		off + sizeof(hdr) + sc->sc_echo_len));
 
 	CDCEEM_DEBUG(sc, "sending Echo Response, length %zd", sc->sc_echo_len);
 
@@ -664,10 +664,10 @@ cdceem_send_data(struct usb_xfer *xfer, int *offp)
 
 	KASSERT((m->m_pkthdr.len & CDCEEM_DATA_LEN_MASK) == m->m_pkthdr.len,
 	    ("%s: packet too long: %d, should be %d\n", __func__,
-	     m->m_pkthdr.len, m->m_pkthdr.len & CDCEEM_DATA_LEN_MASK));
+		m->m_pkthdr.len, m->m_pkthdr.len & CDCEEM_DATA_LEN_MASK));
 	KASSERT(off + sizeof(hdr) + m->m_pkthdr.len + 4 < maxlen,
 	    ("%s: out of space; have %d, need %zd", __func__, maxlen,
-	    off + sizeof(hdr) + m->m_pkthdr.len + 4));
+		off + sizeof(hdr) + m->m_pkthdr.len + 4));
 
 	CDCEEM_DEBUG(sc, "sending Data, length %d + 4", m->m_pkthdr.len);
 
@@ -718,28 +718,29 @@ cdceem_bulk_write_callback(struct usb_xfer *xfer, usb_error_t usb_error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 		usbd_xfer_status(xfer, &actlen, NULL, &aframes, NULL);
-		CDCEEM_DEBUG(sc, "transferred %u bytes in %u frames",
-		    actlen, aframes);
+		CDCEEM_DEBUG(sc, "transferred %u bytes in %u frames", actlen,
+		    aframes);
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
 		CDCEEM_DEBUG(sc, "setup");
-tr_setup:
+	tr_setup:
 
 		off = 0;
 		usbd_xfer_set_frame_offset(xfer, 0, 0);
 
 		if (sc->sc_flags & CDCEEM_SC_FLAGS_ECHO_PENDING) {
 			cdceem_send_echo(xfer, &off);
-		} else if (sc->sc_flags & CDCEEM_SC_FLAGS_ECHO_RESPONSE_PENDING) {
+		} else if (sc->sc_flags &
+		    CDCEEM_SC_FLAGS_ECHO_RESPONSE_PENDING) {
 			cdceem_send_echo_response(xfer, &off);
 		} else {
 			cdceem_send_data(xfer, &off);
 		}
 
 		KASSERT(off <= maxlen,
-		    ("%s: went past the buffer, off %d, maxlen %d",
-		     __func__, off, maxlen));
+		    ("%s: went past the buffer, off %d, maxlen %d", __func__,
+			off, maxlen));
 
 		if (off > 0) {
 			CDCEEM_DEBUG(sc, "starting transfer, length %d", off);

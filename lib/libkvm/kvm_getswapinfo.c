@@ -27,11 +27,11 @@
  */
 
 #include <sys/param.h>
-#include <sys/time.h>
-#include <sys/stat.h>
 #include <sys/blist.h>
 #include <sys/queue.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 
 #include <vm/swap_pager.h>
 #include <vm/vm_param.h>
@@ -40,53 +40,51 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <kvm.h>
+#include <limits.h>
 #include <nlist.h>
 #include <paths.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
 
 #include "kvm_private.h"
 
 static struct nlist kvm_swap_nl[] = {
-	{ .n_name = "_swtailq" },	/* list of swap devices and sizes */
-	{ .n_name = "_dmmax" },		/* maximum size of a swap block */
+	{ .n_name = "_swtailq" }, /* list of swap devices and sizes */
+	{ .n_name = "_dmmax" },	  /* maximum size of a swap block */
 	{ .n_name = NULL }
 };
 
-#define NL_SWTAILQ	0
-#define NL_DMMAX	1
+#define NL_SWTAILQ 0
+#define NL_DMMAX 1
 
 static int kvm_swap_nl_cached = 0;
-static int unswdev;  /* number of found swap dev's */
+static int unswdev; /* number of found swap dev's */
 static int dmmax;
 
-static int  kvm_getswapinfo_kvm(kvm_t *, struct kvm_swap *, int, int);
-static int  kvm_getswapinfo_sysctl(kvm_t *, struct kvm_swap *, int, int);
-static int  nlist_init(kvm_t *);
-static int  getsysctl(kvm_t *, const char *, void *, size_t);
+static int kvm_getswapinfo_kvm(kvm_t *, struct kvm_swap *, int, int);
+static int kvm_getswapinfo_sysctl(kvm_t *, struct kvm_swap *, int, int);
+static int nlist_init(kvm_t *);
+static int getsysctl(kvm_t *, const char *, void *, size_t);
 
 #define KREAD(kd, addr, obj) \
 	(kvm_read(kd, addr, (char *)(obj), sizeof(*obj)) != sizeof(*obj))
-#define	KGET(idx, var)							\
+#define KGET(idx, var) \
 	KGET2(kvm_swap_nl[(idx)].n_value, var, kvm_swap_nl[(idx)].n_name)
-#define KGET2(addr, var, msg)						\
-	if (KREAD(kd, (u_long)(addr), (var))) {				\
-		_kvm_err(kd, kd->program, "cannot read %s", msg);	\
-		return (-1);						\
+#define KGET2(addr, var, msg)                                     \
+	if (KREAD(kd, (u_long)(addr), (var))) {                   \
+		_kvm_err(kd, kd->program, "cannot read %s", msg); \
+		return (-1);                                      \
 	}
 
-#define GETSWDEVNAME(dev, str, flags)					\
-	if (dev == NODEV) {						\
-		strlcpy(str, "[NFS swap]", sizeof(str));		\
-	} else {							\
-		snprintf(						\
-		    str, sizeof(str),"%s%s",				\
-		    ((flags & SWIF_DEV_PREFIX) ? _PATH_DEV : ""),	\
-		    devname(dev, S_IFCHR)				\
-		);							\
+#define GETSWDEVNAME(dev, str, flags)                             \
+	if (dev == NODEV) {                                       \
+		strlcpy(str, "[NFS swap]", sizeof(str));          \
+	} else {                                                  \
+		snprintf(str, sizeof(str), "%s%s",                \
+		    ((flags & SWIF_DEV_PREFIX) ? _PATH_DEV : ""), \
+		    devname(dev, S_IFCHR));                       \
 	}
 
 int
@@ -98,7 +96,7 @@ kvm_getswapinfo(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max, int flags)
 	 */
 	if (kd == NULL) {
 		kvm_swap_nl_cached = 0;
-		return(0);
+		return (0);
 	}
 
 	if (ISALIVE(kd)) {
@@ -138,7 +136,7 @@ kvm_getswapinfo_kvm(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
 			swap_ary[i].ksw_used = swinfo.sw_used;
 			swap_ary[i].ksw_flags = swinfo.sw_flags;
 			GETSWDEVNAME(swinfo.sw_dev, swap_ary[i].ksw_devname,
-			     flags);
+			    flags);
 		}
 		tot.ksw_total += ttl;
 		tot.ksw_used += swinfo.sw_used;
@@ -150,14 +148,13 @@ kvm_getswapinfo_kvm(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
 	if (i >= 0)
 		swap_ary[i] = tot;
 
-        return(i);
+	return (i);
 }
 
-#define	GETSYSCTL(kd, name, var)					\
-	    getsysctl(kd, name, &(var), sizeof(var))
+#define GETSYSCTL(kd, name, var) getsysctl(kd, name, &(var), sizeof(var))
 
 /* The maximum MIB length for vm.swap_info and an additional device number */
-#define	SWI_MAXMIB	3
+#define SWI_MAXMIB 3
 
 int
 kvm_getswapinfo_sysctl(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
@@ -190,12 +187,14 @@ kvm_getswapinfo_sysctl(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
 			return -1;
 		}
 		if (len != sizeof(xsd)) {
-			_kvm_err(kd, kd->program, "struct xswdev has unexpected "
+			_kvm_err(kd, kd->program,
+			    "struct xswdev has unexpected "
 			    "size;  kernel and libkvm out of sync?");
 			return -1;
 		}
 		if (xsd.xsw_version != XSWDEV_VERSION) {
-			_kvm_err(kd, kd->program, "struct xswdev version "
+			_kvm_err(kd, kd->program,
+			    "struct xswdev version "
 			    "mismatch; kernel and libkvm out of sync?");
 			return -1;
 		}
@@ -207,7 +206,7 @@ kvm_getswapinfo_sysctl(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
 			swap_ary[unswdev].ksw_used = xsd.xsw_used;
 			swap_ary[unswdev].ksw_flags = xsd.xsw_flags;
 			GETSWDEVNAME(xsd.xsw_dev, swap_ary[unswdev].ksw_devname,
-			     flags);
+			    flags);
 		}
 		tot.ksw_total += ttl;
 		tot.ksw_used += xsd.xsw_used;
@@ -219,7 +218,7 @@ kvm_getswapinfo_sysctl(kvm_t *kd, struct kvm_swap *swap_ary, int swap_max,
 	if (ti >= 0)
 		swap_ary[ti] = tot;
 
-        return(ti);
+	return (ti);
 }
 
 static int
@@ -260,7 +259,8 @@ getsysctl(kvm_t *kd, const char *name, void *ptr, size_t len)
 		return (0);
 	}
 	if (nlen != len) {
-		_kvm_err(kd, kd->program, "sysctl %s has unexpected size", name);
+		_kvm_err(kd, kd->program, "sysctl %s has unexpected size",
+		    name);
 		return (0);
 	}
 	return (1);

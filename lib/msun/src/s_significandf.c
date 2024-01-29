@@ -19,5 +19,5 @@
 float
 significandf(float x)
 {
-	return scalbf(x,(float) -ilogbf(x));
+	return scalbf(x, (float)-ilogbf(x));
 }

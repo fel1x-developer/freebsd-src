@@ -35,28 +35,27 @@
 #include "opt_hid.h"
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/sx.h>
+#include <sys/sysctl.h>
 
-#define	HID_DEBUG_VAR	hconf_debug
+#define HID_DEBUG_VAR hconf_debug
+#include <dev/hid/hconf.h>
 #include <dev/hid/hid.h>
 #include <dev/hid/hidbus.h>
-
-#include <dev/hid/hconf.h>
 
 #ifdef HID_DEBUG
 static int hconf_debug = 0;
 
 static SYSCTL_NODE(_hw_hid, OID_AUTO, hconf, CTLFLAG_RW, 0,
     "Digitizer configuration top-level collection");
-SYSCTL_INT(_hw_hid_hconf, OID_AUTO, debug, CTLFLAG_RWTUN,
-    &hconf_debug, 1, "Debug level");
+SYSCTL_INT(_hw_hid_hconf, OID_AUTO, debug, CTLFLAG_RWTUN, &hconf_debug, 1,
+    "Debug level");
 #endif
 
 enum feature_control_type {
@@ -67,10 +66,10 @@ enum feature_control_type {
 };
 
 struct feature_control_descr {
-	const char	*name;
-	const char	*descr;
-	uint16_t	usage;
-	u_int		value;
+	const char *name;
+	const char *descr;
+	uint16_t usage;
+	u_int value;
 } feature_control_descrs[] = {
 	[INPUT_MODE] = {
 		.name = "input_mode",
@@ -93,30 +92,30 @@ struct feature_control_descr {
 };
 
 struct feature_control {
-	u_int			val;
-	struct hid_location	loc;
-	hid_size_t		rlen;
-	uint8_t			rid;
+	u_int val;
+	struct hid_location loc;
+	hid_size_t rlen;
+	uint8_t rid;
 };
 
 struct hconf_softc {
-	device_t		dev;
-	struct sx		lock;
+	device_t dev;
+	struct sx lock;
 
-	struct feature_control	feature_controls[CONTROLS_COUNT];
+	struct feature_control feature_controls[CONTROLS_COUNT];
 };
 
-static device_probe_t		hconf_probe;
-static device_attach_t		hconf_attach;
-static device_detach_t		hconf_detach;
-static device_resume_t		hconf_resume;
+static device_probe_t hconf_probe;
+static device_attach_t hconf_attach;
+static device_detach_t hconf_detach;
+static device_resume_t hconf_resume;
 
 static device_method_t hconf_methods[] = {
 
-	DEVMETHOD(device_probe,		hconf_probe),
-	DEVMETHOD(device_attach,	hconf_attach),
-	DEVMETHOD(device_detach,	hconf_detach),
-	DEVMETHOD(device_resume,	hconf_resume),
+	DEVMETHOD(device_probe, hconf_probe),
+	DEVMETHOD(device_attach, hconf_attach),
+	DEVMETHOD(device_detach, hconf_detach),
+	DEVMETHOD(device_resume, hconf_resume),
 
 	DEVMETHOD_END
 };
@@ -160,16 +159,16 @@ hconf_set_feature_control(struct hconf_softc *sc, int ctrl_id, u_int val)
 		if (ofc->rid != fc->rid)
 			continue;
 		KASSERT(fc->rlen == ofc->rlen,
-		    ("different lengths for report %d: %d vs %d\n",
-		    fc->rid, fc->rlen, ofc->rlen));
+		    ("different lengths for report %d: %d vs %d\n", fc->rid,
+			fc->rlen, ofc->rlen));
 		hid_put_udata(fbuf + 1, ofc->rlen - 1, &ofc->loc,
 		    i == ctrl_id ? val : ofc->val);
 	}
 
 	fbuf[0] = fc->rid;
 
-	error = hid_set_report(sc->dev, fbuf, fc->rlen,
-	    HID_FEATURE_REPORT, fc->rid);
+	error = hid_set_report(sc->dev, fbuf, fc->rlen, HID_FEATURE_REPORT,
+	    fc->rid);
 	if (error == 0)
 		fc->val = val;
 
@@ -205,7 +204,6 @@ hconf_feature_control_handler(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-
 static int
 hconf_parse_feature(struct feature_control *fc, uint8_t tlc_index,
     uint16_t usage, void *d_ptr, hid_size_t d_len)
@@ -213,7 +211,7 @@ hconf_parse_feature(struct feature_control *fc, uint8_t tlc_index,
 	uint32_t flags;
 
 	if (!hidbus_locate(d_ptr, d_len, HID_USAGE2(HUP_DIGITIZERS, usage),
-	    hid_feature, tlc_index, 0, &fc->loc, &flags, &fc->rid, NULL))
+		hid_feature, tlc_index, 0, &fc->loc, &flags, &fc->rid, NULL))
 		return (ENOENT);
 
 	if ((flags & (HIO_VARIABLE | HIO_RELATIVE)) != HIO_VARIABLE)
@@ -251,8 +249,10 @@ hconf_attach(device_t dev)
 
 	error = hid_get_report_descr(dev, &d_ptr, &d_len);
 	if (error) {
-		device_printf(dev, "could not retrieve report descriptor from "
-		    "device: %d\n", error);
+		device_printf(dev,
+		    "could not retrieve report descriptor from "
+		    "device: %d\n",
+		    error);
 		return (ENXIO);
 	}
 
@@ -266,8 +266,8 @@ hconf_attach(device_t dev)
 		if (sc->feature_controls[i].rlen > 1) {
 			SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
 			    feature_control_descrs[i].name,
-			    CTLTYPE_UINT | CTLFLAG_RW,
-			    sc, i, hconf_feature_control_handler, "I",
+			    CTLTYPE_UINT | CTLFLAG_RW, sc, i,
+			    hconf_feature_control_handler, "I",
 			    feature_control_descrs[i].descr);
 		}
 		sc->feature_controls[i].val = feature_control_descrs[i].value;

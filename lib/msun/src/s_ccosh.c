@@ -64,7 +64,7 @@ ccosh(double complex z)
 	if (ix < 0x7ff00000 && iy < 0x7ff00000) {
 		if ((iy | ly) == 0)
 			return (CMPLX(cosh(x), x * y));
-		if (ix < 0x40360000)	/* |x| < 22: normal case */
+		if (ix < 0x40360000) /* |x| < 22: normal case */
 			return (CMPLX(cosh(x) * cos(y), sinh(x) * sin(y)));
 
 		/* |x| >= 22, so cosh(x) ~= exp(|x|) */
@@ -93,7 +93,7 @@ ccosh(double complex z)
 	 * The sign of 0 in the result is unspecified.  Choice = product
 	 * of the signs of the argument.
 	 */
-	if ((ix | lx) == 0)		/* && iy >= 0x7ff00000 */
+	if ((ix | lx) == 0) /* && iy >= 0x7ff00000 */
 		return (CMPLX(y - y, x * copysign(0, y)));
 
 	/*
@@ -103,7 +103,7 @@ ccosh(double complex z)
 	 * The sign of 0 in the result is unspecified.  Choice = product
 	 * of the signs of the argument.
 	 */
-	if ((iy | ly) == 0)		/* && ix >= 0x7ff00000 */
+	if ((iy | ly) == 0) /* && ix >= 0x7ff00000 */
 		return (CMPLX(x * x, copysign(0, x) * y));
 
 	/*
@@ -114,7 +114,7 @@ ccosh(double complex z)
 	 * Optionally raises the invalid floating-point exception for finite
 	 * nonzero x.  Choice = don't raise (except for signaling NaNs).
 	 */
-	if (ix < 0x7ff00000)		/* && iy >= 0x7ff00000 */
+	if (ix < 0x7ff00000) /* && iy >= 0x7ff00000 */
 		return (CMPLX(y - y, x * (y - y)));
 
 	/*

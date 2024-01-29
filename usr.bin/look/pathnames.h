@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_WORDS	"/usr/share/dict/words"
+#define _PATH_WORDS "/usr/share/dict/words"

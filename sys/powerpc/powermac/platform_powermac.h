@@ -31,4 +31,4 @@
 typedef void (*powermac_tb_disable_t)(device_t, bool);
 extern void powermac_register_timebase(device_t, powermac_tb_disable_t);
 
-#endif	/* _PLATFORM_POWERMAC_H_ */
+#endif /* _PLATFORM_POWERMAC_H_ */

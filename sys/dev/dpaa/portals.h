@@ -25,31 +25,31 @@
  */
 
 typedef struct dpaa_portal {
-	int		dp_irid;		/* interrupt rid */
-	struct resource	*dp_ires;		/* interrupt resource */
+	int dp_irid;		  /* interrupt rid */
+	struct resource *dp_ires; /* interrupt resource */
 
-	bool		dp_regs_mapped;		/* register mapping status */
+	bool dp_regs_mapped; /* register mapping status */
 
-	t_Handle	dp_ph;			/* portal's handle */
-	vm_paddr_t	dp_ce_pa;		/* portal's CE area PA */
-	vm_paddr_t	dp_ci_pa;		/* portal's CI area PA */
-	uint32_t	dp_ce_size;		/* portal's CE area size */
-	uint32_t	dp_ci_size;		/* portal's CI area size */
-	uintptr_t	dp_intr_num;		/* portal's intr. number */
+	t_Handle dp_ph;	       /* portal's handle */
+	vm_paddr_t dp_ce_pa;   /* portal's CE area PA */
+	vm_paddr_t dp_ci_pa;   /* portal's CI area PA */
+	uint32_t dp_ce_size;   /* portal's CE area size */
+	uint32_t dp_ci_size;   /* portal's CI area size */
+	uintptr_t dp_intr_num; /* portal's intr. number */
 } dpaa_portal_t;
 
 struct dpaa_portals_softc {
-	device_t	sc_dev;			/* device handle */
-	vm_paddr_t	sc_dp_pa;		/* portal's PA */
-	uint32_t	sc_dp_size;		/* portal's size */
-	int		sc_rrid[2];		/* memory rid */
-	struct resource	*sc_rres[2];		/* memory resource */
-	dpaa_portal_t	sc_dp[MAXCPU];
+	device_t sc_dev;	     /* device handle */
+	vm_paddr_t sc_dp_pa;	     /* portal's PA */
+	uint32_t sc_dp_size;	     /* portal's size */
+	int sc_rrid[2];		     /* memory rid */
+	struct resource *sc_rres[2]; /* memory resource */
+	dpaa_portal_t sc_dp[MAXCPU];
 };
 
 struct dpaa_portals_devinfo {
-	struct resource_list	di_res;
-	int			di_intr_rid;
+	struct resource_list di_res;
+	int di_intr_rid;
 };
 
 int bman_portals_attach(device_t);

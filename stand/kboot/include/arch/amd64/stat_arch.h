@@ -16,7 +16,7 @@ struct host_kstat {
 	host_mode_t st_mode;
 	host_uid_t st_uid;
 	host_gid_t st_gid;
-	unsigned int    __pad0;
+	unsigned int __pad0;
 	host_dev_t st_rdev;
 	host_off_t st_size;
 	host_blksize_t st_blksize;
@@ -30,4 +30,3 @@ struct host_kstat {
 	long st_ctime_nsec;
 	long __pad_for_future[3];
 };
-

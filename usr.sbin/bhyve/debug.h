@@ -28,18 +28,17 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 
-
 extern int raw_stdio;
 
-#define FPRINTLN(filep, fmt, arg...)				\
-	do {							\
-		if (raw_stdio)					\
-			fprintf(filep, fmt "\r\n", ##arg);	\
-		else						\
-			fprintf(filep, fmt "\n", ##arg);	\
+#define FPRINTLN(filep, fmt, arg...)                       \
+	do {                                               \
+		if (raw_stdio)                             \
+			fprintf(filep, fmt "\r\n", ##arg); \
+		else                                       \
+			fprintf(filep, fmt "\n", ##arg);   \
 	} while (0)
 
-#define PRINTLN(fmt, arg...)	FPRINTLN(stdout, fmt, ##arg)
-#define EPRINTLN(fmt, arg...)	FPRINTLN(stderr, fmt, ##arg)
+#define PRINTLN(fmt, arg...) FPRINTLN(stdout, fmt, ##arg)
+#define EPRINTLN(fmt, arg...) FPRINTLN(stderr, fmt, ##arg)
 
 #endif

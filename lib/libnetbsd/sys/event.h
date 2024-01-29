@@ -27,7 +27,7 @@
  */
 
 #ifndef _LIBNETBSD_SYS_EVENT_H_
-#define	_LIBNETBSD_SYS_EVENT_H_
+#define _LIBNETBSD_SYS_EVENT_H_
 
 /*
  * kqueue on FreeBSD requires sys/event.h, which in turn uses uintptr_t
@@ -35,7 +35,6 @@
  * pull in sys/types.h as part of event.h.
  */
 #include <sys/types.h>
-
 #include_next <sys/event.h>
 
 #endif

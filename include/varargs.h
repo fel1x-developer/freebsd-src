@@ -27,7 +27,7 @@
  */
 
 #ifndef _VARARGS_H_
-#define	_VARARGS_H_
+#define _VARARGS_H_
 
 #error "<varargs.h> is obsolete."
 #error "Change your code to use <stdarg.h> instead."

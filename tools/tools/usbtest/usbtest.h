@@ -24,16 +24,16 @@
  */
 
 #ifndef _USBTEST_H_
-#define	_USBTEST_H_
+#define _USBTEST_H_
 
-#define	USB_DEVICES_MAX		128
-#define	USB_TS_MAX_LEVELS	8
+#define USB_DEVICES_MAX 128
+#define USB_TS_MAX_LEVELS 8
 
 struct libusb20_device;
 
 struct bps {
 	uint32_t bytes;
-	time_t	time;
+	time_t time;
 };
 
 struct uaddr {
@@ -62,7 +62,7 @@ extern void find_usb_endpoints(struct libusb20_device *, uint8_t, uint8_t,
     uint8_t, uint8_t, uint8_t *, uint8_t *, uint8_t *, uint8_t);
 extern void get_string(char *, int);
 extern int get_integer(void);
-extern uint8_t usb_ts_show_menu(uint8_t, const char *, const char *,...);
+extern uint8_t usb_ts_show_menu(uint8_t, const char *, const char *, ...);
 extern int32_t usb_ts_rand_noise(void);
 
-#endif				/* _USBTEST_H_ */
+#endif /* _USBTEST_H_ */

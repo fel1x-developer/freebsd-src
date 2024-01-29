@@ -31,42 +31,43 @@
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "cn23xx_pf_device.h"
 #include "lio_bsd.h"
 #include "lio_common.h"
-#include "lio_droq.h"
-#include "lio_iq.h"
-#include "lio_response_manager.h"
-#include "lio_device.h"
-#include "lio_network.h"
 #include "lio_ctrl.h"
-#include "cn23xx_pf_device.h"
+#include "lio_device.h"
+#include "lio_droq.h"
 #include "lio_image.h"
 #include "lio_ioctl.h"
+#include "lio_iq.h"
 #include "lio_main.h"
+#include "lio_network.h"
+#include "lio_response_manager.h"
 #include "lio_rxtx.h"
 
-static int	lio_set_rx_csum(if_t ifp, uint32_t data);
-static int	lio_set_tso4(if_t ifp);
-static int	lio_set_tso6(if_t ifp);
-static int	lio_set_lro(if_t ifp);
-static int	lio_change_mtu(if_t ifp, int new_mtu);
-static int	lio_set_mcast_list(if_t ifp);
-static inline enum	lio_ifflags lio_get_new_flags(if_t ifp);
+static int lio_set_rx_csum(if_t ifp, uint32_t data);
+static int lio_set_tso4(if_t ifp);
+static int lio_set_tso6(if_t ifp);
+static int lio_set_lro(if_t ifp);
+static int lio_change_mtu(if_t ifp, int new_mtu);
+static int lio_set_mcast_list(if_t ifp);
+static inline enum lio_ifflags lio_get_new_flags(if_t ifp);
 
 static inline bool
 lio_is_valid_ether_addr(const uint8_t *addr)
 {
 
-	return (!(0x01 & addr[0]) && !((addr[0] + addr[1] + addr[2] + addr[3] +
-					addr[4] + addr[5]) == 0x00));
+	return (!(0x01 & addr[0]) &&
+	    !((addr[0] + addr[1] + addr[2] + addr[3] + addr[4] + addr[5]) ==
+		0x00));
 }
 
 static int
 lio_change_dev_flags(if_t ifp)
 {
-	struct lio_ctrl_pkt	nctrl;
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
+	struct lio_ctrl_pkt nctrl;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
 	int ret = 0;
 
 	bzero(&nctrl, sizeof(struct lio_ctrl_pkt));
@@ -95,9 +96,9 @@ lio_change_dev_flags(if_t ifp)
 int
 lio_ioctl(if_t ifp, u_long cmd, caddr_t data)
 {
-	struct lio	*lio = if_getsoftc(ifp);
-	struct ifreq	*ifrequest = (struct ifreq *)data;
-	int	error = 0;
+	struct lio *lio = if_getsoftc(ifp);
+	struct ifreq *ifrequest = (struct ifreq *)data;
+	int error = 0;
 
 	switch (cmd) {
 	case SIOCSIFADDR:
@@ -118,7 +119,7 @@ lio_ioctl(if_t ifp, u_long cmd, caddr_t data)
 					error = lio_change_dev_flags(ifp);
 			} else {
 				if (!(atomic_load_acq_int(&lio->ifstate) &
-				      LIO_IFSTATE_DETACH))
+					LIO_IFSTATE_DETACH))
 					lio_open(lio);
 			}
 		} else {
@@ -143,63 +144,58 @@ lio_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		lio_dev_dbg(lio->oct_dev, "ioctl: SIOCGIFXMEDIA\n");
 		error = ifmedia_ioctl(ifp, ifrequest, &lio->ifmedia, cmd);
 		break;
-	case SIOCSIFCAP:
-		{
-			int	features = ifrequest->ifr_reqcap ^
-					if_getcapenable(ifp);
+	case SIOCSIFCAP: {
+		int features = ifrequest->ifr_reqcap ^ if_getcapenable(ifp);
 
-			lio_dev_dbg(lio->oct_dev, "ioctl: SIOCSIFCAP (Set Capabilities)\n");
+		lio_dev_dbg(lio->oct_dev,
+		    "ioctl: SIOCSIFCAP (Set Capabilities)\n");
 
-			if (!features)
-				break;
-
-			if (features & IFCAP_TXCSUM) {
-				if_togglecapenable(ifp, IFCAP_TXCSUM);
-				if (if_getcapenable(ifp) & IFCAP_TXCSUM)
-					if_sethwassistbits(ifp, (CSUM_TCP |
-								 CSUM_UDP |
-								 CSUM_IP), 0);
-				else
-					if_sethwassistbits(ifp, 0,
-							(CSUM_TCP | CSUM_UDP |
-							 CSUM_IP));
-			}
-			if (features & IFCAP_TXCSUM_IPV6) {
-				if_togglecapenable(ifp, IFCAP_TXCSUM_IPV6);
-				if (if_getcapenable(ifp) & IFCAP_TXCSUM_IPV6)
-					if_sethwassistbits(ifp, (CSUM_UDP_IPV6 |
-							   CSUM_TCP_IPV6), 0);
-				else
-					if_sethwassistbits(ifp, 0,
-							   (CSUM_UDP_IPV6 |
-							    CSUM_TCP_IPV6));
-			}
-			if (features & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6))
-				error |= lio_set_rx_csum(ifp, (features &
-							       (IFCAP_RXCSUM |
-							 IFCAP_RXCSUM_IPV6)));
-
-			if (features & IFCAP_TSO4)
-				error |= lio_set_tso4(ifp);
-
-			if (features & IFCAP_TSO6)
-				error |= lio_set_tso6(ifp);
-
-			if (features & IFCAP_LRO)
-				error |= lio_set_lro(ifp);
-
-			if (features & IFCAP_VLAN_HWTAGGING)
-				if_togglecapenable(ifp, IFCAP_VLAN_HWTAGGING);
-
-			if (features & IFCAP_VLAN_HWFILTER)
-				if_togglecapenable(ifp, IFCAP_VLAN_HWFILTER);
-
-			if (features & IFCAP_VLAN_HWTSO)
-				if_togglecapenable(ifp, IFCAP_VLAN_HWTSO);
-
-			VLAN_CAPABILITIES(ifp);
+		if (!features)
 			break;
+
+		if (features & IFCAP_TXCSUM) {
+			if_togglecapenable(ifp, IFCAP_TXCSUM);
+			if (if_getcapenable(ifp) & IFCAP_TXCSUM)
+				if_sethwassistbits(ifp,
+				    (CSUM_TCP | CSUM_UDP | CSUM_IP), 0);
+			else
+				if_sethwassistbits(ifp, 0,
+				    (CSUM_TCP | CSUM_UDP | CSUM_IP));
 		}
+		if (features & IFCAP_TXCSUM_IPV6) {
+			if_togglecapenable(ifp, IFCAP_TXCSUM_IPV6);
+			if (if_getcapenable(ifp) & IFCAP_TXCSUM_IPV6)
+				if_sethwassistbits(ifp,
+				    (CSUM_UDP_IPV6 | CSUM_TCP_IPV6), 0);
+			else
+				if_sethwassistbits(ifp, 0,
+				    (CSUM_UDP_IPV6 | CSUM_TCP_IPV6));
+		}
+		if (features & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6))
+			error |= lio_set_rx_csum(ifp,
+			    (features & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)));
+
+		if (features & IFCAP_TSO4)
+			error |= lio_set_tso4(ifp);
+
+		if (features & IFCAP_TSO6)
+			error |= lio_set_tso6(ifp);
+
+		if (features & IFCAP_LRO)
+			error |= lio_set_lro(ifp);
+
+		if (features & IFCAP_VLAN_HWTAGGING)
+			if_togglecapenable(ifp, IFCAP_VLAN_HWTAGGING);
+
+		if (features & IFCAP_VLAN_HWFILTER)
+			if_togglecapenable(ifp, IFCAP_VLAN_HWFILTER);
+
+		if (features & IFCAP_VLAN_HWTSO)
+			if_togglecapenable(ifp, IFCAP_VLAN_HWTSO);
+
+		VLAN_CAPABILITIES(ifp);
+		break;
+	}
 	default:
 		lio_dev_dbg(lio->oct_dev, "ioctl: UNKNOWN (0x%X)\n", (int)cmd);
 		error = ether_ioctl(ifp, cmd, data);
@@ -212,7 +208,7 @@ lio_ioctl(if_t ifp, u_long cmd, caddr_t data)
 static int
 lio_set_tso4(if_t ifp)
 {
-	struct lio	*lio = if_getsoftc(ifp);
+	struct lio *lio = if_getsoftc(ifp);
 
 	if (if_getcapabilities(ifp) & IFCAP_TSO4) {
 		if_togglecapenable(ifp, IFCAP_TSO4);
@@ -231,7 +227,7 @@ lio_set_tso4(if_t ifp)
 static int
 lio_set_tso6(if_t ifp)
 {
-	struct lio	*lio = if_getsoftc(ifp);
+	struct lio *lio = if_getsoftc(ifp);
 
 	if (if_getcapabilities(ifp) & IFCAP_TSO6) {
 		if_togglecapenable(ifp, IFCAP_TSO6);
@@ -250,8 +246,8 @@ lio_set_tso6(if_t ifp)
 static int
 lio_set_rx_csum(if_t ifp, uint32_t data)
 {
-	struct lio	*lio = if_getsoftc(ifp);
-	int	ret = 0;
+	struct lio *lio = if_getsoftc(ifp);
+	int ret = 0;
 
 	if (if_getcapabilities(ifp) & (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6)) {
 		if_togglecapenable(ifp, (IFCAP_RXCSUM | IFCAP_RXCSUM_IPV6));
@@ -261,13 +257,13 @@ lio_set_rx_csum(if_t ifp, uint32_t data)
 			if ((if_getcapabilities(ifp) & IFCAP_LRO) &&
 			    (if_getcapenable(ifp) & IFCAP_LRO)) {
 				ret = lio_set_feature(ifp, LIO_CMD_LRO_DISABLE,
-						      LIO_LROIPV4 |
-						      LIO_LROIPV6);
+				    LIO_LROIPV4 | LIO_LROIPV6);
 				if_togglecapenable(ifp, IFCAP_LRO);
 			}
 		}
 	} else {
-		lio_dev_info(lio->oct_dev, "Rx checksum offload capability not supported\n");
+		lio_dev_info(lio->oct_dev,
+		    "Rx checksum offload capability not supported\n");
 		return (ENODEV);
 	}
 
@@ -277,8 +273,8 @@ lio_set_rx_csum(if_t ifp, uint32_t data)
 static int
 lio_set_lro(if_t ifp)
 {
-	struct lio	*lio = if_getsoftc(ifp);
-	int	ret = 0;
+	struct lio *lio = if_getsoftc(ifp);
+	int ret = 0;
 
 	if (!(if_getcapabilities(ifp) & IFCAP_LRO)) {
 		lio_dev_info(lio->oct_dev, "LRO capability not supported\n");
@@ -291,15 +287,15 @@ lio_set_lro(if_t ifp)
 		if_togglecapenable(ifp, IFCAP_LRO);
 
 		if (lio_hwlro)
-			ret = lio_set_feature(ifp, LIO_CMD_LRO_ENABLE, LIO_LROIPV4 |
-					      LIO_LROIPV6);
+			ret = lio_set_feature(ifp, LIO_CMD_LRO_ENABLE,
+			    LIO_LROIPV4 | LIO_LROIPV6);
 
 	} else if (if_getcapenable(ifp) & IFCAP_LRO) {
 		if_togglecapenable(ifp, IFCAP_LRO);
 
 		if (lio_hwlro)
-			ret = lio_set_feature(ifp, LIO_CMD_LRO_DISABLE, LIO_LROIPV4 |
-					      LIO_LROIPV6);
+			ret = lio_set_feature(ifp, LIO_CMD_LRO_DISABLE,
+			    LIO_LROIPV4 | LIO_LROIPV6);
 	} else
 		lio_dev_info(lio->oct_dev, "LRO requires RXCSUM");
 
@@ -309,14 +305,15 @@ lio_set_lro(if_t ifp)
 static void
 lio_mtu_ctl_callback(struct octeon_device *oct, uint32_t status, void *buf)
 {
-	struct lio_soft_command	*sc = buf;
-	volatile int		*mtu_sc_ctx;
+	struct lio_soft_command *sc = buf;
+	volatile int *mtu_sc_ctx;
 
 	mtu_sc_ctx = sc->ctxptr;
 
 	if (status) {
-		lio_dev_err(oct, "MTU updation ctl instruction failed. Status: %llx\n",
-			    LIO_CAST64(status));
+		lio_dev_err(oct,
+		    "MTU updation ctl instruction failed. Status: %llx\n",
+		    LIO_CAST64(status));
 		*mtu_sc_ctx = -1;
 		/*
 		 * This barrier is required to be sure that the
@@ -339,12 +336,12 @@ lio_mtu_ctl_callback(struct octeon_device *oct, uint32_t status, void *buf)
 static int
 lio_change_mtu(if_t ifp, int new_mtu)
 {
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	struct lio_soft_command	*sc;
-	union octeon_cmd	*ncmd;
-	volatile int		*mtu_sc_ctx;
-	int	retval = 0;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_soft_command *sc;
+	union octeon_cmd *ncmd;
+	volatile int *mtu_sc_ctx;
+	int retval = 0;
 
 	if (lio->mtu == new_mtu)
 		return (0);
@@ -355,13 +352,13 @@ lio_change_mtu(if_t ifp, int new_mtu)
 	 */
 	if ((new_mtu < LIO_MIN_MTU_SIZE) || (new_mtu > LIO_MAX_MTU_SIZE)) {
 		lio_dev_err(oct, "Invalid MTU: %d\n", new_mtu);
-		lio_dev_err(oct, "Valid range %d and %d\n",
-			    LIO_MIN_MTU_SIZE, LIO_MAX_MTU_SIZE);
+		lio_dev_err(oct, "Valid range %d and %d\n", LIO_MIN_MTU_SIZE,
+		    LIO_MAX_MTU_SIZE);
 		return (EINVAL);
 	}
 
 	sc = lio_alloc_soft_command(oct, OCTEON_CMD_SIZE, 16,
-				    sizeof(*mtu_sc_ctx));
+	    sizeof(*mtu_sc_ctx));
 	if (sc == NULL)
 		return (ENOMEM);
 
@@ -378,8 +375,8 @@ lio_change_mtu(if_t ifp, int new_mtu)
 
 	sc->iq_no = lio->linfo.txpciq[0].s.q_no;
 
-	lio_prepare_soft_command(oct, sc, LIO_OPCODE_NIC,
-				 LIO_OPCODE_NIC_CMD, 0, 0, 0);
+	lio_prepare_soft_command(oct, sc, LIO_OPCODE_NIC, LIO_OPCODE_NIC_CMD, 0,
+	    0, 0);
 
 	sc->callback = lio_mtu_ctl_callback;
 	sc->callback_arg = sc;
@@ -388,7 +385,7 @@ lio_change_mtu(if_t ifp, int new_mtu)
 	retval = lio_send_soft_command(oct, sc);
 	if (retval == LIO_IQ_SEND_FAILED) {
 		lio_dev_info(oct,
-			     "Failed to send MTU update Control message\n");
+		    "Failed to send MTU update Control message\n");
 		retval = EBUSY;
 		goto mtu_updation_failed;
 	}
@@ -404,13 +401,13 @@ lio_change_mtu(if_t ifp, int new_mtu)
 		goto mtu_updation_failed;
 	}
 	lio_dev_info(oct, "MTU Changed from %d to %d\n", if_getmtu(ifp),
-		     new_mtu);
+	    new_mtu);
 	if_setmtu(ifp, new_mtu);
 	lio->mtu = new_mtu;
-	retval = 0;			/*
-				         * this updation is make sure that LIO_IQ_SEND_STOP case
-				         * also success
-				         */
+	retval = 0; /*
+		     * this updation is make sure that LIO_IQ_SEND_STOP case
+		     * also success
+		     */
 
 mtu_updation_failed:
 	lio_free_soft_command(oct, sc);
@@ -422,10 +419,10 @@ mtu_updation_failed:
 int
 lio_set_mac(if_t ifp, uint8_t *p)
 {
-	struct lio_ctrl_pkt	nctrl;
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	int	ret = 0;
+	struct lio_ctrl_pkt nctrl;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	int ret = 0;
 
 	if (!lio_is_valid_ether_addr(p))
 		return (EADDRNOTAVAIL);
@@ -510,11 +507,11 @@ lio_copy_maddr(void *arg, struct sockaddr_dl *sdl, u_int cnt)
 static int
 lio_set_mcast_list(if_t ifp)
 {
-	struct lio		*lio = if_getsoftc(ifp);
-	struct octeon_device	*oct = lio->oct_dev;
-	struct lio_ctrl_pkt	nctrl;
-	int	mc_count;
-	int	ret;
+	struct lio *lio = if_getsoftc(ifp);
+	struct octeon_device *oct = lio->oct_dev;
+	struct lio_ctrl_pkt nctrl;
+	int mc_count;
+	int ret;
 
 	bzero(&nctrl, sizeof(struct lio_ctrl_pkt));
 
@@ -540,7 +537,7 @@ lio_set_mcast_list(if_t ifp)
 	ret = lio_send_ctrl_pkt(lio->oct_dev, &nctrl);
 	if (ret < 0) {
 		lio_dev_err(oct, "DEVFLAGS change failed in core (ret: 0x%x)\n",
-			    ret);
+		    ret);
 	}
 
 	return ((ret) ? EINVAL : 0);

@@ -33,14 +33,15 @@
 #include <sys/queue.h>
 #define L2CAP_SOCKET_CHECKED
 #include <bluetooth.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "profile.h"
 #include "provider.h"
 
-static TAILQ_HEAD(, provider)	providers = TAILQ_HEAD_INITIALIZER(providers);
-static uint32_t			change_state = 0;		
-static uint32_t			handle = 0;
+static TAILQ_HEAD(, provider) providers = TAILQ_HEAD_INITIALIZER(providers);
+static uint32_t change_state = 0;
+static uint32_t handle = 0;
 
 /*
  * Register Service Discovery provider.
@@ -50,11 +51,11 @@ static uint32_t			handle = 0;
 int32_t
 provider_register_sd(int32_t fd)
 {
-	extern profile_t	sd_profile_descriptor;
-	extern profile_t	bgd_profile_descriptor;
+	extern profile_t sd_profile_descriptor;
+	extern profile_t bgd_profile_descriptor;
 
-	provider_p		sd = calloc(1, sizeof(*sd));
-	provider_p		bgd = calloc(1, sizeof(*bgd));
+	provider_p sd = calloc(1, sizeof(*sd));
+	provider_p bgd = calloc(1, sizeof(*bgd));
 
 	if (sd == NULL || bgd == NULL) {
 		if (sd != NULL)
@@ -75,8 +76,8 @@ provider_register_sd(int32_t fd)
 	bgd->handle = 1;
 	sd->fd = fd;
 	TAILQ_INSERT_AFTER(&providers, sd, bgd, provider_next);
-	
-	change_state ++;
+
+	change_state++;
 
 	return (0);
 }
@@ -87,9 +88,9 @@ provider_register_sd(int32_t fd)
 
 provider_p
 provider_register(profile_p const profile, bdaddr_p const bdaddr, int32_t fd,
-	uint8_t const *data, uint32_t datalen)
+    uint8_t const *data, uint32_t datalen)
 {
-	provider_p	provider = calloc(1, sizeof(*provider));
+	provider_p provider = calloc(1, sizeof(*provider));
 
 	if (provider != NULL) {
 		provider->data = malloc(datalen);
@@ -102,17 +103,17 @@ provider_register(profile_p const profile, bdaddr_p const bdaddr, int32_t fd,
 			 * for SDP itself
 			 */
 
-			if (++ handle <= 1)
+			if (++handle <= 1)
 				handle = 2;
 
 			provider->handle = handle;
 
 			memcpy(&provider->bdaddr, bdaddr,
-				sizeof(provider->bdaddr));
+			    sizeof(provider->bdaddr));
 			provider->fd = fd;
 
 			TAILQ_INSERT_TAIL(&providers, provider, provider_next);
-			change_state ++;
+			change_state++;
 		} else {
 			free(provider);
 			provider = NULL;
@@ -133,7 +134,7 @@ provider_unregister(provider_p provider)
 	if (provider->data != NULL)
 		free(provider->data);
 	free(provider);
-	change_state ++;
+	change_state++;
 }
 
 /*
@@ -143,7 +144,7 @@ provider_unregister(provider_p provider)
 int32_t
 provider_update(provider_p provider, uint8_t const *data, uint32_t datalen)
 {
-	uint8_t	*new_data = (uint8_t *) realloc(provider->data, datalen);
+	uint8_t *new_data = (uint8_t *)realloc(provider->data, datalen);
 
 	if (new_data == NULL)
 		return (-1);
@@ -161,9 +162,9 @@ provider_update(provider_p provider, uint8_t const *data, uint32_t datalen)
 provider_p
 provider_by_handle(uint32_t handle)
 {
-	provider_p	provider = NULL;
+	provider_p provider = NULL;
 
-	TAILQ_FOREACH(provider, &providers, provider_next)
+	TAILQ_FOREACH (provider, &providers, provider_next)
 		if (provider->handle == handle)
 			break;
 
@@ -195,4 +196,3 @@ provider_get_change_state(void)
 {
 	return (change_state);
 }
-

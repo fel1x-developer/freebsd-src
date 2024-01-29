@@ -26,54 +26,53 @@
  */
 
 #ifndef _IF_SMCVAR_H_
-#define	_IF_SMCVAR_H_
+#define _IF_SMCVAR_H_
 
 struct smc_softc {
-	if_t			smc_ifp;
-	device_t		smc_dev;
-	struct mtx		smc_mtx;
-	u_int			smc_chip;
-	u_int			smc_rev;
-	u_int			smc_mask;
+	if_t smc_ifp;
+	device_t smc_dev;
+	struct mtx smc_mtx;
+	u_int smc_chip;
+	u_int smc_rev;
+	u_int smc_mask;
 
 	/* Resources */
-	int			smc_usemem;
-	int			smc_reg_rid;
-	int			smc_irq_rid;
-	struct resource		*smc_reg;
-	struct resource		*smc_irq;
-	void			*smc_ih;
+	int smc_usemem;
+	int smc_reg_rid;
+	int smc_irq_rid;
+	struct resource *smc_reg;
+	struct resource *smc_irq;
+	void *smc_ih;
 
 	/* Tasks */
-	struct taskqueue	*smc_tq;
-	struct task		smc_intr;
-	struct task		smc_rx;
-	struct task		smc_tx;
-	struct mbuf		*smc_pending;
-	struct callout		smc_watchdog;
+	struct taskqueue *smc_tq;
+	struct task smc_intr;
+	struct task smc_rx;
+	struct task smc_tx;
+	struct mbuf *smc_pending;
+	struct callout smc_watchdog;
 
 	/* MII support */
-	device_t		smc_miibus;
-	struct callout		smc_mii_tick_ch;
-	void			(*smc_mii_tick)(void *);
-	void			(*smc_mii_mediachg)(struct smc_softc *);
-	int			(*smc_mii_mediaioctl)(struct smc_softc *,
-				    struct ifreq *, u_long);
+	device_t smc_miibus;
+	struct callout smc_mii_tick_ch;
+	void (*smc_mii_tick)(void *);
+	void (*smc_mii_mediachg)(struct smc_softc *);
+	int (*smc_mii_mediaioctl)(struct smc_softc *, struct ifreq *, u_long);
 
 	/* DMA support */
-	void			(*smc_read_packet)(struct smc_softc *,
-				    bus_addr_t, uint8_t *, bus_size_t);
-	void			*smc_read_arg;
+	void (*smc_read_packet)(struct smc_softc *, bus_addr_t, uint8_t *,
+	    bus_size_t);
+	void *smc_read_arg;
 };
 
 DECLARE_CLASS(smc_driver);
 
-int	smc_probe(device_t);
-int	smc_attach(device_t);
-int	smc_detach(device_t);
+int smc_probe(device_t);
+int smc_attach(device_t);
+int smc_detach(device_t);
 
-int	smc_miibus_readreg(device_t, int, int);
-int	smc_miibus_writereg(device_t, int, int, int);
-void	smc_miibus_statchg(device_t);
+int smc_miibus_readreg(device_t, int, int);
+int smc_miibus_writereg(device_t, int, int, int);
+void smc_miibus_statchg(device_t);
 
 #endif /* _IF_SMCVAR_H_ */

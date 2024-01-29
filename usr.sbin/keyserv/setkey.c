@@ -5,23 +5,23 @@
  * may copy or modify Sun RPC without charge, but are not authorized
  * to license or distribute it to anyone else except as part of a product or
  * program developed by the user.
- * 
+ *
  * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
  * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
  * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
+ *
  * Sun RPC is provided with no support and without any obligation on the
  * part of Sun Microsystems, Inc. to assist in its use, correction,
  * modification or enhancement.
- * 
+ *
  * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
  * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
  * OR ANY PART THEREOF.
- * 
+ *
  * In no event will Sun Microsystems, Inc. be liable for any lost revenue
  * or profits or other special, indirect and consequential damages, even if
  * Sun has been advised of the possibility of such damages.
- * 
+ *
  * Sun Microsystems, Inc.
  * 2550 Garcia Avenue
  * Mountain View, California  94043
@@ -37,28 +37,29 @@
  * and use them to decrypt and encrypt DES keys.
  * Cache the common keys, so the expensive computation is avoided.
  */
+#include <sys/types.h>
+#include <sys/errno.h>
+
 #include <mp.h>
+#include <rpc/des.h>
+#include <rpc/des_crypt.h>
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <rpc/rpc.h>
-#include <rpc/key_prot.h>
-#include <rpc/des_crypt.h>
-#include <rpc/des.h>
-#include <sys/errno.h>
+
 #include "keyserv.h"
 
 static MINT *MODULUS;
-static char *fetchsecretkey( uid_t );
-static void writecache( char *, char *, des_block * );
-static int readcache( char *, char *, des_block * );
-static void extractdeskey( MINT *, des_block * );
-static int storesecretkey( uid_t, keybuf );
-static keystatus pk_crypt( uid_t, char *, netobj *, des_block *, int);
+static char *fetchsecretkey(uid_t);
+static void writecache(char *, char *, des_block *);
+static int readcache(char *, char *, des_block *);
+static void extractdeskey(MINT *, des_block *);
+static int storesecretkey(uid_t, keybuf);
+static keystatus pk_crypt(uid_t, char *, netobj *, des_block *, int);
 static int nodefaultkeys = 0;
-
 
 /*
  * prohibit the nobody key on this machine k (the -d flag)
@@ -110,8 +111,8 @@ pk_decrypt(uid_t uid, char *remote_name, netobj *remote_key, des_block *key)
 	return (pk_crypt(uid, remote_name, remote_key, key, DES_DECRYPT));
 }
 
-static int store_netname( uid_t, key_netstarg * );
-static int fetch_netname( uid_t, key_netstarg * );
+static int store_netname(uid_t, key_netstarg *);
+static int fetch_netname(uid_t, key_netstarg *);
 
 keystatus
 pk_netput(uid_t uid, key_netstarg *netstore)
@@ -130,7 +131,6 @@ pk_netget(uid_t uid, key_netstarg *netstore)
 	}
 	return (KEY_SUCCESS);
 }
-
 
 /*
  * Do the work of pk_encrypt && pk_decrypt
@@ -151,7 +151,7 @@ pk_crypt(uid_t uid, char *remote_name, netobj *remote_key, des_block *key,
 
 	xsecret = fetchsecretkey(uid);
 	if (xsecret == NULL || xsecret[0] == 0) {
-		memset(zero, 0, sizeof (zero));
+		memset(zero, 0, sizeof(zero));
 		xsecret = xsecret_hold;
 		if (nodefaultkeys)
 			return (KEY_NOSECRET);
@@ -185,8 +185,8 @@ pk_crypt(uid_t uid, char *remote_name, netobj *remote_key, des_block *key,
 		mp_mfree(public);
 		mp_mfree(common);
 	}
-	err = ecb_crypt((char *)&deskey, (char *)key, sizeof (des_block),
-		DES_HW | mode);
+	err = ecb_crypt((char *)&deskey, (char *)key, sizeof(des_block),
+	    DES_HW | mode);
 	if (DES_FAILED(err)) {
 		return (KEY_SYSTEMERR);
 	}
@@ -203,17 +203,15 @@ pk_get_conv_key(uid_t uid, keybuf xpublic, cryptkeyres *result)
 	MINT *common;
 	char zero[8];
 
-
 	xsecret = fetchsecretkey(uid);
 
 	if (xsecret == NULL || xsecret[0] == 0) {
-		memset(zero, 0, sizeof (zero));
+		memset(zero, 0, sizeof(zero));
 		xsecret = xsecret_hold;
 		if (nodefaultkeys)
 			return (KEY_NOSECRET);
 
-		if (!getsecretkey("nobody", xsecret, zero) ||
-			xsecret[0] == 0)
+		if (!getsecretkey("nobody", xsecret, zero) || xsecret[0] == 0)
 			return (KEY_NOSECRET);
 	}
 
@@ -271,16 +269,14 @@ extractdeskey(MINT *ck, des_block *deskey)
  * Key storage management
  */
 
-#define	KEY_ONLY 0
-#define	KEY_NAME 1
+#define KEY_ONLY 0
+#define KEY_NAME 1
 struct secretkey_netname_list {
 	uid_t uid;
 	key_netstarg keynetdata;
 	u_char sc_flag;
 	struct secretkey_netname_list *next;
 };
-
-
 
 static struct secretkey_netname_list *g_secretkey_netname;
 
@@ -294,10 +290,10 @@ store_netname(uid_t uid, key_netstarg *netstore)
 	struct secretkey_netname_list **l;
 
 	for (l = &g_secretkey_netname; *l != NULL && (*l)->uid != uid;
-			l = &(*l)->next) {
+	     l = &(*l)->next) {
 	}
 	if (*l == NULL) {
-		new = (struct secretkey_netname_list *)malloc(sizeof (*new));
+		new = (struct secretkey_netname_list *)malloc(sizeof(*new));
 		if (new == NULL) {
 			return (0);
 		}
@@ -307,10 +303,9 @@ store_netname(uid_t uid, key_netstarg *netstore)
 	} else {
 		new = *l;
 		if (new->keynetdata.st_netname)
-			(void) free (new->keynetdata.st_netname);
+			(void)free(new->keynetdata.st_netname);
 	}
-	memcpy(new->keynetdata.st_priv_key, netstore->st_priv_key,
-		HEXKEYBYTES);
+	memcpy(new->keynetdata.st_priv_key, netstore->st_priv_key, HEXKEYBYTES);
 	memcpy(new->keynetdata.st_pub_key, netstore->st_pub_key, HEXKEYBYTES);
 
 	if (netstore->st_netname)
@@ -319,7 +314,6 @@ store_netname(uid_t uid, key_netstarg *netstore)
 		new->keynetdata.st_netname = (char *)NULL;
 	new->sc_flag = KEY_NAME;
 	return (1);
-
 }
 
 /*
@@ -332,20 +326,20 @@ fetch_netname(uid_t uid, struct key_netstarg *key_netst)
 	struct secretkey_netname_list *l;
 
 	for (l = g_secretkey_netname; l != NULL; l = l->next) {
-		if ((l->uid == uid) && (l->sc_flag == KEY_NAME)){
+		if ((l->uid == uid) && (l->sc_flag == KEY_NAME)) {
 
 			memcpy(key_netst->st_priv_key,
-				l->keynetdata.st_priv_key, HEXKEYBYTES);
+			    l->keynetdata.st_priv_key, HEXKEYBYTES);
 
-			memcpy(key_netst->st_pub_key,
-				l->keynetdata.st_pub_key, HEXKEYBYTES);
+			memcpy(key_netst->st_pub_key, l->keynetdata.st_pub_key,
+			    HEXKEYBYTES);
 
 			if (l->keynetdata.st_netname)
-				key_netst->st_netname =
-					strdup(l->keynetdata.st_netname);
+				key_netst->st_netname = strdup(
+				    l->keynetdata.st_netname);
 			else
 				key_netst->st_netname = NULL;
-		return (1);
+			return (1);
 		}
 	}
 
@@ -375,10 +369,10 @@ storesecretkey(uid_t uid, keybuf key)
 	struct secretkey_netname_list **l;
 
 	for (l = &g_secretkey_netname; *l != NULL && (*l)->uid != uid;
-			l = &(*l)->next) {
+	     l = &(*l)->next) {
 	}
 	if (*l == NULL) {
-		new = (struct secretkey_netname_list *) malloc(sizeof (*new));
+		new = (struct secretkey_netname_list *)malloc(sizeof(*new));
 		if (new == NULL) {
 			return (0);
 		}
@@ -392,8 +386,7 @@ storesecretkey(uid_t uid, keybuf key)
 		new = *l;
 	}
 
-	memcpy(new->keynetdata.st_priv_key, key,
-		HEXKEYBYTES);
+	memcpy(new->keynetdata.st_priv_key, key, HEXKEYBYTES);
 	return (1);
 }
 
@@ -458,12 +451,12 @@ writecache(char *pub, char *sec, des_block *deskey)
 {
 	struct cachekey_list *new;
 
-	new = (struct cachekey_list *) malloc(sizeof (struct cachekey_list));
+	new = (struct cachekey_list *)malloc(sizeof(struct cachekey_list));
 	if (new == NULL) {
 		return;
 	}
-	memcpy(new->public, pub, sizeof (keybuf));
-	memcpy(new->secret, sec, sizeof (keybuf));
+	memcpy(new->public, pub, sizeof(keybuf));
+	memcpy(new->secret, sec, sizeof(keybuf));
 	new->deskey = *deskey;
 	new->next = g_cachedkeys;
 	g_cachedkeys = new;
@@ -478,12 +471,12 @@ readcache(char *pub, char *sec, des_block *deskey)
 	struct cachekey_list *found;
 	register struct cachekey_list **l;
 
-#define	cachehit(pub, sec, list)	\
-		(memcmp(pub, (list)->public, sizeof (keybuf)) == 0 && \
-		memcmp(sec, (list)->secret, sizeof (keybuf)) == 0)
+#define cachehit(pub, sec, list)                             \
+	(memcmp(pub, (list)->public, sizeof(keybuf)) == 0 && \
+	    memcmp(sec, (list)->secret, sizeof(keybuf)) == 0)
 
 	for (l = &g_cachedkeys; (*l) != NULL && !cachehit(pub, sec, *l);
-		l = &(*l)->next)
+	     l = &(*l)->next)
 		;
 	if ((*l) == NULL) {
 		return (0);

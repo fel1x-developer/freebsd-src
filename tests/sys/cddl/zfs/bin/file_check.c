@@ -24,7 +24,6 @@
  * Use is subject to license terms.
  */
 
-
 #include "file_common.h"
 
 static unsigned char bigbuffer[BIGBUFFERSIZE];
@@ -37,18 +36,17 @@ static unsigned char bigbuffer[BIGBUFFERSIZE];
 int
 main(int argc, char **argv)
 {
-	int		bigfd;
-	long		i, n;
-	uint8_t		fillchar = DATA;
-	int		bigbuffersize = BIGBUFFERSIZE;
-	int64_t		read_count = 0;
+	int bigfd;
+	long i, n;
+	uint8_t fillchar = DATA;
+	int bigbuffersize = BIGBUFFERSIZE;
+	int64_t read_count = 0;
 
 	/*
 	 * Validate arguments
 	 */
 	if (argc < 2) {
-		(void) printf("Usage: %s filename [pattern]\n",
-		    argv[0]);
+		(void)printf("Usage: %s filename [pattern]\n", argv[0]);
 		exit(1);
 	}
 
@@ -62,19 +60,19 @@ main(int argc, char **argv)
 	 * pattern check fails.
 	 */
 	if ((bigfd = open(argv[1], O_RDONLY)) == -1) {
-		(void) printf("open %s failed %d\n", argv[1], errno);
+		(void)printf("open %s failed %d\n", argv[1], errno);
 		exit(1);
 	}
 
 	do {
 		if ((n = read(bigfd, &bigbuffer, bigbuffersize)) == -1) {
-			(void) printf("read failed (%ld), %d\n", n, errno);
+			(void)printf("read failed (%ld), %d\n", n, errno);
 			exit(errno);
 		}
 
 		for (i = 0; i < n; i++) {
 			if (bigbuffer[i] != fillchar) {
-				(void) printf("error %s: 0x%x != 0x%x)\n",
+				(void)printf("error %s: 0x%x != 0x%x)\n",
 				    argv[1], bigbuffer[i], fillchar);
 				exit(1);
 			}

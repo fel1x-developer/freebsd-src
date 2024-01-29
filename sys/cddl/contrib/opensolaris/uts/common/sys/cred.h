@@ -32,11 +32,11 @@
  */
 
 #ifndef _SYS_CRED_H
-#define	_SYS_CRED_H
+#define _SYS_CRED_H
 
 #include <sys/types.h>
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -49,16 +49,16 @@ typedef struct cred cred_t;
 
 #ifdef _KERNEL
 
-#define	CRED()		curthread->t_cred
+#define CRED() curthread->t_cred
 
-struct proc;				/* cred.h is included in proc.h */
+struct proc; /* cred.h is included in proc.h */
 struct prcred;
 struct ksid;
 struct ksidlist;
 struct credklpd;
 struct credgrp;
 
-struct auditinfo_addr;			/* cred.h is included in audit.h */
+struct auditinfo_addr; /* cred.h is included in audit.h */
 
 extern int ngroups_max;
 /*
@@ -69,9 +69,9 @@ extern struct cred *kcred;
 extern void cred_init(void);
 extern void crhold(cred_t *);
 extern void crfree(cred_t *);
-extern cred_t *cralloc(void);		/* all but ref uninitialized */
-extern cred_t *cralloc_ksid(void);	/* cralloc() + ksid alloc'ed */
-extern cred_t *crget(void);		/* initialized */
+extern cred_t *cralloc(void);	   /* all but ref uninitialized */
+extern cred_t *cralloc_ksid(void); /* cralloc() + ksid alloc'ed */
+extern cred_t *crget(void);	   /* initialized */
 extern cred_t *crcopy(cred_t *);
 extern void crcopy_to(cred_t *, cred_t *);
 extern cred_t *crdup(cred_t *);
@@ -96,7 +96,6 @@ extern zoneid_t crgetzoneid(const cred_t *);
 extern projid_t crgetprojid(const cred_t *);
 
 extern cred_t *crgetmapped(const cred_t *);
-
 
 extern const struct auditinfo_addr *crgetauinfo(const cred_t *);
 extern struct auditinfo_addr *crgetauinfo_modifiable(cred_t *);
@@ -161,11 +160,9 @@ extern boolean_t crisremote(const cred_t *);
 /*
  * Private interfaces for ephemeral uids.
  */
-#define	VALID_UID(id, zn)					\
-	((id) <= MAXUID || valid_ephemeral_uid((zn), (id)))
+#define VALID_UID(id, zn) ((id) <= MAXUID || valid_ephemeral_uid((zn), (id)))
 
-#define	VALID_GID(id, zn)					\
-	((id) <= MAXUID || valid_ephemeral_gid((zn), (id)))
+#define VALID_GID(id, zn) ((id) <= MAXUID || valid_ephemeral_gid((zn), (id)))
 
 extern boolean_t valid_ephemeral_uid(struct zone *, uid_t);
 extern boolean_t valid_ephemeral_gid(struct zone *, gid_t);
@@ -184,10 +181,10 @@ extern int crsetpriv(cred_t *, ...);
 extern struct credklpd *crgetcrklpd(const cred_t *);
 extern void crsetcrklpd(cred_t *, struct credklpd *);
 
-#endif	/* _KERNEL */
+#endif /* _KERNEL */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _SYS_CRED_H */
+#endif /* _SYS_CRED_H */

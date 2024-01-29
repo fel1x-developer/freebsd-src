@@ -27,8 +27,11 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+
 #include <netinet/in.h>
+
+#include <arpa/inet.h>
+#include <atf-c.h>
 #include <errno.h>
 #include <netdb.h>
 #include <resolv.h>
@@ -37,8 +40,6 @@
 #include <string.h>
 #include <stringlist.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 #include "freebsd_test_suite/macros.h"
 #include "testutil.h"
@@ -163,7 +164,8 @@ clone_hostent(struct hostent *dest, struct hostent const *src)
 
 		for (cp = src->h_aliases; *cp; ++cp) {
 			dest->h_aliases[cp - src->h_aliases] = strdup(*cp);
-			ATF_REQUIRE(dest->h_aliases[cp - src->h_aliases] != NULL);
+			ATF_REQUIRE(
+			    dest->h_aliases[cp - src->h_aliases] != NULL);
 		}
 	}
 
@@ -200,14 +202,14 @@ free_hostent(struct hostent *ht)
 		free(ht->h_aliases);
 	}
 
-	if  (ht->h_addr_list != NULL) {
+	if (ht->h_addr_list != NULL) {
 		for (cp = ht->h_addr_list; *cp; ++cp)
 			free(*cp);
 		free(ht->h_addr_list);
 	}
 }
 
-static  int
+static int
 compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 {
 	char **c1, **c2, **ct, **cb;
@@ -236,7 +238,7 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 
 	if (c1 != NULL && c2 != NULL) {
 		cb = c1;
-		for (;*c1; ++c1) {
+		for (; *c1; ++c1) {
 			b = 0;
 			for (ct = c2; *ct; ++ct) {
 				if (strcmp(*c1, *ct) == 0) {
@@ -246,13 +248,13 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 			}
 			if (b == 0) {
 				printf("h1 aliases item can't be found in h2 "
-				    "aliases\n");
+				       "aliases\n");
 				goto errfin;
 			}
 		}
 
 		c1 = cb;
-		for (;*c2; ++c2) {
+		for (; *c2; ++c2) {
 			b = 0;
 			for (ct = c1; *ct; ++ct) {
 				if (strcmp(*c2, *ct) == 0) {
@@ -262,7 +264,7 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 			}
 			if (b == 0) {
 				printf("h2 aliases item can't be found in h1 "
-				    "aliases\n");
+				       "aliases\n");
 				goto errfin;
 			}
 		}
@@ -271,7 +273,7 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 	c1 = ht1->h_addr_list;
 	c2 = ht2->h_addr_list;
 
-	if ((ht1->h_addr_list == NULL || ht2->h_addr_list== NULL) &&
+	if ((ht1->h_addr_list == NULL || ht2->h_addr_list == NULL) &&
 	    ht1->h_addr_list != ht2->h_addr_list)
 		goto errfin;
 
@@ -287,7 +289,7 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 			}
 			if (b == 0) {
 				printf("h1 addresses item can't be found in "
-				    "h2 addresses\n");
+				       "h2 addresses\n");
 				goto errfin;
 			}
 		}
@@ -303,7 +305,7 @@ compare_hostent(struct hostent *ht1, struct hostent *ht2, void *mdata)
 			}
 			if (b == 0) {
 				printf("h2 addresses item can't be found in "
-				    "h1 addresses\n");
+				       "h1 addresses\n");
 				goto errfin;
 			}
 		}
@@ -336,7 +338,7 @@ check_addrinfo_for_name(struct addrinfo *ai, char const *name)
 
 static int
 check_addrinfo_for_addr(struct addrinfo *ai, char const *addr,
-	socklen_t addrlen, int af)
+    socklen_t addrlen, int af)
 {
 	struct addrinfo *ai2;
 
@@ -347,14 +349,16 @@ check_addrinfo_for_addr(struct addrinfo *ai, char const *addr,
 		switch (af) {
 		case AF_INET:
 			if (memcmp(addr,
-			    (void *)&((struct sockaddr_in *)ai2->ai_addr)->sin_addr,
-			    MIN(addrlen, ai2->ai_addrlen)) == 0)
+				(void *)&((struct sockaddr_in *)ai2->ai_addr)
+				    ->sin_addr,
+				MIN(addrlen, ai2->ai_addrlen)) == 0)
 				return (0);
 			break;
 		case AF_INET6:
 			if (memcmp(addr,
-			    (void *)&((struct sockaddr_in6 *)ai2->ai_addr)->sin6_addr,
-			    MIN(addrlen, ai2->ai_addrlen)) == 0)
+				(void *)&((struct sockaddr_in6 *)ai2->ai_addr)
+				    ->sin6_addr,
+				MIN(addrlen, ai2->ai_addrlen)) == 0)
 				return (0);
 			break;
 		default:
@@ -383,9 +387,10 @@ is_hostent_equal(struct hostent *he, struct addrinfo *ai)
 
 	for (cp = he->h_addr_list; *cp; ++cp) {
 		rv = check_addrinfo_for_addr(ai, *cp, he->h_length,
-			he->h_addrtype);
+		    he->h_addrtype);
 		if (rv != 0) {
-			printf("not equal - one of he->h_addr_list couldn't be found\n");
+			printf(
+			    "not equal - one of he->h_addr_list couldn't be found\n");
 			return (rv);
 		}
 	}
@@ -404,8 +409,8 @@ sdump_hostent(struct hostent *ht, char *buffer, size_t buflen)
 	size_t i;
 	int written;
 
-	written = snprintf(buffer, buflen, "%s %d %d",
-		ht->h_name, ht->h_addrtype, ht->h_length);
+	written = snprintf(buffer, buflen, "%s %d %d", ht->h_name,
+	    ht->h_addrtype, ht->h_length);
 	buffer += written;
 	if (written > (int)buflen)
 		return;
@@ -414,7 +419,7 @@ sdump_hostent(struct hostent *ht, char *buffer, size_t buflen)
 	if (ht->h_aliases != NULL) {
 		if (*(ht->h_aliases) != NULL) {
 			for (cp = ht->h_aliases; *cp; ++cp) {
-				written = snprintf(buffer, buflen, " %s",*cp);
+				written = snprintf(buffer, buflen, " %s", *cp);
 				buffer += written;
 				if (written > (int)buflen)
 					return;
@@ -450,7 +455,8 @@ sdump_hostent(struct hostent *ht, char *buffer, size_t buflen)
 				for (i = 0; i < (size_t)ht->h_length; ++i) {
 					written = snprintf(buffer, buflen,
 					    i + 1 != (size_t)ht->h_length ?
-					        "%d." : "%d",
+						"%d." :
+						"%d",
 					    (unsigned char)(*cp)[i]);
 					buffer += written;
 					if (written > (int)buflen)
@@ -462,8 +468,7 @@ sdump_hostent(struct hostent *ht, char *buffer, size_t buflen)
 				}
 
 				if (*(cp + 1)) {
-					written = snprintf(buffer, buflen,
-					    " ");
+					written = snprintf(buffer, buflen, " ");
 					buffer += written;
 					if (written > (int)buflen)
 						return;
@@ -513,7 +518,7 @@ hostent_read_hostlist_func(struct hostent *he, char *line)
 #ifdef DEBUG
 		printf("not found\n");
 #endif
- 		memset(he, 0, sizeof(struct hostent));
+		memset(he, 0, sizeof(struct hostent));
 		he->h_name = strdup(line);
 		ATF_REQUIRE(he->h_name != NULL);
 	}
@@ -526,7 +531,7 @@ hostent_read_snapshot_addr(char *addr, unsigned char *result, size_t len)
 	char *s, *ps, *ts;
 
 	ps = addr;
-	while ( (s = strsep(&ps, ".")) != NULL) {
+	while ((s = strsep(&ps, ".")) != NULL) {
 		if (len == 0)
 			return (-1);
 
@@ -614,8 +619,7 @@ hostent_read_snapshot_func(struct hostent *ht, char *line)
 					ts = calloc(1, ht->h_length);
 					ATF_REQUIRE(ts != NULL);
 					rv = hostent_read_snapshot_addr(s,
-					    (unsigned char *)ts,
-					    ht->h_length);
+					    (unsigned char *)ts, ht->h_length);
 					sl_add(sl2, ts);
 					if (rv != 0)
 						goto fin;
@@ -690,7 +694,7 @@ hostent_test_correctness(struct hostent *ht, void *mdata __unused)
 		goto errfin;
 
 	if ((ht->h_length != sizeof(struct in_addr)) &&
-		(ht->h_length != sizeof(struct in6_addr)))
+	    (ht->h_length != sizeof(struct in6_addr)))
 		goto errfin;
 
 	if (ht->h_aliases == NULL)
@@ -732,8 +736,8 @@ hostent_test_gethostbyaddr(struct hostent *he, void *mdata)
 			if (result == NULL) {
 #ifdef DEBUG
 				printf("%s: warning: reverse lookup failed "
-				    "for %s: %s\n", __func__, he->h_name,
-				    strerror(errno));
+				       "for %s: %s\n",
+				    __func__, he->h_name, strerror(errno));
 #endif
 				continue;
 			}
@@ -813,8 +817,7 @@ hostent_test_getnameinfo_eq(struct hostent *he, void *mdata __unused)
 #ifdef DEBUG
 		printf("doing reverse lookup for %s\n", he->h_name);
 #endif
-		result = __gethostbyaddr(*cp, he->h_length,
-		    he->h_addrtype);
+		result = __gethostbyaddr(*cp, he->h_length, he->h_addrtype);
 		if (result != NULL) {
 			rv = hostent_test_correctness(result, NULL);
 			if (rv != 0) {
@@ -823,8 +826,8 @@ hostent_test_getnameinfo_eq(struct hostent *he, void *mdata __unused)
 			}
 		} else
 			printf("%s: warning: reverse lookup failed "
-			    "for %s: %s\n", __func__, he->h_name,
-			    strerror(errno));
+			       "for %s: %s\n",
+			    __func__, he->h_name, strerror(errno));
 
 		switch (he->h_addrtype) {
 		case AF_INET:
@@ -850,33 +853,32 @@ hostent_test_getnameinfo_eq(struct hostent *he, void *mdata __unused)
 		}
 
 		ATF_REQUIRE(saddr != NULL);
-		rv = getnameinfo(saddr, saddr->sa_len, buffer,
-			sizeof(buffer), NULL, 0, NI_NAMEREQD);
+		rv = getnameinfo(saddr, saddr->sa_len, buffer, sizeof(buffer),
+		    NULL, 0, NI_NAMEREQD);
 
 		if (rv != 0 && result != NULL) {
 			printf("getnameinfo() didn't make the reverse "
-			    "lookup, when it should have (%s)\n",
+			       "lookup, when it should have (%s)\n",
 			    gai_strerror(rv));
 			return (rv);
 		}
 
 		if (rv == 0 && result == NULL) {
 			printf("getnameinfo() made the "
-			    "reverse lookup, when it shouldn't have\n");
+			       "reverse lookup, when it shouldn't have\n");
 			return (rv);
 		}
 
 		if (rv != 0 && result == NULL) {
 #ifdef DEBUG
 			printf("both getnameinfo() and ***byaddr() failed as "
-			    "expected\n");
+			       "expected\n");
 #endif
 			continue;
 		}
 
 #ifdef DEBUG
-		printf("comparing %s with %s\n", result->h_name,
-		    buffer);
+		printf("comparing %s with %s\n", result->h_name, buffer);
 #endif
 
 		/*
@@ -894,8 +896,7 @@ hostent_test_getnameinfo_eq(struct hostent *he, void *mdata __unused)
 			for (i = 0; result->h_aliases[i] != NULL; i++) {
 				printf("[%d] resolved: %s\n", i,
 				    result->h_aliases[i]);
-				if (strcmp(result->h_aliases[i],
-				    buffer) == 0) {
+				if (strcmp(result->h_aliases[i], buffer) == 0) {
 					printf("matched hostname alias\n");
 					found_a_match = true;
 					break;
@@ -907,11 +908,12 @@ hostent_test_getnameinfo_eq(struct hostent *he, void *mdata __unused)
 		if (found_a_match) {
 #ifdef DEBUG
 			printf("getnameinfo() and ***byaddr() results are "
-			    "equal\n");
+			       "equal\n");
 #endif
 		} else {
 			printf("getnameinfo() and ***byaddr() results are not "
-			    "equal for %s\n", he->h_name);
+			       "equal for %s\n",
+			    he->h_name);
 			return (-1);
 		}
 	}
@@ -951,8 +953,9 @@ run_tests(const char *hostlist_file, const char *snapshot_file, int _af_type,
 
 	if (!use_ipnode_functions) {
 		statp = __res_state();
-		if (statp == NULL || ((statp->options & RES_INIT) == 0 &&
-		    res_ninit(statp) == -1)) {
+		if (statp == NULL ||
+		    ((statp->options & RES_INIT) == 0 &&
+			res_ninit(statp) == -1)) {
 			printf("error: can't init res_state\n");
 			rv = -1;
 			goto fin2;
@@ -979,7 +982,7 @@ run_tests(const char *hostlist_file, const char *snapshot_file, int _af_type,
 #endif
 
 	rv = TEST_SNAPSHOT_FILE_READ(hostent, hostlist_file, &td,
-		hostent_read_hostlist_func);
+	    hostent_read_hostlist_func);
 	if (rv != 0) {
 		printf("failed to read the host list file: %s\n",
 		    hostlist_file);
@@ -1001,7 +1004,7 @@ run_tests(const char *hostlist_file, const char *snapshot_file, int _af_type,
 			}
 		} else {
 			rv = TEST_SNAPSHOT_FILE_READ(hostent, snapshot_file,
-				&td_snap, hostent_read_snapshot_func);
+			    &td_snap, hostent_read_snapshot_func);
 			if (rv != 0) {
 				printf("error reading snapshot file\n");
 				goto fin;
@@ -1016,8 +1019,8 @@ run_tests(const char *hostlist_file, const char *snapshot_file, int _af_type,
 			    compare_hostent, NULL);
 		break;
 	case TEST_GETHOSTBYADDR:
-		rv = DO_1PASS_TEST(hostent, &td,
-			hostent_test_gethostbyaddr, (void *)&td_addr);
+		rv = DO_1PASS_TEST(hostent, &td, hostent_test_gethostbyaddr,
+		    (void *)&td_addr);
 		if (rv != 0)
 			goto fin;
 
@@ -1026,12 +1029,12 @@ run_tests(const char *hostlist_file, const char *snapshot_file, int _af_type,
 			    compare_hostent, NULL);
 		break;
 	case TEST_GETHOSTBYNAME2_GETADDRINFO:
-		rv = DO_1PASS_TEST(hostent, &td,
-			hostent_test_getaddrinfo_eq, NULL);
+		rv = DO_1PASS_TEST(hostent, &td, hostent_test_getaddrinfo_eq,
+		    NULL);
 		break;
 	case TEST_GETHOSTBYADDR_GETNAMEINFO:
-		rv = DO_1PASS_TEST(hostent, &td,
-			hostent_test_getnameinfo_eq, NULL);
+		rv = DO_1PASS_TEST(hostent, &td, hostent_test_getnameinfo_eq,
+		    NULL);
 		break;
 	case TEST_BUILD_SNAPSHOT:
 		if (snapshot_file != NULL) {
@@ -1065,29 +1068,32 @@ fin2:
 	return (rv);
 }
 
-#define	HOSTLIST_FILE	"mach"
+#define HOSTLIST_FILE "mach"
 
-#define	_RUN_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping) \
-do {									\
-	char *_hostlist_file;						\
-	ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",		\
-	    atf_tc_get_config_var(tc, "srcdir"), HOSTLIST_FILE));	\
-	ATF_REQUIRE(run_tests(_hostlist_file, snapshot_file, af_type,	\
-	    method, use_ipv6_mapping) == 0);				\
-	free(_hostlist_file);						\
-} while (0)
+#define _RUN_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping)      \
+	do {                                                                  \
+		char *_hostlist_file;                                         \
+		ATF_REQUIRE(0 < asprintf(&_hostlist_file, "%s/%s",            \
+				    atf_tc_get_config_var(tc, "srcdir"),      \
+				    HOSTLIST_FILE));                          \
+		ATF_REQUIRE(run_tests(_hostlist_file, snapshot_file, af_type, \
+				method, use_ipv6_mapping) == 0);              \
+		free(_hostlist_file);                                         \
+	} while (0)
 
-#define	RUN_HOST_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping) \
-do {									\
-	use_ipnode_functions = false; 					\
-	_RUN_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping); \
-} while (0)
+#define RUN_HOST_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping) \
+	do {                                                                 \
+		use_ipnode_functions = false;                                \
+		_RUN_TESTS(tc, snapshot_file, af_type, method,               \
+		    use_ipv6_mapping);                                       \
+	} while (0)
 
-#define	RUN_IPNODE_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping) \
-do {									\
-	use_ipnode_functions = true; 					\
-	_RUN_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping); \
-} while (0)
+#define RUN_IPNODE_TESTS(tc, snapshot_file, af_type, method, use_ipv6_mapping) \
+	do {                                                                   \
+		use_ipnode_functions = true;                                   \
+		_RUN_TESTS(tc, snapshot_file, af_type, method,                 \
+		    use_ipv6_mapping);                                         \
+	} while (0)
 
 ATF_TC_WITHOUT_HEAD(gethostbyaddr_ipv4);
 ATF_TC_BODY(gethostbyaddr_ipv4, tc)
@@ -1100,7 +1106,8 @@ ATF_TC_WITHOUT_HEAD(gethostbyaddr_ipv4_with_snapshot);
 ATF_TC_BODY(gethostbyaddr_ipv4_with_snapshot, tc)
 {
 
-	RUN_HOST_TESTS(tc, "snapshot_htaddr4", AF_INET, TEST_GETHOSTBYADDR, false);
+	RUN_HOST_TESTS(tc, "snapshot_htaddr4", AF_INET, TEST_GETHOSTBYADDR,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyaddr_ipv6);
@@ -1122,7 +1129,8 @@ ATF_TC_WITHOUT_HEAD(gethostbyaddr_ipv6_with_snapshot);
 ATF_TC_BODY(gethostbyaddr_ipv6_with_snapshot, tc)
 {
 
-	RUN_HOST_TESTS(tc, "snapshot_htaddr6", AF_INET6, TEST_GETHOSTBYADDR, false);
+	RUN_HOST_TESTS(tc, "snapshot_htaddr6", AF_INET6, TEST_GETHOSTBYADDR,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyaddr_ipv6_with_snapshot_AI_V4MAPPED);
@@ -1130,35 +1138,40 @@ ATF_TC_BODY(gethostbyaddr_ipv6_with_snapshot_AI_V4MAPPED, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED;
-	RUN_HOST_TESTS(tc, "snapshot_htaddr6map", AF_INET6, TEST_GETHOSTBYADDR, true);
+	RUN_HOST_TESTS(tc, "snapshot_htaddr6map", AF_INET6, TEST_GETHOSTBYADDR,
+	    true);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyname2_getaddrinfo_ipv4);
 ATF_TC_BODY(gethostbyname2_getaddrinfo_ipv4, tc)
 {
 
-	RUN_HOST_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYNAME2_GETADDRINFO, false);
+	RUN_HOST_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYNAME2_GETADDRINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyname2_getaddrinfo_ipv6);
 ATF_TC_BODY(gethostbyname2_getaddrinfo_ipv6, tc)
 {
 
-	RUN_HOST_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYNAME2_GETADDRINFO, false);
+	RUN_HOST_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYNAME2_GETADDRINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyaddr_getnameinfo_ipv4);
 ATF_TC_BODY(gethostbyaddr_getnameinfo_ipv4, tc)
 {
 
-	RUN_HOST_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYADDR_GETNAMEINFO, false);
+	RUN_HOST_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYADDR_GETNAMEINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyaddr_getnameinfo_ipv6);
 ATF_TC_BODY(gethostbyaddr_getnameinfo_ipv6, tc)
 {
 
-	RUN_HOST_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYADDR_GETNAMEINFO, false);
+	RUN_HOST_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYADDR_GETNAMEINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyname2_ipv4);
@@ -1172,7 +1185,8 @@ ATF_TC_WITHOUT_HEAD(gethostbyname2_ipv4_with_snapshot);
 ATF_TC_BODY(gethostbyname2_ipv4_with_snapshot, tc)
 {
 
-	RUN_HOST_TESTS(tc, "snapshot_htname4", AF_INET, TEST_GETHOSTBYNAME2, false);
+	RUN_HOST_TESTS(tc, "snapshot_htname4", AF_INET, TEST_GETHOSTBYNAME2,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyname2_ipv6);
@@ -1194,7 +1208,8 @@ ATF_TC_WITHOUT_HEAD(gethostbyname2_ipv6_with_snapshot);
 ATF_TC_BODY(gethostbyname2_ipv6_with_snapshot, tc)
 {
 
-	RUN_HOST_TESTS(tc, "snapshot_htname6", AF_INET6, TEST_GETHOSTBYNAME2, false);
+	RUN_HOST_TESTS(tc, "snapshot_htname6", AF_INET6, TEST_GETHOSTBYNAME2,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(gethostbyname2_ipv6_with_snapshot_AI_V4MAPPED);
@@ -1202,7 +1217,8 @@ ATF_TC_BODY(gethostbyname2_ipv6_with_snapshot_AI_V4MAPPED, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED;
-	RUN_HOST_TESTS(tc, "snapshot_htname6map", AF_INET6, TEST_GETHOSTBYNAME2, true);
+	RUN_HOST_TESTS(tc, "snapshot_htname6map", AF_INET6, TEST_GETHOSTBYNAME2,
+	    true);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyaddr_ipv4);
@@ -1216,14 +1232,16 @@ ATF_TC_WITHOUT_HEAD(getipnodebyaddr_ipv4_with_snapshot);
 ATF_TC_BODY(getipnodebyaddr_ipv4_with_snapshot, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr4", AF_INET, TEST_GETHOSTBYADDR, false);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr4", AF_INET,
+	    TEST_GETHOSTBYADDR, false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyaddr_getnameinfo_ipv4);
 ATF_TC_BODY(getipnodebyaddr_getnameinfo_ipv4, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYADDR_GETNAMEINFO, false);
+	RUN_IPNODE_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYADDR_GETNAMEINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyaddr_ipv6);
@@ -1261,7 +1279,8 @@ ATF_TC_WITHOUT_HEAD(getipnodebyaddr_ipv6_with_snapshot);
 ATF_TC_BODY(getipnodebyaddr_ipv6_with_snapshot, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr6", AF_INET6, TEST_GETHOSTBYADDR, false);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr6", AF_INET6,
+	    TEST_GETHOSTBYADDR, false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED);
@@ -1269,8 +1288,7 @@ ATF_TC_BODY(getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodeaddr6_AI_V4MAPPED", AF_INET6,
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr6_AI_V4MAPPED", AF_INET6,
 	    TEST_GETHOSTBYADDR, true);
 }
 
@@ -1279,8 +1297,7 @@ ATF_TC_BODY(getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED_CFG, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED_CFG;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodeaddr6_AI_V4MAPPED_CFG", AF_INET6,
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr6_AI_V4MAPPED_CFG", AF_INET6,
 	    TEST_GETHOSTBYADDR, true);
 }
 
@@ -1289,16 +1306,16 @@ ATF_TC_BODY(getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED_CFG | AI_ALL;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodeaddr6_AI_V4MAPPED_CFG_AI_ALL", AF_INET6,
-	    TEST_GETHOSTBYADDR, true);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodeaddr6_AI_V4MAPPED_CFG_AI_ALL",
+	    AF_INET6, TEST_GETHOSTBYADDR, true);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyaddr_getnameinfo_ipv6);
 ATF_TC_BODY(getipnodebyaddr_getnameinfo_ipv6, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYADDR_GETNAMEINFO, false);
+	RUN_IPNODE_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYADDR_GETNAMEINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv4);
@@ -1312,7 +1329,8 @@ ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv4_with_snapshot);
 ATF_TC_BODY(getipnodebyname_ipv4_with_snapshot, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename4", AF_INET, TEST_GETHOSTBYNAME2, false);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename4", AF_INET,
+	    TEST_GETHOSTBYNAME2, false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv4_AI_ADDRCONFIG);
@@ -1336,7 +1354,8 @@ ATF_TC_WITHOUT_HEAD(getipnodebyname_getaddrinfo_ipv4);
 ATF_TC_BODY(getipnodebyname_getaddrinfo_ipv4, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYNAME2_GETADDRINFO, false);
+	RUN_IPNODE_TESTS(tc, NULL, AF_INET, TEST_GETHOSTBYNAME2_GETADDRINFO,
+	    false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv6);
@@ -1350,7 +1369,8 @@ ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv6_with_snapshot);
 ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename6", AF_INET6, TEST_GETHOSTBYNAME2, false);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename6", AF_INET6,
+	    TEST_GETHOSTBYNAME2, false);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv6_AI_ADDRCONFIG);
@@ -1398,8 +1418,7 @@ ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodename6_AI_V4MAPPED", AF_INET6,
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename6_AI_V4MAPPED", AF_INET6,
 	    TEST_GETHOSTBYNAME2, true);
 }
 
@@ -1408,13 +1427,14 @@ ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED_CFG;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodename6_AI_V4MAPPED_CFG", AF_INET6,
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename6_AI_V4MAPPED_CFG", AF_INET6,
 	    TEST_GETHOSTBYNAME2, true);
 }
 
-ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG);
-ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG, tc)
+ATF_TC_WITHOUT_HEAD(
+    getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG);
+ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG,
+    tc)
 {
 
 	ipnode_flags = AI_V4MAPPED_CFG | AI_ADDRCONFIG;
@@ -1428,9 +1448,8 @@ ATF_TC_BODY(getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL, tc)
 {
 
 	ipnode_flags = AI_V4MAPPED_CFG | AI_ALL;
-	RUN_IPNODE_TESTS(tc,
-	    "snapshot_ipnodename6_AI_V4MAPPED_CFG_AI_ALL", AF_INET6,
-	    TEST_GETHOSTBYNAME2, true);
+	RUN_IPNODE_TESTS(tc, "snapshot_ipnodename6_AI_V4MAPPED_CFG_AI_ALL",
+	    AF_INET6, TEST_GETHOSTBYNAME2, true);
 }
 
 ATF_TC_WITHOUT_HEAD(getipnodebyname_ipv6_with_snapshot_AI_ADDRCONFIG);
@@ -1446,7 +1465,8 @@ ATF_TC_WITHOUT_HEAD(getipnodebyname_getaddrinfo_ipv6);
 ATF_TC_BODY(getipnodebyname_getaddrinfo_ipv6, tc)
 {
 
-	RUN_IPNODE_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYNAME2_GETADDRINFO, false);
+	RUN_IPNODE_TESTS(tc, NULL, AF_INET6, TEST_GETHOSTBYNAME2_GETADDRINFO,
+	    false);
 }
 
 ATF_TP_ADD_TCS(tp)
@@ -1483,7 +1503,8 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, getipnodebyaddr_ipv6_with_snapshot);
 	ATF_TP_ADD_TC(tp, getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED);
 	ATF_TP_ADD_TC(tp, getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED_CFG);
-	ATF_TP_ADD_TC(tp, getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL);
+	ATF_TP_ADD_TC(tp,
+	    getipnodebyaddr_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL);
 	ATF_TP_ADD_TC(tp, getipnodebyaddr_getnameinfo_ipv6);
 
 	/* getipnodebyname */
@@ -1501,8 +1522,10 @@ ATF_TP_ADD_TCS(tp)
 	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_AI_V4MAPPED_CFG_AI_ALL);
 	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED);
 	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG);
-	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG);
-	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL);
+	ATF_TP_ADD_TC(tp,
+	    getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ADDRCONFIG);
+	ATF_TP_ADD_TC(tp,
+	    getipnodebyname_ipv6_with_snapshot_AI_V4MAPPED_CFG_AI_ALL);
 	ATF_TP_ADD_TC(tp, getipnodebyname_ipv6_with_snapshot_AI_ADDRCONFIG);
 	ATF_TP_ADD_TC(tp, getipnodebyname_getaddrinfo_ipv6);
 

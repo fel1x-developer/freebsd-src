@@ -39,29 +39,29 @@
 
 /* DCB defines */
 /* DCB credit calculation defines */
-#define IXGBE_DCB_CREDIT_QUANTUM	64
-#define IXGBE_DCB_MAX_CREDIT_REFILL	200   /* 200 * 64B = 12800B */
-#define IXGBE_DCB_MAX_TSO_SIZE		(32 * 1024) /* Max TSO pkt size in DCB*/
-#define IXGBE_DCB_MAX_CREDIT		(2 * IXGBE_DCB_MAX_CREDIT_REFILL)
+#define IXGBE_DCB_CREDIT_QUANTUM 64
+#define IXGBE_DCB_MAX_CREDIT_REFILL 200	   /* 200 * 64B = 12800B */
+#define IXGBE_DCB_MAX_TSO_SIZE (32 * 1024) /* Max TSO pkt size in DCB*/
+#define IXGBE_DCB_MAX_CREDIT (2 * IXGBE_DCB_MAX_CREDIT_REFILL)
 
 /* 513 for 32KB TSO packet */
-#define IXGBE_DCB_MIN_TSO_CREDIT	\
+#define IXGBE_DCB_MIN_TSO_CREDIT \
 	((IXGBE_DCB_MAX_TSO_SIZE / IXGBE_DCB_CREDIT_QUANTUM) + 1)
 
 /* DCB configuration defines */
-#define IXGBE_DCB_MAX_USER_PRIORITY	8
-#define IXGBE_DCB_MAX_BW_GROUP		8
-#define IXGBE_DCB_BW_PERCENT		100
+#define IXGBE_DCB_MAX_USER_PRIORITY 8
+#define IXGBE_DCB_MAX_BW_GROUP 8
+#define IXGBE_DCB_BW_PERCENT 100
 
-#define IXGBE_DCB_TX_CONFIG		0
-#define IXGBE_DCB_RX_CONFIG		1
+#define IXGBE_DCB_TX_CONFIG 0
+#define IXGBE_DCB_RX_CONFIG 1
 
 /* DCB capability defines */
-#define IXGBE_DCB_PG_SUPPORT	0x00000001
-#define IXGBE_DCB_PFC_SUPPORT	0x00000002
-#define IXGBE_DCB_BCN_SUPPORT	0x00000004
-#define IXGBE_DCB_UP2TC_SUPPORT	0x00000008
-#define IXGBE_DCB_GSP_SUPPORT	0x00000010
+#define IXGBE_DCB_PG_SUPPORT 0x00000001
+#define IXGBE_DCB_PFC_SUPPORT 0x00000002
+#define IXGBE_DCB_BCN_SUPPORT 0x00000004
+#define IXGBE_DCB_UP2TC_SUPPORT 0x00000008
+#define IXGBE_DCB_GSP_SUPPORT 0x00000010
 
 struct ixgbe_dcb_support {
 	u32 capabilities; /* DCB capabilities */
@@ -80,14 +80,14 @@ enum ixgbe_dcb_tsa {
 
 /* Traffic class bandwidth allocation per direction */
 struct ixgbe_dcb_tc_path {
-	u8 bwg_id; /* Bandwidth Group (BWG) ID */
-	u8 bwg_percent; /* % of BWG's bandwidth */
-	u8 link_percent; /* % of link bandwidth */
-	u8 up_to_tc_bitmap; /* User Priority to Traffic Class mapping */
+	u8 bwg_id;		 /* Bandwidth Group (BWG) ID */
+	u8 bwg_percent;		 /* % of BWG's bandwidth */
+	u8 link_percent;	 /* % of link bandwidth */
+	u8 up_to_tc_bitmap;	 /* User Priority to Traffic Class mapping */
 	u16 data_credits_refill; /* Credit refill amount in 64B granularity */
-	u16 data_credits_max; /* Max credits for a configured packet buffer
-			       * in 64B granularity.*/
-	enum ixgbe_dcb_tsa tsa; /* Link or Group Strict Priority */
+	u16 data_credits_max;	 /* Max credits for a configured packet buffer
+				  * in 64B granularity.*/
+	enum ixgbe_dcb_tsa tsa;	 /* Link or Group Strict Priority */
 };
 
 enum ixgbe_dcb_pfc {
@@ -100,10 +100,10 @@ enum ixgbe_dcb_pfc {
 /* Traffic class configuration */
 struct ixgbe_dcb_tc_config {
 	struct ixgbe_dcb_tc_path path[2]; /* One each for Tx/Rx */
-	enum ixgbe_dcb_pfc pfc; /* Class based flow control setting */
+	enum ixgbe_dcb_pfc pfc;		  /* Class based flow control setting */
 
 	u16 desc_credits_max; /* For Tx Descriptor arbitration */
-	u8 tc; /* Traffic class (TC) */
+	u8 tc;		      /* Traffic class (TC) */
 };
 
 enum ixgbe_dcb_pba {
@@ -129,7 +129,7 @@ struct ixgbe_dcb_config {
 	enum ixgbe_dcb_pba rx_pba_cfg;
 
 	u32 dcb_cfg_version; /* Not used...OS-specific? */
-	u32 link_speed; /* For bandwidth allocation validation purpose */
+	u32 link_speed;	     /* For bandwidth allocation validation purpose */
 	bool vt_mode;
 };
 
@@ -141,7 +141,7 @@ s32 ixgbe_dcb_check_config_cee(struct ixgbe_dcb_config *);
 /* DCB credits calculation */
 s32 ixgbe_dcb_calculate_tc_credits(u8 *, u16 *, u16 *, int);
 s32 ixgbe_dcb_calculate_tc_credits_cee(struct ixgbe_hw *,
-				       struct ixgbe_dcb_config *, u32, u8);
+    struct ixgbe_dcb_config *, u32, u8);
 
 /* DCB PFC */
 s32 ixgbe_dcb_config_pfc(struct ixgbe_hw *, u8, u8 *);
@@ -154,11 +154,11 @@ s32 ixgbe_dcb_get_pfc_stats(struct ixgbe_hw *, struct ixgbe_hw_stats *, u8);
 
 /* DCB config arbiters */
 s32 ixgbe_dcb_config_tx_desc_arbiter_cee(struct ixgbe_hw *,
-					 struct ixgbe_dcb_config *);
+    struct ixgbe_dcb_config *);
 s32 ixgbe_dcb_config_tx_data_arbiter_cee(struct ixgbe_hw *,
-					 struct ixgbe_dcb_config *);
+    struct ixgbe_dcb_config *);
 s32 ixgbe_dcb_config_rx_arbiter_cee(struct ixgbe_hw *,
-				    struct ixgbe_dcb_config *);
+    struct ixgbe_dcb_config *);
 
 /* DCB unpack routines */
 void ixgbe_dcb_unpack_pfc_cee(struct ixgbe_dcb_config *, u8 *, u8 *);

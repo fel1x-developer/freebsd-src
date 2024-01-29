@@ -63,35 +63,33 @@ __KERNEL_RCSID(0, "$NetBSD: qat_hw15.c,v 1.1 2019/11/20 09:37:46 hikaru Exp $");
 #endif
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/proc.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
-
-#include <opencrypto/xform.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include "qatreg.h"
-#include "qat_hw15reg.h"
-#include "qatvar.h"
-#include "qat_hw15var.h"
+#include <opencrypto/xform.h>
 
-static int	qat_adm_ring_init_ring_table(struct qat_softc *);
-static void	qat_adm_ring_build_slice_mask(uint16_t *, uint32_t, uint32_t);
-static void	qat_adm_ring_build_shram_mask(uint64_t *, uint32_t, uint32_t);
-static int	qat_adm_ring_build_ring_table(struct qat_softc *, uint32_t);
-static int	qat_adm_ring_build_init_msg(struct qat_softc *,
-		    struct fw_init_req *, enum fw_init_cmd_id, uint32_t,
-		    struct qat_accel_init_cb *);
-static int	qat_adm_ring_send_init_msg_sync(struct qat_softc *,
-		    enum fw_init_cmd_id, uint32_t);
-static int	qat_adm_ring_send_init_msg(struct qat_softc *,
-		    enum fw_init_cmd_id);
-static int	qat_adm_ring_intr(struct qat_softc *, void *, void *);
+#include "qat_hw15reg.h"
+#include "qat_hw15var.h"
+#include "qatreg.h"
+#include "qatvar.h"
+
+static int qat_adm_ring_init_ring_table(struct qat_softc *);
+static void qat_adm_ring_build_slice_mask(uint16_t *, uint32_t, uint32_t);
+static void qat_adm_ring_build_shram_mask(uint64_t *, uint32_t, uint32_t);
+static int qat_adm_ring_build_ring_table(struct qat_softc *, uint32_t);
+static int qat_adm_ring_build_init_msg(struct qat_softc *, struct fw_init_req *,
+    enum fw_init_cmd_id, uint32_t, struct qat_accel_init_cb *);
+static int qat_adm_ring_send_init_msg_sync(struct qat_softc *,
+    enum fw_init_cmd_id, uint32_t);
+static int qat_adm_ring_send_init_msg(struct qat_softc *, enum fw_init_cmd_id);
+static int qat_adm_ring_intr(struct qat_softc *, void *, void *);
 
 void
 qat_msg_req_type_populate(struct arch_if_req_hdr *msg, enum arch_if_req type,
@@ -119,8 +117,8 @@ qat_msg_cmn_hdr_populate(struct fw_la_bulk_req *msg, bus_addr_t desc_paddr,
 }
 
 void
-qat_msg_service_cmd_populate(struct fw_la_bulk_req *msg, enum fw_la_cmd_id cmdid,
-    uint16_t cmd_flags)
+qat_msg_service_cmd_populate(struct fw_la_bulk_req *msg,
+    enum fw_la_cmd_id cmdid, uint16_t cmd_flags)
 {
 	msg->comn_la_req.la_cmd_id = cmdid;
 	msg->comn_la_req.u.la_flags = cmd_flags;
@@ -158,8 +156,8 @@ qat_msg_params_populate(struct fw_la_bulk_req *msg,
     struct qat_crypto_desc *desc, uint8_t req_params_sz,
     uint16_t service_cmd_flags, uint16_t comn_req_flags)
 {
-	qat_msg_cmn_hdr_populate(msg, desc->qcd_desc_paddr,
-	    desc->qcd_hdr_sz, desc->qcd_hw_blk_sz, comn_req_flags, 0);
+	qat_msg_cmn_hdr_populate(msg, desc->qcd_desc_paddr, desc->qcd_hdr_sz,
+	    desc->qcd_hw_blk_sz, comn_req_flags, 0);
 	qat_msg_service_cmd_populate(msg, desc->qcd_cmd_id, service_cmd_flags);
 	qat_msg_cmn_mid_populate(&msg->comn_mid, NULL, 0, 0);
 	qat_msg_req_params_populate(msg, 0, req_params_sz);
@@ -172,15 +170,12 @@ qat_adm_ring_init_ring_table(struct qat_softc *sc)
 	struct qat_admin_rings *qadr = &sc->sc_admin_rings;
 
 	if (sc->sc_ae_num == 1) {
-		qadr->qadr_cya_ring_tbl =
-		    &qadr->qadr_master_ring_tbl[0];
+		qadr->qadr_cya_ring_tbl = &qadr->qadr_master_ring_tbl[0];
 		qadr->qadr_srv_mask[0] = QAT_SERVICE_CRYPTO_A;
 	} else if (sc->sc_ae_num == 2 || sc->sc_ae_num == 4) {
-		qadr->qadr_cya_ring_tbl =
-		    &qadr->qadr_master_ring_tbl[0];
+		qadr->qadr_cya_ring_tbl = &qadr->qadr_master_ring_tbl[0];
 		qadr->qadr_srv_mask[0] = QAT_SERVICE_CRYPTO_A;
-		qadr->qadr_cyb_ring_tbl =
-		    &qadr->qadr_master_ring_tbl[1];
+		qadr->qadr_cyb_ring_tbl = &qadr->qadr_master_ring_tbl[1];
 		qadr->qadr_srv_mask[1] = QAT_SERVICE_CRYPTO_B;
 	}
 
@@ -199,8 +194,7 @@ qat_adm_ring_init(struct qat_softc *sc)
 
 	qadr->qadr_master_ring_tbl = qadr->qadr_dma.qdm_dma_vaddr;
 
-	MPASS(sc->sc_ae_num *
-	    sizeof(struct fw_init_ring_table) <= PAGE_SIZE);
+	MPASS(sc->sc_ae_num * sizeof(struct fw_init_ring_table) <= PAGE_SIZE);
 
 	/* Initialize the Master Ring Table */
 	for (i = 0; i < sc->sc_ae_num; i++) {
@@ -208,7 +202,7 @@ qat_adm_ring_init(struct qat_softc *sc)
 		    &qadr->qadr_master_ring_tbl[i];
 
 		for (j = 0; j < INIT_RING_TABLE_SZ; j++) {
-			struct fw_init_ring_params *firp = 
+			struct fw_init_ring_params *firp =
 			    &firt->firt_bulk_rings[j];
 
 			firp->firp_reserved = 0;
@@ -219,15 +213,15 @@ qat_adm_ring_init(struct qat_softc *sc)
 		memset(firt->firt_ring_mask, 0, sizeof(firt->firt_ring_mask));
 	}
 
-	error = qat_etr_setup_ring(sc, 0, RING_NUM_ADMIN_TX,
-	    ADMIN_RING_SIZE, sc->sc_hw.qhw_fw_req_size,
-	    NULL, NULL, "admin_tx", &qadr->qadr_admin_tx);
+	error = qat_etr_setup_ring(sc, 0, RING_NUM_ADMIN_TX, ADMIN_RING_SIZE,
+	    sc->sc_hw.qhw_fw_req_size, NULL, NULL, "admin_tx",
+	    &qadr->qadr_admin_tx);
 	if (error)
 		return error;
 
-	error = qat_etr_setup_ring(sc, 0, RING_NUM_ADMIN_RX,
-	    ADMIN_RING_SIZE, sc->sc_hw.qhw_fw_resp_size,
-	    qat_adm_ring_intr, qadr, "admin_rx", &qadr->qadr_admin_rx);
+	error = qat_etr_setup_ring(sc, 0, RING_NUM_ADMIN_RX, ADMIN_RING_SIZE,
+	    sc->sc_hw.qhw_fw_resp_size, qat_adm_ring_intr, qadr, "admin_rx",
+	    &qadr->qadr_admin_rx);
 	if (error)
 		return error;
 
@@ -254,7 +248,7 @@ qat_adm_ring_init(struct qat_softc *sc)
 
 static void
 qat_adm_ring_build_slice_mask(uint16_t *slice_mask, uint32_t srv_mask,
-   uint32_t init_shram)
+    uint32_t init_shram)
 {
 	uint16_t shram = 0, comn_req = 0;
 
@@ -281,14 +275,16 @@ qat_adm_ring_build_shram_mask(uint64_t *shram_mask, uint32_t active_aes,
 		if (ae == 1)
 			*shram_mask = ((~(*shram_mask)) & 0xffffffff);
 		else
-			*shram_mask = ((~(*shram_mask)) & 0xffffffff00000000ull);
+			*shram_mask = ((~(*shram_mask)) &
+			    0xffffffff00000000ull);
 	} else if (active_aes == 3) {
 		if (ae == 0)
 			*shram_mask = ((~(*shram_mask)) & 0x7fffff);
 		else if (ae == 1)
 			*shram_mask = ((~(*shram_mask)) & 0x3fffff800000ull);
 		else
-			*shram_mask = ((~(*shram_mask)) & 0xffffc00000000000ull);
+			*shram_mask = ((~(*shram_mask)) &
+			    0xffffc00000000000ull);
 	} else {
 		panic("Only three services are supported in current version");
 	}
@@ -307,8 +303,7 @@ qat_adm_ring_build_ring_table(struct qat_softc *sc, uint32_t ae)
 	} else if ((srv_mask & QAT_SERVICE_CRYPTO_B)) {
 		tbl = qadr->qadr_cyb_ring_tbl;
 	} else {
-		device_printf(sc->sc_dev,
-		    "Invalid execution engine %d\n", ae);
+		device_printf(sc->sc_dev, "Invalid execution engine %d\n", ae);
 		return EINVAL;
 	}
 
@@ -321,9 +316,8 @@ qat_adm_ring_build_ring_table(struct qat_softc *sc, uint32_t ae)
 }
 
 static int
-qat_adm_ring_build_init_msg(struct qat_softc *sc,
-    struct fw_init_req *initmsg, enum fw_init_cmd_id cmd, uint32_t ae,
-    struct qat_accel_init_cb *cb)
+qat_adm_ring_build_init_msg(struct qat_softc *sc, struct fw_init_req *initmsg,
+    enum fw_init_cmd_id cmd, uint32_t ae, struct qat_accel_init_cb *cb)
 {
 	struct fw_init_set_ae_info_hdr *aehdr;
 	struct fw_init_set_ae_info *aeinfo;
@@ -332,9 +326,8 @@ qat_adm_ring_build_init_msg(struct qat_softc *sc,
 	int init_shram = 0, tgt_id, cluster_id;
 	uint32_t srv_mask;
 
-	srv_mask = sc->sc_admin_rings.qadr_srv_mask[
-	    ae % sc->sc_ae_num];
-	
+	srv_mask = sc->sc_admin_rings.qadr_srv_mask[ae % sc->sc_ae_num];
+
 	memset(initmsg, 0, sizeof(struct fw_init_req));
 
 	qat_msg_req_type_populate(&initmsg->comn_hdr.arch_if,
@@ -383,15 +376,13 @@ qat_adm_ring_build_init_msg(struct qat_softc *sc,
 		ringhdr->init_trgt_id = ae;
 
 		/* XXX */
-		qat_adm_ring_build_ring_table(sc,
-		    ae % sc->sc_ae_num);
+		qat_adm_ring_build_ring_table(sc, ae % sc->sc_ae_num);
 
 		ringhdr->init_ring_tbl_sz = sizeof(struct fw_init_ring_table);
 
 		ringinfo->init_ring_table_ptr =
 		    sc->sc_admin_rings.qadr_dma.qdm_dma_seg.ds_addr +
-		    ((ae % sc->sc_ae_num) *
-		    sizeof(struct fw_init_ring_table));
+		    ((ae % sc->sc_ae_num) * sizeof(struct fw_init_ring_table));
 
 		break;
 	default:
@@ -402,8 +393,8 @@ qat_adm_ring_build_init_msg(struct qat_softc *sc,
 }
 
 static int
-qat_adm_ring_send_init_msg_sync(struct qat_softc *sc,
-    enum fw_init_cmd_id cmd, uint32_t ae)
+qat_adm_ring_send_init_msg_sync(struct qat_softc *sc, enum fw_init_cmd_id cmd,
+    uint32_t ae)
 {
 	struct fw_init_req initmsg;
 	struct qat_accel_init_cb cb;
@@ -433,8 +424,7 @@ qat_adm_ring_send_init_msg_sync(struct qat_softc *sc,
 }
 
 static int
-qat_adm_ring_send_init_msg(struct qat_softc *sc,
-    enum fw_init_cmd_id cmd)
+qat_adm_ring_send_init_msg(struct qat_softc *sc, enum fw_init_cmd_id cmd)
 {
 	struct qat_admin_rings *qadr = &sc->sc_admin_rings;
 	uint32_t error, ae;
@@ -493,16 +483,16 @@ qat_adm_ring_intr(struct qat_softc *sc, void *arg, void *msg)
 	switch (resp->resp_type) {
 	case ARCH_IF_REQ_QAT_FW_INIT:
 		init_resp = (struct fw_init_resp *)msg;
-		init_cb = (struct qat_accel_init_cb *)
-		    (uintptr_t)init_resp->comn_resp.opaque_data;
+		init_cb = (struct qat_accel_init_cb *)(uintptr_t)
+			      init_resp->comn_resp.opaque_data;
 		init_cb->qaic_status =
 		    __SHIFTOUT(init_resp->comn_resp.comn_status,
-		    COMN_RESP_INIT_ADMIN_STATUS);
+			COMN_RESP_INIT_ADMIN_STATUS);
 		wakeup(init_cb);
 		break;
 	default:
-		device_printf(sc->sc_dev,
-		    "unknown resp type %d\n", resp->resp_type);
+		device_printf(sc->sc_dev, "unknown resp type %d\n",
+		    resp->resp_type);
 		break;
 	}
 
@@ -565,8 +555,7 @@ qat_hw15_crypto_setup_cipher_config(const struct qat_crypto_desc *desc,
 static uint32_t
 qat_hw15_crypto_setup_auth_desc(struct qat_crypto_desc *desc,
     struct qat_session *qs, struct fw_auth_hdr *auth_hdr,
-    uint32_t ctrl_blk_offset, uint32_t hw_blk_offset,
-    enum fw_slice next_slice)
+    uint32_t ctrl_blk_offset, uint32_t hw_blk_offset, enum fw_slice next_slice)
 {
 	const struct qat_sym_hash_def *hash_def;
 
@@ -595,8 +584,10 @@ qat_hw15_crypto_setup_auth_desc(struct qat_crypto_desc *desc,
 	auth_hdr->outer_prefix_off = 0;
 
 	desc->qcd_auth_sz = hash_def->qshd_alg->qshai_sah->hashsize;
-	desc->qcd_state_storage_sz = (sizeof(struct hw_auth_counter) +
-	    roundup(hash_def->qshd_alg->qshai_state_size, 8)) / 8;
+	desc->qcd_state_storage_sz =
+	    (sizeof(struct hw_auth_counter) +
+		roundup(hash_def->qshd_alg->qshai_state_size, 8)) /
+	    8;
 	desc->qcd_gcm_aad_sz_offset1 = desc->qcd_auth_offset +
 	    sizeof(struct hw_auth_setup) + auth_hdr->inner_state1_sz +
 	    AES_BLOCK_LEN;
@@ -621,8 +612,8 @@ qat_hw15_crypto_setup_auth_setup(const struct qat_crypto_desc *desc,
 	    &hash_def);
 	auth_setup->auth_config.reserved = 0;
 
-	auth_setup->auth_counter.counter =
-	    htobe32(hash_def->qshd_qat->qshqi_auth_counter);
+	auth_setup->auth_counter.counter = htobe32(
+	    hash_def->qshd_qat->qshqi_auth_counter);
 	auth_setup->auth_counter.reserved = 0;
 
 	state1 = (uint8_t *)(auth_setup + 1);
@@ -749,8 +740,7 @@ qat_hw15_crypto_setup_desc(struct qat_crypto *qcy, struct qat_session *qs,
 	desc->qcd_hw_blk_sz = hw_blk_offset / 8;
 
 	req_cache = (struct fw_la_bulk_req *)desc->qcd_req_cache;
-	qat_msg_req_type_populate(
-	    &req_cache->comn_hdr.arch_if,
+	qat_msg_req_type_populate(&req_cache->comn_hdr.arch_if,
 	    ARCH_IF_REQ_QAT_FW_LA, 0);
 
 	if (qs->qs_auth_algo == HW_AUTH_ALGO_GALOIS_128)
@@ -758,8 +748,8 @@ qat_hw15_crypto_setup_desc(struct qat_crypto *qcy, struct qat_session *qs,
 	else
 		la_cmd_flags |= LA_FLAGS_PROTO_NO;
 
-	qat_msg_params_populate(req_cache, desc, req_params_sz,
-	    la_cmd_flags, 0);
+	qat_msg_params_populate(req_cache, desc, req_params_sz, la_cmd_flags,
+	    0);
 
 	bus_dmamap_sync(qs->qs_desc_mem.qdm_dma_tag,
 	    qs->qs_desc_mem.qdm_dma_map, BUS_DMASYNC_PREWRITE);
@@ -780,14 +770,14 @@ qat_hw15_crypto_req_setkey(const struct qat_crypto_desc *desc,
 	for (i = 0; i < MAX_FW_SLICE; i++) {
 		switch (desc->qcd_slices[i]) {
 		case FW_SLICE_CIPHER:
-			cipher_config = (struct hw_cipher_config *)
-			    (cdesc + desc->qcd_cipher_offset);
+			cipher_config = (struct hw_cipher_config *)(cdesc +
+			    desc->qcd_cipher_offset);
 			qat_hw15_crypto_setup_cipher_config(desc, qs, crp,
 			    cipher_config);
 			break;
 		case FW_SLICE_AUTH:
-			auth_setup = (struct hw_auth_setup *)
-			    (cdesc + desc->qcd_auth_offset);
+			auth_setup = (struct hw_auth_setup *)(cdesc +
+			    desc->qcd_auth_offset);
 			qat_hw15_crypto_setup_auth_setup(desc, qs, crp,
 			    auth_setup);
 			break;
@@ -822,8 +812,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 	bulk_req = (struct fw_la_bulk_req *)qsbc->qsbc_msg;
 	memcpy(bulk_req, &desc->qcd_req_cache, QAT_HW15_SESSION_REQ_CACHE_SIZE);
 	bulk_req->comn_hdr.arch_if.resp_pipe_id = qcb->qcb_sym_rx->qr_ring_id;
-	bulk_req->comn_hdr.comn_req_flags =
-	    qat_hw15_get_comn_req_flags(qcb->qcb_bank % 2);
+	bulk_req->comn_hdr.comn_req_flags = qat_hw15_get_comn_req_flags(
+	    qcb->qcb_bank % 2);
 	bulk_req->comn_mid.src_data_addr = qsc->qsc_buffer_list_desc_paddr;
 	if (CRYPTO_HAS_OUTPUT_BUFFER(crp)) {
 		bulk_req->comn_mid.dest_data_addr =
@@ -835,8 +825,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 	bulk_req->req_params_addr = qsc->qsc_bulk_req_params_buf_paddr;
 	bulk_req->comn_ftr.next_request_addr = 0;
 	bulk_req->comn_mid.opaque_data = (uint64_t)(uintptr_t)qsc;
-	if (__predict_false(crp->crp_cipher_key != NULL ||
-	    crp->crp_auth_key != NULL)) {
+	if (__predict_false(
+		crp->crp_cipher_key != NULL || crp->crp_auth_key != NULL)) {
 		qat_hw15_crypto_req_setkey(desc, qs, qsc, bulk_req, crp);
 	}
 
@@ -853,8 +843,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 	 */
 	if (qs->qs_auth_algo == HW_AUTH_ALGO_GALOIS_128) {
 		cipher_req = (struct fw_la_cipher_req_params *)req_params_ptr;
-		auth_req = (struct fw_la_auth_req_params *)
-		    (req_params_ptr + sizeof(struct fw_la_cipher_req_params));
+		auth_req = (struct fw_la_auth_req_params *)(req_params_ptr +
+		    sizeof(struct fw_la_cipher_req_params));
 
 		cipher_req->cipher_state_sz = desc->qcd_cipher_blk_sz / 8;
 		cipher_req->curr_id = FW_SLICE_CIPHER;
@@ -884,10 +874,12 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 		auth_req->auth_off = 0;
 		auth_req->auth_len = crp->crp_payload_length;
 
-		auth_req->hash_state_sz =
-		    roundup2(crp->crp_aad_length, QAT_AES_GCM_AAD_ALIGN) >> 3;
+		auth_req->hash_state_sz = roundup2(crp->crp_aad_length,
+					      QAT_AES_GCM_AAD_ALIGN) >>
+		    3;
 		auth_req->u1.aad_addr = crp->crp_aad_length > 0 ?
-		    qsc->qsc_gcm_aad_paddr : 0;
+		    qsc->qsc_gcm_aad_paddr :
+		    0;
 
 		/*
 		 * Update the hash state block if necessary.  This only occurs
@@ -895,8 +887,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 		 * is synchronized by qat_process().
 		 */
 		aad_sz = htobe32(crp->crp_aad_length);
-		aad_szp1 = (uint32_t *)(
-		    __DECONST(uint8_t *, desc->qcd_content_desc) +
+		aad_szp1 = (uint32_t *)(__DECONST(uint8_t *,
+					    desc->qcd_content_desc) +
 		    desc->qcd_gcm_aad_sz_offset1);
 		aad_szp2 = __DECONST(uint8_t *, desc->qcd_content_desc) +
 		    desc->qcd_gcm_aad_sz_offset2;
@@ -905,8 +897,7 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 			*aad_szp2 = (uint8_t)roundup2(crp->crp_aad_length,
 			    QAT_AES_GCM_AAD_ALIGN);
 			bus_dmamap_sync(qs->qs_desc_mem.qdm_dma_tag,
-			    qs->qs_desc_mem.qdm_dma_map,
-			    BUS_DMASYNC_PREWRITE);
+			    qs->qs_desc_mem.qdm_dma_map, BUS_DMASYNC_PREWRITE);
 		}
 	} else {
 		cipher_req = (struct fw_la_cipher_req_params *)req_params_ptr;
@@ -917,8 +908,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 			else
 				next_slice = FW_SLICE_AUTH;
 
-			cipher_req->cipher_state_sz =
-			    desc->qcd_cipher_blk_sz / 8;
+			cipher_req->cipher_state_sz = desc->qcd_cipher_blk_sz /
+			    8;
 
 			cipher_req->curr_id = FW_SLICE_CIPHER;
 			cipher_req->next_id = next_slice;
@@ -939,8 +930,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 				auth_req = (struct fw_la_auth_req_params *)
 				    req_params_ptr;
 			else
-				auth_req = (struct fw_la_auth_req_params *)
-				    (cipher_req + 1);
+				auth_req = (struct fw_la_auth_req_params
+					*)(cipher_req + 1);
 			if (cmd_id == FW_LA_CMD_HASH_CIPHER)
 				next_slice = FW_SLICE_CIPHER;
 			else
@@ -952,8 +943,8 @@ qat_hw15_crypto_setup_req_params(struct qat_crypto_bank *qcb,
 			auth_req->auth_res_address = digest_paddr;
 			auth_req->auth_res_sz = desc->qcd_auth_sz;
 
-			auth_req->auth_len =
-			    crp->crp_payload_length + crp->crp_aad_length;
+			auth_req->auth_len = crp->crp_payload_length +
+			    crp->crp_aad_length;
 			auth_req->auth_off = 0;
 
 			auth_req->hash_state_sz = 0;

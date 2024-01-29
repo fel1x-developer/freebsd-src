@@ -28,17 +28,17 @@
  */
 
 /*
- * Definition for the wrapper around the deflate compression 
+ * Definition for the wrapper around the deflate compression
  * algorithm used in /sys/crypto
  */
 
 #ifndef _CRYPTO_DEFLATE_H_
 #define _CRYPTO_DEFLATE_H_
 
-#define Z_METHOD	8
-#define Z_MEMLEVEL	8
-#define MINCOMP		2	/* won't be used, but must be defined */
-#define ZBUF		10
+#define Z_METHOD 8
+#define Z_MEMLEVEL 8
+#define MINCOMP 2 /* won't be used, but must be defined */
+#define ZBUF 10
 
 uint32_t deflate_global(uint8_t *, uint32_t, int, uint8_t **);
 

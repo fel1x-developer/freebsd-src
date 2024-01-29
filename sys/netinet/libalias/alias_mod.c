@@ -28,19 +28,20 @@
  */
 #include <sys/cdefs.h>
 #ifdef _KERNEL
-#include <sys/libkern.h>
 #include <sys/param.h>
+#include <sys/libkern.h>
 #include <sys/lock.h>
 #include <sys/rwlock.h>
 #else
+#include <sys/types.h>
+
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <errno.h>
 #endif
 
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 
 #ifdef _KERNEL
@@ -52,17 +53,16 @@
 #endif
 
 /* Protocol and userland module handlers chains. */
-static TAILQ_HEAD(handler_chain, proto_handler) handler_chain =
-    TAILQ_HEAD_INITIALIZER(handler_chain);
+static TAILQ_HEAD(handler_chain,
+    proto_handler) handler_chain = TAILQ_HEAD_INITIALIZER(handler_chain);
 
 static int
 attach_handler(struct proto_handler *p)
 {
 	struct proto_handler *b;
 
-	TAILQ_FOREACH(b, &handler_chain, link) {
-		if ((b->pri == p->pri) &&
-		    (b->dir == p->dir) &&
+	TAILQ_FOREACH (b, &handler_chain, link) {
+		if ((b->pri == p->pri) && (b->dir == p->dir) &&
 		    (b->proto == p->proto))
 			return (EEXIST);
 		if (b->pri > p->pri) {
@@ -109,7 +109,7 @@ find_handler(int8_t dir, int8_t proto, struct libalias *la, struct ip *ip,
 {
 	struct proto_handler *p;
 
-	TAILQ_FOREACH(p, &handler_chain, link)
+	TAILQ_FOREACH (p, &handler_chain, link)
 		if ((p->dir & dir) && (p->proto & proto) &&
 		    p->fingerprint(la, ad) == 0)
 			return (p->protohandler(la, ip, ad));
@@ -131,7 +131,7 @@ attach_dll(struct dll *p)
 {
 	struct dll *b;
 
-	SLIST_FOREACH(b, &dll_chain, next) {
+	SLIST_FOREACH (b, &dll_chain, next) {
 		if (!strncmp(b->name, p->name, DLL_LEN))
 			return (EEXIST); /* Dll name conflict. */
 	}
@@ -147,7 +147,7 @@ detach_dll(char *p)
 
 	b = NULL;
 	error = NULL;
-	SLIST_FOREACH_SAFE(b, &dll_chain, next, b_tmp)
+	SLIST_FOREACH_SAFE (b, &dll_chain, next, b_tmp)
 		if (!strncmp(b->name, p, DLL_LEN)) {
 			SLIST_REMOVE(&dll_chain, b, dll, next);
 			error = b;

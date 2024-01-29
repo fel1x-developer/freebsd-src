@@ -34,10 +34,9 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
 
 #include <ctype.h>
@@ -57,37 +56,38 @@
 #include "extern.h"
 
 static SPACE HS, PS, SS, YS;
-#define	pd		PS.deleted
-#define	ps		PS.space
-#define	psl		PS.len
-#define	psanl		PS.append_newline
-#define	hs		HS.space
-#define	hsl		HS.len
+#define pd PS.deleted
+#define ps PS.space
+#define psl PS.len
+#define psanl PS.append_newline
+#define hs HS.space
+#define hsl HS.len
 
-static inline int	 applies(struct s_command *);
-static void		 do_tr(struct s_tr *);
-static void		 flush_appends(void);
-static void		 lputs(char *, size_t);
-static int		 regexec_e(regex_t *, const char *, int, int, size_t,
-			     size_t);
-static void		 regsub(SPACE *, char *, char *);
-static int		 substitute(struct s_command *);
+static inline int applies(struct s_command *);
+static void do_tr(struct s_tr *);
+static void flush_appends(void);
+static void lputs(char *, size_t);
+static int regexec_e(regex_t *, const char *, int, int, size_t, size_t);
+static void regsub(SPACE *, char *, char *);
+static int substitute(struct s_command *);
 
-struct s_appends *appends;	/* Array of pointers to strings to append. */
-static unsigned int appendx;	/* Index into appends array. */
-unsigned int appendnum;		/* Size of appends array. */
+struct s_appends *appends;   /* Array of pointers to strings to append. */
+static unsigned int appendx; /* Index into appends array. */
+unsigned int appendnum;	     /* Size of appends array. */
 
-static int lastaddr;		/* Set by applies if last address of a range. */
-static int sdone;		/* If any substitutes since last line input. */
-				/* Iov structure for 'w' commands. */
+static int lastaddr; /* Set by applies if last address of a range. */
+static int sdone;    /* If any substitutes since last line input. */
+		     /* Iov structure for 'w' commands. */
 static regex_t *defpreg;
 size_t maxnsub;
 regmatch_t *match;
 
-#define OUT() do {							\
-	fwrite(ps, 1, psl, outfile);					\
-	if (psanl) fputc('\n', outfile);				\
-} while (0)
+#define OUT()                                 \
+	do {                                  \
+		fwrite(ps, 1, psl, outfile);  \
+		if (psanl)                    \
+			fputc('\n', outfile); \
+	} while (0)
 
 void
 process(void)
@@ -103,9 +103,9 @@ process(void)
 
 	for (linenum = 0; mf_fgets(&PS, REPLACE);) {
 		pd = 0;
-top:
+	top:
 		cp = prog;
-redirect:
+	redirect:
 		while (cp != NULL) {
 			if (!applies(cp)) {
 				cp = cp->next;
@@ -118,8 +118,8 @@ redirect:
 			case 'a':
 				if (appendx >= appendnum)
 					if ((appends = realloc(appends,
-					    sizeof(struct s_appends) *
-					    (appendnum *= 2))) == NULL)
+						 sizeof(struct s_appends) *
+						     (appendnum *= 2))) == NULL)
 						err(1, "realloc");
 				appends[appendx].type = AP_STRING;
 				appends[appendx].s = cp->t;
@@ -216,8 +216,8 @@ redirect:
 			case 'r':
 				if (appendx >= appendnum)
 					if ((appends = realloc(appends,
-					    sizeof(struct s_appends) *
-					    (appendnum *= 2))) == NULL)
+						 sizeof(struct s_appends) *
+						     (appendnum *= 2))) == NULL)
 						err(1, "realloc");
 				appends[appendx].type = AP_FILE;
 				appends[appendx].s = cp->t;
@@ -237,9 +237,11 @@ redirect:
 			case 'w':
 				if (pd)
 					break;
-				if (cp->u.fd == -1 && (cp->u.fd = open(cp->t,
-				    O_WRONLY|O_APPEND|O_CREAT|O_TRUNC,
-				    DEFFILEMODE)) == -1)
+				if (cp->u.fd == -1 &&
+				    (cp->u.fd = open(cp->t,
+					 O_WRONLY | O_APPEND | O_CREAT |
+					     O_TRUNC,
+					 DEFFILEMODE)) == -1)
 					err(1, "%s", cp->t);
 				if (write(cp->u.fd, ps, psl) != (ssize_t)psl ||
 				    write(cp->u.fd, "\n", 1) != 1)
@@ -273,8 +275,7 @@ redirect:
 			cp = cp->next;
 		} /* for all cp */
 
-new:		if (!nflag && !pd)
-			OUT();
+		new : if (!nflag && !pd) OUT();
 		flush_appends();
 	} /* for all lines */
 }
@@ -283,9 +284,10 @@ new:		if (!nflag && !pd)
  * TRUE if the address passed matches the current program state
  * (lastline, linenumber, ps).
  */
-#define	MATCH(a)							\
-	((a)->type == AT_RE ? regexec_e((a)->u.r, ps, 0, 1, 0, psl) :	\
-	    (a)->type == AT_LINE ? linenum == (a)->u.l : lastline())
+#define MATCH(a)                                                               \
+	((a)->type == AT_RE	     ? regexec_e((a)->u.r, ps, 0, 1, 0, psl) : \
+		(a)->type == AT_LINE ? linenum == (a)->u.l :                   \
+				       lastline())
 
 /*
  * Return TRUE if the command applies to the current line.  Sets the start
@@ -301,32 +303,32 @@ applies(struct s_command *cp)
 		r = 1;
 	else if (cp->a2)
 		if (cp->startline > 0) {
-                        switch (cp->a2->type) {
-                        case AT_RELLINE:
-                                if (linenum - cp->startline <= cp->a2->u.l)
-                                        r = 1;
-                                else {
-				        cp->startline = 0;
-				        r = 0;
-                                }
-                                break;
-                        default:
-                                if (MATCH(cp->a2)) {
-                                        cp->startline = 0;
-                                        lastaddr = 1;
-                                        r = 1;
-                                } else if (cp->a2->type == AT_LINE &&
-                                            linenum > cp->a2->u.l) {
-                                        /*
-                                         * We missed the 2nd address due to a
-                                         * branch, so just close the range and
-                                         * return false.
-                                         */
-                                        cp->startline = 0;
-                                        r = 0;
-                                } else
-                                        r = 1;
-                        }
+			switch (cp->a2->type) {
+			case AT_RELLINE:
+				if (linenum - cp->startline <= cp->a2->u.l)
+					r = 1;
+				else {
+					cp->startline = 0;
+					r = 0;
+				}
+				break;
+			default:
+				if (MATCH(cp->a2)) {
+					cp->startline = 0;
+					lastaddr = 1;
+					r = 1;
+				} else if (cp->a2->type == AT_LINE &&
+				    linenum > cp->a2->u.l) {
+					/*
+					 * We missed the 2nd address due to a
+					 * branch, so just close the range and
+					 * return false.
+					 */
+					cp->startline = 0;
+					r = 0;
+				} else
+					r = 1;
+			}
 		} else if (cp->a1 && MATCH(cp->a1)) {
 			/*
 			 * If the second address is a number less than or
@@ -336,7 +338,7 @@ applies(struct s_command *cp)
 			 * Likewise if the relative second line address is zero.
 			 */
 			if ((cp->a2->type == AT_LINE &&
-			    linenum >= cp->a2->u.l) ||
+				linenum >= cp->a2->u.l) ||
 			    (cp->a2->type == AT_RELLINE && cp->a2->u.l == 0))
 				lastaddr = 1;
 			else {
@@ -347,7 +349,7 @@ applies(struct s_command *cp)
 			r = 0;
 	else
 		r = MATCH(cp->a1);
-	return (cp->nonsel ? ! r : r);
+	return (cp->nonsel ? !r : r);
 }
 
 /*
@@ -392,14 +394,14 @@ substitute(struct s_command *cp)
 	if (re == NULL) {
 		if (defpreg != NULL && cp->u.s->maxbref > defpreg->re_nsub) {
 			linenum = cp->u.s->linenum;
-			errx(1, "%lu: %s: \\%u not defined in the RE",
-					linenum, fname, cp->u.s->maxbref);
+			errx(1, "%lu: %s: \\%u not defined in the RE", linenum,
+			    fname, cp->u.s->maxbref);
 		}
 	}
 	if (!regexec_e(re, ps, 0, 0, 0, psl))
 		return (0);
 
-	SS.len = 0;				/* Clean substitute space. */
+	SS.len = 0; /* Clean substitute space. */
 	slen = psl;
 	n = cp->u.s->n;
 	lastempty = 1;
@@ -441,15 +443,15 @@ substitute(struct s_command *cp)
 			else
 				slen--;
 			if (*s != '\0') {
-			 	cspace(&SS, s++, 1, APPEND);
+				cspace(&SS, s++, 1, APPEND);
 				le++;
 			}
 			lastempty = 1;
 		} else
 			lastempty = 0;
 
-	} while (n >= 0 && slen >= 0 &&
-	    regexec_e(re, ps, REG_NOTBOL, 0, le, psl));
+	} while (
+	    n >= 0 && slen >= 0 && regexec_e(re, ps, REG_NOTBOL, 0, le, psl));
 
 	/* Did not find the requested number of matches. */
 	if (n > 0)
@@ -475,8 +477,10 @@ substitute(struct s_command *cp)
 
 	/* Handle the 'w' flag. */
 	if (cp->u.s->wfile && !pd) {
-		if (cp->u.s->wfd == -1 && (cp->u.s->wfd = open(cp->u.s->wfile,
-		    O_WRONLY|O_APPEND|O_CREAT|O_TRUNC, DEFFILEMODE)) == -1)
+		if (cp->u.s->wfd == -1 &&
+		    (cp->u.s->wfd = open(cp->u.s->wfile,
+			 O_WRONLY | O_APPEND | O_CREAT | O_TRUNC,
+			 DEFFILEMODE)) == -1)
 			err(1, "%s", cp->u.s->wfile);
 		if (write(cp->u.s->wfd, ps, psl) != (ssize_t)psl ||
 		    write(cp->u.s->wfd, "\n", 1) != 1)
@@ -521,11 +525,11 @@ do_tr(struct s_tr *y)
 			for (i = 0; i < y->nmultis; i++)
 				if (left >= y->multis[i].fromlen &&
 				    memcmp(p, y->multis[i].from,
-				    y->multis[i].fromlen) == 0)
+					y->multis[i].fromlen) == 0)
 					break;
 			if (i < y->nmultis) {
-				cspace(&YS, y->multis[i].to,
-				    y->multis[i].tolen, APPEND);
+				cspace(&YS, y->multis[i].to, y->multis[i].tolen,
+				    APPEND);
 				clen = y->multis[i].fromlen;
 			} else {
 				cspace(&YS, p, 1, APPEND);
@@ -569,7 +573,8 @@ flush_appends(void)
 			 */
 			if ((f = fopen(appends[idx].s, "r")) == NULL)
 				break;
-			while ((count = fread(buf, sizeof(char), sizeof(buf), f)))
+			while (
+			    (count = fread(buf, sizeof(char), sizeof(buf), f)))
 				(void)fwrite(buf, sizeof(char), count, outfile);
 			(void)fclose(f);
 			break;
@@ -661,7 +666,7 @@ lputs(char *s, size_t len)
 
 static int
 regexec_e(regex_t *preg, const char *string, int eflags, int nomatch,
-	size_t start, size_t stop)
+    size_t start, size_t stop)
 {
 	int eval;
 
@@ -675,9 +680,9 @@ regexec_e(regex_t *preg, const char *string, int eflags, int nomatch,
 	match[0].rm_so = start;
 	match[0].rm_eo = stop;
 
-	eval = regexec(defpreg, string,
-	    nomatch ? 0 : maxnsub + 1, match, eflags | REG_STARTEND);
-	switch(eval) {
+	eval = regexec(defpreg, string, nomatch ? 0 : maxnsub + 1, match,
+	    eflags | REG_STARTEND);
+	switch (eval) {
 	case 0:
 		return (1);
 	case REG_NOMATCH:
@@ -697,14 +702,14 @@ regsub(SPACE *sp, char *string, char *src)
 	int len, no;
 	char c, *dst;
 
-#define	NEEDSP(reqlen)							\
-	/* XXX What is the +1 for? */					\
-	if (sp->len + (reqlen) + 1 >= sp->blen) {			\
-		sp->blen += (reqlen) + 1024;				\
-		if ((sp->space = sp->back = realloc(sp->back, sp->blen)) \
-		    == NULL)						\
-			err(1, "realloc");				\
-		dst = sp->space + sp->len;				\
+#define NEEDSP(reqlen)                                                      \
+	/* XXX What is the +1 for? */                                       \
+	if (sp->len + (reqlen) + 1 >= sp->blen) {                           \
+		sp->blen += (reqlen) + 1024;                                \
+		if ((sp->space = sp->back = realloc(sp->back, sp->blen)) == \
+		    NULL)                                                   \
+			err(1, "realloc");                                  \
+		dst = sp->space + sp->len;                                  \
 	}
 
 	dst = sp->space + sp->len;
@@ -715,7 +720,7 @@ regsub(SPACE *sp, char *string, char *src)
 			no = *src++ - '0';
 		else
 			no = -1;
-		if (no < 0) {		/* Ordinary character. */
+		if (no < 0) { /* Ordinary character. */
 			if (c == '\\' && (*src == '\\' || *src == '&'))
 				c = *src++;
 			NEEDSP(1);
@@ -768,7 +773,7 @@ cfclose(struct s_command *cp, struct s_command *end)
 {
 
 	for (; cp != end; cp = cp->next)
-		switch(cp->code) {
+		switch (cp->code) {
 		case 's':
 			if (cp->u.s->wfd != -1 && close(cp->u.s->wfd))
 				err(1, "%s", cp->u.s->wfile);

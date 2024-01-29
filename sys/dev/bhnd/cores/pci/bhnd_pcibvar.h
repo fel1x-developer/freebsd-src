@@ -27,7 +27,7 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
- * 
+ *
  */
 
 #ifndef _BHND_CORES_PCI_BHND_PCIBVAR_H_
@@ -37,7 +37,7 @@
 
 /* PCI bridge driver-specific state */
 struct bhnd_pcib_softc {
-	struct bhnd_pci_softc	sc_common;
+	struct bhnd_pci_softc sc_common;
 };
 
 #endif /* _BHND_CORES_PCI_BHND_PCIBVAR_H_ */

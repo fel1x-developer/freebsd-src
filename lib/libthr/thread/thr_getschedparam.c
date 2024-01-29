@@ -33,20 +33,21 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
 #include <sys/types.h>
 #include <sys/rtprio.h>
+
 #include <errno.h>
 #include <pthread.h>
-#include "un-namespace.h"
 
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 __weak_reference(_pthread_getschedparam, pthread_getschedparam);
 
 int
-_pthread_getschedparam(pthread_t pthread, int * __restrict policy, 
-    struct sched_param * __restrict param)
+_pthread_getschedparam(pthread_t pthread, int *__restrict policy,
+    struct sched_param *__restrict param)
 {
 	struct pthread *curthread = _get_curthread();
 	int ret = 0;
@@ -60,7 +61,8 @@ _pthread_getschedparam(pthread_t pthread, int * __restrict policy,
 	 */
 	if (pthread == curthread)
 		THR_LOCK(curthread);
-	else if ((ret = _thr_find_thread(curthread, pthread, /*include dead*/0)))
+	else if ((ret = _thr_find_thread(curthread, pthread,
+		      /*include dead*/ 0)))
 		return (ret);
 	*policy = pthread->attr.sched_policy;
 	param->sched_priority = pthread->attr.prio;

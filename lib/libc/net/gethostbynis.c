@@ -27,18 +27,20 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
 #include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <arpa/nameser.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
-#include <string.h>
-#include <stdarg.h>
+#include <netdb.h>
 #include <nsswitch.h>
-#include <resolv.h>		/* XXX */
+#include <resolv.h> /* XXX */
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef YP
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
@@ -59,7 +61,7 @@ _gethostbynis(const char *name, char *map, int af, struct hostent *he,
 	res_state statp;
 
 	statp = __res_state();
-	switch(af) {
+	switch (af) {
 	case AF_INET:
 		size = NS_INADDRSZ;
 		break;
@@ -73,13 +75,13 @@ _gethostbynis(const char *name, char *map, int af, struct hostent *he,
 	}
 
 	if (hed->yp_domain == (char *)NULL)
-		if (yp_get_default_domain (&hed->yp_domain)) {
+		if (yp_get_default_domain(&hed->yp_domain)) {
 			RES_SET_H_ERRNO(statp, NETDB_INTERNAL);
 			return (-1);
 		}
 
 	if (yp_match(hed->yp_domain, map, name, strlen(name), &result,
-	    &resultlen)) {
+		&resultlen)) {
 		RES_SET_H_ERRNO(statp, HOST_NOT_FOUND);
 		return (-1);
 	}
@@ -178,8 +180,8 @@ _gethostbynisname_r(const char *name, int af, struct hostent *he,
 }
 
 static int
-_gethostbynisaddr_r(const void *addr, socklen_t len, int af,
-    struct hostent *he, struct hostent_data *hed)
+_gethostbynisaddr_r(const void *addr, socklen_t len, int af, struct hostent *he,
+    struct hostent_data *hed)
 {
 	char *map;
 	char numaddr[46];

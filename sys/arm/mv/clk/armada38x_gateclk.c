@@ -27,27 +27,26 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
+#include <dev/clk/clk_gate.h>
 #include <dev/fdt/simplebus.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-#include <dev/clk/clk.h>
-#include <dev/clk/clk_gate.h>
 
 #include "clkdev_if.h"
 
-struct armada38x_gateclk_softc
-{
-	struct clkdom   *clkdom;
-	struct mtx  mtx;
-	const char* parent;
+struct armada38x_gateclk_softc {
+	struct clkdom *clkdom;
+	struct mtx mtx;
+	const char *parent;
 };
 
 static struct clk_gate_def gateclk_nodes[] =
@@ -220,8 +219,8 @@ static int armada38x_gateclk_probe(device_t dev);
 static int armada38x_gateclk_attach(device_t dev);
 
 static device_method_t armada38x_gateclk_methods[] = {
-	DEVMETHOD(device_probe,		armada38x_gateclk_probe),
-	DEVMETHOD(device_attach,	armada38x_gateclk_attach),
+	DEVMETHOD(device_probe, armada38x_gateclk_probe),
+	DEVMETHOD(device_attach, armada38x_gateclk_attach),
 
 	DEVMETHOD_END
 };
@@ -232,8 +231,8 @@ static driver_t armada38x_gateclk_driver = {
 	sizeof(struct armada38x_gateclk_softc),
 };
 
-EARLY_DRIVER_MODULE(armada38x_gateclk, simplebus, armada38x_gateclk_driver, 0, 0,
-	BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE + 1);
+EARLY_DRIVER_MODULE(armada38x_gateclk, simplebus, armada38x_gateclk_driver, 0,
+    0, BUS_PASS_BUS + BUS_PASS_ORDER_MIDDLE + 1);
 
 static int
 armada38x_gateclk_probe(device_t dev)
@@ -242,7 +241,7 @@ armada38x_gateclk_probe(device_t dev)
 	if (!ofw_bus_status_okay(dev))
 		return (ENXIO);
 
-	if(!ofw_bus_is_compatible(dev, "marvell,armada-380-gating-clock"))
+	if (!ofw_bus_is_compatible(dev, "marvell,armada-380-gating-clock"))
 		return (ENXIO);
 
 	device_set_desc(dev, "ARMADA38X gateclk");

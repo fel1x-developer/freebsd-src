@@ -29,13 +29,13 @@
  */
 
 #include <sys/param.h>
-#include <x86/cputypes.h>
-#include <x86/x86_var.h>
-#include <x86/specialreg.h>
 
 #include <machine/cpufunc.h>
 
+#include <x86/cputypes.h>
 #include <x86/linux/linux_x86.h>
+#include <x86/specialreg.h>
+#include <x86/x86_var.h>
 
 int
 linux_vdso_tsc_selector_idx(void)
@@ -43,7 +43,7 @@ linux_vdso_tsc_selector_idx(void)
 	bool amd_cpu;
 
 	if (cpu_feature == 0)
-		return (2);	/* should not happen due to RDTSC */
+		return (2); /* should not happen due to RDTSC */
 
 	amd_cpu = (cpu_vendor_id == CPU_VENDOR_AMD ||
 	    cpu_vendor_id == CPU_VENDOR_HYGON);
@@ -62,6 +62,6 @@ linux_vdso_cpu_selector_idx(void)
 	if ((cpu_stdext_feature2 & CPUID_STDEXT2_RDPID) != 0)
 		return (LINUX_VDSO_CPU_RDPID);
 
-	return ((amd_feature & AMDID_RDTSCP) == 0 ?
-	    LINUX_VDSO_CPU_DEFAULT : LINUX_VDSO_CPU_RDTSCP);
+	return ((amd_feature & AMDID_RDTSCP) == 0 ? LINUX_VDSO_CPU_DEFAULT :
+						    LINUX_VDSO_CPU_RDTSCP);
 }

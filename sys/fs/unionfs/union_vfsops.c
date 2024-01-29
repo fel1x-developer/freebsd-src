@@ -37,31 +37,31 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kdb.h>
 #include <sys/fcntl.h>
+#include <sys/kdb.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mount.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
-#include <sys/vnode.h>
 #include <sys/stat.h>
+#include <sys/vnode.h>
 
 #include <fs/unionfs/union.h>
 
 static MALLOC_DEFINE(M_UNIONFSMNT, "UNIONFS mount", "UNIONFS mount structure");
 
-static vfs_fhtovp_t	unionfs_fhtovp;
-static vfs_checkexp_t	unionfs_checkexp;
-static vfs_mount_t	unionfs_domount;
-static vfs_quotactl_t	unionfs_quotactl;
-static vfs_root_t	unionfs_root;
-static vfs_sync_t	unionfs_sync;
-static vfs_statfs_t	unionfs_statfs;
-static vfs_unmount_t	unionfs_unmount;
-static vfs_vget_t	unionfs_vget;
-static vfs_extattrctl_t	unionfs_extattrctl;
+static vfs_fhtovp_t unionfs_fhtovp;
+static vfs_checkexp_t unionfs_checkexp;
+static vfs_mount_t unionfs_domount;
+static vfs_quotactl_t unionfs_quotactl;
+static vfs_root_t unionfs_root;
+static vfs_sync_t unionfs_sync;
+static vfs_statfs_t unionfs_statfs;
+static vfs_unmount_t unionfs_unmount;
+static vfs_vget_t unionfs_vget;
+static vfs_extattrctl_t unionfs_extattrctl;
 
 static struct vfsops unionfs_vfsops;
 
@@ -71,24 +71,24 @@ static struct vfsops unionfs_vfsops;
 static int
 unionfs_domount(struct mount *mp)
 {
-	struct mount   *lowermp, *uppermp;
-	struct vnode   *lowerrootvp;
-	struct vnode   *upperrootvp;
+	struct mount *lowermp, *uppermp;
+	struct vnode *lowerrootvp;
+	struct vnode *upperrootvp;
 	struct unionfs_mount *ump;
-	char           *target;
-	char           *tmp;
-	char           *ep;
+	char *target;
+	char *tmp;
+	char *ep;
 	struct nameidata nd, *ndp;
-	struct vattr	va;
+	struct vattr va;
 	unionfs_copymode copymode;
 	unionfs_whitemode whitemode;
-	int		below;
-	int		error;
-	int		len;
-	uid_t		uid;
-	gid_t		gid;
-	u_short		udir;
-	u_short		ufile;
+	int below;
+	int error;
+	int len;
+	uid_t uid;
+	gid_t gid;
+	u_short udir;
+	u_short ufile;
 
 	UNIONFSDEBUG("unionfs_mount(mp = %p)\n", mp);
 
@@ -98,7 +98,7 @@ unionfs_domount(struct mount *mp)
 	gid = 0;
 	udir = 0;
 	ufile = 0;
-	copymode = UNIONFS_TRANSPARENT;	/* default */
+	copymode = UNIONFS_TRANSPARENT; /* default */
 	whitemode = UNIONFS_WHITE_ALWAYS;
 	ndp = &nd;
 
@@ -166,9 +166,9 @@ unionfs_domount(struct mount *mp)
 	if (error)
 		return (error);
 
-	if (mp->mnt_cred->cr_ruid == 0) {	/* root only */
-		if (vfs_getopt(mp->mnt_optnew, "uid", (void **)&tmp,
-		    NULL) == 0) {
+	if (mp->mnt_cred->cr_ruid == 0) { /* root only */
+		if (vfs_getopt(mp->mnt_optnew, "uid", (void **)&tmp, NULL) ==
+		    0) {
 			if (tmp != NULL)
 				uid = (uid_t)strtol(tmp, &ep, 10);
 			if (tmp == NULL || *ep) {
@@ -176,8 +176,8 @@ unionfs_domount(struct mount *mp)
 				return (EINVAL);
 			}
 		}
-		if (vfs_getopt(mp->mnt_optnew, "gid", (void **)&tmp,
-		    NULL) == 0) {
+		if (vfs_getopt(mp->mnt_optnew, "gid", (void **)&tmp, NULL) ==
+		    0) {
 			if (tmp != NULL)
 				gid = (gid_t)strtol(tmp, &ep, 10);
 			if (tmp == NULL || *ep) {
@@ -186,7 +186,7 @@ unionfs_domount(struct mount *mp)
 			}
 		}
 		if (vfs_getopt(mp->mnt_optnew, "copymode", (void **)&tmp,
-		    NULL) == 0) {
+			NULL) == 0) {
 			if (tmp == NULL) {
 				vfs_mount_error(mp, "Invalid copymode");
 				return (EINVAL);
@@ -202,7 +202,7 @@ unionfs_domount(struct mount *mp)
 			}
 		}
 		if (vfs_getopt(mp->mnt_optnew, "whiteout", (void **)&tmp,
-		    NULL) == 0) {
+			NULL) == 0) {
 			if (tmp == NULL) {
 				vfs_mount_error(mp, "Invalid whiteout mode");
 				return (EINVAL);
@@ -280,8 +280,8 @@ unionfs_domount(struct mount *mp)
 	/*
 	 * Get the unionfs root vnode.
 	 */
-	error = unionfs_nodeget(mp, ump->um_uppervp, ump->um_lowervp,
-	    NULLVP, &(ump->um_rootvp), NULL);
+	error = unionfs_nodeget(mp, ump->um_uppervp, ump->um_lowervp, NULLVP,
+	    &(ump->um_rootvp), NULL);
 	if (error != 0) {
 		vrele(upperrootvp);
 		free(ump, M_UNIONFSMNT);
@@ -340,7 +340,8 @@ unionfs_domount(struct mount *mp)
 	 * order unionfs currently requires.
 	 */
 	if (!below) {
-		vn_lock(mp->mnt_vnodecovered, LK_EXCLUSIVE | LK_RETRY | LK_CANRECURSE);
+		vn_lock(mp->mnt_vnodecovered,
+		    LK_EXCLUSIVE | LK_RETRY | LK_CANRECURSE);
 		mp->mnt_vnodecovered->v_vflag |= VV_CROSSLOCK;
 		VOP_UNLOCK(mp->mnt_vnodecovered);
 	}
@@ -373,10 +374,10 @@ static int
 unionfs_unmount(struct mount *mp, int mntflags)
 {
 	struct unionfs_mount *ump;
-	int		error;
-	int		num;
-	int		freeing;
-	int		flags;
+	int error;
+	int num;
+	int freeing;
+	int flags;
 
 	UNIONFSDEBUG("unionfs_unmount: mp = %p\n", mp);
 
@@ -417,8 +418,8 @@ unionfs_root(struct mount *mp, int flags, struct vnode **vpp)
 	ump = MOUNTTOUNIONFSMOUNT(mp);
 	vp = ump->um_rootvp;
 
-	UNIONFSDEBUG("unionfs_root: rootvp=%p locked=%x\n",
-	    vp, VOP_ISLOCKED(vp));
+	UNIONFSDEBUG("unionfs_root: rootvp=%p locked=%x\n", vp,
+	    VOP_ISLOCKED(vp));
 
 	vref(vp);
 	if (flags & LK_TYPE_MASK)
@@ -430,8 +431,7 @@ unionfs_root(struct mount *mp, int flags, struct vnode **vpp)
 }
 
 static int
-unionfs_quotactl(struct mount *mp, int cmd, uid_t uid, void *arg,
-    bool *mp_busy)
+unionfs_quotactl(struct mount *mp, int cmd, uid_t uid, void *arg, bool *mp_busy)
 {
 	struct mount *uppermp;
 	struct unionfs_mount *ump;
@@ -468,14 +468,14 @@ static int
 unionfs_statfs(struct mount *mp, struct statfs *sbp)
 {
 	struct unionfs_mount *ump;
-	struct statfs	*mstat;
-	uint64_t	lbsize;
-	int		error;
+	struct statfs *mstat;
+	uint64_t lbsize;
+	int error;
 
 	ump = MOUNTTOUNIONFSMOUNT(mp);
 
-	UNIONFSDEBUG("unionfs_statfs(mp = %p, lvp = %p, uvp = %p)\n",
-	    mp, ump->um_lowervp, ump->um_uppervp);
+	UNIONFSDEBUG("unionfs_statfs(mp = %p, lvp = %p, uvp = %p)\n", mp,
+	    ump->um_lowervp, ump->um_uppervp);
 
 	mstat = malloc(sizeof(struct statfs), M_STATFS, M_WAITOK | M_ZERO);
 
@@ -567,18 +567,18 @@ unionfs_extattrctl(struct mount *mp, int cmd, struct vnode *filename_vp,
 }
 
 static struct vfsops unionfs_vfsops = {
-	.vfs_checkexp =		unionfs_checkexp,
-	.vfs_extattrctl =	unionfs_extattrctl,
-	.vfs_fhtovp =		unionfs_fhtovp,
-	.vfs_init =		unionfs_init,
-	.vfs_mount =		unionfs_domount,
-	.vfs_quotactl =		unionfs_quotactl,
-	.vfs_root =		unionfs_root,
-	.vfs_statfs =		unionfs_statfs,
-	.vfs_sync =		unionfs_sync,
-	.vfs_uninit =		unionfs_uninit,
-	.vfs_unmount =		unionfs_unmount,
-	.vfs_vget =		unionfs_vget,
+	.vfs_checkexp = unionfs_checkexp,
+	.vfs_extattrctl = unionfs_extattrctl,
+	.vfs_fhtovp = unionfs_fhtovp,
+	.vfs_init = unionfs_init,
+	.vfs_mount = unionfs_domount,
+	.vfs_quotactl = unionfs_quotactl,
+	.vfs_root = unionfs_root,
+	.vfs_statfs = unionfs_statfs,
+	.vfs_sync = unionfs_sync,
+	.vfs_uninit = unionfs_uninit,
+	.vfs_unmount = unionfs_unmount,
+	.vfs_vget = unionfs_vget,
 };
 
 VFS_SET(unionfs_vfsops, unionfs, VFCF_LOOPBACK);

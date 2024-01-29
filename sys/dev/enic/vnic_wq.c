@@ -7,10 +7,10 @@
 #include "vnic_dev.h"
 #include "vnic_wq.h"
 
-void vnic_wq_init_start(struct vnic_wq *wq, unsigned int cq_index,
+void
+vnic_wq_init_start(struct vnic_wq *wq, unsigned int cq_index,
     unsigned int fetch_index, unsigned int posted_index,
-    unsigned int error_interrupt_enable,
-    unsigned int error_interrupt_offset)
+    unsigned int error_interrupt_enable, unsigned int error_interrupt_offset)
 {
 	u64 paddr;
 	unsigned int count = wq->ring.desc_count;
@@ -21,36 +21,40 @@ void vnic_wq_init_start(struct vnic_wq *wq, unsigned int cq_index,
 	ENIC_BUS_WRITE_4(wq->ctrl, TX_FETCH_INDEX, fetch_index);
 	ENIC_BUS_WRITE_4(wq->ctrl, TX_POSTED_INDEX, posted_index);
 	ENIC_BUS_WRITE_4(wq->ctrl, TX_CQ_INDEX, cq_index);
-	ENIC_BUS_WRITE_4(wq->ctrl, TX_ERROR_INTR_ENABLE, error_interrupt_enable);
-	ENIC_BUS_WRITE_4(wq->ctrl, TX_ERROR_INTR_OFFSET, error_interrupt_offset);
+	ENIC_BUS_WRITE_4(wq->ctrl, TX_ERROR_INTR_ENABLE,
+	    error_interrupt_enable);
+	ENIC_BUS_WRITE_4(wq->ctrl, TX_ERROR_INTR_OFFSET,
+	    error_interrupt_offset);
 	ENIC_BUS_WRITE_4(wq->ctrl, TX_ERROR_STATUS, 0);
 
 	wq->head_idx = fetch_index;
 	wq->tail_idx = wq->head_idx;
 }
 
-void vnic_wq_init(struct vnic_wq *wq, unsigned int cq_index,
-    unsigned int error_interrupt_enable,
-    unsigned int error_interrupt_offset)
+void
+vnic_wq_init(struct vnic_wq *wq, unsigned int cq_index,
+    unsigned int error_interrupt_enable, unsigned int error_interrupt_offset)
 {
-	vnic_wq_init_start(wq, cq_index, 0, 0,
-		error_interrupt_enable,
-		error_interrupt_offset);
+	vnic_wq_init_start(wq, cq_index, 0, 0, error_interrupt_enable,
+	    error_interrupt_offset);
 	wq->cq_pend = 0;
 	wq->last_completed_index = 0;
 }
 
-unsigned int vnic_wq_error_status(struct vnic_wq *wq)
+unsigned int
+vnic_wq_error_status(struct vnic_wq *wq)
 {
 	return ENIC_BUS_READ_4(wq->ctrl, TX_ERROR_STATUS);
 }
 
-void vnic_wq_enable(struct vnic_wq *wq)
+void
+vnic_wq_enable(struct vnic_wq *wq)
 {
 	ENIC_BUS_WRITE_4(wq->ctrl, TX_ENABLE, 1);
 }
 
-int vnic_wq_disable(struct vnic_wq *wq)
+int
+vnic_wq_disable(struct vnic_wq *wq)
 {
 	unsigned int wait;
 
@@ -68,9 +72,10 @@ int vnic_wq_disable(struct vnic_wq *wq)
 	return -ETIMEDOUT;
 }
 
-void vnic_wq_clean(struct vnic_wq *wq)
+void
+vnic_wq_clean(struct vnic_wq *wq)
 {
-	unsigned int  to_clean = wq->tail_idx;
+	unsigned int to_clean = wq->tail_idx;
 
 	while (vnic_wq_desc_used(wq) > 0) {
 		to_clean = buf_idx_incr(wq->ring.desc_count, to_clean);

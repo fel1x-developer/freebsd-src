@@ -24,38 +24,35 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8812a/r12a.h>
-#include <dev/rtwn/rtl8812a/r12a_var.h>
 #include <dev/rtwn/rtl8812a/r12a_rom_image.h>
+#include <dev/rtwn/rtl8812a/r12a_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r12a_parse_rom_common(struct rtwn_softc *sc, uint8_t *buf)
@@ -79,12 +76,10 @@ r12a_parse_rom_common(struct rtwn_softc *sc, uint8_t *buf)
 		    &rom->tx_pwr[i].pwr_diff_5g;
 
 		for (j = 0; j < R12A_GROUP_2G - 1; j++) {
-			rs->cck_tx_pwr[i][j] =
-			    RTWN_GET_ROM_VAR(pwr_2g->cck[j],
-				R12A_DEF_TX_PWR_2G);
-			rs->ht40_tx_pwr_2g[i][j] =
-			    RTWN_GET_ROM_VAR(pwr_2g->ht40[j],
-				R12A_DEF_TX_PWR_2G);
+			rs->cck_tx_pwr[i][j] = RTWN_GET_ROM_VAR(pwr_2g->cck[j],
+			    R12A_DEF_TX_PWR_2G);
+			rs->ht40_tx_pwr_2g[i][j] = RTWN_GET_ROM_VAR(
+			    pwr_2g->ht40[j], R12A_DEF_TX_PWR_2G);
 		}
 		rs->cck_tx_pwr[i][j] = RTWN_GET_ROM_VAR(pwr_2g->cck[j],
 		    R12A_DEF_TX_PWR_2G);
@@ -108,9 +103,8 @@ r12a_parse_rom_common(struct rtwn_softc *sc, uint8_t *buf)
 		}
 
 		for (j = 0; j < R12A_GROUP_5G; j++) {
-			rs->ht40_tx_pwr_5g[i][j] =
-			    RTWN_GET_ROM_VAR(pwr_5g->ht40[j],
-				R12A_DEF_TX_PWR_5G);
+			rs->ht40_tx_pwr_5g[i][j] = RTWN_GET_ROM_VAR(
+			    pwr_5g->ht40[j], R12A_DEF_TX_PWR_5G);
 		}
 
 		rs->ofdm_tx_pwr_diff_5g[i][0] = RTWN_SIGN4TO8(
@@ -126,7 +120,7 @@ r12a_parse_rom_common(struct rtwn_softc *sc, uint8_t *buf)
 		    MS(pwr_diff_5g->ht20_ofdm, HIGH_PART));
 		rs->bw40_tx_pwr_diff_5g[i][0] = 0;
 		for (j = 1, k = 0; k < nitems(pwr_diff_5g->ht40_ht20);
-		    j++, k++) {
+		     j++, k++) {
 			rs->bw20_tx_pwr_diff_5g[i][j] = RTWN_SIGN4TO8(
 			    MS(pwr_diff_5g->ht40_ht20[k], LOW_PART));
 			rs->bw40_tx_pwr_diff_5g[i][j] = RTWN_SIGN4TO8(
@@ -142,11 +136,11 @@ r12a_parse_rom_common(struct rtwn_softc *sc, uint8_t *buf)
 	}
 
 	rs->regulatory = MS(rom->rf_board_opt, R92C_ROM_RF1_REGULATORY);
-	rs->board_type =
-	    MS(RTWN_GET_ROM_VAR(rom->rf_board_opt, R92C_BOARD_TYPE_DONGLE),
-		R92C_ROM_RF1_BOARD_TYPE);
-	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type=%d\n",
-	    __func__, rs->regulatory);
+	rs->board_type = MS(RTWN_GET_ROM_VAR(rom->rf_board_opt,
+				R92C_BOARD_TYPE_DONGLE),
+	    R92C_ROM_RF1_BOARD_TYPE);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type=%d\n", __func__,
+	    rs->regulatory);
 }
 
 void
@@ -170,23 +164,19 @@ r12a_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 	rs->bt_ant_num = (rom->rf_bt_opt & R12A_RF_BT_OPT_ANT_NUM);
 
 	if (rs->ext_pa_2g) {
-		rs->type_pa_2g =
-		    R12A_GET_ROM_PA_TYPE(lna_type_2g, 0) |
+		rs->type_pa_2g = R12A_GET_ROM_PA_TYPE(lna_type_2g, 0) |
 		    (R12A_GET_ROM_PA_TYPE(lna_type_2g, 1) << 2);
 	}
 	if (rs->ext_pa_5g) {
-		rs->type_pa_5g =
-		    R12A_GET_ROM_PA_TYPE(lna_type_5g, 0) |
+		rs->type_pa_5g = R12A_GET_ROM_PA_TYPE(lna_type_5g, 0) |
 		    (R12A_GET_ROM_PA_TYPE(lna_type_5g, 1) << 2);
 	}
 	if (rs->ext_lna_2g) {
-		rs->type_lna_2g =
-		    R12A_GET_ROM_LNA_TYPE(lna_type_2g, 0) |
+		rs->type_lna_2g = R12A_GET_ROM_LNA_TYPE(lna_type_2g, 0) |
 		    (R12A_GET_ROM_LNA_TYPE(lna_type_2g, 1) << 2);
 	}
 	if (rs->ext_lna_5g) {
-		rs->type_lna_5g =
-		    R12A_GET_ROM_LNA_TYPE(lna_type_5g, 0) |
+		rs->type_lna_5g = R12A_GET_ROM_LNA_TYPE(lna_type_5g, 0) |
 		    (R12A_GET_ROM_LNA_TYPE(lna_type_5g, 1) << 2);
 	}
 
@@ -205,8 +195,7 @@ r12a_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 		rs->rfe_type = rom->rfe_option & 0x3f;
 
 		/* workaround for incorrect EFUSE map */
-		if (rs->rfe_type == 4 &&
-		    rs->ext_pa_2g && rs->ext_lna_2g &&
+		if (rs->rfe_type == 4 && rs->ext_pa_2g && rs->ext_lna_2g &&
 		    rs->ext_pa_5g && rs->ext_lna_5g)
 			rs->rfe_type = 0;
 	}

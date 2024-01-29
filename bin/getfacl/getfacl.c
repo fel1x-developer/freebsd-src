@@ -83,10 +83,10 @@ static int
 print_acl(char *path, acl_type_t type, int hflag, int iflag, int nflag,
     int qflag, int vflag)
 {
-	struct stat	sb;
-	acl_t	acl;
-	char	*acl_text;
-	int	error, flags = 0, ret;
+	struct stat sb;
+	acl_t acl;
+	char *acl_text;
+	int error, flags = 0, ret;
 
 	if (hflag)
 		error = lstat(path, &sb);
@@ -94,7 +94,7 @@ print_acl(char *path, acl_type_t type, int hflag, int iflag, int nflag,
 		error = stat(path, &sb);
 	if (error == -1) {
 		warn("%s: stat() failed", path);
-		return(-1);
+		return (-1);
 	}
 
 	if (hflag)
@@ -129,15 +129,15 @@ print_acl(char *path, acl_type_t type, int hflag, int iflag, int nflag,
 	if (!acl) {
 		if (errno != EOPNOTSUPP) {
 			warn("%s", path);
-			return(-1);
+			return (-1);
 		}
 		errno = 0;
 		if (type == ACL_TYPE_DEFAULT)
-			return(0);
+			return (0);
 		acl = acl_from_mode_np(sb.st_mode);
 		if (!acl) {
 			warn("%s: acl_from_mode() failed", path);
-			return(-1);
+			return (-1);
 		}
 	}
 
@@ -154,7 +154,7 @@ print_acl(char *path, acl_type_t type, int hflag, int iflag, int nflag,
 	if (!acl_text) {
 		warn("%s: acl_to_text_np() failed", path);
 		(void)acl_free(acl);
-		return(-1);
+		return (-1);
 	}
 
 	printf("%s", acl_text);
@@ -162,35 +162,35 @@ print_acl(char *path, acl_type_t type, int hflag, int iflag, int nflag,
 	(void)acl_free(acl);
 	(void)acl_free(acl_text);
 
-	return(0);
+	return (0);
 }
 
 static int
 print_acl_from_stdin(acl_type_t type, int hflag, int iflag, int nflag,
     int qflag, int vflag)
 {
-	char	*p, pathname[PATH_MAX];
-	int	carried_error = 0;
+	char *p, pathname[PATH_MAX];
+	int carried_error = 0;
 
 	while (fgets(pathname, (int)sizeof(pathname), stdin)) {
 		if ((p = strchr(pathname, '\n')) != NULL)
 			*p = '\0';
-		if (print_acl(pathname, type, hflag, iflag, nflag,
-		    qflag, vflag) == -1) {
+		if (print_acl(pathname, type, hflag, iflag, nflag, qflag,
+			vflag) == -1) {
 			carried_error = -1;
 		}
 	}
 
-	return(carried_error);
+	return (carried_error);
 }
 
 int
 main(int argc, char *argv[])
 {
-	acl_type_t	type = ACL_TYPE_ACCESS;
-	int	carried_error = 0;
-	int	ch, error, i;
-	int	hflag, iflag, qflag, nflag, vflag;
+	acl_type_t type = ACL_TYPE_ACCESS;
+	int carried_error = 0;
+	int ch, error, i;
+	int hflag, iflag, qflag, nflag, vflag;
 
 	hflag = 0;
 	iflag = 0;
@@ -198,7 +198,7 @@ main(int argc, char *argv[])
 	nflag = 0;
 	vflag = 0;
 	while ((ch = getopt(argc, argv, "dhinqv")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'd':
 			type = ACL_TYPE_DEFAULT;
 			break;
@@ -219,15 +219,15 @@ main(int argc, char *argv[])
 			break;
 		default:
 			usage();
-			return(-1);
+			return (-1);
 		}
 	argc -= optind;
 	argv += optind;
 
 	if (argc == 0) {
-		error = print_acl_from_stdin(type, hflag, iflag, nflag,
-		    qflag, vflag);
-		return(error ? 1 : 0);
+		error = print_acl_from_stdin(type, hflag, iflag, nflag, qflag,
+		    vflag);
+		return (error ? 1 : 0);
 	}
 
 	for (i = 0; i < argc; i++) {
@@ -244,5 +244,5 @@ main(int argc, char *argv[])
 		}
 	}
 
-	return(carried_error ? 1 : 0);
+	return (carried_error ? 1 : 0);
 }

@@ -67,9 +67,8 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <dev/isci/scil/sci_types.h>
 #include <dev/isci/scil/sci_status.h>
-
+#include <dev/isci/scil/sci_types.h>
 
 /**
  * @brief This method will contsruct the SCI framework library based on the
@@ -84,10 +83,8 @@ extern "C" {
  * @return An opaque library handle to be used by the SCI user for all
  *         subsequent library operations.
  */
-SCI_LIBRARY_HANDLE_T scif_library_construct(
-   void * library_memory_p,
-   U8     max_controller_count
-);
+SCI_LIBRARY_HANDLE_T scif_library_construct(void *library_memory_p,
+    U8 max_controller_count);
 
 /**
  * @brief This method returns the size of the framework library object.  The
@@ -100,9 +97,7 @@ SCI_LIBRARY_HANDLE_T scif_library_construct(
  * @return a positive integer value indicating the size (in bytes) of the
  *         library object.
  */
-U32 scif_library_get_object_size(
-   U8  max_controller_count
-);
+U32 scif_library_get_object_size(U8 max_controller_count);
 
 /**
  * @brief This method will allocate the next available framework controller
@@ -122,10 +117,8 @@ U32 scif_library_get_object_size(
  * @retval SCI_FAILURE_INSUFFICIENT_RESOURCES if the library has no more
  *         available controller objects to allocate.
  */
-SCI_STATUS scif_library_allocate_controller(
-   SCI_LIBRARY_HANDLE_T      library,
-   SCI_CONTROLLER_HANDLE_T * new_controller_p
-);
+SCI_STATUS scif_library_allocate_controller(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T *new_controller_p);
 
 /**
  * @brief This method will attempt to free the supplied controller to the
@@ -142,11 +135,8 @@ SCI_STATUS scif_library_allocate_controller(
  * @retval SCI_FAILURE_CONTROLLER_NOT_FOUND if the supplied controller is
  *         not managed by the supplied library.
  */
-SCI_STATUS scif_library_free_controller(
-   SCI_LIBRARY_HANDLE_T     library,
-   SCI_CONTROLLER_HANDLE_T  controller
-);
-
+SCI_STATUS scif_library_free_controller(SCI_LIBRARY_HANDLE_T library,
+    SCI_CONTROLLER_HANDLE_T controller);
 
 /**
  * @brief This method returns the SCI Core library handle
@@ -160,9 +150,7 @@ SCI_STATUS scif_library_free_controller(
  *         the supplied framework library.
  */
 SCI_LIBRARY_HANDLE_T scif_library_get_scic_handle(
-   SCI_LIBRARY_HANDLE_T   scif_library
-);
-
+    SCI_LIBRARY_HANDLE_T scif_library);
 
 /**
  * @brief This method returns the minimum number of timers needed.  If the
@@ -173,9 +161,7 @@ SCI_LIBRARY_HANDLE_T scif_library_get_scic_handle(
  * @return This method returns a value representing the minimum number of
  *         timers required by this framework implementation
  */
-U16 scif_library_get_min_timer_count(
-   void
-);
+U16 scif_library_get_min_timer_count(void);
 
 /**
  * @brief This method returns the maximum number of timers that could
@@ -184,13 +170,10 @@ U16 scif_library_get_min_timer_count(
  * @return This method returns a value representing the minimum number of
  *         timers required by this framework implementation
  */
-U16 scif_library_get_max_timer_count(
-   void
-);
+U16 scif_library_get_max_timer_count(void);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCIF_LIBRARY_H_
-

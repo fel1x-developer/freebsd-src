@@ -26,30 +26,30 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/sdt.h>
-#include <sys/stat.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/vnode.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
-#include <sys/endian.h>
 #include <sys/conf.h>
-#include <sys/gsb_crc32.h>
 #include <sys/crc16.h>
+#include <sys/endian.h>
+#include <sys/gsb_crc32.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/mount.h>
+#include <sys/sdt.h>
+#include <sys/stat.h>
+#include <sys/vnode.h>
 
-#include <fs/ext2fs/fs.h>
-#include <fs/ext2fs/ext2fs.h>
 #include <fs/ext2fs/ext2_dinode.h>
-#include <fs/ext2fs/inode.h>
 #include <fs/ext2fs/ext2_dir.h>
-#include <fs/ext2fs/htree.h>
 #include <fs/ext2fs/ext2_extattr.h>
 #include <fs/ext2fs/ext2_extern.h>
+#include <fs/ext2fs/ext2fs.h>
+#include <fs/ext2fs/fs.h>
+#include <fs/ext2fs/htree.h>
+#include <fs/ext2fs/inode.h>
 
 SDT_PROVIDER_DECLARE(ext2fs);
 /*
@@ -59,17 +59,15 @@ SDT_PROVIDER_DECLARE(ext2fs);
  */
 SDT_PROBE_DEFINE2(ext2fs, , trace, csum, "int", "char*");
 
-#define EXT2_BG_INODE_BITMAP_CSUM_HI_END	\
-	(offsetof(struct ext2_gd, ext4bgd_i_bmap_csum_hi) + \
-	 sizeof(uint16_t))
+#define EXT2_BG_INODE_BITMAP_CSUM_HI_END \
+	(offsetof(struct ext2_gd, ext4bgd_i_bmap_csum_hi) + sizeof(uint16_t))
 
-#define EXT2_INODE_CSUM_HI_EXTRA_END	\
+#define EXT2_INODE_CSUM_HI_EXTRA_END                                         \
 	(offsetof(struct ext2fs_dinode, e2di_chksum_hi) + sizeof(uint16_t) - \
-	 E2FS_REV0_INODE_SIZE)
+	    E2FS_REV0_INODE_SIZE)
 
-#define EXT2_BG_BLOCK_BITMAP_CSUM_HI_LOCATION	\
-	(offsetof(struct ext2_gd, ext4bgd_b_bmap_csum_hi) + \
-	 sizeof(uint16_t))
+#define EXT2_BG_BLOCK_BITMAP_CSUM_HI_LOCATION \
+	(offsetof(struct ext2_gd, ext4bgd_b_bmap_csum_hi) + sizeof(uint16_t))
 
 void
 ext2_sb_csum_set_seed(struct m_ext2fs *fs)
@@ -77,11 +75,11 @@ ext2_sb_csum_set_seed(struct m_ext2fs *fs)
 
 	if (EXT2_HAS_INCOMPAT_FEATURE(fs, EXT2F_INCOMPAT_CSUM_SEED))
 		fs->e2fs_csum_seed = le32toh(fs->e2fs->e4fs_chksum_seed);
-	else if (EXT2_HAS_RO_COMPAT_FEATURE(fs, EXT2F_ROCOMPAT_METADATA_CKSUM)) {
+	else if (EXT2_HAS_RO_COMPAT_FEATURE(fs,
+		     EXT2F_ROCOMPAT_METADATA_CKSUM)) {
 		fs->e2fs_csum_seed = calculate_crc32c(~0, fs->e2fs->e2fs_uuid,
 		    sizeof(fs->e2fs->e2fs_uuid));
-	}
-	else
+	} else
 		fs->e2fs_csum_seed = 0;
 }
 
@@ -90,18 +88,18 @@ ext2_sb_csum_verify(struct m_ext2fs *fs)
 {
 
 	if (fs->e2fs->e4fs_chksum_type != EXT4_CRC32C_CHKSUM) {
-		printf(
-"WARNING: mount of %s denied due bad sb csum type\n", fs->e2fs_fsmnt);
+		printf("WARNING: mount of %s denied due bad sb csum type\n",
+		    fs->e2fs_fsmnt);
 		return (EINVAL);
 	}
 	if (le32toh(fs->e2fs->e4fs_sbchksum) !=
 	    calculate_crc32c(~0, (const char *)fs->e2fs,
-	    offsetof(struct ext2fs, e4fs_sbchksum))) {
+		offsetof(struct ext2fs, e4fs_sbchksum))) {
 		printf(
-"WARNING: mount of %s denied due bad sb csum=0x%x, expected=0x%x - run fsck\n",
+		    "WARNING: mount of %s denied due bad sb csum=0x%x, expected=0x%x - run fsck\n",
 		    fs->e2fs_fsmnt, le32toh(fs->e2fs->e4fs_sbchksum),
 		    calculate_crc32c(~0, (const char *)fs->e2fs,
-		    offsetof(struct ext2fs, e4fs_sbchksum)));
+			offsetof(struct ext2fs, e4fs_sbchksum)));
 		return (EINVAL);
 	}
 
@@ -112,9 +110,8 @@ void
 ext2_sb_csum_set(struct m_ext2fs *fs)
 {
 
-	fs->e2fs->e4fs_sbchksum =
-	    htole32(calculate_crc32c(~0, (const char *)fs->e2fs,
-	    offsetof(struct ext2fs, e4fs_sbchksum)));
+	fs->e2fs->e4fs_sbchksum = htole32(calculate_crc32c(~0,
+	    (const char *)fs->e2fs, offsetof(struct ext2fs, e4fs_sbchksum)));
 }
 
 static uint32_t
@@ -131,8 +128,7 @@ ext2_extattr_blk_csum(struct inode *ip, uint64_t facl,
 	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&facl_bn,
 	    sizeof(facl_bn));
 	crc = calculate_crc32c(crc, (uint8_t *)header, offset);
-	crc = calculate_crc32c(crc, (uint8_t *)&dummy_crc,
-	    sizeof(dummy_crc));
+	crc = calculate_crc32c(crc, (uint8_t *)&dummy_crc, sizeof(dummy_crc));
 	offset += sizeof(dummy_crc);
 	crc = calculate_crc32c(crc, (uint8_t *)header + offset,
 	    fs->e2fs_bsize - offset);
@@ -147,9 +143,12 @@ ext2_extattr_blk_csum_verify(struct inode *ip, struct buf *bp)
 
 	header = (struct ext2fs_extattr_header *)bp->b_data;
 
-	if (EXT2_HAS_RO_COMPAT_FEATURE(ip->i_e2fs, EXT2F_ROCOMPAT_METADATA_CKSUM) &&
-	    (header->h_checksum != ext2_extattr_blk_csum(ip, ip->i_facl, header))) {
-		SDT_PROBE2(ext2fs, , trace, csum, 1, "bad extattr csum detected");
+	if (EXT2_HAS_RO_COMPAT_FEATURE(ip->i_e2fs,
+		EXT2F_ROCOMPAT_METADATA_CKSUM) &&
+	    (header->h_checksum !=
+		ext2_extattr_blk_csum(ip, ip->i_facl, header))) {
+		SDT_PROBE2(ext2fs, , trace, csum, 1,
+		    "bad extattr csum detected");
 		return (EIO);
 	}
 
@@ -161,7 +160,8 @@ ext2_extattr_blk_csum_set(struct inode *ip, struct buf *bp)
 {
 	struct ext2fs_extattr_header *header;
 
-	if (!EXT2_HAS_RO_COMPAT_FEATURE(ip->i_e2fs, EXT2F_ROCOMPAT_METADATA_CKSUM))
+	if (!EXT2_HAS_RO_COMPAT_FEATURE(ip->i_e2fs,
+		EXT2F_ROCOMPAT_METADATA_CKSUM))
 		return;
 
 	header = (struct ext2fs_extattr_header *)bp->b_data;
@@ -237,7 +237,8 @@ ext2_dirent_csum(struct inode *ip, struct ext2fs_direct_2 *ep, int size)
 
 	inum = htole32(ip->i_number);
 	gen = htole32(ip->i_gen);
-	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum, sizeof(inum));
+	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum,
+	    sizeof(inum));
 	crc = calculate_crc32c(crc, (uint8_t *)&gen, sizeof(gen));
 	crc = calculate_crc32c(crc, (uint8_t *)buf, size);
 
@@ -309,10 +310,12 @@ ext2_dx_csum(struct inode *ip, struct ext2fs_direct_2 *ep, int count_offset,
 
 	inum = htole32(ip->i_number);
 	gen = htole32(ip->i_gen);
-	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum, sizeof(inum));
+	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum,
+	    sizeof(inum));
 	crc = calculate_crc32c(crc, (uint8_t *)&gen, sizeof(gen));
 	crc = calculate_crc32c(crc, (uint8_t *)buf, size);
-	crc = calculate_crc32c(crc, (uint8_t *)tp, sizeof(struct ext2fs_htree_tail));
+	crc = calculate_crc32c(crc, (uint8_t *)tp,
+	    sizeof(struct ext2fs_htree_tail));
 	tp->ht_checksum = old_csum;
 
 	return htole32(crc);
@@ -336,8 +339,9 @@ ext2_dx_csum_verify(struct inode *ip, struct ext2fs_direct_2 *ep)
 	    ip->i_e2fs->e2fs_bsize - sizeof(struct ext2fs_htree_tail))
 		return (EIO);
 
-	tp = (struct ext2fs_htree_tail *)(((struct ext2fs_htree_entry *)cp) + limit);
-	calculated = ext2_dx_csum(ip, ep,  count_offset, count, tp);
+	tp = (struct ext2fs_htree_tail *)(((struct ext2fs_htree_entry *)cp) +
+	    limit);
+	calculated = ext2_dx_csum(ip, ep, count_offset, count, tp);
 
 	if (tp->ht_checksum != calculated)
 		return (EIO);
@@ -365,7 +369,8 @@ ext2_dir_blk_csum_verify(struct inode *ip, struct buf *bp)
 		error = ext2_dx_csum_verify(ip, ep);
 
 	if (error)
-		SDT_PROBE2(ext2fs, , trace, csum, 1, "bad directory csum detected");
+		SDT_PROBE2(ext2fs, , trace, csum, 1,
+		    "bad directory csum detected");
 
 	return (error);
 }
@@ -385,8 +390,8 @@ ext2_dirent_csum_set(struct inode *ip, struct ext2fs_direct_2 *ep)
 	if (tp == NULL)
 		return;
 
-	tp->e2dt_checksum =
-	    htole32(ext2_dirent_csum(ip, ep, (char *)tp - (char *)ep));
+	tp->e2dt_checksum = htole32(
+	    ext2_dirent_csum(ip, ep, (char *)tp - (char *)ep));
 }
 
 void
@@ -412,8 +417,9 @@ ext2_dx_csum_set(struct inode *ip, struct ext2fs_direct_2 *ep)
 	    ip->i_e2fs->e2fs_bsize - sizeof(struct ext2fs_htree_tail))
 		return;
 
-	tp = (struct ext2fs_htree_tail *)(((struct ext2fs_htree_entry *)cp) + limit);
-	tp->ht_checksum = ext2_dx_csum(ip, ep,  count_offset, count, tp);
+	tp = (struct ext2fs_htree_tail *)(((struct ext2fs_htree_entry *)cp) +
+	    limit);
+	tp->ht_checksum = ext2_dx_csum(ip, ep, count_offset, count, tp);
 }
 
 static uint32_t
@@ -430,7 +436,8 @@ ext2_extent_blk_csum(struct inode *ip, struct ext4_extent_header *ehp)
 
 	inum = htole32(ip->i_number);
 	gen = htole32(ip->i_gen);
-	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum, sizeof(inum));
+	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum,
+	    sizeof(inum));
 	crc = calculate_crc32c(crc, (uint8_t *)&gen, sizeof(gen));
 	crc = calculate_crc32c(crc, (uint8_t *)ehp, size);
 
@@ -458,7 +465,8 @@ ext2_extent_blk_csum_verify(struct inode *ip, void *data)
 	calculated = ext2_extent_blk_csum(ip, ehp);
 
 	if (provided != calculated) {
-		SDT_PROBE2(ext2fs, , trace, csum, 1, "bad extent csum detected");
+		SDT_PROBE2(ext2fs, , trace, csum, 1,
+		    "bad extent csum detected");
 		return (EIO);
 	}
 
@@ -481,8 +489,8 @@ ext2_extent_blk_csum_set(struct inode *ip, void *data)
 	etp = (struct ext4_extent_tail *)(((char *)data) +
 	    EXT4_EXTENT_TAIL_OFFSET(ehp));
 
-	etp->et_checksum = htole32(ext2_extent_blk_csum(ip,
-	    (struct ext4_extent_header *)data));
+	etp->et_checksum = htole32(
+	    ext2_extent_blk_csum(ip, (struct ext4_extent_header *)data));
 }
 
 int
@@ -504,7 +512,8 @@ ext2_gd_i_bitmap_csum_verify(struct m_ext2fs *fs, int cg, struct buf *bp)
 		calculated &= 0xFFFF;
 
 	if (provided != calculated) {
-		SDT_PROBE2(ext2fs, , trace, csum, 1, "bad inode bitmap csum detected");
+		SDT_PROBE2(ext2fs, , trace, csum, 1,
+		    "bad inode bitmap csum detected");
 		return (EIO);
 	}
 
@@ -522,7 +531,8 @@ ext2_gd_i_bitmap_csum_set(struct m_ext2fs *fs, int cg, struct buf *bp)
 	csum = calculate_crc32c(fs->e2fs_csum_seed, bp->b_data,
 	    fs->e2fs_ipg / 8);
 	fs->e2fs_gd[cg].ext4bgd_i_bmap_csum = htole16(csum & 0xFFFF);
-	if (le16toh(fs->e2fs->e3fs_desc_size) >= EXT2_BG_INODE_BITMAP_CSUM_HI_END)
+	if (le16toh(fs->e2fs->e3fs_desc_size) >=
+	    EXT2_BG_INODE_BITMAP_CSUM_HI_END)
 		fs->e2fs_gd[cg].ext4bgd_i_bmap_csum_hi = htole16(csum >> 16);
 }
 
@@ -545,7 +555,8 @@ ext2_gd_b_bitmap_csum_verify(struct m_ext2fs *fs, int cg, struct buf *bp)
 		calculated &= 0xFFFF;
 
 	if (provided != calculated) {
-		SDT_PROBE2(ext2fs, , trace, csum, 1, "bad block bitmap csum detected");
+		SDT_PROBE2(ext2fs, , trace, csum, 1,
+		    "bad block bitmap csum detected");
 		return (EIO);
 	}
 
@@ -563,7 +574,8 @@ ext2_gd_b_bitmap_csum_set(struct m_ext2fs *fs, int cg, struct buf *bp)
 	size = fs->e2fs_fpg / 8;
 	csum = calculate_crc32c(fs->e2fs_csum_seed, bp->b_data, size);
 	fs->e2fs_gd[cg].ext4bgd_b_bmap_csum = htole16(csum & 0xFFFF);
-	if (le16toh(fs->e2fs->e3fs_desc_size) >= EXT2_BG_BLOCK_BITMAP_CSUM_HI_LOCATION)
+	if (le16toh(fs->e2fs->e3fs_desc_size) >=
+	    EXT2_BG_BLOCK_BITMAP_CSUM_HI_LOCATION)
 		fs->e2fs_gd[cg].ext4bgd_b_bmap_csum_hi = htole16(csum >> 16);
 }
 
@@ -579,11 +591,10 @@ ext2_ei_csum(struct inode *ip, struct ext2fs_dinode *ei)
 	offset = offsetof(struct ext2fs_dinode, e2di_chksum_lo);
 	csum_size = sizeof(dummy_csum);
 	inum = htole32(ip->i_number);
-	crc = calculate_crc32c(fs->e2fs_csum_seed,
-	    (uint8_t *)&inum, sizeof(inum));
+	crc = calculate_crc32c(fs->e2fs_csum_seed, (uint8_t *)&inum,
+	    sizeof(inum));
 	gen = htole32(ip->i_gen);
-	inode_csum_seed = calculate_crc32c(crc,
-	    (uint8_t *)&gen, sizeof(gen));
+	inode_csum_seed = calculate_crc32c(crc, (uint8_t *)&gen, sizeof(gen));
 
 	crc = calculate_crc32c(inode_csum_seed, (uint8_t *)ei, offset);
 	crc = calculate_crc32c(crc, (uint8_t *)&dummy_csum, csum_size);
@@ -593,12 +604,13 @@ ext2_ei_csum(struct inode *ip, struct ext2fs_dinode *ei)
 
 	if (EXT2_INODE_SIZE(fs) > E2FS_REV0_INODE_SIZE) {
 		offset = offsetof(struct ext2fs_dinode, e2di_chksum_hi);
-		crc = calculate_crc32c(crc, (uint8_t *)ei +
-		    E2FS_REV0_INODE_SIZE, offset - E2FS_REV0_INODE_SIZE);
+		crc = calculate_crc32c(crc,
+		    (uint8_t *)ei + E2FS_REV0_INODE_SIZE,
+		    offset - E2FS_REV0_INODE_SIZE);
 
 		if ((EXT2_INODE_SIZE(ip->i_e2fs) > E2FS_REV0_INODE_SIZE &&
-		    le16toh(ei->e2di_extra_isize) >=
-		    EXT2_INODE_CSUM_HI_EXTRA_END)) {
+			le16toh(ei->e2di_extra_isize) >=
+			    EXT2_INODE_CSUM_HI_EXTRA_END)) {
 			crc = calculate_crc32c(crc, (uint8_t *)&dummy_csum,
 			    csum_size);
 			offset += csum_size;
@@ -627,7 +639,8 @@ ext2_ei_csum_verify(struct inode *ip, struct ext2fs_dinode *ei)
 	calculated = ext2_ei_csum(ip, ei);
 
 	if ((EXT2_INODE_SIZE(fs) > E2FS_REV0_INODE_SIZE &&
-	    le16toh(ei->e2di_extra_isize) >= EXT2_INODE_CSUM_HI_EXTRA_END)) {
+		le16toh(ei->e2di_extra_isize) >=
+		    EXT2_INODE_CSUM_HI_EXTRA_END)) {
 		hi = le16toh(ei->e2di_chksum_hi);
 		provided |= hi << 16;
 	} else
@@ -665,7 +678,7 @@ ext2_ei_csum_set(struct inode *ip, struct ext2fs_dinode *ei)
 
 	ei->e2di_chksum_lo = htole16(crc & 0xFFFF);
 	if ((EXT2_INODE_SIZE(fs) > E2FS_REV0_INODE_SIZE &&
-	    le16toh(ei->e2di_extra_isize) >= EXT2_INODE_CSUM_HI_EXTRA_END))
+		le16toh(ei->e2di_extra_isize) >= EXT2_INODE_CSUM_HI_EXTRA_END))
 		ei->e2di_chksum_hi = htole16(crc >> 16);
 }
 
@@ -689,7 +702,8 @@ ext2_gd_csum(struct m_ext2fs *fs, uint32_t block_group, struct ext2_gd *gd)
 		    sizeof(dummy_csum));
 		offset += sizeof(dummy_csum);
 		if (offset < le16toh(fs->e2fs->e3fs_desc_size))
-			csum32 = calculate_crc32c(csum32, (uint8_t *)gd + offset,
+			csum32 = calculate_crc32c(csum32,
+			    (uint8_t *)gd + offset,
 			    le16toh(fs->e2fs->e3fs_desc_size) - offset);
 
 		crc = csum32 & 0xFFFF;
@@ -697,8 +711,7 @@ ext2_gd_csum(struct m_ext2fs *fs, uint32_t block_group, struct ext2_gd *gd)
 	} else if (EXT2_HAS_RO_COMPAT_FEATURE(fs, EXT2F_ROCOMPAT_GDT_CSUM)) {
 		crc = crc16(~0, fs->e2fs->e2fs_uuid,
 		    sizeof(fs->e2fs->e2fs_uuid));
-		crc = crc16(crc, (uint8_t *)&block_group,
-		    sizeof(block_group));
+		crc = crc16(crc, (uint8_t *)&block_group, sizeof(block_group));
 		crc = crc16(crc, (uint8_t *)gd, offset);
 		offset += sizeof(gd->ext4bgd_csum); /* skip checksum */
 		if (EXT2_HAS_INCOMPAT_FEATURE(fs, EXT2F_INCOMPAT_64BIT) &&
@@ -721,7 +734,7 @@ ext2_gd_csum_verify(struct m_ext2fs *fs, struct cdev *dev)
 		if (fs->e2fs_gd[i].ext4bgd_csum !=
 		    ext2_gd_csum(fs, i, &fs->e2fs_gd[i])) {
 			printf(
-"WARNING: mount of %s denied due bad gd=%d csum=0x%x, expected=0x%x - run fsck\n",
+			    "WARNING: mount of %s denied due bad gd=%d csum=0x%x, expected=0x%x - run fsck\n",
 			    devtoname(dev), i, fs->e2fs_gd[i].ext4bgd_csum,
 			    ext2_gd_csum(fs, i, &fs->e2fs_gd[i]));
 			error = EIO;
@@ -738,5 +751,6 @@ ext2_gd_csum_set(struct m_ext2fs *fs)
 	unsigned int i;
 
 	for (i = 0; i < fs->e2fs_gcount; i++)
-		fs->e2fs_gd[i].ext4bgd_csum = ext2_gd_csum(fs, i, &fs->e2fs_gd[i]);
+		fs->e2fs_gd[i].ext4bgd_csum = ext2_gd_csum(fs, i,
+		    &fs->e2fs_gd[i]);
 }

@@ -28,56 +28,60 @@
 #ifdef NEW_PCIB
 #include "opt_acpi.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/types.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/kernel.h>
-#include <sys/queue.h>
-#include <sys/lock.h>
-#include <sys/sx.h>
-#include <sys/smp.h>
-#include <sys/sysctl.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/smp.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_kern.h>
 #include <vm/pmap.h>
+#include <vm/vm_kern.h>
+#include <vm/vm_param.h>
 
 #if defined(__aarch64__)
 #include <arm64/include/intr.h>
 #endif
+#include <sys/pciio.h>
+
 #include <machine/atomic.h>
 #include <machine/bus.h>
 #include <machine/frame.h>
 #include <machine/pci_cfgreg.h>
 #include <machine/resource.h>
 
-#include <sys/pciio.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pci_private.h>
 #include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
 #include "pcib_if.h"
 #if defined(__i386__) || defined(__amd64__)
 #include <machine/intr_machdep.h>
+
 #include <x86/apicreg.h>
 #endif
 #if defined(__aarch64__)
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-#include <dev/acpica/acpivar.h>
 #include <dev/acpica/acpi_pcibvar.h>
+#include <dev/acpica/acpivar.h>
+
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 #endif
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus_xact.h>
-#include <dev/hyperv/vmbus/vmbus_reg.h>
 #include <dev/hyperv/vmbus/vmbus_chanvar.h>
+#include <dev/hyperv/vmbus/vmbus_reg.h>
 
 #include "vmbus_if.h"
 
@@ -161,7 +165,7 @@ static enum pci_protocol_version_t pci_protocol_versions[] = {
 	PCI_PROTOCOL_VERSION_1_1,
 };
 
-#define PCI_CONFIG_MMIO_LENGTH	0x2000
+#define PCI_CONFIG_MMIO_LENGTH 0x2000
 #define CFG_PAGE_OFFSET 0x1000
 #define CFG_PAGE_SIZE (PCI_CONFIG_MMIO_LENGTH - CFG_PAGE_OFFSET)
 
@@ -173,33 +177,33 @@ enum pci_message_type {
 	/*
 	 * Version 1.1
 	 */
-	PCI_MESSAGE_BASE                = 0x42490000,
-	PCI_BUS_RELATIONS               = PCI_MESSAGE_BASE + 0,
-	PCI_QUERY_BUS_RELATIONS         = PCI_MESSAGE_BASE + 1,
-	PCI_POWER_STATE_CHANGE          = PCI_MESSAGE_BASE + 4,
+	PCI_MESSAGE_BASE = 0x42490000,
+	PCI_BUS_RELATIONS = PCI_MESSAGE_BASE + 0,
+	PCI_QUERY_BUS_RELATIONS = PCI_MESSAGE_BASE + 1,
+	PCI_POWER_STATE_CHANGE = PCI_MESSAGE_BASE + 4,
 	PCI_QUERY_RESOURCE_REQUIREMENTS = PCI_MESSAGE_BASE + 5,
-	PCI_QUERY_RESOURCE_RESOURCES    = PCI_MESSAGE_BASE + 6,
-	PCI_BUS_D0ENTRY                 = PCI_MESSAGE_BASE + 7,
-	PCI_BUS_D0EXIT                  = PCI_MESSAGE_BASE + 8,
-	PCI_READ_BLOCK                  = PCI_MESSAGE_BASE + 9,
-	PCI_WRITE_BLOCK                 = PCI_MESSAGE_BASE + 0xA,
-	PCI_EJECT                       = PCI_MESSAGE_BASE + 0xB,
-	PCI_QUERY_STOP                  = PCI_MESSAGE_BASE + 0xC,
-	PCI_REENABLE                    = PCI_MESSAGE_BASE + 0xD,
-	PCI_QUERY_STOP_FAILED           = PCI_MESSAGE_BASE + 0xE,
-	PCI_EJECTION_COMPLETE           = PCI_MESSAGE_BASE + 0xF,
-	PCI_RESOURCES_ASSIGNED          = PCI_MESSAGE_BASE + 0x10,
-	PCI_RESOURCES_RELEASED          = PCI_MESSAGE_BASE + 0x11,
-	PCI_INVALIDATE_BLOCK            = PCI_MESSAGE_BASE + 0x12,
-	PCI_QUERY_PROTOCOL_VERSION      = PCI_MESSAGE_BASE + 0x13,
-	PCI_CREATE_INTERRUPT_MESSAGE    = PCI_MESSAGE_BASE + 0x14,
-	PCI_DELETE_INTERRUPT_MESSAGE    = PCI_MESSAGE_BASE + 0x15,
-	PCI_RESOURCES_ASSIGNED2         = PCI_MESSAGE_BASE + 0x16,
-	PCI_CREATE_INTERRUPT_MESSAGE2   = PCI_MESSAGE_BASE + 0x17,
-	PCI_DELETE_INTERRUPT_MESSAGE2   = PCI_MESSAGE_BASE + 0x18, /* unused */
-	PCI_BUS_RELATIONS2              = PCI_MESSAGE_BASE + 0x19,
-	PCI_RESOURCES_ASSIGNED3         = PCI_MESSAGE_BASE + 0x1A,
-	PCI_CREATE_INTERRUPT_MESSAGE3   = PCI_MESSAGE_BASE + 0x1B,
+	PCI_QUERY_RESOURCE_RESOURCES = PCI_MESSAGE_BASE + 6,
+	PCI_BUS_D0ENTRY = PCI_MESSAGE_BASE + 7,
+	PCI_BUS_D0EXIT = PCI_MESSAGE_BASE + 8,
+	PCI_READ_BLOCK = PCI_MESSAGE_BASE + 9,
+	PCI_WRITE_BLOCK = PCI_MESSAGE_BASE + 0xA,
+	PCI_EJECT = PCI_MESSAGE_BASE + 0xB,
+	PCI_QUERY_STOP = PCI_MESSAGE_BASE + 0xC,
+	PCI_REENABLE = PCI_MESSAGE_BASE + 0xD,
+	PCI_QUERY_STOP_FAILED = PCI_MESSAGE_BASE + 0xE,
+	PCI_EJECTION_COMPLETE = PCI_MESSAGE_BASE + 0xF,
+	PCI_RESOURCES_ASSIGNED = PCI_MESSAGE_BASE + 0x10,
+	PCI_RESOURCES_RELEASED = PCI_MESSAGE_BASE + 0x11,
+	PCI_INVALIDATE_BLOCK = PCI_MESSAGE_BASE + 0x12,
+	PCI_QUERY_PROTOCOL_VERSION = PCI_MESSAGE_BASE + 0x13,
+	PCI_CREATE_INTERRUPT_MESSAGE = PCI_MESSAGE_BASE + 0x14,
+	PCI_DELETE_INTERRUPT_MESSAGE = PCI_MESSAGE_BASE + 0x15,
+	PCI_RESOURCES_ASSIGNED2 = PCI_MESSAGE_BASE + 0x16,
+	PCI_CREATE_INTERRUPT_MESSAGE2 = PCI_MESSAGE_BASE + 0x17,
+	PCI_DELETE_INTERRUPT_MESSAGE2 = PCI_MESSAGE_BASE + 0x18, /* unused */
+	PCI_BUS_RELATIONS2 = PCI_MESSAGE_BASE + 0x19,
+	PCI_RESOURCES_ASSIGNED3 = PCI_MESSAGE_BASE + 0x1A,
+	PCI_CREATE_INTERRUPT_MESSAGE3 = PCI_MESSAGE_BASE + 0x1B,
 	PCI_MESSAGE_MAXIMUM
 };
 
@@ -224,63 +228,62 @@ union pci_version {
  */
 union win_slot_encoding {
 	struct {
-		uint32_t	slot:5;
-		uint32_t	func:3;
-		uint32_t	reserved:24;
+		uint32_t slot : 5;
+		uint32_t func : 3;
+		uint32_t reserved : 24;
 	} bits;
 	uint32_t val;
 } __packed;
 
 struct pci_func_desc {
-	uint16_t	v_id;	/* vendor ID */
-	uint16_t	d_id;	/* device ID */
-	uint8_t		rev;
-	uint8_t		prog_intf;
-	uint8_t		subclass;
-	uint8_t		base_class;
-	uint32_t	subsystem_id;
+	uint16_t v_id; /* vendor ID */
+	uint16_t d_id; /* device ID */
+	uint8_t rev;
+	uint8_t prog_intf;
+	uint8_t subclass;
+	uint8_t base_class;
+	uint32_t subsystem_id;
 	union win_slot_encoding wslot;
-	uint32_t	ser;	/* serial number */
+	uint32_t ser; /* serial number */
 } __packed;
 
 struct pci_func_desc2 {
-	uint16_t	v_id;	/* vendor ID */
-	uint16_t	d_id;	/* device ID */
-	uint8_t		rev;
-	uint8_t		prog_intf;
-	uint8_t		subclass;
-	uint8_t		base_class;
-	uint32_t	subsystem_id;
-	union		win_slot_encoding wslot;
-	uint32_t	ser;	/* serial number */
-	uint32_t	flags;
-	uint16_t	virtual_numa_node;
-	uint16_t	reserved;
+	uint16_t v_id; /* vendor ID */
+	uint16_t d_id; /* device ID */
+	uint8_t rev;
+	uint8_t prog_intf;
+	uint8_t subclass;
+	uint8_t base_class;
+	uint32_t subsystem_id;
+	union win_slot_encoding wslot;
+	uint32_t ser; /* serial number */
+	uint32_t flags;
+	uint16_t virtual_numa_node;
+	uint16_t reserved;
 } __packed;
 
-
 struct hv_msi_desc {
-	uint8_t		vector;
-	uint8_t		delivery_mode;
-	uint16_t	vector_count;
-	uint32_t	reserved;
-	uint64_t	cpu_mask;
+	uint8_t vector;
+	uint8_t delivery_mode;
+	uint16_t vector_count;
+	uint32_t reserved;
+	uint64_t cpu_mask;
 } __packed;
 
 struct hv_msi_desc3 {
-	uint32_t	vector;
-	uint8_t		delivery_mode;
-	uint8_t		reserved;
-	uint16_t	vector_count;
-	uint16_t	processor_count;
-	uint16_t	processor_array[32];
+	uint32_t vector;
+	uint8_t delivery_mode;
+	uint8_t reserved;
+	uint16_t vector_count;
+	uint16_t processor_count;
+	uint16_t processor_array[32];
 } __packed;
 
 struct tran_int_desc {
-	uint16_t	reserved;
-	uint16_t	vector_count;
-	uint32_t	data;
-	uint64_t	address;
+	uint16_t reserved;
+	uint16_t vector_count;
+	uint32_t data;
+	uint64_t address;
 } __packed;
 
 struct pci_message {
@@ -299,7 +302,7 @@ struct pci_incoming_message {
 
 struct pci_response {
 	struct vmbus_chanpkt_hdr hdr;
-	int32_t status;	/* negative values are failures */
+	int32_t status; /* negative values are failures */
 } __packed;
 
 struct pci_packet {
@@ -317,7 +320,7 @@ struct pci_packet {
 struct pci_version_request {
 	struct pci_message message_type;
 	uint32_t protocol_version;
-	uint32_t reservedz:31;
+	uint32_t reservedz : 31;
 } __packed;
 
 struct pci_bus_d0_entry {
@@ -338,7 +341,7 @@ struct pci_bus_relations2 {
 	struct pci_func_desc2 func[0];
 } __packed;
 
-#define MAX_NUM_BARS	(PCIR_MAX_BAR_0 + 1)
+#define MAX_NUM_BARS (PCIR_MAX_BAR_0 + 1)
 struct pci_q_res_req_response {
 	struct vmbus_chanpkt_hdr hdr;
 	int32_t status; /* negative values are failures */
@@ -356,7 +359,7 @@ struct pci_resources_assigned {
 struct pci_resources_assigned2 {
 	struct pci_message message_type;
 	union win_slot_encoding wslot;
-	uint8_t memory_range[0x14][6];   /* not used here */
+	uint8_t memory_range[0x14][6]; /* not used here */
 	uint32_t msi_descriptor_count;
 	uint8_t reserved[70];
 } __packed;
@@ -418,8 +421,8 @@ struct hv_pcibus {
 
 	struct completion query_completion, *query_comp;
 
-	struct mtx config_lock; /* Avoid two threads writing index page */
-	struct mtx device_list_lock;    /* Protect lists below */
+	struct mtx config_lock;	     /* Avoid two threads writing index page */
+	struct mtx device_list_lock; /* Protect lists below */
 	uint32_t protocol_version;
 	TAILQ_HEAD(, hv_pci_dev) children;
 	TAILQ_HEAD(, hv_dr_state) dr_list;
@@ -428,15 +431,15 @@ struct hv_pcibus {
 };
 
 struct hv_pcidev_desc {
-	uint16_t v_id;	/* vendor ID */
-	uint16_t d_id;	/* device ID */
+	uint16_t v_id; /* vendor ID */
+	uint16_t d_id; /* device ID */
 	uint8_t rev;
 	uint8_t prog_intf;
 	uint8_t subclass;
 	uint8_t base_class;
 	uint32_t subsystem_id;
 	union win_slot_encoding wslot;
-	uint32_t ser;	/* serial number */
+	uint32_t ser; /* serial number */
 	uint32_t flags;
 	uint16_t virtual_numa_node;
 } __packed;
@@ -481,9 +484,9 @@ struct hv_irq_desc {
 	int irq;
 };
 
-#define PCI_DEVFN(slot, func)   ((((slot) & 0x1f) << 3) | ((func) & 0x07))
-#define PCI_SLOT(devfn)         (((devfn) >> 3) & 0x1f)
-#define PCI_FUNC(devfn)         ((devfn) & 0x07)
+#define PCI_DEVFN(slot, func) ((((slot) & 0x1f) << 3) | ((func) & 0x07))
+#define PCI_SLOT(devfn) (((devfn) >> 3) & 0x1f)
+#define PCI_FUNC(devfn) ((devfn) & 0x07)
 
 static uint32_t
 devfn_to_wslot(unsigned int devfn)
@@ -513,18 +516,18 @@ wslot_to_devfn(uint32_t wslot)
 }
 
 struct vmbus_pcib_softc {
-	struct vmbus_channel	*chan;
+	struct vmbus_channel *chan;
 	void *rx_buf;
 
-	struct taskqueue	*taskq;
+	struct taskqueue *taskq;
 
-	struct hv_pcibus	*hbus;
+	struct hv_pcibus *hbus;
 };
 
 /* {44C4F61D-4444-4400-9D52-802E27EDE19F} */
 static const struct hyperv_guid g_pass_through_dev_type = {
-	.hv_guid = {0x1D, 0xF6, 0xC4, 0x44, 0x44, 0x44, 0x00, 0x44,
-	    0x9D, 0x52, 0x80, 0x2E, 0x27, 0xED, 0xE1, 0x9F}
+	.hv_guid = { 0x1D, 0xF6, 0xC4, 0x44, 0x44, 0x44, 0x00, 0x44, 0x9D, 0x52,
+	    0x80, 0x2E, 0x27, 0xED, 0xE1, 0x9F }
 };
 
 struct hv_pci_compl {
@@ -552,11 +555,10 @@ wait_for_response(struct hv_pcibus *hbus, struct completion *c)
 {
 	do {
 		if (vmbus_chan_is_revoked(hbus->sc->chan)) {
-			device_printf(hbus->pcib,
-			    "The device is revoked.\n");
+			device_printf(hbus->pcib, "The device is revoked.\n");
 			return (ENODEV);
 		}
-	} while (wait_for_completion_timeout(c, hz /10) != 0);
+	} while (wait_for_completion_timeout(c, hz / 10) != 0);
 
 	return 0;
 }
@@ -641,8 +643,8 @@ hv_pci_delete_device(struct hv_pci_dev *hpdev)
 
 	bus_topo_lock();
 
-	pci_dev = pci_find_dbsf(hbus->pci_domain,
-	    0, PCI_SLOT(devfn), PCI_FUNC(devfn));
+	pci_dev = pci_find_dbsf(hbus->pci_domain, 0, PCI_SLOT(devfn),
+	    PCI_FUNC(devfn));
 	if (pci_dev)
 		device_delete_child(hbus->pci_bus, pci_dev);
 
@@ -652,7 +654,7 @@ hv_pci_delete_device(struct hv_pci_dev *hpdev)
 	TAILQ_REMOVE(&hbus->children, hpdev, link);
 	mtx_unlock(&hbus->device_list_lock);
 
-	TAILQ_FOREACH_SAFE(hid, &hpdev->irq_desc_list, link, tmp_hid)
+	TAILQ_FOREACH_SAFE (hid, &hpdev->irq_desc_list, link, tmp_hid)
 		hv_int_desc_free(hpdev, hid);
 
 	free(hpdev, M_DEVBUF);
@@ -685,9 +687,9 @@ new_pcichild_device(struct hv_pcibus *hbus, struct hv_pcidev_desc *desc)
 	res_req->message_type.type = PCI_QUERY_RESOURCE_REQUIREMENTS;
 	res_req->wslot.val = desc->wslot.val;
 
-	ret = vmbus_chan_send(hbus->sc->chan,
-	    VMBUS_CHANPKT_TYPE_INBAND, VMBUS_CHANPKT_FLAG_RC,
-	    res_req, sizeof(*res_req), (uint64_t)(uintptr_t)&ctxt.pkt);
+	ret = vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND,
+	    VMBUS_CHANPKT_FLAG_RC, res_req, sizeof(*res_req),
+	    (uint64_t)(uintptr_t)&ctxt.pkt);
 	if (ret)
 		goto err;
 
@@ -751,7 +753,7 @@ pci_devices_present_work(void *arg, int pending __unused)
 
 	/* First, mark all existing children as reported missing. */
 	mtx_lock(&hbus->device_list_lock);
-	TAILQ_FOREACH(hpdev, &hbus->children, link)
+	TAILQ_FOREACH (hpdev, &hbus->children, link)
 		hpdev->reported_missing = true;
 	mtx_unlock(&hbus->device_list_lock);
 
@@ -761,9 +763,8 @@ pci_devices_present_work(void *arg, int pending __unused)
 		new_desc = &dr->func[child_no];
 
 		mtx_lock(&hbus->device_list_lock);
-		TAILQ_FOREACH(hpdev, &hbus->children, link) {
-			if ((hpdev->desc.wslot.val ==
-			    new_desc->wslot.val) &&
+		TAILQ_FOREACH (hpdev, &hbus->children, link) {
+			if ((hpdev->desc.wslot.val == new_desc->wslot.val) &&
 			    (hpdev->desc.v_id == new_desc->v_id) &&
 			    (hpdev->desc.d_id == new_desc->d_id) &&
 			    (hpdev->desc.ser == new_desc->ser)) {
@@ -785,7 +786,7 @@ pci_devices_present_work(void *arg, int pending __unused)
 	}
 
 	/* Remove missing device(s), if any */
-	TAILQ_FOREACH_SAFE(hpdev, &hbus->children, link, tmp_hpdev) {
+	TAILQ_FOREACH_SAFE (hpdev, &hbus->children, link, tmp_hpdev) {
 		if (hpdev->reported_missing)
 			hv_pci_delete_device(hpdev);
 	}
@@ -810,7 +811,7 @@ get_pcichild_wslot(struct hv_pcibus *hbus, uint32_t wslot)
 	struct hv_pci_dev *hpdev, *ret = NULL;
 
 	mtx_lock(&hbus->device_list_lock);
-	TAILQ_FOREACH(hpdev, &hbus->children, link) {
+	TAILQ_FOREACH (hpdev, &hbus->children, link) {
 		if (hpdev->desc.wslot.val == wslot) {
 			ret = hpdev;
 			break;
@@ -899,8 +900,8 @@ hv_eject_device_work(void *arg, int pending __unused)
 	eject_pkt = (struct pci_eject_response *)&ctxt.pkt.message;
 	eject_pkt->message_type.type = PCI_EJECTION_COMPLETE;
 	eject_pkt->wslot.val = wslot.val;
-	vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND, 0,
-	    eject_pkt, sizeof(*eject_pkt), 0);
+	vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND, 0, eject_pkt,
+	    sizeof(*eject_pkt), 0);
 }
 
 static void
@@ -922,7 +923,7 @@ hv_pci_eject_device(struct hv_pci_dev *hpdev)
 	taskqueue_enqueue(taskq, &hpdev->eject_task);
 }
 
-#define PCIB_PACKET_SIZE	0x100
+#define PCIB_PACKET_SIZE 0x100
 
 static void
 vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
@@ -958,8 +959,8 @@ vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
 			}
 
 			/* alloc new buffer */
-			buffer =
-			    malloc(bytes_rxed, M_DEVBUF, M_WAITOK | M_ZERO);
+			buffer = malloc(bytes_rxed, M_DEVBUF,
+			    M_WAITOK | M_ZERO);
 			bufferlen = bytes_rxed;
 
 			continue;
@@ -975,8 +976,8 @@ vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
 
 		switch (pkt->cph_type) {
 		case VMBUS_CHANPKT_TYPE_COMP:
-			comp_packet =
-			    (struct pci_packet *)(uintptr_t)pkt->cph_xactid;
+			comp_packet = (struct pci_packet *)(uintptr_t)
+					  pkt->cph_xactid;
 			response = (struct pci_response *)pkt;
 			comp_packet->completion_func(comp_packet->compl_ctxt,
 			    response, bytes_rxed);
@@ -993,8 +994,8 @@ vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
 
 				if (bytes_rxed <
 				    offsetof(struct pci_bus_relations, func) +
-				        (sizeof(struct pci_func_desc) *
-				            (bus_rel->device_count)))
+					(sizeof(struct pci_func_desc) *
+					    (bus_rel->device_count)))
 					break;
 
 				hv_pci_devices_present(hbus, bus_rel);
@@ -1008,8 +1009,8 @@ vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
 
 				if (bytes_rxed <
 				    offsetof(struct pci_bus_relations2, func) +
-				    (sizeof(struct pci_func_desc2) *
-				    (bus_rel2->device_count)))
+					(sizeof(struct pci_func_desc2) *
+					    (bus_rel2->device_count)))
 					break;
 
 				hv_pci_devices_present2(hbus, bus_rel2);
@@ -1042,8 +1043,7 @@ vmbus_pcib_on_channel_callback(struct vmbus_channel *chan, void *arg)
 
 static int
 hv_pci_protocol_negotiation(struct hv_pcibus *hbus,
-    enum pci_protocol_version_t version[],
-    int num_version)
+    enum pci_protocol_version_t version[], int num_version)
 {
 	struct pci_version_request *version_req;
 	struct hv_pci_compl comp_pkt;
@@ -1061,35 +1061,33 @@ hv_pci_protocol_negotiation(struct hv_pcibus *hbus,
 	version_req = (struct pci_version_request *)&ctxt.pkt.message;
 	version_req->message_type.type = PCI_QUERY_PROTOCOL_VERSION;
 
-	for(i=0; i< num_version; i++) {
+	for (i = 0; i < num_version; i++) {
 		version_req->protocol_version = version[i];
-		ret = vmbus_chan_send(hbus->sc->chan,
-		    VMBUS_CHANPKT_TYPE_INBAND, VMBUS_CHANPKT_FLAG_RC,
-		    version_req, sizeof(*version_req),
+		ret = vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND,
+		    VMBUS_CHANPKT_FLAG_RC, version_req, sizeof(*version_req),
 		    (uint64_t)(uintptr_t)&ctxt.pkt);
 		if (!ret)
 			ret = wait_for_response(hbus, &comp_pkt.host_event);
 
 		if (ret) {
 			device_printf(hbus->pcib,
-				"vmbus_pcib failed to request version: %d\n",
-				ret);
+			    "vmbus_pcib failed to request version: %d\n", ret);
 			goto out;
 		}
 
 		if (comp_pkt.completion_status >= 0) {
 			hbus->protocol_version = version[i];
 			device_printf(hbus->pcib,
-				"PCI VMBus using version 0x%x\n",
-				hbus->protocol_version);
+			    "PCI VMBus using version 0x%x\n",
+			    hbus->protocol_version);
 			ret = 0;
 			goto out;
 		}
 
 		if (comp_pkt.completion_status != STATUS_REVISION_MISMATCH) {
 			device_printf(hbus->pcib,
-				"vmbus_pcib version negotiation failed: %x\n",
-				comp_pkt.completion_status);
+			    "vmbus_pcib version negotiation failed: %x\n",
+			    comp_pkt.completion_status);
 			ret = EPROTO;
 			goto out;
 		}
@@ -1097,7 +1095,7 @@ hv_pci_protocol_negotiation(struct hv_pcibus *hbus,
 	}
 
 	device_printf(hbus->pcib,
-		"PCI pass-trhpugh VSP failed to find supported version\n");
+	    "PCI pass-trhpugh VSP failed to find supported version\n");
 out:
 	free_completion(&comp_pkt.host_event);
 	return (ret);
@@ -1180,10 +1178,10 @@ hv_send_resources_allocated(struct hv_pcibus *hbus)
 	int ret = 0;
 	size_t size_res;
 
-	size_res = (hbus->protocol_version < PCI_PROTOCOL_VERSION_1_4)
-			? sizeof(*res_assigned) : sizeof(*res_assigned2);
-	pkt = malloc(sizeof(*pkt) + size_res,
-	    M_DEVBUF, M_WAITOK | M_ZERO);
+	size_res = (hbus->protocol_version < PCI_PROTOCOL_VERSION_1_4) ?
+	    sizeof(*res_assigned) :
+	    sizeof(*res_assigned2);
+	pkt = malloc(sizeof(*pkt) + size_res, M_DEVBUF, M_WAITOK | M_ZERO);
 
 	for (wslot = 0; wslot < 256; wslot++) {
 		hpdev = get_pcichild_wslot(hbus, wslot);
@@ -1210,9 +1208,8 @@ hv_send_resources_allocated(struct hv_pcibus *hbus)
 			res_assigned2->wslot.val = hpdev->desc.wslot.val;
 		}
 
-		ret = vmbus_chan_send(hbus->sc->chan,
-		    VMBUS_CHANPKT_TYPE_INBAND, VMBUS_CHANPKT_FLAG_RC,
-		    &pkt->message, size_res,
+		ret = vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND,
+		    VMBUS_CHANPKT_FLAG_RC, &pkt->message, size_res,
 		    (uint64_t)(uintptr_t)pkt);
 		if (!ret)
 			ret = wait_for_response(hbus, &comp_pkt.host_event);
@@ -1250,8 +1247,8 @@ hv_send_resources_released(struct hv_pcibus *hbus)
 		pkt.message_type.type = PCI_RESOURCES_RELEASED;
 		pkt.wslot.val = hpdev->desc.wslot.val;
 
-		ret = vmbus_chan_send(hbus->sc->chan,
-		    VMBUS_CHANPKT_TYPE_INBAND, 0, &pkt, sizeof(pkt), 0);
+		ret = vmbus_chan_send(hbus->sc->chan, VMBUS_CHANPKT_TYPE_INBAND,
+		    0, &pkt, sizeof(pkt), 0);
 		if (ret)
 			return (ret);
 	}
@@ -1259,31 +1256,26 @@ hv_send_resources_released(struct hv_pcibus *hbus)
 	return (0);
 }
 
-#define hv_cfg_read(x, s)						\
-static inline uint##x##_t hv_cfg_read_##s(struct hv_pcibus *bus,	\
-    bus_size_t offset)							\
-{									\
-	return (bus_read_##s(bus->cfg_res, offset));			\
-}
+#define hv_cfg_read(x, s)                                                \
+	static inline uint##x##_t hv_cfg_read_##s(struct hv_pcibus *bus, \
+	    bus_size_t offset)                                           \
+	{                                                                \
+		return (bus_read_##s(bus->cfg_res, offset));             \
+	}
 
-#define hv_cfg_write(x, s)						\
-static inline void hv_cfg_write_##s(struct hv_pcibus *bus,		\
-    bus_size_t offset, uint##x##_t val)					\
-{									\
-	return (bus_write_##s(bus->cfg_res, offset, val));		\
-}
+#define hv_cfg_write(x, s)                                         \
+	static inline void hv_cfg_write_##s(struct hv_pcibus *bus, \
+	    bus_size_t offset, uint##x##_t val)                    \
+	{                                                          \
+		return (bus_write_##s(bus->cfg_res, offset, val)); \
+	}
 
-hv_cfg_read(8, 1)
-hv_cfg_read(16, 2)
-hv_cfg_read(32, 4)
+hv_cfg_read(8, 1) hv_cfg_read(16, 2) hv_cfg_read(32, 4)
 
-hv_cfg_write(8, 1)
-hv_cfg_write(16, 2)
-hv_cfg_write(32, 4)
+    hv_cfg_write(8, 1) hv_cfg_write(16, 2) hv_cfg_write(32, 4)
 
-static void
-_hv_pcifront_read_config(struct hv_pci_dev *hpdev, int where, int size,
-    uint32_t *val)
+	static void _hv_pcifront_read_config(struct hv_pci_dev *hpdev,
+	    int where, int size, uint32_t *val)
 {
 	struct hv_pcibus *hbus = hpdev->hbus;
 	bus_size_t addr = CFG_PAGE_OFFSET + where;
@@ -1293,20 +1285,19 @@ _hv_pcifront_read_config(struct hv_pci_dev *hpdev, int where, int size,
 	 */
 	if (where + size <= PCIR_COMMAND) {
 		memcpy(val, ((uint8_t *)&hpdev->desc.v_id) + where, size);
-	} else if (where >= PCIR_REVID && where + size <=
-		   PCIR_CACHELNSZ) {
-		memcpy(val, ((uint8_t *)&hpdev->desc.rev) + where -
-		       PCIR_REVID, size);
-	} else if (where >= PCIR_SUBVEND_0 && where + size <=
-		   PCIR_BIOS) {
-		memcpy(val, (uint8_t *)&hpdev->desc.subsystem_id + where -
-		       PCIR_SUBVEND_0, size);
-	} else if (where >= PCIR_BIOS && where + size <=
-		   PCIR_CAP_PTR) {
+	} else if (where >= PCIR_REVID && where + size <= PCIR_CACHELNSZ) {
+		memcpy(val, ((uint8_t *)&hpdev->desc.rev) + where - PCIR_REVID,
+		    size);
+	} else if (where >= PCIR_SUBVEND_0 && where + size <= PCIR_BIOS) {
+		memcpy(val,
+		    (uint8_t *)&hpdev->desc.subsystem_id + where -
+			PCIR_SUBVEND_0,
+		    size);
+	} else if (where >= PCIR_BIOS && where + size <= PCIR_CAP_PTR) {
 		/* ROM BARs are unimplemented */
 		*val = 0;
-	} else if ((where >= PCIR_INTLINE && where + size <=
-		   PCIR_INTPIN) ||(where == PCIR_INTPIN && size == 1)) {
+	} else if ((where >= PCIR_INTLINE && where + size <= PCIR_INTPIN) ||
+	    (where == PCIR_INTPIN && size == 1)) {
 		/*
 		 * Interrupt Line and Interrupt PIN are hard-wired to zero
 		 * because this front-end only supports message-signaled
@@ -1410,7 +1401,7 @@ vmbus_pcib_prepopulate_bars(struct hv_pcibus *hbus)
 	int i;
 
 	mtx_lock(&hbus->device_list_lock);
-	TAILQ_FOREACH(hpdev, &hbus->children, link) {
+	TAILQ_FOREACH (hpdev, &hbus->children, link) {
 		for (i = 0; i < 6; i++) {
 			/* Ignore empty bar */
 			if (hpdev->probed_bar[i] == 0)
@@ -1418,20 +1409,21 @@ vmbus_pcib_prepopulate_bars(struct hv_pcibus *hbus)
 
 			uint32_t bar_val = 0;
 
-			_hv_pcifront_read_config(hpdev, PCIR_BAR(i),
-			    4, &bar_val);
+			_hv_pcifront_read_config(hpdev, PCIR_BAR(i), 4,
+			    &bar_val);
 
 			if (hpdev->probed_bar[i] != bar_val) {
 				if (bootverbose)
 					printf("vmbus_pcib: initialize bar %d "
-					    "by writing all 1s\n", i);
+					       "by writing all 1s\n",
+					    i);
 
-				_hv_pcifront_write_config(hpdev, PCIR_BAR(i),
-				    4, 0xffffffff);
+				_hv_pcifront_write_config(hpdev, PCIR_BAR(i), 4,
+				    0xffffffff);
 
 				/* Now write the original value back */
-				_hv_pcifront_write_config(hpdev, PCIR_BAR(i),
-				    4, bar_val);
+				_hv_pcifront_write_config(hpdev, PCIR_BAR(i), 4,
+				    bar_val);
 			}
 		}
 	}
@@ -1462,7 +1454,6 @@ vmbus_pcib_pre_detach(struct hv_pcibus *hbus)
 	taskqueue_drain_all(hbus->sc->taskq);
 }
 
-
 /*
  * Standard probe entry point.
  *
@@ -1471,7 +1462,7 @@ static int
 vmbus_pcib_probe(device_t dev)
 {
 	if (VMBUS_PROBE_GUID(device_get_parent(dev), dev,
-	    &g_pass_through_dev_type) == 0) {
+		&g_pass_through_dev_type) == 0) {
 		device_set_desc(dev, "Hyper-V PCI Express Pass Through");
 		return (BUS_PROBE_DEFAULT);
 	}
@@ -1498,16 +1489,15 @@ vmbus_pcib_attach(device_t dev)
 
 	channel = vmbus_get_channel(dev);
 	inst_guid = vmbus_chan_guid_inst(channel);
-	hbus->pci_domain = inst_guid->hv_guid[9] |
-			  (inst_guid->hv_guid[8] << 8);
+	hbus->pci_domain = inst_guid->hv_guid[9] | (inst_guid->hv_guid[8] << 8);
 
 	mtx_init(&hbus->config_lock, "hbcfg", NULL, MTX_DEF);
 	mtx_init(&hbus->device_list_lock, "hbdl", NULL, MTX_DEF);
 	TAILQ_INIT(&hbus->children);
 	TAILQ_INIT(&hbus->dr_list);
 
-	hbus->cfg_res = bus_alloc_resource(dev, SYS_RES_MEMORY, &rid,
-	    0, RM_MAX_END, PCI_CONFIG_MMIO_LENGTH,
+	hbus->cfg_res = bus_alloc_resource(dev, SYS_RES_MEMORY, &rid, 0,
+	    RM_MAX_END, PCI_CONFIG_MMIO_LENGTH,
 	    RF_ACTIVE | rman_make_alignment_flags(PAGE_SIZE));
 
 	if (!hbus->cfg_res) {
@@ -1537,8 +1527,8 @@ vmbus_pcib_attach(device_t dev)
 	init_completion(&hbus->query_completion);
 	hbus->query_comp = &hbus->query_completion;
 
-	ret = vmbus_chan_open(sc->chan, pci_ring_size, pci_ring_size,
-		NULL, 0, vmbus_pcib_on_channel_callback, sc);
+	ret = vmbus_chan_open(sc->chan, pci_ring_size, pci_ring_size, NULL, 0,
+	    vmbus_pcib_on_channel_callback, sc);
 	if (ret)
 		goto free_res;
 
@@ -1664,7 +1654,7 @@ vmbus_pcib_write_ivar(device_t dev, device_t child, int which, uintptr_t val)
 
 static struct resource *
 vmbus_pcib_alloc_resource(device_t dev, device_t child, int type, int *rid,
-	rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
 	unsigned int bar_no;
 	struct hv_pci_dev *hpdev;
@@ -1681,8 +1671,7 @@ vmbus_pcib_alloc_resource(device_t dev, device_t child, int type, int *rid,
 		return (NULL);
 
 	if (type == SYS_RES_MEMORY) {
-		devfn = PCI_DEVFN(pci_get_slot(child),
-		    pci_get_function(child));
+		devfn = PCI_DEVFN(pci_get_slot(child), pci_get_function(child));
 		hpdev = get_pcichild_wslot(sc->hbus, devfn_to_wslot(devfn));
 		if (!hpdev)
 			return (NULL);
@@ -1696,15 +1685,15 @@ vmbus_pcib_alloc_resource(device_t dev, device_t child, int type, int *rid,
 			end = ulmin(end, 0xFFFFFFFF);
 	}
 
-	res = bus_generic_alloc_resource(dev, child, type, rid,
-		start, end, count, flags);
+	res = bus_generic_alloc_resource(dev, child, type, rid, start, end,
+	    count, flags);
 	/*
 	 * If this is a request for a specific range, assume it is
 	 * correct and pass it up to the parent.
 	 */
 	if (res == NULL && start + count - 1 == end)
-		res = bus_generic_alloc_resource(dev, child, type, rid,
-		    start, end, count, flags);
+		res = bus_generic_alloc_resource(dev, child, type, rid, start,
+		    end, count, flags);
 	if (res == NULL)
 		device_printf(dev, "vmbus_pcib_alloc_resource failed\n");
 
@@ -1730,8 +1719,8 @@ vmbus_pcib_release_resource(device_t dev, device_t child, int type, int rid,
 	struct vmbus_pcib_softc *sc = device_get_softc(dev);
 
 	if (type == PCI_RES_BUS)
-		return (pci_domain_release_bus(sc->hbus->pci_domain, child,
-		    rid, r));
+		return (pci_domain_release_bus(sc->hbus->pci_domain, child, rid,
+		    r));
 
 	if (type == SYS_RES_IOPORT)
 		return (EINVAL);
@@ -1815,16 +1804,16 @@ vmbus_pcib_route_intr(device_t pcib, device_t dev, int pin)
 }
 
 static int
-vmbus_pcib_alloc_msi(device_t pcib, device_t dev, int count,
-    int maxcount, int *irqs)
+vmbus_pcib_alloc_msi(device_t pcib, device_t dev, int count, int maxcount,
+    int *irqs)
 {
 #if defined(__amd64__) || defined(__i386__)
 	return (PCIB_ALLOC_MSI(device_get_parent(pcib), dev, count, maxcount,
 	    irqs));
 #endif
 #if defined(__aarch64__)
-	return (intr_alloc_msi(pcib, dev, ACPI_MSI_XREF, count, maxcount,
-	    irqs));
+	return (
+	    intr_alloc_msi(pcib, dev, ACPI_MSI_XREF, count, maxcount, irqs));
 #endif
 }
 
@@ -1835,7 +1824,7 @@ vmbus_pcib_release_msi(device_t pcib, device_t dev, int count, int *irqs)
 	return (PCIB_RELEASE_MSI(device_get_parent(pcib), dev, count, irqs));
 #endif
 #if defined(__aarch64__)
-	return(intr_release_msi(pcib, dev, ACPI_MSI_XREF, count, irqs));
+	return (intr_release_msi(pcib, dev, ACPI_MSI_XREF, count, irqs));
 #endif
 }
 
@@ -1848,7 +1837,7 @@ vmbus_pcib_alloc_msix(device_t pcib, device_t dev, int *irq)
 	ret = intr_alloc_msix(pcib, dev, ACPI_MSI_XREF, irq);
 	return ret;
 #else
-    return (ENXIO);
+	return (ENXIO);
 #endif
 #else
 	return (PCIB_ALLOC_MSIX(device_get_parent(pcib), dev, irq));
@@ -1866,18 +1855,18 @@ vmbus_pcib_release_msix(device_t pcib, device_t dev, int irq)
 }
 
 #if defined(__aarch64__)
-#define	MSI_INTEL_ADDR_DEST	0x00000000
-#define	MSI_INTEL_DATA_DELFIXED 0x0
+#define MSI_INTEL_ADDR_DEST 0x00000000
+#define MSI_INTEL_DATA_DELFIXED 0x0
 #endif
 #if defined(__amd64__) || defined(__i386__)
 #define MSI_INTEL_ADDR_DEST 0x000ff000
-#define MSI_INTEL_DATA_INTVEC   IOART_INTVEC    /* Interrupt vector. */
+#define MSI_INTEL_DATA_INTVEC IOART_INTVEC /* Interrupt vector. */
 #define MSI_INTEL_DATA_DELFIXED IOART_DELFIXED
 #endif
 
 static int
-vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
-    uint64_t *addr, uint32_t *data)
+vmbus_pcib_map_msi(device_t pcib, device_t child, int irq, uint64_t *addr,
+    uint32_t *data)
 {
 	unsigned int devfn;
 	struct hv_pci_dev *hpdev;
@@ -1895,7 +1884,7 @@ vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
 		union {
 			struct pci_create_interrupt v1;
 			struct pci_create_interrupt3 v3;
-		}int_pkts;
+		} int_pkts;
 	} ctxt;
 	int ret;
 	uint32_t size;
@@ -1905,16 +1894,15 @@ vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
 	if (!hpdev)
 		return (ENOENT);
 #if defined(__aarch64__)
-	ret = intr_map_msi(pcib, child, ACPI_MSI_XREF, irq,
-	    &v_addr, &v_data);
+	ret = intr_map_msi(pcib, child, ACPI_MSI_XREF, irq, &v_addr, &v_data);
 #else
-	ret = PCIB_MAP_MSI(device_get_parent(pcib), child, irq,
-            &v_addr, &v_data);
+	ret = PCIB_MAP_MSI(device_get_parent(pcib), child, irq, &v_addr,
+	    &v_data);
 #endif
 	if (ret)
 		return (ret);
 
-	TAILQ_FOREACH_SAFE(hid, &hpdev->irq_desc_list, link, tmp_hid) {
+	TAILQ_FOREACH_SAFE (hid, &hpdev->irq_desc_list, link, tmp_hid) {
 		if (hid->irq == irq) {
 			TAILQ_REMOVE(&hpdev->irq_desc_list, hid, link);
 			hv_int_desc_free(hpdev, hid);
@@ -1964,7 +1952,7 @@ vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
 		size = sizeof(ctxt.int_pkts.v3);
 		break;
 	}
-	ret = vmbus_chan_send(sc->chan,	VMBUS_CHANPKT_TYPE_INBAND,
+	ret = vmbus_chan_send(sc->chan, VMBUS_CHANPKT_TYPE_INBAND,
 	    VMBUS_CHANPKT_FLAG_RC, &ctxt.int_pkts, size,
 	    (uint64_t)(uintptr_t)&ctxt.pkt);
 	if (ret) {
@@ -1976,8 +1964,7 @@ vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
 	free_completion(&comp.comp_pkt.host_event);
 
 	if (comp.comp_pkt.completion_status < 0) {
-		device_printf(pcib,
-		    "vmbus_pcib_map_msi completion_status %d\n",
+		device_printf(pcib, "vmbus_pcib_map_msi completion_status %d\n",
 		    comp.comp_pkt.completion_status);
 		return (EPROTO);
 	}
@@ -1995,42 +1982,42 @@ vmbus_pcib_map_msi(device_t pcib, device_t child, int irq,
 
 static device_method_t vmbus_pcib_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         vmbus_pcib_probe),
-	DEVMETHOD(device_attach,        vmbus_pcib_attach),
-	DEVMETHOD(device_detach,        vmbus_pcib_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
+	DEVMETHOD(device_probe, vmbus_pcib_probe),
+	DEVMETHOD(device_attach, vmbus_pcib_attach),
+	DEVMETHOD(device_detach, vmbus_pcib_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_read_ivar,		vmbus_pcib_read_ivar),
-	DEVMETHOD(bus_write_ivar,		vmbus_pcib_write_ivar),
-	DEVMETHOD(bus_alloc_resource,		vmbus_pcib_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,		vmbus_pcib_adjust_resource),
-	DEVMETHOD(bus_release_resource,		vmbus_pcib_release_resource),
-	DEVMETHOD(bus_activate_resource,   	vmbus_pcib_activate_resource),
-	DEVMETHOD(bus_deactivate_resource, 	vmbus_pcib_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	   bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	   bus_generic_teardown_intr),
-	DEVMETHOD(bus_get_cpus,			vmbus_pcib_get_cpus),
+	DEVMETHOD(bus_read_ivar, vmbus_pcib_read_ivar),
+	DEVMETHOD(bus_write_ivar, vmbus_pcib_write_ivar),
+	DEVMETHOD(bus_alloc_resource, vmbus_pcib_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, vmbus_pcib_adjust_resource),
+	DEVMETHOD(bus_release_resource, vmbus_pcib_release_resource),
+	DEVMETHOD(bus_activate_resource, vmbus_pcib_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, vmbus_pcib_deactivate_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_get_cpus, vmbus_pcib_get_cpus),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,		pcib_maxslots),
-	DEVMETHOD(pcib_read_config,		vmbus_pcib_read_config),
-	DEVMETHOD(pcib_write_config,		vmbus_pcib_write_config),
-	DEVMETHOD(pcib_route_interrupt,		vmbus_pcib_route_intr),
-	DEVMETHOD(pcib_alloc_msi,		vmbus_pcib_alloc_msi),
-	DEVMETHOD(pcib_release_msi,		vmbus_pcib_release_msi),
-	DEVMETHOD(pcib_alloc_msix,		vmbus_pcib_alloc_msix),
-	DEVMETHOD(pcib_release_msix,		vmbus_pcib_release_msix),
-	DEVMETHOD(pcib_map_msi,			vmbus_pcib_map_msi),
-	DEVMETHOD(pcib_request_feature,		pcib_request_feature_allow),
+	DEVMETHOD(pcib_maxslots, pcib_maxslots),
+	DEVMETHOD(pcib_read_config, vmbus_pcib_read_config),
+	DEVMETHOD(pcib_write_config, vmbus_pcib_write_config),
+	DEVMETHOD(pcib_route_interrupt, vmbus_pcib_route_intr),
+	DEVMETHOD(pcib_alloc_msi, vmbus_pcib_alloc_msi),
+	DEVMETHOD(pcib_release_msi, vmbus_pcib_release_msi),
+	DEVMETHOD(pcib_alloc_msix, vmbus_pcib_alloc_msix),
+	DEVMETHOD(pcib_release_msix, vmbus_pcib_release_msix),
+	DEVMETHOD(pcib_map_msi, vmbus_pcib_map_msi),
+	DEVMETHOD(pcib_request_feature, pcib_request_feature_allow),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_0(pcib, vmbus_pcib_driver, vmbus_pcib_methods,
-		sizeof(struct vmbus_pcib_softc));
+    sizeof(struct vmbus_pcib_softc));
 DRIVER_MODULE(vmbus_pcib, vmbus, vmbus_pcib_driver, 0, 0);
 MODULE_DEPEND(vmbus_pcib, vmbus, 1, 1, 1);
 MODULE_DEPEND(vmbus_pcib, pci, 1, 1, 1);

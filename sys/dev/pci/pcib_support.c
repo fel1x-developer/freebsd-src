@@ -32,17 +32,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 #include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include "pcib_if.h"
 
@@ -72,8 +72,7 @@ pcib_get_id(device_t pcib, device_t dev, enum pci_id_type type, uintptr_t *id)
 }
 
 void
-pcib_decode_rid(device_t pcib, uint16_t rid, int *bus, int *slot,
-    int *func)
+pcib_decode_rid(device_t pcib, uint16_t rid, int *bus, int *slot, int *func)
 {
 
 	*bus = PCI_RID2BUS(rid);

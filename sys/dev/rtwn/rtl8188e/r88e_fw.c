@@ -18,38 +18,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
-#include <dev/rtwn/rtl8188e/r88e_reg.h>
 #include <dev/rtwn/rtl8188e/r88e_fw_cmd.h>
+#include <dev/rtwn/rtl8188e/r88e_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 #ifndef RTWN_WITHOUT_UCODE
 int
@@ -59,7 +56,8 @@ r88e_fw_cmd(struct rtwn_softc *sc, uint8_t id, const void *buf, int len)
 	int ntries, error;
 
 	if (!(sc->sc_flags & RTWN_FW_LOADED)) {
-		RTWN_DPRINTF(sc, RTWN_DEBUG_FIRMWARE, "%s: firmware "
+		RTWN_DPRINTF(sc, RTWN_DEBUG_FIRMWARE,
+		    "%s: firmware "
 		    "was not loaded; command (id %d) will be discarded\n",
 		    __func__, id);
 		return (0);
@@ -72,15 +70,14 @@ r88e_fw_cmd(struct rtwn_softc *sc, uint8_t id, const void *buf, int len)
 		rtwn_delay(sc, 2000);
 	}
 	if (ntries == 100) {
-		device_printf(sc->sc_dev,
-		    "could not send firmware command\n");
+		device_printf(sc->sc_dev, "could not send firmware command\n");
 		return (ETIMEDOUT);
 	}
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.id = id;
 	KASSERT(len <= sizeof(cmd.msg),
-	    ("%s: firmware command too long (%d > %zu)\n",
-	    __func__, len, sizeof(cmd.msg)));
+	    ("%s: firmware command too long (%d > %zu)\n", __func__, len,
+		sizeof(cmd.msg)));
 	memcpy(cmd.msg, buf, len);
 
 	/* Write the first word last since that will trigger the FW. */
@@ -120,8 +117,8 @@ r88e_fw_download_enable(struct rtwn_softc *sc, int enable)
 		/* MCU firmware download enable. */
 		rtwn_setbits_1(sc, R92C_MCUFWDL, 0, R92C_MCUFWDL_EN);
 		/* 8051 reset. */
-		rtwn_setbits_1_shift(sc, R92C_MCUFWDL, R92C_MCUFWDL_ROM_DLEN,
-		    0, 2);
+		rtwn_setbits_1_shift(sc, R92C_MCUFWDL, R92C_MCUFWDL_ROM_DLEN, 0,
+		    2);
 	} else {
 		/* MCU download disable. */
 		rtwn_setbits_1(sc, R92C_MCUFWDL, R92C_MCUFWDL_EN, 0);
@@ -186,8 +183,7 @@ r88e_set_rsvd_page(struct rtwn_softc *sc, int probe_resp, int null,
 }
 
 int
-r88e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap,
-    int off)
+r88e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap, int off)
 {
 	struct r88e_fw_cmd_pwrmode mode;
 	int error;
@@ -208,8 +204,8 @@ r88e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap,
 		mode.mode = R88E_PWRMODE_CAM;
 		mode.pwr_state = R88E_PWRMODE_STATE_ALLON;
 	}
-	mode.pwrb1 =
-	    SM(R88E_PWRMODE_B1_SMART_PS, R88E_PWRMODE_B1_LEG_NULLDATA) |
+	mode.pwrb1 = SM(R88E_PWRMODE_B1_SMART_PS,
+			 R88E_PWRMODE_B1_LEG_NULLDATA) |
 	    SM(R88E_PWRMODE_B1_RLBM, R88E_PWRMODE_B1_MODE_MIN);
 	/* XXX ignored */
 	mode.bcn_pass = 0;
@@ -217,8 +213,8 @@ r88e_set_pwrmode(struct rtwn_softc *sc, struct ieee80211vap *vap,
 	error = r88e_fw_cmd(sc, R88E_CMD_SET_PWRMODE, &mode, sizeof(mode));
 	if (error != 0) {
 		device_printf(sc->sc_dev,
-		    "%s: CMD_SET_PWRMODE was not sent, error %d\n",
-		    __func__, error);
+		    "%s: CMD_SET_PWRMODE was not sent, error %d\n", __func__,
+		    error);
 	}
 
 	return (error);

@@ -39,20 +39,20 @@
 #include "math_private.h"
 
 static const union IEEEl2bits
-    p0u = LD80C(0xaaaaaaaaaaaaaaab,    -3,  1.66666666666666666671e-01L),
-    p1u = LD80C(0xb60b60b60b60b59a,    -9, -2.77777777777777775377e-03L),
-    p2u = LD80C(0x8ab355e008a3cfce,   -14,  6.61375661375629297465e-05L),
-    p3u = LD80C(0xddebbc994b0c1376,   -20, -1.65343915327882529784e-06L),
-    p4u = LD80C(0xb354784cb4ef4c41,   -25,  4.17535101591534118469e-08L),
-    p5u = LD80C(0x913e8a718382ce75,   -30, -1.05679137034774806475e-09L),
-    p6u = LD80C(0xe8f0042aa134502e,   -36,  2.64819349895429516863e-11L);
-#define	p1	(p0u.e)
-#define	p2	(p1u.e)
-#define	p3	(p2u.e)
-#define	p4	(p3u.e)
-#define	p5	(p4u.e)
-#define	p6	(p5u.e)
-#define	p7	(p6u.e)
+    p0u = LD80C(0xaaaaaaaaaaaaaaab, -3, 1.66666666666666666671e-01L),
+    p1u = LD80C(0xb60b60b60b60b59a, -9, -2.77777777777777775377e-03L),
+    p2u = LD80C(0x8ab355e008a3cfce, -14, 6.61375661375629297465e-05L),
+    p3u = LD80C(0xddebbc994b0c1376, -20, -1.65343915327882529784e-06L),
+    p4u = LD80C(0xb354784cb4ef4c41, -25, 4.17535101591534118469e-08L),
+    p5u = LD80C(0x913e8a718382ce75, -30, -1.05679137034774806475e-09L),
+    p6u = LD80C(0xe8f0042aa134502e, -36, 2.64819349895429516863e-11L);
+#define p1 (p0u.e)
+#define p2 (p1u.e)
+#define p3 (p2u.e)
+#define p4 (p3u.e)
+#define p5 (p4u.e)
+#define p6 (p5u.e)
+#define p7 (p6u.e)
 
 /*
  * lnhuge = (LDBL_MAX_EXP + 9) * log(2.)
@@ -60,16 +60,16 @@ static const union IEEEl2bits
  * invln2 = 1 / log(2.)
  */
 static const union IEEEl2bits
-ln2hiu  = LD80C(0xb17217f700000000,  -1,  6.93147180369123816490e-01L),
-ln2lou  = LD80C(0xd1cf79abc9e3b398, -33,  1.90821492927058781614e-10L),
-lnhugeu = LD80C(0xb18b0c0330a8fad9,  13,  1.13627617309191834574e+04L),
-lntinyu = LD80C(0xb236f28a68bc3bd7,  13, -1.14057368561139000667e+04L),
-invln2u = LD80C(0xb8aa3b295c17f0bc,   0,  1.44269504088896340739e+00L);
-#define	ln2hi	(ln2hiu.e)
-#define ln2lo	(ln2lou.e)
-#define lnhuge	(lnhugeu.e)
-#define	lntiny	(lntinyu.e)
-#define	invln2	(invln2u.e)
+    ln2hiu = LD80C(0xb17217f700000000, -1, 6.93147180369123816490e-01L),
+    ln2lou = LD80C(0xd1cf79abc9e3b398, -33, 1.90821492927058781614e-10L),
+    lnhugeu = LD80C(0xb18b0c0330a8fad9, 13, 1.13627617309191834574e+04L),
+    lntinyu = LD80C(0xb236f28a68bc3bd7, 13, -1.14057368561139000667e+04L),
+    invln2u = LD80C(0xb8aa3b295c17f0bc, 0, 1.44269504088896340739e+00L);
+#define ln2hi (ln2hiu.e)
+#define ln2lo (ln2lou.e)
+#define lnhuge (lnhugeu.e)
+#define lntiny (lntinyu.e)
+#define invln2 (invln2u.e)
 
 /* returns exp(r = x + c) for |c| < |x| with no overlap.  */
 
@@ -79,8 +79,8 @@ __exp__D(long double x, long double c)
 	long double hi, lo, z;
 	int k;
 
-	if (x != x)	/* x is NaN. */
-		return(x);
+	if (x != x) /* x is NaN. */
+		return (x);
 
 	if (x <= lnhuge) {
 		if (x >= lntiny) {
@@ -88,18 +88,30 @@ __exp__D(long double x, long double c)
 			z = invln2 * x;
 			k = z + copysignl(0.5L, x);
 
-		    	/*
+			/*
 			 * Express (x + c) - k * ln2 as hi - lo.
 			 * Let x = hi - lo rounded.
 			 */
-			hi = x - k * ln2hi;	/* Exact. */
+			hi = x - k * ln2hi; /* Exact. */
 			lo = k * ln2lo - c;
 			x = hi - lo;
 
 			/* Return 2^k*[1+x+x*c/(2+c)]  */
 			z = x * x;
-			c = x - z * (p1 + z * (p2 + z * (p3 + z * (p4 +
-			    z * (p5 + z * (p6 + z * p7))))));
+			c = x -
+			    z *
+				(p1 +
+				    z *
+					(p2 +
+					    z *
+						(p3 +
+						    z *
+							(p4 +
+							    z *
+								(p5 +
+								    z *
+									(p6 +
+									    z * p7))))));
 			c = (x * c) / (2 - c);
 
 			return (ldexpl(1 + (hi - (lo - c)), k));

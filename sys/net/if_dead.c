@@ -38,8 +38,8 @@
 #include <sys/socket.h>
 
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_private.h>
+#include <net/if_var.h>
 
 static int
 ifdead_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *sa,
@@ -60,7 +60,6 @@ ifdead_input(struct ifnet *ifp, struct mbuf *m)
 static void
 ifdead_start(struct ifnet *ifp)
 {
-
 }
 
 static int
@@ -82,7 +81,6 @@ ifdead_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 static void
 ifdead_qflush(struct ifnet *ifp)
 {
-
 }
 
 static int
@@ -109,7 +107,7 @@ ifdead_snd_tag_alloc(struct ifnet *ifp, union if_snd_tag_alloc_params *params,
 
 static void
 ifdead_ratelimit_query(struct ifnet *ifp __unused,
-      struct if_ratelimit_query_results *q)
+    struct if_ratelimit_query_results *q)
 {
 	/*
 	 * This guy does not support

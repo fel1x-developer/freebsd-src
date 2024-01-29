@@ -28,23 +28,23 @@
  * From: FreeBSD: head/lib/libc/gen/readdir.c 314436 2017-02-28 23:42:47Z imp
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#define	_WANT_FREEBSD11_DIRENT
+
+#include "namespace.h"
+#define _WANT_FREEBSD11_DIRENT
 #include <dirent.h>
 #include <errno.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include "un-namespace.h"
-
-#include "libc_private.h"
-#include "gen-private.h"
-#include "telldir.h"
 
 #include "gen-compat.h"
+#include "gen-private.h"
+#include "libc_private.h"
+#include "telldir.h"
+#include "un-namespace.h"
 
 static bool
 freebsd11_cvtdirent(struct freebsd11_dirent *dstdp, struct dirent *srcdp)
@@ -54,12 +54,12 @@ freebsd11_cvtdirent(struct freebsd11_dirent *dstdp, struct dirent *srcdp)
 		return (false);
 	dstdp->d_type = srcdp->d_type;
 	dstdp->d_namlen = srcdp->d_namlen;
-	dstdp->d_fileno = srcdp->d_fileno;		/* truncate */
+	dstdp->d_fileno = srcdp->d_fileno; /* truncate */
 	dstdp->d_reclen = FREEBSD11_DIRSIZ(dstdp);
 	bcopy(srcdp->d_name, dstdp->d_name, dstdp->d_namlen);
 	bzero(dstdp->d_name + dstdp->d_namlen,
 	    dstdp->d_reclen - offsetof(struct freebsd11_dirent, d_name) -
-	    dstdp->d_namlen);
+		dstdp->d_namlen);
 	return (true);
 }
 
@@ -74,8 +74,8 @@ freebsd11_readdir(DIR *dirp)
 	dp = _readdir_unlocked(dirp, RDU_SKIP);
 	if (dp != NULL) {
 		if (dirp->dd_compat_de == NULL)
-			dirp->dd_compat_de = malloc(sizeof(struct
-			    freebsd11_dirent));
+			dirp->dd_compat_de = malloc(
+			    sizeof(struct freebsd11_dirent));
 		if (freebsd11_cvtdirent(dirp->dd_compat_de, dp))
 			dstdp = dirp->dd_compat_de;
 		else
@@ -108,5 +108,5 @@ freebsd11_readdir_r(DIR *dirp, struct freebsd11_dirent *entry,
 	return (0);
 }
 
-__sym_compat(readdir, freebsd11_readdir, FBSD_1.0);
-__sym_compat(readdir_r, freebsd11_readdir_r, FBSD_1.0);
+__sym_compat(readdir, freebsd11_readdir, FBSD_1 .0);
+__sym_compat(readdir_r, freebsd11_readdir_r, FBSD_1 .0);

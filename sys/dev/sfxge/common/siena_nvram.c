@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
@@ -38,11 +39,9 @@
 
 #if EFSYS_OPT_VPD || EFSYS_OPT_NVRAM
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_size(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+siena_nvram_partn_size(__in efx_nic_t *enp, __in uint32_t partn,
+    __out size_t *sizep)
 {
 	efx_rc_t rc;
 
@@ -51,8 +50,8 @@ siena_nvram_partn_size(
 		goto fail1;
 	}
 
-	if ((rc = efx_mcdi_nvram_info(enp, partn, sizep,
-	    NULL, NULL, NULL)) != 0) {
+	if ((rc = efx_mcdi_nvram_info(enp, partn, sizep, NULL, NULL, NULL)) !=
+	    0) {
 		goto fail2;
 	}
 
@@ -66,10 +65,8 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_lock(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn)
+__checkReturn efx_rc_t
+siena_nvram_partn_lock(__in efx_nic_t *enp, __in uint32_t partn)
 {
 	efx_rc_t rc;
 
@@ -85,13 +82,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_read(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_nvram_partn_read(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __out_bcount(size) caddr_t data, __in size_t size)
 {
 	size_t chunk;
 	efx_rc_t rc;
@@ -100,7 +93,7 @@ siena_nvram_partn_read(
 		chunk = MIN(size, SIENA_NVRAM_CHUNK);
 
 		if ((rc = efx_mcdi_nvram_read(enp, partn, offset, data, chunk,
-			    MC_CMD_NVRAM_READ_IN_V2_DEFAULT)) != 0) {
+			 MC_CMD_NVRAM_READ_IN_V2_DEFAULT)) != 0) {
 			goto fail1;
 		}
 
@@ -117,12 +110,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_erase(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_nvram_partn_erase(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __in size_t size)
 {
 	efx_rc_t rc;
 
@@ -138,13 +128,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_write(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			unsigned int offset,
-	__out_bcount(size)	caddr_t data,
-	__in			size_t size)
+__checkReturn efx_rc_t
+siena_nvram_partn_write(__in efx_nic_t *enp, __in uint32_t partn,
+    __in unsigned int offset, __out_bcount(size) caddr_t data, __in size_t size)
 {
 	size_t chunk;
 	efx_rc_t rc;
@@ -152,8 +138,8 @@ siena_nvram_partn_write(
 	while (size > 0) {
 		chunk = MIN(size, SIENA_NVRAM_CHUNK);
 
-		if ((rc = efx_mcdi_nvram_write(enp, partn, offset,
-			    data, chunk)) != 0) {
+		if ((rc = efx_mcdi_nvram_write(enp, partn, offset, data,
+			 chunk)) != 0) {
 			goto fail1;
 		}
 
@@ -170,11 +156,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_unlock(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out_opt		uint32_t *verify_resultp)
+__checkReturn efx_rc_t
+siena_nvram_partn_unlock(__in efx_nic_t *enp, __in uint32_t partn,
+    __out_opt uint32_t *verify_resultp)
 {
 	boolean_t reboot;
 	efx_rc_t rc;
@@ -184,8 +168,8 @@ siena_nvram_partn_unlock(
 	 * explicitly cope with an MC reboot after a firmware update.
 	 */
 	reboot = (partn == MC_CMD_NVRAM_TYPE_PHY_PORT0 ||
-		    partn == MC_CMD_NVRAM_TYPE_PHY_PORT1 ||
-		    partn == MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO);
+	    partn == MC_CMD_NVRAM_TYPE_PHY_PORT1 ||
+	    partn == MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO);
 
 	rc = efx_mcdi_nvram_update_finish(enp, partn, reboot, verify_resultp);
 	if (rc != 0)
@@ -199,46 +183,44 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_VPD || EFSYS_OPT_NVRAM */
+#endif /* EFSYS_OPT_VPD || EFSYS_OPT_NVRAM */
 
 #if EFSYS_OPT_NVRAM
 
 typedef struct siena_parttbl_entry_s {
-	unsigned int		partn;
-	unsigned int		port;
-	efx_nvram_type_t	nvtype;
+	unsigned int partn;
+	unsigned int port;
+	efx_nvram_type_t nvtype;
 } siena_parttbl_entry_t;
 
 static siena_parttbl_entry_t siena_parttbl[] = {
-	{MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO,	1, EFX_NVRAM_NULLPHY},
-	{MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO,	2, EFX_NVRAM_NULLPHY},
-	{MC_CMD_NVRAM_TYPE_MC_FW,		1, EFX_NVRAM_MC_FIRMWARE},
-	{MC_CMD_NVRAM_TYPE_MC_FW,		2, EFX_NVRAM_MC_FIRMWARE},
-	{MC_CMD_NVRAM_TYPE_MC_FW_BACKUP,	1, EFX_NVRAM_MC_GOLDEN},
-	{MC_CMD_NVRAM_TYPE_MC_FW_BACKUP,	2, EFX_NVRAM_MC_GOLDEN},
-	{MC_CMD_NVRAM_TYPE_EXP_ROM,		1, EFX_NVRAM_BOOTROM},
-	{MC_CMD_NVRAM_TYPE_EXP_ROM,		2, EFX_NVRAM_BOOTROM},
-	{MC_CMD_NVRAM_TYPE_EXP_ROM_CFG_PORT0,	1, EFX_NVRAM_BOOTROM_CFG},
-	{MC_CMD_NVRAM_TYPE_EXP_ROM_CFG_PORT1,	2, EFX_NVRAM_BOOTROM_CFG},
-	{MC_CMD_NVRAM_TYPE_PHY_PORT0,		1, EFX_NVRAM_PHY},
-	{MC_CMD_NVRAM_TYPE_PHY_PORT1,		2, EFX_NVRAM_PHY},
-	{MC_CMD_NVRAM_TYPE_FPGA,		1, EFX_NVRAM_FPGA},
-	{MC_CMD_NVRAM_TYPE_FPGA,		2, EFX_NVRAM_FPGA},
-	{MC_CMD_NVRAM_TYPE_FPGA_BACKUP,		1, EFX_NVRAM_FPGA_BACKUP},
-	{MC_CMD_NVRAM_TYPE_FPGA_BACKUP,		2, EFX_NVRAM_FPGA_BACKUP},
-	{MC_CMD_NVRAM_TYPE_FC_FW,		1, EFX_NVRAM_FCFW},
-	{MC_CMD_NVRAM_TYPE_FC_FW,		2, EFX_NVRAM_FCFW},
-	{MC_CMD_NVRAM_TYPE_CPLD,		1, EFX_NVRAM_CPLD},
-	{MC_CMD_NVRAM_TYPE_CPLD,		2, EFX_NVRAM_CPLD},
-	{MC_CMD_NVRAM_TYPE_LICENSE,		1, EFX_NVRAM_LICENSE},
-	{MC_CMD_NVRAM_TYPE_LICENSE,		2, EFX_NVRAM_LICENSE}
+	{ MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO, 1, EFX_NVRAM_NULLPHY },
+	{ MC_CMD_NVRAM_TYPE_DISABLED_CALLISTO, 2, EFX_NVRAM_NULLPHY },
+	{ MC_CMD_NVRAM_TYPE_MC_FW, 1, EFX_NVRAM_MC_FIRMWARE },
+	{ MC_CMD_NVRAM_TYPE_MC_FW, 2, EFX_NVRAM_MC_FIRMWARE },
+	{ MC_CMD_NVRAM_TYPE_MC_FW_BACKUP, 1, EFX_NVRAM_MC_GOLDEN },
+	{ MC_CMD_NVRAM_TYPE_MC_FW_BACKUP, 2, EFX_NVRAM_MC_GOLDEN },
+	{ MC_CMD_NVRAM_TYPE_EXP_ROM, 1, EFX_NVRAM_BOOTROM },
+	{ MC_CMD_NVRAM_TYPE_EXP_ROM, 2, EFX_NVRAM_BOOTROM },
+	{ MC_CMD_NVRAM_TYPE_EXP_ROM_CFG_PORT0, 1, EFX_NVRAM_BOOTROM_CFG },
+	{ MC_CMD_NVRAM_TYPE_EXP_ROM_CFG_PORT1, 2, EFX_NVRAM_BOOTROM_CFG },
+	{ MC_CMD_NVRAM_TYPE_PHY_PORT0, 1, EFX_NVRAM_PHY },
+	{ MC_CMD_NVRAM_TYPE_PHY_PORT1, 2, EFX_NVRAM_PHY },
+	{ MC_CMD_NVRAM_TYPE_FPGA, 1, EFX_NVRAM_FPGA },
+	{ MC_CMD_NVRAM_TYPE_FPGA, 2, EFX_NVRAM_FPGA },
+	{ MC_CMD_NVRAM_TYPE_FPGA_BACKUP, 1, EFX_NVRAM_FPGA_BACKUP },
+	{ MC_CMD_NVRAM_TYPE_FPGA_BACKUP, 2, EFX_NVRAM_FPGA_BACKUP },
+	{ MC_CMD_NVRAM_TYPE_FC_FW, 1, EFX_NVRAM_FCFW },
+	{ MC_CMD_NVRAM_TYPE_FC_FW, 2, EFX_NVRAM_FCFW },
+	{ MC_CMD_NVRAM_TYPE_CPLD, 1, EFX_NVRAM_CPLD },
+	{ MC_CMD_NVRAM_TYPE_CPLD, 2, EFX_NVRAM_CPLD },
+	{ MC_CMD_NVRAM_TYPE_LICENSE, 1, EFX_NVRAM_LICENSE },
+	{ MC_CMD_NVRAM_TYPE_LICENSE, 2, EFX_NVRAM_LICENSE }
 };
 
-	__checkReturn		efx_rc_t
-siena_nvram_type_to_partn(
-	__in			efx_nic_t *enp,
-	__in			efx_nvram_type_t type,
-	__out			uint32_t *partnp)
+__checkReturn efx_rc_t
+siena_nvram_type_to_partn(__in efx_nic_t *enp, __in efx_nvram_type_t type,
+    __out uint32_t *partnp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	unsigned int i;
@@ -261,9 +243,8 @@ siena_nvram_type_to_partn(
 
 #if EFSYS_OPT_DIAG
 
-	__checkReturn		efx_rc_t
-siena_nvram_test(
-	__in			efx_nic_t *enp)
+__checkReturn efx_rc_t
+siena_nvram_test(__in efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	siena_parttbl_entry_t *entry;
@@ -294,19 +275,18 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_DIAG */
+#endif /* EFSYS_OPT_DIAG */
 
-#define	SIENA_DYNAMIC_CFG_SIZE(_nitems)					\
-	(sizeof (siena_mc_dynamic_config_hdr_t) + ((_nitems) *		\
-	sizeof (((siena_mc_dynamic_config_hdr_t *)NULL)->fw_version[0])))
+#define SIENA_DYNAMIC_CFG_SIZE(_nitems)          \
+	(sizeof(siena_mc_dynamic_config_hdr_t) + \
+	    ((_nitems) *                         \
+		sizeof(                          \
+		    ((siena_mc_dynamic_config_hdr_t *)NULL)->fw_version[0])))
 
-	__checkReturn		efx_rc_t
-siena_nvram_get_dynamic_cfg(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in			boolean_t vpd,
-	__out			siena_mc_dynamic_config_hdr_t **dcfgp,
-	__out			size_t *sizep)
+__checkReturn efx_rc_t
+siena_nvram_get_dynamic_cfg(__in efx_nic_t *enp, __in uint32_t partn,
+    __in boolean_t vpd, __out siena_mc_dynamic_config_hdr_t **dcfgp,
+    __out size_t *sizep)
 {
 	siena_mc_dynamic_config_hdr_t *dcfg = NULL;
 	size_t size;
@@ -320,7 +300,7 @@ siena_nvram_get_dynamic_cfg(
 	efx_rc_t rc;
 
 	EFSYS_ASSERT(partn == MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 ||
-		    partn == MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1);
+	    partn == MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1);
 
 	/*
 	 * Allocate sufficient memory for the entire dynamiccfg area, even
@@ -340,13 +320,13 @@ siena_nvram_get_dynamic_cfg(
 		goto fail3;
 	}
 
-	if ((rc = siena_nvram_partn_read(enp, partn, 0,
-	    (caddr_t)dcfg, SIENA_NVRAM_CHUNK)) != 0)
+	if ((rc = siena_nvram_partn_read(enp, partn, 0, (caddr_t)dcfg,
+		 SIENA_NVRAM_CHUNK)) != 0)
 		goto fail4;
 
 	/* Verify the magic */
-	if (EFX_DWORD_FIELD(dcfg->magic, EFX_DWORD_0)
-	    != SIENA_MC_DYNAMIC_CONFIG_MAGIC)
+	if (EFX_DWORD_FIELD(dcfg->magic, EFX_DWORD_0) !=
+	    SIENA_MC_DYNAMIC_CONFIG_MAGIC)
 		goto invalid1;
 
 	/* All future versions of the structure must be backwards compatible */
@@ -375,8 +355,8 @@ siena_nvram_get_dynamic_cfg(
 	region = vpd ? vpd_offset + vpd_length : hdr_length;
 	if (region > SIENA_NVRAM_CHUNK) {
 		if ((rc = siena_nvram_partn_read(enp, partn, SIENA_NVRAM_CHUNK,
-		    (caddr_t)dcfg + SIENA_NVRAM_CHUNK,
-		    region - SIENA_NVRAM_CHUNK)) != 0)
+			 (caddr_t)dcfg + SIENA_NVRAM_CHUNK,
+			 region - SIENA_NVRAM_CHUNK)) != 0)
 			goto fail5;
 	}
 
@@ -403,13 +383,13 @@ invalid1:
 	 * and an empty VPD chunk trailing. This has the neat side effect
 	 * of testing the exception paths in the write path.
 	 */
-	EFX_POPULATE_DWORD_1(dcfg->magic,
-			    EFX_DWORD_0, SIENA_MC_DYNAMIC_CONFIG_MAGIC);
-	EFX_POPULATE_WORD_1(dcfg->length, EFX_WORD_0, sizeof (*dcfg));
+	EFX_POPULATE_DWORD_1(dcfg->magic, EFX_DWORD_0,
+	    SIENA_MC_DYNAMIC_CONFIG_MAGIC);
+	EFX_POPULATE_WORD_1(dcfg->length, EFX_WORD_0, sizeof(*dcfg));
 	EFX_POPULATE_BYTE_1(dcfg->version, EFX_BYTE_0,
-			    SIENA_MC_DYNAMIC_CONFIG_VERSION);
-	EFX_POPULATE_DWORD_1(dcfg->dynamic_vpd_offset,
-			    EFX_DWORD_0, sizeof (*dcfg));
+	    SIENA_MC_DYNAMIC_CONFIG_VERSION);
+	EFX_POPULATE_DWORD_1(dcfg->dynamic_vpd_offset, EFX_DWORD_0,
+	    sizeof(*dcfg));
 	EFX_POPULATE_DWORD_1(dcfg->dynamic_vpd_length, EFX_DWORD_0, 0);
 	EFX_POPULATE_DWORD_1(dcfg->num_fw_version_items, EFX_DWORD_0, 0);
 
@@ -436,15 +416,13 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_get_subtype(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			uint32_t *subtypep)
+__checkReturn efx_rc_t
+siena_nvram_get_subtype(__in efx_nic_t *enp, __in uint32_t partn,
+    __out uint32_t *subtypep)
 {
 	efx_mcdi_req_t req;
 	EFX_MCDI_DECLARE_BUF(payload, MC_CMD_GET_BOARD_CFG_IN_LEN,
-		MC_CMD_GET_BOARD_CFG_OUT_LENMAX);
+	    MC_CMD_GET_BOARD_CFG_OUT_LENMAX);
 	efx_word_t *fw_list;
 	efx_rc_t rc;
 
@@ -468,13 +446,12 @@ siena_nvram_get_subtype(
 
 	if (req.emr_out_length_used <
 	    MC_CMD_GET_BOARD_CFG_OUT_FW_SUBTYPE_LIST_OFST +
-	    (partn + 1) * sizeof (efx_word_t)) {
+		(partn + 1) * sizeof(efx_word_t)) {
 		rc = ENOENT;
 		goto fail3;
 	}
 
-	fw_list = MCDI_OUT2(req, efx_word_t,
-			    GET_BOARD_CFG_OUT_FW_SUBTYPE_LIST);
+	fw_list = MCDI_OUT2(req, efx_word_t, GET_BOARD_CFG_OUT_FW_SUBTYPE_LIST);
 	*subtypep = EFX_WORD_FIELD(fw_list[partn], EFX_WORD_0);
 
 	return (0);
@@ -489,12 +466,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_get_version(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			uint32_t *subtypep,
-	__out_ecount(4)		uint16_t version[4])
+__checkReturn efx_rc_t
+siena_nvram_partn_get_version(__in efx_nic_t *enp, __in uint32_t partn,
+    __out uint32_t *subtypep, __out_ecount(4) uint16_t version[4])
 {
 	siena_mc_dynamic_config_hdr_t *dcfg;
 	siena_parttbl_entry_t *entry;
@@ -526,24 +500,24 @@ siena_nvram_partn_get_version(
 		if (entry->partn != partn)
 			continue;
 
-		dcfg_partn = (entry->port == 1)
-			? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0
-			: MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
+		dcfg_partn = (entry->port == 1) ?
+		    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 :
+		    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
 		/*
 		 * Ingore missing partitions on port 2, assuming they're due
 		 * to running on a single port part.
 		 */
-		if ((1 << dcfg_partn) &  ~enp->en_u.siena.enu_partn_mask) {
+		if ((1 << dcfg_partn) & ~enp->en_u.siena.enu_partn_mask) {
 			if (entry->port == 2)
 				continue;
 		}
 
-		if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn,
-		    B_FALSE, &dcfg, &length)) != 0)
+		if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn, B_FALSE,
+			 &dcfg, &length)) != 0)
 			goto fail3;
 
 		nitems = EFX_DWORD_FIELD(dcfg->num_fw_version_items,
-			    EFX_DWORD_0);
+		    EFX_DWORD_0);
 		if (nitems < entry->partn)
 			goto done;
 
@@ -552,10 +526,10 @@ siena_nvram_partn_get_version(
 		temp[1] = EFX_WORD_FIELD(verp->version_x, EFX_WORD_0);
 		temp[2] = EFX_WORD_FIELD(verp->version_y, EFX_WORD_0);
 		temp[3] = EFX_WORD_FIELD(verp->version_z, EFX_WORD_0);
-		if (memcmp(version, temp, sizeof (temp)) < 0)
-			memcpy(version, temp, sizeof (temp));
+		if (memcmp(version, temp, sizeof(temp)) < 0)
+			memcpy(version, temp, sizeof(temp));
 
-done:
+	done:
 		EFSYS_KMEM_FREE(enp->en_esip, length, dcfg);
 	}
 
@@ -571,11 +545,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_rw_start(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out			size_t *chunk_sizep)
+__checkReturn efx_rc_t
+siena_nvram_partn_rw_start(__in efx_nic_t *enp, __in uint32_t partn,
+    __out size_t *chunk_sizep)
 {
 	efx_rc_t rc;
 
@@ -593,11 +565,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_rw_finish(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__out_opt		uint32_t *verify_resultp)
+__checkReturn efx_rc_t
+siena_nvram_partn_rw_finish(__in efx_nic_t *enp, __in uint32_t partn,
+    __out_opt uint32_t *verify_resultp)
 {
 	efx_rc_t rc;
 
@@ -612,11 +582,9 @@ fail1:
 	return (rc);
 }
 
-	__checkReturn		efx_rc_t
-siena_nvram_partn_set_version(
-	__in			efx_nic_t *enp,
-	__in			uint32_t partn,
-	__in_ecount(4)		uint16_t version[4])
+__checkReturn efx_rc_t
+siena_nvram_partn_set_version(__in efx_nic_t *enp, __in uint32_t partn,
+    __in_ecount(4) uint16_t version[4])
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	siena_mc_dynamic_config_hdr_t *dcfg = NULL;
@@ -634,9 +602,9 @@ siena_nvram_partn_set_version(
 	size_t length;
 	efx_rc_t rc;
 
-	dcfg_partn = (emip->emi_port == 1)
-		? MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0
-		: MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
+	dcfg_partn = (emip->emi_port == 1) ?
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT0 :
+	    MC_CMD_NVRAM_TYPE_DYNAMIC_CFG_PORT1;
 
 	if ((rc = siena_nvram_partn_size(enp, dcfg_partn, &dcfg_size)) != 0)
 		goto fail1;
@@ -644,8 +612,8 @@ siena_nvram_partn_set_version(
 	if ((rc = siena_nvram_partn_lock(enp, dcfg_partn)) != 0)
 		goto fail2;
 
-	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn,
-	    B_TRUE, &dcfg, &length)) != 0)
+	if ((rc = siena_nvram_get_dynamic_cfg(enp, dcfg_partn, B_TRUE, &dcfg,
+		 &length)) != 0)
 		goto fail3;
 
 	hdr_length = EFX_WORD_FIELD(dcfg->length, EFX_WORD_0);
@@ -664,19 +632,18 @@ siena_nvram_partn_set_version(
 	}
 
 	if (vpd_offset < required_hdr_length) {
-		(void) memmove((caddr_t)dcfg + required_hdr_length,
-			(caddr_t)dcfg + vpd_offset, vpd_length);
+		(void)memmove((caddr_t)dcfg + required_hdr_length,
+		    (caddr_t)dcfg + vpd_offset, vpd_length);
 		vpd_offset = required_hdr_length;
-		EFX_POPULATE_DWORD_1(dcfg->dynamic_vpd_offset,
-				    EFX_DWORD_0, vpd_offset);
+		EFX_POPULATE_DWORD_1(dcfg->dynamic_vpd_offset, EFX_DWORD_0,
+		    vpd_offset);
 	}
 
 	if (hdr_length < required_hdr_length) {
-		(void) memset((caddr_t)dcfg + hdr_length, 0,
-			required_hdr_length - hdr_length);
+		(void)memset((caddr_t)dcfg + hdr_length, 0,
+		    required_hdr_length - hdr_length);
 		hdr_length = required_hdr_length;
-		EFX_POPULATE_WORD_1(dcfg->length,
-				    EFX_WORD_0, hdr_length);
+		EFX_POPULATE_WORD_1(dcfg->length, EFX_WORD_0, hdr_length);
 	}
 
 	/* Get the subtype to insert into the fw_subtype array */
@@ -694,8 +661,8 @@ siena_nvram_partn_set_version(
 	/* Update the version count */
 	if (nitems < partn + 1) {
 		nitems = partn + 1;
-		EFX_POPULATE_DWORD_1(dcfg->num_fw_version_items,
-				    EFX_DWORD_0, nitems);
+		EFX_POPULATE_DWORD_1(dcfg->num_fw_version_items, EFX_DWORD_0,
+		    nitems);
 	}
 
 	/* Update the checksum */
@@ -709,8 +676,8 @@ siena_nvram_partn_set_version(
 		goto fail6;
 
 	/* Write out the new structure to nvram */
-	if ((rc = siena_nvram_partn_write(enp, dcfg_partn, 0,
-	    (caddr_t)dcfg, vpd_offset + vpd_length)) != 0)
+	if ((rc = siena_nvram_partn_write(enp, dcfg_partn, 0, (caddr_t)dcfg,
+		 vpd_offset + vpd_length)) != 0)
 		goto fail7;
 
 	EFSYS_KMEM_FREE(enp->en_esip, length, dcfg);
@@ -739,6 +706,6 @@ fail1:
 	return (rc);
 }
 
-#endif	/* EFSYS_OPT_NVRAM */
+#endif /* EFSYS_OPT_NVRAM */
 
-#endif	/* EFSYS_OPT_SIENA */
+#endif /* EFSYS_OPT_SIENA */

@@ -37,16 +37,17 @@
  * SUCH DAMAGE.
  */
 
-#define	__RUNETYPE_INTERNAL 1
+#define __RUNETYPE_INTERNAL 1
 
-#include <runetype.h>
 #include <errno.h>
 #include <limits.h>
-#include <string.h>
+#include <runetype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+
 #include "ldpart.h"
 #include "mblocal.h"
 #include "setlocale.h"
@@ -60,9 +61,9 @@ _Thread_local const _RuneLocale *_ThreadRuneLocale;
 
 extern int __mb_sb_limit;
 
-extern _RuneLocale	*_Read_RuneMagi(const char *);
+extern _RuneLocale *_Read_RuneMagi(const char *);
 
-static int		__setrunelocale(struct xlocale_ctype *l, const char *);
+static int __setrunelocale(struct xlocale_ctype *l, const char *);
 
 static void
 destruct_ctype(void *v)
@@ -102,7 +103,7 @@ __setrunelocale(struct xlocale_ctype *l, const char *encoding)
 	 */
 	if (strcmp(encoding, "C") == 0 || strcmp(encoding, "POSIX") == 0) {
 		free_runes(saved.runes);
-		(void) _none_init(l, (_RuneLocale*)&_DefaultRuneLocale);
+		(void)_none_init(l, (_RuneLocale *)&_DefaultRuneLocale);
 		return (0);
 	}
 

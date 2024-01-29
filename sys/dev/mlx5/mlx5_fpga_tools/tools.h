@@ -35,10 +35,12 @@
 
 #include <sys/lock.h>
 #include <sys/sx.h>
-#include <linux/types.h>
+
+#include <dev/mlx5/mlx5_fpga/sdk.h>
+
 #include <linux/kobject.h>
 #include <linux/list.h>
-#include <dev/mlx5/mlx5_fpga/sdk.h>
+#include <linux/types.h>
 
 #define MLX5_FPGA_TOOLS_DRIVER_NAME "mlx5_fpga_tools"
 
@@ -53,11 +55,9 @@ struct mlx5_fpga_tools_dev {
 	void *char_device;
 };
 
-int mlx5_fpga_tools_mem_write(struct mlx5_fpga_tools_dev *tdev,
-			      void *buf, size_t count, u64 address,
-			      enum mlx5_fpga_access_type access_type);
+int mlx5_fpga_tools_mem_write(struct mlx5_fpga_tools_dev *tdev, void *buf,
+    size_t count, u64 address, enum mlx5_fpga_access_type access_type);
 int mlx5_fpga_tools_mem_read(struct mlx5_fpga_tools_dev *tdev, void *buf,
-			     size_t count, u64 address,
-			     enum mlx5_fpga_access_type access_type);
+    size_t count, u64 address, enum mlx5_fpga_access_type access_type);
 
-#endif	/* __TOOLS_H__ */
+#endif /* __TOOLS_H__ */

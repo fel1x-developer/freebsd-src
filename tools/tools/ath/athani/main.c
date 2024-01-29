@@ -26,18 +26,16 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "diag.h"
-
-#include "ah.h"
-#include "ah_internal.h"
-
+#include <ctype.h>
+#include <err.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
-#include <err.h>
 
 #include "../common/ctrl.h"
+#include "ah.h"
+#include "ah_internal.h"
+#include "diag.h"
 
 /*
  * This is a simple wrapper program around the ANI diagnostic interface.
@@ -51,20 +49,47 @@
  */
 
 struct ani_var {
-  const char *name;
-  int id;
+	const char *name;
+	int id;
 };
 
 static struct ani_var ani_labels[] = {
-  { "ofdm_noise_immunity_level", 1, },
-  { "noise_immunity_level", 1, },
-  { "ofdm_weak_signal_detect", 2, },
-  { "cck_weak_signal_threshold", 3, },
-  { "firstep_level", 4, },
-  { "spur_immunity_level", 5, },
-  { "mrc_cck", 8, },
-  { "cck_noise_immunity_level", 9, },
-  { NULL, -1, },
+	{
+	    "ofdm_noise_immunity_level",
+	    1,
+	},
+	{
+	    "noise_immunity_level",
+	    1,
+	},
+	{
+	    "ofdm_weak_signal_detect",
+	    2,
+	},
+	{
+	    "cck_weak_signal_threshold",
+	    3,
+	},
+	{
+	    "firstep_level",
+	    4,
+	},
+	{
+	    "spur_immunity_level",
+	    5,
+	},
+	{
+	    "mrc_cck",
+	    8,
+	},
+	{
+	    "cck_noise_immunity_level",
+	    9,
+	},
+	{
+	    NULL,
+	    -1,
+	},
 };
 
 static void
@@ -73,7 +98,8 @@ usage(void)
 	fprintf(stderr, "usage: athani [-i interface] [-l]\n");
 	fprintf(stderr, "    -i: interface\n");
 	fprintf(stderr, "    -l: list ANI labels\n");
-	fprintf(stderr, "  If no args are given after flags, the ANI state will be listed.\n");
+	fprintf(stderr,
+	    "  If no args are given after flags, the ANI state will be listed.\n");
 	fprintf(stderr, "  To set, use '<label> <value>' to set the state\n");
 	exit(-1);
 }
@@ -90,7 +116,7 @@ list_labels(void)
 
 static int
 ani_write_state(struct ath_driver_req *req, const char *ifname,
-  const char *label, const char *value)
+    const char *label, const char *value)
 {
 	struct ath_diag atd;
 	uint32_t args[2];
@@ -108,8 +134,8 @@ ani_write_state(struct ath_driver_req *req, const char *ifname,
 		}
 	}
 	if (ani_labels[i].name == NULL) {
-		fprintf(stderr, "%s: couldn't find ANI label (%s)\n",
-		    __func__, label);
+		fprintf(stderr, "%s: couldn't find ANI label (%s)\n", __func__,
+		    label);
 		return (-1);
 	}
 
@@ -119,7 +145,7 @@ ani_write_state(struct ath_driver_req *req, const char *ifname,
 	 * Whilst we're doing the ath_diag pieces, we have to set this
 	 * ourselves.
 	 */
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	/*
 	 * Populate HAL_DIAG_ANI_CMD fields.
@@ -130,7 +156,7 @@ ani_write_state(struct ath_driver_req *req, const char *ifname,
 	atd.ad_id = HAL_DIAG_ANI_CMD | ATH_DIAG_IN;
 	atd.ad_out_data = NULL;
 	atd.ad_out_size = 0;
-	atd.ad_in_data = (void *) &args;
+	atd.ad_in_data = (void *)&args;
 	atd.ad_in_size = sizeof(args);
 
 	if (ath_driver_req_fetch_diag(req, SIOCGATHDIAG, &atd) < 0) {
@@ -151,15 +177,14 @@ ani_read_state(struct ath_driver_req *req, const char *ifname)
 	 * Whilst we're doing the ath_diag pieces, we have to set this
 	 * ourselves.
 	 */
-	strncpy(atd.ad_name, ifname, sizeof (atd.ad_name));
+	strncpy(atd.ad_name, ifname, sizeof(atd.ad_name));
 
 	atd.ad_id = HAL_DIAG_ANI_CURRENT; /* XXX | DIAG_DYN? */
-	atd.ad_out_data = (caddr_t) &state;
+	atd.ad_out_data = (caddr_t)&state;
 	atd.ad_out_size = sizeof(state);
 
 	if (ath_driver_req_fetch_diag(req, SIOCGATHDIAG, &atd) < 0)
 		err(1, "%s", atd.ad_name);
-
 
 	printf("  ofdm_noise_immunity_level=%d\n", state.noiseImmunityLevel);
 	printf("  cck_noise_immunity_level=%d\n", state.cckNoiseImmunityLevel);

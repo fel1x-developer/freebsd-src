@@ -53,16 +53,17 @@
 #include <sys/vnode.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_extern.h>
+#include <vm/vm_map.h>
 #include <vm/vm_page.h>
 #include <vm/vm_pageout.h>
-#include <vm/vm_map.h>
+#include <vm/vm_param.h>
 
 #include <machine/bus.h>
 
-SYSCTL_INT(_kern, KERN_IOV_MAX, iov_max, CTLFLAG_RD, SYSCTL_NULL_INT_PTR, UIO_MAXIOV,
-	"Maximum number of elements in an I/O vector; sysconf(_SC_IOV_MAX)");
+SYSCTL_INT(_kern, KERN_IOV_MAX, iov_max, CTLFLAG_RD, SYSCTL_NULL_INT_PTR,
+    UIO_MAXIOV,
+    "Maximum number of elements in an I/O vector; sysconf(_SC_IOV_MAX)");
 
 static int uiomove_faultflag(void *cp, int n, struct uio *uio, int nofault);
 
@@ -88,7 +89,7 @@ copyout_nofault(const void *kaddr, void *udaddr, size_t len)
 	return (error);
 }
 
-#define	PHYS_PAGE_COUNT(len)	(howmany(len, PAGE_SIZE) + 1)
+#define PHYS_PAGE_COUNT(len) (howmany(len, PAGE_SIZE) + 1)
 
 int
 physcopyin(void *src, vm_paddr_t dst, size_t len)
@@ -175,8 +176,8 @@ physcopyout_vlist(vm_paddr_t src, bus_dma_segment_t *dst, off_t offset,
 
 	while (len > 0 && error == 0) {
 		seg_len = MIN(dst->ds_len - offset, len);
-		error = physcopyout(src, (void *)(uintptr_t)(dst->ds_addr +
-		    offset), seg_len);
+		error = physcopyout(src,
+		    (void *)(uintptr_t)(dst->ds_addr + offset), seg_len);
 		offset = 0;
 		dst++;
 		len -= seg_len;
@@ -310,8 +311,7 @@ ureadc(int c, struct uio *uio)
 	struct iovec *iov;
 	char *iov_base;
 
-	WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
-	    "Calling ureadc()");
+	WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL, "Calling ureadc()");
 
 again:
 	if (uio->uio_iovcnt == 0 || uio->uio_resid == 0)
@@ -351,7 +351,7 @@ copyiniov(const struct iovec *iovp, u_int iovcnt, struct iovec **iov, int error)
 	*iov = NULL;
 	if (iovcnt > UIO_MAXIOV)
 		return (error);
-	iovlen = iovcnt * sizeof (struct iovec);
+	iovlen = iovcnt * sizeof(struct iovec);
 	*iov = malloc(iovlen, M_IOV, M_WAITOK);
 	error = copyin(iovp, *iov, iovlen);
 	if (error) {
@@ -372,7 +372,7 @@ copyinuio(const struct iovec *iovp, u_int iovcnt, struct uio **uiop)
 	*uiop = NULL;
 	if (iovcnt > UIO_MAXIOV)
 		return (EINVAL);
-	iovlen = iovcnt * sizeof (struct iovec);
+	iovlen = iovcnt * sizeof(struct iovec);
 	uio = malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
 	iov = (struct iovec *)(uio + 1);
 	error = copyin(iovp, iov, iovlen);
@@ -403,7 +403,7 @@ cloneuio(struct uio *uiop)
 	struct uio *uio;
 	int iovlen;
 
-	iovlen = uiop->uio_iovcnt * sizeof (struct iovec);
+	iovlen = uiop->uio_iovcnt * sizeof(struct iovec);
 	uio = malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
 	*uio = *uiop;
 	uio->uio_iov = (struct iovec *)(uio + 1);
@@ -427,16 +427,16 @@ copyout_map(struct thread *td, vm_offset_t *addr, size_t sz)
 	/*
 	 * Map somewhere after heap in process memory.
 	 */
-	*addr = round_page((vm_offset_t)vms->vm_daddr +
-	    lim_max(td, RLIMIT_DATA));
+	*addr = round_page(
+	    (vm_offset_t)vms->vm_daddr + lim_max(td, RLIMIT_DATA));
 
 	/* round size up to page boundary */
 	size = (vm_size_t)round_page(sz);
 	if (size == 0)
 		return (EINVAL);
-	error = vm_mmap_object(&vms->vm_map, addr, size, VM_PROT_READ |
-	    VM_PROT_WRITE, VM_PROT_ALL, MAP_PRIVATE | MAP_ANON, NULL, 0,
-	    FALSE, td);
+	error = vm_mmap_object(&vms->vm_map, addr, size,
+	    VM_PROT_READ | VM_PROT_WRITE, VM_PROT_ALL, MAP_PRIVATE | MAP_ANON,
+	    NULL, 0, FALSE, td);
 	return (error);
 }
 

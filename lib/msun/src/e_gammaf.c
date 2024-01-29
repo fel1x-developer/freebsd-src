@@ -27,5 +27,5 @@ extern int signgam;
 float
 gammaf(float x)
 {
-	return gammaf_r(x,&signgam);
+	return gammaf_r(x, &signgam);
 }

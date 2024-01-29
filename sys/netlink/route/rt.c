@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 #include "opt_route.h"
+
+#include <sys/cdefs.h>
 #include <sys/types.h>
 #include <sys/malloc.h>
 #include <sys/rmlock.h>
@@ -46,8 +47,8 @@
 #include <netlink/netlink_route.h>
 #include <netlink/route/route_var.h>
 
-#define	DEBUG_MOD_NAME	nl_route
-#define	DEBUG_MAX_LEVEL	LOG_DEBUG3
+#define DEBUG_MOD_NAME nl_route
+#define DEBUG_MAX_LEVEL LOG_DEBUG3
 #include <netlink/netlink_debug.h>
 _DECLARE_DEBUG(LOG_INFO);
 
@@ -69,7 +70,8 @@ nl_get_rtm_protocol(const struct nhop_object *nh)
 {
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(nh)) {
-		const struct nhgrp_object *nhg = (const struct nhgrp_object *)nh;
+		const struct nhgrp_object *nhg = (const struct nhgrp_object *)
+		    nh;
 		uint8_t origin = nhgrp_get_origin(nhg);
 		if (origin != RTPROT_UNSPEC)
 			return (origin);
@@ -176,7 +178,8 @@ dump_rc_nhop_mtu(struct nl_writer *nw, const struct nhop_object *nh)
 
 #ifdef ROUTE_MPATH
 static void
-dump_rc_nhg(struct nl_writer *nw, const struct nhgrp_object *nhg, struct rtmsg *rtm)
+dump_rc_nhg(struct nl_writer *nw, const struct nhgrp_object *nhg,
+    struct rtmsg *rtm)
 {
 	uint32_t uidx = nhgrp_get_uidx(nhg);
 	uint32_t num_nhops;
@@ -194,7 +197,8 @@ dump_rc_nhg(struct nl_writer *nw, const struct nhgrp_object *nhg, struct rtmsg *
 
 	for (int i = 0; i < num_nhops; i++) {
 		int nh_off = nlattr_save_offset(nw);
-		struct rtnexthop *rtnh = nlmsg_reserve_object(nw, struct rtnexthop);
+		struct rtnexthop *rtnh = nlmsg_reserve_object(nw,
+		    struct rtnexthop);
 		if (rtnh == NULL)
 			return;
 		rtnh->rtnh_flags = 0;
@@ -208,8 +212,8 @@ dump_rc_nhg(struct nl_writer *nw, const struct nhgrp_object *nhg, struct rtmsg *
 			dump_rc_nhop_mtu(nw, wn[i].nh);
 		rtnh = nlattr_restore_offset(nw, nh_off, struct rtnexthop);
 		/*
-		 * nlattr_add() allocates 4-byte aligned storage, no need to aligh
-		 * length here
+		 * nlattr_add() allocates 4-byte aligned storage, no need to
+		 * aligh length here
 		 * */
 		rtnh->rtnh_len = nlattr_save_offset(nw) - nh_off;
 	}
@@ -218,7 +222,8 @@ dump_rc_nhg(struct nl_writer *nw, const struct nhgrp_object *nhg, struct rtmsg *
 #endif
 
 static void
-dump_rc_nhop(struct nl_writer *nw, const struct route_nhop_data *rnd, struct rtmsg *rtm)
+dump_rc_nhop(struct nl_writer *nw, const struct route_nhop_data *rnd,
+    struct rtmsg *rtm)
 {
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(rnd->rnd_nhop)) {
@@ -231,8 +236,8 @@ dump_rc_nhop(struct nl_writer *nw, const struct route_nhop_data *rnd, struct rtm
 
 	/*
 	 * IPv4 over IPv6
-	 *    ('RTA_VIA', {'family': 10, 'addr': 'fe80::20c:29ff:fe67:2dd'}), ('RTA_OIF', 2),
-	 * IPv4 w/ gw
+	 *    ('RTA_VIA', {'family': 10, 'addr': 'fe80::20c:29ff:fe67:2dd'}),
+	 * ('RTA_OIF', 2), IPv4 w/ gw
 	 *    ('RTA_GATEWAY', '172.16.107.131'), ('RTA_OIF', 2)],
 	 * Direct route:
 	 *    ('RTA_OIF', 2)
@@ -264,9 +269,8 @@ dump_rc_nhop(struct nl_writer *nw, const struct route_nhop_data *rnd, struct rtm
  */
 
 static int
-dump_px(uint32_t fibnum, const struct nlmsghdr *hdr,
-    const struct rtentry *rt, struct route_nhop_data *rnd,
-    struct nl_writer *nw)
+dump_px(uint32_t fibnum, const struct nlmsghdr *hdr, const struct rtentry *rt,
+    struct route_nhop_data *rnd, struct nl_writer *nw)
 {
 	struct rtmsg *rtm;
 	int error = 0;
@@ -297,25 +301,24 @@ dump_px(uint32_t fibnum, const struct nlmsghdr *hdr,
 #endif
 	switch (family) {
 #ifdef INET
-	case AF_INET:
-		{
-			struct in_addr addr;
-			rt_get_inet_prefix_plen(rt, &addr, &plen, &scopeid);
-			nlattr_add(nw, NL_RTA_DST, 4, &addr);
-			break;
-		}
+	case AF_INET: {
+		struct in_addr addr;
+		rt_get_inet_prefix_plen(rt, &addr, &plen, &scopeid);
+		nlattr_add(nw, NL_RTA_DST, 4, &addr);
+		break;
+	}
 #endif
 #ifdef INET6
-	case AF_INET6:
-		{
-			struct in6_addr addr;
-			rt_get_inet6_prefix_plen(rt, &addr, &plen, &scopeid);
-			nlattr_add(nw, NL_RTA_DST, 16, &addr);
-			break;
-		}
+	case AF_INET6: {
+		struct in6_addr addr;
+		rt_get_inet6_prefix_plen(rt, &addr, &plen, &scopeid);
+		nlattr_add(nw, NL_RTA_DST, 16, &addr);
+		break;
+	}
 #endif
 	default:
-		FIB_LOG(LOG_NOTICE, fibnum, family, "unsupported rt family: %d", family);
+		FIB_LOG(LOG_NOTICE, fibnum, family, "unsupported rt family: %d",
+		    family);
 		error = EAFNOSUPPORT;
 		goto flush;
 	}
@@ -347,8 +350,8 @@ family_to_group(int family)
 }
 
 static void
-report_operation(uint32_t fibnum, struct rib_cmd_info *rc,
-    struct nlpcb *nlp, struct nlmsghdr *hdr)
+report_operation(uint32_t fibnum, struct rib_cmd_info *rc, struct nlpcb *nlp,
+    struct nlmsghdr *hdr)
 {
 	struct nl_writer nw = {};
 	uint32_t group_id = family_to_group(rt_get_family(rc->rc_rt));
@@ -388,28 +391,35 @@ set_scope6(struct sockaddr *sa, struct ifnet *ifp)
 		struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa;
 
 		if (IN6_IS_ADDR_LINKLOCAL(&sa6->sin6_addr))
-			in6_set_unicast_scopeid(&sa6->sin6_addr, if_getindex(ifp));
+			in6_set_unicast_scopeid(&sa6->sin6_addr,
+			    if_getindex(ifp));
 	}
 #endif
 }
 
 struct rta_mpath_nh {
-	struct sockaddr	*gw;
-	struct ifnet	*ifp;
-	uint8_t		rtnh_flags;
-	uint8_t		rtnh_weight;
+	struct sockaddr *gw;
+	struct ifnet *ifp;
+	uint8_t rtnh_flags;
+	uint8_t rtnh_weight;
 };
 
-#define	_IN(_field)	offsetof(struct rtnexthop, _field)
-#define	_OUT(_field)	offsetof(struct rta_mpath_nh, _field)
+#define _IN(_field) offsetof(struct rtnexthop, _field)
+#define _OUT(_field) offsetof(struct rta_mpath_nh, _field)
 const static struct nlattr_parser nla_p_rtnh[] = {
 	{ .type = NL_RTA_GATEWAY, .off = _OUT(gw), .cb = nlattr_get_ip },
 	{ .type = NL_RTA_VIA, .off = _OUT(gw), .cb = nlattr_get_ipvia },
 };
 const static struct nlfield_parser nlf_p_rtnh[] = {
-	{ .off_in = _IN(rtnh_flags), .off_out = _OUT(rtnh_flags), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtnh_hops), .off_out = _OUT(rtnh_weight), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtnh_ifindex), .off_out = _OUT(ifp), .cb = nlf_get_ifpz },
+	{ .off_in = _IN(rtnh_flags),
+	    .off_out = _OUT(rtnh_flags),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtnh_hops),
+	    .off_out = _OUT(rtnh_weight),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtnh_ifindex),
+	    .off_out = _OUT(ifp),
+	    .cb = nlf_get_ifpz },
 };
 #undef _IN
 #undef _OUT
@@ -422,7 +432,8 @@ post_p_rtnh(void *_attrs, struct nl_pstate *npt __unused)
 	set_scope6(attrs->gw, attrs->ifp);
 	return (true);
 }
-NL_DECLARE_PARSER_EXT(mpath_parser, struct rtnexthop, NULL, nlf_p_rtnh, nla_p_rtnh, post_p_rtnh);
+NL_DECLARE_PARSER_EXT(mpath_parser, struct rtnexthop, NULL, nlf_p_rtnh,
+    nla_p_rtnh, post_p_rtnh);
 
 struct rta_mpath {
 	int num_nhops;
@@ -430,23 +441,26 @@ struct rta_mpath {
 };
 
 static int
-nlattr_get_multipath(struct nlattr *nla, struct nl_pstate *npt, const void *arg, void *target)
+nlattr_get_multipath(struct nlattr *nla, struct nl_pstate *npt, const void *arg,
+    void *target)
 {
 	int data_len = nla->nla_len - sizeof(struct nlattr);
 	struct rtnexthop *rtnh;
 
 	int max_nhops = data_len / sizeof(struct rtnexthop);
 
-	struct rta_mpath *mp = npt_alloc(npt, (max_nhops + 2) * sizeof(struct rta_mpath_nh));
+	struct rta_mpath *mp = npt_alloc(npt,
+	    (max_nhops + 2) * sizeof(struct rta_mpath_nh));
 	mp->num_nhops = 0;
 
-	for (rtnh = (struct rtnexthop *)(nla + 1); data_len > 0; ) {
+	for (rtnh = (struct rtnexthop *)(nla + 1); data_len > 0;) {
 		struct rta_mpath_nh *mpnh = &mp->nhops[mp->num_nhops++];
 
 		int error = nl_parse_header(rtnh, rtnh->rtnh_len, &mpath_parser,
 		    npt, mpnh);
 		if (error != 0) {
-			NLMSG_REPORT_ERR_MSG(npt, "RTA_MULTIPATH: nexhop %d: parse failed",
+			NLMSG_REPORT_ERR_MSG(npt,
+			    "RTA_MULTIPATH: nexhop %d: parse failed",
 			    mp->num_nhops - 1);
 			return (error);
 		}
@@ -464,26 +478,25 @@ nlattr_get_multipath(struct nlattr *nla, struct nl_pstate *npt, const void *arg,
 	return (0);
 }
 
-
 struct nl_parsed_route {
-	struct sockaddr		*rta_dst;
-	struct sockaddr		*rta_gw;
-	struct ifnet		*rta_oif;
-	struct rta_mpath	*rta_multipath;
-	uint32_t		rta_table;
-	uint32_t		rta_rtflags;
-	uint32_t		rta_nh_id;
-	uint32_t		rta_weight;
-	uint32_t		rtax_mtu;
-	uint8_t			rtm_family;
-	uint8_t			rtm_dst_len;
-	uint8_t			rtm_protocol;
-	uint8_t			rtm_type;
-	uint32_t		rtm_flags;
+	struct sockaddr *rta_dst;
+	struct sockaddr *rta_gw;
+	struct ifnet *rta_oif;
+	struct rta_mpath *rta_multipath;
+	uint32_t rta_table;
+	uint32_t rta_rtflags;
+	uint32_t rta_nh_id;
+	uint32_t rta_weight;
+	uint32_t rtax_mtu;
+	uint8_t rtm_family;
+	uint8_t rtm_dst_len;
+	uint8_t rtm_protocol;
+	uint8_t rtm_type;
+	uint32_t rtm_flags;
 };
 
-#define	_IN(_field)	offsetof(struct rtmsg, _field)
-#define	_OUT(_field)	offsetof(struct nl_parsed_route, _field)
+#define _IN(_field) offsetof(struct rtmsg, _field)
+#define _OUT(_field) offsetof(struct nl_parsed_route, _field)
 static struct nlattr_parser nla_p_rtmetrics[] = {
 	{ .type = NL_RTAX_MTU, .off = _OUT(rtax_mtu), .cb = nlattr_get_uint32 },
 };
@@ -493,21 +506,43 @@ static const struct nlattr_parser nla_p_rtmsg[] = {
 	{ .type = NL_RTA_DST, .off = _OUT(rta_dst), .cb = nlattr_get_ip },
 	{ .type = NL_RTA_OIF, .off = _OUT(rta_oif), .cb = nlattr_get_ifp },
 	{ .type = NL_RTA_GATEWAY, .off = _OUT(rta_gw), .cb = nlattr_get_ip },
-	{ .type = NL_RTA_METRICS, .arg = &metrics_parser, .cb = nlattr_get_nested },
-	{ .type = NL_RTA_MULTIPATH, .off = _OUT(rta_multipath), .cb = nlattr_get_multipath },
-	{ .type = NL_RTA_WEIGHT, .off = _OUT(rta_weight), .cb = nlattr_get_uint32 },
-	{ .type = NL_RTA_RTFLAGS, .off = _OUT(rta_rtflags), .cb = nlattr_get_uint32 },
-	{ .type = NL_RTA_TABLE, .off = _OUT(rta_table), .cb = nlattr_get_uint32 },
+	{ .type = NL_RTA_METRICS,
+	    .arg = &metrics_parser,
+	    .cb = nlattr_get_nested },
+	{ .type = NL_RTA_MULTIPATH,
+	    .off = _OUT(rta_multipath),
+	    .cb = nlattr_get_multipath },
+	{ .type = NL_RTA_WEIGHT,
+	    .off = _OUT(rta_weight),
+	    .cb = nlattr_get_uint32 },
+	{ .type = NL_RTA_RTFLAGS,
+	    .off = _OUT(rta_rtflags),
+	    .cb = nlattr_get_uint32 },
+	{ .type = NL_RTA_TABLE,
+	    .off = _OUT(rta_table),
+	    .cb = nlattr_get_uint32 },
 	{ .type = NL_RTA_VIA, .off = _OUT(rta_gw), .cb = nlattr_get_ipvia },
-	{ .type = NL_RTA_NH_ID, .off = _OUT(rta_nh_id), .cb = nlattr_get_uint32 },
+	{ .type = NL_RTA_NH_ID,
+	    .off = _OUT(rta_nh_id),
+	    .cb = nlattr_get_uint32 },
 };
 
 static const struct nlfield_parser nlf_p_rtmsg[] = {
-	{ .off_in = _IN(rtm_family), .off_out = _OUT(rtm_family), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtm_dst_len), .off_out = _OUT(rtm_dst_len), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtm_protocol), .off_out = _OUT(rtm_protocol), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtm_type), .off_out = _OUT(rtm_type), .cb = nlf_get_u8 },
-	{ .off_in = _IN(rtm_flags), .off_out = _OUT(rtm_flags), .cb = nlf_get_u32 },
+	{ .off_in = _IN(rtm_family),
+	    .off_out = _OUT(rtm_family),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtm_dst_len),
+	    .off_out = _OUT(rtm_dst_len),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtm_protocol),
+	    .off_out = _OUT(rtm_protocol),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtm_type),
+	    .off_out = _OUT(rtm_type),
+	    .cb = nlf_get_u8 },
+	{ .off_in = _IN(rtm_flags),
+	    .off_out = _OUT(rtm_flags),
+	    .cb = nlf_get_u32 },
 };
 #undef _IN
 #undef _OUT
@@ -521,7 +556,8 @@ post_p_rtmsg(void *_attrs, struct nl_pstate *npt __unused)
 	set_scope6(attrs->rta_gw, attrs->rta_oif);
 	return (true);
 }
-NL_DECLARE_PARSER_EXT(rtm_parser, struct rtmsg, NULL, nlf_p_rtmsg, nla_p_rtmsg, post_p_rtmsg);
+NL_DECLARE_PARSER_EXT(rtm_parser, struct rtmsg, NULL, nlf_p_rtmsg, nla_p_rtmsg,
+    post_p_rtmsg);
 
 struct netlink_walkargs {
 	struct nl_writer *nw;
@@ -553,10 +589,10 @@ dump_rtentry(struct rtentry *rt, void *_arg)
 
 	error = dump_px(wa->fibnum, &wa->hdr, rt, &wa->rnd, wa->nw);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG3) {
+	IF_DEBUG_LEVEL(LOG_DEBUG3)
+	{
 		char rtbuf[INET6_ADDRSTRLEN + 5];
-		FIB_LOG(LOG_DEBUG3, wa->fibnum, wa->family,
-		    "Dump %s, error %d",
+		FIB_LOG(LOG_DEBUG3, wa->fibnum, wa->family, "Dump %s, error %d",
 		    rt_print_buf(rt, rtbuf, sizeof(rtbuf)), error);
 	}
 	wa->error = error;
@@ -616,7 +652,7 @@ handle_rtm_getroute(struct nlpcb *nlp, struct nl_parsed_route *attrs,
 
 	if (attrs->rta_dst == NULL) {
 		NLMSG_REPORT_ERR_MSG(npt, "No RTA_DST supplied");
-			return (EINVAL);
+		return (EINVAL);
 	}
 
 	rnh = rt_tables_get_rnh(fibnum, family);
@@ -630,7 +666,8 @@ handle_rtm_getroute(struct nlpcb *nlp, struct nl_parsed_route *attrs,
 	if (attrs->rtm_flags & RTM_F_PREFIX)
 		rt = rib_lookup_prefix_plen(rnh, dst, attrs->rtm_dst_len, &rnd);
 	else
-		rt = (const struct rtentry *)rnh->rnh_matchaddr(dst, &rnh->head);
+		rt = (const struct rtentry *)rnh->rnh_matchaddr(dst,
+		    &rnh->head);
 	if (rt == NULL) {
 		RIB_RUNLOCK(rnh);
 		return (ESRCH);
@@ -644,9 +681,12 @@ handle_rtm_getroute(struct nlpcb *nlp, struct nl_parsed_route *attrs,
 	if (!rt_is_exportable(rt, nlp_get_cred(nlp)))
 		return (ESRCH);
 
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
-		char rtbuf[NHOP_PRINT_BUFSIZE] __unused, nhbuf[NHOP_PRINT_BUFSIZE] __unused;
-		FIB_LOG(LOG_DEBUG2, fibnum, family, "getroute completed: got %s for %s",
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
+		char rtbuf[NHOP_PRINT_BUFSIZE] __unused,
+		    nhbuf[NHOP_PRINT_BUFSIZE] __unused;
+		FIB_LOG(LOG_DEBUG2, fibnum, family,
+		    "getroute completed: got %s for %s",
 		    nhop_print_buf_any(rnd.rnd_nhop, nhbuf, sizeof(nhbuf)),
 		    rt_print_buf(rt, rtbuf, sizeof(rtbuf)));
 	}
@@ -686,9 +726,9 @@ handle_rtm_dump(struct nlpcb *nlp, uint32_t fibnum, int family,
 	}
 
 	if (!nlmsg_end_dump(wa.nw, wa.error, &wa.hdr)) {
-                NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
-                return (ENOMEM);
-        }
+		NL_LOG(LOG_DEBUG, "Unable to finalize the dump");
+		return (ENOMEM);
+	}
 
 	return (wa.error);
 }
@@ -707,7 +747,8 @@ finalize_nhop(struct nhop_object *nh, const struct sockaddr *dst, int *perror)
 		if (nh->nh_ifp != NULL)
 			nhop_set_direct_gw(nh, nh->nh_ifp);
 		else {
-			NL_LOG(LOG_DEBUG, "empty gateway and interface, skipping");
+			NL_LOG(LOG_DEBUG,
+			    "empty gateway and interface, skipping");
 			*perror = EINVAL;
 			return (NULL);
 		}
@@ -723,9 +764,11 @@ finalize_nhop(struct nhop_object *nh, const struct sockaddr *dst, int *perror)
 			else if (nh->nh_flags & NHF_HOST)
 				flags = RTF_HOST;
 
-			struct ifaddr *ifa = ifa_ifwithroute(flags, dst, &nh->gw_sa, fibnum);
+			struct ifaddr *ifa = ifa_ifwithroute(flags, dst,
+			    &nh->gw_sa, fibnum);
 			if (ifa == NULL) {
-				NL_LOG(LOG_DEBUG, "Unable to determine ifp, skipping");
+				NL_LOG(LOG_DEBUG,
+				    "Unable to determine ifp, skipping");
 				*perror = EINVAL;
 				return (NULL);
 			}
@@ -741,7 +784,8 @@ finalize_nhop(struct nhop_object *nh, const struct sockaddr *dst, int *perror)
 			 * Use dst as the target for determining the default
 			 * preferred ifa IF
 			 * 1) the gateway is link-level (e.g. direct route)
-			 * 2) the gateway family is different (e.g. IPv4 over IPv6).
+			 * 2) the gateway family is different (e.g. IPv4 over
+			 * IPv6).
 			 */
 			gw_sa = dst;
 		}
@@ -752,7 +796,8 @@ finalize_nhop(struct nhop_object *nh, const struct sockaddr *dst, int *perror)
 			gw_sa = &nh->gw_sa;
 			ifa = ifaof_ifpforaddr(gw_sa, nh->nh_ifp);
 			if (ifa == NULL) {
-				NL_LOG(LOG_DEBUG, "Unable to determine ifa, skipping");
+				NL_LOG(LOG_DEBUG,
+				    "Unable to determine ifa, skipping");
 				*perror = EINVAL;
 				return (NULL);
 			}
@@ -808,7 +853,8 @@ create_nexthop_one(struct nl_parsed_route *attrs, struct rta_mpath_nh *mpnh,
 	if (mpnh->gw == NULL)
 		return (EINVAL);
 
-	struct nhop_object *nh = nhop_alloc(attrs->rta_table, attrs->rtm_family);
+	struct nhop_object *nh = nhop_alloc(attrs->rta_table,
+	    attrs->rtm_family);
 	if (nh == NULL)
 		return (ENOMEM);
 
@@ -831,8 +877,8 @@ create_nexthop_one(struct nl_parsed_route *attrs, struct rta_mpath_nh *mpnh,
 #endif
 
 static struct nhop_object *
-create_nexthop_from_attrs(struct nl_parsed_route *attrs,
-    struct nl_pstate *npt, int *perror)
+create_nexthop_from_attrs(struct nl_parsed_route *attrs, struct nl_pstate *npt,
+    int *perror)
 {
 	struct nhop_object *nh = NULL;
 	int error = 0;
@@ -841,10 +887,12 @@ create_nexthop_from_attrs(struct nl_parsed_route *attrs,
 #ifdef ROUTE_MPATH
 		/* Multipath w/o explicit nexthops */
 		int num_nhops = attrs->rta_multipath->num_nhops;
-		struct weightened_nhop *wn = npt_alloc(npt, sizeof(*wn) * num_nhops);
+		struct weightened_nhop *wn = npt_alloc(npt,
+		    sizeof(*wn) * num_nhops);
 
 		for (int i = 0; i < num_nhops; i++) {
-			struct rta_mpath_nh *mpnh = &attrs->rta_multipath->nhops[i];
+			struct rta_mpath_nh *mpnh =
+			    &attrs->rta_multipath->nhops[i];
 
 			error = create_nexthop_one(attrs, mpnh, npt, &wn[i].nh);
 			if (error != 0) {
@@ -852,17 +900,20 @@ create_nexthop_from_attrs(struct nl_parsed_route *attrs,
 					nhop_free(wn[j].nh);
 				break;
 			}
-			wn[i].weight = mpnh->rtnh_weight > 0 ? mpnh->rtnh_weight : 1;
+			wn[i].weight = mpnh->rtnh_weight > 0 ?
+			    mpnh->rtnh_weight :
+			    1;
 		}
 		if (error == 0) {
 			struct rib_head *rh = nhop_get_rh(wn[0].nh);
 			struct nhgrp_object *nhg;
 
-			nhg = nhgrp_alloc(rh->rib_fibnum, rh->rib_family,
-			    wn, num_nhops, perror);
+			nhg = nhgrp_alloc(rh->rib_fibnum, rh->rib_family, wn,
+			    num_nhops, perror);
 			if (nhg != NULL) {
 				if (attrs->rtm_protocol > RTPROT_STATIC)
-					nhgrp_set_origin(nhg, attrs->rtm_protocol);
+					nhgrp_set_origin(nhg,
+					    attrs->rtm_protocol);
 				nhg = nhgrp_get_nhgrp(nhg, perror);
 			}
 			for (int i = 0; i < num_nhops; i++)
@@ -882,7 +933,8 @@ create_nexthop_from_attrs(struct nl_parsed_route *attrs,
 			return (NULL);
 		}
 		if (attrs->rta_gw != NULL) {
-			*perror = nl_set_nexthop_gw(nh, attrs->rta_gw, attrs->rta_oif, npt);
+			*perror = nl_set_nexthop_gw(nh, attrs->rta_gw,
+			    attrs->rta_oif, npt);
 			if (*perror != 0) {
 				nhop_free(nh);
 				return (NULL);
@@ -909,7 +961,8 @@ create_nexthop_from_attrs(struct nl_parsed_route *attrs,
 		case RTN_UNREACHABLE:
 			nhop_set_blackhole(nh, RTF_REJECT);
 			break;
-		/* TODO: return ENOTSUP for other types if strict option is set */
+			/* TODO: return ENOTSUP for other types if strict option
+			 * is set */
 		}
 
 		nh = finalize_nhop(nh, attrs->rta_dst, perror);
@@ -945,8 +998,8 @@ rtnl_handle_newroute(struct nlmsghdr *hdr, struct nlpcb *nlp,
 	if (attrs.rta_nh_id != 0) {
 		/* Referenced uindex */
 		int pxflag = get_pxflag(&attrs);
-		nh = nl_find_nhop(attrs.rta_table, attrs.rtm_family, attrs.rta_nh_id,
-		    pxflag, &error);
+		nh = nl_find_nhop(attrs.rta_table, attrs.rtm_family,
+		    attrs.rta_nh_id, pxflag, &error);
 		if (error != 0)
 			return (error);
 	} else {
@@ -959,18 +1012,20 @@ rtnl_handle_newroute(struct nlmsghdr *hdr, struct nlpcb *nlp,
 
 	if (!NH_IS_NHGRP(nh) && attrs.rta_weight == 0)
 		attrs.rta_weight = RT_DEFAULT_WEIGHT;
-	struct route_nhop_data rnd = { .rnd_nhop = nh, .rnd_weight = attrs.rta_weight };
+	struct route_nhop_data rnd = { .rnd_nhop = nh,
+		.rnd_weight = attrs.rta_weight };
 	int op_flags = get_op_flags(hdr->nlmsg_flags);
 
-	error = rib_add_route_px(attrs.rta_table, attrs.rta_dst, attrs.rtm_dst_len,
-	    &rnd, op_flags, &rc);
+	error = rib_add_route_px(attrs.rta_table, attrs.rta_dst,
+	    attrs.rtm_dst_len, &rnd, op_flags, &rc);
 	if (error == 0)
 		report_operation(attrs.rta_table, &rc, nlp, hdr);
 	return (error);
 }
 
 static int
-path_match_func(const struct rtentry *rt, const struct nhop_object *nh, void *_data)
+path_match_func(const struct rtentry *rt, const struct nhop_object *nh,
+    void *_data)
 {
 	struct nl_parsed_route *attrs = (struct nl_parsed_route *)_data;
 
@@ -1013,7 +1068,8 @@ rtnl_handle_delroute(struct nlmsghdr *hdr, struct nlpcb *nlp,
 }
 
 static int
-rtnl_handle_getroute(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *npt)
+rtnl_handle_getroute(struct nlmsghdr *hdr, struct nlpcb *nlp,
+    struct nl_pstate *npt)
 {
 	int error;
 
@@ -1028,7 +1084,8 @@ rtnl_handle_getroute(struct nlmsghdr *hdr, struct nlpcb *nlp, struct nl_pstate *
 	}
 
 	if (hdr->nlmsg_flags & NLM_F_DUMP)
-		error = handle_rtm_dump(nlp, attrs.rta_table, attrs.rtm_family, hdr, npt->nw);
+		error = handle_rtm_dump(nlp, attrs.rta_table, attrs.rtm_family,
+		    hdr, npt->nw);
 	else
 		error = handle_rtm_getroute(nlp, &attrs, hdr, npt);
 
@@ -1057,13 +1114,13 @@ rtnl_handle_route_event(uint32_t fibnum, const struct rib_cmd_info *rc)
 		nlm_flags = 0;
 		break;
 	}
-	IF_DEBUG_LEVEL(LOG_DEBUG2) {
+	IF_DEBUG_LEVEL(LOG_DEBUG2)
+	{
 		char rtbuf[NHOP_PRINT_BUFSIZE] __unused;
 		FIB_LOG(LOG_DEBUG2, fibnum, family,
 		    "received event %s for %s / nlm_flags=%X",
 		    rib_print_cmd(rc->rc_cmd),
-		    rt_print_buf(rc->rc_rt, rtbuf, sizeof(rtbuf)),
-		    nlm_flags);
+		    rt_print_buf(rc->rc_rt, rtbuf, sizeof(rtbuf)), nlm_flags);
 	}
 
 	struct nlmsghdr hdr = {
@@ -1077,7 +1134,8 @@ rtnl_handle_route_event(uint32_t fibnum, const struct rib_cmd_info *rc)
 	};
 
 	uint32_t group_id = family_to_group(family);
-	if (!nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_ROUTE, group_id)) {
+	if (!nlmsg_get_group_writer(&nw, NLMSG_SMALL, NETLINK_ROUTE,
+		group_id)) {
 		NL_LOG(LOG_DEBUG, "error allocating event buffer");
 		return;
 	}
@@ -1088,26 +1146,27 @@ rtnl_handle_route_event(uint32_t fibnum, const struct rib_cmd_info *rc)
 
 static const struct rtnl_cmd_handler cmd_handlers[] = {
 	{
-		.cmd = NL_RTM_GETROUTE,
-		.name = "RTM_GETROUTE",
-		.cb = &rtnl_handle_getroute,
-		.flags = RTNL_F_ALLOW_NONVNET_JAIL,
+	    .cmd = NL_RTM_GETROUTE,
+	    .name = "RTM_GETROUTE",
+	    .cb = &rtnl_handle_getroute,
+	    .flags = RTNL_F_ALLOW_NONVNET_JAIL,
 	},
 	{
-		.cmd = NL_RTM_DELROUTE,
-		.name = "RTM_DELROUTE",
-		.cb = &rtnl_handle_delroute,
-		.priv = PRIV_NET_ROUTE,
+	    .cmd = NL_RTM_DELROUTE,
+	    .name = "RTM_DELROUTE",
+	    .cb = &rtnl_handle_delroute,
+	    .priv = PRIV_NET_ROUTE,
 	},
 	{
-		.cmd = NL_RTM_NEWROUTE,
-		.name = "RTM_NEWROUTE",
-		.cb = &rtnl_handle_newroute,
-		.priv = PRIV_NET_ROUTE,
+	    .cmd = NL_RTM_NEWROUTE,
+	    .name = "RTM_NEWROUTE",
+	    .cb = &rtnl_handle_newroute,
+	    .priv = PRIV_NET_ROUTE,
 	}
 };
 
-static const struct nlhdr_parser *all_parsers[] = {&mpath_parser, &metrics_parser, &rtm_parser};
+static const struct nlhdr_parser *all_parsers[] = { &mpath_parser,
+	&metrics_parser, &rtm_parser };
 
 void
 rtnl_routes_init(void)

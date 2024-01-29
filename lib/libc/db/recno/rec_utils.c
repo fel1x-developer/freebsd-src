@@ -31,11 +31,11 @@
 
 #include <sys/param.h>
 
+#include <db.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <db.h>
 #include "recno.h"
 
 /*
@@ -84,8 +84,8 @@ dataonly:
 	 */
 	rl = GETRLEAF(e->page, e->index);
 	if (rl->flags & P_BIGDATA) {
-		if (__ovfl_get(t, rl->bytes,
-		    &data->size, &t->bt_rdata.data, &t->bt_rdata.size))
+		if (__ovfl_get(t, rl->bytes, &data->size, &t->bt_rdata.data,
+			&t->bt_rdata.size))
 			return (RET_ERROR);
 		data->data = t->bt_rdata.data;
 	} else if (F_ISSET(t, B_DB_LOCK)) {

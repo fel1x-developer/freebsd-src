@@ -25,15 +25,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <stdlib.h>
-#include <sysexits.h>
-#include <unistd.h>
-#include <paths.h>
+#include <sys/types.h>
+
 #include <err.h>
-#include <syslog.h>
 #include <libsecureboot.h>
 #include <libveriexec.h>
-#include <sys/types.h>
+#include <paths.h>
+#include <stdlib.h>
+#include <sysexits.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "veriexec.h"
 
@@ -244,20 +245,22 @@ main(int argc, char *argv[])
 					errx(EX_USAGE,
 					    "Missing mac_veriexec verbosity level \'N\', veriexec -z debug N, where N is \'off\' or the value 0 or greater");
 
-				if (strncmp(argv[optind], "off", strlen(argv[optind])) == 0) {
+				if (strncmp(argv[optind], "off",
+					strlen(argv[optind])) == 0) {
 					state = VERIEXEC_DEBUG_OFF;
 					x = 0;
 				} else {
 					state = VERIEXEC_DEBUG_ON;
 
-					converted_int = strtonum(argv[optind], 0, INT_MAX, &error);
+					converted_int = strtonum(argv[optind],
+					    0, INT_MAX, &error);
 
 					if (error != NULL)
-						errx(EX_USAGE, "Conversion error for argument \'%s\' : %s",
+						errx(EX_USAGE,
+						    "Conversion error for argument \'%s\' : %s",
 						    argv[optind], error);
 
-					x = (int) converted_int;
-
+					x = (int)converted_int;
 
 					if (x == 0)
 						state = VERIEXEC_DEBUG_OFF;
@@ -268,10 +271,14 @@ main(int argc, char *argv[])
 			if (dev_fd < 0)
 				err(EX_UNAVAILABLE, "Cannot open veriexec");
 			if (ioctl(dev_fd, state, &x))
-				err(EX_UNAVAILABLE, "Cannot %s veriexec", optarg);
+				err(EX_UNAVAILABLE, "Cannot %s veriexec",
+				    optarg);
 
-			if (state == VERIEXEC_DEBUG_ON || state == VERIEXEC_DEBUG_OFF)
-				printf("mac_veriexec debug verbosity level: %d\n", x);
+			if (state == VERIEXEC_DEBUG_ON ||
+			    state == VERIEXEC_DEBUG_OFF)
+				printf(
+				    "mac_veriexec debug verbosity level: %d\n",
+				    x);
 			else if (state == VERIEXEC_GETSTATE)
 				printf("Veriexec state (octal) : %#o\n", x);
 
@@ -297,7 +304,7 @@ main(int argc, char *argv[])
 		errx(EX_OSFILE, "cannot initialize trust store");
 #ifdef VERIEXEC_GETVERSION
 	if (ioctl(dev_fd, VERIEXEC_GETVERSION, &VeriexecVersion)) {
-		VeriexecVersion = 0;	/* unknown */
+		VeriexecVersion = 0; /* unknown */
 	}
 #endif
 

@@ -29,14 +29,17 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/stat.h>
 
 #include <capsicum_helpers.h>
+#include <casper/cap_fileargs.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libcasper.h>
+#include <libxo/xo.h>
 #include <locale.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -46,10 +49,6 @@
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
-#include <libxo/xo.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 static const char *stdin_filename = "stdin";
 
@@ -59,10 +58,10 @@ static bool doline, doword, dochar, domulti, dolongline;
 static volatile sig_atomic_t siginfo;
 static xo_handle_t *stderr_handle;
 
-static void	show_cnt(const char *file, uintmax_t linect, uintmax_t wordct,
-		    uintmax_t charct, uintmax_t llct);
-static int	cnt(const char *);
-static void	usage(void);
+static void show_cnt(const char *file, uintmax_t linect, uintmax_t wordct,
+    uintmax_t charct, uintmax_t llct);
+static int cnt(const char *);
+static void usage(void);
 
 static void
 siginfo_handler(int sig __unused)
@@ -85,14 +84,14 @@ main(int argc, char *argv[])
 	int ch, errors, total;
 	cap_rights_t rights;
 
-	(void) setlocale(LC_CTYPE, "");
+	(void)setlocale(LC_CTYPE, "");
 
 	argc = xo_parse_args(argc, argv);
 	if (argc < 0)
 		exit(EXIT_FAILURE);
 
 	while ((ch = getopt(argc, argv, "clmwL")) != -1)
-		switch((char)ch) {
+		switch ((char)ch) {
 		case 'l':
 			doline = true;
 			break;
@@ -170,8 +169,8 @@ main(int argc, char *argv[])
 }
 
 static void
-show_cnt(const char *file, uintmax_t linect, uintmax_t wordct,
-    uintmax_t charct, uintmax_t llct)
+show_cnt(const char *file, uintmax_t linect, uintmax_t wordct, uintmax_t charct,
+    uintmax_t llct)
 {
 	xo_handle_t *xop;
 
@@ -279,7 +278,8 @@ cnt(const char *file)
 	return (0);
 
 	/* Do it the hard way... */
-word:	gotsp = true;
+word:
+	gotsp = true;
 	warned = false;
 	memset(&mbs, 0, sizeof(mbs));
 	while ((len = read(fd, buf, sizeof(buf))) != 0) {

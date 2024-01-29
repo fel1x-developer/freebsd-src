@@ -28,7 +28,7 @@
  */
 
 #ifndef _DEV_OFW_OFWVAR_H_
-#define	_DEV_OFW_OFWVAR_H_
+#define _DEV_OFW_OFWVAR_H_
 
 /*
  * An Open Firmware client implementation is declared with a kernel object and
@@ -64,8 +64,8 @@ struct ofw_kobj {
 	/*
 	 * Utility elements that an instance may use
 	 */
-	struct mtx	ofw_mtx;	/* available for instance use */
-	void		*ofw_iptr;	/* instance data pointer */
+	struct mtx ofw_mtx; /* available for instance use */
+	void *ofw_iptr;	    /* instance data pointer */
 
 	/*
 	 * Opaque data that can be overlaid with an instance-private
@@ -74,16 +74,16 @@ struct ofw_kobj {
 	 * is also a run-time test when the MMU kernel object is
 	 * registered.
 	 */
-#define	OFW_OPAQUESZ	64
-	u_int		ofw_opaque[OFW_OPAQUESZ];
+#define OFW_OPAQUESZ 64
+	u_int ofw_opaque[OFW_OPAQUESZ];
 };
 
-typedef struct ofw_kobj		*ofw_t;
-typedef struct kobj_class	ofw_def_t;
+typedef struct ofw_kobj *ofw_t;
+typedef struct kobj_class ofw_def_t;
 
-#define	ofw_method_t	kobj_method_t
-#define	OFWMETHOD	KOBJMETHOD
+#define ofw_method_t kobj_method_t
+#define OFWMETHOD KOBJMETHOD
 
-#define	OFW_DEF(name)	DATA_SET(ofw_set, name)
+#define OFW_DEF(name) DATA_SET(ofw_set, name)
 
 #endif /* _DEV_OFW_OFWVAR_H_ */

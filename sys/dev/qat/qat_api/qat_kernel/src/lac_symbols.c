@@ -8,15 +8,16 @@
  *
  *****************************************************************************/
 #include <linux/module.h>
+
 #include "cpa.h"
 #include "cpa_dc.h"
-#include "cpa_dc_dp.h"
 #include "cpa_dc_bp.h"
+#include "cpa_dc_dp.h"
 #include "icp_adf_init.h"
-#include "icp_adf_transport.h"
 #include "icp_adf_poll.h"
-#include "icp_sal_poll.h"
+#include "icp_adf_transport.h"
 #include "icp_sal_iommu.h"
+#include "icp_sal_poll.h"
 #include "icp_sal_versions.h"
 #include "lac_common.h"
 

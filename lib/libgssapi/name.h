@@ -30,20 +30,19 @@
 
 struct _gss_mechanism_name {
 	SLIST_ENTRY(_gss_mechanism_name) gmn_link;
-	struct _gss_mech_switch *gmn_mech;	/* mechanism ops for MN */
-	gss_OID			gmn_mech_oid;	/* mechanism oid for MN */
-	gss_name_t		gmn_name;	/* underlying MN */
+	struct _gss_mech_switch *gmn_mech; /* mechanism ops for MN */
+	gss_OID gmn_mech_oid;		   /* mechanism oid for MN */
+	gss_name_t gmn_name;		   /* underlying MN */
 };
 SLIST_HEAD(_gss_mechanism_name_list, _gss_mechanism_name);
 
 struct _gss_name {
-	gss_OID_desc		gn_type;	/* type of name */
-	gss_buffer_desc		gn_value;	/* value (as imported) */
-	struct _gss_mechanism_name_list gn_mn;	/* list of MNs */
+	gss_OID_desc gn_type;		       /* type of name */
+	gss_buffer_desc gn_value;	       /* value (as imported) */
+	struct _gss_mechanism_name_list gn_mn; /* list of MNs */
 };
 
-extern OM_uint32
-	_gss_find_mn(OM_uint32 *, struct _gss_name *, gss_OID,
-	      struct _gss_mechanism_name **);
-extern struct _gss_name *
-	_gss_make_name(struct _gss_mech_switch *m, gss_name_t new_mn);
+extern OM_uint32 _gss_find_mn(OM_uint32 *, struct _gss_name *, gss_OID,
+    struct _gss_mechanism_name **);
+extern struct _gss_name *_gss_make_name(struct _gss_mech_switch *m,
+    gss_name_t new_mn);

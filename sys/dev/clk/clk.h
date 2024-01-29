@@ -25,7 +25,7 @@
  */
 
 #ifndef _DEV_CLK_H_
-#define	_DEV_CLK_H_
+#define _DEV_CLK_H_
 
 #include "opt_platform.h"
 
@@ -35,44 +35,44 @@
 #endif
 #include "clknode_if.h"
 
-#define CLKNODE_IDX_NONE	-1		/* Not-selected index */
+#define CLKNODE_IDX_NONE -1 /* Not-selected index */
 
 /* clknode flags. */
-#define	CLK_NODE_STATIC_STRINGS	0x00000001	/* Static name strings */
-#define	CLK_NODE_GLITCH_FREE	0x00000002	/* Freq can change w/o stop */
-#define	CLK_NODE_CANNOT_STOP	0x00000004	/* Cannot be disabled */
-#define	CLK_NODE_LINKED		0x00000008	/* Is linked clock */
-#define	CLK_NODE_REGISTERED	0x00000020	/* Is already registered */
+#define CLK_NODE_STATIC_STRINGS 0x00000001 /* Static name strings */
+#define CLK_NODE_GLITCH_FREE 0x00000002	   /* Freq can change w/o stop */
+#define CLK_NODE_CANNOT_STOP 0x00000004	   /* Cannot be disabled */
+#define CLK_NODE_LINKED 0x00000008	   /* Is linked clock */
+#define CLK_NODE_REGISTERED 0x00000020	   /* Is already registered */
 
 /* Flags passed to clk_set_freq() and clknode_set_freq(). */
-#define	CLK_SET_ROUND(x)	((x) & (CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN))
-#define	CLK_SET_ROUND_EXACT	0
-#define	CLK_SET_ROUND_UP	0x00000001
-#define	CLK_SET_ROUND_DOWN	0x00000002
-#define	CLK_SET_ROUND_MULTIPLE	0x00000004
-#define	CLK_SET_ROUND_ANY	(CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN)
+#define CLK_SET_ROUND(x) ((x) & (CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN))
+#define CLK_SET_ROUND_EXACT 0
+#define CLK_SET_ROUND_UP 0x00000001
+#define CLK_SET_ROUND_DOWN 0x00000002
+#define CLK_SET_ROUND_MULTIPLE 0x00000004
+#define CLK_SET_ROUND_ANY (CLK_SET_ROUND_UP | CLK_SET_ROUND_DOWN)
 
-#define	CLK_SET_USER_MASK	0x0000FFFF
-#define	CLK_SET_DRYRUN		0x00010000
+#define CLK_SET_USER_MASK 0x0000FFFF
+#define CLK_SET_DRYRUN 0x00010000
 
 typedef struct clk *clk_t;
 
 /* Initialization parameters for clocknode creation. */
 struct clknode_init_def {
-	const char	*name;
-	intptr_t	id;
-	const char	**parent_names;
-	int		parent_cnt;
-	int		flags;
+	const char *name;
+	intptr_t id;
+	const char **parent_names;
+	int parent_cnt;
+	int flags;
 };
 
 /*
  * Shorthands for constructing method tables.
  */
-#define	CLKNODEMETHOD		KOBJMETHOD
-#define	CLKNODEMETHOD_END	KOBJMETHOD_END
-#define	clknode_method_t	kobj_method_t
-#define	clknode_class_t		kobj_class_t
+#define CLKNODEMETHOD KOBJMETHOD
+#define CLKNODEMETHOD_END KOBJMETHOD_END
+#define clknode_method_t kobj_method_t
+#define clknode_class_t kobj_class_t
 DECLARE_CLASS(clknode_class);
 
 /*
@@ -80,7 +80,7 @@ DECLARE_CLASS(clknode_class);
  */
 struct clkdom *clkdom_create(device_t dev);
 int clkdom_finit(struct clkdom *clkdom);
-void clkdom_dump(struct clkdom * clkdom);
+void clkdom_dump(struct clkdom *clkdom);
 void clkdom_unlock(struct clkdom *clkdom);
 void clkdom_xlock(struct clkdom *clkdom);
 
@@ -145,12 +145,13 @@ clk_freq_diff(uint64_t x, uint64_t y)
 #ifdef FDT
 int clk_set_assigned(device_t dev, phandle_t node);
 int clk_get_by_ofw_index(device_t dev, phandle_t node, int idx, clk_t *clk);
-int clk_get_by_ofw_index_prop(device_t dev, phandle_t cnode, const char *prop, int idx, clk_t *clk);
+int clk_get_by_ofw_index_prop(device_t dev, phandle_t cnode, const char *prop,
+    int idx, clk_t *clk);
 int clk_get_by_ofw_name(device_t dev, phandle_t node, const char *name,
-     clk_t *clk);
+    clk_t *clk);
 int clk_parse_ofw_out_names(device_t dev, phandle_t node,
     const char ***out_names, uint32_t **indices);
 int clk_parse_ofw_clk_name(device_t dev, phandle_t node, const char **name);
 #endif
 
-#endif	/* _DEV_CLK_H_ */
+#endif /* _DEV_CLK_H_ */

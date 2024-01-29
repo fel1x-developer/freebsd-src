@@ -34,16 +34,15 @@
 #ifndef _IXGBE_BYPASS_H_
 #define _IXGBE_BYPASS_H_
 
-
 /*
  * The bypass driver needs to set FW to a epoc of the number of
  * seconds we are into this year.  This macro's help support that.
  */
-#define SEC_PER_DAY     (60 * 60 * 24)
-#define SEC_PER_YEAR    (SEC_PER_DAY * 365)
-#define SEC_PER_LYEAR   (SEC_PER_DAY * 366)
-#define LEAP_YR(y)      ((y % 400 == 0) || ((y % 4 == 0) && (y % 100 != 0)))
-#define SEC_THIS_YEAR(y)        (LEAP_YR(y) ? SEC_PER_LYEAR : SEC_PER_YEAR)
+#define SEC_PER_DAY (60 * 60 * 24)
+#define SEC_PER_YEAR (SEC_PER_DAY * 365)
+#define SEC_PER_LYEAR (SEC_PER_DAY * 366)
+#define LEAP_YR(y) ((y % 400 == 0) || ((y % 4 == 0) && (y % 100 != 0)))
+#define SEC_THIS_YEAR(y) (LEAP_YR(y) ? SEC_PER_LYEAR : SEC_PER_YEAR)
 
 void ixgbe_bypass_init(struct ixgbe_softc *);
 

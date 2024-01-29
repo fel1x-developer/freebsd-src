@@ -39,8 +39,9 @@
  *  @hw: pointer to the HW structure
  *  @mbx_id: id of mailbox to read
  **/
-static s32 e1000_null_mbx_check_for_flag(struct e1000_hw E1000_UNUSEDARG *hw,
-					 u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_null_mbx_check_for_flag(struct e1000_hw E1000_UNUSEDARG *hw,
+    u16 E1000_UNUSEDARG mbx_id)
 {
 	DEBUGFUNC("e1000_null_mbx_check_flag");
 
@@ -54,10 +55,10 @@ static s32 e1000_null_mbx_check_for_flag(struct e1000_hw E1000_UNUSEDARG *hw,
  *  @size: Length of buffer
  *  @mbx_id: id of mailbox to read
  **/
-static s32 e1000_null_mbx_transact(struct e1000_hw E1000_UNUSEDARG *hw,
-				   u32 E1000_UNUSEDARG *msg,
-				   u16 E1000_UNUSEDARG size,
-				   u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_null_mbx_transact(struct e1000_hw E1000_UNUSEDARG *hw,
+    u32 E1000_UNUSEDARG *msg, u16 E1000_UNUSEDARG size,
+    u16 E1000_UNUSEDARG mbx_id)
 {
 	DEBUGFUNC("e1000_null_mbx_rw_msg");
 
@@ -73,7 +74,8 @@ static s32 e1000_null_mbx_transact(struct e1000_hw E1000_UNUSEDARG *hw,
  *
  *  returns SUCCESS if it successfully read message from buffer
  **/
-s32 e1000_read_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
+s32
+e1000_read_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -99,7 +101,8 @@ s32 e1000_read_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
  *
  *  returns SUCCESS if it successfully copied message into the buffer
  **/
-s32 e1000_write_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
+s32
+e1000_write_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = E1000_SUCCESS;
@@ -122,7 +125,8 @@ s32 e1000_write_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
  *
  *  returns SUCCESS if the Status bit was found or else ERR_MBX
  **/
-s32 e1000_check_for_msg(struct e1000_hw *hw, u16 mbx_id)
+s32
+e1000_check_for_msg(struct e1000_hw *hw, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -142,7 +146,8 @@ s32 e1000_check_for_msg(struct e1000_hw *hw, u16 mbx_id)
  *
  *  returns SUCCESS if the Status bit was found or else ERR_MBX
  **/
-s32 e1000_check_for_ack(struct e1000_hw *hw, u16 mbx_id)
+s32
+e1000_check_for_ack(struct e1000_hw *hw, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -162,7 +167,8 @@ s32 e1000_check_for_ack(struct e1000_hw *hw, u16 mbx_id)
  *
  *  returns SUCCESS if the Status bit was found or else ERR_MBX
  **/
-s32 e1000_check_for_rst(struct e1000_hw *hw, u16 mbx_id)
+s32
+e1000_check_for_rst(struct e1000_hw *hw, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -182,7 +188,8 @@ s32 e1000_check_for_rst(struct e1000_hw *hw, u16 mbx_id)
  *
  *  returns SUCCESS if it successfully received a message notification
  **/
-static s32 e1000_poll_for_msg(struct e1000_hw *hw, u16 mbx_id)
+static s32
+e1000_poll_for_msg(struct e1000_hw *hw, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	int countdown = mbx->timeout;
@@ -213,7 +220,8 @@ out:
  *
  *  returns SUCCESS if it successfully received a message acknowledgement
  **/
-static s32 e1000_poll_for_ack(struct e1000_hw *hw, u16 mbx_id)
+static s32
+e1000_poll_for_ack(struct e1000_hw *hw, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	int countdown = mbx->timeout;
@@ -247,7 +255,8 @@ out:
  *  returns SUCCESS if it successfully received a message notification and
  *  copied it into the receive buffer.
  **/
-s32 e1000_read_posted_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
+s32
+e1000_read_posted_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -276,7 +285,8 @@ out:
  *  returns SUCCESS if it successfully copied message into the buffer and
  *  received an ack to that message within delay * timeout period
  **/
-s32 e1000_write_posted_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
+s32
+e1000_write_posted_mbx(struct e1000_hw *hw, u32 *msg, u16 size, u16 mbx_id)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	s32 ret_val = -E1000_ERR_MBX;
@@ -303,7 +313,8 @@ out:
  *
  *  Sets the function pointers to no-op functions
  **/
-void e1000_init_mbx_ops_generic(struct e1000_hw *hw)
+void
+e1000_init_mbx_ops_generic(struct e1000_hw *hw)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 	mbx->ops.init_params = e1000_null_ops_generic;
@@ -323,7 +334,8 @@ void e1000_init_mbx_ops_generic(struct e1000_hw *hw)
  *  This function is used to read the v2p mailbox without losing the read to
  *  clear status bits.
  **/
-static u32 e1000_read_v2p_mailbox(struct e1000_hw *hw)
+static u32
+e1000_read_v2p_mailbox(struct e1000_hw *hw)
 {
 	u32 v2p_mailbox = E1000_READ_REG(hw, E1000_V2PMAILBOX(0));
 
@@ -341,7 +353,8 @@ static u32 e1000_read_v2p_mailbox(struct e1000_hw *hw)
  *  This function is used to check for the read to clear bits within
  *  the V2P mailbox.
  **/
-static s32 e1000_check_for_bit_vf(struct e1000_hw *hw, u32 mask)
+static s32
+e1000_check_for_bit_vf(struct e1000_hw *hw, u32 mask)
 {
 	u32 v2p_mailbox = e1000_read_v2p_mailbox(hw);
 	s32 ret_val = -E1000_ERR_MBX;
@@ -361,8 +374,8 @@ static s32 e1000_check_for_bit_vf(struct e1000_hw *hw, u32 mask)
  *
  *  returns SUCCESS if the PF has set the Status bit or else ERR_MBX
  **/
-static s32 e1000_check_for_msg_vf(struct e1000_hw *hw,
-				  u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_check_for_msg_vf(struct e1000_hw *hw, u16 E1000_UNUSEDARG mbx_id)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 
@@ -383,8 +396,8 @@ static s32 e1000_check_for_msg_vf(struct e1000_hw *hw,
  *
  *  returns SUCCESS if the PF has set the ACK bit or else ERR_MBX
  **/
-static s32 e1000_check_for_ack_vf(struct e1000_hw *hw,
-				  u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_check_for_ack_vf(struct e1000_hw *hw, u16 E1000_UNUSEDARG mbx_id)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 
@@ -405,15 +418,15 @@ static s32 e1000_check_for_ack_vf(struct e1000_hw *hw,
  *
  *  returns true if the PF has set the reset done bit or else false
  **/
-static s32 e1000_check_for_rst_vf(struct e1000_hw *hw,
-				  u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_check_for_rst_vf(struct e1000_hw *hw, u16 E1000_UNUSEDARG mbx_id)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 
 	DEBUGFUNC("e1000_check_for_rst_vf");
 
-	if (!e1000_check_for_bit_vf(hw, (E1000_V2PMAILBOX_RSTD |
-					 E1000_V2PMAILBOX_RSTI))) {
+	if (!e1000_check_for_bit_vf(hw,
+		(E1000_V2PMAILBOX_RSTD | E1000_V2PMAILBOX_RSTI))) {
 		ret_val = E1000_SUCCESS;
 		hw->mbx.stats.rsts++;
 	}
@@ -427,7 +440,8 @@ static s32 e1000_check_for_rst_vf(struct e1000_hw *hw,
  *
  *  return SUCCESS if we obtained the mailbox lock
  **/
-static s32 e1000_obtain_mbx_lock_vf(struct e1000_hw *hw)
+static s32
+e1000_obtain_mbx_lock_vf(struct e1000_hw *hw)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 	int count = 10;
@@ -458,12 +472,12 @@ static s32 e1000_obtain_mbx_lock_vf(struct e1000_hw *hw)
  *
  *  returns SUCCESS if it successfully copied message into the buffer
  **/
-static s32 e1000_write_mbx_vf(struct e1000_hw *hw, u32 *msg, u16 size,
-			      u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_write_mbx_vf(struct e1000_hw *hw, u32 *msg, u16 size,
+    u16 E1000_UNUSEDARG mbx_id)
 {
 	s32 ret_val;
 	u16 i;
-
 
 	DEBUGFUNC("e1000_write_mbx_vf");
 
@@ -499,8 +513,9 @@ out_no_write:
  *
  *  returns SUCCESS if it successfully read message from buffer
  **/
-static s32 e1000_read_mbx_vf(struct e1000_hw *hw, u32 *msg, u16 size,
-			     u16 E1000_UNUSEDARG mbx_id)
+static s32
+e1000_read_mbx_vf(struct e1000_hw *hw, u32 *msg, u16 size,
+    u16 E1000_UNUSEDARG mbx_id)
 {
 	s32 ret_val = E1000_SUCCESS;
 	u16 i;
@@ -532,7 +547,8 @@ out_no_read:
  *
  *  Initializes the hw->mbx struct to correct values for vf mailbox
  */
-s32 e1000_init_mbx_params_vf(struct e1000_hw *hw)
+s32
+e1000_init_mbx_params_vf(struct e1000_hw *hw)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 
@@ -560,7 +576,8 @@ s32 e1000_init_mbx_params_vf(struct e1000_hw *hw)
 	return E1000_SUCCESS;
 }
 
-static s32 e1000_check_for_bit_pf(struct e1000_hw *hw, u32 mask)
+static s32
+e1000_check_for_bit_pf(struct e1000_hw *hw, u32 mask)
 {
 	u32 mbvficr = E1000_READ_REG(hw, E1000_MBVFICR);
 	s32 ret_val = -E1000_ERR_MBX;
@@ -580,7 +597,8 @@ static s32 e1000_check_for_bit_pf(struct e1000_hw *hw, u32 mask)
  *
  *  returns SUCCESS if the VF has set the Status bit or else ERR_MBX
  **/
-static s32 e1000_check_for_msg_pf(struct e1000_hw *hw, u16 vf_number)
+static s32
+e1000_check_for_msg_pf(struct e1000_hw *hw, u16 vf_number)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 
@@ -601,7 +619,8 @@ static s32 e1000_check_for_msg_pf(struct e1000_hw *hw, u16 vf_number)
  *
  *  returns SUCCESS if the VF has set the Status bit or else ERR_MBX
  **/
-static s32 e1000_check_for_ack_pf(struct e1000_hw *hw, u16 vf_number)
+static s32
+e1000_check_for_ack_pf(struct e1000_hw *hw, u16 vf_number)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 
@@ -622,7 +641,8 @@ static s32 e1000_check_for_ack_pf(struct e1000_hw *hw, u16 vf_number)
  *
  *  returns SUCCESS if the VF has set the Status bit or else ERR_MBX
  **/
-static s32 e1000_check_for_rst_pf(struct e1000_hw *hw, u16 vf_number)
+static s32
+e1000_check_for_rst_pf(struct e1000_hw *hw, u16 vf_number)
 {
 	u32 vflre = E1000_READ_REG(hw, E1000_VFLRE);
 	s32 ret_val = -E1000_ERR_MBX;
@@ -645,7 +665,8 @@ static s32 e1000_check_for_rst_pf(struct e1000_hw *hw, u16 vf_number)
  *
  *  return SUCCESS if we obtained the mailbox lock
  **/
-static s32 e1000_obtain_mbx_lock_pf(struct e1000_hw *hw, u16 vf_number)
+static s32
+e1000_obtain_mbx_lock_pf(struct e1000_hw *hw, u16 vf_number)
 {
 	s32 ret_val = -E1000_ERR_MBX;
 	u32 p2v_mailbox;
@@ -656,7 +677,7 @@ static s32 e1000_obtain_mbx_lock_pf(struct e1000_hw *hw, u16 vf_number)
 	do {
 		/* Take ownership of the buffer */
 		E1000_WRITE_REG(hw, E1000_P2VMAILBOX(vf_number),
-				E1000_P2VMAILBOX_PFU);
+		    E1000_P2VMAILBOX_PFU);
 
 		/* reserve mailbox for pf use */
 		p2v_mailbox = E1000_READ_REG(hw, E1000_P2VMAILBOX(vf_number));
@@ -668,7 +689,6 @@ static s32 e1000_obtain_mbx_lock_pf(struct e1000_hw *hw, u16 vf_number)
 	} while (count-- > 0);
 
 	return ret_val;
-
 }
 
 /**
@@ -680,8 +700,8 @@ static s32 e1000_obtain_mbx_lock_pf(struct e1000_hw *hw, u16 vf_number)
  *
  *  returns SUCCESS if it successfully copied message into the buffer
  **/
-static s32 e1000_write_mbx_pf(struct e1000_hw *hw, u32 *msg, u16 size,
-			      u16 vf_number)
+static s32
+e1000_write_mbx_pf(struct e1000_hw *hw, u32 *msg, u16 size, u16 vf_number)
 {
 	s32 ret_val;
 	u16 i;
@@ -709,7 +729,6 @@ static s32 e1000_write_mbx_pf(struct e1000_hw *hw, u32 *msg, u16 size,
 
 out_no_write:
 	return ret_val;
-
 }
 
 /**
@@ -723,8 +742,8 @@ out_no_write:
  *  memory buffer.  The presumption is that the caller knows that there was
  *  a message due to a VF request so no polling for message is needed.
  **/
-static s32 e1000_read_mbx_pf(struct e1000_hw *hw, u32 *msg, u16 size,
-			     u16 vf_number)
+static s32
+e1000_read_mbx_pf(struct e1000_hw *hw, u32 *msg, u16 size, u16 vf_number)
 {
 	s32 ret_val;
 	u16 i;
@@ -756,7 +775,8 @@ out_no_read:
  *
  *  Initializes the hw->mbx struct to correct values for pf mailbox
  */
-s32 e1000_init_mbx_params_pf(struct e1000_hw *hw)
+s32
+e1000_init_mbx_params_pf(struct e1000_hw *hw)
 {
 	struct e1000_mbx_info *mbx = &hw->mbx;
 
@@ -787,4 +807,3 @@ s32 e1000_init_mbx_params_pf(struct e1000_hw *hw)
 		return E1000_SUCCESS;
 	}
 }
-

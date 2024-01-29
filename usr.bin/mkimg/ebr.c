@@ -26,24 +26,22 @@
 
 #include <sys/cdefs.h>
 #include <sys/errno.h>
+
+#include <mbr.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <mbr.h>
 
 #include "endian.h"
 #include "image.h"
 #include "mkimg.h"
 #include "scheme.h"
 
-static struct mkimg_alias ebr_aliases[] = {
-    {	ALIAS_FAT16B, ALIAS_INT2TYPE(DOSPTYP_FAT16) },
-    {	ALIAS_FAT32, ALIAS_INT2TYPE(DOSPTYP_FAT32) },
-    {	ALIAS_FAT32LBA, ALIAS_INT2TYPE(DOSPTYP_FAT32LBA) },
-    {	ALIAS_FREEBSD, ALIAS_INT2TYPE(DOSPTYP_386BSD) },
-    {	ALIAS_NONE, 0 }
-};
+static struct mkimg_alias ebr_aliases[] = { { ALIAS_FAT16B,
+						ALIAS_INT2TYPE(DOSPTYP_FAT16) },
+	{ ALIAS_FAT32, ALIAS_INT2TYPE(DOSPTYP_FAT32) },
+	{ ALIAS_FAT32LBA, ALIAS_INT2TYPE(DOSPTYP_FAT32LBA) },
+	{ ALIAS_FREEBSD, ALIAS_INT2TYPE(DOSPTYP_386BSD) }, { ALIAS_NONE, 0 } };
 
 static lba_t
 ebr_metadata(u_int where, lba_t blk)
@@ -80,7 +78,7 @@ ebr_write(lba_t imgsz __unused, void *bootcode __unused)
 	le16enc(ebr + DOSMAGICOFFSET, DOSMAGIC);
 
 	error = 0;
-	TAILQ_FOREACH(part, &partlist, link) {
+	TAILQ_FOREACH (part, &partlist, link) {
 		block = part->block - nsecs;
 		size = round_track(part->size);
 		dp = (void *)(ebr + DOSPARTOFF);
@@ -116,14 +114,12 @@ ebr_write(lba_t imgsz __unused, void *bootcode __unused)
 	return (error);
 }
 
-static struct mkimg_scheme ebr_scheme = {
-	.name = "ebr",
+static struct mkimg_scheme ebr_scheme = { .name = "ebr",
 	.description = "Extended Boot Record",
 	.aliases = ebr_aliases,
 	.metadata = ebr_metadata,
 	.write = ebr_write,
 	.nparts = 4096,
-	.maxsecsz = 4096
-};
+	.maxsecsz = 4096 };
 
 SCHEME_DEFINE(ebr_scheme);

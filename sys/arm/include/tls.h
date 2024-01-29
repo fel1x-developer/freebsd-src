@@ -27,14 +27,15 @@
  */
 
 #ifndef _MACHINE_TLS_H_
-#define	_MACHINE_TLS_H_
+#define _MACHINE_TLS_H_
 
 #include <sys/_tls_variant_i.h>
+
 #include <machine/sysarch.h>
 
-#define	TLS_DTV_OFFSET	0
-#define	TLS_TCB_ALIGN	8
-#define	TLS_TP_OFFSET	0
+#define TLS_DTV_OFFSET 0
+#define TLS_TCB_ALIGN 8
+#define TLS_TP_OFFSET 0
 
 static __inline void
 _tcb_set(struct tcb *tcb)
@@ -47,8 +48,7 @@ _tcb_get(void)
 {
 	struct tcb *tcb;
 
-	__asm __volatile("mrc  p15, 0, %0, c13, c0, 3"		\
-	   		 : "=r" (tcb));
+	__asm __volatile("mrc  p15, 0, %0, c13, c0, 3" : "=r"(tcb));
 	return (tcb);
 }
 

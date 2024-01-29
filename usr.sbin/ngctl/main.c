@@ -4,7 +4,7 @@
  *
  * Copyright (c) 1996-1999 Whistle Communications, Inc.
  * All rights reserved.
- * 
+ *
  * Subject to the following obligations and disclaimer of warranty, use and
  * redistribution of this software, in source or object code forms, with or
  * without modifications are expressly permitted by Whistle Communications;
@@ -15,7 +15,7 @@
  *    Communications, Inc. trademarks, including the mark "WHISTLE
  *    COMMUNICATIONS" on advertising, endorsements, or otherwise except as
  *    such appears in the above copyright notice or in the software.
- * 
+ *
  * THIS SOFTWARE IS BEING PROVIDED BY WHISTLE COMMUNICATIONS "AS IS", AND
  * TO THE MAXIMUM EXTENT PERMITTED BY LAW, WHISTLE COMMUNICATIONS MAKES NO
  * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, REGARDING THIS SOFTWARE,
@@ -38,8 +38,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/socket.h>
 
 #include <ctype.h>
 #include <err.h>
@@ -51,85 +51,55 @@
 #include <sysexits.h>
 #include <unistd.h>
 #ifdef EDITLINE
-#include <signal.h>
 #include <histedit.h>
 #include <pthread.h>
+#include <signal.h>
 #endif
 
 #include <netgraph.h>
 
 #include "ngctl.h"
 
-#define PROMPT			"+ "
-#define MAX_ARGS		512
-#define WHITESPACE		" \t\r\n\v\f"
-#define DUMP_BYTES_PER_LINE	16
+#define PROMPT "+ "
+#define MAX_ARGS 512
+#define WHITESPACE " \t\r\n\v\f"
+#define DUMP_BYTES_PER_LINE 16
 
 /* Internal functions */
-static int	ReadFile(FILE *fp);
-static void	ReadSockets(fd_set *);
-static int	DoParseCommand(const char *line);
-static int	DoCommand(int ac, char **av);
-static int	DoInteractive(void);
-static const	struct ngcmd *FindCommand(const char *string);
-static int	MatchCommand(const struct ngcmd *cmd, const char *s);
-static void	Usage(const char *msg);
-static int	ReadCmd(int ac, char **av);
-static int	HelpCmd(int ac, char **av);
-static int	QuitCmd(int ac, char **av);
+static int ReadFile(FILE *fp);
+static void ReadSockets(fd_set *);
+static int DoParseCommand(const char *line);
+static int DoCommand(int ac, char **av);
+static int DoInteractive(void);
+static const struct ngcmd *FindCommand(const char *string);
+static int MatchCommand(const struct ngcmd *cmd, const char *s);
+static void Usage(const char *msg);
+static int ReadCmd(int ac, char **av);
+static int HelpCmd(int ac, char **av);
+static int QuitCmd(int ac, char **av);
 #ifdef EDITLINE
 static volatile sig_atomic_t unblock;
-static pthread_mutex_t	mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t	cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 #endif
 
 /* List of commands */
-static const struct ngcmd *const cmds[] = {
-	&config_cmd,
-	&connect_cmd,
-	&debug_cmd,
-	&dot_cmd,
-	&help_cmd,
-	&list_cmd,
-	&mkpeer_cmd,
-	&msg_cmd,
-	&name_cmd,
-	&read_cmd,
-	&rmhook_cmd,
-	&show_cmd,
-	&shutdown_cmd,
-	&status_cmd,
-	&types_cmd,
-	&write_cmd,
-	&quit_cmd,
-	NULL
-};
+static const struct ngcmd *const cmds[] = { &config_cmd, &connect_cmd,
+	&debug_cmd, &dot_cmd, &help_cmd, &list_cmd, &mkpeer_cmd, &msg_cmd,
+	&name_cmd, &read_cmd, &rmhook_cmd, &show_cmd, &shutdown_cmd,
+	&status_cmd, &types_cmd, &write_cmd, &quit_cmd, NULL };
 
 /* Commands defined in this file */
-const struct ngcmd read_cmd = {
-	ReadCmd,
-	"read <filename>",
-	"Read and execute commands from a file",
-	NULL,
-	{ "source", "." }
-};
-const struct ngcmd help_cmd = {
-	HelpCmd,
-	"help [command]",
-	"Show command summary or get more help on a specific command",
-	NULL,
-	{ "?" }
-};
-const struct ngcmd quit_cmd = {
-	QuitCmd,
-	"quit",
-	"Exit program",
-	NULL,
-	{ "exit" }
-};
+const struct ngcmd read_cmd = { ReadCmd, "read <filename>",
+	"Read and execute commands from a file", NULL, { "source", "." } };
+const struct ngcmd help_cmd = { HelpCmd, "help [command]",
+	"Show command summary or get more help on a specific command", NULL,
+	{ "?" } };
+const struct ngcmd quit_cmd = { QuitCmd, "quit", "Exit program", NULL,
+	{ "exit" } };
 
 /* Our control and data sockets */
-int	csock, dsock;
+int csock, dsock;
 
 /*
  * main()
@@ -137,10 +107,10 @@ int	csock, dsock;
 int
 main(int ac, char *av[])
 {
-	char	name[NG_NODESIZ];
-	int	interactive = isatty(0) && isatty(1);
-	FILE	*fp = NULL;
-	int	ch, rtn = 0;
+	char name[NG_NODESIZ];
+	int interactive = isatty(0) && isatty(1);
+	FILE *fp = NULL;
+	int ch, rtn = 0;
 
 	/* Set default node name */
 	snprintf(name, sizeof(name), "ngctl%d", getpid());
@@ -336,7 +306,7 @@ DoInteractive(void)
 	return (CMDRTN_QUIT);
 }
 
-#else /* !EDITLINE */
+#else  /* !EDITLINE */
 
 /*
  * Interactive mode w/o libedit functionality.
@@ -431,8 +401,8 @@ DoParseCommand(const char *line)
 
 	/* Parse line */
 	for (ac = 0, av[0] = strtok((char *)line, WHITESPACE);
-	    ac < MAX_ARGS - 1 && av[ac];
-	    av[++ac] = strtok(NULL, WHITESPACE));
+	     ac < MAX_ARGS - 1 && av[ac]; av[++ac] = strtok(NULL, WHITESPACE))
+		;
 
 	/* Do command */
 	return (DoCommand(ac, av));
@@ -552,7 +522,8 @@ HelpCmd(int ac, char **av)
 
 			cmd = cmds[k];
 			snprintf(buf, sizeof(buf), "%s", cmd->cmd);
-			for (s = buf; *s != '\0' && !isspace(*s); s++);
+			for (s = buf; *s != '\0' && !isspace(*s); s++)
+				;
 			*s = '\0';
 			printf("  %-10s %s\n", buf, cmd->desc);
 		}
@@ -567,8 +538,8 @@ HelpCmd(int ac, char **av)
 				printf("Aliases:  ");
 				while (1) {
 					printf("%s", cmd->aliases[a++]);
-					if (a == MAX_CMD_ALIAS
-					    || cmd->aliases[a] == NULL) {
+					if (a == MAX_CMD_ALIAS ||
+					    cmd->aliases[a] == NULL) {
 						printf("\n");
 						break;
 					}
@@ -585,13 +556,13 @@ HelpCmd(int ac, char **av)
 				for (s = cmd->help; *s != '\0'; s += len) {
 					while (isspace(*s))
 						s++;
-					tot = snprintf(buf,
-					    sizeof(buf), "%s", s);
+					tot = snprintf(buf, sizeof(buf), "%s",
+					    s);
 					len = strlen(buf);
 					done = len == tot;
 					if (!done) {
-						while (len > 0
-						    && !isspace(buf[len-1]))
+						while (len > 0 &&
+						    !isspace(buf[len - 1]))
 							buf[--len] = '\0';
 					}
 					printf("  %s\n", buf);
@@ -625,8 +596,8 @@ DumpAscii(const u_char *buf, int len)
 		for (k = 0; k < DUMP_BYTES_PER_LINE; k++) {
 			if (count + k < len) {
 				snprintf(sbuf + strlen(sbuf),
-				    sizeof(sbuf) - strlen(sbuf),
-				    "%02x ", buf[count + k]);
+				    sizeof(sbuf) - strlen(sbuf), "%02x ",
+				    buf[count + k]);
 			} else {
 				snprintf(sbuf + strlen(sbuf),
 				    sizeof(sbuf) - strlen(sbuf), "   ");
@@ -635,8 +606,8 @@ DumpAscii(const u_char *buf, int len)
 		snprintf(sbuf + strlen(sbuf), sizeof(sbuf) - strlen(sbuf), " ");
 		for (k = 0; k < DUMP_BYTES_PER_LINE; k++) {
 			if (count + k < len) {
-				ch = isprint(buf[count + k]) ?
-				    buf[count + k] : '.';
+				ch = isprint(buf[count + k]) ? buf[count + k] :
+							       '.';
 				snprintf(sbuf + strlen(sbuf),
 				    sizeof(sbuf) - strlen(sbuf), "%c", ch);
 			} else {
@@ -657,6 +628,6 @@ Usage(const char *msg)
 	if (msg)
 		warnx("%s", msg);
 	fprintf(stderr,
-		"usage: ngctl [-d] [-f file] [-n name] [command ...]\n");
+	    "usage: ngctl [-d] [-f file] [-n name] [command ...]\n");
 	exit(EX_USAGE);
 }

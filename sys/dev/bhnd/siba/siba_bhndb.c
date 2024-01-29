@@ -32,14 +32,14 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/module.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <dev/bhnd/bhnd_ids.h>
-#include <dev/bhnd/bhndb/bhndbvar.h>
 #include <dev/bhnd/bhndb/bhndb_hwdata.h>
+#include <dev/bhnd/bhndb/bhndbvar.h>
 
 #include "sibareg.h"
 #include "sibavar.h"
@@ -50,12 +50,12 @@
 
 struct siba_bhndb_softc;
 
-static int	siba_bhndb_wars_hwup(struct siba_bhndb_softc *sc);
+static int siba_bhndb_wars_hwup(struct siba_bhndb_softc *sc);
 
 /* siba_bhndb per-instance state */
 struct siba_bhndb_softc {
-	struct siba_softc	siba;	/**< common siba per-instance state */
-	uint32_t		quirks;	/**< bus-level quirks */
+	struct siba_softc siba; /**< common siba per-instance state */
+	uint32_t quirks;	/**< bus-level quirks */
 };
 
 /* siba_bhndb quirks */
@@ -63,33 +63,29 @@ enum {
 	/** When PCIe-bridged, the D11 core's initiator request
 	 *  timeout must be disabled to prevent D11 from entering a
 	 *  RESP_TIMEOUT error state. */
-	SIBA_QUIRK_PCIE_D11_SB_TIMEOUT	= (1<<0)
+	SIBA_QUIRK_PCIE_D11_SB_TIMEOUT = (1 << 0)
 };
 
 /* Bus-level quirks when bridged via a PCI host bridge core */
-static struct bhnd_device_quirk pci_bridge_quirks[] = {
-	BHND_DEVICE_QUIRK_END
-};
+static struct bhnd_device_quirk pci_bridge_quirks[] = { BHND_DEVICE_QUIRK_END };
 
 /* Bus-level quirks when bridged via a PCIe host bridge core */
 static struct bhnd_device_quirk pcie_bridge_quirks[] = {
-	BHND_CHIP_QUIRK (4311, HWREV_EQ(2),	SIBA_QUIRK_PCIE_D11_SB_TIMEOUT),
-	BHND_CHIP_QUIRK (4312, HWREV_ANY,	SIBA_QUIRK_PCIE_D11_SB_TIMEOUT),
+	BHND_CHIP_QUIRK(4311, HWREV_EQ(2), SIBA_QUIRK_PCIE_D11_SB_TIMEOUT),
+	BHND_CHIP_QUIRK(4312, HWREV_ANY, SIBA_QUIRK_PCIE_D11_SB_TIMEOUT),
 	BHND_DEVICE_QUIRK_END
 };
 
 /* Bus-level quirks specific to a particular host bridge core */
-static struct bhnd_device bridge_devs[] = {
-	BHND_DEVICE(BCM, PCI,	NULL, pci_bridge_quirks),
-	BHND_DEVICE(BCM, PCIE,	NULL, pcie_bridge_quirks),
-	BHND_DEVICE_END
-};
+static struct bhnd_device bridge_devs[] = { BHND_DEVICE(BCM, PCI, NULL,
+						pci_bridge_quirks),
+	BHND_DEVICE(BCM, PCIE, NULL, pcie_bridge_quirks), BHND_DEVICE_END };
 
 static int
 siba_bhndb_probe(device_t dev)
 {
-	const struct bhnd_chipid	*cid;
-	int				 error;
+	const struct bhnd_chipid *cid;
+	int error;
 
 	/* Defer to default probe implementation */
 	if ((error = siba_probe(dev)) > 0)
@@ -109,9 +105,9 @@ siba_bhndb_probe(device_t dev)
 static int
 siba_bhndb_attach(device_t dev)
 {
-	struct siba_bhndb_softc	*sc;
-	device_t		 hostb;
-	int			 error;
+	struct siba_bhndb_softc *sc;
+	device_t hostb;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->quirks = 0;
@@ -144,8 +140,8 @@ failed:
 static int
 siba_bhndb_resume(device_t dev)
 {
-	struct siba_bhndb_softc	*sc;
-	int			 error;
+	struct siba_bhndb_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -159,7 +155,8 @@ siba_bhndb_resume(device_t dev)
 
 /* Suspend all references to the device's cfg register blocks */
 static void
-siba_bhndb_suspend_cfgblocks(device_t dev, struct siba_devinfo *dinfo) {
+siba_bhndb_suspend_cfgblocks(device_t dev, struct siba_devinfo *dinfo)
+{
 	for (u_int i = 0; i < dinfo->core_id.num_cfg_blocks; i++) {
 		if (dinfo->cfg_res[i] == NULL)
 			continue;
@@ -172,8 +169,8 @@ siba_bhndb_suspend_cfgblocks(device_t dev, struct siba_devinfo *dinfo) {
 static int
 siba_bhndb_suspend_child(device_t dev, device_t child)
 {
-	struct siba_devinfo	*dinfo;
-	int			 error;
+	struct siba_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_SUSPEND_CHILD(device_get_parent(dev), child);
@@ -193,8 +190,8 @@ siba_bhndb_suspend_child(device_t dev, device_t child)
 static int
 siba_bhndb_resume_child(device_t dev, device_t child)
 {
-	struct siba_devinfo	*dinfo;
-	int			 error;
+	struct siba_devinfo *dinfo;
+	int error;
 
 	if (device_get_parent(child) != dev)
 		BUS_SUSPEND_CHILD(device_get_parent(dev), child);
@@ -230,15 +227,15 @@ siba_bhndb_resume_child(device_t dev, device_t child)
 static int
 siba_bhndb_wars_pcie_clear_d11_timeout(struct siba_bhndb_softc *sc)
 {
-	struct siba_devinfo	*dinfo;
-	device_t		 d11;
-	uint32_t		 imcfg;
+	struct siba_devinfo *dinfo;
+	device_t d11;
+	uint32_t imcfg;
 
 	/* Only applicable if there's a D11 core */
-	d11 = bhnd_bus_match_child(sc->siba.dev, &(struct bhnd_core_match) {
+	d11 = bhnd_bus_match_child(sc->siba.dev,
+	    &(struct bhnd_core_match) {
 		BHND_MATCH_CORE(BHND_MFGID_BCM, BHND_COREID_D11),
-		BHND_MATCH_CORE_UNIT(0)
-	});
+		BHND_MATCH_CORE_UNIT(0) });
 	if (d11 == NULL)
 		return (0);
 
@@ -247,7 +244,7 @@ siba_bhndb_wars_pcie_clear_d11_timeout(struct siba_bhndb_softc *sc)
 	KASSERT(dinfo->cfg_res[0] != NULL, ("missing core config mapping"));
 
 	imcfg = bhnd_bus_read_4(dinfo->cfg_res[0], SIBA_CFG0_IMCONFIGLOW);
-	imcfg &= ~(SIBA_IMCL_RTO_MASK|SIBA_IMCL_STO_MASK);
+	imcfg &= ~(SIBA_IMCL_RTO_MASK | SIBA_IMCL_STO_MASK);
 
 	bhnd_bus_write_4(dinfo->cfg_res[0], SIBA_CFG0_IMCONFIGLOW, imcfg);
 
@@ -273,13 +270,13 @@ siba_bhndb_wars_hwup(struct siba_bhndb_softc *sc)
 
 static device_method_t siba_bhndb_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			siba_bhndb_probe),
-	DEVMETHOD(device_attach,		siba_bhndb_attach),
-	DEVMETHOD(device_resume,		siba_bhndb_resume),
+	DEVMETHOD(device_probe, siba_bhndb_probe),
+	DEVMETHOD(device_attach, siba_bhndb_attach),
+	DEVMETHOD(device_resume, siba_bhndb_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_suspend_child,		siba_bhndb_suspend_child),
-	DEVMETHOD(bus_resume_child,		siba_bhndb_resume_child),
+	DEVMETHOD(bus_suspend_child, siba_bhndb_suspend_child),
+	DEVMETHOD(bus_resume_child, siba_bhndb_resume_child),
 
 	DEVMETHOD_END
 };

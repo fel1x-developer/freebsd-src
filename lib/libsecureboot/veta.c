@@ -29,10 +29,12 @@
  */
 
 #define NEED_BRSSL_H
-#include "libsecureboot-priv.h"
-#include <brssl.h>
 #include <sys/stat.h>
+
+#include <brssl.h>
 #include <dirent.h>
+
+#include "libsecureboot-priv.h"
 
 #ifdef VE_OPENPGP_SUPPORT
 #include "openpgp/packet.h"

@@ -25,17 +25,14 @@
  * SUCH DAMAGE.
  */
 
-
 #include <machine/cpu.h>
 #include <machine/ifunc.h>
 
-char *
-__strcpy_arch_2_05(char * restrict dst, const char * restrict src);
+char *__strcpy_arch_2_05(char *restrict dst, const char *restrict src);
 
-char *
-__strcpy(char * restrict dst, const char * restrict src);
+char *__strcpy(char *restrict dst, const char *restrict src);
 
-DEFINE_UIFUNC(, char *, strcpy, (char * restrict, const char * restrict))
+DEFINE_UIFUNC(, char *, strcpy, (char *restrict, const char *restrict))
 {
 	if (cpu_features & PPC_FEATURE_ARCH_2_05)
 		return (__strcpy_arch_2_05);

@@ -17,57 +17,60 @@
  */
 
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/kernel.h>
 #include <sys/systm.h>
-#include <sys/module.h>
-#include <sys/sx.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/sx.h>
 #include <sys/timepps.h>
+
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/ppbus/ppbconf.h>
-#include "ppbus_if.h"
 #include <dev/ppbus/ppbio.h>
 
-#define PPS_NAME	"pps"		/* our official name */
+#include "ppbus_if.h"
 
-#define PRVERBOSE(fmt, arg...)	if (bootverbose) printf(fmt, ##arg);
+#define PPS_NAME "pps" /* our official name */
+
+#define PRVERBOSE(fmt, arg...) \
+	if (bootverbose)       \
+		printf(fmt, ##arg);
 
 struct pps_data {
-	struct	ppb_device pps_dev;
-	struct	pps_state pps[9];
+	struct ppb_device pps_dev;
+	struct pps_state pps[9];
 	struct cdev *devs[9];
 	device_t ppsdev;
 	device_t ppbus;
-	int	busy;
+	int busy;
 	struct callout timeout;
-	int	lastdata;
+	int lastdata;
 
 	struct sx lock;
-	struct resource *intr_resource;	/* interrupt resource */
+	struct resource *intr_resource; /* interrupt resource */
 	void *intr_cookie;		/* interrupt registration cookie */
 };
 
-static void	ppsintr(void *arg);
-static void 	ppshcpoll(void *arg);
+static void ppsintr(void *arg);
+static void ppshcpoll(void *arg);
 
-#define DEVTOSOFTC(dev) \
-	((struct pps_data *)device_get_softc(dev))
+#define DEVTOSOFTC(dev) ((struct pps_data *)device_get_softc(dev))
 
-static	d_open_t	ppsopen;
-static	d_close_t	ppsclose;
-static	d_ioctl_t	ppsioctl;
+static d_open_t ppsopen;
+static d_close_t ppsclose;
+static d_ioctl_t ppsioctl;
 
 static struct cdevsw pps_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_open =	ppsopen,
-	.d_close =	ppsclose,
-	.d_ioctl =	ppsioctl,
-	.d_name =	PPS_NAME,
+	.d_version = D_VERSION,
+	.d_open = ppsopen,
+	.d_close = ppsclose,
+	.d_ioctl = ppsioctl,
+	.d_name = PPS_NAME,
 };
 
 static void
@@ -119,8 +122,7 @@ ppsattach(device_t dev)
 	}
 
 	error = bus_setup_intr(dev, sc->intr_resource,
-	    INTR_TYPE_TTY | INTR_MPSAFE, NULL, ppsintr,
-	    sc, &sc->intr_cookie);
+	    INTR_TYPE_TTY | INTR_MPSAFE, NULL, ppsintr, sc, &sc->intr_cookie);
 	if (error) {
 		bus_release_resource(dev, SYS_RES_IRQ, 0, sc->intr_resource);
 		device_printf(dev, "Unable to register interrupt handler\n");
@@ -132,14 +134,14 @@ ppsattach(device_t dev)
 	sc->ppsdev = dev;
 	sc->ppbus = ppbus;
 	unit = device_get_unit(ppbus);
-	d = make_dev(&pps_cdevsw, unit,
-	    UID_ROOT, GID_WHEEL, 0600, PPS_NAME "%d", unit);
+	d = make_dev(&pps_cdevsw, unit, UID_ROOT, GID_WHEEL, 0600,
+	    PPS_NAME "%d", unit);
 	sc->devs[0] = d;
 	sc->pps[0].ppscap = PPS_CAPTUREASSERT | PPS_ECHOASSERT;
 	sc->pps[0].driver_abi = PPS_ABI_VERSION;
 	sc->pps[0].driver_mtx = ppb_get_lock(ppbus);
 	d->si_drv1 = sc;
-	d->si_drv2 = (void*)0;
+	d->si_drv2 = (void *)0;
 	pps_init_abi(&sc->pps[0]);
 
 	ppb_lock(ppbus);
@@ -186,10 +188,11 @@ ppsattach(device_t dev)
 		ppb_unlock(ppbus);
 
 		for (i = 1; i < 9; i++) {
-			d = make_dev(&pps_cdevsw, unit + 0x10000 * i,
-			  UID_ROOT, GID_WHEEL, 0600, PPS_NAME "%db%d", unit, i - 1);
+			d = make_dev(&pps_cdevsw, unit + 0x10000 * i, UID_ROOT,
+			    GID_WHEEL, 0600, PPS_NAME "%db%d", unit, i - 1);
 			sc->devs[i] = d;
-			sc->pps[i].ppscap = PPS_CAPTUREASSERT | PPS_CAPTURECLEAR;
+			sc->pps[i].ppscap = PPS_CAPTUREASSERT |
+			    PPS_CAPTURECLEAR;
 			sc->pps[i].driver_abi = PPS_ABI_VERSION;
 			sc->pps[i].driver_mtx = ppb_get_lock(ppbus);
 			d->si_drv1 = sc;
@@ -205,7 +208,7 @@ ppsattach(device_t dev)
 	return (0);
 }
 
-static	int
+static int
 ppsopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 {
 	struct pps_data *sc = dev->si_drv1;
@@ -223,7 +226,7 @@ ppsopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	if (!sc->busy) {
 		device_t ppsdev = sc->ppsdev;
 
-		if (ppb_request_bus(ppbus, ppsdev, PPB_WAIT|PPB_INTR)) {
+		if (ppb_request_bus(ppbus, ppsdev, PPB_WAIT | PPB_INTR)) {
 			ppb_unlock(ppbus);
 			sx_xunlock(&sc->lock);
 			return (EINTR);
@@ -243,17 +246,17 @@ ppsopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	sc->busy |= (1 << subdev);
 	ppb_unlock(ppbus);
 	sx_xunlock(&sc->lock);
-	return(0);
+	return (0);
 }
 
-static	int
+static int
 ppsclose(struct cdev *dev, int flags, int fmt, struct thread *td)
 {
 	struct pps_data *sc = dev->si_drv1;
 	int subdev = (intptr_t)dev->si_drv2;
 
 	sx_xlock(&sc->lock);
-	sc->pps[subdev].ppsparam.mode = 0;	/* PHK ??? */
+	sc->pps[subdev].ppsparam.mode = 0; /* PHK ??? */
 	ppb_lock(sc->ppbus);
 	sc->busy &= ~(1 << subdev);
 	if (subdev > 0 && !(sc->busy & ~1))
@@ -270,7 +273,7 @@ ppsclose(struct cdev *dev, int flags, int fmt, struct thread *td)
 	}
 	ppb_unlock(sc->ppbus);
 	sx_xunlock(&sc->lock);
-	return(0);
+	return (0);
 }
 
 static void
@@ -285,7 +288,7 @@ ppshcpoll(void *arg)
 		return;
 	l = sc->lastdata ^ i;
 	k = 1;
-	for (j = 1; j < 9; j ++) {
+	for (j = 1; j < 9; j++) {
 		if (l & k) {
 			pps_capture(&sc->pps[j]);
 			pps_event(&sc->pps[j],
@@ -315,7 +318,8 @@ ppsintr(void *arg)
 }
 
 static int
-ppsioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *td)
+ppsioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	struct pps_data *sc = dev->si_drv1;
 	int subdev = (intptr_t)dev->si_drv2;
@@ -329,9 +333,8 @@ ppsioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags, struct thread *t
 
 static device_method_t pps_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	ppsidentify),
-	DEVMETHOD(device_probe,		ppsprobe),
-	DEVMETHOD(device_attach,	ppsattach),
+	DEVMETHOD(device_identify, ppsidentify),
+	DEVMETHOD(device_probe, ppsprobe), DEVMETHOD(device_attach, ppsattach),
 	{ 0, 0 }
 };
 

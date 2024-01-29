@@ -3,14 +3,15 @@
  *
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Rewritten from the original host_syscall.h Copyright (C) 2014 Nathan Whitehorn
+ * Rewritten from the original host_syscall.h Copyright (C) 2014 Nathan
+ * Whitehorn
  */
 
 #ifndef _HOST_SYSCALL_H
 #define _HOST_SYSCALL_H
 
-#include <stand.h>
 #include <assert.h>
+#include <stand.h>
 
 long host_syscall(int number, ...);
 
@@ -33,22 +34,22 @@ typedef int64_t host_blkcnt_t;
  * These are arch independent and match the values in nolib and uapi headers
  * with HOST_ prepended.
  */
-#define	HOST_S_IFMT	0170000
-#define	HOST_S_IFIFO	0010000
-#define	HOST_S_IFCHR	0020000
-#define	HOST_S_IFDIR	0040000
-#define	HOST_S_IFBLK	0060000
-#define	HOST_S_IFREG	0100000
-#define	HOST_S_IFLNK	0120000
-#define	HOST_S_IFSOCK	0140000
+#define HOST_S_IFMT 0170000
+#define HOST_S_IFIFO 0010000
+#define HOST_S_IFCHR 0020000
+#define HOST_S_IFDIR 0040000
+#define HOST_S_IFBLK 0060000
+#define HOST_S_IFREG 0100000
+#define HOST_S_IFLNK 0120000
+#define HOST_S_IFSOCK 0140000
 
-#define	HOST_S_ISBLK(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFBLK)
-#define	HOST_S_ISCHR(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFCHR)
-#define	HOST_S_ISDIR(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFDIR)
-#define	HOST_S_ISFIFO(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFIFO)
-#define	HOST_S_ISLNK(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFLNK)
-#define	HOST_S_ISREG(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFREG)
-#define	HOST_S_ISSOCK(mode)	(((mode) & HOST_S_IFMT) == HOST_S_IFSOCK)
+#define HOST_S_ISBLK(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFBLK)
+#define HOST_S_ISCHR(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFCHR)
+#define HOST_S_ISDIR(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFDIR)
+#define HOST_S_ISFIFO(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFIFO)
+#define HOST_S_ISLNK(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFLNK)
+#define HOST_S_ISREG(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFREG)
+#define HOST_S_ISSOCK(mode) (((mode) & HOST_S_IFMT) == HOST_S_IFSOCK)
 
 /*
  * Constants for open, fcntl, etc
@@ -61,17 +62,17 @@ typedef int64_t host_blkcnt_t;
  * These are from tools/include/uapi/asm-generic/fcntl.h and use the octal
  * notation. Beware, hex is used in other places creating potential confsion.
  */
-#define HOST_O_RDONLY		    0
-#define HOST_O_WRONLY		    1
-#define HOST_O_RDWR		    2
-#define HOST_O_CREAT		00100
-#define HOST_O_EXCL		00200
-#define HOST_O_NOCTTY		00400
-#define HOST_O_TRUNC		01000
-#define HOST_O_APPEND		02000
-#define HOST_O_NONBLOCK		04000
+#define HOST_O_RDONLY 0
+#define HOST_O_WRONLY 1
+#define HOST_O_RDWR 2
+#define HOST_O_CREAT 00100
+#define HOST_O_EXCL 00200
+#define HOST_O_NOCTTY 00400
+#define HOST_O_TRUNC 01000
+#define HOST_O_APPEND 02000
+#define HOST_O_NONBLOCK 04000
 
-#define HOST_AT_FDCWD		-100            /* Relative to current directory */
+#define HOST_AT_FDCWD -100 /* Relative to current directory */
 
 /*
  * Data types
@@ -90,28 +91,29 @@ struct host_timeval {
 };
 
 /*
- * Must match Linux's values see linux/tools/include/uapi/asm-generic/mman-common.h
- * and linux/tools/include/linux/mman.h
+ * Must match Linux's values see
+ * linux/tools/include/uapi/asm-generic/mman-common.h and
+ * linux/tools/include/linux/mman.h
  *
  * And pre-pend HOST_ here.
  */
-#define HOST_PROT_READ	0x1
-#define HOST_PROT_WRITE	0x2
-#define HOST_PROT_EXEC	0x4
+#define HOST_PROT_READ 0x1
+#define HOST_PROT_WRITE 0x2
+#define HOST_PROT_EXEC 0x4
 
-#define HOST_MAP_SHARED		0x01
-#define	HOST_MAP_PRIVATE	0x02
-#define HOST_MAP_FIXED		0x10
-#define HOST_MAP_ANONYMOUS	0x20
+#define HOST_MAP_SHARED 0x01
+#define HOST_MAP_PRIVATE 0x02
+#define HOST_MAP_FIXED 0x10
+#define HOST_MAP_ANONYMOUS 0x20
 
-#define HOST_MAP_FAILED		((void *)-1)
+#define HOST_MAP_FAILED ((void *)-1)
 
 /* Mount flags from uapi */
 #define MS_RELATIME (1 << 21)
 
-#define HOST_REBOOT_MAGIC1	0xfee1dead
-#define HOST_REBOOT_MAGIC2	672274793
-#define HOST_REBOOT_CMD_KEXEC	0x45584543
+#define HOST_REBOOT_MAGIC1 0xfee1dead
+#define HOST_REBOOT_MAGIC2 672274793
+#define HOST_REBOOT_CMD_KEXEC 0x45584543
 
 /*
  * Values from linux/tools/include/uapi/linux/kexec.h
@@ -120,11 +122,11 @@ struct host_timeval {
 /*
  * Values match ELF architecture types.
  */
-#define HOST_KEXEC_ARCH_X86_64  (62 << 16)
-#define HOST_KEXEC_ARCH_PPC64   (21 << 16)
-#define HOST_KEXEC_ARCH_ARM     (40 << 16)
+#define HOST_KEXEC_ARCH_X86_64 (62 << 16)
+#define HOST_KEXEC_ARCH_PPC64 (21 << 16)
+#define HOST_KEXEC_ARCH_ARM (40 << 16)
 #define HOST_KEXEC_ARCH_AARCH64 (183 << 16)
-#define HOST_KEXEC_ARCH_RISCV   (243 << 16)
+#define HOST_KEXEC_ARCH_RISCV (243 << 16)
 
 /* Arbitrary cap on segments */
 #define HOST_KEXEC_SEGMENT_MAX 16
@@ -137,23 +139,23 @@ struct host_kexec_segment {
 };
 
 struct host_dirent64 {
-	uint64_t	d_ino;		/* 64-bit inode number */
-	int64_t		d_off;		/* 64-bit offset to next structure */
-	unsigned short	d_reclen;	/* Size of this dirent */
-	unsigned char	d_type;		/* File type */
-	char		d_name[];	/* Filename (null-terminated) */
+	uint64_t d_ino;		 /* 64-bit inode number */
+	int64_t d_off;		 /* 64-bit offset to next structure */
+	unsigned short d_reclen; /* Size of this dirent */
+	unsigned char d_type;	 /* File type */
+	char d_name[];		 /* Filename (null-terminated) */
 };
 
 /* d_type values */
-#define HOST_DT_UNKNOWN		 0
-#define HOST_DT_FIFO		 1
-#define HOST_DT_CHR		 2
-#define HOST_DT_DIR		 4
-#define HOST_DT_BLK		 6
-#define HOST_DT_REG		 8
-#define HOST_DT_LNK		10
-#define HOST_DT_SOCK		12
-#define HOST_DT_WHT		14
+#define HOST_DT_UNKNOWN 0
+#define HOST_DT_FIFO 1
+#define HOST_DT_CHR 2
+#define HOST_DT_DIR 4
+#define HOST_DT_BLK 6
+#define HOST_DT_REG 8
+#define HOST_DT_LNK 10
+#define HOST_DT_SOCK 12
+#define HOST_DT_WHT 14
 
 /*
  * System Calls
@@ -166,8 +168,10 @@ int host_getdents64(int fd, void *dirp, int count);
 int host_getpid(void);
 int host_gettimeofday(struct host_timeval *a, void *b);
 int host_ioctl(int fd, unsigned long request, unsigned long arg);
-int host_kexec_load(unsigned long entry, unsigned long nsegs, struct host_kexec_segment *segs, unsigned long flags);
-ssize_t host_llseek(int fd, int32_t offset_high, int32_t offset_lo, uint64_t *result, int whence);
+int host_kexec_load(unsigned long entry, unsigned long nsegs,
+    struct host_kexec_segment *segs, unsigned long flags);
+ssize_t host_llseek(int fd, int32_t offset_high, int32_t offset_lo,
+    uint64_t *result, int whence);
 int host_mkdir(const char *, host_mode_t);
 void *host_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t off);
 int host_mount(const char *src, const char *target, const char *type,
@@ -186,7 +190,7 @@ ssize_t host_write(int fd, const void *buf, size_t nbyte);
 /*
  * Wrappers / one-liners
  */
-#define host_getmem(size) \
+#define host_getmem(size)                                    \
 	host_mmap(0, size, HOST_PROT_READ | HOST_PROT_WRITE, \
 	    HOST_MAP_PRIVATE | HOST_MAP_ANONYMOUS, -1, 0);
 
@@ -203,7 +207,7 @@ host_to_stand_errno(int e)
 {
 	assert(e < 0);
 
-	return((-e) > 34 ? EINVAL : (-e));
+	return ((-e) > 34 ? EINVAL : (-e));
 }
 
 #endif

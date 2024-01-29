@@ -30,7 +30,7 @@
 #include_next <sys/sysctl.h>
 
 #ifndef KERN_PROC_NFDS
-#define	KERN_PROC_NFDS		43	/* number of open file descriptors */
+#define KERN_PROC_NFDS 43 /* number of open file descriptors */
 #endif
 
 #endif /* _LIBOPENBSD_SYS_SYSCTL_H_ */

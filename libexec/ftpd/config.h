@@ -4,7 +4,6 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 /* $Id: config.h.in,v 1.15 2001/04/28 07:11:46 lukem Exp $ */
 
-
 /* Define if the closedir function returns void instead of int.  */
 /* #undef CLOSEDIR_VOID */
 

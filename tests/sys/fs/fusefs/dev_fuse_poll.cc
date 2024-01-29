@@ -53,7 +53,8 @@ const mode_t access_mode = R_OK;
  * Using strings with ::testing::Values gives better output with
  * --gtest_list_tests
  */
-enum poll_method poll_method_from_string(const char *s)
+enum poll_method
+poll_method_from_string(const char *s)
 {
 	if (0 == strcmp("BLOCKING", s))
 		return BLOCKING;
@@ -65,15 +66,17 @@ enum poll_method poll_method_from_string(const char *s)
 		return SELECT;
 }
 
-class DevFusePoll: public FuseTest, public WithParamInterface<const char *> {
-	virtual void SetUp() {
+class DevFusePoll : public FuseTest, public WithParamInterface<const char *> {
+	virtual void SetUp()
+	{
 		m_pm = poll_method_from_string(GetParam());
 		FuseTest::SetUp();
 	}
 };
 
-class Kqueue: public FuseTest {
-	virtual void SetUp() {
+class Kqueue : public FuseTest {
+	virtual void SetUp()
+	{
 		m_pm = KQ;
 		FuseTest::SetUp();
 	}
@@ -97,14 +100,16 @@ TEST_P(DevFusePoll, destroy)
 }
 
 INSTANTIATE_TEST_SUITE_P(PM, DevFusePoll,
-		::testing::Values("BLOCKING", "KQ", "POLL", "SELECT"));
+    ::testing::Values("BLOCKING", "KQ", "POLL", "SELECT"));
 
-static void* statter(void* arg) {
+static void *
+statter(void *arg)
+{
 	const char *name;
 	struct stat sb;
 
-	name = (const char*)arg;
-	return ((void*)(intptr_t)stat(name, &sb));
+	name = (const char *)arg;
+	return ((void *)(intptr_t)stat(name, &sb));
 }
 
 /*
@@ -126,91 +131,102 @@ TEST_F(Kqueue, data)
 	ASSERT_EQ(0, sem_init(&sem1, 0, 0)) << strerror(errno);
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "foo")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = foo_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = foo_ino;
+	    })));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "bar")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = bar_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = bar_ino;
+	    })));
 	EXPECT_LOOKUP(FUSE_ROOT_ID, "baz")
-	.WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, entry);
-		out.body.entry.entry_valid = UINT64_MAX;
-		out.body.entry.attr.mode = S_IFREG | 0644;
-		out.body.entry.nodeid = baz_ino;
-	})));
+	    .WillOnce(Invoke(ReturnImmediate([=](auto in __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, entry);
+		    out.body.entry.entry_valid = UINT64_MAX;
+		    out.body.entry.attr.mode = S_IFREG | 0644;
+		    out.body.entry.nodeid = baz_ino;
+	    })));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				in.header.nodeid == foo_ino);
-		}, Eq(true)),
-		_)
-	)
-	.WillOnce(Invoke(ReturnImmediate([&](auto in, auto& out) {
-		nready0 = m_mock->m_nready;
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    in.header.nodeid == foo_ino);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([&](auto in, auto &out) {
+		    nready0 = m_mock->m_nready;
 
-		sem_post(&sem0);
-		// Block the daemon so we can accumulate a few more ops
-		sem_wait(&sem1);
+		    sem_post(&sem0);
+		    // Block the daemon so we can accumulate a few more ops
+		    sem_wait(&sem1);
 
-		out.header.unique = in.header.unique;
-		out.header.error = -EIO;
-		out.header.len = sizeof(out.header);
-	})));
+		    out.header.unique = in.header.unique;
+		    out.header.error = -EIO;
+		    out.header.len = sizeof(out.header);
+	    })));
 
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				(in.header.nodeid == bar_ino ||
-				 in.header.nodeid == baz_ino));
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([&](auto in, auto& out) {
-		nready1 = m_mock->m_nready;
-		out.header.unique = in.header.unique;
-		out.header.error = -EIO;
-		out.header.len = sizeof(out.header);
-	})));
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_GETATTR &&
-				(in.header.nodeid == bar_ino ||
-				 in.header.nodeid == baz_ino));
-		}, Eq(true)),
-		_)
-	).InSequence(seq)
-	.WillOnce(Invoke(ReturnImmediate([&](auto in, auto& out) {
-		nready2 = m_mock->m_nready;
-		out.header.unique = in.header.unique;
-		out.header.error = -EIO;
-		out.header.len = sizeof(out.header);
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    (in.header.nodeid == bar_ino ||
+					in.header.nodeid == baz_ino));
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([&](auto in, auto &out) {
+		    nready1 = m_mock->m_nready;
+		    out.header.unique = in.header.unique;
+		    out.header.error = -EIO;
+		    out.header.len = sizeof(out.header);
+	    })));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_GETATTR &&
+				    (in.header.nodeid == bar_ino ||
+					in.header.nodeid == baz_ino));
+			},
+			Eq(true)),
+		_))
+	    .InSequence(seq)
+	    .WillOnce(Invoke(ReturnImmediate([&](auto in, auto &out) {
+		    nready2 = m_mock->m_nready;
+		    out.header.unique = in.header.unique;
+		    out.header.error = -EIO;
+		    out.header.len = sizeof(out.header);
+	    })));
 
-	/* 
+	/*
 	 * Create cached lookup entries for these files.  It seems that only
 	 * one thread at a time can be in VOP_LOOKUP for a given directory
 	 */
 	access("mountpoint/foo", F_OK);
 	access("mountpoint/bar", F_OK);
 	access("mountpoint/baz", F_OK);
-	ASSERT_EQ(0, pthread_create(&th0, NULL, statter,
-		__DECONST(void*, "mountpoint/foo"))) << strerror(errno);
+	ASSERT_EQ(0,
+	    pthread_create(&th0, NULL, statter,
+		__DECONST(void *, "mountpoint/foo")))
+	    << strerror(errno);
 	EXPECT_EQ(0, sem_wait(&sem0)) << strerror(errno);
-	ASSERT_EQ(0, pthread_create(&th1, NULL, statter,
-		__DECONST(void*, "mountpoint/bar"))) << strerror(errno);
-	ASSERT_EQ(0, pthread_create(&th2, NULL, statter,
-		__DECONST(void*, "mountpoint/baz"))) << strerror(errno);
+	ASSERT_EQ(0,
+	    pthread_create(&th1, NULL, statter,
+		__DECONST(void *, "mountpoint/bar")))
+	    << strerror(errno);
+	ASSERT_EQ(0,
+	    pthread_create(&th2, NULL, statter,
+		__DECONST(void *, "mountpoint/baz")))
+	    << strerror(errno);
 
-	nap();		// Allow th1 and th2 to send their ops to the daemon
+	nap(); // Allow th1 and th2 to send their ops to the daemon
 	EXPECT_EQ(0, sem_post(&sem1)) << strerror(errno);
 
 	pthread_join(th0, &th_ret);

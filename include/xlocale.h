@@ -77,9 +77,7 @@ __BEGIN_DECLS
 #include <xlocale/_wchar.h>
 #endif
 
-
-
-struct lconv	*localeconv_l(locale_t);
+struct lconv *localeconv_l(locale_t);
 __END_DECLS
 
 #endif

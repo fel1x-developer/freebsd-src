@@ -31,15 +31,16 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <pthread.h>
-#include <limits.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <limits.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 _Static_assert(sizeof(struct pthread_cond) <= THR_PAGE_SIZE_MIN,
     "pthread_cond too large");
@@ -47,11 +48,11 @@ _Static_assert(sizeof(struct pthread_cond) <= THR_PAGE_SIZE_MIN,
 /*
  * Prototypes
  */
-int	__pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-		       const struct timespec * abstime);
+int __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+    const struct timespec *abstime);
 static int cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 static int cond_wait_common(pthread_cond_t *cond, pthread_mutex_t *mutex,
-		    const struct timespec *abstime, int cancel);
+    const struct timespec *abstime, int cancel);
 static int cond_signal_common(pthread_cond_t *cond);
 static int cond_broadcast_common(pthread_cond_t *cond);
 
@@ -73,7 +74,7 @@ __weak_reference(_thr_cond_signal, _pthread_cond_signal);
 __weak_reference(_thr_cond_broadcast, pthread_cond_broadcast);
 __weak_reference(_thr_cond_broadcast, _pthread_cond_broadcast);
 
-#define CV_PSHARED(cvp)	(((cvp)->kcond.c_flags & USYNC_PROCESS_SHARED) != 0)
+#define CV_PSHARED(cvp) (((cvp)->kcond.c_flags & USYNC_PROCESS_SHARED) != 0)
 
 static void
 cond_init_body(struct pthread_cond *cvp, const struct pthread_cond_attr *cattr)
@@ -133,26 +134,26 @@ init_static(struct pthread *thread, pthread_cond_t *cond)
 	return (ret);
 }
 
-#define CHECK_AND_INIT_COND							\
-	if (*cond == THR_PSHARED_PTR) {						\
-		cvp = __thr_pshared_offpage(cond, 0);				\
-		if (cvp == NULL)						\
-			return (EINVAL);					\
-	} else if (__predict_false((cvp = (*cond)) <= THR_COND_DESTROYED)) {	\
-		if (cvp == THR_COND_INITIALIZER) {				\
-			int ret;						\
-			ret = init_static(_get_curthread(), cond);		\
-			if (ret)						\
-				return (ret);					\
-		} else if (cvp == THR_COND_DESTROYED) {				\
-			return (EINVAL);					\
-		}								\
-		cvp = *cond;							\
+#define CHECK_AND_INIT_COND                                                  \
+	if (*cond == THR_PSHARED_PTR) {                                      \
+		cvp = __thr_pshared_offpage(cond, 0);                        \
+		if (cvp == NULL)                                             \
+			return (EINVAL);                                     \
+	} else if (__predict_false((cvp = (*cond)) <= THR_COND_DESTROYED)) { \
+		if (cvp == THR_COND_INITIALIZER) {                           \
+			int ret;                                             \
+			ret = init_static(_get_curthread(), cond);           \
+			if (ret)                                             \
+				return (ret);                                \
+		} else if (cvp == THR_COND_DESTROYED) {                      \
+			return (EINVAL);                                     \
+		}                                                            \
+		cvp = *cond;                                                 \
 	}
 
 int
-_thr_cond_init(pthread_cond_t * __restrict cond,
-    const pthread_condattr_t * __restrict cond_attr)
+_thr_cond_init(pthread_cond_t *__restrict cond,
+    const pthread_condattr_t *__restrict cond_attr)
 {
 
 	*cond = NULL;
@@ -292,20 +293,20 @@ cond_wait_user(struct pthread_cond *cvp, struct pthread_mutex *mp,
 	 * set __has_user_waiters before unlocking mutex, this allows
 	 * us to check it without locking in pthread_cond_signal().
 	 */
-	cvp->__has_user_waiters = 1; 
+	cvp->__has_user_waiters = 1;
 	deferred = 0;
 	(void)_mutex_cv_unlock(mp, &recurse, &deferred);
 	curthread->mutex_obj = mp;
 	_sleepq_add(cvp, curthread);
-	for(;;) {
+	for (;;) {
 		_thr_clear_wake(curthread);
 		_sleepq_unlock(cvp);
 		if (deferred) {
 			deferred = 0;
 			if ((mp->m_lock.m_owner & UMUTEX_CONTESTED) == 0)
 				(void)_umtx_op_err(&mp->m_lock,
-				    UMTX_OP_MUTEX_WAKE2, mp->m_lock.m_flags,
-				    0, 0);
+				    UMTX_OP_MUTEX_WAKE2, mp->m_lock.m_flags, 0,
+				    0);
 		}
 		if (curthread->nwaiter_defer > 0) {
 			_thr_wake_all(curthread->defer_waiters,
@@ -335,8 +336,7 @@ cond_wait_user(struct pthread_cond *cvp, struct pthread_mutex *mp,
 				return (error2);
 		} else if (error == ETIMEDOUT) {
 			sq = _sleepq_lookup(cvp);
-			cvp->__has_user_waiters =
-			    _sleepq_remove(sq, curthread);
+			cvp->__has_user_waiters = _sleepq_remove(sq, curthread);
 			break;
 		}
 	}
@@ -350,12 +350,12 @@ cond_wait_user(struct pthread_cond *cvp, struct pthread_mutex *mp,
 
 static int
 cond_wait_common(pthread_cond_t *cond, pthread_mutex_t *mutex,
-	const struct timespec *abstime, int cancel)
+    const struct timespec *abstime, int cancel)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	struct pthread_cond *cvp;
 	struct pthread_mutex *mp;
-	int	error;
+	int error;
 
 	CHECK_AND_INIT_COND
 
@@ -371,8 +371,10 @@ cond_wait_common(pthread_cond_t *cond, pthread_mutex_t *mutex,
 		return (error);
 
 	if (curthread->attr.sched_policy != SCHED_OTHER ||
-	    (mp->m_lock.m_flags & (UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT |
-	    USYNC_PROCESS_SHARED)) != 0 || CV_PSHARED(cvp))
+	    (mp->m_lock.m_flags &
+		(UMUTEX_PRIO_PROTECT | UMUTEX_PRIO_INHERIT |
+		    USYNC_PROCESS_SHARED)) != 0 ||
+	    CV_PSHARED(cvp))
 		return (cond_wait_kernel(cvp, mp, abstime, cancel));
 	else
 		return (cond_wait_user(cvp, mp, abstime, cancel));
@@ -386,17 +388,17 @@ _thr_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 }
 
 int
-__thr_cond_wait(pthread_cond_t * __restrict cond,
-    pthread_mutex_t * __restrict mutex)
+__thr_cond_wait(pthread_cond_t *__restrict cond,
+    pthread_mutex_t *__restrict mutex)
 {
 
 	return (cond_wait_common(cond, mutex, NULL, 1));
 }
 
 int
-_thr_cond_timedwait(pthread_cond_t * __restrict cond,
-    pthread_mutex_t * __restrict mutex,
-    const struct timespec * __restrict abstime)
+_thr_cond_timedwait(pthread_cond_t *__restrict cond,
+    pthread_mutex_t *__restrict mutex,
+    const struct timespec *__restrict abstime)
 {
 
 	if (abstime == NULL || abstime->tv_sec < 0 || abstime->tv_nsec < 0 ||
@@ -408,7 +410,7 @@ _thr_cond_timedwait(pthread_cond_t * __restrict cond,
 
 int
 __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-		       const struct timespec *abstime)
+    const struct timespec *abstime)
 {
 
 	if (abstime == NULL || abstime->tv_sec < 0 || abstime->tv_nsec < 0 ||
@@ -421,13 +423,13 @@ __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 static int
 cond_signal_common(pthread_cond_t *cond)
 {
-	struct pthread	*curthread = _get_curthread();
+	struct pthread *curthread = _get_curthread();
 	struct pthread *td;
 	struct pthread_cond *cvp;
 	struct pthread_mutex *mp;
 	struct sleepqueue *sq;
-	int	*waddr;
-	int	pshared;
+	int *waddr;
+	int pshared;
 
 	/*
 	 * If the condition variable is statically initialized, perform dynamic
@@ -507,7 +509,7 @@ drop_cb(struct pthread *td, void *arg)
 static int
 cond_broadcast_common(pthread_cond_t *cond)
 {
-	int    pshared;
+	int pshared;
 	struct pthread_cond *cvp;
 	struct sleepqueue *sq;
 	struct broadcast_arg ba;
@@ -527,7 +529,7 @@ cond_broadcast_common(pthread_cond_t *cond)
 
 	ba.curthread = _get_curthread();
 	ba.count = 0;
-	
+
 	_sleepq_lock(cvp);
 	sq = _sleepq_lookup(cvp);
 	if (sq == NULL) {
@@ -543,14 +545,14 @@ cond_broadcast_common(pthread_cond_t *cond)
 }
 
 int
-_thr_cond_signal(pthread_cond_t * cond)
+_thr_cond_signal(pthread_cond_t *cond)
 {
 
 	return (cond_signal_common(cond));
 }
 
 int
-_thr_cond_broadcast(pthread_cond_t * cond)
+_thr_cond_broadcast(pthread_cond_t *cond)
 {
 
 	return (cond_broadcast_common(cond));

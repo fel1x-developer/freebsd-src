@@ -32,10 +32,10 @@
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/mount.h>
 #include <sys/mutex.h>
 #include <sys/sbuf.h>
 #include <sys/vnode.h>
-#include <sys/mount.h>
 
 #include <geom/geom.h>
 #include <geom/geom_vfs.h>
@@ -48,31 +48,29 @@
 #include <sys/buf.h>
 
 struct g_vfs_softc {
-	struct mtx	 sc_mtx;
-	struct bufobj	*sc_bo;
-	struct g_event	*sc_event;
-	int		 sc_active;
-	bool		 sc_orphaned;
-	int		 sc_enxio_active;
-	int		 sc_enxio_reported;
+	struct mtx sc_mtx;
+	struct bufobj *sc_bo;
+	struct g_event *sc_event;
+	int sc_active;
+	bool sc_orphaned;
+	int sc_enxio_active;
+	int sc_enxio_reported;
 };
 
-static struct buf_ops __g_vfs_bufops = {
-	.bop_name =	"GEOM_VFS",
-	.bop_write =	bufwrite,
-	.bop_strategy =	g_vfs_strategy,	
-	.bop_sync =	bufsync,	
-	.bop_bdflush =	bufbdflush
-};
+static struct buf_ops __g_vfs_bufops = { .bop_name = "GEOM_VFS",
+	.bop_write = bufwrite,
+	.bop_strategy = g_vfs_strategy,
+	.bop_sync = bufsync,
+	.bop_bdflush = bufbdflush };
 
 struct buf_ops *g_vfs_bufops = &__g_vfs_bufops;
 
 static g_orphan_t g_vfs_orphan;
 
 static struct g_class g_vfs_class = {
-	.name =		"VFS",
-	.version =	G_VERSION,
-	.orphan =	g_vfs_orphan,
+	.name = "VFS",
+	.version = G_VERSION,
+	.orphan = g_vfs_orphan,
 };
 
 DECLARE_GEOM_CLASS(g_vfs_class, g_vfs);
@@ -115,8 +113,7 @@ g_vfs_done(struct bio *bip)
 		 * otherwise use the mountpoint associated with the disk.
 		 */
 		VI_LOCK(vp);
-		if (vp->v_type != VCHR ||
-		    (cdevp = vp->v_rdev) == NULL ||
+		if (vp->v_type != VCHR || (cdevp = vp->v_rdev) == NULL ||
 		    cdevp->si_devsw == NULL ||
 		    (cdevp->si_devsw->d_flags & D_DISK) == 0)
 			mp = vp->v_mount;
@@ -124,12 +121,14 @@ g_vfs_done(struct bio *bip)
 			mp = cdevp->si_mountpt;
 		if (mp != NULL) {
 			if (bp->b_iocmd == BIO_READ) {
-				if (LK_HOLDER(bp->b_lock.lk_lock) == LK_KERNPROC)
+				if (LK_HOLDER(bp->b_lock.lk_lock) ==
+				    LK_KERNPROC)
 					mp->mnt_stat.f_asyncreads++;
 				else
 					mp->mnt_stat.f_syncreads++;
 			} else if (bp->b_iocmd == BIO_WRITE) {
-				if (LK_HOLDER(bp->b_lock.lk_lock) == LK_KERNPROC)
+				if (LK_HOLDER(bp->b_lock.lk_lock) ==
+				    LK_KERNPROC)
 					mp->mnt_stat.f_asyncwrites++;
 				else
 					mp->mnt_stat.f_syncwrites++;
@@ -143,7 +142,8 @@ g_vfs_done(struct bio *bip)
 	if (bip->bio_error != 0 && bip->bio_error != EOPNOTSUPP) {
 		if ((bp->b_xflags & BX_CVTENXIO) != 0) {
 			if (atomic_cmpset_int(&sc->sc_enxio_active, 0, 1))
-				printf("g_vfs_done(): %s converting all errors to ENXIO\n",
+				printf(
+				    "g_vfs_done(): %s converting all errors to ENXIO\n",
 				    bip->bio_to->name);
 		}
 		if (sc->sc_enxio_active)
@@ -152,8 +152,9 @@ g_vfs_done(struct bio *bip)
 		    atomic_cmpset_int(&sc->sc_enxio_reported, 0, 1)) {
 			g_print_bio("g_vfs_done():", bip, "error = %d%s",
 			    bip->bio_error,
-			    bip->bio_error != ENXIO ? "" :
-			    " supressing further ENXIO");
+			    bip->bio_error != ENXIO ?
+				"" :
+				" supressing further ENXIO");
 		}
 	}
 	bp->b_error = bip->bio_error;
@@ -257,7 +258,8 @@ g_vfs_orphan(struct g_consumer *cp)
 }
 
 int
-g_vfs_open(struct vnode *vp, struct g_consumer **cpp, const char *fsname, int wr)
+g_vfs_open(struct vnode *vp, struct g_consumer **cpp, const char *fsname,
+    int wr)
 {
 	struct g_geom *gp;
 	struct g_provider *pp;

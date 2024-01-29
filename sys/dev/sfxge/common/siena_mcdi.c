@@ -29,33 +29,27 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "efx.h"
 #include "efx_impl.h"
 
 #if EFSYS_OPT_SIENA && EFSYS_OPT_MCDI
 
-#define	SIENA_MCDI_PDU(_emip)			\
-	(((emip)->emi_port == 1)		\
-	? MC_SMEM_P0_PDU_OFST >> 2		\
-	: MC_SMEM_P1_PDU_OFST >> 2)
+#define SIENA_MCDI_PDU(_emip)                                 \
+	(((emip)->emi_port == 1) ? MC_SMEM_P0_PDU_OFST >> 2 : \
+				   MC_SMEM_P1_PDU_OFST >> 2)
 
-#define	SIENA_MCDI_DOORBELL(_emip)		\
-	(((emip)->emi_port == 1)		\
-	? MC_SMEM_P0_DOORBELL_OFST >> 2		\
-	: MC_SMEM_P1_DOORBELL_OFST >> 2)
+#define SIENA_MCDI_DOORBELL(_emip)                                 \
+	(((emip)->emi_port == 1) ? MC_SMEM_P0_DOORBELL_OFST >> 2 : \
+				   MC_SMEM_P1_DOORBELL_OFST >> 2)
 
-#define	SIENA_MCDI_STATUS(_emip)		\
-	(((emip)->emi_port == 1)		\
-	? MC_SMEM_P0_STATUS_OFST >> 2		\
-	: MC_SMEM_P1_STATUS_OFST >> 2)
+#define SIENA_MCDI_STATUS(_emip)                                 \
+	(((emip)->emi_port == 1) ? MC_SMEM_P0_STATUS_OFST >> 2 : \
+				   MC_SMEM_P1_STATUS_OFST >> 2)
 
-			void
-siena_mcdi_send_request(
-	__in			efx_nic_t *enp,
-	__in_bcount(hdr_len)	void *hdrp,
-	__in			size_t hdr_len,
-	__in_bcount(sdu_len)	void *sdup,
-	__in			size_t sdu_len)
+void
+siena_mcdi_send_request(__in efx_nic_t *enp, __in_bcount(hdr_len) void *hdrp,
+    __in size_t hdr_len, __in_bcount(sdu_len) void *sdup, __in size_t sdu_len)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_dword_t dword;
@@ -70,12 +64,12 @@ siena_mcdi_send_request(
 	dbr = SIENA_MCDI_DOORBELL(emip);
 
 	/* Write the header */
-	EFSYS_ASSERT3U(hdr_len, ==, sizeof (efx_dword_t));
+	EFSYS_ASSERT3U(hdr_len, ==, sizeof(efx_dword_t));
 	dword = *(efx_dword_t *)hdrp;
 	EFX_BAR_TBL_WRITED(enp, FR_CZ_MC_TREG_SMEM, pdur, &dword, B_TRUE);
 
 	/* Write the payload */
-	for (pos = 0; pos < sdu_len; pos += sizeof (efx_dword_t)) {
+	for (pos = 0; pos < sdu_len; pos += sizeof(efx_dword_t)) {
 		dword = *(efx_dword_t *)((uint8_t *)sdup + pos);
 		EFX_BAR_TBL_WRITED(enp, FR_CZ_MC_TREG_SMEM,
 		    pdur + 1 + (pos >> 2), &dword, B_FALSE);
@@ -86,12 +80,11 @@ siena_mcdi_send_request(
 	EFX_BAR_TBL_WRITED(enp, FR_CZ_MC_TREG_SMEM, dbr, &dword, B_FALSE);
 }
 
-			efx_rc_t
-siena_mcdi_poll_reboot(
-	__in		efx_nic_t *enp)
+efx_rc_t
+siena_mcdi_poll_reboot(__in efx_nic_t *enp)
 {
 #ifndef EFX_GRACEFUL_MC_REBOOT
- 	/*
+	/*
 	 * This function is not being used properly.
 	 * Until its callers are fixed, it should always return 0.
 	 */
@@ -123,9 +116,8 @@ siena_mcdi_poll_reboot(
 #endif
 }
 
-extern	__checkReturn	boolean_t
-siena_mcdi_poll_response(
-	__in		efx_nic_t *enp)
+extern __checkReturn boolean_t
+siena_mcdi_poll_response(__in efx_nic_t *enp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_dword_t hdr;
@@ -138,12 +130,9 @@ siena_mcdi_poll_response(
 	return (EFX_DWORD_FIELD(hdr, MCDI_HEADER_RESPONSE) ? B_TRUE : B_FALSE);
 }
 
-			void
-siena_mcdi_read_response(
-	__in			efx_nic_t *enp,
-	__out_bcount(length)	void *bufferp,
-	__in			size_t offset,
-	__in			size_t length)
+void
+siena_mcdi_read_response(__in efx_nic_t *enp,
+    __out_bcount(length) void *bufferp, __in size_t offset, __in size_t length)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	unsigned int pdur;
@@ -155,7 +144,7 @@ siena_mcdi_read_response(
 	pdur = SIENA_MCDI_PDU(emip);
 
 	while (remaining > 0) {
-		size_t chunk = MIN(remaining, sizeof (data));
+		size_t chunk = MIN(remaining, sizeof(data));
 
 		EFX_BAR_TBL_READD(enp, FR_CZ_MC_TREG_SMEM,
 		    pdur + ((offset + pos) >> 2), &data, B_FALSE);
@@ -165,10 +154,8 @@ siena_mcdi_read_response(
 	}
 }
 
-	__checkReturn	efx_rc_t
-siena_mcdi_init(
-	__in		efx_nic_t *enp,
-	__in		const efx_mcdi_transport_t *mtp)
+__checkReturn efx_rc_t
+siena_mcdi_init(__in efx_nic_t *enp, __in const efx_mcdi_transport_t *mtp)
 {
 	efx_mcdi_iface_t *emip = &(enp->en_mcdi.em_emip);
 	efx_oword_t oword;
@@ -201,7 +188,7 @@ siena_mcdi_init(
 	 * BOOT_STATUS is preserved so eno_nic_probe() can boot out of the
 	 * assertion handler.
 	 */
-	(void) siena_mcdi_poll_reboot(enp);
+	(void)siena_mcdi_poll_reboot(enp);
 
 	return (0);
 
@@ -211,18 +198,11 @@ fail1:
 	return (rc);
 }
 
-			void
-siena_mcdi_fini(
-	__in		efx_nic_t *enp)
-{
-	_NOTE(ARGUNUSED(enp))
-}
+void
+siena_mcdi_fini(__in efx_nic_t *enp) { _NOTE(ARGUNUSED(enp)) }
 
-	__checkReturn	efx_rc_t
-siena_mcdi_feature_supported(
-	__in		efx_nic_t *enp,
-	__in		efx_mcdi_feature_id_t id,
-	__out		boolean_t *supportedp)
+__checkReturn efx_rc_t siena_mcdi_feature_supported(__in efx_nic_t *enp,
+    __in efx_mcdi_feature_id_t id, __out boolean_t *supportedp)
 {
 	efx_rc_t rc;
 
@@ -249,17 +229,15 @@ fail1:
 }
 
 /* Default timeout for MCDI command processing. */
-#define	SIENA_MCDI_CMD_TIMEOUT_US	(10 * 1000 * 1000)
+#define SIENA_MCDI_CMD_TIMEOUT_US (10 * 1000 * 1000)
 
-			void
-siena_mcdi_get_timeout(
-	__in		efx_nic_t *enp,
-	__in		efx_mcdi_req_t *emrp,
-	__out		uint32_t *timeoutp)
+void
+siena_mcdi_get_timeout(__in efx_nic_t *enp, __in efx_mcdi_req_t *emrp,
+    __out uint32_t *timeoutp)
 {
 	_NOTE(ARGUNUSED(enp, emrp))
 
 	*timeoutp = SIENA_MCDI_CMD_TIMEOUT_US;
 }
 
-#endif	/* EFSYS_OPT_SIENA && EFSYS_OPT_MCDI */
+#endif /* EFSYS_OPT_SIENA && EFSYS_OPT_MCDI */

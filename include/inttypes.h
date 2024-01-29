@@ -27,36 +27,35 @@
  */
 
 #ifndef _INTTYPES_H_
-#define	_INTTYPES_H_
+#define _INTTYPES_H_
 
-#include <machine/_inttypes.h>
 #include <sys/stdint.h>
 
-#ifndef	__cplusplus
+#include <machine/_inttypes.h>
+
+#ifndef __cplusplus
 #ifndef _WCHAR_T_DECLARED
-typedef	___wchar_t	wchar_t;
-#define	_WCHAR_T_DECLARED
+typedef ___wchar_t wchar_t;
+#define _WCHAR_T_DECLARED
 #endif
 #endif
 
 typedef struct {
-	intmax_t	quot;		/* Quotient. */
-	intmax_t	rem;		/* Remainder. */
+	intmax_t quot; /* Quotient. */
+	intmax_t rem;  /* Remainder. */
 } imaxdiv_t;
 
 __BEGIN_DECLS
 #ifdef _XLOCALE_H_
 #include <xlocale/_inttypes.h>
 #endif
-intmax_t	imaxabs(intmax_t) __pure2;
-imaxdiv_t	imaxdiv(intmax_t, intmax_t) __pure2;
+intmax_t imaxabs(intmax_t) __pure2;
+imaxdiv_t imaxdiv(intmax_t, intmax_t) __pure2;
 
-intmax_t	strtoimax(const char * __restrict, char ** __restrict, int);
-uintmax_t	strtoumax(const char * __restrict, char ** __restrict, int);
-intmax_t	wcstoimax(const wchar_t * __restrict,
-		    wchar_t ** __restrict, int);
-uintmax_t	wcstoumax(const wchar_t * __restrict,
-		    wchar_t ** __restrict, int);
+intmax_t strtoimax(const char *__restrict, char **__restrict, int);
+uintmax_t strtoumax(const char *__restrict, char **__restrict, int);
+intmax_t wcstoimax(const wchar_t *__restrict, wchar_t **__restrict, int);
+uintmax_t wcstoumax(const wchar_t *__restrict, wchar_t **__restrict, int);
 __END_DECLS
 
 #endif /* !_INTTYPES_H_ */

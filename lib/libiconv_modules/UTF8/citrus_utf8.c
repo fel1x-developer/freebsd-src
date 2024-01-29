@@ -72,60 +72,64 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
 #include "citrus_module.h"
+#include "citrus_namespace.h"
 #include "citrus_stdenc.h"
+#include "citrus_types.h"
 #include "citrus_utf8.h"
-
 
 /* ----------------------------------------------------------------------
  * private stuffs used by templates
  */
 
 static uint8_t _UTF8_count_array[256] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 00 - 0F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 10 - 1F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 20 - 2F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 30 - 3F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 40 - 4F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 50 - 5F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 60 - 6F */
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,	/* 70 - 7F */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	/* 80 - 8F */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	/* 90 - 9F */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	/* A0 - AF */
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	/* B0 - BF */
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,	/* C0 - CF */
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,	/* D0 - DF */
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,	/* E0 - EF */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 00 - 0F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 10 - 1F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 20 - 2F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 30 - 3F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 40 - 4F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 50 - 5F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 60 - 6F */
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 70 - 7F */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 80 - 8F */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 90 - 9F */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* A0 - AF */
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* B0 - BF */
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, /* C0 - CF */
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, /* D0 - DF */
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, /* E0 - EF */
 	4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 0, 0	/* F0 - FF */
 };
 
 static uint8_t const *_UTF8_count = _UTF8_count_array;
 
 static const uint32_t _UTF8_range[] = {
-	0,	/*dummy*/
-	0x00000000, 0x00000080, 0x00000800, 0x00010000,
-	0x00200000, 0x04000000, 0x80000000,
+	0, /*dummy*/
+	0x00000000,
+	0x00000080,
+	0x00000800,
+	0x00010000,
+	0x00200000,
+	0x04000000,
+	0x80000000,
 };
 
 typedef struct {
-	int	 chlen;
-	char	 ch[6];
+	int chlen;
+	char ch[6];
 } _UTF8State;
 
 typedef void *_UTF8EncodingInfo;
 
-#define _CEI_TO_EI(_cei_)		(&(_cei_)->ei)
-#define _CEI_TO_STATE(_ei_, _func_)	(_ei_)->states.s_##_func_
+#define _CEI_TO_EI(_cei_) (&(_cei_)->ei)
+#define _CEI_TO_STATE(_ei_, _func_) (_ei_)->states.s_##_func_
 
-#define _FUNCNAME(m)			_citrus_UTF8_##m
-#define _ENCODING_INFO			_UTF8EncodingInfo
-#define _ENCODING_STATE			_UTF8State
-#define _ENCODING_MB_CUR_MAX(_ei_)	6
-#define _ENCODING_IS_STATE_DEPENDENT	0
-#define _STATE_NEEDS_EXPLICIT_INIT(_ps_)	0
+#define _FUNCNAME(m) _citrus_UTF8_##m
+#define _ENCODING_INFO _UTF8EncodingInfo
+#define _ENCODING_STATE _UTF8State
+#define _ENCODING_MB_CUR_MAX(_ei_) 6
+#define _ENCODING_IS_STATE_DEPENDENT 0
+#define _STATE_NEEDS_EXPLICIT_INIT(_ps_) 0
 
 static size_t
 _UTF8_findlen(wchar_t v)
@@ -133,12 +137,12 @@ _UTF8_findlen(wchar_t v)
 	size_t i;
 	uint32_t c;
 
-	c = (uint32_t)v;	/*XXX*/
+	c = (uint32_t)v; /*XXX*/
 	for (i = 1; i < sizeof(_UTF8_range) / sizeof(_UTF8_range[0]) - 1; i++)
 		if (c >= _UTF8_range[i] && c < _UTF8_range[i + 1])
 			return (i);
 
-	return (-1);	/*out of range*/
+	return (-1); /*out of range*/
 }
 
 static __inline bool
@@ -289,9 +293,8 @@ err:
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF8_stdenc_wctocs(_UTF8EncodingInfo * __restrict ei __unused,
-    _csid_t * __restrict csid, _index_t * __restrict idx,
-    wchar_t wc)
+_citrus_UTF8_stdenc_wctocs(_UTF8EncodingInfo *__restrict ei __unused,
+    _csid_t *__restrict csid, _index_t *__restrict idx, wchar_t wc)
 {
 
 	*csid = 0;
@@ -302,8 +305,8 @@ _citrus_UTF8_stdenc_wctocs(_UTF8EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF8_stdenc_cstowc(_UTF8EncodingInfo * __restrict ei __unused,
-    wchar_t * __restrict wc, _csid_t csid, _index_t idx)
+_citrus_UTF8_stdenc_cstowc(_UTF8EncodingInfo *__restrict ei __unused,
+    wchar_t *__restrict wc, _csid_t csid, _index_t idx)
 {
 
 	if (csid != 0)
@@ -316,19 +319,20 @@ _citrus_UTF8_stdenc_cstowc(_UTF8EncodingInfo * __restrict ei __unused,
 
 static __inline int
 /*ARGSUSED*/
-_citrus_UTF8_stdenc_get_state_desc_generic(_UTF8EncodingInfo * __restrict ei __unused,
-    _UTF8State * __restrict psenc, int * __restrict rstate)
+_citrus_UTF8_stdenc_get_state_desc_generic(
+    _UTF8EncodingInfo *__restrict ei __unused, _UTF8State *__restrict psenc,
+    int *__restrict rstate)
 {
 
 	*rstate = (psenc->chlen == 0) ? _STDENC_SDGEN_INITIAL :
-	    _STDENC_SDGEN_INCOMPLETE_CHAR;
+					_STDENC_SDGEN_INCOMPLETE_CHAR;
 	return (0);
 }
 
 static int
 /*ARGSUSED*/
-_citrus_UTF8_encoding_module_init(_UTF8EncodingInfo * __restrict ei __unused,
-    const void * __restrict var __unused, size_t lenvar __unused)
+_citrus_UTF8_encoding_module_init(_UTF8EncodingInfo *__restrict ei __unused,
+    const void *__restrict var __unused, size_t lenvar __unused)
 {
 
 	return (0);
@@ -338,7 +342,6 @@ static void
 /*ARGSUSED*/
 _citrus_UTF8_encoding_module_uninit(_UTF8EncodingInfo *ei __unused)
 {
-
 }
 
 /* ----------------------------------------------------------------------

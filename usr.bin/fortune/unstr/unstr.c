@@ -45,6 +45,7 @@
 
 #include <sys/param.h>
 #include <sys/endian.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <stdio.h>
@@ -53,11 +54,11 @@
 
 #include "strfile.h"
 
-static char	*Infile,		/* name of input file */
-		Datafile[MAXPATHLEN],	/* name of data file */
-		Delimch;		/* delimiter character */
+static char *Infile,	  /* name of input file */
+    Datafile[MAXPATHLEN], /* name of data file */
+    Delimch;		  /* delimiter character */
 
-static FILE	*Inf, *Dataf;
+static FILE *Inf, *Dataf;
 
 static void order_unstr(STRFILE *);
 
@@ -65,7 +66,7 @@ static void order_unstr(STRFILE *);
 int
 main(int argc, char *argv[])
 {
-	static STRFILE tbl;		/* description table */
+	static STRFILE tbl; /* description table */
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: unstr datafile\n");
@@ -73,7 +74,7 @@ main(int argc, char *argv[])
 	}
 	Infile = argv[1];
 	if ((size_t)snprintf(Datafile, sizeof(Datafile), "%s.dat", Infile) >=
-	    sizeof(Datafile)) 
+	    sizeof(Datafile))
 		errx(1, "%s name too long", Infile);
 	if ((Inf = fopen(Infile, "r")) == NULL)
 		err(1, "%s", Infile);

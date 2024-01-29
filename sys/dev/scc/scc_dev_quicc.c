@@ -30,27 +30,25 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
-#include <machine/bus.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 #include <sys/serial.h>
 
+#include <machine/bus.h>
+
+#include <dev/ic/quicc.h>
 #include <dev/scc/scc_bfe.h>
 #include <dev/scc/scc_bus.h>
 
-#include <dev/ic/quicc.h>
-
 #include "scc_if.h"
 
-#define	quicc_read2(bas, reg)		\
-	bus_space_read_2((bas)->bst, (bas)->bsh, reg)
-#define	quicc_read4(bas, reg)		\
-	bus_space_read_4((bas)->bst, (bas)->bsh, reg)
+#define quicc_read2(bas, reg) bus_space_read_2((bas)->bst, (bas)->bsh, reg)
+#define quicc_read4(bas, reg) bus_space_read_4((bas)->bst, (bas)->bsh, reg)
 
-#define	quicc_write2(bas, reg, val)	\
+#define quicc_write2(bas, reg, val) \
 	bus_space_write_2((bas)->bst, (bas)->bsh, reg, val)
-#define	quicc_write4(bas, reg, val)	\
+#define quicc_write4(bas, reg, val) \
 	bus_space_write_4((bas)->bst, (bas)->bsh, reg, val)
 
 static int quicc_bfe_attach(struct scc_softc *, int);
@@ -59,14 +57,12 @@ static int quicc_bfe_iclear(struct scc_softc *, struct scc_chan *);
 static int quicc_bfe_ipend(struct scc_softc *);
 static int quicc_bfe_probe(struct scc_softc *);
 
-static kobj_method_t quicc_methods[] = {
-	KOBJMETHOD(scc_attach,	quicc_bfe_attach),
-	KOBJMETHOD(scc_enabled,	quicc_bfe_enabled),
-	KOBJMETHOD(scc_iclear,	quicc_bfe_iclear),
-	KOBJMETHOD(scc_ipend,	quicc_bfe_ipend),
-	KOBJMETHOD(scc_probe,	quicc_bfe_probe),
-	KOBJMETHOD_END
-};
+static kobj_method_t quicc_methods[] = { KOBJMETHOD(scc_attach,
+					     quicc_bfe_attach),
+	KOBJMETHOD(scc_enabled, quicc_bfe_enabled),
+	KOBJMETHOD(scc_iclear, quicc_bfe_iclear),
+	KOBJMETHOD(scc_ipend, quicc_bfe_ipend),
+	KOBJMETHOD(scc_probe, quicc_bfe_probe), KOBJMETHOD_END };
 
 struct scc_class scc_quicc_class = {
 	"QUICC class",

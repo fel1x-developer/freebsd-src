@@ -27,9 +27,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bus.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -37,35 +37,29 @@
 #include <sys/kernel.h>
 #include <sys/module.h>
 
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/xhci.h>
-
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
 #include <dev/phy/phy.h>
+#include <dev/usb/controller/xhci.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usbdi.h>
 
 #include "generic_xhci.h"
 
 /* Flags for the OFW compat data table */
-#define	XHCI_FDT_MATCH		0x01
-#define	XHCI_FDT_32BIT_DMA	0x02	/* Controller needs 32-bit DMA */
+#define XHCI_FDT_MATCH 0x01
+#define XHCI_FDT_32BIT_DMA 0x02 /* Controller needs 32-bit DMA */
 
-static struct ofw_compat_data compat_data[] = {
-	{"marvell,armada-380-xhci",	XHCI_FDT_MATCH},
-	{"marvell,armada3700-xhci",	XHCI_FDT_MATCH},
-	{"marvell,armada-8k-xhci",	XHCI_FDT_MATCH},
-	{"generic-xhci",		XHCI_FDT_MATCH},
-	{NULL,				0}
-};
+static struct ofw_compat_data compat_data[] = { { "marvell,armada-380-xhci",
+						    XHCI_FDT_MATCH },
+	{ "marvell,armada3700-xhci", XHCI_FDT_MATCH },
+	{ "marvell,armada-8k-xhci", XHCI_FDT_MATCH },
+	{ "generic-xhci", XHCI_FDT_MATCH }, { NULL, 0 } };
 
 static int
 generic_xhci_fdt_probe(device_t dev)

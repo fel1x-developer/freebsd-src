@@ -32,9 +32,10 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
@@ -46,8 +47,7 @@
 #include "coresight_if.h"
 
 static struct ofw_compat_data compat_data[] = {
-	{ "arm,coresight-dynamic-replicator",	1 },
-	{ NULL,					0 }
+	{ "arm,coresight-dynamic-replicator", 1 }, { NULL, 0 }
 };
 
 static int
@@ -77,9 +77,8 @@ replicator_fdt_attach(device_t dev)
 
 static device_method_t replicator_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		replicator_fdt_probe),
-	DEVMETHOD(device_attach,	replicator_fdt_attach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, replicator_fdt_probe),
+	DEVMETHOD(device_attach, replicator_fdt_attach), DEVMETHOD_END
 };
 
 DEFINE_CLASS_1(replicator, replicator_fdt_driver, replicator_fdt_methods,

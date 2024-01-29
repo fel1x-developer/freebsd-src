@@ -24,8 +24,8 @@
  * SUCH DAMAGE.
  */
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #ifndef _EFIZFS_H_
 #define _EFIZFS_H_
@@ -35,11 +35,10 @@
 
 typedef STAILQ_HEAD(zfsinfo_list, zfsinfo) zfsinfo_list_t;
 
-typedef struct zfsinfo
-{
+typedef struct zfsinfo {
 	STAILQ_ENTRY(zfsinfo) zi_link;
 	EFI_HANDLE zi_handle;
-        uint64_t zi_pool_guid;
+	uint64_t zi_pool_guid;
 } zfsinfo_t;
 
 extern uint64_t pool_guid;

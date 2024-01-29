@@ -44,8 +44,8 @@
 #include <errno.h>
 #include <libgen.h>
 #include <resolv.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -116,15 +116,15 @@ main_encode(int argc, char *argv[])
 	argc -= optind;
 
 	switch (argc) {
-	case 2:			/* optional first argument is input file */
+	case 2: /* optional first argument is input file */
 		if (!freopen(*argv, "r", stdin) || fstat(fileno(stdin), &sb))
 			err(1, "%s", *argv);
-#define	RWX	(S_IRWXU|S_IRWXG|S_IRWXO)
+#define RWX (S_IRWXU | S_IRWXG | S_IRWXO)
 		mode = sb.st_mode & RWX;
 		++argv;
 		break;
 	case 1:
-#define	RW	(S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define RW (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
 		mode = RW & ~umask(RW);
 		break;
 	case 0:
@@ -150,7 +150,7 @@ main_encode(int argc, char *argv[])
 }
 
 /* ENC is the basic 1 character encoding function to make a char printing */
-#define	ENC(c) ((c) ? ((c) & 077) + ' ': '`')
+#define ENC(c) ((c) ? ((c) & 077) + ' ' : '`')
 
 /*
  * Copy from in to out, encoding in base64 as you go along.
@@ -269,7 +269,7 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: uuencode [-m] [-o outfile] [infile] remotefile\n"
-"       b64encode [-o outfile] [infile] remotefile\n");
+	    "usage: uuencode [-m] [-o outfile] [infile] remotefile\n"
+	    "       b64encode [-o outfile] [infile] remotefile\n");
 	exit(1);
 }

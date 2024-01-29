@@ -37,16 +37,17 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <stdio.h>
 #include <stdarg.h>
-#include "un-namespace.h"
+#include <stdio.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 int
-fscanf(FILE * __restrict fp, char const * __restrict fmt, ...)
+fscanf(FILE *__restrict fp, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -59,7 +60,7 @@ fscanf(FILE * __restrict fp, char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-fscanf_l(FILE * __restrict fp, locale_t locale, char const * __restrict fmt, ...)
+fscanf_l(FILE *__restrict fp, locale_t locale, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

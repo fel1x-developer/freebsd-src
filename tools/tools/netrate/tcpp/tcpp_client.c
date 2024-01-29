@@ -53,30 +53,29 @@
 
 #include "tcpp.h"
 
-#define	min(x, y)	(x < y ? x : y)
-
+#define min(x, y) (x < y ? x : y)
 
 /*
  * Gist of each client worker: build up to mflag connections at a time, and
  * pump data in to them somewhat fairly until tflag connections have been
  * completed.
  */
-#define	CONNECTION_MAGIC	0x87a3f56e
+#define CONNECTION_MAGIC 0x87a3f56e
 struct connection {
-	uint32_t	conn_magic;		/* Just magic. */
-	int		conn_fd;
-	struct tcpp_header	conn_header;	/* Header buffer. */
-	u_int		conn_header_sent;	/* Header bytes sent. */
-	u_int64_t	conn_data_sent;		/* Data bytes sent.*/
+	uint32_t conn_magic; /* Just magic. */
+	int conn_fd;
+	struct tcpp_header conn_header; /* Header buffer. */
+	u_int conn_header_sent;		/* Header bytes sent. */
+	u_int64_t conn_data_sent;	/* Data bytes sent.*/
 };
 
-static u_char			 buffer[256 * 1024];	/* Buffer to send. */
-static pid_t			*pid_list;
-static int			 kq;
-static int			 started;	/* Number started so far. */
-static int			 finished;	/* Number finished so far. */
-static int			 counter;	/* IP number offset. */
-static uint64_t			 payload_len;
+static u_char buffer[256 * 1024]; /* Buffer to send. */
+static pid_t *pid_list;
+static int kq;
+static int started;  /* Number started so far. */
+static int finished; /* Number finished so far. */
+static int counter;  /* IP number offset. */
+static uint64_t payload_len;
 
 static struct connection *
 tcpp_client_newconn(void)
@@ -91,8 +90,8 @@ tcpp_client_newconn(void)
 	 * attempt to localize IPs to particular workers.
 	 */
 	sin = localipbase;
-	sin.sin_addr.s_addr = htonl(ntohl(localipbase.sin_addr.s_addr) +
-	    (counter++ % Mflag));
+	sin.sin_addr.s_addr = htonl(
+	    ntohl(localipbase.sin_addr.s_addr) + (counter++ % Mflag));
 
 	fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (fd < 0)
@@ -176,7 +175,8 @@ tcpp_client_handleconn(struct kevent *kev)
 		}
 		if (len == 0) {
 			tcpp_client_closeconn(conn);
-			errx(-1, "tcpp_client_handleconn: header write "
+			errx(-1,
+			    "tcpp_client_handleconn: header write "
 			    "premature EOF");
 		}
 		if (len > header_left) {
@@ -185,15 +185,16 @@ tcpp_client_handleconn(struct kevent *kev)
 		} else
 			conn->conn_header_sent += len;
 	} else {
-		len = write(conn->conn_fd, buffer, min(sizeof(buffer),
-		    payload_len - conn->conn_data_sent));
+		len = write(conn->conn_fd, buffer,
+		    min(sizeof(buffer), payload_len - conn->conn_data_sent));
 		if (len < 0) {
 			tcpp_client_closeconn(conn);
 			err(-1, "tcpp_client_handleconn: data write");
 		}
 		if (len == 0) {
 			tcpp_client_closeconn(conn);
-			errx(-1, "tcpp_client_handleconn: data write: "
+			errx(-1,
+			    "tcpp_client_handleconn: data write: "
 			    "premature EOF");
 		}
 		conn->conn_data_sent += len;
@@ -273,7 +274,7 @@ tcpp_client(void)
 
 	if (bflag < sizeof(struct tcpp_header))
 		errx(-1, "Can't use -b less than %zu\n",
-		   sizeof(struct tcpp_header));
+		    sizeof(struct tcpp_header));
 	payload_len = bflag - sizeof(struct tcpp_header);
 
 	pid_list = malloc(sizeof(*pid_list) * pflag);
@@ -285,8 +286,7 @@ tcpp_client(void)
 	 * Start workers.
 	 */
 	size = sizeof(cp_time_start);
-	if (sysctlbyname(SYSCTLNAME_CPTIME, &cp_time_start, &size, NULL, 0)
-	    < 0)
+	if (sysctlbyname(SYSCTLNAME_CPTIME, &cp_time_start, &size, NULL, 0) < 0)
 		err(-1, "sysctlbyname: %s", SYSCTLNAME_CPTIME);
 	if (clock_gettime(CLOCK_REALTIME, &ts_start) < 0)
 		err(-1, "clock_gettime");
@@ -313,7 +313,8 @@ tcpp_client(void)
 	failed = 0;
 	for (i = 0; i < pflag; i++) {
 		if (pid_list[i] != 0) {
-			while (waitpid(pid_list[i], &status, 0) != pid_list[i]);
+			while (waitpid(pid_list[i], &status, 0) != pid_list[i])
+				;
 			if (WEXITSTATUS(status) != 0)
 				failed = 1;
 		}
@@ -321,8 +322,8 @@ tcpp_client(void)
 	if (clock_gettime(CLOCK_REALTIME, &ts_finish) < 0)
 		err(-1, "clock_gettime");
 	size = sizeof(cp_time_finish);
-	if (sysctlbyname(SYSCTLNAME_CPTIME, &cp_time_finish, &size, NULL, 0)
-	    < 0)
+	if (sysctlbyname(SYSCTLNAME_CPTIME, &cp_time_finish, &size, NULL, 0) <
+	    0)
 		err(-1, "sysctlbyname: %s", SYSCTLNAME_CPTIME);
 	timespecsub(&ts_finish, &ts_start, &ts_finish);
 
@@ -331,7 +332,7 @@ tcpp_client(void)
 
 	if (hflag)
 		printf("bytes,seconds,conn/s,Gb/s,user%%,nice%%,sys%%,"
-		    "intr%%,idle%%\n");
+		       "intr%%,idle%%\n");
 
 	/*
 	 * Configuration parameters.
@@ -343,10 +344,12 @@ tcpp_client(void)
 	/*
 	 * Effective transmit rates.
 	 */
-	printf("%f,", (double)(pflag * tflag)/
-	    (ts_finish.tv_sec + ts_finish.tv_nsec * 1e-9));
-	printf("%f,", (double)(bflag * tflag * pflag * 8) /
-	    (ts_finish.tv_sec + ts_finish.tv_nsec * 1e-9) * 1e-9);
+	printf("%f,",
+	    (double)(pflag * tflag) /
+		(ts_finish.tv_sec + ts_finish.tv_nsec * 1e-9));
+	printf("%f,",
+	    (double)(bflag * tflag * pflag * 8) /
+		(ts_finish.tv_sec + ts_finish.tv_nsec * 1e-9) * 1e-9);
 
 	/*
 	 * CPU time (est).

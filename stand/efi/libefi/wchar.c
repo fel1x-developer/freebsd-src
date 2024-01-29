@@ -24,6 +24,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <efi.h>
 #include <efilib.h>
 
@@ -51,7 +52,7 @@ wcscmp(CHAR16 *a, CHAR16 *b)
 void
 cpy8to16(const char *src, CHAR16 *dst, size_t len)
 {
-	len <<= 1;		/* Assume CHAR16 is 2 bytes */
+	len <<= 1; /* Assume CHAR16 is 2 bytes */
 	while (len > 0 && *src) {
 		*dst++ = *src++;
 		len--;

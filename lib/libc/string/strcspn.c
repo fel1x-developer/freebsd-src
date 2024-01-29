@@ -27,11 +27,12 @@
  */
 
 #include <sys/types.h>
+
 #include <limits.h>
 #include <string.h>
 
-#define	IDX(c)	((u_char)(c) / LONG_BIT)
-#define	BIT(c)	((u_long)1 << ((u_char)(c) % LONG_BIT))
+#define IDX(c) ((u_char)(c) / LONG_BIT)
+#define BIT(c) ((u_long)1 << ((u_char)(c) % LONG_BIT))
 
 size_t
 strcspn(const char *s, const char *charset)
@@ -45,10 +46,10 @@ strcspn(const char *s, const char *charset)
 	u_long tbl[(UCHAR_MAX + 1) / LONG_BIT];
 	int idx;
 
-	if(*s == '\0')
+	if (*s == '\0')
 		return (0);
 
-#if LONG_BIT == 64	/* always better to unroll on 64-bit architectures */
+#if LONG_BIT == 64 /* always better to unroll on 64-bit architectures */
 	tbl[0] = 1;
 	tbl[3] = tbl[2] = tbl[1] = 0;
 #else
@@ -61,7 +62,7 @@ strcspn(const char *s, const char *charset)
 		tbl[idx] |= bit;
 	}
 
-	for(s1 = s; ; s1++) {
+	for (s1 = s;; s1++) {
 		idx = IDX(*s1);
 		bit = BIT(*s1);
 		if ((tbl[idx] & bit) != 0)

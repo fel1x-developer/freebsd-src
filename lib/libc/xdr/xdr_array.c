@@ -40,15 +40,15 @@
  * arrays.  See xdr.h for more info on the interface to xdr.
  */
 
-#include "namespace.h"
 #include <err.h>
 #include <limits.h>
+#include <rpc/types.h>
+#include <rpc/xdr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <rpc/types.h>
-#include <rpc/xdr.h>
+#include "namespace.h"
 #include "un-namespace.h"
 
 /*
@@ -59,7 +59,8 @@
  * xdr procedure to call to handle each element of the array.
  */
 bool_t
-xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize, xdrproc_t elproc)
+xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize,
+    xdrproc_t elproc)
 /*
  *	XDR *xdrs;
  *	caddr_t *addrp;		// array pointer
@@ -71,7 +72,7 @@ xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize, 
 {
 	u_int i;
 	caddr_t target = *addrp;
-	u_int c;  /* the actual element count */
+	u_int c; /* the actual element count */
 	bool_t stat = TRUE;
 	u_int nodesize;
 
@@ -80,7 +81,7 @@ xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize, 
 		return (FALSE);
 	}
 	c = *sizep;
-	if ((c > maxsize || UINT_MAX/elsize < c) &&
+	if ((c > maxsize || UINT_MAX / elsize < c) &&
 	    (xdrs->x_op != XDR_FREE)) {
 		return (FALSE);
 	}
@@ -108,8 +109,8 @@ xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize, 
 
 		case XDR_ENCODE:
 			break;
-	}
-	
+		}
+
 	/*
 	 * now we xdr each element of array
 	 */
@@ -139,7 +140,8 @@ xdr_array(XDR *xdrs, caddr_t *addrp, u_int *sizep, u_int maxsize, u_int elsize, 
  * > xdr_elem: routine to XDR each element
  */
 bool_t
-xdr_vector(XDR *xdrs, char *basep, u_int nelem, u_int elemsize, xdrproc_t xdr_elem)
+xdr_vector(XDR *xdrs, char *basep, u_int nelem, u_int elemsize,
+    xdrproc_t xdr_elem)
 {
 	u_int i;
 	char *elptr;
@@ -147,9 +149,9 @@ xdr_vector(XDR *xdrs, char *basep, u_int nelem, u_int elemsize, xdrproc_t xdr_el
 	elptr = basep;
 	for (i = 0; i < nelem; i++) {
 		if (!(*xdr_elem)(xdrs, elptr)) {
-			return(FALSE);
+			return (FALSE);
 		}
 		elptr += elemsize;
 	}
-	return(TRUE);	
+	return (TRUE);
 }

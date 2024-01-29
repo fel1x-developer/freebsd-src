@@ -43,19 +43,21 @@ provider_for_name(struct gmesh *mesh, const char *name)
 	struct gprovider *pp = NULL;
 	struct ggeom *gp;
 
-	LIST_FOREACH(classp, &mesh->lg_class, lg_class) {
-		LIST_FOREACH(gp, &classp->lg_geom, lg_geom) {
+	LIST_FOREACH (classp, &mesh->lg_class, lg_class) {
+		LIST_FOREACH (gp, &classp->lg_geom, lg_geom) {
 			if (LIST_EMPTY(&gp->lg_provider))
 				continue;
 
-			LIST_FOREACH(pp, &gp->lg_provider, lg_provider)
+			LIST_FOREACH (pp, &gp->lg_provider, lg_provider)
 				if (strcmp(pp->lg_name, name) == 0)
 					break;
 
-			if (pp != NULL) break;
+			if (pp != NULL)
+				break;
 		}
 
-		if (pp != NULL) break;
+		if (pp != NULL)
+			break;
 	}
 
 	return (pp);
@@ -83,13 +85,13 @@ part_config(char *disk, const char *scheme, char *config)
 	}
 
 	/* Remove any existing partitioning and create new scheme */
-	LIST_FOREACH(classp, &mesh.lg_class, lg_class)
+	LIST_FOREACH (classp, &mesh.lg_class, lg_class)
 		if (strcmp(classp->lg_name, "PART") == 0)
 			break;
 	if (classp != NULL) {
-		LIST_FOREACH(gpart, &classp->lg_geom, lg_geom)
-		if (strcmp(gpart->lg_name, disk) == 0)
-			break;
+		LIST_FOREACH (gpart, &classp->lg_geom, lg_geom)
+			if (strcmp(gpart->lg_name, disk) == 0)
+				break;
 	}
 	if (gpart != NULL)
 		gpart_destroy(gpart);
@@ -165,17 +167,19 @@ parse_disk_config(char *input)
 			continue;
 		}
 
-		switch(*input) {
+		switch (*input) {
 		case '{':
 			input++;
 			partconfig = strchr(input, '}');
 			if (partconfig == NULL) {
-				fprintf(stderr, "Malformed partition setup "
-				    "string: %s\n", input);
+				fprintf(stderr,
+				    "Malformed partition setup "
+				    "string: %s\n",
+				    input);
 				return (1);
 			}
 			*partconfig = '\0';
-			ap = partconfig+1;
+			ap = partconfig + 1;
 			partconfig = input;
 			input = ap;
 			break;
@@ -190,7 +194,9 @@ parse_disk_config(char *input)
 				return (1);
 			}
 		}
-	} while (input != NULL && *input != 0);
+	}
+	while (input != NULL && *input != 0)
+		;
 
 	if (disk == NULL || strcmp(disk, "DEFAULT") == 0) {
 		struct gmesh mesh;
@@ -230,4 +236,3 @@ scripted_editor(int argc, const char **argv)
 
 	return (0);
 }
-

@@ -18,40 +18,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
 #include <dev/rtwn/if_rtwn_efuse.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
 #include <dev/rtwn/rtl8192c/r92c_priv.h>
-#include <dev/rtwn/rtl8192c/r92c_var.h>
 #include <dev/rtwn/rtl8192c/r92c_rom_image.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 static void
 r92c_set_chains(struct rtwn_softc *sc)
@@ -74,7 +71,7 @@ r92c_efuse_postread(struct rtwn_softc *sc)
 
 	/* XXX Weird but this is what the vendor driver does. */
 	sc->next_rom_addr = 0x1fa;
-	(void) rtwn_efuse_read_next(sc, &rs->pa_setting);
+	(void)rtwn_efuse_read_next(sc, &rs->pa_setting);
 	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: PA setting=0x%x\n", __func__,
 	    rs->pa_setting);
 }
@@ -89,8 +86,8 @@ r92c_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 
 	rs->board_type = MS(rom->rf_opt1, R92C_ROM_RF1_BOARD_TYPE);
 	rs->regulatory = MS(rom->rf_opt1, R92C_ROM_RF1_REGULATORY);
-	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type=%d\n",
-	    __func__, rs->regulatory);
+	RTWN_DPRINTF(sc, RTWN_DEBUG_ROM, "%s: regulatory type=%d\n", __func__,
+	    rs->regulatory);
 
 	/* Need to be set before postinit() (but after preinit()). */
 	rtwn_r92c_set_rom_opts(sc, buf);
@@ -102,30 +99,26 @@ r92c_parse_rom(struct rtwn_softc *sc, uint8_t *buf)
 			rt->ht40_1s_tx_pwr[i][j] = rom->ht40_1s_tx_pwr[i][j];
 		}
 
-		rt->ht40_2s_tx_pwr_diff[0][j] =
-		    MS(rom->ht40_2s_tx_pwr_diff[j], LOW_PART);
-		rt->ht20_tx_pwr_diff[0][j] =
-		    RTWN_SIGN4TO8(MS(rom->ht20_tx_pwr_diff[j],
-			LOW_PART));
-		rt->ofdm_tx_pwr_diff[0][j] =
-		    MS(rom->ofdm_tx_pwr_diff[j], LOW_PART);
-		rt->ht40_max_pwr[0][j] =
-		    MS(rom->ht40_max_pwr[j], LOW_PART);
-		rt->ht20_max_pwr[0][j] =
-		    MS(rom->ht20_max_pwr[j], LOW_PART);
+		rt->ht40_2s_tx_pwr_diff[0][j] = MS(rom->ht40_2s_tx_pwr_diff[j],
+		    LOW_PART);
+		rt->ht20_tx_pwr_diff[0][j] = RTWN_SIGN4TO8(
+		    MS(rom->ht20_tx_pwr_diff[j], LOW_PART));
+		rt->ofdm_tx_pwr_diff[0][j] = MS(rom->ofdm_tx_pwr_diff[j],
+		    LOW_PART);
+		rt->ht40_max_pwr[0][j] = MS(rom->ht40_max_pwr[j], LOW_PART);
+		rt->ht20_max_pwr[0][j] = MS(rom->ht20_max_pwr[j], LOW_PART);
 
 		if (sc->ntxchains > 1) {
 			rt->ht40_2s_tx_pwr_diff[1][j] =
 			    MS(rom->ht40_2s_tx_pwr_diff[j], HIGH_PART);
-			rt->ht20_tx_pwr_diff[1][j] =
-			    RTWN_SIGN4TO8(MS(rom->ht20_tx_pwr_diff[j],
-				HIGH_PART));
+			rt->ht20_tx_pwr_diff[1][j] = RTWN_SIGN4TO8(
+			    MS(rom->ht20_tx_pwr_diff[j], HIGH_PART));
 			rt->ofdm_tx_pwr_diff[1][j] =
 			    MS(rom->ofdm_tx_pwr_diff[j], HIGH_PART);
-			rt->ht40_max_pwr[1][j] =
-			    MS(rom->ht40_max_pwr[j], HIGH_PART);
-			rt->ht20_max_pwr[1][j] =
-			    MS(rom->ht20_max_pwr[j], HIGH_PART);
+			rt->ht40_max_pwr[1][j] = MS(rom->ht40_max_pwr[j],
+			    HIGH_PART);
+			rt->ht20_max_pwr[1][j] = MS(rom->ht20_max_pwr[j],
+			    HIGH_PART);
 		}
 	}
 

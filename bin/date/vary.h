@@ -25,8 +25,8 @@
  */
 
 struct vary {
-  char *arg;
-  struct vary *next;
+	char *arg;
+	struct vary *next;
 };
 
 extern struct vary *vary_append(struct vary *v, char *arg);

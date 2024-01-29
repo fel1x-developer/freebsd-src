@@ -30,10 +30,10 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/consio.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
 
 #include <machine/pc/display.h>
 
@@ -41,7 +41,7 @@
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define NUM_STARS	50
+#define NUM_STARS 50
 
 static int blanked;
 
@@ -52,13 +52,13 @@ static int blanked;
 static int
 star_saver(video_adapter_t *adp, int blank)
 {
-	sc_softc_t	*sc;
-	scr_stat	*scp;
-	int		cell, i;
-	static u_char	pattern[] = {"...........++++***   "};
-	static char	color16[] = {FG_DARKGREY, FG_LIGHTGREY,
-				     FG_WHITE, FG_LIGHTCYAN};
-	static u_short 	stars[NUM_STARS][2];
+	sc_softc_t *sc;
+	scr_stat *scp;
+	int cell, i;
+	static u_char pattern[] = { "...........++++***   " };
+	static char color16[] = { FG_DARKGREY, FG_LIGHTGREY, FG_WHITE,
+		FG_LIGHTCYAN };
+	static u_short stars[NUM_STARS][2];
 
 	sc = sc_find_softc(adp, NULL);
 	if (sc == NULL)
@@ -71,22 +71,22 @@ star_saver(video_adapter_t *adp, int blank)
 		if (!blanked) {
 			/* clear the screen and set the border color */
 			sc_vtb_clear(&scp->scr, sc->scr_map[0x20],
-				     (FG_LIGHTGREY | BG_BLACK) << 8);
+			    (FG_LIGHTGREY | BG_BLACK) << 8);
 			vidd_set_hw_cursor(adp, -1, -1);
 			sc_set_border(scp, 0);
 			blanked = TRUE;
-			for(i=0; i<NUM_STARS; i++) {
-				stars[i][0] =
-					random() % (scp->xsize*scp->ysize);
+			for (i = 0; i < NUM_STARS; i++) {
+				stars[i][0] = random() %
+				    (scp->xsize * scp->ysize);
 				stars[i][1] = 0;
 			}
 		}
 		cell = random() % NUM_STARS;
-		sc_vtb_putc(&scp->scr, stars[cell][0], 
-			    sc->scr_map[pattern[stars[cell][1]]],
-			    color16[random()%sizeof(color16)] << 8);
-		if ((stars[cell][1]+=(random()%4)) >= sizeof(pattern)-1) {
-			stars[cell][0] = random() % (scp->xsize*scp->ysize);
+		sc_vtb_putc(&scp->scr, stars[cell][0],
+		    sc->scr_map[pattern[stars[cell][1]]],
+		    color16[random() % sizeof(color16)] << 8);
+		if ((stars[cell][1] += (random() % 4)) >= sizeof(pattern) - 1) {
+			stars[cell][0] = random() % (scp->xsize * scp->ysize);
 			stars[cell][1] = 0;
 		}
 	} else
@@ -109,7 +109,11 @@ star_term(video_adapter_t *adp)
 }
 
 static scrn_saver_t star_module = {
-	"star_saver", star_init, star_term, star_saver, NULL,
+	"star_saver",
+	star_init,
+	star_term,
+	star_saver,
+	NULL,
 };
 
 SAVER_MODULE(star_saver, star_module);

@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
 #include "adf_cfg.h"
+#include "adf_common_drv.h"
 #include "cpa.h"
 #include "icp_accel_devices.h"
-#include "adf_common_drv.h"
 #include "icp_adf_accel_mgr.h"
 #include "icp_adf_cfg.h"
 #include "icp_adf_debug.h"
@@ -43,9 +43,8 @@ create_adf_dev_structure(struct adf_accel_dev *accel_dev)
 	adf->accelId = accel_dev->accel_id;
 	adf->pAccelName = (char *)hw_data->dev_class->name;
 	adf->deviceType = (device_type_t)hw_data->dev_class->type;
-	strlcpy(adf->deviceName,
-		hw_data->dev_class->name,
-		sizeof(adf->deviceName));
+	strlcpy(adf->deviceName, hw_data->dev_class->name,
+	    sizeof(adf->deviceName));
 	adf->accelCapabilitiesMask = hw_data->accel_capabilities_mask;
 	adf->sku = hw_data->get_sku(hw_data);
 	adf->accel_dev = accel_dev;
@@ -101,10 +100,8 @@ adf_event_handler(struct adf_accel_dev *accel_dev, enum adf_event event)
 		accel_dev_error_stat[accel_dev->accel_id] = 0;
 	}
 
-	status =
-	    salService->subserviceEventHandler(adf,
-					       (icp_adf_subsystemEvent_t)event,
-					       NULL);
+	status = salService->subserviceEventHandler(adf,
+	    (icp_adf_subsystemEvent_t)event, NULL);
 
 	if (event == ADF_EVENT_ERROR) {
 		accel_dev_error_stat[accel_dev->accel_id] = 1;
@@ -182,10 +179,8 @@ icp_adf_subsystemUnregister(
  * get parameter value from section @section with key @param
  */
 CpaStatus
-icp_adf_cfgGetParamValue(icp_accel_dev_t *adf,
-			 const char *section,
-			 const char *param,
-			 char *value)
+icp_adf_cfgGetParamValue(icp_accel_dev_t *adf, const char *section,
+    const char *param, char *value)
 {
 	if (adf_cfg_get_param_value(adf->accel_dev, section, param, value) ==
 	    0) {
@@ -265,8 +260,7 @@ icp_amgr_getNumInstances(Cpa16U *pNumInstances)
  */
 CpaStatus
 icp_amgr_getAccelDevByCapabilities(Cpa32U capabilitiesMask,
-				   icp_accel_dev_t **pAccel_devs,
-				   Cpa16U *pNumInstances)
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances)
 {
 	icp_accel_dev_t *adf = NULL;
 	*pNumInstances = 0;
@@ -293,15 +287,14 @@ icp_amgr_getAccelDevByCapabilities(Cpa32U capabilitiesMask,
  */
 CpaStatus
 icp_amgr_getAllAccelDevByEachCapability(Cpa32U capabilitiesMask,
-					icp_accel_dev_t **pAccel_devs,
-					Cpa16U *pNumInstances)
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances)
 {
 	icp_accel_dev_t *adf = NULL;
 	*pNumInstances = 0;
 	qatUtilsMutexLock(&adfDevicesLock, QAT_UTILS_WAIT_FOREVER);
 	for (adf = adfDevicesHead; adf != NULL; adf = adf->pNext) {
-		Cpa32U enabled_caps =
-		    adf->accelCapabilitiesMask & capabilitiesMask;
+		Cpa32U enabled_caps = adf->accelCapabilitiesMask &
+		    capabilitiesMask;
 		if (enabled_caps == capabilitiesMask) {
 			if (adf->adfSubsystemStatus) {
 				pAccel_devs[(*pNumInstances)++] =
@@ -320,8 +313,7 @@ icp_amgr_getAllAccelDevByEachCapability(Cpa32U capabilitiesMask,
  */
 CpaStatus
 icp_amgr_getAllAccelDevByCapabilities(Cpa32U capabilitiesMask,
-				      icp_accel_dev_t **pAccel_devs,
-				      Cpa16U *pNumInstances)
+    icp_accel_dev_t **pAccel_devs, Cpa16U *pNumInstances)
 {
 	icp_accel_dev_t *adf = NULL;
 	Cpa16U i = 0;
@@ -349,7 +341,7 @@ icp_amgr_getAllAccelDevByCapabilities(Cpa32U capabilitiesMask,
  */
 CpaStatus
 icp_amgr_getAccelDevCapabilities(icp_accel_dev_t *accel_dev,
-				 Cpa32U *pCapabilitiesMask)
+    Cpa32U *pCapabilitiesMask)
 {
 	ICP_CHECK_FOR_NULL_PARAM(accel_dev);
 	ICP_CHECK_FOR_NULL_PARAM(pCapabilitiesMask);

@@ -12,7 +12,7 @@
  * no representations about the suitability of this software for any
  * purpose.  It is provided "as is" without express or implied
  * warranty.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY M.I.T. ``AS IS''.  M.I.T. DISCLAIMS
  * ALL EXPRESS OR IMPLIED WARRANTIES WITH REGARD TO THIS SOFTWARE,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -28,18 +28,18 @@
  */
 
 static const char copyright[] =
-	"Copyright (C) 1997, Massachusetts Institute of Technology\r\n";
+    "Copyright (C) 1997, Massachusetts Institute of Technology\r\n";
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
 #include <sys/types.h>
+#include <sys/param.h> /* needed for lp.h but not used here */
 #include <sys/stat.h>
 
+#include <dirent.h> /* ditto */
+#include <stdio.h>  /* ditto */
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sys/param.h>		/* needed for lp.h but not used here */
-#include <dirent.h>		/* ditto */
-#include <stdio.h>		/* ditto */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 #include "lp.h"
 #include "lp.local.h"
 

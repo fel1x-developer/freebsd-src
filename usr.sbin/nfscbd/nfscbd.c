@@ -38,21 +38,18 @@
 #include <sys/vnode.h>
 #include <sys/wait.h>
 
-#include <nfs/nfssvc.h>
-
-#include <rpc/rpc.h>
-
-#include <fs/nfs/rpcv2.h>
-#include <fs/nfs/nfsproto.h>
-#include <fs/nfs/nfskpiport.h>
-#include <fs/nfs/nfs.h>
-
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <fs/nfs/nfs.h>
+#include <fs/nfs/nfskpiport.h>
+#include <fs/nfs/nfsproto.h>
+#include <fs/nfs/rpcv2.h>
 #include <grp.h>
 #include <netdb.h>
+#include <nfs/nfssvc.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,21 +59,21 @@
 
 /* Global defs */
 #ifdef DEBUG
-#define	syslog(e, s)	fprintf(stderr,(s))
-static int	debug = 1;
+#define syslog(e, s) fprintf(stderr, (s))
+static int debug = 1;
 #else
-static int	debug = 0;
+static int debug = 0;
 #endif
 
-static pid_t	children;
+static pid_t children;
 
-static void	nonfs(int);
-static void	reapchild(int);
-static void	usage(void);
-static void	cleanup(int);
-static void	child_cleanup(int);
-static void	nfscbd_exit(int);
-static void	killchildren(void);
+static void nonfs(int);
+static void reapchild(int);
+static void usage(void);
+static void cleanup(int);
+static void child_cleanup(int);
+static void nfscbd_exit(int);
+static void killchildren(void);
 
 /*
  * Nfs callback server daemon.
@@ -109,8 +106,7 @@ main(int argc, char *argv[])
 
 	if (modfind("nfscl") < 0) {
 		/* Not present in kernel, try loading it */
-		if (kldload("nfscl") < 0 ||
-		    modfind("nfscl") < 0)
+		if (kldload("nfscl") < 0 || modfind("nfscl") < 0)
 			errx(1, "nfscl is not available");
 	}
 	/*
@@ -125,18 +121,19 @@ main(int argc, char *argv[])
 			 * No domain on myname, so try looking it up.
 			 */
 			cp = NULL;
-			memset((void *)&hints, 0, sizeof (hints));
+			memset((void *)&hints, 0, sizeof(hints));
 			hints.ai_flags = AI_CANONNAME;
 			error = getaddrinfo(myname, NULL, &hints, &aip);
 			if (error == 0) {
-			    if (aip->ai_canonname != NULL &&
-				(cp = strchr(aip->ai_canonname, '.')) != NULL
-				&& *(cp + 1) != '\0') {
-				    cp = aip->ai_canonname;
-				    mustfreeai = 1;
-			    } else {
-				    freeaddrinfo(aip);
-			    }
+				if (aip->ai_canonname != NULL &&
+				    (cp = strchr(aip->ai_canonname, '.')) !=
+					NULL &&
+				    *(cp + 1) != '\0') {
+					cp = aip->ai_canonname;
+					mustfreeai = 1;
+				} else {
+					freeaddrinfo(aip);
+				}
 			}
 		}
 		if (cp == NULL)
@@ -145,8 +142,8 @@ main(int argc, char *argv[])
 	}
 
 	princname[0] = '\0';
-#define	GETOPT	"p:P:"
-#define	USAGE	"[ -p port_num ] [ -P client_principal ]"
+#define GETOPT "p:P:"
+#define USAGE "[ -p port_num ] [ -P client_principal ]"
 	while ((ch = getopt(argc, argv, GETOPT)) != -1)
 		switch (ch) {
 		case 'p':
@@ -160,14 +157,14 @@ main(int argc, char *argv[])
 		case 'P':
 			cp = optarg;
 			if (cp != NULL && strlen(cp) > 0 &&
-			    strlen(cp) < sizeof (princname)) {
+			    strlen(cp) < sizeof(princname)) {
 				if (strchr(cp, '@') == NULL &&
 				    myfqdnname != NULL)
-					snprintf(princname, sizeof (princname),
+					snprintf(princname, sizeof(princname),
 					    "%s@%s", cp, myfqdnname);
 				else
 					strlcpy(princname, cp,
-					    sizeof (princname));
+					    sizeof(princname));
 			} else {
 				warnx("client princ invalid. ignored\n");
 			}
@@ -228,7 +225,7 @@ main(int argc, char *argv[])
 	/* If bind() fails, this is a restart, so just skip UDP. */
 	if (ret == 0) {
 		len = sizeof(inetaddr);
-		if (getsockname(sock, (struct sockaddr *)&inetaddr, &len) < 0){
+		if (getsockname(sock, (struct sockaddr *)&inetaddr, &len) < 0) {
 			syslog(LOG_ERR, "can't get bound addr");
 			nfscbd_exit(1);
 		}
@@ -255,16 +252,15 @@ main(int argc, char *argv[])
 		syslog(LOG_ERR, "can't create tcp socket");
 		nfscbd_exit(1);
 	}
-	if (setsockopt(tcpsock,
-	    SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on)) < 0)
+	if (setsockopt(tcpsock, SOL_SOCKET, SO_REUSEADDR, (char *)&on,
+		sizeof(on)) < 0)
 		syslog(LOG_ERR, "setsockopt SO_REUSEADDR: %m");
 	/* sin_port is already set */
 	inetaddr.sin_family = AF_INET;
 	inetaddr.sin_addr.s_addr = INADDR_ANY;
 	inetaddr.sin_port = htons(myport);
 	inetaddr.sin_len = sizeof(inetaddr);
-	if (bind(tcpsock,
-	    (struct sockaddr *)&inetaddr, sizeof (inetaddr)) < 0) {
+	if (bind(tcpsock, (struct sockaddr *)&inetaddr, sizeof(inetaddr)) < 0) {
 		syslog(LOG_ERR, "can't bind tcp addr");
 		nfscbd_exit(1);
 	}
@@ -285,8 +281,7 @@ main(int argc, char *argv[])
 	for (;;) {
 		ready = sockbits;
 		if (connect_type_cnt > 1) {
-			if (select(maxsock + 1,
-			    &ready, NULL, NULL, NULL) < 1) {
+			if (select(maxsock + 1, &ready, NULL, NULL, NULL) < 1) {
 				syslog(LOG_ERR, "select failed: %m");
 				nfscbd_exit(1);
 			}
@@ -294,16 +289,14 @@ main(int argc, char *argv[])
 		if (FD_ISSET(tcpsock, &ready)) {
 			len = sizeof(inetpeer);
 			if ((msgsock = accept(tcpsock,
-			    (struct sockaddr *)&inetpeer, &len)) < 0) {
+				 (struct sockaddr *)&inetpeer, &len)) < 0) {
 				syslog(LOG_ERR, "accept failed: %m");
 				nfscbd_exit(1);
 			}
-			memset(inetpeer.sin_zero, 0,
-			    sizeof (inetpeer.sin_zero));
-			if (setsockopt(msgsock, SOL_SOCKET,
-			    SO_KEEPALIVE, (char *)&on, sizeof(on)) < 0)
-				syslog(LOG_ERR,
-				    "setsockopt SO_KEEPALIVE: %m");
+			memset(inetpeer.sin_zero, 0, sizeof(inetpeer.sin_zero));
+			if (setsockopt(msgsock, SOL_SOCKET, SO_KEEPALIVE,
+				(char *)&on, sizeof(on)) < 0)
+				syslog(LOG_ERR, "setsockopt SO_KEEPALIVE: %m");
 			nfscbdargs.sock = msgsock;
 			nfscbdargs.name = (caddr_t)&inetpeer;
 			nfscbdargs.namelen = sizeof(inetpeer);

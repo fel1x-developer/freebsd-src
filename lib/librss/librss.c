@@ -24,22 +24,22 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/param.h>
 #include <sys/cpuset.h>
+#include <sys/socket.h>
 #include <sys/sysctl.h>
 
+#include <netinet/in.h>
+
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <strings.h>
-#include <err.h>
-#include <fcntl.h>
 #include <string.h>
-#include <errno.h>
-
-#include <netinet/in.h>
+#include <strings.h>
+#include <unistd.h>
 
 #include "librss.h"
 
@@ -116,7 +116,8 @@ rss_getbucketmap(int *bucket_map, int nbuckets)
 	memset(bstr, '\0', sizeof(bstr));
 
 	rlen = sizeof(bstr) - 1;
-	retval = sysctlbyname("net.inet.rss.bucket_mapping", bstr, &rlen, NULL, 0);
+	retval = sysctlbyname("net.inet.rss.bucket_mapping", bstr, &rlen, NULL,
+	    0);
 	if (retval < 0) {
 		warn("sysctlbyname (net.inet.rss.bucket_mapping)");
 		return (-1);
@@ -127,15 +128,12 @@ rss_getbucketmap(int *bucket_map, int nbuckets)
 		r = sscanf(s, "%d:%d", &b, &c);
 		if (r != 2) {
 			fprintf(stderr, "%s: string (%s) not parsable\n",
-			    __func__,
-			    s);
+			    __func__, s);
 			return (-1);
 		}
 		if (b > nbuckets) {
 			fprintf(stderr, "%s: bucket %d > nbuckets %d\n",
-			    __func__,
-			    b,
-			    nbuckets);
+			    __func__, b, nbuckets);
 			return (-1);
 		}
 		/* XXX no maxcpu check */
@@ -157,25 +155,29 @@ rss_config_get(void)
 
 	rc->rss_ncpus = rss_getsysctlint("net.inet.rss.ncpus");
 	if (rc->rss_ncpus < 0) {
-		fprintf(stderr, "%s: couldn't fetch net.inet.rss.ncpus\n", __func__);
+		fprintf(stderr, "%s: couldn't fetch net.inet.rss.ncpus\n",
+		    __func__);
 		goto error;
 	}
 
 	rc->rss_nbuckets = rss_getsysctlint("net.inet.rss.buckets");
 	if (rc->rss_nbuckets < 0) {
-		fprintf(stderr, "%s: couldn't fetch net.inet.rss.nbuckets\n", __func__);
+		fprintf(stderr, "%s: couldn't fetch net.inet.rss.nbuckets\n",
+		    __func__);
 		goto error;
 	}
 
 	rc->rss_basecpu = rss_getsysctlint("net.inet.rss.basecpu");
-	if (rc->rss_basecpu< 0) {
-		fprintf(stderr, "%s: couldn't fetch net.inet.rss.basecpu\n", __func__);
+	if (rc->rss_basecpu < 0) {
+		fprintf(stderr, "%s: couldn't fetch net.inet.rss.basecpu\n",
+		    __func__);
 		goto error;
 	}
 
 	rc->rss_bucket_map = calloc(rc->rss_nbuckets, sizeof(int));
 	if (rc->rss_bucket_map == NULL) {
-		warn("%s: calloc (rss buckets; %d entries)", __func__, rc->rss_nbuckets);
+		warn("%s: calloc (rss buckets; %d entries)", __func__,
+		    rc->rss_nbuckets);
 		goto error;
 	}
 
@@ -243,8 +245,8 @@ int
 rss_set_bucket_rebalance_cb(rss_bucket_rebalance_cb_t *cb, void *cbdata)
 {
 
-	(void) cb;
-	(void) cbdata;
+	(void)cb;
+	(void)cbdata;
 
 	/*
 	 * For now there's no rebalance callback, so

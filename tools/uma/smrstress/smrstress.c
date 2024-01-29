@@ -27,14 +27,14 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/libkern.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-#include <sys/kthread.h>
-#include <sys/conf.h>
-#include <sys/mbuf.h>
 #include <sys/smp.h>
 #include <sys/smr.h>
 
@@ -53,8 +53,8 @@ static int smrs_failures = 0;
 static volatile int smrs_completed;
 
 struct smrs {
-	int		generation;
-	volatile u_int	count;
+	int generation;
+	volatile u_int count;
 };
 
 uintptr_t smrs_current;
@@ -65,7 +65,8 @@ smrs_error(struct smrs *smrs, const char *fmt, ...)
 	va_list ap;
 
 	atomic_add_int(&smrs_failures, 1);
-	printf("SMR ERROR: wr_seq %d, rd_seq %d, c_seq %d, generation %d, count %d ",
+	printf(
+	    "SMR ERROR: wr_seq %d, rd_seq %d, c_seq %d, generation %d, count %d ",
 	    smrs_smr->c_shared->s_wr.seq, smrs_smr->c_shared->s_rd_seq,
 	    zpcpu_get(smrs_smr)->c_seq, smrs->generation, smrs->count);
 	va_start(ap, fmt);
@@ -140,18 +141,18 @@ smrs_start(void)
 	atomic_store_rel_ptr(&smrs_current,
 	    (uintptr_t)uma_zalloc_smr(smrs_zone, M_WAITOK));
 	for (i = 0; i < smrs_started; i++)
-		kthread_add((void (*)(void *))smrs_thread,
-		    (void *)(intptr_t)i, curproc, NULL, 0, 0, "smrs-%d", i);
+		kthread_add((void (*)(void *))smrs_thread, (void *)(intptr_t)i,
+		    curproc, NULL, 0, 0, "smrs-%d", i);
 
 	while (smrs_completed != smrs_started)
-		pause("prf", hz/2);
+		pause("prf", hz / 2);
 
 	cur = (void *)smrs_current;
 	smrs_current = (uintptr_t)NULL;
 	uma_zfree_smr(smrs_zone, cur);
 
-	printf("Completed %d loops with %d failures\n",
-	    smrs_iterations, smrs_failures);
+	printf("Completed %d loops with %d failures\n", smrs_iterations,
+	    smrs_failures);
 }
 
 static int
@@ -169,7 +170,6 @@ smrs_ctor(void *mem, int size, void *arg, int flags)
 	return (0);
 }
 
-
 static void
 smrs_dtor(void *mem, int size, void *arg)
 {
@@ -182,15 +182,14 @@ smrs_dtor(void *mem, int size, void *arg)
 		smrs_error(smrs, "dtor: Invalid count\n");
 }
 
-
 static void
 smrs_init(void)
 {
 
-	smrs_zone = uma_zcreate("smrs", sizeof(struct smrs),
-	    smrs_ctor,  smrs_dtor, NULL, NULL, UMA_ALIGN_PTR,
+	smrs_zone = uma_zcreate("smrs", sizeof(struct smrs), smrs_ctor,
+	    smrs_dtor, NULL, NULL, UMA_ALIGN_PTR,
 	    UMA_ZONE_SMR | UMA_ZONE_ZINIT);
-        smrs_smr = uma_zone_get_smr(smrs_zone);
+	smrs_smr = uma_zone_get_smr(smrs_zone);
 }
 
 static void
@@ -218,10 +217,6 @@ smrs_modevent(module_t mod, int what, void *arg)
 	return (0);
 }
 
-moduledata_t smrs_meta = {
-	"smrstress",
-	smrs_modevent,
-	NULL
-};
+moduledata_t smrs_meta = { "smrstress", smrs_modevent, NULL };
 DECLARE_MODULE(smrstress, smrs_meta, SI_SUB_DRIVERS, SI_ORDER_MIDDLE);
 MODULE_VERSION(smrstress, 1);

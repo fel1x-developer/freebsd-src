@@ -36,16 +36,16 @@
  * $NetBSD: sysv_ipc.c,v 1.9 1995/06/02 19:04:22 mycroft Exp $
  */
 
-#include <sys/cdefs.h>
 #include "opt_sysvipc.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sem.h>
-#include <sys/shm.h>
 #include <sys/ipc.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
 #include <sys/ucred.h>
 
 #ifndef SYSVSHM
@@ -179,6 +179,7 @@ ipcperm_new2old(struct ipc_perm *new, struct ipc_perm_old *old)
 #ifdef COMPAT_FREEBSD32
 #include <sys/mount.h>
 #include <sys/socket.h>
+
 #include <compat/freebsd32/freebsd32.h>
 #include <compat/freebsd32/freebsd32_ipc.h>
 #include <compat/freebsd32/freebsd32_proto.h>

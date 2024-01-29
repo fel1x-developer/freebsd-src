@@ -26,24 +26,23 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/rmlock.h>
-#include <sys/domain.h>
-#include <sys/mbuf.h>
-#include <sys/protosw.h>
-#include <sys/proc.h>
 #include <sys/ck.h>
+#include <sys/domain.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/priv.h> /* priv_check */
+#include <sys/proc.h>
+#include <sys/protosw.h>
+#include <sys/rmlock.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysent.h>
 #include <sys/syslog.h>
-#include <sys/priv.h> /* priv_check */
 
 #include <net/route.h>
 #include <net/route/route_ctl.h>
-
 #include <netlink/netlink.h>
 #include <netlink/netlink_ctl.h>
 #include <netlink/netlink_var.h>
@@ -73,10 +72,10 @@ static struct rtbridge ignore_cb = {
 	.ifmsg_f = ignore_ifmsg_event,
 };
 
-void *linux_netlink_p = NULL; /* Callback pointer for Linux translator functions */
+void *linux_netlink_p =
+    NULL; /* Callback pointer for Linux translator functions */
 struct rtbridge *rtsock_callback_p = &ignore_cb;
 struct rtbridge *netlink_callback_p = &ignore_cb;
-
 
 /*
  * nlp accessors.
@@ -125,7 +124,8 @@ nlmsg_get_unicast_writer_stub(struct nl_writer *nw, int size, struct nlpcb *nlp)
 }
 
 static bool
-nlmsg_get_group_writer_stub(struct nl_writer *nw, int size, int protocol, int group_id)
+nlmsg_get_group_writer_stub(struct nl_writer *nw, int size, int protocol,
+    int group_id)
 {
 	return (get_stub_writer(nw));
 }
@@ -148,14 +148,15 @@ nlmsg_ignore_limit_stub(struct nl_writer *nw __unused)
 }
 
 static bool
-nlmsg_refill_buffer_stub(struct nl_writer *nw __unused, int required_len __unused)
+nlmsg_refill_buffer_stub(struct nl_writer *nw __unused,
+    int required_len __unused)
 {
 	return (false);
 }
 
 static bool
-nlmsg_add_stub(struct nl_writer *nw, uint32_t portid, uint32_t seq, uint16_t type,
-    uint16_t flags, uint32_t len)
+nlmsg_add_stub(struct nl_writer *nw, uint32_t portid, uint32_t seq,
+    uint16_t type, uint16_t flags, uint32_t len)
 {
 	return (false);
 }
@@ -179,14 +180,15 @@ nlmsg_end_dump_stub(struct nl_writer *nw, int error, struct nlmsghdr *hdr)
 
 static int
 nl_modify_ifp_generic_stub(struct ifnet *ifp __unused,
-    struct nl_parsed_link *lattrs __unused, const struct nlattr_bmask *bm __unused,
-    struct nl_pstate *npt __unused)
+    struct nl_parsed_link *lattrs __unused,
+    const struct nlattr_bmask *bm __unused, struct nl_pstate *npt __unused)
 {
 	return (ENOTSUP);
 }
 
 static void
-nl_store_ifp_cookie_stub(struct nl_pstate *npt __unused, struct ifnet *ifp __unused)
+nl_store_ifp_cookie_stub(struct nl_pstate *npt __unused,
+    struct ifnet *ifp __unused)
 {
 }
 
@@ -232,7 +234,8 @@ nlmsg_get_unicast_writer(struct nl_writer *nw, int size, struct nlpcb *nlp)
 }
 
 bool
-nlmsg_get_group_writer(struct nl_writer *nw, int size, int protocol, int group_id)
+nlmsg_get_group_writer(struct nl_writer *nw, int size, int protocol,
+    int group_id)
 {
 	return (_nl->nlmsg_get_group_writer(nw, size, protocol, group_id));
 }
@@ -249,7 +252,8 @@ nlmsg_flush(struct nl_writer *nw)
 	return (_nl->nlmsg_flush(nw));
 }
 
-void nlmsg_ignore_limit(struct nl_writer *nw)
+void
+nlmsg_ignore_limit(struct nl_writer *nw)
 {
 	_nl->nlmsg_ignore_limit(nw);
 }
@@ -287,7 +291,7 @@ nlmsg_end_dump(struct nl_writer *nw, int error, struct nlmsghdr *hdr)
 
 int
 nl_modify_ifp_generic(struct ifnet *ifp, struct nl_parsed_link *lattrs,
-    const struct nlattr_bmask *bm , struct nl_pstate *npt)
+    const struct nlattr_bmask *bm, struct nl_pstate *npt)
 {
 	return (_nl->nl_modify_ifp_generic(ifp, lattrs, bm, npt));
 }
@@ -305,4 +309,3 @@ nl_get_thread_nlp(struct thread *td)
 }
 
 #endif /* !NETLINK */
-

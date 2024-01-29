@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "hccontrol.h"
 
 /* Convert hex ASCII to int4 */
@@ -57,8 +58,8 @@ hci_hexa2int4(const char *a)
 static int
 hci_hexa2int8(const char *a)
 {
-	int	hi = hci_hexa2int4(a);
-	int	lo = hci_hexa2int4(a + 1);
+	int hi = hci_hexa2int4(a);
+	int lo = hci_hexa2int4(a + 1);
 
 	if (hi < 0 || lo < 0)
 		return (-1);
@@ -70,7 +71,7 @@ hci_hexa2int8(const char *a)
 static int
 hci_hexstring2array(char const *s, uint8_t *a, int asize)
 {
-	int	i, l, b;
+	int i, l, b;
 
 	l = strlen(s) / 2;
 	if (l > asize)
@@ -91,17 +92,18 @@ hci_hexstring2array(char const *s, uint8_t *a, int asize)
 static int
 hci_reset(int s, int argc, char **argv)
 {
-	ng_hci_status_rp	rp;
-	int			n;
+	ng_hci_status_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_RESET), (char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, NG_HCI_OCF_RESET),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -112,23 +114,23 @@ hci_reset(int s, int argc, char **argv)
 static int
 hci_read_pin_type(int s, int argc, char **argv)
 {
-	ng_hci_read_pin_type_rp	rp;
-	int			n;
+	ng_hci_read_pin_type_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_PIN_TYPE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, NG_HCI_OCF_READ_PIN_TYPE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
-	fprintf(stdout, "PIN type: %s [%#02x]\n",
-			hci_pin2str(rp.pin_type), rp.pin_type);
+	fprintf(stdout, "PIN type: %s [%#02x]\n", hci_pin2str(rp.pin_type),
+	    rp.pin_type);
 
 	return (OK);
 } /* hci_read_pin_type */
@@ -137,9 +139,9 @@ hci_read_pin_type(int s, int argc, char **argv)
 static int
 hci_write_pin_type(int s, int argc, char **argv)
 {
-	ng_hci_write_pin_type_cp	cp;
-	ng_hci_write_pin_type_rp	rp;
-	int				n;
+	ng_hci_write_pin_type_cp cp;
+	ng_hci_write_pin_type_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -147,7 +149,7 @@ hci_write_pin_type(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 1)
 			return (USAGE);
 
-		cp.pin_type = (uint8_t) n;
+		cp.pin_type = (uint8_t)n;
 		break;
 
 	default:
@@ -156,15 +158,15 @@ hci_write_pin_type(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_PIN_TYPE),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp , &n) ==  ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_PIN_TYPE),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -176,38 +178,39 @@ static int
 hci_read_stored_link_key(int s, int argc, char **argv)
 {
 	struct {
-		ng_hci_cmd_pkt_t			hdr;
-		ng_hci_read_stored_link_key_cp		cp;
-	} __attribute__ ((packed))			cmd;
+		ng_hci_cmd_pkt_t hdr;
+		ng_hci_read_stored_link_key_cp cp;
+	} __attribute__((packed)) cmd;
 
 	struct {
-		ng_hci_event_pkt_t			hdr;
+		ng_hci_event_pkt_t hdr;
 		union {
-			ng_hci_command_compl_ep		cc;
-			ng_hci_return_link_keys_ep	key;
-			uint8_t				b[NG_HCI_EVENT_PKT_SIZE];
-		}					ep;
-	} __attribute__ ((packed))			event;
+			ng_hci_command_compl_ep cc;
+			ng_hci_return_link_keys_ep key;
+			uint8_t b[NG_HCI_EVENT_PKT_SIZE];
+		} ep;
+	} __attribute__((packed)) event;
 
-	int						n, n1;
+	int n, n1;
 
 	/* Send command */
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.hdr.type = NG_HCI_CMD_PKT;
 	cmd.hdr.opcode = htole16(NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-				NG_HCI_OCF_READ_STORED_LINK_KEY));
+	    NG_HCI_OCF_READ_STORED_LINK_KEY));
 	cmd.hdr.length = sizeof(cmd.cp);
 
 	switch (argc) {
 	case 1:
 		/* parse BD_ADDR */
 		if (!bt_aton(argv[0], &cmd.cp.bdaddr)) {
-			struct hostent	*he = NULL;
+			struct hostent *he = NULL;
 
 			if ((he = bt_gethostbyname(argv[0])) == NULL)
 				return (USAGE);
 
-			memcpy(&cmd.cp.bdaddr, he->h_addr, sizeof(cmd.cp.bdaddr));
+			memcpy(&cmd.cp.bdaddr, he->h_addr,
+			    sizeof(cmd.cp.bdaddr));
 		}
 		break;
 
@@ -216,14 +219,14 @@ hci_read_stored_link_key(int s, int argc, char **argv)
 		break;
 	}
 
-	if (hci_send(s, (char const *) &cmd, sizeof(cmd)) != OK)
+	if (hci_send(s, (char const *)&cmd, sizeof(cmd)) != OK)
 		return (ERROR);
 
 	/* Receive events */
 again:
 	memset(&event, 0, sizeof(event));
 	n = sizeof(event);
-	if (hci_recv(s, (char *) &event, &n) != OK)
+	if (hci_recv(s, (char *)&event, &n) != OK)
 		return (ERROR);
 
 	if (n <= sizeof(event.hdr)) {
@@ -239,52 +242,52 @@ again:
 	/* Parse event */
 	switch (event.hdr.event) {
 	case NG_HCI_EVENT_COMMAND_COMPL: {
-		ng_hci_read_stored_link_key_rp	*rp = NULL;
+		ng_hci_read_stored_link_key_rp *rp = NULL;
 
 		if (event.ep.cc.opcode == 0x0000 ||
 		    event.ep.cc.opcode != cmd.hdr.opcode)
 			goto again;
 
-		rp = (ng_hci_read_stored_link_key_rp *)(event.ep.b + 
-				sizeof(event.ep.cc));
+		rp = (ng_hci_read_stored_link_key_rp *)(event.ep.b +
+		    sizeof(event.ep.cc));
 
-		fprintf(stdout, "Complete: Status: %s [%#x]\n", 
-				hci_status2str(rp->status), rp->status);
+		fprintf(stdout, "Complete: Status: %s [%#x]\n",
+		    hci_status2str(rp->status), rp->status);
 		fprintf(stdout, "Maximum Number of keys: %d\n",
-				le16toh(rp->max_num_keys));
+		    le16toh(rp->max_num_keys));
 		fprintf(stdout, "Number of keys read: %d\n",
-				le16toh(rp->num_keys_read));
-		} break;
+		    le16toh(rp->num_keys_read));
+	} break;
 
 	case NG_HCI_EVENT_RETURN_LINK_KEYS: {
 		struct _key {
-			bdaddr_t	bdaddr;
-			uint8_t		key[NG_HCI_KEY_SIZE];
-		} __attribute__ ((packed))	*k = NULL;
+			bdaddr_t bdaddr;
+			uint8_t key[NG_HCI_KEY_SIZE];
+		} __attribute__((packed)) *k = NULL;
 
 		fprintf(stdout, "Event: Number of keys: %d\n",
-			event.ep.key.num_keys);
+		    event.ep.key.num_keys);
 
 		k = (struct _key *)(event.ep.b + sizeof(event.ep.key));
 		for (n = 0; n < event.ep.key.num_keys; n++) {
-			fprintf(stdout, "\t%d: %s ",
-				n + 1, hci_bdaddr2str(&k->bdaddr));
+			fprintf(stdout, "\t%d: %s ", n + 1,
+			    hci_bdaddr2str(&k->bdaddr));
 
 			for (n1 = 0; n1 < sizeof(k->key); n1++)
 				fprintf(stdout, "%02x", k->key[n1]);
 			fprintf(stdout, "\n");
 
-			k ++;
+			k++;
 		}
 
 		goto again;
 
-		} break;
+	} break;
 
 	default:
 		goto again;
 	}
-	
+
 	return (OK);
 } /* hci_read_store_link_key */
 
@@ -293,12 +296,12 @@ static int
 hci_write_stored_link_key(int s, int argc, char **argv)
 {
 	struct {
-		ng_hci_write_stored_link_key_cp	p;
-		bdaddr_t			bdaddr;
-		uint8_t				key[NG_HCI_KEY_SIZE];
-	}					cp;
-	ng_hci_write_stored_link_key_rp		rp;
-	int32_t					n;
+		ng_hci_write_stored_link_key_cp p;
+		bdaddr_t bdaddr;
+		uint8_t key[NG_HCI_KEY_SIZE];
+	} cp;
+	ng_hci_write_stored_link_key_rp rp;
+	int32_t n;
 
 	memset(&cp, 0, sizeof(cp));
 
@@ -308,7 +311,7 @@ hci_write_stored_link_key(int s, int argc, char **argv)
 
 		/* parse BD_ADDR */
 		if (!bt_aton(argv[0], &cp.bdaddr)) {
-			struct hostent	*he = NULL;
+			struct hostent *he = NULL;
 
 			if ((he = bt_gethostbyname(argv[0])) == NULL)
 				return (USAGE);
@@ -327,15 +330,15 @@ hci_write_stored_link_key(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_WRITE_STORED_LINK_KEY),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_STORED_LINK_KEY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -344,14 +347,13 @@ hci_write_stored_link_key(int s, int argc, char **argv)
 	return (OK);
 } /* hci_write_stored_link_key */
 
-
 /* Send Delete_Stored_Link_Key command to the unit */
 static int
 hci_delete_stored_link_key(int s, int argc, char **argv)
 {
-	ng_hci_delete_stored_link_key_cp	cp;
-	ng_hci_delete_stored_link_key_rp	rp;
-	int32_t					n;
+	ng_hci_delete_stored_link_key_cp cp;
+	ng_hci_delete_stored_link_key_rp rp;
+	int32_t n;
 
 	memset(&cp, 0, sizeof(cp));
 
@@ -359,7 +361,7 @@ hci_delete_stored_link_key(int s, int argc, char **argv)
 	case 1:
 		/* parse BD_ADDR */
 		if (!bt_aton(argv[0], &cp.bdaddr)) {
-			struct hostent	*he = NULL;
+			struct hostent *he = NULL;
 
 			if ((he = bt_gethostbyname(argv[0])) == NULL)
 				return (USAGE);
@@ -375,15 +377,15 @@ hci_delete_stored_link_key(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(cp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_DELETE_STORED_LINK_KEY),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_DELETE_STORED_LINK_KEY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -394,11 +396,11 @@ hci_delete_stored_link_key(int s, int argc, char **argv)
 
 /* Send Change_Local_Name command to the unit */
 static int
-hci_change_local_name(int s, int argc, char **argv) 
+hci_change_local_name(int s, int argc, char **argv)
 {
-	ng_hci_change_local_name_cp	cp;
-	ng_hci_change_local_name_rp	rp;
-	int				n;
+	ng_hci_change_local_name_cp cp;
+	ng_hci_change_local_name_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -412,15 +414,15 @@ hci_change_local_name(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_CHANGE_LOCAL_NAME),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_CHANGE_LOCAL_NAME),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -431,18 +433,19 @@ hci_change_local_name(int s, int argc, char **argv)
 static int
 hci_read_local_name(int s, int argc, char **argv)
 {
-	ng_hci_read_local_name_rp	rp;
-	int				n;
+	ng_hci_read_local_name_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_LOCAL_NAME),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_LOCAL_NAME),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -455,25 +458,26 @@ hci_read_local_name(int s, int argc, char **argv)
 static int
 hci_read_connection_accept_timeout(int s, int argc, char **argv)
 {
-	ng_hci_read_con_accept_timo_rp	rp;
-	int				n;
+	ng_hci_read_con_accept_timo_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_READ_CON_ACCEPT_TIMO),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_CON_ACCEPT_TIMO),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	rp.timeout = le16toh(rp.timeout);
 	fprintf(stdout, "Connection accept timeout: %.2f msec [%d slots]\n",
-			rp.timeout * 0.625, rp.timeout);
-					
+	    rp.timeout * 0.625, rp.timeout);
+
 	return (OK);
 } /* hci_read_connection_accept_timeout */
 
@@ -481,9 +485,9 @@ hci_read_connection_accept_timeout(int s, int argc, char **argv)
 static int
 hci_write_connection_accept_timeout(int s, int argc, char **argv)
 {
-	ng_hci_write_con_accept_timo_cp	cp;
-	ng_hci_write_con_accept_timo_rp	rp;
-	int				n;
+	ng_hci_write_con_accept_timo_cp cp;
+	ng_hci_write_con_accept_timo_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -491,7 +495,7 @@ hci_write_connection_accept_timeout(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 1 || n > 0xb540)
 			return (USAGE);
 
-		cp.timeout = (uint16_t) n;
+		cp.timeout = (uint16_t)n;
 		cp.timeout = htole16(cp.timeout);
 		break;
 
@@ -501,15 +505,15 @@ hci_write_connection_accept_timeout(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_WRITE_CON_ACCEPT_TIMO),
-			(char const *) &cp, sizeof(cp), 
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_CON_ACCEPT_TIMO),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -520,24 +524,25 @@ hci_write_connection_accept_timeout(int s, int argc, char **argv)
 static int
 hci_read_page_timeout(int s, int argc, char **argv)
 {
-	ng_hci_read_page_timo_rp	rp;
-	int				n;
+	ng_hci_read_page_timo_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_PAGE_TIMO),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_PAGE_TIMO),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	rp.timeout = le16toh(rp.timeout);
 	fprintf(stdout, "Page timeout: %.2f msec [%d slots]\n",
-		rp.timeout * 0.625, rp.timeout);
+	    rp.timeout * 0.625, rp.timeout);
 
 	return (OK);
 } /* hci_read_page_timeoout */
@@ -546,9 +551,9 @@ hci_read_page_timeout(int s, int argc, char **argv)
 static int
 hci_write_page_timeout(int s, int argc, char **argv)
 {
-	ng_hci_write_page_timo_cp	cp;
-	ng_hci_write_page_timo_rp	rp;
-	int				n;
+	ng_hci_write_page_timo_cp cp;
+	ng_hci_write_page_timo_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -556,7 +561,7 @@ hci_write_page_timeout(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 1 || n > 0xffff)
 			return (USAGE);
 
-		cp.timeout = (uint16_t) n;
+		cp.timeout = (uint16_t)n;
 		cp.timeout = htole16(cp.timeout);
 		break;
 
@@ -566,15 +571,15 @@ hci_write_page_timeout(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_WRITE_PAGE_TIMO),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_PAGE_TIMO),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -585,23 +590,24 @@ hci_write_page_timeout(int s, int argc, char **argv)
 static int
 hci_read_scan_enable(int s, int argc, char **argv)
 {
-	ng_hci_read_scan_enable_rp	rp;
-	int				n;
+	ng_hci_read_scan_enable_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_READ_SCAN_ENABLE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_SCAN_ENABLE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Scan enable: %s [%#02x]\n",
-		hci_scan2str(rp.scan_enable), rp.scan_enable);
+	    hci_scan2str(rp.scan_enable), rp.scan_enable);
 
 	return (OK);
 } /* hci_read_scan_enable */
@@ -610,9 +616,9 @@ hci_read_scan_enable(int s, int argc, char **argv)
 static int
 hci_write_scan_enable(int s, int argc, char **argv)
 {
-	ng_hci_write_scan_enable_cp	cp;
-	ng_hci_write_scan_enable_rp	rp;
-	int				n;
+	ng_hci_write_scan_enable_cp cp;
+	ng_hci_write_scan_enable_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -620,7 +626,7 @@ hci_write_scan_enable(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 3)
 			return (USAGE);
 
-		cp.scan_enable = (uint8_t) n;
+		cp.scan_enable = (uint8_t)n;
 		break;
 
 	default:
@@ -628,15 +634,15 @@ hci_write_scan_enable(int s, int argc, char **argv)
 	}
 
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND, 
-			NG_HCI_OCF_WRITE_SCAN_ENABLE),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_SCAN_ENABLE),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -647,18 +653,19 @@ hci_write_scan_enable(int s, int argc, char **argv)
 static int
 hci_read_page_scan_activity(int s, int argc, char **argv)
 {
-	ng_hci_read_page_scan_activity_rp	rp;
-	int					n;
+	ng_hci_read_page_scan_activity_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_PAGE_SCAN_ACTIVITY),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_PAGE_SCAN_ACTIVITY),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -666,9 +673,9 @@ hci_read_page_scan_activity(int s, int argc, char **argv)
 	rp.page_scan_window = le16toh(rp.page_scan_window);
 
 	fprintf(stdout, "Page Scan Interval: %.2f msec [%d slots]\n",
-		rp.page_scan_interval * 0.625, rp.page_scan_interval);
+	    rp.page_scan_interval * 0.625, rp.page_scan_interval);
 	fprintf(stdout, "Page Scan Window: %.2f msec [%d slots]\n",
-		rp.page_scan_window * 0.625, rp.page_scan_window);
+	    rp.page_scan_window * 0.625, rp.page_scan_window);
 
 	return (OK);
 } /* hci_read_page_scan_activity */
@@ -677,9 +684,9 @@ hci_read_page_scan_activity(int s, int argc, char **argv)
 static int
 hci_write_page_scan_activity(int s, int argc, char **argv)
 {
-	ng_hci_write_page_scan_activity_cp	cp;
-	ng_hci_write_page_scan_activity_rp	rp;
-	int					n;
+	ng_hci_write_page_scan_activity_cp cp;
+	ng_hci_write_page_scan_activity_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -688,13 +695,13 @@ hci_write_page_scan_activity(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0x12 || n > 0x1000)
 			return (USAGE);
 
-		cp.page_scan_interval = (uint16_t) n;
+		cp.page_scan_interval = (uint16_t)n;
 
 		/* page scan window */
 		if (sscanf(argv[1], "%d", &n) != 1 || n < 0x12 || n > 0x1000)
 			return (USAGE);
 
-		cp.page_scan_window = (uint16_t) n;
+		cp.page_scan_window = (uint16_t)n;
 
 		if (cp.page_scan_window > cp.page_scan_interval)
 			return (USAGE);
@@ -709,15 +716,15 @@ hci_write_page_scan_activity(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_PAGE_SCAN_ACTIVITY),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_PAGE_SCAN_ACTIVITY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -728,18 +735,19 @@ hci_write_page_scan_activity(int s, int argc, char **argv)
 static int
 hci_read_inquiry_scan_activity(int s, int argc, char **argv)
 {
-	ng_hci_read_inquiry_scan_activity_rp	rp;
-	int					n;
+	ng_hci_read_inquiry_scan_activity_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_INQUIRY_SCAN_ACTIVITY),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_INQUIRY_SCAN_ACTIVITY),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -747,9 +755,9 @@ hci_read_inquiry_scan_activity(int s, int argc, char **argv)
 	rp.inquiry_scan_window = le16toh(rp.inquiry_scan_window);
 
 	fprintf(stdout, "Inquiry Scan Interval: %.2f msec [%d slots]\n",
-		rp.inquiry_scan_interval * 0.625, rp.inquiry_scan_interval);
+	    rp.inquiry_scan_interval * 0.625, rp.inquiry_scan_interval);
 	fprintf(stdout, "Inquiry Scan Window: %.2f msec [%d slots]\n",
-		rp.inquiry_scan_window * 0.625, rp.inquiry_scan_interval);
+	    rp.inquiry_scan_window * 0.625, rp.inquiry_scan_interval);
 
 	return (OK);
 } /* hci_read_inquiry_scan_activity */
@@ -758,9 +766,9 @@ hci_read_inquiry_scan_activity(int s, int argc, char **argv)
 static int
 hci_write_inquiry_scan_activity(int s, int argc, char **argv)
 {
-	ng_hci_write_inquiry_scan_activity_cp	cp;
-	ng_hci_write_inquiry_scan_activity_rp	rp;
-	int					n;
+	ng_hci_write_inquiry_scan_activity_cp cp;
+	ng_hci_write_inquiry_scan_activity_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -769,19 +777,18 @@ hci_write_inquiry_scan_activity(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0x12 || n > 0x1000)
 			return (USAGE);
 
-		cp.inquiry_scan_interval = (uint16_t) n;
+		cp.inquiry_scan_interval = (uint16_t)n;
 
 		/* inquiry scan window */
 		if (sscanf(argv[1], "%d", &n) != 1 || n < 0x12 || n > 0x1000)
 			return (USAGE);
 
-		cp.inquiry_scan_window = (uint16_t) n;
+		cp.inquiry_scan_window = (uint16_t)n;
 
 		if (cp.inquiry_scan_window > cp.inquiry_scan_interval)
 			return (USAGE);
 
-		cp.inquiry_scan_interval = 
-			htole16(cp.inquiry_scan_interval);
+		cp.inquiry_scan_interval = htole16(cp.inquiry_scan_interval);
 		cp.inquiry_scan_window = htole16(cp.inquiry_scan_window);
 		break;
 
@@ -791,15 +798,15 @@ hci_write_inquiry_scan_activity(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_INQUIRY_SCAN_ACTIVITY),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_INQUIRY_SCAN_ACTIVITY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -810,23 +817,24 @@ hci_write_inquiry_scan_activity(int s, int argc, char **argv)
 static int
 hci_read_authentication_enable(int s, int argc, char **argv)
 {
-	ng_hci_read_auth_enable_rp	rp;
-	int				n;
+	ng_hci_read_auth_enable_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_AUTH_ENABLE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_AUTH_ENABLE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
 		fprintf(stdout, "Status: %s [%#02x]\n",
-			hci_status2str(rp.status), rp.status);
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Authentication Enable: %s [%d]\n",
-		rp.auth_enable? "Enabled" : "Disabled", rp.auth_enable);
+	    rp.auth_enable ? "Enabled" : "Disabled", rp.auth_enable);
 
 	return (OK);
 } /* hci_read_authentication_enable */
@@ -835,9 +843,9 @@ hci_read_authentication_enable(int s, int argc, char **argv)
 static int
 hci_write_authentication_enable(int s, int argc, char **argv)
 {
-	ng_hci_write_auth_enable_cp	cp;
-	ng_hci_write_auth_enable_rp	rp;
-	int				n;
+	ng_hci_write_auth_enable_cp cp;
+	ng_hci_write_auth_enable_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -845,7 +853,7 @@ hci_write_authentication_enable(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 1)
 			return (USAGE);
 
-		cp.auth_enable = (uint8_t) n;
+		cp.auth_enable = (uint8_t)n;
 		break;
 
 	default:
@@ -854,15 +862,15 @@ hci_write_authentication_enable(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_AUTH_ENABLE),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_AUTH_ENABLE),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -873,23 +881,24 @@ hci_write_authentication_enable(int s, int argc, char **argv)
 static int
 hci_read_encryption_mode(int s, int argc, char **argv)
 {
-	ng_hci_read_encryption_mode_rp	rp;
-	int				n;
+	ng_hci_read_encryption_mode_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_ENCRYPTION_MODE),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_ENCRYPTION_MODE),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
-	fprintf(stdout, "Encryption mode: %s [%#02x]\n", 
-		hci_encrypt2str(rp.encryption_mode, 0), rp.encryption_mode);
+	fprintf(stdout, "Encryption mode: %s [%#02x]\n",
+	    hci_encrypt2str(rp.encryption_mode, 0), rp.encryption_mode);
 
 	return (OK);
 } /* hci_read_encryption_mode */
@@ -898,9 +907,9 @@ hci_read_encryption_mode(int s, int argc, char **argv)
 static int
 hci_write_encryption_mode(int s, int argc, char **argv)
 {
-	ng_hci_write_encryption_mode_cp	cp;
-	ng_hci_write_encryption_mode_rp	rp;
-	int				n;
+	ng_hci_write_encryption_mode_cp cp;
+	ng_hci_write_encryption_mode_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -908,7 +917,7 @@ hci_write_encryption_mode(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 2)
 			return (USAGE);
 
-		cp.encryption_mode = (uint8_t) n;
+		cp.encryption_mode = (uint8_t)n;
 		break;
 
 	default:
@@ -917,15 +926,15 @@ hci_write_encryption_mode(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_ENCRYPTION_MODE),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_ENCRYPTION_MODE),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -936,23 +945,24 @@ hci_write_encryption_mode(int s, int argc, char **argv)
 static int
 hci_read_class_of_device(int s, int argc, char **argv)
 {
-	ng_hci_read_unit_class_rp	rp;
-	int				n;
+	ng_hci_read_unit_class_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_UNIT_CLASS),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_UNIT_CLASS),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
-	fprintf(stdout, "Class: %02x:%02x:%02x\n",
-		rp.uclass[2], rp.uclass[1], rp.uclass[0]);
+	fprintf(stdout, "Class: %02x:%02x:%02x\n", rp.uclass[2], rp.uclass[1],
+	    rp.uclass[0]);
 
 	return (0);
 } /* hci_read_class_of_device */
@@ -961,9 +971,9 @@ hci_read_class_of_device(int s, int argc, char **argv)
 static int
 hci_write_class_of_device(int s, int argc, char **argv)
 {
-	ng_hci_write_unit_class_cp	cp;
-	ng_hci_write_unit_class_rp	rp;
-	int				n0, n1, n2;
+	ng_hci_write_unit_class_cp cp;
+	ng_hci_write_unit_class_rp rp;
+	int n0, n1, n2;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -982,15 +992,15 @@ hci_write_class_of_device(int s, int argc, char **argv)
 
 	/* send command */
 	n0 = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_UNIT_CLASS),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n0) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_UNIT_CLASS),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n0) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1001,39 +1011,37 @@ hci_write_class_of_device(int s, int argc, char **argv)
 static int
 hci_read_voice_settings(int s, int argc, char **argv)
 {
-	ng_hci_read_voice_settings_rp	rp;
-	int				n,
-					input_coding,
-					input_data_format,
-					input_sample_size;
+	ng_hci_read_voice_settings_rp rp;
+	int n, input_coding, input_data_format, input_sample_size;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_VOICE_SETTINGS),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_VOICE_SETTINGS),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	rp.settings = le16toh(rp.settings);
 
-	input_coding      = (rp.settings & 0x0300) >> 8;
+	input_coding = (rp.settings & 0x0300) >> 8;
 	input_data_format = (rp.settings & 0x00c0) >> 6;
 	input_sample_size = (rp.settings & 0x0020) >> 5;
 
 	fprintf(stdout, "Voice settings: %#04x\n", rp.settings);
-	fprintf(stdout, "Input coding: %s [%d]\n",
-		hci_coding2str(input_coding), input_coding);
+	fprintf(stdout, "Input coding: %s [%d]\n", hci_coding2str(input_coding),
+	    input_coding);
 	fprintf(stdout, "Input data format: %s [%d]\n",
-		hci_vdata2str(input_data_format), input_data_format);
+	    hci_vdata2str(input_data_format), input_data_format);
 
 	if (input_coding == 0x00) /* Only for Linear PCM */
 		fprintf(stdout, "Input sample size: %d bit [%d]\n",
-			input_sample_size? 16 : 8, input_sample_size);
+		    input_sample_size ? 16 : 8, input_sample_size);
 
 	return (OK);
 } /* hci_read_voice_settings */
@@ -1042,9 +1050,9 @@ hci_read_voice_settings(int s, int argc, char **argv)
 static int
 hci_write_voice_settings(int s, int argc, char **argv)
 {
-	ng_hci_write_voice_settings_cp	cp;
-	ng_hci_write_voice_settings_rp	rp;
-	int				n;
+	ng_hci_write_voice_settings_cp cp;
+	ng_hci_write_voice_settings_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -1052,7 +1060,7 @@ hci_write_voice_settings(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%x", &n) != 1)
 			return (USAGE);
 
-		cp.settings = (uint16_t) n;
+		cp.settings = (uint16_t)n;
 		cp.settings = htole16(cp.settings);
 		break;
 
@@ -1062,15 +1070,15 @@ hci_write_voice_settings(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_VOICE_SETTINGS),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_VOICE_SETTINGS),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1081,23 +1089,24 @@ hci_write_voice_settings(int s, int argc, char **argv)
 static int
 hci_read_number_broadcast_retransmissions(int s, int argc, char **argv)
 {
-	ng_hci_read_num_broadcast_retrans_rp	rp;
-	int					n;
+	ng_hci_read_num_broadcast_retrans_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_NUM_BROADCAST_RETRANS),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_NUM_BROADCAST_RETRANS),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Number of broadcast retransmissions: %d\n",
-		rp.counter);
+	    rp.counter);
 
 	return (OK);
 } /* hci_read_number_broadcast_retransmissions */
@@ -1106,9 +1115,9 @@ hci_read_number_broadcast_retransmissions(int s, int argc, char **argv)
 static int
 hci_write_number_broadcast_retransmissions(int s, int argc, char **argv)
 {
-	ng_hci_write_num_broadcast_retrans_cp	cp;
-	ng_hci_write_num_broadcast_retrans_rp	rp;
-	int					n;
+	ng_hci_write_num_broadcast_retrans_cp cp;
+	ng_hci_write_num_broadcast_retrans_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -1116,7 +1125,7 @@ hci_write_number_broadcast_retransmissions(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 0xff)
 			return (USAGE);
 
-		cp.counter = (uint8_t) n;
+		cp.counter = (uint8_t)n;
 		break;
 
 	default:
@@ -1125,15 +1134,15 @@ hci_write_number_broadcast_retransmissions(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_NUM_BROADCAST_RETRANS),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_NUM_BROADCAST_RETRANS),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1144,19 +1153,20 @@ hci_write_number_broadcast_retransmissions(int s, int argc, char **argv)
 static int
 hci_read_hold_mode_activity(int s, int argc, char **argv)
 {
-	ng_hci_read_hold_mode_activity_rp	rp;
-	int					n;
-	char					buffer[1024];
+	ng_hci_read_hold_mode_activity_rp rp;
+	int n;
+	char buffer[1024];
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_HOLD_MODE_ACTIVITY),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_HOLD_MODE_ACTIVITY),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1164,8 +1174,9 @@ hci_read_hold_mode_activity(int s, int argc, char **argv)
 	if (rp.hold_mode_activity == 0)
 		fprintf(stdout, "Maintain current Power State");
 	else
-		fprintf(stdout, "%s", hci_hmode2str(rp.hold_mode_activity,
-				buffer, sizeof(buffer)));
+		fprintf(stdout, "%s",
+		    hci_hmode2str(rp.hold_mode_activity, buffer,
+			sizeof(buffer)));
 
 	fprintf(stdout, "\n");
 
@@ -1176,9 +1187,9 @@ hci_read_hold_mode_activity(int s, int argc, char **argv)
 static int
 hci_write_hold_mode_activity(int s, int argc, char **argv)
 {
-	ng_hci_write_hold_mode_activity_cp	cp;
-	ng_hci_write_hold_mode_activity_rp	rp;
-	int					n;
+	ng_hci_write_hold_mode_activity_cp cp;
+	ng_hci_write_hold_mode_activity_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -1186,7 +1197,7 @@ hci_write_hold_mode_activity(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 4)
 			return (USAGE);
 
-		cp.hold_mode_activity = (uint8_t) n;
+		cp.hold_mode_activity = (uint8_t)n;
 		break;
 
 	default:
@@ -1195,15 +1206,15 @@ hci_write_hold_mode_activity(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_HOLD_MODE_ACTIVITY),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_HOLD_MODE_ACTIVITY),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1214,23 +1225,24 @@ hci_write_hold_mode_activity(int s, int argc, char **argv)
 static int
 hci_read_sco_flow_control_enable(int s, int argc, char **argv)
 {
-	ng_hci_read_sco_flow_control_rp	rp;
-	int				n;
+	ng_hci_read_sco_flow_control_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_SCO_FLOW_CONTROL),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_SCO_FLOW_CONTROL),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "SCO flow control %s [%d]\n",
-		rp.flow_control? "enabled" : "disabled", rp.flow_control);
+	    rp.flow_control ? "enabled" : "disabled", rp.flow_control);
 
 	return (OK);
 } /* hci_read_sco_flow_control_enable */
@@ -1239,9 +1251,9 @@ hci_read_sco_flow_control_enable(int s, int argc, char **argv)
 static int
 hci_write_sco_flow_control_enable(int s, int argc, char **argv)
 {
-	ng_hci_write_sco_flow_control_cp	cp;
-	ng_hci_write_sco_flow_control_rp	rp;
-	int					n;
+	ng_hci_write_sco_flow_control_cp cp;
+	ng_hci_write_sco_flow_control_rp rp;
+	int n;
 
 	/* parse command parameters */
 	switch (argc) {
@@ -1249,7 +1261,7 @@ hci_write_sco_flow_control_enable(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 1)
 			return (USAGE);
 
-		cp.flow_control = (uint8_t) n;
+		cp.flow_control = (uint8_t)n;
 		break;
 
 	default:
@@ -1258,15 +1270,15 @@ hci_write_sco_flow_control_enable(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_SCO_FLOW_CONTROL),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_SCO_FLOW_CONTROL),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1277,9 +1289,9 @@ hci_write_sco_flow_control_enable(int s, int argc, char **argv)
 static int
 hci_read_link_supervision_timeout(int s, int argc, char **argv)
 {
-	ng_hci_read_link_supervision_timo_cp	cp;
-	ng_hci_read_link_supervision_timo_rp	rp;
-	int					n;
+	ng_hci_read_link_supervision_timo_cp cp;
+	ng_hci_read_link_supervision_timo_rp rp;
+	int n;
 
 	switch (argc) {
 	case 1:
@@ -1287,7 +1299,7 @@ hci_read_link_supervision_timeout(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n <= 0 || n > 0x0eff)
 			return (USAGE);
 
-		cp.con_handle = (uint16_t) (n & 0x0fff);
+		cp.con_handle = (uint16_t)(n & 0x0fff);
 		cp.con_handle = htole16(cp.con_handle);
 		break;
 
@@ -1297,15 +1309,15 @@ hci_read_link_supervision_timeout(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_LINK_SUPERVISION_TIMO),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_LINK_SUPERVISION_TIMO),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1313,7 +1325,7 @@ hci_read_link_supervision_timeout(int s, int argc, char **argv)
 
 	fprintf(stdout, "Connection handle: %d\n", le16toh(rp.con_handle));
 	fprintf(stdout, "Link supervision timeout: %.2f msec [%d slots]\n",
-		rp.timeout * 0.625, rp.timeout);
+	    rp.timeout * 0.625, rp.timeout);
 
 	return (OK);
 } /* hci_read_link_supervision_timeout */
@@ -1322,9 +1334,9 @@ hci_read_link_supervision_timeout(int s, int argc, char **argv)
 static int
 hci_write_link_supervision_timeout(int s, int argc, char **argv)
 {
-	ng_hci_write_link_supervision_timo_cp	cp;
-	ng_hci_write_link_supervision_timo_rp	rp;
-	int					n;
+	ng_hci_write_link_supervision_timo_cp cp;
+	ng_hci_write_link_supervision_timo_rp rp;
+	int n;
 
 	switch (argc) {
 	case 2:
@@ -1332,14 +1344,14 @@ hci_write_link_supervision_timeout(int s, int argc, char **argv)
 		if (sscanf(argv[0], "%d", &n) != 1 || n <= 0 || n > 0x0eff)
 			return (USAGE);
 
-		cp.con_handle = (uint16_t) (n & 0x0fff);
+		cp.con_handle = (uint16_t)(n & 0x0fff);
 		cp.con_handle = htole16(cp.con_handle);
 
 		/* link supervision timeout */
 		if (sscanf(argv[1], "%d", &n) != 1 || n < 0 || n > 0xffff)
 			return (USAGE);
 
-		cp.timeout = (uint16_t) (n & 0x0fff);
+		cp.timeout = (uint16_t)(n & 0x0fff);
 		cp.timeout = htole16(cp.timeout);
 		break;
 
@@ -1349,15 +1361,15 @@ hci_write_link_supervision_timeout(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_LINK_SUPERVISION_TIMO),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_LINK_SUPERVISION_TIMO),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1368,23 +1380,24 @@ hci_write_link_supervision_timeout(int s, int argc, char **argv)
 static int
 hci_read_page_scan_period_mode(int s, int argc, char **argv)
 {
-	ng_hci_read_page_scan_period_rp	rp;
-	int				n;
+	ng_hci_read_page_scan_period_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_PAGE_SCAN_PERIOD),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_PAGE_SCAN_PERIOD),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "Page scan period mode: %#02x\n",
-		rp.page_scan_period_mode);
+	    rp.page_scan_period_mode);
 
 	return (OK);
 } /* hci_read_page_scan_period_mode */
@@ -1393,16 +1406,16 @@ hci_read_page_scan_period_mode(int s, int argc, char **argv)
 static int
 hci_write_page_scan_period_mode(int s, int argc, char **argv)
 {
-	ng_hci_write_page_scan_period_cp	cp;
-	ng_hci_write_page_scan_period_rp	rp;
-	int					n;
+	ng_hci_write_page_scan_period_cp cp;
+	ng_hci_write_page_scan_period_rp rp;
+	int n;
 
 	/* parse command arguments */
 	switch (argc) {
 	case 1:
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 2)
 			return (USAGE);
-	
+
 		cp.page_scan_period_mode = (n & 0xff);
 		break;
 
@@ -1412,15 +1425,15 @@ hci_write_page_scan_period_mode(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_PAGE_SCAN_PERIOD),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_PAGE_SCAN_PERIOD),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1431,18 +1444,19 @@ hci_write_page_scan_period_mode(int s, int argc, char **argv)
 static int
 hci_read_page_scan_mode(int s, int argc, char **argv)
 {
-	ng_hci_read_page_scan_rp	rp;
-	int				n;
+	ng_hci_read_page_scan_rp rp;
+	int n;
 
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_PAGE_SCAN),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_PAGE_SCAN),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1455,16 +1469,16 @@ hci_read_page_scan_mode(int s, int argc, char **argv)
 static int
 hci_write_page_scan_mode(int s, int argc, char **argv)
 {
-	ng_hci_write_page_scan_cp	cp;
-	ng_hci_write_page_scan_rp	rp;
-	int				n;
+	ng_hci_write_page_scan_cp cp;
+	ng_hci_write_page_scan_rp rp;
+	int n;
 
 	/* parse command arguments */
 	switch (argc) {
 	case 1:
 		if (sscanf(argv[0], "%d", &n) != 1 || n < 0 || n > 3)
 			return (USAGE);
-	
+
 		cp.page_scan_mode = (n & 0xff);
 		break;
 
@@ -1474,15 +1488,15 @@ hci_write_page_scan_mode(int s, int argc, char **argv)
 
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_PAGE_SCAN),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_PAGE_SCAN),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
@@ -1490,30 +1504,31 @@ hci_write_page_scan_mode(int s, int argc, char **argv)
 } /* hci_write_page_scan_mode */
 
 static int
-hci_read_le_host_support(int s, int argc, char **argv) 
+hci_read_le_host_support(int s, int argc, char **argv)
 {
 	ng_hci_read_le_host_supported_rp rp;
 	int n;
 	n = sizeof(rp);
-	if (hci_simple_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_READ_LE_HOST_SUPPORTED),
-			(char *) &rp, &n) == ERROR)
+	if (hci_simple_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_READ_LE_HOST_SUPPORTED),
+		(char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	fprintf(stdout, "LE Host support: %#02x\n", rp.le_supported_host);
-	fprintf(stdout, "Simultaneous LE Host : %#02x\n", rp.simultaneous_le_host);
+	fprintf(stdout, "Simultaneous LE Host : %#02x\n",
+	    rp.simultaneous_le_host);
 
 	return (OK);
-	
 }
 static int
-hci_write_le_host_support(int s, int argc, char **argv) 
+hci_write_le_host_support(int s, int argc, char **argv)
 {
 	ng_hci_write_le_host_supported_cp cp;
 	ng_hci_write_le_host_supported_rp rp;
@@ -1524,439 +1539,363 @@ hci_write_le_host_support(int s, int argc, char **argv)
 	cp.simultaneous_le_host = 0;
 	switch (argc) {
 	case 2:
-		if (sscanf(argv[1], "%d", &n) != 1 || (n != 0 && n != 1)){
+		if (sscanf(argv[1], "%d", &n) != 1 || (n != 0 && n != 1)) {
 			printf("-ARGC2: %d\n", n);
 			return (USAGE);
 		}
-		cp.simultaneous_le_host = (n &1);
-		
+		cp.simultaneous_le_host = (n & 1);
+
 	case 1:
-		if (sscanf(argv[0], "%d", &n) != 1 || (n != 0 && n != 1)){
+		if (sscanf(argv[0], "%d", &n) != 1 || (n != 0 && n != 1)) {
 			printf("+ARGC1: %d\n", n);
 			return (USAGE);
 		}
 
-		cp.le_supported_host = (n &1);
+		cp.le_supported_host = (n & 1);
 		break;
 
 	default:
 		return (USAGE);
 	}
 
-
 	/* send command */
 	n = sizeof(rp);
-	if (hci_request(s, NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
-			NG_HCI_OCF_WRITE_LE_HOST_SUPPORTED),
-			(char const *) &cp, sizeof(cp),
-			(char *) &rp, &n) == ERROR)
+	if (hci_request(s,
+		NG_HCI_OPCODE(NG_HCI_OGF_HC_BASEBAND,
+		    NG_HCI_OCF_WRITE_LE_HOST_SUPPORTED),
+		(char const *)&cp, sizeof(cp), (char *)&rp, &n) == ERROR)
 		return (ERROR);
 
 	if (rp.status != 0x00) {
-		fprintf(stdout, "Status: %s [%#02x]\n", 
-			hci_status2str(rp.status), rp.status);
+		fprintf(stdout, "Status: %s [%#02x]\n",
+		    hci_status2str(rp.status), rp.status);
 		return (FAILED);
 	}
 
 	return (OK);
 }
 
-struct hci_command	host_controller_baseband_commands[] = {
-{
-"reset",
-"\nThe Reset command will reset the Host Controller and the Link Manager.\n" \
-"After the reset is completed, the current operational state will be lost,\n" \
-"the Bluetooth unit will enter standby mode and the Host Controller will\n" \
-"automatically revert to the default values for the parameters for which\n" \
-"default values are defined in the specification.",
-&hci_reset
-},
-{
-"read_pin_type",
-"\nThe Read_PIN_Type command is used for the Host to read whether the Link\n" \
-"Manager assumes that the Host supports variable PIN codes only a fixed PIN\n" \
-"code.",
-&hci_read_pin_type
-},
-{
-"write_pin_type <pin_type>",
-"\nThe Write_PIN_Type command is used for the Host to write to the Host\n" \
-"Controller whether the Host supports variable PIN codes or only a fixed PIN\n"\
-"code.\n\n" \
-"\t<pin_type> - dd; 0 - Variable; 1 - Fixed",
-&hci_write_pin_type
-},
-{
-"read_stored_link_key [<BD_ADDR>]",
-"\nThe Read_Stored_Link_Key command provides the ability to read one or\n" \
-"more link keys stored in the Bluetooth Host Controller. The Bluetooth Host\n" \
-"Controller can store a limited number of link keys for other Bluetooth\n" \
-"devices.\n\n" \
-"\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name",
-&hci_read_stored_link_key
-},
-{
-"write_stored_link_key <BD_ADDR> <key>",
-"\nThe Write_Stored_Link_Key command provides the ability to write one\n" \
-"or more link keys to be stored in the Bluetooth Host Controller. The\n" \
-"Bluetooth Host Controller can store a limited number of link keys for other\n"\
-"Bluetooth devices. If no additional space is available in the Bluetooth\n"\
-"Host Controller then no additional link keys will be stored.\n\n" \
-"\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name\n" \
-"\t<key>     - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx up to 16 bytes link key",
-&hci_write_stored_link_key
-},
-{
-"delete_stored_link_key [<BD_ADDR>]",
-"\nThe Delete_Stored_Link_Key command provides the ability to remove one\n" \
-"or more of the link keys stored in the Bluetooth Host Controller. The\n" \
-"Bluetooth Host Controller can store a limited number of link keys for other\n"\
-"Bluetooth devices.\n\n" \
-"\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name",
-&hci_delete_stored_link_key
-},
-{
-"change_local_name <name>",
-"\nThe Change_Local_Name command provides the ability to modify the user\n" \
-"friendly name for the Bluetooth unit.\n\n" \
-"\t<name> - string",
-&hci_change_local_name
-},
-{
-"read_local_name",
-"\nThe Read_Local_Name command provides the ability to read the\n" \
-"stored user-friendly name for the Bluetooth unit.",
-&hci_read_local_name
-},
-{
-"read_connection_accept_timeout",
-"\nThis command will read the value for the Connection_Accept_Timeout\n" \
-"configuration parameter. The Connection_Accept_Timeout configuration\n" \
-"parameter allows the Bluetooth hardware to automatically deny a\n" \
-"connection request after a specified time period has occurred and\n" \
-"the new connection is not accepted. Connection Accept Timeout\n" \
-"measured in Number of Baseband slots.",
-&hci_read_connection_accept_timeout
-},
-{
-"write_connection_accept_timeout <timeout>",
-"\nThis command will write the value for the Connection_Accept_Timeout\n" \
-"configuration parameter.\n\n" \
-"\t<timeout> - dddd; measured in number of baseband slots.",
-&hci_write_connection_accept_timeout
-},
-{
-"read_page_timeout",
-"\nThis command will read the value for the Page_Timeout configuration\n" \
-"parameter. The Page_Timeout configuration parameter defines the\n" \
-"maximum time the local Link Manager will wait for a baseband page\n" \
-"response from the remote unit at a locally initiated connection\n" \
-"attempt. Page Timeout measured in Number of Baseband slots.",
-&hci_read_page_timeout
-},
-{
-"write_page_timeout <timeout>",
-"\nThis command will write the value for the Page_Timeout configuration\n" \
-"parameter.\n\n" \
-"\t<timeout> - dddd; measured in number of baseband slots.",
-&hci_write_page_timeout
-},
-{
-"read_scan_enable",
-"\nThis command will read the value for the Scan_Enable parameter. The\n" \
-"Scan_Enable parameter controls whether or not the Bluetooth uint\n" \
-"will periodically scan for page attempts and/or inquiry requests\n" \
-"from other Bluetooth unit.\n\n" \
-"\t0x00 - No Scans enabled.\n" \
-"\t0x01 - Inquiry Scan enabled. Page Scan disabled.\n" \
-"\t0x02 - Inquiry Scan disabled. Page Scan enabled.\n" \
-"\t0x03 - Inquiry Scan enabled. Page Scan enabled.",
-&hci_read_scan_enable
-},
-{
-"write_scan_enable <scan_enable>",
-"\nThis command will write the value for the Scan_Enable parameter.\n" \
-"The Scan_Enable parameter controls whether or not the Bluetooth\n" \
-"unit will periodically scan for page attempts and/or inquiry\n" \
-"requests from other Bluetooth unit.\n\n" \
-"\t<scan_enable> - dd;\n" \
-"\t0 - No Scans enabled.\n" \
-"\t1 - Inquiry Scan enabled. Page Scan disabled.\n" \
-"\t2 - Inquiry Scan disabled. Page Scan enabled.\n" \
-"\t3 - Inquiry Scan enabled. Page Scan enabled.",
-&hci_write_scan_enable
-},
-{
-"read_page_scan_activity",
-"\nThis command will read the value for Page_Scan_Activity configuration\n" \
-"parameters. The Page_Scan_Interval configuration parameter defines the\n" \
-"amount of time between consecutive page scans. This time interval is \n" \
-"defined from when the Host Controller started its last page scan until\n" \
-"it begins the next page scan. The Page_Scan_Window configuration parameter\n" \
-"defines the amount of time for the duration of the page scan. The\n" \
-"Page_Scan_Window can only be less than or equal to the Page_Scan_Interval.",
-&hci_read_page_scan_activity
-},
-{
-"write_page_scan_activity interval(dddd) window(dddd)",
-"\nThis command will write the value for Page_Scan_Activity configuration\n" \
-"parameter. The Page_Scan_Interval configuration parameter defines the\n" \
-"amount of time between consecutive page scans. This is defined as the time\n" \
-"interval from when the Host Controller started its last page scan until it\n" \
-"begins the next page scan. The Page_Scan_Window configuration parameter\n" \
-"defines the amount of time for the duration of the page scan. \n" \
-"The Page_Scan_Window can only be less than or equal to the Page_Scan_Interval.\n\n" \
-"\t<interval> - Range: 0x0012 -- 0x100, Time = N * 0.625 msec\n" \
-"\t<window>   - Range: 0x0012 -- 0x100, Time = N * 0.625 msec",
-&hci_write_page_scan_activity
-},
-{
-"read_inquiry_scan_activity",
-"\nThis command will read the value for Inquiry_Scan_Activity configuration\n" \
-"parameter. The Inquiry_Scan_Interval configuration parameter defines the\n" \
-"amount of time between consecutive inquiry scans. This is defined as the\n" \
-"time interval from when the Host Controller started its last inquiry scan\n" \
-"until it begins the next inquiry scan.",
-&hci_read_inquiry_scan_activity
-},
-{
-"write_inquiry_scan_activity interval(dddd) window(dddd)",
-"\nThis command will write the value for Inquiry_Scan_Activity configuration\n"\
-"parameter. The Inquiry_Scan_Interval configuration parameter defines the\n" \
-"amount of time between consecutive inquiry scans. This is defined as the\n" \
-"time interval from when the Host Controller started its last inquiry scan\n" \
-"until it begins the next inquiry scan. The Inquiry_Scan_Window configuration\n" \
-"parameter defines the amount of time for the duration of the inquiry scan.\n" \
-"The Inquiry_Scan_Window can only be less than or equal to the Inquiry_Scan_Interval.\n\n" \
-"\t<interval> - Range: 0x0012 -- 0x100, Time = N * 0.625 msec\n" \
-"\t<window>   - Range: 0x0012 -- 0x100, Time = N * 0.625 msec",
-&hci_write_inquiry_scan_activity
-},
-{
-"read_authentication_enable",
-"\nThis command will read the value for the Authentication_Enable parameter.\n"\
-"The Authentication_Enable parameter controls if the local unit requires\n"\
-"to authenticate the remote unit at connection setup (between the\n" \
-"Create_Connection command or acceptance of an incoming ACL connection\n"\
-"and the corresponding Connection Complete event). At connection setup, only\n"\
-"the unit(s) with the Authentication_Enable parameter enabled will try to\n"\
-"authenticate the other unit.",
-&hci_read_authentication_enable
-},
-{
-"write_authentication_enable enable(0|1)",
-"\nThis command will write the value for the Authentication_Enable parameter.\n"\
-"The Authentication_Enable parameter controls if the local unit requires to\n"\
-"authenticate the remote unit at connection setup (between the\n" \
-"Create_Connection command or acceptance of an incoming ACL connection\n" \
-"and the corresponding Connection Complete event). At connection setup, only\n"\
-"the unit(s) with the Authentication_Enable parameter enabled will try to\n"\
-"authenticate the other unit.",
-&hci_write_authentication_enable
-},
-{
-"read_encryption_mode",
-"\nThis command will read the value for the Encryption_Mode parameter. The\n" \
-"Encryption_Mode parameter controls if the local unit requires encryption\n" \
-"to the remote unit at connection setup (between the Create_Connection\n" \
-"command or acceptance of an incoming ACL connection and the corresponding\n" \
-"Connection Complete event). At connection setup, only the unit(s) with\n" \
-"the Authentication_Enable parameter enabled and Encryption_Mode parameter\n" \
-"enabled will try to encrypt the connection to the other unit.\n\n" \
-"\t<encryption_mode>:\n" \
-"\t0x00 - Encryption disabled.\n" \
-"\t0x01 - Encryption only for point-to-point packets.\n" \
-"\t0x02 - Encryption for both point-to-point and broadcast packets.",
-&hci_read_encryption_mode
-},
-{
-"write_encryption_mode mode(0|1|2)",
-"\tThis command will write the value for the Encryption_Mode parameter.\n" \
-"The Encryption_Mode parameter controls if the local unit requires\n" \
-"encryption to the remote unit at connection setup (between the\n" \
-"Create_Connection command or acceptance of an incoming ACL connection\n" \
-"and the corresponding Connection Complete event). At connection setup,\n" \
-"only the unit(s) with the Authentication_Enable parameter enabled and\n" \
-"Encryption_Mode parameter enabled will try to encrypt the connection to\n" \
-"the other unit.\n\n" \
-"\t<encryption_mode> (dd)\n" \
-"\t0 - Encryption disabled.\n" \
-"\t1 - Encryption only for point-to-point packets.\n" \
-"\t2 - Encryption for both point-to-point and broadcast packets.",
-&hci_write_encryption_mode
-},
-{
-"read_class_of_device",
-"\nThis command will read the value for the Class_of_Device parameter.\n" \
-"The Class_of_Device parameter is used to indicate the capabilities of\n" \
-"the local unit to other units.",
-&hci_read_class_of_device
-},
-{
-"write_class_of_device class(xx:xx:xx)",
-"\nThis command will write the value for the Class_of_Device parameter.\n" \
-"The Class_of_Device parameter is used to indicate the capabilities of \n" \
-"the local unit to other units.\n\n" \
-"\t<class> (xx:xx:xx) - class of device",
-&hci_write_class_of_device
-},
-{
-"read_voice_settings",
-"\nThis command will read the values for the Voice_Setting parameter.\n" \
-"The Voice_Setting parameter controls all the various settings for voice\n" \
-"connections. These settings apply to all voice connections, and cannot be\n" \
-"set for individual voice connections. The Voice_Setting parameter controls\n" \
-"the configuration for voice connections: Input Coding, Air coding format,\n" \
-"input data format, Input sample size, and linear PCM parameter.",
-&hci_read_voice_settings
-},
-{
-"write_voice_settings settings(xxxx)",
-"\nThis command will write the values for the Voice_Setting parameter.\n" \
-"The Voice_Setting parameter controls all the various settings for voice\n" \
-"connections. These settings apply to all voice connections, and cannot be\n" \
-"set for individual voice connections. The Voice_Setting parameter controls\n" \
-"the configuration for voice connections: Input Coding, Air coding format,\n" \
-"input data format, Input sample size, and linear PCM parameter.\n\n" \
-"\t<voice_settings> (xxxx) - voice settings",
-&hci_write_voice_settings
-},
-{
-"read_number_broadcast_retransmissions",
-"\nThis command will read the unit's parameter value for the Number of\n" \
-"Broadcast Retransmissions. Broadcast packets are not acknowledged and are\n" \
-"unreliable.",
-&hci_read_number_broadcast_retransmissions
-},
-{
-"write_number_broadcast_retransmissions count(dd)",
-"\nThis command will write the unit's parameter value for the Number of\n" \
-"Broadcast Retransmissions. Broadcast packets are not acknowledged and are\n" \
-"unreliable.\n\n" \
-"\t<count> (dd) - number of broadcast retransimissions",
-&hci_write_number_broadcast_retransmissions
-},
-{
-"read_hold_mode_activity",
-"\nThis command will read the value for the Hold_Mode_Activity parameter.\n" \
-"The Hold_Mode_Activity value is used to determine what activities should\n" \
-"be suspended when the unit is in hold mode.",
-&hci_read_hold_mode_activity
-},
-{
-"write_hold_mode_activity settings(0|1|2|4)",
-"\nThis command will write the value for the Hold_Mode_Activity parameter.\n" \
-"The Hold_Mode_Activity value is used to determine what activities should\n" \
-"be suspended when the unit is in hold mode.\n\n" \
-"\t<settings> (dd) - bit mask:\n" \
-"\t0 - Maintain current Power State. Default\n" \
-"\t1 - Suspend Page Scan.\n" \
-"\t2 - Suspend Inquiry Scan.\n" \
-"\t4 - Suspend Periodic Inquiries.",
-&hci_write_hold_mode_activity
-},
-{
-"read_sco_flow_control_enable",
-"\nThe Read_SCO_Flow_Control_Enable command provides the ability to read\n" \
-"the SCO_Flow_Control_Enable setting. By using this setting, the Host can\n" \
-"decide if the Host Controller will send Number Of Completed Packets events\n" \
-"for SCO Connection Handles. This setting allows the Host to enable and\n" \
-"disable SCO flow control.",
-&hci_read_sco_flow_control_enable
-},
-{
-"write_sco_flow_control_enable enable(0|1)",
-"\nThe Write_SCO_Flow_Control_Enable command provides the ability to write\n" \
-"the SCO_Flow_Control_Enable setting. By using this setting, the Host can\n" \
-"decide if the Host Controller will send Number Of Completed Packets events\n" \
-"for SCO Connection Handles. This setting allows the Host to enable and\n" \
-"disable SCO flow control. The SCO_Flow_Control_Enable setting can only be\n" \
-"changed if no connections exist.",
-&hci_write_sco_flow_control_enable
-},
-{
-"read_link_supervision_timeout <connection_handle>",
-"\nThis command will read the value for the Link_Supervision_Timeout\n" \
-"parameter for the device. The Link_Supervision_Timeout parameter is used\n" \
-"by the master or slave Bluetooth device to monitor link loss. If, for any\n" \
-"reason, no Baseband packets are received from that Connection Handle for a\n" \
-"duration longer than the Link_Supervision_Timeout, the connection is\n"
-"disconnected.\n\n" \
-"\t<connection_handle> - dddd; connection handle\n",
-&hci_read_link_supervision_timeout
-},
-{
-"write_link_supervision_timeout <connection_handle> <timeout>",
-"\nThis command will write the value for the Link_Supervision_Timeout\n" \
-"parameter for the device. The Link_Supervision_Timeout parameter is used\n" \
-"by the master or slave Bluetooth device to monitor link loss. If, for any\n" \
-"reason, no Baseband packets are received from that connection handle for a\n" \
-"duration longer than the Link_Supervision_Timeout, the connection is\n" \
-"disconnected.\n\n" \
-"\t<connection_handle> - dddd; connection handle\n" \
-"\t<timeout>           - dddd; timeout measured in number of baseband slots\n",
-&hci_write_link_supervision_timeout
-},
-{
-"read_page_scan_period_mode",
-"\nThis command is used to read the mandatory Page_Scan_Period_Mode of the\n" \
-"local Bluetooth device. Every time an inquiry response message is sent, the\n"\
-"Bluetooth device will start a timer (T_mandatory_pscan), the value of which\n"\
-"is dependent on the Page_Scan_Period_Mode. As long as this timer has not\n" \
-"expired, the Bluetooth device will use the Page_Scan_Period_Mode for all\n" \
-"following page scans.",
-&hci_read_page_scan_period_mode
-},
-{
-"write_page_scan_period_mode <page_scan_period_mode>",
-"\nThis command is used to write the mandatory Page_Scan_Period_Mode of the\n" \
-"local Bluetooth device. Every time an inquiry response message is sent, the\n"\
-"Bluetooth device will start a timer (T_mandatory_pscan), the value of which\n"\
-"is dependent on the Page_Scan_Period_Mode. As long as this timer has not\n" \
-"expired, the Bluetooth device will use the Page_Scan_Period_Mode for all\n" \
-"following page scans.\n\n" \
-"\t<page_scan_period_mode> - dd; page scan period mode:\n" \
-"\t0x00 - P0 (Default)\n" \
-"\t0x01 - P1\n" \
-"\t0x02 - P2",
-&hci_write_page_scan_period_mode
-},
-{
-"read_page_scan_mode",
-"\nThis command is used to read the default page scan mode of the local\n" \
-"Bluetooth device. The Page_Scan_Mode parameter indicates the page scan mode\n"\
-"that is used for the default page scan. Currently one mandatory page scan\n"\
-"mode and three optional page scan modes are defined. Following an inquiry\n" \
-"response, if the Baseband timer T_mandatory_pscan has not expired, the\n" \
-"mandatory page scan mode must be applied.",
-&hci_read_page_scan_mode
-},
-{
-"write_page_scan_mode <page_scan_mode>",
-"\nThis command is used to write the default page scan mode of the local\n" \
-"Bluetooth device. The Page_Scan_Mode parameter indicates the page scan mode\n"\
-"that is used for the default page scan. Currently, one mandatory page scan\n"\
-"mode and three optional page scan modes are defined. Following an inquiry\n"\
-"response, if the Baseband timer T_mandatory_pscan has not expired, the\n" \
-"mandatory page scan mode must be applied.\n\n" \
-"\t<page_scan_mode> - dd; page scan mode:\n" \
-"\t0x00 - Mandatory Page Scan Mode (Default)\n" \
-"\t0x01 - Optional Page Scan Mode I\n" \
-"\t0x02 - Optional Page Scan Mode II\n" \
-"\t0x03 - Optional Page Scan Mode III",
-&hci_write_page_scan_mode
-},
-{
-"read_le_host_support",	\
-"Read if this host is in LE supported mode and simultaneous LE supported mode",
-&hci_read_le_host_support,
-},  
-{
-"write_le_host_support",	\
-"write_le_host_support le_host[0|1] simultaneous_le[0|1]",
-&hci_write_le_host_support,
-},  
+struct hci_command host_controller_baseband_commands[] = {
+	{ "reset",
+	    "\nThe Reset command will reset the Host Controller and the Link Manager.\n"
+	    "After the reset is completed, the current operational state will be lost,\n"
+	    "the Bluetooth unit will enter standby mode and the Host Controller will\n"
+	    "automatically revert to the default values for the parameters for which\n"
+	    "default values are defined in the specification.",
+	    &hci_reset },
+	{ "read_pin_type",
+	    "\nThe Read_PIN_Type command is used for the Host to read whether the Link\n"
+	    "Manager assumes that the Host supports variable PIN codes only a fixed PIN\n"
+	    "code.",
+	    &hci_read_pin_type },
+	{ "write_pin_type <pin_type>",
+	    "\nThe Write_PIN_Type command is used for the Host to write to the Host\n"
+	    "Controller whether the Host supports variable PIN codes or only a fixed PIN\n"
+	    "code.\n\n"
+	    "\t<pin_type> - dd; 0 - Variable; 1 - Fixed",
+	    &hci_write_pin_type },
+	{ "read_stored_link_key [<BD_ADDR>]",
+	    "\nThe Read_Stored_Link_Key command provides the ability to read one or\n"
+	    "more link keys stored in the Bluetooth Host Controller. The Bluetooth Host\n"
+	    "Controller can store a limited number of link keys for other Bluetooth\n"
+	    "devices.\n\n"
+	    "\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name",
+	    &hci_read_stored_link_key },
+	{ "write_stored_link_key <BD_ADDR> <key>",
+	    "\nThe Write_Stored_Link_Key command provides the ability to write one\n"
+	    "or more link keys to be stored in the Bluetooth Host Controller. The\n"
+	    "Bluetooth Host Controller can store a limited number of link keys for other\n"
+	    "Bluetooth devices. If no additional space is available in the Bluetooth\n"
+	    "Host Controller then no additional link keys will be stored.\n\n"
+	    "\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name\n"
+	    "\t<key>     - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx up to 16 bytes link key",
+	    &hci_write_stored_link_key },
+	{ "delete_stored_link_key [<BD_ADDR>]",
+	    "\nThe Delete_Stored_Link_Key command provides the ability to remove one\n"
+	    "or more of the link keys stored in the Bluetooth Host Controller. The\n"
+	    "Bluetooth Host Controller can store a limited number of link keys for other\n"
+	    "Bluetooth devices.\n\n"
+	    "\t<BD_ADDR> - xx:xx:xx:xx:xx:xx BD_ADDR or name",
+	    &hci_delete_stored_link_key },
+	{ "change_local_name <name>",
+	    "\nThe Change_Local_Name command provides the ability to modify the user\n"
+	    "friendly name for the Bluetooth unit.\n\n"
+	    "\t<name> - string",
+	    &hci_change_local_name },
+	{ "read_local_name",
+	    "\nThe Read_Local_Name command provides the ability to read the\n"
+	    "stored user-friendly name for the Bluetooth unit.",
+	    &hci_read_local_name },
+	{ "read_connection_accept_timeout",
+	    "\nThis command will read the value for the Connection_Accept_Timeout\n"
+	    "configuration parameter. The Connection_Accept_Timeout configuration\n"
+	    "parameter allows the Bluetooth hardware to automatically deny a\n"
+	    "connection request after a specified time period has occurred and\n"
+	    "the new connection is not accepted. Connection Accept Timeout\n"
+	    "measured in Number of Baseband slots.",
+	    &hci_read_connection_accept_timeout },
+	{ "write_connection_accept_timeout <timeout>",
+	    "\nThis command will write the value for the Connection_Accept_Timeout\n"
+	    "configuration parameter.\n\n"
+	    "\t<timeout> - dddd; measured in number of baseband slots.",
+	    &hci_write_connection_accept_timeout },
+	{ "read_page_timeout",
+	    "\nThis command will read the value for the Page_Timeout configuration\n"
+	    "parameter. The Page_Timeout configuration parameter defines the\n"
+	    "maximum time the local Link Manager will wait for a baseband page\n"
+	    "response from the remote unit at a locally initiated connection\n"
+	    "attempt. Page Timeout measured in Number of Baseband slots.",
+	    &hci_read_page_timeout },
+	{ "write_page_timeout <timeout>",
+	    "\nThis command will write the value for the Page_Timeout configuration\n"
+	    "parameter.\n\n"
+	    "\t<timeout> - dddd; measured in number of baseband slots.",
+	    &hci_write_page_timeout },
+	{ "read_scan_enable",
+	    "\nThis command will read the value for the Scan_Enable parameter. The\n"
+	    "Scan_Enable parameter controls whether or not the Bluetooth uint\n"
+	    "will periodically scan for page attempts and/or inquiry requests\n"
+	    "from other Bluetooth unit.\n\n"
+	    "\t0x00 - No Scans enabled.\n"
+	    "\t0x01 - Inquiry Scan enabled. Page Scan disabled.\n"
+	    "\t0x02 - Inquiry Scan disabled. Page Scan enabled.\n"
+	    "\t0x03 - Inquiry Scan enabled. Page Scan enabled.",
+	    &hci_read_scan_enable },
+	{ "write_scan_enable <scan_enable>",
+	    "\nThis command will write the value for the Scan_Enable parameter.\n"
+	    "The Scan_Enable parameter controls whether or not the Bluetooth\n"
+	    "unit will periodically scan for page attempts and/or inquiry\n"
+	    "requests from other Bluetooth unit.\n\n"
+	    "\t<scan_enable> - dd;\n"
+	    "\t0 - No Scans enabled.\n"
+	    "\t1 - Inquiry Scan enabled. Page Scan disabled.\n"
+	    "\t2 - Inquiry Scan disabled. Page Scan enabled.\n"
+	    "\t3 - Inquiry Scan enabled. Page Scan enabled.",
+	    &hci_write_scan_enable },
+	{ "read_page_scan_activity",
+	    "\nThis command will read the value for Page_Scan_Activity configuration\n"
+	    "parameters. The Page_Scan_Interval configuration parameter defines the\n"
+	    "amount of time between consecutive page scans. This time interval is \n"
+	    "defined from when the Host Controller started its last page scan until\n"
+	    "it begins the next page scan. The Page_Scan_Window configuration parameter\n"
+	    "defines the amount of time for the duration of the page scan. The\n"
+	    "Page_Scan_Window can only be less than or equal to the Page_Scan_Interval.",
+	    &hci_read_page_scan_activity },
+	{ "write_page_scan_activity interval(dddd) window(dddd)",
+	    "\nThis command will write the value for Page_Scan_Activity configuration\n"
+	    "parameter. The Page_Scan_Interval configuration parameter defines the\n"
+	    "amount of time between consecutive page scans. This is defined as the time\n"
+	    "interval from when the Host Controller started its last page scan until it\n"
+	    "begins the next page scan. The Page_Scan_Window configuration parameter\n"
+	    "defines the amount of time for the duration of the page scan. \n"
+	    "The Page_Scan_Window can only be less than or equal to the Page_Scan_Interval.\n\n"
+	    "\t<interval> - Range: 0x0012 -- 0x100, Time = N * 0.625 msec\n"
+	    "\t<window>   - Range: 0x0012 -- 0x100, Time = N * 0.625 msec",
+	    &hci_write_page_scan_activity },
+	{ "read_inquiry_scan_activity",
+	    "\nThis command will read the value for Inquiry_Scan_Activity configuration\n"
+	    "parameter. The Inquiry_Scan_Interval configuration parameter defines the\n"
+	    "amount of time between consecutive inquiry scans. This is defined as the\n"
+	    "time interval from when the Host Controller started its last inquiry scan\n"
+	    "until it begins the next inquiry scan.",
+	    &hci_read_inquiry_scan_activity },
+	{ "write_inquiry_scan_activity interval(dddd) window(dddd)",
+	    "\nThis command will write the value for Inquiry_Scan_Activity configuration\n"
+	    "parameter. The Inquiry_Scan_Interval configuration parameter defines the\n"
+	    "amount of time between consecutive inquiry scans. This is defined as the\n"
+	    "time interval from when the Host Controller started its last inquiry scan\n"
+	    "until it begins the next inquiry scan. The Inquiry_Scan_Window configuration\n"
+	    "parameter defines the amount of time for the duration of the inquiry scan.\n"
+	    "The Inquiry_Scan_Window can only be less than or equal to the Inquiry_Scan_Interval.\n\n"
+	    "\t<interval> - Range: 0x0012 -- 0x100, Time = N * 0.625 msec\n"
+	    "\t<window>   - Range: 0x0012 -- 0x100, Time = N * 0.625 msec",
+	    &hci_write_inquiry_scan_activity },
+	{ "read_authentication_enable",
+	    "\nThis command will read the value for the Authentication_Enable parameter.\n"
+	    "The Authentication_Enable parameter controls if the local unit requires\n"
+	    "to authenticate the remote unit at connection setup (between the\n"
+	    "Create_Connection command or acceptance of an incoming ACL connection\n"
+	    "and the corresponding Connection Complete event). At connection setup, only\n"
+	    "the unit(s) with the Authentication_Enable parameter enabled will try to\n"
+	    "authenticate the other unit.",
+	    &hci_read_authentication_enable },
+	{ "write_authentication_enable enable(0|1)",
+	    "\nThis command will write the value for the Authentication_Enable parameter.\n"
+	    "The Authentication_Enable parameter controls if the local unit requires to\n"
+	    "authenticate the remote unit at connection setup (between the\n"
+	    "Create_Connection command or acceptance of an incoming ACL connection\n"
+	    "and the corresponding Connection Complete event). At connection setup, only\n"
+	    "the unit(s) with the Authentication_Enable parameter enabled will try to\n"
+	    "authenticate the other unit.",
+	    &hci_write_authentication_enable },
+	{ "read_encryption_mode",
+	    "\nThis command will read the value for the Encryption_Mode parameter. The\n"
+	    "Encryption_Mode parameter controls if the local unit requires encryption\n"
+	    "to the remote unit at connection setup (between the Create_Connection\n"
+	    "command or acceptance of an incoming ACL connection and the corresponding\n"
+	    "Connection Complete event). At connection setup, only the unit(s) with\n"
+	    "the Authentication_Enable parameter enabled and Encryption_Mode parameter\n"
+	    "enabled will try to encrypt the connection to the other unit.\n\n"
+	    "\t<encryption_mode>:\n"
+	    "\t0x00 - Encryption disabled.\n"
+	    "\t0x01 - Encryption only for point-to-point packets.\n"
+	    "\t0x02 - Encryption for both point-to-point and broadcast packets.",
+	    &hci_read_encryption_mode },
+	{ "write_encryption_mode mode(0|1|2)",
+	    "\tThis command will write the value for the Encryption_Mode parameter.\n"
+	    "The Encryption_Mode parameter controls if the local unit requires\n"
+	    "encryption to the remote unit at connection setup (between the\n"
+	    "Create_Connection command or acceptance of an incoming ACL connection\n"
+	    "and the corresponding Connection Complete event). At connection setup,\n"
+	    "only the unit(s) with the Authentication_Enable parameter enabled and\n"
+	    "Encryption_Mode parameter enabled will try to encrypt the connection to\n"
+	    "the other unit.\n\n"
+	    "\t<encryption_mode> (dd)\n"
+	    "\t0 - Encryption disabled.\n"
+	    "\t1 - Encryption only for point-to-point packets.\n"
+	    "\t2 - Encryption for both point-to-point and broadcast packets.",
+	    &hci_write_encryption_mode },
+	{ "read_class_of_device",
+	    "\nThis command will read the value for the Class_of_Device parameter.\n"
+	    "The Class_of_Device parameter is used to indicate the capabilities of\n"
+	    "the local unit to other units.",
+	    &hci_read_class_of_device },
+	{ "write_class_of_device class(xx:xx:xx)",
+	    "\nThis command will write the value for the Class_of_Device parameter.\n"
+	    "The Class_of_Device parameter is used to indicate the capabilities of \n"
+	    "the local unit to other units.\n\n"
+	    "\t<class> (xx:xx:xx) - class of device",
+	    &hci_write_class_of_device },
+	{ "read_voice_settings",
+	    "\nThis command will read the values for the Voice_Setting parameter.\n"
+	    "The Voice_Setting parameter controls all the various settings for voice\n"
+	    "connections. These settings apply to all voice connections, and cannot be\n"
+	    "set for individual voice connections. The Voice_Setting parameter controls\n"
+	    "the configuration for voice connections: Input Coding, Air coding format,\n"
+	    "input data format, Input sample size, and linear PCM parameter.",
+	    &hci_read_voice_settings },
+	{ "write_voice_settings settings(xxxx)",
+	    "\nThis command will write the values for the Voice_Setting parameter.\n"
+	    "The Voice_Setting parameter controls all the various settings for voice\n"
+	    "connections. These settings apply to all voice connections, and cannot be\n"
+	    "set for individual voice connections. The Voice_Setting parameter controls\n"
+	    "the configuration for voice connections: Input Coding, Air coding format,\n"
+	    "input data format, Input sample size, and linear PCM parameter.\n\n"
+	    "\t<voice_settings> (xxxx) - voice settings",
+	    &hci_write_voice_settings },
+	{ "read_number_broadcast_retransmissions",
+	    "\nThis command will read the unit's parameter value for the Number of\n"
+	    "Broadcast Retransmissions. Broadcast packets are not acknowledged and are\n"
+	    "unreliable.",
+	    &hci_read_number_broadcast_retransmissions },
+	{ "write_number_broadcast_retransmissions count(dd)",
+	    "\nThis command will write the unit's parameter value for the Number of\n"
+	    "Broadcast Retransmissions. Broadcast packets are not acknowledged and are\n"
+	    "unreliable.\n\n"
+	    "\t<count> (dd) - number of broadcast retransimissions",
+	    &hci_write_number_broadcast_retransmissions },
+	{ "read_hold_mode_activity",
+	    "\nThis command will read the value for the Hold_Mode_Activity parameter.\n"
+	    "The Hold_Mode_Activity value is used to determine what activities should\n"
+	    "be suspended when the unit is in hold mode.",
+	    &hci_read_hold_mode_activity },
+	{ "write_hold_mode_activity settings(0|1|2|4)",
+	    "\nThis command will write the value for the Hold_Mode_Activity parameter.\n"
+	    "The Hold_Mode_Activity value is used to determine what activities should\n"
+	    "be suspended when the unit is in hold mode.\n\n"
+	    "\t<settings> (dd) - bit mask:\n"
+	    "\t0 - Maintain current Power State. Default\n"
+	    "\t1 - Suspend Page Scan.\n"
+	    "\t2 - Suspend Inquiry Scan.\n"
+	    "\t4 - Suspend Periodic Inquiries.",
+	    &hci_write_hold_mode_activity },
+	{ "read_sco_flow_control_enable",
+	    "\nThe Read_SCO_Flow_Control_Enable command provides the ability to read\n"
+	    "the SCO_Flow_Control_Enable setting. By using this setting, the Host can\n"
+	    "decide if the Host Controller will send Number Of Completed Packets events\n"
+	    "for SCO Connection Handles. This setting allows the Host to enable and\n"
+	    "disable SCO flow control.",
+	    &hci_read_sco_flow_control_enable },
+	{ "write_sco_flow_control_enable enable(0|1)",
+	    "\nThe Write_SCO_Flow_Control_Enable command provides the ability to write\n"
+	    "the SCO_Flow_Control_Enable setting. By using this setting, the Host can\n"
+	    "decide if the Host Controller will send Number Of Completed Packets events\n"
+	    "for SCO Connection Handles. This setting allows the Host to enable and\n"
+	    "disable SCO flow control. The SCO_Flow_Control_Enable setting can only be\n"
+	    "changed if no connections exist.",
+	    &hci_write_sco_flow_control_enable },
+	{ "read_link_supervision_timeout <connection_handle>",
+	    "\nThis command will read the value for the Link_Supervision_Timeout\n"
+	    "parameter for the device. The Link_Supervision_Timeout parameter is used\n"
+	    "by the master or slave Bluetooth device to monitor link loss. If, for any\n"
+	    "reason, no Baseband packets are received from that Connection Handle for a\n"
+	    "duration longer than the Link_Supervision_Timeout, the connection is\n"
+	    "disconnected.\n\n"
+	    "\t<connection_handle> - dddd; connection handle\n",
+	    &hci_read_link_supervision_timeout },
+	{ "write_link_supervision_timeout <connection_handle> <timeout>",
+	    "\nThis command will write the value for the Link_Supervision_Timeout\n"
+	    "parameter for the device. The Link_Supervision_Timeout parameter is used\n"
+	    "by the master or slave Bluetooth device to monitor link loss. If, for any\n"
+	    "reason, no Baseband packets are received from that connection handle for a\n"
+	    "duration longer than the Link_Supervision_Timeout, the connection is\n"
+	    "disconnected.\n\n"
+	    "\t<connection_handle> - dddd; connection handle\n"
+	    "\t<timeout>           - dddd; timeout measured in number of baseband slots\n",
+	    &hci_write_link_supervision_timeout },
+	{ "read_page_scan_period_mode",
+	    "\nThis command is used to read the mandatory Page_Scan_Period_Mode of the\n"
+	    "local Bluetooth device. Every time an inquiry response message is sent, the\n"
+	    "Bluetooth device will start a timer (T_mandatory_pscan), the value of which\n"
+	    "is dependent on the Page_Scan_Period_Mode. As long as this timer has not\n"
+	    "expired, the Bluetooth device will use the Page_Scan_Period_Mode for all\n"
+	    "following page scans.",
+	    &hci_read_page_scan_period_mode },
+	{ "write_page_scan_period_mode <page_scan_period_mode>",
+	    "\nThis command is used to write the mandatory Page_Scan_Period_Mode of the\n"
+	    "local Bluetooth device. Every time an inquiry response message is sent, the\n"
+	    "Bluetooth device will start a timer (T_mandatory_pscan), the value of which\n"
+	    "is dependent on the Page_Scan_Period_Mode. As long as this timer has not\n"
+	    "expired, the Bluetooth device will use the Page_Scan_Period_Mode for all\n"
+	    "following page scans.\n\n"
+	    "\t<page_scan_period_mode> - dd; page scan period mode:\n"
+	    "\t0x00 - P0 (Default)\n"
+	    "\t0x01 - P1\n"
+	    "\t0x02 - P2",
+	    &hci_write_page_scan_period_mode },
+	{ "read_page_scan_mode",
+	    "\nThis command is used to read the default page scan mode of the local\n"
+	    "Bluetooth device. The Page_Scan_Mode parameter indicates the page scan mode\n"
+	    "that is used for the default page scan. Currently one mandatory page scan\n"
+	    "mode and three optional page scan modes are defined. Following an inquiry\n"
+	    "response, if the Baseband timer T_mandatory_pscan has not expired, the\n"
+	    "mandatory page scan mode must be applied.",
+	    &hci_read_page_scan_mode },
+	{ "write_page_scan_mode <page_scan_mode>",
+	    "\nThis command is used to write the default page scan mode of the local\n"
+	    "Bluetooth device. The Page_Scan_Mode parameter indicates the page scan mode\n"
+	    "that is used for the default page scan. Currently, one mandatory page scan\n"
+	    "mode and three optional page scan modes are defined. Following an inquiry\n"
+	    "response, if the Baseband timer T_mandatory_pscan has not expired, the\n"
+	    "mandatory page scan mode must be applied.\n\n"
+	    "\t<page_scan_mode> - dd; page scan mode:\n"
+	    "\t0x00 - Mandatory Page Scan Mode (Default)\n"
+	    "\t0x01 - Optional Page Scan Mode I\n"
+	    "\t0x02 - Optional Page Scan Mode II\n"
+	    "\t0x03 - Optional Page Scan Mode III",
+	    &hci_write_page_scan_mode },
+	{
+	    "read_le_host_support",
+	    "Read if this host is in LE supported mode and simultaneous LE supported mode",
+	    &hci_read_le_host_support,
+	},
+	{
+	    "write_le_host_support",
+	    "write_le_host_support le_host[0|1] simultaneous_le[0|1]",
+	    &hci_write_le_host_support,
+	},
 
-{ NULL, }
+	{
+	    NULL,
+	}
 };
-

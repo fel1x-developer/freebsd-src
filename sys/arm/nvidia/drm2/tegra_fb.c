@@ -59,7 +59,7 @@ fb_destroy(struct drm_framebuffer *drm_fb)
 
 static int
 fb_create_handle(struct drm_framebuffer *drm_fb, struct drm_file *file,
- unsigned int *handle)
+    unsigned int *handle)
 {
 	struct tegra_fb *fb;
 	int rv;
@@ -71,8 +71,8 @@ fb_create_handle(struct drm_framebuffer *drm_fb, struct drm_file *file,
 
 /* XXX Probably not needed */
 static int
-fb_dirty(struct drm_framebuffer *fb, struct drm_file *file_priv,
-unsigned flags, unsigned color, struct drm_clip_rect *clips, unsigned num_clips)
+fb_dirty(struct drm_framebuffer *fb, struct drm_file *file_priv, unsigned flags,
+    unsigned color, struct drm_clip_rect *clips, unsigned num_clips)
 {
 
 	return (0);
@@ -102,8 +102,8 @@ fb_alloc(struct drm_device *drm, struct drm_mode_fb_cmd2 *mode_cmd,
 		fb->planes[i] = planes[i];
 	rv = drm_framebuffer_init(drm, &fb->drm_fb, &fb_funcs);
 	if (rv < 0) {
-		device_printf(drm->dev,
-		    "Cannot initialize frame buffer %d\n", rv);
+		device_printf(drm->dev, "Cannot initialize frame buffer %d\n",
+		    rv);
 		free(fb->planes, DRM_MEM_DRIVER);
 		return (rv);
 	}
@@ -159,10 +159,10 @@ tegra_fb_probe(struct drm_fb_helper *helper,
 		goto err_object;
 	}
 
-	rv = fb_alloc(drm_dev, &mode_cmd,  &bo, 1, &fb);
+	rv = fb_alloc(drm_dev, &mode_cmd, &bo, 1, &fb);
 	if (rv != 0) {
 		device_printf(drm_dev->dev,
-		     "Cannot allocate DRM framebuffer.\n");
+		    "Cannot allocate DRM framebuffer.\n");
 		goto err_fb;
 	}
 	helper->fb = &fb->drm_fb;
@@ -178,8 +178,7 @@ tegra_fb_probe(struct drm_fb_helper *helper,
 	    fb->drm_fb.height);
 
 	DRM_DEBUG_KMS("allocated %dx%d (s %dbits) fb size: %d, bo %p\n",
-		      fb->drm_fb.width, fb->drm_fb.height, fb->drm_fb.depth,
-		      size, bo);
+	    fb->drm_fb.width, fb->drm_fb.height, fb->drm_fb.depth, size, bo);
 	return (1);
 err_fb:
 	drm_gem_object_unreference_unlocked(&bo->gem_obj);
@@ -250,8 +249,8 @@ tegra_drm_fb_init(struct drm_device *drm_dev)
 
 	rv = drm_fb_helper_initial_config(&fb->fb_helper, 32);
 	if (rv != 0) {
-		device_printf(drm_dev->dev,
-		    "Cannot set initial config: %d\n", rv);
+		device_printf(drm_dev->dev, "Cannot set initial config: %d\n",
+		    rv);
 		goto err_fini;
 	}
 	/* XXXX Setup initial mode for FB */
@@ -292,8 +291,8 @@ tegra_drm_fb_create(struct drm_device *drm, struct drm_file *file,
 		}
 
 		bpp = drm_format_plane_cpp(cmd->pixel_format, i);
-		size = (height - 1) * cmd->pitches[i] +
-		    width * bpp + cmd->offsets[i];
+		size = (height - 1) * cmd->pitches[i] + width * bpp +
+		    cmd->offsets[i];
 		if (gem_obj->size < size) {
 			rv = -EINVAL;
 			goto fail;

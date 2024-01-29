@@ -26,33 +26,33 @@
  * SUCH DAMAGE.
  */
 
-#define SAMPLE_PERIOD 5		/* Default sample period */
+#define SAMPLE_PERIOD 5 /* Default sample period */
 
 #define THROUGHPUT_OVERALL 0x0001
 #define THROUGHPUT_CURRENT 0x0002
-#define THROUGHPUT_PEAK    0x0004
-#define THROUGHPUT_ALL     0x0007
+#define THROUGHPUT_PEAK 0x0004
+#define THROUGHPUT_ALL 0x0007
 
 struct pppThroughput {
-  time_t uptime, downtime;
-  unsigned long long OctetsIn;
-  unsigned long long OctetsOut;
-  unsigned long long PacketsIn;
-  unsigned long long PacketsOut;
-  int SamplePeriod;
-  struct {
-    unsigned long long *SampleOctets;
-    unsigned long long OctetsPerSecond;
-  } in, out;
-  unsigned long long BestOctetsPerSecond;
-  time_t BestOctetsPerSecondTime;
-  int nSample;
-  unsigned rolling : 1;
-  struct pppTimer Timer;
-  struct {
-    void *data;
-    void (*fn)(void *v);
-  } callback;
+	time_t uptime, downtime;
+	unsigned long long OctetsIn;
+	unsigned long long OctetsOut;
+	unsigned long long PacketsIn;
+	unsigned long long PacketsOut;
+	int SamplePeriod;
+	struct {
+		unsigned long long *SampleOctets;
+		unsigned long long OctetsPerSecond;
+	} in, out;
+	unsigned long long BestOctetsPerSecond;
+	time_t BestOctetsPerSecondTime;
+	int nSample;
+	unsigned rolling : 1;
+	struct pppTimer Timer;
+	struct {
+		void *data;
+		void (*fn)(void *v);
+	} callback;
 };
 
 extern void throughput_init(struct pppThroughput *, int);
@@ -66,5 +66,5 @@ extern void throughput_addin(struct pppThroughput *, long long);
 extern void throughput_addout(struct pppThroughput *, long long);
 extern void throughput_clear(struct pppThroughput *, int, struct prompt *);
 extern void throughput_callback(struct pppThroughput *, void (*)(void *),
-                                void *);
+    void *);
 extern int throughput_uptime(struct pppThroughput *);

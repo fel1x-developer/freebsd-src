@@ -25,13 +25,15 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <btxv86.h>
+#include <stand.h>
+
 #include "bootstrap.h"
 #include "libi386.h"
 
-time_t		getsecs(void);
-static int	bios_seconds(void);
+time_t getsecs(void);
+static int bios_seconds(void);
 
 /*
  * Return the BIOS time-of-day value.
@@ -41,18 +43,18 @@ static int	bios_seconds(void);
 static int
 bios_seconds(void)
 {
-    int			hr, minute, sec;
-    
-    v86.ctl = 0;
-    v86.addr = 0x1a;		/* int 0x1a, function 2 */
-    v86.eax = 0x0200;
-    v86int();
+	int hr, minute, sec;
 
-    hr = bcd2bin((v86.ecx & 0xff00) >> 8);	/* hour in %ch */
-    minute = bcd2bin(v86.ecx & 0xff);		/* minute in %cl */
-    sec = bcd2bin((v86.edx & 0xff00) >> 8);	/* second in %dh */
-    
-    return (hr * 3600 + minute * 60 + sec);
+	v86.ctl = 0;
+	v86.addr = 0x1a; /* int 0x1a, function 2 */
+	v86.eax = 0x0200;
+	v86int();
+
+	hr = bcd2bin((v86.ecx & 0xff00) >> 8);	/* hour in %ch */
+	minute = bcd2bin(v86.ecx & 0xff);	/* minute in %cl */
+	sec = bcd2bin((v86.edx & 0xff00) >> 8); /* second in %dh */
+
+	return (hr * 3600 + minute * 60 + sec);
 }
 
 /*
@@ -68,26 +70,26 @@ bios_seconds(void)
 time_t
 time(time_t *t)
 {
-    static time_t lasttime;
-    time_t now, check;
-    int same, try;
+	static time_t lasttime;
+	time_t now, check;
+	int same, try;
 
-    same = try = 0;
-    check = bios_seconds();
-    do {
-	now = check;
+	same = try = 0;
 	check = bios_seconds();
-	if (check != now)
-	    same = 0;
-    } while (++same < 8 && ++try < 1000);
+	do {
+		now = check;
+		check = bios_seconds();
+		if (check != now)
+			same = 0;
+	} while (++same < 8 && ++try < 1000);
 
-    if (now < lasttime)
-	now += 24 * 3600;
-    lasttime = now;
-    
-    if (t != NULL)
-	*t = now;
-    return(now);
+	if (now < lasttime)
+		now += 24 * 3600;
+	lasttime = now;
+
+	if (t != NULL)
+		*t = now;
+	return (now);
 }
 
 time_t
@@ -107,10 +109,10 @@ getsecs(void)
 void
 delay(int period)
 {
-    v86.ctl = 0;
-    v86.addr = 0x15;		/* int 0x15, function 0x86 */
-    v86.eax = 0x8600;
-    v86.ecx = period >> 16;
-    v86.edx = period & 0xffff;
-    v86int();
+	v86.ctl = 0;
+	v86.addr = 0x15; /* int 0x15, function 0x86 */
+	v86.eax = 0x8600;
+	v86.ecx = period >> 16;
+	v86.edx = period & 0xffff;
+	v86int();
 }

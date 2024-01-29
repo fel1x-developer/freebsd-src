@@ -29,12 +29,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_HASTD_H_
-#define	_HASTD_H_
+#ifndef _HASTD_H_
+#define _HASTD_H_
 
 #include <sys/param.h>
-#include <libutil.h>
 
+#include <libutil.h>
 #include <nv.h>
 
 #include "hast.h"
@@ -51,4 +51,4 @@ void hastd_secondary(struct hast_resource *res, struct nv *nvin);
 
 void primary_config_reload(struct hast_resource *res, struct nv *nv);
 
-#endif	/* !_HASTD_H_ */
+#endif /* !_HASTD_H_ */

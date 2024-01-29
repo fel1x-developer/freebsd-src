@@ -34,58 +34,60 @@
 
 extern bool decimal, fancy, resolv;
 
-#define	_print_number64(first,i,n,c,d) do {				\
-	uint64_t __v;							\
-									\
-	if (quad_align && (((ptrdiff_t)((i) - (first))) & 1) == 1) {	\
-		(i)++;							\
-		(n)--;							\
-	}								\
-	if (quad_slots == 2)						\
-		__v = (uint64_t)(uint32_t)(i)[0] |			\
-		    ((uint64_t)(uint32_t)(i)[1]) << 32;			\
-	else								\
-		__v = (uint64_t)*(i);					\
-	if (d)								\
-		printf("%c%jd", (c), (intmax_t)__v);			\
-	else								\
-		printf("%c%#jx", (c), (uintmax_t)__v);			\
-	(i) += quad_slots;						\
-	(n) -= quad_slots;						\
-	(c) = ',';							\
-} while (0)
+#define _print_number64(first, i, n, c, d)                                   \
+	do {                                                                 \
+		uint64_t __v;                                                \
+                                                                             \
+		if (quad_align && (((ptrdiff_t)((i) - (first))) & 1) == 1) { \
+			(i)++;                                               \
+			(n)--;                                               \
+		}                                                            \
+		if (quad_slots == 2)                                         \
+			__v = (uint64_t)(uint32_t)(i)[0] |                   \
+			    ((uint64_t)(uint32_t)(i)[1]) << 32;              \
+		else                                                         \
+			__v = (uint64_t) * (i);                              \
+		if (d)                                                       \
+			printf("%c%jd", (c), (intmax_t)__v);                 \
+		else                                                         \
+			printf("%c%#jx", (c), (uintmax_t)__v);               \
+		(i) += quad_slots;                                           \
+		(n) -= quad_slots;                                           \
+		(c) = ',';                                                   \
+	} while (0)
 
-#define _print_number(i,n,c,d) do {					\
-	if (d)								\
-		printf("%c%jd", c, (intmax_t)*i);			\
-	else								\
-		printf("%c%#jx", c, (uintmax_t)(u_register_t)*i);	\
-	i++;								\
-	n--;								\
-	c = ',';							\
-} while (0)
+#define _print_number(i, n, c, d)                                           \
+	do {                                                                \
+		if (d)                                                      \
+			printf("%c%jd", c, (intmax_t) * i);                 \
+		else                                                        \
+			printf("%c%#jx", c, (uintmax_t)(u_register_t) * i); \
+		i++;                                                        \
+		n--;                                                        \
+		c = ',';                                                    \
+	} while (0)
 
-#define	print_number(i,n,c)		_print_number(i,n,c,decimal)
-#define	print_decimal_number(i,n,c)	_print_number(i,n,c,true)
-#define	print_number64(first,i,n,c)	_print_number64(first,i,n,c,decimal)
-#define	print_decimal_number64(first,i,n,c) _print_number64(first,i,n,c,true)
+#define print_number(i, n, c) _print_number(i, n, c, decimal)
+#define print_decimal_number(i, n, c) _print_number(i, n, c, true)
+#define print_number64(first, i, n, c) _print_number64(first, i, n, c, decimal)
+#define print_decimal_number64(first, i, n, c) \
+	_print_number64(first, i, n, c, true)
 
-void	decode_filemode(int value);
-void	print_integer_arg(const char *(*decoder)(int), int value);
-void	print_integer_arg_valid(const char *(*decoder)(int), int value);
-void	print_mask_arg(bool (*decoder)(FILE *, int, int *), int value);
-void	print_mask_arg0(bool (*decoder)(FILE *, int, int *), int value);
-void	print_mask_arg32(bool (*decoder)(FILE *, uint32_t, uint32_t *),
-	    uint32_t value);
-void	print_mask_argul(bool (*decoder)(FILE *, u_long, u_long *),
-	    u_long value);
-bool	print_mask_arg_part(bool (*decoder)(FILE *, int, int *),
-	    int value, int *rem);
+void decode_filemode(int value);
+void print_integer_arg(const char *(*decoder)(int), int value);
+void print_integer_arg_valid(const char *(*decoder)(int), int value);
+void print_mask_arg(bool (*decoder)(FILE *, int, int *), int value);
+void print_mask_arg0(bool (*decoder)(FILE *, int, int *), int value);
+void print_mask_arg32(bool (*decoder)(FILE *, uint32_t, uint32_t *),
+    uint32_t value);
+void print_mask_argul(bool (*decoder)(FILE *, u_long, u_long *), u_long value);
+bool print_mask_arg_part(bool (*decoder)(FILE *, int, int *), int value,
+    int *rem);
 
 #ifdef SYSDECODE_HAVE_LINUX
 bool ktrstruct_linux(const char *name, const char *data, size_t datalen);
-void ktrsyscall_linux(struct ktr_syscall *ktr, register_t **resip,
-    int *resnarg, char *resc);
+void ktrsyscall_linux(struct ktr_syscall *ktr, register_t **resip, int *resnarg,
+    char *resc);
 #ifdef __amd64__
 void ktrsyscall_linux32(struct ktr_syscall *ktr, register_t **resip,
     int *resnarg, char *resc);

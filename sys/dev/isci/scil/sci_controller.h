@@ -67,13 +67,12 @@ extern "C" {
 
 #include <dev/isci/scil/sci_types.h>
 
-
 #define SCI_CONTROLLER_INVALID_IO_TAG 0xFFFF
 
 typedef enum _SCI_CONTROLLER_ERROR {
-    SCI_CONTROLLER_FATAL_ERROR = 1,
-    SCI_CONTROLLER_REMOTE_DEVICE_ERROR,
-    SCI_CONTROLLER_FATAL_MEMORY_ERROR
+	SCI_CONTROLLER_FATAL_ERROR = 1,
+	SCI_CONTROLLER_REMOTE_DEVICE_ERROR,
+	SCI_CONTROLLER_FATAL_MEMORY_ERROR
 } SCI_CONTROLLER_ERROR;
 
 /**
@@ -102,12 +101,10 @@ typedef enum _SCI_CONTROLLER_ERROR {
  */
 SCI_MEMORY_DESCRIPTOR_LIST_HANDLE_T
 sci_controller_get_memory_descriptor_list_handle(
-   SCI_CONTROLLER_HANDLE_T  controller
-);
+    SCI_CONTROLLER_HANDLE_T controller);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif // _SCI_CONTROLLER_H_
-

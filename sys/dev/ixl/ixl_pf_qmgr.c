@@ -2,39 +2,39 @@
 
   Copyright (c) 2013-2018, Intel Corporation
   All rights reserved.
-  
-  Redistribution and use in source and binary forms, with or without 
+
+  Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
-  
-   1. Redistributions of source code must retain the above copyright notice, 
+
+   1. Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-  
-   2. Redistributions in binary form must reproduce the above copyright 
-      notice, this list of conditions and the following disclaimer in the 
+
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-  
-   3. Neither the name of the Intel Corporation nor the names of its 
-      contributors may be used to endorse or promote products derived from 
+
+   3. Neither the name of the Intel Corporation nor the names of its
+      contributors may be used to endorse or promote products derived from
       this software without specific prior written permission.
-  
+
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
-  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 
 ******************************************************************************/
 
-
 #include "ixl_pf_qmgr.h"
 
-static int	ixl_pf_qmgr_find_free_contiguous_block(struct ixl_pf_qmgr *qmgr, int num);
+static int ixl_pf_qmgr_find_free_contiguous_block(struct ixl_pf_qmgr *qmgr,
+    int num);
 
 int
 ixl_pf_qmgr_init(struct ixl_pf_qmgr *qmgr, u16 num_queues)
@@ -52,7 +52,8 @@ ixl_pf_qmgr_init(struct ixl_pf_qmgr *qmgr, u16 num_queues)
 }
 
 int
-ixl_pf_qmgr_alloc_contiguous(struct ixl_pf_qmgr *qmgr, u16 num, struct ixl_pf_qtag *qtag)
+ixl_pf_qmgr_alloc_contiguous(struct ixl_pf_qmgr *qmgr, u16 num,
+    struct ixl_pf_qtag *qtag)
 {
 	int i;
 	int avail;
@@ -61,8 +62,9 @@ ixl_pf_qmgr_alloc_contiguous(struct ixl_pf_qmgr *qmgr, u16 num, struct ixl_pf_qt
 
 	if (qtag == NULL || num < 1)
 		return (EINVAL);
-	
-	/* We have to allocate in power-of-two chunks, so get next power of two */
+
+	/* We have to allocate in power-of-two chunks, so get next power of two
+	 */
 	alloc_size = (u16)next_power_of_two(num);
 
 	/* Don't try if there aren't enough queues */
@@ -89,10 +91,12 @@ ixl_pf_qmgr_alloc_contiguous(struct ixl_pf_qmgr *qmgr, u16 num, struct ixl_pf_qt
 }
 
 /*
- * NB: indices is u16 because this is the queue index width used in the Add VSI AQ command
+ * NB: indices is u16 because this is the queue index width used in the Add VSI
+ * AQ command
  */
 int
-ixl_pf_qmgr_alloc_scattered(struct ixl_pf_qmgr *qmgr, u16 num, struct ixl_pf_qtag *qtag)
+ixl_pf_qmgr_alloc_scattered(struct ixl_pf_qmgr *qmgr, u16 num,
+    struct ixl_pf_qtag *qtag)
 {
 	int i;
 	int avail, count = 0;
@@ -101,7 +105,8 @@ ixl_pf_qmgr_alloc_scattered(struct ixl_pf_qmgr *qmgr, u16 num, struct ixl_pf_qta
 	if (qtag == NULL || num < 1 || num > 16)
 		return (EINVAL);
 
-	/* We have to allocate in power-of-two chunks, so get next power of two */
+	/* We have to allocate in power-of-two chunks, so get next power of two
+	 */
 	alloc_size = (u16)next_power_of_two(num);
 
 	avail = ixl_pf_qmgr_get_num_free(qmgr);
@@ -143,7 +148,8 @@ ixl_pf_qmgr_release(struct ixl_pf_qmgr *qmgr, struct ixl_pf_qtag *qtag)
 		}
 	} else {
 		u16 first_index = qtag->qidx[0];
-		for (i = first_index; i < first_index + qtag->num_allocated; i++)
+		for (i = first_index; i < first_index + qtag->num_allocated;
+		     i++)
 			bzero(&qmgr->qinfo[i], sizeof(qmgr->qinfo[qidx]));
 	}
 
@@ -227,7 +233,8 @@ ixl_pf_qmgr_mark_queue_disabled(struct ixl_pf_qtag *qtag, u16 vsi_qidx, bool tx)
 }
 
 void
-ixl_pf_qmgr_mark_queue_configured(struct ixl_pf_qtag *qtag, u16 vsi_qidx, bool tx)
+ixl_pf_qmgr_mark_queue_configured(struct ixl_pf_qtag *qtag, u16 vsi_qidx,
+    bool tx)
 {
 	MPASS(qtag != NULL);
 
@@ -320,4 +327,3 @@ ixl_pf_qmgr_find_free_contiguous_block(struct ixl_pf_qmgr *qmgr, int num)
 	/* Can't find a contiguous block of the requested size */
 	return (-1);
 }
-

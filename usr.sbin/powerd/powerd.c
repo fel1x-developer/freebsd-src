@@ -29,9 +29,9 @@
 
 #include <sys/param.h>
 #include <sys/ioctl.h>
-#include <sys/sysctl.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/un.h>
 
@@ -54,9 +54,9 @@
 #include <machine/apm_bios.h>
 #endif
 
-#define DEFAULT_ACTIVE_PERCENT	75
-#define DEFAULT_IDLE_PERCENT	50
-#define DEFAULT_POLL_INTERVAL	250	/* Poll interval in milliseconds */
+#define DEFAULT_ACTIVE_PERCENT 75
+#define DEFAULT_IDLE_PERCENT 50
+#define DEFAULT_POLL_INTERVAL 250 /* Poll interval in milliseconds */
 
 typedef enum {
 	MODE_MIN,
@@ -71,42 +71,38 @@ typedef enum {
 	SRC_UNKNOWN,
 } power_src_t;
 
-static const char *modes[] = {
-	"AC",
-	"battery",
-	"unknown"
-};
+static const char *modes[] = { "AC", "battery", "unknown" };
 
-#define ACPIAC		"hw.acpi.acline"
-#define PMUAC		"dev.pmu.0.acline"
-#define APMDEV		"/dev/apm"
-#define DEVDPIPE	"/var/run/devd.pipe"
-#define DEVCTL_MAXBUF	1024
+#define ACPIAC "hw.acpi.acline"
+#define PMUAC "dev.pmu.0.acline"
+#define APMDEV "/dev/apm"
+#define DEVDPIPE "/var/run/devd.pipe"
+#define DEVCTL_MAXBUF 1024
 
-static int	read_usage_times(int *load, int nonice);
-static int	read_freqs(int *numfreqs, int **freqs, int **power,
-		    int minfreq, int maxfreq);
-static int	set_freq(int freq);
-static void	acline_init(void);
-static void	acline_read(void);
-static int	devd_init(void);
-static void	devd_close(void);
-static void	handle_sigs(int sig);
-static void	parse_mode(char *arg, int *mode, int ch);
-static void	usage(void);
+static int read_usage_times(int *load, int nonice);
+static int read_freqs(int *numfreqs, int **freqs, int **power, int minfreq,
+    int maxfreq);
+static int set_freq(int freq);
+static void acline_init(void);
+static void acline_read(void);
+static int devd_init(void);
+static void devd_close(void);
+static void handle_sigs(int sig);
+static void parse_mode(char *arg, int *mode, int ch);
+static void usage(void);
 
 /* Sysctl data structures. */
-static int	cp_times_mib[2];
-static int	freq_mib[4];
-static int	levels_mib[4];
-static int	acline_mib[4];
-static size_t	acline_mib_len;
+static int cp_times_mib[2];
+static int freq_mib[4];
+static int levels_mib[4];
+static int acline_mib[4];
+static size_t acline_mib_len;
 
 /* Configuration */
-static int	cpu_running_mark;
-static int	cpu_idle_mark;
-static int	poll_ival;
-static int	vflag;
+static int cpu_running_mark;
+static int cpu_idle_mark;
+static int poll_ival;
+static int vflag;
 
 static volatile sig_atomic_t exit_requested;
 static power_src_t acline_status;
@@ -121,9 +117,9 @@ typedef enum {
 static acline_mode_t acline_mode;
 static acline_mode_t acline_mode_user = ac_none;
 #ifdef USE_APM
-static int	apm_fd = -1;
+static int apm_fd = -1;
 #endif
-static int	devd_pipe = -1;
+static int devd_pipe = -1;
 
 #define DEVD_RETRY_INTERVAL 60 /* seconds */
 static struct timeval tried_devd;
@@ -169,8 +165,8 @@ read_usage_times(int *load, int nonice)
 		for (cpu = 0; cpu < ncpus; cpu++) {
 			total = 0;
 			for (i = 0; i < CPUSTATES; i++) {
-			    total += cp_times[cpu * CPUSTATES + i] -
-				cp_times_old[cpu * CPUSTATES + i];
+				total += cp_times[cpu * CPUSTATES + i] -
+				    cp_times_old[cpu * CPUSTATES + i];
 			}
 			if (total == 0)
 				continue;
@@ -298,7 +294,7 @@ acline_init(void)
 	acline_mib_len = 4;
 	acline_status = SRC_UNKNOWN;
 	skip_source_check = (acline_mode_user == ac_none ||
-			     acline_mode_user == ac_acpi_devd);
+	    acline_mode_user == ac_acpi_devd);
 
 	if ((skip_source_check || acline_mode_user == ac_sysctl) &&
 	    sysctlnametomib(ACPIAC, acline_mib, &acline_mib_len) == 0) {
@@ -307,14 +303,14 @@ acline_init(void)
 			warnx("using sysctl for AC line status");
 #ifdef __powerpc__
 	} else if ((skip_source_check || acline_mode_user == ac_sysctl) &&
-		   sysctlnametomib(PMUAC, acline_mib, &acline_mib_len) == 0) {
+	    sysctlnametomib(PMUAC, acline_mib, &acline_mib_len) == 0) {
 		acline_mode = ac_sysctl;
 		if (vflag)
 			warnx("using sysctl for AC line status");
 #endif
 #ifdef USE_APM
 	} else if ((skip_source_check || acline_mode_user == ac_apm) &&
-		   (apm_fd = open(APMDEV, O_RDONLY)) >= 0) {
+	    (apm_fd = open(APMDEV, O_RDONLY)) >= 0) {
 		if (vflag)
 			warnx("using APM for AC line status");
 		acline_mode = ac_apm;
@@ -336,13 +332,13 @@ acline_read(void)
 		rlen = read(devd_pipe, buf, sizeof(buf));
 		if (rlen == 0 || (rlen < 0 && errno != EWOULDBLOCK)) {
 			if (vflag)
-				warnx("lost devd connection, switching to sysctl");
+				warnx(
+				    "lost devd connection, switching to sysctl");
 			devd_close();
 			acline_mode = ac_sysctl;
 			/* FALLTHROUGH */
 		}
-		if (rlen > 0 &&
-		    (ptr = strstr(buf, "system=ACPI")) != NULL &&
+		if (rlen > 0 && (ptr = strstr(buf, "system=ACPI")) != NULL &&
 		    (ptr = strstr(ptr, "subsystem=ACAD")) != NULL &&
 		    (ptr = strstr(ptr, "notify=")) != NULL &&
 		    sscanf(ptr, "notify=%x", &notify) == 1)
@@ -353,8 +349,8 @@ acline_read(void)
 		size_t len;
 
 		len = sizeof(acline);
-		if (sysctl(acline_mib, acline_mib_len, &acline, &len,
-		    NULL, 0) == 0)
+		if (sysctl(acline_mib, acline_mib_len, &acline, &len, NULL,
+			0) == 0)
 			acline_status = (acline ? SRC_AC : SRC_BATTERY);
 		else
 			acline_status = SRC_UNKNOWN;
@@ -376,14 +372,12 @@ acline_read(void)
 	/* try to (re)connect to devd */
 #ifdef USE_APM
 	if ((acline_mode == ac_sysctl &&
-	    (acline_mode_user == ac_none ||
-	     acline_mode_user == ac_acpi_devd)) ||
-	    (acline_mode == ac_apm &&
-	     acline_mode_user == ac_acpi_devd)) {
+		(acline_mode_user == ac_none ||
+		    acline_mode_user == ac_acpi_devd)) ||
+	    (acline_mode == ac_apm && acline_mode_user == ac_acpi_devd)) {
 #else
 	if (acline_mode == ac_sysctl &&
-	    (acline_mode_user == ac_none ||
-	     acline_mode_user == ac_acpi_devd)) {
+	    (acline_mode_user == ac_none || acline_mode_user == ac_acpi_devd)) {
 #endif
 		struct timeval now;
 
@@ -405,7 +399,8 @@ devd_init(void)
 	struct sockaddr_un devd_addr;
 
 	bzero(&devd_addr, sizeof(devd_addr));
-	if ((devd_pipe = socket(PF_LOCAL, SOCK_STREAM|SOCK_NONBLOCK, 0)) < 0) {
+	if ((devd_pipe = socket(PF_LOCAL, SOCK_STREAM | SOCK_NONBLOCK, 0)) <
+	    0) {
 		if (vflag)
 			warn("%s(): socket()", __func__);
 		return (-1);
@@ -414,7 +409,7 @@ devd_init(void)
 	devd_addr.sun_family = PF_LOCAL;
 	strlcpy(devd_addr.sun_path, DEVDPIPE, sizeof(devd_addr.sun_path));
 	if (connect(devd_pipe, (struct sockaddr *)&devd_addr,
-	    sizeof(devd_addr)) == -1) {
+		sizeof(devd_addr)) == -1) {
 		if (vflag)
 			warn("%s(): connect()", __func__);
 		close(devd_pipe);
@@ -476,12 +471,12 @@ usage(void)
 {
 
 	fprintf(stderr,
-"usage: powerd [-v] [-a mode] [-b mode] [-i %%] [-m freq] [-M freq] [-N] [-n mode] [-p ival] [-r %%] [-s source] [-P pidfile]\n");
+	    "usage: powerd [-v] [-a mode] [-b mode] [-i %%] [-m freq] [-M freq] [-N] [-n mode] [-p ival] [-r %%] [-s source] [-P pidfile]\n");
 	exit(1);
 }
 
 int
-main(int argc, char * argv[])
+main(int argc, char *argv[])
 {
 	struct timeval timeout;
 	fd_set fdset;
@@ -615,7 +610,6 @@ main(int argc, char * argv[])
 			warn("cannot enter daemon mode, exiting");
 			pidfile_remove(pfh);
 			exit(EXIT_FAILURE);
-
 		}
 		pidfile_write(pfh);
 	}
@@ -642,11 +636,12 @@ main(int argc, char * argv[])
 	if (acline_status > SRC_UNKNOWN)
 		errx(1, "invalid AC line status %d", acline_status);
 	if ((acline_status == SRC_AC &&
-	    (mode_ac == MODE_ADAPTIVE || mode_ac == MODE_HIADAPTIVE)) ||
+		(mode_ac == MODE_ADAPTIVE || mode_ac == MODE_HIADAPTIVE)) ||
 	    (acline_status == SRC_BATTERY &&
-	    (mode_battery == MODE_ADAPTIVE || mode_battery == MODE_HIADAPTIVE)) ||
+		(mode_battery == MODE_ADAPTIVE ||
+		    mode_battery == MODE_HIADAPTIVE)) ||
 	    (acline_status == SRC_UNKNOWN &&
-	    (mode_none == MODE_ADAPTIVE || mode_none == MODE_HIADAPTIVE))) {
+		(mode_none == MODE_ADAPTIVE || mode_none == MODE_HIADAPTIVE))) {
 		/* Read the current frequency. */
 		len = sizeof(curfreq);
 		if (sysctl(freq_mib, 4, &curfreq, &len, NULL, 0) != 0) {
@@ -656,8 +651,9 @@ main(int argc, char * argv[])
 		if (curfreq < freqs[numfreqs - 1]) {
 			if (vflag) {
 				printf("CPU frequency is below user-defined "
-				    "minimum; changing frequency to %d "
-				    "MHz\n", freqs[numfreqs - 1]);
+				       "minimum; changing frequency to %d "
+				       "MHz\n",
+				    freqs[numfreqs - 1]);
 			}
 			if (set_freq(freqs[numfreqs - 1]) != 0) {
 				warn("error setting CPU freq %d",
@@ -666,12 +662,12 @@ main(int argc, char * argv[])
 		} else if (curfreq > freqs[0]) {
 			if (vflag) {
 				printf("CPU frequency is above user-defined "
-				    "maximum; changing frequency to %d "
-				    "MHz\n", freqs[0]);
+				       "maximum; changing frequency to %d "
+				       "MHz\n",
+				    freqs[0]);
 			}
 			if (set_freq(freqs[0]) != 0) {
-				warn("error setting CPU freq %d",
-				    freqs[0]);
+				warn("error setting CPU freq %d", freqs[0]);
 			}
 		}
 	}
@@ -731,8 +727,9 @@ main(int argc, char * argv[])
 		if (vflag) {
 			/* Keep a sum of all power actually used. */
 			if (mwatts[i] != -1)
-				mjoules_used +=
-				    (mwatts[i] * (poll_ival / 1000)) / 1000;
+				mjoules_used += (mwatts[i] *
+						    (poll_ival / 1000)) /
+				    1000;
 		}
 
 		/* Always switch to the lowest frequency in min mode. */
@@ -741,13 +738,12 @@ main(int argc, char * argv[])
 			if (curfreq != freq) {
 				if (vflag) {
 					printf("now operating on %s power; "
-					    "changing frequency to %d MHz\n",
+					       "changing frequency to %d MHz\n",
 					    modes[acline_status], freq);
 				}
 				idle = 0;
 				if (set_freq(freq) != 0) {
-					warn("error setting CPU freq %d",
-					    freq);
+					warn("error setting CPU freq %d", freq);
 					continue;
 				}
 			}
@@ -760,13 +756,12 @@ main(int argc, char * argv[])
 			if (curfreq != freq) {
 				if (vflag) {
 					printf("now operating on %s power; "
-					    "changing frequency to %d MHz\n",
+					       "changing frequency to %d MHz\n",
 					    modes[acline_status], freq);
 				}
 				idle = 0;
 				if (set_freq(freq) != 0) {
-					warn("error setting CPU freq %d",
-					    freq);
+					warn("error setting CPU freq %d", freq);
 					continue;
 				}
 			}
@@ -789,9 +784,9 @@ main(int argc, char * argv[])
 				if (freq > freqs[0])
 					freq = freqs[0];
 			} else if (load < cpu_idle_mark &&
-			    curfreq * load < freqs[get_freq_id(
-			    freq * 7 / 8, freqs, numfreqs)] *
-			    cpu_running_mark) {
+			    curfreq * load < freqs[get_freq_id(freq * 7 / 8,
+						 freqs, numfreqs)] *
+				    cpu_running_mark) {
 				freq = freq * 7 / 8;
 				if (freq < freqs[numfreqs - 1])
 					freq = freqs[numfreqs - 1];
@@ -801,27 +796,29 @@ main(int argc, char * argv[])
 				if (load > 95 || load > cpu_running_mark)
 					freq *= 4;
 				else
-					freq = freq * load * 2 / cpu_running_mark;
+					freq = freq * load * 2 /
+					    cpu_running_mark;
 				if (freq > freqs[0] * 2)
 					freq = freqs[0] * 2;
 			} else if (load < cpu_idle_mark / 2 &&
-			    curfreq * load < freqs[get_freq_id(
-			    freq * 31 / 32, freqs, numfreqs)] *
-			    cpu_running_mark / 2) {
+			    curfreq * load < freqs[get_freq_id(freq * 31 / 32,
+						 freqs, numfreqs)] *
+				    cpu_running_mark / 2) {
 				freq = freq * 31 / 32;
 				if (freq < freqs[numfreqs - 1])
 					freq = freqs[numfreqs - 1];
 			}
 		}
 		if (vflag) {
-		    printf("load %3d%%, current freq %4d MHz (%2d), wanted freq %4d MHz\n",
-			load, curfreq, i, freq);
+			printf(
+			    "load %3d%%, current freq %4d MHz (%2d), wanted freq %4d MHz\n",
+			    load, curfreq, i, freq);
 		}
 		j = get_freq_id(freq, freqs, numfreqs);
 		if (i != j) {
 			if (vflag) {
 				printf("changing clock"
-				    " speed from %d MHz to %d MHz\n",
+				       " speed from %d MHz to %d MHz\n",
 				    freqs[i], freqs[j]);
 			}
 			idle = 0;

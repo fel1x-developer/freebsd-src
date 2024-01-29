@@ -34,26 +34,26 @@
 /*
  * Constants for sb_flags field of struct sockbuf/xsockbuf.
  */
-#define	SB_TLS_RX	0x01		/* using KTLS on RX */
-#define	SB_TLS_RX_RUNNING 0x02		/* KTLS RX operation running */
-#define	SB_WAIT		0x04		/* someone is waiting for data/space */
-#define	SB_SEL		0x08		/* someone is selecting */
-#define	SB_ASYNC	0x10		/* ASYNC I/O, need signals */
-#define	SB_UPCALL	0x20		/* someone wants an upcall */
-#define	SB_NOINTR	0x40		/* operations not interruptible */
-#define	SB_AIO		0x80		/* AIO operations queued */
-#define	SB_KNOTE	0x100		/* kernel note attached */
-#define	SB_NOCOALESCE	0x200		/* don't coalesce new data into existing mbufs */
-#define	SB_IN_TOE	0x400		/* socket buffer is in the middle of an operation */
-#define	SB_AUTOSIZE	0x800		/* automatically size socket buffer */
-#define	SB_STOP		0x1000		/* backpressure indicator */
-#define	SB_AIO_RUNNING	0x2000		/* AIO operation running */
-#define	SB_UNUSED	0x4000		/* previously used for SB_TLS_IFNET */
-#define	SB_TLS_RX_RESYNC 0x8000		/* KTLS RX lost HW sync */
+#define SB_TLS_RX 0x01	       /* using KTLS on RX */
+#define SB_TLS_RX_RUNNING 0x02 /* KTLS RX operation running */
+#define SB_WAIT 0x04	       /* someone is waiting for data/space */
+#define SB_SEL 0x08	       /* someone is selecting */
+#define SB_ASYNC 0x10	       /* ASYNC I/O, need signals */
+#define SB_UPCALL 0x20	       /* someone wants an upcall */
+#define SB_NOINTR 0x40	       /* operations not interruptible */
+#define SB_AIO 0x80	       /* AIO operations queued */
+#define SB_KNOTE 0x100	       /* kernel note attached */
+#define SB_NOCOALESCE 0x200    /* don't coalesce new data into existing mbufs */
+#define SB_IN_TOE 0x400	  /* socket buffer is in the middle of an operation */
+#define SB_AUTOSIZE 0x800 /* automatically size socket buffer */
+#define SB_STOP 0x1000	  /* backpressure indicator */
+#define SB_AIO_RUNNING 0x2000	/* AIO operation running */
+#define SB_UNUSED 0x4000	/* previously used for SB_TLS_IFNET */
+#define SB_TLS_RX_RESYNC 0x8000 /* KTLS RX lost HW sync */
 
-#define	SBS_CANTSENDMORE	0x0010	/* can't send more data to peer */
-#define	SBS_CANTRCVMORE		0x0020	/* can't receive more data from peer */
-#define	SBS_RCVATMARK		0x0040	/* at mark on input */
+#define SBS_CANTSENDMORE 0x0010 /* can't send more data to peer */
+#define SBS_CANTRCVMORE 0x0020	/* can't receive more data from peer */
+#define SBS_RCVATMARK 0x0040	/* at mark on input */
 
 #if defined(_KERNEL) || defined(_WANT_SOCKET)
 #include <sys/_lock.h>
@@ -61,7 +61,7 @@
 #include <sys/_sx.h>
 #include <sys/_task.h>
 
-#define	SB_MAX		(2*1024*1024)	/* default for max chars in sockbuf */
+#define SB_MAX (2 * 1024 * 1024) /* default for max chars in sockbuf */
 
 struct ktls_session;
 struct mbuf;
@@ -85,21 +85,21 @@ struct selinfo;
  * Protocol specific implementations follow in a union.
  */
 struct sockbuf {
-	struct	selinfo *sb_sel;	/* process selecting read/write */
-	short	sb_state;		/* socket state on sockbuf */
-	short	sb_flags;		/* flags, see above */
-	u_int	sb_acc;			/* available chars in buffer */
-	u_int	sb_ccc;			/* claimed chars in buffer */
-	u_int	sb_mbcnt;		/* chars of mbufs used */
-	u_int	sb_ctl;			/* non-data chars in buffer */
-	u_int	sb_hiwat;		/* max actual char count */
-	u_int	sb_lowat;		/* low water mark */
-	u_int	sb_mbmax;		/* max chars of mbufs to use */
-	sbintime_t sb_timeo;		/* timeout for read/write */
-	int	(*sb_upcall)(struct socket *, void *, int);
-	void	*sb_upcallarg;
-	TAILQ_HEAD(, kaiocb) sb_aiojobq;	/* pending AIO ops */
-	struct	task sb_aiotask;		/* AIO task */
+	struct selinfo *sb_sel; /* process selecting read/write */
+	short sb_state;		/* socket state on sockbuf */
+	short sb_flags;		/* flags, see above */
+	u_int sb_acc;		/* available chars in buffer */
+	u_int sb_ccc;		/* claimed chars in buffer */
+	u_int sb_mbcnt;		/* chars of mbufs used */
+	u_int sb_ctl;		/* non-data chars in buffer */
+	u_int sb_hiwat;		/* max actual char count */
+	u_int sb_lowat;		/* low water mark */
+	u_int sb_mbmax;		/* max chars of mbufs to use */
+	sbintime_t sb_timeo;	/* timeout for read/write */
+	int (*sb_upcall)(struct socket *, void *, int);
+	void *sb_upcallarg;
+	TAILQ_HEAD(, kaiocb) sb_aiojobq; /* pending AIO ops */
+	struct task sb_aiotask;		 /* AIO task */
 	union {
 		/*
 		 * Classic BSD one-size-fits-all socket buffer, capable of
@@ -110,25 +110,25 @@ struct sockbuf {
 		 */
 		struct {
 			/* compat: sockbuf lock pointer */
-			struct	mtx *sb_mtx;
+			struct mtx *sb_mtx;
 			/* first and last mbufs in the chain */
-			struct	mbuf *sb_mb;
-			struct	mbuf *sb_mbtail;
+			struct mbuf *sb_mb;
+			struct mbuf *sb_mbtail;
 			/* first mbuf of last record in socket buffer */
-			struct	mbuf *sb_lastrecord;
+			struct mbuf *sb_lastrecord;
 			/* pointer to data to send next (TCP */
-			struct	mbuf *sb_sndptr;
+			struct mbuf *sb_sndptr;
 			/* pointer to first not ready buffer */
-			struct	mbuf *sb_fnrdy;
+			struct mbuf *sb_fnrdy;
 			/* byte offset of ptr into chain, used with sb_sndptr */
-			u_int	sb_sndptroff;
+			u_int sb_sndptroff;
 			/* TLS */
-			u_int	sb_tlscc;	/* TLS chain characters */
-			u_int	sb_tlsdcc;	/* characters being decrypted */
-			struct	mbuf *sb_mtls;	/*  TLS mbuf chain */
-			struct	mbuf *sb_mtlstail; /* last mbuf in TLS chain */
-			uint64_t sb_tls_seqno;	/* TLS seqno */
-			struct	ktls_session *sb_tls_info; /* TLS state */
+			u_int sb_tlscc;	      /* TLS chain characters */
+			u_int sb_tlsdcc;      /* characters being decrypted */
+			struct mbuf *sb_mtls; /*  TLS mbuf chain */
+			struct mbuf *sb_mtlstail; /* last mbuf in TLS chain */
+			uint64_t sb_tls_seqno;	  /* TLS seqno */
+			struct ktls_session *sb_tls_info; /* TLS state */
 		};
 		/*
 		 * PF_UNIX/SOCK_DGRAM
@@ -146,17 +146,17 @@ struct sockbuf {
 			 * to the peer receive buffer, to isolate ourselves
 			 * from other senders.
 			 */
-			STAILQ_HEAD(, mbuf)	uxdg_mb;
+			STAILQ_HEAD(, mbuf) uxdg_mb;
 			/* For receive buffer: datagram seen via MSG_PEEK. */
-			struct mbuf		*uxdg_peeked;
+			struct mbuf *uxdg_peeked;
 			/*
 			 * For receive buffer: queue of send buffers of
 			 * connected peers.  For send buffer: linkage on
 			 * connected peer receive buffer queue.
 			 */
 			union {
-				TAILQ_HEAD(, sockbuf)	uxdg_conns;
-				TAILQ_ENTRY(sockbuf)	uxdg_clist;
+				TAILQ_HEAD(, sockbuf) uxdg_conns;
+				TAILQ_ENTRY(sockbuf) uxdg_clist;
 			};
 			/* Counters for this buffer uxdg_mb chain + peeked. */
 			u_int uxdg_cc;
@@ -167,12 +167,12 @@ struct sockbuf {
 		 * Netlink socket.
 		 */
 		struct {
-			TAILQ_HEAD(, nl_buf)	nl_queue;
+			TAILQ_HEAD(, nl_buf) nl_queue;
 		};
 	};
 };
 
-#endif	/* defined(_KERNEL) || defined(_WANT_SOCKET) */
+#endif /* defined(_KERNEL) || defined(_WANT_SOCKET) */
 #ifdef _KERNEL
 
 /* 'which' values for KPIs that operate on one buffer of a socket. */
@@ -185,67 +185,63 @@ typedef enum { SO_RCV, SO_SND } sb_which;
  * SOCK_SENDBUF_LOCK() etc. macros can be used instead of or in combination with
  * these locking macros.
  */
-#define	SOCKBUF_MTX(_sb)		((_sb)->sb_mtx)
-#define	SOCKBUF_LOCK(_sb)		mtx_lock(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_OWNED(_sb)		mtx_owned(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_UNLOCK(_sb)		mtx_unlock(SOCKBUF_MTX(_sb))
-#define	SOCKBUF_LOCK_ASSERT(_sb)	mtx_assert(SOCKBUF_MTX(_sb), MA_OWNED)
-#define	SOCKBUF_UNLOCK_ASSERT(_sb)	mtx_assert(SOCKBUF_MTX(_sb), MA_NOTOWNED)
+#define SOCKBUF_MTX(_sb) ((_sb)->sb_mtx)
+#define SOCKBUF_LOCK(_sb) mtx_lock(SOCKBUF_MTX(_sb))
+#define SOCKBUF_OWNED(_sb) mtx_owned(SOCKBUF_MTX(_sb))
+#define SOCKBUF_UNLOCK(_sb) mtx_unlock(SOCKBUF_MTX(_sb))
+#define SOCKBUF_LOCK_ASSERT(_sb) mtx_assert(SOCKBUF_MTX(_sb), MA_OWNED)
+#define SOCKBUF_UNLOCK_ASSERT(_sb) mtx_assert(SOCKBUF_MTX(_sb), MA_NOTOWNED)
 
 /*
  * Socket buffer private mbuf(9) flags.
  */
-#define	M_NOTREADY	M_PROTO1	/* m_data not populated yet */
-#define	M_BLOCKED	M_PROTO2	/* M_NOTREADY in front of m */
-#define	M_NOTAVAIL	(M_NOTREADY | M_BLOCKED)
+#define M_NOTREADY M_PROTO1 /* m_data not populated yet */
+#define M_BLOCKED M_PROTO2  /* M_NOTREADY in front of m */
+#define M_NOTAVAIL (M_NOTREADY | M_BLOCKED)
 
-void	sbappend(struct sockbuf *sb, struct mbuf *m, int flags);
-void	sbappend_locked(struct sockbuf *sb, struct mbuf *m, int flags);
-void	sbappendstream(struct sockbuf *sb, struct mbuf *m, int flags);
-void	sbappendstream_locked(struct sockbuf *sb, struct mbuf *m, int flags);
-int	sbappendaddr(struct sockbuf *sb, const struct sockaddr *asa,
-	    struct mbuf *m0, struct mbuf *control);
-int	sbappendaddr_locked(struct sockbuf *sb, const struct sockaddr *asa,
-	    struct mbuf *m0, struct mbuf *control);
-int	sbappendaddr_nospacecheck_locked(struct sockbuf *sb,
-	    const struct sockaddr *asa, struct mbuf *m0, struct mbuf *control);
-void	sbappendcontrol(struct sockbuf *sb, struct mbuf *m0,
-	    struct mbuf *control, int flags);
-void	sbappendcontrol_locked(struct sockbuf *sb, struct mbuf *m0,
-	    struct mbuf *control, int flags);
-void	sbappendrecord(struct sockbuf *sb, struct mbuf *m0);
-void	sbappendrecord_locked(struct sockbuf *sb, struct mbuf *m0);
-void	sbcompress(struct sockbuf *sb, struct mbuf *m, struct mbuf *n);
-struct mbuf *
-	sbcreatecontrol(const void *p, u_int size, int type, int level,
-	    int wait);
-void	sbdestroy(struct socket *, sb_which);
-void	sbdrop(struct sockbuf *sb, int len);
-void	sbdrop_locked(struct sockbuf *sb, int len);
-struct mbuf *
-	sbcut_locked(struct sockbuf *sb, int len);
-void	sbdroprecord(struct sockbuf *sb);
-void	sbdroprecord_locked(struct sockbuf *sb);
-void	sbflush(struct sockbuf *sb);
-void	sbflush_locked(struct sockbuf *sb);
-void	sbrelease(struct socket *, sb_which);
-void	sbrelease_locked(struct socket *, sb_which);
-int	sbsetopt(struct socket *so, struct sockopt *);
-bool	sbreserve_locked(struct socket *so, sb_which which, u_long cc,
-	    struct thread *td);
-bool	sbreserve_locked_limit(struct socket *so, sb_which which, u_long cc,
-	    u_long buf_max, struct thread *td);
-void	sbsndptr_adv(struct sockbuf *sb, struct mbuf *mb, u_int len);
-struct mbuf *
-	sbsndptr_noadv(struct sockbuf *sb, u_int off, u_int *moff);
-struct mbuf *
-	sbsndmbuf(struct sockbuf *sb, u_int off, u_int *moff);
-int	sbwait(struct socket *, sb_which);
-void	sballoc(struct sockbuf *, struct mbuf *);
-void	sbfree(struct sockbuf *, struct mbuf *);
-void	sballoc_ktls_rx(struct sockbuf *sb, struct mbuf *m);
-void	sbfree_ktls_rx(struct sockbuf *sb, struct mbuf *m);
-int	sbready(struct sockbuf *, struct mbuf *, int);
+void sbappend(struct sockbuf *sb, struct mbuf *m, int flags);
+void sbappend_locked(struct sockbuf *sb, struct mbuf *m, int flags);
+void sbappendstream(struct sockbuf *sb, struct mbuf *m, int flags);
+void sbappendstream_locked(struct sockbuf *sb, struct mbuf *m, int flags);
+int sbappendaddr(struct sockbuf *sb, const struct sockaddr *asa,
+    struct mbuf *m0, struct mbuf *control);
+int sbappendaddr_locked(struct sockbuf *sb, const struct sockaddr *asa,
+    struct mbuf *m0, struct mbuf *control);
+int sbappendaddr_nospacecheck_locked(struct sockbuf *sb,
+    const struct sockaddr *asa, struct mbuf *m0, struct mbuf *control);
+void sbappendcontrol(struct sockbuf *sb, struct mbuf *m0, struct mbuf *control,
+    int flags);
+void sbappendcontrol_locked(struct sockbuf *sb, struct mbuf *m0,
+    struct mbuf *control, int flags);
+void sbappendrecord(struct sockbuf *sb, struct mbuf *m0);
+void sbappendrecord_locked(struct sockbuf *sb, struct mbuf *m0);
+void sbcompress(struct sockbuf *sb, struct mbuf *m, struct mbuf *n);
+struct mbuf *sbcreatecontrol(const void *p, u_int size, int type, int level,
+    int wait);
+void sbdestroy(struct socket *, sb_which);
+void sbdrop(struct sockbuf *sb, int len);
+void sbdrop_locked(struct sockbuf *sb, int len);
+struct mbuf *sbcut_locked(struct sockbuf *sb, int len);
+void sbdroprecord(struct sockbuf *sb);
+void sbdroprecord_locked(struct sockbuf *sb);
+void sbflush(struct sockbuf *sb);
+void sbflush_locked(struct sockbuf *sb);
+void sbrelease(struct socket *, sb_which);
+void sbrelease_locked(struct socket *, sb_which);
+int sbsetopt(struct socket *so, struct sockopt *);
+bool sbreserve_locked(struct socket *so, sb_which which, u_long cc,
+    struct thread *td);
+bool sbreserve_locked_limit(struct socket *so, sb_which which, u_long cc,
+    u_long buf_max, struct thread *td);
+void sbsndptr_adv(struct sockbuf *sb, struct mbuf *mb, u_int len);
+struct mbuf *sbsndptr_noadv(struct sockbuf *sb, u_int off, u_int *moff);
+struct mbuf *sbsndmbuf(struct sockbuf *sb, u_int off, u_int *moff);
+int sbwait(struct socket *, sb_which);
+void sballoc(struct sockbuf *, struct mbuf *);
+void sbfree(struct sockbuf *, struct mbuf *);
+void sballoc_ktls_rx(struct sockbuf *sb, struct mbuf *m);
+void sbfree_ktls_rx(struct sockbuf *sb, struct mbuf *m);
+int sbready(struct sockbuf *, struct mbuf *, int);
 
 /*
  * Return how much data is available to be taken out of socket
@@ -283,14 +279,14 @@ sbused(struct sockbuf *sb)
 static inline long
 sbspace(struct sockbuf *sb)
 {
-	int bleft, mleft;		/* size should match sockbuf fields */
+	int bleft, mleft; /* size should match sockbuf fields */
 
 #if 0
 	SOCKBUF_LOCK_ASSERT(sb);
 #endif
 
 	if (sb->sb_flags & SB_STOP)
-		return(0);
+		return (0);
 
 	bleft = sb->sb_hiwat - sb->sb_ccc;
 	mleft = sb->sb_mbmax - sb->sb_mbcnt;
@@ -298,24 +294,31 @@ sbspace(struct sockbuf *sb)
 	return ((bleft < mleft) ? bleft : mleft);
 }
 
-#define SB_EMPTY_FIXUP(sb) do {						\
-	if ((sb)->sb_mb == NULL) {					\
-		(sb)->sb_mbtail = NULL;					\
-		(sb)->sb_lastrecord = NULL;				\
-	}								\
-} while (/*CONSTCOND*/0)
+#define SB_EMPTY_FIXUP(sb)                          \
+	do {                                        \
+		if ((sb)->sb_mb == NULL) {          \
+			(sb)->sb_mbtail = NULL;     \
+			(sb)->sb_lastrecord = NULL; \
+		}                                   \
+	} while (/*CONSTCOND*/ 0)
 
 #ifdef SOCKBUF_DEBUG
-void	sblastrecordchk(struct sockbuf *, const char *, int);
-void	sblastmbufchk(struct sockbuf *, const char *, int);
-void	sbcheck(struct sockbuf *, const char *, int);
-#define	SBLASTRECORDCHK(sb)	sblastrecordchk((sb), __FILE__, __LINE__)
-#define	SBLASTMBUFCHK(sb)	sblastmbufchk((sb), __FILE__, __LINE__)
-#define	SBCHECK(sb)		sbcheck((sb), __FILE__, __LINE__)
+void sblastrecordchk(struct sockbuf *, const char *, int);
+void sblastmbufchk(struct sockbuf *, const char *, int);
+void sbcheck(struct sockbuf *, const char *, int);
+#define SBLASTRECORDCHK(sb) sblastrecordchk((sb), __FILE__, __LINE__)
+#define SBLASTMBUFCHK(sb) sblastmbufchk((sb), __FILE__, __LINE__)
+#define SBCHECK(sb) sbcheck((sb), __FILE__, __LINE__)
 #else
-#define	SBLASTRECORDCHK(sb)	do {} while (0)
-#define	SBLASTMBUFCHK(sb)	do {} while (0)
-#define	SBCHECK(sb)		do {} while (0)
+#define SBLASTRECORDCHK(sb) \
+	do {                \
+	} while (0)
+#define SBLASTMBUFCHK(sb) \
+	do {              \
+	} while (0)
+#define SBCHECK(sb) \
+	do {        \
+	} while (0)
 #endif /* SOCKBUF_DEBUG */
 
 #endif /* _KERNEL */

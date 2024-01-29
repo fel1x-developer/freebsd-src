@@ -7,8 +7,9 @@
  * $Id: load_http.c,v 1.5.2.5 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include "ipf.h"
 #include <ctype.h>
+
+#include "ipf.h"
 
 /*
  * Because the URL can be included twice into the buffer, once as the
@@ -20,8 +21,8 @@
  * that to the server is allowing an unknown and unintentioned action
  * to happen.
  */
-#define	MAX_URL_LEN	512
-#define	LOAD_BUFSIZE	(MAX_URL_LEN * 2 + 128)
+#define MAX_URL_LEN 512
+#define LOAD_BUFSIZE (MAX_URL_LEN * 2 + 128)
 
 /*
  * Format expected is one address per line, at the start of each line.
@@ -40,7 +41,7 @@ load_http(char *url)
 	 */
 	if (strlen(url) > MAX_URL_LEN) {
 		fprintf(stderr, "load_http has a URL > %d bytes?!\n",
-			MAX_URL_LEN);
+		    MAX_URL_LEN);
 		return (NULL);
 	}
 
@@ -61,7 +62,7 @@ load_http(char *url)
 	if (myurl == NULL)
 		goto done;
 
-	s = myurl + 7;			/* http:// */
+	s = myurl + 7; /* http:// */
 	t = strchr(s, '/');
 	if (t == NULL) {
 		fprintf(stderr, "load_http has a malformed URL '%s'\n", url);
@@ -81,7 +82,7 @@ load_http(char *url)
 
 	u = strchr(s, '@');
 	if (u != NULL)
-		s = u + 1;		/* AUTH */
+		s = u + 1; /* AUTH */
 
 	error = snprintf(buffer + strlen(buffer), avail, "Host: %s\r\n\r\n", s);
 	if (error >= avail) {
@@ -99,11 +100,9 @@ load_http(char *url)
 		port = 80;
 	}
 
-
 	fd = connecttcp(s, port);
 	if (fd == -1)
 		goto done;
-
 
 	len = strlen(buffer);
 	if (write(fd, buffer, len) != len)
@@ -185,8 +184,8 @@ load_http(char *url)
 				rbot = a;
 			} else {
 				fprintf(stderr,
-					"%s:%d unrecognised content:%s\n",
-					url, linenum, buffer);
+				    "%s:%d unrecognised content:%s\n", url,
+				    linenum, buffer);
 			}
 
 			t++;

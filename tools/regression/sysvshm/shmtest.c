@@ -133,7 +133,7 @@ main(int argc, char *argv[])
 
 	print_shmid_ds(&s_ds, 0600);
 
-	if ((shm_buf = shmat(sender_shmid, NULL, 0)) == (void *) -1)
+	if ((shm_buf = shmat(sender_shmid, NULL, 0)) == (void *)-1)
 		err(1, "sender: shmat");
 
 	/*
@@ -158,7 +158,7 @@ main(int argc, char *argv[])
 	 * Suspend forever; when we get SIGCHLD, the handler will exit.
 	 */
 	sigemptyset(&sigmask);
-	(void) sigsuspend(&sigmask);
+	(void)sigsuspend(&sigmask);
 
 	/*
 	 * ...and any other signal is an unexpected error.
@@ -189,8 +189,7 @@ sigchld_handler(int signo __unused)
 		errx(1, "receiver exited abnormally");
 
 	if (WEXITSTATUS(cstatus) != 0)
-		errx(1, "receiver exited with status %d",
-		    WEXITSTATUS(cstatus));
+		errx(1, "receiver exited with status %d", WEXITSTATUS(cstatus));
 
 	/*
 	 * If we get here, the child has exited normally, and thus
@@ -226,13 +225,11 @@ print_shmid_ds(struct shmid_ds *sp, mode_t mode)
 	gid_t gid = getegid();
 
 	printf("PERM: uid %d, gid %d, cuid %d, cgid %d, mode 0%o\n",
-	    sp->shm_perm.uid, sp->shm_perm.gid,
-	    sp->shm_perm.cuid, sp->shm_perm.cgid,
-	    sp->shm_perm.mode & 0777);
+	    sp->shm_perm.uid, sp->shm_perm.gid, sp->shm_perm.cuid,
+	    sp->shm_perm.cgid, sp->shm_perm.mode & 0777);
 
 	printf("segsz %lu, lpid %d, cpid %d, nattch %u\n",
-	    (u_long)sp->shm_segsz, sp->shm_lpid, sp->shm_cpid,
-	    sp->shm_nattch);
+	    (u_long)sp->shm_segsz, sp->shm_lpid, sp->shm_cpid, sp->shm_nattch);
 
 	printf("atime: %s", ctime(&sp->shm_atime));
 	printf("dtime: %s", ctime(&sp->shm_dtime));
@@ -269,7 +266,7 @@ receiver(void)
 	if ((shmid = shmget(shmkey, pgsize, 0)) == -1)
 		err(1, "receiver: shmget");
 
-	if ((shm_buf = shmat(shmid, NULL, 0)) == (void *) -1)
+	if ((shm_buf = shmat(shmid, NULL, 0)) == (void *)-1)
 		err(1, "receiver: shmat");
 
 	printf("%s\n", (const char *)shm_buf);

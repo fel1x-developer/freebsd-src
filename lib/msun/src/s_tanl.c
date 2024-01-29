@@ -82,12 +82,12 @@ tanl(long double x)
 	switch (e0 & 3) {
 	case 0:
 	case 2:
-	    hi = __kernel_tanl(hi, lo, 0);
-	    break;
+		hi = __kernel_tanl(hi, lo, 0);
+		break;
 	case 1:
 	case 3:
-	    hi = __kernel_tanl(hi, lo, 1);
-	    break;
+		hi = __kernel_tanl(hi, lo, 1);
+		break;
 	}
 
 	RETURNI(hi);

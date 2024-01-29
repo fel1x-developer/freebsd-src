@@ -39,41 +39,41 @@
 
 #define OCS_INCLUDE_FC
 
-#include "ocs_os.h"
-#include "ocs_debug.h"
 #include "ocs_common.h"
+#include "ocs_debug.h"
 #include "ocs_hw.h"
 #include "ocs_io.h"
+#include "ocs_os.h"
 #include "ocs_pm.h"
-#include "ocs_xport.h"
 #include "ocs_stats.h"
+#include "ocs_xport.h"
 
 struct ocs_s {
 	ocs_os_t ocs_os;
 	char display_name[OCS_DISPLAY_NAME_LENGTH];
-	ocs_rlock_t lock;			/*>> Device wide lock */
-	ocs_list_t domain_list;			/*>> linked list of virtual fabric objects */
-	ocs_io_pool_t *io_pool;			/**< pointer to IO pool */
+	ocs_rlock_t lock;	/*>> Device wide lock */
+	ocs_list_t domain_list; /*>> linked list of virtual fabric objects */
+	ocs_io_pool_t *io_pool; /**< pointer to IO pool */
 	ocs_ramlog_t *ramlog;
 	ocs_drv_t drv_ocs;
 	ocs_scsi_tgt_t tgt_ocs;
 	ocs_scsi_ini_t ini_ocs;
 	ocs_xport_e ocs_xport;
-	ocs_xport_t *xport;			/*>> Pointer to transport object */
+	ocs_xport_t *xport; /*>> Pointer to transport object */
 	bool enable_ini;
 	bool enable_tgt;
 	uint8_t fc_type;
 	int ctrlmask;
 	int logmask;
-	uint32_t max_isr_time_msec;		/*>> Maximum ISR time */
+	uint32_t max_isr_time_msec; /*>> Maximum ISR time */
 	char *hw_war_version;
-	ocs_pm_context_t pm_context;		/*<< power management context */
+	ocs_pm_context_t pm_context; /*<< power management context */
 	ocs_mgmt_functions_t *mgmt_functions;
 	ocs_mgmt_functions_t *tgt_mgmt_functions;
 	ocs_mgmt_functions_t *ini_mgmt_functions;
-	ocs_err_injection_e err_injection;	/**< for error injection testing */
-	uint32_t cmd_err_inject;		/**< specific cmd to inject error into */
-	time_t delay_value_msec;		/**< for injecting delays */
+	ocs_err_injection_e err_injection; /**< for error injection testing */
+	uint32_t cmd_err_inject; /**< specific cmd to inject error into */
+	time_t delay_value_msec; /**< for injecting delays */
 
 	const char *desc;
 	uint32_t instance_index;
@@ -89,10 +89,13 @@ struct ocs_s {
 
 	ocs_hw_t hw;
 
-	ocs_domain_t *domain;			/*>> pointer to first (physical) domain (also on domain_list) */
-	uint32_t domain_instance_count;			/*>> domain instance count */
-	void (*domain_list_empty_cb)(ocs_t *ocs, void *arg); /*>> domain list empty callback */
-	void *domain_list_empty_cb_arg;                 /*>> domain list empty callback argument */
+	ocs_domain_t *domain; /*>> pointer to first (physical) domain (also on
+				 domain_list) */
+	uint32_t domain_instance_count; /*>> domain instance count */
+	void (*domain_list_empty_cb)(ocs_t *ocs,
+	    void *arg);			/*>> domain list empty callback */
+	void *domain_list_empty_cb_arg; /*>> domain list empty callback argument
+					 */
 
 	bool explicit_buffer_list;
 	bool external_loopback;
@@ -107,21 +110,23 @@ struct ocs_s {
 	bool soft_wwn_enable;
 
 	/*
-	 * tgt_rscn_delay - delay in kicking off RSCN processing (nameserver queries)
-	 * after receiving an RSCN on the target. This prevents thrashing of nameserver
-	 * requests due to a huge burst of RSCNs received in a short period of time
-	 * Note: this is only valid when target RSCN handling is enabled -- see ctrlmask.
+	 * tgt_rscn_delay - delay in kicking off RSCN processing (nameserver
+	 * queries) after receiving an RSCN on the target. This prevents
+	 * thrashing of nameserver requests due to a huge burst of RSCNs
+	 * received in a short period of time Note: this is only valid when
+	 * target RSCN handling is enabled -- see ctrlmask.
 	 */
-	time_t tgt_rscn_delay_msec;		/*>> minimum target RSCN delay */
+	time_t tgt_rscn_delay_msec; /*>> minimum target RSCN delay */
 
 	/*
-	 * tgt_rscn_period - determines maximum frequency when processing back-to-back
-	 * RSCNs; e.g. if this value is 30, there will never be any more than 1 RSCN
-	 * handling per 30s window. This prevents initiators on a faulty link generating
-	 * many RSCN from causing the target to continually query the nameserver. Note:
-	 * this is only valid when target RSCN handling is enabled
+	 * tgt_rscn_period - determines maximum frequency when processing
+	 * back-to-back RSCNs; e.g. if this value is 30, there will never be any
+	 * more than 1 RSCN handling per 30s window. This prevents initiators on
+	 * a faulty link generating many RSCN from causing the target to
+	 * continually query the nameserver. Note: this is only valid when
+	 * target RSCN handling is enabled
 	 */
-	time_t tgt_rscn_period_msec;		/*>> minimum target RSCN period */
+	time_t tgt_rscn_period_msec; /*>> minimum target RSCN period */
 
 	/*
 	 * Target IO timer value:
@@ -134,21 +139,21 @@ struct ocs_s {
 	int topology;
 	int ethernet_license;
 	int num_scsi_ios;
-	bool enable_hlm;			/*>> high login mode is enabled */
-	uint32_t hlm_group_size;		/*>> RPI count for high login mode */
+	bool enable_hlm;	 /*>> high login mode is enabled */
+	uint32_t hlm_group_size; /*>> RPI count for high login mode */
 	char *wwn_bump;
-	uint32_t nodedb_mask;			/*>> Node debugging mask */
+	uint32_t nodedb_mask; /*>> Node debugging mask */
 
-	uint32_t auto_xfer_rdy_size;		/*>> Maximum sized write to use auto xfer rdy */
-        bool  esoc;
+	uint32_t
+	    auto_xfer_rdy_size; /*>> Maximum sized write to use auto xfer rdy */
+	bool esoc;
 	uint8_t ocs_req_fw_upgrade;
 
 	ocs_textbuf_t ddump_saved;
-
 };
 
-#define ocs_is_fc_initiator_enabled()	(ocs->enable_ini)
-#define ocs_is_fc_target_enabled()	(ocs->enable_tgt)
+#define ocs_is_fc_initiator_enabled() (ocs->enable_ini)
+#define ocs_is_fc_target_enabled() (ocs->enable_tgt)
 
 static inline void
 ocs_device_lock_init(ocs_t *ocs)
@@ -177,7 +182,8 @@ ocs_device_unlock(ocs_t *ocs)
 }
 
 extern ocs_t *ocs_get_instance(uint32_t index);
-extern int32_t ocs_get_bus_dev_func(ocs_t *ocs, uint8_t* bus, uint8_t* dev, uint8_t* func);
+extern int32_t ocs_get_bus_dev_func(ocs_t *ocs, uint8_t *bus, uint8_t *dev,
+    uint8_t *func);
 
 static inline ocs_io_t *
 ocs_io_alloc(ocs_t *ocs)
@@ -195,13 +201,12 @@ extern void ocs_stop_event_processing(ocs_os_t *ocs_os);
 extern int32_t ocs_start_event_processing(ocs_os_t *ocs_os);
 
 #include "ocs_domain.h"
-#include "ocs_sport.h"
-#include "ocs_node.h"
-#include "ocs_io.h"
-#include "ocs_unsol.h"
-#include "ocs_scsi.h"
-
-#include "ocs_ioctl.h"
 #include "ocs_elxu.h"
+#include "ocs_io.h"
+#include "ocs_ioctl.h"
+#include "ocs_node.h"
+#include "ocs_scsi.h"
+#include "ocs_sport.h"
+#include "ocs_unsol.h"
 
-#endif 
+#endif

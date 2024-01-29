@@ -29,15 +29,16 @@
 
 #include <sys/param.h>
 #include <sys/bus.h>
+
 #include <machine/bus.h>
 
 struct hyperv_dma {
-	bus_addr_t	hv_paddr;
-	bus_dma_tag_t	hv_dtag;
-	bus_dmamap_t	hv_dmap;
+	bus_addr_t hv_paddr;
+	bus_dma_tag_t hv_dtag;
+	bus_dmamap_t hv_dmap;
 };
 
-void		hyperv_dma_map_paddr(void *arg, bus_dma_segment_t *segs,
-		    int nseg, int error);
+void hyperv_dma_map_paddr(void *arg, bus_dma_segment_t *segs, int nseg,
+    int error);
 
-#endif	/* !_HYPERV_BUSDMA_H_ */
+#endif /* !_HYPERV_BUSDMA_H_ */

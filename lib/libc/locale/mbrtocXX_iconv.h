@@ -36,27 +36,27 @@
 #include <uchar.h>
 
 #include "../iconv/citrus_hash.h"
-#include "../iconv/citrus_module.h"
 #include "../iconv/citrus_iconv.h"
+#include "../iconv/citrus_module.h"
 #include "mblocal.h"
 
 typedef struct {
-	bool			initialized;
-	struct _citrus_iconv	iconv;
-	char			srcbuf[MB_LEN_MAX];
-	size_t			srcbuf_len;
+	bool initialized;
+	struct _citrus_iconv iconv;
+	char srcbuf[MB_LEN_MAX];
+	size_t srcbuf_len;
 	union {
-		charXX_t	widechar[DSTBUF_LEN];
-		char		bytes[sizeof(charXX_t) * DSTBUF_LEN];
+		charXX_t widechar[DSTBUF_LEN];
+		char bytes[sizeof(charXX_t) * DSTBUF_LEN];
 	} dstbuf;
-	size_t			dstbuf_len;
+	size_t dstbuf_len;
 } _ConversionState;
 _Static_assert(sizeof(_ConversionState) <= sizeof(mbstate_t),
     "Size of _ConversionState must not exceed mbstate_t's size.");
 
 size_t
-mbrtocXX_l(charXX_t * __restrict pc, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps, locale_t locale)
+mbrtocXX_l(charXX_t *__restrict pc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps, locale_t locale)
 {
 	_ConversionState *cs;
 	struct _citrus_iconv *handle;
@@ -71,8 +71,8 @@ mbrtocXX_l(charXX_t * __restrict pc, const char * __restrict s, size_t n,
 
 	/* Reinitialize mbstate_t. */
 	if (s == NULL || !cs->initialized) {
-		if (_citrus_iconv_open(&handle,
-		    nl_langinfo_l(CODESET, locale), UTF_XX_INTERNAL) != 0) {
+		if (_citrus_iconv_open(&handle, nl_langinfo_l(CODESET, locale),
+			UTF_XX_INTERNAL) != 0) {
 			cs->initialized = false;
 			errno = EINVAL;
 			return (-1);
@@ -95,7 +95,7 @@ mbrtocXX_l(charXX_t * __restrict pc, const char * __restrict s, size_t n,
 	memcpy(cs->srcbuf + cs->srcbuf_len, s, n);
 
 	/* Convert as few characters to the dst buffer as possible. */
-	for (i = 0; ; i++) {
+	for (i = 0;; i++) {
 		char *src, *dst;
 		size_t srcleft, dstleft, invlen;
 		int err;
@@ -106,8 +106,8 @@ mbrtocXX_l(charXX_t * __restrict pc, const char * __restrict s, size_t n,
 		dstleft = i * sizeof(charXX_t);
 		assert(srcleft <= sizeof(cs->srcbuf) &&
 		    dstleft <= sizeof(cs->dstbuf.bytes));
-		err = _citrus_iconv_convert(handle, &src, &srcleft,
-		    &dst, &dstleft, _CITRUS_ICONV_F_HIDE_INVALID, &invlen);
+		err = _citrus_iconv_convert(handle, &src, &srcleft, &dst,
+		    &dstleft, _CITRUS_ICONV_F_HIDE_INVALID, &invlen);
 		cs->dstbuf_len = (dst - cs->dstbuf.bytes) / sizeof(charXX_t);
 
 		/* Got new character(s). Return the first. */
@@ -147,8 +147,8 @@ return_char:
 }
 
 size_t
-mbrtocXX(charXX_t * __restrict pc, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps)
+mbrtocXX(charXX_t *__restrict pc, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 
 	return (mbrtocXX_l(pc, s, n, ps, __get_locale()));

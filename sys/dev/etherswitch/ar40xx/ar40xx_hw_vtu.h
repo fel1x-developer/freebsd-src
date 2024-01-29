@@ -24,16 +24,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__AR40XX_HW_VTU_H__
-#define	__AR40XX_HW_VTU_H__
+#ifndef __AR40XX_HW_VTU_H__
+#define __AR40XX_HW_VTU_H__
 
-extern	int ar40xx_hw_vtu_op(struct ar40xx_softc *sc, uint32_t op,
-	    uint32_t val);
-extern	int ar40xx_hw_vtu_load_vlan(struct ar40xx_softc *sc, uint32_t vid,
-	    uint32_t port_mask, uint32_t untagged_mask);
-extern	int ar40xx_hw_vtu_flush(struct ar40xx_softc *sc);
-extern	int ar40xx_hw_vtu_get_vlan(struct ar40xx_softc *sc, int vid,
-	    uint32_t *ports, uint32_t *untagged_ports);
+extern int ar40xx_hw_vtu_op(struct ar40xx_softc *sc, uint32_t op, uint32_t val);
+extern int ar40xx_hw_vtu_load_vlan(struct ar40xx_softc *sc, uint32_t vid,
+    uint32_t port_mask, uint32_t untagged_mask);
+extern int ar40xx_hw_vtu_flush(struct ar40xx_softc *sc);
+extern int ar40xx_hw_vtu_get_vlan(struct ar40xx_softc *sc, int vid,
+    uint32_t *ports, uint32_t *untagged_ports);
 
-#endif	/* __AR40XX_HW_VTU_H__ */
-
+#endif /* __AR40XX_HW_VTU_H__ */

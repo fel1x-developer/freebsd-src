@@ -26,62 +26,63 @@
  */
 
 #ifndef _LIBUSB_GLOBAL_LINUX_H_
-#define	_LIBUSB_GLOBAL_LINUX_H_
+#define _LIBUSB_GLOBAL_LINUX_H_
 
-#define	_XOPEN_SOURCE
-#define	_BSD_SOURCE
+#define _XOPEN_SOURCE
+#define _BSD_SOURCE
 #ifdef __linux__
-#define	_POSIX_SOURCE
+#define _POSIX_SOURCE
 #endif
-#define	_POSIX_C_SOURCE 200809
+#define _POSIX_C_SOURCE 200809
 
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <time.h>
 #include <unistd.h>
 #ifdef __linux__
 #include <alloca.h>
 #endif
-#include <string.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <setjmp.h>
-#include <signal.h>
-#include <pthread.h>
-#include <sys/queue.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
+#include <sys/queue.h>
 #include <sys/time.h>
+
 #include <dev/usb/usb_endian.h>
 #include <dev/usb/usb_freebsd.h>
 
 #include <compat/linux/linux_ioctl.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <pthread.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <string.h>
 
-#define	IOUSB(a) FBSD_L##a
+#define IOUSB(a) FBSD_L##a
 
 #ifndef __aligned
-#define	__aligned(x) __attribute__((__aligned__(x)))
+#define __aligned(x) __attribute__((__aligned__(x)))
 #endif
 
 #ifndef __packed
-#define	__packed __attribute__((__packed__))
+#define __packed __attribute__((__packed__))
 #endif
 
 #ifndef strlcpy
-#define	strlcpy(d,s,len) do {			\
-    strncpy(d,s,len);				\
-    ((char *)d)[(len) - 1] = 0;			\
-} while (0)
+#define strlcpy(d, s, len)                \
+	do {                              \
+		strncpy(d, s, len);       \
+		((char *)d)[(len)-1] = 0; \
+	} while (0)
 #endif
 
 #ifndef TAILQ_FOREACH_SAFE
-#define	TAILQ_FOREACH_SAFE(var, head, field, tvar)			\
-	for ((var) = TAILQ_FIRST((head));				\
-	    (var) && ((tvar) = TAILQ_NEXT((var), field), 1);		\
-	    (var) = (tvar))
+#define TAILQ_FOREACH_SAFE(var, head, field, tvar) \
+	for ((var) = TAILQ_FIRST((head));          \
+	     (var) && ((tvar) = TAILQ_NEXT((var), field), 1); (var) = (tvar))
 #endif
 
-#endif					/* _LIBUSB_GLOBAL_LINUX_H_ */
+#endif /* _LIBUSB_GLOBAL_LINUX_H_ */

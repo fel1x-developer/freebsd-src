@@ -80,7 +80,7 @@ typedef struct lac_mem_blk_s {
 
 #define LAC_MEM_POOL_VIRT_TO_PHYS(pVirtAddr)                                   \
 	(((lac_mem_blk_t *)((LAC_ARCH_UINT)pVirtAddr - sizeof(lac_mem_blk_t))) \
-	     ->physDataPtr)
+		->physDataPtr)
 /**< @ingroup LacMemPool
  *   macro for retreiving the physical address of the memory block. */
 
@@ -116,13 +116,9 @@ typedef struct lac_mem_blk_s {
  * @retval CPA_STATUS_SUCCESS        function executed successfully
  *
  ******************************************************************************/
-CpaStatus Lac_MemPoolCreate(lac_memory_pool_id_t *poolID,
-			    char *poolName,
-			    unsigned int numElementsInPool,
-			    unsigned int blkSizeInBytes,
-			    unsigned int blkAlignmentInBytes,
-			    CpaBoolean trackMemory,
-			    Cpa32U node);
+CpaStatus Lac_MemPoolCreate(lac_memory_pool_id_t *poolID, char *poolName,
+    unsigned int numElementsInPool, unsigned int blkSizeInBytes,
+    unsigned int blkAlignmentInBytes, CpaBoolean trackMemory, Cpa32U node);
 
 /**
  *******************************************************************************
@@ -253,7 +249,7 @@ CpaStatus Lac_MemPoolInitSymCookiesPhyAddr(lac_memory_pool_id_t poolID);
  *
  ******************************************************************************/
 CpaStatus Lac_MemPoolInitAsymCookies(lac_memory_pool_id_t poolID,
-				     CpaInstanceHandle instanceHandle);
+    CpaInstanceHandle instanceHandle);
 
 /**
  *******************************************************************************

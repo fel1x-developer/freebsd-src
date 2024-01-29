@@ -27,6 +27,7 @@
  */
 
 #include <sys/types.h>
+
 #include <string.h>
 #include <thread_db.h>
 

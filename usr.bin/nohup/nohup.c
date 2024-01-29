@@ -44,15 +44,15 @@
 static void dofile(void);
 static void usage(void) __dead2;
 
-#define	FILENAME	"nohup.out"
+#define FILENAME "nohup.out"
 /*
  * POSIX mandates that we exit with:
  * 126 - If the utility was found, but failed to execute.
- * 127 - If any other error occurred. 
+ * 127 - If any other error occurred.
  */
-#define	EXIT_NOEXEC	126
-#define	EXIT_NOTFOUND	127
-#define	EXIT_MISC	127
+#define EXIT_NOEXEC 126
+#define EXIT_NOTFOUND 127
+#define EXIT_MISC 127
 
 int
 main(int argc, char *argv[])
@@ -99,7 +99,7 @@ dofile(void)
 		goto dupit;
 	if ((p = getenv("HOME")) != NULL && *p != '\0' &&
 	    (size_t)snprintf(path, sizeof(path), "%s/%s", p, FILENAME) <
-	    sizeof(path)) {
+		sizeof(path)) {
 		fd = open(p = path, O_RDWR | O_CREAT | O_APPEND,
 		    S_IRUSR | S_IWUSR);
 		if (fd != -1)

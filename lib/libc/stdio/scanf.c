@@ -37,16 +37,17 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <stdio.h>
 #include <stdarg.h>
-#include "un-namespace.h"
+#include <stdio.h>
+
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 #include "xlocale_private.h"
 
 int
-scanf(char const * __restrict fmt, ...)
+scanf(char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -59,7 +60,7 @@ scanf(char const * __restrict fmt, ...)
 	return (ret);
 }
 int
-scanf_l(locale_t locale, char const * __restrict fmt, ...)
+scanf_l(locale_t locale, char const *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

@@ -33,17 +33,16 @@
 
 #include "nvme_private.h"
 
-static int    nvme_ahci_probe(device_t dev);
-static int    nvme_ahci_attach(device_t dev);
-static int    nvme_ahci_detach(device_t dev);
+static int nvme_ahci_probe(device_t dev);
+static int nvme_ahci_attach(device_t dev);
+static int nvme_ahci_detach(device_t dev);
 
 static device_method_t nvme_ahci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,     nvme_ahci_probe),
-	DEVMETHOD(device_attach,    nvme_ahci_attach),
-	DEVMETHOD(device_detach,    nvme_ahci_detach),
-	DEVMETHOD(device_shutdown,  nvme_shutdown),
-	{ 0, 0 }
+	DEVMETHOD(device_probe, nvme_ahci_probe),
+	DEVMETHOD(device_attach, nvme_ahci_attach),
+	DEVMETHOD(device_detach, nvme_ahci_detach),
+	DEVMETHOD(device_shutdown, nvme_shutdown), { 0, 0 }
 };
 
 static driver_t nvme_ahci_driver = {
@@ -55,7 +54,7 @@ static driver_t nvme_ahci_driver = {
 DRIVER_MODULE(nvme, ahci, nvme_ahci_driver, NULL, NULL);
 
 static int
-nvme_ahci_probe (device_t device)
+nvme_ahci_probe(device_t device)
 {
 	return (0);
 }
@@ -63,7 +62,7 @@ nvme_ahci_probe (device_t device)
 static int
 nvme_ahci_attach(device_t dev)
 {
-	struct nvme_controller*ctrlr = DEVICE2SOFTC(dev);
+	struct nvme_controller *ctrlr = DEVICE2SOFTC(dev);
 	int ret;
 
 	/* Map MMIO registers */
@@ -72,7 +71,7 @@ nvme_ahci_attach(device_t dev)
 	ctrlr->resource = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
 	    &ctrlr->resource_id, RF_ACTIVE);
 
-	if(ctrlr->resource == NULL) {
+	if (ctrlr->resource == NULL) {
 		nvme_printf(ctrlr, "unable to allocate mem resource\n");
 		ret = ENOMEM;
 		goto bad;
@@ -83,8 +82,8 @@ nvme_ahci_attach(device_t dev)
 
 	/* Allocate and setup IRQ */
 	ctrlr->rid = 0;
-	ctrlr->res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-	    &ctrlr->rid, RF_SHAREABLE | RF_ACTIVE);
+	ctrlr->res = bus_alloc_resource_any(dev, SYS_RES_IRQ, &ctrlr->rid,
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (ctrlr->res == NULL) {
 		nvme_printf(ctrlr, "unable to allocate shared interrupt\n");
 		ret = ENOMEM;
@@ -93,9 +92,8 @@ nvme_ahci_attach(device_t dev)
 
 	ctrlr->msi_count = 0;
 	ctrlr->num_io_queues = 1;
-	if (bus_setup_intr(dev, ctrlr->res,
-	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, nvme_ctrlr_shared_handler,
-	    ctrlr, &ctrlr->tag) != 0) {
+	if (bus_setup_intr(dev, ctrlr->res, INTR_TYPE_MISC | INTR_MPSAFE, NULL,
+		nvme_ctrlr_shared_handler, ctrlr, &ctrlr->tag) != 0) {
 		nvme_printf(ctrlr, "unable to setup shared interrupt\n");
 		ret = ENOMEM;
 		goto bad;
@@ -109,11 +107,11 @@ nvme_ahci_attach(device_t dev)
 	 */
 	ctrlr->quirks |= QUIRK_AHCI;
 
-	return (nvme_attach(dev));	/* Note: failure frees resources */
+	return (nvme_attach(dev)); /* Note: failure frees resources */
 bad:
 	if (ctrlr->resource != NULL) {
-		bus_release_resource(dev, SYS_RES_MEMORY,
-		    ctrlr->resource_id, ctrlr->resource);
+		bus_release_resource(dev, SYS_RES_MEMORY, ctrlr->resource_id,
+		    ctrlr->resource);
 	}
 	if (ctrlr->res)
 		bus_release_resource(ctrlr->dev, SYS_RES_IRQ,

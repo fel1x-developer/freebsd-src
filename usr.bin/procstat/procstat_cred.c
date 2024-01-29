@@ -33,8 +33,8 @@
 
 #include <err.h>
 #include <libprocstat.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "procstat.h"
@@ -49,7 +49,8 @@ procstat_cred(struct procstat *procstat, struct kinfo_proc *kipp)
 	gid_t *groups;
 
 	if ((procstat_opts & PS_OPT_NOHEADER) == 0)
-		xo_emit("{T:/%5s %-16s %5s %5s %5s %5s %5s %5s %5s %5s %-15s}\n",
+		xo_emit(
+		    "{T:/%5s %-16s %5s %5s %5s %5s %5s %5s %5s %5s %-15s}\n",
 		    "PID", "COMM", "EUID", "RUID", "SVUID", "EGID", "RGID",
 		    "SVGID", "UMASK", "FLAGS", "GROUPS");
 
@@ -62,8 +63,8 @@ procstat_cred(struct procstat *procstat, struct kinfo_proc *kipp)
 	xo_emit("{:rgid/%5d} ", kipp->ki_rgid);
 	xo_emit("{:svgid/%5d} ", kipp->ki_svgid);
 	xo_emit("{:umask/%5s} ", get_umask(procstat, kipp));
-	xo_emit("{:cr_flags/%s}", kipp->ki_cr_flags & CRED_FLAG_CAPMODE ?
-	    "C" : "-");
+	xo_emit("{:cr_flags/%s}",
+	    kipp->ki_cr_flags & CRED_FLAG_CAPMODE ? "C" : "-");
 	xo_emit("{P:     }");
 
 	groups = NULL;

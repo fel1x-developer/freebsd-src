@@ -29,12 +29,12 @@
 
 #include <dev/rtwn/rtl8192c/r92c_rom_defs.h>
 
-#define R92E_GROUP_2G		6
+#define R92E_GROUP_2G 6
 
-#define R92E_MAX_TX_COUNT	4
-#define R92E_MAX_RF_PATH	4
+#define R92E_MAX_TX_COUNT 4
+#define R92E_MAX_RF_PATH 4
 
-#define R92E_EFUSE_MAX_LEN	512
-#define R92E_EFUSE_MAP_LEN	512
+#define R92E_EFUSE_MAX_LEN 512
+#define R92E_EFUSE_MAP_LEN 512
 
-#endif	/* R92E_ROM_DEFS_H */
+#endif /* R92E_ROM_DEFS_H */

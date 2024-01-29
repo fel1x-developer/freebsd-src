@@ -27,18 +27,18 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/namei.h>
-#include <sys/kernel.h>
-#include <sys/proc.h>
 #include <sys/bio.h>
 #include <sys/buf.h>
 #include <sys/fcntl.h>
-#include <sys/mount.h>
-#include <sys/unistd.h>
-#include <sys/vnode.h>
+#include <sys/kernel.h>
 #include <sys/limits.h>
 #include <sys/lockf.h>
+#include <sys/mount.h>
+#include <sys/namei.h>
+#include <sys/proc.h>
 #include <sys/stat.h>
+#include <sys/unistd.h>
+#include <sys/vnode.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
@@ -54,62 +54,62 @@
 /*
  * Prototypes for SMBFS vnode operations
  */
-static vop_create_t	smbfs_create;
-static vop_mknod_t	smbfs_mknod;
-static vop_open_t	smbfs_open;
-static vop_close_t	smbfs_close;
-static vop_access_t	smbfs_access;
-static vop_getattr_t	smbfs_getattr;
-static vop_setattr_t	smbfs_setattr;
-static vop_read_t	smbfs_read;
-static vop_write_t	smbfs_write;
-static vop_fsync_t	smbfs_fsync;
-static vop_remove_t	smbfs_remove;
-static vop_link_t	smbfs_link;
-static vop_lookup_t	smbfs_lookup;
-static vop_rename_t	smbfs_rename;
-static vop_mkdir_t	smbfs_mkdir;
-static vop_rmdir_t	smbfs_rmdir;
-static vop_symlink_t	smbfs_symlink;
-static vop_readdir_t	smbfs_readdir;
-static vop_strategy_t	smbfs_strategy;
-static vop_print_t	smbfs_print;
-static vop_pathconf_t	smbfs_pathconf;
-static vop_advlock_t	smbfs_advlock;
-static vop_getextattr_t	smbfs_getextattr;
+static vop_create_t smbfs_create;
+static vop_mknod_t smbfs_mknod;
+static vop_open_t smbfs_open;
+static vop_close_t smbfs_close;
+static vop_access_t smbfs_access;
+static vop_getattr_t smbfs_getattr;
+static vop_setattr_t smbfs_setattr;
+static vop_read_t smbfs_read;
+static vop_write_t smbfs_write;
+static vop_fsync_t smbfs_fsync;
+static vop_remove_t smbfs_remove;
+static vop_link_t smbfs_link;
+static vop_lookup_t smbfs_lookup;
+static vop_rename_t smbfs_rename;
+static vop_mkdir_t smbfs_mkdir;
+static vop_rmdir_t smbfs_rmdir;
+static vop_symlink_t smbfs_symlink;
+static vop_readdir_t smbfs_readdir;
+static vop_strategy_t smbfs_strategy;
+static vop_print_t smbfs_print;
+static vop_pathconf_t smbfs_pathconf;
+static vop_advlock_t smbfs_advlock;
+static vop_getextattr_t smbfs_getextattr;
 
 struct vop_vector smbfs_vnodeops = {
-	.vop_default =		&default_vnodeops,
+	.vop_default = &default_vnodeops,
 
-	.vop_access =		smbfs_access,
-	.vop_advlock =		smbfs_advlock,
-	.vop_close =		smbfs_close,
-	.vop_create =		smbfs_create,
-	.vop_fsync =		smbfs_fsync,
-	.vop_getattr =		smbfs_getattr,
-	.vop_getextattr = 	smbfs_getextattr,
-	.vop_getpages =		smbfs_getpages,
-	.vop_inactive =		smbfs_inactive,
-	.vop_ioctl =		smbfs_ioctl,
-	.vop_link =		smbfs_link,
-	.vop_lookup =		smbfs_lookup,
-	.vop_mkdir =		smbfs_mkdir,
-	.vop_mknod =		smbfs_mknod,
-	.vop_open =		smbfs_open,
-	.vop_pathconf =		smbfs_pathconf,
-	.vop_print =		smbfs_print,
-	.vop_putpages =		smbfs_putpages,
-	.vop_read =		smbfs_read,
-	.vop_readdir =		smbfs_readdir,
-	.vop_reclaim =		smbfs_reclaim,
-	.vop_remove =		smbfs_remove,
-	.vop_rename =		smbfs_rename,
-	.vop_rmdir =		smbfs_rmdir,
-	.vop_setattr =		smbfs_setattr,
-/*	.vop_setextattr =	smbfs_setextattr,*/
-	.vop_strategy =		smbfs_strategy,
-	.vop_symlink =		smbfs_symlink,
-	.vop_write =		smbfs_write,
+	.vop_access = smbfs_access,
+	.vop_advlock = smbfs_advlock,
+	.vop_close = smbfs_close,
+	.vop_create = smbfs_create,
+	.vop_fsync = smbfs_fsync,
+	.vop_getattr = smbfs_getattr,
+	.vop_getextattr = smbfs_getextattr,
+	.vop_getpages = smbfs_getpages,
+	.vop_inactive = smbfs_inactive,
+	.vop_ioctl = smbfs_ioctl,
+	.vop_link = smbfs_link,
+	.vop_lookup = smbfs_lookup,
+	.vop_mkdir = smbfs_mkdir,
+	.vop_mknod = smbfs_mknod,
+	.vop_open = smbfs_open,
+	.vop_pathconf = smbfs_pathconf,
+	.vop_print = smbfs_print,
+	.vop_putpages = smbfs_putpages,
+	.vop_read = smbfs_read,
+	.vop_readdir = smbfs_readdir,
+	.vop_reclaim = smbfs_reclaim,
+	.vop_remove = smbfs_remove,
+	.vop_rename = smbfs_rename,
+	.vop_rmdir = smbfs_rmdir,
+	.vop_setattr = smbfs_setattr,
+	/*	.vop_setextattr =	smbfs_setextattr,*/
+	.vop_strategy = smbfs_strategy,
+	.vop_symlink = smbfs_symlink,
+	.vop_write = smbfs_write,
 };
 VFS_VOP_VECTOR_REGISTER(smbfs_vnodeops);
 
@@ -124,15 +124,17 @@ smbfs_access(struct vop_access_args *ap)
 	SMBVDEBUG("\n");
 	if ((accmode & VWRITE) && (vp->v_mount->mnt_flag & MNT_RDONLY)) {
 		switch (vp->v_type) {
-		    case VREG: case VDIR: case VLNK:
+		case VREG:
+		case VDIR:
+		case VLNK:
 			return EROFS;
-		    default:
+		default:
 			break;
 		}
 	}
 	mpmode = vp->v_type == VREG ? smp->sm_file_mode : smp->sm_dir_mode;
-	return (vaccess(vp->v_type, mpmode, smp->sm_uid,
-	    smp->sm_gid, ap->a_accmode, ap->a_cred));
+	return (vaccess(vp->v_type, mpmode, smp->sm_uid, smp->sm_gid,
+	    ap->a_accmode, ap->a_cred));
 }
 
 /* ARGSUSED */
@@ -147,7 +149,7 @@ smbfs_open(struct vop_open_args *ap)
 	int error, accmode;
 
 	SMBVDEBUG("%s,%d\n", np->n_name, (np->n_flag & NOPEN) != 0);
-	if (vp->v_type != VREG && vp->v_type != VDIR) { 
+	if (vp->v_type != VREG && vp->v_type != VDIR) {
 		SMBFSERR("open eacces vtype=%d\n", vp->v_type);
 		return EACCES;
 	}
@@ -182,9 +184,9 @@ smbfs_open(struct vop_open_args *ap)
 	 * is up to server with clients/openers needing to use
 	 * advisory locks for further control.
 	 */
-	accmode = SMB_SM_DENYNONE|SMB_AM_OPENREAD;
+	accmode = SMB_SM_DENYNONE | SMB_AM_OPENREAD;
 	if ((vp->v_mount->mnt_flag & MNT_RDONLY) == 0)
-		accmode = SMB_SM_DENYNONE|SMB_AM_OPENRW;
+		accmode = SMB_SM_DENYNONE | SMB_AM_OPENRW;
 	scred = smbfs_malloc_scred();
 	smb_makescred(scred, ap->a_td, ap->a_cred);
 	error = smbfs_smb_open(np, accmode, scred);
@@ -192,7 +194,7 @@ smbfs_open(struct vop_open_args *ap)
 		if (mode & FWRITE)
 			return EACCES;
 		else if ((vp->v_mount->mnt_flag & MNT_RDONLY) == 0) {
-			accmode = SMB_SM_DENYNONE|SMB_AM_OPENREAD;
+			accmode = SMB_SM_DENYNONE | SMB_AM_OPENREAD;
 			error = smbfs_smb_open(np, accmode, scred);
 		}
 	}
@@ -232,13 +234,14 @@ smbfs_getattr(struct vop_getattr_args *ap)
 {
 	struct vnode *vp = ap->a_vp;
 	struct smbnode *np = VTOSMB(vp);
-	struct vattr *va=ap->a_vap;
+	struct vattr *va = ap->a_vap;
 	struct smbfattr fattr;
 	struct smb_cred *scred;
 	u_quad_t oldsize;
 	int error;
 
-	SMBVDEBUG("%lx: '%s' %d\n", (long)vp, np->n_name, (vp->v_vflag & VV_ROOT) != 0);
+	SMBVDEBUG("%lx: '%s' %d\n", (long)vp, np->n_name,
+	    (vp->v_vflag & VV_ROOT) != 0);
 	error = smbfs_attr_cachelookup(vp, va);
 	if (!error)
 		return 0;
@@ -280,10 +283,11 @@ smbfs_setattr(struct vop_setattr_args *ap)
 	/*
 	 * Disallow write attempts if the filesystem is mounted read-only.
 	 */
-  	if ((vap->va_uid != (uid_t)VNOVAL || vap->va_gid != (gid_t)VNOVAL || 
-	     vap->va_atime.tv_sec != VNOVAL || vap->va_mtime.tv_sec != VNOVAL ||
-	     vap->va_mode != (mode_t)VNOVAL || vap->va_flags != VNOVAL) &&
-	     isreadonly)
+	if ((vap->va_uid != (uid_t)VNOVAL || vap->va_gid != (gid_t)VNOVAL ||
+		vap->va_atime.tv_sec != VNOVAL ||
+		vap->va_mtime.tv_sec != VNOVAL ||
+		vap->va_mode != (mode_t)VNOVAL || vap->va_flags != VNOVAL) &&
+	    isreadonly)
 		return EROFS;
 
 	/*
@@ -295,42 +299,41 @@ smbfs_setattr(struct vop_setattr_args *ap)
 	 * than readonly, which is the reason for the difference.
 	 */
 	if (vap->va_flags != VNOVAL) {
-		if (vap->va_flags & ~(UF_HIDDEN|UF_SYSTEM|UF_ARCHIVE|
-				      UF_READONLY))
+		if (vap->va_flags &
+		    ~(UF_HIDDEN | UF_SYSTEM | UF_ARCHIVE | UF_READONLY))
 			return EINVAL;
 	}
 
 	scred = smbfs_malloc_scred();
 	smb_makescred(scred, td, ap->a_cred);
 	if (vap->va_size != VNOVAL) {
- 		switch (vp->v_type) {
- 		    case VDIR:
- 			error = EISDIR;
+		switch (vp->v_type) {
+		case VDIR:
+			error = EISDIR;
 			goto out;
- 		    case VREG:
+		case VREG:
 			break;
- 		    default:
+		default:
 			error = EINVAL;
 			goto out;
-  		}
+		}
 		if (isreadonly) {
 			error = EROFS;
 			goto out;
 		}
 		doclose = 0;
 		vnode_pager_setsize(vp, (u_long)vap->va_size);
- 		tsize = np->n_size;
- 		np->n_size = vap->va_size;
+		tsize = np->n_size;
+		np->n_size = vap->va_size;
 		if ((np->n_flag & NOPEN) == 0) {
 			error = smbfs_smb_open(np,
-					       SMB_SM_DENYNONE|SMB_AM_OPENRW,
-					       scred);
+			    SMB_SM_DENYNONE | SMB_AM_OPENRW, scred);
 			if (error == 0)
 				doclose = 1;
 		}
 		if (error == 0)
-			error = smbfs_smb_setfsize(np,
-			    (int64_t)vap->va_size, scred);
+			error = smbfs_smb_setfsize(np, (int64_t)vap->va_size,
+			    scred);
 		if (doclose)
 			smbfs_smb_close(ssp, np->n_fid, NULL, scred);
 		if (error) {
@@ -338,7 +341,7 @@ smbfs_setattr(struct vop_setattr_args *ap)
 			vnode_pager_setsize(vp, (u_long)tsize);
 			goto out;
 		}
-  	}
+	}
 	if ((vap->va_flags != VNOVAL) || (vap->va_mode != (mode_t)VNOVAL)) {
 		old_n_dosattr = np->n_dosattr;
 
@@ -381,7 +384,8 @@ smbfs_setattr(struct vop_setattr_args *ap)
 		}
 
 		if (np->n_dosattr != old_n_dosattr) {
-			error = smbfs_smb_setpattr(np, np->n_dosattr, NULL, scred);
+			error = smbfs_smb_setpattr(np, np->n_dosattr, NULL,
+			    scred);
 			if (error)
 				goto out;
 		}
@@ -413,33 +417,41 @@ smbfs_setattr(struct vop_setattr_args *ap)
 				error = VOP_OPEN(vp, FWRITE, ap->a_cred, td,
 				    NULL);
 				if (!error) {
-/*					error = smbfs_smb_setfattrNT(np, 0,
-					    mtime, atime, scred);
-					VOP_GETATTR(vp, &vattr, ap->a_cred); */
+					/*					error
+					   = smbfs_smb_setfattrNT(np, 0, mtime,
+					   atime, scred); VOP_GETATTR(vp,
+					   &vattr, ap->a_cred); */
 					if (mtime)
 						np->n_mtime = *mtime;
 					VOP_CLOSE(vp, FWRITE, ap->a_cred, td);
 				}
 			} else if ((vcp->vc_sopt.sv_caps & SMB_CAP_NT_SMBS)) {
-				error = smbfs_smb_setptime2(np, mtime, atime, 0, scred);
-/*				error = smbfs_smb_setpattrNT(np, 0, mtime, atime, scred);*/
+				error = smbfs_smb_setptime2(np, mtime, atime, 0,
+				    scred);
+				/*				error =
+				 * smbfs_smb_setpattrNT(np, 0, mtime, atime,
+				 * scred);*/
 			} else if (SMB_DIALECT(vcp) >= SMB_DIALECT_LANMAN2_0) {
-				error = smbfs_smb_setptime2(np, mtime, atime, 0, scred);
+				error = smbfs_smb_setptime2(np, mtime, atime, 0,
+				    scred);
 			} else {
 				error = smbfs_smb_setpattr(np, 0, mtime, scred);
 			}
 		} else {
 			if (vcp->vc_sopt.sv_caps & SMB_CAP_NT_SMBS) {
-				error = smbfs_smb_setfattrNT(np, 0, mtime, atime, scred);
+				error = smbfs_smb_setfattrNT(np, 0, mtime,
+				    atime, scred);
 			} else if (SMB_DIALECT(vcp) >= SMB_DIALECT_LANMAN1_0) {
-				error = smbfs_smb_setftime(np, mtime, atime, scred);
+				error = smbfs_smb_setftime(np, mtime, atime,
+				    scred);
 			} else {
 				/*
 				 * I have no idea how to handle this for core
 				 * level servers. The possible solution is to
 				 * update mtime after file is closed.
 				 */
-				 SMBERROR("can't update times on an opened file\n");
+				SMBERROR(
+				    "can't update times on an opened file\n");
 			}
 		}
 	}
@@ -447,7 +459,7 @@ smbfs_setattr(struct vop_setattr_args *ap)
 	 * Invalidate attribute cache in case if server doesn't set
 	 * required attributes.
 	 */
-	smbfs_attr_cacheremove(vp);	/* invalidate cache */
+	smbfs_attr_cacheremove(vp); /* invalidate cache */
 	VOP_GETATTR(vp, vap, ap->a_cred);
 	np->n_mtime.tv_sec = vap->va_mtime.tv_sec;
 out:
@@ -475,11 +487,11 @@ smbfs_write(struct vop_write_args *ap)
 	struct vnode *vp = ap->a_vp;
 	struct uio *uio = ap->a_uio;
 
-	SMBVDEBUG("%d,ofs=%jd,sz=%zd\n",vp->v_type, (intmax_t)uio->uio_offset, 
+	SMBVDEBUG("%d,ofs=%jd,sz=%zd\n", vp->v_type, (intmax_t)uio->uio_offset,
 	    uio->uio_resid);
 	if (vp->v_type != VREG)
 		return (EPERM);
-	return smbfs_writevnode(vp, uio, ap->a_cred,ap->a_ioflag);
+	return smbfs_writevnode(vp, uio, ap->a_cred, ap->a_ioflag);
 }
 /*
  * smbfs_create call
@@ -492,7 +504,7 @@ smbfs_create(struct vop_create_args *ap)
 {
 	struct vnode *dvp = ap->a_dvp;
 	struct vattr *vap = ap->a_vap;
-	struct vnode **vpp=ap->a_vpp;
+	struct vnode **vpp = ap->a_vpp;
 	struct componentname *cnp = ap->a_cnp;
 	struct smbnode *dnp = VTOSMB(dvp);
 	struct vnode *vp;
@@ -533,7 +545,7 @@ static int
 smbfs_remove(struct vop_remove_args *ap)
 {
 	struct vnode *vp = ap->a_vp;
-/*	struct vnode *dvp = ap->a_dvp;*/
+	/*	struct vnode *dvp = ap->a_dvp;*/
 	struct componentname *cnp = ap->a_cnp;
 	struct smbnode *np = VTOSMB(vp);
 	struct smb_cred *scred;
@@ -562,12 +574,12 @@ smbfs_rename(struct vop_rename_args *ap)
 	struct vnode *fdvp = ap->a_fdvp;
 	struct vnode *tdvp = ap->a_tdvp;
 	struct componentname *tcnp = ap->a_tcnp;
-/*	struct componentname *fcnp = ap->a_fcnp;*/
+	/*	struct componentname *fcnp = ap->a_fcnp;*/
 	struct smb_cred *scred;
 #ifdef notnow
 	u_int16_t flags = 6;
 #endif
-	int error=0;
+	int error = 0;
 
 	scred = NULL;
 	/* Check for cross-device rename */
@@ -582,7 +594,7 @@ smbfs_rename(struct vop_rename_args *ap)
 		goto out;
 	}
 #ifdef notnow
-	flags = 0x10;			/* verify all writes */
+	flags = 0x10; /* verify all writes */
 #endif
 	if (fvp->v_type == VDIR) {
 #ifdef notnow
@@ -676,7 +688,7 @@ static int
 smbfs_mkdir(struct vop_mkdir_args *ap)
 {
 	struct vnode *dvp = ap->a_dvp;
-/*	struct vattr *vap = ap->a_vap;*/
+	/*	struct vattr *vap = ap->a_vap;*/
 	struct vnode *vp;
 	struct componentname *cnp = ap->a_cnp;
 	struct smbnode *dnp = VTOSMB(dvp);
@@ -690,7 +702,8 @@ smbfs_mkdir(struct vop_mkdir_args *ap)
 	if ((error = VOP_GETATTR(dvp, &vattr, cnp->cn_cred))) {
 		return error;
 	}
-	if ((name[0] == '.') && ((len == 1) || ((len == 2) && (name[1] == '.'))))
+	if ((name[0] == '.') &&
+	    ((len == 1) || ((len == 2) && (name[1] == '.'))))
 		return EEXIST;
 	scred = smbfs_malloc_scred();
 	smb_makescred(scred, curthread, cnp->cn_cred);
@@ -718,7 +731,7 @@ smbfs_rmdir(struct vop_rmdir_args *ap)
 	struct vnode *vp = ap->a_vp;
 	struct vnode *dvp = ap->a_dvp;
 	struct componentname *cnp = ap->a_cnp;
-/*	struct smbmount *smp = VTOSMBFS(vp);*/
+	/*	struct smbmount *smp = VTOSMBFS(vp);*/
 	struct smbnode *dnp = VTOSMB(dvp);
 	struct smbnode *np = VTOSMB(vp);
 	struct smb_cred *scred;
@@ -734,7 +747,7 @@ smbfs_rmdir(struct vop_rmdir_args *ap)
 		np->n_flag |= NGONE;
 	dnp->n_flag |= NMODIFIED;
 	smbfs_attr_cacheremove(dvp);
-/*	cache_purge(dvp);*/
+	/*	cache_purge(dvp);*/
 	cache_purge(vp);
 	smbfs_free_scred(scred);
 	return error;
@@ -766,12 +779,13 @@ smbfs_readdir(struct vop_readdir_args *ap)
 static int
 smbfs_fsync(struct vop_fsync_args *ap)
 {
-/*	return (smb_flush(ap->a_vp, ap->a_cred, ap->a_waitfor, ap->a_td, 1));*/
-    return (0);
+	/*	return (smb_flush(ap->a_vp, ap->a_cred, ap->a_waitfor, ap->a_td,
+	 * 1));*/
+	return (0);
 }
 
-static
-int smbfs_print(struct vop_print_args *ap)
+static int
+smbfs_print(struct vop_print_args *ap)
 {
 	struct vnode *vp = ap->a_vp;
 	struct smbnode *np = VTOSMB(vp);
@@ -794,23 +808,25 @@ smbfs_pathconf(struct vop_pathconf_args *ap)
 	int error = 0;
 
 	switch (ap->a_name) {
-	    case _PC_FILESIZEBITS:
-		if (vcp->vc_sopt.sv_caps & (SMB_CAP_LARGE_READX |
-		    SMB_CAP_LARGE_WRITEX))
-		    *retval = 64;
+	case _PC_FILESIZEBITS:
+		if (vcp->vc_sopt.sv_caps &
+		    (SMB_CAP_LARGE_READX | SMB_CAP_LARGE_WRITEX))
+			*retval = 64;
 		else
-		    *retval = 32;
+			*retval = 32;
 		break;
-	    case _PC_NAME_MAX:
-		*retval = (vcp->vc_hflags2 & SMB_FLAGS2_KNOWS_LONG_NAMES) ? 255 : 12;
+	case _PC_NAME_MAX:
+		*retval = (vcp->vc_hflags2 & SMB_FLAGS2_KNOWS_LONG_NAMES) ?
+		    255 :
+		    12;
 		break;
-	    case _PC_PATH_MAX:
-		*retval = 800;	/* XXX: a correct one ? */
+	case _PC_PATH_MAX:
+		*retval = 800; /* XXX: a correct one ? */
 		break;
-	    case _PC_NO_TRUNC:
+	case _PC_NO_TRUNC:
 		*retval = 1;
 		break;
-	    default:
+	default:
 		error = vop_stdpathconf(ap);
 	}
 	return error;
@@ -819,7 +835,7 @@ smbfs_pathconf(struct vop_pathconf_args *ap)
 static int
 smbfs_strategy(struct vop_strategy_args *ap)
 {
-	struct buf *bp=ap->a_bp;
+	struct buf *bp = ap->a_bp;
 	struct ucred *cr;
 	struct thread *td;
 
@@ -827,13 +843,13 @@ smbfs_strategy(struct vop_strategy_args *ap)
 	if (bp->b_flags & B_ASYNC)
 		td = (struct thread *)0;
 	else
-		td = curthread;	/* XXX */
+		td = curthread; /* XXX */
 	if (bp->b_iocmd == BIO_READ)
 		cr = bp->b_rcred;
 	else
 		cr = bp->b_wcred;
 
-	if ((bp->b_flags & B_ASYNC) == 0 )
+	if ((bp->b_flags & B_ASYNC) == 0)
 		(void)smbfs_doio(ap->a_vp, bp, cr, td);
 	return (0);
 }
@@ -848,11 +864,11 @@ static char smbfs_atl[] = "rhsvda";
 static int
 smbfs_getextattr(struct vop_getextattr_args *ap)
 /* {
-        IN struct vnode *a_vp;
-        IN char *a_name;
-        INOUT struct uio *a_uio;
-        IN struct ucred *a_cred;
-        IN struct thread *a_td;
+	IN struct vnode *a_vp;
+	IN char *a_name;
+	INOUT struct uio *a_uio;
+	IN struct ucred *a_cred;
+	IN struct thread *a_td;
 };
 */
 {
@@ -895,7 +911,7 @@ smbfs_advlock(struct vop_advlock_args *ap)
 	struct smbnode *np = VTOSMB(vp);
 	struct flock *fl = ap->a_fl;
 	caddr_t id = (caddr_t)1 /* ap->a_id */;
-/*	int flags = ap->a_flags;*/
+	/*	int flags = ap->a_flags;*/
 	struct thread *td = curthread;
 	struct smb_cred *scred;
 	u_quad_t size;
@@ -910,7 +926,7 @@ smbfs_advlock(struct vop_advlock_args *ap)
 		 * can work wrong assuming directory is locked. So, we just
 		 * return 'operation not supported
 		 */
-		 return EOPNOTSUPP;
+		return EOPNOTSUPP;
 	}
 	size = np->n_size;
 	switch (fl->l_whence) {
@@ -949,18 +965,18 @@ smbfs_advlock(struct vop_advlock_args *ap)
 	scred = smbfs_malloc_scred();
 	smb_makescred(scred, td, td->td_ucred);
 	switch (ap->a_op) {
-	    case F_SETLK:
+	case F_SETLK:
 		switch (fl->l_type) {
-		    case F_WRLCK:
+		case F_WRLCK:
 			lkop = SMB_LOCK_EXCL;
 			break;
-		    case F_RDLCK:
+		case F_RDLCK:
 			lkop = SMB_LOCK_SHARED;
 			break;
-		    case F_UNLCK:
+		case F_UNLCK:
 			lkop = SMB_LOCK_RELEASE;
 			break;
-		    default:
+		default:
 			smbfs_free_scred(scred);
 			return EINVAL;
 		}
@@ -977,14 +993,15 @@ smbfs_advlock(struct vop_advlock_args *ap)
 			fl->l_type = oldtype;
 		}
 		break;
-	    case F_UNLCK:
+	case F_UNLCK:
 		lf_advlock(ap, &vp->v_lockf, size);
-		error = smbfs_smb_lock(np, SMB_LOCK_RELEASE, id, start, end, scred);
+		error = smbfs_smb_lock(np, SMB_LOCK_RELEASE, id, start, end,
+		    scred);
 		break;
-	    case F_GETLK:
+	case F_GETLK:
 		error = lf_advlock(ap, &vp->v_lockf, size);
 		break;
-	    default:
+	default:
 		smbfs_free_scred(scred);
 		return EINVAL;
 	}
@@ -1076,14 +1093,14 @@ smbfs_lookup(struct vop_lookup_args *ap)
 
 	error = smbfs_pathcheck(smp, cnp->cn_nameptr, cnp->cn_namelen, nameiop);
 
-	if (error) 
+	if (error)
 		return ENOENT;
 
 	error = cache_lookup(dvp, vpp, cnp, NULL, NULL);
 	SMBVDEBUG("cache_lookup returned %d\n", error);
 	if (error > 0)
 		return error;
-	if (error) {		/* name was found */
+	if (error) { /* name was found */
 		struct vattr vattr;
 
 		killit = 0;
@@ -1097,15 +1114,15 @@ smbfs_lookup(struct vop_lookup_args *ap)
 		 * right type.
 		 */
 		if (error == 0 &&
-		   ((vp->v_type == VDIR &&
-		   (VTOSMB(vp)->n_dosattr & SMB_FA_DIR) == 0) ||
-		   (vp->v_type == VREG &&
-		   (VTOSMB(vp)->n_dosattr & SMB_FA_DIR) != 0)))
-		   killit = 1;
+		    ((vp->v_type == VDIR &&
+			 (VTOSMB(vp)->n_dosattr & SMB_FA_DIR) == 0) ||
+			(vp->v_type == VREG &&
+			    (VTOSMB(vp)->n_dosattr & SMB_FA_DIR) != 0)))
+			killit = 1;
 		else if (error == 0
-	     /*    && vattr.va_ctime.tv_sec == VTOSMB(vp)->n_ctime*/) {
-		     SMBVDEBUG("use cached vnode\n");
-		     return (0);
+		    /*    && vattr.va_ctime.tv_sec == VTOSMB(vp)->n_ctime*/) {
+			SMBVDEBUG("use cached vnode\n");
+			return (0);
 		}
 		cache_purge(vp);
 		/*
@@ -1122,7 +1139,7 @@ smbfs_lookup(struct vop_lookup_args *ap)
 			vrele(vp);
 		*vpp = NULLVP;
 	}
-	/* 
+	/*
 	 * entry is not in the cache or has been expired
 	 */
 	error = 0;
@@ -1142,14 +1159,13 @@ smbfs_lookup(struct vop_lookup_args *ap)
 	} else if (isdot) {
 		error = smbfs_smb_lookup(dnp, NULL, 0, fap, scred);
 		SMBVDEBUG("result of smbfs_smb_lookup: %d\n", error);
-	}
-	else {
+	} else {
 		error = smbfs_smb_lookup(dnp, name, nmlen, fap, scred);
 		SMBVDEBUG("result of smbfs_smb_lookup: %d\n", error);
 	}
 	if (error && error != ENOENT)
 		goto out;
-	if (error) {			/* entry not found */
+	if (error) { /* entry not found */
 		/*
 		 * Handle RENAME or CREATE case...
 		 */
@@ -1162,13 +1178,14 @@ smbfs_lookup(struct vop_lookup_args *ap)
 		}
 		error = ENOENT;
 		goto out;
-	}/* else {
-		SMBVDEBUG("Found entry %s with id=%d\n", fap->entryName, fap->dirEntNum);
-	}*/
+	} /* else {
+		 SMBVDEBUG("Found entry %s with id=%d\n", fap->entryName,
+	 fap->dirEntNum);
+	 }*/
 	/*
 	 * handle DELETE case ...
 	 */
-	if (nameiop == DELETE && islastcn) { 	/* delete last component */
+	if (nameiop == DELETE && islastcn) { /* delete last component */
 		error = VOP_ACCESS(dvp, VWRITE, cnp->cn_cred, td);
 		if (error)
 			goto out;
@@ -1215,7 +1232,7 @@ smbfs_lookup(struct vop_lookup_args *ap)
 				error = ENOENT;
 				goto out;
 			}
-		}	
+		}
 		VOP_UNLOCK(dvp);
 		error = smbfs_nget(mp, dvp, name, nmlen, NULL, &vp);
 		vfs_unbusy(mp);
@@ -1238,8 +1255,9 @@ smbfs_lookup(struct vop_lookup_args *ap)
 		*vpp = vp;
 		SMBVDEBUG("lookup: getnewvp!\n");
 	}
-	if ((cnp->cn_flags & MAKEENTRY)/* && !islastcn*/) {
-/*		VTOSMB(*vpp)->n_ctime = VTOSMB(*vpp)->n_vattr.va_ctime.tv_sec;*/
+	if ((cnp->cn_flags & MAKEENTRY) /* && !islastcn*/) {
+		/*		VTOSMB(*vpp)->n_ctime =
+		 * VTOSMB(*vpp)->n_vattr.va_ctime.tv_sec;*/
 		cache_enter(dvp, *vpp, cnp);
 	}
 out:

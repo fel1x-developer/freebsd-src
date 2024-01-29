@@ -32,33 +32,31 @@
 #include <sys/module.h>
 #include <sys/rman.h>
 
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pci_private.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/pci/pci_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "pcib_if.h"
 #include "pci_if.h"
+#include "pcib_if.h"
 
-static int	ofw_pci_probe(device_t);
-static const struct ofw_bus_devinfo* pci_ofw_get_devinfo(device_t, device_t);
+static int ofw_pci_probe(device_t);
+static const struct ofw_bus_devinfo *pci_ofw_get_devinfo(device_t, device_t);
 
-static device_method_t ofw_pci_methods[] = {
-	DEVMETHOD(device_probe,		ofw_pci_probe),
+static device_method_t ofw_pci_methods[] = { DEVMETHOD(device_probe,
+						 ofw_pci_probe),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	pci_ofw_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, pci_ofw_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(pci, ofw_pci_driver, ofw_pci_methods, sizeof(struct pci_softc),
     pci_driver);
@@ -81,7 +79,7 @@ ofw_pci_probe(device_t dev)
 }
 
 /* Pass the request up to our parent. */
-static const struct ofw_bus_devinfo*
+static const struct ofw_bus_devinfo *
 pci_ofw_get_devinfo(device_t bus, device_t dev)
 {
 

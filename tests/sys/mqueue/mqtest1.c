@@ -8,7 +8,7 @@
 
 #include "freebsd_test_suite/macros.h"
 
-#define MQNAME	"/mytstqueue1"
+#define MQNAME "/mytstqueue1"
 
 int
 main(void)
@@ -20,7 +20,7 @@ main(void)
 
 	PLAIN_REQUIRE_KERNEL_MODULE("mqueuefs", 0);
 
-	attr.mq_maxmsg  = 2;
+	attr.mq_maxmsg = 2;
 	attr.mq_msgsize = 100;
 	mq = mq_open(MQNAME, O_CREAT | O_RDWR | O_EXCL, 0666, &attr);
 	if (mq == (mqd_t)-1)

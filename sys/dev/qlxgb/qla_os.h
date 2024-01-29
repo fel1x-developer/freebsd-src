@@ -36,59 +36,59 @@
 
 #include "opt_inet.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/mbuf.h>
-#include <sys/protosw.h>
-#include <sys/socket.h>
-#include <sys/malloc.h>
-#include <sys/module.h>
-#include <sys/kernel.h>
-#include <sys/sockio.h>
-#include <sys/types.h>
-#include <machine/atomic.h>
+#include <sys/bus.h>
+#include <sys/condvar.h>
 #include <sys/conf.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/proc.h>
+#include <sys/protosw.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/unistd.h>
 
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
+#include <machine/atomic.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/bpf.h>
 #include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
-#include <net/bpf.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
 #include <net/if_vlan_var.h>
-
-#include <netinet/in_systm.h>
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/in_var.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <netinet/in_var.h>
 #include <netinet/tcp_lro.h>
+#include <netinet/udp.h>
 
-#include <sys/bus.h>
-#include <machine/bus.h>
-#include <sys/rman.h>
-#include <machine/resource.h>
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/proc.h>
-#include <sys/sysctl.h>
-#include <sys/endian.h>
-#include <sys/taskqueue.h>
-#include <sys/pcpu.h>
+#define QLA_USEC_DELAY(usec) DELAY(usec)
 
-#include <sys/unistd.h>
-#include <sys/kthread.h>
-
-#define QLA_USEC_DELAY(usec)	DELAY(usec)
-
-static __inline int qla_ms_to_hz(int ms)
+static __inline int
+qla_ms_to_hz(int ms)
 {
 	int qla_hz;
 
@@ -107,7 +107,8 @@ static __inline int qla_ms_to_hz(int ms)
 	return (qla_hz);
 }
 
-static __inline int qla_sec_to_hz(int sec)
+static __inline int
+qla_sec_to_hz(int sec)
 {
 	struct timeval t;
 
@@ -117,27 +118,27 @@ static __inline int qla_sec_to_hz(int sec)
 	return (tvtohz(&t));
 }
 
-#define qla_host_to_le16(x)	htole16(x)
-#define qla_host_to_le32(x)	htole32(x)
-#define qla_host_to_le64(x)	htole64(x)
-#define qla_host_to_be16(x)	htobe16(x)
-#define qla_host_to_be32(x)	htobe32(x)
-#define qla_host_to_be64(x)	htobe64(x)
+#define qla_host_to_le16(x) htole16(x)
+#define qla_host_to_le32(x) htole32(x)
+#define qla_host_to_le64(x) htole64(x)
+#define qla_host_to_be16(x) htobe16(x)
+#define qla_host_to_be32(x) htobe32(x)
+#define qla_host_to_be64(x) htobe64(x)
 
-#define qla_le16_to_host(x)	le16toh(x)
-#define qla_le32_to_host(x)	le32toh(x)
-#define qla_le64_to_host(x)	le64toh(x)
-#define qla_be16_to_host(x)	be16toh(x)
-#define qla_be32_to_host(x)	be32toh(x)
-#define qla_be64_to_host(x)	be64toh(x)
+#define qla_le16_to_host(x) le16toh(x)
+#define qla_le32_to_host(x) le32toh(x)
+#define qla_le64_to_host(x) le64toh(x)
+#define qla_be16_to_host(x) be16toh(x)
+#define qla_be32_to_host(x) be32toh(x)
+#define qla_be64_to_host(x) be64toh(x)
 
 MALLOC_DECLARE(M_QLA8XXXBUF);
 
-#define qla_mdelay(fn, msecs)	\
-	{\
-		if (cold) \
-			DELAY((msecs * 1000)); \
-		else  \
+#define qla_mdelay(fn, msecs)                           \
+	{                                               \
+		if (cold)                               \
+			DELAY((msecs * 1000));          \
+		else                                    \
 			pause(fn, qla_ms_to_hz(msecs)); \
 	}
 
@@ -147,28 +148,30 @@ MALLOC_DECLARE(M_QLA8XXXBUF);
 #define QLA_LOCK(ha, str) qla_lock(ha, str);
 #define QLA_UNLOCK(ha, str) qla_unlock(ha, str)
 
-#define QLA_TX_LOCK(ha)		mtx_lock(&ha->tx_lock);
-#define QLA_TX_UNLOCK(ha)	mtx_unlock(&ha->tx_lock);
+#define QLA_TX_LOCK(ha) mtx_lock(&ha->tx_lock);
+#define QLA_TX_UNLOCK(ha) mtx_unlock(&ha->tx_lock);
 
-#define QLA_RX_LOCK(ha)		mtx_lock(&ha->rx_lock);
-#define QLA_RX_UNLOCK(ha)	mtx_unlock(&ha->rx_lock);
+#define QLA_RX_LOCK(ha) mtx_lock(&ha->rx_lock);
+#define QLA_RX_UNLOCK(ha) mtx_unlock(&ha->rx_lock);
 
-#define QLA_RXJ_LOCK(ha)	mtx_lock(&ha->rxj_lock);
-#define QLA_RXJ_UNLOCK(ha)	mtx_unlock(&ha->rxj_lock);
+#define QLA_RXJ_LOCK(ha) mtx_lock(&ha->rxj_lock);
+#define QLA_RXJ_UNLOCK(ha) mtx_unlock(&ha->rxj_lock);
 
 /*
  * structure encapsulating a DMA buffer
  */
 struct qla_dma {
-        bus_size_t              alignment;
-        uint32_t                size;
-        void                    *dma_b;
-        bus_addr_t              dma_addr;
-        bus_dmamap_t            dma_map;
-        bus_dma_tag_t           dma_tag;
+	bus_size_t alignment;
+	uint32_t size;
+	void *dma_b;
+	bus_addr_t dma_addr;
+	bus_dmamap_t dma_map;
+	bus_dma_tag_t dma_tag;
 };
 typedef struct qla_dma qla_dma_t;
 
-#define QL_ASSERT(x, y) if (!x) panic y
+#define QL_ASSERT(x, y) \
+	if (!x)         \
+	panic y
 
 #endif /* #ifndef _QLA_OS_H_ */

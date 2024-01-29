@@ -28,14 +28,14 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
-#include <inttypes.h>
-#include <string.h>
 #include <err.h>
+#include <inttypes.h>
 #include <libutil.h>
+#include <string.h>
 
-#include "systat.h"
-#include "extern.h"
 #include "devs.h"
+#include "extern.h"
+#include "systat.h"
 
 struct zfield {
 	uint64_t arcstats;
@@ -57,8 +57,7 @@ struct zarcrates {
 	struct zfield total;
 };
 
-static void
-getinfo(struct zarcstats *ls);
+static void getinfo(struct zarcstats *ls);
 
 WINDOW *
 openzarc(void)
@@ -83,11 +82,13 @@ labelzarc(void)
 {
 	int row = 1;
 
-	wmove(wnd, 0, 0); wclrtoeol(wnd);
-	mvwprintw(wnd, 0, 31+1, "%4.4s %6.6s %6.6s | Total %4.4s %6.6s %6.6s",
-		"Rate", "Hits", "Misses", "Rate", "Hits", "Misses");
-#define L(str) mvwprintw(wnd, row++, 5, \
-		"%-26.26s:   %%               |          %%", #str)
+	wmove(wnd, 0, 0);
+	wclrtoeol(wnd);
+	mvwprintw(wnd, 0, 31 + 1, "%4.4s %6.6s %6.6s | Total %4.4s %6.6s %6.6s",
+	    "Rate", "Hits", "Misses", "Rate", "Hits", "Misses");
+#define L(str)                                                                 \
+	mvwprintw(wnd, row++, 5, "%-26.26s:   %%               |          %%", \
+	    #str)
 	L(arcstats);
 	L(arcstats.demand_data);
 	L(arcstats.demand_metadata);
@@ -102,18 +103,18 @@ labelzarc(void)
 static int
 calc_rate(uint64_t hits, uint64_t misses)
 {
-    if(hits)
-	return 100 * hits / (hits + misses);
-    else
-	return 0;
+	if (hits)
+		return 100 * hits / (hits + misses);
+	else
+		return 0;
 }
 
 static void
 domode(struct zarcstats *delta, struct zarcrates *rate)
 {
-#define DO(stat) \
-	delta->hits.stat = (curstat.hits.stat - oldstat.hits.stat); \
-	delta->misses.stat = (curstat.misses.stat - oldstat.misses.stat); \
+#define DO(stat)                                                              \
+	delta->hits.stat = (curstat.hits.stat - oldstat.hits.stat);           \
+	delta->misses.stat = (curstat.misses.stat - oldstat.misses.stat);     \
 	rate->current.stat = calc_rate(delta->hits.stat, delta->misses.stat); \
 	rate->total.stat = calc_rate(curstat.hits.stat, curstat.misses.stat)
 	DO(arcstats);
@@ -144,13 +145,21 @@ showzarc(void)
 
 #define DO(stat, col, width) \
 	sysputuint64(wnd, row, col, width, stat, HN_DIVISOR_1000)
-#define	RATES(stat) mvwprintw(wnd, row, 31+1, "%3"PRIu64, rate.current.stat);\
-	mvwprintw(wnd, row, 31+1+5+7+7+8, "%3"PRIu64, rate.total.stat)
-#define	HITS(stat) DO(delta.hits.stat, 31+1+5, 6); \
-	DO(curstat.hits.stat, 31+1+5+7+7+8+5, 6)
-#define	MISSES(stat) DO(delta.misses.stat, 31+1+5+7, 6); \
-	DO(curstat.misses.stat, 31+1+5+7+7+8+5+7, 6)
-#define	E(stat) RATES(stat); HITS(stat); MISSES(stat); ++row
+#define RATES(stat)                                                  \
+	mvwprintw(wnd, row, 31 + 1, "%3" PRIu64, rate.current.stat); \
+	mvwprintw(wnd, row, 31 + 1 + 5 + 7 + 7 + 8, "%3" PRIu64,     \
+	    rate.total.stat)
+#define HITS(stat)                          \
+	DO(delta.hits.stat, 31 + 1 + 5, 6); \
+	DO(curstat.hits.stat, 31 + 1 + 5 + 7 + 7 + 8 + 5, 6)
+#define MISSES(stat)                              \
+	DO(delta.misses.stat, 31 + 1 + 5 + 7, 6); \
+	DO(curstat.misses.stat, 31 + 1 + 5 + 7 + 7 + 8 + 5 + 7, 6)
+#define E(stat)       \
+	RATES(stat);  \
+	HITS(stat);   \
+	MISSES(stat); \
+	++row
 	E(arcstats);
 	E(arcstats_demand_data);
 	E(arcstats_demand_metadata);
@@ -196,35 +205,30 @@ getinfo(struct zarcstats *ls)
 	dsgetinfo(&cur_dev);
 
 	size_t size = sizeof(ls->hits.arcstats);
-	if (sysctlbyname("kstat.zfs.misc.arcstats.hits",
-		&ls->hits.arcstats, &size, NULL, 0) != 0)
+	if (sysctlbyname("kstat.zfs.misc.arcstats.hits", &ls->hits.arcstats,
+		&size, NULL, 0) != 0)
 		return;
-	GETSYSCTL("kstat.zfs.misc.arcstats.misses",
-		ls->misses.arcstats);
+	GETSYSCTL("kstat.zfs.misc.arcstats.misses", ls->misses.arcstats);
 	GETSYSCTL("kstat.zfs.misc.arcstats.demand_data_hits",
-		ls->hits.arcstats_demand_data);
+	    ls->hits.arcstats_demand_data);
 	GETSYSCTL("kstat.zfs.misc.arcstats.demand_data_misses",
-		ls->misses.arcstats_demand_data);
+	    ls->misses.arcstats_demand_data);
 	GETSYSCTL("kstat.zfs.misc.arcstats.demand_metadata_hits",
-		ls->hits.arcstats_demand_metadata);
+	    ls->hits.arcstats_demand_metadata);
 	GETSYSCTL("kstat.zfs.misc.arcstats.demand_metadata_misses",
-		ls->misses.arcstats_demand_metadata);
+	    ls->misses.arcstats_demand_metadata);
 	GETSYSCTL("kstat.zfs.misc.arcstats.prefetch_data_hits",
-		ls->hits.arcstats_prefetch_data);
+	    ls->hits.arcstats_prefetch_data);
 	GETSYSCTL("kstat.zfs.misc.arcstats.prefetch_data_misses",
-		ls->misses.arcstats_prefetch_data);
+	    ls->misses.arcstats_prefetch_data);
 	GETSYSCTL("kstat.zfs.misc.arcstats.prefetch_metadata_hits",
-		ls->hits.arcstats_prefetch_metadata);
+	    ls->hits.arcstats_prefetch_metadata);
 	GETSYSCTL("kstat.zfs.misc.arcstats.prefetch_metadata_misses",
-		ls->misses.arcstats_prefetch_metadata);
-	GETSYSCTL("kstat.zfs.misc.zfetchstats.hits",
-		ls->hits.zfetchstats);
-	GETSYSCTL("kstat.zfs.misc.zfetchstats.misses",
-		ls->misses.zfetchstats);
-	GETSYSCTL("kstat.zfs.misc.arcstats.l2_hits",
-		ls->hits.arcstats_l2);
-	GETSYSCTL("kstat.zfs.misc.arcstats.l2_misses",
-		ls->misses.arcstats_l2);
+	    ls->misses.arcstats_prefetch_metadata);
+	GETSYSCTL("kstat.zfs.misc.zfetchstats.hits", ls->hits.zfetchstats);
+	GETSYSCTL("kstat.zfs.misc.zfetchstats.misses", ls->misses.zfetchstats);
+	GETSYSCTL("kstat.zfs.misc.arcstats.l2_hits", ls->hits.arcstats_l2);
+	GETSYSCTL("kstat.zfs.misc.arcstats.l2_misses", ls->misses.arcstats_l2);
 }
 
 void

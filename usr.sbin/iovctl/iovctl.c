@@ -25,8 +25,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/iov.h>
 #include <sys/dnv.h>
+#include <sys/iov.h>
 #include <sys/nv.h>
 
 #include <err.h>
@@ -40,9 +40,9 @@
 
 #include "iovctl.h"
 
-static void	config_action(const char *filename, int dryrun);
-static void	delete_action(const char *device, int dryrun);
-static void	print_schema(const char *device);
+static void config_action(const char *filename, int dryrun);
+static void delete_action(const char *device, int dryrun);
+static void print_schema(const char *device);
 
 /*
  * Fetch the config schema from the kernel via ioctl.  This function has to
@@ -66,8 +66,7 @@ get_schema(int fd)
 
 	arg.schema = malloc(arg.len);
 	if (arg.schema == NULL)
-		err(1, "Could not allocate %zu bytes for schema",
-		    arg.len);
+		err(1, "Could not allocate %zu bytes for schema", arg.len);
 
 	/* Now do the ioctl() for real to get the schema. */
 	error = ioctl(fd, IOV_GET_SCHEMA, &arg);
@@ -104,7 +103,7 @@ config_iov(int fd, const char *dev_name, const nvlist_t *config, int dryrun)
 		    "The following configuration parameters would be used:\n");
 		nvlist_fdump(config, stdout);
 		printf(
-		"The configuration parameters consume %zu bytes when packed.\n",
+		    "The configuration parameters consume %zu bytes when packed.\n",
 		    arg.len);
 	} else {
 		error = ioctl(fd, IOV_CONFIG, &arg);
@@ -157,7 +156,6 @@ usage(void)
 	warnx("       iovctl -D [-d <PF device> | -f <config file>] [-n]");
 	warnx("       iovctl -S [-d <PF device> | -f <config file>]");
 	exit(1);
-
 }
 
 enum main_action {
@@ -185,7 +183,7 @@ main(int argc, char **argv)
 		case 'C':
 			if (action != NONE) {
 				warnx(
-				   "Only one of -C, -D or -S may be specified");
+				    "Only one of -C, -D or -S may be specified");
 				usage();
 			}
 			action = CONFIG;
@@ -196,7 +194,7 @@ main(int argc, char **argv)
 		case 'D':
 			if (action != NONE) {
 				warnx(
-				   "Only one of -C, -D or -S may be specified");
+				    "Only one of -C, -D or -S may be specified");
 				usage();
 			}
 			action = DELETE;
@@ -210,7 +208,7 @@ main(int argc, char **argv)
 		case 'S':
 			if (action != NONE) {
 				warnx(
-				   "Only one of -C, -D or -S may be specified");
+				    "Only one of -C, -D or -S may be specified");
 				usage();
 			}
 			action = PRINT_SCHEMA;
@@ -227,7 +225,7 @@ main(int argc, char **argv)
 		usage();
 	}
 
-	if (device == NULL && filename == NULL  && action != CONFIG) {
+	if (device == NULL && filename == NULL && action != CONFIG) {
 		warnx("Either the -d or -f flag must be specified");
 		usage();
 	}
@@ -321,26 +319,26 @@ print_default_value(const nvlist_t *parameter, const char *type)
 	if (strcasecmp(type, "bool") == 0)
 		printf(" (default = %s)",
 		    nvlist_get_bool(parameter, DEFAULT_SCHEMA_NAME) ? "true" :
-		    "false");
+								      "false");
 	else if (strcasecmp(type, "string") == 0)
 		printf(" (default = %s)",
 		    nvlist_get_string(parameter, DEFAULT_SCHEMA_NAME));
 	else if (strcasecmp(type, "uint8_t") == 0)
 		printf(" (default = %ju)",
 		    (uintmax_t)nvlist_get_number(parameter,
-		    DEFAULT_SCHEMA_NAME));
+			DEFAULT_SCHEMA_NAME));
 	else if (strcasecmp(type, "uint16_t") == 0)
 		printf(" (default = %ju)",
 		    (uintmax_t)nvlist_get_number(parameter,
-		    DEFAULT_SCHEMA_NAME));
+			DEFAULT_SCHEMA_NAME));
 	else if (strcasecmp(type, "uint32_t") == 0)
 		printf(" (default = %ju)",
 		    (uintmax_t)nvlist_get_number(parameter,
-		    DEFAULT_SCHEMA_NAME));
+			DEFAULT_SCHEMA_NAME));
 	else if (strcasecmp(type, "uint64_t") == 0)
 		printf(" (default = %ju)",
 		    (uintmax_t)nvlist_get_number(parameter,
-		    DEFAULT_SCHEMA_NAME));
+			DEFAULT_SCHEMA_NAME));
 	else if (strcasecmp(type, "unicast-mac") == 0) {
 		mac = nvlist_get_binary(parameter, DEFAULT_SCHEMA_NAME, &size);
 		printf(" (default = %02x:%02x:%02x:%02x:%02x:%02x)", mac[0],
@@ -350,7 +348,7 @@ print_default_value(const nvlist_t *parameter, const char *type)
 }
 
 static void
-print_subsystem_schema(const nvlist_t * subsystem_schema)
+print_subsystem_schema(const nvlist_t *subsystem_schema)
 {
 	const char *name, *type;
 	const nvlist_t *parameter;
@@ -387,7 +385,7 @@ print_schema(const char *dev_name)
 	iov_schema = nvlist_get_nvlist(pf_schema, IOV_CONFIG_NAME);
 	driver_schema = nvlist_get_nvlist(pf_schema, DRIVER_CONFIG_NAME);
 	printf(
-"The following configuration parameters may be configured on the PF:\n");
+	    "The following configuration parameters may be configured on the PF:\n");
 	print_subsystem_schema(iov_schema);
 	print_subsystem_schema(driver_schema);
 
@@ -395,7 +393,7 @@ print_schema(const char *dev_name)
 	iov_schema = nvlist_get_nvlist(vf_schema, IOV_CONFIG_NAME);
 	driver_schema = nvlist_get_nvlist(vf_schema, DRIVER_CONFIG_NAME);
 	printf(
-"\nThe following configuration parameters may be configured on a VF:\n");
+	    "\nThe following configuration parameters may be configured on a VF:\n");
 	print_subsystem_schema(iov_schema);
 	print_subsystem_schema(driver_schema);
 

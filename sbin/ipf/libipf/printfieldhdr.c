@@ -6,9 +6,9 @@
  * $Id: printfieldhdr.c,v 1.5.2.3 2012/07/22 08:04:24 darren_r Exp $
  */
 
-#include "ipf.h"
 #include <ctype.h>
 
+#include "ipf.h"
 
 void
 printfieldhdr(wordtab_t *words, wordtab_t *field)
@@ -17,7 +17,7 @@ printfieldhdr(wordtab_t *words, wordtab_t *field)
 	char *s, *t;
 
 	if (field->w_value == -2) {
-		for (w = words; w->w_word != NULL; ) {
+		for (w = words; w->w_word != NULL;) {
 			if (w->w_value > 0) {
 				printfieldhdr(words, w);
 				w++;

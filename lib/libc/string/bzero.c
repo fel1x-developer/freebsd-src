@@ -1,2 +1,2 @@
-#define	BZERO
+#define BZERO
 #include "memset.c"

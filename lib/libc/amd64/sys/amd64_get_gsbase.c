@@ -32,10 +32,13 @@
 
 #define _WANT_P_OSREL
 #include <sys/param.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
 #include <machine/sysarch.h>
+
 #include <x86/ifunc.h>
+
 #include "libc_private.h"
 
 static int

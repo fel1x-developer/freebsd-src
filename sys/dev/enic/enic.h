@@ -18,94 +18,94 @@
 #include <net/if_var.h>
 #include <net/iflib.h>
 
-#define u8  uint8_t
+#define u8 uint8_t
 #define u16 uint16_t
 #define u32 uint32_t
 #define u64 uint64_t
 
 struct enic_bar_info {
-	struct resource		*res;
-	bus_space_tag_t		tag;
-	bus_space_handle_t	handle;
-	bus_size_t		size;
-	int			rid;
-	int			offset;
+	struct resource *res;
+	bus_space_tag_t tag;
+	bus_space_handle_t handle;
+	bus_size_t size;
+	int rid;
+	int offset;
 };
 
-#define ENIC_BUS_WRITE_8(res, index, value) \
-    bus_space_write_8(res->bar.tag, res->bar.handle, \
-    res->bar.offset + (index), value)
-#define ENIC_BUS_WRITE_4(res, index, value) \
-    bus_space_write_4(res->bar.tag, res->bar.handle, \
-    res->bar.offset + (index), value)
-#define ENIC_BUS_WRITE_REGION_4(res, index, values, count) \
-    bus_space_write_region_4(res->bar.tag, res->bar.handle, \
-    res->bar.offset + (index), values, count);
+#define ENIC_BUS_WRITE_8(res, index, value)              \
+	bus_space_write_8(res->bar.tag, res->bar.handle, \
+	    res->bar.offset + (index), value)
+#define ENIC_BUS_WRITE_4(res, index, value)              \
+	bus_space_write_4(res->bar.tag, res->bar.handle, \
+	    res->bar.offset + (index), value)
+#define ENIC_BUS_WRITE_REGION_4(res, index, values, count)      \
+	bus_space_write_region_4(res->bar.tag, res->bar.handle, \
+	    res->bar.offset + (index), values, count);
 
-#define ENIC_BUS_READ_8(res, index) \
-    bus_space_read_8(res->bar.tag, res->bar.handle, \
-    res->bar.offset + (index))
-#define ENIC_BUS_READ_4(res, index) \
-    bus_space_read_4(res->bar.tag, res->bar.handle, \
-    res->bar.offset + (index))
-#define ENIC_BUS_READ_REGION_4(res, type, index, values, count) \
-    bus_space_read_region_4(res->type.tag, res->type.handle, \
-    res->type.offset + (index), values, count);
+#define ENIC_BUS_READ_8(res, index)                     \
+	bus_space_read_8(res->bar.tag, res->bar.handle, \
+	    res->bar.offset + (index))
+#define ENIC_BUS_READ_4(res, index)                     \
+	bus_space_read_4(res->bar.tag, res->bar.handle, \
+	    res->bar.offset + (index))
+#define ENIC_BUS_READ_REGION_4(res, type, index, values, count)  \
+	bus_space_read_region_4(res->type.tag, res->type.handle, \
+	    res->type.offset + (index), values, count);
 
 struct vnic_res {
 	unsigned int count;
 	struct enic_bar_info bar;
 };
 
-#include "vnic_enet.h"
-#include "vnic_dev.h"
-#include "vnic_wq.h"
-#include "vnic_rq.h"
-#include "vnic_cq.h"
-#include "vnic_intr.h"
-#include "vnic_stats.h"
-#include "vnic_nic.h"
-#include "vnic_rss.h"
-#include "enic_res.h"
 #include "cq_enet_desc.h"
+#include "enic_res.h"
+#include "vnic_cq.h"
+#include "vnic_dev.h"
+#include "vnic_enet.h"
+#include "vnic_intr.h"
+#include "vnic_nic.h"
+#include "vnic_rq.h"
+#include "vnic_rss.h"
+#include "vnic_stats.h"
+#include "vnic_wq.h"
 
-#define ENIC_LOCK(_softc)	mtx_lock(&(_softc)->enic_lock)
-#define ENIC_UNLOCK(_softc)	mtx_unlock(&(_softc)->enic_lock)
+#define ENIC_LOCK(_softc) mtx_lock(&(_softc)->enic_lock)
+#define ENIC_UNLOCK(_softc) mtx_unlock(&(_softc)->enic_lock)
 
-#define DRV_NAME		"enic"
-#define DRV_DESCRIPTION		"Cisco VIC Ethernet NIC"
-#define DRV_COPYRIGHT		"Copyright 2008-2015 Cisco Systems, Inc"
+#define DRV_NAME "enic"
+#define DRV_DESCRIPTION "Cisco VIC Ethernet NIC"
+#define DRV_COPYRIGHT "Copyright 2008-2015 Cisco Systems, Inc"
 
-#define ENIC_MAX_MAC_ADDR	64
+#define ENIC_MAX_MAC_ADDR 64
 
-#define VLAN_ETH_HLEN           18
+#define VLAN_ETH_HLEN 18
 
 #define ENICPMD_SETTING(enic, f) ((enic->config.flags & VENETF_##f) ? 1 : 0)
 
-#define ENICPMD_BDF_LENGTH		13   /* 0000:00:00.0'\0' */
-#define ENIC_CALC_IP_CKSUM		1
-#define ENIC_CALC_TCP_UDP_CKSUM		2
-#define ENIC_MAX_MTU			9000
-#define ENIC_PAGE_SIZE			4096
+#define ENICPMD_BDF_LENGTH 13 /* 0000:00:00.0'\0' */
+#define ENIC_CALC_IP_CKSUM 1
+#define ENIC_CALC_TCP_UDP_CKSUM 2
+#define ENIC_MAX_MTU 9000
+#define ENIC_PAGE_SIZE 4096
 #define PAGE_ROUND_UP(x) \
-	((((unsigned long)(x)) + ENIC_PAGE_SIZE-1) & (~(ENIC_PAGE_SIZE-1)))
+	((((unsigned long)(x)) + ENIC_PAGE_SIZE - 1) & (~(ENIC_PAGE_SIZE - 1)))
 
 /* must be >= VNIC_COUNTER_DMA_MIN_PERIOD */
 #define VNIC_FLOW_COUNTER_UPDATE_MSECS 500
 
 /* PCI IDs */
-#define CISCO_VENDOR_ID	0x1137
+#define CISCO_VENDOR_ID 0x1137
 
-#define PCI_DEVICE_ID_CISCO_VIC_ENET	0x0043  /* ethernet vnic */
-#define PCI_DEVICE_ID_CISCO_VIC_ENET_VF	0x0071  /* enet SRIOV VF */
+#define PCI_DEVICE_ID_CISCO_VIC_ENET 0x0043    /* ethernet vnic */
+#define PCI_DEVICE_ID_CISCO_VIC_ENET_VF 0x0071 /* enet SRIOV VF */
 
 /* Special Filter id for non-specific packet flagging. Don't change value */
 #define ENIC_MAGIC_FILTER_ID 0xffff
 
-#define ENICPMD_FDIR_MAX		64
+#define ENICPMD_FDIR_MAX 64
 
 /* HW default VXLAN port */
-#define ENIC_DEFAULT_VXLAN_PORT		4789
+#define ENIC_DEFAULT_VXLAN_PORT 4789
 
 /*
  * Interrupt 0: LSC and errors
@@ -204,12 +204,12 @@ struct enic {
 	u32 flow_filter_mode;
 	u8 filter_actions; /* HW supported actions */
 	bool vxlan;
-	bool disable_overlay; /* devargs disable_overlay=1 */
-	uint8_t enable_avx2_rx;  /* devargs enable-avx2-rx=1 */
-	bool nic_cfg_chk;     /* NIC_CFG_CHK available */
-	bool udp_rss_weak;    /* Bodega style UDP RSS */
+	bool disable_overlay;	      /* devargs disable_overlay=1 */
+	uint8_t enable_avx2_rx;	      /* devargs enable-avx2-rx=1 */
+	bool nic_cfg_chk;	      /* NIC_CFG_CHK available */
+	bool udp_rss_weak;	      /* Bodega style UDP RSS */
 	uint8_t ig_vlan_rewrite_mode; /* devargs ig-vlan-rewrite */
-	uint16_t vxlan_port;  /* current vxlan port pushed to NIC */
+	uint16_t vxlan_port;	      /* current vxlan port pushed to NIC */
 
 	unsigned int flags;
 	unsigned int priv_flags;
@@ -228,9 +228,9 @@ struct enic {
 
 	/* interrupt vectors (len = conf_intr_count) */
 	struct vnic_intr *intr;
-	struct intr_queue *intr_queues;;
+	struct intr_queue *intr_queues;
+	;
 	unsigned int intr_count; /* equals enabled interrupts (lsc + rxqs) */
-
 
 	/* software counters */
 	struct enic_soft_stats soft_stats;
@@ -261,63 +261,66 @@ struct enic {
 	union vnic_rss_key rss_key;
 	union vnic_rss_cpu rss_cpu;
 
-	uint64_t rx_offload_capa; /* DEV_RX_OFFLOAD flags */
-	uint64_t tx_offload_capa; /* DEV_TX_OFFLOAD flags */
+	uint64_t rx_offload_capa;	/* DEV_RX_OFFLOAD flags */
+	uint64_t tx_offload_capa;	/* DEV_TX_OFFLOAD flags */
 	uint64_t tx_queue_offload_capa; /* DEV_TX_OFFLOAD flags */
-	uint64_t tx_offload_mask; /* PKT_TX flags accepted */
+	uint64_t tx_offload_mask;	/* PKT_TX flags accepted */
 	struct enic_softc *softc;
 	int port_mtu;
 };
 
 struct enic_softc {
-	device_t		dev;
-	if_ctx_t		ctx;
-	if_softc_ctx_t		scctx;
-	if_shared_ctx_t		sctx;
-	struct ifmedia		*media;
-	if_t			ifp;
+	device_t dev;
+	if_ctx_t ctx;
+	if_softc_ctx_t scctx;
+	if_shared_ctx_t sctx;
+	struct ifmedia *media;
+	if_t ifp;
 
-	struct mtx		enic_lock;
+	struct mtx enic_lock;
 
-	struct enic_bar_info	mem;
-	struct enic_bar_info	io;
+	struct enic_bar_info mem;
+	struct enic_bar_info io;
 
-	struct vnic_dev		vdev;
-	struct enic		enic;
+	struct vnic_dev vdev;
+	struct enic enic;
 
 	int ntxqsets;
 	int nrxqsets;
 
-	struct if_irq		enic_event_intr_irq;
-	struct if_irq		enic_err_intr_irq;
-	uint8_t			lladdr[ETHER_ADDR_LEN];
-	int			link_active;
-	int			stopped;
-	uint8_t			mac_addr[ETHER_ADDR_LEN];
+	struct if_irq enic_event_intr_irq;
+	struct if_irq enic_err_intr_irq;
+	uint8_t lladdr[ETHER_ADDR_LEN];
+	int link_active;
+	int stopped;
+	uint8_t mac_addr[ETHER_ADDR_LEN];
 
-	int			directed;
-	int			multicast;
-	int			broadcast;
-	int			promisc;
-	int 			allmulti;
+	int directed;
+	int multicast;
+	int broadcast;
+	int promisc;
+	int allmulti;
 
-	u_int			mc_count;
-	uint8_t			*mta;
+	u_int mc_count;
+	uint8_t *mta;
 };
 
 /* Per-instance private data structure */
 
-static inline unsigned int enic_vnic_rq_count(struct enic *enic)
+static inline unsigned int
+enic_vnic_rq_count(struct enic *enic)
 {
 	return enic->rq_count;
 }
 
-static inline unsigned int enic_cq_rq(struct enic *enic, unsigned int rq)
+static inline unsigned int
+enic_cq_rq(struct enic *enic, unsigned int rq)
 {
 	return rq;
 }
 
-static inline unsigned int enic_cq_wq(struct enic *enic, unsigned int wq)
+static inline unsigned int
+enic_cq_wq(struct enic *enic, unsigned int wq)
 {
 	return enic->rq_count + wq;
 }
@@ -349,8 +352,8 @@ enic_ring_incr(uint32_t n_descriptors, uint32_t idx)
 void enic_free_wq(void *txq);
 int enic_alloc_intr_resources(struct enic *enic);
 int enic_setup_finish(struct enic *enic);
-int enic_alloc_wq(struct enic *enic, uint16_t queue_idx,
-		  unsigned int socket_id, uint16_t nb_desc);
+int enic_alloc_wq(struct enic *enic, uint16_t queue_idx, unsigned int socket_id,
+    uint16_t nb_desc);
 void enic_start_wq(struct enic *enic, uint16_t queue_idx);
 int enic_stop_wq(struct enic *enic, uint16_t queue_idx);
 void enic_start_rq(struct enic *enic, uint16_t queue_idx);
@@ -380,24 +383,24 @@ void enic_fdir_info(struct enic *enic);
 void enic_prep_wq_for_simple_tx(struct enic *, uint16_t);
 
 struct enic_ring {
-	uint64_t		paddr;
-	caddr_t			 vaddr;
-	struct enic_softc	*softc;
-	uint32_t		ring_size; /* Must be a power of two */
-	uint16_t		id;	   /* Logical ID */
-	uint16_t		phys_id;
+	uint64_t paddr;
+	caddr_t vaddr;
+	struct enic_softc *softc;
+	uint32_t ring_size; /* Must be a power of two */
+	uint16_t id;	    /* Logical ID */
+	uint16_t phys_id;
 };
 
 struct enic_cp_ring {
-	struct enic_ring	ring;
-	struct if_irq		irq;
-	uint32_t		cons;
-	bool			v_bit;	  /* Value of valid bit */
-	struct ctx_hw_stats	*stats;
-	uint32_t		stats_ctx_id;
-	uint32_t		last_idx; /* Used by RX rings only
-					   * set to the last read pidx
-					   */
+	struct enic_ring ring;
+	struct if_irq irq;
+	uint32_t cons;
+	bool v_bit; /* Value of valid bit */
+	struct ctx_hw_stats *stats;
+	uint32_t stats_ctx_id;
+	uint32_t last_idx; /* Used by RX rings only
+			    * set to the last read pidx
+			    */
 };
 
 #endif /* _ENIC_H_ */

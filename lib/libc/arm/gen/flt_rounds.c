@@ -30,8 +30,8 @@
 #include <float.h>
 
 #ifndef __ARM_PCS_VFP
-#include "softfloat-for-gcc.h"
 #include "milieu.h"
+#include "softfloat-for-gcc.h"
 #include "softfloat.h"
 #endif
 
@@ -46,7 +46,7 @@ __flt_rounds(void)
 	 * manifest constants required by C99 et. al.
 	 */
 	mode = __softfloat_float_rounding_mode;
-#else /* __ARM_PCS_VFP */
+#else  /* __ARM_PCS_VFP */
 	/*
 	 * Read the floating-point status and control register
 	 */

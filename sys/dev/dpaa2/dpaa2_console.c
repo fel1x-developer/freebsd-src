@@ -40,7 +40,8 @@
  * Some docs are in:
  * - https://www.nxp.com.cn/docs/en/application-note/AN13329.pdf
  * - DPAA2UM
- * - git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/drivers/soc/fsl/dpaa2-console.c
+ * -
+ * git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/drivers/soc/fsl/dpaa2-console.c
  */
 
 #include "opt_platform.h"
@@ -69,94 +70,93 @@
 #endif
 
 /* Table 6-1. MC Memory Map */
-#define	MC_REG_MCFBA			0x20
-#define	MC_REG_MCFBALR_OFF		0x00
-#define	MC_REG_MCFBALR_MASK		0xe0000000
-#define	MC_REG_MCFBAHR_OFF		0x04
-#define	MC_REG_MCFBAHR_MASK		0x0001ffff
+#define MC_REG_MCFBA 0x20
+#define MC_REG_MCFBALR_OFF 0x00
+#define MC_REG_MCFBALR_MASK 0xe0000000
+#define MC_REG_MCFBAHR_OFF 0x04
+#define MC_REG_MCFBAHR_MASK 0x0001ffff
 
 /* Firmware Consoles. */
-#define	MC_BUFFER_OFFSET		0x01000000
-#define	MC_BUFFER_SIZE			(1024 * 1024 * 16)
-#define	MC_OFFSET_DELTA			MC_BUFFER_OFFSET
+#define MC_BUFFER_OFFSET 0x01000000
+#define MC_BUFFER_SIZE (1024 * 1024 * 16)
+#define MC_OFFSET_DELTA MC_BUFFER_OFFSET
 
-#define	AIOP_BUFFER_OFFSET		0x06000000
-#define	AIOP_BUFFER_SIZE		(1024 * 1024 * 16)
-#define	AIOP_OFFSET_DELTA		0
+#define AIOP_BUFFER_OFFSET 0x06000000
+#define AIOP_BUFFER_SIZE (1024 * 1024 * 16)
+#define AIOP_OFFSET_DELTA 0
 
 /* MC and AIOP Magic words */
-#define	MAGIC_MC			0x4d430100
-#define	MAGIC_AIOP			0X41494f50
+#define MAGIC_MC 0x4d430100
+#define MAGIC_AIOP 0X41494f50
 
-#define	LOG_HEADER_FLAG_BUFFER_WRAPAROUND				\
-    0x80000000
-#define	LAST_BYTE(a)							\
-    ((a) & ~(LOG_HEADER_FLAG_BUFFER_WRAPAROUND))
+#define LOG_HEADER_FLAG_BUFFER_WRAPAROUND 0x80000000
+#define LAST_BYTE(a) ((a) & ~(LOG_HEADER_FLAG_BUFFER_WRAPAROUND))
 
 struct dpaa2_cons_dev {
-	struct cdev			*cdev;
-	struct mtx			mtx;
-	size_t				offset;
-	uint32_t			magic;
+	struct cdev *cdev;
+	struct mtx mtx;
+	size_t offset;
+	uint32_t magic;
 
-	uint32_t			hdr_magic;
-	uint32_t			hdr_eobyte;
-	uint32_t			hdr_start;
-	uint32_t			hdr_len;
+	uint32_t hdr_magic;
+	uint32_t hdr_eobyte;
+	uint32_t hdr_start;
+	uint32_t hdr_len;
 
-	uoff_t				start;
-	uoff_t				end;
-	uoff_t				eod;
-	uoff_t				cur;
+	uoff_t start;
+	uoff_t end;
+	uoff_t eod;
+	uoff_t cur;
 
-	bus_space_tag_t			bst;
-	bus_space_handle_t		bsh;
-	vm_size_t			size;
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	vm_size_t size;
 };
 
 struct dpaa2_cons_softc {
-	struct resource			*res;
-	bus_space_tag_t			bst;
-	uint64_t			mcfba;
-	struct dpaa2_cons_dev		mc_cd;
-	struct dpaa2_cons_dev		aiop_cd;
+	struct resource *res;
+	bus_space_tag_t bst;
+	uint64_t mcfba;
+	struct dpaa2_cons_dev mc_cd;
+	struct dpaa2_cons_dev aiop_cd;
 };
 
 struct dpaa2_cons_hdr {
-	uint32_t	magic;
-	uint32_t	_reserved;
-	uint32_t	start;
-	uint32_t	len;
-	uint32_t	eobyte;
+	uint32_t magic;
+	uint32_t _reserved;
+	uint32_t start;
+	uint32_t len;
+	uint32_t eobyte;
 };
 
-#define	DPAA2_MC_READ_4(_sc, _r)	bus_read_4((_sc)->res, (_r))
+#define DPAA2_MC_READ_4(_sc, _r) bus_read_4((_sc)->res, (_r))
 
 /* Management interface */
-static d_open_t				dpaa2_cons_open;
-static d_close_t			dpaa2_cons_close;
-static d_read_t				dpaa2_cons_read;
+static d_open_t dpaa2_cons_open;
+static d_close_t dpaa2_cons_close;
+static d_read_t dpaa2_cons_read;
 
 static struct cdevsw dpaa2_mc_cons_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	dpaa2_cons_open,
-	.d_close =	dpaa2_cons_close,
-	.d_read =	dpaa2_cons_read,
-	.d_name =	"fsl_mc_console",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = dpaa2_cons_open,
+	.d_close = dpaa2_cons_close,
+	.d_read = dpaa2_cons_read,
+	.d_name = "fsl_mc_console",
 };
 
 static struct cdevsw dpaa2_aiop_cons_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	0,
-	.d_open =	dpaa2_cons_open,
-	.d_close =	dpaa2_cons_close,
-	.d_read =	dpaa2_cons_read,
-	.d_name =	"fsl_aiop_console",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = dpaa2_cons_open,
+	.d_close = dpaa2_cons_close,
+	.d_read = dpaa2_cons_read,
+	.d_name = "fsl_aiop_console",
 };
 
 static size_t
-dpaa2_cons_read_bs(struct dpaa2_cons_dev *cd, size_t offset, void *dst, size_t len)
+dpaa2_cons_read_bs(struct dpaa2_cons_dev *cd, size_t offset, void *dst,
+    size_t len)
 {
 	size_t count, l;
 	uint8_t *p;
@@ -165,34 +165,39 @@ dpaa2_cons_read_bs(struct dpaa2_cons_dev *cd, size_t offset, void *dst, size_t l
 	p = dst;
 	l = offset % 8;
 	if (l != 0) {
-		bus_space_read_region_1(cd->bst, cd->bsh, offset + count, p + count, l);
+		bus_space_read_region_1(cd->bst, cd->bsh, offset + count,
+		    p + count, l);
 		count += l;
 		len -= l;
 	}
 
 	l = len / 8;
 	if (l != 0) {
-		bus_space_read_region_8(cd->bst, cd->bsh, offset + count, (uint64_t *)(p + count), l);
+		bus_space_read_region_8(cd->bst, cd->bsh, offset + count,
+		    (uint64_t *)(p + count), l);
 		l *= 8;
 		count += l;
 		len -= l;
 	}
 	l = len / 4;
 	if (l != 0) {
-		bus_space_read_region_4(cd->bst, cd->bsh, offset + count, (uint32_t *)(p + count), l);
+		bus_space_read_region_4(cd->bst, cd->bsh, offset + count,
+		    (uint32_t *)(p + count), l);
 		l *= 4;
 		count += l;
 		len -= l;
 	}
 	l = len / 2;
 	if (l != 0) {
-		bus_space_read_region_2(cd->bst, cd->bsh, offset + count, (uint16_t *)(p + count), l);
+		bus_space_read_region_2(cd->bst, cd->bsh, offset + count,
+		    (uint16_t *)(p + count), l);
 		l *= 2;
 		count += l;
 		len -= l;
 	}
 	if (len != 0) {
-		bus_space_read_region_1(cd->bst, cd->bsh, offset + count, p + count, len);
+		bus_space_read_region_1(cd->bst, cd->bsh, offset + count,
+		    p + count, len);
 		count += len;
 	}
 
@@ -216,8 +221,10 @@ dpaa2_cons_open(struct cdev *cdev, int flags, int fmt, struct thread *td)
 
 	mtx_lock(&cd->mtx);
 	rlen = dpaa2_cons_read_bs(cd, 0, &hdr, sizeof(hdr));
-	KASSERT(rlen == sizeof(hdr), ("%s:%d: rlen %zu != count %zu, cdev %p "
-	    "cd %p\n", __func__, __LINE__, rlen, sizeof(hdr), cdev, cd));
+	KASSERT(rlen == sizeof(hdr),
+	    ("%s:%d: rlen %zu != count %zu, cdev %p "
+	     "cd %p\n",
+		__func__, __LINE__, rlen, sizeof(hdr), cdev, cd));
 
 	cd->hdr_magic = hdr.magic;
 	if (cd->hdr_magic != cd->magic) {
@@ -261,7 +268,7 @@ dpaa2_cons_close(struct cdev *cdev, int flags, int fmt, struct thread *td)
 static int
 dpaa2_cons_read(struct cdev *cdev, struct uio *uio, int flag)
 {
-        char buf[128];
+	char buf[128];
 	struct dpaa2_cons_dev *cd;
 	size_t len, size, count;
 	size_t rlen __diagused;
@@ -287,9 +294,10 @@ dpaa2_cons_read(struct cdev *cdev, struct uio *uio, int flag)
 				count = size;
 
 			rlen = dpaa2_cons_read_bs(cd, cd->cur, buf, count);
-			KASSERT(rlen == count, ("%s:%d: rlen %zu != count %zu, "
-			    "cdev %p cd %p\n", __func__, __LINE__, rlen, count,
-			    cdev, cd));
+			KASSERT(rlen == count,
+			    ("%s:%d: rlen %zu != count %zu, "
+			     "cdev %p cd %p\n",
+				__func__, __LINE__, rlen, count, cdev, cd));
 
 			cd->cur += count;
 			len -= count;
@@ -310,8 +318,10 @@ dpaa2_cons_read(struct cdev *cdev, struct uio *uio, int flag)
 			count = len;
 
 		rlen = dpaa2_cons_read_bs(cd, cd->cur, buf, count);
-		KASSERT(rlen == count, ("%s:%d: rlen %zu != count %zu, cdev %p "
-		    "cd %p\n", __func__, __LINE__, rlen, count, cdev, cd));
+		KASSERT(rlen == count,
+		    ("%s:%d: rlen %zu != count %zu, cdev %p "
+		     "cd %p\n",
+			__func__, __LINE__, rlen, count, cdev, cd));
 
 		cd->cur += count;
 		len -= count;
@@ -326,9 +336,8 @@ dpaa2_cons_read(struct cdev *cdev, struct uio *uio, int flag)
 }
 
 static int
-dpaa2_cons_create_dev(device_t dev, bus_addr_t pa, size_t size,
-    size_t offset, uint32_t magic, struct cdevsw *devsw,
-    struct dpaa2_cons_dev *cd)
+dpaa2_cons_create_dev(device_t dev, bus_addr_t pa, size_t size, size_t offset,
+    uint32_t magic, struct cdevsw *devsw, struct dpaa2_cons_dev *cd)
 {
 	struct dpaa2_cons_softc *sc;
 	struct dpaa2_cons_hdr hdr;
@@ -360,17 +369,19 @@ dpaa2_cons_create_dev(device_t dev, bus_addr_t pa, size_t size,
 	/* This checks probably needs to be removed one day? */
 	if (hdr.magic != magic) {
 		if (bootverbose)
-			device_printf(dev, "%s: magic wrong for %#jx/%zu: "
-			    "%#010x != %#010x, no console?\n", __func__,
-			    (uintmax_t)pa, size, hdr.magic, magic);
+			device_printf(dev,
+			    "%s: magic wrong for %#jx/%zu: "
+			    "%#010x != %#010x, no console?\n",
+			    __func__, (uintmax_t)pa, size, hdr.magic, magic);
 		bus_space_unmap(cd->bst, cd->bsh, cd->size);
 		cd->size = 0;
 		return (ENOENT);
 	}
 
 	if (hdr.start - offset > size) {
-		device_printf(dev, "%s: range wrong for %#jx/%zu: %u - %zu > %zu\n",
-		    __func__, (uintmax_t)pa, size, hdr.start, offset, size);
+		device_printf(dev,
+		    "%s: range wrong for %#jx/%zu: %u - %zu > %zu\n", __func__,
+		    (uintmax_t)pa, size, hdr.start, offset, size);
 		bus_space_unmap(cd->bst, cd->bsh, cd->size);
 		cd->size = 0;
 		return (ERANGE);
@@ -398,10 +409,12 @@ dpaa2_cons_create_dev(device_t dev, bus_addr_t pa, size_t size,
 	}
 
 	if (bootverbose)
-		device_printf(dev, "dpaa2 console %s at pa %#jx size %#010zx "
+		device_printf(dev,
+		    "dpaa2 console %s at pa %#jx size %#010zx "
 		    "(%zu) offset %zu, hdr: magic %#010x start %#010x len "
-		    "%#010x eobyte %#010x\n", devsw->d_name, (uintmax_t)pa,
-		    size, size, offset, hdr.magic, hdr.start, hdr.len, hdr.eobyte);
+		    "%#010x eobyte %#010x\n",
+		    devsw->d_name, (uintmax_t)pa, size, size, offset, hdr.magic,
+		    hdr.start, hdr.len, hdr.eobyte);
 
 	return (0);
 }
@@ -414,8 +427,8 @@ dpaa2_cons_attach_common(device_t dev)
 	sc = device_get_softc(dev);
 
 	dpaa2_cons_create_dev(dev, (bus_addr_t)(sc->mcfba + MC_BUFFER_OFFSET),
-	    MC_BUFFER_SIZE, MC_OFFSET_DELTA, MAGIC_MC,
-	    &dpaa2_mc_cons_cdevsw, &sc->mc_cd);
+	    MC_BUFFER_SIZE, MC_OFFSET_DELTA, MAGIC_MC, &dpaa2_mc_cons_cdevsw,
+	    &sc->mc_cd);
 
 	dpaa2_cons_create_dev(dev, (bus_addr_t)(sc->mcfba + AIOP_BUFFER_OFFSET),
 	    AIOP_BUFFER_SIZE, AIOP_OFFSET_DELTA, MAGIC_AIOP,
@@ -500,9 +513,9 @@ dpaa2_cons_acpi_attach(device_t dev)
 
 static device_method_t dpaa2_cons_acpi_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_cons_acpi_probe),
-	DEVMETHOD(device_attach,	dpaa2_cons_acpi_attach),
-	DEVMETHOD(device_detach,	dpaa2_cons_detach),
+	DEVMETHOD(device_probe, dpaa2_cons_acpi_probe),
+	DEVMETHOD(device_attach, dpaa2_cons_acpi_attach),
+	DEVMETHOD(device_detach, dpaa2_cons_detach),
 
 	DEVMETHOD_END
 };
@@ -516,10 +529,8 @@ MODULE_DEPEND(dpaa2_cons_acpi, dpaa2_mc, 1, 1, 1);
 #endif /* 0 */
 
 #ifdef FDT
-static struct ofw_compat_data compat_data[] = {
-	{ "fsl,dpaa2-console",		1 },
-	{ NULL,				0 }
-};
+static struct ofw_compat_data compat_data[] = { { "fsl,dpaa2-console", 1 },
+	{ NULL, 0 } };
 
 static int
 dpaa2_cons_fdt_probe(device_t dev)
@@ -566,9 +577,9 @@ dpaa2_cons_fdt_attach(device_t dev)
 
 static device_method_t dpaa2_cons_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_cons_fdt_probe),
-	DEVMETHOD(device_attach,	dpaa2_cons_fdt_attach),
-	DEVMETHOD(device_detach,	dpaa2_cons_detach),
+	DEVMETHOD(device_probe, dpaa2_cons_fdt_probe),
+	DEVMETHOD(device_attach, dpaa2_cons_fdt_attach),
+	DEVMETHOD(device_detach, dpaa2_cons_detach),
 
 	DEVMETHOD_END
 };

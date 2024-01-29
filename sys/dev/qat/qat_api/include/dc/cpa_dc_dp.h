@@ -1,14 +1,14 @@
 /***************************************************************************
  *
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2007-2023 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
+ *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
  *   are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -18,7 +18,7 @@
  *     * Neither the name of Intel Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
+ *
  *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -30,7 +30,7 @@
  *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  *
  ***************************************************************************/
 
@@ -101,19 +101,19 @@ extern "C" {
  *
  ****************************************************************************/
 typedef struct _CpaDcDpPartialReadData {
-        Cpa32U bufferOffset;
-        /**< Number of bytes to skip in a destination buffer (or buffers list)
-         * before writing. At this point only zero is supported.
-         */
-        Cpa32U dataOffset;
-        /**< The offset in the decompressed data of the first byte written to
-         * the destination buffer. The data offset length should be an integer
-         * multiple of 4KB in order to achieve the best performance.
-         */
-        Cpa32U length;
-        /**< Size of requested decompressed data chunk. The length should be
-         * an integer multiple of 4KB in order to achieve the best performance.
-         */
+	Cpa32U bufferOffset;
+	/**< Number of bytes to skip in a destination buffer (or buffers list)
+	 * before writing. At this point only zero is supported.
+	 */
+	Cpa32U dataOffset;
+	/**< The offset in the decompressed data of the first byte written to
+	 * the destination buffer. The data offset length should be an integer
+	 * multiple of 4KB in order to achieve the best performance.
+	 */
+	Cpa32U length;
+	/**< Size of requested decompressed data chunk. The length should be
+	 * an integer multiple of 4KB in order to achieve the best performance.
+	 */
 } CpaDcDpPartialReadData;
 
 /**
@@ -134,126 +134,125 @@ typedef struct _CpaDcDpPartialReadData {
  * @see
  *        cpaDcDpEnqueueOp, cpaDcDpEnqueueOpBatch
  ****************************************************************************/
-typedef struct _CpaDcDpOpData
-{
-    Cpa64U          reserved0;
-    /**< Reserved for internal use.  Source code should not read or write
-      * this field.
-      */
-    Cpa32U          bufferLenToCompress;
-    /**< The number of bytes from the source buffer to compress.  This must be
-     * less than, or more typically equal to, the total size of the source
-     * buffer (or buffer list).
-     */
+typedef struct _CpaDcDpOpData {
+	Cpa64U reserved0;
+	/**< Reserved for internal use.  Source code should not read or write
+	 * this field.
+	 */
+	Cpa32U bufferLenToCompress;
+	/**< The number of bytes from the source buffer to compress.  This must
+	 * be less than, or more typically equal to, the total size of the
+	 * source buffer (or buffer list).
+	 */
 
-    Cpa32U          bufferLenForData;
-    /**< The maximum number of bytes that should be written to the destination
-     * buffer.  This must be less than, or more typically equal to, the total
-     * size of the destination buffer (or buffer list).
-     */
+	Cpa32U bufferLenForData;
+	/**< The maximum number of bytes that should be written to the
+	 * destination buffer.  This must be less than, or more typically equal
+	 * to, the total size of the destination buffer (or buffer list).
+	 */
 
-    Cpa64U          reserved1;
-    /**< Reserved for internal use.  Source code should not read or write */
+	Cpa64U reserved1;
+	/**< Reserved for internal use.  Source code should not read or write */
 
-    Cpa64U          reserved2;
-    /**< Reserved for internal use.  Source code should not read or write */
+	Cpa64U reserved2;
+	/**< Reserved for internal use.  Source code should not read or write */
 
-    Cpa64U          reserved3;
-    /**< Reserved for internal use.  Source code should not read or write */
+	Cpa64U reserved3;
+	/**< Reserved for internal use.  Source code should not read or write */
 
-    CpaDcRqResults      results;
-    /**< Results of the operation.  Contents are valid upon completion. */
+	CpaDcRqResults results;
+	/**< Results of the operation.  Contents are valid upon completion. */
 
-    CpaInstanceHandle   dcInstance;
-    /**< Instance to which the request is to be enqueued */
+	CpaInstanceHandle dcInstance;
+	/**< Instance to which the request is to be enqueued */
 
-    CpaDcSessionHandle  pSessionHandle;
-    /**< DC Session associated with the stream of requests.
-     * This field is only valid when using the session based API functions.
-     * This field must be set to NULL if the application wishes to use
-     * the No-Session (Ns) API.
-     */
+	CpaDcSessionHandle pSessionHandle;
+	/**< DC Session associated with the stream of requests.
+	 * This field is only valid when using the session based API functions.
+	 * This field must be set to NULL if the application wishes to use
+	 * the No-Session (Ns) API.
+	 */
 
-    CpaPhysicalAddr     srcBuffer;
-    /**< Physical address of the source buffer on which to operate.
-     * This is either the location of the data, of length srcBufferLen; or,
-     * if srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
-     * srcBuffer contains the location where a @ref CpaPhysBufferList is
-     * stored.
-     */
+	CpaPhysicalAddr srcBuffer;
+	/**< Physical address of the source buffer on which to operate.
+	 * This is either the location of the data, of length srcBufferLen; or,
+	 * if srcBufferLen has the special value @ref CPA_DP_BUFLIST, then
+	 * srcBuffer contains the location where a @ref CpaPhysBufferList is
+	 * stored.
+	 */
 
-    Cpa32U          srcBufferLen;
-    /**< If the source buffer is a "flat buffer", then this field
-     * specifies the size of the buffer, in bytes. If the source buffer
-     * is a "buffer list" (of type @ref CpaPhysBufferList), then this field
-     * should be set to the value @ref CPA_DP_BUFLIST.
-     */
+	Cpa32U srcBufferLen;
+	/**< If the source buffer is a "flat buffer", then this field
+	 * specifies the size of the buffer, in bytes. If the source buffer
+	 * is a "buffer list" (of type @ref CpaPhysBufferList), then this field
+	 * should be set to the value @ref CPA_DP_BUFLIST.
+	 */
 
-    CpaPhysicalAddr     destBuffer;
-    /**< Physical address of the destination buffer on which to operate.
-     * This is either the location of the data, of length destBufferLen; or,
-     * if destBufferLen has the special value @ref CPA_DP_BUFLIST, then
-     * destBuffer contains the location where a @ref CpaPhysBufferList is
-     * stored.
-     */
+	CpaPhysicalAddr destBuffer;
+	/**< Physical address of the destination buffer on which to operate.
+	 * This is either the location of the data, of length destBufferLen; or,
+	 * if destBufferLen has the special value @ref CPA_DP_BUFLIST, then
+	 * destBuffer contains the location where a @ref CpaPhysBufferList is
+	 * stored.
+	 */
 
-    Cpa32U          destBufferLen;
-    /**< If the destination buffer is a "flat buffer", then this field
-     * specifies the size of the buffer, in bytes.  If the destination buffer
-     * is a "buffer list" (of type @ref CpaPhysBufferList), then this field
-     * should be set to the value @ref CPA_DP_BUFLIST.
-     */
+	Cpa32U destBufferLen;
+	/**< If the destination buffer is a "flat buffer", then this field
+	 * specifies the size of the buffer, in bytes.  If the destination
+	 * buffer is a "buffer list" (of type @ref CpaPhysBufferList), then this
+	 * field should be set to the value @ref CPA_DP_BUFLIST.
+	 */
 
-    CpaDcSessionDir sessDirection;
-     /**<Session direction indicating whether session is used for
-      * compression, decompression.  For the DP implementation,
-      * CPA_DC_DIR_COMBINED is not a valid selection.
-      */
+	CpaDcSessionDir sessDirection;
+	/**<Session direction indicating whether session is used for
+	 * compression, decompression.  For the DP implementation,
+	 * CPA_DC_DIR_COMBINED is not a valid selection.
+	 */
 
-    CpaBoolean compressAndVerify;
-    /**< If set to true, for compression operations, the implementation
-     * will verify that compressed data, generated by the compression
-     * operation, can be successfully decompressed.
-     * This behavior is only supported for stateless compression.
-     * This behavior is only supported on instances that support the
-     * compressAndVerify capability. */
+	CpaBoolean compressAndVerify;
+	/**< If set to true, for compression operations, the implementation
+	 * will verify that compressed data, generated by the compression
+	 * operation, can be successfully decompressed.
+	 * This behavior is only supported for stateless compression.
+	 * This behavior is only supported on instances that support the
+	 * compressAndVerify capability. */
 
-    CpaBoolean compressAndVerifyAndRecover;
-    /**< If set to true, for compression operations, the implementation
-     * will automatically recover from a compressAndVerify error.
-     * This behavior is only supported for stateless compression.
-     * This behavior is only supported on instances that support the
-     * compressAndVerifyAndRecover capability.
-     * The compressAndVerify field in CpaDcOpData MUST be set to CPA_TRUE
-     * if compressAndVerifyAndRecover is set to CPA_TRUE. */
+	CpaBoolean compressAndVerifyAndRecover;
+	/**< If set to true, for compression operations, the implementation
+	 * will automatically recover from a compressAndVerify error.
+	 * This behavior is only supported for stateless compression.
+	 * This behavior is only supported on instances that support the
+	 * compressAndVerifyAndRecover capability.
+	 * The compressAndVerify field in CpaDcOpData MUST be set to CPA_TRUE
+	 * if compressAndVerifyAndRecover is set to CPA_TRUE. */
 
-    CpaStatus responseStatus;
-    /**< Status of the operation. Valid values are CPA_STATUS_SUCCESS,
-     * CPA_STATUS_FAIL and CPA_STATUS_UNSUPPORTED.
-     */
+	CpaStatus responseStatus;
+	/**< Status of the operation. Valid values are CPA_STATUS_SUCCESS,
+	 * CPA_STATUS_FAIL and CPA_STATUS_UNSUPPORTED.
+	 */
 
-    CpaPhysicalAddr thisPhys;
-    /**< Physical address of this data structure */
+	CpaPhysicalAddr thisPhys;
+	/**< Physical address of this data structure */
 
-    void* pCallbackTag;
-    /**< Opaque data that will be returned to the client in the function
-     * completion callback.
-     *
-     * This opaque data is not used by the implementation of the API,
-     * but is simply returned as part of the asynchronous response.
-     * It may be used to store information that might be useful when
-     * processing the response later.
-     */
+	void *pCallbackTag;
+	/**< Opaque data that will be returned to the client in the function
+	 * completion callback.
+	 *
+	 * This opaque data is not used by the implementation of the API,
+	 * but is simply returned as part of the asynchronous response.
+	 * It may be used to store information that might be useful when
+	 * processing the response later.
+	 */
 
-    CpaDcNsSetupData    *pSetupData;
-    /**< Pointer to the No-session (Ns) Setup data for configuration of this
-     * request.
-     *
-     * This @ref CpaDcNsSetupData structure must be initialised when using the
-     * Data Plane No-Session (Ns) API. Otherwise it should be set to NULL.
-     * When initialized, the existing Data Plane API functions can be used
-     * as is.
-     */
+	CpaDcNsSetupData *pSetupData;
+	/**< Pointer to the No-session (Ns) Setup data for configuration of this
+	 * request.
+	 *
+	 * This @ref CpaDcNsSetupData structure must be initialised when using
+	 * the Data Plane No-Session (Ns) API. Otherwise it should be set to
+	 * NULL. When initialized, the existing Data Plane API functions can be
+	 * used as is.
+	 */
 
 } CpaDcDpOpData;
 
@@ -360,11 +359,8 @@ typedef void (*CpaDcDpCallbackFn)(CpaDcDpOpData *pOpData);
  *      cpaDcDpInitSession()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcDpGetSessionSize(CpaInstanceHandle dcInstance,
-        CpaDcSessionSetupData* pSessionData,
-        Cpa32U* pSessionSize );
-
+CpaStatus cpaDcDpGetSessionSize(CpaInstanceHandle dcInstance,
+    CpaDcSessionSetupData *pSessionData, Cpa32U *pSessionSize);
 
 /**
  *****************************************************************************
@@ -438,11 +434,8 @@ cpaDcDpGetSessionSize(CpaInstanceHandle dcInstance,
  *      None
  *
  *****************************************************************************/
-CpaStatus
-cpaDcDpInitSession( CpaInstanceHandle       dcInstance,
-        CpaDcSessionHandle              pSessionHandle,
-        CpaDcSessionSetupData           *pSessionData );
-
+CpaStatus cpaDcDpInitSession(CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle, CpaDcSessionSetupData *pSessionData);
 
 /**
  *****************************************************************************
@@ -499,9 +492,9 @@ cpaDcDpInitSession( CpaInstanceHandle       dcInstance,
  *      cpaDcDpInitSession()
  *
  *****************************************************************************/
-CpaStatus cpaDcDpUpdateSession( const CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle pSessionHandle,
-        CpaDcSessionUpdateData *pSessionUpdateData );
+CpaStatus cpaDcDpUpdateSession(const CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle,
+    CpaDcSessionUpdateData *pSessionUpdateData);
 
 /**
  *****************************************************************************
@@ -554,9 +547,8 @@ CpaStatus cpaDcDpUpdateSession( const CpaInstanceHandle dcInstance,
  *      @ref cpaDcDpInitSession
  *
  *****************************************************************************/
-CpaStatus
-cpaDcDpRemoveSession(const CpaInstanceHandle dcInstance,
-        CpaDcSessionHandle pSessionHandle );
+CpaStatus cpaDcDpRemoveSession(const CpaInstanceHandle dcInstance,
+    CpaDcSessionHandle pSessionHandle);
 
 /**
  *****************************************************************************
@@ -602,7 +594,7 @@ cpaDcDpRemoveSession(const CpaInstanceHandle dcInstance,
  *      cpaDcDpCbFunc
  *****************************************************************************/
 CpaStatus cpaDcDpRegCbFunc(const CpaInstanceHandle dcInstance,
-        const CpaDcDpCallbackFn pNewCb);
+    const CpaDcDpCallbackFn pNewCb);
 
 /**
  *****************************************************************************
@@ -683,9 +675,8 @@ CpaStatus cpaDcDpRegCbFunc(const CpaInstanceHandle dcInstance,
  * @see
  *      @ref cpaDcDpPerformOpNow
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOp(CpaDcDpOpData *pOpData,
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOp(CpaDcDpOpData *pOpData,
+    const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -758,10 +749,8 @@ cpaDcDpEnqueueOp(CpaDcDpOpData *pOpData,
  * @see
  *      @ref cpaDcDpPerformOpNow
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOpWithPartRead(CpaDcDpOpData *pOpData,
-        CpaDcDpPartialReadData *pPartReadData,
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOpWithPartRead(CpaDcDpOpData *pOpData,
+    CpaDcDpPartialReadData *pPartReadData, const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -830,9 +819,8 @@ cpaDcDpEnqueueOpWithPartRead(CpaDcDpOpData *pOpData,
  * @see
  *      @ref cpaDcDpPerformOpNow
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOpWithZeroPad(CpaDcDpOpData *pOpData,
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOpWithZeroPad(CpaDcDpOpData *pOpData,
+    const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -925,10 +913,8 @@ cpaDcDpEnqueueOpWithZeroPad(CpaDcDpOpData *pOpData,
  * @see
  *      cpaDcDpEnqueueOp
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOpBatch(const Cpa32U numberRequests,
-        CpaDcDpOpData *pOpData[],
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOpBatch(const Cpa32U numberRequests,
+    CpaDcDpOpData *pOpData[], const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -1012,11 +998,9 @@ cpaDcDpEnqueueOpBatch(const Cpa32U numberRequests,
  * @see
  *      @ref cpaDcDpEnqueueOp
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOpWithPartReadBatch(const Cpa32U numberRequests,
-        CpaDcDpOpData *pOpData[],
-        CpaDcDpPartialReadData *pPartReadData[],
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOpWithPartReadBatch(const Cpa32U numberRequests,
+    CpaDcDpOpData *pOpData[], CpaDcDpPartialReadData *pPartReadData[],
+    const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -1097,10 +1081,8 @@ cpaDcDpEnqueueOpWithPartReadBatch(const Cpa32U numberRequests,
  * @see
  *      @ref cpaDcDpEnqueueOp
  *****************************************************************************/
-CpaStatus
-cpaDcDpEnqueueOpWithZeroPadBatch(const Cpa32U numberRequests,
-        CpaDcDpOpData *pOpData[],
-        const CpaBoolean performOpNow);
+CpaStatus cpaDcDpEnqueueOpWithZeroPadBatch(const Cpa32U numberRequests,
+    CpaDcDpOpData *pOpData[], const CpaBoolean performOpNow);
 
 /**
  *****************************************************************************
@@ -1148,8 +1130,7 @@ cpaDcDpEnqueueOpWithZeroPadBatch(const Cpa32U numberRequests,
  * @see
  *      cpaDcDpEnqueueOp, cpaDcDpEnqueueOpBatch
  *****************************************************************************/
-CpaStatus
-cpaDcDpPerformOpNow(CpaInstanceHandle dcInstance);
+CpaStatus cpaDcDpPerformOpNow(CpaInstanceHandle dcInstance);
 
 /**
  *****************************************************************************
@@ -1192,9 +1173,8 @@ cpaDcDpPerformOpNow(CpaInstanceHandle dcInstance);
  *      cpaDcQueryCapabilities()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcDpIsPartReadSupported(const CpaInstanceHandle instanceHandle,
-        CpaBoolean *pFlag);
+CpaStatus cpaDcDpIsPartReadSupported(const CpaInstanceHandle instanceHandle,
+    CpaBoolean *pFlag);
 
 /**
  *****************************************************************************
@@ -1237,14 +1217,11 @@ cpaDcDpIsPartReadSupported(const CpaInstanceHandle instanceHandle,
  *      cpaDcQueryCapabilities()
  *
  *****************************************************************************/
-CpaStatus
-cpaDcDpIsZeroPadSupported(const CpaInstanceHandle instanceHandle,
-        CpaBoolean *pFlag);
-
+CpaStatus cpaDcDpIsZeroPadSupported(const CpaInstanceHandle instanceHandle,
+    CpaBoolean *pFlag);
 
 #ifdef __cplusplus
 } /* close the extern "C" { */
 #endif
 
 #endif /* CPA_DC_DP_H */
-

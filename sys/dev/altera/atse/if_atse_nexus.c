@@ -30,29 +30,28 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_device_polling.h"
 
+#include <sys/cdefs.h>
+#include <sys/types.h>
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
+
+#include <dev/altera/atse/if_atsereg.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_media.h>
 #include <net/if_var.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-
-#include <dev/altera/atse/if_atsereg.h>
 
 /* "device miibus" required.  See GENERIC if you get errors here. */
 #include "miibus_if.h"
@@ -136,23 +135,20 @@ atse_attach_nexus(device_t dev)
 
 static device_method_t atse_methods_nexus[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		atse_probe_nexus),
-	DEVMETHOD(device_attach,	atse_attach_nexus),
-	DEVMETHOD(device_detach,	atse_detach_dev),
+	DEVMETHOD(device_probe, atse_probe_nexus),
+	DEVMETHOD(device_attach, atse_attach_nexus),
+	DEVMETHOD(device_detach, atse_detach_dev),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	atse_miibus_readreg),
-	DEVMETHOD(miibus_writereg,	atse_miibus_writereg),
-	DEVMETHOD(miibus_statchg,	atse_miibus_statchg),
+	DEVMETHOD(miibus_readreg, atse_miibus_readreg),
+	DEVMETHOD(miibus_writereg, atse_miibus_writereg),
+	DEVMETHOD(miibus_statchg, atse_miibus_statchg),
 
 	DEVMETHOD_END
 };
 
-static driver_t atse_driver_nexus = {
-	"atse",
-	atse_methods_nexus,
-	sizeof(struct atse_softc)
-};
+static driver_t atse_driver_nexus = { "atse", atse_methods_nexus,
+	sizeof(struct atse_softc) };
 
 DRIVER_MODULE(atse, nexus, atse_driver_nexus, 0, 0);
 DRIVER_MODULE(miibus, atse, miibus_driver, 0, 0);

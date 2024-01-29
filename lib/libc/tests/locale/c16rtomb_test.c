@@ -30,14 +30,13 @@
  * Test program for c16rtomb() as specified by ISO/IEC 9899:2011.
  */
 
+#include <atf-c.h>
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <uchar.h>
-
-#include <atf-c.h>
 
 static void
 require_lc_ctype(const char *locale_name)
@@ -72,7 +71,8 @@ ATF_TC_BODY(c16rtomb_c_locale_test, tc)
 	memset(&s, 0, sizeof(s));
 	memset(buf, 0xcc, sizeof(buf));
 	ATF_REQUIRE(c16rtomb(buf, 0, &s) == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 0 && (unsigned char)buf[1] == 0xcc);
 
 	/* Latin letter A, internal state. */
 	ATF_REQUIRE(c16rtomb(NULL, L'\0', NULL) == 1);
@@ -82,7 +82,8 @@ ATF_TC_BODY(c16rtomb_c_locale_test, tc)
 	memset(&s, 0, sizeof(s));
 	memset(buf, 0xcc, sizeof(buf));
 	ATF_REQUIRE(c16rtomb(buf, L'A', &s) == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 'A' && (unsigned char)buf[1] == 0xcc);
 
 	/* Unicode character 'Pile of poo'. */
 	memset(&s, 0, sizeof(s));
@@ -117,7 +118,8 @@ ATF_TC_BODY(c16rtomb_iso_8859_15_test, tc)
 	memset(&s, 0, sizeof(s));
 	memset(buf, 0xcc, sizeof(buf));
 	ATF_REQUIRE(c16rtomb(buf, 0x20ac, &s) == 1);
-	ATF_REQUIRE((unsigned char)buf[0] == 0xa4 && (unsigned char)buf[1] == 0xcc);
+	ATF_REQUIRE(
+	    (unsigned char)buf[0] == 0xa4 && (unsigned char)buf[1] == 0xcc);
 }
 
 ATF_TC_WITHOUT_HEAD(c16rtomb_utf_8_test);
@@ -131,9 +133,9 @@ ATF_TC_BODY(c16rtomb_utf_8_test, tc)
 	memset(buf, 0xcc, sizeof(buf));
 	ATF_REQUIRE(c16rtomb(buf, 0xd83d, &s) == 0);
 	ATF_REQUIRE(c16rtomb(buf, 0xdca9, &s) == 4);
-	ATF_REQUIRE((unsigned char)buf[0] == 0xf0 && (unsigned char)buf[1] == 0x9f &&
-	    (unsigned char)buf[2] == 0x92 && (unsigned char)buf[3] == 0xa9 &&
-	    (unsigned char)buf[4] == 0xcc);
+	ATF_REQUIRE((unsigned char)buf[0] == 0xf0 &&
+	    (unsigned char)buf[1] == 0x9f && (unsigned char)buf[2] == 0x92 &&
+	    (unsigned char)buf[3] == 0xa9 && (unsigned char)buf[4] == 0xcc);
 
 	/* Invalid code; 'Pile of poo' without the trail surrogate. */
 	memset(&s, 0, sizeof(s));

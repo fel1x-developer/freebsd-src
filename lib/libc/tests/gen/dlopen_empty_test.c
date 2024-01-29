@@ -25,6 +25,8 @@
  */
 
 #include <sys/stat.h>
+
+#include <atf-c.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -33,62 +35,62 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
 static const char *funname;
 static char *soname;
 
 static void
 sigsegv_handler(int sig __unused)
 {
-        unlink(soname);
-        free(soname);
-        atf_tc_fail("got SIGSEGV in the %s(3)", funname);
+	unlink(soname);
+	free(soname);
+	atf_tc_fail("got SIGSEGV in the %s(3)", funname);
 }
 
 ATF_TC(dlopen_empty_test);
 ATF_TC_HEAD(dlopen_empty_test, tc)
 {
-        atf_tc_set_md_var(tc, "descr", "Tests the dlopen() of an empty file "
-                      "returns an error");
+	atf_tc_set_md_var(tc, "descr",
+	    "Tests the dlopen() of an empty file "
+	    "returns an error");
 }
 ATF_TC_BODY(dlopen_empty_test, tc)
 {
-        char tempname[] = "/tmp/temp.XXXXXX";
-        char *fname;
-        int fd;
-        void *dlh;
-        struct sigaction act, oact;
+	char tempname[] = "/tmp/temp.XXXXXX";
+	char *fname;
+	int fd;
+	void *dlh;
+	struct sigaction act, oact;
 
-        fname = mktemp(tempname);
-        ATF_REQUIRE_MSG(fname != NULL, "mktemp failed; errno=%d", errno);
-        asprintf(&soname, "%s.so", fname);
-        ATF_REQUIRE_MSG(soname != NULL, "asprintf failed; errno=%d", ENOMEM);
-        fd = open(soname, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
-        ATF_REQUIRE_MSG(fd != -1, "open(\"%s\") failed; errno=%d", soname, errno);
-        close(fd);
+	fname = mktemp(tempname);
+	ATF_REQUIRE_MSG(fname != NULL, "mktemp failed; errno=%d", errno);
+	asprintf(&soname, "%s.so", fname);
+	ATF_REQUIRE_MSG(soname != NULL, "asprintf failed; errno=%d", ENOMEM);
+	fd = open(soname, O_WRONLY | O_CREAT | O_TRUNC, DEFFILEMODE);
+	ATF_REQUIRE_MSG(fd != -1, "open(\"%s\") failed; errno=%d", soname,
+	    errno);
+	close(fd);
 
-        act.sa_handler = sigsegv_handler;
-        act.sa_flags = 0;
-        sigemptyset(&act.sa_mask);
-        ATF_CHECK_MSG(sigaction(SIGSEGV, &act, &oact) != -1,
-            "sigaction() failed");
+	act.sa_handler = sigsegv_handler;
+	act.sa_flags = 0;
+	sigemptyset(&act.sa_mask);
+	ATF_CHECK_MSG(sigaction(SIGSEGV, &act, &oact) != -1,
+	    "sigaction() failed");
 
-        funname = "dlopen";
-        dlh = dlopen(soname, RTLD_LAZY);
-        if (dlh != NULL) {
-                funname = "dlclose";
-                dlclose(dlh);
-        }
-        ATF_REQUIRE_MSG(dlh == NULL, "dlopen(\"%s\") did not fail", soname);
-        unlink(soname);
-        free(soname);
+	funname = "dlopen";
+	dlh = dlopen(soname, RTLD_LAZY);
+	if (dlh != NULL) {
+		funname = "dlclose";
+		dlclose(dlh);
+	}
+	ATF_REQUIRE_MSG(dlh == NULL, "dlopen(\"%s\") did not fail", soname);
+	unlink(soname);
+	free(soname);
 }
 
 ATF_TP_ADD_TCS(tp)
 {
 
-        ATF_TP_ADD_TC(tp, dlopen_empty_test);
+	ATF_TP_ADD_TC(tp, dlopen_empty_test);
 
-        return (atf_no_error());
+	return (atf_no_error());
 }

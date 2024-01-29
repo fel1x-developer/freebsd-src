@@ -28,30 +28,29 @@
  * Bridge MIB implementation for SNMPd.
  */
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_mib.h>
 #include <net/if_types.h>
 
+#include <bsnmp/snmp_mibII.h>
+#include <bsnmp/snmpmod.h>
 #include <errno.h>
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
-#include <bsnmp/snmpmod.h>
-#include <bsnmp/snmp_mibII.h>
-
-#define	SNMPTREE_TYPES
-#include "bridge_tree.h"
-#include "bridge_snmp.h"
+#define SNMPTREE_TYPES
 #include "bridge_oid.h"
+#include "bridge_snmp.h"
+#include "bridge_tree.h"
 
 static struct lmodule *bridge_module;
 
@@ -166,42 +165,42 @@ op_begemot_bridge_config(struct snmp_context *ctx, struct snmp_value *val,
     uint sub, uint iidx __unused, enum snmp_op op)
 {
 	switch (op) {
-	    case SNMP_OP_GET:
+	case SNMP_OP_GET:
 		switch (val->var.subs[sub - 1]) {
-		    case LEAF_begemotBridgeDefaultBridgeIf:
+		case LEAF_begemotBridgeDefaultBridgeIf:
 			return (string_get(val, bridge_get_default_name(), -1));
 
-		    case LEAF_begemotBridgeDataUpdate:
+		case LEAF_begemotBridgeDataUpdate:
 			val->v.integer = bridge_data_maxage;
 			return (SNMP_ERR_NOERROR);
 
-		    case LEAF_begemotBridgeDataPoll:
+		case LEAF_begemotBridgeDataPoll:
 			val->v.integer = bridge_poll_ticks / 100;
 			return (SNMP_ERR_NOERROR);
 		}
 		abort();
 
-	    case SNMP_OP_GETNEXT:
+	case SNMP_OP_GETNEXT:
 		abort();
 
-	    case SNMP_OP_SET:
+	case SNMP_OP_SET:
 		switch (val->var.subs[sub - 1]) {
-		    case LEAF_begemotBridgeDefaultBridgeIf:
+		case LEAF_begemotBridgeDefaultBridgeIf:
 			/*
 			 * Cannot use string_save() here - requires either
 			 * a fixed-sized or var-length string - not less
 			 * than or equal.
 			 */
 			if (bridge_default_name_save(ctx,
-			    bridge_get_default_name()) < 0)
+				bridge_get_default_name()) < 0)
 				return (SNMP_ERR_RES_UNAVAIL);
 
 			if (bridge_set_default_name(val->v.octetstring.octets,
-			    val->v.octetstring.len) < 0)
+				val->v.octetstring.len) < 0)
 				return (SNMP_ERR_BADVALUE);
 			return (SNMP_ERR_NOERROR);
 
-		    case LEAF_begemotBridgeDataUpdate:
+		case LEAF_begemotBridgeDataUpdate:
 			if (val->v.integer < SNMP_BRIDGE_DATA_MAXAGE_MIN ||
 			    val->v.integer > SNMP_BRIDGE_DATA_MAXAGE_MAX)
 				return (SNMP_ERR_WRONG_VALUE);
@@ -209,7 +208,7 @@ op_begemot_bridge_config(struct snmp_context *ctx, struct snmp_value *val,
 			bridge_data_maxage = val->v.integer;
 			return (SNMP_ERR_NOERROR);
 
-		    case LEAF_begemotBridgeDataPoll:
+		case LEAF_begemotBridgeDataPoll:
 			if (val->v.integer < SNMP_BRIDGE_POLL_INTERVAL_MIN ||
 			    val->v.integer > SNMP_BRIDGE_POLL_INTERVAL_MAX)
 				return (SNMP_ERR_WRONG_VALUE);
@@ -218,25 +217,25 @@ op_begemot_bridge_config(struct snmp_context *ctx, struct snmp_value *val,
 		}
 		abort();
 
-	    case SNMP_OP_ROLLBACK:
+	case SNMP_OP_ROLLBACK:
 		switch (val->var.subs[sub - 1]) {
-		    case LEAF_begemotBridgeDefaultBridgeIf:
+		case LEAF_begemotBridgeDefaultBridgeIf:
 			bridge_set_default_name(ctx->scratch->ptr1,
 			    ctx->scratch->int1);
 			free(ctx->scratch->ptr1);
 			break;
-		    case LEAF_begemotBridgeDataUpdate:
+		case LEAF_begemotBridgeDataUpdate:
 			bridge_data_maxage = ctx->scratch->int1;
 			break;
 		}
 		return (SNMP_ERR_NOERROR);
 
-	    case SNMP_OP_COMMIT:
+	case SNMP_OP_COMMIT:
 		switch (val->var.subs[sub - 1]) {
-		    case LEAF_begemotBridgeDefaultBridgeIf:
+		case LEAF_begemotBridgeDefaultBridgeIf:
 			free(ctx->scratch->ptr1);
 			break;
-		    case LEAF_begemotBridgeDataPoll:
+		case LEAF_begemotBridgeDataPoll:
 			bridge_set_poll_ticks(ctx->scratch->int1 * 100);
 			break;
 		}
@@ -251,7 +250,7 @@ op_begemot_bridge_config(struct snmp_context *ctx, struct snmp_value *val,
  * Returns 0 on success, < 0 on error.
  */
 static int
-bridge_init(struct lmodule * mod, int argc __unused, char *argv[] __unused)
+bridge_init(struct lmodule *mod, int argc __unused, char *argv[] __unused)
 {
 	bridge_module = mod;
 
@@ -322,7 +321,7 @@ bridge_dump(void)
 		syslog(LOG_ERR, "Dump: no default bridge interface");
 	else
 		syslog(LOG_ERR, "Dump: default bridge interface %s",
-		     bif->bif_name);
+		    bif->bif_name);
 
 	bridge_ifs_dump();
 	bridge_pf_dump();
@@ -330,10 +329,10 @@ bridge_dump(void)
 
 const struct snmp_module config = {
 	.comment = "This module implements the bridge mib (RFC 4188).",
-	.init =		bridge_init,
-	.fini =		bridge_fini,
-	.start =	bridge_start,
-	.tree =		bridge_ctree,
-	.dump =		bridge_dump,
-	.tree_size =	bridge_CTREE_SIZE,
+	.init = bridge_init,
+	.fini = bridge_fini,
+	.start = bridge_start,
+	.tree = bridge_ctree,
+	.dump = bridge_dump,
+	.tree_size = bridge_CTREE_SIZE,
 };

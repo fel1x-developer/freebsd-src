@@ -31,33 +31,34 @@
  * rpc_util.c, Utility routines for the RPC protocol compiler
  * Copyright (C) 1989, Sun Microsystems, Inc.
  */
-#include <err.h>
 #include <ctype.h>
+#include <err.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "rpc_parse.h"
 #include "rpc_scan.h"
 #include "rpc_util.h"
 
-#define	ARGEXT "argument"
+#define ARGEXT "argument"
 
-char curline[MAXLINESIZE];	/* current read line */
-char *where = curline;		/* current point in line */
-int linenum = 0;		/* current line number */
+char curline[MAXLINESIZE]; /* current read line */
+char *where = curline;	   /* current point in line */
+int linenum = 0;	   /* current line number */
 
-const char *infilename;		/* input filename */
+const char *infilename; /* input filename */
 
-#define	NFILES   7
+#define NFILES 7
 static const char *outfiles[NFILES]; /* output file names */
 static int nfiles;
 
-FILE *fout;			/* file pointer of current output */
-FILE *fin;			/* file pointer of current input */
+FILE *fout; /* file pointer of current output */
+FILE *fin;  /* file pointer of current input */
 
-list *defined;			/* list of defined things */
+list *defined; /* list of defined things */
 
-static void printwhere( void );
+static void printwhere(void);
 
 /*
  * Reinitialize the world
@@ -87,7 +88,7 @@ definition *
 findval(list *lst, const char *val, int (*cmp)(definition *, const char *))
 {
 	for (; lst != NULL; lst = lst->next) {
-		if ((*cmp) (lst->val, val)) {
+		if ((*cmp)(lst->val, val)) {
 			return (lst->val);
 		}
 	}
@@ -103,7 +104,8 @@ storeval(list **lstp, definition *val)
 	list **l;
 	list *lst;
 
-	for (l = lstp; *l != NULL; l = (list **) & (*l)->next);
+	for (l = lstp; *l != NULL; l = (list **)&(*l)->next)
+		;
 	lst = XALLOC(list);
 	lst->val = val;
 	lst->next = NULL;
@@ -121,7 +123,7 @@ fixit(const char *type, const char *orig)
 {
 	definition *def;
 
-	def = (definition *) FINDVAL(defined, type, findit);
+	def = (definition *)FINDVAL(defined, type, findit);
 	if (def == NULL || def->def_kind != DEF_TYPEDEF) {
 		return (orig);
 	}
@@ -198,7 +200,7 @@ isvectordef(const char *type, relation rel)
 		case REL_POINTER:
 			return (0);
 		case REL_ALIAS:
-			def = (definition *) FINDVAL(defined, type, typedefed);
+			def = (definition *)FINDVAL(defined, type, typedefed);
 			if (def == NULL) {
 				return (0);
 			}
@@ -217,7 +219,7 @@ locase(const char *str)
 	static char buf[100];
 	char *p = buf;
 
-	while ( (c = *str++) ) {
+	while ((c = *str++)) {
 		*p++ = (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
 	}
 	*p = 0;
@@ -257,7 +259,7 @@ crash(void)
 	int i;
 
 	for (i = 0; i < nfiles; i++) {
-		(void) unlink(outfiles[i]);
+		(void)unlink(outfiles[i]);
 	}
 	exit(1);
 }
@@ -282,8 +284,7 @@ static const char *toktostr(tok_kind kind);
 void
 expected1(tok_kind exp1)
 {
-	s_print(expectbuf, "expected '%s'",
-		toktostr(exp1));
+	s_print(expectbuf, "expected '%s'", toktostr(exp1));
 	error(expectbuf);
 }
 
@@ -293,9 +294,8 @@ expected1(tok_kind exp1)
 void
 expected2(tok_kind exp1, tok_kind exp2)
 {
-	s_print(expectbuf, "expected '%s' or '%s'",
-		toktostr(exp1),
-		toktostr(exp2));
+	s_print(expectbuf, "expected '%s' or '%s'", toktostr(exp1),
+	    toktostr(exp2));
 	error(expectbuf);
 }
 
@@ -305,10 +305,8 @@ expected2(tok_kind exp1, tok_kind exp2)
 void
 expected3(tok_kind exp1, tok_kind exp2, tok_kind exp3)
 {
-	s_print(expectbuf, "expected '%s', '%s' or '%s'",
-		toktostr(exp1),
-		toktostr(exp2),
-		toktostr(exp3));
+	s_print(expectbuf, "expected '%s', '%s' or '%s'", toktostr(exp1),
+	    toktostr(exp2), toktostr(exp3));
 	error(expectbuf);
 }
 
@@ -316,54 +314,32 @@ void
 tabify(FILE *f, int tab)
 {
 	while (tab--) {
-		(void) fputc('\t', f);
+		(void)fputc('\t', f);
 	}
 }
 
-
-static token tokstrings[] = {
-			{TOK_IDENT, "identifier"},
-			{TOK_CONST, "const"},
-			{TOK_RPAREN, ")"},
-			{TOK_LPAREN, "("},
-			{TOK_RBRACE, "}"},
-			{TOK_LBRACE, "{"},
-			{TOK_LBRACKET, "["},
-			{TOK_RBRACKET, "]"},
-			{TOK_STAR, "*"},
-			{TOK_COMMA, ","},
-			{TOK_EQUAL, "="},
-			{TOK_COLON, ":"},
-			{TOK_SEMICOLON, ";"},
-			{TOK_UNION, "union"},
-			{TOK_STRUCT, "struct"},
-			{TOK_SWITCH, "switch"},
-			{TOK_CASE, "case"},
-			{TOK_DEFAULT, "default"},
-			{TOK_ENUM, "enum"},
-			{TOK_TYPEDEF, "typedef"},
-			{TOK_INT, "int"},
-			{TOK_SHORT, "short"},
-			{TOK_LONG, "long"},
-			{TOK_UNSIGNED, "unsigned"},
-			{TOK_DOUBLE, "double"},
-			{TOK_FLOAT, "float"},
-			{TOK_CHAR, "char"},
-			{TOK_STRING, "string"},
-			{TOK_OPAQUE, "opaque"},
-			{TOK_BOOL, "bool"},
-			{TOK_VOID, "void"},
-			{TOK_PROGRAM, "program"},
-			{TOK_VERSION, "version"},
-			{TOK_EOF, "??????"}
-};
+static token tokstrings[] = { { TOK_IDENT, "identifier" },
+	{ TOK_CONST, "const" }, { TOK_RPAREN, ")" }, { TOK_LPAREN, "(" },
+	{ TOK_RBRACE, "}" }, { TOK_LBRACE, "{" }, { TOK_LBRACKET, "[" },
+	{ TOK_RBRACKET, "]" }, { TOK_STAR, "*" }, { TOK_COMMA, "," },
+	{ TOK_EQUAL, "=" }, { TOK_COLON, ":" }, { TOK_SEMICOLON, ";" },
+	{ TOK_UNION, "union" }, { TOK_STRUCT, "struct" },
+	{ TOK_SWITCH, "switch" }, { TOK_CASE, "case" },
+	{ TOK_DEFAULT, "default" }, { TOK_ENUM, "enum" },
+	{ TOK_TYPEDEF, "typedef" }, { TOK_INT, "int" }, { TOK_SHORT, "short" },
+	{ TOK_LONG, "long" }, { TOK_UNSIGNED, "unsigned" },
+	{ TOK_DOUBLE, "double" }, { TOK_FLOAT, "float" }, { TOK_CHAR, "char" },
+	{ TOK_STRING, "string" }, { TOK_OPAQUE, "opaque" },
+	{ TOK_BOOL, "bool" }, { TOK_VOID, "void" }, { TOK_PROGRAM, "program" },
+	{ TOK_VERSION, "version" }, { TOK_EOF, "??????" } };
 
 static const char *
 toktostr(tok_kind kind)
 {
 	token *sp;
 
-	for (sp = tokstrings; sp->kind != TOK_EOF && sp->kind != kind; sp++);
+	for (sp = tokstrings; sp->kind != TOK_EOF && sp->kind != kind; sp++)
+		;
 	return (sp->str);
 }
 
@@ -374,7 +350,7 @@ printbuf(void)
 	int i;
 	int cnt;
 
-#	define TABSIZE 4
+#define TABSIZE 4
 
 	for (i = 0; (c = curline[i]); i++) {
 		if (c == '\t') {
@@ -384,7 +360,7 @@ printbuf(void)
 			cnt = 1;
 		}
 		while (cnt--) {
-			(void) fputc(c, stderr);
+			(void)fputc(c, stderr);
 		}
 	}
 }
@@ -405,10 +381,10 @@ printwhere(void)
 			cnt = 1;
 		}
 		while (cnt--) {
-			(void) fputc('^', stderr);
+			(void)fputc('^', stderr);
 		}
 	}
-	(void) fputc('\n', stderr);
+	(void)fputc('\n', stderr);
 }
 
 char *
@@ -434,28 +410,23 @@ add_type(int len, const char *type)
 	ptr->name = type;
 	ptr->length = len;
 	ptr->next = NULL;
-	if (typ_list_t == NULL)
-	{
+	if (typ_list_t == NULL) {
 
 		typ_list_t = ptr;
 		typ_list_h = ptr;
-	}
-	else
-	{
+	} else {
 		typ_list_t->next = ptr;
 		typ_list_t = ptr;
 	}
 }
 
-
 bas_type *
 find_type(const char *type)
 {
-	bas_type * ptr;
+	bas_type *ptr;
 
 	ptr = typ_list_h;
-	while (ptr != NULL)
-	{
+	while (ptr != NULL) {
 		if (strcmp(ptr->name, type) == 0)
 			return (ptr);
 		else

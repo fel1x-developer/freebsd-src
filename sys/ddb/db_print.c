@@ -41,9 +41,9 @@
 
 #include <machine/pcb.h>
 
-#include <ddb/ddb.h>
-#include <ddb/db_variables.h>
 #include <ddb/db_sym.h>
+#include <ddb/db_variables.h>
+#include <ddb/ddb.h>
 
 void
 db_show_regs(db_expr_t _1, bool _2, db_expr_t _3, char *modif)

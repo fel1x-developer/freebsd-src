@@ -39,8 +39,8 @@
  */
 
 #include "ocs.h"
-#include "ocs_scsi.h"
 #include "ocs_els.h"
+#include "ocs_scsi.h"
 #include "ocs_utils.h"
 
 void ocs_mgmt_io_list(ocs_textbuf_t *textbuf, void *io);
@@ -48,9 +48,9 @@ void ocs_mgmt_io_get_all(ocs_textbuf_t *textbuf, void *io);
 int ocs_mgmt_io_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *io);
 
 static ocs_mgmt_functions_t io_mgmt_functions = {
-	.get_list_handler	=	ocs_mgmt_io_list,
-	.get_handler		=	ocs_mgmt_io_get,
-	.get_all_handler	=	ocs_mgmt_io_get_all,
+	.get_list_handler = ocs_mgmt_io_list,
+	.get_handler = ocs_mgmt_io_get,
+	.get_all_handler = ocs_mgmt_io_get_all,
 };
 
 /**
@@ -61,9 +61,9 @@ static ocs_mgmt_functions_t io_mgmt_functions = {
  */
 
 struct ocs_io_pool_s {
-	ocs_t *ocs;			/* Pointer to device object */
-	ocs_lock_t lock;		/* IO pool lock */
-	uint32_t io_num_ios;		/* Total IOs allocated */
+	ocs_t *ocs;	     /* Pointer to device object */
+	ocs_lock_t lock;     /* IO pool lock */
+	uint32_t io_num_ios; /* Total IOs allocated */
 	ocs_pool_t *pool;
 };
 
@@ -101,7 +101,7 @@ ocs_io_pool_t *
 ocs_io_pool_create(ocs_t *ocs, uint32_t num_io, uint32_t num_sgl)
 {
 	uint32_t i = 0;
-	int32_t	rc = -1;
+	int32_t rc = -1;
 	ocs_io_pool_t *io_pool;
 
 	/* Allocate the IO pool */
@@ -115,9 +115,11 @@ ocs_io_pool_create(ocs_t *ocs, uint32_t num_io, uint32_t num_sgl)
 	io_pool->io_num_ios = num_io;
 
 	/* initialize IO pool lock */
-	ocs_lock_init(ocs, &io_pool->lock, "io_pool lock[%d]", ocs->instance_index);
+	ocs_lock_init(ocs, &io_pool->lock, "io_pool lock[%d]",
+	    ocs->instance_index);
 
-	io_pool->pool = ocs_pool_alloc(ocs, sizeof(ocs_io_t), io_pool->io_num_ios, FALSE);
+	io_pool->pool = ocs_pool_alloc(ocs, sizeof(ocs_io_t),
+	    io_pool->io_num_ios, FALSE);
 
 	for (i = 0; i < io_pool->io_num_ios; i++) {
 		ocs_io_t *io = ocs_pool_get_instance(io_pool->pool, i);
@@ -128,16 +130,19 @@ ocs_io_pool_create(ocs_t *ocs, uint32_t num_io, uint32_t num_sgl)
 
 		/* allocate a command/response dma buffer */
 		if (ocs->enable_ini) {
-			rc = ocs_dma_alloc(ocs, &io->cmdbuf, SCSI_CMD_BUF_LENGTH, OCS_MIN_DMA_ALIGNMENT);
+			rc = ocs_dma_alloc(ocs, &io->cmdbuf,
+			    SCSI_CMD_BUF_LENGTH, OCS_MIN_DMA_ALIGNMENT);
 			if (rc) {
-				ocs_log_err(ocs, "ocs_dma_alloc cmdbuf failed\n");
+				ocs_log_err(ocs,
+				    "ocs_dma_alloc cmdbuf failed\n");
 				ocs_io_pool_free(io_pool);
 				return NULL;
 			}
 		}
 
 		/* Allocate a response buffer */
-		rc = ocs_dma_alloc(ocs, &io->rspbuf, SCSI_RSP_BUF_LENGTH, OCS_MIN_DMA_ALIGNMENT);
+		rc = ocs_dma_alloc(ocs, &io->rspbuf, SCSI_RSP_BUF_LENGTH,
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(ocs, "ocs_dma_alloc cmdbuf failed\n");
 			ocs_io_pool_free(io_pool);
@@ -145,7 +150,8 @@ ocs_io_pool_create(ocs_t *ocs, uint32_t num_io, uint32_t num_sgl)
 		}
 
 		/* Allocate SGL */
-		io->sgl = ocs_malloc(ocs, sizeof(*io->sgl) * num_sgl, OCS_M_NOWAIT | OCS_M_ZERO);
+		io->sgl = ocs_malloc(ocs, sizeof(*io->sgl) * num_sgl,
+		    OCS_M_NOWAIT | OCS_M_ZERO);
 		if (io->sgl == NULL) {
 			ocs_log_err(ocs, "malloc sgl's failed\n");
 			ocs_io_pool_free(io_pool);
@@ -157,20 +163,22 @@ ocs_io_pool_create(ocs_t *ocs, uint32_t num_io, uint32_t num_sgl)
 		/* Make IO backend call to initialize IO */
 		ocs_scsi_tgt_io_init(io);
 		ocs_scsi_ini_io_init(io);
-		
-		rc = ocs_dma_alloc(ocs, &io->els_req, OCS_ELS_REQ_LEN, OCS_MIN_DMA_ALIGNMENT);
+
+		rc = ocs_dma_alloc(ocs, &io->els_req, OCS_ELS_REQ_LEN,
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(ocs, "ocs_dma_alloc els_req failed\n");
 			ocs_io_pool_free(io_pool);
 			return NULL;
- 		}
+		}
 
-		rc = ocs_dma_alloc(ocs, &io->els_rsp, OCS_ELS_GID_PT_RSP_LEN, OCS_MIN_DMA_ALIGNMENT);
+		rc = ocs_dma_alloc(ocs, &io->els_rsp, OCS_ELS_GID_PT_RSP_LEN,
+		    OCS_MIN_DMA_ALIGNMENT);
 		if (rc) {
 			ocs_log_err(ocs, "ocs_dma_alloc els_rsp failed\n");
 			ocs_io_pool_free(io_pool);
 			return NULL;
- 		}
+		}
 	}
 
 	return io_pool;
@@ -202,7 +210,8 @@ ocs_io_pool_free(ocs_io_pool_t *io_pool)
 			ocs_scsi_tgt_io_exit(io);
 			ocs_scsi_ini_io_exit(io);
 			if (io->sgl) {
-				ocs_free(ocs, io->sgl, sizeof(*io->sgl) * io->sgl_allocated);
+				ocs_free(ocs, io->sgl,
+				    sizeof(*io->sgl) * io->sgl_allocated);
 			}
 			ocs_dma_free(ocs, &io->cmdbuf);
 			ocs_dma_free(ocs, &io->rspbuf);
@@ -221,7 +230,8 @@ ocs_io_pool_free(ocs_io_pool_t *io_pool)
 	return 0;
 }
 
-uint32_t ocs_io_pool_allocated(ocs_io_pool_t *io_pool)
+uint32_t
+ocs_io_pool_allocated(ocs_io_pool_t *io_pool)
 {
 	return io_pool->io_num_ios;
 }
@@ -289,9 +299,9 @@ ocs_io_pool_io_free(ocs_io_pool_t *io_pool, ocs_io_t *io)
 	ocs = io_pool->ocs;
 
 	ocs_lock(&io_pool->lock);
-		hio = io->hio;
-		io->hio = NULL;
-		ocs_pool_put(io_pool->pool, io);
+	hio = io->hio;
+	io->hio = NULL;
+	ocs_pool_put(io_pool->pool, io);
 	ocs_unlock(&io_pool->lock);
 
 	if (hio) {
@@ -314,14 +324,15 @@ ocs_io_pool_io_free(ocs_io_pool_t *io_pool, ocs_io_t *io)
 ocs_io_t *
 ocs_io_find_tgt_io(ocs_t *ocs, ocs_node_t *node, uint16_t ox_id, uint16_t rx_id)
 {
-	ocs_io_t	*io = NULL;
+	ocs_io_t *io = NULL;
 
 	ocs_lock(&node->active_ios_lock);
-		ocs_list_foreach(&node->active_ios, io)
-			if ((io->cmd_tgt && (io->init_task_tag == ox_id)) &&
-			    ((rx_id == 0xffff) || (io->tgt_task_tag == rx_id))) {
-				break;
-			}
+	ocs_list_foreach(&node->active_ios,
+	    io) if ((io->cmd_tgt && (io->init_task_tag == ox_id)) &&
+	    ((rx_id == 0xffff) || (io->tgt_task_tag == rx_id)))
+	{
+		break;
+	}
 	ocs_unlock(&node->active_ios_lock);
 	return io;
 }
@@ -364,7 +375,8 @@ ocs_ddump_io(ocs_textbuf_t *textbuf, ocs_io_t *io)
 	ocs_ddump_value(textbuf, "display_name", "%s", io->display_name);
 	ocs_ddump_value(textbuf, "node_name", "%s", io->node->display_name);
 
-	ocs_ddump_value(textbuf, "ref_count", "%d", ocs_ref_read_count(&io->ref));
+	ocs_ddump_value(textbuf, "ref_count", "%d",
+	    ocs_ref_read_count(&io->ref));
 	ocs_ddump_value(textbuf, "io_type", "%d", io->io_type);
 	ocs_ddump_value(textbuf, "hio_type", "%d", io->hio_type);
 	ocs_ddump_value(textbuf, "cmd_tgt", "%d", io->cmd_tgt);
@@ -385,9 +397,12 @@ ocs_ddump_io(ocs_textbuf_t *textbuf, ocs_io_t *io)
 	ocs_ddump_value(textbuf, "xfer_req", "%d", io->xfer_req);
 	ocs_ddump_value(textbuf, "seq_init", "%d", io->seq_init);
 
-	ocs_ddump_value(textbuf, "alloc_link", "%d", ocs_list_on_list(&io->io_alloc_link));
-	ocs_ddump_value(textbuf, "pending_link", "%d", ocs_list_on_list(&io->io_pending_link));
-	ocs_ddump_value(textbuf, "backend_link", "%d", ocs_list_on_list(&io->link));
+	ocs_ddump_value(textbuf, "alloc_link", "%d",
+	    ocs_list_on_list(&io->io_alloc_link));
+	ocs_ddump_value(textbuf, "pending_link", "%d",
+	    ocs_list_on_list(&io->io_pending_link));
+	ocs_ddump_value(textbuf, "backend_link", "%d",
+	    ocs_list_on_list(&io->link));
 
 	if (io->hio) {
 		ocs_ddump_value(textbuf, "hw_tag", "%#x", io->hio->reqtag);
@@ -424,41 +439,52 @@ ocs_mgmt_io_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *object)
 {
 	char qualifier[80];
 	int retval = -1;
-	ocs_io_t *io = (ocs_io_t *) object;
+	ocs_io_t *io = (ocs_io_t *)object;
 
-	snprintf(qualifier, sizeof(qualifier), "%s/io[%d]", parent, io->instance_index);
+	snprintf(qualifier, sizeof(qualifier), "%s/io[%d]", parent,
+	    io->instance_index);
 
-	/* If it doesn't start with my qualifier I don't know what to do with it */
+	/* If it doesn't start with my qualifier I don't know what to do with it
+	 */
 	if (ocs_strncmp(name, qualifier, strlen(qualifier)) == 0) {
-		char *unqualified_name = name + strlen(qualifier) +1;
+		char *unqualified_name = name + strlen(qualifier) + 1;
 
 		/* See if it's a value I can supply */
 		if (ocs_strcmp(unqualified_name, "display_name") == 0) {
-			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name", io->display_name);
+			ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD,
+			    "display_name", io->display_name);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "init_task_tag") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "init_task_tag", "0x%x", io->init_task_tag);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD,
+			    "init_task_tag", "0x%x", io->init_task_tag);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "tgt_task_tag") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tgt_task_tag", "0x%x", io->tgt_task_tag);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tgt_task_tag",
+			    "0x%x", io->tgt_task_tag);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "hw_tag") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "hw_tag", "0x%x", io->hw_tag);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "hw_tag",
+			    "0x%x", io->hw_tag);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "tag") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tag", "0x%x", io->tag);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tag", "0x%x",
+			    io->tag);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "transferred") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "transferred", "%zu", io->transferred);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "transferred",
+			    "%zu", io->transferred);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "auto_resp") == 0) {
-			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "auto_resp", io->auto_resp);
+			ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD,
+			    "auto_resp", io->auto_resp);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "exp_xfer_len") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "exp_xfer_len", "%d", io->exp_xfer_len);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "exp_xfer_len",
+			    "%d", io->exp_xfer_len);
 			retval = 0;
 		} else if (ocs_strcmp(unqualified_name, "xfer_req") == 0) {
-			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "xfer_req", "%d", io->xfer_req);
+			ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "xfer_req",
+			    "%d", io->xfer_req);
 			retval = 0;
 		}
 	}
@@ -469,16 +495,22 @@ ocs_mgmt_io_get(ocs_textbuf_t *textbuf, char *parent, char *name, void *object)
 void
 ocs_mgmt_io_get_all(ocs_textbuf_t *textbuf, void *object)
 {
-	ocs_io_t *io = (ocs_io_t *) object;
+	ocs_io_t *io = (ocs_io_t *)object;
 
-	ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name", io->display_name);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "init_task_tag", "0x%x", io->init_task_tag);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tgt_task_tag", "0x%x", io->tgt_task_tag);
+	ocs_mgmt_emit_string(textbuf, MGMT_MODE_RD, "display_name",
+	    io->display_name);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "init_task_tag", "0x%x",
+	    io->init_task_tag);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tgt_task_tag", "0x%x",
+	    io->tgt_task_tag);
 	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "hw_tag", "0x%x", io->hw_tag);
 	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "tag", "0x%x", io->tag);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "transferred", "%zu", io->transferred);
-	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "auto_resp", io->auto_resp);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "exp_xfer_len", "%d", io->exp_xfer_len);
-	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "xfer_req", "%d", io->xfer_req);
-
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "transferred", "%zu",
+	    io->transferred);
+	ocs_mgmt_emit_boolean(textbuf, MGMT_MODE_RD, "auto_resp",
+	    io->auto_resp);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "exp_xfer_len", "%d",
+	    io->exp_xfer_len);
+	ocs_mgmt_emit_int(textbuf, MGMT_MODE_RD, "xfer_req", "%d",
+	    io->xfer_req);
 }

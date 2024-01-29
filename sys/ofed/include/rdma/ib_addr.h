@@ -36,25 +36,25 @@
 #if !defined(IB_ADDR_H)
 #define IB_ADDR_H
 
-#include <linux/in.h>
-#include <linux/in6.h>
-#include <linux/if_arp.h>
-#include <linux/netdevice.h>
-#include <linux/socket.h>
-#include <linux/if_vlan.h>
-#include <net/ipv6.h>
 #include <net/if_inet6.h>
 #include <net/ip.h>
-#include <rdma/ib_verbs.h>
-#include <rdma/ib_pack.h>
+#include <net/ipv6.h>
+
+#include <linux/if_arp.h>
+#include <linux/if_vlan.h>
+#include <linux/in.h>
+#include <linux/in6.h>
+#include <linux/netdevice.h>
+#include <linux/socket.h>
 #include <rdma/ib_addr_freebsd.h>
+#include <rdma/ib_pack.h>
+#include <rdma/ib_verbs.h>
 
 /* Linux netdevice.h but for working on an ifnet rather than a net_device. */
-#define	dev_hold(d)	if_ref(d)
-#define	dev_put(d)	if_rele(d)
-#define	dev_net(d)	if_getvnet(d)
-#define	net_eq(a,b)	((a) == (b))
-
+#define dev_hold(d) if_ref(d)
+#define dev_put(d) if_rele(d)
+#define dev_net(d) if_getvnet(d)
+#define net_eq(a, b) ((a) == (b))
 
 struct rdma_addr_client {
 	atomic_t refcount;
@@ -62,9 +62,9 @@ struct rdma_addr_client {
 };
 
 union rdma_sockaddr {
-	struct sockaddr         _sockaddr;
-	struct sockaddr_in      _sockaddr_in;
-	struct sockaddr_in6     _sockaddr_in6;
+	struct sockaddr _sockaddr;
+	struct sockaddr_in _sockaddr_in;
+	struct sockaddr_in6 _sockaddr_in6;
 	struct sockaddr_storage _sockaddr_ss;
 };
 
@@ -109,7 +109,7 @@ struct rdma_dev_addr {
  * The dev_addr->net and dev_addr->bound_dev_if fields must be initialized.
  */
 int rdma_translate_ip(const struct sockaddr *addr,
-		      struct rdma_dev_addr *dev_addr);
+    struct rdma_dev_addr *dev_addr);
 
 /**
  * rdma_resolve_ip - Resolve source and destination IP addresses to
@@ -127,74 +127,76 @@ int rdma_translate_ip(const struct sockaddr *addr,
  *   or been canceled.  A status of 0 indicates success.
  * @context: User-specified context associated with the call.
  */
-int rdma_resolve_ip(struct rdma_addr_client *client,
-		    struct sockaddr *src_addr, struct sockaddr *dst_addr,
-		    struct rdma_dev_addr *addr, int timeout_ms,
-		    void (*callback)(int status, struct sockaddr *src_addr,
-				     struct rdma_dev_addr *addr, void *context),
-		    void *context);
+int rdma_resolve_ip(struct rdma_addr_client *client, struct sockaddr *src_addr,
+    struct sockaddr *dst_addr, struct rdma_dev_addr *addr, int timeout_ms,
+    void (*callback)(int status, struct sockaddr *src_addr,
+	struct rdma_dev_addr *addr, void *context),
+    void *context);
 
 int rdma_resolve_ip_route(struct sockaddr *src_addr,
-			  const struct sockaddr *dst_addr,
-			  struct rdma_dev_addr *addr);
+    const struct sockaddr *dst_addr, struct rdma_dev_addr *addr);
 
 void rdma_addr_cancel(struct rdma_dev_addr *addr);
 
 int rdma_copy_addr(struct rdma_dev_addr *dev_addr, if_t dev,
-	      const unsigned char *dst_dev_addr);
+    const unsigned char *dst_dev_addr);
 
 int rdma_addr_size(struct sockaddr *addr);
 int rdma_addr_size_in6(struct sockaddr_in6 *addr);
 int rdma_addr_size_kss(struct sockaddr_storage *addr);
 
 int rdma_addr_find_l2_eth_by_grh(const union ib_gid *sgid,
-				 const union ib_gid *dgid,
-				 u8 *smac, if_t dev,
-				 int *hoplimit);
+    const union ib_gid *dgid, u8 *smac, if_t dev, int *hoplimit);
 
-static inline u16 ib_addr_get_pkey(struct rdma_dev_addr *dev_addr)
+static inline u16
+ib_addr_get_pkey(struct rdma_dev_addr *dev_addr)
 {
 	return ((u16)dev_addr->broadcast[8] << 8) | (u16)dev_addr->broadcast[9];
 }
 
-static inline void ib_addr_set_pkey(struct rdma_dev_addr *dev_addr, u16 pkey)
+static inline void
+ib_addr_set_pkey(struct rdma_dev_addr *dev_addr, u16 pkey)
 {
 	dev_addr->broadcast[8] = pkey >> 8;
-	dev_addr->broadcast[9] = (unsigned char) pkey;
+	dev_addr->broadcast[9] = (unsigned char)pkey;
 }
 
-static inline void ib_addr_get_mgid(struct rdma_dev_addr *dev_addr,
-				    union ib_gid *gid)
+static inline void
+ib_addr_get_mgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
 	memcpy(gid, dev_addr->broadcast + 4, sizeof *gid);
 }
 
-static inline int rdma_addr_gid_offset(struct rdma_dev_addr *dev_addr)
+static inline int
+rdma_addr_gid_offset(struct rdma_dev_addr *dev_addr)
 {
 	return dev_addr->dev_type == ARPHRD_INFINIBAND ? 4 : 0;
 }
 
-static inline u16 rdma_vlan_dev_vlan_id(if_t dev)
+static inline u16
+rdma_vlan_dev_vlan_id(if_t dev)
 {
 	uint16_t tag;
 
 	if (if_gettype(dev) == IFT_ETHER && if_getpcp(dev) != IFNET_PCP_NONE)
-		return 0x0000;	/* prio-tagged traffic */
+		return 0x0000; /* prio-tagged traffic */
 	if (VLAN_TAG(__DECONST(if_t, dev), &tag) != 0)
 		return 0xffff;
 	return tag;
 }
 
-static inline int rdma_ip2gid(const struct sockaddr *addr, union ib_gid *gid)
+static inline int
+rdma_ip2gid(const struct sockaddr *addr, union ib_gid *gid)
 {
 	switch (addr->sa_family) {
 	case AF_INET:
-		ipv6_addr_set_v4mapped(((const struct sockaddr_in *)
-					addr)->sin_addr.s_addr,
-				       (struct in6_addr *)gid);
+		ipv6_addr_set_v4mapped(
+		    ((const struct sockaddr_in *)addr)->sin_addr.s_addr,
+		    (struct in6_addr *)gid);
 		break;
 	case AF_INET6:
-		memcpy(gid->raw, &((const struct sockaddr_in6 *)addr)->sin6_addr, 16);
+		memcpy(gid->raw,
+		    &((const struct sockaddr_in6 *)addr)->sin6_addr, 16);
 		/* make sure scope ID gets zeroed inside GID */
 		if (IN6_IS_SCOPE_LINKLOCAL((struct in6_addr *)gid->raw) ||
 		    IN6_IS_ADDR_MC_INTFACELOCAL((struct in6_addr *)gid->raw)) {
@@ -209,7 +211,8 @@ static inline int rdma_ip2gid(const struct sockaddr *addr, union ib_gid *gid)
 }
 
 /* Important - sockaddr should be a union of sockaddr_in and sockaddr_in6 */
-static inline void rdma_gid2ip(struct sockaddr *out, const union ib_gid *gid)
+static inline void
+rdma_gid2ip(struct sockaddr *out, const union ib_gid *gid)
 {
 	if (ipv6_addr_v4mapped((const struct in6_addr *)gid)) {
 		struct sockaddr_in *out_in = (struct sockaddr_in *)out;
@@ -229,14 +232,14 @@ static inline void rdma_gid2ip(struct sockaddr *out, const union ib_gid *gid)
 static u_int
 _iboe_addr_get_sgid_ia_cb(void *arg, struct ifaddr *ifa, u_int count __unused)
 {
-	ipv6_addr_set_v4mapped(((struct sockaddr_in *)
-			       ifa->ifa_addr)->sin_addr.s_addr,
-			       (struct in6_addr *)arg);
+	ipv6_addr_set_v4mapped(
+	    ((struct sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr,
+	    (struct in6_addr *)arg);
 	return (0);
 }
 
-static inline void iboe_addr_get_sgid(struct rdma_dev_addr *dev_addr,
-				      union ib_gid *gid)
+static inline void
+iboe_addr_get_sgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
 	if_t dev;
 
@@ -246,38 +249,47 @@ static inline void iboe_addr_get_sgid(struct rdma_dev_addr *dev_addr,
 #endif
 	dev = dev_get_by_index(dev_addr->net, dev_addr->bound_dev_if);
 	if (dev) {
-		if_foreach_addr_type(dev, AF_INET,
-				     _iboe_addr_get_sgid_ia_cb, gid);
+		if_foreach_addr_type(dev, AF_INET, _iboe_addr_get_sgid_ia_cb,
+		    gid);
 		dev_put(dev);
 	}
 }
 
-static inline void rdma_addr_get_sgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
+static inline void
+rdma_addr_get_sgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
 	if (dev_addr->transport == RDMA_TRANSPORT_IB &&
 	    dev_addr->dev_type != ARPHRD_INFINIBAND)
 		iboe_addr_get_sgid(dev_addr, gid);
 	else
-		memcpy(gid, dev_addr->src_dev_addr +
-		       rdma_addr_gid_offset(dev_addr), sizeof *gid);
+		memcpy(gid,
+		    dev_addr->src_dev_addr + rdma_addr_gid_offset(dev_addr),
+		    sizeof *gid);
 }
 
-static inline void rdma_addr_set_sgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
+static inline void
+rdma_addr_set_sgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
-	memcpy(dev_addr->src_dev_addr + rdma_addr_gid_offset(dev_addr), gid, sizeof *gid);
+	memcpy(dev_addr->src_dev_addr + rdma_addr_gid_offset(dev_addr), gid,
+	    sizeof *gid);
 }
 
-static inline void rdma_addr_get_dgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
+static inline void
+rdma_addr_get_dgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
-	memcpy(gid, dev_addr->dst_dev_addr + rdma_addr_gid_offset(dev_addr), sizeof *gid);
+	memcpy(gid, dev_addr->dst_dev_addr + rdma_addr_gid_offset(dev_addr),
+	    sizeof *gid);
 }
 
-static inline void rdma_addr_set_dgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
+static inline void
+rdma_addr_set_dgid(struct rdma_dev_addr *dev_addr, union ib_gid *gid)
 {
-	memcpy(dev_addr->dst_dev_addr + rdma_addr_gid_offset(dev_addr), gid, sizeof *gid);
+	memcpy(dev_addr->dst_dev_addr + rdma_addr_gid_offset(dev_addr), gid,
+	    sizeof *gid);
 }
 
-static inline enum ib_mtu iboe_get_mtu(int mtu)
+static inline enum ib_mtu
+iboe_get_mtu(int mtu)
 {
 	/*
 	 * reduce IB headers from effective IBoE MTU. 28 stands for
@@ -299,7 +311,8 @@ static inline enum ib_mtu iboe_get_mtu(int mtu)
 		return 0;
 }
 
-static inline int iboe_get_rate(if_t dev)
+static inline int
+iboe_get_rate(if_t dev)
 {
 	uint64_t baudrate = if_getbaudrate(dev);
 #ifdef if_baudrate_pf
@@ -319,23 +332,25 @@ static inline int iboe_get_rate(if_t dev)
 		return IB_RATE_PORT_CURRENT;
 }
 
-static inline int rdma_link_local_addr(struct in6_addr *addr)
+static inline int
+rdma_link_local_addr(struct in6_addr *addr)
 {
-	if (addr->s6_addr32[0] == htonl(0xfe800000) &&
-	    addr->s6_addr32[1] == 0)
+	if (addr->s6_addr32[0] == htonl(0xfe800000) && addr->s6_addr32[1] == 0)
 		return 1;
 
 	return 0;
 }
 
-static inline void rdma_get_ll_mac(struct in6_addr *addr, u8 *mac)
+static inline void
+rdma_get_ll_mac(struct in6_addr *addr, u8 *mac)
 {
 	memcpy(mac, &addr->s6_addr[8], 3);
 	memcpy(mac + 3, &addr->s6_addr[13], 3);
 	mac[0] ^= 2;
 }
 
-static inline int rdma_is_multicast_addr(struct in6_addr *addr)
+static inline int
+rdma_is_multicast_addr(struct in6_addr *addr)
 {
 	__be32 ipv4_addr;
 
@@ -346,7 +361,8 @@ static inline int rdma_is_multicast_addr(struct in6_addr *addr)
 	return (ipv6_addr_v4mapped(addr) && ipv4_is_multicast(ipv4_addr));
 }
 
-static inline void rdma_get_mcast_mac(struct in6_addr *addr, u8 *mac)
+static inline void
+rdma_get_mcast_mac(struct in6_addr *addr, u8 *mac)
 {
 	int i;
 
@@ -356,7 +372,8 @@ static inline void rdma_get_mcast_mac(struct in6_addr *addr, u8 *mac)
 		mac[i] = addr->s6_addr[i + 10];
 }
 
-static inline u16 rdma_get_vlan_id(union ib_gid *dgid)
+static inline u16
+rdma_get_vlan_id(union ib_gid *dgid)
 {
 	u16 vid;
 
@@ -364,13 +381,14 @@ static inline u16 rdma_get_vlan_id(union ib_gid *dgid)
 	return vid < 0x1000 ? vid : 0xffff;
 }
 
-static inline if_t rdma_vlan_dev_real_dev(if_t dev)
+static inline if_t
+rdma_vlan_dev_real_dev(if_t dev)
 {
 	struct epoch_tracker et;
 
 	NET_EPOCH_ENTER(et);
 	if (if_gettype(dev) != IFT_ETHER || if_getpcp(dev) == IFNET_PCP_NONE)
-		dev = VLAN_TRUNKDEV(dev);	/* non prio-tagged traffic */
+		dev = VLAN_TRUNKDEV(dev); /* non prio-tagged traffic */
 	NET_EPOCH_EXIT(et);
 	return (dev);
 }

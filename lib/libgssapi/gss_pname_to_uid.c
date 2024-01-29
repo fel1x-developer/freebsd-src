@@ -27,8 +27,8 @@
  * SUCH DAMAGE.
  */
 
-#include <unistd.h>
 #include <gssapi/gssapi.h>
+#include <unistd.h>
 
 #include "mech_switch.h"
 #include "name.h"
@@ -38,7 +38,7 @@ OM_uint32
 gss_pname_to_uid(OM_uint32 *minor_status, const gss_name_t pname,
     const gss_OID mech, uid_t *uidp)
 {
-	struct _gss_name *name = (struct _gss_name *) pname;
+	struct _gss_name *name = (struct _gss_name *)pname;
 	struct _gss_mech_switch *m;
 	struct _gss_mechanism_name *mn;
 	OM_uint32 major_status;
@@ -61,8 +61,8 @@ gss_pname_to_uid(OM_uint32 *minor_status, const gss_name_t pname,
 		return (major_status);
 	}
 
-	major_status = (*m->gm_pname_to_uid)(minor_status, mn->gmn_name,
-	    mech, uidp);
+	major_status = (*m->gm_pname_to_uid)(minor_status, mn->gmn_name, mech,
+	    uidp);
 	if (major_status != GSS_S_COMPLETE)
 		_gss_mg_error(m, major_status, *minor_status);
 

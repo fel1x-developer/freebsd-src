@@ -45,10 +45,10 @@
 __RCSID("$NetBSD: ealloc.c,v 1.1.1.1 1999/11/19 04:30:56 mrg Exp $");
 #endif /* not lint */
 
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
 
 #include "ealloc.h"
 
@@ -75,7 +75,7 @@ emalloc(size_t len)
 
 	if ((p = malloc(len)) == NULL)
 		enomem();
-	return(p);
+	return (p);
 }
 
 /*
@@ -89,7 +89,7 @@ estrdup(const char *str)
 
 	if ((p = strdup(str)) == NULL)
 		enomem();
-	return(p);
+	return (p);
 }
 
 /*
@@ -101,7 +101,7 @@ erealloc(void *ptr, size_t size)
 {
 	if ((ptr = realloc(ptr, size)) == NULL)
 		enomem();
-	return(ptr);
+	return (ptr);
 }
 
 /*
@@ -111,9 +111,9 @@ erealloc(void *ptr, size_t size)
 void *
 ecalloc(size_t nmemb, size_t size)
 {
-	void	*ptr;
+	void *ptr;
 
 	if ((ptr = calloc(nmemb, size)) == NULL)
 		enomem();
-	return(ptr);
+	return (ptr);
 }

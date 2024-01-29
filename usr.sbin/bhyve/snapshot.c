@@ -46,43 +46,44 @@
 #ifndef WITHOUT_CAPSICUM
 #include <capsicum_helpers.h>
 #endif
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <sys/ioctl.h>
+
+#include <machine/vmm.h>
+
+#include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <signal.h>
-#include <unistd.h>
-#include <assert.h>
-#include <errno.h>
 #include <pthread.h>
 #include <pthread_np.h>
-#include <sysexits.h>
+#include <signal.h>
 #include <stdbool.h>
-#include <sys/ioctl.h>
-
-#include <machine/vmm.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <unistd.h>
 #ifndef WITHOUT_CAPSICUM
 #include <machine/vmm_dev.h>
 #endif
 #include <machine/vmm_snapshot.h>
+
 #include <vmmapi.h>
 
-#include "bhyverun.h"
 #include "acpi.h"
+#include "bhyverun.h"
 #ifdef __amd64__
 #include "amd64/atkbdc.h"
 #endif
+#include <libxo/xo.h>
+#include <ucl.h>
+
 #include "debug.h"
 #include "ipc.h"
 #include "mem.h"
 #include "pci_emul.h"
 #include "snapshot.h"
-
-#include <libxo/xo.h>
-#include <ucl.h>
 
 struct spinner_info {
 	const size_t *crtval;
@@ -95,44 +96,44 @@ extern int guest_ncpus;
 static struct winsize winsize;
 static sig_t old_winch_handler;
 
-#define	KB		(1024UL)
-#define	MB		(1024UL * KB)
-#define	GB		(1024UL * MB)
+#define KB (1024UL)
+#define MB (1024UL * KB)
+#define GB (1024UL * MB)
 
-#define	SNAPSHOT_CHUNK	(4 * MB)
-#define	PROG_BUF_SZ	(8192)
+#define SNAPSHOT_CHUNK (4 * MB)
+#define PROG_BUF_SZ (8192)
 
-#define	SNAPSHOT_BUFFER_SIZE (40 * MB)
+#define SNAPSHOT_BUFFER_SIZE (40 * MB)
 
-#define	JSON_KERNEL_ARR_KEY		"kern_structs"
-#define	JSON_DEV_ARR_KEY		"devices"
-#define	JSON_BASIC_METADATA_KEY 	"basic metadata"
-#define	JSON_SNAPSHOT_REQ_KEY		"device"
-#define	JSON_SIZE_KEY			"size"
-#define	JSON_FILE_OFFSET_KEY		"file_offset"
+#define JSON_KERNEL_ARR_KEY "kern_structs"
+#define JSON_DEV_ARR_KEY "devices"
+#define JSON_BASIC_METADATA_KEY "basic metadata"
+#define JSON_SNAPSHOT_REQ_KEY "device"
+#define JSON_SIZE_KEY "size"
+#define JSON_FILE_OFFSET_KEY "file_offset"
 
-#define	JSON_NCPUS_KEY			"ncpus"
-#define	JSON_VMNAME_KEY 		"vmname"
-#define	JSON_MEMSIZE_KEY		"memsize"
-#define	JSON_MEMFLAGS_KEY		"memflags"
+#define JSON_NCPUS_KEY "ncpus"
+#define JSON_VMNAME_KEY "vmname"
+#define JSON_MEMSIZE_KEY "memsize"
+#define JSON_MEMFLAGS_KEY "memflags"
 
-#define min(a,b)		\
-({				\
- __typeof__ (a) _a = (a);	\
- __typeof__ (b) _b = (b); 	\
- _a < _b ? _a : _b;       	\
- })
+#define min(a, b)                       \
+	({                              \
+		__typeof__(a) _a = (a); \
+		__typeof__(b) _b = (b); \
+		_a < _b ? _a : _b;      \
+	})
 
 static const struct vm_snapshot_kern_info snapshot_kern_structs[] = {
-	{ "vhpet",	STRUCT_VHPET	},
-	{ "vm",		STRUCT_VM	},
-	{ "vioapic",	STRUCT_VIOAPIC	},
-	{ "vlapic",	STRUCT_VLAPIC	},
-	{ "vmcx",	STRUCT_VMCX	},
-	{ "vatpit",	STRUCT_VATPIT	},
-	{ "vatpic",	STRUCT_VATPIC	},
-	{ "vpmtmr",	STRUCT_VPMTMR	},
-	{ "vrtc",	STRUCT_VRTC	},
+	{ "vhpet", STRUCT_VHPET },
+	{ "vm", STRUCT_VM },
+	{ "vioapic", STRUCT_VIOAPIC },
+	{ "vlapic", STRUCT_VLAPIC },
+	{ "vmcx", STRUCT_VMCX },
+	{ "vatpit", STRUCT_VATPIT },
+	{ "vatpic", STRUCT_VATPIC },
+	{ "vpmtmr", STRUCT_VPMTMR },
+	{ "vrtc", STRUCT_VRTC },
 };
 
 static cpuset_t vcpus_active, vcpus_suspended;
@@ -251,8 +252,8 @@ load_kdata_file(const char *filename, struct restore_state *rstate)
 	}
 
 	rstate->kdata_len = sb.st_size;
-	rstate->kdata_map = mmap(NULL, rstate->kdata_len, PROT_READ,
-				 MAP_SHARED, rstate->kdata_fd, 0);
+	rstate->kdata_map = mmap(NULL, rstate->kdata_len, PROT_READ, MAP_SHARED,
+	    rstate->kdata_fd, 0);
 	if (rstate->kdata_map == MAP_FAILED) {
 		perror("Failed to map restore file");
 		goto err_load_kdata;
@@ -283,7 +284,7 @@ load_metadata_file(const char *filename, struct restore_state *rstate)
 	err = ucl_parser_add_file(parser, filename);
 	if (err == 0) {
 		fprintf(stderr, "Failed to parse metadata file: '%s'\n",
-			filename);
+		    filename);
 		err = -1;
 		goto err_load_metadata;
 	}
@@ -338,7 +339,8 @@ load_restore_file(const char *filename, struct restore_state *rstate)
 
 	meta_filename = strcat_extension(filename, ".meta");
 	if (meta_filename == NULL) {
-		fprintf(stderr, "Failed to construct kernel metadata filename.\n");
+		fprintf(stderr,
+		    "Failed to construct kernel metadata filename.\n");
 		goto err_restore;
 	}
 
@@ -359,52 +361,53 @@ err_restore:
 	return (-1);
 }
 
-#define JSON_GET_INT_OR_RETURN(key, obj, result_ptr, ret)			\
-do {										\
-	const ucl_object_t *obj__;						\
-	obj__ = ucl_object_lookup(obj, key);					\
-	if (obj__ == NULL) {							\
-		fprintf(stderr, "Missing key: '%s'", key);			\
-		return (ret);							\
-	}									\
-	if (!ucl_object_toint_safe(obj__, result_ptr)) {			\
-		fprintf(stderr, "Cannot convert '%s' value to int.", key);	\
-		return (ret);							\
-	}									\
-} while(0)
+#define JSON_GET_INT_OR_RETURN(key, obj, result_ptr, ret)                    \
+	do {                                                                 \
+		const ucl_object_t *obj__;                                   \
+		obj__ = ucl_object_lookup(obj, key);                         \
+		if (obj__ == NULL) {                                         \
+			fprintf(stderr, "Missing key: '%s'", key);           \
+			return (ret);                                        \
+		}                                                            \
+		if (!ucl_object_toint_safe(obj__, result_ptr)) {             \
+			fprintf(stderr, "Cannot convert '%s' value to int.", \
+			    key);                                            \
+			return (ret);                                        \
+		}                                                            \
+	} while (0)
 
-#define JSON_GET_STRING_OR_RETURN(key, obj, result_ptr, ret)			\
-do {										\
-	const ucl_object_t *obj__;						\
-	obj__ = ucl_object_lookup(obj, key);					\
-	if (obj__ == NULL) {							\
-		fprintf(stderr, "Missing key: '%s'", key);			\
-		return (ret);							\
-	}									\
-	if (!ucl_object_tostring_safe(obj__, result_ptr)) {			\
-		fprintf(stderr, "Cannot convert '%s' value to string.", key);	\
-		return (ret);							\
-	}									\
-} while(0)
+#define JSON_GET_STRING_OR_RETURN(key, obj, result_ptr, ret)              \
+	do {                                                              \
+		const ucl_object_t *obj__;                                \
+		obj__ = ucl_object_lookup(obj, key);                      \
+		if (obj__ == NULL) {                                      \
+			fprintf(stderr, "Missing key: '%s'", key);        \
+			return (ret);                                     \
+		}                                                         \
+		if (!ucl_object_tostring_safe(obj__, result_ptr)) {       \
+			fprintf(stderr,                                   \
+			    "Cannot convert '%s' value to string.", key); \
+			return (ret);                                     \
+		}                                                         \
+	} while (0)
 
 static void *
 lookup_check_dev(const char *dev_name, struct restore_state *rstate,
-		 const ucl_object_t *obj, size_t *data_size)
+    const ucl_object_t *obj, size_t *data_size)
 {
 	const char *snapshot_req;
 	int64_t size, file_offset;
 
 	snapshot_req = NULL;
-	JSON_GET_STRING_OR_RETURN(JSON_SNAPSHOT_REQ_KEY, obj,
-				  &snapshot_req, NULL);
+	JSON_GET_STRING_OR_RETURN(JSON_SNAPSHOT_REQ_KEY, obj, &snapshot_req,
+	    NULL);
 	assert(snapshot_req != NULL);
 	if (!strcmp(snapshot_req, dev_name)) {
-		JSON_GET_INT_OR_RETURN(JSON_SIZE_KEY, obj,
-				       &size, NULL);
+		JSON_GET_INT_OR_RETURN(JSON_SIZE_KEY, obj, &size, NULL);
 		assert(size >= 0);
 
-		JSON_GET_INT_OR_RETURN(JSON_FILE_OFFSET_KEY, obj,
-				       &file_offset, NULL);
+		JSON_GET_INT_OR_RETURN(JSON_FILE_OFFSET_KEY, obj, &file_offset,
+		    NULL);
 		assert(file_offset >= 0);
 		assert((uint64_t)file_offset + size <= rstate->kdata_len);
 
@@ -426,13 +429,13 @@ lookup_dev(const char *dev_name, const char *key, struct restore_state *rstate,
 	devs = ucl_object_lookup(rstate->meta_root_obj, key);
 	if (devs == NULL) {
 		fprintf(stderr, "Failed to find '%s' object.\n",
-			JSON_DEV_ARR_KEY);
+		    JSON_DEV_ARR_KEY);
 		return (NULL);
 	}
 
 	if (ucl_object_type(devs) != UCL_ARRAY) {
 		fprintf(stderr, "Object '%s' is not an array.\n",
-			JSON_DEV_ARR_KEY);
+		    JSON_DEV_ARR_KEY);
 		return (NULL);
 	}
 
@@ -451,16 +454,16 @@ lookup_basic_metadata_object(struct restore_state *rstate)
 	const ucl_object_t *basic_meta_obj = NULL;
 
 	basic_meta_obj = ucl_object_lookup(rstate->meta_root_obj,
-					   JSON_BASIC_METADATA_KEY);
+	    JSON_BASIC_METADATA_KEY);
 	if (basic_meta_obj == NULL) {
 		fprintf(stderr, "Failed to find '%s' object.\n",
-			JSON_BASIC_METADATA_KEY);
+		    JSON_BASIC_METADATA_KEY);
 		return (NULL);
 	}
 
 	if (ucl_object_type(basic_meta_obj) != UCL_OBJECT) {
 		fprintf(stderr, "Object '%s' is not a JSON object.\n",
-		JSON_BASIC_METADATA_KEY);
+		    JSON_BASIC_METADATA_KEY);
 		return (NULL);
 	}
 
@@ -512,7 +515,6 @@ lookup_memsize(struct restore_state *rstate)
 
 	return ((size_t)memsize);
 }
-
 
 int
 lookup_guest_ncpus(struct restore_state *rstate)
@@ -572,8 +574,8 @@ print_progress(size_t crtval, const size_t maxval)
 		div_str = "KiB";
 	}
 
-	crtval_gb = (double) crtval / div;
-	maxval_gb = (double) maxval / div;
+	crtval_gb = (double)crtval / div;
+	maxval_gb = (double)maxval / div;
 
 	rc = snprintf(prog_buf, len, "%.03lf", maxval_gb);
 	if (rc == len) {
@@ -582,8 +584,8 @@ print_progress(size_t crtval, const size_t maxval)
 	}
 	mval_len = rc;
 
-	rc = snprintf(prog_buf, len, "\r[%*.03lf%s / %.03lf%s] |",
-		mval_len, crtval_gb, div_str, maxval_gb, div_str);
+	rc = snprintf(prog_buf, len, "\r[%*.03lf%s / %.03lf%s] |", mval_len,
+	    crtval_gb, div_str, maxval_gb, div_str);
 
 	if (rc == len) {
 		fprintf(stderr, "Buffer too small to print progress\n");
@@ -655,7 +657,7 @@ snapshot_spinner_cb(void *arg)
 
 static int
 vm_snapshot_mem_part(const int snapfd, const size_t foff, void *src,
-		     const size_t len, const size_t totalmem, const bool op_wr)
+    const size_t len, const size_t totalmem, const bool op_wr)
 {
 	int rc;
 	size_t part_done, todo, rem;
@@ -677,11 +679,9 @@ vm_snapshot_mem_part(const int snapfd, const size_t foff, void *src,
 	rem = len;
 
 	if (show_progress) {
-		si = &(struct spinner_info) {
-			.crtval = &part_done,
+		si = &(struct spinner_info) { .crtval = &part_done,
 			.maxval = foff + len,
-			.total = totalmem
-		};
+			.total = totalmem };
 
 		rc = pthread_create(&spinner_th, 0, snapshot_spinner_cb, si);
 		if (rc) {
@@ -729,14 +729,14 @@ vm_snapshot_mem(struct vmctx *ctx, int snapfd, size_t memsz, const bool op_wr)
 	ret = vm_get_guestmem_from_ctx(ctx, &baseaddr, &lowmem, &highmem);
 	if (ret) {
 		fprintf(stderr, "%s: unable to retrieve guest memory size\r\n",
-			__func__);
+		    __func__);
 		return (0);
 	}
 	totalmem = lowmem + highmem;
 
 	if ((op_wr == false) && (totalmem != memsz)) {
 		fprintf(stderr, "%s: mem size mismatch: %ld vs %ld\r\n",
-			__func__, totalmem, memsz);
+		    __func__, totalmem, memsz);
 		return (0);
 	}
 
@@ -746,11 +746,11 @@ vm_snapshot_mem(struct vmctx *ctx, int snapfd, size_t memsz, const bool op_wr)
 #endif /* TIOCGWINSZ */
 	old_winch_handler = signal(SIGWINCH, winch_handler);
 
-	ret = vm_snapshot_mem_part(snapfd, 0, baseaddr, lowmem,
-		totalmem, op_wr);
+	ret = vm_snapshot_mem_part(snapfd, 0, baseaddr, lowmem, totalmem,
+	    op_wr);
 	if (ret) {
-		fprintf(stderr, "%s: Could not %s lowmem\r\n",
-			__func__, op_wr ? "write" : "read");
+		fprintf(stderr, "%s: Could not %s lowmem\r\n", __func__,
+		    op_wr ? "write" : "read");
 		totalmem = 0;
 		goto done;
 	}
@@ -758,11 +758,11 @@ vm_snapshot_mem(struct vmctx *ctx, int snapfd, size_t memsz, const bool op_wr)
 	if (highmem == 0)
 		goto done;
 
-	ret = vm_snapshot_mem_part(snapfd, lowmem, baseaddr + 4*GB,
-		highmem, totalmem, op_wr);
+	ret = vm_snapshot_mem_part(snapfd, lowmem, baseaddr + 4 * GB, highmem,
+	    totalmem, op_wr);
 	if (ret) {
-		fprintf(stderr, "%s: Could not %s highmem\r\n",
-		        __func__, op_wr ? "write" : "read");
+		fprintf(stderr, "%s: Could not %s highmem\r\n", __func__,
+		    op_wr ? "write" : "read");
 		totalmem = 0;
 		goto done;
 	}
@@ -780,7 +780,7 @@ restore_vm_mem(struct vmctx *ctx, struct restore_state *rstate)
 	size_t restored;
 
 	restored = vm_snapshot_mem(ctx, rstate->vmmem_fd, rstate->vmmem_len,
-				   false);
+	    false);
 
 	if (restored != rstate->vmmem_len)
 		return (-1);
@@ -798,7 +798,8 @@ vm_restore_kern_structs(struct vmctx *ctx, struct restore_state *rstate)
 		size_t size;
 
 		info = &snapshot_kern_structs[i];
-		data = lookup_dev(info->struct_name, JSON_KERNEL_ARR_KEY, rstate, &size);
+		data = lookup_dev(info->struct_name, JSON_KERNEL_ARR_KEY,
+		    rstate, &size);
 		if (data == NULL)
 			errx(EX_DATAERR, "Cannot find kern struct %s",
 			    info->struct_name);
@@ -809,7 +810,7 @@ vm_restore_kern_structs(struct vmctx *ctx, struct restore_state *rstate)
 
 		meta = &(struct vm_snapshot_meta) {
 			.dev_name = info->struct_name,
-			.dev_req  = info->req,
+			.dev_req = info->req,
 
 			.buffer.buf_start = data,
 			.buffer.buf_size = size,
@@ -877,7 +878,8 @@ vm_restore_devices(struct restore_state *rstate)
 	struct pci_devinst *pdi = NULL;
 
 	while ((pdi = pci_next(pdi)) != NULL) {
-		ret = vm_restore_device(rstate, pci_snapshot, pdi->pi_name, pdi);
+		ret = vm_restore_device(rstate, pci_snapshot, pdi->pi_name,
+		    pdi);
 		if (ret)
 			return (ret);
 	}
@@ -935,7 +937,7 @@ vm_save_kern_struct(struct vmctx *ctx, int data_fd, xo_handle_t *xop,
 	ret = vm_snapshot_req(ctx, meta);
 	if (ret != 0) {
 		fprintf(stderr, "%s: Failed to snapshot struct %s\r\n",
-			__func__, meta->dev_name);
+		    __func__, meta->dev_name);
 		ret = -1;
 		goto done;
 	}
@@ -952,8 +954,7 @@ vm_save_kern_struct(struct vmctx *ctx, int data_fd, xo_handle_t *xop,
 
 	/* Write metadata. */
 	xo_open_instance_h(xop, array_key);
-	xo_emit_h(xop, "{:" JSON_SNAPSHOT_REQ_KEY "/%s}\n",
-	    meta->dev_name);
+	xo_emit_h(xop, "{:" JSON_SNAPSHOT_REQ_KEY "/%s}\n", meta->dev_name);
 	xo_emit_h(xop, "{:" JSON_SIZE_KEY "/%lu}\n", data_size);
 	xo_emit_h(xop, "{:" JSON_FILE_OFFSET_KEY "/%lu}\n", *offset);
 	xo_close_instance_h(xop, JSON_KERNEL_ARR_KEY);
@@ -993,14 +994,14 @@ vm_save_kern_structs(struct vmctx *ctx, int data_fd, xo_handle_t *xop)
 	xo_open_list_h(xop, JSON_KERNEL_ARR_KEY);
 	for (i = 0; i < nitems(snapshot_kern_structs); i++) {
 		meta->dev_name = snapshot_kern_structs[i].struct_name;
-		meta->dev_req  = snapshot_kern_structs[i].req;
+		meta->dev_req = snapshot_kern_structs[i].req;
 
 		memset(meta->buffer.buf_start, 0, meta->buffer.buf_size);
 		meta->buffer.buf = meta->buffer.buf_start;
 		meta->buffer.buf_rem = meta->buffer.buf_size;
 
-		ret = vm_save_kern_struct(ctx, data_fd, xop,
-		    JSON_DEV_ARR_KEY, meta, &offset);
+		ret = vm_save_kern_struct(ctx, data_fd, xop, JSON_DEV_ARR_KEY,
+		    meta, &offset);
 		if (ret != 0) {
 			error = -1;
 			goto err_vm_snapshot_kern_data;
@@ -1030,7 +1031,7 @@ vm_snapshot_basic_metadata(struct vmctx *ctx, xo_handle_t *xop, size_t memsz)
 
 static int
 vm_snapshot_dev_write_data(int data_fd, xo_handle_t *xop, const char *array_key,
-			   struct vm_snapshot_meta *meta, off_t *offset)
+    struct vm_snapshot_meta *meta, off_t *offset)
 {
 	ssize_t ret;
 	size_t data_size;
@@ -1057,9 +1058,8 @@ vm_snapshot_dev_write_data(int data_fd, xo_handle_t *xop, const char *array_key,
 }
 
 static int
-vm_snapshot_device(vm_snapshot_dev_cb func, const char *dev_name,
-    void *devdata, int data_fd, xo_handle_t *xop,
-    struct vm_snapshot_meta *meta, off_t *offset)
+vm_snapshot_device(vm_snapshot_dev_cb func, const char *dev_name, void *devdata,
+    int data_fd, xo_handle_t *xop, struct vm_snapshot_meta *meta, off_t *offset)
 {
 	int ret;
 
@@ -1076,7 +1076,7 @@ vm_snapshot_device(vm_snapshot_dev_cb func, const char *dev_name,
 	}
 
 	ret = vm_snapshot_dev_write_data(data_fd, xop, JSON_DEV_ARR_KEY, meta,
-					 offset);
+	    offset);
 	if (ret != 0)
 		return (ret);
 
@@ -1127,8 +1127,8 @@ vm_snapshot_devices(int data_fd, xo_handle_t *xop)
 	}
 
 #ifdef __amd64__
-	ret = vm_snapshot_device(atkbdc_snapshot, "atkbdc", NULL,
-	    data_fd, xop, meta, &offset);
+	ret = vm_snapshot_device(atkbdc_snapshot, "atkbdc", NULL, data_fd, xop,
+	    meta, &offset);
 #else
 	ret = 0;
 #endif
@@ -1231,14 +1231,16 @@ vm_checkpoint(struct vmctx *ctx, int fddir, const char *checkpoint_file,
 		return (-1);
 	}
 
-	kdata_fd = openat(fddir, kdata_filename, O_WRONLY | O_CREAT | O_TRUNC, 0700);
+	kdata_fd = openat(fddir, kdata_filename, O_WRONLY | O_CREAT | O_TRUNC,
+	    0700);
 	if (kdata_fd < 0) {
 		perror("Failed to open kernel data snapshot file.");
 		error = -1;
 		goto done;
 	}
 
-	fd_checkpoint = openat(fddir, checkpoint_file, O_RDWR | O_CREAT | O_TRUNC, 0700);
+	fd_checkpoint = openat(fddir, checkpoint_file,
+	    O_RDWR | O_CREAT | O_TRUNC, 0700);
 
 	if (fd_checkpoint < 0) {
 		perror("Failed to create checkpoint file");
@@ -1252,7 +1254,8 @@ vm_checkpoint(struct vmctx *ctx, int fddir, const char *checkpoint_file,
 		goto done;
 	}
 
-	fd_meta = openat(fddir, meta_filename, O_WRONLY | O_CREAT | O_TRUNC, 0700);
+	fd_meta = openat(fddir, meta_filename, O_WRONLY | O_CREAT | O_TRUNC,
+	    0700);
 	if (fd_meta != -1)
 		meta_file = fdopen(fd_meta, "w");
 	if (meta_file == NULL) {
@@ -1341,7 +1344,8 @@ handle_message(struct vmctx *ctx, nvlist_t *nvl)
 		return (EINVAL);
 
 	cmd = nvlist_get_string(nvl, "cmd");
-	IPC_COMMAND_FOREACH(ipc_cmd, ipc_cmd_set) {
+	IPC_COMMAND_FOREACH(ipc_cmd, ipc_cmd_set)
+	{
 		if (strcmp(cmd, (*ipc_cmd)->name) == 0)
 			return ((*ipc_cmd)->handler(ctx, nvl));
 	}
@@ -1386,8 +1390,7 @@ vm_do_checkpoint(struct vmctx *ctx, const nvlist_t *nvl)
 	    !nvlist_exists_descriptor(nvl, "fddir"))
 		error = EINVAL;
 	else
-		error = vm_checkpoint(ctx,
-		    nvlist_get_descriptor(nvl, "fddir"),
+		error = vm_checkpoint(ctx, nvlist_get_descriptor(nvl, "fddir"),
 		    nvlist_get_string(nvl, "filename"),
 		    nvlist_get_bool(nvl, "suspend"));
 
@@ -1421,14 +1424,14 @@ init_checkpoint_thread(struct vmctx *ctx)
 
 	addr.sun_family = AF_UNIX;
 
-	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s%s",
-		 BHYVE_RUN_DIR, vm_get_name(ctx));
+	snprintf(addr.sun_path, sizeof(addr.sun_path), "%s%s", BHYVE_RUN_DIR,
+	    vm_get_name(ctx));
 	addr.sun_len = SUN_LEN(&addr);
 	unlink(addr.sun_path);
 
 	if (bind(socket_fd, (struct sockaddr *)&addr, addr.sun_len) != 0) {
-		EPRINTLN("Failed to bind socket \"%s\": %s\n",
-		    addr.sun_path, strerror(errno));
+		EPRINTLN("Failed to bind socket \"%s\": %s\n", addr.sun_path,
+		    strerror(errno));
 		err = -1;
 		goto fail;
 	}
@@ -1451,7 +1454,7 @@ init_checkpoint_thread(struct vmctx *ctx)
 	checkpoint_info->socket_fd = socket_fd;
 
 	err = pthread_create(&checkpoint_pthread, NULL, checkpoint_thread,
-		checkpoint_info);
+	    checkpoint_info);
 	if (err != 0)
 		goto fail;
 
@@ -1477,8 +1480,8 @@ vm_snapshot_buf_err(const char *bufname, const enum vm_snapshot_op op)
 	else
 		__op = "unknown";
 
-	fprintf(stderr, "%s: snapshot-%s failed for %s\r\n",
-		__func__, __op, bufname);
+	fprintf(stderr, "%s: snapshot-%s failed for %s\r\n", __func__, __op,
+	    bufname);
 }
 
 int
@@ -1518,7 +1521,7 @@ vm_get_snapshot_size(struct vm_snapshot_meta *meta)
 
 	if (buffer->buf_size < buffer->buf_rem) {
 		fprintf(stderr, "%s: Invalid buffer: size = %zu, rem = %zu\r\n",
-			__func__, buffer->buf_size, buffer->buf_rem);
+		    __func__, buffer->buf_size, buffer->buf_rem);
 		length = 0;
 	} else {
 		length = buffer->buf_size - buffer->buf_rem;
@@ -1536,7 +1539,7 @@ vm_snapshot_guest2host_addr(struct vmctx *ctx, void **addrp, size_t len,
 
 	if (meta->op == VM_SNAPSHOT_SAVE) {
 		gaddr = paddr_host2guest(ctx, *addrp);
-		if (gaddr == (vm_paddr_t) -1) {
+		if (gaddr == (vm_paddr_t)-1) {
 			if (!restore_null ||
 			    (restore_null && (*addrp != NULL))) {
 				ret = EFAULT;
@@ -1547,7 +1550,7 @@ vm_snapshot_guest2host_addr(struct vmctx *ctx, void **addrp, size_t len,
 		SNAPSHOT_VAR_OR_LEAVE(gaddr, meta, ret, done);
 	} else if (meta->op == VM_SNAPSHOT_RESTORE) {
 		SNAPSHOT_VAR_OR_LEAVE(gaddr, meta, ret, done);
-		if (gaddr == (vm_paddr_t) -1) {
+		if (gaddr == (vm_paddr_t)-1) {
 			if (!restore_null) {
 				ret = EFAULT;
 				goto done;

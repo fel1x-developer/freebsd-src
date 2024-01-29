@@ -29,12 +29,14 @@
 
 #include <sys/param.h>
 #include <sys/sysctl.h>
+
 #include <errno.h>
 #include <link.h>
 #include <signal.h>
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+
 #include "libc_private.h"
 
 /*
@@ -45,14 +47,13 @@
  * in constructors that would be adversely affected by their positioning with
  * respect to this initialization.
  */
-static void __guard_setup(void)
-    __attribute__((__constructor__ (200), __used__));
+static void __guard_setup(void) __attribute__((__constructor__(200), __used__));
 
 extern long __stack_chk_guard[8];
-extern int __sysctl(const int *name, u_int namelen, void *oldp,
-    size_t *oldlenp, void *newp, size_t newlen);
+extern int __sysctl(const int *name, u_int namelen, void *oldp, size_t *oldlenp,
+    void *newp, size_t newlen);
 
-long __stack_chk_guard[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+long __stack_chk_guard[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 static void __fail(const char *) __dead2;
 void __stack_chk_fail(void) __dead2;
 void __chk_fail(void) __dead2;
@@ -87,7 +88,8 @@ __guard_setup(void)
 
 	len = sizeof(__stack_chk_guard);
 	if (__sysctl(mib, nitems(mib), __stack_chk_guard, &len, NULL, 0) ==
-	    -1 || len != sizeof(__stack_chk_guard)) {
+		-1 ||
+	    len != sizeof(__stack_chk_guard)) {
 		/* If sysctl was unsuccessful, use the "terminator canary". */
 		((unsigned char *)(void *)__stack_chk_guard)[0] = 0;
 		((unsigned char *)(void *)__stack_chk_guard)[1] = 0;

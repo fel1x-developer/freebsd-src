@@ -40,5 +40,5 @@ yyerror(const char *msg)
 {
 
 	fprintf(stderr, "%s\n", msg);
-	return(0);
+	return (0);
 }

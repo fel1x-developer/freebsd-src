@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__IP17X_VLANS_H__
-#define	__IP17X_VLANS_H__
+#ifndef __IP17X_VLANS_H__
+#define __IP17X_VLANS_H__
 
 int ip17x_reset_vlans(struct ip17x_softc *, uint32_t);
 int ip17x_getvgroup(device_t, etherswitch_vlangroup_t *);
 int ip17x_setvgroup(device_t, etherswitch_vlangroup_t *);
 
-#endif	/* __IP17X_VLANS_H__ */
+#endif /* __IP17X_VLANS_H__ */

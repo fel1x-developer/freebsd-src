@@ -71,7 +71,6 @@
  *       random locations within the list use instead the SCI_FAST_LIST.
  */
 
-
 //******************************************************************************
 //*
 //*     P U B L I C    M E T H O D S
@@ -82,27 +81,27 @@
  * Initialize the singely linked list anchor.  The other macros require the
  * list anchor to be properly initialized.
  */
-#define sci_simple_list_init(anchor) \
-{ \
-   (anchor)->list_head = NULL; \
-   (anchor)->list_tail = NULL; \
-   (anchor)->list_count = 0; \
-}
+#define sci_simple_list_init(anchor)        \
+	{                                   \
+		(anchor)->list_head = NULL; \
+		(anchor)->list_tail = NULL; \
+		(anchor)->list_count = 0;   \
+	}
 
 /**
  * Initialze the singely linked list element. The other macros require the
  * list element to be properly initialized.
  */
 #define sci_simple_list_element_init(list_object, element) \
-{ \
-   (element)->next = NULL; \
-   (element)->object = (list_object); \
-}
+	{                                                  \
+		(element)->next = NULL;                    \
+		(element)->object = (list_object);         \
+	}
 
 /**
  * See if there are any list elements on this list.
  */
-#define sci_simple_list_is_empty(anchor)  ((anchor)->list_head == NULL)
+#define sci_simple_list_is_empty(anchor) ((anchor)->list_head == NULL)
 
 /**
  * Return a pointer to the list element at the head of the list.  The list
@@ -132,7 +131,6 @@
  */
 #define sci_simple_list_get_object(element) ((element)->object)
 
-
 //******************************************************************************
 //*
 //*     T Y P E S
@@ -144,11 +142,10 @@
  *
  * @brief This structure defines the list owner for singely linked list.
  */
-typedef struct SCI_SIMPLE_LIST
-{
-   struct SCI_SIMPLE_LIST_ELEMENT *list_head;
-   struct SCI_SIMPLE_LIST_ELEMENT *list_tail;
-   U32                             list_count;
+typedef struct SCI_SIMPLE_LIST {
+	struct SCI_SIMPLE_LIST_ELEMENT *list_head;
+	struct SCI_SIMPLE_LIST_ELEMENT *list_tail;
+	U32 list_count;
 } SCI_SIMPLE_LIST_T;
 
 /**
@@ -156,10 +153,9 @@ typedef struct SCI_SIMPLE_LIST
  *
  * @brief This structure defines what a singely linked list element contains.
  */
-typedef struct SCI_SIMPLE_LIST_ELEMENT
-{
-   struct SCI_SIMPLE_LIST_ELEMENT *next;
-   void                           *object;
+typedef struct SCI_SIMPLE_LIST_ELEMENT {
+	struct SCI_SIMPLE_LIST_ELEMENT *next;
+	void *object;
 } SCI_SIMPLE_LIST_ELEMENT_T;
 
 /**
@@ -170,19 +166,17 @@ typedef struct SCI_SIMPLE_LIST_ELEMENT
  *       them to the tail of the list though both are O(1) operations.
  */
 INLINE
-static void sci_simple_list_insert_head(
-   SCI_SIMPLE_LIST_T * anchor,
-   SCI_SIMPLE_LIST_ELEMENT_T *element
-)
+static void
+sci_simple_list_insert_head(SCI_SIMPLE_LIST_T *anchor,
+    SCI_SIMPLE_LIST_ELEMENT_T *element)
 {
-   if (anchor->list_tail == NULL)
-   {
-      anchor->list_tail = element;
-   }
+	if (anchor->list_tail == NULL) {
+		anchor->list_tail = element;
+	}
 
-   element->next = anchor->list_head;
-   anchor->list_head = element;
-   anchor->list_count++;
+	element->next = anchor->list_head;
+	anchor->list_head = element;
+	anchor->list_count++;
 }
 
 /**
@@ -197,22 +191,18 @@ static void sci_simple_list_insert_head(
  *       them to the tail of the list though both are O(1) operations.
  */
 INLINE
-static void sci_simple_list_insert_tail(
-   SCI_SIMPLE_LIST_T * anchor,
-   SCI_SIMPLE_LIST_ELEMENT_T *element
-)
+static void
+sci_simple_list_insert_tail(SCI_SIMPLE_LIST_T *anchor,
+    SCI_SIMPLE_LIST_ELEMENT_T *element)
 {
-   if (anchor->list_tail == NULL)
-   {
-      anchor->list_head = element;
-   }
-   else
-   {
-      anchor->list_tail->next = element;
-   }
+	if (anchor->list_tail == NULL) {
+		anchor->list_head = element;
+	} else {
+		anchor->list_tail->next = element;
+	}
 
-   anchor->list_tail = element;
-   anchor->list_count++;
+	anchor->list_tail = element;
+	anchor->list_count++;
 }
 
 /**
@@ -225,27 +215,24 @@ static void sci_simple_list_insert_tail(
  * @return the list element at the head of the list.
  */
 INLINE
-static void * sci_simple_list_remove_head(
-   SCI_SIMPLE_LIST_T * anchor
-)
+static void *
+sci_simple_list_remove_head(SCI_SIMPLE_LIST_T *anchor)
 {
-   void * object = NULL;
+	void *object = NULL;
 
-   if (anchor->list_head != NULL)
-   {
-      object = anchor->list_head->object;
+	if (anchor->list_head != NULL) {
+		object = anchor->list_head->object;
 
-      anchor->list_head = anchor->list_head->next;
+		anchor->list_head = anchor->list_head->next;
 
-      if (anchor->list_head == NULL)
-      {
-         anchor->list_tail = NULL;
-      }
+		if (anchor->list_head == NULL) {
+			anchor->list_tail = NULL;
+		}
 
-      anchor->list_count--;
-   }
+		anchor->list_count--;
+	}
 
-   return object;
+	return object;
 }
 
 /**
@@ -264,14 +251,13 @@ static void * sci_simple_list_remove_head(
  *       or tail routines instead.
  */
 INLINE
-static void sci_simple_list_move_list(
-   SCI_SIMPLE_LIST_T * dest_anchor,
-   SCI_SIMPLE_LIST_T * source_anchor
-)
+static void
+sci_simple_list_move_list(SCI_SIMPLE_LIST_T *dest_anchor,
+    SCI_SIMPLE_LIST_T *source_anchor)
 {
-   *dest_anchor = *source_anchor;
+	*dest_anchor = *source_anchor;
 
-   sci_simple_list_init(source_anchor);
+	sci_simple_list_init(source_anchor);
 }
 
 /**
@@ -285,29 +271,24 @@ static void sci_simple_list_move_list(
  *                 destination list.  This list will be empty on return.
  */
 INLINE
-static void sci_simple_list_insert_list_at_head(
-   SCI_SIMPLE_LIST_T * dest_anchor,
-   SCI_SIMPLE_LIST_T * source_anchor
-)
+static void
+sci_simple_list_insert_list_at_head(SCI_SIMPLE_LIST_T *dest_anchor,
+    SCI_SIMPLE_LIST_T *source_anchor)
 {
-   if (!sci_simple_list_is_empty(source_anchor))
-   {
-      if (sci_simple_list_is_empty(dest_anchor))
-      {
-         // Destination is empty just copy the source on over
-         *dest_anchor = *source_anchor;
-      }
-      else
-      {
-         source_anchor->list_tail->next = dest_anchor->list_head;
-         dest_anchor->list_head = source_anchor->list_head;
-         dest_anchor->list_count += source_anchor->list_count;
-      }
+	if (!sci_simple_list_is_empty(source_anchor)) {
+		if (sci_simple_list_is_empty(dest_anchor)) {
+			// Destination is empty just copy the source on over
+			*dest_anchor = *source_anchor;
+		} else {
+			source_anchor->list_tail->next = dest_anchor->list_head;
+			dest_anchor->list_head = source_anchor->list_head;
+			dest_anchor->list_count += source_anchor->list_count;
+		}
 
-      // Wipe the source list to make sure the list elements can not be accessed
-      // from two separate lists at the same time.
-      sci_simple_list_init(source_anchor);
-   }
+		// Wipe the source list to make sure the list elements can not
+		// be accessed from two separate lists at the same time.
+		sci_simple_list_init(source_anchor);
+	}
 }
 
 /**
@@ -321,30 +302,26 @@ static void sci_simple_list_insert_list_at_head(
  *                 destination list.  This list will be empty on return.
  */
 INLINE
-static void sci_simple_list_insert_list_at_tail(
-   SCI_SIMPLE_LIST_T * dest_anchor,
-   SCI_SIMPLE_LIST_T * source_anchor
-)
+static void
+sci_simple_list_insert_list_at_tail(SCI_SIMPLE_LIST_T *dest_anchor,
+    SCI_SIMPLE_LIST_T *source_anchor)
 {
-   if (!sci_simple_list_is_empty(source_anchor))
-   {
-      if (sci_simple_list_is_empty(dest_anchor))
-      {
-         // Destination is empty just copy the source on over
-         *dest_anchor = *source_anchor;
-      }
-      else
-      {
-         // If the source list is empty the desination list is the result.
-         dest_anchor->list_tail->next = source_anchor->list_head;
-         dest_anchor->list_tail = source_anchor->list_tail;
-         dest_anchor->list_count += source_anchor->list_count;
-      }
+	if (!sci_simple_list_is_empty(source_anchor)) {
+		if (sci_simple_list_is_empty(dest_anchor)) {
+			// Destination is empty just copy the source on over
+			*dest_anchor = *source_anchor;
+		} else {
+			// If the source list is empty the desination list is
+			// the result.
+			dest_anchor->list_tail->next = source_anchor->list_head;
+			dest_anchor->list_tail = source_anchor->list_tail;
+			dest_anchor->list_count += source_anchor->list_count;
+		}
 
-      // Wipe the source list to make sure the list elements can not be accessed
-      // from two separate lists at the same time.
-      sci_simple_list_init(source_anchor);
-   }
+		// Wipe the source list to make sure the list elements can not
+		// be accessed from two separate lists at the same time.
+		sci_simple_list_init(source_anchor);
+	}
 }
 
 #endif // _SCI_SIMPLE_LIST_HEADER_

@@ -41,6 +41,8 @@
 #include <sys/errno.h>
 #include <sys/stat.h>
 
+#include <machine/vmm.h>
+
 #include <err.h>
 #include <paths.h>
 #include <stdarg.h>
@@ -49,23 +51,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <machine/vmm.h>
 #include <vmmapi.h>
 
-#include "bhyverun.h"
 #include "acpi.h"
 #include "basl.h"
+#include "bhyverun.h"
 #include "pci_emul.h"
 #include "vmgenc.h"
 
-#define	BHYVE_ASL_TEMPLATE	"bhyve.XXXXXXX"
-#define BHYVE_ASL_SUFFIX	".aml"
-#define BHYVE_ASL_COMPILER	"/usr/sbin/iasl"
+#define BHYVE_ASL_TEMPLATE "bhyve.XXXXXXX"
+#define BHYVE_ASL_SUFFIX ".aml"
+#define BHYVE_ASL_COMPILER "/usr/sbin/iasl"
 
-#define BHYVE_ADDRESS_IOAPIC 	0xFEC00000
-#define BHYVE_ADDRESS_HPET 	0xFED00000
-#define BHYVE_ADDRESS_LAPIC 	0xFEE00000
+#define BHYVE_ADDRESS_IOAPIC 0xFEC00000
+#define BHYVE_ADDRESS_HPET 0xFED00000
+#define BHYVE_ADDRESS_LAPIC 0xFEE00000
 
 static int basl_keep_temps;
 static int basl_verbose_iasl;
@@ -86,16 +86,18 @@ static int dsdt_indent_level;
 static int dsdt_error;
 
 struct basl_fio {
-	int	fd;
-	FILE	*fp;
-	char	f_name[MAXPATHLEN];
+	int fd;
+	FILE *fp;
+	char f_name[MAXPATHLEN];
 };
 
-#define EFPRINTF(...) \
-	if (fprintf(__VA_ARGS__) < 0) goto err_exit
+#define EFPRINTF(...)                 \
+	if (fprintf(__VA_ARGS__) < 0) \
+	goto err_exit
 
-#define EFFLUSH(x) \
-	if (fflush(x) != 0) goto err_exit
+#define EFFLUSH(x)          \
+	if (fflush(x) != 0) \
+	goto err_exit
 
 /*
  * A list for additional ACPI devices like a TPM.
@@ -206,7 +208,7 @@ basl_fwrite_dsdt(FILE *fp)
 	dsdt_line(" * bhyve DSDT template");
 	dsdt_line(" */");
 	dsdt_line("DefinitionBlock (\"bhyve_dsdt.aml\", \"DSDT\", 2,"
-		 "\"BHYVE \", \"BVDSDT  \", 0x00000001)");
+		  "\"BHYVE \", \"BVDSDT  \", 0x00000001)");
 	dsdt_line("{");
 	dsdt_line("  Name (_S5, Package ()");
 	dsdt_line("  {");
@@ -237,7 +239,7 @@ basl_fwrite_dsdt(FILE *fp)
 	vmgenc_write_dsdt();
 
 	const struct acpi_device_list_entry *entry;
-	SLIST_FOREACH(entry, &acpi_devices, chain) {
+	SLIST_FOREACH (entry, &acpi_devices, chain) {
 		BASL_EXEC(acpi_device_write_dsdt(entry->dev));
 	}
 
@@ -346,7 +348,7 @@ static int
 basl_compile(struct vmctx *ctx, int (*fwrite_section)(FILE *))
 {
 	struct basl_fio io[2];
-	static char iaslbuf[3*MAXPATHLEN + 10];
+	static char iaslbuf[3 * MAXPATHLEN + 10];
 	const char *fmt;
 	int err;
 
@@ -363,13 +365,11 @@ basl_compile(struct vmctx *ctx, int (*fwrite_section)(FILE *))
 			 * purposes
 			 */
 			fmt = basl_verbose_iasl ?
-				"%s -p %s %s" :
-				"/bin/sh -c \"%s -p %s %s\" 1> /dev/null";
+			    "%s -p %s %s" :
+			    "/bin/sh -c \"%s -p %s %s\" 1> /dev/null";
 
-			snprintf(iaslbuf, sizeof(iaslbuf),
-				 fmt,
-				 BHYVE_ASL_COMPILER,
-				 io[1].f_name, io[0].f_name);
+			snprintf(iaslbuf, sizeof(iaslbuf), fmt,
+			    BHYVE_ASL_COMPILER, io[1].f_name, io[0].f_name);
 			err = system(iaslbuf);
 
 			if (!err) {
@@ -419,7 +419,7 @@ basl_make_templates(void)
 		 * len has been initialized (and maybe adjusted) above
 		 */
 		if ((len + sizeof(BHYVE_ASL_TEMPLATE) + 1 +
-		     sizeof(BHYVE_ASL_SUFFIX)) < MAXPATHLEN) {
+			sizeof(BHYVE_ASL_SUFFIX)) < MAXPATHLEN) {
 			strcpy(basl_stemplate, tmpdir);
 			basl_stemplate[len] = '/';
 			strcpy(&basl_stemplate[len + 1], BHYVE_ASL_TEMPLATE);
@@ -768,7 +768,7 @@ acpi_build(struct vmctx *ctx, int ncpu)
 
 	/* Build ACPI device-specific tables such as a TPM2 table. */
 	const struct acpi_device_list_entry *entry;
-	SLIST_FOREACH(entry, &acpi_devices, chain) {
+	SLIST_FOREACH (entry, &acpi_devices, chain) {
 		BASL_EXEC(acpi_device_build_table(entry->dev));
 	}
 

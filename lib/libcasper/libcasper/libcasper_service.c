@@ -36,9 +36,9 @@
  */
 
 #include <sys/types.h>
+#include <sys/nv.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/nv.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -52,15 +52,15 @@
 #include "zygote.h"
 
 struct casper_service {
-	struct service			*cs_service;
-	TAILQ_ENTRY(casper_service)	 cs_next;
+	struct service *cs_service;
+	TAILQ_ENTRY(casper_service) cs_next;
 };
 
-static TAILQ_HEAD(, casper_service) casper_services =
-    TAILQ_HEAD_INITIALIZER(casper_services);
+static TAILQ_HEAD(, casper_service) casper_services = TAILQ_HEAD_INITIALIZER(
+    casper_services);
 
-#define	CORE_CASPER_NAME		"core.casper"
-#define	CSERVICE_IS_CORE(service)	\
+#define CORE_CASPER_NAME "core.casper"
+#define CSERVICE_IS_CORE(service) \
 	(strcmp(service_name(service->cs_service), CORE_CASPER_NAME) == 0)
 
 static struct casper_service *
@@ -68,7 +68,7 @@ service_find(const char *name)
 {
 	struct casper_service *casserv;
 
-	TAILQ_FOREACH(casserv, &casper_services, cs_next) {
+	TAILQ_FOREACH (casserv, &casper_services, cs_next) {
 		if (strcmp(service_name(casserv->cs_service), name) == 0)
 			break;
 	}
@@ -77,7 +77,7 @@ service_find(const char *name)
 
 struct casper_service *
 service_register(const char *name, service_limit_func_t *limitfunc,
-   service_command_func_t *commandfunc, uint64_t flags)
+    service_command_func_t *commandfunc, uint64_t flags)
 {
 	struct casper_service *casserv;
 
@@ -239,13 +239,14 @@ casper_main_loop(int fd)
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
 		maxfd = -1;
-		TAILQ_FOREACH(casserv, &casper_services, cs_next) {
+		TAILQ_FOREACH (casserv, &casper_services, cs_next) {
 			/* We handle only core services. */
 			if (!CSERVICE_IS_CORE(casserv))
 				continue;
-			for (sconn = service_connection_first(casserv->cs_service);
-			    sconn != NULL;
-			    sconn = service_connection_next(sconn)) {
+			for (sconn =
+				 service_connection_first(casserv->cs_service);
+			     sconn != NULL;
+			     sconn = service_connection_next(sconn)) {
 				sock = service_connection_get_sock(sconn);
 				FD_SET(sock, &fds);
 				maxfd = sock > maxfd ? sock : maxfd;
@@ -257,22 +258,22 @@ casper_main_loop(int fd)
 		}
 		maxfd++;
 
-
 		assert(maxfd <= (int)FD_SETSIZE);
 		ret = select(maxfd, &fds, NULL, NULL, NULL);
-		assert(ret == -1 || ret > 0);	/* select() cannot timeout */
+		assert(ret == -1 || ret > 0); /* select() cannot timeout */
 		if (ret == -1) {
 			if (errno == EINTR)
 				continue;
 			_exit(1);
 		}
 
-		TAILQ_FOREACH(casserv, &casper_services, cs_next) {
+		TAILQ_FOREACH (casserv, &casper_services, cs_next) {
 			/* We handle only core services. */
 			if (!CSERVICE_IS_CORE(casserv))
 				continue;
-			for (sconn = service_connection_first(casserv->cs_service);
-			    sconn != NULL; sconn = sconntmp) {
+			for (sconn =
+				 service_connection_first(casserv->cs_service);
+			     sconn != NULL; sconn = sconntmp) {
 				/*
 				 * Prepare for connection to be removed from
 				 * the list on failure.

@@ -30,7 +30,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
  * OF SUCH DAMAGE.
  *
- * $DragonFly: src/sys/dev/netif/bwi/bitops.h,v 1.1 2007/09/08 06:15:54 sephe Exp $
+ * $DragonFly: src/sys/dev/netif/bwi/bitops.h,v 1.1 2007/09/08 06:15:54 sephe
+ * Exp $
  */
 
 #ifndef _BITOPS_H
@@ -66,17 +67,17 @@
  */
 
 /* __BIT(n): nth bit, where __BIT(0) == 0x1. */
-#define	__BIT(__n) (((__n) == 32) ? 0 : ((uint32_t)1 << (__n)))
+#define __BIT(__n) (((__n) == 32) ? 0 : ((uint32_t)1 << (__n)))
 
 /* __BITS(m, n): bits m through n, m < n. */
-#define	__BITS(__m, __n)	\
+#define __BITS(__m, __n) \
 	((__BIT(MAX((__m), (__n)) + 1) - 1) ^ (__BIT(MIN((__m), (__n))) - 1))
 
 /* Find least significant bit that is set */
-#define	__LOWEST_SET_BIT(__mask) ((((__mask) - 1) & (__mask)) ^ (__mask))
+#define __LOWEST_SET_BIT(__mask) ((((__mask)-1) & (__mask)) ^ (__mask))
 
-#define	__SHIFTOUT(__x, __mask) (((__x) & (__mask)) / __LOWEST_SET_BIT(__mask))
-#define	__SHIFTIN(__x, __mask) ((__x) * __LOWEST_SET_BIT(__mask))
-#define	__SHIFTOUT_MASK(__mask) __SHIFTOUT((__mask), (__mask))
+#define __SHIFTOUT(__x, __mask) (((__x) & (__mask)) / __LOWEST_SET_BIT(__mask))
+#define __SHIFTIN(__x, __mask) ((__x) * __LOWEST_SET_BIT(__mask))
+#define __SHIFTOUT_MASK(__mask) __SHIFTOUT((__mask), (__mask))
 
-#endif	/* !_BITOPS_H */
+#endif /* !_BITOPS_H */

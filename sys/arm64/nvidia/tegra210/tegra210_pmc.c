@@ -29,8 +29,8 @@
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
 
@@ -44,134 +44,135 @@
 
 #include <arm/nvidia/tegra_pmc.h>
 
-#define	PMC_CNTRL			0x000
-#define	 PMC_CNTRL_SHUTDOWN_OE			(1 << 22)
-#define	 PMC_CNTRL_CPUPWRGOOD_SEL_MASK		(0x3 << 20)
-#define	 PMC_CNTRL_CPUPWRGOOD_SEL_SHIFT		20
-#define	 PMC_CNTRL_CPUPWRGOOD_EN		(1 << 19)
-#define	 PMC_CNTRL_FUSE_OVERRIDE		(1 << 18)
-#define	 PMC_CNTRL_INTR_POLARITY		(1 << 17)
-#define	 PMC_CNTRL_CPU_PWRREQ_OE		(1 << 16)
-#define	 PMC_CNTRL_CPU_PWRREQ_POLARITY		(1 << 15)
-#define	 PMC_CNTRL_SIDE_EFFECT_LP0		(1 << 14)
-#define	 PMC_CNTRL_AOINIT			(1 << 13)
-#define	 PMC_CNTRL_PWRGATE_DIS			(1 << 12)
-#define	 PMC_CNTRL_SYSCLK_OE			(1 << 11)
-#define	 PMC_CNTRL_SYSCLK_POLARITY		(1 << 10)
-#define	 PMC_CNTRL_PWRREQ_OE			(1 <<  9)
-#define	 PMC_CNTRL_PWRREQ_POLARITY		(1 <<  8)
-#define	 PMC_CNTRL_BLINK_EN			(1 <<  7)
-#define	 PMC_CNTRL_GLITCHDET_DIS		(1 <<  6)
-#define	 PMC_CNTRL_LATCHWAKE_EN			(1 <<  5)
-#define	 PMC_CNTRL_MAIN_RST			(1 <<  4)
-#define	 PMC_CNTRL_KBC_RST			(1 <<  3)
-#define	 PMC_CNTRL_RTC_RST			(1 <<  2)
-#define	 PMC_CNTRL_RTC_CLK_DIS			(1 <<  1)
-#define	 PMC_CNTRL_KBC_CLK_DIS			(1 <<  0)
+#define PMC_CNTRL 0x000
+#define PMC_CNTRL_SHUTDOWN_OE (1 << 22)
+#define PMC_CNTRL_CPUPWRGOOD_SEL_MASK (0x3 << 20)
+#define PMC_CNTRL_CPUPWRGOOD_SEL_SHIFT 20
+#define PMC_CNTRL_CPUPWRGOOD_EN (1 << 19)
+#define PMC_CNTRL_FUSE_OVERRIDE (1 << 18)
+#define PMC_CNTRL_INTR_POLARITY (1 << 17)
+#define PMC_CNTRL_CPU_PWRREQ_OE (1 << 16)
+#define PMC_CNTRL_CPU_PWRREQ_POLARITY (1 << 15)
+#define PMC_CNTRL_SIDE_EFFECT_LP0 (1 << 14)
+#define PMC_CNTRL_AOINIT (1 << 13)
+#define PMC_CNTRL_PWRGATE_DIS (1 << 12)
+#define PMC_CNTRL_SYSCLK_OE (1 << 11)
+#define PMC_CNTRL_SYSCLK_POLARITY (1 << 10)
+#define PMC_CNTRL_PWRREQ_OE (1 << 9)
+#define PMC_CNTRL_PWRREQ_POLARITY (1 << 8)
+#define PMC_CNTRL_BLINK_EN (1 << 7)
+#define PMC_CNTRL_GLITCHDET_DIS (1 << 6)
+#define PMC_CNTRL_LATCHWAKE_EN (1 << 5)
+#define PMC_CNTRL_MAIN_RST (1 << 4)
+#define PMC_CNTRL_KBC_RST (1 << 3)
+#define PMC_CNTRL_RTC_RST (1 << 2)
+#define PMC_CNTRL_RTC_CLK_DIS (1 << 1)
+#define PMC_CNTRL_KBC_CLK_DIS (1 << 0)
 
-#define	PMC_DPD_SAMPLE			0x020
+#define PMC_DPD_SAMPLE 0x020
 
-#define	PMC_CLAMP_STATUS		0x02C
-#define	  PMC_CLAMP_STATUS_PARTID(x)		(1 << ((x) & 0x1F))
+#define PMC_CLAMP_STATUS 0x02C
+#define PMC_CLAMP_STATUS_PARTID(x) (1 << ((x) & 0x1F))
 
-#define	PMC_PWRGATE_TOGGLE		0x030
-#define	 PMC_PWRGATE_TOGGLE_START		(1 << 8)
-#define	 PMC_PWRGATE_TOGGLE_PARTID(x)		(((x) & 0x1F) << 0)
+#define PMC_PWRGATE_TOGGLE 0x030
+#define PMC_PWRGATE_TOGGLE_START (1 << 8)
+#define PMC_PWRGATE_TOGGLE_PARTID(x) (((x) & 0x1F) << 0)
 
-#define	PMC_REMOVE_CLAMPING_CMD		0x034
-#define	  PMC_REMOVE_CLAMPING_CMD_PARTID(x)	(1 << ((x) & 0x1F))
+#define PMC_REMOVE_CLAMPING_CMD 0x034
+#define PMC_REMOVE_CLAMPING_CMD_PARTID(x) (1 << ((x) & 0x1F))
 
-#define	PMC_PWRGATE_STATUS		0x038
-#define	PMC_PWRGATE_STATUS_PARTID(x)		(1 << ((x) & 0x1F))
+#define PMC_PWRGATE_STATUS 0x038
+#define PMC_PWRGATE_STATUS_PARTID(x) (1 << ((x) & 0x1F))
 
-#define	PMC_SCRATCH0			0x050
-#define	 PMC_SCRATCH0_MODE_RECOVERY		(1 << 31)
-#define	 PMC_SCRATCH0_MODE_BOOTLOADER		(1 << 30)
-#define	 PMC_SCRATCH0_MODE_RCM			(1 << 1)
-#define	 PMC_SCRATCH0_MODE_MASK			(PMC_SCRATCH0_MODE_RECOVERY | \
-						PMC_SCRATCH0_MODE_BOOTLOADER | \
-						PMC_SCRATCH0_MODE_RCM)
+#define PMC_SCRATCH0 0x050
+#define PMC_SCRATCH0_MODE_RECOVERY (1 << 31)
+#define PMC_SCRATCH0_MODE_BOOTLOADER (1 << 30)
+#define PMC_SCRATCH0_MODE_RCM (1 << 1)
+#define PMC_SCRATCH0_MODE_MASK                                       \
+	(PMC_SCRATCH0_MODE_RECOVERY | PMC_SCRATCH0_MODE_BOOTLOADER | \
+	    PMC_SCRATCH0_MODE_RCM)
 
-#define	PMC_CPUPWRGOOD_TIMER		0x0c8
-#define	PMC_CPUPWROFF_TIMER		0x0cc
+#define PMC_CPUPWRGOOD_TIMER 0x0c8
+#define PMC_CPUPWROFF_TIMER 0x0cc
 
-#define	PMC_SCRATCH41			0x140
+#define PMC_SCRATCH41 0x140
 
-#define	PMC_SENSOR_CTRL			0x1b0
-#define	PMC_SENSOR_CTRL_BLOCK_SCRATCH_WRITE	(1 << 2)
-#define	PMC_SENSOR_CTRL_ENABLE_RST		(1 << 1)
-#define	PMC_SENSOR_CTRL_ENABLE_PG		(1 << 0)
+#define PMC_SENSOR_CTRL 0x1b0
+#define PMC_SENSOR_CTRL_BLOCK_SCRATCH_WRITE (1 << 2)
+#define PMC_SENSOR_CTRL_ENABLE_RST (1 << 1)
+#define PMC_SENSOR_CTRL_ENABLE_PG (1 << 0)
 
-#define	PMC_IO_DPD_REQ			0x1b8
-#define	 PMC_IO_DPD_REQ_CODE_IDLE		(0 << 30)
-#define	 PMC_IO_DPD_REQ_CODE_OFF		(1 << 30)
-#define	 PMC_IO_DPD_REQ_CODE_ON			(2 << 30)
-#define	 PMC_IO_DPD_REQ_CODE_MASK		(3 << 30)
+#define PMC_IO_DPD_REQ 0x1b8
+#define PMC_IO_DPD_REQ_CODE_IDLE (0 << 30)
+#define PMC_IO_DPD_REQ_CODE_OFF (1 << 30)
+#define PMC_IO_DPD_REQ_CODE_ON (2 << 30)
+#define PMC_IO_DPD_REQ_CODE_MASK (3 << 30)
 
-#define	PMC_IO_DPD_STATUS		0x1bc
-#define	 PMC_IO_DPD_STATUS_HDMI			(1 << 28)
-#define	PMC_IO_DPD2_REQ			0x1c0
-#define	PMC_IO_DPD2_STATUS		0x1c4
-#define	 PMC_IO_DPD2_STATUS_HV			(1 << 6)
-#define	PMC_SEL_DPD_TIM			0x1c8
+#define PMC_IO_DPD_STATUS 0x1bc
+#define PMC_IO_DPD_STATUS_HDMI (1 << 28)
+#define PMC_IO_DPD2_REQ 0x1c0
+#define PMC_IO_DPD2_STATUS 0x1c4
+#define PMC_IO_DPD2_STATUS_HV (1 << 6)
+#define PMC_SEL_DPD_TIM 0x1c8
 
-#define	PMC_SCRATCH54			0x258
-#define	PMC_SCRATCH54_DATA_SHIFT		8
-#define	PMC_SCRATCH54_ADDR_SHIFT		0
+#define PMC_SCRATCH54 0x258
+#define PMC_SCRATCH54_DATA_SHIFT 8
+#define PMC_SCRATCH54_ADDR_SHIFT 0
 
-#define	PMC_SCRATCH55			0x25c
-#define	PMC_SCRATCH55_RST_ENABLE		(1 << 31)
-#define	PMC_SCRATCH55_CNTRL_TYPE		(1 << 30)
-#define	PMC_SCRATCH55_CNTRL_ID_SHIFT		27
-#define	PMC_SCRATCH55_CNTRL_ID_MASK		0x07
-#define	PMC_SCRATCH55_PINMUX_SHIFT		24
-#define	PMC_SCRATCH55_PINMUX_MASK		0x07
-#define	PMC_SCRATCH55_CHECKSUM_SHIFT		16
-#define	PMC_SCRATCH55_CHECKSUM_MASK		0xFF
-#define	PMC_SCRATCH55_16BITOP			(1 << 15)
-#define	PMC_SCRATCH55_I2CSLV1_SHIFT		0
-#define	PMC_SCRATCH55_I2CSLV1_MASK		0x7F
+#define PMC_SCRATCH55 0x25c
+#define PMC_SCRATCH55_RST_ENABLE (1 << 31)
+#define PMC_SCRATCH55_CNTRL_TYPE (1 << 30)
+#define PMC_SCRATCH55_CNTRL_ID_SHIFT 27
+#define PMC_SCRATCH55_CNTRL_ID_MASK 0x07
+#define PMC_SCRATCH55_PINMUX_SHIFT 24
+#define PMC_SCRATCH55_PINMUX_MASK 0x07
+#define PMC_SCRATCH55_CHECKSUM_SHIFT 16
+#define PMC_SCRATCH55_CHECKSUM_MASK 0xFF
+#define PMC_SCRATCH55_16BITOP (1 << 15)
+#define PMC_SCRATCH55_I2CSLV1_SHIFT 0
+#define PMC_SCRATCH55_I2CSLV1_MASK 0x7F
 
-#define	PMC_GPU_RG_CNTRL		0x2d4
+#define PMC_GPU_RG_CNTRL 0x2d4
 
 /* Secure access */
-#define	PMC_SMC				0xc2fffe00
-#define	PMC_SMC_READ			0xaa
-#define	PMC_SMC_WRITE			0xbb
+#define PMC_SMC 0xc2fffe00
+#define PMC_SMC_READ 0xaa
+#define PMC_SMC_WRITE 0xbb
 
-#define	PMC_LOCK(_sc)		mtx_lock(&(_sc)->mtx)
-#define	PMC_UNLOCK(_sc)		mtx_unlock(&(_sc)->mtx)
-#define	PMC_LOCK_INIT(_sc)	mtx_init(&(_sc)->mtx, 			\
-	    device_get_nameunit(_sc->dev), "tegra210_pmc", MTX_DEF)
-#define	PMC_LOCK_DESTROY(_sc)	mtx_destroy(&(_sc)->mtx);
-#define	PMC_ASSERT_LOCKED(_sc)	mtx_assert(&(_sc)->mtx, MA_OWNED);
-#define	PMC_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
+#define PMC_LOCK(_sc) mtx_lock(&(_sc)->mtx)
+#define PMC_UNLOCK(_sc) mtx_unlock(&(_sc)->mtx)
+#define PMC_LOCK_INIT(_sc)                                                   \
+	mtx_init(&(_sc)->mtx, device_get_nameunit(_sc->dev), "tegra210_pmc", \
+	    MTX_DEF)
+#define PMC_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->mtx);
+#define PMC_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_OWNED);
+#define PMC_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->mtx, MA_NOTOWNED);
 
 struct tegra210_pmc_softc {
-	device_t		dev;
-	struct resource		*mem_res;
-	clk_t			clk;
-	struct mtx		mtx;
-	bool			secure_access;
+	device_t dev;
+	struct resource *mem_res;
+	clk_t clk;
+	struct mtx mtx;
+	bool secure_access;
 
-	uint32_t		rate;
+	uint32_t rate;
 	enum tegra_suspend_mode suspend_mode;
-	uint32_t		cpu_good_time;
-	uint32_t		cpu_off_time;
-	uint32_t		core_osc_time;
-	uint32_t		core_pmu_time;
-	uint32_t		core_off_time;
-	int			corereq_high;
-	int			sysclkreq_high;
-	int			combined_req;
-	int			cpu_pwr_good_en;
-	uint32_t		lp0_vec_phys;
-	uint32_t		lp0_vec_size;
+	uint32_t cpu_good_time;
+	uint32_t cpu_off_time;
+	uint32_t core_osc_time;
+	uint32_t core_pmu_time;
+	uint32_t core_off_time;
+	int corereq_high;
+	int sysclkreq_high;
+	int combined_req;
+	int cpu_pwr_good_en;
+	uint32_t lp0_vec_phys;
+	uint32_t lp0_vec_size;
 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"nvidia,tegra210-pmc",		1},
-	{NULL,				0},
+	{ "nvidia,tegra210-pmc", 1 },
+	{ NULL, 0 },
 };
 
 static struct tegra210_pmc_softc *pmc_sc;
@@ -192,7 +193,7 @@ WR4(struct tegra210_pmc_softc *sc, bus_size_t r, uint32_t v)
 	if (sc->secure_access) {
 		arm_smccc_smc(PMC_SMC, PMC_SMC_WRITE, r, v, 0, 0, 0, 0, &res);
 		if (res.a0 != 0)
-			device_printf(sc->dev," PMC SMC write failed: %lu\n",
+			device_printf(sc->dev, " PMC SMC write failed: %lu\n",
 			    res.a0);
 	}
 
@@ -207,12 +208,12 @@ RD4(struct tegra210_pmc_softc *sc, bus_size_t r)
 	if (sc->secure_access) {
 		arm_smccc_smc(PMC_SMC, PMC_SMC_READ, r, 0, 0, 0, 0, 0, &res);
 		if (res.a0 != 0)
-			device_printf(sc->dev," PMC SMC write failed: %lu\n",
+			device_printf(sc->dev, " PMC SMC write failed: %lu\n",
 			    res.a0);
-		return((uint32_t)res.a1);
+		return ((uint32_t)res.a1);
 	}
 
-	return(bus_read_4(sc->mem_res, r));
+	return (bus_read_4(sc->mem_res, r));
 }
 
 static int
@@ -252,12 +253,12 @@ tegra210_pmc_set_powergate(struct tegra210_pmc_softc *sc,
 	if (i <= 0)
 		device_printf(sc->dev,
 		    "Timeout when waiting for TOGGLE_START\n");
-		PMC_UNLOCK(sc);
+	PMC_UNLOCK(sc);
 	return (0);
 }
 
 int
-tegra_powergate_remove_clamping(enum tegra_powergate_id  id)
+tegra_powergate_remove_clamping(enum tegra_powergate_id id)
 {
 	struct tegra210_pmc_softc *sc;
 	uint32_t reg;
@@ -332,7 +333,7 @@ tegra_powergate_power_on(enum tegra_powergate_id id)
 	}
 	if (i <= 0) {
 		device_printf(sc->dev, "Timeout when waiting on power up\n");
-		return(ETIMEDOUT);
+		return (ETIMEDOUT);
 	}
 
 	return (rv);
@@ -470,14 +471,12 @@ tegra210_pmc_parse_fdt(struct tegra210_pmc_softc *sc, phandle_t node)
 		sc->suspend_mode = TEGRA_SUSPEND_NONE;
 	}
 
-	sc->corereq_high =
-	    OF_hasprop(node, "nvidia,core-power-req-active-high");
-	sc->sysclkreq_high =
-	    OF_hasprop(node, "nvidia,sys-clock-req-active-high");
-	sc->combined_req =
-	    OF_hasprop(node, "nvidia,combined-power-req");
-	sc->cpu_pwr_good_en =
-	    OF_hasprop(node, "nvidia,cpu-pwr-good-en");
+	sc->corereq_high = OF_hasprop(node,
+	    "nvidia,core-power-req-active-high");
+	sc->sysclkreq_high = OF_hasprop(node,
+	    "nvidia,sys-clock-req-active-high");
+	sc->combined_req = OF_hasprop(node, "nvidia,combined-power-req");
+	sc->cpu_pwr_good_en = OF_hasprop(node, "nvidia,cpu-pwr-good-en");
 
 	rv = OF_getencprop(node, "nvidia,lp0-vec", tmparr, sizeof(tmparr));
 	if (rv == sizeof(tmparr)) {
@@ -596,11 +595,11 @@ tegra210_pmc_attach(device_t dev)
 	 * XXX mote this to HDMI driver
 	 */
 	reg = RD4(sc, PMC_IO_DPD_STATUS);
-	reg &= ~ PMC_IO_DPD_STATUS_HDMI;
+	reg &= ~PMC_IO_DPD_STATUS_HDMI;
 	WR4(sc, PMC_IO_DPD_STATUS, reg);
 
 	reg = RD4(sc, PMC_IO_DPD2_STATUS);
-	reg &= ~ PMC_IO_DPD2_STATUS_HV;
+	reg &= ~PMC_IO_DPD2_STATUS_HV;
 	WR4(sc, PMC_IO_DPD2_STATUS, reg);
 
 	if (pmc_sc != NULL)
@@ -611,9 +610,9 @@ tegra210_pmc_attach(device_t dev)
 
 static device_method_t tegra210_pmc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		tegra210_pmc_probe),
-	DEVMETHOD(device_attach,	tegra210_pmc_attach),
-	DEVMETHOD(device_detach,	tegra210_pmc_detach),
+	DEVMETHOD(device_probe, tegra210_pmc_probe),
+	DEVMETHOD(device_attach, tegra210_pmc_attach),
+	DEVMETHOD(device_detach, tegra210_pmc_detach),
 
 	DEVMETHOD_END
 };

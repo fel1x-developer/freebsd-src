@@ -29,35 +29,31 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-
 #include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/rman.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 
+#include <dev/clk/clk.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/clk/clk.h>
-#include <dev/regulator/regulator.h>
 #include <dev/phy/phy_usb.h>
+#include <dev/regulator/regulator.h>
 
 #include "phynode_if.h"
 
 struct usb_nop_xceiv_softc {
-	device_t		dev;
-	regulator_t		vcc_supply;
-	clk_t			clk;
-	uint32_t		clk_freq;
+	device_t dev;
+	regulator_t vcc_supply;
+	clk_t clk;
+	uint32_t clk_freq;
 };
 
-static struct ofw_compat_data compat_data[] = {
-	{"usb-nop-xceiv", 1},
-	{NULL,            0}
-};
+static struct ofw_compat_data compat_data[] = { { "usb-nop-xceiv", 1 },
+	{ NULL, 0 } };
 
 /* Phy class and methods. */
 static int usb_nop_xceiv_phy_enable(struct phynode *phy, bool enable);
@@ -67,8 +63,8 @@ static phynode_usb_method_t usb_nop_xceiv_phynode_methods[] = {
 	PHYNODEMETHOD_END
 };
 DEFINE_CLASS_1(usb_nop_xceiv_phynode, usb_nop_xceiv_phynode_class,
-    usb_nop_xceiv_phynode_methods,
-    sizeof(struct phynode_usb_sc), phynode_usb_class);
+    usb_nop_xceiv_phynode_methods, sizeof(struct phynode_usb_sc),
+    phynode_usb_class);
 
 static int
 usb_nop_xceiv_phy_enable(struct phynode *phynode, bool enable)
@@ -89,10 +85,11 @@ usb_nop_xceiv_phy_enable(struct phynode *phynode, bool enable)
 	if (sc->clk_freq != 0) {
 		if (enable) {
 			error = clk_set_freq(sc->clk, sc->clk_freq,
-			  CLK_SET_ROUND_ANY);
+			    CLK_SET_ROUND_ANY);
 			if (error != 0) {
-				device_printf(dev, "Cannot set clock to %dMhz\n",
-				  sc->clk_freq);
+				device_printf(dev,
+				    "Cannot set clock to %dMhz\n",
+				    sc->clk_freq);
 				goto fail;
 			}
 
@@ -156,7 +153,8 @@ usb_nop_xceiv_attach(device_t dev)
 
 	error = clk_get_by_ofw_name(dev, node, "main_clk", &sc->clk);
 	if (error != 0 && sc->clk_freq != 0) {
-		device_printf(dev, "clock property is mandatory if clock-frequency is present\n");
+		device_printf(dev,
+		    "clock property is mandatory if clock-frequency is present\n");
 		return (ENXIO);
 	}
 
@@ -164,8 +162,7 @@ usb_nop_xceiv_attach(device_t dev)
 
 	phy_init.id = 0;
 	phy_init.ofw_node = node;
-	phynode = phynode_create(dev, &usb_nop_xceiv_phynode_class,
-	    &phy_init);
+	phynode = phynode_create(dev, &usb_nop_xceiv_phynode_class, &phy_init);
 	if (phynode == NULL) {
 		device_printf(dev, "failed to create USB NOP PHY\n");
 		return (ENXIO);
@@ -202,5 +199,5 @@ static driver_t usb_nop_xceiv_driver = {
 	sizeof(struct usb_nop_xceiv_softc),
 };
 
-EARLY_DRIVER_MODULE(usb_nop_xceiv, simplebus, usb_nop_xceiv_driver,
-    0, 0, BUS_PASS_SUPPORTDEV + BUS_PASS_ORDER_MIDDLE);
+EARLY_DRIVER_MODULE(usb_nop_xceiv, simplebus, usb_nop_xceiv_driver, 0, 0,
+    BUS_PASS_SUPPORTDEV + BUS_PASS_ORDER_MIDDLE);

@@ -10,57 +10,56 @@
 
 void
 printaddr(int family, int type, char *base, int ifidx, u_32_t *addr,
-	u_32_t *mask)
+    u_32_t *mask)
 {
 	char *suffix;
 
-	switch (type)
-	{
-	case FRI_BROADCAST :
+	switch (type) {
+	case FRI_BROADCAST:
 		suffix = "bcast";
 		break;
 
-	case FRI_DYNAMIC :
+	case FRI_DYNAMIC:
 		PRINTF("%s", base + ifidx);
 		printmask(family, mask);
 		suffix = NULL;
 		break;
 
-	case FRI_NETWORK :
+	case FRI_NETWORK:
 		suffix = "net";
 		break;
 
-	case FRI_NETMASKED :
+	case FRI_NETMASKED:
 		suffix = "netmasked";
 		break;
 
-	case FRI_PEERADDR :
+	case FRI_PEERADDR:
 		suffix = "peer";
 		break;
 
-	case FRI_LOOKUP :
+	case FRI_LOOKUP:
 		suffix = NULL;
 		printlookup(base, (i6addr_t *)addr, (i6addr_t *)mask);
 		break;
 
-	case FRI_NONE :
-	case FRI_NORMAL :
+	case FRI_NONE:
+	case FRI_NORMAL:
 		printhostmask(family, addr, mask);
 		suffix = NULL;
 		break;
-	case FRI_RANGE :
+	case FRI_RANGE:
 		printhost(family, addr);
 		putchar('-');
 		printhost(family, mask);
 		suffix = NULL;
 		break;
-	case FRI_SPLIT :
+	case FRI_SPLIT:
 		printhost(family, addr);
 		putchar(',');
 		printhost(family, mask);
 		suffix = NULL;
 		break;
-	default :
+	default:
 		PRINTF("<%d>", type);
 		printmask(family, mask);
 		suffix = NULL;

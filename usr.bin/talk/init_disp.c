@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * Initialization code for the display package,
  * as well as the signal handling routines.
@@ -41,8 +39,8 @@
 #include <err.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "talk.h"
 
@@ -60,7 +58,8 @@ check_writeable(void)
 	if (stat(tty, &sb) < 0)
 		err(1, "%s", tty);
 	if (!(sb.st_mode & S_IWGRP))
-		errx(1, "The callee cannot write to this terminal, use \"mesg y\".");
+		errx(1,
+		    "The callee cannot write to this terminal, use \"mesg y\".");
 }
 
 /*
@@ -74,9 +73,9 @@ init_display(void)
 
 	if (initscr() == NULL)
 		errx(1, "Terminal type unset or lacking necessary features.");
-	(void) sigaction(SIGTSTP, (struct sigaction *)0, &sa);
+	(void)sigaction(SIGTSTP, (struct sigaction *)0, &sa);
 	sigaddset(&sa.sa_mask, SIGALRM);
-	(void) sigaction(SIGTSTP, &sa, (struct sigaction *)0);
+	(void)sigaction(SIGTSTP, &sa, (struct sigaction *)0);
 	curses_initialized = 1;
 	clear();
 	refresh();
@@ -96,7 +95,7 @@ init_display(void)
 	his_win.x_nlines = LINES / 2 - 1;
 	his_win.x_ncols = COLS;
 	his_win.x_win = newwin(his_win.x_nlines, his_win.x_ncols,
-	    my_win.x_nlines+1, 0);
+	    my_win.x_nlines + 1, 0);
 	idlok(my_win.x_win, TRUE);
 	scrollok(his_win.x_win, TRUE);
 	wclear(his_win.x_win);
@@ -138,10 +137,10 @@ set_edit_chars(void)
 	buf[1] = my_win.kill;
 	buf[2] = my_win.werase;
 	cc = write(sockt, buf, sizeof(buf));
-	if (cc != sizeof(buf) )
+	if (cc != sizeof(buf))
 		p_error("Lost the connection");
 	cc = read(sockt, buf, sizeof(buf));
-	if (cc != sizeof(buf) )
+	if (cc != sizeof(buf))
 		p_error("Lost the connection");
 	his_win.cerase = buf[0];
 	his_win.kill = buf[1];
@@ -160,7 +159,7 @@ sig_sent(int signo __unused)
 void
 sig_winch(int dummy __unused)
 {
- 
+
 	gotwinch = 1;
 }
 
@@ -172,7 +171,7 @@ quit(void)
 {
 
 	if (curses_initialized) {
-		wmove(his_win.x_win, his_win.x_nlines-1, 0);
+		wmove(his_win.x_win, his_win.x_nlines - 1, 0);
 		wclrtoeol(his_win.x_win);
 		wrefresh(his_win.x_win);
 		endwin();

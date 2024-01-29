@@ -30,7 +30,6 @@
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -41,14 +40,14 @@
 
 #include "tcpp.h"
 
-#define	BYTES_DEFAULT	10*1024*1024	/* Data per connection. */
-#define	MAXTCPS_DEFAULT	32		/* Number of TCPs at a time per proc. */
-#define	PROCS_DEFAULT	1		/* Processes used in run. */
-#define	TCPS_DEFAULT	1		/* Number of connections per process. */
-#define	BASEPORT_DEFAULT	10000
+#define BYTES_DEFAULT 10 * 1024 * 1024 /* Data per connection. */
+#define MAXTCPS_DEFAULT 32	       /* Number of TCPs at a time per proc. */
+#define PROCS_DEFAULT 1		       /* Processes used in run. */
+#define TCPS_DEFAULT 1		       /* Number of connections per process. */
+#define BASEPORT_DEFAULT 10000
 
-struct sockaddr_in remoteip; 		/* Base target address. */
-struct sockaddr_in localipbase;		/* Base local address, if -l. */
+struct sockaddr_in remoteip;	/* Base target address. */
+struct sockaddr_in localipbase; /* Base local address, if -l. */
 int cflag, hflag, lflag, mflag, pflag, sflag, tflag, Mflag, Pflag;
 uint64_t bflag;
 u_short rflag;
@@ -57,7 +56,8 @@ static void
 usage(void)
 {
 
-	fprintf(stderr, "client: tcpp"
+	fprintf(stderr,
+	    "client: tcpp"
 	    " -c remoteIP"
 	    " [-h]"
 	    " [-P]"
@@ -73,7 +73,8 @@ usage(void)
 	    " [-r baseport]"
 	    "\n");
 
-	fprintf(stderr, "server: tcpp"
+	fprintf(stderr,
+	    "server: tcpp"
 	    " -s"
 	    " [-P]"
 	    " [-l localIPbase]"
@@ -96,14 +97,14 @@ main(int argc, char *argv[])
 	bzero(&localipbase, sizeof(localipbase));
 	localipbase.sin_len = sizeof(localipbase);
 	localipbase.sin_family = AF_INET;
-	localipbase.sin_addr.s_addr = htonl(INADDR_ANY);	/* Default. */
-	localipbase.sin_port = htons(0);				/* Default. */
+	localipbase.sin_addr.s_addr = htonl(INADDR_ANY); /* Default. */
+	localipbase.sin_port = htons(0);		 /* Default. */
 
 	bzero(&remoteip, sizeof(remoteip));
 	remoteip.sin_len = sizeof(remoteip);
 	remoteip.sin_family = AF_INET;
 	remoteip.sin_addr.s_addr = htonl(INADDR_LOOPBACK); /* Default. */
-	remoteip.sin_port = htons(0);				/* Default. */
+	remoteip.sin_port = htons(0);			   /* Default. */
 
 	bflag = BYTES_DEFAULT;
 	mflag = MAXTCPS_DEFAULT;

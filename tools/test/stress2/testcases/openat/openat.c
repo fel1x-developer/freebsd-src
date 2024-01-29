@@ -27,6 +27,7 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -59,15 +60,17 @@ setup(int nb)
 		getdf(&bl, &in);
 
 		/* Resource requirements: */
-		reserve_in =    4 * op->incarnations;
+		reserve_in = 4 * op->incarnations;
 		reserve_bl = 8192 * op->incarnations;
 		freespace = (reserve_bl <= bl && reserve_in <= in);
 		if (!freespace)
 			reserve_bl = reserve_in = 0;
 
 		if (op->verbose > 1)
-			printf("openat(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
-			    op->incarnations, bl/1024, in, reserve_bl/1024, reserve_in);
+			printf(
+			    "openat(incarnations=%d). Free(%jdk, %jd), reserve(%jdk, %jd)\n",
+			    op->incarnations, bl / 1024, in, reserve_bl / 1024,
+			    reserve_in);
 		reservedf(reserve_bl, reserve_in);
 		putval(freespace);
 	} else {
@@ -76,7 +79,7 @@ setup(int nb)
 	if (!freespace)
 		exit(0);
 
-	sprintf(path1,"%s.%05d", getprogname(), getpid());
+	sprintf(path1, "%s.%05d", getprogname(), getpid());
 	if (mkdir(path1, 0770) < 0)
 		err(1, "mkdir(%s), %s:%d", path1, __FILE__, __LINE__);
 	if (chdir(path1) == -1)
@@ -120,8 +123,8 @@ test_openat(void)
 
 	pid = getpid();
 	for (i = 0; i < 100 && done_testing == 0; i++) {
-		sprintf(file,"p%05d.%05d", pid, i);
-		if ((tfd = openat(fd, file, O_RDONLY|O_CREAT, 0660)) == -1)
+		sprintf(file, "p%05d.%05d", pid, i);
+		if ((tfd = openat(fd, file, O_RDONLY | O_CREAT, 0660)) == -1)
 			err(1, "openat(%s), %s:%d", file, __FILE__, __LINE__);
 		close(tfd);
 		strcpy(p, "tmp/");
@@ -142,16 +145,16 @@ test_renameat(void)
 
 	pid = getpid();
 	for (i = 0; i < 100 && done_testing == 0; i++) {
-		sprintf(file,"p%05d.%05d", pid, i);
-		if ((tfd = openat(fd, file, O_RDONLY|O_CREAT, 0660)) == -1)
+		sprintf(file, "p%05d.%05d", pid, i);
+		if ((tfd = openat(fd, file, O_RDONLY | O_CREAT, 0660)) == -1)
 			err(1, "openat(%s), %s:%d", file, __FILE__, __LINE__);
 		close(tfd);
 
-		sprintf(file2,"p%05d.%05d.togo", pid, i);
+		sprintf(file2, "p%05d.%05d.togo", pid, i);
 		if (renameat(fd, file, fd, file2) == -1)
 			err(1, "renameat(%s)", file2);
 
-		sprintf(file2,"tmp/p%05d.%05d.togo", pid, i);
+		sprintf(file2, "tmp/p%05d.%05d.togo", pid, i);
 		if (unlink(file2) == -1)
 			err(1, "unlink(%s), %s:%d", file2, __FILE__, __LINE__);
 	}
@@ -167,8 +170,8 @@ test_unlinkat(void)
 
 	pid = getpid();
 	for (i = 0; i < 100 && done_testing == 0; i++) {
-		sprintf(file,"p%05d.%05d", pid, i);
-		if ((tfd = openat(fd, file, O_RDONLY|O_CREAT, 0660)) == -1)
+		sprintf(file, "p%05d.%05d", pid, i);
+		if ((tfd = openat(fd, file, O_RDONLY | O_CREAT, 0660)) == -1)
 			err(1, "openat(%s), %s:%d", file, __FILE__, __LINE__);
 		close(tfd);
 		if (unlinkat(fd, file, 0) == -1)

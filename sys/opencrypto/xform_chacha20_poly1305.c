@@ -27,7 +27,6 @@
 
 #include <opencrypto/xform_auth.h>
 #include <opencrypto/xform_enc.h>
-
 #include <sodium/crypto_core_hchacha20.h>
 #include <sodium/crypto_onetimeauth_poly1305.h>
 #include <sodium/crypto_stream_chacha20.h>
@@ -41,7 +40,7 @@ struct chacha20_poly1305_ctx {
 };
 
 struct xchacha20_poly1305_ctx {
-	struct chacha20_poly1305_ctx base_ctx;	/* must be first */
+	struct chacha20_poly1305_ctx base_ctx; /* must be first */
 	const void *key;
 	char derived_key[CHACHA20_POLY1305_KEY];
 };
@@ -99,13 +98,14 @@ chacha20_poly1305_crypt(void *vctx, const uint8_t *in, uint8_t *out)
 }
 
 static void
-chacha20_poly1305_crypt_multi(void *vctx, const uint8_t *in, uint8_t *out, size_t len)
+chacha20_poly1305_crypt_multi(void *vctx, const uint8_t *in, uint8_t *out,
+    size_t len)
 {
 	struct chacha20_poly1305_ctx *ctx = vctx;
 	int error __diagused;
 
-	KASSERT(len % CHACHA20_NATIVE_BLOCK_LEN == 0, ("%s: invalid length",
-	    __func__));
+	KASSERT(len % CHACHA20_NATIVE_BLOCK_LEN == 0,
+	    ("%s: invalid length", __func__));
 	if (ctx->ietf)
 		error = crypto_stream_chacha20_ietf_xor_ic(out, in, len,
 		    ctx->nonce, ctx->ic, ctx->key);

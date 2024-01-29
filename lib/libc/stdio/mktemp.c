@@ -29,16 +29,18 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+
+#include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <unistd.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 char *_mktemp(char *);
@@ -46,7 +48,7 @@ char *_mktemp(char *);
 static int _gettemp(int, char *, int *, int, int, int);
 
 static const unsigned char padchar[] =
-"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 int
 mkostempsat(int dfd, char *path, int slen, int oflags)
@@ -91,13 +93,15 @@ mkstemp(char *path)
 char *
 mkdtemp(char *path)
 {
-	return (_gettemp(AT_FDCWD, path, (int *)NULL, 1, 0, 0) ? path : (char *)NULL);
+	return (_gettemp(AT_FDCWD, path, (int *)NULL, 1, 0, 0) ? path :
+								 (char *)NULL);
 }
 
 char *
 _mktemp(char *path)
 {
-	return (_gettemp(AT_FDCWD, path, (int *)NULL, 0, 0, 0) ? path : (char *)NULL);
+	return (_gettemp(AT_FDCWD, path, (int *)NULL, 0, 0, 0) ? path :
+								 (char *)NULL);
 }
 
 __warn_references(mktemp,
@@ -120,8 +124,9 @@ _gettemp(int dfd, char *path, int *doopen, int domkdir, int slen, int oflags)
 	int saved;
 
 	if ((doopen != NULL && domkdir) || slen < 0 ||
-	    (oflags & ~(O_APPEND | O_DIRECT | O_SHLOCK | O_EXLOCK | O_SYNC |
-	    O_CLOEXEC)) != 0) {
+	    (oflags &
+		~(O_APPEND | O_DIRECT | O_SHLOCK | O_EXLOCK | O_SYNC |
+		    O_CLOEXEC)) != 0) {
 		errno = EINVAL;
 		return (0);
 	}
@@ -169,7 +174,8 @@ _gettemp(int dfd, char *path, int *doopen, int domkdir, int slen, int oflags)
 			saved = 1;
 		}
 
-		/* If we have a collision, cycle through the space of filenames */
+		/* If we have a collision, cycle through the space of filenames
+		 */
 		for (trv = start, carryp = carrybuf;;) {
 			/* have we tried all possible permutations? */
 			if (trv == suffp)

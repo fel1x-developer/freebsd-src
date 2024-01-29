@@ -31,6 +31,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/cons.h>
 #include <sys/endian.h>
@@ -40,16 +41,14 @@
 #include <sys/mutex.h>
 #include <sys/reboot.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
-
-#include <ddb/ddb.h>
 
 #include <dev/altera/jtag_uart/altera_jtag_uart.h>
 
-static SYSCTL_NODE(_hw, OID_AUTO, altera_jtag_uart,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "Altera JTAG UART configuration knobs");
+#include <ddb/ddb.h>
+
+static SYSCTL_NODE(_hw, OID_AUTO, altera_jtag_uart, CTLFLAG_RW | CTLFLAG_MPSAFE,
+    0, "Altera JTAG UART configuration knobs");
 
 /*
  * One-byte buffer as we can't check whether the UART is readable without
@@ -58,22 +57,22 @@ static SYSCTL_NODE(_hw, OID_AUTO, altera_jtag_uart,
  * symbols are public so that the TTY layer can use them when working on an
  * instance of the UART that is also a low-level console.
  */
-char		aju_cons_buffer_data;
-int		aju_cons_buffer_valid;
-int		aju_cons_jtag_present;
-u_int		aju_cons_jtag_missed;
-struct mtx	aju_cons_lock;
+char aju_cons_buffer_data;
+int aju_cons_buffer_valid;
+int aju_cons_jtag_present;
+u_int aju_cons_jtag_missed;
+struct mtx aju_cons_lock;
 
 /*
  * Low-level console driver functions.
  */
-static cn_probe_t	aju_cnprobe;
-static cn_init_t	aju_cninit;
-static cn_term_t	aju_cnterm;
-static cn_getc_t	aju_cngetc;
-static cn_putc_t	aju_cnputc;
-static cn_grab_t	aju_cngrab;
-static cn_ungrab_t	aju_cnungrab;
+static cn_probe_t aju_cnprobe;
+static cn_init_t aju_cninit;
+static cn_term_t aju_cnterm;
+static cn_getc_t aju_cngetc;
+static cn_putc_t aju_cnputc;
+static cn_grab_t aju_cngrab;
+static cn_ungrab_t aju_cnungrab;
 
 /*
  * JTAG sets the ALTERA_JTAG_UART_CONTROL_AC bit whenever it accesses the
@@ -83,11 +82,10 @@ static cn_ungrab_t	aju_cnungrab;
  * wait to see if JTAG has really disappeared when finding a full buffer and
  * no AC bit set.
  */
-#define	ALTERA_JTAG_UART_AC_POLL_DELAY	10000
-static u_int	altera_jtag_uart_ac_poll_delay =
-		    ALTERA_JTAG_UART_AC_POLL_DELAY;
-SYSCTL_UINT(_hw_altera_jtag_uart, OID_AUTO, ac_poll_delay,
-    CTLFLAG_RW, &altera_jtag_uart_ac_poll_delay, 0,
+#define ALTERA_JTAG_UART_AC_POLL_DELAY 10000
+static u_int altera_jtag_uart_ac_poll_delay = ALTERA_JTAG_UART_AC_POLL_DELAY;
+SYSCTL_UINT(_hw_altera_jtag_uart, OID_AUTO, ac_poll_delay, CTLFLAG_RW,
+    &altera_jtag_uart_ac_poll_delay, 0,
     "Maximum delay waiting for JTAG present flag when buffer is full");
 
 /*
@@ -103,13 +101,13 @@ SYSCTL_UINT(_hw_altera_jtag_uart, OID_AUTO, ac_poll_delay,
  * low-level console is used for polled read while the TTY driver is also
  * looking for input.  Probably we should also share buffers between layers.
  */
-#define	MIPS_XKPHYS_UNCACHED_BASE	0x9000000000000000
+#define MIPS_XKPHYS_UNCACHED_BASE 0x9000000000000000
 
-typedef	uint64_t	paddr_t;
-typedef	uint64_t	vaddr_t;
+typedef uint64_t paddr_t;
+typedef uint64_t vaddr_t;
 
 static inline vaddr_t
-mips_phys_to_uncached(paddr_t phys)            
+mips_phys_to_uncached(paddr_t phys)
 {
 
 	return (phys | MIPS_XKPHYS_UNCACHED_BASE);
@@ -120,7 +118,7 @@ mips_ioread_uint32(vaddr_t vaddr)
 {
 	uint32_t v;
 
-	__asm__ __volatile__ ("lw %0, 0(%1)" : "=r" (v) : "r" (vaddr));
+	__asm__ __volatile__("lw %0, 0(%1)" : "=r"(v) : "r"(vaddr));
 	return (v);
 }
 
@@ -128,7 +126,7 @@ static inline void
 mips_iowrite_uint32(vaddr_t vaddr, uint32_t v)
 {
 
-	__asm__ __volatile__ ("sw %0, 0(%1)" : : "r" (v), "r" (vaddr));
+	__asm__ __volatile__("sw %0, 0(%1)" : : "r"(v), "r"(vaddr));
 }
 
 /*
@@ -156,24 +154,25 @@ static inline uint32_t
 aju_cons_data_read(void)
 {
 
-	return (mips_ioread_uint32le(mips_phys_to_uncached(BERI_UART_BASE +
-	    ALTERA_JTAG_UART_DATA_OFF)));
+	return (mips_ioread_uint32le(
+	    mips_phys_to_uncached(BERI_UART_BASE + ALTERA_JTAG_UART_DATA_OFF)));
 }
 
 static inline void
 aju_cons_data_write(uint32_t v)
 {
 
-	mips_iowrite_uint32le(mips_phys_to_uncached(BERI_UART_BASE +
-	    ALTERA_JTAG_UART_DATA_OFF), v);
+	mips_iowrite_uint32le(mips_phys_to_uncached(
+				  BERI_UART_BASE + ALTERA_JTAG_UART_DATA_OFF),
+	    v);
 }
 
 static inline uint32_t
 aju_cons_control_read(void)
 {
 
-	return (mips_ioread_uint32le(mips_phys_to_uncached(BERI_UART_BASE +
-	    ALTERA_JTAG_UART_CONTROL_OFF)));
+	return (mips_ioread_uint32le(mips_phys_to_uncached(
+	    BERI_UART_BASE + ALTERA_JTAG_UART_CONTROL_OFF)));
 }
 
 static inline void
@@ -181,7 +180,8 @@ aju_cons_control_write(uint32_t v)
 {
 
 	mips_iowrite_uint32le(mips_phys_to_uncached(BERI_UART_BASE +
-	    ALTERA_JTAG_UART_CONTROL_OFF), v);
+				  ALTERA_JTAG_UART_CONTROL_OFF),
+	    v);
 }
 
 /*
@@ -260,7 +260,8 @@ aju_cons_read(void)
 
 	AJU_CONSOLE_LOCK_ASSERT();
 
-	while (!aju_cons_readable());
+	while (!aju_cons_readable())
+		;
 	aju_cons_buffer_valid = 0;
 	return (aju_cons_buffer_data);
 }
@@ -293,7 +294,6 @@ aju_cninit(struct consdev *cp)
 static void
 aju_cnterm(struct consdev *cp)
 {
-
 }
 
 static int
@@ -319,13 +319,11 @@ aju_cnputc(struct consdev *cp, int c)
 static void
 aju_cngrab(struct consdev *cp)
 {
-
 }
 
 static void
 aju_cnungrab(struct consdev *cp)
 {
-
 }
 
 CONSOLE_DRIVER(aju);

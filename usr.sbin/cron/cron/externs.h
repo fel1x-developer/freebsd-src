@@ -21,13 +21,13 @@
 
 /* reorder these #include's at your peril */
 
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/wait.h>
+#include <sys/param.h>
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/wait.h>
 
 #include <bitstring.h>
 #include <ctype.h>
@@ -49,26 +49,26 @@
 #include <utime.h>
 
 #if defined(SYSLOG)
-# include <syslog.h>
+#include <syslog.h>
 #endif
 
 #if (defined(BSD)) && (BSD >= 199103) || defined(__linux) || defined(AIX)
-# include <paths.h>
+#include <paths.h>
 #endif /*BSD*/
 
 #if !defined(_PATH_SENDMAIL)
-# define _PATH_SENDMAIL "/usr/lib/sendmail"
+#define _PATH_SENDMAIL "/usr/lib/sendmail"
 #endif /*SENDMAIL*/
 
 #if defined(__bsdi__) && (_BSDI_VERSION > 199510)
 #include <login_cap.h>
 #endif /* __bsdi__ */
 
-#define DIR_T	struct dirent
-#define WAIT_T	int
-#define SIG_T	sig_t
-#define TIME_T	time_t
-#define PID_T	pid_t
+#define DIR_T struct dirent
+#define WAIT_T int
+#define SIG_T sig_t
+#define TIME_T time_t
+#define PID_T pid_t
 
 #ifndef TZNAME_ALREADY_DEFINED
 extern char *tzname[2];
@@ -76,21 +76,21 @@ extern char *tzname[2];
 #define TZONE(tm) tzname[(tm).tm_isdst]
 
 #if (BSD >= 198606)
-# define HAVE_FCHOWN
-# define HAVE_FCHMOD
+#define HAVE_FCHOWN
+#define HAVE_FCHMOD
 #endif
 
 #if (BSD >= 199103)
-# define HAVE_SAVED_UIDS
+#define HAVE_SAVED_UIDS
 #endif
 
 #define MY_UID(pw) getuid()
 #define MY_GID(pw) getgid()
 
 #if !defined(AIX) && !defined(UNICOS)
-# define SYS_TIME_H 1
+#define SYS_TIME_H 1
 #else
-# define SYS_TIME_H 0
+#define SYS_TIME_H 0
 #endif
 
 /* getopt() isn't part of POSIX.  some systems define it in <stdlib.h> anyway.
@@ -100,29 +100,29 @@ extern char *tzname[2];
  * external variables needed for the interface.
  */
 #if (!defined(BSD) || (BSD < 198911))
-int	getopt(int, char * const *, const char *);
+int getopt(int, char *const *, const char *);
 #endif
 
 #if (!defined(BSD) || (BSD < 199103))
-extern	char *optarg;
-extern	int optind, opterr, optopt;
+extern char *optarg;
+extern int optind, opterr, optopt;
 #endif
 
 /* digital unix needs this but does not give us a way to identify it.
  */
-extern	int		flock(int, int);
+extern int flock(int, int);
 
 /* not all systems who provice flock() provide these definitions.
  */
 #ifndef LOCK_SH
-# define LOCK_SH 1
+#define LOCK_SH 1
 #endif
 #ifndef LOCK_EX
-# define LOCK_EX 2
+#define LOCK_EX 2
 #endif
 #ifndef LOCK_NB
-# define LOCK_NB 4
+#define LOCK_NB 4
 #endif
 #ifndef LOCK_UN
-# define LOCK_UN 8
+#define LOCK_UN 8
 #endif

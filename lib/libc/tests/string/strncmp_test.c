@@ -41,13 +41,13 @@ alignment_testcase(char *a, char *b, int want, size_t len)
 
 	res = strncmp_fn(a, b, len);
 	ATF_CHECK_MSG(want == (res > 0) - (res < 0),
-	    "strcmp(%p \"%s\", %p \"%s\", %zu) = %d != %d",
-	    (void *)a, a, (void *)b, b, len, res, want);
+	    "strcmp(%p \"%s\", %p \"%s\", %zu) = %d != %d", (void *)a, a,
+	    (void *)b, b, len, res, want);
 }
 
 static void
-check_strncmp_alignments(char a[], char b[],
-    size_t a_off, size_t b_off, size_t len, size_t pos)
+check_strncmp_alignments(char a[], char b[], size_t a_off, size_t b_off,
+    size_t len, size_t pos)
 {
 	char *a_str, *b_str, a_orig, b_orig;
 
@@ -59,8 +59,8 @@ check_strncmp_alignments(char a[], char b[],
 
 	a_str[len] = '\0';
 	b_str[len] = '\0';
-	a_str[len+1] = 'A';
-	b_str[len+1] = 'B';
+	a_str[len + 1] = 'A';
+	b_str[len + 1] = 'B';
 
 	a_orig = a_str[pos];
 	b_orig = b_str[pos];
@@ -111,20 +111,21 @@ check_strncmp_alignments(char a[], char b[],
 	b[b_off] = '-';
 	a_str[len] = '-';
 	b_str[len] = '-';
-	a_str[len+1] = '-';
-	b_str[len+1] = '-';
+	a_str[len + 1] = '-';
+	b_str[len + 1] = '-';
 }
 
 ATF_TC(strncmp_alignments);
 ATF_TC_HEAD(strncmp_alignments, tc)
 {
-	atf_tc_set_md_var(tc, "descr", "Test strncmp(3) with various alignments");
+	atf_tc_set_md_var(tc, "descr",
+	    "Test strncmp(3) with various alignments");
 }
 
 ATF_TC_BODY(strncmp_alignments, tc)
 {
 	size_t a_off, b_off, len, pos;
-	char a[64+16+16+3], b[64+16+16+3];
+	char a[64 + 16 + 16 + 3], b[64 + 16 + 16 + 3];
 
 	memset(a, '-', sizeof(a));
 	memset(b, '-', sizeof(b));
@@ -135,7 +136,8 @@ ATF_TC_BODY(strncmp_alignments, tc)
 		for (b_off = 0; b_off < 16; b_off++)
 			for (len = 1; len <= 64; len++)
 				for (pos = 0; pos <= len; pos++)
-					check_strncmp_alignments(a, b, a_off, b_off, len, pos);
+					check_strncmp_alignments(a, b, a_off,
+					    b_off, len, pos);
 }
 
 ATF_TC(strncmp_null);

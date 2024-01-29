@@ -6,11 +6,11 @@
  * Id: ipl.h,v 2.52.2.30 2007/10/16 09:41:00 darrenr Exp $
  */
 
-#ifndef	__IPL_H__
-#define	__IPL_H__
+#ifndef __IPL_H__
+#define __IPL_H__
 
-#define	IPL_VERSION	"IP Filter: v5.1.2"
+#define IPL_VERSION "IP Filter: v5.1.2"
 
-#define	IPFILTER_VERSION	5010200
+#define IPFILTER_VERSION 5010200
 
-#endif	/* __IPL_H__ */
+#endif /* __IPL_H__ */

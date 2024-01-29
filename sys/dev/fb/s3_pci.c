@@ -33,52 +33,49 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
-#include <machine/bus.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/pmap.h>
 
-#include <sys/uio.h>
-#include <sys/module.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
+#include <machine/bus.h>
+#include <machine/md_var.h>
+#include <machine/pc/bios.h>
 #include <machine/resource.h>
 
-#include <sys/malloc.h>
-#include <sys/fbio.h>
-
+#include <dev/fb/fbreg.h>
+#include <dev/fb/vesa.h>
+#include <dev/fb/vgareg.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
 
-#include <machine/md_var.h>
-#include <machine/pc/bios.h>
-#include <dev/fb/vesa.h>
-
-#include <dev/fb/fbreg.h>
-#include <dev/fb/vgareg.h>
-
 #define S3PCI_DEBUG 1
 
-#define PCI_S3_VENDOR_ID	0x5333
+#define PCI_S3_VENDOR_ID 0x5333
 
-#define S3_CONFIG_IO		0x3c0	/* VGA standard config io ports */
-#define S3_CONFIG_IO_SIZE	0x20
+#define S3_CONFIG_IO 0x3c0 /* VGA standard config io ports */
+#define S3_CONFIG_IO_SIZE 0x20
 
-#define S3_ENHANCED_IO		0x4ae8	/* Extended config register */
-#define S3_ENHANCED_IO_SIZE	1
+#define S3_ENHANCED_IO 0x4ae8 /* Extended config register */
+#define S3_ENHANCED_IO_SIZE 1
 
-#define S3_CRTC_ADDR		0x14
-#define S3_CRTC_VALUE		0x15
+#define S3_CRTC_ADDR 0x14
+#define S3_CRTC_VALUE 0x15
 
-#define PCI_BASE_MEMORY		0x10
+#define PCI_BASE_MEMORY 0x10
 
 #define outb_p(value, offset) bus_space_write_1(sc->st, sc->sh, offset, value)
 #define inb_p(offset) (bus_space_read_1(sc->st, sc->sh, offset))
-#define outb_enh(value, offset) bus_space_write_1(sc->enh_st, sc->enh_sh, \
-								offset, value)
+#define outb_enh(value, offset) \
+	bus_space_write_1(sc->enh_st, sc->enh_sh, offset, value)
 #define inb_enh(offset) (bus_space_read_1(sc->enh_st, sc->enh_sh, offset))
 
 struct s3pci_softc {
@@ -93,31 +90,31 @@ struct s3pci_softc {
 	u_long mem_size;
 };
 
-static int			s3lfb_error(void);
-static vi_probe_t		s3lfb_probe;
-static vi_init_t		s3lfb_init;
-static vi_get_info_t		s3lfb_get_info;
-static vi_query_mode_t		s3lfb_query_mode;
-static vi_set_mode_t		s3lfb_set_mode;
-static vi_save_font_t		s3lfb_save_font;
-static vi_load_font_t		s3lfb_load_font;
-static vi_show_font_t		s3lfb_show_font;
-static vi_save_palette_t	s3lfb_save_palette;
-static vi_load_palette_t	s3lfb_load_palette;
-static vi_set_border_t		s3lfb_set_border;
-static vi_save_state_t		s3lfb_save_state;
-static vi_load_state_t		s3lfb_load_state;
-static vi_set_win_org_t		s3lfb_set_origin;
-static vi_read_hw_cursor_t	s3lfb_read_hw_cursor;
-static vi_set_hw_cursor_t	s3lfb_set_hw_cursor;
-static vi_set_hw_cursor_shape_t	s3lfb_set_hw_cursor_shape;
-static vi_blank_display_t	s3lfb_blank_display;
-static vi_mmap_t		s3lfb_mmap;
-static vi_ioctl_t		s3lfb_ioctl;
-static vi_clear_t		s3lfb_clear;
-static vi_fill_rect_t		s3lfb_fill_rect;
-static vi_bitblt_t		s3lfb_bitblt;
-static vi_diag_t		s3lfb_diag;
+static int s3lfb_error(void);
+static vi_probe_t s3lfb_probe;
+static vi_init_t s3lfb_init;
+static vi_get_info_t s3lfb_get_info;
+static vi_query_mode_t s3lfb_query_mode;
+static vi_set_mode_t s3lfb_set_mode;
+static vi_save_font_t s3lfb_save_font;
+static vi_load_font_t s3lfb_load_font;
+static vi_show_font_t s3lfb_show_font;
+static vi_save_palette_t s3lfb_save_palette;
+static vi_load_palette_t s3lfb_load_palette;
+static vi_set_border_t s3lfb_set_border;
+static vi_save_state_t s3lfb_save_state;
+static vi_load_state_t s3lfb_load_state;
+static vi_set_win_org_t s3lfb_set_origin;
+static vi_read_hw_cursor_t s3lfb_read_hw_cursor;
+static vi_set_hw_cursor_t s3lfb_set_hw_cursor;
+static vi_set_hw_cursor_shape_t s3lfb_set_hw_cursor_shape;
+static vi_blank_display_t s3lfb_blank_display;
+static vi_mmap_t s3lfb_mmap;
+static vi_ioctl_t s3lfb_ioctl;
+static vi_clear_t s3lfb_clear;
+static vi_fill_rect_t s3lfb_fill_rect;
+static vi_bitblt_t s3lfb_bitblt;
+static vi_diag_t s3lfb_diag;
 
 static video_switch_t s3lfbvidsw = {
 	s3lfb_probe,
@@ -214,7 +211,7 @@ s3lfb_map_buffer(u_int paddr, size_t size)
 static int
 s3lfb_set_mode(video_adapter_t *adp, int mode)
 {
-	device_t dev = s3pci_dev;			/* XXX */
+	device_t dev = s3pci_dev; /* XXX */
 	struct s3pci_softc *sc = (struct s3pci_softc *)device_get_softc(dev);
 #if 0
 	unsigned char tmp;
@@ -226,27 +223,29 @@ s3lfb_set_mode(video_adapter_t *adp, int mode)
 	if ((error = (*prevvidsw->set_mode)(adp, mode)))
 		return error;
 
-	/* If not in a linear mode (according to s3lfb_get_info() called
-	 * by vesa_set_mode in the (*vidsw[adp->va_index]->get_info)...
-	 * sequence, return with no error
-	 */
+		/* If not in a linear mode (according to s3lfb_get_info() called
+		 * by vesa_set_mode in the (*vidsw[adp->va_index]->get_info)...
+		 * sequence, return with no error
+		 */
 #if 0
 	if (!(adp->va_info.vi_flags & V_INFO_LINEAR))
 		return 0;
 #endif
 
 	if ((mode <= M_VESA_BASE) ||
-		!(adp->va_info.vi_flags & V_INFO_GRAPHICS) ||
-		(adp->va_info.vi_flags & V_INFO_LINEAR))
+	    !(adp->va_info.vi_flags & V_INFO_GRAPHICS) ||
+	    (adp->va_info.vi_flags & V_INFO_LINEAR))
 		return 0;
 
 	/* Ok, now apply the configuration to the card */
 
-	outb_p(0x38, S3_CRTC_ADDR); outb_p(0x48, S3_CRTC_VALUE);
-	outb_p(0x39, S3_CRTC_ADDR); outb_p(0xa5, S3_CRTC_VALUE);
-       
-       /* check that CR47 is read/write */
-       
+	outb_p(0x38, S3_CRTC_ADDR);
+	outb_p(0x48, S3_CRTC_VALUE);
+	outb_p(0x39, S3_CRTC_ADDR);
+	outb_p(0xa5, S3_CRTC_VALUE);
+
+	/* check that CR47 is read/write */
+
 #if 0
 	outb_p(0x47, S3_CRTC_ADDR); outb_p(0xff, S3_CRTC_VALUE);
 	tmp = inb_p(S3_CRTC_VALUE);
@@ -288,35 +287,39 @@ s3lfb_set_mode(video_adapter_t *adp, int mode)
 
 	/* lock S3 registers */
 
-	outb_p(0x39, S3_CRTC_ADDR); outb_p(0x5a, S3_CRTC_VALUE);
-	outb_p(0x38, S3_CRTC_ADDR); outb_p(0x00, S3_CRTC_VALUE);
+	outb_p(0x39, S3_CRTC_ADDR);
+	outb_p(0x5a, S3_CRTC_VALUE);
+	outb_p(0x38, S3_CRTC_ADDR);
+	outb_p(0x00, S3_CRTC_VALUE);
 
 	adp->va_info.vi_flags |= V_INFO_LINEAR;
 	adp->va_info.vi_buffer = sc->mem_base;
 	adp->va_buffer = s3lfb_map_buffer(adp->va_info.vi_buffer,
-				adp->va_info.vi_buffer_size);
+	    adp->va_info.vi_buffer_size);
 	adp->va_buffer_size = adp->va_info.vi_buffer_size;
 	adp->va_window = adp->va_buffer;
-	adp->va_window_size = adp->va_info.vi_buffer_size/adp->va_info.vi_planes;
-	adp->va_window_gran = adp->va_info.vi_buffer_size/adp->va_info.vi_planes;
+	adp->va_window_size = adp->va_info.vi_buffer_size /
+	    adp->va_info.vi_planes;
+	adp->va_window_gran = adp->va_info.vi_buffer_size /
+	    adp->va_info.vi_planes;
 
 	return 0;
 }
 
 static int
 s3lfb_save_font(video_adapter_t *adp, int page, int fontsize, int fontwidth,
-	       u_char *data, int ch, int count)
+    u_char *data, int ch, int count)
 {
-	return (*prevvidsw->save_font)(adp, page, fontsize, fontwidth, data,
-		ch, count);
+	return (*prevvidsw->save_font)(adp, page, fontsize, fontwidth, data, ch,
+	    count);
 }
 
 static int
 s3lfb_load_font(video_adapter_t *adp, int page, int fontsize, int fontwidth,
-	       u_char *data, int ch, int count)
+    u_char *data, int ch, int count)
 {
-	return (*prevvidsw->load_font)(adp, page, fontsize, fontwidth, data,
-		ch, count);
+	return (*prevvidsw->load_font)(adp, page, fontsize, fontwidth, data, ch,
+	    count);
 }
 
 static int
@@ -375,21 +378,21 @@ s3lfb_set_hw_cursor(video_adapter_t *adp, int col, int row)
 
 static int
 s3lfb_set_hw_cursor_shape(video_adapter_t *adp, int base, int height,
-			 int celsize, int blink)
+    int celsize, int blink)
 {
-	return (*prevvidsw->set_hw_cursor_shape)(adp, base, height,
-			celsize, blink);
+	return (
+	    *prevvidsw->set_hw_cursor_shape)(adp, base, height, celsize, blink);
 }
 
 static int
-s3lfb_blank_display(video_adapter_t *adp, int mode) 
+s3lfb_blank_display(video_adapter_t *adp, int mode)
 {
 	return (*prevvidsw->blank_display)(adp, mode);
 }
 
 static int
 s3lfb_mmap(video_adapter_t *adp, vm_ooffset_t offset, vm_paddr_t *paddr,
-	  int prot, vm_memattr_t *memattr)
+    int prot, vm_memattr_t *memattr)
 {
 	return (*prevvidsw->mmap)(adp, offset, paddr, prot, memattr);
 }
@@ -407,9 +410,9 @@ s3lfb_fill_rect(video_adapter_t *adp, int val, int x, int y, int cx, int cy)
 }
 
 static int
-s3lfb_bitblt(video_adapter_t *adp,...)
+s3lfb_bitblt(video_adapter_t *adp, ...)
 {
-	return (*prevvidsw->bitblt)(adp);		/* XXX */
+	return (*prevvidsw->bitblt)(adp); /* XXX */
 }
 
 static int
@@ -445,24 +448,23 @@ s3pci_probe(device_t dev)
 	subclass = pci_get_subclass(dev);
 
 	if ((class != PCIC_DISPLAY) || (subclass != PCIS_DISPLAY_VGA) ||
-		(vendor != PCI_S3_VENDOR_ID))
+	    (vendor != PCI_S3_VENDOR_ID))
 		return ENXIO;
 
 	device_set_desc(dev, "S3 graphic card");
 
-	bus_set_resource(dev, SYS_RES_IOPORT, 0,
-				S3_CONFIG_IO, S3_CONFIG_IO_SIZE);
-	bus_set_resource(dev, SYS_RES_IOPORT, 1,
-				S3_ENHANCED_IO, S3_ENHANCED_IO_SIZE);
+	bus_set_resource(dev, SYS_RES_IOPORT, 0, S3_CONFIG_IO,
+	    S3_CONFIG_IO_SIZE);
+	bus_set_resource(dev, SYS_RES_IOPORT, 1, S3_ENHANCED_IO,
+	    S3_ENHANCED_IO_SIZE);
 
 	return BUS_PROBE_DEFAULT;
-
 };
 
 static int
 s3pci_attach(device_t dev)
 {
-	struct s3pci_softc* sc = (struct s3pci_softc*)device_get_softc(dev);
+	struct s3pci_softc *sc = (struct s3pci_softc *)device_get_softc(dev);
 	video_adapter_t *adp;
 
 #if 0
@@ -479,7 +481,7 @@ s3pci_attach(device_t dev)
 	 */
 	rid = 0;
 	if (!(sc->port_res = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-				RF_ACTIVE | RF_SHAREABLE))) {
+		  RF_ACTIVE | RF_SHAREABLE))) {
 		printf("%s: port resource allocation failed!\n", __func__);
 		goto error;
 	}
@@ -488,9 +490,9 @@ s3pci_attach(device_t dev)
 
 	rid = 1;
 	if (!(sc->enh_res = bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-				RF_ACTIVE | RF_SHAREABLE))) {
+		  RF_ACTIVE | RF_SHAREABLE))) {
 		printf("%s: enhanced port resource allocation failed!\n",
-			__func__);
+		    __func__);
 		goto error;
 	}
 	sc->enh_st = rman_get_bustag(sc->enh_res);
@@ -498,7 +500,7 @@ s3pci_attach(device_t dev)
 
 	rid = PCI_BASE_MEMORY;
 	if (!(sc->mem_res = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-				 RF_ACTIVE))) {
+		  RF_ACTIVE))) {
 
 		printf("%s: mem resource allocation failed!\n", __func__);
 		goto error;
@@ -522,7 +524,7 @@ s3pci_attach(device_t dev)
 	 */
 	if ((adp == NULL) || !(adp->va_flags & V_ADP_VESA)) {
 		printf("%s: VGA adapter not found or VESA module not loaded!\n",
-			__func__);
+		    __func__);
 		goto error;
 	}
 
@@ -532,13 +534,14 @@ s3pci_attach(device_t dev)
 	vidsw[adp->va_index] = &s3lfbvidsw;
 
 	/* Remember who we are on the bus */
-	s3pci_dev = (void *)dev;			/* XXX */
+	s3pci_dev = (void *)dev; /* XXX */
 
 	return 0;
 
 error:
 	if (sc->mem_res)
-		bus_release_resource(dev, SYS_RES_MEMORY, PCI_BASE_MEMORY, sc->mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, PCI_BASE_MEMORY,
+		    sc->mem_res);
 
 	if (sc->enh_res)
 		bus_release_resource(dev, SYS_RES_IOPORT, 1, sc->enh_res);
@@ -551,9 +554,8 @@ error:
 
 static device_method_t s3pci_methods[] = {
 
-        DEVMETHOD(device_probe, s3pci_probe),
-        DEVMETHOD(device_attach, s3pci_attach),
-        {0,0}
+	DEVMETHOD(device_probe, s3pci_probe),
+	DEVMETHOD(device_attach, s3pci_attach), { 0, 0 }
 };
 
 static driver_t s3pci_driver = {

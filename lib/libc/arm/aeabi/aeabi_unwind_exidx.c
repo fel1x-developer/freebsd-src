@@ -25,7 +25,9 @@
  */
 
 #include <sys/types.h>
+
 #include <machine/elf.h>
+
 #include <link.h>
 #include <stddef.h>
 
@@ -71,14 +73,15 @@ dl_unwind_find_exidx(const void *pc, int *pcount)
 		for (i = 0; i < info.dlpi_phnum; i++, hdr++) {
 			if (hdr->p_type == PT_ARM_EXIDX) {
 				*pcount = hdr->p_memsz / sizeof(exidx_entry);
-				return ((void *)(info.dlpi_addr + hdr->p_vaddr));
+				return (
+				    (void *)(info.dlpi_addr + hdr->p_vaddr));
 			}
 		}
 	}
 	return (NULL);
 }
 
-#else	/* !__PIC__ */
+#else /* !__PIC__ */
 
 /*
  * Unwind helper for statically linked code.
@@ -97,5 +100,4 @@ dl_unwind_find_exidx(const void *pc, int *pcount)
 	return (&__exidx_start);
 }
 
-#endif	/* __PIC__ */
-
+#endif /* __PIC__ */

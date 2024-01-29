@@ -31,38 +31,38 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
+#include <sys/errno.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/socket.h>
 
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "miibus_if.h"
 
-#define	MCOMMPHY_OUI			0x000000
-#define	MCOMMPHY_MODEL			0x10
-#define	MCOMMPHY_REV			0x0a
+#define MCOMMPHY_OUI 0x000000
+#define MCOMMPHY_MODEL 0x10
+#define MCOMMPHY_REV 0x0a
 
-#define	EXT_REG_ADDR			0x1e
-#define	EXT_REG_DATA			0x1f
+#define EXT_REG_ADDR 0x1e
+#define EXT_REG_DATA 0x1f
 
 /* Extended registers */
-#define	PHY_CLOCK_GATING_REG		0x0c
-#define	 RX_CLK_DELAY_EN		0x0001
-#define	 CLK_25M_SEL			0x0006
-#define	 CLK_25M_SEL_125M		3
-#define	 TX_CLK_DELAY_SEL		0x00f0
-#define	PHY_SLEEP_CONTROL1_REG		0x27
-#define	 PLLON_IN_SLP			0x4000
+#define PHY_CLOCK_GATING_REG 0x0c
+#define RX_CLK_DELAY_EN 0x0001
+#define CLK_25M_SEL 0x0006
+#define CLK_25M_SEL_125M 3
+#define TX_CLK_DELAY_SEL 0x00f0
+#define PHY_SLEEP_CONTROL1_REG 0x27
+#define PLLON_IN_SLP 0x4000
 
-#define	LOWEST_SET_BIT(mask)		((((mask) - 1) & (mask)) ^ (mask))
-#define	SHIFTIN(x, mask)		((x) * LOWEST_SET_BIT(mask))
+#define LOWEST_SET_BIT(mask) ((((mask)-1) & (mask)) ^ (mask))
+#define SHIFTIN(x, mask) ((x) * LOWEST_SET_BIT(mask))
 
 static int
 mcommphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
@@ -90,11 +90,8 @@ mcommphy_service(struct mii_softc *sc, struct mii_data *mii, int cmd)
 	return (0);
 }
 
-static const struct mii_phy_funcs mcommphy_funcs = {
-	mcommphy_service,
-	ukphy_status,
-	mii_phy_reset
-};
+static const struct mii_phy_funcs mcommphy_funcs = { mcommphy_service,
+	ukphy_status, mii_phy_reset };
 
 static int
 mcommphy_probe(device_t dev)
@@ -130,7 +127,8 @@ mcommphy_attach(device_t dev)
 	PHY_WRITE(sc, EXT_REG_ADDR, PHY_CLOCK_GATING_REG);
 	data = PHY_READ(sc, EXT_REG_DATA);
 	data &= ~CLK_25M_SEL;
-	data |= SHIFTIN(CLK_25M_SEL_125M, CLK_25M_SEL);;
+	data |= SHIFTIN(CLK_25M_SEL_125M, CLK_25M_SEL);
+	;
 	if (sc->mii_flags & MIIF_RX_DELAY) {
 		data |= RX_CLK_DELAY_EN;
 	} else {
@@ -164,20 +162,15 @@ mcommphy_attach(device_t dev)
 	return (0);
 }
 
-
 static device_method_t mcommphy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		mcommphy_probe),
-	DEVMETHOD(device_attach,	mcommphy_attach),
-	DEVMETHOD(device_detach,	mii_phy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, mcommphy_probe),
+	DEVMETHOD(device_attach, mcommphy_attach),
+	DEVMETHOD(device_detach, mii_phy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown), DEVMETHOD_END
 };
 
-static driver_t mcommphy_driver = {
-	"mcommphy",
-	mcommphy_methods,
-	sizeof(struct mii_softc)
-};
+static driver_t mcommphy_driver = { "mcommphy", mcommphy_methods,
+	sizeof(struct mii_softc) };
 
 DRIVER_MODULE(mcommphy, miibus, mcommphy_driver, 0, 0);

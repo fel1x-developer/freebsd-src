@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_DEV_OFW_OFW_BUS_SUBR_H_
-#define	_DEV_OFW_OFW_BUS_SUBR_H_
+#ifndef _DEV_OFW_OFW_BUS_SUBR_H_
+#define _DEV_OFW_OFW_BUS_SUBR_H_
 
 #include <sys/bus.h>
 #ifdef INTRNG
@@ -39,57 +39,58 @@
 
 #include "ofw_bus_if.h"
 
-#define	ORIP_NOINT	-1
-#define	ORIR_NOTFOUND	0xffffffff
+#define ORIP_NOINT -1
+#define ORIR_NOTFOUND 0xffffffff
 
 struct ofw_bus_iinfo {
-	uint8_t			*opi_imap;
-	uint8_t			*opi_imapmsk;
-	int			opi_imapsz;
-	pcell_t			opi_addrc;
+	uint8_t *opi_imap;
+	uint8_t *opi_imapmsk;
+	int opi_imapsz;
+	pcell_t opi_addrc;
 };
 
 struct ofw_compat_data {
-	const char	*ocd_str;
-	uintptr_t	 ocd_data;
+	const char *ocd_str;
+	uintptr_t ocd_data;
 };
 
 #ifdef INTRNG
 struct intr_map_data_fdt {
-	struct intr_map_data	hdr;
-	phandle_t		iparent;
-	u_int			ncells;
-	pcell_t			cells[];
+	struct intr_map_data hdr;
+	phandle_t iparent;
+	u_int ncells;
+	pcell_t cells[];
 };
 #endif
 
 #define FDTCOMPAT_PNP_DESCR "Z:compat;P:#;"
-#define FDTCOMPAT_PNP_INFO(t, busname) \
-	MODULE_PNP_INFO(FDTCOMPAT_PNP_DESCR, busname, t, t, sizeof(t) / sizeof(t[0]));
+#define FDTCOMPAT_PNP_INFO(t, busname)                      \
+	MODULE_PNP_INFO(FDTCOMPAT_PNP_DESCR, busname, t, t, \
+	    sizeof(t) / sizeof(t[0]));
 
-#define	OFWBUS_PNP_INFO(t)	FDTCOMPAT_PNP_INFO(t, ofwbus)
-#define	SIMPLEBUS_PNP_INFO(t)	FDTCOMPAT_PNP_INFO(t, simplebus)
+#define OFWBUS_PNP_INFO(t) FDTCOMPAT_PNP_INFO(t, ofwbus)
+#define SIMPLEBUS_PNP_INFO(t) FDTCOMPAT_PNP_INFO(t, simplebus)
 
 /* Generic implementation of ofw_bus_if.m methods and helper routines */
-int	ofw_bus_gen_setup_devinfo(struct ofw_bus_devinfo *, phandle_t);
-void	ofw_bus_gen_destroy_devinfo(struct ofw_bus_devinfo *);
+int ofw_bus_gen_setup_devinfo(struct ofw_bus_devinfo *, phandle_t);
+void ofw_bus_gen_destroy_devinfo(struct ofw_bus_devinfo *);
 
-ofw_bus_get_compat_t	ofw_bus_gen_get_compat;
-ofw_bus_get_model_t	ofw_bus_gen_get_model;
-ofw_bus_get_name_t	ofw_bus_gen_get_name;
-ofw_bus_get_node_t	ofw_bus_gen_get_node;
-ofw_bus_get_type_t	ofw_bus_gen_get_type;
+ofw_bus_get_compat_t ofw_bus_gen_get_compat;
+ofw_bus_get_model_t ofw_bus_gen_get_model;
+ofw_bus_get_name_t ofw_bus_gen_get_name;
+ofw_bus_get_node_t ofw_bus_gen_get_node;
+ofw_bus_get_type_t ofw_bus_gen_get_type;
 
 /* Helper method to report interesting OF properties in pnpinfo */
-bus_child_pnpinfo_t	ofw_bus_gen_child_pnpinfo;
-bus_get_device_path_t	ofw_bus_gen_get_device_path;
+bus_child_pnpinfo_t ofw_bus_gen_child_pnpinfo;
+bus_get_device_path_t ofw_bus_gen_get_device_path;
 
 /* Routines for processing firmware interrupt maps */
-void	ofw_bus_setup_iinfo(phandle_t, struct ofw_bus_iinfo *, int);
-int	ofw_bus_lookup_imap(phandle_t, struct ofw_bus_iinfo *, void *, int,
-	    void *, int, void *, int, phandle_t *);
-int	ofw_bus_search_intrmap(void *, int, void *, int, void *, int, void *,
-	    void *, void *, int, phandle_t *);
+void ofw_bus_setup_iinfo(phandle_t, struct ofw_bus_iinfo *, int);
+int ofw_bus_lookup_imap(phandle_t, struct ofw_bus_iinfo *, void *, int, void *,
+    int, void *, int, phandle_t *);
+int ofw_bus_search_intrmap(void *, int, void *, int, void *, int, void *,
+    void *, void *, int, phandle_t *);
 
 /* Routines for processing msi and iommu maps. */
 int ofw_bus_msimap(phandle_t, uint16_t, phandle_t *, uint32_t *);
@@ -117,15 +118,15 @@ int ofw_bus_is_compatible(device_t, const char *);
 int ofw_bus_is_compatible_strict(device_t, const char *);
 int ofw_bus_node_is_compatible(phandle_t, const char *);
 
-/* 
+/*
  * Helper routine to search a list of compat properties.  The table is
  * terminated by an entry with a NULL compat-string pointer; a pointer to that
  * table entry is returned if none of the compat strings match for the device,
  * giving you control over the not-found value.  Will not return NULL unless the
  * provided table pointer is NULL.
  */
-const struct ofw_compat_data *
-    ofw_bus_search_compatible(device_t, const struct ofw_compat_data *);
+const struct ofw_compat_data *ofw_bus_search_compatible(device_t,
+    const struct ofw_compat_data *);
 
 /* Helper routine for checking existence of a prop */
 int ofw_bus_has_prop(device_t, const char *);

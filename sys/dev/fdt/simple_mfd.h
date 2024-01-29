@@ -25,16 +25,16 @@
  */
 
 #ifndef DEV_SIMPLE_MFD_H
-#define	DEV_SIMPLE_MFD_H
+#define DEV_SIMPLE_MFD_H
 
 #include <dev/fdt/simplebus.h>
 
 struct simple_mfd_softc {
-	struct simplebus_softc  sc;
-	device_t                dev;
-	struct syscon           *syscon;
-	struct resource         *mem_res;
-	struct mtx              mtx;
+	struct simplebus_softc sc;
+	device_t dev;
+	struct syscon *syscon;
+	struct resource *mem_res;
+	struct mtx mtx;
 };
 
 DECLARE_CLASS(simple_mfd_driver);

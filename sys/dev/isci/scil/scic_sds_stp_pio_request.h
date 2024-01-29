@@ -69,63 +69,56 @@ extern "C" {
  *        requests.
  */
 
-
 /**
  * @enum
  *
  * This is the enumeration of the SATA PIO DATA IN started substate machine.
  */
-enum _SCIC_SDS_STP_REQUEST_STARTED_PIO_SUBSTATES
-{
-   /**
-    * While in this state the IO request object is waiting for the TC completion
-    * notification for the H2D Register FIS
-    */
-   SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE,
+enum _SCIC_SDS_STP_REQUEST_STARTED_PIO_SUBSTATES {
+	/**
+	 * While in this state the IO request object is waiting for the TC
+	 * completion notification for the H2D Register FIS
+	 */
+	SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_H2D_COMPLETION_SUBSTATE,
 
-   /**
-    * While in this state the IO request object is waiting for either a PIO Setup
-    * FIS or a D2H register FIS.  The type of frame received is based on the
-    * result of the prior frame and line conditions.
-    */
-   SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE,
+	/**
+	 * While in this state the IO request object is waiting for either a PIO
+	 * Setup FIS or a D2H register FIS.  The type of frame received is based
+	 * on the result of the prior frame and line conditions.
+	 */
+	SCIC_SDS_STP_REQUEST_STARTED_PIO_AWAIT_FRAME_SUBSTATE,
 
-   /**
-    * While in this state the IO request object is waiting for a DATA frame from
-    * the device.
-    */
-   SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE,
+	/**
+	 * While in this state the IO request object is waiting for a DATA frame
+	 * from the device.
+	 */
+	SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_IN_AWAIT_DATA_SUBSTATE,
 
-   /**
-    * While in this state the IO request object is waiting to transmit the next data
-    * frame to the device.
-    */
-   SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE,
+	/**
+	 * While in this state the IO request object is waiting to transmit the
+	 * next data frame to the device.
+	 */
+	SCIC_SDS_STP_REQUEST_STARTED_PIO_DATA_OUT_TRANSMIT_DATA_SUBSTATE,
 
-   SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES
+	SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES
 };
-
-
-
 
 // ---------------------------------------------------------------------------
 
 extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
-   scic_sds_stp_request_started_pio_substate_handler_table[
-      SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES];
+    scic_sds_stp_request_started_pio_substate_handler_table
+	[SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES];
 
-extern SCI_BASE_STATE_T
-   scic_sds_stp_request_started_pio_substate_table[
-      SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES];
+extern SCI_BASE_STATE_T scic_sds_stp_request_started_pio_substate_table
+    [SCIC_SDS_STP_REQUEST_STARTED_PIO_MAX_SUBSTATES];
 
 // ---------------------------------------------------------------------------
 
-SCU_SGL_ELEMENT_T * scic_sds_stp_request_pio_get_next_sgl(
-   SCIC_SDS_STP_REQUEST_T * this_request
-);
+SCU_SGL_ELEMENT_T *scic_sds_stp_request_pio_get_next_sgl(
+    SCIC_SDS_STP_REQUEST_T *this_request);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
-#endif   // _SCIC_SDS_SATA_PIO_REQUEST_H_
+#endif // _SCIC_SDS_SATA_PIO_REQUEST_H_

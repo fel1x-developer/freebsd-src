@@ -25,10 +25,10 @@
  * SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <libgeom.h>
 #include <geom/union/g_union.h>
+#include <libgeom.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #include "core/geom.h"
 
@@ -37,47 +37,28 @@ uint32_t version = G_UNION_VERSION;
 
 struct g_command class_commands[] = {
 	{ "create", G_FLAG_LOADKLD, NULL,
-	    {
-		{ 'o', "offset", "0", G_TYPE_NUMBER },
+	    { { 'o', "offset", "0", G_TYPE_NUMBER },
 		{ 's', "size", "0", G_TYPE_NUMBER },
 		{ 'S', "secsize", "0", G_TYPE_NUMBER },
 		{ 'v', "verbose", NULL, G_TYPE_BOOL },
 		{ 'Z', "gunionname", G_VAL_OPTIONAL, G_TYPE_STRING },
-		G_OPT_SENTINEL
-	    },
+		G_OPT_SENTINEL },
 	    "[-v] [-o offset] [-s size] [-S secsize] [-Z gunionname] "
-	    "upperdev lowerdev"
-	},
+	    "upperdev lowerdev" },
 	{ "destroy", 0, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
-		{ 'v', "verbose", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-fv] prov ..."
-	},
+	    { { 'f', "force", NULL, G_TYPE_BOOL },
+		{ 'v', "verbose", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-fv] prov ..." },
 	{ "reset", 0, NULL,
-	    {
-		{ 'v', "verbose", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] prov ..."
-	},
+	    { { 'v', "verbose", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-v] prov ..." },
 	{ "commit", 0, NULL,
-	    {
-		{ 'f', "force", NULL, G_TYPE_BOOL },
+	    { { 'f', "force", NULL, G_TYPE_BOOL },
 		{ 'r', "reboot", NULL, G_TYPE_BOOL },
-		{ 'v', "verbose", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-frv] prov ..."
-	},
+		{ 'v', "verbose", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-frv] prov ..." },
 	{ "revert", 0, NULL,
-	    {
-		{ 'v', "verbose", NULL, G_TYPE_BOOL },
-		G_OPT_SENTINEL
-	    },
-	    "[-v] prov ..."
-	},
+	    { { 'v', "verbose", NULL, G_TYPE_BOOL }, G_OPT_SENTINEL },
+	    "[-v] prov ..." },
 	G_CMD_SENTINEL
 };

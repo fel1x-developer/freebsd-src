@@ -4,83 +4,74 @@
  * See the IPFILTER.LICENCE file for details on licencing.
  */
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <sys/sockio.h>
 #include <sys/errno.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/time.h>
 
-#include <netinet/in.h>
 #include <net/if.h>
+#include <netinet/in.h>
 
 #include <arpa/inet.h>
-
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <string.h>
 #include <syslog.h>
-#include <signal.h>
+#include <unistd.h>
 
 #include "ipf.h"
 #include "opts.h"
 
-
-#define	R_IO_ERROR	-1
-#define	R_OKAY		0
-#define	R_MORE		1
-#define	R_SKIP		2
-#if	defined(sun) && !defined(SOLARIS2)
-# define	STRERROR(x)     sys_errlist[x]
-extern  char    *sys_errlist[];
+#define R_IO_ERROR -1
+#define R_OKAY 0
+#define R_MORE 1
+#define R_SKIP 2
+#if defined(sun) && !defined(SOLARIS2)
+#define STRERROR(x) sys_errlist[x]
+extern char *sys_errlist[];
 #else
-# define	STRERROR(x)     strerror(x)
+#define STRERROR(x) strerror(x)
 #endif
 
+int main(int, char *[]);
+void usage(char *);
+void printsynchdr(synchdr_t *);
+void printtable(int);
+void printsmcproto(char *);
+void printcommand(int);
+int do_kbuff(int, char *, int *);
+int do_packet(int, char *);
+int buildsocket(char *, struct sockaddr_in *);
+void do_io(void);
+void handleterm(int);
 
-int	main(int, char *[]);
-void	usage(char *);
-void	printsynchdr(synchdr_t *);
-void	printtable(int);
-void	printsmcproto(char *);
-void	printcommand(int);
-int	do_kbuff(int, char *, int *);
-int	do_packet(int, char *);
-int	buildsocket(char *, struct sockaddr_in *);
-void	do_io(void);
-void	handleterm(int);
+int terminate = 0;
+int igmpfd = -1;
+int nfd = -1;
+int lfd = -1;
+int opts = 0;
 
-int	terminate = 0;
-int	igmpfd = -1;
-int	nfd = -1;
-int	lfd = -1;
-int	opts = 0;
-
-void
-usage(progname)
-	char *progname;
+void usage(progname) char *progname;
 {
 	fprintf(stderr,
-		"Usage: %s [-d] [-p port] [-i address] -I <interface>\n",
-		progname);
+	    "Usage: %s [-d] [-p port] [-i address] -I <interface>\n", progname);
 }
 
-void
-handleterm(sig)
-	int sig;
+void handleterm(sig) int sig;
 {
 	terminate = sig;
 }
-
 
 /* should be large enough to hold header + any datatype */
 #define BUFFERLEN 1400
 
 int
 main(argc, argv)
-	int argc;
-	char *argv[];
+int argc;
+char *argv[];
 {
 	struct sockaddr_in sin;
 	char *interface;
@@ -104,18 +95,17 @@ main(argc, argv)
 	sin.sin_addr.s_addr = htonl(INADDR_UNSPEC_GROUP | 0x697066);
 
 	while ((opt = getopt(argc, argv, "di:I:p:")) != -1)
-		switch (opt)
-		{
-		case 'd' :
+		switch (opt) {
+		case 'd':
 			debuglevel++;
 			break;
-		case 'I' :
+		case 'I':
 			interface = optarg;
 			break;
-		case 'i' :
+		case 'i':
 			sin.sin_addr.s_addr = inet_addr(optarg);
 			break;
-		case 'p' :
+		case 'p':
 			sin.sin_port = htons(atoi(optarg));
 			break;
 		}
@@ -132,18 +122,17 @@ main(argc, argv)
 #else
 		int fd = open("/dev/null", O_RDWR);
 
-		switch (fork())
-		{
-		case 0 :
+		switch (fork()) {
+		case 0:
 			break;
 
-		case -1 :
-			fprintf(stderr, "%s: fork() failed: %s\n",
-				argv[0], STRERROR(errno));
+		case -1:
+			fprintf(stderr, "%s: fork() failed: %s\n", argv[0],
+			    STRERROR(errno));
 			exit(1);
 			/* NOTREACHED */
 
-		default :
+		default:
 			exit(0);
 			/* NOTREACHED */
 		}
@@ -157,9 +146,9 @@ main(argc, argv)
 #endif
 	}
 
-       	signal(SIGHUP, handleterm);
-       	signal(SIGINT, handleterm);
-       	signal(SIGTERM, handleterm);
+	signal(SIGHUP, handleterm);
+	signal(SIGINT, handleterm);
+	signal(SIGTERM, handleterm);
 
 	openlog(progname, LOG_PID, LOG_SECURITY);
 
@@ -184,19 +173,18 @@ main(argc, argv)
 		if (lfd == -1) {
 			syslog(LOG_ERR, "open(%s):%m", IPSYNC_NAME);
 			debug(1, "open(%s): %s\n", IPSYNC_NAME,
-			      STRERROR(errno));
+			    STRERROR(errno));
 			goto tryagain;
 		}
 
 		tries = -1;
 		do_io();
-tryagain:
+	tryagain:
 		tries++;
 		syslog(LOG_INFO, "retry in %d seconds", 1 << tries);
 		debug(1, "wait %d seconds\n", 1 << tries);
 		sleep(1 << tries);
 	}
-
 
 	/* terminate */
 	if (lfd != -1)
@@ -209,7 +197,6 @@ tryagain:
 
 	exit(1);
 }
-
 
 void
 do_io()
@@ -243,11 +230,10 @@ do_io()
 
 		n = select(maxfd + 1, &rd, NULL, NULL, NULL);
 		if (n < 0) {
-			switch (errno)
-			{
-			case EINTR :
+			switch (errno) {
+			case EINTR:
 				continue;
-			default :
+			default:
 				syslog(LOG_ERR, "select error: %m");
 				debug(1, "select error: %s\n", STRERROR(errno));
 				return;
@@ -255,27 +241,26 @@ do_io()
 		}
 
 		if (FD_ISSET(lfd, &rd)) {
-			n1 = read(lfd, buff+inbuf, BUFFERLEN-inbuf);
+			n1 = read(lfd, buff + inbuf, BUFFERLEN - inbuf);
 
 			debug(3, "read(K):%d\n", n1);
 
 			if (n1 <= 0) {
 				syslog(LOG_ERR, "read error (k-header): %m");
 				debug(1, "read error (k-header): %s\n",
-				      STRERROR(errno));
+				    STRERROR(errno));
 				return;
 			}
 
 			left = 0;
 
-			switch (do_kbuff(n1, buff, &left))
-			{
-			case R_IO_ERROR :
+			switch (do_kbuff(n1, buff, &left)) {
+			case R_IO_ERROR:
 				return;
-			case R_MORE :
+			case R_MORE:
 				inbuf += left;
 				break;
-			default :
+			default:
 				inbuf = 0;
 				break;
 			}
@@ -289,26 +274,24 @@ do_io()
 			if (n1 <= 0) {
 				syslog(LOG_ERR, "read error (n-header): %m");
 				debug(1, "read error (n-header): %s\n",
-				      STRERROR(errno));
+				    STRERROR(errno));
 				return;
 			}
 
-			switch (do_packet(n1, nbuff))
-			{
-			case R_IO_ERROR :
+			switch (do_packet(n1, nbuff)) {
+			case R_IO_ERROR:
 				return;
-			default :
+			default:
 				break;
 			}
 		}
 	}
 }
 
-
 int
 buildsocket(nicname, sinp)
-	char *nicname;
-	struct sockaddr_in *sinp;
+char *nicname;
+struct sockaddr_in *sinp;
 {
 	struct sockaddr_in *reqip;
 	struct ifreq req;
@@ -341,11 +324,11 @@ buildsocket(nicname, sinp)
 
 		addr = reqip->sin_addr;
 		if (setsockopt(igmpfd, IPPROTO_IP, IP_MULTICAST_IF,
-			       (char *)&addr, sizeof(addr)) == -1) {
+			(char *)&addr, sizeof(addr)) == -1) {
 			syslog(LOG_ERR, "setsockopt(IP_MULTICAST_IF(%s)):%m",
-			       inet_ntoa(addr));
+			    inet_ntoa(addr));
 			debug(1, "setsockopt(IP_MULTICAST_IF(%s)):%s\n",
-			      inet_ntoa(addr), STRERROR(errno));
+			    inet_ntoa(addr), STRERROR(errno));
 			close(igmpfd);
 			igmpfd = -1;
 			return -1;
@@ -353,10 +336,10 @@ buildsocket(nicname, sinp)
 
 		opt = 0;
 		if (setsockopt(igmpfd, IPPROTO_IP, IP_MULTICAST_LOOP,
-			       (char *)&opt, sizeof(opt)) == -1) {
+			(char *)&opt, sizeof(opt)) == -1) {
 			syslog(LOG_ERR, "setsockopt(IP_MULTICAST_LOOP=0):%m");
 			debug(1, "setsockopt(IP_MULTICAST_LOOP=0):%s\n",
-			      STRERROR(errno));
+			    STRERROR(errno));
 			close(igmpfd);
 			igmpfd = -1;
 			return -1;
@@ -364,11 +347,11 @@ buildsocket(nicname, sinp)
 
 		opt = 63;
 		if (setsockopt(igmpfd, IPPROTO_IP, IP_MULTICAST_TTL,
-			       (char *)&opt, sizeof(opt)) == -1) {
+			(char *)&opt, sizeof(opt)) == -1) {
 			syslog(LOG_ERR, "setsockopt(IP_MULTICAST_TTL=%d):%m",
-			       opt);
+			    opt);
 			debug(1, "setsockopt(IP_MULTICAST_TTL=%d):%s\n", opt,
-			      STRERROR(errno));
+			    STRERROR(errno));
 			close(igmpfd);
 			igmpfd = -1;
 			return -1;
@@ -378,16 +361,17 @@ buildsocket(nicname, sinp)
 		mreq.imr_interface.s_addr = reqip->sin_addr.s_addr;
 
 		if (setsockopt(igmpfd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-			       (char *)&mreq, sizeof(mreq)) == -1) {
+			(char *)&mreq, sizeof(mreq)) == -1) {
 			char buffer[80];
 
-			snprintf(buffer, sizeof(buffer), "%s,", inet_ntoa(sinp->sin_addr));
+			snprintf(buffer, sizeof(buffer), "%s,",
+			    inet_ntoa(sinp->sin_addr));
 			strcat(buffer, inet_ntoa(reqip->sin_addr));
 
-			syslog(LOG_ERR,
-			       "setsockpt(IP_ADD_MEMBERSHIP,%s):%m", buffer);
-			debug(1, "setsockpt(IP_ADD_MEMBERSHIP,%s):%s\n",
-			      buffer, STRERROR(errno));
+			syslog(LOG_ERR, "setsockpt(IP_ADD_MEMBERSHIP,%s):%m",
+			    buffer);
+			debug(1, "setsockpt(IP_ADD_MEMBERSHIP,%s):%s\n", buffer,
+			    STRERROR(errno));
 			close(igmpfd);
 			igmpfd = -1;
 			return -1;
@@ -413,8 +397,8 @@ buildsocket(nicname, sinp)
 		return -1;
 	}
 
-	if (bind(nfd, (struct sockaddr *)&req.ifr_addr,
-		 sizeof(req.ifr_addr)) == -1) {
+	if (bind(nfd, (struct sockaddr *)&req.ifr_addr, sizeof(req.ifr_addr)) ==
+	    -1) {
 		syslog(LOG_ERR, "bind:%m");
 		debug(1, "bind:%s\n", STRERROR(errno));
 		close(nfd);
@@ -443,11 +427,10 @@ buildsocket(nicname, sinp)
 	return nfd;
 }
 
-
 int
 do_packet(pklen, buff)
-	int pklen;
-	char *buff;
+int pklen;
+char *buff;
 {
 	synchdr_t *sh;
 	u_32_t magic;
@@ -504,12 +487,10 @@ do_packet(pklen, buff)
 	return R_OKAY;
 }
 
-
-
 int
 do_kbuff(inbuf, buf, left)
-	int inbuf, *left;
-	char *buf;
+int inbuf, *left;
+char *buf;
 {
 	synchdr_t *sh;
 	u_32_t magic;
@@ -532,12 +513,11 @@ do_kbuff(inbuf, buf, left)
 
 		if (magic != SYNHDRMAGIC) {
 			syslog(LOG_ERR,
-			       "read invalid header magic 0x%x, flushing",
-			       magic);
+			    "read invalid header magic 0x%x, flushing", magic);
 			debug(2, "read invalid header magic 0x%x, flushing\n",
-			       magic);
+			    magic);
 			n2 = SMC_RLOG;
-			(void) ioctl(lfd, SIOCIPFFL, &n2);
+			(void)ioctl(lfd, SIOCIPFFL, &n2);
 			break;
 		}
 
@@ -550,7 +530,7 @@ do_kbuff(inbuf, buf, left)
 
 		if (bytes < sizeof(*sh) + len) {
 			debug(3, "Not enough bytes %d < %d\n", bytes,
-			      sizeof(*sh) + len);
+			    sizeof(*sh) + len);
 			error = R_MORE;
 			break;
 		}
@@ -591,49 +571,38 @@ do_kbuff(inbuf, buf, left)
 	return error;
 }
 
-
-void
-printcommand(cmd)
-	int cmd;
+void printcommand(cmd) int cmd;
 {
 
-	switch (cmd)
-	{
-	case SMC_CREATE :
+	switch (cmd) {
+	case SMC_CREATE:
 		printf(" cmd:CREATE");
 		break;
-	case SMC_UPDATE :
+	case SMC_UPDATE:
 		printf(" cmd:UPDATE");
 		break;
-	default :
+	default:
 		printf(" cmd:Unknown(%d)", cmd);
 		break;
 	}
 }
 
-
-void
-printtable(table)
-	int table;
+void printtable(table) int table;
 {
-	switch (table)
-	{
-	case SMC_NAT :
+	switch (table) {
+	case SMC_NAT:
 		printf(" table:NAT");
 		break;
-	case SMC_STATE :
+	case SMC_STATE:
 		printf(" table:STATE");
 		break;
-	default :
+	default:
 		printf(" table:Unknown(%d)", table);
 		break;
 	}
 }
 
-
-void
-printsmcproto(buff)
-	char *buff;
+void printsmcproto(buff) char *buff;
 {
 	syncupdent_t *su;
 	synchdr_t *sh;
@@ -647,21 +616,17 @@ printsmcproto(buff)
 		su = (syncupdent_t *)buff;
 		if (sh->sm_p == IPPROTO_TCP) {
 			printf(" TCP Update: age %lu state %d/%d\n",
-				su->sup_tcp.stu_age,
-				su->sup_tcp.stu_state[0],
-				su->sup_tcp.stu_state[1]);
+			    su->sup_tcp.stu_age, su->sup_tcp.stu_state[0],
+			    su->sup_tcp.stu_state[1]);
 		}
 	} else {
 		printf("Unknown command\n");
 	}
 }
 
-
-void
-printsynchdr(sh)
-	synchdr_t *sh;
+void printsynchdr(sh) synchdr_t *sh;
 {
 
 	printf("v:%d p:%d num:%d len:%d magic:%x", sh->sm_v, sh->sm_p,
-	       ntohl(sh->sm_num), ntohl(sh->sm_len), ntohl(sh->sm_magic));
+	    ntohl(sh->sm_num), ntohl(sh->sm_len), ntohl(sh->sm_magic));
 }

@@ -33,8 +33,8 @@
  *	$NetBSD: signal.h,v 1.4 1998/09/14 02:48:34 thorpej Exp $
  */
 
-#ifndef	_MACHINE_SIGNAL_H_
-#define	_MACHINE_SIGNAL_H_
+#ifndef _MACHINE_SIGNAL_H_
+#define _MACHINE_SIGNAL_H_
 
 #include <sys/cdefs.h>
 
@@ -44,11 +44,11 @@ typedef int sig_atomic_t;
 #include <machine/frame.h>
 
 struct sigcontext {
-	int sc_onstack;			/* saved onstack flag */
-	int __sc_mask13;		/* saved signal mask (old style) */
-	struct trapframe sc_frame;	/* saved registers */
-	struct __sigset sc_mask;	/* saved signal mask (new style) */
+	int sc_onstack;		   /* saved onstack flag */
+	int __sc_mask13;	   /* saved signal mask (old style) */
+	struct trapframe sc_frame; /* saved registers */
+	struct __sigset sc_mask;   /* saved signal mask (new style) */
 };
 #endif
 
-#endif	/* !_MACHINE_SIGNAL_H_ */
+#endif /* !_MACHINE_SIGNAL_H_ */

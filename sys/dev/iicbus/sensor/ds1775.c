@@ -26,62 +26,59 @@
  */
 
 #include <sys/param.h>
-#include <sys/bus.h>
 #include <sys/systm.h>
-#include <sys/module.h>
+#include <sys/bus.h>
 #include <sys/callout.h>
 #include <sys/conf.h>
 #include <sys/cpu.h>
 #include <sys/ctype.h>
 #include <sys/kernel.h>
+#include <sys/limits.h>
+#include <sys/module.h>
 #include <sys/reboot.h>
 #include <sys/rman.h>
 #include <sys/sysctl.h>
-#include <sys/limits.h>
 
 #include <machine/bus.h>
 #include <machine/md_var.h>
 
 #include <dev/iicbus/iicbus.h>
 #include <dev/iicbus/iiconf.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/openfirm.h>
+
 #include <powerpc/powermac/powermac_thermal.h>
 
 /* Drivebay sensor: LM75/DS1775. */
-#define DS1775_TEMP         0x0
+#define DS1775_TEMP 0x0
 
 /* Regular bus attachment functions */
-static int  ds1775_probe(device_t);
-static int  ds1775_attach(device_t);
+static int ds1775_probe(device_t);
+static int ds1775_attach(device_t);
 
 struct ds1775_softc {
-	struct pmac_therm	sc_sensor;
-	device_t		sc_dev;
+	struct pmac_therm sc_sensor;
+	device_t sc_dev;
 	struct intr_config_hook enum_hook;
-	uint32_t                sc_addr;
+	uint32_t sc_addr;
 };
 
 /* Utility functions */
-static int  ds1775_sensor_read(struct ds1775_softc *sc);
-static int  ds1775_sensor_sysctl(SYSCTL_HANDLER_ARGS);
+static int ds1775_sensor_read(struct ds1775_softc *sc);
+static int ds1775_sensor_sysctl(SYSCTL_HANDLER_ARGS);
 static void ds1775_start(void *xdev);
-static int  ds1775_read_2(device_t dev, uint32_t addr, uint8_t reg,
-			  uint16_t *data);
+static int ds1775_read_2(device_t dev, uint32_t addr, uint8_t reg,
+    uint16_t *data);
 
-static device_method_t  ds1775_methods[] = {
+static device_method_t ds1775_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ds1775_probe),
-	DEVMETHOD(device_attach,	ds1775_attach),
+	DEVMETHOD(device_probe, ds1775_probe),
+	DEVMETHOD(device_attach, ds1775_attach),
 	{ 0, 0 },
 };
 
-static driver_t ds1775_driver = {
-	"ds1775",
-	ds1775_methods,
-	sizeof(struct ds1775_softc)
-};
+static driver_t ds1775_driver = { "ds1775", ds1775_methods,
+	sizeof(struct ds1775_softc) };
 
 DRIVER_MODULE(ds1775, iicbus, ds1775_driver, 0, 0);
 
@@ -92,17 +89,16 @@ ds1775_read_2(device_t dev, uint32_t addr, uint8_t reg, uint16_t *data)
 	int err, try = 0;
 
 	struct iic_msg msg[2] = {
-	    { addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
-	    { addr, IIC_M_RD, 2, buf },
+		{ addr, IIC_M_WR | IIC_M_NOSTOP, 1, &reg },
+		{ addr, IIC_M_RD, 2, buf },
 	};
 
-	for (;;)
-	{
+	for (;;) {
 		err = iicbus_transfer(dev, msg, nitems(msg));
 		if (err != 0)
 			goto retry;
 
-		*data = *((uint16_t*)buf);
+		*data = *((uint16_t *)buf);
 		return (0);
 	retry:
 		if (++try > 5) {
@@ -116,7 +112,7 @@ ds1775_read_2(device_t dev, uint32_t addr, uint8_t reg, uint16_t *data)
 static int
 ds1775_probe(device_t dev)
 {
-	const char  *name, *compatible;
+	const char *name, *compatible;
 	struct ds1775_softc *sc;
 
 	name = ofw_bus_get_name(dev);
@@ -127,7 +123,7 @@ ds1775_probe(device_t dev)
 
 	if (strcmp(name, "temp-monitor") != 0 ||
 	    (strcmp(compatible, "ds1775") != 0 &&
-	     strcmp(compatible, "lm75") != 0))
+		strcmp(compatible, "lm75") != 0))
 		return (ENXIO);
 
 	sc = device_get_softc(dev);
@@ -186,11 +182,11 @@ ds1775_start(void *xdev)
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "DS1775 Sensor Information");
 
 	if (OF_getprop(child, "hwsensor-zone", &sc->sc_sensor.zone,
-		       sizeof(int)) < 0)
+		sizeof(int)) < 0)
 		sc->sc_sensor.zone = 0;
 
 	plen = OF_getprop(child, "hwsensor-location", sc->sc_sensor.name,
-			  sizeof(sc->sc_sensor.name));
+	    sizeof(sc->sc_sensor.name));
 
 	if (plen == -1) {
 		strcpy(sysctl_name, "sensor");
@@ -207,23 +203,21 @@ ds1775_start(void *xdev)
 	if (sc->sc_sensor.zone == 0) {
 		sc->sc_sensor.target_temp = 500 + ZERO_C_TO_K;
 		sc->sc_sensor.max_temp = 600 + ZERO_C_TO_K;
-	}
-	else {
+	} else {
 		sc->sc_sensor.target_temp = 300 + ZERO_C_TO_K;
 		sc->sc_sensor.max_temp = 600 + ZERO_C_TO_K;
 	}
 
-	sc->sc_sensor.read =
-	    (int (*)(struct pmac_therm *sc))(ds1775_sensor_read);
+	sc->sc_sensor.read = (int (*)(struct pmac_therm *sc))(
+	    ds1775_sensor_read);
 	pmac_thermal_sensor_register(&sc->sc_sensor);
 
-	sprintf(sysctl_desc,"%s %s", sc->sc_sensor.name, "(C)");
-	oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid),
-	    OID_AUTO, sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
-	    "Sensor Information");
+	sprintf(sysctl_desc, "%s %s", sc->sc_sensor.name, "(C)");
+	oid = SYSCTL_ADD_NODE(ctx, SYSCTL_CHILDREN(sensroot_oid), OID_AUTO,
+	    sysctl_name, CTLFLAG_RD | CTLFLAG_MPSAFE, 0, "Sensor Information");
 	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(oid), OID_AUTO, "temp",
-			CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
-			0, ds1775_sensor_sysctl, "IK", sysctl_desc);
+	    CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, 0,
+	    ds1775_sensor_sysctl, "IK", sysctl_desc);
 
 	config_intrhook_disestablish(&sc->enum_hook);
 }

@@ -37,6 +37,6 @@ int
 i386_autoload(void)
 {
 
-    /* XXX use PnP to locate stuff here */
-    return(0);
+	/* XXX use PnP to locate stuff here */
+	return (0);
 }

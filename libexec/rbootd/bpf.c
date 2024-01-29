@@ -45,8 +45,8 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
-#include <net/if.h>
 #include <net/bpf.h>
+#include <net/if.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -56,6 +56,7 @@
 #include <string.h>
 #include <syslog.h>
 #include <unistd.h>
+
 #include "defs.h"
 #include "pathnames.h"
 
@@ -86,7 +87,7 @@ BpfOpen(void)
 	 *  Open the first available BPF device.
 	 */
 	do {
-		(void) sprintf(bpfdev, _PATH_BPF, n++);
+		(void)sprintf(bpfdev, _PATH_BPF, n++);
 		BpfFd = open(bpfdev, O_RDWR);
 	} while (BpfFd < 0 && (errno == EBUSY || errno == EPERM));
 
@@ -99,7 +100,7 @@ BpfOpen(void)
 	 *  Set interface name for bpf device, get data link layer
 	 *  type and make sure it's type Ethernet.
 	 */
-	(void) strncpy(ifr.ifr_name, IntfName, sizeof(ifr.ifr_name));
+	(void)strncpy(ifr.ifr_name, IntfName, sizeof(ifr.ifr_name));
 	if (ioctl(BpfFd, BIOCSETIF, (caddr_t)&ifr) < 0) {
 		syslog(LOG_ERR, "bpf: ioctl(BIOCSETIF,%s): %m", IntfName);
 		Exit(0);
@@ -113,8 +114,8 @@ BpfOpen(void)
 		Exit(0);
 	}
 	if (n != DLT_EN10MB) {
-		syslog(LOG_ERR,"bpf: %s: data-link type %d unsupported",
-		       IntfName, n);
+		syslog(LOG_ERR, "bpf: %s: data-link type %d unsupported",
+		    IntfName, n);
 		Exit(0);
 	}
 
@@ -137,7 +138,8 @@ BpfOpen(void)
 	ifr.ifr_addr.sa_len = RMP_ADDRLEN + 2;
 #endif
 	ifr.ifr_addr.sa_family = AF_UNSPEC;
-	memmove((char *)&ifr.ifr_addr.sa_data[0], &RmpMcastAddr[0], RMP_ADDRLEN);
+	memmove((char *)&ifr.ifr_addr.sa_data[0], &RmpMcastAddr[0],
+	    RMP_ADDRLEN);
 	if (ioctl(BpfFd, BIOCPROMISC, (caddr_t)0) < 0) {
 		syslog(LOG_ERR, "bpf: can't set promiscuous mode: %m");
 		Exit(0);
@@ -155,7 +157,7 @@ BpfOpen(void)
 
 	if (BpfPkt == NULL) {
 		syslog(LOG_ERR, "bpf: out of memory (%u bytes for bpfpkt)",
-		       BpfLen);
+		    BpfLen);
 		Exit(0);
 	}
 
@@ -164,20 +166,23 @@ BpfOpen(void)
 	 *  it down BPF's throat (i.e. set up the packet filter).
 	 */
 	{
-#define	RMP	((struct rmp_packet *)0)
+#define RMP ((struct rmp_packet *)0)
 		static struct bpf_insn bpf_insn[] = {
-		    { BPF_LD|BPF_B|BPF_ABS,  0, 0, (long)&RMP->hp_llc.dsap },
-		    { BPF_JMP|BPF_JEQ|BPF_K, 0, 5, IEEE_DSAP_HP },
-		    { BPF_LD|BPF_H|BPF_ABS,  0, 0, (long)&RMP->hp_llc.cntrl },
-		    { BPF_JMP|BPF_JEQ|BPF_K, 0, 3, IEEE_CNTL_HP },
-		    { BPF_LD|BPF_H|BPF_ABS,  0, 0, (long)&RMP->hp_llc.dxsap },
-		    { BPF_JMP|BPF_JEQ|BPF_K, 0, 1, HPEXT_DXSAP },
-		    { BPF_RET|BPF_K,         0, 0, RMP_MAX_PACKET },
-		    { BPF_RET|BPF_K,         0, 0, 0x0 }
+			{ BPF_LD | BPF_B | BPF_ABS, 0, 0,
+			    (long)&RMP->hp_llc.dsap },
+			{ BPF_JMP | BPF_JEQ | BPF_K, 0, 5, IEEE_DSAP_HP },
+			{ BPF_LD | BPF_H | BPF_ABS, 0, 0,
+			    (long)&RMP->hp_llc.cntrl },
+			{ BPF_JMP | BPF_JEQ | BPF_K, 0, 3, IEEE_CNTL_HP },
+			{ BPF_LD | BPF_H | BPF_ABS, 0, 0,
+			    (long)&RMP->hp_llc.dxsap },
+			{ BPF_JMP | BPF_JEQ | BPF_K, 0, 1, HPEXT_DXSAP },
+			{ BPF_RET | BPF_K, 0, 0, RMP_MAX_PACKET },
+			{ BPF_RET | BPF_K, 0, 0, 0x0 }
 		};
-#undef	RMP
+#undef RMP
 		static struct bpf_program bpf_pgm = {
-		    sizeof(bpf_insn)/sizeof(bpf_insn[0]), bpf_insn
+			sizeof(bpf_insn) / sizeof(bpf_insn[0]), bpf_insn
 		};
 
 		if (ioctl(BpfFd, BIOCSETF, (caddr_t)&bpf_pgm) < 0) {
@@ -186,7 +191,7 @@ BpfOpen(void)
 		}
 	}
 
-	return(BpfFd);
+	return (BpfFd);
 }
 
 /*
@@ -219,16 +224,16 @@ BpfGetIntfName(char **errmsg)
 		*errmsg = errbuf;
 
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		(void) strcpy(errbuf, "bpf: socket: %m");
-		return(NULL);
+		(void)strcpy(errbuf, "bpf: socket: %m");
+		return (NULL);
 	}
 	ifc.ifc_len = sizeof ibuf;
 	ifc.ifc_buf = (caddr_t)ibuf;
 
 	if (ioctl(fd, SIOCGIFCONF, (char *)&ifc) < 0 ||
 	    ifc.ifc_len < sizeof(struct ifreq)) {
-		(void) strcpy(errbuf, "bpf: ioctl(SIOCGIFCONF): %m");
-		return(NULL);
+		(void)strcpy(errbuf, "bpf: ioctl(SIOCGIFCONF): %m");
+		return (NULL);
 	}
 	ifrp = ibuf;
 	ifend = (struct ifreq *)((char *)ibuf + ifc.ifc_len);
@@ -237,8 +242,8 @@ BpfGetIntfName(char **errmsg)
 	minunit = 666;
 	for (; ifrp < ifend; ++ifrp) {
 		if (ioctl(fd, SIOCGIFFLAGS, (char *)ifrp) < 0) {
-			(void) strcpy(errbuf, "bpf: ioctl(SIOCGIFFLAGS): %m");
-			return(NULL);
+			(void)strcpy(errbuf, "bpf: ioctl(SIOCGIFFLAGS): %m");
+			return (NULL);
 		}
 
 		/*
@@ -262,14 +267,14 @@ BpfGetIntfName(char **errmsg)
 		}
 	}
 
-	(void) close(fd);
+	(void)close(fd);
 	if (mp == NULL) {
-		(void) strcpy(errbuf, "bpf: no interfaces found");
-		return(NULL);
+		(void)strcpy(errbuf, "bpf: no interfaces found");
+		return (NULL);
 	}
 
-	(void) strcpy(device, mp->ifr_name);
-	return(device);
+	(void)strcpy(device, mp->ifr_name);
+	return (device);
 }
 
 /*
@@ -299,7 +304,7 @@ BpfRead(RMPCONN *rconn, int doread)
 	if (doread) {
 		if ((cc = read(BpfFd, (char *)BpfPkt, (int)BpfLen)) < 0) {
 			syslog(LOG_ERR, "bpf: read: %m");
-			return(0);
+			return (0);
 		} else {
 			bp = BpfPkt;
 			ep = BpfPkt + cc;
@@ -318,23 +323,24 @@ BpfRead(RMPCONN *rconn, int doread)
 
 		if (caplen != datlen)
 			syslog(LOG_ERR,
-			       "bpf: short packet dropped (%d of %d bytes)",
-			       caplen, datlen);
+			    "bpf: short packet dropped (%d of %d bytes)",
+			    caplen, datlen);
 		else if (caplen > sizeof(struct rmp_packet))
 			syslog(LOG_ERR, "bpf: large packet dropped (%d bytes)",
-			       caplen);
+			    caplen);
 		else {
 			rconn->rmplen = caplen;
 			memmove((char *)&rconn->tstamp, (char *)&bhp->bh_tstamp,
-			      sizeof(struct timeval));
-			memmove((char *)&rconn->rmp, (char *)bp + hdrlen, caplen);
+			    sizeof(struct timeval));
+			memmove((char *)&rconn->rmp, (char *)bp + hdrlen,
+			    caplen);
 		}
 		bp += BPF_WORDALIGN(caplen + hdrlen);
-		return(1);
+		return (1);
 	}
 #undef bhp
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -354,10 +360,10 @@ BpfWrite(RMPCONN *rconn)
 {
 	if (write(BpfFd, (char *)&rconn->rmp, rconn->rmplen) < 0) {
 		syslog(LOG_ERR, "write: %s: %m", EnetStr(rconn));
-		return(0);
+		return (0);
 	}
 
-	return(1);
+	return (1);
 }
 
 /*
@@ -389,10 +395,11 @@ BpfClose(void)
 	ifr.ifr_addr.sa_len = RMP_ADDRLEN + 2;
 #endif
 	ifr.ifr_addr.sa_family = AF_UNSPEC;
-	memmove((char *)&ifr.ifr_addr.sa_data[0], &RmpMcastAddr[0], RMP_ADDRLEN);
+	memmove((char *)&ifr.ifr_addr.sa_data[0], &RmpMcastAddr[0],
+	    RMP_ADDRLEN);
 	if (ioctl(BpfFd, SIOCDELMULTI, (caddr_t)&ifr) < 0)
-		(void) ioctl(BpfFd, BIOCPROMISC, (caddr_t)0);
+		(void)ioctl(BpfFd, BIOCPROMISC, (caddr_t)0);
 
-	(void) close(BpfFd);
+	(void)close(BpfFd);
 	BpfFd = -1;
 }

@@ -45,12 +45,12 @@
 #include <string.h>
 #include <unistd.h>
 
-static int	 check(const char *);
-static int	 portable(const char *);
-static void	 usage(void);
+static int check(const char *);
+static int portable(const char *);
+static void usage(void);
 
-static int	 pflag;			/* Perform portability checks */
-static int	 Pflag;			/* Check for empty paths, leading '-' */
+static int pflag; /* Perform portability checks */
+static int Pflag; /* Check for empty paths, leading '-' */
 
 int
 main(int argc, char *argv[])
@@ -130,20 +130,21 @@ check(const char *path)
 		*end = '\0';
 
 		if (namemax != -1 && complen > namemax) {
-			warnx("%s: %s: component too long (limit %ld)", path,
-			    p, namemax);
+			warnx("%s: %s: component too long (limit %ld)", path, p,
+			    namemax);
 			goto bad;
 		}
 
 		if (!pflag && stat(pathd, &sb) == -1 && errno != ENOENT) {
-			warn("%s: %.*s", path, (int)(strlen(pathd) -
-			    complen - 1), pathd);
+			warn("%s: %.*s", path,
+			    (int)(strlen(pathd) - complen - 1), pathd);
 			goto bad;
 		}
 
 		if (pflag && !portable(p)) {
 			warnx("%s: %s: component contains non-portable "
-			    "character", path, p);
+			      "character",
+			    path, p);
 			goto bad;
 		}
 
@@ -177,7 +178,8 @@ check(const char *path)
 	free(pathd);
 	return (0);
 
-bad:	free(pathd);
+bad:
+	free(pathd);
 	return (1);
 }
 
@@ -187,10 +189,9 @@ bad:	free(pathd);
 static int
 portable(const char *path)
 {
-	static const char charset[] =
-	    "abcdefghijklmnopqrstuvwxyz"
-	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	    "0123456789._-";
+	static const char charset[] = "abcdefghijklmnopqrstuvwxyz"
+				      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+				      "0123456789._-";
 	long s;
 
 	s = strspn(path, charset);

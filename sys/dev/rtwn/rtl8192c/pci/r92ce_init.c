@@ -18,42 +18,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
 
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/pci/rtwn_pci_var.h>
-
-#include <dev/rtwn/rtl8192c/r92c_var.h>
-
 #include <dev/rtwn/rtl8192c/pci/r92ce.h>
 #include <dev/rtwn/rtl8192c/pci/r92ce_reg.h>
+#include <dev/rtwn/rtl8192c/r92c_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 void
 r92ce_init_intr(struct rtwn_softc *sc)
@@ -85,7 +81,7 @@ r92ce_init_bb(struct rtwn_softc *sc)
 	/* Enable BB and RF. */
 	rtwn_setbits_2(sc, R92C_SYS_FUNC_EN, 0,
 	    R92C_SYS_FUNC_EN_BBRSTB | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_DIO_RF);
+		R92C_SYS_FUNC_EN_DIO_RF);
 
 	rtwn_write_2(sc, R92C_AFE_PLL_CTRL, 0xdb83);
 
@@ -94,8 +90,8 @@ r92ce_init_bb(struct rtwn_softc *sc)
 
 	rtwn_write_1(sc, R92C_SYS_FUNC_EN,
 	    R92C_SYS_FUNC_EN_DIO_PCIE | R92C_SYS_FUNC_EN_PCIEA |
-	    R92C_SYS_FUNC_EN_PPLL | R92C_SYS_FUNC_EN_BB_GLB_RST |
-	    R92C_SYS_FUNC_EN_BBRSTB);
+		R92C_SYS_FUNC_EN_PPLL | R92C_SYS_FUNC_EN_BB_GLB_RST |
+		R92C_SYS_FUNC_EN_BBRSTB);
 
 	rtwn_write_1(sc, R92C_AFE_XTAL_CTRL + 1, 0x80);
 
@@ -129,9 +125,8 @@ r92ce_power_on(struct rtwn_softc *sc)
 	if (rs->board_type != R92C_BOARD_TYPE_DONGLE) {
 		/* bt coex */
 		rtwn_setbits_4(sc, R92C_APS_FSMCO, 0,
-		    R92C_APS_FSMCO_SOP_ABG |
-		    R92C_APS_FSMCO_SOP_AMB |
-		    R92C_APS_FSMCO_XOP_BTCK);
+		    R92C_APS_FSMCO_SOP_ABG | R92C_APS_FSMCO_SOP_AMB |
+			R92C_APS_FSMCO_XOP_BTCK);
 	}
 
 	/* Move SPS into PWM mode. */
@@ -158,7 +153,7 @@ r92ce_power_on(struct rtwn_softc *sc)
 	rtwn_setbits_2(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_ONMAC);
 	for (ntries = 0; ntries < 1000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		DELAY(5);
 	}
@@ -169,9 +164,8 @@ r92ce_power_on(struct rtwn_softc *sc)
 
 	/* Enable radio, GPIO and LED functions. */
 	rtwn_write_2(sc, R92C_APS_FSMCO,
-	    R92C_APS_FSMCO_AFSM_PCIE |
-	    R92C_APS_FSMCO_PDN_EN |
-	    R92C_APS_FSMCO_PFM_ALDN);
+	    R92C_APS_FSMCO_AFSM_PCIE | R92C_APS_FSMCO_PDN_EN |
+		R92C_APS_FSMCO_PFM_ALDN);
 	/* Release RF digital isolation. */
 	rtwn_setbits_2(sc, R92C_SYS_ISO_CTRL, R92C_SYS_ISO_CTRL_DIOR, 0);
 
@@ -202,7 +196,7 @@ r92ce_power_on(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_APSD_CTRL, R92C_APSD_CTRL_OFF, 0);
 	for (ntries = 0; ntries < 200; ntries++) {
 		if (!(rtwn_read_1(sc, R92C_APSD_CTRL) &
-		    R92C_APSD_CTRL_OFF_STATUS))
+			R92C_APSD_CTRL_OFF_STATUS))
 			break;
 		DELAY(500);
 	}
@@ -214,10 +208,10 @@ r92ce_power_on(struct rtwn_softc *sc)
 
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
-	    R92C_CR_TXDMA_EN | R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN |
-	    R92C_CR_SCHEDULE_EN | R92C_CR_MACTXEN | R92C_CR_MACRXEN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0));
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN | R92C_CR_TXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		R92C_CR_MACTXEN | R92C_CR_MACRXEN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0));
 
 	rtwn_write_4(sc, R92C_MCUTST_1, 0x0);
 
@@ -254,10 +248,9 @@ r92ce_power_off(struct rtwn_softc *sc)
 
 	/* Disable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	rtwn_setbits_2(sc, R92C_CR,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
-	    R92C_CR_TXDMA_EN | R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN |
-	    R92C_CR_SCHEDULE_EN | R92C_CR_MACTXEN | R92C_CR_MACRXEN |
-	    R92C_CR_ENSEC,
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN | R92C_CR_TXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		R92C_CR_MACTXEN | R92C_CR_MACRXEN | R92C_CR_ENSEC,
 	    0);
 
 	/* If firmware in ram code, do reset. */
@@ -267,8 +260,8 @@ r92ce_power_off(struct rtwn_softc *sc)
 #endif
 
 	/* TODO: linux does additional btcoex stuff here */
-	rtwn_write_2(sc, R92C_AFE_PLL_CTRL, 0x80); /* linux magic number */
-	rtwn_write_1(sc, R92C_SPS0_CTRL, 0x23); /* ditto */
+	rtwn_write_2(sc, R92C_AFE_PLL_CTRL, 0x80);  /* linux magic number */
+	rtwn_write_1(sc, R92C_SPS0_CTRL, 0x23);	    /* ditto */
 	rtwn_write_1(sc, R92C_AFE_XTAL_CTRL, 0x0e); /* different with btcoex */
 	rtwn_write_1(sc, R92C_RSV_CTRL, 0x0e);
 	rtwn_write_1(sc, R92C_APS_FSMCO, R92C_APS_FSMCO_PDN_EN);
@@ -279,7 +272,7 @@ r92ce_init_ampdu(struct rtwn_softc *sc)
 {
 
 	/* Setup AMPDU aggregation. */
-	rtwn_write_4(sc, R92C_AGGLEN_LMT, 0x99997631);	/* MCS7~0 */
+	rtwn_write_4(sc, R92C_AGGLEN_LMT, 0x99997631); /* MCS7~0 */
 	rtwn_write_1(sc, R92C_AGGR_BREAK_TIME, 0x16);
 }
 

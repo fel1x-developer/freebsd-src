@@ -40,7 +40,7 @@ htonl(uint32_t hl)
 uint16_t
 htons(uint16_t hs)
 {
-	
+
 	return (__htons(hs));
 }
 
@@ -54,6 +54,6 @@ ntohl(uint32_t nl)
 uint16_t
 ntohs(uint16_t ns)
 {
-	
+
 	return (__ntohs(ns));
 }

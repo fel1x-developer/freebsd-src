@@ -43,14 +43,14 @@
 
 #if defined(OCS_LIST_DEBUG)
 
-#define ocs_list_magic_decl		uint32_t magic;
-#define OCS_LIST_LIST_MAGIC		0xcafe0000
-#define OCS_LIST_LINK_MAGIC		0xcafe0001
-#define ocs_list_set_list_magic		list->magic = OCS_LIST_LIST_MAGIC
-#define ocs_list_set_link_magic		list->magic = OCS_LIST_LINK_MAGIC
+#define ocs_list_magic_decl uint32_t magic;
+#define OCS_LIST_LIST_MAGIC 0xcafe0000
+#define OCS_LIST_LINK_MAGIC 0xcafe0001
+#define ocs_list_set_list_magic list->magic = OCS_LIST_LIST_MAGIC
+#define ocs_list_set_link_magic list->magic = OCS_LIST_LINK_MAGIC
 
-#define ocs_list_assert(cond, ...) \
-	if (!(cond)) { \
+#define ocs_list_assert(cond, ...)  \
+	if (!(cond)) {              \
 		return __VA_ARGS__; \
 	}
 #else
@@ -72,24 +72,26 @@
 
 typedef struct ocs_list_s ocs_list_t;
 struct ocs_list_s {
-	ocs_list_magic_decl			/*<< used if debugging is enabled */
-	ocs_list_t *next;			/*<< pointer to head of list (or next if link) */
-	ocs_list_t *prev;			/*<< pointer to tail of list (or previous if link) */
-	uint32_t offset;			/*<< offset in bytes to the link element of the objects in list */
+	ocs_list_magic_decl   /*<< used if debugging is enabled */
+	    ocs_list_t *next; /*<< pointer to head of list (or next if link) */
+	ocs_list_t *prev; /*<< pointer to tail of list (or previous if link) */
+	uint32_t offset; /*<< offset in bytes to the link element of the objects
+			    in list */
 };
 typedef ocs_list_t ocs_list_link_t;
 
 /* item2link - return pointer to link given pointer to an item */
-#define item2link(list, item)	((ocs_list_t*) (((uint8_t*)(item)) + (list)->offset))
+#define item2link(list, item) \
+	((ocs_list_t *)(((uint8_t *)(item)) + (list)->offset))
 
 /* link2item - return pointer to item given pointer to a link */
-#define link2item(list, link)	((void*) (((uint8_t*)(link)) - (list)->offset))
+#define link2item(list, link) ((void *)(((uint8_t *)(link)) - (list)->offset))
 
 /**
  * @brief Initialize a list
  *
- * A list object is initialized.  Helper define is used to call _ocs_list_init() with
- * offsetof(type, link)
+ * A list object is initialized.  Helper define is used to call _ocs_list_init()
+ * with offsetof(type, link)
  *
  * @param list Pointer to list
  * @param offset Offset in bytes in item to the link element
@@ -106,7 +108,8 @@ _ocs_list_init(ocs_list_t *list, uint32_t offset)
 	list->prev = list;
 	list->offset = offset;
 }
-#define ocs_list_init(head, type, link)		_ocs_list_init(head, offsetof(type, link))
+#define ocs_list_init(head, type, link) \
+	_ocs_list_init(head, offsetof(type, link))
 
 /**
  * @ingroup os
@@ -153,15 +156,18 @@ static inline void
 _ocs_list_insert_link(ocs_list_t *a, ocs_list_t *b, ocs_list_t *c)
 {
 	ocs_list_assert(a);
-	ocs_list_assert((a->magic == OCS_LIST_LIST_MAGIC) || (a->magic == OCS_LIST_LINK_MAGIC));
+	ocs_list_assert((a->magic == OCS_LIST_LIST_MAGIC) ||
+	    (a->magic == OCS_LIST_LINK_MAGIC));
 	ocs_list_assert(a->next);
 	ocs_list_assert(a->prev);
 	ocs_list_assert(b);
-	ocs_list_assert((b->magic == OCS_LIST_LIST_MAGIC) || (b->magic == OCS_LIST_LINK_MAGIC));
+	ocs_list_assert((b->magic == OCS_LIST_LIST_MAGIC) ||
+	    (b->magic == OCS_LIST_LINK_MAGIC));
 	ocs_list_assert(b->next);
 	ocs_list_assert(b->prev);
 	ocs_list_assert(c);
-	ocs_list_assert((c->magic == OCS_LIST_LIST_MAGIC) || (c->magic == OCS_LIST_LINK_MAGIC));
+	ocs_list_assert((c->magic == OCS_LIST_LIST_MAGIC) ||
+	    (c->magic == OCS_LIST_LINK_MAGIC));
 	ocs_list_assert(!c->next);
 	ocs_list_assert(!c->prev);
 
@@ -178,8 +184,9 @@ _ocs_list_insert_link(ocs_list_t *a, ocs_list_t *b, ocs_list_t *c)
 /**
  * @brief Initialize a list link for debug purposes
  *
- * For debugging a linked list link element has a magic number that is initialized,
- * and the offset value initialized and used for subsequent assertions.
+ * For debugging a linked list link element has a magic number that is
+ * initialized, and the offset value initialized and used for subsequent
+ * assertions.
  *
  *
  * @param list Pointer to list head
@@ -299,7 +306,8 @@ ocs_list_get_tail(ocs_list_t *list)
  *
  * @return pointer to the last item, NULL otherwise
  */
-static inline void *ocs_list_tail(ocs_list_t *list)
+static inline void *
+ocs_list_tail(ocs_list_t *list)
 {
 	ocs_list_assert(list, NULL);
 	ocs_list_assert(list->magic == OCS_LIST_LIST_MAGIC, NULL);
@@ -315,7 +323,8 @@ static inline void *ocs_list_tail(ocs_list_t *list)
  *
  * @return pointer to the next item, NULL otherwise
  */
-static inline void *ocs_list_next(ocs_list_t *list, void *item)
+static inline void *
+ocs_list_next(ocs_list_t *list, void *item)
 {
 	ocs_list_t *link;
 
@@ -349,7 +358,8 @@ static inline void *ocs_list_next(ocs_list_t *list, void *item)
  *
  * @return pointer to returned item, or NULL if list is empty
  */
-#define ocs_list_remove_head(list)		ocs_list_remove(list, ocs_list_get_head(list))
+#define ocs_list_remove_head(list) \
+	ocs_list_remove(list, ocs_list_get_head(list))
 
 /**
  * @ingroup os
@@ -360,7 +370,8 @@ static inline void *ocs_list_next(ocs_list_t *list, void *item)
  *
  * @return pointer to item, or NULL if item is not found.
  */
-static inline void *ocs_list_remove(ocs_list_t *list, void *item)
+static inline void *
+ocs_list_remove(ocs_list_t *list, void *item)
 {
 	ocs_list_t *link;
 	ocs_list_t *prev;
@@ -403,8 +414,9 @@ static inline void *ocs_list_remove(ocs_list_t *list, void *item)
  * @return none
  */
 
-#define ocs_list_foreach(list, item) \
-	for (item = ocs_list_get_head((list)); item; item = ocs_list_next((list), item) )
+#define ocs_list_foreach(list, item)                 \
+	for (item = ocs_list_get_head((list)); item; \
+	     item = ocs_list_next((list), item))
 
 /**
  * @brief Iterate a linked list safely
@@ -421,9 +433,10 @@ static inline void *ocs_list_remove(ocs_list_t *list, void *item)
  * @return none
  */
 
-#define ocs_list_foreach_safe(list, item, nxt) \
-	for (item = ocs_list_get_head(list), nxt = item ? ocs_list_next(list, item) : NULL; item; \
-		item = nxt, nxt = ocs_list_next(list, item))
+#define ocs_list_foreach_safe(list, item, nxt)             \
+	for (item = ocs_list_get_head(list),               \
+	    nxt = item ? ocs_list_next(list, item) : NULL; \
+	     item; item = nxt, nxt = ocs_list_next(list, item))
 
 /**
  * @brief Test if object is on a list

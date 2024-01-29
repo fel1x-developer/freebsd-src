@@ -33,12 +33,11 @@
 #include <sys/mutex.h>
 #include <sys/smp.h>
 
-#include <blake2.h>
-
-#include <opencrypto/cryptodev.h>
-#include <cryptodev_if.h>
-
 #include <machine/fpu.h>
+
+#include <blake2.h>
+#include <cryptodev_if.h>
+#include <opencrypto/cryptodev.h>
 
 struct blake2_session {
 	size_t mlen;
@@ -82,7 +81,7 @@ blake2_attach(device_t dev)
 
 	sc->cid = crypto_get_driverid(dev, sizeof(struct blake2_session),
 	    CRYPTOCAP_F_SOFTWARE | CRYPTOCAP_F_SYNC |
-	    CRYPTOCAP_F_ACCEL_SOFTWARE);
+		CRYPTOCAP_F_ACCEL_SOFTWARE);
 	if (sc->cid < 0) {
 		device_printf(dev, "Could not get crypto driver id.\n");
 		return (ENOMEM);
@@ -157,8 +156,8 @@ blake2_process(device_t dev, struct cryptop *crp, int hint __unused)
 	return (0);
 }
 
-static device_method_t blake2_methods[] = {
-	DEVMETHOD(device_identify, blake2_identify),
+static device_method_t blake2_methods[] = { DEVMETHOD(device_identify,
+						blake2_identify),
 	DEVMETHOD(device_probe, blake2_probe),
 	DEVMETHOD(device_attach, blake2_attach),
 	DEVMETHOD(device_detach, blake2_detach),
@@ -167,8 +166,7 @@ static device_method_t blake2_methods[] = {
 	DEVMETHOD(cryptodev_newsession, blake2_newsession),
 	DEVMETHOD(cryptodev_process, blake2_process),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t blake2_driver = {
 	"blaketwo",

@@ -35,6 +35,7 @@
  */
 
 #include <sys/types.h>
+
 #include <grp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +47,9 @@ static int _gr_stayopen;
 static int grscan(int, int);
 static int start_gr(void);
 
-#define	MAXGRP		200
+#define MAXGRP 200
 static char *members[MAXGRP];
-#define	MAXLINELENGTH	1024
+#define MAXLINELENGTH 1024
 static char line[MAXLINELENGTH];
 
 struct group *
@@ -58,10 +59,9 @@ _getgrent(void)
 		return NULL;
 	}
 
-
 	if (!grscan(0, 0))
-		return(NULL);
-	return(&_gr_group);
+		return (NULL);
+	return (&_gr_group);
 }
 
 static int
@@ -74,15 +74,15 @@ int
 _setgroupent(int stayopen)
 {
 	if (!start_gr())
-		return(0);
+		return (0);
 	_gr_stayopen = stayopen;
-	return(1);
+	return (1);
 }
 
 int
 _setgrent(void)
 {
-	return(_setgroupent(0));
+	return (_setgroupent(0));
 }
 
 void
@@ -101,7 +101,7 @@ grscan(int search, int gid)
 	char *bp;
 	for (;;) {
 		if (!fgets(line, sizeof(line), _gr_fp))
-			return(0);
+			return (0);
 		bp = line;
 		/* skip lines that are too big */
 		if (!strchr(line, '\n')) {
@@ -138,13 +138,13 @@ grscan(int search, int gid)
 				if (cp) {
 					*bp = '\0';
 					*m++ = cp;
-			}
+				}
 				break;
 			} else if (cp == NULL)
 				cp = bp;
 		}
 		*m = NULL;
-		return(1);
+		return (1);
 	}
 	/* NOTREACHED */
 	return (0);

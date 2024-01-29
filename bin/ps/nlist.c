@@ -36,10 +36,10 @@
 
 #include "ps.h"
 
-fixpt_t	ccpu;				/* kernel _ccpu variable */
-int	nlistread;			/* if nlist already read. */
-unsigned long	mempages;		/* number of pages of phys. memory */
-int	fscale;				/* kernel _fscale variable */
+fixpt_t ccpu;		/* kernel _ccpu variable */
+int nlistread;		/* if nlist already read. */
+unsigned long mempages; /* number of pages of phys. memory */
+int fscale;		/* kernel _fscale variable */
 
 int
 donlist(void)

@@ -25,9 +25,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -53,10 +53,11 @@ pwmbus_add_child(device_t dev, u_int order, const char *name, int unit)
 	struct pwmbus_ivars *ivars;
 
 	child = device_add_child_ordered(dev, order, name, unit);
-	if (child == NULL) 
+	if (child == NULL)
 		return (child);
 
-	ivars = malloc(sizeof(struct pwmbus_ivars), M_DEVBUF, M_NOWAIT | M_ZERO);
+	ivars = malloc(sizeof(struct pwmbus_ivars), M_DEVBUF,
+	    M_NOWAIT | M_ZERO);
 	if (ivars == NULL) {
 		device_delete_child(dev, child);
 		return (NULL);
@@ -72,7 +73,7 @@ pwmbus_child_location(device_t dev, device_t child, struct sbuf *sb)
 	struct pwmbus_ivars *ivars;
 
 	ivars = device_get_ivars(child);
-	sbuf_printf(sb, "hwdev=%s channel=%u", 
+	sbuf_printf(sb, "hwdev=%s channel=%u",
 	    device_get_nameunit(device_get_parent(dev)), ivars->pi_channel);
 
 	return (0);
@@ -102,7 +103,7 @@ pwmbus_print_child(device_t dev, device_t child)
 
 	ivars = device_get_ivars(child);
 
-	rv  = bus_print_child_header(dev, child);
+	rv = bus_print_child_header(dev, child);
 	rv += printf(" channel %u", ivars->pi_channel);
 	rv += bus_print_child_footer(dev, child);
 
@@ -172,9 +173,12 @@ pwmbus_attach(device_t dev)
 
 	/* Add a pwmc(4) child for each channel. */
 	for (chan = 0; chan < sc->nchannels; ++chan) {
-		if ((child = pwmbus_add_child(sc->dev, 0, "pwmc", -1)) == NULL) {
-			device_printf(dev, "failed to add pwmc child device "
-			    "for channel %u\n", chan);
+		if ((child = pwmbus_add_child(sc->dev, 0, "pwmc", -1)) ==
+		    NULL) {
+			device_printf(dev,
+			    "failed to add pwmc child device "
+			    "for channel %u\n",
+			    chan);
 			continue;
 		}
 		ivars = device_get_ivars(child);
@@ -205,13 +209,15 @@ pwmbus_detach(device_t dev)
 static int
 pwmbus_channel_config(device_t dev, u_int chan, u_int period, u_int duty)
 {
-	return (PWMBUS_CHANNEL_CONFIG(device_get_parent(dev), chan, period, duty));
+	return (
+	    PWMBUS_CHANNEL_CONFIG(device_get_parent(dev), chan, period, duty));
 }
 
 static int
 pwmbus_channel_get_config(device_t dev, u_int chan, u_int *period, u_int *duty)
 {
-	return (PWMBUS_CHANNEL_GET_CONFIG(device_get_parent(dev), chan, period, duty));
+	return (PWMBUS_CHANNEL_GET_CONFIG(device_get_parent(dev), chan, period,
+	    duty));
 }
 
 static int
@@ -235,7 +241,8 @@ pwmbus_channel_set_flags(device_t dev, u_int chan, uint32_t flags)
 static int
 pwmbus_channel_is_enabled(device_t dev, u_int chan, bool *enable)
 {
-	return (PWMBUS_CHANNEL_IS_ENABLED(device_get_parent(dev), chan, enable));
+	return (
+	    PWMBUS_CHANNEL_IS_ENABLED(device_get_parent(dev), chan, enable));
 }
 
 static int
@@ -246,26 +253,26 @@ pwmbus_channel_count(device_t dev, u_int *nchannel)
 
 static device_method_t pwmbus_methods[] = {
 	/* device_if */
-	DEVMETHOD(device_probe,  pwmbus_probe),
+	DEVMETHOD(device_probe, pwmbus_probe),
 	DEVMETHOD(device_attach, pwmbus_attach),
 	DEVMETHOD(device_detach, pwmbus_detach),
 
-        /* bus_if */
-	DEVMETHOD(bus_add_child,		pwmbus_add_child),
-	DEVMETHOD(bus_child_location,		pwmbus_child_location),
-	DEVMETHOD(bus_hinted_child,		pwmbus_hinted_child),
-	DEVMETHOD(bus_print_child,		pwmbus_print_child),
-	DEVMETHOD(bus_probe_nomatch,		pwmbus_probe_nomatch),
-	DEVMETHOD(bus_read_ivar,		pwmbus_read_ivar),
+	/* bus_if */
+	DEVMETHOD(bus_add_child, pwmbus_add_child),
+	DEVMETHOD(bus_child_location, pwmbus_child_location),
+	DEVMETHOD(bus_hinted_child, pwmbus_hinted_child),
+	DEVMETHOD(bus_print_child, pwmbus_print_child),
+	DEVMETHOD(bus_probe_nomatch, pwmbus_probe_nomatch),
+	DEVMETHOD(bus_read_ivar, pwmbus_read_ivar),
 
-        /* pwmbus_if  */
-	DEVMETHOD(pwmbus_channel_count,		pwmbus_channel_count),
-	DEVMETHOD(pwmbus_channel_config,	pwmbus_channel_config),
-	DEVMETHOD(pwmbus_channel_get_config,	pwmbus_channel_get_config),
-	DEVMETHOD(pwmbus_channel_set_flags,	pwmbus_channel_set_flags),
-	DEVMETHOD(pwmbus_channel_get_flags,	pwmbus_channel_get_flags),
-	DEVMETHOD(pwmbus_channel_enable,	pwmbus_channel_enable),
-	DEVMETHOD(pwmbus_channel_is_enabled,	pwmbus_channel_is_enabled),
+	/* pwmbus_if  */
+	DEVMETHOD(pwmbus_channel_count, pwmbus_channel_count),
+	DEVMETHOD(pwmbus_channel_config, pwmbus_channel_config),
+	DEVMETHOD(pwmbus_channel_get_config, pwmbus_channel_get_config),
+	DEVMETHOD(pwmbus_channel_set_flags, pwmbus_channel_set_flags),
+	DEVMETHOD(pwmbus_channel_get_flags, pwmbus_channel_get_flags),
+	DEVMETHOD(pwmbus_channel_enable, pwmbus_channel_enable),
+	DEVMETHOD(pwmbus_channel_is_enabled, pwmbus_channel_is_enabled),
 
 	DEVMETHOD_END
 };

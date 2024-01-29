@@ -29,7 +29,7 @@
 #ifndef _SND_VERSION_H_
 #define _SND_VERSION_H_
 
-/* 
+/*
  * FreeBSD sound driver internal versioning, nothing to do
  * with OSS whatsoever. Dear future maintainer, please revisit
  * this _before_ Jan 1 2148
@@ -37,6 +37,6 @@
  * Last 2 decimal places reserved for daily versioning, starting
  * with 0.
  */
-#define SND_DRV_VERSION		2009061500
+#define SND_DRV_VERSION 2009061500
 
 #endif /* !_SND_VERSION_H_ */

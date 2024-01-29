@@ -33,14 +33,13 @@
 #include <sys/cdefs.h>
 #include <sys/endian.h>
 
-#include <errno.h>
-#include <strings.h>
-
-#include <hast.h>
 #include <ebuf.h>
+#include <errno.h>
+#include <hast.h>
 #include <nv.h>
 #include <pjdlog.h>
 #include <proto.h>
+#include <strings.h>
 
 #include "hast_checksum.h"
 #include "hast_compression.h"
@@ -48,9 +47,9 @@
 
 struct hast_main_header {
 	/* Protocol version. */
-	uint8_t		version;
+	uint8_t version;
 	/* Size of nv headers. */
-	uint32_t	size;
+	uint32_t size;
 } __packed;
 
 typedef int hps_send_t(const struct hast_resource *, struct nv *nv, void **,
@@ -59,15 +58,14 @@ typedef int hps_recv_t(const struct hast_resource *, struct nv *nv, void **,
     size_t *, bool *);
 
 struct hast_pipe_stage {
-	const char	*hps_name;
-	hps_send_t	*hps_send;
-	hps_recv_t	*hps_recv;
+	const char *hps_name;
+	hps_send_t *hps_send;
+	hps_recv_t *hps_recv;
 };
 
-static struct hast_pipe_stage pipeline[] = {
-	{ "compression", compression_send, compression_recv },
-	{ "checksum", checksum_send, checksum_recv }
-};
+static struct hast_pipe_stage pipeline[] = { { "compression", compression_send,
+						 compression_recv },
+	{ "checksum", checksum_send, checksum_recv } };
 
 /*
  * Send the given nv structure via conn.
@@ -93,7 +91,7 @@ hast_proto_send(const struct hast_resource *res, struct proto_conn *conn,
 		unsigned int ii;
 
 		for (ii = 0; ii < sizeof(pipeline) / sizeof(pipeline[0]);
-		    ii++) {
+		     ii++) {
 			(void)pipeline[ii].hps_send(res, nv, &dptr, &size,
 			    &freedata);
 		}
@@ -195,9 +193,9 @@ hast_proto_recv_data(const struct hast_resource *res, struct proto_conn *conn,
 		if (proto_recv(conn, data, dsize) == -1)
 			goto end;
 		for (ii = sizeof(pipeline) / sizeof(pipeline[0]); ii > 0;
-		    ii--) {
-			ret = pipeline[ii - 1].hps_recv(res, nv, &dptr,
-			    &dsize, &freedata);
+		     ii--) {
+			ret = pipeline[ii - 1].hps_recv(res, nv, &dptr, &dsize,
+			    &freedata);
 			if (ret == -1)
 				goto end;
 		}

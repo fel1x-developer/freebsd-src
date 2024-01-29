@@ -26,19 +26,18 @@
  */
 
 #include <sys/param.h>
-#include <sys/wait.h>
 #include <sys/event.h>
+#include <sys/wait.h>
 
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <libutil.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libutil.h>
 
 /*
  * We need a signal handler so kill(2) will interrupt the child
@@ -226,7 +225,7 @@ common_test_pidfile_child(const char *fn, int parent_open)
 		return (strerror(errno));
 	if (WIFSIGNALED(status))
 		return ("child caught signal");
-	if (WEXITSTATUS(status) != 0) 
+	if (WEXITSTATUS(status) != 0)
 		return ("child returned non-zero status");
 
 	// success
@@ -316,11 +315,10 @@ main(void)
 	printf("1..%d\n", nt);
 	for (i = 0; i < nt; ++i) {
 		if ((result = t[i].func()) != NULL)
-			printf("not ok %d - %s # %s\n", i + 1,
-			    t[i].name, result);
+			printf("not ok %d - %s # %s\n", i + 1, t[i].name,
+			    result);
 		else
-			printf("ok %d - %s\n", i + 1,
-			    t[i].name);
+			printf("ok %d - %s\n", i + 1, t[i].name);
 	}
 	exit(0);
 }

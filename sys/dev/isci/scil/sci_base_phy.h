@@ -75,53 +75,52 @@ extern "C" {
  * @brief This enumeration depicts the standard states common to all phy
  *        state machine implementations.
  */
-typedef enum _SCI_BASE_PHY_STATES
-{
-   /**
-    * Simply the initial state for the base domain state machine.
-    */
-   SCI_BASE_PHY_STATE_INITIAL,
+typedef enum _SCI_BASE_PHY_STATES {
+	/**
+	 * Simply the initial state for the base domain state machine.
+	 */
+	SCI_BASE_PHY_STATE_INITIAL,
 
-   /**
-    * This state indicates that the phy has successfully been stopped.
-    * In this state no new IO operations are permitted on this phy.
-    * This state is entered from the INITIAL state.
-    * This state is entered from the STARTING state.
-    * This state is entered from the READY state.
-    * This state is entered from the RESETTING state.
-    */
-   SCI_BASE_PHY_STATE_STOPPED,
+	/**
+	 * This state indicates that the phy has successfully been stopped.
+	 * In this state no new IO operations are permitted on this phy.
+	 * This state is entered from the INITIAL state.
+	 * This state is entered from the STARTING state.
+	 * This state is entered from the READY state.
+	 * This state is entered from the RESETTING state.
+	 */
+	SCI_BASE_PHY_STATE_STOPPED,
 
-   /**
-    * This state indicates that the phy is in the process of becoming
-    * ready.  In this state no new IO operations are permitted on this phy.
-    * This state is entered from the STOPPED state.
-    * This state is entered from the READY state.
-    * This state is entered from the RESETTING state.
-    */
-   SCI_BASE_PHY_STATE_STARTING,
+	/**
+	 * This state indicates that the phy is in the process of becoming
+	 * ready.  In this state no new IO operations are permitted on this phy.
+	 * This state is entered from the STOPPED state.
+	 * This state is entered from the READY state.
+	 * This state is entered from the RESETTING state.
+	 */
+	SCI_BASE_PHY_STATE_STARTING,
 
-   /**
-    * This state indicates the phy is now ready.  Thus, the user
-    * is able to perform IO operations utilizing this phy as long as it
-    * is currently part of a valid port.
-    * This state is entered from the STARTING state.
-    */
-   SCI_BASE_PHY_STATE_READY,
+	/**
+	 * This state indicates the phy is now ready.  Thus, the user
+	 * is able to perform IO operations utilizing this phy as long as it
+	 * is currently part of a valid port.
+	 * This state is entered from the STARTING state.
+	 */
+	SCI_BASE_PHY_STATE_READY,
 
-   /**
-    * This state indicates that the phy is in the process of being reset.
-    * In this state no new IO operations are permitted on this phy.
-    * This state is entered from the READY state.
-    */
-   SCI_BASE_PHY_STATE_RESETTING,
+	/**
+	 * This state indicates that the phy is in the process of being reset.
+	 * In this state no new IO operations are permitted on this phy.
+	 * This state is entered from the READY state.
+	 */
+	SCI_BASE_PHY_STATE_RESETTING,
 
-   /**
-    * Simply the final state for the base phy state machine.
-    */
-   SCI_BASE_PHY_STATE_FINAL,
+	/**
+	 * Simply the final state for the base phy state machine.
+	 */
+	SCI_BASE_PHY_STATE_FINAL,
 
-   SCI_BASE_PHY_MAX_STATES
+	SCI_BASE_PHY_MAX_STATES
 
 } SCI_BASE_PHY_STATES;
 
@@ -130,27 +129,24 @@ typedef enum _SCI_BASE_PHY_STATES
  *
  * @brief This structure defines all of the fields common to PHY objects.
  */
-typedef struct SCI_BASE_PHY
-{
-   /**
-    * This field depicts the parent object (SCI_BASE_OBJECT) for the phy.
-    */
-   SCI_BASE_OBJECT_T parent;
+typedef struct SCI_BASE_PHY {
+	/**
+	 * This field depicts the parent object (SCI_BASE_OBJECT) for the phy.
+	 */
+	SCI_BASE_OBJECT_T parent;
 
-   /**
-    * This field contains the information for the base phy state machine.
-    */
-   SCI_BASE_STATE_MACHINE_T state_machine;
+	/**
+	 * This field contains the information for the base phy state machine.
+	 */
+	SCI_BASE_STATE_MACHINE_T state_machine;
 
-   #ifdef SCI_LOGGING
-   SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
-   #endif // SCI_LOGGING
+#ifdef SCI_LOGGING
+	SCI_BASE_STATE_MACHINE_LOGGER_T state_machine_logger;
+#endif // SCI_LOGGING
 
 } SCI_BASE_PHY_T;
 
-typedef SCI_STATUS (*SCI_BASE_PHY_HANDLER_T)(
-   SCI_BASE_PHY_T *
-);
+typedef SCI_STATUS (*SCI_BASE_PHY_HANDLER_T)(SCI_BASE_PHY_T *);
 
 /**
  * @struct SCI_BASE_PHY_STATE_HANDLER
@@ -160,31 +156,30 @@ typedef SCI_STATUS (*SCI_BASE_PHY_HANDLER_T)(
  *        to change the behavior for user requests or transitions depending
  *        on the state the machine is in.
  */
-typedef struct SCI_BASE_PHY_STATE_HANDLER
-{
-   /**
-    * The start_handler specifies the method invoked when there is an
-    * attempt to start a phy.
-    */
-   SCI_BASE_PHY_HANDLER_T start_handler;
+typedef struct SCI_BASE_PHY_STATE_HANDLER {
+	/**
+	 * The start_handler specifies the method invoked when there is an
+	 * attempt to start a phy.
+	 */
+	SCI_BASE_PHY_HANDLER_T start_handler;
 
-   /**
-    * The stop_handler specifies the method invoked when there is an
-    * attempt to stop a phy.
-    */
-   SCI_BASE_PHY_HANDLER_T stop_handler;
+	/**
+	 * The stop_handler specifies the method invoked when there is an
+	 * attempt to stop a phy.
+	 */
+	SCI_BASE_PHY_HANDLER_T stop_handler;
 
-   /**
-    * The reset_handler specifies the method invoked when there is an
-    * attempt to reset a phy.
-    */
-   SCI_BASE_PHY_HANDLER_T reset_handler;
+	/**
+	 * The reset_handler specifies the method invoked when there is an
+	 * attempt to reset a phy.
+	 */
+	SCI_BASE_PHY_HANDLER_T reset_handler;
 
-   /**
-    * The destruct_handler specifies the method invoked when attempting to
-    * destruct a phy.
-    */
-   SCI_BASE_PHY_HANDLER_T destruct_handler;
+	/**
+	 * The destruct_handler specifies the method invoked when attempting to
+	 * destruct a phy.
+	 */
+	SCI_BASE_PHY_HANDLER_T destruct_handler;
 
 } SCI_BASE_PHY_STATE_HANDLER_T;
 
@@ -200,11 +195,8 @@ typedef struct SCI_BASE_PHY_STATE_HANDLER
  *
  * @return none
  */
-void sci_base_phy_construct(
-   SCI_BASE_PHY_T    * this_phy,
-   SCI_BASE_LOGGER_T * logger,
-   SCI_BASE_STATE_T  * state_table
-);
+void sci_base_phy_construct(SCI_BASE_PHY_T *this_phy, SCI_BASE_LOGGER_T *logger,
+    SCI_BASE_STATE_T *state_table);
 
 #ifdef __cplusplus
 }

@@ -52,15 +52,13 @@
 /*
  * bytes, including any null terminators
  */
-#define HV_KVP_EXCHANGE_MAX_VALUE_SIZE    (2048)
-
+#define HV_KVP_EXCHANGE_MAX_VALUE_SIZE (2048)
 
 /*
  * Maximum key size - the registry limit for the length of an entry name
  * is 256 characters, including the null terminator
  */
-#define HV_KVP_EXCHANGE_MAX_KEY_SIZE    (512)
-
+#define HV_KVP_EXCHANGE_MAX_KEY_SIZE (512)
 
 /*
  * In FreeBSD, we implement the KVP functionality in two components:
@@ -110,20 +108,17 @@
  * (not supported), a NULL key string is returned.
  */
 
- 
 /*
  * Registry value types.
  */
-#define HV_REG_SZ     1
-#define HV_REG_U32    4
-#define HV_REG_U64    8
-
+#define HV_REG_SZ 1
+#define HV_REG_U32 4
+#define HV_REG_U64 8
 
 /*
  * Daemon code supporting IP injection.
  */
-#define HV_KVP_OP_REGISTER    4
-
+#define HV_KVP_OP_REGISTER 4
 
 enum hv_kvp_exchg_op {
 	HV_KVP_OP_GET = 0,
@@ -144,38 +139,37 @@ enum hv_kvp_exchg_pool {
 	HV_KVP_POOL_COUNT /* Number of pools, must be last. */
 };
 
-#define ADDR_FAMILY_NONE                 0x00
-#define ADDR_FAMILY_IPV4                 0x01
-#define ADDR_FAMILY_IPV6                 0x02
+#define ADDR_FAMILY_NONE 0x00
+#define ADDR_FAMILY_IPV4 0x01
+#define ADDR_FAMILY_IPV6 0x02
 
-#define MAX_ADAPTER_ID_SIZE              128
-#define MAX_IP_ADDR_SIZE                 1024
-#define MAX_GATEWAY_SIZE                 512
-
+#define MAX_ADAPTER_ID_SIZE 128
+#define MAX_IP_ADDR_SIZE 1024
+#define MAX_GATEWAY_SIZE 512
 
 struct hv_kvp_ipaddr_value {
 	uint16_t adapter_id[MAX_ADAPTER_ID_SIZE];
-	uint8_t  addr_family;
-	uint8_t  dhcp_enabled;
+	uint8_t addr_family;
+	uint8_t dhcp_enabled;
 	uint16_t ip_addr[MAX_IP_ADDR_SIZE];
 	uint16_t sub_net[MAX_IP_ADDR_SIZE];
 	uint16_t gate_way[MAX_GATEWAY_SIZE];
 	uint16_t dns_addr[MAX_IP_ADDR_SIZE];
-}__attribute__((packed));
+} __attribute__((packed));
 
 struct hv_kvp_hdr {
-	uint8_t                 operation;
-	uint8_t                 pool;
-	uint16_t                pad;
+	uint8_t operation;
+	uint8_t pool;
+	uint16_t pad;
 } __attribute__((packed));
 
 struct hv_kvp_exchg_msg_value {
 	uint32_t value_type;
 	uint32_t key_size;
 	uint32_t value_size;
-	uint8_t  key[HV_KVP_EXCHANGE_MAX_KEY_SIZE];
+	uint8_t key[HV_KVP_EXCHANGE_MAX_KEY_SIZE];
 	union {
-		uint8_t  value[HV_KVP_EXCHANGE_MAX_VALUE_SIZE];
+		uint8_t value[HV_KVP_EXCHANGE_MAX_VALUE_SIZE];
 		uint32_t value_u32;
 		uint64_t value_u64;
 	} msg_value;
@@ -209,19 +203,19 @@ struct hv_kvp_msg {
 		uint32_t error;
 	} hdr;
 	union {
-		struct hv_kvp_msg_get		kvp_get;
-		struct hv_kvp_msg_set		kvp_set;
-		struct hv_kvp_msg_delete	kvp_delete;
-		struct hv_kvp_msg_enumerate	kvp_enum_data;
-		struct hv_kvp_ipaddr_value	kvp_ip_val;
-		struct hv_kvp_register		kvp_register;
+		struct hv_kvp_msg_get kvp_get;
+		struct hv_kvp_msg_set kvp_set;
+		struct hv_kvp_msg_delete kvp_delete;
+		struct hv_kvp_msg_enumerate kvp_enum_data;
+		struct hv_kvp_ipaddr_value kvp_ip_val;
+		struct hv_kvp_register kvp_register;
 	} body;
 } __attribute__((packed));
 
 struct hv_kvp_ip_msg {
 	uint8_t operation;
 	uint8_t pool;
-	struct hv_kvp_ipaddr_value      kvp_ip_val;
+	struct hv_kvp_ipaddr_value kvp_ip_val;
 } __attribute__((packed));
 
 #endif /* _KVP_H */

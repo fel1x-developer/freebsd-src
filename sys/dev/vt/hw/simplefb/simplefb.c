@@ -31,20 +31,19 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/fbio.h>
+#include <sys/kernel.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
-#include <dev/vt/vt.h>
-#include <dev/vt/hw/fb/vt_fb.h>
-#include <dev/vt/colors/vt_termcolors.h>
-
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_subr.h>
 #include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/ofw_subr.h>
+#include <dev/ofw/openfirm.h>
+#include <dev/vt/colors/vt_termcolors.h>
+#include <dev/vt/hw/fb/vt_fb.h>
+#include <dev/vt/vt.h>
 
 static vd_init_t vt_simplefb_init;
 static vd_fini_t vt_simplefb_fini;
@@ -78,39 +77,59 @@ struct {
 	enum vt_color_format format;
 } simplefb_formats[] = {
 	{
-		.name = "r5g6b5",
-		.rbits = 5, .rshift = 11,
-		.gbits = 6, .gshift = 5,
-		.bbits = 5, .bshift = 0,
-		.depth = 16, .format = COLOR_FORMAT_RGB,
+	    .name = "r5g6b5",
+	    .rbits = 5,
+	    .rshift = 11,
+	    .gbits = 6,
+	    .gshift = 5,
+	    .bbits = 5,
+	    .bshift = 0,
+	    .depth = 16,
+	    .format = COLOR_FORMAT_RGB,
 	},
 	{
-		.name = "r8g8b8",
-		.rbits = 8, .rshift = 16,
-		.gbits = 8, .gshift = 8,
-		.bbits = 8, .bshift = 0,
-		.depth = 24, .format = COLOR_FORMAT_RGB,
+	    .name = "r8g8b8",
+	    .rbits = 8,
+	    .rshift = 16,
+	    .gbits = 8,
+	    .gshift = 8,
+	    .bbits = 8,
+	    .bshift = 0,
+	    .depth = 24,
+	    .format = COLOR_FORMAT_RGB,
 	},
 	{
-		.name = "a8r8g8b8",
-		.rbits = 8, .rshift = 16,
-		.gbits = 8, .gshift = 8,
-		.bbits = 8, .bshift = 0,
-		.depth = 32, .format = COLOR_FORMAT_RGB,
+	    .name = "a8r8g8b8",
+	    .rbits = 8,
+	    .rshift = 16,
+	    .gbits = 8,
+	    .gshift = 8,
+	    .bbits = 8,
+	    .bshift = 0,
+	    .depth = 32,
+	    .format = COLOR_FORMAT_RGB,
 	},
 	{
-		.name = "x8r8g8b8",
-		.rbits = 8, .rshift = 16,
-		.gbits = 8, .gshift = 8,
-		.bbits = 8, .bshift = 0,
-		.depth = 32, .format = COLOR_FORMAT_RGB,
+	    .name = "x8r8g8b8",
+	    .rbits = 8,
+	    .rshift = 16,
+	    .gbits = 8,
+	    .gshift = 8,
+	    .bbits = 8,
+	    .bshift = 0,
+	    .depth = 32,
+	    .format = COLOR_FORMAT_RGB,
 	},
 	{
-		.name = "x2r10g10b10",
-		.rbits = 10, .rshift = 20,
-		.gbits = 10, .gshift = 10,
-		.bbits = 10, .bshift = 0,
-		.depth = 32, .format = COLOR_FORMAT_RGB,
+	    .name = "x2r10g10b10",
+	    .rbits = 10,
+	    .rshift = 20,
+	    .gbits = 10,
+	    .gshift = 10,
+	    .bbits = 10,
+	    .bshift = 0,
+	    .depth = 32,
+	    .format = COLOR_FORMAT_RGB,
 	},
 };
 
@@ -186,8 +205,7 @@ vt_simplefb_init(struct vt_device *vd)
 	error = 1;
 	for (int i = 0; i < nitems(simplefb_formats); i++) {
 		if (strcmp(format, simplefb_formats[i].name) == 0) {
-			vt_config_cons_colors(sc,
-			    simplefb_formats[i].format,
+			vt_config_cons_colors(sc, simplefb_formats[i].format,
 			    (1 << simplefb_formats[i].rbits) - 1,
 			    simplefb_formats[i].rshift,
 			    (1 << simplefb_formats[i].gbits) - 1,
@@ -203,8 +221,8 @@ vt_simplefb_init(struct vt_device *vd)
 		return (CN_DEAD);
 
 	ofw_reg_to_paddr(node, 0, &sc->fb_pbase, &size, NULL);
-	sc->fb_vbase = (intptr_t)pmap_mapdev_attr(sc->fb_pbase,
-	    size, VM_MEMATTR_WRITE_COMBINING);
+	sc->fb_vbase = (intptr_t)pmap_mapdev_attr(sc->fb_pbase, size,
+	    VM_MEMATTR_WRITE_COMBINING);
 	sc->fb_size = size;
 
 	vt_fb_init(vd);

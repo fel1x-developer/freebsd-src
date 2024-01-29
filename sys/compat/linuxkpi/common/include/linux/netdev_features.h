@@ -25,23 +25,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_NETDEV_FEATURES_H_
-#define	_LINUXKPI_LINUX_NETDEV_FEATURES_H_
+#ifndef _LINUXKPI_LINUX_NETDEV_FEATURES_H_
+#define _LINUXKPI_LINUX_NETDEV_FEATURES_H_
 
-#include <linux/types.h>
 #include <linux/bitops.h>
+#include <linux/types.h>
 
-typedef	uint32_t		netdev_features_t;
+typedef uint32_t netdev_features_t;
 
-#define NETIF_F_HIGHDMA         BIT(0)
-#define NETIF_F_SG              BIT(1)
-#define NETIF_F_IP_CSUM         BIT(2)
-#define NETIF_F_IPV6_CSUM       BIT(3)
-#define NETIF_F_TSO             BIT(4)
-#define NETIF_F_TSO6            BIT(5)
-#define NETIF_F_RXCSUM          BIT(6)
-#define	NETIF_F_HW_CSUM		BIT(7)
+#define NETIF_F_HIGHDMA BIT(0)
+#define NETIF_F_SG BIT(1)
+#define NETIF_F_IP_CSUM BIT(2)
+#define NETIF_F_IPV6_CSUM BIT(3)
+#define NETIF_F_TSO BIT(4)
+#define NETIF_F_TSO6 BIT(5)
+#define NETIF_F_RXCSUM BIT(6)
+#define NETIF_F_HW_CSUM BIT(7)
 
-#define NETIF_F_CSUM_MASK       (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)
+#define NETIF_F_CSUM_MASK (NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM)
 
-#endif	/* _LINUXKPI_LINUX_NETDEV_FEATURES_H_ */
+#endif /* _LINUXKPI_LINUX_NETDEV_FEATURES_H_ */

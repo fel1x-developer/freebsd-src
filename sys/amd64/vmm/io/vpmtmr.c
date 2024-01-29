@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_bhyve_snapshot.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/queue.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
-#include <sys/systm.h>
+#include <sys/queue.h>
 
 #include <machine/vmm.h>
 #include <machine/vmm_snapshot.h>
@@ -47,12 +47,12 @@
  * This implementation will be 32-bits
  */
 
-#define PMTMR_FREQ	3579545  /* 3.579545MHz */
+#define PMTMR_FREQ 3579545 /* 3.579545MHz */
 
 struct vpmtmr {
-	sbintime_t	freq_sbt;
-	sbintime_t	baseuptime;
-	uint32_t	baseval;
+	sbintime_t freq_sbt;
+	sbintime_t baseuptime;
+	uint32_t baseval;
 };
 
 static MALLOC_DEFINE(M_VPMTMR, "vpmtmr", "bhyve virtual acpi timer");
@@ -97,8 +97,10 @@ vpmtmr_handler(struct vm *vm, bool in, int port, int bytes, uint32_t *val)
 	 */
 	now = sbinuptime();
 	delta = now - vpmtmr->baseuptime;
-	KASSERT(delta >= 0, ("vpmtmr_handler: uptime went backwards: "
-	    "%#lx to %#lx", vpmtmr->baseuptime, now));
+	KASSERT(delta >= 0,
+	    ("vpmtmr_handler: uptime went backwards: "
+	     "%#lx to %#lx",
+		vpmtmr->baseuptime, now));
 	*val = vpmtmr->baseval + delta / vpmtmr->freq_sbt;
 
 	return (0);

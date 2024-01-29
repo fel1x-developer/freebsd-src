@@ -26,39 +26,39 @@
  */
 
 #ifndef CPUCONTROL_H
-#define	CPUCONTROL_H
+#define CPUCONTROL_H
 
 #include <stddef.h>
 
 typedef int ucode_probe_t(int fd);
 struct ucode_update_params {
-	int devfd;		/* RDWR handle to cpucontrol device */
-	const void *fwimage;	/* READ mapping of firmware image */
-	size_t fwsize;		/* Non-zero size of firmware image */
-	const char *dev_path;	/* cpucontrol device path, for logging */
-	const char *fw_path;	/* firmware image path, for logging */
+	int devfd;	      /* RDWR handle to cpucontrol device */
+	const void *fwimage;  /* READ mapping of firmware image */
+	size_t fwsize;	      /* Non-zero size of firmware image */
+	const char *dev_path; /* cpucontrol device path, for logging */
+	const char *fw_path;  /* firmware image path, for logging */
 };
 typedef void ucode_update_t(const struct ucode_update_params *params);
 
 extern int verbosity_level;
 
 #ifdef DEBUG
-# define WARNX(level, ...)					\
-	if ((level) <= verbosity_level) {			\
-		fprintf(stderr, "%s:%d ", __FILE__, __LINE__);	\
-		warnx(__VA_ARGS__);				\
+#define WARNX(level, ...)                                      \
+	if ((level) <= verbosity_level) {                      \
+		fprintf(stderr, "%s:%d ", __FILE__, __LINE__); \
+		warnx(__VA_ARGS__);                            \
 	}
-# define WARN(level, ...)					\
-	if ((level) <= verbosity_level) {			\
-		fprintf(stderr, "%s:%d ", __FILE__, __LINE__);	\
-		warn(__VA_ARGS__);				\
+#define WARN(level, ...)                                       \
+	if ((level) <= verbosity_level) {                      \
+		fprintf(stderr, "%s:%d ", __FILE__, __LINE__); \
+		warn(__VA_ARGS__);                             \
 	}
 #else
-# define WARNX(level, ...)					\
-	if ((level) <= verbosity_level)				\
+#define WARNX(level, ...)               \
+	if ((level) <= verbosity_level) \
 		warnx(__VA_ARGS__);
-# define WARN(level, ...)					\
-	if ((level) <= verbosity_level)				\
+#define WARN(level, ...)                \
+	if ((level) <= verbosity_level) \
 		warn(__VA_ARGS__);
 #endif
 

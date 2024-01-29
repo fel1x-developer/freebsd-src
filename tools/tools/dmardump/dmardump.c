@@ -29,13 +29,14 @@
 #include <sys/endian.h>
 #include <sys/pciio.h>
 #include <sys/queue.h>
+
+#include <x86/iommu/intel_reg.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <x86/iommu/intel_reg.h>
 
 #include "acpidump.h"
 
@@ -76,17 +77,15 @@ pci_find_conf(int segment, int bus, int slot, int func)
 	patterns[0].pc_sel.pc_bus = bus;
 	patterns[0].pc_sel.pc_dev = slot;
 	patterns[0].pc_sel.pc_func = func;
-	patterns[0].flags = PCI_GETCONF_MATCH_DOMAIN |
-	    PCI_GETCONF_MATCH_BUS | PCI_GETCONF_MATCH_DEV |
-	    PCI_GETCONF_MATCH_FUNC;
+	patterns[0].flags = PCI_GETCONF_MATCH_DOMAIN | PCI_GETCONF_MATCH_BUS |
+	    PCI_GETCONF_MATCH_DEV | PCI_GETCONF_MATCH_FUNC;
 	pc.num_patterns = 1;
 	pc.pat_buf_len = sizeof(patterns);
 	pc.patterns = patterns;
 	if (ioctl(pcifd, PCIOCGETCONF, &pc) == -1)
 		err(1, "ioctl(PCIOCGETCONF)");
 
-	if (pc.status != PCI_GETCONF_LAST_DEVICE ||
-	    pc.num_matches == 0)
+	if (pc.status != PCI_GETCONF_LAST_DEVICE || pc.num_matches == 0)
 		return (NULL);
 
 	return (&conf);
@@ -121,8 +120,7 @@ dump_context_table(int segment, int bus, uint64_t base_addr)
 				printf(" (%s%lu)", conf->pd_name,
 				    conf->pd_unit);
 		} else
-			printf("\t    { %d,%d } (absent)", idx >> 3,
-			    idx & 7);
+			printf("\t    { %d,%d } (absent)", idx >> 3, idx & 7);
 		if (ctx[idx].ctx1 & DMAR_CTX1_FPD)
 			printf(" FPD");
 		switch (ctx[idx].ctx1 & 0xc) {
@@ -139,8 +137,8 @@ dump_context_table(int segment, int bus, uint64_t base_addr)
 			printf(" TT3?");
 			break;
 		}
-		printf(" SLPT %#jx", (uintmax_t)(ctx[idx].ctx1 &
-		    DMAR_CTX1_ASR_MASK));
+		printf(" SLPT %#jx",
+		    (uintmax_t)(ctx[idx].ctx1 & DMAR_CTX1_ASR_MASK));
 		printf(" domain %d", (int)DMAR_CTX2_GET_DID(ctx[idx].ctx2));
 		printf("\n");
 	}
@@ -184,8 +182,8 @@ handle_drhd(int segment, uint64_t base_addr)
 				    true);
 #endif
 		} else if (root_table[bus].r1 & DMAR_ROOT_R1_P)
-			dump_context_table(segment, bus, root_table[bus].r1 &
-			    DMAR_ROOT_R1_CTP_MASK);
+			dump_context_table(segment, bus,
+			    root_table[bus].r1 & DMAR_ROOT_R1_CTP_MASK);
 	}
 }
 

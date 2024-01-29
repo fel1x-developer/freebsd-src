@@ -23,18 +23,20 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
 
-int mlx5_core_alloc_pd(struct mlx5_core_dev *dev, u32 *pdn, u16 uid)
+#include <linux/kernel.h>
+#include <linux/module.h>
+
+int
+mlx5_core_alloc_pd(struct mlx5_core_dev *dev, u32 *pdn, u16 uid)
 {
-	u32 in[MLX5_ST_SZ_DW(alloc_pd_in)] = {0};
-	u32 out[MLX5_ST_SZ_DW(alloc_pd_out)] = {0};
+	u32 in[MLX5_ST_SZ_DW(alloc_pd_in)] = { 0 };
+	u32 out[MLX5_ST_SZ_DW(alloc_pd_out)] = { 0 };
 	int err;
 
 	MLX5_SET(alloc_pd_in, in, opcode, MLX5_CMD_OP_ALLOC_PD);
@@ -49,15 +51,16 @@ int mlx5_core_alloc_pd(struct mlx5_core_dev *dev, u32 *pdn, u16 uid)
 }
 EXPORT_SYMBOL(mlx5_core_alloc_pd);
 
-int mlx5_core_dealloc_pd(struct mlx5_core_dev *dev, u32 pdn, u16 uid)
+int
+mlx5_core_dealloc_pd(struct mlx5_core_dev *dev, u32 pdn, u16 uid)
 {
-	u32 in[MLX5_ST_SZ_DW(dealloc_pd_in)] = {0};
-	u32 out[MLX5_ST_SZ_DW(dealloc_pd_out)] = {0};
+	u32 in[MLX5_ST_SZ_DW(dealloc_pd_in)] = { 0 };
+	u32 out[MLX5_ST_SZ_DW(dealloc_pd_out)] = { 0 };
 
 	MLX5_SET(dealloc_pd_in, in, opcode, MLX5_CMD_OP_DEALLOC_PD);
 	MLX5_SET(dealloc_pd_in, in, uid, uid);
 	MLX5_SET(dealloc_pd_in, in, pd, pdn);
 
-	return mlx5_cmd_exec(dev, in,  sizeof(in), out, sizeof(out));
+	return mlx5_cmd_exec(dev, in, sizeof(in), out, sizeof(out));
 }
 EXPORT_SYMBOL(mlx5_core_dealloc_pd);

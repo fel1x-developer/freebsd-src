@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -160,12 +160,12 @@ copyin(char *src, char **space)
  */
 
 static char *date_formats[] = {
-	"Aaa Aaa O0 00:00:00 0000",	   /* Mon Jan 01 23:59:59 2001 */
-	"Aaa Aaa O0 00:00:00 AAA 0000",	   /* Mon Jan 01 23:59:59 PST 2001 */
-	"Aaa Aaa O0 00:00:00 0000 p0000",  /* Mon Jan 01 23:59:59 2001 -0800 */
-	"Aaa Aaa O0 00:00 0000",	   /* Mon Jan 01 23:59 2001 */
-	"Aaa Aaa O0 00:00 AAA 0000",	   /* Mon Jan 01 23:59 PST 2001 */
-	"Aaa Aaa O0 00:00 0000 p0000",	   /* Mon Jan 01 23:59 2001 -0800 */
+	"Aaa Aaa O0 00:00:00 0000",	  /* Mon Jan 01 23:59:59 2001 */
+	"Aaa Aaa O0 00:00:00 AAA 0000",	  /* Mon Jan 01 23:59:59 PST 2001 */
+	"Aaa Aaa O0 00:00:00 0000 p0000", /* Mon Jan 01 23:59:59 2001 -0800 */
+	"Aaa Aaa O0 00:00 0000",	  /* Mon Jan 01 23:59 2001 */
+	"Aaa Aaa O0 00:00 AAA 0000",	  /* Mon Jan 01 23:59 PST 2001 */
+	"Aaa Aaa O0 00:00 0000 p0000",	  /* Mon Jan 01 23:59 2001 -0800 */
 	NULL
 };
 
@@ -174,7 +174,7 @@ isdate(char date[])
 {
 	int i;
 
-	for(i = 0; date_formats[i] != NULL; i++) {
+	for (i = 0; date_formats[i] != NULL; i++) {
 		if (cmatch(date, date_formats[i]))
 			return (1);
 	}
@@ -252,13 +252,13 @@ nextword(char *wp, char *wbuf)
 	while ((c = *wp++) != '\0' && c != ' ' && c != '\t') {
 		*wbuf++ = c;
 		if (c == '"') {
- 			while ((c = *wp++) != '\0' && c != '"')
- 				*wbuf++ = c;
- 			if (c == '"')
- 				*wbuf++ = c;
+			while ((c = *wp++) != '\0' && c != '"')
+				*wbuf++ = c;
+			if (c == '"')
+				*wbuf++ = c;
 			else
 				wp--;
- 		}
+		}
 	}
 	*wbuf = '\0';
 	for (; c == ' ' || c == '\t'; c = *wp++)

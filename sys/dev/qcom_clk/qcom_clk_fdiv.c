@@ -29,6 +29,7 @@
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/clk/clk.h>
@@ -36,9 +37,8 @@
 #include <dev/clk/clk_fixed.h>
 #include <dev/clk/clk_mux.h>
 
-#include "qcom_clk_fdiv.h"
-
 #include "clkdev_if.h"
+#include "qcom_clk_fdiv.h"
 
 /*
  * This is a fixed divisor node.  It represents some divisor
@@ -49,7 +49,7 @@
  */
 
 struct qcom_clk_fdiv_sc {
-	struct clknode	*clknode;
+	struct clknode *clknode;
 	uint32_t divisor;
 };
 
@@ -78,18 +78,18 @@ qcom_clk_fdiv_init(struct clknode *clk, device_t dev)
 	 */
 	clknode_init_parent_idx(clk, 0);
 
-	return(0);
+	return (0);
 }
 
 static clknode_method_t qcom_clk_fdiv_methods[] = {
 	/* Device interface */
-	CLKNODEMETHOD(clknode_init,		qcom_clk_fdiv_init),
-	CLKNODEMETHOD(clknode_recalc_freq,	qcom_clk_fdiv_recalc),
+	CLKNODEMETHOD(clknode_init, qcom_clk_fdiv_init),
+	CLKNODEMETHOD(clknode_recalc_freq, qcom_clk_fdiv_recalc),
 	CLKNODEMETHOD_END
 };
 
 DEFINE_CLASS_1(qcom_clk_fepll, qcom_clk_fdiv_class, qcom_clk_fdiv_methods,
-   sizeof(struct qcom_clk_fdiv_sc), clknode_class);
+    sizeof(struct qcom_clk_fdiv_sc), clknode_class);
 
 int
 qcom_clk_fdiv_register(struct clkdom *clkdom, struct qcom_clk_fdiv_def *clkdef)

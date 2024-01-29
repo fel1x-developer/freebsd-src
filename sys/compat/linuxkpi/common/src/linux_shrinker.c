@@ -25,9 +25,9 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/eventhandler.h>
 #include <sys/kernel.h>
 #include <sys/queue.h>
-#include <sys/eventhandler.h>
 #include <sys/sx.h>
 
 #include <linux/compat.h>
@@ -66,7 +66,7 @@ linuxkpi_synchronize_shrinkers(void)
 	sx_xunlock(&sx_shrinker);
 }
 
-#define	SHRINKER_BATCH	512
+#define SHRINKER_BATCH 512
 
 static void
 shrinker_shrink(struct shrinker *s)
@@ -97,7 +97,7 @@ linuxkpi_vm_lowmem(void *arg __unused)
 	struct shrinker *s;
 
 	sx_xlock(&sx_shrinker);
-	TAILQ_FOREACH(s, &lkpi_shrinkers, next) {
+	TAILQ_FOREACH (s, &lkpi_shrinkers, next) {
 		shrinker_shrink(s);
 	}
 	sx_xunlock(&sx_shrinker);
@@ -110,8 +110,8 @@ linuxkpi_sysinit_shrinker(void *arg __unused)
 {
 
 	sx_init(&sx_shrinker, "lkpi-shrinker");
-	lowmem_tag = EVENTHANDLER_REGISTER(vm_lowmem, linuxkpi_vm_lowmem,
-	    NULL, EVENTHANDLER_PRI_FIRST);
+	lowmem_tag = EVENTHANDLER_REGISTER(vm_lowmem, linuxkpi_vm_lowmem, NULL,
+	    EVENTHANDLER_PRI_FIRST);
 }
 
 static void

@@ -32,11 +32,11 @@
 
 #include "math.h"
 #include "math_private.h"
+
 #include "k_tanf.c"
 
-static const float
-pi_hi =  3.14160156e+00F,	/* 0x40491000 */
-pi_lo = -8.90890988e-06F;	/* 0xb715777a */
+static const float pi_hi = 3.14160156e+00F, /* 0x40491000 */
+    pi_lo = -8.90890988e-06F;		    /* 0xb715777a */
 
 static inline float
 __kernel_tanpif(float x)
@@ -65,9 +65,9 @@ tanpif(float x)
 	ix = hx & 0x7fffffff;
 	SET_FLOAT_WORD(ax, ix);
 
-	if (ix < 0x3f800000) {			/* |x| < 1 */
-		if (ix < 0x3f000000) {		/* |x| < 0.5 */
-			if (ix < 0x38800000) {	/* |x| < 0x1p-14 */
+	if (ix < 0x3f800000) {		       /* |x| < 1 */
+		if (ix < 0x3f000000) {	       /* |x| < 0.5 */
+			if (ix < 0x38800000) { /* |x| < 0x1p-14 */
 				if (ix == 0)
 					return (x);
 				SET_FLOAT_WORD(hi, hx & 0xffff0000);
@@ -81,22 +81,22 @@ tanpif(float x)
 		} else if (ix == 0x3f000000)
 			t = 1 / vzero;
 		else
-			t = - __kernel_tanpif(1 - ax);
+			t = -__kernel_tanpif(1 - ax);
 		return ((hx & 0x80000000) ? -t : t);
 	}
 
-	if (ix < 0x4b000000) {		/* 1 <= |x| < 0x1p23 */
-		FFLOORF(x, j0, ix);	/* Integer part of ax. */
+	if (ix < 0x4b000000) {	    /* 1 <= |x| < 0x1p23 */
+		FFLOORF(x, j0, ix); /* Integer part of ax. */
 		odd = (uint32_t)x & 1 ? -1 : 1;
 		ax -= x;
 		GET_FLOAT_WORD(ix, ax);
 
-		if (ix < 0x3f000000)		/* |x| < 0.5 */
+		if (ix < 0x3f000000) /* |x| < 0.5 */
 			t = ix == 0 ? copysignf(0, odd) : __kernel_tanpif(ax);
 		else if (ix == 0x3f000000)
 			t = odd / vzero;
 		else
-			t = - __kernel_tanpif(1 - ax);
+			t = -__kernel_tanpif(1 - ax);
 		return ((hx & 0x80000000) ? -t : t);
 	}
 

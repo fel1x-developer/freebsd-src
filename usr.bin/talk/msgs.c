@@ -29,8 +29,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 /*
  * A package to display what is happening every MSG_INTERVAL seconds
  * if we are slow connecting.
@@ -42,8 +40,8 @@
 
 #define MSG_INTERVAL 4
 
-const char	*current_state;
-int	current_line = 0;
+const char *current_state;
+int current_line = 0;
 
 /* ARGSUSED */
 void

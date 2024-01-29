@@ -141,10 +141,8 @@ qatUtilsHashSHA512Full(uint8_t *in, uint8_t *out, uint32_t len)
 #define BYTE_TO_BITS_SHIFT 3
 
 CpaStatus
-qatUtilsAESEncrypt(uint8_t *key,
-		   uint32_t keyLenInBytes,
-		   uint8_t *in,
-		   uint8_t *out)
+qatUtilsAESEncrypt(uint8_t *key, uint32_t keyLenInBytes, uint8_t *in,
+    uint8_t *out)
 {
 	rijndael_ctx ctx;
 
@@ -155,9 +153,8 @@ qatUtilsAESEncrypt(uint8_t *key,
 }
 
 CpaStatus
-qatUtilsAESKeyExpansionForward(uint8_t *key,
-			       uint32_t keyLenInBytes,
-			       uint32_t *out)
+qatUtilsAESKeyExpansionForward(uint8_t *key, uint32_t keyLenInBytes,
+    uint32_t *out)
 {
 	rijndael_ctx ctx;
 	uint32_t i = 0, j = 0;

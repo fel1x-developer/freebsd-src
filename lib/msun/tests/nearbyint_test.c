@@ -33,6 +33,7 @@
  */
 
 #include <sys/param.h>
+
 #include <fenv.h>
 #include <math.h>
 #include <stdio.h>
@@ -40,7 +41,10 @@
 #include "test-utils.h"
 
 static const int rmodes[] = {
-	FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO,
+	FE_TONEAREST,
+	FE_DOWNWARD,
+	FE_UPWARD,
+	FE_TOWARDZERO,
 };
 
 /* Make sure we're testing the library, not some broken compiler built-ins. */
@@ -53,15 +57,15 @@ static long double (*libnearbyintl)(long double) = nearbyintl;
 
 static const struct {
 	float in;
-	float out[3];	/* one answer per rounding mode except towardzero */
+	float out[3]; /* one answer per rounding mode except towardzero */
 } tests[] = {
-/* input	output (expected) */
-    { 0.0,	{ 0.0, 0.0, 0.0 }},
-    { 0.5,	{ 0.0, 0.0, 1.0 }},
-    { M_PI,	{ 3.0, 3.0, 4.0 }},
-    { 65536.5,	{ 65536, 65536, 65537 }},
-    { INFINITY,	{ INFINITY, INFINITY, INFINITY }},
-    { NAN,	{ NAN, NAN, NAN }},
+	/* input	output (expected) */
+	{ 0.0, { 0.0, 0.0, 0.0 } },
+	{ 0.5, { 0.0, 0.0, 1.0 } },
+	{ M_PI, { 3.0, 3.0, 4.0 } },
+	{ 65536.5, { 65536, 65536, 65537 } },
+	{ INFINITY, { INFINITY, INFINITY, INFINITY } },
+	{ NAN, { NAN, NAN, NAN } },
 };
 
 /* Get the appropriate result for the current rounding mode. */
@@ -70,7 +74,7 @@ get_output(int testindex, int rmodeindex, int negative)
 {
 	double out;
 
-	if (negative) {	/* swap downwards and upwards if input is negative */
+	if (negative) { /* swap downwards and upwards if input is negative */
 		if (rmodeindex == 1)
 			rmodeindex = 2;
 		else if (rmodeindex == 2)
@@ -123,8 +127,9 @@ test_modf(int testindex)
 
 		in = tests[testindex].in;
 		ipart_expected = tests[testindex].out[1];
-		out = copysignf(
-		    isinf(ipart_expected) ? 0.0 : in - ipart_expected, in);
+		out = copysignf(isinf(ipart_expected) ? 0.0 :
+							in - ipart_expected,
+		    in);
 		ipartl = ipart = ipartf = 42.0;
 
 		CHECK_FPEQUAL(out, modff(in, &ipartf));

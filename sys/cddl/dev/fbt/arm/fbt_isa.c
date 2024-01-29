@@ -30,17 +30,17 @@
  */
 
 #include <sys/param.h>
-
 #include <sys/dtrace.h>
+
 #include <machine/stack.h>
 #include <machine/trap.h>
 
 #include "fbt.h"
 
-#define	FBT_PUSHM		0xe92d0000
-#define	FBT_POPM		0xe8bd0000
-#define	FBT_JUMP		0xea000000
-#define	FBT_SUBSP		0xe24dd000
+#define FBT_PUSHM 0xe92d0000
+#define FBT_POPM 0xe8bd0000
+#define FBT_JUMP 0xea000000
+#define FBT_SUBSP 0xe24dd000
 
 int
 fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
@@ -59,18 +59,19 @@ fbt_invop(uintptr_t addr, struct trapframe *frame, uintptr_t rval)
 			/* Get 5th parameter from stack */
 			DTRACE_CPUFLAG_SET(CPU_DTRACE_NOFAULT);
 			fifthparam = *(register_t *)frame->tf_svc_sp;
-			DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_NOFAULT | CPU_DTRACE_BADADDR);
+			DTRACE_CPUFLAG_CLEAR(
+			    CPU_DTRACE_NOFAULT | CPU_DTRACE_BADADDR);
 
-			dtrace_probe(fbt->fbtp_id, frame->tf_r0,
-			    frame->tf_r1, frame->tf_r2,
-			    frame->tf_r3, fifthparam);
+			dtrace_probe(fbt->fbtp_id, frame->tf_r0, frame->tf_r1,
+			    frame->tf_r2, frame->tf_r3, fifthparam);
 		} else {
-			dtrace_probe(fbt->fbtp_id, fbt->fbtp_roffset, rval,
-			    0, 0, 0);
+			dtrace_probe(fbt->fbtp_id, fbt->fbtp_roffset, rval, 0,
+			    0, 0);
 		}
 
 		cpu->cpu_dtrace_caller = 0;
-		return (fbt->fbtp_rval | (fbt->fbtp_savedval << DTRACE_INVOP_SHIFT));
+		return (fbt->fbtp_rval |
+		    (fbt->fbtp_savedval << DTRACE_INVOP_SHIFT));
 	}
 
 	return (0);
@@ -110,14 +111,13 @@ fbt_provide_module_function(linker_file_t lf, int symindx,
 	/*
 	 * check if insn is a pushm with LR
 	 */
-	if ((*instr & 0xffff0000) != FBT_PUSHM ||
-	    (*instr & (1 << LR)) == 0)
+	if ((*instr & 0xffff0000) != FBT_PUSHM || (*instr & (1 << LR)) == 0)
 		return (0);
 
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
-	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-	    name, FBT_ENTRY, 2, fbt);
+	fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name, FBT_ENTRY, 2,
+	    fbt);
 	fbt->fbtp_patchpoint = instr;
 	fbt->fbtp_ctl = lf;
 	fbt->fbtp_loadcnt = lf->loadcnt;
@@ -158,11 +158,11 @@ again:
 	/*
 	 * We have a winner!
 	 */
-	fbt = malloc(sizeof (fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
+	fbt = malloc(sizeof(fbt_probe_t), M_FBT, M_WAITOK | M_ZERO);
 	fbt->fbtp_name = name;
 	if (retfbt == NULL) {
-		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname,
-		    name, FBT_RETURN, 2, fbt);
+		fbt->fbtp_id = dtrace_probe_create(fbt_id, modname, name,
+		    FBT_RETURN, 2, fbt);
 	} else {
 		retfbt->fbtp_probenext = fbt;
 		fbt->fbtp_id = retfbt->fbtp_id;

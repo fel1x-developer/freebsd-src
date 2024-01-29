@@ -27,6 +27,7 @@
  */
 
 #include <sys/types.h>
+
 #include <unistd.h>
 
 ssize_t stream_read(int fd, void *buf, ssize_t nbytes);

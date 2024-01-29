@@ -95,11 +95,11 @@
 #include "icp_accel_devices.h"
 #include "lac_list.h"
 #include "lac_sal_types.h"
-#include "sal_qat_cmn_msg.h"
-#include "lac_sym_cipher_defs.h"
 #include "lac_sym.h"
+#include "lac_sym_cipher_defs.h"
 #include "lac_sym_hash_defs.h"
 #include "lac_sym_qat_hash.h"
+#include "sal_qat_cmn_msg.h"
 
 /*
 *******************************************************************************
@@ -281,7 +281,7 @@ typedef struct lac_session_desc_s {
 	 * engine
 	 */
 	Cpa8U hashStatePrefixBufferExt[LAC_MAX_HASH_STATE_BUFFER_SIZE_BYTES -
-				       LAC_MAX_AAD_SIZE_BYTES];
+	    LAC_MAX_AAD_SIZE_BYTES];
 	/**< hash state prefix buffer used for hash operations - Remainder of
 	 * array.
 	 * NOTE: Field must be correctly aligned in memory for access by QAT
@@ -620,18 +620,18 @@ typedef struct lac_session_desc_d2_s {
 	 */
 } lac_session_desc_d2_t;
 
-#define LAC_SYM_SESSION_SIZE                                                   \
-	(sizeof(lac_session_desc_t) + LAC_64BYTE_ALIGNMENT +                   \
-	 sizeof(LAC_ARCH_UINT))
+#define LAC_SYM_SESSION_SIZE                                 \
+	(sizeof(lac_session_desc_t) + LAC_64BYTE_ALIGNMENT + \
+	    sizeof(LAC_ARCH_UINT))
 /**< @ingroup LacSym_Session
  * Size of the memory that the client has to allocate for a session. Extra
  * memory is needed to internally re-align the data. The pointer to the algined
  * data is stored at the start of the user allocated memory hence the extra
  * space for an LAC_ARCH_UINT */
 
-#define LAC_SYM_SESSION_D1_SIZE                                                \
-	(sizeof(lac_session_desc_d1_t) + LAC_64BYTE_ALIGNMENT +                \
-	 sizeof(LAC_ARCH_UINT))
+#define LAC_SYM_SESSION_D1_SIZE                                 \
+	(sizeof(lac_session_desc_d1_t) + LAC_64BYTE_ALIGNMENT + \
+	    sizeof(LAC_ARCH_UINT))
 /**< @ingroup LacSym_Session
 **  Size of the memory that the client has to allocate for a session where :
 *     - cipher algorithm not ARC4 or Snow3G, no Partials, nonAuthEncrypt.
@@ -639,9 +639,9 @@ typedef struct lac_session_desc_d2_s {
 * aligned data is stored at the start of the user allocated memory hence the
 * extra space for an LAC_ARCH_UINT */
 
-#define LAC_SYM_SESSION_D2_SIZE                                                \
-	(sizeof(lac_session_desc_d2_t) + LAC_64BYTE_ALIGNMENT +                \
-	 sizeof(LAC_ARCH_UINT))
+#define LAC_SYM_SESSION_D2_SIZE                                 \
+	(sizeof(lac_session_desc_d2_t) + LAC_64BYTE_ALIGNMENT + \
+	    sizeof(LAC_ARCH_UINT))
 /**< @ingroup LacSym_Session
 **  Size of the memory that the client has to allocate for a session where :
 *     - authEncrypt, no Partials - so hashStatePrefixBuffer is only AAD
@@ -649,7 +649,7 @@ typedef struct lac_session_desc_d2_s {
 * aligned data is stored at the start of the user allocated memory hence the
 * extra space for an LAC_ARCH_UINT */
 
-#define LAC_SYM_SESSION_DESC_FROM_CTX_GET(pSession)                            \
+#define LAC_SYM_SESSION_DESC_FROM_CTX_GET(pSession) \
 	(lac_session_desc_t *)(*(LAC_ARCH_UINT *)pSession)
 /**< @ingroup LacSym_Session
  * Retrieve the session descriptor pointer from the session context structure
@@ -683,9 +683,8 @@ typedef struct lac_session_desc_d2_s {
 */
 
 CpaStatus LacSym_InitSession(const CpaInstanceHandle instanceHandle_in,
-			     const CpaCySymCbFunc pSymCb,
-			     const CpaCySymSessionSetupData *pSessionSetupData,
-			     const CpaBoolean isDpSession,
-			     CpaCySymSessionCtx pSessionCtx);
+    const CpaCySymCbFunc pSymCb,
+    const CpaCySymSessionSetupData *pSessionSetupData,
+    const CpaBoolean isDpSession, CpaCySymSessionCtx pSessionCtx);
 
 #endif /* LAC_SYM_SESSION_H */

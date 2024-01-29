@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -42,44 +42,44 @@
  *
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/param.h>
 
 #include <assert.h>
 #include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-
-#include <rpc/types.h>
-#include <rpc/xdr.h>
 #include <rpc/auth.h>
 #include <rpc/auth_unix.h>
-#include "un-namespace.h"
+#include <rpc/types.h>
+#include <rpc/xdr.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "un-namespace.h"
 
 /* auth_unix.c */
-static void authunix_nextverf (AUTH *);
-static bool_t authunix_marshal (AUTH *, XDR *);
-static bool_t authunix_validate (AUTH *, struct opaque_auth *);
-static bool_t authunix_refresh (AUTH *, void *);
-static void authunix_destroy (AUTH *);
-static void marshal_new_auth (AUTH *);
-static struct auth_ops *authunix_ops (void);
+static void authunix_nextverf(AUTH *);
+static bool_t authunix_marshal(AUTH *, XDR *);
+static bool_t authunix_validate(AUTH *, struct opaque_auth *);
+static bool_t authunix_refresh(AUTH *, void *);
+static void authunix_destroy(AUTH *);
+static void marshal_new_auth(AUTH *);
+static struct auth_ops *authunix_ops(void);
 
 /*
  * This struct is pointed to by the ah_private field of an auth_handle.
  */
 struct audata {
-	struct opaque_auth	au_origcred;	/* original credentials */
-	struct opaque_auth	au_shcred;	/* short hand cred */
-	u_long			au_shfaults;	/* short hand cache faults */
-	char			au_marshed[MAX_AUTH_BYTES];
-	u_int			au_mpos;	/* xdr pos at end of marshed */
+	struct opaque_auth au_origcred; /* original credentials */
+	struct opaque_auth au_shcred;	/* short hand cred */
+	u_long au_shfaults;		/* short hand cache faults */
+	char au_marshed[MAX_AUTH_BYTES];
+	u_int au_mpos; /* xdr pos at end of marshed */
 };
-#define	AUTH_PRIVATE(auth)	((struct audata *)auth->ah_private)
+#define AUTH_PRIVATE(auth) ((struct audata *)auth->ah_private)
 
 /*
  * Create a unix style authenticator.
@@ -134,14 +134,14 @@ authunix_create(char *machname, u_int uid, u_int gid, int len, u_int *aup_gids)
 	 * Serialize the parameters into origcred
 	 */
 	xdrmem_create(&xdrs, mymem, MAX_AUTH_BYTES, XDR_ENCODE);
-	if (! xdr_authunix_parms(&xdrs, &aup)) 
+	if (!xdr_authunix_parms(&xdrs, &aup))
 		abort();
 	au->au_origcred.oa_length = len = XDR_GETPOS(&xdrs);
 	au->au_origcred.oa_flavor = AUTH_UNIX;
 #ifdef _KERNEL
-	au->au_origcred.oa_base = mem_alloc((u_int) len);
+	au->au_origcred.oa_base = mem_alloc((u_int)len);
 #else
-	if ((au->au_origcred.oa_base = mem_alloc((u_int) len)) == NULL) {
+	if ((au->au_origcred.oa_base = mem_alloc((u_int)len)) == NULL) {
 		warnx("authunix_create: out of memory");
 		goto cleanup_authunix_create;
 	}
@@ -155,7 +155,7 @@ authunix_create(char *machname, u_int uid, u_int gid, int len, u_int *aup_gids)
 	marshal_new_auth(auth);
 	return (auth);
 #ifndef _KERNEL
- cleanup_authunix_create:
+cleanup_authunix_create:
 	if (auth)
 		mem_free(auth, sizeof(*auth));
 	if (au) {
@@ -272,15 +272,15 @@ authunix_refresh(AUTH *auth, void *dummy)
 		/* there is no hope.  Punt */
 		return (FALSE);
 	}
-	au->au_shfaults ++;
+	au->au_shfaults++;
 
 	/* first deserialize the creds back into a struct authunix_parms */
 	aup.aup_machname = NULL;
 	aup.aup_gids = NULL;
-	xdrmem_create(&xdrs, au->au_origcred.oa_base,
-	    au->au_origcred.oa_length, XDR_DECODE);
+	xdrmem_create(&xdrs, au->au_origcred.oa_base, au->au_origcred.oa_length,
+	    XDR_DECODE);
 	stat = xdr_authunix_parms(&xdrs, &aup);
-	if (! stat)
+	if (!stat)
 		goto done;
 
 	/* update the time and serialize in place */
@@ -289,7 +289,7 @@ authunix_refresh(AUTH *auth, void *dummy)
 	xdrs.x_op = XDR_ENCODE;
 	XDR_SETPOS(&xdrs, 0);
 	stat = xdr_authunix_parms(&xdrs, &aup);
-	if (! stat)
+	if (!stat)
 		goto done;
 	auth->ah_cred = au->au_origcred;
 	marshal_new_auth(auth);
@@ -329,16 +329,16 @@ authunix_destroy(AUTH *auth)
 static void
 marshal_new_auth(AUTH *auth)
 {
-	XDR	xdr_stream;
-	XDR	*xdrs = &xdr_stream;
+	XDR xdr_stream;
+	XDR *xdrs = &xdr_stream;
 	struct audata *au;
 
 	assert(auth != NULL);
 
 	au = AUTH_PRIVATE(auth);
 	xdrmem_create(xdrs, au->au_marshed, MAX_AUTH_BYTES, XDR_ENCODE);
-	if ((! xdr_opaque_auth(xdrs, &(auth->ah_cred))) ||
-	    (! xdr_opaque_auth(xdrs, &(auth->ah_verf))))
+	if ((!xdr_opaque_auth(xdrs, &(auth->ah_cred))) ||
+	    (!xdr_opaque_auth(xdrs, &(auth->ah_verf))))
 		warnx("auth_none.c - Fatal marshalling problem");
 	else
 		au->au_mpos = XDR_GETPOS(xdrs);

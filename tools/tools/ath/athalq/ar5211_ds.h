@@ -14,9 +14,9 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-#ifndef	__AR5211_DS_H__
-#define	__AR5211_DS_H__
+#ifndef __AR5211_DS_H__
+#define __AR5211_DS_H__
 
-extern	void ar5211_alq_payload(struct if_ath_alq_payload *a);
+extern void ar5211_alq_payload(struct if_ath_alq_payload *a);
 
-#endif	/* __AR5211_DS_H__ */
+#endif /* __AR5211_DS_H__ */

@@ -11,11 +11,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,7 +40,7 @@
  */
 
 #ifndef MPI30_TYPE_H
-#define MPI30_TYPE_H     1
+#define MPI30_TYPE_H 1
 
 /*****************************************************************************
  * Define MPI3_POINTER if it has not already been defined. By default        *
@@ -49,51 +49,50 @@
  * file is included.                                                         *
  ****************************************************************************/
 #ifndef MPI3_POINTER
-#define MPI3_POINTER    *
-#endif  /* MPI3_POINTER */
+#define MPI3_POINTER *
+#endif /* MPI3_POINTER */
 
-/* The basic types may have already been included by mpi_type.h or mpi2_type.h */
+/* The basic types may have already been included by mpi_type.h or mpi2_type.h
+ */
 #if !defined(MPI_TYPE_H) && !defined(MPI2_TYPE_H)
 /*****************************************************************************
  *              Basic Types                                                  *
  ****************************************************************************/
-typedef int8_t      S8;
-typedef uint8_t     U8;
-typedef int16_t     S16;
-typedef uint16_t    U16;
-typedef int32_t     S32;
-typedef uint32_t    U32;
-typedef int64_t     S64;
-typedef uint64_t    U64;
+typedef int8_t S8;
+typedef uint8_t U8;
+typedef int16_t S16;
+typedef uint16_t U16;
+typedef int32_t S32;
+typedef uint32_t U32;
+typedef int64_t S64;
+typedef uint64_t U64;
 
 /*****************************************************************************
  *              Structure Types                                              *
  ****************************************************************************/
-typedef struct _S64struct
-{
-    U32         Low;
-    S32         High;
+typedef struct _S64struct {
+	U32 Low;
+	S32 High;
 } S64struct;
 
-typedef struct _U64struct
-{
-    U32         Low;
-    U32         High;
+typedef struct _U64struct {
+	U32 Low;
+	U32 High;
 } U64struct;
 
 /*****************************************************************************
  *              Pointer Types                                                *
  ****************************************************************************/
-typedef S8          *PS8;
-typedef U8          *PU8;
-typedef S16         *PS16;
-typedef U16         *PU16;
-typedef S32         *PS32;
-typedef U32         *PU32;
-typedef S64         *PS64;
-typedef U64         *PU64;
-typedef S64struct   *PS64struct;
-typedef U64struct   *PU64struct;
-#endif  /* MPI_TYPE_H && MPI2_TYPE_H */
+typedef S8 *PS8;
+typedef U8 *PU8;
+typedef S16 *PS16;
+typedef U16 *PU16;
+typedef S32 *PS32;
+typedef U32 *PU32;
+typedef S64 *PS64;
+typedef U64 *PU64;
+typedef S64struct *PS64struct;
+typedef U64struct *PU64struct;
+#endif /* MPI_TYPE_H && MPI2_TYPE_H */
 
-#endif  /* MPI30_TYPE_H */
+#endif /* MPI30_TYPE_H */

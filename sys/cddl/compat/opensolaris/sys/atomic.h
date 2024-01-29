@@ -25,21 +25,22 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_ATOMIC_H_
-#define	_OPENSOLARIS_SYS_ATOMIC_H_
+#define _OPENSOLARIS_SYS_ATOMIC_H_
 
 #include <sys/types.h>
+
 #include <machine/atomic.h>
 
 #if defined(__i386__) && (defined(_KERNEL) || defined(KLD_MODULE))
-#define	I386_HAVE_ATOMIC64
+#define I386_HAVE_ATOMIC64
 #endif
 
 #if defined(__i386__) || defined(__amd64__) || defined(__arm__)
 /* No spurious failures from fcmpset. */
-#define	STRONG_FCMPSET
+#define STRONG_FCMPSET
 #endif
 
-#if !defined(__LP64__) && !defined(__mips_n32) && \
+#if !defined(__LP64__) && !defined(__mips_n32) &&                  \
     !defined(ARM_HAVE_ATOMIC64) && !defined(I386_HAVE_ATOMIC64) && \
     !defined(HAS_EMULATED_ATOMIC64)
 extern void atomic_add_64(volatile uint64_t *target, int64_t delta);
@@ -51,7 +52,7 @@ extern uint64_t atomic_cas_64(volatile uint64_t *target, uint64_t cmp,
     uint64_t newval);
 #endif
 
-#define	membar_producer	atomic_thread_fence_rel
+#define membar_producer atomic_thread_fence_rel
 
 static __inline uint32_t
 atomic_add_32_nv(volatile uint32_t *target, int32_t delta)
@@ -105,9 +106,8 @@ atomic_cas_32(volatile uint32_t *target, uint32_t cmp, uint32_t newval)
 	return (cmp);
 }
 
-#if defined(__LP64__) || defined(__mips_n32) || \
-    defined(ARM_HAVE_ATOMIC64) || defined(I386_HAVE_ATOMIC64) || \
-    defined(HAS_EMULATED_ATOMIC64)
+#if defined(__LP64__) || defined(__mips_n32) || defined(ARM_HAVE_ATOMIC64) || \
+    defined(I386_HAVE_ATOMIC64) || defined(HAS_EMULATED_ATOMIC64)
 static __inline void
 atomic_dec_64(volatile uint64_t *target)
 {
@@ -157,18 +157,18 @@ atomic_dec_64_nv(volatile uint64_t *target)
 
 #ifdef __LP64__
 static __inline void *
-atomic_cas_ptr(volatile void *target, void *cmp,  void *newval)
+atomic_cas_ptr(volatile void *target, void *cmp, void *newval)
 {
 	return ((void *)atomic_cas_64((volatile uint64_t *)target,
 	    (uint64_t)cmp, (uint64_t)newval));
 }
 #else
 static __inline void *
-atomic_cas_ptr(volatile void *target, void *cmp,  void *newval)
+atomic_cas_ptr(volatile void *target, void *cmp, void *newval)
 {
 	return ((void *)atomic_cas_32((volatile uint32_t *)target,
 	    (uint32_t)cmp, (uint32_t)newval));
 }
-#endif	/* __LP64__ */
+#endif /* __LP64__ */
 
-#endif	/* !_OPENSOLARIS_SYS_ATOMIC_H_ */
+#endif /* !_OPENSOLARIS_SYS_ATOMIC_H_ */

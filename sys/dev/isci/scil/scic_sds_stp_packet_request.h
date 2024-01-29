@@ -69,97 +69,89 @@ extern "C" {
  *        requests.
  */
 
-
 /**
  * @enum
  *
  * This is the enumeration of the SATA PIO DATA IN started substate machine.
  */
-enum _SCIC_SDS_STP_PACKET_REQUEST_STARTED_SUBSTATES
-{
-   /**
-    * While in this state the IO request object is waiting for the TC completion
-    * notification for the H2D Register FIS
-    */
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
+enum _SCIC_SDS_STP_PACKET_REQUEST_STARTED_SUBSTATES {
+	/**
+	 * While in this state the IO request object is waiting for the TC
+	 * completion notification for the H2D Register FIS
+	 */
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
 
-   /**
-    * While in this state the IO request object is waiting for either a PIO Setup.
-    */
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_PIO_SETUP_SUBSTATE,
+	/**
+	 * While in this state the IO request object is waiting for either a PIO
+	 * Setup.
+	 */
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_PACKET_PHASE_AWAIT_PIO_SETUP_SUBSTATE,
 
-   /**
-    * While in this state the IO request object is waiting for TC completion for
-    * the Packet DMA DATA fis or Raw Frame.
-    */
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
+	/**
+	 * While in this state the IO request object is waiting for TC
+	 * completion for the Packet DMA DATA fis or Raw Frame.
+	 */
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_TC_COMPLETION_SUBSTATE,
 
-   /**
-    * The non-data IO transit to this state in this state after receiving TC
-    * completion. While in this state IO request object is waiting for D2H status
-    * frame as UF.
-    */
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_D2H_FIS_SUBSTATE,
+	/**
+	 * The non-data IO transit to this state in this state after receiving
+	 * TC completion. While in this state IO request object is waiting for
+	 * D2H status frame as UF.
+	 */
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMMAND_PHASE_AWAIT_D2H_FIS_SUBSTATE,
 
-   /**
-    * The IO transit to this state in this state if the previous TC completion status
-    * is not success and the atapi device is suspended due to target device failed the IO.
-    * While in this state IO request object is waiting for device coming out of the
-    * suspension state then complete the IO.
-    */
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMPLETION_DELAY_SUBSTATE,
+	/**
+	 * The IO transit to this state in this state if the previous TC
+	 * completion status is not success and the atapi device is suspended
+	 * due to target device failed the IO. While in this state IO request
+	 * object is waiting for device coming out of the suspension state then
+	 * complete the IO.
+	 */
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_COMPLETION_DELAY_SUBSTATE,
 
-   SCIC_SDS_STP_PACKET_REQUEST_STARTED_MAX_SUBSTATES
+	SCIC_SDS_STP_PACKET_REQUEST_STARTED_MAX_SUBSTATES
 };
-
-
 
 #if !defined(DISABLE_ATAPI)
 extern SCI_BASE_STATE_T scic_sds_stp_packet_request_started_substate_table[];
 extern SCIC_SDS_IO_REQUEST_STATE_HANDLER_T
-	scic_sds_stp_packet_request_started_substate_handler_table[];
+    scic_sds_stp_packet_request_started_substate_handler_table[];
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
 SCI_STATUS scic_sds_stp_packet_request_construct(
-   SCIC_SDS_REQUEST_T * this_request
-);
-#else  // !defined(DISABLE_ATAPI)
+    SCIC_SDS_REQUEST_T *this_request);
+#else // !defined(DISABLE_ATAPI)
 #define scic_sds_stp_packet_request_construct(request) SCI_FAILURE
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
 void scu_stp_packet_request_command_phase_construct_task_context(
-   SCIC_SDS_REQUEST_T * this_request,
-   SCU_TASK_CONTEXT_T * task_context
-);
-#else  // !defined(DISABLE_ATAPI)
+    SCIC_SDS_REQUEST_T *this_request, SCU_TASK_CONTEXT_T *task_context);
+#else // !defined(DISABLE_ATAPI)
 #define scu_stp_packet_request_command_phase_construct_task_context(reqeust, tc)
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
 void scu_stp_packet_request_command_phase_reconstruct_raw_frame_task_context(
-   SCIC_SDS_REQUEST_T * this_request,
-   SCU_TASK_CONTEXT_T * task_context
-);
-#else  // !defined(DISABLE_ATAPI)
-#define scu_stp_packet_request_command_phase_reconstruct_raw_frame_task_context(reqeust, tc)
+    SCIC_SDS_REQUEST_T *this_request, SCU_TASK_CONTEXT_T *task_context);
+#else // !defined(DISABLE_ATAPI)
+#define scu_stp_packet_request_command_phase_reconstruct_raw_frame_task_context( \
+    reqeust, tc)
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
-SCI_STATUS scic_sds_stp_packet_request_process_status_fis(
-   SCIC_SDS_REQUEST_T * this_request,
-   SATA_FIS_REG_D2H_T * status_fis
-);
-#else  // !defined(DISABLE_ATAPI)
+SCI_STATUS
+scic_sds_stp_packet_request_process_status_fis(SCIC_SDS_REQUEST_T *this_request,
+    SATA_FIS_REG_D2H_T *status_fis);
+#else // !defined(DISABLE_ATAPI)
 #define scic_sds_stp_packet_request_process_status_fis(reqeust, fis) SCI_FAILURE
 #endif // !defined(DISABLE_ATAPI)
 
 #if !defined(DISABLE_ATAPI)
 void scic_sds_stp_packet_internal_request_sense_build_sgl(
-   SCIC_SDS_REQUEST_T * this_request
-);
-#else  // !defined(DISABLE_ATAPI)
+    SCIC_SDS_REQUEST_T *this_request);
+#else // !defined(DISABLE_ATAPI)
 #define scic_sds_stp_packet_internal_request_sense_build_sgl(request)
 #endif // !defined(DISABLE_ATAPI)
 
@@ -168,4 +160,3 @@ void scic_sds_stp_packet_internal_request_sense_build_sgl(
 #endif // __cplusplus
 
 #endif // _SCIC_SDS_STP_PACKET_REQUEST_H_
-

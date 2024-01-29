@@ -30,61 +30,67 @@
  */
 
 #include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 
 #include <net/if.h>
+#include <netgraph/netflow/ng_netflow.h>
 #include <netinet/in.h>
 
 #include <arpa/inet.h>
-
 #include <err.h>
+#include <netgraph.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
-#include <netgraph.h>
-#include <netgraph/netflow/ng_netflow.h>
-
-#define	CISCO_SH_FLOW_HEADER	"SrcIf         SrcIPaddress    " \
-"DstIf         DstIPaddress    Pr SrcP DstP  Pkts\n"
-#define	CISCO_SH_FLOW	"%-13s %-15s %-13s %-15s %2u %4.4x %4.4x %6lu\n"
+#define CISCO_SH_FLOW_HEADER             \
+	"SrcIf         SrcIPaddress    " \
+	"DstIf         DstIPaddress    Pr SrcP DstP  Pkts\n"
+#define CISCO_SH_FLOW "%-13s %-15s %-13s %-15s %2u %4.4x %4.4x %6lu\n"
 
 /* human-readable IPv4 header */
-#define	CISCO_SH_FLOW_HHEADER	"SrcIf         SrcIPaddress    " \
-"DstIf         DstIPaddress    Proto  SrcPort  DstPort     Pkts\n"
-#define	CISCO_SH_FLOW_H	"%-13s %-15s %-13s %-15s %5u %8d %8d %8lu\n"
+#define CISCO_SH_FLOW_HHEADER            \
+	"SrcIf         SrcIPaddress    " \
+	"DstIf         DstIPaddress    Proto  SrcPort  DstPort     Pkts\n"
+#define CISCO_SH_FLOW_H "%-13s %-15s %-13s %-15s %5u %8d %8d %8lu\n"
 
-#define	CISCO_SH_FLOW6_HEADER	"SrcIf         SrcIPaddress                   " \
-"DstIf         DstIPaddress                   Pr SrcP DstP  Pkts\n"
-#define	CISCO_SH_FLOW6		"%-13s %-30s %-13s %-30s %2u %4.4x %4.4x %6lu\n"
+#define CISCO_SH_FLOW6_HEADER                           \
+	"SrcIf         SrcIPaddress                   " \
+	"DstIf         DstIPaddress                   Pr SrcP DstP  Pkts\n"
+#define CISCO_SH_FLOW6 "%-13s %-30s %-13s %-30s %2u %4.4x %4.4x %6lu\n"
 
 /* Human-readable IPv6 headers */
-#define	CISCO_SH_FLOW6_HHEADER	"SrcIf         SrcIPaddress                         " \
-"DstIf         DstIPaddress                         Proto  SrcPort  DstPort     Pkts\n"
-#define	CISCO_SH_FLOW6_H	"%-13s %-36s %-13s %-36s %5u %8d %8d %8lu\n"
+#define CISCO_SH_FLOW6_HHEADER                                \
+	"SrcIf         SrcIPaddress                         " \
+	"DstIf         DstIPaddress                         Proto  SrcPort  DstPort     Pkts\n"
+#define CISCO_SH_FLOW6_H "%-13s %-36s %-13s %-36s %5u %8d %8d %8lu\n"
 
-#define	CISCO_SH_VERB_FLOW_HEADER "SrcIf          SrcIPaddress    " \
-"DstIf          DstIPaddress    Pr TOS Flgs  Pkts\n" \
-"Port Msk AS                    Port Msk AS    NextHop              B/Pk  Active\n"
+#define CISCO_SH_VERB_FLOW_HEADER                            \
+	"SrcIf          SrcIPaddress    "                    \
+	"DstIf          DstIPaddress    Pr TOS Flgs  Pkts\n" \
+	"Port Msk AS                    Port Msk AS    NextHop              B/Pk  Active\n"
 
-#define	CISCO_SH_VERB_FLOW "%-14s %-15s %-14s %-15s %2u %3x %4x %6lu\n" \
+#define CISCO_SH_VERB_FLOW                           \
+	"%-14s %-15s %-14s %-15s %2u %3x %4x %6lu\n" \
 	"%4.4x /%-2u %-5u                 %4.4x /%-2u %-5u %-15s %9u %8u\n\n"
 
-#define	CISCO_SH_VERB_FLOW6_HEADER "SrcIf          SrcIPaddress                   " \
-"DstIf          DstIPaddress                   Pr TOS Flgs  Pkts\n" \
-"Port Msk AS                    Port Msk AS    NextHop                             B/Pk  Active\n"
+#define CISCO_SH_VERB_FLOW6_HEADER                                          \
+	"SrcIf          SrcIPaddress                   "                    \
+	"DstIf          DstIPaddress                   Pr TOS Flgs  Pkts\n" \
+	"Port Msk AS                    Port Msk AS    NextHop                             B/Pk  Active\n"
 
-#define	CISCO_SH_VERB_FLOW6 "%-14s %-30s %-14s %-30s %2u %3x %4x %6lu\n" \
+#define CISCO_SH_VERB_FLOW6                          \
+	"%-14s %-30s %-14s %-30s %2u %3x %4x %6lu\n" \
 	"%4.4x /%-2u %-5u                 %4.4x /%-2u %-5u %-30s %9u %8u\n\n"
 #ifdef INET
 static void flow_cache_print(struct ngnf_show_header *resp);
 static void flow_cache_print_verbose(struct ngnf_show_header *resp);
 #endif
-#ifdef INET6 
+#ifdef INET6
 static void flow_cache_print6(struct ngnf_show_header *resp);
 static void flow_cache_print6_verbose(struct ngnf_show_header *resp);
 #endif
@@ -96,17 +102,17 @@ static void help(void);
 static void execute_command(int, char **);
 
 struct ip_ctl_cmd {
-	char	*cmd_name;
-	void	(*cmd_func)(int argc, char **argv);
+	char *cmd_name;
+	void (*cmd_func)(int argc, char **argv);
 };
 
 struct ip_ctl_cmd cmds[] = {
-    {"show",	ctl_show},
-    {NULL,	NULL},
+	{ "show", ctl_show },
+	{ NULL, NULL },
 };
 
-int	cs, human = 0;
-char	*ng_path;
+int cs, human = 0;
+char *ng_path;
 
 int
 main(int argc, char **argv)
@@ -118,7 +124,7 @@ main(int argc, char **argv)
 	/* parse options */
 	while ((c = getopt(argc, argv, "d:")) != -1) {
 		switch (c) {
-		case 'd':	/* set libnetgraph debug level. */
+		case 'd': /* set libnetgraph debug level. */
 			NgSetDebug(atoi(optarg));
 			break;
 		}
@@ -146,7 +152,7 @@ main(int argc, char **argv)
 	execute_command(argc, argv);
 
 	close(cs);
-	
+
 	exit(0);
 }
 
@@ -245,8 +251,9 @@ do_show(int version, void (*func)(struct ngnf_show_header *))
 
 		resp = (struct ngnf_show_header *)ng_mesg->data;
 		if ((ng_mesg->header.arglen < (sizeof(*resp))) ||
-		    (ng_mesg->header.arglen < (sizeof(*resp) +
-		    (resp->nentries * sizeof(struct flow_entry_data)))))
+		    (ng_mesg->header.arglen <
+			(sizeof(*resp) +
+			    (resp->nentries * sizeof(struct flow_entry_data)))))
 			err(1, "NgRecvMsg(NGM_NETFLOW_SHOW): arglen too small");
 
 		(*func)(resp);
@@ -270,8 +277,8 @@ flow_cache_print(struct ngnf_show_header *resp)
 	int i;
 
 	if (resp->version != 4)
-		errx(EX_SOFTWARE, "%s: version mismatch: %u",
-		    __func__, resp->version);
+		errx(EX_SOFTWARE, "%s: version mismatch: %u", __func__,
+		    resp->version);
 
 	if (resp->nentries > 0)
 		printf(human ? CISCO_SH_FLOW_HHEADER : CISCO_SH_FLOW_HEADER);
@@ -281,15 +288,9 @@ flow_cache_print(struct ngnf_show_header *resp)
 		inet_ntop(AF_INET, &fle->r.r_src, src, sizeof(src));
 		inet_ntop(AF_INET, &fle->r.r_dst, dst, sizeof(dst));
 		printf(human ? CISCO_SH_FLOW_H : CISCO_SH_FLOW,
-			if_indextoname(fle->fle_i_ifx, src_if),
-			src,
-			if_indextoname(fle->fle_o_ifx, dst_if),
-			dst,
-			fle->r.r_ip_p,
-			ntohs(fle->r.r_sport),
-			ntohs(fle->r.r_dport),
-			fle->packets);
-			
+		    if_indextoname(fle->fle_i_ifx, src_if), src,
+		    if_indextoname(fle->fle_o_ifx, dst_if), dst, fle->r.r_ip_p,
+		    ntohs(fle->r.r_sport), ntohs(fle->r.r_dport), fle->packets);
 	}
 }
 #endif
@@ -304,8 +305,8 @@ flow_cache_print6(struct ngnf_show_header *resp)
 	int i;
 
 	if (resp->version != 6)
-		errx(EX_SOFTWARE, "%s: version mismatch: %u",
-		    __func__, resp->version);
+		errx(EX_SOFTWARE, "%s: version mismatch: %u", __func__,
+		    resp->version);
 
 	if (resp->nentries > 0)
 		printf(human ? CISCO_SH_FLOW6_HHEADER : CISCO_SH_FLOW6_HEADER);
@@ -315,15 +316,10 @@ flow_cache_print6(struct ngnf_show_header *resp)
 		inet_ntop(AF_INET6, &fle6->r.src.r_src6, src6, sizeof(src6));
 		inet_ntop(AF_INET6, &fle6->r.dst.r_dst6, dst6, sizeof(dst6));
 		printf(human ? CISCO_SH_FLOW6_H : CISCO_SH_FLOW6,
-			if_indextoname(fle6->fle_i_ifx, src_if),
-			src6,
-			if_indextoname(fle6->fle_o_ifx, dst_if),
-			dst6,
-			fle6->r.r_ip_p,
-			ntohs(fle6->r.r_sport),
-			ntohs(fle6->r.r_dport),
-			fle6->packets);
-			
+		    if_indextoname(fle6->fle_i_ifx, src_if), src6,
+		    if_indextoname(fle6->fle_o_ifx, dst_if), dst6,
+		    fle6->r.r_ip_p, ntohs(fle6->r.r_sport),
+		    ntohs(fle6->r.r_dport), fle6->packets);
 	}
 }
 #endif
@@ -338,8 +334,8 @@ flow_cache_print_verbose(struct ngnf_show_header *resp)
 	int i;
 
 	if (resp->version != 4)
-		errx(EX_SOFTWARE, "%s: version mismatch: %u",
-		    __func__, resp->version);
+		errx(EX_SOFTWARE, "%s: version mismatch: %u", __func__,
+		    resp->version);
 
 	printf(CISCO_SH_VERB_FLOW_HEADER);
 
@@ -349,24 +345,12 @@ flow_cache_print_verbose(struct ngnf_show_header *resp)
 		inet_ntop(AF_INET, &fle->r.r_dst, dst, sizeof(dst));
 		inet_ntop(AF_INET, &fle->next_hop, next, sizeof(next));
 		printf(CISCO_SH_VERB_FLOW,
-			if_indextoname(fle->fle_i_ifx, src_if),
-			src,
-			if_indextoname(fle->fle_o_ifx, dst_if),
-			dst,
-			fle->r.r_ip_p,
-			fle->r.r_tos,
-			fle->tcp_flags,
-			fle->packets,
-			ntohs(fle->r.r_sport),
-			fle->src_mask,
-			0,
-			ntohs(fle->r.r_dport),
-			fle->dst_mask,
-			0,
-			next,
-			(u_int)(fle->bytes / fle->packets),
-			0);
-			
+		    if_indextoname(fle->fle_i_ifx, src_if), src,
+		    if_indextoname(fle->fle_o_ifx, dst_if), dst, fle->r.r_ip_p,
+		    fle->r.r_tos, fle->tcp_flags, fle->packets,
+		    ntohs(fle->r.r_sport), fle->src_mask, 0,
+		    ntohs(fle->r.r_dport), fle->dst_mask, 0, next,
+		    (u_int)(fle->bytes / fle->packets), 0);
 	}
 }
 #endif
@@ -376,13 +360,14 @@ static void
 flow_cache_print6_verbose(struct ngnf_show_header *resp)
 {
 	struct flow6_entry_data *fle6;
-	char src6[INET6_ADDRSTRLEN], dst6[INET6_ADDRSTRLEN], next6[INET6_ADDRSTRLEN];
+	char src6[INET6_ADDRSTRLEN], dst6[INET6_ADDRSTRLEN],
+	    next6[INET6_ADDRSTRLEN];
 	char src_if[IFNAMSIZ], dst_if[IFNAMSIZ];
 	int i;
 
 	if (resp->version != 6)
-		errx(EX_SOFTWARE, "%s: version mismatch: %u",
-		    __func__, resp->version);
+		errx(EX_SOFTWARE, "%s: version mismatch: %u", __func__,
+		    resp->version);
 
 	printf(CISCO_SH_VERB_FLOW6_HEADER);
 
@@ -392,23 +377,12 @@ flow_cache_print6_verbose(struct ngnf_show_header *resp)
 		inet_ntop(AF_INET6, &fle6->r.dst.r_dst6, dst6, sizeof(dst6));
 		inet_ntop(AF_INET6, &fle6->n.next_hop6, next6, sizeof(next6));
 		printf(CISCO_SH_VERB_FLOW6,
-			if_indextoname(fle6->fle_i_ifx, src_if),
-			src6,
-			if_indextoname(fle6->fle_o_ifx, dst_if),
-			dst6,
-			fle6->r.r_ip_p,
-			fle6->r.r_tos,
-			fle6->tcp_flags,
-			fle6->packets,
-			ntohs(fle6->r.r_sport),
-			fle6->src_mask,
-			0,
-			ntohs(fle6->r.r_dport),
-			fle6->dst_mask,
-			0,
-			next6,
-			(u_int)(fle6->bytes / fle6->packets),
-			0);
+		    if_indextoname(fle6->fle_i_ifx, src_if), src6,
+		    if_indextoname(fle6->fle_o_ifx, dst_if), dst6,
+		    fle6->r.r_ip_p, fle6->r.r_tos, fle6->tcp_flags,
+		    fle6->packets, ntohs(fle6->r.r_sport), fle6->src_mask, 0,
+		    ntohs(fle6->r.r_dport), fle6->dst_mask, 0, next6,
+		    (u_int)(fle6->bytes / fle6->packets), 0);
 	}
 }
 #endif
@@ -419,5 +393,5 @@ help(void)
 	extern char *__progname;
 
 	fprintf(stderr, "usage: %s [-d level] nodename command\n", __progname);
-	exit (0);
+	exit(0);
 }

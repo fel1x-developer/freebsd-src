@@ -33,22 +33,22 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
-#include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/proc.h>
-#include <sys/pcpu.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/alq.h>
+#include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/proc.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 
 #include <dev/ath/if_ath_alq.h>
 
-#ifdef	ATH_DEBUG_ALQ
+#ifdef ATH_DEBUG_ALQ
 static struct ale *
 if_ath_alq_get(struct if_ath_alq *alq, int len)
 {
@@ -58,7 +58,7 @@ if_ath_alq_get(struct if_ath_alq *alq, int len)
 		return (NULL);
 
 	ale = alq_getn(alq->sc_alq_alq, len, ALQ_NOWAIT);
-	if (! ale)
+	if (!ale)
 		alq->sc_alq_numlost++;
 	return (ale);
 }
@@ -75,12 +75,12 @@ if_ath_alq_init(struct if_ath_alq *alq, const char *devname)
 	    "/tmp/ath_%s_alq.log", alq->sc_alq_devname);
 
 	/* XXX too conservative, right? */
-	alq->sc_alq_qsize = (64*1024);
+	alq->sc_alq_qsize = (64 * 1024);
 }
 
 void
-if_ath_alq_setcfg(struct if_ath_alq *alq, uint32_t macVer,
-    uint32_t macRev, uint32_t phyRev, uint32_t halMagic)
+if_ath_alq_setcfg(struct if_ath_alq *alq, uint32_t macVer, uint32_t macRev,
+    uint32_t phyRev, uint32_t halMagic)
 {
 
 	/* Store these in network order */
@@ -111,8 +111,7 @@ if_ath_alq_start(struct if_ath_alq *alq)
 	 * Create a variable-length ALQ.
 	 */
 	error = alq_open(&alq->sc_alq_alq, alq->sc_alq_filename,
-	    curthread->td_ucred, ALQ_DEFAULT_CMODE,
-	    alq->sc_alq_qsize, 0);
+	    curthread->td_ucred, ALQ_DEFAULT_CMODE, alq->sc_alq_qsize, 0);
 
 	if (error != 0) {
 		printf("%s (%s): failed, err=%d\n", __func__,
@@ -121,8 +120,8 @@ if_ath_alq_start(struct if_ath_alq *alq)
 		printf("%s (%s): opened\n", __func__, alq->sc_alq_devname);
 		alq->sc_alq_isactive = 1;
 		if_ath_alq_post(alq, ATH_ALQ_INIT_STATE,
-		    sizeof (struct if_ath_alq_init_state),
-		    (char *) &alq->sc_alq_cfg);
+		    sizeof(struct if_ath_alq_init_state),
+		    (char *)&alq->sc_alq_cfg);
 	}
 	return (error);
 }
@@ -156,7 +155,7 @@ if_ath_alq_post(struct if_ath_alq *alq, uint16_t op, uint16_t len,
 	struct ale *ale;
 	struct timeval tv;
 
-	if (! if_ath_alq_checkdebug(alq, op))
+	if (!if_ath_alq_checkdebug(alq, op))
 		return;
 
 	microtime(&tv);
@@ -174,10 +173,10 @@ if_ath_alq_post(struct if_ath_alq *alq, uint16_t op, uint16_t len,
 	if (ale == NULL)
 		return;
 
-	ap = (struct if_ath_alq_hdr *) ale->ae_data;
-	ap->threadid = htobe64((uint64_t) curthread->td_tid);
-	ap->tstamp_sec = htobe32((uint32_t) tv.tv_sec);
-	ap->tstamp_usec = htobe32((uint32_t) tv.tv_usec);
+	ap = (struct if_ath_alq_hdr *)ale->ae_data;
+	ap->threadid = htobe64((uint64_t)curthread->td_tid);
+	ap->tstamp_sec = htobe32((uint32_t)tv.tv_sec);
+	ap->tstamp_usec = htobe32((uint32_t)tv.tv_usec);
 	ap->op = htobe16(op);
 	ap->len = htobe16(len);
 
@@ -185,11 +184,9 @@ if_ath_alq_post(struct if_ath_alq *alq, uint16_t op, uint16_t len,
 	 * Copy the payload _after_ the header field.
 	 */
 	if (buf != NULL) {
-		memcpy(((char *) ap) + sizeof(struct if_ath_alq_hdr),
-		    buf,
-		    len);
+		memcpy(((char *)ap) + sizeof(struct if_ath_alq_hdr), buf, len);
 	}
 
 	alq_post(alq->sc_alq_alq, ale);
 }
-#endif	/* ATH_DEBUG */
+#endif /* ATH_DEBUG */

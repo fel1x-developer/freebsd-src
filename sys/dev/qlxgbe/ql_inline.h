@@ -33,7 +33,7 @@
 #ifndef _QL_INLINE_H_
 #define _QL_INLINE_H_
 
-#define QL8_SEMLOCK_TIMEOUT	1000/* QLA8020 Semaphore Lock Timeout 10ms */
+#define QL8_SEMLOCK_TIMEOUT 1000 /* QLA8020 Semaphore Lock Timeout 10ms */
 
 /*
  * Inline functions for hardware semaphores
@@ -57,13 +57,13 @@ qla_sem_lock(qla_host_t *ha, uint32_t sem_reg, uint32_t id_reg, uint32_t id_val)
 		count--;
 
 		if (!count)
-			return(-1);
+			return (-1);
 		qla_mdelay(__func__, 10);
 	}
 	if (id_reg)
 		WRITE_REG32(ha, id_reg, id_val);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -80,7 +80,7 @@ qla_sem_unlock(qla_host_t *ha, uint32_t sem_reg)
 static __inline int
 qla_get_ifq_snd_maxlen(qla_host_t *ha)
 {
-	return(((NUM_TX_DESCRIPTORS * 4) - 1));
+	return (((NUM_TX_DESCRIPTORS * 4) - 1));
 }
 
 static __inline uint32_t
@@ -105,15 +105,14 @@ qla_get_optics(qla_host_t *ha)
 
 	default:
 		if ((ha->hw.module_type == 0x4) ||
-			(ha->hw.module_type == 0x5) ||
-			(ha->hw.module_type == 0x6))
+		    (ha->hw.module_type == 0x5) || (ha->hw.module_type == 0x6))
 			link_speed = (IFM_10G_TWINAX);
 		else
 			link_speed = (IFM_10G_LR | IFM_10G_SR);
 		break;
 	}
 
-	return(link_speed);
+	return (link_speed);
 }
 
 static __inline uint8_t *
@@ -124,7 +123,7 @@ qla_get_mac_addr(qla_host_t *ha)
 
 static __inline void
 qla_set_hw_rcv_desc(qla_host_t *ha, uint32_t r_idx, uint32_t index,
-	uint32_t handle, bus_addr_t paddr, uint32_t buf_size)
+    uint32_t handle, bus_addr_t paddr, uint32_t buf_size)
 {
 	volatile q80_recv_desc_t *rcv_desc;
 
@@ -144,20 +143,20 @@ qla_init_hw_rcv_descriptors(qla_host_t *ha)
 {
 	int i;
 
-	for (i = 0; i < ha->hw.num_rds_rings; i++) 
+	for (i = 0; i < ha->hw.num_rds_rings; i++)
 		bzero((void *)ha->hw.dma_buf.rds_ring[i].dma_b,
-			(sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS));
+		    (sizeof(q80_recv_desc_t) * NUM_RX_DESCRIPTORS));
 }
 
-#define QLA_LOCK_DEFAULT_MS_TIMEOUT	3000
+#define QLA_LOCK_DEFAULT_MS_TIMEOUT 3000
 
 #ifndef QLA_LOCK_NO_SLEEP
-#define QLA_LOCK_NO_SLEEP		0
-#endif 
+#define QLA_LOCK_NO_SLEEP 0
+#endif
 
 static __inline int
 qla_lock(qla_host_t *ha, const char *str, uint32_t timeout_ms,
-	uint32_t no_sleep)
+    uint32_t no_sleep)
 {
 	int ret = -1;
 
@@ -189,9 +188,9 @@ qla_lock(qla_host_t *ha, const char *str, uint32_t timeout_ms,
 		}
 	}
 
-//	if (!ha->enable_error_recovery)
-//		device_printf(ha->pci_dev, "%s: %s ret = %d\n", __func__,
-//			str,ret);
+	//	if (!ha->enable_error_recovery)
+	//		device_printf(ha->pci_dev, "%s: %s ret = %d\n",
+	//__func__, 			str,ret);
 
 	return (ret);
 }
@@ -204,8 +203,8 @@ qla_unlock(qla_host_t *ha, const char *str)
 	ha->qla_unlock = str;
 	mtx_unlock(&ha->hw_lock);
 
-//	if (!ha->enable_error_recovery)
-//		device_printf(ha->pci_dev, "%s: %s\n", __func__, str);
+	//	if (!ha->enable_error_recovery)
+	//		device_printf(ha->pci_dev, "%s: %s\n", __func__, str);
 
 	return;
 }

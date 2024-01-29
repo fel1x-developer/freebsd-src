@@ -38,8 +38,10 @@
 #include "ocs.h"
 #include "ocs_device.h"
 
-static void ocs_xport_link_stats_cb(int32_t status, uint32_t num_counters, ocs_hw_link_stat_counts_t *counters, void *arg);
-static void ocs_xport_host_stats_cb(int32_t status, uint32_t num_counters, ocs_hw_host_stat_counts_t *counters, void *arg);
+static void ocs_xport_link_stats_cb(int32_t status, uint32_t num_counters,
+    ocs_hw_link_stat_counts_t *counters, void *arg);
+static void ocs_xport_host_stats_cb(int32_t status, uint32_t num_counters,
+    ocs_hw_host_stat_counts_t *counters, void *arg);
 /**
  * @brief Post node event callback argument.
  */
@@ -58,7 +60,8 @@ typedef struct {
  *
  * @param ocs Pointer to device instance.
  *
- * @return Returns the pointer to the allocated transport object, or NULL if failed.
+ * @return Returns the pointer to the allocated transport object, or NULL if
+ * failed.
  */
 ocs_xport_t *
 ocs_xport_alloc(ocs_t *ocs)
@@ -89,8 +92,7 @@ ocs_xport_rq_threads_teardown(ocs_xport_t *xport)
 	ocs_t *ocs = xport->ocs;
 	uint32_t i;
 
-	if (xport->num_rq_threads == 0 ||
-	    xport->rq_thread_info == NULL) {
+	if (xport->num_rq_threads == 0 || xport->rq_thread_info == NULL) {
 		return;
 	}
 
@@ -138,7 +140,8 @@ ocs_xport_rq_threads_create(ocs_xport_t *xport, uint32_t num_rq_threads)
 	}
 
 	/* Allocate the space for the thread objects */
-	xport->rq_thread_info = ocs_malloc(ocs, sizeof(ocs_xport_rq_thread_info_t) * num_rq_threads, OCS_M_ZERO);
+	xport->rq_thread_info = ocs_malloc(ocs,
+	    sizeof(ocs_xport_rq_thread_info_t) * num_rq_threads, OCS_M_ZERO);
 	if (xport->rq_thread_info == NULL) {
 		ocs_log_err(ocs, "memory allocation failure\n");
 		return -1;
@@ -147,17 +150,18 @@ ocs_xport_rq_threads_create(ocs_xport_t *xport, uint32_t num_rq_threads)
 	/* Create the circular buffers and threads. */
 	for (i = 0; i < num_rq_threads; i++) {
 		xport->rq_thread_info[i].ocs = ocs;
-		xport->rq_thread_info[i].seq_cbuf = ocs_cbuf_alloc(ocs, OCS_HW_RQ_NUM_HDR);
+		xport->rq_thread_info[i].seq_cbuf = ocs_cbuf_alloc(ocs,
+		    OCS_HW_RQ_NUM_HDR);
 		if (xport->rq_thread_info[i].seq_cbuf == NULL) {
 			goto ocs_xport_rq_threads_create_error;
 		}
 
 		ocs_snprintf(xport->rq_thread_info[i].thread_name,
-			     sizeof(xport->rq_thread_info[i].thread_name),
-			     "ocs_unsol_rq:%d:%d", ocs->instance_index, i);
-		rc = ocs_thread_create(ocs, &xport->rq_thread_info[i].thread, ocs_unsol_rq_thread,
-				       xport->rq_thread_info[i].thread_name,
-				       &xport->rq_thread_info[i], OCS_THREAD_RUN);
+		    sizeof(xport->rq_thread_info[i].thread_name),
+		    "ocs_unsol_rq:%d:%d", ocs->instance_index, i);
+		rc = ocs_thread_create(ocs, &xport->rq_thread_info[i].thread,
+		    ocs_unsol_rq_thread, xport->rq_thread_info[i].thread_name,
+		    &xport->rq_thread_info[i], OCS_THREAD_RUN);
 		if (rc) {
 			ocs_log_err(ocs, "ocs_thread_create failed: %d\n", rc);
 			goto ocs_xport_rq_threads_create_error;
@@ -172,7 +176,8 @@ ocs_xport_rq_threads_create_error:
 }
 
 /**
- * @brief Do as much allocation as possible, but do not initialization the device.
+ * @brief Do as much allocation as possible, but do not initialization the
+ * device.
  *
  * @par Description
  * Performs the functions required to get a device ready to run.
@@ -200,8 +205,10 @@ ocs_xport_attach(ocs_xport_t *xport)
 
 	for (i = 0; i < SLI4_MAX_FCFI; i++) {
 		xport->fcfi[i].hold_frames = 1;
-		ocs_lock_init(ocs, &xport->fcfi[i].pend_frames_lock, "xport pend_frames[%d]", i);
-		ocs_list_init(&xport->fcfi[i].pend_frames, ocs_hw_sequence_t, link);
+		ocs_lock_init(ocs, &xport->fcfi[i].pend_frames_lock,
+		    "xport pend_frames[%d]", i);
+		ocs_list_init(&xport->fcfi[i].pend_frames, ocs_hw_sequence_t,
+		    link);
 	}
 
 	rc = ocs_hw_set_ptr(&ocs->hw, OCS_HW_WAR_VERSION, ocs->hw_war_version);
@@ -222,12 +229,13 @@ ocs_xport_attach(ocs_xport_t *xport)
 	ocs_hw_set(&ocs->hw, OCS_HW_BOUNCE, ocs->hw_bounce);
 	ocs_log_debug(ocs, "HW bounce: %d\n", ocs->hw_bounce);
 
-	ocs_hw_set(&ocs->hw, OCS_HW_RQ_SELECTION_POLICY, ocs->rq_selection_policy);
+	ocs_hw_set(&ocs->hw, OCS_HW_RQ_SELECTION_POLICY,
+	    ocs->rq_selection_policy);
 	ocs_hw_set(&ocs->hw, OCS_HW_RR_QUANTA, ocs->rr_quanta);
 	ocs_hw_get(&ocs->hw, OCS_HW_RQ_SELECTION_POLICY, &value);
 	ocs_log_debug(ocs, "RQ Selection Policy: %d\n", value);
 
-	ocs_hw_set_ptr(&ocs->hw, OCS_HW_FILTER_DEF, (void*) ocs->filter_def);
+	ocs_hw_set_ptr(&ocs->hw, OCS_HW_FILTER_DEF, (void *)ocs->filter_def);
 
 	ocs_hw_get(&ocs->hw, OCS_HW_MAX_SGL, &max_sgl);
 	max_sgl -= SLI4_SGE_MAX_RESERVED;
@@ -243,7 +251,8 @@ ocs_xport_attach(ocs_xport_t *xport)
 		ocs_log_err(ocs, "%s: Can't set number of SGLs\n", ocs->desc);
 		return -1;
 	} else {
-		ocs_log_debug(ocs, "%s: Configured for %d SGLs\n", ocs->desc, n_sgl);
+		ocs_log_debug(ocs, "%s: Configured for %d SGLs\n", ocs->desc,
+		    n_sgl);
 	}
 
 	ocs_hw_get(&ocs->hw, OCS_HW_MAX_NODES, &max_remote_nodes);
@@ -259,9 +268,11 @@ ocs_xport_attach(ocs_xport_t *xport)
 		node_pool_created = TRUE;
 	}
 
-	/* EVT: if testing chained SGLs allocate OCS_FC_MAX_SGL SGE's in the IO */
+	/* EVT: if testing chained SGLs allocate OCS_FC_MAX_SGL SGE's in the IO
+	 */
 	xport->io_pool = ocs_io_pool_create(ocs, ocs->num_scsi_ios,
-		(ocs->ctrlmask & OCS_CTRLMASK_TEST_CHAINED_SGLS) ? OCS_FC_MAX_SGL : n_sgl);
+	    (ocs->ctrlmask & OCS_CTRLMASK_TEST_CHAINED_SGLS) ? OCS_FC_MAX_SGL :
+							       n_sgl);
 	if (xport->io_pool == NULL) {
 		ocs_log_err(ocs, "Can't allocate IO pool\n");
 		goto ocs_xport_attach_cleanup;
@@ -311,12 +322,15 @@ ocs_xport_initialize_auto_xfer_ready(ocs_xport_t *xport)
 	ocs_hw_get(&ocs->hw, OCS_HW_AUTO_XFER_RDY_CAPABLE, &auto_xfer_rdy);
 	if (!auto_xfer_rdy) {
 		ocs->auto_xfer_rdy_size = 0;
-		ocs_log_test(ocs, "Cannot enable auto xfer rdy for this port\n");
+		ocs_log_test(ocs,
+		    "Cannot enable auto xfer rdy for this port\n");
 		return 0;
 	}
 
-	if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_SIZE, ocs->auto_xfer_rdy_size)) {
-		ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n", ocs->desc);
+	if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_SIZE,
+		ocs->auto_xfer_rdy_size)) {
+		ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n",
+		    ocs->desc);
 		return -1;
 	}
 
@@ -329,11 +343,12 @@ ocs_xport_initialize_auto_xfer_ready(ocs_xport_t *xport)
 	if (ocs_get_property("p_type", prop_buf, sizeof(prop_buf)) == 0) {
 		p_type = ocs_strtoul(prop_buf, 0, 0);
 	}
-	if (ocs_get_property("ramdisc_blocksize", prop_buf, sizeof(prop_buf)) == 0) {
+	if (ocs_get_property("ramdisc_blocksize", prop_buf, sizeof(prop_buf)) ==
+	    0) {
 		ramdisc_blocksize = ocs_strtoul(prop_buf, 0, 0);
 	}
 	if (ocs_get_property("external_dif", prop_buf, sizeof(prop_buf)) == 0) {
-		if(ocs_strlen(prop_buf)) {
+		if (ocs_strlen(prop_buf)) {
 			if (p_type == 0) {
 				p_type = 1;
 			}
@@ -341,29 +356,40 @@ ocs_xport_initialize_auto_xfer_ready(ocs_xport_t *xport)
 	}
 
 	if (p_type != 0) {
-		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_T10_ENABLE, TRUE)) {
-			ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n", ocs->desc);
+		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_T10_ENABLE,
+			TRUE)) {
+			ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n",
+			    ocs->desc);
 			return -1;
 		}
-		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_BLK_SIZE, ramdisc_blocksize)) {
-			ocs_log_test(ocs, "%s: Can't set auto xfer rdy blk size\n", ocs->desc);
+		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_BLK_SIZE,
+			ramdisc_blocksize)) {
+			ocs_log_test(ocs,
+			    "%s: Can't set auto xfer rdy blk size\n",
+			    ocs->desc);
 			return -1;
 		}
 		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_P_TYPE, p_type)) {
-			ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n", ocs->desc);
+			ocs_log_test(ocs, "%s: Can't set auto xfer rdy mode\n",
+			    ocs->desc);
 			return -1;
 		}
-		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA, TRUE)) {
-			ocs_log_test(ocs, "%s: Can't set auto xfer rdy ref tag\n", ocs->desc);
+		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_REF_TAG_IS_LBA,
+			TRUE)) {
+			ocs_log_test(ocs,
+			    "%s: Can't set auto xfer rdy ref tag\n", ocs->desc);
 			return -1;
 		}
-		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID, FALSE)) {
-			ocs_log_test(ocs, "%s: Can't set auto xfer rdy app tag valid\n", ocs->desc);
+		if (ocs_hw_set(&ocs->hw, OCS_HW_AUTO_XFER_RDY_APP_TAG_VALID,
+			FALSE)) {
+			ocs_log_test(ocs,
+			    "%s: Can't set auto xfer rdy app tag valid\n",
+			    ocs->desc);
 			return -1;
 		}
 	}
 	ocs_log_debug(ocs, "Auto xfer rdy is enabled, p_type=%d, blksize=%d\n",
-		p_type, ramdisc_blocksize);
+	    p_type, ramdisc_blocksize);
 	return 0;
 }
 
@@ -383,18 +409,19 @@ ocs_xport_initialize_auto_xfer_ready(ocs_xport_t *xport)
 static int
 ocs_topology_setup(ocs_t *ocs)
 {
-        uint32_t topology;
+	uint32_t topology;
 
-        if (ocs->topology == OCS_HW_TOPOLOGY_AUTO) {
-                topology = ocs_hw_get_config_persistent_topology(&ocs->hw);
-        }  else {
-                topology = ocs->topology;
-                /* ignore failure here. link will come-up either in auto mode
-                 * if PT is not supported or last saved PT value */
-                ocs_hw_set_persistent_topology(&ocs->hw, topology, OCS_CMD_POLL);
-        }
+	if (ocs->topology == OCS_HW_TOPOLOGY_AUTO) {
+		topology = ocs_hw_get_config_persistent_topology(&ocs->hw);
+	} else {
+		topology = ocs->topology;
+		/* ignore failure here. link will come-up either in auto mode
+		 * if PT is not supported or last saved PT value */
+		ocs_hw_set_persistent_topology(&ocs->hw, topology,
+		    OCS_CMD_POLL);
+	}
 
-        return ocs_hw_set(&ocs->hw, OCS_HW_TOPOLOGY, topology);
+	return ocs_hw_set(&ocs->hw, OCS_HW_TOPOLOGY, topology);
 }
 
 /**
@@ -427,7 +454,8 @@ ocs_xport_initialize(ocs_xport_t *xport)
 	uint8_t hw_initialized = FALSE;
 
 	ocs_hw_get(&ocs->hw, OCS_HW_MAX_IO, &max_hw_io);
-	if (ocs_hw_set(&ocs->hw, OCS_HW_N_IO, max_hw_io) != OCS_HW_RTN_SUCCESS) {
+	if (ocs_hw_set(&ocs->hw, OCS_HW_N_IO, max_hw_io) !=
+	    OCS_HW_RTN_SUCCESS) {
 		ocs_log_err(ocs, "%s: Can't set number of IOs\n", ocs->desc);
 		return -1;
 	}
@@ -439,11 +467,15 @@ ocs_xport_initialize(ocs_xport_t *xport)
 		ocs_hw_get(&ocs->hw, OCS_HW_HIGH_LOGIN_MODE, &hlm);
 		if (!hlm) {
 			ocs->enable_hlm = FALSE;
-			ocs_log_err(ocs, "Cannot enable high login mode for this port\n");
+			ocs_log_err(ocs,
+			    "Cannot enable high login mode for this port\n");
 		} else {
-                        ocs_log_debug(ocs, "High login mode is enabled\n");
-			if (ocs_hw_set(&ocs->hw, OCS_HW_HIGH_LOGIN_MODE, TRUE)) {
-				ocs_log_err(ocs, "%s: Can't set high login mode\n", ocs->desc);
+			ocs_log_debug(ocs, "High login mode is enabled\n");
+			if (ocs_hw_set(&ocs->hw, OCS_HW_HIGH_LOGIN_MODE,
+				TRUE)) {
+				ocs_log_err(ocs,
+				    "%s: Can't set high login mode\n",
+				    ocs->desc);
 				return -1;
 			}
 		}
@@ -452,8 +484,9 @@ ocs_xport_initialize(ocs_xport_t *xport)
 	/* validate the auto xfer_rdy size */
 	if (ocs->auto_xfer_rdy_size > 0 &&
 	    (ocs->auto_xfer_rdy_size < 2048 ||
-	     ocs->auto_xfer_rdy_size > 65536)) {
-		ocs_log_err(ocs, "Auto XFER_RDY size is out of range (2K-64K)\n");
+		ocs->auto_xfer_rdy_size > 65536)) {
+		ocs_log_err(ocs,
+		    "Auto XFER_RDY size is out of range (2K-64K)\n");
 		return -1;
 	}
 
@@ -461,10 +494,11 @@ ocs_xport_initialize(ocs_xport_t *xport)
 
 	if (ocs->auto_xfer_rdy_size > 0) {
 		if (ocs_xport_initialize_auto_xfer_ready(xport)) {
-			ocs_log_err(ocs, "%s: Failed auto xfer ready setup\n", ocs->desc);
+			ocs_log_err(ocs, "%s: Failed auto xfer ready setup\n",
+			    ocs->desc);
 			return -1;
 		}
-		if (ocs->esoc){
+		if (ocs->esoc) {
 			ocs_hw_set(&ocs->hw, OCS_ESOC, TRUE);
 		}
 	}
@@ -473,39 +507,47 @@ ocs_xport_initialize(ocs_xport_t *xport)
 		/* Are pre-registered SGL's required? */
 		ocs_hw_get(&ocs->hw, OCS_HW_PREREGISTER_SGL, &i);
 		if (i == TRUE) {
-			ocs_log_err(ocs, "Explicit Buffer List not supported on this device, not enabled\n");
+			ocs_log_err(ocs,
+			    "Explicit Buffer List not supported on this device, not enabled\n");
 		} else {
 			ocs_hw_set(&ocs->hw, OCS_HW_PREREGISTER_SGL, FALSE);
 		}
 	}
 
-	 /* Setup persistent topology based on topology mod-param value */
-        rc = ocs_topology_setup(ocs);
-        if (rc) {
-                ocs_log_err(ocs, "%s: Can't set the toplogy\n", ocs->desc);
-                return -1;
-        }
-
-	if (ocs_hw_set(&ocs->hw, OCS_HW_TOPOLOGY, ocs->topology) != OCS_HW_RTN_SUCCESS) {
+	/* Setup persistent topology based on topology mod-param value */
+	rc = ocs_topology_setup(ocs);
+	if (rc) {
 		ocs_log_err(ocs, "%s: Can't set the toplogy\n", ocs->desc);
 		return -1;
 	}
-	ocs_hw_set(&ocs->hw, OCS_HW_RQ_DEFAULT_BUFFER_SIZE, OCS_FC_RQ_SIZE_DEFAULT);
 
-	if (ocs_hw_set(&ocs->hw, OCS_HW_LINK_SPEED, ocs->speed) != OCS_HW_RTN_SUCCESS) {
+	if (ocs_hw_set(&ocs->hw, OCS_HW_TOPOLOGY, ocs->topology) !=
+	    OCS_HW_RTN_SUCCESS) {
+		ocs_log_err(ocs, "%s: Can't set the toplogy\n", ocs->desc);
+		return -1;
+	}
+	ocs_hw_set(&ocs->hw, OCS_HW_RQ_DEFAULT_BUFFER_SIZE,
+	    OCS_FC_RQ_SIZE_DEFAULT);
+
+	if (ocs_hw_set(&ocs->hw, OCS_HW_LINK_SPEED, ocs->speed) !=
+	    OCS_HW_RTN_SUCCESS) {
 		ocs_log_err(ocs, "%s: Can't set the link speed\n", ocs->desc);
 		return -1;
 	}
 
-	if (ocs_hw_set(&ocs->hw, OCS_HW_ETH_LICENSE, ocs->ethernet_license) != OCS_HW_RTN_SUCCESS) {
-		ocs_log_err(ocs, "%s: Can't set the ethernet license\n", ocs->desc);
+	if (ocs_hw_set(&ocs->hw, OCS_HW_ETH_LICENSE, ocs->ethernet_license) !=
+	    OCS_HW_RTN_SUCCESS) {
+		ocs_log_err(ocs, "%s: Can't set the ethernet license\n",
+		    ocs->desc);
 		return -1;
 	}
 
 	/* currently only lancer support setting the CRC seed value */
 	if (ocs->hw.sli.asic_type == SLI4_ASIC_TYPE_LANCER) {
-		if (ocs_hw_set(&ocs->hw, OCS_HW_DIF_SEED, OCS_FC_DIF_SEED) != OCS_HW_RTN_SUCCESS) {
-			ocs_log_err(ocs, "%s: Can't set the DIF seed\n", ocs->desc);
+		if (ocs_hw_set(&ocs->hw, OCS_HW_DIF_SEED, OCS_FC_DIF_SEED) !=
+		    OCS_HW_RTN_SUCCESS) {
+			ocs_log_err(ocs, "%s: Can't set the DIF seed\n",
+			    ocs->desc);
 			return -1;
 		}
 	}
@@ -513,34 +555,42 @@ ocs_xport_initialize(ocs_xport_t *xport)
 	/* Set the Dif mode */
 	if (0 == ocs_hw_get(&ocs->hw, OCS_HW_DIF_CAPABLE, &dif_capable)) {
 		if (dif_capable) {
-			if (ocs_get_property("dif_separate", prop_buf, sizeof(prop_buf)) == 0) {
+			if (ocs_get_property("dif_separate", prop_buf,
+				sizeof(prop_buf)) == 0) {
 				dif_separate = ocs_strtoul(prop_buf, 0, 0);
 			}
 
 			if ((rc = ocs_hw_set(&ocs->hw, OCS_HW_DIF_MODE,
-			      (dif_separate == 0 ? OCS_HW_DIF_MODE_INLINE : OCS_HW_DIF_MODE_SEPARATE)))) {
-				ocs_log_err(ocs, "Requested DIF MODE not supported\n");
+				 (dif_separate == 0 ?
+					 OCS_HW_DIF_MODE_INLINE :
+					 OCS_HW_DIF_MODE_SEPARATE)))) {
+				ocs_log_err(ocs,
+				    "Requested DIF MODE not supported\n");
 			}
 		}
 	}
 
 	if (ocs->target_io_timer_sec || ocs->enable_ini) {
 		if (ocs->target_io_timer_sec)
-			ocs_log_debug(ocs, "setting target io timer=%d\n", ocs->target_io_timer_sec);
+			ocs_log_debug(ocs, "setting target io timer=%d\n",
+			    ocs->target_io_timer_sec);
 
 		ocs_hw_set(&ocs->hw, OCS_HW_EMULATE_WQE_TIMEOUT, TRUE);
 	}
 
 	ocs_hw_callback(&ocs->hw, OCS_HW_CB_DOMAIN, ocs_domain_cb, ocs);
-	ocs_hw_callback(&ocs->hw, OCS_HW_CB_REMOTE_NODE, ocs_remote_node_cb, ocs);
-	ocs_hw_callback(&ocs->hw, OCS_HW_CB_UNSOLICITED, ocs_unsolicited_cb, ocs);
+	ocs_hw_callback(&ocs->hw, OCS_HW_CB_REMOTE_NODE, ocs_remote_node_cb,
+	    ocs);
+	ocs_hw_callback(&ocs->hw, OCS_HW_CB_UNSOLICITED, ocs_unsolicited_cb,
+	    ocs);
 	ocs_hw_callback(&ocs->hw, OCS_HW_CB_PORT, ocs_port_cb, ocs);
 
-	ocs->fw_version = (const char*) ocs_hw_get_ptr(&ocs->hw, OCS_HW_FW_REV);
+	ocs->fw_version = (const char *)ocs_hw_get_ptr(&ocs->hw, OCS_HW_FW_REV);
 
 	/* Initialize vport list */
 	ocs_list_init(&xport->vport_list, ocs_vport_spec_t, link);
-	ocs_lock_init(ocs, &xport->io_pending_lock, "io_pending_lock[%d]", ocs->instance_index);
+	ocs_lock_init(ocs, &xport->io_pending_lock, "io_pending_lock[%d]",
+	    ocs->instance_index);
 	ocs_list_init(&xport->io_pending_list, ocs_io_t, io_pending_link);
 	ocs_atomic_init(&xport->io_active_count, 0);
 	ocs_atomic_init(&xport->io_pending_count, 0);
@@ -548,7 +598,8 @@ ocs_xport_initialize(ocs_xport_t *xport)
 	ocs_atomic_init(&xport->io_total_pending, 0);
 	ocs_atomic_init(&xport->io_alloc_failed_count, 0);
 	ocs_atomic_init(&xport->io_pending_recursing, 0);
-	ocs_lock_init(ocs, &ocs->hw.watchdog_lock, " Watchdog Lock[%d]", ocs_instance(ocs));
+	ocs_lock_init(ocs, &ocs->hw.watchdog_lock, " Watchdog Lock[%d]",
+	    ocs_instance(ocs));
 	rc = ocs_hw_init(&ocs->hw);
 	if (rc) {
 		ocs_log_err(ocs, "ocs_hw_init failure\n");
@@ -557,9 +608,11 @@ ocs_xport_initialize(ocs_xport_t *xport)
 		hw_initialized = TRUE;
 	}
 
-	rq_limit = max_hw_io/2;
-	if (ocs_hw_set(&ocs->hw, OCS_HW_RQ_PROCESS_LIMIT, rq_limit) != OCS_HW_RTN_SUCCESS) {
-		ocs_log_err(ocs, "%s: Can't set the RQ process limit\n", ocs->desc);
+	rq_limit = max_hw_io / 2;
+	if (ocs_hw_set(&ocs->hw, OCS_HW_RQ_PROCESS_LIMIT, rq_limit) !=
+	    OCS_HW_RTN_SUCCESS) {
+		ocs_log_err(ocs, "%s: Can't set the RQ process limit\n",
+		    ocs->desc);
 	}
 
 	if (ocs->config_tgt) {
@@ -588,12 +641,17 @@ ocs_xport_initialize(ocs_xport_t *xport)
 		ocs_hw_get(&ocs->hw, OCS_HW_MAX_VPORTS, &max_vports);
 
 		if (ocs->num_vports < max_vports) {
-			ocs_log_debug(ocs, "Provisioning %d vports\n", ocs->num_vports);
+			ocs_log_debug(ocs, "Provisioning %d vports\n",
+			    ocs->num_vports);
 			for (i = 0; i < ocs->num_vports; i++) {
-				ocs_vport_create_spec(ocs, 0, 0, UINT32_MAX, ocs->enable_ini, ocs->enable_tgt, NULL, NULL);
+				ocs_vport_create_spec(ocs, 0, 0, UINT32_MAX,
+				    ocs->enable_ini, ocs->enable_tgt, NULL,
+				    NULL);
 			}
 		} else {
-			ocs_log_err(ocs, "failed to create vports. num_vports range should be (1-%d) \n", max_vports-1);
+			ocs_log_err(ocs,
+			    "failed to create vports. num_vports range should be (1-%d) \n",
+			    max_vports - 1);
 			goto ocs_xport_init_cleanup;
 		}
 	}
@@ -677,10 +735,10 @@ ocs_xport_domain_list_empty_cb(ocs_t *ocs, void *arg)
  * @brief post node event callback
  *
  * @par Description
- * This function is called from the mailbox completion interrupt context to post an
- * event to a node object. By doing this in the interrupt context, it has
- * the benefit of only posting events in the interrupt context, deferring the need to
- * create a per event node lock.
+ * This function is called from the mailbox completion interrupt context to post
+ * an event to a node object. By doing this in the interrupt context, it has the
+ * benefit of only posting events in the interrupt context, deferring the need
+ * to create a per event node lock.
  *
  * @param hw Pointer to HW structure.
  * @param status Completion status for mailbox command.
@@ -691,16 +749,18 @@ ocs_xport_domain_list_empty_cb(ocs_t *ocs, void *arg)
  */
 
 static int32_t
-ocs_xport_post_node_event_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe, void *arg)
+ocs_xport_post_node_event_cb(ocs_hw_t *hw, int32_t status, uint8_t *mqe,
+    void *arg)
 {
 	ocs_xport_post_node_event_t *payload = arg;
 
 	if (payload != NULL) {
-		ocs_node_post_event(payload->node, payload->evt, payload->context);
+		ocs_node_post_event(payload->node, payload->evt,
+		    payload->context);
 		ocs_sem_v(&payload->sem);
 	}
 
-        return 0;
+	return 0;
 }
 
 /**
@@ -723,9 +783,10 @@ ocs_xport_force_free(ocs_xport_t *xport)
 
 	ocs_log_debug(ocs, "reset required, do force shutdown\n");
 	ocs_device_lock(ocs);
-		ocs_list_foreach_safe(&ocs->domain_list, domain, next) {
-			ocs_domain_force_free(domain);
-		}
+	ocs_list_foreach_safe(&ocs->domain_list, domain, next)
+	{
+		ocs_domain_force_free(domain);
+	}
 	ocs_device_unlock(ocs);
 }
 
@@ -742,7 +803,8 @@ ocs_xport_force_free(ocs_xport_t *xport)
  * ocs_xport_control(ocs_xport_t *xport, OCS_XPORT_PORT_ONLINE)
  * ocs_xport_control(ocs_xport_t *xport, OCS_XPORT_PORT_OFFLINE)
  * ocs_xport_control(ocs_xport_t *xport, OCS_XPORT_PORT_SHUTDOWN)
- * ocs_xport_control(ocs_xport_t *xport, OCS_XPORT_POST_NODE_EVENT, ocs_node_t *node, ocs_sm_event_t, void *context)
+ * ocs_xport_control(ocs_xport_t *xport, OCS_XPORT_POST_NODE_EVENT, ocs_node_t
+ * *node, ocs_sm_event_t, void *context)
  *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
@@ -761,7 +823,8 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 	switch (cmd) {
 	case OCS_XPORT_PORT_ONLINE: {
 		/* Bring the port on-line */
-		rc = ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_INIT, 0, NULL, NULL);
+		rc = ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_INIT, 0, NULL,
+		    NULL);
 		if (rc) {
 			ocs_log_err(ocs, "%s: Can't init port\n", ocs->desc);
 		} else {
@@ -770,7 +833,8 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		break;
 	}
 	case OCS_XPORT_PORT_OFFLINE: {
-		if (ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_SHUTDOWN, 0, NULL, NULL)) {
+		if (ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_SHUTDOWN, 0, NULL,
+			NULL)) {
 			ocs_log_err(ocs, "port shutdown failed\n");
 		} else {
 			xport->configured_link_state = cmd;
@@ -783,30 +847,40 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		uint32_t reset_required;
 
 		/* if a PHYSDEV reset was performed (e.g. hw dump), will affect
-		 * all PCI functions; orderly shutdown won't work, just force free
+		 * all PCI functions; orderly shutdown won't work, just force
+		 * free
 		 */
 		/* TODO: need to poll this regularly... */
-		if (ocs_hw_get(&ocs->hw, OCS_HW_RESET_REQUIRED, &reset_required) != OCS_HW_RTN_SUCCESS) {
+		if (ocs_hw_get(&ocs->hw, OCS_HW_RESET_REQUIRED,
+			&reset_required) != OCS_HW_RTN_SUCCESS) {
 			reset_required = 0;
 		}
 
 		if (reset_required) {
-			ocs_log_debug(ocs, "reset required, do force shutdown\n");
+			ocs_log_debug(ocs,
+			    "reset required, do force shutdown\n");
 			ocs_xport_force_free(xport);
 			break;
 		}
 		ocs_sem_init(&sem, 0, "domain_list_sem");
-		ocs_register_domain_list_empty_cb(ocs, ocs_xport_domain_list_empty_cb, &sem);
+		ocs_register_domain_list_empty_cb(ocs,
+		    ocs_xport_domain_list_empty_cb, &sem);
 
-		if (ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_SHUTDOWN, 0, NULL, NULL)) {
-			ocs_log_debug(ocs, "port shutdown failed, do force shutdown\n");
+		if (ocs_hw_port_control(&ocs->hw, OCS_HW_PORT_SHUTDOWN, 0, NULL,
+			NULL)) {
+			ocs_log_debug(ocs,
+			    "port shutdown failed, do force shutdown\n");
 			ocs_xport_force_free(xport);
 		} else {
-			ocs_log_debug(ocs, "Waiting %d seconds for domain shutdown.\n", (OCS_FC_DOMAIN_SHUTDOWN_TIMEOUT_USEC/1000000));
+			ocs_log_debug(ocs,
+			    "Waiting %d seconds for domain shutdown.\n",
+			    (OCS_FC_DOMAIN_SHUTDOWN_TIMEOUT_USEC / 1000000));
 
-			rc = ocs_sem_p(&sem, OCS_FC_DOMAIN_SHUTDOWN_TIMEOUT_USEC);
+			rc = ocs_sem_p(&sem,
+			    OCS_FC_DOMAIN_SHUTDOWN_TIMEOUT_USEC);
 			if (rc) {
-				ocs_log_debug(ocs, "Note: Domain shutdown timed out\n");
+				ocs_log_debug(ocs,
+				    "Note: Domain shutdown timed out\n");
 				ocs_xport_force_free(xport);
 			}
 		}
@@ -821,13 +895,14 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 	/*
 	 * POST_NODE_EVENT:  post an event to a node object
 	 *
-	 * This transport function is used to post an event to a node object. It does
-	 * this by submitting a NOP mailbox command to defer execution to the
-	 * interrupt context (thereby enforcing the serialized execution of event posting
-	 * to the node state machine instances)
+	 * This transport function is used to post an event to a node object. It
+	 * does this by submitting a NOP mailbox command to defer execution to
+	 * the interrupt context (thereby enforcing the serialized execution of
+	 * event posting to the node state machine instances)
 	 *
-	 * A counting semaphore is used to make the call synchronous (we wait until
-	 * the callback increments the semaphore before returning (or times out)
+	 * A counting semaphore is used to make the call synchronous (we wait
+	 * until the callback increments the semaphore before returning (or
+	 * times out)
 	 */
 	case OCS_XPORT_POST_NODE_EVENT: {
 		ocs_node_t *node;
@@ -839,7 +914,7 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 
 		/* Retrieve arguments */
 		va_start(argp, cmd);
-		node = va_arg(argp, ocs_node_t*);
+		node = va_arg(argp, ocs_node_t *);
 		evt = va_arg(argp, ocs_sm_event_t);
 		context = va_arg(argp, void *);
 		va_end(argp);
@@ -850,9 +925,11 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		ocs = node->ocs;
 		hw = &ocs->hw;
 
-		/* if node's state machine is disabled, don't bother continuing */
+		/* if node's state machine is disabled, don't bother continuing
+		 */
 		if (!node->sm.current_state) {
-			ocs_log_test(ocs, "node %p state machine disabled\n", node);
+			ocs_log_test(ocs, "node %p state machine disabled\n",
+			    node);
 			return -1;
 		}
 
@@ -863,7 +940,8 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		payload.evt = evt;
 		payload.context = context;
 
-		if (ocs_hw_async_call(hw, ocs_xport_post_node_event_cb, &payload)) {
+		if (ocs_hw_async_call(hw, ocs_xport_post_node_event_cb,
+			&payload)) {
 			ocs_log_test(ocs, "ocs_hw_async_call failed\n");
 			rc = -1;
 			break;
@@ -878,7 +956,8 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		break;
 	}
 	/*
-	 * Set wwnn for the port.  This will be used instead of the default provided by FW.
+	 * Set wwnn for the port.  This will be used instead of the default
+	 * provided by FW.
 	 */
 	case OCS_XPORT_WWNN_SET: {
 		uint64_t wwnn;
@@ -894,7 +973,8 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
 		break;
 	}
 	/*
-	 * Set wwpn for the port.  This will be used instead of the default provided by FW.
+	 * Set wwpn for the port.  This will be used instead of the default
+	 * provided by FW.
 	 */
 	case OCS_XPORT_WWPN_SET: {
 		uint64_t wwpn;
@@ -927,22 +1007,22 @@ ocs_xport_control(ocs_xport_t *xport, ocs_xport_ctrl_e cmd, ...)
  * @param result Pointer to result value.
  *
  * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_PORT_STATUS)
- * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_SPEED, ocs_xport_stats_t *result)
- *	return link speed in MB/sec
- * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_IS_SUPPORTED_LINK_SPEED, ocs_xport_stats_t *result)
- *	[in] *result is speed to check in MB/s
- *	returns 1 if supported, 0 if not
- * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_STATISTICS, ocs_xport_stats_t *result)
- *	return link/host port stats
- * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_STAT_RESET, ocs_xport_stats_t *result)
- *	resets link/host stats
+ * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_SPEED, ocs_xport_stats_t
+ **result) return link speed in MB/sec ocs_xport_status(ocs_xport_t *xport,
+ *OCS_XPORT_IS_SUPPORTED_LINK_SPEED, ocs_xport_stats_t *result) [in] *result is
+ *speed to check in MB/s returns 1 if supported, 0 if not
+ * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_STATISTICS,
+ *ocs_xport_stats_t *result) return link/host port stats
+ * ocs_xport_status(ocs_xport_t *xport, OCS_XPORT_LINK_STAT_RESET,
+ *ocs_xport_stats_t *result) resets link/host stats
  *
  *
  * @return Returns 0 on success, or a negative error code value on failure.
  */
 
 int32_t
-ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *result)
+ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd,
+    ocs_xport_stats_t *result)
 {
 	uint32_t rc = 0;
 	ocs_t *ocs = NULL;
@@ -958,8 +1038,9 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 	case OCS_XPORT_CONFIG_PORT_STATUS:
 		ocs_assert(result, -1);
 		if (xport->configured_link_state == 0) {
-			/* Initial state is offline. configured_link_state is    */
-			/* set to online explicitly when port is brought online. */
+			/* Initial state is offline. configured_link_state is */
+			/* set to online explicitly when port is brought online.
+			 */
 			xport->configured_link_state = OCS_XPORT_PORT_OFFLINE;
 		}
 		result->value = xport->configured_link_state;
@@ -1001,26 +1082,51 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 		ocs_assert(result, -1);
 		speed = result->value;
 
-		rc = ocs_hw_get(&ocs->hw, OCS_HW_LINK_MODULE_TYPE, &link_module_type);
+		rc = ocs_hw_get(&ocs->hw, OCS_HW_LINK_MODULE_TYPE,
+		    &link_module_type);
 		if (rc == 0) {
-			switch(speed) {
-			case 1000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_1GB) != 0; break;
-			case 2000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_2GB) != 0; break;
-			case 4000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_4GB) != 0; break;
-			case 8000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_8GB) != 0; break;
-			case 10000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_10GB) != 0; break;
-			case 16000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_16GB) != 0; break;
-			case 32000:	rc = (link_module_type & OCS_HW_LINK_MODULE_TYPE_32GB) != 0; break;
-			default:	rc = 0; break;
+			switch (speed) {
+			case 1000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_1GB) != 0;
+				break;
+			case 2000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_2GB) != 0;
+				break;
+			case 4000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_4GB) != 0;
+				break;
+			case 8000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_8GB) != 0;
+				break;
+			case 10000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_10GB) != 0;
+				break;
+			case 16000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_16GB) != 0;
+				break;
+			case 32000:
+				rc = (link_module_type &
+					 OCS_HW_LINK_MODULE_TYPE_32GB) != 0;
+				break;
+			default:
+				rc = 0;
+				break;
 			}
 		} else {
 			rc = 0;
 		}
 		break;
 	}
-	case OCS_XPORT_LINK_STATISTICS: 
+	case OCS_XPORT_LINK_STATISTICS:
 		ocs_device_lock(ocs);
-			ocs_memcpy((void *)result, &ocs->xport->fc_xport_stats, sizeof(ocs_xport_stats_t));
+		ocs_memcpy((void *)result, &ocs->xport->fc_xport_stats,
+		    sizeof(ocs_xport_stats_t));
 		ocs_device_unlock(ocs);
 		break;
 	case OCS_XPORT_LINK_STAT_RESET: {
@@ -1028,14 +1134,19 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 		ocs_sem_init(&(result->stats.semaphore), 0, "fc_stats_reset");
 
 		/* First reset the link stats */
-		if ((rc = ocs_hw_get_link_stats(&ocs->hw, 0, 1, 1, ocs_xport_link_stats_cb, result)) != 0) {
-			ocs_log_err(ocs, "%s: Failed to reset link statistics\n", __func__);
+		if ((rc = ocs_hw_get_link_stats(&ocs->hw, 0, 1, 1,
+			 ocs_xport_link_stats_cb, result)) != 0) {
+			ocs_log_err(ocs,
+			    "%s: Failed to reset link statistics\n", __func__);
 			break;
 		}
 
-		/* Wait for semaphore to be signaled when the command completes */
-		/* TODO:  Should there be a timeout on this?  If so, how long? */
-		if (ocs_sem_p(&(result->stats.semaphore), OCS_SEM_FOREVER) != 0) {
+		/* Wait for semaphore to be signaled when the command completes
+		 */
+		/* TODO:  Should there be a timeout on this?  If so, how long?
+		 */
+		if (ocs_sem_p(&(result->stats.semaphore), OCS_SEM_FOREVER) !=
+		    0) {
 			/* Undefined failure */
 			ocs_log_test(ocs, "ocs_sem_p failed\n");
 			rc = -ENXIO;
@@ -1043,13 +1154,17 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 		}
 
 		/* Next reset the host stats */
-		if ((rc = ocs_hw_get_host_stats(&ocs->hw, 1,  ocs_xport_host_stats_cb, result)) != 0) {
-			ocs_log_err(ocs, "%s: Failed to reset host statistics\n", __func__);
+		if ((rc = ocs_hw_get_host_stats(&ocs->hw, 1,
+			 ocs_xport_host_stats_cb, result)) != 0) {
+			ocs_log_err(ocs,
+			    "%s: Failed to reset host statistics\n", __func__);
 			break;
 		}
 
-		/* Wait for semaphore to be signaled when the command completes */
-		if (ocs_sem_p(&(result->stats.semaphore), OCS_SEM_FOREVER) != 0) {
+		/* Wait for semaphore to be signaled when the command completes
+		 */
+		if (ocs_sem_p(&(result->stats.semaphore), OCS_SEM_FOREVER) !=
+		    0) {
 			/* Undefined failure */
 			ocs_log_test(ocs, "ocs_sem_p failed\n");
 			rc = -ENXIO;
@@ -1059,7 +1174,7 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 	}
 	case OCS_XPORT_IS_QUIESCED:
 		ocs_device_lock(ocs);
-			result->value = ocs_list_empty(&ocs->domain_list);
+		result->value = ocs_list_empty(&ocs->domain_list);
 		ocs_device_unlock(ocs);
 		break;
 	default:
@@ -1068,34 +1183,44 @@ ocs_xport_status(ocs_xport_t *xport, ocs_xport_status_e cmd, ocs_xport_stats_t *
 	}
 
 	return rc;
-
 }
 
 static void
-ocs_xport_link_stats_cb(int32_t status, uint32_t num_counters, ocs_hw_link_stat_counts_t *counters, void *arg)
+ocs_xport_link_stats_cb(int32_t status, uint32_t num_counters,
+    ocs_hw_link_stat_counts_t *counters, void *arg)
 {
-        ocs_xport_stats_t *result = arg;
+	ocs_xport_stats_t *result = arg;
 
-        result->stats.link_stats.link_failure_error_count = counters[OCS_HW_LINK_STAT_LINK_FAILURE_COUNT].counter;
-        result->stats.link_stats.loss_of_sync_error_count = counters[OCS_HW_LINK_STAT_LOSS_OF_SYNC_COUNT].counter;
-        result->stats.link_stats.primitive_sequence_error_count = counters[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_COUNT].counter;
-        result->stats.link_stats.invalid_transmission_word_error_count = counters[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].counter;
-        result->stats.link_stats.crc_error_count = counters[OCS_HW_LINK_STAT_CRC_COUNT].counter;
+	result->stats.link_stats.link_failure_error_count =
+	    counters[OCS_HW_LINK_STAT_LINK_FAILURE_COUNT].counter;
+	result->stats.link_stats.loss_of_sync_error_count =
+	    counters[OCS_HW_LINK_STAT_LOSS_OF_SYNC_COUNT].counter;
+	result->stats.link_stats.primitive_sequence_error_count =
+	    counters[OCS_HW_LINK_STAT_PRIMITIVE_SEQ_COUNT].counter;
+	result->stats.link_stats.invalid_transmission_word_error_count =
+	    counters[OCS_HW_LINK_STAT_INVALID_XMIT_WORD_COUNT].counter;
+	result->stats.link_stats.crc_error_count =
+	    counters[OCS_HW_LINK_STAT_CRC_COUNT].counter;
 
-        ocs_sem_v(&(result->stats.semaphore));
+	ocs_sem_v(&(result->stats.semaphore));
 }
 
 static void
-ocs_xport_host_stats_cb(int32_t status, uint32_t num_counters, ocs_hw_host_stat_counts_t *counters, void *arg)
+ocs_xport_host_stats_cb(int32_t status, uint32_t num_counters,
+    ocs_hw_host_stat_counts_t *counters, void *arg)
 {
-        ocs_xport_stats_t *result = arg;
+	ocs_xport_stats_t *result = arg;
 
-        result->stats.host_stats.transmit_kbyte_count = counters[OCS_HW_HOST_STAT_TX_KBYTE_COUNT].counter;
-        result->stats.host_stats.receive_kbyte_count = counters[OCS_HW_HOST_STAT_RX_KBYTE_COUNT].counter;
-        result->stats.host_stats.transmit_frame_count = counters[OCS_HW_HOST_STAT_TX_FRAME_COUNT].counter;
-        result->stats.host_stats.receive_frame_count = counters[OCS_HW_HOST_STAT_RX_FRAME_COUNT].counter;
+	result->stats.host_stats.transmit_kbyte_count =
+	    counters[OCS_HW_HOST_STAT_TX_KBYTE_COUNT].counter;
+	result->stats.host_stats.receive_kbyte_count =
+	    counters[OCS_HW_HOST_STAT_RX_KBYTE_COUNT].counter;
+	result->stats.host_stats.transmit_frame_count =
+	    counters[OCS_HW_HOST_STAT_TX_FRAME_COUNT].counter;
+	result->stats.host_stats.receive_frame_count =
+	    counters[OCS_HW_HOST_STAT_RX_FRAME_COUNT].counter;
 
-        ocs_sem_v(&(result->stats.semaphore));
+	ocs_sem_v(&(result->stats.semaphore));
 }
 
 /**
@@ -1119,7 +1244,7 @@ ocs_xport_free(ocs_xport_t *xport)
 		ocs = xport->ocs;
 		ocs_io_pool_free(xport->io_pool);
 		ocs_node_free_pool(ocs);
-		if(mtx_initialized(&xport->io_pending_lock.lock))
+		if (mtx_initialized(&xport->io_pending_lock.lock))
 			ocs_lock_free(&xport->io_pending_lock);
 
 		for (i = 0; i < SLI4_MAX_FCFI; i++) {

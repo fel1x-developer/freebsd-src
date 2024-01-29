@@ -30,19 +30,20 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/wait.h>
+
+#include <arpa/inet.h>
 #include <err.h>
 #include <pwd.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/rwall.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <arpa/inet.h>
-#include <rpc/rpc.h>
-#include <rpcsvc/rwall.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #ifdef OSF
@@ -80,24 +81,24 @@ main(int argc, char *argv[])
 			setuid(getuid());
 	}
 
-        /*
-         * See if inetd started us
-         */
+	/*
+	 * See if inetd started us
+	 */
 	salen = sizeof(sa);
-        if (getsockname(0, (struct sockaddr *)&sa, &salen) < 0) {
-                from_inetd = 0;
-        }
+	if (getsockname(0, (struct sockaddr *)&sa, &salen) < 0) {
+		from_inetd = 0;
+	}
 
-        if (!from_inetd) {
-                if (!nodaemon)
-                        possess();
+	if (!from_inetd) {
+		if (!nodaemon)
+			possess();
 
 		(void)rpcb_unset(WALLPROG, WALLVERS, NULL);
-        }
+	}
 
 	(void)signal(SIGCHLD, killkids);
 
-	openlog("rpc.rwalld", LOG_CONS|LOG_PID, LOG_DAEMON);
+	openlog("rpc.rwalld", LOG_CONS | LOG_PID, LOG_DAEMON);
 
 	/* create and register the service */
 	if (from_inetd) {
@@ -106,13 +107,12 @@ main(int argc, char *argv[])
 			syslog(LOG_ERR, "couldn't create udp service.");
 			exit(1);
 		}
-		ok = svc_reg(transp, WALLPROG, WALLVERS,
-			     wallprog_1, NULL);
+		ok = svc_reg(transp, WALLPROG, WALLVERS, wallprog_1, NULL);
 	} else
-		ok = svc_create(wallprog_1,
-				WALLPROG, WALLVERS, "udp");
+		ok = svc_create(wallprog_1, WALLPROG, WALLVERS, "udp");
 	if (!ok) {
-		syslog(LOG_ERR, "unable to register (WALLPROG, WALLVERS, %s)", (!from_inetd)?"udp":"(inetd)");
+		syslog(LOG_ERR, "unable to register (WALLPROG, WALLVERS, %s)",
+		    (!from_inetd) ? "udp" : "(inetd)");
 		exit(1);
 	}
 	svc_run();
@@ -136,14 +136,14 @@ possess(void)
 void
 killkids(int sig __unused)
 {
-	while(wait4(-1, NULL, WNOHANG, NULL) > 0)
+	while (wait4(-1, NULL, WNOHANG, NULL) > 0)
 		;
 }
 
 void *
 wallproc_wall_1_svc(wrapstring *s, struct svc_req *rqstp __unused)
 {
-	static void		*dummy = NULL;
+	static void *dummy = NULL;
 
 	/* fork, popen wall with special option, and send the message */
 	if (fork() == 0) {
@@ -156,7 +156,7 @@ wallproc_wall_1_svc(wrapstring *s, struct svc_req *rqstp __unused)
 			exit(0);
 		}
 	}
-	return(&dummy);
+	return (&dummy);
 }
 
 void
@@ -191,8 +191,7 @@ wallprog_1(struct svc_req *rqstp, SVCXPRT *transp)
 		goto leave;
 	}
 	result = (*local)(&argument, rqstp);
-	if (result != NULL &&
-	    !svc_sendreply(transp, xdr_result, result)) {
+	if (result != NULL && !svc_sendreply(transp, xdr_result, result)) {
 		svcerr_systemerr(transp);
 	}
 	if (!svc_freeargs(transp, xdr_argument, &argument)) {
@@ -200,6 +199,6 @@ wallprog_1(struct svc_req *rqstp, SVCXPRT *transp)
 		exit(1);
 	}
 leave:
-        if (from_inetd)
-                exit(0);
+	if (from_inetd)
+		exit(0);
 }

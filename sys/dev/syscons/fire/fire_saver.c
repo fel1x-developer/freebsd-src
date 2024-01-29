@@ -28,41 +28,42 @@
 
 /*
  * brad forschinger, 19990504 <retch@flag.blackened.net>
- * 
+ *
  * written with much help from warp_saver.c
- * 
+ *
  */
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/consio.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/syslog.h>
-#include <sys/consio.h>
-#include <sys/malloc.h>
-#include <sys/fbio.h>
 
 #include <dev/fb/fbreg.h>
 #include <dev/fb/splashreg.h>
 #include <dev/syscons/syscons.h>
 
-#define SAVER_NAME	 "fire_saver"
+#define SAVER_NAME "fire_saver"
 
-#define RED(n)		 ((n) * 3 + 0)
-#define GREEN(n)	 ((n) * 3 + 1)
-#define BLUE(n)		 ((n) * 3 + 2)
+#define RED(n) ((n) * 3 + 0)
+#define GREEN(n) ((n) * 3 + 1)
+#define BLUE(n) ((n) * 3 + 2)
 
-#define SET_ORIGIN(adp, o) do {				\
-	int oo = o;					\
-	if (oo != last_origin)				\
-	    vidd_set_win_org(adp, last_origin = oo);	\
+#define SET_ORIGIN(adp, o)                                       \
+	do {                                                     \
+		int oo = o;                                      \
+		if (oo != last_origin)                           \
+			vidd_set_win_org(adp, last_origin = oo); \
 	} while (0)
 
-static u_char		*buf;
-static u_char		*vid;
-static int		 banksize, scrmode, bpsl, scrw, scrh;
-static u_char		 fire_pal[768];
-static int		 blanked;
+static u_char *buf;
+static u_char *vid;
+static int banksize, scrmode, bpsl, scrw, scrh;
+static u_char fire_pal[768];
+static int blanked;
 
 static void
 fire_update(video_adapter_t *adp)
@@ -80,9 +81,10 @@ fire_update(video_adapter_t *adp)
 		for (x = 0; x < scrw; x++) {
 			buf[x + (y * scrw)] =
 			    (buf[(x + 0) + ((y + 0) * scrw)] +
-			     buf[(x - 1) + ((y + 1) * scrw)] +
-			     buf[(x + 0) + ((y + 1) * scrw)] +
-			     buf[(x + 1) + ((y + 1) * scrw)]) / 4;
+				buf[(x - 1) + ((y + 1) * scrw)] +
+				buf[(x + 0) + ((y + 1) * scrw)] +
+				buf[(x + 1) + ((y + 1) * scrw)]) /
+			    4;
 			if (buf[x + (y * scrw)] > 0)
 				buf[x + (y * scrw)]--;
 		}
@@ -101,12 +103,11 @@ fire_update(video_adapter_t *adp)
 			bcopy(buf + y * scrw, vid + p, banksize - p);
 			SET_ORIGIN(adp, o + banksize);
 			bcopy(buf + y * scrw + (banksize - p), vid,
-			      scrw - (banksize - p));
+			    scrw - (banksize - p));
 			p -= banksize;
 			o += banksize;
 		}
 	}
-
 }
 
 static int
@@ -116,7 +117,7 @@ fire_saver(video_adapter_t *adp, int blank)
 
 	if (blank) {
 		/* switch to graphics mode */
-      		if (blanked <= 0) {
+		if (blanked <= 0) {
 			pl = splhigh();
 			vidd_set_mode(adp, scrmode);
 			vidd_load_palette(adp, fire_pal);
@@ -132,7 +133,7 @@ fire_saver(video_adapter_t *adp, int blank)
 		blanked = 0;
 	}
 
-    return 0;
+	return 0;
 }
 
 static int
@@ -149,7 +150,7 @@ fire_init(video_adapter_t *adp)
 		    SAVER_NAME);
 		return (ENODEV);
 	}
-    
+
 	scrw = info.vi_width;
 	scrh = info.vi_height;
 
@@ -157,8 +158,7 @@ fire_init(video_adapter_t *adp)
 	if (buf) {
 		bzero(buf, scrw * (scrh + 1));
 	} else {
-		log(LOG_NOTICE,
-		    "%s: buffer allocation is failed\n",
+		log(LOG_NOTICE, "%s: buffer allocation is failed\n",
 		    SAVER_NAME);
 		return (ENODEV);
 	}
@@ -184,12 +184,7 @@ fire_term(video_adapter_t *adp)
 	return (0);
 }
 
-static scrn_saver_t fire_module = {
-	SAVER_NAME,
-	fire_init,
-	fire_term,
-	fire_saver,
-	NULL
-};
+static scrn_saver_t fire_module = { SAVER_NAME, fire_init, fire_term,
+	fire_saver, NULL };
 
 SAVER_MODULE(fire_saver, fire_module);

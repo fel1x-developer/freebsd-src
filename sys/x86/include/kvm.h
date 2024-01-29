@@ -37,32 +37,31 @@
  */
 
 #ifndef _X86_KVM_H_
-#define	_X86_KVM_H_
+#define _X86_KVM_H_
 
 #include <sys/types.h>
 #include <sys/systm.h>
 
 #include <machine/md_var.h>
 
-#define	KVM_CPUID_SIGNATURE			0x40000000
-#define	KVM_CPUID_FEATURES_LEAF			0x40000001
+#define KVM_CPUID_SIGNATURE 0x40000000
+#define KVM_CPUID_FEATURES_LEAF 0x40000001
 
-#define	KVM_FEATURE_CLOCKSOURCE			0x00000001
-#define	KVM_FEATURE_CLOCKSOURCE2		0x00000008
-#define	KVM_FEATURE_CLOCKSOURCE_STABLE_BIT	0x01000000
+#define KVM_FEATURE_CLOCKSOURCE 0x00000001
+#define KVM_FEATURE_CLOCKSOURCE2 0x00000008
+#define KVM_FEATURE_CLOCKSOURCE_STABLE_BIT 0x01000000
 
 /* Deprecated: for the CLOCKSOURCE feature. */
-#define	KVM_MSR_WALL_CLOCK			0x11
-#define	KVM_MSR_SYSTEM_TIME			0x12
+#define KVM_MSR_WALL_CLOCK 0x11
+#define KVM_MSR_SYSTEM_TIME 0x12
 
-#define	KVM_MSR_WALL_CLOCK_NEW			0x4b564d00
-#define	KVM_MSR_SYSTEM_TIME_NEW			0x4b564d01
+#define KVM_MSR_WALL_CLOCK_NEW 0x4b564d00
+#define KVM_MSR_SYSTEM_TIME_NEW 0x4b564d01
 
 static inline bool
 kvm_cpuid_features_leaf_supported(void)
 {
-	return (vm_guest == VM_GUEST_KVM &&
-	    KVM_CPUID_FEATURES_LEAF > hv_base &&
+	return (vm_guest == VM_GUEST_KVM && KVM_CPUID_FEATURES_LEAF > hv_base &&
 	    KVM_CPUID_FEATURES_LEAF <= hv_high);
 }
 

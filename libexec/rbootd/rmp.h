@@ -47,33 +47,36 @@
  *  MCLBYTES is for bpfwrite(); it is adamant about using a cluster.
  */
 
-#define	RMP_MAX_PACKET	MIN(1514,MCLBYTES)
-#define	RMP_MIN_PACKET	60
+#define RMP_MAX_PACKET MIN(1514, MCLBYTES)
+#define RMP_MIN_PACKET 60
 
 /*
  *  Define RMP/Ethernet Multicast address (9:0:9:0:0:4) and its length.
  */
-#define	RMP_ADDR	{ 0x9, 0x0, 0x9, 0x0, 0x0, 0x4 }
-#define	RMP_ADDRLEN	6
+#define RMP_ADDR                             \
+	{                                    \
+		0x9, 0x0, 0x9, 0x0, 0x0, 0x4 \
+	}
+#define RMP_ADDRLEN 6
 
 /*
  *  Define IEEE802.2 (Logical Link Control) information.
  */
-#define	IEEE_DSAP_HP	0xF8	/* Destination Service Access Point */
-#define	IEEE_SSAP_HP	0xF8	/* Source Service Access Point */
-#define	IEEE_CNTL_HP	0x0300	/* Type 1 / I format control information */
+#define IEEE_DSAP_HP 0xF8   /* Destination Service Access Point */
+#define IEEE_SSAP_HP 0xF8   /* Source Service Access Point */
+#define IEEE_CNTL_HP 0x0300 /* Type 1 / I format control information */
 
-#define	HPEXT_DXSAP	0x608	/* HP Destination Service Access Point */
-#define	HPEXT_SXSAP	0x609	/* HP Source Service Access Point */
+#define HPEXT_DXSAP 0x608 /* HP Destination Service Access Point */
+#define HPEXT_SXSAP 0x609 /* HP Source Service Access Point */
 
 /*
  *  802.3-style "Ethernet" header.
  */
 
 struct hp_hdr {
-	u_int8_t	daddr[RMP_ADDRLEN];
-	u_int8_t	saddr[RMP_ADDRLEN];
-	u_int16_t	len;
+	u_int8_t daddr[RMP_ADDRLEN];
+	u_int8_t saddr[RMP_ADDRLEN];
+	u_int16_t len;
 };
 
 /*
@@ -82,10 +85,10 @@ struct hp_hdr {
  */
 
 struct hp_llc {
-	u_int8_t	dsap;		/* 802.2 DSAP */
-	u_int8_t	ssap;		/* 802.2 SSAP */
-	u_int16_t	cntrl;		/* 802.2 control field */
-	u_int16_t	filler;		/* HP filler (must be zero) */
-	u_int16_t	dxsap;		/* HP extended DSAP */
-	u_int16_t	sxsap;		/* HP extended SSAP */
+	u_int8_t dsap;	  /* 802.2 DSAP */
+	u_int8_t ssap;	  /* 802.2 SSAP */
+	u_int16_t cntrl;  /* 802.2 control field */
+	u_int16_t filler; /* HP filler (must be zero) */
+	u_int16_t dxsap;  /* HP extended DSAP */
+	u_int16_t sxsap;  /* HP extended SSAP */
 };

@@ -27,7 +27,9 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+
 #include <dev/mlx5/mlx5io.h>
+
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -166,8 +168,8 @@ mlx5tool_fw_update(int ctldev, const struct mlx5_tool_addr *addr,
 	}
 	memset(&fwup, 0, sizeof(fwup));
 	memcpy(&fwup.devaddr, addr, sizeof(fwup.devaddr));
-	fwup.img_fw_data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE,
-	    fd, 0);
+	fwup.img_fw_data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd,
+	    0);
 	if (fwup.img_fw_data == MAP_FAILED) {
 		warn("Unable to mmap %s", img_fw_path);
 		res = 1;
@@ -197,8 +199,8 @@ mlx5tool_fw_reset(int ctldev, const struct mlx5_tool_addr *addr)
 	return (0);
 }
 
-#define	MLX5_EEPROM_HIGH_PAGE_OFFSET		128
-#define	MLX5_EEPROM_PAGE_LENGTH			256
+#define MLX5_EEPROM_HIGH_PAGE_OFFSET 128
+#define MLX5_EEPROM_PAGE_LENGTH 256
 
 static void
 mlx5tool_eeprom_print(struct mlx5_eeprom_get *eeprom_info)
@@ -214,10 +216,10 @@ mlx5tool_eeprom_print(struct mlx5_eeprom_get *eeprom_info)
 	while (byte_to_write < eeprom_info->eeprom_info_out_len) {
 		printf("\n0x%04zX\t\t", byte_to_write);
 		for (index_in_row = 0; index_in_row < line_length;
-		    index_in_row++) {
+		     index_in_row++) {
 			printf("%02X ",
-			    ((uint8_t *)eeprom_info->eeprom_info_buf)[
-			    byte_to_write]);
+			    ((uint8_t *)eeprom_info
+				    ->eeprom_info_buf)[byte_to_write]);
 			byte_to_write++;
 		}
 	}
@@ -228,14 +230,13 @@ mlx5tool_eeprom_print(struct mlx5_eeprom_get *eeprom_info)
 		printf("\nOffset\t\tValues\n");
 		printf("------\t\t------");
 		for (row = MLX5_EEPROM_HIGH_PAGE_OFFSET;
-		    row < MLX5_EEPROM_PAGE_LENGTH;) {
+		     row < MLX5_EEPROM_PAGE_LENGTH;) {
 			printf("\n0x%04X\t\t", row);
-			for (index_in_row = 0;
-			     index_in_row < line_length;
+			for (index_in_row = 0; index_in_row < line_length;
 			     index_in_row++) {
 				printf("%02X ",
-				    ((uint8_t *)eeprom_info->
-				    eeprom_info_buf)[byte_to_write]);
+				    ((uint8_t *)eeprom_info
+					    ->eeprom_info_buf)[byte_to_write]);
 				byte_to_write++;
 				row++;
 			}
@@ -258,8 +259,8 @@ mlx5tool_get_eeprom_info(int ctldev, const struct mlx5_tool_addr *addr)
 		warn("MLX5_EEPROM_GET");
 		return (error);
 	}
-	eeprom_info.eeprom_info_buf =
-	    malloc(eeprom_info.eeprom_info_out_len + MLX5_EEPROM_PAGE_LENGTH);
+	eeprom_info.eeprom_info_buf = malloc(
+	    eeprom_info.eeprom_info_out_len + MLX5_EEPROM_PAGE_LENGTH);
 	if (eeprom_info.eeprom_info_buf == NULL) {
 		warn("alloc eeprom_info.eeprom_info_buf ");
 		return (ENOMEM);
@@ -361,16 +362,16 @@ main(int argc, char *argv[])
 			usage();
 		}
 	}
-	if (act == ACTION_NONE || (dumpname != NULL &&
-	    act != ACTION_DUMP_GET) || (img_fw_path != NULL &&
-	    act != ACTION_FW_UPDATE))
+	if (act == ACTION_NONE ||
+	    (dumpname != NULL && act != ACTION_DUMP_GET) ||
+	    (img_fw_path != NULL && act != ACTION_FW_UPDATE))
 		usage();
 	if (parse_pci_addr(addrstr, &addr) != 0)
 		exit(1);
 
 	ctldev = open(MLX5_DEV_PATH, O_RDWR);
 	if (ctldev == -1)
-		err(1, "open "MLX5_DEV_PATH);
+		err(1, "open " MLX5_DEV_PATH);
 	switch (act) {
 	case ACTION_DUMP_GET:
 		res = mlx5tool_save_dump(ctldev, &addr, dumpname);

@@ -35,15 +35,16 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <string.h>
 
 #define PAM_SM_AUTH
 
+#include <security/openpam.h>
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
-#include <security/openpam.h>
 
-#define DEFAULT_GUESTS	"guest"
+#define DEFAULT_GUESTS "guest"
 
 static int
 lookup(const char *str, const char *list)
@@ -66,8 +67,8 @@ lookup(const char *str, const char *list)
 }
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	const char *authtok, *guests, *user;
 	int err, is_guest;
@@ -104,7 +105,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 }
 
 PAM_EXTERN int
-pam_sm_setcred(pam_handle_t * pamh __unused, int flags __unused,
+pam_sm_setcred(pam_handle_t *pamh __unused, int flags __unused,
     int argc __unused, const char *argv[] __unused)
 {
 

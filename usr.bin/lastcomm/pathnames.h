@@ -29,4 +29,4 @@
  * SUCH DAMAGE.
  */
 
-#define	_PATH_ACCT	"/var/account/acct"
+#define _PATH_ACCT "/var/account/acct"

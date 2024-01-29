@@ -31,20 +31,19 @@
 
 #include <machine/vmm.h>
 #include <machine/vmm_snapshot.h>
-#include <vmmapi.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <errno.h>
 #include <unistd.h>
+#include <vmmapi.h>
 
 #include "bhyvegc.h"
 #include "bhyverun.h"
 #include "config.h"
-#include "debug.h"
 #include "console.h"
+#include "debug.h"
 #include "pci_emul.h"
 #include "rfb.h"
 #ifdef __amd64__
@@ -60,26 +59,27 @@
  */
 
 static int fbuf_debug = 1;
-#define	DEBUG_INFO	1
-#define	DEBUG_VERBOSE	4
-#define	DPRINTF(level, params)  if (level <= fbuf_debug) PRINTLN params
+#define DEBUG_INFO 1
+#define DEBUG_VERBOSE 4
+#define DPRINTF(level, params)   \
+	if (level <= fbuf_debug) \
+	PRINTLN params
 
+#define KB (1024UL)
+#define MB (1024 * 1024UL)
 
-#define	KB	(1024UL)
-#define	MB	(1024 * 1024UL)
+#define DMEMSZ 128
 
-#define	DMEMSZ	128
+#define FB_SIZE (32 * MB)
 
-#define	FB_SIZE		(32*MB)
+#define COLS_MAX 3840
+#define ROWS_MAX 2160
 
-#define COLS_MAX	3840
-#define ROWS_MAX	2160
+#define COLS_DEFAULT 1024
+#define ROWS_DEFAULT 768
 
-#define COLS_DEFAULT	1024
-#define ROWS_DEFAULT	768
-
-#define COLS_MIN	640
-#define ROWS_MIN	480
+#define COLS_MIN 640
+#define ROWS_MIN 480
 
 struct pci_fbuf_softc {
 	struct pci_devinst *fsc_pi;
@@ -89,28 +89,28 @@ struct pci_fbuf_softc {
 		uint16_t height;
 		uint16_t depth;
 		uint16_t refreshrate;
-		uint8_t  reserved[116];
+		uint8_t reserved[116];
 	} __packed memregs;
 
 	/* rfb server */
-	char      *rfb_host;
-	char      *rfb_password;
-	int       rfb_port;
-	int       rfb_wait;
-	int       vga_enabled;
-	int	  vga_full;
+	char *rfb_host;
+	char *rfb_password;
+	int rfb_port;
+	int rfb_wait;
+	int vga_enabled;
+	int vga_full;
 
-	uint32_t  fbaddr;
-	char      *fb_base;
-	uint16_t  gc_width;
-	uint16_t  gc_height;
-	void      *vgasc;
+	uint32_t fbaddr;
+	char *fb_base;
+	uint16_t gc_width;
+	uint16_t gc_height;
+	void *vgasc;
 	struct bhyvegc_image *gc_image;
 };
 
 static struct pci_fbuf_softc *fbuf_sc;
 
-#define	PCI_FBUF_MSI_MSGS	 4
+#define PCI_FBUF_MSI_MSGS 4
 
 static void
 pci_fbuf_write(struct pci_devinst *pi, int baridx, uint64_t offset, int size,
@@ -124,12 +124,12 @@ pci_fbuf_write(struct pci_devinst *pi, int baridx, uint64_t offset, int size,
 	sc = pi->pi_arg;
 
 	DPRINTF(DEBUG_VERBOSE,
-	    ("fbuf wr: offset 0x%lx, size: %d, value: 0x%lx",
-	    offset, size, value));
+	    ("fbuf wr: offset 0x%lx, size: %d, value: 0x%lx", offset, size,
+		value));
 
 	if (offset + size > DMEMSZ) {
-		printf("fbuf: write too large, offset %ld size %d\n",
-		       offset, size);
+		printf("fbuf: write too large, offset %ld size %d\n", offset,
+		    size);
 		return;
 	}
 
@@ -177,10 +177,9 @@ pci_fbuf_read(struct pci_devinst *pi, int baridx, uint64_t offset, int size)
 
 	sc = pi->pi_arg;
 
-
 	if (offset + size > DMEMSZ) {
-		printf("fbuf: read too large, offset %ld size %d\n",
-		       offset, size);
+		printf("fbuf: read too large, offset %ld size %d\n", offset,
+		    size);
 		return (0);
 	}
 
@@ -205,8 +204,8 @@ pci_fbuf_read(struct pci_devinst *pi, int baridx, uint64_t offset, int size)
 	}
 
 	DPRINTF(DEBUG_VERBOSE,
-	    ("fbuf rd: offset 0x%lx, size: %d, value: 0x%lx",
-	     offset, size, value));
+	    ("fbuf rd: offset 0x%lx, size: %d, value: 0x%lx", offset, size,
+		value));
 
 	return (value);
 }
@@ -229,12 +228,11 @@ pci_fbuf_baraddr(struct pci_devinst *pi, int baridx, int enabled,
 	} else {
 		prot = PROT_READ | PROT_WRITE;
 		if (vm_mmap_memseg(pi->pi_vmctx, address, VM_FRAMEBUFFER, 0,
-		    FB_SIZE, prot) != 0)
+			FB_SIZE, prot) != 0)
 			EPRINTLN("pci_fbuf: mmap_memseg failed");
 		sc->fbaddr = address;
 	}
 }
-
 
 static int
 pci_fbuf_parse_config(struct pci_fbuf_softc *sc, nvlist_t *nvl)
@@ -319,15 +317,13 @@ pci_fbuf_parse_config(struct pci_fbuf_softc *sc, nvlist_t *nvl)
 	if (value != NULL)
 		sc->memregs.height = strtol(value, NULL, 10);
 
-	if (sc->memregs.width > COLS_MAX ||
-	    sc->memregs.height > ROWS_MAX) {
+	if (sc->memregs.width > COLS_MAX || sc->memregs.height > ROWS_MAX) {
 		EPRINTLN("fbuf: max resolution is %ux%u", COLS_MAX, ROWS_MAX);
 		return (-1);
 	}
-	if (sc->memregs.width < COLS_MIN ||
-	    sc->memregs.height < ROWS_MIN) {
-		EPRINTLN("fbuf: minimum resolution is %ux%u",
-		    COLS_MIN, ROWS_MIN);
+	if (sc->memregs.width < COLS_MIN || sc->memregs.height < ROWS_MIN) {
+		EPRINTLN("fbuf: minimum resolution is %ux%u", COLS_MIN,
+		    ROWS_MIN);
 		return (-1);
 	}
 
@@ -398,9 +394,9 @@ pci_fbuf_init(struct pci_devinst *pi, nvlist_t *nvl)
 	assert(error == 0);
 
 	sc->memregs.fbsize = FB_SIZE;
-	sc->memregs.width  = COLS_DEFAULT;
+	sc->memregs.width = COLS_DEFAULT;
 	sc->memregs.height = ROWS_DEFAULT;
-	sc->memregs.depth  = 32;
+	sc->memregs.depth = 32;
 
 	sc->vga_enabled = 1;
 	sc->vga_full = 0;
@@ -417,8 +413,8 @@ pci_fbuf_init(struct pci_devinst *pi, nvlist_t *nvl)
 		goto done;
 	}
 
-	DPRINTF(DEBUG_INFO, ("fbuf frame buffer base: %p [sz %lu]",
-	        sc->fb_base, FB_SIZE));
+	DPRINTF(DEBUG_INFO,
+	    ("fbuf frame buffer base: %p [sz %lu]", sc->fb_base, FB_SIZE));
 
 	console_init(sc->memregs.width, sc->memregs.height, sc->fb_base);
 	console_fb_register(pci_fbuf_render, sc);
@@ -431,7 +427,8 @@ pci_fbuf_init(struct pci_devinst *pi, nvlist_t *nvl)
 
 	memset((void *)sc->fb_base, 0, FB_SIZE);
 
-	error = rfb_init(sc->rfb_host, sc->rfb_port, sc->rfb_wait, sc->rfb_password);
+	error = rfb_init(sc->rfb_host, sc->rfb_port, sc->rfb_wait,
+	    sc->rfb_password);
 done:
 	if (error)
 		free(sc);
@@ -453,13 +450,13 @@ err:
 #endif
 
 static const struct pci_devemu pci_fbuf = {
-	.pe_emu =	"fbuf",
-	.pe_init =	pci_fbuf_init,
-	.pe_barwrite =	pci_fbuf_write,
-	.pe_barread =	pci_fbuf_read,
-	.pe_baraddr =	pci_fbuf_baraddr,
+	.pe_emu = "fbuf",
+	.pe_init = pci_fbuf_init,
+	.pe_barwrite = pci_fbuf_write,
+	.pe_barread = pci_fbuf_read,
+	.pe_baraddr = pci_fbuf_baraddr,
 #ifdef BHYVE_SNAPSHOT
-	.pe_snapshot =	pci_fbuf_snapshot,
+	.pe_snapshot = pci_fbuf_snapshot,
 #endif
 };
 PCI_EMUL_SET(pci_fbuf);

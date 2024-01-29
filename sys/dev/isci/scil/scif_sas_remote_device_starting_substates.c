@@ -62,10 +62,9 @@
  *        a remote device.
  */
 
-#include <dev/isci/scil/scif_sas_remote_device.h>
 #include <dev/isci/scil/scif_sas_domain.h>
 #include <dev/isci/scil/scif_sas_logger.h>
-
+#include <dev/isci/scil/scif_sas_remote_device.h>
 
 //******************************************************************************
 //* P R O T E C T E D   M E T H O D S
@@ -82,21 +81,19 @@
  *
  * @return none
  */
-static
-void scif_sas_remote_device_starting_await_complete_substate_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_starting_await_complete_substate_enter(
+    SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_starting_substate_handler_table,
-      SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_COMPLETE
-   );
+	SET_STATE_HANDLER(fw_device,
+	    scif_sas_remote_device_starting_substate_handler_table,
+	    SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_COMPLETE);
 
-   fw_device->domain->device_start_in_progress_count++;
-   fw_device->domain->device_start_count++;
+	fw_device->domain->device_start_in_progress_count++;
+	fw_device->domain->device_start_count++;
 }
 
 /**
@@ -110,34 +107,24 @@ void scif_sas_remote_device_starting_await_complete_substate_enter(
  *
  * @return none
  */
-static
-void scif_sas_remote_device_starting_complete_substate_enter(
-   SCI_BASE_OBJECT_T *object
-)
+static void
+scif_sas_remote_device_starting_complete_substate_enter(
+    SCI_BASE_OBJECT_T *object)
 {
-   SCIF_SAS_REMOTE_DEVICE_T * fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)object;
+	SCIF_SAS_REMOTE_DEVICE_T *fw_device = (SCIF_SAS_REMOTE_DEVICE_T *)
+	    object;
 
-   SET_STATE_HANDLER(
-      fw_device,
-      scif_sas_remote_device_starting_substate_handler_table,
-      SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_READY
-   );
+	SET_STATE_HANDLER(fw_device,
+	    scif_sas_remote_device_starting_substate_handler_table,
+	    SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_READY);
 }
-
 
 SCI_BASE_STATE_T
 scif_sas_remote_device_starting_substate_table
-[SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_MAX_STATES] =
-{
-   {
-      SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_COMPLETE,
-      scif_sas_remote_device_starting_await_complete_substate_enter,
-      NULL
-   },
-   {
-      SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_READY,
-      scif_sas_remote_device_starting_complete_substate_enter,
-      NULL
-   }
-};
-
+    [SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_MAX_STATES] = {
+	    { SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_COMPLETE,
+		scif_sas_remote_device_starting_await_complete_substate_enter,
+		NULL },
+	    { SCIF_SAS_REMOTE_DEVICE_STARTING_SUBSTATE_AWAIT_READY,
+		scif_sas_remote_device_starting_complete_substate_enter, NULL }
+    };

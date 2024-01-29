@@ -41,15 +41,17 @@
  */
 
 #include <sys/types.h>
+
+#include <ohash.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stddef.h>
 #include <string.h>
-#include <ohash.h>
+
+#include "extern.h"
 #include "mdef.h"
 #include "stdd.h"
-#include "extern.h"
 
 static void *hash_calloc(size_t, size_t, void *);
 static void hash_free(void *, void *);
@@ -60,9 +62,8 @@ static void free_definition(char *);
 static void keep(char *);
 static int string_in_use(const char *);
 
-static struct ohash_info macro_info = {
-	offsetof(struct ndblock, name),
-	NULL, hash_calloc, hash_free, element_alloc };
+static struct ohash_info macro_info = { offsetof(struct ndblock, name), NULL,
+	hash_calloc, hash_free, element_alloc };
 
 struct ohash macros;
 
@@ -118,10 +119,10 @@ setup_definition(struct macro_definition *d, const char *defn, const char *name)
 {
 	ndptr p;
 
-	if (strncmp(defn, BUILTIN_MARKER, sizeof(BUILTIN_MARKER)-1) == 0 &&
-	    (p = macro_getbuiltin(defn+sizeof(BUILTIN_MARKER)-1)) != NULL) {
+	if (strncmp(defn, BUILTIN_MARKER, sizeof(BUILTIN_MARKER) - 1) == 0 &&
+	    (p = macro_getbuiltin(defn + sizeof(BUILTIN_MARKER) - 1)) != NULL) {
 		d->type = macro_builtin_type(p);
-		d->defn = xstrdup(defn+sizeof(BUILTIN_MARKER)-1);
+		d->defn = xstrdup(defn + sizeof(BUILTIN_MARKER) - 1);
 	} else {
 		if (!*defn)
 			d->defn = __DECONST(char *, null);
@@ -219,7 +220,7 @@ macro_for_all(void (*f)(const char *, struct macro_definition *))
 	unsigned int i;
 
 	for (n = ohash_first(&macros, &i); n != NULL;
-	    n = ohash_next(&macros, &i))
+	     n = ohash_next(&macros, &i))
 		if (n->d != NULL)
 			f(n->name, n->d);
 }
@@ -231,9 +232,9 @@ setup_builtin(const char *name, unsigned int type)
 	char *name2;
 
 	if (prefix_builtins) {
-		name2 = xalloc(strlen(name)+3+1, NULL);
+		name2 = xalloc(strlen(name) + 3 + 1, NULL);
 		memcpy(name2, "m4_", 3);
-		memcpy(name2 + 3, name, strlen(name)+1);
+		memcpy(name2 + 3, name, strlen(name) + 1);
 	} else
 		name2 = xstrdup(name);
 
@@ -257,7 +258,7 @@ mark_traced(const char *name, int on)
 		else
 			trace_flags &= ~TRACE_ALL;
 		for (p = ohash_first(&macros, &i); p != NULL;
-		    p = ohash_next(&macros, &i))
+		     p = ohash_next(&macros, &i))
 			p->trace_flags = FLAG_NO_TRACE;
 	} else {
 		p = create_entry(name);
@@ -295,24 +296,22 @@ keep(char *ptr)
 			kept_capacity *= 2;
 		else
 			kept_capacity = 50;
-		kept = xreallocarray(kept, kept_capacity, 
-		    sizeof(char *), "Out of memory while saving %d strings\n", 
-		    kept_capacity);
+		kept = xreallocarray(kept, kept_capacity, sizeof(char *),
+		    "Out of memory while saving %d strings\n", kept_capacity);
 	}
 	kept[kept_size++] = ptr;
 }
 
 static int
-string_in_use(const char *ptr) 
+string_in_use(const char *ptr)
 {
 	int i;
 	for (i = 0; i <= sp; i++) {
 		if (sstack[i] == STORAGE_MACRO && mstack[i].sstr == ptr)
 			return 1;
-		}
+	}
 	return 0;
 }
-
 
 static void
 free_definition(char *ptr)
@@ -324,7 +323,7 @@ free_definition(char *ptr)
 		if (!string_in_use(kept[i])) {
 			kept_size--;
 			free(kept[i]);
-			if (i != kept_size) 
+			if (i != kept_size)
 				kept[i] = kept[kept_size];
 			i--;
 		}
@@ -336,4 +335,3 @@ free_definition(char *ptr)
 	else
 		free(ptr);
 }
-

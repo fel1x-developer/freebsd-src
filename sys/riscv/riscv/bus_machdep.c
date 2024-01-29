@@ -36,12 +36,13 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
 #include <machine/bus.h>
 
-uint8_t  generic_bs_r_1(void *, bus_space_handle_t, bus_size_t);
+uint8_t generic_bs_r_1(void *, bus_space_handle_t, bus_size_t);
 uint16_t generic_bs_r_2(void *, bus_space_handle_t, bus_size_t);
 uint32_t generic_bs_r_4(void *, bus_space_handle_t, bus_size_t);
 uint64_t generic_bs_r_8(void *, bus_space_handle_t, bus_size_t);

@@ -32,27 +32,26 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <machine/resource.h>
-#include <machine/bus.h>
 #include <sys/rman.h>
+
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #ifdef HAVE_KERNEL_OPTION_HEADERS
 #include "opt_snd.h"
 #endif
 
-#include <dev/sound/pcm/sound.h>
-#include <dev/sound/chip.h>
-#include <dev/sound/pci/csareg.h>
-#include <dev/sound/pci/csavar.h>
-
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
+#include <dev/sound/chip.h>
 #include <dev/sound/pci/cs461x_dsp.h>
+#include <dev/sound/pci/csareg.h>
+#include <dev/sound/pci/csavar.h>
+#include <dev/sound/pcm/sound.h>
 
 /* This is the pci device id. */
 #define CS4610_PCI_ID 0x60011013
@@ -62,15 +61,15 @@
 /* Here is the parameter structure per a device. */
 struct csa_softc {
 	device_t dev; /* device */
-	csa_res res; /* resources */
+	csa_res res;  /* resources */
 
-	device_t pcm; /* pcm device */
-	driver_intr_t* pcmintr; /* pcm intr */
-	void *pcmintr_arg; /* pcm intr arg */
-	device_t midi; /* midi device */
-	driver_intr_t* midiintr; /* midi intr */
-	void *midiintr_arg; /* midi intr arg */
-	void *ih; /* cookie */
+	device_t pcm;		 /* pcm device */
+	driver_intr_t *pcmintr;	 /* pcm intr */
+	void *pcmintr_arg;	 /* pcm intr arg */
+	device_t midi;		 /* midi device */
+	driver_intr_t *midiintr; /* midi intr */
+	void *midiintr_arg;	 /* midi intr arg */
+	void *ih;		 /* cookie */
 
 	struct csa_card *card;
 	struct csa_bridgeinfo binfo; /* The state of this bridge. */
@@ -80,21 +79,21 @@ typedef struct csa_softc *sc_p;
 
 static int csa_probe(device_t dev);
 static int csa_attach(device_t dev);
-static struct resource *csa_alloc_resource(device_t bus, device_t child, int type, int *rid,
-					      rman_res_t start, rman_res_t end,
-					      rman_res_t count, u_int flags);
+static struct resource *csa_alloc_resource(device_t bus, device_t child,
+    int type, int *rid, rman_res_t start, rman_res_t end, rman_res_t count,
+    u_int flags);
 static int csa_release_resource(device_t bus, device_t child, int type, int rid,
-				   struct resource *r);
-static int csa_setup_intr(device_t bus, device_t child,
-			  struct resource *irq, int flags,
-			  driver_filter_t *filter,
-			  driver_intr_t *intr,  void *arg, void **cookiep);
-static int csa_teardown_intr(device_t bus, device_t child,
-			     struct resource *irq, void *cookie);
+    struct resource *r);
+static int csa_setup_intr(device_t bus, device_t child, struct resource *irq,
+    int flags, driver_filter_t *filter, driver_intr_t *intr, void *arg,
+    void **cookiep);
+static int csa_teardown_intr(device_t bus, device_t child, struct resource *irq,
+    void *cookie);
 static driver_intr_t csa_intr;
 static int csa_initialize(sc_p scp);
 static int csa_downloadimage(csa_res *resp);
-static int csa_transferimage(csa_res *resp, u_int32_t *src, u_long dest, u_long len);
+static int csa_transferimage(csa_res *resp, u_int32_t *src, u_long dest,
+    u_long len);
 
 static void
 amp_none(void)
@@ -110,12 +109,12 @@ static int
 clkrun_hack(int run)
 {
 #ifdef __i386__
-	devclass_t		pci_devclass;
-	device_t		*pci_devices, *pci_children, *busp, *childp;
-	int			pci_count = 0, pci_childcount = 0;
-	int			i, j, port;
-	u_int16_t		control;
-	bus_space_tag_t		btag;
+	devclass_t pci_devclass;
+	device_t *pci_devices, *pci_children, *busp, *childp;
+	int pci_count = 0, pci_childcount = 0;
+	int i, j, port;
+	u_int16_t control;
+	bus_space_tag_t btag;
 
 	if ((pci_devclass = devclass_find("pci")) == NULL) {
 		return ENXIO;
@@ -127,15 +126,19 @@ clkrun_hack(int run)
 		pci_childcount = 0;
 		if (device_get_children(*busp, &pci_children, &pci_childcount))
 			continue;
-		for (j = 0, childp = pci_children; j < pci_childcount; j++, childp++) {
-			if (pci_get_vendor(*childp) == 0x8086 && pci_get_device(*childp) == 0x7113) {
-				port = (pci_read_config(*childp, 0x41, 1) << 8) + 0x10;
+		for (j = 0, childp = pci_children; j < pci_childcount;
+		     j++, childp++) {
+			if (pci_get_vendor(*childp) == 0x8086 &&
+			    pci_get_device(*childp) == 0x7113) {
+				port = (pci_read_config(*childp, 0x41, 1)
+					   << 8) +
+				    0x10;
 				/* XXX */
 				btag = X86_BUS_SPACE_IO;
 
 				control = bus_space_read_2(btag, 0x0, port);
 				control &= ~0x2000;
-				control |= run? 0 : 0x2000;
+				control |= run ? 0 : 0x2000;
 				bus_space_write_2(btag, 0x0, port, control);
 				free(pci_devices, M_TEMP);
 				free(pci_children, M_TEMP);
@@ -153,27 +156,30 @@ clkrun_hack(int run)
 }
 
 static struct csa_card cards_4610[] = {
-	{0, 0, "Unknown/invalid SSID (CS4610)", NULL, NULL, NULL, 0},
+	{ 0, 0, "Unknown/invalid SSID (CS4610)", NULL, NULL, NULL, 0 },
 };
 
 static struct csa_card cards_4614[] = {
-	{0x1489, 0x7001, "Genius Soundmaker 128 value", amp_none, NULL, NULL, 0},
-	{0x5053, 0x3357, "Turtle Beach Santa Cruz", amp_voyetra, NULL, NULL, 1},
-	{0x1071, 0x6003, "Mitac MI6020/21", amp_voyetra, NULL, NULL, 0},
-	{0x14AF, 0x0050, "Hercules Game Theatre XP", NULL, NULL, NULL, 0},
-	{0x1681, 0x0050, "Hercules Game Theatre XP", NULL, NULL, NULL, 0},
-	{0x1014, 0x0132, "Thinkpad 570", amp_none, NULL, NULL, 0},
-	{0x1014, 0x0153, "Thinkpad 600X/A20/T20", amp_none, NULL, clkrun_hack, 0},
-	{0x1014, 0x1010, "Thinkpad 600E (unsupported)", NULL, NULL, NULL, 0},
-	{0x153b, 0x1136, "Terratec SiXPack 5.1+", NULL, NULL, NULL, 0},
-	{0, 0, "Unknown/invalid SSID (CS4614)", NULL, NULL, NULL, 0},
+	{ 0x1489, 0x7001, "Genius Soundmaker 128 value", amp_none, NULL, NULL,
+	    0 },
+	{ 0x5053, 0x3357, "Turtle Beach Santa Cruz", amp_voyetra, NULL, NULL,
+	    1 },
+	{ 0x1071, 0x6003, "Mitac MI6020/21", amp_voyetra, NULL, NULL, 0 },
+	{ 0x14AF, 0x0050, "Hercules Game Theatre XP", NULL, NULL, NULL, 0 },
+	{ 0x1681, 0x0050, "Hercules Game Theatre XP", NULL, NULL, NULL, 0 },
+	{ 0x1014, 0x0132, "Thinkpad 570", amp_none, NULL, NULL, 0 },
+	{ 0x1014, 0x0153, "Thinkpad 600X/A20/T20", amp_none, NULL, clkrun_hack,
+	    0 },
+	{ 0x1014, 0x1010, "Thinkpad 600E (unsupported)", NULL, NULL, NULL, 0 },
+	{ 0x153b, 0x1136, "Terratec SiXPack 5.1+", NULL, NULL, NULL, 0 },
+	{ 0, 0, "Unknown/invalid SSID (CS4614)", NULL, NULL, NULL, 0 },
 };
 
 static struct csa_card cards_4615[] = {
-	{0, 0, "Unknown/invalid SSID (CS4615)", NULL, NULL, NULL, 0},
+	{ 0, 0, "Unknown/invalid SSID (CS4615)", NULL, NULL, NULL, 0 },
 };
 
-static struct csa_card nocard = {0, 0, "unknown", NULL, NULL, NULL, 0};
+static struct csa_card nocard = { 0, 0, "unknown", NULL, NULL, NULL, 0 };
 
 struct card_type {
 	u_int32_t devid;
@@ -182,10 +188,10 @@ struct card_type {
 };
 
 static struct card_type cards[] = {
-	{CS4610_PCI_ID, "CS4610/CS4611", cards_4610},
-	{CS4614_PCI_ID, "CS4280/CS4614/CS4622/CS4624/CS4630", cards_4614},
-	{CS4615_PCI_ID, "CS4615", cards_4615},
-	{0, NULL, NULL},
+	{ CS4610_PCI_ID, "CS4610/CS4611", cards_4610 },
+	{ CS4614_PCI_ID, "CS4280/CS4614/CS4622/CS4624/CS4630", cards_4614 },
+	{ CS4615_PCI_ID, "CS4615", cards_4615 },
+	{ 0, NULL, NULL },
 };
 
 static struct card_type *
@@ -215,8 +221,8 @@ csa_findsubcard(device_t dev)
 	subcard = card->cards;
 	i = 0;
 	while (subcard[i].subvendor != 0) {
-		if (pci_get_subvendor(dev) == subcard[i].subvendor
-		    && pci_get_subdevice(dev) == subcard[i].subdevice) {
+		if (pci_get_subvendor(dev) == subcard[i].subvendor &&
+		    pci_get_subdevice(dev) == subcard[i].subdevice) {
 			return &subcard[i];
 		}
 		i++;
@@ -259,18 +265,18 @@ csa_attach(device_t dev)
 	scp->binfo.card = scp->card;
 	printf("csa: card is %s\n", scp->card->name);
 	resp->io_rid = PCIR_BAR(0);
-	resp->io = bus_alloc_resource_any(dev, SYS_RES_MEMORY, 
-		&resp->io_rid, RF_ACTIVE);
+	resp->io = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &resp->io_rid,
+	    RF_ACTIVE);
 	if (resp->io == NULL)
 		return (ENXIO);
 	resp->mem_rid = PCIR_BAR(1);
-	resp->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY,
-		&resp->mem_rid, RF_ACTIVE);
+	resp->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &resp->mem_rid,
+	    RF_ACTIVE);
 	if (resp->mem == NULL)
 		goto err_io;
 	resp->irq_rid = 0;
-	resp->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-		&resp->irq_rid, RF_ACTIVE | RF_SHAREABLE);
+	resp->irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &resp->irq_rid,
+	    RF_ACTIVE | RF_SHAREABLE);
 	if (resp->irq == NULL)
 		goto err_mem;
 
@@ -396,7 +402,7 @@ csa_resume(device_t dev)
 
 static struct resource *
 csa_alloc_resource(device_t bus, device_t child, int type, int *rid,
-		   rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
+    rman_res_t start, rman_res_t end, rman_res_t count, u_int flags)
 {
 	sc_p scp;
 	csa_res *resp;
@@ -431,7 +437,7 @@ csa_alloc_resource(device_t bus, device_t child, int type, int *rid,
 
 static int
 csa_release_resource(device_t bus, device_t child, int type, int rid,
-			struct resource *r)
+    struct resource *r)
 {
 	return (0);
 }
@@ -446,10 +452,8 @@ csa_release_resource(device_t bus, device_t child, int type, int rid,
  */
 
 static int
-csa_setup_intr(device_t bus, device_t child,
-	       struct resource *irq, int flags,
-	       driver_filter_t *filter,
-	       driver_intr_t *intr, void *arg, void **cookiep)
+csa_setup_intr(device_t bus, device_t child, struct resource *irq, int flags,
+    driver_filter_t *filter, driver_intr_t *intr, void *arg, void **cookiep)
 {
 	sc_p scp;
 	csa_res *resp;
@@ -492,8 +496,8 @@ csa_setup_intr(device_t bus, device_t child,
 }
 
 static int
-csa_teardown_intr(device_t bus, device_t child,
-		  struct resource *irq, void *cookie)
+csa_teardown_intr(device_t bus, device_t child, struct resource *irq,
+    void *cookie)
 {
 	sc_p scp;
 	csa_res *resp;
@@ -576,21 +580,25 @@ csa_initialize(sc_p scp)
 	resp = &scp->res;
 
 	/*
-	 * First, blast the clock control register to zero so that the PLL starts
-	 * out in a known state, and blast the master serial port control register
-	 * to zero so that the serial ports also start out in a known state.
+	 * First, blast the clock control register to zero so that the PLL
+	 * starts out in a known state, and blast the master serial port control
+	 * register to zero so that the serial ports also start out in a known
+	 * state.
 	 */
 	csa_writeio(resp, BA0_CLKCR1, 0);
 	csa_writeio(resp, BA0_SERMC1, 0);
 
 	/*
-	 * If we are in AC97 mode, then we must set the part to a host controlled
-	 * AC-link.  Otherwise, we won't be able to bring up the link.
+	 * If we are in AC97 mode, then we must set the part to a host
+	 * controlled AC-link.  Otherwise, we won't be able to bring up the
+	 * link.
 	 */
 #if 1
-	csa_writeio(resp, BA0_SERACC, SERACC_HSP | SERACC_CODEC_TYPE_1_03); /* 1.03 codec */
+	csa_writeio(resp, BA0_SERACC,
+	    SERACC_HSP | SERACC_CODEC_TYPE_1_03); /* 1.03 codec */
 #else
-	csa_writeio(resp, BA0_SERACC, SERACC_HSP | SERACC_CODEC_TYPE_2_0); /* 2.0 codec */
+	csa_writeio(resp, BA0_SERACC,
+	    SERACC_HSP | SERACC_CODEC_TYPE_2_0); /* 2.0 codec */
 #endif /* 1 */
 
 	/*
@@ -627,11 +635,12 @@ csa_initialize(sc_p scp)
 	DELAY(700000);
 
 	/*
-	 * Write the selected clock control setup to the hardware.  Do not turn on
-	 * SWCE yet (if requested), so that the devices clocked by the output of
-	 * PLL are not clocked until the PLL is stable.
+	 * Write the selected clock control setup to the hardware.  Do not turn
+	 * on SWCE yet (if requested), so that the devices clocked by the output
+	 * of PLL are not clocked until the PLL is stable.
 	 */
-	csa_writeio(resp, BA0_PLLCC, PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
+	csa_writeio(resp, BA0_PLLCC,
+	    PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
 	csa_writeio(resp, BA0_PLLM, 0x3a);
 	csa_writeio(resp, BA0_CLKCR2, CLKCR2_PDIVS_8);
 
@@ -648,7 +657,8 @@ csa_initialize(sc_p scp)
 	/*
 	 * Turn on clocking of the core so that we can setup the serial ports.
 	 */
-	csa_writeio(resp, BA0_CLKCR1, csa_readio(resp, BA0_CLKCR1) | CLKCR1_SWCE);
+	csa_writeio(resp, BA0_CLKCR1,
+	    csa_readio(resp, BA0_CLKCR1) | CLKCR1_SWCE);
 
 	/*
 	 * Fill the serial port FIFOs with silence.
@@ -674,16 +684,16 @@ csa_initialize(sc_p scp)
 	 * Wait for the codec ready signal from the AC97 codec.
 	 */
 	acsts = 0;
-	for (i = 0 ; i < 1000 ; i++) {
+	for (i = 0; i < 1000; i++) {
 		/*
-		 * First, lets wait a short while to let things settle out a bit,
-		 * and to prevent retrying the read too quickly.
+		 * First, lets wait a short while to let things settle out a
+		 * bit, and to prevent retrying the read too quickly.
 		 */
 		DELAY(125);
 
 		/*
-		 * Read the AC97 status register to see if we've seen a CODEC READY
-		 * signal from the AC97 codec.
+		 * Read the AC97 status register to see if we've seen a CODEC
+		 * READY signal from the AC97 codec.
 		 */
 		acsts = csa_readio(resp, BA0_ACSTS);
 		if ((acsts & ACSTS_CRDY) != 0)
@@ -707,10 +717,10 @@ csa_initialize(sc_p scp)
 	 * the codec is pumping ADC data across the AC-link.
 	 */
 	acisv = 0;
-	for (i = 0 ; i < 2000 ; i++) {
+	for (i = 0; i < 2000; i++) {
 		/*
-		 * First, lets wait a short while to let things settle out a bit,
-		 * and to prevent retrying the read too quickly.
+		 * First, lets wait a short while to let things settle out a
+		 * bit, and to prevent retrying the read too quickly.
 		 */
 #ifdef notdef
 		DELAY(10000000L); /* clw */
@@ -718,11 +728,12 @@ csa_initialize(sc_p scp)
 		DELAY(1000);
 #endif /* notdef */
 		/*
-		 * Read the input slot valid register and see if input slots 3 and
-		 * 4 are valid yet.
+		 * Read the input slot valid register and see if input slots 3
+		 * and 4 are valid yet.
 		 */
 		acisv = csa_readio(resp, BA0_ACISV);
-		if ((acisv & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
+		if ((acisv & (ACISV_ISV3 | ACISV_ISV4)) ==
+		    (ACISV_ISV3 | ACISV_ISV4))
 			break;
 	}
 	/*
@@ -747,8 +758,8 @@ csa_initialize(sc_p scp)
 #endif /* notdef */
 
 	/*
-	 * Turn off the Processor by turning off the software clock enable flag in
-	 * the clock control register.
+	 * Turn off the Processor by turning off the software clock enable flag
+	 * in the clock control register.
 	 */
 #ifdef notdef
 	clkcr1 = csa_readio(resp, BA0_CLKCR1) & ~CLKCR1_SWCE;
@@ -772,8 +783,8 @@ csa_clearserialfifos(csa_res *resp)
 	u_int8_t clkcr1, serbst;
 
 	/*
-	 * See if the devices are powered down.  If so, we must power them up first
-	 * or they will not respond.
+	 * See if the devices are powered down.  If so, we must power them up
+	 * first or they will not respond.
 	 */
 	pwr = 1;
 	clkcr1 = csa_readio(resp, BA0_CLKCR1);
@@ -784,16 +795,16 @@ csa_clearserialfifos(csa_res *resp)
 
 	/*
 	 * We want to clear out the serial port FIFOs so we don't end up playing
-	 * whatever random garbage happens to be in them.  We fill the sample FIFOs
-	 * with zero (silence).
+	 * whatever random garbage happens to be in them.  We fill the sample
+	 * FIFOs with zero (silence).
 	 */
 	csa_writeio(resp, BA0_SERBWP, 0);
 
 	/* Fill all 256 sample FIFO locations. */
 	serbst = 0;
-	for (i = 0 ; i < 256 ; i++) {
+	for (i = 0; i < 256; i++) {
 		/* Make sure the previous FIFO write operation has completed. */
-		for (j = 0 ; j < 5 ; j++) {
+		for (j = 0; j < 5; j++) {
 			DELAY(100);
 			serbst = csa_readio(resp, BA0_SERBST);
 			if ((serbst & SERBST_WBSY) == 0)
@@ -805,7 +816,8 @@ csa_clearserialfifos(csa_res *resp)
 		}
 		/* Write the serial port FIFO index. */
 		csa_writeio(resp, BA0_SERBAD, i);
-		/* Tell the serial port to load the new value into the FIFO location. */
+		/* Tell the serial port to load the new value into the FIFO
+		 * location. */
 		csa_writeio(resp, BA0_SERBCM, SERBCM_WRC);
 	}
 	/*
@@ -834,7 +846,7 @@ csa_resetdsp(csa_res *resp)
 	/*
 	 * Clear the trap registers.
 	 */
-	for (i = 0 ; i < 8 ; i++) {
+	for (i = 0; i < 8; i++) {
 		csa_writemem(resp, BA1_DREG, DREG_REGID_TRAP_SELECT + i);
 		csa_writemem(resp, BA1_TWPR, 0xffff);
 	}
@@ -852,13 +864,12 @@ csa_downloadimage(csa_res *resp)
 	int ret;
 	u_long ul, offset;
 
-	for (ul = 0, offset = 0 ; ul < INKY_MEMORY_COUNT ; ul++) {
-	        /*
-	         * DMA this block from host memory to the appropriate
-	         * memory on the CSDevice.
-	         */
-		ret = csa_transferimage(resp,
-		    cs461x_firmware.BA1Array + offset,
+	for (ul = 0, offset = 0; ul < INKY_MEMORY_COUNT; ul++) {
+		/*
+		 * DMA this block from host memory to the appropriate
+		 * memory on the CSDevice.
+		 */
+		ret = csa_transferimage(resp, cs461x_firmware.BA1Array + offset,
 		    cs461x_firmware.MemoryStat[ul].ulDestAddr,
 		    cs461x_firmware.MemoryStat[ul].ulSourceSize);
 		if (ret)
@@ -874,10 +885,10 @@ csa_transferimage(csa_res *resp, u_int32_t *src, u_long dest, u_long len)
 	u_long ul;
 
 	/*
-	 * We do not allow DMAs from host memory to host memory (although the DMA
-	 * can do it) and we do not allow DMAs which are not a multiple of 4 bytes
-	 * in size (because that DMA can not do that).  Return an error if either
-	 * of these conditions exist.
+	 * We do not allow DMAs from host memory to host memory (although the
+	 * DMA can do it) and we do not allow DMAs which are not a multiple of 4
+	 * bytes in size (because that DMA can not do that).  Return an error if
+	 * either of these conditions exist.
 	 */
 	if ((len & 0x3) != 0)
 		return (EINVAL);
@@ -887,7 +898,7 @@ csa_transferimage(csa_res *resp, u_int32_t *src, u_long dest, u_long len)
 		return (EINVAL);
 
 	/* Write the buffer out. */
-	for (ul = 0 ; ul < len ; ul += 4)
+	for (ul = 0; ul < len; ul += 4)
 		csa_writemem(resp, dest + ul, src[ul >> 2]);
 	return (0);
 }
@@ -922,13 +933,14 @@ csa_readcodec(csa_res *resp, u_long offset, u_int32_t *data)
 	 */
 	csa_writeio(resp, BA0_ACCAD, offset - BA0_AC97_RESET);
 	csa_writeio(resp, BA0_ACCDA, 0);
-	csa_writeio(resp, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW | ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
+	csa_writeio(resp, BA0_ACCTL,
+	    ACCTL_DCV | ACCTL_CRW | ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
 
 	/*
 	 * Wait for the read to occur.
 	 */
 	acctl = 0;
-	for (i = 0 ; i < 10 ; i++) {
+	for (i = 0; i < 10; i++) {
 		/*
 		 * First, we want to wait for a short time.
 		 */
@@ -953,7 +965,7 @@ csa_readcodec(csa_res *resp, u_long offset, u_int32_t *data)
 	 * Wait for the valid status bit to go active.
 	 */
 	acsts = 0;
-	for (i = 0 ; i < 10 ; i++) {
+	for (i = 0; i < 10; i++) {
 		/*
 		 * Read the AC97 status register.
 		 * ACSTS = Status Register = 464h
@@ -968,7 +980,7 @@ csa_readcodec(csa_res *resp, u_long offset, u_int32_t *data)
 		/*
 		 * Wait for a short while.
 		 */
-		 DELAY(25);
+		DELAY(25);
 	}
 
 	/*
@@ -1009,13 +1021,14 @@ csa_writecodec(csa_res *resp, u_long offset, u_int32_t data)
 	 */
 	csa_writeio(resp, BA0_ACCAD, offset - BA0_AC97_RESET);
 	csa_writeio(resp, BA0_ACCDA, data);
-	csa_writeio(resp, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
+	csa_writeio(resp, BA0_ACCTL,
+	    ACCTL_DCV | ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
 
 	/*
 	 * Wait for the write to occur.
 	 */
 	acctl = 0;
-	for (i = 0 ; i < 10 ; i++) {
+	for (i = 0; i < 10; i++) {
 		/*
 		 * First, we want to wait for a short time.
 		 */
@@ -1045,7 +1058,9 @@ csa_readio(csa_res *resp, u_long offset)
 	u_int32_t ul;
 
 	if (offset < BA0_AC97_RESET)
-		return bus_space_read_4(rman_get_bustag(resp->io), rman_get_bushandle(resp->io), offset) & 0xffffffff;
+		return bus_space_read_4(rman_get_bustag(resp->io),
+			   rman_get_bushandle(resp->io), offset) &
+		    0xffffffff;
 	else {
 		if (csa_readcodec(resp, offset, &ul))
 			ul = 0;
@@ -1057,7 +1072,8 @@ void
 csa_writeio(csa_res *resp, u_long offset, u_int32_t data)
 {
 	if (offset < BA0_AC97_RESET)
-		bus_space_write_4(rman_get_bustag(resp->io), rman_get_bushandle(resp->io), offset, data);
+		bus_space_write_4(rman_get_bustag(resp->io),
+		    rman_get_bushandle(resp->io), offset, data);
 	else
 		csa_writecodec(resp, offset, data);
 }
@@ -1065,31 +1081,33 @@ csa_writeio(csa_res *resp, u_long offset, u_int32_t data)
 u_int32_t
 csa_readmem(csa_res *resp, u_long offset)
 {
-	return bus_space_read_4(rman_get_bustag(resp->mem), rman_get_bushandle(resp->mem), offset);
+	return bus_space_read_4(rman_get_bustag(resp->mem),
+	    rman_get_bushandle(resp->mem), offset);
 }
 
 void
 csa_writemem(csa_res *resp, u_long offset, u_int32_t data)
 {
-	bus_space_write_4(rman_get_bustag(resp->mem), rman_get_bushandle(resp->mem), offset, data);
+	bus_space_write_4(rman_get_bustag(resp->mem),
+	    rman_get_bushandle(resp->mem), offset, data);
 }
 
 static device_method_t csa_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		csa_probe),
-	DEVMETHOD(device_attach,	csa_attach),
-	DEVMETHOD(device_detach,	csa_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	csa_resume),
+	DEVMETHOD(device_probe, csa_probe),
+	DEVMETHOD(device_attach, csa_attach),
+	DEVMETHOD(device_detach, csa_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, csa_resume),
 
 	/* Bus interface */
-	DEVMETHOD(bus_alloc_resource,	csa_alloc_resource),
-	DEVMETHOD(bus_release_resource,	csa_release_resource),
+	DEVMETHOD(bus_alloc_resource, csa_alloc_resource),
+	DEVMETHOD(bus_release_resource, csa_release_resource),
 	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
 	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,	csa_setup_intr),
-	DEVMETHOD(bus_teardown_intr,	csa_teardown_intr),
+	DEVMETHOD(bus_setup_intr, csa_setup_intr),
+	DEVMETHOD(bus_teardown_intr, csa_teardown_intr),
 
 	DEVMETHOD_END
 };

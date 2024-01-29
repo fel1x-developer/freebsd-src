@@ -40,12 +40,13 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
+
 #include "local.h"
 #include "xlocale_private.h"
 
 int
-vsnprintf_l(char * __restrict str, size_t n, locale_t locale, 
-		const char * __restrict fmt, __va_list ap)
+vsnprintf_l(char *__restrict str, size_t n, locale_t locale,
+    const char *__restrict fmt, __va_list ap)
 {
 	size_t on;
 	int ret;
@@ -64,7 +65,7 @@ vsnprintf_l(char * __restrict str, size_t n, locale_t locale,
 	/* Stdio internals do not deal correctly with zero length buffer */
 	if (n == 0) {
 		if (on > 0)
-	  		*str = '\0';
+			*str = '\0';
 		str = dummy;
 		n = 1;
 	}
@@ -77,7 +78,7 @@ vsnprintf_l(char * __restrict str, size_t n, locale_t locale,
 	return (ret);
 }
 int
-vsnprintf(char * __restrict str, size_t n, const char * __restrict fmt,
+vsnprintf(char *__restrict str, size_t n, const char *__restrict fmt,
     __va_list ap)
 {
 	return vsnprintf_l(str, n, __get_locale(), fmt, ap);

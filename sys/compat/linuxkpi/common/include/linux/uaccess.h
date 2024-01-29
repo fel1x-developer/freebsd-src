@@ -28,8 +28,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_LINUXKPI_LINUX_UACCESS_H_
-#define	_LINUXKPI_LINUX_UACCESS_H_
+#ifndef _LINUXKPI_LINUX_UACCESS_H_
+#define _LINUXKPI_LINUX_UACCESS_H_
 
 #include <sys/param.h>
 #include <sys/lock.h>
@@ -40,26 +40,28 @@
 
 #include <linux/compiler.h>
 
-#define	VERIFY_READ	VM_PROT_READ
-#define	VERIFY_WRITE	VM_PROT_WRITE
+#define VERIFY_READ VM_PROT_READ
+#define VERIFY_WRITE VM_PROT_WRITE
 
-#define	__get_user(_x, _p) ({					\
-	int __err;						\
-	__typeof(*(_p)) __x;					\
-	__err = linux_copyin((_p), &(__x), sizeof(*(_p)));	\
-	(_x) = __x;						\
-	__err;							\
-})
+#define __get_user(_x, _p)                                         \
+	({                                                         \
+		int __err;                                         \
+		__typeof(*(_p)) __x;                               \
+		__err = linux_copyin((_p), &(__x), sizeof(*(_p))); \
+		(_x) = __x;                                        \
+		__err;                                             \
+	})
 
-#define	__put_user(_x, _p) ({				\
-	__typeof(*(_p)) __x = (_x);			\
-	linux_copyout(&(__x), (_p), sizeof(*(_p)));	\
-})
-#define	get_user(_x, _p)	linux_copyin((_p), &(_x), sizeof(*(_p)))
-#define	put_user(_x, _p)	__put_user(_x, _p)
-#define	clear_user(...)		linux_clear_user(__VA_ARGS__)
+#define __put_user(_x, _p)                                  \
+	({                                                  \
+		__typeof(*(_p)) __x = (_x);                 \
+		linux_copyout(&(__x), (_p), sizeof(*(_p))); \
+	})
+#define get_user(_x, _p) linux_copyin((_p), &(_x), sizeof(*(_p)))
+#define put_user(_x, _p) __put_user(_x, _p)
+#define clear_user(...) linux_clear_user(__VA_ARGS__)
 
-#define	access_ok(a,b)		linux_access_ok(a,b)
+#define access_ok(a, b) linux_access_ok(a, b)
 
 extern int linux_copyin(const void *uaddr, void *kaddr, size_t len);
 extern int linux_copyout(const void *kaddr, void *uaddr, size_t len);
@@ -73,13 +75,14 @@ extern int linux_access_ok(const void *uaddr, size_t len);
  * temporary variable and closes the block. Failure to balance the
  * calls will result in a compile-time error.
  */
-#define	pagefault_disable(void) do {		\
-	int __saved_pflags =			\
-	    vm_fault_disable_pagefaults()
+#define pagefault_disable(void) \
+	do {                    \
+	int __saved_pflags = vm_fault_disable_pagefaults()
 
-#define	pagefault_enable(void)				\
-	vm_fault_enable_pagefaults(__saved_pflags);	\
-} while (0)
+#define pagefault_enable(void)                      \
+	vm_fault_enable_pagefaults(__saved_pflags); \
+	}                                           \
+	while (0)
 
 static inline bool
 pagefault_disabled(void)
@@ -93,12 +96,11 @@ __copy_to_user_inatomic(void __user *to, const void *from, unsigned n)
 
 	return (copyout_nofault(from, to, n) != 0 ? n : 0);
 }
-#define	__copy_to_user_inatomic_nocache(to, from, n)	\
+#define __copy_to_user_inatomic_nocache(to, from, n) \
 	__copy_to_user_inatomic((to), (from), (n))
 
 static inline unsigned long
-__copy_from_user_inatomic(void *to, const void __user *from,
-    unsigned long n)
+__copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
 {
 	/*
 	 * XXXKIB.  Equivalent Linux function is implemented using
@@ -109,7 +111,7 @@ __copy_from_user_inatomic(void *to, const void __user *from,
 	 */
 	return ((copyin_nofault(__DECONST(void *, from), to, n) != 0 ? n : 0));
 }
-#define	__copy_from_user_inatomic_nocache(to, from, n)	\
+#define __copy_from_user_inatomic_nocache(to, from, n) \
 	__copy_from_user_inatomic((to), (from), (n))
 
-#endif					/* _LINUXKPI_LINUX_UACCESS_H_ */
+#endif /* _LINUXKPI_LINUX_UACCESS_H_ */

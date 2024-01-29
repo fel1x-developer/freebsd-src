@@ -49,8 +49,8 @@
 
 #include "main.h"
 
-static int	childproc_running;
-static pid_t	childproc;
+static int childproc_running;
+static pid_t childproc;
 
 int
 priv_sched_setpriority_setup(int asroot, int injail, struct test *test)
@@ -77,15 +77,15 @@ priv_sched_setpriority_setup(int asroot, int injail, struct test *test)
 		}
 		if (childproc == 0) {
 			if (another_uid) {
-				if (setresuid(UID_THIRD, UID_THIRD,
-				    UID_THIRD) < 0)
-				err(-1, "setresuid(%d)", UID_THIRD);
+				if (setresuid(UID_THIRD, UID_THIRD, UID_THIRD) <
+				    0)
+					err(-1, "setresuid(%d)", UID_THIRD);
 			}
 			while (1)
 				sleep(1);
 		}
 		childproc_running = 1;
-		sleep(1);	/* Allow dummy thread to change uids. */
+		sleep(1); /* Allow dummy thread to change uids. */
 	}
 	return (0);
 }
@@ -97,14 +97,14 @@ priv_sched_setpriority_curproc(int asroot, int injail, struct test *test)
 
 	error = setpriority(PRIO_PROCESS, 0, -1);
 	if (asroot && injail)
-		expect("priv_sched_setpriority_curproc(asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_curproc(asroot, injail)", error,
+		    -1, EACCES);
 	if (asroot && !injail)
-		expect("priv_sched_setpriority_curproc(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_setpriority_curproc(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_setpriority_curproc(!asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_curproc(!asroot, injail)", error,
+		    -1, EACCES);
 	if (!asroot && !injail)
 		expect("priv_sched_setpriority_curproc(!asroot, !injail)",
 		    error, -1, EACCES);
@@ -117,17 +117,17 @@ priv_sched_setpriority_myproc(int asroot, int injail, struct test *test)
 
 	error = setpriority(PRIO_PROCESS, 0, -1);
 	if (asroot && injail)
-		expect("priv_sched_setpriority_myproc(asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_myproc(asroot, injail)", error,
+		    -1, EACCES);
 	if (asroot && !injail)
-		expect("priv_sched_setpriority_myproc(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_setpriority_myproc(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_setpriority_myproc(!asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_myproc(!asroot, injail)", error,
+		    -1, EACCES);
 	if (!asroot && !injail)
-		expect("priv_sched_setpriority_myproc(!asroot, !injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_myproc(!asroot, !injail)", error,
+		    -1, EACCES);
 }
 
 void
@@ -137,17 +137,17 @@ priv_sched_setpriority_aproc(int asroot, int injail, struct test *test)
 
 	error = setpriority(PRIO_PROCESS, 0, -1);
 	if (asroot && injail)
-		expect("priv_sched_setpriority_aproc(asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_aproc(asroot, injail)", error,
+		    -1, EACCES);
 	if (asroot && !injail)
-		expect("priv_sched_setpriority_aproc(asroot, !injail)",
-		    error, 0, 0);
+		expect("priv_sched_setpriority_aproc(asroot, !injail)", error,
+		    0, 0);
 	if (!asroot && injail)
-		expect("priv_sched_setpriority_aproc(!asroot, injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_aproc(!asroot, injail)", error,
+		    -1, EACCES);
 	if (!asroot && !injail)
-		expect("priv_sched_setpriority_aproc(!asroot, !injail)",
-		    error, -1, EACCES);
+		expect("priv_sched_setpriority_aproc(!asroot, !injail)", error,
+		    -1, EACCES);
 }
 
 void
@@ -160,8 +160,7 @@ priv_sched_setpriority_cleanup(int asroot, int injail, struct test *test)
 		while (1) {
 			pid = waitpid(childproc, NULL, 0);
 			if (pid == -1)
-				warn("waitpid(%d (test), NULL, 0)",
-				    childproc);
+				warn("waitpid(%d (test), NULL, 0)", childproc);
 			if (pid == childproc)
 				break;
 		}

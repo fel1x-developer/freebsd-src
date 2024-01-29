@@ -29,14 +29,15 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include <sys/file.h>
 #include <sys/wait.h>
 
-#include <unistd.h>
-#include <paths.h>
 #include <errno.h>
+#include <paths.h>
+#include <unistd.h>
+
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -67,7 +68,7 @@ setptr(FILE *ibuf, off_t offset)
 	(void)rm(pathbuf);
 
 	if (offset == 0) {
-		 msgCount = 0;
+		msgCount = 0;
 	} else {
 		/* Seek into the file to get to the new messages */
 		(void)fseeko(ibuf, offset, SEEK_SET);
@@ -83,7 +84,7 @@ setptr(FILE *ibuf, off_t offset)
 	omsgCount = msgCount;
 	maybe = 1;
 	inhead = 0;
-	this.m_flag = MUSED|MNEW;
+	this.m_flag = MUSED | MNEW;
 	this.m_size = 0;
 	this.m_lines = 0;
 	this.m_block = 0;
@@ -115,7 +116,7 @@ setptr(FILE *ibuf, off_t offset)
 			msgCount++;
 			if (append(&this, mestmp))
 				errx(1, "temporary file");
-			this.m_flag = MUSED|MNEW;
+			this.m_flag = MUSED | MNEW;
 			this.m_size = 0;
 			this.m_lines = 0;
 			this.m_block = blockof(offset);
@@ -138,7 +139,8 @@ setptr(FILE *ibuf, off_t offset)
 					inhead = 0;
 					break;
 				}
-				if (*cp != c && *cp != toupper((unsigned char)c))
+				if (*cp != c &&
+				    *cp != toupper((unsigned char)c))
 					break;
 			}
 		}
@@ -200,8 +202,7 @@ setinput(struct message *mp)
 {
 
 	(void)fflush(otf);
-	if (fseeko(itf,
-		   positionof(mp->m_block, mp->m_offset), SEEK_SET) < 0)
+	if (fseeko(itf, positionof(mp->m_block, mp->m_offset), SEEK_SET) < 0)
 		err(1, "fseeko");
 	return (itf);
 }
@@ -219,8 +220,7 @@ makemessage(FILE *f, int omsgCount)
 	size = (msgCount + 1) * sizeof(struct message);
 	nmessage = (struct message *)realloc(message, size);
 	if (nmessage == NULL)
-		errx(1, "Insufficient memory for %d messages\n",
-		    msgCount);
+		errx(1, "Insufficient memory for %d messages\n", msgCount);
 	if (omsgCount == 0 || message == NULL)
 		dot = nmessage;
 	else
@@ -263,7 +263,7 @@ rm(char *name)
 	return (unlink(name));
 }
 
-static int sigdepth;		/* depth of holdsigs() */
+static int sigdepth; /* depth of holdsigs() */
 static sigset_t nset, oset;
 /*
  * Hold signals SIGHUP, SIGINT, and SIGQUIT.
@@ -321,7 +321,7 @@ char *
 expand(char *name)
 {
 	char xname[PATHSIZE];
-	char cmdbuf[PATHSIZE];		/* also used for file names */
+	char cmdbuf[PATHSIZE]; /* also used for file names */
 	int pid, l;
 	char *cp, *sh;
 	int pivec[2];
@@ -396,7 +396,7 @@ expand(char *name)
 		return (NULL);
 	}
 	xname[l] = '\0';
-	for (cp = &xname[l-1]; *cp == '\n' && cp > xname; cp--)
+	for (cp = &xname[l - 1]; *cp == '\n' && cp > xname; cp--)
 		;
 	cp[1] = '\0';
 	if (strchr(xname, ' ') && stat(xname, &sbuf) < 0) {

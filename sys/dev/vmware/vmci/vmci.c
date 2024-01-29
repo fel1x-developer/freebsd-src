@@ -7,17 +7,17 @@
 /* Driver for VMware Virtual Machine Communication Interface (VMCI) device. */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/rman.h>
-#include <sys/systm.h>
+
+#include <machine/bus.h>
 
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-
-#include <machine/bus.h>
 
 #include "vmci.h"
 #include "vmci_doorbell.h"
@@ -25,47 +25,45 @@
 #include "vmci_kernel_defs.h"
 #include "vmci_queue_pair.h"
 
-static int	vmci_probe(device_t);
-static int	vmci_attach(device_t);
-static int	vmci_detach(device_t);
-static int	vmci_shutdown(device_t);
+static int vmci_probe(device_t);
+static int vmci_attach(device_t);
+static int vmci_detach(device_t);
+static int vmci_shutdown(device_t);
 
-static int	vmci_map_bars(struct vmci_softc *);
-static void	vmci_unmap_bars(struct vmci_softc *);
+static int vmci_map_bars(struct vmci_softc *);
+static void vmci_unmap_bars(struct vmci_softc *);
 
-static int	vmci_config_capabilities(struct vmci_softc *);
+static int vmci_config_capabilities(struct vmci_softc *);
 
-static int	vmci_dma_malloc_int(struct vmci_softc *, bus_size_t,
-		    bus_size_t, struct vmci_dma_alloc *);
-static void	vmci_dma_free_int(struct vmci_softc *,
-		    struct vmci_dma_alloc *);
+static int vmci_dma_malloc_int(struct vmci_softc *, bus_size_t, bus_size_t,
+    struct vmci_dma_alloc *);
+static void vmci_dma_free_int(struct vmci_softc *, struct vmci_dma_alloc *);
 
-static int	vmci_config_interrupts(struct vmci_softc *);
-static int	vmci_config_interrupt(struct vmci_softc *);
-static int	vmci_check_intr_cnt(struct vmci_softc *);
-static int	vmci_allocate_interrupt_resources(struct vmci_softc *);
-static int	vmci_setup_interrupts(struct vmci_softc *);
-static void	vmci_dismantle_interrupts(struct vmci_softc *);
-static void	vmci_interrupt(void *);
-static void	vmci_interrupt_bm(void *);
-static void	dispatch_datagrams(void *, int);
-static void	process_bitmap(void *, int);
+static int vmci_config_interrupts(struct vmci_softc *);
+static int vmci_config_interrupt(struct vmci_softc *);
+static int vmci_check_intr_cnt(struct vmci_softc *);
+static int vmci_allocate_interrupt_resources(struct vmci_softc *);
+static int vmci_setup_interrupts(struct vmci_softc *);
+static void vmci_dismantle_interrupts(struct vmci_softc *);
+static void vmci_interrupt(void *);
+static void vmci_interrupt_bm(void *);
+static void dispatch_datagrams(void *, int);
+static void process_bitmap(void *, int);
 
-static void	vmci_delayed_work_fn_cb(void *context, int data);
+static void vmci_delayed_work_fn_cb(void *context, int data);
 
 static device_method_t vmci_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		vmci_probe),
-	DEVMETHOD(device_attach,	vmci_attach),
-	DEVMETHOD(device_detach,	vmci_detach),
-	DEVMETHOD(device_shutdown,	vmci_shutdown),
+	DEVMETHOD(device_probe, vmci_probe),
+	DEVMETHOD(device_attach, vmci_attach),
+	DEVMETHOD(device_detach, vmci_detach),
+	DEVMETHOD(device_shutdown, vmci_shutdown),
 
 	DEVMETHOD_END
 };
 
-static driver_t vmci_driver = {
-	"vmci", vmci_methods, sizeof(struct vmci_softc)
-};
+static driver_t vmci_driver = { "vmci", vmci_methods,
+	sizeof(struct vmci_softc) };
 
 DRIVER_MODULE(vmci, pci, vmci_driver, 0, 0);
 MODULE_VERSION(vmci, VMCI_VERSION);
@@ -84,7 +82,7 @@ MODULE_DEPEND(vmci, pci, 1, 1, 1);
 
 static struct vmci_softc *vmci_sc;
 
-#define LGPFX	"vmci: "
+#define LGPFX "vmci: "
 /*
  * Allocate a buffer for incoming datagrams globally to avoid repeated
  * allocation in the interrupt handler's atomic context.
@@ -93,8 +91,8 @@ static uint8_t *data_buffer = NULL;
 static uint32_t data_buffer_size = VMCI_MAX_DG_SIZE;
 
 struct vmci_delayed_work_info {
-	vmci_work_fn	*work_fn;
-	void		*data;
+	vmci_work_fn *work_fn;
+	void *data;
 	vmci_list_item(vmci_delayed_work_info) entry;
 };
 
@@ -170,18 +168,18 @@ vmci_attach(device_t dev)
 	pci_enable_busmaster(dev);
 
 	mtx_init(&sc->vmci_spinlock, "VMCI Spinlock", NULL, MTX_SPIN);
-	mtx_init(&sc->vmci_delayed_work_lock, "VMCI Delayed Work Lock",
-	    NULL, MTX_DEF);
+	mtx_init(&sc->vmci_delayed_work_lock, "VMCI Delayed Work Lock", NULL,
+	    MTX_DEF);
 
 	error = vmci_map_bars(sc);
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"Failed to map PCI BARs.\n");
+		VMCI_LOG_ERROR(LGPFX "Failed to map PCI BARs.\n");
 		goto fail;
 	}
 
 	error = vmci_config_capabilities(sc);
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"Failed to configure capabilities.\n");
+		VMCI_LOG_ERROR(LGPFX "Failed to configure capabilities.\n");
 		goto fail;
 	}
 
@@ -191,13 +189,13 @@ vmci_attach(device_t dev)
 	vmci_util_init();
 	error = vmci_qp_guest_endpoints_init();
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"vmci_qp_guest_endpoints_init failed.\n");
+		VMCI_LOG_ERROR(LGPFX "vmci_qp_guest_endpoints_init failed.\n");
 		goto fail;
 	}
 
 	error = vmci_config_interrupts(sc);
 	if (error)
-		VMCI_LOG_ERROR(LGPFX"Failed to enable interrupts.\n");
+		VMCI_LOG_ERROR(LGPFX "Failed to enable interrupts.\n");
 
 fail:
 	if (error) {
@@ -238,7 +236,7 @@ vmci_detach(device_t dev)
 
 	vmci_components_cleanup();
 
-	if mtx_initialized(&sc->vmci_spinlock) {
+	if mtx_initialized (&sc->vmci_spinlock) {
 		taskqueue_drain(taskqueue_thread, &sc->vmci_delayed_work_task);
 		mtx_destroy(&sc->vmci_delayed_work_lock);
 	}
@@ -252,7 +250,7 @@ vmci_detach(device_t dev)
 
 	vmci_unmap_bars(sc);
 
-	if mtx_initialized(&sc->vmci_spinlock)
+	if mtx_initialized (&sc->vmci_spinlock)
 		mtx_destroy(&sc->vmci_spinlock);
 
 	pci_disable_busmaster(dev);
@@ -309,7 +307,7 @@ vmci_map_bars(struct vmci_softc *sc)
 	sc->vmci_res0 = bus_alloc_resource_any(sc->vmci_dev, SYS_RES_IOPORT,
 	    &rid, RF_ACTIVE);
 	if (sc->vmci_res0 == NULL) {
-		VMCI_LOG_ERROR(LGPFX"Could not map: BAR0\n");
+		VMCI_LOG_ERROR(LGPFX "Could not map: BAR0\n");
 		return (ENXIO);
 	}
 
@@ -322,7 +320,7 @@ vmci_map_bars(struct vmci_softc *sc)
 	sc->vmci_res1 = bus_alloc_resource_any(sc->vmci_dev, SYS_RES_MEMORY,
 	    &rid, RF_ACTIVE);
 	if (sc->vmci_res1 == NULL) {
-		VMCI_LOG_ERROR(LGPFX"Could not map: BAR1\n");
+		VMCI_LOG_ERROR(LGPFX "Could not map: BAR1\n");
 		return (ENXIO);
 	}
 
@@ -399,8 +397,8 @@ vmci_config_capabilities(struct vmci_softc *sc)
 	    VMCI_CAPS_ADDR);
 
 	if ((sc->capabilities & VMCI_CAPS_DATAGRAM) == 0) {
-		VMCI_LOG_ERROR(LGPFX"VMCI device does not support "
-		    "datagrams.\n");
+		VMCI_LOG_ERROR(LGPFX "VMCI device does not support "
+				     "datagrams.\n");
 		return (ENODEV);
 	}
 
@@ -409,8 +407,8 @@ vmci_config_capabilities(struct vmci_softc *sc)
 		error = vmci_dma_malloc(PAGE_SIZE, 1,
 		    &sc->vmci_notifications_bitmap);
 		if (error)
-			VMCI_LOG_ERROR(LGPFX"Failed to alloc memory for "
-			    "notification bitmap.\n");
+			VMCI_LOG_ERROR(LGPFX "Failed to alloc memory for "
+					     "notification bitmap.\n");
 		else {
 			memset(sc->vmci_notifications_bitmap.dma_vaddr, 0,
 			    PAGE_SIZE);
@@ -420,16 +418,16 @@ vmci_config_capabilities(struct vmci_softc *sc)
 		sc->capabilities = VMCI_CAPS_DATAGRAM;
 
 	/* Let the host know which capabilities we intend to use. */
-	bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0,
-	    VMCI_CAPS_ADDR, sc->capabilities);
+	bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0, VMCI_CAPS_ADDR,
+	    sc->capabilities);
 
 	/*
 	 * Register notification bitmap with device if that capability is
 	 * used.
 	 */
 	if (sc->capabilities & VMCI_CAPS_NOTIFICATIONS) {
-		bitmap_PPN =
-		    sc->vmci_notifications_bitmap.dma_paddr >> PAGE_SHIFT;
+		bitmap_PPN = sc->vmci_notifications_bitmap.dma_paddr >>
+		    PAGE_SHIFT;
 		vmci_register_notification_bitmap(bitmap_PPN);
 	}
 
@@ -493,34 +491,34 @@ vmci_dma_malloc_int(struct vmci_softc *sc, bus_size_t size, bus_size_t align,
 
 	bzero(dma, sizeof(struct vmci_dma_alloc));
 
-	error = bus_dma_tag_create(bus_get_dma_tag(vmci_sc->vmci_dev),
-	    align, 0,		/* alignment, bounds */
-	    BUS_SPACE_MAXADDR,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,	/* highaddr */
-	    NULL, NULL,		/* filter, filterarg */
-	    size,		/* maxsize */
-	    1,			/* nsegments */
-	    size,		/* maxsegsize */
-	    BUS_DMA_ALLOCNOW,	/* flags */
-	    NULL,		/* lockfunc */
-	    NULL,		/* lockfuncarg */
+	error = bus_dma_tag_create(bus_get_dma_tag(vmci_sc->vmci_dev), align,
+	    0,		       /* alignment, bounds */
+	    BUS_SPACE_MAXADDR, /* lowaddr */
+	    BUS_SPACE_MAXADDR, /* highaddr */
+	    NULL, NULL,	       /* filter, filterarg */
+	    size,	       /* maxsize */
+	    1,		       /* nsegments */
+	    size,	       /* maxsegsize */
+	    BUS_DMA_ALLOCNOW,  /* flags */
+	    NULL,	       /* lockfunc */
+	    NULL,	       /* lockfuncarg */
 	    &dma->dma_tag);
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"bus_dma_tag_create failed: %d\n", error);
+		VMCI_LOG_ERROR(LGPFX "bus_dma_tag_create failed: %d\n", error);
 		goto fail;
 	}
 
 	error = bus_dmamem_alloc(dma->dma_tag, (void **)&dma->dma_vaddr,
 	    BUS_DMA_ZERO | BUS_DMA_NOWAIT, &dma->dma_map);
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"bus_dmamem_alloc failed: %d\n", error);
+		VMCI_LOG_ERROR(LGPFX "bus_dmamem_alloc failed: %d\n", error);
 		goto fail;
 	}
 
 	error = bus_dmamap_load(dma->dma_tag, dma->dma_map, dma->dma_vaddr,
 	    size, vmci_dmamap_cb, &dma->dma_paddr, BUS_DMA_NOWAIT);
 	if (error) {
-		VMCI_LOG_ERROR(LGPFX"bus_dmamap_load failed: %d\n", error);
+		VMCI_LOG_ERROR(LGPFX "bus_dmamap_load failed: %d\n", error);
 		goto fail;
 	}
 
@@ -666,15 +664,15 @@ vmci_config_interrupts(struct vmci_softc *sc)
 
 	/* Enable specific interrupt bits. */
 	if (sc->capabilities & VMCI_CAPS_NOTIFICATIONS)
-		bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0,
-		    VMCI_IMR_ADDR, VMCI_IMR_DATAGRAM | VMCI_IMR_NOTIFICATION);
+		bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0, VMCI_IMR_ADDR,
+		    VMCI_IMR_DATAGRAM | VMCI_IMR_NOTIFICATION);
 	else
-		bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0,
-		    VMCI_IMR_ADDR, VMCI_IMR_DATAGRAM);
+		bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0, VMCI_IMR_ADDR,
+		    VMCI_IMR_DATAGRAM);
 
 	/* Enable interrupts. */
-	bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0,
-	    VMCI_CONTROL_ADDR, VMCI_CONTROL_INT_ENABLE);
+	bus_space_write_4(sc->vmci_iot0, sc->vmci_ioh0, VMCI_CONTROL_ADDR,
+	    VMCI_CONTROL_INT_ENABLE);
 
 	return (0);
 }
@@ -754,16 +752,18 @@ vmci_check_intr_cnt(struct vmci_softc *sc)
 	 * least 1 MSI message.
 	 */
 	sc->vmci_num_intr = (sc->vmci_intr_type == VMCI_INTR_TYPE_MSIX) ?
-	    pci_msix_count(sc->vmci_dev) : pci_msi_count(sc->vmci_dev);
+	    pci_msix_count(sc->vmci_dev) :
+	    pci_msi_count(sc->vmci_dev);
 
 	if (!sc->vmci_num_intr) {
-		VMCI_LOG_ERROR(LGPFX"Device does not support any interrupt"
-		    " messages");
+		VMCI_LOG_ERROR(LGPFX "Device does not support any interrupt"
+				     " messages");
 		return (ENODEV);
 	}
 
 	sc->vmci_num_intr = (sc->vmci_intr_type == VMCI_INTR_TYPE_MSIX) ?
-	    VMCI_MAX_INTRS : 1;
+	    VMCI_MAX_INTRS :
+	    1;
 	if (sc->vmci_intr_type == VMCI_INTR_TYPE_MSIX) {
 		if (pci_alloc_msix(sc->vmci_dev, &sc->vmci_num_intr))
 			return (ENXIO);
@@ -901,8 +901,8 @@ vmci_interrupt(void *arg)
 			icr &= ~VMCI_ICR_NOTIFICATION;
 		}
 		if (icr != 0)
-			VMCI_LOG_INFO(LGPFX"Ignoring unknown interrupt "
-			    "cause");
+			VMCI_LOG_INFO(LGPFX "Ignoring unknown interrupt "
+					    "cause");
 	}
 }
 
@@ -953,12 +953,12 @@ dispatch_datagrams(void *context, int data)
 {
 
 	if (data_buffer == NULL)
-		VMCI_LOG_INFO(LGPFX"dispatch_datagrams(): no buffer "
-		    "present");
+		VMCI_LOG_INFO(LGPFX "dispatch_datagrams(): no buffer "
+				    "present");
 
-	vmci_read_datagrams_from_port((vmci_io_handle) 0,
-	    vmci_sc->vmci_ioaddr + VMCI_DATA_IN_ADDR,
-	    data_buffer, data_buffer_size);
+	vmci_read_datagrams_from_port((vmci_io_handle)0,
+	    vmci_sc->vmci_ioaddr + VMCI_DATA_IN_ADDR, data_buffer,
+	    data_buffer_size);
 }
 
 /*
@@ -983,7 +983,7 @@ process_bitmap(void *context, int data)
 {
 
 	if (vmci_sc->vmci_notifications_bitmap.dma_vaddr == NULL)
-		VMCI_LOG_INFO(LGPFX"process_bitmaps(): no bitmap present");
+		VMCI_LOG_INFO(LGPFX "process_bitmaps(): no bitmap present");
 
 	vmci_scan_notification_bitmap(
 	    vmci_sc->vmci_notifications_bitmap.dma_vaddr);
@@ -1027,8 +1027,7 @@ vmci_dismantle_interrupts(struct vmci_softc *sc)
 		}
 	}
 
-	if ((sc->vmci_intr_type != VMCI_INTR_TYPE_INTX) &&
-	    (sc->vmci_num_intr))
+	if ((sc->vmci_intr_type != VMCI_INTR_TYPE_INTX) && (sc->vmci_num_intr))
 		pci_release_msi(sc->vmci_dev);
 
 	taskqueue_drain(taskqueue_swi, &sc->vmci_interrupt_dq_task);
@@ -1116,12 +1115,11 @@ vmci_schedule_delayed_work_fn(vmci_work_fn *work_fn, void *data)
 	delayed_work_info->work_fn = work_fn;
 	delayed_work_info->data = data;
 	mtx_lock(&vmci_sc->vmci_delayed_work_lock);
-	vmci_list_insert(&vmci_sc->vmci_delayed_work_infos,
-	    delayed_work_info, entry);
+	vmci_list_insert(&vmci_sc->vmci_delayed_work_infos, delayed_work_info,
+	    entry);
 	mtx_unlock(&vmci_sc->vmci_delayed_work_lock);
 
-	taskqueue_enqueue(taskqueue_thread,
-	    &vmci_sc->vmci_delayed_work_task);
+	taskqueue_enqueue(taskqueue_thread, &vmci_sc->vmci_delayed_work_task);
 
 	return (VMCI_SUCCESS);
 }
@@ -1164,21 +1162,19 @@ vmci_send_datagram(struct vmci_datagram *dg)
 	 * Send the datagram and retrieve the return value from the result
 	 * register.
 	 */
-	__asm__ __volatile__(
-	    "cld\n\t"
-	    "rep outsb\n\t"
-	    : /* No output. */
-	    : "d"(vmci_sc->vmci_ioaddr + VMCI_DATA_OUT_ADDR),
-	    "c"(VMCI_DG_SIZE(dg)), "S"(dg)
-	    );
+	__asm__ __volatile__("cld\n\t"
+			     "rep outsb\n\t"
+			     : /* No output. */
+			     : "d"(vmci_sc->vmci_ioaddr + VMCI_DATA_OUT_ADDR),
+			     "c"(VMCI_DG_SIZE(dg)), "S"(dg));
 
 	/*
 	 * XXX: Should read result high port as well when updating handlers to
 	 * return 64bit.
 	 */
 
-	result = bus_space_read_4(vmci_sc->vmci_iot0,
-	    vmci_sc->vmci_ioh0, VMCI_RESULT_LOW_ADDR);
+	result = bus_space_read_4(vmci_sc->vmci_iot0, vmci_sc->vmci_ioh0,
+	    VMCI_RESULT_LOW_ADDR);
 	mtx_unlock_spin(&vmci_sc->vmci_spinlock);
 
 	return (result);

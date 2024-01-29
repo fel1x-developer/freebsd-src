@@ -31,13 +31,15 @@
  */
 
 #include <sys/types.h>
+
 #include <stdarg.h>
 #include <syslog.h>
 
 void
 log_open(char const *prog, int32_t log2stderr)
 {
-	openlog(prog, LOG_PID|LOG_NDELAY|(log2stderr? LOG_PERROR:0), LOG_USER);
+	openlog(prog, LOG_PID | LOG_NDELAY | (log2stderr ? LOG_PERROR : 0),
+	    LOG_USER);
 }
 
 void
@@ -49,7 +51,7 @@ log_close(void)
 void
 log_emerg(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_EMERG, message, ap);
@@ -59,7 +61,7 @@ log_emerg(char const *message, ...)
 void
 log_alert(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_ALERT, message, ap);
@@ -69,7 +71,7 @@ log_alert(char const *message, ...)
 void
 log_crit(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_CRIT, message, ap);
@@ -79,7 +81,7 @@ log_crit(char const *message, ...)
 void
 log_err(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_ERR, message, ap);
@@ -89,7 +91,7 @@ log_err(char const *message, ...)
 void
 log_warning(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_WARNING, message, ap);
@@ -99,7 +101,7 @@ log_warning(char const *message, ...)
 void
 log_notice(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_NOTICE, message, ap);
@@ -109,7 +111,7 @@ log_notice(char const *message, ...)
 void
 log_info(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_INFO, message, ap);
@@ -119,10 +121,9 @@ log_info(char const *message, ...)
 void
 log_debug(char const *message, ...)
 {
-	va_list	ap;
+	va_list ap;
 
 	va_start(ap, message);
 	vsyslog(LOG_DEBUG, message, ap);
 	va_end(ap);
 }
-

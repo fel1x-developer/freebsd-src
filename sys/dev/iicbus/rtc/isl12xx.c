@@ -52,8 +52,8 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
 
 #include "clock_if.h"
 #include "iicbus_if.h"
@@ -64,52 +64,52 @@
  * "EVENB" implies 1=event-disable, 0=event-enable.
  */
 
-#define	ISL12XX_SC_REG		0x00		/* RTC Seconds */
+#define ISL12XX_SC_REG 0x00 /* RTC Seconds */
 
-#define	ISL12XX_SR_REG		0x07		/* Status */
-#define	  ISL12XX_SR_ARST	  (1u << 7)	/*   Auto-reset on status read */
-#define	  ISL12XX_SR_XTOSCB	  (1u << 5)	/*   Osc disable (use ext osc) */
-#define	  ISL12XX_SR_WRTC	  (1u << 4)	/*   Write RTC enable */
-#define	  ISL12XX_SR_EVT	  (1u << 3)	/*   Event occurred (w0c) */
-#define	  ISL12XX_SR_ALM	  (1u << 2)	/*   Alarm occurred (w0c) */
-#define	  ISL12XX_SR_BAT	  (1u << 1)	/*   Running on battery (w0c) */
-#define	  ISL12XX_SR_RTCF	  (1u << 0)	/*   RTC fail (power loss) */
-#define	  ISL12XX_SR_W0C_BITS (ISL12XX_SR_BAT | ISL12XX_SR_ALM | ISL12XX_SR_EVT)
+#define ISL12XX_SR_REG 0x07	    /* Status */
+#define ISL12XX_SR_ARST (1u << 7)   /*   Auto-reset on status read */
+#define ISL12XX_SR_XTOSCB (1u << 5) /*   Osc disable (use ext osc) */
+#define ISL12XX_SR_WRTC (1u << 4)   /*   Write RTC enable */
+#define ISL12XX_SR_EVT (1u << 3)    /*   Event occurred (w0c) */
+#define ISL12XX_SR_ALM (1u << 2)    /*   Alarm occurred (w0c) */
+#define ISL12XX_SR_BAT (1u << 1)    /*   Running on battery (w0c) */
+#define ISL12XX_SR_RTCF (1u << 0)   /*   RTC fail (power loss) */
+#define ISL12XX_SR_W0C_BITS (ISL12XX_SR_BAT | ISL12XX_SR_ALM | ISL12XX_SR_EVT)
 
-#define	ISL12XX_INT_REG		0x08		/* Interrupts */
-#define	  ISL12XX_INT_IM	  (1u << 7)	/*   Alarm interrupt mode */
-#define	  ISL12XX_INT_ALME	  (1u << 6)	/*   Alarm enable */
-#define	  ISL12XX_INT_LPMODE	  (1u << 5)	/*   Low Power mode */
-#define	  ISL12XX_INT_FOBATB	  (1u << 4)	/*   Fout/IRQ disabled on bat */
-#define	  ISL12XX_INT_FO_SHIFT	  0		/*   Frequency output select */
-#define	  ISL12XX_INT_FO_MASK	  0x0f		/*   shift and mask. */
+#define ISL12XX_INT_REG 0x08	     /* Interrupts */
+#define ISL12XX_INT_IM (1u << 7)     /*   Alarm interrupt mode */
+#define ISL12XX_INT_ALME (1u << 6)   /*   Alarm enable */
+#define ISL12XX_INT_LPMODE (1u << 5) /*   Low Power mode */
+#define ISL12XX_INT_FOBATB (1u << 4) /*   Fout/IRQ disabled on bat */
+#define ISL12XX_INT_FO_SHIFT 0	     /*   Frequency output select */
+#define ISL12XX_INT_FO_MASK 0x0f     /*   shift and mask. */
 
-#define	ISL12XX_EV_REG		0x09		/* Event */
-#define	  ISL12XX_EV_EVIENB	  (1u << 7)	/*   Disable internal pullup */
-#define	  ISL12XX_EV_EVBATB	  (1u << 6)	/*   Disable ev detect on bat */
-#define	  ISL12XX_EV_RTCHLT	  (1u << 5)	/*   Halt RTC on event */
-#define	  ISL12XX_EV_EVEN	  (1u << 4)	/*   Event detect enable */
-#define	  ISL12XX_EV_EHYS_SHIFT	  2		/*   Event input hysteresis */
-#define	  ISL12XX_EV_EHYS_MASK	  0x03		/*   selection; see datasheet */
-#define	  ISL12XX_EV_ESMP_SHIFT	  0		/*   Event input sample rate */
-#define	  ISL12XX_EV_ESMP_MASK	  0x03		/*   selection; see datasheet */
+#define ISL12XX_EV_REG 0x09	    /* Event */
+#define ISL12XX_EV_EVIENB (1u << 7) /*   Disable internal pullup */
+#define ISL12XX_EV_EVBATB (1u << 6) /*   Disable ev detect on bat */
+#define ISL12XX_EV_RTCHLT (1u << 5) /*   Halt RTC on event */
+#define ISL12XX_EV_EVEN (1u << 4)   /*   Event detect enable */
+#define ISL12XX_EV_EHYS_SHIFT 2	    /*   Event input hysteresis */
+#define ISL12XX_EV_EHYS_MASK 0x03   /*   selection; see datasheet */
+#define ISL12XX_EV_ESMP_SHIFT 0	    /*   Event input sample rate */
+#define ISL12XX_EV_ESMP_MASK 0x03   /*   selection; see datasheet */
 
-#define	ISL12XX_ATR_REG		0x0a		/* Analog trim (osc adjust) */
+#define ISL12XX_ATR_REG 0x0a /* Analog trim (osc adjust) */
 
-#define	ISL12XX_DTR_REG		0x0b		/* Digital trim (osc adjust) */
+#define ISL12XX_DTR_REG 0x0b /* Digital trim (osc adjust) */
 
-#define	ISL12XX_SCA_REG		0x0c		/* Alarm seconds */
+#define ISL12XX_SCA_REG 0x0c /* Alarm seconds */
 
-#define	ISL12XX_USR1_REG	0x12		/* User byte 1 */
+#define ISL12XX_USR1_REG 0x12 /* User byte 1 */
 
-#define	ISL12XX_USR2_REG	0x13		/* User byte 2 */
+#define ISL12XX_USR2_REG 0x13 /* User byte 2 */
 
-#define	ISL12XX_SCT_REG		0x14		/* Timestamp (event) seconds */
+#define ISL12XX_SCT_REG 0x14 /* Timestamp (event) seconds */
 
-#define	ISL12XX_24HR_FLAG	(1u << 7)	/* Hours register 24-hr mode */
-#define	ISL12XX_PM_FLAG		(1u << 5)	/* Hours register PM flag */
-#define	ISL12xx_12HR_MASK	0x1f		/* Hours mask in AM/PM mode */
-#define	ISL12xx_24HR_MASK	0x3f		/* Hours mask in 24-hr mode */
+#define ISL12XX_24HR_FLAG (1u << 7) /* Hours register 24-hr mode */
+#define ISL12XX_PM_FLAG (1u << 5)   /* Hours register PM flag */
+#define ISL12xx_12HR_MASK 0x1f	    /* Hours mask in AM/PM mode */
+#define ISL12xx_24HR_MASK 0x3f	    /* Hours mask in 24-hr mode */
 
 /*
  * A struct laid out in the same order as the time registers in the chip.
@@ -119,21 +119,20 @@ struct time_regs {
 };
 
 struct isl12xx_softc {
-	device_t	dev;
-	device_t	busdev;
-	struct intr_config_hook 
-			init_hook;
-	bool		use_ampm;
+	device_t dev;
+	device_t busdev;
+	struct intr_config_hook init_hook;
+	bool use_ampm;
 };
 
 #ifdef FDT
 static struct ofw_compat_data compat_data[] = {
-	{"isil,isl1209", 1},
-	{"isil,isl1218", 1},
-	{"isil,isl1219", 1},
-	{"isil,isl1220", 1},
-	{"isil,isl1221", 1},
-	{NULL,           0},
+	{ "isil,isl1209", 1 },
+	{ "isil,isl1218", 1 },
+	{ "isil,isl1219", 1 },
+	{ "isil,isl1220", 1 },
+	{ "isil,isl1221", 1 },
+	{ NULL, 0 },
 };
 #endif
 
@@ -144,17 +143,17 @@ static struct ofw_compat_data compat_data[] = {
  * functions to ensure that only one client at a time accesses the hardware for
  * the entire series of operations it takes to read or write the clock.
  */
-#define	WAITFLAGS	(IIC_WAIT | IIC_RECURSIVE)
+#define WAITFLAGS (IIC_WAIT | IIC_RECURSIVE)
 
 static inline int
-isl12xx_read1(struct isl12xx_softc *sc, uint8_t reg, uint8_t *data) 
+isl12xx_read1(struct isl12xx_softc *sc, uint8_t reg, uint8_t *data)
 {
 
 	return (iicdev_readfrom(sc->dev, reg, data, 1, WAITFLAGS));
 }
 
 static inline int
-isl12xx_write1(struct isl12xx_softc *sc, uint8_t reg, uint8_t val) 
+isl12xx_write1(struct isl12xx_softc *sc, uint8_t reg, uint8_t val)
 {
 
 	return (iicdev_writeto(sc->dev, reg, &val, 1, WAITFLAGS));
@@ -174,8 +173,7 @@ isl12xx_init(void *arg)
 	 */
 	isl12xx_read1(sc, ISL12XX_SR_REG, &sreg);
 	if (sreg & ISL12XX_SR_RTCF) {
-		device_printf(sc->dev,
-		    "RTC clock stopped; check battery\n");
+		device_printf(sc->dev, "RTC clock stopped; check battery\n");
 	}
 
 	/*
@@ -264,15 +262,15 @@ isl12xx_gettime(device_t dev, struct timespec *ts)
 	}
 
 	bct.nsec = 0;
-	bct.sec  = tregs.sec;
-	bct.min  = tregs.min;
+	bct.sec = tregs.sec;
+	bct.min = tregs.min;
 	bct.hour = tregs.hour & hourmask;
-	bct.day  = tregs.day;
-	bct.mon  = tregs.month;
+	bct.day = tregs.day;
+	bct.mon = tregs.month;
 	bct.year = tregs.year;
 	bct.ispm = tregs.hour & ISL12XX_PM_FLAG;
 
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_READ, &bct);
 	return (clock_bcd_to_ts(&bct, ts, sc->use_ampm));
 }
 
@@ -292,7 +290,7 @@ isl12xx_settime(device_t dev, struct timespec *ts)
 	ts->tv_sec -= utc_offset();
 	ts->tv_nsec = 0;
 	clock_ts_to_bcd(ts, &bct, sc->use_ampm);
-	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_WRITE, &bct); 
+	clock_dbgprint_bcd(sc->dev, CLOCK_DBG_WRITE, &bct);
 
 	/* If the chip is in AM/PM mode, set flags as needed. */
 	if (!sc->use_ampm)
@@ -300,12 +298,12 @@ isl12xx_settime(device_t dev, struct timespec *ts)
 	else
 		ampmflags = bct.ispm ? ISL12XX_PM_FLAG : 0;
 
-	tregs.sec   = bct.sec;
-	tregs.min   = bct.min;
-	tregs.hour  = bct.hour | ampmflags;
-	tregs.day   = bct.day;
+	tregs.sec = bct.sec;
+	tregs.min = bct.min;
+	tregs.hour = bct.hour | ampmflags;
+	tregs.day = bct.day;
 	tregs.month = bct.mon;
-	tregs.year  = bct.year % 100;
+	tregs.year = bct.year % 100;
 
 	/*
 	 * To set the time we have to set the WRTC enable bit in the control
@@ -334,14 +332,14 @@ isl12xx_settime(device_t dev, struct timespec *ts)
 }
 
 static device_method_t isl12xx_methods[] = {
-        /* device_if methods */
-	DEVMETHOD(device_probe,		isl12xx_probe),
-	DEVMETHOD(device_attach,	isl12xx_attach),
-	DEVMETHOD(device_detach,	isl12xx_detach),
+	/* device_if methods */
+	DEVMETHOD(device_probe, isl12xx_probe),
+	DEVMETHOD(device_attach, isl12xx_attach),
+	DEVMETHOD(device_detach, isl12xx_detach),
 
-        /* clock_if methods */
-	DEVMETHOD(clock_gettime,	isl12xx_gettime),
-	DEVMETHOD(clock_settime,	isl12xx_settime),
+	/* clock_if methods */
+	DEVMETHOD(clock_gettime, isl12xx_gettime),
+	DEVMETHOD(clock_settime, isl12xx_settime),
 
 	DEVMETHOD_END,
 };

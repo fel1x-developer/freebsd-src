@@ -55,19 +55,18 @@
 #include <sys/time.h>
 
 #include <fcntl.h>
+#include <fs/msdosfs/bpb.h>
+#include <fs/msdosfs/fat.h>
+#include <fs/msdosfs/msdosfsmount.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
-#include <fs/msdosfs/bpb.h>
-#include "msdos/denode.h"
-#include <fs/msdosfs/fat.h>
-#include <fs/msdosfs/msdosfsmount.h>
-
 #include "makefs.h"
 #include "msdos.h"
+#include "msdos/denode.h"
 
 /*
  * Some general notes:
@@ -110,17 +109,14 @@ static void
 unix2fattime(const struct timespec *tsp, uint16_t *ddp, uint16_t *dtp)
 {
 	time_t t1;
-	struct tm lt = {0};
+	struct tm lt = { 0 };
 
 	t1 = tsp->tv_sec;
 	localtime_r(&t1, &lt);
 
 	unsigned long fat_time = ((lt.tm_year - 80) << 25) |
-            ((lt.tm_mon + 1) << 21) |
-            (lt.tm_mday << 16) |
-            (lt.tm_hour << 11) |
-            (lt.tm_min << 5) |
-            (lt.tm_sec >> 1);
+	    ((lt.tm_mon + 1) << 21) | (lt.tm_mday << 16) | (lt.tm_hour << 11) |
+	    (lt.tm_min << 5) | (lt.tm_sec >> 1);
 
 	if (ddp != NULL)
 		*ddp = (uint16_t)(fat_time >> 16);
@@ -173,12 +169,14 @@ msdosfs_findslot(struct denode *dp, struct componentname *cnp)
 		break;
 	case 2:
 		wincnt = winSlotCnt((const u_char *)cnp->cn_nameptr,
-		    cnp->cn_namelen) + 1;
+			     cnp->cn_namelen) +
+		    1;
 		break;
 	case 3:
 		olddos = 0;
 		wincnt = winSlotCnt((const u_char *)cnp->cn_nameptr,
-		    cnp->cn_namelen) + 1;
+			     cnp->cn_namelen) +
+		    1;
 		break;
 	}
 
@@ -217,7 +215,7 @@ msdosfs_findslot(struct denode *dp, struct componentname *cnp)
 		}
 		for (blkoff = 0; blkoff < blsize;
 		     blkoff += sizeof(struct direntry),
-		     diroff += sizeof(struct direntry)) {
+		    diroff += sizeof(struct direntry)) {
 			dep = (struct direntry *)(bp->b_data + blkoff);
 			/*
 			 * If the slot is empty and we are still looking
@@ -255,11 +253,12 @@ msdosfs_findslot(struct denode *dp, struct componentname *cnp)
 				 * Check for Win95 long filename entry
 				 */
 				if (dep->deAttributes == ATTR_WIN95) {
-					if (pmp->pm_flags & MSDOSFSMNT_SHORTNAME)
+					if (pmp->pm_flags &
+					    MSDOSFSMNT_SHORTNAME)
 						continue;
 
-					chksum = winChkName(
-					    (const u_char *)cnp->cn_nameptr,
+					chksum = winChkName((const u_char *)
+								cnp->cn_nameptr,
 					    cnp->cn_namelen,
 					    (struct winentry *)dep, chksum);
 					continue;
@@ -278,13 +277,15 @@ msdosfs_findslot(struct denode *dp, struct componentname *cnp)
 				 * Check for a checksum or name match
 				 */
 				chksum_ok = (chksum == winChksum(dep->deName));
-				if (!chksum_ok
-				    && (!olddos || memcmp(dosfilename, dep->deName, 11))) {
+				if (!chksum_ok &&
+				    (!olddos ||
+					memcmp(dosfilename, dep->deName, 11))) {
 					chksum = -1;
 					continue;
 				}
-				MSDOSFS_DPRINTF(("%s(): match blkoff %d, diroff %u\n",
-				    __func__, blkoff, diroff));
+				MSDOSFS_DPRINTF(
+				    ("%s(): match blkoff %d, diroff %u\n",
+					__func__, blkoff, diroff));
 				/*
 				 * Remember where this directory
 				 * entry came from for whoever did
@@ -295,13 +296,13 @@ msdosfs_findslot(struct denode *dp, struct componentname *cnp)
 
 				return EEXIST;
 			}
-		}	/* for (blkoff = 0; .... */
+		} /* for (blkoff = 0; .... */
 		/*
 		 * Release the buffer holding the directory cluster just
 		 * searched.
 		 */
 		brelse(bp);
-	}	/* for (frcn = 0; ; frcn++) */
+	} /* for (frcn = 0; ; frcn++) */
 
 notfound:
 	/*
@@ -365,16 +366,16 @@ msdosfs_mkfile(const char *path, struct denode *pdep, fsnode *node)
 	cn.cn_nameptr = node->name;
 	cn.cn_namelen = strlen(node->name);
 
-	MSDOSFS_DPRINTF(("%s(name %s, mode 0%o size %zu)\n",
-	    __func__, node->name, st->st_mode, (size_t)st->st_size));
+	MSDOSFS_DPRINTF(("%s(name %s, mode 0%o size %zu)\n", __func__,
+	    node->name, st->st_mode, (size_t)st->st_size));
 
 	/*
 	 * If this is the root directory and there is no space left we
 	 * can't do anything.  This is because the root directory can not
 	 * change size.
 	 */
-	if (pdep->de_StartCluster == MSDOSFSROOT
-	    && pdep->de_fndoffset >= pdep->de_FileSize) {
+	if (pdep->de_StartCluster == MSDOSFSROOT &&
+	    pdep->de_fndoffset >= pdep->de_FileSize) {
 		error = ENOSPC;
 		goto bad;
 	}
@@ -390,7 +391,8 @@ msdosfs_mkfile(const char *path, struct denode *pdep, fsnode *node)
 		goto bad;
 
 	ndirent.de_Attributes = (st->st_mode & S_IWUSR) ?
-				ATTR_ARCHIVE : ATTR_ARCHIVE | ATTR_READONLY;
+	    ATTR_ARCHIVE :
+	    ATTR_ARCHIVE | ATTR_READONLY;
 	ndirent.de_StartCluster = 0;
 	ndirent.de_FileSize = 0;
 	ndirent.de_pmp = pdep->de_pmp;
@@ -440,10 +442,10 @@ msdosfs_wfile(const char *path, struct denode *dep, fsnode *node)
 	char *dat;
 	u_long cn = 0;
 
-	error = 0;	/* XXX: gcc/vax */
-	MSDOSFS_DPRINTF(("%s(diroff %lu, dirclust %lu, startcluster %lu)\n",
-	    __func__, dep->de_diroffset, dep->de_dirclust,
-	    dep->de_StartCluster));
+	error = 0; /* XXX: gcc/vax */
+	MSDOSFS_DPRINTF(
+	    ("%s(diroff %lu, dirclust %lu, startcluster %lu)\n", __func__,
+		dep->de_diroffset, dep->de_dirclust, dep->de_StartCluster));
 	if (st->st_size == 0)
 		return 0;
 
@@ -466,8 +468,8 @@ msdosfs_wfile(const char *path, struct denode *dep, fsnode *node)
 		return error;
 	}
 
-	if ((dat = mmap(0, nsize, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0))
-	    == MAP_FAILED) {
+	if ((dat = mmap(0, nsize, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0)) ==
+	    MAP_FAILED) {
 		error = errno;
 		fprintf(stderr, "%s: mmap %s: %s\n", __func__, node->name,
 		    strerror(error));
@@ -482,15 +484,15 @@ msdosfs_wfile(const char *path, struct denode *dep, fsnode *node)
 		u_long on = offs & pmp->pm_crbomask;
 
 		if ((error = pcbmap(dep, cn++, &bn, NULL, &blsize)) != 0) {
-			MSDOSFS_DPRINTF(("%s: pcbmap %lu",
-			    __func__, (unsigned long)bn));
+			MSDOSFS_DPRINTF(
+			    ("%s: pcbmap %lu", __func__, (unsigned long)bn));
 			goto out;
 		}
 
-		MSDOSFS_DPRINTF(("%s(cn=%lu, bn=%llu, blsize=%d)\n",
-		    __func__, cn, (unsigned long long)bn, blsize));
+		MSDOSFS_DPRINTF(("%s(cn=%lu, bn=%llu, blsize=%d)\n", __func__,
+		    cn, (unsigned long long)bn, blsize));
 		if ((error = bread((void *)pmp->pm_devvp, bn, blsize, 0,
-		    &bp)) != 0) {
+			 &bp)) != 0) {
 			MSDOSFS_DPRINTF(("bread %d\n", error));
 			goto out;
 		}
@@ -510,28 +512,28 @@ out:
 static const struct {
 	struct direntry dot;
 	struct direntry dotdot;
-} dosdirtemplate = {
-	{	".          ",				/* the . entry */
-		ATTR_DIRECTORY,				/* file attribute */
-		0,					/* reserved */
-		0, { 0, 0 }, { 0, 0 },			/* create time & date */
-		{ 0, 0 },				/* access date */
-		{ 0, 0 },				/* high bits of start cluster */
-		{ 210, 4 }, { 210, 4 },			/* modify time & date */
-		{ 0, 0 },				/* startcluster */
-		{ 0, 0, 0, 0 }				/* filesize */
-	},
-	{	"..         ",				/* the .. entry */
-		ATTR_DIRECTORY,				/* file attribute */
-		0,					/* reserved */
-		0, { 0, 0 }, { 0, 0 },			/* create time & date */
-		{ 0, 0 },				/* access date */
-		{ 0, 0 },				/* high bits of start cluster */
-		{ 210, 4 }, { 210, 4 },			/* modify time & date */
-		{ 0, 0 },				/* startcluster */
-		{ 0, 0, 0, 0 }				/* filesize */
-	}
-};
+} dosdirtemplate = { {
+			 ".          ",		/* the . entry */
+			 ATTR_DIRECTORY,	/* file attribute */
+			 0,			/* reserved */
+			 0, { 0, 0 }, { 0, 0 }, /* create time & date */
+			 { 0, 0 },		/* access date */
+			 { 0, 0 },		/* high bits of start cluster */
+			 { 210, 4 }, { 210, 4 }, /* modify time & date */
+			 { 0, 0 },		 /* startcluster */
+			 { 0, 0, 0, 0 }		 /* filesize */
+		     },
+	{
+	    "..         ",	    /* the .. entry */
+	    ATTR_DIRECTORY,	    /* file attribute */
+	    0,			    /* reserved */
+	    0, { 0, 0 }, { 0, 0 },  /* create time & date */
+	    { 0, 0 },		    /* access date */
+	    { 0, 0 },		    /* high bits of start cluster */
+	    { 210, 4 }, { 210, 4 }, /* modify time & date */
+	    { 0, 0 },		    /* startcluster */
+	    { 0, 0, 0, 0 }	    /* filesize */
+	} };
 
 struct denode *
 msdosfs_mkdire(const char *path __unused, struct denode *pdep, fsnode *node)
@@ -552,8 +554,8 @@ msdosfs_mkdire(const char *path __unused, struct denode *pdep, fsnode *node)
 	 * can't do anything.  This is because the root directory can not
 	 * change size.
 	 */
-	if (pdep->de_StartCluster == MSDOSFSROOT
-	    && pdep->de_fndoffset >= pdep->de_FileSize) {
+	if (pdep->de_StartCluster == MSDOSFSROOT &&
+	    pdep->de_fndoffset >= pdep->de_FileSize) {
 		error = ENOSPC;
 		goto bad2;
 	}
@@ -576,8 +578,8 @@ msdosfs_mkdire(const char *path __unused, struct denode *pdep, fsnode *node)
 	 * directory to be pointing at if there were a crash.
 	 */
 	bn = cntobn(pmp, newcluster);
-	MSDOSFS_DPRINTF(("%s(newcluster %lu, bn=%lu)\n",
-	    __func__, newcluster, bn));
+	MSDOSFS_DPRINTF(
+	    ("%s(newcluster %lu, bn=%lu)\n", __func__, newcluster, bn));
 	/* always succeeds */
 	bp = getblk((void *)pmp->pm_devvp, bn, pmp->pm_bpcluster, 0, 0, 0);
 	memset(bp->b_data, 0, pmp->pm_bpcluster);

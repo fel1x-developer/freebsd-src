@@ -25,13 +25,13 @@
  */
 
 #ifndef _LEGACY_SYS_STAT_H_
-#define	_LEGACY_SYS_STAT_H_
+#define _LEGACY_SYS_STAT_H_
 
 #include_next <sys/stat.h>
 
-#ifndef	UTIME_NOW
-#define	UTIME_NOW	-1
-#define	UTIME_OMIT	-2
+#ifndef UTIME_NOW
+#define UTIME_NOW -1
+#define UTIME_OMIT -2
 #endif
 
 __BEGIN_DECLS

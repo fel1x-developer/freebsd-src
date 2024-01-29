@@ -27,16 +27,18 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <string.h>
 #include <sys/param.h>
+#include <sys/boot.h>
 #include <sys/linker.h>
 #include <sys/reboot.h>
-#include <sys/boot.h>
+
 #include <machine/cpufunc.h>
 #include <machine/elf.h>
 #include <machine/metadata.h>
 #include <machine/psl.h>
+
+#include <stand.h>
+#include <string.h>
 
 #ifdef EFI
 #include <efi.h>
@@ -53,8 +55,8 @@
 #endif
 
 #ifdef EFI
-#include "loader_efi.h"
 #include "gfx_fb.h"
+#include "loader_efi.h"
 #endif
 
 #if defined(LOADER_FDT_SUPPORT)
@@ -159,7 +161,7 @@ efi_do_vmap(EFI_MEMORY_DESCRIPTOR *mm, UINTN sz, UINTN mmsz, UINT32 mmver)
 		return (EFI_OUT_OF_RESOURCES);
 	viter = vmap;
 	for (curr = 0; curr < ndesc;
-	    curr++, desc = NextMemoryDescriptor(desc, mmsz)) {
+	     curr++, desc = NextMemoryDescriptor(desc, mmsz)) {
 		if ((desc->Attribute & EFI_MEMORY_RUNTIME) != 0) {
 			++nset;
 			desc->VirtualStart = desc->PhysicalStart;
@@ -201,10 +203,10 @@ bi_load_efi_data(struct preloaded_file *kfp, bool exit_bs)
 
 	if (efifb.fb_addr != 0) {
 		printf("EFI framebuffer information:\n");
-		printf("addr, size     0x%jx, 0x%jx\n",
-		    efifb.fb_addr, efifb.fb_size);
-		printf("dimensions     %d x %d\n",
-		    efifb.fb_width, efifb.fb_height);
+		printf("addr, size     0x%jx, 0x%jx\n", efifb.fb_addr,
+		    efifb.fb_size);
+		printf("dimensions     %d x %d\n", efifb.fb_width,
+		    efifb.fb_height);
 		printf("stride         %d\n", efifb.fb_stride);
 		printf("masks          0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
 		    efifb.fb_mask_red, efifb.fb_mask_green, efifb.fb_mask_blue,
@@ -250,13 +252,14 @@ bi_load_efi_data(struct preloaded_file *kfp, bool exit_bs)
 	 */
 	for (retry = 2; retry > 0; retry--) {
 		for (;;) {
-			status = BS->GetMemoryMap(&sz, mm, &efi_mapkey, &dsz, &mmver);
+			status = BS->GetMemoryMap(&sz, mm, &efi_mapkey, &dsz,
+			    &mmver);
 			if (!EFI_ERROR(status))
 				break;
 
 			if (status != EFI_BUFFER_TOO_SMALL) {
 				printf("%s: GetMemoryMap error %lu\n", __func__,
-	                           EFI_ERROR_CODE(status));
+				    EFI_ERROR_CODE(status));
 				return (EINVAL);
 			}
 
@@ -267,18 +270,18 @@ bi_load_efi_data(struct preloaded_file *kfp, bool exit_bs)
 			 * fragmentation caused by calling AllocatePages */
 			sz += (10 * dsz);
 			pages = EFI_SIZE_TO_PAGES(sz + efisz);
-			status = BS->AllocatePages(AllocateAnyPages, EfiLoaderData,
-					pages, &addr);
+			status = BS->AllocatePages(AllocateAnyPages,
+			    EfiLoaderData, pages, &addr);
 			if (EFI_ERROR(status)) {
-				printf("%s: AllocatePages error %lu\n", __func__,
-				    EFI_ERROR_CODE(status));
+				printf("%s: AllocatePages error %lu\n",
+				    __func__, EFI_ERROR_CODE(status));
 				return (ENOMEM);
 			}
 
 			/*
-			 * Read the memory map and stash it after bootinfo. Align the
-			 * memory map on a 16-byte boundary (the bootinfo block is page
-			 * aligned).
+			 * Read the memory map and stash it after bootinfo.
+			 * Align the memory map on a 16-byte boundary (the
+			 * bootinfo block is page aligned).
 			 */
 			efihdr = (struct efi_map_header *)(uintptr_t)addr;
 			mm = (void *)((uint8_t *)efihdr + efisz);
@@ -309,8 +312,7 @@ bi_load_efi_data(struct preloaded_file *kfp, bool exit_bs)
 	efihdr->memory_size = sz;
 	efihdr->descriptor_size = dsz;
 	efihdr->descriptor_version = mmver;
-	file_addmetadata(kfp, MODINFOMD_EFI_MAP, efisz + sz,
-	    efihdr);
+	file_addmetadata(kfp, MODINFOMD_EFI_MAP, efisz + sz, efihdr);
 
 	return (0);
 }
@@ -352,11 +354,14 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 	 * These metadata addreses must be converted for kernel after
 	 * relocation.
 	 */
-	uint32_t		mdt[] = {
-	    MODINFOMD_SSYM, MODINFOMD_ESYM, MODINFOMD_KERNEND,
-	    MODINFOMD_ENVP, MODINFOMD_FONT,
+	uint32_t mdt[] = {
+		MODINFOMD_SSYM,
+		MODINFOMD_ESYM,
+		MODINFOMD_KERNEND,
+		MODINFOMD_ENVP,
+		MODINFOMD_FONT,
 #if defined(LOADER_FDT_SUPPORT)
-	    MODINFOMD_DTBP
+		MODINFOMD_DTBP
 #endif
 	};
 #endif
@@ -368,10 +373,10 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 	 * tested/set by MI code before launching the kernel.
 	 */
 	rootdevname = getenv("rootdev");
-	archsw.arch_getdev((void**)(&rootdev), rootdevname, NULL);
+	archsw.arch_getdev((void **)(&rootdev), rootdevname, NULL);
 	if (rootdev == NULL) {
 		printf("Can't determine root device.\n");
-		return(EINVAL);
+		return (EINVAL);
 	}
 
 	/* Try reading the /etc/fstab file to select the root device */
@@ -402,7 +407,7 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 	/* Handle device tree blob */
 	dtbp = addr;
 	dtb_size = fdt_copy(addr);
-		
+
 	/* Pad to a page boundary */
 	if (dtb_size)
 		addr += roundup(dtb_size, PAGE_SIZE);
@@ -413,7 +418,7 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 		kfp = file_findfile(NULL, "elf64 kernel");
 	if (kfp == NULL)
 		panic("can't find kernel file");
-	kernend = 0;	/* fill it in later */
+	kernend = 0; /* fill it in later */
 
 	/* Figure out the size and location of the metadata. */
 	*modulep = addr;
@@ -425,7 +430,7 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 		file_addmetadata(kfp, MODINFOMD_DTBP, sizeof(dtbp), &dtbp);
 	else
 		printf("WARNING! Trying to fire up the kernel, but no "
-		    "device tree blob found!\n");
+		       "device tree blob found!\n");
 #endif
 	file_addmetadata(kfp, MODINFOMD_KERNEND, sizeof(kernend), &kernend);
 #ifdef MODINFOMD_MODULEP
@@ -444,7 +449,7 @@ bi_load(char *args, vm_offset_t *modulep, vm_offset_t *kernendp, bool exit_bs)
 	bi_loadsmap(kfp);
 #endif
 
-	size = md_copymodules(0, is64);	/* Find the size of the modules */
+	size = md_copymodules(0, is64); /* Find the size of the modules */
 	kernend = roundup(addr + size, PAGE_SIZE);
 	*kernendp = kernend;
 

@@ -38,29 +38,32 @@
  * driver values to load an iflib driver.
  */
 
-#include "ice_iflib.h"
-#include "ice_drv_info.h"
-#include "ice_switch.h"
-#include "ice_sched.h"
-
 #include <sys/module.h>
-#include <sys/sockio.h>
 #include <sys/smp.h>
-#include <dev/pci/pcivar.h>
+#include <sys/sockio.h>
+
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include "ice_drv_info.h"
+#include "ice_iflib.h"
+#include "ice_sched.h"
+#include "ice_switch.h"
 
 /*
  * Device method prototypes
  */
 
 static void *ice_register(device_t);
-static int  ice_if_attach_pre(if_ctx_t);
-static int  ice_attach_pre_recovery_mode(struct ice_softc *sc);
-static int  ice_if_attach_post(if_ctx_t);
+static int ice_if_attach_pre(if_ctx_t);
+static int ice_attach_pre_recovery_mode(struct ice_softc *sc);
+static int ice_if_attach_post(if_ctx_t);
 static void ice_attach_post_recovery_mode(struct ice_softc *sc);
-static int  ice_if_detach(if_ctx_t);
-static int  ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int ntxqs, int ntxqsets);
-static int  ice_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs, int nqs, int nqsets);
+static int ice_if_detach(if_ctx_t);
+static int ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int ntxqs, int ntxqsets);
+static int ice_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs,
+    uint64_t *paddrs, int nqs, int nqsets);
 static int ice_if_msix_intr_assign(if_ctx_t ctx, int msix);
 static void ice_if_queues_free(if_ctx_t ctx);
 static int ice_if_mtu_set(if_ctx_t ctx, uint32_t mtu);
@@ -127,13 +130,12 @@ static void ice_set_default_promisc_mask(ice_bitmap_t *promisc_mask);
 static device_method_t ice_methods[] = {
 	/* Device interface */
 	DEVMETHOD(device_register, ice_register),
-	DEVMETHOD(device_probe,    iflib_device_probe_vendor),
-	DEVMETHOD(device_attach,   iflib_device_attach),
-	DEVMETHOD(device_detach,   iflib_device_detach),
+	DEVMETHOD(device_probe, iflib_device_probe_vendor),
+	DEVMETHOD(device_attach, iflib_device_attach),
+	DEVMETHOD(device_detach, iflib_device_detach),
 	DEVMETHOD(device_shutdown, iflib_device_shutdown),
-	DEVMETHOD(device_suspend,  iflib_device_suspend),
-	DEVMETHOD(device_resume,   iflib_device_resume),
-	DEVMETHOD_END
+	DEVMETHOD(device_suspend, iflib_device_suspend),
+	DEVMETHOD(device_resume, iflib_device_resume), DEVMETHOD_END
 };
 
 /**
@@ -144,8 +146,8 @@ static device_method_t ice_methods[] = {
  * driver. These are the real main entry points used to interact with this
  * driver.
  */
-static device_method_t ice_iflib_methods[] = {
-	DEVMETHOD(ifdi_attach_pre, ice_if_attach_pre),
+static device_method_t ice_iflib_methods[] = { DEVMETHOD(ifdi_attach_pre,
+						   ice_if_attach_pre),
 	DEVMETHOD(ifdi_attach_post, ice_if_attach_post),
 	DEVMETHOD(ifdi_detach, ice_if_detach),
 	DEVMETHOD(ifdi_tx_queues_alloc, ice_if_tx_queues_alloc),
@@ -160,8 +162,7 @@ static device_method_t ice_iflib_methods[] = {
 	DEVMETHOD(ifdi_promisc_set, ice_if_promisc_set),
 	DEVMETHOD(ifdi_media_status, ice_if_media_status),
 	DEVMETHOD(ifdi_media_change, ice_if_media_change),
-	DEVMETHOD(ifdi_init, ice_if_init),
-	DEVMETHOD(ifdi_stop, ice_if_stop),
+	DEVMETHOD(ifdi_init, ice_if_init), DEVMETHOD(ifdi_stop, ice_if_stop),
 	DEVMETHOD(ifdi_timer, ice_if_timer),
 	DEVMETHOD(ifdi_update_admin_status, ice_if_update_admin_status),
 	DEVMETHOD(ifdi_multi_set, ice_if_multi_set),
@@ -172,9 +173,7 @@ static device_method_t ice_iflib_methods[] = {
 	DEVMETHOD(ifdi_i2c_req, ice_if_i2c_req),
 	DEVMETHOD(ifdi_suspend, ice_if_suspend),
 	DEVMETHOD(ifdi_resume, ice_if_resume),
-	DEVMETHOD(ifdi_needs_restart, ice_if_needs_restart),
-	DEVMETHOD_END
-};
+	DEVMETHOD(ifdi_needs_restart, ice_if_needs_restart), DEVMETHOD_END };
 
 /**
  * @var ice_driver
@@ -261,14 +260,14 @@ static struct if_shared_ctx ice_sctx = {
 	 * vectors manually instead of relying on iflib code to do this.
 	 */
 	.isc_flags = IFLIB_NEED_SCRATCH | IFLIB_TSO_INIT_IP |
-		IFLIB_ADMIN_ALWAYS_RUN | IFLIB_SKIP_MSIX,
+	    IFLIB_ADMIN_ALWAYS_RUN | IFLIB_SKIP_MSIX,
 
-	.isc_nrxd_min = {ICE_MIN_DESC_COUNT},
-	.isc_ntxd_min = {ICE_MIN_DESC_COUNT},
-	.isc_nrxd_max = {ICE_IFLIB_MAX_DESC_COUNT},
-	.isc_ntxd_max = {ICE_IFLIB_MAX_DESC_COUNT},
-	.isc_nrxd_default = {ICE_DEFAULT_DESC_COUNT},
-	.isc_ntxd_default = {ICE_DEFAULT_DESC_COUNT},
+	.isc_nrxd_min = { ICE_MIN_DESC_COUNT },
+	.isc_ntxd_min = { ICE_MIN_DESC_COUNT },
+	.isc_nrxd_max = { ICE_IFLIB_MAX_DESC_COUNT },
+	.isc_ntxd_max = { ICE_IFLIB_MAX_DESC_COUNT },
+	.isc_nrxd_default = { ICE_DEFAULT_DESC_COUNT },
+	.isc_ntxd_default = { ICE_DEFAULT_DESC_COUNT },
 };
 
 DRIVER_MODULE(ice, pci, ice_driver, ice_module_event_handler, NULL);
@@ -368,9 +367,11 @@ ice_setup_scctx(struct ice_softc *sc)
 		sc->ifc_sysctl_nrxqs = scctx->isc_nrxqsets;
 
 		if (scctx->isc_ntxqsets == 0)
-			scctx->isc_ntxqsets = hw->func_caps.common_cap.rss_table_size;
+			scctx->isc_ntxqsets =
+			    hw->func_caps.common_cap.rss_table_size;
 		if (scctx->isc_nrxqsets == 0)
-			scctx->isc_nrxqsets = hw->func_caps.common_cap.rss_table_size;
+			scctx->isc_nrxqsets =
+			    hw->func_caps.common_cap.rss_table_size;
 
 		scctx->isc_ntxqsets_max = hw->func_caps.common_cap.num_txq;
 		scctx->isc_nrxqsets_max = hw->func_caps.common_cap.num_rxq;
@@ -385,10 +386,12 @@ ice_setup_scctx(struct ice_softc *sc)
 			sc->ifc_sysctl_nrxqs = scctx->isc_nrxqsets_max;
 	}
 
-	scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0]
-	    * sizeof(struct ice_tx_desc), DBA_ALIGN);
-	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0]
-	    * sizeof(union ice_32b_rx_flex_desc), DBA_ALIGN);
+	scctx->isc_txqsizes[0] = roundup2(scctx->isc_ntxd[0] *
+		sizeof(struct ice_tx_desc),
+	    DBA_ALIGN);
+	scctx->isc_rxqsizes[0] = roundup2(scctx->isc_nrxd[0] *
+		sizeof(union ice_32b_rx_flex_desc),
+	    DBA_ALIGN);
 
 	scctx->isc_tx_nsegments = ICE_MAX_TX_SEGS;
 	scctx->isc_tx_tso_segments_max = ICE_MAX_TSO_SEGS;
@@ -455,8 +458,8 @@ ice_if_attach_pre(if_ctx_t ctx)
 	hw = &sc->hw;
 	hw->back = sc;
 
-	snprintf(sc->admin_mtx_name, sizeof(sc->admin_mtx_name),
-		 "%s:admin", device_get_nameunit(dev));
+	snprintf(sc->admin_mtx_name, sizeof(sc->admin_mtx_name), "%s:admin",
+	    device_get_nameunit(dev));
 	mtx_init(&sc->admin_mtx, sc->admin_mtx_name, NULL, MTX_DEF);
 	callout_init_mtx(&sc->admin_timer, &sc->admin_mtx, 0);
 
@@ -480,7 +483,8 @@ reinit_hw:
 
 	fw_mode = ice_get_fw_mode(hw);
 	if (fw_mode == ICE_FW_MODE_REC) {
-		device_printf(dev, "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
+		device_printf(dev,
+		    "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
 
 		err = ice_attach_pre_recovery_mode(sc);
 		if (err)
@@ -505,9 +509,10 @@ reinit_hw:
 			return (0);
 		} else {
 			err = EIO;
-			device_printf(dev, "Unable to initialize hw, err %s aq_err %s\n",
-				      ice_status_str(status),
-				      ice_aq_str(hw->adminq.sq_last_status));
+			device_printf(dev,
+			    "Unable to initialize hw, err %s aq_err %s\n",
+			    ice_status_str(status),
+			    ice_aq_str(hw->adminq.sq_last_status));
 		}
 		goto free_pci_mapping;
 	}
@@ -535,19 +540,20 @@ reinit_hw:
 	err = ice_init_link_events(sc);
 	if (err) {
 		device_printf(dev, "ice_init_link_events failed: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		goto deinit_hw;
 	}
 
-	/* Initialize VLAN mode in FW; if dual VLAN mode is supported by the package
-	 * and firmware, this will force them to use single VLAN mode.
+	/* Initialize VLAN mode in FW; if dual VLAN mode is supported by the
+	 * package and firmware, this will force them to use single VLAN mode.
 	 */
 	status = ice_set_vlan_mode(hw);
 	if (status) {
 		err = EIO;
-		device_printf(dev, "Unable to initialize VLAN mode, err %s aq_err %s\n",
-			      ice_status_str(status),
-			      ice_aq_str(hw->adminq.sq_last_status));
+		device_printf(dev,
+		    "Unable to initialize VLAN mode, err %s aq_err %s\n",
+		    ice_status_str(status),
+		    ice_aq_str(hw->adminq.sq_last_status));
 		goto deinit_hw;
 	}
 
@@ -562,16 +568,18 @@ reinit_hw:
 	/* Initialize the Tx queue manager */
 	err = ice_resmgr_init(&sc->tx_qmgr, hw->func_caps.common_cap.num_txq);
 	if (err) {
-		device_printf(dev, "Unable to initialize Tx queue manager: %s\n",
-			      ice_err_str(err));
+		device_printf(dev,
+		    "Unable to initialize Tx queue manager: %s\n",
+		    ice_err_str(err));
 		goto deinit_hw;
 	}
 
 	/* Initialize the Rx queue manager */
 	err = ice_resmgr_init(&sc->rx_qmgr, hw->func_caps.common_cap.num_rxq);
 	if (err) {
-		device_printf(dev, "Unable to initialize Rx queue manager: %s\n",
-			      ice_err_str(err));
+		device_printf(dev,
+		    "Unable to initialize Rx queue manager: %s\n",
+		    ice_err_str(err));
 		goto free_tx_qmgr;
 	}
 
@@ -583,7 +591,7 @@ reinit_hw:
 
 	/* Determine maximum number of VSIs we'll prepare for */
 	sc->num_available_vsi = min(ICE_MAX_VSI_AVAILABLE,
-				    hw->func_caps.guar_num_vsi);
+	    hw->func_caps.guar_num_vsi);
 
 	if (!sc->num_available_vsi) {
 		err = EIO;
@@ -592,9 +600,9 @@ reinit_hw:
 	}
 
 	/* Allocate storage for the VSI pointers */
-	sc->all_vsi = (struct ice_vsi **)
-		malloc(sizeof(struct ice_vsi *) * sc->num_available_vsi,
-		       M_ICE, M_WAITOK | M_ZERO);
+	sc->all_vsi = (struct ice_vsi **)malloc(sizeof(struct ice_vsi *) *
+		sc->num_available_vsi,
+	    M_ICE, M_WAITOK | M_ZERO);
 	if (!sc->all_vsi) {
 		err = ENOMEM;
 		device_printf(dev, "Unable to allocate VSI array\n");
@@ -698,12 +706,15 @@ ice_update_link_status(struct ice_softc *sc, bool update_media)
 	/* Report link status to iflib only once each time it changes */
 	if (!ice_testandset_state(&sc->state, ICE_STATE_LINK_STATUS_REPORTED)) {
 		if (sc->link_up) { /* link is up */
-			uint64_t baudrate = ice_aq_speed_to_rate(sc->hw.port_info);
+			uint64_t baudrate = ice_aq_speed_to_rate(
+			    sc->hw.port_info);
 
-			if (!(hw->port_info->phy.link_info_old.link_info & ICE_AQ_LINK_UP))
+			if (!(hw->port_info->phy.link_info_old.link_info &
+				ICE_AQ_LINK_UP))
 				ice_set_default_local_lldp_mib(sc);
 
-			iflib_link_state_change(sc->ctx, LINK_STATE_UP, baudrate);
+			iflib_link_state_change(sc->ctx, LINK_STATE_UP,
+			    baudrate);
 			ice_rdma_link_change(sc, LINK_STATE_UP, baudrate);
 
 			ice_link_up_msg(sc);
@@ -715,12 +726,14 @@ ice_update_link_status(struct ice_softc *sc, bool update_media)
 	}
 
 	/* Update the supported media types */
-	if (update_media && !ice_test_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET)) {
+	if (update_media &&
+	    !ice_test_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET)) {
 		status = ice_add_media_types(sc, sc->media);
 		if (status)
-			device_printf(sc->dev, "Error adding device media types: %s aq_err %s\n",
-				      ice_status_str(status),
-				      ice_aq_str(hw->adminq.sq_last_status));
+			device_printf(sc->dev,
+			    "Error adding device media types: %s aq_err %s\n",
+			    ice_status_str(status),
+			    ice_aq_str(hw->adminq.sq_last_status));
 	}
 }
 
@@ -744,7 +757,8 @@ ice_if_attach_post(if_ctx_t ctx)
 
 	/* We don't yet support loading if MSI-X is not supported */
 	if (sc->scctx->isc_intr != IFLIB_INTR_MSIX) {
-		device_printf(sc->dev, "The ice driver does not support loading without MSI-X\n");
+		device_printf(sc->dev,
+		    "The ice driver does not support loading without MSI-X\n");
 		return (ENOTSUP);
 	}
 
@@ -754,8 +768,8 @@ ice_if_attach_post(if_ctx_t ctx)
 	 */
 
 	sc->ifp = ifp;
-	sc->scctx->isc_max_frame_size = if_getmtu(ifp) +
-		ETHER_HDR_LEN + ETHER_CRC_LEN + ETHER_VLAN_ENCAP_LEN;
+	sc->scctx->isc_max_frame_size = if_getmtu(ifp) + ETHER_HDR_LEN +
+	    ETHER_CRC_LEN + ETHER_VLAN_ENCAP_LEN;
 
 	/*
 	 * If we are in recovery mode, only perform a limited subset of
@@ -771,7 +785,7 @@ ice_if_attach_post(if_ctx_t ctx)
 	err = ice_initialize_vsi(&sc->pf_vsi);
 	if (err) {
 		device_printf(sc->dev, "Unable to initialize Main VSI: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		return err;
 	}
 
@@ -782,8 +796,8 @@ ice_if_attach_post(if_ctx_t ctx)
 	err = ice_config_rss(&sc->pf_vsi);
 	if (err) {
 		device_printf(sc->dev,
-			      "Unable to configure RSS for the main VSI, err %s\n",
-			      ice_err_str(err));
+		    "Unable to configure RSS for the main VSI, err %s\n",
+		    ice_err_str(err));
 		return err;
 	}
 
@@ -800,14 +814,15 @@ ice_if_attach_post(if_ctx_t ctx)
 
 	ice_cfg_pba_num(sc);
 
-	/* Set a default value for PFC mode on attach since the FW state is unknown
-	 * before sysctl tunables are executed and it can't be queried. This fixes an
-	 * issue when loading the driver with the FW LLDP agent enabled but the FW
-	 * was previously in DSCP PFC mode.
+	/* Set a default value for PFC mode on attach since the FW state is
+	 * unknown before sysctl tunables are executed and it can't be queried.
+	 * This fixes an issue when loading the driver with the FW LLDP agent
+	 * enabled but the FW was previously in DSCP PFC mode.
 	 */
 	status = ice_aq_set_pfc_mode(&sc->hw, ICE_AQC_PFC_VLAN_BASED_PFC, NULL);
 	if (status != ICE_SUCCESS)
-		device_printf(sc->dev, "Setting pfc mode failed, status %s\n", ice_status_str(status));
+		device_printf(sc->dev, "Setting pfc mode failed, status %s\n",
+		    ice_status_str(status));
 
 	ice_add_device_sysctls(sc);
 
@@ -830,11 +845,11 @@ ice_if_attach_post(if_ctx_t ctx)
 
 	/* Start the admin timer */
 	mtx_lock(&sc->admin_mtx);
-	callout_reset(&sc->admin_timer, hz/2, ice_admin_timer, sc);
+	callout_reset(&sc->admin_timer, hz / 2, ice_admin_timer, sc);
 	mtx_unlock(&sc->admin_mtx);
 
 	if (ice_test_state(&sc->state, ICE_STATE_LINK_ACTIVE_ON_DOWN) &&
-		 !ice_test_state(&sc->state, ICE_STATE_NO_MEDIA))
+	    !ice_test_state(&sc->state, ICE_STATE_NO_MEDIA))
 		ice_set_state(&sc->state, ICE_STATE_FIRST_INIT_LINK);
 
 	ice_clear_state(&sc->state, ICE_STATE_ATTACHING);
@@ -860,7 +875,7 @@ ice_attach_post_recovery_mode(struct ice_softc *sc)
 
 	/* Start the admin timer */
 	mtx_lock(&sc->admin_mtx);
-	callout_reset(&sc->admin_timer, hz/2, ice_admin_timer, sc);
+	callout_reset(&sc->admin_timer, hz / 2, ice_admin_timer, sc);
 	mtx_unlock(&sc->admin_mtx);
 
 	ice_clear_state(&sc->state, ICE_STATE_ATTACHING);
@@ -960,8 +975,7 @@ ice_if_detach(if_ctx_t ctx)
 
 	if (sc->msix_table != NULL) {
 		bus_release_resource(sc->dev, SYS_RES_MEMORY,
-				     rman_get_rid(sc->msix_table),
-				     sc->msix_table);
+		    rman_get_rid(sc->msix_table), sc->msix_table);
 		sc->msix_table = NULL;
 	}
 
@@ -979,7 +993,7 @@ ice_if_detach(if_ctx_t ctx)
 	IFLIB_CTX_LOCK(sc);
 	if (status) {
 		device_printf(sc->dev, "device PF reset failed, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 	}
 
 	ice_free_pci_mapping(sc);
@@ -1001,7 +1015,7 @@ ice_if_detach(if_ctx_t ctx)
  */
 static int
 ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
-		       int __invariant_only ntxqs, int ntxqsets)
+    int __invariant_only ntxqs, int ntxqsets)
 {
 	struct ice_softc *sc = (struct ice_softc *)iflib_get_softc(ctx);
 	struct ice_vsi *vsi = &sc->pf_vsi;
@@ -1017,17 +1031,20 @@ ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 		return (0);
 
 	/* Allocate queue structure memory */
-	if (!(vsi->tx_queues =
-	      (struct ice_tx_queue *) malloc(sizeof(struct ice_tx_queue) * ntxqsets, M_ICE, M_NOWAIT | M_ZERO))) {
+	if (!(vsi->tx_queues = (struct ice_tx_queue *)
+		    malloc(sizeof(struct ice_tx_queue) * ntxqsets, M_ICE,
+			M_NOWAIT | M_ZERO))) {
 		device_printf(sc->dev, "Unable to allocate Tx queue memory\n");
 		return (ENOMEM);
 	}
 
 	/* Allocate report status arrays */
 	for (i = 0, txq = vsi->tx_queues; i < ntxqsets; i++, txq++) {
-		if (!(txq->tx_rsq =
-		      (uint16_t *) malloc(sizeof(uint16_t) * sc->scctx->isc_ntxd[0], M_ICE, M_NOWAIT))) {
-			device_printf(sc->dev, "Unable to allocate tx_rsq memory\n");
+		if (!(txq->tx_rsq = (uint16_t *)malloc(sizeof(uint16_t) *
+			      sc->scctx->isc_ntxd[0],
+			  M_ICE, M_NOWAIT))) {
+			device_printf(sc->dev,
+			    "Unable to allocate tx_rsq memory\n");
 			err = ENOMEM;
 			goto free_tx_queues;
 		}
@@ -1037,10 +1054,11 @@ ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 	}
 
 	/* Assign queues from PF space to the main VSI */
-	err = ice_resmgr_assign_contiguous(&sc->tx_qmgr, vsi->tx_qmap, ntxqsets);
+	err = ice_resmgr_assign_contiguous(&sc->tx_qmgr, vsi->tx_qmap,
+	    ntxqsets);
 	if (err) {
 		device_printf(sc->dev, "Unable to assign PF queues: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		goto free_tx_queues;
 	}
 	vsi->qmap_type = ICE_RESMGR_ALLOC_CONTIGUOUS;
@@ -1056,7 +1074,8 @@ ice_if_tx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 		/* store the queue size for easier access */
 		txq->desc_count = sc->scctx->isc_ntxd[0];
 
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		txq->tail = QTX_COMM_DBELL(vsi->tx_qmap[i]);
 		txq->tx_base = (struct ice_tx_desc *)vaddrs[i];
 		txq->tx_paddr = paddrs[i];
@@ -1093,7 +1112,7 @@ free_tx_queues:
  */
 static int
 ice_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
-		       int __invariant_only nrxqs, int nrxqsets)
+    int __invariant_only nrxqs, int nrxqsets)
 {
 	struct ice_softc *sc = (struct ice_softc *)iflib_get_softc(ctx);
 	struct ice_vsi *vsi = &sc->pf_vsi;
@@ -1109,17 +1128,19 @@ ice_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 		return (0);
 
 	/* Allocate queue structure memory */
-	if (!(vsi->rx_queues =
-	      (struct ice_rx_queue *) malloc(sizeof(struct ice_rx_queue) * nrxqsets, M_ICE, M_NOWAIT | M_ZERO))) {
+	if (!(vsi->rx_queues = (struct ice_rx_queue *)
+		    malloc(sizeof(struct ice_rx_queue) * nrxqsets, M_ICE,
+			M_NOWAIT | M_ZERO))) {
 		device_printf(sc->dev, "Unable to allocate Rx queue memory\n");
 		return (ENOMEM);
 	}
 
 	/* Assign queues from PF space to the main VSI */
-	err = ice_resmgr_assign_contiguous(&sc->rx_qmgr, vsi->rx_qmap, nrxqsets);
+	err = ice_resmgr_assign_contiguous(&sc->rx_qmgr, vsi->rx_qmap,
+	    nrxqsets);
 	if (err) {
 		device_printf(sc->dev, "Unable to assign PF queues: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		goto free_rx_queues;
 	}
 	vsi->qmap_type = ICE_RESMGR_ALLOC_CONTIGUOUS;
@@ -1134,7 +1155,8 @@ ice_if_rx_queues_alloc(if_ctx_t ctx, caddr_t *vaddrs, uint64_t *paddrs,
 		/* store the queue size for easier access */
 		rxq->desc_count = sc->scctx->isc_nrxd[0];
 
-		/* get the virtual and physical address of the hardware queues */
+		/* get the virtual and physical address of the hardware queues
+		 */
 		rxq->tail = QRX_TAIL(vsi->rx_qmap[i]);
 		rxq->rx_base = (union ice_32b_rx_flex_desc *)vaddrs[i];
 		rxq->rx_paddr = paddrs[i];
@@ -1190,7 +1212,8 @@ ice_if_queues_free(if_ctx_t ctx)
 
 	if (vsi->tx_queues != NULL) {
 		/* free the tx_rsq arrays */
-		for (i = 0, txq = vsi->tx_queues; i < vsi->num_tx_queues; i++, txq++) {
+		for (i = 0, txq = vsi->tx_queues; i < vsi->num_tx_queues;
+		     i++, txq++) {
 			if (txq->tx_rsq != NULL) {
 				free(txq->tx_rsq, M_ICE);
 				txq->tx_rsq = NULL;
@@ -1278,7 +1301,7 @@ ice_msix_admin(void *arg)
 		u32 reset;
 
 		reset = (rd32(hw, GLGEN_RSTAT) & GLGEN_RSTAT_RESET_TYPE_M) >>
-			GLGEN_RSTAT_RESET_TYPE_S;
+		    GLGEN_RSTAT_RESET_TYPE_S;
 
 		if (reset == ICE_RESET_CORER)
 			sc->soft_stats.corer_count++;
@@ -1300,7 +1323,8 @@ ice_msix_admin(void *arg)
 		 * the ICE_STATE_RESET_*_REQ bits, which will trigger the
 		 * correct type of reset.
 		 */
-		if (!ice_testandset_state(&sc->state, ICE_STATE_RESET_OICR_RECV))
+		if (!ice_testandset_state(&sc->state,
+			ICE_STATE_RESET_OICR_RECV))
 			hw->reset_ongoing = true;
 	}
 
@@ -1364,7 +1388,8 @@ ice_allocate_msix(struct ice_softc *sc)
 
 	/* Allocate the MSI-X bar */
 	bar = scctx->isc_msix_bar;
-	sc->msix_table = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &bar, RF_ACTIVE);
+	sc->msix_table = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &bar,
+	    RF_ACTIVE);
 	if (!sc->msix_table) {
 		device_printf(dev, "Unable to map MSI-X table\n");
 		return (ENOMEM);
@@ -1377,7 +1402,7 @@ ice_allocate_msix(struct ice_softc *sc)
 	err = bus_get_cpus(dev, INTR_CPUS, sizeof(cpus), &cpus);
 	if (err) {
 		device_printf(dev, "%s: Unable to fetch the CPU list: %s\n",
-			      __func__, ice_err_str(err));
+		    __func__, ice_err_str(err));
 		CPU_COPY(&all_cpus, &cpus);
 	}
 
@@ -1429,8 +1454,9 @@ ice_allocate_msix(struct ice_softc *sc)
 
 	err = pci_alloc_msix(dev, &vectors);
 	if (err) {
-		device_printf(dev, "Failed to allocate %d MSI-X vectors, err %s\n",
-			      vectors, ice_err_str(err));
+		device_printf(dev,
+		    "Failed to allocate %d MSI-X vectors, err %s\n", vectors,
+		    ice_err_str(err));
 		goto err_free_msix_table;
 	}
 
@@ -1438,8 +1464,9 @@ ice_allocate_msix(struct ice_softc *sc)
 	if (vectors < requested) {
 		int diff = requested - vectors;
 
-		device_printf(dev, "Requested %d MSI-X vectors, but got only %d\n",
-			      requested, vectors);
+		device_printf(dev,
+		    "Requested %d MSI-X vectors, but got only %d\n", requested,
+		    vectors);
 
 		/*
 		 * The OS didn't grant us the requested number of vectors.
@@ -1466,7 +1493,8 @@ ice_allocate_msix(struct ice_softc *sc)
 		 * interrupt and one queue pair.
 		 */
 		if (queues <= diff) {
-			device_printf(dev, "Unable to allocate sufficient MSI-X vectors\n");
+			device_printf(dev,
+			    "Unable to allocate sufficient MSI-X vectors\n");
 			err = (ERANGE);
 			goto err_pci_release_msi;
 		}
@@ -1477,9 +1505,8 @@ ice_allocate_msix(struct ice_softc *sc)
 	device_printf(dev, "Using %d Tx and Rx queues\n", queues);
 	if (rdma)
 		device_printf(dev, "Reserving %d MSI-X interrupts for iRDMA\n",
-			      rdma);
-	device_printf(dev, "Using MSI-X interrupts with %d vectors\n",
-		      vectors);
+		    rdma);
+	device_printf(dev, "Using MSI-X interrupts with %d vectors\n", vectors);
 
 	scctx->isc_vectors = vectors;
 	scctx->isc_nrxqsets = queues;
@@ -1496,18 +1523,20 @@ ice_allocate_msix(struct ice_softc *sc)
 
 	/* Keep track of which interrupt indices are being used for what */
 	sc->lan_vectors = vectors - rdma;
-	err = ice_resmgr_assign_contiguous(&sc->imgr, sc->pf_imap, sc->lan_vectors);
+	err = ice_resmgr_assign_contiguous(&sc->imgr, sc->pf_imap,
+	    sc->lan_vectors);
 	if (err) {
-		device_printf(dev, "Unable to assign PF interrupt mapping: %s\n",
-			      ice_err_str(err));
+		device_printf(dev,
+		    "Unable to assign PF interrupt mapping: %s\n",
+		    ice_err_str(err));
 		goto err_pci_release_msi;
 	}
 	err = ice_resmgr_assign_contiguous(&sc->imgr, sc->rdma_imap, rdma);
 	if (err) {
-		device_printf(dev, "Unable to assign PF RDMA interrupt mapping: %s\n",
-			      ice_err_str(err));
-		ice_resmgr_release_map(&sc->imgr, sc->pf_imap,
-					    sc->lan_vectors);
+		device_printf(dev,
+		    "Unable to assign PF RDMA interrupt mapping: %s\n",
+		    ice_err_str(err));
+		ice_resmgr_release_map(&sc->imgr, sc->pf_imap, sc->lan_vectors);
 		goto err_pci_release_msi;
 	}
 
@@ -1518,8 +1547,7 @@ err_pci_release_msi:
 err_free_msix_table:
 	if (sc->msix_table != NULL) {
 		bus_release_resource(sc->dev, SYS_RES_MEMORY,
-				rman_get_rid(sc->msix_table),
-				sc->msix_table);
+		    rman_get_rid(sc->msix_table), sc->msix_table);
 		sc->msix_table = NULL;
 	}
 
@@ -1548,14 +1576,14 @@ ice_if_msix_intr_assign(if_ctx_t ctx, int msix)
 
 	if (vsi->num_rx_queues != vsi->num_tx_queues) {
 		device_printf(sc->dev,
-			      "iflib requested %d Tx queues, and %d Rx queues, but the driver isn't able to support a differing number of Tx and Rx queues\n",
-			      vsi->num_tx_queues, vsi->num_rx_queues);
+		    "iflib requested %d Tx queues, and %d Rx queues, but the driver isn't able to support a differing number of Tx and Rx queues\n",
+		    vsi->num_tx_queues, vsi->num_rx_queues);
 		return (EOPNOTSUPP);
 	}
 
 	if (msix < (vsi->num_rx_queues + 1)) {
 		device_printf(sc->dev,
-			      "Not enough MSI-X vectors to assign one vector to each queue pair\n");
+		    "Not enough MSI-X vectors to assign one vector to each queue pair\n");
 		return (EOPNOTSUPP);
 	}
 
@@ -1563,21 +1591,20 @@ ice_if_msix_intr_assign(if_ctx_t ctx, int msix)
 	sc->num_irq_vectors = vsi->num_rx_queues + 1;
 
 	/* Allocate space to store the IRQ vector data */
-	if (!(sc->irqvs =
-	      (struct ice_irq_vector *) malloc(sizeof(struct ice_irq_vector) * (sc->num_irq_vectors),
-					       M_ICE, M_NOWAIT))) {
-		device_printf(sc->dev,
-			      "Unable to allocate irqv memory\n");
+	if (!(sc->irqvs = (struct ice_irq_vector *)malloc(
+		  sizeof(struct ice_irq_vector) * (sc->num_irq_vectors), M_ICE,
+		  M_NOWAIT))) {
+		device_printf(sc->dev, "Unable to allocate irqv memory\n");
 		return (ENOMEM);
 	}
 
 	/* Administrative interrupt events will use vector 0 */
-	err = iflib_irq_alloc_generic(ctx, &sc->irqvs[0].irq, 1, IFLIB_INTR_ADMIN,
-				      ice_msix_admin, sc, 0, "admin");
+	err = iflib_irq_alloc_generic(ctx, &sc->irqvs[0].irq, 1,
+	    IFLIB_INTR_ADMIN, ice_msix_admin, sc, 0, "admin");
 	if (err) {
 		device_printf(sc->dev,
-			      "Failed to register Admin queue handler: %s\n",
-			      ice_err_str(err));
+		    "Failed to register Admin queue handler: %s\n",
+		    ice_err_str(err));
 		goto free_irqvs;
 	}
 	sc->irqvs[0].me = 0;
@@ -1594,12 +1621,11 @@ ice_if_msix_intr_assign(if_ctx_t ctx, int msix)
 
 		snprintf(irq_name, sizeof(irq_name), "rxq%d", i);
 		err = iflib_irq_alloc_generic(ctx, &sc->irqvs[vector].irq, rid,
-					      IFLIB_INTR_RXTX, ice_msix_que,
-					      rxq, rxq->me, irq_name);
+		    IFLIB_INTR_RXTX, ice_msix_que, rxq, rxq->me, irq_name);
 		if (err) {
 			device_printf(sc->dev,
-				      "Failed to allocate q int %d err: %s\n",
-				      i, ice_err_str(err));
+			    "Failed to allocate q int %d err: %s\n", i,
+			    ice_err_str(err));
 			vector--;
 			i--;
 			goto fail;
@@ -1611,8 +1637,7 @@ ice_if_msix_intr_assign(if_ctx_t ctx, int msix)
 
 		snprintf(irq_name, sizeof(irq_name), "txq%d", i);
 		iflib_softirq_alloc_generic(ctx, &sc->irqvs[vector].irq,
-					    IFLIB_INTR_TX, txq,
-					    txq->me, irq_name);
+		    IFLIB_INTR_TX, txq, txq->me, irq_name);
 		txq->irqv = &sc->irqvs[vector];
 	}
 
@@ -1650,8 +1675,8 @@ ice_if_mtu_set(if_ctx_t ctx, uint32_t mtu)
 	if (mtu < ICE_MIN_MTU || mtu > ICE_MAX_MTU)
 		return (EINVAL);
 
-	sc->scctx->isc_max_frame_size = mtu +
-		ETHER_HDR_LEN + ETHER_CRC_LEN + ETHER_VLAN_ENCAP_LEN;
+	sc->scctx->isc_max_frame_size = mtu + ETHER_HDR_LEN + ETHER_CRC_LEN +
+	    ETHER_VLAN_ENCAP_LEN;
 
 	sc->pf_vsi.max_frame_size = sc->scctx->isc_max_frame_size;
 
@@ -1803,30 +1828,30 @@ ice_if_promisc_set(if_ctx_t ctx, int flags)
 	/* Do not support configuration when in recovery mode */
 	if (ice_test_state(&sc->state, ICE_STATE_RECOVERY_MODE))
 		return (ENOSYS);
-	
+
 	ice_set_default_promisc_mask(promisc_mask);
 
 	if (multi_enable)
 		return (EOPNOTSUPP);
 
 	if (promisc_enable) {
-		status = ice_set_vsi_promisc(hw, sc->pf_vsi.idx,
-					     promisc_mask, 0);
+		status = ice_set_vsi_promisc(hw, sc->pf_vsi.idx, promisc_mask,
+		    0);
 		if (status && status != ICE_ERR_ALREADY_EXISTS) {
 			device_printf(dev,
-				      "Failed to enable promiscuous mode for PF VSI, err %s aq_err %s\n",
-				      ice_status_str(status),
-				      ice_aq_str(hw->adminq.sq_last_status));
+			    "Failed to enable promiscuous mode for PF VSI, err %s aq_err %s\n",
+			    ice_status_str(status),
+			    ice_aq_str(hw->adminq.sq_last_status));
 			return (EIO);
 		}
 	} else {
-		status = ice_clear_vsi_promisc(hw, sc->pf_vsi.idx,
-					       promisc_mask, 0);
+		status = ice_clear_vsi_promisc(hw, sc->pf_vsi.idx, promisc_mask,
+		    0);
 		if (status) {
 			device_printf(dev,
-				      "Failed to disable promiscuous mode for PF VSI, err %s aq_err %s\n",
-				      ice_status_str(status),
-				      ice_aq_str(hw->adminq.sq_last_status));
+			    "Failed to disable promiscuous mode for PF VSI, err %s aq_err %s\n",
+			    ice_status_str(status),
+			    ice_aq_str(hw->adminq.sq_last_status));
 			return (EIO);
 		}
 	}
@@ -1970,12 +1995,14 @@ ice_if_init(if_ctx_t ctx)
 		return;
 
 	if (ice_test_state(&sc->state, ICE_STATE_RESET_FAILED)) {
-		device_printf(sc->dev, "request to start interface cannot be completed as the device failed to reset\n");
+		device_printf(sc->dev,
+		    "request to start interface cannot be completed as the device failed to reset\n");
 		return;
 	}
 
 	if (ice_test_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET)) {
-		device_printf(sc->dev, "request to start interface while device is prepared for impending reset\n");
+		device_printf(sc->dev,
+		    "request to start interface while device is prepared for impending reset\n");
 		return;
 	}
 
@@ -1984,9 +2011,8 @@ ice_if_init(if_ctx_t ctx)
 	/* Update the MAC address... User might use a LAA */
 	err = ice_update_laa_mac(sc);
 	if (err) {
-		device_printf(dev,
-			      "LAA address change failed, err %s\n",
-			      ice_err_str(err));
+		device_printf(dev, "LAA address change failed, err %s\n",
+		    ice_err_str(err));
 		return;
 	}
 
@@ -1996,32 +2022,32 @@ ice_if_init(if_ctx_t ctx)
 	err = ice_cfg_vsi_for_tx(&sc->pf_vsi);
 	if (err) {
 		device_printf(dev,
-			      "Unable to configure the main VSI for Tx: %s\n",
-			      ice_err_str(err));
+		    "Unable to configure the main VSI for Tx: %s\n",
+		    ice_err_str(err));
 		return;
 	}
 
 	err = ice_cfg_vsi_for_rx(&sc->pf_vsi);
 	if (err) {
 		device_printf(dev,
-			      "Unable to configure the main VSI for Rx: %s\n",
-			      ice_err_str(err));
+		    "Unable to configure the main VSI for Rx: %s\n",
+		    ice_err_str(err));
 		goto err_cleanup_tx;
 	}
 
 	err = ice_control_all_rx_queues(&sc->pf_vsi, true);
 	if (err) {
 		device_printf(dev,
-			      "Unable to enable Rx rings for transmit: %s\n",
-			      ice_err_str(err));
+		    "Unable to enable Rx rings for transmit: %s\n",
+		    ice_err_str(err));
 		goto err_cleanup_tx;
 	}
 
 	err = ice_cfg_pf_default_mac_filters(sc);
 	if (err) {
 		device_printf(dev,
-			      "Unable to configure default MAC filters: %s\n",
-			      ice_err_str(err));
+		    "Unable to configure default MAC filters: %s\n",
+		    ice_err_str(err));
 		goto err_stop_rx;
 	}
 
@@ -2035,8 +2061,10 @@ ice_if_init(if_ctx_t ctx)
 	ice_if_promisc_set(ctx, if_getflags(sc->ifp));
 
 	if (!ice_testandclear_state(&sc->state, ICE_STATE_FIRST_INIT_LINK))
-		if (!sc->link_up && ((if_getflags(sc->ifp) & IFF_UP) ||
-			 ice_test_state(&sc->state, ICE_STATE_LINK_ACTIVE_ON_DOWN)))
+		if (!sc->link_up &&
+		    ((if_getflags(sc->ifp) & IFF_UP) ||
+			ice_test_state(&sc->state,
+			    ICE_STATE_LINK_ACTIVE_ON_DOWN)))
 			ice_set_link(sc, true);
 
 	ice_rdma_pf_init(sc);
@@ -2076,17 +2104,21 @@ ice_poll_for_media_avail(struct ice_softc *sc)
 			enum ice_status status;
 
 			/* Re-enable link and re-apply user link settings */
-			if (ice_test_state(&sc->state, ICE_STATE_LINK_ACTIVE_ON_DOWN) ||
+			if (ice_test_state(&sc->state,
+				ICE_STATE_LINK_ACTIVE_ON_DOWN) ||
 			    (if_getflags(sc->ifp) & IFF_UP)) {
-				ice_apply_saved_phy_cfg(sc, ICE_APPLY_LS_FEC_FC);
+				ice_apply_saved_phy_cfg(sc,
+				    ICE_APPLY_LS_FEC_FC);
 
-				/* Update the OS about changes in media capability */
+				/* Update the OS about changes in media
+				 * capability */
 				status = ice_add_media_types(sc, sc->media);
 				if (status)
 					device_printf(sc->dev,
 					    "Error adding device media types: %s aq_err %s\n",
 					    ice_status_str(status),
-					    ice_aq_str(hw->adminq.sq_last_status));
+					    ice_aq_str(
+						hw->adminq.sq_last_status));
 			}
 
 			ice_clear_state(&sc->state, ICE_STATE_NO_MEDIA);
@@ -2166,7 +2198,7 @@ ice_admin_timer(void *arg)
 	iflib_admin_intr_deferred(sc->ctx);
 
 	/* Reschedule the admin timer */
-	callout_schedule(&sc->admin_timer, hz/2);
+	callout_schedule(&sc->admin_timer, hz / 2);
 }
 
 /**
@@ -2182,7 +2214,8 @@ ice_transition_recovery_mode(struct ice_softc *sc)
 	struct ice_vsi *vsi = &sc->pf_vsi;
 	int i;
 
-	device_printf(sc->dev, "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
+	device_printf(sc->dev,
+	    "Firmware recovery mode detected. Limiting functionality. Refer to Intel(R) Ethernet Adapters and Devices User Guide for details on firmware recovery mode.\n");
 
 	/* Tell the stack that the link has gone down */
 	iflib_link_state_change(sc->ctx, LINK_STATE_DOWN, 0);
@@ -2271,7 +2304,8 @@ ice_if_update_admin_status(if_ctx_t ctx)
 	/* Check if the firmware entered recovery mode at run time */
 	fw_mode = ice_get_fw_mode(&sc->hw);
 	if (fw_mode == ICE_FW_MODE_REC) {
-		if (!ice_testandset_state(&sc->state, ICE_STATE_RECOVERY_MODE)) {
+		if (!ice_testandset_state(&sc->state,
+			ICE_STATE_RECOVERY_MODE)) {
 			/* If we just entered recovery mode, log a warning to
 			 * the system administrator and deinit driver state
 			 * that is no longer functional.
@@ -2279,7 +2313,8 @@ ice_if_update_admin_status(if_ctx_t ctx)
 			ice_transition_recovery_mode(sc);
 		}
 	} else if (fw_mode == ICE_FW_MODE_ROLLBACK) {
-		if (!ice_testandset_state(&sc->state, ICE_STATE_ROLLBACK_MODE)) {
+		if (!ice_testandset_state(&sc->state,
+			ICE_STATE_ROLLBACK_MODE)) {
 			/* Rollback mode isn't fatal, but we don't want to
 			 * repeatedly post a message about it.
 			 */
@@ -2304,7 +2339,8 @@ ice_if_update_admin_status(if_ctx_t ctx)
 		 * the control queues entirely.
 		 */
 		;
-	} else if (ice_testandclear_state(&sc->state, ICE_STATE_CONTROLQ_EVENT_PENDING)) {
+	} else if (ice_testandclear_state(&sc->state,
+		       ICE_STATE_CONTROLQ_EVENT_PENDING)) {
 		ice_process_ctrlq(sc, ICE_CTL_Q_ADMIN, &pending);
 		if (pending > 0)
 			reschedule = true;
@@ -2351,7 +2387,8 @@ ice_prepare_for_reset(struct ice_softc *sc)
 	if (ice_testandset_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET))
 		return;
 
-	log(LOG_INFO, "%s: preparing to reset device logic\n", if_name(sc->ifp));
+	log(LOG_INFO, "%s: preparing to reset device logic\n",
+	    if_name(sc->ifp));
 
 	/* In recovery mode, hardware is not initialized */
 	if (ice_test_state(&sc->state, ICE_STATE_RECOVERY_MODE))
@@ -2364,9 +2401,9 @@ ice_prepare_for_reset(struct ice_softc *sc)
 
 	/* Release the main PF VSI queue mappings */
 	ice_resmgr_release_map(&sc->tx_qmgr, sc->pf_vsi.tx_qmap,
-				    sc->pf_vsi.num_tx_queues);
+	    sc->pf_vsi.num_tx_queues);
 	ice_resmgr_release_map(&sc->rx_qmgr, sc->pf_vsi.rx_qmap,
-				    sc->pf_vsi.num_rx_queues);
+	    sc->pf_vsi.num_rx_queues);
 
 	ice_clear_hw_tbls(hw);
 
@@ -2393,19 +2430,19 @@ ice_rebuild_pf_vsi_qmap(struct ice_softc *sc)
 
 	/* Re-assign Tx queues from PF space to the main VSI */
 	err = ice_resmgr_assign_contiguous(&sc->tx_qmgr, vsi->tx_qmap,
-					    vsi->num_tx_queues);
+	    vsi->num_tx_queues);
 	if (err) {
 		device_printf(sc->dev, "Unable to re-assign PF Tx queues: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		return (err);
 	}
 
 	/* Re-assign Rx queues from PF space to this VSI */
 	err = ice_resmgr_assign_contiguous(&sc->rx_qmgr, vsi->rx_qmap,
-					    vsi->num_rx_queues);
+	    vsi->num_rx_queues);
 	if (err) {
 		device_printf(sc->dev, "Unable to re-assign PF Rx queues: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		goto err_release_tx_queues;
 	}
 
@@ -2423,7 +2460,7 @@ ice_rebuild_pf_vsi_qmap(struct ice_softc *sc)
 
 err_release_tx_queues:
 	ice_resmgr_release_map(&sc->tx_qmgr, sc->pf_vsi.tx_qmap,
-				   sc->pf_vsi.num_tx_queues);
+	    sc->pf_vsi.num_tx_queues);
 
 	return (err);
 }
@@ -2452,7 +2489,8 @@ ice_rebuild_recovery_mode(struct ice_softc *sc)
 	/* Enable ITR 0 right away, so that we can handle admin interrupts */
 	ice_enable_intr(&sc->hw, sc->irqvs[0].me);
 
-	/* Now that the rebuild is finished, we're no longer prepared to reset */
+	/* Now that the rebuild is finished, we're no longer prepared to reset
+	 */
 	ice_clear_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET);
 
 	log(LOG_INFO, "%s: device rebuild successful\n", if_name(sc->ifp));
@@ -2504,7 +2542,7 @@ ice_rebuild(struct ice_softc *sc)
 	status = ice_init_all_ctrlq(hw);
 	if (status) {
 		device_printf(dev, "failed to re-init controlqs, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		goto err_shutdown_ctrlq;
 	}
 
@@ -2512,9 +2550,9 @@ ice_rebuild(struct ice_softc *sc)
 	status = ice_sched_query_res_alloc(hw);
 	if (status) {
 		device_printf(dev,
-			      "Failed to query scheduler resources, err %s aq_err %s\n",
-			      ice_status_str(status),
-			      ice_aq_str(hw->adminq.sq_last_status));
+		    "Failed to query scheduler resources, err %s aq_err %s\n",
+		    ice_status_str(status),
+		    ice_aq_str(hw->adminq.sq_last_status));
 		goto err_shutdown_ctrlq;
 	}
 
@@ -2530,14 +2568,16 @@ ice_rebuild(struct ice_softc *sc)
 		if (hw->fwlog_cfg.options & ICE_FWLOG_OPTION_IS_REGISTERED) {
 			status = ice_fwlog_register(hw);
 			if (status)
-				device_printf(dev, "failed to re-register fw logging, err %s aq_err %s\n",
-				   ice_status_str(status),
-				   ice_aq_str(hw->adminq.sq_last_status));
+				device_printf(dev,
+				    "failed to re-register fw logging, err %s aq_err %s\n",
+				    ice_status_str(status),
+				    ice_aq_str(hw->adminq.sq_last_status));
 		}
 	} else
-		device_printf(dev, "failed to rebuild fw logging configuration, err %s aq_err %s\n",
-		   ice_status_str(status),
-		   ice_aq_str(hw->adminq.sq_last_status));
+		device_printf(dev,
+		    "failed to rebuild fw logging configuration, err %s aq_err %s\n",
+		    ice_status_str(status),
+		    ice_aq_str(hw->adminq.sq_last_status));
 
 	err = ice_send_version(sc);
 	if (err)
@@ -2546,14 +2586,14 @@ ice_rebuild(struct ice_softc *sc)
 	err = ice_init_link_events(sc);
 	if (err) {
 		device_printf(dev, "ice_init_link_events failed: %s\n",
-			      ice_err_str(err));
+		    ice_err_str(err));
 		goto err_shutdown_ctrlq;
 	}
 
 	status = ice_clear_pf_cfg(hw);
 	if (status) {
 		device_printf(dev, "failed to clear PF configuration, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		goto err_shutdown_ctrlq;
 	}
 
@@ -2562,14 +2602,14 @@ ice_rebuild(struct ice_softc *sc)
 	status = ice_get_caps(hw);
 	if (status) {
 		device_printf(dev, "failed to get capabilities, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		goto err_shutdown_ctrlq;
 	}
 
 	status = ice_sched_init_port(hw->port_info);
 	if (status) {
 		device_printf(dev, "failed to initialize port, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		goto err_sched_cleanup;
 	}
 
@@ -2586,14 +2626,16 @@ ice_rebuild(struct ice_softc *sc)
 
 	err = ice_rebuild_pf_vsi_qmap(sc);
 	if (err) {
-		device_printf(sc->dev, "Unable to re-assign main VSI queues, err %s\n",
-			      ice_err_str(err));
+		device_printf(sc->dev,
+		    "Unable to re-assign main VSI queues, err %s\n",
+		    ice_err_str(err));
 		goto err_sched_cleanup;
 	}
 	err = ice_initialize_vsi(&sc->pf_vsi);
 	if (err) {
-		device_printf(sc->dev, "Unable to re-initialize Main VSI, err %s\n",
-			      ice_err_str(err));
+		device_printf(sc->dev,
+		    "Unable to re-initialize Main VSI, err %s\n",
+		    ice_err_str(err));
 		goto err_release_queue_allocations;
 	}
 
@@ -2609,8 +2651,8 @@ ice_rebuild(struct ice_softc *sc)
 	err = ice_config_rss(&sc->pf_vsi);
 	if (err) {
 		device_printf(sc->dev,
-			      "Unable to reconfigure RSS for the main VSI, err %s\n",
-			      ice_err_str(err));
+		    "Unable to reconfigure RSS for the main VSI, err %s\n",
+		    ice_err_str(err));
 		goto err_deinit_pf_vsi;
 	}
 
@@ -2631,7 +2673,8 @@ ice_rebuild(struct ice_softc *sc)
 	/* Enable ITR 0 right away, so that we can handle admin interrupts */
 	ice_enable_intr(&sc->hw, sc->irqvs[0].me);
 
-	/* Now that the rebuild is finished, we're no longer prepared to reset */
+	/* Now that the rebuild is finished, we're no longer prepared to reset
+	 */
 	ice_clear_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET);
 
 	log(LOG_INFO, "%s: device rebuild successful\n", if_name(sc->ifp));
@@ -2655,16 +2698,17 @@ err_deinit_pf_vsi:
 	ice_deinit_vsi(&sc->pf_vsi);
 err_release_queue_allocations:
 	ice_resmgr_release_map(&sc->tx_qmgr, sc->pf_vsi.tx_qmap,
-				    sc->pf_vsi.num_tx_queues);
+	    sc->pf_vsi.num_tx_queues);
 	ice_resmgr_release_map(&sc->rx_qmgr, sc->pf_vsi.rx_qmap,
-				    sc->pf_vsi.num_rx_queues);
+	    sc->pf_vsi.num_rx_queues);
 err_sched_cleanup:
 	ice_sched_cleanup_all(hw);
 err_shutdown_ctrlq:
 	ice_shutdown_all_ctrlq(hw, false);
 	ice_clear_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET);
 	ice_set_state(&sc->state, ICE_STATE_RESET_FAILED);
-	device_printf(dev, "Driver rebuild failed, please reload the device driver\n");
+	device_printf(dev,
+	    "Driver rebuild failed, please reload the device driver\n");
 }
 
 /**
@@ -2704,7 +2748,7 @@ ice_handle_reset_event(struct ice_softc *sc)
 	IFLIB_CTX_LOCK(sc);
 	if (status) {
 		device_printf(dev, "Device never came out of reset, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		ice_set_state(&sc->state, ICE_STATE_RESET_FAILED);
 		return;
 	}
@@ -2718,7 +2762,8 @@ ice_handle_reset_event(struct ice_softc *sc)
 	 * resetting a second time right after we reset due to a global event.
 	 */
 	if (ice_testandclear_state(&sc->state, ICE_STATE_RESET_PFR_REQ))
-		device_printf(dev, "Ignoring PFR request that occurred while a reset was ongoing\n");
+		device_printf(dev,
+		    "Ignoring PFR request that occurred while a reset was ongoing\n");
 }
 
 /**
@@ -2755,7 +2800,7 @@ ice_handle_pf_reset_request(struct ice_softc *sc)
 	IFLIB_CTX_LOCK(sc);
 	if (status) {
 		device_printf(sc->dev, "device PF reset failed, err %s\n",
-			      ice_status_str(status));
+		    ice_status_str(status));
 		ice_set_state(&sc->state, ICE_STATE_RESET_FAILED);
 		return;
 	}
@@ -2850,8 +2895,8 @@ ice_if_multi_set(if_ctx_t ctx)
 	err = ice_sync_multicast_filters(sc);
 	if (err) {
 		device_printf(sc->dev,
-			      "Failed to synchronize multicast filter list: %s\n",
-			      ice_err_str(err));
+		    "Failed to synchronize multicast filter list: %s\n",
+		    ice_err_str(err));
 		return;
 	}
 }
@@ -2880,9 +2925,9 @@ ice_if_vlan_register(if_ctx_t ctx, u16 vtag)
 	status = ice_add_vlan_hw_filter(&sc->pf_vsi, vtag);
 	if (status) {
 		device_printf(sc->dev,
-			      "Failure adding VLAN %d to main VSI, err %s aq_err %s\n",
-			      vtag, ice_status_str(status),
-			      ice_aq_str(sc->hw.adminq.sq_last_status));
+		    "Failure adding VLAN %d to main VSI, err %s aq_err %s\n",
+		    vtag, ice_status_str(status),
+		    ice_aq_str(sc->hw.adminq.sq_last_status));
 	}
 }
 
@@ -2910,9 +2955,9 @@ ice_if_vlan_unregister(if_ctx_t ctx, u16 vtag)
 	status = ice_remove_vlan_hw_filter(&sc->pf_vsi, vtag);
 	if (status) {
 		device_printf(sc->dev,
-			      "Failure removing VLAN %d from main VSI, err %s aq_err %s\n",
-			      vtag, ice_status_str(status),
-			      ice_aq_str(sc->hw.adminq.sq_last_status));
+		    "Failure removing VLAN %d from main VSI, err %s aq_err %s\n",
+		    vtag, ice_status_str(status),
+		    ice_aq_str(sc->hw.adminq.sq_last_status));
 	}
 }
 
@@ -2948,12 +2993,14 @@ ice_if_stop(if_ctx_t ctx)
 		return;
 
 	if (ice_test_state(&sc->state, ICE_STATE_RESET_FAILED)) {
-		device_printf(sc->dev, "request to stop interface cannot be completed as the device failed to reset\n");
+		device_printf(sc->dev,
+		    "request to stop interface cannot be completed as the device failed to reset\n");
 		return;
 	}
 
 	if (ice_test_state(&sc->state, ICE_STATE_PREPARED_FOR_RESET)) {
-		device_printf(sc->dev, "request to stop interface while device is prepared for impending reset\n");
+		device_printf(sc->dev,
+		    "request to stop interface while device is prepared for impending reset\n");
 		return;
 	}
 
@@ -2975,7 +3022,7 @@ ice_if_stop(if_ctx_t ctx)
 	ice_control_all_rx_queues(&sc->pf_vsi, false);
 
 	if (!ice_test_state(&sc->state, ICE_STATE_LINK_ACTIVE_ON_DOWN) &&
-		 !(if_getflags(sc->ifp) & IFF_UP) && sc->link_up)
+	    !(if_getflags(sc->ifp) & IFF_UP) && sc->link_up)
 		ice_set_link(sc, false);
 }
 
@@ -3036,7 +3083,7 @@ bool
 ice_driver_is_detaching(struct ice_softc *sc)
 {
 	return (ice_test_state(&sc->state, ICE_STATE_DETACHING) ||
-		iflib_in_detach(sc->ctx));
+	    iflib_in_detach(sc->ctx));
 }
 
 /**
@@ -3081,7 +3128,7 @@ ice_if_priv_ioctl(if_ctx_t ctx, u_long command, caddr_t data)
 		 * command we got for debugging purposes.
 		 */
 		device_printf(dev, "%s: unexpected ioctl command %08lx\n",
-			      __func__, command);
+		    __func__, command);
 		return (EINVAL);
 	}
 
@@ -3175,4 +3222,3 @@ ice_if_needs_restart(if_ctx_t ctx __unused, enum iflib_restart_event event)
 		return (false);
 	}
 }
-

@@ -32,36 +32,34 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/kthread.h>
-#include <sys/rman.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
 #include <sys/module.h>
+#include <sys/rman.h>
+
 #include <machine/bus.h>
 
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#define	GCC_QDSS_BCR			0x29000
-#define	 GCC_QDSS_BCR_BLK_ARES		(1 << 0) /* Async software reset. */
-#define	GCC_QDSS_CFG_AHB_CBCR		0x29008
-#define	 AHB_CBCR_CLK_ENABLE		(1 << 0) /* AHB clk branch ctrl */
-#define	GCC_QDSS_ETR_USB_CBCR		0x29028
-#define	 ETR_USB_CBCR_CLK_ENABLE	(1 << 0) /* ETR USB clk branch ctrl */
-#define	GCC_QDSS_DAP_CBCR		0x29084
-#define	 DAP_CBCR_CLK_ENABLE		(1 << 0) /* DAP clk branch ctrl */
+#define GCC_QDSS_BCR 0x29000
+#define GCC_QDSS_BCR_BLK_ARES (1 << 0) /* Async software reset. */
+#define GCC_QDSS_CFG_AHB_CBCR 0x29008
+#define AHB_CBCR_CLK_ENABLE (1 << 0) /* AHB clk branch ctrl */
+#define GCC_QDSS_ETR_USB_CBCR 0x29028
+#define ETR_USB_CBCR_CLK_ENABLE (1 << 0) /* ETR USB clk branch ctrl */
+#define GCC_QDSS_DAP_CBCR 0x29084
+#define DAP_CBCR_CLK_ENABLE (1 << 0) /* DAP clk branch ctrl */
 
-static struct ofw_compat_data compat_data[] = {
-	{ "qcom,gcc-msm8916",			1 },
-	{ NULL,					0 }
-};
+static struct ofw_compat_data compat_data[] = { { "qcom,gcc-msm8916", 1 },
+	{ NULL, 0 } };
 
 struct qcom_gcc_softc {
-	struct resource		*res;
+	struct resource *res;
 };
 
 static struct resource_spec qcom_gcc_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { -1, 0 }
 };
 
 /*
@@ -126,8 +124,8 @@ qcom_gcc_attach(device_t dev)
 
 static device_method_t qcom_gcc_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		qcom_gcc_probe),
-	DEVMETHOD(device_attach,	qcom_gcc_attach),
+	DEVMETHOD(device_probe, qcom_gcc_probe),
+	DEVMETHOD(device_attach, qcom_gcc_attach),
 
 	DEVMETHOD_END
 };

@@ -26,29 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_vga.h"
 #include "opt_fb.h"
-#include "opt_syscons.h"	/* should be removed in the future, XXX */
+#include "opt_syscons.h" /* should be removed in the future, XXX */
+#include "opt_vga.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/fbio.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
-#include <sys/conf.h>
-#include <sys/bus.h>
-#include <sys/fbio.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
-
 #include <sys/rman.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
 
+#include <machine/bus.h>
 #include <machine/md_var.h>
+#include <machine/resource.h>
 #ifdef __i386__
 #include <machine/pc/bios.h>
 #endif
@@ -59,11 +57,11 @@
 #include <isa/isareg.h>
 #include <isa/isavar.h>
 
-#define VGA_ID		0x0009d041	/* PNP0900 */
+#define VGA_ID 0x0009d041 /* PNP0900 */
 
 static struct isa_pnp_id vga_ids[] = {
-	{ VGA_ID,	NULL },		/* PNP0900 */
-	{ 0,		NULL },
+	{ VGA_ID, NULL }, /* PNP0900 */
+	{ 0, NULL },
 };
 
 static void
@@ -145,13 +143,14 @@ isavga_probe(device_t dev)
 	if (isa_get_vendorid(dev))
 		return (ENXIO);
 
-	error = vga_probe_unit(device_get_unit(dev), &adp, device_get_flags(dev));
+	error = vga_probe_unit(device_get_unit(dev), &adp,
+	    device_get_flags(dev));
 	if (error == 0) {
 		device_set_desc(dev, "Generic ISA VGA");
-		bus_set_resource(dev, SYS_RES_IOPORT, 0,
-				 adp.va_io_base, adp.va_io_size);
-		bus_set_resource(dev, SYS_RES_MEMORY, 0,
-				 adp.va_mem_base, adp.va_mem_size);
+		bus_set_resource(dev, SYS_RES_IOPORT, 0, adp.va_io_base,
+		    adp.va_io_size);
+		bus_set_resource(dev, SYS_RES_MEMORY, 0, adp.va_mem_base,
+		    adp.va_mem_size);
 		isa_set_vendorid(dev, VGA_ID);
 		isa_set_logicalid(dev, VGA_ID);
 #if 0
@@ -177,10 +176,10 @@ isavga_attach(device_t dev)
 
 	rid = 0;
 	bus_alloc_resource_any(dev, SYS_RES_IOPORT, &rid,
-				  RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 	rid = 0;
 	bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-				 RF_ACTIVE | RF_SHAREABLE);
+	    RF_ACTIVE | RF_SHAREABLE);
 
 	error = vga_attach_unit(unit, sc, device_get_flags(dev));
 	if (error)
@@ -219,15 +218,14 @@ isavga_resume(device_t dev)
 	return (bus_generic_resume(dev));
 }
 
-static device_method_t isavga_methods[] = {
-	DEVMETHOD(device_identify,	isavga_identify),
-	DEVMETHOD(device_probe,		isavga_probe),
-	DEVMETHOD(device_attach,	isavga_attach),
-	DEVMETHOD(device_suspend,	isavga_suspend),
-	DEVMETHOD(device_resume,	isavga_resume),
+static device_method_t isavga_methods[] = { DEVMETHOD(device_identify,
+						isavga_identify),
+	DEVMETHOD(device_probe, isavga_probe),
+	DEVMETHOD(device_attach, isavga_attach),
+	DEVMETHOD(device_suspend, isavga_suspend),
+	DEVMETHOD(device_resume, isavga_resume),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t isavga_driver = {
 	VGA_DRIVER_NAME,
@@ -294,20 +292,14 @@ vgapm_resume(device_t dev)
 	return (bus_generic_resume(dev));
 }
 
-static device_method_t vgapm_methods[] = {
-	DEVMETHOD(device_identify,	vgapm_identify),
-	DEVMETHOD(device_probe,		vgapm_probe),
-	DEVMETHOD(device_attach,	vgapm_attach),
-	DEVMETHOD(device_suspend,	vgapm_suspend),
-	DEVMETHOD(device_resume,	vgapm_resume),
-	{ 0, 0 }
-};
+static device_method_t vgapm_methods[] = { DEVMETHOD(device_identify,
+					       vgapm_identify),
+	DEVMETHOD(device_probe, vgapm_probe),
+	DEVMETHOD(device_attach, vgapm_attach),
+	DEVMETHOD(device_suspend, vgapm_suspend),
+	DEVMETHOD(device_resume, vgapm_resume), { 0, 0 } };
 
-static driver_t vgapm_driver = {
-	"vgapm",
-	vgapm_methods,
-	0
-};
+static driver_t vgapm_driver = { "vgapm", vgapm_methods, 0 };
 
 DRIVER_MODULE(vgapm, vgapci, vgapm_driver, 0, 0);
 ISA_PNP_INFO(vga_ids);

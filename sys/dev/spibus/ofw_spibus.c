@@ -39,17 +39,17 @@
 #include <sys/mutex.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/spibus/spi.h>
-#include <dev/spibus/spibusvar.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 #include <dev/ofw/openfirm.h>
+#include <dev/spibus/spi.h>
+#include <dev/spibus/spibusvar.h>
 
 #include "spibus_if.h"
 
 struct ofw_spibus_devinfo {
-	struct spibus_ivar	opd_dinfo;
-	struct ofw_bus_devinfo	opd_obdinfo;
+	struct spibus_ivar opd_dinfo;
+	struct ofw_bus_devinfo opd_obdinfo;
 };
 
 /* Methods */
@@ -90,15 +90,15 @@ ofw_spibus_attach(device_t dev)
 	 * Attach those children represented in the device tree.
 	 */
 	for (child = OF_child(ofw_bus_get_node(dev)); child != 0;
-	    child = OF_peer(child)) {
+	     child = OF_peer(child)) {
 		/*
 		 * Try to get the CS number first from the spi-chipselect
 		 * property, then try the reg property.
 		 */
 		if (OF_getencprop(child, "spi-chipselect", &paddr,
-		    sizeof(paddr)) == -1) {
+			sizeof(paddr)) == -1) {
 			if (OF_getencprop(child, "reg", &paddr,
-			    sizeof(paddr)) == -1)
+				sizeof(paddr)) == -1)
 				continue;
 		}
 
@@ -129,7 +129,7 @@ ofw_spibus_attach(device_t dev)
 		 * how to interpret a value of zero).
 		 */
 		if (OF_getencprop(child, "spi-max-frequency", &clock,
-		    sizeof(clock)) == -1)
+			sizeof(clock)) == -1)
 			clock = 0;
 
 		/*
@@ -151,8 +151,7 @@ ofw_spibus_attach(device_t dev)
 		childdev = device_add_child(dev, NULL, -1);
 
 		resource_list_init(&dinfo->opd_dinfo.rl);
-		ofw_bus_intr_to_rl(childdev, child,
-		    &dinfo->opd_dinfo.rl, NULL);
+		ofw_bus_intr_to_rl(childdev, child, &dinfo->opd_dinfo.rl, NULL);
 		device_set_ivars(childdev, dinfo);
 	}
 
@@ -203,28 +202,28 @@ static struct resource_list *
 ofw_spibus_get_resource_list(device_t bus __unused, device_t child)
 {
 	struct spibus_ivar *devi;
-        
+
 	devi = SPIBUS_IVAR(child);
 	return (&devi->rl);
 }
 
 static device_method_t ofw_spibus_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ofw_spibus_probe),
-	DEVMETHOD(device_attach,	ofw_spibus_attach),
+	DEVMETHOD(device_probe, ofw_spibus_probe),
+	DEVMETHOD(device_attach, ofw_spibus_attach),
 
 	/* Bus interface */
-	DEVMETHOD(bus_child_pnpinfo,	ofw_bus_gen_child_pnpinfo),
-	DEVMETHOD(bus_add_child,	ofw_spibus_add_child),
+	DEVMETHOD(bus_child_pnpinfo, ofw_bus_gen_child_pnpinfo),
+	DEVMETHOD(bus_add_child, ofw_spibus_add_child),
 	DEVMETHOD(bus_get_resource_list, ofw_spibus_get_resource_list),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	ofw_spibus_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, ofw_spibus_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
 	DEVMETHOD_END
 };

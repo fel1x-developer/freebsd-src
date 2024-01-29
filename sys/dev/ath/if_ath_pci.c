@@ -36,74 +36,69 @@
 #include "opt_ath.h"
 
 #include <sys/param.h>
-#include <sys/systm.h> 
-#include <sys/malloc.h>
-#include <sys/module.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
-#include <sys/errno.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-
-#include <net80211/ieee80211_var.h>
 
 #include <dev/ath/if_athvar.h>
-
-#include <dev/pci/pcivar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_var.h>
 
 /* For EEPROM firmware */
-#ifdef	ATH_EEPROM_FIRMWARE
-#include <sys/linker.h>
+#ifdef ATH_EEPROM_FIRMWARE
 #include <sys/firmware.h>
-#endif	/* ATH_EEPROM_FIRMWARE */
+#include <sys/linker.h>
+#endif /* ATH_EEPROM_FIRMWARE */
 
 /*
  * PCI glue.
  */
 
 struct ath_pci_softc {
-	struct ath_softc	sc_sc;
-	struct resource		*sc_sr;		/* memory resource */
-	struct resource		*sc_irq;	/* irq resource */
-	void			*sc_ih;		/* interrupt handler */
+	struct ath_softc sc_sc;
+	struct resource *sc_sr;	 /* memory resource */
+	struct resource *sc_irq; /* irq resource */
+	void *sc_ih;		 /* interrupt handler */
 };
 
-#define	PCI_VDEVICE(v, d)			\
-	PCI_DEV(v,d)
+#define PCI_VDEVICE(v, d) PCI_DEV(v, d)
 
-#define	PCI_DEVICE_SUB(v, d, sv, sd)		\
-	PCI_DEV(v, d), PCI_SUBDEV(sv, sd)
+#define PCI_DEVICE_SUB(v, d, sv, sd) PCI_DEV(v, d), PCI_SUBDEV(sv, sd)
 
-#define	PCI_VENDOR_ID_ATHEROS		0x168c
-#define	PCI_VENDOR_ID_SAMSUNG		0x144d
-#define	PCI_VENDOR_ID_AZWAVE		0x1a3b
-#define	PCI_VENDOR_ID_FOXCONN		0x105b
-#define	PCI_VENDOR_ID_ATTANSIC		0x1969
-#define	PCI_VENDOR_ID_ASUSTEK		0x1043
-#define	PCI_VENDOR_ID_DELL		0x1028
-#define	PCI_VENDOR_ID_QMI		0x1a32
-#define	PCI_VENDOR_ID_LENOVO		0x17aa
-#define	PCI_VENDOR_ID_HP		0x103c
+#define PCI_VENDOR_ID_ATHEROS 0x168c
+#define PCI_VENDOR_ID_SAMSUNG 0x144d
+#define PCI_VENDOR_ID_AZWAVE 0x1a3b
+#define PCI_VENDOR_ID_FOXCONN 0x105b
+#define PCI_VENDOR_ID_ATTANSIC 0x1969
+#define PCI_VENDOR_ID_ASUSTEK 0x1043
+#define PCI_VENDOR_ID_DELL 0x1028
+#define PCI_VENDOR_ID_QMI 0x1a32
+#define PCI_VENDOR_ID_LENOVO 0x17aa
+#define PCI_VENDOR_ID_HP 0x103c
 
 #include "if_ath_pci_devlist.h"
 
-#define	BS_BAR	0x10
-#define	PCIR_RETRY_TIMEOUT	0x41
-#define	PCIR_CFG_PMCSR		0x48
+#define BS_BAR 0x10
+#define PCIR_RETRY_TIMEOUT 0x41
+#define PCIR_CFG_PMCSR 0x48
 
-#define	DEFAULT_CACHESIZE	32
+#define DEFAULT_CACHESIZE 32
 
 static void
 ath_pci_setup(device_t dev)
@@ -118,15 +113,14 @@ ath_pci_setup(device_t dev)
 	 */
 	cz = pci_read_config(dev, PCIR_CACHELNSZ, 1);
 	if (cz == 0) {
-		pci_write_config(dev, PCIR_CACHELNSZ,
-		    DEFAULT_CACHESIZE / 4, 1);
+		pci_write_config(dev, PCIR_CACHELNSZ, DEFAULT_CACHESIZE / 4, 1);
 	}
 
 	/* Override the system latency timer */
 	pci_write_config(dev, PCIR_LATTIMER, 0xa8, 1);
 
 	/* If a PCI NIC, force wakeup */
-#ifdef	ATH_PCI_WAKEUP_WAR
+#ifdef ATH_PCI_WAKEUP_WAR
 	/* XXX TODO: don't do this for non-PCI (ie, PCIe, Cardbus!) */
 	if (1) {
 		uint16_t pmcsr;
@@ -148,7 +142,7 @@ ath_pci_setup(device_t dev)
 static int
 ath_pci_probe(device_t dev)
 {
-	const char* devname;
+	const char *devname;
 
 	devname = ath_hal_probe(pci_get_vendor(dev), pci_get_device(dev));
 	if (devname != NULL) {
@@ -165,7 +159,7 @@ ath_pci_attach(device_t dev)
 	struct ath_softc *sc = &psc->sc_sc;
 	int error = ENXIO;
 	int rid;
-#ifdef	ATH_EEPROM_FIRMWARE
+#ifdef ATH_EEPROM_FIRMWARE
 	const struct firmware *fw = NULL;
 	const char *buf;
 #endif
@@ -188,18 +182,18 @@ ath_pci_attach(device_t dev)
 	 */
 	ath_pci_setup(dev);
 
-	/* 
+	/*
 	 * Setup memory-mapping of PCI registers.
 	 */
 	rid = BS_BAR;
 	psc->sc_sr = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
-					    RF_ACTIVE);
+	    RF_ACTIVE);
 	if (psc->sc_sr == NULL) {
 		device_printf(dev, "cannot map register space\n");
 		goto bad;
 	}
-	sc->sc_st = (HAL_BUS_TAG) rman_get_bustag(psc->sc_sr);
-	sc->sc_sh = (HAL_BUS_HANDLE) rman_get_bushandle(psc->sc_sr);
+	sc->sc_st = (HAL_BUS_TAG)rman_get_bustag(psc->sc_sr);
+	sc->sc_sh = (HAL_BUS_HANDLE)rman_get_bushandle(psc->sc_sr);
 	/*
 	 * Mark device invalid so any interrupts (shared or otherwise)
 	 * that arrive before the HAL is setup are discarded.
@@ -217,14 +211,13 @@ ath_pci_attach(device_t dev)
 	 */
 	rid = 0;
 	psc->sc_irq = bus_alloc_resource_any(dev, SYS_RES_IRQ, &rid,
-					     RF_SHAREABLE|RF_ACTIVE);
+	    RF_SHAREABLE | RF_ACTIVE);
 	if (psc->sc_irq == NULL) {
 		device_printf(dev, "could not map interrupt\n");
 		goto bad1;
 	}
-	if (bus_setup_intr(dev, psc->sc_irq,
-			   INTR_TYPE_NET | INTR_MPSAFE,
-			   NULL, ath_intr, sc, &psc->sc_ih)) {
+	if (bus_setup_intr(dev, psc->sc_irq, INTR_TYPE_NET | INTR_MPSAFE, NULL,
+		ath_intr, sc, &psc->sc_ih)) {
 		device_printf(dev, "could not establish interrupt\n");
 		goto bad2;
 	}
@@ -232,28 +225,28 @@ ath_pci_attach(device_t dev)
 	/*
 	 * Setup DMA descriptor area.
 	 */
-	if (bus_dma_tag_create(bus_get_dma_tag(dev),	/* parent */
-			       1, 0,			/* alignment, bounds */
-			       BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-			       BUS_SPACE_MAXADDR,	/* highaddr */
-			       NULL, NULL,		/* filter, filterarg */
-			       0x3ffff,			/* maxsize XXX */
-			       ATH_MAX_SCATTER,		/* nsegments */
-			       0x3ffff,			/* maxsegsize XXX */
-			       BUS_DMA_ALLOCNOW,	/* flags */
-			       NULL,			/* lockfunc */
-			       NULL,			/* lockarg */
-			       &sc->sc_dmat)) {
+	if (bus_dma_tag_create(bus_get_dma_tag(dev), /* parent */
+		1, 0,				     /* alignment, bounds */
+		BUS_SPACE_MAXADDR_32BIT,	     /* lowaddr */
+		BUS_SPACE_MAXADDR,		     /* highaddr */
+		NULL, NULL,			     /* filter, filterarg */
+		0x3ffff,			     /* maxsize XXX */
+		ATH_MAX_SCATTER,		     /* nsegments */
+		0x3ffff,			     /* maxsegsize XXX */
+		BUS_DMA_ALLOCNOW,		     /* flags */
+		NULL,				     /* lockfunc */
+		NULL,				     /* lockarg */
+		&sc->sc_dmat)) {
 		device_printf(dev, "cannot allocate DMA tag\n");
 		goto bad3;
 	}
 
-#ifdef	ATH_EEPROM_FIRMWARE
+#ifdef ATH_EEPROM_FIRMWARE
 	/*
 	 * If there's an EEPROM firmware image, load that in.
 	 */
 	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
-	    "eeprom_firmware", &buf) == 0) {
+		"eeprom_firmware", &buf) == 0) {
 		if (bootverbose)
 			device_printf(dev, "%s: looking up firmware @ '%s'\n",
 			    __func__, buf);
@@ -265,11 +258,11 @@ ath_pci_attach(device_t dev)
 			goto bad4;
 		}
 
-		device_printf(dev, "%s: EEPROM firmware @ %p\n",
-		    __func__, fw->data);
-		sc->sc_eepromdata =
-		    malloc(fw->datasize, M_TEMP, M_WAITOK | M_ZERO);
-		if (! sc->sc_eepromdata) {
+		device_printf(dev, "%s: EEPROM firmware @ %p\n", __func__,
+		    fw->data);
+		sc->sc_eepromdata = malloc(fw->datasize, M_TEMP,
+		    M_WAITOK | M_ZERO);
+		if (!sc->sc_eepromdata) {
 			device_printf(dev, "%s: can't malloc eepromdata\n",
 			    __func__);
 			goto bad4;
@@ -280,10 +273,10 @@ ath_pci_attach(device_t dev)
 #endif /* ATH_EEPROM_FIRMWARE */
 
 	error = ath_attach(pci_get_device(dev), sc);
-	if (error == 0)					/* success */
+	if (error == 0) /* success */
 		return 0;
 
-#ifdef	ATH_EEPROM_FIRMWARE
+#ifdef ATH_EEPROM_FIRMWARE
 bad4:
 #endif
 	bus_dma_tag_destroy(sc->sc_dmat);
@@ -316,7 +309,7 @@ ath_pci_detach(device_t dev)
 	/*
 	 * Do a config read to clear pre-existing pci error status.
 	 */
-	(void) pci_read_config(dev, PCIR_COMMAND, 4);
+	(void)pci_read_config(dev, PCIR_COMMAND, 4);
 
 	ath_detach(sc);
 
@@ -375,23 +368,19 @@ ath_pci_resume(device_t dev)
 
 static device_method_t ath_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		ath_pci_probe),
-	DEVMETHOD(device_attach,	ath_pci_attach),
-	DEVMETHOD(device_detach,	ath_pci_detach),
-	DEVMETHOD(device_shutdown,	ath_pci_shutdown),
-	DEVMETHOD(device_suspend,	ath_pci_suspend),
-	DEVMETHOD(device_resume,	ath_pci_resume),
-	{ 0,0 }
+	DEVMETHOD(device_probe, ath_pci_probe),
+	DEVMETHOD(device_attach, ath_pci_attach),
+	DEVMETHOD(device_detach, ath_pci_detach),
+	DEVMETHOD(device_shutdown, ath_pci_shutdown),
+	DEVMETHOD(device_suspend, ath_pci_suspend),
+	DEVMETHOD(device_resume, ath_pci_resume), { 0, 0 }
 };
 
-static driver_t ath_pci_driver = {
-	"ath",
-	ath_pci_methods,
-	sizeof (struct ath_pci_softc)
-};
+static driver_t ath_pci_driver = { "ath", ath_pci_methods,
+	sizeof(struct ath_pci_softc) };
 
 DRIVER_MODULE(if_ath_pci, pci, ath_pci_driver, 0, 0);
 MODULE_VERSION(if_ath_pci, 1);
-MODULE_DEPEND(if_ath_pci, wlan, 1, 1, 1);		/* 802.11 media layer */
-MODULE_DEPEND(if_ath_pci, ath_main, 1, 1, 1);	/* if_ath driver */
-MODULE_DEPEND(if_ath_pci, ath_hal, 1, 1, 1);	/* ath HAL */
+MODULE_DEPEND(if_ath_pci, wlan, 1, 1, 1);     /* 802.11 media layer */
+MODULE_DEPEND(if_ath_pci, ath_main, 1, 1, 1); /* if_ath driver */
+MODULE_DEPEND(if_ath_pci, ath_hal, 1, 1, 1);  /* ath HAL */

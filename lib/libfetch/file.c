@@ -36,8 +36,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "fetch.h"
 #include "common.h"
+#include "fetch.h"
 
 FILE *
 fetchXGetFile(struct url *u, struct url_stat *us, const char *flags)

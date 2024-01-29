@@ -46,8 +46,8 @@ extern "C" {
 /* BSD style release date */
 #define BPF_RELEASE 199606
 
-typedef	int bpf_int32;
-typedef	u_int bpf_u_int32;
+typedef int bpf_int32;
+typedef u_int bpf_u_int32;
 
 /*
  * Alignment macros.  BPF_WORDALIGN rounds up to the next
@@ -58,7 +58,7 @@ typedef	u_int bpf_u_int32;
 #else
 #define BPF_ALIGNMENT sizeof(long)
 #endif
-#define BPF_WORDALIGN(x) (((x)+(BPF_ALIGNMENT-1))&~(BPF_ALIGNMENT-1))
+#define BPF_WORDALIGN(x) (((x) + (BPF_ALIGNMENT - 1)) & ~(BPF_ALIGNMENT - 1))
 
 #define BPF_MAXINSNS 512
 #define BPF_MAXBUFSIZE 0x8000
@@ -76,8 +76,8 @@ struct bpf_program {
  * Struct returned by BIOCGSTATS.
  */
 struct bpf_stat {
-	u_int bs_recv;		/* number of packets received */
-	u_int bs_drop;		/* number of packets dropped */
+	u_int bs_recv; /* number of packets received */
+	u_int bs_drop; /* number of packets dropped */
 };
 
 /*
@@ -107,48 +107,48 @@ struct bpf_version {
  * have run fixincludes so the latter set should work.
  */
 #if (defined(sun) || defined(ibm032)) && !defined(__GNUC__)
-#define	BIOCGBLEN	_IOR(B,102, u_int)
-#define	BIOCSBLEN	_IOWR(B,102, u_int)
-#define	BIOCSETF	_IOW(B,103, struct bpf_program)
-#define	BIOCFLUSH	_IO(B,104)
-#define BIOCPROMISC	_IO(B,105)
-#define	BIOCGDLT	_IOR(B,106, u_int)
-#define BIOCGETIF	_IOR(B,107, struct ifreq)
-#define BIOCSETIF	_IOW(B,108, struct ifreq)
-#define BIOCSRTIMEOUT	_IOW(B,109, struct timeval)
-#define BIOCGRTIMEOUT	_IOR(B,110, struct timeval)
-#define BIOCGSTATS	_IOR(B,111, struct bpf_stat)
-#define BIOCIMMEDIATE	_IOW(B,112, u_int)
-#define BIOCVERSION	_IOR(B,113, struct bpf_version)
-#define BIOCSTCPF	_IOW(B,114, struct bpf_program)
-#define BIOCSUDPF	_IOW(B,115, struct bpf_program)
+#define BIOCGBLEN _IOR(B, 102, u_int)
+#define BIOCSBLEN _IOWR(B, 102, u_int)
+#define BIOCSETF _IOW(B, 103, struct bpf_program)
+#define BIOCFLUSH _IO(B, 104)
+#define BIOCPROMISC _IO(B, 105)
+#define BIOCGDLT _IOR(B, 106, u_int)
+#define BIOCGETIF _IOR(B, 107, struct ifreq)
+#define BIOCSETIF _IOW(B, 108, struct ifreq)
+#define BIOCSRTIMEOUT _IOW(B, 109, struct timeval)
+#define BIOCGRTIMEOUT _IOR(B, 110, struct timeval)
+#define BIOCGSTATS _IOR(B, 111, struct bpf_stat)
+#define BIOCIMMEDIATE _IOW(B, 112, u_int)
+#define BIOCVERSION _IOR(B, 113, struct bpf_version)
+#define BIOCSTCPF _IOW(B, 114, struct bpf_program)
+#define BIOCSUDPF _IOW(B, 115, struct bpf_program)
 #else
-#define	BIOCGBLEN	_IOR('B',102, u_int)
-#define	BIOCSBLEN	_IOWR('B',102, u_int)
-#define	BIOCSETF	_IOW('B',103, struct bpf_program)
-#define	BIOCFLUSH	_IO('B',104)
-#define BIOCPROMISC	_IO('B',105)
-#define	BIOCGDLT	_IOR('B',106, u_int)
-#define BIOCGETIF	_IOR('B',107, struct ifreq)
-#define BIOCSETIF	_IOW('B',108, struct ifreq)
-#define BIOCSRTIMEOUT	_IOW('B',109, struct timeval)
-#define BIOCGRTIMEOUT	_IOR('B',110, struct timeval)
-#define BIOCGSTATS	_IOR('B',111, struct bpf_stat)
-#define BIOCIMMEDIATE	_IOW('B',112, u_int)
-#define BIOCVERSION	_IOR('B',113, struct bpf_version)
-#define BIOCSTCPF	_IOW('B',114, struct bpf_program)
-#define BIOCSUDPF	_IOW('B',115, struct bpf_program)
+#define BIOCGBLEN _IOR('B', 102, u_int)
+#define BIOCSBLEN _IOWR('B', 102, u_int)
+#define BIOCSETF _IOW('B', 103, struct bpf_program)
+#define BIOCFLUSH _IO('B', 104)
+#define BIOCPROMISC _IO('B', 105)
+#define BIOCGDLT _IOR('B', 106, u_int)
+#define BIOCGETIF _IOR('B', 107, struct ifreq)
+#define BIOCSETIF _IOW('B', 108, struct ifreq)
+#define BIOCSRTIMEOUT _IOW('B', 109, struct timeval)
+#define BIOCGRTIMEOUT _IOR('B', 110, struct timeval)
+#define BIOCGSTATS _IOR('B', 111, struct bpf_stat)
+#define BIOCIMMEDIATE _IOW('B', 112, u_int)
+#define BIOCVERSION _IOR('B', 113, struct bpf_version)
+#define BIOCSTCPF _IOW('B', 114, struct bpf_program)
+#define BIOCSUDPF _IOW('B', 115, struct bpf_program)
 #endif
 
 /*
  * Structure prepended to each packet.
  */
 struct bpf_hdr {
-	struct timeval	bh_tstamp;	/* time stamp */
-	bpf_u_int32	bh_caplen;	/* length of captured portion */
-	bpf_u_int32	bh_datalen;	/* original length of packet */
-	u_short		bh_hdrlen;	/* length of bpf header (this struct
-					   plus alignment padding) */
+	struct timeval bh_tstamp; /* time stamp */
+	bpf_u_int32 bh_caplen;	  /* length of captured portion */
+	bpf_u_int32 bh_datalen;	  /* original length of packet */
+	u_short bh_hdrlen;	  /* length of bpf header (this struct
+				     plus alignment padding) */
 };
 /*
  * Because the structure above is not a multiple of 4 bytes, some compilers
@@ -173,17 +173,17 @@ struct bpf_hdr {
  * differ from those here, they should use their values, not the ones
  * here).
  */
-#define DLT_NULL	0	/* no link-layer encapsulation */
-#define DLT_EN10MB	1	/* Ethernet (10Mb) */
-#define DLT_EN3MB	2	/* Experimental Ethernet (3Mb) */
-#define DLT_AX25	3	/* Amateur Radio AX.25 */
-#define DLT_PRONET	4	/* Proteon ProNET Token Ring */
-#define DLT_CHAOS	5	/* Chaos */
-#define DLT_IEEE802	6	/* IEEE 802 Networks */
-#define DLT_ARCNET	7	/* ARCNET */
-#define DLT_SLIP	8	/* Serial Line IP */
-#define DLT_PPP		9	/* Point-to-point Protocol */
-#define DLT_FDDI	10	/* FDDI */
+#define DLT_NULL 0    /* no link-layer encapsulation */
+#define DLT_EN10MB 1  /* Ethernet (10Mb) */
+#define DLT_EN3MB 2   /* Experimental Ethernet (3Mb) */
+#define DLT_AX25 3    /* Amateur Radio AX.25 */
+#define DLT_PRONET 4  /* Proteon ProNET Token Ring */
+#define DLT_CHAOS 5   /* Chaos */
+#define DLT_IEEE802 6 /* IEEE 802 Networks */
+#define DLT_ARCNET 7  /* ARCNET */
+#define DLT_SLIP 8    /* Serial Line IP */
+#define DLT_PPP 9     /* Point-to-point Protocol */
+#define DLT_FDDI 10   /* FDDI */
 
 /*
  * These are values from the traditional libpcap "bpf.h".
@@ -191,8 +191,8 @@ struct bpf_hdr {
  * with the ones appropriate to that platform, if the values are
  * different on that platform.
  */
-#define DLT_ATM_RFC1483	11	/* LLC/SNAP encapsulated atm */
-#define DLT_RAW		12	/* raw IP */
+#define DLT_ATM_RFC1483 11 /* LLC/SNAP encapsulated atm */
+#define DLT_RAW 12	   /* raw IP */
 
 /*
  * These are values from BSD/OS's "bpf.h".
@@ -209,23 +209,23 @@ struct bpf_hdr {
  */
 #ifdef __NetBSD__
 #ifndef DLT_SLIP_BSDOS
-#define DLT_SLIP_BSDOS	13	/* BSD/OS Serial Line IP */
-#define DLT_PPP_BSDOS	14	/* BSD/OS Point-to-point Protocol */
+#define DLT_SLIP_BSDOS 13 /* BSD/OS Serial Line IP */
+#define DLT_PPP_BSDOS 14  /* BSD/OS Point-to-point Protocol */
 #endif
 #else
-#define DLT_SLIP_BSDOS	15	/* BSD/OS Serial Line IP */
-#define DLT_PPP_BSDOS	16	/* BSD/OS Point-to-point Protocol */
+#define DLT_SLIP_BSDOS 15 /* BSD/OS Serial Line IP */
+#define DLT_PPP_BSDOS 16  /* BSD/OS Point-to-point Protocol */
 #endif
 
-#define DLT_ATM_CLIP	19	/* Linux Classical-IP over ATM */
+#define DLT_ATM_CLIP 19 /* Linux Classical-IP over ATM */
 
 /*
  * These values are defined by NetBSD; other platforms should refrain from
  * using them for other purposes, so that NetBSD savefiles with link
  * types of 50 or 51 can be read as this type on all platforms.
  */
-#define DLT_PPP_SERIAL	50	/* PPP over serial with HDLC encapsulation */
-#define DLT_PPP_ETHER	51	/* PPP over Ethernet */
+#define DLT_PPP_SERIAL 50 /* PPP over serial with HDLC encapsulation */
+#define DLT_PPP_ETHER 51  /* PPP over Ethernet */
 
 /*
  * Values between 100 and 103 are used in capture file headers as
@@ -247,10 +247,10 @@ struct bpf_hdr {
  * libpcap 0.5 defined it as DLT_CHDLC; we define DLT_CHDLC as well,
  * for source compatibility with programs written for libpcap 0.5.
  */
-#define DLT_C_HDLC	104	/* Cisco HDLC */
-#define DLT_CHDLC	DLT_C_HDLC
+#define DLT_C_HDLC 104 /* Cisco HDLC */
+#define DLT_CHDLC DLT_C_HDLC
 
-#define DLT_IEEE802_11	105	/* IEEE 802.11 wireless */
+#define DLT_IEEE802_11 105 /* IEEE 802.11 wireless */
 
 /*
  * Values between 106 and 107 are used in capture file headers as
@@ -267,7 +267,7 @@ struct bpf_hdr {
  * define DLT_LOOP as 12 in its version, as per the comment above -
  * and should not use 108 as a DLT_ value.
  */
-#define DLT_LOOP	108
+#define DLT_LOOP 108
 
 /*
  * Values between 109 and 112 are used in capture file headers as
@@ -279,22 +279,22 @@ struct bpf_hdr {
 /*
  * This is for Linux cooked sockets.
  */
-#define DLT_LINUX_SLL	113
+#define DLT_LINUX_SLL 113
 
 /*
  * Apple LocalTalk hardware.
  */
-#define DLT_LTALK	114
+#define DLT_LTALK 114
 
 /*
  * Acorn Econet.
  */
-#define DLT_ECONET	115
+#define DLT_ECONET 115
 
 /*
  * Reserved for use with OpenBSD ipfilter.
  */
-#define DLT_IPFILTER	116
+#define DLT_IPFILTER 116
 
 /*
  * Reserved for use in capture-file headers as a link-layer type
@@ -302,30 +302,30 @@ struct bpf_hdr {
  * but that's DLT_LANE8023 in SuSE 6.3, so we can't use 17 for it
  * in capture-file headers.
  */
-#define DLT_PFLOG	117
+#define DLT_PFLOG 117
 
 /*
  * Registered for Cisco-internal use.
  */
-#define DLT_CISCO_IOS	118
+#define DLT_CISCO_IOS 118
 
 /*
  * Reserved for 802.11 cards using the Prism II chips, with a link-layer
  * header including Prism monitor mode information plus an 802.11
  * header.
  */
-#define DLT_PRISM_HEADER	119
+#define DLT_PRISM_HEADER 119
 
 /*
  * Reserved for Aironet 802.11 cards, with an Aironet link-layer header
  * (see Doug Ambrisko's FreeBSD patches).
  */
-#define DLT_AIRONET_HEADER	120
+#define DLT_AIRONET_HEADER 120
 
 /*
  * Reserved for Siemens HiPath HDLC.
  */
-#define DLT_HHDLC		121
+#define DLT_HHDLC 121
 
 /*
  * Reserved for RFC 2625 IP-over-Fibre Channel, as per a request from
@@ -336,79 +336,85 @@ struct bpf_hdr {
  * where the link-layer header starts with an RFC 2625 Network_Header
  * field.
  */
-#define DLT_IP_OVER_FC		122
+#define DLT_IP_OVER_FC 122
 
 /*
  * The instruction encodings.
  */
 /* instruction classes */
 #define BPF_CLASS(code) ((code) & 0x07)
-#define		BPF_LD		0x00
-#define		BPF_LDX		0x01
-#define		BPF_ST		0x02
-#define		BPF_STX		0x03
-#define		BPF_ALU		0x04
-#define		BPF_JMP		0x05
-#define		BPF_RET		0x06
-#define		BPF_MISC	0x07
+#define BPF_LD 0x00
+#define BPF_LDX 0x01
+#define BPF_ST 0x02
+#define BPF_STX 0x03
+#define BPF_ALU 0x04
+#define BPF_JMP 0x05
+#define BPF_RET 0x06
+#define BPF_MISC 0x07
 
 /* ld/ldx fields */
-#define BPF_SIZE(code)	((code) & 0x18)
-#define		BPF_W		0x00
-#define		BPF_H		0x08
-#define		BPF_B		0x10
-#define BPF_MODE(code)	((code) & 0xe0)
-#define		BPF_IMM 	0x00
-#define		BPF_ABS		0x20
-#define		BPF_IND		0x40
-#define		BPF_MEM		0x60
-#define		BPF_LEN		0x80
-#define		BPF_MSH		0xa0
+#define BPF_SIZE(code) ((code) & 0x18)
+#define BPF_W 0x00
+#define BPF_H 0x08
+#define BPF_B 0x10
+#define BPF_MODE(code) ((code) & 0xe0)
+#define BPF_IMM 0x00
+#define BPF_ABS 0x20
+#define BPF_IND 0x40
+#define BPF_MEM 0x60
+#define BPF_LEN 0x80
+#define BPF_MSH 0xa0
 
 /* alu/jmp fields */
-#define BPF_OP(code)	((code) & 0xf0)
-#define		BPF_ADD		0x00
-#define		BPF_SUB		0x10
-#define		BPF_MUL		0x20
-#define		BPF_DIV		0x30
-#define		BPF_OR		0x40
-#define		BPF_AND		0x50
-#define		BPF_LSH		0x60
-#define		BPF_RSH		0x70
-#define		BPF_NEG		0x80
-#define		BPF_JA		0x00
-#define		BPF_JEQ		0x10
-#define		BPF_JGT		0x20
-#define		BPF_JGE		0x30
-#define		BPF_JSET	0x40
-#define BPF_SRC(code)	((code) & 0x08)
-#define		BPF_K		0x00
-#define		BPF_X		0x08
+#define BPF_OP(code) ((code) & 0xf0)
+#define BPF_ADD 0x00
+#define BPF_SUB 0x10
+#define BPF_MUL 0x20
+#define BPF_DIV 0x30
+#define BPF_OR 0x40
+#define BPF_AND 0x50
+#define BPF_LSH 0x60
+#define BPF_RSH 0x70
+#define BPF_NEG 0x80
+#define BPF_JA 0x00
+#define BPF_JEQ 0x10
+#define BPF_JGT 0x20
+#define BPF_JGE 0x30
+#define BPF_JSET 0x40
+#define BPF_SRC(code) ((code) & 0x08)
+#define BPF_K 0x00
+#define BPF_X 0x08
 
 /* ret - BPF_K and BPF_X also apply */
-#define BPF_RVAL(code)	((code) & 0x18)
-#define		BPF_A		0x10
+#define BPF_RVAL(code) ((code) & 0x18)
+#define BPF_A 0x10
 
 /* misc */
 #define BPF_MISCOP(code) ((code) & 0xf8)
-#define		BPF_TAX		0x00
-#define		BPF_TXA		0x80
+#define BPF_TAX 0x00
+#define BPF_TXA 0x80
 
 /*
  * The instruction data structure.
  */
 struct bpf_insn {
-	u_short	code;
-	u_char 	jt;
-	u_char 	jf;
+	u_short code;
+	u_char jt;
+	u_char jf;
 	bpf_int32 k;
 };
 
 /*
  * Macros for insn array initializers.
  */
-#define BPF_STMT(code, k) { (u_short)(code), 0, 0, k }
-#define BPF_JUMP(code, k, jt, jf) { (u_short)(code), jt, jf, k }
+#define BPF_STMT(code, k)                \
+	{                                \
+		(u_short)(code), 0, 0, k \
+	}
+#define BPF_JUMP(code, k, jt, jf)          \
+	{                                  \
+		(u_short)(code), jt, jf, k \
+	}
 
 #if defined(BSD) && (defined(KERNEL) || defined(_KERNEL))
 /*

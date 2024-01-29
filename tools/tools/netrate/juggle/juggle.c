@@ -60,8 +60,8 @@
  * The UDP test uses UDP over the loopback interface.  Two arbitrary but
  * fixed port numbers.
  */
-#define	UDP_PORT1	2020
-#define	UDP_PORT2	2021
+#define UDP_PORT1 2020
+#define UDP_PORT2 2021
 
 /*
  * Size of each message.  Must be smaller than the socket buffer or pipe
@@ -69,7 +69,7 @@
  * If pipelining is in use, must be able to fit PIPELINE_MAX of these
  * messages into the send queue.
  */
-#define	MESSAGELEN	128
+#define MESSAGELEN 128
 
 /*
  * Number of message cycles -- into fd1, out of fd2, into fd2, and out of
@@ -77,19 +77,19 @@
  * perform timing without explicitly synchronizing with the secondary thread
  * or process.
  */
-#define	NUMCYCLES	1024
+#define NUMCYCLES 1024
 
 /*
  * Number of times to run each test.
  */
-#define	LOOPS		10
+#define LOOPS 10
 
 /*
  * Number of in-flight messages per cycle.  I adjusting this value, be
  * careful not to exceed the socket/etc buffer depth, or messages may be lost
  * or result in blocking.
  */
-#define	PIPELINE_MAX	4
+#define PIPELINE_MAX 4
 
 static int
 udp_create(int *fd1p, int *fd2p)
@@ -119,25 +119,25 @@ udp_create(int *fd1p, int *fd2p)
 	sin2.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	sin2.sin_port = htons(UDP_PORT2);
 
-	if (bind(sock1, (struct sockaddr *) &sin1, sizeof(sin1)) < 0) {
+	if (bind(sock1, (struct sockaddr *)&sin1, sizeof(sin1)) < 0) {
 		close(sock1);
 		close(sock2);
 		return (-1);
 	}
 
-	if (bind(sock2, (struct sockaddr *) &sin2, sizeof(sin2)) < 0) {
+	if (bind(sock2, (struct sockaddr *)&sin2, sizeof(sin2)) < 0) {
 		close(sock1);
 		close(sock2);
 		return (-1);
 	}
 
-	if (connect(sock1, (struct sockaddr *) &sin2, sizeof(sin2)) < 0) {
+	if (connect(sock1, (struct sockaddr *)&sin2, sizeof(sin2)) < 0) {
 		close(sock1);
 		close(sock2);
 		return (-1);
 	}
 
-	if (connect(sock2, (struct sockaddr *) &sin1, sizeof(sin1)) < 0) {
+	if (connect(sock2, (struct sockaddr *)&sin1, sizeof(sin1)) < 0) {
 		close(sock1);
 		close(sock2);
 		return (-1);
@@ -465,8 +465,8 @@ scale_timespec(struct timespec *ts, int p)
 }
 
 static const struct ipctype {
-	int		(*it_create)(int *fd1p, int *fd2p);
-	const char	*it_name;
+	int (*it_create)(int *fd1p, int *fd2p);
+	const char *it_name;
 } ipctypes[] = {
 	{ pipe_create, "pipe" },
 	{ udp_create, "udp" },
@@ -523,8 +523,7 @@ main(int argc, char *argv[])
 				    p);
 			thread_juggle(fd1, fd2, p);
 			for (j = 0; j < LOOPS; j++)
-				thread_results[j] = thread_juggle(fd1, fd2,
-				    p);
+				thread_results[j] = thread_juggle(fd1, fd2, p);
 			for (j = 0; j < LOOPS; j++) {
 				thread_results[j].tv_sec = 0;
 				thread_results[j].tv_nsec = 0;
@@ -548,19 +547,19 @@ main(int argc, char *argv[])
 				    juggle_results[j].tv_nsec);
 			}
 			printf("\n");
-			printf("%s, process_juggle, %d, ",
-			    ipctypes[i].it_name, p);
+			printf("%s, process_juggle, %d, ", ipctypes[i].it_name,
+			    p);
 			for (j = 0; j < LOOPS; j++) {
 				if (j != 0)
 					printf(", ");
 				scale_timespec(&process_results[j], p);
 				printf("%jd.%09lu",
-                                    (intmax_t)process_results[j].tv_sec,
+				    (intmax_t)process_results[j].tv_sec,
 				    process_results[j].tv_nsec);
 			}
 			printf("\n");
-			printf("%s, thread_juggle, %d, ",
-			    ipctypes[i].it_name, p);
+			printf("%s, thread_juggle, %d, ", ipctypes[i].it_name,
+			    p);
 			for (j = 0; j < LOOPS; j++) {
 				if (j != 0)
 					printf(", ");

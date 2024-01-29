@@ -27,7 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <sys/cdefs.h>
 __RCSID("$NetBSD: channel.c,v 1.1 2008/08/17 13:20:57 plunky Exp $");
 
@@ -39,9 +38,9 @@ __RCSID("$NetBSD: channel.c,v 1.1 2008/08/17 13:20:57 plunky Exp $");
 #define L2CAP_SOCKET_CHECKED
 #include "btpand.h"
 
-static struct chlist	channel_list;
-static int		channel_count;
-static int		channel_tick;
+static struct chlist channel_list;
+static int channel_count;
+static int channel_tick;
 
 static void channel_start(int, short, void *);
 static void channel_read(int, short, void *);
@@ -182,7 +181,8 @@ channel_start(int fd, short ev, void *arg)
 		channel_timeout(chan, 10);
 		if (chan->send(chan, ph->data) == false) {
 			if (event_add(&chan->wr_ev, NULL) == -1) {
-				log_err("Could not add channel write event: %m");
+				log_err(
+				    "Could not add channel write event: %m");
 				channel_close(chan);
 			}
 			return;
@@ -217,7 +217,7 @@ channel_read(int fd, short ev, void *arg)
 		channel_close(chan);
 		return;
 	}
-	if (nr == 0) {	/* EOF */
+	if (nr == 0) { /* EOF */
 		log_debug("(fd#%d) EOF", fd);
 		packet_free(pkt);
 		channel_close(chan);
@@ -243,12 +243,12 @@ channel_dispatch(packet_t *pkt)
 	 * possible.
 	 */
 	if (!ETHER_IS_MULTICAST(pkt->dst)) {
-		LIST_FOREACH(chan, &channel_list, next) {
-			if (chan == pkt->chan
-			    || chan->state != CHANNEL_OPEN)
+		LIST_FOREACH (chan, &channel_list, next) {
+			if (chan == pkt->chan || chan->state != CHANNEL_OPEN)
 				continue;
 
-			if (memcmp(pkt->dst, chan->raddr, ETHER_ADDR_LEN) == 0) {
+			if (memcmp(pkt->dst, chan->raddr, ETHER_ADDR_LEN) ==
+			    0) {
 				if (chan->qlen > CHANNEL_MAXQLEN)
 					log_notice("Queue overflow");
 				else
@@ -259,9 +259,8 @@ channel_dispatch(packet_t *pkt)
 		}
 	}
 
-	LIST_FOREACH(chan, &channel_list, next) {
-		if (chan == pkt->chan
-		    || chan->state != CHANNEL_OPEN)
+	LIST_FOREACH (chan, &channel_list, next) {
+		if (chan == pkt->chan || chan->state != CHANNEL_OPEN)
 			continue;
 
 		if (chan->qlen > CHANNEL_MAXQLEN) {

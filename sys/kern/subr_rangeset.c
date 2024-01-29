@@ -33,12 +33,13 @@
 #include <sys/lock.h>
 #include <sys/pctrie.h>
 #include <sys/rangeset.h>
+
 #include <vm/uma.h>
 
 #ifdef DIAGNOSTIC
 static void rangeset_check(struct rangeset *rs);
 #else
-#define	rangeset_check(rs)
+#define rangeset_check(rs)
 #endif
 
 static uma_zone_t rs_node_zone;
@@ -47,9 +48,8 @@ static void
 rs_rangeset_init(void *arg __unused)
 {
 
-	rs_node_zone = uma_zcreate("rangeset pctrie nodes",
-	    pctrie_node_size(), NULL, NULL, pctrie_zone_init, NULL,
-	    UMA_ALIGN_PTR, 0);
+	rs_node_zone = uma_zcreate("rangeset pctrie nodes", pctrie_node_size(),
+	    NULL, NULL, pctrie_zone_init, NULL, UMA_ALIGN_PTR, 0);
 }
 SYSINIT(rs, SI_SUB_LOCK, SI_ORDER_ANY, rs_rangeset_init, NULL);
 
@@ -102,8 +102,7 @@ rangeset_check_empty(struct rangeset *rs, uint64_t start, uint64_t end)
 }
 
 int
-rangeset_insert(struct rangeset *rs, uint64_t start, uint64_t end,
-    void *data)
+rangeset_insert(struct rangeset *rs, uint64_t start, uint64_t end, void *data)
 {
 	struct rs_el *r;
 	int error;
@@ -302,15 +301,15 @@ rangeset_check(struct rangeset *rs)
 		if (r == NULL)
 			break;
 		KASSERT(r->re_start < r->re_end,
-		    ("invalid interval rs %p elem %p (%#jx, %#jx)",
-		    rs, r, (uintmax_t)r->re_start,  (uintmax_t)r->re_end));
+		    ("invalid interval rs %p elem %p (%#jx, %#jx)", rs, r,
+			(uintmax_t)r->re_start, (uintmax_t)r->re_end));
 		if (rp != NULL) {
 			KASSERT(rp->re_end <= r->re_start,
 			    ("non-ascending neighbors rs %p "
-			    "prev elem %p (%#jx, %#jx) elem %p (%#jx, %#jx)",
-			    rs, rp,  (uintmax_t)rp->re_start,
-			    (uintmax_t)rp->re_end, r,  (uintmax_t)r->re_start,
-			    (uintmax_t)r->re_end));
+			     "prev elem %p (%#jx, %#jx) elem %p (%#jx, %#jx)",
+				rs, rp, (uintmax_t)rp->re_start,
+				(uintmax_t)rp->re_end, r,
+				(uintmax_t)r->re_start, (uintmax_t)r->re_end));
 		}
 	}
 }
@@ -319,6 +318,7 @@ rangeset_check(struct rangeset *rs)
 #include "opt_ddb.h"
 #ifdef DDB
 #include <sys/kernel.h>
+
 #include <ddb/ddb.h>
 
 DB_SHOW_COMMAND(rangeset, rangeset_show_fn)
@@ -338,8 +338,8 @@ DB_SHOW_COMMAND(rangeset, rangeset_show_fn)
 		r = RANGESET_PCTRIE_LOOKUP_GE(&rs->rs_trie, cursor);
 		if (r == NULL)
 			break;
-		db_printf("  el %p start %#jx end %#jx\n",
-		    r, r->re_start, r->re_end);
+		db_printf("  el %p start %#jx end %#jx\n", r, r->re_start,
+		    r->re_end);
 	}
 }
 #endif

@@ -34,9 +34,9 @@
 #include <sys/filedesc.h>
 #include <sys/lock.h>
 #include <sys/mman.h>
-#include <sys/selinfo.h>
 #include <sys/pipe.h>
 #include <sys/proc.h>
+#include <sys/selinfo.h>
 #include <sys/stat.h>
 #include <sys/sx.h>
 #include <sys/syscallsubr.h>
@@ -46,22 +46,23 @@
 #include <sys/vnode.h>
 
 #ifdef COMPAT_LINUX32
-#include <compat/freebsd32/freebsd32_misc.h>
-#include <compat/freebsd32/freebsd32_util.h>
 #include <machine/../linux32/linux.h>
 #include <machine/../linux32/linux32_proto.h>
+
+#include <compat/freebsd32/freebsd32_misc.h>
+#include <compat/freebsd32/freebsd32_util.h>
 #else
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
 #endif
+#include <compat/linux/linux_file.h>
 #include <compat/linux/linux_misc.h>
 #include <compat/linux/linux_util.h>
-#include <compat/linux/linux_file.h>
 
-static int	linux_common_open(struct thread *, int, const char *, int, int,
-		    enum uio_seg);
-static int	linux_do_accessat(struct thread *t, int, const char *, int, int);
-static int	linux_getdents_error(struct thread *, int, int);
+static int linux_common_open(struct thread *, int, const char *, int, int,
+    enum uio_seg);
+static int linux_do_accessat(struct thread *t, int, const char *, int, int);
+static int linux_getdents_error(struct thread *, int, int);
 
 static struct bsd_to_linux_bitmap seal_bitmap[] = {
 	BITMAP_1t1_LINUX(F_SEAL_SEAL),
@@ -70,10 +71,10 @@ static struct bsd_to_linux_bitmap seal_bitmap[] = {
 	BITMAP_1t1_LINUX(F_SEAL_WRITE),
 };
 
-#define	MFD_HUGETLB_ENTRY(_size)					\
-	{								\
-		.bsd_value = MFD_HUGE_##_size,				\
-		.linux_value = LINUX_HUGETLB_FLAG_ENCODE_##_size	\
+#define MFD_HUGETLB_ENTRY(_size)                                 \
+	{                                                        \
+		.bsd_value = MFD_HUGE_##_size,                   \
+		.linux_value = LINUX_HUGETLB_FLAG_ENCODE_##_size \
 	}
 static struct bsd_to_linux_bitmap mfd_bitmap[] = {
 	BITMAP_1t1_LINUX(MFD_CLOEXEC),
@@ -177,7 +178,7 @@ linux_common_open(struct thread *td, int dirfd, const char *path, int l_flags,
 	 * XXX In between kern_openat() and fget(), another process
 	 * having the same filedesc could use that fd without
 	 * checking below.
-	*/
+	 */
 	fd = td->td_retval[0];
 	if (fget(td, fd, &cap_ioctl_rights, &fp) == 0) {
 		if (fp->f_type != DTYPE_VNODE) {
@@ -190,8 +191,8 @@ linux_common_open(struct thread *td, int dirfd, const char *path, int l_flags,
 			PROC_UNLOCK(p);
 			sx_sunlock(&proctree_lock);
 			/* XXXPJD: Verify if TIOCSCTTY is allowed. */
-			(void) fo_ioctl(fp, TIOCSCTTY, (caddr_t) 0,
-			    td->td_ucred, td);
+			(void)fo_ioctl(fp, TIOCSCTTY, (caddr_t)0, td->td_ucred,
+			    td);
 		} else {
 			PROC_UNLOCK(p);
 			sx_sunlock(&proctree_lock);
@@ -249,8 +250,8 @@ linux_name_to_handle_at(struct thread *td,
 	if ((args->flags & LINUX_AT_EMPTY_PATH) != 0)
 		bsd_flags |= AT_EMPTY_PATH;
 
-	error = kern_getfhat(td, bsd_flags, fd, args->name,
-	    UIO_USERSPACE, &fh, UIO_SYSSPACE);
+	error = kern_getfhat(td, bsd_flags, fd, args->name, UIO_USERSPACE, &fh,
+	    UIO_SYSSPACE);
 	if (error != 0)
 		return (error);
 
@@ -285,8 +286,7 @@ linux_name_to_handle_at(struct thread *td,
 	if (error != 0)
 		return (error);
 
-	error = copyout(&fh, &args->handle->f_handle,
-	    sizeof(fh));
+	error = copyout(&fh, &args->handle->f_handle, sizeof(fh));
 	return (error);
 }
 
@@ -323,7 +323,7 @@ linux_llseek(struct thread *td, struct linux_llseek_args *args)
 	int error;
 	off_t off;
 
-	off = (args->olow) | (((off_t) args->ohigh) << 32);
+	off = (args->olow) | (((off_t)args->ohigh) << 32);
 
 	error = kern_lseek(td, args->fd, off, args->whence);
 	if (error != 0)
@@ -371,41 +371,42 @@ linux_getdents_error(struct thread *td, int fd, int err)
 }
 
 struct l_dirent {
-	l_ulong		d_ino;
-	l_off_t		d_off;
-	l_ushort	d_reclen;
-	char		d_name[LINUX_NAME_MAX + 1];
+	l_ulong d_ino;
+	l_off_t d_off;
+	l_ushort d_reclen;
+	char d_name[LINUX_NAME_MAX + 1];
 };
 
 struct l_dirent64 {
-	uint64_t	d_ino;
-	int64_t		d_off;
-	l_ushort	d_reclen;
-	u_char		d_type;
-	char		d_name[LINUX_NAME_MAX + 1];
+	uint64_t d_ino;
+	int64_t d_off;
+	l_ushort d_reclen;
+	u_char d_type;
+	char d_name[LINUX_NAME_MAX + 1];
 };
 
 /*
  * Linux uses the last byte in the dirent buffer to store d_type,
  * at least glibc-2.7 requires it. That is why l_dirent is padded with 2 bytes.
  */
-#define LINUX_RECLEN(namlen)						\
-    roundup(offsetof(struct l_dirent, d_name) + (namlen) + 2, sizeof(l_ulong))
+#define LINUX_RECLEN(namlen)                                      \
+	roundup(offsetof(struct l_dirent, d_name) + (namlen) + 2, \
+	    sizeof(l_ulong))
 
-#define LINUX_RECLEN64(namlen)						\
-    roundup(offsetof(struct l_dirent64, d_name) + (namlen) + 1,		\
-    sizeof(uint64_t))
+#define LINUX_RECLEN64(namlen)                                      \
+	roundup(offsetof(struct l_dirent64, d_name) + (namlen) + 1, \
+	    sizeof(uint64_t))
 
 #ifdef LINUX_LEGACY_SYSCALLS
 int
 linux_getdents(struct thread *td, struct linux_getdents_args *args)
 {
 	struct dirent *bdp;
-	caddr_t inp, buf;		/* BSD-format */
-	int len, reclen;		/* BSD-format */
-	caddr_t outp;			/* Linux-format */
-	int resid, linuxreclen;		/* Linux-format */
-	caddr_t lbuf;			/* Linux-format */
+	caddr_t inp, buf;	/* BSD-format */
+	int len, reclen;	/* BSD-format */
+	caddr_t outp;		/* Linux-format */
+	int resid, linuxreclen; /* Linux-format */
+	caddr_t lbuf;		/* Linux-format */
 	off_t base;
 	struct l_dirent *linux_dirent;
 	int buflen, error;
@@ -414,8 +415,8 @@ linux_getdents(struct thread *td, struct linux_getdents_args *args)
 	buflen = min(args->count, MAXBSIZE);
 	buf = malloc(buflen, M_LINUX, M_WAITOK);
 
-	error = kern_getdirentries(td, args->fd, buf, buflen,
-	    &base, NULL, UIO_SYSSPACE);
+	error = kern_getdirentries(td, args->fd, buf, buflen, &base, NULL,
+	    UIO_SYSSPACE);
 	if (error != 0) {
 		error = linux_getdents_error(td, args->fd, error);
 		goto out1;
@@ -430,7 +431,7 @@ linux_getdents(struct thread *td, struct linux_getdents_args *args)
 	retval = 0;
 
 	while (len > 0) {
-		bdp = (struct dirent *) inp;
+		bdp = (struct dirent *)inp;
 		reclen = bdp->d_reclen;
 		linuxreclen = LINUX_RECLEN(bdp->d_namlen);
 		/*
@@ -442,7 +443,7 @@ linux_getdents(struct thread *td, struct linux_getdents_args *args)
 			goto out;
 		}
 
-		linux_dirent = (struct l_dirent*)lbuf;
+		linux_dirent = (struct l_dirent *)lbuf;
 		linux_dirent->d_ino = bdp->d_fileno;
 		linux_dirent->d_off = bdp->d_off;
 		linux_dirent->d_reclen = linuxreclen;
@@ -451,7 +452,7 @@ linux_getdents(struct thread *td, struct linux_getdents_args *args)
 		 */
 		lbuf[linuxreclen - 1] = bdp->d_type;
 		strlcpy(linux_dirent->d_name, bdp->d_name,
-		    linuxreclen - offsetof(struct l_dirent, d_name)-1);
+		    linuxreclen - offsetof(struct l_dirent, d_name) - 1);
 		error = copyout(linux_dirent, outp, linuxreclen);
 		if (error != 0)
 			goto out;
@@ -478,10 +479,10 @@ int
 linux_getdents64(struct thread *td, struct linux_getdents64_args *args)
 {
 	struct dirent *bdp;
-	caddr_t inp, buf;		/* BSD-format */
-	int len, reclen;		/* BSD-format */
-	caddr_t outp;			/* Linux-format */
-	int resid, linuxreclen;		/* Linux-format */
+	caddr_t inp, buf;	/* BSD-format */
+	int len, reclen;	/* BSD-format */
+	caddr_t outp;		/* Linux-format */
+	int resid, linuxreclen; /* Linux-format */
 	off_t base;
 	struct l_dirent64 *linux_dirent64;
 	int buflen, error;
@@ -490,8 +491,8 @@ linux_getdents64(struct thread *td, struct linux_getdents64_args *args)
 	buflen = min(args->count, MAXBSIZE);
 	buf = malloc(buflen, M_LINUX, M_WAITOK);
 
-	error = kern_getdirentries(td, args->fd, buf, buflen,
-	    &base, NULL, UIO_SYSSPACE);
+	error = kern_getdirentries(td, args->fd, buf, buflen, &base, NULL,
+	    UIO_SYSSPACE);
 	if (error != 0) {
 		error = linux_getdents_error(td, args->fd, error);
 		goto out1;
@@ -507,7 +508,7 @@ linux_getdents64(struct thread *td, struct linux_getdents64_args *args)
 	retval = 0;
 
 	while (len > 0) {
-		bdp = (struct dirent *) inp;
+		bdp = (struct dirent *)inp;
 		reclen = bdp->d_reclen;
 		linuxreclen = LINUX_RECLEN64(bdp->d_namlen);
 		/*
@@ -551,17 +552,17 @@ int
 linux_readdir(struct thread *td, struct linux_readdir_args *args)
 {
 	struct dirent *bdp;
-	caddr_t buf;			/* BSD-format */
-	int linuxreclen;		/* Linux-format */
+	caddr_t buf;	 /* BSD-format */
+	int linuxreclen; /* Linux-format */
 	off_t base;
-	struct l_dirent *linux_dirent;	/* Linux-format */
+	struct l_dirent *linux_dirent; /* Linux-format */
 	int buflen, error;
 
 	buflen = sizeof(*bdp);
 	buf = malloc(buflen, M_LINUX, M_WAITOK);
 
-	error = kern_getdirentries(td, args->fd, buf, buflen,
-	    &base, NULL, UIO_SYSSPACE);
+	error = kern_getdirentries(td, args->fd, buf, buflen, &base, NULL,
+	    UIO_SYSSPACE);
 	if (error != 0) {
 		error = linux_getdents_error(td, args->fd, error);
 		goto out;
@@ -572,7 +573,7 @@ linux_readdir(struct thread *td, struct linux_readdir_args *args)
 	linux_dirent = malloc(LINUX_RECLEN(LINUX_NAME_MAX), M_LINUX,
 	    M_WAITOK | M_ZERO);
 
-	bdp = (struct dirent *) buf;
+	bdp = (struct dirent *)buf;
 	linuxreclen = LINUX_RECLEN(bdp->d_namlen);
 
 	linux_dirent->d_ino = bdp->d_fileno;
@@ -610,8 +611,8 @@ linux_access(struct thread *td, struct linux_access_args *args)
 #endif
 
 static int
-linux_do_accessat(struct thread *td, int ldfd, const char *filename,
-    int amode, int flags)
+linux_do_accessat(struct thread *td, int ldfd, const char *filename, int amode,
+    int flags)
 {
 	int dfd;
 
@@ -627,8 +628,8 @@ int
 linux_faccessat(struct thread *td, struct linux_faccessat_args *args)
 {
 
-	return (linux_do_accessat(td, args->dfd, args->filename, args->amode,
-	    0));
+	return (
+	    linux_do_accessat(td, args->dfd, args->filename, args->amode, 0));
 }
 
 int
@@ -643,14 +644,11 @@ linux_faccessat2(struct thread *td, struct linux_faccessat2_args *args)
 		return (EINVAL);
 	}
 
-	flags = (args->flags & LINUX_AT_EACCESS) == 0 ? 0 :
-	    AT_EACCESS;
-	flags |= (args->flags & LINUX_AT_EMPTY_PATH) == 0 ? 0 :
-	    AT_EMPTY_PATH;
+	flags = (args->flags & LINUX_AT_EACCESS) == 0 ? 0 : AT_EACCESS;
+	flags |= (args->flags & LINUX_AT_EMPTY_PATH) == 0 ? 0 : AT_EMPTY_PATH;
 	return (linux_do_accessat(td, args->dfd, args->filename, args->amode,
 	    flags));
 }
-
 
 #ifdef LINUX_LEGACY_SYSCALLS
 int
@@ -659,12 +657,12 @@ linux_unlink(struct thread *td, struct linux_unlink_args *args)
 	int error;
 	struct stat st;
 
-	error = kern_funlinkat(td, AT_FDCWD, args->path, FD_NONE,
-	    UIO_USERSPACE, 0, 0);
+	error = kern_funlinkat(td, AT_FDCWD, args->path, FD_NONE, UIO_USERSPACE,
+	    0, 0);
 	if (error == EPERM) {
 		/* Introduce POSIX noncompliant behaviour of Linux */
-		if (kern_statat(td, 0, AT_FDCWD, args->path,
-		    UIO_USERSPACE, &st) == 0) {
+		if (kern_statat(td, 0, AT_FDCWD, args->path, UIO_USERSPACE,
+			&st) == 0) {
 			if (S_ISDIR(st.st_mode))
 				error = EISDIR;
 		}
@@ -687,8 +685,9 @@ linux_unlinkat_impl(struct thread *td, enum uio_seg pathseg, const char *path,
 		error = kern_funlinkat(td, dfd, path, FD_NONE, pathseg, 0, 0);
 	if (error == EPERM && !(args->flag & LINUX_AT_REMOVEDIR)) {
 		/* Introduce POSIX noncompliant behaviour of Linux */
-		if (kern_statat(td, AT_SYMLINK_NOFOLLOW, dfd, path,
-		    pathseg, &st) == 0 && S_ISDIR(st.st_mode))
+		if (kern_statat(td, AT_SYMLINK_NOFOLLOW, dfd, path, pathseg,
+			&st) == 0 &&
+		    S_ISDIR(st.st_mode))
 			error = EISDIR;
 	}
 	return (error);
@@ -702,8 +701,8 @@ linux_unlinkat(struct thread *td, struct linux_unlinkat_args *args)
 	if (args->flag & ~LINUX_AT_REMOVEDIR)
 		return (EINVAL);
 	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
-	return (linux_unlinkat_impl(td, UIO_USERSPACE, args->pathname,
-	    dfd, args));
+	return (
+	    linux_unlinkat_impl(td, UIO_USERSPACE, args->pathname, dfd, args));
 }
 
 int
@@ -738,7 +737,8 @@ int
 linux_mkdir(struct thread *td, struct linux_mkdir_args *args)
 {
 
-	return (kern_mkdirat(td, AT_FDCWD, args->path, UIO_USERSPACE, args->mode));
+	return (
+	    kern_mkdirat(td, AT_FDCWD, args->path, UIO_USERSPACE, args->mode));
 }
 #endif
 
@@ -748,7 +748,8 @@ linux_mkdirat(struct thread *td, struct linux_mkdirat_args *args)
 	int dfd;
 
 	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
-	return (kern_mkdirat(td, dfd, args->pathname, UIO_USERSPACE, args->mode));
+	return (
+	    kern_mkdirat(td, dfd, args->pathname, UIO_USERSPACE, args->mode));
 }
 
 #ifdef LINUX_LEGACY_SYSCALLS
@@ -756,29 +757,27 @@ int
 linux_rmdir(struct thread *td, struct linux_rmdir_args *args)
 {
 
-	return (kern_frmdirat(td, AT_FDCWD, args->path, FD_NONE,
-	    UIO_USERSPACE, 0));
+	return (
+	    kern_frmdirat(td, AT_FDCWD, args->path, FD_NONE, UIO_USERSPACE, 0));
 }
 
 int
 linux_rename(struct thread *td, struct linux_rename_args *args)
 {
 
-	return (kern_renameat(td, AT_FDCWD, args->from, AT_FDCWD,
-	    args->to, UIO_USERSPACE));
+	return (kern_renameat(td, AT_FDCWD, args->from, AT_FDCWD, args->to,
+	    UIO_USERSPACE));
 }
 #endif
 
 int
 linux_renameat(struct thread *td, struct linux_renameat_args *args)
 {
-	struct linux_renameat2_args renameat2_args = {
-	    .olddfd = args->olddfd,
-	    .oldname = args->oldname,
-	    .newdfd = args->newdfd,
-	    .newname = args->newname,
-	    .flags = 0
-	};
+	struct linux_renameat2_args renameat2_args = { .olddfd = args->olddfd,
+		.oldname = args->oldname,
+		.newdfd = args->newdfd,
+		.newname = args->newname,
+		.flags = 0 };
 
 	return (linux_renameat2(td, &renameat2_args));
 }
@@ -789,12 +788,13 @@ linux_renameat2(struct thread *td, struct linux_renameat2_args *args)
 	int olddfd, newdfd;
 
 	if (args->flags != 0) {
-		if (args->flags & ~(LINUX_RENAME_EXCHANGE |
-		    LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT))
+		if (args->flags &
+		    ~(LINUX_RENAME_EXCHANGE | LINUX_RENAME_NOREPLACE |
+			LINUX_RENAME_WHITEOUT))
 			return (EINVAL);
 		if (args->flags & LINUX_RENAME_EXCHANGE &&
-		    args->flags & (LINUX_RENAME_NOREPLACE |
-		    LINUX_RENAME_WHITEOUT))
+		    args->flags &
+			(LINUX_RENAME_NOREPLACE | LINUX_RENAME_WHITEOUT))
 			return (EINVAL);
 #if 0
 		/*
@@ -811,8 +811,8 @@ linux_renameat2(struct thread *td, struct linux_renameat2_args *args)
 
 	olddfd = (args->olddfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->olddfd;
 	newdfd = (args->newdfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->newdfd;
-	return (kern_renameat(td, olddfd, args->oldname, newdfd,
-	    args->newname, UIO_USERSPACE));
+	return (kern_renameat(td, olddfd, args->oldname, newdfd, args->newname,
+	    UIO_USERSPACE));
 }
 
 #ifdef LINUX_LEGACY_SYSCALLS
@@ -820,8 +820,8 @@ int
 linux_symlink(struct thread *td, struct linux_symlink_args *args)
 {
 
-	return (kern_symlinkat(td, args->path, AT_FDCWD, args->to,
-	    UIO_USERSPACE));
+	return (
+	    kern_symlinkat(td, args->path, AT_FDCWD, args->to, UIO_USERSPACE));
 }
 #endif
 
@@ -857,8 +857,8 @@ linux_readlinkat(struct thread *td, struct linux_readlinkat_args *args)
 		return (EINVAL);
 
 	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
-	return (kern_readlinkat(td, dfd, args->path, UIO_USERSPACE,
-	    args->buf, UIO_USERSPACE, args->bufsiz));
+	return (kern_readlinkat(td, dfd, args->path, UIO_USERSPACE, args->buf,
+	    UIO_USERSPACE, args->bufsiz));
 }
 
 int
@@ -926,13 +926,13 @@ linux_linkat(struct thread *td, struct linux_linkat_args *args)
 		return (EINVAL);
 
 	flag = (args->flag & LINUX_AT_SYMLINK_FOLLOW) != 0 ? AT_SYMLINK_FOLLOW :
-	    0;
+							     0;
 	flag |= (args->flag & LINUX_AT_EMPTY_PATH) != 0 ? AT_EMPTY_PATH : 0;
 
 	olddfd = (args->olddfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->olddfd;
 	newdfd = (args->newdfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->newdfd;
-	return (kern_linkat(td, olddfd, newdfd, args->oldname,
-	    args->newname, UIO_USERSPACE, flag));
+	return (kern_linkat(td, olddfd, newdfd, args->oldname, args->newname,
+	    UIO_USERSPACE, flag));
 }
 
 int
@@ -956,9 +956,10 @@ linux_sync_file_range(struct thread *td, struct linux_sync_file_range_args *uap)
 #endif
 
 	if (offset < 0 || nbytes < 0 ||
-	    (uap->flags & ~(LINUX_SYNC_FILE_RANGE_WAIT_BEFORE |
-	    LINUX_SYNC_FILE_RANGE_WRITE |
-	    LINUX_SYNC_FILE_RANGE_WAIT_AFTER)) != 0) {
+	    (uap->flags &
+		~(LINUX_SYNC_FILE_RANGE_WAIT_BEFORE |
+		    LINUX_SYNC_FILE_RANGE_WRITE |
+		    LINUX_SYNC_FILE_RANGE_WAIT_AFTER)) != 0) {
 		return (EINVAL);
 	}
 
@@ -1080,12 +1081,12 @@ linux_mount(struct thread *td, struct linux_mount_args *args)
 	mntonname = malloc(MNAMELEN, M_TEMP, M_WAITOK);
 	mntfromname = malloc(MNAMELEN, M_TEMP, M_WAITOK);
 	data = NULL;
-	error = copyinstr(args->filesystemtype, fstypename, MNAMELEN - 1,
-	    NULL);
+	error = copyinstr(args->filesystemtype, fstypename, MNAMELEN - 1, NULL);
 	if (error != 0)
 		goto out;
 	if (args->specialfile != NULL) {
-		error = copyinstr(args->specialfile, mntfromname, MNAMELEN - 1, NULL);
+		error = copyinstr(args->specialfile, mntfromname, MNAMELEN - 1,
+		    NULL);
 		if (error != 0)
 			goto out;
 	} else {
@@ -1188,16 +1189,16 @@ linux_umount(struct thread *td, struct linux_umount_args *args)
  */
 
 struct l_flock {
-	l_short		l_type;
-	l_short		l_whence;
-	l_off_t		l_start;
-	l_off_t		l_len;
-	l_pid_t		l_pid;
+	l_short l_type;
+	l_short l_whence;
+	l_off_t l_start;
+	l_off_t l_len;
+	l_pid_t l_pid;
 }
 #if defined(__amd64__) && defined(COMPAT_LINUX32)
 __packed
 #endif
-;
+    ;
 
 static void
 linux_to_bsd_flock(struct l_flock *linux_flock, struct flock *bsd_flock)
@@ -1245,16 +1246,16 @@ bsd_to_linux_flock(struct flock *bsd_flock, struct l_flock *linux_flock)
 
 #if defined(__i386__) || (defined(__amd64__) && defined(COMPAT_LINUX32))
 struct l_flock64 {
-	l_short		l_type;
-	l_short		l_whence;
-	l_loff_t	l_start;
-	l_loff_t	l_len;
-	l_pid_t		l_pid;
+	l_short l_type;
+	l_short l_whence;
+	l_loff_t l_start;
+	l_loff_t l_len;
+	l_pid_t l_pid;
 }
 #if defined(__amd64__) && defined(COMPAT_LINUX32)
 __packed
 #endif
-;
+    ;
 
 static void
 linux_to_bsd_flock64(struct l_flock64 *linux_flock, struct flock *bsd_flock)
@@ -1388,8 +1389,8 @@ fcntl_common(struct thread *td, struct linux_fcntl_args *args)
 		if (error)
 			return (error);
 		linux_to_bsd_flock(&linux_flock, &bsd_flock);
-		return (kern_fcntl(td, args->fd, F_SETLK,
-		    (intptr_t)&bsd_flock));
+		return (
+		    kern_fcntl(td, args->fd, F_SETLK, (intptr_t)&bsd_flock));
 
 	case LINUX_F_SETLKW:
 		error = copyin((void *)args->arg, &linux_flock,
@@ -1397,8 +1398,8 @@ fcntl_common(struct thread *td, struct linux_fcntl_args *args)
 		if (error)
 			return (error);
 		linux_to_bsd_flock(&linux_flock, &bsd_flock);
-		return (kern_fcntl(td, args->fd, F_SETLKW,
-		     (intptr_t)&bsd_flock));
+		return (
+		    kern_fcntl(td, args->fd, F_SETLKW, (intptr_t)&bsd_flock));
 
 	case LINUX_F_GETOWN:
 		return (kern_fcntl(td, args->fd, F_GETOWN, 0));
@@ -1409,8 +1410,7 @@ fcntl_common(struct thread *td, struct linux_fcntl_args *args)
 		 * significant effect for pipes (SIGIO is not delivered for
 		 * pipes under Linux-2.2.35 at least).
 		 */
-		error = fget(td, args->fd,
-		    &cap_fcntl_rights, &fp);
+		error = fget(td, args->fd, &cap_fcntl_rights, &fp);
 		if (error)
 			return (error);
 		if (fp->f_type == DTYPE_PIPE) {
@@ -1440,8 +1440,7 @@ fcntl_common(struct thread *td, struct linux_fcntl_args *args)
 		    linux_to_bsd_bits(args->arg, seal_bitmap, 0)));
 
 	case LINUX_F_GETPIPE_SZ:
-		error = fget(td, args->fd,
-		    &cap_fcntl_rights, &fp);
+		error = fget(td, args->fd, &cap_fcntl_rights, &fp);
 		if (error != 0)
 			return (error);
 		if (fp->f_type != DTYPE_PIPE) {
@@ -1487,7 +1486,7 @@ linux_fcntl64(struct thread *td, struct linux_fcntl64_args *args)
 			return (error);
 		bsd_to_linux_flock64(&bsd_flock, &linux_flock);
 		return (copyout(&linux_flock, (void *)args->arg,
-			    sizeof(linux_flock)));
+		    sizeof(linux_flock)));
 
 	case LINUX_F_SETLK64:
 		error = copyin((void *)args->arg, &linux_flock,
@@ -1495,8 +1494,8 @@ linux_fcntl64(struct thread *td, struct linux_fcntl64_args *args)
 		if (error)
 			return (error);
 		linux_to_bsd_flock64(&linux_flock, &bsd_flock);
-		return (kern_fcntl(td, args->fd, F_SETLK,
-		    (intptr_t)&bsd_flock));
+		return (
+		    kern_fcntl(td, args->fd, F_SETLK, (intptr_t)&bsd_flock));
 
 	case LINUX_F_SETLKW64:
 		error = copyin((void *)args->arg, &linux_flock,
@@ -1504,8 +1503,8 @@ linux_fcntl64(struct thread *td, struct linux_fcntl64_args *args)
 		if (error)
 			return (error);
 		linux_to_bsd_flock64(&linux_flock, &bsd_flock);
-		return (kern_fcntl(td, args->fd, F_SETLKW,
-		    (intptr_t)&bsd_flock));
+		return (
+		    kern_fcntl(td, args->fd, F_SETLKW, (intptr_t)&bsd_flock));
 	}
 
 	fcntl_args.fd = args->fd;
@@ -1530,20 +1529,21 @@ linux_fchownat(struct thread *td, struct linux_fchownat_args *args)
 {
 	int dfd, flag, unsupported;
 
-	unsupported = args->flag & ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
+	unsupported = args->flag &
+	    ~(LINUX_AT_SYMLINK_NOFOLLOW | LINUX_AT_EMPTY_PATH);
 	if (unsupported != 0) {
 		linux_msg(td, "fchownat unsupported flag 0x%x", unsupported);
 		return (EINVAL);
 	}
 
-	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) == 0 ? 0 :
+	flag = (args->flag & LINUX_AT_SYMLINK_NOFOLLOW) == 0 ?
+	    0 :
 	    AT_SYMLINK_NOFOLLOW;
-	flag |= (args->flag & LINUX_AT_EMPTY_PATH) == 0 ? 0 :
-	    AT_EMPTY_PATH;
+	flag |= (args->flag & LINUX_AT_EMPTY_PATH) == 0 ? 0 : AT_EMPTY_PATH;
 
-	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD :  args->dfd;
-	return (kern_fchownat(td, dfd, args->filename, UIO_USERSPACE,
-	    args->uid, args->gid, flag));
+	dfd = (args->dfd == LINUX_AT_FDCWD) ? AT_FDCWD : args->dfd;
+	return (kern_fchownat(td, dfd, args->filename, UIO_USERSPACE, args->uid,
+	    args->gid, flag));
 }
 
 #ifdef LINUX_LEGACY_SYSCALLS
@@ -1551,8 +1551,8 @@ int
 linux_lchown(struct thread *td, struct linux_lchown_args *args)
 {
 
-	return (kern_fchownat(td, AT_FDCWD, args->path, UIO_USERSPACE, args->uid,
-	    args->gid, AT_SYMLINK_NOFOLLOW));
+	return (kern_fchownat(td, AT_FDCWD, args->path, UIO_USERSPACE,
+	    args->uid, args->gid, AT_SYMLINK_NOFOLLOW));
 }
 #endif
 
@@ -1708,8 +1708,8 @@ linux_fallocate(struct thread *td, struct linux_fallocate_args *args)
 }
 
 int
-linux_copy_file_range(struct thread *td, struct linux_copy_file_range_args
-    *args)
+linux_copy_file_range(struct thread *td,
+    struct linux_copy_file_range_args *args)
 {
 	l_loff_t inoff, outoff, *inoffp, *outoffp;
 	int error, flags;
@@ -1747,7 +1747,7 @@ linux_copy_file_range(struct thread *td, struct linux_copy_file_range_args
 	return (error);
 }
 
-#define	LINUX_MEMFD_PREFIX	"memfd:"
+#define LINUX_MEMFD_PREFIX "memfd:"
 
 int
 linux_memfd_create(struct thread *td, struct linux_memfd_create_args *args)
@@ -1772,8 +1772,9 @@ linux_memfd_create(struct thread *td, struct linux_memfd_create_args *args)
 
 	memcpy(memfd_name, LINUX_MEMFD_PREFIX, sizeof(LINUX_MEMFD_PREFIX) - 1);
 	flags = linux_to_bsd_bits(args->flags, mfd_bitmap, 0);
-	if ((flags & ~(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_HUGETLB |
-	    MFD_HUGE_MASK)) != 0)
+	if ((flags &
+		~(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_HUGETLB |
+		    MFD_HUGE_MASK)) != 0)
 		return (EINVAL);
 	/* Size specified but no HUGETLB. */
 	if ((flags & MFD_HUGE_MASK) != 0 && (flags & MFD_HUGETLB) == 0)
@@ -1816,10 +1817,10 @@ linux_close_range(struct thread *td, struct linux_close_range_args *args)
 	 * in a thread group (i.e., process in the FreeBSD) or others processes,
 	 * which shares the same table, before closing the files. FreeBSD does
 	 * not have compatible unsharing mechanism due to the fact that sharing
-	 * process resources, including filedesc table, is at thread level in the
-	 * Linux, while in the FreeBSD it is at the process level.
-	 * Return EINVAL for now if the CLOSE_RANGE_UNSHARE flag is specified
-	 * until this new Linux API stabilizes.
+	 * process resources, including filedesc table, is at thread level in
+	 * the Linux, while in the FreeBSD it is at the process level. Return
+	 * EINVAL for now if the CLOSE_RANGE_UNSHARE flag is specified until
+	 * this new Linux API stabilizes.
 	 */
 
 	if ((args->flags & ~(LINUX_CLOSE_RANGE_CLOEXEC)) != 0)
@@ -1850,9 +1851,9 @@ int
 linux_write(struct thread *td, struct linux_write_args *args)
 {
 	struct write_args bargs = {
-		.fd	= args->fd,
-		.buf	= args->buf,
-		.nbyte	= args->nbyte,
+		.fd = args->fd,
+		.buf = args->buf,
+		.nbyte = args->nbyte,
 	};
 
 	return (linux_enobufs2eagain(td, args->fd, sys_write(td, &bargs)));

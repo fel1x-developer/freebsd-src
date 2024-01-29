@@ -29,35 +29,34 @@
  */
 
 #ifndef ISCSID_H
-#define	ISCSID_H
-
-#include <stdbool.h>
-#include <stdint.h>
+#define ISCSID_H
 
 #include <iscsi_ioctl.h>
 #include <libiscsiutil.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-#define	DEFAULT_PIDFILE			"/var/run/iscsid.pid"
+#define DEFAULT_PIDFILE "/var/run/iscsid.pid"
 
-#define	CONN_MUTUAL_CHALLENGE_LEN	1024
-#define	SOCKBUF_SIZE			1048576
+#define CONN_MUTUAL_CHALLENGE_LEN 1024
+#define SOCKBUF_SIZE 1048576
 
 struct iscsid_connection {
-	struct connection	conn;
-	int			conn_iscsi_fd;
-	unsigned int		conn_session_id;
-	struct iscsi_session_conf	conn_conf;
-	struct iscsi_session_limits	conn_limits;
-	char			conn_target_alias[ISCSI_ADDR_LEN];
-	int			conn_protocol_level;
-	bool			conn_initial_r2t;
-	struct chap		*conn_mutual_chap;
+	struct connection conn;
+	int conn_iscsi_fd;
+	unsigned int conn_session_id;
+	struct iscsi_session_conf conn_conf;
+	struct iscsi_session_limits conn_limits;
+	char conn_target_alias[ISCSI_ADDR_LEN];
+	int conn_protocol_level;
+	bool conn_initial_r2t;
+	struct chap *conn_mutual_chap;
 };
 
-void			login(struct iscsid_connection *ic);
+void login(struct iscsid_connection *ic);
 
-void			discovery(struct iscsid_connection *ic);
+void discovery(struct iscsid_connection *ic);
 
-void			fail(const struct connection *, const char *);
+void fail(const struct connection *, const char *);
 
 #endif /* !ISCSID_H */

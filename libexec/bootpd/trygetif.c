@@ -10,35 +10,33 @@
 #endif
 
 #ifdef _AIX32
-#include <sys/time.h>	/* for struct timeval in net/if.h */
+#include <sys/time.h> /* for struct timeval in net/if.h */
 #endif
-#include <net/if.h>				/* for struct ifreq */
+#include <net/if.h> /* for struct ifreq */
 #include <netinet/in.h>
-#include <arpa/inet.h>			/* inet_ntoa */
 
-#include <netdb.h>
-#include <stdio.h>
+#include <arpa/inet.h> /* inet_ntoa */
 #include <ctype.h>
 #include <errno.h>
+#include <netdb.h>
+#include <stdio.h>
 
 #include "getif.h"
 
 int debug = 0;
 char *progname;
 
-void
-main(argc, argv)
-	int argc;
-	char **argv;
+void main(argc, argv) int argc;
+char **argv;
 {
 	struct hostent *hep;
-	struct sockaddr_in *sip;	/* Interface address */
+	struct sockaddr_in *sip; /* Interface address */
 	struct ifreq *ifr;
 	struct in_addr dst_addr;
 	struct in_addr *dap;
 	int s;
 
-	progname = argv[0];			/* for report */
+	progname = argv[0]; /* for report */
 
 	dap = NULL;
 	if (argc > 1) {
@@ -65,7 +63,7 @@ main(argc, argv)
 		exit(1);
 	}
 	printf("Intf-name:%s\n", ifr->ifr_name);
-	sip = (struct sockaddr_in *) &(ifr->ifr_addr);
+	sip = (struct sockaddr_in *)&(ifr->ifr_addr);
 	printf("Intf-addr:%s\n", inet_ntoa(sip->sin_addr));
 
 	exit(0);

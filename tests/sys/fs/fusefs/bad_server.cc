@@ -35,7 +35,7 @@ extern "C" {
 
 using namespace testing;
 
-class BadServer: public FuseTest {};
+class BadServer : public FuseTest { };
 
 /*
  * If the server sends a response for an unknown request, the kernel should
@@ -47,7 +47,7 @@ TEST_F(BadServer, UnknownUnique)
 
 	out.header.len = sizeof(out.header);
 	out.header.error = 0;
-	out.header.unique = 99999;		// Invalid!
+	out.header.unique = 99999; // Invalid!
 	out.expected_errno = EINVAL;
 	m_mock->write_response(out);
 }
@@ -62,7 +62,7 @@ TEST_F(BadServer, ShortWrite)
 
 	out.header.len = sizeof(out.header) - 1;
 	out.header.error = 0;
-	out.header.unique = 0;			// Asynchronous notification
+	out.header.unique = 0; // Asynchronous notification
 	out.expected_errno = EINVAL;
 	m_mock->write_response(out);
 }
@@ -76,26 +76,26 @@ TEST_F(BadServer, ErrorWithPayload)
 	const char RELPATH[] = "some_file.txt";
 
 	EXPECT_LOOKUP(FUSE_ROOT_ID, RELPATH)
-	.WillOnce(Invoke([&](auto in, auto &out) {
-		// First send an invalid response
-		std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
-		out0->header.unique = in.header.unique;
-		out0->header.error = -ENOENT;
-		SET_OUT_HEADER_LEN(*out0, entry);	// Invalid!
-		out0->expected_errno = EINVAL;
-		out.push_back(std::move(out0));
+	    .WillOnce(Invoke([&](auto in, auto &out) {
+		    // First send an invalid response
+		    std::unique_ptr<mockfs_buf_out> out0(new mockfs_buf_out);
+		    out0->header.unique = in.header.unique;
+		    out0->header.error = -ENOENT;
+		    SET_OUT_HEADER_LEN(*out0, entry); // Invalid!
+		    out0->expected_errno = EINVAL;
+		    out.push_back(std::move(out0));
 
-		// Then, respond to the lookup so we can complete the test
-		std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
-		out1->header.unique = in.header.unique;
-		out1->header.error = -ENOENT;
-		out1->header.len = sizeof(out1->header);
-		out.push_back(std::move(out1));
+		    // Then, respond to the lookup so we can complete the test
+		    std::unique_ptr<mockfs_buf_out> out1(new mockfs_buf_out);
+		    out1->header.unique = in.header.unique;
+		    out1->header.error = -ENOENT;
+		    out1->header.len = sizeof(out1->header);
+		    out.push_back(std::move(out1));
 
-		// The kernel may disconnect us for bad behavior, so don't try
-		// to read any more.
-		m_mock->m_quit = true;
-	}));
+		    // The kernel may disconnect us for bad behavior, so don't
+		    // try to read any more.
+		    m_mock->m_quit = true;
+	    }));
 
 	EXPECT_NE(0, access(FULLPATH, F_OK));
 

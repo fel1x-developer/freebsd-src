@@ -39,8 +39,7 @@
  * It is possible for the compiler to emit relocations for unaligned data.
  * We handle this situation with these inlines.
  */
-#define	RELOC_ALIGNED_P(x) \
-	(((uintptr_t)(x) & (sizeof(void *) - 1)) == 0)
+#define RELOC_ALIGNED_P(x) (((uintptr_t)(x) & (sizeof(void *) - 1)) == 0)
 
 /*
  * This is not the correct prototype, but we only need it for
@@ -57,8 +56,8 @@ init_pltgot(Obj_Entry *obj)
 {
 
 	if (obj->pltgot != NULL) {
-		obj->pltgot[1] = (Elf_Addr) obj;
-		obj->pltgot[2] = (Elf_Addr) &_rtld_bind_start;
+		obj->pltgot[1] = (Elf_Addr)obj;
+		obj->pltgot[2] = (Elf_Addr)&_rtld_bind_start;
 	}
 }
 
@@ -108,7 +107,8 @@ do_copy_relocations(Obj_Entry *dstobj)
 		}
 		if (srcobj == NULL) {
 			_rtld_error("Undefined symbol \"%s\" referenced from "
-			    "COPY relocation in %s", name, dstobj->path);
+				    "COPY relocation in %s",
+			    name, dstobj->path);
 			return (-1);
 		}
 
@@ -120,9 +120,9 @@ do_copy_relocations(Obj_Entry *dstobj)
 }
 
 struct tls_data {
-	Elf_Addr	dtv_gen;
-	int		tls_index;
-	Elf_Addr	tls_offs;
+	Elf_Addr dtv_gen;
+	int tls_index;
+	Elf_Addr tls_offs;
 };
 
 static Elf_Addr
@@ -146,11 +146,10 @@ reloc_tlsdesc(const Obj_Entry *obj, const Elf_Rela *rela, Elf_Addr *where,
 	const Obj_Entry *defobj;
 	Elf_Addr offs;
 
-
 	offs = 0;
 	if (ELF_R_SYM(rela->r_info) != 0) {
 		def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj, flags,
-			    NULL, lockstate);
+		    NULL, lockstate);
 		if (def == NULL)
 			rtld_die();
 		offs = def->st_value;
@@ -191,7 +190,7 @@ reloc_plt(Obj_Entry *obj, int flags, RtldLockState *lockstate)
 
 		where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
 
-		switch(ELF_R_TYPE(rela->r_info)) {
+		switch (ELF_R_TYPE(rela->r_info)) {
 		case R_AARCH64_JUMP_SLOT:
 			*where += (Elf_Addr)obj->relocbase;
 			break;
@@ -234,10 +233,10 @@ reloc_jmpslots(Obj_Entry *obj, int flags, RtldLockState *lockstate)
 		Elf_Addr *where, target;
 
 		where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
-		switch(ELF_R_TYPE(rela->r_info)) {
+		switch (ELF_R_TYPE(rela->r_info)) {
 		case R_AARCH64_JUMP_SLOT:
-			def = find_symdef(ELF_R_SYM(rela->r_info), obj,
-			    &defobj, SYMLOOK_IN_PLT | flags, NULL, lockstate);
+			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
+			    SYMLOOK_IN_PLT | flags, NULL, lockstate);
 			if (def == NULL)
 				return (-1);
 			if (ELF_ST_TYPE(def->st_info) == STT_GNU_IFUNC) {
@@ -280,7 +279,7 @@ reloc_iresolve(Obj_Entry *obj, struct Struct_RtldLockState *lockstate)
 	obj->irelative = false;
 	relalim = (const Elf_Rela *)((const char *)obj->pltrela +
 	    obj->pltrelasize);
-	for (rela = obj->pltrela;  rela < relalim;  rela++) {
+	for (rela = obj->pltrela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_AARCH64_IRELATIVE)
 			reloc_iresolve_one(obj, rela, lockstate);
 	}
@@ -297,7 +296,7 @@ reloc_iresolve_nonplt(Obj_Entry *obj, struct Struct_RtldLockState *lockstate)
 		return (0);
 	obj->irelative_nonplt = false;
 	relalim = (const Elf_Rela *)((const char *)obj->rela + obj->relasize);
-	for (rela = obj->rela;  rela < relalim;  rela++) {
+	for (rela = obj->rela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_AARCH64_IRELATIVE)
 			reloc_iresolve_one(obj, rela, lockstate);
 	}
@@ -306,7 +305,7 @@ reloc_iresolve_nonplt(Obj_Entry *obj, struct Struct_RtldLockState *lockstate)
 
 int
 reloc_gnu_ifunc(Obj_Entry *obj, int flags,
-   struct Struct_RtldLockState *lockstate)
+    struct Struct_RtldLockState *lockstate)
 {
 	const Elf_Rela *relalim;
 	const Elf_Rela *rela;
@@ -316,8 +315,9 @@ reloc_gnu_ifunc(Obj_Entry *obj, int flags,
 
 	if (!obj->gnu_ifunc)
 		return (0);
-	relalim = (const Elf_Rela *)((const char *)obj->pltrela + obj->pltrelasize);
-	for (rela = obj->pltrela;  rela < relalim;  rela++) {
+	relalim = (const Elf_Rela *)((const char *)obj->pltrela +
+	    obj->pltrelasize);
+	for (rela = obj->pltrela; rela < relalim; rela++) {
 		if (ELF_R_TYPE(rela->r_info) == R_AARCH64_JUMP_SLOT) {
 			where = (Elf_Addr *)(obj->relocbase + rela->r_offset);
 			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
@@ -354,7 +354,6 @@ reloc_jmpslot(Elf_Addr *where, Elf_Addr target,
 void
 ifunc_init(Elf_Auxinfo aux_info[__min_size(AT_COUNT)] __unused)
 {
-
 }
 
 /*
@@ -379,7 +378,7 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 		cache = NULL;
 	else
 		cache = calloc(obj->dynsymcount, sizeof(SymCache));
-		/* No need to check for NULL here */
+	/* No need to check for NULL here */
 
 	relalim = (const Elf_Rela *)((const char *)obj->rela + obj->relasize);
 	for (rela = obj->rela; rela < relalim; rela++) {
@@ -393,8 +392,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 		case R_AARCH64_TLS_TPREL64:
 		case R_AARCH64_TLS_DTPREL64:
 		case R_AARCH64_TLS_DTPMOD64:
-			def = find_symdef(ELF_R_SYM(rela->r_info), obj,
-			    &defobj, flags, cache, lockstate);
+			def = find_symdef(ELF_R_SYM(rela->r_info), obj, &defobj,
+			    flags, cache, lockstate);
 			if (def == NULL)
 				return (-1);
 			/*
@@ -415,8 +414,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 						obj->non_plt_gnu_ifunc = true;
 						continue;
 					}
-					symval = (Elf_Addr)rtld_resolve_ifunc(
-					    defobj, def);
+					symval = (Elf_Addr)
+					    rtld_resolve_ifunc(defobj, def);
 					break;
 				default:
 					_rtld_error("%s: IFUNC for TLS reloc",
@@ -451,7 +450,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			 */
 			if (!obj->mainprog) {
 				_rtld_error("%s: Unexpected R_AARCH64_COPY "
-				    "relocation in shared library", obj->path);
+					    "relocation in shared library",
+				    obj->path);
 				return (-1);
 			}
 			break;
@@ -469,10 +469,11 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			 */
 			if (!defobj->tls_static) {
 				if (!allocate_tls_offset(
-				    __DECONST(Obj_Entry *, defobj))) {
+					__DECONST(Obj_Entry *, defobj))) {
 					_rtld_error(
 					    "%s: No space available for static "
-					    "Thread Local Storage", obj->path);
+					    "Thread Local Storage",
+					    obj->path);
 					return (-1);
 				}
 			}
@@ -501,8 +502,8 @@ reloc_non_plt(Obj_Entry *obj, Obj_Entry *obj_rtld, int flags,
 			obj->irelative_nonplt = true;
 			break;
 		default:
-			rtld_printf("%s: Unhandled relocation %lu\n",
-			    obj->path, ELF_R_TYPE(rela->r_info));
+			rtld_printf("%s: Unhandled relocation %lu\n", obj->path,
+			    ELF_R_TYPE(rela->r_info));
 			return (-1);
 		}
 	}
@@ -515,10 +516,10 @@ allocate_initial_tls(Obj_Entry *objs)
 {
 
 	/*
-	* Fix the size of the static TLS block by using the maximum
-	* offset allocated so far and adding a bit for dynamic modules to
-	* use.
-	*/
+	 * Fix the size of the static TLS block by using the maximum
+	 * offset allocated so far and adding a bit for dynamic modules to
+	 * use.
+	 */
 	tls_static_space = tls_last_offset + tls_last_size +
 	    ld_static_tls_extra;
 
@@ -526,7 +527,7 @@ allocate_initial_tls(Obj_Entry *objs)
 }
 
 void *
-__tls_get_addr(tls_index* ti)
+__tls_get_addr(tls_index *ti)
 {
 	uintptr_t **dtvp;
 

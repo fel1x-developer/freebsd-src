@@ -31,13 +31,14 @@
  */
 
 #include <sys/cdefs.h>
-#include "namespace.h"
-#include <errno.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include "un-namespace.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 _Static_assert(sizeof(struct pthread_spinlock) <= THR_PAGE_SIZE_MIN,
     "pthread_spinlock is too large for off-page");
@@ -53,7 +54,7 @@ __weak_reference(_pthread_spin_unlock, pthread_spin_unlock);
 int
 _pthread_spin_init(pthread_spinlock_t *lock, int pshared)
 {
-	struct pthread_spinlock	*lck;
+	struct pthread_spinlock *lck;
 
 	if (lock == NULL)
 		return (EINVAL);
@@ -99,7 +100,7 @@ _pthread_spin_destroy(pthread_spinlock_t *lock)
 int
 _pthread_spin_trylock(pthread_spinlock_t *lock)
 {
-	struct pthread_spinlock	*lck;
+	struct pthread_spinlock *lck;
 
 	if (lock == NULL || *lock == NULL)
 		return (EINVAL);
@@ -113,7 +114,7 @@ int
 _pthread_spin_lock(pthread_spinlock_t *lock)
 {
 	struct pthread *curthread;
-	struct pthread_spinlock	*lck;
+	struct pthread_spinlock *lck;
 	int count;
 
 	if (lock == NULL)
@@ -143,7 +144,7 @@ _pthread_spin_lock(pthread_spinlock_t *lock)
 int
 _pthread_spin_unlock(pthread_spinlock_t *lock)
 {
-	struct pthread_spinlock	*lck;
+	struct pthread_spinlock *lck;
 
 	if (lock == NULL)
 		return (EINVAL);

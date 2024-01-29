@@ -36,7 +36,7 @@ _libc_get_static_tls_base(size_t offset)
 {
 	uintptr_t tlsbase;
 
-	__asm __volatile("movl %%gs:0, %0" : "=r" (tlsbase));
+	__asm __volatile("movl %%gs:0, %0" : "=r"(tlsbase));
 	tlsbase -= offset;
 	return (tlsbase);
 }

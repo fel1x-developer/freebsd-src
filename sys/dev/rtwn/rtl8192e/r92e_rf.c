@@ -24,35 +24,33 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwnreg.h>
 #include <dev/rtwn/if_rtwnvar.h>
-
 #include <dev/rtwn/rtl8192e/r92e.h>
 #include <dev/rtwn/rtl8192e/r92e_reg.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 uint32_t
 r92e_rf_read(struct rtwn_softc *sc, int chain, uint8_t addr)
@@ -62,7 +60,7 @@ r92e_rf_read(struct rtwn_softc *sc, int chain, uint8_t addr)
 	val = rtwn_bb_read(sc, R92C_HSSI_PARAM2(chain));
 	rtwn_bb_write(sc, R92C_HSSI_PARAM2(chain),
 	    RW(val, R92C_HSSI_PARAM2_READ_ADDR, addr) &
-	    ~R92C_HSSI_PARAM2_READ_EDGE);
+		~R92C_HSSI_PARAM2_READ_EDGE);
 
 	rtwn_bb_setbits(sc, R92C_HSSI_PARAM2(0), R92C_HSSI_PARAM2_READ_EDGE, 0);
 	rtwn_bb_setbits(sc, R92C_HSSI_PARAM2(0), 0, R92C_HSSI_PARAM2_READ_EDGE);

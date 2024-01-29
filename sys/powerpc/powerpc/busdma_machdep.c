@@ -32,23 +32,23 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
 #include <sys/bus.h>
 #include <sys/interrupt.h>
 #include <sys/kernel.h>
 #include <sys/ktr.h>
 #include <sys/lock.h>
-#include <sys/proc.h>
+#include <sys/malloc.h>
 #include <sys/memdesc.h>
 #include <sys/mutex.h>
+#include <sys/proc.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
+#include <vm/vm_page.h>
 
 #include <machine/atomic.h>
 #include <machine/bus.h>
@@ -57,26 +57,26 @@
 
 #include "iommu_if.h"
 
-#define MAX_BPAGES MIN(8192, physmem/40)
+#define MAX_BPAGES MIN(8192, physmem / 40)
 
 struct bounce_page;
 struct bounce_zone;
 
 struct bus_dma_tag {
-	bus_size_t	  alignment;
-	bus_addr_t	  boundary;
-	bus_addr_t	  lowaddr;
-	bus_addr_t	  highaddr;
-	bus_size_t	  maxsize;
-	bus_size_t	  maxsegsz;
-	u_int		  nsegments;
-	int		  flags;
-	int		  map_count;
-	bus_dma_lock_t	 *lockfunc;
-	void		 *lockfuncarg;
+	bus_size_t alignment;
+	bus_addr_t boundary;
+	bus_addr_t lowaddr;
+	bus_addr_t highaddr;
+	bus_size_t maxsize;
+	bus_size_t maxsegsz;
+	u_int nsegments;
+	int flags;
+	int map_count;
+	bus_dma_lock_t *lockfunc;
+	void *lockfuncarg;
 	struct bounce_zone *bounce_zone;
-	device_t	  iommu;
-	void		 *iommu_cookie;
+	device_t iommu;
+	void *iommu_cookie;
 };
 
 static SYSCTL_NODE(_hw, OID_AUTO, busdma, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
@@ -84,27 +84,27 @@ static SYSCTL_NODE(_hw, OID_AUTO, busdma, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
 
 struct bus_dmamap {
 	STAILQ_HEAD(, bounce_page) bpages;
-	int		       pagesneeded;
-	int		       pagesreserved;
-	bus_dma_tag_t	       dmat;
-	struct memdesc	       mem;
-	bus_dma_segment_t     *segments;
-	int		       nsegs;
+	int pagesneeded;
+	int pagesreserved;
+	bus_dma_tag_t dmat;
+	struct memdesc mem;
+	bus_dma_segment_t *segments;
+	int nsegs;
 	bus_dmamap_callback_t *callback;
-	void		      *callback_arg;
-	__sbintime_t	       queued_time;
+	void *callback_arg;
+	__sbintime_t queued_time;
 	STAILQ_ENTRY(bus_dmamap) links;
-	int		       contigalloc;
+	int contigalloc;
 };
 
 static MALLOC_DEFINE(M_BUSDMA, "busdma", "busdma metadata");
 
-#define	dmat_alignment(dmat)	((dmat)->alignment)
-#define	dmat_flags(dmat)	((dmat)->flags)
-#define	dmat_highaddr(dmat)	((dmat)->highaddr)
-#define	dmat_lowaddr(dmat)	((dmat)->lowaddr)
-#define	dmat_lockfunc(dmat)	((dmat)->lockfunc)
-#define	dmat_lockfuncarg(dmat)	((dmat)->lockfuncarg)
+#define dmat_alignment(dmat) ((dmat)->alignment)
+#define dmat_flags(dmat) ((dmat)->flags)
+#define dmat_highaddr(dmat) ((dmat)->highaddr)
+#define dmat_lowaddr(dmat) ((dmat)->lowaddr)
+#define dmat_lockfunc(dmat) ((dmat)->lockfunc)
+#define dmat_lockfuncarg(dmat) ((dmat)->lockfuncarg)
 
 #include "../../kern/subr_busdma_bounce.c"
 
@@ -125,18 +125,17 @@ must_bounce(bus_dma_tag_t dmat, bus_addr_t paddr)
 	return (false);
 }
 
-#define BUS_DMA_COULD_BOUNCE	BUS_DMA_BUS3
-#define BUS_DMA_MIN_ALLOC_COMP	BUS_DMA_BUS4
+#define BUS_DMA_COULD_BOUNCE BUS_DMA_BUS3
+#define BUS_DMA_MIN_ALLOC_COMP BUS_DMA_BUS4
 /*
  * Allocate a device specific dma_tag.
  */
 int
 bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
-		   bus_addr_t boundary, bus_addr_t lowaddr,
-		   bus_addr_t highaddr, bus_dma_filter_t *filter,
-		   void *filterarg, bus_size_t maxsize, int nsegments,
-		   bus_size_t maxsegsz, int flags, bus_dma_lock_t *lockfunc,
-		   void *lockfuncarg, bus_dma_tag_t *dmat)
+    bus_addr_t boundary, bus_addr_t lowaddr, bus_addr_t highaddr,
+    bus_dma_filter_t *filter, void *filterarg, bus_size_t maxsize,
+    int nsegments, bus_size_t maxsegsz, int flags, bus_dma_lock_t *lockfunc,
+    void *lockfuncarg, bus_dma_tag_t *dmat)
 {
 	bus_dma_tag_t newtag;
 	int error = 0;
@@ -189,7 +188,7 @@ bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 			newtag->boundary = parent->boundary;
 		else if (parent->boundary != 0)
 			newtag->boundary = MIN(parent->boundary,
-					       newtag->boundary);
+			    newtag->boundary);
 
 		newtag->iommu = parent->iommu;
 		newtag->iommu_cookie = parent->iommu_cookie;
@@ -231,8 +230,8 @@ bus_dma_tag_create(bus_dma_tag_t parent, bus_size_t alignment,
 	} else {
 		*dmat = newtag;
 	}
-	CTR4(KTR_BUSDMA, "%s returned tag %p tag flags 0x%x error %d",
-	    __func__, newtag, (newtag != NULL ? newtag->flags : 0), error);
+	CTR4(KTR_BUSDMA, "%s returned tag %p tag flags 0x%x error %d", __func__,
+	    newtag, (newtag != NULL ? newtag->flags : 0), error);
 	return (error);
 }
 
@@ -292,10 +291,9 @@ bus_dmamap_create(bus_dma_tag_t dmat, int flags, bus_dmamap_t *mapp)
 	error = 0;
 
 	*mapp = (bus_dmamap_t)malloc(sizeof(**mapp), M_DEVBUF,
-				     M_NOWAIT | M_ZERO);
+	    M_NOWAIT | M_ZERO);
 	if (*mapp == NULL) {
-		CTR3(KTR_BUSDMA, "%s: tag %p error %d",
-		    __func__, dmat, ENOMEM);
+		CTR3(KTR_BUSDMA, "%s: tag %p error %d", __func__, dmat, ENOMEM);
 		return (ENOMEM);
 	}
 
@@ -325,9 +323,10 @@ bus_dmamap_create(bus_dma_tag_t dmat, int flags, bus_dmamap_t *mapp)
 		if (dmat->alignment > 1)
 			maxpages = MAX_BPAGES;
 		else
-			maxpages = MIN(MAX_BPAGES, Maxmem -atop(dmat->lowaddr));
-		if ((dmat->flags & BUS_DMA_MIN_ALLOC_COMP) == 0
-		 || (bz->map_count > 0 && bz->total_bpages < maxpages)) {
+			maxpages = MIN(MAX_BPAGES,
+			    Maxmem - atop(dmat->lowaddr));
+		if ((dmat->flags & BUS_DMA_MIN_ALLOC_COMP) == 0 ||
+		    (bz->map_count > 0 && bz->total_bpages < maxpages)) {
 			int pages;
 
 			pages = MAX(atop(dmat->maxsize), 1);
@@ -348,18 +347,16 @@ bus_dmamap_create(bus_dma_tag_t dmat, int flags, bus_dmamap_t *mapp)
 
 	(*mapp)->nsegs = 0;
 	(*mapp)->segments = (bus_dma_segment_t *)malloc(
-	    sizeof(bus_dma_segment_t) * dmat->nsegments, M_DEVBUF,
-	    M_NOWAIT);
+	    sizeof(bus_dma_segment_t) * dmat->nsegments, M_DEVBUF, M_NOWAIT);
 	if ((*mapp)->segments == NULL) {
-		CTR3(KTR_BUSDMA, "%s: tag %p error %d",
-		    __func__, dmat, ENOMEM);
+		CTR3(KTR_BUSDMA, "%s: tag %p error %d", __func__, dmat, ENOMEM);
 		return (ENOMEM);
 	}
 
 	if (error == 0)
 		dmat->map_count++;
-	CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d",
-	    __func__, dmat, dmat->flags, error);
+	CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d", __func__, dmat,
+	    dmat->flags, error);
 	return (error);
 }
 
@@ -372,8 +369,8 @@ bus_dmamap_destroy(bus_dma_tag_t dmat, bus_dmamap_t map)
 {
 	if (dmat->flags & BUS_DMA_COULD_BOUNCE) {
 		if (STAILQ_FIRST(&map->bpages) != NULL) {
-			CTR3(KTR_BUSDMA, "%s: tag %p error %d",
-			    __func__, dmat, EBUSY);
+			CTR3(KTR_BUSDMA, "%s: tag %p error %d", __func__, dmat,
+			    EBUSY);
 			return (EBUSY);
 		}
 		if (dmat->bounce_zone)
@@ -392,8 +389,8 @@ bus_dmamap_destroy(bus_dma_tag_t dmat, bus_dmamap_t map)
  * A dmamap to for use with dmamap_load is also allocated.
  */
 int
-bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
-		 bus_dmamap_t *mapp)
+bus_dmamem_alloc(bus_dma_tag_t dmat, void **vaddr, int flags,
+    bus_dmamap_t *mapp)
 {
 	vm_memattr_t attr;
 	int mflags;
@@ -412,7 +409,7 @@ bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 	else
 		attr = VM_MEMATTR_DEFAULT;
 
-	/* 
+	/*
 	 * XXX:
 	 * (dmat->alignment <= dmat->maxsize) is just a quick hack; the exact
 	 * alignment guarantees of malloc need to be nailed down, and the
@@ -421,7 +418,7 @@ bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 	 * In the meantime, we'll warn the user if malloc gets it wrong.
 	 */
 	if ((dmat->maxsize <= PAGE_SIZE) &&
-	   (dmat->alignment <= dmat->maxsize) &&
+	    (dmat->alignment <= dmat->maxsize) &&
 	    dmat->lowaddr >= ptoa((vm_paddr_t)Maxmem) &&
 	    attr == VM_MEMATTR_DEFAULT) {
 		*vaddr = malloc(dmat->maxsize, M_DEVBUF, mflags);
@@ -438,14 +435,14 @@ bus_dmamem_alloc(bus_dma_tag_t dmat, void** vaddr, int flags,
 		(*mapp)->contigalloc = 1;
 	}
 	if (*vaddr == NULL) {
-		CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d",
-		    __func__, dmat, dmat->flags, ENOMEM);
+		CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d", __func__,
+		    dmat, dmat->flags, ENOMEM);
 		return (ENOMEM);
 	} else if (!vm_addr_align_ok(vtophys(*vaddr), dmat->alignment)) {
 		printf("bus_dmamem_alloc failed to align memory properly.\n");
 	}
-	CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d",
-	    __func__, dmat, dmat->flags, 0);
+	CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x error %d", __func__, dmat,
+	    dmat->flags, 0);
 	return (0);
 }
 
@@ -473,10 +470,13 @@ _bus_dmamap_count_phys(bus_dma_tag_t dmat, bus_dmamap_t map, vm_paddr_t buf,
 	bus_size_t sgsize;
 
 	if (map->pagesneeded == 0) {
-		CTR4(KTR_BUSDMA, "lowaddr= %d Maxmem= %d, boundary= %d, "
-		    "alignment= %d", dmat->lowaddr, ptoa((vm_paddr_t)Maxmem),
-		    dmat->boundary, dmat->alignment);
-		CTR2(KTR_BUSDMA, "map= %p, pagesneeded= %d", map, map->pagesneeded);
+		CTR4(KTR_BUSDMA,
+		    "lowaddr= %d Maxmem= %d, boundary= %d, "
+		    "alignment= %d",
+		    dmat->lowaddr, ptoa((vm_paddr_t)Maxmem), dmat->boundary,
+		    dmat->alignment);
+		CTR2(KTR_BUSDMA, "map= %p, pagesneeded= %d", map,
+		    map->pagesneeded);
 		/*
 		 * Count the number of bounce pages
 		 * needed in order to complete this transfer
@@ -500,15 +500,18 @@ static void
 _bus_dmamap_count_pages(bus_dma_tag_t dmat, bus_dmamap_t map, pmap_t pmap,
     void *buf, bus_size_t buflen, int flags)
 {
-        vm_offset_t vaddr;
-        vm_offset_t vendaddr;
-        bus_addr_t paddr;
+	vm_offset_t vaddr;
+	vm_offset_t vendaddr;
+	bus_addr_t paddr;
 
 	if (map->pagesneeded == 0) {
-		CTR4(KTR_BUSDMA, "lowaddr= %d Maxmem= %d, boundary= %d, "
-		    "alignment= %d", dmat->lowaddr, ptoa((vm_paddr_t)Maxmem),
-		    dmat->boundary, dmat->alignment);
-		CTR2(KTR_BUSDMA, "map= %p, pagesneeded= %d", map, map->pagesneeded);
+		CTR4(KTR_BUSDMA,
+		    "lowaddr= %d Maxmem= %d, boundary= %d, "
+		    "alignment= %d",
+		    dmat->lowaddr, ptoa((vm_paddr_t)Maxmem), dmat->boundary,
+		    dmat->alignment);
+		CTR2(KTR_BUSDMA, "map= %p, pagesneeded= %d", map,
+		    map->pagesneeded);
 		/*
 		 * Count the number of bounce pages
 		 * needed in order to complete this transfer
@@ -539,7 +542,7 @@ _bus_dmamap_count_pages(bus_dma_tag_t dmat, bus_dmamap_t map, pmap_t pmap,
  */
 static int
 _bus_dmamap_addseg(bus_dma_tag_t dmat, bus_dmamap_t map, bus_addr_t curaddr,
-		   bus_size_t sgsize, bus_dma_segment_t *segs, int *segp)
+    bus_size_t sgsize, bus_dma_segment_t *segs, int *segp)
 {
 	int seg;
 
@@ -562,7 +565,7 @@ _bus_dmamap_addseg(bus_dma_tag_t dmat, bus_dmamap_t map, bus_addr_t curaddr,
 		if (curaddr == segs[seg].ds_addr + segs[seg].ds_len &&
 		    (segs[seg].ds_len + sgsize) <= dmat->maxsegsz &&
 		    vm_addr_bound_ok(segs[seg].ds_addr,
-		    segs[seg].ds_len + sgsize, dmat->boundary))
+			segs[seg].ds_len + sgsize, dmat->boundary))
 			segs[seg].ds_len += sgsize;
 		else {
 			if (++seg >= dmat->nsegments)
@@ -580,12 +583,8 @@ _bus_dmamap_addseg(bus_dma_tag_t dmat, bus_dmamap_t map, bus_addr_t curaddr,
  * the starting segment on entrace, and the ending segment on exit.
  */
 int
-_bus_dmamap_load_phys(bus_dma_tag_t dmat,
-		      bus_dmamap_t map,
-		      vm_paddr_t buf, bus_size_t buflen,
-		      int flags,
-		      bus_dma_segment_t *segs,
-		      int *segp)
+_bus_dmamap_load_phys(bus_dma_tag_t dmat, bus_dmamap_t map, vm_paddr_t buf,
+    bus_size_t buflen, int flags, bus_dma_segment_t *segs, int *segp)
 {
 	bus_addr_t curaddr;
 	bus_size_t sgsize;
@@ -626,9 +625,8 @@ _bus_dmamap_load_phys(bus_dma_tag_t dmat,
 }
 
 int
-_bus_dmamap_load_ma(bus_dma_tag_t dmat, bus_dmamap_t map,
-    struct vm_page **ma, bus_size_t tlen, int ma_offs, int flags,
-    bus_dma_segment_t *segs, int *segp)
+_bus_dmamap_load_ma(bus_dma_tag_t dmat, bus_dmamap_t map, struct vm_page **ma,
+    bus_size_t tlen, int ma_offs, int flags, bus_dma_segment_t *segs, int *segp)
 {
 
 	return (bus_dmamap_load_ma_triv(dmat, map, ma, tlen, ma_offs, flags,
@@ -640,13 +638,9 @@ _bus_dmamap_load_ma(bus_dma_tag_t dmat, bus_dmamap_t map,
  * the starting segment on entrance, and the ending segment on exit.
  */
 int
-_bus_dmamap_load_buffer(bus_dma_tag_t dmat,
-    			bus_dmamap_t map,
-			void *buf, bus_size_t buflen,
-			pmap_t pmap,
-			int flags,
-			bus_dma_segment_t *segs,
-			int *segp)
+_bus_dmamap_load_buffer(bus_dma_tag_t dmat, bus_dmamap_t map, void *buf,
+    bus_size_t buflen, pmap_t pmap, int flags, bus_dma_segment_t *segs,
+    int *segp)
 {
 	bus_size_t sgsize;
 	bus_addr_t curaddr;
@@ -710,9 +704,8 @@ _bus_dmamap_load_buffer(bus_dma_tag_t dmat,
 }
 
 void
-_bus_dmamap_waitok(bus_dma_tag_t dmat, bus_dmamap_t map,
-		    struct memdesc *mem, bus_dmamap_callback_t *callback,
-		    void *callback_arg)
+_bus_dmamap_waitok(bus_dma_tag_t dmat, bus_dmamap_t map, struct memdesc *mem,
+    bus_dmamap_callback_t *callback, void *callback_arg)
 {
 
 	if (dmat->flags & BUS_DMA_COULD_BOUNCE) {
@@ -725,19 +718,19 @@ _bus_dmamap_waitok(bus_dma_tag_t dmat, bus_dmamap_t map,
 
 bus_dma_segment_t *
 _bus_dmamap_complete(bus_dma_tag_t dmat, bus_dmamap_t map,
-		     bus_dma_segment_t *segs, int nsegs, int error)
+    bus_dma_segment_t *segs, int nsegs, int error)
 {
 
 	map->nsegs = nsegs;
 	if (segs != NULL)
-		memcpy(map->segments, segs, map->nsegs*sizeof(segs[0]));
+		memcpy(map->segments, segs, map->nsegs * sizeof(segs[0]));
 	if (dmat->iommu != NULL)
 		IOMMU_MAP(dmat->iommu, map->segments, &map->nsegs,
 		    dmat->lowaddr, dmat->highaddr, dmat->alignment,
 		    dmat->boundary, dmat->iommu_cookie);
 
 	if (segs != NULL)
-		memcpy(segs, map->segments, map->nsegs*sizeof(segs[0]));
+		memcpy(segs, map->segments, map->nsegs * sizeof(segs[0]));
 	else
 		segs = map->segments;
 
@@ -751,7 +744,8 @@ void
 bus_dmamap_unload(bus_dma_tag_t dmat, bus_dmamap_t map)
 {
 	if (dmat->iommu) {
-		IOMMU_UNMAP(dmat->iommu, map->segments, map->nsegs, dmat->iommu_cookie);
+		IOMMU_UNMAP(dmat->iommu, map->segments, map->nsegs,
+		    dmat->iommu_cookie);
 		map->nsegs = 0;
 	}
 
@@ -770,8 +764,10 @@ bus_dmamap_sync(bus_dma_tag_t dmat, bus_dmamap_t map, bus_dmasync_op_t op)
 		 * want to add support for invalidating
 		 * the caches on broken hardware
 		 */
-		CTR4(KTR_BUSDMA, "%s: tag %p tag flags 0x%x op 0x%x "
-		    "performing bounce", __func__, dmat, dmat->flags, op);
+		CTR4(KTR_BUSDMA,
+		    "%s: tag %p tag flags 0x%x op 0x%x "
+		    "performing bounce",
+		    __func__, dmat, dmat->flags, op);
 
 		if (op & BUS_DMASYNC_PREWRITE) {
 			while (bpage != NULL) {
@@ -780,12 +776,11 @@ bus_dmamap_sync(bus_dma_tag_t dmat, bus_dmamap_t map, bus_dmasync_op_t op)
 				if (datavaddr == 0) {
 					tempvaddr = pmap_quick_enter_page(
 					    bpage->datapage);
-					datavaddr = tempvaddr |
-					    bpage->dataoffs;
+					datavaddr = tempvaddr | bpage->dataoffs;
 				}
 
-				bcopy((void *)datavaddr,
-				    (void *)bpage->vaddr, bpage->datacount);
+				bcopy((void *)datavaddr, (void *)bpage->vaddr,
+				    bpage->datacount);
 
 				if (tempvaddr != 0)
 					pmap_quick_remove_page(tempvaddr);
@@ -801,12 +796,11 @@ bus_dmamap_sync(bus_dma_tag_t dmat, bus_dmamap_t map, bus_dmasync_op_t op)
 				if (datavaddr == 0) {
 					tempvaddr = pmap_quick_enter_page(
 					    bpage->datapage);
-					datavaddr = tempvaddr |
-					    bpage->dataoffs;
+					datavaddr = tempvaddr | bpage->dataoffs;
 				}
 
-				bcopy((void *)bpage->vaddr,
-				    (void *)datavaddr, bpage->datacount);
+				bcopy((void *)bpage->vaddr, (void *)datavaddr,
+				    bpage->datacount);
 
 				if (tempvaddr != 0)
 					pmap_quick_remove_page(tempvaddr);

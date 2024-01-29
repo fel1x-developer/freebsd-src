@@ -55,10 +55,10 @@ fmaf(float x, float y, float z)
 	result = xy + z;
 	EXTRACT_WORDS(hr, lr, result);
 	/* Common case: The double precision result is fine. */
-	if ((lr & 0x1fffffff) != 0x10000000 ||	/* not a halfway case */
-	    (hr & 0x7ff00000) == 0x7ff00000 ||	/* NaN */
-	    result - xy == z ||			/* exact */
-	    fegetround() != FE_TONEAREST)	/* not round-to-nearest */
+	if ((lr & 0x1fffffff) != 0x10000000 || /* not a halfway case */
+	    (hr & 0x7ff00000) == 0x7ff00000 || /* NaN */
+	    result - xy == z ||		       /* exact */
+	    fegetround() != FE_TONEAREST)      /* not round-to-nearest */
 		return (result);
 
 	/*
@@ -66,7 +66,7 @@ fmaf(float x, float y, float z)
 	 * we need to adjust the low-order bit in the direction of the error.
 	 */
 	fesetround(FE_TOWARDZERO);
-	volatile double vxy = xy;  /* XXX work around gcc CSE bug */
+	volatile double vxy = xy; /* XXX work around gcc CSE bug */
 	double adjusted_result = vxy + z;
 	fesetround(FE_TONEAREST);
 	if (result == adjusted_result)

@@ -97,7 +97,7 @@ change_buf(FILE *s, const char *bufmode)
 		    stream_name(s));
 }
 
-__attribute__ ((constructor)) static void
+__attribute__((constructor)) static void
 stdbuf(void)
 {
 	char *i_mode, *o_mode, *e_mode;

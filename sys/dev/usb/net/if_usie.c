@@ -28,57 +28,50 @@
  */
 
 #include <sys/param.h>
-#include <sys/eventhandler.h>
 #include <sys/systm.h>
-#include <sys/queue.h>
-#include <sys/systm.h>
-#include <sys/socket.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/sockio.h>
-#include <sys/socket.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/condvar.h>
-#include <sys/sysctl.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
 
 #include <machine/bus.h>
 
-#include <net/if.h>
-#include <net/if_types.h>
-#include <net/netisr.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_cdc.h>
+#include <dev/usb/usbdi.h>
+#include <dev/usb/usbdi_util.h>
+
 #include <net/bpf.h>
 #include <net/ethernet.h>
-
+#include <net/if.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/netisr.h>
+#include <net80211/ieee80211_ioctl.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/udp.h>
 
-#include <net80211/ieee80211_ioctl.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbdi_util.h>
-#include <dev/usb/usb_cdc.h>
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR usie_debug
-#include <dev/usb/usb_debug.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_msctest.h>
-
-#include <dev/usb/serial/usb_serial.h>
-
+#define USB_DEBUG_VAR usie_debug
 #include <dev/usb/net/if_usievar.h>
+#include <dev/usb/serial/usb_serial.h>
+#include <dev/usb/usb_debug.h>
+#include <dev/usb/usb_msctest.h>
+#include <dev/usb/usb_process.h>
 
-#ifdef	USB_DEBUG
+#ifdef USB_DEBUG
 static int usie_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, usie, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
@@ -89,12 +82,14 @@ SYSCTL_INT(_hw_usb_usie, OID_AUTO, debug, CTLFLAG_RWTUN, &usie_debug, 0,
 
 /* Sierra Wireless Direct IP modems */
 static const STRUCT_USB_HOST_ID usie_devs[] = {
-#define	USIE_DEV(v, d) {				\
-    USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##d) }
+#define USIE_DEV(v, d)                                        \
+	{                                                     \
+		USB_VP(USB_VENDOR_##v, USB_PRODUCT_##v##_##d) \
+	}
 	USIE_DEV(SIERRA, MC8700),
 	USIE_DEV(SIERRA, TRUINSTALL),
 	USIE_DEV(AIRPRIME, USB308),
-#undef	USIE_DEV
+#undef USIE_DEV
 };
 
 static device_probe_t usie_probe;
@@ -126,13 +121,14 @@ static void usie_if_sync_cb(void *, int);
 static void usie_if_status_cb(void *, int);
 
 static void usie_if_start(if_t);
-static int usie_if_output(if_t, struct mbuf *,
-	const struct sockaddr *, struct route *);
+static int usie_if_output(if_t, struct mbuf *, const struct sockaddr *,
+    struct route *);
 static void usie_if_init(void *);
 static void usie_if_stop(struct usie_softc *);
 static int usie_if_ioctl(if_t, u_long, caddr_t);
 
-static int usie_do_request(struct usie_softc *, struct usb_device_request *, void *);
+static int usie_do_request(struct usie_softc *, struct usb_device_request *,
+    void *);
 static int usie_if_cmd(struct usie_softc *, uint8_t);
 static void usie_cns_req(struct usie_softc *, uint32_t, uint16_t);
 static void usie_cns_rsp(struct usie_softc *, struct usie_cns *);
@@ -193,12 +189,9 @@ static const struct usb_config usie_if_config[USIE_IF_N_XFER] = {
 	}
 };
 
-static device_method_t usie_methods[] = {
-	DEVMETHOD(device_probe, usie_probe),
+static device_method_t usie_methods[] = { DEVMETHOD(device_probe, usie_probe),
 	DEVMETHOD(device_attach, usie_attach),
-	DEVMETHOD(device_detach, usie_detach),
-	DEVMETHOD_END
-};
+	DEVMETHOD(device_detach, usie_detach), DEVMETHOD_END };
 
 static driver_t usie_driver = {
 	.name = "usie",
@@ -228,8 +221,7 @@ static const struct ucom_callback usie_uc_callback = {
 };
 
 static void
-usie_autoinst(void *arg, struct usb_device *udev,
-    struct usb_attach_arg *uaa)
+usie_autoinst(void *arg, struct usb_device *udev, struct usb_attach_arg *uaa)
 {
 	struct usb_interface *iface;
 	struct usb_interface_descriptor *id;
@@ -248,11 +240,10 @@ usie_autoinst(void *arg, struct usb_device *udev,
 		return;
 
 	if (usbd_lookup_id_by_uaa(usie_devs, sizeof(usie_devs), uaa) != 0)
-		return;			/* no device match */
+		return; /* no device match */
 
 	if (bootverbose) {
-		DPRINTF("Ejecting %s %s\n",
-		    usb_get_manufacturer(udev),
+		DPRINTF("Ejecting %s %s\n", usb_get_manufacturer(udev),
 		    usb_get_product(udev));
 	}
 	req.bmRequestType = UT_VENDOR;
@@ -262,8 +253,8 @@ usie_autoinst(void *arg, struct usb_device *udev,
 	USETW(req.wLength, 0);
 
 	/* at this moment there is no mutex */
-	err = usbd_do_request_flags(udev, NULL, &req,
-	    NULL, 0, NULL, 250 /* ms */ );
+	err = usbd_do_request_flags(udev, NULL, &req, NULL, 0, NULL,
+	    250 /* ms */);
 
 	/* success, mark the udev as disappearing */
 	if (err == 0)
@@ -342,7 +333,8 @@ usie_attach(device_t self)
 	/* check DHCP supports */
 	DPRINTF("fwattr=%x\n", fwattr);
 	if (!(fwattr & USIE_FW_DHCP)) {
-		device_printf(self, "DHCP is not supported. A firmware upgrade might be needed.\n");
+		device_printf(self,
+		    "DHCP is not supported. A firmware upgrade might be needed.\n");
 	}
 
 	/* find available interfaces */
@@ -361,12 +353,11 @@ usie_attach(device_t self)
 			sc->sc_if_ifnum = id->bInterfaceNumber;
 			iface_index = ifidx;
 
-			DPRINTF("ifnum=%d, ifidx=%d\n",
-			    sc->sc_if_ifnum, ifidx);
+			DPRINTF("ifnum=%d, ifidx=%d\n", sc->sc_if_ifnum, ifidx);
 
-			err = usbd_transfer_setup(uaa->device,
-			    &iface_index, sc->sc_if_xfer, usie_if_config,
-			    USIE_IF_N_XFER, sc, &sc->sc_mtx);
+			err = usbd_transfer_setup(uaa->device, &iface_index,
+			    sc->sc_if_xfer, usie_if_config, USIE_IF_N_XFER, sc,
+			    &sc->sc_mtx);
 
 			if (err == 0)
 				continue;
@@ -400,18 +391,20 @@ usie_attach(device_t self)
 		    &sc->sc_ucom[sc->sc_nucom], &sc->sc_mtx);
 
 		if (err != 0) {
-			DPRINTF("usbd_transfer_setup error=%s\n", usbd_errstr(err));
+			DPRINTF("usbd_transfer_setup error=%s\n",
+			    usbd_errstr(err));
 			continue;
 		}
 
 		mtx_lock(&sc->sc_mtx);
 		for (; start < USIE_UC_N_XFER; start++)
-			usbd_xfer_set_stall(sc->sc_uc_xfer[sc->sc_nucom][start]);
+			usbd_xfer_set_stall(
+			    sc->sc_uc_xfer[sc->sc_nucom][start]);
 		mtx_unlock(&sc->sc_mtx);
 
 		sc->sc_uc_ifnum[sc->sc_nucom] = id->bInterfaceNumber;
 
-		sc->sc_nucom++;		/* found a port */
+		sc->sc_nucom++; /* found a port */
 	}
 
 	if (sc->sc_nucom == 0) {
@@ -419,8 +412,8 @@ usie_attach(device_t self)
 		goto detach;
 	}
 
-	err = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom,
-	    sc->sc_nucom, sc, &usie_uc_callback, &sc->sc_mtx);
+	err = ucom_attach(&sc->sc_super_ucom, sc->sc_ucom, sc->sc_nucom, sc,
+	    &usie_uc_callback, &sc->sc_mtx);
 
 	if (err != 0) {
 		DPRINTF("ucom_attach failed\n");
@@ -652,12 +645,12 @@ usie_uc_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* fall though */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
@@ -676,7 +669,7 @@ usie_uc_tx_callback(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		pc = usbd_xfer_get_frame(xfer, 0);
 
 		/* handle CnS request */
@@ -697,7 +690,7 @@ tr_setup:
 		}
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		if (error != USB_ERR_CANCELLED) {
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
@@ -713,7 +706,7 @@ usie_uc_status_callback(struct usb_xfer *xfer, usb_error_t error)
 	struct {
 		struct usb_device_request req;
 		uint16_t param;
-	}      st;
+	} st;
 	uint32_t actlen;
 	uint16_t param;
 
@@ -746,14 +739,13 @@ usie_uc_status_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* fall though */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
-		DPRINTF("USB transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("USB transfer error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			usbd_xfer_set_stall(xfer);
@@ -796,11 +788,11 @@ usie_if_rx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* fall though */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 
 		if (sc->sc_rxm == NULL) {
 			sc->sc_rxm = m_getjcl(M_NOWAIT, MT_DATA, M_PKTHDR,
-			    MJUMPAGESIZE /* could be bigger than MCLBYTES */ );
+			    MJUMPAGESIZE /* could be bigger than MCLBYTES */);
 		}
 		if (sc->sc_rxm == NULL) {
 			DPRINTF("could not allocate Rx mbuf\n");
@@ -814,13 +806,14 @@ tr_setup:
 			 * there is only one cluster.
 			 */
 			usbd_xfer_set_frame_data(xfer, 0,
-			    mtod(sc->sc_rxm, caddr_t), MIN(MJUMPAGESIZE, USIE_RXSZ_MAX));
+			    mtod(sc->sc_rxm, caddr_t),
+			    MIN(MJUMPAGESIZE, USIE_RXSZ_MAX));
 			usbd_xfer_set_frames(xfer, 1);
 		}
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("USB transfer error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
@@ -903,7 +896,8 @@ tr_setup:
 			m_freem(m);
 			break;
 		}
-		m_copydata(m, sizeof(struct usie_desc) + pad, ipl, mtod(m0, caddr_t));
+		m_copydata(m, sizeof(struct usie_desc) + pad, ipl,
+		    mtod(m0, caddr_t));
 		m0->m_pkthdr.rcvif = ifp;
 		m0->m_pkthdr.len = m0->m_len = ipl;
 
@@ -938,7 +932,7 @@ usie_if_tx_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* fall though */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 
 		if ((if_getdrvflags(ifp) & IFF_DRV_RUNNING) == 0)
 			break;
@@ -948,21 +942,20 @@ tr_setup:
 			break;
 
 		if (m->m_pkthdr.len > (int)(MCLBYTES - ETHER_HDR_LEN +
-		    ETHER_CRC_LEN - sizeof(sc->sc_txd))) {
-			DPRINTF("packet len is too big: %d\n",
-			    m->m_pkthdr.len);
+					  ETHER_CRC_LEN - sizeof(sc->sc_txd))) {
+			DPRINTF("packet len is too big: %d\n", m->m_pkthdr.len);
 			break;
 		}
 		pc = usbd_xfer_get_frame(xfer, 0);
 
-		sc->sc_txd.hip.len = htobe16(m->m_pkthdr.len +
-		    ETHER_HDR_LEN + ETHER_CRC_LEN);
+		sc->sc_txd.hip.len = htobe16(
+		    m->m_pkthdr.len + ETHER_HDR_LEN + ETHER_CRC_LEN);
 		size = sizeof(sc->sc_txd);
 
 		usbd_copy_in(pc, 0, &sc->sc_txd, size);
 		usbd_m_copy_in(pc, size, m, 0, m->m_pkthdr.len);
-		usbd_xfer_set_frame_len(xfer, 0, m->m_pkthdr.len +
-		    size + ETHER_CRC_LEN);
+		usbd_xfer_set_frame_len(xfer, 0,
+		    m->m_pkthdr.len + size + ETHER_CRC_LEN);
 
 		BPF_MTAP(ifp, m);
 
@@ -971,9 +964,8 @@ tr_setup:
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
-		DPRINTF("USB transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("USB transfer error, %s\n", usbd_errstr(error));
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 
 		if (error != USB_ERR_CANCELLED) {
@@ -1015,14 +1007,13 @@ usie_if_status_callback(struct usb_xfer *xfer, usb_error_t error)
 		}
 		/* fall though */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		usbd_xfer_set_frame_len(xfer, 0, usbd_xfer_max_len(xfer));
 		usbd_transfer_submit(xfer);
 		break;
 
-	default:			/* Error */
-		DPRINTF("USB transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTF("USB transfer error, %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
 			usbd_xfer_set_stall(xfer);
@@ -1079,15 +1070,15 @@ usie_if_status_cb(void *arg, int pending)
 	for (ntries = 0; ntries != 10; ntries++) {
 		int err;
 
-		err = usbd_do_request_flags(sc->sc_udev,
-		    &sc->sc_mtx, &req, sc->sc_status_temp, USB_SHORT_XFER_OK,
-		    &actlen, USB_DEFAULT_TIMEOUT);
+		err = usbd_do_request_flags(sc->sc_udev, &sc->sc_mtx, &req,
+		    sc->sc_status_temp, USB_SHORT_XFER_OK, &actlen,
+		    USB_DEFAULT_TIMEOUT);
 
 		if (err == 0)
 			break;
 
-		DPRINTF("Control request failed: %s %d/10\n",
-		    usbd_errstr(err), ntries);
+		DPRINTF("Control request failed: %s %d/10\n", usbd_errstr(err),
+		    ntries);
 
 		usb_pause_mtx(&sc->sc_mtx, USB_MS_TO_TICKS(10));
 	}
@@ -1102,8 +1093,8 @@ usie_if_status_cb(void *arg, int pending)
 
 	pad = (hip->id & USIE_HIP_PAD) ? 1 : 0;
 
-	DPRINTF("hip.id=%x hip.len=%d actlen=%u pad=%d\n",
-	    hip->id, be16toh(hip->len), actlen, pad);
+	DPRINTF("hip.id=%x hip.len=%d actlen=%u pad=%d\n", hip->id,
+	    be16toh(hip->len), actlen, pad);
 
 	switch (hip->id & USIE_HIP_MASK) {
 	case USIE_HIP_SYNC2H:
@@ -1113,8 +1104,8 @@ usie_if_status_cb(void *arg, int pending)
 		usb_callout_stop(&sc->sc_if_sync_ch);
 		break;
 	case USIE_HIP_UMTS:
-		lsi = (struct usie_lsi *)(
-		    sc->sc_status_temp + sizeof(struct usie_hip) + pad);
+		lsi = (struct usie_lsi *)(sc->sc_status_temp +
+		    sizeof(struct usie_hip) + pad);
 
 		DPRINTF("lsi.proto=%x lsi.len=%d\n", lsi->proto,
 		    be16toh(lsi->len));
@@ -1143,11 +1134,11 @@ usie_if_status_cb(void *arg, int pending)
 		if_setdrvflagbits(ifp, IFF_DRV_RUNNING, 0);
 
 		device_printf(sc->sc_dev, "IP Addr=%d.%d.%d.%d\n",
-		    *lsi->pdp_addr, *(lsi->pdp_addr + 1),
-		    *(lsi->pdp_addr + 2), *(lsi->pdp_addr + 3));
+		    *lsi->pdp_addr, *(lsi->pdp_addr + 1), *(lsi->pdp_addr + 2),
+		    *(lsi->pdp_addr + 3));
 		device_printf(sc->sc_dev, "Gateway Addr=%d.%d.%d.%d\n",
-		    *lsi->gw_addr, *(lsi->gw_addr + 1),
-		    *(lsi->gw_addr + 2), *(lsi->gw_addr + 3));
+		    *lsi->gw_addr, *(lsi->gw_addr + 1), *(lsi->gw_addr + 2),
+		    *(lsi->gw_addr + 3));
 		device_printf(sc->sc_dev, "Prim NS Addr=%d.%d.%d.%d\n",
 		    *lsi->dns1_addr, *(lsi->dns1_addr + 1),
 		    *(lsi->dns1_addr + 2), *(lsi->dns1_addr + 3));
@@ -1196,9 +1187,9 @@ usie_if_output(if_t ifp, struct mbuf *m, const struct sockaddr *dst,
 	switch (dst->sa_family) {
 #ifdef INET6
 	case AF_INET6;
-	/* fall though */
+		/* fall though */
 #endif
-	case AF_INET:
+	    case AF_INET:
 		break;
 
 		/* silently drop dhclient packets */
@@ -1233,7 +1224,7 @@ usie_if_init(void *arg)
 
 	/* write tx descriptor */
 	sc->sc_txd.hip.id = USIE_HIP_CTX;
-	sc->sc_txd.hip.param = 0;	/* init value */
+	sc->sc_txd.hip.param = 0; /* init value */
 	sc->sc_txd.desc_type = htobe16(USIE_IP_TX);
 
 	for (i = 0; i != USIE_IF_N_XFER; i++)
@@ -1316,12 +1307,12 @@ usie_if_ioctl(if_t ifp, u_long cmd, caddr_t data)
 		 */
 		si.isi_rssi = 2 * sc->sc_rssi;
 		if (copyout(&si, (uint8_t *)ireq->i_data + 8,
-		    sizeof(struct ieee80211req_sta_info)))
+			sizeof(struct ieee80211req_sta_info)))
 			DPRINTF("copyout failed\n");
 		DPRINTF("80211\n");
 		break;
 
-	case SIOCGIFMEDIA:		/* to fool ifconfig */
+	case SIOCGIFMEDIA: /* to fool ifconfig */
 		ifmr = (struct ifmediareq *)data;
 		ifmr->ifm_count = 1;
 		DPRINTF("media\n");
@@ -1346,13 +1337,12 @@ usie_do_request(struct usie_softc *sc, struct usb_device_request *req,
 	mtx_assert(&sc->sc_mtx, MA_OWNED);
 
 	for (ntries = 0; ntries != 10; ntries++) {
-		err = usbd_do_request(sc->sc_udev,
-		    &sc->sc_mtx, req, data);
+		err = usbd_do_request(sc->sc_udev, &sc->sc_mtx, req, data);
 		if (err == 0)
 			break;
 
-		DPRINTF("Control request failed: %s %d/10\n",
-		    usbd_errstr(err), ntries);
+		DPRINTF("Control request failed: %s %d/10\n", usbd_errstr(err),
+		    ntries);
 
 		usb_pause_mtx(&sc->sc_mtx, USB_MS_TO_TICKS(10));
 	}
@@ -1411,14 +1401,14 @@ usie_cns_req(struct usie_softc *sc, uint32_t id, uint16_t obj)
 	case USIE_CNS_OB_LINK_UPDATE:
 		cns_len = 2;
 		cns->op = USIE_CNS_OP_SET;
-		*tmp++ = 1;		/* profile ID, always use 1 for now */
+		*tmp++ = 1; /* profile ID, always use 1 for now */
 		*tmp++ = id == USIE_CNS_ID_INIT ? 1 : 0;
 		break;
 
 	case USIE_CNS_OB_PROF_WRITE:
 		cns_len = 245;
 		cns->op = USIE_CNS_OP_SET;
-		*tmp++ = 1;		/* profile ID, always use 1 for now */
+		*tmp++ = 1; /* profile ID, always use 1 for now */
 		*tmp++ = 2;
 		memcpy(tmp, &sc->sc_net, 34);
 		memset(tmp + 35, 0, 245 - 36);
@@ -1438,12 +1428,12 @@ usie_cns_req(struct usie_softc *sc, uint32_t id, uint16_t obj)
 
 	hip->len = htobe16(sizeof(struct usie_cns) + cns_len);
 	hip->id = USIE_HIP_CNS2M;
-	hip->param = 0;			/* none for CnS */
+	hip->param = 0; /* none for CnS */
 
 	cns->obj = htobe16(obj);
 	cns->id = htobe32(id);
 	cns->len = cns_len;
-	cns->rsv0 = cns->rsv1 = 0;	/* always '0' */
+	cns->rsv0 = cns->rsv1 = 0; /* always '0' */
 
 	param = (uint8_t *)(cns + 1);
 
@@ -1520,8 +1510,8 @@ usie_hip_rsp(struct usie_softc *sc, uint8_t *rsp, uint32_t len)
 			off++;
 
 		/* Unstuff the bytes */
-		for (i = j = 0; ((i + off) < len) &&
-		    (j < USIE_HIPCNS_MAX); i++) {
+		for (i = j = 0; ((i + off) < len) && (j < USIE_HIPCNS_MAX);
+		     i++) {
 			if (rsp[i + off] == USIE_HIP_FRM_CHR)
 				break;
 
@@ -1559,12 +1549,12 @@ usie_hip_rsp(struct usie_softc *sc, uint8_t *rsp, uint32_t len)
 			cns = (struct usie_cns *)(((uint8_t *)(hip + 1)) + pad);
 
 			if (j < (sizeof(struct usie_cns) +
-			    sizeof(struct usie_hip) + pad)) {
+				    sizeof(struct usie_hip) + pad)) {
 				DPRINTF("too little data\n");
 				break;
 			}
 			DPRINTF("cns: obj=%04x, op=%02x, rsv0=%02x, "
-			    "app=%08x, rsv1=%02x, len=%d\n",
+				"app=%08x, rsv1=%02x, len=%d\n",
 			    be16toh(cns->obj), cns->op, cns->rsv0,
 			    be32toh(cns->id), cns->rsv1, cns->len);
 
@@ -1573,13 +1563,14 @@ usie_hip_rsp(struct usie_softc *sc, uint8_t *rsp, uint32_t len)
 			else
 				usie_cns_rsp(sc, cns);
 
-			i = sizeof(struct usie_hip) + pad + sizeof(struct usie_cns);
+			i = sizeof(struct usie_hip) + pad +
+			    sizeof(struct usie_cns);
 			j = cns->len;
 		} else {
 			i = sizeof(struct usie_hip) + pad;
 			j = be16toh(hip->len);
 		}
-#ifdef	USB_DEBUG
+#ifdef USB_DEBUG
 		if (usie_debug == 0)
 			continue;
 

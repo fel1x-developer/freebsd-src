@@ -24,15 +24,16 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
+#include <err.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
-#include <err.h>
+#include <unistd.h>
 
-#include "eeprom.h"
 #include "9287.h"
+#include "eeprom.h"
 
 void
 usage(char *argv[])

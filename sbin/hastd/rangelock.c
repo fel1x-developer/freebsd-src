@@ -32,28 +32,27 @@
 #include <sys/cdefs.h>
 #include <sys/queue.h>
 
+#include <pjdlog.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <pjdlog.h>
-
 #include "rangelock.h"
 
-#ifndef	PJDLOG_ASSERT
+#ifndef PJDLOG_ASSERT
 #include <assert.h>
-#define	PJDLOG_ASSERT(...)	assert(__VA_ARGS__)
+#define PJDLOG_ASSERT(...) assert(__VA_ARGS__)
 #endif
 
-#define	RANGELOCKS_MAGIC	0x94310c
+#define RANGELOCKS_MAGIC 0x94310c
 struct rangelocks {
-	int	 rls_magic;		/* Magic value. */
-	TAILQ_HEAD(, rlock) rls_locks;	/* List of locked ranges. */
+	int rls_magic;		       /* Magic value. */
+	TAILQ_HEAD(, rlock) rls_locks; /* List of locked ranges. */
 };
 
 struct rlock {
-	off_t	rl_start;
-	off_t	rl_end;
+	off_t rl_start;
+	off_t rl_end;
 	TAILQ_ENTRY(rlock) rl_next;
 };
 
@@ -115,7 +114,7 @@ rangelock_del(struct rangelocks *rls, off_t offset, off_t length)
 
 	PJDLOG_ASSERT(rls->rls_magic == RANGELOCKS_MAGIC);
 
-	TAILQ_FOREACH(rl, &rls->rls_locks, rl_next) {
+	TAILQ_FOREACH (rl, &rls->rls_locks, rl_next) {
 		if (rl->rl_start == offset && rl->rl_end == offset + length)
 			break;
 	}
@@ -133,7 +132,7 @@ rangelock_islocked(struct rangelocks *rls, off_t offset, off_t length)
 	PJDLOG_ASSERT(rls->rls_magic == RANGELOCKS_MAGIC);
 
 	end = offset + length;
-	TAILQ_FOREACH(rl, &rls->rls_locks, rl_next) {
+	TAILQ_FOREACH (rl, &rls->rls_locks, rl_next) {
 		if (rl->rl_start < end && rl->rl_end > offset)
 			break;
 	}

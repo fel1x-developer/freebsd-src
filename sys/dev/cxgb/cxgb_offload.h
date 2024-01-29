@@ -55,36 +55,35 @@ struct tom_tunables {
 
 /* CPL message priority levels */
 enum {
-	CPL_PRIORITY_DATA = 0,     /* data messages */
-	CPL_PRIORITY_CONTROL = 1   /* offload control messages */
+	CPL_PRIORITY_DATA = 0,	 /* data messages */
+	CPL_PRIORITY_CONTROL = 1 /* offload control messages */
 };
 
-#define S_HDR_NDESC	0
-#define M_HDR_NDESC	0xf
-#define V_HDR_NDESC(x)	((x) << S_HDR_NDESC)
-#define G_HDR_NDESC(x)	(((x) >> S_HDR_NDESC) & M_HDR_NDESC)
+#define S_HDR_NDESC 0
+#define M_HDR_NDESC 0xf
+#define V_HDR_NDESC(x) ((x) << S_HDR_NDESC)
+#define G_HDR_NDESC(x) (((x) >> S_HDR_NDESC) & M_HDR_NDESC)
 
-#define S_HDR_QSET	4
-#define M_HDR_QSET	0xf
-#define V_HDR_QSET(x)	((x) << S_HDR_QSET)
-#define G_HDR_QSET(x)	(((x) >> S_HDR_QSET) & M_HDR_QSET)
+#define S_HDR_QSET 4
+#define M_HDR_QSET 0xf
+#define V_HDR_QSET(x) ((x) << S_HDR_QSET)
+#define G_HDR_QSET(x) (((x) >> S_HDR_QSET) & M_HDR_QSET)
 
-#define S_HDR_CTRL	8
-#define V_HDR_CTRL(x)	((x) << S_HDR_CTRL)
-#define F_HDR_CTRL	V_HDR_CTRL(1U)
+#define S_HDR_CTRL 8
+#define V_HDR_CTRL(x) ((x) << S_HDR_CTRL)
+#define F_HDR_CTRL V_HDR_CTRL(1U)
 
-#define S_HDR_DF	9
-#define V_HDR_DF(x)	((x) << S_HDR_DF)
-#define F_HDR_DF	V_HDR_DF(1U)
+#define S_HDR_DF 9
+#define V_HDR_DF(x) ((x) << S_HDR_DF)
+#define F_HDR_DF V_HDR_DF(1U)
 
-#define S_HDR_SGL	10
-#define V_HDR_SGL(x)	((x) << S_HDR_SGL)
-#define F_HDR_SGL	V_HDR_SGL(1U)
+#define S_HDR_SGL 10
+#define V_HDR_SGL(x) ((x) << S_HDR_SGL)
+#define F_HDR_SGL V_HDR_SGL(1U)
 
-struct ofld_hdr
-{
-	void *sgl;	/* SGL, if F_HDR_SGL set in flags */
-	int plen;	/* amount of payload (in bytes) */
+struct ofld_hdr {
+	void *sgl; /* SGL, if F_HDR_SGL set in flags */
+	int plen;  /* amount of payload (in bytes) */
 	int flags;
 };
 
@@ -92,7 +91,7 @@ struct ofld_hdr
  * Convenience function for fixed size CPLs that fit in 1 desc.
  */
 #define M_GETHDR_OFLD(qset, ctrl, cpl) \
-    m_gethdr_ofld(qset, ctrl, sizeof(*cpl), (void **)&cpl)
+	m_gethdr_ofld(qset, ctrl, sizeof(*cpl), (void **)&cpl)
 static inline struct mbuf *
 m_gethdr_ofld(int qset, int ctrl, int cpllen, void **cpl)
 {
@@ -115,9 +114,9 @@ int t3_register_uld(struct uld_info *);
 int t3_unregister_uld(struct uld_info *);
 int t3_activate_uld(struct adapter *, int);
 int t3_deactivate_uld(struct adapter *, int);
-#endif	/* TCP_OFFLOAD */
+#endif /* TCP_OFFLOAD */
 
 #define CXGB_UNIMPLEMENTED() \
-    panic("IMPLEMENT: %s:%s:%d", __FUNCTION__, __FILE__, __LINE__)
+	panic("IMPLEMENT: %s:%s:%d", __FUNCTION__, __FILE__, __LINE__)
 
 #endif

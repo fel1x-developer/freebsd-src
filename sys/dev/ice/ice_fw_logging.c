@@ -36,10 +36,11 @@
  * Contains sysctls to enable and configure firmware logging debug support.
  */
 
-#include "ice_lib.h"
-#include "ice_iflib.h"
 #include <sys/queue.h>
 #include <sys/sdt.h>
+
+#include "ice_iflib.h"
+#include "ice_lib.h"
 
 /*
  * SDT provider for DTrace probes related to firmware logging events
@@ -101,38 +102,38 @@ ice_reconfig_fw_log(struct ice_softc *sc, struct ice_fwlog_cfg *cfg)
 	return (0);
 }
 
-#define ICE_SYSCTL_HELP_FWLOG_LOG_RESOLUTION				\
-"\nControl firmware message limit to send per ARQ event"		\
-"\t\nMin: 1"								\
-"\t\nMax: 128"
+#define ICE_SYSCTL_HELP_FWLOG_LOG_RESOLUTION                     \
+	"\nControl firmware message limit to send per ARQ event" \
+	"\t\nMin: 1"                                             \
+	"\t\nMax: 128"
 
-#define ICE_SYSCTL_HELP_FWLOG_ARQ_ENA					\
-"\nControl whether to enable/disable reporting to admin Rx queue"	\
-"\n0 - Enable firmware reporting via ARQ"				\
-"\n1 - Disable firmware reporting via ARQ"
+#define ICE_SYSCTL_HELP_FWLOG_ARQ_ENA                                     \
+	"\nControl whether to enable/disable reporting to admin Rx queue" \
+	"\n0 - Enable firmware reporting via ARQ"                         \
+	"\n1 - Disable firmware reporting via ARQ"
 
-#define ICE_SYSCTL_HELP_FWLOG_UART_ENA					\
-"\nControl whether to enable/disable reporting to UART"			\
-"\n0 - Enable firmware reporting via UART"				\
-"\n1 - Disable firmware reporting via UART"
+#define ICE_SYSCTL_HELP_FWLOG_UART_ENA                          \
+	"\nControl whether to enable/disable reporting to UART" \
+	"\n0 - Enable firmware reporting via UART"              \
+	"\n1 - Disable firmware reporting via UART"
 
-#define ICE_SYSCTL_HELP_FWLOG_ENABLE_ON_LOAD				\
-"\nControl whether to enable logging during the attach phase"		\
-"\n0 - Enable firmware logging during attach phase"			\
-"\n1 - Disable firmware logging during attach phase"
+#define ICE_SYSCTL_HELP_FWLOG_ENABLE_ON_LOAD                          \
+	"\nControl whether to enable logging during the attach phase" \
+	"\n0 - Enable firmware logging during attach phase"           \
+	"\n1 - Disable firmware logging during attach phase"
 
-#define ICE_SYSCTL_HELP_FWLOG_REGISTER					\
-"\nControl whether to enable/disable firmware logging"			\
-"\n0 - Enable firmware logging"						\
-"\n1 - Disable firmware logging"
+#define ICE_SYSCTL_HELP_FWLOG_REGISTER                         \
+	"\nControl whether to enable/disable firmware logging" \
+	"\n0 - Enable firmware logging"                        \
+	"\n1 - Disable firmware logging"
 
-#define ICE_SYSCTL_HELP_FWLOG_MODULE_SEVERITY				\
-"\nControl the level of log output messages for this module"		\
-"\n\tverbose <4> - Verbose messages + (Error|Warning|Normal)"		\
-"\n\tnormal  <3> - Normal messages  + (Error|Warning)"			\
-"\n\twarning <2> - Warning messages + (Error)"				\
-"\n\terror   <1> - Error messages"					\
-"\n\tnone    <0> - Disables all logging for this module"
+#define ICE_SYSCTL_HELP_FWLOG_MODULE_SEVERITY                         \
+	"\nControl the level of log output messages for this module"  \
+	"\n\tverbose <4> - Verbose messages + (Error|Warning|Normal)" \
+	"\n\tnormal  <3> - Normal messages  + (Error|Warning)"        \
+	"\n\twarning <2> - Warning messages + (Error)"                \
+	"\n\terror   <1> - Error messages"                            \
+	"\n\tnone    <0> - Disables all logging for this module"
 
 /**
  * ice_sysctl_fwlog_set_cfg_options - Sysctl for setting fwlog cfg options
@@ -230,7 +231,8 @@ ice_sysctl_fwlog_register(SYSCTL_HANDLER_ARGS)
 	UNREFERENCED_PARAMETER(arg2);
 
 	if (ice_test_state(&sc->state, ICE_STATE_ATTACHING)) {
-		device_printf(sc->dev, "Registering FW Logging via kenv is supported with the on_load option\n");
+		device_printf(sc->dev,
+		    "Registering FW Logging via kenv is supported with the on_load option\n");
 		return (EIO);
 	}
 
@@ -292,19 +294,24 @@ ice_sysctl_fwlog_module_log_severity(SYSCTL_HANDLER_ARGS)
 	if ((error) || (req->newptr == NULL))
 		return (error);
 
-	if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_VERBOSE), sev_str) == 0) {
+	if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_VERBOSE), sev_str) ==
+	    0) {
 		log_level = ICE_FWLOG_LEVEL_VERBOSE;
 		sev_set = true;
-	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_NORMAL), sev_str) == 0) {
+	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_NORMAL),
+		       sev_str) == 0) {
 		log_level = ICE_FWLOG_LEVEL_NORMAL;
 		sev_set = true;
-	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_WARNING), sev_str) == 0) {
+	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_WARNING),
+		       sev_str) == 0) {
 		log_level = ICE_FWLOG_LEVEL_WARNING;
 		sev_set = true;
-	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_ERROR), sev_str) == 0) {
+	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_ERROR),
+		       sev_str) == 0) {
 		log_level = ICE_FWLOG_LEVEL_ERROR;
 		sev_set = true;
-	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_NONE), sev_str) == 0) {
+	} else if (strcasecmp(ice_log_sev_str(ICE_FWLOG_LEVEL_NONE), sev_str) ==
+	    0) {
 		log_level = ICE_FWLOG_LEVEL_NONE;
 		sev_set = true;
 	}
@@ -318,8 +325,8 @@ ice_sysctl_fwlog_module_log_severity(SYSCTL_HANDLER_ARGS)
 			log_level = ll_num;
 		else {
 			device_printf(sc->dev,
-			    "%s: \"%s\" is not a valid log level\n",
-			    __func__, sev_str);
+			    "%s: \"%s\" is not a valid log level\n", __func__,
+			    sev_str);
 			return (EINVAL);
 		}
 	}
@@ -355,26 +362,25 @@ ice_add_fw_logging_tunables(struct ice_softc *sc, struct sysctl_oid *parent)
 	parent_list = SYSCTL_CHILDREN(parent);
 
 	fwlog_node = SYSCTL_ADD_NODE(ctx, parent_list, OID_AUTO, "fw_log",
-				     ICE_CTLFLAG_DEBUG | CTLFLAG_RD, NULL,
-				     "Firmware Logging");
+	    ICE_CTLFLAG_DEBUG | CTLFLAG_RD, NULL, "Firmware Logging");
 	fwlog_list = SYSCTL_CHILDREN(fwlog_node);
 
 	cfg->log_resolution = 10;
 	SYSCTL_ADD_PROC(ctx, fwlog_list, OID_AUTO, "log_resolution",
-	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc,
-	    0, ice_sysctl_fwlog_log_resolution,
-	    "CU", ICE_SYSCTL_HELP_FWLOG_LOG_RESOLUTION);
+	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc, 0,
+	    ice_sysctl_fwlog_log_resolution, "CU",
+	    ICE_SYSCTL_HELP_FWLOG_LOG_RESOLUTION);
 
 	cfg->options |= ICE_FWLOG_OPTION_ARQ_ENA;
 	SYSCTL_ADD_PROC(ctx, fwlog_list, OID_AUTO, "arq_en",
 	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc,
-	    ICE_FWLOG_OPTION_ARQ_ENA, ice_sysctl_fwlog_set_cfg_options,
-	    "CU", ICE_SYSCTL_HELP_FWLOG_ARQ_ENA);
+	    ICE_FWLOG_OPTION_ARQ_ENA, ice_sysctl_fwlog_set_cfg_options, "CU",
+	    ICE_SYSCTL_HELP_FWLOG_ARQ_ENA);
 
 	SYSCTL_ADD_PROC(ctx, fwlog_list, OID_AUTO, "uart_en",
 	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc,
-	    ICE_FWLOG_OPTION_UART_ENA, ice_sysctl_fwlog_set_cfg_options,
-	    "CU", ICE_SYSCTL_HELP_FWLOG_UART_ENA);
+	    ICE_FWLOG_OPTION_UART_ENA, ice_sysctl_fwlog_set_cfg_options, "CU",
+	    ICE_SYSCTL_HELP_FWLOG_UART_ENA);
 
 	SYSCTL_ADD_PROC(ctx, fwlog_list, OID_AUTO, "on_load",
 	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc,
@@ -382,13 +388,11 @@ ice_add_fw_logging_tunables(struct ice_softc *sc, struct sysctl_oid *parent)
 	    "CU", ICE_SYSCTL_HELP_FWLOG_ENABLE_ON_LOAD);
 
 	SYSCTL_ADD_PROC(ctx, fwlog_list, OID_AUTO, "register",
-	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc,
-	    0, ice_sysctl_fwlog_register,
-	    "CU", ICE_SYSCTL_HELP_FWLOG_REGISTER);
+	    ICE_CTLFLAG_DEBUG | CTLTYPE_U8 | CTLFLAG_RWTUN, sc, 0,
+	    ice_sysctl_fwlog_register, "CU", ICE_SYSCTL_HELP_FWLOG_REGISTER);
 
 	module_node = SYSCTL_ADD_NODE(ctx, fwlog_list, OID_AUTO, "severity",
-				      ICE_CTLFLAG_DEBUG | CTLFLAG_RD, NULL,
-				      "Level of log output");
+	    ICE_CTLFLAG_DEBUG | CTLFLAG_RD, NULL, "Level of log output");
 
 	module_list = SYSCTL_CHILDREN(module_node);
 
@@ -398,11 +402,11 @@ ice_add_fw_logging_tunables(struct ice_softc *sc, struct sysctl_oid *parent)
 		cfg->module_entries[i].log_level = ICE_FWLOG_LEVEL_NONE;
 		module = (enum ice_aqc_fw_logging_mod)i;
 
-		SYSCTL_ADD_PROC(ctx, module_list,
-		    OID_AUTO, ice_fw_module_str(module),
+		SYSCTL_ADD_PROC(ctx, module_list, OID_AUTO,
+		    ice_fw_module_str(module),
 		    ICE_CTLFLAG_DEBUG | CTLTYPE_STRING | CTLFLAG_RWTUN, sc,
-		    module, ice_sysctl_fwlog_module_log_severity,
-		    "A", ICE_SYSCTL_HELP_FWLOG_MODULE_SEVERITY);
+		    module, ice_sysctl_fwlog_module_log_severity, "A",
+		    ICE_SYSCTL_HELP_FWLOG_MODULE_SEVERITY);
 	}
 }
 
@@ -414,7 +418,7 @@ ice_add_fw_logging_tunables(struct ice_softc *sc, struct sysctl_oid *parent)
  */
 void
 ice_handle_fw_log_event(struct ice_softc *sc, struct ice_aq_desc *desc,
-			void *buf)
+    void *buf)
 {
 	/* Trigger a DTrace probe event for this firmware message */
 	SDT_PROBE2(ice_fwlog, , , message, (const u8 *)buf, desc->datalen);

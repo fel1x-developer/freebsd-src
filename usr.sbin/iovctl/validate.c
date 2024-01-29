@@ -25,8 +25,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/iov.h>
 #include <sys/dnv.h>
+#include <sys/iov.h>
 #include <sys/nv.h>
 
 #include <err.h>
@@ -45,7 +45,7 @@
  * nvlist in config with nvlist_move_nvlist.
  */
 static nvlist_t *
-find_config(nvlist_t *config, const char * device)
+find_config(nvlist_t *config, const char *device)
 {
 	nvlist_t *subsystem, *empty_driver, *empty_iov;
 
@@ -80,8 +80,7 @@ parse_vf_num(const char *key, regmatch_t *matches)
 	vf_num = strtoul(key + matches[1].rm_so, NULL, 10);
 
 	if (vf_num > UINT16_MAX)
-		errx(1, "VF number %lu is too large to be valid",
-		    vf_num);
+		errx(1, "VF number %lu is too large to be valid", vf_num);
 
 	return (vf_num);
 }
@@ -244,8 +243,7 @@ validate_config(nvlist_t *config, const nvlist_t *schema, const regex_t *vf_pat)
 	defaults = dnvlist_take_nvlist(config, DEFAULT_SCHEMA_NAME, NULL);
 
 	for (i = 0; i < num_vfs; i++) {
-		snprintf(device_name, sizeof(device_name), VF_PREFIX"%d",
-		    i);
+		snprintf(device_name, sizeof(device_name), VF_PREFIX "%d", i);
 
 		vf = find_config(config, device_name);
 
@@ -263,9 +261,8 @@ validate_config(nvlist_t *config, const nvlist_t *schema, const regex_t *vf_pat)
 			vf_num = parse_vf_num(key, matches);
 			if (vf_num >= num_vfs)
 				errx(1,
-				   "VF number %d is out of bounds (num_vfs=%d)",
+				    "VF number %d is out of bounds (num_vfs=%d)",
 				    vf_num, num_vfs);
 		}
 	}
 }
-

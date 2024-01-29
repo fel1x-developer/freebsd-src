@@ -34,20 +34,22 @@
 
 static int ntest = 1;
 
-#define	CHECK(expr)	do {						\
-	if ((expr))							\
-		printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__);	\
-	else								\
-		printf("not ok # %d %s:%u\n", ntest, __FILE__, __LINE__);\
-	ntest++;							\
-} while (0)
+#define CHECK(expr)                                                           \
+	do {                                                                  \
+		if ((expr))                                                   \
+			printf("ok # %d %s:%u\n", ntest, __FILE__, __LINE__); \
+		else                                                          \
+			printf("not ok # %d %s:%u\n", ntest, __FILE__,        \
+			    __LINE__);                                        \
+		ntest++;                                                      \
+	} while (0)
 
 int
 main(void)
 {
 	const bool *bool_result;
-	const char * const *string_result;
-	const nvlist_t * const *nvl_result;
+	const char *const *string_result;
+	const nvlist_t *const *nvl_result;
 	nvlist_t *nvl, *nvl1, *nvl2, **items;
 	unsigned int i;
 	size_t nitems;
@@ -69,14 +71,12 @@ main(void)
 	for (i = 0; i < nitems; i++)
 		CHECK(bool_result[i] == (i % 2 == 0));
 
-
 	nvlist_append_string_array(nvl, "nvl/string", "a");
 	nvlist_append_string_array(nvl, "nvl/string", "abc");
 	string_result = nvlist_get_string_array(nvl, "nvl/string", &nitems);
 	CHECK(nitems == 2);
 	CHECK(strcmp(string_result[0], "a") == 0);
 	CHECK(strcmp(string_result[1], "abc") == 0);
-
 
 	nvl1 = nvlist_create(0);
 	nvlist_add_string(nvl1, "key1", "test1");

@@ -46,7 +46,7 @@
 
 #include "mntopts.h"
 
-static void	usage(void) __dead2;
+static void usage(void) __dead2;
 
 static int
 stat_realpath(const char *path, char *resolved, struct stat *sbp)
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
 	iovlen = 0;
 	errmsg[0] = '\0';
 	while ((ch = getopt(argc, argv, "o:")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case 'o':
 			val = strdup("");
 			p = strchr(optarg, '=');
@@ -125,6 +125,6 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: mount_nullfs [-o options] target mount-point\n");
+	    "usage: mount_nullfs [-o options] target mount-point\n");
 	exit(1);
 }

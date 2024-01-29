@@ -23,17 +23,17 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include <stddef.h>
-#include <stdarg.h>
-#include <stdbool.h>
-
 #include <sys/param.h>
 #include <sys/queue.h>
+
 #include <efi.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 #include "boot_module.h"
-
 #include "libzfs.h"
+
 #include "zfsimpl.c"
 
 static dev_info_t *devices;
@@ -86,7 +86,7 @@ vdev_read(vdev_t *vdev, void *priv, off_t off, void *buf, size_t bytes)
 		status = devinfo->dev->ReadBlocks(devinfo->dev,
 		    devinfo->dev->Media->MediaId, lba, rb_size, rb_buf);
 		if (EFI_ERROR(status))
-				goto error;
+			goto error;
 		if (bytes < blksz)
 			blksz = bytes;
 		if (bouncebuf != NULL)
@@ -104,9 +104,9 @@ vdev_read(vdev_t *vdev, void *priv, off_t off, void *buf, size_t bytes)
 error:
 	free(bouncebuf);
 	DPRINTF("vdev_read: failed dev: %p, id: %u, lba: %ju, size: %zu,"
-	    " rb_size: %zu, status: %lu\n", devinfo->dev,
-	    devinfo->dev->Media->MediaId, (uintmax_t)lba, bytes, rb_size,
-	    EFI_ERROR_CODE(status));
+		" rb_size: %zu, status: %lu\n",
+	    devinfo->dev, devinfo->dev->Media->MediaId, (uintmax_t)lba, bytes,
+	    rb_size, EFI_ERROR_CODE(status));
 	return (-1);
 }
 
@@ -162,7 +162,7 @@ load(const char *filepath, dev_info_t *devinfo, void **bufp, size_t *bufsize)
 	}
 
 	if (zfs_get_bootonce_spa(spa, OS_BOOTONCE, zfs_bootonce,
-	    sizeof(zfs_bootonce)) == 0) {
+		sizeof(zfs_bootonce)) == 0) {
 		/*
 		 * If bootonce attribute is present, use it as root dataset.
 		 * Any attempt to use it should clear the 'once' flag.  Prior
@@ -224,7 +224,8 @@ load(const char *filepath, dev_info_t *devinfo, void **bufp, size_t *bufsize)
 
 	buf = malloc(st.st_size);
 	if (buf == NULL) {
-		printf("Failed to allocate load buffer %jd for pool '%s' for '%s' ",
+		printf(
+		    "Failed to allocate load buffer %jd for pool '%s' for '%s' ",
 		    (intmax_t)st.st_size, spa->spa_name, filepath);
 		return (EFI_INVALID_PARAMETER);
 	}
@@ -254,7 +255,7 @@ status(void)
 	}
 
 	printf("%s found the following pools:", zfs_module.name);
-	STAILQ_FOREACH(spa, &zfs_pools, spa_link)
+	STAILQ_FOREACH (spa, &zfs_pools, spa_link)
 		printf(" %s", spa->spa_name);
 
 	printf("\n");
@@ -263,14 +264,13 @@ status(void)
 static const char *
 extra_env(void)
 {
-	char *rv = NULL;	/* So we return NULL if asprintf fails */
+	char *rv = NULL; /* So we return NULL if asprintf fails */
 
 	if (*zfs_bootonce == '\0')
 		return NULL;
 	asprintf(&rv, "zfs-bootonce=%s", zfs_bootonce);
 	return (rv);
 }
-
 
 static void
 init(void)
@@ -286,8 +286,7 @@ _devices(void)
 	return (devices);
 }
 
-const boot_module_t zfs_module =
-{
+const boot_module_t zfs_module = {
 	.name = "ZFS",
 	.init = init,
 	.probe = probe,

@@ -29,8 +29,8 @@
  * SUCH DAMAGE.
  */
 
-#include "rcv.h"
 #include "extern.h"
+#include "rcv.h"
 
 /*
  * Mail -- a mail program
@@ -38,7 +38,7 @@
  * Give names to all the temporary files that we will need.
  */
 
-char	*tmpdir;
+char *tmpdir;
 
 void
 tinit(void)

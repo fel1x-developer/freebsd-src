@@ -33,12 +33,14 @@
  */
 
 #include <sys/cdefs.h>
-#include <stdlib.h>
+
+#include <netinet/in.h>
+
 #include <rpc/rpc.h>
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
 #include <rpcsvc/yppasswd.h>
-#include <netinet/in.h>
+#include <stdlib.h>
 
 /*
  * XXX <rpcsvc/yppasswd.h> does a typedef that makes 'yppasswd'
@@ -65,23 +67,23 @@ _yppasswd(char *oldpass, struct x_passwd *newpw)
 		return (-1);
 
 	if (yp_master(domain, "passwd.byname", &server))
-		return(-1);
+		return (-1);
 
-	rval = getrpcport(server, YPPASSWDPROG,
-				YPPASSWDPROC_UPDATE, IPPROTO_UDP);
+	rval = getrpcport(server, YPPASSWDPROG, YPPASSWDPROC_UPDATE,
+	    IPPROTO_UDP);
 
 	if (rval == 0 || rval >= IPPORT_RESERVED) {
 		free(server);
-		return(-1);
+		return (-1);
 	}
 
 	rval = callrpc(server, YPPASSWDPROG, YPPASSWDVERS, YPPASSWDPROC_UPDATE,
-		       (xdrproc_t)xdr_yppasswd, (char *)&yppasswd,
-		       (xdrproc_t)xdr_int, (char *)&result);
+	    (xdrproc_t)xdr_yppasswd, (char *)&yppasswd, (xdrproc_t)xdr_int,
+	    (char *)&result);
 
 	free(server);
 	if (rval || result)
-		return(-1);
+		return (-1);
 	else
-		return(0);
+		return (0);
 }

@@ -29,17 +29,17 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/pmc.h>
 #include <sys/pmckern.h>
 #include <sys/sysent.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
 
-#include <machine/pmc_mdep.h>
-#include <machine/spr.h>
-#include <machine/pte.h>
-#include <machine/sr.h>
 #include <machine/cpu.h>
+#include <machine/pmc_mdep.h>
+#include <machine/pte.h>
+#include <machine/spr.h>
+#include <machine/sr.h>
 #include <machine/stack.h>
 
 #include "hwpmc_powerpc.h"
@@ -63,10 +63,8 @@ pmc_value_t (*powerpc_pmcn_read)(unsigned int pmc);
 void (*powerpc_pmcn_write)(unsigned int pmc, uint32_t val);
 void (*powerpc_resume_pmc)(bool ie);
 
-
 int
-pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples,
-    struct trapframe *tf)
+pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples, struct trapframe *tf)
 {
 	uintptr_t *osp, *sp;
 	uintptr_t pc;
@@ -79,11 +77,11 @@ pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples,
 	for (; frames < maxsamples; frames++) {
 		if (sp <= osp)
 			break;
-	    #ifdef __powerpc64__
+#ifdef __powerpc64__
 		pc = sp[2];
-	    #else
+#else
 		pc = sp[1];
-	    #endif
+#endif
 		if ((pc & 3) || (pc < 0x100))
 			break;
 
@@ -91,8 +89,8 @@ pmc_save_kernel_callchain(uintptr_t *cc, int maxsamples,
 		 * trapexit() and asttrapexit() are sentinels
 		 * for kernel stack tracing.
 		 * */
-		if (pc + OFFSET == (uintptr_t) &trapexit ||
-		    pc + OFFSET == (uintptr_t) &asttrapexit)
+		if (pc + OFFSET == (uintptr_t)&trapexit ||
+		    pc + OFFSET == (uintptr_t)&asttrapexit)
 			break;
 
 		cc[frames] = pc;
@@ -117,10 +115,10 @@ powerpc_describe(int cpu, int ri, struct pmc_info *pi, struct pmc **ppmc)
 
 	if (phw->phw_state & PMC_PHW_FLAG_IS_ENABLED) {
 		pi->pm_enabled = TRUE;
-		*ppmc          = phw->phw_pmc;
+		*ppmc = phw->phw_pmc;
 	} else {
 		pi->pm_enabled = FALSE;
-		*ppmc	       = NULL;
+		*ppmc = NULL;
 	}
 
 	return (0);
@@ -140,15 +138,16 @@ powerpc_pcpu_init(struct pmc_mdep *md, int cpu)
 {
 	struct pmc_cpu *pc;
 	struct powerpc_cpu *pac;
-	struct pmc_hw  *phw;
+	struct pmc_hw *phw;
 	int first_ri, i;
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[powerpc,%d] wrong cpu number %d", __LINE__, cpu));
-	PMCDBG1(MDP,INI,1,"powerpc-init cpu=%d", cpu);
+	PMCDBG1(MDP, INI, 1, "powerpc-init cpu=%d", cpu);
 
 	powerpc_pcpu[cpu] = pac = malloc(sizeof(struct powerpc_cpu) +
-	    ppc_max_pmcs * sizeof(struct pmc_hw), M_PMC, M_WAITOK | M_ZERO);
+		ppc_max_pmcs * sizeof(struct pmc_hw),
+	    M_PMC, M_WAITOK | M_ZERO);
 	pac->pc_class =
 	    md->pmd_classdep[PMC_MDEP_CLASS_INDEX_POWERPC].pcd_class;
 
@@ -169,7 +168,7 @@ powerpc_pcpu_init(struct pmc_mdep *md, int cpu)
 int
 powerpc_pcpu_fini(struct pmc_mdep *md, int cpu)
 {
-	PMCDBG1(MDP,INI,1,"powerpc-fini cpu=%d", cpu);
+	PMCDBG1(MDP, INI, 1, "powerpc-fini cpu=%d", cpu);
 
 	free(powerpc_pcpu[cpu], M_PMC);
 	powerpc_pcpu[cpu] = NULL;
@@ -203,7 +202,7 @@ powerpc_allocate_pmc(int cpu, int ri, struct pmc *pm,
 	for (i = 0; i < ppc_event_codes_size; i++) {
 		if (ppc_event_codes[i].pe_event == pe) {
 			config = ppc_event_codes[i].pe_code;
-			counter =  ppc_event_codes[i].pe_flags;
+			counter = ppc_event_codes[i].pe_flags;
 			break;
 		}
 	}
@@ -222,7 +221,7 @@ powerpc_allocate_pmc(int cpu, int ri, struct pmc *pm,
 
 	pm->pm_md.pm_powerpc.pm_powerpc_evsel = config;
 
-	PMCDBG3(MDP,ALL,1,"powerpc-allocate cpu=%d ri=%d -> config=0x%x",
+	PMCDBG3(MDP, ALL, 1, "powerpc-allocate cpu=%d ri=%d -> config=0x%x",
 	    cpu, ri, config);
 	return (0);
 }
@@ -248,7 +247,7 @@ int
 powerpc_start_pmc(int cpu, int ri, struct pmc *pm)
 {
 
-	PMCDBG2(MDP,STA,1,"powerpc-start cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STA, 1, "powerpc-start cpu=%d ri=%d", cpu, ri);
 	powerpc_set_pmc(cpu, ri, pm->pm_md.pm_powerpc.pm_powerpc_evsel);
 
 	return (0);
@@ -257,7 +256,7 @@ powerpc_start_pmc(int cpu, int ri, struct pmc *pm)
 int
 powerpc_stop_pmc(int cpu, int ri, struct pmc *pm __unused)
 {
-	PMCDBG2(MDP,STO,1, "powerpc-stop cpu=%d ri=%d", cpu, ri);
+	PMCDBG2(MDP, STO, 1, "powerpc-stop cpu=%d ri=%d", cpu, ri);
 	powerpc_set_pmc(cpu, ri, PMCN_NONE);
 	return (0);
 }
@@ -267,7 +266,7 @@ powerpc_config_pmc(int cpu, int ri, struct pmc *pm)
 {
 	struct pmc_hw *phw;
 
-	PMCDBG3(MDP,CFG,1, "powerpc-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
+	PMCDBG3(MDP, CFG, 1, "powerpc-config cpu=%d ri=%d pm=%p", cpu, ri, pm);
 
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[powerpc,%d] illegal CPU value %d", __LINE__, cpu));
@@ -277,8 +276,8 @@ powerpc_config_pmc(int cpu, int ri, struct pmc *pm)
 	phw = &powerpc_pcpu[cpu]->pc_ppcpmcs[ri];
 
 	KASSERT(pm == NULL || phw->phw_pmc == NULL,
-	    ("[powerpc,%d] pm=%p phw->pm=%p hwpmc not unconfigured",
-	    __LINE__, pm, phw->phw_pmc));
+	    ("[powerpc,%d] pm=%p phw->pm=%p hwpmc not unconfigured", __LINE__,
+		pm, phw->phw_pmc));
 
 	phw->phw_pmc = pm;
 
@@ -397,9 +396,8 @@ powerpc_read_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t *v)
 	} else
 		tmp = p + (POWERPC_MAX_PMC_VALUE + 1) * PPC_OVERFLOWCNT(pm);
 
-	PMCDBG5(MDP,REA,1,"ppc-read cpu=%d ri=%d -> %jx (%jx,%jx)",
-	    cpu, ri, (uintmax_t)tmp, (uintmax_t)PPC_OVERFLOWCNT(pm),
-	    (uintmax_t)p);
+	PMCDBG5(MDP, REA, 1, "ppc-read cpu=%d ri=%d -> %jx (%jx,%jx)", cpu, ri,
+	    (uintmax_t)tmp, (uintmax_t)PPC_OVERFLOWCNT(pm), (uintmax_t)p);
 	*v = tmp;
 	return (0);
 }
@@ -418,16 +416,15 @@ powerpc_write_pmc(int cpu, int ri, struct pmc *pm, pmc_value_t v)
 		PPC_OVERFLOWCNT(pm) = v / (POWERPC_MAX_PMC_VALUE + 1);
 		vlo = v % (POWERPC_MAX_PMC_VALUE + 1);
 	} else if (v > POWERPC_MAX_PMC_VALUE) {
-		PMCDBG3(MDP,WRI,2,
+		PMCDBG3(MDP, WRI, 2,
 		    "powerpc-write cpu=%d ri=%d: PMC value is too big: %jx",
 		    cpu, ri, (uintmax_t)v);
 		return (EINVAL);
 	} else
 		vlo = POWERPC_RELOAD_COUNT_TO_PERFCTR_VALUE(v);
 
-	PMCDBG5(MDP,WRI,1,"powerpc-write cpu=%d ri=%d -> %jx (%jx,%jx)",
-	    cpu, ri, (uintmax_t)v, (uintmax_t)PPC_OVERFLOWCNT(pm),
-	    (uintmax_t)vlo);
+	PMCDBG5(MDP, WRI, 1, "powerpc-write cpu=%d ri=%d -> %jx (%jx,%jx)", cpu,
+	    ri, (uintmax_t)v, (uintmax_t)PPC_OVERFLOWCNT(pm), (uintmax_t)vlo);
 
 	powerpc_pmcn_write(ri, vlo);
 	return (0);
@@ -444,7 +441,7 @@ powerpc_pmc_intr(struct trapframe *tf)
 	KASSERT(cpu >= 0 && cpu < pmc_cpu_max(),
 	    ("[powerpc,%d] out of range CPU %d", __LINE__, cpu));
 
-	PMCDBG3(MDP,INT,1, "cpu=%d tf=%p um=%d", cpu, (void *) tf,
+	PMCDBG3(MDP, INT, 1, "cpu=%d tf=%p um=%d", cpu, (void *)tf,
 	    TRAPF_USERMODE(tf));
 
 	retval = 0;
@@ -457,7 +454,7 @@ powerpc_pmc_intr(struct trapframe *tf)
 	for (i = 0; i < ppc_max_pmcs; i++) {
 		if (!POWERPC_PMC_HAS_OVERFLOWED(i))
 			continue;
-		retval = 1;	/* Found an interrupting PMC. */
+		retval = 1; /* Found an interrupting PMC. */
 
 		/*
 		 * Always clear the PMC, to make it stop interrupting.
@@ -474,11 +471,12 @@ powerpc_pmc_intr(struct trapframe *tf)
 			}
 		} else {
 			if (pm != NULL) { /* !PMC_IS_SAMPLING_MODE */
-				PPC_OVERFLOWCNT(pm) = (PPC_OVERFLOWCNT(pm) +
-				    1) % PPC_OVERFLOWCNT_MAX;
-				PMCDBG3(MDP,INT,2,
-				    "cpu=%d ri=%d: overflowcnt=%d",
-				    cpu, i, PPC_OVERFLOWCNT(pm));
+				PPC_OVERFLOWCNT(
+				    pm) = (PPC_OVERFLOWCNT(pm) + 1) %
+				    PPC_OVERFLOWCNT_MAX;
+				PMCDBG3(MDP, INT, 2,
+				    "cpu=%d ri=%d: overflowcnt=%d", cpu, i,
+				    PPC_OVERFLOWCNT(pm));
 			}
 
 			powerpc_pmcn_write(i, 0);
@@ -487,9 +485,9 @@ powerpc_pmc_intr(struct trapframe *tf)
 
 		error = pmc_process_interrupt(PMC_HR, pm, tf);
 		if (error != 0) {
-			PMCDBG3(MDP,INT,3,
-			    "cpu=%d ri=%d: error %d processing interrupt",
-			    cpu, i, error);
+			PMCDBG3(MDP, INT, 3,
+			    "cpu=%d ri=%d: error %d processing interrupt", cpu,
+			    i, error);
 			powerpc_stop_pmc(cpu, i, pm);
 		}
 
@@ -512,7 +510,8 @@ powerpc_pmc_intr(struct trapframe *tf)
 	if (retval == 0)
 		log(LOG_WARNING,
 		    "pmc_intr: couldn't find interrupting PMC on cpu %d - "
-		    "disabling PERF interrupts\n", cpu);
+		    "disabling PERF interrupts\n",
+		    cpu);
 
 	return (retval);
 }
@@ -523,13 +522,13 @@ pmc_md_initialize(void)
 	struct pmc_mdep *pmc_mdep;
 	int error;
 	uint16_t vers;
-	
+
 	/*
 	 * Allocate space for pointers to PMC HW descriptors and for
 	 * the MDEP structure used by MI code.
 	 */
-	powerpc_pcpu = malloc(sizeof(struct powerpc_cpu *) * pmc_cpu_max(), M_PMC,
-			   M_WAITOK|M_ZERO);
+	powerpc_pcpu = malloc(sizeof(struct powerpc_cpu *) * pmc_cpu_max(),
+	    M_PMC, M_WAITOK | M_ZERO);
 
 	/* Just one class */
 	pmc_mdep = pmc_mdep_alloc(1);
@@ -591,8 +590,7 @@ pmc_md_finalize(struct pmc_mdep *md)
 }
 
 int
-pmc_save_user_callchain(uintptr_t *cc, int maxsamples,
-    struct trapframe *tf)
+pmc_save_user_callchain(uintptr_t *cc, int maxsamples, struct trapframe *tf)
 {
 	uintptr_t *osp, *sp;
 	int frames = 0;

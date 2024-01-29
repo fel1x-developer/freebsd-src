@@ -44,8 +44,8 @@
 int
 main(int argc, char *argv[])
 {
-	int nflag;	/* if not set, output a trailing newline. */
-	int veclen;	/* number of writev arguments. */
+	int nflag;		/* if not set, output a trailing newline. */
+	int veclen;		/* number of writev arguments. */
 	struct iovec *iov, *vp; /* Elements to write, current element. */
 	char space[] = " ";
 	char newline[] = "\n";
@@ -77,8 +77,7 @@ main(int argc, char *argv[])
 		 */
 		if (argv[1] == NULL) {
 			/* is there room for a '\c' and is there one? */
-			if (len >= 2 &&
-			    argv[0][len - 2] == '\\' &&
+			if (len >= 2 && argv[0][len - 2] == '\\' &&
 			    argv[0][len - 1] == 'c') {
 				/* chop it and set the no-newline flag. */
 				len -= 2;

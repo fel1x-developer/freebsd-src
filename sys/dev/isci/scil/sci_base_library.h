@@ -66,11 +66,11 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <dev/isci/scil/sci_base_logger.h>
+#include <dev/isci/scil/sci_base_object.h>
+#include <dev/isci/scil/sci_controller_constants.h>
 #include <dev/isci/scil/sci_library.h>
 #include <dev/isci/scil/sci_pool.h>
-#include <dev/isci/scil/sci_base_object.h>
-#include <dev/isci/scil/sci_base_logger.h>
-#include <dev/isci/scil/sci_controller_constants.h>
 
 /**
  * @struct SCI_BASE_LIBRARY
@@ -78,26 +78,24 @@ extern "C" {
  * @brief This structure contains all of the objects common to all library
  *        sub-objects.
  */
-typedef struct SCI_BASE_LIBRARY
-{
-   /**
-    * This class derives directly from the base object class.  As a result,
-    * the field is named "parent" and is the first field contained in the
-    * structure.
-    */
-   SCI_BASE_OBJECT_T  parent;
+typedef struct SCI_BASE_LIBRARY {
+	/**
+	 * This class derives directly from the base object class.  As a result,
+	 * the field is named "parent" and is the first field contained in the
+	 * structure.
+	 */
+	SCI_BASE_OBJECT_T parent;
 
-   /**
-    * This field provides the logger object to be utilized by all objects
-    * contained inside of a library.
-    */
-   SCI_BASE_LOGGER_T  logger;
+	/**
+	 * This field provides the logger object to be utilized by all objects
+	 * contained inside of a library.
+	 */
+	SCI_BASE_LOGGER_T logger;
 
-   // Create a pool structure to manage free controller indices.
-   SCI_POOL_CREATE(controller_id_pool, U16, SCI_MAX_CONTROLLERS);
+	// Create a pool structure to manage free controller indices.
+	SCI_POOL_CREATE(controller_id_pool, U16, SCI_MAX_CONTROLLERS);
 
 } SCI_BASE_LIBRARY_T;
-
 
 /**
  * @brief This method will construct the base library object.
@@ -109,86 +107,66 @@ typedef struct SCI_BASE_LIBRARY
  *
  * @return none
  */
-void sci_base_library_construct(
-   SCI_BASE_LIBRARY_T * this_library,
-   U32                  max_controllers
-);
+void sci_base_library_construct(SCI_BASE_LIBRARY_T *this_library,
+    U32 max_controllers);
 
 /**
  * This macro provides common code for allocating a controller from a library.
  * It will ensure that we successfully allocate an available controller index
  * and return SCI_FAILURE_INSUFFICIENT_RESOURCES if unsuccessful.
  */
-#define SCI_BASE_LIBRARY_ALLOCATE_CONTROLLER( \
-   library, \
-   controller_ptr, \
-   rc \
-) \
-{ \
-   U16 index; \
-   *rc = SCI_SUCCESS; \
-   if (! sci_pool_empty((library)->parent.controller_id_pool)) \
-   { \
-      sci_pool_get((library)->parent.controller_id_pool, index); \
-      *controller_ptr = (SCI_CONTROLLER_HANDLE_T) \
-                        & (library)->controllers[index]; \
-   } \
-   else \
-      *rc = SCI_FAILURE_INSUFFICIENT_RESOURCES; \
-}
+#define SCI_BASE_LIBRARY_ALLOCATE_CONTROLLER(library, controller_ptr, rc)    \
+	{                                                                    \
+		U16 index;                                                   \
+		*rc = SCI_SUCCESS;                                           \
+		if (!sci_pool_empty((library)->parent.controller_id_pool)) { \
+			sci_pool_get((library)->parent.controller_id_pool,   \
+			    index);                                          \
+			*controller_ptr = (SCI_CONTROLLER_HANDLE_T) &        \
+			    (library)->controllers[index];                   \
+		} else                                                       \
+			*rc = SCI_FAILURE_INSUFFICIENT_RESOURCES;            \
+	}
 
 /**
  * This macro provides common code for freeing a controller to a library.
  * It calculates the index to the controller instance in the array by
  * determining the offset.
  */
-#define SCI_BASE_LIBRARY_FREE_CONTROLLER( \
-   library, \
-   controller, \
-   CONTROLLER_TYPE, \
-   rc \
-) \
-{ \
-   U16 index = (U16) \
-               ((((char *)(controller)) - ((char *)(library)->controllers))\
-                / sizeof(CONTROLLER_TYPE)); \
-   *rc = SCI_SUCCESS; \
-   if (  (index < SCI_MAX_CONTROLLERS) \
-      && (! sci_pool_full((library)->parent.controller_id_pool)) ) \
-   { \
-      sci_pool_put((library)->parent.controller_id_pool, index); \
-   } \
-   else \
-      *rc = SCI_FAILURE_CONTROLLER_NOT_FOUND; \
-}
-
-
+#define SCI_BASE_LIBRARY_FREE_CONTROLLER(library, controller, CONTROLLER_TYPE, \
+    rc)                                                                        \
+	{                                                                      \
+		U16 index = (U16)((((char *)(controller)) -                    \
+				      ((char *)(library)->controllers)) /      \
+		    sizeof(CONTROLLER_TYPE));                                  \
+		*rc = SCI_SUCCESS;                                             \
+		if ((index < SCI_MAX_CONTROLLERS) &&                           \
+		    (!sci_pool_full((library)->parent.controller_id_pool))) {  \
+			sci_pool_put((library)->parent.controller_id_pool,     \
+			    index);                                            \
+		} else                                                         \
+			*rc = SCI_FAILURE_CONTROLLER_NOT_FOUND;                \
+	}
 
 /**
  * This macro provides common code for constructing library. It
  * It initialize and fill the library's controller_id_pool.
  */
-#define SCI_BASE_LIBRARY_CONSTRUCT( \
-   library, \
-   base_library, \
-   max_controllers, \
-   CONTROLLER_TYPE, \
-   status \
-) \
-{ \
-   U32 controller_index; \
-   sci_base_object_construct(&(base_library)->parent, &(base_library)->logger); \
-   sci_pool_initialize((base_library)->controller_id_pool); \
-   for (controller_index = 0; controller_index < max_controller_count; controller_index++) \
-   { \
-      SCI_BASE_LIBRARY_FREE_CONTROLLER( \
-         library, \
-         &library->controllers[controller_index], \
-         CONTROLLER_TYPE, \
-         &status \
-      ); \
-   } \
-}
+#define SCI_BASE_LIBRARY_CONSTRUCT(library, base_library, max_controllers, \
+    CONTROLLER_TYPE, status)                                               \
+	{                                                                  \
+		U32 controller_index;                                      \
+		sci_base_object_construct(&(base_library)->parent,         \
+		    &(base_library)->logger);                              \
+		sci_pool_initialize((base_library)->controller_id_pool);   \
+		for (controller_index = 0;                                 \
+		     controller_index < max_controller_count;              \
+		     controller_index++) {                                 \
+			SCI_BASE_LIBRARY_FREE_CONTROLLER(library,          \
+			    &library->controllers[controller_index],       \
+			    CONTROLLER_TYPE, &status);                     \
+		}                                                          \
+	}
 
 #ifdef __cplusplus
 }

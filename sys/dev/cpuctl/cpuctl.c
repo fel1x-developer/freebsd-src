@@ -30,44 +30,45 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
+#include <sys/cpuctl.h>
 #include <sys/fcntl.h>
 #include <sys/ioccom.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/pmckern.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
 #include <sys/queue.h>
 #include <sys/sched.h>
-#include <sys/kernel.h>
+#include <sys/smp.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <sys/pcpu.h>
-#include <sys/smp.h>
-#include <sys/pmckern.h>
-#include <sys/cpuctl.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/pmap.h>
+#include <vm/vm_param.h>
 
 #include <machine/cpufunc.h>
 #include <machine/md_var.h>
 #include <machine/specialreg.h>
+
 #include <x86/ucode.h>
 
 static d_open_t cpuctl_open;
 static d_ioctl_t cpuctl_ioctl;
 
-#define	CPUCTL_VERSION 1
+#define CPUCTL_VERSION 1
 
 #ifdef CPUCTL_DEBUG
-# define	DPRINTF(format,...) printf(format, __VA_ARGS__);
+#define DPRINTF(format, ...) printf(format, __VA_ARGS__);
 #else
-# define	DPRINTF(...)
+#define DPRINTF(...)
 #endif
 
-#define	UCODE_SIZE_MAX	(4 * 1024 * 1024)
+#define UCODE_SIZE_MAX (4 * 1024 * 1024)
 
 static int cpuctl_do_msr(int cpu, cpuctl_msr_args_t *data, u_long cmd,
     struct thread *td);
@@ -78,20 +79,18 @@ static int cpuctl_do_cpuid_count(int cpu, cpuctl_cpuid_count_args_t *data,
 static int cpuctl_do_eval_cpu_features(int cpu, struct thread *td);
 static int cpuctl_do_update(int cpu, cpuctl_update_args_t *data,
     struct thread *td);
-static int update_intel(int cpu, cpuctl_update_args_t *args,
-    struct thread *td);
+static int update_intel(int cpu, cpuctl_update_args_t *args, struct thread *td);
 static int update_amd(int cpu, cpuctl_update_args_t *args, struct thread *td);
-static int update_via(int cpu, cpuctl_update_args_t *args,
-    struct thread *td);
+static int update_via(int cpu, cpuctl_update_args_t *args, struct thread *td);
 
 static struct cdev **cpuctl_devs;
 static MALLOC_DEFINE(M_CPUCTL, "cpuctl", "CPUCTL buffer");
 
 static struct cdevsw cpuctl_cdevsw = {
-        .d_version =    D_VERSION,
-        .d_open =       cpuctl_open,
-        .d_ioctl =      cpuctl_ioctl,
-        .d_name =       "cpuctl",
+	.d_version = D_VERSION,
+	.d_open = cpuctl_open,
+	.d_ioctl = cpuctl_ioctl,
+	.d_name = "cpuctl",
 };
 
 /*
@@ -132,7 +131,7 @@ set_cpu(int cpu, struct thread *td)
 	thread_unlock(td);
 	KASSERT(td->td_oncpu == cpu,
 	    ("[cpuctl,%d]: cannot bind to target cpu %d on cpu %d", __LINE__,
-	    cpu, td->td_oncpu));
+		cpu, td->td_oncpu));
 }
 
 static void
@@ -150,8 +149,8 @@ restore_cpu(int oldcpu, int is_bound, struct thread *td)
 }
 
 int
-cpuctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
-    int flags, struct thread *td)
+cpuctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
+    struct thread *td)
 {
 	int cpu, ret;
 
@@ -162,8 +161,8 @@ cpuctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data,
 	}
 	/* Require write flag for "write" requests. */
 	if ((cmd == CPUCTL_MSRCBIT || cmd == CPUCTL_MSRSBIT ||
-	    cmd == CPUCTL_UPDATE || cmd == CPUCTL_WRMSR ||
-	    cmd == CPUCTL_EVAL_CPU_FEATURES) &&
+		cmd == CPUCTL_UPDATE || cmd == CPUCTL_WRMSR ||
+		cmd == CPUCTL_EVAL_CPU_FEATURES) &&
 	    (flags & FWRITE) == 0)
 		return (EPERM);
 	switch (cmd) {
@@ -290,8 +289,8 @@ cpuctl_do_msr(int cpu, cpuctl_msr_args_t *data, u_long cmd, struct thread *td)
 			ret = wrmsr_safe(data->msr, reg & ~data->data);
 		critical_exit();
 	} else
-		panic("[cpuctl,%d]: unknown operation requested: %lu",
-		    __LINE__, cmd);
+		panic("[cpuctl,%d]: unknown operation requested: %lu", __LINE__,
+		    cmd);
 	restore_cpu(oldcpu, is_bound, td);
 	return (ret);
 }
@@ -321,10 +320,10 @@ cpuctl_do_update(int cpu, cpuctl_update_args_t *data, struct thread *td)
 	vendor[12] = '\0';
 	if (strncmp(vendor, INTEL_VENDOR_ID, sizeof(INTEL_VENDOR_ID)) == 0)
 		ret = update_intel(cpu, data, td);
-	else if(strncmp(vendor, AMD_VENDOR_ID, sizeof(AMD_VENDOR_ID)) == 0)
+	else if (strncmp(vendor, AMD_VENDOR_ID, sizeof(AMD_VENDOR_ID)) == 0)
 		ret = update_amd(cpu, data, td);
-	else if(strncmp(vendor, CENTAUR_VENDOR_ID, sizeof(CENTAUR_VENDOR_ID))
-	    == 0)
+	else if (strncmp(vendor, CENTAUR_VENDOR_ID,
+		     sizeof(CENTAUR_VENDOR_ID)) == 0)
 		ret = update_via(cpu, data, td);
 	else
 		ret = ENXIO;
@@ -572,19 +571,19 @@ cpuctl_modevent(module_t mod __unused, int type, void *data __unused)
 {
 	int cpu;
 
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		if (bootverbose)
 			printf("cpuctl: access to MSR registers/cpuid info.\n");
-		cpuctl_devs = malloc(sizeof(*cpuctl_devs) * (mp_maxid + 1), M_CPUCTL,
-		    M_WAITOK | M_ZERO);
-		CPU_FOREACH(cpu)
+		cpuctl_devs = malloc(sizeof(*cpuctl_devs) * (mp_maxid + 1),
+		    M_CPUCTL, M_WAITOK | M_ZERO);
+		CPU_FOREACH (cpu)
 			if (cpu_enabled(cpu))
 				cpuctl_devs[cpu] = make_dev(&cpuctl_cdevsw, cpu,
 				    UID_ROOT, GID_KMEM, 0640, "cpuctl%d", cpu);
 		break;
 	case MOD_UNLOAD:
-		CPU_FOREACH(cpu) {
+		CPU_FOREACH (cpu) {
 			if (cpuctl_devs[cpu] != NULL)
 				destroy_dev(cpuctl_devs[cpu]);
 		}
@@ -594,7 +593,7 @@ cpuctl_modevent(module_t mod __unused, int type, void *data __unused)
 		break;
 	default:
 		return (EOPNOTSUPP);
-        }
+	}
 	return (0);
 }
 

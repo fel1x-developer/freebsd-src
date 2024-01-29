@@ -6,7 +6,7 @@
 
 jmp_buf env;
 
-void	expand_domain_search(struct packet *packet);
+void expand_domain_search(struct packet *packet);
 
 void
 no_option_present()
@@ -16,7 +16,7 @@ no_option_present()
 	struct packet p;
 
 	option.data = NULL;
-	option.len  = 0;
+	option.len = 0;
 	p.options[DHO_DOMAIN_SEARCH] = option;
 
 	ret = setjmp(env);
@@ -35,11 +35,11 @@ one_domain_valid()
 	struct packet p;
 	struct option_data *option;
 
-	char *data     = "\007example\003org\0";
+	char *data = "\007example\003org\0";
 	char *expected = "example.org.";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 13;
+	option->len = 13;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -64,7 +64,7 @@ one_domain_truncated1()
 	char *data = "\007example\003org";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 12;
+	option->len = 12;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -88,7 +88,7 @@ one_domain_truncated2()
 	char *data = "\007ex";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 3;
+	option->len = 3;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -109,11 +109,11 @@ two_domains_valid()
 	struct packet p;
 	struct option_data *option;
 
-	char *data     = "\007example\003org\0\007example\003com\0";
+	char *data = "\007example\003org\0\007example\003com\0";
 	char *expected = "example.org. example.com.";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 26;
+	option->len = 26;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -138,7 +138,7 @@ two_domains_truncated1()
 	char *data = "\007example\003org\0\007example\003com";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 25;
+	option->len = 25;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -162,7 +162,7 @@ two_domains_truncated2()
 	char *data = "\007example\003org\0\007ex";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 16;
+	option->len = 16;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -183,11 +183,11 @@ two_domains_compressed()
 	struct packet p;
 	struct option_data *option;
 
-	char *data     = "\007example\003org\0\006foobar\xc0\x08";
+	char *data = "\007example\003org\0\006foobar\xc0\x08";
 	char *expected = "example.org. foobar.org.";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 22;
+	option->len = 22;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -212,7 +212,7 @@ two_domains_infloop()
 	char *data = "\007example\003org\0\006foobar\xc0\x0d";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 22;
+	option->len = 22;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -236,7 +236,7 @@ two_domains_forwardptr()
 	char *data = "\007example\003org\xc0\x0d\006foobar\0";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 22;
+	option->len = 22;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -260,7 +260,7 @@ two_domains_truncatedptr()
 	char *data = "\007example\003org\0\006foobar\xc0";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 21;
+	option->len = 21;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -287,7 +287,7 @@ multiple_domains_valid()
 	char *expected = "example.org. cl.foobar.com. fr.foobar.com.";
 
 	option = &p.options[DHO_DOMAIN_SEARCH];
-	option->len  = 33;
+	option->len = 33;
 	option->data = malloc(option->len);
 	memcpy(option->data, data, option->len);
 
@@ -302,8 +302,7 @@ multiple_domains_valid()
 	free(option->data);
 }
 
-static
-void
+static void
 parse_date_helper(const char *string, time_t timestamp)
 {
 	int ret = 0;

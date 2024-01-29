@@ -25,22 +25,23 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- * 
+ *
  * Matthew Jacob
  * Feral Software
  * mjacob@feral.com
  */
 
-#include <unistd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <sys/ioctl.h>
-#include <fcntl.h>
+
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_enc.h>
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "eltsub.h"
 
@@ -73,7 +74,7 @@ main(int a, char **v)
 		v++;
 	}
 	while (*++v) {
-			
+
 		fd = open(*v, O_RDONLY);
 		if (fd < 0) {
 			perror(*v);
@@ -82,27 +83,28 @@ main(int a, char **v)
 		if (verbose > 1) {
 			stri.bufsiz = sizeof(str);
 			stri.buf = &str[0];
-			if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t) &stri) == 0)
-				printf("%s: Enclosure Name: %s\n", *v, stri.buf);
+			if (ioctl(fd, ENCIOC_GETENCNAME, (caddr_t)&stri) == 0)
+				printf("%s: Enclosure Name: %s\n", *v,
+				    stri.buf);
 			stri.bufsiz = sizeof(str);
 			stri.buf = &str[0];
-			if (ioctl(fd, ENCIOC_GETENCID, (caddr_t) &stri) == 0)
+			if (ioctl(fd, ENCIOC_GETENCID, (caddr_t)&stri) == 0)
 				printf("%s: Enclosure ID: %s\n", *v, stri.buf);
 		}
-		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t) &nobj) < 0) {
+		if (ioctl(fd, ENCIOC_GETNELM, (caddr_t)&nobj) < 0) {
 			perror("ENCIOC_GETNELM");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
-		if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t) &estat) < 0) {
+		if (ioctl(fd, ENCIOC_GETENCSTAT, (caddr_t)&estat) < 0) {
 			perror("ENCIOC_GETENCSTAT");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
 		if ((verbose == 0 || quiet == 1) && estat == 0) {
 			if (quiet == 0)
 				fprintf(stdout, "%s: Enclosure OK\n", *v);
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
 		fprintf(stdout, "%s: Enclosure Status ", *v);
@@ -129,22 +131,22 @@ main(int a, char **v)
 			}
 		}
 		fprintf(stdout, ">\n");
-		objp = calloc(nobj, sizeof (encioc_element_t));
+		objp = calloc(nobj, sizeof(encioc_element_t));
 		if (objp == NULL) {
 			perror("calloc");
-			(void) close(fd);
+			(void)close(fd);
 			continue;
 		}
-                if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t) objp) < 0) {
-                        perror("ENCIOC_GETELMMAP");
-                        (void) close(fd);
-                        continue;
-                }
+		if (ioctl(fd, ENCIOC_GETELMMAP, (caddr_t)objp) < 0) {
+			perror("ENCIOC_GETELMMAP");
+			(void)close(fd);
+			continue;
+		}
 		for (i = 0; i < nobj; i++) {
 			ob.elm_idx = objp[i].elm_idx;
-			if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t) &ob) < 0) {
+			if (ioctl(fd, ENCIOC_GETELMSTAT, (caddr_t)&ob) < 0) {
 				perror("ENCIOC_GETELMSTAT");
-				(void) close(fd);
+				(void)close(fd);
 				break;
 			}
 			bzero(&objd, sizeof(objd));
@@ -153,12 +155,12 @@ main(int a, char **v)
 			objd.elm_desc_str = calloc(UINT16_MAX, sizeof(char));
 			if (objd.elm_desc_str == NULL) {
 				perror("calloc");
-				(void) close(fd);
+				(void)close(fd);
 				continue;
 			}
 			if (ioctl(fd, ENCIOC_GETELMDESC, (caddr_t)&objd) < 0) {
 				perror("ENCIOC_GETELMDESC");
-				(void) close(fd);
+				(void)close(fd);
 				break;
 			}
 			bzero(&objdn, sizeof(objdn));
@@ -167,7 +169,7 @@ main(int a, char **v)
 			objdn.elm_devnames = calloc(128, sizeof(char));
 			if (objdn.elm_devnames == NULL) {
 				perror("calloc");
-				(void) close(fd);
+				(void)close(fd);
 				break;
 			}
 			/*
@@ -189,7 +191,7 @@ main(int a, char **v)
 			free(objdn.elm_devnames);
 		}
 		free(objp);
-		(void) close(fd);
+		(void)close(fd);
 	}
 	return (errors);
 }

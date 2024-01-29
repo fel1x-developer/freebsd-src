@@ -27,6 +27,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,32 +35,30 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
+#include <machine/bus.h>
+
+#include <dev/etherswitch/arswitch/arswitch_reg.h>
+#include <dev/etherswitch/arswitch/arswitchreg.h>
+#include <dev/etherswitch/arswitch/arswitchvar.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/iicbus/iic.h>
+#include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
+#include <dev/mii/mii.h>
+#include <dev/mii/miivar.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_arp.h>
-#include <net/ethernet.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
 
-#include <machine/bus.h>
-#include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
-#include <dev/iicbus/iicbus.h>
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-
-#include <dev/etherswitch/etherswitch.h>
-
-#include <dev/etherswitch/arswitch/arswitchreg.h>
-#include <dev/etherswitch/arswitch/arswitchvar.h>
-#include <dev/etherswitch/arswitch/arswitch_reg.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 static inline void
 arswitch_split_setpage(device_t dev, uint32_t addr, uint16_t *phy,
@@ -106,23 +105,21 @@ arswitch_writereg16(device_t dev, int addr, int data)
 }
 
 void
-arswitch_writedbg(device_t dev, int phy, uint16_t dbg_addr,
-    uint16_t dbg_data)
+arswitch_writedbg(device_t dev, int phy, uint16_t dbg_addr, uint16_t dbg_data)
 {
-	(void) MDIO_WRITEREG(device_get_parent(dev), phy,
-	    MII_ATH_DBG_ADDR, dbg_addr);
-	(void) MDIO_WRITEREG(device_get_parent(dev), phy,
-	    MII_ATH_DBG_DATA, dbg_data);
+	(void)MDIO_WRITEREG(device_get_parent(dev), phy, MII_ATH_DBG_ADDR,
+	    dbg_addr);
+	(void)MDIO_WRITEREG(device_get_parent(dev), phy, MII_ATH_DBG_DATA,
+	    dbg_data);
 }
 
 void
-arswitch_writemmd(device_t dev, int phy, uint16_t dbg_addr,
-    uint16_t dbg_data)
+arswitch_writemmd(device_t dev, int phy, uint16_t dbg_addr, uint16_t dbg_data)
 {
-	(void) MDIO_WRITEREG(device_get_parent(dev), phy,
-	    MII_ATH_MMD_ADDR, dbg_addr);
-	(void) MDIO_WRITEREG(device_get_parent(dev), phy,
-	    MII_ATH_MMD_DATA, dbg_data);
+	(void)MDIO_WRITEREG(device_get_parent(dev), phy, MII_ATH_MMD_ADDR,
+	    dbg_addr);
+	(void)MDIO_WRITEREG(device_get_parent(dev), phy, MII_ATH_MMD_DATA,
+	    dbg_data);
 }
 
 static uint32_t
@@ -144,18 +141,14 @@ arswitch_reg_write32(device_t dev, int phy, int reg, uint32_t value)
 
 	sc = device_get_softc(dev);
 	lo = value & 0xffff;
-	hi = (uint16_t) (value >> 16);
+	hi = (uint16_t)(value >> 16);
 
 	if (sc->mii_lo_first) {
-		r = MDIO_WRITEREG(device_get_parent(dev),
-		    phy, reg, lo);
-		r |= MDIO_WRITEREG(device_get_parent(dev),
-		    phy, reg + 1, hi);
+		r = MDIO_WRITEREG(device_get_parent(dev), phy, reg, lo);
+		r |= MDIO_WRITEREG(device_get_parent(dev), phy, reg + 1, hi);
 	} else {
-		r = MDIO_WRITEREG(device_get_parent(dev),
-		    phy, reg + 1, hi);
-		r |= MDIO_WRITEREG(device_get_parent(dev),
-		    phy, reg, lo);
+		r = MDIO_WRITEREG(device_get_parent(dev), phy, reg + 1, hi);
+		r |= MDIO_WRITEREG(device_get_parent(dev), phy, reg, lo);
 	}
 
 	return r;

@@ -34,14 +34,14 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
-#include <sys/bus.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
@@ -51,36 +51,32 @@
 #include <dev/bhnd/cores/chipc/chipc.h>
 
 #include "bhnd_nvram_map.h"
-
+#include "bhnd_pmu_private.h"
 #include "bhnd_pmureg.h"
 #include "bhnd_pmuvar.h"
 
-#include "bhnd_pmu_private.h"
-
 /*
  * Broadcom PMU driver.
- * 
+ *
  * On modern BHND chipsets, the PMU, GCI, and SRENG (Save/Restore Engine?)
  * register blocks are found within a dedicated PMU core (attached via
  * the AHB 'always on bus').
- * 
+ *
  * On earlier chipsets, these register blocks are found at the same
  * offsets within the ChipCommon core.
  */
 
-static int	bhnd_pmu_sysctl_bus_freq(SYSCTL_HANDLER_ARGS);
-static int	bhnd_pmu_sysctl_cpu_freq(SYSCTL_HANDLER_ARGS);
-static int	bhnd_pmu_sysctl_mem_freq(SYSCTL_HANDLER_ARGS);
+static int bhnd_pmu_sysctl_bus_freq(SYSCTL_HANDLER_ARGS);
+static int bhnd_pmu_sysctl_cpu_freq(SYSCTL_HANDLER_ARGS);
+static int bhnd_pmu_sysctl_mem_freq(SYSCTL_HANDLER_ARGS);
 
-static uint32_t	bhnd_pmu_read_4(bus_size_t reg, void *ctx);
-static void	bhnd_pmu_write_4(bus_size_t reg, uint32_t val, void *ctx);
-static uint32_t	bhnd_pmu_read_chipst(void *ctx);
+static uint32_t bhnd_pmu_read_4(bus_size_t reg, void *ctx);
+static void bhnd_pmu_write_4(bus_size_t reg, uint32_t val, void *ctx);
+static uint32_t bhnd_pmu_read_chipst(void *ctx);
 
-static const struct bhnd_pmu_io bhnd_pmu_res_io = {
-	.rd4		= bhnd_pmu_read_4,
-	.wr4		= bhnd_pmu_write_4,
-	.rd_chipst	= bhnd_pmu_read_chipst
-};
+static const struct bhnd_pmu_io bhnd_pmu_res_io = { .rd4 = bhnd_pmu_read_4,
+	.wr4 = bhnd_pmu_write_4,
+	.rd_chipst = bhnd_pmu_read_chipst };
 
 /**
  * Default bhnd_pmu driver implementation of DEVICE_PROBE().
@@ -93,7 +89,7 @@ bhnd_pmu_probe(device_t dev)
 
 /**
  * Default bhnd_pmu driver implementation of DEVICE_ATTACH().
- * 
+ *
  * @param dev PMU device.
  * @param res The PMU device registers. The driver will maintain a borrowed
  * reference to this resource for the lifetime of the device.
@@ -101,12 +97,12 @@ bhnd_pmu_probe(device_t dev)
 int
 bhnd_pmu_attach(device_t dev, struct bhnd_resource *res)
 {
-	struct bhnd_pmu_softc	*sc;
-	struct sysctl_ctx_list	*ctx;
-	struct sysctl_oid	*tree;
-	devclass_t		 bhnd_class;
-	device_t		 core, bus;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	struct sysctl_ctx_list *ctx;
+	struct sysctl_oid *tree;
+	devclass_t bhnd_class;
+	device_t core, bus;
+	int error;
 
 	sc = device_get_softc(dev);
 	sc->dev = dev;
@@ -143,7 +139,7 @@ bhnd_pmu_attach(device_t dev, struct bhnd_resource *res)
 	    sc);
 	if (error)
 		return (error);
-	sc->io = sc->query.io; 
+	sc->io = sc->query.io;
 	sc->io_ctx = sc->query.io_ctx;
 
 	BPMU_LOCK_INIT(sc);
@@ -185,16 +181,16 @@ bhnd_pmu_attach(device_t dev, struct bhnd_resource *res)
 	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "bus_freq", CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "bus_freq",
+	    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
 	    bhnd_pmu_sysctl_bus_freq, "IU", "Bus clock frequency");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "cpu_freq", CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "cpu_freq",
+	    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
 	    bhnd_pmu_sysctl_cpu_freq, "IU", "CPU clock frequency");
 
-	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
-	    "mem_freq", CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "mem_freq",
+	    CTLTYPE_UINT | CTLFLAG_RD | CTLFLAG_NEEDGIANT, sc, 0,
 	    bhnd_pmu_sysctl_mem_freq, "IU", "Memory clock frequency");
 
 	return (0);
@@ -220,8 +216,8 @@ failed:
 int
 bhnd_pmu_detach(device_t dev)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -251,8 +247,8 @@ bhnd_pmu_suspend(device_t dev)
 int
 bhnd_pmu_resume(device_t dev)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -268,8 +264,8 @@ bhnd_pmu_resume(device_t dev)
 static int
 bhnd_pmu_sysctl_bus_freq(SYSCTL_HANDLER_ARGS)
 {
-	struct bhnd_pmu_softc	*sc;
-	uint32_t		 freq;
+	struct bhnd_pmu_softc *sc;
+	uint32_t freq;
 
 	sc = arg1;
 
@@ -283,8 +279,8 @@ bhnd_pmu_sysctl_bus_freq(SYSCTL_HANDLER_ARGS)
 static int
 bhnd_pmu_sysctl_cpu_freq(SYSCTL_HANDLER_ARGS)
 {
-	struct bhnd_pmu_softc	*sc;
-	uint32_t		 freq;
+	struct bhnd_pmu_softc *sc;
+	uint32_t freq;
 
 	sc = arg1;
 
@@ -298,8 +294,8 @@ bhnd_pmu_sysctl_cpu_freq(SYSCTL_HANDLER_ARGS)
 static int
 bhnd_pmu_sysctl_mem_freq(SYSCTL_HANDLER_ARGS)
 {
-	struct bhnd_pmu_softc	*sc;
-	uint32_t		 freq;
+	struct bhnd_pmu_softc *sc;
+	uint32_t freq;
 
 	sc = arg1;
 
@@ -413,8 +409,8 @@ static int
 bhnd_pmu_set_voltage_raw_method(device_t dev, bhnd_pmu_regulator regulator,
     uint32_t value)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -441,8 +437,8 @@ bhnd_pmu_set_voltage_raw_method(device_t dev, bhnd_pmu_regulator regulator,
 static int
 bhnd_pmu_enable_regulator_method(device_t dev, bhnd_pmu_regulator regulator)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -465,8 +461,8 @@ bhnd_pmu_enable_regulator_method(device_t dev, bhnd_pmu_regulator regulator)
 static int
 bhnd_pmu_disable_regulator_method(device_t dev, bhnd_pmu_regulator regulator)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -490,9 +486,9 @@ static int
 bhnd_pmu_get_clock_latency_method(device_t dev, bhnd_clock clock,
     u_int *latency)
 {
-	struct bhnd_pmu_softc	*sc;
-	u_int			 pwrup_delay;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	u_int pwrup_delay;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -519,7 +515,7 @@ bhnd_pmu_get_clock_latency_method(device_t dev, bhnd_clock clock,
 static int
 bhnd_pmu_get_clock_freq_method(device_t dev, bhnd_clock clock, uint32_t *freq)
 {
-	struct bhnd_pmu_softc	*sc = device_get_softc(dev);
+	struct bhnd_pmu_softc *sc = device_get_softc(dev);
 
 	BPMU_LOCK(sc);
 	switch (clock) {
@@ -551,8 +547,8 @@ bhnd_pmu_get_clock_freq_method(device_t dev, bhnd_clock clock, uint32_t *freq)
 static int
 bhnd_pmu_request_spuravoid_method(device_t dev, bhnd_pmu_spuravoid spuravoid)
 {
-	struct bhnd_pmu_softc	*sc;
-	int			 error;
+	struct bhnd_pmu_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -598,30 +594,35 @@ bhnd_pmu_read_chipst(void *ctx)
 
 static device_method_t bhnd_pmu_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,				bhnd_pmu_probe),
-	DEVMETHOD(device_detach,			bhnd_pmu_detach),
-	DEVMETHOD(device_suspend,			bhnd_pmu_suspend),
-	DEVMETHOD(device_resume,			bhnd_pmu_resume),
+	DEVMETHOD(device_probe, bhnd_pmu_probe),
+	DEVMETHOD(device_detach, bhnd_pmu_detach),
+	DEVMETHOD(device_suspend, bhnd_pmu_suspend),
+	DEVMETHOD(device_resume, bhnd_pmu_resume),
 
 	/* BHND PMU interface */
-	DEVMETHOD(bhnd_pmu_read_chipctrl,		bhnd_pmu_read_chipctrl_method),
-	DEVMETHOD(bhnd_pmu_write_chipctrl,		bhnd_pmu_write_chipctrl_method),
-	DEVMETHOD(bhnd_pmu_read_regctrl,		bhnd_pmu_read_regctrl_method),
-	DEVMETHOD(bhnd_pmu_write_regctrl,		bhnd_pmu_write_regctrl_method),
-	DEVMETHOD(bhnd_pmu_read_pllctrl,		bhnd_pmu_read_pllctrl_method),
-	DEVMETHOD(bhnd_pmu_write_pllctrl,		bhnd_pmu_write_pllctrl_method),
-	DEVMETHOD(bhnd_pmu_set_voltage_raw,		bhnd_pmu_set_voltage_raw_method),
-	DEVMETHOD(bhnd_pmu_enable_regulator,		bhnd_pmu_enable_regulator_method),
-	DEVMETHOD(bhnd_pmu_disable_regulator,		bhnd_pmu_disable_regulator_method),
+	DEVMETHOD(bhnd_pmu_read_chipctrl, bhnd_pmu_read_chipctrl_method),
+	DEVMETHOD(bhnd_pmu_write_chipctrl, bhnd_pmu_write_chipctrl_method),
+	DEVMETHOD(bhnd_pmu_read_regctrl, bhnd_pmu_read_regctrl_method),
+	DEVMETHOD(bhnd_pmu_write_regctrl, bhnd_pmu_write_regctrl_method),
+	DEVMETHOD(bhnd_pmu_read_pllctrl, bhnd_pmu_read_pllctrl_method),
+	DEVMETHOD(bhnd_pmu_write_pllctrl, bhnd_pmu_write_pllctrl_method),
+	DEVMETHOD(bhnd_pmu_set_voltage_raw, bhnd_pmu_set_voltage_raw_method),
+	DEVMETHOD(bhnd_pmu_enable_regulator, bhnd_pmu_enable_regulator_method),
+	DEVMETHOD(bhnd_pmu_disable_regulator,
+	    bhnd_pmu_disable_regulator_method),
 
-	DEVMETHOD(bhnd_pmu_get_clock_latency,		bhnd_pmu_get_clock_latency_method),
-	DEVMETHOD(bhnd_pmu_get_clock_freq,		bhnd_pmu_get_clock_freq_method),
+	DEVMETHOD(bhnd_pmu_get_clock_latency,
+	    bhnd_pmu_get_clock_latency_method),
+	DEVMETHOD(bhnd_pmu_get_clock_freq, bhnd_pmu_get_clock_freq_method),
 
-	DEVMETHOD(bhnd_pmu_get_max_transition_latency,	bhnd_pmu_get_max_transition_latency_method),
-	DEVMETHOD(bhnd_pmu_request_spuravoid,		bhnd_pmu_request_spuravoid_method),
+	DEVMETHOD(bhnd_pmu_get_max_transition_latency,
+	    bhnd_pmu_get_max_transition_latency_method),
+	DEVMETHOD(bhnd_pmu_request_spuravoid,
+	    bhnd_pmu_request_spuravoid_method),
 
 	DEVMETHOD_END
 };
 
-DEFINE_CLASS_0(bhnd_pmu, bhnd_pmu_driver, bhnd_pmu_methods, sizeof(struct bhnd_pmu_softc));
+DEFINE_CLASS_0(bhnd_pmu, bhnd_pmu_driver, bhnd_pmu_methods,
+    sizeof(struct bhnd_pmu_softc));
 MODULE_VERSION(bhnd_pmu, 1);

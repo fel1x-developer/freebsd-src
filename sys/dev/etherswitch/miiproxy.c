@@ -27,24 +27,23 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_media.h>
 
 #include <dev/etherswitch/miiproxy.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
 
+#include <net/if.h>
+#include <net/if_media.h>
+
 #include "mdio_if.h"
 #include "miibus_if.h"
-
 
 MALLOC_DECLARE(M_MIIPROXY);
 MALLOC_DEFINE(M_MIIPROXY, "miiproxy", "miiproxy data structures");
@@ -53,13 +52,12 @@ driver_t miiproxy_driver;
 driver_t mdioproxy_driver;
 
 struct miiproxy_softc {
-	device_t	parent;
-	device_t	proxy;
-	device_t	mdio;
+	device_t parent;
+	device_t proxy;
+	device_t mdio;
 };
 
-struct mdioproxy_softc {
-};
+struct mdioproxy_softc { };
 
 /*
  * The rendezvous data structures and functions allow two device endpoints to
@@ -70,27 +68,24 @@ struct mdioproxy_softc {
  */
 struct rendezvous_entry;
 
-enum rendezvous_op {
-	RENDEZVOUS_ATTACH,
-	RENDEZVOUS_DETACH
-};
+enum rendezvous_op { RENDEZVOUS_ATTACH, RENDEZVOUS_DETACH };
 
-typedef int (*rendezvous_callback_t)(enum rendezvous_op,
-    struct rendezvous_entry *);
+typedef int (
+    *rendezvous_callback_t)(enum rendezvous_op, struct rendezvous_entry *);
 
-static SLIST_HEAD(rendezvoushead, rendezvous_entry) rendezvoushead =
-    SLIST_HEAD_INITIALIZER(rendezvoushead);
+static SLIST_HEAD(rendezvoushead,
+    rendezvous_entry) rendezvoushead = SLIST_HEAD_INITIALIZER(rendezvoushead);
 
 struct rendezvous_endpoint {
-	device_t		device;
-	const char		*name;
-	rendezvous_callback_t	callback;
+	device_t device;
+	const char *name;
+	rendezvous_callback_t callback;
 };
 
 struct rendezvous_entry {
-	SLIST_ENTRY(rendezvous_entry)	entries;
-	struct rendezvous_endpoint	proxy;
-	struct rendezvous_endpoint	target;
+	SLIST_ENTRY(rendezvous_entry) entries;
+	struct rendezvous_endpoint proxy;
+	struct rendezvous_endpoint target;
 };
 
 /*
@@ -129,19 +124,19 @@ rendezvous_register_proxy(device_t dev, const char *name,
 	struct rendezvous_entry *e;
 
 	KASSERT(callback != NULL, ("callback must be set"));
-	SLIST_FOREACH(e, &rendezvoushead, entries) {
+	SLIST_FOREACH (e, &rendezvoushead, entries) {
 		if (strcmp(name, e->target.name) == 0) {
 			/* the target is already attached */
 			e->proxy.name = device_get_nameunit(dev);
-		    	e->proxy.device = dev;
-		    	e->proxy.callback = callback;
+			e->proxy.device = dev;
+			e->proxy.callback = callback;
 			return (rendezvous_attach(e, &e->proxy));
 		}
 	}
 	e = malloc(sizeof(*e), M_MIIPROXY, M_WAITOK | M_ZERO);
 	e->proxy.name = device_get_nameunit(dev);
-    	e->proxy.device = dev;
-    	e->proxy.callback = callback;
+	e->proxy.device = dev;
+	e->proxy.callback = callback;
 	e->target.name = name;
 	SLIST_INSERT_HEAD(&rendezvoushead, e, entries);
 	return (ENXIO);
@@ -159,7 +154,7 @@ rendezvous_register_target(device_t dev, rendezvous_callback_t callback)
 
 	KASSERT(callback != NULL, ("callback must be set"));
 	name = device_get_nameunit(dev);
-	SLIST_FOREACH(e, &rendezvoushead, entries) {
+	SLIST_FOREACH (e, &rendezvoushead, entries) {
 		if (strcmp(name, e->target.name) == 0) {
 			e->target.device = dev;
 			e->target.callback = callback;
@@ -168,7 +163,7 @@ rendezvous_register_target(device_t dev, rendezvous_callback_t callback)
 	}
 	e = malloc(sizeof(*e), M_MIIPROXY, M_WAITOK | M_ZERO);
 	e->target.name = name;
-    	e->target.device = dev;
+	e->target.device = dev;
 	e->target.callback = callback;
 	SLIST_INSERT_HEAD(&rendezvoushead, e, entries);
 	return (ENXIO);
@@ -183,10 +178,11 @@ rendezvous_unregister_proxy(device_t dev)
 	struct rendezvous_entry *e;
 	int error = 0;
 
-	SLIST_FOREACH(e, &rendezvoushead, entries) {
+	SLIST_FOREACH (e, &rendezvoushead, entries) {
 		if (e->proxy.device == dev) {
 			if (e->target.device == NULL) {
-				SLIST_REMOVE(&rendezvoushead, e, rendezvous_entry, entries);
+				SLIST_REMOVE(&rendezvoushead, e,
+				    rendezvous_entry, entries);
 				free(e, M_MIIPROXY);
 				return (0);
 			} else {
@@ -210,10 +206,11 @@ rendezvous_unregister_target(device_t dev)
 	struct rendezvous_entry *e;
 	int error = 0;
 
-	SLIST_FOREACH(e, &rendezvoushead, entries) {
+	SLIST_FOREACH (e, &rendezvoushead, entries) {
 		if (e->target.device == dev) {
 			if (e->proxy.device == NULL) {
-				SLIST_REMOVE(&rendezvoushead, e, rendezvous_entry, entries);
+				SLIST_REMOVE(&rendezvoushead, e,
+				    rendezvous_entry, entries);
 				free(e, M_MIIPROXY);
 				return (0);
 			} else {
@@ -234,7 +231,8 @@ rendezvous_unregister_target(device_t dev)
  */
 
 static int
-miiproxy_rendezvous_callback(enum rendezvous_op op, struct rendezvous_entry *rendezvous)
+miiproxy_rendezvous_callback(enum rendezvous_op op,
+    struct rendezvous_entry *rendezvous)
 {
 	struct miiproxy_softc *sc = device_get_softc(rendezvous->proxy.device);
 
@@ -322,7 +320,8 @@ miiproxy_mediainit(device_t dev)
  * Functions for the MDIO target device driver.
  */
 static int
-mdioproxy_rendezvous_callback(enum rendezvous_op op, struct rendezvous_entry *rendezvous)
+mdioproxy_rendezvous_callback(enum rendezvous_op op,
+    struct rendezvous_entry *rendezvous)
 {
 	return (0);
 }
@@ -368,15 +367,16 @@ device_t
 mii_attach_proxy(device_t dev)
 {
 	struct miiproxy_softc *sc;
-	int		error;
-	const char	*name;
-	device_t	miiproxy;
+	int error;
+	const char *name;
+	device_t miiproxy;
 
-	if (resource_string_value(device_get_name(dev),
-	    device_get_unit(dev), "mdio", &name) != 0) {
-	    	if (bootverbose)
+	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
+		"mdio", &name) != 0) {
+		if (bootverbose)
 			printf("mii_attach_proxy: not attaching, no mdio"
-			    " device hint for %s\n", device_get_nameunit(dev));
+			       " device hint for %s\n",
+			    device_get_nameunit(dev));
 		return (NULL);
 	}
 
@@ -389,38 +389,40 @@ mii_attach_proxy(device_t dev)
 	sc = device_get_softc(miiproxy);
 	sc->parent = dev;
 	sc->proxy = miiproxy;
-	if (rendezvous_register_proxy(miiproxy, name, miiproxy_rendezvous_callback) != 0) {
+	if (rendezvous_register_proxy(miiproxy, name,
+		miiproxy_rendezvous_callback) != 0) {
 		device_printf(dev, "can't attach proxy\n");
 		return (NULL);
 	}
-	device_printf(miiproxy, "attached to target %s\n", device_get_nameunit(sc->mdio));
+	device_printf(miiproxy, "attached to target %s\n",
+	    device_get_nameunit(sc->mdio));
 	return (miiproxy);
 }
 
 static device_method_t miiproxy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_probe,		miiproxy_probe),
-	DEVMETHOD(device_attach,	miiproxy_attach),
-	DEVMETHOD(device_detach,	miiproxy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_probe, miiproxy_probe),
+	DEVMETHOD(device_attach, miiproxy_attach),
+	DEVMETHOD(device_detach, miiproxy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* MII interface */
-	DEVMETHOD(miibus_readreg,	miiproxy_readreg),
-	DEVMETHOD(miibus_writereg,	miiproxy_writereg),
-	DEVMETHOD(miibus_statchg,	miiproxy_statchg),
-	DEVMETHOD(miibus_linkchg,	miiproxy_linkchg),
-	DEVMETHOD(miibus_mediainit,	miiproxy_mediainit),
+	DEVMETHOD(miibus_readreg, miiproxy_readreg),
+	DEVMETHOD(miibus_writereg, miiproxy_writereg),
+	DEVMETHOD(miibus_statchg, miiproxy_statchg),
+	DEVMETHOD(miibus_linkchg, miiproxy_linkchg),
+	DEVMETHOD(miibus_mediainit, miiproxy_mediainit),
 
 	DEVMETHOD_END
 };
 
 static device_method_t mdioproxy_methods[] = {
 	/* device interface */
-	DEVMETHOD(device_identify,	mdioproxy_identify),
-	DEVMETHOD(device_probe,		mdioproxy_probe),
-	DEVMETHOD(device_attach,	mdioproxy_attach),
-	DEVMETHOD(device_detach,	mdioproxy_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
+	DEVMETHOD(device_identify, mdioproxy_identify),
+	DEVMETHOD(device_probe, mdioproxy_probe),
+	DEVMETHOD(device_attach, mdioproxy_attach),
+	DEVMETHOD(device_detach, mdioproxy_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	DEVMETHOD_END
 };

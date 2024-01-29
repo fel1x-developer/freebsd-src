@@ -27,11 +27,11 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 ATF_TC_WITHOUT_HEAD(getentropy_count);
 ATF_TC_BODY(getentropy_count, tc)

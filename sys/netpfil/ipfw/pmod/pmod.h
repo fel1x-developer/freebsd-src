@@ -25,8 +25,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef	_IP_FW_PMOD_H_
-#define	_IP_FW_PMOD_H_
+#ifndef _IP_FW_PMOD_H_
+#define _IP_FW_PMOD_H_
 
 int tcpmod_init(struct ip_fw_chain *ch, int first);
 void tcpmod_uninit(struct ip_fw_chain *ch, int last);

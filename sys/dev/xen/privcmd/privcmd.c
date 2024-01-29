@@ -26,39 +26,39 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/uio.h>
+#include <sys/bitset.h>
 #include <sys/bus.h>
-#include <sys/malloc.h>
-#include <sys/kernel.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/rwlock.h>
-#include <sys/selinfo.h>
-#include <sys/poll.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
 #include <sys/ioccom.h>
-#include <sys/rman.h>
-#include <sys/tree.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/poll.h>
 #include <sys/proc.h>
-#include <sys/bitset.h>
+#include <sys/rman.h>
+#include <sys/rwlock.h>
+#include <sys/selinfo.h>
+#include <sys/tree.h>
+#include <sys/uio.h>
 
 #include <vm/vm.h>
-#include <vm/vm_param.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/vm_page.h>
 #include <vm/vm_map.h>
 #include <vm/vm_object.h>
+#include <vm/vm_page.h>
 #include <vm/vm_pager.h>
+#include <vm/vm_param.h>
 
 #include <machine/md_var.h>
 
-#include <xen/xen-os.h>
+#include <xen/error.h>
 #include <xen/hypervisor.h>
 #include <xen/privcmd.h>
-#include <xen/error.h>
+#include <xen/xen-os.h>
 
 MALLOC_DEFINE(M_PRIVCMD, "privcmd_dev", "Xen privcmd user-space device");
 
@@ -71,12 +71,12 @@ struct privcmd_map {
 	int pseudo_phys_res_id;
 	vm_paddr_t phys_base_addr;
 	boolean_t mapped;
-	BITSET_DEFINE_VAR() *err;
+	BITSET_DEFINE_VAR() * err;
 };
 
-static d_ioctl_t     privcmd_ioctl;
-static d_open_t      privcmd_open;
-static d_mmap_single_t	privcmd_mmap_single;
+static d_ioctl_t privcmd_ioctl;
+static d_open_t privcmd_open;
+static d_mmap_single_t privcmd_mmap_single;
 
 static struct cdevsw privcmd_devsw = {
 	.d_version = D_VERSION,
@@ -89,13 +89,13 @@ static struct cdevsw privcmd_devsw = {
 static int privcmd_pg_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
     vm_ooffset_t foff, struct ucred *cred, u_short *color);
 static void privcmd_pg_dtor(void *handle);
-static int privcmd_pg_fault(vm_object_t object, vm_ooffset_t offset,
-    int prot, vm_page_t *mres);
+static int privcmd_pg_fault(vm_object_t object, vm_ooffset_t offset, int prot,
+    vm_page_t *mres);
 
 static struct cdev_pager_ops privcmd_pg_ops = {
 	.cdev_pg_fault = privcmd_pg_fault,
-	.cdev_pg_ctor =	privcmd_pg_ctor,
-	.cdev_pg_dtor =	privcmd_pg_dtor,
+	.cdev_pg_ctor = privcmd_pg_ctor,
+	.cdev_pg_dtor = privcmd_pg_dtor,
 };
 
 struct per_user_data {
@@ -128,7 +128,7 @@ privcmd_pg_dtor(void *handle)
 	 */
 	if (map->mapped == true) {
 		VM_OBJECT_WLOCK(map->mem);
-retry:
+	retry:
 		for (i = 0; i < map->size; i++) {
 			m = vm_page_lookup(map->mem, i);
 			if (m == NULL)
@@ -154,8 +154,8 @@ retry:
 }
 
 static int
-privcmd_pg_fault(vm_object_t object, vm_ooffset_t offset,
-    int prot, vm_page_t *mres)
+privcmd_pg_fault(vm_object_t object, vm_ooffset_t offset, int prot,
+    vm_page_t *mres)
 {
 	struct privcmd_map *map = object->handle;
 	vm_pindex_t pidx;
@@ -257,8 +257,8 @@ setup_virtual_area(struct thread *td, unsigned long addr, unsigned long num)
 }
 
 static int
-privcmd_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg,
-	      int mode, struct thread *td)
+privcmd_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg, int mode,
+    struct thread *td)
 {
 	int error;
 	unsigned int i;
@@ -391,7 +391,7 @@ privcmd_ioctl(struct cdev *dev, unsigned long cmd, caddr_t arg,
 
 		umap->mapped = true;
 
-mmap_out:
+	mmap_out:
 		free(idxs, M_PRIVCMD);
 		free(gpfns, M_PRIVCMD);
 		free(errs, M_PRIVCMD);
@@ -505,7 +505,6 @@ mmap_out:
 		free(bufs, M_PRIVCMD);
 		free(hbufs, M_PRIVCMD);
 
-
 		break;
 	}
 	case IOCTL_PRIVCMD_RESTRICT: {
@@ -590,13 +589,12 @@ privcmd_attach(device_t dev)
 }
 
 /*-------------------- Private Device Attachment Data  -----------------------*/
-static device_method_t privcmd_methods[] = {
-	DEVMETHOD(device_identify,	privcmd_identify),
-	DEVMETHOD(device_probe,		privcmd_probe),
-	DEVMETHOD(device_attach,	privcmd_attach),
+static device_method_t privcmd_methods[] = { DEVMETHOD(device_identify,
+						 privcmd_identify),
+	DEVMETHOD(device_probe, privcmd_probe),
+	DEVMETHOD(device_attach, privcmd_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t privcmd_driver = {
 	"privcmd",

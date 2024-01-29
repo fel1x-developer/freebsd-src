@@ -50,14 +50,15 @@
  *	<num>	print message number <num>
  */
 
-#define V7		/* will look for TERM in the environment */
-#define OBJECT		/* will object to messages without Subjects */
-/* #define REJECT */	/* will reject messages without Subjects
-			   (OBJECT must be defined also) */
-/* #define UNBUFFERED *//* use unbuffered output */
+#define V7		 /* will look for TERM in the environment */
+#define OBJECT		 /* will object to messages without Subjects */
+/* #define REJECT */	 /* will reject messages without Subjects
+			    (OBJECT must be defined also) */
+/* #define UNBUFFERED */ /* use unbuffered output */
 
 #include <sys/param.h>
 #include <sys/stat.h>
+
 #include <ctype.h>
 #include <dirent.h>
 #include <err.h>
@@ -66,93 +67,94 @@
 #include <locale.h>
 #include <pwd.h>
 #include <setjmp.h>
-#include <termcap.h>
-#include <termios.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termcap.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
+
 #include "pathnames.h"
 
-#define	CMODE	0644		/* bounds file creation	mode */
-#define NO	0
-#define YES	1
-#define SUPERUSER	0	/* superuser uid */
-#define DAEMON		1	/* daemon uid */
-#define NLINES	24		/* default number of lines/crt screen */
-#define NDAYS	21		/* default keep time for messages */
-#define DAYS	*24*60*60	/* seconds/day */
-#define MSGSRC	".msgsrc"	/* user's rc file */
-#define BOUNDS	"bounds"	/* message bounds file */
-#define NEXT	"Next message? [yq]"
-#define MORE	"More? [ynq]"
-#define NOMORE	"(No more) [q] ?"
+#define CMODE 0644 /* bounds file creation	mode */
+#define NO 0
+#define YES 1
+#define SUPERUSER 0	   /* superuser uid */
+#define DAEMON 1	   /* daemon uid */
+#define NLINES 24	   /* default number of lines/crt screen */
+#define NDAYS 21	   /* default keep time for messages */
+#define DAYS *24 * 60 * 60 /* seconds/day */
+#define MSGSRC ".msgsrc"   /* user's rc file */
+#define BOUNDS "bounds"	   /* message bounds file */
+#define NEXT "Next message? [yq]"
+#define MORE "More? [ynq]"
+#define NOMORE "(No more) [q] ?"
 
-typedef	char	bool;
+typedef char bool;
 
-static FILE	*msgsrc;
-static FILE	*newmsg;
+static FILE *msgsrc;
+static FILE *newmsg;
 static const char *sep = "-";
-static char	inbuf[BUFSIZ];
-static char	fname[MAXPATHLEN];
-static char	cmdbuf[MAXPATHLEN + MAXPATHLEN];
-static char	subj[128];
-static char	from[128];
-static char	date[128];
-static char	*ptr;
-static char	*in;
-static bool	local;
-static bool	ruptible;
-static bool	totty;
-static bool	seenfrom;
-static bool	seensubj;
-static bool	blankline;
-static bool	printing = NO;
-static bool	mailing = NO;
-static bool	quitit = NO;
-static bool	sending = NO;
-static bool	intrpflg = NO;
-static uid_t	uid;
-static int	msg;
-static int	prevmsg;
-static int	lct;
-static int	nlines;
-static int	Lpp = 0;
-static time_t	t;
-static time_t	keep;
+static char inbuf[BUFSIZ];
+static char fname[MAXPATHLEN];
+static char cmdbuf[MAXPATHLEN + MAXPATHLEN];
+static char subj[128];
+static char from[128];
+static char date[128];
+static char *ptr;
+static char *in;
+static bool local;
+static bool ruptible;
+static bool totty;
+static bool seenfrom;
+static bool seensubj;
+static bool blankline;
+static bool printing = NO;
+static bool mailing = NO;
+static bool quitit = NO;
+static bool sending = NO;
+static bool intrpflg = NO;
+static uid_t uid;
+static int msg;
+static int prevmsg;
+static int lct;
+static int nlines;
+static int Lpp = 0;
+static time_t t;
+static time_t keep;
 
 /* option initialization */
-static bool	hdrs = NO;
-static bool	qopt = NO;
-static bool	hush = NO;
-static bool	send_msg = NO;
-static bool	locomode = NO;
-static bool	use_pager = NO;
-static bool	clean = NO;
-static bool	lastcmd = NO;
-static jmp_buf	tstpbuf;
+static bool hdrs = NO;
+static bool qopt = NO;
+static bool hush = NO;
+static bool send_msg = NO;
+static bool locomode = NO;
+static bool use_pager = NO;
+static bool clean = NO;
+static bool lastcmd = NO;
+static jmp_buf tstpbuf;
 
-static void	ask(const char *);
-static void	gfrsub(FILE *);
-static int	linecnt(FILE *);
-static int	next(char *);
-static char	*nxtfld(char *);
-static void	onsusp(int);
-static void	onintr(int);
-static void	prmesg(int);
-static void	usage(void);
+static void ask(const char *);
+static void gfrsub(FILE *);
+static int linecnt(FILE *);
+static int next(char *);
+static char *nxtfld(char *);
+static void onsusp(int);
+static void onintr(int);
+static void prmesg(int);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
 {
 	bool newrc, already;
-	int rcfirst = 0;		/* first message to print (from .rc) */
-	int rcback = 0;			/* amount to back off of rcfirst */
+	int rcfirst = 0; /* first message to print (from .rc) */
+	int rcback = 0;	 /* amount to back off of rcfirst */
 	int firstmsg = 0, nextmsg = 0, lastmsg = 0;
 	int blast = 0;
-	struct stat buf;		/* stat to check access of bounds */
+	struct stat buf; /* stat to check access of bounds */
 	FILE *bounds;
 	char *cp;
 
@@ -170,57 +172,57 @@ main(int argc, char *argv[])
 
 	argc--, argv++;
 	while (argc > 0) {
-		if (isdigit(argv[0][0])) {	/* starting message # */
+		if (isdigit(argv[0][0])) { /* starting message # */
 			rcfirst = atoi(argv[0]);
-		}
-		else if (isdigit(argv[0][1])) {	/* backward offset */
-			rcback = atoi( &( argv[0][1] ) );
-		}
-		else {
+		} else if (isdigit(argv[0][1])) { /* backward offset */
+			rcback = atoi(&(argv[0][1]));
+		} else {
 			ptr = *argv;
-			while (*ptr) switch (*ptr++) {
+			while (*ptr)
+				switch (*ptr++) {
 
-			case '-':
-				break;
+				case '-':
+					break;
 
-			case 'c':
-				if (uid != SUPERUSER && uid != DAEMON)
-					errx(1,
-				"only the super-user can use the c flag");
-				clean = YES;
-				break;
+				case 'c':
+					if (uid != SUPERUSER && uid != DAEMON)
+						errx(1,
+						    "only the super-user can use the c flag");
+					clean = YES;
+					break;
 
-			case 'f':		/* silently */
-				hush = YES;
-				break;
+				case 'f': /* silently */
+					hush = YES;
+					break;
 
-			case 'h':		/* headers only */
-				hdrs = YES;
-				break;
+				case 'h': /* headers only */
+					hdrs = YES;
+					break;
 
-			case 'l':		/* local msgs only */
-				locomode = YES;
-				break;
+				case 'l': /* local msgs only */
+					locomode = YES;
+					break;
 
-			case 'o':		/* option to save last message */
-				lastcmd = YES;
-				break;
+				case 'o': /* option to save last message */
+					lastcmd = YES;
+					break;
 
-			case 'p':		/* pipe thru 'more' during long msgs */
-				use_pager = YES;
-				break;
+				case 'p': /* pipe thru 'more' during long msgs
+					   */
+					use_pager = YES;
+					break;
 
-			case 'q':		/* query only */
-				qopt = YES;
-				break;
+				case 'q': /* query only */
+					qopt = YES;
+					break;
 
-			case 's':		/* sending TO msgs */
-				send_msg = YES;
-				break;
+				case 's': /* sending TO msgs */
+					send_msg = YES;
+					break;
 
-			default:
-				usage();
-			}
+				default:
+					usage();
+				}
 		}
 		argc--, argv++;
 	}
@@ -233,7 +235,7 @@ main(int argc, char *argv[])
 	/*
 	 * Test access rights to the bounds file
 	 * This can be a little tricky.  if(send_msg), then
-	 * we will create it.  We assume that if(send_msg),	
+	 * we will create it.  We assume that if(send_msg),
 	 * then you have write permission there.
 	 * Else, it better be there, or we bail.
 	 */
@@ -251,17 +253,17 @@ main(int argc, char *argv[])
 	if (bounds != NULL) {
 		fscanf(bounds, "%d %d\n", &firstmsg, &lastmsg);
 		fclose(bounds);
-		blast = lastmsg;	/* save upper bound */
+		blast = lastmsg; /* save upper bound */
 	}
 
 	if (clean)
-		keep = t - (rcback? rcback : NDAYS) DAYS;
+		keep = t - (rcback ? rcback : NDAYS)DAYS;
 
-	if (clean || bounds == NULL) {	/* relocate message bounds */
+	if (clean || bounds == NULL) { /* relocate message bounds */
 		struct dirent *dp;
 		struct stat stbuf;
 		bool seenany = NO;
-		DIR	*dirp;
+		DIR *dirp;
 
 		dirp = opendir(_PATH_MSGS);
 		if (dirp == NULL)
@@ -270,7 +272,7 @@ main(int argc, char *argv[])
 		firstmsg = 32767;
 		lastmsg = 0;
 
-		for (dp = readdir(dirp); dp != NULL; dp = readdir(dirp)){
+		for (dp = readdir(dirp); dp != NULL; dp = readdir(dirp)) {
 			cp = dp->d_name;
 			int i = 0;
 
@@ -280,18 +282,19 @@ main(int argc, char *argv[])
 				continue;
 
 			if (clean)
-				snprintf(inbuf, sizeof(inbuf), "%s/%s", _PATH_MSGS, cp);
+				snprintf(inbuf, sizeof(inbuf), "%s/%s",
+				    _PATH_MSGS, cp);
 
 			while (isdigit(*cp))
 				i = i * 10 + *cp++ - '0';
 			if (*cp)
-				continue;	/* not a message! */
+				continue; /* not a message! */
 
 			if (clean) {
 				if (stat(inbuf, &stbuf) != 0)
 					continue;
-				if (stbuf.st_mtime < keep
-				    && stbuf.st_mode&S_IWRITE) {
+				if (stbuf.st_mtime < keep &&
+				    stbuf.st_mode & S_IWRITE) {
 					unlink(inbuf);
 					continue;
 				}
@@ -306,11 +309,10 @@ main(int argc, char *argv[])
 		closedir(dirp);
 
 		if (!seenany) {
-			if (blast != 0)	/* never lower the upper bound! */
+			if (blast != 0) /* never lower the upper bound! */
 				lastmsg = blast;
 			firstmsg = lastmsg + 1;
-		}
-		else if (blast > lastmsg)
+		} else if (blast > lastmsg)
 			lastmsg = blast;
 
 		if (!send_msg) {
@@ -347,29 +349,30 @@ main(int argc, char *argv[])
 
 		if (isatty(fileno(stdin))) {
 			ptr = getpwuid(uid)->pw_name;
-			printf("Message %d:\nFrom %s %sSubject: ",
-				nextmsg, ptr, ctime(&t));
+			printf("Message %d:\nFrom %s %sSubject: ", nextmsg, ptr,
+			    ctime(&t));
 			fflush(stdout);
 			fgets(inbuf, sizeof inbuf, stdin);
 			putchar('\n');
 			fflush(stdout);
-			fprintf(newmsg, "From %s %sSubject: %s\n",
-				ptr, ctime(&t), inbuf);
+			fprintf(newmsg, "From %s %sSubject: %s\n", ptr,
+			    ctime(&t), inbuf);
 			blankline = seensubj = YES;
-		}
-		else
+		} else
 			blankline = seensubj = NO;
 		for (;;) {
 			fgets(inbuf, sizeof inbuf, stdin);
 			if (feof(stdin) || ferror(stdin))
 				break;
 			blankline = (blankline || (inbuf[0] == '\n'));
-			seensubj = (seensubj || (!blankline && (strncmp(inbuf, "Subj", 4) == 0)));
+			seensubj = (seensubj ||
+			    (!blankline && (strncmp(inbuf, "Subj", 4) == 0)));
 			fputs(inbuf, newmsg);
 		}
 #ifdef OBJECT
 		if (!seensubj) {
-			printf("NOTICE: Messages should have a Subject field!\n");
+			printf(
+			    "NOTICE: Messages should have a Subject field!\n");
 #ifdef REJECT
 			unlink(fname);
 #endif
@@ -397,16 +400,14 @@ main(int argc, char *argv[])
 		newrc = NO;
 		fscanf(msgsrc, "%d\n", &nextmsg);
 		fclose(msgsrc);
-		if (nextmsg > lastmsg+1) {
+		if (nextmsg > lastmsg + 1) {
 			printf("Warning: bounds have been reset (%d, %d)\n",
-				firstmsg, lastmsg);
+			    firstmsg, lastmsg);
 			truncate(fname, (off_t)0);
 			newrc = YES;
-		}
-		else if (!rcfirst)
+		} else if (!rcfirst)
 			rcfirst = nextmsg - rcback;
-	}
-	else
+	} else
 		newrc = YES;
 	msgsrc = fopen(fname, "r+");
 	if (msgsrc == NULL)
@@ -414,13 +415,13 @@ main(int argc, char *argv[])
 	if (msgsrc == NULL)
 		err(errno, "%s", fname);
 	if (rcfirst) {
-		if (rcfirst > lastmsg+1) {
+		if (rcfirst > lastmsg + 1) {
 			printf("Warning: the last message is number %d.\n",
-				lastmsg);
+			    lastmsg);
 			rcfirst = nextmsg;
 		}
 		if (rcfirst > firstmsg)
-			firstmsg = rcfirst;	/* don't set below first msg */
+			firstmsg = rcfirst; /* don't set below first msg */
 	}
 	if (newrc) {
 		nextmsg = firstmsg;
@@ -435,14 +436,14 @@ main(int argc, char *argv[])
 		if (ioctl(fileno(stdout), TIOCGWINSZ, &win) != -1)
 			Lpp = win.ws_row;
 		if (Lpp <= 0) {
-			if (tgetent(inbuf, getenv("TERM")) <= 0
-			    || (Lpp = tgetnum("li")) <= 0) {
+			if (tgetent(inbuf, getenv("TERM")) <= 0 ||
+			    (Lpp = tgetnum("li")) <= 0) {
 				Lpp = NLINES;
 			}
 		}
 	}
 #endif
-	Lpp -= 6;	/* for headers, etc. */
+	Lpp -= 6; /* for headers, etc. */
 
 	already = NO;
 	prevmsg = firstmsg;
@@ -460,13 +461,13 @@ main(int argc, char *argv[])
 		if (newmsg == NULL)
 			continue;
 
-		gfrsub(newmsg);		/* get From and Subject fields */
+		gfrsub(newmsg); /* get From and Subject fields */
 		if (locomode && !local) {
 			fclose(newmsg);
 			continue;
 		}
 
-		if (qopt) {	/* This has to be located here */
+		if (qopt) { /* This has to be located here */
 			printf("There are new messages.\n");
 			exit(0);
 		}
@@ -479,7 +480,7 @@ main(int argc, char *argv[])
 		 */
 		if (totty)
 			signal(SIGTSTP, onsusp);
-		(void) setjmp(tstpbuf);
+		(void)setjmp(tstpbuf);
 		already = YES;
 		nlines = 2;
 		if (seenfrom) {
@@ -489,15 +490,14 @@ main(int argc, char *argv[])
 		if (seensubj) {
 			printf("Subject: %s", subj);
 			nlines++;
-		}
-		else {
+		} else {
 			if (seenfrom) {
 				putchar('\n');
 				nlines++;
 			}
-			while (nlines < 6
-			    && fgets(inbuf, sizeof inbuf, newmsg)
-			    && inbuf[0] != '\n') {
+			while (nlines < 6 &&
+			    fgets(inbuf, sizeof inbuf, newmsg) &&
+			    inbuf[0] != '\n') {
 				fputs(inbuf, stdout);
 				nlines++;
 			}
@@ -505,7 +505,7 @@ main(int argc, char *argv[])
 
 		lct = linecnt(newmsg);
 		if (lct)
-			printf("(%d%sline%s) ", lct, seensubj? " " : " more ",
+			printf("(%d%sline%s) ", lct, seensubj ? " " : " more ",
 			    (lct == 1) ? "" : "s");
 
 		if (hdrs) {
@@ -518,58 +518,58 @@ main(int argc, char *argv[])
 		 * Ask user for command
 		 */
 		if (totty)
-			ask(lct? MORE : (msg==lastmsg? NOMORE : NEXT));
+			ask(lct ? MORE : (msg == lastmsg ? NOMORE : NEXT));
 		else
 			inbuf[0] = 'y';
 		if (totty)
 			signal(SIGTSTP, SIG_DFL);
-cmnd:
+	cmnd:
 		in = inbuf;
 		switch (*in) {
-			case 'x':
-				/* FALLTHROUGH */
-			case 'X':
-				exit(0);
-				/* NOTREACHED */
+		case 'x':
+			/* FALLTHROUGH */
+		case 'X':
+			exit(0);
+			/* NOTREACHED */
 
-			case 'q':
-				/* FALLTHROUGH */
-			case 'Q':
-				quitit = YES;
-				printf("--Postponed--\n");
-				exit(0);
-				/* NOTREACHED */
+		case 'q':
+			/* FALLTHROUGH */
+		case 'Q':
+			quitit = YES;
+			printf("--Postponed--\n");
+			exit(0);
+			/* NOTREACHED */
 
-			case 'n':
-				/* FALLTHROUGH */
-			case 'N':
-				if (msg >= nextmsg) sep = "Flushed";
-				prevmsg = msg;
+		case 'n':
+			/* FALLTHROUGH */
+		case 'N':
+			if (msg >= nextmsg)
+				sep = "Flushed";
+			prevmsg = msg;
+			break;
+
+		case 'p':
+			/* FALLTHROUGH */
+		case 'P':
+			use_pager = (*in++ == 'p');
+			/* FALLTHROUGH */
+		case '\n':
+			/* FALLTHROUGH */
+		case 'y':
+		default:
+			if (*in == '-') {
+				msg = prevmsg - 1;
+				sep = "replay";
 				break;
+			}
+			if (isdigit(*in)) {
+				msg = next(in);
+				sep = in;
+				break;
+			}
 
-			case 'p':
-				/* FALLTHROUGH */
-			case 'P':
-				use_pager = (*in++ == 'p');
-				/* FALLTHROUGH */
-			case '\n':
-				/* FALLTHROUGH */
-			case 'y':
-			default:
-				if (*in == '-') {
-					msg = prevmsg-1;
-					sep = "replay";
-					break;
-				}
-				if (isdigit(*in)) {
-					msg = next(in);
-					sep = in;
-					break;
-				}
-
-				prmesg(nlines + lct + (seensubj? 1 : 0));
-				prevmsg = msg;
-
+			prmesg(nlines + lct + (seensubj ? 1 : 0));
+			prevmsg = msg;
 		}
 
 		printf("--%s--\n", sep);
@@ -636,8 +636,7 @@ prmesg(int length)
 			outf = stdout;
 		else
 			setbuf(outf, (char *)NULL);
-	}
-	else
+	} else
 		outf = stdout;
 
 	if (seensubj)
@@ -655,8 +654,7 @@ prmesg(int length)
 		pclose(outf);
 		signal(SIGPIPE, SIG_DFL);
 		signal(SIGQUIT, SIG_DFL);
-	}
-	else {
+	} else {
 		fflush(stdout);
 	}
 
@@ -720,21 +718,21 @@ next(char *buf)
 	int i;
 	sscanf(buf, "%d", &i);
 	sprintf(buf, "Goto %d", i);
-	return(--i);
+	return (--i);
 }
 
 static void
 ask(const char *prompt)
 {
-	char	inch;
-	int	n, cmsg, fd;
-	off_t	oldpos;
-	FILE	*cpfrom, *cpto;
+	char inch;
+	int n, cmsg, fd;
+	off_t oldpos;
+	FILE *cpfrom, *cpto;
 
 	printf("%s ", prompt);
 	fflush(stdout);
 	intrpflg = NO;
-	(void) fgets(inbuf, sizeof inbuf, stdin);
+	(void)fgets(inbuf, sizeof inbuf, stdin);
 	if ((n = strlen(inbuf)) > 0 && inbuf[n - 1] == '\n')
 		inbuf[n - 1] = '\0';
 	if (intrpflg)
@@ -757,23 +755,22 @@ ask(const char *prompt)
 		cpfrom = fopen(fname, "r");
 		if (!cpfrom) {
 			printf("Message %d not found\n", cmsg);
-			ask (prompt);
+			ask(prompt);
 			return;
 		}
 
 		if (inch == 's') {
 			in = nxtfld(inbuf);
 			if (*in) {
-				for (n=0; in[n] > ' '; n++) { /* sizeof fname? */
+				for (n = 0; in[n] > ' ';
+				     n++) { /* sizeof fname? */
 					fname[n] = in[n];
 				}
 				fname[n] = '\0';
-			}
-			else
+			} else
 				strcpy(fname, "Messages");
-			fd = open(fname, O_RDWR|O_EXCL|O_CREAT|O_APPEND);
-		}
-		else {
+			fd = open(fname, O_RDWR | O_EXCL | O_CREAT | O_APPEND);
+		} else {
 			strcpy(fname, _PATH_TMP);
 			fd = mkstemp(fname);
 			if (fd != -1) {
@@ -798,7 +795,8 @@ ask(const char *prompt)
 
 		fclose(cpfrom);
 		fclose(cpto);
-		fseeko(newmsg, oldpos, SEEK_SET);/* reposition current message */
+		fseeko(newmsg, oldpos,
+		    SEEK_SET); /* reposition current message */
 		if (inch == 's')
 			printf("Message %d saved in \"%s\"\n", cmsg, fname);
 		else {
@@ -824,7 +822,7 @@ gfrsub(FILE *infile)
 	 * Is this a normal message?
 	 */
 	if (fgets(inbuf, sizeof inbuf, infile)) {
-		if (strncmp(inbuf, "From", 4)==0) {
+		if (strncmp(inbuf, "From", 4) == 0) {
 			/*
 			 * expected form starts with From
 			 */
@@ -848,16 +846,14 @@ gfrsub(FILE *infile)
 				date[0] = '\n';
 				date[1] = '\0';
 			}
-		}
-		else {
+		} else {
 			/*
 			 * not the expected form
 			 */
 			rewind(infile);
 			return;
 		}
-	}
-	else
+	} else
 		/*
 		 * empty file ?
 		 */
@@ -866,12 +862,12 @@ gfrsub(FILE *infile)
 	/*
 	 * look for Subject line until EOF or a blank line
 	 */
-	while (fgets(inbuf, sizeof inbuf, infile)
-	    && !(blankline = (inbuf[0] == '\n'))) {
+	while (fgets(inbuf, sizeof inbuf, infile) &&
+	    !(blankline = (inbuf[0] == '\n'))) {
 		/*
 		 * extract Subject line
 		 */
-		if (!seensubj && strncmp(inbuf, "Subj", 4)==0) {
+		if (!seensubj && strncmp(inbuf, "Subj", 4) == 0) {
 			seensubj = YES;
 			frompos = ftello(infile);
 			strlcpy(subj, nxtfld(inbuf), sizeof subj);
@@ -893,7 +889,11 @@ gfrsub(FILE *infile)
 static char *
 nxtfld(char *s)
 {
-	if (*s) while (*s && !isspace(*s)) s++;     /* skip over this field */
-	if (*s) while (*s && isspace(*s)) s++;    /* find start of next field */
+	if (*s)
+		while (*s && !isspace(*s))
+			s++; /* skip over this field */
+	if (*s)
+		while (*s && isspace(*s))
+			s++; /* find start of next field */
 	return (s);
 }

@@ -33,9 +33,9 @@
 #include "ena.h"
 #include "ena_netmap.h"
 
-#define ENA_NETMAP_MORE_FRAMES		1
-#define ENA_NETMAP_NO_MORE_FRAMES	0
-#define ENA_MAX_FRAMES			16384
+#define ENA_NETMAP_MORE_FRAMES 1
+#define ENA_NETMAP_NO_MORE_FRAMES 0
+#define ENA_MAX_FRAMES 16384
 
 struct ena_netmap_ctx {
 	struct netmap_kring *kring;
@@ -282,7 +282,8 @@ ena_netmap_reg(struct netmap_adapter *na, int onoff)
 
 	if (onoff) {
 		ena_log_nm(pdev, INFO, "netmap on\n");
-		for_rx_tx(t) {
+		for_rx_tx(t)
+		{
 			for (i = 0; i <= nma_get_nrings(na, t); i++) {
 				kring = NMR(na, t)[i];
 				if (nm_kring_pending_on(kring)) {
@@ -294,7 +295,8 @@ ena_netmap_reg(struct netmap_adapter *na, int onoff)
 	} else {
 		ena_log_nm(pdev, INFO, "netmap off\n");
 		nm_clear_native_flags(na);
-		for_rx_tx(t) {
+		for_rx_tx(t)
+		{
 			for (i = 0; i <= nma_get_nrings(na, t); i++) {
 				kring = NMR(na, t)[i];
 				if (nm_kring_pending_off(kring)) {
@@ -601,10 +603,10 @@ ena_netmap_tx_map_slots(struct ena_netmap_ctx *ctx,
 				    "Slot vaddress is NULL\n");
 				return (EINVAL);
 			}
-		/*
-		 * Otherwise, copy whole portion of header from multiple
-		 * slots to intermediate buffer.
-		 */
+			/*
+			 * Otherwise, copy whole portion of header from multiple
+			 * slots to intermediate buffer.
+			 */
 		} else {
 			rc = ena_netmap_copy_data(ctx->na, ctx->slots,
 			    ctx->nm_i, ctx->lim, push_len,

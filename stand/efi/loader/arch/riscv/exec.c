@@ -28,14 +28,13 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 
+#include <machine/elf.h>
 #include <machine/md_var.h>
 #include <machine/metadata.h>
-#include <machine/elf.h>
-
-#include <stand.h>
 
 #include <efi.h>
 #include <efilib.h>
+#include <stand.h>
 
 #include "bootstrap.h"
 #include "loader_efi.h"
@@ -78,12 +77,6 @@ __elfN(exec)(struct preloaded_file *fp)
 	panic("exec returned");
 }
 
-static struct file_format riscv_elf = {
-	__elfN(loadfile),
-	__elfN(exec)
-};
+static struct file_format riscv_elf = { __elfN(loadfile), __elfN(exec) };
 
-struct file_format *file_formats[] = {
-	&riscv_elf,
-	NULL
-};
+struct file_format *file_formats[] = { &riscv_elf, NULL };

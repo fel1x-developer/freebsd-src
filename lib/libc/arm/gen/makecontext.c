@@ -31,12 +31,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <stddef.h>
 #include <inttypes.h>
-#include <ucontext.h>
-
 #include <stdarg.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <ucontext.h>
 
 extern void _ctx_start(void);
 
@@ -63,9 +62,9 @@ __makecontext(ucontext_t *ucp, void (*func)(void), int argc, ...)
 	va_list ap;
 
 	/* Compute and align stack pointer. */
-	sp = (unsigned int *)
-	    (((uintptr_t)ucp->uc_stack.ss_sp + ucp->uc_stack.ss_size -
-	      sizeof(double)) & ~7);
+	sp = (unsigned int *)(((uintptr_t)ucp->uc_stack.ss_sp +
+				  ucp->uc_stack.ss_size - sizeof(double)) &
+	    ~7);
 	/* Allocate necessary stack space for arguments exceeding r0-3. */
 	if (argc > 4)
 		sp -= argc - 4;

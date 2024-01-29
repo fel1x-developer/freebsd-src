@@ -55,14 +55,14 @@ extern int xen_disable_pv_nics;
 extern uint32_t xen_cpuid_base;
 
 /* compatibility for accessing xen_ulong_t with atomics */
-#define	atomic_clear_xen_ulong		atomic_clear_long
-#define	atomic_set_xen_ulong		atomic_set_long
-#define	atomic_readandclear_xen_ulong	atomic_readandclear_long
-#define	atomic_testandset_xen_ulong	atomic_testandset_long
-#define	atomic_load_acq_xen_ulong	atomic_load_acq_long
-#define	atomic_store_rel_xen_ulong	atomic_store_rel_long
-#define	atomic_set_xen_ulong		atomic_set_long
-#define	atomic_clear_xen_ulong		atomic_clear_long
+#define atomic_clear_xen_ulong atomic_clear_long
+#define atomic_set_xen_ulong atomic_set_long
+#define atomic_readandclear_xen_ulong atomic_readandclear_long
+#define atomic_testandset_xen_ulong atomic_testandset_long
+#define atomic_load_acq_xen_ulong atomic_load_acq_long
+#define atomic_store_rel_xen_ulong atomic_store_rel_long
+#define atomic_set_xen_ulong atomic_set_long
+#define atomic_clear_xen_ulong atomic_clear_long
 
 static inline u_int
 XEN_CPUID_TO_VCPUID(u_int cpuid)
@@ -71,7 +71,7 @@ XEN_CPUID_TO_VCPUID(u_int cpuid)
 	return (pcpu_find(cpuid)->pc_vcpu_id);
 }
 
-#define	XEN_VCPUID()	PCPU_GET(vcpu_id)
+#define XEN_VCPUID() PCPU_GET(vcpu_id)
 
 static inline bool
 xen_has_percpu_evtchn(void)

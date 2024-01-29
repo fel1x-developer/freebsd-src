@@ -1,22 +1,20 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /* Copyright(c) 2007-2022 Intel Corporation */
-#include "qat_freebsd.h"
-#include "adf_cfg.h"
-#include "adf_common_drv.h"
+#include <sys/firmware.h>
+
+#include <dev/pci/pcivar.h>
+
 #include "adf_accel_devices.h"
-#include "icp_qat_uclo.h"
-#include "icp_qat_fw.h"
-#include "icp_qat_fw_init_admin.h"
+#include "adf_cfg.h"
 #include "adf_cfg_strings.h"
+#include "adf_common_drv.h"
 #include "adf_transport_access_macros.h"
 #include "adf_transport_internal.h"
-#include <sys/firmware.h>
-#include <dev/pci/pcivar.h>
-#include "adf_cfg.h"
-#include "adf_accel_devices.h"
-#include "adf_common_drv.h"
-#include "icp_qat_uclo.h"
+#include "icp_qat_fw.h"
+#include "icp_qat_fw_init_admin.h"
 #include "icp_qat_hw.h"
+#include "icp_qat_uclo.h"
+#include "qat_freebsd.h"
 
 #define MMP_VERSION_LEN 4
 
@@ -55,16 +53,14 @@ adf_ae_fw_load(struct adf_accel_dev *accel_dev)
 		return 0;
 
 	if (request_firmware(&loader_data->uof_fw, hw_device->fw_name)) {
-		device_printf(GET_DEV(accel_dev),
-			      "Failed to load UOF FW %s\n",
-			      hw_device->fw_name);
+		device_printf(GET_DEV(accel_dev), "Failed to load UOF FW %s\n",
+		    hw_device->fw_name);
 		goto out_err;
 	}
 
 	if (request_firmware(&loader_data->mmp_fw, hw_device->fw_mmp_name)) {
-		device_printf(GET_DEV(accel_dev),
-			      "Failed to load MMP FW %s\n",
-			      hw_device->fw_mmp_name);
+		device_printf(GET_DEV(accel_dev), "Failed to load MMP FW %s\n",
+		    hw_device->fw_mmp_name);
 		goto out_err;
 	}
 
@@ -81,11 +77,10 @@ adf_ae_fw_load(struct adf_accel_dev *accel_dev)
 
 	if (hw_device->accel_capabilities_mask &
 	    ADF_ACCEL_CAPABILITIES_CRYPTO_ASYMMETRIC)
-		if (qat_uclo_wr_mimage(loader_data->fw_loader,
-				       mmp_addr,
-				       mmp_size)) {
+		if (qat_uclo_wr_mimage(loader_data->fw_loader, mmp_addr,
+			mmp_size)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to load MMP\n");
+			    "Failed to load MMP\n");
 			goto out_err;
 		}
 
@@ -110,38 +105,35 @@ adf_ae_fw_load(struct adf_accel_dev *accel_dev)
 			if (service_mask && !(service_mask & service_type))
 				continue;
 
-			obj_name =
-			    hw_device->get_obj_name(accel_dev, service_type);
-			cfg_ae_mask =
-			    hw_device->get_obj_cfg_ae_mask(accel_dev,
-							   service_type);
+			obj_name = hw_device->get_obj_name(accel_dev,
+			    service_type);
+			cfg_ae_mask = hw_device->get_obj_cfg_ae_mask(accel_dev,
+			    service_type);
 
 			if (!obj_name) {
-				device_printf(
-				    GET_DEV(accel_dev),
-				    "Invalid object (service = %lx)\n",
-				    BIT(i));
+				device_printf(GET_DEV(accel_dev),
+				    "Invalid object (service = %lx)\n", BIT(i));
 				goto out_err;
 			}
 			if (!cfg_ae_mask)
 				continue;
 			if (qat_uclo_set_cfg_ae_mask(loader_data->fw_loader,
-						     cfg_ae_mask)) {
+				cfg_ae_mask)) {
 				device_printf(GET_DEV(accel_dev),
-					      "Invalid config AE mask\n");
+				    "Invalid config AE mask\n");
 				goto out_err;
 			}
 		}
 
-		if (qat_uclo_map_obj(
-			loader_data->fw_loader, fw_addr, fw_size, obj_name)) {
+		if (qat_uclo_map_obj(loader_data->fw_loader, fw_addr, fw_size,
+			obj_name)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to map UOF firmware\n");
+			    "Failed to map UOF firmware\n");
 			goto out_err;
 		}
 		if (qat_uclo_wr_all_uimage(loader_data->fw_loader)) {
 			device_printf(GET_DEV(accel_dev),
-				      "Failed to load UOF firmware\n");
+			    "Failed to load UOF firmware\n");
 			goto out_err;
 		}
 		qat_uclo_del_obj(loader_data->fw_loader);
@@ -189,9 +181,8 @@ adf_ae_start(struct adf_accel_dev *accel_dev)
 
 	ae_ctr = qat_hal_start(loader_data->fw_loader);
 	device_printf(GET_DEV(accel_dev),
-		      "qat_dev%d started %d acceleration engines\n",
-		      accel_dev->accel_id,
-		      ae_ctr);
+	    "qat_dev%d started %d acceleration engines\n", accel_dev->accel_id,
+	    ae_ctr);
 	return 0;
 }
 
@@ -212,9 +203,8 @@ adf_ae_stop(struct adf_accel_dev *accel_dev)
 		}
 	}
 	device_printf(GET_DEV(accel_dev),
-		      "qat_dev%d stopped %d acceleration engines\n",
-		      accel_dev->accel_id,
-		      ae_ctr);
+	    "qat_dev%d stopped %d acceleration engines\n", accel_dev->accel_id,
+	    ae_ctr);
 	return 0;
 }
 

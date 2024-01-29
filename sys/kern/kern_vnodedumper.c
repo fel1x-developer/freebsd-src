@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/caprights.h>
+#include <sys/conf.h>
 #include <sys/disk.h>
 #include <sys/eventhandler.h>
 #include <sys/fcntl.h>
@@ -202,9 +202,8 @@ vnode_write_headers(struct dumperinfo *di, struct kerneldumpheader *kdh)
 	offset = roundup2(di->dumpoff, di->blocksize);
 
 	/* Write the kernel dump header to the end of the file. */
-	error = vn_rdwr(UIO_WRITE, vp, kdh, sizeof(*kdh), offset,
-	    UIO_SYSSPACE, IO_NODELOCKED, curthread->td_ucred, NOCRED, NULL,
-	    curthread);
+	error = vn_rdwr(UIO_WRITE, vp, kdh, sizeof(*kdh), offset, UIO_SYSSPACE,
+	    IO_NODELOCKED, curthread->td_ucred, NOCRED, NULL, curthread);
 	if (error != 0)
 		uprintf("%s: error writing livedump header: %d\n", __func__,
 		    error);

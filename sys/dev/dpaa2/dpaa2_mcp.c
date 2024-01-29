@@ -30,41 +30,40 @@
  * DPAA2 MC command portal and helper routines.
  */
 
-#include <sys/param.h>
-#include <sys/kernel.h>
-#include <sys/bus.h>
-#include <sys/rman.h>
-#include <sys/module.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/time.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/rman.h>
+#include <sys/time.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include "pcib_if.h"
-#include "pci_if.h"
-
-#include "dpaa2_mcp.h"
-#include "dpaa2_mc.h"
 #include "dpaa2_cmd_if.h"
+#include "dpaa2_mc.h"
+#include "dpaa2_mcp.h"
+#include "pci_if.h"
+#include "pcib_if.h"
 
 MALLOC_DEFINE(M_DPAA2_MCP, "dpaa2_mcp", "DPAA2 Management Complex Portal");
 
 static struct resource_spec dpaa2_mcp_spec[] = {
-	{ SYS_RES_MEMORY, 0, RF_ACTIVE | RF_UNMAPPED },
-	RESOURCE_SPEC_END
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE | RF_UNMAPPED }, RESOURCE_SPEC_END
 };
 
 int
 dpaa2_mcp_init_portal(struct dpaa2_mcp **mcp, struct resource *res,
     struct resource_map *map, uint16_t flags)
 {
-	const int mflags = flags & DPAA2_PORTAL_NOWAIT_ALLOC
-	    ? (M_NOWAIT | M_ZERO) : (M_WAITOK | M_ZERO);
+	const int mflags = flags & DPAA2_PORTAL_NOWAIT_ALLOC ?
+	    (M_NOWAIT | M_ZERO) :
+	    (M_WAITOK | M_ZERO);
 	struct dpaa2_mcp *p;
 
 	if (!mcp || !res || !map)
@@ -111,7 +110,7 @@ dpaa2_mcp_tk(struct dpaa2_cmd *cmd, uint16_t token)
 	struct dpaa2_cmd_header *hdr;
 	KASSERT(cmd != NULL, ("%s: cmd is NULL", __func__));
 
-	hdr = (struct dpaa2_cmd_header *) &cmd->header;
+	hdr = (struct dpaa2_cmd_header *)&cmd->header;
 	hdr->token = token;
 	return (cmd);
 }
@@ -122,7 +121,7 @@ dpaa2_mcp_f(struct dpaa2_cmd *cmd, uint16_t flags)
 	struct dpaa2_cmd_header *hdr;
 	KASSERT(cmd != NULL, ("%s: cmd is NULL", __func__));
 
-	hdr = (struct dpaa2_cmd_header *) &cmd->header;
+	hdr = (struct dpaa2_cmd_header *)&cmd->header;
 	hdr->flags_hw = DPAA2_CMD_DEF;
 	hdr->flags_sw = DPAA2_CMD_DEF;
 	if (flags & DPAA2_CMD_HIGH_PRIO) {
@@ -173,8 +172,10 @@ dpaa2_mcp_attach(device_t dev)
 
 	/* At least 64 bytes of the command portal should be available. */
 	if (rman_get_size(sc->res[0]) < DPAA2_MCP_MEM_WIDTH) {
-		device_printf(dev, "%s: MC portal memory region too small: "
-		    "%jd\n", __func__, rman_get_size(sc->res[0]));
+		device_printf(dev,
+		    "%s: MC portal memory region too small: "
+		    "%jd\n",
+		    __func__, rman_get_size(sc->res[0]));
 		goto err_exit;
 	}
 
@@ -193,8 +194,10 @@ dpaa2_mcp_attach(device_t dev)
 	error = dpaa2_mcp_init_portal(&portal, sc->res[0], &sc->map[0],
 	    DPAA2_PORTAL_DEF);
 	if (error) {
-		device_printf(dev, "%s: failed to initialize dpaa2_mcp: "
-		    "error=%d\n", __func__, error);
+		device_printf(dev,
+		    "%s: failed to initialize dpaa2_mcp: "
+		    "error=%d\n",
+		    __func__, error);
 		goto err_exit;
 	}
 
@@ -209,16 +212,19 @@ dpaa2_mcp_attach(device_t dev)
 	}
 	error = DPAA2_CMD_MCP_OPEN(dev, child, &cmd, dinfo->id, &mcp_token);
 	if (error) {
-		device_printf(dev, "%s: failed to open DPMCP: id=%d, error=%d\n",
-		    __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to open DPMCP: id=%d, error=%d\n", __func__,
+		    dinfo->id, error);
 		goto close_rc;
 	}
 
 	/* Prepare DPMCP object. */
 	error = DPAA2_CMD_MCP_RESET(dev, child, &cmd);
 	if (error) {
-		device_printf(dev, "%s: failed to reset DPMCP: id=%d, "
-		    "error=%d\n", __func__, dinfo->id, error);
+		device_printf(dev,
+		    "%s: failed to reset DPMCP: id=%d, "
+		    "error=%d\n",
+		    __func__, dinfo->id, error);
 		goto close_mcp;
 	}
 
@@ -239,9 +245,9 @@ err_exit:
 
 static device_method_t dpaa2_mcp_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		dpaa2_mcp_probe),
-	DEVMETHOD(device_attach,	dpaa2_mcp_attach),
-	DEVMETHOD(device_detach,	dpaa2_mcp_detach),
+	DEVMETHOD(device_probe, dpaa2_mcp_probe),
+	DEVMETHOD(device_attach, dpaa2_mcp_attach),
+	DEVMETHOD(device_detach, dpaa2_mcp_detach),
 
 	DEVMETHOD_END
 };

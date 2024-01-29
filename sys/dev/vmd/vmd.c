@@ -29,50 +29,49 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
-#include <sys/module.h>
-#include <sys/sysctl.h>
-#include <sys/systm.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pciio.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 
 #include <machine/bus.h>
-#include <machine/resource.h>
 #include <machine/intr_machdep.h>
-#include <sys/rman.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <machine/resource.h>
 
-#include <sys/pciio.h>
-#include <dev/pci/pcivar.h>
-#include <dev/pci/pcireg.h>
 #include <dev/pci/pci_private.h>
 #include <dev/pci/pcib_private.h>
-
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 #include <dev/vmd/vmd.h>
 
 #include "pcib_if.h"
 
 struct vmd_type {
-	u_int16_t	vmd_vid;
-	u_int16_t	vmd_did;
-	char		*vmd_name;
-	int		flags;
-#define BUS_RESTRICT	1
-#define VECTOR_OFFSET	2
-#define CAN_BYPASS_MSI	4
+	u_int16_t vmd_vid;
+	u_int16_t vmd_did;
+	char *vmd_name;
+	int flags;
+#define BUS_RESTRICT 1
+#define VECTOR_OFFSET 2
+#define CAN_BYPASS_MSI 4
 };
 
-#define VMD_CAP		0x40
-#define VMD_BUS_RESTRICT	0x1
+#define VMD_CAP 0x40
+#define VMD_BUS_RESTRICT 0x1
 
-#define VMD_CONFIG	0x44
-#define VMD_BYPASS_MSI		0x2
-#define VMD_BUS_START(x)	((x >> 8) & 0x3)
+#define VMD_CONFIG 0x44
+#define VMD_BYPASS_MSI 0x2
+#define VMD_BUS_START(x) ((x >> 8) & 0x3)
 
-#define VMD_LOCK	0x70
+#define VMD_LOCK 0x70
 
 SYSCTL_NODE(_hw, OID_AUTO, vmd, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "Intel Volume Management Device tuning parameters");
@@ -103,17 +102,23 @@ static int vmd_max_msix = 3;
 SYSCTL_INT(_hw_vmd, OID_AUTO, max_msix, CTLFLAG_RWTUN, &vmd_max_msix, 0,
     "Maximum number of MSI-X vectors per device");
 
-static struct vmd_type vmd_devs[] = {
-        { 0x8086, 0x201d, "Intel Volume Management Device", 0 },
-        { 0x8086, 0x28c0, "Intel Volume Management Device", BUS_RESTRICT | CAN_BYPASS_MSI },
-        { 0x8086, 0x467f, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0x8086, 0x4c3d, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0x8086, 0x7d0b, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0x8086, 0x9a0b, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0x8086, 0xa77f, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0x8086, 0xad0b, "Intel Volume Management Device", BUS_RESTRICT | VECTOR_OFFSET },
-        { 0, 0, NULL, 0 }
-};
+static struct vmd_type vmd_devs[] = { { 0x8086, 0x201d,
+					  "Intel Volume Management Device", 0 },
+	{ 0x8086, 0x28c0, "Intel Volume Management Device",
+	    BUS_RESTRICT | CAN_BYPASS_MSI },
+	{ 0x8086, 0x467f, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0x8086, 0x4c3d, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0x8086, 0x7d0b, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0x8086, 0x9a0b, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0x8086, 0xa77f, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0x8086, 0xad0b, "Intel Volume Management Device",
+	    BUS_RESTRICT | VECTOR_OFFSET },
+	{ 0, 0, NULL, 0 } };
 
 static int
 vmd_probe(device_t dev)
@@ -184,14 +189,14 @@ vmd_read_config(device_t dev, u_int b, u_int s, u_int f, u_int reg, int width)
 
 	switch (width) {
 	case 4:
-		return (bus_space_read_4(sc->vmd_btag, sc->vmd_bhandle,
-		    offset));
+		return (
+		    bus_space_read_4(sc->vmd_btag, sc->vmd_bhandle, offset));
 	case 2:
-		return (bus_space_read_2(sc->vmd_btag, sc->vmd_bhandle,
-		    offset));
+		return (
+		    bus_space_read_2(sc->vmd_btag, sc->vmd_bhandle, offset));
 	case 1:
-		return (bus_space_read_1(sc->vmd_btag, sc->vmd_bhandle,
-		    offset));
+		return (
+		    bus_space_read_1(sc->vmd_btag, sc->vmd_bhandle, offset));
 	default:
 		__assert_unreachable();
 		return (0xffffffff);
@@ -213,14 +218,14 @@ vmd_write_config(device_t dev, u_int b, u_int s, u_int f, u_int reg,
 
 	switch (width) {
 	case 4:
-		return (bus_space_write_4(sc->vmd_btag, sc->vmd_bhandle,
-		    offset, val));
+		return (bus_space_write_4(sc->vmd_btag, sc->vmd_bhandle, offset,
+		    val));
 	case 2:
-		return (bus_space_write_2(sc->vmd_btag, sc->vmd_bhandle,
-		    offset, val));
+		return (bus_space_write_2(sc->vmd_btag, sc->vmd_bhandle, offset,
+		    val));
 	case 1:
-		return (bus_space_write_1(sc->vmd_btag, sc->vmd_bhandle,
-		    offset, val));
+		return (bus_space_write_1(sc->vmd_btag, sc->vmd_bhandle, offset,
+		    val));
 	default:
 		__assert_unreachable();
 	}
@@ -272,11 +277,12 @@ vmd_attach(device_t dev)
 	for (i = 0, j = 0; i < VMD_MAX_BAR; i++, j++) {
 		sc->vmd_regs_rid[i] = PCIR_BAR(j);
 		bar = pci_read_config(dev, PCIR_BAR(0), 4);
-		if (PCI_BAR_MEM(bar) && (bar & PCIM_BAR_MEM_TYPE) ==
-		    PCIM_BAR_MEM_64)
+		if (PCI_BAR_MEM(bar) &&
+		    (bar & PCIM_BAR_MEM_TYPE) == PCIM_BAR_MEM_64)
 			j++;
 		if ((sc->vmd_regs_res[i] = bus_alloc_resource_any(dev,
-		    SYS_RES_MEMORY, &sc->vmd_regs_rid[i], RF_ACTIVE)) == NULL) {
+			 SYS_RES_MEMORY, &sc->vmd_regs_rid[i], RF_ACTIVE)) ==
+		    NULL) {
 			device_printf(dev, "Cannot allocate resources\n");
 			goto fail;
 		}
@@ -310,8 +316,8 @@ vmd_attach(device_t dev)
 			goto fail;
 		}
 	}
-	sc->vmd_bus_end = MIN(PCI_BUSMAX, sc->vmd_bus_start +
-	    (rman_get_size(sc->vmd_regs_res[0]) >> 20) - 1);
+	sc->vmd_bus_end = MIN(PCI_BUSMAX,
+	    sc->vmd_bus_start + (rman_get_size(sc->vmd_regs_res[0]) >> 20) - 1);
 
 	bus = &sc->psc.bus;
 	bus->sec = sc->vmd_bus_start;
@@ -337,7 +343,8 @@ vmd_attach(device_t dev)
 
 	w = &sc->psc.mem;
 	w->rman.rm_type = RMAN_ARRAY;
-	snprintf(buf, sizeof(buf), "%s memory window", device_get_nameunit(dev));
+	snprintf(buf, sizeof(buf), "%s memory window",
+	    device_get_nameunit(dev));
 	w->rman.rm_descr = strdup(buf, M_DEVBUF);
 	error = rman_init(&w->rman);
 	if (error) {
@@ -368,7 +375,8 @@ vmd_attach(device_t dev)
 		vmd_set_msi_bypass(dev, true);
 	} else if (pci_alloc_msix(dev, &sc->vmd_msix_count) == 0) {
 		sc->vmd_irq = malloc(sizeof(struct vmd_irq) *
-		    sc->vmd_msix_count, M_DEVBUF, M_WAITOK | M_ZERO);
+			sc->vmd_msix_count,
+		    M_DEVBUF, M_WAITOK | M_ZERO);
 		for (i = 0; i < sc->vmd_msix_count; i++) {
 			vi = &sc->vmd_irq[i];
 			vi->vi_rid = i + 1;
@@ -379,8 +387,9 @@ vmd_attach(device_t dev)
 				goto fail;
 			}
 			vi->vi_irq = rman_get_start(vi->vi_res);
-			if (bus_setup_intr(dev, vi->vi_res, INTR_TYPE_MISC |
-			    INTR_MPSAFE, vmd_intr, NULL, vi, &vi->vi_handle)) {
+			if (bus_setup_intr(dev, vi->vi_res,
+				INTR_TYPE_MISC | INTR_MPSAFE, vmd_intr, NULL,
+				vi, &vi->vi_handle)) {
 				device_printf(dev, "Can't set up interrupt\n");
 				bus_release_resource(dev, SYS_RES_IRQ,
 				    vi->vi_rid, vi->vi_res);
@@ -439,8 +448,8 @@ vmd_alloc_resource(device_t dev, device_t child, int type, int *rid,
 		/* VMD hardware does not support legacy interrupts. */
 		if (*rid == 0)
 			return (NULL);
-		return (bus_generic_alloc_resource(dev, child, type, rid,
-		    start, end, count, flags | RF_SHAREABLE));
+		return (bus_generic_alloc_resource(dev, child, type, rid, start,
+		    end, count, flags | RF_SHAREABLE));
 	case SYS_RES_MEMORY:
 		res = rman_reserve_resource(&sc->psc.mem.rman, start, end,
 		    count, flags, child);
@@ -472,13 +481,13 @@ vmd_alloc_resource(device_t dev, device_t child, int type, int *rid,
 }
 
 static int
-vmd_adjust_resource(device_t dev, device_t child, int type,
-    struct resource *r, rman_res_t start, rman_res_t end)
+vmd_adjust_resource(device_t dev, device_t child, int type, struct resource *r,
+    rman_res_t start, rman_res_t end)
 {
 
 	if (type == SYS_RES_IRQ) {
-		return (bus_generic_adjust_resource(dev, child, type, r,
-		    start, end));
+		return (bus_generic_adjust_resource(dev, child, type, r, start,
+		    end));
 	}
 	return (rman_adjust_resource(r, start, end));
 }
@@ -489,8 +498,7 @@ vmd_release_resource(device_t dev, device_t child, int type, int rid,
 {
 
 	if (type == SYS_RES_IRQ) {
-		return (bus_generic_release_resource(dev, child, type, rid,
-		    r));
+		return (bus_generic_release_resource(dev, child, type, rid, r));
 	}
 	return (rman_release_resource(r));
 }
@@ -504,21 +512,21 @@ vmd_route_interrupt(device_t dev, device_t child, int pin)
 }
 
 static int
-vmd_alloc_msi(device_t dev, device_t child, int count, int maxcount,
-    int *irqs)
+vmd_alloc_msi(device_t dev, device_t child, int count, int maxcount, int *irqs)
 {
 	struct vmd_softc *sc = device_get_softc(dev);
 	struct vmd_irq_user *u;
 	int i, ibest = 0, best = INT_MAX;
 
 	if (sc->vmd_msix_count == 0) {
-		return (PCIB_ALLOC_MSI(device_get_parent(device_get_parent(dev)),
-		    child, count, maxcount, irqs));
+		return (
+		    PCIB_ALLOC_MSI(device_get_parent(device_get_parent(dev)),
+			child, count, maxcount, irqs));
 	}
 
 	if (count > vmd_max_msi)
 		return (ENOSPC);
-	LIST_FOREACH(u, &sc->vmd_users, viu_link) {
+	LIST_FOREACH (u, &sc->vmd_users, viu_link) {
 		if (u->viu_child == child)
 			return (EBUSY);
 	}
@@ -548,11 +556,12 @@ vmd_release_msi(device_t dev, device_t child, int count, int *irqs)
 	struct vmd_irq_user *u;
 
 	if (sc->vmd_msix_count == 0) {
-		return (PCIB_RELEASE_MSI(device_get_parent(device_get_parent(dev)),
-		    child, count, irqs));
+		return (
+		    PCIB_RELEASE_MSI(device_get_parent(device_get_parent(dev)),
+			child, count, irqs));
 	}
 
-	LIST_FOREACH(u, &sc->vmd_users, viu_link) {
+	LIST_FOREACH (u, &sc->vmd_users, viu_link) {
 		if (u->viu_child == child) {
 			sc->vmd_irq[u->viu_vector].vi_nusers -= count;
 			LIST_REMOVE(u, viu_link);
@@ -571,12 +580,13 @@ vmd_alloc_msix(device_t dev, device_t child, int *irq)
 	int i, ibest = 0, best = INT_MAX;
 
 	if (sc->vmd_msix_count == 0) {
-		return (PCIB_ALLOC_MSIX(device_get_parent(device_get_parent(dev)),
-		    child, irq));
+		return (
+		    PCIB_ALLOC_MSIX(device_get_parent(device_get_parent(dev)),
+			child, irq));
 	}
 
 	i = 0;
-	LIST_FOREACH(u, &sc->vmd_users, viu_link) {
+	LIST_FOREACH (u, &sc->vmd_users, viu_link) {
 		if (u->viu_child == child)
 			i++;
 	}
@@ -607,11 +617,12 @@ vmd_release_msix(device_t dev, device_t child, int irq)
 	struct vmd_irq_user *u;
 
 	if (sc->vmd_msix_count == 0) {
-		return (PCIB_RELEASE_MSIX(device_get_parent(device_get_parent(dev)),
-		    child, irq));
+		return (
+		    PCIB_RELEASE_MSIX(device_get_parent(device_get_parent(dev)),
+			child, irq));
 	}
 
-	LIST_FOREACH(u, &sc->vmd_users, viu_link) {
+	LIST_FOREACH (u, &sc->vmd_users, viu_link) {
 		if (u->viu_child == child &&
 		    sc->vmd_irq[u->viu_vector].vi_irq == irq) {
 			sc->vmd_irq[u->viu_vector].vi_nusers--;
@@ -624,7 +635,8 @@ vmd_release_msix(device_t dev, device_t child, int irq)
 }
 
 static int
-vmd_map_msi(device_t dev, device_t child, int irq, uint64_t *addr, uint32_t *data)
+vmd_map_msi(device_t dev, device_t child, int irq, uint64_t *addr,
+    uint32_t *data)
 {
 	struct vmd_softc *sc = device_get_softc(dev);
 	int i;
@@ -647,41 +659,41 @@ vmd_map_msi(device_t dev, device_t child, int irq, uint64_t *addr, uint32_t *dat
 
 static device_method_t vmd_pci_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			vmd_probe),
-	DEVMETHOD(device_attach,		vmd_attach),
-	DEVMETHOD(device_detach,		vmd_detach),
-	DEVMETHOD(device_suspend,		bus_generic_suspend),
-	DEVMETHOD(device_resume,		bus_generic_resume),
-	DEVMETHOD(device_shutdown,		bus_generic_shutdown),
+	DEVMETHOD(device_probe, vmd_probe),
+	DEVMETHOD(device_attach, vmd_attach),
+	DEVMETHOD(device_detach, vmd_detach),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
 
 	/* Bus interface */
-	DEVMETHOD(bus_get_dma_tag,		vmd_get_dma_tag),
-	DEVMETHOD(bus_read_ivar,		pcib_read_ivar),
-	DEVMETHOD(bus_write_ivar,		pcib_write_ivar),
-	DEVMETHOD(bus_alloc_resource,		vmd_alloc_resource),
-	DEVMETHOD(bus_adjust_resource,		vmd_adjust_resource),
-	DEVMETHOD(bus_release_resource,		vmd_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
+	DEVMETHOD(bus_get_dma_tag, vmd_get_dma_tag),
+	DEVMETHOD(bus_read_ivar, pcib_read_ivar),
+	DEVMETHOD(bus_write_ivar, pcib_write_ivar),
+	DEVMETHOD(bus_alloc_resource, vmd_alloc_resource),
+	DEVMETHOD(bus_adjust_resource, vmd_adjust_resource),
+	DEVMETHOD(bus_release_resource, vmd_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_maxslots,		pcib_maxslots),
-	DEVMETHOD(pcib_read_config,		vmd_read_config),
-	DEVMETHOD(pcib_write_config,		vmd_write_config),
-	DEVMETHOD(pcib_route_interrupt,		vmd_route_interrupt),
-	DEVMETHOD(pcib_alloc_msi,		vmd_alloc_msi),
-	DEVMETHOD(pcib_release_msi,		vmd_release_msi),
-	DEVMETHOD(pcib_alloc_msix,		vmd_alloc_msix),
-	DEVMETHOD(pcib_release_msix,		vmd_release_msix),
-	DEVMETHOD(pcib_map_msi,			vmd_map_msi),
-	DEVMETHOD(pcib_request_feature,		pcib_request_feature_allow),
+	DEVMETHOD(pcib_maxslots, pcib_maxslots),
+	DEVMETHOD(pcib_read_config, vmd_read_config),
+	DEVMETHOD(pcib_write_config, vmd_write_config),
+	DEVMETHOD(pcib_route_interrupt, vmd_route_interrupt),
+	DEVMETHOD(pcib_alloc_msi, vmd_alloc_msi),
+	DEVMETHOD(pcib_release_msi, vmd_release_msi),
+	DEVMETHOD(pcib_alloc_msix, vmd_alloc_msix),
+	DEVMETHOD(pcib_release_msix, vmd_release_msix),
+	DEVMETHOD(pcib_map_msi, vmd_map_msi),
+	DEVMETHOD(pcib_request_feature, pcib_request_feature_allow),
 
 	DEVMETHOD_END
 };
 
 DEFINE_CLASS_0(pcib, vmd_pci_driver, vmd_pci_methods, sizeof(struct vmd_softc));
 DRIVER_MODULE(vmd, pci, vmd_pci_driver, NULL, NULL);
-MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, vmd,
-    vmd_devs, nitems(vmd_devs) - 1);
+MODULE_PNP_INFO("U16:vendor;U16:device;D:#", pci, vmd, vmd_devs,
+    nitems(vmd_devs) - 1);

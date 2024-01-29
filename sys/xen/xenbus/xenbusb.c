@@ -4,20 +4,20 @@
  * Copyright (C) 2005 Rusty Russell, IBM Corporation
  * Copyright (C) 2005 Mike Wray, Hewlett-Packard
  * Copyright (C) 2005 XenSource Ltd
- * 
+ *
  * This file may be distributed separately from the Linux kernel, or
  * incorporated into other software packages, subject to the following license:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this source file (the "Software"), to deal in the Software without
  * restriction, including without limitation the rights to use, copy, modify,
  * merge, publish, distribute, sublicense, and/or sell copies of the Software,
  * and to permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,25 +53,25 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/sbuf.h>
+#include <sys/sx.h>
 #include <sys/sysctl.h>
 #include <sys/syslog.h>
-#include <sys/systm.h>
-#include <sys/sx.h>
 #include <sys/taskqueue.h>
 
 #include <machine/stdarg.h>
 
-#include <xen/xen-os.h>
 #include <xen/gnttab.h>
-#include <xen/xenstore/xenstorevar.h>
+#include <xen/xen-os.h>
 #include <xen/xenbus/xenbusb.h>
 #include <xen/xenbus/xenbusvar.h>
+#include <xen/xenstore/xenstorevar.h>
 
 /*------------------------- Private Functions --------------------------------*/
 /**
@@ -142,8 +142,8 @@ xenbusb_otherend_watch_cb(struct xs_watch *watch, const char **vec,
 	bus = device_get_parent(child);
 
 	path = vec[XS_WATCH_PATH];
-	if (ivars->xd_otherend_path == NULL
-	 || strncmp(ivars->xd_otherend_path, path, ivars->xd_otherend_path_len))
+	if (ivars->xd_otherend_path == NULL ||
+	    strncmp(ivars->xd_otherend_path, path, ivars->xd_otherend_path_len))
 		return;
 
 	newstate = xenbus_read_driver_state(ivars->xd_otherend_path);
@@ -179,8 +179,8 @@ xenbusb_local_watch_cb(struct xs_watch *watch, const char **vec,
 	bus = device_get_parent(child);
 
 	path = vec[XS_WATCH_PATH];
-	if (ivars->xd_node == NULL
-	 || strncmp(ivars->xd_node, path, ivars->xd_node_len))
+	if (ivars->xd_node == NULL ||
+	    strncmp(ivars->xd_node, path, ivars->xd_node_len))
 		return;
 
 	XENBUSB_LOCALEND_CHANGED(bus, child, &path[ivars->xd_node_len]);
@@ -197,7 +197,7 @@ xenbusb_local_watch_cb(struct xs_watch *watch, const char **vec,
  * \return  The device_t of the found device if any, or NULL.
  *
  * \note device_t is a pointer type, so it can be compared against
- *       NULL for validity. 
+ *       NULL for validity.
  */
 static device_t
 xenbusb_device_exists(device_t dev, const char *node)
@@ -300,13 +300,13 @@ xenbusb_enumerate_bus(struct xenbusb_softc *xbs)
  * Handler for all generic XenBus device systcl nodes.
  */
 static int
-xenbusb_device_sysctl_handler(SYSCTL_HANDLER_ARGS)  
+xenbusb_device_sysctl_handler(SYSCTL_HANDLER_ARGS)
 {
 	device_t dev;
-        const char *value;
+	const char *value;
 
 	dev = (device_t)arg1;
-        switch (arg2) {
+	switch (arg2) {
 	case XENBUS_IVAR_NODE:
 		value = xenbus_get_node(dev);
 		break;
@@ -318,12 +318,11 @@ xenbusb_device_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		break;
 	case XENBUS_IVAR_OTHEREND_ID:
 		return (sysctl_handle_int(oidp, NULL,
-					  xenbus_get_otherend_id(dev),
-					  req));
+		    xenbus_get_otherend_id(dev), req));
 		/* NOTREACHED */
 	case XENBUS_IVAR_OTHEREND_PATH:
 		value = xenbus_get_otherend_path(dev);
-                break;
+		break;
 	default:
 		return (EINVAL);
 	}
@@ -339,65 +338,34 @@ static void
 xenbusb_device_sysctl_init(device_t dev)
 {
 	struct sysctl_ctx_list *ctx;
-	struct sysctl_oid      *tree;
+	struct sysctl_oid *tree;
 
-	ctx  = device_get_sysctl_ctx(dev);
+	ctx = device_get_sysctl_ctx(dev);
 	tree = device_get_sysctl_tree(dev);
 
-        SYSCTL_ADD_PROC(ctx,
-			SYSCTL_CHILDREN(tree),
-			OID_AUTO,
-			"xenstore_path",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			dev,
-			XENBUS_IVAR_NODE,
-			xenbusb_device_sysctl_handler,
-			"A",
-			"XenStore path to device");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "xenstore_path",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, XENBUS_IVAR_NODE,
+	    xenbusb_device_sysctl_handler, "A", "XenStore path to device");
 
-        SYSCTL_ADD_PROC(ctx,
-			SYSCTL_CHILDREN(tree),
-			OID_AUTO,
-			"xenbus_dev_type",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			dev,
-			XENBUS_IVAR_TYPE,
-			xenbusb_device_sysctl_handler,
-			"A",
-			"XenBus device type");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO, "xenbus_dev_type",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev, XENBUS_IVAR_TYPE,
+	    xenbusb_device_sysctl_handler, "A", "XenBus device type");
 
-        SYSCTL_ADD_PROC(ctx,
-			SYSCTL_CHILDREN(tree),
-			OID_AUTO,
-			"xenbus_connection_state",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			dev,
-			XENBUS_IVAR_STATE,
-			xenbusb_device_sysctl_handler,
-			"A",
-			"XenBus state of peer connection");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
+	    "xenbus_connection_state",
+	    CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+	    XENBUS_IVAR_STATE, xenbusb_device_sysctl_handler, "A",
+	    "XenBus state of peer connection");
 
-        SYSCTL_ADD_PROC(ctx,
-			SYSCTL_CHILDREN(tree),
-			OID_AUTO,
-			"xenbus_peer_domid",
-			CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			dev,
-			XENBUS_IVAR_OTHEREND_ID,
-			xenbusb_device_sysctl_handler,
-			"I",
-			"Xen domain ID of peer");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
+	    "xenbus_peer_domid", CTLTYPE_INT | CTLFLAG_RD | CTLFLAG_MPSAFE, dev,
+	    XENBUS_IVAR_OTHEREND_ID, xenbusb_device_sysctl_handler, "I",
+	    "Xen domain ID of peer");
 
-        SYSCTL_ADD_PROC(ctx,
-			SYSCTL_CHILDREN(tree),
-			OID_AUTO,
-			"xenstore_peer_path",
-			CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
-			dev,
-			XENBUS_IVAR_OTHEREND_PATH,
-			xenbusb_device_sysctl_handler,
-			"A",
-			"XenStore path to peer device");
+	SYSCTL_ADD_PROC(ctx, SYSCTL_CHILDREN(tree), OID_AUTO,
+	    "xenstore_peer_path", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE,
+	    dev, XENBUS_IVAR_OTHEREND_PATH, xenbusb_device_sysctl_handler, "A",
+	    "XenStore path to peer device");
 }
 
 /**
@@ -413,10 +381,10 @@ xenbusb_release_confighook(struct xenbusb_softc *xbs)
 {
 	mtx_lock(&xbs->xbs_lock);
 	KASSERT(xbs->xbs_connecting_children > 0,
-		("Connecting device count error\n"));
+	    ("Connecting device count error\n"));
 	xbs->xbs_connecting_children--;
-	if (xbs->xbs_connecting_children == 0
-	 && (xbs->xbs_flags & XBS_ATTACH_CH_ACTIVE) != 0) {
+	if (xbs->xbs_connecting_children == 0 &&
+	    (xbs->xbs_flags & XBS_ATTACH_CH_ACTIVE) != 0) {
 		xbs->xbs_flags &= ~XBS_ATTACH_CH_ACTIVE;
 		mtx_unlock(&xbs->xbs_lock);
 		config_intrhook_disestablish(&xbs->xbs_attach_ch);
@@ -550,7 +518,7 @@ xenbusb_probe_children_cb(void *arg, int pending __unused)
  */
 static void
 xenbusb_devices_changed(struct xs_watch *watch, const char **vec,
-			unsigned int len)
+    unsigned int len)
 {
 	struct xenbusb_softc *xbs;
 	device_t dev;
@@ -564,8 +532,9 @@ xenbusb_devices_changed(struct xs_watch *watch, const char **vec,
 	dev = xbs->xbs_dev;
 
 	if (len <= XS_WATCH_PATH) {
-		device_printf(dev, "xenbusb_devices_changed: "
-			      "Short Event Data.\n");
+		device_printf(dev,
+		    "xenbusb_devices_changed: "
+		    "Short Event Data.\n");
 		return;
 	}
 
@@ -611,7 +580,7 @@ out:
  * Since interrupts are always functional at the time of XenBus configuration,
  * there is nothing to be done when the callback occurs.  This hook is only
  * registered to hold up boot processing while XenBus devices come online.
- * 
+ *
  * \param arg  Unused configuration hook callback argument.
  */
 static void
@@ -646,7 +615,7 @@ xenbusb_add_device(device_t dev, const char *type, const char *id)
 	sbuf_finish(devpath_sbuf);
 	devpath = sbuf_data(devpath_sbuf);
 
-	ivars = malloc(sizeof(*ivars), M_XENBUS, M_ZERO|M_WAITOK);
+	ivars = malloc(sizeof(*ivars), M_XENBUS, M_ZERO | M_WAITOK);
 	error = ENXIO;
 
 	if (xs_exists(XST_NIL, devpath, "") != 0) {
@@ -662,7 +631,7 @@ xenbusb_add_device(device_t dev, const char *type, const char *id)
 			error = 0;
 			goto out;
 		}
-			
+
 		state = xenbus_read_driver_state(devpath);
 		if (state != XenbusStateInitialising) {
 			/*
@@ -671,7 +640,8 @@ xenbusb_add_device(device_t dev, const char *type, const char *id)
 			 * switching to Closed.
 			 */
 			printf("xenbusb_add_device: Device %s ignored. "
-			       "State %d\n", devpath, state);
+			       "State %d\n",
+			    devpath, state);
 			error = 0;
 			goto out;
 		}
@@ -680,18 +650,19 @@ xenbusb_add_device(device_t dev, const char *type, const char *id)
 		ivars->xd_flags = XDF_CONNECTING;
 		ivars->xd_node = strdup(devpath, M_XENBUS);
 		ivars->xd_node_len = strlen(devpath);
-		ivars->xd_type  = strdup(type, M_XENBUS);
+		ivars->xd_type = strdup(type, M_XENBUS);
 		ivars->xd_state = XenbusStateInitialising;
 
 		error = XENBUSB_GET_OTHEREND_NODE(dev, ivars);
 		if (error) {
 			printf("xenbus_update_device: %s no otherend id\n",
-			    devpath); 
+			    devpath);
 			goto out;
 		}
 
-		statepath = malloc(ivars->xd_otherend_path_len
-		    + strlen("/state") + 1, M_XENBUS, M_WAITOK);
+		statepath = malloc(ivars->xd_otherend_path_len +
+			strlen("/state") + 1,
+		    M_XENBUS, M_WAITOK);
 		sprintf(statepath, "%s/state", ivars->xd_otherend_path);
 		ivars->xd_otherend_watch.node = statepath;
 		ivars->xd_otherend_watch.callback = xenbusb_otherend_watch_cb;
@@ -820,8 +791,9 @@ xenbusb_resume(device_t dev)
 			if (error)
 				return (error);
 
-			statepath = malloc(ivars->xd_otherend_path_len
-			    + strlen("/state") + 1, M_XENBUS, M_WAITOK);
+			statepath = malloc(ivars->xd_otherend_path_len +
+				strlen("/state") + 1,
+			    M_XENBUS, M_WAITOK);
 			sprintf(statepath, "%s/state", ivars->xd_otherend_path);
 
 			free(ivars->xd_otherend_watch.node, M_XENBUS);
@@ -855,7 +827,7 @@ int
 xenbusb_print_child(device_t dev, device_t child)
 {
 	struct xenbus_device_ivars *ivars = device_get_ivars(child);
-	int	retval = 0;
+	int retval = 0;
 
 	retval += bus_print_child_header(dev, child);
 	retval += printf(" at %s", ivars->xd_node);
@@ -871,23 +843,23 @@ xenbusb_read_ivar(device_t dev, device_t child, int index, uintptr_t *result)
 
 	switch (index) {
 	case XENBUS_IVAR_NODE:
-		*result = (uintptr_t) ivars->xd_node;
+		*result = (uintptr_t)ivars->xd_node;
 		return (0);
 
 	case XENBUS_IVAR_TYPE:
-		*result = (uintptr_t) ivars->xd_type;
+		*result = (uintptr_t)ivars->xd_type;
 		return (0);
 
 	case XENBUS_IVAR_STATE:
-		*result = (uintptr_t) ivars->xd_state;
+		*result = (uintptr_t)ivars->xd_state;
 		return (0);
 
 	case XENBUS_IVAR_OTHEREND_ID:
-		*result = (uintptr_t) ivars->xd_otherend_id;
+		*result = (uintptr_t)ivars->xd_otherend_id;
 		return (0);
 
 	case XENBUS_IVAR_OTHEREND_PATH:
-		*result = (uintptr_t) ivars->xd_otherend_path;
+		*result = (uintptr_t)ivars->xd_otherend_path;
 		return (0);
 	}
 
@@ -902,8 +874,7 @@ xenbusb_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 	int currstate;
 
 	switch (index) {
-	case XENBUS_IVAR_STATE:
-	{
+	case XENBUS_IVAR_STATE: {
 		int error;
 		struct xs_transaction xst;
 
@@ -946,7 +917,7 @@ xenbusb_write_ivar(device_t dev, device_t child, int index, uintptr_t value)
 
 		if ((ivars->xd_flags & XDF_CONNECTING) != 0 &&
 		    (newstate == XenbusStateClosed ||
-		    newstate == XenbusStateConnected)) {
+			newstate == XenbusStateConnected)) {
 			struct xenbusb_softc *xbs;
 
 			ivars->xd_flags &= ~XDF_CONNECTING;

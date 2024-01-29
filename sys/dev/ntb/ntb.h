@@ -174,7 +174,7 @@ int ntb_set_ctx(device_t ntb, void *ctx, const struct ntb_ctx_ops *ctx_ops);
  *
  * Get a driver context and operations associated with a ntb device.
  */
-void * ntb_get_ctx(device_t ntb, const struct ntb_ctx_ops **ctx_ops);
+void *ntb_get_ctx(device_t ntb, const struct ntb_ctx_ops **ctx_ops);
 
 /*
  * ntb_clear_ctx() - disassociate any driver context from an ntb device

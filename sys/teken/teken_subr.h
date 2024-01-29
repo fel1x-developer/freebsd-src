@@ -189,7 +189,7 @@ teken_subr_alignment_test(teken_t *t)
 	t->t_scrollreg.ts_begin = 0;
 	t->t_scrollreg.ts_end = t->t_winsize.tp_row;
 	t->t_originreg = t->t_scrollreg;
-	t->t_stateflags &= ~(TS_WRAPPED|TS_ORIGIN);
+	t->t_stateflags &= ~(TS_WRAPPED | TS_ORIGIN);
 	teken_funcs_cursor(t);
 
 	tr.tr_begin.tp_row = 0;
@@ -326,11 +326,13 @@ teken_subr_cursor_position(teken_t *t, unsigned int row, unsigned int col)
 
 	row = (row - 1) + t->t_originreg.ts_begin;
 	t->t_cursor.tp_row = row < t->t_originreg.ts_end ?
-	    row : t->t_originreg.ts_end - 1;
+	    row :
+	    t->t_originreg.ts_end - 1;
 
 	col--;
 	t->t_cursor.tp_col = col < t->t_winsize.tp_col ?
-	    col : t->t_winsize.tp_col - 1;
+	    col :
+	    t->t_winsize.tp_col - 1;
 
 	t->t_stateflags &= ~TS_WRAPPED;
 	teken_funcs_cursor(t);
@@ -606,7 +608,8 @@ teken_subr_horizontal_position_absolute(teken_t *t, unsigned int col)
 
 	col--;
 	t->t_cursor.tp_col = col < t->t_winsize.tp_col ?
-	    col : t->t_winsize.tp_col - 1;
+	    col :
+	    t->t_winsize.tp_col - 1;
 
 	t->t_stateflags &= ~TS_WRAPPED;
 	teken_funcs_cursor(t);
@@ -864,8 +867,8 @@ teken_subr_regular_character(teken_t *t, teken_char_t c)
 		}
 	} else if (t->t_stateflags & TS_AUTOWRAP &&
 	    ((t->t_stateflags & TS_WRAPPED &&
-	    t->t_cursor.tp_col + 1 == t->t_winsize.tp_col) ||
-	    t->t_cursor.tp_col + width > t->t_winsize.tp_col)) {
+		 t->t_cursor.tp_col + 1 == t->t_winsize.tp_col) ||
+		t->t_cursor.tp_col + width > t->t_winsize.tp_col)) {
 		teken_pos_t tp;
 
 		/*
@@ -887,8 +890,8 @@ teken_subr_regular_character(teken_t *t, teken_char_t c)
 				 * outside scrolling region, but at the
 				 * bottom of the screen.
 				 */
-				teken_subr_do_putchar(t, &t->t_cursor,
-				    c, width);
+				teken_subr_do_putchar(t, &t->t_cursor, c,
+				    width);
 				return;
 			}
 		}
@@ -1326,7 +1329,8 @@ teken_subr_vertical_position_absolute(teken_t *t, unsigned int row)
 
 	row = (row - 1) + t->t_originreg.ts_begin;
 	t->t_cursor.tp_row = row < t->t_originreg.ts_end ?
-	    row : t->t_originreg.ts_end - 1;
+	    row :
+	    t->t_originreg.ts_end - 1;
 
 	t->t_stateflags &= ~TS_WRAPPED;
 	teken_funcs_cursor(t);

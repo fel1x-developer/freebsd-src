@@ -15,7 +15,7 @@
 /* #undef HAVE_CRYPT_H */
 
 /* Define to 1 if you have the declaration of `crypt', and to 0 if you don't.
-   */
+ */
 #define HAVE_DECL_CRYPT 1
 
 /* Define to 1 if you have the declaration of `environ', and to 0 if you
@@ -31,7 +31,7 @@
 #define HAVE_DECL_GETPGRP 1
 
 /* Define to 1 if you have the <dirent.h> header file, and it defines `DIR'.
-   */
+ */
 #define HAVE_DIRENT_H 1
 
 /* Define to 1 if you have the `dup2' function. */
@@ -116,7 +116,7 @@
 #define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the `strcoll' function and it is properly defined.
-   */
+ */
 #define HAVE_STRCOLL 1
 
 /* Define to 1 if you have the `strerror' function. */
@@ -165,11 +165,11 @@
 #define HAVE_SYSCONF 1
 
 /* Define to 1 if you have the <sys/dir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_DIR_H */
 
 /* Define to 1 if you have the <sys/ndir.h> header file, and it defines `DIR'.
-   */
+ */
 /* #undef HAVE_SYS_NDIR_H */
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
@@ -269,8 +269,8 @@
    code using `volatile' can become incorrect without. Disable with care. */
 /* #undef volatile */
 
-#include "config_p.h"
 #include "config_f.h"
+#include "config_p.h"
 
 /* Work around a vendor issue where config_f.h is #undef'ing this setting */
 #define SYSMALLOC

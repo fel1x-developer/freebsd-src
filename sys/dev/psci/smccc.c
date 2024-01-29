@@ -39,10 +39,10 @@
 #include <dev/psci/psci.h>
 #include <dev/psci/smccc.h>
 
-#define	SMCCC_VERSION_1_0	0x10000
+#define SMCCC_VERSION_1_0 0x10000
 
 /* Assume 1.0 until we detect a later version */
-static uint32_t	smccc_version;
+static uint32_t smccc_version;
 
 void
 smccc_init(void)

@@ -26,23 +26,23 @@
 
 struct mkuz_fifo_queue;
 
-#define ITEMS_PER_WORKER	4
+#define ITEMS_PER_WORKER 4
 
-#define MAX_WORKERS_AUTO	24
+#define MAX_WORKERS_AUTO 24
 
 struct mkuz_conveyor {
-    /*
-     * Work items are places in here, and picked up by workers in a FIFO
-     * fashion.
-     */
-    struct mkuz_fifo_queue *wrk_queue;
-    /*
-     * Results are dropped into this FIFO and consumer is buzzed to pick them
-     * up
-     */
-    struct mkuz_fifo_queue *results;
+	/*
+	 * Work items are places in here, and picked up by workers in a FIFO
+	 * fashion.
+	 */
+	struct mkuz_fifo_queue *wrk_queue;
+	/*
+	 * Results are dropped into this FIFO and consumer is buzzed to pick
+	 * them up
+	 */
+	struct mkuz_fifo_queue *results;
 
-    pthread_t wthreads[];
+	pthread_t wthreads[];
 };
 
 struct mkuz_cfg;

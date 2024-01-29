@@ -32,13 +32,14 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
 #include <string.h>
-#include "un-namespace.h"
+
 #include "fvwrite.h"
 #include "libc_private.h"
 #include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 /*
  * Write the given string to stdout, appending a newline.

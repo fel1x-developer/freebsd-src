@@ -47,7 +47,7 @@
  * value defined here sets an upper limit on the number of requests it can
  * process before it returns control to the poll thread.
  */
-#define LIO_MAX_ORD_REQS_TO_PROCESS   4096
+#define LIO_MAX_ORD_REQS_TO_PROCESS 4096
 
 /*
  * Head of a response list. There are several response lists in the
@@ -57,20 +57,20 @@
 
 struct lio_response_list {
 	/* List structure to add delete pending entries to */
-	struct lio_stailq_head	head;
+	struct lio_stailq_head head;
 
 	/* A lock for this response list */
-	struct mtx		lock;
+	struct mtx lock;
 
-	volatile int		pending_req_count;
+	volatile int pending_req_count;
 };
 
 /* The type of response list. */
 enum {
-	LIO_ORDERED_LIST		= 0,
-	LIO_UNORDERED_NONBLOCKING_LIST	= 1,
-	LIO_UNORDERED_BLOCKING_LIST	= 2,
-	LIO_ORDERED_SC_LIST		= 3
+	LIO_ORDERED_LIST = 0,
+	LIO_UNORDERED_NONBLOCKING_LIST = 1,
+	LIO_UNORDERED_BLOCKING_LIST = 2,
+	LIO_ORDERED_SC_LIST = 3
 };
 
 /*
@@ -88,14 +88,14 @@ enum {
  */
 
 /*------   Error codes used by firmware (bits 15..0 set by firmware */
-#define LIO_FW_MAJOR_ERROR_CODE         0x0001
+#define LIO_FW_MAJOR_ERROR_CODE 0x0001
 
 /* A value of 0x00000000 indicates no error i.e. success */
-#define LIO_DRIVER_ERROR_NONE                 0x00000000
+#define LIO_DRIVER_ERROR_NONE 0x00000000
 
-#define LIO_DRIVER_ERROR_REQ_PENDING          0x00000001
-#define LIO_DRIVER_ERROR_REQ_TIMEOUT          0x00000003
-#define LIO_DRIVER_ERROR_REQ_EINTR            0x00000004
+#define LIO_DRIVER_ERROR_REQ_PENDING 0x00000001
+#define LIO_DRIVER_ERROR_REQ_TIMEOUT 0x00000003
+#define LIO_DRIVER_ERROR_REQ_EINTR 0x00000004
 
 /*
  * Status for a request.
@@ -108,11 +108,11 @@ enum {
  * the request processing * got interrupted due to a signal respectively.
  */
 enum {
-	LIO_REQUEST_DONE	= (LIO_DRIVER_ERROR_NONE),
-	LIO_REQUEST_PENDING	= (LIO_DRIVER_ERROR_REQ_PENDING),
-	LIO_REQUEST_TIMEOUT	= (LIO_DRIVER_ERROR_REQ_TIMEOUT),
-	LIO_REQUEST_INTERRUPTED	= (LIO_DRIVER_ERROR_REQ_EINTR),
-	LIO_REQUEST_NO_DEVICE	= (0x00000021),
+	LIO_REQUEST_DONE = (LIO_DRIVER_ERROR_NONE),
+	LIO_REQUEST_PENDING = (LIO_DRIVER_ERROR_REQ_PENDING),
+	LIO_REQUEST_TIMEOUT = (LIO_DRIVER_ERROR_REQ_TIMEOUT),
+	LIO_REQUEST_INTERRUPTED = (LIO_DRIVER_ERROR_REQ_EINTR),
+	LIO_REQUEST_NO_DEVICE = (0x00000021),
 	LIO_REQUEST_NOT_RUNNING,
 	LIO_REQUEST_INVALID_IQ,
 	LIO_REQUEST_INVALID_BUFCNT,
@@ -120,22 +120,21 @@ enum {
 	LIO_REQUEST_NO_MEMORY,
 	LIO_REQUEST_INVALID_BUFSIZE,
 	LIO_REQUEST_NO_PENDING_ENTRY,
-	LIO_REQUEST_NO_IQ_SPACE	= (0x7FFFFFFF)
+	LIO_REQUEST_NO_IQ_SPACE = (0x7FFFFFFF)
 };
 
-#define LIO_STAILQ_FIRST_ENTRY(ptr, type, elem)	\
-		(type *)((char *)((ptr)->stqh_first) - offsetof(type, elem))
+#define LIO_STAILQ_FIRST_ENTRY(ptr, type, elem) \
+	(type *)((char *)((ptr)->stqh_first) - offsetof(type, elem))
 
-#define LIO_FW_STATUS_CODE(status)		\
-		((LIO_FW_MAJOR_ERROR_CODE << 16) | (status))
+#define LIO_FW_STATUS_CODE(status) ((LIO_FW_MAJOR_ERROR_CODE << 16) | (status))
 
 /*
  * Initialize the response lists. The number of response lists to create is
  * given by count.
  * @param octeon_dev      - the octeon device structure.
  */
-int	lio_setup_response_list(struct octeon_device *octeon_dev);
-void	lio_delete_response_list(struct octeon_device *octeon_dev);
+int lio_setup_response_list(struct octeon_device *octeon_dev);
+void lio_delete_response_list(struct octeon_device *octeon_dev);
 
 /*
  * Check the status of first entry in the ordered list. If the instruction at
@@ -144,7 +143,7 @@ void	lio_delete_response_list(struct octeon_device *octeon_dev);
  * @param force_quit - the request is forced to timeout if this is 1
  * @return 1 if the ordered list is empty, 0 otherwise.
  */
-int	lio_process_ordered_list(struct octeon_device *octeon_dev,
-				 uint32_t force_quit);
+int lio_process_ordered_list(struct octeon_device *octeon_dev,
+    uint32_t force_quit);
 
-#endif	/* __LIO_RESPONSE_MANAGER_H__ */
+#endif /* __LIO_RESPONSE_MANAGER_H__ */

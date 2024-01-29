@@ -48,7 +48,7 @@ main(int argc, char **argv)
 		err(1, "capsicum");
 
 	while ((ch = getopt(argc, argv, "")) != -1)
-		switch(ch) {
+		switch (ch) {
 		case '?':
 		default:
 			usage();

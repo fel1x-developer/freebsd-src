@@ -53,16 +53,16 @@ procstat_basic(struct procstat *procstat __unused, struct kinfo_proc *kipp)
 	xo_emit("{:session_id/%5d/%d} ", kipp->ki_sid);
 	xo_emit("{:terminal_session_id/%5d/%d} ", kipp->ki_tsid);
 	xo_emit("{:threads/%3d/%d} ", kipp->ki_numthreads);
-	xo_emit("{:login/%-8s/%s} ", strlen(kipp->ki_login) ?
-	    kipp->ki_login : "-");
+	xo_emit("{:login/%-8s/%s} ",
+	    strlen(kipp->ki_login) ? kipp->ki_login : "-");
 	if (kipp->ki_kiflag & KI_LOCKBLOCK) {
-		xo_emit("{:lockname/*%-8s/%s} ", strlen(kipp->ki_lockname) ?
-		    kipp->ki_lockname : "-");
+		xo_emit("{:lockname/*%-8s/%s} ",
+		    strlen(kipp->ki_lockname) ? kipp->ki_lockname : "-");
 	} else {
-		xo_emit("{:wait_channel/%-9s/%s} ", strlen(kipp->ki_wmesg) ?
-		    kipp->ki_wmesg : "-");
+		xo_emit("{:wait_channel/%-9s/%s} ",
+		    strlen(kipp->ki_wmesg) ? kipp->ki_wmesg : "-");
 	}
-	xo_emit("{:emulation/%-13s/%s} ", strcmp(kipp->ki_emul, "null") ?
-	    kipp->ki_emul : "-");
+	xo_emit("{:emulation/%-13s/%s} ",
+	    strcmp(kipp->ki_emul, "null") ? kipp->ki_emul : "-");
 	xo_emit("{:command/%-12s/%s}\n", kipp->ki_comm);
 }

@@ -25,6 +25,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stand.h>
 
 #include "libuserboot.h"
@@ -33,7 +34,7 @@ ssize_t
 userboot_copyin(const void *src, vm_offset_t va, size_t len)
 {
 
-        CALLBACK(copyin, src, va, len);
+	CALLBACK(copyin, src, va, len);
 	return (len);
 }
 

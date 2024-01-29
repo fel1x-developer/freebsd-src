@@ -11,11 +11,11 @@
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *    this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
  * 3. Neither the name of the Broadcom Inc. nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
+ *    may be used to endorse or promote products derived from this software
+ * without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -40,10 +40,8 @@
  */
 
 #ifndef MPI30_API_H
-#define MPI30_API_H     1
+#define MPI30_API_H 1
 
-#include "mpi30_type.h"
-#include "mpi30_transport.h"
 #include "mpi30_cnfg.h"
 #include "mpi30_image.h"
 #include "mpi30_init.h"
@@ -53,5 +51,7 @@
 #include "mpi30_sas.h"
 #include "mpi30_targ.h"
 #include "mpi30_tool.h"
+#include "mpi30_transport.h"
+#include "mpi30_type.h"
 
-#endif  /* MPI30_API_H */
+#endif /* MPI30_API_H */

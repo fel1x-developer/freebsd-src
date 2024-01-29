@@ -29,7 +29,7 @@
 #else /* !__arm__ */
 
 #ifndef _MACHINE_CPUFUNC_H_
-#define	_MACHINE_CPUFUNC_H_
+#define _MACHINE_CPUFUNC_H_
 
 static __inline void
 breakpoint(void)
@@ -48,10 +48,9 @@ dbg_disable(void)
 {
 	uint32_t ret;
 
-	__asm __volatile(
-	    "mrs %x0, daif   \n"
-	    "msr daifset, #(" __XSTRING(DAIF_D) ") \n"
-	    : "=&r" (ret));
+	__asm __volatile("mrs %x0, daif   \n"
+			 "msr daifset, #(" __XSTRING(DAIF_D) ") \n"
+			 : "=&r"(ret));
 
 	return (ret);
 }
@@ -69,10 +68,9 @@ intr_disable(void)
 	/* DAIF is a 32-bit register */
 	uint32_t ret;
 
-	__asm __volatile(
-	    "mrs %x0, daif   \n"
-	    "msr daifset, #(" __XSTRING(DAIF_INTR) ") \n"
-	    : "=&r" (ret));
+	__asm __volatile("mrs %x0, daif   \n"
+			 "msr daifset, #(" __XSTRING(DAIF_INTR) ") \n"
+			 : "=&r"(ret));
 
 	return (ret);
 }
@@ -133,31 +131,28 @@ static __inline void
 set_ttbr0(uint64_t ttbr0)
 {
 
-	__asm __volatile(
-	    "msr ttbr0_el1, %0 \n"
-	    "isb               \n"
-	    :
-	    : "r" (ttbr0));
+	__asm __volatile("msr ttbr0_el1, %0 \n"
+			 "isb               \n"
+			 :
+			 : "r"(ttbr0));
 }
 
 static __inline void
 invalidate_icache(void)
 {
 
-	__asm __volatile(
-	    "ic ialluis        \n"
-	    "dsb ish           \n"
-	    "isb               \n");
+	__asm __volatile("ic ialluis        \n"
+			 "dsb ish           \n"
+			 "isb               \n");
 }
 
 static __inline void
 invalidate_local_icache(void)
 {
 
-	__asm __volatile(
-	    "ic iallu          \n"
-	    "dsb nsh           \n"
-	    "isb               \n");
+	__asm __volatile("ic iallu          \n"
+			 "dsb nsh           \n"
+			 "isb               \n");
 }
 
 extern bool icache_aliasing;
@@ -168,19 +163,20 @@ extern int64_t icache_line_size;
 extern int64_t idcache_line_size;
 extern int64_t dczva_line_size;
 
-#define	cpu_nullop()			arm64_nullop()
-#define	cpufunc_nullop()		arm64_nullop()
+#define cpu_nullop() arm64_nullop()
+#define cpufunc_nullop() arm64_nullop()
 
-#define	cpu_tlb_flushID()		arm64_tlb_flushID()
+#define cpu_tlb_flushID() arm64_tlb_flushID()
 
-#define	cpu_dcache_wbinv_range(a, s)	arm64_dcache_wbinv_range((a), (s))
-#define	cpu_dcache_inv_range(a, s)	arm64_dcache_inv_range((a), (s))
-#define	cpu_dcache_wb_range(a, s)	arm64_dcache_wb_range((a), (s))
+#define cpu_dcache_wbinv_range(a, s) arm64_dcache_wbinv_range((a), (s))
+#define cpu_dcache_inv_range(a, s) arm64_dcache_inv_range((a), (s))
+#define cpu_dcache_wb_range(a, s) arm64_dcache_wb_range((a), (s))
 
 extern void (*arm64_icache_sync_range)(vm_offset_t, vm_size_t);
 
-#define	cpu_icache_sync_range(a, s)	arm64_icache_sync_range((a), (s))
-#define cpu_icache_sync_range_checked(a, s) arm64_icache_sync_range_checked((a), (s))
+#define cpu_icache_sync_range(a, s) arm64_icache_sync_range((a), (s))
+#define cpu_icache_sync_range_checked(a, s) \
+	arm64_icache_sync_range_checked((a), (s))
 
 void arm64_nullop(void);
 void arm64_tlb_flushID(void);
@@ -193,7 +189,7 @@ void arm64_dcache_inv_range(vm_offset_t, vm_size_t);
 void arm64_dcache_wb_range(vm_offset_t, vm_size_t);
 bool arm64_get_writable_addr(vm_offset_t, vm_offset_t *);
 
-#endif	/* _KERNEL */
-#endif	/* _MACHINE_CPUFUNC_H_ */
+#endif /* _KERNEL */
+#endif /* _MACHINE_CPUFUNC_H_ */
 
 #endif /* !__arm__ */

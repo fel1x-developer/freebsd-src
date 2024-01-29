@@ -25,16 +25,16 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	__QCOM_MDIO_DEBUG_H__
-#define	__QCOM_MDIO_DEBUG_H__
+#ifndef __QCOM_MDIO_DEBUG_H__
+#define __QCOM_MDIO_DEBUG_H__
 
-#define	QCOM_MDIO_DEBUG_REG_READ		0x00000001
-#define	QCOM_MDIO_DEBUG_REG_WRITE		0x00000002
+#define QCOM_MDIO_DEBUG_REG_READ 0x00000001
+#define QCOM_MDIO_DEBUG_REG_WRITE 0x00000002
 
-#define	QCOM_MDIO_DPRINTF(sc, flags, ...)				\
-	do {								\
-		if ((sc)->sc_debug & (flags))				\
-			device_printf((sc)->sc_dev, __VA_ARGS__);	\
+#define QCOM_MDIO_DPRINTF(sc, flags, ...)                         \
+	do {                                                      \
+		if ((sc)->sc_debug & (flags))                     \
+			device_printf((sc)->sc_dev, __VA_ARGS__); \
 	} while (0)
 
-#endif	/* __QCOM_MDIO_DEBUG_H__ */
+#endif /* __QCOM_MDIO_DEBUG_H__ */

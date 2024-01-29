@@ -26,6 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "opt_platform.h"
+
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bio.h>
@@ -35,16 +37,16 @@
 #include <sys/kernel.h>
 #include <sys/kthread.h>
 #include <sys/lock.h>
-#include <sys/mbuf.h>
 #include <sys/malloc.h>
+#include <sys/mbuf.h>
 #include <sys/module.h>
 #include <sys/mutex.h>
-#include <geom/geom_disk.h>
 
 #include <dev/spibus/spi.h>
-#include "spibus_if.h"
 
-#include "opt_platform.h"
+#include <geom/geom_disk.h>
+
+#include "spibus_if.h"
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -52,60 +54,57 @@
 #include <dev/ofw/openfirm.h>
 
 static struct ofw_compat_data compat_data[] = {
-	{ "atmel,at45",		1 },
-	{ "atmel,dataflash",	1 },
-	{ NULL,			0 },
+	{ "atmel,at45", 1 },
+	{ "atmel,dataflash", 1 },
+	{ NULL, 0 },
 };
 #endif
 
 /* This is the information returned by the MANUFACTURER_ID command. */
 struct at45d_mfg_info {
-	uint32_t	jedec_id; /* Mfg ID, DevId1, DevId2, ExtLen */
-	uint16_t	ext_id;   /* ExtId1, ExtId2 */
+	uint32_t jedec_id; /* Mfg ID, DevId1, DevId2, ExtLen */
+	uint16_t ext_id;   /* ExtId1, ExtId2 */
 };
 
 /*
  * This is an entry in our table of metadata describing the chips.  We match on
  * both jedec id and extended id info returned by the MANUFACTURER_ID command.
  */
-struct at45d_flash_ident
-{
-	const char	*name;
-	uint32_t	jedec;
-	uint16_t	extid;
-	uint16_t	extmask;
-	uint16_t	pagecount;
-	uint16_t	pageoffset;
-	uint16_t	pagesize;
-	uint16_t	pagesize2n;
+struct at45d_flash_ident {
+	const char *name;
+	uint32_t jedec;
+	uint16_t extid;
+	uint16_t extmask;
+	uint16_t pagecount;
+	uint16_t pageoffset;
+	uint16_t pagesize;
+	uint16_t pagesize2n;
 };
 
-struct at45d_softc
-{
-	struct bio_queue_head	bio_queue;
-	struct mtx		sc_mtx;
-	struct disk		*disk;
-	struct proc		*p;
-	device_t		dev;
-	u_int			taskstate;
-	uint16_t		pagecount;
-	uint16_t		pageoffset;
-	uint16_t		pagesize;
-	void			*dummybuf;
+struct at45d_softc {
+	struct bio_queue_head bio_queue;
+	struct mtx sc_mtx;
+	struct disk *disk;
+	struct proc *p;
+	device_t dev;
+	u_int taskstate;
+	uint16_t pagecount;
+	uint16_t pageoffset;
+	uint16_t pagesize;
+	void *dummybuf;
 };
 
-#define	TSTATE_STOPPED	0
-#define	TSTATE_STOPPING	1
-#define	TSTATE_RUNNING	2
+#define TSTATE_STOPPED 0
+#define TSTATE_STOPPING 1
+#define TSTATE_RUNNING 2
 
-#define	AT45D_LOCK(_sc)			mtx_lock(&(_sc)->sc_mtx)
-#define	AT45D_UNLOCK(_sc)		mtx_unlock(&(_sc)->sc_mtx)
-#define	AT45D_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev), \
-	    "at45d", MTX_DEF)
-#define	AT45D_LOCK_DESTROY(_sc)		mtx_destroy(&_sc->sc_mtx);
-#define	AT45D_ASSERT_LOCKED(_sc)	mtx_assert(&_sc->sc_mtx, MA_OWNED);
-#define	AT45D_ASSERT_UNLOCKED(_sc)	mtx_assert(&_sc->sc_mtx, MA_NOTOWNED);
+#define AT45D_LOCK(_sc) mtx_lock(&(_sc)->sc_mtx)
+#define AT45D_UNLOCK(_sc) mtx_unlock(&(_sc)->sc_mtx)
+#define AT45D_LOCK_INIT(_sc) \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit(_sc->dev), "at45d", MTX_DEF)
+#define AT45D_LOCK_DESTROY(_sc) mtx_destroy(&_sc->sc_mtx);
+#define AT45D_ASSERT_LOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_OWNED);
+#define AT45D_ASSERT_UNLOCKED(_sc) mtx_assert(&_sc->sc_mtx, MA_NOTOWNED);
 
 /* bus entry points */
 static device_attach_t at45d_attach;
@@ -125,16 +124,16 @@ static int at45d_get_mfg_info(device_t dev, struct at45d_mfg_info *resp);
 static int at45d_get_status(device_t dev, uint8_t *status);
 static int at45d_wait_ready(device_t dev, uint8_t *status);
 
-#define	PAGE_TO_BUFFER_TRANSFER		0x53
-#define	PAGE_TO_BUFFER_COMPARE		0x60
-#define	PROGRAM_THROUGH_BUFFER		0x82
-#define	MANUFACTURER_ID			0x9f
-#define	STATUS_REGISTER_READ		0xd7
-#define	CONTINUOUS_ARRAY_READ		0xe8
+#define PAGE_TO_BUFFER_TRANSFER 0x53
+#define PAGE_TO_BUFFER_COMPARE 0x60
+#define PROGRAM_THROUGH_BUFFER 0x82
+#define MANUFACTURER_ID 0x9f
+#define STATUS_REGISTER_READ 0xd7
+#define CONTINUOUS_ARRAY_READ 0xe8
 
-#define	STATUS_READY			(1u << 7)
-#define	STATUS_CMPFAIL			(1u << 6)
-#define	STATUS_PAGE2N			(1u << 0)
+#define STATUS_READY (1u << 7)
+#define STATUS_CMPFAIL (1u << 6)
+#define STATUS_PAGE2N (1u << 0)
 
 /*
  * Metadata for supported chips.
@@ -151,15 +150,15 @@ static int at45d_wait_ready(device_t dev, uint8_t *status);
  */
 static const struct at45d_flash_ident at45d_flash_devices[] = {
 	/* Part Name    Jedec ID    ExtId   ExtMask PgCnt Offs PgSz PgSz2n */
-	{ "AT45DB011B", 0x1f220000, 0x0000, 0x0000,   512,  9,  264,  256 },
-	{ "AT45DB021B", 0x1f230000, 0x0000, 0x0000,  1024,  9,  264,  256 },
-	{ "AT45DB041x", 0x1f240000, 0x0000, 0x0000,  2028,  9,  264,  256 },
-	{ "AT45DB081B", 0x1f250000, 0x0000, 0x0000,  4096,  9,  264,  256 },
-	{ "AT45DB161x", 0x1f260000, 0x0000, 0x0000,  4096, 10,  528,  512 },
-	{ "AT45DB321x", 0x1f270000, 0x0000, 0x0000,  8192, 10,  528,    0 },
-	{ "AT45DB321x", 0x1f270100, 0x0000, 0x0000,  8192, 10,  528,  512 },
-	{ "AT45DB641E", 0x1f280001, 0x0000, 0xff00, 32768,  9,  264,  256 },
-	{ "AT45DB642x", 0x1f280000, 0x0000, 0x0000,  8192, 11, 1056, 1024 },
+	{ "AT45DB011B", 0x1f220000, 0x0000, 0x0000, 512, 9, 264, 256 },
+	{ "AT45DB021B", 0x1f230000, 0x0000, 0x0000, 1024, 9, 264, 256 },
+	{ "AT45DB041x", 0x1f240000, 0x0000, 0x0000, 2028, 9, 264, 256 },
+	{ "AT45DB081B", 0x1f250000, 0x0000, 0x0000, 4096, 9, 264, 256 },
+	{ "AT45DB161x", 0x1f260000, 0x0000, 0x0000, 4096, 10, 528, 512 },
+	{ "AT45DB321x", 0x1f270000, 0x0000, 0x0000, 8192, 10, 528, 0 },
+	{ "AT45DB321x", 0x1f270100, 0x0000, 0x0000, 8192, 10, 528, 512 },
+	{ "AT45DB641E", 0x1f280001, 0x0000, 0xff00, 32768, 9, 264, 256 },
+	{ "AT45DB642x", 0x1f280000, 0x0000, 0x0000, 8192, 11, 1056, 1024 },
 };
 
 static int
@@ -202,7 +201,7 @@ at45d_get_mfg_info(device_t dev, struct at45d_mfg_info *resp)
 		return (err);
 
 	resp->jedec_id = be32dec(rxBuf + 1);
-	resp->ext_id   = be16dec(rxBuf + 5);
+	resp->ext_id = be16dec(rxBuf + 5);
 
 	return (0);
 }
@@ -320,7 +319,7 @@ at45d_delayed_attach(void *xsc)
 	}
 	for (i = 0; i < nitems(at45d_flash_devices); i++) {
 		ident = &at45d_flash_devices[i];
-		if (mfginfo.jedec_id == ident->jedec && 
+		if (mfginfo.jedec_id == ident->jedec &&
 		    (mfginfo.ext_id & ident->extmask) == ident->extid) {
 			break;
 		}
@@ -350,7 +349,7 @@ at45d_delayed_attach(void *xsc)
 	{
 		pcell_t size;
 		if (OF_getencprop(ofw_bus_get_node(sc->dev),
-		    "freebsd,sectorsize", &size, sizeof(size)) > 0)
+			"freebsd,sectorsize", &size, sizeof(size)) > 0)
 			sectorsize = size;
 	}
 #endif
@@ -358,8 +357,10 @@ at45d_delayed_attach(void *xsc)
 	    "sectorsize", &sectorsize);
 
 	if ((sectorsize % pagesize) != 0) {
-		device_printf(sc->dev, "Invalid sectorsize %d, "
-		    "must be a multiple of %d\n", sectorsize, pagesize);
+		device_printf(sc->dev,
+		    "Invalid sectorsize %d, "
+		    "must be a multiple of %d\n",
+		    sectorsize, pagesize);
 		return;
 	}
 
@@ -445,7 +446,7 @@ at45d_task(void *arg)
 	u_int addr, berr, err, offset, page;
 	uint8_t status;
 
-	sc = (struct at45d_softc*)arg;
+	sc = (struct at45d_softc *)arg;
 	dev = sc->dev;
 	pdev = device_get_parent(dev);
 	memset(&cmd, 0, sizeof(cmd));
@@ -551,9 +552,10 @@ at45d_task(void *arg)
 				if (err == 0)
 					err = at45d_wait_ready(dev, &status);
 				if (err != 0 || (status & STATUS_CMPFAIL)) {
-					device_printf(dev, "comparing page "
-					    "%d failed (status=0x%x)\n", page,
-					    status);
+					device_printf(dev,
+					    "comparing page "
+					    "%d failed (status=0x%x)\n",
+					    page, status);
 					berr = EIO;
 					goto out;
 				}
@@ -571,7 +573,7 @@ at45d_task(void *arg)
 			else
 				cmd.tx_data = buf;
 		}
- out:
+	out:
 		if (berr != 0) {
 			bp->bio_flags |= BIO_ERROR;
 			bp->bio_error = berr;
@@ -583,9 +585,9 @@ at45d_task(void *arg)
 
 static device_method_t at45d_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		at45d_probe),
-	DEVMETHOD(device_attach,	at45d_attach),
-	DEVMETHOD(device_detach,	at45d_detach),
+	DEVMETHOD(device_probe, at45d_probe),
+	DEVMETHOD(device_attach, at45d_attach),
+	DEVMETHOD(device_detach, at45d_detach),
 
 	DEVMETHOD_END
 };
@@ -602,4 +604,3 @@ MODULE_DEPEND(at45d, spibus, 1, 1, 1);
 MODULE_DEPEND(at45d, fdt_slicer, 1, 1, 1);
 SPIBUS_FDT_PNP_INFO(compat_data);
 #endif
-

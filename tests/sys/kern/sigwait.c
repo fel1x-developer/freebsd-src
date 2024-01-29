@@ -5,22 +5,20 @@
  */
 #include <sys/cdefs.h>
 #include <sys/limits.h>
-#include <sys/time.h>
 #include <sys/sysctl.h>
+#include <sys/time.h>
 #include <sys/user.h>
 #include <sys/wait.h>
 
+#include <atf-c.h>
 #include <err.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
-
 
 static inline struct timespec
 make_timespec(time_t s, long int ns)
@@ -35,13 +33,11 @@ make_timespec(time_t s, long int ns)
 static void
 dummy_sig_handler(int sig)
 {
-
 }
 
 static void
 dummy_sigchld(int signo, siginfo_t *info, void *ctx)
 {
-
 }
 
 static void
@@ -59,24 +55,19 @@ support_sysctlset(const char *name, int32_t val)
 }
 
 static timer_t
-support_create_timer(uint64_t sec, long int nsec, bool repeat,
-    bool callback)
+support_create_timer(uint64_t sec, long int nsec, bool repeat, bool callback)
 {
-	struct sigevent ev = {
-		.sigev_notify = SIGEV_SIGNAL,
-		.sigev_signo = SIGALRM
-	};
-	struct itimerspec its =
-	{
-		{ .tv_sec = repeat ? sec : 0, .tv_nsec = repeat ? nsec : 0 },
-		{ .tv_sec = sec, .tv_nsec = nsec }
-	};
+	struct sigevent ev = { .sigev_notify = SIGEV_SIGNAL,
+		.sigev_signo = SIGALRM };
+	struct itimerspec its = { { .tv_sec = repeat ? sec : 0,
+				      .tv_nsec = repeat ? nsec : 0 },
+		{ .tv_sec = sec, .tv_nsec = nsec } };
 	struct sigaction sa;
 	timer_t timerid;
 
 	if (callback) {
 		sa.sa_handler = dummy_sig_handler;
-		sigemptyset (&sa.sa_mask);
+		sigemptyset(&sa.sa_mask);
 		sa.sa_flags = 0;
 		ATF_REQUIRE(sigaction(SIGALRM, &sa, NULL) == 0);
 	}
@@ -114,7 +105,7 @@ support_create_sig_proc(int sig, int count, unsigned int usec)
 	return (cpid);
 }
 
-#define TIMESPEC_HZ     1000000000
+#define TIMESPEC_HZ 1000000000
 
 static void
 test_sigtimedwait_timeout_eagain(time_t sec, bool zero_tmo)
@@ -125,7 +116,7 @@ test_sigtimedwait_timeout_eagain(time_t sec, bool zero_tmo)
 
 	ATF_REQUIRE(clock_gettime(CLOCK_REALTIME, &ts) == 0);
 
-	timeout = make_timespec(sec, zero_tmo ? 0 : TIMESPEC_HZ/2);
+	timeout = make_timespec(sec, zero_tmo ? 0 : TIMESPEC_HZ / 2);
 	timespecadd(&ts, &timeout, &ts);
 
 	sigemptyset(&ss);
@@ -134,21 +125,21 @@ test_sigtimedwait_timeout_eagain(time_t sec, bool zero_tmo)
 	ATF_REQUIRE_EQ_MSG(-1, rv,
 	    "sigtimedwait () should fail: rv %d, errno %d", rv, errno);
 	ATF_REQUIRE_EQ_MSG(EAGAIN, errno,
-	    "sigtimedwait() should fail with EAGAIN: rv %d, errno %d",
-	    rv, errno);
+	    "sigtimedwait() should fail with EAGAIN: rv %d, errno %d", rv,
+	    errno);
 	/* now >= ts */
 	ATF_REQUIRE(clock_gettime(CLOCK_REALTIME, &now) == 0);
 	ATF_REQUIRE_MSG(timespeccmp(&now, &ts, >=) == true,
 	    "timespeccmp: now { %jd.%ld } < ts { %jd.%ld }",
-	    (intmax_t)now.tv_sec, now.tv_nsec,
-	    (intmax_t)ts.tv_sec, ts.tv_nsec);
+	    (intmax_t)now.tv_sec, now.tv_nsec, (intmax_t)ts.tv_sec, ts.tv_nsec);
 }
 
 ATF_TC(test_sigtimedwait_timeout_eagain0);
 ATF_TC_HEAD(test_sigtimedwait_timeout_eagain0, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits immediately");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits immediately");
 }
 
 ATF_TC_BODY(test_sigtimedwait_timeout_eagain0, tc)
@@ -161,7 +152,8 @@ ATF_TC(test_sigtimedwait_timeout_eagain1);
 ATF_TC_HEAD(test_sigtimedwait_timeout_eagain1, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits immediately");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits immediately");
 }
 
 ATF_TC_BODY(test_sigtimedwait_timeout_eagain1, tc)
@@ -174,7 +166,8 @@ ATF_TC(test_sigtimedwait_timeout_eagain2);
 ATF_TC_HEAD(test_sigtimedwait_timeout_eagain2, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits immediately");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits immediately");
 }
 
 ATF_TC_BODY(test_sigtimedwait_timeout_eagain2, tc)
@@ -187,7 +180,8 @@ ATF_TC(test_sigtimedwait_timeout_eagain3);
 ATF_TC_HEAD(test_sigtimedwait_timeout_eagain3, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits after specified timeout");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits after specified timeout");
 }
 
 ATF_TC_BODY(test_sigtimedwait_timeout_eagain3, tc)
@@ -200,7 +194,8 @@ ATF_TC(test_sigtimedwait_large_timeout_eintr);
 ATF_TC_HEAD(test_sigtimedwait_large_timeout_eintr, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits with EINTR");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits with EINTR");
 }
 
 ATF_TC_BODY(test_sigtimedwait_large_timeout_eintr, tc)
@@ -219,8 +214,8 @@ ATF_TC_BODY(test_sigtimedwait_large_timeout_eintr, tc)
 	ATF_REQUIRE_EQ_MSG(-1, rv,
 	    "sigtimedwait () should fail: rv %d, errno %d", rv, errno);
 	ATF_REQUIRE_EQ_MSG(EINTR, errno,
-	    "sigtimedwait() should fail with EINTR: rv %d, errno %d",
-	    rv, errno);
+	    "sigtimedwait() should fail with EINTR: rv %d, errno %d", rv,
+	    errno);
 	support_delete_timer(timerid);
 }
 
@@ -228,7 +223,8 @@ ATF_TC(test_sigtimedwait_infinity);
 ATF_TC_HEAD(test_sigtimedwait_infinity, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits with EINTR");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits with EINTR");
 }
 
 ATF_TC_BODY(test_sigtimedwait_infinity, tc)
@@ -245,8 +241,8 @@ ATF_TC_BODY(test_sigtimedwait_infinity, tc)
 	ATF_REQUIRE_EQ_MSG(-1, rv,
 	    "sigtimedwait () should fail: rv %d, errno %d", rv, errno);
 	ATF_REQUIRE_EQ_MSG(EINTR, errno,
-	    "sigtimedwait() should fail with EINTR: rv %d, errno %d",
-	    rv, errno);
+	    "sigtimedwait() should fail with EINTR: rv %d, errno %d", rv,
+	    errno);
 	support_delete_timer(timerid);
 }
 
@@ -254,7 +250,8 @@ ATF_TC(test_sigtimedwait_einval);
 ATF_TC_HEAD(test_sigtimedwait_einval, tc)
 {
 
-	atf_tc_set_md_var(tc, "descr", "Check if sigtimedwait exits with EINVAL");
+	atf_tc_set_md_var(tc, "descr",
+	    "Check if sigtimedwait exits with EINVAL");
 }
 
 ATF_TC_BODY(test_sigtimedwait_einval, tc)
@@ -273,8 +270,8 @@ ATF_TC_BODY(test_sigtimedwait_einval, tc)
 	ATF_REQUIRE_EQ_MSG(-1, rv,
 	    "sigtimedwait () should fail: rv %d, errno %d", rv, errno);
 	ATF_REQUIRE_EQ_MSG(EINVAL, errno,
-	    "sigtimedwait() should fail with EINVAL: rv %d, errno %d",
-	    rv, errno);
+	    "sigtimedwait() should fail with EINVAL: rv %d, errno %d", rv,
+	    errno);
 	support_delete_timer(timerid);
 }
 
@@ -299,8 +296,8 @@ ATF_TC_BODY(test_sigwait_eintr, tc)
 	sigemptyset(&ss);
 	sigaddset(&ss, SIGUSR1);
 	rv = sigwait(&ss, &sig);
-	ATF_REQUIRE_EQ_MSG(0, rv,
-	    "sigwait() should not fail: rv %d, errno %d", rv, errno);
+	ATF_REQUIRE_EQ_MSG(0, rv, "sigwait() should not fail: rv %d, errno %d",
+	    rv, errno);
 	ATF_REQUIRE_EQ_MSG(SIGUSR1, sig,
 	    "sigwait() should return SIGUSR1: rv %d, sig %d", rv, sig);
 	ATF_REQUIRE(waitid(P_PID, pid, NULL, WEXITED) == 0);
@@ -325,8 +322,8 @@ ATF_TC_BODY(test_sigwaitinfo_eintr, tc)
 	sigemptyset(&ss);
 	sigaddset(&ss, SIGUSR1);
 	rv = sigwaitinfo(&ss, NULL);
-	ATF_REQUIRE_EQ_MSG(-1, rv,
-	    "sigwaitinfo() should fail, rv %d != -1", rv);
+	ATF_REQUIRE_EQ_MSG(-1, rv, "sigwaitinfo() should fail, rv %d != -1",
+	    rv);
 	ATF_REQUIRE_EQ_MSG(EINTR, errno,
 	    "sigwaitinfo() should fail errno %d != EINTR", errno);
 	support_delete_timer(timerid);
@@ -373,8 +370,7 @@ test_sig_discard_ign(bool ignore)
 }
 
 static void
-support_check_siginfo(int code, int status, pid_t pid,
-    siginfo_t *si, int sig)
+support_check_siginfo(int code, int status, pid_t pid, siginfo_t *si, int sig)
 {
 
 	ATF_REQUIRE_EQ_MSG(sig, si->si_signo,
@@ -404,8 +400,8 @@ support_check_sigchld(sigset_t *set, int code, int status, pid_t pid,
 		ATF_REQUIRE_EQ_MSG(EINTR, errno,
 		    "sigwaitinfo() should fail errno %d != EINTR", errno);
 	} else
-		ATF_REQUIRE_EQ_MSG(SIGCHLD, sig,
-		    "sigwaitinfo() %d != SIGCHLD", sig);
+		ATF_REQUIRE_EQ_MSG(SIGCHLD, sig, "sigwaitinfo() %d != SIGCHLD",
+		    sig);
 	if (dequeue == false)
 		support_check_siginfo(code, status, pid, &si, SIGCHLD);
 	if (dequeue == true)

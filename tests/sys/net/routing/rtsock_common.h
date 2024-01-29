@@ -28,53 +28,49 @@
 #ifndef _NET_ROUTING_RTSOCK_COMMON_H_
 #define _NET_ROUTING_RTSOCK_COMMON_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <ctype.h>
-#include <poll.h>
-
 #include <sys/types.h>
-#include <sys/time.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/jail.h>
 #include <sys/linker.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+
+#include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
-
-#include <arpa/inet.h>
-#include <net/ethernet.h>
-
 #include <netinet/in.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
 
-#include <ifaddrs.h>
-
-#include <errno.h>
-#include <err.h>
-#include <sysexits.h>
-
+#include <arpa/inet.h>
 #include <atf-c.h>
-#include "freebsd_test_suite/macros.h"
+#include <ctype.h>
+#include <err.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <ifaddrs.h>
+#include <poll.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sysexits.h>
+#include <unistd.h>
 
-#include "rtsock_print.h"
+#include "freebsd_test_suite/macros.h"
 #include "params.h"
+#include "rtsock_print.h"
 
 void rtsock_update_rtm_len(struct rt_msghdr *rtm);
 void rtsock_validate_message(char *buffer, ssize_t len);
-void rtsock_add_rtm_sa(struct rt_msghdr *rtm, int addr_type, struct sockaddr *sa);
+void rtsock_add_rtm_sa(struct rt_msghdr *rtm, int addr_type,
+    struct sockaddr *sa);
 
 void file_append_line(char *fname, char *text);
 
 static int _rtm_seq = 42;
-
 
 /*
  * Checks if the interface cloner module is present for @name.
@@ -189,7 +185,7 @@ iface_open(char *ifname)
 	snprintf(path, sizeof(path), "/dev/%s", ifname);
 
 	RLOG("opening interface %s", ifname);
-	int fd = open(path, O_RDWR|O_EXCL);
+	int fd = open(path, O_RDWR | O_EXCL);
 	if (fd == -1) {
 		RLOG_ERRNO("unable to open interface %s", ifname);
 		return (-1);
@@ -213,8 +209,8 @@ iface_setup_addr(char *ifname, char *addr, int plen)
 	else
 		af = "inet";
 	RLOG("setting af_%s %s/%d on %s", af, addr, plen, ifname);
-	snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s %s %s/%d", ifname,
-		af, addr, plen);
+	snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s %s %s/%d", ifname, af,
+	    addr, plen);
 
 	return system(cmd);
 }
@@ -230,10 +226,12 @@ iface_delete_addr(char *ifname, char *addr)
 
 	if (strchr(addr, ':')) {
 		RLOG("removing IPv6 %s from %s", addr, ifname);
-		snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s inet6 %s delete", ifname, addr);
+		snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s inet6 %s delete",
+		    ifname, addr);
 	} else {
 		RLOG("removing IPv4 %s from %s", addr, ifname);
-		snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s -alias %s", ifname, addr);
+		snprintf(cmd, sizeof(cmd), "/sbin/ifconfig %s -alias %s",
+		    ifname, addr);
 	}
 
 	return system(cmd);
@@ -318,13 +316,14 @@ vnet_wait_interface(char *vnet_name, char *ifname)
 	FILE *fp;
 	int i;
 
-	snprintf(cmd, sizeof(cmd), "/usr/sbin/jexec %s /sbin/ifconfig -l", vnet_name);
+	snprintf(cmd, sizeof(cmd), "/usr/sbin/jexec %s /sbin/ifconfig -l",
+	    vnet_name);
 	for (int i = 0; i < 50; i++) {
 		fp = popen(cmd, "r");
 		line = fgets(buf, sizeof(buf), fp);
 		/* cut last\n */
 		if (line[0])
-			line[strlen(line)-1] = '\0';
+			line[strlen(line) - 1] = '\0';
 		while ((token = strsep(&line, " ")) != NULL) {
 			if (strcmp(token, ifname) == 0)
 				return (1);
@@ -344,7 +343,8 @@ vnet_switch(char *vnet_name, char **ifnames, int count)
 	FILE *fp;
 	int jid, len, ret;
 
-	RLOG("switching to vnet %s with interface(s) %s", vnet_name, ifnames[0]);
+	RLOG("switching to vnet %s with interface(s) %s", vnet_name,
+	    ifnames[0]);
 	len = snprintf(cmd, sizeof(cmd),
 	    "/usr/sbin/jail -i -c name=%s persist vnet", vnet_name);
 	for (int i = 0; i < count && len < sizeof(cmd); i++) {
@@ -392,12 +392,12 @@ vnet_switch_one(char *vnet_name, char *ifname)
 	vnet_switch(vnet_name, ifnames, 1);
 }
 
-
-#define	SA_F_IGNORE_IFNAME	0x01
-#define	SA_F_IGNORE_IFTYPE	0x02
-#define	SA_F_IGNORE_MEMCMP	0x04
+#define SA_F_IGNORE_IFNAME 0x01
+#define SA_F_IGNORE_IFTYPE 0x02
+#define SA_F_IGNORE_MEMCMP 0x04
 int
-sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg, size_t sz, int flags)
+sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b,
+    char *msg, size_t sz, int flags)
 {
 	char a_s[64], b_s[64];
 	const struct sockaddr_in *a4, *b4;
@@ -414,7 +414,8 @@ sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg
 	}
 
 	if (a->sa_family != b->sa_family) {
-		snprintf(msg, sz, "family: %d vs %d", a->sa_family, b->sa_family);
+		snprintf(msg, sz, "family: %d vs %d", a->sa_family,
+		    b->sa_family);
 		return 0;
 	}
 	if (a->sa_len != b->sa_len) {
@@ -434,16 +435,16 @@ sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg
 		}
 		if (a4->sin_port != b4->sin_port) {
 			snprintf(msg, sz, "port diff: %d vs %d",
-					ntohs(a4->sin_port), ntohs(b4->sin_port));
-			//return 0;
+			    ntohs(a4->sin_port), ntohs(b4->sin_port));
+			// return 0;
 		}
 		const uint32_t *a32, *b32;
 		a32 = (const uint32_t *)a4->sin_zero;
 		b32 = (const uint32_t *)b4->sin_zero;
 		if ((*a32 != *b32) || (*(a32 + 1) != *(b32 + 1))) {
 			snprintf(msg, sz, "zero diff: 0x%08X%08X vs 0x%08X%08X",
-					ntohl(*a32), ntohl(*(a32 + 1)),
-					ntohl(*b32), ntohl(*(b32 + 1)));
+			    ntohl(*a32), ntohl(*(a32 + 1)), ntohl(*b32),
+			    ntohl(*(b32 + 1)));
 			return 0;
 		}
 		return 1;
@@ -457,7 +458,8 @@ sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg
 			return 0;
 		}
 		if (a6->sin6_scope_id != b6->sin6_scope_id) {
-			snprintf(msg, sz, "scope diff: %u vs %u", a6->sin6_scope_id, b6->sin6_scope_id);
+			snprintf(msg, sz, "scope diff: %u vs %u",
+			    a6->sin6_scope_id, b6->sin6_scope_id);
 			return 0;
 		}
 		break;
@@ -466,33 +468,43 @@ sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg
 		bl = (const struct sockaddr_dl *)b;
 
 		if (al->sdl_index != bl->sdl_index) {
-			snprintf(msg, sz, "sdl_index diff: %u vs %u", al->sdl_index, bl->sdl_index);
+			snprintf(msg, sz, "sdl_index diff: %u vs %u",
+			    al->sdl_index, bl->sdl_index);
 			return 0;
 		}
 
-		if ((al->sdl_alen != bl->sdl_alen) || (memcmp(LLADDR(al), LLADDR(bl), al->sdl_alen) != 0)) {
+		if ((al->sdl_alen != bl->sdl_alen) ||
+		    (memcmp(LLADDR(al), LLADDR(bl), al->sdl_alen) != 0)) {
 			char abuf[64], bbuf[64];
-			sa_print_hd(abuf, sizeof(abuf), LLADDR(al), al->sdl_alen);
-			sa_print_hd(bbuf, sizeof(bbuf), LLADDR(bl), bl->sdl_alen);
-			snprintf(msg, sz, "sdl_alen diff: {%s} (%d) vs {%s} (%d)",
-			    abuf, al->sdl_alen, bbuf, bl->sdl_alen);
+			sa_print_hd(abuf, sizeof(abuf), LLADDR(al),
+			    al->sdl_alen);
+			sa_print_hd(bbuf, sizeof(bbuf), LLADDR(bl),
+			    bl->sdl_alen);
+			snprintf(msg, sz,
+			    "sdl_alen diff: {%s} (%d) vs {%s} (%d)", abuf,
+			    al->sdl_alen, bbuf, bl->sdl_alen);
 			return 0;
 		}
 
-		if (((flags & SA_F_IGNORE_IFTYPE) == 0) && (al->sdl_type != bl->sdl_type)) {
-			snprintf(msg, sz, "sdl_type diff: %u vs %u", al->sdl_type, bl->sdl_type);
+		if (((flags & SA_F_IGNORE_IFTYPE) == 0) &&
+		    (al->sdl_type != bl->sdl_type)) {
+			snprintf(msg, sz, "sdl_type diff: %u vs %u",
+			    al->sdl_type, bl->sdl_type);
 			return 0;
 		}
 
-		if (((flags & SA_F_IGNORE_IFNAME) == 0) && ((al->sdl_nlen != bl->sdl_nlen) ||
-			    (memcmp(al->sdl_data, bl->sdl_data, al->sdl_nlen) != 0))) {
+		if (((flags & SA_F_IGNORE_IFNAME) == 0) &&
+		    ((al->sdl_nlen != bl->sdl_nlen) ||
+			(memcmp(al->sdl_data, bl->sdl_data, al->sdl_nlen) !=
+			    0))) {
 			char abuf[64], bbuf[64];
 			memcpy(abuf, al->sdl_data, al->sdl_nlen);
 			abuf[al->sdl_nlen] = '\0';
 			memcpy(bbuf, bl->sdl_data, bl->sdl_nlen);
 			abuf[bl->sdl_nlen] = '\0';
-			snprintf(msg, sz, "sdl_nlen diff: {%s} (%d) vs {%s} (%d)",
-			    abuf, al->sdl_nlen, bbuf, bl->sdl_nlen);
+			snprintf(msg, sz,
+			    "sdl_nlen diff: {%s} (%d) vs {%s} (%d)", abuf,
+			    al->sdl_nlen, bbuf, bl->sdl_nlen);
 			return 0;
 		}
 
@@ -510,15 +522,17 @@ sa_equal_msg_flags(const struct sockaddr *a, const struct sockaddr *b, char *msg
 		sa_print(a, 1);
 		sa_print(b, 1);
 
-		snprintf(msg, sz, "overall memcmp() reports diff for af %d offset %d",
-				a->sa_family, i);
+		snprintf(msg, sz,
+		    "overall memcmp() reports diff for af %d offset %d",
+		    a->sa_family, i);
 		return 0;
 	}
 	return 1;
 }
 
 int
-sa_equal_msg(const struct sockaddr *a, const struct sockaddr *b, char *msg, size_t sz)
+sa_equal_msg(const struct sockaddr *a, const struct sockaddr *b, char *msg,
+    size_t sz)
 {
 
 	return sa_equal_msg_flags(a, b, msg, sz, 0);
@@ -550,7 +564,7 @@ sa_fill_mask6(struct sockaddr_in6 *sin6, uint8_t mask)
 }
 
 /* 52:54:00:14:e3:10 */
-#define	ETHER_MAC_MAX_LENGTH	17
+#define ETHER_MAC_MAX_LENGTH 17
 
 int
 sa_convert_str_to_sa(const char *_addr, struct sockaddr *sa)
@@ -632,7 +646,6 @@ sa_convert_str_to_sa(const char *_addr, struct sockaddr *sa)
 	return (retcode);
 }
 
-
 int
 rtsock_setup_socket()
 {
@@ -644,7 +657,7 @@ rtsock_setup_socket()
 
 	/* Listen for our messages */
 	int on = 1;
-	if (setsockopt(fd, SOL_SOCKET,SO_USELOOPBACK, &on, sizeof(on)) < 0)
+	if (setsockopt(fd, SOL_SOCKET, SO_USELOOPBACK, &on, sizeof(on)) < 0)
 		RLOG_ERRNO("setsockopt failed");
 
 	return (fd);
@@ -661,8 +674,8 @@ rtsock_send_rtm(int fd, struct rt_msghdr *rtm)
 	len = write(fd, rtm, rtm->rtm_msglen);
 	my_errno = errno;
 	RTSOCK_ATF_REQUIRE_MSG(rtm, len == rtm->rtm_msglen,
-	    "rtsock write failed: want %d got %zd (%s)",
-	    rtm->rtm_msglen, len, strerror(my_errno));
+	    "rtsock write failed: want %d got %zd (%s)", rtm->rtm_msglen, len,
+	    strerror(my_errno));
 
 	return (len);
 }
@@ -680,7 +693,8 @@ rtsock_read_rtm(int fd, char *buffer, size_t buflen)
 	pfd.events = POLLIN;
 
 	if (poll(&pfd, 1, poll_delay) == 0)
-		ATF_REQUIRE_MSG(1 == 0, "rtsock read timed out (%d seconds passed)",
+		ATF_REQUIRE_MSG(1 == 0,
+		    "rtsock read timed out (%d seconds passed)",
 		    poll_delay / 1000);
 
 	len = read(fd, buffer, buflen);
@@ -724,8 +738,8 @@ rtsock_prepare_route_message_base(struct rt_msghdr *rtm, int cmd)
 }
 
 void
-rtsock_prepare_route_message(struct rt_msghdr *rtm, int cmd, struct sockaddr *dst,
-  struct sockaddr *mask, struct sockaddr *gw)
+rtsock_prepare_route_message(struct rt_msghdr *rtm, int cmd,
+    struct sockaddr *dst, struct sockaddr *mask, struct sockaddr *gw)
 {
 
 	rtsock_prepare_route_message_base(rtm, cmd);
@@ -798,7 +812,8 @@ rtsock_update_rtm_len(struct rt_msghdr *rtm)
 }
 
 static void
-_validate_message_sockaddrs(char *buffer, int rtm_len, size_t offset, int rtm_addrs)
+_validate_message_sockaddrs(char *buffer, int rtm_len, size_t offset,
+    int rtm_addrs)
 {
 	struct sockaddr *sa;
 	size_t parsed_len = offset;
@@ -810,8 +825,9 @@ _validate_message_sockaddrs(char *buffer, int rtm_len, size_t offset, int rtm_ad
 		if ((rtm_addrs & (1 << i)) == 0)
 			continue;
 		parsed_len += SA_SIZE(sa);
-		RTSOCK_ATF_REQUIRE_MSG((struct rt_msghdr *)buffer, parsed_len <= rtm_len,
-		    "SA %d: len %d exceeds msg size %d", i, (int)sa->sa_len, rtm_len);
+		RTSOCK_ATF_REQUIRE_MSG((struct rt_msghdr *)buffer,
+		    parsed_len <= rtm_len, "SA %d: len %d exceeds msg size %d",
+		    i, (int)sa->sa_len, rtm_len);
 		if (sa->sa_family == AF_LINK) {
 			struct sockaddr_dl *sdl = (struct sockaddr_dl *)sa;
 			int data_len = sdl->sdl_nlen + sdl->sdl_alen;
@@ -834,13 +850,16 @@ rtsock_validate_message(char *buffer, ssize_t len)
 {
 	struct rt_msghdr *rtm;
 
-	ATF_REQUIRE_MSG(len > 0, "read() return %zd, error: %s", len, strerror(errno));
+	ATF_REQUIRE_MSG(len > 0, "read() return %zd, error: %s", len,
+	    strerror(errno));
 
 	rtm = (struct rt_msghdr *)buffer;
-	ATF_REQUIRE_MSG(rtm->rtm_version == RTM_VERSION, "unknown RTM_VERSION: expected %d got %d",
-			RTM_VERSION, rtm->rtm_version);
-	ATF_REQUIRE_MSG(rtm->rtm_msglen <= len, "wrong message length: expected %d got %d",
-			(int)len, (int)rtm->rtm_msglen);
+	ATF_REQUIRE_MSG(rtm->rtm_version == RTM_VERSION,
+	    "unknown RTM_VERSION: expected %d got %d", RTM_VERSION,
+	    rtm->rtm_version);
+	ATF_REQUIRE_MSG(rtm->rtm_msglen <= len,
+	    "wrong message length: expected %d got %d", (int)len,
+	    (int)rtm->rtm_msglen);
 
 	switch (rtm->rtm_type) {
 	case RTM_GET:
@@ -853,7 +872,8 @@ rtsock_validate_message(char *buffer, ssize_t len)
 	case RTM_DELADDR:
 	case RTM_NEWADDR:
 		_validate_message_sockaddrs(buffer, rtm->rtm_msglen,
-		    sizeof(struct ifa_msghdr), ((struct ifa_msghdr *)buffer)->ifam_addrs);
+		    sizeof(struct ifa_msghdr),
+		    ((struct ifa_msghdr *)buffer)->ifam_addrs);
 		break;
 	}
 }
@@ -861,22 +881,22 @@ rtsock_validate_message(char *buffer, ssize_t len)
 void
 rtsock_validate_pid_ours(struct rt_msghdr *rtm)
 {
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid == getpid(), "expected pid %d, got %d",
-	    getpid(), rtm->rtm_pid);
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid == getpid(),
+	    "expected pid %d, got %d", getpid(), rtm->rtm_pid);
 }
 
 void
 rtsock_validate_pid_user(struct rt_msghdr *rtm)
 {
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid > 0, "expected non-zero pid, got %d",
-	    rtm->rtm_pid);
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid > 0,
+	    "expected non-zero pid, got %d", rtm->rtm_pid);
 }
 
 void
 rtsock_validate_pid_kernel(struct rt_msghdr *rtm)
 {
-	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid == 0, "expected zero pid, got %d",
-	    rtm->rtm_pid);
+	RTSOCK_ATF_REQUIRE_MSG(rtm, rtm->rtm_pid == 0,
+	    "expected zero pid, got %d", rtm->rtm_pid);
 }
 
 #endif

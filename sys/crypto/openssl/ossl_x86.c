@@ -33,6 +33,7 @@
 
 #include <machine/cpufunc.h>
 #include <machine/md_var.h>
+
 #include <x86/cputypes.h>
 #include <x86/specialreg.h>
 
@@ -49,7 +50,7 @@
  * [3] = cpu_stdext_feature2
  */
 unsigned int OPENSSL_ia32cap_P[4];
-#define AESNI_CAPABLE	(OPENSSL_ia32cap_P[1]&(1<<(57-32)))
+#define AESNI_CAPABLE (OPENSSL_ia32cap_P[1] & (1 << (57 - 32)))
 
 ossl_cipher_setkey_t aesni_set_encrypt_key;
 ossl_cipher_setkey_t aesni_set_decrypt_key;
@@ -101,8 +102,8 @@ ossl_cpuid(struct ossl_softc *sc)
 
 	OPENSSL_ia32cap_P[2] = cpu_stdext_feature;
 	if ((OPENSSL_ia32cap_P[1] & CPUID2_XSAVE) == 0)
-		OPENSSL_ia32cap_P[2] &= ~(CPUID_STDEXT_AVX512F |
-		    CPUID_STDEXT_AVX512DQ);
+		OPENSSL_ia32cap_P[2] &= ~(
+		    CPUID_STDEXT_AVX512F | CPUID_STDEXT_AVX512DQ);
 
 	/* Disable AVX512F on Skylake-X. */
 	if ((cpu_id & 0x0fff0ff0) == 0x00050650)
@@ -139,7 +140,7 @@ ossl_cpuid(struct ossl_softc *sc)
 		    ossl_aes_gcm_setkey_avx512;
 		sc->has_aes_gcm = true;
 	} else if ((cpu_feature2 &
-	    (CPUID2_AVX | CPUID2_PCLMULQDQ | CPUID2_MOVBE)) ==
+		       (CPUID2_AVX | CPUID2_PCLMULQDQ | CPUID2_MOVBE)) ==
 	    (CPUID2_AVX | CPUID2_PCLMULQDQ | CPUID2_MOVBE)) {
 		ossl_cipher_aes_gcm.set_encrypt_key = ossl_aes_gcm_setkey_aesni;
 		ossl_cipher_aes_gcm.set_decrypt_key = ossl_aes_gcm_setkey_aesni;

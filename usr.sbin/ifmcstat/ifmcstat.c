@@ -6,7 +6,7 @@
  * Copyright (c) 2007-2009 Bruce Simpson.
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -18,7 +18,7 @@
  * 3. Neither the name of the project nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -34,23 +34,22 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#include <sys/sysctl.h>
-#include <sys/socket.h>
 #include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/sysctl.h>
 #include <sys/tree.h>
 
 #include <net/if.h>
-#include <net/if_types.h>
 #include <net/if_dl.h>
+#include <net/if_types.h>
 #include <net/route.h>
-
-#include <netinet/in.h>
-#include <netinet/in_var.h>
-#include <netinet/in_systm.h>
-#include <netinet/ip.h>
-#include <netinet/igmp.h>
 #include <netinet/if_ether.h>
+#include <netinet/igmp.h>
 #include <netinet/igmp_var.h>
+#include <netinet/in.h>
+#include <netinet/in_systm.h>
+#include <netinet/in_var.h>
+#include <netinet/ip.h>
 
 #ifdef INET6
 #include <netinet/icmp6.h>
@@ -58,21 +57,19 @@
 #endif /* INET6 */
 
 #include <arpa/inet.h>
-#include <netdb.h>
-
-#include <stddef.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <limits.h>
 #include <ifaddrs.h>
+#include <limits.h>
+#include <netdb.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sysexits.h>
 #include <unistd.h>
 
@@ -92,34 +89,34 @@
 #define INET
 #endif
 
-extern void	printb(const char *, unsigned int, const char *);
+extern void printb(const char *, unsigned int, const char *);
 
 union sockunion {
-	struct sockaddr_storage	ss;
-	struct sockaddr		sa;
-	struct sockaddr_dl	sdl;
+	struct sockaddr_storage ss;
+	struct sockaddr sa;
+	struct sockaddr_dl sdl;
 #ifdef INET
-	struct sockaddr_in	sin;
+	struct sockaddr_in sin;
 #endif
 #ifdef INET6
-	struct sockaddr_in6	sin6;
+	struct sockaddr_in6 sin6;
 #endif
 };
 typedef union sockunion sockunion_t;
 
-uint32_t	ifindex = 0;
-int		af = AF_UNSPEC;
+uint32_t ifindex = 0;
+int af = AF_UNSPEC;
 #ifdef WITH_KVM
-int		Kflag = 0;
+int Kflag = 0;
 #endif
-int		vflag = 0;
+int vflag = 0;
 
-#define	sa_dl_equal(a1, a2)	\
-	((((struct sockaddr_dl *)(a1))->sdl_len ==			\
-	 ((struct sockaddr_dl *)(a2))->sdl_len) &&			\
-	 (bcmp(LLADDR((struct sockaddr_dl *)(a1)),			\
-	       LLADDR((struct sockaddr_dl *)(a2)),			\
-	       ((struct sockaddr_dl *)(a1))->sdl_alen) == 0))
+#define sa_dl_equal(a1, a2)                            \
+	((((struct sockaddr_dl *)(a1))->sdl_len ==     \
+	     ((struct sockaddr_dl *)(a2))->sdl_len) && \
+	    (bcmp(LLADDR((struct sockaddr_dl *)(a1)),  \
+		 LLADDR((struct sockaddr_dl *)(a2)),   \
+		 ((struct sockaddr_dl *)(a1))->sdl_alen) == 0))
 
 /*
  * Most of the code in this utility is to support the use of KVM for
@@ -128,44 +125,53 @@ int		vflag = 0;
 #ifdef WITH_KVM
 
 #ifdef INET
-static void		if_addrlist(struct ifaddr *);
-static struct in_multi *
-			in_multientry(struct in_multi *);
+static void if_addrlist(struct ifaddr *);
+static struct in_multi *in_multientry(struct in_multi *);
 #endif /* INET */
 
 #ifdef INET6
-static void		if6_addrlist(struct ifaddr *);
-static struct in6_multi *
-			in6_multientry(struct in6_multi *);
+static void if6_addrlist(struct ifaddr *);
+static struct in6_multi *in6_multientry(struct in6_multi *);
 #endif /* INET6 */
 
-static void		kread(u_long, void *, int);
-static void		ll_addrlist(struct ifaddr *);
+static void kread(u_long, void *, int);
+static void ll_addrlist(struct ifaddr *);
 
-static int		ifmcstat_kvm(const char *kernel, const char *core);
+static int ifmcstat_kvm(const char *kernel, const char *core);
 
-#define	KREAD(addr, buf, type) \
-	kread((u_long)addr, (void *)buf, sizeof(type))
+#define KREAD(addr, buf, type) kread((u_long)addr, (void *)buf, sizeof(type))
 
-kvm_t	*kvmd;
-struct	nlist nl[] = {
-	{ "_ifnet", 0, 0, 0, 0, },
-	{ "", 0, 0, 0, 0, },
+kvm_t *kvmd;
+struct nlist nl[] = {
+	{
+	    "_ifnet",
+	    0,
+	    0,
+	    0,
+	    0,
+	},
+	{
+	    "",
+	    0,
+	    0,
+	    0,
+	    0,
+	},
 };
-#define	N_IFNET	0
+#define N_IFNET 0
 
 #endif /* WITH_KVM */
 
-static int		ifmcstat_getifmaddrs(void);
+static int ifmcstat_getifmaddrs(void);
 #ifdef INET
-static void		in_ifinfo(struct igmp_ifinfo *);
-static const char *	inm_mode(u_int mode);
+static void in_ifinfo(struct igmp_ifinfo *);
+static const char *inm_mode(u_int mode);
 #endif
 #ifdef INET6
-static void		in6_ifinfo(struct mld_ifinfo *);
-static const char *	inet6_n2a(struct in6_addr *, uint32_t);
+static void in6_ifinfo(struct mld_ifinfo *);
+static const char *inet6_n2a(struct in6_addr *, uint32_t);
 #endif
-int			main(int, char **);
+int main(int, char **);
 
 static void
 usage()
@@ -183,9 +189,9 @@ usage()
 
 static const char *options = "i:f:vM:N:"
 #ifdef WITH_KVM
-	"K"
+			     "K"
 #endif
-	;
+    ;
 
 int
 main(int argc, char **argv)
@@ -267,7 +273,7 @@ main(int argc, char **argv)
 	 */
 	if (!Kflag || (error != 0 && (core == NULL && kernel == NULL)))
 #endif
-	error = ifmcstat_getifmaddrs();
+		error = ifmcstat_getifmaddrs();
 	if (error != 0)
 		exit(EX_OSERR);
 
@@ -295,12 +301,12 @@ in_ifinfo(struct igmp_ifinfo *igi)
 	if (igi->igi_flags)
 		printb(" flags", igi->igi_flags, "\020\1SILENT\2LOOPBACK");
 	if (igi->igi_version == IGMP_VERSION_3) {
-		printf(" rv %u qi %u qri %u uri %u",
-		    igi->igi_rv, igi->igi_qi, igi->igi_qri, igi->igi_uri);
+		printf(" rv %u qi %u qri %u uri %u", igi->igi_rv, igi->igi_qi,
+		    igi->igi_qri, igi->igi_uri);
 	}
 	if (vflag >= 2) {
-		printf(" v1timer %u v2timer %u v3timer %u",
-		    igi->igi_v1_timer, igi->igi_v2_timer, igi->igi_v3_timer);
+		printf(" v1timer %u v2timer %u v3timer %u", igi->igi_v1_timer,
+		    igi->igi_v2_timer, igi->igi_v3_timer);
 	}
 	printf("\n");
 }
@@ -327,11 +333,10 @@ inm_mode(u_int mode)
 static int
 ifmcstat_kvm(const char *kernel, const char *core)
 {
-	char	buf[_POSIX2_LINE_MAX], ifname[IFNAMSIZ];
-	struct	ifnet	*ifp, *nifp, ifnet;
+	char buf[_POSIX2_LINE_MAX], ifname[IFNAMSIZ];
+	struct ifnet *ifp, *nifp, ifnet;
 
-	if ((kvmd = kvm_openfiles(kernel, core, NULL, O_RDONLY, buf)) ==
-	    NULL) {
+	if ((kvmd = kvm_openfiles(kernel, core, NULL, O_RDONLY, buf)) == NULL) {
 		perror("kvm_openfiles");
 		return (-1);
 	}
@@ -349,7 +354,7 @@ ifmcstat_kvm(const char *kernel, const char *core)
 		nifp = ifnet.if_link.tqe_next;
 		if (ifindex && ifindex != ifnet.if_index)
 			goto next;
-	
+
 		printf("%s:\n", if_indextoname(ifnet.if_index, ifname));
 #ifdef INET
 		if_addrlist(TAILQ_FIRST(&ifnet.if_addrhead));
@@ -400,8 +405,8 @@ ll_addrlist(struct ifaddr *ifap)
 		if (sdl.sdl_alen == 0)
 			goto nextifap;
 		addrbuf[0] = '\0';
-		getnameinfo((struct sockaddr *)&sdl, sdl.sdl_len,
-		    addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
+		getnameinfo((struct sockaddr *)&sdl, sdl.sdl_len, addrbuf,
+		    sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
 		printf("\tlink %s\n", addrbuf);
 	nextifap:
 		ifap = ifa.ifa_link.tqe_next;
@@ -423,11 +428,10 @@ ll_addrlist(struct ifaddr *ifap)
 				goto nextmulti;
 			KREAD(ifm.ifma_addr, &sdl, struct sockaddr_dl);
 			addrbuf[0] = '\0';
-			getnameinfo((struct sockaddr *)&sdl,
-			    sdl.sdl_len, addrbuf, sizeof(addrbuf),
-			    NULL, 0, NI_NUMERICHOST);
-			printf("\t\tgroup %s refcnt %d\n",
-			    addrbuf, ifm.ifma_refcount);
+			getnameinfo((struct sockaddr *)&sdl, sdl.sdl_len,
+			    addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
+			printf("\t\tgroup %s refcnt %d\n", addrbuf,
+			    ifm.ifma_refcount);
 		nextmulti:
 			ifmp = TAILQ_NEXT(&ifm, ifma_link);
 		}
@@ -456,8 +460,9 @@ if6_addrlist(struct ifaddr *ifap)
 		if (sa.sa_family != PF_INET6)
 			goto nextifap;
 		KREAD(ifap, &if6a, struct in6_ifaddr);
-		printf("\tinet6 %s\n", inet6_n2a(&if6a.ia_addr.sin6_addr,
-		    if6a.ia_addr.sin6_scope_id));
+		printf("\tinet6 %s\n",
+		    inet6_n2a(&if6a.ia_addr.sin6_addr,
+			if6a.ia_addr.sin6_scope_id));
 		/*
 		 * Print per-link MLD information, if available.
 		 */
@@ -492,15 +497,15 @@ if6_addrlist(struct ifaddr *ifap)
 			KREAD(ifm.ifma_addr, &sa, struct sockaddr);
 			if (sa.sa_family != AF_INET6)
 				goto nextmulti;
-			(void)in6_multientry((struct in6_multi *)
-					     ifm.ifma_protospec);
+			(void)in6_multientry(
+			    (struct in6_multi *)ifm.ifma_protospec);
 			if (ifm.ifma_lladdr == 0)
 				goto nextmulti;
 			KREAD(ifm.ifma_lladdr, &sdl, struct sockaddr_dl);
 			printf("\t\t\tmcast-macaddr %s refcnt %d\n",
-			       ether_ntoa((struct ether_addr *)LLADDR(&sdl)),
-			       ifm.ifma_refcount);
-		    nextmulti:
+			    ether_ntoa((struct ether_addr *)LLADDR(&sdl)),
+			    ifm.ifma_refcount);
+		nextmulti:
 			ifmp = TAILQ_NEXT(&ifm, ifma_link);
 		}
 	}
@@ -575,31 +580,23 @@ if_addrlist(struct ifaddr *ifap)
 			KREAD(ifm.ifma_addr, &sa, struct sockaddr);
 			if (sa.sa_family != AF_INET)
 				goto nextmulti;
-			(void)in_multientry((struct in_multi *)
-					    ifm.ifma_protospec);
+			(void)in_multientry(
+			    (struct in_multi *)ifm.ifma_protospec);
 			if (ifm.ifma_lladdr == 0)
 				goto nextmulti;
 			KREAD(ifm.ifma_lladdr, &sdl, struct sockaddr_dl);
 			printf("\t\t\tmcast-macaddr %s refcnt %d\n",
-			       ether_ntoa((struct ether_addr *)LLADDR(&sdl)),
-			       ifm.ifma_refcount);
-		    nextmulti:
+			    ether_ntoa((struct ether_addr *)LLADDR(&sdl)),
+			    ifm.ifma_refcount);
+		nextmulti:
 			ifmp = TAILQ_NEXT(&ifm, ifma_link);
 		}
 	}
 }
 
-static const char *inm_states[] = {
-	"not-member",
-	"silent",
-	"idle",
-	"lazy",
-	"sleeping",
-	"awakening",
-	"query-pending",
-	"sg-query-pending",
-	"leaving"
-};
+static const char *inm_states[] = { "not-member", "silent", "idle", "lazy",
+	"sleeping", "awakening", "query-pending", "sg-query-pending",
+	"leaving" };
 
 static const char *
 inm_state(u_int state)
@@ -713,10 +710,8 @@ in_multientry(struct in_multi *pinm)
 
 	if (vflag >= 2) {
 		printf(" asm %u ex %u in %u rec %u",
-		    (u_int)inm.inm_st[1].iss_asm,
-		    (u_int)inm.inm_st[1].iss_ex,
-		    (u_int)inm.inm_st[1].iss_in,
-		    (u_int)inm.inm_st[1].iss_rec);
+		    (u_int)inm.inm_st[1].iss_asm, (u_int)inm.inm_st[1].iss_ex,
+		    (u_int)inm.inm_st[1].iss_in, (u_int)inm.inm_st[1].iss_rec);
 	}
 
 #if 0
@@ -752,12 +747,12 @@ in6_ifinfo(struct mld_ifinfo *mli)
 	if (mli->mli_flags)
 		printb(" flags", mli->mli_flags, "\020\1SILENT\2USEALLOW");
 	if (mli->mli_version == MLD_VERSION_2) {
-		printf(" rv %u qi %u qri %u uri %u",
-		    mli->mli_rv, mli->mli_qi, mli->mli_qri, mli->mli_uri);
+		printf(" rv %u qi %u qri %u uri %u", mli->mli_rv, mli->mli_qi,
+		    mli->mli_qri, mli->mli_uri);
 	}
 	if (vflag >= 2) {
 		printf(" v1timer %u v2timer %u", mli->mli_v1_timer,
-		   mli->mli_v2_timer);
+		    mli->mli_v2_timer);
 	}
 	printf("\n");
 }
@@ -774,8 +769,8 @@ inet6_n2a(struct in6_addr *p, uint32_t scope_id)
 	sin6.sin6_len = sizeof(struct sockaddr_in6);
 	sin6.sin6_addr = *p;
 	sin6.sin6_scope_id = scope_id;
-	if (getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len,
-	    buf, sizeof(buf), NULL, 0, niflags) == 0) {
+	if (getnameinfo((struct sockaddr *)&sin6, sin6.sin6_len, buf,
+		sizeof(buf), NULL, 0, niflags) == 0) {
 		return (buf);
 	} else {
 		return ("(invalid)");
@@ -790,7 +785,7 @@ inet6_n2a(struct in6_addr *p, uint32_t scope_id)
 static void
 inm_print_sources_sysctl(uint32_t ifindex, struct in_addr gina)
 {
-#define	MAX_SYSCTL_TRY	5
+#define MAX_SYSCTL_TRY 5
 	int mib[7];
 	int ntry = 0;
 	size_t mibsize;
@@ -812,7 +807,7 @@ inm_print_sources_sysctl(uint32_t ifindex, struct in_addr gina)
 
 	needed = 0;
 	mib[5] = ifindex;
-	mib[6] = gina.s_addr;	/* 32 bits wide */
+	mib[6] = gina.s_addr; /* 32 bits wide */
 	mibsize = nitems(mib);
 	do {
 		if (sysctl(mib, mibsize, NULL, &needed, NULL, 0) == -1) {
@@ -830,7 +825,7 @@ inm_print_sources_sysctl(uint32_t ifindex, struct in_addr gina)
 			}
 			free(buf);
 			buf = NULL;
-		} 
+		}
 	} while (buf == NULL);
 
 	len = needed;
@@ -869,7 +864,7 @@ inm_print_sources_sysctl(uint32_t ifindex, struct in_addr gina)
 
 out_free:
 	free(buf);
-#undef	MAX_SYSCTL_TRY
+#undef MAX_SYSCTL_TRY
 }
 
 #endif /* INET */
@@ -888,7 +883,7 @@ out_free:
 static void
 in6m_print_sources_sysctl(uint32_t ifindex, struct in6_addr *pgroup)
 {
-#define	MAX_SYSCTL_TRY	5
+#define MAX_SYSCTL_TRY 5
 	char addrbuf[INET6_ADDRSTRLEN];
 	int mib[10];
 	int ntry = 0;
@@ -905,8 +900,8 @@ in6m_print_sources_sysctl(uint32_t ifindex, struct in6_addr *pgroup)
 	const char *modestr;
 
 	mibsize = nitems(mib);
-	if (sysctlnametomib("net.inet6.ip6.mcast.filters", mib,
-	    &mibsize) == -1) {
+	if (sysctlnametomib("net.inet6.ip6.mcast.filters", mib, &mibsize) ==
+	    -1) {
 		perror("sysctlnametomib");
 		return;
 	}
@@ -934,7 +929,7 @@ in6m_print_sources_sysctl(uint32_t ifindex, struct in6_addr *pgroup)
 			}
 			free(buf);
 			buf = NULL;
-		} 
+		}
 	} while (buf == NULL);
 
 	len = needed;
@@ -974,23 +969,23 @@ in6m_print_sources_sysctl(uint32_t ifindex, struct in6_addr *pgroup)
 
 out_free:
 	free(buf);
-#undef	MAX_SYSCTL_TRY
+#undef MAX_SYSCTL_TRY
 }
 #endif /* INET6 */
 
 static int
 ifmcstat_getifmaddrs(void)
 {
-	char			 thisifname[IFNAMSIZ];
-	char			 addrbuf[NI_MAXHOST];
-	struct ifaddrs		*ifap, *ifa;
-	struct ifmaddrs		*ifmap, *ifma;
-	sockunion_t		 lastifasa;
-	sockunion_t		*psa, *pgsa, *pllsa, *pifasa;
-	char			*pcolon;
-	char			*pafname;
-	uint32_t		 lastifindex, thisifindex;
-	int			 error;
+	char thisifname[IFNAMSIZ];
+	char addrbuf[NI_MAXHOST];
+	struct ifaddrs *ifap, *ifa;
+	struct ifmaddrs *ifmap, *ifma;
+	sockunion_t lastifasa;
+	sockunion_t *psa, *pgsa, *pllsa, *pifasa;
+	char *pcolon;
+	char *pafname;
+	uint32_t lastifindex, thisifindex;
+	int error;
 
 	error = 0;
 	ifap = NULL;
@@ -1074,7 +1069,7 @@ ifmcstat_getifmaddrs(void)
 			break;
 		}
 		if (pifasa == NULL)
-			continue;	/* primary address not found */
+			continue; /* primary address not found */
 
 		if (!vflag && pifasa->sa.sa_family == AF_LINK)
 			continue;
@@ -1082,8 +1077,8 @@ ifmcstat_getifmaddrs(void)
 		/* Parse and print primary address, if not already printed. */
 		if (lastifasa.ss.ss_family == AF_UNSPEC ||
 		    ((lastifasa.ss.ss_family == AF_LINK &&
-		      !sa_dl_equal(&lastifasa.sa, &pifasa->sa)) ||
-		     !sa_equal(&lastifasa.sa, &pifasa->sa))) {
+			 !sa_dl_equal(&lastifasa.sa, &pifasa->sa)) ||
+			!sa_equal(&lastifasa.sa, &pifasa->sa))) {
 
 			switch (pifasa->sa.sa_family) {
 			case AF_INET:
@@ -1111,14 +1106,13 @@ ifmcstat_getifmaddrs(void)
 				break;
 			}
 #else
-			/* FALLTHROUGH */
+				/* FALLTHROUGH */
 #endif
 			case AF_INET:
 			case AF_LINK:
 				error = getnameinfo(&pifasa->sa,
-				    pifasa->sa.sa_len,
-				    addrbuf, sizeof(addrbuf), NULL, 0,
-				    NI_NUMERICHOST);
+				    pifasa->sa.sa_len, addrbuf, sizeof(addrbuf),
+				    NULL, 0, NI_NUMERICHOST);
 				if (error)
 					perror("getnameinfo");
 				break;
@@ -1145,15 +1139,15 @@ ifmcstat_getifmaddrs(void)
 				int mib[5];
 
 				mibsize = nitems(mib);
-				if (sysctlnametomib("net.inet.igmp.ifinfo",
-				    mib, &mibsize) == -1) {
+				if (sysctlnametomib("net.inet.igmp.ifinfo", mib,
+					&mibsize) == -1) {
 					perror("sysctlnametomib");
 					goto next_ifnet;
 				}
 				mib[mibsize] = thisifindex;
 				len = sizeof(struct igmp_ifinfo);
 				if (sysctl(mib, mibsize + 1, &igi, &len, NULL,
-				    0) == -1) {
+					0) == -1) {
 					perror("sysctl net.inet.igmp.ifinfo");
 					goto next_ifnet;
 				}
@@ -1170,15 +1164,15 @@ ifmcstat_getifmaddrs(void)
 				int mib[5];
 
 				mibsize = nitems(mib);
-				if (sysctlnametomib("net.inet6.mld.ifinfo",
-				    mib, &mibsize) == -1) {
+				if (sysctlnametomib("net.inet6.mld.ifinfo", mib,
+					&mibsize) == -1) {
 					perror("sysctlnametomib");
 					goto next_ifnet;
 				}
 				mib[mibsize] = thisifindex;
 				len = sizeof(struct mld_ifinfo);
 				if (sysctl(mib, mibsize + 1, &mli, &len, NULL,
-				    0) == -1) {
+					0) == -1) {
 					perror("sysctl net.inet6.mld.ifinfo");
 					goto next_ifnet;
 				}
@@ -1186,7 +1180,7 @@ ifmcstat_getifmaddrs(void)
 			}
 #endif /* INET6 */
 #if defined(INET) || defined(INET6)
-next_ifnet:
+		next_ifnet:
 #endif
 			lastifasa = *pifasa;
 		}
@@ -1200,16 +1194,15 @@ next_ifnet:
 		} else
 #endif
 		{
-			error = getnameinfo(&pgsa->sa, pgsa->sa.sa_len,
-			    addrbuf, sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
+			error = getnameinfo(&pgsa->sa, pgsa->sa.sa_len, addrbuf,
+			    sizeof(addrbuf), NULL, 0, NI_NUMERICHOST);
 			if (error)
 				perror("getnameinfo");
 		}
 
 		fprintf(stdout, "\t\tgroup %s", addrbuf);
 #ifdef INET6
-		if (pgsa->sa.sa_family == AF_INET6 &&
-		    pgsa->sin6.sin6_scope_id)
+		if (pgsa->sa.sa_family == AF_INET6 && pgsa->sin6.sin6_scope_id)
 			fprintf(stdout, " scopeid 0x%x",
 			    pgsa->sin6.sin6_scope_id);
 #endif

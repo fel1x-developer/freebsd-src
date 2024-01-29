@@ -26,11 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
@@ -39,13 +39,15 @@
 #include <ifaddrs.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
-#define	SALIGN	(sizeof(long) - 1)
-#define	SA_RLEN(sa)	((sa)->sa_len ? (((sa)->sa_len + SALIGN) & ~SALIGN) : \
-			    (SALIGN + 1))
-#define	MAX_SYSCTL_TRY	5
-#define	RTA_MASKS	(RTA_GATEWAY | RTA_IFP | RTA_IFA)
+#define SALIGN (sizeof(long) - 1)
+#define SA_RLEN(sa) \
+	((sa)->sa_len ? (((sa)->sa_len + SALIGN) & ~SALIGN) : (SALIGN + 1))
+#define MAX_SYSCTL_TRY 5
+#define RTA_MASKS (RTA_GATEWAY | RTA_IFP | RTA_IFA)
 
 int
 getifmaddrs(struct ifmaddrs **pif)
@@ -68,10 +70,10 @@ getifmaddrs(struct ifmaddrs **pif)
 
 	mib[0] = CTL_NET;
 	mib[1] = PF_ROUTE;
-	mib[2] = 0;             /* protocol */
-	mib[3] = 0;             /* wildcard address family */
+	mib[2] = 0; /* protocol */
+	mib[3] = 0; /* wildcard address family */
 	mib[4] = NET_RT_IFMALIST;
-	mib[5] = 0;             /* no flags */
+	mib[5] = 0; /* no flags */
 	do {
 		if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0)
 			return (-1);
@@ -84,7 +86,7 @@ getifmaddrs(struct ifmaddrs **pif)
 			}
 			free(buf);
 			buf = NULL;
-		} 
+		}
 	} while (buf == NULL);
 
 	for (next = buf; next < buf + needed; next += rtm->rtm_msglen) {
@@ -100,7 +102,7 @@ getifmaddrs(struct ifmaddrs **pif)
 			p = (char *)(ifmam + 1);
 			for (i = 0; i < RTAX_MAX; i++) {
 				if ((RTA_MASKS & ifmam->ifmam_addrs &
-				    (1 << i)) == 0)
+					(1 << i)) == 0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);
@@ -137,7 +139,7 @@ getifmaddrs(struct ifmaddrs **pif)
 			p = (char *)(ifmam + 1);
 			for (i = 0; i < RTAX_MAX; i++) {
 				if ((RTA_MASKS & ifmam->ifmam_addrs &
-				    (1 << i)) == 0)
+					(1 << i)) == 0)
 					continue;
 				sa = (struct sockaddr *)(void *)p;
 				len = SA_RLEN(sa);

@@ -31,72 +31,72 @@
  */
 
 #include <rdma/uverbs_std_types.h>
+
 #include "rdma_core.h"
 #include "uverbs.h"
 
-static int uverbs_free_cq(struct ib_uobject *uobject,
-			  enum rdma_remove_reason why,
-			  struct uverbs_attr_bundle *attrs)
+static int
+uverbs_free_cq(struct ib_uobject *uobject, enum rdma_remove_reason why,
+    struct uverbs_attr_bundle *attrs)
 {
 	struct ib_cq *cq = uobject->object;
 	struct ib_uverbs_event_queue *ev_queue = cq->cq_context;
-	struct ib_ucq_object *ucq =
-		container_of(uobject, struct ib_ucq_object, uevent.uobject);
+	struct ib_ucq_object *ucq = container_of(uobject, struct ib_ucq_object,
+	    uevent.uobject);
 	int ret;
 
 	ret = ib_destroy_cq_user(cq, &attrs->driver_udata);
 	if (ib_is_destroy_retryable(ret, why, uobject))
 		return ret;
 
-	ib_uverbs_release_ucq(
-		ev_queue ? container_of(ev_queue,
-					struct ib_uverbs_completion_event_file,
-					ev_queue) :
-			   NULL,
-		ucq);
+	ib_uverbs_release_ucq(ev_queue ?
+		container_of(ev_queue, struct ib_uverbs_completion_event_file,
+		    ev_queue) :
+		NULL,
+	    ucq);
 	return ret;
 }
 
-static int UVERBS_HANDLER(UVERBS_METHOD_CQ_CREATE)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_CQ_CREATE)(struct uverbs_attr_bundle *attrs)
 {
 	struct ib_ucq_object *obj = container_of(
-		uverbs_attr_get_uobject(attrs, UVERBS_ATTR_CREATE_CQ_HANDLE),
-		typeof(*obj), uevent.uobject);
+	    uverbs_attr_get_uobject(attrs, UVERBS_ATTR_CREATE_CQ_HANDLE),
+	    typeof(*obj), uevent.uobject);
 	struct ib_device *ib_dev = attrs->context->device;
 	int ret;
 	u64 user_handle;
 	struct ib_cq_init_attr attr = {};
-	struct ib_cq                   *cq;
-	struct ib_uverbs_completion_event_file    *ev_file = NULL;
+	struct ib_cq *cq;
+	struct ib_uverbs_completion_event_file *ev_file = NULL;
 	struct ib_uobject *ev_file_uobj;
 
 	if (!ib_dev->create_cq || !ib_dev->destroy_cq)
 		return -EOPNOTSUPP;
 
 	ret = uverbs_copy_from(&attr.comp_vector, attrs,
-			       UVERBS_ATTR_CREATE_CQ_COMP_VECTOR);
+	    UVERBS_ATTR_CREATE_CQ_COMP_VECTOR);
 	if (!ret)
 		ret = uverbs_copy_from(&attr.cqe, attrs,
-				       UVERBS_ATTR_CREATE_CQ_CQE);
+		    UVERBS_ATTR_CREATE_CQ_CQE);
 	if (!ret)
 		ret = uverbs_copy_from(&user_handle, attrs,
-				       UVERBS_ATTR_CREATE_CQ_USER_HANDLE);
+		    UVERBS_ATTR_CREATE_CQ_USER_HANDLE);
 	if (ret)
 		return ret;
 
 	ret = uverbs_get_flags32(&attr.flags, attrs,
-				 UVERBS_ATTR_CREATE_CQ_FLAGS,
-				 IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION |
-					 IB_UVERBS_CQ_FLAGS_IGNORE_OVERRUN);
+	    UVERBS_ATTR_CREATE_CQ_FLAGS,
+	    IB_UVERBS_CQ_FLAGS_TIMESTAMP_COMPLETION |
+		IB_UVERBS_CQ_FLAGS_IGNORE_OVERRUN);
 	if (ret)
 		return ret;
 
-	ev_file_uobj = uverbs_attr_get_uobject(attrs, UVERBS_ATTR_CREATE_CQ_COMP_CHANNEL);
+	ev_file_uobj = uverbs_attr_get_uobject(attrs,
+	    UVERBS_ATTR_CREATE_CQ_COMP_CHANNEL);
 	if (!IS_ERR(ev_file_uobj)) {
 		ev_file = container_of(ev_file_uobj,
-				       struct ib_uverbs_completion_event_file,
-				       uobj);
+		    struct ib_uverbs_completion_event_file, uobj);
 		uverbs_uobject_get(ev_file_uobj);
 	}
 
@@ -114,11 +114,11 @@ static int UVERBS_HANDLER(UVERBS_METHOD_CQ_CREATE)(
 		goto err_event_file;
 	}
 
-	cq->device        = ib_dev;
-	cq->uobject       = obj;
-	cq->comp_handler  = ib_uverbs_comp_handler;
+	cq->device = ib_dev;
+	cq->uobject = obj;
+	cq->comp_handler = ib_uverbs_comp_handler;
 	cq->event_handler = ib_uverbs_cq_event_handler;
-	cq->cq_context    = ev_file ? &ev_file->ev_queue : NULL;
+	cq->cq_context = ev_file ? &ev_file->ev_queue : NULL;
 	atomic_set(&cq->usecnt, 0);
 
 	ret = ib_dev->create_cq(cq, &attr, &attrs->driver_udata);
@@ -129,7 +129,7 @@ static int UVERBS_HANDLER(UVERBS_METHOD_CQ_CREATE)(
 	obj->uevent.uobject.user_handle = user_handle;
 
 	ret = uverbs_copy_to(attrs, UVERBS_ATTR_CREATE_CQ_RESP_CQE, &cq->cqe,
-			     sizeof(cq->cqe));
+	    sizeof(cq->cqe));
 	if (ret)
 		goto err_cq;
 
@@ -145,70 +145,56 @@ err_event_file:
 	return ret;
 };
 
-DECLARE_UVERBS_NAMED_METHOD(
-	UVERBS_METHOD_CQ_CREATE,
-	UVERBS_ATTR_IDR(UVERBS_ATTR_CREATE_CQ_HANDLE,
-			UVERBS_OBJECT_CQ,
-			UVERBS_ACCESS_NEW,
-			UA_MANDATORY),
-	UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_CQE,
-			   UVERBS_ATTR_TYPE(u32),
-			   UA_MANDATORY),
-	UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_USER_HANDLE,
-			   UVERBS_ATTR_TYPE(u64),
-			   UA_MANDATORY),
-	UVERBS_ATTR_FD(UVERBS_ATTR_CREATE_CQ_COMP_CHANNEL,
-		       UVERBS_OBJECT_COMP_CHANNEL,
-		       UVERBS_ACCESS_READ,
-		       UA_OPTIONAL),
-	UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_COMP_VECTOR,
-			   UVERBS_ATTR_TYPE(u32),
-			   UA_MANDATORY),
-	UVERBS_ATTR_FLAGS_IN(UVERBS_ATTR_CREATE_CQ_FLAGS,
-			     enum ib_uverbs_ex_create_cq_flags),
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_CREATE_CQ_RESP_CQE,
-			    UVERBS_ATTR_TYPE(u32),
-			    UA_MANDATORY),
-	UVERBS_ATTR_UHW());
+DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_CQ_CREATE,
+    UVERBS_ATTR_IDR(UVERBS_ATTR_CREATE_CQ_HANDLE, UVERBS_OBJECT_CQ,
+	UVERBS_ACCESS_NEW, UA_MANDATORY),
+    UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_CQE, UVERBS_ATTR_TYPE(u32),
+	UA_MANDATORY),
+    UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_USER_HANDLE, UVERBS_ATTR_TYPE(u64),
+	UA_MANDATORY),
+    UVERBS_ATTR_FD(UVERBS_ATTR_CREATE_CQ_COMP_CHANNEL,
+	UVERBS_OBJECT_COMP_CHANNEL, UVERBS_ACCESS_READ, UA_OPTIONAL),
+    UVERBS_ATTR_PTR_IN(UVERBS_ATTR_CREATE_CQ_COMP_VECTOR, UVERBS_ATTR_TYPE(u32),
+	UA_MANDATORY),
+    UVERBS_ATTR_FLAGS_IN(UVERBS_ATTR_CREATE_CQ_FLAGS,
+	enum ib_uverbs_ex_create_cq_flags),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_CREATE_CQ_RESP_CQE, UVERBS_ATTR_TYPE(u32),
+	UA_MANDATORY),
+    UVERBS_ATTR_UHW());
 
-static int UVERBS_HANDLER(UVERBS_METHOD_CQ_DESTROY)(
-	struct uverbs_attr_bundle *attrs)
+static int
+UVERBS_HANDLER(UVERBS_METHOD_CQ_DESTROY)(struct uverbs_attr_bundle *attrs)
 {
-	struct ib_uobject *uobj =
-		uverbs_attr_get_uobject(attrs, UVERBS_ATTR_DESTROY_CQ_HANDLE);
-	struct ib_ucq_object *obj =
-		container_of(uobj, struct ib_ucq_object, uevent.uobject);
+	struct ib_uobject *uobj = uverbs_attr_get_uobject(attrs,
+	    UVERBS_ATTR_DESTROY_CQ_HANDLE);
+	struct ib_ucq_object *obj = container_of(uobj, struct ib_ucq_object,
+	    uevent.uobject);
 	struct ib_uverbs_destroy_cq_resp resp = {
 		.comp_events_reported = obj->comp_events_reported,
 		.async_events_reported = obj->uevent.events_reported
 	};
 
 	return uverbs_copy_to(attrs, UVERBS_ATTR_DESTROY_CQ_RESP, &resp,
-			      sizeof(resp));
+	    sizeof(resp));
 }
 
-DECLARE_UVERBS_NAMED_METHOD(
-	UVERBS_METHOD_CQ_DESTROY,
-	UVERBS_ATTR_IDR(UVERBS_ATTR_DESTROY_CQ_HANDLE,
-			UVERBS_OBJECT_CQ,
-			UVERBS_ACCESS_DESTROY,
-			UA_MANDATORY),
-	UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_DESTROY_CQ_RESP,
-			    UVERBS_ATTR_TYPE(struct ib_uverbs_destroy_cq_resp),
-			    UA_MANDATORY));
+DECLARE_UVERBS_NAMED_METHOD(UVERBS_METHOD_CQ_DESTROY,
+    UVERBS_ATTR_IDR(UVERBS_ATTR_DESTROY_CQ_HANDLE, UVERBS_OBJECT_CQ,
+	UVERBS_ACCESS_DESTROY, UA_MANDATORY),
+    UVERBS_ATTR_PTR_OUT(UVERBS_ATTR_DESTROY_CQ_RESP,
+	UVERBS_ATTR_TYPE(struct ib_uverbs_destroy_cq_resp), UA_MANDATORY));
 
-DECLARE_UVERBS_NAMED_OBJECT(
-	UVERBS_OBJECT_CQ,
-	UVERBS_TYPE_ALLOC_IDR_SZ(sizeof(struct ib_ucq_object), uverbs_free_cq),
+DECLARE_UVERBS_NAMED_OBJECT(UVERBS_OBJECT_CQ,
+    UVERBS_TYPE_ALLOC_IDR_SZ(sizeof(struct ib_ucq_object), uverbs_free_cq),
 
 #if 1 /* CONFIG_INFINIBAND_EXP_LEGACY_VERBS_NEW_UAPI */
-	&UVERBS_METHOD(UVERBS_METHOD_CQ_CREATE),
-	&UVERBS_METHOD(UVERBS_METHOD_CQ_DESTROY)
+    &UVERBS_METHOD(UVERBS_METHOD_CQ_CREATE),
+    &UVERBS_METHOD(UVERBS_METHOD_CQ_DESTROY)
 #endif
 );
 
 const struct uapi_definition uverbs_def_obj_cq[] = {
 	UAPI_DEF_CHAIN_OBJ_TREE_NAMED(UVERBS_OBJECT_CQ,
-				      UAPI_DEF_OBJ_NEEDS_FN(destroy_cq)),
+	    UAPI_DEF_OBJ_NEEDS_FN(destroy_cq)),
 	{}
 };

@@ -33,34 +33,32 @@
 #ifndef _HCSECD_H_
 #define _HCSECD_H_ 1
 
-#define HCSECD_BUFFER_SIZE	512
-#define HCSECD_IDENT		"hcsecd"
-#define HCSECD_PIDFILE		"/var/run/" HCSECD_IDENT ".pid"
-#define HCSECD_KEYSFILE		"/var/db/"  HCSECD_IDENT ".keys"
+#define HCSECD_BUFFER_SIZE 512
+#define HCSECD_IDENT "hcsecd"
+#define HCSECD_PIDFILE "/var/run/" HCSECD_IDENT ".pid"
+#define HCSECD_KEYSFILE "/var/db/" HCSECD_IDENT ".keys"
 
-struct link_key
-{
-	bdaddr_t		 bdaddr; /* remote device BDADDR */
-	char			*name;   /* remote device name */
-	uint8_t			*key;    /* link key (or NULL if no key) */
-	char			*pin;    /* pin (or NULL if no pin) */
-	LIST_ENTRY(link_key)	 next;   /* link to the next */
+struct link_key {
+	bdaddr_t bdaddr;	   /* remote device BDADDR */
+	char *name;		   /* remote device name */
+	uint8_t *key;		   /* link key (or NULL if no key) */
+	char *pin;		   /* pin (or NULL if no pin) */
+	LIST_ENTRY(link_key) next; /* link to the next */
 };
-typedef struct link_key		link_key_t;
-typedef struct link_key *	link_key_p;
+typedef struct link_key link_key_t;
+typedef struct link_key *link_key_p;
 
-extern char	*config_file;
+extern char *config_file;
 
 #if __config_debug__
-void		dump_config	(void);
+void dump_config(void);
 #endif
 
-void		read_config_file(void);
-void		clean_config	(void);
-link_key_p	get_key		(bdaddr_p bdaddr, int exact_match);
+void read_config_file(void);
+void clean_config(void);
+link_key_p get_key(bdaddr_p bdaddr, int exact_match);
 
-int		read_keys_file  (void);
-int		dump_keys_file  (void);
+int read_keys_file(void);
+int dump_keys_file(void);
 
 #endif /* ndef _HCSECD_H_ */
-

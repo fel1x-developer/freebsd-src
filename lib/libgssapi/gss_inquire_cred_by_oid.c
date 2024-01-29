@@ -34,20 +34,19 @@
 
 #include <gssapi/gssapi.h>
 
-#include "mech_switch.h"
 #include "cred.h"
+#include "mech_switch.h"
 #include "name.h"
 
 /* RCSID("$Id: gss_inquire_cred_by_oid.c 19960 2007-01-17 15:09:24Z lha $"); */
 
 OM_uint32
-gss_inquire_cred_by_oid (OM_uint32 *minor_status,
-			 const gss_cred_id_t cred_handle,
-			 const gss_OID desired_object,
-			 gss_buffer_set_t *data_set)
+gss_inquire_cred_by_oid(OM_uint32 *minor_status,
+    const gss_cred_id_t cred_handle, const gss_OID desired_object,
+    gss_buffer_set_t *data_set)
 {
-	struct _gss_cred *cred = (struct _gss_cred *) cred_handle;
-	OM_uint32		status = GSS_S_COMPLETE;
+	struct _gss_cred *cred = (struct _gss_cred *)cred_handle;
+	OM_uint32 status = GSS_S_COMPLETE;
 	struct _gss_mechanism_cred *mc;
 	struct _gss_mech_switch *m;
 	gss_buffer_set_t set = GSS_C_NO_BUFFER_SET;
@@ -58,13 +57,13 @@ gss_inquire_cred_by_oid (OM_uint32 *minor_status,
 	if (cred == NULL)
 		return GSS_S_NO_CRED;
 
-	SLIST_FOREACH(mc, &cred->gc_mc, gmc_link) {
+	SLIST_FOREACH (mc, &cred->gc_mc, gmc_link) {
 		gss_buffer_set_t rset = GSS_C_NO_BUFFER_SET;
 		size_t i;
 
 		m = mc->gmc_mech;
 		if (m == NULL) {
-	       		gss_release_buffer_set(minor_status, &set);
+			gss_release_buffer_set(minor_status, &set);
 			*minor_status = 0;
 			return GSS_S_BAD_MECH;
 		}
@@ -72,14 +71,14 @@ gss_inquire_cred_by_oid (OM_uint32 *minor_status,
 		if (m->gm_inquire_cred_by_oid == NULL)
 			continue;
 
-		status = m->gm_inquire_cred_by_oid(minor_status,
-		    mc->gmc_cred, desired_object, &rset);
+		status = m->gm_inquire_cred_by_oid(minor_status, mc->gmc_cred,
+		    desired_object, &rset);
 		if (status != GSS_S_COMPLETE)
 			continue;
 
 		for (i = 0; i < rset->count; i++) {
 			status = gss_add_buffer_set_member(minor_status,
-			     &rset->elements[i], &set);
+			    &rset->elements[i], &set);
 			if (status != GSS_S_COMPLETE)
 				break;
 		}
@@ -91,4 +90,3 @@ gss_inquire_cred_by_oid (OM_uint32 *minor_status,
 	*minor_status = 0;
 	return status;
 }
-

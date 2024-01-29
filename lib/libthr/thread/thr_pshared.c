@@ -29,11 +29,12 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/queue.h>
-#include "namespace.h"
-#include <stdlib.h>
-#include "un-namespace.h"
 
+#include <stdlib.h>
+
+#include "namespace.h"
 #include "thr_private.h"
+#include "un-namespace.h"
 
 struct psh {
 	LIST_ENTRY(psh) link;
@@ -42,9 +43,9 @@ struct psh {
 };
 
 LIST_HEAD(pshared_hash_head, psh);
-#define	HASH_SIZE	128
+#define HASH_SIZE 128
 static struct pshared_hash_head pshared_hash[HASH_SIZE];
-#define	PSHARED_KEY_HASH(key)	(((unsigned long)(key) >> 8) % HASH_SIZE)
+#define PSHARED_KEY_HASH(key) (((unsigned long)(key) >> 8) % HASH_SIZE)
 /* XXXKIB: lock could be split to per-hash chain, if appears contested */
 static struct urwlock pshared_lock = DEFAULT_URWLOCK;
 static int page_size;
@@ -108,7 +109,7 @@ pshared_gc(struct pthread *curthread)
 	pshared_wlock(curthread);
 	for (i = 0; i < HASH_SIZE; i++) {
 		hd = &pshared_hash[i];
-		LIST_FOREACH_SAFE(h, hd, link, h1) {
+		LIST_FOREACH_SAFE (h, hd, link, h1) {
 			error = _umtx_op(NULL, UMTX_OP_SHM, UMTX_SHM_ALIVE,
 			    h->val, NULL);
 			if (error == 0)
@@ -128,7 +129,7 @@ pshared_lookup(void *key)
 	struct psh *h;
 
 	hd = &pshared_hash[PSHARED_KEY_HASH(key)];
-	LIST_FOREACH(h, hd, link) {
+	LIST_FOREACH (h, hd, link) {
 		if (h->key == key)
 			return (h->val);
 	}
@@ -142,7 +143,7 @@ pshared_insert(void *key, void **val)
 	struct psh *h;
 
 	hd = &pshared_hash[PSHARED_KEY_HASH(key)];
-	LIST_FOREACH(h, hd, link) {
+	LIST_FOREACH (h, hd, link) {
 		/*
 		 * When the key already exists in the hash, we should
 		 * return either the new (just mapped) or old (hashed)
@@ -190,7 +191,7 @@ pshared_remove(void *key)
 	void *val;
 
 	hd = &pshared_hash[PSHARED_KEY_HASH(key)];
-	LIST_FOREACH(h, hd, link) {
+	LIST_FOREACH (h, hd, link) {
 		if (h->key == key) {
 			LIST_REMOVE(h, link);
 			val = h->val;
@@ -239,8 +240,8 @@ __thr_pshared_offpage(void *key, int doalloc)
 		if (res != NULL)
 			return (res);
 	}
-	fd = _umtx_op(NULL, UMTX_OP_SHM, doalloc ? UMTX_SHM_CREAT :
-	    UMTX_SHM_LOOKUP, key, NULL);
+	fd = _umtx_op(NULL, UMTX_OP_SHM,
+	    doalloc ? UMTX_SHM_CREAT : UMTX_SHM_LOOKUP, key, NULL);
 	if (fd == -1)
 		return (NULL);
 	res = mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

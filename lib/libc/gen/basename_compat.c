@@ -16,14 +16,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/param.h>
+
 #include <errno.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/param.h>
 
-char * __freebsd11_basename_r(const char *path, char *bname);
-char * __freebsd11_basename(char *path);
+char *__freebsd11_basename_r(const char *path, char *bname);
+char *__freebsd11_basename(char *path);
 
 char *
 __freebsd11_basename_r(const char *path, char *bname)
@@ -78,5 +79,5 @@ __freebsd11_basename(char *path)
 	return (__freebsd11_basename_r(path, bname));
 }
 
-__sym_compat(basename_r, __freebsd11_basename_r, FBSD_1.2);
-__sym_compat(basename, __freebsd11_basename, FBSD_1.0);
+__sym_compat(basename_r, __freebsd11_basename_r, FBSD_1 .2);
+__sym_compat(basename, __freebsd11_basename, FBSD_1 .0);

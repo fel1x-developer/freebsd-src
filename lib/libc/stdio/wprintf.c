@@ -37,7 +37,7 @@
 #include <xlocale.h>
 
 int
-wprintf(const wchar_t * __restrict fmt, ...)
+wprintf(const wchar_t *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
@@ -49,7 +49,7 @@ wprintf(const wchar_t * __restrict fmt, ...)
 	return (ret);
 }
 int
-wprintf_l(locale_t locale, const wchar_t * __restrict fmt, ...)
+wprintf_l(locale_t locale, const wchar_t *__restrict fmt, ...)
 {
 	int ret;
 	va_list ap;

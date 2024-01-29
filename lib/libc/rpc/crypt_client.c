@@ -32,21 +32,23 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
-#include <err.h>
 #include <sys/types.h>
-#include <rpc/des_crypt.h>
+
+#include <err.h>
 #include <rpc/des.h>
-#include <string.h>
+#include <rpc/des_crypt.h>
 #include <rpcsvc/crypt.h>
+#include <string.h>
+
+#include "namespace.h"
 #include "un-namespace.h"
 
 int
 _des_crypt_call(char *buf, int len, struct desparams *dparms)
 {
 	CLIENT *clnt;
-	desresp  *result_1;
-	desargs  des_crypt_1_arg;
+	desresp *result_1;
+	desargs des_crypt_1_arg;
 	struct netconfig *nconf;
 	void *localhandle;
 	int stat;
@@ -55,32 +57,34 @@ _des_crypt_call(char *buf, int len, struct desparams *dparms)
 	localhandle = setnetconfig();
 	while ((nconf = getnetconfig(localhandle)) != NULL) {
 		if (nconf->nc_protofmly != NULL &&
-		     strcmp(nconf->nc_protofmly, NC_LOOPBACK) == 0)
+		    strcmp(nconf->nc_protofmly, NC_LOOPBACK) == 0)
 			break;
 	}
 	if (nconf == NULL) {
 		warnx("getnetconfig: %s", nc_sperror());
 		endnetconfig(localhandle);
-		return(DESERR_HWERROR);
+		return (DESERR_HWERROR);
 	}
 	clnt = clnt_tp_create(NULL, CRYPT_PROG, CRYPT_VERS, nconf);
-	if (clnt == (CLIENT *) NULL) {
+	if (clnt == (CLIENT *)NULL) {
 		endnetconfig(localhandle);
-		return(DESERR_HWERROR);
+		return (DESERR_HWERROR);
 	}
 	endnetconfig(localhandle);
 
 	des_crypt_1_arg.desbuf.desbuf_len = len;
 	des_crypt_1_arg.desbuf.desbuf_val = buf;
-	des_crypt_1_arg.des_dir = (dparms->des_dir == ENCRYPT) ? ENCRYPT_DES : DECRYPT_DES;
-	des_crypt_1_arg.des_mode = (dparms->des_mode == CBC) ? CBC_DES : ECB_DES;
+	des_crypt_1_arg.des_dir = (dparms->des_dir == ENCRYPT) ? ENCRYPT_DES :
+								 DECRYPT_DES;
+	des_crypt_1_arg.des_mode = (dparms->des_mode == CBC) ? CBC_DES :
+							       ECB_DES;
 	bcopy(dparms->des_ivec, des_crypt_1_arg.des_ivec, 8);
 	bcopy(dparms->des_key, des_crypt_1_arg.des_key, 8);
 
 	result_1 = des_crypt_1(&des_crypt_1_arg, clnt);
-	if (result_1 == (desresp *) NULL) {
+	if (result_1 == (desresp *)NULL) {
 		clnt_destroy(clnt);
-		return(DESERR_HWERROR);
+		return (DESERR_HWERROR);
 	}
 
 	stat = result_1->stat;
@@ -94,5 +98,5 @@ _des_crypt_call(char *buf, int len, struct desparams *dparms)
 	clnt_freeres(clnt, (xdrproc_t)xdr_desresp, result_1);
 	clnt_destroy(clnt);
 
-	return(stat);
+	return (stat);
 }

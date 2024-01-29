@@ -38,6 +38,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "../libsecureboot-priv.h"
 #ifdef _STANDALONE
 #define warnx printf
@@ -45,12 +46,13 @@
 
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <stdio.h>
+
+#include <err.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <err.h>
+#include <unistd.h>
 #endif
 
 #include "decode.h"
@@ -61,7 +63,7 @@
 #define get_error_string ve_error_get
 
 void
-initialize (void)
+initialize(void)
 {
 	openpgp_trust_init();
 }
@@ -81,7 +83,7 @@ initialize(void)
 	if (once)
 		return);
 	once = 1;
-	//CRYPTO_malloc_init();
+	// CRYPTO_malloc_init();
 	ERR_load_crypto_strings();
 	OpenSSL_add_all_algorithms();
 }
@@ -117,7 +119,7 @@ decode_sig(int tag, unsigned char **pptr, size_t len, OpenPGP_sig *sig)
 	int stag = 0;
 	int n;
 
-	n = tag;			/* avoid unused */
+	n = tag; /* avoid unused */
 
 	/*
 	 * We need to keep a reference to the packet bytes
@@ -175,8 +177,8 @@ decode_sig(int tag, unsigned char **pptr, size_t len, OpenPGP_sig *sig)
 		}
 	} else
 		return (-1);
-	ptr += 2;			/* skip hash16 */
-	if (sig->sig_alg == 1) {	/* RSA */
+	ptr += 2;		 /* skip hash16 */
+	if (sig->sig_alg == 1) { /* RSA */
 		sig->sig = decode_mpi(&ptr, &sig->sig_len);
 	}
 	/* we are done */
@@ -192,13 +194,13 @@ static struct hash_alg_map {
 	int halg;
 	const char *hname;
 } hash_algs[] = {
-	{1, "md5"},
-	{2, "sha1"},
-	{8, "sha256"},
-	{9, "sha384"},
-	{10, "sha512"},
-	{11, "sha224"},
-	{0, NULL},
+	{ 1, "md5" },
+	{ 2, "sha1" },
+	{ 8, "sha256" },
+	{ 9, "sha384" },
+	{ 10, "sha512" },
+	{ 11, "sha224" },
+	{ 0, NULL },
 };
 
 static const char *
@@ -223,10 +225,8 @@ get_hname(int hash_alg)
  */
 #ifndef USE_BEARSSL
 static int
-verify_digest (EVP_PKEY *pkey,
-    const char *digest,
-    unsigned char *mdata, size_t mlen,
-    unsigned char *sdata, size_t slen)
+verify_digest(EVP_PKEY *pkey, const char *digest, unsigned char *mdata,
+    size_t mlen, unsigned char *sdata, size_t slen)
 {
 	EVP_MD_CTX ctx;
 	const EVP_MD *md = NULL;
@@ -254,7 +254,6 @@ fail:
 }
 #endif
 
-
 /**
  * @brief verify OpenPGP signed file
  *
@@ -279,10 +278,8 @@ fail:
  * @return 0 on success
  */
 int
-openpgp_verify(const char *filename,
-    unsigned char *fdata, size_t fbytes,
-    unsigned char *sdata, size_t sbytes,
-    int flags)
+openpgp_verify(const char *filename, unsigned char *fdata, size_t fbytes,
+    unsigned char *sdata, size_t sbytes, int flags)
 {
 	OpenPGP_key *key;
 	OpenPGP_sig *sig;
@@ -312,7 +309,8 @@ openpgp_verify(const char *filename,
 		sdata = ddata = dearmor((char *)sdata, sbytes, &sbytes);
 	ptr = sdata;
 	rc = decode_packet(2, &ptr, sbytes, (decoder_t)decode_sig, sig);
-	DEBUG_PRINTF(2, ("rc=%d keyID=%s\n", rc, sig->key_id ? sig->key_id : "?"));
+	DEBUG_PRINTF(2,
+	    ("rc=%d keyID=%s\n", rc, sig->key_id ? sig->key_id : "?"));
 	if (rc == 0 && sig->key_id) {
 		key = load_key_id(sig->key_id);
 		if (!key) {
@@ -334,7 +332,7 @@ openpgp_verify(const char *filename,
 				mlen = br_sha1_SIZE;
 				hash_oid = BR_HASH_OID_SHA1;
 				break;
-			case 8:			/* sha256 */
+			case 8: /* sha256 */
 				md = &br_sha256_vtable;
 				mlen = br_sha256_SIZE;
 				hash_oid = BR_HASH_OID_SHA256;
@@ -349,8 +347,8 @@ openpgp_verify(const char *filename,
 			    sig->pgpbytes_len);
 			md->out(&mctx.vtable, mdata);
 
-			rc = verify_rsa_digest(key->key, hash_oid,
-			    mdata, mlen, sig->sig, sig->sig_len);
+			rc = verify_rsa_digest(key->key, hash_oid, mdata, mlen,
+			    sig->sig, sig->sig_len);
 #else
 			md = EVP_get_digestbyname(hname);
 			EVP_DigestInit(&mctx, md);
@@ -358,7 +356,7 @@ openpgp_verify(const char *filename,
 			EVP_DigestUpdate(&mctx, sig->pgpbytes,
 			    sig->pgpbytes_len);
 			mlen = sizeof(mdata);
-			EVP_DigestFinal(&mctx,mdata,(unsigned int *)&mlen);
+			EVP_DigestFinal(&mctx, mdata, (unsigned int *)&mlen);
 
 			rc = verify_digest(key->key, hname, mdata, mlen,
 			    sig->sig, sig->sig_len);
@@ -368,11 +366,12 @@ openpgp_verify(const char *filename,
 				if ((flags & VEF_VERBOSE))
 					printf("Verified %s signed by %s\n",
 					    filename,
-					    key->user ? key->user->name : "someone");
-				rc = 0;	/* success */
+					    key->user ? key->user->name :
+							"someone");
+				rc = 0; /* success */
 			} else if (rc == 0) {
-				printf("Unverified %s: %s\n",
-				    filename, get_error_string());
+				printf("Unverified %s: %s\n", filename,
+				    get_error_string());
 				rc = 1;
 			} else {
 				printf("Unverified %s\n", filename);
@@ -443,7 +442,8 @@ openpgp_verify_file(const char *filename, unsigned char *fdata, size_t nbytes)
 		return (-1);
 	}
 	sdata = read_file(sname, &sz);
-	return (openpgp_verify(filename, fdata, nbytes, sdata, sz, VerifyFlags));
+	return (
+	    openpgp_verify(filename, fdata, nbytes, sdata, sz, VerifyFlags));
 }
 #endif
 

@@ -33,7 +33,7 @@
  */
 
 #ifndef _MACHINE_FRAME_H_
-#define	_MACHINE_FRAME_H_
+#define _MACHINE_FRAME_H_
 
 #ifndef LOCORE
 
@@ -61,13 +61,13 @@ struct trapframe {
  * Signal frame. Pushed onto user stack before calling sigcode.
  */
 struct sigframe {
-	siginfo_t	sf_si;	/* actual saved siginfo */
-	ucontext_t	sf_uc;	/* actual saved ucontext */
+	siginfo_t sf_si;  /* actual saved siginfo */
+	ucontext_t sf_uc; /* actual saved ucontext */
 };
 
 #endif /* !LOCORE */
 
 /* Definitions for syscalls */
-#define	NARGREG		8				/* 8 args in regs */
+#define NARGREG 8 /* 8 args in regs */
 
 #endif /* !_MACHINE_FRAME_H_ */

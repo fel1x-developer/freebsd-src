@@ -29,26 +29,25 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
-#include <sys/systm.h>
 #include <sys/socket.h>
-
-#include <net/if.h>
-
-#include <dev/mii/mii.h>
 
 #include <dev/etherswitch/etherswitch.h>
 #include <dev/etherswitch/ip17x/ip17x_phy.h>
 #include <dev/etherswitch/ip17x/ip17x_reg.h>
 #include <dev/etherswitch/ip17x/ip17x_var.h>
+#include <dev/mii/mii.h>
 
+#include <net/if.h>
+
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
 
 int
 ip17x_readphy(device_t dev, int phy, int reg)

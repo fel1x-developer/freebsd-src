@@ -34,11 +34,11 @@
 
 #include <dev/virtio/pci/virtio_pci_legacy_var.h>
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 #include <pthread.h>
 #include <pthread_np.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "bhyverun.h"
 #include "debug.h"
@@ -58,7 +58,7 @@
  * front of virtio-based device softc" constraint, let's use
  * this to convert.
  */
-#define	DEV_SOFTC(vs) ((void *)(vs))
+#define DEV_SOFTC(vs) ((void *)(vs))
 
 /*
  * Link a virtio_softc to its constants, the device softc, and
@@ -66,8 +66,7 @@
  */
 void
 vi_softc_linkup(struct virtio_softc *vs, struct virtio_consts *vc,
-		void *dev_softc, struct pci_devinst *pi,
-		struct vqueue_info *queues)
+    void *dev_softc, struct pci_devinst *pi, struct vqueue_info *queues)
 {
 	int i;
 
@@ -225,7 +224,7 @@ _vq_record(int i, struct vring_desc *vd, struct vmctx *ctx, struct iovec *iov,
 	else
 		reqp->writable++;
 }
-#define	VQ_MAX_DESCRIPTORS	512	/* see below */
+#define VQ_MAX_DESCRIPTORS 512 /* see below */
 
 /*
  * Examine the chain of descriptors starting at the "next one" to
@@ -263,7 +262,7 @@ _vq_record(int i, struct vring_desc *vd, struct vmctx *ctx, struct iovec *iov,
  */
 int
 vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
-	    struct vi_req *reqp)
+    struct vi_req *reqp)
 {
 	int i;
 	u_int ndesc, n_indir;
@@ -281,8 +280,8 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 	/*
 	 * Note: it's the responsibility of the guest not to
 	 * update vq->vq_avail->idx until all of the descriptors
-         * the guest has written are valid (including all their
-         * "next" fields and "flags").
+	 * the guest has written are valid (including all their
+	 * "next" fields and "flags").
 	 *
 	 * Compute (vq_avail->idx - last_avail) in integers mod 2**16.  This is
 	 * the number of descriptors the device has made available
@@ -297,9 +296,8 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 		return (0);
 	if (ndesc > vq->vq_qsize) {
 		/* XXX need better way to diagnose issues */
-		EPRINTLN(
-		    "%s: ndesc (%u) out of range, driver confused?",
-		    name, (u_int)ndesc);
+		EPRINTLN("%s: ndesc (%u) out of range, driver confused?", name,
+		    (u_int)ndesc);
 		return (-1);
 	}
 
@@ -316,9 +314,8 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 	vq->vq_last_avail++;
 	for (i = 0; i < VQ_MAX_DESCRIPTORS; next = vdir->next) {
 		if (next >= vq->vq_qsize) {
-			EPRINTLN(
-			    "%s: descriptor index %u out of range, "
-			    "driver confused?",
+			EPRINTLN("%s: descriptor index %u out of range, "
+				 "driver confused?",
 			    name, next);
 			return (-1);
 		}
@@ -327,23 +324,20 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 			_vq_record(i, vdir, ctx, iov, niov, &req);
 			i++;
 		} else if ((vs->vs_vc->vc_hv_caps &
-		    VIRTIO_RING_F_INDIRECT_DESC) == 0) {
-			EPRINTLN(
-			    "%s: descriptor has forbidden INDIRECT flag, "
-			    "driver confused?",
+			       VIRTIO_RING_F_INDIRECT_DESC) == 0) {
+			EPRINTLN("%s: descriptor has forbidden INDIRECT flag, "
+				 "driver confused?",
 			    name);
 			return (-1);
 		} else {
 			n_indir = vdir->len / 16;
 			if ((vdir->len & 0xf) || n_indir == 0) {
-				EPRINTLN(
-				    "%s: invalid indir len 0x%x, "
-				    "driver confused?",
+				EPRINTLN("%s: invalid indir len 0x%x, "
+					 "driver confused?",
 				    name, (u_int)vdir->len);
 				return (-1);
 			}
-			vindir = paddr_guest2host(ctx,
-			    vdir->addr, vdir->len);
+			vindir = paddr_guest2host(ctx, vdir->addr, vdir->len);
 			/*
 			 * Indirects start at the 0th, then follow
 			 * their own embedded "next"s until those run
@@ -368,9 +362,8 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 					break;
 				next = vp->next;
 				if (next >= n_indir) {
-					EPRINTLN(
-					    "%s: invalid next %u > %u, "
-					    "driver confused?",
+					EPRINTLN("%s: invalid next %u > %u, "
+						 "driver confused?",
 					    name, (u_int)next, n_indir);
 					return (-1);
 				}
@@ -381,9 +374,7 @@ vq_getchain(struct vqueue_info *vq, struct iovec *iov, int niov,
 	}
 
 loopy:
-	EPRINTLN(
-	    "%s: descriptor loop? count > %d - driver confused?",
-	    name, i);
+	EPRINTLN("%s: descriptor loop? count > %d - driver confused?", name, i);
 	return (-1);
 
 done:
@@ -502,7 +493,7 @@ vq_endchains(struct vqueue_info *vq, int used_all_avail)
 		 * (see src/sys/dev/virtio/virtio_ring.h).
 		 */
 		intr = (uint16_t)(new_idx - event_idx - 1) <
-			(uint16_t)(new_idx - old_idx);
+		    (uint16_t)(new_idx - old_idx);
 	} else {
 		intr = new_idx != old_idx &&
 		    !(vq->vq_avail->flags & VRING_AVAIL_F_NO_INTERRUPT);
@@ -513,25 +504,26 @@ vq_endchains(struct vqueue_info *vq, int used_all_avail)
 
 /* Note: these are in sorted order to make for a fast search */
 static struct config_reg {
-	uint16_t	cr_offset;	/* register offset */
-	uint8_t		cr_size;	/* size (bytes) */
-	uint8_t		cr_ro;		/* true => reg is read only */
-	const char	*cr_name;	/* name of reg */
+	uint16_t cr_offset;  /* register offset */
+	uint8_t cr_size;     /* size (bytes) */
+	uint8_t cr_ro;	     /* true => reg is read only */
+	const char *cr_name; /* name of reg */
 } config_regs[] = {
-	{ VIRTIO_PCI_HOST_FEATURES,	4, 1, "HOST_FEATURES" },
-	{ VIRTIO_PCI_GUEST_FEATURES,	4, 0, "GUEST_FEATURES" },
-	{ VIRTIO_PCI_QUEUE_PFN,		4, 0, "QUEUE_PFN" },
-	{ VIRTIO_PCI_QUEUE_NUM,		2, 1, "QUEUE_NUM" },
-	{ VIRTIO_PCI_QUEUE_SEL,		2, 0, "QUEUE_SEL" },
-	{ VIRTIO_PCI_QUEUE_NOTIFY,	2, 0, "QUEUE_NOTIFY" },
-	{ VIRTIO_PCI_STATUS,		1, 0, "STATUS" },
-	{ VIRTIO_PCI_ISR,		1, 0, "ISR" },
-	{ VIRTIO_MSI_CONFIG_VECTOR,	2, 0, "CONFIG_VECTOR" },
-	{ VIRTIO_MSI_QUEUE_VECTOR,	2, 0, "QUEUE_VECTOR" },
+	{ VIRTIO_PCI_HOST_FEATURES, 4, 1, "HOST_FEATURES" },
+	{ VIRTIO_PCI_GUEST_FEATURES, 4, 0, "GUEST_FEATURES" },
+	{ VIRTIO_PCI_QUEUE_PFN, 4, 0, "QUEUE_PFN" },
+	{ VIRTIO_PCI_QUEUE_NUM, 2, 1, "QUEUE_NUM" },
+	{ VIRTIO_PCI_QUEUE_SEL, 2, 0, "QUEUE_SEL" },
+	{ VIRTIO_PCI_QUEUE_NOTIFY, 2, 0, "QUEUE_NOTIFY" },
+	{ VIRTIO_PCI_STATUS, 1, 0, "STATUS" },
+	{ VIRTIO_PCI_ISR, 1, 0, "ISR" },
+	{ VIRTIO_MSI_CONFIG_VECTOR, 2, 0, "CONFIG_VECTOR" },
+	{ VIRTIO_MSI_QUEUE_VECTOR, 2, 0, "QUEUE_VECTOR" },
 };
 
 static inline struct config_reg *
-vi_find_cr(int offset) {
+vi_find_cr(int offset)
+{
 	u_int hi, lo, mid;
 	struct config_reg *cr;
 
@@ -601,7 +593,8 @@ vi_pci_read(struct pci_devinst *pi, int baridx, uint64_t offset, int size)
 		if (newoff + size > max)
 			goto bad;
 		if (vc->vc_cfgread != NULL)
-			error = (*vc->vc_cfgread)(DEV_SOFTC(vs), newoff, size, &value);
+			error = (*vc->vc_cfgread)(DEV_SOFTC(vs), newoff, size,
+			    &value);
 		else
 			error = 0;
 		if (!error)
@@ -613,13 +606,11 @@ bad:
 	if (cr == NULL || cr->cr_size != size) {
 		if (cr != NULL) {
 			/* offset must be OK, so size must be bad */
-			EPRINTLN(
-			    "%s: read from %s: bad size %d",
-			    name, cr->cr_name, size);
+			EPRINTLN("%s: read from %s: bad size %d", name,
+			    cr->cr_name, size);
 		} else {
-			EPRINTLN(
-			    "%s: read from bad offset/size %jd/%d",
-			    name, (uintmax_t)offset, size);
+			EPRINTLN("%s: read from bad offset/size %jd/%d", name,
+			    (uintmax_t)offset, size);
 		}
 		goto done;
 	}
@@ -637,20 +628,21 @@ bad:
 		break;
 	case VIRTIO_PCI_QUEUE_NUM:
 		value = vs->vs_curq < vc->vc_nvq ?
-		    vs->vs_queues[vs->vs_curq].vq_qsize : 0;
+		    vs->vs_queues[vs->vs_curq].vq_qsize :
+		    0;
 		break;
 	case VIRTIO_PCI_QUEUE_SEL:
 		value = vs->vs_curq;
 		break;
 	case VIRTIO_PCI_QUEUE_NOTIFY:
-		value = 0;	/* XXX */
+		value = 0; /* XXX */
 		break;
 	case VIRTIO_PCI_STATUS:
 		value = vs->vs_status;
 		break;
 	case VIRTIO_PCI_ISR:
 		value = vs->vs_isr;
-		vs->vs_isr = 0;		/* a read clears this flag */
+		vs->vs_isr = 0; /* a read clears this flag */
 		if (value)
 			pci_lintr_deassert(pi);
 		break;
@@ -720,7 +712,8 @@ vi_pci_write(struct pci_devinst *pi, int baridx, uint64_t offset, int size,
 		if (newoff + size > max)
 			goto bad;
 		if (vc->vc_cfgwrite != NULL)
-			error = (*vc->vc_cfgwrite)(DEV_SOFTC(vs), newoff, size, value);
+			error = (*vc->vc_cfgwrite)(DEV_SOFTC(vs), newoff, size,
+			    value);
 		else
 			error = 0;
 		if (!error)
@@ -733,17 +726,14 @@ bad:
 		if (cr != NULL) {
 			/* offset must be OK, wrong size and/or reg is R/O */
 			if (cr->cr_size != size)
-				EPRINTLN(
-				    "%s: write to %s: bad size %d",
-				    name, cr->cr_name, size);
+				EPRINTLN("%s: write to %s: bad size %d", name,
+				    cr->cr_name, size);
 			if (cr->cr_ro)
-				EPRINTLN(
-				    "%s: write to read-only reg %s",
-				    name, cr->cr_name);
+				EPRINTLN("%s: write to read-only reg %s", name,
+				    cr->cr_name);
 		} else {
-			EPRINTLN(
-			    "%s: write to bad offset/size %jd/%d",
-			    name, (uintmax_t)offset, size);
+			EPRINTLN("%s: write to bad offset/size %jd/%d", name,
+			    (uintmax_t)offset, size);
 		}
 		goto done;
 	}
@@ -770,8 +760,8 @@ bad:
 		break;
 	case VIRTIO_PCI_QUEUE_NOTIFY:
 		if (value >= (unsigned int)vc->vc_nvq) {
-			EPRINTLN("%s: queue %d notify out of range",
-				name, (int)value);
+			EPRINTLN("%s: queue %d notify out of range", name,
+			    (int)value);
 			goto done;
 		}
 		vq = &vs->vs_queues[value];
@@ -780,9 +770,8 @@ bad:
 		else if (vc->vc_qnotify)
 			(*vc->vc_qnotify)(DEV_SOFTC(vs), vq);
 		else
-			EPRINTLN(
-			    "%s: qnotify queue %d: missing vq/vc notify",
-				name, (int)value);
+			EPRINTLN("%s: qnotify queue %d: missing vq/vc notify",
+			    name, (int)value);
 		break;
 	case VIRTIO_PCI_STATUS:
 		vs->vs_status = value;
@@ -802,9 +791,8 @@ bad:
 	goto done;
 
 bad_qindex:
-	EPRINTLN(
-	    "%s: write config reg %s: curq %d >= max %d",
-	    name, cr->cr_name, vs->vs_curq, vc->vc_nvq);
+	EPRINTLN("%s: write config reg %s: curq %d >= max %d", name,
+	    cr->cr_name, vs->vs_curq, vc->vc_nvq);
 done:
 	if (vs->vs_mtx)
 		pthread_mutex_unlock(vs->vs_mtx);
@@ -905,18 +893,18 @@ vi_pci_snapshot_queues(struct virtio_softc *vs, struct vm_snapshot_meta *meta)
 
 		addr_size = vq->vq_qsize * sizeof(struct vring_desc);
 		SNAPSHOT_GUEST2HOST_ADDR_OR_LEAVE(ctx, vq->vq_desc, addr_size,
-			false, meta, ret, done);
+		    false, meta, ret, done);
 
 		addr_size = (2 + vq->vq_qsize + 1) * sizeof(uint16_t);
 		SNAPSHOT_GUEST2HOST_ADDR_OR_LEAVE(ctx, vq->vq_avail, addr_size,
-			false, meta, ret, done);
+		    false, meta, ret, done);
 
-		addr_size  = (2 + 2 * vq->vq_qsize + 1) * sizeof(uint16_t);
+		addr_size = (2 + 2 * vq->vq_qsize + 1) * sizeof(uint16_t);
 		SNAPSHOT_GUEST2HOST_ADDR_OR_LEAVE(ctx, vq->vq_used, addr_size,
-			false, meta, ret, done);
+		    false, meta, ret, done);
 
 		SNAPSHOT_BUF_OR_LEAVE(vq->vq_desc,
-			vring_size_aligned(vq->vq_qsize), meta, ret, done);
+		    vring_size_aligned(vq->vq_qsize), meta, ret, done);
 	}
 
 done:

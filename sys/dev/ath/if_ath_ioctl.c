@@ -35,8 +35,8 @@
  * is greatly appreciated.
  */
 
-#include "opt_inet.h"
 #include "opt_ath.h"
+#include "opt_inet.h"
 /*
  * This is needed for register operations which are performed
  * by the driver - eg, calls to ath_hal_gettsf32().
@@ -49,38 +49,37 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/sysctl.h>
-#include <sys/mbuf.h>
-#include <sys/malloc.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/bus.h>
+#include <sys/callout.h>
+#include <sys/endian.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
+#include <sys/kthread.h>
+#include <sys/ktr.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/priv.h>
+#include <sys/smp.h> /* for mp_ncpus */
 #include <sys/socket.h>
 #include <sys/sockio.h>
-#include <sys/errno.h>
-#include <sys/callout.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/kthread.h>
+#include <sys/sysctl.h>
 #include <sys/taskqueue.h>
-#include <sys/priv.h>
-#include <sys/module.h>
-#include <sys/ktr.h>
-#include <sys/smp.h>	/* for mp_ncpus */
 
 #include <machine/bus.h>
 
+#include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_var.h>
+#include <net/if_arp.h>
 #include <net/if_dl.h>
+#include <net/if_llc.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_llc.h>
-
-#include <net80211/ieee80211_var.h>
+#include <net/if_var.h>
 #include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
 #ifdef IEEE80211_SUPPORT_SUPERG
 #include <net80211/ieee80211_superg.h>
 #endif
@@ -91,22 +90,21 @@
 #include <net/bpf.h>
 
 #ifdef INET
-#include <netinet/in.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #endif
 
-#include <dev/ath/if_athvar.h>
-#include <dev/ath/ath_hal/ah_devid.h>		/* XXX for softled */
+#include <dev/ath/ath_hal/ah_devid.h> /* XXX for softled */
 #include <dev/ath/ath_hal/ah_diagcodes.h>
-
-#include <dev/ath/if_ath_debug.h>
-#include <dev/ath/if_ath_misc.h>
 #include <dev/ath/if_ath_btcoex.h>
-#include <dev/ath/if_ath_spectral.h>
+#include <dev/ath/if_ath_debug.h>
 #include <dev/ath/if_ath_lna_div.h>
+#include <dev/ath/if_ath_misc.h>
+#include <dev/ath/if_ath_spectral.h>
 #include <dev/ath/if_athdfs.h>
+#include <dev/ath/if_athvar.h>
 
-#ifdef	IEEE80211_SUPPORT_TDMA
+#ifdef IEEE80211_SUPPORT_TDMA
 #include <dev/ath/if_ath_tdma.h>
 #endif
 
@@ -212,7 +210,7 @@ ath_ioctl_diag(struct ath_softc *sc, struct ath_diag *ad)
 			ad->ad_out_size = outsize;
 		if (outdata != NULL)
 			error = copyout(outdata, ad->ad_out_data,
-					ad->ad_out_size);
+			    ad->ad_out_size);
 	} else {
 		error = EINVAL;
 	}
@@ -246,30 +244,31 @@ ath_ioctl(struct ieee80211com *ic, u_long cmd, void *data)
 		/* NB: embed these numbers to get a consistent view */
 		sc->sc_stats.ast_tx_packets = 0;
 		sc->sc_stats.ast_rx_packets = 0;
-		TAILQ_FOREACH(vap, &ic->ic_vaps, iv_next) {
+		TAILQ_FOREACH (vap, &ic->ic_vaps, iv_next) {
 			ifp = vap->iv_ifp;
 			sc->sc_stats.ast_tx_packets += if_getcounter(ifp,
 			    IFCOUNTER_OPACKETS);
 			sc->sc_stats.ast_rx_packets += if_getcounter(ifp,
 			    IFCOUNTER_IPACKETS);
 		}
-		sc->sc_stats.ast_tx_rssi = ATH_RSSI(sc->sc_halstats.ns_avgtxrssi);
+		sc->sc_stats.ast_tx_rssi = ATH_RSSI(
+		    sc->sc_halstats.ns_avgtxrssi);
 		sc->sc_stats.ast_rx_rssi = ATH_RSSI(sc->sc_halstats.ns_avgrssi);
 #ifdef IEEE80211_SUPPORT_TDMA
 		sc->sc_stats.ast_tdma_tsfadjp = TDMA_AVG(sc->sc_avgtsfdeltap);
 		sc->sc_stats.ast_tdma_tsfadjm = TDMA_AVG(sc->sc_avgtsfdeltam);
 #endif
 		rt = sc->sc_currates;
-		sc->sc_stats.ast_tx_rate =
-		    rt->info[sc->sc_txrix].dot11Rate &~ IEEE80211_RATE_BASIC;
+		sc->sc_stats.ast_tx_rate = rt->info[sc->sc_txrix].dot11Rate &
+		    ~IEEE80211_RATE_BASIC;
 		if (rt->info[sc->sc_txrix].phy & IEEE80211_T_HT)
 			sc->sc_stats.ast_tx_rate |= IEEE80211_RATE_MCS;
 		return copyout(&sc->sc_stats, ifr_data_get_ptr(ifr),
-		    sizeof (sc->sc_stats));
+		    sizeof(sc->sc_stats));
 	}
 	case SIOCGATHAGSTATS:
 		return copyout(&sc->sc_aggr_stats, ifr_data_get_ptr(ifr),
-		    sizeof (sc->sc_aggr_stats));
+		    sizeof(sc->sc_aggr_stats));
 	case SIOCZATHSTATS: {
 		int error;
 

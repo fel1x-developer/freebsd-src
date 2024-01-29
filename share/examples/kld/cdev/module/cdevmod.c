@@ -69,25 +69,25 @@
  */
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/conf.h>
 
 #include "cdev.h"
 
 static struct cdevsw my_devsw = {
-	/* version */	.d_version = D_VERSION,
-	/* open */	.d_open = mydev_open,
-	/* close */	.d_close = mydev_close,
-	/* read */	.d_read = mydev_read,
-	/* write */	.d_write = mydev_write,
-	/* ioctl */	.d_ioctl = mydev_ioctl,
-	/* name */	.d_name = "cdev"
+	/* version */ .d_version = D_VERSION,
+	/* open */ .d_open = mydev_open,
+	/* close */ .d_close = mydev_close,
+	/* read */ .d_read = mydev_read,
+	/* write */ .d_write = mydev_write,
+	/* ioctl */ .d_ioctl = mydev_ioctl,
+	/* name */ .d_name = "cdev"
 };
 
-/* 
+/*
  * Used as the variable that is the reference to our device
- * in devfs... we must keep this variable sane until we 
+ * in devfs... we must keep this variable sane until we
  * call kldunload.
  */
 static struct cdev *sdev;
@@ -106,39 +106,39 @@ static struct cdev *sdev;
 static int
 cdev_load(module_t mod, int cmd, void *arg)
 {
-    int  err = 0;
-    struct make_dev_args mda;
+	int err = 0;
+	struct make_dev_args mda;
 
-    switch (cmd) {
-    case MOD_LOAD:
-	
-	/* Do any initialization that you should do with the kernel */
-	
-	/* if we make it to here, print copyright on console*/
-	printf("\nSample Loaded kld character device driver\n");
-	printf("Copyright (c) 1998\n");
-	printf("Rajesh Vaidheeswarran\n");
-	printf("All rights reserved\n");
+	switch (cmd) {
+	case MOD_LOAD:
 
-	make_dev_args_init(&mda);
-	mda.mda_devsw = &my_devsw;
-	mda.mda_uid = UID_ROOT;
-	mda.mda_gid = GID_WHEEL;
-	mda.mda_mode = 0600;
-	err = make_dev_s(&mda, &sdev, "cdev");
-	break;
+		/* Do any initialization that you should do with the kernel */
 
-    case MOD_UNLOAD:
-	printf("Unloaded kld character device driver\n");
-	destroy_dev(sdev);
-	break;		/* Success*/
+		/* if we make it to here, print copyright on console*/
+		printf("\nSample Loaded kld character device driver\n");
+		printf("Copyright (c) 1998\n");
+		printf("Rajesh Vaidheeswarran\n");
+		printf("All rights reserved\n");
 
-    default:	/* we only understand load/unload*/
-	err = EOPNOTSUPP;
-	break;
-    }
+		make_dev_args_init(&mda);
+		mda.mda_devsw = &my_devsw;
+		mda.mda_uid = UID_ROOT;
+		mda.mda_gid = GID_WHEEL;
+		mda.mda_mode = 0600;
+		err = make_dev_s(&mda, &sdev, "cdev");
+		break;
 
-    return(err);
+	case MOD_UNLOAD:
+		printf("Unloaded kld character device driver\n");
+		destroy_dev(sdev);
+		break; /* Success*/
+
+	default: /* we only understand load/unload*/
+		err = EOPNOTSUPP;
+		break;
+	}
+
+	return (err);
 }
 
 /* Now declare the module to the system */

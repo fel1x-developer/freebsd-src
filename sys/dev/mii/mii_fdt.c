@@ -33,20 +33,19 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/socket.h>
 #include <sys/bus.h>
 #include <sys/malloc.h>
+#include <sys/socket.h>
+
+#include <dev/mii/mii.h>
+#include <dev/mii/mii_fdt.h>
+#include <dev/mii/miivar.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
+#include <dev/ofw/openfirm.h>
 
 #include <net/if.h>
 #include <net/if_media.h>
-
-#include <dev/ofw/openfirm.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/mii/mii.h>
-#include <dev/mii/miivar.h>
-#include <dev/mii/mii_fdt.h>
 
 /*
  * Table to translate MII_CONTYPE_xxxx constants to/from devicetree strings.
@@ -58,35 +57,33 @@
  */
 static struct contype_names {
 	mii_contype_t type;
-	const char   *name;
+	const char *name;
 } fdt_contype_names[] = {
-	{MII_CONTYPE_UNKNOWN,		"unknown"},
-	{MII_CONTYPE_MII,		"mii"},
-	{MII_CONTYPE_GMII,		"gmii"},
-	{MII_CONTYPE_SGMII,		"sgmii"},
-	{MII_CONTYPE_QSGMII,		"qsgmii"},
-	{MII_CONTYPE_TBI,		"tbi"},
-	{MII_CONTYPE_REVMII,		"rev-mii"},
-	{MII_CONTYPE_RMII,		"rmii"},
-	{MII_CONTYPE_RGMII,		"rgmii"},
-	{MII_CONTYPE_RGMII_ID,		"rgmii-id"},
-	{MII_CONTYPE_RGMII_RXID,	"rgmii-rxid"},
-	{MII_CONTYPE_RGMII_TXID,	"rgmii-txid"},
-	{MII_CONTYPE_RTBI,		"rtbi"},
-	{MII_CONTYPE_SMII,		"smii"},
-	{MII_CONTYPE_XGMII,		"xgmii"},
-	{MII_CONTYPE_TRGMII,		"trgmii"},
-	{MII_CONTYPE_2000BX,		"2000base-x"},
-	{MII_CONTYPE_2500BX,		"2500base-x"},
-	{MII_CONTYPE_RXAUI,		"rxaui"},
-};                                                           
+	{ MII_CONTYPE_UNKNOWN, "unknown" },
+	{ MII_CONTYPE_MII, "mii" },
+	{ MII_CONTYPE_GMII, "gmii" },
+	{ MII_CONTYPE_SGMII, "sgmii" },
+	{ MII_CONTYPE_QSGMII, "qsgmii" },
+	{ MII_CONTYPE_TBI, "tbi" },
+	{ MII_CONTYPE_REVMII, "rev-mii" },
+	{ MII_CONTYPE_RMII, "rmii" },
+	{ MII_CONTYPE_RGMII, "rgmii" },
+	{ MII_CONTYPE_RGMII_ID, "rgmii-id" },
+	{ MII_CONTYPE_RGMII_RXID, "rgmii-rxid" },
+	{ MII_CONTYPE_RGMII_TXID, "rgmii-txid" },
+	{ MII_CONTYPE_RTBI, "rtbi" },
+	{ MII_CONTYPE_SMII, "smii" },
+	{ MII_CONTYPE_XGMII, "xgmii" },
+	{ MII_CONTYPE_TRGMII, "trgmii" },
+	{ MII_CONTYPE_2000BX, "2000base-x" },
+	{ MII_CONTYPE_2500BX, "2500base-x" },
+	{ MII_CONTYPE_RXAUI, "rxaui" },
+};
 
 static phandle_t
 mii_fdt_get_phynode(phandle_t macnode)
 {
-	static const char *props[] = {
-	    "phy-handle", "phy", "phy-device"
-	};
+	static const char *props[] = { "phy-handle", "phy", "phy-device" };
 	pcell_t xref;
 	u_int i;
 
@@ -166,7 +163,7 @@ mii_fdt_get_contype(phandle_t macnode)
 
 	if (OF_getprop(macnode, "phy-mode", val, sizeof(val)) <= 0 &&
 	    OF_getprop(macnode, "phy-connection-type", val, sizeof(val)) <= 0) {
-                return (MII_CONTYPE_UNKNOWN);
+		return (MII_CONTYPE_UNKNOWN);
 	}
 	return (mii_fdt_contype_from_name(val));
 }
@@ -213,7 +210,7 @@ mii_fdt_get_config(device_t phydev)
 		cfg->max_speed = val;
 
 	if (ofw_bus_node_is_compatible(cfg->phynode,
-	    "ethernet-phy-ieee802.3-c45"))
+		"ethernet-phy-ieee802.3-c45"))
 		cfg->flags |= MIIF_FDT_COMPAT_CLAUSE45;
 
 	if (OF_hasprop(cfg->phynode, "broken-turn-around"))
@@ -309,7 +306,7 @@ miibus_fdt_get_resource_list(device_t bus, device_t child)
 	return (&ma->rl);
 }
 
-static const struct ofw_bus_devinfo*
+static const struct ofw_bus_devinfo *
 miibus_fdt_get_devinfo(device_t bus, device_t child)
 {
 	struct mii_attach_args *ma;
@@ -322,31 +319,30 @@ miibus_fdt_get_devinfo(device_t bus, device_t child)
 	return (&ma->obd);
 }
 
-static device_method_t miibus_fdt_methods[] = {
-	DEVMETHOD(device_probe,		miibus_fdt_probe),
-	DEVMETHOD(device_attach,	miibus_fdt_attach),
+static device_method_t miibus_fdt_methods[] = { DEVMETHOD(device_probe,
+						    miibus_fdt_probe),
+	DEVMETHOD(device_attach, miibus_fdt_attach),
 
 	/* ofw_bus interface */
-	DEVMETHOD(ofw_bus_get_devinfo,	miibus_fdt_get_devinfo),
-	DEVMETHOD(ofw_bus_get_compat,	ofw_bus_gen_get_compat),
-	DEVMETHOD(ofw_bus_get_model,	ofw_bus_gen_get_model),
-	DEVMETHOD(ofw_bus_get_name,	ofw_bus_gen_get_name),
-	DEVMETHOD(ofw_bus_get_node,	ofw_bus_gen_get_node),
-	DEVMETHOD(ofw_bus_get_type,	ofw_bus_gen_get_type),
+	DEVMETHOD(ofw_bus_get_devinfo, miibus_fdt_get_devinfo),
+	DEVMETHOD(ofw_bus_get_compat, ofw_bus_gen_get_compat),
+	DEVMETHOD(ofw_bus_get_model, ofw_bus_gen_get_model),
+	DEVMETHOD(ofw_bus_get_name, ofw_bus_gen_get_name),
+	DEVMETHOD(ofw_bus_get_node, ofw_bus_gen_get_node),
+	DEVMETHOD(ofw_bus_get_type, ofw_bus_gen_get_type),
 
-	DEVMETHOD(bus_setup_intr,		bus_generic_setup_intr),
-	DEVMETHOD(bus_teardown_intr,		bus_generic_teardown_intr),
-	DEVMETHOD(bus_release_resource,		bus_generic_release_resource),
-	DEVMETHOD(bus_activate_resource,	bus_generic_activate_resource),
-	DEVMETHOD(bus_deactivate_resource,	bus_generic_deactivate_resource),
-	DEVMETHOD(bus_adjust_resource,		bus_generic_adjust_resource),
-	DEVMETHOD(bus_alloc_resource,		bus_generic_rl_alloc_resource),
-	DEVMETHOD(bus_get_resource,		bus_generic_rl_get_resource),
-	DEVMETHOD(bus_set_resource,		bus_generic_rl_set_resource),
-	DEVMETHOD(bus_get_resource_list,	miibus_fdt_get_resource_list),
+	DEVMETHOD(bus_setup_intr, bus_generic_setup_intr),
+	DEVMETHOD(bus_teardown_intr, bus_generic_teardown_intr),
+	DEVMETHOD(bus_release_resource, bus_generic_release_resource),
+	DEVMETHOD(bus_activate_resource, bus_generic_activate_resource),
+	DEVMETHOD(bus_deactivate_resource, bus_generic_deactivate_resource),
+	DEVMETHOD(bus_adjust_resource, bus_generic_adjust_resource),
+	DEVMETHOD(bus_alloc_resource, bus_generic_rl_alloc_resource),
+	DEVMETHOD(bus_get_resource, bus_generic_rl_get_resource),
+	DEVMETHOD(bus_set_resource, bus_generic_rl_set_resource),
+	DEVMETHOD(bus_get_resource_list, miibus_fdt_get_resource_list),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 DEFINE_CLASS_1(miibus, miibus_fdt_driver, miibus_fdt_methods,
     sizeof(struct mii_data), miibus_driver);

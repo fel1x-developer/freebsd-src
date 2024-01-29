@@ -26,15 +26,20 @@
 
 #include <sys/types.h>
 
-#include <zlib.h>
 #include <stand.h>
+#include <zlib.h>
+
 #include "api_public.h"
 #include "glue.h"
 
 #ifdef DEBUG
-#define	debugf(fmt, args...) do { printf("%s(): ", __func__); printf(fmt,##args); } while (0)
+#define debugf(fmt, args...)                \
+	do {                                \
+		printf("%s(): ", __func__); \
+		printf(fmt, ##args);        \
+	} while (0)
 #else
-#define	debugf(fmt, args...)
+#define debugf(fmt, args...)
 #endif
 
 /* Some random address used by U-Boot. */
@@ -81,7 +86,7 @@ api_parse_cmdline_sig(int argc, char **argv, struct api_signature **sig)
 	optreset = 1;
 	optind = 1;
 
-	while ((c = getopt (argc, argv, "a:")) != -1)
+	while ((c = getopt(argc, argv, "a:")) != -1)
 		switch (c) {
 		case 'a':
 			api_address = strtoul(optarg, NULL, 16);
@@ -184,7 +189,8 @@ ub_reset(void)
 {
 
 	syscall(API_RESET, NULL);
-	while (1);	/* fallback if API_RESET failed */
+	while (1)
+		; /* fallback if API_RESET failed */
 	__unreachable();
 }
 

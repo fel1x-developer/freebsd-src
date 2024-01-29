@@ -30,25 +30,26 @@
 
 /* Altera mSGDMA driver. */
 
-#include <sys/cdefs.h>
 #include "opt_platform.h"
+
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/endian.h>
 #include <sys/systm.h>
-#include <sys/conf.h>
 #include <sys/bus.h>
+#include <sys/conf.h>
+#include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/kthread.h>
-#include <sys/sglist.h>
-#include <sys/module.h>
 #include <sys/lock.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/resource.h>
 #include <sys/rman.h>
+#include <sys/sglist.h>
 
 #include <machine/bus.h>
-#include <machine/fdt.h>
 #include <machine/cache.h>
+#include <machine/fdt.h>
 
 #ifdef FDT
 #include <dev/fdt/fdt_common.h>
@@ -56,69 +57,67 @@
 #include <dev/ofw/ofw_bus_subr.h>
 #endif
 
-#include <dev/xdma/xdma.h>
-#include "xdma_if.h"
 #include "opt_altera_msgdma.h"
 
 #include <dev/altera/msgdma/msgdma.h>
+#include <dev/xdma/xdma.h>
+
+#include "xdma_if.h"
 
 #define MSGDMA_DEBUG
 #undef MSGDMA_DEBUG
 
 #ifdef MSGDMA_DEBUG
-#define dprintf(fmt, ...)  printf(fmt, ##__VA_ARGS__)
+#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 #define dprintf(fmt, ...)
 #endif
 
-#define	MSGDMA_NCHANNELS	1
+#define MSGDMA_NCHANNELS 1
 
 struct msgdma_channel {
-	struct msgdma_softc	*sc;
-	struct mtx		mtx;
-	xdma_channel_t		*xchan;
-	struct proc		*p;
-	int			used;
-	int			index;
-	int			idx_head;
-	int			idx_tail;
+	struct msgdma_softc *sc;
+	struct mtx mtx;
+	xdma_channel_t *xchan;
+	struct proc *p;
+	int used;
+	int index;
+	int idx_head;
+	int idx_tail;
 
-	struct msgdma_desc	**descs;
-	bus_dma_segment_t	*descs_phys;
-	uint32_t		descs_num;
-	bus_dma_tag_t		dma_tag;
-	bus_dmamap_t		*dma_map;
-	uint32_t		map_descr;
-	uint8_t			map_err;
-	uint32_t		descs_used_count;
+	struct msgdma_desc **descs;
+	bus_dma_segment_t *descs_phys;
+	uint32_t descs_num;
+	bus_dma_tag_t dma_tag;
+	bus_dmamap_t *dma_map;
+	uint32_t map_descr;
+	uint8_t map_err;
+	uint32_t descs_used_count;
 };
 
 struct msgdma_softc {
-	device_t		dev;
-	struct resource		*res[3];
-	bus_space_tag_t		bst;
-	bus_space_handle_t	bsh;
-	bus_space_tag_t		bst_d;
-	bus_space_handle_t	bsh_d;
-	void			*ih;
-	struct msgdma_desc	desc;
-	struct msgdma_channel	channels[MSGDMA_NCHANNELS];
+	device_t dev;
+	struct resource *res[3];
+	bus_space_tag_t bst;
+	bus_space_handle_t bsh;
+	bus_space_tag_t bst_d;
+	bus_space_handle_t bsh_d;
+	void *ih;
+	struct msgdma_desc desc;
+	struct msgdma_channel channels[MSGDMA_NCHANNELS];
 };
 
-static struct resource_spec msgdma_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_MEMORY,	1,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ -1, 0 }
-};
+static struct resource_spec msgdma_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ SYS_RES_MEMORY, 1, RF_ACTIVE }, { SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ -1, 0 } };
 
-#define	HWTYPE_NONE	0
-#define	HWTYPE_STD	1
+#define HWTYPE_NONE 0
+#define HWTYPE_STD 1
 
 static struct ofw_compat_data compat_data[] = {
-	{ "altr,msgdma-16.0",	HWTYPE_STD },
-	{ "altr,msgdma-1.0",	HWTYPE_STD },
-	{ NULL,			HWTYPE_NONE },
+	{ "altr,msgdma-16.0", HWTYPE_STD },
+	{ "altr,msgdma-1.0", HWTYPE_STD },
+	{ NULL, HWTYPE_NONE },
 };
 
 static int msgdma_probe(device_t dev);
@@ -148,10 +147,8 @@ msgdma_intr(void *arg)
 	xchan = chan->xchan;
 
 	dprintf("%s(%d): status 0x%08x next_descr 0x%08x, control 0x%08x\n",
-	    __func__, device_get_unit(sc->dev),
-		READ4_DESC(sc, PF_STATUS),
-		READ4_DESC(sc, PF_NEXT_LO),
-		READ4_DESC(sc, PF_CONTROL));
+	    __func__, device_get_unit(sc->dev), READ4_DESC(sc, PF_STATUS),
+	    READ4_DESC(sc, PF_NEXT_LO), READ4_DESC(sc, PF_CONTROL));
 
 	tot_copied = 0;
 
@@ -206,8 +203,8 @@ msgdma_reset(struct msgdma_softc *sc)
 	if (timeout == 0)
 		return (-1);
 
-	dprintf("%s: read control after reset: %x\n",
-	    __func__, READ4(sc, DMA_CONTROL));
+	dprintf("%s: read control after reset: %x\n", __func__,
+	    READ4(sc, DMA_CONTROL));
 
 	return (0);
 }
@@ -298,8 +295,8 @@ msgdma_dmamap_cb(void *arg, bus_dma_segment_t *segs, int nseg, int err)
 	chan->descs_phys[chan->map_descr].ds_addr = segs[0].ds_addr;
 	chan->descs_phys[chan->map_descr].ds_len = segs[0].ds_len;
 
-	dprintf("map desc %d: descs phys %lx len %ld\n",
-	    chan->map_descr, segs[0].ds_addr, segs[0].ds_len);
+	dprintf("map desc %d: descs phys %lx len %ld\n", chan->map_descr,
+	    segs[0].ds_addr, segs[0].ds_len);
 }
 
 static int
@@ -337,32 +334,31 @@ msgdma_desc_alloc(struct msgdma_softc *sc, struct msgdma_channel *chan,
 
 	dprintf("%s: nseg %d\n", __func__, nsegments);
 
-	err = bus_dma_tag_create(
-	    bus_get_dma_tag(sc->dev),
-	    align, 0,			/* alignment, boundary */
-	    BUS_SPACE_MAXADDR_32BIT,	/* lowaddr */
-	    BUS_SPACE_MAXADDR,		/* highaddr */
-	    NULL, NULL,			/* filter, filterarg */
-	    desc_size, 1,		/* maxsize, nsegments*/
-	    desc_size, 0,		/* maxsegsize, flags */
-	    NULL, NULL,			/* lockfunc, lockarg */
+	err = bus_dma_tag_create(bus_get_dma_tag(sc->dev), align,
+	    0,			     /* alignment, boundary */
+	    BUS_SPACE_MAXADDR_32BIT, /* lowaddr */
+	    BUS_SPACE_MAXADDR,	     /* highaddr */
+	    NULL, NULL,		     /* filter, filterarg */
+	    desc_size, 1,	     /* maxsize, nsegments*/
+	    desc_size, 0,	     /* maxsegsize, flags */
+	    NULL, NULL,		     /* lockfunc, lockarg */
 	    &chan->dma_tag);
 	if (err) {
-		device_printf(sc->dev,
-		    "%s: Can't create bus_dma tag.\n", __func__);
+		device_printf(sc->dev, "%s: Can't create bus_dma tag.\n",
+		    __func__);
 		return (-1);
 	}
 
 	/* Descriptors. */
-	chan->descs = malloc(nsegments * sizeof(struct msgdma_desc *),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	chan->descs = malloc(nsegments * sizeof(struct msgdma_desc *), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	if (chan->descs == NULL) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate memory.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate memory.\n",
+		    __func__);
 		return (-1);
 	}
-	chan->dma_map = malloc(nsegments * sizeof(bus_dmamap_t),
-	    M_DEVBUF, (M_WAITOK | M_ZERO));
+	chan->dma_map = malloc(nsegments * sizeof(bus_dmamap_t), M_DEVBUF,
+	    (M_WAITOK | M_ZERO));
 	chan->descs_phys = malloc(nsegments * sizeof(bus_dma_segment_t),
 	    M_DEVBUF, (M_WAITOK | M_ZERO));
 
@@ -379,17 +375,18 @@ msgdma_desc_alloc(struct msgdma_softc *sc, struct msgdma_channel *chan,
 
 		chan->map_err = 0;
 		chan->map_descr = i;
-		err = bus_dmamap_load(chan->dma_tag, chan->dma_map[i], chan->descs[i],
-		    desc_size, msgdma_dmamap_cb, chan, BUS_DMA_WAITOK);
+		err = bus_dmamap_load(chan->dma_tag, chan->dma_map[i],
+		    chan->descs[i], desc_size, msgdma_dmamap_cb, chan,
+		    BUS_DMA_WAITOK);
 		if (err) {
-			device_printf(sc->dev,
-			    "%s: Can't load DMA map.\n", __func__);
+			device_printf(sc->dev, "%s: Can't load DMA map.\n",
+			    __func__);
 			return (-1);
 		}
 
 		if (chan->map_err != 0) {
-			device_printf(sc->dev,
-			    "%s: Can't load DMA map.\n", __func__);
+			device_printf(sc->dev, "%s: Can't load DMA map.\n",
+			    __func__);
 			return (-1);
 		}
 	}
@@ -446,8 +443,7 @@ msgdma_channel_free(device_t dev, struct xdma_channel *xchan)
 }
 
 static int
-msgdma_channel_capacity(device_t dev, xdma_channel_t *xchan,
-    uint32_t *capacity)
+msgdma_channel_capacity(device_t dev, xdma_channel_t *xchan, uint32_t *capacity)
 {
 	struct msgdma_channel *chan;
 	uint32_t c;
@@ -484,8 +480,8 @@ msgdma_channel_submit_sg(device_t dev, struct xdma_channel *xchan,
 		dst_addr_lo = sg[i].dst_addr;
 		len = (uint32_t)sg[i].len;
 
-		dprintf("%s: src %x dst %x len %d\n", __func__,
-		    src_addr_lo, dst_addr_lo, len);
+		dprintf("%s: src %x dst %x len %d\n", __func__, src_addr_lo,
+		    dst_addr_lo, len);
 
 		desc = chan->descs[chan->idx_head];
 #if defined(ALTERA_MSGDMA_DESC_EXT) || defined(ALTERA_MSGDMA_DESC_PF_EXT)
@@ -511,7 +507,8 @@ msgdma_channel_submit_sg(device_t dev, struct xdma_channel *xchan,
 				    CONTROL_ET_IRQ_EN | CONTROL_ERR_M);
 			}
 		} else {
-			desc->control |= htole32(CONTROL_END_ON_EOP | (1 << 13));
+			desc->control |= htole32(
+			    CONTROL_END_ON_EOP | (1 << 13));
 			desc->control |= htole32(CONTROL_TC_IRQ_EN |
 			    CONTROL_ET_IRQ_EN | CONTROL_ERR_M);
 		}
@@ -549,8 +546,8 @@ msgdma_channel_prep_sg(device_t dev, struct xdma_channel *xchan)
 
 	ret = msgdma_desc_alloc(sc, chan, sizeof(struct msgdma_desc), 16);
 	if (ret != 0) {
-		device_printf(sc->dev,
-		    "%s: Can't allocate descriptors.\n", __func__);
+		device_printf(sc->dev, "%s: Can't allocate descriptors.\n",
+		    __func__);
 		return (-1);
 	}
 
@@ -560,11 +557,12 @@ msgdma_channel_prep_sg(device_t dev, struct xdma_channel *xchan)
 		if (i == (chan->descs_num - 1)) {
 			desc->next = htole32(chan->descs_phys[0].ds_addr);
 		} else {
-			desc->next = htole32(chan->descs_phys[i+1].ds_addr);
+			desc->next = htole32(chan->descs_phys[i + 1].ds_addr);
 		}
 
 		dprintf("%s(%d): desc %d vaddr %lx next paddr %x\n", __func__,
-		    device_get_unit(dev), i, (uint64_t)desc, le32toh(desc->next));
+		    device_get_unit(dev), i, (uint64_t)desc,
+		    le32toh(desc->next));
 	}
 
 	addr = chan->descs_phys[0].ds_addr;
@@ -611,22 +609,22 @@ msgdma_ofw_md_data(device_t dev, pcell_t *cells, int ncells, void **ptr)
 
 static device_method_t msgdma_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,			msgdma_probe),
-	DEVMETHOD(device_attach,		msgdma_attach),
-	DEVMETHOD(device_detach,		msgdma_detach),
+	DEVMETHOD(device_probe, msgdma_probe),
+	DEVMETHOD(device_attach, msgdma_attach),
+	DEVMETHOD(device_detach, msgdma_detach),
 
 	/* xDMA Interface */
-	DEVMETHOD(xdma_channel_alloc,		msgdma_channel_alloc),
-	DEVMETHOD(xdma_channel_free,		msgdma_channel_free),
-	DEVMETHOD(xdma_channel_control,		msgdma_channel_control),
+	DEVMETHOD(xdma_channel_alloc, msgdma_channel_alloc),
+	DEVMETHOD(xdma_channel_free, msgdma_channel_free),
+	DEVMETHOD(xdma_channel_control, msgdma_channel_control),
 
 	/* xDMA SG Interface */
-	DEVMETHOD(xdma_channel_capacity,	msgdma_channel_capacity),
-	DEVMETHOD(xdma_channel_prep_sg,		msgdma_channel_prep_sg),
-	DEVMETHOD(xdma_channel_submit_sg,	msgdma_channel_submit_sg),
+	DEVMETHOD(xdma_channel_capacity, msgdma_channel_capacity),
+	DEVMETHOD(xdma_channel_prep_sg, msgdma_channel_prep_sg),
+	DEVMETHOD(xdma_channel_submit_sg, msgdma_channel_submit_sg),
 
 #ifdef FDT
-	DEVMETHOD(xdma_ofw_md_data,		msgdma_ofw_md_data),
+	DEVMETHOD(xdma_ofw_md_data, msgdma_ofw_md_data),
 #endif
 
 	DEVMETHOD_END

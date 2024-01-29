@@ -35,15 +35,14 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
-
-#include <sys/module.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
+#include <sys/module.h>
+#include <sys/rman.h>
+#include <sys/socket.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
-#include <sys/rman.h>
 
 #include <dev/cfe/cfe_api.h>
 #include <dev/cfe/cfe_error.h>
@@ -51,9 +50,9 @@
 #define MAX_CFE_RESERVATIONS 16
 
 struct cferes_softc {
-	int		 rnum;
-	int		 rid[MAX_CFE_RESERVATIONS];
-	struct resource	*res[MAX_CFE_RESERVATIONS];
+	int rnum;
+	int rid[MAX_CFE_RESERVATIONS];
+	struct resource *res[MAX_CFE_RESERVATIONS];
 };
 
 static int
@@ -71,15 +70,15 @@ cferes_attach(device_t dev)
 }
 
 static void
-cferes_identify(driver_t* driver, device_t parent)
+cferes_identify(driver_t *driver, device_t parent)
 {
-	device_t		 child;
-	int			 i;
-	struct resource		*res;
-	int			 result;
-	int			 rid;
-	struct cferes_softc	*sc;
-	uint64_t		 addr, len, type;
+	device_t child;
+	int i;
+	struct resource *res;
+	int result;
+	int rid;
+	struct cferes_softc *sc;
+	uint64_t addr, len, type;
 
 	child = BUS_ADD_CHILD(parent, 100, "cferes", -1);
 	device_set_driver(child, driver);
@@ -92,9 +91,10 @@ cferes_identify(driver_t* driver, device_t parent)
 			break;
 		if (type != CFE_MI_RESERVED) {
 			if (bootverbose)
-			printf("%s: skipping non reserved range 0x%0jx(%jd)\n",
-			    device_getnameunit(child),
-			    (uintmax_t)addr, (uintmax_t)len);
+				printf(
+				    "%s: skipping non reserved range 0x%0jx(%jd)\n",
+				    device_getnameunit(child), (uintmax_t)addr,
+				    (uintmax_t)len);
 			continue;
 		}
 
@@ -124,8 +124,8 @@ cferes_identify(driver_t* driver, device_t parent)
 static int
 cferes_detach(device_t dev)
 {
-	int			i;
-	struct cferes_softc	*sc = device_get_softc(dev);
+	int i;
+	struct cferes_softc *sc = device_get_softc(dev);
 
 	for (i = 0; i < sc->rnum; i++) {
 		bus_release_resource(dev, SYS_RES_MEMORY, sc->rid[i],
@@ -137,21 +137,17 @@ cferes_detach(device_t dev)
 
 static device_method_t cferes_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_identify,	cferes_identify),
-	DEVMETHOD(device_probe,		cferes_probe),
-	DEVMETHOD(device_attach,	cferes_attach),
-	DEVMETHOD(device_detach,	cferes_detach),
-	DEVMETHOD(device_shutdown,	bus_generic_shutdown),
-	DEVMETHOD(device_suspend,	bus_generic_suspend),
-	DEVMETHOD(device_resume,	bus_generic_resume),
-	{ 0, 0 }
+	DEVMETHOD(device_identify, cferes_identify),
+	DEVMETHOD(device_probe, cferes_probe),
+	DEVMETHOD(device_attach, cferes_attach),
+	DEVMETHOD(device_detach, cferes_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume), { 0, 0 }
 };
 
-static driver_t cferes_driver = {
-	"cferes",
-	cferes_methods,
-	sizeof (struct cferes_softc)
-};
+static driver_t cferes_driver = { "cferes", cferes_methods,
+	sizeof(struct cferes_softc) };
 
 static devclass_t cferes_devclass;
 

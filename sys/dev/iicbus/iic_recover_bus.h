@@ -32,14 +32,14 @@
  */
 
 #ifndef _IICBUS_IIC_RECOVER_BUS_H_
-#define	_IICBUS_IIC_RECOVER_BUS_H_
+#define _IICBUS_IIC_RECOVER_BUS_H_
 
 struct iicrb_pin_access {
-	void   *ctx;
-	int   (*getsda)(void *ctx);
-	void  (*setsda)(void *ctx, int value);
-	int   (*getscl)(void *ctx);
-	void  (*setscl)(void *ctx, int value);
+	void *ctx;
+	int (*getsda)(void *ctx);
+	void (*setsda)(void *ctx, int value);
+	int (*getscl)(void *ctx);
+	void (*setscl)(void *ctx, int value);
 };
 
 /*

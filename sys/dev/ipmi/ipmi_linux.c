@@ -35,9 +35,9 @@
 #include <sys/systm.h>
 #include <sys/capsicum.h>
 #include <sys/conf.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/file.h>
 #include <sys/proc.h>
 #ifdef __amd64__
 #include <machine/../linux32/linux.h>
@@ -46,35 +46,36 @@
 #include <machine/../linux/linux.h>
 #include <machine/../linux/linux_proto.h>
 #endif
-#include <compat/linux/linux_ioctl.h>
 #include <sys/ioccom.h>
 #include <sys/ipmi.h>
 
+#include <compat/linux/linux_ioctl.h>
+
 /* There are multiple ioctl number ranges that need to be handled */
-#define IPMI_LINUX_IOCTL_MIN  0x690b
-#define IPMI_LINUX_IOCTL_MAX  0x6915
+#define IPMI_LINUX_IOCTL_MIN 0x690b
+#define IPMI_LINUX_IOCTL_MAX 0x6915
 
 /* Linux versions of ioctl's */
-#define L_IPMICTL_RECEIVE_MSG_TRUNC       _IOWR(IPMI_IOC_MAGIC, 11, struct ipmi_recv)
-#define L_IPMICTL_RECEIVE_MSG             _IOWR(IPMI_IOC_MAGIC, 12, struct ipmi_recv)
-#define L_IPMICTL_SEND_COMMAND            _IOW(IPMI_IOC_MAGIC, 13, struct ipmi_req)
-#define L_IPMICTL_REGISTER_FOR_CMD        _IOW(IPMI_IOC_MAGIC, 14, struct ipmi_cmdspec)
-#define L_IPMICTL_UNREGISTER_FOR_CMD      _IOW(IPMI_IOC_MAGIC, 15, struct ipmi_cmdspec)
-#define L_IPMICTL_SET_GETS_EVENTS_CMD     _IOW(IPMI_IOC_MAGIC, 16, int)
-#define L_IPMICTL_SET_MY_ADDRESS_CMD      _IOW(IPMI_IOC_MAGIC, 17, unsigned int)
-#define L_IPMICTL_GET_MY_ADDRESS_CMD      _IOW(IPMI_IOC_MAGIC, 18, unsigned int)
-#define L_IPMICTL_SET_MY_LUN_CMD          _IOW(IPMI_IOC_MAGIC, 19, unsigned int)
-#define L_IPMICTL_GET_MY_LUN_CMD          _IOW(IPMI_IOC_MAGIC, 20, unsigned int)
+#define L_IPMICTL_RECEIVE_MSG_TRUNC _IOWR(IPMI_IOC_MAGIC, 11, struct ipmi_recv)
+#define L_IPMICTL_RECEIVE_MSG _IOWR(IPMI_IOC_MAGIC, 12, struct ipmi_recv)
+#define L_IPMICTL_SEND_COMMAND _IOW(IPMI_IOC_MAGIC, 13, struct ipmi_req)
+#define L_IPMICTL_REGISTER_FOR_CMD _IOW(IPMI_IOC_MAGIC, 14, struct ipmi_cmdspec)
+#define L_IPMICTL_UNREGISTER_FOR_CMD \
+	_IOW(IPMI_IOC_MAGIC, 15, struct ipmi_cmdspec)
+#define L_IPMICTL_SET_GETS_EVENTS_CMD _IOW(IPMI_IOC_MAGIC, 16, int)
+#define L_IPMICTL_SET_MY_ADDRESS_CMD _IOW(IPMI_IOC_MAGIC, 17, unsigned int)
+#define L_IPMICTL_GET_MY_ADDRESS_CMD _IOW(IPMI_IOC_MAGIC, 18, unsigned int)
+#define L_IPMICTL_SET_MY_LUN_CMD _IOW(IPMI_IOC_MAGIC, 19, unsigned int)
+#define L_IPMICTL_GET_MY_LUN_CMD _IOW(IPMI_IOC_MAGIC, 20, unsigned int)
 
 static linux_ioctl_function_t ipmi_linux_ioctl;
-static struct linux_ioctl_handler ipmi_linux_handler = {ipmi_linux_ioctl,
-						       IPMI_LINUX_IOCTL_MIN,
-						       IPMI_LINUX_IOCTL_MAX};
+static struct linux_ioctl_handler ipmi_linux_handler = { ipmi_linux_ioctl,
+	IPMI_LINUX_IOCTL_MIN, IPMI_LINUX_IOCTL_MAX };
 
-SYSINIT  (ipmi_linux_register,   SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_ioctl_register_handler, &ipmi_linux_handler);
+SYSINIT(ipmi_linux_register, SI_SUB_KLD, SI_ORDER_MIDDLE,
+    linux_ioctl_register_handler, &ipmi_linux_handler);
 SYSUNINIT(ipmi_linux_unregister, SI_SUB_KLD, SI_ORDER_MIDDLE,
-	  linux_ioctl_unregister_handler, &ipmi_linux_handler);
+    linux_ioctl_unregister_handler, &ipmi_linux_handler);
 
 static int
 ipmi_linux_modevent(module_t mod, int type, void *data)
@@ -100,7 +101,7 @@ ipmi_linux_ioctl(struct thread *td, struct linux_ioctl_args *args)
 		return (error);
 	cmd = args->cmd;
 
-	switch(cmd) {
+	switch (cmd) {
 	case L_IPMICTL_GET_MY_ADDRESS_CMD:
 		cmd = IPMICTL_GET_MY_ADDRESS_CMD;
 		break;

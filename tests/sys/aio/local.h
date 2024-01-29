@@ -26,18 +26,18 @@
  */
 
 #ifndef _AIO_TEST_LOCAL_H_
-#define	_AIO_TEST_LOCAL_H_
+#define _AIO_TEST_LOCAL_H_
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
+
+#include <atf-c.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <atf-c.h>
-
-static const char	*sysctl_oid_name = "vfs.aio.enable_unsafe";
+static const char *sysctl_oid_name = "vfs.aio.enable_unsafe";
 
 static int
 is_unsafe_aio_enabled(void)
@@ -54,34 +54,37 @@ is_unsafe_aio_enabled(void)
 	return (unsafe == 0 ? 0 : 1);
 }
 
-#define	ATF_REQUIRE_UNSAFE_AIO() do {						\
-	switch (is_unsafe_aio_enabled()) {					\
-	case -1:								\
-		atf_libc_error(errno, "Failed to read %s", sysctl_oid_name);	\
-		break;								\
-	case 0:									\
-		atf_tc_skip("Unsafe AIO is disabled");				\
-		break;								\
-	default:								\
-		printf("Unsafe AIO is enabled\n");				\
-		break;								\
-	}									\
-} while (0)
+#define ATF_REQUIRE_UNSAFE_AIO()                                   \
+	do {                                                       \
+		switch (is_unsafe_aio_enabled()) {                 \
+		case -1:                                           \
+			atf_libc_error(errno, "Failed to read %s", \
+			    sysctl_oid_name);                      \
+			break;                                     \
+		case 0:                                            \
+			atf_tc_skip("Unsafe AIO is disabled");     \
+			break;                                     \
+		default:                                           \
+			printf("Unsafe AIO is enabled\n");         \
+			break;                                     \
+		}                                                  \
+	} while (0)
 
-#define	PLAIN_REQUIRE_UNSAFE_AIO(_exit_code) do {				\
-	switch (is_unsafe_aio_enabled()) {					\
-	case -1:								\
-		printf("Failed to read %s", sysctl_oid_name);			\
-		_exit(_exit_code);						\
-		break;								\
-	case 0:									\
-		printf("Unsafe AIO is disabled\n");				\
-		_exit(_exit_code);						\
-		break;								\
-	default:								\
-		printf("Unsafe AIO is enabled\n");				\
-		break;								\
-	}									\
-} while (0)
+#define PLAIN_REQUIRE_UNSAFE_AIO(_exit_code)                          \
+	do {                                                          \
+		switch (is_unsafe_aio_enabled()) {                    \
+		case -1:                                              \
+			printf("Failed to read %s", sysctl_oid_name); \
+			_exit(_exit_code);                            \
+			break;                                        \
+		case 0:                                               \
+			printf("Unsafe AIO is disabled\n");           \
+			_exit(_exit_code);                            \
+			break;                                        \
+		default:                                              \
+			printf("Unsafe AIO is enabled\n");            \
+			break;                                        \
+		}                                                     \
+	} while (0)
 
 #endif /* !_AIO_TEST_LOCAL_H_ */

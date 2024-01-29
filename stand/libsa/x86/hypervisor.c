@@ -25,9 +25,11 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
+
 #include <machine/cpufunc.h>
 #include <machine/specialreg.h>
+
+#include <stand.h>
 
 const char *
 x86_hypervisor(void)

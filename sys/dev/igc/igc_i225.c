@@ -5,6 +5,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include "igc_api.h"
 
 static s32 igc_init_nvm_params_i225(struct igc_hw *hw);
@@ -15,14 +16,15 @@ static s32 igc_acquire_nvm_i225(struct igc_hw *hw);
 static void igc_release_nvm_i225(struct igc_hw *hw);
 static s32 igc_get_hw_semaphore_i225(struct igc_hw *hw);
 static s32 __igc_write_nvm_srwr(struct igc_hw *hw, u16 offset, u16 words,
-				  u16 *data);
+    u16 *data);
 static s32 igc_pool_flash_update_done_i225(struct igc_hw *hw);
 
 /**
  *  igc_init_nvm_params_i225 - Init NVM func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 igc_init_nvm_params_i225(struct igc_hw *hw)
+static s32
+igc_init_nvm_params_i225(struct igc_hw *hw)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 eecd = IGC_READ_REG(hw, IGC_EECD);
@@ -30,8 +32,7 @@ static s32 igc_init_nvm_params_i225(struct igc_hw *hw)
 
 	DEBUGFUNC("igc_init_nvm_params_i225");
 
-	size = (u16)((eecd & IGC_EECD_SIZE_EX_MASK) >>
-		     IGC_EECD_SIZE_EX_SHIFT);
+	size = (u16)((eecd & IGC_EECD_SIZE_EX_MASK) >> IGC_EECD_SIZE_EX_SHIFT);
 	/*
 	 * Added to a constant, "size" becomes the left-shift value
 	 * for setting word_size.
@@ -49,10 +50,8 @@ static s32 igc_init_nvm_params_i225(struct igc_hw *hw)
 	nvm->delay_usec = 1;
 	nvm->type = igc_nvm_eeprom_spi;
 
-
 	nvm->page_size = eecd & IGC_EECD_ADDR_BITS ? 32 : 8;
-	nvm->address_bits = eecd & IGC_EECD_ADDR_BITS ?
-			    16 : 8;
+	nvm->address_bits = eecd & IGC_EECD_ADDR_BITS ? 16 : 8;
 
 	if (nvm->word_size == (1 << 15))
 		nvm->page_size = 128;
@@ -61,15 +60,15 @@ static s32 igc_init_nvm_params_i225(struct igc_hw *hw)
 	nvm->ops.release = igc_release_nvm_i225;
 	if (igc_get_flash_presence_i225(hw)) {
 		hw->nvm.type = igc_nvm_flash_hw;
-		nvm->ops.read    = igc_read_nvm_srrd_i225;
-		nvm->ops.write   = igc_write_nvm_srwr_i225;
+		nvm->ops.read = igc_read_nvm_srrd_i225;
+		nvm->ops.write = igc_write_nvm_srwr_i225;
 		nvm->ops.validate = igc_validate_nvm_checksum_i225;
-		nvm->ops.update   = igc_update_nvm_checksum_i225;
+		nvm->ops.update = igc_update_nvm_checksum_i225;
 	} else {
 		hw->nvm.type = igc_nvm_invm;
-		nvm->ops.write    = igc_null_write_nvm;
+		nvm->ops.write = igc_null_write_nvm;
 		nvm->ops.validate = igc_null_ops_generic;
-		nvm->ops.update   = igc_null_ops_generic;
+		nvm->ops.update = igc_null_ops_generic;
 	}
 
 	return IGC_SUCCESS;
@@ -79,7 +78,8 @@ static s32 igc_init_nvm_params_i225(struct igc_hw *hw)
  *  igc_init_mac_params_i225 - Init MAC func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 igc_init_mac_params_i225(struct igc_hw *hw)
+static s32
+igc_init_mac_params_i225(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	struct igc_dev_spec_i225 *dev_spec = &hw->dev_spec._i225;
@@ -130,32 +130,32 @@ static s32 igc_init_mac_params_i225(struct igc_hw *hw)
  *  igc_init_phy_params_i225 - Init PHY func ptrs.
  *  @hw: pointer to the HW structure
  **/
-static s32 igc_init_phy_params_i225(struct igc_hw *hw)
+static s32
+igc_init_phy_params_i225(struct igc_hw *hw)
 {
 	struct igc_phy_info *phy = &hw->phy;
 	s32 ret_val = IGC_SUCCESS;
 
 	DEBUGFUNC("igc_init_phy_params_i225");
 
-
 	if (hw->phy.media_type != igc_media_type_copper) {
 		phy->type = igc_phy_none;
 		goto out;
 	}
 
-	phy->ops.power_up   = igc_power_up_phy_copper;
+	phy->ops.power_up = igc_power_up_phy_copper;
 	phy->ops.power_down = igc_power_down_phy_copper_base;
 
 	phy->autoneg_mask = AUTONEG_ADVERTISE_SPEED_DEFAULT_2500;
 
-	phy->reset_delay_us	= 100;
+	phy->reset_delay_us = 100;
 
-	phy->ops.acquire	= igc_acquire_phy_base;
+	phy->ops.acquire = igc_acquire_phy_base;
 	phy->ops.check_reset_block = igc_check_reset_block_generic;
-	phy->ops.release	= igc_release_phy_base;
-	phy->ops.reset		= igc_phy_hw_reset_generic;
-	phy->ops.read_reg	= igc_read_phy_reg_gpy;
-	phy->ops.write_reg	= igc_write_phy_reg_gpy;
+	phy->ops.release = igc_release_phy_base;
+	phy->ops.reset = igc_phy_hw_reset_generic;
+	phy->ops.read_reg = igc_read_phy_reg_gpy;
+	phy->ops.write_reg = igc_write_phy_reg_gpy;
 
 	/* Make sure the PHY is in a good state. Several people have reported
 	 * firmware leaving the PHY's page select register set to something
@@ -179,7 +179,8 @@ out:
  *
  *  This resets the hardware into a known state.
  **/
-static s32 igc_reset_hw_i225(struct igc_hw *hw)
+static s32
+igc_reset_hw_i225(struct igc_hw *hw)
 {
 	u32 ctrl;
 	s32 ret_val;
@@ -236,7 +237,8 @@ static s32 igc_reset_hw_i225(struct igc_hw *hw)
  * Return successful if access grant bit set, else clear the request for
  * EEPROM access and return -IGC_ERR_NVM (-1).
  */
-static s32 igc_acquire_nvm_i225(struct igc_hw *hw)
+static s32
+igc_acquire_nvm_i225(struct igc_hw *hw)
 {
 	s32 ret_val;
 
@@ -253,7 +255,8 @@ static s32 igc_acquire_nvm_i225(struct igc_hw *hw)
  * Stop any current commands to the EEPROM and clear the EEPROM request bit,
  * then release the semaphores acquired.
  */
-static void igc_release_nvm_i225(struct igc_hw *hw)
+static void
+igc_release_nvm_i225(struct igc_hw *hw)
 {
 	DEBUGFUNC("igc_release_nvm_i225");
 
@@ -267,7 +270,8 @@ static void igc_release_nvm_i225(struct igc_hw *hw)
  * Acquire the SW/FW semaphore to access the PHY or NVM.  The mask
  * will also specify which port we're acquiring the lock for.
  */
-s32 igc_acquire_swfw_sync_i225(struct igc_hw *hw, u16 mask)
+s32
+igc_acquire_swfw_sync_i225(struct igc_hw *hw, u16 mask)
 {
 	u32 swfw_sync;
 	u32 swmask = mask;
@@ -317,7 +321,8 @@ out:
  * Release the SW/FW semaphore used to access the PHY or NVM.  The mask
  * will also specify which port we're releasing the lock for.
  */
-void igc_release_swfw_sync_i225(struct igc_hw *hw, u16 mask)
+void
+igc_release_swfw_sync_i225(struct igc_hw *hw, u16 mask)
 {
 	u32 swfw_sync;
 
@@ -341,7 +346,8 @@ void igc_release_swfw_sync_i225(struct igc_hw *hw, u16 mask)
  * for link, once link is established calls to configure collision distance
  * and flow control are called.
  */
-s32 igc_setup_copper_link_i225(struct igc_hw *hw)
+s32
+igc_setup_copper_link_i225(struct igc_hw *hw)
 {
 	u32 phpm_reg;
 	s32 ret_val;
@@ -368,7 +374,8 @@ s32 igc_setup_copper_link_i225(struct igc_hw *hw)
  *
  * Acquire the HW semaphore to access the PHY or NVM
  */
-static s32 igc_get_hw_semaphore_i225(struct igc_hw *hw)
+static s32
+igc_get_hw_semaphore_i225(struct igc_hw *hw)
 {
 	u32 swsm;
 	s32 timeout = hw->nvm.word_size + 1;
@@ -441,8 +448,8 @@ static s32 igc_get_hw_semaphore_i225(struct igc_hw *hw)
  * Reads a 16 bit word from the Shadow Ram using the EERD register.
  * Uses necessary synchronization semaphores.
  */
-s32 igc_read_nvm_srrd_i225(struct igc_hw *hw, u16 offset, u16 words,
-			     u16 *data)
+s32
+igc_read_nvm_srrd_i225(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	s32 status = IGC_SUCCESS;
 	u16 i, count;
@@ -455,10 +462,10 @@ s32 igc_read_nvm_srrd_i225(struct igc_hw *hw, u16 offset, u16 words,
 	 */
 	for (i = 0; i < words; i += IGC_EERD_EEWR_MAX_COUNT) {
 		count = (words - i) / IGC_EERD_EEWR_MAX_COUNT > 0 ?
-			IGC_EERD_EEWR_MAX_COUNT : (words - i);
+		    IGC_EERD_EEWR_MAX_COUNT :
+		    (words - i);
 		if (hw->nvm.ops.acquire(hw) == IGC_SUCCESS) {
-			status = igc_read_nvm_eerd(hw, offset, count,
-						     data + i);
+			status = igc_read_nvm_eerd(hw, offset, count, data + i);
 			hw->nvm.ops.release(hw);
 		} else {
 			status = IGC_ERR_SWFW_SYNC;
@@ -486,8 +493,8 @@ s32 igc_read_nvm_srrd_i225(struct igc_hw *hw, u16 offset, u16 words,
  * If error code is returned, data and Shadow RAM may be inconsistent - buffer
  * partially written.
  */
-s32 igc_write_nvm_srwr_i225(struct igc_hw *hw, u16 offset, u16 words,
-			      u16 *data)
+s32
+igc_write_nvm_srwr_i225(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	s32 status = IGC_SUCCESS;
 	u16 i, count;
@@ -500,10 +507,11 @@ s32 igc_write_nvm_srwr_i225(struct igc_hw *hw, u16 offset, u16 words,
 	 */
 	for (i = 0; i < words; i += IGC_EERD_EEWR_MAX_COUNT) {
 		count = (words - i) / IGC_EERD_EEWR_MAX_COUNT > 0 ?
-			IGC_EERD_EEWR_MAX_COUNT : (words - i);
+		    IGC_EERD_EEWR_MAX_COUNT :
+		    (words - i);
 		if (hw->nvm.ops.acquire(hw) == IGC_SUCCESS) {
 			status = __igc_write_nvm_srwr(hw, offset, count,
-							data + i);
+			    data + i);
 			hw->nvm.ops.release(hw);
 		} else {
 			status = IGC_ERR_SWFW_SYNC;
@@ -527,8 +535,8 @@ s32 igc_write_nvm_srwr_i225(struct igc_hw *hw, u16 offset, u16 words,
  * If igc_update_nvm_checksum is not called after this function , the
  * Shadow Ram will most likely contain an invalid checksum.
  */
-static s32 __igc_write_nvm_srwr(struct igc_hw *hw, u16 offset, u16 words,
-				  u16 *data)
+static s32
+__igc_write_nvm_srwr(struct igc_hw *hw, u16 offset, u16 words, u16 *data)
 {
 	struct igc_nvm_info *nvm = &hw->nvm;
 	u32 i, k, eewr = 0;
@@ -549,14 +557,12 @@ static s32 __igc_write_nvm_srwr(struct igc_hw *hw, u16 offset, u16 words,
 
 	for (i = 0; i < words; i++) {
 		eewr = ((offset + i) << IGC_NVM_RW_ADDR_SHIFT) |
-			(data[i] << IGC_NVM_RW_REG_DATA) |
-			IGC_NVM_RW_REG_START;
+		    (data[i] << IGC_NVM_RW_REG_DATA) | IGC_NVM_RW_REG_START;
 
 		IGC_WRITE_REG(hw, IGC_SRWR, eewr);
 
 		for (k = 0; k < attempts; k++) {
-			if (IGC_NVM_RW_REG_DONE &
-			    IGC_READ_REG(hw, IGC_SRWR)) {
+			if (IGC_NVM_RW_REG_DONE & IGC_READ_REG(hw, IGC_SRWR)) {
 				ret_val = IGC_SUCCESS;
 				break;
 			}
@@ -579,7 +585,8 @@ out:
  * Calculates the EEPROM checksum by reading/adding each word of the EEPROM
  * and then verifies that the sum of the EEPROM is equal to 0xBABA.
  */
-s32 igc_validate_nvm_checksum_i225(struct igc_hw *hw)
+s32
+igc_validate_nvm_checksum_i225(struct igc_hw *hw)
 {
 	s32 status = IGC_SUCCESS;
 	s32 (*read_op_ptr)(struct igc_hw *, u16, u16, u16 *);
@@ -614,7 +621,8 @@ s32 igc_validate_nvm_checksum_i225(struct igc_hw *hw)
  * up to the checksum.  Then calculates the EEPROM checksum and writes the
  * value to the EEPROM. Next commit EEPROM data onto the Flash.
  */
-s32 igc_update_nvm_checksum_i225(struct igc_hw *hw)
+s32
+igc_update_nvm_checksum_i225(struct igc_hw *hw)
 {
 	s32 ret_val;
 	u16 checksum = 0;
@@ -650,7 +658,7 @@ s32 igc_update_nvm_checksum_i225(struct igc_hw *hw)
 		}
 		checksum = (u16)NVM_SUM - checksum;
 		ret_val = __igc_write_nvm_srwr(hw, NVM_CHECKSUM_REG, 1,
-						 &checksum);
+		    &checksum);
 		if (ret_val != IGC_SUCCESS) {
 			hw->nvm.ops.release(hw);
 			DEBUGOUT("NVM Write Error while updating checksum.\n");
@@ -670,7 +678,8 @@ out:
 /* igc_get_flash_presence_i225 - Check if flash device is detected.
  * @hw: pointer to the HW structure
  */
-bool igc_get_flash_presence_i225(struct igc_hw *hw)
+bool
+igc_get_flash_presence_i225(struct igc_hw *hw)
 {
 	u32 eec = 0;
 	bool ret_val = false;
@@ -691,8 +700,8 @@ bool igc_get_flash_presence_i225(struct igc_hw *hw)
  * @hw: pointer to the HW structure
  * @burst_counter: size in bytes of the Flash burst to read or write
  */
-s32 igc_set_flsw_flash_burst_counter_i225(struct igc_hw *hw,
-					    u32 burst_counter)
+s32
+igc_set_flsw_flash_burst_counter_i225(struct igc_hw *hw, u32 burst_counter)
 {
 	s32 ret_val = IGC_SUCCESS;
 
@@ -716,8 +725,8 @@ s32 igc_set_flsw_flash_burst_counter_i225(struct igc_hw *hw,
  * @opcode: opcode to be used for the write command
  * @address: the offset to write into the FLASH image
  */
-s32 igc_write_erase_flash_command_i225(struct igc_hw *hw, u32 opcode,
-					 u32 address)
+s32
+igc_write_erase_flash_command_i225(struct igc_hw *hw, u32 opcode, u32 address)
 {
 	u32 flswctl = 0;
 	s32 timeout = IGC_NVM_GRANT_ATTEMPTS;
@@ -762,7 +771,8 @@ s32 igc_write_erase_flash_command_i225(struct igc_hw *hw, u32 opcode,
  *
  * @hw: pointer to the HW structure
  */
-s32 igc_update_flash_i225(struct igc_hw *hw)
+s32
+igc_update_flash_i225(struct igc_hw *hw)
 {
 	u16 current_offset_data = 0;
 	u32 block_sw_protect = 1;
@@ -775,9 +785,8 @@ s32 igc_update_flash_i225(struct igc_hw *hw)
 	DEBUGFUNC("igc_update_flash_i225");
 
 	block_sw_protect = IGC_READ_REG(hw, IGC_I225_FLSECU) &
-					  IGC_FLSECU_BLK_SW_ACCESS_I225;
-	fw_valid_bit = IGC_READ_REG(hw, IGC_FWSM) &
-				      IGC_FWSM_FW_VALID_I225;
+	    IGC_FLSECU_BLK_SW_ACCESS_I225;
+	fw_valid_bit = IGC_READ_REG(hw, IGC_FWSM) & IGC_FWSM_FW_VALID_I225;
 	if (fw_valid_bit) {
 		ret_val = igc_pool_flash_update_done_i225(hw);
 		if (ret_val == -IGC_ERR_NVM) {
@@ -805,8 +814,7 @@ s32 igc_update_flash_i225(struct igc_hw *hw)
 
 		/* Valid sector erase */
 		ret_val = igc_write_erase_flash_command_i225(hw,
-						  IGC_I225_ERASE_CMD_OPCODE,
-						  base_address);
+		    IGC_I225_ERASE_CMD_OPCODE, base_address);
 		if (!ret_val) {
 			DEBUGOUT("Sector erase failed\n");
 			goto out;
@@ -818,19 +826,18 @@ s32 igc_update_flash_i225(struct igc_hw *hw)
 		for (i = 0; i < IGC_I225_SHADOW_RAM_SIZE / 2; i++) {
 			/* Set burst write length */
 			ret_val = igc_set_flsw_flash_burst_counter_i225(hw,
-									  0x2);
+			    0x2);
 			if (ret_val != IGC_SUCCESS)
 				break;
 
 			/* Set address and opcode */
 			ret_val = igc_write_erase_flash_command_i225(hw,
-						IGC_I225_WRITE_CMD_OPCODE,
-						2 * current_offset);
+			    IGC_I225_WRITE_CMD_OPCODE, 2 * current_offset);
 			if (ret_val != IGC_SUCCESS)
 				break;
 
-			ret_val = igc_read_nvm_eerd(hw, current_offset,
-						      1, &current_offset_data);
+			ret_val = igc_read_nvm_eerd(hw, current_offset, 1,
+			    &current_offset_data);
 			if (ret_val) {
 				DEBUGOUT("Failed to read from EEPROM\n");
 				goto out;
@@ -838,12 +845,12 @@ s32 igc_update_flash_i225(struct igc_hw *hw)
 
 			/* Write CurrentOffseData to FLSWDATA register */
 			IGC_WRITE_REG(hw, IGC_I225_FLSWDATA,
-					current_offset_data);
+			    current_offset_data);
 			current_offset++;
 
 			/* Wait till operation has finished */
 			ret_val = igc_poll_eerd_eewr_done(hw,
-						IGC_NVM_POLL_READ);
+			    IGC_NVM_POLL_READ);
 			if (ret_val)
 				break;
 
@@ -857,7 +864,8 @@ out:
 /* igc_pool_flash_update_done_i225 - Pool FLUDONE status.
  * @hw: pointer to the HW structure
  */
-s32 igc_pool_flash_update_done_i225(struct igc_hw *hw)
+s32
+igc_pool_flash_update_done_i225(struct igc_hw *hw)
 {
 	s32 ret_val = -IGC_ERR_NVM;
 	u32 i, reg;
@@ -883,7 +891,8 @@ s32 igc_pool_flash_update_done_i225(struct igc_hw *hw)
  * Set the LTR thresholds based on the link speed (Mbps), EEE, and DMAC
  * settings, otherwise specify that there is no LTR requirement.
  */
-static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
+static s32
+igc_set_ltr_i225(struct igc_hw *hw, bool link)
 {
 	u16 speed, duplex;
 	u32 tw_system, ltrc, ltrv, ltr_min, ltr_max, scale_min, scale_max;
@@ -899,35 +908,34 @@ static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
 		 * link speed is 10 Mbps.
 		 */
 		if ((hw->phy.media_type == igc_media_type_copper) &&
-		    !(hw->dev_spec._i225.eee_disable) &&
-		     (speed != SPEED_10)) {
+		    !(hw->dev_spec._i225.eee_disable) && (speed != SPEED_10)) {
 			/* EEE enabled, so send LTRMAX threshold. */
-			ltrc = IGC_READ_REG(hw, IGC_LTRC) |
-				IGC_LTRC_EEEMS_EN;
+			ltrc = IGC_READ_REG(hw, IGC_LTRC) | IGC_LTRC_EEEMS_EN;
 			IGC_WRITE_REG(hw, IGC_LTRC, ltrc);
 
 			/* Calculate tw_system (nsec). */
 			if (speed == SPEED_100) {
 				tw_system = ((IGC_READ_REG(hw, IGC_EEE_SU) &
-					     IGC_TW_SYSTEM_100_MASK) >>
-					     IGC_TW_SYSTEM_100_SHIFT) * 500;
+						 IGC_TW_SYSTEM_100_MASK) >>
+						IGC_TW_SYSTEM_100_SHIFT) *
+				    500;
 			} else {
 				tw_system = (IGC_READ_REG(hw, IGC_EEE_SU) &
-					     IGC_TW_SYSTEM_1000_MASK) * 500;
-				}
+						IGC_TW_SYSTEM_1000_MASK) *
+				    500;
+			}
 		} else {
 			tw_system = 0;
-			}
+		}
 
 		/* Get the Rx packet buffer size. */
-		size = IGC_READ_REG(hw, IGC_RXPBS) &
-			IGC_RXPBS_SIZE_I225_MASK;
+		size = IGC_READ_REG(hw, IGC_RXPBS) & IGC_RXPBS_SIZE_I225_MASK;
 
 		/* Calculations vary based on DMAC settings. */
 		if (IGC_READ_REG(hw, IGC_DMACR) & IGC_DMACR_DMAC_EN) {
 			size -= (IGC_READ_REG(hw, IGC_DMACR) &
-				 IGC_DMACR_DMACTHR_MASK) >>
-				 IGC_DMACR_DMACTHR_SHIFT;
+				    IGC_DMACR_DMACTHR_MASK) >>
+			    IGC_DMACR_DMACTHR_SHIFT;
 			/* Convert size to bits. */
 			size *= 1024 * 8;
 		} else {
@@ -941,7 +949,7 @@ static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
 
 		if (size < 0) {
 			DEBUGOUT1("Invalid effective Rx buffer size %d\n",
-				  size);
+			    size);
 			return -IGC_ERR_CONFIG;
 		}
 
@@ -953,9 +961,9 @@ static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
 		ltr_min = (1000 * size) / speed;
 		ltr_max = ltr_min + tw_system;
 		scale_min = (ltr_min / 1024) < 1024 ? IGC_LTRMINV_SCALE_1024 :
-			    IGC_LTRMINV_SCALE_32768;
+						      IGC_LTRMINV_SCALE_32768;
 		scale_max = (ltr_max / 1024) < 1024 ? IGC_LTRMAXV_SCALE_1024 :
-			    IGC_LTRMAXV_SCALE_32768;
+						      IGC_LTRMAXV_SCALE_32768;
 		ltr_min /= scale_min == IGC_LTRMINV_SCALE_1024 ? 1024 : 32768;
 		ltr_max /= scale_max == IGC_LTRMAXV_SCALE_1024 ? 1024 : 32768;
 
@@ -963,14 +971,14 @@ static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
 		ltrv = IGC_READ_REG(hw, IGC_LTRMINV);
 		if (ltr_min != (ltrv & IGC_LTRMINV_LTRV_MASK)) {
 			ltrv = IGC_LTRMINV_LSNP_REQ | ltr_min |
-			      (scale_min << IGC_LTRMINV_SCALE_SHIFT);
+			    (scale_min << IGC_LTRMINV_SCALE_SHIFT);
 			IGC_WRITE_REG(hw, IGC_LTRMINV, ltrv);
 		}
 
 		ltrv = IGC_READ_REG(hw, IGC_LTRMAXV);
 		if (ltr_max != (ltrv & IGC_LTRMAXV_LTRV_MASK)) {
 			ltrv = IGC_LTRMAXV_LSNP_REQ | ltr_max |
-			      (scale_min << IGC_LTRMAXV_SCALE_SHIFT);
+			    (scale_min << IGC_LTRMAXV_SCALE_SHIFT);
 			IGC_WRITE_REG(hw, IGC_LTRMAXV, ltrv);
 		}
 	}
@@ -985,7 +993,8 @@ static s32 igc_set_ltr_i225(struct igc_hw *hw, bool link)
  * change in link status has been detected, then we read the PHY registers
  * to get the current speed/duplex if link exists.
  */
-s32 igc_check_for_link_i225(struct igc_hw *hw)
+s32
+igc_check_for_link_i225(struct igc_hw *hw)
 {
 	struct igc_mac_info *mac = &hw->mac;
 	s32 ret_val;
@@ -1066,7 +1075,8 @@ out:
  *
  * Called to initialize all function pointers and parameters.
  */
-void igc_init_function_pointers_i225(struct igc_hw *hw)
+void
+igc_init_function_pointers_i225(struct igc_hw *hw)
 {
 	igc_init_mac_ops_generic(hw);
 	igc_init_phy_ops_generic(hw);
@@ -1081,7 +1091,8 @@ void igc_init_function_pointers_i225(struct igc_hw *hw)
  *
  * Called to initialize hw for i225 hw family.
  */
-s32 igc_init_hw_i225(struct igc_hw *hw)
+s32
+igc_init_hw_i225(struct igc_hw *hw)
 {
 	s32 ret_val;
 
@@ -1099,7 +1110,8 @@ s32 igc_init_hw_i225(struct igc_hw *hw)
  * Note: since I225 does not actually support LPLU, this function
  * simply enables/disables 1G and 2.5G speeds in D0.
  */
-s32 igc_set_d0_lplu_state_i225(struct igc_hw *hw, bool active)
+s32
+igc_set_d0_lplu_state_i225(struct igc_hw *hw, bool active)
 {
 	u32 data;
 
@@ -1127,7 +1139,8 @@ s32 igc_set_d0_lplu_state_i225(struct igc_hw *hw, bool active)
  * Note: since I225 does not actually support LPLU, this function
  * simply enables/disables 100M, 1G and 2.5G speeds in D3.
  */
-s32 igc_set_d3_lplu_state_i225(struct igc_hw *hw, bool active)
+s32
+igc_set_d3_lplu_state_i225(struct igc_hw *hw, bool active)
 {
 	u32 data;
 
@@ -1159,8 +1172,8 @@ s32 igc_set_d3_lplu_state_i225(struct igc_hw *hw, bool active)
  *  Enable/disable EEE based on setting in dev_spec structure.
  *
  **/
-s32 igc_set_eee_i225(struct igc_hw *hw, bool adv2p5G, bool adv1G,
-		       bool adv100M)
+s32
+igc_set_eee_i225(struct igc_hw *hw, bool adv2p5G, bool adv1G, bool adv100M)
 {
 	u32 ipcnfg, eeer;
 
@@ -1192,16 +1205,16 @@ s32 igc_set_eee_i225(struct igc_hw *hw, bool adv2p5G, bool adv1G,
 			ipcnfg &= ~IGC_IPCNFG_EEE_2_5G_AN;
 
 		eeer |= (IGC_EEER_TX_LPI_EN | IGC_EEER_RX_LPI_EN |
-			IGC_EEER_LPI_FC);
+		    IGC_EEER_LPI_FC);
 
 		/* This bit should not be set in normal operation. */
 		if (eee_su & IGC_EEE_SU_LPI_CLK_STP)
 			DEBUGOUT("LPI Clock Stop Bit should not be set!\n");
 	} else {
 		ipcnfg &= ~(IGC_IPCNFG_EEE_2_5G_AN | IGC_IPCNFG_EEE_1G_AN |
-			IGC_IPCNFG_EEE_100M_AN);
-		eeer &= ~(IGC_EEER_TX_LPI_EN | IGC_EEER_RX_LPI_EN |
-			IGC_EEER_LPI_FC);
+		    IGC_IPCNFG_EEE_100M_AN);
+		eeer &= ~(
+		    IGC_EEER_TX_LPI_EN | IGC_EEER_RX_LPI_EN | IGC_EEER_LPI_FC);
 	}
 	IGC_WRITE_REG(hw, IGC_IPCNFG, ipcnfg);
 	IGC_WRITE_REG(hw, IGC_EEER, eeer);
@@ -1211,4 +1224,3 @@ out:
 
 	return IGC_SUCCESS;
 }
-

@@ -67,5 +67,4 @@ priv_vfs_chroot(int asroot, int injail, struct test *test)
 void
 priv_vfs_chroot_cleanup(int asroot, int injail, struct test *test)
 {
-
 }

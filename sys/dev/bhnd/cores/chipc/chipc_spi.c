@@ -32,36 +32,31 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/errno.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
-#include <sys/errno.h>
 #include <sys/rman.h>
-#include <sys/bus.h>
 
 #include <machine/bus.h>
 
 #include <dev/bhnd/bhndvar.h>
-
 #include <dev/spibus/spi.h>
 
 #include "bhnd_chipc_if.h"
-
-#include "spibus_if.h"
-
+#include "chipc_slicer.h"
+#include "chipc_spi.h"
 #include "chipcreg.h"
 #include "chipcvar.h"
-#include "chipc_slicer.h"
+#include "spibus_if.h"
 
-#include "chipc_spi.h"
-
-static int	chipc_spi_probe(device_t dev);
-static int	chipc_spi_attach(device_t dev);
-static int	chipc_spi_detach(device_t dev);
-static int	chipc_spi_transfer(device_t dev, device_t child,
-		    struct spi_command *cmd);
-static int	chipc_spi_txrx(struct chipc_spi_softc *sc, uint8_t in,
-		    uint8_t* out);
-static int	chipc_spi_wait(struct chipc_spi_softc *sc);
+static int chipc_spi_probe(device_t dev);
+static int chipc_spi_attach(device_t dev);
+static int chipc_spi_detach(device_t dev);
+static int chipc_spi_transfer(device_t dev, device_t child,
+    struct spi_command *cmd);
+static int chipc_spi_txrx(struct chipc_spi_softc *sc, uint8_t in, uint8_t *out);
+static int chipc_spi_wait(struct chipc_spi_softc *sc);
 
 static int
 chipc_spi_probe(device_t dev)
@@ -73,12 +68,12 @@ chipc_spi_probe(device_t dev)
 static int
 chipc_spi_attach(device_t dev)
 {
-	struct chipc_spi_softc	*sc;
-	struct chipc_caps	*ccaps;
-	device_t		 flash_dev;
-	device_t		 spibus;
-	const char		*flash_name;
-	int			 error;
+	struct chipc_spi_softc *sc;
+	struct chipc_caps *ccaps;
+	device_t flash_dev;
+	device_t spibus;
+	const char *flash_name;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -101,9 +96,9 @@ chipc_spi_attach(device_t dev)
 		goto failed;
 	}
 
-	/* 
+	/*
 	 * Add flash device
-	 * 
+	 *
 	 * XXX: This should be replaced with a DEVICE_IDENTIFY implementation
 	 * in chipc-specific subclasses of the mx25l and at45d drivers.
 	 */
@@ -157,8 +152,8 @@ failed:
 static int
 chipc_spi_detach(device_t dev)
 {
-	struct chipc_spi_softc	*sc;
-	int			 error;
+	struct chipc_spi_softc *sc;
+	int error;
 
 	sc = device_get_softc(dev);
 
@@ -177,7 +172,8 @@ chipc_spi_wait(struct chipc_spi_softc *sc)
 	int i;
 
 	for (i = CHIPC_SPI_MAXTRIES; i > 0; i--)
-		if (!(SPI_READ(sc, CHIPC_SPI_FLASHCTL) & CHIPC_SPI_FLASHCTL_START))
+		if (!(SPI_READ(sc, CHIPC_SPI_FLASHCTL) &
+			CHIPC_SPI_FLASHCTL_START))
 			break;
 
 	if (i > 0)
@@ -190,7 +186,7 @@ chipc_spi_wait(struct chipc_spi_softc *sc)
 }
 
 static int
-chipc_spi_txrx(struct chipc_spi_softc *sc, uint8_t out, uint8_t* in)
+chipc_spi_txrx(struct chipc_spi_softc *sc, uint8_t out, uint8_t *in)
 {
 	uint32_t ctl;
 
@@ -209,10 +205,10 @@ chipc_spi_txrx(struct chipc_spi_softc *sc, uint8_t out, uint8_t* in)
 static int
 chipc_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 {
-	struct chipc_spi_softc	*sc;
-	uint8_t		*buf_in;
-	uint8_t		*buf_out;
-	int		 i;
+	struct chipc_spi_softc *sc;
+	uint8_t *buf_in;
+	uint8_t *buf_out;
+	int i;
 
 	sc = device_get_softc(dev);
 	KASSERT(cmd->tx_cmd_sz == cmd->rx_cmd_sz,
@@ -235,8 +231,8 @@ chipc_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	buf_out = (uint8_t *)cmd->tx_cmd;
 	buf_in = (uint8_t *)cmd->rx_cmd;
 	for (i = 0; i < cmd->tx_cmd_sz; i++)
-		 if (chipc_spi_txrx(sc, buf_out[i], &(buf_in[i])))
-			 return (EIO);
+		if (chipc_spi_txrx(sc, buf_out[i], &(buf_in[i])))
+			return (EIO);
 
 	/*
 	 * Receive/transmit data
@@ -257,15 +253,13 @@ chipc_spi_transfer(device_t dev, device_t child, struct spi_command *cmd)
 	return (0);
 }
 
-static device_method_t chipc_spi_methods[] = {
-		DEVMETHOD(device_probe,		chipc_spi_probe),
-		DEVMETHOD(device_attach,	chipc_spi_attach),
-		DEVMETHOD(device_detach,	chipc_spi_detach),
+static device_method_t chipc_spi_methods[] = { DEVMETHOD(device_probe,
+						   chipc_spi_probe),
+	DEVMETHOD(device_attach, chipc_spi_attach),
+	DEVMETHOD(device_detach, chipc_spi_detach),
 
-		/* SPI */
-		DEVMETHOD(spibus_transfer,	chipc_spi_transfer),
-		DEVMETHOD_END
-};
+	/* SPI */
+	DEVMETHOD(spibus_transfer, chipc_spi_transfer), DEVMETHOD_END };
 
 static driver_t chipc_spi_driver = {
 	"spi",

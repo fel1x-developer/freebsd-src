@@ -24,10 +24,10 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_stack.h"
 #include "opt_ddb.h"
+#include "opt_stack.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -36,13 +36,13 @@
 #include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/pcpu.h>
+#include <sys/sbuf.h>
 #include <sys/smp.h>
 #include <sys/stack.h>
-#include <sys/sbuf.h>
 
+#include <xen/hypervisor.h>
 #include <xen/xen-os.h>
 #include <xen/xen_intr.h>
-#include <xen/hypervisor.h>
 
 /*
  * Xen debug device
@@ -63,8 +63,7 @@ xendebug_drain(void *arg, const char *str, int len)
 	return (len);
 }
 
-extern void
-stack_capture(struct stack *st, register_t rbp);
+extern void stack_capture(struct stack *st, register_t rbp);
 
 static int
 xendebug_filter(void *arg __unused)
@@ -119,13 +118,13 @@ xendebug_attach(device_t dev)
 	sbuf_set_drain(buf, xendebug_drain, NULL);
 
 	/* Bind an event channel to a VIRQ on each VCPU. */
-	CPU_FOREACH(i) {
+	CPU_FOREACH (i) {
 		error = xen_intr_bind_virq(dev, VIRQ_DEBUG, i, xendebug_filter,
 		    NULL, NULL, INTR_TYPE_TTY,
 		    DPCPU_ID_PTR(i, xendebug_handler));
 		if (error != 0) {
-			printf("Failed to bind VIRQ_DEBUG to vCPU %d: %d",
-			    i, error);
+			printf("Failed to bind VIRQ_DEBUG to vCPU %d: %d", i,
+			    error);
 			continue;
 		}
 		xen_intr_describe(DPCPU_ID_GET(i, xendebug_handler), "d%d", i);
@@ -134,13 +133,12 @@ xendebug_attach(device_t dev)
 	return (0);
 }
 
-static device_method_t xendebug_methods[] = {
-	DEVMETHOD(device_identify, xendebug_identify),
+static device_method_t xendebug_methods[] = { DEVMETHOD(device_identify,
+						  xendebug_identify),
 	DEVMETHOD(device_probe, xendebug_probe),
 	DEVMETHOD(device_attach, xendebug_attach),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
 static driver_t xendebug_driver = {
 	"debug",

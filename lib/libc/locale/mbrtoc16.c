@@ -27,16 +27,17 @@
  */
 
 #include <uchar.h>
+
 #include "mblocal.h"
 
 typedef struct {
-	char16_t	trail_surrogate;
-	mbstate_t	c32_mbstate;
+	char16_t trail_surrogate;
+	mbstate_t c32_mbstate;
 } _Char16State;
 
 size_t
-mbrtoc16_l(char16_t * __restrict pc16, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps, locale_t locale)
+mbrtoc16_l(char16_t *__restrict pc16, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps, locale_t locale)
 {
 	_Char16State *cs;
 	char32_t c32;
@@ -80,8 +81,8 @@ mbrtoc16_l(char16_t * __restrict pc16, const char * __restrict s, size_t n,
 }
 
 size_t
-mbrtoc16(char16_t * __restrict pc16, const char * __restrict s, size_t n,
-    mbstate_t * __restrict ps)
+mbrtoc16(char16_t *__restrict pc16, const char *__restrict s, size_t n,
+    mbstate_t *__restrict ps)
 {
 
 	return (mbrtoc16_l(pc16, s, n, ps, __get_locale()));

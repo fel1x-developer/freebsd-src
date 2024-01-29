@@ -25,15 +25,15 @@
  */
 
 #ifndef _DEV_REGULATOR_FIXED_H_
-#define	_DEV_REGULATOR_FIXED_H_
+#define _DEV_REGULATOR_FIXED_H_
 
 #include <dev/gpio/gpiobusvar.h>
 #include <dev/regulator/regulator.h>
 
 struct regnode_fixed_init_def {
-	struct regnode_init_def	reg_init_def;
-	bool			gpio_open_drain;
-	struct gpiobus_pin	*gpio_pin;
+	struct regnode_init_def reg_init_def;
+	bool gpio_open_drain;
+	struct gpiobus_pin *gpio_pin;
 };
 
 int regnode_fixed_register(device_t dev,

@@ -29,7 +29,7 @@
  */
 
 #ifndef _SYS__MUTEX_H_
-#define	_SYS__MUTEX_H_
+#define _SYS__MUTEX_H_
 
 #include <machine/param.h>
 
@@ -43,8 +43,8 @@
  * be modified appropriately.
  */
 struct mtx {
-	struct lock_object	lock_object;	/* Common lock properties. */
-	volatile uintptr_t	mtx_lock;	/* Owner and flags. */
+	struct lock_object lock_object; /* Common lock properties. */
+	volatile uintptr_t mtx_lock;	/* Owner and flags. */
 };
 
 /*
@@ -57,8 +57,8 @@ struct mtx {
  * the mutex.
  */
 struct mtx_padalign {
-	struct lock_object	lock_object;	/* Common lock properties. */
-	volatile uintptr_t	mtx_lock;	/* Owner and flags. */
+	struct lock_object lock_object; /* Common lock properties. */
+	volatile uintptr_t mtx_lock;	/* Owner and flags. */
 } __aligned(CACHE_LINE_SIZE);
 
 #endif /* !_SYS__MUTEX_H_ */

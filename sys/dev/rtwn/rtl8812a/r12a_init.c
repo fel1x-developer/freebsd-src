@@ -24,41 +24,37 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/mbuf.h>
-#include <sys/kernel.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/linker.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-#include <net/if_media.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/rtwn/if_rtwnreg.h>
-#include <dev/rtwn/if_rtwnvar.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mbuf.h>
+#include <sys/mutex.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/taskqueue.h>
 
 #include <dev/rtwn/if_rtwn_debug.h>
-
+#include <dev/rtwn/if_rtwnreg.h>
+#include <dev/rtwn/if_rtwnvar.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
-
 #include <dev/rtwn/rtl8812a/r12a.h>
 #include <dev/rtwn/rtl8812a/r12a_priv.h>
 #include <dev/rtwn/rtl8812a/r12a_reg.h>
 #include <dev/rtwn/rtl8812a/r12a_var.h>
+
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_media.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_var.h>
 
 int
 r12a_check_condition(struct rtwn_softc *sc, const uint8_t cond[])
@@ -69,14 +65,15 @@ r12a_check_condition(struct rtwn_softc *sc, const uint8_t cond[])
 
 	RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
 	    "%s: condition byte 0: %02X; ext PA/LNA: %d/%d (2 GHz), "
-	    "%d/%d (5 GHz)\n", __func__, cond[0], rs->ext_pa_2g,
-	    rs->ext_lna_2g, rs->ext_pa_5g, rs->ext_lna_5g);
+	    "%d/%d (5 GHz)\n",
+	    __func__, cond[0], rs->ext_pa_2g, rs->ext_lna_2g, rs->ext_pa_5g,
+	    rs->ext_lna_5g);
 
 	if (cond[0] == 0)
 		return (1);
 
-	if (!rs->ext_pa_2g && !rs->ext_lna_2g &&
-	    !rs->ext_pa_5g && !rs->ext_lna_5g)
+	if (!rs->ext_pa_2g && !rs->ext_lna_2g && !rs->ext_pa_5g &&
+	    !rs->ext_lna_5g)
 		return (0);
 
 	nmasks = 0;
@@ -113,7 +110,7 @@ int
 r12a_set_page_size(struct rtwn_softc *sc)
 {
 	return (rtwn_setbits_1(sc, R92C_PBP, R92C_PBP_PSTX_M,
-	    R92C_PBP_512 << R92C_PBP_PSTX_S) == 0);
+		    R92C_PBP_512 << R92C_PBP_PSTX_S) == 0);
 }
 
 void
@@ -151,15 +148,15 @@ r12a_init_bb(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, bb_prog->cond)) {
 			KASSERT(bb_prog->next != NULL,
-			    ("%s: wrong condition value (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (i %d)\n", __func__,
+				i));
 			bb_prog = bb_prog->next;
 		}
 
 		for (j = 0; j < bb_prog->count; j++) {
 			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "BB: reg 0x%03x, val 0x%08x\n",
-			    bb_prog->reg[j], bb_prog->val[j]);
+			    "BB: reg 0x%03x, val 0x%08x\n", bb_prog->reg[j],
+			    bb_prog->val[j]);
 
 			rtwn_bb_write(sc, bb_prog->reg[j], bb_prog->val[j]);
 			rtwn_delay(sc, 1);
@@ -174,14 +171,14 @@ r12a_init_bb(struct rtwn_softc *sc)
 
 		while (!rtwn_check_condition(sc, agc_prog->cond)) {
 			KASSERT(agc_prog->next != NULL,
-			    ("%s: wrong condition value (2) (i %d)\n",
-			    __func__, i));
+			    ("%s: wrong condition value (2) (i %d)\n", __func__,
+				i));
 			agc_prog = agc_prog->next;
 		}
 
 		for (j = 0; j < agc_prog->count; j++) {
-			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET,
-			    "AGC: val 0x%08x\n", agc_prog->val[j]);
+			RTWN_DPRINTF(sc, RTWN_DEBUG_RESET, "AGC: val 0x%08x\n",
+			    agc_prog->val[j]);
 
 			rtwn_bb_write(sc, 0x81c, agc_prog->val[j]);
 			rtwn_delay(sc, 1);
@@ -229,25 +226,23 @@ static void
 r12a_rf_init_workaround(struct rtwn_softc *sc)
 {
 
+	rtwn_write_1(sc, R92C_RF_CTRL, R92C_RF_CTRL_EN | R92C_RF_CTRL_SDMRSTB);
 	rtwn_write_1(sc, R92C_RF_CTRL,
-	    R92C_RF_CTRL_EN | R92C_RF_CTRL_SDMRSTB);
-	rtwn_write_1(sc, R92C_RF_CTRL,
-	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB |
-	    R92C_RF_CTRL_SDMRSTB);
+	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB | R92C_RF_CTRL_SDMRSTB);
 	rtwn_write_1(sc, R12A_RF_B_CTRL,
 	    R92C_RF_CTRL_EN | R92C_RF_CTRL_SDMRSTB);
 	rtwn_write_1(sc, R12A_RF_B_CTRL,
-	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB |
-	    R92C_RF_CTRL_SDMRSTB);
+	    R92C_RF_CTRL_EN | R92C_RF_CTRL_RSTB | R92C_RF_CTRL_SDMRSTB);
 }
 
 int
 r12a_power_on(struct rtwn_softc *sc)
 {
-#define RTWN_CHK(res) do {	\
-	if (res != 0)		\
-		return (EIO);	\
-} while(0)
+#define RTWN_CHK(res)                 \
+	do {                          \
+		if (res != 0)         \
+			return (EIO); \
+	} while (0)
 	int ntries;
 
 	r12a_rf_init_workaround(sc);
@@ -259,8 +254,7 @@ r12a_power_on(struct rtwn_softc *sc)
 	RTWN_CHK(rtwn_setbits_2(sc, 0x014, 0x0180, 0));
 
 	/* Enable LDO normal mode. */
-	RTWN_CHK(rtwn_setbits_1(sc, R92C_LPLDO_CTRL, R92C_LPLDO_CTRL_SLEEP,
-	    0));
+	RTWN_CHK(rtwn_setbits_1(sc, R92C_LPLDO_CTRL, R92C_LPLDO_CTRL_SLEEP, 0));
 
 	/* GPIO 0...7 input mode. */
 	RTWN_CHK(rtwn_write_1(sc, R92C_GPIO_IOSEL, 0));
@@ -273,8 +267,8 @@ r12a_power_on(struct rtwn_softc *sc)
 	    R92C_APS_FSMCO_AFSM_HSUS, 0, 1));
 
 	/* Enable 8051. */
-	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN,
-	    0, R92C_SYS_FUNC_EN_CPUEN, 1));
+	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, 0,
+	    R92C_SYS_FUNC_EN_CPUEN, 1));
 
 	/* Disable SW LPS. */
 	RTWN_CHK(rtwn_setbits_1_shift(sc, R92C_APS_FSMCO,
@@ -300,7 +294,7 @@ r12a_power_on(struct rtwn_softc *sc)
 	    R92C_APS_FSMCO_APFM_ONMAC, 1));
 	for (ntries = 0; ntries < 5000; ntries++) {
 		if (!(rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_ONMAC))
+			R92C_APS_FSMCO_APFM_ONMAC))
 			break;
 		rtwn_delay(sc, 10);
 	}
@@ -310,11 +304,10 @@ r12a_power_on(struct rtwn_softc *sc)
 	/* Enable MAC DMA/WMAC/SCHEDULE/SEC blocks. */
 	RTWN_CHK(rtwn_write_2(sc, R92C_CR, 0x0000));
 	RTWN_CHK(rtwn_setbits_2(sc, R92C_CR, 0,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN |
-	    R92C_CR_HCI_RXDMA_EN | R92C_CR_RXDMA_EN |
-	    R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
-	    ((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
-	    R92C_CR_CALTMR_EN));
+	    R92C_CR_HCI_TXDMA_EN | R92C_CR_TXDMA_EN | R92C_CR_HCI_RXDMA_EN |
+		R92C_CR_RXDMA_EN | R92C_CR_PROTOCOL_EN | R92C_CR_SCHEDULE_EN |
+		((sc->sc_hwcrypto != RTWN_CRYPTO_SW) ? R92C_CR_ENSEC : 0) |
+		R92C_CR_CALTMR_EN));
 
 	return (0);
 }
@@ -327,7 +320,7 @@ r12a_power_off(struct rtwn_softc *sc)
 
 	/* Stop Rx. */
 	error = rtwn_write_1(sc, R92C_CR, 0);
-	if (error == ENXIO)	/* hardware gone */
+	if (error == ENXIO) /* hardware gone */
 		return;
 
 	/* Move card to Low Power state. */
@@ -360,8 +353,7 @@ r12a_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_BB_GLB_RST, 0);
 
 	/* Reset MAC TRX. */
-	rtwn_write_1(sc, R92C_CR,
-	    R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN);
+	rtwn_write_1(sc, R92C_CR, R92C_CR_HCI_TXDMA_EN | R92C_CR_HCI_RXDMA_EN);
 
 	/* check if removed later. (?) */
 	rtwn_setbits_1_shift(sc, R92C_CR, R92C_CR_ENSEC, 0, 1);
@@ -376,8 +368,8 @@ r12a_power_off(struct rtwn_softc *sc)
 #endif
 
 	/* Reset MCU. */
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN,
-	    0, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN, 0,
+	    1);
 	rtwn_write_1(sc, R92C_MCUFWDL, 0);
 
 	/* Move card to Disabled state. */
@@ -398,12 +390,11 @@ r12a_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_SYS_CLKR, R92C_SYS_CLKR_ANA8M, 0);
 
 	/* Turn off MAC by HW state machine */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF,
-	    1);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0, R92C_APS_FSMCO_APFM_OFF, 1);
 	for (ntries = 0; ntries < 10; ntries++) {
 		/* Wait until it will be disabled. */
 		if ((rtwn_read_2(sc, R92C_APS_FSMCO) &
-		    R92C_APS_FSMCO_APFM_OFF) == 0)
+			R92C_APS_FSMCO_APFM_OFF) == 0)
 			break;
 
 		rtwn_delay(sc, 5000);
@@ -415,8 +406,8 @@ r12a_power_off(struct rtwn_softc *sc)
 	}
 
 	/* Reset 8051. */
-	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN,
-	    0, 1);
+	rtwn_setbits_1_shift(sc, R92C_SYS_FUNC_EN, R92C_SYS_FUNC_EN_CPUEN, 0,
+	    1);
 
 	/* Fill the default value of host_CPU handshake field. */
 	rtwn_write_1(sc, R92C_MCUFWDL,
@@ -448,8 +439,8 @@ r12a_power_off(struct rtwn_softc *sc)
 	rtwn_setbits_1(sc, R92C_SYS_CLKR, R92C_SYS_CLKR_ANA8M, 0);
 
 	/* SOP option to disable BG/MB. */
-	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0xff,
-	    R92C_APS_FSMCO_SOP_RCK, 3);
+	rtwn_setbits_1_shift(sc, R92C_APS_FSMCO, 0xff, R92C_APS_FSMCO_SOP_RCK,
+	    3);
 
 	/* Disable RFC_0. */
 	rtwn_setbits_1(sc, R92C_RF_CTRL, R92C_RF_CTRL_RSTB, 0);

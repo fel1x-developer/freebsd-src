@@ -27,24 +27,24 @@
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/bus.h>
+#include <sys/condvar.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/module.h>
-#include <sys/mutex.h>
-#include <sys/bus.h>
-#include <sys/conf.h>
 #include <sys/mouse.h>
+#include <sys/mutex.h>
 #include <sys/poll.h>
-#include <sys/condvar.h>
 #include <sys/selinfo.h>
 #include <sys/sysctl.h>
 #include <sys/uio.h>
-#include <sys/fcntl.h>
-#include <sys/kernel.h>
-
-#include <machine/bus.h>
 
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <machine/bus.h>
 
 #include "adb.h"
 
@@ -56,24 +56,24 @@ static int adb_mouse_detach(device_t dev);
 static void adb_init_trackpad(device_t dev);
 static int adb_tapping_sysctl(SYSCTL_HANDLER_ARGS);
 
-static d_open_t  ams_open;
+static d_open_t ams_open;
 static d_close_t ams_close;
-static d_read_t  ams_read;
+static d_read_t ams_read;
 static d_ioctl_t ams_ioctl;
-static d_poll_t  ams_poll;
+static d_poll_t ams_poll;
 
-static u_int adb_mouse_receive_packet(device_t dev, u_char status, 
+static u_int adb_mouse_receive_packet(device_t dev, u_char status,
     u_char command, u_char reg, int len, u_char *data);
 
 struct adb_mouse_softc {
 	device_t sc_dev;
 
 	struct mtx sc_mtx;
-	struct cv  sc_cv;
+	struct cv sc_cv;
 
 	int flags;
-#define	AMS_EXTENDED	0x1
-#define	AMS_TOUCHPAD	0x2
+#define AMS_EXTENDED 0x1
+#define AMS_TOUCHPAD 0x2
 	uint16_t dpi;
 
 	mousehw_t hw;
@@ -95,16 +95,15 @@ struct adb_mouse_softc {
 
 static device_method_t adb_mouse_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,         adb_mouse_probe),
-        DEVMETHOD(device_attach,        adb_mouse_attach),
-        DEVMETHOD(device_detach,        adb_mouse_detach),
-        DEVMETHOD(device_shutdown,      bus_generic_shutdown),
-        DEVMETHOD(device_suspend,       bus_generic_suspend),
-        DEVMETHOD(device_resume,        bus_generic_resume),
+	DEVMETHOD(device_probe, adb_mouse_probe),
+	DEVMETHOD(device_attach, adb_mouse_attach),
+	DEVMETHOD(device_detach, adb_mouse_detach),
+	DEVMETHOD(device_shutdown, bus_generic_shutdown),
+	DEVMETHOD(device_suspend, bus_generic_suspend),
+	DEVMETHOD(device_resume, bus_generic_resume),
 
 	/* ADB interface */
-	DEVMETHOD(adb_receive_packet,	adb_mouse_receive_packet),
-	{ 0, 0 }
+	DEVMETHOD(adb_receive_packet, adb_mouse_receive_packet), { 0, 0 }
 };
 
 static driver_t adb_mouse_driver = {
@@ -116,17 +115,17 @@ static driver_t adb_mouse_driver = {
 DRIVER_MODULE(ams, adb, adb_mouse_driver, 0, 0);
 
 static struct cdevsw ams_cdevsw = {
-	.d_version = 	D_VERSION,
-	.d_flags   = 	0,
-	.d_open    =	ams_open,
-	.d_close   =	ams_close,
-	.d_read    =	ams_read,
-	.d_ioctl   =	ams_ioctl,
-	.d_poll    =	ams_poll,
-	.d_name    =	"ams",
+	.d_version = D_VERSION,
+	.d_flags = 0,
+	.d_open = ams_open,
+	.d_close = ams_close,
+	.d_read = ams_read,
+	.d_ioctl = ams_ioctl,
+	.d_poll = ams_poll,
+	.d_name = "ams",
 };
 
-static int 
+static int
 adb_mouse_probe(device_t dev)
 {
 	uint8_t type;
@@ -136,12 +135,12 @@ adb_mouse_probe(device_t dev)
 	if (type != ADB_DEVICE_MOUSE)
 		return (ENXIO);
 
-	device_set_desc(dev,"ADB Mouse");
+	device_set_desc(dev, "ADB Mouse");
 	return (0);
 }
 
-static int 
-adb_mouse_attach(device_t dev) 
+static int
+adb_mouse_attach(device_t dev)
 {
 	struct adb_mouse_softc *sc;
 	char *description = "Unknown Pointing Device";
@@ -153,7 +152,7 @@ adb_mouse_attach(device_t dev)
 	sc->sc_dev = dev;
 
 	mtx_init(&sc->sc_mtx, "ams", NULL, MTX_DEF);
-	cv_init(&sc->sc_cv,"ams");
+	cv_init(&sc->sc_cv, "ams");
 
 	sc->flags = 0;
 
@@ -176,9 +175,9 @@ adb_mouse_attach(device_t dev)
 	sc->packet_read_len = 0;
 
 	/* Try to switch to extended protocol */
-	adb_set_device_handler(dev,4);
+	adb_set_device_handler(dev, 4);
 
-	switch(adb_get_device_handler(dev)) {
+	switch (adb_get_device_handler(dev)) {
 	case 1:
 		sc->mode.resolution = 100;
 		break;
@@ -186,12 +185,12 @@ adb_mouse_attach(device_t dev)
 		sc->mode.resolution = 200;
 		break;
 	case 4:
-		r1_len = adb_read_register(dev,1,r1);
+		r1_len = adb_read_register(dev, 1, r1);
 		if (r1_len < 8)
 			break;
 
 		sc->flags |= AMS_EXTENDED;
-		memcpy(&sc->hw.hwid,r1,4);
+		memcpy(&sc->hw.hwid, r1, 4);
 		sc->mode.resolution = (r1[4] << 8) | r1[5];
 
 		switch (r1[6]) {
@@ -217,8 +216,8 @@ adb_mouse_attach(device_t dev)
 
 		sc->hw.buttons = r1[7];
 
-		device_printf(dev,"%d-button %d-dpi %s\n",
-		    sc->hw.buttons, sc->mode.resolution,description);
+		device_printf(dev, "%d-button %d-dpi %s\n", sc->hw.buttons,
+		    sc->mode.resolution, description);
 
 		/*
 		 * Check for one of MacAlly's non-compliant 2-button mice.
@@ -228,33 +227,32 @@ adb_mouse_attach(device_t dev)
 		 */
 
 		if (sc->hw.hwid == 0x4b4f4954) {
-			adb_set_device_handler(dev,0x42);
+			adb_set_device_handler(dev, 0x42);
 
 			if (adb_get_device_handler(dev) == 0x42) {
 				device_printf(dev, "MacAlly 2-Button Mouse\n");
 				sc->flags &= ~AMS_EXTENDED;
 			}
 		}
-			
+
 		break;
 	}
 
-	sc->cdev = make_dev(&ams_cdevsw, device_get_unit(dev),
-		       UID_ROOT, GID_OPERATOR, 0644, "ams%d", 
-		       device_get_unit(dev));
+	sc->cdev = make_dev(&ams_cdevsw, device_get_unit(dev), UID_ROOT,
+	    GID_OPERATOR, 0644, "ams%d", device_get_unit(dev));
 	sc->cdev->si_drv1 = sc;
 
-	adb_set_autopoll(dev,1);
+	adb_set_autopoll(dev, 1);
 
 	return (0);
 }
 
-static int 
-adb_mouse_detach(device_t dev) 
+static int
+adb_mouse_detach(device_t dev)
 {
 	struct adb_mouse_softc *sc;
 
-	adb_set_autopoll(dev,0);
+	adb_set_autopoll(dev, 0);
 
 	sc = device_get_softc(dev);
 	destroy_dev(sc->cdev);
@@ -284,23 +282,25 @@ adb_init_trackpad(device_t dev)
 	if (r1_len != 8)
 		return;
 
-	if((r1[6] != 0x0d))
-	{
+	if ((r1[6] != 0x0d)) {
 		r1[6] = 0x0d;
-		
-		adb_write_register(dev, 1, 8, r1); 
-      
+
+		adb_write_register(dev, 1, 8, r1);
+
 		r1_len = adb_read_register(dev, 1, r1);
-      
-		if (r1[6] != 0x0d)
-		{
-			device_printf(dev, "ADB Mouse = 0x%x "
-				      "(non-Extended Mode)\n", r1[6]);
+
+		if (r1[6] != 0x0d) {
+			device_printf(dev,
+			    "ADB Mouse = 0x%x "
+			    "(non-Extended Mode)\n",
+			    r1[6]);
 			return;
 		} else {
-			device_printf(dev, "ADB Mouse = 0x%x "
-				      "(Extended Mode)\n", r1[6]);
-			
+			device_printf(dev,
+			    "ADB Mouse = 0x%x "
+			    "(Extended Mode)\n",
+			    r1[6]);
+
 			/* Set ADB Extended Features to default values,
 			   enabled. */
 			r2[0] = 0x19; /* Clicking: 0x19 disabled 0x99 enabled */
@@ -310,11 +310,10 @@ adb_init_trackpad(device_t dev)
 			r2[4] = 0xb2;
 			r2[5] = 0x8a;
 			r2[6] = 0x1b;
-		       
-			r2[7] = 0x57;  /* 0x57 bits 3:0 for W mode */
-			
+
+			r2[7] = 0x57; /* 0x57 bits 3:0 for W mode */
+
 			adb_write_register(dev, 2, 8, r2);
-			
 		}
 	}
 
@@ -329,9 +328,9 @@ adb_init_trackpad(device_t dev)
 	return;
 }
 
-static u_int 
-adb_mouse_receive_packet(device_t dev, u_char status, u_char command, 
-    u_char reg, int len, u_char *data) 
+static u_int
+adb_mouse_receive_packet(device_t dev, u_char status, u_char command,
+    u_char reg, int len, u_char *data)
 {
 	struct adb_mouse_softc *sc;
 	int i = 0;
@@ -352,21 +351,21 @@ adb_mouse_receive_packet(device_t dev, u_char status, u_char command,
 
 	if (sc->flags & AMS_EXTENDED) {
 		for (i = 2; i < len && i < 5; i++) {
-			xdelta |= (data[i] & 0x07) << (3*i + 1);
-			ydelta |= (data[i] & 0x70) << (3*i - 3);
+			xdelta |= (data[i] & 0x07) << (3 * i + 1);
+			ydelta |= (data[i] & 0x70) << (3 * i - 3);
 
-			buttons |= !(data[i] & 0x08) << (2*i - 2);
-			buttons |= !(data[i] & 0x80) << (2*i - 1);
+			buttons |= !(data[i] & 0x08) << (2 * i - 2);
+			buttons |= !(data[i] & 0x80) << (2 * i - 1);
 		}
 	} else {
 		len = 2; /* Ignore extra data */
 	}
 
 	/* Do sign extension as necessary */
-	if (xdelta & (0x40 << 3*(len-2)))
-		xdelta |= 0xffffffc0 << 3*(len - 2);
-	if (ydelta & (0x40 << 3*(len-2)))
-		ydelta |= 0xffffffc0 << 3*(len - 2);
+	if (xdelta & (0x40 << 3 * (len - 2)))
+		xdelta |= 0xffffffc0 << 3 * (len - 2);
+	if (ydelta & (0x40 << 3 * (len - 2)))
+		ydelta |= 0xffffffc0 << 3 * (len - 2);
 
 	if ((sc->flags & AMS_TOUCHPAD) && (sc->sc_tapping == 1)) {
 		tmp_buttons = buttons;
@@ -382,7 +381,7 @@ adb_mouse_receive_packet(device_t dev, u_char status, u_char command,
 			/* Map a single tap on button 2. But only if it is
 			   not a successor from a double tap.
 			*/
-			if (sc->button_buf != 0x3) 
+			if (sc->button_buf != 0x3)
 				tmp_buttons = 0x2;
 			else
 				tmp_buttons = 0;
@@ -401,8 +400,8 @@ adb_mouse_receive_packet(device_t dev, u_char status, u_char command,
 	 * high button events when they are touched.
 	 */
 
-	if (rounddown2(buttons, 1 << sc->hw.buttons)
-	    && !(sc->flags & AMS_TOUCHPAD)) {
+	if (rounddown2(buttons, 1 << sc->hw.buttons) &&
+	    !(sc->flags & AMS_TOUCHPAD)) {
 		buttons |= 1 << (sc->hw.buttons - 1);
 	}
 	buttons &= (1 << sc->hw.buttons) - 1;
@@ -467,10 +466,10 @@ ams_poll(struct cdev *dev, int events, struct thread *p)
 
 	if (events & (POLLIN | POLLRDNORM)) {
 		mtx_lock(&sc->sc_mtx);
-		
-		if (sc->xdelta == 0 && sc->ydelta == 0 && 
-		   sc->buttons == sc->last_buttons &&
-		   sc->packet_read_len == 0) {
+
+		if (sc->xdelta == 0 && sc->ydelta == 0 &&
+		    sc->buttons == sc->last_buttons &&
+		    sc->packet_read_len == 0) {
 			selrecord(p, &sc->rsel);
 			events = 0;
 		} else {
@@ -501,8 +500,8 @@ ams_read(struct cdev *dev, struct uio *uio, int flag)
 	mtx_lock(&sc->sc_mtx);
 
 	if (!sc->packet_read_len) {
-		if (sc->xdelta == 0 && sc->ydelta == 0 && 
-		   sc->buttons == sc->last_buttons) {
+		if (sc->xdelta == 0 && sc->ydelta == 0 &&
+		    sc->buttons == sc->last_buttons) {
 			if (flag & O_NONBLOCK) {
 				mtx_unlock(&sc->sc_mtx);
 				return EWOULDBLOCK;
@@ -545,7 +544,7 @@ ams_read(struct cdev *dev, struct uio *uio, int flag)
 
 		/* No Z movement */
 		sc->packet[5] = 0;
-		sc->packet[6] = 0; 
+		sc->packet[6] = 0;
 
 		sc->packet[7] = ~((uint8_t)(sc->buttons >> 3)) & 0x7f;
 
@@ -556,22 +555,22 @@ ams_read(struct cdev *dev, struct uio *uio, int flag)
 		sc->packet_read_len = sc->mode.packetsize;
 	}
 
-	len = (sc->packet_read_len > uio->uio_resid) ? 
-		uio->uio_resid : sc->packet_read_len;
+	len = (sc->packet_read_len > uio->uio_resid) ? uio->uio_resid :
+						       sc->packet_read_len;
 
-	memcpy(outpacket,sc->packet + 
-		(sc->mode.packetsize - sc->packet_read_len),len);
+	memcpy(outpacket,
+	    sc->packet + (sc->mode.packetsize - sc->packet_read_len), len);
 	sc->packet_read_len -= len;
 
 	mtx_unlock(&sc->sc_mtx);
 
-	error = uiomove(outpacket,len,uio);
+	error = uiomove(outpacket, len, uio);
 
 	return (error);
 }
 
 static int
-ams_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag, 
+ams_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
     struct thread *p)
 {
 	struct adb_mouse_softc *sc;
@@ -613,13 +612,13 @@ ams_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 		break;
 
 	case MOUSE_GETSTATUS: {
-		mousestatus_t *status = (mousestatus_t *) addr;
+		mousestatus_t *status = (mousestatus_t *)addr;
 
 		mtx_lock(&sc->sc_mtx);
 
 		status->button = sc->buttons;
 		status->obutton = sc->last_buttons;
-		
+
 		status->flags = status->button ^ status->obutton;
 
 		if (sc->xdelta != 0 || sc->ydelta)
@@ -636,7 +635,8 @@ ams_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flag,
 		sc->last_buttons = sc->buttons;
 
 		mtx_unlock(&sc->sc_mtx);
-		break; }
+		break;
+	}
 	default:
 		return ENOTTY;
 	}
@@ -649,7 +649,7 @@ adb_tapping_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct adb_mouse_softc *sc = arg1;
 	device_t dev;
-        int error;
+	int error;
 	u_char r2[8];
 	u_int tapping;
 
@@ -665,14 +665,13 @@ adb_tapping_sysctl(SYSCTL_HANDLER_ARGS)
 		adb_read_register(dev, 2, r2);
 		r2[0] = 0x99; /* enable tapping. */
 		adb_write_register(dev, 2, 8, r2);
-                sc->sc_tapping = 1;
+		sc->sc_tapping = 1;
 	} else if (tapping == 0) {
 		adb_read_register(dev, 2, r2);
 		r2[0] = 0x19; /* disable tapping. */
 		adb_write_register(dev, 2, 8, r2);
 		sc->sc_tapping = 0;
-	}
-        else
+	} else
 		return (EINVAL);
 
 	return (0);

@@ -33,9 +33,9 @@
  */
 
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mac.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -54,100 +54,99 @@
 #include <string.h>
 #include <unistd.h>
 #ifdef COLORLS
-#include <termcap.h>
 #include <signal.h>
+#include <termcap.h>
 #endif
 
-#include "ls.h"
 #include "extern.h"
+#include "ls.h"
 
 /*
  * Upward approximation of the maximum number of characters needed to
  * represent a value of integral type t as a string, excluding the
  * NUL terminator, with provision for a sign.
  */
-#define	STRBUF_SIZEOF(t)	(1 + CHAR_BIT * sizeof(t) / 3 + 1)
+#define STRBUF_SIZEOF(t) (1 + CHAR_BIT * sizeof(t) / 3 + 1)
 
 /*
  * MAKENINES(n) turns n into (10**n)-1.  This is useful for converting a width
  * into a number that wide in decimal.
  * XXX: Overflows are not considered.
  */
-#define MAKENINES(n)							\
-	do {								\
-		intmax_t __i;						\
-									\
-		/* Use a loop as all values of n are small. */		\
-		for (__i = 1; n > 0; __i *= 10)				\
-			n--;						\
-		n = __i - 1;						\
-	} while(0)
+#define MAKENINES(n)                                           \
+	do {                                                   \
+		intmax_t __i;                                  \
+                                                               \
+		/* Use a loop as all values of n are small. */ \
+		for (__i = 1; n > 0; __i *= 10)                \
+			n--;                                   \
+		n = __i - 1;                                   \
+	} while (0)
 
-static void	 display(const FTSENT *, FTSENT *, int);
-static int	 mastercmp(const FTSENT * const *, const FTSENT * const *);
-static void	 traverse(int, char **, int);
+static void display(const FTSENT *, FTSENT *, int);
+static int mastercmp(const FTSENT *const *, const FTSENT *const *);
+static void traverse(int, char **, int);
 
-#define	COLOR_OPT	(CHAR_MAX + 1)
+#define COLOR_OPT (CHAR_MAX + 1)
 
-static const struct option long_opts[] =
-{
-        {"color",       optional_argument,      NULL, COLOR_OPT},
-        {NULL,          no_argument,            NULL, 0}
-};
+static const struct option long_opts[] = { { "color", optional_argument, NULL,
+					       COLOR_OPT },
+	{ NULL, no_argument, NULL, 0 } };
 
 static void (*printfcn)(const DISPLAY *);
 static int (*sortfcn)(const FTSENT *, const FTSENT *);
 
-long blocksize;			/* block size units */
-int termwidth = 80;		/* default terminal width */
+long blocksize;	    /* block size units */
+int termwidth = 80; /* default terminal width */
 
 /* flags */
-       int f_accesstime;	/* use time of last access */
-       int f_birthtime;		/* use time of birth */
-       int f_flags;		/* show flags associated with a file */
-       int f_humanval;		/* show human-readable file sizes */
-       int f_inode;		/* print inode */
-static int f_kblocks;		/* print size in kilobytes */
-       int f_label;		/* show MAC label */
-static int f_listdir;		/* list actual directory, not contents */
-static int f_listdot;		/* list files beginning with . */
-       int f_longform;		/* long listing format */
-static int f_noautodot;		/* do not automatically enable -A for root */
-static int f_nofollow;		/* don't follow symbolic link arguments */
-       int f_nonprint;		/* show unprintables as ? */
-static int f_nosort;		/* don't sort output */
-       int f_notabs;		/* don't use tab-separated multi-col output */
-static int f_numericonly;	/* don't convert uid/gid to name */
-       int f_octal;		/* show unprintables as \xxx */
-       int f_octal_escape;	/* like f_octal but use C escapes if possible */
-static int f_recursive;		/* ls subdirectories also */
-static int f_reversesort;	/* reverse whatever sort is used */
-static int f_verssort;		/* sort names using strverscmp(3) rather than strcoll(3) */
-       int f_samesort;		/* sort time and name in same direction */
-       int f_sectime;		/* print full time information */
-static int f_singlecol;		/* use single column output */
-       int f_size;		/* list size in short listing */
+int f_accesstime;	  /* use time of last access */
+int f_birthtime;	  /* use time of birth */
+int f_flags;		  /* show flags associated with a file */
+int f_humanval;		  /* show human-readable file sizes */
+int f_inode;		  /* print inode */
+static int f_kblocks;	  /* print size in kilobytes */
+int f_label;		  /* show MAC label */
+static int f_listdir;	  /* list actual directory, not contents */
+static int f_listdot;	  /* list files beginning with . */
+int f_longform;		  /* long listing format */
+static int f_noautodot;	  /* do not automatically enable -A for root */
+static int f_nofollow;	  /* don't follow symbolic link arguments */
+int f_nonprint;		  /* show unprintables as ? */
+static int f_nosort;	  /* don't sort output */
+int f_notabs;		  /* don't use tab-separated multi-col output */
+static int f_numericonly; /* don't convert uid/gid to name */
+int f_octal;		  /* show unprintables as \xxx */
+int f_octal_escape;	  /* like f_octal but use C escapes if possible */
+static int f_recursive;	  /* ls subdirectories also */
+static int f_reversesort; /* reverse whatever sort is used */
+static int
+    f_verssort; /* sort names using strverscmp(3) rather than strcoll(3) */
+int f_samesort; /* sort time and name in same direction */
+int f_sectime;	/* print full time information */
+static int f_singlecol; /* use single column output */
+int f_size;		/* list size in short listing */
 static int f_sizesort;
-       int f_slash;		/* similar to f_type, but only for dirs */
-       int f_sortacross;	/* sort across rows, not down columns */
-       int f_sowner;		/* disable showing owner's name */
-       int f_statustime;	/* use time of last mode change */
-static int f_stream;		/* stream the output, separate with commas */
-       int f_thousands;		/* show file sizes with thousands separators */
-       char *f_timeformat;	/* user-specified time format */
-static int f_timesort;		/* sort by time vice name */
-       int f_type;		/* add type character for non-regular files */
-static int f_whiteout;		/* show whiteout entries */
+int f_slash;	       /* similar to f_type, but only for dirs */
+int f_sortacross;      /* sort across rows, not down columns */
+int f_sowner;	       /* disable showing owner's name */
+int f_statustime;      /* use time of last mode change */
+static int f_stream;   /* stream the output, separate with commas */
+int f_thousands;       /* show file sizes with thousands separators */
+char *f_timeformat;    /* user-specified time format */
+static int f_timesort; /* sort by time vice name */
+int f_type;	       /* add type character for non-regular files */
+static int f_whiteout; /* show whiteout entries */
 #ifdef COLORLS
-       int colorflag = COLORFLAG_NEVER;		/* passed in colorflag */
-       int f_color;		/* add type in color for non-regular files */
-       bool explicitansi;	/* Explicit ANSI sequences, no termcap(5) */
-char *ansi_bgcol;		/* ANSI sequence to set background colour */
-char *ansi_fgcol;		/* ANSI sequence to set foreground colour */
-char *ansi_coloff;		/* ANSI sequence to reset colours */
-char *attrs_off;		/* ANSI sequence to turn off attributes */
-char *enter_bold;		/* ANSI sequence to set color to bold mode */
-char *enter_underline;		/* ANSI sequence to enter underline mode */
+int colorflag = COLORFLAG_NEVER; /* passed in colorflag */
+int f_color;			 /* add type in color for non-regular files */
+bool explicitansi;		 /* Explicit ANSI sequences, no termcap(5) */
+char *ansi_bgcol;		 /* ANSI sequence to set background colour */
+char *ansi_fgcol;		 /* ANSI sequence to set foreground colour */
+char *ansi_coloff;		 /* ANSI sequence to reset colours */
+char *attrs_off;		 /* ANSI sequence to turn off attributes */
+char *enter_bold;		 /* ANSI sequence to set color to bold mode */
+char *enter_underline;		 /* ANSI sequence to enter underline mode */
 #endif
 
 static int rval;
@@ -171,8 +170,7 @@ do_color_from_env(void)
 	} else
 		doit = true;
 
-	return (doit &&
-	    (isatty(STDOUT_FILENO) || getenv("CLICOLOR_FORCE")));
+	return (doit && (isatty(STDOUT_FILENO) || getenv("CLICOLOR_FORCE")));
 }
 
 static bool
@@ -212,19 +210,19 @@ do_color_auto(const char *term)
 	return (strcmp(term, "auto") == 0 || strcmp(term, "tty") == 0 ||
 	    strcmp(term, "if-tty") == 0);
 }
-#endif	/* COLORLS */
+#endif /* COLORLS */
 
 int
 main(int argc, char *argv[])
 {
-	static char dot[] = ".", *dotav[] = {dot, NULL};
+	static char dot[] = ".", *dotav[] = { dot, NULL };
 	struct winsize win;
 	int ch, fts_options, notused;
 	char *p;
 	const char *errstr = NULL;
 #ifdef COLORLS
-	char termcapbuf[1024];	/* termcap definition buffer */
-	char tcapbuf[512];	/* capability buffer */
+	char termcapbuf[1024]; /* termcap definition buffer */
+	char tcapbuf[512];     /* capability buffer */
 	char *bp = tcapbuf, *term;
 #endif
 
@@ -254,17 +252,17 @@ main(int argc, char *argv[])
 	if (getenv("LS_SAMESORT"))
 		f_samesort = 1;
 
-	/*
-	 * For historical compatibility, we'll use our autodetection if CLICOLOR
-	 * is set.
-	 */
+		/*
+		 * For historical compatibility, we'll use our autodetection if
+		 * CLICOLOR is set.
+		 */
 #ifdef COLORLS
 	if (getenv("CLICOLOR"))
 		colorflag = COLORFLAG_AUTO;
 #endif
 	while ((ch = getopt_long(argc, argv,
-	    "+1ABCD:FGHILPRSTUWXZabcdfghiklmnopqrstuvwxy,", long_opts,
-	    NULL)) != -1) {
+		    "+1ABCD:FGHILPRSTUWXZabcdfghiklmnopqrstuvwxy,", long_opts,
+		    NULL)) != -1) {
 		switch (ch) {
 		/*
 		 * The -1, -C, -x and -l options all override each other so
@@ -306,7 +304,7 @@ main(int argc, char *argv[])
 			break;
 		case 'f':
 			f_nosort = 1;
-		       /* FALLTHROUGH */
+			/* FALLTHROUGH */
 		case 'a':
 			fts_options |= FTS_SEEDOT;
 			/* FALLTHROUGH */
@@ -454,7 +452,8 @@ main(int argc, char *argv[])
 			else if (do_color_never(optarg))
 				colorflag = COLORFLAG_NEVER;
 			else
-				errx(2, "unsupported --color value '%s' (must be always, auto, or never)",
+				errx(2,
+				    "unsupported --color value '%s' (must be always, auto, or never)",
 				    optarg);
 			break;
 #else
@@ -525,12 +524,12 @@ main(int argc, char *argv[])
 	 * information, unless in color mode in which case we do
 	 * need this to determine which colors to display.
 	 */
-	if (!f_inode && !f_longform && !f_size && !f_timesort &&
-	    !f_sizesort && !f_type
+	if (!f_inode && !f_longform && !f_size && !f_timesort && !f_sizesort &&
+	    !f_type
 #ifdef COLORLS
 	    && !f_color
 #endif
-	    )
+	)
 		fts_options |= FTS_NOSTAT;
 
 	/*
@@ -542,12 +541,12 @@ main(int argc, char *argv[])
 #ifdef COLORLS
 	    && !f_color
 #endif
-	    )
+	)
 		fts_options |= FTS_COMFOLLOW;
 
-	/*
-	 * If -W, show whiteout entries
-	 */
+		/*
+		 * If -W, show whiteout entries
+		 */
 #ifdef FTS_WHITEOUT
 	if (f_whiteout)
 		fts_options |= FTS_WHITEOUT;
@@ -576,7 +575,7 @@ main(int argc, char *argv[])
 			sortfcn = revbirthcmp;
 		else if (f_statustime)
 			sortfcn = revstatcmp;
-		else		/* Use modification time. */
+		else /* Use modification time. */
 			sortfcn = revmodcmp;
 	} else {
 		if (f_sizesort)
@@ -591,7 +590,7 @@ main(int argc, char *argv[])
 			sortfcn = birthcmp;
 		else if (f_statustime)
 			sortfcn = statcmp;
-		else		/* Use modification time. */
+		else /* Use modification time. */
 			sortfcn = modcmp;
 	}
 
@@ -612,7 +611,7 @@ main(int argc, char *argv[])
 	exit(rval);
 }
 
-static int output;		/* If anything output. */
+static int output; /* If anything output. */
 
 /*
  * Traverse() walks the logical directory structure specified by the argv list
@@ -627,8 +626,8 @@ traverse(int argc, char *argv[], int options)
 	FTSENT *p, *chp;
 	int ch_options;
 
-	if ((ftsp =
-	    fts_open(argv, options, f_nosort ? NULL : mastercmp)) == NULL)
+	if ((ftsp = fts_open(argv, options, f_nosort ? NULL : mastercmp)) ==
+	    NULL)
 		err(1, "fts_open");
 
 	/*
@@ -645,8 +644,9 @@ traverse(int argc, char *argv[], int options)
 	 * If not recursing down this tree and don't need stat info, just get
 	 * the names.
 	 */
-	ch_options = !f_recursive && !f_label &&
-	    options & FTS_NOSTAT ? FTS_NAMEONLY : 0;
+	ch_options = !f_recursive && !f_label && options & FTS_NOSTAT ?
+	    FTS_NAMEONLY :
+	    0;
 
 	while (errno = 0, (p = fts_read(ftsp)) != NULL)
 		switch (p->fts_info) {
@@ -725,10 +725,10 @@ display(const FTSENT *p, FTSENT *list, int options)
 	flen = 0;
 	btotal = 0;
 
-#define LS_COLWIDTHS_FIELDS	9
+#define LS_COLWIDTHS_FIELDS 9
 	initmax = getenv("LS_COLWIDTHS");
 
-	for (i = 0 ; i < LS_COLWIDTHS_FIELDS; i++)
+	for (i = 0; i < LS_COLWIDTHS_FIELDS; i++)
 		width[i] = 0;
 
 	if (initmax != NULL) {
@@ -775,8 +775,8 @@ display(const FTSENT *p, FTSENT *list, int options)
 	flags = NULL;
 	for (cur = list, entries = 0; cur; cur = cur->fts_link) {
 		if (cur->fts_info == FTS_ERR || cur->fts_info == FTS_NS) {
-			warnx("%s: %s",
-			    cur->fts_name, strerror(cur->fts_errno));
+			warnx("%s: %s", cur->fts_name,
+			    strerror(cur->fts_errno));
 			cur->fts_number = NO_PRINT;
 			rval = 1;
 			continue;
@@ -880,8 +880,10 @@ display(const FTSENT *p, FTSENT *list, int options)
 						    "%s", cur->fts_name);
 					else
 						snprintf(name, sizeof(name),
-						    "%s/%s", cur->fts_parent->
-						    fts_accpath, cur->fts_name);
+						    "%s/%s",
+						    cur->fts_parent
+							->fts_accpath,
+						    cur->fts_name);
 
 					if (options & FTS_LOGICAL)
 						error = mac_get_file(name,
@@ -897,8 +899,7 @@ display(const FTSENT *p, FTSENT *list, int options)
 						goto label_out;
 					}
 
-					error = mac_to_text(label,
-					    &labelstr);
+					error = mac_to_text(label, &labelstr);
 					if (error == -1) {
 						warn("MAC label for %s/%s",
 						    cur->fts_parent->fts_path,
@@ -907,7 +908,7 @@ display(const FTSENT *p, FTSENT *list, int options)
 						goto label_out;
 					}
 					mac_free(label);
-label_out:
+				label_out:
 					if (labelstr == NULL)
 						labelstr = strdup("-");
 					labelstrlen = strlen(labelstr);
@@ -917,7 +918,7 @@ label_out:
 					labelstrlen = 0;
 
 				if ((np = malloc(sizeof(NAMES) + labelstrlen +
-				    ulen + glen + flen + 4)) == NULL)
+					 ulen + glen + flen + 4)) == NULL)
 					err(1, "malloc");
 
 				np->user = &np->data[0];
@@ -927,8 +928,8 @@ label_out:
 
 				if (S_ISCHR(sp->st_mode) ||
 				    S_ISBLK(sp->st_mode)) {
-					sizelen = snprintf(NULL, 0,
-					    "%#jx", (uintmax_t)sp->st_rdev);
+					sizelen = snprintf(NULL, 0, "%#jx",
+					    (uintmax_t)sp->st_rdev);
 					if (d.s_size < sizelen)
 						d.s_size = sizelen;
 				}
@@ -939,8 +940,8 @@ label_out:
 					free(flags);
 				}
 				if (f_label) {
-					np->label = &np->data[ulen + glen + 2
-					    + (f_flags ? flen + 1 : 0)];
+					np->label = &np->data[ulen + glen + 2 +
+					    (f_flags ? flen + 1 : 0)];
 					(void)strcpy(np->label, labelstr);
 					free(labelstr);
 				}
@@ -964,19 +965,20 @@ label_out:
 	d.maxlen = maxlen;
 	if (needstats) {
 		d.btotal = btotal;
-		d.s_block = snprintf(NULL, 0, "%lu", howmany(maxblock, blocksize));
+		d.s_block = snprintf(NULL, 0, "%lu",
+		    howmany(maxblock, blocksize));
 		d.s_flags = maxflags;
 		d.s_label = maxlabelstr;
 		d.s_group = maxgroup;
 		d.s_inode = snprintf(NULL, 0, "%ju", maxinode);
 		d.s_nlink = snprintf(NULL, 0, "%lu", maxnlink);
 		sizelen = f_humanval ? HUMANVALSTR_LEN :
-		    snprintf(NULL, 0, "%ju", maxsize);
+				       snprintf(NULL, 0, "%ju", maxsize);
 		if (d.s_size < sizelen)
 			d.s_size = sizelen;
 		d.s_user = maxuser;
 	}
-	if (f_thousands)			/* make space for commas */
+	if (f_thousands) /* make space for commas */
 		d.s_size += (d.s_size - 1) / 3;
 	printfcn(&d);
 	output = 1;
@@ -993,7 +995,7 @@ label_out:
  * All other levels use the sort function.  Error entries remain unsorted.
  */
 static int
-mastercmp(const FTSENT * const *a, const FTSENT * const *b)
+mastercmp(const FTSENT *const *a, const FTSENT *const *b)
 {
 	int a_info, b_info;
 
@@ -1007,8 +1009,8 @@ mastercmp(const FTSENT * const *a, const FTSENT * const *b)
 	if (a_info == FTS_NS || b_info == FTS_NS)
 		return (namecmp(*a, *b));
 
-	if (a_info != b_info &&
-	    (*a)->fts_level == FTS_ROOTLEVEL && !f_listdir) {
+	if (a_info != b_info && (*a)->fts_level == FTS_ROOTLEVEL &&
+	    !f_listdir) {
 		if (a_info == FTS_D)
 			return (1);
 		if (b_info == FTS_D)

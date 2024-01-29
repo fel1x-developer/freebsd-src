@@ -27,6 +27,7 @@
 #include <sys/cdefs.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -34,17 +35,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "../../sys/dev/proto/proto_dev.h"
 #include "bus.h"
 
-#include "../../sys/dev/proto/proto_dev.h"
-
 struct resource {
-	int	rid;
-	int	fd;
-	long	addr;
-	long	size;
-	off_t	ofs;
-	caddr_t	ptr;
+	int rid;
+	int fd;
+	long addr;
+	long size;
+	off_t ofs;
+	caddr_t ptr;
 };
 
 static struct resource *ridtbl = NULL;

@@ -38,11 +38,10 @@
 
 #include <err.h>
 #include <errno.h>
+#include <rpcsvc/ypclnt.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <rpcsvc/ypclnt.h>
 
 #include "ypclnt.h"
 
@@ -54,8 +53,7 @@ ypclnt_connect(ypclnt_t *ypclnt)
 	/* get default domain name unless specified */
 	if (ypclnt->domain == NULL) {
 		if ((ypclnt->domain = malloc(MAXHOSTNAMELEN)) == NULL) {
-			ypclnt_error(ypclnt, __func__,
-			    "%s", strerror(errno));
+			ypclnt_error(ypclnt, __func__, "%s", strerror(errno));
 			return (-1);
 		}
 		if (getdomainname(ypclnt->domain, MAXHOSTNAMELEN) != 0) {
@@ -67,8 +65,7 @@ ypclnt_connect(ypclnt_t *ypclnt)
 
 	/* map must be specified */
 	if (ypclnt->map == NULL) {
-		ypclnt_error(ypclnt, __func__,
-		    "caller must specify map name");
+		ypclnt_error(ypclnt, __func__, "caller must specify map name");
 		return (-1);
 	}
 

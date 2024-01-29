@@ -50,13 +50,13 @@
 #include "memstat_internal.h"
 
 static struct nlist namelist[] = {
-#define	X_UMA_KEGS	0
+#define X_UMA_KEGS 0
 	{ .n_name = "_uma_kegs" },
-#define	X_MP_MAXID	1
+#define X_MP_MAXID 1
 	{ .n_name = "_mp_maxid" },
-#define	X_ALL_CPUS	2
+#define X_ALL_CPUS 2
 	{ .n_name = "_all_cpus" },
-#define	X_VM_NDOMAINS	3
+#define X_VM_NDOMAINS 3
 	{ .n_name = "_vm_ndomains" },
 	{ .n_name = "" },
 };
@@ -120,8 +120,8 @@ retry:
 		return (-1);
 	}
 
-	size = sizeof(*uthp) + count * (sizeof(*uthp) + sizeof(*upsp) *
-	    (maxid + 1));
+	size = sizeof(*uthp) +
+	    count * (sizeof(*uthp) + sizeof(*upsp) * (maxid + 1));
 
 	buffer = malloc(size);
 	if (buffer == NULL) {
@@ -207,8 +207,7 @@ retry:
 			upsp = (struct uma_percpu_stat *)p;
 			p += sizeof(*upsp);
 
-			mtp->mt_percpu_cache[j].mtp_free =
-			    upsp->ups_cache_free;
+			mtp->mt_percpu_cache[j].mtp_free = upsp->ups_cache_free;
 			mtp->mt_free += upsp->ups_cache_free;
 			mtp->mt_numallocs += upsp->ups_allocs;
 			mtp->mt_numfrees += upsp->ups_frees;
@@ -252,13 +251,11 @@ retry:
 }
 
 static int
-kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size,
-    size_t offset)
+kread(kvm_t *kvm, void *kvm_pointer, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
-	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address,
-	    size);
+	ret = kvm_read(kvm, (unsigned long)kvm_pointer + offset, address, size);
 	if (ret < 0)
 		return (MEMSTAT_ERROR_KVM);
 	if ((size_t)ret != size)
@@ -283,13 +280,12 @@ kread_string(kvm_t *kvm, const void *kvm_pointer, char *buffer, int buflen)
 			return (0);
 	}
 	/* Truncate. */
-	buffer[i-1] = '\0';
+	buffer[i - 1] = '\0';
 	return (0);
 }
 
 static int
-kread_symbol(kvm_t *kvm, int index, void *address, size_t size,
-    size_t offset)
+kread_symbol(kvm_t *kvm, int index, void *address, size_t size, size_t offset)
 {
 	ssize_t ret;
 
@@ -339,8 +335,7 @@ memstat_kvm_uma(struct memory_type_list *list, void *kvm_handle)
 		list->mtl_error = ret;
 		return (-1);
 	}
-	ret = kread_symbol(kvm, X_VM_NDOMAINS, &ndomains,
-	    sizeof(ndomains), 0);
+	ret = kread_symbol(kvm, X_VM_NDOMAINS, &ndomains, sizeof(ndomains), 0);
 	if (ret != 0) {
 		list->mtl_error = ret;
 		return (-1);
@@ -366,8 +361,8 @@ memstat_kvm_uma(struct memory_type_list *list, void *kvm_handle)
 		list->mtl_error = MEMSTAT_ERROR_NOMEMORY;
 		return (-1);
 	}
-	for (kzp = LIST_FIRST(&uma_kegs); kzp != NULL; kzp =
-	    LIST_NEXT(&kz, uk_link)) {
+	for (kzp = LIST_FIRST(&uma_kegs); kzp != NULL;
+	     kzp = LIST_NEXT(&kz, uk_link)) {
 		ret = kread(kvm, kzp, &kz, sizeof(kz), 0);
 		if (ret != 0) {
 			free(ucp_array);
@@ -375,8 +370,8 @@ memstat_kvm_uma(struct memory_type_list *list, void *kvm_handle)
 			list->mtl_error = ret;
 			return (-1);
 		}
-		for (uzp = LIST_FIRST(&kz.uk_zones); uzp != NULL; uzp =
-		    LIST_NEXT(&uz, uz_link)) {
+		for (uzp = LIST_FIRST(&kz.uk_zones); uzp != NULL;
+		     uzp = LIST_NEXT(&uz, uz_link)) {
 			ret = kread(kvm, uzp, &uz, sizeof(uz), 0);
 			if (ret != 0) {
 				free(ucp_array);
@@ -420,13 +415,13 @@ memstat_kvm_uma(struct memory_type_list *list, void *kvm_handle)
 			 */
 			_memstat_mt_reset_stats(mtp, mp_maxid + 1);
 			mtp->mt_numallocs = kvm_counter_u64_fetch(kvm,
-			    (unsigned long )uz.uz_allocs);
+			    (unsigned long)uz.uz_allocs);
 			mtp->mt_numfrees = kvm_counter_u64_fetch(kvm,
-			    (unsigned long )uz.uz_frees);
+			    (unsigned long)uz.uz_frees);
 			mtp->mt_failures = kvm_counter_u64_fetch(kvm,
-			    (unsigned long )uz.uz_fails);
+			    (unsigned long)uz.uz_fails);
 			mtp->mt_xdomain = kvm_counter_u64_fetch(kvm,
-			    (unsigned long )uz.uz_xdomain);
+			    (unsigned long)uz.uz_xdomain);
 			mtp->mt_sleeps = uz.uz_sleeps;
 			/* See comment above in memstat_sysctl_uma(). */
 			if (mtp->mt_numallocs < mtp->mt_numfrees)
@@ -445,7 +440,7 @@ memstat_kvm_uma(struct memory_type_list *list, void *kvm_handle)
 				mtp->mt_free += ucp->uc_freebucket.ucb_cnt;
 				mtp->mt_free += ucp->uc_crossbucket.ucb_cnt;
 			}
-skip_percpu:
+		skip_percpu:
 			mtp->mt_size = kz.uk_size;
 			mtp->mt_rsize = kz.uk_rsize;
 			mtp->mt_memalloced = mtp->mt_numallocs * mtp->mt_size;
@@ -459,19 +454,18 @@ skip_percpu:
 				    sizeof(uzd), 0);
 				if (ret != 0)
 					continue;
-				for (ubp =
-				    STAILQ_FIRST(&uzd.uzd_buckets);
-				    ubp != NULL;
-				    ubp = STAILQ_NEXT(&ub, ub_link)) {
-					ret = kread(kvm, ubp, &ub,
-					   sizeof(ub), 0);
+				for (ubp = STAILQ_FIRST(&uzd.uzd_buckets);
+				     ubp != NULL;
+				     ubp = STAILQ_NEXT(&ub, ub_link)) {
+					ret = kread(kvm, ubp, &ub, sizeof(ub),
+					    0);
 					if (ret != 0)
 						continue;
 					mtp->mt_zonefree += ub.ub_cnt;
 				}
 			}
 			if (!((kz.uk_flags & UMA_ZONE_SECONDARY) &&
-			    LIST_FIRST(&kz.uk_zones) != uzp)) {
+				LIST_FIRST(&kz.uk_zones) != uzp)) {
 				kegfree = 0;
 				for (i = 0; i < ndomains; i++) {
 					ret = kread(kvm, &kzp->uk_domain[i],

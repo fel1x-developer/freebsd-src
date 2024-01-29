@@ -31,17 +31,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/cdefs.h>
-#include <stdarg.h>
+
 #include <errno.h>
+#include <lzma.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <lzma.h>
 
 static off_t
 unxz(int i, int o, char *pre, size_t prelen, off_t *bytes_in)
 {
 	lzma_stream strm = LZMA_STREAM_INIT;
-	static const int flags = LZMA_TELL_UNSUPPORTED_CHECK|LZMA_CONCATENATED;
+	static const int flags = LZMA_TELL_UNSUPPORTED_CHECK |
+	    LZMA_CONCATENATED;
 	lzma_ret ret;
 	lzma_action action = LZMA_RUN;
 	off_t bytes_out, bp;
@@ -150,7 +152,6 @@ unxz(int i, int o, char *pre, size_t prelen, off_t *bytes_in)
 				break;
 			}
 			maybe_errx("%s", msg);
-
 		}
 	}
 }
@@ -162,24 +163,23 @@ unxz(int i, int o, char *pre, size_t prelen, off_t *bytes_in)
  * replacements.
  */
 
-#define	my_min(A,B)	((A)<(B)?(A):(B))
+#define my_min(A, B) ((A) < (B) ? (A) : (B))
 
 // Some systems have suboptimal BUFSIZ. Use a bit bigger value on them.
 // We also need that IO_BUFFER_SIZE is a multiple of 8 (sizeof(uint64_t))
 #if BUFSIZ <= 1024
-#       define IO_BUFFER_SIZE 8192
+#define IO_BUFFER_SIZE 8192
 #else
-#       define IO_BUFFER_SIZE (BUFSIZ & ~7U)
+#define IO_BUFFER_SIZE (BUFSIZ & ~7U)
 #endif
 
 /// is_sparse() accesses the buffer as uint64_t for maximum speed.
 /// Use an union to make sure that the buffer is properly aligned.
 typedef union {
-        uint8_t u8[IO_BUFFER_SIZE];
-        uint32_t u32[IO_BUFFER_SIZE / sizeof(uint32_t)];
-        uint64_t u64[IO_BUFFER_SIZE / sizeof(uint64_t)];
+	uint8_t u8[IO_BUFFER_SIZE];
+	uint32_t u32[IO_BUFFER_SIZE / sizeof(uint32_t)];
+	uint64_t u64[IO_BUFFER_SIZE / sizeof(uint64_t)];
 } io_buf;
-
 
 static bool
 io_pread(int fd, io_buf *buf, size_t size, off_t pos)
@@ -218,7 +218,6 @@ io_pread(int fd, io_buf *buf, size_t size, off_t pos)
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-
 /// Information about a .xz file
 typedef struct {
 	/// Combined Index of all Streams in the file
@@ -239,8 +238,10 @@ typedef struct {
 
 } xz_file_info;
 
-#define XZ_FILE_INFO_INIT { NULL, 0, 0, true, 50000002 }
-
+#define XZ_FILE_INFO_INIT                  \
+	{                                  \
+		NULL, 0, 0, true, 50000002 \
+	}
 
 /// \brief      Parse the Index(es) from the given .xz file
 ///
@@ -303,8 +304,8 @@ parse_indexes(xz_file_info *xfi, int src_fd)
 				goto error;
 			}
 
-			if (io_pread(src_fd, &buf,
-					LZMA_STREAM_HEADER_SIZE, pos))
+			if (io_pread(src_fd, &buf, LZMA_STREAM_HEADER_SIZE,
+				pos))
 				goto error;
 
 			// Stream Padding is always a multiple of four bytes.
@@ -427,8 +428,7 @@ parse_indexes(xz_file_info *xfi, int src_fd)
 		if (combined_index != NULL) {
 			// Append the earlier decoded Indexes
 			// after this_index.
-			ret = lzma_index_cat(
-					this_index, combined_index, NULL);
+			ret = lzma_index_cat(this_index, combined_index, NULL);
 			if (ret != LZMA_OK) {
 				goto error;
 			}
@@ -471,4 +471,3 @@ unxz_len(int fd)
 	}
 	return 0;
 }
-

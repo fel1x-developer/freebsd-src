@@ -26,18 +26,16 @@
  *
  */
 
-#include <sys/cdefs.h>
 #include "opt_inet.h"
 #include "opt_inet6.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/errno.h>
 
 #include <netinet/in.h>
-
 #include <netinet6/ip6_var.h>
 #include <netinet6/scope6_var.h>
-
 #include <netpfil/pf/pfsync_nv.h>
 
 int
@@ -149,7 +147,8 @@ pfsync_nvstatus_to_kstatus(const nvlist_t *nvl, struct pfsync_kstatus *status)
 
 	if (nvlist_exists_nvlist(nvl, "syncpeer")) {
 		memset(&addr, 0, sizeof(addr));
-		if ((error = pfsync_syncpeer_nvlist_to_sockaddr(nvlist_get_nvlist(nvl, "syncpeer"), &addr)) != 0)
+		if ((error = pfsync_syncpeer_nvlist_to_sockaddr(
+			 nvlist_get_nvlist(nvl, "syncpeer"), &addr)) != 0)
 			return (error);
 
 		status->syncpeer = addr;

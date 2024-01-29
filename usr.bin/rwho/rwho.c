@@ -30,8 +30,8 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/capsicum.h>
 #include <sys/param.h>
+#include <sys/capsicum.h>
 #include <sys/file.h>
 
 #include <protocols/rwhod.h>
@@ -49,24 +49,24 @@
 #include <timeconv.h>
 #include <unistd.h>
 
-#define	NUSERS		1000
-#define	WHDRSIZE	(ssize_t)(sizeof(wd) - sizeof(wd.wd_we))
+#define NUSERS 1000
+#define WHDRSIZE (ssize_t)(sizeof(wd) - sizeof(wd.wd_we))
 /*
  * this macro should be shared with ruptime.
  */
-#define	down(w,now)	((now) - (w)->wd_recvtime > 11 * 60)
+#define down(w, now) ((now) - (w)->wd_recvtime > 11 * 60)
 
-static DIR	*dirp;
-static struct	whod wd;
-static int	nusers;
-static struct	myutmp {
-	char    myhost[sizeof(wd.wd_hostname)];
-	int	myidle;
-	struct	outmp myutmp;
+static DIR *dirp;
+static struct whod wd;
+static int nusers;
+static struct myutmp {
+	char myhost[sizeof(wd.wd_hostname)];
+	int myidle;
+	struct outmp myutmp;
 } myutmp[NUSERS];
 
-static time_t	now;
-static int	aflg;
+static time_t now;
+static int aflg;
 
 static void usage(void) __dead2;
 static int utmpcmp(const void *, const void *);
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
 	time_t ct;
 
 	w = &wd;
-	(void) setlocale(LC_TIME, "");
+	(void)setlocale(LC_TIME, "");
 	d_first = (*nl_langinfo(D_MD_ORDER) == 'd');
 
 	while ((ch = getopt(argc, argv, "a")) != -1) {
@@ -120,11 +120,11 @@ main(int argc, char *argv[])
 	 * Cache files required for time(3) and localtime(3) before entering
 	 * capability mode.
 	 */
-	(void) time(&ct);
-	(void) localtime(&ct);
+	(void)time(&ct);
+	(void)localtime(&ct);
 	if (caph_enter() < 0)
 		err(1, "cap_enter");
-	(void) time(&now);
+	(void)time(&now);
 	cap_rights_init(&rights, CAP_READ);
 	while ((dp = readdir(dirp)) != NULL) {
 		if (dp->d_ino == 0 || strncmp(dp->d_name, "whod.", 5) != 0)
@@ -136,11 +136,11 @@ main(int argc, char *argv[])
 			err(1, "cap_rights_limit failed: %s", dp->d_name);
 		cc = read(f, (char *)&wd, sizeof(struct whod));
 		if (cc < WHDRSIZE) {
-			(void) close(f);
+			(void)close(f);
 			continue;
 		}
 		if (down(w, now) != 0) {
-			(void) close(f);
+			(void)close(f);
 			continue;
 		}
 		cc -= WHDRSIZE;
@@ -154,12 +154,12 @@ main(int argc, char *argv[])
 				errx(1, "too many users");
 			mp->myutmp = we->we_utmp;
 			mp->myidle = we->we_idle;
-			(void) strcpy(mp->myhost, w->wd_hostname);
+			(void)strcpy(mp->myhost, w->wd_hostname);
 			nusers++;
 			we++;
 			mp++;
 		}
-		(void) close(f);
+		(void)close(f);
 	}
 	qsort((char *)myutmp, nusers, sizeof(struct myutmp), utmpcmp);
 	mp = myutmp;
@@ -181,12 +181,11 @@ main(int argc, char *argv[])
 		t = _int_to_time(mp->myutmp.out_time);
 		strftime(cbuf, sizeof(cbuf), d_first ? "%e %b %R" : "%b %e %R",
 		    localtime(&t));
-		(void) sprintf(buf, "%s:%-.*s", mp->myhost,
+		(void)sprintf(buf, "%s:%-.*s", mp->myhost,
 		    (int)sizeof(mp->myutmp.out_line), mp->myutmp.out_line);
-		printf("%-*.*s %-*s %s",
-		    (int)sizeof(mp->myutmp.out_name),
-		    (int)sizeof(mp->myutmp.out_name),
-		    mp->myutmp.out_name, width, buf, cbuf);
+		printf("%-*.*s %-*s %s", (int)sizeof(mp->myutmp.out_name),
+		    (int)sizeof(mp->myutmp.out_name), mp->myutmp.out_name,
+		    width, buf, cbuf);
 		mp->myidle /= 60;
 		if (mp->myidle != 0) {
 			if (aflg != 0) {
@@ -206,7 +205,6 @@ main(int argc, char *argv[])
 	}
 	exit(0);
 }
-
 
 static void
 usage(void)

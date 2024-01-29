@@ -13,12 +13,11 @@
 
 #include <netinet/in.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 struct close_test_params {
 	struct sockaddr_storage sa;
@@ -49,8 +48,8 @@ close_test_client(void *arg)
 		ATF_REQUIRE_MSG(error == 0, "connect: %s", strerror(errno));
 
 		n = recv(s, buf, buflen, MSG_WAITALL);
-		ATF_REQUIRE_MSG(n == (ssize_t)p->msglen,
-		    "recv: %s", strerror(errno));
+		ATF_REQUIRE_MSG(n == (ssize_t)p->msglen, "recv: %s",
+		    strerror(errno));
 
 		ATF_REQUIRE(close(s) == 0);
 	}
@@ -71,16 +70,15 @@ close_test(struct sockaddr *sa, unsigned int count, int af, int type, int proto)
 	s = socket(af, type, proto);
 	ATF_REQUIRE_MSG(s >= 0, "socket %s", strerror(errno));
 
-	ATF_REQUIRE_MSG(bind(s, sa, sa->sa_len) == 0,
-	    "bind: %s", strerror(errno));
-	ATF_REQUIRE_MSG(listen(s, 1) == 0,
-	    "listen: %s", strerror(errno));
-	ATF_REQUIRE_MSG(getsockname(s, sa, &(socklen_t){ sa->sa_len }) == 0,
+	ATF_REQUIRE_MSG(bind(s, sa, sa->sa_len) == 0, "bind: %s",
+	    strerror(errno));
+	ATF_REQUIRE_MSG(listen(s, 1) == 0, "listen: %s", strerror(errno));
+	ATF_REQUIRE_MSG(getsockname(s, sa, &(socklen_t) { sa->sa_len }) == 0,
 	    "getsockname: %s", strerror(errno));
 
 	msg = "hello bonjour";
 	msglen = strlen(msg) + 1;
-	p = (struct close_test_params){
+	p = (struct close_test_params) {
 		.count = count,
 		.msglen = msglen,
 		.af = af,
@@ -99,8 +97,8 @@ close_test(struct sockaddr *sa, unsigned int count, int af, int type, int proto)
 		ATF_REQUIRE_MSG(cs >= 0, "accept: %s", strerror(errno));
 
 		n = send(cs, msg, msglen, 0);
-		ATF_REQUIRE_MSG(n == (ssize_t)msglen,
-		    "send: %s", strerror(errno));
+		ATF_REQUIRE_MSG(n == (ssize_t)msglen, "send: %s",
+		    strerror(errno));
 
 		ATF_REQUIRE(close(cs) == 0);
 	}
@@ -122,7 +120,7 @@ ATF_TC_BODY(close_tcp, tc)
 {
 	struct sockaddr_in sin;
 
-	sin = (struct sockaddr_in){
+	sin = (struct sockaddr_in) {
 		.sin_len = sizeof(sin),
 		.sin_family = AF_INET,
 		.sin_addr = { htonl(INADDR_LOOPBACK) },
@@ -142,14 +140,14 @@ ATF_TC_BODY(close_unix_stream, tc)
 {
 	struct sockaddr_un sun;
 
-	sun = (struct sockaddr_un){
+	sun = (struct sockaddr_un) {
 		.sun_len = sizeof(sun),
 		.sun_family = AF_UNIX,
 		.sun_path = "socket_msg_waitall_unix",
 	};
 	close_test((struct sockaddr *)&sun, 1000, AF_UNIX, SOCK_STREAM, 0);
-	ATF_REQUIRE_MSG(unlink(sun.sun_path) == 0,
-	    "unlink: %s", strerror(errno));
+	ATF_REQUIRE_MSG(unlink(sun.sun_path) == 0, "unlink: %s",
+	    strerror(errno));
 }
 
 /* A variant of the above test for UNIX domain seqpacket sockets. */
@@ -162,14 +160,14 @@ ATF_TC_BODY(close_unix_seqpacket, tc)
 {
 	struct sockaddr_un sun;
 
-	sun = (struct sockaddr_un){
+	sun = (struct sockaddr_un) {
 		.sun_len = sizeof(sun),
 		.sun_family = AF_UNIX,
 		.sun_path = "socket_msg_waitall_unix",
 	};
 	close_test((struct sockaddr *)&sun, 1000, AF_UNIX, SOCK_SEQPACKET, 0);
-	ATF_REQUIRE_MSG(unlink(sun.sun_path) == 0,
-	    "unlink: %s", strerror(errno));
+	ATF_REQUIRE_MSG(unlink(sun.sun_path) == 0, "unlink: %s",
+	    strerror(errno));
 }
 
 ATF_TP_ADD_TCS(tp)

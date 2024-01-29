@@ -103,5 +103,5 @@ queryuser(char *argv[])
 		(void)fprintf(stderr, "\n");
 		(void)fflush(stderr);
 	}
-        return (rpmatch(resp) == 1);
+	return (rpmatch(resp) == 1);
 }

@@ -26,18 +26,19 @@
  */
 
 #include <sys/cdefs.h>
-#include <bootstrap.h>
-#include <sys/endian.h>
 #include <sys/param.h>
-#include <stand.h>
+#include <sys/endian.h>
 
-#include <efi.h>
-#include <efilib.h>
-#include <efiuga.h>
-#include <efipciio.h>
+#include <machine/metadata.h>
+
 #include <Protocol/EdidActive.h>
 #include <Protocol/EdidDiscovered.h>
-#include <machine/metadata.h>
+#include <bootstrap.h>
+#include <efi.h>
+#include <efilib.h>
+#include <efipciio.h>
+#include <efiuga.h>
+#include <stand.h>
 
 #include "bootstrap.h"
 #include "framebuffer.h"
@@ -61,39 +62,37 @@ static struct named_resolution {
 	const char *alias;
 	unsigned int width;
 	unsigned int height;
-} resolutions[] = {
+} resolutions[] = { {
+			.name = "480p",
+			.width = 640,
+			.height = 480,
+		    },
 	{
-		.name = "480p",
-		.width = 640,
-		.height = 480,
+	    .name = "720p",
+	    .width = 1280,
+	    .height = 720,
 	},
 	{
-		.name = "720p",
-		.width = 1280,
-		.height = 720,
+	    .name = "1080p",
+	    .width = 1920,
+	    .height = 1080,
 	},
 	{
-		.name = "1080p",
-		.width = 1920,
-		.height = 1080,
+	    .name = "1440p",
+	    .width = 2560,
+	    .height = 1440,
 	},
 	{
-		.name = "1440p",
-		.width = 2560,
-		.height = 1440,
+	    .name = "2160p",
+	    .alias = "4k",
+	    .width = 3840,
+	    .height = 2160,
 	},
 	{
-		.name = "2160p",
-		.alias = "4k",
-		.width = 3840,
-		.height = 2160,
-	},
-	{
-		.name = "5k",
-		.width = 5120,
-		.height = 2880,
-	}
-};
+	    .name = "5k",
+	    .width = 5120,
+	    .height = 2880,
+	} };
 
 static u_int
 efifb_color_depth(struct efi_fb *efifb)
@@ -101,8 +100,8 @@ efifb_color_depth(struct efi_fb *efifb)
 	uint32_t mask;
 	u_int depth;
 
-	mask = efifb->fb_mask_red | efifb->fb_mask_green |
-	    efifb->fb_mask_blue | efifb->fb_mask_reserved;
+	mask = efifb->fb_mask_red | efifb->fb_mask_green | efifb->fb_mask_blue |
+	    efifb->fb_mask_reserved;
 	if (mask == 0)
 		return (0);
 	for (depth = 1; mask != 1; depth++)
@@ -171,8 +170,8 @@ efifb_uga_find_pixel(EFI_UGA_DRAW_PROTOCOL *uga, u_int line,
 	EFI_STATUS status;
 	u_int idx;
 
-	status = uga->Blt(uga, &pix0, EfiUgaVideoToBltBuffer,
-	    0, line, 0, 0, 1, 1, 0);
+	status = uga->Blt(uga, &pix0, EfiUgaVideoToBltBuffer, 0, line, 0, 0, 1,
+	    1, 0);
 	if (EFI_ERROR(status)) {
 		printf("UGA BLT operation failed (video->buffer)");
 		return (-1);
@@ -194,27 +193,25 @@ efifb_uga_find_pixel(EFI_UGA_DRAW_PROTOCOL *uga, u_int line,
 		count = min(size, maxcount);
 
 		status = pciio->Mem.Read(pciio, EfiPciIoWidthUint32,
-		    EFI_PCI_IO_PASS_THROUGH_BAR, addr + ofs, count >> 2,
-		    data1);
+		    EFI_PCI_IO_PASS_THROUGH_BAR, addr + ofs, count >> 2, data1);
 		if (EFI_ERROR(status)) {
 			printf("Error reading frame buffer (before)");
 			goto fail;
 		}
-		status = uga->Blt(uga, &pix1, EfiUgaBltBufferToVideo,
-		    0, 0, 0, line, 1, 1, 0);
+		status = uga->Blt(uga, &pix1, EfiUgaBltBufferToVideo, 0, 0, 0,
+		    line, 1, 1, 0);
 		if (EFI_ERROR(status)) {
 			printf("UGA BLT operation failed (modify)");
 			goto fail;
 		}
 		status = pciio->Mem.Read(pciio, EfiPciIoWidthUint32,
-		    EFI_PCI_IO_PASS_THROUGH_BAR, addr + ofs, count >> 2,
-		    data2);
+		    EFI_PCI_IO_PASS_THROUGH_BAR, addr + ofs, count >> 2, data2);
 		if (EFI_ERROR(status)) {
 			printf("Error reading frame buffer (after)");
 			goto fail;
 		}
-		status = uga->Blt(uga, &pix0, EfiUgaBltBufferToVideo,
-		    0, 0, 0, line, 1, 1, 0);
+		status = uga->Blt(uga, &pix0, EfiUgaBltBufferToVideo, 0, 0, 0,
+		    line, 1, 1, 0);
 		if (EFI_ERROR(status)) {
 			printf("UGA BLT operation failed (restore)");
 			goto fail;
@@ -230,7 +227,7 @@ efifb_uga_find_pixel(EFI_UGA_DRAW_PROTOCOL *uga, u_int line,
 	}
 	printf("No change detected in frame buffer");
 
- fail:
+fail:
 	printf(" -- error %lu\n", EFI_ERROR_CODE(status));
 	free(data1);
 	return (-1);
@@ -394,7 +391,7 @@ efifb_from_uga(struct efi_fb *efifb)
 		return (0);
 	} else if (offset >= 0) {
 		printf("Hardware make/model known, but graphics not "
-		    "as expected.\n");
+		       "as expected.\n");
 		printf("Console may not work!\n");
 	}
 
@@ -415,7 +412,7 @@ efifb_from_uga(struct efi_fb *efifb)
 	if (ev == NULL) {
 		if (efifb->fb_addr == 0) {
 			printf("Please set hw.efifb.address and "
-			    "hw.efifb.stride.\n");
+			       "hw.efifb.stride.\n");
 			return (1);
 		}
 
@@ -493,13 +490,11 @@ efifb_gop_get_edid(EFI_HANDLE h)
 	guid = &active_edid_guid;
 	status = BS->OpenProtocol(h, guid, (void **)&edid, IH, NULL,
 	    EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-	if (status != EFI_SUCCESS ||
-	    edid->SizeOfEdid == 0) {
+	if (status != EFI_SUCCESS || edid->SizeOfEdid == 0) {
 		guid = &discovered_edid_guid;
 		status = BS->OpenProtocol(h, guid, (void **)&edid, IH, NULL,
 		    EFI_OPEN_PROTOCOL_GET_PROTOCOL);
-		if (status != EFI_SUCCESS ||
-		    edid->SizeOfEdid == 0)
+		if (status != EFI_SUCCESS || edid->SizeOfEdid == 0)
 			return (NULL);
 	}
 
@@ -512,7 +507,7 @@ efifb_gop_get_edid(EFI_HANDLE h)
 	memcpy(edid_infop, edid->Edid, edid->SizeOfEdid);
 
 	/* Validate EDID */
-	if (memcmp(edid_infop, magic, sizeof (magic)) != 0)
+	if (memcmp(edid_infop, magic, sizeof(magic)) != 0)
 		goto error;
 
 	if (edid_infop->header.version != 1)
@@ -552,7 +547,6 @@ efi_has_gop(void)
 	return (status == EFI_BUFFER_TOO_SMALL);
 }
 
-
 int
 efi_find_framebuffer(teken_gfx_t *gfx_state)
 {
@@ -589,7 +583,8 @@ efi_find_framebuffer(teken_gfx_t *gfx_state)
 		EFI_GRAPHICS_OUTPUT *tgop;
 		void *dummy;
 
-		status = OpenProtocolByHandle(hlist[i], &gop_guid, (void **)&tgop);
+		status = OpenProtocolByHandle(hlist[i], &gop_guid,
+		    (void **)&tgop);
 		if (status != EFI_SUCCESS)
 			continue;
 
@@ -654,9 +649,8 @@ efi_find_framebuffer(teken_gfx_t *gfx_state)
 	if (gfx_state->tg_shadow_fb != NULL)
 		BS->FreePages((EFI_PHYSICAL_ADDRESS)gfx_state->tg_shadow_fb,
 		    gfx_state->tg_shadow_sz);
-	gfx_state->tg_shadow_sz =
-	    EFI_SIZE_TO_PAGES(efifb.fb_height * efifb.fb_width *
-	    sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
+	gfx_state->tg_shadow_sz = EFI_SIZE_TO_PAGES(efifb.fb_height *
+	    efifb.fb_width * sizeof(EFI_GRAPHICS_OUTPUT_BLT_PIXEL));
 	status = BS->AllocatePages(AllocateMaxAddress, EfiLoaderData,
 	    gfx_state->tg_shadow_sz,
 	    (EFI_PHYSICAL_ADDRESS *)&gfx_state->tg_shadow_fb);
@@ -674,8 +668,8 @@ print_efifb(int mode, struct efi_fb *efifb, int verbose)
 	if (mode >= 0)
 		printf("mode %d: ", mode);
 	depth = efifb_color_depth(efifb);
-	printf("%ux%ux%u, stride=%u", efifb->fb_width, efifb->fb_height,
-	    depth, efifb->fb_stride);
+	printf("%ux%ux%u, stride=%u", efifb->fb_width, efifb->fb_height, depth,
+	    efifb->fb_stride);
 	if (verbose) {
 		printf("\n    frame buffer: address=%jx, size=%jx",
 		    (uintmax_t)efifb->fb_addr, (uintmax_t)efifb->fb_size);
@@ -695,7 +689,6 @@ efi_resolution_compare(struct named_resolution *res, const char *cmp)
 		return (true);
 	return (false);
 }
-
 
 static void
 efi_get_max_resolution(int *width, int *height)
@@ -773,7 +766,7 @@ gop_autoresize(void)
 			    mode, EFI_ERROR_CODE(status));
 			return (CMD_ERROR);
 		}
-		(void) cons_update_mode(true);
+		(void)cons_update_mode(true);
 	}
 	return (CMD_OK);
 }
@@ -798,7 +791,7 @@ text_autoresize()
 	}
 	if (max_dim > 0)
 		conout->SetMode(conout, best_mode);
-	(void) cons_update_mode(true);
+	(void)cons_update_mode(true);
 	return (CMD_OK);
 }
 
@@ -809,7 +802,8 @@ uga_autoresize(void)
 	return (text_autoresize());
 }
 
-COMMAND_SET(efi_autoresize, "efi-autoresizecons", "EFI Auto-resize Console", command_autoresize);
+COMMAND_SET(efi_autoresize, "efi-autoresizecons", "EFI Auto-resize Console",
+    command_autoresize);
 
 static int
 command_autoresize(int argc, char *argv[])
@@ -871,13 +865,13 @@ command_gop(int argc, char *argv[])
 		status = gop->SetMode(gop, mode);
 		if (EFI_ERROR(status)) {
 			snprintf(command_errbuf, sizeof(command_errbuf),
-			    "%s: Unable to set mode to %u (error=%lu)",
-			    argv[0], mode, EFI_ERROR_CODE(status));
+			    "%s: Unable to set mode to %u (error=%lu)", argv[0],
+			    mode, EFI_ERROR_CODE(status));
 			return (CMD_ERROR);
 		}
-		(void) cons_update_mode(true);
+		(void)cons_update_mode(true);
 	} else if (strcmp(argv[1], "off") == 0) {
-		(void) cons_update_mode(false);
+		(void)cons_update_mode(false);
 	} else if (strcmp(argv[1], "get") == 0) {
 		edid_res_list_t res;
 
@@ -921,7 +915,7 @@ command_gop(int argc, char *argv[])
 	}
 	return (CMD_OK);
 
- usage:
+usage:
 	snprintf(command_errbuf, sizeof(command_errbuf),
 	    "usage: %s [list | get | set <mode> | off]", argv[0]);
 	return (CMD_ERROR);
@@ -953,7 +947,7 @@ command_uga(int argc, char *argv[])
 	printf("\n");
 	return (CMD_OK);
 
- usage:
+usage:
 	snprintf(command_errbuf, sizeof(command_errbuf), "usage: %s", argv[0]);
 	return (CMD_ERROR);
 }

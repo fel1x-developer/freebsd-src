@@ -34,6 +34,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <dev/drm2/drmP.h>
 
 #if defined(__linux__)
@@ -53,7 +54,8 @@ static int drm_lock_take(struct drm_lock_data *lock_data, unsigned int context);
  *
  * Add the current task to the lock wait queue, and attempt to take to lock.
  */
-int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int
+drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_lock *lock = data;
 	struct drm_master *master = file_priv->master;
@@ -63,13 +65,13 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 
 	if (lock->context == DRM_KERNEL_CONTEXT) {
 		DRM_ERROR("Process %d using kernel context %d\n",
-			  DRM_CURRENTPID, lock->context);
+		    DRM_CURRENTPID, lock->context);
 		return -EINVAL;
 	}
 
 	DRM_DEBUG("%d (pid %d) requests lock (0x%08x), flags = 0x%08x\n",
-		  lock->context, DRM_CURRENTPID,
-		  master->lock.hw_lock->lock, lock->flags);
+	    lock->context, DRM_CURRENTPID, master->lock.hw_lock->lock,
+	    lock->flags);
 
 	mtx_lock(&master->lock.spinlock);
 	master->lock.user_waiters++;
@@ -88,7 +90,7 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 			master->lock.file_priv = file_priv;
 			master->lock.lock_time = jiffies;
 			atomic_inc(&dev->counts[_DRM_STAT_LOCKS]);
-			break;	/* Got lock */
+			break; /* Got lock */
 		}
 
 		/* Contention */
@@ -104,14 +106,14 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	master->lock.user_waiters--;
 	mtx_unlock(&master->lock.spinlock);
 
-	DRM_DEBUG("%d %s\n", lock->context,
-		  ret ? "interrupted" : "has lock");
-	if (ret) return ret;
+	DRM_DEBUG("%d %s\n", lock->context, ret ? "interrupted" : "has lock");
+	if (ret)
+		return ret;
 
 #if defined(__linux__)
-	/* don't set the block all signals on the master process for now 
+	/* don't set the block all signals on the master process for now
 	 * really probably not the correct answer but lets us debug xkb
- 	 * xserver for now */
+	 * xserver for now */
 	if (!file_priv->is_master) {
 		sigemptyset(&dev->sigmask);
 		sigaddset(&dev->sigmask, SIGSTOP);
@@ -124,11 +126,10 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 	}
 #endif
 
-	if (dev->driver->dma_quiescent && (lock->flags & _DRM_LOCK_QUIESCENT))
-	{
+	if (dev->driver->dma_quiescent && (lock->flags & _DRM_LOCK_QUIESCENT)) {
 		if (dev->driver->dma_quiescent(dev)) {
 			DRM_DEBUG("%d waiting for DMA quiescent\n",
-				  lock->context);
+			    lock->context);
 			return -EBUSY;
 		}
 	}
@@ -147,14 +148,15 @@ int drm_lock(struct drm_device *dev, void *data, struct drm_file *file_priv)
  *
  * Transfer and free the lock.
  */
-int drm_unlock(struct drm_device *dev, void *data, struct drm_file *file_priv)
+int
+drm_unlock(struct drm_device *dev, void *data, struct drm_file *file_priv)
 {
 	struct drm_lock *lock = data;
 	struct drm_master *master = file_priv->master;
 
 	if (lock->context == DRM_KERNEL_CONTEXT) {
 		DRM_ERROR("Process %d using kernel context %d\n",
-			  DRM_CURRENTPID, lock->context);
+		    DRM_CURRENTPID, lock->context);
 		return -EINVAL;
 	}
 
@@ -177,11 +179,11 @@ int drm_unlock(struct drm_device *dev, void *data, struct drm_file *file_priv)
  * \param context locking context.
  * \return one if the lock is held, or zero otherwise.
  *
- * Attempt to mark the lock as held by the given context, via the \p cmpxchg instruction.
+ * Attempt to mark the lock as held by the given context, via the \p cmpxchg
+ * instruction.
  */
-static
-int drm_lock_take(struct drm_lock_data *lock_data,
-		  unsigned int context)
+static int
+drm_lock_take(struct drm_lock_data *lock_data, unsigned int context)
 {
 	unsigned int old, new, prev;
 	volatile unsigned int *lock = &lock_data->hw_lock->lock;
@@ -193,8 +195,11 @@ int drm_lock_take(struct drm_lock_data *lock_data,
 			new = old | _DRM_LOCK_CONT;
 		else {
 			new = context | _DRM_LOCK_HELD |
-				((lock_data->user_waiters + lock_data->kernel_waiters > 1) ?
-				 _DRM_LOCK_CONT : 0);
+			    ((lock_data->user_waiters +
+				     lock_data->kernel_waiters >
+				 1) ?
+				    _DRM_LOCK_CONT :
+				    0);
 		}
 		prev = cmpxchg(lock, old, new);
 	} while (prev != old);
@@ -204,13 +209,13 @@ int drm_lock_take(struct drm_lock_data *lock_data,
 		if (old & _DRM_LOCK_HELD) {
 			if (context != DRM_KERNEL_CONTEXT) {
 				DRM_ERROR("%d holds heavyweight lock\n",
-					  context);
+				    context);
 			}
 			return 0;
 		}
 	}
 
-	if ((_DRM_LOCKING_CONTEXT(new)) == context && (new & _DRM_LOCK_HELD)) {
+	if ((_DRM_LOCKING_CONTEXT(new)) == context && (new &_DRM_LOCK_HELD)) {
 		/* Have lock */
 		return 1;
 	}
@@ -229,8 +234,8 @@ int drm_lock_take(struct drm_lock_data *lock_data,
  * Resets the lock file pointer.
  * Marks the lock as held by the given context, via the \p cmpxchg instruction.
  */
-static int drm_lock_transfer(struct drm_lock_data *lock_data,
-			     unsigned int context)
+static int
+drm_lock_transfer(struct drm_lock_data *lock_data, unsigned int context)
 {
 	unsigned int old, new, prev;
 	volatile unsigned int *lock = &lock_data->hw_lock->lock;
@@ -255,7 +260,8 @@ static int drm_lock_transfer(struct drm_lock_data *lock_data,
  * Marks the lock as not held, via the \p cmpxchg instruction. Wakes any task
  * waiting on the lock queue.
  */
-int drm_lock_free(struct drm_lock_data *lock_data, unsigned int context)
+int
+drm_lock_free(struct drm_lock_data *lock_data, unsigned int context)
 {
 	unsigned int old, new, prev;
 	volatile unsigned int *lock = &lock_data->hw_lock->lock;
@@ -276,8 +282,8 @@ int drm_lock_free(struct drm_lock_data *lock_data, unsigned int context)
 	} while (prev != old);
 
 	if (_DRM_LOCK_IS_HELD(old) && _DRM_LOCKING_CONTEXT(old) != context) {
-		DRM_ERROR("%d freed heavyweight lock held by %d\n",
-			  context, _DRM_LOCKING_CONTEXT(old));
+		DRM_ERROR("%d freed heavyweight lock held by %d\n", context,
+		    _DRM_LOCKING_CONTEXT(old));
 		return 1;
 	}
 	wake_up_interruptible(&lock_data->lock_queue);
@@ -296,14 +302,15 @@ int drm_lock_free(struct drm_lock_data *lock_data, unsigned int context)
  * \return one if the signal should be delivered normally, or zero if the
  * signal should be blocked.
  */
-static int drm_notifier(void *priv)
+static int
+drm_notifier(void *priv)
 {
-	struct drm_sigdata *s = (struct drm_sigdata *) priv;
+	struct drm_sigdata *s = (struct drm_sigdata *)priv;
 	unsigned int old, new, prev;
 
 	/* Allow signal delivery if lock isn't held */
-	if (!s->lock || !_DRM_LOCK_IS_HELD(s->lock->lock)
-	    || _DRM_LOCKING_CONTEXT(s->lock->lock) != s->context)
+	if (!s->lock || !_DRM_LOCK_IS_HELD(s->lock->lock) ||
+	    _DRM_LOCKING_CONTEXT(s->lock->lock) != s->context)
 		return 1;
 
 	/* Otherwise, set flag to force call to
@@ -319,18 +326,20 @@ static int drm_notifier(void *priv)
 
 /**
  * This function returns immediately and takes the hw lock
- * with the kernel context if it is free, otherwise it gets the highest priority when and if
- * it is eventually released.
+ * with the kernel context if it is free, otherwise it gets the highest priority
+ * when and if it is eventually released.
  *
- * This guarantees that the kernel will _eventually_ have the lock _unless_ it is held
- * by a blocked process. (In the latter case an explicit wait for the hardware lock would cause
- * a deadlock, which is why the "idlelock" was invented).
+ * This guarantees that the kernel will _eventually_ have the lock _unless_ it
+ * is held by a blocked process. (In the latter case an explicit wait for the
+ * hardware lock would cause a deadlock, which is why the "idlelock" was
+ * invented).
  *
  * This should be sufficient to wait for GPU idle without
  * having to worry about starvation.
  */
 
-void drm_idlelock_take(struct drm_lock_data *lock_data)
+void
+drm_idlelock_take(struct drm_lock_data *lock_data)
 {
 	int ret;
 
@@ -349,7 +358,8 @@ void drm_idlelock_take(struct drm_lock_data *lock_data)
 }
 EXPORT_SYMBOL(drm_idlelock_take);
 
-void drm_idlelock_release(struct drm_lock_data *lock_data)
+void
+drm_idlelock_release(struct drm_lock_data *lock_data)
 {
 	unsigned int old, prev;
 	volatile unsigned int *lock = &lock_data->hw_lock->lock;
@@ -369,10 +379,11 @@ void drm_idlelock_release(struct drm_lock_data *lock_data)
 }
 EXPORT_SYMBOL(drm_idlelock_release);
 
-int drm_i_have_hw_lock(struct drm_device *dev, struct drm_file *file_priv)
+int
+drm_i_have_hw_lock(struct drm_device *dev, struct drm_file *file_priv)
 {
 	struct drm_master *master = file_priv->master;
 	return (file_priv->lock_count && master->lock.hw_lock &&
-		_DRM_LOCK_IS_HELD(master->lock.hw_lock->lock) &&
-		master->lock.file_priv == file_priv);
+	    _DRM_LOCK_IS_HELD(master->lock.hw_lock->lock) &&
+	    master->lock.file_priv == file_priv);
 }

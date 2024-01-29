@@ -25,11 +25,11 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	__GEOM_G_UZIP_H__
-#define	__GEOM_G_UZIP_H__
+#ifndef __GEOM_G_UZIP_H__
+#define __GEOM_G_UZIP_H__
 
 MALLOC_DECLARE(M_GEOM_UZIP);
 
 #define DEFINE_RAW_METHOD(func, rval, args...) typedef rval (*func##_t)(args)
 
-#endif	/* __GEOM_G_UZIP_H__ */
+#endif /* __GEOM_G_UZIP_H__ */

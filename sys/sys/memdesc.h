@@ -27,7 +27,7 @@
  */
 
 #ifndef _SYS_MEMDESC_H_
-#define	_SYS_MEMDESC_H_
+#define _SYS_MEMDESC_H_
 
 struct bio;
 struct bus_dma_segment;
@@ -42,30 +42,30 @@ union ccb;
  */
 struct memdesc {
 	union {
-		void			*md_vaddr;
-		vm_paddr_t		md_paddr;
-		struct bus_dma_segment	*md_list;
-		struct uio		*md_uio;
-		struct mbuf		*md_mbuf;
-		struct vm_page 		**md_ma;
+		void *md_vaddr;
+		vm_paddr_t md_paddr;
+		struct bus_dma_segment *md_list;
+		struct uio *md_uio;
+		struct mbuf *md_mbuf;
+		struct vm_page **md_ma;
 	} u;
-	union {				/* type specific data. */
-		size_t		md_len;	/* VADDR, PADDR, VMPAGES */
-		int		md_nseg; /* VLIST, PLIST */
+	union {		       /* type specific data. */
+		size_t md_len; /* VADDR, PADDR, VMPAGES */
+		int md_nseg;   /* VLIST, PLIST */
 	};
 	union {
-		uint32_t	md_offset; /* VMPAGES */
+		uint32_t md_offset; /* VMPAGES */
 	};
-	uint32_t	md_type;	/* Type of memory. */
+	uint32_t md_type; /* Type of memory. */
 };
 
-#define	MEMDESC_VADDR	1	/* Contiguous virtual address. */
-#define	MEMDESC_PADDR	2	/* Contiguous physical address. */
-#define	MEMDESC_VLIST	3	/* scatter/gather list of kva addresses. */
-#define	MEMDESC_PLIST	4	/* scatter/gather list of physical addresses. */
-#define	MEMDESC_UIO	6	/* Pointer to a uio (any io). */
-#define	MEMDESC_MBUF	7	/* Pointer to a mbuf (network io). */
-#define	MEMDESC_VMPAGES	8	/* Pointer to array of VM pages. */
+#define MEMDESC_VADDR 1	  /* Contiguous virtual address. */
+#define MEMDESC_PADDR 2	  /* Contiguous physical address. */
+#define MEMDESC_VLIST 3	  /* scatter/gather list of kva addresses. */
+#define MEMDESC_PLIST 4	  /* scatter/gather list of physical addresses. */
+#define MEMDESC_UIO 6	  /* Pointer to a uio (any io). */
+#define MEMDESC_MBUF 7	  /* Pointer to a mbuf (network io). */
+#define MEMDESC_VMPAGES 8 /* Pointer to array of VM pages. */
 
 static inline struct memdesc
 memdesc_vaddr(void *vaddr, size_t len)
@@ -150,8 +150,8 @@ memdesc_vmpages(struct vm_page **ma, size_t len, u_int ma_offset)
 	return (mem);
 }
 
-struct memdesc	memdesc_bio(struct bio *bio);
-struct memdesc	memdesc_ccb(union ccb *ccb);
+struct memdesc memdesc_bio(struct bio *bio);
+struct memdesc memdesc_ccb(union ccb *ccb);
 
 /*
  * Similar to m_copyback/data, *_copyback copy data from the 'src'
@@ -159,9 +159,8 @@ struct memdesc	memdesc_ccb(union ccb *ccb);
  * copy data from the memory descriptor's data buffer into the the
  * 'dst' buffer.
  */
-void	memdesc_copyback(struct memdesc *mem, int off, int size,
-    const void *src);
-void	memdesc_copydata(struct memdesc *mem, int off, int size, void *dst);
+void memdesc_copyback(struct memdesc *mem, int off, int size, const void *src);
+void memdesc_copydata(struct memdesc *mem, int off, int size, void *dst);
 
 /*
  * This routine constructs a chain of M_EXT mbufs backed by a data

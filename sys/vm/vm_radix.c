@@ -50,21 +50,21 @@
  *   level compression may just complicate things.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/libkern.h>
 #include <sys/pctrie.h>
 #include <sys/proc.h>
-#include <sys/vmmeter.h>
 #include <sys/smr.h>
 #include <sys/smr_types.h>
+#include <sys/vmmeter.h>
 
-#include <vm/uma.h>
 #include <vm/vm.h>
+#include <vm/uma.h>
 #include <vm/vm_radix.h>
 
 static uma_zone_t vm_radix_node_zone;
@@ -100,8 +100,8 @@ vm_radix_reserve_kva(void)
 	 * are needed to store them.
 	 */
 	if (!uma_zone_reserve_kva(vm_radix_node_zone,
-	    ((vm_paddr_t)vm_cnt.v_page_count * PAGE_SIZE) / (PAGE_SIZE +
-	    pctrie_node_size())))
+		((vm_paddr_t)vm_cnt.v_page_count * PAGE_SIZE) /
+		    (PAGE_SIZE + pctrie_node_size())))
 		panic("%s: unable to reserve KVA", __func__);
 }
 #endif
@@ -113,9 +113,9 @@ void
 vm_radix_zinit(void)
 {
 
-	vm_radix_node_zone = uma_zcreate("RADIX NODE", pctrie_node_size(),
-	    NULL, NULL, pctrie_zone_init, NULL,
-	    PCTRIE_PAD, UMA_ZONE_VM | UMA_ZONE_SMR);
+	vm_radix_node_zone = uma_zcreate("RADIX NODE", pctrie_node_size(), NULL,
+	    NULL, pctrie_zone_init, NULL, PCTRIE_PAD,
+	    UMA_ZONE_VM | UMA_ZONE_SMR);
 	vm_radix_smr = uma_zone_get_smr(vm_radix_node_zone);
 }
 

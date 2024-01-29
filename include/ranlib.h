@@ -30,17 +30,17 @@
  */
 
 #ifndef _RANLIB_H_
-#define	_RANLIB_H_
+#define _RANLIB_H_
 
-#define	RANLIBMAG	"__.SYMDEF"	/* archive file name */
-#define	RANLIBSKEW	3		/* creation time offset */
+#define RANLIBMAG "__.SYMDEF" /* archive file name */
+#define RANLIBSKEW 3	      /* creation time offset */
 
 struct ranlib {
 	union {
-		long ran_strx;		/* string table index */
-		char *ran_name;		/* in memory symbol name */
+		long ran_strx;	/* string table index */
+		char *ran_name; /* in memory symbol name */
 	} ran_un;
-	long ran_off;			/* archive file offset */
+	long ran_off; /* archive file offset */
 };
 
 #endif /* !_RANLIB_H_ */

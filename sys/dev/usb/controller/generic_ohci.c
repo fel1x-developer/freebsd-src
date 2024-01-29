@@ -31,54 +31,51 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/rman.h>
 #include <sys/condvar.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
-#include <dev/ofw/ofw_bus.h>
-#include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-
-#include <dev/usb/usb_core.h>
-#include <dev/usb/usb_busdma.h>
-#include <dev/usb/usb_process.h>
-#include <dev/usb/usb_util.h>
-
-#include <dev/usb/usb_controller.h>
-#include <dev/usb/usb_bus.h>
-#include <dev/usb/controller/ohci.h>
-#include <dev/usb/controller/ohcireg.h>
 
 #include <dev/clk/clk.h>
 #include <dev/hwreset/hwreset.h>
+#include <dev/ofw/ofw_bus.h>
+#include <dev/ofw/ofw_bus_subr.h>
 #include <dev/phy/phy.h>
 #include <dev/phy/phy_usb.h>
+#include <dev/usb/controller/ohci.h>
+#include <dev/usb/controller/ohcireg.h>
+#include <dev/usb/usb.h>
+#include <dev/usb/usb_bus.h>
+#include <dev/usb/usb_busdma.h>
+#include <dev/usb/usb_controller.h>
+#include <dev/usb/usb_core.h>
+#include <dev/usb/usb_process.h>
+#include <dev/usb/usb_util.h>
+#include <dev/usb/usbdi.h>
 
 #include "generic_usb_if.h"
 
 struct clk_list {
-	TAILQ_ENTRY(clk_list)	next;
-	clk_t			clk;
+	TAILQ_ENTRY(clk_list) next;
+	clk_t clk;
 };
 struct phy_list {
-	TAILQ_ENTRY(phy_list)	next;
-	phy_t			phy;
+	TAILQ_ENTRY(phy_list) next;
+	phy_t phy;
 };
 struct hwrst_list {
-	TAILQ_ENTRY(hwrst_list)	next;
-	hwreset_t		rst;
+	TAILQ_ENTRY(hwrst_list) next;
+	hwreset_t rst;
 };
 
 struct generic_ohci_softc {
-	ohci_softc_t	ohci_sc;
+	ohci_softc_t ohci_sc;
 
-	TAILQ_HEAD(, clk_list)		clk_list;
-	TAILQ_HEAD(, phy_list)		phy_list;
-	TAILQ_HEAD(, hwrst_list)	rst_list;
+	TAILQ_HEAD(, clk_list) clk_list;
+	TAILQ_HEAD(, phy_list) phy_list;
+	TAILQ_HEAD(, hwrst_list) rst_list;
 };
 
 static int generic_ohci_detach(device_t);
@@ -117,8 +114,8 @@ generic_ohci_attach(device_t dev)
 	sc->ohci_sc.sc_bus.dma_bits = 32;
 
 	/* get all DMA memory */
-	if (usb_bus_mem_alloc_all(&sc->ohci_sc.sc_bus,
-	    USB_GET_DMA_TAG(dev), &ohci_iterate_hw_softc)) {
+	if (usb_bus_mem_alloc_all(&sc->ohci_sc.sc_bus, USB_GET_DMA_TAG(dev),
+		&ohci_iterate_hw_softc)) {
 		return (ENOMEM);
 	}
 
@@ -152,8 +149,8 @@ generic_ohci_attach(device_t dev)
 	    sizeof(sc->ohci_sc.sc_vendor));
 
 	err = bus_setup_intr(dev, sc->ohci_sc.sc_irq_res,
-	    INTR_TYPE_BIO | INTR_MPSAFE, NULL,
-	    (driver_intr_t *)ohci_interrupt, sc, &sc->ohci_sc.sc_intr_hdl);
+	    INTR_TYPE_BIO | INTR_MPSAFE, NULL, (driver_intr_t *)ohci_interrupt,
+	    sc, &sc->ohci_sc.sc_intr_hdl);
 	if (err) {
 		sc->ohci_sc.sc_intr_hdl = NULL;
 		goto error;
@@ -268,7 +265,7 @@ generic_ohci_detach(device_t dev)
 	usb_bus_mem_free_all(&sc->ohci_sc.sc_bus, &ohci_iterate_hw_softc);
 
 	/* Disable phy */
-	TAILQ_FOREACH_SAFE(phy, &sc->phy_list, next, phy_tmp) {
+	TAILQ_FOREACH_SAFE (phy, &sc->phy_list, next, phy_tmp) {
 		err = phy_disable(phy->phy);
 		if (err != 0)
 			device_printf(dev, "Could not disable phy\n");
@@ -278,7 +275,7 @@ generic_ohci_detach(device_t dev)
 	}
 
 	/* Assert reset */
-	TAILQ_FOREACH_SAFE(rst, &sc->rst_list, next, rst_tmp) {
+	TAILQ_FOREACH_SAFE (rst, &sc->rst_list, next, rst_tmp) {
 		hwreset_assert(rst->rst);
 		hwreset_release(rst->rst);
 		TAILQ_REMOVE(&sc->rst_list, rst, next);
@@ -286,7 +283,7 @@ generic_ohci_detach(device_t dev)
 	}
 
 	/* Disable clock */
-	TAILQ_FOREACH_SAFE(clk, &sc->clk_list, next, clk_tmp) {
+	TAILQ_FOREACH_SAFE (clk, &sc->clk_list, next, clk_tmp) {
 		err = clk_disable(clk->clk);
 		if (err != 0)
 			device_printf(dev, "Could not disable clock %s\n",

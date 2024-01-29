@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define MAP_32BIT_MAX_ADDR      ((vm_offset_t)1 << 31)
+#define MAP_32BIT_MAX_ADDR ((vm_offset_t)1 << 31)
 
 int
 main(void)

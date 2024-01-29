@@ -28,6 +28,7 @@
 
 #include <sys/param.h>
 #include <sys/ucontext.h>
+
 #include <signal.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -36,7 +37,7 @@ typedef void (*handler_t)(uint32_t, uint32_t, uint32_t);
 
 /* Prototypes */
 static void ctx_wrapper(ucontext_t *ucp, handler_t func, uint32_t sig,
-			uint32_t sig_si, uint32_t sig_uc);
+    uint32_t sig_si, uint32_t sig_uc);
 
 __weak_reference(__signalcontext, signalcontext);
 
@@ -65,7 +66,7 @@ __signalcontext(ucontext_t *ucp, int sig, __sighandler_t *func)
 	/*
 	 * Subtract 8 bytes from stack to allow for frameptr
 	 */
-	sp -= 2*sizeof(uint32_t);
+	sp -= 2 * sizeof(uint32_t);
 	sp &= ~15UL;
 
 	/*
@@ -77,19 +78,19 @@ __signalcontext(ucontext_t *ucp, int sig, __sighandler_t *func)
 
 	ucp->uc_mcontext.mc_vers = _MC_VERSION;
 	ucp->uc_mcontext.mc_len = sizeof(struct __mcontext);
-	ucp->uc_mcontext.mc_srr0 = (uint32_t) ctx_wrapper;
-	ucp->uc_mcontext.mc_gpr[1] = (uint32_t) sp;
-	ucp->uc_mcontext.mc_gpr[3] = (uint32_t) func;
-	ucp->uc_mcontext.mc_gpr[4] = (uint32_t) sig;
-	ucp->uc_mcontext.mc_gpr[5] = (uint32_t) sig_si;
-	ucp->uc_mcontext.mc_gpr[6] = (uint32_t) sig_uc;
+	ucp->uc_mcontext.mc_srr0 = (uint32_t)ctx_wrapper;
+	ucp->uc_mcontext.mc_gpr[1] = (uint32_t)sp;
+	ucp->uc_mcontext.mc_gpr[3] = (uint32_t)func;
+	ucp->uc_mcontext.mc_gpr[4] = (uint32_t)sig;
+	ucp->uc_mcontext.mc_gpr[5] = (uint32_t)sig_si;
+	ucp->uc_mcontext.mc_gpr[6] = (uint32_t)sig_uc;
 
 	return (0);
 }
 
 static void
 ctx_wrapper(ucontext_t *ucp, handler_t func, uint32_t sig, uint32_t sig_si,
-	    uint32_t sig_uc)
+    uint32_t sig_uc)
 {
 
 	(*func)(sig, sig_si, sig_uc);

@@ -23,7 +23,6 @@
  * SUCH DAMAGE.
  */
 
-
 /*
  * Note: some comments taken from lib/libc/uuid/uuid_to_string.c
  * Copyright (c) 2002,2005 Marcel Moolenaar
@@ -75,7 +74,7 @@ uuid_to_string(const uuid_t *u, char **s, uint32_t *status)
 
 	if (status != NULL)
 		*status = uuid_s_ok;
-	if (s == NULL)	/* Regular version does this odd-ball behavior too */
+	if (s == NULL) /* Regular version does this odd-ball behavior too */
 		return;
 	w = *s = malloc(37);
 	if (*s == NULL) {

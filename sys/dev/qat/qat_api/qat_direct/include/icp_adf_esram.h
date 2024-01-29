@@ -21,9 +21,6 @@
  *   CPA_STATUS_FAIL      on failure
  */
 CpaStatus icp_adf_esramGetAddress(icp_accel_dev_t *accel_dev,
-				  Cpa32U accelNumber,
-				  Cpa64U *pPhysAddr,
-				  Cpa64U *pVirtAddr,
-				  Cpa32U *pSize);
+    Cpa32U accelNumber, Cpa64U *pPhysAddr, Cpa64U *pVirtAddr, Cpa32U *pSize);
 
 #endif /* ICP_ADF_ESRAM_H */

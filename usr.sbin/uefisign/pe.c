@@ -35,12 +35,13 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -48,104 +49,105 @@
 #include "uefisign.h"
 
 #ifndef CTASSERT
-#define CTASSERT(x)		_CTASSERT(x, __LINE__)
-#define _CTASSERT(x, y)		__CTASSERT(x, y)
-#define __CTASSERT(x, y)	typedef char __assert_ ## y [(x) ? 1 : -1]
+#define CTASSERT(x) _CTASSERT(x, __LINE__)
+#define _CTASSERT(x, y) __CTASSERT(x, y)
+#define __CTASSERT(x, y) typedef char __assert_##y[(x) ? 1 : -1]
 #endif
 
-#define PE_ALIGMENT_SIZE	8
+#define PE_ALIGMENT_SIZE 8
 
 struct mz_header {
-	uint8_t			mz_signature[2];
-	uint8_t			mz_dont_care[58];
-	uint16_t		mz_lfanew;
+	uint8_t mz_signature[2];
+	uint8_t mz_dont_care[58];
+	uint16_t mz_lfanew;
 } __attribute__((packed));
 
 struct coff_header {
-	uint8_t			coff_dont_care[2];
-	uint16_t		coff_number_of_sections;
-	uint8_t			coff_dont_care_either[16];
+	uint8_t coff_dont_care[2];
+	uint16_t coff_number_of_sections;
+	uint8_t coff_dont_care_either[16];
 } __attribute__((packed));
 
-#define	PE_SIGNATURE		0x00004550
+#define PE_SIGNATURE 0x00004550
 
 struct pe_header {
-	uint32_t		pe_signature;
-	struct coff_header	pe_coff;
+	uint32_t pe_signature;
+	struct coff_header pe_coff;
 } __attribute__((packed));
 
-#define	PE_OPTIONAL_MAGIC_32		0x010B
-#define	PE_OPTIONAL_MAGIC_32_PLUS	0x020B
+#define PE_OPTIONAL_MAGIC_32 0x010B
+#define PE_OPTIONAL_MAGIC_32_PLUS 0x020B
 
-#define	PE_OPTIONAL_SUBSYSTEM_EFI_APPLICATION	10
-#define	PE_OPTIONAL_SUBSYSTEM_EFI_BOOT		11
-#define	PE_OPTIONAL_SUBSYSTEM_EFI_RUNTIME	12
+#define PE_OPTIONAL_SUBSYSTEM_EFI_APPLICATION 10
+#define PE_OPTIONAL_SUBSYSTEM_EFI_BOOT 11
+#define PE_OPTIONAL_SUBSYSTEM_EFI_RUNTIME 12
 
 struct pe_optional_header_32 {
-	uint16_t		po_magic;
-	uint8_t			po_dont_care[58];
-	uint32_t		po_size_of_headers;
-	uint32_t		po_checksum;
-	uint16_t		po_subsystem;
-	uint8_t			po_dont_care_either[22];
-	uint32_t		po_number_of_rva_and_sizes;
+	uint16_t po_magic;
+	uint8_t po_dont_care[58];
+	uint32_t po_size_of_headers;
+	uint32_t po_checksum;
+	uint16_t po_subsystem;
+	uint8_t po_dont_care_either[22];
+	uint32_t po_number_of_rva_and_sizes;
 } __attribute__((packed));
 
 CTASSERT(offsetof(struct pe_optional_header_32, po_size_of_headers) == 60);
 CTASSERT(offsetof(struct pe_optional_header_32, po_checksum) == 64);
 CTASSERT(offsetof(struct pe_optional_header_32, po_subsystem) == 68);
-CTASSERT(offsetof(struct pe_optional_header_32, po_number_of_rva_and_sizes) == 92);
+CTASSERT(
+    offsetof(struct pe_optional_header_32, po_number_of_rva_and_sizes) == 92);
 
 struct pe_optional_header_32_plus {
-	uint16_t		po_magic;
-	uint8_t			po_dont_care[58];
-	uint32_t		po_size_of_headers;
-	uint32_t		po_checksum;
-	uint16_t		po_subsystem;
-	uint8_t			po_dont_care_either[38];
-	uint32_t		po_number_of_rva_and_sizes;
+	uint16_t po_magic;
+	uint8_t po_dont_care[58];
+	uint32_t po_size_of_headers;
+	uint32_t po_checksum;
+	uint16_t po_subsystem;
+	uint8_t po_dont_care_either[38];
+	uint32_t po_number_of_rva_and_sizes;
 } __attribute__((packed));
 
 CTASSERT(offsetof(struct pe_optional_header_32_plus, po_size_of_headers) == 60);
 CTASSERT(offsetof(struct pe_optional_header_32_plus, po_checksum) == 64);
 CTASSERT(offsetof(struct pe_optional_header_32_plus, po_subsystem) == 68);
-CTASSERT(offsetof(struct pe_optional_header_32_plus, po_number_of_rva_and_sizes) == 108);
+CTASSERT(offsetof(struct pe_optional_header_32_plus,
+	     po_number_of_rva_and_sizes) == 108);
 
-#define	PE_DIRECTORY_ENTRY_CERTIFICATE	4
+#define PE_DIRECTORY_ENTRY_CERTIFICATE 4
 
 struct pe_directory_entry {
-	uint32_t	pde_rva;
-	uint32_t	pde_size;
+	uint32_t pde_rva;
+	uint32_t pde_size;
 } __attribute__((packed));
 
 struct pe_section_header {
-	uint8_t			psh_dont_care[16];
-	uint32_t		psh_size_of_raw_data;
-	uint32_t		psh_pointer_to_raw_data;
-	uint8_t			psh_dont_care_either[16];
+	uint8_t psh_dont_care[16];
+	uint32_t psh_size_of_raw_data;
+	uint32_t psh_pointer_to_raw_data;
+	uint8_t psh_dont_care_either[16];
 } __attribute__((packed));
 
 CTASSERT(offsetof(struct pe_section_header, psh_size_of_raw_data) == 16);
 CTASSERT(offsetof(struct pe_section_header, psh_pointer_to_raw_data) == 20);
 
-#define	PE_CERTIFICATE_REVISION		0x0200
-#define	PE_CERTIFICATE_TYPE		0x0002
+#define PE_CERTIFICATE_REVISION 0x0200
+#define PE_CERTIFICATE_TYPE 0x0002
 
 struct pe_certificate {
-	uint32_t	pc_len;
-	uint16_t	pc_revision;
-	uint16_t	pc_type;
-	char		pc_signature[0];
+	uint32_t pc_len;
+	uint16_t pc_revision;
+	uint16_t pc_type;
+	char pc_signature[0];
 } __attribute__((packed));
 
 void
-range_check(const struct executable *x, off_t off, size_t len,
-    const char *name)
+range_check(const struct executable *x, off_t off, size_t len, const char *name)
 {
 
 	if (off < 0) {
-		errx(1, "%s starts at negative offset %jd",
-		    name, (intmax_t)off);
+		errx(1, "%s starts at negative offset %jd", name,
+		    (intmax_t)off);
 	}
 	if (off >= (off_t)x->x_len) {
 		errx(1, "%s starts at %jd, past the end of executable at %zd",
@@ -166,11 +168,11 @@ signature_size(const struct executable *x)
 {
 	const struct pe_directory_entry *pde;
 
-	range_check(x, x->x_certificate_entry_off,
-	    x->x_certificate_entry_len, "Certificate Directory");
+	range_check(x, x->x_certificate_entry_off, x->x_certificate_entry_len,
+	    "Certificate Directory");
 
-	pde = (struct pe_directory_entry *)
-	    (x->x_buf + x->x_certificate_entry_off);
+	pde = (struct pe_directory_entry *)(x->x_buf +
+	    x->x_certificate_entry_off);
 
 	if (pde->pde_rva != 0 && pde->pde_size == 0)
 		warnx("signature size is 0, but its RVA is %d", pde->pde_rva);
@@ -186,11 +188,11 @@ show_certificate(const struct executable *x)
 	struct pe_certificate *pc;
 	const struct pe_directory_entry *pde;
 
-	range_check(x, x->x_certificate_entry_off,
-	    x->x_certificate_entry_len, "Certificate Directory");
+	range_check(x, x->x_certificate_entry_off, x->x_certificate_entry_len,
+	    "Certificate Directory");
 
-	pde = (struct pe_directory_entry *)
-	    (x->x_buf + x->x_certificate_entry_off);
+	pde = (struct pe_directory_entry *)(x->x_buf +
+	    x->x_certificate_entry_off);
 
 	if (signature_size(x) == 0) {
 		printf("file not signed\n");
@@ -214,11 +216,13 @@ show_certificate(const struct executable *x)
 		    pc->pc_type, PE_CERTIFICATE_TYPE);
 	}
 	printf("to dump PKCS7:\n    "
-	    "dd if='%s' bs=1 skip=%zd | openssl pkcs7 -inform DER -print\n",
-	    x->x_path, pde->pde_rva + offsetof(struct pe_certificate, pc_signature));
+	       "dd if='%s' bs=1 skip=%zd | openssl pkcs7 -inform DER -print\n",
+	    x->x_path,
+	    pde->pde_rva + offsetof(struct pe_certificate, pc_signature));
 	printf("to dump raw ASN.1:\n    "
-	    "openssl asn1parse -i -inform DER -offset %zd -in '%s'\n",
-	    pde->pde_rva + offsetof(struct pe_certificate, pc_signature), x->x_path);
+	       "openssl asn1parse -i -inform DER -offset %zd -in '%s'\n",
+	    pde->pde_rva + offsetof(struct pe_certificate, pc_signature),
+	    x->x_path);
 }
 
 static void
@@ -227,8 +231,7 @@ parse_section_table(struct executable *x, off_t off, int number_of_sections)
 	const struct pe_section_header *psh;
 	int i;
 
-	range_check(x, off, sizeof(*psh) * number_of_sections,
-	    "section table");
+	range_check(x, off, sizeof(*psh) * number_of_sections, "section table");
 
 	if (x->x_headers_len < off + sizeof(*psh) * number_of_sections)
 		errx(1, "section table outside of headers");
@@ -259,13 +262,13 @@ parse_section_table(struct executable *x, off_t off, int number_of_sections)
 }
 
 static void
-parse_directory(struct executable *x, off_t off,
-    int number_of_rva_and_sizes, int number_of_sections)
+parse_directory(struct executable *x, off_t off, int number_of_rva_and_sizes,
+    int number_of_sections)
 {
-	//int i;
+	// int i;
 	const struct pe_directory_entry *pde;
 
-	//printf("Data Directory at offset %zd\n", off);
+	// printf("Data Directory at offset %zd\n", off);
 
 	if (number_of_rva_and_sizes <= PE_DIRECTORY_ENTRY_CERTIFICATE) {
 		errx(1, "wrong NumberOfRvaAndSizes %d; should be at least %d",
@@ -277,8 +280,8 @@ parse_directory(struct executable *x, off_t off,
 	if (x->x_headers_len <= off + sizeof(*pde) * number_of_rva_and_sizes)
 		errx(1, "PE Data Directory outside of headers");
 
-	x->x_certificate_entry_off =
-	    off + sizeof(*pde) * PE_DIRECTORY_ENTRY_CERTIFICATE;
+	x->x_certificate_entry_off = off +
+	    sizeof(*pde) * PE_DIRECTORY_ENTRY_CERTIFICATE;
 	x->x_certificate_entry_len = sizeof(*pde);
 #if 0
 	printf("certificate directory entry at offset %zd, len %zd\n",
@@ -345,13 +348,12 @@ compute_checksum(const struct executable *x)
 }
 
 static void
-parse_optional_32_plus(struct executable *x, off_t off,
-    int number_of_sections)
+parse_optional_32_plus(struct executable *x, off_t off, int number_of_sections)
 {
 #if 0
 	uint32_t computed_checksum;
 #endif
-	const struct pe_optional_header_32_plus	*po;
+	const struct pe_optional_header_32_plus *po;
 
 	range_check(x, off, sizeof(*po), "PE Optional Header");
 
@@ -388,7 +390,7 @@ parse_optional_32_plus(struct executable *x, off_t off,
 	if (x->x_len < x->x_headers_len)
 		errx(1, "invalid SizeOfHeaders %d", po->po_size_of_headers);
 	x->x_headers_len = po->po_size_of_headers;
-	//printf("Size of Headers: %d\n", po->po_size_of_headers);
+	// printf("Size of Headers: %d\n", po->po_size_of_headers);
 
 	return (parse_directory(x, off + sizeof(*po),
 	    po->po_number_of_rva_and_sizes, number_of_sections));
@@ -437,7 +439,7 @@ parse_optional_32(struct executable *x, off_t off, int number_of_sections)
 	if (x->x_len < x->x_headers_len)
 		errx(1, "invalid SizeOfHeaders %d", po->po_size_of_headers);
 	x->x_headers_len = po->po_size_of_headers;
-	//printf("Size of Headers: %d\n", po->po_size_of_headers);
+	// printf("Size of Headers: %d\n", po->po_size_of_headers);
 
 	return (parse_directory(x, off + sizeof(*po),
 	    po->po_number_of_rva_and_sizes, number_of_sections));
@@ -448,7 +450,7 @@ parse_optional(struct executable *x, off_t off, int number_of_sections)
 {
 	const struct pe_optional_header_32 *po;
 
-	//printf("Optional header offset %zd\n", off);
+	// printf("Optional header offset %zd\n", off);
 
 	range_check(x, off, sizeof(*po), "PE Optional Header");
 
@@ -469,7 +471,7 @@ parse_pe(struct executable *x, off_t off)
 {
 	const struct pe_header *pe;
 
-	//printf("PE offset %zd, PE size %zd\n", off, sizeof(*pe));
+	// printf("PE offset %zd, PE size %zd\n", off, sizeof(*pe));
 
 	range_check(x, off, sizeof(*pe), "PE header");
 
@@ -477,7 +479,8 @@ parse_pe(struct executable *x, off_t off)
 	if (pe->pe_signature != PE_SIGNATURE)
 		errx(1, "wrong PE signature 0x%x", pe->pe_signature);
 
-	//printf("Number of sections: %d\n", pe->pe_coff.coff_number_of_sections);
+	// printf("Number of sections: %d\n",
+	// pe->pe_coff.coff_number_of_sections);
 
 	parse_optional(x, off + sizeof(*pe),
 	    pe->pe_coff.coff_number_of_sections);

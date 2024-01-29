@@ -32,9 +32,9 @@
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 
-#include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
 #include <jail.h>
@@ -49,9 +49,9 @@
 
 extern char **environ;
 
-static void	get_user_info(const char *username, const struct passwd **pwdp,
+static void get_user_info(const char *username, const struct passwd **pwdp,
     login_cap_t **lcapp);
-static void	usage(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -120,15 +120,16 @@ main(int argc, char *argv[])
 		}
 		if (setgid(pwd->pw_gid) != 0)
 			err(1, "setgid");
-		if (setusercontext(lcap, pwd, pwd->pw_uid, username
-		    ? LOGIN_SETALL & ~LOGIN_SETGROUP & ~LOGIN_SETLOGIN
-		    : LOGIN_SETPATH | LOGIN_SETENV) != 0)
+		if (setusercontext(lcap, pwd, pwd->pw_uid,
+			username ?
+			    LOGIN_SETALL & ~LOGIN_SETGROUP & ~LOGIN_SETLOGIN :
+			    LOGIN_SETPATH | LOGIN_SETENV) != 0)
 			err(1, "setusercontext");
 		login_close(lcap);
 		setenv("USER", pwd->pw_name, 1);
 		setenv("HOME", pwd->pw_dir, 1);
-		setenv("SHELL",
-		    *pwd->pw_shell ? pwd->pw_shell : _PATH_BSHELL, 1);
+		setenv("SHELL", *pwd->pw_shell ? pwd->pw_shell : _PATH_BSHELL,
+		    1);
 		if (clean && chdir(pwd->pw_dir) < 0)
 			err(1, "chdir: %s", pwd->pw_dir);
 		endpwent();

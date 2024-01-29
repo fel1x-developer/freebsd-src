@@ -26,22 +26,23 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_geom.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/bio.h>
 #include <sys/ctype.h>
-#include <sys/malloc.h>
+#include <sys/kernel.h>
 #include <sys/libkern.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/sbuf.h>
 #include <sys/stddef.h>
 #include <sys/sysctl.h>
+
 #include <geom/geom.h>
 #include <geom/geom_dbg.h>
 #include <geom/geom_slice.h>
@@ -65,20 +66,18 @@ static void g_label_generic_taste(struct g_consumer *, char *, size_t);
 static void g_label_config(struct gctl_req *req, struct g_class *mp,
     const char *verb);
 
-#define	G_LABEL_DIRPREFIX	"label/"
+#define G_LABEL_DIRPREFIX "label/"
 
-struct g_class g_label_class = {
-	.name = G_LABEL_CLASS_NAME,
+struct g_class g_label_class = { .name = G_LABEL_CLASS_NAME,
 	.version = G_VERSION,
 	.ctlreq = g_label_config,
 	.taste = g_label_taste,
-	.destroy_geom = g_label_destroy_geom
-};
+	.destroy_geom = g_label_destroy_geom };
 
 static struct g_label_desc g_label_generic = {
-        .ld_taste = g_label_generic_taste,
-        .ld_dirprefix = G_LABEL_DIRPREFIX,
-        .ld_enabled = 1
+	.ld_taste = g_label_generic_taste,
+	.ld_dirprefix = G_LABEL_DIRPREFIX,
+	.ld_enabled = 1
 };
 
 /*
@@ -92,23 +91,13 @@ static struct g_label_desc g_label_generic = {
  * 5. Add your file to sys/modules/geom/geom_label/Makefile.
  * 6. Add your file system to manual page sbin/geom/class/label/glabel.8.
  */
-const struct g_label_desc *g_labels[] = {
-	&g_label_gpt,
-	&g_label_gpt_uuid,
+const struct g_label_desc *g_labels[] = { &g_label_gpt, &g_label_gpt_uuid,
 #ifdef GEOM_LABEL
-	&g_label_ufs_id,
-	&g_label_ufs_volume,
-	&g_label_iso9660,
-	&g_label_msdosfs,
-	&g_label_ext2fs,
-	&g_label_reiserfs,
-	&g_label_ntfs,
-	&g_label_disk_ident,
-	&g_label_flashmap,
+	&g_label_ufs_id, &g_label_ufs_volume, &g_label_iso9660,
+	&g_label_msdosfs, &g_label_ext2fs, &g_label_reiserfs, &g_label_ntfs,
+	&g_label_disk_ident, &g_label_flashmap,
 #endif
-	&g_label_generic,
-	NULL
-};
+	&g_label_generic, NULL };
 
 void
 g_label_rtrim(char *label, size_t size)
@@ -206,7 +195,7 @@ g_label_mangle_name(char *label, size_t size)
 		/* Trim leading whitespace. */
 		if (isspace(*c) && sbuf_len(sb) == 0)
 			continue;
-		if (!isprint(*c) || isspace(*c) || *c =='"' || *c == '%')
+		if (!isprint(*c) || isspace(*c) || *c == '"' || *c == '%')
 			sbuf_printf(sb, "%%%02X", *c);
 		else
 			sbuf_putc(sb, *c);
@@ -239,12 +228,13 @@ g_label_create(struct gctl_req *req, struct g_class *mp, struct g_provider *pp,
 	}
 	gp = NULL;
 	cp = NULL;
-	if (snprintf(name, sizeof(name), "%s%s", dirprefix, label) >= sizeof(name)) {
+	if (snprintf(name, sizeof(name), "%s%s", dirprefix, label) >=
+	    sizeof(name)) {
 		if (req != NULL)
 			gctl_error(req, "Label name %s is too long.", label);
 		return (NULL);
 	}
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		pp2 = LIST_FIRST(&gp->provider);
 		if (pp2 == NULL)
 			continue;
@@ -286,8 +276,10 @@ g_label_destroy(struct g_geom *gp, boolean_t force)
 	pp = LIST_FIRST(&gp->provider);
 	if (pp != NULL && (pp->acr != 0 || pp->acw != 0 || pp->ace != 0)) {
 		if (force) {
-			G_LABEL_DEBUG(0, "Provider %s is still open, so it "
-			    "can't be definitely removed.", pp->name);
+			G_LABEL_DEBUG(0,
+			    "Provider %s is still open, so it "
+			    "can't be definitely removed.",
+			    pp->name);
 		} else {
 			G_LABEL_DEBUG(1,
 			    "Provider %s is still open (r%dw%de%d).", pp->name,
@@ -362,7 +354,7 @@ g_label_generic_taste(struct g_consumer *cp, char *label, size_t size)
 
 	if (md.md_version > G_LABEL_VERSION) {
 		printf("geom_label.ko module is too old to handle %s.\n",
-			pp->name);
+		    pp->name);
 		return;
 	}
 	/*
@@ -425,8 +417,8 @@ g_label_taste(struct g_class *mp, struct g_provider *pp, int flags __unused)
 		} else {
 			mediasize = pp->mediasize - pp->sectorsize;
 		}
-		g_label_create(NULL, mp, pp, label,
-		    g_labels[i]->ld_dirprefix, mediasize);
+		g_label_create(NULL, mp, pp, label, g_labels[i]->ld_dirprefix,
+		    mediasize);
 	}
 	g_access(cp, -1, 0, 0);
 end:
@@ -481,7 +473,7 @@ g_label_skip_dir(const char *name)
 		name += strlen(_PATH_DEV);
 	for (i = 0; g_labels[i] != NULL; i++) {
 		if (strncmp(name, g_labels[i]->ld_dirprefix,
-		    strlen(g_labels[i]->ld_dirprefix)) == 0) {
+			strlen(g_labels[i]->ld_dirprefix)) == 0) {
 			name += strlen(g_labels[i]->ld_dirprefix);
 			break;
 		}
@@ -497,7 +489,7 @@ g_label_find_geom(struct g_class *mp, const char *name)
 	const char *pname;
 
 	name = g_label_skip_dir(name);
-	LIST_FOREACH(gp, &mp->geom, geom) {
+	LIST_FOREACH (gp, &mp->geom, geom) {
 		pp = LIST_FIRST(&gp->provider);
 		pname = g_label_skip_dir(pp->name);
 		if (strcmp(pname, name) == 0)
@@ -573,8 +565,7 @@ g_label_config(struct gctl_req *req, struct g_class *mp, const char *verb)
 	if (strcmp(verb, "create") == 0) {
 		g_label_ctl_create(req, mp);
 		return;
-	} else if (strcmp(verb, "destroy") == 0 ||
-	    strcmp(verb, "stop") == 0) {
+	} else if (strcmp(verb, "destroy") == 0 || strcmp(verb, "stop") == 0) {
 		g_label_ctl_destroy(req, mp);
 		return;
 	}

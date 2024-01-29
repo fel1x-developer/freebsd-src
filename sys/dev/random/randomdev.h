@@ -25,7 +25,7 @@
  */
 
 #ifndef SYS_DEV_RANDOM_RANDOMDEV_H_INCLUDED
-#define	SYS_DEV_RANDOM_RANDOMDEV_H_INCLUDED
+#define SYS_DEV_RANDOM_RANDOMDEV_H_INCLUDED
 
 #ifdef _KERNEL
 
@@ -33,23 +33,22 @@
  * and non algorithm-specific for the entropy processor
  */
 
-#ifdef SYSCTL_DECL	/* from sysctl.h */
+#ifdef SYSCTL_DECL /* from sysctl.h */
 SYSCTL_DECL(_kern_random);
 SYSCTL_DECL(_kern_random_initial_seeding);
 
-#define	RANDOM_CHECK_UINT(name, min, max)				\
-static int								\
-random_check_uint_##name(SYSCTL_HANDLER_ARGS)				\
-{									\
-	if (oidp->oid_arg1 != NULL) {					\
-		if (*(u_int *)(oidp->oid_arg1) <= (min))		\
-			*(u_int *)(oidp->oid_arg1) = (min);		\
-		else if (*(u_int *)(oidp->oid_arg1) > (max))		\
-			*(u_int *)(oidp->oid_arg1) = (max);		\
-	}								\
-	return (sysctl_handle_int(oidp, oidp->oid_arg1, oidp->oid_arg2,	\
-		req));							\
-}
+#define RANDOM_CHECK_UINT(name, min, max)                            \
+	static int random_check_uint_##name(SYSCTL_HANDLER_ARGS)     \
+	{                                                            \
+		if (oidp->oid_arg1 != NULL) {                        \
+			if (*(u_int *)(oidp->oid_arg1) <= (min))     \
+				*(u_int *)(oidp->oid_arg1) = (min);  \
+			else if (*(u_int *)(oidp->oid_arg1) > (max)) \
+				*(u_int *)(oidp->oid_arg1) = (max);  \
+		}                                                    \
+		return (sysctl_handle_int(oidp, oidp->oid_arg1,      \
+		    oidp->oid_arg2, req));                           \
+	}
 #endif /* SYSCTL_DECL */
 
 MALLOC_DECLARE(M_ENTROPY);
@@ -75,19 +74,19 @@ typedef u_int random_source_read_t(void *, u_int);
  * and for userland.
  */
 struct random_algorithm {
-	const char			*ra_ident;
-	u_int				 ra_poolcount;
-	random_alg_pre_read_t		*ra_pre_read;
-	random_alg_read_t		*ra_read;
-	random_alg_seeded_t		*ra_seeded;
-	random_alg_eventprocessor_t	*ra_event_processor;
+	const char *ra_ident;
+	u_int ra_poolcount;
+	random_alg_pre_read_t *ra_pre_read;
+	random_alg_read_t *ra_read;
+	random_alg_seeded_t *ra_seeded;
+	random_alg_eventprocessor_t *ra_event_processor;
 };
 
 #if defined(RANDOM_LOADABLE)
 extern const struct random_algorithm *p_random_alg_context;
 #else
 extern const struct random_algorithm random_alg_context;
-#define	p_random_alg_context (&random_alg_context)
+#define p_random_alg_context (&random_alg_context)
 #endif
 
 #ifdef _KERNEL
@@ -98,9 +97,9 @@ extern const struct random_algorithm random_alg_context;
  * upon request.
  */
 struct random_source {
-	const char			*rs_ident;
-	enum random_entropy_source	 rs_source;
-	random_source_read_t		*rs_read;
+	const char *rs_ident;
+	enum random_entropy_source rs_source;
+	random_source_read_t *rs_read;
 };
 
 void random_source_register(struct random_source *);

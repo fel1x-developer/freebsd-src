@@ -35,27 +35,26 @@
 /*	The copyright notice above does not evidence any   	*/
 /*	actual or intended publication of such source code.	*/
 
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-*	PROPRIETARY NOTICE (Combined)
-*
-* This source code is unpublished proprietary information
-* constituting, or derived under license from AT&T's UNIX(r) System V.
-* In addition, portions of such source code were derived from Berkeley
-* 4.3 BSD under license from the Regents of the University of
-* California.
-*
-*
-*
-*	Copyright Notice
-*
-* Notice of copyright on this source code product does not indicate
-*  publication.
-*
-*	(c) 1986,1987,1988.1989  Sun Microsystems, Inc
-*	(c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
-*          All rights reserved.
-*/
+ *	PROPRIETARY NOTICE (Combined)
+ *
+ * This source code is unpublished proprietary information
+ * constituting, or derived under license from AT&T's UNIX(r) System V.
+ * In addition, portions of such source code were derived from Berkeley
+ * 4.3 BSD under license from the Regents of the University of
+ * California.
+ *
+ *
+ *
+ *	Copyright Notice
+ *
+ * Notice of copyright on this source code product does not indicate
+ *  publication.
+ *
+ *	(c) 1986,1987,1988.1989  Sun Microsystems, Inc
+ *	(c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
+ *          All rights reserved.
+ */
 
 /*
  * rpc_parse.h, Definitions for the RPCL parser
@@ -74,10 +73,10 @@ typedef enum defkind defkind;
 typedef const char *const_def;
 
 enum relation {
-	REL_VECTOR,	/* fixed length array */
-	REL_ARRAY,	/* variable length array */
-	REL_POINTER,	/* pointer */
-	REL_ALIAS,	/* simple */
+	REL_VECTOR,  /* fixed length array */
+	REL_ARRAY,   /* variable length array */
+	REL_POINTER, /* pointer */
+	REL_ALIAS,   /* simple */
 };
 typedef enum relation relation;
 
@@ -140,7 +139,7 @@ struct arg_list {
 	char *argname; /* name of struct for arg*/
 	decl_list *decls;
 };
-	
+
 typedef struct arg_list arg_list;
 
 struct proc_list {
@@ -184,12 +183,10 @@ typedef struct definition definition;
 
 definition *get_definition(void);
 
-
-struct bas_type
-{
-  const char *name;
-  int length;
-  struct bas_type *next;
+struct bas_type {
+	const char *name;
+	int length;
+	struct bas_type *next;
 };
 
 typedef struct bas_type bas_type;

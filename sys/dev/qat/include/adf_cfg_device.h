@@ -38,45 +38,40 @@
 #define ADF_CFG_STATIC_CONF_USER_INST_NUM_CY_VF 2
 #define ADF_CFG_STATIC_CONF_USER_INST_NUM_DC_VF 2
 
-#define ADF_CFG_FW_STRING_TO_ID(str, acc, id)                                  \
-	do {                                                                   \
-		typeof(id) id_ = (id);                                         \
-		typeof(str) str_;                                              \
-		memcpy(str_, (str), sizeof(str_));                             \
-		if (!strncmp(str_,                                             \
-			     ADF_SERVICES_DEFAULT,                             \
-			     sizeof(ADF_SERVICES_DEFAULT)))                    \
-			*id_ = ADF_FW_IMAGE_DEFAULT;                           \
-		else if (!strncmp(str_,                                        \
-				  ADF_SERVICES_CRYPTO,                         \
-				  sizeof(ADF_SERVICES_CRYPTO)))                \
-			*id_ = ADF_FW_IMAGE_CRYPTO;                            \
-		else if (!strncmp(str_,                                        \
-				  ADF_SERVICES_COMPRESSION,                    \
-				  sizeof(ADF_SERVICES_COMPRESSION)))           \
-			*id_ = ADF_FW_IMAGE_COMPRESSION;                       \
-		else if (!strncmp(str_,                                        \
-				  ADF_SERVICES_CUSTOM1,                        \
-				  sizeof(ADF_SERVICES_CUSTOM1)))               \
-			*id_ = ADF_FW_IMAGE_CUSTOM1;                           \
-		else {                                                         \
-			*id_ = ADF_FW_IMAGE_DEFAULT;                           \
-			device_printf(GET_DEV(acc),                            \
-				      "Invalid SerivesProfile: %s,"            \
-				      "Using DEFAULT image\n",                 \
-				      str_);                                   \
-		}                                                              \
+#define ADF_CFG_FW_STRING_TO_ID(str, acc, id)                     \
+	do {                                                      \
+		typeof(id) id_ = (id);                            \
+		typeof(str) str_;                                 \
+		memcpy(str_, (str), sizeof(str_));                \
+		if (!strncmp(str_, ADF_SERVICES_DEFAULT,          \
+			sizeof(ADF_SERVICES_DEFAULT)))            \
+			*id_ = ADF_FW_IMAGE_DEFAULT;              \
+		else if (!strncmp(str_, ADF_SERVICES_CRYPTO,      \
+			     sizeof(ADF_SERVICES_CRYPTO)))        \
+			*id_ = ADF_FW_IMAGE_CRYPTO;               \
+		else if (!strncmp(str_, ADF_SERVICES_COMPRESSION, \
+			     sizeof(ADF_SERVICES_COMPRESSION)))   \
+			*id_ = ADF_FW_IMAGE_COMPRESSION;          \
+		else if (!strncmp(str_, ADF_SERVICES_CUSTOM1,     \
+			     sizeof(ADF_SERVICES_CUSTOM1)))       \
+			*id_ = ADF_FW_IMAGE_CUSTOM1;              \
+		else {                                            \
+			*id_ = ADF_FW_IMAGE_DEFAULT;              \
+			device_printf(GET_DEV(acc),               \
+			    "Invalid SerivesProfile: %s,"         \
+			    "Using DEFAULT image\n",              \
+			    str_);                                \
+		}                                                 \
 	} while (0)
 
 int adf_cfg_get_ring_pairs(struct adf_cfg_device *device,
-			   struct adf_cfg_instance *inst,
-			   const char *process_name,
-			   struct adf_accel_dev *accel_dev);
+    struct adf_cfg_instance *inst, const char *process_name,
+    struct adf_accel_dev *accel_dev);
 
 int adf_cfg_device_init(struct adf_cfg_device *device,
-			struct adf_accel_dev *accel_dev);
+    struct adf_accel_dev *accel_dev);
 
 void adf_cfg_device_clear(struct adf_cfg_device *device,
-			  struct adf_accel_dev *accel_dev);
+    struct adf_accel_dev *accel_dev);
 
 #endif

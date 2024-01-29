@@ -33,31 +33,33 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+
 #include <db.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <paths.h>
+#include <rpcsvc/yp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <sys/param.h>
-#include <rpcsvc/yp.h>
+
 #include "yp_extern.h"
 
 int ypdb_debug = 0;
 enum ypstat yp_errno = YP_TRUE;
 
-#define PERM_SECURE (S_IRUSR|S_IWUSR)
+#define PERM_SECURE (S_IRUSR | S_IWUSR)
 HASHINFO openinfo = {
-	4096,		/* bsize */
-	32,		/* ffactor */
-	256,		/* nelem */
-	2048 * 512, 	/* cachesize */
-	NULL,		/* hash */
-	0,		/* lorder */
+	4096,	    /* bsize */
+	32,	    /* ffactor */
+	256,	    /* nelem */
+	2048 * 512, /* cachesize */
+	NULL,	    /* hash */
+	0,	    /* lorder */
 };
 
 #ifdef DB_CACHE
@@ -105,18 +107,18 @@ yp_malloc_qent(void)
 	q = malloc(sizeof(struct circleq_entry));
 	if (q == NULL) {
 		yp_error("failed to malloc() circleq entry");
-		return(NULL);
+		return (NULL);
 	}
 	bzero((char *)q, sizeof(struct circleq_entry));
 	q->dbptr = malloc(sizeof(struct dbent));
 	if (q->dbptr == NULL) {
 		yp_error("failed to malloc() circleq entry");
 		free(q);
-		return(NULL);
+		return (NULL);
 	}
 	bzero((char *)q->dbptr, sizeof(struct dbent));
 
-	return(q);
+	return (q);
 }
 
 /*
@@ -184,7 +186,6 @@ yp_flush_all(void)
 		yp_free_qent(qptr);
 	}
 	numdbs = 0;
-
 }
 
 static char *inter_string = "YP_INTERDOMAIN";
@@ -210,7 +211,7 @@ yp_setflags(DB *dbp)
 	if (!(dbp->get)(dbp, &key, &data, 0))
 		flags |= YP_SECURE;
 
-	return(flags);
+	return (flags);
 }
 
 int
@@ -220,28 +221,28 @@ yp_testflag(char *map, char *domain, int flag)
 	register struct circleq_entry *qptr;
 
 	if (map == NULL || domain == NULL)
-		return(0);
+		return (0);
 
 	strcpy(buf, domain);
 	strcat(buf, "/");
 	strcat(buf, map);
 
-	TAILQ_FOREACH(qptr, &qhead, links) {
+	TAILQ_FOREACH (qptr, &qhead, links) {
 		if (!strcmp(qptr->dbptr->name, buf)) {
 			if (qptr->dbptr->flags & flag)
-				return(1);
+				return (1);
 			else
-				return(0);
+				return (0);
 		}
 	}
 
 	if (yp_open_db_cache(domain, map, NULL, 0) == NULL)
-		return(0);
+		return (0);
 
 	if (TAILQ_FIRST(&qhead)->dbptr->flags & flag)
-		return(1);
+		return (1);
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -267,7 +268,7 @@ yp_cache_db(DB *dbp, char *name, int size)
 
 	if ((qptr = yp_malloc_qent()) == NULL) {
 		yp_error("failed to allocate a new cache entry");
-		return(1);
+		return (1);
 	}
 
 	qptr->dbptr->dbp = dbp;
@@ -280,7 +281,7 @@ yp_cache_db(DB *dbp, char *name, int size)
 	TAILQ_INSERT_HEAD(&qhead, qptr, links);
 	numdbs++;
 
-	return(0);
+	return (0);
 }
 
 /*
@@ -314,11 +315,11 @@ yp_find_db(const char *name, const char *key, int size)
 {
 	register struct circleq_entry *qptr;
 
-	TAILQ_FOREACH(qptr, &qhead, links) {
+	TAILQ_FOREACH (qptr, &qhead, links) {
 		if (!strcmp(qptr->dbptr->name, name)) {
 			if (size) {
 				if (size != qptr->dbptr->size ||
-				   strncmp(qptr->dbptr->key, key, size))
+				    strncmp(qptr->dbptr->key, key, size))
 					continue;
 			} else {
 				if (qptr->dbptr->size)
@@ -328,11 +329,11 @@ yp_find_db(const char *name, const char *key, int size)
 				TAILQ_REMOVE(&qhead, qptr, links);
 				TAILQ_INSERT_HEAD(&qhead, qptr, links);
 			}
-			return(qptr->dbptr->dbp);
+			return (qptr->dbptr->dbp);
 		}
 	}
 
-	return(NULL);
+	return (NULL);
 }
 
 /*
@@ -347,9 +348,9 @@ yp_open_db_cache(const char *domain, const char *map, const char *key,
 {
 	DB *dbp = NULL;
 	char buf[MAXPATHLEN + 2];
-/*
-	snprintf(buf, sizeof(buf), "%s/%s", domain, map);
-*/
+	/*
+		snprintf(buf, sizeof(buf), "%s/%s", domain, map);
+	*/
 	yp_errno = YP_TRUE;
 
 	strcpy(buf, domain);
@@ -357,13 +358,13 @@ yp_open_db_cache(const char *domain, const char *map, const char *key,
 	strcat(buf, map);
 
 	if ((dbp = yp_find_db(buf, key, size)) != NULL) {
-		return(dbp);
+		return (dbp);
 	} else {
 		if ((dbp = yp_open_db(domain, map)) != NULL) {
 			if (yp_cache_db(dbp, buf, size)) {
 				(void)(dbp->close)(dbp);
 				yp_errno = YP_YPERR;
-				return(NULL);
+				return (NULL);
 			}
 		}
 	}
@@ -391,7 +392,7 @@ yp_open_db(const char *domain, const char *map)
 #ifdef DB_CACHE
 	if (yp_validdomain(domain)) {
 		yp_errno = YP_NODOM;
-		return(NULL);
+		return (NULL);
 	}
 #endif
 	snprintf(buf, sizeof(buf), "%s/%s/%s", yp_dir, domain, map);
@@ -446,8 +447,8 @@ int
 yp_get_record(DB *dbp, const DBT *key, DBT *data, int allow)
 #else
 int
-yp_get_record(const char *domain, const char *map,
-    const DBT *key, DBT *data, int allow)
+yp_get_record(const char *domain, const char *map, const DBT *key, DBT *data,
+    int allow)
 #endif
 {
 #ifndef DB_CACHE
@@ -459,8 +460,8 @@ yp_get_record(const char *domain, const char *map,
 #endif
 
 	if (ypdb_debug)
-		yp_error("looking up key [%.*s]",
-		    (int)key->size, (char *)key->data);
+		yp_error("looking up key [%.*s]", (int)key->size,
+		    (char *)key->data);
 
 	/*
 	 * Avoid passing back magic "YP_*" entries unless
@@ -468,11 +469,11 @@ yp_get_record(const char *domain, const char *map,
 	 * the 'allow' flag.
 	 */
 	if (!allow && !strncmp(key->data, "YP_", 3))
-		return(YP_NOKEY);
+		return (YP_NOKEY);
 
 #ifndef DB_CACHE
 	if ((dbp = yp_open_db(domain, map)) == NULL) {
-		return(yp_errno);
+		return (yp_errno);
 	}
 #endif
 
@@ -483,15 +484,15 @@ yp_get_record(const char *domain, const char *map,
 		(void)(dbp->close)(dbp);
 #endif
 		if (rval == 1)
-			return(YP_NOKEY);
+			return (YP_NOKEY);
 		else
-			return(YP_BADDB);
+			return (YP_BADDB);
 	}
 
 	if (ypdb_debug)
 		yp_error("result of lookup: key: [%.*s] data: [%.*s]",
-		    (int)key->size, (char *)key->data,
-		    (int)data->size, (char *)data->data);
+		    (int)key->size, (char *)key->data, (int)data->size,
+		    (char *)data->data);
 
 #ifdef DB_CACHE
 	if (TAILQ_FIRST(&qhead)->dbptr->size) {
@@ -504,7 +505,7 @@ yp_get_record(const char *domain, const char *map,
 	(void)(dbp->close)(dbp);
 #endif
 
-	return(YP_TRUE);
+	return (YP_TRUE);
 }
 
 int
@@ -518,33 +519,33 @@ yp_first_record(const DB *dbp, DBT *key, DBT *data, int allow)
 	if (ypdb_debug)
 		yp_error("retrieving first key in map");
 
-	if ((rval = (dbp->seq)(dbp,key,data,R_FIRST)) != 0) {
+	if ((rval = (dbp->seq)(dbp, key, data, R_FIRST)) != 0) {
 #ifdef DB_CACHE
 		TAILQ_FIRST(&qhead)->dbptr->size = 0;
 #endif
 		if (rval == 1)
-			return(YP_NOKEY);
+			return (YP_NOKEY);
 		else
-			return(YP_BADDB);
+			return (YP_BADDB);
 	}
 
 	/* Avoid passing back magic "YP_*" records. */
 	while (!strncmp(key->data, "YP_", 3) && !allow) {
-		if ((rval = (dbp->seq)(dbp,key,data,R_NEXT)) != 0) {
+		if ((rval = (dbp->seq)(dbp, key, data, R_NEXT)) != 0) {
 #ifdef DB_CACHE
 			TAILQ_FIRST(&qhead)->dbptr->size = 0;
 #endif
 			if (rval == 1)
-				return(YP_NOKEY);
+				return (YP_NOKEY);
 			else
-				return(YP_BADDB);
+				return (YP_BADDB);
 		}
 	}
 
 	if (ypdb_debug)
 		yp_error("result of lookup: key: [%.*s] data: [%.*s]",
-		    (int)key->size, (char *)key->data,
-		    (int)data->size, (char *)data->data);
+		    (int)key->size, (char *)key->data, (int)data->size,
+		    (char *)data->data);
 
 #ifdef DB_CACHE
 	if (TAILQ_FIRST(&qhead)->dbptr->size) {
@@ -556,7 +557,7 @@ yp_first_record(const DB *dbp, DBT *key, DBT *data, int allow)
 	data->data = &buf;
 #endif
 
-	return(YP_TRUE);
+	return (YP_TRUE);
 }
 
 int
@@ -571,15 +572,15 @@ yp_next_record(const DB *dbp, DBT *key, DBT *data, int all, int allow)
 #endif
 
 	if (key == NULL || !key->size || key->data == NULL) {
-		rval = yp_first_record(dbp,key,data,allow);
+		rval = yp_first_record(dbp, key, data, allow);
 		if (rval == YP_NOKEY)
-			return(YP_NOMORE);
+			return (YP_NOMORE);
 		else {
 #ifdef DB_CACHE
 			TAILQ_FIRST(&qhead)->dbptr->key = key->data;
 			TAILQ_FIRST(&qhead)->dbptr->size = key->size;
 #endif
-			return(rval);
+			return (rval);
 		}
 	}
 
@@ -591,15 +592,14 @@ yp_next_record(const DB *dbp, DBT *key, DBT *data, int all, int allow)
 #ifdef DB_CACHE
 		if (TAILQ_FIRST(&qhead)->dbptr->key == NULL) {
 #endif
-			(dbp->seq)(dbp,&lkey,&ldata,R_FIRST);
+			(dbp->seq)(dbp, &lkey, &ldata, R_FIRST);
 			while (key->size != lkey.size ||
-			    strncmp(key->data, lkey.data,
-			    (int)key->size))
-				if ((dbp->seq)(dbp,&lkey,&ldata,R_NEXT)) {
+			    strncmp(key->data, lkey.data, (int)key->size))
+				if ((dbp->seq)(dbp, &lkey, &ldata, R_NEXT)) {
 #ifdef DB_CACHE
 					TAILQ_FIRST(&qhead)->dbptr->size = 0;
 #endif
-					return(YP_NOKEY);
+					return (YP_NOKEY);
 				}
 
 #ifdef DB_CACHE
@@ -607,26 +607,26 @@ yp_next_record(const DB *dbp, DBT *key, DBT *data, int all, int allow)
 #endif
 	}
 
-	if ((dbp->seq)(dbp,key,data,R_NEXT)) {
+	if ((dbp->seq)(dbp, key, data, R_NEXT)) {
 #ifdef DB_CACHE
 		TAILQ_FIRST(&qhead)->dbptr->size = 0;
 #endif
-		return(YP_NOMORE);
+		return (YP_NOMORE);
 	}
 
 	/* Avoid passing back magic "YP_*" records. */
 	while (!strncmp(key->data, "YP_", 3) && !allow)
-		if ((dbp->seq)(dbp,key,data,R_NEXT)) {
+		if ((dbp->seq)(dbp, key, data, R_NEXT)) {
 #ifdef DB_CACHE
-		TAILQ_FIRST(&qhead)->dbptr->size = 0;
+			TAILQ_FIRST(&qhead)->dbptr->size = 0;
 #endif
-			return(YP_NOMORE);
+			return (YP_NOMORE);
 		}
 
 	if (ypdb_debug)
 		yp_error("result of lookup: key: [%.*s] data: [%.*s]",
-		    (int)key->size, (char *)key->data,
-		    (int)data->size, (char *)data->data);
+		    (int)key->size, (char *)key->data, (int)data->size,
+		    (char *)data->data);
 
 #ifdef DB_CACHE
 	if (TAILQ_FIRST(&qhead)->dbptr->size) {
@@ -641,7 +641,7 @@ yp_next_record(const DB *dbp, DBT *key, DBT *data, int all, int allow)
 	data->data = &datbuf;
 #endif
 
-	return(YP_TRUE);
+	return (YP_TRUE);
 }
 
 #ifdef DB_CACHE
@@ -658,12 +658,11 @@ yp_select_map(char *map, char *domain, keydat *key, int allow)
 	if (key == NULL)
 		yp_currmap_db = yp_open_db_cache(domain, map, NULL, 0);
 	else
-		yp_currmap_db = yp_open_db_cache(domain, map,
-						 key->keydat_val,
-						 key->keydat_len);
+		yp_currmap_db = yp_open_db_cache(domain, map, key->keydat_val,
+		    key->keydat_len);
 
 	yp_allow_db = allow;
-	return(yp_errno);
+	return (yp_errno);
 }
 
 ypstat
@@ -675,15 +674,14 @@ yp_getbykey(keydat *key, valdat *val)
 	db_key.data = key->keydat_val;
 	db_key.size = key->keydat_len;
 
-	rval = yp_get_record(yp_currmap_db,
-				&db_key, &db_val, yp_allow_db);
+	rval = yp_get_record(yp_currmap_db, &db_key, &db_val, yp_allow_db);
 
 	if (rval == YP_TRUE) {
 		val->valdat_val = db_val.data;
 		val->valdat_len = db_val.size;
 	}
 
-	return(rval);
+	return (rval);
 }
 
 ypstat
@@ -701,7 +699,7 @@ yp_firstbykey(keydat *key, valdat *val)
 		val->valdat_len = db_val.size;
 	}
 
-	return(rval);
+	return (rval);
 }
 
 ypstat
@@ -722,6 +720,6 @@ yp_nextbykey(keydat *key, valdat *val)
 		val->valdat_len = db_val.size;
 	}
 
-	return(rval);
+	return (rval);
 }
 #endif

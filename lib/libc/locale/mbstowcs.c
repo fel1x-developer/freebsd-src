@@ -34,10 +34,12 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <wchar.h>
+
 #include "mblocal.h"
 
 size_t
-mbstowcs_l(wchar_t * __restrict pwcs, const char * __restrict s, size_t n, locale_t locale)
+mbstowcs_l(wchar_t *__restrict pwcs, const char *__restrict s, size_t n,
+    locale_t locale)
 {
 	static const mbstate_t initial;
 	mbstate_t mbs;
@@ -46,10 +48,11 @@ mbstowcs_l(wchar_t * __restrict pwcs, const char * __restrict s, size_t n, local
 
 	mbs = initial;
 	sp = s;
-	return (XLOCALE_CTYPE(locale)->__mbsnrtowcs(pwcs, &sp, SIZE_T_MAX, n, &mbs));
+	return (XLOCALE_CTYPE(locale)->__mbsnrtowcs(pwcs, &sp, SIZE_T_MAX, n,
+	    &mbs));
 }
 size_t
-mbstowcs(wchar_t * __restrict pwcs, const char * __restrict s, size_t n)
+mbstowcs(wchar_t *__restrict pwcs, const char *__restrict s, size_t n)
 {
 	return mbstowcs_l(pwcs, s, n, __get_locale());
 }

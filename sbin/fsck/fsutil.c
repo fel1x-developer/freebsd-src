@@ -36,8 +36,8 @@
 __RCSID("$NetBSD: fsutil.c,v 1.15 2006/06/05 16:52:05 christos Exp $");
 #endif /* not lint */
 #include <sys/param.h>
-#include <sys/stat.h>
 #include <sys/mount.h>
+#include <sys/stat.h>
 
 #include <err.h>
 #include <fstab.h>
@@ -109,16 +109,15 @@ static void
 vmsg(int fatal, const char *fmt, va_list ap)
 {
 	if (!fatal && preen)
-		(void) printf("%s: ", dev);
+		(void)printf("%s: ", dev);
 
-	(void) vprintf(fmt, ap);
+	(void)vprintf(fmt, ap);
 
 	if (fatal && preen)
-		(void) printf("\n");
+		(void)printf("\n");
 
 	if (fatal && preen) {
-		(void) printf(
-		    "%s: UNEXPECTED INCONSISTENCY; RUN %s MANUALLY.\n",
+		(void)printf("%s: UNEXPECTED INCONSISTENCY; RUN %s MANUALLY.\n",
 		    dev, getprogname());
 		exit(8);
 	}
@@ -197,7 +196,6 @@ emalloc(size_t s)
 	return (p);
 }
 
-
 void *
 erealloc(void *p, size_t s)
 {
@@ -208,7 +206,6 @@ erealloc(void *p, size_t s)
 		err(1, "realloc failed");
 	return (q);
 }
-
 
 char *
 estrdup(const char *s)

@@ -28,11 +28,12 @@
  */
 
 #include <sys/syscall.h>
+
 #include <machine/asm.h>
 
-#define	_SYSCALL(name)						\
-	mov	x8, SYS_ ## name;				\
-	svc	0
+#define _SYSCALL(name)      \
+	mov x8, SYS_##name; \
+	svc 0
 
 /*
  * Conditional jumps can only go up to one megabyte in either
@@ -40,21 +41,21 @@
  * to jump around to use more capable unconditional branch
  * instruction.
  */
-#define	PSEUDO(name)						\
-ENTRY(__sys_##name);						\
-	WEAK_REFERENCE(__sys_##name, _##name);			\
-	_SYSCALL(name);						\
-	b.cs	1f;						\
-	ret;							\
-1:	b	cerror;						\
-END(__sys_##name)
+#define PSEUDO(name)                           \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL(name);                        \
+	b.cs 1f;                               \
+	ret;                                   \
+	1 : b cerror;                          \
+	END(__sys_##name)
 
-#define	RSYSCALL(name)						\
-ENTRY(__sys_##name);						\
-	WEAK_REFERENCE(__sys_##name, name);			\
-	WEAK_REFERENCE(__sys_##name, _##name);			\
-	_SYSCALL(name);						\
-	b.cs	1f;						\
-	ret;							\
-1:	b	cerror;						\
-END(__sys_##name)
+#define RSYSCALL(name)                         \
+	ENTRY(__sys_##name);                   \
+	WEAK_REFERENCE(__sys_##name, name);    \
+	WEAK_REFERENCE(__sys_##name, _##name); \
+	_SYSCALL(name);                        \
+	b.cs 1f;                               \
+	ret;                                   \
+	1 : b cerror;                          \
+	END(__sys_##name)

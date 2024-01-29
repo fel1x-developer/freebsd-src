@@ -40,29 +40,29 @@
 #include <libutil.h>
 #include <limits.h>
 #include <locale.h>
+#include <regex.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <regex.h>
 #include <sysexits.h>
+#include <unistd.h>
 
-#define DEFLINE	1000			/* Default num lines per file. */
+#define DEFLINE 1000 /* Default num lines per file. */
 
-static off_t	 bytecnt;		/* Byte count to split on. */
-static long	 chunks;		/* Chunks count to split into. */
-static bool      clobber = true;        /* Whether to overwrite existing output files. */
-static long	 numlines;		/* Line count to split on. */
-static int	 file_open;		/* If a file open. */
-static int	 ifd = -1, ofd = -1;	/* Input/output file descriptors. */
-static char	 fname[MAXPATHLEN];	/* File name prefix. */
-static regex_t	 rgx;
-static int	 pflag;
-static bool	 dflag;
-static long	 sufflen = 2;		/* File name suffix length. */
-static bool	 autosfx = true;	/* Whether to auto-extend the suffix length. */
+static off_t bytecnt;	       /* Byte count to split on. */
+static long chunks;	       /* Chunks count to split into. */
+static bool clobber = true;    /* Whether to overwrite existing output files. */
+static long numlines;	       /* Line count to split on. */
+static int file_open;	       /* If a file open. */
+static int ifd = -1, ofd = -1; /* Input/output file descriptors. */
+static char fname[MAXPATHLEN]; /* File name prefix. */
+static regex_t rgx;
+static int pflag;
+static bool dflag;
+static long sufflen = 2;    /* File name suffix length. */
+static bool autosfx = true; /* Whether to auto-extend the suffix length. */
 
 static void newfile(void);
 static void split1(void);
@@ -80,10 +80,19 @@ main(int argc, char **argv)
 	setlocale(LC_ALL, "");
 
 	dflag = false;
-	while ((ch = getopt(argc, argv, "0::1::2::3::4::5::6::7::8::9::a:b:cdl:n:p:")) != -1)
+	while ((ch = getopt(argc, argv,
+		    "0::1::2::3::4::5::6::7::8::9::a:b:cdl:n:p:")) != -1)
 		switch (ch) {
-		case '0': case '1': case '2': case '3': case '4':
-		case '5': case '6': case '7': case '8': case '9':
+		case '0':
+		case '1':
+		case '2':
+		case '3':
+		case '4':
+		case '5':
+		case '6':
+		case '7':
+		case '8':
+		case '9':
 			/*
 			 * Undocumented kludge: split was originally designed
 			 * to take a number after a dash.
@@ -98,7 +107,7 @@ main(int argc, char **argv)
 				errx(EX_USAGE, "%c%s: line count is invalid",
 				    ch, optarg ? optarg : "");
 			break;
-		case 'a':		/* Suffix length */
+		case 'a': /* Suffix length */
 			sufflen = strtonum(optarg, 0, INT_MAX, &errstr);
 			if (errstr != NULL) {
 				errx(EX_USAGE, "%s: suffix length is %s",
@@ -111,28 +120,28 @@ main(int argc, char **argv)
 				autosfx = false;
 			}
 			break;
-		case 'b':		/* Byte count. */
+		case 'b': /* Byte count. */
 			if (expand_number(optarg, &bytecnt) != 0) {
 				errx(EX_USAGE, "%s: byte count is invalid",
 				    optarg);
 			}
 			break;
-		case 'c':               /* Continue, don't overwrite output files. */
+		case 'c': /* Continue, don't overwrite output files. */
 			clobber = false;
 			break;
-		case 'd':		/* Decimal suffix */
+		case 'd': /* Decimal suffix */
 			dflag = true;
 			break;
-		case 'l':		/* Line count. */
+		case 'l': /* Line count. */
 			if (numlines != 0)
 				usage();
 			numlines = strtonum(optarg, 1, LONG_MAX, &errstr);
 			if (errstr != NULL) {
-				errx(EX_USAGE, "%s: line count is %s",
-				    optarg, errstr);
+				errx(EX_USAGE, "%s: line count is %s", optarg,
+				    errstr);
 			}
 			break;
-		case 'n':		/* Chunks. */
+		case 'n': /* Chunks. */
 			chunks = strtonum(optarg, 1, LONG_MAX, &errstr);
 			if (errstr != NULL) {
 				errx(EX_USAGE, "%s: number of chunks is %s",
@@ -140,8 +149,8 @@ main(int argc, char **argv)
 			}
 			break;
 
-		case 'p':		/* pattern matching. */
-			error = regcomp(&rgx, optarg, REG_EXTENDED|REG_NOSUB);
+		case 'p': /* pattern matching. */
+			error = regcomp(&rgx, optarg, REG_EXTENDED | REG_NOSUB);
 			if (error != 0) {
 				regerror(error, &rgx, errbuf, sizeof(errbuf));
 				errx(EX_USAGE, "%s: regex is invalid: %s",
@@ -155,7 +164,7 @@ main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 
-	if (argc > 0) {			/* Input file. */
+	if (argc > 0) { /* Input file. */
 		if (strcmp(*argv, "-") == 0)
 			ifd = STDIN_FILENO;
 		else if ((ifd = open(*argv, O_RDONLY, 0)) < 0)
@@ -163,7 +172,7 @@ main(int argc, char **argv)
 		++argv;
 		--argc;
 	}
-	if (argc > 0) {			/* File name prefix. */
+	if (argc > 0) { /* File name prefix. */
 		if (strlcpy(fname, *argv, sizeof(fname)) >= sizeof(fname)) {
 			errx(EX_USAGE, "%s: file name prefix is too long",
 			    *argv);
@@ -187,15 +196,15 @@ main(int argc, char **argv)
 	if (bytecnt != 0 && chunks != 0)
 		usage();
 
-	if (ifd == -1)				/* Stdin by default. */
+	if (ifd == -1) /* Stdin by default. */
 		ifd = 0;
 
 	if (bytecnt != 0) {
 		split1();
-		exit (0);
+		exit(0);
 	} else if (chunks != 0) {
 		split3();
-		exit (0);
+		exit(0);
 	}
 	split2();
 	if (pflag)
@@ -331,15 +340,13 @@ split3(void)
 	}
 
 	if (chunks > sb.st_size) {
-		errx(1, "can't split into more than %d files",
-		    (int)sb.st_size);
+		errx(1, "can't split into more than %d files", (int)sb.st_size);
 		/* NOTREACHED */
 	}
 
 	bytecnt = sb.st_size / chunks;
 	split1();
 }
-
 
 /*
  * newfile --
@@ -368,12 +375,11 @@ newfile(void)
 	} else if (close(ofd) != 0)
 		err(1, "%s", fname);
 
-	again:
+again:
 	if (dflag) {
 		beg = '0';
 		end = '9';
-	}
-	else {
+	} else {
 		beg = 'a';
 		end = 'z';
 	}
@@ -389,7 +395,7 @@ newfile(void)
 	 * xzaab ... xzyzy, xzyzz, xzzaaaa, xzzaaab' and so on.
 	 */
 	if (!dflag && autosfx && (fpnt[0] == 'y') &&
-			strspn(fpnt+1, "z") == strlen(fpnt+1)) {
+	    strspn(fpnt + 1, "z") == strlen(fpnt + 1)) {
 		fpnt = fname + strlen(fname) - sufflen;
 		fpnt[sufflen + 2] = '\0';
 		fpnt[0] = end;
@@ -439,9 +445,9 @@ static void
 usage(void)
 {
 	(void)fprintf(stderr,
-"usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]\n"
-"       split [-cd] -b byte_count[K|k|M|m|G|g] [-a suffix_length] [file [prefix]]\n"
-"       split [-cd] -n chunk_count [-a suffix_length] [file [prefix]]\n"
-"       split [-cd] -p pattern [-a suffix_length] [file [prefix]]\n");
+	    "usage: split [-cd] [-l line_count] [-a suffix_length] [file [prefix]]\n"
+	    "       split [-cd] -b byte_count[K|k|M|m|G|g] [-a suffix_length] [file [prefix]]\n"
+	    "       split [-cd] -n chunk_count [-a suffix_length] [file [prefix]]\n"
+	    "       split [-cd] -p pattern [-a suffix_length] [file [prefix]]\n");
 	exit(EX_USAGE);
 }

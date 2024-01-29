@@ -57,21 +57,21 @@ typedef uint32_t HAL_DMA_ADDR;
 /*
  * Linker set writearounds for chip and RF backend registration.
  */
-#define	OS_DATA_SET(set, item)	DATA_SET(set, item)
-#define	OS_SET_DECLARE(set, ptype)	SET_DECLARE(set, ptype)
-#define	OS_SET_FOREACH(pvar, set)	SET_FOREACH(pvar, set)
+#define OS_DATA_SET(set, item) DATA_SET(set, item)
+#define OS_SET_DECLARE(set, ptype) SET_DECLARE(set, ptype)
+#define OS_SET_FOREACH(pvar, set) SET_FOREACH(pvar, set)
 
 /*
  * Delay n microseconds.
  */
-#define	OS_DELAY(_n)	DELAY(_n)
+#define OS_DELAY(_n) DELAY(_n)
 
-#define	OS_INLINE	__inline
-#define	OS_MEMZERO(_a, _n)	bzero((_a), (_n))
-#define	OS_MEMCPY(_d, _s, _n)	memcpy(_d,_s,_n)
-#define	OS_MEMCMP(_a, _b, _l)	memcmp((_a), (_b), (_l))
+#define OS_INLINE __inline
+#define OS_MEMZERO(_a, _n) bzero((_a), (_n))
+#define OS_MEMCPY(_d, _s, _n) memcpy(_d, _s, _n)
+#define OS_MEMCMP(_a, _b, _l) memcmp((_a), (_b), (_l))
 
-#define	abs(_a)		__builtin_abs(_a)
+#define abs(_a) __builtin_abs(_a)
 
 struct ath_hal;
 
@@ -88,11 +88,11 @@ struct ath_hal;
  * accesses and instead does it through the FreeBSD bus space code.
  */
 #if _BYTE_ORDER == _BIG_ENDIAN
-#define	OS_REG_UNSWAPPED(_reg) \
+#define OS_REG_UNSWAPPED(_reg)                    \
 	(((_reg) >= 0x4000 && (_reg) < 0x5000) || \
-	 ((_reg) >= 0x7000 && (_reg) < 0x8000))
+	    ((_reg) >= 0x7000 && (_reg) < 0x8000))
 #else /* _BYTE_ORDER == _LITTLE_ENDIAN */
-#define	OS_REG_UNSWAPPED(_reg)	(0)
+#define OS_REG_UNSWAPPED(_reg) (0)
 #endif /* _BYTE_ORDER */
 
 /*
@@ -102,12 +102,15 @@ struct ath_hal;
  *
  * These are simply placeholders for now.
  */
-#define	OS_REG_WRITE_BUFFER_ENABLE(_ah)		\
-	    do { } while (0)
-#define	OS_REG_WRITE_BUFFER_DISABLE(_ah)	\
-	    do { } while (0)
-#define	OS_REG_WRITE_BUFFER_FLUSH(_ah)		\
-	    do { } while (0)
+#define OS_REG_WRITE_BUFFER_ENABLE(_ah) \
+	do {                            \
+	} while (0)
+#define OS_REG_WRITE_BUFFER_DISABLE(_ah) \
+	do {                             \
+	} while (0)
+#define OS_REG_WRITE_BUFFER_FLUSH(_ah) \
+	do {                           \
+	} while (0)
 
 /*
  * Read and write barriers.  Some platforms require more strongly ordered
@@ -120,30 +123,28 @@ struct ath_hal;
  * Later on for SDIO/USB parts we will methodize this and make them no-ops;
  * register accesses will go via USB commands.
  */
-#define	OS_BUS_BARRIER_READ	BUS_SPACE_BARRIER_READ
-#define	OS_BUS_BARRIER_WRITE	BUS_SPACE_BARRIER_WRITE
-#define	OS_BUS_BARRIER_RW \
-	    (BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
-#define	OS_BUS_BARRIER(_ah, _start, _len, _t) \
-	bus_space_barrier((bus_space_tag_t)(_ah)->ah_st,	\
+#define OS_BUS_BARRIER_READ BUS_SPACE_BARRIER_READ
+#define OS_BUS_BARRIER_WRITE BUS_SPACE_BARRIER_WRITE
+#define OS_BUS_BARRIER_RW (BUS_SPACE_BARRIER_READ | BUS_SPACE_BARRIER_WRITE)
+#define OS_BUS_BARRIER(_ah, _start, _len, _t)            \
+	bus_space_barrier((bus_space_tag_t)(_ah)->ah_st, \
 	    (bus_space_handle_t)(_ah)->ah_sh, (_start), (_len), (_t))
-#define	OS_BUS_BARRIER_REG(_ah, _reg, _t) \
-	OS_BUS_BARRIER((_ah), (_reg), 4, (_t))
+#define OS_BUS_BARRIER_REG(_ah, _reg, _t) OS_BUS_BARRIER((_ah), (_reg), 4, (_t))
 
 /*
  * Register read/write operations are handled through
  * platform-dependent routines.
  */
-#define	OS_REG_WRITE(_ah, _reg, _val)	ath_hal_reg_write(_ah, _reg, _val)
-#define	OS_REG_READ(_ah, _reg)		ath_hal_reg_read(_ah, _reg)
+#define OS_REG_WRITE(_ah, _reg, _val) ath_hal_reg_write(_ah, _reg, _val)
+#define OS_REG_READ(_ah, _reg) ath_hal_reg_read(_ah, _reg)
 
-extern	void ath_hal_reg_write(struct ath_hal *ah, u_int reg, u_int32_t val);
-extern	u_int32_t ath_hal_reg_read(struct ath_hal *ah, u_int reg);
+extern void ath_hal_reg_write(struct ath_hal *ah, u_int reg, u_int32_t val);
+extern u_int32_t ath_hal_reg_read(struct ath_hal *ah, u_int reg);
 
 #ifdef AH_DEBUG_ALQ
-extern	void OS_MARK(struct ath_hal *, u_int id, u_int32_t value);
+extern void OS_MARK(struct ath_hal *, u_int id, u_int32_t value);
 #else
-#define	OS_MARK(_ah, _id, _v)
+#define OS_MARK(_ah, _id, _v)
 #endif
 
 #endif /* _ATH_AH_OSDEP_H_ */

@@ -35,15 +35,15 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/ptrace.h>
-#include <sys/systm.h>
 #include <sys/uio.h>
 
-#include <fs/pseudofs/pseudofs.h>
 #include <fs/procfs/procfs.h>
+#include <fs/pseudofs/pseudofs.h>
 
 /*
  * Copy data in and out of the target process.

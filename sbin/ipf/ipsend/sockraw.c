@@ -7,28 +7,28 @@
  * WARNING: Attempting to use this .c file on HP-UX 11.00 will cause the
  *          system to crash.
  */
-#include <sys/param.h>
 #include <sys/types.h>
-#include <sys/socket.h>
+#include <sys/param.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 
 #include <net/if.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip_var.h>
+#include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/udp_var.h>
-#include <netinet/tcp.h>
+
+#include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
+
 #include "ipsend.h"
-
-
 
 int
 initdevice(char *device, int tout)
@@ -40,17 +40,15 @@ initdevice(char *device, int tout)
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, device, sizeof ifr.ifr_name);
 
-	if ((fd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0)
-	    {
+	if ((fd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
 		perror("socket(AF_INET, SOCK_RAW, IPPROTO_RAW)");
 		return (-1);
-	    }
+	}
 
-	if (ioctl(fd, SIOCGIFADDR, &ifr) == -1)
-	    {
+	if (ioctl(fd, SIOCGIFADDR, &ifr) == -1) {
 		perror("ioctl SIOCGIFADDR");
 		return (-1);
-	    }
+	}
 
 	bzero((char *)&s, sizeof(s));
 	s.sa_family = AF_INET;
@@ -60,11 +58,11 @@ initdevice(char *device, int tout)
 	return (fd);
 }
 
-
 /*
  * output an IP packet
  */
-int	sendip(int fd, char *pkt, int len)
+int
+sendip(int fd, char *pkt, int len)
 {
 	struct ether_header *eh;
 	struct sockaddr_in sin;
@@ -76,11 +74,10 @@ int	sendip(int fd, char *pkt, int len)
 	len -= 14;
 	bcopy(pkt + 12, (char *)&sin.sin_addr, 4);
 
-	if (sendto(fd, pkt, len, 0, &sin, sizeof(sin)) == -1)
-	    {
+	if (sendto(fd, pkt, len, 0, &sin, sizeof(sin)) == -1) {
 		perror("send");
 		return (-1);
-	    }
+	}
 
 	return (len);
 }

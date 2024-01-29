@@ -28,12 +28,11 @@
 #include <sys/param.h>
 #include <sys/mman.h>
 
+#include <atf-c.h>
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <atf-c.h>
 
 ATF_TC(brk_basic);
 ATF_TC_HEAD(brk_basic, tc)
@@ -107,8 +106,7 @@ ATF_TC_BODY(mlockfuture, tc)
 	char v;
 
 	error = mlockall(MCL_FUTURE);
-	ATF_REQUIRE_MSG(error == 0,
-	    "mlockall: %s", strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "mlockall: %s", strerror(errno));
 
 	/*
 	 * Advance the break so that at least one page is added to the data
@@ -123,17 +121,15 @@ ATF_TC_BODY(mlockfuture, tc)
 	n = (void *)(((uintptr_t)oldbrk + PAGE_SIZE) & ~PAGE_SIZE);
 	v = 0;
 	error = mincore(n, PAGE_SIZE, &v);
-	ATF_REQUIRE_MSG(error == 0,
-	    "mincore: %s", strerror(errno));
-	ATF_REQUIRE_MSG((v & MINCORE_INCORE) != 0,
-	    "unexpected page flags %#x", v);
+	ATF_REQUIRE_MSG(error == 0, "mincore: %s", strerror(errno));
+	ATF_REQUIRE_MSG((v & MINCORE_INCORE) != 0, "unexpected page flags %#x",
+	    v);
 
 	error = brk(oldbrk);
 	ATF_REQUIRE(error == 0);
 
 	error = munlockall();
-	ATF_REQUIRE_MSG(error == 0,
-	    "munlockall: %s", strerror(errno));
+	ATF_REQUIRE_MSG(error == 0, "munlockall: %s", strerror(errno));
 }
 
 ATF_TP_ADD_TCS(tp)

@@ -23,64 +23,60 @@
  * SUCH DAMAGE.
  */
 
-
 #ifndef _PQI_INCLUDES_H
 #define _PQI_INCLUDES_H
 
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/bio.h>
 #include <sys/bus.h>
-#include <sys/conf.h>
-#include <sys/disk.h>
-#include <sys/eventhandler.h>
-#include <sys/malloc.h>
-#include <sys/rman.h>
-#include <sys/bus.h>
-#include <sys/endian.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/lock.h>
-#include <sys/sema.h>
-#include <sys/mutex.h>
-#include <sys/queue.h>
-#include <sys/taskqueue.h>
-#include <sys/smp.h>
-
-#include <machine/cpufunc.h>
-#include <sys/cpu.h>
-#include <sys/pcpu.h>
-#include <sys/time.h>
 #include <sys/clock.h>
+#include <sys/condvar.h>
+#include <sys/conf.h>
+#include <sys/cpu.h>
+#include <sys/disk.h>
+#include <sys/endian.h>
+#include <sys/eventhandler.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
+#include <sys/pcpu.h>
+#include <sys/queue.h>
+#include <sys/rman.h>
+#include <sys/sema.h>
+#include <sys/smp.h>
+#include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/time.h>
+
+#include <vm/vm.h>
+#include <vm/pmap.h>
+
+#include <machine/bus.h>
+#include <machine/cpufunc.h>
+#include <machine/md_var.h>
+#include <machine/resource.h>
+
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <cam/cam.h>
 #include <cam/cam_ccb.h>
 #include <cam/cam_debug.h>
 #include <cam/cam_periph.h>
+#include <cam/cam_queue.h>
 #include <cam/cam_sim.h>
+#include <cam/cam_xpt_periph.h>
 #include <cam/cam_xpt_sim.h>
 #include <cam/scsi/scsi_all.h>
 #include <cam/scsi/scsi_message.h>
-#include <cam/cam_queue.h>
-#include <cam/cam_xpt_periph.h>
-
-#include <machine/bus.h>
-#include <machine/resource.h>
-#include <machine/md_var.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
-
-#include <vm/vm.h>
-#include <vm/pmap.h>
-
 
 #include "smartpqi_defines.h"
-#include "smartpqi_structures.h"
-#include "smartpqi_prototypes.h"
-#include "smartpqi_ioctl.h"
 #include "smartpqi_helper.h"
+#include "smartpqi_ioctl.h"
+#include "smartpqi_prototypes.h"
+#include "smartpqi_structures.h"
 
 #endif /* _PQI_INCLUDES_H*/

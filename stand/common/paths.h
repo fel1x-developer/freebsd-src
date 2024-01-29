@@ -24,15 +24,15 @@
  */
 
 #ifndef _PATHS_H_
-#define	_PATHS_H_
+#define _PATHS_H_
 
-#include <sys/boot.h>	/* To get kernel path */
+#include <sys/boot.h> /* To get kernel path */
 
-#define PATH_DOTCONFIG	"/boot.config"
-#define PATH_CONFIG	"/boot/config"
-#define PATH_LOADER	"/boot/loader"
-#define PATH_LOADER_EFI	"/boot/loader.efi"
-#define PATH_LOADER_ZFS	"/boot/zfsloader"
+#define PATH_DOTCONFIG "/boot.config"
+#define PATH_CONFIG "/boot/config"
+#define PATH_LOADER "/boot/loader"
+#define PATH_LOADER_EFI "/boot/loader.efi"
+#define PATH_LOADER_ZFS "/boot/zfsloader"
 #define PATH_LOADER_CONF "/boot/loader.conf"
 #define PATH_DEFAULTS_LOADER_CONF "/boot/defaults/loader.conf"
 

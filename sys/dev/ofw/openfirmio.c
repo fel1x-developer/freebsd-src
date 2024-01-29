@@ -58,16 +58,16 @@ static struct cdev *openfirm_dev;
 
 static d_ioctl_t openfirm_ioctl;
 
-#define	OPENFIRM_MINOR	0
+#define OPENFIRM_MINOR 0
 
 static struct cdevsw openfirm_cdevsw = {
-	.d_version =	D_VERSION,
-	.d_flags =	D_NEEDGIANT | D_GIANTOK,
-	.d_ioctl =	openfirm_ioctl,
-	.d_name =	"openfirm",
+	.d_version = D_VERSION,
+	.d_flags = D_NEEDGIANT | D_GIANTOK,
+	.d_ioctl = openfirm_ioctl,
+	.d_name = "openfirm",
 };
 
-static phandle_t lastnode;	/* speed hack */
+static phandle_t lastnode; /* speed hack */
 
 static int openfirm_checkid(phandle_t, phandle_t);
 static int openfirm_getstr(int, const char *, char **);
@@ -119,7 +119,7 @@ openfirm_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
 	of = (struct ofiocdesc *)data;
 	switch (cmd) {
 	case OFIOCGETOPTNODE:
-		*(phandle_t *) data = OF_finddevice("/options");
+		*(phandle_t *)data = OF_finddevice("/options");
 		return (0);
 	case OFIOCGET:
 	case OFIOCSET:
@@ -230,8 +230,7 @@ openfirm_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int flags,
 			 */
 			len = of->of_buflen;
 			newname[len - 1] = '\0';
-		}
-		else
+		} else
 			of->of_buflen = len;
 		error = copyout(newname, of->of_buf, len);
 		break;
@@ -273,7 +272,7 @@ static int
 openfirm_modevent(module_t mod, int type, void *data)
 {
 
-	switch(type) {
+	switch (type) {
 	case MOD_LOAD:
 		if (bootverbose)
 			printf("openfirm: <Open Firmware control device>\n");

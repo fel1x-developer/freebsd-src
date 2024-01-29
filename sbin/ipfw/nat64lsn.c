@@ -30,8 +30,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "ipfw2.h"
+#include <net/if.h>
+#include <netinet/in.h>
+#include <netinet/ip_fw.h>
+#include <netinet6/ip_fw_nat64.h>
 
+#include <arpa/inet.h>
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
@@ -42,16 +46,12 @@
 #include <string.h>
 #include <sysexits.h>
 
-#include <net/if.h>
-#include <netinet/in.h>
-#include <netinet/ip_fw.h>
-#include <netinet6/ip_fw_nat64.h>
-#include <arpa/inet.h>
+#include "ipfw2.h"
 
 static void nat64lsn_fill_ntlv(ipfw_obj_ntlv *ntlv, const char *name,
     uint8_t set);
-typedef int (nat64lsn_cb_t)(ipfw_nat64lsn_cfg *cfg, const char *name,
-    uint8_t set);
+typedef int(
+    nat64lsn_cb_t)(ipfw_nat64lsn_cfg *cfg, const char *name, uint8_t set);
 static int nat64lsn_foreach(nat64lsn_cb_t *f, const char *name, uint8_t set,
     int sort);
 
@@ -67,15 +67,10 @@ static int nat64lsn_destroy_cb(ipfw_nat64lsn_cfg *cfg, const char *name,
 static int nat64lsn_states_cb(ipfw_nat64lsn_cfg *cfg, const char *name,
     uint8_t set);
 
-static struct _s_x nat64cmds[] = {
-      { "create",	TOK_CREATE },
-      { "config",	TOK_CONFIG },
-      { "destroy",	TOK_DESTROY },
-      { "list",		TOK_LIST },
-      { "show",		TOK_LIST },
-      { "stats",	TOK_STATS },
-      { NULL, 0 }
-};
+static struct _s_x nat64cmds[] = { { "create", TOK_CREATE },
+	{ "config", TOK_CONFIG }, { "destroy", TOK_DESTROY },
+	{ "list", TOK_LIST }, { "show", TOK_LIST }, { "stats", TOK_STATS },
+	{ NULL, 0 } };
 
 static uint64_t
 nat64lsn_print_states(void *buf)
@@ -135,17 +130,17 @@ nat64lsn_print_states(void *buf)
 			switch (ste->proto) {
 			case IPPROTO_TCP:
 			case IPPROTO_UDP:
-				printf("%s:%d\t%s:%d\t%s\t%s\t%d\t%s:%d\n",
-				    s, ste->sport, a, ste->aport, proto,
-				    sflags, ste->idle, f, ste->dport);
+				printf("%s:%d\t%s:%d\t%s\t%s\t%d\t%s:%d\n", s,
+				    ste->sport, a, ste->aport, proto, sflags,
+				    ste->idle, f, ste->dport);
 				break;
 			case IPPROTO_ICMP:
-				printf("%s\t%s\t%s\t\t%d\t%s\n",
-				    s, a, proto, ste->idle, f);
+				printf("%s\t%s\t%s\t\t%d\t%s\n", s, a, proto,
+				    ste->idle, f);
 				break;
 			default:
-				printf("%s\t%s\t%d\t\t%d\t%s\n",
-				    s, a, ste->proto, ste->idle, f);
+				printf("%s\t%s\t%d\t\t%d\t%s\n", s, a,
+				    ste->proto, ste->idle, f);
 			}
 			ste++;
 			sz -= sizeof(*ste);
@@ -193,10 +188,7 @@ nat64lsn_states_cb(ipfw_nat64lsn_cfg *cfg, const char *name, uint8_t set)
 	return (0);
 }
 
-static struct _s_x nat64statscmds[] = {
-      { "reset",	TOK_RESET },
-      { NULL, 0 }
-};
+static struct _s_x nat64statscmds[] = { { "reset", TOK_RESET }, { NULL, 0 } };
 
 static void
 ipfw_nat64lsn_stats_handler(const char *name, uint8_t set, int ac, char *av[])
@@ -215,11 +207,8 @@ ipfw_nat64lsn_stats_handler(const char *name, uint8_t set, int ac, char *av[])
 	}
 }
 
-static struct _s_x nat64listcmds[] = {
-      { "states",	TOK_STATES },
-      { "config",	TOK_CONFIG },
-      { NULL, 0 }
-};
+static struct _s_x nat64listcmds[] = { { "states", TOK_STATES },
+	{ "config", TOK_CONFIG }, { NULL, 0 } };
 
 static void
 ipfw_nat64lsn_list_handler(const char *name, uint8_t set, int ac, char *av[])
@@ -248,7 +237,7 @@ ipfw_nat64lsn_list_handler(const char *name, uint8_t set, int ac, char *av[])
  *	ipfw [set N] nat64lsn {NAME | all} destroy
  *	ipfw [set N] nat64lsn {NAME | all} {list | show} [config | states]
  */
-#define	nat64lsn_check_name	table_check_name
+#define nat64lsn_check_name table_check_name
 void
 ipfw_nat64lsn_handler(int ac, char *av[])
 {
@@ -260,7 +249,8 @@ ipfw_nat64lsn_handler(int ac, char *av[])
 		set = g_co.use_set - 1;
 	else
 		set = 0;
-	ac--; av++;
+	ac--;
+	av++;
 
 	NEED1("nat64lsn needs instance name");
 	name = *av;
@@ -271,7 +261,8 @@ ipfw_nat64lsn_handler(int ac, char *av[])
 			errx(EX_USAGE, "nat64lsn instance name %s is invalid",
 			    name);
 	}
-	ac--; av++;
+	ac--;
+	av++;
 	NEED1("nat64lsn needs command");
 
 	tcmd = get_token(nat64cmds, *av, "nat64lsn command");
@@ -279,15 +270,18 @@ ipfw_nat64lsn_handler(int ac, char *av[])
 		errx(EX_USAGE, "nat64lsn instance name required");
 	switch (tcmd) {
 	case TOK_CREATE:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64lsn_create(name, set, ac, av);
 		break;
 	case TOK_CONFIG:
-		ac--; av++;
+		ac--;
+		av++;
 		nat64lsn_config(name, set, ac, av);
 		break;
 	case TOK_LIST:
-		ac--; av++;
+		ac--;
+		av++;
 		ipfw_nat64lsn_list_handler(name, set, ac, av);
 		break;
 	case TOK_DESTROY:
@@ -297,7 +291,8 @@ ipfw_nat64lsn_handler(int ac, char *av[])
 			nat64lsn_destroy(name, set);
 		break;
 	case TOK_STATS:
-		ac--; av++;
+		ac--;
+		av++;
 		ipfw_nat64lsn_stats_handler(name, set, ac, av);
 	}
 }
@@ -364,26 +359,18 @@ nat64lsn_parse_int(const char *arg, const char *desc)
 	return (val);
 }
 
-static struct _s_x nat64newcmds[] = {
-      { "prefix6",	TOK_PREFIX6 },
-      { "jmaxlen",	TOK_JMAXLEN },
-      { "prefix4",	TOK_PREFIX4 },
-      { "host_del_age",	TOK_HOST_DEL_AGE },
-      { "pg_del_age",	TOK_PG_DEL_AGE },
-      { "tcp_syn_age",	TOK_TCP_SYN_AGE },
-      { "tcp_close_age",TOK_TCP_CLOSE_AGE },
-      { "tcp_est_age",	TOK_TCP_EST_AGE },
-      { "udp_age",	TOK_UDP_AGE },
-      { "icmp_age",	TOK_ICMP_AGE },
-      { "states_chunks",TOK_STATES_CHUNKS },
-      { "log",		TOK_LOG },
-      { "-log",		TOK_LOGOFF },
-      { "allow_private", TOK_PRIVATE },
-      { "-allow_private", TOK_PRIVATEOFF },
-      /* for compatibility with old configurations */
-      { "max_ports",	TOK_MAX_PORTS },	/* unused */
-      { NULL, 0 }
-};
+static struct _s_x nat64newcmds[] = { { "prefix6", TOK_PREFIX6 },
+	{ "jmaxlen", TOK_JMAXLEN }, { "prefix4", TOK_PREFIX4 },
+	{ "host_del_age", TOK_HOST_DEL_AGE }, { "pg_del_age", TOK_PG_DEL_AGE },
+	{ "tcp_syn_age", TOK_TCP_SYN_AGE },
+	{ "tcp_close_age", TOK_TCP_CLOSE_AGE },
+	{ "tcp_est_age", TOK_TCP_EST_AGE }, { "udp_age", TOK_UDP_AGE },
+	{ "icmp_age", TOK_ICMP_AGE }, { "states_chunks", TOK_STATES_CHUNKS },
+	{ "log", TOK_LOG }, { "-log", TOK_LOGOFF },
+	{ "allow_private", TOK_PRIVATE }, { "-allow_private", TOK_PRIVATEOFF },
+	/* for compatibility with old configurations */
+	{ "max_ports", TOK_MAX_PORTS }, /* unused */
+	{ NULL, 0 } };
 
 /*
  * Creates new nat64lsn instance
@@ -391,8 +378,8 @@ static struct _s_x nat64newcmds[] = {
  *     [ max_ports <N> ]
  * Request: [ ipfw_obj_lheader ipfw_nat64lsn_cfg ]
  */
-#define	NAT64LSN_HAS_PREFIX4	0x01
-#define	NAT64LSN_HAS_PREFIX6	0x02
+#define NAT64LSN_HAS_PREFIX4 0x01
+#define NAT64LSN_HAS_PREFIX6 0x02
 static void
 nat64lsn_create(const char *name, uint8_t set, int ac, char **av)
 {
@@ -423,7 +410,8 @@ nat64lsn_create(const char *name, uint8_t set, int ac, char **av)
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
 		opt = *av;
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_PREFIX4:
@@ -431,76 +419,88 @@ nat64lsn_create(const char *name, uint8_t set, int ac, char **av)
 			nat64lsn_parse_prefix(*av, AF_INET, &cfg->prefix4,
 			    &cfg->plen4);
 			flags |= NAT64LSN_HAS_PREFIX4;
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_PREFIX6:
 			NEED1("IPv6 prefix required");
 			nat64lsn_parse_prefix(*av, AF_INET6, &cfg->prefix6,
 			    &cfg->plen6);
-			if (ipfw_check_nat64prefix(&cfg->prefix6,
-			    cfg->plen6) != 0 &&
+			if (ipfw_check_nat64prefix(&cfg->prefix6, cfg->plen6) !=
+				0 &&
 			    !IN6_IS_ADDR_UNSPECIFIED(&cfg->prefix6))
 				errx(EX_USAGE, "Bad prefix6 %s", *av);
 
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_JMAXLEN:
 			NEED1("job queue length required");
 			cfg->jmaxlen = nat64lsn_parse_int(*av, opt);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_MAX_PORTS:
 			NEED1("Max per-user ports required");
 			cfg->max_ports = nat64lsn_parse_int(*av, opt);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_HOST_DEL_AGE:
 			NEED1("host delete delay required");
-			cfg->nh_delete_delay = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->nh_delete_delay = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_PG_DEL_AGE:
 			NEED1("portgroup delete delay required");
-			cfg->pg_delete_delay = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->pg_delete_delay = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_SYN_AGE:
 			NEED1("tcp syn age required");
-			cfg->st_syn_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_syn_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_CLOSE_AGE:
 			NEED1("tcp close age required");
-			cfg->st_close_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_close_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_EST_AGE:
 			NEED1("tcp est age required");
-			cfg->st_estab_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_estab_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_UDP_AGE:
 			NEED1("udp age required");
-			cfg->st_udp_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_udp_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_ICMP_AGE:
 			NEED1("icmp age required");
-			cfg->st_icmp_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_icmp_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_STATES_CHUNKS:
 			NEED1("number of chunks required");
-			cfg->states_chunks = (uint8_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->states_chunks = (uint8_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_LOG:
 			cfg->flags |= NAT64_LOG;
@@ -558,66 +558,77 @@ nat64lsn_config(const char *name, uint8_t set, int ac, char **av)
 	while (ac > 0) {
 		tcmd = get_token(nat64newcmds, *av, "option");
 		opt = *av;
-		ac--; av++;
+		ac--;
+		av++;
 
 		switch (tcmd) {
 		case TOK_MAX_PORTS:
 			NEED1("Max per-user ports required");
 			cfg->max_ports = nat64lsn_parse_int(*av, opt);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_JMAXLEN:
 			NEED1("job queue length required");
 			cfg->jmaxlen = nat64lsn_parse_int(*av, opt);
-			ac--; av++;
+			ac--;
+			av++;
 			break;
 		case TOK_HOST_DEL_AGE:
 			NEED1("host delete delay required");
-			cfg->nh_delete_delay = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->nh_delete_delay = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_PG_DEL_AGE:
 			NEED1("portgroup delete delay required");
-			cfg->pg_delete_delay = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->pg_delete_delay = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_SYN_AGE:
 			NEED1("tcp syn age required");
-			cfg->st_syn_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_syn_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_CLOSE_AGE:
 			NEED1("tcp close age required");
-			cfg->st_close_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_close_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_TCP_EST_AGE:
 			NEED1("tcp est age required");
-			cfg->st_estab_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_estab_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_UDP_AGE:
 			NEED1("udp age required");
-			cfg->st_udp_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_udp_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_ICMP_AGE:
 			NEED1("icmp age required");
-			cfg->st_icmp_ttl = (uint16_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->st_icmp_ttl = (uint16_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_STATES_CHUNKS:
 			NEED1("number of chunks required");
-			cfg->states_chunks = (uint8_t)nat64lsn_parse_int(
-			    *av, opt);
-			ac--; av++;
+			cfg->states_chunks = (uint8_t)nat64lsn_parse_int(*av,
+			    opt);
+			ac--;
+			av++;
 			break;
 		case TOK_LOG:
 			cfg->flags |= NAT64_LOG;
@@ -711,10 +722,8 @@ nat64lsn_stats(const char *name, uint8_t set)
 	    (uintmax_t)stats.opcnt64);
 	printf("\t%ju packets translated from IPv4 to IPv6\n",
 	    (uintmax_t)stats.opcnt46);
-	printf("\t%ju IPv6 fragments created\n",
-	    (uintmax_t)stats.ofrags);
-	printf("\t%ju IPv4 fragments received\n",
-	    (uintmax_t)stats.ifrags);
+	printf("\t%ju IPv6 fragments created\n", (uintmax_t)stats.ofrags);
+	printf("\t%ju IPv4 fragments received\n", (uintmax_t)stats.ifrags);
 	printf("\t%ju output packets dropped due to no bufs, etc.\n",
 	    (uintmax_t)stats.oerrors);
 	printf("\t%ju output packets discarded due to no IPv4 route\n",
@@ -734,8 +743,7 @@ nat64lsn_stats(const char *name, uint8_t set)
 	    (uintmax_t)stats.jreinjected);
 	printf("\t%ju times the job queue was processed\n",
 	    (uintmax_t)stats.jcalls);
-	printf("\t%ju job requests queued\n",
-	    (uintmax_t)stats.jrequests);
+	printf("\t%ju job requests queued\n", (uintmax_t)stats.jrequests);
 	printf("\t%ju job requests queue limit reached\n",
 	    (uintmax_t)stats.jmaxlen);
 	printf("\t%ju job requests failed due to memory allocation problems\n",
@@ -816,7 +824,6 @@ nat64lsn_destroy_cb(ipfw_nat64lsn_cfg *cfg, const char *name __unused,
 	return (0);
 }
 
-
 /*
  * Compare nat64lsn instances names.
  * Honor number comparison.
@@ -844,7 +851,7 @@ nat64name_cmp(const void *a, const void *b)
  * Reply: [ ipfw_obj_lheader ipfw_nat64lsn_cfg x N ]
  */
 static int
-nat64lsn_foreach(nat64lsn_cb_t *f, const char *name, uint8_t set,  int sort)
+nat64lsn_foreach(nat64lsn_cb_t *f, const char *name, uint8_t set, int sort)
 {
 	ipfw_obj_lheader *olh;
 	ipfw_nat64lsn_cfg *cfg;
@@ -868,8 +875,7 @@ nat64lsn_foreach(nat64lsn_cb_t *f, const char *name, uint8_t set,  int sort)
 		}
 
 		if (sort != 0)
-			qsort(olh + 1, olh->count, olh->objsize,
-			    nat64name_cmp);
+			qsort(olh + 1, olh->count, olh->objsize, nat64name_cmp);
 
 		cfg = (ipfw_nat64lsn_cfg *)(olh + 1);
 		for (i = 0; i < olh->count; i++) {
@@ -882,4 +888,3 @@ nat64lsn_foreach(nat64lsn_cb_t *f, const char *name, uint8_t set,  int sort)
 	}
 	return (0);
 }
-

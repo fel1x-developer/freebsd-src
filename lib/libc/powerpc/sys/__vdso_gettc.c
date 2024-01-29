@@ -46,7 +46,7 @@ __vdso_gettc(const struct vdso_timehands *th, u_int *tc)
 {
 
 	if (__predict_false(th->th_algo != VDSO_TH_ALGO_PPC_TB))
-	    return (ENOSYS);
+		return (ENOSYS);
 	/*
 	 * While the timebase is a 64 bit quantity, we are only interested
 	 * in the lower 32 bits of it.

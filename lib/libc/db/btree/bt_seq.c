@@ -34,12 +34,12 @@
 
 #include <sys/types.h>
 
+#include <db.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <db.h>
 #include "btree.h"
 
 static int __bt_first(BTREE *, const DBT *, EPG *, int *);
@@ -108,8 +108,8 @@ __bt_seq(const DB *dbp, DBT *key, DBT *data, u_int flags)
 	if (status == RET_SUCCESS) {
 		__bt_setcur(t, e.page->pgno, e.index);
 
-		status =
-		    __bt_ret(t, &e, key, &t->bt_rkey, data, &t->bt_rdata, 0);
+		status = __bt_ret(t, &e, key, &t->bt_rkey, data, &t->bt_rdata,
+		    0);
 
 		/*
 		 * If the user is doing concurrent access, we copied the
@@ -152,7 +152,7 @@ __bt_seqset(BTREE *t, EPG *ep, DBT *key, int flags)
 	 * been found.
 	 */
 	switch (flags) {
-	case R_CURSOR:				/* Keyed scan. */
+	case R_CURSOR: /* Keyed scan. */
 		/*
 		 * Find the first instance of the key or the smallest key
 		 * which is greater than or equal to the specified key.
@@ -162,7 +162,7 @@ __bt_seqset(BTREE *t, EPG *ep, DBT *key, int flags)
 			return (RET_ERROR);
 		}
 		return (__bt_first(t, key, ep, &exact));
-	case R_FIRST:				/* First record. */
+	case R_FIRST: /* First record. */
 	case R_NEXT:
 		/* Walk down the left-hand side of the tree. */
 		for (pg = P_ROOT;;) {
@@ -183,7 +183,7 @@ __bt_seqset(BTREE *t, EPG *ep, DBT *key, int flags)
 		ep->page = h;
 		ep->index = 0;
 		break;
-	case R_LAST:				/* Last record. */
+	case R_LAST: /* Last record. */
 	case R_PREV:
 		/* Walk down the right-hand side of the tree. */
 		for (pg = P_ROOT;;) {
@@ -258,7 +258,7 @@ __bt_seqadv(BTREE *t, EPG *ep, int flags)
 	 * it.  The cursor may not be moved until a new key has been found.
 	 */
 	switch (flags) {
-	case R_NEXT:			/* Next record. */
+	case R_NEXT: /* Next record. */
 		/*
 		 * The cursor was deleted in duplicate records, and moved
 		 * forward to a record that has yet to be returned.  Clear
@@ -277,14 +277,15 @@ __bt_seqadv(BTREE *t, EPG *ep, int flags)
 			idx = 0;
 		}
 		break;
-	case R_PREV:			/* Previous record. */
+	case R_PREV: /* Previous record. */
 		/*
 		 * The cursor was deleted in duplicate records, and moved
 		 * backward to a record that has yet to be returned.  Clear
 		 * that flag, and return the record.
 		 */
 		if (F_ISSET(c, CURS_BEFORE)) {
-usecurrent:		F_CLR(c, CURS_AFTER | CURS_BEFORE);
+		usecurrent:
+			F_CLR(c, CURS_AFTER | CURS_BEFORE);
 			ep->page = h;
 			ep->index = c->pg.index;
 			return (RET_SUCCESS);
@@ -369,11 +370,11 @@ __bt_first(BTREE *t, const DBT *key, EPG *erval, int *exactp)
 					break;
 				if (h->pgno != save.page->pgno)
 					mpool_put(t->bt_mp, h, 0);
-				if ((h = mpool_get(t->bt_mp,
-				    h->prevpg, 0)) == NULL) {
+				if ((h = mpool_get(t->bt_mp, h->prevpg, 0)) ==
+				    NULL) {
 					if (h->pgno == save.page->pgno)
-						mpool_put(t->bt_mp,
-						    save.page, 0);
+						mpool_put(t->bt_mp, save.page,
+						    0);
 					return (RET_ERROR);
 				}
 				ep->page = h;

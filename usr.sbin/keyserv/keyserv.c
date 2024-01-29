@@ -5,23 +5,23 @@
  * may copy or modify Sun RPC without charge, but are not authorized
  * to license or distribute it to anyone else except as part of a product or
  * program developed by the user.
- * 
+ *
  * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
  * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
  * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
+ *
  * Sun RPC is provided with no support and without any obligation on the
  * part of Sun Microsystems, Inc. to assist in its use, correction,
  * modification or enhancement.
- * 
+ *
  * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
  * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
  * OR ANY PART THEREOF.
- * 
+ *
  * In no event will Sun Microsystems, Inc. be liable for any lost revenue
  * or profits or other special, indirect and consequential damages, even if
  * Sun has been advised of the possibility of such damages.
- * 
+ *
  * Sun Microsystems, Inc.
  * 2550 Garcia Avenue
  * Mountain View, California  94043
@@ -39,35 +39,37 @@
  * process on the local transport only
  */
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+
 #include <err.h>
 #include <pwd.h>
+#include <rpc/des.h>
+#include <rpc/des_crypt.h>
+#include <rpc/key_prot.h>
+#include <rpc/rpc.h>
+#include <rpcsvc/crypt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <rpc/rpc.h>
-#include <sys/param.h>
-#include <sys/file.h>
-#include <rpc/des_crypt.h>
-#include <rpc/des.h>
-#include <rpc/key_prot.h>
-#include <rpcsvc/crypt.h>
+
 #include "keyserv.h"
 
 #ifndef NGROUPS
-#define	NGROUPS 16
+#define NGROUPS 16
 #endif
 
 #ifndef KEYSERVSOCK
 #define KEYSERVSOCK "/var/run/keyservsock"
 #endif
 
-static void randomize( des_block * );
-static void usage( void );
-static int getrootkey( des_block *, int );
-static int root_auth( SVCXPRT *, struct svc_req * );
+static void randomize(des_block *);
+static void usage(void);
+static int getrootkey(des_block *, int);
+static int root_auth(SVCXPRT *, struct svc_req *);
 
 #ifdef DEBUG
 static int debugging = 1;
@@ -93,9 +95,9 @@ extern cryptkeyres *(*__key_decryptsession_pk_LOCAL)();
 extern des_block *(*__key_gendes_LOCAL)();
 extern int (*__des_crypt_LOCAL)();
 
-cryptkeyres *key_encrypt_pk_2_svc_prog( uid_t, cryptkeyarg2 * );
-cryptkeyres *key_decrypt_pk_2_svc_prog( uid_t, cryptkeyarg2 * );
-des_block *key_gen_1_svc_prog( void *, struct svc_req * );
+cryptkeyres *key_encrypt_pk_2_svc_prog(uid_t, cryptkeyarg2 *);
+cryptkeyres *key_decrypt_pk_2_svc_prog(uid_t, cryptkeyarg2 *);
+des_block *key_gen_1_svc_prog(void *, struct svc_req *);
 
 int
 main(int argc, char *argv[])
@@ -145,7 +147,7 @@ main(int argc, char *argv[])
 	/*
 	 * Initialize
 	 */
-	(void) umask(S_IXUSR|S_IXGRP|S_IXOTH);
+	(void)umask(S_IXUSR | S_IXGRP | S_IXOTH);
 	if (geteuid() != 0)
 		errx(1, "keyserv must be run as root");
 	setmodulus(HEXMODULUS);
@@ -154,17 +156,15 @@ main(int argc, char *argv[])
 	rpcb_unset(KEY_PROG, KEY_VERS, NULL);
 	rpcb_unset(KEY_PROG, KEY_VERS2, NULL);
 
-	if (svc_create(keyprogram, KEY_PROG, KEY_VERS,
-		"netpath") == 0) {
-		(void) fprintf(stderr,
-			"%s: unable to create service\n", argv[0]);
+	if (svc_create(keyprogram, KEY_PROG, KEY_VERS, "netpath") == 0) {
+		(void)fprintf(stderr, "%s: unable to create service\n",
+		    argv[0]);
 		exit(1);
 	}
- 
-	if (svc_create(keyprogram, KEY_PROG, KEY_VERS2,
-	"netpath") == 0) {
-		(void) fprintf(stderr,
-			"%s: unable to create service\n", argv[0]);
+
+	if (svc_create(keyprogram, KEY_PROG, KEY_VERS2, "netpath") == 0) {
+		(void)fprintf(stderr, "%s: unable to create service\n",
+		    argv[0]);
 		exit(1);
 	}
 
@@ -192,10 +192,10 @@ main(int argc, char *argv[])
 
 	endnetconfig(localhandle);
 
-	(void) umask(066);	/* paranoia */
+	(void)umask(066); /* paranoia */
 
 	if (!debugging) {
-		daemon(0,0);
+		daemon(0, 0);
 	}
 
 	signal(SIGPIPE, SIG_IGN);
@@ -241,21 +241,21 @@ getrootkey(des_block *master, int prompt)
 		}
 		if (read(fd, secret, HEXKEYBYTES) < HEXKEYBYTES) {
 			warnx("the key read from %s was too short", ROOTKEY);
-			(void) close(fd);
+			(void)close(fd);
 			return (0);
 		}
-		(void) close(fd);
+		(void)close(fd);
 		if (!getnetname(name)) {
-		    warnx(
-	"failed to generate host's netname when establishing root's key");
-		    return (0);
+			warnx(
+			    "failed to generate host's netname when establishing root's key");
+			return (0);
 		}
 		memcpy(netstore.st_priv_key, secret, HEXKEYBYTES);
 		memset(netstore.st_pub_key, 0, HEXKEYBYTES);
 		netstore.st_netname = name;
 		if (pk_netput(0, &netstore) != KEY_SUCCESS) {
-		    warnx("could not set root's key and netname");
-		    return (0);
+			warnx("could not set root's key and netname");
+			return (0);
 		}
 		return (1);
 	}
@@ -273,16 +273,16 @@ getrootkey(des_block *master, int prompt)
 		warnx("password does not decrypt secret key for %s", name);
 		return (0);
 	}
-	(void) pk_setkey(0, secret);
+	(void)pk_setkey(0, secret);
 	/*
 	 * Store it for future use in $ROOTKEY, if possible
 	 */
-	fd = open(ROOTKEY, O_WRONLY|O_TRUNC|O_CREAT, 0);
+	fd = open(ROOTKEY, O_WRONLY | O_TRUNC | O_CREAT, 0);
 	if (fd > 0) {
 		char newline = '\n';
 
 		write(fd, secret, strlen(secret));
-		write(fd, &newline, sizeof (newline));
+		write(fd, &newline, sizeof(newline));
 		close(fd);
 	}
 	return (1);
@@ -314,13 +314,13 @@ key_set_1_svc_prog(uid_t uid, keybuf key)
 	static keystatus status;
 
 	if (debugging) {
-		(void) fprintf(stderr, "set(%u, %.*s) = ", uid,
-				(int) sizeof (keybuf), key);
+		(void)fprintf(stderr, "set(%u, %.*s) = ", uid,
+		    (int)sizeof(keybuf), key);
 	}
 	status = pk_setkey(uid, key);
 	if (debugging) {
-		(void) fprintf(stderr, "%s\n", strstatus(status));
-		(void) fflush(stderr);
+		(void)fprintf(stderr, "%s\n", strstatus(status));
+		(void)fflush(stderr);
 	}
 	return (&status);
 }
@@ -331,22 +331,21 @@ key_encrypt_pk_2_svc_prog(uid_t uid, cryptkeyarg2 *arg)
 	static cryptkeyres res;
 
 	if (debugging) {
-		(void) fprintf(stderr, "encrypt(%u, %s, %08x%08x) = ", uid,
-				arg->remotename, arg->deskey.key.high,
-				arg->deskey.key.low);
+		(void)fprintf(stderr, "encrypt(%u, %s, %08x%08x) = ", uid,
+		    arg->remotename, arg->deskey.key.high, arg->deskey.key.low);
 	}
 	res.cryptkeyres_u.deskey = arg->deskey;
 	res.status = pk_encrypt(uid, arg->remotename, &(arg->remotekey),
-				&res.cryptkeyres_u.deskey);
+	    &res.cryptkeyres_u.deskey);
 	if (debugging) {
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "%08x%08x\n",
-					res.cryptkeyres_u.deskey.key.high,
-					res.cryptkeyres_u.deskey.key.low);
+			(void)fprintf(stderr, "%08x%08x\n",
+			    res.cryptkeyres_u.deskey.key.high,
+			    res.cryptkeyres_u.deskey.key.low);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
@@ -357,22 +356,21 @@ key_decrypt_pk_2_svc_prog(uid_t uid, cryptkeyarg2 *arg)
 	static cryptkeyres res;
 
 	if (debugging) {
-		(void) fprintf(stderr, "decrypt(%u, %s, %08x%08x) = ", uid,
-				arg->remotename, arg->deskey.key.high,
-				arg->deskey.key.low);
+		(void)fprintf(stderr, "decrypt(%u, %s, %08x%08x) = ", uid,
+		    arg->remotename, arg->deskey.key.high, arg->deskey.key.low);
 	}
 	res.cryptkeyres_u.deskey = arg->deskey;
 	res.status = pk_decrypt(uid, arg->remotename, &(arg->remotekey),
-				&res.cryptkeyres_u.deskey);
+	    &res.cryptkeyres_u.deskey);
 	if (debugging) {
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "%08x%08x\n",
-					res.cryptkeyres_u.deskey.key.high,
-					res.cryptkeyres_u.deskey.key.low);
+			(void)fprintf(stderr, "%08x%08x\n",
+			    res.cryptkeyres_u.deskey.key.high,
+			    res.cryptkeyres_u.deskey.key.low);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
@@ -383,17 +381,17 @@ key_net_put_2_svc_prog(uid_t uid, key_netstarg *arg)
 	static keystatus status;
 
 	if (debugging) {
-		(void) fprintf(stderr, "net_put(%s, %.*s, %.*s) = ",
-			arg->st_netname, (int)sizeof (arg->st_pub_key),
-			arg->st_pub_key, (int)sizeof (arg->st_priv_key),
-			arg->st_priv_key);
+		(void)fprintf(stderr,
+		    "net_put(%s, %.*s, %.*s) = ", arg->st_netname,
+		    (int)sizeof(arg->st_pub_key), arg->st_pub_key,
+		    (int)sizeof(arg->st_priv_key), arg->st_priv_key);
 	}
 
 	status = pk_netput(uid, arg);
 
 	if (debugging) {
-		(void) fprintf(stderr, "%s\n", strstatus(status));
-		(void) fflush(stderr);
+		(void)fprintf(stderr, "%s\n", strstatus(status));
+		(void)fflush(stderr);
 	}
 
 	return (&status);
@@ -405,52 +403,51 @@ key_net_get_2_svc_prog(uid_t uid, void *arg)
 	static key_netstres keynetname;
 
 	if (debugging)
-		(void) fprintf(stderr, "net_get(%u) = ", uid);
+		(void)fprintf(stderr, "net_get(%u) = ", uid);
 
 	keynetname.status = pk_netget(uid, &keynetname.key_netstres_u.knet);
 	if (debugging) {
 		if (keynetname.status == KEY_SUCCESS) {
 			fprintf(stderr, "<%s, %.*s, %.*s>\n",
-			keynetname.key_netstres_u.knet.st_netname,
-			(int)sizeof (keynetname.key_netstres_u.knet.st_pub_key),
-			keynetname.key_netstres_u.knet.st_pub_key,
-			(int)sizeof (keynetname.key_netstres_u.knet.st_priv_key),
-			keynetname.key_netstres_u.knet.st_priv_key);
+			    keynetname.key_netstres_u.knet.st_netname,
+			    (int)sizeof(
+				keynetname.key_netstres_u.knet.st_pub_key),
+			    keynetname.key_netstres_u.knet.st_pub_key,
+			    (int)sizeof(
+				keynetname.key_netstres_u.knet.st_priv_key),
+			    keynetname.key_netstres_u.knet.st_priv_key);
 		} else {
-			(void) fprintf(stderr, "NOT FOUND\n");
+			(void)fprintf(stderr, "NOT FOUND\n");
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 
 	return (&keynetname);
-
 }
 
 cryptkeyres *
 key_get_conv_2_svc_prog(uid_t uid, keybuf arg)
 {
-	static cryptkeyres  res;
+	static cryptkeyres res;
 
 	if (debugging)
-		(void) fprintf(stderr, "get_conv(%u, %.*s) = ", uid,
-			(int)sizeof (keybuf), arg);
-
+		(void)fprintf(stderr, "get_conv(%u, %.*s) = ", uid,
+		    (int)sizeof(keybuf), arg);
 
 	res.status = pk_get_conv_key(uid, arg, &res);
 
 	if (debugging) {
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "%08x%08x\n",
-				res.cryptkeyres_u.deskey.key.high,
-				res.cryptkeyres_u.deskey.key.low);
+			(void)fprintf(stderr, "%08x%08x\n",
+			    res.cryptkeyres_u.deskey.key.high,
+			    res.cryptkeyres_u.deskey.key.low);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
-
 
 cryptkeyres *
 key_encrypt_1_svc_prog(uid_t uid, cryptkeyarg *arg)
@@ -458,22 +455,21 @@ key_encrypt_1_svc_prog(uid_t uid, cryptkeyarg *arg)
 	static cryptkeyres res;
 
 	if (debugging) {
-		(void) fprintf(stderr, "encrypt(%u, %s, %08x%08x) = ", uid,
-				arg->remotename, arg->deskey.key.high,
-				arg->deskey.key.low);
+		(void)fprintf(stderr, "encrypt(%u, %s, %08x%08x) = ", uid,
+		    arg->remotename, arg->deskey.key.high, arg->deskey.key.low);
 	}
 	res.cryptkeyres_u.deskey = arg->deskey;
 	res.status = pk_encrypt(uid, arg->remotename, NULL,
-				&res.cryptkeyres_u.deskey);
+	    &res.cryptkeyres_u.deskey);
 	if (debugging) {
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "%08x%08x\n",
-					res.cryptkeyres_u.deskey.key.high,
-					res.cryptkeyres_u.deskey.key.low);
+			(void)fprintf(stderr, "%08x%08x\n",
+			    res.cryptkeyres_u.deskey.key.high,
+			    res.cryptkeyres_u.deskey.key.low);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
@@ -484,22 +480,21 @@ key_decrypt_1_svc_prog(uid_t uid, cryptkeyarg *arg)
 	static cryptkeyres res;
 
 	if (debugging) {
-		(void) fprintf(stderr, "decrypt(%u, %s, %08x%08x) = ", uid,
-				arg->remotename, arg->deskey.key.high,
-				arg->deskey.key.low);
+		(void)fprintf(stderr, "decrypt(%u, %s, %08x%08x) = ", uid,
+		    arg->remotename, arg->deskey.key.high, arg->deskey.key.low);
 	}
 	res.cryptkeyres_u.deskey = arg->deskey;
 	res.status = pk_decrypt(uid, arg->remotename, NULL,
-				&res.cryptkeyres_u.deskey);
+	    &res.cryptkeyres_u.deskey);
 	if (debugging) {
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "%08x%08x\n",
-					res.cryptkeyres_u.deskey.key.high,
-					res.cryptkeyres_u.deskey.key.low);
+			(void)fprintf(stderr, "%08x%08x\n",
+			    res.cryptkeyres_u.deskey.key.high,
+			    res.cryptkeyres_u.deskey.key.low);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
@@ -515,14 +510,14 @@ key_gen_1_svc_prog(void *v, struct svc_req *s)
 	(void)gettimeofday(&time, NULL);
 	keygen.key.high += (time.tv_sec ^ time.tv_usec);
 	keygen.key.low += (time.tv_sec ^ time.tv_usec);
-	ecb_crypt((char *)&masterkey, (char *)&keygen, sizeof (keygen),
-		DES_ENCRYPT | DES_HW);
+	ecb_crypt((char *)&masterkey, (char *)&keygen, sizeof(keygen),
+	    DES_ENCRYPT | DES_HW);
 	key = keygen;
 	des_setparity((char *)&key);
 	if (debugging) {
-		(void) fprintf(stderr, "gen() = %08x%08x\n", key.key.high,
-					key.key.low);
-		(void) fflush(stderr);
+		(void)fprintf(stderr, "gen() = %08x%08x\n", key.key.high,
+		    key.key.low);
+		(void)fflush(stderr);
 	}
 	return (&key);
 }
@@ -536,21 +531,21 @@ key_getcred_1_svc_prog(uid_t uid, netnamestr *name)
 
 	cred = &res.getcredres_u.cred;
 	cred->gids.gids_val = gids;
-	if (!netname2user(*name, (uid_t *) &cred->uid, (gid_t *) &cred->gid,
-			(int *)&cred->gids.gids_len, (gid_t *)gids)) {
+	if (!netname2user(*name, (uid_t *)&cred->uid, (gid_t *)&cred->gid,
+		(int *)&cred->gids.gids_len, (gid_t *)gids)) {
 		res.status = KEY_UNKNOWN;
 	} else {
 		res.status = KEY_SUCCESS;
 	}
 	if (debugging) {
-		(void) fprintf(stderr, "getcred(%s) = ", *name);
+		(void)fprintf(stderr, "getcred(%s) = ", *name);
 		if (res.status == KEY_SUCCESS) {
-			(void) fprintf(stderr, "uid=%d, gid=%d, grouplen=%d\n",
-				cred->uid, cred->gid, cred->gids.gids_len);
+			(void)fprintf(stderr, "uid=%d, gid=%d, grouplen=%d\n",
+			    cred->uid, cred->gid, cred->gids.gids_len);
 		} else {
-			(void) fprintf(stderr, "%s\n", strstatus(res.status));
+			(void)fprintf(stderr, "%s\n", strstatus(res.status));
 		}
-		(void) fflush(stderr);
+		(void)fflush(stderr);
 	}
 	return (&res);
 }
@@ -572,7 +567,7 @@ keyprogram(struct svc_req *rqstp, SVCXPRT *transp)
 		cryptkeyarg2 key_encrypt_pk_2_arg;
 		cryptkeyarg2 key_decrypt_pk_2_arg;
 		key_netstarg key_net_put_2_arg;
-		netobj  key_get_conv_2_arg;
+		netobj key_get_conv_2_arg;
 	} argument;
 	char *result;
 	xdrproc_t xdr_argument, xdr_result;
@@ -635,7 +630,6 @@ keyprogram(struct svc_req *rqstp, SVCXPRT *transp)
 		check_auth = 1;
 		break;
 
-
 	case KEY_NET_PUT:
 		xdr_argument = (xdrproc_t)xdr_key_netstarg;
 		xdr_result = (xdrproc_t)xdr_keystatus;
@@ -644,14 +638,14 @@ keyprogram(struct svc_req *rqstp, SVCXPRT *transp)
 		break;
 
 	case KEY_NET_GET:
-		xdr_argument = (xdrproc_t) xdr_void;
+		xdr_argument = (xdrproc_t)xdr_void;
 		xdr_result = (xdrproc_t)xdr_key_netstres;
 		local = (svc_cb *)key_net_get_2_svc_prog;
 		check_auth = 1;
 		break;
 
 	case KEY_GET_CONV:
-		xdr_argument = (xdrproc_t) xdr_keybuf;
+		xdr_argument = (xdrproc_t)xdr_keybuf;
 		xdr_result = (xdrproc_t)xdr_cryptkeyres;
 		local = (svc_cb *)key_get_conv_2_svc_prog;
 		check_auth = 1;
@@ -664,16 +658,16 @@ keyprogram(struct svc_req *rqstp, SVCXPRT *transp)
 	if (check_auth) {
 		if (root_auth(transp, rqstp) == 0) {
 			if (debugging) {
-				(void) fprintf(stderr,
-				"not local privileged process\n");
+				(void)fprintf(stderr,
+				    "not local privileged process\n");
 			}
 			svcerr_weakauth(transp);
 			return;
 		}
 		if (rqstp->rq_cred.oa_flavor != AUTH_SYS) {
 			if (debugging) {
-				(void) fprintf(stderr,
-				"not unix authentication\n");
+				(void)fprintf(stderr,
+				    "not unix authentication\n");
 			}
 			svcerr_weakauth(transp);
 			return;
@@ -681,21 +675,20 @@ keyprogram(struct svc_req *rqstp, SVCXPRT *transp)
 		uid = ((struct authsys_parms *)rqstp->rq_clntcred)->aup_uid;
 	}
 
-	memset(&argument, 0, sizeof (argument));
+	memset(&argument, 0, sizeof(argument));
 	if (!svc_getargs(transp, xdr_argument, &argument)) {
 		svcerr_decode(transp);
 		return;
 	}
-	result = (*local) (uid, &argument);
+	result = (*local)(uid, &argument);
 	if (!svc_sendreply(transp, xdr_result, result)) {
 		if (debugging)
-			(void) fprintf(stderr, "unable to reply\n");
+			(void)fprintf(stderr, "unable to reply\n");
 		svcerr_systemerr(transp);
 	}
 	if (!svc_freeargs(transp, xdr_argument, &argument)) {
 		if (debugging)
-			(void) fprintf(stderr,
-			"unable to free arguments\n");
+			(void)fprintf(stderr, "unable to free arguments\n");
 		exit(1);
 	}
 }
@@ -724,15 +717,16 @@ root_auth(SVCXPRT *trans, struct svc_req *rqstp)
 	if (uid == 0)
 		return (1);
 	if (rqstp->rq_cred.oa_flavor == AUTH_SYS) {
-		if (((uid_t) ((struct authunix_parms *)
-			rqstp->rq_clntcred)->aup_uid)
-			== uid) {
+		if (((uid_t)((struct authunix_parms *)rqstp->rq_clntcred)
+			    ->aup_uid) == uid) {
 			return (1);
 		} else {
 			if (debugging)
 				fprintf(stderr,
-			"local_uid  %u mismatches auth %u\n", uid,
-((uid_t) ((struct authunix_parms *)rqstp->rq_clntcred)->aup_uid));
+				    "local_uid  %u mismatches auth %u\n", uid,
+				    ((uid_t)((struct authunix_parms *)
+						 rqstp->rq_clntcred)
+					    ->aup_uid));
 			return (0);
 		}
 	} else {
@@ -745,8 +739,7 @@ root_auth(SVCXPRT *trans, struct svc_req *rqstp)
 static void
 usage(void)
 {
-	(void) fprintf(stderr,
-			"usage: keyserv [-n] [-D] [-d] [-v] [-p path]\n");
-	(void) fprintf(stderr, "-d disables the use of default keys\n");
+	(void)fprintf(stderr, "usage: keyserv [-n] [-D] [-d] [-v] [-p path]\n");
+	(void)fprintf(stderr, "-d disables the use of default keys\n");
 	exit(1);
 }

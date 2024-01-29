@@ -32,46 +32,44 @@
 
 #include "opt_platform.h"
 
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <sys/kernel.h>
-#include <sys/rman.h>
-#include <sys/module.h>
 #include <sys/bus.h>
-#include <sys/endian.h>
 #include <sys/cpuset.h>
+#include <sys/endian.h>
+#include <sys/kernel.h>
+#include <sys/malloc.h>
+#include <sys/module.h>
 #include <sys/mutex.h>
 #include <sys/proc.h>
-
-#include <machine/intr.h>
-#include <machine/bus.h>
+#include <sys/rman.h>
+#include <sys/sysctl.h>
 
 #include <vm/vm.h>
+#include <vm/pmap.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_kern.h>
-#include <vm/pmap.h>
 
-#include <dev/ofw/openfirm.h>
+#include <machine/bus.h>
+#include <machine/intr.h>
+
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
-#include <dev/pci/pcireg.h>
-#include <dev/pci/pcivar.h>
+#include <dev/ofw/openfirm.h>
 #include <dev/pci/pci_host_generic.h>
 #include <dev/pci/pci_host_generic_fdt.h>
 #include <dev/pci/pcib_private.h>
+#include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
-#include "xlnx_pcib.h"
-
-#include "ofw_bus_if.h"
 #include "msi_if.h"
+#include "ofw_bus_if.h"
 #include "pcib_if.h"
 #include "pic_if.h"
+#include "xlnx_pcib.h"
 
-#define	XLNX_PCIB_MAX_MSI	64
+#define XLNX_PCIB_MAX_MSI 64
 
 static int xlnx_pcib_fdt_attach(device_t);
 static int xlnx_pcib_fdt_probe(device_t);
@@ -81,28 +79,25 @@ static void xlnx_pcib_msi_mask(device_t dev, struct intr_irqsrc *isrc,
     bool mask);
 
 struct xlnx_pcib_softc {
-	struct generic_pcie_fdt_softc	fdt_sc;
-	struct resource			*res[4];
-	struct mtx			mtx;
-	vm_offset_t			msi_page;
-	struct xlnx_pcib_irqsrc		*isrcs;
-	device_t			dev;
-	void				*intr_cookie[3];
+	struct generic_pcie_fdt_softc fdt_sc;
+	struct resource *res[4];
+	struct mtx mtx;
+	vm_offset_t msi_page;
+	struct xlnx_pcib_irqsrc *isrcs;
+	device_t dev;
+	void *intr_cookie[3];
 };
 
 static struct resource_spec xlnx_pcib_spec[] = {
-	{ SYS_RES_MEMORY,	0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		0,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		1,	RF_ACTIVE },
-	{ SYS_RES_IRQ,		2,	RF_ACTIVE },
-	{ -1, 0 }
+	{ SYS_RES_MEMORY, 0, RF_ACTIVE }, { SYS_RES_IRQ, 0, RF_ACTIVE },
+	{ SYS_RES_IRQ, 1, RF_ACTIVE }, { SYS_RES_IRQ, 2, RF_ACTIVE }, { -1, 0 }
 };
 
 struct xlnx_pcib_irqsrc {
-	struct intr_irqsrc	isrc;
-	u_int			irq;
-#define	XLNX_IRQ_FLAG_USED	(1 << 0)
-	u_int			flags;
+	struct intr_irqsrc isrc;
+	u_int irq;
+#define XLNX_IRQ_FLAG_USED (1 << 0)
+	u_int flags;
 };
 
 static void
@@ -196,7 +191,7 @@ xlnx_pcib_intr(void *arg)
 
 static void
 xlnx_pcib_handle_msi_intr(void *arg, int msireg)
-{ 
+{
 	struct generic_pcie_fdt_softc *fdt_sc;
 	struct generic_pcie_core_softc *sc;
 	struct xlnx_pcib_softc *xlnx_sc;
@@ -225,8 +220,8 @@ xlnx_pcib_handle_msi_intr(void *arg, int msireg)
 				xi = &xlnx_sc->isrcs[irq];
 				if (intr_isrc_dispatch(&xi->isrc, tf) != 0) {
 					/* Disable stray. */
-					xlnx_pcib_msi_mask(sc->dev,
-					    &xi->isrc, 1);
+					xlnx_pcib_msi_mask(sc->dev, &xi->isrc,
+					    1);
 					device_printf(sc->dev,
 					    "Stray irq %u disabled\n", irq);
 				}
@@ -267,14 +262,14 @@ xlnx_pcib_register_msi(struct xlnx_pcib_softc *sc)
 
 	for (irq = 0; irq < XLNX_PCIB_MAX_MSI; irq++) {
 		sc->isrcs[irq].irq = irq;
-		error = intr_isrc_register(&sc->isrcs[irq].isrc,
-		    sc->dev, 0, "%s,%u", name, irq);
+		error = intr_isrc_register(&sc->isrcs[irq].isrc, sc->dev, 0,
+		    "%s,%u", name, irq);
 		if (error != 0)
 			return (error); /* XXX deregister ISRCs */
 	}
 
 	if (intr_msi_register(sc->dev,
-	    OF_xref_from_node(ofw_bus_get_node(sc->dev))) != 0)
+		OF_xref_from_node(ofw_bus_get_node(sc->dev))) != 0)
 		return (ENXIO);
 
 	return (0);
@@ -298,7 +293,7 @@ xlnx_pcib_init(struct xlnx_pcib_softc *sc)
 	    BUS_SPACE_MAXADDR, PAGE_SIZE, 0, VM_MEMATTR_DEFAULT);
 	addr = vtophys(sc->msi_page);
 	bus_write_4(sc->res[0], XLNX_PCIE_RPMSIBR1, (addr >> 32));
-	bus_write_4(sc->res[0], XLNX_PCIE_RPMSIBR2, (addr >>  0));
+	bus_write_4(sc->res[0], XLNX_PCIE_RPMSIBR2, (addr >> 0));
 
 	/* Enable the bridge. */
 	reg = bus_read_4(sc->res[0], XLNX_PCIE_RPSCR);
@@ -306,23 +301,12 @@ xlnx_pcib_init(struct xlnx_pcib_softc *sc)
 	bus_write_4(sc->res[0], XLNX_PCIE_RPSCR, reg);
 
 	/* Enable interrupts. */
-	reg = IMR_LINK_DOWN
-		| IMR_HOT_RESET
-		| IMR_CFG_COMPL_STATUS_M
-		| IMR_CFG_TIMEOUT
-		| IMR_CORRECTABLE
-		| IMR_NON_FATAL
-		| IMR_FATAL
-		| IMR_INTX
-		| IMR_MSI
-		| IMR_SLAVE_UNSUPP_REQ
-		| IMR_SLAVE_UNEXP_COMPL
-		| IMR_SLAVE_COMPL_TIMOUT
-		| IMR_SLAVE_ERROR_POISON
-		| IMR_SLAVE_COMPL_ABORT
-		| IMR_SLAVE_ILLEG_BURST
-		| IMR_MASTER_DECERR
-		| IMR_MASTER_SLVERR;
+	reg = IMR_LINK_DOWN | IMR_HOT_RESET | IMR_CFG_COMPL_STATUS_M |
+	    IMR_CFG_TIMEOUT | IMR_CORRECTABLE | IMR_NON_FATAL | IMR_FATAL |
+	    IMR_INTX | IMR_MSI | IMR_SLAVE_UNSUPP_REQ | IMR_SLAVE_UNEXP_COMPL |
+	    IMR_SLAVE_COMPL_TIMOUT | IMR_SLAVE_ERROR_POISON |
+	    IMR_SLAVE_COMPL_ABORT | IMR_SLAVE_ILLEG_BURST | IMR_MASTER_DECERR |
+	    IMR_MASTER_SLVERR;
 	bus_write_4(sc->res[0], XLNX_PCIE_IMR, reg);
 }
 
@@ -417,8 +401,8 @@ xlnx_pcib_fdt_get_id(device_t pci, device_t child, enum pci_id_type type,
 }
 
 static int
-xlnx_pcib_req_valid(struct generic_pcie_core_softc *sc,
-    u_int bus, u_int slot, u_int func, u_int reg)
+xlnx_pcib_req_valid(struct generic_pcie_core_softc *sc, u_int bus, u_int slot,
+    u_int func, u_int reg)
 {
 	bus_space_handle_t h;
 	bus_space_tag_t t;
@@ -429,8 +413,7 @@ xlnx_pcib_req_valid(struct generic_pcie_core_softc *sc,
 
 	if ((bus < sc->bus_start) || (bus > sc->bus_end))
 		return (0);
-	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) ||
-	    (reg > PCIE_REGMAX))
+	if ((slot > PCI_SLOTMAX) || (func > PCI_FUNCMAX) || (reg > PCIE_REGMAX))
 		return (0);
 
 	if (bus == 0 && slot > 0)
@@ -448,8 +431,8 @@ xlnx_pcib_req_valid(struct generic_pcie_core_softc *sc,
 }
 
 static uint32_t
-xlnx_pcib_read_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, int bytes)
+xlnx_pcib_read_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, int bytes)
 {
 	struct generic_pcie_fdt_softc *fdt_sc;
 	struct xlnx_pcib_softc *xlnx_sc;
@@ -492,8 +475,8 @@ xlnx_pcib_read_config(device_t dev, u_int bus, u_int slot,
 }
 
 static void
-xlnx_pcib_write_config(device_t dev, u_int bus, u_int slot,
-    u_int func, u_int reg, uint32_t val, int bytes)
+xlnx_pcib_write_config(device_t dev, u_int bus, u_int slot, u_int func,
+    u_int reg, uint32_t val, int bytes)
 {
 	struct generic_pcie_fdt_softc *fdt_sc;
 	struct xlnx_pcib_softc *xlnx_sc;
@@ -551,8 +534,7 @@ xlnx_pcib_alloc_msi(device_t pci, device_t child, int count, int maxcount,
 	ofw_bus_msimap(ofw_bus_get_node(pci), pci_get_rid(child), &msi_parent,
 	    NULL);
 	msi_parent = OF_xref_from_node(ofw_bus_get_node(pci));
-	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount,
-	    irqs));
+	return (intr_alloc_msi(pci, child, msi_parent, count, maxcount, irqs));
 }
 
 static int
@@ -715,7 +697,6 @@ xlnx_pcib_msi_enable_intr(device_t dev, struct intr_irqsrc *isrc)
 static void
 xlnx_pcib_msi_post_filter(device_t dev, struct intr_irqsrc *isrc)
 {
-
 }
 
 static void
@@ -750,30 +731,30 @@ xlnx_pcib_msi_teardown_intr(device_t dev, struct intr_irqsrc *isrc,
 
 static device_method_t xlnx_pcib_fdt_methods[] = {
 	/* Device interface */
-	DEVMETHOD(device_probe,		xlnx_pcib_fdt_probe),
-	DEVMETHOD(device_attach,	xlnx_pcib_fdt_attach),
+	DEVMETHOD(device_probe, xlnx_pcib_fdt_probe),
+	DEVMETHOD(device_attach, xlnx_pcib_fdt_attach),
 
 	/* pcib interface */
-	DEVMETHOD(pcib_get_id,		xlnx_pcib_fdt_get_id),
-	DEVMETHOD(pcib_read_config,	xlnx_pcib_read_config),
-	DEVMETHOD(pcib_write_config,	xlnx_pcib_write_config),
-	DEVMETHOD(pcib_alloc_msi,	xlnx_pcib_alloc_msi),
-	DEVMETHOD(pcib_release_msi,	xlnx_pcib_release_msi),
-	DEVMETHOD(pcib_map_msi,		xlnx_pcib_map_msi),
+	DEVMETHOD(pcib_get_id, xlnx_pcib_fdt_get_id),
+	DEVMETHOD(pcib_read_config, xlnx_pcib_read_config),
+	DEVMETHOD(pcib_write_config, xlnx_pcib_write_config),
+	DEVMETHOD(pcib_alloc_msi, xlnx_pcib_alloc_msi),
+	DEVMETHOD(pcib_release_msi, xlnx_pcib_release_msi),
+	DEVMETHOD(pcib_map_msi, xlnx_pcib_map_msi),
 
 	/* MSI interface */
-	DEVMETHOD(msi_alloc_msi,		xlnx_pcib_msi_alloc_msi),
-	DEVMETHOD(msi_release_msi,		xlnx_pcib_msi_release_msi),
-	DEVMETHOD(msi_map_msi,			xlnx_pcib_msi_map_msi),
+	DEVMETHOD(msi_alloc_msi, xlnx_pcib_msi_alloc_msi),
+	DEVMETHOD(msi_release_msi, xlnx_pcib_msi_release_msi),
+	DEVMETHOD(msi_map_msi, xlnx_pcib_msi_map_msi),
 
 	/* Interrupt controller interface */
-	DEVMETHOD(pic_disable_intr,		xlnx_pcib_msi_disable_intr),
-	DEVMETHOD(pic_enable_intr,		xlnx_pcib_msi_enable_intr),
-	DEVMETHOD(pic_setup_intr,		xlnx_pcib_msi_setup_intr),
-	DEVMETHOD(pic_teardown_intr,		xlnx_pcib_msi_teardown_intr),
-	DEVMETHOD(pic_post_filter,		xlnx_pcib_msi_post_filter),
-	DEVMETHOD(pic_post_ithread,		xlnx_pcib_msi_post_ithread),
-	DEVMETHOD(pic_pre_ithread,		xlnx_pcib_msi_pre_ithread),
+	DEVMETHOD(pic_disable_intr, xlnx_pcib_msi_disable_intr),
+	DEVMETHOD(pic_enable_intr, xlnx_pcib_msi_enable_intr),
+	DEVMETHOD(pic_setup_intr, xlnx_pcib_msi_setup_intr),
+	DEVMETHOD(pic_teardown_intr, xlnx_pcib_msi_teardown_intr),
+	DEVMETHOD(pic_post_filter, xlnx_pcib_msi_post_filter),
+	DEVMETHOD(pic_post_ithread, xlnx_pcib_msi_post_ithread),
+	DEVMETHOD(pic_pre_ithread, xlnx_pcib_msi_pre_ithread),
 
 	/* End */
 	DEVMETHOD_END

@@ -33,11 +33,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "stty.h"
 #include "extern.h"
+#include "stty.h"
 
-static void  binit(const char *);
-static void  bput(const char *);
+static void binit(const char *);
+static void bput(const char *);
 static const char *ccval(struct cchar *, int);
 
 void
@@ -53,7 +53,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 
 	/* Line discipline. */
 	if (ldisc != TTYDISC) {
-		switch(ldisc) {
+		switch (ldisc) {
 		case SLIPDISC:
 			cnt += printf("slip disc; ");
 			break;
@@ -70,8 +70,8 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	ispeed = cfgetispeed(tp);
 	ospeed = cfgetospeed(tp);
 	if (ispeed != ospeed)
-		cnt +=
-		    printf("ispeed %d baud; ospeed %d baud;", ispeed, ospeed);
+		cnt += printf("ispeed %d baud; ospeed %d baud;", ispeed,
+		    ospeed);
 	else
 		cnt += printf("speed %d baud;", ispeed);
 	if (fmt >= BSD)
@@ -79,8 +79,8 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	if (cnt)
 		(void)printf("\n");
 
-#define	on(f)	((tmp & (f)) != 0)
-#define put(n, f, d) \
+#define on(f) ((tmp & (f)) != 0)
+#define put(n, f, d)                    \
 	if (fmt >= BSD || on(f) != (d)) \
 		bput((n) + on(f));
 
@@ -129,7 +129,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-opost", OPOST, 1);
 	put("-onlcr", ONLCR, 1);
 	put("-ocrnl", OCRNL, 0);
-	switch(tmp&TABDLY) {
+	switch (tmp & TABDLY) {
 	case TAB0:
 		bput("tab0");
 		break;
@@ -144,7 +144,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	tmp = tp->c_cflag;
 	binit("cflags");
 	put("-cread", CREAD, 1);
-	switch(tmp&CSIZE) {
+	switch (tmp & CSIZE) {
 	case CS5:
 		bput("cs5");
 		break;
@@ -163,7 +163,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	put("-hupcl", HUPCL, 1);
 	put("-clocal", CLOCAL, 0);
 	put("-cstopb", CSTOPB, 0);
-	switch(tmp & (CCTS_OFLOW | CRTS_IFLOW)) {
+	switch (tmp & (CCTS_OFLOW | CRTS_IFLOW)) {
 	case CCTS_OFLOW:
 		bput("ctsflow");
 		break;
@@ -176,7 +176,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	}
 	put("-dsrflow", CDSR_OFLOW, 0);
 	put("-dtrflow", CDTR_IFLOW, 0);
-	put("-mdmbuf", MDMBUF, 0);	/* XXX mdmbuf ==  dtrflow */
+	put("-mdmbuf", MDMBUF, 0); /* XXX mdmbuf ==  dtrflow */
 	if (on(CNO_RTSDTR))
 		bput("-rtsdtr");
 	else {
@@ -189,8 +189,8 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 	if (fmt == POSIX) {
 		binit("cchars");
 		for (p = cchars1; p->name; ++p) {
-			(void)snprintf(buf1, sizeof(buf1), "%s = %s;",
-			    p->name, ccval(p, cc[p->sub]));
+			(void)snprintf(buf1, sizeof(buf1), "%s = %s;", p->name,
+			    ccval(p, cc[p->sub]));
 			bput(buf1);
 		}
 		binit(NULL);
@@ -199,7 +199,7 @@ print(struct termios *tp, struct winsize *wp, int ldisc, enum FMT fmt)
 		for (p = cchars1, cnt = 0; p->name; ++p) {
 			if (fmt != BSD && cc[p->sub] == p->def)
 				continue;
-#define	WD	"%-8s"
+#define WD "%-8s"
 			(void)snprintf(buf1 + cnt * 8, sizeof(buf1) - cnt * 8,
 			    WD, p->name);
 			(void)snprintf(buf2 + cnt * 8, sizeof(buf2) - cnt * 8,
@@ -268,12 +268,10 @@ ccval(struct cchar *p, int c)
 	if (c == 0177) {
 		*bp++ = '^';
 		*bp++ = '?';
-	}
-	else if (c < 040) {
+	} else if (c < 040) {
 		*bp++ = '^';
 		*bp++ = c + '@';
-	}
-	else
+	} else
 		*bp++ = c;
 	*bp = '\0';
 	return (buf);

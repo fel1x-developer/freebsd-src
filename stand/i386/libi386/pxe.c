@@ -27,72 +27,71 @@
  */
 
 #include <sys/cdefs.h>
-#include <stand.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdarg.h>
 #include <sys/param.h>
 
 #include <net/ethernet.h>
-#include <netinet/in_systm.h>
 #include <netinet/in.h>
+#include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 
+#include <bootp.h>
+#include <bootstrap.h>
+#include <errno.h>
+#include <iodesc.h>
 #include <net.h>
 #include <netif.h>
 #include <nfsv2.h>
-#include <iodesc.h>
+#include <stand.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <string.h>
 
-#include <bootp.h>
-#include <bootstrap.h>
-#include "libi386.h"
 #include "btxv86.h"
+#include "libi386.h"
 #include "pxe.h"
 
-static pxenv_t *pxenv_p = NULL;	/* PXENV+ */
-static pxe_t *pxe_p = NULL;		/* !PXE */
+static pxenv_t *pxenv_p = NULL; /* PXENV+ */
+static pxe_t *pxe_p = NULL;	/* !PXE */
 
 #ifdef PXE_DEBUG
-static int	pxe_debug = 0;
+static int pxe_debug = 0;
 #endif
 
-void		pxe_enable(void *pxeinfo);
-static void	(*pxe_call)(int func, void *ptr);
-static void	pxenv_call(int func, void *ptr);
-static void	bangpxe_call(int func, void *ptr);
+void pxe_enable(void *pxeinfo);
+static void (*pxe_call)(int func, void *ptr);
+static void pxenv_call(int func, void *ptr);
+static void bangpxe_call(int func, void *ptr);
 
-static int	pxe_init(void);
-static int	pxe_print(int verbose);
-static void	pxe_cleanup(void);
+static int pxe_init(void);
+static int pxe_print(int verbose);
+static void pxe_cleanup(void);
 
-static void	pxe_perror(int error);
-static int	pxe_netif_match(struct netif *nif, void *machdep_hint);
-static int	pxe_netif_probe(struct netif *nif, void *machdep_hint);
-static void	pxe_netif_init(struct iodesc *desc, void *machdep_hint);
-static ssize_t	pxe_netif_get(struct iodesc *, void **, time_t);
-static ssize_t	pxe_netif_put(struct iodesc *desc, void *pkt, size_t len);
-static void	pxe_netif_end(struct netif *nif);
+static void pxe_perror(int error);
+static int pxe_netif_match(struct netif *nif, void *machdep_hint);
+static int pxe_netif_probe(struct netif *nif, void *machdep_hint);
+static void pxe_netif_init(struct iodesc *desc, void *machdep_hint);
+static ssize_t pxe_netif_get(struct iodesc *, void **, time_t);
+static ssize_t pxe_netif_put(struct iodesc *desc, void *pkt, size_t len);
+static void pxe_netif_end(struct netif *nif);
 
-extern struct netif_stats	pxe_st[];
-extern uint16_t			__bangpxeseg;
-extern uint16_t			__bangpxeoff;
-extern void			__bangpxeentry(void);
-extern uint16_t			__pxenvseg;
-extern uint16_t			__pxenvoff;
-extern void			__pxenventry(void);
+extern struct netif_stats pxe_st[];
+extern uint16_t __bangpxeseg;
+extern uint16_t __bangpxeoff;
+extern void __bangpxeentry(void);
+extern uint16_t __pxenvseg;
+extern uint16_t __pxenvoff;
+extern void __pxenventry(void);
 
 struct netif_dif pxe_ifs[] = {
-/*	dif_unit        dif_nsel        dif_stats       dif_private     */
-	{0,             1,              &pxe_st[0],     0}
+	/*	dif_unit        dif_nsel        dif_stats       dif_private */
+	{ 0, 1, &pxe_st[0], 0 }
 };
 
 struct netif_stats pxe_st[nitems(pxe_ifs)];
 
-struct netif_driver pxenetif = {
-	.netif_bname = "pxenet",
+struct netif_driver pxenetif = { .netif_bname = "pxenet",
 	.netif_match = pxe_netif_match,
 	.netif_probe = pxe_netif_probe,
 	.netif_init = pxe_netif_init,
@@ -100,21 +99,17 @@ struct netif_driver pxenetif = {
 	.netif_put = pxe_netif_put,
 	.netif_end = pxe_netif_end,
 	.netif_ifs = pxe_ifs,
-	.netif_nifs = nitems(pxe_ifs)
-};
+	.netif_nifs = nitems(pxe_ifs) };
 
-struct netif_driver *netif_drivers[] = {
-	&pxenetif,
-	NULL
-};
+struct netif_driver *netif_drivers[] = { &pxenetif, NULL };
 
 struct devsw pxedisk = {
 	.dv_name = "net",
 	.dv_type = DEVT_NET,
 	.dv_init = pxe_init,
-	.dv_strategy = NULL,	/* Will be set in pxe_init */
-	.dv_open = NULL,	/* Will be set in pxe_init */
-	.dv_close = NULL,	/* Will be set in pxe_init */
+	.dv_strategy = NULL, /* Will be set in pxe_init */
+	.dv_open = NULL,     /* Will be set in pxe_init */
+	.dv_close = NULL,    /* Will be set in pxe_init */
 	.dv_ioctl = noioctl,
 	.dv_print = pxe_print,
 	.dv_cleanup = pxe_cleanup,
@@ -128,9 +123,9 @@ struct devsw pxedisk = {
 void
 pxe_enable(void *pxeinfo)
 {
-	pxenv_p  = (pxenv_t *)pxeinfo;
-	pxe_p    = (pxe_t *)PTOV(pxenv_p->PXEPtr.segment * 16 +
-				 pxenv_p->PXEPtr.offset);
+	pxenv_p = (pxenv_t *)pxeinfo;
+	pxe_p = (pxe_t *)PTOV(
+	    pxenv_p->PXEPtr.segment * 16 + pxenv_p->PXEPtr.offset);
 	pxe_call = NULL;
 }
 
@@ -168,7 +163,7 @@ pxe_init(void)
 	 * add up each byte in the structure, the total should be 0
 	 */
 	checksum = 0;
-	checkptr = (uint8_t *) pxenv_p;
+	checkptr = (uint8_t *)pxenv_p;
 	for (counter = 0; counter < pxenv_p->Length; counter++)
 		checksum += *checkptr++;
 	if (checksum != 0) {
@@ -191,7 +186,7 @@ pxe_init(void)
 			checksum = 0;
 			checkptr = (uint8_t *)pxe_p;
 			for (counter = 0; counter < pxe_p->StructLength;
-			    counter++)
+			     counter++)
 				checksum += *checkptr++;
 			if (checksum != 0) {
 				pxe_p = NULL;
@@ -207,15 +202,14 @@ pxe_init(void)
 	pxedisk.dv_strategy = netdev.dv_strategy;
 
 	printf("\nPXE version %d.%d, real mode entry point ",
-	    (uint8_t) (pxenv_p->Version >> 8),
-	    (uint8_t) (pxenv_p->Version & 0xFF));
+	    (uint8_t)(pxenv_p->Version >> 8),
+	    (uint8_t)(pxenv_p->Version & 0xFF));
 	if (pxe_call == bangpxe_call)
-		printf("@%04x:%04x\n",
-		    pxe_p->EntryPointSP.segment,
+		printf("@%04x:%04x\n", pxe_p->EntryPointSP.segment,
 		    pxe_p->EntryPointSP.offset);
 	else
-		printf("@%04x:%04x\n",
-		    pxenv_p->RMEntry.segment, pxenv_p->RMEntry.offset);
+		printf("@%04x:%04x\n", pxenv_p->RMEntry.segment,
+		    pxenv_p->RMEntry.offset);
 
 	gci_p = bio_alloc(sizeof(*gci_p));
 	if (gci_p == NULL) {
@@ -306,19 +300,19 @@ pxenv_call(int func, void *ptr)
 	if (pxe_debug)
 		printf("pxenv_call %x\n", func);
 #endif
-	
+
 	bzero(&v86, sizeof(v86));
 
 	__pxenvseg = pxenv_p->RMEntry.segment;
 	__pxenvoff = pxenv_p->RMEntry.offset;
-	
-	v86.ctl  = V86_ADDR | V86_CALLF | V86_FLAGS;
-	v86.es   = VTOPSEG(ptr);
-	v86.edi  = VTOPOFF(ptr);
+
+	v86.ctl = V86_ADDR | V86_CALLF | V86_FLAGS;
+	v86.es = VTOPSEG(ptr);
+	v86.edi = VTOPOFF(ptr);
 	v86.addr = (VTOPSEG(__pxenventry) << 16) | VTOPOFF(__pxenventry);
-	v86.ebx  = func;
+	v86.ebx = func;
 	v86int();
-	v86.ctl  = V86_FLAGS;
+	v86.ctl = V86_FLAGS;
 }
 
 void
@@ -334,15 +328,14 @@ bangpxe_call(int func, void *ptr)
 	__bangpxeseg = pxe_p->EntryPointSP.segment;
 	__bangpxeoff = pxe_p->EntryPointSP.offset;
 
-	v86.ctl  = V86_ADDR | V86_CALLF | V86_FLAGS;
-	v86.edx  = VTOPSEG(ptr);
-	v86.eax  = VTOPOFF(ptr);
+	v86.ctl = V86_ADDR | V86_CALLF | V86_FLAGS;
+	v86.edx = VTOPSEG(ptr);
+	v86.eax = VTOPOFF(ptr);
 	v86.addr = (VTOPSEG(__bangpxeentry) << 16) | VTOPOFF(__bangpxeentry);
-	v86.ebx  = func;
+	v86.ebx = func;
 	v86int();
-	v86.ctl  = V86_FLAGS;
+	v86.ctl = V86_FLAGS;
 }
-
 
 static int
 pxe_netif_match(struct netif *nif, void *machdep_hint)
@@ -410,7 +403,7 @@ pxe_netif_init(struct iodesc *desc, void *machdep_hint)
 	else
 		mac = undi_info_p->PermNodeAddress;
 
-	len = min(sizeof (desc->myea), undi_info_p->HwAddrLen);
+	len = min(sizeof(desc->myea), undi_info_p->HwAddrLen);
 	for (i = 0; i < len; ++i)
 		desc->myea[i] = mac[i];
 
@@ -523,7 +516,7 @@ pxe_netif_receive_isr(t_PXENV_UNDI_ISR *isr, void **pkt, ssize_t *retsize)
 			break;
 		}
 
-nextbuf:
+	nextbuf:
 		bzero(isr, sizeof(*isr));
 		isr->FuncFlag = PXENV_UNDI_ISR_IN_GET_NEXT;
 		pxe_call(PXENV_UNDI_ISR, isr);
@@ -610,11 +603,11 @@ pxe_netif_put(struct iodesc *desc, void *pkt, size_t len)
 		bzero(tbd_p, sizeof(*tbd_p));
 
 		trans_p->TBD.segment = VTOPSEG(tbd_p);
-		trans_p->TBD.offset  = VTOPOFF(tbd_p);
+		trans_p->TBD.offset = VTOPOFF(tbd_p);
 
 		tbd_p->ImmedLength = len;
 		tbd_p->Xmit.segment = VTOPSEG(data);
-		tbd_p->Xmit.offset  = VTOPOFF(data);
+		tbd_p->Xmit.offset = VTOPOFF(data);
 		bcopy(pkt, data, len);
 
 		pxe_call(PXENV_UNDI_TRANSMIT, trans_p);

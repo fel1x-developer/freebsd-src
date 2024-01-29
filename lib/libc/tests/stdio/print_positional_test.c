@@ -30,29 +30,27 @@
  */
 
 #include <sys/param.h>
+
+#include <atf-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 
-#include <atf-c.h>
+const char correct[] = "|xx 01 02 03 04\n"
+		       "|xx 05 06 07 08\n"
+		       "|xx 09 10 11 12\n"
+		       "|xx 13 14 15 16\n"
+		       "|xx 17 18 19 20\n"
+		       "|xx 21 22 23 24\n"
+		       "|xx 25 26 27 28\n"
+		       "|xx 29 30 31 32\n"
+		       "|xx 33 34 35 36\n"
+		       "|xx 37 38 39 40\n"
+		       "|xx 41 42 43 44\n"
+		       "|xx 45 -1 1 -1 1\n";
 
-const char correct[] =
-	"|xx 01 02 03 04\n"
-	"|xx 05 06 07 08\n"
-	"|xx 09 10 11 12\n"
-	"|xx 13 14 15 16\n"
-	"|xx 17 18 19 20\n"
-	"|xx 21 22 23 24\n"
-	"|xx 25 26 27 28\n"
-	"|xx 29 30 31 32\n"
-	"|xx 33 34 35 36\n"
-	"|xx 37 38 39 40\n"
-	"|xx 41 42 43 44\n"
-	"|xx 45 -1 1 -1 1\n";
-
-const char correct2[] =
-	"b bs BSD";
+const char correct2[] = "b bs BSD";
 static char buf[1024];
 static wchar_t wbuf1[1024], wbuf2[1024];
 static const char *temp;
@@ -75,17 +73,12 @@ ATF_TC_BODY(positional_normal, tc)
 	    "|xx %37$s %38$s %39$s %40$s\n"
 	    "|xx %41$s %42$s %43$s %44$s\n"
 	    "|xx %45$d %46$ld %47$lld %48$d %49$lld\n",
-	    "01", "02", "03", "04", "05", "06",
-	    "07", "08", "09", "10", "11", "12",
-	    "13", "14", "15", "16", "17", "18",
-	    "19", "20", "21", "22", "23", "24",
-	    "25", "26", "27", "28", "29", "30",
-	    "31", "32", "33", "34", "35", "36",
-	    "37", "38", "39", "40", "41", "42",
-	    "43", "44", 45, -1L, 1LL, -1, 1LL
-	    );
-	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0,
-	    "buffers didn't match");
+	    "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+	    "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22",
+	    "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33",
+	    "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44",
+	    45, -1L, 1LL, -1, 1LL);
+	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0, "buffers didn't match");
 }
 
 ATF_TC_WITHOUT_HEAD(positional_wide);
@@ -105,41 +98,33 @@ ATF_TC_BODY(positional_wide, tc)
 	    "|xx %37$s %38$s %39$s %40$s\n"
 	    "|xx %41$s %42$s %43$s %44$s\n"
 	    "|xx %45$d %46$ld %47$lld %48$d %49$lld\n",
-	    "01", "02", "03", "04", "05", "06",
-	    "07", "08", "09", "10", "11", "12",
-	    "13", "14", "15", "16", "17", "18",
-	    "19", "20", "21", "22", "23", "24",
-	    "25", "26", "27", "28", "29", "30",
-	    "31", "32", "33", "34", "35", "36",
-	    "37", "38", "39", "40", "41", "42",
-	    "43", "44", 45, -1L, 1LL, -1, 1LL
-	    );
+	    "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
+	    "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22",
+	    "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33",
+	    "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44",
+	    45, -1L, 1LL, -1, 1LL);
 	temp = correct;
 	mbsrtowcs(wbuf2, &temp, nitems(wbuf2), NULL);
-	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0,
-	    "buffers didn't match");
+	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0, "buffers didn't match");
 }
 
 ATF_TC_WITHOUT_HEAD(positional_precision);
 ATF_TC_BODY(positional_precision, tc)
 {
 
-	snprintf(buf, sizeof buf, "%2$.*4$s %2$.*3$s %1$s",
-		 "BSD", "bsd", 2, 1);
-	ATF_REQUIRE_MSG(strcmp(buf, correct2) == 0,
-	    "buffers didn't match");
+	snprintf(buf, sizeof buf, "%2$.*4$s %2$.*3$s %1$s", "BSD", "bsd", 2, 1);
+	ATF_REQUIRE_MSG(strcmp(buf, correct2) == 0, "buffers didn't match");
 }
 
 ATF_TC_WITHOUT_HEAD(positional_precision_wide);
 ATF_TC_BODY(positional_precision_wide, tc)
 {
 
-	swprintf(wbuf1, sizeof buf, L"%2$.*4$s %2$.*3$s %1$s",
-		 "BSD", "bsd", 2, 1);
+	swprintf(wbuf1, sizeof buf, L"%2$.*4$s %2$.*3$s %1$s", "BSD", "bsd", 2,
+	    1);
 	temp = correct2;
 	mbsrtowcs(wbuf2, &temp, nitems(wbuf2), NULL);
-	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0,
-	    "buffers didn't match");
+	ATF_REQUIRE_MSG(wcscmp(wbuf1, wbuf2) == 0, "buffers didn't match");
 }
 
 ATF_TP_ADD_TCS(tp)

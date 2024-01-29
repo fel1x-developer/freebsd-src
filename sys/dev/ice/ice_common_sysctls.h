@@ -83,7 +83,8 @@ bool ice_enable_tx_lldp_filter = true;
 
 /**
  * @var ice_enable_health_events
- * @brief boolean indicating if health status events from the FW should be reported
+ * @brief boolean indicating if health status events from the FW should be
+ * reported
  *
  * Global sysctl variable indicating whether the Health Status events from the
  * FW should be enabled. If true, if an event occurs, the driver will print out
@@ -127,28 +128,26 @@ static uint16_t ice_rdma_max_msix = ICE_RDMA_MAX_MSIX;
 static SYSCTL_NODE(_hw, OID_AUTO, ice, CTLFLAG_RD, 0, "ICE driver parameters");
 
 static SYSCTL_NODE(_hw_ice, OID_AUTO, debug, ICE_CTLFLAG_DEBUG | CTLFLAG_RD, 0,
-		   "ICE driver debug parameters");
+    "ICE driver debug parameters");
 
 SYSCTL_BOOL(_hw_ice, OID_AUTO, enable_health_events, CTLFLAG_RDTUN,
-	    &ice_enable_health_events, 0,
-	    "Enable FW health event reporting globally");
+    &ice_enable_health_events, 0, "Enable FW health event reporting globally");
 
 SYSCTL_BOOL(_hw_ice, OID_AUTO, irdma, CTLFLAG_RDTUN, &ice_enable_irdma, 0,
-	    "Enable iRDMA client interface");
+    "Enable iRDMA client interface");
 
 SYSCTL_U16(_hw_ice, OID_AUTO, rdma_max_msix, CTLFLAG_RDTUN, &ice_rdma_max_msix,
-	   0, "Maximum number of MSI-X vectors to reserve per RDMA interface");
+    0, "Maximum number of MSI-X vectors to reserve per RDMA interface");
 
 SYSCTL_BOOL(_hw_ice_debug, OID_AUTO, enable_tx_fc_filter, CTLFLAG_RDTUN,
-	    &ice_enable_tx_fc_filter, 0,
-	    "Drop Ethertype 0x8808 control frames originating from non-HW sources");
+    &ice_enable_tx_fc_filter, 0,
+    "Drop Ethertype 0x8808 control frames originating from non-HW sources");
 
 SYSCTL_BOOL(_hw_ice_debug, OID_AUTO, enable_tx_lldp_filter, CTLFLAG_RDTUN,
-	    &ice_enable_tx_lldp_filter, 0,
-	    "Drop Ethertype 0x88cc LLDP frames originating from non-HW sources");
+    &ice_enable_tx_lldp_filter, 0,
+    "Drop Ethertype 0x88cc LLDP frames originating from non-HW sources");
 
 SYSCTL_BOOL(_hw_ice_debug, OID_AUTO, tx_balance_en, CTLFLAG_RWTUN,
-	    &ice_tx_balance_en, 0,
-	    "Enable 5-layer scheduler topology");
+    &ice_tx_balance_en, 0, "Enable 5-layer scheduler topology");
 
 #endif /* _ICE_COMMON_SYSCTLS_H_ */

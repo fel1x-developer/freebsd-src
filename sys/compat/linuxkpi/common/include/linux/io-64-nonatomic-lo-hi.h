@@ -24,8 +24,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef	_LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_
-#define	_LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_
+#ifndef _LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_
+#define _LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_
 
 #include <linux/io.h>
 
@@ -55,11 +55,11 @@ lo_hi_writeq(uint64_t v, volatile void *addr)
 }
 
 #ifndef readq
-#define readq(addr)	lo_hi_readq(addr)
+#define readq(addr) lo_hi_readq(addr)
 #endif
 
 #ifndef writeq
-#define writeq(v, addr)	lo_hi_writeq(v, addr)
+#define writeq(v, addr) lo_hi_writeq(v, addr)
 #endif
 
-#endif	/* _LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_ */
+#endif /* _LINUXKPI_LINUX_IO_64_NONATOMIC_LO_HI_H_ */

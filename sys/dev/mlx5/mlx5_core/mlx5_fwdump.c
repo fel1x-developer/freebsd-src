@@ -23,19 +23,20 @@
  * SUCH DAMAGE.
  */
 
-#include "opt_rss.h"
 #include "opt_ratelimit.h"
+#include "opt_rss.h"
 
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <sys/fcntl.h>
-#include <dev/mlx5/driver.h>
+
 #include <dev/mlx5/device.h>
-#include <dev/mlx5/port.h>
+#include <dev/mlx5/diagnostics.h>
+#include <dev/mlx5/driver.h>
 #include <dev/mlx5/mlx5_core/mlx5_core.h>
 #include <dev/mlx5/mlx5io.h>
-#include <dev/mlx5/diagnostics.h>
+#include <dev/mlx5/port.h>
 
 static MALLOC_DEFINE(M_MLX5_DUMP, "MLX5DUMP", "MLX5 Firmware dump");
 
@@ -61,8 +62,7 @@ mlx5_fwdump_destroy_dd(struct mlx5_core_dev *mdev)
 
 static int mlx5_fw_dump_enable = 1;
 SYSCTL_INT(_hw_mlx5, OID_AUTO, fw_dump_enable, CTLFLAG_RDTUN | CTLFLAG_NOFETCH,
-    &mlx5_fw_dump_enable, 0,
-    "Enable fw dump setup and op");
+    &mlx5_fw_dump_enable, 0, "Enable fw dump setup and op");
 
 void
 mlx5_fwdump_prep(struct mlx5_core_dev *mdev)
@@ -113,7 +113,7 @@ mlx5_fwdump_prep(struct mlx5_core_dev *mdev)
 		error = mlx5_vsc_wait_on_flag(mdev, 1);
 		if (error != 0) {
 			mlx5_core_warn(mdev,
-		    "Failed waiting for read complete flag, error %d addr %#x\n",
+			    "Failed waiting for read complete flag, error %d addr %#x\n",
 			    error, addr);
 			goto unlock_vsc;
 		}
@@ -145,7 +145,7 @@ mlx5_fwdump_prep(struct mlx5_core_dev *mdev)
 		error = mlx5_vsc_wait_on_flag(mdev, 1);
 		if (error != 0) {
 			mlx5_core_warn(mdev,
-		    "Failed waiting for read complete flag, error %d addr %#x\n",
+			    "Failed waiting for read complete flag, error %d addr %#x\n",
 			    error, addr);
 			free(mdev->dump_rege, M_MLX5_DUMP);
 			mdev->dump_rege = NULL;
@@ -159,7 +159,7 @@ mlx5_fwdump_prep(struct mlx5_core_dev *mdev)
 		if (next_addr != addr + 4) {
 			if (++i == sz) {
 				mlx5_core_err(mdev,
-		    "Inconsistent hw crspace reads (1): sz %u i %u addr %#lx",
+				    "Inconsistent hw crspace reads (1): sz %u i %u addr %#lx",
 				    sz, i, (unsigned long)addr);
 				break;
 			}
@@ -252,8 +252,8 @@ mlx5_fwdump_reset(struct mlx5_core_dev *mdev)
 	mtx_lock(&mdev->dump_lock);
 	if (mdev->dump_data != NULL) {
 		while (mdev->dump_copyout) {
-			msleep(&mdev->dump_copyout, &mdev->dump_lock,
-			    0, "mlx5fwr", 0);
+			msleep(&mdev->dump_copyout, &mdev->dump_lock, 0,
+			    "mlx5fwr", 0);
 		}
 		mdev->dump_valid = false;
 	} else {
@@ -350,7 +350,8 @@ mlx5_fw_reset(struct mlx5_core_dev *mdev)
 }
 
 static int
-mlx5_eeprom_copyout(struct mlx5_core_dev *dev, struct mlx5_eeprom_get *eeprom_info)
+mlx5_eeprom_copyout(struct mlx5_core_dev *dev,
+    struct mlx5_eeprom_get *eeprom_info)
 {
 	struct mlx5_eeprom eeprom;
 	int error;
@@ -382,16 +383,14 @@ mlx5_eeprom_copyout(struct mlx5_core_dev *dev, struct mlx5_eeprom_get *eeprom_in
 	/* Read the whole eeprom information */
 	error = mlx5_get_eeprom(dev, &eeprom);
 	if (error != 0) {
-		mlx5_core_err(dev, "Failed reading EEPROM error = %d\n",
-		    error);
+		mlx5_core_err(dev, "Failed reading EEPROM error = %d\n", error);
 		error = 0;
 		/*
 		 * Continue printing partial information in case of
 		 * an error
 		 */
 	}
-	error = copyout(eeprom.data, eeprom_info->eeprom_info_buf,
-	    eeprom.len);
+	error = copyout(eeprom.data, eeprom_info->eeprom_info_buf, eeprom.len);
 	free(eeprom.data, M_MLX5_EEPROM);
 
 	return (error);
@@ -506,8 +505,8 @@ mlx5_ctl_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 }
 
 static struct cdevsw mlx5_ctl_devsw = {
-	.d_version =	D_VERSION,
-	.d_ioctl =	mlx5_ctl_ioctl,
+	.d_version = D_VERSION,
+	.d_ioctl = mlx5_ctl_ioctl,
 };
 
 static struct cdev *mlx5_ctl_dev;
@@ -534,5 +533,4 @@ mlx5_ctl_fini(void)
 
 	if (mlx5_ctl_dev != NULL)
 		destroy_dev(mlx5_ctl_dev);
-
 }

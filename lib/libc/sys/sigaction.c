@@ -30,7 +30,9 @@
  */
 
 #include <sys/types.h>
+
 #include <signal.h>
+
 #include "libc_private.h"
 
 __weak_reference(__sys_sigaction, __sigaction);
@@ -42,5 +44,5 @@ sigaction(int sig, const struct sigaction *act, struct sigaction *oact)
 {
 
 	return (((int (*)(int, const struct sigaction *, struct sigaction *))
-	    __libc_interposing[INTERPOS_sigaction])(sig, act, oact));
+		__libc_interposing[INTERPOS_sigaction])(sig, act, oact));
 }

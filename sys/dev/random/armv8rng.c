@@ -27,7 +27,6 @@
  */
 
 #include <sys/cdefs.h>
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
@@ -60,10 +59,11 @@ random_rndr_read_one(u_long *buf)
 	do {
 		__asm __volatile(
 		    /* Read the random number */
-		    "mrs	%0, " __XSTRING(RNDRRS_REG) "\n"
-		    /* 1 on success, 0 on failure */
-		    "cset	%w1, ne\n"
-		    : "=&r" (val), "=&r"(ret) :: "cc");
+		    "mrs	%0, " __XSTRING(
+			RNDRRS_REG) "\n"
+				    /* 1 on success, 0 on failure */
+				    "cset	%w1, ne\n"
+		    : "=&r"(val), "=&r"(ret)::"cc");
 	} while (ret != 0 && --loop > 0);
 
 	if (ret != 0)
@@ -118,17 +118,12 @@ rndr_modevent(module_t mod, int type, void *unused)
 	default:
 		error = EOPNOTSUPP;
 		break;
-
 	}
 
 	return (error);
 }
 
-static moduledata_t rndr_mod = {
-	"rndr",
-	rndr_modevent,
-	0
-};
+static moduledata_t rndr_mod = { "rndr", rndr_modevent, 0 };
 
 DECLARE_MODULE(rndr, rndr_mod, SI_SUB_RANDOM, SI_ORDER_FOURTH);
 MODULE_VERSION(rndr, 1);

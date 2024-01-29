@@ -25,7 +25,7 @@
  */
 
 #ifndef _OPENSOLARIS_SYS_ASSFAIL_H_
-#define	_OPENSOLARIS_SYS_ASSFAIL_H_
+#define _OPENSOLARIS_SYS_ASSFAIL_H_
 
 #include <sys/types.h>
 #ifndef _KERNEL
@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #endif
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -41,7 +41,7 @@ extern "C" {
 int assfail(const char *, const char *, int);
 void assfail3(const char *, uintmax_t, const char *, uintmax_t, const char *,
     int);
-#else	/* !defined(_KERNEL) */
+#else /* !defined(_KERNEL) */
 
 #ifndef HAVE_ASSFAIL
 extern int aok;
@@ -64,21 +64,22 @@ extern int aok;
 
 static __inline void
 __assfail3(const char *expr, uintmax_t lv, const char *op, uintmax_t rv,
-    const char *file, int line) {
+    const char *file, int line)
+{
 
 	(void)fprintf(stderr,
-	    "Assertion failed: %s (0x%jx %s 0x%jx), file %s, line %d.\n",
-	    expr, lv, op, rv, file, line);
+	    "Assertion failed: %s (0x%jx %s 0x%jx), file %s, line %d.\n", expr,
+	    lv, op, rv, file, line);
 	if (!aok)
 		abort();
 }
 #define assfail3 __assfail3
 #endif
 
-#endif	/* !defined(_KERNEL) */
+#endif /* !defined(_KERNEL) */
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* _OPENSOLARIS_SYS_ASSFAIL_H_ */
+#endif /* _OPENSOLARIS_SYS_ASSFAIL_H_ */

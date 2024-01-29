@@ -33,9 +33,9 @@
 
 #ifndef _LOCALE_T_DEFINED
 #define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+typedef struct _xlocale *locale_t;
 #endif
 
-char	*nl_langinfo_l(nl_item, locale_t);
+char *nl_langinfo_l(nl_item, locale_t);
 
 #endif /* _XLOCALE_LANGINFO_H */

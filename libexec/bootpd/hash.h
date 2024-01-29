@@ -1,10 +1,10 @@
-#ifndef	HASH_H
+#ifndef HASH_H
 #define HASH_H
 /* hash.h */
 /************************************************************************
-          Copyright 1988, 1991 by Carnegie Mellon University
+	  Copyright 1988, 1991 by Carnegie Mellon University
 
-                          All Rights Reserved
+			  All Rights Reserved
 
 Permission to use, copy, modify, and distribute this software and its
 documentation for any purpose and without fee is hereby granted, provided
@@ -32,7 +32,6 @@ SOFTWARE.
  * This package attempts to follow some of the coding conventions suggested
  * by Bob Sidebotham and the AFS Clean Code Committee.
  */
-
 
 /*
  * The user must supply the following:
@@ -83,36 +82,33 @@ SOFTWARE.
  *	    guaranteed to use the best hash algorithm in existence. . . .
  */
 
-
-
 /*
  * Various hash table definitions
  */
-
 
 /*
  * Define "hash_datum" as a universal data type
  */
 typedef void hash_datum;
 
-typedef struct hash_memberstruct  hash_member;
-typedef struct hash_tblstruct     hash_tbl;
+typedef struct hash_memberstruct hash_member;
+typedef struct hash_tblstruct hash_tbl;
 typedef struct hash_tblstruct_hdr hash_tblhdr;
 
 struct hash_memberstruct {
-    hash_member *next;
-    hash_datum  *data;
+	hash_member *next;
+	hash_datum *data;
 };
 
 struct hash_tblstruct_hdr {
-    unsigned	size, bucketnum;
-    hash_member *member;
+	unsigned size, bucketnum;
+	hash_member *member;
 };
 
 struct hash_tblstruct {
-    unsigned	size, bucketnum;
-    hash_member *member;		/* Used for linear dump */
-    hash_member	*table[1];		/* Dynamically extended */
+	unsigned size, bucketnum;
+	hash_member *member;   /* Used for linear dump */
+	hash_member *table[1]; /* Dynamically extended */
 };
 
 /* ANSI function prototypes or empty arg list? */
@@ -120,28 +116,25 @@ struct hash_tblstruct {
 typedef int (*hash_cmpfp)(hash_datum *, hash_datum *);
 typedef void (*hash_freefp)(hash_datum *);
 
-extern hash_tbl	  *hash_Init(u_int tablesize);
+extern hash_tbl *hash_Init(u_int tablesize);
 
-extern void	   hash_Reset(hash_tbl *tbl, hash_freefp);
+extern void hash_Reset(hash_tbl *tbl, hash_freefp);
 
-extern unsigned	   hash_HashFunction(u_char *str, u_int len);
+extern unsigned hash_HashFunction(u_char *str, u_int len);
 
-extern int	   hash_Exists(hash_tbl *, u_int code,
-				  hash_cmpfp, hash_datum *key);
+extern int hash_Exists(hash_tbl *, u_int code, hash_cmpfp, hash_datum *key);
 
-extern int	   hash_Insert(hash_tbl *, u_int code,
-				  hash_cmpfp, hash_datum *key,
-				  hash_datum *element);
+extern int hash_Insert(hash_tbl *, u_int code, hash_cmpfp, hash_datum *key,
+    hash_datum *element);
 
-extern int	   hash_Delete(hash_tbl *, u_int code,
-				  hash_cmpfp, hash_datum *key,
-				  hash_freefp);
+extern int hash_Delete(hash_tbl *, u_int code, hash_cmpfp, hash_datum *key,
+    hash_freefp);
 
-extern hash_datum *hash_Lookup(hash_tbl *, u_int code,
-				  hash_cmpfp, hash_datum *key);
+extern hash_datum *hash_Lookup(hash_tbl *, u_int code, hash_cmpfp,
+    hash_datum *key);
 
 extern hash_datum *hash_FirstEntry(hash_tbl *);
 
 extern hash_datum *hash_NextEntry(hash_tbl *);
 
-#endif	/* HASH_H */
+#endif /* HASH_H */

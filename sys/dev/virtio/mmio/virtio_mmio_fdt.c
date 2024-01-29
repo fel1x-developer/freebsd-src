@@ -56,19 +56,18 @@
 #include <sys/module.h>
 
 #include <dev/fdt/fdt_common.h>
-#include <dev/ofw/openfirm.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
-
+#include <dev/ofw/openfirm.h>
 #include <dev/virtio/mmio/virtio_mmio.h>
 
-static int	vtmmio_fdt_probe(device_t);
-static int	vtmmio_fdt_attach(device_t);
+static int vtmmio_fdt_probe(device_t);
+static int vtmmio_fdt_attach(device_t);
 
 static device_method_t vtmmio_fdt_methods[] = {
 	/* Device interface. */
-	DEVMETHOD(device_probe,		vtmmio_fdt_probe),
-	DEVMETHOD(device_attach,	vtmmio_fdt_attach),
+	DEVMETHOD(device_probe, vtmmio_fdt_probe),
+	DEVMETHOD(device_attach, vtmmio_fdt_attach),
 
 	DEVMETHOD_END
 };
@@ -77,7 +76,7 @@ DEFINE_CLASS_1(virtio_mmio, vtmmio_fdt_driver, vtmmio_fdt_methods,
     sizeof(struct vtmmio_softc), vtmmio_driver);
 
 DRIVER_MODULE(virtio_mmio, simplebus, vtmmio_fdt_driver, 0, 0);
-DRIVER_MODULE(virtio_mmio, ofwbus, vtmmio_fdt_driver, 0,0);
+DRIVER_MODULE(virtio_mmio, ofwbus, vtmmio_fdt_driver, 0, 0);
 MODULE_DEPEND(virtio_mmio, simplebus, 1, 1, 1);
 MODULE_DEPEND(virtio_mmio, virtio, 1, 1, 1);
 
@@ -107,14 +106,13 @@ vtmmio_setup_platform(device_t dev, struct vtmmio_softc *sc)
 	if ((node = ofw_bus_get_node(dev)) == -1)
 		return (ENXIO);
 
-	if (OF_searchencprop(node, "platform", &xref,
-		sizeof(xref)) == -1) {
+	if (OF_searchencprop(node, "platform", &xref, sizeof(xref)) == -1) {
 		return (ENXIO);
 	}
 
 	platform_node = OF_node_from_xref(xref);
 
-	SLIST_FOREACH(ic, &fdt_ic_list_head, fdt_ics) {
+	SLIST_FOREACH (ic, &fdt_ic_list_head, fdt_ics) {
 		if (ic->iph == platform_node) {
 			sc->platform = ic->dev;
 			break;

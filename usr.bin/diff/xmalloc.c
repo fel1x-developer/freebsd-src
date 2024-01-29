@@ -14,6 +14,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <err.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -54,8 +55,8 @@ xreallocarray(void *ptr, size_t nmemb, size_t size)
 
 	new_ptr = reallocarray(ptr, nmemb, size);
 	if (new_ptr == NULL)
-		err(2, "xreallocarray: allocating %zu * %zu bytes",
-		    nmemb, size);
+		err(2, "xreallocarray: allocating %zu * %zu bytes", nmemb,
+		    size);
 	return new_ptr;
 }
 

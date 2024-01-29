@@ -68,8 +68,9 @@ clean(void)
 	char buf[132];
 
 	snprintf(buf, sizeof(buf),
-		"cd %s; rm -rf syscall.[0-9]* fifo.[0-9]* creat.[0-9]* "
-		"p[0-9]*.d1 df lock", op->cd);
+	    "cd %s; rm -rf syscall.[0-9]* fifo.[0-9]* creat.[0-9]* "
+	    "p[0-9]*.d1 df lock",
+	    op->cd);
 	(void)system(buf);
 }
 
@@ -78,17 +79,17 @@ test(void)
 {
 	struct tm *tm;
 	pid_t *r;
-	time_t	t;
+	time_t t;
 	int i;
 	int s;
-	char fullpath[MAXPATHLEN+1];
+	char fullpath[MAXPATHLEN + 1];
 	char ct[80];
 
 	r = (pid_t *)malloc(op->argc * sizeof(pid_t));
 
 	(void)time(&t);
 	tm = localtime(&t);
-	(void) strftime(ct, sizeof(ct), "%T", tm);
+	(void)strftime(ct, sizeof(ct), "%T", tm);
 	printf("%s Loop #%d\n", ct, loop++);
 	fflush(stdout);
 
@@ -98,10 +99,11 @@ test(void)
 			continue;
 		if ((r[i] = fork()) == 0) {
 			snprintf(fullpath, sizeof(fullpath), "%s/%s", home,
-				op->argv[i]);
-			if (execv(fullpath, mkargv(basename(op->argv[i]))) == -1)
+			    op->argv[i]);
+			if (execv(fullpath, mkargv(basename(op->argv[i]))) ==
+			    -1)
 				err(1, "execl(%s), %s:%d", fullpath, __FILE__,
-					__LINE__);
+				    __LINE__);
 		}
 		if (r[i] < 0)
 			err(1, "fork(), %s:%d", __FILE__, __LINE__);

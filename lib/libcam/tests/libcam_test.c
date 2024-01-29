@@ -26,12 +26,12 @@
 /* Tests functions in lib/libcam/camlib.c */
 
 #include <sys/cdefs.h>
+
+#include <atf-c.h>
+#include <camlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <camlib.h>
-
-#include <atf-c.h>
 
 static const char *
 get_cam_test_device(const atf_tc_t *tc)
@@ -64,7 +64,7 @@ ATF_TC_BODY(cam_get_device_negative_test_NULL_path, tc)
 	int parsed_unit;
 
 	ATF_REQUIRE_MSG(cam_get_device(NULL, parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == -1,
+			    nitems(parsed_dev_name), &parsed_unit) == -1,
 	    "cam_get_device succeeded unexpectedly");
 }
 
@@ -75,7 +75,7 @@ ATF_TC_BODY(cam_get_device_negative_test_bad_path, tc)
 	int parsed_unit;
 
 	ATF_REQUIRE_MSG(cam_get_device("1ada", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == -1,
+			    nitems(parsed_dev_name), &parsed_unit) == -1,
 	    "cam_get_device succeeded unexpectedly");
 }
 
@@ -86,7 +86,7 @@ ATF_TC_BODY(cam_get_device_negative_test_nul_path, tc)
 	int parsed_unit;
 
 	ATF_REQUIRE_MSG(cam_get_device("", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == -1,
+			    nitems(parsed_dev_name), &parsed_unit) == -1,
 	    "cam_get_device succeeded unexpectedly");
 }
 
@@ -97,7 +97,7 @@ ATF_TC_BODY(cam_get_device_negative_test_root, tc)
 	int parsed_unit;
 
 	ATF_REQUIRE_MSG(cam_get_device("/", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == -1,
+			    nitems(parsed_dev_name), &parsed_unit) == -1,
 	    "cam_get_device succeeded unexpectedly");
 }
 
@@ -111,7 +111,7 @@ ATF_TC_BODY(cam_get_device_positive_test, tc)
 	expected_unit = 1;
 
 	ATF_REQUIRE_MSG(cam_get_device("/dev/foo1", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == 0,
+			    nitems(parsed_dev_name), &parsed_unit) == 0,
 	    "cam_get_device failed");
 	ATF_REQUIRE_STREQ(parsed_dev_name, expected_dev_name);
 	ATF_REQUIRE(parsed_unit == expected_unit);
@@ -120,13 +120,13 @@ ATF_TC_BODY(cam_get_device_positive_test, tc)
 	parsed_unit = -1;
 
 	ATF_REQUIRE_MSG(cam_get_device("foo1", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == 0,
+			    nitems(parsed_dev_name), &parsed_unit) == 0,
 	    "cam_get_device failed");
 	ATF_REQUIRE_STREQ(parsed_dev_name, expected_dev_name);
 	ATF_REQUIRE(parsed_unit == expected_unit);
 }
 
-/* 
+/*
  * sa(4) uniquely creates nsa and esa device nodes for non-rewind operations
  * and eject-on-close operations.  cam_get_device must special case these nodes
  * to always return the base device.
@@ -138,7 +138,7 @@ ATF_TC_BODY(cam_get_device_sa_test, tc)
 	int parsed_unit;
 
 	ATF_REQUIRE_MSG(cam_get_device("nsa99", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == 0,
+			    nitems(parsed_dev_name), &parsed_unit) == 0,
 	    "cam_get_device failed");
 	ATF_REQUIRE_STREQ(parsed_dev_name, "sa");
 	ATF_REQUIRE(parsed_unit == 99);
@@ -147,7 +147,7 @@ ATF_TC_BODY(cam_get_device_sa_test, tc)
 	parsed_unit = -1;
 
 	ATF_REQUIRE_MSG(cam_get_device("esa99", parsed_dev_name,
-	    nitems(parsed_dev_name), &parsed_unit) == 0,
+			    nitems(parsed_dev_name), &parsed_unit) == 0,
 	    "cam_get_device failed");
 	ATF_REQUIRE_STREQ(parsed_dev_name, "sa");
 	ATF_REQUIRE(parsed_unit == 99);

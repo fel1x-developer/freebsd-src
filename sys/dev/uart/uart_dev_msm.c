@@ -26,48 +26,48 @@
 
 /* Qualcomm MSM7K/8K uart driver */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/kdb.h>
+
 #include <machine/bus.h>
 
 #include <dev/uart/uart.h>
+#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_cpu.h>
 #include <dev/uart/uart_cpu_fdt.h>
-#include <dev/uart/uart_bus.h>
 #include <dev/uart/uart_dev_msm.h>
 
 #include "uart_if.h"
 
-#define	DEF_CLK		7372800
+#define DEF_CLK 7372800
 
-#define	GETREG(bas, reg)	\
-    bus_space_read_4((bas)->bst, (bas)->bsh, (reg))
-#define	SETREG(bas, reg, value)	\
-    bus_space_write_4((bas)->bst, (bas)->bsh, (reg), (value))
+#define GETREG(bas, reg) bus_space_read_4((bas)->bst, (bas)->bsh, (reg))
+#define SETREG(bas, reg, value) \
+	bus_space_write_4((bas)->bst, (bas)->bsh, (reg), (value))
 
 static int msm_uart_param(struct uart_bas *, int, int, int, int);
 
 /*
  * Low-level UART interface.
  */
-static int	msm_probe(struct uart_bas *bas);
-static void	msm_init(struct uart_bas *bas, int, int, int, int);
-static void	msm_term(struct uart_bas *bas);
-static void	msm_putc(struct uart_bas *bas, int);
-static int	msm_rxready(struct uart_bas *bas);
-static int	msm_getc(struct uart_bas *bas, struct mtx *mtx);
+static int msm_probe(struct uart_bas *bas);
+static void msm_init(struct uart_bas *bas, int, int, int, int);
+static void msm_term(struct uart_bas *bas);
+static void msm_putc(struct uart_bas *bas, int);
+static int msm_rxready(struct uart_bas *bas);
+static int msm_getc(struct uart_bas *bas, struct mtx *mtx);
 
 extern SLIST_HEAD(uart_devinfo_list, uart_devinfo) uart_sysdevs;
 
 static int
-msm_uart_param(struct uart_bas *bas, int baudrate, int databits,
-    int stopbits, int parity)
+msm_uart_param(struct uart_bas *bas, int baudrate, int databits, int stopbits,
+    int parity)
 {
 	int ulcon;
 
@@ -231,8 +231,9 @@ msm_putc(struct uart_bas *bas, int c)
 	 */
 	limit = 1000;
 	if (!(uart_getreg(bas, UART_DM_SR) & UART_DM_SR_TXEMT)) {
-		while ((uart_getreg(bas, UART_DM_ISR) & UART_DM_TX_READY) == 0
-		    && --limit)
+		while (
+		    (uart_getreg(bas, UART_DM_ISR) & UART_DM_TX_READY) == 0 &&
+		    --limit)
 			DELAY(4);
 		SETREG(bas, UART_DM_CR, UART_DM_CLEAR_TX_READY);
 	}
@@ -288,34 +289,31 @@ struct msm_uart_softc {
 	uint32_t ier;
 };
 
-static int	msm_bus_probe(struct uart_softc *sc);
-static int	msm_bus_attach(struct uart_softc *sc);
-static int	msm_bus_flush(struct uart_softc *, int);
-static int	msm_bus_getsig(struct uart_softc *);
-static int	msm_bus_ioctl(struct uart_softc *, int, intptr_t);
-static int	msm_bus_ipend(struct uart_softc *);
-static int	msm_bus_param(struct uart_softc *, int, int, int, int);
-static int	msm_bus_receive(struct uart_softc *);
-static int	msm_bus_setsig(struct uart_softc *, int);
-static int	msm_bus_transmit(struct uart_softc *);
-static void	msm_bus_grab(struct uart_softc *);
-static void	msm_bus_ungrab(struct uart_softc *);
+static int msm_bus_probe(struct uart_softc *sc);
+static int msm_bus_attach(struct uart_softc *sc);
+static int msm_bus_flush(struct uart_softc *, int);
+static int msm_bus_getsig(struct uart_softc *);
+static int msm_bus_ioctl(struct uart_softc *, int, intptr_t);
+static int msm_bus_ipend(struct uart_softc *);
+static int msm_bus_param(struct uart_softc *, int, int, int, int);
+static int msm_bus_receive(struct uart_softc *);
+static int msm_bus_setsig(struct uart_softc *, int);
+static int msm_bus_transmit(struct uart_softc *);
+static void msm_bus_grab(struct uart_softc *);
+static void msm_bus_ungrab(struct uart_softc *);
 
-static kobj_method_t msm_methods[] = {
-	KOBJMETHOD(uart_probe,		msm_bus_probe),
-	KOBJMETHOD(uart_attach, 	msm_bus_attach),
-	KOBJMETHOD(uart_flush,		msm_bus_flush),
-	KOBJMETHOD(uart_getsig,		msm_bus_getsig),
-	KOBJMETHOD(uart_ioctl,		msm_bus_ioctl),
-	KOBJMETHOD(uart_ipend,		msm_bus_ipend),
-	KOBJMETHOD(uart_param,		msm_bus_param),
-	KOBJMETHOD(uart_receive,	msm_bus_receive),
-	KOBJMETHOD(uart_setsig,		msm_bus_setsig),
-	KOBJMETHOD(uart_transmit,	msm_bus_transmit),
-	KOBJMETHOD(uart_grab,		msm_bus_grab),
-	KOBJMETHOD(uart_ungrab,		msm_bus_ungrab),
-	{0, 0 }
-};
+static kobj_method_t msm_methods[] = { KOBJMETHOD(uart_probe, msm_bus_probe),
+	KOBJMETHOD(uart_attach, msm_bus_attach),
+	KOBJMETHOD(uart_flush, msm_bus_flush),
+	KOBJMETHOD(uart_getsig, msm_bus_getsig),
+	KOBJMETHOD(uart_ioctl, msm_bus_ioctl),
+	KOBJMETHOD(uart_ipend, msm_bus_ipend),
+	KOBJMETHOD(uart_param, msm_bus_param),
+	KOBJMETHOD(uart_receive, msm_bus_receive),
+	KOBJMETHOD(uart_setsig, msm_bus_setsig),
+	KOBJMETHOD(uart_transmit, msm_bus_transmit),
+	KOBJMETHOD(uart_grab, msm_bus_grab),
+	KOBJMETHOD(uart_ungrab, msm_bus_ungrab), { 0, 0 } };
 
 int
 msm_bus_probe(struct uart_softc *sc)
@@ -352,7 +350,7 @@ msm_bus_attach(struct uart_softc *sc)
 }
 
 /*
- * Write the current transmit buffer to the TX FIFO. 
+ * Write the current transmit buffer to the TX FIFO.
  */
 static int
 msm_bus_transmit(struct uart_softc *sc)
@@ -429,8 +427,8 @@ msm_bus_receive(struct uart_softc *sc)
 }
 
 static int
-msm_bus_param(struct uart_softc *sc, int baudrate, int databits,
-    int stopbits, int parity)
+msm_bus_param(struct uart_softc *sc, int baudrate, int databits, int stopbits,
+    int parity)
 {
 	int error;
 
@@ -559,19 +557,13 @@ msm_bus_ungrab(struct uart_softc *sc)
 	uart_unlock(sc->sc_hwmtx);
 }
 
-static struct uart_class uart_msm_class = {
-	"msm",
-	msm_methods,
-	sizeof(struct msm_uart_softc),
-	.uc_ops = &uart_msm_ops,
-	.uc_range = 8,
-	.uc_rclk = DEF_CLK,
-	.uc_rshift = 0
-};
+static struct uart_class uart_msm_class = { "msm", msm_methods,
+	sizeof(struct msm_uart_softc), .uc_ops = &uart_msm_ops, .uc_range = 8,
+	.uc_rclk = DEF_CLK, .uc_rshift = 0 };
 
 static struct ofw_compat_data compat_data[] = {
-	{"qcom,msm-uartdm-v1.4",	(uintptr_t)&uart_msm_class},
-	{"qcom,msm-uartdm",		(uintptr_t)&uart_msm_class},
-	{NULL,				(uintptr_t)NULL},
+	{ "qcom,msm-uartdm-v1.4", (uintptr_t)&uart_msm_class },
+	{ "qcom,msm-uartdm", (uintptr_t)&uart_msm_class },
+	{ NULL, (uintptr_t)NULL },
 };
 UART_FDT_CLASS_AND_DEVICE(compat_data);

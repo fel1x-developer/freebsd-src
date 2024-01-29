@@ -28,20 +28,20 @@
  * SUCH DAMAGE.
  */
 
-/* 
+/*
  * This driver is a super-set of the now-deleted jedec_ts(4), and most of the
- * code for reading and reporting the temperature is either based on that driver,
- * or copied from it verbatim.
+ * code for reading and reporting the temperature is either based on that
+ * driver, or copied from it verbatim.
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/endian.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/module.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 
 #include <dev/jedec_dimm/jedec_dimm.h>
 #include <dev/smbus/smbconf.h>
@@ -52,15 +52,15 @@
 struct jedec_dimm_softc {
 	device_t dev;
 	device_t smbus;
-	uint8_t spd_addr;	/* SMBus address of the SPD EEPROM. */
-	uint8_t tsod_addr;	/* Address of the Thermal Sensor On DIMM */
+	uint8_t spd_addr;  /* SMBus address of the SPD EEPROM. */
+	uint8_t tsod_addr; /* Address of the Thermal Sensor On DIMM */
 	uint8_t mfg_year;
 	uint8_t mfg_week;
 	uint32_t capacity_mb;
 	char type_str[5];
-	char part_str[21]; /* 18 (DDR3) or 20 (DDR4) chars, plus terminator */
+	char part_str[21];  /* 18 (DDR3) or 20 (DDR4) chars, plus terminator */
 	char serial_str[9]; /* 4 bytes = 8 nybble characters, plus terminator */
-	char *slotid_str; /* Optional DIMM slot identifier (silkscreen) */
+	char *slotid_str;   /* Optional DIMM slot identifier (silkscreen) */
 };
 
 /* General Thermal Sensor on DIMM (TSOD) identification notes.
@@ -74,9 +74,9 @@ struct jedec_dimm_softc {
  * used, but in practice the JEDEC manufacturer IDs are often used.
  */
 const struct jedec_dimm_tsod_dev {
-	uint16_t	vendor_id;
-	uint8_t		device_id;
-	const char	*description;
+	uint16_t vendor_id;
+	uint8_t device_id;
+	const char *description;
 } known_tsod_devices[] = {
 	/* Analog Devices ADT7408.
 	 * http://www.analog.com/media/en/technical-documentation/data-sheets/ADT7408.pdf
@@ -171,7 +171,6 @@ static int jedec_dimm_temp_sysctl(SYSCTL_HANDLER_ARGS);
 
 static const char *jedec_dimm_tsod_match(uint16_t vid, uint16_t did);
 
-
 /**
  * The DDR4 SPD information is spread across two 256-byte pages, but the
  * offsets in the spec are absolute, not per-page. If a given offset is on the
@@ -195,7 +194,7 @@ static const char *jedec_dimm_tsod_match(uint16_t vid, uint16_t did);
  */
 static int
 jedec_dimm_adjust_offset(struct jedec_dimm_softc *sc, uint16_t orig_offset,
-	uint16_t *new_offset, bool *page_changed)
+    uint16_t *new_offset, bool *page_changed)
 {
 	int rc;
 
@@ -225,8 +224,8 @@ jedec_dimm_adjust_offset(struct jedec_dimm_softc *sc, uint16_t orig_offset,
 	 * For the page-change operation, only the DTI and LSA matter; the
 	 * offset and write-value are ignored, so just use 0.
 	 */
-	rc = smbus_writeb(sc->smbus, (JEDEC_DTI_PAGE | JEDEC_LSA_PAGE_SET1),
-	    0, 0);
+	rc = smbus_writeb(sc->smbus, (JEDEC_DTI_PAGE | JEDEC_LSA_PAGE_SET1), 0,
+	    0);
 	if (rc != 0) {
 		device_printf(sc->dev,
 		    "unable to change page for offset 0x%04x: %d\n",
@@ -296,10 +295,10 @@ jedec_dimm_attach(device_t dev)
 		device_printf(dev, "failed to read dram_type: %d\n", rc);
 		goto out;
 	}
-	type = (enum dram_type) byte;
+	type = (enum dram_type)byte;
 	switch (type) {
 	case DRAM_TYPE_DDR3_SDRAM:
-		(void) snprintf(sc->type_str, sizeof(sc->type_str), "DDR3");
+		(void)snprintf(sc->type_str, sizeof(sc->type_str), "DDR3");
 		partnum_len = SPD_LEN_DDR3_PARTNUM;
 		partnum_offset = SPD_OFFSET_DDR3_PARTNUM;
 		serial_len = SPD_LEN_DDR3_SERIAL;
@@ -307,7 +306,7 @@ jedec_dimm_attach(device_t dev)
 		tsod_present_offset = SPD_OFFSET_DDR3_TSOD_PRESENT;
 		break;
 	case DRAM_TYPE_DDR4_SDRAM:
-		(void) snprintf(sc->type_str, sizeof(sc->type_str), "DDR4");
+		(void)snprintf(sc->type_str, sizeof(sc->type_str), "DDR4");
 		partnum_len = SPD_LEN_DDR4_PARTNUM;
 		partnum_offset = SPD_OFFSET_DDR4_PARTNUM;
 		serial_len = SPD_LEN_DDR4_SERIAL;
@@ -322,7 +321,7 @@ jedec_dimm_attach(device_t dev)
 
 	if (bootverbose) {
 		/* bootverbose debuggery is best-effort, so ignore the rc. */
-		(void) jedec_dimm_dump(sc, type);
+		(void)jedec_dimm_dump(sc, type);
 	}
 
 	/* Read all the required info from the SPD. If any of it fails, error
@@ -389,29 +388,27 @@ jedec_dimm_attach(device_t dev)
 			if (tsod_match == NULL) {
 				device_printf(dev,
 				    "Unknown TSOD Manufacturer and Device IDs,"
-				    " 0x%x and 0x%x\n", vendorid, devid);
+				    " 0x%x and 0x%x\n",
+				    vendorid, devid);
 			} else {
-				device_printf(dev,
-				    "TSOD: %s\n", tsod_match);
+				device_printf(dev, "TSOD: %s\n", tsod_match);
 			}
 		}
 	} else {
-no_tsod:
+	no_tsod:
 		tsod_match = NULL;
 		tsod_present = false;
 	}
 
 	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "type",
-	    CTLFLAG_RD | CTLFLAG_MPSAFE, sc->type_str, 0,
-	    "DIMM type");
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, sc->type_str, 0, "DIMM type");
 
 	SYSCTL_ADD_UINT(ctx, children, OID_AUTO, "capacity",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, sc->capacity_mb,
 	    "DIMM capacity (MB)");
 
 	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "part",
-	    CTLFLAG_RD | CTLFLAG_MPSAFE, sc->part_str, 0,
-	    "DIMM Part Number");
+	    CTLFLAG_RD | CTLFLAG_MPSAFE, sc->part_str, 0, "DIMM Part Number");
 
 	SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "serial",
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, sc->serial_str, 0,
@@ -434,7 +431,7 @@ no_tsod:
 
 	/* If a "slotid" was hinted, add the sysctl for it. */
 	if (resource_string_value(device_get_name(dev), device_get_unit(dev),
-	    "slotid", &slotid_str) == 0) {
+		"slotid", &slotid_str) == 0) {
 		if (slotid_str != NULL) {
 			sc->slotid_str = strdup(slotid_str, M_DEVBUF);
 			SYSCTL_ADD_STRING(ctx, children, OID_AUTO, "slotid",
@@ -458,9 +455,8 @@ no_tsod:
 		}
 		new_desc_len++; /* terminator */
 		new_desc = malloc(new_desc_len, M_TEMP, (M_WAITOK | M_ZERO));
-		(void) snprintf(new_desc, new_desc_len, "%s%s%s%s%s%s",
-		    device_get_desc(dev),
-		    (tsod_match ? " w/ " : ""),
+		(void)snprintf(new_desc, new_desc_len, "%s%s%s%s%s%s",
+		    device_get_desc(dev), (tsod_match ? " w/ " : ""),
 		    (tsod_match ? tsod_match : ""),
 		    (sc->slotid_str ? " (" : ""),
 		    (sc->slotid_str ? sc->slotid_str : ""),
@@ -821,7 +817,7 @@ jedec_dimm_field_to_str(struct jedec_dimm_softc *sc, char *dst, size_t dstsz,
 			rc = EINVAL;
 			device_printf(sc->dev,
 			    "destination too short (%u < %u)\n",
-			    (uint16_t) dstsz, (len + 1));
+			    (uint16_t)dstsz, (len + 1));
 			goto out;
 		}
 	} else {
@@ -829,7 +825,7 @@ jedec_dimm_field_to_str(struct jedec_dimm_softc *sc, char *dst, size_t dstsz,
 			rc = EINVAL;
 			device_printf(sc->dev,
 			    "destination too short (%u < %u)\n",
-			    (uint16_t) dstsz, ((2 * len) + 1));
+			    (uint16_t)dstsz, ((2 * len) + 1));
 			goto out;
 		}
 	}
@@ -851,7 +847,7 @@ jedec_dimm_field_to_str(struct jedec_dimm_softc *sc, char *dst, size_t dstsz,
 			/* Raw bytes need to be converted to a two-byte hex
 			 * string, plus the terminator.
 			 */
-			(void) snprintf(&dst[(2 * i)], 3, "%02x", byte);
+			(void)snprintf(&dst[(2 * i)], 3, "%02x", byte);
 		}
 	}
 
@@ -1012,8 +1008,7 @@ jedec_dimm_probe(device_t dev)
 	addr = smbus_get_addr(dev);
 
 	/* Don't bother if this isn't an SPD address, or if the LSBit is set. */
-	if (((addr & 0xf0) != JEDEC_DTI_SPD) ||
-	    ((addr & 0x01) != 0)) {
+	if (((addr & 0xf0) != JEDEC_DTI_SPD) || ((addr & 0x01) != 0)) {
 		device_printf(dev,
 		    "invalid \"addr\" hint; address must start with \"0x%x\","
 		    " and the least-significant bit must be 0\n",
@@ -1030,7 +1025,7 @@ jedec_dimm_probe(device_t dev)
 	}
 
 	/* This driver currently only supports DDR3 and DDR4 SPDs. */
-	type = (enum dram_type) byte;
+	type = (enum dram_type)byte;
 	switch (type) {
 	case DRAM_TYPE_DDR3_SDRAM:
 		rc = BUS_PROBE_DEFAULT;
@@ -1096,8 +1091,8 @@ jedec_dimm_reset_page0(struct jedec_dimm_softc *sc)
 	/* For the page-change operation, only the DTI and LSA matter; the
 	 * offset and write-value are ignored, so just use 0.
 	 */
-	rc = smbus_writeb(sc->smbus, (JEDEC_DTI_PAGE | JEDEC_LSA_PAGE_SET0),
-	    0, 0);
+	rc = smbus_writeb(sc->smbus, (JEDEC_DTI_PAGE | JEDEC_LSA_PAGE_SET0), 0,
+	    0);
 	if (rc != 0) {
 		device_printf(sc->dev, "unable to restore page: %d\n", rc);
 	}
@@ -1188,10 +1183,9 @@ jedec_dimm_tsod_match(uint16_t vid, uint16_t did)
 
 static device_method_t jedec_dimm_methods[] = {
 	/* Methods from the device interface */
-	DEVMETHOD(device_probe,		jedec_dimm_probe),
-	DEVMETHOD(device_attach,	jedec_dimm_attach),
-	DEVMETHOD(device_detach,	jedec_dimm_detach),
-	DEVMETHOD_END
+	DEVMETHOD(device_probe, jedec_dimm_probe),
+	DEVMETHOD(device_attach, jedec_dimm_attach),
+	DEVMETHOD(device_detach, jedec_dimm_detach), DEVMETHOD_END
 };
 
 static driver_t jedec_dimm_driver = {

@@ -33,8 +33,8 @@
 #ifndef _UVERBS_TYPES_
 #define _UVERBS_TYPES_
 
-#include <linux/kernel.h>
 #include <linux/fs.h>
+#include <linux/kernel.h>
 #include <rdma/ib_verbs.h>
 
 struct uverbs_obj_type;
@@ -88,26 +88,24 @@ enum rdma_lookup_mode {
  */
 struct uverbs_obj_type_class {
 	struct ib_uobject *(*alloc_begin)(const struct uverbs_api_object *obj,
-					  struct uverbs_attr_bundle *attrs);
+	    struct uverbs_attr_bundle *attrs);
 	/* This consumes the kref on uobj */
 	void (*alloc_commit)(struct ib_uobject *uobj);
 	/* This does not consume the kref on uobj */
 	void (*alloc_abort)(struct ib_uobject *uobj);
 
 	struct ib_uobject *(*lookup_get)(const struct uverbs_api_object *obj,
-					 struct ib_uverbs_file *ufile, s64 id,
-					 enum rdma_lookup_mode mode);
+	    struct ib_uverbs_file *ufile, s64 id, enum rdma_lookup_mode mode);
 	void (*lookup_put)(struct ib_uobject *uobj, enum rdma_lookup_mode mode);
 	/* This does not consume the kref on uobj */
 	int __must_check (*destroy_hw)(struct ib_uobject *uobj,
-				       enum rdma_remove_reason why,
-				       struct uverbs_attr_bundle *attrs);
+	    enum rdma_remove_reason why, struct uverbs_attr_bundle *attrs);
 	void (*remove_handle)(struct ib_uobject *uobj);
 };
 
 struct uverbs_obj_type {
-	const struct uverbs_obj_type_class * const type_class;
-	size_t	     obj_size;
+	const struct uverbs_obj_type_class *const type_class;
+	size_t obj_size;
 };
 
 /*
@@ -123,7 +121,7 @@ struct uverbs_obj_idr_type {
 	 * idr operations. In order to specialize the underlying types (e.g. CQ,
 	 * QPs, etc.), we add destroy_object specific callbacks.
 	 */
-	struct uverbs_obj_type  type;
+	struct uverbs_obj_type type;
 
 	/* Free driver resources from the uobject, make the driver uncallable,
 	 * and move the uobject to the detached state. If the object was
@@ -131,22 +129,20 @@ struct uverbs_obj_idr_type {
 	 * completely unchanged.
 	 */
 	int __must_check (*destroy_object)(struct ib_uobject *uobj,
-					   enum rdma_remove_reason why,
-					   struct uverbs_attr_bundle *attrs);
+	    enum rdma_remove_reason why, struct uverbs_attr_bundle *attrs);
 };
 
 struct ib_uobject *rdma_lookup_get_uobject(const struct uverbs_api_object *obj,
-					   struct ib_uverbs_file *ufile, s64 id,
-					   enum rdma_lookup_mode mode,
-					   struct uverbs_attr_bundle *attrs);
+    struct ib_uverbs_file *ufile, s64 id, enum rdma_lookup_mode mode,
+    struct uverbs_attr_bundle *attrs);
 void rdma_lookup_put_uobject(struct ib_uobject *uobj,
-			     enum rdma_lookup_mode mode);
+    enum rdma_lookup_mode mode);
 struct ib_uobject *rdma_alloc_begin_uobject(const struct uverbs_api_object *obj,
-					    struct uverbs_attr_bundle *attrs);
+    struct uverbs_attr_bundle *attrs);
 void rdma_alloc_abort_uobject(struct ib_uobject *uobj,
-			      struct uverbs_attr_bundle *attrs);
+    struct uverbs_attr_bundle *attrs);
 void rdma_alloc_commit_uobject(struct ib_uobject *uobj,
-			       struct uverbs_attr_bundle *attrs);
+    struct uverbs_attr_bundle *attrs);
 
 /*
  * uverbs_uobject_get is called in order to increase the reference count on
@@ -154,7 +150,8 @@ void rdma_alloc_commit_uobject(struct ib_uobject *uobj,
  * alive, regardless if this uobject is still alive in the context's objects
  * repository. Objects are put via uverbs_uobject_put.
  */
-static inline void uverbs_uobject_get(struct ib_uobject *uobject)
+static inline void
+uverbs_uobject_get(struct ib_uobject *uobject)
 {
 	kref_get(&uobject->ref);
 }
@@ -168,20 +165,20 @@ struct uverbs_obj_fd_type {
 	 * destroy_object is called when the uobject is to be destroyed,
 	 * because the driver is removed or the FD is closed.
 	 */
-	struct uverbs_obj_type  type;
+	struct uverbs_obj_type type;
 	int (*destroy_object)(struct ib_uobject *uobj,
-			      enum rdma_remove_reason why);
-	const struct file_operations	*fops;
-	const char			*name;
-	int				flags;
+	    enum rdma_remove_reason why);
+	const struct file_operations *fops;
+	const char *name;
+	int flags;
 };
 
 extern const struct uverbs_obj_type_class uverbs_idr_class;
 extern const struct uverbs_obj_type_class uverbs_fd_class;
 int uverbs_uobject_fd_release(struct inode *inode, struct file *filp);
 
-#define UVERBS_BUILD_BUG_ON(cond) (sizeof(char[1 - 2 * !!(cond)]) -	\
-				   sizeof(char))
+#define UVERBS_BUILD_BUG_ON(cond) \
+	(sizeof(char[1 - 2 * !!(cond)]) - sizeof(char))
 #define UVERBS_TYPE_ALLOC_FD(_obj_size, _destroy_object, _fops, _name, _flags) \
 	((&((const struct uverbs_obj_fd_type)				\
 	 {.type = {							\
@@ -194,17 +191,16 @@ int uverbs_uobject_fd_release(struct inode *inode, struct file *filp);
 	 .fops = _fops,							\
 	 .name = _name,							\
 	 .flags = _flags}))->type)
-#define UVERBS_TYPE_ALLOC_IDR_SZ(_size, _destroy_object)	\
-	((&((const struct uverbs_obj_idr_type)				\
-	 {.type = {							\
-		.type_class = &uverbs_idr_class,			\
-		.obj_size = (_size) +					\
-			UVERBS_BUILD_BUG_ON((_size) <			\
-					    sizeof(struct ib_uobject))	\
-	 },								\
-	 .destroy_object = _destroy_object,}))->type)
-#define UVERBS_TYPE_ALLOC_IDR(_destroy_object)			\
-	 UVERBS_TYPE_ALLOC_IDR_SZ(sizeof(struct ib_uobject),	\
-				  _destroy_object)
+#define UVERBS_TYPE_ALLOC_IDR_SZ(_size, _destroy_object)          \
+	((&((const struct uverbs_obj_idr_type) {                  \
+	      .type = { .type_class = &uverbs_idr_class,          \
+		  .obj_size = (_size) +                           \
+		      UVERBS_BUILD_BUG_ON(                        \
+			  (_size) < sizeof(struct ib_uobject)) }, \
+	      .destroy_object = _destroy_object,                  \
+	  }))                                                     \
+		->type)
+#define UVERBS_TYPE_ALLOC_IDR(_destroy_object) \
+	UVERBS_TYPE_ALLOC_IDR_SZ(sizeof(struct ib_uobject), _destroy_object)
 
 #endif

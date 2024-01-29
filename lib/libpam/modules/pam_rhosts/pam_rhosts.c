@@ -37,6 +37,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <pwd.h>
 #include <stddef.h>
 #include <string.h>
@@ -44,14 +45,14 @@
 
 #define PAM_SM_AUTH
 #include <security/pam_appl.h>
-#include <security/pam_modules.h>
 #include <security/pam_mod_misc.h>
+#include <security/pam_modules.h>
 
 #define OPT_ALLOW_ROOT "allow_root"
 
 PAM_EXTERN int
-pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
-    int argc __unused, const char *argv[] __unused)
+pam_sm_authenticate(pam_handle_t *pamh, int flags __unused, int argc __unused,
+    const char *argv[] __unused)
 {
 	struct passwd *pw;
 	const char *user;
@@ -64,8 +65,7 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags __unused,
 
 	if ((pw = getpwnam(user)) == NULL)
 		return (PAM_USER_UNKNOWN);
-	if (pw->pw_uid == 0 &&
-	    openpam_get_option(pamh, OPT_ALLOW_ROOT) == NULL)
+	if (pw->pw_uid == 0 && openpam_get_option(pamh, OPT_ALLOW_ROOT) == NULL)
 		return (PAM_AUTH_ERR);
 
 	err = pam_get_item(pamh, PAM_RUSER, &ruser);

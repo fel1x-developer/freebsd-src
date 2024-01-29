@@ -36,17 +36,18 @@ extern "C" {
 
 using namespace testing;
 
-class Lseek: public FuseTest {};
-class LseekPathconf: public Lseek {};
-class LseekPathconf_7_23: public LseekPathconf {
-public:
-virtual void SetUp() {
-	m_kernel_minor_version = 23;
-	FuseTest::SetUp();
-}
+class Lseek : public FuseTest { };
+class LseekPathconf : public Lseek { };
+class LseekPathconf_7_23 : public LseekPathconf {
+    public:
+	virtual void SetUp()
+	{
+		m_kernel_minor_version = 23;
+		FuseTest::SetUp();
+	}
 };
-class LseekSeekHole: public Lseek {};
-class LseekSeekData: public Lseek {};
+class LseekSeekHole : public Lseek { };
+class LseekSeekData : public Lseek { };
 
 /*
  * If a previous lseek operation has already returned enosys, then pathconf can
@@ -57,18 +58,20 @@ TEST_F(LseekPathconf, already_enosys)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = 1 << 28;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 
 	fd = open(FULLPATH, O_RDONLY);
 
@@ -89,21 +92,23 @@ TEST_F(LseekPathconf, already_seeked)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset = 1 << 28;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto i, auto& out) {
-		SET_OUT_HEADER_LEN(out, lseek);
-		out.body.lseek.offset = i.body.lseek.offset;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto i, auto &out) {
+		    SET_OUT_HEADER_LEN(out, lseek);
+		    out.body.lseek.offset = i.body.lseek.offset;
+	    })));
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(offset, lseek(fd, offset, SEEK_DATA));
 
@@ -121,17 +126,19 @@ TEST_F(LseekPathconf, enosys_now)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 
 	fd = open(FULLPATH, O_RDONLY);
 
@@ -151,22 +158,24 @@ TEST_F(LseekPathconf, seek_now)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_initial = 1 << 27;
 	off_t offset_out = 1 << 29;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, lseek);
-		out.body.lseek.offset = offset_out;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, lseek);
+		    out.body.lseek.offset = offset_out;
+	    })));
 
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(offset_initial, lseek(fd, offset_initial, SEEK_SET));
@@ -185,17 +194,19 @@ TEST_F(LseekPathconf_7_23, already_enosys)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK);
-		}, Eq(true)),
-		_)
-	).Times(0);
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK);
+			},
+			Eq(true)),
+		_))
+	    .Times(0);
 
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(-1, fpathconf(fd, _PC_MIN_HOLE_SIZE));
@@ -209,26 +220,28 @@ TEST_F(LseekSeekData, ok)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = 1 << 28;
 	off_t offset_out = 1 << 29;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino &&
-				in.body.lseek.fh == FH &&
-				(off_t)in.body.lseek.offset == offset_in &&
-				in.body.lseek.whence == SEEK_DATA);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, lseek);
-		out.body.lseek.offset = offset_out;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK &&
+				    in.header.nodeid == ino &&
+				    in.body.lseek.fh == FH &&
+				    (off_t)in.body.lseek.offset == offset_in &&
+				    in.body.lseek.whence == SEEK_DATA);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, lseek);
+		    out.body.lseek.offset = offset_out;
+	    })));
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(offset_out, lseek(fd, offset_in, SEEK_DATA));
 	EXPECT_EQ(offset_out, lseek(fd, 0, SEEK_CUR));
@@ -245,22 +258,24 @@ TEST_F(LseekSeekData, enosys)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = 1 << 28;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino &&
-				in.body.lseek.fh == FH &&
-				(off_t)in.body.lseek.offset == offset_in &&
-				in.body.lseek.whence == SEEK_DATA);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK &&
+				    in.header.nodeid == ino &&
+				    in.body.lseek.fh == FH &&
+				    (off_t)in.body.lseek.offset == offset_in &&
+				    in.body.lseek.whence == SEEK_DATA);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 	fd = open(FULLPATH, O_RDONLY);
 
 	/*
@@ -281,26 +296,28 @@ TEST_F(LseekSeekHole, ok)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = 1 << 28;
 	off_t offset_out = 1 << 29;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino &&
-				in.body.lseek.fh == FH &&
-				(off_t)in.body.lseek.offset == offset_in &&
-				in.body.lseek.whence == SEEK_HOLE);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto& out) {
-		SET_OUT_HEADER_LEN(out, lseek);
-		out.body.lseek.offset = offset_out;
-	})));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK &&
+				    in.header.nodeid == ino &&
+				    in.body.lseek.fh == FH &&
+				    (off_t)in.body.lseek.offset == offset_in &&
+				    in.body.lseek.whence == SEEK_HOLE);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnImmediate([=](auto i __unused, auto &out) {
+		    SET_OUT_HEADER_LEN(out, lseek);
+		    out.body.lseek.offset = offset_out;
+	    })));
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(offset_out, lseek(fd, offset_in, SEEK_HOLE));
 	EXPECT_EQ(offset_out, lseek(fd, 0, SEEK_CUR));
@@ -317,22 +334,24 @@ TEST_F(LseekSeekHole, enosys)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = 1 << 28;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino &&
-				in.body.lseek.fh == FH &&
-				(off_t)in.body.lseek.offset == offset_in &&
-				in.body.lseek.whence == SEEK_HOLE);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENOSYS)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK &&
+				    in.header.nodeid == ino &&
+				    in.body.lseek.fh == FH &&
+				    (off_t)in.body.lseek.offset == offset_in &&
+				    in.body.lseek.whence == SEEK_HOLE);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENOSYS)));
 	fd = open(FULLPATH, O_RDONLY);
 
 	/*
@@ -354,22 +373,24 @@ TEST_F(LseekSeekHole, enxio)
 	const char FULLPATH[] = "mountpoint/some_file.txt";
 	const char RELPATH[] = "some_file.txt";
 	const uint64_t ino = 42;
-	off_t fsize = 1 << 30;	/* 1 GiB */
+	off_t fsize = 1 << 30; /* 1 GiB */
 	off_t offset_in = fsize;
 	int fd;
 
 	expect_lookup(RELPATH, ino, S_IFREG | 0644, fsize, 1);
 	expect_open(ino, 0, 1);
-	EXPECT_CALL(*m_mock, process(
-		ResultOf([=](auto in) {
-			return (in.header.opcode == FUSE_LSEEK &&
-				in.header.nodeid == ino &&
-				in.body.lseek.fh == FH &&
-				(off_t)in.body.lseek.offset == offset_in &&
-				in.body.lseek.whence == SEEK_HOLE);
-		}, Eq(true)),
-		_)
-	).WillOnce(Invoke(ReturnErrno(ENXIO)));
+	EXPECT_CALL(*m_mock,
+	    process(ResultOf(
+			[=](auto in) {
+				return (in.header.opcode == FUSE_LSEEK &&
+				    in.header.nodeid == ino &&
+				    in.body.lseek.fh == FH &&
+				    (off_t)in.body.lseek.offset == offset_in &&
+				    in.body.lseek.whence == SEEK_HOLE);
+			},
+			Eq(true)),
+		_))
+	    .WillOnce(Invoke(ReturnErrno(ENXIO)));
 	fd = open(FULLPATH, O_RDONLY);
 	EXPECT_EQ(-1, lseek(fd, offset_in, SEEK_HOLE));
 	EXPECT_EQ(ENXIO, errno);

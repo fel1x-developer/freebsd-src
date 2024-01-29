@@ -28,9 +28,9 @@
 
 #ifndef _HVSOCK_H
 #define _HVSOCK_H
+#include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/queue.h>
 
 #include <dev/hyperv/include/hyperv.h>
 #include <dev/hyperv/include/vmbus.h>
@@ -38,82 +38,77 @@
 /*
  * HyperV Socket Protocols
  */
-#define	HYPERV_SOCK_PROTO_TRANS		1	/* Transport protocol */
+#define HYPERV_SOCK_PROTO_TRANS 1 /* Transport protocol */
 
-#define	HVADDR_PORT_ANY			-1U
-#define	HVADDR_PORT_UNKNOWN		-1U
+#define HVADDR_PORT_ANY -1U
+#define HVADDR_PORT_UNKNOWN -1U
 
-#define HVS_LIST_BOUND			0x01
-#define HVS_LIST_CONNECTED		0x02
-#define HVS_LIST_ALL			(HVS_LIST_BOUND | HVS_LIST_CONNECTED)
+#define HVS_LIST_BOUND 0x01
+#define HVS_LIST_CONNECTED 0x02
+#define HVS_LIST_ALL (HVS_LIST_BOUND | HVS_LIST_CONNECTED)
 
 struct sockaddr_hvs {
-	unsigned char	sa_len;
-	sa_family_t	sa_family;
-	unsigned int	hvs_port;
-	unsigned char	hvs_zero[sizeof(struct sockaddr) -
-				 sizeof(sa_family_t) -
-				 sizeof(unsigned char) -
-				 sizeof(unsigned int)];
+	unsigned char sa_len;
+	sa_family_t sa_family;
+	unsigned int hvs_port;
+	unsigned char hvs_zero[sizeof(struct sockaddr) - sizeof(sa_family_t) -
+	    sizeof(unsigned char) - sizeof(unsigned int)];
 };
 
 struct vmpipe_proto_header {
-	uint32_t			vmpipe_pkt_type;
-	uint32_t			vmpipe_data_size;
+	uint32_t vmpipe_pkt_type;
+	uint32_t vmpipe_data_size;
 } __packed;
 
 struct hvs_pkt_header {
-	struct vmbus_chanpkt_hdr	chan_pkt_hdr;
-	struct vmpipe_proto_header	vmpipe_pkt_hdr;
+	struct vmbus_chanpkt_hdr chan_pkt_hdr;
+	struct vmpipe_proto_header vmpipe_pkt_hdr;
 } __packed;
 
 struct hvs_pcb {
-	struct socket			*so;		/* Pointer to socket */
-	struct sockaddr_hvs		local_addr;
-	struct sockaddr_hvs		remote_addr;
+	struct socket *so; /* Pointer to socket */
+	struct sockaddr_hvs local_addr;
+	struct sockaddr_hvs remote_addr;
 
-	struct hyperv_guid		vm_srv_id;
-	struct hyperv_guid		host_srv_id;
+	struct hyperv_guid vm_srv_id;
+	struct hyperv_guid host_srv_id;
 
-	struct vmbus_channel		*chan;
+	struct vmbus_channel *chan;
 	/* Current packet header on rx ring */
-	struct hvs_pkt_header		hvs_pkt;
+	struct hvs_pkt_header hvs_pkt;
 	/* Available data in receive br in current packet */
-	uint32_t			recv_data_len;
+	uint32_t recv_data_len;
 	/* offset in the packet */
-	uint32_t			recv_data_off;
-	bool				rb_init;
+	uint32_t recv_data_off;
+	bool rb_init;
 	/* Link lists for global bound and connected sockets */
-	LIST_ENTRY(hvs_pcb)		bound_next;
-	LIST_ENTRY(hvs_pcb)		connected_next;
+	LIST_ENTRY(hvs_pcb) bound_next;
+	LIST_ENTRY(hvs_pcb) connected_next;
 };
 
-#define so2hvspcb(so) \
-	((struct hvs_pcb *)((so)->so_pcb))
-#define hsvpcb2so(hvspcb) \
-	((struct socket *)((hvspcb)->so))
+#define so2hvspcb(so) ((struct hvs_pcb *)((so)->so_pcb))
+#define hsvpcb2so(hvspcb) ((struct socket *)((hvspcb)->so))
 
-void	hvs_addr_init(struct sockaddr_hvs *, const struct hyperv_guid *);
-void	hvs_trans_close(struct socket *);
-void	hvs_trans_detach(struct socket *);
-void	hvs_trans_abort(struct socket *);
-int	hvs_trans_attach(struct socket *, int, struct thread *);
-int	hvs_trans_bind(struct socket *, struct sockaddr *, struct thread *);
-int	hvs_trans_listen(struct socket *, int, struct thread *);
-int	hvs_trans_accept(struct socket *, struct sockaddr *);
-int	hvs_trans_connect(struct socket *,
-	    struct sockaddr *, struct thread *);
-int	hvs_trans_peeraddr(struct socket *, struct sockaddr *);
-int	hvs_trans_sockaddr(struct socket *, struct sockaddr *);
-int	hvs_trans_soreceive(struct socket *, struct sockaddr **,
-	    struct uio *, struct mbuf **, struct mbuf **, int *);
-int	hvs_trans_sosend(struct socket *, struct sockaddr *, struct uio *,
-	     struct mbuf *, struct mbuf *, int, struct thread *);
-int	hvs_trans_disconnect(struct socket *);
-int	hvs_trans_shutdown(struct socket *, enum shutdown_how);
+void hvs_addr_init(struct sockaddr_hvs *, const struct hyperv_guid *);
+void hvs_trans_close(struct socket *);
+void hvs_trans_detach(struct socket *);
+void hvs_trans_abort(struct socket *);
+int hvs_trans_attach(struct socket *, int, struct thread *);
+int hvs_trans_bind(struct socket *, struct sockaddr *, struct thread *);
+int hvs_trans_listen(struct socket *, int, struct thread *);
+int hvs_trans_accept(struct socket *, struct sockaddr *);
+int hvs_trans_connect(struct socket *, struct sockaddr *, struct thread *);
+int hvs_trans_peeraddr(struct socket *, struct sockaddr *);
+int hvs_trans_sockaddr(struct socket *, struct sockaddr *);
+int hvs_trans_soreceive(struct socket *, struct sockaddr **, struct uio *,
+    struct mbuf **, struct mbuf **, int *);
+int hvs_trans_sosend(struct socket *, struct sockaddr *, struct uio *,
+    struct mbuf *, struct mbuf *, int, struct thread *);
+int hvs_trans_disconnect(struct socket *);
+int hvs_trans_shutdown(struct socket *, enum shutdown_how);
 
-int	hvs_trans_lock(void);
-void	hvs_trans_unlock(void);
+int hvs_trans_lock(void);
+void hvs_trans_unlock(void);
 
-void	hvs_remove_socket_from_list(struct socket *, unsigned char);
+void hvs_remove_socket_from_list(struct socket *, unsigned char);
 #endif /* _HVSOCK_H */

@@ -41,12 +41,12 @@
  *  reading from the remote host
  */
 
-static	jmp_buf sigbuf;
+static jmp_buf sigbuf;
 
-static void	intIOT(int);
-static void	intEMT(int);
-static void	intTERM(int);
-static void	intSYS(int);
+static void intIOT(int);
+static void intEMT(int);
+static void intTERM(int);
+static void intSYS(int);
 
 /*
  * TIPOUT wait state routine --
@@ -56,8 +56,8 @@ static void	intSYS(int);
 static void
 intIOT(int signo)
 {
-	write(repdes[1],&ccc,1);
-	read(fildes[0], &ccc,1);
+	write(repdes[1], &ccc, 1);
+	read(fildes[0], &ccc, 1);
 	longjmp(sigbuf, 1);
 }
 
@@ -128,12 +128,12 @@ tipout(void)
 
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
-	signal(SIGEMT, intEMT);		/* attention from TIPIN */
-	signal(SIGTERM, intTERM);	/* time to go signal */
-	signal(SIGIOT, intIOT);		/* scripting going on signal */
-	signal(SIGHUP, intTERM);	/* for dial-ups */
-	signal(SIGSYS, intSYS);		/* beautify toggle */
-	(void) setjmp(sigbuf);
+	signal(SIGEMT, intEMT);	  /* attention from TIPIN */
+	signal(SIGTERM, intTERM); /* time to go signal */
+	signal(SIGIOT, intIOT);	  /* scripting going on signal */
+	signal(SIGHUP, intTERM);  /* for dial-ups */
+	signal(SIGSYS, intSYS);	  /* beautify toggle */
+	(void)setjmp(sigbuf);
 	sigprocmask(SIG_BLOCK, NULL, &omask);
 	for (;;) {
 		sigprocmask(SIG_SETMASK, &omask, NULL);

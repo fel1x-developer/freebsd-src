@@ -45,16 +45,9 @@ static u_int xdrmbuf_getpos(XDR *);
 static bool_t xdrmbuf_setpos(XDR *, u_int);
 static int32_t *xdrmbuf_inline(XDR *, u_int);
 
-static const struct	xdr_ops xdrmbuf_ops = {
-	xdrmbuf_getlong,
-	xdrmbuf_putlong,
-	xdrmbuf_getbytes,
-	xdrmbuf_putbytes,
-	xdrmbuf_getpos,
-	xdrmbuf_setpos,
-	xdrmbuf_inline,
-	xdrmbuf_destroy
-};
+static const struct xdr_ops xdrmbuf_ops = { xdrmbuf_getlong, xdrmbuf_putlong,
+	xdrmbuf_getbytes, xdrmbuf_putbytes, xdrmbuf_getpos, xdrmbuf_setpos,
+	xdrmbuf_inline, xdrmbuf_destroy };
 
 /*
  * The procedure xdrmbuf_create initializes a stream descriptor for a
@@ -67,7 +60,7 @@ xdrmbuf_create(XDR *xdrs, struct mbuf *m, enum xdr_op op)
 	KASSERT(m != NULL, ("xdrmbuf_create with NULL mbuf chain"));
 	xdrs->x_op = op;
 	xdrs->x_ops = &xdrmbuf_ops;
-	xdrs->x_base = (char *) m;
+	xdrs->x_base = (char *)m;
 	if (op == XDR_ENCODE) {
 		m = m_last(m);
 		xdrs->x_private = m;
@@ -91,7 +84,7 @@ xdrmbuf_append(XDR *xdrs, struct mbuf *madd)
 		return;
 	}
 
-	m = (struct mbuf *) xdrs->x_private;
+	m = (struct mbuf *)xdrs->x_private;
 	m->m_next = madd;
 
 	m = m_last(madd);
@@ -107,8 +100,8 @@ xdrmbuf_getall(XDR *xdrs)
 	KASSERT(xdrs->x_ops == &xdrmbuf_ops && xdrs->x_op == XDR_DECODE,
 	    ("xdrmbuf_append: invalid XDR stream"));
 
-	m0 = (struct mbuf *) xdrs->x_base;
-	m = (struct mbuf *) xdrs->x_private;
+	m0 = (struct mbuf *)xdrs->x_base;
+	m = (struct mbuf *)xdrs->x_private;
 	if (m0 != m) {
 		while (m0->m_next != m)
 			m0 = m0->m_next;
@@ -131,7 +124,7 @@ xdrmbuf_destroy(XDR *xdrs)
 {
 
 	if (xdrs->x_op == XDR_DECODE && xdrs->x_base) {
-		m_freem((struct mbuf *) xdrs->x_base);
+		m_freem((struct mbuf *)xdrs->x_base);
 		xdrs->x_base = NULL;
 		xdrs->x_private = NULL;
 	}
@@ -147,7 +140,7 @@ xdrmbuf_getlong(XDR *xdrs, long *lp)
 	if (p) {
 		t = *p;
 	} else {
-		xdrmbuf_getbytes(xdrs, (char *) &t, sizeof(int32_t));
+		xdrmbuf_getbytes(xdrs, (char *)&t, sizeof(int32_t));
 	}
 
 	*lp = ntohl(t);
@@ -165,14 +158,14 @@ xdrmbuf_putlong(XDR *xdrs, const long *lp)
 		*p = t;
 		return (TRUE);
 	} else {
-		return (xdrmbuf_putbytes(xdrs, (char *) &t, sizeof(int32_t)));
+		return (xdrmbuf_putbytes(xdrs, (char *)&t, sizeof(int32_t)));
 	}
 }
 
 static bool_t
 xdrmbuf_getbytes(XDR *xdrs, char *addr, u_int len)
 {
-	struct mbuf *m = (struct mbuf *) xdrs->x_private;
+	struct mbuf *m = (struct mbuf *)xdrs->x_private;
 	size_t sz;
 
 	while (len > 0) {
@@ -197,7 +190,7 @@ xdrmbuf_getbytes(XDR *xdrs, char *addr, u_int len)
 
 		if (xdrs->x_handy == m->m_len) {
 			m = m->m_next;
-			xdrs->x_private = (void *) m;
+			xdrs->x_private = (void *)m;
 			xdrs->x_handy = 0;
 		}
 	}
@@ -208,7 +201,7 @@ xdrmbuf_getbytes(XDR *xdrs, char *addr, u_int len)
 static bool_t
 xdrmbuf_putbytes(XDR *xdrs, const char *addr, u_int len)
 {
-	struct mbuf *m = (struct mbuf *) xdrs->x_private;
+	struct mbuf *m = (struct mbuf *)xdrs->x_private;
 	struct mbuf *n;
 	size_t sz;
 
@@ -232,7 +225,7 @@ xdrmbuf_putbytes(XDR *xdrs, const char *addr, u_int len)
 				m->m_next = n;
 			}
 			m = m->m_next;
-			xdrs->x_private = (void *) m;
+			xdrs->x_private = (void *)m;
 			xdrs->x_handy = 0;
 		}
 	}
@@ -243,8 +236,8 @@ xdrmbuf_putbytes(XDR *xdrs, const char *addr, u_int len)
 static u_int
 xdrmbuf_getpos(XDR *xdrs)
 {
-	struct mbuf *m0 = (struct mbuf *) xdrs->x_base;
-	struct mbuf *m = (struct mbuf *) xdrs->x_private;
+	struct mbuf *m0 = (struct mbuf *)xdrs->x_base;
+	struct mbuf *m = (struct mbuf *)xdrs->x_private;
 	u_int pos = 0;
 
 	while (m0 && m0 != m) {
@@ -259,7 +252,7 @@ xdrmbuf_getpos(XDR *xdrs)
 static bool_t
 xdrmbuf_setpos(XDR *xdrs, u_int pos)
 {
-	struct mbuf *m = (struct mbuf *) xdrs->x_base;
+	struct mbuf *m = (struct mbuf *)xdrs->x_base;
 
 	while (m && pos > m->m_len) {
 		pos -= m->m_len;
@@ -267,7 +260,7 @@ xdrmbuf_setpos(XDR *xdrs, u_int pos)
 	}
 	KASSERT(m, ("Corrupted mbuf chain"));
 
-	xdrs->x_private = (void *) m;
+	xdrs->x_private = (void *)m;
 	xdrs->x_handy = pos;
 
 	return (TRUE);
@@ -276,7 +269,7 @@ xdrmbuf_setpos(XDR *xdrs, u_int pos)
 static int32_t *
 xdrmbuf_inline(XDR *xdrs, u_int len)
 {
-	struct mbuf *m = (struct mbuf *) xdrs->x_private;
+	struct mbuf *m = (struct mbuf *)xdrs->x_private;
 	size_t available;
 	char *p;
 
@@ -290,12 +283,12 @@ xdrmbuf_inline(XDR *xdrs, u_int len)
 
 	if (available >= len) {
 		p = mtod(m, char *) + xdrs->x_handy;
-		if (((uintptr_t) p) & (sizeof(int32_t) - 1))
+		if (((uintptr_t)p) & (sizeof(int32_t) - 1))
 			return (0);
 		xdrs->x_handy += len;
 		if (xdrs->x_handy > m->m_len)
 			m->m_len = xdrs->x_handy;
-		return ((int32_t *) p);
+		return ((int32_t *)p);
 	}
 
 	return (0);

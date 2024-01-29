@@ -24,20 +24,21 @@
  * Use is subject to license terms.
  */
 
-#include <sys/fasttrap_isa.h>
-#include <sys/fasttrap_impl.h>
+#include <sys/types.h>
 #include <sys/dtrace.h>
 #include <sys/dtrace_impl.h>
-#include <cddl/dev/dtrace/dtrace_cddl.h>
+#include <sys/fasttrap_impl.h>
+#include <sys/fasttrap_isa.h>
 #include <sys/proc.h>
-#include <sys/types.h>
-#include <sys/uio.h>
 #include <sys/ptrace.h>
 #include <sys/rmlock.h>
 #include <sys/sysent.h>
+#include <sys/uio.h>
 
-#define OP(x)	((x) >> 26)
-#define OPX(x)	(((x) >> 2) & 0x3FF)
+#include <cddl/dev/dtrace/dtrace_cddl.h>
+
+#define OP(x) ((x) >> 26)
+#define OPX(x) (((x) >> 2) & 0x3FF)
 #define OP_BO(x) (((x) & 0x03E00000) >> 21)
 #define OP_BI(x) (((x) & 0x001F0000) >> 16)
 #define OP_RS(x) (((x) & 0x03E00000) >> 21)
@@ -79,7 +80,7 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
     fasttrap_probe_type_t type)
 {
 	uint32_t instr;
-	//int32_t disp;
+	// int32_t disp;
 
 	/*
 	 * Read the instruction at the given address out of the process's
@@ -117,9 +118,9 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
 	case 39:
 	case 58:
 	case 62:
-	case 3:	/* twi */
+	case 3: /* twi */
 		return (-1);
-	case 31:	/* tw */
+	case 31: /* tw */
 		if (OPX(instr) == 4)
 			return (-1);
 		else if (OPX(instr) == 444 && OP_RS(instr) == OP_RA(instr) &&
@@ -148,12 +149,12 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
 		break;
 	case 19:
 		switch (OPX(instr)) {
-		case 528:	/* bcctr */
+		case 528: /* bcctr */
 			tp->ftt_type = FASTTRAP_T_BCTR;
 			tp->ftt_bo = OP_BO(instr);
 			tp->ftt_bi = OP_BI(instr);
 			break;
-		case 16:	/* bclr */
+		case 16: /* bclr */
 			tp->ftt_type = FASTTRAP_T_BCTR;
 			tp->ftt_bo = OP_BO(instr);
 			tp->ftt_bi = OP_BI(instr);
@@ -161,8 +162,7 @@ fasttrap_tracepoint_init(proc_t *p, fasttrap_tracepoint_t *tp, uintptr_t pc,
 		};
 		break;
 	case 24:
-		if (OP_RS(instr) == OP_RA(instr) &&
-		    (instr & 0x0000FFFF) == 0)
+		if (OP_RS(instr) == OP_RA(instr) && (instr & 0x0000FFFF) == 0)
 			tp->ftt_type = FASTTRAP_T_NOP;
 		break;
 	};
@@ -191,7 +191,7 @@ static uint64_t
 fasttrap_anarg(struct reg *rp, int argno)
 {
 	uint64_t value;
-	proc_t  *p = curproc;
+	proc_t *p = curproc;
 
 	/* The first 8 arguments are in registers. */
 	if (argno < 8)
@@ -247,14 +247,14 @@ fasttrap_usdt_args(fasttrap_probe_t *probe, struct reg *rp, int argc,
 			argv[i] = rp->fixreg[x];
 		else
 #ifdef __powerpc64__
-			if (SV_PROC_FLAG(curproc, SV_ILP32))
+		    if (SV_PROC_FLAG(curproc, SV_ILP32))
 #endif
-				argv[i] = fuword32((void *)(rp->fixreg[1] + 8 +
-				    (x * sizeof(uint32_t))));
+			argv[i] = fuword32((void *)(rp->fixreg[1] + 8 +
+			    (x * sizeof(uint32_t))));
 #ifdef __powerpc64__
-			else
-				argv[i] = fuword64((void *)(rp->fixreg[1] + 48 +
-				    (x * sizeof(uint64_t))));
+		else
+			argv[i] = fuword64((void *)(rp->fixreg[1] + 48 +
+			    (x * sizeof(uint64_t))));
 #endif
 	}
 
@@ -298,16 +298,16 @@ fasttrap_return_common(struct reg *rp, uintptr_t pc, pid_t pid,
 		 * external to the function.
 		 */
 		/* Skip function-local branches. */
-		if ((new_pc - id->fti_probe->ftp_faddr) < id->fti_probe->ftp_fsize)
+		if ((new_pc - id->fti_probe->ftp_faddr) <
+		    id->fti_probe->ftp_fsize)
 			continue;
 
 		dtrace_probe(id->fti_probe->ftp_id,
-		    pc - id->fti_probe->ftp_faddr,
-		    rp->fixreg[3], rp->fixreg[4], 0, 0);
+		    pc - id->fti_probe->ftp_faddr, rp->fixreg[3], rp->fixreg[4],
+		    0, 0);
 	}
 	rm_runlock(&fasttrap_tp_lock, &tracker);
 }
-
 
 static int
 fasttrap_branch_taken(int bo, int bi, struct reg *regs)
@@ -329,7 +329,6 @@ fasttrap_branch_taken(int bo, int bi, struct reg *regs)
 
 	return (crzero | (((regs->cr >> (31 - bi)) ^ (bo >> 3)) ^ 1));
 }
-
 
 int
 fasttrap_pid_probe(struct trapframe *frame)
@@ -408,8 +407,8 @@ fasttrap_pid_probe(struct trapframe *frame)
 				cookie = dtrace_interrupt_disable();
 				DTRACE_CPUFLAG_SET(CPU_DTRACE_ENTRY);
 				dtrace_probe(probe->ftp_id, rp->fixreg[3],
-						rp->fixreg[4], rp->fixreg[5], rp->fixreg[6],
-						rp->fixreg[7]);
+				    rp->fixreg[4], rp->fixreg[5], rp->fixreg[6],
+				    rp->fixreg[7]);
 				DTRACE_CPUFLAG_CLEAR(CPU_DTRACE_ENTRY);
 				dtrace_interrupt_enable(cookie);
 			} else if (id->fti_ptype == DTFTP_IS_ENABLED) {
@@ -429,10 +428,10 @@ fasttrap_pid_probe(struct trapframe *frame)
 				uintptr_t t[5];
 
 				fasttrap_usdt_args(probe, rp,
-				    sizeof (t) / sizeof (t[0]), t);
+				    sizeof(t) / sizeof(t[0]), t);
 
-				dtrace_probe(probe->ftp_id, t[0], t[1],
-				    t[2], t[3], t[4]);
+				dtrace_probe(probe->ftp_id, t[0], t[1], t[2],
+				    t[3], t[4]);
 			}
 		}
 	}
@@ -462,7 +461,6 @@ fasttrap_pid_probe(struct trapframe *frame)
 		new_pc = rp->pc + 4;
 		goto done;
 	}
-
 
 	switch (tp->ftt_type) {
 	case FASTTRAP_T_NOP:

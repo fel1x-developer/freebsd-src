@@ -90,7 +90,7 @@ vm_get_snapshot_size(struct vm_snapshot_meta *meta)
 
 	if (buffer->buf_size < buffer->buf_rem) {
 		printf("%s: Invalid buffer: size = %zu, rem = %zu\r\n",
-		       __func__, buffer->buf_size, buffer->buf_rem);
+		    __func__, buffer->buf_size, buffer->buf_rem);
 		length = 0;
 	} else {
 		length = buffer->buf_size - buffer->buf_rem;

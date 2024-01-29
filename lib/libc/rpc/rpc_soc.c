@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -47,27 +47,28 @@
  * of TLI/Streams
  */
 
-#include "namespace.h"
-#include "reentrant.h"
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <stdio.h>
-#include <rpc/rpc.h>
+
+#include <netinet/in.h>
+
+#include <errno.h>
+#include <netdb.h>
+#include <rpc/nettype.h>
 #include <rpc/pmap_clnt.h>
 #include <rpc/pmap_prot.h>
-#include <rpc/nettype.h>
-#include <syslog.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <errno.h>
-#include <syslog.h>
+#include <rpc/rpc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
-#include "un-namespace.h"
 
-#include "rpc_com.h"
 #include "mt_misc.h"
+#include "namespace.h"
+#include "reentrant.h"
+#include "rpc_com.h"
+#include "un-namespace.h"
 
 static CLIENT *clnt_com_create(struct sockaddr_in *, rpcprog_t, rpcvers_t,
     int *, u_int, u_int, char *);
@@ -75,15 +76,15 @@ static SVCXPRT *svc_com_create(int, u_int, u_int, char *);
 static bool_t rpc_wrap_bcast(char *, struct netbuf *, struct netconfig *);
 
 /* XXX */
-#define IN4_LOCALHOST_STRING    "127.0.0.1"
-#define IN6_LOCALHOST_STRING    "::1"
+#define IN4_LOCALHOST_STRING "127.0.0.1"
+#define IN6_LOCALHOST_STRING "::1"
 
 /*
  * A common clnt create routine
  */
 static CLIENT *
-clnt_com_create(struct sockaddr_in *raddr, rpcprog_t prog, rpcvers_t vers, int *sockp,
-    u_int sendsz, u_int recvsz, char *tp)
+clnt_com_create(struct sockaddr_in *raddr, rpcprog_t prog, rpcvers_t vers,
+    int *sockp, u_int sendsz, u_int recvsz, char *tp)
 {
 	CLIENT *cl;
 	int madefd = FALSE;
@@ -108,11 +109,10 @@ clnt_com_create(struct sockaddr_in *raddr, rpcprog_t prog, rpcvers_t vers, int *
 		u_int proto;
 		u_short sport;
 
-		mutex_unlock(&rpcsoc_lock);	/* pmap_getport is recursive */
+		mutex_unlock(&rpcsoc_lock); /* pmap_getport is recursive */
 		proto = strcmp(tp, "udp") == 0 ? IPPROTO_UDP : IPPROTO_TCP;
-		sport = pmap_getport(raddr, (u_long)prog, (u_long)vers,
-		    proto);
-		mutex_lock(&rpcsoc_lock);	/* pmap_getport is recursive */
+		sport = pmap_getport(raddr, (u_long)prog, (u_long)vers, proto);
+		mutex_lock(&rpcsoc_lock); /* pmap_getport is recursive */
 		if (sport == 0) {
 			goto err;
 		}
@@ -120,21 +120,20 @@ clnt_com_create(struct sockaddr_in *raddr, rpcprog_t prog, rpcvers_t vers, int *
 	}
 
 	/* Transform sockaddr_in to netbuf */
-	bindaddr.maxlen = bindaddr.len =  sizeof (struct sockaddr_in);
+	bindaddr.maxlen = bindaddr.len = sizeof(struct sockaddr_in);
 	bindaddr.buf = raddr;
 
 	bindresvport(fd, NULL);
-	cl = clnt_tli_create(fd, nconf, &bindaddr, prog, vers,
-				sendsz, recvsz);
+	cl = clnt_tli_create(fd, nconf, &bindaddr, prog, vers, sendsz, recvsz);
 	if (cl) {
 		if (madefd == TRUE) {
 			/*
 			 * The fd should be closed while destroying the handle.
 			 */
-			(void) CLNT_CONTROL(cl, CLSET_FD_CLOSE, NULL);
+			(void)CLNT_CONTROL(cl, CLSET_FD_CLOSE, NULL);
 			*sockp = fd;
 		}
-		(void) freenetconfigent(nconf);
+		(void)freenetconfigent(nconf);
 		mutex_unlock(&rpcsoc_lock);
 		return (cl);
 	}
@@ -144,9 +143,10 @@ syserror:
 	rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 	rpc_createerr.cf_error.re_errno = errno;
 
-err:	if (madefd == TRUE)
+err:
+	if (madefd == TRUE)
 		(void)_close(fd);
-	(void) freenetconfigent(nconf);
+	(void)freenetconfigent(nconf);
 	mutex_unlock(&rpcsoc_lock);
 	return (NULL);
 }
@@ -162,7 +162,7 @@ clntudp_bufcreate(struct sockaddr_in *raddr, u_long prog, u_long vers,
 	if (cl == NULL) {
 		return (NULL);
 	}
-	(void) CLNT_CONTROL(cl, CLSET_RETRY_TIMEOUT, &wait);
+	(void)CLNT_CONTROL(cl, CLSET_RETRY_TIMEOUT, &wait);
 	return (cl);
 }
 
@@ -172,7 +172,7 @@ clntudp_create(struct sockaddr_in *raddr, u_long program, u_long version,
 {
 
 	return clntudp_bufcreate(raddr, program, version, wait, sockp,
-					UDPMSGSIZE, UDPMSGSIZE);
+	    UDPMSGSIZE, UDPMSGSIZE);
 }
 
 CLIENT *
@@ -204,15 +204,15 @@ svc_com_create(int fd, u_int sendsize, u_int recvsize, char *netid)
 	struct sockaddr_in sin;
 
 	if ((nconf = __rpc_getconfip(netid)) == NULL) {
-		(void) syslog(LOG_ERR, "Could not get %s transport", netid);
+		(void)syslog(LOG_ERR, "Could not get %s transport", netid);
 		return (NULL);
 	}
 	if (fd == RPC_ANYSOCK) {
 		fd = __rpc_nconf2fd(nconf);
 		if (fd == -1) {
-			(void) freenetconfigent(nconf);
-			(void) syslog(LOG_ERR,
-			"svc%s_create: could not open connection", netid);
+			(void)freenetconfigent(nconf);
+			(void)syslog(LOG_ERR,
+			    "svc%s_create: could not open connection", netid);
 			return (NULL);
 		}
 		madefd = TRUE;
@@ -223,7 +223,7 @@ svc_com_create(int fd, u_int sendsize, u_int recvsize, char *netid)
 	bindresvport(fd, &sin);
 	_listen(fd, SOMAXCONN);
 	svc = svc_tli_create(fd, nconf, NULL, sendsize, recvsize);
-	(void) freenetconfigent(nconf);
+	(void)freenetconfigent(nconf);
 	if (svc == NULL) {
 		if (madefd)
 			(void)_close(fd);
@@ -255,7 +255,6 @@ svcfd_create(int fd, u_int sendsize, u_int recvsize)
 	return svc_fd_create(fd, sendsize, recvsize);
 }
 
-
 SVCXPRT *
 svcudp_create(int fd)
 {
@@ -274,7 +273,7 @@ int
 get_myaddress(struct sockaddr_in *addr)
 {
 
-	memset((void *) addr, 0, sizeof(*addr));
+	memset((void *)addr, 0, sizeof(*addr));
 	addr->sin_family = AF_INET;
 	addr->sin_port = htons(PMAPPORT);
 	addr->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
@@ -298,8 +297,7 @@ callrpc(const char *host, int prognum, int versnum, int procnum,
  */
 int
 registerrpc(int prognum, int versnum, int procnum,
-    char *(*progname)(char [UDPMSGSIZE]),
-    xdrproc_t inproc, xdrproc_t outproc)
+    char *(*progname)(char[UDPMSGSIZE]), xdrproc_t inproc, xdrproc_t outproc)
 {
 
 	return rpc_reg((rpcprog_t)prognum, (rpcvers_t)versnum,
@@ -310,9 +308,9 @@ registerrpc(int prognum, int versnum, int procnum,
  * All the following clnt_broadcast stuff is convulated; it supports
  * the earlier calling style of the callback function
  */
-static thread_key_t	clnt_broadcast_key;
-static resultproc_t	clnt_broadcast_result_main;
-static once_t		clnt_broadcast_once = ONCE_INITIALIZER;
+static thread_key_t clnt_broadcast_key;
+static resultproc_t clnt_broadcast_result_main;
+static once_t clnt_broadcast_once = ONCE_INITIALIZER;
 
 static void
 clnt_broadcast_key_init(void)
@@ -341,9 +339,10 @@ rpc_wrap_bcast(char *resultp, struct netbuf *addr, struct netconfig *nconf)
 	if (thr_main())
 		clnt_broadcast_result = clnt_broadcast_result_main;
 	else
-		clnt_broadcast_result = (resultproc_t)thr_getspecific(clnt_broadcast_key);
-	return (*clnt_broadcast_result)(resultp,
-				(struct sockaddr_in *)addr->buf);
+		clnt_broadcast_result = (resultproc_t)thr_getspecific(
+		    clnt_broadcast_key);
+	return (
+	    *clnt_broadcast_result)(resultp, (struct sockaddr_in *)addr->buf);
 }
 
 /*
@@ -368,11 +367,11 @@ clnt_broadcast(u_long prog, u_long vers, u_long proc, xdrproc_t xargs,
 		clnt_broadcast_result_main = eachresult;
 	else {
 		thr_once(&clnt_broadcast_once, clnt_broadcast_key_init);
-		thr_setspecific(clnt_broadcast_key, (void *) eachresult);
+		thr_setspecific(clnt_broadcast_key, (void *)eachresult);
 	}
-	return rpc_broadcast((rpcprog_t)prog, (rpcvers_t)vers,
-	    (rpcproc_t)proc, xargs, argsp, xresults, resultsp,
-	    (resultproc_t) rpc_wrap_bcast, "udp");
+	return rpc_broadcast((rpcprog_t)prog, (rpcvers_t)vers, (rpcproc_t)proc,
+	    xargs, argsp, xresults, resultsp, (resultproc_t)rpc_wrap_bcast,
+	    "udp");
 }
 
 /*
@@ -399,7 +398,7 @@ authdes_create(char *servername, u_int window, struct sockaddr *syncaddr,
 		 * new interface takes it.
 		 */
 		if (getnameinfo(syncaddr, syncaddr->sa_len, hostname,
-		    sizeof hostname, NULL, 0, 0) != 0)
+			sizeof hostname, NULL, 0, 0) != 0)
 			goto fallback;
 
 		nauth = authdes_seccreate(servername, window, hostname, ckey);
@@ -424,18 +423,18 @@ clntunix_create(struct sockaddr_un *raddr, u_long prog, u_long vers, int *sockp,
 	cl = NULL;
 	svcaddr = NULL;
 	if ((raddr->sun_len == 0) ||
-	   ((svcaddr = malloc(sizeof(struct netbuf))) == NULL ) ||
-	   ((svcaddr->buf = malloc(sizeof(struct sockaddr_un))) == NULL)) {
+	    ((svcaddr = malloc(sizeof(struct netbuf))) == NULL) ||
+	    ((svcaddr->buf = malloc(sizeof(struct sockaddr_un))) == NULL)) {
 		free(svcaddr);
 		rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 		rpc_createerr.cf_error.re_errno = errno;
-		return(cl);
+		return (cl);
 	}
 	if (*sockp < 0) {
 		*sockp = _socket(AF_LOCAL, SOCK_STREAM, 0);
 		len = raddr->sun_len = SUN_LEN(raddr);
-		if ((*sockp < 0) || (_connect(*sockp,
-		    (struct sockaddr *)raddr, len) < 0)) {
+		if ((*sockp < 0) ||
+		    (_connect(*sockp, (struct sockaddr *)raddr, len) < 0)) {
 			rpc_createerr.cf_stat = RPC_SYSTEMERROR;
 			rpc_createerr.cf_error.re_errno = errno;
 			if (*sockp != -1)
@@ -445,13 +444,12 @@ clntunix_create(struct sockaddr_un *raddr, u_long prog, u_long vers, int *sockp,
 	}
 	svcaddr->buf = raddr;
 	svcaddr->len = raddr->sun_len;
-	svcaddr->maxlen = sizeof (struct sockaddr_un);
-	cl = clnt_vc_create(*sockp, svcaddr, prog,
-	    vers, sendsz, recvsz);
+	svcaddr->maxlen = sizeof(struct sockaddr_un);
+	cl = clnt_vc_create(*sockp, svcaddr, prog, vers, sendsz, recvsz);
 done:
 	free(svcaddr->buf);
 	free(svcaddr);
-	return(cl);
+	return (cl);
 }
 
 /*
@@ -488,7 +486,7 @@ svcunix_create(int sock, u_int sendsize, u_int recvsize, char *path)
 	    sizeof(sun.sun_path))
 		goto done;
 	sun.sun_len = SUN_LEN(&sun);
-	addrlen = sizeof (struct sockaddr_un);
+	addrlen = sizeof(struct sockaddr_un);
 	sa = (struct sockaddr *)&sun;
 
 	if (_bind(sock, sa, addrlen) < 0)
@@ -507,11 +505,12 @@ svcunix_create(int sock, u_int sendsize, u_int recvsize, char *path)
 		}
 	}
 
-	xprt = (SVCXPRT *)svc_tli_create(sock, nconf, &taddr, sendsize, recvsize);
+	xprt = (SVCXPRT *)svc_tli_create(sock, nconf, &taddr, sendsize,
+	    recvsize);
 
 done:
 	endnetconfig(localhandle);
-	return(xprt);
+	return (xprt);
 }
 
 /*
@@ -521,7 +520,7 @@ done:
 SVCXPRT *
 svcunixfd_create(int fd, u_int sendsize, u_int recvsize)
 {
- 	return (svc_fd_create(fd, sendsize, recvsize));
+	return (svc_fd_create(fd, sendsize, recvsize));
 }
 
 #endif /* PORTMAP */

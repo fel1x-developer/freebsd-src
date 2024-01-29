@@ -70,58 +70,54 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include "opt_wlan.h"
 #include "opt_iwm.h"
+#include "opt_wlan.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/bus.h>
 #include <sys/conf.h>
 #include <sys/endian.h>
 #include <sys/firmware.h>
 #include <sys/kernel.h>
+#include <sys/linker.h>
 #include <sys/malloc.h>
 #include <sys/mbuf.h>
-#include <sys/mutex.h>
 #include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/proc.h>
 #include <sys/rman.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/linker.h>
 
 #include <machine/bus.h>
 #include <machine/endian.h>
 #include <machine/resource.h>
 
-#include <dev/pci/pcivar.h>
+#include <dev/iwm/if_iwm_debug.h>
+#include <dev/iwm/if_iwm_fw.h>
+#include <dev/iwm/if_iwm_util.h>
+#include <dev/iwm/if_iwmreg.h>
+#include <dev/iwm/if_iwmvar.h>
 #include <dev/pci/pcireg.h>
+#include <dev/pci/pcivar.h>
 
 #include <net/bpf.h>
-
 #include <net/if.h>
-#include <net/if_var.h>
 #include <net/if_arp.h>
 #include <net/if_dl.h>
 #include <net/if_media.h>
 #include <net/if_types.h>
-
+#include <net/if_var.h>
+#include <net80211/ieee80211_radiotap.h>
+#include <net80211/ieee80211_ratectl.h>
+#include <net80211/ieee80211_regdomain.h>
+#include <net80211/ieee80211_var.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/in_systm.h>
-#include <netinet/if_ether.h>
 #include <netinet/ip.h>
-
-#include <net80211/ieee80211_var.h>
-#include <net80211/ieee80211_regdomain.h>
-#include <net80211/ieee80211_ratectl.h>
-#include <net80211/ieee80211_radiotap.h>
-
-#include <dev/iwm/if_iwmreg.h>
-#include <dev/iwm/if_iwmvar.h>
-#include <dev/iwm/if_iwm_debug.h>
-#include <dev/iwm/if_iwm_util.h>
-#include <dev/iwm/if_iwm_fw.h>
 
 void
 iwm_free_fw_paging(struct iwm_softc *sc)
@@ -156,7 +152,8 @@ iwm_fill_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 	 * CPU2 paging image (including instruction and data)
 	 */
 	for (sec_idx = 0; sec_idx < IWM_UCODE_SECTION_MAX; sec_idx++) {
-		if (image->sec[sec_idx].offset == IWM_PAGING_SEPARATOR_SECTION) {
+		if (image->sec[sec_idx].offset ==
+		    IWM_PAGING_SEPARATOR_SECTION) {
 			sec_idx++;
 			break;
 		}
@@ -175,16 +172,14 @@ iwm_fill_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 
 	/* copy the CSS block to the dram */
 	IWM_DPRINTF(sc, IWM_DEBUG_FW,
-		    "Paging: load paging CSS to FW, sec = %d\n",
-		    sec_idx);
+	    "Paging: load paging CSS to FW, sec = %d\n", sec_idx);
 
 	memcpy(sc->fw_paging_db[0].fw_paging_block.vaddr,
-	       image->sec[sec_idx].data,
-	       sc->fw_paging_db[0].fw_paging_size);
+	    image->sec[sec_idx].data, sc->fw_paging_db[0].fw_paging_size);
 
 	IWM_DPRINTF(sc, IWM_DEBUG_FW,
-		    "Paging: copied %d CSS bytes to first block\n",
-		    sc->fw_paging_db[0].fw_paging_size);
+	    "Paging: copied %d CSS bytes to first block\n",
+	    sc->fw_paging_db[0].fw_paging_size);
 
 	sec_idx++;
 
@@ -196,13 +191,12 @@ iwm_fill_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 	 */
 	for (idx = 1; idx < sc->num_of_paging_blk; idx++) {
 		memcpy(sc->fw_paging_db[idx].fw_paging_block.vaddr,
-		       (const char *)image->sec[sec_idx].data + offset,
-		       sc->fw_paging_db[idx].fw_paging_size);
+		    (const char *)image->sec[sec_idx].data + offset,
+		    sc->fw_paging_db[idx].fw_paging_size);
 
 		IWM_DPRINTF(sc, IWM_DEBUG_FW,
-			    "Paging: copied %d paging bytes to block %d\n",
-			    sc->fw_paging_db[idx].fw_paging_size,
-			    idx);
+		    "Paging: copied %d paging bytes to block %d\n",
+		    sc->fw_paging_db[idx].fw_paging_size, idx);
 
 		offset += sc->fw_paging_db[idx].fw_paging_size;
 	}
@@ -210,12 +204,12 @@ iwm_fill_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 	/* copy the last paging block */
 	if (sc->num_of_pages_in_last_blk > 0) {
 		memcpy(sc->fw_paging_db[idx].fw_paging_block.vaddr,
-		       (const char *)image->sec[sec_idx].data + offset,
-		       IWM_FW_PAGING_SIZE * sc->num_of_pages_in_last_blk);
+		    (const char *)image->sec[sec_idx].data + offset,
+		    IWM_FW_PAGING_SIZE * sc->num_of_pages_in_last_blk);
 
 		IWM_DPRINTF(sc, IWM_DEBUG_FW,
-			    "Paging: copied %d pages in the last block %d\n",
-			    sc->num_of_pages_in_last_blk, idx);
+		    "Paging: copied %d pages in the last block %d\n",
+		    sc->num_of_pages_in_last_blk, idx);
 	}
 
 	return 0;
@@ -239,21 +233,20 @@ iwm_alloc_fw_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 	}
 
 	/* ensure IWM_BLOCK_2_EXP_SIZE is power of 2 of IWM_PAGING_BLOCK_SIZE */
-        _Static_assert((1 << IWM_BLOCK_2_EXP_SIZE) == IWM_PAGING_BLOCK_SIZE,
+	_Static_assert((1 << IWM_BLOCK_2_EXP_SIZE) == IWM_PAGING_BLOCK_SIZE,
 	    "IWM_BLOCK_2_EXP_SIZE must be power of 2 of IWM_PAGING_BLOCK_SIZE");
 
 	num_of_pages = image->paging_mem_size / IWM_FW_PAGING_SIZE;
 	sc->num_of_paging_blk = ((num_of_pages - 1) /
-				    IWM_NUM_OF_PAGE_PER_GROUP) + 1;
+				    IWM_NUM_OF_PAGE_PER_GROUP) +
+	    1;
 
-	sc->num_of_pages_in_last_blk =
-		num_of_pages -
-		IWM_NUM_OF_PAGE_PER_GROUP * (sc->num_of_paging_blk - 1);
+	sc->num_of_pages_in_last_blk = num_of_pages -
+	    IWM_NUM_OF_PAGE_PER_GROUP * (sc->num_of_paging_blk - 1);
 
 	IWM_DPRINTF(sc, IWM_DEBUG_FW,
-		    "Paging: allocating mem for %d paging blocks, each block holds 8 pages, last block holds %d pages\n",
-		    sc->num_of_paging_blk,
-		    sc->num_of_pages_in_last_blk);
+	    "Paging: allocating mem for %d paging blocks, each block holds 8 pages, last block holds %d pages\n",
+	    sc->num_of_paging_blk, sc->num_of_pages_in_last_blk);
 
 	/* allocate block of 4Kbytes for paging CSS */
 	error = iwm_dma_contig_alloc(sc->sc_dmat,
@@ -268,7 +261,7 @@ iwm_alloc_fw_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 	sc->fw_paging_db[blk_idx].fw_paging_size = IWM_FW_PAGING_SIZE;
 
 	IWM_DPRINTF(sc, IWM_DEBUG_FW,
-		    "Paging: allocated 4K(CSS) bytes for firmware paging.\n");
+	    "Paging: allocated 4K(CSS) bytes for firmware paging.\n");
 
 	/*
 	 * allocate blocks in dram.
@@ -278,7 +271,7 @@ iwm_alloc_fw_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 		/* allocate block of IWM_PAGING_BLOCK_SIZE (32K) */
 		/* XXX Use iwm_dma_contig_alloc for allocating */
 		error = iwm_dma_contig_alloc(sc->sc_dmat,
-		     &sc->fw_paging_db[blk_idx].fw_paging_block,
+		    &sc->fw_paging_db[blk_idx].fw_paging_block,
 		    IWM_PAGING_BLOCK_SIZE, 4096);
 		if (error) {
 			/* free all the previous pages since we failed */
@@ -286,10 +279,11 @@ iwm_alloc_fw_paging_mem(struct iwm_softc *sc, const struct iwm_fw_img *image)
 			return ENOMEM;
 		}
 
-		sc->fw_paging_db[blk_idx].fw_paging_size = IWM_PAGING_BLOCK_SIZE;
+		sc->fw_paging_db[blk_idx].fw_paging_size =
+		    IWM_PAGING_BLOCK_SIZE;
 
 		IWM_DPRINTF(sc, IWM_DEBUG_FW,
-			    "Paging: allocated 32K bytes for firmware paging.\n");
+		    "Paging: allocated 32K bytes for firmware paging.\n");
 	}
 
 	return 0;
@@ -314,11 +308,10 @@ iwm_send_paging_cmd(struct iwm_softc *sc, const struct iwm_fw_img *fw)
 	int blk_idx;
 	uint32_t dev_phy_addr;
 	struct iwm_fw_paging_cmd fw_paging_cmd = {
-		.flags =
-			htole32(IWM_PAGING_CMD_IS_SECURED |
-				IWM_PAGING_CMD_IS_ENABLED |
-				(sc->num_of_pages_in_last_blk <<
-				IWM_PAGING_CMD_NUM_OF_PAGES_IN_LAST_GRP_POS)),
+		.flags = htole32(IWM_PAGING_CMD_IS_SECURED |
+		    IWM_PAGING_CMD_IS_ENABLED |
+		    (sc->num_of_pages_in_last_blk
+			<< IWM_PAGING_CMD_NUM_OF_PAGES_IN_LAST_GRP_POS)),
 		.block_size = htole32(IWM_BLOCK_2_EXP_SIZE),
 		.block_num = htole32(sc->num_of_paging_blk),
 	};
@@ -334,7 +327,7 @@ iwm_send_paging_cmd(struct iwm_softc *sc, const struct iwm_fw_img *fw)
 		    BUS_DMASYNC_PREWRITE | BUS_DMASYNC_PREREAD);
 	}
 
-	return iwm_send_cmd_pdu(sc, iwm_cmd_id(IWM_FW_PAGING_BLOCK_CMD,
-						   IWM_ALWAYS_LONG_GROUP, 0),
-				    0, sizeof(fw_paging_cmd), &fw_paging_cmd);
+	return iwm_send_cmd_pdu(sc,
+	    iwm_cmd_id(IWM_FW_PAGING_BLOCK_CMD, IWM_ALWAYS_LONG_GROUP, 0), 0,
+	    sizeof(fw_paging_cmd), &fw_paging_cmd);
 }

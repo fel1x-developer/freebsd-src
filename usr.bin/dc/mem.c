@@ -17,10 +17,10 @@
  */
 
 #include <sys/cdefs.h>
-#include <openssl/err.h>
 
 #include <err.h>
 #include <limits.h>
+#include <openssl/err.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -72,7 +72,7 @@ div_number(struct number *dividend, struct number *divisor, u_int bscale)
 		ctx = BN_CTX_new();
 		bn_checkp(ctx);
 		bn_check(BN_div(quotient->number, NULL, dividend->number,
-				divisor->number, ctx));
+		    divisor->number, ctx));
 		BN_CTX_free(ctx);
 	}
 	return (quotient);
@@ -124,7 +124,7 @@ bstrdup(const char *p)
 }
 
 void
-bn_check(int x)						\
+bn_check(int x)
 {
 
 	if (x == 0)
@@ -132,7 +132,7 @@ bn_check(int x)						\
 }
 
 void
-bn_checkp(const void *p)						\
+bn_checkp(const void *p)
 {
 
 	if (p == NULL)

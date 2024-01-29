@@ -12,8 +12,8 @@
  *
  *****************************************************************************/
 
-#include "qat_utils.h"
 #include "lac_common.h"
+#include "qat_utils.h"
 static char lacProcessName[LAC_USER_PROCESS_NAME_MAX_LEN + 1] =
     LAC_KERNEL_PROCESS_NAME;
 
@@ -38,7 +38,7 @@ static char lacProcessName[LAC_USER_PROCESS_NAME_MAX_LEN + 1] =
  *      No
  *
  * param[in]  processName    Process name to be set
-*/
+ */
 CpaStatus
 icpSetProcessName(const char *processName)
 {
@@ -75,7 +75,7 @@ icpSetProcessName(const char *processName)
  * @threadSafe
  *      Yes
  *
-*/
+ */
 char *
 icpGetProcessName(void)
 {

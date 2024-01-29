@@ -28,8 +28,8 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGES.
  */
-#include "if_wtapvar.h"
 #include "if_medium.h"
+#include "if_wtapvar.h"
 
 void
 init_medium(struct wtap_medium *md)
@@ -42,7 +42,7 @@ init_medium(struct wtap_medium *md)
 	/* Event handler for sending packets between wtaps */
 	struct eventhandler *eh = (struct eventhandler *)
 	    malloc(sizeof(struct eventhandler), M_WTAP, M_NOWAIT | M_ZERO);
-	eh->tq = taskqueue_create("wtap_tx_taskq",  M_NOWAIT | M_ZERO,
+	eh->tq = taskqueue_create("wtap_tx_taskq", M_NOWAIT | M_ZERO,
 	    taskqueue_thread_enqueue, &eh->tq);
 	taskqueue_start_threads(&eh->tq, 1, PI_NET, "%s taskq", "wtap_medium");
 	md->tx_handler = eh;
@@ -60,11 +60,11 @@ deinit_medium(struct wtap_medium *md)
 }
 
 int
-medium_transmit(struct wtap_medium *md, int id, struct mbuf*m)
+medium_transmit(struct wtap_medium *md, int id, struct mbuf *m)
 {
 
 	mtx_lock(&md->md_mtx);
-	if (md->open == 0){
+	if (md->open == 0) {
 		DWTAP_PRINTF("[%d] dropping m=%p\n", id, m);
 		m_free(m);
 		mtx_unlock(&md->md_mtx);
@@ -81,7 +81,7 @@ medium_transmit(struct wtap_medium *md, int id, struct mbuf*m)
 	taskqueue_enqueue(md->tx_handler->tq, &md->tx_handler->proc);
 	mtx_unlock(&md->md_mtx);
 
-      return 0;
+	return 0;
 }
 
 struct packet *
@@ -91,7 +91,7 @@ medium_get_next_packet(struct wtap_medium *md)
 
 	mtx_lock(&md->md_mtx);
 	p = STAILQ_FIRST(&md->md_pktbuf);
-	if (p == NULL){
+	if (p == NULL) {
 		mtx_unlock(&md->md_mtx);
 		return NULL;
 	}

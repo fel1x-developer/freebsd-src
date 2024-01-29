@@ -32,42 +32,42 @@
 
 /* Symbolic constants shared by locate.c and code.c */
 
-#define	NBG		128		/* number of bigrams considered */
-#define	OFFSET		14		/* abs value of max likely diff */
-#define	PARITY		0200		/* parity bit */
-#define	SWITCH		30		/* switch code */
-#define UMLAUT          31              /* an 8 bit char followed */
+#define NBG 128	    /* number of bigrams considered */
+#define OFFSET 14   /* abs value of max likely diff */
+#define PARITY 0200 /* parity bit */
+#define SWITCH 30   /* switch code */
+#define UMLAUT 31   /* an 8 bit char followed */
 
 /* 	0-28	likeliest differential counts + offset to make nonnegative */
-#define LDC_MIN         0
-#define LDC_MAX        28
+#define LDC_MIN 0
+#define LDC_MAX 28
 
 /*	128-255 bigram codes (128 most common, as determined by 'updatedb') */
-#define BIGRAM_MIN    (UCHAR_MAX - SCHAR_MAX) 
-#define BIGRAM_MAX    UCHAR_MAX
+#define BIGRAM_MIN (UCHAR_MAX - SCHAR_MAX)
+#define BIGRAM_MAX UCHAR_MAX
 
 /*	32-127  single character (printable) ascii residue (ie, literal) */
-#define ASCII_MIN      32
-#define ASCII_MAX     SCHAR_MAX
+#define ASCII_MIN 32
+#define ASCII_MAX SCHAR_MAX
 
 /* #define TO7BIT(x)     (x = ( ((u_char)x) & SCHAR_MAX )) */
-#define TO7BIT(x)     (x = x & SCHAR_MAX )
-
+#define TO7BIT(x) (x = x & SCHAR_MAX)
 
 #if UCHAR_MAX >= 4096
-   define TOLOWER(ch)	  tolower(ch)
+define
+TOLOWER(ch) tolower(ch)
 #else
 
 extern u_char myctype[UCHAR_MAX + 1];
-#define TOLOWER(ch)	(myctype[ch])
+#define TOLOWER(ch) (myctype[ch])
 #endif
 
 #define INTSIZE (sizeof(int))
 
-#define LOCATE_REG "*?[]\\"  /* fnmatch(3) meta characters */
+#define LOCATE_REG "*?[]\\" /* fnmatch(3) meta characters */
 
-/* max. path length for locate. Should be at least 1024 (PATH_MAX), but can be longer */
+/* max. path length for locate. Should be at least 1024 (PATH_MAX), but can be
+ * longer */
 #ifndef LOCATE_PATH_MAX
-#define LOCATE_PATH_MAX (1*1024)
+#define LOCATE_PATH_MAX (1 * 1024)
 #endif
-

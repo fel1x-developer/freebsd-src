@@ -43,63 +43,63 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "opt_acpi.h"
+#include "opt_platform.h"
+
+#include <sys/types.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
-#include <sys/gpio.h>
 #include <sys/clock.h>
-#include <sys/kernel.h>
-#include <sys/module.h>
 #include <sys/endian.h>
-#include <sys/rman.h>
-#include <sys/types.h>
+#include <sys/gpio.h>
+#include <sys/kernel.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/rman.h>
 
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
 #include <dev/gpio/gpiobusvar.h>
 
-#include "opt_platform.h"
-#include "opt_acpi.h"
-#include "gpio_if.h"
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
 #include "chvgpio_reg.h"
+#include "gpio_if.h"
 
 /*
  *     Macros for driver mutex locking
  */
-#define CHVGPIO_LOCK(_sc)               mtx_lock_spin(&(_sc)->sc_mtx)
-#define CHVGPIO_UNLOCK(_sc)             mtx_unlock_spin(&(_sc)->sc_mtx)
-#define CHVGPIO_LOCK_INIT(_sc) \
-	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), \
-	"chvgpio", MTX_SPIN)
-#define CHVGPIO_LOCK_DESTROY(_sc)       mtx_destroy(&(_sc)->sc_mtx)
-#define CHVGPIO_ASSERT_LOCKED(_sc)      mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
-#define CHVGPIO_ASSERT_UNLOCKED(_sc) 	mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
+#define CHVGPIO_LOCK(_sc) mtx_lock_spin(&(_sc)->sc_mtx)
+#define CHVGPIO_UNLOCK(_sc) mtx_unlock_spin(&(_sc)->sc_mtx)
+#define CHVGPIO_LOCK_INIT(_sc)                                                \
+	mtx_init(&_sc->sc_mtx, device_get_nameunit((_sc)->sc_dev), "chvgpio", \
+	    MTX_SPIN)
+#define CHVGPIO_LOCK_DESTROY(_sc) mtx_destroy(&(_sc)->sc_mtx)
+#define CHVGPIO_ASSERT_LOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_OWNED)
+#define CHVGPIO_ASSERT_UNLOCKED(_sc) mtx_assert(&(_sc)->sc_mtx, MA_NOTOWNED)
 
 struct chvgpio_softc {
-	device_t 	sc_dev;
-	device_t 	sc_busdev;
-	struct mtx 	sc_mtx;
+	device_t sc_dev;
+	device_t sc_busdev;
+	struct mtx sc_mtx;
 
-	ACPI_HANDLE	sc_handle;
+	ACPI_HANDLE sc_handle;
 
-	int		sc_mem_rid;
+	int sc_mem_rid;
 	struct resource *sc_mem_res;
 
-	int		sc_irq_rid;
+	int sc_irq_rid;
 	struct resource *sc_irq_res;
-	void		*intr_handle;
+	void *intr_handle;
 
-	const char	*sc_bank_prefix;
-	const int  	*sc_pins;
-	int 		sc_npins;
-	int 		sc_ngroups;
+	const char *sc_bank_prefix;
+	const int *sc_pins;
+	int sc_npins;
+	int sc_ngroups;
 	const char **sc_pin_names;
 };
 
@@ -214,11 +214,11 @@ chvgpio_pin_getflags(device_t dev, uint32_t pin, uint32_t *flags)
 	val = chvgpio_read_pad_cfg0(sc, pin);
 
 	if (val & CHVGPIO_PAD_CFG0_GPIOCFG_GPIO ||
-		val & CHVGPIO_PAD_CFG0_GPIOCFG_GPO)
+	    val & CHVGPIO_PAD_CFG0_GPIOCFG_GPO)
 		*flags |= GPIO_PIN_OUTPUT;
 
 	if (val & CHVGPIO_PAD_CFG0_GPIOCFG_GPIO ||
-		val & CHVGPIO_PAD_CFG0_GPIOCFG_GPI)
+	    val & CHVGPIO_PAD_CFG0_GPIOCFG_GPI)
 		*flags |= GPIO_PIN_INPUT;
 
 	val = chvgpio_read_pad_cfg1(sc, pin);
@@ -333,22 +333,19 @@ chvgpio_pin_toggle(device_t dev, uint32_t pin)
 	return (0);
 }
 
-static char *chvgpio_hids[] = {
-	"INT33FF",
-	NULL
-};
+static char *chvgpio_hids[] = { "INT33FF", NULL };
 
 static int
 chvgpio_probe(device_t dev)
 {
-    int rv;
-    
-    if (acpi_disabled("chvgpio"))
-        return (ENXIO);
-    rv = ACPI_ID_PROBE(device_get_parent(dev), dev, chvgpio_hids, NULL);
-    if (rv <= 0)
-	device_set_desc(dev, "Intel Cherry View GPIO");
-    return (rv);
+	int rv;
+
+	if (acpi_disabled("chvgpio"))
+		return (ENXIO);
+	rv = ACPI_ID_PROBE(device_get_parent(dev), dev, chvgpio_hids, NULL);
+	if (rv <= 0)
+		device_set_desc(dev, "Intel Cherry View GPIO");
+	return (rv);
 }
 
 static int
@@ -405,7 +402,7 @@ chvgpio_attach(device_t dev)
 
 	sc->sc_mem_rid = 0;
 	sc->sc_mem_res = bus_alloc_resource_any(sc->sc_dev, SYS_RES_MEMORY,
-		&sc->sc_mem_rid, RF_ACTIVE);
+	    &sc->sc_mem_rid, RF_ACTIVE);
 	if (sc->sc_mem_res == NULL) {
 		CHVGPIO_LOCK_DESTROY(sc);
 		device_printf(dev, "can't allocate memory resource\n");
@@ -413,27 +410,28 @@ chvgpio_attach(device_t dev)
 	}
 
 	sc->sc_irq_res = bus_alloc_resource_any(dev, SYS_RES_IRQ,
-		&sc->sc_irq_rid, RF_ACTIVE);
+	    &sc->sc_irq_rid, RF_ACTIVE);
 
 	if (!sc->sc_irq_res) {
 		CHVGPIO_LOCK_DESTROY(sc);
-		bus_release_resource(dev, SYS_RES_MEMORY,
-			sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 		device_printf(dev, "can't allocate irq resource\n");
 		return (ENOMEM);
 	}
 
-	error = bus_setup_intr(sc->sc_dev, sc->sc_irq_res, INTR_TYPE_MISC | INTR_MPSAFE,
-		NULL, chvgpio_intr, sc, &sc->intr_handle);
-
+	error = bus_setup_intr(sc->sc_dev, sc->sc_irq_res,
+	    INTR_TYPE_MISC | INTR_MPSAFE, NULL, chvgpio_intr, sc,
+	    &sc->intr_handle);
 
 	if (error) {
-		device_printf(sc->sc_dev, "unable to setup irq: error %d\n", error);
+		device_printf(sc->sc_dev, "unable to setup irq: error %d\n",
+		    error);
 		CHVGPIO_LOCK_DESTROY(sc);
-		bus_release_resource(dev, SYS_RES_MEMORY,
-			sc->sc_mem_rid, sc->sc_mem_res);
-		bus_release_resource(dev, SYS_RES_IRQ,
-			sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 		return (ENXIO);
 	}
 
@@ -444,10 +442,10 @@ chvgpio_attach(device_t dev)
 	sc->sc_busdev = gpiobus_attach_bus(dev);
 	if (sc->sc_busdev == NULL) {
 		CHVGPIO_LOCK_DESTROY(sc);
-		bus_release_resource(dev, SYS_RES_MEMORY,
-			sc->sc_mem_rid, sc->sc_mem_res);
-		bus_release_resource(dev, SYS_RES_IRQ,
-			sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 		return (ENXIO);
 	}
 
@@ -465,7 +463,8 @@ chvgpio_intr(void *arg)
 	for (line = 0; line < 16; line++) {
 		if ((reg & (1 << line)) == 0)
 			continue;
-		bus_write_4(sc->sc_mem_res, CHVGPIO_INTERRUPT_STATUS, 1 << line);
+		bus_write_4(sc->sc_mem_res, CHVGPIO_INTERRUPT_STATUS,
+		    1 << line);
 	}
 }
 
@@ -479,41 +478,40 @@ chvgpio_detach(device_t dev)
 		gpiobus_detach_bus(dev);
 
 	if (sc->intr_handle != NULL)
-	    bus_teardown_intr(sc->sc_dev, sc->sc_irq_res, sc->intr_handle);
+		bus_teardown_intr(sc->sc_dev, sc->sc_irq_res, sc->intr_handle);
 	if (sc->sc_irq_res != NULL)
-		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid, sc->sc_irq_res);
+		bus_release_resource(dev, SYS_RES_IRQ, sc->sc_irq_rid,
+		    sc->sc_irq_res);
 	if (sc->sc_mem_res != NULL)
-		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid, sc->sc_mem_res);
+		bus_release_resource(dev, SYS_RES_MEMORY, sc->sc_mem_rid,
+		    sc->sc_mem_res);
 
 	CHVGPIO_LOCK_DESTROY(sc);
 
-    return (0);
+	return (0);
 }
 
-static device_method_t chvgpio_methods[] = {
-	DEVMETHOD(device_probe,     	chvgpio_probe),
-	DEVMETHOD(device_attach,    	chvgpio_attach),
-	DEVMETHOD(device_detach,    	chvgpio_detach),
+static device_method_t chvgpio_methods[] = { DEVMETHOD(device_probe,
+						 chvgpio_probe),
+	DEVMETHOD(device_attach, chvgpio_attach),
+	DEVMETHOD(device_detach, chvgpio_detach),
 
 	/* GPIO protocol */
-	DEVMETHOD(gpio_get_bus, 	chvgpio_get_bus),
-	DEVMETHOD(gpio_pin_max, 	chvgpio_pin_max),
-	DEVMETHOD(gpio_pin_getname, 	chvgpio_pin_getname),
-	DEVMETHOD(gpio_pin_getflags,	chvgpio_pin_getflags),
-	DEVMETHOD(gpio_pin_getcaps, 	chvgpio_pin_getcaps),
-	DEVMETHOD(gpio_pin_setflags,	chvgpio_pin_setflags),
-	DEVMETHOD(gpio_pin_get, 	chvgpio_pin_get),
-	DEVMETHOD(gpio_pin_set, 	chvgpio_pin_set),
-	DEVMETHOD(gpio_pin_toggle, 	chvgpio_pin_toggle),
+	DEVMETHOD(gpio_get_bus, chvgpio_get_bus),
+	DEVMETHOD(gpio_pin_max, chvgpio_pin_max),
+	DEVMETHOD(gpio_pin_getname, chvgpio_pin_getname),
+	DEVMETHOD(gpio_pin_getflags, chvgpio_pin_getflags),
+	DEVMETHOD(gpio_pin_getcaps, chvgpio_pin_getcaps),
+	DEVMETHOD(gpio_pin_setflags, chvgpio_pin_setflags),
+	DEVMETHOD(gpio_pin_get, chvgpio_pin_get),
+	DEVMETHOD(gpio_pin_set, chvgpio_pin_set),
+	DEVMETHOD(gpio_pin_toggle, chvgpio_pin_toggle),
 
-	DEVMETHOD_END
-};
+	DEVMETHOD_END };
 
-static driver_t chvgpio_driver = {
-    .name = "gpio",
-    .methods = chvgpio_methods,
-    .size = sizeof(struct chvgpio_softc)
-};
+static driver_t chvgpio_driver = { .name = "gpio",
+	.methods = chvgpio_methods,
+	.size = sizeof(struct chvgpio_softc) };
 
 DRIVER_MODULE(chvgpio, acpi, chvgpio_driver, NULL, NULL);
 MODULE_DEPEND(chvgpio, acpi, 1, 1, 1);

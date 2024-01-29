@@ -6,27 +6,27 @@
  * Copyright (c) 2009, Sun Microsystems, Inc.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without 
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * - Redistributions of source code must retain the above copyright notice, 
+ * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *   this list of conditions and the following disclaimer in the documentation 
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * - Neither the name of Sun Microsystems, Inc. nor the names of its 
- *   contributors may be used to endorse or promote products derived 
+ * - Neither the name of Sun Microsystems, Inc. nor the names of its
+ *   contributors may be used to endorse or promote products derived
  *   from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -36,100 +36,101 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+
+#include <netinet/in.h>
+
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <nsswitch.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <rpc/rpc.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #ifdef YP
 #include <rpcsvc/yp_prot.h>
 #include <rpcsvc/ypclnt.h>
 #endif
 #include <unistd.h>
+
+#include "libc_private.h"
 #include "namespace.h"
+#include "nss_tls.h"
 #include "reentrant.h"
 #include "un-namespace.h"
-#include "libc_private.h"
-#include "nss_tls.h"
 #ifdef NS_CACHING
 #include "nscache.h"
 #endif
 
-#define	RPCDB	"/etc/rpc"
+#define RPCDB "/etc/rpc"
 
 /* nsswitch declarations */
-enum constants
-{
+enum constants {
 	SETRPCENT = 1,
 	ENDRPCENT = 2,
-	RPCENT_STORAGE_INITIAL	= 1 << 10, /* 1 KByte */
-	RPCENT_STORAGE_MAX	= 1 << 20, /* 1 MByte */
+	RPCENT_STORAGE_INITIAL = 1 << 10, /* 1 KByte */
+	RPCENT_STORAGE_MAX = 1 << 20,	  /* 1 MByte */
 };
 
-static const ns_src defaultsrc[] = {
-	{ NSSRC_FILES, NS_SUCCESS },
+static const ns_src defaultsrc[] = { { NSSRC_FILES, NS_SUCCESS },
 #ifdef YP
 	{ NSSRC_NIS, NS_SUCCESS },
 #endif
-	{ NULL, 0 }
-};
+	{ NULL, 0 } };
 
 /* files backend declarations */
 struct files_state {
-	FILE	*fp;
-	int	stayopen;
+	FILE *fp;
+	int stayopen;
 };
 
-static	int	files_rpcent(void *, void *, va_list);
-static	int	files_setrpcent(void *, void *, va_list);
+static int files_rpcent(void *, void *, va_list);
+static int files_setrpcent(void *, void *, va_list);
 
-static	void	files_endstate(void *);
+static void files_endstate(void *);
 NSS_TLS_HANDLING(files);
 
 /* nis backend declarations */
 #ifdef YP
 struct nis_state {
-	char	domain[MAXHOSTNAMELEN];
-	char	*current;
-	int	currentlen;
-	int	stepping;
-	int	no_name_map;
+	char domain[MAXHOSTNAMELEN];
+	char *current;
+	int currentlen;
+	int stepping;
+	int no_name_map;
 };
 
-static	int	nis_rpcent(void *, void *, va_list);
-static	int	nis_setrpcent(void *, void *, va_list);
+static int nis_rpcent(void *, void *, va_list);
+static int nis_setrpcent(void *, void *, va_list);
 
-static	void	nis_endstate(void *);
+static void nis_endstate(void *);
 NSS_TLS_HANDLING(nis);
 #endif
 
 /* get** wrappers for get**_r functions declarations */
 struct rpcent_state {
-	struct rpcent	rpc;
-	char		*buffer;
-	size_t	bufsize;
+	struct rpcent rpc;
+	char *buffer;
+	size_t bufsize;
 };
-static	void	rpcent_endstate(void *);
+static void rpcent_endstate(void *);
 NSS_TLS_HANDLING(rpcent);
 
 union key {
-	const char	*name;
-	int		number;
+	const char *name;
+	int number;
 };
 
-static int wrap_getrpcbyname_r(union key, struct rpcent *, char *,
-			size_t, struct rpcent **);
-static int wrap_getrpcbynumber_r(union key, struct rpcent *, char *,
-			size_t, struct rpcent **);
-static int wrap_getrpcent_r(union key, struct rpcent *, char *,
-			size_t, struct rpcent **);
+static int wrap_getrpcbyname_r(union key, struct rpcent *, char *, size_t,
+    struct rpcent **);
+static int wrap_getrpcbynumber_r(union key, struct rpcent *, char *, size_t,
+    struct rpcent **);
+static int wrap_getrpcent_r(union key, struct rpcent *, char *, size_t,
+    struct rpcent **);
 static struct rpcent *getrpc(int (*fn)(union key, struct rpcent *, char *,
-			size_t, struct rpcent **), union key);
+				 size_t, struct rpcent **),
+    union key);
 
 #ifdef NS_CACHING
 static int rpc_id_func(char *, size_t *, va_list, void *);
@@ -139,7 +140,7 @@ static int rpc_unmarshal_func(char *, size_t, void *, va_list, void *);
 
 static int
 rpcent_unpack(char *p, struct rpcent *rpc, char **r_aliases,
-	size_t aliases_size, int *errnop)
+    size_t aliases_size, int *errnop)
 {
 	char *cp, **q;
 
@@ -185,10 +186,10 @@ rpcent_unpack(char *p, struct rpcent *rpc, char **r_aliases,
 }
 
 /* files backend implementation */
-static	void
+static void
 files_endstate(void *p)
 {
-	FILE * f;
+	FILE *f;
 
 	if (p == NULL)
 		return;
@@ -216,14 +217,13 @@ files_rpcent(void *retval, void *mdata, va_list ap)
 	int aliases_size;
 	char **rp;
 
-	struct files_state	*st;
+	struct files_state *st;
 	int rv;
 	int stayopen;
 	enum nss_lookup_type how;
 
 	how = (enum nss_lookup_type)(uintptr_t)mdata;
-	switch (how)
-	{
+	switch (how) {
 	case nss_lt_name:
 		name = va_arg(ap, char *);
 		break;
@@ -270,9 +270,9 @@ files_rpcent(void *retval, void *mdata, va_list ap)
 			break;
 		}
 
-		aliases = (char **)_ALIGN(&buffer[linesize+1]);
-		aliases_size = (buffer + bufsize -
-			(char *)aliases)/sizeof(char *);
+		aliases = (char **)_ALIGN(&buffer[linesize + 1]);
+		aliases_size = (buffer + bufsize - (char *)aliases) /
+		    sizeof(char *);
 		if (aliases_size < 1) {
 			*errnop = ERANGE;
 			rv = NS_RETURN;
@@ -287,15 +287,13 @@ files_rpcent(void *retval, void *mdata, va_list ap)
 			if (*errnop == 0) {
 				rv = NS_NOTFOUND;
 				continue;
-			}
-			else {
+			} else {
 				rv = NS_RETURN;
 				break;
 			}
 		}
 
-		switch (how)
-		{
+		switch (how) {
 		case nss_lt_name:
 			if (strcmp(rpc->r_name, name) == 0)
 				goto done;
@@ -305,12 +303,12 @@ files_rpcent(void *retval, void *mdata, va_list ap)
 			}
 			rv = NS_NOTFOUND;
 			continue;
-done:
+		done:
 			rv = NS_SUCCESS;
 			break;
 		case nss_lt_id:
 			rv = (rpc->r_number == number) ? NS_SUCCESS :
-				NS_NOTFOUND;
+							 NS_NOTFOUND;
 			break;
 		case nss_lt_all:
 			rv = NS_SUCCESS;
@@ -319,7 +317,7 @@ done:
 
 	} while (!(rv & NS_TERMINATE));
 
-	if (!stayopen && st->fp!=NULL) {
+	if (!stayopen && st->fp != NULL) {
 		fclose(st->fp);
 		st->fp = NULL;
 	}
@@ -333,18 +331,17 @@ done:
 static int
 files_setrpcent(void *retval, void *mdata, va_list ap)
 {
-	struct files_state	*st;
-	int	rv;
-	int	f;
+	struct files_state *st;
+	int rv;
+	int f;
 
 	rv = files_getstate(&st);
 	if (rv != 0)
 		return (NS_UNAVAIL);
 
-	switch ((enum constants)(uintptr_t)mdata)
-	{
+	switch ((enum constants)(uintptr_t)mdata) {
 	case SETRPCENT:
-		f = va_arg(ap,int);
+		f = va_arg(ap, int);
 		if (st->fp == NULL)
 			st->fp = fopen(RPCDB, "r");
 		else
@@ -367,7 +364,7 @@ files_setrpcent(void *retval, void *mdata, va_list ap)
 
 /* nis backend implementation */
 #ifdef YP
-static 	void
+static void
 nis_endstate(void *p)
 {
 	if (p == NULL)
@@ -380,30 +377,29 @@ nis_endstate(void *p)
 static int
 nis_rpcent(void *retval, void *mdata, va_list ap)
 {
-	char		*name;
-	int		number;
-	struct rpcent	*rpc;
-	char		*buffer;
-	size_t	bufsize;
-	int		*errnop;
+	char *name;
+	int number;
+	struct rpcent *rpc;
+	char *buffer;
+	size_t bufsize;
+	int *errnop;
 
-	char		**rp;
-	char		**aliases;
-	int		aliases_size;
+	char **rp;
+	char **aliases;
+	int aliases_size;
 
-	char	*lastkey;
-	char	*resultbuf;
-	int	resultbuflen;
-	char	*buf;
+	char *lastkey;
+	char *resultbuf;
+	int resultbuflen;
+	char *buf;
 
-	struct nis_state	*st;
-	int		rv;
-	enum nss_lookup_type	how;
-	int	no_name_active;
+	struct nis_state *st;
+	int rv;
+	enum nss_lookup_type how;
+	int no_name_active;
 
 	how = (enum nss_lookup_type)(uintptr_t)mdata;
-	switch (how)
-	{
+	switch (how) {
 	case nss_lt_name:
 		name = va_arg(ap, char *);
 		break;
@@ -435,17 +431,15 @@ nis_rpcent(void *retval, void *mdata, va_list ap)
 
 	no_name_active = 0;
 	do {
-		switch (how)
-		{
+		switch (how) {
 		case nss_lt_name:
-			if (!st->no_name_map)
-			{
+			if (!st->no_name_map) {
 				free(buf);
 				asprintf(&buf, "%s", name);
 				if (buf == NULL)
 					return (NS_TRYAGAIN);
 				rv = yp_match(st->domain, "rpc.byname", buf,
-			    		strlen(buf), &resultbuf, &resultbuflen);
+				    strlen(buf), &resultbuf, &resultbuflen);
 
 				switch (rv) {
 				case 0:
@@ -469,58 +463,55 @@ nis_rpcent(void *retval, void *mdata, va_list ap)
 				rv = NS_NOTFOUND;
 				continue;
 			}
-		break;
+			break;
 		case nss_lt_id:
 			free(buf);
 			asprintf(&buf, "%d", number);
 			if (buf == NULL)
 				return (NS_TRYAGAIN);
 			if (yp_match(st->domain, "rpc.bynumber", buf,
-			    	strlen(buf), &resultbuf, &resultbuflen)) {
+				strlen(buf), &resultbuf, &resultbuflen)) {
 				rv = NS_NOTFOUND;
 				goto fin;
 			}
 			break;
 		case nss_lt_all:
-				if (!st->stepping) {
-					rv = yp_first(st->domain, "rpc.bynumber",
-				    		&st->current,
-						&st->currentlen, &resultbuf,
-				    		&resultbuflen);
-					if (rv) {
-						rv = NS_NOTFOUND;
-						goto fin;
-					}
-					st->stepping = 1;
-				} else {
-					lastkey = st->current;
-					rv = yp_next(st->domain, "rpc.bynumber",
-				    		st->current,
-						st->currentlen, &st->current,
-				    		&st->currentlen,
-						&resultbuf,	&resultbuflen);
-					free(lastkey);
-					if (rv) {
-						st->stepping = 0;
-						rv = NS_NOTFOUND;
-						goto fin;
-					}
+			if (!st->stepping) {
+				rv = yp_first(st->domain, "rpc.bynumber",
+				    &st->current, &st->currentlen, &resultbuf,
+				    &resultbuflen);
+				if (rv) {
+					rv = NS_NOTFOUND;
+					goto fin;
 				}
+				st->stepping = 1;
+			} else {
+				lastkey = st->current;
+				rv = yp_next(st->domain, "rpc.bynumber",
+				    st->current, st->currentlen, &st->current,
+				    &st->currentlen, &resultbuf, &resultbuflen);
+				free(lastkey);
+				if (rv) {
+					st->stepping = 0;
+					rv = NS_NOTFOUND;
+					goto fin;
+				}
+			}
 			break;
 		}
 
 		/* we need a room for additional \n symbol */
-		if (bufsize <= resultbuflen + 1 + _ALIGNBYTES +
-		    sizeof(char *)) {
+		if (bufsize <=
+		    resultbuflen + 1 + _ALIGNBYTES + sizeof(char *)) {
 			*errnop = ERANGE;
 			rv = NS_RETURN;
 			free(resultbuf);
 			break;
 		}
 
-		aliases=(char **)_ALIGN(&buffer[resultbuflen+2]);
+		aliases = (char **)_ALIGN(&buffer[resultbuflen + 2]);
 		aliases_size = (buffer + bufsize - (char *)aliases) /
-			sizeof(char *);
+		    sizeof(char *);
 		if (aliases_size < 1) {
 			*errnop = ERANGE;
 			rv = NS_RETURN;
@@ -529,15 +520,16 @@ nis_rpcent(void *retval, void *mdata, va_list ap)
 		}
 
 		/*
-		 * rpcent_unpack expects lines terminated with \n -- make it happy
+		 * rpcent_unpack expects lines terminated with \n -- make it
+		 * happy
 		 */
 		memcpy(buffer, resultbuf, resultbuflen);
 		buffer[resultbuflen] = '\n';
-		buffer[resultbuflen+1] = '\0';
+		buffer[resultbuflen + 1] = '\0';
 		free(resultbuf);
 
-		if (rpcent_unpack(buffer, rpc, aliases, aliases_size,
-		    errnop) != 0) {
+		if (rpcent_unpack(buffer, rpc, aliases, aliases_size, errnop) !=
+		    0) {
 			if (*errnop == 0)
 				rv = NS_NOTFOUND;
 			else
@@ -552,7 +544,7 @@ nis_rpcent(void *retval, void *mdata, va_list ap)
 				}
 				rv = NS_NOTFOUND;
 				continue;
-done:
+			done:
 				rv = NS_SUCCESS;
 			} else
 				rv = NS_SUCCESS;
@@ -571,15 +563,14 @@ fin:
 static int
 nis_setrpcent(void *retval, void *mdata, va_list ap)
 {
-	struct nis_state	*st;
-	int	rv;
+	struct nis_state *st;
+	int rv;
 
 	rv = nis_getstate(&st);
 	if (rv != 0)
 		return (NS_UNAVAIL);
 
-	switch ((enum constants)(uintptr_t)mdata)
-	{
+	switch ((enum constants)(uintptr_t)mdata) {
 	case SETRPCENT:
 	case ENDRPCENT:
 		free(st->current);
@@ -691,8 +682,8 @@ rpc_marshal_func(char *buffer, size_t *buffer_size, void *retval, va_list ap,
 			++aliases_size;
 		}
 
-		desired_size += _ALIGNBYTES + (aliases_size + 1) *
-		    sizeof(char *);
+		desired_size += _ALIGNBYTES +
+		    (aliases_size + 1) * sizeof(char *);
 	}
 
 	if (*buffer_size < desired_size) {
@@ -777,17 +768,18 @@ rpc_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 	memcpy(&p, buffer + sizeof(struct rpcent), sizeof(char *));
 
 	orig_buf = (char *)_ALIGN(orig_buf);
-	memcpy(orig_buf, buffer + sizeof(struct rpcent) + sizeof(char *) +
-	    _ALIGN(p) - (size_t)p,
-	    buffer_size - sizeof(struct rpcent) - sizeof(char *) -
-	    _ALIGN(p) + (size_t)p);
+	memcpy(orig_buf,
+	    buffer + sizeof(struct rpcent) + sizeof(char *) + _ALIGN(p) -
+		(size_t)p,
+	    buffer_size - sizeof(struct rpcent) - sizeof(char *) - _ALIGN(p) +
+		(size_t)p);
 	p = (char *)_ALIGN(p);
 
 	NS_APPLY_OFFSET(rpc->r_name, orig_buf, p, char *);
 	if (rpc->r_aliases != NULL) {
 		NS_APPLY_OFFSET(rpc->r_aliases, orig_buf, p, char **);
 
-		for (alias = rpc->r_aliases	; *alias; ++alias)
+		for (alias = rpc->r_aliases; *alias; ++alias)
 			NS_APPLY_OFFSET(*alias, orig_buf, p, char *);
 	}
 
@@ -800,28 +792,25 @@ rpc_unmarshal_func(char *buffer, size_t buffer_size, void *retval, va_list ap,
 NSS_MP_CACHE_HANDLING(rpc);
 #endif /* NS_CACHING */
 
-
 /* get**_r functions implementation */
 static int
 getrpcbyname_r(const char *name, struct rpcent *rpc, char *buffer,
-	size_t bufsize, struct rpcent **result)
+    size_t bufsize, struct rpcent **result)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-    		NS_COMMON_CACHE_INFO_INITIALIZER(
-		rpc, (void *)nss_lt_name,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(rpc, (void *)nss_lt_name,
 		rpc_id_func, rpc_marshal_func, rpc_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_rpcent, (void *)nss_lt_name },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_rpcent,
+					    (void *)nss_lt_name },
 #ifdef YP
 		{ NSSRC_NIS, nis_rpcent, (void *)nss_lt_name },
 #endif
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
@@ -836,25 +825,23 @@ getrpcbyname_r(const char *name, struct rpcent *rpc, char *buffer,
 }
 
 static int
-getrpcbynumber_r(int number, struct rpcent *rpc, char *buffer,
-	size_t bufsize, struct rpcent **result)
+getrpcbynumber_r(int number, struct rpcent *rpc, char *buffer, size_t bufsize,
+    struct rpcent **result)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info =
-    		NS_COMMON_CACHE_INFO_INITIALIZER(
-		rpc, (void *)nss_lt_id,
+	    NS_COMMON_CACHE_INFO_INITIALIZER(rpc, (void *)nss_lt_id,
 		rpc_id_func, rpc_marshal_func, rpc_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_rpcent, (void *)nss_lt_id },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_rpcent,
+					    (void *)nss_lt_id },
 #ifdef YP
 		{ NSSRC_NIS, nis_rpcent, (void *)nss_lt_id },
 #endif
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
@@ -870,29 +857,27 @@ getrpcbynumber_r(int number, struct rpcent *rpc, char *buffer,
 
 static int
 getrpcent_r(struct rpcent *rpc, char *buffer, size_t bufsize,
-	struct rpcent **result)
+    struct rpcent **result)
 {
 #ifdef NS_CACHING
 	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		rpc, (void *)nss_lt_all,
-		rpc_marshal_func, rpc_unmarshal_func);
+	    rpc, (void *)nss_lt_all, rpc_marshal_func, rpc_unmarshal_func);
 #endif
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_rpcent, (void *)nss_lt_all },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_rpcent,
+					    (void *)nss_lt_all },
 #ifdef YP
 		{ NSSRC_NIS, nis_rpcent, (void *)nss_lt_all },
 #endif
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 	int rv, ret_errno;
 
 	ret_errno = 0;
 	*result = NULL;
-	rv = nsdispatch(result, dtab, NSDB_RPC, "getrpcent_r", defaultsrc,
-	    rpc, buffer, bufsize, &ret_errno);
+	rv = nsdispatch(result, dtab, NSDB_RPC, "getrpcent_r", defaultsrc, rpc,
+	    buffer, bufsize, &ret_errno);
 
 	if (rv == NS_SUCCESS)
 		return (0);
@@ -901,7 +886,7 @@ getrpcent_r(struct rpcent *rpc, char *buffer, size_t bufsize,
 }
 
 /* get** wrappers for get**_r functions implementation */
-static 	void
+static void
 rpcent_endstate(void *p)
 {
 	if (p == NULL)
@@ -911,21 +896,21 @@ rpcent_endstate(void *p)
 	free(p);
 }
 
-static	int
+static int
 wrap_getrpcbyname_r(union key key, struct rpcent *rpc, char *buffer,
     size_t bufsize, struct rpcent **res)
 {
 	return (getrpcbyname_r(key.name, rpc, buffer, bufsize, res));
 }
 
-static	int
+static int
 wrap_getrpcbynumber_r(union key key, struct rpcent *rpc, char *buffer,
     size_t bufsize, struct rpcent **res)
 {
 	return (getrpcbynumber_r(key.number, rpc, buffer, bufsize, res));
 }
 
-static	int
+static int
 wrap_getrpcent_r(union key key __unused, struct rpcent *rpc, char *buffer,
     size_t bufsize, struct rpcent **res)
 {
@@ -936,11 +921,11 @@ static struct rpcent *
 getrpc(int (*fn)(union key, struct rpcent *, char *, size_t, struct rpcent **),
     union key key)
 {
-	int		 rv;
-	struct rpcent	*res;
-	struct rpcent_state * st;
+	int rv;
+	struct rpcent *res;
+	struct rpcent_state *st;
 
-	rv=rpcent_getstate(&st);
+	rv = rpcent_getstate(&st);
 	if (rv != 0) {
 		errno = rv;
 		return NULL;
@@ -998,7 +983,7 @@ getrpcent(void)
 {
 	union key key;
 
-	key.number = 0;	/* not used */
+	key.number = 0; /* not used */
 
 	return (getrpc(wrap_getrpcent_r, key));
 }
@@ -1007,45 +992,41 @@ void
 setrpcent(int stayopen)
 {
 #ifdef NS_CACHING
-	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		rpc, (void *)nss_lt_all,
-		NULL, NULL);
+	static const nss_cache_info cache_info =
+	    NS_MP_CACHE_INFO_INITIALIZER(rpc, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_setrpcent, (void *)SETRPCENT },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_setrpcent,
+					    (void *)SETRPCENT },
 #ifdef YP
 		{ NSSRC_NIS, nis_setrpcent, (void *)SETRPCENT },
 #endif
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_RPC, "setrpcent", defaultsrc,
-		stayopen);
+	    stayopen);
 }
 
 void
 endrpcent(void)
 {
 #ifdef NS_CACHING
-	static const nss_cache_info cache_info = NS_MP_CACHE_INFO_INITIALIZER(
-		rpc, (void *)nss_lt_all,
-		NULL, NULL);
+	static const nss_cache_info cache_info =
+	    NS_MP_CACHE_INFO_INITIALIZER(rpc, (void *)nss_lt_all, NULL, NULL);
 #endif
 
-	static const ns_dtab dtab[] = {
-		{ NSSRC_FILES, files_setrpcent, (void *)ENDRPCENT },
+	static const ns_dtab dtab[] = { { NSSRC_FILES, files_setrpcent,
+					    (void *)ENDRPCENT },
 #ifdef YP
 		{ NSSRC_NIS, nis_setrpcent, (void *)ENDRPCENT },
 #endif
 #ifdef NS_CACHING
 		NS_CACHE_CB(&cache_info)
 #endif
-		{ NULL, NULL, NULL }
-	};
+		    { NULL, NULL, NULL } };
 
 	(void)nsdispatch(NULL, dtab, NSDB_RPC, "endrpcent", defaultsrc);
 }

@@ -55,12 +55,12 @@
  * Unix style credentials.
  */
 struct authunix_parms {
-	u_long	 aup_time;
-	char	*aup_machname;
-	u_int	 aup_uid;
-	u_int	 aup_gid;
-	u_int	 aup_len;
-	u_int	*aup_gids;
+	u_long aup_time;
+	char *aup_machname;
+	u_int aup_uid;
+	u_int aup_gid;
+	u_int aup_len;
+	u_int *aup_gids;
 };
 
 #define authsys_parms authunix_parms

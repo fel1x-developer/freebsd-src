@@ -34,38 +34,39 @@
  * ------+---------+---------+---------+---------+---------+---------+---------*
  */
 
-#include "lp.cdefs.h"		/* A cross-platform version of <sys/cdefs.h> */
+#include "lp.cdefs.h" /* A cross-platform version of <sys/cdefs.h> */
 /*
  * movejobs.c - The lpc commands which move jobs around.
  */
 
-#include <sys/file.h>
 #include <sys/param.h>
+#include <sys/file.h>
 #include <sys/queue.h>
 #include <sys/time.h>
 
-#include <dirent.h>	/* for MAXNAMLEN, for job_cfname in lp.h! */
 #include <ctype.h>
+#include <dirent.h> /* for MAXNAMLEN, for job_cfname in lp.h! */
 #include <errno.h>
 #include <fnmatch.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "ctlinfo.h"
 #include "lp.h"
 #include "matchjobs.h"
 
-#define DEBUG_PARSEJS	0	/* set to 1 when testing */
-#define DEBUG_SCANJS	0	/* set to 1 when testing */
+#define DEBUG_PARSEJS 0 /* set to 1 when testing */
+#define DEBUG_SCANJS 0	/* set to 1 when testing */
 
-static int	 match_jobspec(struct jobqueue *_jq, struct jobspec *_jspec);
+static int match_jobspec(struct jobqueue *_jq, struct jobspec *_jspec);
 
 /*
  * isdigit is defined to work on an 'int', in the range 0 to 255, plus EOF.
  * Define a wrapper which can take 'char', either signed or unsigned.
  */
-#define isdigitch(Anychar)    isdigit(((int) Anychar) & 255)
+#define isdigitch(Anychar) isdigit(((int)Anychar) & 255)
 
 /*
  * Format a single jobspec into a string fit for printing.
@@ -87,7 +88,7 @@ format_jobspec(struct jobspec *jspec, int fmt_wanted)
 		jspec->fmtoutput = NULL;
 	}
 
-	jspec->pluralfmt = 1;		/* assume a "plural result" */
+	jspec->pluralfmt = 1; /* assume a "plural result" */
 	rangestr[0] = '\0';
 	if (jspec->startnum >= 0) {
 		if (jspec->startnum != jspec->endrange)
@@ -113,7 +114,7 @@ format_jobspec(struct jobspec *jspec, int fmt_wanted)
 			strlcat(buildstr, rangestr, strsize);
 		}
 		if (jspec->wantedhost != NULL)
-				strlcat(buildstr, "@", strsize);
+			strlcat(buildstr, "@", strsize);
 
 		/* Get space for the final result, including hostname */
 		strsize = strlen(buildstr) + 1;
@@ -299,11 +300,11 @@ parse_jobspec(char *jobstr, struct jobspec_hdr *js_hdr)
 	if (numstr != NULL) {
 		errno = 0;
 		jobnum = strtol(numstr, &numstr, 10);
-		if (errno != 0)		/* error in conversion */
+		if (errno != 0) /* error in conversion */
 			goto bad_input;
-		if (jobnum < 0)		/* a bogus value for this purpose */
+		if (jobnum < 0) /* a bogus value for this purpose */
 			goto bad_input;
-		if (jobnum > 99999)	/* too large for job number */
+		if (jobnum > 99999) /* too large for job number */
 			goto bad_input;
 		jsinfo->startnum = jsinfo->endrange = jobnum;
 
@@ -312,11 +313,11 @@ parse_jobspec(char *jobstr, struct jobspec_hdr *js_hdr)
 			numstr++;
 			errno = 0;
 			jobnum = strtol(numstr, &numstr, 10);
-			if (errno != 0)		/* error in conversion */
+			if (errno != 0) /* error in conversion */
 				goto bad_input;
 			if (jobnum < jsinfo->startnum)
 				goto bad_input;
-			if (jobnum > 99999)	/* too large for job number */
+			if (jobnum > 99999) /* too large for job number */
 				goto bad_input;
 			jsinfo->endrange = jobnum;
 		}
@@ -420,12 +421,12 @@ match_jobspec(struct jobqueue *jq, struct jobspec *jspec)
 
 	jnum = calc_jobnum(jq->job_cfname, &cf_hoststr);
 	cfinf = NULL;
-	match = 0;			/* assume the job will not match */
+	match = 0; /* assume the job will not match */
 	jspec->matcheduser = NULL;
 
 	/*
 	 * Check the job-number range.
-	 */ 
+	 */
 	if (jspec->startnum >= 0) {
 		if (jnum < jspec->startnum)
 			goto nomatch;
@@ -459,7 +460,7 @@ match_jobspec(struct jobqueue *jq, struct jobspec *jspec)
 
 	/* This job matches all of the specified criteria. */
 	match = 1;
-	jq->job_matched = 1;		/* avoid matching the job twice */
+	jq->job_matched = 1; /* avoid matching the job twice */
 	jspec->matchcnt++;
 	if (jspec->wanteduser != NULL) {
 		/*
@@ -490,8 +491,8 @@ nomatch:
  * This returns the number of jobs which were matched.
  */
 int
-scanq_jobspec(int qcount, struct jobqueue **squeue, int sopts, struct
-    jobspec_hdr *js_hdr, process_jqe doentry, void *doentryinfo)
+scanq_jobspec(int qcount, struct jobqueue **squeue, int sopts,
+    struct jobspec_hdr *js_hdr, process_jqe doentry, void *doentryinfo)
 {
 	struct jobqueue **qent;
 	struct jobspec *jspec;
@@ -503,7 +504,7 @@ scanq_jobspec(int qcount, struct jobqueue **squeue, int sopts, struct
 		return (-1);
 
 	/* The caller must specify one of the scanning orders */
-	if ((sopts & (SCQ_JSORDER|SCQ_QORDER)) == 0)
+	if ((sopts & (SCQ_JSORDER | SCQ_QORDER)) == 0)
 		return (-1);
 
 	total = 0;
@@ -512,9 +513,9 @@ scanq_jobspec(int qcount, struct jobqueue **squeue, int sopts, struct
 		 * For each job specification, scan through the queue
 		 * looking for every job that matches.
 		 */
-		STAILQ_FOREACH(jspec, js_hdr, nextjs) {
+		STAILQ_FOREACH (jspec, js_hdr, nextjs) {
 			for (qent = squeue, cnt = 0; cnt < qcount;
-			    qent++, cnt++) {
+			     qent++, cnt++) {
 				matched = match_jobspec(*qent, jspec);
 				if (!matched)
 					continue;
@@ -541,9 +542,8 @@ scanq_jobspec(int qcount, struct jobqueue **squeue, int sopts, struct
 		 * specifications to see if any one of them matches
 		 * that job.
 		 */
-		for (qent = squeue, cnt = 0; cnt < qcount;
-		    qent++, cnt++) {
-			STAILQ_FOREACH(jspec, js_hdr, nextjs) {
+		for (qent = squeue, cnt = 0; cnt < qcount; qent++, cnt++) {
+			STAILQ_FOREACH (jspec, js_hdr, nextjs) {
 				matched = match_jobspec(*qent, jspec);
 				if (!matched)
 					continue;

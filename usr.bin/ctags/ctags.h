@@ -30,17 +30,21 @@
  *
  */
 
-#define	bool	char
+#define bool char
 
-#define	YES		1
-#define	NO		0
-#define	EOS		'\0'
+#define YES 1
+#define NO 0
+#define EOS '\0'
 
-#define	ENDLINE		50		/* max length of pattern */
-#define	MAXTOKEN	250		/* max size of single token */
+#define ENDLINE 50   /* max length of pattern */
+#define MAXTOKEN 250 /* max size of single token */
 
-#define	SETLINE		{++lineno;lineftell = ftell(inf);}
-#define	GETC(op,exp)	((c = getc(inf)) op (int)exp)
+#define SETLINE                         \
+	{                               \
+		++lineno;               \
+		lineftell = ftell(inf); \
+	}
+#define GETC(op, exp) ((c = getc(inf)) op(int) exp)
 
 /*
  * These character classification macros assume that the (EOF & 0xff) element
@@ -49,46 +53,45 @@
  * returned by getc() provided chars have 8 bits.
  */
 
-#define	iswhite(arg)	_wht[arg & 0xff]	/* T if char is white */
-#define	begtoken(arg)	_btk[arg & 0xff]	/* T if char can start token */
-#define	intoken(arg)	_itk[arg & 0xff]	/* T if char can be in token */
-#define	endtoken(arg)	_etk[arg & 0xff]	/* T if char ends tokens */
-#define	isgood(arg)	_gd[arg & 0xff]	/* T if char can be after ')' */
+#define iswhite(arg) _wht[arg & 0xff]  /* T if char is white */
+#define begtoken(arg) _btk[arg & 0xff] /* T if char can start token */
+#define intoken(arg) _itk[arg & 0xff]  /* T if char can be in token */
+#define endtoken(arg) _etk[arg & 0xff] /* T if char ends tokens */
+#define isgood(arg) _gd[arg & 0xff]    /* T if char can be after ')' */
 
-typedef struct nd_st {			/* sorting structure */
-	struct nd_st	*left,
-			*right;		/* left and right sons */
-	char	*entry,			/* function or type name */
-		*file,			/* file name */
-		*pat;			/* search pattern */
-	int	lno;			/* for -x option */
-	bool	been_warned;		/* set if noticed dup */
+typedef struct nd_st {		    /* sorting structure */
+	struct nd_st *left, *right; /* left and right sons */
+	char *entry,		    /* function or type name */
+	    *file,		    /* file name */
+	    *pat;		    /* search pattern */
+	int lno;		    /* for -x option */
+	bool been_warned;	    /* set if noticed dup */
 } NODE;
 
-extern char	*curfile;		/* current input file name */
-extern NODE	*head;			/* head of the sorted binary tree */
-extern FILE    *inf;			/* ioptr for current input file */
-extern FILE    *outf;			/* ioptr for current output file */
-extern long	lineftell;		/* ftell after getc( inf ) == '\n' */
-extern int	lineno;			/* line number of current line */
-extern int	dflag;			/* -d: non-macro defines */
-extern int	tflag;			/* -t: create tags for typedefs */
-extern int	vflag;			/* -v: vgrind style index output */
-extern int	wflag;			/* -w: suppress warnings */
-extern int	xflag;			/* -x: cxref style output */
-extern bool	_wht[], _etk[], _itk[], _btk[], _gd[];
-extern char	lbuf[LINE_MAX];
-extern char    *lbp;
-extern char	searchar;		/* ex search character */
+extern char *curfile;  /* current input file name */
+extern NODE *head;     /* head of the sorted binary tree */
+extern FILE *inf;      /* ioptr for current input file */
+extern FILE *outf;     /* ioptr for current output file */
+extern long lineftell; /* ftell after getc( inf ) == '\n' */
+extern int lineno;     /* line number of current line */
+extern int dflag;      /* -d: non-macro defines */
+extern int tflag;      /* -t: create tags for typedefs */
+extern int vflag;      /* -v: vgrind style index output */
+extern int wflag;      /* -w: suppress warnings */
+extern int xflag;      /* -x: cxref style output */
+extern bool _wht[], _etk[], _itk[], _btk[], _gd[];
+extern char lbuf[LINE_MAX];
+extern char *lbp;
+extern char searchar; /* ex search character */
 
-extern int	cicmp(const char *);
-extern void	get_line(void);
-extern void	pfnote(const char *, int);
-extern int	skip_key(int);
-extern void	put_entries(NODE *);
-extern void	toss_yysec(void);
-extern void	l_entries(void);
-extern void	y_entries(void);
-extern int	PF_funcs(void);
-extern void	c_entries(void);
-extern void	skip_comment(int);
+extern int cicmp(const char *);
+extern void get_line(void);
+extern void pfnote(const char *, int);
+extern int skip_key(int);
+extern void put_entries(NODE *);
+extern void toss_yysec(void);
+extern void l_entries(void);
+extern void y_entries(void);
+extern int PF_funcs(void);
+extern void c_entries(void);
+extern void skip_comment(int);

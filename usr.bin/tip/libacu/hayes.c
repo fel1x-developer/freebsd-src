@@ -45,40 +45,41 @@
  * before modem is hung up, removal of the DTR signal
  * has no effect (except that it prevents the modem from
  * recognizing commands).
- * (by Helge Skrivervik, Calma Company, Sunnyvale, CA. 1984) 
+ * (by Helge Skrivervik, Calma Company, Sunnyvale, CA. 1984)
  */
 /*
  * TODO:
  * It is probably not a good idea to switch the modem
  * state between 'verbose' and terse (status messages).
- * This should be kicked out and we should use verbose 
+ * This should be kicked out and we should use verbose
  * mode only. This would make it consistent with normal
  * interactive use thru the command 'tip dialer'.
  */
-#include "tip.h"
-
-#include <termios.h>
 #include <sys/ioctl.h>
 
-#define	min(a,b)	((a < b) ? a : b)
+#include <termios.h>
 
-static	int dialtimeout = 0;
-static	jmp_buf timeoutbuf;
+#include "tip.h"
 
-#define DUMBUFLEN	40
+#define min(a, b) ((a < b) ? a : b)
+
+static int dialtimeout = 0;
+static jmp_buf timeoutbuf;
+
+#define DUMBUFLEN 40
 static char dumbuf[DUMBUFLEN];
 
-#define	DIALING		1
-#define IDLE		2
-#define CONNECTED	3
-#define	FAILED		4
-static	int state = IDLE;
+#define DIALING 1
+#define IDLE 2
+#define CONNECTED 3
+#define FAILED 4
+static int state = IDLE;
 
-static void	sigALRM(int);
-static char	gobble(char *);
-static void	error_rep(char);
-static void	goodbye(void);
-static int	hay_sync(void);
+static void sigALRM(int);
+static char gobble(char *);
+static void error_rep(char);
+static void goodbye(void);
+static int hay_sync(void);
 
 int
 hay_dialer(char *num, char *acu)
@@ -90,8 +91,8 @@ hay_dialer(char *num, char *acu)
 #ifdef ACULOG
 	char line[80];
 #endif
-	if (hay_sync() == 0)		/* make sure we can talk to the modem */
-		return(0);
+	if (hay_sync() == 0) /* make sure we can talk to the modem */
+		return (0);
 	if (boolean(value(VERBOSE)))
 		printf("\ndialing...");
 	fflush(stdout);
@@ -99,10 +100,10 @@ hay_dialer(char *num, char *acu)
 	cntrl.c_cflag |= HUPCL;
 	tcsetattr(FD, TCSANOW, &cntrl);
 	tcflush(FD, TCIOFLUSH);
-	write(FD, "ATv0\r", 5);	/* tell modem to use short status codes */
+	write(FD, "ATv0\r", 5); /* tell modem to use short status codes */
 	gobble("\r");
 	gobble("\r");
-	write(FD, "ATTD", 4);	/* send dial command */
+	write(FD, "ATTD", 4); /* send dial command */
 	for (cp = num; *cp; cp++)
 		if (*cp == '=')
 			*cp = ',';
@@ -120,18 +121,18 @@ hay_dialer(char *num, char *acu)
 		state = CONNECTED;
 	else {
 		state = FAILED;
-		return (connected);	/* lets get out of here.. */
+		return (connected); /* lets get out of here.. */
 	}
 	tcflush(FD, TCIOFLUSH);
 #ifdef ACULOG
 	if (dialtimeout) {
 		(void)snprintf(line, sizeof line, "%ld second dial timeout",
-			number(value(DIALTIMEOUT)));
+		    number(value(DIALTIMEOUT)));
 		logent(value(HOST), num, "hayes", line);
 	}
 #endif
 	if (dialtimeout)
-		hay_disconnect();	/* insurance */
+		hay_disconnect(); /* insurance */
 	return (connected);
 }
 
@@ -151,7 +152,7 @@ hay_disconnect(void)
 void
 hay_abort(void)
 {
-	write(FD, "\r", 1);	/* send anything to abort the call */
+	write(FD, "\r", 1); /* send anything to abort the call */
 	hay_disconnect();
 }
 
@@ -252,12 +253,13 @@ goodbye(void)
 #ifndef DEBUG
 		tcflush(FD, TCIOFLUSH);
 #endif
-		write(FD, "ATH0\r", 5);		/* insurance */
+		write(FD, "ATH0\r", 5); /* insurance */
 #ifndef DEBUG
 		c = gobble("03");
 		if (c != '0' && c != '3') {
 			printf("cannot hang up modem\n\r");
-			printf("please use 'tip dialer' to make sure the line is hung up\n\r");
+			printf(
+			    "please use 'tip dialer' to make sure the line is hung up\n\r");
 		}
 #endif
 		sleep(1);
@@ -279,11 +281,11 @@ goodbye(void)
 #endif
 	}
 	tcflush(FD, TCIOFLUSH);
-	ioctl(FD, TIOCCDTR, 0);		/* clear DTR (insurance) */
+	ioctl(FD, TIOCCDTR, 0); /* clear DTR (insurance) */
 	close(FD);
 }
 
-#define MAXRETRY	5
+#define MAXRETRY 5
 
 static int
 hay_sync(void)
@@ -296,9 +298,9 @@ hay_sync(void)
 		ioctl(FD, FIONREAD, &len);
 		if (len) {
 			len = read(FD, dumbuf, min(len, DUMBUFLEN));
-			if (strchr(dumbuf, '0') || 
-		   	(strchr(dumbuf, 'O') && strchr(dumbuf, 'K')))
-				return(1);
+			if (strchr(dumbuf, '0') ||
+			    (strchr(dumbuf, 'O') && strchr(dumbuf, 'K')))
+				return (1);
 #ifdef DEBUG
 			dumbuf[len] = '\0';
 			printf("hay_sync: (\"%s\") %d\n\r", dumbuf, retry);
@@ -308,5 +310,5 @@ hay_sync(void)
 		ioctl(FD, TIOCSDTR, 0);
 	}
 	printf("Cannot synchronize with hayes...\n\r");
-	return(0);
+	return (0);
 }

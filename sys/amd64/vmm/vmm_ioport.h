@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_VMM_IOPORT_H_
-#define	_VMM_IOPORT_H_
+#ifndef _VMM_IOPORT_H_
+#define _VMM_IOPORT_H_
 
-typedef int (*ioport_handler_func_t)(struct vm *vm,
-    bool in, int port, int bytes, uint32_t *val);
+typedef int (*ioport_handler_func_t)(struct vm *vm, bool in, int port,
+    int bytes, uint32_t *val);
 
 int vm_handle_inout(struct vcpu *vcpu, struct vm_exit *vme, bool *retu);
 
-#endif	/* _VMM_IOPORT_H_ */
+#endif /* _VMM_IOPORT_H_ */

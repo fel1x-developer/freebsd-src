@@ -29,27 +29,26 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_mac.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/file.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sbuf.h>
-#include <sys/systm.h>
 #include <sys/mount.h>
-#include <sys/file.h>
+#include <sys/mutex.h>
 #include <sys/namei.h>
 #include <sys/protosw.h>
+#include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
 #include <sys/sysctl.h>
 
 #include <net/if.h>
 #include <net/if_var.h>
-
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
@@ -135,8 +134,7 @@ mac_ip6q_create(struct mbuf *m, struct ip6q *q6)
 
 	label = mac_mbuf_to_label(m);
 
-	MAC_POLICY_PERFORM_NOSLEEP(ip6q_create, m, label, q6,
-	    q6->ip6q_label);
+	MAC_POLICY_PERFORM_NOSLEEP(ip6q_create, m, label, q6, q6->ip6q_label);
 }
 
 int
@@ -167,8 +165,7 @@ mac_ip6q_update(struct mbuf *m, struct ip6q *q6)
 
 	label = mac_mbuf_to_label(m);
 
-	MAC_POLICY_PERFORM_NOSLEEP(ip6q_update, m, label, q6,
-	    q6->ip6q_label);
+	MAC_POLICY_PERFORM_NOSLEEP(ip6q_update, m, label, q6, q6->ip6q_label);
 }
 
 /* Check with rules in module if the IPv6 address is allowed. */
@@ -192,6 +189,6 @@ mac_netinet6_nd6_send(struct ifnet *ifp, struct mbuf *m)
 
 	mlabel = mac_mbuf_to_label(m);
 
-	MAC_POLICY_PERFORM_NOSLEEP(netinet6_nd6_send, ifp, if_getmaclabel(ifp), m,
-	    mlabel);
+	MAC_POLICY_PERFORM_NOSLEEP(netinet6_nd6_send, ifp, if_getmaclabel(ifp),
+	    m, mlabel);
 }

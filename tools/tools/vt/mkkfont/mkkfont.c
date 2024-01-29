@@ -28,8 +28,8 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/endian.h>
 #include <sys/param.h>
+#include <sys/endian.h>
 #include <sys/font.h>
 
 #include <stdint.h>
@@ -68,8 +68,8 @@ print_glyphs(struct font_header *fh)
 	return (0);
 }
 
-static const char *map_names[4] = {
-    "normal", "normal_right", "bold", "bold_right" };
+static const char *map_names[4] = { "normal", "normal_right", "bold",
+	"bold_right" };
 
 static int
 print_mappings(struct font_header *fh, int map_index)
@@ -77,7 +77,6 @@ print_mappings(struct font_header *fh, int map_index)
 	vfnt_map_t fm;
 	unsigned int nmappings, i, col = 0;
 
-	
 	nmappings = be32toh(fh->fh_map_count[map_index]);
 
 	if (nmappings == 0)
@@ -93,9 +92,8 @@ print_mappings(struct font_header *fh, int map_index)
 		}
 
 		printf(col == 0 ? "\n\t" : " ");
-		printf("{ 0x%04x, 0x%04x, 0x%02x },",
-		    be32toh(fm.vfm_src), be16toh(fm.vfm_dst),
-		    be16toh(fm.vfm_len));
+		printf("{ 0x%04x, 0x%04x, 0x%02x },", be32toh(fm.vfm_src),
+		    be16toh(fm.vfm_dst), be16toh(fm.vfm_len));
 		col = (col + 1) % 2;
 	}
 
@@ -109,11 +107,10 @@ print_info(struct font_header *fh)
 {
 	unsigned int i;
 
-	printf(
-	    "\nstruct vt_font vt_font_default = {\n"
-	    "\t.vf_width\t\t= %u,\n"
-	    "\t.vf_height\t\t= %u,\n"
-	    "\t.vf_bytes\t\t= font_bytes,\n",
+	printf("\nstruct vt_font vt_font_default = {\n"
+	       "\t.vf_width\t\t= %u,\n"
+	       "\t.vf_height\t\t= %u,\n"
+	       "\t.vf_bytes\t\t= font_bytes,\n",
 	    fh->fh_width, fh->fh_height);
 
 	printf("\t.vf_map\t\t\t= {\n");
@@ -125,10 +122,8 @@ print_info(struct font_header *fh)
 	}
 	printf("\t\t\t\t  },\n");
 	printf("\t.vf_map_count\t\t= { %u, %u, %u, %u },\n",
-	    be32toh(fh->fh_map_count[0]),
-	    be32toh(fh->fh_map_count[1]),
-	    be32toh(fh->fh_map_count[2]),
-	    be32toh(fh->fh_map_count[3]));
+	    be32toh(fh->fh_map_count[0]), be32toh(fh->fh_map_count[1]),
+	    be32toh(fh->fh_map_count[2]), be32toh(fh->fh_map_count[3]));
 	printf("\t.vf_refcount\t\t= 1,\n};\n");
 
 	return (0);

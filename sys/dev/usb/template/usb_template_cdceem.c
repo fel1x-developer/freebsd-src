@@ -38,33 +38,32 @@
 #ifdef USB_GLOBAL_INCLUDE_FILE
 #include USB_GLOBAL_INCLUDE_FILE
 #else
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
+#include <sys/queue.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
+#include <dev/usb/template/usb_template.h>
 #include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
 #include <dev/usb/usb_core.h>
 #include <dev/usb/usb_ioctl.h>
 #include <dev/usb/usb_util.h>
-
-#include <dev/usb/template/usb_template.h>
-#endif			/* USB_GLOBAL_INCLUDE_FILE */
+#include <dev/usb/usbdi.h>
+#endif /* USB_GLOBAL_INCLUDE_FILE */
 
 enum {
 	CDCEEM_LANG_INDEX,
@@ -76,21 +75,21 @@ enum {
 	CDCEEM_MAX_INDEX,
 };
 
-#define	CDCEEM_DEFAULT_VENDOR_ID	USB_TEMPLATE_VENDOR
-#define	CDCEEM_DEFAULT_PRODUCT_ID	0x27df
-#define	CDCEEM_DEFAULT_INTERFACE	"USB CDC EEM Interface"
-#define	CDCEEM_DEFAULT_CONFIGURATION	"Default Config"
-#define	CDCEEM_DEFAULT_MANUFACTURER	USB_TEMPLATE_MANUFACTURER
-#define	CDCEEM_DEFAULT_PRODUCT		"CDC EEM"
-#define	CDCEEM_DEFAULT_SERIAL_NUMBER	"March 2008"
+#define CDCEEM_DEFAULT_VENDOR_ID USB_TEMPLATE_VENDOR
+#define CDCEEM_DEFAULT_PRODUCT_ID 0x27df
+#define CDCEEM_DEFAULT_INTERFACE "USB CDC EEM Interface"
+#define CDCEEM_DEFAULT_CONFIGURATION "Default Config"
+#define CDCEEM_DEFAULT_MANUFACTURER USB_TEMPLATE_MANUFACTURER
+#define CDCEEM_DEFAULT_PRODUCT "CDC EEM"
+#define CDCEEM_DEFAULT_SERIAL_NUMBER "March 2008"
 
-static struct usb_string_descriptor	cdceem_interface;
-static struct usb_string_descriptor	cdceem_configuration;
-static struct usb_string_descriptor	cdceem_manufacturer;
-static struct usb_string_descriptor	cdceem_product;
-static struct usb_string_descriptor	cdceem_serial_number;
+static struct usb_string_descriptor cdceem_interface;
+static struct usb_string_descriptor cdceem_configuration;
+static struct usb_string_descriptor cdceem_manufacturer;
+static struct usb_string_descriptor cdceem_product;
+static struct usb_string_descriptor cdceem_serial_number;
 
-static struct sysctl_ctx_list		cdceem_ctx_list;
+static struct sysctl_ctx_list cdceem_ctx_list;
 
 /* prototypes */
 
@@ -218,15 +217,14 @@ cdceem_init(void *arg __unused)
 	sysctl_ctx_init(&cdceem_ctx_list);
 
 	parent = SYSCTL_ADD_NODE(&cdceem_ctx_list,
-	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO,
-	    parent_name, CTLFLAG_RW | CTLFLAG_MPSAFE,
-	    0, "USB CDC EEM device side template");
+	    SYSCTL_STATIC_CHILDREN(_hw_usb_templates), OID_AUTO, parent_name,
+	    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "USB CDC EEM device side template");
 	SYSCTL_ADD_U16(&cdceem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "vendor_id", CTLFLAG_RWTUN,
-	    &usb_template_cdceem.idVendor, 1, "Vendor identifier");
+	    "vendor_id", CTLFLAG_RWTUN, &usb_template_cdceem.idVendor, 1,
+	    "Vendor identifier");
 	SYSCTL_ADD_U16(&cdceem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
-	    "product_id", CTLFLAG_RWTUN,
-	    &usb_template_cdceem.idProduct, 1, "Product identifier");
+	    "product_id", CTLFLAG_RWTUN, &usb_template_cdceem.idProduct, 1,
+	    "Product identifier");
 #if 0
 	SYSCTL_ADD_PROC(&cdceem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "interface", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
@@ -243,12 +241,12 @@ cdceem_init(void *arg __unused)
 	    "A", "Manufacturer string");
 	SYSCTL_ADD_PROC(&cdceem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "product", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &cdceem_product, sizeof(cdceem_product), usb_temp_sysctl,
-	    "A", "Product string");
+	    &cdceem_product, sizeof(cdceem_product), usb_temp_sysctl, "A",
+	    "Product string");
 	SYSCTL_ADD_PROC(&cdceem_ctx_list, SYSCTL_CHILDREN(parent), OID_AUTO,
 	    "serial_number", CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_MPSAFE,
-	    &cdceem_serial_number, sizeof(cdceem_serial_number), usb_temp_sysctl,
-	    "A", "Serial number string");
+	    &cdceem_serial_number, sizeof(cdceem_serial_number),
+	    usb_temp_sysctl, "A", "Serial number string");
 }
 
 static void

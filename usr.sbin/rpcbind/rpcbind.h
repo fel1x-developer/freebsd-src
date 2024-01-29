@@ -39,7 +39,7 @@
  */
 
 #ifndef rpcbind_h
-#define	rpcbind_h
+#define rpcbind_h
 
 #include <signal.h>
 
@@ -57,11 +57,11 @@ struct encap_parms {
 };
 
 struct r_rmtcall_args {
-	u_int32_t  rmt_prog;
-	u_int32_t  rmt_vers;
-	u_int32_t  rmt_proc;
-	int     rmt_localvers;  /* whether to send port # or uaddr */
-	char    *rmt_uaddr;
+	u_int32_t rmt_prog;
+	u_int32_t rmt_vers;
+	u_int32_t rmt_proc;
+	int rmt_localvers; /* whether to send port # or uaddr */
+	char *rmt_uaddr;
 	struct encap_parms rmt_args;
 };
 
@@ -75,15 +75,15 @@ extern int libwrap;
 extern int verboselog;
 extern int insecure;
 extern int oldstyle_local;
-extern rpcblist_ptr list_rbl;	/* A list of version 3 & 4 rpcbind services */
+extern rpcblist_ptr list_rbl; /* A list of version 3 & 4 rpcbind services */
 extern int rpcbindlockfd;
 
 #ifdef PORTMAP
 extern struct pmaplist *list_pml; /* A list of version 2 rpcbind services */
-extern char *udptrans;		/* Name of UDP transport */
-extern char *tcptrans;		/* Name of TCP transport */
-extern char *udp_uaddr;		/* Universal UDP address */
-extern char *tcp_uaddr;		/* Universal TCP address */
+extern char *udptrans;		  /* Name of UDP transport */
+extern char *tcptrans;		  /* Name of TCP transport */
+extern char *udp_uaddr;		  /* Universal UDP address */
+extern char *tcp_uaddr;		  /* Universal TCP address */
 #endif
 
 int add_bndlist(struct netconfig *, struct netbuf *);
@@ -91,13 +91,13 @@ bool_t is_bound(char *, char *);
 char *mergeaddr(SVCXPRT *, char *, char *, char *);
 struct netconfig *rpcbind_get_conf(const char *);
 
-void rpcbs_init(void); 
+void rpcbs_init(void);
 void rpcbs_procinfo(rpcvers_t, rpcproc_t);
 void rpcbs_set(rpcvers_t, bool_t);
 void rpcbs_unset(rpcvers_t, bool_t);
 void rpcbs_getaddr(rpcvers_t, rpcprog_t, rpcvers_t, char *, char *);
 void rpcbs_rmtcall(rpcvers_t, rpcproc_t, rpcprog_t, rpcvers_t, rpcproc_t,
-			char *, rpcblist_ptr);
+    char *, rpcblist_ptr);
 void *rpcbproc_getstat(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
 
 void rpcb_service_3(struct svc_req *, SVCXPRT *);
@@ -110,16 +110,12 @@ bool_t map_set(RPCB *, char *);
 bool_t map_unset(RPCB *, char *);
 void delete_prog(unsigned int);
 void *rpcbproc_getaddr_com(RPCB *, struct svc_req *, SVCXPRT *, rpcvers_t,
-				 rpcvers_t);
-void *rpcbproc_gettime_com(void *, struct svc_req *, SVCXPRT *,
-				rpcvers_t);
-void *rpcbproc_uaddr2taddr_com(void *, struct svc_req *,
-					     SVCXPRT *, rpcvers_t);
-void *rpcbproc_taddr2uaddr_com(void *, struct svc_req *, SVCXPRT *,
-				    rpcvers_t);
+    rpcvers_t);
+void *rpcbproc_gettime_com(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
+void *rpcbproc_uaddr2taddr_com(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
+void *rpcbproc_taddr2uaddr_com(void *, struct svc_req *, SVCXPRT *, rpcvers_t);
 int create_rmtcall_fd(struct netconfig *);
-void rpcbproc_callit_com(struct svc_req *, SVCXPRT *, rpcvers_t,
-			      rpcvers_t);
+void rpcbproc_callit_com(struct svc_req *, SVCXPRT *, rpcvers_t, rpcvers_t);
 void my_svc_run(void);
 
 void rpcbind_abort(void);
@@ -139,21 +135,21 @@ void write_warmstart(void);
 void read_warmstart(void);
 
 char *addrmerge(struct netbuf *caller, const char *serv_uaddr,
-		const char *clnt_uaddr, char const *netid);
+    const char *clnt_uaddr, char const *netid);
 int listen_addr(const struct sockaddr *sa);
 void network_init(void);
 struct sockaddr *local_sa(int);
 
 /* For different getaddr semantics */
-#define	RPCB_ALLVERS 0
-#define	RPCB_ONEVERS 1
+#define RPCB_ALLVERS 0
+#define RPCB_ONEVERS 1
 
 /* To convert a struct sockaddr to IPv4 or IPv6 address */
-#define	SA2SIN(sa)	((struct sockaddr_in *)(sa))
-#define	SA2SINADDR(sa)	(SA2SIN(sa)->sin_addr)
+#define SA2SIN(sa) ((struct sockaddr_in *)(sa))
+#define SA2SINADDR(sa) (SA2SIN(sa)->sin_addr)
 #ifdef INET6
-#define	SA2SIN6(sa)	((struct sockaddr_in6 *)(sa))
-#define	SA2SIN6ADDR(sa)	(SA2SIN6(sa)->sin6_addr)
+#define SA2SIN6(sa) ((struct sockaddr_in6 *)(sa))
+#define SA2SIN6ADDR(sa) (SA2SIN6(sa)->sin6_addr)
 #endif
 
 #endif /* rpcbind_h */

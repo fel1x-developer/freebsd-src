@@ -44,6 +44,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/module.h>
 #include <sys/priv.h>
@@ -51,7 +52,6 @@
 #include <sys/sbuf.h>
 #include <sys/socket.h>
 #include <sys/socketvar.h>
-#include <sys/systm.h>
 #include <sys/sysctl.h>
 
 #include <net/route.h>
@@ -64,16 +64,15 @@
 SYSCTL_DECL(_security_mac);
 
 static SYSCTL_NODE(_security_mac, OID_AUTO, partition,
-    CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
-    "TrustedBSD mac_partition policy controls");
+    CTLFLAG_RW | CTLFLAG_MPSAFE, 0, "TrustedBSD mac_partition policy controls");
 
-static int	partition_enabled = 1;
+static int partition_enabled = 1;
 SYSCTL_INT(_security_mac_partition, OID_AUTO, enabled, CTLFLAG_RW,
     &partition_enabled, 0, "Enforce partition policy");
 
-static int	partition_slot;
-#define	SLOT(l)	mac_label_get((l), partition_slot)
-#define	SLOT_SET(l, v)	mac_label_set((l), partition_slot, (v))
+static int partition_slot;
+#define SLOT(l) mac_label_get((l), partition_slot)
+#define SLOT_SET(l, v) mac_label_set((l), partition_slot, (v))
 
 static int
 partition_check(struct label *subject, struct label *object)
@@ -254,8 +253,7 @@ partition_proc_check_sched(struct ucred *cred, struct proc *p)
 }
 
 static int
-partition_proc_check_signal(struct ucred *cred, struct proc *p,
-    int signum)
+partition_proc_check_signal(struct ucred *cred, struct proc *p, int signum)
 {
 	int error;
 
@@ -277,8 +275,7 @@ partition_socket_check_visible(struct ucred *cred, struct socket *so,
 
 static int
 partition_vnode_check_exec(struct ucred *cred, struct vnode *vp,
-    struct label *vplabel, struct image_params *imgp,
-    struct label *execlabel)
+    struct label *vplabel, struct image_params *imgp, struct label *execlabel)
 {
 
 	if (execlabel != NULL) {
@@ -294,8 +291,7 @@ partition_vnode_check_exec(struct ucred *cred, struct vnode *vp,
 	return (0);
 }
 
-static struct mac_policy_ops partition_ops =
-{
+static struct mac_policy_ops partition_ops = {
 	.mpo_cred_check_relabel = partition_cred_check_relabel,
 	.mpo_cred_check_visible = partition_cred_check_visible,
 	.mpo_cred_copy_label = partition_cred_copy_label,

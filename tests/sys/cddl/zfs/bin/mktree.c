@@ -24,32 +24,32 @@
  * Use is subject to license terms.
  */
 
+#include <sys/types.h>
+#include <sys/param.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
 
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/errno.h>
-#include <sys/param.h>
+#include <unistd.h>
 
-#define	TYPE_D 'D'
-#define	TYPE_F 'F'
+#define TYPE_D 'D'
+#define TYPE_F 'F'
 
 extern int errno;
 
-static char fdname[MAXPATHLEN] = {0};
+static char fdname[MAXPATHLEN] = { 0 };
 static char *pbasedir = NULL;
 static int nlevel = 2;
 static int ndir = 2;
 static int nfile = 2;
 
-static void  usage(char *this);
-static void  crtfile(char *pname);
+static void usage(char *this);
+static void crtfile(char *pname);
 static char *getfdname(char *pdir, char type, int level, int dir, int file);
-static int   mktree(char *pbasedir, int level);
+static int mktree(char *pbasedir, int level);
 
 int
 main(int argc, char *argv[])
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
 static void
 usage(char *this)
 {
-	(void) fprintf(stderr,
+	(void)fprintf(stderr,
 	    "\tUsage: %s -b <base_dir> -l [nlevel] -d [ndir] -f [nfile]\n",
 	    this);
 	exit(1);
@@ -96,19 +96,20 @@ static int
 mktree(char *pdir, int level)
 {
 	int d, f;
-	char dname[MAXPATHLEN] = {0};
-	char fname[MAXPATHLEN] = {0};
+	char dname[MAXPATHLEN] = { 0 };
+	char fname[MAXPATHLEN] = { 0 };
 
 	if (level > nlevel) {
 		return (1);
 	}
 
 	for (d = 0; d < ndir; d++) {
-		(void) memset(dname, '\0', sizeof (dname));
-		(void) strcpy(dname, getfdname(pdir, TYPE_D, level, d, 0));
+		(void)memset(dname, '\0', sizeof(dname));
+		(void)strcpy(dname, getfdname(pdir, TYPE_D, level, d, 0));
 
 		if (mkdir(dname, 0777) != 0) {
-			(void) fprintf(stderr, "mkdir(%s) failed."
+			(void)fprintf(stderr,
+			    "mkdir(%s) failed."
 			    "\n[%d]: %s.\n",
 			    dname, errno, strerror(errno));
 			exit(errno);
@@ -117,19 +118,19 @@ mktree(char *pdir, int level)
 		/*
 		 * No sub-directory need be created, only create files in it.
 		 */
-		if (mktree(dname, level+1) != 0) {
+		if (mktree(dname, level + 1) != 0) {
 			for (f = 0; f < nfile; f++) {
-				(void) memset(fname, '\0', sizeof (fname));
-				(void) strcpy(fname,
-				    getfdname(dname, TYPE_F, level+1, d, f));
+				(void)memset(fname, '\0', sizeof(fname));
+				(void)strcpy(fname,
+				    getfdname(dname, TYPE_F, level + 1, d, f));
 				crtfile(fname);
 			}
 		}
 	}
 
 	for (f = 0; f < nfile; f++) {
-		(void) memset(fname, '\0', sizeof (fname));
-		(void) strcpy(fname, getfdname(pdir, TYPE_F, level, d, f));
+		(void)memset(fname, '\0', sizeof(fname));
+		(void)strcpy(fname, getfdname(pdir, TYPE_F, level, d, f));
 		crtfile(fname);
 	}
 
@@ -139,8 +140,8 @@ mktree(char *pdir, int level)
 static char *
 getfdname(char *pdir, char type, int level, int dir, int file)
 {
-	(void) snprintf(fdname, sizeof (fdname),
-	    "%s/%c-l%dd%df%d", pdir, type, level, dir, file);
+	(void)snprintf(fdname, sizeof(fdname), "%s/%c-l%dd%df%d", pdir, type,
+	    level, dir, file);
 	return (fdname);
 }
 
@@ -157,38 +158,44 @@ crtfile(char *pname)
 		exit(1);
 	}
 
-	size = sizeof (char) * 1024;
+	size = sizeof(char) * 1024;
 	pbuf = (char *)valloc(size);
 	for (i = 0; i < size / strlen(context); i++) {
 		int offset = i * strlen(context);
-		(void) snprintf(pbuf+offset, size-offset, "%s", context);
+		(void)snprintf(pbuf + offset, size - offset, "%s", context);
 	}
 
-	if ((fd = open(pname, O_CREAT|O_RDWR, 0777)) < 0) {
-		(void) fprintf(stderr, "open(%s, O_CREAT|O_RDWR, 0777) failed."
-		    "\n[%d]: %s.\n", pname, errno, strerror(errno));
+	if ((fd = open(pname, O_CREAT | O_RDWR, 0777)) < 0) {
+		(void)fprintf(stderr,
+		    "open(%s, O_CREAT|O_RDWR, 0777) failed."
+		    "\n[%d]: %s.\n",
+		    pname, errno, strerror(errno));
 		exit(errno);
 	}
 	if (write(fd, pbuf, 1024) < 1024) {
-		(void) fprintf(stderr, "write(fd, pbuf, 1024) failed."
-		    "\n[%d]: %s.\n", errno, strerror(errno));
+		(void)fprintf(stderr,
+		    "write(fd, pbuf, 1024) failed."
+		    "\n[%d]: %s.\n",
+		    errno, strerror(errno));
 		exit(errno);
 	}
 
 #if UNSUPPORTED
 	if ((afd = openat(fd, "xattr", O_CREAT | O_RDWR | O_XATTR, 0777)) < 0) {
-		(void) fprintf(stderr, "openat failed.\n[%d]: %s.\n",
-		    errno, strerror(errno));
+		(void)fprintf(stderr, "openat failed.\n[%d]: %s.\n", errno,
+		    strerror(errno));
 		exit(errno);
 	}
 	if (write(afd, pbuf, 1024) < 1024) {
-		(void) fprintf(stderr, "write(afd, pbuf, 1024) failed."
-		    "\n[%d]: %s.\n", errno, strerror(errno));
+		(void)fprintf(stderr,
+		    "write(afd, pbuf, 1024) failed."
+		    "\n[%d]: %s.\n",
+		    errno, strerror(errno));
 		exit(errno);
 	}
 
-	(void) close(afd);
+	(void)close(afd);
 #endif
-	(void) close(fd);
+	(void)close(fd);
 	free(pbuf);
 }

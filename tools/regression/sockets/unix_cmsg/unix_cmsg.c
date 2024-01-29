@@ -40,17 +40,17 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "uc_common.h"
-#include "t_cmsgcred.h"
 #include "t_bintime.h"
+#include "t_cmsg_len.h"
+#include "t_cmsgcred.h"
+#include "t_cmsgcred_sockcred.h"
 #include "t_generic.h"
 #include "t_peercred.h"
-#include "t_timeval.h"
 #include "t_sockcred.h"
-#include "t_cmsgcred_sockcred.h"
-#include "t_cmsg_len.h"
-#include "t_timespec_real.h"
 #include "t_timespec_mono.h"
+#include "t_timespec_real.h"
+#include "t_timeval.h"
+#include "uc_common.h"
 
 /*
  * There are tables with tests descriptions and pointers to test
@@ -70,64 +70,35 @@
  */
 
 struct test_func {
-	int		(*func)(void);
-	const char	*desc;
+	int (*func)(void);
+	const char *desc;
 };
 
 static const struct test_func test_stream_tbl[] = {
-	{
-	  .func = NULL,
-	  .desc = "All tests"
-	},
-	{
-	  .func = t_cmsgcred,
-	  .desc = "Sending, receiving cmsgcred"
-	},
-	{
-	  .func = t_sockcred_1,
-	  .desc = "Receiving sockcred (listening socket)"
-	},
-	{
-	  .func = t_sockcred_2,
-	  .desc = "Receiving sockcred (accepted socket)"
-	},
-	{
-	  .func = t_cmsgcred_sockcred,
-	  .desc = "Sending cmsgcred, receiving sockcred"
-	},
-	{
-	  .func = t_timeval,
-	  .desc = "Sending, receiving timeval"
-	},
-	{
-	  .func = t_bintime,
-	  .desc = "Sending, receiving bintime"
-	},
+	{ .func = NULL, .desc = "All tests" },
+	{ .func = t_cmsgcred, .desc = "Sending, receiving cmsgcred" },
+	{ .func = t_sockcred_1,
+	    .desc = "Receiving sockcred (listening socket)" },
+	{ .func = t_sockcred_2,
+	    .desc = "Receiving sockcred (accepted socket)" },
+	{ .func = t_cmsgcred_sockcred,
+	    .desc = "Sending cmsgcred, receiving sockcred" },
+	{ .func = t_timeval, .desc = "Sending, receiving timeval" },
+	{ .func = t_bintime, .desc = "Sending, receiving bintime" },
 /*
  * The testcase fails on 64-bit architectures (amd64), but passes on 32-bit
  * architectures (i386); see bug 206543
  */
 #ifndef __LP64__
-	{
-	  .func = t_cmsg_len,
-	  .desc = "Check cmsghdr.cmsg_len"
-	},
+	{ .func = t_cmsg_len, .desc = "Check cmsghdr.cmsg_len" },
 #endif
-	{
-	  .func = t_peercred,
-	  .desc = "Check LOCAL_PEERCRED socket option"
-	},
+	{ .func = t_peercred, .desc = "Check LOCAL_PEERCRED socket option" },
 #if defined(SCM_REALTIME)
-	{
-	  .func = t_timespec_real,
-	  .desc = "Sending, receiving realtime"
-	},
+	{ .func = t_timespec_real, .desc = "Sending, receiving realtime" },
 #endif
 #if defined(SCM_MONOTONIC)
-	{
-	  .func = t_timespec_mono,
-	  .desc = "Sending, receiving monotonic time (uptime)"
-	}
+	{ .func = t_timespec_mono,
+	    .desc = "Sending, receiving monotonic time (uptime)" }
 #endif
 };
 
@@ -135,63 +106,37 @@ static const struct test_func test_stream_tbl[] = {
 	(sizeof(test_stream_tbl) / sizeof(test_stream_tbl[0]))
 
 static const struct test_func test_dgram_tbl[] = {
-	{
-	  .func = NULL,
-	  .desc = "All tests"
-	},
-	{
-	  .func = t_cmsgcred,
-	  .desc = "Sending, receiving cmsgcred"
-	},
-	{
-	  .func = t_sockcred_2,
-	  .desc = "Receiving sockcred"
-	},
-	{
-	  .func = t_cmsgcred_sockcred,
-	  .desc = "Sending cmsgcred, receiving sockcred"
-	},
-	{
-	  .func = t_timeval,
-	  .desc = "Sending, receiving timeval"
-	},
-	{
-	  .func = t_bintime,
-	  .desc = "Sending, receiving bintime"
-	},
+	{ .func = NULL, .desc = "All tests" },
+	{ .func = t_cmsgcred, .desc = "Sending, receiving cmsgcred" },
+	{ .func = t_sockcred_2, .desc = "Receiving sockcred" },
+	{ .func = t_cmsgcred_sockcred,
+	    .desc = "Sending cmsgcred, receiving sockcred" },
+	{ .func = t_timeval, .desc = "Sending, receiving timeval" },
+	{ .func = t_bintime, .desc = "Sending, receiving bintime" },
 #ifndef __LP64__
-	{
-	  .func = t_cmsg_len,
-	  .desc = "Check cmsghdr.cmsg_len"
-	},
+	{ .func = t_cmsg_len, .desc = "Check cmsghdr.cmsg_len" },
 #endif
 #if defined(SCM_REALTIME)
-	{
-	  .func = t_timespec_real,
-	  .desc = "Sending, receiving realtime"
-	},
+	{ .func = t_timespec_real, .desc = "Sending, receiving realtime" },
 #endif
 #if defined(SCM_MONOTONIC)
-	{
-	  .func = t_timespec_mono,
-	  .desc = "Sending, receiving monotonic time (uptime)"
-	}
+	{ .func = t_timespec_mono,
+	    .desc = "Sending, receiving monotonic time (uptime)" }
 #endif
 };
 
-#define TEST_DGRAM_TBL_SIZE \
-	(sizeof(test_dgram_tbl) / sizeof(test_dgram_tbl[0]))
+#define TEST_DGRAM_TBL_SIZE (sizeof(test_dgram_tbl) / sizeof(test_dgram_tbl[0]))
 
-static bool	failed_flag = false;
+static bool failed_flag = false;
 
 struct uc_cfg uc_cfg;
 
-static char	work_dir[] = _PATH_TMP "unix_cmsg.XXXXXXX";
+static char work_dir[] = _PATH_TMP "unix_cmsg.XXXXXXX";
 
-#define IPC_MSG_NUM_DEF		5
-#define IPC_MSG_NUM_MAX		10
-#define IPC_MSG_SIZE_DEF	7
-#define IPC_MSG_SIZE_MAX	128
+#define IPC_MSG_NUM_DEF 5
+#define IPC_MSG_NUM_MAX 10
+#define IPC_MSG_SIZE_DEF 7
+#define IPC_MSG_SIZE_MAX 128
 
 static void
 usage(bool verbose)
@@ -199,7 +144,8 @@ usage(bool verbose)
 	u_int i;
 
 	printf("usage: %s [-dh] [-n num] [-s size] [-t type] "
-	    "[-z value] [testno]\n", getprogname());
+	       "[-z value] [testno]\n",
+	    getprogname());
 	if (!verbose)
 		return;
 	printf("\n Options are:\n\
@@ -262,8 +208,8 @@ run_tests(int type, u_int testno1)
 		if (failed_num == 0)
 			uc_output("-- all tests passed!\n");
 		else
-			uc_output("-- %u test%s failed!\n",
-			    failed_num, failed_num == 1 ? "" : "s");
+			uc_output("-- %u test%s failed!\n", failed_num,
+			    failed_num == 1 ? "" : "s");
 	} else {
 		if (failed_num == 0)
 			uc_output("-- test passed!\n");
@@ -296,7 +242,8 @@ init(void)
 	else {
 		uc_cfg.ipc_msg.buf_send = malloc(uc_cfg.ipc_msg.buf_size);
 		uc_cfg.ipc_msg.buf_recv = malloc(uc_cfg.ipc_msg.buf_size);
-		if (uc_cfg.ipc_msg.buf_send == NULL || uc_cfg.ipc_msg.buf_recv == NULL) {
+		if (uc_cfg.ipc_msg.buf_send == NULL ||
+		    uc_cfg.ipc_msg.buf_recv == NULL) {
 			uc_logmsg("init: malloc");
 			return (-1);
 		}
@@ -313,8 +260,8 @@ init(void)
 		uc_logmsg("init: getgroups");
 		return (-1);
 	}
-	uc_cfg.proc_cred.gid_arr = malloc(uc_cfg.proc_cred.gid_num *
-	    sizeof(*uc_cfg.proc_cred.gid_arr));
+	uc_cfg.proc_cred.gid_arr = malloc(
+	    uc_cfg.proc_cred.gid_num * sizeof(*uc_cfg.proc_cred.gid_arr));
 	if (uc_cfg.proc_cred.gid_arr == NULL) {
 		uc_logmsg("init: malloc");
 		return (-1);
@@ -325,8 +272,9 @@ init(void)
 	}
 
 	memset(&uc_cfg.serv_addr_sun, 0, sizeof(uc_cfg.serv_addr_sun));
-	rv = snprintf(uc_cfg.serv_addr_sun.sun_path, sizeof(uc_cfg.serv_addr_sun.sun_path),
-	    "%s/%s", work_dir, uc_cfg.proc_name);
+	rv = snprintf(uc_cfg.serv_addr_sun.sun_path,
+	    sizeof(uc_cfg.serv_addr_sun.sun_path), "%s/%s", work_dir,
+	    uc_cfg.proc_name);
 	if (rv < 0) {
 		uc_logmsg("init: snprintf");
 		return (-1);
@@ -385,7 +333,8 @@ main(int argc, char *argv[])
 			else if (strcmp(optarg, "dgram") == 0)
 				dgram_flag = true;
 			else
-				errx(EXIT_FAILURE, "option -t: "
+				errx(EXIT_FAILURE,
+				    "option -t: "
 				    "wrong socket type");
 			break;
 		case 'z':
@@ -410,17 +359,22 @@ main(int argc, char *argv[])
 		if (errstr != NULL)
 			errx(EXIT_FAILURE, "test number is %s", errstr);
 		if (stream_flag && testno >= TEST_STREAM_TBL_SIZE)
-			errx(EXIT_FAILURE, "given test %u for stream "
-			    "sockets does not exist", testno);
+			errx(EXIT_FAILURE,
+			    "given test %u for stream "
+			    "sockets does not exist",
+			    testno);
 		if (dgram_flag && testno >= TEST_DGRAM_TBL_SIZE)
-			errx(EXIT_FAILURE, "given test %u for datagram "
-			    "sockets does not exist", testno);
+			errx(EXIT_FAILURE,
+			    "given test %u for datagram "
+			    "sockets does not exist",
+			    testno);
 	} else
 		testno = 0;
 
 	if (!dgram_flag && !stream_flag) {
 		if (testno != 0)
-			errx(EXIT_FAILURE, "particular test number "
+			errx(EXIT_FAILURE,
+			    "particular test number "
 			    "can be used with the -t option only");
 		dgram_flag = stream_flag = true;
 	}

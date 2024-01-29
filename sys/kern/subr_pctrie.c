@@ -46,15 +46,15 @@
  *   level compression may just complicate things.
  */
 
-#include <sys/cdefs.h>
 #include "opt_ddb.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/libkern.h>
 #include <sys/pctrie.h>
-#include <sys/proc.h>	/* smr.h depends on struct thread. */
+#include <sys/proc.h> /* smr.h depends on struct thread. */
 #include <sys/smr.h>
 #include <sys/smr_types.h>
 
@@ -62,8 +62,8 @@
 #include <ddb/ddb.h>
 #endif
 
-#define	PCTRIE_MASK	(PCTRIE_COUNT - 1)
-#define	PCTRIE_LIMIT	(howmany(sizeof(uint64_t) * NBBY, PCTRIE_WIDTH) - 1)
+#define PCTRIE_MASK (PCTRIE_COUNT - 1)
+#define PCTRIE_LIMIT (howmany(sizeof(uint64_t) * NBBY, PCTRIE_WIDTH) - 1)
 
 #if PCTRIE_WIDTH == 3
 typedef uint8_t pn_popmap_t;
@@ -74,17 +74,16 @@ typedef uint32_t pn_popmap_t;
 #else
 #error Unsupported width
 #endif
-_Static_assert(sizeof(pn_popmap_t) <= sizeof(int),
-    "pn_popmap_t too wide");
+_Static_assert(sizeof(pn_popmap_t) <= sizeof(int), "pn_popmap_t too wide");
 
 struct pctrie_node;
 typedef SMR_POINTER(struct pctrie_node *) smr_pctnode_t;
 
 struct pctrie_node {
-	uint64_t	pn_owner;			/* Owner of record. */
-	pn_popmap_t	pn_popmap;			/* Valid children. */
-	uint8_t		pn_clev;			/* Level * WIDTH. */
-	smr_pctnode_t	pn_child[PCTRIE_COUNT];		/* Child nodes. */
+	uint64_t pn_owner;		      /* Owner of record. */
+	pn_popmap_t pn_popmap;		      /* Valid children. */
+	uint8_t pn_clev;		      /* Level * WIDTH. */
+	smr_pctnode_t pn_child[PCTRIE_COUNT]; /* Child nodes. */
 };
 
 enum pctrie_access { PCTRIE_SMR, PCTRIE_LOCKED, PCTRIE_UNSERIALIZED };
@@ -126,12 +125,12 @@ pctrie_node_put(struct pctrie_node *node)
 
 	KASSERT(powerof2(node->pn_popmap),
 	    ("pctrie_node_put: node %p has too many children %04x", node,
-	    node->pn_popmap));
+		node->pn_popmap));
 	for (slot = 0; slot < PCTRIE_COUNT; slot++) {
 		if ((node->pn_popmap & (1 << slot)) != 0)
 			continue;
 		KASSERT(smr_unserialized_load(&node->pn_child[slot], true) ==
-		    PCTRIE_NULL,
+			PCTRIE_NULL,
 		    ("pctrie_node_put: node %p has a child", node));
 	}
 #endif
@@ -179,7 +178,8 @@ pctrie_node_store(smr_pctnode_t *p, void *v, enum pctrie_access access)
 static __inline struct pctrie_node *
 pctrie_root_load(struct pctrie *ptree, smr_t smr, enum pctrie_access access)
 {
-	return (pctrie_node_load((smr_pctnode_t *)&ptree->pt_root, smr, access));
+	return (
+	    pctrie_node_load((smr_pctnode_t *)&ptree->pt_root, smr, access));
 }
 
 /*
@@ -307,8 +307,8 @@ pctrie_insert_lookup(struct pctrie *ptree, uint64_t *val)
 	 * children 'node' and 'val'. Return the place that points to 'node'
 	 * now, and will point to to the new branching node later.
 	 */
-	return ((parent != NULL) ? &parent->pn_child[slot]:
-	    (smr_pctnode_t *)&ptree->pt_root);
+	return ((parent != NULL) ? &parent->pn_child[slot] :
+				   (smr_pctnode_t *)&ptree->pt_root);
 }
 
 /*
@@ -349,11 +349,11 @@ pctrie_insert_node(void *parentp, struct pctrie_node *parent, uint64_t *val)
 	_Static_assert(sizeof(long long) >= sizeof(uint64_t),
 	    "uint64 too wide");
 	_Static_assert(sizeof(uint64_t) * NBBY <=
-	    (1 << (sizeof(parent->pn_clev) * NBBY)), "pn_clev too narrow");
+		(1 << (sizeof(parent->pn_clev) * NBBY)),
+	    "pn_clev too narrow");
 	parent->pn_clev = rounddown(flsll(index ^ newind) - 1, PCTRIE_WIDTH);
 	parent->pn_owner = PCTRIE_COUNT;
 	parent->pn_owner = index & -(parent->pn_owner << parent->pn_clev);
-
 
 	/* These writes are not yet visible due to ordering. */
 	pctrie_addnode(parent, index, pctrie_toleaf(val), PCTRIE_UNSERIALIZED);
@@ -485,19 +485,19 @@ pctrie_lookup_ge(struct pctrie *ptree, uint64_t index)
 		 */
 		slot = pctrie_slot(succ, index) + 1;
 		KASSERT((succ->pn_popmap >> slot) != 0,
-		    ("%s: no popmap siblings past slot %d in node %p",
-		    __func__, slot, succ));
+		    ("%s: no popmap siblings past slot %d in node %p", __func__,
+			slot, succ));
 		slot += ffs(succ->pn_popmap >> slot) - 1;
 		succ = pctrie_node_load(&succ->pn_child[slot], NULL,
 		    PCTRIE_LOCKED);
 	}
 
-	/* 
+	/*
 	 * Find the value in the subtree rooted at "succ" with the least index.
 	 */
 	while (!pctrie_isleaf(succ)) {
 		KASSERT(succ->pn_popmap != 0,
-		    ("%s: no popmap children in node %p",  __func__, succ));
+		    ("%s: no popmap children in node %p", __func__, succ));
 		slot = ffs(succ->pn_popmap) - 1;
 		succ = pctrie_node_load(&succ->pn_child[slot], NULL,
 		    PCTRIE_LOCKED);
@@ -545,14 +545,14 @@ pctrie_lookup_le(struct pctrie *ptree, uint64_t index)
 		slot = pctrie_slot(pred, index);
 		KASSERT((pred->pn_popmap & ((1 << slot) - 1)) != 0,
 		    ("%s: no popmap siblings before slot %d in node %p",
-		    __func__, slot, pred));
+			__func__, slot, pred));
 		slot = fls(pred->pn_popmap & ((1 << slot) - 1)) - 1;
 		pred = pctrie_node_load(&pred->pn_child[slot], NULL,
 		    PCTRIE_LOCKED);
 	}
 	while (!pctrie_isleaf(pred)) {
 		KASSERT(pred->pn_popmap != 0,
-		    ("%s: no popmap children in node %p",  __func__, pred));
+		    ("%s: no popmap children in node %p", __func__, pred));
 		slot = fls(pred->pn_popmap) - 1;
 		pred = pctrie_node_load(&pred->pn_child[slot], NULL,
 		    PCTRIE_LOCKED);
@@ -590,8 +590,7 @@ pctrie_remove_lookup(struct pctrie *ptree, uint64_t index,
 		return (m);
 	}
 	KASSERT((node->pn_popmap & (1 << slot)) != 0,
-	    ("%s: bad popmap slot %d in node %p",
-	    __func__, slot, node));
+	    ("%s: bad popmap slot %d in node %p", __func__, slot, node));
 	node->pn_popmap ^= 1 << slot;
 	pctrie_node_store(&node->pn_child[slot], PCTRIE_NULL, PCTRIE_LOCKED);
 	if (!powerof2(node->pn_popmap))
@@ -606,8 +605,9 @@ pctrie_remove_lookup(struct pctrie *ptree, uint64_t index,
 	else {
 		slot = pctrie_slot(parent, index);
 		KASSERT(node ==
-		    pctrie_node_load(&parent->pn_child[slot], NULL,
-		    PCTRIE_LOCKED), ("%s: invalid child value", __func__));
+			pctrie_node_load(&parent->pn_child[slot], NULL,
+			    PCTRIE_LOCKED),
+		    ("%s: invalid child value", __func__));
 		pctrie_node_store(&parent->pn_child[slot], child,
 		    PCTRIE_LOCKED);
 	}
@@ -627,8 +627,7 @@ pctrie_remove_lookup(struct pctrie *ptree, uint64_t index,
  * children, and mark it for freeing, returning its parent.
  */
 static struct pctrie_node *
-pctrie_reclaim_prune(struct pctrie_node **pnode,
-    struct pctrie_node *parent)
+pctrie_reclaim_prune(struct pctrie_node **pnode, struct pctrie_node *parent)
 {
 	struct pctrie_node *child, *node;
 	int slot;
@@ -675,8 +674,7 @@ pctrie_reclaim_resume(struct pctrie_node **pnode)
  * Find the trie root, and start pruning with a NULL parent.
  */
 struct pctrie_node *
-pctrie_reclaim_begin(struct pctrie_node **pnode,
-    struct pctrie *ptree)
+pctrie_reclaim_begin(struct pctrie_node **pnode, struct pctrie *ptree)
 {
 	struct pctrie_node *node;
 
@@ -736,8 +734,8 @@ DB_SHOW_COMMAND(pctrienode, db_show_pctrienode)
 	int slot;
 	pn_popmap_t popmap;
 
-        if (!have_addr)
-                return;
+	if (!have_addr)
+		return;
 	node = (struct pctrie_node *)addr;
 	db_printf("node %p, owner %jx, children popmap %04x, level %u:\n",
 	    (void *)node, (uintmax_t)node->pn_owner, node->pn_popmap,
@@ -746,9 +744,8 @@ DB_SHOW_COMMAND(pctrienode, db_show_pctrienode)
 		slot = ffs(popmap) - 1;
 		tmp = pctrie_node_load(&node->pn_child[slot], NULL,
 		    PCTRIE_UNSERIALIZED);
-		db_printf("slot: %d, val: %p, value: %p, clev: %d\n",
-		    slot, (void *)tmp,
-		    pctrie_isleaf(tmp) ? pctrie_toval(tmp) : NULL,
+		db_printf("slot: %d, val: %p, value: %p, clev: %d\n", slot,
+		    (void *)tmp, pctrie_isleaf(tmp) ? pctrie_toval(tmp) : NULL,
 		    node->pn_clev / PCTRIE_WIDTH);
 	}
 }

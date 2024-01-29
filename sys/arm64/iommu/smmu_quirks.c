@@ -31,18 +31,20 @@
 #include "opt_platform.h"
 
 #include <sys/param.h>
-#include <sys/bitstring.h>
 #include <sys/systm.h>
+#include <sys/bitstring.h>
 #include <sys/bus.h>
 #include <sys/kernel.h>
-#include <sys/tree.h>
-#include <sys/taskqueue.h>
 #include <sys/sysctl.h>
+#include <sys/taskqueue.h>
+#include <sys/tree.h>
+
 #include <vm/vm.h>
 #include <vm/pmap.h>
+
+#include <dev/iommu/iommu.h>
 #include <dev/pci/pcireg.h>
 #include <dev/pci/pcivar.h>
-#include <dev/iommu/iommu.h>
 
 #include "smmuvar.h"
 
@@ -74,10 +76,8 @@ smmu_quirks_check(device_t dev, u_int sid, uint8_t event_id,
 
 	for (i = 0; smmu_quirk_table[i].vendor != 0; i++) {
 		q = &smmu_quirk_table[i];
-		if (ctx->vendor == q->vendor &&
-		    ctx->device == q->device &&
-		    input_addr == q->input_address &&
-		    event_id == q->event_id)
+		if (ctx->vendor == q->vendor && ctx->device == q->device &&
+		    input_addr == q->input_address && event_id == q->event_id)
 			return (true);
 	}
 

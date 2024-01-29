@@ -5,7 +5,7 @@
  *
  * Developed at SunSoft, a Sun Microsystems, Inc. business.
  * Permission to use, copy, modify, and distribute this
- * software is freely granted, provided that this notice 
+ * software is freely granted, provided that this notice
  * is preserved.
  * ====================================================
  */
@@ -22,46 +22,49 @@
 
 #include <float.h>
 
+#include "k_log.h"
 #include "math.h"
 #include "math_private.h"
-#include "k_log.h"
 
-static const double
-two54      =  1.80143985094819840000e+16, /* 0x43500000, 0x00000000 */
-ivln2hi    =  1.44269504072144627571e+00, /* 0x3ff71547, 0x65200000 */
-ivln2lo    =  1.67517131648865118353e-10; /* 0x3de705fc, 0x2eefa200 */
+static const double two54 =
+			1.80143985094819840000e+16, /* 0x43500000, 0x00000000 */
+    ivln2hi = 1.44269504072144627571e+00,	    /* 0x3ff71547, 0x65200000 */
+    ivln2lo = 1.67517131648865118353e-10;	    /* 0x3de705fc, 0x2eefa200 */
 
-static const double zero   =  0.0;
+static const double zero = 0.0;
 static volatile double vzero = 0.0;
 
 double
 log2(double x)
 {
-	double f,hfsq,hi,lo,r,val_hi,val_lo,w,y;
-	int32_t i,k,hx;
+	double f, hfsq, hi, lo, r, val_hi, val_lo, w, y;
+	int32_t i, k, hx;
 	u_int32_t lx;
 
-	EXTRACT_WORDS(hx,lx,x);
+	EXTRACT_WORDS(hx, lx, x);
 
-	k=0;
-	if (hx < 0x00100000) {			/* x < 2**-1022  */
-	    if (((hx&0x7fffffff)|lx)==0)
-		return -two54/vzero;		/* log(+-0)=-inf */
-	    if (hx<0) return (x-x)/zero;	/* log(-#) = NaN */
-	    k -= 54; x *= two54; /* subnormal number, scale up x */
-	    GET_HIGH_WORD(hx,x);
+	k = 0;
+	if (hx < 0x00100000) { /* x < 2**-1022  */
+		if (((hx & 0x7fffffff) | lx) == 0)
+			return -two54 / vzero; /* log(+-0)=-inf */
+		if (hx < 0)
+			return (x - x) / zero; /* log(-#) = NaN */
+		k -= 54;
+		x *= two54; /* subnormal number, scale up x */
+		GET_HIGH_WORD(hx, x);
 	}
-	if (hx >= 0x7ff00000) return x+x;
+	if (hx >= 0x7ff00000)
+		return x + x;
 	if (hx == 0x3ff00000 && lx == 0)
-	    return zero;			/* log(1) = +0 */
-	k += (hx>>20)-1023;
+		return zero; /* log(1) = +0 */
+	k += (hx >> 20) - 1023;
 	hx &= 0x000fffff;
-	i = (hx+0x95f64)&0x100000;
-	SET_HIGH_WORD(x,hx|(i^0x3ff00000));	/* normalize x or x/2 */
-	k += (i>>20);
+	i = (hx + 0x95f64) & 0x100000;
+	SET_HIGH_WORD(x, hx | (i ^ 0x3ff00000)); /* normalize x or x/2 */
+	k += (i >> 20);
 	y = (double)k;
 	f = x - 1.0;
-	hfsq = 0.5*f*f;
+	hfsq = 0.5 * f * f;
 	r = k_log1p(f);
 
 	/*
@@ -95,10 +98,10 @@ log2(double x)
 	 * routine.
 	 */
 	hi = f - hfsq;
-	SET_LOW_WORD(hi,0);
+	SET_LOW_WORD(hi, 0);
 	lo = (f - hi) - hfsq + r;
-	val_hi = hi*ivln2hi;
-	val_lo = (lo+hi)*ivln2lo + lo*ivln2hi;
+	val_hi = hi * ivln2hi;
+	val_lo = (lo + hi) * ivln2lo + lo * ivln2hi;
 
 	/* spadd(val_hi, val_lo, y), except for not using double_t: */
 	w = y + val_hi;

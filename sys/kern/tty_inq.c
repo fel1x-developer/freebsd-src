@@ -30,11 +30,11 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/tty.h>
 #include <sys/uio.h>
 
@@ -62,56 +62,59 @@
 
 static int ttyinq_flush_secure = 1;
 SYSCTL_INT(_kern, OID_AUTO, tty_inq_flush_secure, CTLFLAG_RW,
-	&ttyinq_flush_secure, 0, "Zero buffers while flushing");
+    &ttyinq_flush_secure, 0, "Zero buffers while flushing");
 
-#define TTYINQ_QUOTESIZE	(TTYINQ_DATASIZE / BMSIZE)
-#define BMSIZE			32
-#define GETBIT(tib,boff) \
+#define TTYINQ_QUOTESIZE (TTYINQ_DATASIZE / BMSIZE)
+#define BMSIZE 32
+#define GETBIT(tib, boff) \
 	((tib)->tib_quotes[(boff) / BMSIZE] & (1 << ((boff) % BMSIZE)))
-#define SETBIT(tib,boff) \
+#define SETBIT(tib, boff) \
 	((tib)->tib_quotes[(boff) / BMSIZE] |= (1 << ((boff) % BMSIZE)))
-#define CLRBIT(tib,boff) \
+#define CLRBIT(tib, boff) \
 	((tib)->tib_quotes[(boff) / BMSIZE] &= ~(1 << ((boff) % BMSIZE)))
 
 struct ttyinq_block {
-	struct ttyinq_block	*tib_prev;
-	struct ttyinq_block	*tib_next;
-	uint32_t		tib_quotes[TTYINQ_QUOTESIZE];
-	char			tib_data[TTYINQ_DATASIZE];
+	struct ttyinq_block *tib_prev;
+	struct ttyinq_block *tib_next;
+	uint32_t tib_quotes[TTYINQ_QUOTESIZE];
+	char tib_data[TTYINQ_DATASIZE];
 };
 
 static uma_zone_t ttyinq_zone;
 
-#define	TTYINQ_INSERT_TAIL(ti, tib) do {				\
-	if (ti->ti_end == 0) {						\
-		tib->tib_prev = NULL;					\
-		tib->tib_next = ti->ti_firstblock;			\
-		ti->ti_firstblock = tib;				\
-	} else {							\
-		tib->tib_prev = ti->ti_lastblock;			\
-		tib->tib_next = ti->ti_lastblock->tib_next;		\
-		ti->ti_lastblock->tib_next = tib;			\
-	}								\
-	if (tib->tib_next != NULL)					\
-		tib->tib_next->tib_prev = tib;				\
-	ti->ti_nblocks++;						\
-} while (0)
+#define TTYINQ_INSERT_TAIL(ti, tib)                                 \
+	do {                                                        \
+		if (ti->ti_end == 0) {                              \
+			tib->tib_prev = NULL;                       \
+			tib->tib_next = ti->ti_firstblock;          \
+			ti->ti_firstblock = tib;                    \
+		} else {                                            \
+			tib->tib_prev = ti->ti_lastblock;           \
+			tib->tib_next = ti->ti_lastblock->tib_next; \
+			ti->ti_lastblock->tib_next = tib;           \
+		}                                                   \
+		if (tib->tib_next != NULL)                          \
+			tib->tib_next->tib_prev = tib;              \
+		ti->ti_nblocks++;                                   \
+	} while (0)
 
-#define	TTYINQ_REMOVE_HEAD(ti) do {					\
-	ti->ti_firstblock = ti->ti_firstblock->tib_next;		\
-	if (ti->ti_firstblock != NULL)					\
-		ti->ti_firstblock->tib_prev = NULL;			\
-	ti->ti_nblocks--;						\
-} while (0)
+#define TTYINQ_REMOVE_HEAD(ti)                                   \
+	do {                                                     \
+		ti->ti_firstblock = ti->ti_firstblock->tib_next; \
+		if (ti->ti_firstblock != NULL)                   \
+			ti->ti_firstblock->tib_prev = NULL;      \
+		ti->ti_nblocks--;                                \
+	} while (0)
 
-#define	TTYINQ_RECYCLE(ti, tib) do {					\
-	if (ti->ti_quota <= ti->ti_nblocks)				\
-		uma_zfree(ttyinq_zone, tib);				\
-	else								\
-		TTYINQ_INSERT_TAIL(ti, tib);				\
-} while (0)
+#define TTYINQ_RECYCLE(ti, tib)                      \
+	do {                                         \
+		if (ti->ti_quota <= ti->ti_nblocks)  \
+			uma_zfree(ttyinq_zone, tib); \
+		else                                 \
+			TTYINQ_INSERT_TAIL(ti, tib); \
+	} while (0)
 
-int 
+int
 ttyinq_setsize(struct ttyinq *ti, struct tty *tp, size_t size)
 {
 	struct ttyinq_block *tib;
@@ -160,8 +163,8 @@ ttyinq_free(struct ttyinq *ti)
 }
 
 int
-ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
-    size_t rlen, size_t flen)
+ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio, size_t rlen,
+    size_t flen)
 {
 
 	/* rlen includes flen, flen bytes will be trimmed from the end. */
@@ -219,12 +222,13 @@ ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
 			 * Because we remove the first block, we must
 			 * fix up the block offsets.
 			 */
-#define CORRECT_BLOCK(t) do {			\
-	if (t <= TTYINQ_DATASIZE)		\
-		t = 0;				\
-	else					\
-		t -= TTYINQ_DATASIZE;		\
-} while (0)
+#define CORRECT_BLOCK(t)                      \
+	do {                                  \
+		if (t <= TTYINQ_DATASIZE)     \
+			t = 0;                \
+		else                          \
+			t -= TTYINQ_DATASIZE; \
+	} while (0)
 			CORRECT_BLOCK(ti->ti_linestart);
 			CORRECT_BLOCK(ti->ti_reprint);
 			CORRECT_BLOCK(ti->ti_end);
@@ -236,8 +240,8 @@ ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
 			 * bytes, like EOF characters.
 			 */
 			tty_unlock(tp);
-			error = uiomove(tib->tib_data + cbegin,
-			    clen - flen, uio);
+			error = uiomove(tib->tib_data + cbegin, clen - flen,
+			    uio);
 			tty_lock(tp);
 
 			/* Block can now be readded to the list. */
@@ -268,8 +272,8 @@ ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
 }
 
 static __inline void
-ttyinq_set_quotes(struct ttyinq_block *tib, size_t offset,
-    size_t length, int value)
+ttyinq_set_quotes(struct ttyinq_block *tib, size_t offset, size_t length,
+    int value)
 {
 
 	if (value) {
@@ -332,7 +336,8 @@ ttyinq_write(struct ttyinq *ti, const void *buf, size_t nbytes, int quote)
 }
 
 int
-ttyinq_write_nofrag(struct ttyinq *ti, const void *buf, size_t nbytes, int quote)
+ttyinq_write_nofrag(struct ttyinq *ti, const void *buf, size_t nbytes,
+    int quote)
 {
 	size_t ret __unused;
 
@@ -498,9 +503,8 @@ ttyinq_reprintpos_reset(struct ttyinq *ti)
 }
 
 static void
-ttyinq_line_iterate(struct ttyinq *ti,
-    ttyinq_line_iterator_t *iterator, void *data,
-    unsigned int offset, struct ttyinq_block *tib)
+ttyinq_line_iterate(struct ttyinq *ti, ttyinq_line_iterator_t *iterator,
+    void *data, unsigned int offset, struct ttyinq_block *tib)
 {
 	unsigned int boff;
 
@@ -527,8 +531,8 @@ ttyinq_line_iterate_from_linestart(struct ttyinq *ti,
     ttyinq_line_iterator_t *iterator, void *data)
 {
 
-	ttyinq_line_iterate(ti, iterator, data,
-	    ti->ti_linestart, ti->ti_startblock);
+	ttyinq_line_iterate(ti, iterator, data, ti->ti_linestart,
+	    ti->ti_startblock);
 }
 
 void
@@ -536,16 +540,16 @@ ttyinq_line_iterate_from_reprintpos(struct ttyinq *ti,
     ttyinq_line_iterator_t *iterator, void *data)
 {
 
-	ttyinq_line_iterate(ti, iterator, data,
-	    ti->ti_reprint, ti->ti_reprintblock);
+	ttyinq_line_iterate(ti, iterator, data, ti->ti_reprint,
+	    ti->ti_reprintblock);
 }
 
 static void
 ttyinq_startup(void *dummy)
 {
 
-	ttyinq_zone = uma_zcreate("ttyinq", sizeof(struct ttyinq_block),
-	    NULL, NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
+	ttyinq_zone = uma_zcreate("ttyinq", sizeof(struct ttyinq_block), NULL,
+	    NULL, NULL, NULL, UMA_ALIGN_PTR, 0);
 }
 
 SYSINIT(ttyinq, SI_SUB_DRIVERS, SI_ORDER_FIRST, ttyinq_startup, NULL);

@@ -31,13 +31,12 @@
  * Subroutines used for writing compressed user process and kernel core dumps.
  */
 
-#include <sys/cdefs.h>
 #include "opt_gzio.h"
 #include "opt_zstdio.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
-
 #include <sys/compressor.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
@@ -48,10 +47,10 @@ MALLOC_DEFINE(M_COMPRESS, "compressor", "kernel compression subroutines");
 
 struct compressor_methods {
 	int format;
-	void *(* const init)(size_t, int);
-	void (* const reset)(void *);
-	int (* const write)(void *, void *, size_t, compressor_cb_t, void *);
-	void (* const fini)(void *);
+	void *(*const init)(size_t, int);
+	void (*const reset)(void *);
+	int (*const write)(void *, void *, size_t, compressor_cb_t, void *);
+	void (*const fini)(void *);
 };
 
 struct compressor {
@@ -68,18 +67,18 @@ SET_DECLARE(compressors, struct compressor_methods);
 #include <contrib/zlib/zutil.h>
 
 struct gz_stream {
-	uint8_t		*gz_buffer;	/* output buffer */
-	size_t		gz_bufsz;	/* output buffer size */
-	off_t		gz_off;		/* offset into the output stream */
-	uint32_t	gz_crc;		/* stream CRC32 */
-	z_stream	gz_stream;	/* zlib state */
+	uint8_t *gz_buffer; /* output buffer */
+	size_t gz_bufsz;    /* output buffer size */
+	off_t gz_off;	    /* offset into the output stream */
+	uint32_t gz_crc;    /* stream CRC32 */
+	z_stream gz_stream; /* zlib state */
 };
 
-static void 	*gz_init(size_t maxiosize, int level);
-static void	gz_reset(void *stream);
-static int	gz_write(void *stream, void *data, size_t len, compressor_cb_t,
-		    void *);
-static void	gz_fini(void *stream);
+static void *gz_init(size_t maxiosize, int level);
+static void gz_reset(void *stream);
+static int gz_write(void *stream, void *data, size_t len, compressor_cb_t,
+    void *);
+static void gz_fini(void *stream);
 
 static void *
 gz_alloc(void *arg __unused, u_int n, u_int sz)
@@ -164,8 +163,7 @@ gz_reset(void *stream)
 }
 
 static int
-gz_write(void *stream, void *data, size_t len, compressor_cb_t cb,
-    void *arg)
+gz_write(void *stream, void *data, size_t len, compressor_cb_t cb, void *arg)
 {
 	struct gz_stream *s;
 	uint8_t trailer[8];
@@ -201,10 +199,9 @@ gz_write(void *stream, void *data, size_t len, compressor_cb_t cb,
 				 * output buffer as we can.
 				 */
 				((uint32_t *)trailer)[0] = htole32(s->gz_crc);
-				((uint32_t *)trailer)[1] =
-				    htole32(s->gz_stream.total_in);
-				room = MIN(sizeof(trailer),
-				    s->gz_bufsz - len);
+				((uint32_t *)trailer)[1] = htole32(
+				    s->gz_stream.total_in);
+				room = MIN(sizeof(trailer), s->gz_bufsz - len);
 				memcpy(s->gz_buffer + len, trailer, room);
 				len += room;
 			}
@@ -255,24 +252,24 @@ DATA_SET(compressors, gzip_methods);
 
 #ifdef ZSTDIO
 
-#define	ZSTD_STATIC_LINKING_ONLY
+#define ZSTD_STATIC_LINKING_ONLY
 #include <contrib/zstd/lib/zstd.h>
 
 struct zstdio_stream {
-	ZSTD_CCtx	*zst_stream;
-	ZSTD_inBuffer	zst_inbuffer;
-	ZSTD_outBuffer	zst_outbuffer;
-	uint8_t *	zst_buffer;	/* output buffer */
-	size_t		zst_maxiosz;	/* Max output IO size */
-	off_t		zst_off;	/* offset into the output stream */
-	void *		zst_static_wkspc;
+	ZSTD_CCtx *zst_stream;
+	ZSTD_inBuffer zst_inbuffer;
+	ZSTD_outBuffer zst_outbuffer;
+	uint8_t *zst_buffer; /* output buffer */
+	size_t zst_maxiosz;  /* Max output IO size */
+	off_t zst_off;	     /* offset into the output stream */
+	void *zst_static_wkspc;
 };
 
-static void 	*zstdio_init(size_t maxiosize, int level);
-static void	zstdio_reset(void *stream);
-static int	zstdio_write(void *stream, void *data, size_t len,
-		    compressor_cb_t, void *);
-static void	zstdio_fini(void *stream);
+static void *zstdio_init(size_t maxiosize, int level);
+static void zstdio_reset(void *stream);
+static int zstdio_write(void *stream, void *data, size_t len, compressor_cb_t,
+    void *);
+static void zstdio_fini(void *stream);
 
 static void *
 zstdio_init(size_t maxiosize, int level)
@@ -404,7 +401,8 @@ zstdio_flush(struct zstdio_stream *s, compressor_cb_t cb, void *arg)
 			return (EIO);
 		}
 		if (lastpos == s->zst_outbuffer.pos) {
-			printf("%s: did not make forward progress endStream %zu\n",
+			printf(
+			    "%s: did not make forward progress endStream %zu\n",
 			    __func__, lastpos);
 			return (EIO);
 		}
@@ -452,8 +450,8 @@ zstdio_write(void *stream, void *data, size_t len, compressor_cb_t cb,
 		rc = ZSTD_compressStream(s->zst_stream, &s->zst_outbuffer,
 		    &s->zst_inbuffer);
 		if (ZSTD_isError(rc)) {
-			printf("%s: Compress failed on %p! (%s)\n",
-			    __func__, data, ZSTD_getErrorName(rc));
+			printf("%s: Compress failed on %p! (%s)\n", __func__,
+			    data, ZSTD_getErrorName(rc));
 			return (EIO);
 		}
 
@@ -504,7 +502,8 @@ compressor_avail(int format)
 {
 	struct compressor_methods **iter;
 
-	SET_FOREACH(iter, compressors) {
+	SET_FOREACH(iter, compressors)
+	{
 		if ((*iter)->format == format)
 			return (true);
 	}
@@ -519,7 +518,8 @@ compressor_init(compressor_cb_t cb, int format, size_t maxiosize, int level,
 	struct compressor *s;
 	void *priv;
 
-	SET_FOREACH(iter, compressors) {
+	SET_FOREACH(iter, compressors)
+	{
 		if ((*iter)->format == format)
 			break;
 	}

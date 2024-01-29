@@ -61,22 +61,20 @@ struct mlxfw_mfa2_tlv_package_descriptor {
 } __packed;
 
 MLXFW_MFA2_TLV(package_descriptor, struct mlxfw_mfa2_tlv_package_descriptor,
-	       MLXFW_MFA2_TLV_PACKAGE_DESCRIPTOR);
+    MLXFW_MFA2_TLV_PACKAGE_DESCRIPTOR);
 
 struct mlxfw_mfa2_tlv_multi {
 	__be16 num_extensions;
 	__be16 total_len;
 } __packed;
 
-MLXFW_MFA2_TLV(multi, struct mlxfw_mfa2_tlv_multi,
-	       MLXFW_MFA2_TLV_MULTI_PART);
+MLXFW_MFA2_TLV(multi, struct mlxfw_mfa2_tlv_multi, MLXFW_MFA2_TLV_MULTI_PART);
 
 struct mlxfw_mfa2_tlv_psid {
 	u8 psid[0];
 } __packed;
 
-MLXFW_MFA2_TLV_VARSIZE(psid, struct mlxfw_mfa2_tlv_psid,
-		       MLXFW_MFA2_TLV_PSID);
+MLXFW_MFA2_TLV_VARSIZE(psid, struct mlxfw_mfa2_tlv_psid, MLXFW_MFA2_TLV_PSID);
 
 struct mlxfw_mfa2_tlv_component_ptr {
 	__be16 storage_id;
@@ -85,7 +83,7 @@ struct mlxfw_mfa2_tlv_component_ptr {
 } __packed;
 
 MLXFW_MFA2_TLV(component_ptr, struct mlxfw_mfa2_tlv_component_ptr,
-	       MLXFW_MFA2_TLV_COMPONENT_PTR);
+    MLXFW_MFA2_TLV_COMPONENT_PTR);
 
 struct mlxfw_mfa2_tlv_component_descriptor {
 	__be16 pldm_classification;
@@ -96,6 +94,6 @@ struct mlxfw_mfa2_tlv_component_descriptor {
 } __packed;
 
 MLXFW_MFA2_TLV(component_descriptor, struct mlxfw_mfa2_tlv_component_descriptor,
-	       MLXFW_MFA2_TLV_COMPONENT_DESCRIPTOR);
+    MLXFW_MFA2_TLV_COMPONENT_DESCRIPTOR);
 
 #endif

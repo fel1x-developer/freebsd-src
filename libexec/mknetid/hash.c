@@ -32,10 +32,12 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+
 #include "hash.h"
 
 /*
@@ -54,7 +56,7 @@ hash(const void *keyarg, size_t len)
 	size_t loop;
 	u_int32_t h;
 
-#define HASHC   h = *key++ + 65599 * h
+#define HASHC h = *key++ + 65599 * h
 
 	h = 0;
 	key = keyarg;
@@ -66,25 +68,25 @@ hash(const void *keyarg, size_t len)
 			do {
 				HASHC;
 				/* FALLTHROUGH */
-		case 7:
+			case 7:
 				HASHC;
 				/* FALLTHROUGH */
-		case 6:
+			case 6:
 				HASHC;
 				/* FALLTHROUGH */
-		case 5:
+			case 5:
 				HASHC;
 				/* FALLTHROUGH */
-		case 4:
+			case 4:
 				HASHC;
 				/* FALLTHROUGH */
-		case 3:
+			case 3:
 				HASHC;
 				/* FALLTHROUGH */
-		case 2:
+			case 2:
 				HASHC;
 				/* FALLTHROUGH */
-		case 1:
+			case 1:
 				HASHC;
 			} while (--loop);
 		}
@@ -97,16 +99,18 @@ hash(const void *keyarg, size_t len)
  * We mask off all but the lower 8 bits since our table array
  * can only hole 256 elements.
  */
-u_int32_t hashkey(char *key)
+u_int32_t
+hashkey(char *key)
 {
 
 	if (key == NULL)
 		return (-1);
-	return(hash((void *)key, strlen(key)) & HASH_MASK);
+	return (hash((void *)key, strlen(key)) & HASH_MASK);
 }
 
 /* Find an entry in the hash table (may be hanging off a linked list). */
-struct grouplist *lookup(struct member_entry *table[], char *key)
+struct grouplist *
+lookup(struct member_entry *table[], char *key)
 {
 	struct member_entry *cur;
 
@@ -114,11 +118,11 @@ struct grouplist *lookup(struct member_entry *table[], char *key)
 
 	while (cur) {
 		if (!strcmp(cur->key, key))
-			return(cur->groups);
+			return (cur->groups);
 		cur = cur->next;
 	}
 
-	return(NULL);
+	return (NULL);
 }
 
 struct grouplist dummy = { 99999, NULL };
@@ -126,7 +130,8 @@ struct grouplist dummy = { 99999, NULL };
 /*
  * Store a group member entry and/or update its grouplist.
  */
-void mstore (struct member_entry *table[], char *key, int gid, int dup)
+void
+mstore(struct member_entry *table[], char *key, int gid, int dup)
 {
 	struct member_entry *cur, *new;
 	struct grouplist *tmp;
@@ -141,7 +146,7 @@ void mstore (struct member_entry *table[], char *key, int gid, int dup)
 		tmp->next = NULL;
 	}
 
-		/* Check if all we have to do is insert a new groupname. */
+	/* Check if all we have to do is insert a new groupname. */
 	while (cur) {
 		if (!dup && !strcmp(cur->key, key)) {
 			tmp->next = cur->groups;

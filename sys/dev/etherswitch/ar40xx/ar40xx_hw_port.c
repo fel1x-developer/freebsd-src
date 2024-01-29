@@ -26,6 +26,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bus.h>
 #include <sys/errno.h>
 #include <sys/kernel.h>
@@ -34,49 +35,45 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_arp.h>
-#include <net/ethernet.h>
-#include <net/if_dl.h>
-#include <net/if_media.h>
-#include <net/if_types.h>
 
 #include <machine/bus.h>
+
+#include <dev/clk/clk.h>
+#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
+#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
+#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
+#include <dev/etherswitch/ar40xx/ar40xx_var.h>
+#include <dev/etherswitch/etherswitch.h>
+#include <dev/fdt/fdt_common.h>
+#include <dev/hwreset/hwreset.h>
 #include <dev/iicbus/iic.h>
-#include <dev/iicbus/iiconf.h>
 #include <dev/iicbus/iicbus.h>
+#include <dev/iicbus/iiconf.h>
+#include <dev/mdio/mdio.h>
 #include <dev/mii/mii.h>
 #include <dev/mii/miivar.h>
-#include <dev/mdio/mdio.h>
-#include <dev/clk/clk.h>
-#include <dev/hwreset/hwreset.h>
-
-#include <dev/fdt/fdt_common.h>
 #include <dev/ofw/ofw_bus.h>
 #include <dev/ofw/ofw_bus_subr.h>
 
-#include <dev/etherswitch/etherswitch.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <net/if_dl.h>
+#include <net/if_media.h>
+#include <net/if_types.h>
+#include <net/if_var.h>
 
-#include <dev/etherswitch/ar40xx/ar40xx_var.h>
-#include <dev/etherswitch/ar40xx/ar40xx_reg.h>
-#include <dev/etherswitch/ar40xx/ar40xx_debug.h>
-#include <dev/etherswitch/ar40xx/ar40xx_hw_port.h>
-
+#include "etherswitch_if.h"
 #include "mdio_if.h"
 #include "miibus_if.h"
-#include "etherswitch_if.h"
-
 
 int
 ar40xx_hw_port_init(struct ar40xx_softc *sc, int port)
 {
 	uint32_t reg;
 
-	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT,
-	    "%s: called; port %d\n", __func__, port);
+	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT, "%s: called; port %d\n",
+	    __func__, port);
 
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_STATUS(port), 0);
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_HEADER(port), 0);
@@ -111,7 +108,7 @@ ar40xx_hw_port_init(struct ar40xx_softc *sc, int port)
 	 * configurable so it's just nailed up here and left alone.
 	 */
 	reg = AR40XX_PORT_VLAN1_OUT_MODE_UNTOUCH
-	     << AR40XX_PORT_VLAN1_OUT_MODE_S;
+	    << AR40XX_PORT_VLAN1_OUT_MODE_S;
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_VLAN1(port), reg);
 
 	reg = AR40XX_PORT_LOOKUP_LEARN;
@@ -131,8 +128,8 @@ int
 ar40xx_hw_port_link_down(struct ar40xx_softc *sc, int port)
 {
 
-	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT,
-	    "%s: called; port %d\n", __func__, port);
+	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT, "%s: called; port %d\n",
+	    __func__, port);
 
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_STATUS(port), 0);
 
@@ -150,8 +147,8 @@ ar40xx_hw_port_link_up(struct ar40xx_softc *sc, int port)
 {
 	uint32_t reg;
 
-	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT,
-	    "%s: called; port %d\n", __func__, port);
+	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT, "%s: called; port %d\n",
+	    __func__, port);
 
 	/* Auto-link enable */
 	AR40XX_REG_BARRIER_READ(sc);
@@ -172,19 +169,16 @@ ar40xx_hw_port_cpuport_setup(struct ar40xx_softc *sc)
 {
 	uint32_t reg;
 
-	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT, "%s: called\n",
-	    __func__);
+	AR40XX_DPRINTF(sc, AR40XX_DBG_HW_PORT_INIT, "%s: called\n", __func__);
 
-	reg = AR40XX_PORT_STATUS_TXFLOW
-	    | AR40XX_PORT_STATUS_RXFLOW
-	    | AR40XX_PORT_TXHALF_FLOW
-	    | AR40XX_PORT_DUPLEX
-	    | AR40XX_PORT_SPEED_1000M;
+	reg = AR40XX_PORT_STATUS_TXFLOW | AR40XX_PORT_STATUS_RXFLOW |
+	    AR40XX_PORT_TXHALF_FLOW | AR40XX_PORT_DUPLEX |
+	    AR40XX_PORT_SPEED_1000M;
 	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_STATUS(0), reg);
 	DELAY(20);
 
 	reg |= AR40XX_PORT_TX_EN | AR40XX_PORT_RX_EN;
-        AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_STATUS(0), reg);
+	AR40XX_REG_WRITE(sc, AR40XX_REG_PORT_STATUS(0), reg);
 	AR40XX_REG_BARRIER_WRITE(sc);
 
 	return (0);
@@ -255,8 +249,8 @@ int
 ar40xx_hw_port_setup(struct ar40xx_softc *sc, int port, uint32_t members)
 {
 	uint32_t egress, ingress, reg;
-	uint32_t pvid = sc->sc_vlan.vlan_id[sc->sc_vlan.pvid[port]]
-	    & ETHERSWITCH_VID_MASK;
+	uint32_t pvid = sc->sc_vlan.vlan_id[sc->sc_vlan.pvid[port]] &
+	    ETHERSWITCH_VID_MASK;
 
 	if (sc->sc_vlan.vlan) {
 		egress = AR40XX_PORT_VLAN1_OUT_MODE_UNMOD;

@@ -3,14 +3,15 @@
 #include <linux/iopoll.h>
 #include <linux/mutex.h>
 #include <linux/types.h>
+
 #include "adf_accel_devices.h"
 #include "adf_common_drv.h"
 #include "adf_gen4_pfvf.h"
 #include "adf_pfvf_utils.h"
 #include "adf_pfvf_vf_proto.h"
 
-#define ADF_4XXX_PF2VM_OFFSET(i) (0x40B010 + ((i)*0x20))
-#define ADF_4XXX_VM2PF_OFFSET(i) (0x40B014 + ((i)*0x20))
+#define ADF_4XXX_PF2VM_OFFSET(i) (0x40B010 + ((i) * 0x20))
+#define ADF_4XXX_VM2PF_OFFSET(i) (0x40B014 + ((i) * 0x20))
 
 /* VF2PF interrupt source registers */
 #define ADF_4XXX_VM2PF_SOU 0x41A180
@@ -42,10 +43,8 @@ adf_gen4_vf_get_vfpf_offset(u32 i)
 }
 
 static int
-adf_gen4_pfvf_send(struct adf_accel_dev *accel_dev,
-		   struct pfvf_message msg,
-		   u32 pfvf_offset,
-		   struct mutex *csr_lock)
+adf_gen4_pfvf_send(struct adf_accel_dev *accel_dev, struct pfvf_message msg,
+    u32 pfvf_offset, struct mutex *csr_lock)
 {
 	struct resource *pmisc_addr = adf_get_pmisc_base(accel_dev);
 	u32 csr_val;
@@ -59,35 +58,27 @@ adf_gen4_pfvf_send(struct adf_accel_dev *accel_dev,
 	ADF_CSR_WR(pmisc_addr, pfvf_offset, csr_val | ADF_PFVF_INT);
 
 	/* Wait for confirmation from remote that it received the message */
-	ret = read_poll_timeout(ADF_CSR_RD,
-				csr_val,
-				!(csr_val & ADF_PFVF_INT),
-				ADF_PFVF_MSG_ACK_DELAY_US,
-				ADF_PFVF_MSG_ACK_MAX_DELAY_US,
-				true,
-				pmisc_addr,
-				pfvf_offset);
+	ret = read_poll_timeout(ADF_CSR_RD, csr_val, !(csr_val & ADF_PFVF_INT),
+	    ADF_PFVF_MSG_ACK_DELAY_US, ADF_PFVF_MSG_ACK_MAX_DELAY_US, true,
+	    pmisc_addr, pfvf_offset);
 	if (ret < 0)
 		device_printf(GET_DEV(accel_dev),
-			      "ACK not received from remote\n");
+		    "ACK not received from remote\n");
 
 	mutex_unlock(csr_lock);
 	return ret;
 }
 
 static int
-adf_gen4_vf2pf_send(struct adf_accel_dev *accel_dev,
-		    struct pfvf_message msg,
-		    u32 pfvf_offset,
-		    struct mutex *csr_lock)
+adf_gen4_vf2pf_send(struct adf_accel_dev *accel_dev, struct pfvf_message msg,
+    u32 pfvf_offset, struct mutex *csr_lock)
 {
 	return adf_gen4_pfvf_send(accel_dev, msg, pfvf_offset, csr_lock);
 }
 
 static struct pfvf_message
-adf_gen4_pfvf_recv(struct adf_accel_dev *accel_dev,
-		   u32 pfvf_offset,
-		   u8 compat_ver)
+adf_gen4_pfvf_recv(struct adf_accel_dev *accel_dev, u32 pfvf_offset,
+    u8 compat_ver)
 {
 	struct resource *pmisc_addr = adf_get_pmisc_base(accel_dev);
 	struct pfvf_message msg = { 0 };
@@ -97,8 +88,7 @@ adf_gen4_pfvf_recv(struct adf_accel_dev *accel_dev,
 	csr_val = ADF_CSR_RD(pmisc_addr, pfvf_offset);
 	if (!(csr_val & ADF_PFVF_INT)) {
 		device_printf(GET_DEV(accel_dev),
-			      "Spurious PFVF interrupt, msg 0x%.8x. Ignored\n",
-			      csr_val);
+		    "Spurious PFVF interrupt, msg 0x%.8x. Ignored\n", csr_val);
 		return msg;
 	}
 
@@ -112,9 +102,8 @@ adf_gen4_pfvf_recv(struct adf_accel_dev *accel_dev,
 }
 
 static struct pfvf_message
-adf_gen4_pf2vf_recv(struct adf_accel_dev *accel_dev,
-		    u32 pfvf_offset,
-		    u8 compat_ver)
+adf_gen4_pf2vf_recv(struct adf_accel_dev *accel_dev, u32 pfvf_offset,
+    u8 compat_ver)
 {
 	return adf_gen4_pfvf_recv(accel_dev, pfvf_offset, compat_ver);
 }

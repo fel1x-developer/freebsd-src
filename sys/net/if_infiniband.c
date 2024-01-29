@@ -42,15 +42,15 @@
 
 #include <net/bpf.h>
 #include <net/ethernet.h>
-#include <net/infiniband.h>
 #include <net/if.h>
-#include <net/if_var.h>
-#include <net/if_private.h>
 #include <net/if_dl.h>
-#include <net/if_media.h>
 #include <net/if_lagg.h>
 #include <net/if_llatbl.h>
+#include <net/if_media.h>
+#include <net/if_private.h>
 #include <net/if_types.h>
+#include <net/if_var.h>
+#include <net/infiniband.h>
 #include <net/netisr.h>
 #include <net/route.h>
 #include <netinet/if_ether.h>
@@ -66,8 +66,8 @@ struct mbuf *(*lagg_input_infiniband_p)(struct ifnet *, struct mbuf *);
 
 #ifdef INET
 static inline void
-infiniband_ipv4_multicast_map(uint32_t addr,
-    const uint8_t *broadcast, uint8_t *buf)
+infiniband_ipv4_multicast_map(uint32_t addr, const uint8_t *broadcast,
+    uint8_t *buf)
 {
 	uint8_t scope;
 
@@ -155,9 +155,9 @@ update_mbuf_csumflags(struct mbuf *src, struct mbuf *dst)
 	int csum_flags = 0;
 
 	if (src->m_pkthdr.csum_flags & CSUM_IP)
-		csum_flags |= (CSUM_IP_CHECKED|CSUM_IP_VALID);
+		csum_flags |= (CSUM_IP_CHECKED | CSUM_IP_VALID);
 	if (src->m_pkthdr.csum_flags & CSUM_DELAY_DATA)
-		csum_flags |= (CSUM_DATA_VALID|CSUM_PSEUDO_HDR);
+		csum_flags |= (CSUM_DATA_VALID | CSUM_PSEUDO_HDR);
 	if (src->m_pkthdr.csum_flags & CSUM_SCTP)
 		csum_flags |= CSUM_SCTP_VALID;
 	dst->m_pkthdr.csum_flags |= csum_flags;
@@ -242,14 +242,16 @@ infiniband_resolve_addr(struct ifnet *ifp, struct mbuf *m,
 #ifdef INET
 	case AF_INET:
 		if ((m->m_flags & (M_BCAST | M_MCAST)) == 0) {
-			error = arpresolve(ifp, 0, m, dst, phdr, &lleflags, plle);
+			error = arpresolve(ifp, 0, m, dst, phdr, &lleflags,
+			    plle);
 		} else {
 			if (m->m_flags & M_BCAST) {
 				memcpy(ih->ib_hwaddr, ifp->if_broadcastaddr,
 				    INFINIBAND_ADDR_LEN);
 			} else {
 				infiniband_ipv4_multicast_map(
-				    ((const struct sockaddr_in *)dst)->sin_addr.s_addr,
+				    ((const struct sockaddr_in *)dst)
+					->sin_addr.s_addr,
 				    ifp->if_broadcastaddr, ih->ib_hwaddr);
 			}
 			ih->ib_protocol = htons(ETHERTYPE_IP);
@@ -298,15 +300,15 @@ infiniband_resolve_addr(struct ifnet *ifp, struct mbuf *m,
  * Infiniband output routine.
  */
 static int
-infiniband_output(struct ifnet *ifp, struct mbuf *m,
-    const struct sockaddr *dst, struct route *ro)
+infiniband_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
+    struct route *ro)
 {
 	uint8_t linkhdr[INFINIBAND_HDR_LEN];
 	uint8_t *phdr;
 	struct llentry *lle = NULL;
 	struct infiniband_header *ih;
 	int error = 0;
-	int hlen;	/* link layer header length */
+	int hlen; /* link layer header length */
 	uint32_t pflags;
 	bool addref;
 
@@ -326,7 +328,7 @@ infiniband_output(struct ifnet *ifp, struct mbuf *m,
 				if (lle != NULL &&
 				    (lle->la_flags & LLE_VALID) == 0) {
 					LLE_FREE(lle);
-					lle = NULL;	/* redundant */
+					lle = NULL; /* redundant */
 					ro->ro_lle = NULL;
 				}
 				if (lle == NULL) {
@@ -360,7 +362,7 @@ infiniband_output(struct ifnet *ifp, struct mbuf *m,
 		goto bad;
 	}
 	if (!((ifp->if_flags & IFF_UP) &&
-	    (ifp->if_drv_flags & IFF_DRV_RUNNING))) {
+		(ifp->if_drv_flags & IFF_DRV_RUNNING))) {
 		error = ENETDOWN;
 		goto bad;
 	}
@@ -431,8 +433,10 @@ infiniband_input(struct ifnet *ifp, struct mbuf *m)
 		needs_epoch = true;
 		if (!printedonce) {
 			printedonce = true;
-			if_printf(ifp, "called %s w/o net epoch! "
-			    "PLEASE file a bug report.", __func__);
+			if_printf(ifp,
+			    "called %s w/o net epoch! "
+			    "PLEASE file a bug report.",
+			    __func__);
 #ifdef KDB
 			kdb_backtrace();
 #endif
@@ -461,7 +465,7 @@ infiniband_input(struct ifnet *ifp, struct mbuf *m)
 
 	if (INFINIBAND_IS_MULTICAST(ibh->ib_hwaddr)) {
 		if (memcmp(ibh->ib_hwaddr, ifp->if_broadcastaddr,
-		    ifp->if_addrlen) == 0)
+			ifp->if_addrlen) == 0)
 			m->m_flags |= M_BCAST;
 		else
 			m->m_flags |= M_MCAST;
@@ -570,8 +574,8 @@ infiniband_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 		sdl = link_init_sdl(ifp, *llsa, IFT_INFINIBAND);
 		sdl->sdl_alen = INFINIBAND_ADDR_LEN;
 		e_addr = LLADDR(sdl);
-		infiniband_ipv4_multicast_map(
-		    sin->sin_addr.s_addr, ifp->if_broadcastaddr, e_addr);
+		infiniband_ipv4_multicast_map(sin->sin_addr.s_addr,
+		    ifp->if_broadcastaddr, e_addr);
 		*llsa = (struct sockaddr *)sdl;
 		return (0);
 #endif
@@ -590,8 +594,8 @@ infiniband_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 		sdl = link_init_sdl(ifp, *llsa, IFT_INFINIBAND);
 		sdl->sdl_alen = INFINIBAND_ADDR_LEN;
 		e_addr = LLADDR(sdl);
-		infiniband_ipv6_multicast_map(
-		    &sin6->sin6_addr, ifp->if_broadcastaddr, e_addr);
+		infiniband_ipv6_multicast_map(&sin6->sin6_addr,
+		    ifp->if_broadcastaddr, e_addr);
 		*llsa = (struct sockaddr *)sdl;
 		return (0);
 #endif

@@ -28,8 +28,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef	_ARM64_SCMI_SCMI_PROTOCOLS_H_
-#define	_ARM64_SCMI_SCMI_PROTOCOLS_H_
+#ifndef _ARM64_SCMI_SCMI_PROTOCOLS_H_
+#define _ARM64_SCMI_SCMI_PROTOCOLS_H_
 
 enum scmi_std_protocol {
 	SCMI_PROTOCOL_ID_BASE = 0x10,
@@ -43,7 +43,7 @@ enum scmi_std_protocol {
 };
 
 enum scmi_status_code {
-	SCMI_SUCCESS =  0,
+	SCMI_SUCCESS = 0,
 	SCMI_NOT_SUPPORTED = -1,
 	SCMI_INVALID_PARAMETERS = -2,
 	SCMI_DENIED = -3,
@@ -56,6 +56,6 @@ enum scmi_status_code {
 	SCMI_PROTOCOL_ERROR = -10,
 };
 
-#define	SCMI_PROTOCOL_ATTRIBUTES	0x1
+#define SCMI_PROTOCOL_ATTRIBUTES 0x1
 
 #endif /* !_ARM64_SCMI_SCMI_PROTOCOLS_H_ */

@@ -32,13 +32,14 @@
  * SUCH DAMAGE.
  */
 
-#include "namespace.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "un-namespace.h"
-#include "local.h"
+
 #include "libc_private.h"
+#include "local.h"
+#include "namespace.h"
+#include "un-namespace.h"
 
 static int __submore(FILE *);
 

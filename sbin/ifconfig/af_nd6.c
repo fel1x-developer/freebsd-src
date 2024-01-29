@@ -29,44 +29,43 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
+
 #include <net/if.h>
 #include <net/route.h>
+#include <netinet/in.h>
+#include <netinet/in_var.h>
+#include <netinet6/nd6.h>
 
+#include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
+#include <ifaddrs.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <ifaddrs.h>
-
-#include <arpa/inet.h>
-
-#include <netinet/in.h>
-#include <netinet/in_var.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#include <netinet6/nd6.h>
 
 #include "ifconfig.h"
 
-#define	MAX_SYSCTL_TRY	5
+#define MAX_SYSCTL_TRY 5
 #ifdef DRAFT_IETF_6MAN_IPV6ONLY_FLAG
-#define	ND6BITS	"\020\001PERFORMNUD\002ACCEPT_RTADV\003PREFER_SOURCE" \
-		"\004IFDISABLED\005DONT_SET_IFROUTE\006AUTO_LINKLOCAL" \
-		"\007NO_RADR\010NO_PREFER_IFACE\011NO_DAD" \
-		"\012IPV6_ONLY\013IPV6_ONLY_MANUAL" \
-		"\020DEFAULTIF"
+#define ND6BITS                                                \
+	"\020\001PERFORMNUD\002ACCEPT_RTADV\003PREFER_SOURCE"  \
+	"\004IFDISABLED\005DONT_SET_IFROUTE\006AUTO_LINKLOCAL" \
+	"\007NO_RADR\010NO_PREFER_IFACE\011NO_DAD"             \
+	"\012IPV6_ONLY\013IPV6_ONLY_MANUAL"                    \
+	"\020DEFAULTIF"
 #else
-#define	ND6BITS	"\020\001PERFORMNUD\002ACCEPT_RTADV\003PREFER_SOURCE" \
-		"\004IFDISABLED\005DONT_SET_IFROUTE\006AUTO_LINKLOCAL" \
-		"\007NO_RADR\010NO_PREFER_IFACE\011NO_DAD\020DEFAULTIF"
+#define ND6BITS                                                \
+	"\020\001PERFORMNUD\002ACCEPT_RTADV\003PREFER_SOURCE"  \
+	"\004IFDISABLED\005DONT_SET_IFROUTE\006AUTO_LINKLOCAL" \
+	"\007NO_RADR\010NO_PREFER_IFACE\011NO_DAD\020DEFAULTIF"
 #endif
 
 static int isnd6defif(if_ctx *ctx, int s);
 void setnd6flags(if_ctx *, const char *, int);
-void setnd6defif(if_ctx *,const char *, int);
+void setnd6defif(if_ctx *, const char *, int);
 void nd6_status(if_ctx *);
 
 void
@@ -159,7 +158,7 @@ nd6_status(if_ctx *ctx)
 	close(s6);
 	if (nd.ndi.flags == 0 && !isdefif)
 		return;
-	printb("\tnd6 options",
-	    (unsigned int)(nd.ndi.flags | (isdefif << 15)), ND6BITS);
+	printb("\tnd6 options", (unsigned int)(nd.ndi.flags | (isdefif << 15)),
+	    ND6BITS);
 	putchar('\n');
 }

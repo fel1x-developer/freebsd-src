@@ -26,9 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 #include "opt_acpi.h"
 
+#include <sys/cdefs.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/bus.h>
@@ -45,19 +45,17 @@
 #include <machine/bus.h>
 #include <machine/resource.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
-
 #include <dev/acpica/acpivar.h>
 #include <dev/gpio/gpiobusvar.h>
 
-#include "gpio_if.h"
-#include "amdgpio.h"
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
 
-static struct resource_spec amdgpio_spec[] = {
-	{ SYS_RES_MEMORY, 0, RF_ACTIVE },
-	{ -1, 0, 0 }
-};
+#include "amdgpio.h"
+#include "gpio_if.h"
+
+static struct resource_spec amdgpio_spec[] = { { SYS_RES_MEMORY, 0, RF_ACTIVE },
+	{ -1, 0, 0 } };
 
 static inline uint32_t
 amdgpio_read_4(struct amdgpio_softc *sc, bus_size_t off)
@@ -66,8 +64,7 @@ amdgpio_read_4(struct amdgpio_softc *sc, bus_size_t off)
 }
 
 static inline void
-amdgpio_write_4(struct amdgpio_softc *sc, bus_size_t off,
-		uint32_t val)
+amdgpio_write_4(struct amdgpio_softc *sc, bus_size_t off, uint32_t val)
 {
 	bus_write_4(sc->sc_res[0], off, val);
 }
@@ -126,7 +123,7 @@ amdgpio_valid_pin(struct amdgpio_softc *sc, int pin)
 		return (false);
 
 	if ((sc->sc_gpio_pins[pin].gp_pin == pin) &&
-		(sc->sc_gpio_pins[pin].gp_caps != 0))
+	    (sc->sc_gpio_pins[pin].gp_caps != 0))
 		return (true);
 
 	return (false);
@@ -234,8 +231,8 @@ amdgpio_pin_setflags(device_t dev, uint32_t pin, uint32_t flags)
 
 	amdgpio_write_4(sc, reg, val);
 
-	dprintf("pin %d flags 0x%x val 0x%x gp_flags 0x%x\n",
-		pin, flags, val, sc->sc_gpio_pins[pin].gp_flags);
+	dprintf("pin %d flags 0x%x val 0x%x gp_flags 0x%x\n", pin, flags, val,
+	    sc->sc_gpio_pins[pin].gp_flags);
 
 	AMDGPIO_UNLOCK(sc);
 
@@ -387,25 +384,26 @@ amdgpio_attach(device_t dev)
 	sc->sc_bsh = rman_get_bushandle(sc->sc_res[0]);
 
 	/* Initialize all possible pins to be Invalid */
-	for (i = 0; i < AMD_GPIO_PINS_MAX ; i++) {
+	for (i = 0; i < AMD_GPIO_PINS_MAX; i++) {
 		snprintf(sc->sc_gpio_pins[i].gp_name, GPIOMAXNAME,
-			"Unexposed PIN %d", i);
+		    "Unexposed PIN %d", i);
 		sc->sc_gpio_pins[i].gp_pin = -1;
 		sc->sc_gpio_pins[i].gp_caps = 0;
 		sc->sc_gpio_pins[i].gp_flags = 0;
 	}
 
 	/* Initialize only driver exposed pins with appropriate capabilities */
-	for (i = 0; i < AMD_GPIO_PINS_EXPOSED ; i++) {
+	for (i = 0; i < AMD_GPIO_PINS_EXPOSED; i++) {
 		pin = kernzp_pins[i].pin_num;
-		bank = pin/AMD_GPIO_PINS_PER_BANK;
+		bank = pin / AMD_GPIO_PINS_PER_BANK;
 		snprintf(sc->sc_gpio_pins[pin].gp_name, GPIOMAXNAME, "%s%d_%s",
-			AMD_GPIO_PREFIX, bank, kernzp_pins[i].pin_name);
+		    AMD_GPIO_PREFIX, bank, kernzp_pins[i].pin_name);
 		sc->sc_gpio_pins[pin].gp_pin = pin;
 		sc->sc_gpio_pins[pin].gp_caps = AMDGPIO_DEFAULT_CAPS;
-		sc->sc_gpio_pins[pin].gp_flags =
-		    amdgpio_is_pin_output(sc, pin) ?
-		    GPIO_PIN_OUTPUT : GPIO_PIN_INPUT;
+		sc->sc_gpio_pins[pin].gp_flags = amdgpio_is_pin_output(sc,
+						     pin) ?
+		    GPIO_PIN_OUTPUT :
+		    GPIO_PIN_INPUT;
 	}
 
 	sc->sc_busdev = gpiobus_attach_bus(dev);

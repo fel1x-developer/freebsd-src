@@ -68,11 +68,11 @@ ef_riscv_reloc(struct elf_file *ef, const void *reldata, Elf_Type reltype,
 		return (0);
 
 	switch (rtype) {
-	case R_RISCV_64:	/* S + A */
+	case R_RISCV_64: /* S + A */
 		addr = EF_SYMADDR(ef, symidx) + addend;
 		le64enc(where, addr);
 		break;
-	case R_RISCV_RELATIVE:	/* B + A */
+	case R_RISCV_RELATIVE: /* B + A */
 		addr = relbase + addend;
 		le64enc(where, addr);
 		break;

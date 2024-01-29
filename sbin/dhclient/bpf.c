@@ -44,19 +44,20 @@
  */
 
 #include <sys/cdefs.h>
-#include "dhcpd.h"
-#include "privsep.h"
 #include <sys/capsicum.h>
 #include <sys/ioctl.h>
 #include <sys/uio.h>
 
 #include <net/bpf.h>
+#include <netinet/if_ether.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <netinet/if_ether.h>
 
 #include <capsicum_helpers.h>
+
+#include "dhcpd.h"
+#include "privsep.h"
 
 #define BPF_FORMAT "/dev/bpf%d"
 
@@ -92,8 +93,8 @@ if_register_bpf(struct interface_info *info, int flags)
 	/* Tag the packets with the proper VLAN PCP setting. */
 	if (info->client->config->vlan_pcp != 0) {
 		if (ioctl(sock, BIOCSETVLANPCP,
-		    &info->client->config->vlan_pcp) < 0)
-			error( "Can't set the VLAN PCP tag on interface %s: %m",
+			&info->client->config->vlan_pcp) < 0)
+			error("Can't set the VLAN PCP tag on interface %s: %m",
 			    info->name);
 	}
 
@@ -118,7 +119,7 @@ static const struct bpf_insn dhcp_bpf_wfilter[] = {
 
 	/* Make sure this isn't a fragment... */
 	BPF_STMT(BPF_LD + BPF_H + BPF_ABS, 20),
-	BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K, IP_MF|IP_OFFMASK, 6, 0),
+	BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K, IP_MF | IP_OFFMASK, 6, 0),
 
 	/* Get the IP header length... */
 	BPF_STMT(BPF_LDX + BPF_B + BPF_MSH, 14),
@@ -132,10 +133,10 @@ static const struct bpf_insn dhcp_bpf_wfilter[] = {
 	BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, REMOTE_PORT, 0, 1),
 
 	/* If we passed all the tests, ask for the whole packet. */
-	BPF_STMT(BPF_RET+BPF_K, (u_int)-1),
+	BPF_STMT(BPF_RET + BPF_K, (u_int)-1),
 
 	/* Otherwise, drop it. */
-	BPF_STMT(BPF_RET+BPF_K, 0),
+	BPF_STMT(BPF_RET + BPF_K, 0),
 };
 
 void
@@ -153,8 +154,7 @@ if_register_send(struct interface_info *info)
 	if (ioctl(info->wfdesc, BIOCVERSION, &v) < 0)
 		error("Can't get BPF version: %m");
 
-	if (v.bv_major != BPF_MAJOR_VERSION ||
-	    v.bv_minor < BPF_MINOR_VERSION)
+	if (v.bv_major != BPF_MAJOR_VERSION || v.bv_minor < BPF_MINOR_VERSION)
 		error("Kernel BPF version out of range - recompile dhcpd!");
 
 	/* Set up the bpf write filter program structure. */
@@ -176,8 +176,7 @@ if_register_send(struct interface_info *info)
 	 */
 	if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) == -1)
 		error("socket(SOCK_RAW): %m");
-	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &on,
-	    sizeof(on)) == -1)
+	if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &on, sizeof(on)) == -1)
 		error("setsockopt(IP_HDRINCL): %m");
 	info->ufdesc = sock;
 }
@@ -217,7 +216,7 @@ static const struct bpf_insn dhcp_bpf_filter[] = {
 
 	/* Make sure this isn't a fragment... */
 	BPF_STMT(BPF_LD + BPF_H + BPF_IND, 20),
-	BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K, IP_MF|IP_OFFMASK, 10, 0),
+	BPF_JUMP(BPF_JMP + BPF_JSET + BPF_K, IP_MF | IP_OFFMASK, 10, 0),
 
 	/*
 	 * Get the IP header length...
@@ -244,10 +243,10 @@ static const struct bpf_insn dhcp_bpf_filter[] = {
 	BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, LOCAL_PORT, 0, 1),
 
 	/* If we passed all the tests, ask for the whole packet. */
-	BPF_STMT(BPF_RET+BPF_K, (u_int)-1),
+	BPF_STMT(BPF_RET + BPF_K, (u_int)-1),
 
 	/* Otherwise, drop it. */
-	BPF_STMT(BPF_RET+BPF_K, 0),
+	BPF_STMT(BPF_RET + BPF_K, 0),
 };
 
 void
@@ -266,8 +265,7 @@ if_register_receive(struct interface_info *info)
 	if (ioctl(info->rfdesc, BIOCVERSION, &v) < 0)
 		error("Can't get BPF version: %m");
 
-	if (v.bv_major != BPF_MAJOR_VERSION ||
-	    v.bv_minor < BPF_MINOR_VERSION)
+	if (v.bv_major != BPF_MAJOR_VERSION || v.bv_minor < BPF_MINOR_VERSION)
 		error("Kernel BPF version out of range - recompile dhcpd!");
 
 	/*
@@ -315,9 +313,8 @@ send_packet_unpriv(int privfd, struct dhcp_packet *raw, size_t len,
 	int errs;
 
 	hdr.code = IMSG_SEND_PACKET;
-	hdr.len = sizeof(hdr) +
-	    sizeof(size_t) + len +
-	    sizeof(from) + sizeof(to);
+	hdr.len = sizeof(hdr) + sizeof(size_t) + len + sizeof(from) +
+	    sizeof(to);
 
 	if ((buf = buf_open(hdr.len)) == NULL)
 		error("buf_open: %m");
@@ -349,8 +346,8 @@ send_packet_priv(struct interface_info *interface, struct imsg_hdr *hdr, int fd)
 	if (hdr->len < sizeof(*hdr) + sizeof(size_t))
 		error("corrupted message received");
 	buf_read(fd, &len, sizeof(len));
-	if (hdr->len != sizeof(*hdr) + sizeof(size_t) + len +
-	    sizeof(from) + sizeof(to)) {
+	if (hdr->len !=
+	    sizeof(*hdr) + sizeof(size_t) + len + sizeof(from) + sizeof(to)) {
 		error("corrupted message received");
 	}
 	if (len > sizeof(raw))
@@ -394,8 +391,8 @@ send_packet_priv(struct interface_info *interface, struct imsg_hdr *hdr, int fd)
 }
 
 ssize_t
-receive_packet(struct interface_info *interface, unsigned char *buf,
-    size_t len, struct sockaddr_in *from, struct hardware *hfrom)
+receive_packet(struct interface_info *interface, unsigned char *buf, size_t len,
+    struct sockaddr_in *from, struct hardware *hfrom)
 {
 	int length = 0, offset = 0;
 	struct bpf_hdr hdr;
@@ -455,9 +452,8 @@ receive_packet(struct interface_info *interface, unsigned char *buf,
 		 * do is drop it.
 		 */
 		if (hdr.bh_caplen != hdr.bh_datalen) {
-			interface->rbuf_offset =
-			    BPF_WORDALIGN(interface->rbuf_offset +
-			    hdr.bh_caplen);
+			interface->rbuf_offset = BPF_WORDALIGN(
+			    interface->rbuf_offset + hdr.bh_caplen);
 			continue;
 		}
 
@@ -471,9 +467,8 @@ receive_packet(struct interface_info *interface, unsigned char *buf,
 		 * this packet.
 		 */
 		if (offset < 0) {
-			interface->rbuf_offset =
-			    BPF_WORDALIGN(interface->rbuf_offset +
-			    hdr.bh_caplen);
+			interface->rbuf_offset = BPF_WORDALIGN(
+			    interface->rbuf_offset + hdr.bh_caplen);
 			continue;
 		}
 		interface->rbuf_offset += offset;
@@ -485,9 +480,8 @@ receive_packet(struct interface_info *interface, unsigned char *buf,
 
 		/* If the IP or UDP checksum was bad, skip the packet... */
 		if (offset < 0) {
-			interface->rbuf_offset =
-			    BPF_WORDALIGN(interface->rbuf_offset +
-			    hdr.bh_caplen);
+			interface->rbuf_offset = BPF_WORDALIGN(
+			    interface->rbuf_offset + hdr.bh_caplen);
 			continue;
 		}
 		interface->rbuf_offset += offset;
@@ -499,18 +493,16 @@ receive_packet(struct interface_info *interface, unsigned char *buf,
 		 * life, though).
 		 */
 		if (hdr.bh_caplen > len) {
-			interface->rbuf_offset =
-			    BPF_WORDALIGN(interface->rbuf_offset +
-			    hdr.bh_caplen);
+			interface->rbuf_offset = BPF_WORDALIGN(
+			    interface->rbuf_offset + hdr.bh_caplen);
 			continue;
 		}
 
 		/* Copy out the data in the packet... */
 		memcpy(buf, interface->rbuf + interface->rbuf_offset,
 		    hdr.bh_caplen);
-		interface->rbuf_offset =
-		    BPF_WORDALIGN(interface->rbuf_offset +
-		    hdr.bh_caplen);
+		interface->rbuf_offset = BPF_WORDALIGN(
+		    interface->rbuf_offset + hdr.bh_caplen);
 		return (hdr.bh_caplen);
 	} while (!length);
 	return (0);

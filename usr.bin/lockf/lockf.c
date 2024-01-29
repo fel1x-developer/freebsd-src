@@ -40,11 +40,11 @@
 #include <sysexits.h>
 #include <unistd.h>
 
-#define	FDLOCK_PREFIX	"/dev/fd/"
+#define FDLOCK_PREFIX "/dev/fd/"
 
 union lock_subject {
-	long		 subj_fd;
-	const char	*subj_name;
+	long subj_fd;
+	const char *subj_name;
 };
 
 static int acquire_lock(union lock_subject *subj, int flags, int silent);
@@ -98,7 +98,7 @@ main(int argc, char **argv)
 
 	silent = keep = 0;
 	flags = O_CREAT | O_RDONLY;
-	waitsec = -1;	/* Infinite. */
+	waitsec = -1; /* Infinite. */
 	while ((ch = getopt(argc, argv, "knst:w")) != -1) {
 		switch (ch) {
 		case 'k':
@@ -110,16 +110,14 @@ main(int argc, char **argv)
 		case 's':
 			silent = 1;
 			break;
-		case 't':
-		{
+		case 't': {
 			const char *errstr;
 
 			waitsec = strtonum(optarg, 0, UINT_MAX, &errstr);
 			if (errstr != NULL)
-				errx(EX_USAGE,
-				    "invalid timeout \"%s\"", optarg);
-		}
-			break;
+				errx(EX_USAGE, "invalid timeout \"%s\"",
+				    optarg);
+		} break;
 		case 'w':
 			flags = (flags & ~O_RDONLY) | O_WRONLY;
 			break;
@@ -175,12 +173,12 @@ main(int argc, char **argv)
 		subj.subj_name = lockname;
 	}
 
-	if (waitsec > 0) {		/* Set up a timeout. */
+	if (waitsec > 0) { /* Set up a timeout. */
 		struct sigaction act;
 
 		act.sa_handler = timeout;
 		sigemptyset(&act.sa_mask);
-		act.sa_flags = 0;	/* Note that we do not set SA_RESTART. */
+		act.sa_flags = 0; /* Note that we do not set SA_RESTART. */
 		sigaction(SIGALRM, &act, NULL);
 		alarm((unsigned int)waitsec);
 	}
@@ -218,7 +216,7 @@ main(int argc, char **argv)
 	}
 	if (waitsec > 0)
 		alarm(0);
-	if (lockfd == -1) {		/* We failed to acquire the lock. */
+	if (lockfd == -1) { /* We failed to acquire the lock. */
 		if (silent)
 			exit(EX_TEMPFAIL);
 		errx(EX_TEMPFAIL, "%s: already locked", lockname);
@@ -236,7 +234,7 @@ main(int argc, char **argv)
 		err(EX_OSERR, "atexit failed");
 	if ((child = fork()) == -1)
 		err(EX_OSERR, "cannot fork");
-	if (child == 0) {	/* The child process. */
+	if (child == 0) { /* The child process. */
 		close(lockfd);
 		execvp(argv[0], argv);
 		warn("%s", argv[0]);
@@ -274,7 +272,7 @@ acquire_lock(union lock_subject *subj, int flags, int silent)
 				return (-1);
 			err(EX_CANTCREAT, "cannot lock fd %d", fd);
 		}
-	} else if ((fd = open(subj->subj_name, O_EXLOCK|flags, 0666)) == -1) {
+	} else if ((fd = open(subj->subj_name, O_EXLOCK | flags, 0666)) == -1) {
 		if (errno == EAGAIN || errno == EINTR)
 			return (-1);
 		else if (errno == ENOENT && (flags & O_CREAT) == 0) {
@@ -343,7 +341,7 @@ wait_for_lock(const char *name)
 {
 	int fd;
 
-	if ((fd = open(name, O_RDONLY|O_EXLOCK, 0666)) == -1) {
+	if ((fd = open(name, O_RDONLY | O_EXLOCK, 0666)) == -1) {
 		if (errno == ENOENT || errno == EINTR)
 			return;
 		err(EX_CANTCREAT, "cannot open %s", name);

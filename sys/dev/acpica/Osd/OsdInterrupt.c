@@ -31,39 +31,40 @@
  */
 
 #include <sys/param.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
+#include <sys/kernel.h>
 #include <sys/lock.h>
 #include <sys/malloc.h>
 #include <sys/mutex.h>
-#include <machine/bus.h>
-#include <machine/resource.h>
 #include <sys/rman.h>
 
-#include <contrib/dev/acpica/include/acpi.h>
-#include <contrib/dev/acpica/include/accommon.h>
+#include <machine/bus.h>
+#include <machine/resource.h>
 
 #include <dev/acpica/acpivar.h>
 
-#define _COMPONENT	ACPI_OS_SERVICES
+#include <contrib/dev/acpica/include/accommon.h>
+#include <contrib/dev/acpica/include/acpi.h>
+
+#define _COMPONENT ACPI_OS_SERVICES
 ACPI_MODULE_NAME("INTERRUPT")
 
 static MALLOC_DEFINE(M_ACPIINTR, "acpiintr", "ACPI interrupt");
 
 struct acpi_intr {
-	SLIST_ENTRY(acpi_intr)	ai_link;
-	struct resource		*ai_irq;
-	int			ai_rid;
-	void			*ai_handle;
-	int			ai_number;
-	ACPI_OSD_HANDLER	ai_handler;
-	void			*ai_context;
+	SLIST_ENTRY(acpi_intr) ai_link;
+	struct resource *ai_irq;
+	int ai_rid;
+	void *ai_handle;
+	int ai_number;
+	ACPI_OSD_HANDLER ai_handler;
+	void *ai_context;
 };
-static SLIST_HEAD(, acpi_intr) acpi_intr_list =
-    SLIST_HEAD_INITIALIZER(acpi_intr_list);
-static struct mtx	acpi_intr_lock;
+static SLIST_HEAD(, acpi_intr) acpi_intr_list = SLIST_HEAD_INITIALIZER(
+    acpi_intr_list);
+static struct mtx acpi_intr_lock;
 
-static UINT32		InterruptOverride;
+static UINT32 InterruptOverride;
 
 static void
 acpi_intr_init(struct mtx *lock)
@@ -107,24 +108,24 @@ AcpiOsInstallInterruptHandler(UINT32 InterruptNumber,
 	struct acpi_softc *sc;
 	struct acpi_intr *ai, *ap;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = devclass_get_softc(devclass_find("acpi"), 0);
 	KASSERT(sc != NULL && sc->acpi_dev != NULL,
 	    ("can't find ACPI device to register interrupt"));
 
 	if (InterruptNumber > 255 || ServiceRoutine == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 
 	ai = malloc(sizeof(*ai), M_ACPIINTR, M_WAITOK | M_ZERO);
 	mtx_lock(&acpi_intr_lock);
-	SLIST_FOREACH(ap, &acpi_intr_list, ai_link) {
+	SLIST_FOREACH (ap, &acpi_intr_list, ai_link) {
 		if (InterruptNumber == ap->ai_number ||
 		    (InterruptNumber == InterruptOverride &&
-		    InterruptNumber != AcpiGbl_FADT.SciInterrupt)) {
+			InterruptNumber != AcpiGbl_FADT.SciInterrupt)) {
 			mtx_unlock(&acpi_intr_lock);
 			free(ai, M_ACPIINTR);
-			return_ACPI_STATUS (AE_ALREADY_EXISTS);
+			return_ACPI_STATUS(AE_ALREADY_EXISTS);
 		}
 		if (ai->ai_rid <= ap->ai_rid)
 			ai->ai_rid = ap->ai_rid + 1;
@@ -142,14 +143,14 @@ AcpiOsInstallInterruptHandler(UINT32 InterruptNumber,
 	if (InterruptOverride != 0 &&
 	    InterruptNumber == AcpiGbl_FADT.SciInterrupt) {
 		device_printf(sc->acpi_dev,
-		    "Overriding SCI from IRQ %u to IRQ %u\n",
-		    InterruptNumber, InterruptOverride);
+		    "Overriding SCI from IRQ %u to IRQ %u\n", InterruptNumber,
+		    InterruptOverride);
 		InterruptNumber = InterruptOverride;
 	}
 
 	/* Set up the interrupt resource. */
-	bus_set_resource(sc->acpi_dev, SYS_RES_IRQ, ai->ai_rid,
-	    InterruptNumber, 1);
+	bus_set_resource(sc->acpi_dev, SYS_RES_IRQ, ai->ai_rid, InterruptNumber,
+	    1);
 	ai->ai_irq = bus_alloc_resource_any(sc->acpi_dev, SYS_RES_IRQ,
 	    &ai->ai_rid, RF_SHAREABLE | RF_ACTIVE);
 	if (ai->ai_irq == NULL) {
@@ -157,19 +158,19 @@ AcpiOsInstallInterruptHandler(UINT32 InterruptNumber,
 		goto error;
 	}
 	if (bus_setup_intr(sc->acpi_dev, ai->ai_irq,
-	    INTR_TYPE_MISC | INTR_MPSAFE, acpi_intr_handler, NULL, ai,
-	    &ai->ai_handle) != 0) {
+		INTR_TYPE_MISC | INTR_MPSAFE, acpi_intr_handler, NULL, ai,
+		&ai->ai_handle) != 0) {
 		device_printf(sc->acpi_dev, "could not set up interrupt\n");
 		goto error;
 	}
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 
 error:
 	mtx_lock(&acpi_intr_lock);
 	SLIST_REMOVE(&acpi_intr_list, ai, acpi_intr, ai_link);
 	mtx_unlock(&acpi_intr_lock);
 	acpi_intr_destroy(sc->acpi_dev, ai);
-	return_ACPI_STATUS (AE_ALREADY_EXISTS);
+	return_ACPI_STATUS(AE_ALREADY_EXISTS);
 }
 
 ACPI_STATUS
@@ -179,39 +180,39 @@ AcpiOsRemoveInterruptHandler(UINT32 InterruptNumber,
 	struct acpi_softc *sc;
 	struct acpi_intr *ai;
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	sc = devclass_get_softc(devclass_find("acpi"), 0);
 	KASSERT(sc != NULL && sc->acpi_dev != NULL,
 	    ("can't find ACPI device to deregister interrupt"));
 
 	if (InterruptNumber > 255 || ServiceRoutine == NULL)
-		return_ACPI_STATUS (AE_BAD_PARAMETER);
+		return_ACPI_STATUS(AE_BAD_PARAMETER);
 	mtx_lock(&acpi_intr_lock);
-	SLIST_FOREACH(ai, &acpi_intr_list, ai_link)
+	SLIST_FOREACH (ai, &acpi_intr_list, ai_link)
 		if (InterruptNumber == ai->ai_number) {
 			if (ServiceRoutine != ai->ai_handler) {
 				mtx_unlock(&acpi_intr_lock);
-				return_ACPI_STATUS (AE_BAD_PARAMETER);
+				return_ACPI_STATUS(AE_BAD_PARAMETER);
 			}
 			SLIST_REMOVE(&acpi_intr_list, ai, acpi_intr, ai_link);
 			break;
 		}
 	mtx_unlock(&acpi_intr_lock);
 	if (ai == NULL)
-		return_ACPI_STATUS (AE_NOT_EXIST);
+		return_ACPI_STATUS(AE_NOT_EXIST);
 	acpi_intr_destroy(sc->acpi_dev, ai);
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }
 
 ACPI_STATUS
 acpi_OverrideInterruptLevel(UINT32 InterruptNumber)
 {
 
-	ACPI_FUNCTION_TRACE((char *)(uintptr_t)__func__);
+	ACPI_FUNCTION_TRACE((char *)(uintptr_t) __func__);
 
 	if (InterruptOverride != 0)
-		return_ACPI_STATUS (AE_ALREADY_EXISTS);
+		return_ACPI_STATUS(AE_ALREADY_EXISTS);
 	InterruptOverride = InterruptNumber;
-	return_ACPI_STATUS (AE_OK);
+	return_ACPI_STATUS(AE_OK);
 }

@@ -28,8 +28,8 @@
  */
 
 #include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/cpuset.h>
+#include <sys/queue.h>
 #include <sys/sysctl.h>
 
 #include <assert.h>
@@ -47,61 +47,60 @@
 
 /* Compile time defaults */
 
-#define	PMCC_PRINT_USAGE	0
-#define	PMCC_PRINT_EVENTS	1
-#define	PMCC_LIST_STATE 	2
-#define	PMCC_ENABLE_DISABLE	3
-#define	PMCC_SHOW_STATISTICS	4
+#define PMCC_PRINT_USAGE 0
+#define PMCC_PRINT_EVENTS 1
+#define PMCC_LIST_STATE 2
+#define PMCC_ENABLE_DISABLE 3
+#define PMCC_SHOW_STATISTICS 4
 
-#define	PMCC_CPU_ALL		-1
-#define	PMCC_CPU_WILDCARD	'*'
+#define PMCC_CPU_ALL -1
+#define PMCC_CPU_WILDCARD '*'
 
-#define	PMCC_PMC_ALL		-1
-#define	PMCC_PMC_WILDCARD	'*'
+#define PMCC_PMC_ALL -1
+#define PMCC_PMC_WILDCARD '*'
 
-#define	PMCC_OP_IGNORE		0
-#define	PMCC_OP_DISABLE		1
-#define	PMCC_OP_ENABLE		2
+#define PMCC_OP_IGNORE 0
+#define PMCC_OP_DISABLE 1
+#define PMCC_OP_ENABLE 2
 
-#define	PMCC_PROGRAM_NAME	"pmccontrol"
+#define PMCC_PROGRAM_NAME "pmccontrol"
 
 static STAILQ_HEAD(pmcc_op_list, pmcc_op) head = STAILQ_HEAD_INITIALIZER(head);
 
 struct pmcc_op {
-	char	op_cpu;
-	char	op_pmc;
-	char	op_op;
+	char op_cpu;
+	char op_pmc;
+	char op_op;
 	STAILQ_ENTRY(pmcc_op) op_next;
 };
 
 /* Function Prototypes */
-#if	DEBUG
-static void	pmcc_init_debug(void);
+#if DEBUG
+static void pmcc_init_debug(void);
 #endif
 
-static int	pmcc_do_list_state(void);
-static int	pmcc_do_enable_disable(struct pmcc_op_list *);
-static int	pmcc_do_list_events(void);
+static int pmcc_do_list_state(void);
+static int pmcc_do_enable_disable(struct pmcc_op_list *);
+static int pmcc_do_list_events(void);
 
 /* Globals */
 
-static char usage_message[] =
-	"Usage:\n"
-	"       " PMCC_PROGRAM_NAME " -L\n"
-	"       " PMCC_PROGRAM_NAME " -l\n"
-	"       " PMCC_PROGRAM_NAME " -s\n"
-	"       " PMCC_PROGRAM_NAME " [-e pmc | -d pmc | -c cpu] ...";
+static char usage_message[] = "Usage:\n"
+			      "       " PMCC_PROGRAM_NAME " -L\n"
+			      "       " PMCC_PROGRAM_NAME " -l\n"
+			      "       " PMCC_PROGRAM_NAME " -s\n"
+			      "       " PMCC_PROGRAM_NAME
+			      " [-e pmc | -d pmc | -c cpu] ...";
 
 #if DEBUG
 static FILE *debug_stream = NULL;
 #endif
 
 #if DEBUG
-#define DEBUG_MSG(...)					                \
-	(void) fprintf(debug_stream, "[pmccontrol] " __VA_ARGS__)
+#define DEBUG_MSG(...) (void)fprintf(debug_stream, "[pmccontrol] " __VA_ARGS__)
 #else
-#define DEBUG_MSG(m)		/*  */
-#endif /* !DEBUG */
+#define DEBUG_MSG(m) /*  */
+#endif		     /* !DEBUG */
 
 #if DEBUG
 /* log debug messages to a separate file */
@@ -111,8 +110,7 @@ pmcc_init_debug(void)
 	char *fn;
 
 	fn = getenv("PMCCONTROL_DEBUG");
-	if (fn != NULL)
-	{
+	if (fn != NULL) {
 		debug_stream = fopen(fn, "w");
 		if (debug_stream == NULL)
 			debug_stream = stderr;
@@ -150,11 +148,11 @@ pmcc_do_enable_disable(struct pmcc_op_list *op_list)
 		err(EX_SOFTWARE, "Out of memory");
 
 	error = 0;
-	STAILQ_FOREACH(np, op_list, op_next) {
+	STAILQ_FOREACH (np, op_list, op_next) {
 
 		cpu = np->op_cpu;
 		pmc = np->op_pmc;
-		op  = np->op_op;
+		op = np->op_op;
 
 		if (cpu >= ncpu)
 			errx(EX_DATAERR, "CPU id too large: \"%d\"", cpu);
@@ -162,19 +160,21 @@ pmcc_do_enable_disable(struct pmcc_op_list *op_list)
 		if (pmc >= npmc)
 			errx(EX_DATAERR, "PMC id too large: \"%d\"", pmc);
 
-#define MARKMAP(M,C,P,V)	do {				\
-		*((M) + (C)*npmc + (P)) = (V);			\
-} while (0)
+#define MARKMAP(M, C, P, V)                      \
+	do {                                     \
+		*((M) + (C) * npmc + (P)) = (V); \
+	} while (0)
 
-#define	SET_PMCS(C,P,V)		do {				\
-		if ((P) == PMCC_PMC_ALL) {			\
-			for (j = 0; j < npmc; j++)		\
-				MARKMAP(map, (C), j, (V));	\
-		} else						\
-			MARKMAP(map, (C), (P), (V));		\
-} while (0)
+#define SET_PMCS(C, P, V)                                  \
+	do {                                               \
+		if ((P) == PMCC_PMC_ALL) {                 \
+			for (j = 0; j < npmc; j++)         \
+				MARKMAP(map, (C), j, (V)); \
+		} else                                     \
+			MARKMAP(map, (C), (P), (V));       \
+	} while (0)
 
-#define MAP(M,C,P)	(*((M) + (C)*npmc + (P)))
+#define MAP(M, C, P) (*((M) + (C) * npmc + (P)))
 
 		if (cpu == PMCC_CPU_ALL)
 			for (i = 0; i < ncpu; i++) {
@@ -221,9 +221,8 @@ pmcc_do_list_state(void)
 	if (pmc_cpuinfo(&pc) != 0)
 		err(EX_OSERR, "Unable to determine CPU information");
 
-	printf("%d %s CPUs present, with %d PMCs per CPU\n", pc->pm_ncpu, 
-	       pmc_name_of_cputype(pc->pm_cputype),
-		pc->pm_npmc);
+	printf("%d %s CPUs present, with %d PMCs per CPU\n", pc->pm_ncpu,
+	    pmc_name_of_cputype(pc->pm_cputype), pc->pm_npmc);
 
 	/* Determine the set of logical CPUs. */
 	cpusetsize = sysconf(_SC_CPUSET_SIZE);
@@ -232,7 +231,7 @@ pmcc_do_list_state(void)
 	CPU_ZERO(&logical_cpus_mask);
 	setsize = (size_t)cpusetsize;
 	if (sysctlbyname("machdep.logical_cpus_mask", &logical_cpus_mask,
-	    &setsize, NULL, 0) < 0)
+		&setsize, NULL, 0) < 0)
 		CPU_ZERO(&logical_cpus_mask);
 
 	ncpu = pc->pm_ncpu;
@@ -252,15 +251,13 @@ pmcc_do_list_state(void)
 		for (n = 0; n < npmc; n++) {
 			pd = &pi->pm_pmcs[n];
 
-			printf(" %-2d %-16s %-6s %-8s %-10s",
-			    n,
-			    pd->pm_name,
+			printf(" %-2d %-16s %-6s %-8s %-10s", n, pd->pm_name,
 			    pmc_name_of_class(pd->pm_class),
 			    pd->pm_enabled ? "ENABLED" : "DISABLED",
 			    pmc_name_of_disposition(pd->pm_rowdisp));
 
 			if (pd->pm_ownerpid != -1) {
-			        printf(" (pid %d)", pd->pm_ownerpid);
+				printf(" (pid %d)", pd->pm_ownerpid);
 				printf(" %-32s",
 				    pmc_name_of_event(pd->pm_event));
 				if (PMC_IS_SAMPLING_MODE(pd->pm_mode))
@@ -300,7 +297,7 @@ pmcc_do_list_events(void)
 		printf("%s\n", pmc_name_of_class(c));
 		if (pmc_event_names_of_class(c, &eventnamelist, &nevents) < 0)
 			err(EX_OSERR,
-"ERROR: Cannot find information for event class \"%s\"",
+			    "ERROR: Cannot find information for event class \"%s\"",
 			    pmc_name_of_class(c));
 
 		for (j = 0; j < nevents; j++)
@@ -320,11 +317,11 @@ pmcc_show_statistics(void)
 	if (pmc_get_driver_stats(&gms) < 0)
 		err(EX_OSERR, "ERROR: cannot retrieve driver statistics");
 
-	/*
-	 * Print statistics.
-	 */
+		/*
+		 * Print statistics.
+		 */
 
-#define	PRINT(N,V)	(void) printf("%-40s %d\n", (N), gms.pm_##V)
+#define PRINT(N, V) (void)printf("%-40s %d\n", (N), gms.pm_##V)
 	PRINT("interrupts processed:", intr_processed);
 	PRINT("non-PMC interrupts:", intr_ignored);
 	PRINT("sampling stalls due to space shortages:", intr_bufferfull);
@@ -355,8 +352,8 @@ main(int argc, char **argv)
 	/* parse args */
 
 	currentcpu = PMCC_CPU_ALL;
-	command    = PMCC_PRINT_USAGE;
-	error      = 0;
+	command = PMCC_PRINT_USAGE;
+	error = 0;
 
 	STAILQ_INIT(&head);
 
@@ -413,8 +410,8 @@ main(int argc, char **argv)
 
 			p->op_cpu = currentcpu;
 			p->op_pmc = pmc;
-			p->op_op  = option == 'd' ? PMCC_OP_DISABLE :
-			    PMCC_OP_ENABLE;
+			p->op_op = option == 'd' ? PMCC_OP_DISABLE :
+						   PMCC_OP_ENABLE;
 
 			STAILQ_INSERT_TAIL(&head, p, op_next);
 			break;
@@ -436,8 +433,8 @@ main(int argc, char **argv)
 			break;
 
 		case ':':
-			errx(EX_USAGE,
-			    "Missing argument to option '-%c'", optopt);
+			errx(EX_USAGE, "Missing argument to option '-%c'",
+			    optopt);
 			break;
 
 		case '?':
@@ -448,11 +445,10 @@ main(int argc, char **argv)
 		default:
 			error = 1;
 			break;
-
 		}
 
 	if (command == PMCC_PRINT_USAGE)
-		(void) errx(EX_USAGE, "%s", usage_message);
+		(void)errx(EX_USAGE, "%s", usage_message);
 
 	if (error)
 		exit(EX_USAGE);
@@ -479,7 +475,6 @@ main(int argc, char **argv)
 		break;
 	default:
 		assert(0);
-
 	}
 
 	if (error != 0)

@@ -41,4 +41,3 @@ __kernel_cospi(double x)
 	_2sumF(hi, lo);
 	return (__kernel_cos(hi, lo));
 }
-

@@ -28,6 +28,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/bio.h>
 #include <sys/devicestat.h>
 #include <sys/kernel.h>
@@ -35,19 +36,18 @@
 #include <sys/module.h>
 #include <sys/queue.h>
 #include <sys/sysctl.h>
-#include <sys/systm.h>
 #include <sys/taskqueue.h>
+
 #include <machine/atomic.h>
+
+#include <dev/nvme/nvme.h>
+#include <dev/nvme/nvme_private.h>
+#include <dev/pci/pcivar.h>
 
 #include <geom/geom.h>
 #include <geom/geom_disk.h>
 
-#include <dev/nvme/nvme.h>
-#include <dev/nvme/nvme_private.h>
-
-#include <dev/pci/pcivar.h>
-
-#define NVD_STR		"nvd"
+#define NVD_STR "nvd"
 
 struct nvd_disk;
 struct nvd_controller;
@@ -73,34 +73,34 @@ MALLOC_DEFINE(M_NVD, "nvd", "nvd(4) allocations");
 struct nvme_consumer *consumer_handle;
 
 struct nvd_disk {
-	struct nvd_controller	*ctrlr;
+	struct nvd_controller *ctrlr;
 
-	struct bio_queue_head	bioq;
-	struct task		bioqtask;
-	struct mtx		bioqlock;
+	struct bio_queue_head bioq;
+	struct task bioqtask;
+	struct mtx bioqlock;
 
-	struct disk		*disk;
-	struct taskqueue	*tq;
-	struct nvme_namespace	*ns;
+	struct disk *disk;
+	struct taskqueue *tq;
+	struct nvme_namespace *ns;
 
-	uint32_t		cur_depth;
-#define	NVD_ODEPTH	(1 << 30)
-	uint32_t		ordered_in_flight;
-	u_int			unit;
+	uint32_t cur_depth;
+#define NVD_ODEPTH (1 << 30)
+	uint32_t ordered_in_flight;
+	u_int unit;
 
-	TAILQ_ENTRY(nvd_disk)	global_tailq;
-	TAILQ_ENTRY(nvd_disk)	ctrlr_tailq;
+	TAILQ_ENTRY(nvd_disk) global_tailq;
+	TAILQ_ENTRY(nvd_disk) ctrlr_tailq;
 };
 
 struct nvd_controller {
-	struct nvme_controller		*ctrlr;
-	TAILQ_ENTRY(nvd_controller)	tailq;
-	TAILQ_HEAD(, nvd_disk)		disk_head;
+	struct nvme_controller *ctrlr;
+	TAILQ_ENTRY(nvd_controller) tailq;
+	TAILQ_HEAD(, nvd_disk) disk_head;
 };
 
-static struct mtx			nvd_lock;
-static TAILQ_HEAD(, nvd_controller)	ctrlr_head;
-static TAILQ_HEAD(disk_list, nvd_disk)	disk_head;
+static struct mtx nvd_lock;
+static TAILQ_HEAD(, nvd_controller) ctrlr_head;
+static TAILQ_HEAD(disk_list, nvd_disk) disk_head;
 
 static SYSCTL_NODE(_hw, OID_AUTO, nvd, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
     "nvd driver parameters");
@@ -108,15 +108,16 @@ static SYSCTL_NODE(_hw, OID_AUTO, nvd, CTLFLAG_RD | CTLFLAG_MPSAFE, 0,
  * The NVMe specification does not define a maximum or optimal delete size, so
  *  technically max delete size is min(full size of the namespace, 2^32 - 1
  *  LBAs).  A single delete for a multi-TB NVMe namespace though may take much
- *  longer to complete than the nvme(4) I/O timeout period.  So choose a sensible
- *  default here that is still suitably large to minimize the number of overall
- *  delete operations.
+ *  longer to complete than the nvme(4) I/O timeout period.  So choose a
+ * sensible default here that is still suitably large to minimize the number of
+ * overall delete operations.
  */
-static uint64_t nvd_delete_max = (1024 * 1024 * 1024);  /* 1GB */
+static uint64_t nvd_delete_max = (1024 * 1024 * 1024); /* 1GB */
 SYSCTL_UQUAD(_hw_nvd, OID_AUTO, delete_max, CTLFLAG_RDTUN, &nvd_delete_max, 0,
-	     "nvd maximum BIO_DELETE size in bytes");
+    "nvd maximum BIO_DELETE size in bytes");
 
-static int nvd_modevent(module_t mod, int type, void *arg)
+static int
+nvd_modevent(module_t mod, int type, void *arg)
 {
 	int error = 0;
 
@@ -134,11 +135,7 @@ static int nvd_modevent(module_t mod, int type, void *arg)
 	return (error);
 }
 
-moduledata_t nvd_mod = {
-	NVD_STR,
-	(modeventhand_t)nvd_modevent,
-	0
-};
+moduledata_t nvd_mod = { NVD_STR, (modeventhand_t)nvd_modevent, 0 };
 
 DECLARE_MODULE(nvd, nvd_mod, SI_SUB_DRIVERS, SI_ORDER_ANY);
 MODULE_VERSION(nvd, 1);
@@ -163,8 +160,8 @@ nvd_load(void)
 static void
 nvd_unload(void)
 {
-	struct nvd_controller	*ctrlr;
-	struct nvd_disk		*ndisk;
+	struct nvd_controller *ctrlr;
+	struct nvd_disk *ndisk;
 
 	if (!nvme_use_nvd)
 		return;
@@ -172,10 +169,11 @@ nvd_unload(void)
 	mtx_lock(&nvd_lock);
 	while ((ctrlr = TAILQ_FIRST(&ctrlr_head)) != NULL) {
 		TAILQ_REMOVE(&ctrlr_head, ctrlr, tailq);
-		TAILQ_FOREACH(ndisk, &ctrlr->disk_head, ctrlr_tailq)
+		TAILQ_FOREACH (ndisk, &ctrlr->disk_head, ctrlr_tailq)
 			nvd_gone(ndisk);
 		while (!TAILQ_EMPTY(&ctrlr->disk_head))
-			msleep(&ctrlr->disk_head, &nvd_lock, 0, "nvd_unload",0);
+			msleep(&ctrlr->disk_head, &nvd_lock, 0, "nvd_unload",
+			    0);
 		free(ctrlr, M_NVD);
 	}
 	mtx_unlock(&nvd_lock);
@@ -246,9 +244,9 @@ nvd_strategy(struct bio *bp)
 static void
 nvd_gone(struct nvd_disk *ndisk)
 {
-	struct bio	*bp;
+	struct bio *bp;
 
-	printf(NVD_STR"%u: detached\n", ndisk->unit);
+	printf(NVD_STR "%u: detached\n", ndisk->unit);
 	mtx_lock(&ndisk->bioqlock);
 	disk_gone(ndisk->disk);
 	while ((bp = bioq_takefirst(&ndisk->bioq)) != NULL) {
@@ -280,10 +278,9 @@ nvd_gonecb(struct disk *dp)
 }
 
 static int
-nvd_ioctl(struct disk *dp, u_long cmd, void *data, int fflag,
-    struct thread *td)
+nvd_ioctl(struct disk *dp, u_long cmd, void *data, int fflag, struct thread *td)
 {
-	struct nvd_disk		*ndisk = dp->d_drv1;
+	struct nvd_disk *ndisk = dp->d_drv1;
 
 	return (nvme_ns_ioctl_process(ndisk->ns, cmd, data, fflag, td));
 }
@@ -397,7 +394,7 @@ nvd_bioq_process(void *arg, int pending)
 static void *
 nvd_new_controller(struct nvme_controller *ctrlr)
 {
-	struct nvd_controller	*nvd_ctrlr;
+	struct nvd_controller *nvd_ctrlr;
 
 	nvd_ctrlr = malloc(sizeof(struct nvd_controller), M_NVD,
 	    M_ZERO | M_WAITOK);
@@ -414,11 +411,11 @@ nvd_new_controller(struct nvme_controller *ctrlr)
 static void *
 nvd_new_disk(struct nvme_namespace *ns, void *ctrlr_arg)
 {
-	uint8_t			descr[NVME_MODEL_NUMBER_LENGTH+1];
-	struct nvd_disk		*ndisk, *tnd;
-	struct disk		*disk;
-	struct nvd_controller	*ctrlr = ctrlr_arg;
-	device_t		 dev = ctrlr->ctrlr->dev;
+	uint8_t descr[NVME_MODEL_NUMBER_LENGTH + 1];
+	struct nvd_disk *ndisk, *tnd;
+	struct disk *disk;
+	struct nvd_controller *ctrlr = ctrlr_arg;
+	device_t dev = ctrlr->ctrlr->dev;
 	int unit;
 
 	ndisk = malloc(sizeof(struct nvd_disk), M_NVD, M_ZERO | M_WAITOK);
@@ -432,7 +429,7 @@ nvd_new_disk(struct nvme_namespace *ns, void *ctrlr_arg)
 
 	mtx_lock(&nvd_lock);
 	unit = 0;
-	TAILQ_FOREACH(tnd, &disk_head, global_tailq) {
+	TAILQ_FOREACH (tnd, &disk_head, global_tailq) {
 		if (tnd->unit > unit)
 			break;
 		unit = tnd->unit + 1;
@@ -473,8 +470,7 @@ nvd_new_disk(struct nvme_namespace *ns, void *ctrlr_arg)
 		disk->d_flags |= DISKFLAG_CANFLUSHCACHE;
 	disk->d_devstat = devstat_new_entry(disk->d_name, disk->d_unit,
 	    disk->d_sectorsize, DEVSTAT_ALL_SUPPORTED,
-	    DEVSTAT_TYPE_DIRECT | DEVSTAT_TYPE_IF_NVME,
-	    DEVSTAT_PRIORITY_DISK);
+	    DEVSTAT_TYPE_DIRECT | DEVSTAT_TYPE_IF_NVME, DEVSTAT_PRIORITY_DISK);
 
 	/*
 	 * d_ident and d_descr are both far bigger than the length of either
@@ -503,11 +499,11 @@ nvd_new_disk(struct nvme_namespace *ns, void *ctrlr_arg)
 
 	disk_create(disk, DISK_VERSION);
 
-	printf(NVD_STR"%u: <%s> NVMe namespace\n", disk->d_unit, descr);
-	printf(NVD_STR"%u: %juMB (%ju %u byte sectors)\n", disk->d_unit,
-		(uintmax_t)disk->d_mediasize / (1024*1024),
-		(uintmax_t)disk->d_mediasize / disk->d_sectorsize,
-		disk->d_sectorsize);
+	printf(NVD_STR "%u: <%s> NVMe namespace\n", disk->d_unit, descr);
+	printf(NVD_STR "%u: %juMB (%ju %u byte sectors)\n", disk->d_unit,
+	    (uintmax_t)disk->d_mediasize / (1024 * 1024),
+	    (uintmax_t)disk->d_mediasize / disk->d_sectorsize,
+	    disk->d_sectorsize);
 
 	return (ndisk);
 }
@@ -515,12 +511,12 @@ nvd_new_disk(struct nvme_namespace *ns, void *ctrlr_arg)
 static void
 nvd_controller_fail(void *ctrlr_arg)
 {
-	struct nvd_controller	*ctrlr = ctrlr_arg;
-	struct nvd_disk		*ndisk;
+	struct nvd_controller *ctrlr = ctrlr_arg;
+	struct nvd_disk *ndisk;
 
 	mtx_lock(&nvd_lock);
 	TAILQ_REMOVE(&ctrlr_head, ctrlr, tailq);
-	TAILQ_FOREACH(ndisk, &ctrlr->disk_head, ctrlr_tailq)
+	TAILQ_FOREACH (ndisk, &ctrlr->disk_head, ctrlr_tailq)
 		nvd_gone(ndisk);
 	while (!TAILQ_EMPTY(&ctrlr->disk_head))
 		msleep(&ctrlr->disk_head, &nvd_lock, 0, "nvd_fail", 0);

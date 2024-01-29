@@ -42,45 +42,46 @@
  * ftp://ftp.alsa-project.org/pub/manuals/ad/AD1881_0.pdf (example AC'97 codec)
  */
 
-#define VIA_AC97STATUS		0x40
-#define		VIA_AC97STATUS_RDY	0x01
-#define		VIA_AC97STATUS_LOWPWR	0x02
-#define		VIA_AC97STATUS_2RDY	0x04
+#define VIA_AC97STATUS 0x40
+#define VIA_AC97STATUS_RDY 0x01
+#define VIA_AC97STATUS_LOWPWR 0x02
+#define VIA_AC97STATUS_2RDY 0x04
 
-#define VIA_ACLINKCTRL		0x41
-#define         VIA_ACLINK_EN		0x80     /* ac link enab */
-#define         VIA_ACLINK_NRST		0x40     /* ~(ac reset) */
-#define         VIA_ACLINK_SYNC		0x20     /* ac sync */
-#define         VIA_ACLINK_VSR		0x08     /* var. samp. rate */
-#define         VIA_ACLINK_SGD		0x04     /* SGD enab */
-#define         VIA_ACLINK_FM		0x02     /* FM enab */
-#define         VIA_ACLINK_SB		0x01     /* SB enab */
-#define		VIA_ACLINK_DESIRED	(VIA_ACLINK_EN|VIA_ACLINK_NRST|VIA_ACLINK_VSR|VIA_ACLINK_SGD)
-#define VIA_PCICONF_FUNC_EN	0x42
+#define VIA_ACLINKCTRL 0x41
+#define VIA_ACLINK_EN 0x80   /* ac link enab */
+#define VIA_ACLINK_NRST 0x40 /* ~(ac reset) */
+#define VIA_ACLINK_SYNC 0x20 /* ac sync */
+#define VIA_ACLINK_VSR 0x08  /* var. samp. rate */
+#define VIA_ACLINK_SGD 0x04  /* SGD enab */
+#define VIA_ACLINK_FM 0x02   /* FM enab */
+#define VIA_ACLINK_SB 0x01   /* SB enab */
+#define VIA_ACLINK_DESIRED \
+	(VIA_ACLINK_EN | VIA_ACLINK_NRST | VIA_ACLINK_VSR | VIA_ACLINK_SGD)
+#define VIA_PCICONF_FUNC_EN 0x42
 
-#define VIA_PLAY_STAT                 0x00
-#define VIA_RECORD_STAT               0x10
-#define         VIA_RPSTAT_INTR               0x03
-#define VIA_PLAY_CONTROL              0x01
-#define VIA_RECORD_CONTROL            0x11
-#define         VIA_RPCTRL_START              0x80
-#define         VIA_RPCTRL_TERMINATE          0x40
-#define VIA_PLAY_MODE                 0x02
-#define VIA_RECORD_MODE               0x12
-#define         VIA_RPMODE_INTR_FLAG          0x01
-#define         VIA_RPMODE_INTR_EOL           0x02
-#define         VIA_RPMODE_STEREO             0x10
-#define         VIA_RPMODE_16BIT              0x20
-#define         VIA_RPMODE_AUTOSTART          0x80
-#define VIA_PLAY_DMAOPS_BASE          0x04
-#define VIA_RECORD_DMAOPS_BASE        0x14
-#define VIA_PLAY_DMAOPS_COUNT         0x0C
-#define VIA_RECORD_DMAOPS_COUNT       0x1C
+#define VIA_PLAY_STAT 0x00
+#define VIA_RECORD_STAT 0x10
+#define VIA_RPSTAT_INTR 0x03
+#define VIA_PLAY_CONTROL 0x01
+#define VIA_RECORD_CONTROL 0x11
+#define VIA_RPCTRL_START 0x80
+#define VIA_RPCTRL_TERMINATE 0x40
+#define VIA_PLAY_MODE 0x02
+#define VIA_RECORD_MODE 0x12
+#define VIA_RPMODE_INTR_FLAG 0x01
+#define VIA_RPMODE_INTR_EOL 0x02
+#define VIA_RPMODE_STEREO 0x10
+#define VIA_RPMODE_16BIT 0x20
+#define VIA_RPMODE_AUTOSTART 0x80
+#define VIA_PLAY_DMAOPS_BASE 0x04
+#define VIA_RECORD_DMAOPS_BASE 0x14
+#define VIA_PLAY_DMAOPS_COUNT 0x0C
+#define VIA_RECORD_DMAOPS_COUNT 0x1C
 
-#define VIA_CODEC_CTL                 0x80
-#define         VIA_CODEC_READ                0x00800000
-#define         VIA_CODEC_BUSY                0x01000000
-#define         VIA_CODEC_PRIVALID            0x02000000
-#define         VIA_CODEC_INDEX(x)            ((x)<<16)
+#define VIA_CODEC_CTL 0x80
+#define VIA_CODEC_READ 0x00800000
+#define VIA_CODEC_BUSY 0x01000000
+#define VIA_CODEC_PRIVALID 0x02000000
+#define VIA_CODEC_INDEX(x) ((x) << 16)
 
 #endif /* _VIA_H */

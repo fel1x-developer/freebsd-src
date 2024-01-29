@@ -73,7 +73,7 @@
  * All activity occurs within a temporary directory created early in the
  * test.
  */
-static char	temp_dir[PATH_MAX];
+static char temp_dir[PATH_MAX];
 
 static void __unused
 atexit_temp_dir(void)
@@ -105,8 +105,7 @@ fifo_create_test(int use_mkfifo)
 	 * updated.
 	 */
 	if (stat(".", &old_dirsb) < 0)
-		err(-1, "basic_create_test: %s: stat: %s", testname,
-		    temp_dir);
+		err(-1, "basic_create_test: %s: stat: %s", testname, temp_dir);
 
 	sleep(2);
 
@@ -127,8 +126,7 @@ fifo_create_test(int use_mkfifo)
 
 	if (!(S_ISFIFO(fifosb.st_mode))) {
 		(void)unlink(path);
-		errx(-1, "basic_create_test: %s produced non-fifo",
-		    testname);
+		errx(-1, "basic_create_test: %s produced non-fifo", testname);
 	}
 
 	if (use_mkfifo) {
@@ -142,27 +140,29 @@ fifo_create_test(int use_mkfifo)
 	}
 
 	if (errno != EEXIST)
-		err(-1, "basic_create_test: dup %s unexpected error",
-		    testname);
+		err(-1, "basic_create_test: dup %s unexpected error", testname);
 
 	if (stat(".", &dirsb) < 0) {
 		error = errno;
 		(void)unlink(path);
 		errno = error;
-		err(-1, "basic_create_test: %s: stat: %s", testname,
-		    temp_dir);
+		err(-1, "basic_create_test: %s: stat: %s", testname, temp_dir);
 	}
 
 	if (old_dirsb.st_ctime == dirsb.st_ctime) {
 		(void)unlink(path);
-		errx(-1, "basic_create_test: %s: old_dirsb.st_ctime == "
-		    "dirsb.st_ctime", testname);
+		errx(-1,
+		    "basic_create_test: %s: old_dirsb.st_ctime == "
+		    "dirsb.st_ctime",
+		    testname);
 	}
 
 	if (old_dirsb.st_mtime == dirsb.st_mtime) {
 		(void)unlink(path);
-		errx(-1, "basic_create_test: %s: old_dirsb.st_mtime == "
-		    "dirsb.st_mtime", testname);
+		errx(-1,
+		    "basic_create_test: %s: old_dirsb.st_mtime == "
+		    "dirsb.st_mtime",
+		    testname);
 	}
 
 	if (unlink(path) < 0)
@@ -182,16 +182,16 @@ fifo_create_test(int use_mkfifo)
  * resulting mode are handled properly.
  */
 static const struct permission_test {
-	mode_t	pt_umask;
-	mode_t	pt_reqmode;
-	mode_t	pt_mode;
+	mode_t pt_umask;
+	mode_t pt_reqmode;
+	mode_t pt_mode;
 } permission_test[] = {
-	{0000, 0, S_IFIFO},
-	{0000, S_IRWXU, S_IFIFO | S_IRWXU},
-	{0000, S_IRWXU | S_IRWXG | S_IRWXO, S_IFIFO | S_IRWXU | S_IRWXG |
-	    S_IRWXO },
-	{0077, S_IRWXU, S_IFIFO | S_IRWXU},
-	{0077, S_IRWXU | S_IRWXG | S_IRWXO, S_IFIFO | S_IRWXU},
+	{ 0000, 0, S_IFIFO },
+	{ 0000, S_IRWXU, S_IFIFO | S_IRWXU },
+	{ 0000, S_IRWXU | S_IRWXG | S_IRWXO,
+	    S_IFIFO | S_IRWXU | S_IRWXG | S_IRWXO },
+	{ 0077, S_IRWXU, S_IFIFO | S_IRWXU },
+	{ 0077, S_IRWXU | S_IRWXG | S_IRWXO, S_IFIFO | S_IRWXU },
 };
 static const int permission_test_count = sizeof(permission_test) /
     sizeof(struct permission_test);
@@ -218,29 +218,34 @@ fifo_permission_test(int use_mkfifo)
 		umask(ptp->pt_umask);
 		if (use_mkfifo) {
 			if (mkfifo(path, ptp->pt_reqmode) < 0)
-				err(-1, "fifo_permission_test: %s: %08o "
-				    "%08o %08o\n", testname, ptp->pt_umask,
-				    ptp->pt_reqmode, ptp->pt_mode);
+				err(-1,
+				    "fifo_permission_test: %s: %08o "
+				    "%08o %08o\n",
+				    testname, ptp->pt_umask, ptp->pt_reqmode,
+				    ptp->pt_mode);
 		} else {
 			if (mknod(path, S_IFIFO | ptp->pt_reqmode, 0) < 0)
-				err(-1, "fifo_permission_test: %s: %08o "
-				    "%08o %08o\n", testname, ptp->pt_umask,
-				    ptp->pt_reqmode, ptp->pt_mode);
+				err(-1,
+				    "fifo_permission_test: %s: %08o "
+				    "%08o %08o\n",
+				    testname, ptp->pt_umask, ptp->pt_reqmode,
+				    ptp->pt_mode);
 		}
 
 		if (stat(path, &sb) < 0) {
 			error = errno;
 			(void)unlink(path);
 			errno = error;
-			err(-1, "fifo_permission_test: %s: %s", testname,
-			    path);
+			err(-1, "fifo_permission_test: %s: %s", testname, path);
 		}
 
 		if (sb.st_mode != ptp->pt_mode) {
 			(void)unlink(path);
-			errx(-1, "fifo_permission_test: %s: %08o %08o %08o "
-			    "got %08o", testname, ptp->pt_umask,
-			    ptp->pt_reqmode, ptp->pt_mode, sb.st_mode);
+			errx(-1,
+			    "fifo_permission_test: %s: %08o %08o %08o "
+			    "got %08o",
+			    testname, ptp->pt_umask, ptp->pt_reqmode,
+			    ptp->pt_mode, sb.st_mode);
 		}
 
 		if (unlink(path) < 0)

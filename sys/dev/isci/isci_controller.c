@@ -31,27 +31,24 @@
  */
 
 #include <sys/cdefs.h>
-#include <dev/isci/isci.h>
-
 #include <sys/conf.h>
 #include <sys/malloc.h>
 
-#include <cam/cam_periph.h>
-#include <cam/cam_xpt_periph.h>
-
+#include <dev/isci/isci.h>
 #include <dev/isci/scil/sci_memory_descriptor_list.h>
 #include <dev/isci/scil/sci_memory_descriptor_list_decorator.h>
-
-#include <dev/isci/scil/scif_controller.h>
-#include <dev/isci/scil/scif_library.h>
-#include <dev/isci/scil/scif_io_request.h>
-#include <dev/isci/scil/scif_task_request.h>
-#include <dev/isci/scil/scif_remote_device.h>
-#include <dev/isci/scil/scif_domain.h>
-#include <dev/isci/scil/scif_user_callback.h>
 #include <dev/isci/scil/scic_sgpio.h>
-
+#include <dev/isci/scil/scif_controller.h>
+#include <dev/isci/scil/scif_domain.h>
+#include <dev/isci/scil/scif_io_request.h>
+#include <dev/isci/scil/scif_library.h>
+#include <dev/isci/scil/scif_remote_device.h>
+#include <dev/isci/scil/scif_task_request.h>
+#include <dev/isci/scil/scif_user_callback.h>
 #include <dev/led/led.h>
+
+#include <cam/cam_periph.h>
+#include <cam/cam_xpt_periph.h>
 
 void isci_action(struct cam_sim *sim, union ccb *ccb);
 void isci_poll(struct cam_sim *sim);
@@ -69,12 +66,12 @@ void isci_poll(struct cam_sim *sim);
  *
  * @return none
  */
-void scif_cb_controller_error(SCI_CONTROLLER_HANDLE_T controller,
+void
+scif_cb_controller_error(SCI_CONTROLLER_HANDLE_T controller,
     SCI_CONTROLLER_ERROR error)
 {
 
-	isci_log_message(0, "ISCI", "scif_cb_controller_error: 0x%x\n",
-	    error);
+	isci_log_message(0, "ISCI", "scif_cb_controller_error: 0x%x\n", error);
 }
 
 /**
@@ -89,7 +86,8 @@ void scif_cb_controller_error(SCI_CONTROLLER_HANDLE_T controller,
  *
  * @return none
  */
-void scif_cb_controller_start_complete(SCI_CONTROLLER_HANDLE_T controller,
+void
+scif_cb_controller_start_complete(SCI_CONTROLLER_HANDLE_T controller,
     SCI_STATUS completion_status)
 {
 	uint32_t index;
@@ -105,19 +103,16 @@ void scif_cb_controller_start_complete(SCI_CONTROLLER_HANDLE_T controller,
 	 */
 	isci_controller->initial_discovery_mask = (1 << SCI_MAX_DOMAINS) - 1;
 
-	for(index = 0; index < SCI_MAX_DOMAINS; index++) {
+	for (index = 0; index < SCI_MAX_DOMAINS; index++) {
 		SCI_STATUS status;
 		SCI_DOMAIN_HANDLE_T domain =
 		    isci_controller->domain[index].sci_object;
 
-		status = scif_domain_discover(
-			domain,
-			scif_domain_get_suggested_discover_timeout(domain),
-			DEVICE_TIMEOUT
-		);
+		status = scif_domain_discover(domain,
+		    scif_domain_get_suggested_discover_timeout(domain),
+		    DEVICE_TIMEOUT);
 
-		if (status != SCI_SUCCESS)
-		{
+		if (status != SCI_SUCCESS) {
 			isci_controller_domain_discovery_complete(
 			    isci_controller, &isci_controller->domain[index]);
 		}
@@ -139,7 +134,8 @@ void scif_cb_controller_start_complete(SCI_CONTROLLER_HANDLE_T controller,
  *
  * @return none
  */
-void scif_cb_controller_stop_complete(SCI_CONTROLLER_HANDLE_T controller,
+void
+scif_cb_controller_stop_complete(SCI_CONTROLLER_HANDLE_T controller,
     SCI_STATUS completion_status)
 {
 	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
@@ -167,7 +163,8 @@ isci_single_map(void *arg, bus_dma_segment_t *seg, int nseg, int error)
  *
  * @return none
  */
-void scif_cb_controller_allocate_memory(SCI_CONTROLLER_HANDLE_T controller,
+void
+scif_cb_controller_allocate_memory(SCI_CONTROLLER_HANDLE_T controller,
     SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde)
 {
 	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
@@ -184,15 +181,13 @@ void scif_cb_controller_allocate_memory(SCI_CONTROLLER_HANDLE_T controller,
 		sci_pool_get(isci_controller->unmap_buffer_pool,
 		    mde->virtual_address);
 	} else
-		mde->virtual_address = contigmalloc(PAGE_SIZE,
-		    M_ISCI, M_NOWAIT, 0, BUS_SPACE_MAXADDR,
-		    mde->constant_memory_alignment, 0);
+		mde->virtual_address = contigmalloc(PAGE_SIZE, M_ISCI, M_NOWAIT,
+		    0, BUS_SPACE_MAXADDR, mde->constant_memory_alignment, 0);
 
 	if (mde->virtual_address != NULL)
-		bus_dmamap_load(isci_controller->buffer_dma_tag,
-		    NULL, mde->virtual_address, PAGE_SIZE,
-		    isci_single_map, &mde->physical_address,
-		    BUS_DMA_NOWAIT);
+		bus_dmamap_load(isci_controller->buffer_dma_tag, NULL,
+		    mde->virtual_address, PAGE_SIZE, isci_single_map,
+		    &mde->physical_address, BUS_DMA_NOWAIT);
 }
 
 /**
@@ -206,8 +201,9 @@ void scif_cb_controller_allocate_memory(SCI_CONTROLLER_HANDLE_T controller,
  *
  * @return none
  */
-void scif_cb_controller_free_memory(SCI_CONTROLLER_HANDLE_T controller,
-    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T * mde)
+void
+scif_cb_controller_free_memory(SCI_CONTROLLER_HANDLE_T controller,
+    SCI_PHYSICAL_MEMORY_DESCRIPTOR_T *mde)
 {
 	struct ISCI_CONTROLLER *isci_controller = (struct ISCI_CONTROLLER *)
 	    sci_object_get_association(controller);
@@ -216,12 +212,12 @@ void scif_cb_controller_free_memory(SCI_CONTROLLER_HANDLE_T controller,
 	 * Put the buffer back into the controller's buffer pool, rather
 	 * than invoking configfree.  This helps reduce chance we won't
 	 * have buffers available when system is under memory pressure.
-	 */ 
-	sci_pool_put(isci_controller->unmap_buffer_pool,
-	    mde->virtual_address);
+	 */
+	sci_pool_put(isci_controller->unmap_buffer_pool, mde->virtual_address);
 }
 
-void isci_controller_construct(struct ISCI_CONTROLLER *controller,
+void
+isci_controller_construct(struct ISCI_CONTROLLER *controller,
     struct isci_softc *isci)
 {
 	SCI_CONTROLLER_HANDLE_T scif_controller_handle;
@@ -253,48 +249,51 @@ void isci_controller_construct(struct ISCI_CONTROLLER *controller,
 
 	uint32_t domain_index;
 
-	for(domain_index = 0; domain_index < SCI_MAX_DOMAINS; domain_index++) {
-		isci_domain_construct( &controller->domain[domain_index],
+	for (domain_index = 0; domain_index < SCI_MAX_DOMAINS; domain_index++) {
+		isci_domain_construct(&controller->domain[domain_index],
 		    domain_index, controller);
 	}
 
-	controller->timer_memory = malloc(
-	    sizeof(struct ISCI_TIMER) * SCI_MAX_TIMERS, M_ISCI,
-	    M_NOWAIT | M_ZERO);
+	controller->timer_memory = malloc(sizeof(struct ISCI_TIMER) *
+		SCI_MAX_TIMERS,
+	    M_ISCI, M_NOWAIT | M_ZERO);
 
 	sci_pool_initialize(controller->timer_pool);
 
 	struct ISCI_TIMER *timer = (struct ISCI_TIMER *)
-	    controller->timer_memory;
+				       controller->timer_memory;
 
-	for ( int i = 0; i < SCI_MAX_TIMERS; i++ ) {
+	for (int i = 0; i < SCI_MAX_TIMERS; i++) {
 		sci_pool_put(controller->timer_pool, timer++);
 	}
 
 	sci_pool_initialize(controller->unmap_buffer_pool);
 }
 
-static void isci_led_fault_func(void *priv, int onoff)
+static void
+isci_led_fault_func(void *priv, int onoff)
 {
 	struct ISCI_PHY *phy = priv;
 
 	/* map onoff to the fault LED */
 	phy->led_fault = onoff;
-	scic_sgpio_update_led_state(phy->handle, 1 << phy->index, 
-		phy->led_fault, phy->led_locate, 0);
+	scic_sgpio_update_led_state(phy->handle, 1 << phy->index,
+	    phy->led_fault, phy->led_locate, 0);
 }
 
-static void isci_led_locate_func(void *priv, int onoff)
+static void
+isci_led_locate_func(void *priv, int onoff)
 {
 	struct ISCI_PHY *phy = priv;
 
 	/* map onoff to the locate LED */
 	phy->led_locate = onoff;
-	scic_sgpio_update_led_state(phy->handle, 1 << phy->index, 
-		phy->led_fault, phy->led_locate, 0);
+	scic_sgpio_update_led_state(phy->handle, 1 << phy->index,
+	    phy->led_fault, phy->led_locate, 0);
 }
 
-SCI_STATUS isci_controller_initialize(struct ISCI_CONTROLLER *controller)
+SCI_STATUS
+isci_controller_initialize(struct ISCI_CONTROLLER *controller)
 {
 	SCIC_USER_PARAMETERS_T scic_user_parameters;
 	SCI_CONTROLLER_HANDLE_T scic_controller_handle;
@@ -304,13 +303,11 @@ SCI_STATUS isci_controller_initialize(struct ISCI_CONTROLLER *controller)
 	uint32_t fail_on_timeout;
 	int i;
 
-	scic_controller_handle =
-	    scif_controller_get_scic_handle(controller->scif_controller_handle);
+	scic_controller_handle = scif_controller_get_scic_handle(
+	    controller->scif_controller_handle);
 
-	if (controller->isci->oem_parameters_found == TRUE)
-	{
-		scic_oem_parameters_set(
-		    scic_controller_handle,
+	if (controller->isci->oem_parameters_found == TRUE) {
+		scic_oem_parameters_set(scic_controller_handle,
 		    &controller->oem_parameters,
 		    (uint8_t)(controller->oem_parameters_version));
 	}
@@ -318,24 +315,24 @@ SCI_STATUS isci_controller_initialize(struct ISCI_CONTROLLER *controller)
 	scic_user_parameters_get(scic_controller_handle, &scic_user_parameters);
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.no_outbound_task_timeout", &tunable))
-		scic_user_parameters.sds1.no_outbound_task_timeout =
-		    (uint8_t)tunable;
+		scic_user_parameters.sds1.no_outbound_task_timeout = (uint8_t)
+		    tunable;
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.ssp_max_occupancy_timeout", &tunable))
-		scic_user_parameters.sds1.ssp_max_occupancy_timeout =
-		    (uint16_t)tunable;
+		scic_user_parameters.sds1.ssp_max_occupancy_timeout = (uint16_t)
+		    tunable;
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.stp_max_occupancy_timeout", &tunable))
-		scic_user_parameters.sds1.stp_max_occupancy_timeout =
-		    (uint16_t)tunable;
+		scic_user_parameters.sds1.stp_max_occupancy_timeout = (uint16_t)
+		    tunable;
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.ssp_inactivity_timeout", &tunable))
-		scic_user_parameters.sds1.ssp_inactivity_timeout =
-		    (uint16_t)tunable;
+		scic_user_parameters.sds1.ssp_inactivity_timeout = (uint16_t)
+		    tunable;
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.stp_inactivity_timeout", &tunable))
-		scic_user_parameters.sds1.stp_inactivity_timeout =
-		    (uint16_t)tunable;
+		scic_user_parameters.sds1.stp_inactivity_timeout = (uint16_t)
+		    tunable;
 
 	if (TUNABLE_ULONG_FETCH("hw.isci.max_speed_generation", &tunable))
 		for (i = 0; i < SCI_MAX_PHYS; i++)
@@ -350,9 +347,10 @@ SCI_STATUS isci_controller_initialize(struct ISCI_CONTROLLER *controller)
 	controller->queue_depth = SCI_MAX_IO_REQUESTS - SCI_MAX_DOMAINS;
 
 	if (TUNABLE_INT_FETCH("hw.isci.controller_queue_depth",
-	    &controller->queue_depth)) {
-		controller->queue_depth = max(1, min(controller->queue_depth,
-		    SCI_MAX_IO_REQUESTS - SCI_MAX_DOMAINS));
+		&controller->queue_depth)) {
+		controller->queue_depth = max(1,
+		    min(controller->queue_depth,
+			SCI_MAX_IO_REQUESTS - SCI_MAX_DOMAINS));
 	}
 
 	/* Reserve one request so that we can ensure we have one available TC
@@ -391,31 +389,33 @@ SCI_STATUS isci_controller_initialize(struct ISCI_CONTROLLER *controller)
 
 		/* fault */
 		controller->phys[i].led_fault = 0;
-		sprintf(led_name, "isci.bus%d.port%d.fault", controller->index, i);
+		sprintf(led_name, "isci.bus%d.port%d.fault", controller->index,
+		    i);
 		controller->phys[i].cdev_fault = led_create(isci_led_fault_func,
 		    &controller->phys[i], led_name);
-			
+
 		/* locate */
 		controller->phys[i].led_locate = 0;
-		sprintf(led_name, "isci.bus%d.port%d.locate", controller->index, i);
-		controller->phys[i].cdev_locate = led_create(isci_led_locate_func,
-		    &controller->phys[i], led_name);
+		sprintf(led_name, "isci.bus%d.port%d.locate", controller->index,
+		    i);
+		controller->phys[i].cdev_locate = led_create(
+		    isci_led_locate_func, &controller->phys[i], led_name);
 	}
 
 	return (scif_controller_initialize(controller->scif_controller_handle));
 }
 
-int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
+int
+isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 {
 	int error;
-	device_t device =  controller->isci->device;
+	device_t device = controller->isci->device;
 	uint32_t max_segment_size = isci_io_request_get_max_io_size();
 	struct ISCI_MEMORY *uncached_controller_memory =
 	    &controller->uncached_controller_memory;
 	struct ISCI_MEMORY *cached_controller_memory =
 	    &controller->cached_controller_memory;
-	struct ISCI_MEMORY *request_memory =
-	    &controller->request_memory;
+	struct ISCI_MEMORY *request_memory = &controller->request_memory;
 	POINTER_UINT virtual_address;
 	bus_addr_t physical_address;
 
@@ -429,36 +429,37 @@ int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 	    uncached_controller_memory);
 
 	if (error != 0)
-	    return (error);
+		return (error);
 
-	sci_mdl_decorator_assign_memory( controller->mdl,
+	sci_mdl_decorator_assign_memory(controller->mdl,
 	    SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS,
 	    uncached_controller_memory->virtual_address,
 	    uncached_controller_memory->physical_address);
 
-	cached_controller_memory->size = sci_mdl_decorator_get_memory_size(
-	    controller->mdl,
-	    SCI_MDE_ATTRIBUTE_CACHEABLE | SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS
-	);
+	cached_controller_memory->size =
+	    sci_mdl_decorator_get_memory_size(controller->mdl,
+		SCI_MDE_ATTRIBUTE_CACHEABLE |
+		    SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS);
 
 	error = isci_allocate_dma_buffer(device, controller,
 	    cached_controller_memory);
 
 	if (error != 0)
-	    return (error);
+		return (error);
 
 	sci_mdl_decorator_assign_memory(controller->mdl,
-	    SCI_MDE_ATTRIBUTE_CACHEABLE | SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS,
+	    SCI_MDE_ATTRIBUTE_CACHEABLE |
+		SCI_MDE_ATTRIBUTE_PHYSICALLY_CONTIGUOUS,
 	    cached_controller_memory->virtual_address,
 	    cached_controller_memory->physical_address);
 
-	request_memory->size =
-	    controller->queue_depth * isci_io_request_get_object_size();
+	request_memory->size = controller->queue_depth *
+	    isci_io_request_get_object_size();
 
 	error = isci_allocate_dma_buffer(device, controller, request_memory);
 
 	if (error != 0)
-	    return (error);
+		return (error);
 
 	/* For STP PIO testing, we want to ensure we can force multiple SGLs
 	 *  since this has been a problem area in SCIL.  This tunable parameter
@@ -469,20 +470,19 @@ int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 	 */
 	TUNABLE_INT_FETCH("hw.isci.max_segment_size", &max_segment_size);
 
-	/* Create DMA tag for our I/O requests.  Then we can create DMA maps based off
-	 *  of this tag and store them in each of our ISCI_IO_REQUEST objects.  This
-	 *  will enable better performance than creating the DMA maps every time we get
-	 *  an I/O.
+	/* Create DMA tag for our I/O requests.  Then we can create DMA maps
+	 * based off of this tag and store them in each of our ISCI_IO_REQUEST
+	 * objects.  This will enable better performance than creating the DMA
+	 * maps every time we get an I/O.
 	 */
 	error = bus_dma_tag_create(bus_get_dma_tag(device), 0x1,
-	    ISCI_DMA_BOUNDARY, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR,
-	    NULL, NULL, isci_io_request_get_max_io_size(),
-	    SCI_MAX_SCATTER_GATHER_ELEMENTS, max_segment_size, 0,
-	    busdma_lock_mutex, &controller->lock,
+	    ISCI_DMA_BOUNDARY, BUS_SPACE_MAXADDR, BUS_SPACE_MAXADDR, NULL, NULL,
+	    isci_io_request_get_max_io_size(), SCI_MAX_SCATTER_GATHER_ELEMENTS,
+	    max_segment_size, 0, busdma_lock_mutex, &controller->lock,
 	    &controller->buffer_dma_tag);
 
 	if (error != 0)
-	    return (error);
+		return (error);
 
 	sci_pool_initialize(controller->request_pool);
 
@@ -490,8 +490,8 @@ int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 	physical_address = request_memory->physical_address;
 
 	for (int i = 0; i < controller->queue_depth; i++) {
-		struct ISCI_REQUEST *request =
-		    (struct ISCI_REQUEST *)virtual_address;
+		struct ISCI_REQUEST *request = (struct ISCI_REQUEST *)
+		    virtual_address;
 
 		isci_request_construct(request,
 		    controller->scif_controller_handle,
@@ -506,9 +506,9 @@ int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 	uint32_t remote_device_size = sizeof(struct ISCI_REMOTE_DEVICE) +
 	    scif_remote_device_get_object_size();
 
-	controller->remote_device_memory = (uint8_t *) malloc(
-	    remote_device_size * SCI_MAX_REMOTE_DEVICES, M_ISCI,
-	    M_NOWAIT | M_ZERO);
+	controller->remote_device_memory = (uint8_t *)
+	    malloc(remote_device_size * SCI_MAX_REMOTE_DEVICES, M_ISCI,
+		M_NOWAIT | M_ZERO);
 
 	sci_pool_initialize(controller->remote_device_pool);
 
@@ -545,25 +545,27 @@ int isci_controller_allocate_memory(struct ISCI_CONTROLLER *controller)
 	return (0);
 }
 
-void isci_controller_start(void *controller_handle)
+void
+isci_controller_start(void *controller_handle)
 {
-	struct ISCI_CONTROLLER *controller =
-	    (struct ISCI_CONTROLLER *)controller_handle;
+	struct ISCI_CONTROLLER *controller = (struct ISCI_CONTROLLER *)
+	    controller_handle;
 	SCI_CONTROLLER_HANDLE_T scif_controller_handle =
 	    controller->scif_controller_handle;
 
 	scif_controller_start(scif_controller_handle,
-	    scif_controller_get_suggested_start_timeout(scif_controller_handle));
+	    scif_controller_get_suggested_start_timeout(
+		scif_controller_handle));
 
-	scic_controller_enable_interrupts(
-	    scif_controller_get_scic_handle(controller->scif_controller_handle));
+	scic_controller_enable_interrupts(scif_controller_get_scic_handle(
+	    controller->scif_controller_handle));
 }
 
-void isci_controller_domain_discovery_complete(
+void
+isci_controller_domain_discovery_complete(
     struct ISCI_CONTROLLER *isci_controller, struct ISCI_DOMAIN *isci_domain)
 {
-	if (!isci_controller->has_been_scanned)
-	{
+	if (!isci_controller->has_been_scanned) {
 		/* Controller has not been scanned yet.  We'll clear
 		 *  the discovery bit for this domain, then check if all bits
 		 *  are now clear.  That would indicate that all domains are
@@ -571,8 +573,8 @@ void isci_controller_domain_discovery_complete(
 		 *  scan.
 		 */
 
-		isci_controller->initial_discovery_mask &=
-		    ~(1 << isci_domain->index);
+		isci_controller->initial_discovery_mask &= ~(
+		    1 << isci_domain->index);
 
 		if (isci_controller->initial_discovery_mask == 0) {
 			struct isci_softc *driver = isci_controller->isci;
@@ -589,13 +591,12 @@ void isci_controller_domain_discovery_complete(
 				 */
 				isci_controller_start(
 				    &driver->controllers[next_index]);
-			}
-			else
-			{
-				/* All controllers have been started and completed discovery.
-				 *  Disestablish the config hook while will signal to the
-				 *  kernel during boot that it is safe to try to find and
-				 *  mount the root partition.
+			} else {
+				/* All controllers have been started and
+				 * completed discovery. Disestablish the config
+				 * hook while will signal to the kernel during
+				 * boot that it is safe to try to find and mount
+				 * the root partition.
 				 */
 				config_intrhook_disestablish(
 				    &driver->config_hook);
@@ -604,14 +605,16 @@ void isci_controller_domain_discovery_complete(
 	}
 }
 
-int isci_controller_attach_to_cam(struct ISCI_CONTROLLER *controller)
+int
+isci_controller_attach_to_cam(struct ISCI_CONTROLLER *controller)
 {
 	struct isci_softc *isci = controller->isci;
 	device_t parent = device_get_parent(isci->device);
 	int unit = device_get_unit(isci->device);
-	struct cam_devq *isci_devq = cam_simq_alloc(controller->sim_queue_depth);
+	struct cam_devq *isci_devq = cam_simq_alloc(
+	    controller->sim_queue_depth);
 
-	if(isci_devq == NULL) {
+	if (isci_devq == NULL) {
 		isci_log_message(0, "ISCI", "isci_devq is NULL \n");
 		return (-1);
 	}
@@ -620,23 +623,23 @@ int isci_controller_attach_to_cam(struct ISCI_CONTROLLER *controller)
 	    controller, unit, &controller->lock, controller->sim_queue_depth,
 	    controller->sim_queue_depth, isci_devq);
 
-	if(controller->sim == NULL) {
+	if (controller->sim == NULL) {
 		isci_log_message(0, "ISCI", "cam_sim_alloc... fails\n");
 		cam_simq_free(isci_devq);
 		return (-1);
 	}
 
-	if(xpt_bus_register(controller->sim, parent, controller->index)
-	    != CAM_SUCCESS) {
+	if (xpt_bus_register(controller->sim, parent, controller->index) !=
+	    CAM_SUCCESS) {
 		isci_log_message(0, "ISCI", "xpt_bus_register...fails \n");
 		cam_sim_free(controller->sim, TRUE);
 		mtx_unlock(&controller->lock);
 		return (-1);
 	}
 
-	if(xpt_create_path(&controller->path, NULL,
-	    cam_sim_path(controller->sim), CAM_TARGET_WILDCARD,
-	    CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
+	if (xpt_create_path(&controller->path, NULL,
+		cam_sim_path(controller->sim), CAM_TARGET_WILDCARD,
+		CAM_LUN_WILDCARD) != CAM_REQ_CMP) {
 		isci_log_message(0, "ISCI", "xpt_create_path....fails\n");
 		xpt_bus_deregister(cam_sim_path(controller->sim));
 		cam_sim_free(controller->sim, TRUE);
@@ -647,86 +650,83 @@ int isci_controller_attach_to_cam(struct ISCI_CONTROLLER *controller)
 	return (0);
 }
 
-void isci_poll(struct cam_sim *sim)
+void
+isci_poll(struct cam_sim *sim)
 {
-	struct ISCI_CONTROLLER *controller =
-	    (struct ISCI_CONTROLLER *)cam_sim_softc(sim);
+	struct ISCI_CONTROLLER *controller = (struct ISCI_CONTROLLER *)
+	    cam_sim_softc(sim);
 
 	isci_interrupt_poll_handler(controller);
 }
 
-void isci_action(struct cam_sim *sim, union ccb *ccb)
+void
+isci_action(struct cam_sim *sim, union ccb *ccb)
 {
-	struct ISCI_CONTROLLER *controller =
-	    (struct ISCI_CONTROLLER *)cam_sim_softc(sim);
+	struct ISCI_CONTROLLER *controller = (struct ISCI_CONTROLLER *)
+	    cam_sim_softc(sim);
 
-	switch ( ccb->ccb_h.func_code ) {
-	case XPT_PATH_INQ:
-		{
-			struct ccb_pathinq *cpi = &ccb->cpi;
-			int bus = cam_sim_bus(sim);
-			ccb->ccb_h.ccb_sim_ptr = sim;
-			cpi->version_num = 1;
-			cpi->hba_inquiry = PI_TAG_ABLE;
-			cpi->target_sprt = 0;
-			cpi->hba_misc = PIM_NOBUSRESET | PIM_SEQSCAN |
-			    PIM_UNMAPPED;
-			cpi->hba_eng_cnt = 0;
-			cpi->max_target = SCI_MAX_REMOTE_DEVICES - 1;
-			cpi->max_lun = ISCI_MAX_LUN;
-			cpi->maxio = isci_io_request_get_max_io_size();
-			cpi->unit_number = cam_sim_unit(sim);
-			cpi->bus_id = bus;
-			cpi->initiator_id = SCI_MAX_REMOTE_DEVICES;
-			cpi->base_transfer_speed = 300000;
-			strlcpy(cpi->sim_vid, "FreeBSD", SIM_IDLEN);
-			strlcpy(cpi->hba_vid, "Intel Corp.", HBA_IDLEN);
-			strlcpy(cpi->dev_name, cam_sim_name(sim), DEV_IDLEN);
-			cpi->transport = XPORT_SAS;
-			cpi->transport_version = 0;
-			cpi->protocol = PROTO_SCSI;
-			cpi->protocol_version = SCSI_REV_SPC2;
-			cpi->ccb_h.status = CAM_REQ_CMP;
-			xpt_done(ccb);
-		}
-		break;
-	case XPT_GET_TRAN_SETTINGS:
-		{
-			struct ccb_trans_settings *general_settings = &ccb->cts;
-			struct ccb_trans_settings_sas *sas_settings =
-			    &general_settings->xport_specific.sas;
-			struct ccb_trans_settings_scsi *scsi_settings =
-			    &general_settings->proto_specific.scsi;
-			struct ISCI_REMOTE_DEVICE *remote_device;
+	switch (ccb->ccb_h.func_code) {
+	case XPT_PATH_INQ: {
+		struct ccb_pathinq *cpi = &ccb->cpi;
+		int bus = cam_sim_bus(sim);
+		ccb->ccb_h.ccb_sim_ptr = sim;
+		cpi->version_num = 1;
+		cpi->hba_inquiry = PI_TAG_ABLE;
+		cpi->target_sprt = 0;
+		cpi->hba_misc = PIM_NOBUSRESET | PIM_SEQSCAN | PIM_UNMAPPED;
+		cpi->hba_eng_cnt = 0;
+		cpi->max_target = SCI_MAX_REMOTE_DEVICES - 1;
+		cpi->max_lun = ISCI_MAX_LUN;
+		cpi->maxio = isci_io_request_get_max_io_size();
+		cpi->unit_number = cam_sim_unit(sim);
+		cpi->bus_id = bus;
+		cpi->initiator_id = SCI_MAX_REMOTE_DEVICES;
+		cpi->base_transfer_speed = 300000;
+		strlcpy(cpi->sim_vid, "FreeBSD", SIM_IDLEN);
+		strlcpy(cpi->hba_vid, "Intel Corp.", HBA_IDLEN);
+		strlcpy(cpi->dev_name, cam_sim_name(sim), DEV_IDLEN);
+		cpi->transport = XPORT_SAS;
+		cpi->transport_version = 0;
+		cpi->protocol = PROTO_SCSI;
+		cpi->protocol_version = SCSI_REV_SPC2;
+		cpi->ccb_h.status = CAM_REQ_CMP;
+		xpt_done(ccb);
+	} break;
+	case XPT_GET_TRAN_SETTINGS: {
+		struct ccb_trans_settings *general_settings = &ccb->cts;
+		struct ccb_trans_settings_sas *sas_settings =
+		    &general_settings->xport_specific.sas;
+		struct ccb_trans_settings_scsi *scsi_settings =
+		    &general_settings->proto_specific.scsi;
+		struct ISCI_REMOTE_DEVICE *remote_device;
 
-			remote_device = controller->remote_device[ccb->ccb_h.target_id];
+		remote_device = controller->remote_device[ccb->ccb_h.target_id];
 
-			if (remote_device == NULL) {
-				ccb->ccb_h.status &= ~CAM_SIM_QUEUED;
-				ccb->ccb_h.status &= ~CAM_STATUS_MASK;
-				ccb->ccb_h.status |= CAM_DEV_NOT_THERE;
-				xpt_done(ccb);
-				break;
-			}
-
-			general_settings->protocol = PROTO_SCSI;
-			general_settings->transport = XPORT_SAS;
-			general_settings->protocol_version = SCSI_REV_SPC2;
-			general_settings->transport_version = 0;
-			scsi_settings->valid = CTS_SCSI_VALID_TQ;
-			scsi_settings->flags = CTS_SCSI_FLAGS_TAG_ENB;
+		if (remote_device == NULL) {
+			ccb->ccb_h.status &= ~CAM_SIM_QUEUED;
 			ccb->ccb_h.status &= ~CAM_STATUS_MASK;
-			ccb->ccb_h.status |= CAM_REQ_CMP;
-
-			sas_settings->bitrate =
-			    isci_remote_device_get_bitrate(remote_device);
-
-			if (sas_settings->bitrate != 0)
-				sas_settings->valid = CTS_SAS_VALID_SPEED;
-
+			ccb->ccb_h.status |= CAM_DEV_NOT_THERE;
 			xpt_done(ccb);
+			break;
 		}
-		break;
+
+		general_settings->protocol = PROTO_SCSI;
+		general_settings->transport = XPORT_SAS;
+		general_settings->protocol_version = SCSI_REV_SPC2;
+		general_settings->transport_version = 0;
+		scsi_settings->valid = CTS_SCSI_VALID_TQ;
+		scsi_settings->flags = CTS_SCSI_FLAGS_TAG_ENB;
+		ccb->ccb_h.status &= ~CAM_STATUS_MASK;
+		ccb->ccb_h.status |= CAM_REQ_CMP;
+
+		sas_settings->bitrate = isci_remote_device_get_bitrate(
+		    remote_device);
+
+		if (sas_settings->bitrate != 0)
+			sas_settings->valid = CTS_SAS_VALID_SPEED;
+
+		xpt_done(ccb);
+	} break;
 	case XPT_SCSI_IO:
 		if (ccb->ccb_h.flags & CAM_CDB_PHYS) {
 			ccb->ccb_h.status = CAM_REQ_INVALID;
@@ -744,24 +744,22 @@ void isci_action(struct cam_sim *sim, union ccb *ccb)
 		xpt_done(ccb);
 		break;
 	case XPT_CALC_GEOMETRY:
-		cam_calc_geometry(&ccb->ccg, /*extended*/1);
+		cam_calc_geometry(&ccb->ccg, /*extended*/ 1);
 		xpt_done(ccb);
 		break;
-	case XPT_RESET_DEV:
-		{
-			struct ISCI_REMOTE_DEVICE *remote_device =
-			    controller->remote_device[ccb->ccb_h.target_id];
+	case XPT_RESET_DEV: {
+		struct ISCI_REMOTE_DEVICE *remote_device =
+		    controller->remote_device[ccb->ccb_h.target_id];
 
-			if (remote_device != NULL)
-				isci_remote_device_reset(remote_device, ccb);
-			else {
-				ccb->ccb_h.status &= ~CAM_SIM_QUEUED;
-				ccb->ccb_h.status &= ~CAM_STATUS_MASK;
-				ccb->ccb_h.status |= CAM_DEV_NOT_THERE;
-				xpt_done(ccb);
-			}
+		if (remote_device != NULL)
+			isci_remote_device_reset(remote_device, ccb);
+		else {
+			ccb->ccb_h.status &= ~CAM_SIM_QUEUED;
+			ccb->ccb_h.status &= ~CAM_STATUS_MASK;
+			ccb->ccb_h.status |= CAM_DEV_NOT_THERE;
+			xpt_done(ccb);
 		}
-		break;
+	} break;
 	case XPT_RESET_BUS:
 		ccb->ccb_h.status = CAM_REQ_CMP;
 		xpt_done(ccb);
@@ -799,13 +797,10 @@ isci_controller_release_queued_ccbs(struct ISCI_CONTROLLER *controller)
 	KASSERT(mtx_owned(&controller->lock), ("controller lock not owned"));
 
 	controller->release_queued_ccbs = FALSE;
-	for (dev_idx = 0;
-	     dev_idx < SCI_MAX_REMOTE_DEVICES;
-	     dev_idx++) {
+	for (dev_idx = 0; dev_idx < SCI_MAX_REMOTE_DEVICES; dev_idx++) {
 
 		dev = controller->remote_device[dev_idx];
-		if (dev != NULL &&
-		    dev->release_queued_ccb == TRUE &&
+		if (dev != NULL && dev->release_queued_ccb == TRUE &&
 		    dev->queued_ccb_in_progress == NULL) {
 			dev->release_queued_ccb = FALSE;
 			ccb_h = TAILQ_FIRST(&dev->queued_ccbs);
@@ -814,11 +809,12 @@ isci_controller_release_queued_ccbs(struct ISCI_CONTROLLER *controller)
 				continue;
 
 			ptr = scsiio_cdb_ptr(&((union ccb *)ccb_h)->csio);
-			isci_log_message(1, "ISCI", "release %p %x\n", ccb_h, *ptr);
+			isci_log_message(1, "ISCI", "release %p %x\n", ccb_h,
+			    *ptr);
 
 			dev->queued_ccb_in_progress = (union ccb *)ccb_h;
-			isci_io_request_execute_scsi_io(
-			    (union ccb *)ccb_h, controller);
+			isci_io_request_execute_scsi_io((union ccb *)ccb_h,
+			    controller);
 		}
 	}
 }

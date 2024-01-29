@@ -32,40 +32,40 @@
  */
 
 #include <sys/cdefs.h>
-#include <sys/stdint.h>
-#include <sys/stddef.h>
-#include <sys/param.h>
-#include <sys/queue.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/systm.h>
-#include <sys/kernel.h>
 #include <sys/bus.h>
-#include <sys/module.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
-#include <sys/condvar.h>
-#include <sys/socket.h>
-#include <sys/sysctl.h>
-#include <sys/sx.h>
-#include <sys/unistd.h>
 #include <sys/callout.h>
+#include <sys/condvar.h>
+#include <sys/kernel.h>
+#include <sys/lock.h>
 #include <sys/malloc.h>
+#include <sys/module.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
-
-#include <net/if.h>
-#include <net/if_var.h>
+#include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stddef.h>
+#include <sys/stdint.h>
+#include <sys/sx.h>
+#include <sys/sysctl.h>
+#include <sys/unistd.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
+
+#include <net/if.h>
+#include <net/if_var.h>
+
 #include "usbdevs.h"
 
-#define	USB_DEBUG_VAR ipheth_debug
+#define USB_DEBUG_VAR ipheth_debug
+#include <dev/usb/net/if_iphethvar.h>
+#include <dev/usb/net/usb_ethernet.h>
 #include <dev/usb/usb_debug.h>
 #include <dev/usb/usb_process.h>
-
-#include <dev/usb/net/usb_ethernet.h>
-#include <dev/usb/net/if_iphethvar.h>
 
 static device_probe_t ipheth_probe;
 static device_attach_t ipheth_attach;
@@ -87,7 +87,8 @@ static int ipheth_debug = 0;
 
 static SYSCTL_NODE(_hw_usb, OID_AUTO, ipheth, CTLFLAG_RW | CTLFLAG_MPSAFE, 0,
     "USB iPhone ethernet");
-SYSCTL_INT(_hw_usb_ipheth, OID_AUTO, debug, CTLFLAG_RWTUN, &ipheth_debug, 0, "Debug level");
+SYSCTL_INT(_hw_usb_ipheth, OID_AUTO, debug, CTLFLAG_RWTUN, &ipheth_debug, 0,
+    "Debug level");
 #endif
 
 static const struct usb_config ipheth_config[IPHETH_N_TRANSFER] = {
@@ -151,10 +152,9 @@ static const STRUCT_USB_HOST_ID ipheth_devs[] = {
 	    IPHETH_USBINTF_PROTO)},
 #else
 	/* product agnostic interface match */
-	{USB_VENDOR(USB_VENDOR_APPLE),
-	 USB_IFACE_CLASS(IPHETH_USBINTF_CLASS),
-	 USB_IFACE_SUBCLASS(IPHETH_USBINTF_SUBCLASS),
-	 USB_IFACE_PROTOCOL(IPHETH_USBINTF_PROTO)},
+	{ USB_VENDOR(USB_VENDOR_APPLE), USB_IFACE_CLASS(IPHETH_USBINTF_CLASS),
+	    USB_IFACE_SUBCLASS(IPHETH_USBINTF_SUBCLASS),
+	    USB_IFACE_PROTOCOL(IPHETH_USBINTF_PROTO) },
 #endif
 };
 
@@ -175,10 +175,9 @@ static const struct usb_ether_methods ipheth_ue_methods = {
 	.ue_setpromisc = ipheth_setpromisc,
 };
 
-#define	IPHETH_ID(v,p,c,sc,pt) \
-    USB_VENDOR(v), USB_PRODUCT(p), \
-    USB_IFACE_CLASS(c), USB_IFACE_SUBCLASS(sc), \
-    USB_IFACE_PROTOCOL(pt)
+#define IPHETH_ID(v, p, c, sc, pt)                         \
+	USB_VENDOR(v), USB_PRODUCT(p), USB_IFACE_CLASS(c), \
+	    USB_IFACE_SUBCLASS(sc), USB_IFACE_PROTOCOL(pt)
 
 static int
 ipheth_get_mac_addr(struct ipheth_softc *sc)
@@ -230,14 +229,14 @@ ipheth_attach(device_t dev)
 
 	mtx_init(&sc->sc_mtx, device_get_nameunit(dev), NULL, MTX_DEF);
 
-	error = usbd_set_alt_interface_index(uaa->device,
-	    uaa->info.bIfaceIndex, IPHETH_ALT_INTFNUM);
+	error = usbd_set_alt_interface_index(uaa->device, uaa->info.bIfaceIndex,
+	    IPHETH_ALT_INTFNUM);
 	if (error) {
 		device_printf(dev, "Cannot set alternate setting\n");
 		goto detach;
 	}
-	error = usbd_transfer_setup(uaa->device, &sc->sc_iface_no,
-	    sc->sc_xfer, ipheth_config, IPHETH_N_TRANSFER, sc, &sc->sc_mtx);
+	error = usbd_transfer_setup(uaa->device, &sc->sc_iface_no, sc->sc_xfer,
+	    ipheth_config, IPHETH_N_TRANSFER, sc, &sc->sc_mtx);
 	if (error) {
 		device_printf(dev, "Cannot setup USB transfers\n");
 		goto detach;
@@ -259,11 +258,11 @@ ipheth_attach(device_t dev)
 		device_printf(dev, "could not attach interface\n");
 		goto detach;
 	}
-	return (0);			/* success */
+	return (0); /* success */
 
 detach:
 	ipheth_detach(dev);
-	return (ENXIO);			/* failure */
+	return (ENXIO); /* failure */
 }
 
 static int
@@ -327,14 +326,12 @@ ipheth_tick(struct usb_ether *ue)
 	if (error)
 		return;
 
-	sc->sc_carrier_on =
-	    (sc->sc_data[0] == IPHETH_CARRIER_ON);
+	sc->sc_carrier_on = (sc->sc_data[0] == IPHETH_CARRIER_ON);
 }
 
 static void
 ipheth_attach_post(struct usb_ether *ue)
 {
-
 }
 
 static void
@@ -357,13 +354,11 @@ ipheth_init(struct usb_ether *ue)
 static void
 ipheth_setmulti(struct usb_ether *ue)
 {
-
 }
 
 static void
 ipheth_setpromisc(struct usb_ether *ue)
 {
-
 }
 
 static void
@@ -406,15 +401,15 @@ ipheth_bulk_write_callback(struct usb_xfer *xfer, usb_error_t error)
 
 		/* FALLTHROUGH */
 	case USB_ST_SETUP:
-tr_setup:
+	tr_setup:
 		for (x = 0; x != IPHETH_TX_FRAMES_MAX; x++) {
 			m = if_dequeue(ifp);
 
 			if (m == NULL)
 				break;
 
-			usbd_xfer_set_frame_offset(xfer,
-			    x * IPHETH_BUF_SIZE, x);
+			usbd_xfer_set_frame_offset(xfer, x * IPHETH_BUF_SIZE,
+			    x);
 
 			pc = usbd_xfer_get_frame(xfer, x);
 
@@ -429,7 +424,7 @@ tr_setup:
 
 			if (IPHETH_BUF_SIZE != m->m_pkthdr.len) {
 				usbd_frame_zero(pc, m->m_pkthdr.len,
-					IPHETH_BUF_SIZE - m->m_pkthdr.len);
+				    IPHETH_BUF_SIZE - m->m_pkthdr.len);
 			}
 
 			/*
@@ -445,9 +440,8 @@ tr_setup:
 		}
 		break;
 
-	default:			/* Error */
-		DPRINTFN(11, "transfer error, %s\n",
-		    usbd_errstr(error));
+	default: /* Error */
+		DPRINTFN(11, "transfer error, %s\n", usbd_errstr(error));
 
 		/* free all previous TX buffers */
 		ipheth_free_queue(sc->sc_tx_buf, IPHETH_TX_FRAMES_MAX);
@@ -487,7 +481,7 @@ ipheth_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 			len = usbd_xfer_frame_len(xfer, x);
 
 			if (len < (int)(sizeof(struct ether_header) +
-			    IPHETH_RX_ADJ)) {
+				      IPHETH_RX_ADJ)) {
 				m_freem(m);
 				continue;
 			}
@@ -524,11 +518,11 @@ ipheth_bulk_read_callback(struct usb_xfer *xfer, usb_error_t error)
 		uether_rxflush(&sc->sc_ue);
 		break;
 
-	default:			/* Error */
+	default: /* Error */
 		DPRINTF("error = %s\n", usbd_errstr(error));
 
 		if (error != USB_ERR_CANCELLED) {
-	tr_stall:
+		tr_stall:
 			/* try to clear stall first */
 			usbd_xfer_set_stall(xfer);
 			usbd_xfer_set_frames(xfer, 0);

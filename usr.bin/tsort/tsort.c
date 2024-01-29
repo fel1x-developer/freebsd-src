@@ -62,22 +62,21 @@
  *  Michael Rendell, michael@stretch.cs.mun.ca - Feb 26, '90
  */
 
-#define	NF_MARK		0x1		/* marker for cycle detection */
-#define	NF_ACYCLIC	0x2		/* this node is cycle free */
-#define	NF_NODEST	0x4		/* Unreachable */
-
+#define NF_MARK 0x1    /* marker for cycle detection */
+#define NF_ACYCLIC 0x2 /* this node is cycle free */
+#define NF_NODEST 0x4  /* Unreachable */
 
 typedef struct node_str NODE;
 
 struct node_str {
-	NODE **n_prevp;			/* pointer to previous node's n_next */
-	NODE *n_next;			/* next node in graph */
-	NODE **n_arcs;			/* array of arcs to other nodes */
-	int n_narcs;			/* number of arcs in n_arcs[] */
-	int n_arcsize;			/* size of n_arcs[] array */
-	int n_refcnt;			/* # of arcs pointing to this node */
-	int n_flags;			/* NF_* */
-	char n_name[1];			/* name of this node */
+	NODE **n_prevp; /* pointer to previous node's n_next */
+	NODE *n_next;	/* next node in graph */
+	NODE **n_arcs;	/* array of arcs to other nodes */
+	int n_narcs;	/* number of arcs in n_arcs[] */
+	int n_arcsize;	/* size of n_arcs[] array */
+	int n_refcnt;	/* # of arcs pointing to this node */
+	int n_flags;	/* NF_* */
+	char n_name[1]; /* name of this node */
 };
 
 typedef struct _buf {
@@ -89,14 +88,14 @@ static DB *db;
 static NODE *graph, **cycle_buf, **longest_cycle;
 static int debug, longest, quiet;
 
-static void	 add_arc(char *, char *);
-static int	 find_cycle(NODE *, NODE *, int, int);
-static NODE	*get_node(char *);
-static void	*grow_buf(void *, size_t);
-static void	 remove_node(NODE *);
-static void	 clear_cycle(void);
-static void	 tsort(void);
-static void	 usage(void);
+static void add_arc(char *, char *);
+static int find_cycle(NODE *, NODE *, int, int);
+static NODE *get_node(char *);
+static void *grow_buf(void *, size_t);
+static void remove_node(NODE *);
+static void clear_cycle(void);
+static void tsort(void);
+static void usage(void);
 
 int
 main(int argc, char *argv[])
@@ -229,8 +228,7 @@ get_node(char *name)
 	DBT data, key;
 	NODE *n;
 
-	if (db == NULL &&
-	    (db = dbopen(NULL, O_RDWR, 0, DB_HASH, NULL)) == NULL)
+	if (db == NULL && (db = dbopen(NULL, O_RDWR, 0, DB_HASH, NULL)) == NULL)
 		err(1, "db: %s", name);
 
 	key.data = name;
@@ -270,7 +268,6 @@ get_node(char *name)
 		err(1, "db: %s", name);
 	return (n);
 }
-
 
 /*
  * Clear the NODEST flag from all nodes.
@@ -330,14 +327,15 @@ tsort(void)
 						warnx("cycle in data");
 						for (i = 0; i < cnt; i++)
 							warnx("%s",
-							    longest_cycle[i]->n_name);
+							    longest_cycle[i]
+								->n_name);
 					}
 					remove_node(n);
 					clear_cycle();
 					break;
 				} else {
 					/* to avoid further checks */
-					n->n_flags  |= NF_ACYCLIC;
+					n->n_flags |= NF_ACYCLIC;
 					clear_cycle();
 				}
 			}
@@ -363,7 +361,6 @@ remove_node(NODE *n)
 		n->n_next->n_prevp = n->n_prevp;
 }
 
-
 /* look for the longest? cycle from node from to node to. */
 static int
 find_cycle(NODE *from, NODE *to, int longest_len, int depth)
@@ -375,7 +372,7 @@ find_cycle(NODE *from, NODE *to, int longest_len, int depth)
 	 * avoid infinite loops and ignore portions of the graph known
 	 * to be acyclic
 	 */
-	if (from->n_flags & (NF_NODEST|NF_MARK|NF_ACYCLIC))
+	if (from->n_flags & (NF_NODEST | NF_MARK | NF_ACYCLIC))
 		return (0);
 	from->n_flags |= NF_MARK;
 
@@ -389,7 +386,7 @@ find_cycle(NODE *from, NODE *to, int longest_len, int depth)
 				    longest_len * sizeof(NODE *));
 			}
 		} else {
-			if ((*np)->n_flags & (NF_MARK|NF_ACYCLIC|NF_NODEST))
+			if ((*np)->n_flags & (NF_MARK | NF_ACYCLIC | NF_NODEST))
 				continue;
 			len = find_cycle(*np, to, longest_len, depth + 1);
 

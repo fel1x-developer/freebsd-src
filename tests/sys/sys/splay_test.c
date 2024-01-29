@@ -26,11 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <sys/types.h>
-
 #include <sys/tree.h>
-#include <stdlib.h>
 
 #include <atf-c.h>
+#include <stdlib.h>
 
 struct node {
 	SPLAY_ENTRY(node) node;
@@ -42,8 +41,10 @@ static SPLAY_HEAD(tree, node) root;
 static int
 compare(struct node *a, struct node *b)
 {
-	if (a->key < b->key) return (-1);
-	else if (a->key > b->key) return (1);
+	if (a->key < b->key)
+		return (-1);
+	else if (a->key > b->key)
+		return (1);
 	return (0);
 }
 
@@ -69,7 +70,7 @@ ATF_TC_BODY(splay_test, tc)
 		tmp = malloc(sizeof(struct node));
 		ATF_REQUIRE_MSG(tmp != NULL, "malloc failed");
 		do {
-			tmp->key = arc4random_uniform(MAX-MIN);
+			tmp->key = arc4random_uniform(MAX - MIN);
 			tmp->key += MIN;
 		} while (SPLAY_FIND(tree, &root, tmp) != NULL);
 		if (i == 0)

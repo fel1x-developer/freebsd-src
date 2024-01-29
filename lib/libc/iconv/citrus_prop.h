@@ -34,29 +34,29 @@
 
 typedef enum {
 	_CITRUS_PROP_BOOL = 0,
-	_CITRUS_PROP_STR  = 1,
-	_CITRUS_PROP_CHR  = 2,
-	_CITRUS_PROP_NUM  = 3,
+	_CITRUS_PROP_STR = 1,
+	_CITRUS_PROP_CHR = 2,
+	_CITRUS_PROP_NUM = 3,
 } _citrus_prop_type_t;
 
 typedef struct _citrus_prop_hint_t _citrus_prop_hint_t;
 
-#define _CITRUS_PROP_CB0_T(_func_, _type_) \
-typedef int (*_citrus_prop_##_func_##_cb_func_t) \
-    (void * __restrict, const char *, _type_); \
-typedef struct { \
-	_citrus_prop_##_func_##_cb_func_t func; \
-} _citrus_prop_##_func_##_cb_t;
+#define _CITRUS_PROP_CB0_T(_func_, _type_)                                 \
+	typedef int (*_citrus_prop_##_func_##_cb_func_t)(void *__restrict, \
+	    const char *, _type_);                                         \
+	typedef struct {                                                   \
+		_citrus_prop_##_func_##_cb_func_t func;                    \
+	} _citrus_prop_##_func_##_cb_t;
 _CITRUS_PROP_CB0_T(boolean, int)
 _CITRUS_PROP_CB0_T(str, const char *)
 #undef _CITRUS_PROP_CB0_T
 
-#define _CITRUS_PROP_CB1_T(_func_, _type_) \
-typedef int (*_citrus_prop_##_func_##_cb_func_t) \
-    (void * __restrict, const char *, _type_, _type_); \
-typedef struct { \
-	_citrus_prop_##_func_##_cb_func_t func; \
-} _citrus_prop_##_func_##_cb_t;
+#define _CITRUS_PROP_CB1_T(_func_, _type_)                                 \
+	typedef int (*_citrus_prop_##_func_##_cb_func_t)(void *__restrict, \
+	    const char *, _type_, _type_);                                 \
+	typedef struct {                                                   \
+		_citrus_prop_##_func_##_cb_func_t func;                    \
+	} _citrus_prop_##_func_##_cb_t;
 _CITRUS_PROP_CB1_T(chr, int)
 _CITRUS_PROP_CB1_T(num, uint64_t)
 #undef _CITRUS_PROP_CB1_T
@@ -64,8 +64,7 @@ _CITRUS_PROP_CB1_T(num, uint64_t)
 struct _citrus_prop_hint_t {
 	const char *name;
 	_citrus_prop_type_t type;
-#define _CITRUS_PROP_CB_T_OPS(_name_) \
-	_citrus_prop_##_name_##_cb_t _name_
+#define _CITRUS_PROP_CB_T_OPS(_name_) _citrus_prop_##_name_##_cb_t _name_
 	union {
 		_CITRUS_PROP_CB_T_OPS(boolean);
 		_CITRUS_PROP_CB_T_OPS(str);
@@ -74,20 +73,42 @@ struct _citrus_prop_hint_t {
 	} cb;
 };
 
-#define _CITRUS_PROP_HINT_BOOL(name, cb) \
-    { name, _CITRUS_PROP_BOOL, { .boolean = { cb } } }
+#define _CITRUS_PROP_HINT_BOOL(name, cb)  \
+	{                                 \
+		name, _CITRUS_PROP_BOOL,  \
+		{                         \
+			.boolean = { cb } \
+		}                         \
+	}
 #define _CITRUS_PROP_HINT_STR(name, cb) \
-    { name, _CITRUS_PROP_STR, { .str = { cb } } }
+	{                               \
+		name, _CITRUS_PROP_STR, \
+		{                       \
+			.str = { cb }   \
+		}                       \
+	}
 #define _CITRUS_PROP_HINT_CHR(name, cb) \
-    { name, _CITRUS_PROP_CHR, { .chr = { cb } } }
+	{                               \
+		name, _CITRUS_PROP_CHR, \
+		{                       \
+			.chr = { cb }   \
+		}                       \
+	}
 #define _CITRUS_PROP_HINT_NUM(name, cb) \
-    { name, _CITRUS_PROP_NUM, { .num = { cb } } }
+	{                               \
+		name, _CITRUS_PROP_NUM, \
+		{                       \
+			.num = { cb }   \
+		}                       \
+	}
 #define _CITRUS_PROP_HINT_END \
-    { .name = NULL }
+	{                     \
+		.name = NULL  \
+	}
 
 __BEGIN_DECLS
-int	 _citrus_prop_parse_variable(const _citrus_prop_hint_t * __restrict,
-	    void * __restrict, const void *, size_t);
+int _citrus_prop_parse_variable(const _citrus_prop_hint_t *__restrict,
+    void *__restrict, const void *, size_t);
 __END_DECLS
 
 #endif /* !_CITRUS_PROP_H_ */

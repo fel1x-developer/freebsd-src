@@ -231,7 +231,7 @@ fma(double x, double y, double z)
 				return (z);
 			else
 				return (nextafter(z, -INFINITY));
-		default:	/* FE_UPWARD */
+		default: /* FE_UPWARD */
 			if (x > 0.0 ^ y < 0.0)
 				return (nextafter(z, INFINITY));
 			else

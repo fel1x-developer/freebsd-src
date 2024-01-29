@@ -25,30 +25,30 @@
  */
 
 #ifndef _LINUX_I2C_H_
-#define	_LINUX_I2C_H_
+#define _LINUX_I2C_H_
 
 #include <sys/types.h>
-#include <sys/errno.h>
 #include <sys/systm.h>
+#include <sys/errno.h>
 
 #include <linux/device.h>
 
-#define	I2C_MAX_ADAPTER_NAME_LENGTH	32
+#define I2C_MAX_ADAPTER_NAME_LENGTH 32
 
-#define	I2C_M_RD	0x0001
-#define	I2C_M_NOSTART	0x0002
-#define	I2C_M_STOP	0x0004
+#define I2C_M_RD 0x0001
+#define I2C_M_NOSTART 0x0002
+#define I2C_M_STOP 0x0004
 
 /* No need for us */
-#define	I2C_FUNC_I2C			0
-#define	I2C_FUNC_SMBUS_EMUL		0
-#define	I2C_FUNC_SMBUS_READ_BLOCK_DATA	0
-#define	I2C_FUNC_SMBUS_BLOCK_PROC_CALL	0
-#define	I2C_FUNC_10BIT_ADDR		0
+#define I2C_FUNC_I2C 0
+#define I2C_FUNC_SMBUS_EMUL 0
+#define I2C_FUNC_SMBUS_READ_BLOCK_DATA 0
+#define I2C_FUNC_SMBUS_BLOCK_PROC_CALL 0
+#define I2C_FUNC_10BIT_ADDR 0
 
-#define	I2C_CLASS_HWMON	0x1
-#define	I2C_CLASS_DDC	0x8
-#define	I2C_CLASS_SPD	0x80
+#define I2C_CLASS_HWMON 0x1
+#define I2C_CLASS_DDC 0x8
+#define I2C_CLASS_SPD 0x80
 
 struct i2c_adapter {
 	struct module *owner;
@@ -93,30 +93,30 @@ struct i2c_adapter_quirks {
 	uint16_t max_comb_2nd_msg_len;
 };
 
-#define	I2C_AQ_COMB			BIT(0)
-#define	I2C_AQ_COMB_WRITE_FIRST		BIT(1)
-#define	I2C_AQ_COMB_READ_SECOND		BIT(2)
-#define	I2C_AQ_COMB_SAME_ADDR		BIT(3)
-#define	I2C_AQ_COMB_WRITE_THEN_READ \
-    (I2C_AQ_COMB | I2C_AQ_COMB_WRITE_FIRST | \
-    I2C_AQ_COMB_READ_SECOND | I2C_AQ_COMB_SAME_ADDR)
-#define	I2C_AQ_NO_CLK_STRETCH		BIT(4)
-#define	I2C_AQ_NO_ZERO_LEN_READ		BIT(5)
-#define	I2C_AQ_NO_ZERO_LEN_WRITE	BIT(6)
-#define	I2C_AQ_NO_ZERO_LEN \
-    (I2C_AQ_NO_ZERO_LEN_READ | I2C_AQ_NO_ZERO_LEN_WRITE)
-#define	I2C_AQ_NO_REP_START		BIT(7)
+#define I2C_AQ_COMB BIT(0)
+#define I2C_AQ_COMB_WRITE_FIRST BIT(1)
+#define I2C_AQ_COMB_READ_SECOND BIT(2)
+#define I2C_AQ_COMB_SAME_ADDR BIT(3)
+#define I2C_AQ_COMB_WRITE_THEN_READ                                        \
+	(I2C_AQ_COMB | I2C_AQ_COMB_WRITE_FIRST | I2C_AQ_COMB_READ_SECOND | \
+	    I2C_AQ_COMB_SAME_ADDR)
+#define I2C_AQ_NO_CLK_STRETCH BIT(4)
+#define I2C_AQ_NO_ZERO_LEN_READ BIT(5)
+#define I2C_AQ_NO_ZERO_LEN_WRITE BIT(6)
+#define I2C_AQ_NO_ZERO_LEN (I2C_AQ_NO_ZERO_LEN_READ | I2C_AQ_NO_ZERO_LEN_WRITE)
+#define I2C_AQ_NO_REP_START BIT(7)
 
 int lkpi_i2c_add_adapter(struct i2c_adapter *adapter);
 int lkpi_i2c_del_adapter(struct i2c_adapter *adapter);
 
-int lkpi_i2cbb_transfer(struct i2c_adapter *adapter, struct i2c_msg *msgs, int nmsgs);
+int lkpi_i2cbb_transfer(struct i2c_adapter *adapter, struct i2c_msg *msgs,
+    int nmsgs);
 
-#define	i2c_add_adapter(adapter)	lkpi_i2c_add_adapter(adapter)
-#define	i2c_del_adapter(adapter)	lkpi_i2c_del_adapter(adapter)
+#define i2c_add_adapter(adapter) lkpi_i2c_add_adapter(adapter)
+#define i2c_del_adapter(adapter) lkpi_i2c_del_adapter(adapter)
 
-#define	i2c_get_adapter(x)	NULL
-#define	i2c_put_adapter(x)
+#define i2c_get_adapter(x) NULL
+#define i2c_put_adapter(x)
 
 static inline int
 do_i2c_transfer(struct i2c_adapter *adapter, struct i2c_msg *msgs, int nmsgs)
@@ -174,4 +174,4 @@ i2c_get_adapdata(struct i2c_adapter *adapter)
 	return (adapter->data);
 }
 
-#endif	/* _LINUX_I2C_H_ */
+#endif /* _LINUX_I2C_H_ */

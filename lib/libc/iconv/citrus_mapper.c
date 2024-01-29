@@ -1,4 +1,5 @@
-/*	$NetBSD: citrus_mapper.c,v 1.10 2012/06/08 07:49:42 martin Exp $	*/
+/*	$NetBSD: citrus_mapper.c,v 1.10 2012/06/08 07:49:42 martin Exp $
+ */
 
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
@@ -29,8 +30,8 @@
  */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/queue.h>
+#include <sys/stat.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -39,27 +40,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "citrus_namespace.h"
-#include "citrus_types.h"
-#include "citrus_region.h"
-#include "citrus_lock.h"
-#include "citrus_memstream.h"
 #include "citrus_bcs.h"
+#include "citrus_hash.h"
+#include "citrus_lock.h"
+#include "citrus_mapper.h"
+#include "citrus_memstream.h"
 #include "citrus_mmap.h"
 #include "citrus_module.h"
-#include "citrus_hash.h"
-#include "citrus_mapper.h"
+#include "citrus_namespace.h"
+#include "citrus_region.h"
+#include "citrus_types.h"
 
-#define _CITRUS_MAPPER_DIR	"mapper.dir"
+#define _CITRUS_MAPPER_DIR "mapper.dir"
 
 #define CM_HASH_SIZE 101
-#define REFCOUNT_PERSISTENT	-1
+#define REFCOUNT_PERSISTENT -1
 
-static pthread_rwlock_t		cm_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_rwlock_t cm_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 struct _citrus_mapper_area {
-	_CITRUS_HASH_HEAD(, _citrus_mapper, CM_HASH_SIZE)	 ma_cache;
-	char							*ma_dir;
+	_CITRUS_HASH_HEAD(, _citrus_mapper, CM_HASH_SIZE) ma_cache;
+	char *ma_dir;
 };
 
 /*
@@ -110,7 +111,6 @@ quit:
 
 	return (ret);
 }
-
 
 /*
  * lookup_mapper_entry:
@@ -200,9 +200,8 @@ mapper_close(struct _citrus_mapper *cm)
  */
 static int
 mapper_open(struct _citrus_mapper_area *__restrict ma,
-    struct _citrus_mapper * __restrict * __restrict rcm,
-    const char * __restrict module,
-    const char * __restrict variable)
+    struct _citrus_mapper *__restrict *__restrict rcm,
+    const char *__restrict module, const char *__restrict variable)
 {
 	struct _citrus_mapper *cm;
 	_citrus_mapper_getops_t getops;
@@ -226,8 +225,8 @@ mapper_open(struct _citrus_mapper_area *__restrict ma,
 		goto err;
 
 	/* get operators */
-	getops = (_citrus_mapper_getops_t)
-	    _citrus_find_getops(cm->cm_module, module, "mapper");
+	getops = (_citrus_mapper_getops_t)_citrus_find_getops(cm->cm_module,
+	    module, "mapper");
 	if (!getops) {
 		ret = EOPNOTSUPP;
 		goto err;
@@ -241,10 +240,8 @@ mapper_open(struct _citrus_mapper_area *__restrict ma,
 	if (ret)
 		goto err;
 
-	if (!cm->cm_ops->mo_init ||
-	    !cm->cm_ops->mo_uninit ||
-	    !cm->cm_ops->mo_convert ||
-	    !cm->cm_ops->mo_init_state) {
+	if (!cm->cm_ops->mo_init || !cm->cm_ops->mo_uninit ||
+	    !cm->cm_ops->mo_convert || !cm->cm_ops->mo_init_state) {
 		ret = EINVAL;
 		goto err;
 	}
@@ -256,9 +253,8 @@ mapper_open(struct _citrus_mapper_area *__restrict ma,
 		goto err;
 	}
 	/* initialize the mapper */
-	ret = (*cm->cm_ops->mo_init)(ma, cm, ma->ma_dir,
-	    (const void *)variable, strlen(variable) + 1,
-	    cm->cm_traits, sizeof(*cm->cm_traits));
+	ret = (*cm->cm_ops->mo_init)(ma, cm, ma->ma_dir, (const void *)variable,
+	    strlen(variable) + 1, cm->cm_traits, sizeof(*cm->cm_traits));
 	if (ret)
 		goto err;
 
@@ -277,8 +273,8 @@ err:
  */
 int
 _citrus_mapper_open_direct(struct _citrus_mapper_area *__restrict ma,
-    struct _citrus_mapper * __restrict * __restrict rcm,
-    const char * __restrict module, const char * __restrict variable)
+    struct _citrus_mapper *__restrict *__restrict rcm,
+    const char *__restrict module, const char *__restrict variable)
 {
 
 	return (mapper_open(ma, rcm, module, variable));
@@ -310,8 +306,8 @@ match_func(struct _citrus_mapper *cm, const char *key)
  */
 int
 _citrus_mapper_open(struct _citrus_mapper_area *__restrict ma,
-    struct _citrus_mapper * __restrict * __restrict rcm,
-    const char * __restrict mapname)
+    struct _citrus_mapper *__restrict *__restrict rcm,
+    const char *__restrict mapname)
 {
 	struct _citrus_mapper *cm;
 	char linebuf[PATH_MAX];
@@ -350,7 +346,7 @@ _citrus_mapper_open(struct _citrus_mapper_area *__restrict ma,
 	if (cm->cm_key == NULL) {
 		ret = errno;
 		_mapper_close(cm);
-		goto quit;	
+		goto quit;
 	}
 
 	/* insert to the cache */
@@ -386,7 +382,7 @@ _citrus_mapper_close(struct _citrus_mapper *cm)
 		UNLOCK(&cm_lock);
 		mapper_close(cm);
 		return;
-quit:
+	quit:
 		UNLOCK(&cm_lock);
 	}
 }
@@ -396,7 +392,7 @@ quit:
  *	set persistent count.
  */
 void
-_citrus_mapper_set_persistent(struct _citrus_mapper * __restrict cm)
+_citrus_mapper_set_persistent(struct _citrus_mapper *__restrict cm)
 {
 
 	WLOCK(&cm_lock);

@@ -39,22 +39,21 @@
 
 #include <sys/cdefs.h>
 
-#include <cstdlib>
-#include <cstdio>
-#include <unistd.h>
-
-#include <list>
-#include <map>
-#include <string>
-
-#include <devdctl/guid.h>
+#include <devdctl/consumer.h>
 #include <devdctl/event.h>
 #include <devdctl/event_factory.h>
 #include <devdctl/exception.h>
-#include <devdctl/consumer.h>
+#include <devdctl/guid.h>
+#include <unistd.h>
 
 #include "vdev_iterator.h"
 #include "zfsd.h"
+
+#include <cstdio>
+#include <cstdlib>
+#include <list>
+#include <map>
+#include <string>
 /*=============================== Program Main ===============================*/
 static void
 usage()

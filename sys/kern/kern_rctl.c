@@ -30,31 +30,32 @@
 
 #ifdef RCTL
 
+#include <sys/types.h>
 #include <sys/param.h>
+#include <sys/systm.h>
 #include <sys/devctl.h>
-#include <sys/malloc.h>
-#include <sys/queue.h>
-#include <sys/refcount.h>
+#include <sys/eventhandler.h>
 #include <sys/jail.h>
 #include <sys/kernel.h>
 #include <sys/limits.h>
+#include <sys/lock.h>
 #include <sys/loginclass.h>
+#include <sys/malloc.h>
+#include <sys/mutex.h>
 #include <sys/priv.h>
 #include <sys/proc.h>
+#include <sys/queue.h>
 #include <sys/racct.h>
 #include <sys/rctl.h>
+#include <sys/refcount.h>
 #include <sys/resourcevar.h>
-#include <sys/sx.h>
-#include <sys/sysproto.h>
-#include <sys/systm.h>
-#include <sys/types.h>
-#include <sys/eventhandler.h>
-#include <sys/lock.h>
-#include <sys/mutex.h>
 #include <sys/rwlock.h>
 #include <sys/sbuf.h>
+#include <sys/sx.h>
+#include <sys/sysproto.h>
 #include <sys/taskqueue.h>
 #include <sys/tree.h>
+
 #include <vm/uma.h>
 
 #ifndef RACCT
@@ -63,15 +64,15 @@
 
 FEATURE(rctl, "Resource Limits");
 
-#define	HRF_DEFAULT		0
-#define	HRF_DONT_INHERIT	1
-#define	HRF_DONT_ACCUMULATE	2
+#define HRF_DEFAULT 0
+#define HRF_DONT_INHERIT 1
+#define HRF_DONT_ACCUMULATE 2
 
-#define	RCTL_MAX_INBUFSIZE	4 * 1024
-#define	RCTL_MAX_OUTBUFSIZE	16 * 1024 * 1024
-#define	RCTL_LOG_BUFSIZE	128
+#define RCTL_MAX_INBUFSIZE 4 * 1024
+#define RCTL_MAX_OUTBUFSIZE 16 * 1024 * 1024
+#define RCTL_LOG_BUFSIZE 128
 
-#define	RCTL_PCPU_SHIFT		(10 * 1000000)
+#define RCTL_PCPU_SHIFT (10 * 1000000)
 
 static unsigned int rctl_maxbufsize = RCTL_MAX_OUTBUFSIZE;
 static int rctl_log_rate_limit = 10;
@@ -100,13 +101,11 @@ SYSCTL_UINT(_kern_racct_rctl, OID_AUTO, devctl_rate_limit, CTLFLAG_RWTUN,
     &rctl_devctl_rate_limit, 0, "Maximum number of devctl messages per second");
 SYSCTL_PROC(_kern_racct_rctl, OID_AUTO, throttle_min,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, 0,
-    &rctl_throttle_min_sysctl, "IU",
-    "Shortest throttling duration, in hz");
+    &rctl_throttle_min_sysctl, "IU", "Shortest throttling duration, in hz");
 TUNABLE_INT("kern.racct.rctl.throttle_min", &rctl_throttle_min);
 SYSCTL_PROC(_kern_racct_rctl, OID_AUTO, throttle_max,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, 0,
-    &rctl_throttle_max_sysctl, "IU",
-    "Longest throttling duration, in hz");
+    &rctl_throttle_max_sysctl, "IU", "Longest throttling duration, in hz");
 TUNABLE_INT("kern.racct.rctl.throttle_max", &rctl_throttle_max);
 SYSCTL_PROC(_kern_racct_rctl, OID_AUTO, throttle_pct,
     CTLTYPE_UINT | CTLFLAG_RWTUN | CTLFLAG_MPSAFE, 0, 0,
@@ -125,88 +124,57 @@ TUNABLE_INT("kern.racct.rctl.throttle_pct2", &rctl_throttle_pct2);
  * with uidinfo for user X, and to each process of that user.
  */
 struct rctl_rule_link {
-	LIST_ENTRY(rctl_rule_link)	rrl_next;
-	struct rctl_rule		*rrl_rule;
-	int				rrl_exceeded;
+	LIST_ENTRY(rctl_rule_link) rrl_next;
+	struct rctl_rule *rrl_rule;
+	int rrl_exceeded;
 };
 
 struct dict {
-	const char	*d_name;
-	int		d_value;
+	const char *d_name;
+	int d_value;
 };
 
-static struct dict subjectnames[] = {
-	{ "process", RCTL_SUBJECT_TYPE_PROCESS },
+static struct dict subjectnames[] = { { "process", RCTL_SUBJECT_TYPE_PROCESS },
 	{ "user", RCTL_SUBJECT_TYPE_USER },
 	{ "loginclass", RCTL_SUBJECT_TYPE_LOGINCLASS },
-	{ "jail", RCTL_SUBJECT_TYPE_JAIL },
-	{ NULL, -1 }};
+	{ "jail", RCTL_SUBJECT_TYPE_JAIL }, { NULL, -1 } };
 
-static struct dict resourcenames[] = {
-	{ "cputime", RACCT_CPU },
-	{ "datasize", RACCT_DATA },
-	{ "stacksize", RACCT_STACK },
-	{ "coredumpsize", RACCT_CORE },
-	{ "memoryuse", RACCT_RSS },
-	{ "memorylocked", RACCT_MEMLOCK },
-	{ "maxproc", RACCT_NPROC },
-	{ "openfiles", RACCT_NOFILE },
-	{ "vmemoryuse", RACCT_VMEM },
-	{ "pseudoterminals", RACCT_NPTS },
-	{ "swapuse", RACCT_SWAP },
-	{ "nthr", RACCT_NTHR },
-	{ "msgqqueued", RACCT_MSGQQUEUED },
-	{ "msgqsize", RACCT_MSGQSIZE },
-	{ "nmsgq", RACCT_NMSGQ },
-	{ "nsem", RACCT_NSEM },
-	{ "nsemop", RACCT_NSEMOP },
-	{ "nshm", RACCT_NSHM },
-	{ "shmsize", RACCT_SHMSIZE },
-	{ "wallclock", RACCT_WALLCLOCK },
-	{ "pcpu", RACCT_PCTCPU },
-	{ "readbps", RACCT_READBPS },
-	{ "writebps", RACCT_WRITEBPS },
-	{ "readiops", RACCT_READIOPS },
-	{ "writeiops", RACCT_WRITEIOPS },
-	{ NULL, -1 }};
+static struct dict resourcenames[] = { { "cputime", RACCT_CPU },
+	{ "datasize", RACCT_DATA }, { "stacksize", RACCT_STACK },
+	{ "coredumpsize", RACCT_CORE }, { "memoryuse", RACCT_RSS },
+	{ "memorylocked", RACCT_MEMLOCK }, { "maxproc", RACCT_NPROC },
+	{ "openfiles", RACCT_NOFILE }, { "vmemoryuse", RACCT_VMEM },
+	{ "pseudoterminals", RACCT_NPTS }, { "swapuse", RACCT_SWAP },
+	{ "nthr", RACCT_NTHR }, { "msgqqueued", RACCT_MSGQQUEUED },
+	{ "msgqsize", RACCT_MSGQSIZE }, { "nmsgq", RACCT_NMSGQ },
+	{ "nsem", RACCT_NSEM }, { "nsemop", RACCT_NSEMOP },
+	{ "nshm", RACCT_NSHM }, { "shmsize", RACCT_SHMSIZE },
+	{ "wallclock", RACCT_WALLCLOCK }, { "pcpu", RACCT_PCTCPU },
+	{ "readbps", RACCT_READBPS }, { "writebps", RACCT_WRITEBPS },
+	{ "readiops", RACCT_READIOPS }, { "writeiops", RACCT_WRITEIOPS },
+	{ NULL, -1 } };
 
-static struct dict actionnames[] = {
-	{ "sighup", RCTL_ACTION_SIGHUP },
-	{ "sigint", RCTL_ACTION_SIGINT },
-	{ "sigquit", RCTL_ACTION_SIGQUIT },
-	{ "sigill", RCTL_ACTION_SIGILL },
-	{ "sigtrap", RCTL_ACTION_SIGTRAP },
-	{ "sigabrt", RCTL_ACTION_SIGABRT },
-	{ "sigemt", RCTL_ACTION_SIGEMT },
-	{ "sigfpe", RCTL_ACTION_SIGFPE },
-	{ "sigkill", RCTL_ACTION_SIGKILL },
-	{ "sigbus", RCTL_ACTION_SIGBUS },
-	{ "sigsegv", RCTL_ACTION_SIGSEGV },
-	{ "sigsys", RCTL_ACTION_SIGSYS },
-	{ "sigpipe", RCTL_ACTION_SIGPIPE },
-	{ "sigalrm", RCTL_ACTION_SIGALRM },
-	{ "sigterm", RCTL_ACTION_SIGTERM },
-	{ "sigurg", RCTL_ACTION_SIGURG },
-	{ "sigstop", RCTL_ACTION_SIGSTOP },
-	{ "sigtstp", RCTL_ACTION_SIGTSTP },
-	{ "sigchld", RCTL_ACTION_SIGCHLD },
-	{ "sigttin", RCTL_ACTION_SIGTTIN },
-	{ "sigttou", RCTL_ACTION_SIGTTOU },
-	{ "sigio", RCTL_ACTION_SIGIO },
-	{ "sigxcpu", RCTL_ACTION_SIGXCPU },
+static struct dict actionnames[] = { { "sighup", RCTL_ACTION_SIGHUP },
+	{ "sigint", RCTL_ACTION_SIGINT }, { "sigquit", RCTL_ACTION_SIGQUIT },
+	{ "sigill", RCTL_ACTION_SIGILL }, { "sigtrap", RCTL_ACTION_SIGTRAP },
+	{ "sigabrt", RCTL_ACTION_SIGABRT }, { "sigemt", RCTL_ACTION_SIGEMT },
+	{ "sigfpe", RCTL_ACTION_SIGFPE }, { "sigkill", RCTL_ACTION_SIGKILL },
+	{ "sigbus", RCTL_ACTION_SIGBUS }, { "sigsegv", RCTL_ACTION_SIGSEGV },
+	{ "sigsys", RCTL_ACTION_SIGSYS }, { "sigpipe", RCTL_ACTION_SIGPIPE },
+	{ "sigalrm", RCTL_ACTION_SIGALRM }, { "sigterm", RCTL_ACTION_SIGTERM },
+	{ "sigurg", RCTL_ACTION_SIGURG }, { "sigstop", RCTL_ACTION_SIGSTOP },
+	{ "sigtstp", RCTL_ACTION_SIGTSTP }, { "sigchld", RCTL_ACTION_SIGCHLD },
+	{ "sigttin", RCTL_ACTION_SIGTTIN }, { "sigttou", RCTL_ACTION_SIGTTOU },
+	{ "sigio", RCTL_ACTION_SIGIO }, { "sigxcpu", RCTL_ACTION_SIGXCPU },
 	{ "sigxfsz", RCTL_ACTION_SIGXFSZ },
 	{ "sigvtalrm", RCTL_ACTION_SIGVTALRM },
 	{ "sigprof", RCTL_ACTION_SIGPROF },
 	{ "sigwinch", RCTL_ACTION_SIGWINCH },
-	{ "siginfo", RCTL_ACTION_SIGINFO },
-	{ "sigusr1", RCTL_ACTION_SIGUSR1 },
-	{ "sigusr2", RCTL_ACTION_SIGUSR2 },
-	{ "sigthr", RCTL_ACTION_SIGTHR },
-	{ "deny", RCTL_ACTION_DENY },
-	{ "log", RCTL_ACTION_LOG },
-	{ "devctl", RCTL_ACTION_DEVCTL },
-	{ "throttle", RCTL_ACTION_THROTTLE },
-	{ NULL, -1 }};
+	{ "siginfo", RCTL_ACTION_SIGINFO }, { "sigusr1", RCTL_ACTION_SIGUSR1 },
+	{ "sigusr2", RCTL_ACTION_SIGUSR2 }, { "sigthr", RCTL_ACTION_SIGTHR },
+	{ "deny", RCTL_ACTION_DENY }, { "log", RCTL_ACTION_LOG },
+	{ "devctl", RCTL_ACTION_DEVCTL }, { "throttle", RCTL_ACTION_THROTTLE },
+	{ NULL, -1 } };
 
 static void rctl_init(void);
 SYSINIT(rctl, SI_SUB_RACCT, SI_ORDER_FIRST, rctl_init, NULL);
@@ -219,7 +187,8 @@ static void rctl_rule_to_sbuf(struct sbuf *sb, const struct rctl_rule *rule);
 
 static MALLOC_DEFINE(M_RCTL, "rctl", "Resource Limits");
 
-static int rctl_throttle_min_sysctl(SYSCTL_HANDLER_ARGS)
+static int
+rctl_throttle_min_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	int error, val = rctl_throttle_min;
 
@@ -236,7 +205,8 @@ static int rctl_throttle_min_sysctl(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-static int rctl_throttle_max_sysctl(SYSCTL_HANDLER_ARGS)
+static int
+rctl_throttle_max_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	int error, val = rctl_throttle_max;
 
@@ -253,7 +223,8 @@ static int rctl_throttle_max_sysctl(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-static int rctl_throttle_pct_sysctl(SYSCTL_HANDLER_ARGS)
+static int
+rctl_throttle_pct_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	int error, val = rctl_throttle_pct;
 
@@ -270,7 +241,8 @@ static int rctl_throttle_pct_sysctl(SYSCTL_HANDLER_ARGS)
 	return (0);
 }
 
-static int rctl_throttle_pct2_sysctl(SYSCTL_HANDLER_ARGS)
+static int
+rctl_throttle_pct2_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	int error, val = rctl_throttle_pct2;
 
@@ -386,7 +358,7 @@ rctl_throttle_decay(struct racct *racct, int resource)
 
 	minavailable = INT64_MAX;
 
-	LIST_FOREACH(link, &racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
 
 		if (rule->rr_resource != resource)
@@ -419,7 +391,8 @@ rctl_throttle_decay(struct racct *racct, int resource)
  * We slightly cheat here and return less than we normally would.
  */
 int64_t
-rctl_pcpu_available(const struct proc *p) {
+rctl_pcpu_available(const struct proc *p)
+{
 	struct rctl_rule *rule;
 	struct rctl_rule_link *link;
 	int64_t available, minavailable, limit;
@@ -430,7 +403,7 @@ rctl_pcpu_available(const struct proc *p) {
 	minavailable = INT64_MAX;
 	limit = 0;
 
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
 		if (rule->rr_resource != RACCT_PCTCPU)
 			continue;
@@ -509,7 +482,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 	 * There may be more than one matching rule; go through all of them.
 	 * Denial should be done last, after logging and sending signals.
 	 */
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
 		if (rule->rr_resource != resource)
 			continue;
@@ -543,7 +516,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 				continue;
 
 			if (!ppsratecheck(&log_lasttime, &log_curtime,
-			    rctl_log_rate_limit))
+				rctl_log_rate_limit))
 				continue;
 
 			buf = malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
@@ -555,8 +528,9 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			rctl_rule_to_sbuf(&sb, rule);
 			sbuf_finish(&sb);
 			printf("rctl: rule \"%s\" matched by pid %d "
-			    "(%s), uid %d, jail %s\n", sbuf_data(&sb),
-			    p->p_pid, p->p_comm, p->p_ucred->cr_uid,
+			       "(%s), uid %d, jail %s\n",
+			    sbuf_data(&sb), p->p_pid, p->p_comm,
+			    p->p_ucred->cr_uid,
 			    p->p_ucred->cr_prison->pr_prison_racct->prr_name);
 			sbuf_delete(&sb);
 			free(buf, M_RCTL);
@@ -570,7 +544,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 				continue;
 
 			if (!ppsratecheck(&devctl_lasttime, &devctl_curtime,
-			    rctl_devctl_rate_limit))
+				rctl_devctl_rate_limit))
 				continue;
 
 			buf = malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
@@ -581,8 +555,8 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			sbuf_new(&sb, buf, RCTL_LOG_BUFSIZE, SBUF_FIXEDLEN);
 			sbuf_cat(&sb, "rule=");
 			rctl_rule_to_sbuf(&sb, rule);
-			sbuf_printf(&sb, " pid=%d ruid=%d jail=%s",
-			    p->p_pid, p->p_ucred->cr_ruid,
+			sbuf_printf(&sb, " pid=%d ruid=%d jail=%s", p->p_pid,
+			    p->p_ucred->cr_ruid,
 			    p->p_ucred->cr_prison->pr_prison_racct->prr_name);
 			sbuf_finish(&sb);
 			devctl_notify("RCTL", "rule", "matched",
@@ -620,7 +594,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			 *
 			 */
 			sleep_ms = xmul(hz, p->p_racct->r_resources[resource]);
-			sleep_ms = xmul(sleep_ms,  rctl_throttle_pct) / 100;
+			sleep_ms = xmul(sleep_ms, rctl_throttle_pct) / 100;
 			if (sleep_ms < rctl_throttle_min * rule->rr_amount)
 				sleep_ms = rctl_throttle_min * rule->rr_amount;
 
@@ -638,7 +612,8 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			else
 				sleep_ratio = 0;
 			sleep_ratio = xmul(sleep_ratio, sleep_ratio);
-			sleep_ratio = xmul(sleep_ratio, rctl_throttle_pct2) / 100;
+			sleep_ratio = xmul(sleep_ratio, rctl_throttle_pct2) /
+			    100;
 			sleep_ms = xadd(sleep_ms, xmul(sleep_ms, sleep_ratio));
 
 			/*
@@ -656,8 +631,9 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			   (uintmax_t)sleep_ratio, (intmax_t)available);
 #endif
 
-			KASSERT(sleep_ms >= rctl_throttle_min, ("%s: %ju < %d\n",
-			    __func__, (uintmax_t)sleep_ms, rctl_throttle_min));
+			KASSERT(sleep_ms >= rctl_throttle_min,
+			    ("%s: %ju < %d\n", __func__, (uintmax_t)sleep_ms,
+				rctl_throttle_min));
 			racct_proc_throttle(p, sleep_ms);
 			continue;
 		default:
@@ -668,9 +644,9 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 				continue;
 
 			KASSERT(rule->rr_action > 0 &&
-			    rule->rr_action <= RCTL_ACTION_SIGNAL_MAX,
+				rule->rr_action <= RCTL_ACTION_SIGNAL_MAX,
 			    ("rctl_enforce: unknown action %d",
-			     rule->rr_action));
+				rule->rr_action));
 
 			/*
 			 * We're using the fact that RCTL_ACTION_SIG* values
@@ -707,7 +683,7 @@ rctl_get_limit(struct proc *p, int resource)
 	 * There may be more than one matching rule; go through all of them.
 	 * Denial should be done last, after logging and sending signals.
 	 */
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
 		if (rule->rr_resource != resource)
 			continue;
@@ -736,7 +712,7 @@ rctl_get_available(struct proc *p, int resource)
 	 * There may be more than one matching rule; go through all of them.
 	 * Denial should be done last, after logging and sending signals.
 	 */
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
 		if (rule->rr_resource != resource)
 			continue;
@@ -773,25 +749,25 @@ rctl_rule_matches(const struct rctl_rule *rule, const struct rctl_rule *filter)
 		case RCTL_SUBJECT_TYPE_PROCESS:
 			if (filter->rr_subject.rs_proc != NULL &&
 			    rule->rr_subject.rs_proc !=
-			    filter->rr_subject.rs_proc)
+				filter->rr_subject.rs_proc)
 				return (0);
 			break;
 		case RCTL_SUBJECT_TYPE_USER:
 			if (filter->rr_subject.rs_uip != NULL &&
 			    rule->rr_subject.rs_uip !=
-			    filter->rr_subject.rs_uip)
+				filter->rr_subject.rs_uip)
 				return (0);
 			break;
 		case RCTL_SUBJECT_TYPE_LOGINCLASS:
 			if (filter->rr_subject.rs_loginclass != NULL &&
 			    rule->rr_subject.rs_loginclass !=
-			    filter->rr_subject.rs_loginclass)
+				filter->rr_subject.rs_loginclass)
 				return (0);
 			break;
 		case RCTL_SUBJECT_TYPE_JAIL:
 			if (filter->rr_subject.rs_prison_racct != NULL &&
 			    rule->rr_subject.rs_prison_racct !=
-			    filter->rr_subject.rs_prison_racct)
+				filter->rr_subject.rs_prison_racct)
 				return (0);
 			break;
 		default:
@@ -833,7 +809,7 @@ str2value(const char *str, int *value, struct dict *table)
 
 	for (i = 0; table[i].d_name != NULL; i++) {
 		if (strcasecmp(table[i].d_name, str) == 0) {
-			*value =  table[i].d_value;
+			*value = table[i].d_value;
 			return (0);
 		}
 	}
@@ -922,8 +898,7 @@ rctl_racct_add_rule_locked(struct racct *racct, struct rctl_rule *rule)
  * the number of limit structures removed.
  */
 static int
-rctl_racct_remove_rules(struct racct *racct,
-    const struct rctl_rule *filter)
+rctl_racct_remove_rules(struct racct *racct, const struct rctl_rule *filter)
 {
 	struct rctl_rule_link *link, *linktmp;
 	int removed = 0;
@@ -931,7 +906,7 @@ rctl_racct_remove_rules(struct racct *racct,
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
 
-	LIST_FOREACH_SAFE(link, &racct->r_rule_links, rrl_next, linktmp) {
+	LIST_FOREACH_SAFE (link, &racct->r_rule_links, rrl_next, linktmp) {
 		if (!rctl_rule_matches(link->rrl_rule, filter))
 			continue;
 
@@ -1141,8 +1116,8 @@ static int
 rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 {
 	struct rctl_rule *rule;
-	char *subjectstr, *subject_idstr, *resourcestr, *actionstr,
-	     *amountstr, *perstr;
+	char *subjectstr, *subject_idstr, *resourcestr, *actionstr, *amountstr,
+	    *perstr;
 	id_t id;
 	int error = 0;
 
@@ -1160,7 +1135,8 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 	if (subjectstr == NULL || subjectstr[0] == '\0')
 		rule->rr_subject_type = RCTL_SUBJECT_TYPE_UNDEFINED;
 	else {
-		error = str2value(subjectstr, &rule->rr_subject_type, subjectnames);
+		error = str2value(subjectstr, &rule->rr_subject_type,
+		    subjectnames);
 		if (error != 0)
 			goto out;
 	}
@@ -1194,25 +1170,25 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 			rule->rr_subject.rs_uip = uifind(id);
 			break;
 		case RCTL_SUBJECT_TYPE_LOGINCLASS:
-			rule->rr_subject.rs_loginclass =
-			    loginclass_find(subject_idstr);
+			rule->rr_subject.rs_loginclass = loginclass_find(
+			    subject_idstr);
 			if (rule->rr_subject.rs_loginclass == NULL) {
 				error = ENAMETOOLONG;
 				goto out;
 			}
 			break;
 		case RCTL_SUBJECT_TYPE_JAIL:
-			rule->rr_subject.rs_prison_racct =
-			    prison_racct_find(subject_idstr);
+			rule->rr_subject.rs_prison_racct = prison_racct_find(
+			    subject_idstr);
 			if (rule->rr_subject.rs_prison_racct == NULL) {
 				error = ENAMETOOLONG;
 				goto out;
 			}
 			break;
-               default:
-                       panic("rctl_string_to_rule: unknown subject type %d",
-                           rule->rr_subject_type);
-               }
+		default:
+			panic("rctl_string_to_rule: unknown subject type %d",
+			    rule->rr_subject_type);
+		}
 	}
 
 	if (resourcestr == NULL || resourcestr[0] == '\0')
@@ -1362,7 +1338,7 @@ rctl_rule_add(struct rctl_rule *rule)
 	 * it applies to.
 	 */
 	sx_assert(&allproc_lock, SA_LOCKED);
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		cred = p->p_ucred;
 		switch (rule->rr_subject_type) {
 		case RCTL_SUBJECT_TYPE_USER:
@@ -1371,13 +1347,16 @@ rctl_rule_add(struct rctl_rule *rule)
 				break;
 			continue;
 		case RCTL_SUBJECT_TYPE_LOGINCLASS:
-			if (cred->cr_loginclass == rule->rr_subject.rs_loginclass)
+			if (cred->cr_loginclass ==
+			    rule->rr_subject.rs_loginclass)
 				break;
 			continue;
 		case RCTL_SUBJECT_TYPE_JAIL:
 			match = 0;
-			for (pr = cred->cr_prison; pr != NULL; pr = pr->pr_parent) {
-				if (pr->pr_prison_racct == rule->rr_subject.rs_prison_racct) {
+			for (pr = cred->cr_prison; pr != NULL;
+			     pr = pr->pr_parent) {
+				if (pr->pr_prison_racct ==
+				    rule->rr_subject.rs_prison_racct) {
 					match = 1;
 					break;
 				}
@@ -1447,18 +1426,16 @@ rctl_rule_remove(struct rctl_rule *filter)
 	}
 
 	loginclass_racct_foreach(rctl_rule_remove_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, (void *)&found);
-	ui_racct_foreach(rctl_rule_remove_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, (void *)&found);
-	prison_racct_foreach(rctl_rule_remove_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, (void *)&found);
+	    rctl_rule_pre_callback, rctl_rule_post_callback, filter,
+	    (void *)&found);
+	ui_racct_foreach(rctl_rule_remove_callback, rctl_rule_pre_callback,
+	    rctl_rule_post_callback, filter, (void *)&found);
+	prison_racct_foreach(rctl_rule_remove_callback, rctl_rule_pre_callback,
+	    rctl_rule_post_callback, filter, (void *)&found);
 
 	sx_assert(&allproc_lock, SA_LOCKED);
 	RACCT_LOCK();
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		found += rctl_racct_remove_rules(p->p_racct, filter);
 	}
 	RACCT_UNLOCK();
@@ -1485,29 +1462,27 @@ rctl_rule_to_sbuf(struct sbuf *sb, const struct rctl_rule *rule)
 		if (rule->rr_subject.rs_proc == NULL)
 			sbuf_putc(sb, ':');
 		else
-			sbuf_printf(sb, "%d:",
-			    rule->rr_subject.rs_proc->p_pid);
+			sbuf_printf(sb, "%d:", rule->rr_subject.rs_proc->p_pid);
 		break;
 	case RCTL_SUBJECT_TYPE_USER:
 		if (rule->rr_subject.rs_uip == NULL)
 			sbuf_putc(sb, ':');
 		else
-			sbuf_printf(sb, "%d:",
-			    rule->rr_subject.rs_uip->ui_uid);
+			sbuf_printf(sb, "%d:", rule->rr_subject.rs_uip->ui_uid);
 		break;
 	case RCTL_SUBJECT_TYPE_LOGINCLASS:
 		if (rule->rr_subject.rs_loginclass == NULL)
 			sbuf_putc(sb, ':');
 		else
-			sbuf_printf(sb, "%s:",
-			    rule->rr_subject.rs_loginclass->lc_name);
+			sbuf_printf(sb,
+			    "%s:", rule->rr_subject.rs_loginclass->lc_name);
 		break;
 	case RCTL_SUBJECT_TYPE_JAIL:
 		if (rule->rr_subject.rs_prison_racct == NULL)
 			sbuf_putc(sb, ':');
 		else
-			sbuf_printf(sb, "%s:",
-			    rule->rr_subject.rs_prison_racct->prr_name);
+			sbuf_printf(sb,
+			    "%s:", rule->rr_subject.rs_prison_racct->prr_name);
 		break;
 	default:
 		panic("rctl_rule_to_sbuf: unknown subject type %d",
@@ -1519,10 +1494,8 @@ rctl_rule_to_sbuf(struct sbuf *sb, const struct rctl_rule *rule)
 	    RACCT_IS_IN_MILLIONS(rule->rr_resource))
 		amount /= 1000000;
 
-	sbuf_printf(sb, "%s:%s=%jd",
-	    rctl_resource_name(rule->rr_resource),
-	    rctl_action_name(rule->rr_action),
-	    amount);
+	sbuf_printf(sb, "%s:%s=%jd", rctl_resource_name(rule->rr_resource),
+	    rctl_action_name(rule->rr_action), amount);
 
 	if (rule->rr_per != rule->rr_subject_type)
 		sbuf_printf(sb, "/%s", rctl_subject_type_name(rule->rr_per));
@@ -1692,7 +1665,7 @@ rctl_get_rules_callback(struct racct *racct, void *arg2, void *arg3)
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
 
-	LIST_FOREACH(link, &racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &racct->r_rule_links, rrl_next) {
 		if (!rctl_rule_matches(link->rrl_rule, filter))
 			continue;
 		rctl_rule_to_sbuf(sb, link->rrl_rule);
@@ -1740,9 +1713,9 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 	sb = sbuf_new(NULL, buf, bufsize, SBUF_FIXEDLEN);
 	KASSERT(sb != NULL, ("sbuf_new failed"));
 
-	FOREACH_PROC_IN_SYSTEM(p) {
+	FOREACH_PROC_IN_SYSTEM (p) {
 		RACCT_LOCK();
-		LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+		LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 			/*
 			 * Non-process rules will be added to the buffer later.
 			 * Adding them here would result in duplicated output.
@@ -1759,14 +1732,11 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 	}
 
 	loginclass_racct_foreach(rctl_get_rules_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, sb);
-	ui_racct_foreach(rctl_get_rules_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, sb);
-	prison_racct_foreach(rctl_get_rules_callback,
-	    rctl_rule_pre_callback, rctl_rule_post_callback,
-	    filter, sb);
+	    rctl_rule_pre_callback, rctl_rule_post_callback, filter, sb);
+	ui_racct_foreach(rctl_get_rules_callback, rctl_rule_pre_callback,
+	    rctl_rule_post_callback, filter, sb);
+	prison_racct_foreach(rctl_get_rules_callback, rctl_rule_pre_callback,
+	    rctl_rule_post_callback, filter, sb);
 	if (sbuf_error(sb) == ENOMEM) {
 		error = ERANGE;
 		goto out;
@@ -1843,7 +1813,7 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 	KASSERT(sb != NULL, ("sbuf_new failed"));
 
 	RACCT_LOCK();
-	LIST_FOREACH(link, &filter->rr_subject.rs_proc->p_racct->r_rule_links,
+	LIST_FOREACH (link, &filter->rr_subject.rs_proc->p_racct->r_rule_links,
 	    rrl_next) {
 		rctl_rule_to_sbuf(sb, link->rrl_rule);
 		sbuf_putc(sb, ',');
@@ -1978,16 +1948,16 @@ again:
 	 */
 	rulecnt = 0;
 	RACCT_LOCK();
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		if (link->rrl_rule->rr_subject_type ==
 		    RCTL_SUBJECT_TYPE_PROCESS)
 			rulecnt++;
 	}
-	LIST_FOREACH(link, &newuip->ui_racct->r_rule_links, rrl_next)
+	LIST_FOREACH (link, &newuip->ui_racct->r_rule_links, rrl_next)
 		rulecnt++;
-	LIST_FOREACH(link, &newlc->lc_racct->r_rule_links, rrl_next)
+	LIST_FOREACH (link, &newlc->lc_racct->r_rule_links, rrl_next)
 		rulecnt++;
-	LIST_FOREACH(link, &newprr->prr_racct->r_rule_links, rrl_next)
+	LIST_FOREACH (link, &newprr->prr_racct->r_rule_links, rrl_next)
 		rulecnt++;
 	RACCT_UNLOCK();
 
@@ -2008,7 +1978,7 @@ again:
 	 * Assign rules to the newly allocated list entries.
 	 */
 	RACCT_LOCK();
-	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &p->p_racct->r_rule_links, rrl_next) {
 		if (link->rrl_rule->rr_subject_type ==
 		    RCTL_SUBJECT_TYPE_PROCESS) {
 			if (newlink == NULL)
@@ -2021,7 +1991,7 @@ again:
 		}
 	}
 
-	LIST_FOREACH(link, &newuip->ui_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &newuip->ui_racct->r_rule_links, rrl_next) {
 		if (newlink == NULL)
 			goto goaround;
 		rctl_rule_acquire(link->rrl_rule);
@@ -2031,7 +2001,7 @@ again:
 		rulecnt--;
 	}
 
-	LIST_FOREACH(link, &newlc->lc_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &newlc->lc_racct->r_rule_links, rrl_next) {
 		if (newlink == NULL)
 			goto goaround;
 		rctl_rule_acquire(link->rrl_rule);
@@ -2041,7 +2011,7 @@ again:
 		rulecnt--;
 	}
 
-	LIST_FOREACH(link, &newprr->prr_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &newprr->prr_racct->r_rule_links, rrl_next) {
 		if (newlink == NULL)
 			goto goaround;
 		rctl_rule_acquire(link->rrl_rule);
@@ -2071,8 +2041,8 @@ again:
 		while (!LIST_EMPTY(&newrules)) {
 			newlink = LIST_FIRST(&newrules);
 			LIST_REMOVE(newlink, rrl_next);
-			LIST_INSERT_HEAD(&p->p_racct->r_rule_links,
-			    newlink, rrl_next);
+			LIST_INSERT_HEAD(&p->p_racct->r_rule_links, newlink,
+			    rrl_next);
 		}
 
 		RACCT_UNLOCK();
@@ -2110,7 +2080,8 @@ rctl_proc_fork(struct proc *parent, struct proc *child)
 
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
-	KASSERT(parent->p_racct != NULL, ("process without racct; p = %p", parent));
+	KASSERT(parent->p_racct != NULL,
+	    ("process without racct; p = %p", parent));
 
 	LIST_INIT(&child->p_racct->r_rule_links);
 
@@ -2119,7 +2090,7 @@ rctl_proc_fork(struct proc *parent, struct proc *child)
 	 * to the child.  Rules with 'process' subject have to be duplicated
 	 * in order to make their rr_subject point to the new process.
 	 */
-	LIST_FOREACH(link, &parent->p_racct->r_rule_links, rrl_next) {
+	LIST_FOREACH (link, &parent->p_racct->r_rule_links, rrl_next) {
 		if (link->rrl_rule->rr_subject_type ==
 		    RCTL_SUBJECT_TYPE_PROCESS) {
 			rule = rctl_rule_duplicate(link->rrl_rule, M_NOWAIT);

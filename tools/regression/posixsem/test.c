@@ -31,6 +31,7 @@
  */
 
 #include <sys/cdefs.h>
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -93,7 +94,7 @@ fail_err(const char *fmt, ...)
 
 	va_start(ap, fmt);
 	vprint_status("not ok", fmt, ap);
-	va_end(ap);	
+	va_end(ap);
 }
 
 void
@@ -117,7 +118,8 @@ run_tests(void)
 
 	printf("1..%td\n", SET_COUNT(regression_tests_set));
 	test_index = 1;
-	SET_FOREACH(testp, regression_tests_set) {
+	SET_FOREACH(testp, regression_tests_set)
+	{
 		test_acknowleged = 0;
 		test = *testp;
 		test->rt_function();

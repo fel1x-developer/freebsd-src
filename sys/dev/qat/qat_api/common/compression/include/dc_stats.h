@@ -16,34 +16,34 @@
 /* Number of Compression statistics */
 #define COMPRESSION_NUM_STATS (sizeof(CpaDcStats) / sizeof(Cpa64U))
 
-#define COMPRESSION_STAT_INC(statistic, pService)                              \
-	do {                                                                   \
-		if (CPA_TRUE ==                                                \
-		    pService->generic_service_info.stats->bDcStatsEnabled) {   \
-			qatUtilsAtomicInc(                                     \
-			    &pService->pCompStatsArr[offsetof(CpaDcStats,      \
-							      statistic) /     \
-						     sizeof(Cpa64U)]);         \
-		}                                                              \
+#define COMPRESSION_STAT_INC(statistic, pService)                            \
+	do {                                                                 \
+		if (CPA_TRUE ==                                              \
+		    pService->generic_service_info.stats->bDcStatsEnabled) { \
+			qatUtilsAtomicInc(                                   \
+			    &pService->pCompStatsArr[offsetof(CpaDcStats,    \
+							 statistic) /        \
+				sizeof(Cpa64U)]);                            \
+		}                                                            \
 	} while (0)
 
 /* Macro to get all Compression stats (from internal array of atomics) */
-#define COMPRESSION_STATS_GET(compStats, pService)                             \
-	do {                                                                   \
-		int i;                                                         \
-		for (i = 0; i < COMPRESSION_NUM_STATS; i++) {                  \
-			((Cpa64U *)compStats)[i] =                             \
-			    qatUtilsAtomicGet(&pService->pCompStatsArr[i]);    \
-		}                                                              \
+#define COMPRESSION_STATS_GET(compStats, pService)                    \
+	do {                                                          \
+		int i;                                                \
+		for (i = 0; i < COMPRESSION_NUM_STATS; i++) {         \
+			((Cpa64U *)compStats)[i] = qatUtilsAtomicGet( \
+			    &pService->pCompStatsArr[i]);             \
+		}                                                     \
 	} while (0)
 
 /* Macro to reset all Compression stats */
-#define COMPRESSION_STATS_RESET(pService)                                      \
-	do {                                                                   \
-		int i;                                                         \
-		for (i = 0; i < COMPRESSION_NUM_STATS; i++) {                  \
-			qatUtilsAtomicSet(0, &pService->pCompStatsArr[i]);     \
-		}                                                              \
+#define COMPRESSION_STATS_RESET(pService)                                  \
+	do {                                                               \
+		int i;                                                     \
+		for (i = 0; i < COMPRESSION_NUM_STATS; i++) {              \
+			qatUtilsAtomicSet(0, &pService->pCompStatsArr[i]); \
+		}                                                          \
 	} while (0)
 
 /**

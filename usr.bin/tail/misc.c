@@ -32,21 +32,18 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 
+#include <casper/cap_fileargs.h>
 #include <err.h>
 #include <errno.h>
+#include <libcasper.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <libcasper.h>
-#include <casper/cap_fileargs.h>
 
 #include "extern.h"
 
@@ -73,8 +70,8 @@ mapprint(struct mapinfo *mip, off_t startoff, off_t len)
 	int n;
 
 	while (len > 0) {
-		if (startoff < mip->mapoff || startoff >= mip->mapoff +
-		    (off_t)mip->maplen) {
+		if (startoff < mip->mapoff ||
+		    startoff >= mip->mapoff + (off_t)mip->maplen) {
 			if (maparound(mip, startoff) != 0)
 				return (1);
 		}
@@ -107,7 +104,7 @@ maparound(struct mapinfo *mip, off_t offset)
 	if (mip->maplen <= 0)
 		abort();
 	if ((mip->start = mmap(NULL, mip->maplen, PROT_READ, MAP_SHARED,
-	     mip->fd, mip->mapoff)) == MAP_FAILED)
+		 mip->fd, mip->mapoff)) == MAP_FAILED)
 		return (1);
 
 	return (0);
